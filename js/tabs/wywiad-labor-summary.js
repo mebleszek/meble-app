@@ -51,58 +51,27 @@
       });
     });
   }
-  function getApplianceInfo(cabinet){
+  function getApplianceText(cabinet){
     try{
       const api = FC.laborApplianceRules;
-      if(!(api && typeof api.describeCabinetMounting === 'function')) return null;
-      const textValue = api.describeCabinetMounting(cabinet);
-      if(!textValue) return null;
-      const enabled = typeof api.isMountingEnabled === 'function' ? !!api.isMountingEnabled(cabinet) : !/bez montażu/i.test(textValue);
-      return { text:textValue, enabled };
-    }catch(_){ return null; }
-  }
-  function getApplianceText(cabinet){
-    const info = getApplianceInfo(cabinet);
-    return info ? info.text : '';
-  }
-  function getHeaderLines(cabinet){
-    const rows = resolveItems(cabinet);
-    const lines = [];
-    const appliance = getApplianceInfo(cabinet);
-    if(appliance){
-      lines.push({
-        kind:'mounting',
-        enabled:!!appliance.enabled,
-        text:appliance.text,
-      });
-    }
-    rows.forEach((row)=> {
-      lines.push({
-        kind:'labor',
-        text:`Czynności: ${row.name || row.rateId}`,
-      });
-    });
-    return lines;
+      return api && typeof api.describeCabinetMounting === 'function' ? api.describeCabinetMounting(cabinet) : '';
+    }catch(_){ return ''; }
   }
   function getHeaderText(cabinet){
-    return getHeaderLines(cabinet).map((line)=> line.text).join(' • ');
-  }
-  function renderHeaderSummary(cabinet){
-    const lines = getHeaderLines(cabinet);
-    if(!lines.length) return null;
-    const wrap = make('div', 'cabinet-header__meta cabinet-header__meta--labor');
-    lines.forEach((line)=> {
-      const cls = ['cabinet-header__labor-line'];
-      if(line.kind === 'mounting') cls.push(line.enabled ? 'cabinet-header__labor-line--mount-on' : 'cabinet-header__labor-line--mount-off');
-      else cls.push('cabinet-header__labor-line--item');
-      wrap.appendChild(make('div', cls.join(' '), line.text));
-    });
-    return wrap;
+    const rows = resolveItems(cabinet);
+    const applianceText = getApplianceText(cabinet);
+    const parts = [];
+    if(applianceText) parts.push(applianceText);
+    if(rows.length){
+      const names = rows.slice(0, 3).map((row)=> `${row.name}${row.qty > 1 ? ' ×' + row.qty : ''}`);
+      const rest = rows.length > 3 ? ` +${rows.length - 3}` : '';
+      parts.push(`Czynności: ${names.join(', ')}${rest}`);
+    }
+    return parts.join(' • ');
   }
   function renderCabinetLaborSummary(cabinet){
     const rows = resolveItems(cabinet);
-    const appliance = getApplianceInfo(cabinet);
-    const applianceText = appliance ? appliance.text : '';
+    const applianceText = getApplianceText(cabinet);
     if(!rows.length && !applianceText) return null;
     const block = make('div', 'front-block cabinet-labor-summary');
     const head = make('div', 'head');
@@ -112,8 +81,7 @@
     if(applianceText){
       const appLine = make('div', 'front-row cabinet-labor-summary__row');
       const left = make('div');
-      const nameClass = `cabinet-labor-summary__name ${appliance && appliance.enabled ? 'cabinet-labor-summary__name--mount-on' : 'cabinet-labor-summary__name--mount-off'}`;
-      left.appendChild(make('div', nameClass, applianceText));
+      left.appendChild(make('div', 'cabinet-labor-summary__name', applianceText));
       left.appendChild(make('div', 'front-meta', 'Automatycznie z typu szafki, z możliwością wyłączenia w edycji.'));
       appLine.appendChild(left);
       appLine.appendChild(make('div', 'cabinet-labor-summary__qty', ''));
@@ -138,8 +106,6 @@
     getDefinitions,
     resolveItems,
     getHeaderText,
-    getHeaderLines,
-    renderHeaderSummary,
     renderCabinetLaborSummary,
   };
 })();

@@ -136,7 +136,7 @@
 
 
   function buildHardwareTypeOptions(categoryValue, selectedValue, opts){
-    const cfg = Object.assign({ includeAll:false, includeEmpty:true, emptyLabel:'Wybierz typ / cechę', manufacturer:'', hardwareSystem:'', currentId:'' }, opts || {});
+    const cfg = Object.assign({ includeAll:false, includeEmpty:true, emptyLabel:'Wybierz typ / cechę', manufacturer:'', currentId:'' }, opts || {});
     let types = [];
     try{ const store = ctx.catalogStore && ctx.catalogStore(); types = store && store.getHardwareTypes ? store.getHardwareTypes() : []; }catch(_){ types = []; }
     const hw = FC.hardwareCatalog || {};
@@ -147,7 +147,7 @@
       const item = entry && typeof entry === 'object' ? Object.assign({}, entry) : { value:entry, label:entry };
       const value = text(item.value);
       if(value && text(cfg.manufacturer) && hw && typeof hw.uniqueTypeConflict === 'function'){
-        const conflict = hw.uniqueTypeConflict(currentHardwareItems(), { manufacturer:cfg.manufacturer, hardwareCategory:categoryValue, hardwareSystem:cfg.hardwareSystem, hardwareType:value }, cfg.currentId);
+        const conflict = hw.uniqueTypeConflict(currentHardwareItems(), { manufacturer:cfg.manufacturer, hardwareCategory:categoryValue, hardwareType:value }, cfg.currentId);
         if(conflict){
           item.disabled = true;
           item.description = 'Zajęte przez: ' + (text(conflict.name) || text(conflict.symbol) || 'inną pozycję');

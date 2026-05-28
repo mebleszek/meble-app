@@ -9,164 +9,6 @@
     container.appendChild(warn);
   }
 
-
-
-  function getFrontSourceOptions(){
-    try{
-      const api = ns.frontMaterialSource;
-      if(api && Array.isArray(api.SOURCE_OPTIONS)) return api.SOURCE_OPTIONS.map((o)=>({ v:o.v, t:o.t }));
-    }catch(_){ }
-    return [
-      { v:'lower', t:'Jak strefa dolna / stojące' },
-      { v:'middle', t:'Jak strefa środkowa / moduły' },
-      { v:'upper', t:'Jak strefa górna / wiszące' },
-      { v:'custom', t:'Własny materiał' }
-    ];
-  }
-
-  function getMaterials(){
-    try{ return Array.isArray(materials) ? materials : []; }catch(_){ return []; }
-  }
-
-  function populateMaterialTypeOptions(selectEl, selected){
-    if(!selectEl) return;
-    const types = [];
-    getMaterials().forEach((mat)=>{
-      const type = String(mat && mat.materialType || '').trim();
-      if(type && !types.includes(type)) types.push(type);
-    });
-    if(!types.includes('laminat')) types.unshift('laminat');
-    selectEl.innerHTML = '';
-    types.forEach((type)=>{
-      const o = document.createElement('option');
-      o.value = type;
-      o.textContent = type;
-      if(type === selected) o.selected = true;
-      selectEl.appendChild(o);
-    });
-  }
-
-  function populateFrontColorOptions(selectEl, materialType, selected){
-    const api = ns.cabinetModalFields;
-    try{
-      if(api && typeof api.populateFrontColorsTo === 'function'){
-        api.populateFrontColorsTo(selectEl, materialType || 'laminat', selected || '');
-        return;
-      }
-    }catch(_){ }
-    if(!selectEl) return;
-    selectEl.innerHTML = '';
-    getMaterials().filter((mat)=> String(mat && mat.materialType || '') === String(materialType || 'laminat')).forEach((mat)=>{
-      const o = document.createElement('option');
-      o.value = mat.name;
-      o.textContent = mat.name;
-      if(mat.name === selected) o.selected = true;
-      selectEl.appendChild(o);
-    });
-  }
-
-  function makeFridgeSourceKey(part){ return 'fridgeFrontSource' + part.charAt(0).toUpperCase() + part.slice(1); }
-  function makeFridgeCustomMaterialKey(part){ return 'fridgeFrontCustomMaterial' + part.charAt(0).toUpperCase() + part.slice(1); }
-  function makeFridgeCustomColorKey(part){ return 'fridgeFrontCustomColor' + part.charAt(0).toUpperCase() + part.slice(1); }
-
-  function ensureFridgeFrontSourceDefaults(draft, isNewDraft){
-    const details = Object.assign({}, draft.details || {});
-    const fc = String(details.fridgeFrontCount || '2');
-    const hasAny = !!(details.fridgeFrontSourceSingle || details.fridgeFrontSourceLower || details.fridgeFrontSourceUpper);
-    if(!hasAny && isNewDraft){
-      details.fridgeFrontSourceSingle = 'lower';
-      details.fridgeFrontSourceLower = 'lower';
-      details.fridgeFrontSourceUpper = 'upper';
-    }
-    ['single','lower','upper'].forEach((part)=>{
-      const srcKey = makeFridgeSourceKey(part);
-      const matKey = makeFridgeCustomMaterialKey(part);
-      const colKey = makeFridgeCustomColorKey(part);
-      if(!details[srcKey]) details[srcKey] = hasAny || !isNewDraft ? 'custom' : (part === 'upper' && fc !== '1' ? 'upper' : 'lower');
-      if(!details[matKey]) details[matKey] = draft.frontMaterial || 'laminat';
-      if(!details[colKey]) details[colKey] = draft.frontColor || '';
-    });
-    draft.details = details;
-  }
-
-  function appendFridgeCustomMaterialFields(ctx, part, labelPrefix){
-    const draft = ctx.draft;
-    const wrap = document.createElement('div');
-    wrap.className = 'grid-2 cabinet-front-source-custom-fields';
-    wrap.style.gap = '12px';
-    wrap.style.marginBottom = '10px';
-    const materialKey = makeFridgeCustomMaterialKey(part);
-    const colorKey = makeFridgeCustomColorKey(part);
-    const matId = 'cmFridgeFrontCustomMaterial' + part.charAt(0).toUpperCase() + part.slice(1);
-    const colId = 'cmFridgeFrontCustomColor' + part.charAt(0).toUpperCase() + part.slice(1);
-    wrap.innerHTML = `
-      <div class="cabinet-extra-field cabinet-extra-field--select cabinet-extra-field--compact">
-        <label class="cabinet-extra-field__label">${labelPrefix} — materiał własny</label>
-        <select id="${matId}" class="cabinet-choice-source cabinet-extra-field__control cabinet-dynamic-choice-source" data-launcher-label="${labelPrefix} — materiał własny" data-choice-title="Wybierz materiał własny" data-choice-placeholder="Materiał własny"></select>
-      </div>
-      <div class="cabinet-extra-field cabinet-extra-field--select cabinet-extra-field--compact">
-        <label class="cabinet-extra-field__label">${labelPrefix} — kolor własny</label>
-        <select id="${colId}" class="cabinet-choice-source cabinet-extra-field__control cabinet-dynamic-choice-source" data-launcher-label="${labelPrefix} — kolor własny" data-choice-title="Wybierz kolor własny" data-choice-placeholder="Kolor własny"></select>
-      </div>
-    `;
-    const matSel = wrap.querySelector('#' + matId);
-    const colSel = wrap.querySelector('#' + colId);
-    populateMaterialTypeOptions(matSel, draft.details[materialKey] || draft.frontMaterial || 'laminat');
-    populateFrontColorOptions(colSel, matSel.value || 'laminat', draft.details[colorKey] || draft.frontColor || '');
-    matSel.addEventListener('change', (e)=>{
-      draft.details = Object.assign({}, draft.details || {}, { [materialKey]: e.target.value });
-      populateFrontColorOptions(colSel, e.target.value, '');
-      draft.details[colorKey] = colSel.value || '';
-      try{ colSel.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){ }
-    });
-    colSel.addEventListener('change', (e)=>{
-      draft.details = Object.assign({}, draft.details || {}, { [colorKey]: e.target.value });
-    });
-    ctx.container.appendChild(wrap);
-    return wrap;
-  }
-
-  function appendFridgeFrontSourceField(ctx, part, label){
-    const draft = ctx.draft;
-    const key = makeFridgeSourceKey(part);
-    const options = getFrontSourceOptions();
-    ctx.addSelect(label, key, options, ()=>{ ctx.renderCabinetModal(); });
-    const src = String((draft.details && draft.details[key]) || 'custom');
-    if(src === 'custom') appendFridgeCustomMaterialFields(ctx, part, label);
-  }
-
-  function appendFridgeFurnitureHingeToggle(ctx){
-    const draft = ctx.draft;
-    const d = draft.details || {};
-    const wrap = document.createElement('div');
-    wrap.className = 'cabinet-extra-field cabinet-extra-field--compact';
-    wrap.style.marginBottom = '10px';
-    const chip = document.createElement('label');
-    chip.className = 'rozrys-scope-chip cabinet-labor-appliance__choice' + (d.requiresFurnitureHinges ? ' is-checked' : '');
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = !!d.requiresFurnitureHinges;
-    const span = document.createElement('span');
-    span.textContent = 'Wymaga zawiasów meblowych';
-    const apply = () => {
-      const next = !!cb.checked;
-      draft.details = Object.assign({}, draft.details || {}, { requiresFurnitureHinges: next });
-      if(next) chip.classList.add('is-checked');
-      else chip.classList.remove('is-checked');
-    };
-    cb.addEventListener('change', (event)=>{
-      try{ event.stopPropagation(); }catch(_){}
-      apply();
-    });
-    chip.addEventListener('click', (event)=>{
-      try{ event.stopPropagation(); }catch(_){}
-    });
-    chip.appendChild(cb);
-    chip.appendChild(span);
-    wrap.appendChild(chip);
-    ctx.container.appendChild(wrap);
-  }
-
   function renderDrawerExtras(ctx){
     const container = ctx.container;
     const draft = ctx.draft;
@@ -431,8 +273,6 @@
     const opt = String((draft.details && draft.details.fridgeOption) ? draft.details.fridgeOption : 'zabudowa');
     const niche = String((draft.details && draft.details.fridgeNicheHeight) ? draft.details.fridgeNicheHeight : '178');
     const freeOpt = String((draft.details && draft.details.fridgeFreeOption) ? draft.details.fridgeFreeOption : 'brak');
-    const isNewDraft = !!(ctx.cabinetModalState && ctx.cabinetModalState.mode === 'add' && !ctx.cabinetModalState.editingId);
-    ensureFridgeFrontSourceDefaults(draft, isNewDraft);
     grid.innerHTML = `
       <div class="cabinet-extra-field cabinet-extra-field--select cabinet-extra-field--compact">
         <label class="cabinet-extra-field__label">Typ lodówki</label>
@@ -525,15 +365,7 @@
       addSelect('Fronty lodówki (zabudowa)', 'fridgeFrontCount', [
         {v:'1', t:'1 duży front'},
         {v:'2', t:'2 fronty (dolny + górny)'}
-      ], ()=>{ ctx.renderCabinetModal(); });
-      const fc = String((draft.details && draft.details.fridgeFrontCount) ? draft.details.fridgeFrontCount : '2');
-      if(fc === '1'){
-        appendFridgeFrontSourceField(ctx, 'single', 'Front lodówki — materiał');
-      } else {
-        appendFridgeFrontSourceField(ctx, 'lower', 'Dolny front lodówki — materiał');
-        appendFridgeFrontSourceField(ctx, 'upper', 'Górny front lodówki — materiał');
-      }
-      appendFridgeFurnitureHingeToggle(ctx);
+      ]);
     }
     toggleFridgeUI();
     draft.details = Object.assign({}, draft.details || {}, {

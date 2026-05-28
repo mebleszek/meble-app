@@ -9,21 +9,6 @@
     return deps && typeof deps[name] === 'function' ? deps[name] : fallback;
   }
 
-  function reportRenderError(place, err){
-    try{ console.error(`[wycena] ${place} render failed`, err); }catch(_){ }
-  }
-
-  function appendRenderError(card, h, place, err){
-    try{
-      if(!card || typeof h !== 'function') return;
-      const message = String(err && err.message || err || 'Nieznany błąd renderowania.');
-      const box = h('section', { class:'card quote-section', style:'margin-top:12px;padding:14px;border-color:#dc2626;' });
-      box.appendChild(h('h4', { text:'Błąd podglądu WYCENY', style:'margin:0 0 8px;color:#b42318' }));
-      box.appendChild(h('div', { class:'muted', text:`${place}: ${message}`, style:'color:#b42318' }));
-      card.appendChild(box);
-    }catch(_){ }
-  }
-
   function renderQuotePreview(card, currentQuote, ctx, deps){
     const preview = FC.wycenaTabPreview || {};
     if(preview && typeof preview.renderPreview === 'function'){
@@ -42,10 +27,7 @@
           acceptSnapshot:getFn(deps, 'acceptSnapshot'),
           getVersionName:getFn(deps, 'getVersionName'),
         });
-      }catch(err){
-        reportRenderError('preview', err);
-        appendRenderError(card, getFn(deps, 'h'), 'Podgląd wyceny', err);
-      }
+      }catch(_){ }
     }
   }
 
@@ -82,10 +64,7 @@
           getState:getFn(deps, 'getHistoryPreviewState'),
           setState:getFn(deps, 'patchHistoryPreviewState'),
         });
-      }catch(err){
-        reportRenderError('history', err);
-        appendRenderError(card, getFn(deps, 'h'), 'Historia wycen', err);
-      }
+      }catch(_){ }
     }
   }
 
@@ -114,21 +93,8 @@
           clearRememberedQuoteScroll:getFn(deps, 'clearRememberedQuoteScroll'),
           restoreRememberedQuoteScroll:getFn(deps, 'restoreRememberedQuoteScroll'),
           getScrollY:getFn(deps, 'getScrollY'),
-          getSnapshotId:getFn(deps, 'getSnapshotId'),
         });
-      }catch(err){
-        reportRenderError('shell', err);
-        try{
-          const h = getFn(deps, 'h');
-          const list = ctx && ctx.listEl;
-          if(list && typeof h === 'function'){
-            list.innerHTML = '';
-            const card = h('div', { class:'build-card quote-root', id:'quoteActivePreview' });
-            appendRenderError(card, h, 'Zakładka WYCENA', err);
-            list.appendChild(card);
-          }
-        }catch(_){ }
-      }
+      }catch(_){ }
     }
   }
 
@@ -141,7 +107,7 @@
           getSnapshotHistory:getFn(deps, 'getSnapshotHistory'),
           setState:getFn(deps, 'patchHistoryPreviewState'),
         });
-      }catch(err){ reportRenderError('history-preview', err); }
+      }catch(_){ }
     }
     return false;
   }

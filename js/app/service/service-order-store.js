@@ -55,14 +55,7 @@
       across,
       edgesAlong,
       edgesAcross,
-      thickness: Math.max(0, Number(src.thickness) || 0),
-      materialId: normalizeText(src.materialId),
-      materialName: normalizeText(src.materialName),
-      materialSymbol: normalizeText(src.materialSymbol),
-      hasGrain: !!src.hasGrain,
-      source: normalizeText(src.source),
     };
-    return out;
   }
 
   function normalizeCutting(cutting){

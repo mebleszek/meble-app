@@ -68,44 +68,6 @@ function runProjectNodeSmoke(sandbox){
   return makeSingleGroupReport('PROJECT node smoke testy', 'Projekt ↔ Node smoke', [
     { name:'Project store jest dostępny', check:()=> !!(FC.projectStore && typeof FC.projectStore.readAll === 'function' && typeof FC.projectStore.writeAll === 'function') },
     { name:'Model projektu jest dostępny', check:()=> !!(FC.projectModel && typeof FC.projectModel.normalizeProjectData === 'function') },
-    { name:'Preferencje pokoju normalizują się w projekcie', explain:'Pilnuje pola room.preferences jako części modelu projektu, bez osobnego storage — także preferencji producentów okuć.', check:()=> {
-      const out = FC.projectModel.normalizeProjectData({ schemaVersion:9, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{}, preferences:{ bodyColor:'Czarny', openingSystemModule:'TIP-ON', hardwareProducers:{ hinges:'GTV', accessories:'Rejs' } } } });
-      return !!(out && out.kuchnia && out.kuchnia.preferences && out.kuchnia.preferences.zones && out.kuchnia.preferences.zones.lower.bodyColor === 'Czarny' && out.kuchnia.preferences.zones.middle.openingSystem === 'TIP-ON' && out.kuchnia.preferences.hardwareProducers && out.kuchnia.preferences.hardwareProducers.hinges === 'GTV' && out.kuchnia.preferences.hardwareProducers.accessories === 'Rejs' && out.szafa && out.szafa.preferences && out.szafa.preferences.zones && out.szafa.preferences.hardwareProducers);
-    } },
-    { name:'Wywiad ma zwinięte akordeony inline bez przycisków modalnych', explain:'Pilnuje poprawki UX: Parametry, producenci okuć oraz materiały/kolory są edytowane bezpośrednio w akordeonach, domyślnie zwiniętych.', check:()=> {
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      return html.includes('id="roomParametersAccordion"')
-        && html.includes('id="roomHardwareProducerPreferencesAccordion"')
-        && html.includes('id="roomPreferencesAccordion"')
-        && html.includes('Preferencje producentów okuć')
-        && html.includes('Preferencje materiałów i kolorów')
-        && html.includes('wywiad-room-accordion__body wywiad-room-accordion__body--inline" id="roomSettingsSummary"')
-        && html.includes('wywiad-room-accordion__body wywiad-room-accordion__body--inline" id="roomHardwareProducerPreferencesSummary"')
-        && html.includes('wywiad-room-accordion__body wywiad-room-accordion__body--inline" id="roomPreferencesSummary"')
-        && html.includes('js/app/ui/wywiad-room-hardware-producers.js')
-        && !html.includes('id="openRoomSettingsBtn"')
-        && !html.includes('id="openRoomPreferencesBtn"')
-        && !html.includes('roomParametersAccordion" open')
-        && !html.includes('roomHardwareProducerPreferencesAccordion" open')
-        && !html.includes('roomPreferencesAccordion" open');
-    } },
-    { name:'Preferencje producentów okuć zapisują Pozostałe akcesoria', explain:'Chroni zgłoszoną regresję: wybór w polu Pozostałe akcesoria nie może znikać po kliknięciu Zapisz zmiany.', check:()=> {
-      if(!(FC.roomPreferences && typeof FC.roomPreferences.setRoomPreferences === 'function' && typeof FC.roomPreferences.getRoomPreferences === 'function')) return false;
-      const previous = sandbox.projectData;
-      sandbox.projectData = FC.projectModel.normalizeProjectData({ schemaVersion:9, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{}, preferences:{} } });
-      FC.roomPreferences.setRoomPreferences('kuchnia', { hardwareProducers:{ hinges:'Blum', accessories:'Rejs' } }, { skipSave:true });
-      const got = FC.roomPreferences.getRoomPreferences('kuchnia');
-      sandbox.projectData = previous;
-      return !!(got && got.hardwareProducers && got.hardwareProducers.hinges === 'Blum' && got.hardwareProducers.accessories === 'Rejs');
-    } },
-    { name:'UI producentów okuć czyta wartości z launcherów przy zapisie', explain:'Chroni mobilny scenariusz, w którym formularz zostaje przebudowany albo closure draftu jest nieaktualne — Zapisz zmiany ma czytać realne wartości pól, w tym Pozostałe akcesoria.', check:()=> {
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-hardware-producers.js'), 'utf8');
-      return src.includes('function readFormSelections')
-        && src.includes('data-hardware-producer-key')
-        && src.includes('data-hardware-producer-value')
-        && src.includes('rememberDraft(room, draft)')
-        && src.includes('readFormSelections(form, working)');
-    } },
     { name:'Bridge projektu jest dostępny', check:()=> !!(FC.project && typeof FC.project === 'object') },
     { name:'App core namespace jest wydzielony z app.js', check:()=> !!(FC.appCoreNamespace && typeof FC.appCoreNamespace.createAppCore === 'function') },
     { name:'App legacy bridges są wydzielone z app.js', check:()=> !!(FC.appLegacyBridges && FC.appLegacyBridges.installed === true) },
@@ -124,59 +86,7 @@ function runDataNodeSmoke(sandbox){
   const FC = sandbox && sandbox.FC || {};
   return makeSingleGroupReport('DATA node smoke testy', 'Dane ↔ Node smoke', [
     { name:'Storage facade jest dostępna', check:()=> !!(FC.storage && typeof FC.storage.getJSON === 'function' && typeof FC.storage.setJSON === 'function') },
-    { name:'Globalne domyślne programu mają store i backupowany klucz', explain:'Pilnuje trybiku strony głównej: domyślne materiały i okucia siedzą w fc_program_defaults_v1, a nie w WYWIADZIE pokoju.', check:()=> {
-      const api = FC.programDefaults;
-      if(!(api && api.STORAGE_KEY === 'fc_program_defaults_v1' && typeof api.write === 'function' && typeof api.read === 'function' && typeof api.applyMaterialsToDraft === 'function')) return false;
-      api.write({ materials:{ bodyColor:'Egger W1100', frontMaterial:'laminat', frontColor:'Egger W1100', backMaterial:'HDF 3mm biała' }, hardware:{ hingesManufacturer:'Blum', drawerSystemManufacturer:'Rejs', liftManufacturer:'Blum', accessoriesManufacturer:'Rejs' } });
-      const saved = api.read();
-      const draft = {};
-      api.applyMaterialsToDraft(draft, saved);
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      const menu = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/data-settings-menu-view.js'), 'utf8');
-      const classifier = fs.readFileSync(path.join(process.cwd(), 'js/app/shared/data-storage-classifier.js'), 'utf8');
-      return saved.materials.bodyColor === 'Egger W1100'
-        && saved.hardware.drawerSystemManufacturer === 'Rejs'
-        && saved.hardware.accessoriesManufacturer === 'Rejs'
-        && draft.frontColor === 'Egger W1100'
-        && html.includes('js/app/settings/program-defaults-store.js')
-        && html.includes('js/app/ui/data-settings-defaults-view.js')
-        && menu.includes('Domyślne materiały i okucia')
-        && classifier.includes('fc_program_defaults_v1');
-    } },
-    { name:'Domyślne materiały i okucia trzymają wzorzec ROZRYS bez natywnych selectów i strzałek w launcherach', explain:'Pilnuje poprawki UI: w trybiku wybory mają być launcherami aplikacji, bez systemowego pickera, bez liczników i bez strzałek w przyciskach wyboru; akordeon ma używać geometrii chevrona ROZRYS.', check:()=> {
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/data-settings-defaults-view.js'), 'utf8');
-      const css = fs.readFileSync(path.join(process.cwd(), 'css/data-settings.css'), 'utf8');
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      return !src.includes("h('select'")
-        && !src.includes('makeSelectField')
-        && !src.includes("sub:'4'")
-        && !src.includes("sub:'5'")
-        && src.includes('makeChoiceField')
-        && src.includes('FC.rozrysChoice')
-        && css.includes('Program defaults ROZRYS sync v1')
-        && css.includes('.data-settings-default-choice .rozrys-choice-launch__arrow')
-        && css.includes('display:none!important')
-        && css.includes('border-right:3px solid #166534')
-        && !css.includes(".data-settings-defaults-card .data-settings-accordion__toggle::before{\n  content:'▾'")
-        && src.includes("dom.makeAccordion('Materiały', [materialGrid], { open:false })")
-        && src.includes("dom.makeAccordion('Okucia', [hardwareGrid], { open:false })")
-        && src.includes('rozrys-choice-launch--options-clean')
-        && html.includes('20260524_hardware_producer_preferences_v1');
-    } },
     { name:'Backup store jest dostępny', check:()=> !!(FC.dataBackupStore && typeof FC.dataBackupStore.listBackups === 'function') },
-    { name:'BACKUP.md opisuje zakres backupu i jest podpięty do dokumentacji', explain:'Pilnuje decyzji: przed zmianami storage/backup trzeba czytać osobny dokument BACKUP.md, a nie zgadywać zakres snapshotu.', check:()=> {
-      const backupDoc = fs.readFileSync(path.join(process.cwd(), 'BACKUP.md'), 'utf8');
-      const devDoc = fs.readFileSync(path.join(process.cwd(), 'DEV.md'), 'utf8');
-      const cloudDoc = fs.readFileSync(path.join(process.cwd(), 'CLOUD_MIGRATION.md'), 'utf8');
-      return backupDoc.includes('fc_data_backups_v1')
-        && backupDoc.includes('data-storage-keys.js')
-        && backupDoc.includes('fc_rozrys_plan_cache_v1')
-        && backupDoc.includes('before-tests')
-        && backupDoc.includes('fc_hardware_technical_params_v1')
-        && backupDoc.includes('[object Object]')
-        && devDoc.includes('BACKUP.md')
-        && cloudDoc.includes('BACKUP.md');
-    } },
     { name:'Audyt storage jest dostępny', check:()=> !!(FC.dataStorageAudit && typeof FC.dataStorageAudit.buildReport === 'function') },
   ]);
 }
@@ -278,27 +188,6 @@ function runMaterialNodeSmoke(sandbox){
       if(!(api && typeof api.buildImportPlan === 'function' && typeof api.applyImportPlan === 'function' && typeof api.exportJson === 'function' && typeof api.exportXlsx === 'function' && typeof api.findRequiredGaps === 'function')) return false;
       if(!(xlsx && typeof xlsx.makeWorkbookBlob === 'function' && typeof xlsx.readWorkbook === 'function')) return false;
       return Number(api.VERSION) >= 3 && html.includes('id="openHardwareImportExportBtn"') && html.includes('hardware-catalog-import-export.js') && html.includes('price-modal-hardware-import-resolver.js') && html.includes('price-modal-hardware-price-confirm.js') && html.includes('price-modal-hardware-import-export.js') && ui.includes('Import / Eksport okuć') && ui.includes('lokalną kopię .xlsx') && ui.includes('Dysku Google/Arkuszy') && ui.includes('Tryb importu') && ui.includes('Scal / aktualizuj') && ui.includes('Zastąp katalog') && ui.includes('renderModeChoices') && ui.includes('makeFileSnapshot') && ui.includes('readWithFileReader') && ui.includes('fileReadHint') && ui.includes('__fcFileSnapshot') && ui.includes('snapshot = await makeFileSnapshot(file)') && ui.includes("input.value = '';\n      await onFile(snapshot)") && ui.includes('confirmSupplierPriceChanges') && resolver.includes('Ignoruj wszystko') && resolver.includes('Uzupełnij brakujące pola obowiązkowe') && priceConfirm.includes('Dodać nową cenę') && priceConfirm.includes('Zaktualizować cenę');
-    } },
-    { name:'Testy import/export okuć używają Array.from dla NodeList', explain:'Chroni dev_tests.html w przeglądarce: NodeList z querySelectorAll nie ma .find na Android/Chrome, więc test potwierdzeń nie może wysypać się przed kliknięciem.', check:()=> {
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/testing/material/accessories-import-export-deep-tests.js'), 'utf8');
-      return src.includes("Array.from(rootNode.querySelectorAll('button') || []).find") && !/return\s*\(rootNode\.querySelectorAll\('button'\) \|\| \[\]\)\.find/.test(src);
-    } },
-    { name:'Import/export okuć jest rozdzielony pod stabilnymi fasadami', explain:'Pilnuje splitu: ciężkie moduły parsera, planu, eksportu i cen dostawców nie znikają z load order.', check:()=> {
-      const api = FC.hardwareCatalogImportExport, price = FC.hardwareSupplierPriceXlsx;
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      const files = [
-        'hardware-supplier-price-export.js',
-        'hardware-supplier-price-import.js',
-        'hardware-catalog-export-xlsx.js',
-        'hardware-catalog-import-parser.js',
-        'hardware-catalog-import-plan.js'
-      ];
-      return !!(api && price && FC.hardwareCatalogExportXlsx && FC.hardwareCatalogImportParser && FC.hardwareCatalogImportPlan && FC.hardwareSupplierPriceExport && FC.hardwareSupplierPriceImport)
-        && typeof api.buildImportPlan === 'function'
-        && typeof api.parseWorkbook === 'function'
-        && typeof api.exportXlsx === 'function'
-        && typeof price.applySupplierPriceRows === 'function'
-        && files.every((name)=> html.includes(name));
     } },
     { name:'Katalog okuć ma UX statusu ceny i szybkich filtrów', explain:'Chroni czytelne karty okuć: status ceny, filtr Do sprawdzenia cen oraz podgląd zestawów/składników.', check:()=> {
       const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
@@ -452,38 +341,6 @@ function runMaterialNodeSmoke(sandbox){
         if(store.saveHardwareManufacturers) store.saveHardwareManufacturers(previousManufacturers);
       }
     } },
-    { name:'Katalog okuć przenosi system i parametry szuflad z Excela', explain:'Chroni nowy model pod listy zakupowe: system_okucia, długość, nośność i wzmocnienie muszą przejść przez parser i plan importu.', check:()=> {
-      const api = FC.hardwareCatalogImportExport, store = FC.catalogStore;
-      if(!(api && store && typeof api.parseWorkbook === 'function' && typeof api.buildImportPlan === 'function')) return false;
-      const previousAccessories = store.getAccessories ? store.getAccessories() : [];
-      const previousSuppliers = store.getHardwareSuppliers ? store.getHardwareSuppliers() : [];
-      const previousManufacturers = store.getHardwareManufacturers ? store.getHardwareManufacturers() : [];
-      try{
-        store.savePriceList('accessories', []);
-        if(store.saveHardwareManufacturers) store.saveHardwareManufacturers(['Blum']);
-        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers([{ id:'mago', name:'MAGO', defaultDiscountPercent:0, active:true }]);
-        const parsed = api.parseWorkbook({ Okucia:[
-          ['nazwa','jednostka','producent','kategoria','system_okucia','typ_cecha','symbol','profil_szuflady','dlugosc_mm','nosnosc_kg','wzmocniona','kolor_okucia','zastosowanie'],
-          ['Tandembox M 500','kpl.','Blum','Szuflady / prowadnice','Blum TANDEMBOX','M 500 50kg','TB-500','M',500,50,'TAK','biały','frontowa']
-        ], Producenci:[['nazwa'], ['Blum']], Dostawcy:[['id','nazwa','rabat_domyslny_proc','aktywny'], ['mago','MAGO',0,'TAK']] });
-        const plan = api.buildImportPlan(parsed, { mode:'merge' });
-        const item = plan.next.accessories.find((row)=> String(row && row.symbol || '') === 'TB-500');
-        return plan.errors.length === 0 && item && String(item.hardwareSystem || '') === 'Blum TANDEMBOX' && String(item.hardwareType || '').includes('M') && String(item.hardwareType || '').includes('500') && String(item.hardwareType || '').includes('50') && Number(item.drawerLengthMm) === 500 && Number(item.drawerLoadKg) === 50 && item.drawerReinforced === true;
-      }finally{
-        if(store.savePriceList) store.savePriceList('accessories', previousAccessories);
-        if(store.saveHardwareSuppliers) store.saveHardwareSuppliers(previousSuppliers);
-        if(store.saveHardwareManufacturers) store.saveHardwareManufacturers(previousManufacturers);
-      }
-    } },
-    { name:'Ceny dostawców zachowują prosty początek arkusza i opcjonalne dane techniczne', explain:'Chroni wygodne wklejanie cen: dostawca i cena zostają z przodu, a dane techniczne są dodatkiem pod nowe pozycje.', check:()=> {
-      const xlsx = FC.hardwareSupplierPriceXlsx;
-      if(!(xlsx && Array.isArray(xlsx.SUPPLIER_PRICE_COLUMNS))) return false;
-      const headers = xlsx.SUPPLIER_PRICE_COLUMNS.map((pair)=> pair[0]);
-      return headers.slice(0, 6).join('|') === 'okucie_nazwa|okucie_symbol|producent|kategoria|jednostka|dostawca'
-        && headers.includes('system_okucia') && headers.includes('dlugosc_mm') && headers.includes('nosnosc_kg')
-        && headers[headers.length - 2] === 'okucie_id' && headers[headers.length - 1] === 'dostawca_id';
-    } },
-
     { name:'Resolver nowego okucia z arkusza cen wymaga dostawcy kategorii i jednostki', explain:'Chroni import XLSX: wiersz z nazwą, symbolem, producentem i ceną, ale bez dostawcy/kategorii/jednostki ma trafić do uzupełnienia, a nie zostać po cichu pominięty.', check:()=> {
       const api = FC.hardwareCatalogImportExport, xlsx = FC.hardwareSupplierPriceXlsx, store = FC.catalogStore;
       if(!(api && xlsx && store && typeof store.savePriceList === 'function')) return false;
@@ -613,168 +470,26 @@ function runMaterialNodeSmoke(sandbox){
       const gaps = xlsx.supplierPriceMissingSupplierGaps(rows, [existing, importedSame], suppliers);
       return gaps.length === 1 && gaps[0].rowIndex === 22 && gaps[0].gaps.includes('supplierName') && gaps[0].item && String(gaps[0].item.id || '') === 'same_export_item_1';
     } },
-    { name:'Dynamiczne parametry techniczne okuć mają słownik i helpy', explain:'Chroni nową architekturę: kategorie mają własne parametry, typ/cecha powstaje z cech kluczowych, a opcje techniczne mają opisy pod ?.', check:()=> {
-      const api = FC.hardwareTechnicalParams;
+    { name:'Wybór typu okucia blokuje duplikat producent+kategoria+typ przed zapisem', explain:'Chroni UX przed wyborem typu/cechy, którego nie da się zapisać, oraz pilnuje migracji nazwy typu po edycji słownika.', check:()=> {
+      const store = FC.catalogStore;
+      const ctx = FC.priceModalContext || {};
       const dictionariesSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-dictionaries.js'), 'utf8');
-      const formSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-form.js'), 'utf8');
-      if(!(api && Array.isArray(api.DEFAULT_DEFINITIONS) && typeof api.buildTypeLabel === 'function' && typeof api.compareParam === 'function')) return false;
-      const hingeFields = api.fieldsForCategory(api.DEFAULT_DEFINITIONS, 'Zawiasy');
-      const drawerFields = api.fieldsForCategory(api.DEFAULT_DEFINITIONS, 'Szuflady / prowadnice');
-      const typeLabel = api.buildTypeLabel(api.DEFAULT_DEFINITIONS, 'Zawiasy', { nalozenie:{ value:'nakładany' }, kat_otwarcia:{ from:90, to:110 }, hamulec:{ value:true } });
-      return hingeFields.some((row)=> row.key === 'kat_otwarcia' && row.compareMode === 'withinRange')
-        && drawerFields.some((row)=> row.key === 'dlugosc_mm' && row.compareMode === 'equal')
-        && drawerFields.some((row)=> row.key === 'nosnosc_kg' && row.compareMode === 'minGte')
-        && typeLabel.includes('nakładany') && typeLabel.includes('90') && typeLabel.includes('110°')
-        && dictionariesSrc.includes('Cecha kluczowa') && dictionariesSrc.includes('compareMode') && dictionariesSrc.includes('openHelp')
-        && formSrc.includes('hardwareDynamicTechnicalFields') && formSrc.includes('readDynamicTechnicalParams');
-    } },
-    { name:'Parametry techniczne okuć nie zapisują [object Object]', explain:'Chroni backup i katalog: obiekty z launcherów/Exceli muszą zostać znormalizowane do tekstu, liczb albo zakresów.', check:()=> {
-      const hw = FC.hardwareCatalog;
-      if(!(hw && typeof hw.normalizeAccessory === 'function')) return false;
-      const row = hw.normalizeAccessory({
-        id:'smoke_object_object_1', manufacturer:'Blum', name:'Zawias smoke', hardwareCategory:'Zawiasy', hardwareUnit:'szt.',
-        technicalParams:{
-          nalozenie:{ value:{ value:'nakładany', label:'Nakładany' } },
-          kat_otwarcia:{ from:{ value:'90' }, to:{ label:'110' } },
-          hamulec:{ value:{ value:true } }
-        }
-      }, ()=> 'smoke_object_object_1', { defaultVatRate:23, hardwareSuppliers:[] });
-      const raw = JSON.stringify(row);
-      return raw.indexOf('[object Object]') === -1
-        && row.technicalParams && row.technicalParams.nalozenie && row.technicalParams.nalozenie.value === 'nakładany'
-        && Number(row.technicalParams.kat_otwarcia.from) === 90
-        && Number(row.technicalParams.kat_otwarcia.to) === 110
-        && String(row.hardwareType || '').includes('nakładany')
-        && String(row.hardwareType || '').includes('110°');
-    } },
-    { name:'Modal edycji okuć używa pasywnego odczytu stanu formularza', explain:'Chroni wydajność na telefonie: sprawdzanie brudnego formularza i zamykanie modala nie może remountować launchera Typ/Cecha ani przeliczać UI z efektami ubocznymi.', check:()=> {
-      const itemFormSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
-      const hardwareFormSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-form.js'), 'utf8');
-      return itemFormSrc.includes('getCurrentAccessoryDraft({ passive:true })')
-        && hardwareFormSrc.includes('const cfg = Object.assign({ passive:false }')
-        && hardwareFormSrc.includes('syncHardwareTypeFromTechnicalParams({ updateAction:false, remountChoice:false })')
-        && hardwareFormSrc.includes("updateChoiceLauncherLabel(select, 'hardwareTypeLaunch', 'Typ / cecha')")
-        && !hardwareFormSrc.includes('function syncHardwareTypeFromTechnicalParams(){');
-    } },
-    { name:'Modal edycji okuć ma podgląd zamienników pod Wyjdź bez zapisu zmian', explain:'Chroni nowy etap: lista zamienników jest tylko podglądem w edycji okucia, ma własny moduł UI i nie dodaje zapisu do storage.', check:()=> {
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      const itemFormSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
-      const ui = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-replacements.js'), 'utf8');
-      return html.includes('id="hardwareReplacementToggleBtn"')
-        && html.includes('id="hardwareReplacementPreview"')
-        && html.includes('price-modal-hardware-replacements.js')
-        && itemFormSrc.includes('priceModalHardwareReplacements.updateActionState')
-        && itemFormSrc.includes('priceModalHardwareReplacements.setSourceItem')
-        && ui.includes('FC.priceModalHardwareReplacements')
-        && ui.includes('previewRows')
-        && ui.includes('Bez zapisu zmian')
-        && !ui.includes('localStorage')
-        && !ui.includes('savePriceList')
-        && !/\b(alert|confirm|prompt)\s*\(/.test(ui);
-    } },
-    { name:'Słowniki okuć i Wzorce UI trzymają akordeon ROZRYS z ruchem', explain:'Chroni UX na telefonie: wspólny akordeon kategorii ma chevron jak ROZRYS, wzorzec UI pokazuje płynne otwarcie, a parametry nie tworzą małego wewnętrznego scrolla.', check:()=> {
-      const dictionariesSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-dictionaries.js'), 'utf8');
-      const css = fs.readFileSync(path.join(process.cwd(), 'css/price-item-popup.css'), 'utf8');
-      const uiPatterns = fs.readFileSync(path.join(process.cwd(), 'dev_ui_patterns.html'), 'utf8');
-      return dictionariesSrc.includes('panel-box-form__scroll hardware-dictionary-scroll')
-        && dictionariesSrc.includes('hardware-dictionary-param-list')
-        && dictionariesSrc.includes('hardware-dictionary-categories-card')
-        && dictionariesSrc.includes('hardware-dictionary-section-summary')
-        && dictionariesSrc.includes('hardware-dictionary-section-chevron')
-        && dictionariesSrc.includes('setSectionAccordionVisualState')
-        && dictionariesSrc.includes('animateSectionAccordionOpen')
-        && dictionariesSrc.includes('animateSectionAccordionClose')
-        && dictionariesSrc.includes('setCategoriesAccordionOpen')
-        && !dictionariesSrc.includes('hardware-section-static-open')
-        && dictionariesSrc.includes("h('div', { class:'hardware-dictionary-categories-card is-open' })")
-        && dictionariesSrc.includes("class:'hardware-dictionary-categories-body'")
-        && !dictionariesSrc.includes("class:'hardware-dictionary-category-section-body'")
-        && dictionariesSrc.includes("event.preventDefault();")
-        && !dictionariesSrc.includes("categoriesSection.open = !!open")
-        && dictionariesSrc.includes('closePeerCategoryAccordions')
-        && dictionariesSrc.includes('toggleTechCategoryAccordion')
-        && dictionariesSrc.includes("class:'hardware-tech-param-list'")
-        && dictionariesSrc.includes("class:'hardware-tech-param-accordion'")
-        && dictionariesSrc.includes('hardware-tech-param-summary__meta')
-        && dictionariesSrc.includes('paramSummaryParts(item).join')
-        && dictionariesSrc.includes('closePeerAccordions')
-        && dictionariesSrc.includes('closingPeerAccordions')
-        && dictionariesSrc.includes('scrollParamAccordionIntoView')
-        && dictionariesSrc.includes('preserveActiveParamPosition')
-        && dictionariesSrc.includes('afterDictionaryLayout')
-        && dictionariesSrc.includes('targetScrollTopForParam')
-        && dictionariesSrc.includes('scrollParamHeaderBeforeToggle')
-        && dictionariesSrc.includes('waitForParamScroll')
-        && dictionariesSrc.includes('paramOpenSequence')
-        && dictionariesSrc.includes('Najpierw płynnie dojedź do zwiniętego nagłówka')
-        && !dictionariesSrc.includes('visibleBottom = scrollerRect.bottom')
-        && dictionariesSrc.includes("node.closest('.hardware-dictionary-scroll, .panel-box-form__scroll')")
-        && dictionariesSrc.includes("scroller.scrollTo({ top:nextTop, behavior:'smooth' })")
-        && !dictionariesSrc.includes('hardware-dictionary-list hardware-tech-param-list')
-        && css.includes('.hardware-dictionary-scroll')
-        && css.includes('.hardware-dictionary-list{display:grid;gap:10px;max-height:none;overflow:visible')
-        && css.includes('.hardware-dictionary-categories-card')
-        && css.includes('.hardware-dictionary-section-chevron')
-        && css.includes('.hardware-dictionary-section-body')
-        && css.includes('.hardware-dictionary-section-body[hidden]{display:none!important;}')
-        && css.includes('.hardware-dictionary-section-accordion.hardware-section-animating')
-        && css.includes('.hardware-dictionary-section-accordion.rozrys-material-accordion.is-open')
-        && css.includes('.hardware-dictionary-categories-body')
-        && css.includes('.hardware-dictionary-categories-card > .hardware-dictionary-categories-body[hidden]')
-        && css.includes('wspólny panel kategorii bez details/max-height')
-        && !css.includes('.hardware-dictionary-categories-accordion:not([open])')
-        && css.includes('max-height:none!important')
-        && css.includes('height:auto!important')
-        && css.includes('transition:none!important')
-        && css.includes('overflow:visible!important')
-        && css.includes('.hardware-tech-param-list{display:grid;gap:10px;max-height:none;overflow:visible')
-        && css.includes('.hardware-supplier-actions.hardware-dictionary-actions{margin-top:0;}')
-        && css.includes('.hardware-tech-param-accordion')
-        && css.includes('.hardware-tech-param-summary__meta')
-        && css.includes('#priceModal .hardware-tech-param-row .grid-3')
-        && css.includes('{grid-template-columns:1fr;}')
-        && uiPatterns.includes('Accordion ROZRYS + ruch')
-        && uiPatterns.includes('data-ui-pattern-accordion-group')
-        && uiPatterns.includes('natychmiastowe zamykanie starej sekcji i płynne rozwijanie nowej')
-        && uiPatterns.includes('rozrys-material-accordion__chevron')
-        && uiPatterns.includes('is-ui-pattern-animating');
-    } },
-    { name:'Słownik okuć renderuje treść akordeonu kategorii po otwarciu', explain:'Chroni regresję z telefonu: wspólny akordeon `Kategorie / rodzaje okuć` nie może otwierać się jako pusta ramka; lista kategorii ma zostać w body po zamknięciu i ponownym otwarciu.', check:()=> {
-      let captured = null;
-      const oldPanelBox = FC.panelBox;
-      const oldMatchMedia = sandbox.window.matchMedia;
+      if(!(store && ctx && typeof store.getAccessories === 'function' && typeof store.savePriceList === 'function' && typeof ctx.buildHardwareTypeOptions === 'function')) return false;
+      const previous = store.getAccessories();
       try{
-        sandbox.window.matchMedia = ()=>({ matches:true });
-        FC.panelBox = { open:(opts)=>{ captured = opts; }, close:()=>{} };
-        if(!(FC.priceModalHardwareDictionaries && typeof FC.priceModalHardwareDictionaries.open === 'function')) return false;
-        FC.priceModalHardwareDictionaries.open();
-        const content = captured && captured.contentNode;
-        const section = content && content.querySelector('.hardware-dictionary-categories-card');
-        const summary = content && content.querySelector('.hardware-dictionary-section-summary');
-        const body = content && content.querySelector('.hardware-dictionary-categories-body');
-        const legacyBody = content && (content.querySelector('.hardware-dictionary-category-section-body') || content.querySelector('.hardware-dictionary-categories-body.hardware-dictionary-section-body') || content.querySelector('.hardware-dictionary-categories-body.rozrys-material-accordion__body'));
-        const list = content && content.querySelector('.hardware-dictionary-category-list');
-        const firstInput = list && list.querySelector('input');
-        const initialRows = list && list.querySelectorAll('.hardware-dictionary-row');
-        const addButton = body && Array.from(body.querySelectorAll('button')).find((btn)=> /Dodaj kategorię/.test(btn.textContent || ''));
-        const bodyNotClipped = ()=> body && body.hidden === false && body.classList.contains('hardware-dictionary-categories-body') && !body.classList.contains('hardware-dictionary-section-body') && !body.classList.contains('rozrys-material-accordion__body') && body.style.maxHeight !== '0px' && body.style.maxHeight !== '1px' && body.style.overflow !== 'hidden';
-        const hasRealCategoryContent = ()=> {
-          const rows = list && list.querySelectorAll('.hardware-dictionary-row');
-          const input = list && list.querySelector('input');
-          const removeButton = list && Array.from(list.querySelectorAll('button')).find((btn)=> /Usuń/.test(btn.textContent || ''));
-          return !!(rows && rows.length >= 3 && input && input.value === 'Zawiasy' && removeButton && addButton);
-        };
-        const initiallyVisible = !!(section && summary && body && !legacyBody && list && bodyNotClipped() && hasRealCategoryContent() && summary.getAttribute('aria-expanded') === 'true');
-        if(!initiallyVisible) return false;
-        summary.click();
-        const closed = body.hidden === true && summary.getAttribute('aria-expanded') === 'false' && section.classList.contains('is-open') === false;
-        summary.click();
-        const reopenedRows = list.querySelectorAll('.hardware-dictionary-row');
-        const reopened = bodyNotClipped() && body.hidden === false && summary.getAttribute('aria-expanded') === 'true' && section.classList.contains('is-open') === true && reopenedRows.length >= initialRows.length && hasRealCategoryContent();
-        return closed && reopened;
+        store.saveHardwareTypes && store.saveHardwareTypes([{ id:'smoke_type_110', name:'110st chujowy', allowedCategories:['Zawiasy'], active:true }]);
+        store.savePriceList('accessories', [
+          { id:'smoke_hw_a', manufacturer:'Blum', name:'Zajęty zawias', hardwareCategory:'Zawiasy', hardwareType:'110st chujowy', hardwareUnit:'szt.', price:10, status:'active' },
+          { id:'smoke_hw_b', manufacturer:'Blum', name:'Edytowany zawias', hardwareCategory:'Zawiasy', hardwareType:'', hardwareUnit:'szt.', price:12, status:'active' }
+        ]);
+        const options = ctx.buildHardwareTypeOptions('Zawiasy', '', { manufacturer:'Blum', currentId:'smoke_hw_b' });
+        const empty = options[0];
+        const used = options.find((opt)=> String(opt && opt.value || '') === '110st chujowy');
+        const selfOptions = ctx.buildHardwareTypeOptions('Zawiasy', '110st chujowy', { manufacturer:'Blum', currentId:'smoke_hw_a' });
+        const self = selfOptions.find((opt)=> String(opt && opt.value || '') === '110st chujowy');
+        return dictionariesSrc.includes('applyDictionaryRenames') && empty && String(empty.value || '') === '' && used && used.disabled === true && String(used.description || '').includes('Zajęte przez') && self && self.disabled !== true;
       }finally{
-        FC.panelBox = oldPanelBox;
-        sandbox.window.matchMedia = oldMatchMedia;
+        store.savePriceList('accessories', previous);
       }
     } },
     { name:'Arkusz składu zestawów ma czytelne kolumny i ID na końcu', explain:'Chroni XLSX przed powrotem do układu zaczynającego się od technicznych ID.', check:()=> {
@@ -842,50 +557,14 @@ function runWycenaNodeSmoke(sandbox){
   return makeSingleGroupReport('WYCENA node smoke testy', 'Wycena ↔ Node smoke', [
     { name:'Publiczne API Wyceny jest dostępne', explain:'Szybki kontrakt dla app-dev-smoke bez uruchamiania ciężkich regresji statusów w Node.', check:()=> !!(FC.wycenaCore && FC.wycenaCoreSelection && FC.quoteSnapshotScope && FC.quoteSnapshotStore && FC.projectStatusSync && FC.wycenaTabDebug) },
     { name:'Wycena core ma rozdzielone platformowe warstwy', explain:'Pilnuje splitu wycena-core.js na utils/catalog/source/material-plan/offer/lines/labor/orchestrator.', check:()=> !!(FC.wycenaCoreUtils && FC.wycenaCoreCatalog && FC.wycenaCoreSource && FC.wycenaCoreMaterialPlan && FC.wycenaCoreOffer && FC.wycenaCoreLines && FC.wycenaCoreLabor && typeof FC.wycenaCore.collectQuoteData === 'function') },
-    { name:'Kliknięcie Wyceń zachowuje świeżo wygenerowany podgląd po synchronizacji statusu', explain:'Chroni regresję: po kliknięciu zielonego Wyceń snapshot nie może zostać zgubiony przez zmianę statusu projektu ani przez ciche błędy renderu.', check:()=> {
-      const shellSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/wycena/wycena-tab-shell.js'), 'utf8');
-      const bridgeSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/wycena/wycena-tab-render-bridge.js'), 'utf8');
-      return shellSrc.includes('refreshStatusBaseline')
-        && shellSrc.includes('previewSnapshotId:snapshotId')
-        && shellSrc.includes('hasFreshGeneratedQuote')
-        && shellSrc.includes('makeVisibleQuoteError')
-        && bridgeSrc.includes('appendRenderError')
-        && bridgeSrc.includes('reportRenderError')
-        && bridgeSrc.includes('Błąd podglądu WYCENY');
-    } },
     { name:'Wycena core ma spójny świeży cache-busting', explain:'Chroni pierwsze odświeżenie po wdrożeniu przed mieszaniem starych i nowych modułów wycena-core*.', check:()=> {
-      const baseExpected = '20260510_wycena_core_cache_fix_v1';
-      const changedExpected = '20260524_hardware_producer_preferences_v1';
+      const expected = '20260510_wycena_core_cache_fix_v1';
       const files = ['index.html','dev_tests.html'];
       const scripts = ['wycena-core-selection.js','wycena-core-utils.js','wycena-core-catalog.js','wycena-core-source.js','wycena-core-material-plan.js','wycena-core-offer.js','wycena-core-lines.js','wycena-core-labor.js','wycena-core.js'];
       return files.every((file)=> {
         const html = fs.readFileSync(path.join(process.cwd(), file), 'utf8');
-        return scripts.every((script)=> {
-          const expected = script === 'wycena-core-lines.js' ? changedExpected : baseExpected;
-          return html.includes(`js/app/wycena/${script}?v=${expected}`);
-        });
+        return scripts.every((script)=> html.includes(`js/app/wycena/${script}?v=${expected}`));
       });
-    } },
-    { name:'Wycena czyta preferencję producenta okuć z WYWIADU', explain:'Pierwszy most WYWIAD → WYCENA: uproszczone linie okuć używają producenta ustawionego w preferencjach pomieszczenia, bez zapisu zamian do projektu.', check:()=> {
-      if(!(FC.wycenaCoreLines && typeof FC.wycenaCoreLines.collectAccessories === 'function' && FC.cabinetCutlist && typeof FC.cabinetCutlist.getCabinetCutList === 'function')) return false;
-      const previousProject = sandbox.projectData;
-      const previousCutlist = FC.cabinetCutlist.getCabinetCutList;
-      try{
-        sandbox.projectData = {
-          schemaVersion:9,
-          kuchnia:{
-            cabinets:[{ id:'cab_hw_pref_smoke', width:60, height:72, depth:51, type:'stojąca', subType:'standardowa', details:{} }],
-            fronts:[], sets:[], settings:{},
-            preferences:{ hardwareProducers:{ hinges:'GTV' } }
-          }
-        };
-        FC.cabinetCutlist.getCabinetCutList = ()=> [{ name:'Smoke okucie', material:'Okucia: zawiasy BLUM', qty:3, a:0, b:0 }];
-        const rows = FC.wycenaCoreLines.collectAccessories(['kuchnia']);
-        return Array.isArray(rows) && rows.some((row)=> row && row.name === 'zawiasy GTV' && Number(row.qty) === 3);
-      }finally{
-        FC.cabinetCutlist.getCabinetCutList = previousCutlist;
-        sandbox.projectData = previousProject;
-      }
     } },
     { name:'Wycena ma wewnętrzne rozbicie robocizny po szafkach', explain:'Pilnuje numerów szafek z WYWIADU i szczegółów kosztów robocizny tylko do podglądu wewnętrznego.', check:()=> !!(FC.wycenaCoreLabor && typeof FC.wycenaCoreLabor.collectCabinetLabor === 'function' && FC.wycenaTabPreview && typeof FC.wycenaTabPreview.renderLaborSection === 'function') },
     { name:'WYCENA ma aplikacyjny picker czynności zamiast długiej listy pól ilości', explain:'Chroni ręczne dodawanie robocizny przez osobne okno wyboru.', check:()=> !!(FC.wycenaLaborPicker && typeof FC.wycenaLaborPicker.open === 'function' && typeof FC.wycenaLaborPicker.normalizeCatalog === 'function') },
@@ -933,141 +612,14 @@ function runCabinetNodeSmoke(sandbox){
   return makeSingleGroupReport('SZAFKI node smoke testy', 'Szafki ↔ Node smoke', [
     { name:'Publiczne API szafek jest dostępne', explain:'Szybki kontrakt dla app-dev-smoke bez uruchamiania ciężkich testów modalowego DOM w Node.', check:()=> !!(FC.cabinetModal && FC.cabinetActions && FC.cabinetFronts) },
     { name:'Moduły modalowe szafek są załadowane', explain:'Chroni podstawowe wejścia używane przez modal szafki po splitach.', check:()=> !!(FC.cabinetModalDraft && FC.cabinetModalFields && FC.cabinetModalFinalize) },
-    { name:'Model preferencji pokoju jest dostępny', explain:'Chroni Etap 1B preferencji strefowych oraz preferencji producentów okuć w WYWIADZIE.', check:()=> !!(FC.roomPreferences && typeof FC.roomPreferences.normalizeRoomPreferences === 'function' && typeof FC.roomPreferences.applyPreferencesToDraft === 'function' && typeof FC.roomPreferences.getZonePreferences === 'function' && typeof FC.roomPreferences.resolveHardwareProducerPreference === 'function' && typeof FC.roomPreferences.getHardwareProducerSummary === 'function' && Array.isArray(FC.roomPreferences.ZONE_KEYS) && FC.roomPreferences.ZONE_KEYS.length === 3 && Array.isArray(FC.roomPreferences.HARDWARE_PRODUCER_GROUPS) && FC.roomPreferences.HARDWARE_PRODUCER_GROUPS.length === 5) },
-    { name:'Resolver strefowych materiałów jest centralnym kontraktem', explain:'Chroni Etap 1C.2: logika strefa → trybik → fallback ma jedno API zamiast powielonych ścieżek w nowych funkcjach.', check:()=> {
-      const apiOk = !!(FC.roomPreferences
-        && typeof FC.roomPreferences.resolveZoneDefaults === 'function'
-        && typeof FC.roomPreferences.resolveZoneFrontMaterial === 'function'
-        && typeof FC.roomPreferences.applyZoneDefaultsToDraft === 'function');
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/room-preferences/room-preferences-model.js'), 'utf8');
-      return apiOk
-        && src.includes('function resolveZoneDefaults(room, zoneOrType, fallback)')
-        && src.includes('getProgramMaterialDefaults()')
-        && src.includes('applyMaterialFields(resolved, zone)')
-        && src.includes('function resolveZoneFrontMaterial(room, zoneOrType, fallback)');
-    } },
-    { name:'Drafty i zestawy używają centralnego resolvera stref', explain:'Chroni kod przed dublowaniem logiki materiałów między nową szafką, zestawem i źródłami frontu.', check:()=> {
-      const draftSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-draft.js'), 'utf8');
-      const wizardSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
-      const frontSourceSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/front-material-source.js'), 'utf8');
-      return draftSrc.includes('applyZoneDefaultsToDraft(room, draft, type)')
-        && wizardSrc.includes("resolveZoneDefaults(room, 'lower', fallback)")
-        && frontSourceSrc.includes('resolveZoneFrontMaterial(room, zone, {})');
-    } },
-    { name:'Preferencje WYWIADU używają stref i launcherów aplikacji', explain:'Chroni UI przed powrotem do płaskich preferencji, natywnych selectów i sekcji Domyślne w WYWIADZIE.', check:()=> {
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-preferences.js'), 'utf8');
-      const hardwareSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-hardware-producers.js'), 'utf8');
-      const settingsSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-settings.js'), 'utf8');
-      const actionsSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-accordion-actions.js'), 'utf8');
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      return actionsSrc.includes('createSaveFooter')
-        && settingsSrc.includes("createSaveFooter('Parametry pomieszczenia'")
-        && settingsSrc.includes('applySettingsValues(room, buildPreviewSettings(inputs))')
-        && (src.includes('Strefa dolna / stojące')
-        || (src.includes('buildZoneCard') && src.includes('wywiad-zone-choice') && src.includes('openRozrysChoiceOverlay') && !src.includes("document.createElement('select')")))
-        && hardwareSrc.includes('getHardwareManufacturers')
-        && hardwareSrc.includes('openRozrysChoiceOverlay')
-        && hardwareSrc.includes('Zapisz zmiany')
-        && hardwareSrc.includes('Pozostałe akcesoria')
-        && !hardwareSrc.includes("document.createElement('select')")
-        && !hardwareSrc.includes("h('select'")
-        && html.includes('id="roomHardwareProducerPreferencesAccordion"')
-        && html.includes('Preferencje producentów okuć')
-        && html.includes('Preferencje materiałów i kolorów');
-    } },
-    { name:'Źródło materiału frontów jest dostępne dla lodówek i zestawów', explain:'Chroni Etap 1C: front specjalny może wskazywać dolną/środkową/górną strefę albo własny materiał bez zgadywania po wysokości.', check:()=> {
-      const apiOk = !!(FC.frontMaterialSource && typeof FC.frontMaterialSource.resolveFridgeFront === 'function' && typeof FC.frontMaterialSource.resolveSetFront === 'function');
-      const fridgeSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-standing-specials.js'), 'utf8');
-      const setSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      return apiOk
-        && fridgeSrc.includes('makeFridgeSourceKey')
-        && fridgeSrc.includes('appendFridgeFrontSourceField')
-        && setSrc.includes('setFrontSource')
-        && html.includes('id="setFrontSource"');
-    } },
-    { name:'Zestawy mają ujednolicone materiały, plecy i otwieranie', explain:'Chroni set-wizard przed powrotem do samych frontów: zestaw ma mieć korpus, plecy, otwieranie i fronty jak zwykłe szafki.', check:()=> {
-      const apiOk = !!(FC.cabinetModalSetMaterials && typeof FC.cabinetModalSetMaterials.populateSelectors === 'function' && typeof FC.cabinetModalSetMaterials.getSpec === 'function');
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      const wizard = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
-      return apiOk
-        && html.includes('id="setBodyColor"')
-        && html.includes('id="setBackMaterial"')
-        && html.includes('id="setOpeningSystem"')
-        && wizard.includes('setMaterials.bodyColor')
-        && wizard.includes('setMaterials.backMaterial')
-        && wizard.includes('setMaterials.openingSystem');
-    } },
-    { name:'Lodówka nie pokazuje zdublowanych pól frontu', explain:'Chroni UI lodówki: nowe źródła materiału frontu zastępują stare ogólne pola Materiał Frontu / Kolor Frontu, ale korpus/plecy/otwieranie zostają.', check:()=> {
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      const modal = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal.js'), 'utf8');
-      return html.includes('id="cmFrontMaterialWrap"')
-        && html.includes('id="cmFrontColorWrap"')
-        && modal.includes('function isFridgeCabinetDraft')
-        && modal.includes('syncCabinetMaterialVisibility(draft)')
-        && modal.includes("hideGeneralFrontFields ? 'none'");
-    } },
-    { name:'Zestaw startuje z materiałów dolnej strefy', explain:'Chroni decyzję UX: korpus, plecy i otwieranie zestawu mają startować jak szafki stojące/dolne, nie z ostatniego losowego typu szafki.', check:()=> {
-      const wizard = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
-      return wizard.includes('function getLowerZoneMaterialDefaults')
-        && wizard.includes("resolveZoneDefaults(room, 'lower', fallback)")
-        && wizard.includes('function getSetBaseDraft(room)')
-        && !/function getSetBaseDraft\(room\)\{\s*const base = makeDefaultCabinetDraftForRoom\(room\)/.test(wizard);
-    } },
-    { name:'Etap 2A ma plan i apply preferencji strefowych', explain:'Chroni hurtowe zastosowanie preferencji: najpierw plan zmian/liczniki, potem zatwierdzony apply bez systemowych okien.', check:()=> {
-      const planSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/room-preferences/room-preferences-bulk-plan.js'), 'utf8');
-      const applySrc = fs.readFileSync(path.join(process.cwd(), 'js/app/room-preferences/room-preferences-bulk-apply.js'), 'utf8');
-      const uiSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-preferences-bulk-modal.js'), 'utf8');
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      return !!(FC.roomPreferencesBulkPlan && typeof FC.roomPreferencesBulkPlan.buildPlan === 'function'
-        && FC.roomPreferencesBulkApply && typeof FC.roomPreferencesBulkApply.apply === 'function'
-        && FC.wywiadRoomPreferencesBulk && typeof FC.wywiadRoomPreferencesBulk.open === 'function')
-        && planSrc.includes('function buildPlan(room, selection)')
-        && applySrc.includes('function apply(room, selection)')
-        && uiSrc.includes('Zastosuj preferencje do szafek')
-        && uiSrc.includes('aria-pressed')
-        && !uiSrc.includes("document.createElement('select')")
-        && !uiSrc.includes('confirm(')
-        && html.includes('room-preferences-bulk-plan.js')
-        && html.includes('wywiad-room-preferences-bulk-modal.js');
-    } },
-    { name:'Launchery szafki synchronizują draft także przy wyborze tej samej wartości', explain:'Chroni błąd z dev_tests.html: jeśli select ma już wartość z renderu, kliknięcie launchera nadal musi odpalić onchange i zsynchronizować draft.', check:()=> {
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-choice-launchers.js'), 'utf8');
-      return src.includes('Nawet wybór tej samej wartości musi zsynchronizować draft')
-        && src.includes('if(picked == null) return;')
-        && !src.includes("String(picked) === String(selectEl.value || '')")
-        && src.includes("selectEl.dispatchEvent(new Event('change', { bubbles:true }))");
-    } },
     { name:'Modal szafki ma dodatki robocizny', explain:'Pilnuje wyboru usług dodatkowych z katalogu robocizny przy konkretnej szafce.', check:()=> !!(FC.cabinetModalLabor && typeof FC.cabinetModalLabor.renderLaborSection === 'function' && typeof FC.cabinetModalLabor.getDefinitions === 'function') },
     { name:'WYWIAD pokazuje zapisane dodatki robocizny szafki', explain:'Chroni podgląd dodatków robocizny na karcie szafki w WYWIADZIE.', check:()=> {
       const api = FC.wywiadLaborSummary;
-      if(!(api && typeof api.getHeaderText === 'function' && typeof api.getHeaderLines === 'function' && typeof api.renderHeaderSummary === 'function' && typeof api.renderCabinetLaborSummary === 'function')) return false;
-      const cab = { type:'wisząca', subType:'okap', details:{ applianceMountingMode:'none' }, laborItems:[{ rateId:'labor_hole_fi60', qty:2 }, { rateId:'labor_custom_extra', qty:1 }] };
+      if(!(api && typeof api.getHeaderText === 'function' && typeof api.renderCabinetLaborSummary === 'function')) return false;
+      const cab = { type:'wisząca', subType:'okap', details:{ applianceMountingMode:'none' }, laborItems:[{ rateId:'labor_hole_fi60', qty:2 }] };
       const header = api.getHeaderText(cab);
-      const lines = api.getHeaderLines(cab);
-      const headerNode = api.renderHeaderSummary(cab);
       const node = api.renderCabinetLaborSummary(cab);
-      const mountOff = headerNode && headerNode.querySelector('.cabinet-header__labor-line--mount-off');
-      const laborLines = headerNode ? headerNode.querySelectorAll('.cabinet-header__labor-line--item') : [];
-      return /Otwór fi 60/.test(header)
-        && !/×2/.test(header)
-        && !/×3/.test(header)
-        && /bez montażu/.test(header)
-        && lines.length === 3
-        && !!(mountOff && /bez montażu/.test(mountOff.textContent || ''))
-        && laborLines.length === 2
-        && !!(node && node.textContent && /Otwór fi 60/.test(node.textContent) && /bez montażu/.test(node.textContent));
-    } },
-    { name:'WYWIAD koloruje status montażu sprzętu w nagłówku szafki', explain:'Pilnuje czerwonego statusu bez montażu i zielonego statusu z montażem bez zmiany układu czcionek.', check:()=> {
-      const api = FC.wywiadLaborSummary;
-      if(!(api && typeof api.renderHeaderSummary === 'function')) return false;
-      const offNode = api.renderHeaderSummary({ type:'stojąca', subType:'piekarnikowa', details:{ applianceMountingMode:'none' }, laborItems:[] });
-      const onNode = api.renderHeaderSummary({ type:'stojąca', subType:'piekarnikowa', details:{ applianceMountingMode:'mount' }, laborItems:[] });
-      const css = fs.readFileSync(path.join(process.cwd(), 'css/wywiad.css'), 'utf8');
-      return !!(offNode && offNode.querySelector('.cabinet-header__labor-line--mount-off') && onNode && onNode.querySelector('.cabinet-header__labor-line--mount-on'))
-        && css.includes('.cabinet-header__labor-line--mount-off{color:#dc2626;}')
-        && css.includes('.cabinet-header__labor-line--mount-on{color:#16a34a;}')
-        && css.includes('.cabinet-header__labor-line--item{color:#f97316;}');
+      return /Otwór fi 60/.test(header) && /bez montażu/.test(header) && !!(node && node.textContent && /Otwór fi 60/.test(node.textContent) && /bez montażu/.test(node.textContent));
     } },
     { name:'Modal szafki ma robociznę po parametrach i materiałach', explain:'Chroni kolejność: najpierw typ, wymiary i materiały szafki, dopiero potem dodatkowe czynności.', check:()=> {
       const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
@@ -1076,80 +628,6 @@ function runCabinetNodeSmoke(sandbox){
     { name:'Montaż sprzętu w modalu szafki używa chipów z ptaszkiem', explain:'Chroni wybór Z montażem / Bez montażu przed powrotem do zwykłych przycisków.', check:()=> {
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-labor.js'), 'utf8');
       return src.includes("make('label', `rozrys-scope-chip cabinet-labor-appliance__choice") && src.includes("cb.type = 'checkbox'") && src.includes('api.setMountingMode(draft, opt.value)') && !src.includes("make('button', `rozrys-scope-chip cabinet-labor-appliance__choice");
-    } },
-    { name:'Reguły techniczne zawiasów szafek są dostępne', explain:'Chroni etap szafka → wymagania okucia przed dobieraniem konkretnego produktu katalogowego.', check:()=> {
-      const api = FC.cabinetHardwareRequirements;
-      if(!(api && typeof api.getBaseHingeRequirement === 'function' && typeof api.getHingeRequirementWithQty === 'function')) return false;
-      const room = { cabinets:[] };
-      const reqStd = api.getBaseHingeRequirement(room, { type:'stojąca', subType:'standard', width:60, height:82, frontCount:1, details:{} });
-      const reqL = api.getBaseHingeRequirement(room, { type:'stojąca', subType:'narozna_l', width:90, height:82, frontCount:2, details:{} });
-      const reqBlind = api.getBaseHingeRequirement(room, { type:'wisząca', subType:'rogowa_slepa', width:90, height:72, frontCount:1, details:{} });
-      const reqOvenDrawer = api.getBaseHingeRequirement(room, { type:'stojąca', subType:'piekarnikowa', details:{ ovenOption:'szuflada_dol' } });
-      const reqOvenFlap = api.getBaseHingeRequirement(room, { type:'stojąca', subType:'piekarnikowa', details:{ ovenOption:'klapka_dol' } });
-      const reqSinkDrawer = api.getBaseHingeRequirement(room, { type:'stojąca', subType:'zlewowa', details:{ sinkFront:'szuflada' } });
-      const reqUnderDoors = api.getBaseHingeRequirement(room, { type:'wisząca', subType:'dolna_podblatowa', details:{ podFrontMode:'drzwi' } });
-      const reqUnderDrawers = api.getBaseHingeRequirement(room, { type:'wisząca', subType:'dolna_podblatowa', details:{ podFrontMode:'szuflady' } });
-      const reqFridgeDefault = api.getBaseHingeRequirement(room, { type:'stojąca', subType:'lodowkowa', details:{ fridgeOption:'zabudowa' } });
-      const reqFridgeChecked = api.getBaseHingeRequirement(room, { type:'stojąca', subType:'lodowkowa', details:{ fridgeOption:'zabudowa', requiresFurnitureHinges:true } });
-      return reqStd.typeId === 'hinge_110_overlay'
-        && reqL.typeId === 'hinge_170_corner'
-        && reqBlind.typeId === 'hinge_parallel_inset' && reqBlind.label === 'Zawias równoległy wpuszczany' && reqBlind.technicalParams && reqBlind.technicalParams.nalozenie && reqBlind.technicalParams.nalozenie.value === 'równoległy wpuszczany'
-        && reqOvenDrawer.kind === 'none'
-        && reqOvenFlap.typeId === 'hinge_110_overlay'
-        && reqSinkDrawer.kind === 'none'
-        && reqUnderDoors.typeId === 'hinge_110_overlay' && reqUnderDoors.logicalGroup === 'stojąca_bez_nóg'
-        && reqUnderDrawers.kind === 'none'
-        && reqFridgeDefault.kind === 'none' && reqFridgeDefault.canEnableWithFlag === 'requiresFurnitureHinges'
-        && reqFridgeChecked.typeId === 'hinge_fridge_overlay' && reqFridgeChecked.technicalParams && reqFridgeChecked.technicalParams.nalozenie && reqFridgeChecked.technicalParams.nalozenie.value === 'lodówkowy nakładany';
-    } },
-    { name:'UI lodówki ma ptaszek zawiasów meblowych', explain:'Chroni decyzję: lodówkowa domyślnie nie dostaje zawiasów, ale front może wymagać zawiasów meblowych.', check:()=> {
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-standing-specials.js'), 'utf8');
-      return src.includes('appendFridgeFurnitureHingeToggle')
-        && src.includes('requiresFurnitureHinges')
-        && src.includes('Wymaga zawiasów meblowych')
-        && src.includes("cb.type = 'checkbox'");
-    } },
-    { name:'Lodówka z jednym dużym frontem liczy jeden front do zawiasów', explain:'Chroni zgłoszoną regresję: lodówkowa z ustawieniem 1 front nie może liczyć zawiasów jak dwa fronty góra/dół.', check:()=> {
-      const hw = FC.frontHardware;
-      if(!(hw && typeof hw.getCabinetFrontCutListForMaterials === 'function' && typeof hw.getHingeCountForCabinet === 'function' && typeof hw.blumHingesPerDoor === 'function')) return false;
-      const previousProject = sandbox.projectData;
-      try{
-        sandbox.projectData = { schemaVersion:9, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{ legHeight:10, bottomHeight:82 } } };
-        const cabOne = { id:'fridge_one', type:'stojąca', subType:'lodowkowa', width:60, height:200, frontMaterial:'laminat', details:{ fridgeOption:'zabudowa', fridgeFrontCount:'1', requiresFurnitureHinges:true } };
-        const cabTwo = { id:'fridge_two', type:'stojąca', subType:'lodowkowa', width:60, height:200, frontMaterial:'laminat', details:{ fridgeOption:'zabudowa', fridgeFrontCount:'2', requiresFurnitureHinges:true } };
-        const oneParts = hw.getCabinetFrontCutListForMaterials('kuchnia', cabOne);
-        const twoParts = hw.getCabinetFrontCutListForMaterials('kuchnia', cabTwo);
-        const expectedOne = hw.blumHingesPerDoor(60, 190, 'laminat', true);
-        return oneParts.length === 1
-          && oneParts[0].qty === 1
-          && oneParts[0].a === 60
-          && oneParts[0].b === 190
-          && twoParts.length === 2
-          && twoParts.some((part)=> part.b === 72)
-          && twoParts.some((part)=> part.b === 118)
-          && hw.getHingeCountForCabinet('kuchnia', cabOne) === expectedOne;
-      }finally{
-        sandbox.projectData = previousProject;
-      }
-    } },
-    { name:'Katalog okuć ma słownikowe typy zawiasów bez sztywnego opisu rogowej ślepej', explain:'Chroni zasadę: okucie wynika ze słowników i katalogu, a rogowa ślepa używa realnej cechy równoległy wpuszczany.', check:()=> {
-      const api = FC.hardwareCatalog;
-      const tech = FC.hardwareTechnicalParams;
-      if(!(api && tech && typeof api.normalizeTypeList === 'function' && typeof tech.normalizeDefinitions === 'function')) return false;
-      const types = api.normalizeTypeList([{ id:'hinge_blind_corner', name:'Do rogowej ślepej / ślepego narożnika', allowedCategories:['Zawiasy'], active:true }, { id:'hinge_fridge', name:'Lodówkowy / do frontu lodówki', allowedCategories:['Zawiasy'], active:true }]);
-      const params = tech.normalizeDefinitions([{ category:'Zawiasy', key:'nalozenie', label:'Nałożenie', fieldType:'text', options:['nakładany','półnakładany / bliźniaczy','wpuszczany'], keyFeature:true, typePart:true, compareMode:'equal', order:10, active:true }], ['Zawiasy']);
-      const nalozenie = params.find((row)=> row && row.category === 'Zawiasy' && row.key === 'nalozenie');
-      const options = nalozenie && nalozenie.options || [];
-      const list = FC.hardwareCatalogSeeds && typeof FC.hardwareCatalogSeeds.mergeAccessorySeeds === 'function' ? FC.hardwareCatalogSeeds.mergeAccessorySeeds([]) : [];
-      return types.some((row)=> row.id === 'hinge_parallel_inset' && row.name === 'Równoległy wpuszczany')
-        && types.some((row)=> row.id === 'hinge_fridge_overlay' && row.name === 'Lodówkowy nakładany')
-        && !types.some((row)=> /rogowej ślepej|ślepego narożnika/i.test(String(row.name || '')))
-        && options.includes('równoległy wpuszczany')
-        && options.includes('lodówkowy nakładany')
-        && !options.includes('równoległy / do ślepego narożnika')
-        && !options.includes('lodówkowy')
-        && list.some((row)=> row && row.symbol === '79B9550+173L6130' && row.technicalParams && row.technicalParams.nalozenie && row.technicalParams.nalozenie.value === 'równoległy wpuszczany')
-        && list.some((row)=> row && row.symbol === '91K9550+194K6100' && row.technicalParams && row.technicalParams.nalozenie && row.technicalParams.nalozenie.value === 'lodówkowy nakładany');
     } },
     { name:'Hardware frontów jest załadowany', explain:'Chroni kalkulatory i katalogi używane przy frontach/podnośnikach.', check:()=> !!(FC.frontHardware && FC.frontHardwareAventosCalc && FC.frontHardwareAventosData && FC.frontHardwareAventosSelector) },
   ]);

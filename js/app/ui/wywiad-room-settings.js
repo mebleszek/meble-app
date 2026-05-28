@@ -88,27 +88,7 @@
     return line;
   }
 
-
-  function createSaveFooter(sectionTitle, onSave){
-    const api = ns.wywiadRoomAccordionActions;
-    if(api && typeof api.createSaveFooter === 'function'){
-      return api.createSaveFooter({ sectionTitle, buttonText:'Zapisz zmiany', onSave }).footer;
-    }
-    const footer = document.createElement('div');
-    footer.className = 'wywiad-room-inline-form__footer';
-    const saveBtn = document.createElement('button');
-    saveBtn.type = 'button';
-    saveBtn.className = 'btn btn-success wywiad-room-inline-form__save';
-    saveBtn.textContent = 'Zapisz zmiany';
-    saveBtn.setAttribute('aria-label', 'Zapisz zmiany — ' + sectionTitle);
-    saveBtn.addEventListener('click', onSave);
-    footer.appendChild(saveBtn);
-    return footer;
-  }
-
   function bindTriggerButtons(root){
-    // Etap room_accordion_inline_v1: parametry są edytowane bezpośrednio w akordeonie.
-    // Funkcja zostaje jako zgodny kontrakt dla starszych testów i akcji.
     const scope = root && root.querySelector ? root : document;
     const btn = scope.getElementById ? scope.getElementById('openRoomSettingsBtn') : document.getElementById('openRoomSettingsBtn');
     if(!btn || btn.__wywiadRoomSettingsBound) return;
@@ -119,62 +99,6 @@
     });
   }
 
-  function buildInlineControls(room, settings){
-    const box = document.createElement('div');
-    box.className = 'wywiad-room-inline-form wywiad-room-inline-form--settings';
-
-    const summary = makeCompactSummary(settings);
-    summary.classList.add('wywiad-room-inline-form__summary');
-    box.appendChild(summary);
-
-    const topStat = document.createElement('div');
-    topStat.className = 'wywiad-room-inline-form__auto muted xs';
-    box.appendChild(topStat);
-
-    const grid = document.createElement('div');
-    grid.className = 'grid-2 wywiad-room-settings-modal__grid wywiad-room-inline-form__grid';
-    box.appendChild(grid);
-
-    const inputs = {};
-    function refreshPreview(){
-      const preview = buildPreviewSettings(inputs);
-      topStat.innerHTML = 'Auto-wysokość góry: <strong>' + formatNumber(getAutoTopHeight(room, preview)) + ' cm</strong>';
-    }
-
-    FIELD_DEFS.forEach((field)=>{
-      const fieldEl = document.createElement('div');
-      fieldEl.className = 'wywiad-room-settings-modal__field wywiad-room-inline-form__field';
-
-      const label = document.createElement('label');
-      label.className = 'wywiad-room-settings-modal__label';
-      label.setAttribute('for', 'roomSettingInline_' + field.key);
-      label.textContent = field.label;
-
-      const input = document.createElement('input');
-      input.type = 'number';
-      input.id = 'roomSettingInline_' + field.key;
-      input.className = 'investor-form-input wywiad-room-settings-modal__input wywiad-room-inline-form__input';
-      input.step = field.step || '0.1';
-      input.inputMode = 'decimal';
-      input.value = formatNumber(settings[field.key]).replace(',', '.');
-      input.addEventListener('input', refreshPreview);
-      input.addEventListener('change', refreshPreview);
-
-      inputs[field.key] = input;
-      fieldEl.appendChild(label);
-      fieldEl.appendChild(input);
-      grid.appendChild(fieldEl);
-    });
-
-    box.appendChild(createSaveFooter('Parametry pomieszczenia', ()=>{
-      applySettingsValues(room, buildPreviewSettings(inputs));
-      renderSummary(room);
-    }));
-
-    refreshPreview();
-    return box;
-  }
-
   function renderSummary(roomArg){
     const room = String(roomArg || getCurrentRoom() || '').trim();
     const wrap = document.getElementById('roomSettingsSummary');
@@ -182,7 +106,7 @@
     wrap.innerHTML = '';
     const settings = getRoomSettings(room);
     if(!settings) return;
-    wrap.appendChild(buildInlineControls(room, settings));
+    wrap.appendChild(makeCompactSummary(settings));
     bindTriggerButtons(document);
   }
 
@@ -193,31 +117,6 @@
       preview[field.key] = input ? input.value : 0;
     });
     return preview;
-  }
-
-  function parseSettingValue(value){
-    const raw = String(value == null ? '' : value).replace(',', '.').trim();
-    if(raw === '') return 0;
-    const parsed = parseFloat(raw);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-
-  function applySettingsValues(roomArg, values){
-    try{
-      const room = String(roomArg || getCurrentRoom() || '').trim();
-      const project = getSharedProjectData();
-      if(!room || !project || !project[room] || !project[room].settings) return;
-      FIELD_DEFS.forEach((field)=>{
-        project[room].settings[field.key] = parseSettingValue(values && values[field.key]);
-      });
-      if(window.FC && window.FC.project && typeof window.FC.project.save === 'function'){
-        syncSharedProjectData(window.FC.project.save(project));
-      } else {
-        syncSharedProjectData(project);
-      }
-      try{ typeof window.renderTopHeight === 'function' && window.renderTopHeight(room); }catch(_){ }
-      try{ typeof window.renderCabinets === 'function' && window.renderCabinets(); }catch(_){ }
-    }catch(_){ }
   }
 
   function applySetting(field, value){

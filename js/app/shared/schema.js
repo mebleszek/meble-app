@@ -8,110 +8,24 @@
     const utils = window.FC.utils;
 
     if(!window.FC.schema){
-      const CURRENT_SCHEMA_VERSION = 12;
+      const CURRENT_SCHEMA_VERSION = 9;
 
       const DEFAULT_PROJECT = {
         schemaVersion: CURRENT_SCHEMA_VERSION,
-        kuchnia: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 10, counterThickness: 3.8, gapHeight: 60, ceilingBlende: 10 }, preferences: {} },
-        szafa: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 10, counterThickness: 1.8, gapHeight: 0, ceilingBlende: 5 }, preferences: {} },
-        pokoj: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 5, counterThickness: 1.8, gapHeight: 0, ceilingBlende: 0 }, preferences: {} },
-        lazienka: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 220, bottomHeight: 82, legHeight: 15, counterThickness: 2, gapHeight: 0, ceilingBlende: 0 }, preferences: {} }
+        kuchnia: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 10, counterThickness: 3.8, gapHeight: 60, ceilingBlende: 10 } },
+        szafa: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 10, counterThickness: 1.8, gapHeight: 0, ceilingBlende: 5 } },
+        pokoj: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 250, bottomHeight: 82, legHeight: 5, counterThickness: 1.8, gapHeight: 0, ceilingBlende: 0 } },
+        lazienka: { cabinets: [], fronts: [], sets: [], settings: { roomHeight: 220, bottomHeight: 82, legHeight: 15, counterThickness: 2, gapHeight: 0, ceilingBlende: 0 } }
       };
 
       const ROOMS = ['kuchnia','szafa','pokoj','lazienka'];
-
-      const DEFAULT_ZONE_PREFERENCES = {
-        bodyColor: '',
-        frontMaterial: '',
-        frontColor: '',
-        backMaterial: '',
-        openingSystem: ''
-      };
-
-      const DEFAULT_ROOM_PREFERENCES = {
-        finishStandard: '',
-        blendStandard: '',
-        zones: {
-          lower: { ...DEFAULT_ZONE_PREFERENCES },
-          middle: { ...DEFAULT_ZONE_PREFERENCES },
-          upper: { ...DEFAULT_ZONE_PREFERENCES }
-        },
-        hardwareManufacturer: ''
-      };
-
-      function text(v){ return String(v == null ? '' : v).trim(); }
-
-      function normalizeZonePreferences(raw, legacy){
-        const src = isPlainObject(raw) ? raw : {};
-        const legacySrc = isPlainObject(legacy) ? legacy : {};
-        return {
-          bodyColor: text(src.bodyColor || legacySrc.bodyColor),
-          frontMaterial: text(src.frontMaterial || legacySrc.frontMaterial),
-          frontColor: text(src.frontColor || legacySrc.frontColor),
-          backMaterial: text(src.backMaterial || legacySrc.backMaterial),
-          openingSystem: text(src.openingSystem || legacySrc.openingSystem)
-        };
-      }
-
-      function legacyZoneFor(src, zoneKey){
-        const legacyOpening = text(src && src.openingSystem);
-        if(zoneKey === 'upper') return {
-          bodyColor: src && src.bodyColor,
-          frontMaterial: src && src.frontMaterial,
-          frontColor: src && src.frontColor,
-          backMaterial: src && src.backMaterial,
-          openingSystem: src && (src.openingSystemHanging || legacyOpening)
-        };
-        if(zoneKey === 'middle') return {
-          bodyColor: src && src.bodyColor,
-          frontMaterial: src && src.frontMaterial,
-          frontColor: src && src.frontColor,
-          backMaterial: src && src.backMaterial,
-          openingSystem: src && (src.openingSystemModule || legacyOpening)
-        };
-        return {
-          bodyColor: src && src.bodyColor,
-          frontMaterial: src && src.frontMaterial,
-          frontColor: src && src.frontColor,
-          backMaterial: src && src.backMaterial,
-          openingSystem: src && (src.openingSystemStanding || src.openingSystemLower || legacyOpening)
-        };
-      }
-
-      function normalizeRoomPreferences(raw){
-        const external = window.FC && window.FC.roomPreferences;
-        if(external && typeof external.normalizeRoomPreferences === 'function') return external.normalizeRoomPreferences(raw);
-        const src = isPlainObject(raw) ? raw : {};
-        const rawZones = isPlainObject(src.zones) ? src.zones : {};
-        return {
-          finishStandard: text(src.finishStandard),
-          blendStandard: text(src.blendStandard),
-          zones: {
-            lower: normalizeZonePreferences(rawZones.lower, legacyZoneFor(src, 'lower')),
-            middle: normalizeZonePreferences(rawZones.middle, legacyZoneFor(src, 'middle')),
-            upper: normalizeZonePreferences(rawZones.upper, legacyZoneFor(src, 'upper'))
-          },
-          hardwareProducers: (function(){
-            const hp = isPlainObject(src.hardwareProducers) ? src.hardwareProducers : (isPlainObject(src.hardware) ? src.hardware : {});
-            const legacy = text(src.hardwareManufacturer);
-            return {
-              hinges: text(hp.hinges || hp.hingesManufacturer || legacy),
-              drawers: text(hp.drawers || hp.drawerSystemManufacturer || legacy),
-              lifts: text(hp.lifts || hp.liftManufacturer || legacy),
-              cargo: text(hp.cargo || hp.cargoManufacturer || legacy),
-              accessories: text(hp.accessories || hp.accessoriesManufacturer || legacy)
-            };
-          })(),
-          hardwareManufacturer: text(src.hardwareManufacturer)
-        };
-      }
 
       function clone(obj){
         try{ return (utils && utils.clone) ? utils.clone(obj) : JSON.parse(JSON.stringify(obj)); }
         catch(e){ return JSON.parse(JSON.stringify(obj || {})); }
       }
       function isPlainObject(v){
-        return (utils && typeof utils.isPlainObject === 'function') ? utils.isPlainObject(v) : (!!v && typeof v === 'object' && !Array.isArray(v) && Object.prototype.toString.call(v) === '[object Object]');
+        return (utils && typeof utils.isPlainObject === 'function') ? utils.isPlainObject(v) : (!!v && typeof v === 'object' && (v.constructor === Object || Object.getPrototypeOf(v) === null));
       }
       function num(v, fallback){
         return (utils && typeof utils.num === 'function') ? utils.num(v, fallback) : (Number.isFinite(Number(v)) ? Number(v) : fallback);
@@ -127,7 +41,6 @@
 
         const sRaw = isPlainObject(room.settings) ? room.settings : {};
         const sDef = def.settings;
-        const preferences = normalizeRoomPreferences(room.preferences || def.preferences || DEFAULT_ROOM_PREFERENCES);
 
         const settings = {
           roomHeight: num(sRaw.roomHeight, sDef.roomHeight),
@@ -219,8 +132,7 @@
           cabinets: normCabinets,
           fronts: clone(fronts),
           sets: clone(sets),
-          settings,
-          preferences
+          settings
         };
       }
 
@@ -238,8 +150,6 @@
         if (ver < 7 && typeof mig.migrateV6toV7 === 'function') data = mig.migrateV6toV7(data);
         if (ver < 8 && typeof mig.migrateV7toV8 === 'function') data = mig.migrateV7toV8(data);
         if (ver < 9 && typeof mig.migrateV8toV9 === 'function') data = mig.migrateV8toV9(data);
-        if (ver < 10 && typeof mig.migrateV9toV10 === 'function') data = mig.migrateV9toV10(data);
-        if (ver < 11 && typeof mig.migrateV10toV11 === 'function') data = mig.migrateV10toV11(data);
 
         const out = { schemaVersion: CURRENT_SCHEMA_VERSION };
         for (const r of ROOMS){
@@ -257,8 +167,6 @@
         ROOMS,
         normalizeProject,
         normalizeRoom,
-        normalizeRoomPreferences,
-        DEFAULT_ROOM_PREFERENCES,
       };
     }
   }catch(_){ }

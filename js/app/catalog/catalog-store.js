@@ -40,9 +40,6 @@
   const DEFAULT_HARDWARE_TYPES = hardwareCatalog && Array.isArray(hardwareCatalog.DEFAULT_TYPES)
     ? hardwareCatalog.DEFAULT_TYPES.slice()
     : [];
-  const DEFAULT_HARDWARE_TECHNICAL_PARAMS = FC.hardwareTechnicalParams && Array.isArray(FC.hardwareTechnicalParams.DEFAULT_DEFINITIONS)
-    ? FC.hardwareTechnicalParams.DEFAULT_DEFINITIONS.slice()
-    : [];
   const DEFAULT_QUOTE_RATES = laborCatalog && Array.isArray(laborCatalog.DEFAULT_HOURLY_RATES)
     ? laborCatalog.DEFAULT_HOURLY_RATES.concat(laborCatalog.DEFAULT_LABOR_DEFINITIONS || [])
     : [
@@ -179,13 +176,6 @@
     return Array.isArray(list) ? list : DEFAULT_HARDWARE_TYPES.slice();
   }
 
-  function normalizeHardwareTechnicalParams(list, categories){
-    try{
-      if(FC.hardwareTechnicalParams && typeof FC.hardwareTechnicalParams.normalizeDefinitions === 'function') return FC.hardwareTechnicalParams.normalizeDefinitions(list, categories || cache.hardwareCategories || DEFAULT_HARDWARE_CATEGORIES);
-    }catch(_){ }
-    return Array.isArray(list) ? list : DEFAULT_HARDWARE_TECHNICAL_PARAMS.slice();
-  }
-
 
   function normalizeServiceRow(row){
     const src = row && typeof row === 'object' ? row : {};
@@ -273,7 +263,6 @@
           storedHardwareSettings: readList('hardwareSettings', null),
           storedHardwareCategories: readList('hardwareCategories', null),
           storedHardwareTypes: readList('hardwareTypes', null),
-          storedHardwareTechnicalParams: readList('hardwareTechnicalParams', null),
           defaults: {
             sheetMaterials: DEFAULT_SHEET_MATERIALS,
             accessories: DEFAULT_ACCESSORIES,
@@ -285,7 +274,6 @@
             hardwareSettings: DEFAULT_HARDWARE_SETTINGS,
             hardwareCategories: DEFAULT_HARDWARE_CATEGORIES,
             hardwareTypes: DEFAULT_HARDWARE_TYPES,
-            hardwareTechnicalParams: DEFAULT_HARDWARE_TECHNICAL_PARAMS,
           },
           splitLegacyMaterials,
         })
@@ -300,16 +288,14 @@
           hardwareSettings: readList('hardwareSettings', DEFAULT_HARDWARE_SETTINGS),
           hardwareCategories: readList('hardwareCategories', DEFAULT_HARDWARE_CATEGORIES),
           hardwareTypes: readList('hardwareTypes', DEFAULT_HARDWARE_TYPES),
-          hardwareTechnicalParams: readList('hardwareTechnicalParams', DEFAULT_HARDWARE_TECHNICAL_PARAMS),
         };
 
     const hardwareSettings = normalizeHardwareSettings(seeds.hardwareSettings || readList('hardwareSettings', DEFAULT_HARDWARE_SETTINGS));
     const hardwareCategories = normalizeHardwareCategories(seeds.hardwareCategories || readList('hardwareCategories', DEFAULT_HARDWARE_CATEGORIES));
     const hardwareTypes = normalizeHardwareTypes(seeds.hardwareTypes || readList('hardwareTypes', DEFAULT_HARDWARE_TYPES));
-    const hardwareTechnicalParams = normalizeHardwareTechnicalParams(seeds.hardwareTechnicalParams || readList('hardwareTechnicalParams', DEFAULT_HARDWARE_TECHNICAL_PARAMS), hardwareCategories);
     const supplierSeed = Array.isArray(seeds.hardwareSuppliers) ? seeds.hardwareSuppliers : readList('hardwareSuppliers', DEFAULT_HARDWARE_SUPPLIERS);
     const hardwareSuppliers = normalizeHardwareSuppliers(supplierSeed);
-    currentHardwareSettings = Object.assign({}, hardwareSettings, { hardwareSuppliers, hardwareCategories, hardwareTypes, hardwareTechnicalParams });
+    currentHardwareSettings = Object.assign({}, hardwareSettings, { hardwareSuppliers, hardwareCategories, hardwareTypes });
     const sheetMaterials = normalizeList(seeds.sheetMaterials, normalizeMaterialRow, DEFAULT_SHEET_MATERIALS).filter((row)=> String(row.materialType || '').trim().toLowerCase() !== 'akcesoria');
     const accessorySeedRows = hardwareSeeds && typeof hardwareSeeds.mergeAccessorySeeds === 'function'
       ? hardwareSeeds.mergeAccessorySeeds(seeds.accessories)
@@ -334,7 +320,6 @@
     writeList('hardwareSettings', hardwareSettings);
     writeList('hardwareCategories', hardwareCategories);
     writeList('hardwareTypes', hardwareTypes);
-    writeList('hardwareTechnicalParams', hardwareTechnicalParams);
     try{
       if(serviceOrderStore && typeof serviceOrderStore.writeAll === 'function') serviceOrderStore.writeAll(serviceOrders);
       else writeList('serviceOrders', serviceOrders);
@@ -344,12 +329,12 @@
     writeList('materials', sheetMaterials);
     writeList('services', quoteRates);
 
-    cache = { sheetMaterials, accessories, quoteRates, workshopServices, serviceOrders, hardwareManufacturers, hardwareSuppliers, hardwareSettings, hardwareCategories, hardwareTypes, hardwareTechnicalParams };
+    cache = { sheetMaterials, accessories, quoteRates, workshopServices, serviceOrders, hardwareManufacturers, hardwareSuppliers, hardwareSettings, hardwareCategories, hardwareTypes };
     syncRuntimeGlobals();
-    return { sheetMaterials, accessories, quoteRates, workshopServices, serviceOrders, hardwareManufacturers, hardwareSuppliers, hardwareSettings, hardwareCategories, hardwareTypes, hardwareTechnicalParams };
+    return { sheetMaterials, accessories, quoteRates, workshopServices, serviceOrders, hardwareManufacturers, hardwareSuppliers, hardwareSettings, hardwareCategories, hardwareTypes };
   }
 
-  let cache = { sheetMaterials:[], accessories:[], quoteRates:[], workshopServices:[], serviceOrders:[], hardwareManufacturers:[], hardwareSuppliers:[], hardwareSettings:Object.assign({}, DEFAULT_HARDWARE_SETTINGS), hardwareCategories:DEFAULT_HARDWARE_CATEGORIES.slice(), hardwareTypes:DEFAULT_HARDWARE_TYPES.slice(), hardwareTechnicalParams:DEFAULT_HARDWARE_TECHNICAL_PARAMS.slice() };
+  let cache = { sheetMaterials:[], accessories:[], quoteRates:[], workshopServices:[], serviceOrders:[], hardwareManufacturers:[], hardwareSuppliers:[], hardwareSettings:Object.assign({}, DEFAULT_HARDWARE_SETTINGS), hardwareCategories:DEFAULT_HARDWARE_CATEGORIES.slice(), hardwareTypes:DEFAULT_HARDWARE_TYPES.slice() };
 
   function syncRuntimeGlobals(){
     try{ if(typeof materials !== 'undefined') materials = cache.sheetMaterials.slice(); }catch(_){ }
@@ -386,7 +371,6 @@
       hardwareSuppliers:cache.hardwareSuppliers || [],
       hardwareCategories:cache.hardwareCategories || [],
       hardwareTypes:cache.hardwareTypes || [],
-      hardwareTechnicalParams:cache.hardwareTechnicalParams || [],
     });
     return currentHardwareSettings;
   }
@@ -407,10 +391,8 @@
   function getHardwareCategories(){ return (cache.hardwareCategories || []).slice(); }
   function saveHardwareCategories(list){
     cache.hardwareCategories = normalizeHardwareCategories(list);
-    cache.hardwareTechnicalParams = normalizeHardwareTechnicalParams(cache.hardwareTechnicalParams || DEFAULT_HARDWARE_TECHNICAL_PARAMS, cache.hardwareCategories);
     refreshHardwareRuntimeSettings();
     writeList('hardwareCategories', cache.hardwareCategories);
-    writeList('hardwareTechnicalParams', cache.hardwareTechnicalParams);
     return getHardwareCategories();
   }
   function getHardwareTypes(){ return (cache.hardwareTypes || []).map((row)=> Object.assign({}, row, { allowedCategories:Array.isArray(row && row.allowedCategories) ? row.allowedCategories.slice() : [] })); }
@@ -419,13 +401,6 @@
     refreshHardwareRuntimeSettings();
     writeList('hardwareTypes', cache.hardwareTypes);
     return getHardwareTypes();
-  }
-  function getHardwareTechnicalParams(){ return normalizeHardwareTechnicalParams(cache.hardwareTechnicalParams || DEFAULT_HARDWARE_TECHNICAL_PARAMS, cache.hardwareCategories || []).map((row)=> Object.assign({}, row, { options:Array.isArray(row && row.options) ? row.options.slice() : [] })); }
-  function saveHardwareTechnicalParams(list){
-    cache.hardwareTechnicalParams = normalizeHardwareTechnicalParams(list, cache.hardwareCategories || []);
-    refreshHardwareRuntimeSettings();
-    writeList('hardwareTechnicalParams', cache.hardwareTechnicalParams);
-    return getHardwareTechnicalParams();
   }
 
   function savePriceList(kind, list){
@@ -512,8 +487,6 @@
     saveHardwareCategories,
     getHardwareTypes,
     saveHardwareTypes,
-    getHardwareTechnicalParams,
-    saveHardwareTechnicalParams,
     getServiceOrders,
     saveServiceOrders,
     upsertServiceOrder,

@@ -8,7 +8,6 @@
     hardwareSettings: 'fc_hardware_settings_v1',
     hardwareCategories: 'fc_hardware_categories_v1',
     hardwareTypes: 'fc_hardware_types_v1',
-    hardwareTechnicalParams: 'fc_hardware_technical_params_v1',
   };
 
   const LEGACY_KEYS = {
@@ -16,7 +15,6 @@
     hardwareSettings: 'hardwareSettings',
     hardwareCategories: 'hardwareCategories',
     hardwareTypes: 'hardwareTypes',
-    hardwareTechnicalParams: 'hardwareTechnicalParams',
   };
 
   function cloneFallback(value, cloneFn){

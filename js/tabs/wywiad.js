@@ -80,22 +80,14 @@
       <div class="cabinet-header__meta">${cab.width} × ${cab.height} × ${cab.depth}</div>
     `;
     try{
-      const laborApi = window.FC && window.FC.wywiadLaborSummary ? window.FC.wywiadLaborSummary : null;
-      const laborNode = laborApi && typeof laborApi.renderHeaderSummary === 'function'
-        ? laborApi.renderHeaderSummary(cab)
-        : null;
-      if(laborNode){
-        copy.appendChild(laborNode);
-      }else{
-        const laborHeader = laborApi && typeof laborApi.getHeaderText === 'function'
-          ? laborApi.getHeaderText(cab)
-          : '';
-        if(laborHeader){
-          const laborMeta = document.createElement('div');
-          laborMeta.className = 'cabinet-header__meta cabinet-header__meta--labor';
-          laborMeta.textContent = laborHeader;
-          copy.appendChild(laborMeta);
-        }
+      const laborHeader = window.FC && window.FC.wywiadLaborSummary && typeof window.FC.wywiadLaborSummary.getHeaderText === 'function'
+        ? window.FC.wywiadLaborSummary.getHeaderText(cab)
+        : '';
+      if(laborHeader){
+        const laborMeta = document.createElement('div');
+        laborMeta.className = 'cabinet-header__meta cabinet-header__meta--labor';
+        laborMeta.textContent = laborHeader;
+        copy.appendChild(laborMeta);
       }
     }catch(_){ }
 

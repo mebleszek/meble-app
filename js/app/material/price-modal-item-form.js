@@ -132,7 +132,7 @@
   }
 
   function getCurrentMaterialDraft(){ return { materialType:String((ctx.byId('formMaterialType') && ctx.byId('formMaterialType').value) || ''), manufacturer:String((ctx.byId('formManufacturer') && ctx.byId('formManufacturer').value) || '').trim(), symbol:String((ctx.byId('formSymbol') && ctx.byId('formSymbol').value) || '').trim(), name:String((ctx.byId('formName') && ctx.byId('formName').value) || '').trim(), price:normalizePriceValue(ctx.byId('formPrice') && ctx.byId('formPrice').value), hasGrain:!!(ctx.byId('formHasGrain') && ctx.byId('formHasGrain').checked) }; }
-  function getCurrentAccessoryDraft(opts){ return ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.getCurrentAccessoryDraft === 'function' ? ctx.priceModalHardwareForm.getCurrentAccessoryDraft(opts || {}) : {}; }
+  function getCurrentAccessoryDraft(){ return ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.getCurrentAccessoryDraft === 'function' ? ctx.priceModalHardwareForm.getCurrentAccessoryDraft() : {}; }
   function getCurrentLaborDraft(base){
     if(ctx.currentListKind() !== 'quoteRates') return {};
     const labor = FC.laborCatalog || {};
@@ -166,7 +166,7 @@
     const base = { category:String((ctx.byId('formCategory') && ctx.byId('formCategory').value) || '').trim(), name:String((ctx.byId('formServiceName') && ctx.byId('formServiceName').value) || '').trim(), price:normalizePriceValue(ctx.byId('formServicePrice') && ctx.byId('formServicePrice').value) };
     return Object.assign(base, getCurrentLaborDraft(base));
   }
-  function currentItemSignature(){ const kind = ctx.currentConfig().formKind; const data = kind === 'material' ? getCurrentMaterialDraft() : (kind === 'accessory' ? getCurrentAccessoryDraft({ passive:true }) : getCurrentServiceDraft()); return JSON.stringify(data); }
+  function currentItemSignature(){ const kind = ctx.currentConfig().formKind; const data = kind === 'material' ? getCurrentMaterialDraft() : (kind === 'accessory' ? getCurrentAccessoryDraft() : getCurrentServiceDraft()); return JSON.stringify(data); }
   function isItemDirty(){ return ctx.runtimeState.itemModalOpen && currentItemSignature() !== String(ctx.runtimeState.itemInitialSignature || ''); }
 
   function updateItemActionState(){
@@ -184,10 +184,6 @@
     if(exitBtn) exitBtn.style.display = dirty ? 'none' : '';
     if(cancelBtn) cancelBtn.style.display = dirty ? '' : 'none';
     if(saveBtn){ saveBtn.style.display = dirty ? '' : 'none'; saveBtn.textContent = isEdit ? 'Zapisz' : ctx.currentConfig().addLabel.replace(/^Dodaj\s+/i, 'Dodaj '); }
-    try{
-      if(ctx.priceModalHardwareReplacements && typeof ctx.priceModalHardwareReplacements.updateActionState === 'function')
-        ctx.priceModalHardwareReplacements.updateActionState({ dirty, isEdit, formKind:ctx.currentConfig().formKind, item:currentEditedItem() });
-    }catch(_){ }
   }
 
   function wireItemDirtyEvents(){
@@ -293,7 +289,6 @@
     if(ctx.mountFormChoiceLaunchers) ctx.mountFormChoiceLaunchers(()=> updateItemActionState());
     if(kind === 'quoteRates') { hideLaborUsageField(); mountLaborChoiceLaunchers(); }
     if(ctx.decorateFieldHelpLabels) ctx.decorateFieldHelpLabels();
-    try{ if(ctx.priceModalHardwareReplacements && typeof ctx.priceModalHardwareReplacements.setSourceItem === 'function') ctx.priceModalHardwareReplacements.setSourceItem(item || null); }catch(_){ }
     wireItemDirtyEvents();
     ctx.runtimeState.itemInitialSignature = currentItemSignature();
     updateItemActionState();

@@ -11,7 +11,6 @@
     const src = getCommon() && typeof getCommon().normalizeDraft === 'function'
       ? getCommon().normalizeDraft(draft)
       : (draft || {});
-    const hasGrain = !!(materialMeta && materialMeta.hasGrain);
     return {
       heur: 'basic',
       optimaxProfile: 'max',
@@ -21,23 +20,26 @@
       boardH: Number(materialMeta && materialMeta.boardH) || Number(src.boardH) || 2070,
       kerf: Number(src.kerf) || 4,
       edgeTrim: Number(src.edgeTrim) || 10,
-      grain: hasGrain,
+      grain: true,
       grainExceptions: {},
       minScrapW: 0,
       minScrapH: 0,
     };
   }
 
-  function computeSinglePlan(normalized, materialMeta, sourceParts){
+  function generatePlan(draft){
     const common = getCommon();
-    const parts = common.buildPlanParts(sourceParts, materialMeta.name);
+    if(!common || !FC.rozrysEngine) return { ok:false, error:'Brak modułów usługowego rozrysu.' };
+    const normalized = common.normalizeDraft(draft);
+    const materialMeta = common.resolveMaterialMeta(normalized);
+    const parts = common.buildPlanParts(normalized.parts, materialMeta.name);
     if(!parts.length) return { ok:false, error:'Dodaj co najmniej jedną formatkę z poprawnymi wymiarami.' };
-    const edgeStore = common.buildEdgeStore(sourceParts);
+    const edgeStore = common.buildEdgeStore(normalized.parts);
     const state = buildState(normalized, materialMeta);
     const plan = FC.rozrysEngine.computePlan(state, parts, {
       loadEdgeStore: ()=> edgeStore,
       partSignature: (p)=> String(p && p.id || p && p.key || ''),
-      isPartRotationAllowed: (_p, grainOn)=> !grainOn,
+      isPartRotationAllowed: ()=> false,
       cutOptimizer: FC.cutOptimizer,
     });
     return {
@@ -55,31 +57,17 @@
     };
   }
 
-  function generatePlan(draft){
-    const common = getCommon();
-    if(!common || !FC.rozrysEngine) return { ok:false, error:'Brak modułów usługowego rozrysu.' };
-    const normalized = common.normalizeDraft(draft);
-    if(!Array.isArray(normalized.parts) || !normalized.parts.length) return { ok:false, error:'Dodaj co najmniej jedną formatkę z poprawnymi wymiarami.' };
-    const groups = typeof common.groupPartsByMaterial === 'function' ? common.groupPartsByMaterial(normalized) : [];
-    if(groups.length > 1){
-      const groupResults = groups.map((group)=> computeSinglePlan(normalized, group.materialMeta, group.parts));
-      const failed = groupResults.find((row)=> !row.ok);
-      if(failed) return failed;
-      return {
-        ok:true,
-        multi:true,
-        groups:groupResults,
-        plan:{ multi:true, groups:groupResults.map((row)=> row.savedPlan) },
-        savedPlan:{ multi:true, groups:groupResults.map((row)=> row.savedPlan) },
-      };
+  function renderPlan(target, payload){
+    if(!target) return;
+    if(!(payload && payload.ok && payload.plan && FC.rozrysRender)){
+      target.innerHTML = '';
+      const msg = (payload && payload.error) || 'Nie udało się wygenerować rozrysu.';
+      const box = document.createElement('div');
+      box.className = 'muted';
+      box.textContent = msg;
+      target.appendChild(box);
+      return;
     }
-    const materialMeta = groups.length ? groups[0].materialMeta : common.resolveMaterialMeta(normalized);
-    const sourceParts = groups.length ? groups[0].parts : normalized.parts;
-    return computeSinglePlan(normalized, materialMeta, sourceParts);
-  }
-
-  function renderSingle(target, payload){
-    if(!target || !(payload && payload.ok && payload.plan && FC.rozrysRender)) return false;
     const materialName = String(payload.materialMeta && payload.materialMeta.name || 'Materiał');
     const meta = {
       material: materialName,
@@ -107,43 +95,6 @@
       buildRozrysDiagnostics: null,
       cutOptimizer: FC.cutOptimizer,
     });
-    return true;
-  }
-
-  function renderPlan(target, payload){
-    if(!target) return;
-    target.innerHTML = '';
-    if(!(payload && payload.ok)){
-      const msg = (payload && payload.error) || 'Nie udało się wygenerować rozrysu.';
-      const box = document.createElement('div');
-      box.className = 'muted';
-      box.textContent = msg;
-      target.appendChild(box);
-      return;
-    }
-    if(payload.multi && Array.isArray(payload.groups)){
-      payload.groups.forEach((group, index)=>{
-        const wrap = document.createElement('div');
-        wrap.style.margin = index ? '18px 0 0' : '0';
-        const title = document.createElement('div');
-        title.style.fontWeight = '900';
-        title.style.fontSize = '18px';
-        title.style.marginBottom = '8px';
-        title.textContent = `${group.materialMeta && group.materialMeta.name || 'Materiał'}${group.materialMeta && group.materialMeta.thickness ? ' / ' + group.materialMeta.thickness + ' mm' : ''}`;
-        const out = document.createElement('div');
-        wrap.appendChild(title);
-        wrap.appendChild(out);
-        target.appendChild(wrap);
-        renderSingle(out, group);
-      });
-      return;
-    }
-    if(!renderSingle(target, payload)){
-      const box = document.createElement('div');
-      box.className = 'muted';
-      box.textContent = 'Nie udało się wygenerować rozrysu.';
-      target.appendChild(box);
-    }
   }
 
   FC.serviceCuttingRozrys = {

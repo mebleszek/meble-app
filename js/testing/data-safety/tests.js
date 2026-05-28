@@ -175,24 +175,21 @@
       }),
 
       H.makeTest('Data safety', 'Backupy testowe mają twardy limit 10 najnowszych sztuk', 'Pilnuje decyzji: automatyczne backupy before-tests mogą mieć maksymalnie 10 kopii, a ręczne backupy zachowują dotychczasową retencję.', ()=>{
-        H.assert(FC.dataBackupPolicy && typeof FC.dataBackupPolicy.pruneBackups === 'function', 'Brak FC.dataBackupPolicy.pruneBackups');
-        H.assert(typeof FC.dataBackupPolicy.groupBackups === 'function', 'Brak FC.dataBackupPolicy.groupBackups');
-        const base = Date.now();
-        const makeBackup = (id, reason, offset)=> ({
-          id,
-          reason,
-          label:reason === 'before-tests' ? 'Przed testami ' + id : 'Ręczny ' + id,
-          createdAt:new Date(base + offset).toISOString(),
-          createdAtMs:base + offset,
-          snapshot:{ kind:'meble-app-storage-snapshot', version:1, createdAt:new Date(base + offset).toISOString(), meta:{ reason }, keys:{ fc_investors_v1:'[]' } },
-        });
-        const testRows = Array.from({ length:12 }, (_, index)=> makeBackup('test_' + index, 'before-tests', index));
-        const appRows = Array.from({ length:12 }, (_, index)=> makeBackup('manual_' + index, 'manual', 1000 + index));
-        const pruned = FC.dataBackupPolicy.pruneBackups(testRows.concat(appRows));
-        const groups = FC.dataBackupPolicy.groupBackups(pruned);
-        H.assert(groups.test.length === 10, 'Backupy testowe powinny zostać przycięte do 10 najnowszych sztuk', groups);
-        H.assert(groups.test.every((row)=> !['test_0', 'test_1'].includes(String(row.id || ''))), 'Retencja testowa powinna odrzucić dwie najstarsze kopie testowe', groups.test);
-        H.assert(groups.app.length === 12, 'Test limitu before-tests nie może przycinać ręcznych backupów programu', groups.app);
+        H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.createBackup === 'function', 'Brak FC.dataBackupStore.createBackup');
+        const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
+        const saved = { store:localStorage.getItem(backupKey), investors:localStorage.getItem('fc_investors_v1') };
+        try{
+          localStorage.setItem(backupKey, '[]');
+          localStorage.setItem('fc_investors_v1', JSON.stringify([{ id:'inv_backup_limit', name:'Backup limit' }]));
+          for(let i=0;i<12;i += 1){
+            FC.dataBackupStore.createBackup({ reason:'before-tests', label:'Przed testami limit ' + i, dedupe:false });
+          }
+          const groups = FC.dataBackupStore.listBackupGroups();
+          H.assert(groups.test.length === 10, 'Backupy testowe powinny zostać przycięte do 10 najnowszych sztuk', groups);
+        } finally {
+          if(saved.store == null) localStorage.removeItem(backupKey); else localStorage.setItem(backupKey, saved.store);
+          if(saved.investors == null) localStorage.removeItem('fc_investors_v1'); else localStorage.setItem('fc_investors_v1', saved.investors);
+        }
       }),
 
       H.makeTest('Data safety', 'Zapis backup store odchudza stare backupy bez zmiany retencji', 'Pilnuje naprawy quota: stare zapisane backupy są przepisywane bez technicznych kluczy, ale bez zmiany liczby backupów i zasad ochrony.', ()=>{

@@ -34,14 +34,6 @@
     .ui-pattern-field{max-width:320px;}
     .pattern-preview .panel-box{margin:0;}
     .ui-pattern-footer-note{color:#64748b;font-size:12px;line-height:1.35;}
-    .ui-pattern-accordion-motion .rozrys-material-accordion__trigger{align-items:center;padding:16px;}
-    .ui-pattern-accordion-motion .rozrys-material-accordion__chevron{margin-left:auto;}
-    .ui-pattern-accordion-motion .rozrys-material-accordion__body{transition:max-height .42s cubic-bezier(.22,.72,.18,1),opacity .30s ease,transform .36s ease;will-change:max-height,opacity,transform;}
-    .ui-pattern-accordion-motion .rozrys-material-accordion.is-ui-pattern-animating .rozrys-material-accordion__body{overflow:hidden;}
-    .ui-pattern-accordion-motion .rozrys-material-accordion__body[hidden]{display:none!important;}
-    @media(prefers-reduced-motion:reduce){
-      .ui-pattern-accordion-motion .rozrys-material-accordion__body{transition:none!important;}
-    }
 
     .patterns__section{display:grid;gap:14px;}
     .patterns__section-head{background:#fff;border:1px solid #d9deea;border-radius:20px;padding:16px 18px;box-shadow:0 8px 24px rgba(17,24,39,.06);}
@@ -177,35 +169,32 @@
       </article>
 
       <article class="pattern-card" data-ui-pattern="rozrys-accordion">
-        <h2>Accordion ROZRYS + ruch</h2>
-        <p>Wzór dla rozwijanych sekcji: wygląd 1:1 z ROZRYSU, stały chevron po prawej, klik w cały nagłówek, natychmiastowe zamykanie starej sekcji i płynne rozwijanie nowej.</p>
-        <div class="pattern-preview ui-pattern-accordion-motion" data-ui-pattern-accordion-group>
-          <div class="rozrys-material-accordion is-open" data-ui-pattern-accordion style="margin-top:0;">
+        <h2>Accordion ROZRYS</h2>
+        <p>Wzór dla rozwijanych sekcji: ramka, tytuł, drugi wiersz i stabilna ikonka rozwijania z <code>rozrys-material-accordion__chevron</code>.</p>
+        <div class="pattern-preview">
+          <div class="rozrys-material-accordion is-open" style="margin-top:0;">
             <div class="rozrys-material-accordion__head">
-              <button class="rozrys-material-accordion__trigger" type="button" aria-expanded="true">
+              <button class="rozrys-material-accordion__trigger" type="button">
                 <div class="rozrys-material-accordion__title">
                   <div class="rozrys-material-accordion__title-line1">Wzorcowa sekcja rozwijana</div>
-                  <div class="rozrys-material-accordion__title-line2">Wygląd jak ROZRYS + płynne otwarcie</div>
+                  <div class="rozrys-material-accordion__title-line2">Drugi wiersz / licznik / krótki opis</div>
                 </div>
                 <span class="rozrys-material-accordion__chevron" aria-hidden="true">&#9662;</span>
               </button>
             </div>
             <div class="rozrys-material-accordion__body">
-              <p>Treść sekcji po rozwinięciu. Ten wzorzec ma być kopiowany jako całość: nagłówek, strzałka, klasa <code>is-open</code> i zachowanie animacji.</p>
+              <p>Treść sekcji po rozwinięciu. Nowe accordiony mają kopiować ten kierunek zamiast tworzyć lokalne ikonki plus/minus.</p>
             </div>
           </div>
-          <div class="rozrys-material-accordion" data-ui-pattern-accordion style="margin-top:12px;">
+          <div class="rozrys-material-accordion" style="margin-top:12px;">
             <div class="rozrys-material-accordion__head">
-              <button class="rozrys-material-accordion__trigger" type="button" aria-expanded="false">
+              <button class="rozrys-material-accordion__trigger" type="button">
                 <div class="rozrys-material-accordion__title">
                   <div class="rozrys-material-accordion__title-line1">Wariant zwinięty</div>
-                  <div class="rozrys-material-accordion__title-line2">Kliknij, żeby sprawdzić ruch</div>
+                  <div class="rozrys-material-accordion__title-line2">Ta sama ikonka, bez klasy is-open</div>
                 </div>
                 <span class="rozrys-material-accordion__chevron" aria-hidden="true">&#9662;</span>
               </button>
-            </div>
-            <div class="rozrys-material-accordion__body" hidden>
-              <p>Przy otwieraniu ta treść rozwija się płynnie. Poprzedni akordeon zamyka się od razu, żeby lista nie pływała na telefonie.</p>
             </div>
           </div>
         </div>
@@ -226,85 +215,5 @@
       </article>
     </section>
   </main>
-  <script>
-    (function(){
-      'use strict';
-      var EXPAND_MS = 420;
-      function prefersReducedMotion(){
-        try{ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(_){ return false; }
-      }
-      function frame(fn){
-        if(window.requestAnimationFrame) window.requestAnimationFrame(function(){ window.requestAnimationFrame(fn); });
-        else setTimeout(fn, 0);
-      }
-      function bodyOf(box){ return box ? box.querySelector(':scope > .rozrys-material-accordion__body') : null; }
-      function triggerOf(box){ return box ? box.querySelector(':scope .rozrys-material-accordion__trigger') : null; }
-      function setOpen(box, open){
-        var body = bodyOf(box);
-        var trigger = triggerOf(box);
-        box.classList.toggle('is-open', !!open);
-        if(trigger) trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
-        if(body) body.hidden = !open;
-      }
-      function reset(box){
-        var body = bodyOf(box);
-        if(box._uiPatternTimer){ clearTimeout(box._uiPatternTimer); box._uiPatternTimer = null; }
-        box.classList.remove('is-ui-pattern-animating');
-        if(body){
-          body.style.maxHeight = '';
-          body.style.opacity = '';
-          body.style.transform = '';
-          body.style.overflow = '';
-        }
-      }
-      function closeInstant(box){
-        reset(box);
-        setOpen(box, false);
-      }
-      function openAnimated(box){
-        var body = bodyOf(box);
-        if(!body || prefersReducedMotion()){
-          reset(box);
-          setOpen(box, true);
-          return;
-        }
-        reset(box);
-        setOpen(box, true);
-        box.classList.add('is-ui-pattern-animating');
-        body.style.overflow = 'hidden';
-        body.style.maxHeight = '0px';
-        body.style.opacity = '0';
-        body.style.transform = 'translateY(-4px)';
-        try{ void body.offsetHeight; }catch(_){ }
-        var targetHeight = Math.max(1, body.scrollHeight || 1);
-        frame(function(){
-          body.style.maxHeight = targetHeight + 'px';
-          body.style.opacity = '1';
-          body.style.transform = 'translateY(0)';
-        });
-        box._uiPatternTimer = setTimeout(function(){
-          reset(box);
-          setOpen(box, true);
-        }, EXPAND_MS + 30);
-      }
-      document.querySelectorAll('[data-ui-pattern-accordion-group]').forEach(function(group){
-        group.querySelectorAll('[data-ui-pattern-accordion]').forEach(function(box){
-          var trigger = triggerOf(box);
-          if(!trigger) return;
-          trigger.addEventListener('click', function(){
-            if(box.classList.contains('is-open')){
-              closeInstant(box);
-              return;
-            }
-            group.querySelectorAll('[data-ui-pattern-accordion].is-open').forEach(function(other){
-              if(other !== box) closeInstant(other);
-            });
-            openAnimated(box);
-            try{ box.scrollIntoView({ block:'start', behavior:'smooth' }); }catch(_){ }
-          });
-        });
-      });
-    })();
-  </script>
 </body>
 </html>

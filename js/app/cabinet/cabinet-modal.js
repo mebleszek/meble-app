@@ -44,20 +44,6 @@ function getCabinetModalTypeApi(typeVal, subTypeVal){
   return {};
 }
 
-
-function isFridgeCabinetDraft(draft){
-  const d = draft && typeof draft === 'object' ? draft : {};
-  return String(d.type || '') === 'stojąca' && String(d.subType || '') === 'lodowkowa';
-}
-
-function syncCabinetMaterialVisibility(draft){
-  const hideGeneralFrontFields = isFridgeCabinetDraft(draft);
-  ['cmFrontMaterialWrap','cmFrontColorWrap'].forEach(function(id){
-    const wrap = document.getElementById(id);
-    if(wrap) wrap.style.display = hideGeneralFrontFields ? 'none' : '';
-  });
-}
-
 function callCabinetFrontsHelper(fnName, args, fallback){
   const api = getCabinetModalValidationApi();
   if(api && typeof api.callCabinetFrontsHelper === 'function') return api.callCabinetFrontsHelper(fnName, args, fallback);
@@ -142,12 +128,6 @@ function makeDefaultCabinetDraftForRoom(room){
   const api = getCabinetModalDraftApi();
   if(api && typeof api.makeDefaultCabinetDraftForRoom === 'function') return api.makeDefaultCabinetDraftForRoom(room);
   return null;
-}
-
-function makeDefaultCabinetDraftForType(room, typeValue){
-  const api = getCabinetModalDraftApi();
-  if(api && typeof api.makeDefaultCabinetDraftForType === 'function') return api.makeDefaultCabinetDraftForType(room, typeValue);
-  return makeDefaultCabinetDraftForRoom(room);
 }
 
 function openCabinetModalForAdd(){
@@ -266,16 +246,9 @@ function renderCabinetTypeChoices(){
       if(ch.key !== 'zestaw'){
         const room = uiState.roomType;
     projectData[room].cabinets = projectData[room].cabinets || [];
-        if(cabinetModalState.mode === 'add'){
-          cabinetModalState.draft = makeDefaultCabinetDraftForType(room, ch.key) || cabinetModalState.draft || makeDefaultCabinetDraftForRoom(room);
-        }
         if(!cabinetModalState.draft) cabinetModalState.draft = makeDefaultCabinetDraftForRoom(room);
 
-        if(cabinetModalState.mode !== 'add' || String(cabinetModalState.draft.type || '') !== ch.key){
-          applyTypeRulesSafe(room, cabinetModalState.draft, ch.key);
-        } else {
-          cabinetModalState.draft.type = ch.key;
-        }
+        applyTypeRulesSafe(room, cabinetModalState.draft, ch.key);
         const opts = getSubTypeOptionsForTypeSafe(ch.key).map(o=>o.v);
         if(!opts.includes(cabinetModalState.draft.subType)) cabinetModalState.draft.subType = opts[0];
         applySubTypeRulesSafe(room, cabinetModalState.draft, cabinetModalState.draft.subType);
@@ -464,7 +437,6 @@ function renderCabinetModal(){
   populateFrontColorsTo(document.getElementById('cmFrontColor'), draft.frontMaterial || 'laminat', draft.frontColor || '');
   populateBodyColorsTo(document.getElementById('cmBodyColor'), draft.bodyColor || '');
   populateOpeningOptionsTo(document.getElementById('cmOpeningSystem'), draft.type, draft.openingSystem || 'uchwyt klienta');
-  syncCabinetMaterialVisibility(draft);
 
   // FRONT COUNT UI
   const fcSel = document.getElementById('cmFrontCount');
@@ -640,7 +612,6 @@ function createOrUpdateSetFromWizard(){
 
   ns.cabinetModal = {
     makeDefaultCabinetDraftForRoom,
-    makeDefaultCabinetDraftForType,
     openCabinetModalForAdd,
     lockModalScroll,
     unlockModalScroll,

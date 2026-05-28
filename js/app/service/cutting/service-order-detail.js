@@ -58,14 +58,10 @@
     const scroll = h('div', { class:'panel-box-form__scroll' });
     const topGrid = h('div', { class:'grid-2' });
     const partsWrap = h('div', { style:'grid-column:1 / -1;margin-top:10px;' });
-    const partsHead = h('div', { style:'display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;' });
-    partsHead.appendChild(h('div', { text:'Formatki do cięcia', style:'font-weight:800;font-size:18px;' }));
-    const partsActions = h('div', { style:'display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;' });
-    const importPro100Btn = h('button', { class:'btn', type:'button', text:'Import PRO100' });
-    const addPartBtn = h('button', { class:'btn-primary', type:'button', text:'Dodaj formatkę' });
-    partsActions.appendChild(importPro100Btn);
-    partsActions.appendChild(addPartBtn);
-    partsHead.appendChild(partsActions);
+    const partsHead = h('div', { style:'display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;' }, [
+      h('div', { text:'Formatki do cięcia', style:'font-weight:800;font-size:18px;' }),
+      h('button', { class:'btn-primary', type:'button', text:'Dodaj formatkę' })
+    ]);
     const partsList = h('div');
     const previewWrap = h('div', { style:'grid-column:1 / -1;margin-top:14px;' });
     const previewHead = h('div', { text:'Rozrys usługowy', style:'font-weight:800;font-size:18px;margin-bottom:8px;' });
@@ -122,12 +118,6 @@
         across: row.querySelector('[data-field="across"]').value,
         edgesAlong: row.querySelector('[data-field="edgesAlong"]').value,
         edgesAcross: row.querySelector('[data-field="edgesAcross"]').value,
-        thickness: row.getAttribute('data-thickness') || '',
-        materialId: row.getAttribute('data-material-id') || '',
-        materialName: row.getAttribute('data-material-name') || '',
-        materialSymbol: row.getAttribute('data-material-symbol') || '',
-        hasGrain: row.getAttribute('data-has-grain') === '1',
-        source: row.getAttribute('data-source') || '',
       }, index));
     }
 
@@ -136,17 +126,7 @@
       if(!Array.isArray(draft.parts) || !draft.parts.length) draft.parts = [common.normalizePart({}, 0)];
       draft.parts.forEach((part, index)=>{
         const row = common.normalizePart(part, index);
-        const item = h('div', {
-          'data-part-row':'1',
-          'data-part-id':row.id,
-          'data-thickness':row.thickness || '',
-          'data-material-id':row.materialId || '',
-          'data-material-name':row.materialName || '',
-          'data-material-symbol':row.materialSymbol || '',
-          'data-has-grain':row.hasGrain ? '1' : '0',
-          'data-source':row.source || '',
-          style:'border:1px solid rgba(0,0,0,.08);border-radius:14px;padding:10px;margin:8px 0;'
-        });
+        const item = h('div', { 'data-part-row':'1', 'data-part-id':row.id, style:'border:1px solid rgba(0,0,0,.08);border-radius:14px;padding:10px;margin:8px 0;' });
         const grid = h('div', { class:'grid-2', style:'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;' });
         function inp(type, value, field, opts){
           const el = h(type === 'select' ? 'select' : 'input', { class:'investor-form-input', 'data-field':field, type:type === 'select' ? null : type });
@@ -164,10 +144,6 @@
         grid.appendChild(field('Oklejanie wzdłuż', inp('select', row.edgesAlong, 'edgesAlong')));
         grid.appendChild(field('Oklejanie w poprzek', inp('select', row.edgesAcross, 'edgesAcross')));
         item.appendChild(grid);
-        if(row.materialName || row.materialSymbol || row.thickness){
-          const meta = [row.materialName || row.materialSymbol, row.thickness ? row.thickness + ' mm' : '', row.hasGrain ? 'słoje' : 'bez słojów'].filter(Boolean).join(' • ');
-          item.appendChild(h('div', { class:'muted xs', text:meta, style:'margin-top:6px;font-weight:800;' }));
-        }
         const actions = h('div', { style:'display:flex;justify-content:flex-end;margin-top:8px;' }, [
           h('button', { class:'btn', type:'button', text:'Usuń' })
         ]);
@@ -211,31 +187,11 @@
     materialMode.addEventListener('change', ()=>{ updateModeVisibility(); if(materialMode.value !== 'client') applySelectedMaterialMeta(); });
     materialSelect.addEventListener('change', applySelectedMaterialMeta);
 
-    addPartBtn.addEventListener('click', ()=>{
+    partsHead.querySelector('button').addEventListener('click', ()=>{
       syncDraftFromInputs();
       draft.parts.push(common.normalizePart({}, draft.parts.length));
       markDirty();
       renderParts();
-    });
-    importPro100Btn.addEventListener('click', ()=>{
-      syncDraftFromInputs();
-      if(!(FC.servicePro100Import && typeof FC.servicePro100Import.open === 'function')){
-        info('Brak importu PRO100', 'Nie udało się załadować modułu importu PRO100.');
-        return;
-      }
-      FC.servicePro100Import.open({
-        draft: clone(draft),
-        onApply(nextDraft){
-          draft = common.normalizeDraft(Object.assign({}, draft, nextDraft || {}));
-          materialMode.value = draft.materialMode;
-          materialNameInput.value = draft.materialName || '';
-          refreshMaterialSelect();
-          materialSelect.value = draft.materialId || '';
-          updateModeVisibility();
-          renderParts();
-          markDirty();
-        }
-      });
     });
 
     renderParts();
@@ -291,9 +247,7 @@
 
     FC.panelBox.open({ title:`Zlecenie usługowe — ${order.title || 'Nowe zlecenie'}`, contentNode:body, width:'1120px', boxClass:'panel-box--rozrys', dismissOnOverlay:false, dismissOnEsc:true });
     if(draft.plan){
-      lastGenerated = draft.plan && draft.plan.multi && Array.isArray(draft.plan.groups)
-        ? { ok:true, multi:true, groups:draft.plan.groups.map((group)=> Object.assign({ ok:true }, group, { plan:clone(group.plan), state:clone(group.state || {}), materialMeta:clone(group.materialMeta || {}), parts:clone(group.parts || []) })) }
-        : { ok:true, state:{ unit:draft.unit, boardW:draft.boardW, boardH:draft.boardH, kerf:draft.kerf, edgeTrim:draft.edgeTrim }, materialMeta: common.resolveMaterialMeta(draft), parts: common.buildPlanParts(draft.parts, draft.materialName), plan: clone(draft.plan) };
+      lastGenerated = { ok:true, state:{ unit:draft.unit, boardW:draft.boardW, boardH:draft.boardH, kerf:draft.kerf, edgeTrim:draft.edgeTrim }, materialMeta: common.resolveMaterialMeta(draft), parts: common.buildPlanParts(draft.parts, draft.materialName), plan: clone(draft.plan) };
       rozrys.renderPlan(previewTarget, lastGenerated);
     }
   }

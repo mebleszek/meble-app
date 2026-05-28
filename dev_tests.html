@@ -92,7 +92,7 @@
           <span class="dev-tests-card__title">Testy aplikacji</span>
           <span class="dev-tests-card__sub">Smoke testy, testy regresyjne i wszystkie działy dokładane w trakcie rozwoju programu.</span>
         </button>
-        <a id="openUiPatterns" class="dev-tests-card dev-tests-card--link" href="dev_ui_patterns.html?v=20260524_hardware_dictionary_category_stable_panel_v1" target="_blank" rel="noopener">
+        <a id="openUiPatterns" class="dev-tests-card dev-tests-card--link" href="dev_ui_patterns.html" target="_blank" rel="noopener">
           <span class="dev-tests-card__title">Wzorce UI</span>
           <span class="dev-tests-card__sub">Baza wzorców wyglądu, ikon i elementów interfejsu.</span>
         </a>
@@ -177,10 +177,9 @@
 
   <script src="js/app/shared/utils.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/app/shared/validate.js?v=20260328_dev_tests_single_v1"></script>
-  <script src="js/app/shared/constants.js?v=20260516_room_zone_preferences_v1"></script>
+  <script src="js/app/shared/constants.js?v=20260511_hardware_supplier_status_types_v1"></script>
   <script src="js/app/shared/storage.js?v=20260426_reload_restore_boundary_v1"></script>
-  <script src="js/app/settings/program-defaults-store.js?v=20260524_hardware_producer_preferences_v1"></script>
-  <script src="js/app/shared/data-storage-classifier.js?v=20260521_compare_modes_storage_cleanup_v1"></script>
+  <script src="js/app/shared/data-storage-classifier.js?v=20260425_data_safety_split_v1"></script>
   <script src="js/app/shared/data-storage-keys.js?v=20260426_storage_audit_v1"></script>
   <script src="js/app/shared/data-storage-audit.js?v=20260426_orphan_guard_v1"></script>
   <script src="js/app/shared/data-storage-orphan-cleanup.js?v=20260426_orphan_guard_v1"></script>
@@ -195,25 +194,15 @@
   <script src="js/app/shared/data-backup-storage.js?v=20260425_data_safety_split_v1"></script>
   <script src="js/app/shared/data-backup-records.js?v=20260425_data_safety_split_v1"></script>
   <script src="js/app/shared/data-backup-store.js?v=20260501_test_backup_retention_ui_v1"></script>
-  <script src="js/app/shared/schema.js?v=20260524_hardware_producer_preferences_v1"></script>
-    <script src="js/app/project/project-model.js?v=20260516_room_zone_preferences_v1"></script>
-  <script src="js/app/room-preferences/room-preferences-model.js?v=20260524_hardware_producer_preferences_v1"></script>
-  <script src="js/app/room-preferences/room-preferences-bulk-plan.js?v=20260517_bulk_apply_zone_preferences_v1"></script>
-  <script src="js/app/room-preferences/room-preferences-bulk-apply.js?v=20260517_bulk_apply_zone_preferences_v1"></script>
+  <script src="js/app/shared/schema.js?v=20260408_stage3_arch_v1"></script>
+  <script src="js/app/project/project-model.js?v=20260426_wycena_accept_fix_v1"></script>
   <script src="js/app/project/project-store.js?v=20260408_stage4_cleanup_v1"></script>
   <script src="js/app/project/project-bridge.js?v=20260408_stage3_arch_v1"></script>
-  <script src="js/app/catalog/hardware-technical-params.js?v=20260526_hinge_dictionary_cleanup_v1"></script>
-  <script src="js/app/catalog/hardware-replacement-engine.js?v=20260522_hardware_replacement_engine_preview_v1"></script>
-  <script src="js/app/catalog/hardware-catalog.js?v=20260526_hinge_dictionary_cleanup_v1"></script>
-  <script src="js/app/catalog/hardware-catalog-seed-data.js?v=20260526_hinge_dictionary_cleanup_v1"></script>
+  <script src="js/app/catalog/hardware-catalog.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
+  <script src="js/app/catalog/hardware-catalog-seed-data.js?v=20260507_hardware_catalog_seed_v1"></script>
   <script src="js/app/catalog/hardware-catalog-seeds.js?v=20260507_hardware_catalog_seed_v1"></script>
-  <script src="js/app/catalog/hardware-supplier-price-export.js?v=20260518_hardware_technical_data_v1"></script>
-  <script src="js/app/catalog/hardware-supplier-price-import.js?v=20260518_hardware_technical_data_v1"></script>
-  <script src="js/app/catalog/hardware-catalog-supplier-price-xlsx.js?v=20260514_hardware_import_export_refactor_v1"></script>
-  <script src="js/app/catalog/hardware-catalog-export-xlsx.js?v=20260520_technical_params_serialization_fix_v1"></script>
-  <script src="js/app/catalog/hardware-catalog-import-parser.js?v=20260519_dynamic_technical_params_v1"></script>
-  <script src="js/app/catalog/hardware-catalog-import-plan.js?v=20260519_dynamic_technical_params_v1"></script>
-  <script src="js/app/catalog/hardware-catalog-import-export.js?v=20260514_hardware_import_export_refactor_v1"></script>
+  <script src="js/app/catalog/hardware-catalog-supplier-price-xlsx.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
+  <script src="js/app/catalog/hardware-catalog-import-export.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
   <script src="js/app/catalog/catalog-domain.js?v=20260504_hardware_catalog_model_v1"></script>
   <script src="js/app/catalog/catalog-migration.js?v=20260511_hardware_supplier_status_types_v1"></script>
   <script src="js/app/catalog/catalog-storage-policy.js?v=20260511_hardware_supplier_status_types_v1"></script>
@@ -223,11 +212,9 @@
   <script src="js/app/service/service-order-store.js?v=20260425_test_isolation_stage2_v1"></script>
   <script src="js/app/catalog/catalog-store.js?v=20260511_hardware_supplier_import_dictionary_ux_fix_v1"></script>
   <script src="js/app/catalog/catalog-selectors.js?v=20260503_labor_display_fix_v1"></script>
-  <script src="js/app/service/cutting/service-cutting-common.js?v=20260514_pro100_service_import_v1"></script>
-  <script src="js/app/service/cutting/service-pro100-parser.js?v=20260514_pro100_file_import_v1"></script>
-  <script src="js/app/service/cutting/service-pro100-import-ui.js?v=20260514_pro100_file_import_v1"></script>
-  <script src="js/app/service/cutting/service-cutting-rozrys.js?v=20260514_pro100_service_import_v1"></script>
-  <script src="js/app/service/cutting/service-order-detail.js?v=20260514_pro100_service_import_v1"></script>
+  <script src="js/app/service/cutting/service-cutting-common.js?v=20260414_service_cutting_v1"></script>
+  <script src="js/app/service/cutting/service-cutting-rozrys.js?v=20260414_service_cutting_v1"></script>
+  <script src="js/app/service/cutting/service-order-detail.js?v=20260414_service_cutting_v1"></script>
   <script src="js/app/material/material-common.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/app/material/material-registry.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/app/material/material-edge-store.js?v=20260424_material_cleanup_v1"></script>
@@ -238,7 +225,7 @@
   <script src="js/app/investor/investors-store.js?v=20260430_investor_store_boundary_v1"></script>
   <script src="js/app/investor/session.js?v=20260424_session_dirty_proto_fix_v1"></script>
   <script src="js/app/investor/investor-persistence.js?v=20260502_manual_status_restore_v1"></script>
-  <script src="js/app/investor/project-bootstrap.js?v=20260516_room_zone_preferences_v1"></script>
+  <script src="js/app/investor/project-bootstrap.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/app/bootstrap/app-state-bootstrap.js?v=20260420_app_bootstrap_split_v1"></script>
   <script src="js/app/bootstrap/app-ui-bootstrap.js?v=20260421_fixture_doc_fix_v2"></script>
   <script src="js/app/bootstrap/reload-restore.js?v=20260426_reload_restore_boundary_v1"></script>
@@ -273,9 +260,9 @@
   <script src="js/app/investor/investor-ui.js?v=20260502_investor_ui_split_v1"></script>
   <script src="js/app/service/service-orders.js?v=20260414_service_cutting_v1"></script>
   <script src="js/app/ui/tabs-router.js?v=20260417_wycena_history_test_hotfix_v1"></script>
-  <script src="js/app/ui/cabinets-render.js?v=20260524_hardware_producer_preferences_v1"></script>
-  <script src="js/tabs/wywiad-labor-summary.js?v=20260526_labor_header_compact_v1"></script>
-  <script src="js/tabs/wywiad.js?v=20260526_labor_header_compact_v1"></script>
+  <script src="js/app/ui/cabinets-render.js?v=20260427_app_shell_wywiad_split_v1"></script>
+  <script src="js/tabs/wywiad-labor-summary.js?v=20260503_labor_unified_picker_v1"></script>
+  <script src="js/tabs/wywiad.js?v=20260503_labor_display_fix_v1"></script>
   <script src="js/tabs/czynnosci.js?v=20260504_gabaryt_compact_v1"></script>
   <script src="js/app/ui/layout-state.js?v=20260426_rysunek_safety_v1"></script>
   <script src="js/tabs/rysunek.js?v=20260426_rysunek_safety_v1"></script>
@@ -285,22 +272,17 @@
   <script src="js/app/ui/storage-orphan-cleanup-modal.js?v=20260426_orphan_guard_v1"></script>
   <script src="js/app/ui/test-backup-fallback-modal.js?v=20260426_orphan_guard_v1"></script>
   <script src="js/core/actions.js?v=20260418_wywiad_room_params_modal_v2"></script>
-  <script src="js/app/ui/actions-register.js?v=20260516_room_zone_preferences_v1"></script>
+  <script src="js/app/ui/actions-register.js?v=20260418_wywiad_room_params_modal_v2"></script>
   <script src="js/app/ui/panel-box.js?v=20260418_wywiad_room_params_modal_v2"></script>
   <script src="js/app/ui/app-icons.js?v=20260425_settings_tests_icons_v1"></script>
-    <script src="js/app/ui/wywiad-room-accordion-actions.js?v=20260525_room_accordion_save_fix_v1"></script>
-    <script src="js/app/ui/wywiad-room-settings.js?v=20260525_room_accordion_save_fix_v1"></script>
-  <script src="js/app/ui/wywiad-room-hardware-producers.js?v=20260525_hardware_producer_accessories_save_fix_v1"></script>
-  <script src="js/app/ui/wywiad-room-preferences.js?v=20260525_room_accordion_save_fix_v1"></script>
-  <script src="js/app/ui/wywiad-room-preferences-bulk-modal.js?v=20260517_bulk_apply_zone_preferences_v1"></script>
+  <script src="js/app/ui/wywiad-room-settings.js?v=20260425_wywiad_dev_tests_load_fix_v1"></script>
   <script src="js/app/ui/data-settings-dom.js?v=20260425_settings_tests_icons_v1"></script>
   <script src="js/app/ui/data-settings-report-view.js?v=20260426_storage_audit_v1"></script>
-  <script src="js/app/ui/data-settings-defaults-view.js?v=20260516_room_zone_preferences_v1"></script>
-  <script src="js/app/ui/data-settings-menu-view.js?v=20260516_room_zone_preferences_v1"></script>
+  <script src="js/app/ui/data-settings-menu-view.js?v=20260426_test_hub_v1"></script>
   <script src="js/app/ui/data-settings-backup-actions.js?v=20260426_test_hub_v1"></script>
   <script src="js/app/ui/data-settings-backup-list.js?v=20260425_data_safety_split_v1"></script>
   <script src="js/app/ui/data-settings-backup-view.js?v=20260501_test_backup_retention_ui_v1"></script>
-  <script src="js/app/ui/data-settings-modal.js?v=20260516_room_zone_preferences_v1"></script>
+  <script src="js/app/ui/data-settings-modal.js?v=20260425_data_safety_split_v1"></script>
   <script src="js/app/ui/app-view.js?v=20260414_choice_click_fix_v1"></script>
   <script src="js/app/rozrys/rozrys-choice.js?v=20260414_choice_click_fix_v1"></script>
   <script src="js/app/ui/work-mode-hub.js?v=20260406_work_modes_stage1_v1"></script>
@@ -321,7 +303,7 @@
   <script src="js/app/project/project-status-manual-guard.js?v=20260502_status_reconcile_v1"></script>
   <script src="js/app/project/project-status-scope-decision.js?v=20260502_status_quote_scope_v1"></script>
   <script src="js/app/project/project-schedule-status.js?v=20260502_schedule_status_prep_v1"></script>
-  <script src="js/app/quote/quote-snapshot.js?v=20260516_room_zone_preferences_v1"></script>
+  <script src="js/app/quote/quote-snapshot.js?v=20260503_pricing_labor_rules_v1"></script>
   <script src="js/app/quote/quote-pdf.js?v=20260417_quote_scope_labels_v1"></script>
   <script src="js/app/wycena/wycena-room-availability.js?v=20260502_status_quote_scope_v1"></script>
   <script src="js/app/wycena/wycena-core-selection.js?v=20260510_wycena_core_cache_fix_v1"></script>
@@ -330,7 +312,7 @@
   <script src="js/app/wycena/wycena-core-source.js?v=20260510_wycena_core_cache_fix_v1"></script>
   <script src="js/app/wycena/wycena-core-material-plan.js?v=20260510_wycena_core_cache_fix_v1"></script>
   <script src="js/app/wycena/wycena-core-offer.js?v=20260510_wycena_core_cache_fix_v1"></script>
-  <script src="js/app/wycena/wycena-core-lines.js?v=20260524_hardware_producer_preferences_v1"></script>
+  <script src="js/app/wycena/wycena-core-lines.js?v=20260510_wycena_core_cache_fix_v1"></script>
   <script src="js/app/wycena/wycena-core-labor.js?v=20260510_wycena_core_cache_fix_v1"></script>
   <script src="js/app/wycena/wycena-core.js?v=20260510_wycena_core_cache_fix_v1"></script>
   <script src="js/app/wycena/wycena-tab-helpers.js?v=20260416_wycena_tab_helpers_v1"></script>
@@ -340,7 +322,7 @@
   <script src="js/app/wycena/wycena-tab-selection-bridge.js?v=20260502_wycena_tab_boundary_v1"></script>
   <script src="js/app/wycena/wycena-tab-editor-bridge.js?v=20260502_wycena_tab_boundary_v1"></script>
   <script src="js/app/wycena/wycena-tab-status-controller.js?v=20260502_wycena_tab_boundary_v1"></script>
-  <script src="js/app/wycena/wycena-tab-render-bridge.js?v=20260527_wycena_click_no_output_fix_v1"></script>
+  <script src="js/app/wycena/wycena-tab-render-bridge.js?v=20260502_wycena_tab_boundary_v1"></script>
   <script src="js/app/wycena/wycena-tab-selection-scope.js?v=20260502_status_quote_scope_v1"></script>
   <script src="js/app/wycena/wycena-tab-selection-version.js?v=20260502_wycena_selection_split_v1"></script>
   <script src="js/app/wycena/wycena-tab-selection-model.js?v=20260502_wycena_selection_split_v1"></script>
@@ -355,56 +337,52 @@
   <script src="js/app/wycena/wycena-tab-status-bridge.js?v=20260501_status_test_cache_fix_v2"></script>
   <script src="js/app/wycena/wycena-tab-status-actions.js?v=20260501_status_test_cache_fix_v2"></script>
   <script src="js/app/wycena/wycena-tab-preview.js?v=20260503_czynnosci_labor_workspace_v1"></script>
-  <script src="js/app/wycena/wycena-tab-shell.js?v=20260527_wycena_click_no_output_fix_v1"></script>
+  <script src="js/app/wycena/wycena-tab-shell.js?v=20260503_czynnosci_labor_workspace_v1"></script>
   <script src="js/tabs/wycena.js?v=20260503_czynnosci_labor_workspace_v1"></script>
     <script src="js/app/material/price-modal-context.js?v=20260426_material_price_split_v1"></script>
   <script src="js/app/material/price-modal-options.js?v=20260511_hardware_import_bulk_diff_types_v1"></script>
   <script src="js/app/material/price-modal-filters.js?v=20260511_hardware_supplier_status_types_v1"></script>
   <script src="js/app/material/price-modal-hardware-manufacturers.js?v=20260504_hardware_catalog_model_v1"></script>
   <script src="js/app/material/price-modal-hardware-suppliers.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
-  <script src="js/app/material/price-modal-hardware-dictionaries.js?v=20260524_hardware_dictionary_category_stable_panel_v1"></script>
+  <script src="js/app/material/price-modal-hardware-dictionaries.js?v=20260511_hardware_supplier_import_dictionary_ux_fix_v1"></script>
   <script src="js/app/material/price-modal-hardware-filter-sort.js?v=20260511_hardware_supplier_status_types_v1"></script>
   <script src="js/app/material/price-modal-hardware-import-resolver.js?v=20260512_hardware_supplier_missing_resolver_v1"></script>
   <script src="js/app/material/price-modal-hardware-price-confirm.js?v=20260513_hardware_price_change_confirm_v1"></script>
   <script src="js/app/material/price-modal-hardware-import-export.js?v=20260513_hardware_price_change_confirm_v1"></script>
-  <script src="js/app/material/price-modal-hardware-ux.js?v=20260518_hardware_technical_data_v1"></script>
+  <script src="js/app/material/price-modal-hardware-ux.js?v=20260511_hardware_supplier_import_dictionary_ux_fix_v1"></script>
   <script src="js/app/material/price-modal-hardware-bundle.js?v=20260509_hardware_bundle_import_ux_v1"></script>
   <script src="js/app/material/price-modal-hardware-supplier-prices.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
-  <script src="js/app/material/price-modal-hardware-replacements.js?v=20260523_hardware_replacement_button_visibility_fix_v1"></script>
-  <script src="js/app/material/price-modal-hardware-form.js?v=20260523_hardware_choice_launcher_fix_v1"></script>
-  <script src="js/app/material/price-modal-field-help.js?v=20260519_dynamic_technical_params_v1"></script>
-  <script src="js/app/material/price-modal-item-form.js?v=20260523_hardware_replacement_preview_ui_v1"></script>
-  <script src="js/app/material/price-modal-list.js?v=20260518_hardware_technical_data_v1"></script>
+  <script src="js/app/material/price-modal-hardware-form.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
+  <script src="js/app/material/price-modal-field-help.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
+  <script src="js/app/material/price-modal-item-form.js?v=20260511_hardware_supplier_status_types_v1"></script>
+  <script src="js/app/material/price-modal-list.js?v=20260510_hardware_catalog_ux_v1"></script>
   <script src="js/app/material/price-modal-persistence.js?v=20260511_hardware_supplier_status_types_v1"></script>
   <script src="js/app/material/price-modal.js?v=20260511_hardware_supplier_status_types_v1"></script>
-  <script src="js/app/cabinet/cabinet-cutlist.js?v=20260525_cabinet_hardware_rules_v1"></script>
+  <script src="js/app/cabinet/cabinet-cutlist.js?v=20260415_cabinet_cutlist_fix_v3"></script>
   <script src="js/app/cabinet/front-hardware-weights.js?v=20260424_wywiad_front_hardware_split_v1"></script>
-  <script src="js/app/cabinet/front-hardware-fronts.js?v=20260525_fridge_single_front_hinges_fix_v1"></script>
-  <script src="js/app/cabinet/front-hardware-hinges.js?v=20260525_cabinet_hardware_rules_v1"></script>
+  <script src="js/app/cabinet/front-hardware-fronts.js?v=20260424_wywiad_front_hardware_split_v1"></script>
+  <script src="js/app/cabinet/front-hardware-hinges.js?v=20260424_wywiad_front_hardware_split_v1"></script>
   <script src="js/app/cabinet/front-hardware-aventos-data.js?v=20260424_aventos_split_v1"></script>
 <script src="js/app/cabinet/front-hardware-aventos-calc.js?v=20260424_aventos_split_v1"></script>
 <script src="js/app/cabinet/front-hardware-aventos-selector.js?v=20260424_aventos_split_v1"></script>
 <script src="js/app/cabinet/front-hardware-aventos.js?v=20260424_aventos_split_v1"></script>
-  <script src="js/app/cabinet/front-hardware.js?v=20260525_cabinet_hardware_rules_v1"></script>
-  <script src="js/app/cabinet/cabinet-hardware-requirements.js?v=20260526_hinge_dictionary_cleanup_v1"></script>
-  <script src="js/app/cabinet/front-material-source.js?v=20260517_preferences_front_source_cleanup_v1"></script>
-  <script src="js/app/cabinet/cabinet-fronts.js?v=20260516_front_source_v1"></script>
+  <script src="js/app/cabinet/front-hardware.js?v=20260424_aventos_api_fix_v1"></script>
+  <script src="js/app/cabinet/cabinet-fronts.js?v=20260424_aventos_api_fix_v1"></script>
   <script src="js/app/cabinet/cabinet-modal-validation.js?v=20260418_wywiad_set_wizard_split_v1"></script>
-  <script src="js/app/cabinet/cabinet-modal-draft.js?v=20260517_preferences_front_source_cleanup_v1"></script>
+  <script src="js/app/cabinet/cabinet-modal-draft.js?v=20260418_wywiad_set_wizard_split_v1"></script>
   <script src="js/app/cabinet/cabinet-modal-fields.js?v=20260418_wywiad_set_wizard_split_v1"></script>
   <script src="js/app/cabinet/cabinet-modal-finalize.js?v=20260419_wywiad_finalize_stage5_v1"></script>
-  <script src="js/app/cabinet/cabinet-modal-set-materials.js?v=20260517_set_materials_unify_v1"></script>
-  <script src="js/app/cabinet/cabinet-modal-set-wizard.js?v=20260517_preferences_front_source_cleanup_v1"></script>
-  <script src="js/app/cabinet/cabinet-modal-standing-corner-standard.js?v=20260419_wywiad_standing_split_v2"></script>
-  <script src="js/app/cabinet/cabinet-modal-standing-specials.js?v=20260525_cabinet_hardware_rules_v1"></script>
-  <script src="js/app/cabinet/cabinet-modal-standing-extras.js?v=20260419_wywiad_standing_split_v2"></script>
-  <script src="js/app/cabinet/cabinet-modal-standing-front-controls.js?v=20260419_wywiad_standing_split_v1"></script>
-  <script src="js/app/cabinet/cabinet-modal-standing.js?v=20260419_wywiad_standing_split_v1"></script>
+  <script src="js/app/cabinet/cabinet-modal-set-wizard.js?v=20260423_restore_stable_room_flow_v1"></script>
+<script src="js/app/cabinet/cabinet-modal-standing-corner-standard.js?v=20260419_wywiad_standing_split_v2"></script>
+<script src="js/app/cabinet/cabinet-modal-standing-specials.js?v=20260419_wywiad_standing_split_v2"></script>
+<script src="js/app/cabinet/cabinet-modal-standing-extras.js?v=20260419_wywiad_standing_split_v2"></script>
+<script src="js/app/cabinet/cabinet-modal-standing-front-controls.js?v=20260419_wywiad_standing_split_v1"></script>
+<script src="js/app/cabinet/cabinet-modal-standing.js?v=20260419_wywiad_standing_split_v1"></script>
   <script src="js/app/cabinet/cabinet-modal-hanging.js?v=20260419_wywiad_fridge_fix_v1"></script>
   <script src="js/app/cabinet/cabinet-modal-module.js?v=20260419_wywiad_fridge_fix_v1"></script>
-  <script src="js/app/cabinet/cabinet-choice-launchers.js?v=20260517_dev_tests_errors_fix_v1"></script>
+  <script src="js/app/cabinet/cabinet-choice-launchers.js?v=20260419_wywiad_fridge_fix_v1"></script>
   <script src="js/app/cabinet/cabinet-modal-labor.js?v=20260503_labor_ui_adjust_v1"></script>
-  <script src="js/app/cabinet/cabinet-modal.js?v=20260516_room_zone_preferences_v1"></script>
+  <script src="js/app/cabinet/cabinet-modal.js?v=20260503_pricing_labor_rules_v1"></script>
   <script src="js/app/cabinet/cabinet-actions.js?v=20260417_wywiad_test_guard_v1"></script>
   <script src="js/app/optimizer/cut-optimizer.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/app/optimizer/speed-max-core.js?v=20260427_speedmax_split_v1"></script>
@@ -443,7 +421,7 @@
   <script src="js/testing/shared/browser-page.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/testing/test-data-manager.js?v=20260501_test_cleanup_boundary_v1"></script>
   <script src="js/testing/test-data-safety.js?v=20260426_orphan_guard_v1"></script>
-  <script src="js/testing/data-safety/tests.js?v=20260522_data_safety_backup_limit_policy_test_v2"></script>
+  <script src="js/testing/data-safety/tests.js?v=20260501_test_cleanup_boundary_v1"></script>
   <script src="js/testing/rozrys/fixtures.js?v=20260328_dev_tests_single_v1"></script>
   <script src="js/testing/rozrys/suites/state-ui-runtime.js?v=20260426_rozrys_tests_split_v1"></script>
   <script src="js/testing/rozrys/suites/helpers-bridges.js?v=20260426_rozrys_tests_split_v1"></script>
@@ -454,7 +432,7 @@
   <script src="js/testing/rozrys/suites/validation-cache-render.js?v=20260426_rozrys_tests_split_v1"></script>
   <script src="js/testing/rozrys/suites/optimizer-contracts.js?v=20260427_speedmax_split_v1"></script>
   <script src="js/testing/rozrys/tests.js?v=20260501_dev_test_progress_live_v2"></script>
-  <script src="js/testing/project/tests.js?v=20260516_room_zone_preferences_v1"></script>
+  <script src="js/testing/project/tests.js?v=20260513_catalog_seed_test_fix_v1"></script>
   <script src="js/testing/investor/helpers.js?v=20260503_optimization_checkpoint_v1"></script>
   <script src="js/testing/investor/suites/architecture.js?v=20260503_optimization_checkpoint_v1"></script>
   <script src="js/testing/investor/suites/registry-core.js?v=20260503_optimization_checkpoint_v1"></script>
@@ -465,9 +443,8 @@
   <script src="js/testing/investor/suites/recovery-isolation.js?v=20260503_optimization_checkpoint_v1"></script>
   <script src="js/testing/investor/suites/misc.js?v=20260503_optimization_checkpoint_v1"></script>
   <script src="js/testing/investor/tests.js?v=20260503_optimization_checkpoint_v1"></script>
-  <script src="js/testing/material/accessories-tests.js?v=20260523_hardware_param_dictionary_choices_v1"></script>
-  <script src="js/testing/material/accessories-import-export-deep-tests.js?v=20260520_technical_params_serialization_fix_v1"></script>
-  <script src="js/testing/material/tests.js?v=20260514_hardware_import_export_deep_tests_v1"></script>
+  <script src="js/testing/material/accessories-tests.js?v=20260513_hardware_accessory_tests_v1"></script>
+  <script src="js/testing/material/tests.js?v=20260513_hardware_accessory_tests_v1"></script>
   <script src="js/testing/rysunek/tests.js?v=20260426_rysunek_safety_v1"></script>
   <script src="js/testing/wycena/fixtures.js?v=20260502_status_quote_scope_v1"></script>
   <script src="js/testing/wycena/suites/core-offer-basics.js?v=20260426_wycena_accept_fix_v1"></script>
@@ -486,8 +463,8 @@
   <script src="js/testing/wycena/suites/cross-systems.js?v=20260501_status_test_cache_fix_v2"></script>
   <script src="js/testing/wycena/suites/status-anti-regression.js?v=20260416_wycena_test_split_v1"></script>
   <script src="js/testing/wycena/tests.js?v=20260502_status_quote_scope_v1"></script>
-  <script src="js/testing/cabinet/tests.js?v=20260527_wycena_click_no_output_fix_v1"></script>
-  <script src="js/testing/service/tests.js?v=20260514_pro100_file_import_v1"></script>
+  <script src="js/testing/cabinet/tests.js?v=20260425_aventos_warning_fixture_v1"></script>
+  <script src="js/testing/service/tests.js?v=20260414_service_cutting_v1"></script>
   <script src="js/testing/dev-tests-registry.js?v=20260426_test_hub_v1"></script>
   <script src="js/testing/dev-tests-report-view.js?v=20260426_test_hub_v1"></script>
   <script src="js/testing/dev-tests-storage-tools.js?v=20260426_test_hub_v1"></script>

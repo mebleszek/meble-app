@@ -67,15 +67,6 @@ function makeMiniDocument(){
         contains(name){ return String(self.className || '').split(/\s+/).includes(String(name || '')); },
         toggle(name, force){ const has = this.contains(name); const shouldAdd = force === undefined ? !has : !!force; if(shouldAdd) this.add(name); else this.remove(name); return shouldAdd; }
       };
-      this._hidden = false;
-      Object.defineProperty(this, 'hidden', {
-        get(){ return !!self._hidden; },
-        set(value){
-          self._hidden = !!value;
-          if(self._hidden) self.attributes.hidden = '';
-          else delete self.attributes.hidden;
-        }
-      });
     }
     get childElementCount(){ return this.children.length; }
     get childNodes(){ return this.children; }
@@ -120,7 +111,6 @@ function makeMiniDocument(){
       if(k === 'style') this.style = parseStyle(v);
       if(k === 'value') this.value = v;
       if(k === 'checked') this.checked = !!v;
-      if(k === 'hidden') this.hidden = true;
       if(k === 'type') this.type = v;
       if(k.startsWith('data-')){
         const dsKey = k.slice(5).replace(/-([a-z])/g, (_m, c)=> c.toUpperCase());
@@ -141,16 +131,7 @@ function makeMiniDocument(){
     (root.children || []).forEach((child)=>{ out.push(child); collect(child, out); });
   }
   function querySelectorAllFrom(root, selector){
-    const raw = String(selector || '').trim();
-    if(!raw) return [];
-    const directScope = raw.match(/^:scope\s*>\s*(.+)$/);
-    if(directScope){
-      const directSelector = directScope[1].trim();
-      return (root.children || []).filter((child)=> matchesSimple(child, directSelector));
-    }
-    const scopedDescendant = raw.match(/^:scope\s+(.+)$/);
-    const normalized = scopedDescendant ? scopedDescendant[1].trim() : raw;
-    const parts = normalized.split(/\s+/).filter(Boolean);
+    const parts = String(selector || '').trim().split(/\s+/).filter(Boolean);
     if(!parts.length) return [];
     let current = [root];
     parts.forEach((part)=>{

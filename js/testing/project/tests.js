@@ -44,17 +44,6 @@
         H.assert(Array.isArray(out.pokoj.fronts), 'Brak domyślnych fronts w pokoju', out);
       }),
 
-      H.makeTest('Projekt', 'Model pokoju zachowuje preferencje standardu', 'Pilnuje Etapu 1: room.preferences jest częścią danych konkretnego pomieszczenia i nie ginie przy normalizacji projektu.', ()=>{
-        H.assert(FC.schema && typeof FC.schema.normalizeProject === 'function', 'Brak FC.schema.normalizeProject');
-        const out = FC.schema.normalizeProject({ schemaVersion:9, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{}, preferences:{ bodyColor:'Egger czarny', frontMaterial:'lakier', frontColor:'Biały', openingSystemStanding:'TIP-ON', hardwareManufacturer:'Blum' } } });
-        H.assert(out && Number(out.schemaVersion) >= 11, 'Schema nie podniosła wersji dla strefowych preferencji pokoju', out);
-        H.assert(out.kuchnia && out.kuchnia.preferences && out.kuchnia.preferences.zones, 'Brak stref preferencji pokoju', out.kuchnia && out.kuchnia.preferences);
-        H.assert(out.kuchnia.preferences.zones.lower.bodyColor === 'Egger czarny', 'Korpus z preferencji dolnej zginął', out.kuchnia.preferences);
-        H.assert(out.kuchnia.preferences.zones.lower.openingSystem === 'TIP-ON', 'Otwieranie strefy dolnej/stojącej nie zostało zachowane', out.kuchnia.preferences);
-        H.assert(out.kuchnia.preferences.zones.middle.frontColor === 'Biały' && out.kuchnia.preferences.zones.upper.frontColor === 'Biały', 'Legacy front nie został przeniesiony do stref', out.kuchnia.preferences);
-        H.assert(out.szafa && out.szafa.preferences && out.szafa.preferences.zones && typeof out.szafa.preferences.zones.lower === 'object', 'Brak strefowych preferencji w pozostałych pokojach', out.szafa);
-      }),
-
       H.makeTest('Projekt', 'Resolver zakresu pokoi zachowuje zły exact scope zamiast po cichu przełączać na inne pomieszczenie', 'Pilnuje rdzenia pokojów: jeśli użytkownik ma zapisany konkretny pokój, którego już nie ma w aktywnej liście, resolver ma go zachować do walidacji zamiast zamieniać po cichu na inne pomieszczenie.', ()=>{
         H.assert(FC.roomScopeResolver && typeof FC.roomScopeResolver.resolveSelection === 'function', 'Brak FC.roomScopeResolver.resolveSelection');
         const resolved = FC.roomScopeResolver.resolveSelection({ selectedRooms:['room_missing'] }, { getActiveRooms:()=> ['room_kuchnia','room_salon'], useRozrysScope:false });
