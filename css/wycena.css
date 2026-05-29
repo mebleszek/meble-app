@@ -374,3 +374,68 @@
   .quote-labor-detail{grid-template-columns:minmax(0,1fr);}
   .quote-labor-detail__total{grid-column:auto;grid-row:auto;align-self:auto;}
 }
+
+/* WYCENA diagnostics report v1 */
+.quote-diagnostics-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding:18vh 18px 24px;
+  background:rgba(15,23,42,.32);
+  overflow:auto;
+}
+.quote-diagnostics-modal{
+  width:min(760px, 100%);
+  max-height:78vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.quote-diagnostics-body{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  min-height:0;
+  overflow:hidden;
+}
+.quote-diagnostics-lead{
+  color:#475569;
+  font-weight:800;
+  font-size:13px;
+  line-height:1.35;
+}
+.quote-diagnostics-textarea{
+  width:100%;
+  min-height:42vh;
+  resize:vertical;
+  border:1px solid rgba(148,163,184,.65);
+  border-radius:18px;
+  padding:12px;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size:12px;
+  line-height:1.35;
+  color:#0f172a;
+  background:#fff;
+  box-shadow:inset 0 1px 2px rgba(15,23,42,.08);
+}
+.quote-diagnostics-footer{
+  flex:0 0 auto;
+}
+.quote-diagnostics-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.quote-diagnostics-status{
+  font-size:12px;
+  font-weight:800;
+}
+@media (max-width:760px){
+  .quote-diagnostics-backdrop{ padding:12vh 12px 18px; }
+  .quote-diagnostics-modal{ max-height:84vh; }
+  .quote-diagnostics-textarea{ min-height:48vh; }
+}

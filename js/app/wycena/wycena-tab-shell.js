@@ -28,11 +28,13 @@
     const state = typeof d.getState === 'function' ? d.getState() : {};
     if(state.isBusy) return;
     if(typeof d.setState === 'function') d.setState({ isBusy:true });
+    try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.beginGenerateTrace === 'function') FC.wycenaDiagnostics.beginGenerateTrace('generateQuote'); }catch(_){ }
     if(typeof d.render === 'function') d.render(ctx);
     try{
       const contextRepair = FC.wycenaContextRepair && typeof FC.wycenaContextRepair.repairActiveQuoteContext === 'function'
         ? FC.wycenaContextRepair.repairActiveQuoteContext({ reason:'generate' })
         : { ok:true };
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('contextRepair', { ok:contextRepair && contextRepair.ok, code:contextRepair && contextRepair.code, investorId:contextRepair && contextRepair.investorId, projectId:contextRepair && contextRepair.projectId, activeRoomIds:contextRepair && contextRepair.activeRoomIds, selectedRooms:contextRepair && contextRepair.selectedRooms, repairs:contextRepair && contextRepair.repairs, hadProjectContent:contextRepair && contextRepair.hadProjectContent }); }catch(_){ }
       if(contextRepair && contextRepair.ok === false){
         if(typeof d.setState === 'function'){
           const errorQuote = FC.wycenaContextRepair && typeof FC.wycenaContextRepair.buildErrorQuote === 'function'
@@ -40,18 +42,24 @@
             : { error:String(contextRepair.message || 'Błąd kontekstu WYCENY'), totals:{ materials:0, accessories:0, services:0, quoteRates:0, subtotal:0, discount:0, grand:0 }, roomLabels:[] };
           d.setState({ lastQuote:errorQuote, previewSnapshotId:'', shouldScrollToPreview:true });
         }
+        try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ stopped:'context-repair-failed', code:contextRepair && contextRepair.code }); }catch(_){ }
         return;
       }
       const selection = d.normalizeDraftSelection(d.getOfferDraft());
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('selection', selection); }catch(_){ }
       const naming = await d.ensureVersionNameBeforeGenerate(selection);
-      if(naming && naming.cancelled) return;
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('naming', naming); }catch(_){ }
+      if(naming && naming.cancelled){ try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ stopped:'version-name-cancelled' }); }catch(_){ } return; }
       let nextQuote = null;
       if(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function') nextQuote = await FC.wycenaCore.buildQuoteSnapshot({ selection });
       else if(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteData === 'function') nextQuote = await FC.wycenaCore.collectQuoteData({ selection });
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('quoteBuilt', { hasQuote:!!nextQuote, error:nextQuote && nextQuote.error, id:nextQuote && (nextQuote.id || nextQuote.snapshotId), selectedRooms:nextQuote && nextQuote.selectedRooms, roomLabels:nextQuote && nextQuote.roomLabels, totals:nextQuote && nextQuote.totals, materialLines:Array.isArray(nextQuote && nextQuote.materialLines) ? nextQuote.materialLines.length : undefined, accessoryLines:Array.isArray(nextQuote && nextQuote.accessoryLines) ? nextQuote.accessoryLines.length : undefined }); }catch(_){ }
       if(typeof d.setState === 'function') d.setState({ lastQuote:nextQuote });
-      if(nextQuote && !nextQuote.error) d.syncGeneratedQuoteStatus(nextQuote);
+      if(nextQuote && !nextQuote.error){ d.syncGeneratedQuoteStatus(nextQuote); try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('statusSynced', { ok:true }); }catch(_){ } }
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ ok:true, hasQuote:!!nextQuote, error:nextQuote && nextQuote.error, id:nextQuote && (nextQuote.id || nextQuote.snapshotId) }); }catch(_){ }
     }catch(err){
       try{ console.error('[wycena] collect failed', err); }catch(_){ }
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('error', { message:String(err && err.message || err || 'błąd'), code:String(err && err.code || ''), title:String(err && err.title || ''), quoteValidation:!!(err && err.quoteValidation), details:err && err.details || null }); }catch(_){ }
       if(err && err.quoteValidation){
         showQuoteValidationError(err);
       } else if(typeof d.setState === 'function'){
@@ -63,6 +71,7 @@
           }
         });
       }
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ ok:false, error:String(err && err.message || err || 'Błąd wyceny') }); }catch(_){ }
     }finally{
       if(typeof d.setState === 'function') d.setState({ isBusy:false });
       if(typeof d.render === 'function') d.render(ctx);
@@ -87,6 +96,7 @@
       try{ FC.quotePdf && typeof FC.quotePdf.openQuotePdf === 'function' && FC.quotePdf.openQuotePdf(currentQuote); }catch(_){ }
     });
     actions.appendChild(pdfBtn);
+    try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.renderTopbarButton === 'function') FC.wycenaDiagnostics.renderTopbarButton(actions); }catch(_){ }
     head.appendChild(actions);
     card.appendChild(head);
   }

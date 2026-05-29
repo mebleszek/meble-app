@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-05-28T23:15:15.272Z",
+  "generatedAt": "2026-05-29T05:48:41.324Z",
   "summary": {
-    "jsFiles": 360,
-    "indexScripts": 284,
-    "devTestScripts": 317,
-    "fcSymbols": 259,
-    "fcSymbolsAll": 287,
-    "edges": 1862,
-    "highRisk": 9,
+    "jsFiles": 361,
+    "indexScripts": 285,
+    "devTestScripts": 318,
+    "fcSymbols": 260,
+    "fcSymbolsAll": 288,
+    "edges": 1879,
+    "highRisk": 10,
     "mediumRisk": 68
   },
   "byArea": {
@@ -76,11 +76,11 @@
       "medium": 6
     },
     "WYCENA": {
-      "files": 46,
-      "lines": 7464,
-      "storageRefs": 5,
+      "files": 47,
+      "lines": 8043,
+      "storageRefs": 8,
       "dialogRefs": 0,
-      "high": 1,
+      "high": 2,
       "medium": 6
     },
     "ROZRYS": {
@@ -206,6 +206,10 @@
       584
     ],
     [
+      "js/app/wycena/wycena-diagnostics.js",
+      569
+    ],
+    [
       "js/app/material/price-modal-hardware-form.js",
       563
     ],
@@ -232,10 +236,6 @@
     [
       "js/app/cabinet/cabinet-choice-launchers.js",
       423
-    ],
-    [
-      "js/app/rozrys/rozrys-pickers.js",
-      406
     ]
   ],
   "topIncoming": [
@@ -245,15 +245,15 @@
     ],
     [
       "js/app/investor/investors-store.js",
-      43
+      44
+    ],
+    [
+      "js/app/quote/quote-snapshot-store.js",
+      42
     ],
     [
       "js/app/shared/utils.js",
       42
-    ],
-    [
-      "js/app/quote/quote-snapshot-store.js",
-      41
     ],
     [
       "js/app/shared/storage.js",
@@ -265,11 +265,11 @@
     ],
     [
       "js/app/shared/room-registry.js",
-      33
+      34
     ],
     [
       "js/app/project/project-store.js",
-      29
+      30
     ],
     [
       "js/app/ui/info-box.js",
@@ -323,39 +323,39 @@
   "topSecond": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      193
+      194
     ],
     [
       "js/app/shared/storage.js",
-      165
+      166
     ],
     [
       "js/app/shared/utils.js",
-      162
+      163
     ],
     [
       "js/app/shared/constants.js",
-      119
+      120
     ],
     [
       "js/app/project/project-bridge.js",
-      112
+      113
+    ],
+    [
+      "js/app/investor/investors-store.js",
+      98
     ],
     [
       "js/app/shared/schema.js",
       98
     ],
     [
-      "js/app/investor/investors-store.js",
-      97
-    ],
-    [
       "js/app/shared/room-registry.js",
-      95
+      96
     ],
     [
       "js/app/project/project-store.js",
-      92
+      93
     ],
     [
       "js/app/ui/info-box.js",
@@ -367,11 +367,11 @@
     ],
     [
       "js/app/quote/quote-snapshot-store.js",
-      68
+      69
     ],
     [
       "js/app/shared/ui-state.js",
-      68
+      69
     ],
     [
       "js/app/investor/session.js",
@@ -383,7 +383,7 @@
     ],
     [
       "js/app/quote/quote-snapshot.js",
-      59
+      60
     ],
     [
       "js/app/catalog/catalog-store.js",
@@ -395,11 +395,11 @@
     ],
     [
       "js/app/investor/investors-model.js",
-      51
+      52
     ],
     [
       "js/app/rozrys/rozrys.js",
-      50
+      51
     ]
   ],
   "topStorage": [
@@ -533,9 +533,9 @@
       "area": "ROZRYS",
       "category": "ui/render/events",
       "lines": 842,
-      "incoming": 10,
+      "incoming": 11,
       "outgoing": 19,
-      "secondLevel": 50,
+      "secondLevel": 51,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -582,6 +582,24 @@
       ]
     },
     {
+      "file": "js/app/wycena/wycena-diagnostics.js",
+      "risk": "wysokie",
+      "score": 8,
+      "area": "WYCENA",
+      "category": "store/storage",
+      "lines": 569,
+      "incoming": 1,
+      "outgoing": 16,
+      "secondLevel": 2,
+      "storageRefs": 3,
+      "dialogRefs": 0,
+      "reasons": [
+        "400+ linii",
+        "dużo zależności wychodzących",
+        "bezpośredni storage poza oczywistą granicą"
+      ]
+    },
+    {
       "file": "js/app/catalog/catalog-store.js",
       "risk": "wysokie",
       "score": 8,
@@ -606,9 +624,9 @@
       "area": "WYCENA",
       "category": "store/storage",
       "lines": 489,
-      "incoming": 1,
+      "incoming": 2,
       "outgoing": 15,
-      "secondLevel": 2,
+      "secondLevel": 3,
       "storageRefs": 5,
       "dialogRefs": 0,
       "reasons": [
@@ -876,9 +894,9 @@
       "area": "WYCENA",
       "category": "domain/controller",
       "lines": 315,
-      "incoming": 41,
+      "incoming": 42,
       "outgoing": 7,
-      "secondLevel": 68,
+      "secondLevel": 69,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -913,9 +931,9 @@
       "area": "WYCENA",
       "category": "domain/controller",
       "lines": 301,
-      "incoming": 10,
+      "incoming": 11,
       "outgoing": 9,
-      "secondLevel": 59,
+      "secondLevel": 60,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -985,9 +1003,9 @@
       "area": "INWESTOR",
       "category": "store/storage",
       "lines": 204,
-      "incoming": 43,
+      "incoming": 44,
       "outgoing": 5,
-      "secondLevel": 97,
+      "secondLevel": 98,
       "storageRefs": 2,
       "dialogRefs": 0,
       "reasons": [
@@ -1110,7 +1128,7 @@
       "lines": 317,
       "incoming": 14,
       "outgoing": 1,
-      "secondLevel": 49,
+      "secondLevel": 50,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1197,7 +1215,7 @@
       "lines": 270,
       "incoming": 6,
       "outgoing": 7,
-      "secondLevel": 27,
+      "secondLevel": 28,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1248,9 +1266,9 @@
       "area": "WYCENA",
       "category": "domain/controller",
       "lines": 238,
-      "incoming": 14,
+      "incoming": 15,
       "outgoing": 9,
-      "secondLevel": 45,
+      "secondLevel": 46,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1367,9 +1385,9 @@
       "area": "WYCENA",
       "category": "domain/controller",
       "lines": 102,
-      "incoming": 14,
+      "incoming": 15,
       "outgoing": 8,
-      "secondLevel": 43,
+      "secondLevel": 44,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1501,7 +1519,7 @@
       "lines": 400,
       "incoming": 2,
       "outgoing": 2,
-      "secondLevel": 44,
+      "secondLevel": 45,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1534,7 +1552,7 @@
       "lines": 283,
       "incoming": 16,
       "outgoing": 0,
-      "secondLevel": 43,
+      "secondLevel": 44,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1635,9 +1653,9 @@
       "area": "PROJEKT",
       "category": "domain/controller",
       "lines": 197,
-      "incoming": 29,
+      "incoming": 30,
       "outgoing": 6,
-      "secondLevel": 92,
+      "secondLevel": 93,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1670,7 +1688,7 @@
       "lines": 178,
       "incoming": 75,
       "outgoing": 4,
-      "secondLevel": 193,
+      "secondLevel": 194,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1718,9 +1736,9 @@
       "area": "WYCENA",
       "category": "domain/controller",
       "lines": 137,
-      "incoming": 5,
+      "incoming": 6,
       "outgoing": 10,
-      "secondLevel": 37,
+      "secondLevel": 38,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1735,9 +1753,9 @@
       "area": "ROZRYS",
       "category": "ui/render/events",
       "lines": 114,
-      "incoming": 10,
+      "incoming": 11,
       "outgoing": 5,
-      "secondLevel": 49,
+      "secondLevel": 50,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1770,7 +1788,7 @@
       "lines": 83,
       "incoming": 25,
       "outgoing": 6,
-      "secondLevel": 112,
+      "secondLevel": 113,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -2128,6 +2146,7 @@
         "js/app/wycena/wycena-core-offer.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-labor-picker.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-data.js",
@@ -2540,6 +2559,7 @@
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
@@ -3375,6 +3395,7 @@
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/tabs/czynnosci.js",
@@ -4996,6 +5017,7 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/cabinets-render.js",
         "js/app/wycena/wycena-context-repair.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/testing/investor/helpers.js",
         "js/testing/investor/suites/architecture.js",
@@ -5077,6 +5099,7 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/cabinets-render.js",
         "js/app/wycena/wycena-context-repair.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/testing/data-safety/tests.js",
         "js/testing/dev-tests-page.js",
@@ -5158,6 +5181,7 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/cabinets-render.js",
         "js/app/wycena/wycena-context-repair.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/testing/investor/helpers.js",
         "js/testing/investor/suites/architecture.js",
@@ -5229,6 +5253,7 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/cabinets-render.js",
         "js/app/wycena/wycena-context-repair.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/testing/investor/helpers.js",
         "js/testing/investor/suites/architecture.js",
@@ -5311,6 +5336,7 @@
         "js/app/wycena/wycena-core-offer.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-selection-version.js",
@@ -5702,6 +5728,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/tabs/material.js",
         "js/testing/cabinet/tests.js",
@@ -5754,6 +5781,7 @@
       ],
       "secondLevelFiles": [
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/misc.js",
@@ -6542,6 +6570,7 @@
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
@@ -7057,6 +7086,7 @@
       "secondLevelFiles": [
         "js/app/cabinet/cabinet-modal.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/tabs/wywiad.js",
         "js/testing/wycena/suites/architecture-contract.js"
       ],
@@ -7292,6 +7322,7 @@
         "js/app/ui/wywiad-room-settings.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-catalog.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
@@ -7396,6 +7427,7 @@
         "js/app/ui/settings-ui.js",
         "js/app/ui/wywiad-room-settings.js",
         "js/app/wycena/wycena-context-repair.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
@@ -7972,6 +8004,7 @@
         "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/wycena/wycena-context-repair.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
         "js/testing/investor/suites/recovery-isolation.js",
@@ -8043,6 +8076,7 @@
         "js/app/wycena/wycena-core-offer.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-selection-version.js",
@@ -8126,6 +8160,7 @@
         "js/app/shared/room-registry-impact.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-offer.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-selection-version.js",
         "js/tabs/czynnosci.js",
@@ -8159,6 +8194,7 @@
         "js/app/shared/room-registry-project-sync.js",
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-model.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/tabs/wycena.js",
@@ -8599,6 +8635,7 @@
         "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-scope-resolver.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-helpers.js",
@@ -8668,6 +8705,7 @@
         "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-scope-resolver.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-helpers.js",
@@ -8736,6 +8774,7 @@
         "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-scope-resolver.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-helpers.js",
@@ -8800,6 +8839,7 @@
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-history.js",
@@ -8884,6 +8924,7 @@
         "js/app/quote/quote-snapshot-store.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/testing/wycena/suites/core-offer-basics.js"
@@ -8920,6 +8961,7 @@
         "js/app/wycena/wycena-core-offer.js",
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-helpers.js",
@@ -9078,6 +9120,7 @@
       "secondLevelFiles": [
         "js/app/material/material-registry.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
@@ -9196,6 +9239,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -9238,6 +9282,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
         "js/testing/investor/suites/misc.js",
@@ -9297,6 +9342,7 @@
         "js/app/material/material-registry.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
@@ -9433,6 +9479,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
@@ -9632,6 +9679,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
         "js/testing/investor/suites/misc.js",
@@ -9681,6 +9729,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
         "js/testing/investor/suites/misc.js",
@@ -9818,6 +9867,7 @@
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -9981,6 +10031,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/wycena/fixtures.js",
@@ -10016,6 +10067,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -10193,6 +10245,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -10235,6 +10288,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -10308,6 +10362,7 @@
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-helpers.js",
@@ -10372,6 +10427,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
@@ -10530,6 +10586,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/wycena/fixtures.js",
@@ -10557,6 +10614,7 @@
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-selection-pickers.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
@@ -10630,6 +10688,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
@@ -10739,6 +10798,7 @@
       "secondLevelFiles": [
         "js/app/material/material-registry.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/testing/investor/suites/architecture.js",
         "js/testing/investor/suites/model-actions.js",
         "js/testing/investor/suites/recovery-isolation.js",
@@ -10838,6 +10898,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
         "js/testing/investor/suites/misc.js",
@@ -10893,6 +10954,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/cabinet/tests.js",
         "js/testing/investor/suites/misc.js",
@@ -10997,6 +11059,7 @@
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/wycena/fixtures.js",
@@ -11039,6 +11102,7 @@
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-selection-pickers.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
@@ -11613,6 +11677,7 @@
         "js/app/ui/wywiad-room-settings.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-offer.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-helpers.js",
@@ -12465,6 +12530,7 @@
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
@@ -12525,6 +12591,7 @@
         "js/app/shared/room-registry-project-sync.js",
         "js/app/shared/room-registry-render.js",
         "js/app/shared/room-registry.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
@@ -12829,6 +12896,7 @@
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
@@ -12947,6 +13015,7 @@
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
@@ -13053,6 +13122,7 @@
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
@@ -13120,6 +13190,7 @@
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-selection-model.js",
@@ -13198,6 +13269,7 @@
         "js/app/shared/room-registry-impact.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-selection.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/testing/project/tests.js"
       ],
       "outgoingFiles": [
@@ -13219,6 +13291,7 @@
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
@@ -13558,6 +13631,7 @@
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core-offer.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-helpers.js",
@@ -13646,6 +13720,7 @@
         "js/app/ui/cabinets-render.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-context-repair.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/tests.js"
       ],
@@ -13698,6 +13773,7 @@
         "js/app/ui/views.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
@@ -13898,6 +13974,7 @@
         "js/app/wycena/wycena-core-offer.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-labor-picker.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-data.js",
@@ -15439,6 +15516,7 @@
         "wycenaContextRepair"
       ],
       "incomingFiles": [
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-shell.js"
       ],
       "outgoingFiles": [
@@ -15460,6 +15538,7 @@
       ],
       "secondLevelFiles": [
         "js/app/wycena/wycena-tab-render-bridge.js",
+        "js/app/wycena/wycena-tab-shell.js",
         "js/testing/wycena/suites/architecture-contract.js"
       ],
       "storageRefs": 5,
@@ -15510,6 +15589,7 @@
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/testing/material/tests.js",
@@ -15572,6 +15652,7 @@
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/testing/wycena/suites/architecture-contract.js",
@@ -15611,6 +15692,7 @@
       ],
       "incomingFiles": [
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/testing/wycena/suites/architecture-contract.js"
       ],
       "outgoingFiles": [
@@ -15629,6 +15711,7 @@
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/testing/wycena/fixtures.js",
@@ -15683,6 +15766,7 @@
       "incomingFiles": [
         "js/app/material/material-registry.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/wycena/suites/architecture-contract.js"
@@ -15706,6 +15790,7 @@
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/testing/cabinet/tests.js",
@@ -15781,6 +15866,7 @@
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/testing/wycena/fixtures.js",
@@ -15829,6 +15915,7 @@
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/core-selection-contract.js"
       ],
@@ -15850,6 +15937,7 @@
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/testing/material/tests.js",
@@ -15901,6 +15989,7 @@
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/testing/wycena/suites/architecture-contract.js"
       ],
       "outgoingFiles": [
@@ -15918,6 +16007,7 @@
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/tabs/czynnosci.js",
@@ -15975,6 +16065,7 @@
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/tabs/czynnosci.js",
         "js/testing/material/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -16029,6 +16120,7 @@
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/testing/wycena/suites/architecture-contract.js",
@@ -16061,6 +16153,7 @@
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot-store.js",
         "js/app/wycena/wycena-core-selection.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-history.js",
@@ -16103,6 +16196,68 @@
       "reasons": [
         "dużo zależnych plików",
         "kilka zależności wychodzących"
+      ]
+    },
+    "js/app/wycena/wycena-diagnostics.js": {
+      "area": "WYCENA",
+      "category": "store/storage",
+      "lines": 569,
+      "defines": [
+        "wycenaDiagnostics"
+      ],
+      "uses": [
+        "wycenaContextRepair",
+        "projectStore",
+        "investors",
+        "uiState",
+        "rozrys",
+        "quoteOfferStore",
+        "wycenaCoreSelection",
+        "roomRegistry",
+        "roomScopeResolver",
+        "quoteSnapshotStore",
+        "wycenaCore",
+        "wycenaCoreSource",
+        "wycenaCoreMaterialPlan",
+        "wycenaCoreLines",
+        "quoteSnapshot",
+        "wycenaDiagnostics"
+      ],
+      "incomingFiles": [
+        "js/app/wycena/wycena-tab-shell.js"
+      ],
+      "outgoingFiles": [
+        "js/app/investor/investors-store.js",
+        "js/app/project/project-store.js",
+        "js/app/quote/quote-offer-store.js",
+        "js/app/quote/quote-snapshot-store.js",
+        "js/app/quote/quote-snapshot.js",
+        "js/app/rozrys/rozrys-shell.js",
+        "js/app/rozrys/rozrys.js",
+        "js/app/shared/room-registry.js",
+        "js/app/shared/room-scope-resolver.js",
+        "js/app/shared/ui-state.js",
+        "js/app/wycena/wycena-context-repair.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
+        "js/app/wycena/wycena-core-selection.js",
+        "js/app/wycena/wycena-core-source.js",
+        "js/app/wycena/wycena-core.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/wycena/wycena-tab-render-bridge.js",
+        "js/testing/wycena/suites/architecture-contract.js"
+      ],
+      "storageRefs": 3,
+      "dialogRefs": 0,
+      "domRefs": 10,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "wysokie",
+      "reasons": [
+        "400+ linii",
+        "dużo zależności wychodzących",
+        "bezpośredni storage poza oczywistą granicą"
       ]
     },
     "js/app/wycena/wycena-labor-picker.js": {
@@ -16824,12 +16979,13 @@
     "js/app/wycena/wycena-tab-shell.js": {
       "area": "WYCENA",
       "category": "ui/render/events",
-      "lines": 163,
+      "lines": 173,
       "defines": [
         "wycenaTabShell"
       ],
       "uses": [
         "infoBox",
+        "wycenaDiagnostics",
         "wycenaContextRepair",
         "wycenaCore",
         "quotePdf",
@@ -16843,7 +16999,8 @@
         "js/app/quote/quote-pdf.js",
         "js/app/ui/info-box.js",
         "js/app/wycena/wycena-context-repair.js",
-        "js/app/wycena/wycena-core.js"
+        "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js"
       ],
       "secondLevelFiles": [
         "js/tabs/wycena.js",

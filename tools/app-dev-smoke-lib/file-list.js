@@ -209,6 +209,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/wycena/wycena-tab-status-bridge.js',
   'js/app/wycena/wycena-tab-status-actions.js',
   'js/app/wycena/wycena-tab-preview.js',
+  'js/app/wycena/wycena-diagnostics.js',
   'js/app/wycena/wycena-tab-shell.js',
   'js/tabs/wycena.js',
   'js/app/optimizer/cut-optimizer.js',

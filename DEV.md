@@ -1,5 +1,18 @@
 # DEV.md — meble-app
 
+## WYCENA diagnostics report v1 — 2026-05-29
+
+- Aktualna paczka robocza po tym etapie: `site_wycena_diagnostics_report_v1.zip`.
+- Baza startowa: `site_wycena_context_richer_source_fix_v1.zip`.
+- Po zgłoszeniu, że WYCENA nadal działa w incognito, ale w normalnej przeglądarce z pełnymi danymi kliknięcie `Wyceń` tylko reaguje i nie tworzy widocznej historii/snapshotu, dodano diagnostykę zamiast kolejnego zgadywania migracji storage.
+- Dodano `js/app/wycena/wycena-diagnostics.js` oraz przycisk `Diag` w topbarze WYCENY. Otwiera aplikacyjny modal z raportem do skopiowania; nie używa natywnych alertów/promptów.
+- Raport pokazuje aktywnego inwestora/projekt, różne źródła projektu (`fc_projects_v1`, `fc_project_v1`, `fc_project_inv_*_v1`), pokoje widziane przez registry/resolver/WYCENĘ, draft oferty, snapshoty, klucze storage, aktywną sesję edycji `fc_edit_session_v1` oraz ślad ostatniego kliknięcia `Wyceń`.
+- Diagnostyka wykonuje `collectQuoteData` bez zapisu snapshotu, żeby odróżnić błąd zbierania danych od błędu zapisu/renderu historii.
+- `generateQuote` zapisuje ślad kroków w diagnostyce: naprawa kontekstu, selection, naming, quoteBuilt, statusSynced albo błąd.
+- Nie czyszczono danych użytkownika, nie usuwano inwestorów/projektów, nie ruszano resolvera okuć, katalogu okuć, import/export Excel, backupów, PRO100, ROZRYS ani RYSUNKU.
+- Raport: `tools/reports/wycena-diagnostics-report-v1.md`.
+
+
 ## Wycena context richer source fix v1 — 2026-05-29
 
 - Poprawka po zgłoszeniu: WYCENA działała w incognito, ale w normalnym trybie z danymi użytkownika nadal nie generowała wyniku.

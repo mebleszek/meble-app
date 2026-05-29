@@ -1,4 +1,9 @@
 
+## WYCENA diagnostics report v1 — 2026-05-29
+
+Dodano przycisk `Diag` w zakładce WYCENA. Generuje raport porównawczy normalnej przeglądarki i incognito dla przypadków, w których kliknięcie `Wyceń` reaguje, ale nie tworzy widocznej historii/snapshotu. Raport nie czyści danych i wykonuje test `collectQuoteData` bez zapisu snapshotu.
+
+
 ## Wycena context richer source fix v1 — 2026-05-29
 
 - Poprawka po zgłoszeniu: WYCENA działała w incognito, ale w normalnym trybie z danymi użytkownika nadal nie generowała wyniku.
