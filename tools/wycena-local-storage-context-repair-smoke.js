@@ -156,3 +156,44 @@ catch(err){
   if(err && err.details) console.error(JSON.stringify(err.details, null, 2));
   process.exit(1);
 }
+
+function runSameInvestorSnapshotRelinkScenario(){
+  const sandbox = loadSmokeFiles(createSandbox());
+  const FC = sandbox.FC;
+  if(FC.investorProject && typeof FC.investorProject.init === 'function') FC.investorProject.init();
+
+  const investor = { id:'inv_relink_snapshots', kind:'person', name:'Inwestor Relink', source:'quote-snapshot', rooms:[{ id:'room_A', baseType:'kuchnia', name:'A', label:'A', projectStatus:'nowy' }] };
+  const projectData = {
+    schemaVersion:2,
+    meta:{ assignedInvestorId:'inv_relink_snapshots', roomDefs:{ room_A:{ id:'room_A', baseType:'kuchnia', name:'A', label:'A' } }, roomOrder:['room_A'] },
+    room_A:{ cabinets:[{ id:'cab_A_1', name:'Szafka A' }], fronts:[], sets:[], settings:{} },
+  };
+  FC.investors.writeAll([investor]);
+  FC.investors.setCurrentId('inv_relink_snapshots');
+  FC.projectStore.writeAll([{ id:'proj_current_relink', investorId:'inv_relink_snapshots', title:'Relink', status:'nowy', projectData:clone(projectData), createdAt:1, updatedAt:1, meta:{} }]);
+  FC.projectStore.setCurrentProjectId('proj_current_relink');
+  sandbox.localStorage.setItem('fc_project_v1', JSON.stringify(projectData));
+  sandbox.projectData = clone(projectData);
+  sandbox.window.projectData = sandbox.projectData;
+  sandbox.localStorage.setItem('fc_ui_v1', JSON.stringify({ currentInvestorId:'inv_relink_snapshots', activeTab:'wycena' }));
+  FC.quoteSnapshotStore.writeAll([
+    { id:'snap_old_project', investor:{ id:'inv_relink_snapshots' }, project:{ id:'proj_old_relink', investorId:'inv_relink_snapshots', title:'Stary projekt' }, scope:{ selectedRooms:['room_A'], roomLabels:['A'] }, lines:{ materials:[{ total:10 }], accessories:[], agdServices:[], quoteRates:[] }, totals:{ grand:10 }, commercial:{ preliminary:true, versionName:'Wstępna oferta' }, meta:{ source:'quote-snapshot' } },
+  ]);
+
+  const result = FC.wycenaContextRepair.repairActiveQuoteContext({ reason:'test-relink-snapshots' });
+  assert(result && result.ok, 'Naprawa kontekstu relink nie zwróciła OK', result);
+  assert(result.repairs.some((item)=> String(item).indexOf('relinked-investor-snapshots:1') === 0), 'Nie zgłoszono relinku snapshotu inwestora', result.repairs);
+  const history = FC.quoteSnapshotStore.listForProject('proj_current_relink');
+  assert(history.length === 1 && history[0].project && history[0].project.id === 'proj_current_relink', 'Snapshot starego projectId nie został przepięty do aktualnego projektu', history);
+  const healed = FC.investors.getById('inv_relink_snapshots');
+  assert(healed && healed.source !== 'quote-snapshot', 'Inwestor quote-snapshot z realnym projektem nie został uzdrowiony', healed);
+}
+
+try{
+  runSameInvestorSnapshotRelinkScenario();
+}
+catch(err){
+  console.error('[wycena-local-storage-context-repair-smoke] FAIL:', err && err.message ? err.message : err);
+  if(err && err.details) console.error(JSON.stringify(err.details, null, 2));
+  process.exit(1);
+}

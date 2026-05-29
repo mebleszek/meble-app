@@ -26,7 +26,10 @@
   async function generateQuote(ctx, deps){
     const d = normalizeDeps(deps);
     const state = typeof d.getState === 'function' ? d.getState() : {};
-    if(state.isBusy) return;
+    if(state.isBusy){
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordGenerateButtonEvent === 'function') FC.wycenaDiagnostics.recordGenerateButtonEvent('generate-ignored-busy'); }catch(_){ }
+      return;
+    }
     if(typeof d.setState === 'function') d.setState({ isBusy:true });
     try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.beginGenerateTrace === 'function') FC.wycenaDiagnostics.beginGenerateTrace('generateQuote'); }catch(_){ }
     if(typeof d.render === 'function') d.render(ctx);
@@ -54,9 +57,16 @@
       if(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function') nextQuote = await FC.wycenaCore.buildQuoteSnapshot({ selection });
       else if(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteData === 'function') nextQuote = await FC.wycenaCore.collectQuoteData({ selection });
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('quoteBuilt', { hasQuote:!!nextQuote, error:nextQuote && nextQuote.error, id:nextQuote && (nextQuote.id || nextQuote.snapshotId), selectedRooms:nextQuote && nextQuote.selectedRooms, roomLabels:nextQuote && nextQuote.roomLabels, totals:nextQuote && nextQuote.totals, materialLines:Array.isArray(nextQuote && nextQuote.materialLines) ? nextQuote.materialLines.length : undefined, accessoryLines:Array.isArray(nextQuote && nextQuote.accessoryLines) ? nextQuote.accessoryLines.length : undefined }); }catch(_){ }
-      if(typeof d.setState === 'function') d.setState({ lastQuote:nextQuote });
-      if(nextQuote && !nextQuote.error){ d.syncGeneratedQuoteStatus(nextQuote); try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('statusSynced', { ok:true }); }catch(_){ } }
-      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ ok:true, hasQuote:!!nextQuote, error:nextQuote && nextQuote.error, id:nextQuote && (nextQuote.id || nextQuote.snapshotId) }); }catch(_){ }
+      const nextQuoteId = nextQuote && typeof d.getSnapshotId === 'function' ? d.getSnapshotId(nextQuote) : String(nextQuote && (nextQuote.id || nextQuote.snapshotId) || '');
+      if(typeof d.setState === 'function') d.setState({ lastQuote:nextQuote, previewSnapshotId:nextQuoteId, shouldScrollToPreview:!!nextQuote });
+      if(nextQuote && !nextQuote.error){
+        d.syncGeneratedQuoteStatus(nextQuote);
+        let liveStatus = '';
+        try{ liveStatus = d.getProjectStatusForHistory(d.getSnapshotHistory()); }catch(_){ }
+        if(typeof d.setState === 'function') d.setState({ lastQuote:nextQuote, previewSnapshotId:nextQuoteId, shouldScrollToPreview:true, lastKnownProjectStatus:liveStatus });
+        try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('statusSynced', { ok:true, liveStatus:liveStatus }); }catch(_){ }
+      }
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ ok:true, hasQuote:!!nextQuote, error:nextQuote && nextQuote.error, id:nextQuoteId }); }catch(_){ }
     }catch(err){
       try{ console.error('[wycena] collect failed', err); }catch(_){ }
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('error', { message:String(err && err.message || err || 'błąd'), code:String(err && err.code || ''), title:String(err && err.title || ''), quoteValidation:!!(err && err.quoteValidation), details:err && err.details || null }); }catch(_){ }
@@ -87,7 +97,18 @@
     const actions = h('div', { class:'quote-topbar__actions' });
     const runBtn = h('button', { class:'btn-success', type:'button', text: state.isBusy ? 'Liczę…' : 'Wyceń' });
     if(state.isBusy) runBtn.disabled = true;
-    runBtn.addEventListener('click', ()=> { void generateQuote(ctx, d); });
+    let generateRequestedAt = 0;
+    const requestGenerate = (event, source)=> {
+      try{ if(event && typeof event.preventDefault === 'function') event.preventDefault(); }catch(_){ }
+      try{ if(event && typeof event.stopPropagation === 'function') event.stopPropagation(); }catch(_){ }
+      const ts = Date.now();
+      if(generateRequestedAt && ts - generateRequestedAt < 450) return;
+      generateRequestedAt = ts;
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordGenerateButtonEvent === 'function') FC.wycenaDiagnostics.recordGenerateButtonEvent(source || 'generate-button'); }catch(_){ }
+      void generateQuote(ctx, d);
+    };
+    runBtn.addEventListener('pointerup', (event)=> requestGenerate(event, 'pointerup'));
+    runBtn.addEventListener('click', (event)=> requestGenerate(event, 'click'));
     actions.appendChild(runBtn);
 
     const pdfBtn = h('button', { class:'btn-primary', type:'button', text:'PDF' });
@@ -104,9 +125,16 @@
   function reconcileStatusPreviewState(deps){
     const d = normalizeDeps(deps);
     const state = d.getState ? d.getState() : {};
-    const liveStatus = d.getProjectStatusForHistory(d.getSnapshotHistory());
+    const history = typeof d.getSnapshotHistory === 'function' ? d.getSnapshotHistory() : [];
+    const liveStatus = d.getProjectStatusForHistory(history);
     if(state.lastKnownProjectStatus && liveStatus !== state.lastKnownProjectStatus){
-      if(typeof d.setState === 'function') d.setState({ previewSnapshotId:'', lastQuote:null });
+      let keepCurrentPreview = false;
+      try{
+        const quoteId = state.lastQuote && typeof d.getSnapshotId === 'function' ? d.getSnapshotId(state.lastQuote) : String(state.lastQuote && (state.lastQuote.id || state.lastQuote.snapshotId) || '');
+        const previewId = String(state.previewSnapshotId || quoteId || '');
+        keepCurrentPreview = !!previewId && Array.isArray(history) && history.some((row)=> String(typeof d.getSnapshotId === 'function' ? d.getSnapshotId(row) : (row && (row.id || row.snapshotId) || '')) === previewId);
+      }catch(_){ keepCurrentPreview = false; }
+      if(!keepCurrentPreview && typeof d.setState === 'function') d.setState({ previewSnapshotId:'', lastQuote:null });
     }
     if(typeof d.setState === 'function') d.setState({ lastKnownProjectStatus:liveStatus });
   }

@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-29T05:48:41.324Z",
+  "generatedAt": "2026-05-29T22:46:58.611Z",
   "summary": {
     "jsFiles": 361,
     "indexScripts": 285,
     "devTestScripts": 318,
     "fcSymbols": 260,
     "fcSymbolsAll": 288,
-    "edges": 1879,
+    "edges": 1880,
     "highRisk": 10,
     "mediumRisk": 68
   },
@@ -77,7 +77,7 @@
     },
     "WYCENA": {
       "files": 47,
-      "lines": 8043,
+      "lines": 8172,
       "storageRefs": 8,
       "dialogRefs": 0,
       "high": 2,
@@ -207,7 +207,11 @@
     ],
     [
       "js/app/wycena/wycena-diagnostics.js",
-      569
+      581
+    ],
+    [
+      "js/app/wycena/wycena-context-repair.js",
+      578
     ],
     [
       "js/app/material/price-modal-hardware-form.js",
@@ -220,10 +224,6 @@
     [
       "js/app/rozrys/rozrys-render.js",
       493
-    ],
-    [
-      "js/app/wycena/wycena-context-repair.js",
-      489
     ],
     [
       "js/testing/rozrys/tests.js",
@@ -249,7 +249,7 @@
     ],
     [
       "js/app/quote/quote-snapshot-store.js",
-      42
+      43
     ],
     [
       "js/app/shared/utils.js",
@@ -587,11 +587,29 @@
       "score": 8,
       "area": "WYCENA",
       "category": "store/storage",
-      "lines": 569,
+      "lines": 581,
       "incoming": 1,
       "outgoing": 16,
       "secondLevel": 2,
       "storageRefs": 3,
+      "dialogRefs": 0,
+      "reasons": [
+        "400+ linii",
+        "dużo zależności wychodzących",
+        "bezpośredni storage poza oczywistą granicą"
+      ]
+    },
+    {
+      "file": "js/app/wycena/wycena-context-repair.js",
+      "risk": "wysokie",
+      "score": 8,
+      "area": "WYCENA",
+      "category": "store/storage",
+      "lines": 578,
+      "incoming": 2,
+      "outgoing": 16,
+      "secondLevel": 3,
+      "storageRefs": 5,
       "dialogRefs": 0,
       "reasons": [
         "400+ linii",
@@ -615,24 +633,6 @@
         "400+ linii",
         "dużo zależnych plików",
         "dużo zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/app/wycena/wycena-context-repair.js",
-      "risk": "wysokie",
-      "score": 8,
-      "area": "WYCENA",
-      "category": "store/storage",
-      "lines": 489,
-      "incoming": 2,
-      "outgoing": 15,
-      "secondLevel": 3,
-      "storageRefs": 5,
-      "dialogRefs": 0,
-      "reasons": [
-        "400+ linii",
-        "dużo zależności wychodzących",
-        "bezpośredni storage poza oczywistą granicą"
       ]
     },
     {
@@ -894,7 +894,7 @@
       "area": "WYCENA",
       "category": "domain/controller",
       "lines": 315,
-      "incoming": 42,
+      "incoming": 43,
       "outgoing": 7,
       "secondLevel": 69,
       "storageRefs": 0,
@@ -8635,6 +8635,7 @@
         "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-scope-resolver.js",
+        "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-data.js",
@@ -8705,6 +8706,7 @@
         "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-scope-resolver.js",
+        "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-data.js",
@@ -8774,6 +8776,7 @@
         "js/app/quote/quote-snapshot.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-scope-resolver.js",
+        "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-data.js",
@@ -15495,7 +15498,7 @@
     "js/app/wycena/wycena-context-repair.js": {
       "area": "WYCENA",
       "category": "store/storage",
-      "lines": 489,
+      "lines": 578,
       "defines": [
         "wycenaContextRepair"
       ],
@@ -15513,6 +15516,7 @@
         "roomRegistry",
         "roomScopeResolver",
         "quoteOfferStore",
+        "quoteSnapshotStore",
         "wycenaContextRepair"
       ],
       "incomingFiles": [
@@ -15526,6 +15530,7 @@
         "js/app/project/project-model.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-offer-store.js",
+        "js/app/quote/quote-snapshot-store.js",
         "js/app/rozrys/rozrys-shell.js",
         "js/app/rozrys/rozrys.js",
         "js/app/shared/constants.js",
@@ -16201,7 +16206,7 @@
     "js/app/wycena/wycena-diagnostics.js": {
       "area": "WYCENA",
       "category": "store/storage",
-      "lines": 569,
+      "lines": 581,
       "defines": [
         "wycenaDiagnostics"
       ],
@@ -16979,7 +16984,7 @@
     "js/app/wycena/wycena-tab-shell.js": {
       "area": "WYCENA",
       "category": "ui/render/events",
-      "lines": 173,
+      "lines": 201,
       "defines": [
         "wycenaTabShell"
       ],
@@ -17022,7 +17027,7 @@
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 5,
+      "domRefs": 6,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",

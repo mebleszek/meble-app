@@ -3,8 +3,9 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const BUILD = '20260529_wycena_diagnostics_report_v1';
+  const BUILD = '20260530_wycena_click_snapshot_relink_v1';
   let lastGenerateTrace = null;
+  let lastGenerateButtonEvent = null;
 
   function now(){ return Date.now(); }
   function text(value){ return String(value == null ? '' : value).trim(); }
@@ -387,6 +388,7 @@
       storage:collectStorageSection(),
       moduleHealth:collectStaticModuleHealth(),
       lastGenerateTrace:lastGenerateTrace ? clone(lastGenerateTrace) : null,
+      lastGenerateButtonEvent:lastGenerateButtonEvent ? clone(lastGenerateButtonEvent) : null,
     };
     return report;
   }
@@ -431,7 +433,7 @@
     lines.push(JSON.stringify(rep.dryRun || {}, null, 2));
     lines.push('');
     lines.push('--- OSTATNI KLIK WYCEN ---');
-    lines.push(JSON.stringify(rep.lastGenerateTrace || null, null, 2));
+    lines.push(JSON.stringify({ buttonEvent:rep.lastGenerateButtonEvent || null, generateTrace:rep.lastGenerateTrace || null }, null, 2));
     lines.push('');
     lines.push('--- STORAGE ---');
     lines.push(JSON.stringify(rep.storage || {}, null, 2));
@@ -531,6 +533,15 @@
     setTimeout(function(){ void refresh(); }, 0);
   }
 
+  function recordGenerateButtonEvent(source){
+    lastGenerateButtonEvent = {
+      source:text(source || 'generate-button'),
+      at:new Date().toISOString(),
+      href:safeCall('location.href', function(){ return window.location && window.location.href; }, ''),
+    };
+    return lastGenerateButtonEvent;
+  }
+
   function beginGenerateTrace(label){
     lastGenerateTrace = { label:text(label || 'generateQuote'), startedAt:new Date().toISOString(), steps:[] };
     return lastGenerateTrace;
@@ -564,5 +575,6 @@
     summarizeProjectData,
     summarizeProjectRecord,
     runDryQuoteCollect,
+    recordGenerateButtonEvent,
   };
 })();

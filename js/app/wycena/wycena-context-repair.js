@@ -445,6 +445,9 @@
     const draftResult = sanitizeDraftSelection(activeRoomIds, record && record.id, investorId);
     if(draftResult.changed) repairs.push('sanitized-offer-draft-selection');
     if(cleanupWrongScopedDrafts(record && record.id, investorId, activeRoomIds)) repairs.push('cleaned-wrong-scoped-drafts');
+    const relinkedSnapshots = relinkInvestorSnapshotsToProject(investorId, record && record.id, activeRoomIds);
+    if(relinkedSnapshots && relinkedSnapshots.changed) repairs.push('relinked-investor-snapshots:' + relinkedSnapshots.count);
+    if(healQuoteSnapshotInvestorSource(investorId, activeProject)) repairs.push('healed-quote-snapshot-investor-source');
     try{ patchUiState({ currentInvestorId:investorId }); }catch(_){ }
 
     return {
@@ -461,6 +464,90 @@
       reason:text(opts.reason),
       hadProjectContent:projectHasContent(activeProject),
     };
+  }
+
+
+
+  function snapshotInvestorId(snapshot){
+    const snap = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    return text(snap.investor && snap.investor.id) || text(snap.project && snap.project.investorId) || text(snap.meta && snap.meta.investorId);
+  }
+
+  function snapshotProjectId(snapshot){
+    const snap = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    return text(snap.project && snap.project.id) || text(snap.meta && snap.meta.projectId) || text(snap.projectId);
+  }
+
+  function snapshotRoomIds(snapshot){
+    const snap = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getSnapshotRoomIds === 'function') return normalizeRoomIds(FC.quoteSnapshotStore.getSnapshotRoomIds(snap));
+    }catch(_){ }
+    try{ return normalizeRoomIds(snap.scope && snap.scope.selectedRooms); }catch(_){ return []; }
+  }
+
+  function relinkInvestorSnapshotsToProject(investorId, projectId, activeRoomIds){
+    const iid = text(investorId);
+    const pid = text(projectId);
+    const active = normalizeRoomIds(activeRoomIds);
+    const activeSet = new Set(active);
+    if(!iid || !pid || !active.length) return { changed:false, count:0 };
+    if(!(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.readAll === 'function' && typeof FC.quoteSnapshotStore.writeAll === 'function')) return { changed:false, count:0 };
+    let rows = [];
+    try{ rows = FC.quoteSnapshotStore.readAll() || []; }catch(_){ rows = []; }
+    let count = 0;
+    const next = (Array.isArray(rows) ? rows : []).map((row)=> {
+      const snap = row && typeof row === 'object' ? clone(row) : {};
+      if(snapshotInvestorId(snap) !== iid) return snap;
+      if(snapshotProjectId(snap) === pid) return snap;
+      const rooms = snapshotRoomIds(snap);
+      if(!rooms.length || !rooms.every((roomId)=> activeSet.has(roomId))) return snap;
+      snap.project = Object.assign({}, snap.project || {}, { id:pid, investorId:iid });
+      snap.investor = Object.assign({}, snap.investor || {}, { id:iid });
+      snap.meta = Object.assign({}, snap.meta || {}, {
+        relinkedProjectId:pid,
+        relinkedAt:now(),
+        relinkedFromProjectId:snapshotProjectId(row),
+      });
+      count += 1;
+      return snap;
+    });
+    if(count > 0){
+      try{ FC.quoteSnapshotStore.writeAll(next); }catch(_){ return { changed:false, count:0 }; }
+      return { changed:true, count };
+    }
+    return { changed:false, count:0 };
+  }
+
+  function healQuoteSnapshotInvestorSource(investorId, projectData){
+    const iid = text(investorId);
+    if(!iid || !projectHasContent(projectData)) return false;
+    const investor = findInvestor(iid);
+    if(!investor || text(investor.source).toLowerCase() !== 'quote-snapshot') return false;
+    try{
+      if(FC.investors && typeof FC.investors.update === 'function'){
+        FC.investors.update(iid, {
+          source:'',
+          meta:Object.assign({}, investor.meta || {}, { recoveredFromQuoteSnapshot:true, recoveredAt:now() })
+        });
+        return true;
+      }
+    }catch(_){ }
+    try{
+      const list = FC.investors && typeof FC.investors.readAll === 'function' ? FC.investors.readAll() : storageGetJSON('fc_investors_v1', []);
+      let changed = false;
+      const next = (Array.isArray(list) ? list : []).map((row)=> {
+        if(text(row && row.id) !== iid) return row;
+        changed = true;
+        return Object.assign({}, row, { source:'', meta:Object.assign({}, row.meta || {}, { recoveredFromQuoteSnapshot:true, recoveredAt:now() }), updatedAt:now() });
+      });
+      if(changed){
+        if(FC.investors && typeof FC.investors.writeAll === 'function') FC.investors.writeAll(next);
+        else storageSetJSON('fc_investors_v1', next);
+        return true;
+      }
+    }catch(_){ }
+    return false;
   }
 
   function buildErrorQuote(result){
@@ -483,6 +570,8 @@
     getActiveRoomIdsFromProject,
     sanitizeDraftSelection,
     cleanupWrongScopedDrafts,
+    relinkInvestorSnapshotsToProject,
+    healQuoteSnapshotInvestorSource,
     resolveInvestorId,
   };
 })();

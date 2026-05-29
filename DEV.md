@@ -1563,3 +1563,8 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - `tools/app-dev-smoke.js` zaostrzono tak, by sprawdzał dedykowany nieclipowany kontener kategorii oraz brak klasy `rozrys-material-accordion__body` na tym body.
 - Bez zmian storage, backupu, import/export Excel, zamienników, PRO100, ROZRYS jako funkcji, RYSUNKU ani WYCENY.
 - Raport: `tools/reports/hardware-dictionary-category-no-clip-v1.md`.
+
+## 2026-05-30 — WYCENA click/snapshot relink fix
+- Naprawa po diagnostyce normalny tryb vs incognito: `collectQuoteData` potrafiło liczyć dane, ale wygenerowana wycena mogła nie zostać widocznie pokazana po zmianie statusu projektu. `wycena-tab-shell.js` ustawia teraz świeżo utworzony snapshot jako aktywny podgląd (`lastQuote`, `previewSnapshotId`) i nie kasuje go przy pojedynczej synchronizacji statusu.
+- Przycisk `Wyceń` obsługuje `pointerup` oraz `click` przez jeden strzeżony handler, żeby mobile/click-swallow nie kończył się samą reakcją wizualną bez generowania. Diagnostyka zapisuje teraz osobno zdarzenie przycisku i trace generowania.
+- `wycena-context-repair.js` przepina snapshoty tego samego inwestora ze starego `projectId` do aktualnego projektu, jeśli zakres pokoi nadal istnieje. Inwestor odzyskany wcześniej ze źródła `quote-snapshot` z realnymi szafkami jest uzdrawiany jako normalny rekord zamiast blokować bieżący kontekst.
