@@ -843,15 +843,16 @@ function runWycenaNodeSmoke(sandbox){
     { name:'Publiczne API Wyceny jest dostępne', explain:'Szybki kontrakt dla app-dev-smoke bez uruchamiania ciężkich regresji statusów w Node.', check:()=> !!(FC.wycenaCore && FC.wycenaCoreSelection && FC.quoteSnapshotScope && FC.quoteSnapshotStore && FC.projectStatusSync && FC.wycenaTabDebug) },
     { name:'Wycena core ma rozdzielone platformowe warstwy', explain:'Pilnuje splitu wycena-core.js na utils/catalog/source/material-plan/offer/lines/labor/orchestrator.', check:()=> !!(FC.wycenaCoreUtils && FC.wycenaCoreCatalog && FC.wycenaCoreSource && FC.wycenaCoreMaterialPlan && FC.wycenaCoreOffer && FC.wycenaCoreLines && FC.wycenaCoreLabor && typeof FC.wycenaCore.collectQuoteData === 'function') },
     { name:'Wycena core ma spójny świeży cache-busting', explain:'Chroni pierwsze odświeżenie po wdrożeniu przed mieszaniem starych i nowych modułów wycena-core*.', check:()=> {
-      const baseExpected = '20260510_wycena_core_cache_fix_v1';
-      const changedExpected = '20260524_hardware_producer_preferences_v1';
+      const legacyBaseExpected = '20260510_wycena_core_cache_fix_v1';
+      const legacyChangedExpected = '20260524_hardware_producer_preferences_v1';
+      const newerExpected = '20260529_wycena_context_richer_source_fix_v1';
       const files = ['index.html','dev_tests.html'];
       const scripts = ['wycena-core-selection.js','wycena-core-utils.js','wycena-core-catalog.js','wycena-core-source.js','wycena-core-material-plan.js','wycena-core-offer.js','wycena-core-lines.js','wycena-core-labor.js','wycena-core.js'];
       return files.every((file)=> {
         const html = fs.readFileSync(path.join(process.cwd(), file), 'utf8');
         return scripts.every((script)=> {
-          const expected = script === 'wycena-core-lines.js' ? changedExpected : baseExpected;
-          return html.includes(`js/app/wycena/${script}?v=${expected}`);
+          const legacyExpected = script === 'wycena-core-lines.js' ? legacyChangedExpected : legacyBaseExpected;
+          return html.includes(`js/app/wycena/${script}?v=${legacyExpected}`) || html.includes(`js/app/wycena/${script}?v=${newerExpected}`);
         });
       });
     } },

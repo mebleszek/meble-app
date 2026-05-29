@@ -108,7 +108,49 @@ function main(){
   console.log('[wycena-local-storage-context-repair-smoke] OK');
 }
 
-try{ main(); }
+
+function runEmptyCentralRecordRicherLegacyScenario(){
+  const sandbox = loadSmokeFiles(createSandbox());
+  const FC = sandbox.FC;
+  if(FC.investorProject && typeof FC.investorProject.init === 'function') FC.investorProject.init();
+
+  const investor = { id:'inv_richer_legacy', kind:'person', name:'Inwestor Legacy', rooms:[{ id:'room_dynamic', baseType:'kuchnia', name:'Kuchnia robocza', label:'Kuchnia robocza', projectStatus:'nowy' }] };
+  const emptyCentral = {
+    schemaVersion:2,
+    meta:{ assignedInvestorId:'inv_richer_legacy', roomDefs:{ room_dynamic:{ id:'room_dynamic', baseType:'kuchnia', name:'Kuchnia robocza', label:'Kuchnia robocza' } }, roomOrder:['room_dynamic'] },
+    room_dynamic:{ cabinets:[], fronts:[], sets:[], settings:{} },
+  };
+  const richLegacy = {
+    schemaVersion:2,
+    meta:{ assignedInvestorId:'inv_richer_legacy', roomDefs:{ room_dynamic:{ id:'room_dynamic', baseType:'kuchnia', name:'Kuchnia robocza', label:'Kuchnia robocza' } }, roomOrder:['room_dynamic'] },
+    room_dynamic:{ cabinets:[{ id:'cab_dynamic_1', name:'Szafka z legacy slotu', w:60, h:82, d:56 }], fronts:[], sets:[], settings:{} },
+  };
+
+  FC.investors.writeAll([investor]);
+  FC.investors.setCurrentId('inv_richer_legacy');
+  FC.projectStore.writeAll([
+    { id:'proj_empty_central', investorId:'inv_richer_legacy', title:'Pusty centralny', status:'nowy', projectData:clone(emptyCentral), createdAt:1, updatedAt:1, meta:{ source:'project-store' } },
+  ]);
+  FC.projectStore.setCurrentProjectId('proj_empty_central');
+  sandbox.localStorage.setItem('fc_project_inv_inv_richer_legacy_v1', JSON.stringify(richLegacy));
+  sandbox.localStorage.setItem('fc_project_v1', JSON.stringify(emptyCentral));
+  sandbox.projectData = clone(emptyCentral);
+  sandbox.window.projectData = sandbox.projectData;
+  sandbox.localStorage.setItem('fc_ui_v1', JSON.stringify({ currentInvestorId:'inv_richer_legacy', activeTab:'wycena' }));
+
+  const result = FC.wycenaContextRepair.repairActiveQuoteContext({ reason:'test-richer-legacy' });
+  assert(result && result.ok, 'Naprawa kontekstu dla bogatszego legacy slotu nie zwróciła OK', result);
+  assert(result.projectData && result.projectData.room_dynamic && result.projectData.room_dynamic.cabinets.length === 1, 'Nie wybrano bogatszego legacy slotu zamiast pustego rekordu centralnego', result);
+  const saved = FC.projectStore.getById('proj_empty_central');
+  assert(saved && saved.projectData && saved.projectData.room_dynamic && saved.projectData.room_dynamic.cabinets.length === 1, 'Bogatszy projekt nie został zapisany z powrotem do centralnego projectStore', saved);
+  const draft = FC.quoteOfferStore.getDraft({ projectId:'proj_empty_central', investorId:'inv_richer_legacy' });
+  assert(draft && draft.selection && draft.selection.selectedRooms[0] === 'room_dynamic', 'Draft nie wskazuje realnego dynamicznego pokoju po naprawie', draft);
+}
+
+try{
+  main();
+  runEmptyCentralRecordRicherLegacyScenario();
+}
 catch(err){
   console.error('[wycena-local-storage-context-repair-smoke] FAIL:', err && err.message ? err.message : err);
   if(err && err.details) console.error(JSON.stringify(err.details, null, 2));

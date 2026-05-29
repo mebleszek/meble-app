@@ -206,6 +206,42 @@
     return discovered;
   }
 
+
+  function roomContentScore(projectData){
+    const data = projectData && typeof projectData === 'object' ? projectData : {};
+    let score = 0;
+    try{
+      projectDataRoomIds(data).forEach((roomId)=> {
+        const room = data[roomId];
+        if(!(room && typeof room === 'object')) return;
+        score += (Array.isArray(room.cabinets) ? room.cabinets.length : 0) * 100;
+        score += (Array.isArray(room.sets) ? room.sets.length : 0) * 80;
+        score += (Array.isArray(room.fronts) ? room.fronts.length : 0) * 30;
+        if(room.settings && typeof room.settings === 'object') score += 1;
+        if(room.preferences && typeof room.preferences === 'object') score += 1;
+      });
+      const meta = data.meta && typeof data.meta === 'object' ? data.meta : {};
+      const defs = meta.roomDefs && typeof meta.roomDefs === 'object' ? meta.roomDefs : {};
+      score += Object.keys(defs).length;
+    }catch(_){ }
+    return score;
+  }
+
+  function chooseBetterProjectData(candidates){
+    const rows = (Array.isArray(candidates) ? candidates : [])
+      .map((item, index)=> {
+        const data = item && item.data ? normalizeProjectData(item.data) : null;
+        return data ? Object.assign({}, item, { data, index, score:roomContentScore(data) }) : null;
+      })
+      .filter(Boolean);
+    if(!rows.length) return null;
+    rows.sort((a, b)=> {
+      if(Number(b.score || 0) !== Number(a.score || 0)) return Number(b.score || 0) - Number(a.score || 0);
+      return Number(a.priority || 0) - Number(b.priority || 0);
+    });
+    return rows[0];
+  }
+
   function projectHasContent(projectData){
     const data = projectData && typeof projectData === 'object' ? projectData : {};
     return projectDataRoomIds(data).some((roomId)=> {
@@ -225,15 +261,30 @@
     const rid = text(investorId);
     const current = currentProjectId();
     const activeRecord = current ? getProjectRecordById(current) : null;
-    const recordData = record && record.projectData ? normalizeProjectData(record.projectData) : null;
-    if(recordData && text(record.investorId) === rid) return recordData;
     const slot = readLegacyProjectSlot(rid);
-    if(slot) return normalizeProjectData(slot);
-    if(activeRecord && text(activeRecord.investorId) === rid && activeRecord.projectData) return normalizeProjectData(activeRecord.projectData);
     const active = readActiveProjectData();
+    const candidates = [];
+
+    // Priorytet 1: centralny rekord projektu, ale tylko jeśli nie jest pustym szkieletem.
+    // Poprzednia wersja brała go zawsze jako pierwszy, więc pusty rekord mógł wygrać z realnym
+    // projektem zapisanym w legacy slocie fc_project_inv_* albo w fc_project_v1.
+    if(record && text(record.investorId) === rid && record.projectData){
+      candidates.push({ source:'central-record', priority:30, data:record.projectData });
+    }
+    if(slot){
+      candidates.push({ source:'legacy-investor-slot', priority:10, data:slot });
+    }
+    if(activeRecord && text(activeRecord.investorId) === rid && activeRecord.projectData){
+      candidates.push({ source:'active-project-record', priority:20, data:activeRecord.projectData });
+    }
     try{
-      if(active && active.meta && text(active.meta.assignedInvestorId) === rid) return normalizeProjectData(active);
+      if(active && active.meta && text(active.meta.assignedInvestorId) === rid){
+        candidates.push({ source:'active-fc-project', priority:15, data:active });
+      }
     }catch(_){ }
+
+    const best = chooseBetterProjectData(candidates);
+    if(best) return best.data;
     return freshProjectData();
   }
 
@@ -372,12 +423,19 @@
     if(!record || text(record.investorId) !== investorId){
       record = upsertProjectRecord(investorId, chosenProjectData, null);
       repairs.push('created-missing-project-record');
-    }else if(!record.projectData || !projectDataRoomIds(record.projectData).length){
-      const slot = readLegacyProjectSlot(investorId);
-      if(slot && projectDataRoomIds(slot).length){
-        chosenProjectData = normalizeProjectData(slot);
+    }else{
+      const chosenScore = roomContentScore(chosenProjectData);
+      const recordScore = roomContentScore(record.projectData);
+      if(chosenScore > recordScore){
         record = upsertProjectRecord(investorId, chosenProjectData, record);
-        repairs.push('hydrated-project-record-from-legacy-slot');
+        repairs.push('hydrated-project-record-from-richer-source');
+      }else if(!record.projectData || !projectDataRoomIds(record.projectData).length){
+        const slot = readLegacyProjectSlot(investorId);
+        if(slot && projectDataRoomIds(slot).length){
+          chosenProjectData = normalizeProjectData(slot);
+          record = upsertProjectRecord(investorId, chosenProjectData, record);
+          repairs.push('hydrated-project-record-from-legacy-slot');
+        }
       }
     }
 
@@ -421,6 +479,7 @@
     repairActiveQuoteContext,
     buildErrorQuote,
     projectDataRoomIds,
+    roomContentScore,
     getActiveRoomIdsFromProject,
     sanitizeDraftSelection,
     cleanupWrongScopedDrafts,

@@ -1,5 +1,14 @@
 # DEV.md — meble-app
 
+## Wycena context richer source fix v1 — 2026-05-29
+
+- Poprawka po zgłoszeniu: WYCENA działała w incognito, ale w normalnym trybie z danymi użytkownika nadal nie generowała wyniku.
+- Przyczyna do usunięcia: centralny rekord projektu inwestora mógł być pustym szkieletem i wygrywał z bogatszym, realnym projektem zapisanym w legacy slocie `fc_project_inv_*_v1` albo aktywnym `fc_project_v1`. Samo utworzenie nowego inwestora/pomieszczenia nie pomagało, jeśli WYCENA nadal wybierała pusty rekord centralny.
+- `wycena-context-repair.js` wybiera teraz najbogatsze źródło projektu dla aktywnego inwestora według zawartości szafek/zestawów/frontów i aktualizuje centralny rekord, jeśli legacy/aktywny projekt ma więcej realnych danych.
+- Podbito cache-busting spójnie dla modułów `js/app/wycena/*`, `js/app/quote/*`, `project-model/store`, runtime projektu inwestora oraz testu szafek, żeby normalna przeglądarka nie mieszała starych skryptów z nowym ZIP-em.
+- Poprawiono test aplikacyjny zestawu: nie szuka już starej nazwy `Zawias BLUM`, tylko rozpoznaje zawias po `hardwareRequirement.kind === "hinge"` albo nazwie zaczynającej się od `Zawias`.
+- Nie ruszano resolvera okuć, katalogu okuć, import/export Excel, backupu, PRO100, ROZRYS, RYSUNKU ani panelu kategorii okuć.
+
 
 ## Wycena local storage context repair v1 — 2026-05-28
 

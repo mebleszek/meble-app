@@ -19,10 +19,10 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Obszar | Pliki | Linie | Storage refs | Dialog refs | Wysokie | Średnie |
 | --- | --- | --- | --- | --- | --- | --- |
-| TESTY | 53 | 12476 | 242 | 1 | 5 | 32 |
+| TESTY | 53 | 12480 | 242 | 1 | 5 | 32 |
 | ROZRYS | 42 | 8860 | 6 | 0 | 1 | 5 |
 | SZAFKI | 31 | 7597 | 0 | 0 | 0 | 4 |
-| WYCENA | 46 | 7405 | 5 | 0 | 1 | 6 |
+| WYCENA | 46 | 7464 | 5 | 0 | 1 | 6 |
 | MATERIAŁ | 27 | 5702 | 8 | 3 | 0 | 3 |
 | KATALOG/USŁUGI | 24 | 4789 | 4 | 0 | 1 | 2 |
 | UI | 32 | 4244 | 0 | 6 | 0 | 2 |
@@ -43,7 +43,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | Plik | Linie | Obszar | Ryzyko |
 | --- | --- | --- | --- |
 | js/tabs/rysunek.js | 1459 | RYSUNEK | nie ruszać bez osobnego planu |
-| js/testing/cabinet/tests.js | 1006 | TESTY | wysokie |
+| js/testing/cabinet/tests.js | 1010 | TESTY | wysokie |
 | js/app/cabinet/cabinet-modal-set-wizard.js | 858 | SZAFKI | średnie |
 | js/app/cabinet/cabinet-fronts.js | 854 | SZAFKI | średnie |
 | js/testing/project/tests.js | 848 | TESTY | wysokie |
@@ -57,9 +57,9 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/material/price-modal-hardware-form.js | 563 | MATERIAŁ | niskie |
 | js/app/catalog/catalog-store.js | 524 | KATALOG/USŁUGI | wysokie |
 | js/app/rozrys/rozrys-render.js | 493 | ROZRYS | średnie |
+| js/app/wycena/wycena-context-repair.js | 489 | WYCENA | wysokie |
 | js/testing/rozrys/tests.js | 475 | TESTY | wysokie |
 | js/app/ui/actions-register.js | 456 | UI | średnie |
-| js/app/wycena/wycena-context-repair.js | 430 | WYCENA | wysokie |
 | js/app/cabinet/cabinet-choice-launchers.js | 423 | SZAFKI | niskie |
 | js/app/rozrys/rozrys-pickers.js | 406 | ROZRYS | średnie |
 
@@ -143,12 +143,12 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | Plik | Ryzyko | Score | Linie | Direct impact | 2nd level | Powody |
 | --- | --- | --- | --- | --- | --- | --- |
 | js/testing/project/tests.js | wysokie | 15 | 848 | 14 | 38 | 600+ linii; dużo publicznych symboli FC; dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą; łączy DOM/eventy i storage |
-| js/testing/cabinet/tests.js | wysokie | 10 | 1006 | 6 | 33 | 600+ linii; kilka publicznych symboli FC; kilka zależnych plików; dużo zależności wychodzących; dużo DOM i publicznego API |
+| js/testing/cabinet/tests.js | wysokie | 10 | 1010 | 6 | 33 | 600+ linii; kilka publicznych symboli FC; kilka zależnych plików; dużo zależności wychodzących; dużo DOM i publicznego API |
 | js/app/rozrys/rozrys.js | wysokie | 10 | 842 | 10 | 50 | 600+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/rozrys/tests.js | wysokie | 10 | 475 | 10 | 37 | 400+ linii; dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/testing/wycena/suites/central-status-sync.js | wysokie | 9 | 649 | 15 | 23 | 600+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/app/catalog/catalog-store.js | wysokie | 8 | 524 | 19 | 57 | 400+ linii; dużo zależnych plików; dużo zależności wychodzących |
-| js/app/wycena/wycena-context-repair.js | wysokie | 8 | 430 | 1 | 2 | 400+ linii; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
+| js/app/wycena/wycena-context-repair.js | wysokie | 8 | 489 | 1 | 2 | 400+ linii; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/testing/rozrys/suites/helpers-bridges.js | wysokie | 8 | 390 | 14 | 36 | 250+ linii; dużo publicznych symboli FC; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/test-data-manager.js | średnie | 7 | 393 | 15 | 32 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/testing/wycena/fixtures.js | średnie | 7 | 154 | 16 | 24 | dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |

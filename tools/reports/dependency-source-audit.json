@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T22:46:20.372Z",
+  "generatedAt": "2026-05-28T23:15:15.272Z",
   "summary": {
     "jsFiles": 360,
     "indexScripts": 284,
@@ -77,7 +77,7 @@
     },
     "WYCENA": {
       "files": 46,
-      "lines": 7405,
+      "lines": 7464,
       "storageRefs": 5,
       "dialogRefs": 0,
       "high": 1,
@@ -149,7 +149,7 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 12476,
+      "lines": 12480,
       "storageRefs": 242,
       "dialogRefs": 1,
       "high": 5,
@@ -163,7 +163,7 @@
     ],
     [
       "js/testing/cabinet/tests.js",
-      1006
+      1010
     ],
     [
       "js/app/cabinet/cabinet-modal-set-wizard.js",
@@ -218,16 +218,16 @@
       493
     ],
     [
+      "js/app/wycena/wycena-context-repair.js",
+      489
+    ],
+    [
       "js/testing/rozrys/tests.js",
       475
     ],
     [
       "js/app/ui/actions-register.js",
       456
-    ],
-    [
-      "js/app/wycena/wycena-context-repair.js",
-      430
     ],
     [
       "js/app/cabinet/cabinet-choice-launchers.js",
@@ -512,7 +512,7 @@
       "score": 10,
       "area": "TESTY",
       "category": "test",
-      "lines": 1006,
+      "lines": 1010,
       "incoming": 6,
       "outgoing": 14,
       "secondLevel": 33,
@@ -605,7 +605,7 @@
       "score": 8,
       "area": "WYCENA",
       "category": "store/storage",
-      "lines": 430,
+      "lines": 489,
       "incoming": 1,
       "outgoing": 15,
       "secondLevel": 2,
@@ -15418,7 +15418,7 @@
     "js/app/wycena/wycena-context-repair.js": {
       "area": "WYCENA",
       "category": "store/storage",
-      "lines": 430,
+      "lines": 489,
       "defines": [
         "wycenaContextRepair"
       ],
@@ -17414,7 +17414,7 @@
     "js/testing/cabinet/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 1006,
+      "lines": 1010,
       "defines": [
         "programDefaults",
         "project",

@@ -668,8 +668,12 @@
           const followerParts = FC.cabinetCutlist.getCabinetCutList(host.projectData.kuchnia.cabinets[1], 'kuchnia');
           const leadFront = partByName(leadParts, 'Front');
           const followerFront = partByName(followerParts, 'Front');
-          const leadHinges = partByName(leadParts, 'Zawias BLUM');
-          const followerHinges = partByName(followerParts, 'Zawias BLUM');
+          const findHingePart = (parts)=> (Array.isArray(parts) ? parts : []).find((part)=> {
+            const req = part && part.hardwareRequirement;
+            return !!(req && req.kind === 'hinge') || String(part && part.name || '').toLowerCase().includes('zawias');
+          }) || null;
+          const leadHinges = findHingePart(leadParts);
+          const followerHinges = findHingePart(followerParts);
           H.assert(leadFront && Number(leadFront.qty) === 2, 'Pierwszy korpus zestawu nie dostał wspólnych frontów zestawu', leadParts);
           H.assert(String(leadFront && leadFront.material || '').includes('lakier') && String(leadFront && leadFront.material || '').includes('Kaszmir angielskie'), 'Fronty zestawu na pierwszym korpusie nie trzymają wybranego materiału/koloru', leadFront || leadParts);
           H.assert(leadHinges && Number(leadHinges.qty) >= 4, 'Pierwszy korpus zestawu nie dostał wspólnej liczby zawiasów zestawu', leadParts);
