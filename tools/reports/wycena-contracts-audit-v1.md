@@ -1,4 +1,4 @@
-# WYCENA architecture audit v1 — 2026-05-29
+# WYCENA architecture audit v1 — 2026-05-30
 
 Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI, danych ani storage.
 
@@ -6,7 +6,7 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 
 1. `js/app/project/project-status-manual-guard.js` — 395 linii; ostrzeżenia: 250+ lines.
 2. `js/tabs/wycena.js` — 359 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
-3. `js/app/quote/quote-snapshot-store.js` — 315 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
+3. `js/app/quote/quote-snapshot-store.js` — 329 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
 4. `js/app/project/project-status-scope.js` — 313 linii; ostrzeżenia: 250+ lines.
 5. `js/app/project/project-status-sync.js` — 309 linii; ostrzeżenia: 250+ lines.
 6. `js/app/quote/quote-snapshot-scope.js` — 304 linii; ostrzeżenia: 250+ lines.
@@ -68,10 +68,10 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 
 ### js/app/quote/quote-snapshot-store.js
 
-- Linie: 315
+- Linie: 329
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
-- Sygnały odpowiedzialności: snapshot:62, storage-boundary:18, scope:16, status:14
+- Sygnały odpowiedzialności: snapshot:69, storage-boundary:18, scope:16, status:14
 
 ### js/app/project/project-status-scope.js
 

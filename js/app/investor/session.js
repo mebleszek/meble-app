@@ -22,6 +22,7 @@
   const PROJECT_INV_PREFIX = 'fc_project_inv_';
   const PROJECT_INV_SUFFIX = '_v1';
   const SESSION_STORAGE_KEY = 'fc_edit_session_v1';
+  const SESSION_SCHEMA_VERSION = 2;
   const DIRTY_CACHE_WINDOW_MS = 120;
   const TRACKING_IGNORE_KEYS = new Set([SESSION_STORAGE_KEY]);
 
@@ -62,6 +63,86 @@
     session.changedKeys = new Set();
   }
 
+
+  function nowStamp(){
+    try{ return Date.now(); }catch(_){ return 0; }
+  }
+
+  function resolveSessionContext(){
+    const ctx = {};
+    try{ ctx.investorId = FC.investors && typeof FC.investors.getCurrentId === 'function' ? String(FC.investors.getCurrentId() || '') : ''; }catch(_){ ctx.investorId = ''; }
+    try{ ctx.projectId = FC.projectStore && typeof FC.projectStore.getCurrentProjectId === 'function' ? String(FC.projectStore.getCurrentProjectId() || '') : ''; }catch(_){ ctx.projectId = ''; }
+    try{ ctx.activeTab = typeof uiState !== 'undefined' && uiState ? String(uiState.activeTab || '') : ''; }catch(_){ ctx.activeTab = ''; }
+    try{ ctx.roomId = typeof uiState !== 'undefined' && uiState ? String(uiState.roomType || '') : ''; }catch(_){ ctx.roomId = ''; }
+    return ctx;
+  }
+
+  function hasOwn(obj, key){
+    return !!(obj && Object.prototype.hasOwnProperty.call(obj, key));
+  }
+
+  function isLegacyOrphanPayload(payload){
+    if(!(payload && typeof payload === 'object')) return false;
+    if(!payload.active) return false;
+    if(!(payload.snapshot && typeof payload.snapshot === 'object')) return false;
+    // Stare sesje sprzed tej poprawki nie miały metadanych kontekstu/czasu.
+    // Taki wpis po odświeżeniu potrafił odtwarzać usunięte snapshoty ofert.
+    const hasMetadata = Number(payload.schemaVersion || 0) >= SESSION_SCHEMA_VERSION
+      || Number(payload.startedAt || payload.createdAt || 0) > 0
+      || Number(payload.updatedAt || 0) > 0
+      || !!(payload.context && typeof payload.context === 'object');
+    return !hasMetadata;
+  }
+
+  function removeSnapshotIdFromRaw(raw, snapshotId){
+    const key = String(snapshotId || '').trim();
+    if(!key || typeof raw !== 'string' || !raw.trim()) return { changed:false, raw };
+    try{
+      const rows = JSON.parse(raw);
+      if(!Array.isArray(rows)) return { changed:false, raw };
+      const next = rows.filter((row)=> String(row && (row.id || row.snapshotId) || '').trim() !== key);
+      if(next.length === rows.length) return { changed:false, raw };
+      return { changed:true, raw:JSON.stringify(next) };
+    }catch(_){ return { changed:false, raw }; }
+  }
+
+  function cleanupSnapshotReferenceInSnapshotMap(snapshotMap, snapshotId){
+    if(!(snapshotMap && typeof snapshotMap === 'object')) return false;
+    let changed = false;
+    ['fc_quote_snapshots_v1'].forEach((key)=> {
+      if(!hasOwn(snapshotMap, key)) return;
+      const result = removeSnapshotIdFromRaw(snapshotMap[key], snapshotId);
+      if(result.changed){
+        snapshotMap[key] = result.raw;
+        changed = true;
+      }
+    });
+    return changed;
+  }
+
+  function cleanupSnapshotReferences(snapshotId){
+    const key = String(snapshotId || '').trim();
+    if(!key) return false;
+    let changed = false;
+    try{
+      if(session.snapshot && cleanupSnapshotReferenceInSnapshotMap(session.snapshot, key)){
+        changed = true;
+      }
+    }catch(_){ }
+    try{
+      const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(parsed && parsed.snapshot && cleanupSnapshotReferenceInSnapshotMap(parsed.snapshot, key)){
+          parsed.updatedAt = nowStamp();
+          localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(parsed));
+          changed = true;
+        }
+      }
+    }catch(_){ }
+    if(changed) invalidateDirtyCache();
+    return changed;
+  }
 
   function hasComparableKey(key){
     const comparable = getComparableKeys();
@@ -169,7 +250,11 @@
     try{
       withTrackingSuspended(()=> {
         const payload = {
+          schemaVersion: SESSION_SCHEMA_VERSION,
           active: !!session.active,
+          startedAt: Number(session.startedAt || 0),
+          updatedAt: nowStamp(),
+          context: session.context && typeof session.context === 'object' ? session.context : resolveSessionContext(),
           snapshot: session.snapshot || null
         };
         if(!payload.active && !payload.snapshot){
@@ -187,8 +272,15 @@
       if(!raw) return;
       const parsed = JSON.parse(raw);
       if(!parsed || typeof parsed !== 'object') return;
+      if(isLegacyOrphanPayload(parsed)){
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        return;
+      }
       session.active = !!parsed.active;
       session.snapshot = parsed.snapshot && typeof parsed.snapshot === 'object' ? parsed.snapshot : null;
+      session.startedAt = Number(parsed.startedAt || parsed.createdAt || 0);
+      session.updatedAt = Number(parsed.updatedAt || 0);
+      session.context = parsed.context && typeof parsed.context === 'object' ? parsed.context : resolveSessionContext();
       session.comparableKeys = session.snapshot ? Array.from(new Set(Object.keys(session.snapshot))) : null;
       session.changedKeys = new Set();
       if(!session.active && !session.snapshot){
@@ -201,6 +293,9 @@
   const session = {
     active: false,
     snapshot: null,
+    startedAt: 0,
+    updatedAt: 0,
+    context: null,
     comparableKeys: null,
     changedKeys: new Set(),
     suspendTracking: false,
@@ -214,6 +309,9 @@
       keys.forEach((k)=> { snap[k] = readRaw(k); });
       session.snapshot = snap;
       session.comparableKeys = keys.slice();
+      session.startedAt = nowStamp();
+      session.updatedAt = session.startedAt;
+      session.context = resolveSessionContext();
       session.active = true;
       invalidateDirtyCache();
       persistSession();
@@ -222,6 +320,9 @@
       withTrackingSuspended(()=> {
         session.snapshot = null;
         session.comparableKeys = null;
+        session.startedAt = 0;
+        session.updatedAt = 0;
+        session.context = null;
         session.active = false;
         invalidateDirtyCache();
         persistSession();
@@ -232,6 +333,9 @@
         withTrackingSuspended(()=> {
           session.active = false;
           session.comparableKeys = null;
+          session.startedAt = 0;
+          session.updatedAt = 0;
+          session.context = null;
           invalidateDirtyCache();
           persistSession();
         });
@@ -241,6 +345,9 @@
         for(const [k, raw] of Object.entries(session.snapshot)) writeRaw(k, raw);
         session.snapshot = null;
         session.comparableKeys = null;
+        session.startedAt = 0;
+        session.updatedAt = 0;
+        session.context = null;
         session.active = false;
         invalidateDirtyCache();
         persistSession();
@@ -249,6 +356,8 @@
     invalidateDirtyCache,
     isDirty,
     trackKeyMutation,
+    cleanupSnapshotReferences,
+    isLegacyOrphanPayload,
     withTrackingSuspended
   };
 

@@ -143,6 +143,18 @@
     return normalized;
   }
 
+  function cleanupRemovedSnapshotReferences(snapshotId){
+    const sid = String(snapshotId || '').trim();
+    if(!sid) return false;
+    let changed = false;
+    try{
+      if(FC.session && typeof FC.session.cleanupSnapshotReferences === 'function'){
+        changed = !!FC.session.cleanupSnapshotReferences(sid) || changed;
+      }
+    }catch(_){ }
+    return changed;
+  }
+
   function remove(id){
     const key = String(id || '');
     if(!key) return false;
@@ -150,6 +162,7 @@
     const next = list.filter((row)=> String(row && row.id || '') !== key);
     if(next.length === list.length) return false;
     writeAll(next);
+    cleanupRemovedSnapshotReferences(key);
     return true;
   }
 
@@ -286,6 +299,7 @@
     getById,
     save,
     remove,
+    cleanupRemovedSnapshotReferences,
     markSelectedForProject,
     syncSelectionForProjectStatus,
     getRecommendedStatusForProject,

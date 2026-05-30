@@ -3,7 +3,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const BUILD = '20260530_wycena_action_registry_v1';
+  const BUILD = '20260530_wycena_orphan_edit_session_cleanup_v1';
   let lastGenerateTrace = null;
   let lastGenerateButtonEvent = null;
 
@@ -211,10 +211,12 @@
       keys:value && typeof value === 'object' ? shallowKeys(value) : [],
       summary:value && typeof value === 'object' ? {
         active:!!(value.active || value.isActive || value.editing || value.mode || value.roomId || value.projectId || value.investorId),
+        schemaVersion:value.schemaVersion || null,
+        legacyOrphan:!!(FC.session && typeof FC.session.isLegacyOrphanPayload === 'function' && FC.session.isLegacyOrphanPayload(value)),
         mode:text(value.mode || value.type || value.kind),
-        roomId:text(value.roomId || value.currentRoomId || value.editedRoomId),
-        projectId:text(value.projectId),
-        investorId:text(value.investorId),
+        roomId:text(value.roomId || value.currentRoomId || value.editedRoomId || value.context && value.context.roomId),
+        projectId:text(value.projectId || value.context && value.context.projectId),
+        investorId:text(value.investorId || value.context && value.context.investorId),
         updatedAt:value.updatedAt || value.startedAt || null,
       } : null,
     };

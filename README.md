@@ -1,4 +1,12 @@
 
+## 2026-05-30 — WYCENA orphan edit session cleanup v1
+
+- Poprawiono przypadek, w którym stara aktywna `fc_edit_session_v1` mogła odtwarzać usunięte snapshoty ofert.
+- Nowe sesje edycji zapisują metadane czasu i kontekstu, a stare aktywne sesje bez metadanych są czyszczone jako osierocone legacy.
+- Usuwanie oferty z historii czyści także jej kopię z aktywnej sesji edycji.
+- Diagnostyka WYCENY ma build `20260530_wycena_orphan_edit_session_cleanup_v1`.
+
+
 ## WYCENA diagnostics report v1 — 2026-05-29
 
 Dodano przycisk `Diag` w zakładce WYCENA. Generuje raport porównawczy normalnej przeglądarki i incognito dla przypadków, w których kliknięcie `Wyceń` reaguje, ale nie tworzy widocznej historii/snapshotu. Raport nie czyści danych i wykonuje test `collectQuoteData` bez zapisu snapshotu.
@@ -908,3 +916,10 @@ Szczegółowy opis mechanizmu backupu, zakresu snapshotów, retencji i testów z
 - Cel: stabilizacja realnego kliknięcia `Wyceń` przez centralny `data-action` / Actions registry.
 - Silnik WYCENY i diagnostyka zostają; nie kasuje danych użytkownika i nie cofa snapshotów/ofert.
 - Szczegóły techniczne: `DEV.md` oraz `tools/reports/wycena-action-registry-v1.md`.
+
+## Aktualna paczka — WYCENA orphan edit session cleanup v1
+
+- Paczka: `site_wycena_orphan_edit_session_cleanup_v1.zip`.
+- Cel: usunięcie wpływu starej aktywnej `fc_edit_session_v1`, która mogła przywracać usunięte snapshoty ofert.
+- Usuwanie snapshotu czyści również jego kopię w sesji edycji, a diagnostyka WYCENY pokazuje build `20260530_wycena_orphan_edit_session_cleanup_v1`.
+- Szczegóły techniczne: `DEV.md` oraz `tools/reports/wycena-orphan-edit-session-cleanup-v1.md`.

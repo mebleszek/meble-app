@@ -23,6 +23,40 @@
     }catch(_){ }
   }
 
+  function getSnapshotIdFromQuote(snapshot){
+    return String(snapshot && (snapshot.id || snapshot.snapshotId) || '').trim();
+  }
+
+  function ensureSnapshotVisibleInStore(snapshot){
+    let current = snapshot || null;
+    let id = getSnapshotIdFromQuote(current);
+    if(!current || current.error || !id) return current;
+    try{
+      const existing = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getById === 'function'
+        ? FC.quoteSnapshotStore.getById(id)
+        : null;
+      if(existing) return existing;
+    }catch(_){ }
+    try{
+      if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('snapshotSaveRetry', { id });
+    }catch(_){ }
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.save === 'function'){
+        current = FC.quoteSnapshotStore.save(current) || current;
+        id = getSnapshotIdFromQuote(current) || id;
+      }
+    }catch(err){
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('snapshotSaveRetryError', { id, message:String(err && err.message || err || 'błąd') }); }catch(_){ }
+    }
+    try{
+      const visible = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getById === 'function'
+        ? !!FC.quoteSnapshotStore.getById(id)
+        : false;
+      if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('snapshotVisibleInStore', { id, visible });
+    }catch(_){ }
+    return current;
+  }
+
   async function generateQuote(ctx, deps){
     const d = normalizeDeps(deps);
     const state = typeof d.getState === 'function' ? d.getState() : {};
@@ -57,6 +91,7 @@
       if(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function') nextQuote = await FC.wycenaCore.buildQuoteSnapshot({ selection });
       else if(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteData === 'function') nextQuote = await FC.wycenaCore.collectQuoteData({ selection });
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('quoteBuilt', { hasQuote:!!nextQuote, error:nextQuote && nextQuote.error, id:nextQuote && (nextQuote.id || nextQuote.snapshotId), selectedRooms:nextQuote && nextQuote.selectedRooms, roomLabels:nextQuote && nextQuote.roomLabels, totals:nextQuote && nextQuote.totals, materialLines:Array.isArray(nextQuote && nextQuote.materialLines) ? nextQuote.materialLines.length : undefined, accessoryLines:Array.isArray(nextQuote && nextQuote.accessoryLines) ? nextQuote.accessoryLines.length : undefined }); }catch(_){ }
+      nextQuote = ensureSnapshotVisibleInStore(nextQuote);
       const nextQuoteId = nextQuote && typeof d.getSnapshotId === 'function' ? d.getSnapshotId(nextQuote) : String(nextQuote && (nextQuote.id || nextQuote.snapshotId) || '');
       if(typeof d.setState === 'function') d.setState({ lastQuote:nextQuote, previewSnapshotId:nextQuoteId, shouldScrollToPreview:!!nextQuote });
       if(nextQuote && !nextQuote.error){
@@ -199,6 +234,7 @@
     render,
     generateQuote,
     renderTopbar,
+    ensureSnapshotVisibleInStore,
     reconcileStatusPreviewState,
     applyPostRenderScroll,
   };
