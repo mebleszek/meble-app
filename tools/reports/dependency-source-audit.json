@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-05-30T21:35:42.694Z",
+  "generatedAt": "2026-05-30T22:43:01.037Z",
   "summary": {
     "jsFiles": 361,
     "indexScripts": 285,
     "devTestScripts": 318,
     "fcSymbols": 261,
     "fcSymbolsAll": 289,
-    "edges": 1893,
+    "edges": 1895,
     "highRisk": 11,
-    "mediumRisk": 67
+    "mediumRisk": 68
   },
   "byArea": {
     "BOOT/APP SHELL": {
@@ -77,11 +77,11 @@
     },
     "WYCENA": {
       "files": 47,
-      "lines": 9038,
+      "lines": 9089,
       "storageRefs": 12,
       "dialogRefs": 0,
       "high": 3,
-      "medium": 5
+      "medium": 6
     },
     "ROZRYS": {
       "files": 42,
@@ -292,11 +292,11 @@
       21
     ],
     [
-      "js/app/material/price-modal-context.js",
-      20
+      "js/app/ui/confirm-box.js",
+      21
     ],
     [
-      "js/app/ui/confirm-box.js",
+      "js/app/material/price-modal-context.js",
       20
     ],
     [
@@ -366,11 +366,11 @@
       76
     ],
     [
-      "js/app/shared/ui-state.js",
-      73
+      "js/app/ui/confirm-box.js",
+      74
     ],
     [
-      "js/app/ui/confirm-box.js",
+      "js/app/shared/ui-state.js",
       73
     ],
     [
@@ -1101,6 +1101,23 @@
       "dialogRefs": 0,
       "reasons": [
         "600+ linii",
+        "kilka zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/app/wycena/wycena-tab-shell.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "WYCENA",
+      "category": "ui/render/events",
+      "lines": 448,
+      "incoming": 3,
+      "outgoing": 9,
+      "secondLevel": 16,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "400+ linii",
         "kilka zależności wychodzących"
       ]
     },
@@ -14454,13 +14471,17 @@
       ],
       "incomingFiles": [
         "js/app/ui/storage-orphan-cleanup-modal.js",
-        "js/app/ui/test-backup-fallback-modal.js"
+        "js/app/ui/test-backup-fallback-modal.js",
+        "js/app/wycena/wycena-tab-shell.js"
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
+        "js/app/ui/actions-register.js",
         "js/app/ui/data-settings-backup-actions.js",
+        "js/app/wycena/wycena-tab-render-bridge.js",
         "js/testing/dev-tests-storage-tools.js",
-        "js/testing/test-data-safety.js"
+        "js/testing/test-data-safety.js",
+        "js/testing/wycena/suites/architecture-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -14497,6 +14518,7 @@
         "js/app/shared/room-registry-modals-manage-remove.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/data-settings-dom.js",
+        "js/app/wycena/wycena-tab-shell.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/wycena/suites/core-offer-basics.js",
@@ -14541,6 +14563,7 @@
         "js/app/ui/data-settings-modal.js",
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
+        "js/app/wycena/wycena-tab-render-bridge.js",
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
@@ -17191,7 +17214,7 @@
     "js/app/wycena/wycena-tab-shell.js": {
       "area": "WYCENA",
       "category": "ui/render/events",
-      "lines": 397,
+      "lines": 448,
       "defines": [
         "wycenaGenerateAction",
         "wycenaTabShell"
@@ -17202,6 +17225,8 @@
         "wycenaCore",
         "quoteSnapshot",
         "quoteSnapshotStore",
+        "choiceBox",
+        "confirmBox",
         "wycenaContextRepair",
         "wycenaGenerateAction",
         "quotePdf",
@@ -17216,6 +17241,8 @@
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-snapshot-store.js",
         "js/app/quote/quote-snapshot.js",
+        "js/app/ui/choice-box.js",
+        "js/app/ui/confirm-box.js",
         "js/app/ui/info-box.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core.js",
@@ -17244,9 +17271,9 @@
       "domRefs": 8,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "niskie",
+      "risk": "średnie",
       "reasons": [
-        "250+ linii",
+        "400+ linii",
         "kilka zależności wychodzących"
       ]
     },

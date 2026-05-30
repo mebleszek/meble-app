@@ -1,3 +1,16 @@
+# WYCENA duplicate modal fix v1 — 2026-05-30
+
+- Aktualna paczka robocza po tym etapie: `site_wycena_duplicate_modal_fix_v1.zip`.
+- Baza startowa: `site_wycena_duplicate_offer_guard_v1.zip`.
+- Po raporcie użytkownika ustalono, że guard duplikatów działa częściowo: identyczna oferta nie tworzyła już kolejnego snapshotu, ale aplikacja tylko przenosiła/podświetlała istniejącą ofertę bez modala decyzji.
+- `wycena-tab-shell.js` ma teraz dedykowany helper decyzji duplikatu: najpierw używa aplikacyjnego `choiceBox`, potem `confirmBox`, a jeżeli modal nie jest dostępny, bezpiecznie anuluje zamiast automatycznie zamieniać ofertę.
+- Po wykryciu identycznej oferty modal ma zawsze pokazać dwa działania: czerwone `Anuluj` i zielone `Zamień istniejącą`.
+- `Anuluj` nie zapisuje nowego snapshotu i nie zamienia istniejącej oferty; `Zamień istniejącą` odświeża istniejący slot, zachowując ID, nazwę, status i korelację zaakceptowania/odrzucenia/wyboru.
+- Diagnostyka WYCENY loguje teraz `duplicateModalShown`, `duplicateModalDecision`, `duplicateModalError` i `duplicateModalUnavailable`.
+- Podbito cache-busting do `20260530_wycena_duplicate_modal_fix_v1`.
+- Nie ruszano katalogu okuć, resolvera okuć, import/export Excel, backupów/retencji, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani panelu `Kategorie / rodzaje okuć`.
+- Raport: `tools/reports/wycena-duplicate-modal-fix-v1.md`.
+
 # WYCENA duplicate offer guard v1 — 2026-05-30
 
 - Aktualna paczka robocza po tym etapie: `site_wycena_duplicate_offer_guard_v1.zip`.

@@ -96,7 +96,8 @@ async function runDuplicateGuard(){
   assert(FC.wycenaTabShell && typeof FC.wycenaTabShell.generateQuote === 'function', 'Brak FC.wycenaTabShell.generateQuote');
   assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.findDuplicateSnapshot === 'function', 'Brak findDuplicateSnapshot');
   assert(typeof FC.quoteSnapshotStore.replaceSnapshot === 'function', 'Brak replaceSnapshot');
-  const model = { collectCount:0, renderCount:0, versionName:'Oferta — A', includeCorpus:true, confirmReplace:false };
+  const model = { collectCount:0, renderCount:0, versionName:'Oferta — A', includeCorpus:true, confirmReplace:false, modalCalls:0, lastModalPayload:null };
+  FC.choiceBox = Object.assign({}, FC.choiceBox || {}, { ask:async (payload)=>{ model.modalCalls += 1; model.lastModalPayload = payload; return model.confirmReplace ? 'replace' : 'cancel'; } });
   const deps = makeDeps(sandbox, model);
 
   await FC.wycenaTabShell.generateQuote({}, deps, { source:'test:first' });
@@ -107,16 +108,21 @@ async function runDuplicateGuard(){
   await sleep(1600);
   model.versionName = 'Oferta — A — wariant 2';
   model.confirmReplace = false;
+  const modalCallsBeforeCancel = model.modalCalls;
   await FC.wycenaTabShell.generateQuote({}, deps, { source:'test:duplicate-cancel' });
   rows = FC.quoteSnapshotStore.listForProject('proj_dup');
   assert(rows.length === 1, 'Identyczna oferta po Anuluj nie może utworzyć duplikatu', rows);
   assert(rows[0].id === firstId, 'Anuluj przy duplikacie nie powinno zmienić istniejącego ID', rows);
+  assert(model.modalCalls === modalCallsBeforeCancel + 1, 'Duplikat musi pokazać modal decyzji Anuluj/Zamień', { modalCalls:model.modalCalls, modalCallsBeforeCancel, lastModalPayload:model.lastModalPayload });
+  assert(model.lastModalPayload && Array.isArray(model.lastModalPayload.actions) && model.lastModalPayload.actions.some((a)=> a.value === 'replace' && a.text === 'Zamień istniejącą') && model.lastModalPayload.actions.some((a)=> a.value === 'cancel' && a.text === 'Anuluj'), 'Modal duplikatu musi mieć przyciski Zamień istniejącą i Anuluj', model.lastModalPayload);
 
   await sleep(1600);
   model.confirmReplace = true;
+  const modalCallsBeforeReplace = model.modalCalls;
   await FC.wycenaTabShell.generateQuote({}, deps, { source:'test:duplicate-replace' });
   rows = FC.quoteSnapshotStore.listForProject('proj_dup');
   assert(rows.length === 1, 'Zamiana identycznej oferty ma zachować jeden slot, a nie tworzyć duplikat', rows);
+  assert(model.modalCalls === modalCallsBeforeReplace + 1, 'Zamiana identycznej oferty też musi przejść przez modal decyzji', { modalCalls:model.modalCalls, modalCallsBeforeReplace });
   assert(rows[0].id === firstId, 'Zamiana powinna zachować ID/status istniejącej oferty', rows);
   assert((rows[0].commercial && rows[0].commercial.versionName) === 'Oferta — A', 'Zamiana powinna zachować nazwę istniejącej oferty', rows[0]);
 
@@ -130,7 +136,7 @@ async function runDuplicateGuard(){
 }
 
 function runStaticChecks(){
-  const version = '20260530_wycena_duplicate_offer_guard_v1';
+  const version = '20260530_wycena_duplicate_modal_fix_v1';
   const shell = fs.readFileSync(path.join(process.cwd(), 'js/app/wycena/wycena-tab-shell.js'), 'utf8');
   const store = fs.readFileSync(path.join(process.cwd(), 'js/app/quote/quote-snapshot-store.js'), 'utf8');
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
@@ -138,6 +144,9 @@ function runStaticChecks(){
   assert(shell.includes('TAKA SAMA OFERTA JUŻ ISTNIEJE'), 'Brak modala duplikatu oferty');
   assert(shell.includes('Zamień istniejącą'), 'Brak przycisku Zamień istniejącą');
   assert(shell.includes('duplicateFound'), 'Brak diagnostyki duplicateFound');
+  assert(shell.includes('duplicateModalShown'), 'Brak diagnostyki duplicateModalShown');
+  assert(shell.includes('duplicateModalDecision'), 'Brak diagnostyki duplicateModalDecision');
+  assert(shell.includes('FC.choiceBox'), 'Modal duplikatu powinien używać aplikacyjnego choiceBox przed fallbackami');
   assert(store.includes('function findDuplicateSnapshot'), 'Brak findDuplicateSnapshot w store');
   assert(store.includes('function replaceSnapshot'), 'Brak replaceSnapshot w store');
   [

@@ -93,6 +93,70 @@
     };
   }
 
+
+  function getDuplicateModalPayload(duplicate, candidate){
+    return {
+      title:'TAKA SAMA OFERTA JUŻ ISTNIEJE',
+      message:'Nie utworzono nowej oferty, bo identyczna wycena już istnieje dla tego samego projektu, zakresu i ustawień. Istniejąca oferta została podświetlona w historii. Możesz zostawić ją bez zmian albo zastąpić świeżo przeliczoną wersją.',
+      confirmText:'Zamień istniejącą',
+      cancelText:'Anuluj',
+      confirmTone:'success',
+      cancelTone:'danger',
+      dismissOnOverlay:false,
+      dismissOnEsc:false,
+      duplicate:summarizeDuplicateSnapshot(duplicate),
+      candidate:summarizeDuplicateSnapshot(candidate),
+    };
+  }
+
+  async function askDuplicateDecision(duplicate, candidate, deps){
+    const d = normalizeDeps(deps);
+    const payload = getDuplicateModalPayload(duplicate, candidate);
+    try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('duplicateModalShown', { duplicate:payload.duplicate, candidate:payload.candidate }); }catch(_){ }
+    try{
+      if(FC.choiceBox && typeof FC.choiceBox.ask === 'function'){
+        const result = await FC.choiceBox.ask({
+          title:payload.title,
+          message:payload.message,
+          dismissValue:'cancel',
+          dismissOnOverlay:false,
+          dismissOnEsc:false,
+          actions:[
+            { value:'cancel', text:'Anuluj', tone:'danger' },
+            { value:'replace', text:'Zamień istniejącą', tone:'success' },
+          ],
+        });
+        const decision = result === 'replace' ? 'replace' : 'cancel';
+        try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('duplicateModalDecision', { decision, source:'choiceBox' }); }catch(_){ }
+        return decision;
+      }
+    }catch(err){
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('duplicateModalError', { source:'choiceBox', message:String(err && err.message || err || 'błąd') }); }catch(_){ }
+    }
+    try{
+      if(FC.confirmBox && typeof FC.confirmBox.ask === 'function'){
+        const ok = !!(await FC.confirmBox.ask(payload));
+        const decision = ok ? 'replace' : 'cancel';
+        try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('duplicateModalDecision', { decision, source:'confirmBox' }); }catch(_){ }
+        return decision;
+      }
+    }catch(err){
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('duplicateModalError', { source:'confirmBox', message:String(err && err.message || err || 'błąd') }); }catch(_){ }
+    }
+    try{
+      if(typeof d.askConfirm === 'function'){
+        const ok = !!(await d.askConfirm(payload));
+        const decision = ok ? 'replace' : 'cancel';
+        try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('duplicateModalDecision', { decision, source:'deps.askConfirm' }); }catch(_){ }
+        return decision;
+      }
+    }catch(err){
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('duplicateModalError', { source:'deps.askConfirm', message:String(err && err.message || err || 'błąd') }); }catch(_){ }
+    }
+    try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('duplicateModalUnavailable', { decision:'cancel' }); }catch(_){ }
+    return 'cancel';
+  }
+
   async function handleDuplicateSnapshot(candidate, selection, ctx, deps){
     const d = normalizeDeps(deps);
     if(!(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.findDuplicateSnapshot === 'function')) return null;
@@ -104,21 +168,8 @@
       d.setState({ lastQuote:duplicate, previewSnapshotId:duplicateId, shouldScrollToPreview:true });
       try{ if(typeof d.render === 'function') d.render(ctx); }catch(_){ }
     }
-    let replace = false;
-    try{
-      if(typeof d.askConfirm === 'function'){
-        replace = !!(await d.askConfirm({
-          title:'TAKA SAMA OFERTA JUŻ ISTNIEJE',
-          message:'Nie utworzono nowej oferty, bo identyczna wycena już istnieje dla tego samego projektu, zakresu i ustawień. Istniejąca oferta została podświetlona w historii. Możesz ją zostawić albo zastąpić świeżo przeliczoną wersją.',
-          confirmText:'Zamień istniejącą',
-          cancelText:'Anuluj',
-          confirmTone:'success',
-          cancelTone:'danger',
-          dismissOnOverlay:false,
-          dismissOnEsc:true,
-        }));
-      }
-    }catch(_){ replace = false; }
+    const decision = await askDuplicateDecision(duplicate, candidate, d);
+    const replace = decision === 'replace';
     if(!replace){
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('duplicateCancelled', { duplicateId }); }catch(_){ }
       return { handled:true, cancelled:true, snapshot:duplicate, duplicate };
