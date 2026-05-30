@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-29T22:46:58.611Z",
+  "generatedAt": "2026-05-29T23:05:02.363Z",
   "summary": {
     "jsFiles": 361,
     "indexScripts": 285,
     "devTestScripts": 318,
-    "fcSymbols": 260,
-    "fcSymbolsAll": 288,
-    "edges": 1880,
+    "fcSymbols": 261,
+    "fcSymbolsAll": 289,
+    "edges": 1882,
     "highRisk": 10,
     "mediumRisk": 68
   },
@@ -77,7 +77,7 @@
     },
     "WYCENA": {
       "files": 47,
-      "lines": 8172,
+      "lines": 8177,
       "storageRefs": 8,
       "dialogRefs": 0,
       "high": 2,
@@ -117,7 +117,7 @@
     },
     "UI": {
       "files": 32,
-      "lines": 4244,
+      "lines": 4261,
       "storageRefs": 0,
       "dialogRefs": 6,
       "high": 0,
@@ -231,7 +231,7 @@
     ],
     [
       "js/app/ui/actions-register.js",
-      456
+      473
     ],
     [
       "js/app/cabinet/cabinet-choice-launchers.js",
@@ -367,7 +367,7 @@
     ],
     [
       "js/app/quote/quote-snapshot-store.js",
-      69
+      70
     ],
     [
       "js/app/shared/ui-state.js",
@@ -378,11 +378,11 @@
       63
     ],
     [
-      "js/app/investor/investor-persistence.js",
-      60
+      "js/app/quote/quote-snapshot.js",
+      61
     ],
     [
-      "js/app/quote/quote-snapshot.js",
+      "js/app/investor/investor-persistence.js",
       60
     ],
     [
@@ -588,9 +588,9 @@
       "area": "WYCENA",
       "category": "store/storage",
       "lines": 581,
-      "incoming": 1,
+      "incoming": 2,
       "outgoing": 16,
-      "secondLevel": 2,
+      "secondLevel": 3,
       "storageRefs": 3,
       "dialogRefs": 0,
       "reasons": [
@@ -608,7 +608,7 @@
       "lines": 578,
       "incoming": 2,
       "outgoing": 16,
-      "secondLevel": 3,
+      "secondLevel": 4,
       "storageRefs": 5,
       "dialogRefs": 0,
       "reasons": [
@@ -748,9 +748,9 @@
       "score": 6,
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 456,
+      "lines": 473,
       "incoming": 0,
-      "outgoing": 24,
+      "outgoing": 26,
       "secondLevel": 0,
       "storageRefs": 0,
       "dialogRefs": 2,
@@ -896,7 +896,7 @@
       "lines": 315,
       "incoming": 43,
       "outgoing": 7,
-      "secondLevel": 69,
+      "secondLevel": 70,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -933,7 +933,7 @@
       "lines": 301,
       "incoming": 11,
       "outgoing": 9,
-      "secondLevel": 60,
+      "secondLevel": 61,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1268,7 +1268,7 @@
       "lines": 238,
       "incoming": 15,
       "outgoing": 9,
-      "secondLevel": 46,
+      "secondLevel": 47,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1387,7 +1387,7 @@
       "lines": 102,
       "incoming": 15,
       "outgoing": 8,
-      "secondLevel": 44,
+      "secondLevel": 45,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1738,7 +1738,7 @@
       "lines": 137,
       "incoming": 6,
       "outgoing": 10,
-      "secondLevel": 38,
+      "secondLevel": 39,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -8192,6 +8192,7 @@
         "js/app/quote/quote-scope-entry.js",
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-project-sync.js",
+        "js/app/ui/actions-register.js",
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
@@ -8269,6 +8270,7 @@
         "js/app/wycena/wycena-core.js"
       ],
       "secondLevelFiles": [
+        "js/app/ui/actions-register.js",
         "js/app/wycena/wycena-tab-render-bridge.js",
         "js/tabs/wycena.js",
         "js/testing/wycena/fixtures.js",
@@ -8839,6 +8841,7 @@
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-registry-project-sync.js",
+        "js/app/ui/actions-register.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
@@ -8958,6 +8961,7 @@
         "js/app/quote/quote-snapshot-store.js",
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/room-scope-resolver.js",
+        "js/app/ui/actions-register.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core-material-plan.js",
@@ -13290,6 +13294,7 @@
         "js/app/project/project-status-sync.js",
         "js/app/shared/room-registry-core.js",
         "js/app/shared/room-registry-project-sync.js",
+        "js/app/ui/actions-register.js",
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core-source.js",
@@ -14124,7 +14129,7 @@
     "js/app/ui/actions-register.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 456,
+      "lines": 473,
       "defines": [],
       "uses": [
         "actions",
@@ -14138,6 +14143,8 @@
         "uiState",
         "modal",
         "project",
+        "wycenaGenerateAction",
+        "wycenaDiagnostics",
         "priceModal",
         "wywiadRoomSettings",
         "wywiadRoomPreferences",
@@ -14174,6 +14181,8 @@
         "js/app/ui/info-box.js",
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
+        "js/app/wycena/wycena-diagnostics.js",
+        "js/app/wycena/wycena-tab-shell.js",
         "js/core/actions.js",
         "js/core/modals.js"
       ],
@@ -15542,6 +15551,7 @@
         "js/app/shared/utils.js"
       ],
       "secondLevelFiles": [
+        "js/app/ui/actions-register.js",
         "js/app/wycena/wycena-tab-render-bridge.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/testing/wycena/suites/architecture-contract.js"
@@ -15716,6 +15726,7 @@
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
+        "js/app/ui/actions-register.js",
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-shell.js",
@@ -15795,6 +15806,7 @@
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
+        "js/app/ui/actions-register.js",
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-shell.js",
@@ -15938,6 +15950,7 @@
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
+        "js/app/ui/actions-register.js",
         "js/app/wycena/wycena-core-labor.js",
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core-material-plan.js",
@@ -16011,6 +16024,7 @@
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
+        "js/app/ui/actions-register.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
@@ -16157,6 +16171,7 @@
         "js/app/quote/quote-scope-entry.js",
         "js/app/quote/quote-snapshot-scope.js",
         "js/app/quote/quote-snapshot-store.js",
+        "js/app/ui/actions-register.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-data.js",
@@ -16229,6 +16244,7 @@
         "wycenaDiagnostics"
       ],
       "incomingFiles": [
+        "js/app/ui/actions-register.js",
         "js/app/wycena/wycena-tab-shell.js"
       ],
       "outgoingFiles": [
@@ -16250,6 +16266,7 @@
         "js/app/wycena/wycena-core.js"
       ],
       "secondLevelFiles": [
+        "js/app/ui/actions-register.js",
         "js/app/wycena/wycena-tab-render-bridge.js",
         "js/testing/wycena/suites/architecture-contract.js"
       ],
@@ -16984,8 +17001,9 @@
     "js/app/wycena/wycena-tab-shell.js": {
       "area": "WYCENA",
       "category": "ui/render/events",
-      "lines": 201,
+      "lines": 206,
       "defines": [
+        "wycenaGenerateAction",
         "wycenaTabShell"
       ],
       "uses": [
@@ -16993,10 +17011,12 @@
         "wycenaDiagnostics",
         "wycenaContextRepair",
         "wycenaCore",
+        "wycenaGenerateAction",
         "quotePdf",
         "wycenaTabShell"
       ],
       "incomingFiles": [
+        "js/app/ui/actions-register.js",
         "js/app/wycena/wycena-tab-render-bridge.js",
         "js/testing/wycena/suites/architecture-contract.js"
       ],
@@ -17027,7 +17047,7 @@
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 6,
+      "domRefs": 4,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",

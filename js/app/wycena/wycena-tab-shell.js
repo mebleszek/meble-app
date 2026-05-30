@@ -96,6 +96,7 @@
     head.appendChild(h('h3', { text:'Wycena', style:'margin:0' }));
     const actions = h('div', { class:'quote-topbar__actions' });
     const runBtn = h('button', { class:'btn-success', type:'button', text: state.isBusy ? 'Liczę…' : 'Wyceń' });
+    runBtn.setAttribute('data-action', 'wycena-generate');
     if(state.isBusy) runBtn.disabled = true;
     let generateRequestedAt = 0;
     const requestGenerate = (event, source)=> {
@@ -107,8 +108,12 @@
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordGenerateButtonEvent === 'function') FC.wycenaDiagnostics.recordGenerateButtonEvent(source || 'generate-button'); }catch(_){ }
       void generateQuote(ctx, d);
     };
-    runBtn.addEventListener('pointerup', (event)=> requestGenerate(event, 'pointerup'));
-    runBtn.addEventListener('click', (event)=> requestGenerate(event, 'click'));
+    FC.wycenaGenerateAction = {
+      run(event, source){
+        requestGenerate(event || null, source || (event && event.type ? ('data-action:' + event.type) : 'data-action'));
+        return true;
+      }
+    };
     actions.appendChild(runBtn);
 
     const pdfBtn = h('button', { class:'btn-primary', type:'button', text:'PDF' });

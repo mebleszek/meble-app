@@ -112,6 +112,23 @@
 
 
   FC.actions.register({
+    'wycena-generate': ({event}) => {
+      try{
+        if(window.FC && FC.wycenaGenerateAction && typeof FC.wycenaGenerateAction.run === 'function'){
+          FC.wycenaGenerateAction.run(event || null, 'actions-registry');
+          return true;
+        }
+      }catch(err){
+        try{ console.error('[wycena] data-action generate failed', err); }catch(_){}
+        throw err;
+      }
+      try{
+        if(window.FC && FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordGenerateButtonEvent === 'function'){
+          FC.wycenaDiagnostics.recordGenerateButtonEvent('actions-registry-missing-runtime-handler');
+        }
+      }catch(_){}
+      return true;
+    },
     'close-price': ({event}) => { closePriceModal(); return true; },
     'close-price-item': ({event}) => { try{ closePriceItemModal(); }catch(_){ } return true; },
     'price-item-exit': ({event}) => { try{ if(window.FC && FC.priceModal && typeof FC.priceModal.requestClosePriceItemModal === 'function') FC.priceModal.requestClosePriceItemModal('exit'); else closePriceItemModal(); }catch(_){ } return true; },

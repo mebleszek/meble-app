@@ -1,5 +1,19 @@
 # DEV.md — meble-app
 
+## WYCENA action registry v1 — 2026-05-30
+
+- Aktualna paczka robocza po tym etapie: `site_wycena_action_registry_v1.zip`.
+- Baza startowa: `site_wycena_click_snapshot_relink_v1.zip`.
+- Po raportach normalnie/incognito silnik WYCENY (`collectQuoteData`) umiał policzyć wycenę, więc problem przeniesiono z danych na ścieżkę realnego kliknięcia `Wyceń`.
+- Przycisk `Wyceń` ma teraz `data-action="wycena-generate"` i idzie przez centralny Actions registry, tak jak pozostałe kluczowe akcje aplikacji.
+- `js/app/ui/actions-register.js` rejestruje `wycena-generate`, a `js/app/wycena/wycena-tab-shell.js` wystawia runtime handler `FC.wycenaGenerateAction.run(...)` z aktualnymi zależnościami zakładki WYCENA.
+- Usunięto bezpośrednie listenery `pointerup`/`click` z przycisku `Wyceń`, żeby nie było podwójnego źródła prawdy i konfliktu z globalną mobile-safe delegacją.
+- Diagnostyka ma build `20260530_wycena_action_registry_v1`; raport po wdrożeniu ma pokazać ten build.
+- Podbito cache-busting dla `actions-register.js`, `wycena-diagnostics.js` i `wycena-tab-shell.js` w `index.html` oraz `dev_tests.html`.
+- Dodano `tools/wycena-generate-action-registry-smoke.js`.
+- Nie ruszano resolvera okuć, katalogu okuć, import/export Excel, backupów, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani danych użytkownika.
+- Raport: `tools/reports/wycena-action-registry-v1.md`.
+
 ## WYCENA diagnostics report v1 — 2026-05-29
 
 - Aktualna paczka robocza po tym etapie: `site_wycena_diagnostics_report_v1.zip`.

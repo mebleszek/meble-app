@@ -3,7 +3,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const BUILD = '20260530_wycena_click_snapshot_relink_v1';
+  const BUILD = '20260530_wycena_action_registry_v1';
   let lastGenerateTrace = null;
   let lastGenerateButtonEvent = null;
 

@@ -901,3 +901,10 @@ Szczegółowy opis mechanizmu backupu, zakresu snapshotów, retencji i testów z
 - Naprawa po diagnostyce normalny tryb vs incognito: `collectQuoteData` potrafiło liczyć dane, ale wygenerowana wycena mogła nie zostać widocznie pokazana po zmianie statusu projektu. `wycena-tab-shell.js` ustawia teraz świeżo utworzony snapshot jako aktywny podgląd (`lastQuote`, `previewSnapshotId`) i nie kasuje go przy pojedynczej synchronizacji statusu.
 - Przycisk `Wyceń` obsługuje `pointerup` oraz `click` przez jeden strzeżony handler, żeby mobile/click-swallow nie kończył się samą reakcją wizualną bez generowania. Diagnostyka zapisuje teraz osobno zdarzenie przycisku i trace generowania.
 - `wycena-context-repair.js` przepina snapshoty tego samego inwestora ze starego `projectId` do aktualnego projektu, jeśli zakres pokoi nadal istnieje. Inwestor odzyskany wcześniej ze źródła `quote-snapshot` z realnymi szafkami jest uzdrawiany jako normalny rekord zamiast blokować bieżący kontekst.
+
+## Aktualna paczka — WYCENA action registry v1
+
+- Paczka: `site_wycena_action_registry_v1.zip`.
+- Cel: stabilizacja realnego kliknięcia `Wyceń` przez centralny `data-action` / Actions registry.
+- Silnik WYCENY i diagnostyka zostają; nie kasuje danych użytkownika i nie cofa snapshotów/ofert.
+- Szczegóły techniczne: `DEV.md` oraz `tools/reports/wycena-action-registry-v1.md`.
