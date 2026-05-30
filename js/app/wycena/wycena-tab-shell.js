@@ -31,11 +31,15 @@
     let current = snapshot || null;
     let id = getSnapshotIdFromQuote(current);
     if(!current || current.error || !id) return current;
+    try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function' && typeof FC.wycenaDiagnostics.summarizeSnapshotStoreForId === 'function') FC.wycenaDiagnostics.markGenerateTrace('snapshotStoreBeforeEnsure', FC.wycenaDiagnostics.summarizeSnapshotStoreForId(id)); }catch(_){ }
     try{
       const existing = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getById === 'function'
         ? FC.quoteSnapshotStore.getById(id)
         : null;
-      if(existing) return existing;
+      if(existing){
+        try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function' && typeof FC.wycenaDiagnostics.summarizeSnapshotStoreForId === 'function') FC.wycenaDiagnostics.markGenerateTrace('snapshotAlreadyVisibleInStore', FC.wycenaDiagnostics.summarizeSnapshotStoreForId(id)); }catch(_){ }
+        return existing;
+      }
     }catch(_){ }
     try{
       if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('snapshotSaveRetry', { id });
@@ -53,6 +57,7 @@
         ? !!FC.quoteSnapshotStore.getById(id)
         : false;
       if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('snapshotVisibleInStore', { id, visible });
+      if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function' && typeof FC.wycenaDiagnostics.summarizeSnapshotStoreForId === 'function') FC.wycenaDiagnostics.markGenerateTrace('snapshotStoreAfterEnsure', FC.wycenaDiagnostics.summarizeSnapshotStoreForId(id));
     }catch(_){ }
     return current;
   }
@@ -209,6 +214,7 @@
     if(!list || typeof h !== 'function') return;
     list.innerHTML = '';
     const card = h('div', { class:'build-card quote-root', id:'quoteActivePreview' });
+    try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordRenderEvent === 'function') FC.wycenaDiagnostics.recordRenderEvent('shell:render-start', { hasList:true }); }catch(_){ }
 
     try{
       if(FC.wycenaContextRepair && typeof FC.wycenaContextRepair.repairActiveQuoteContext === 'function'){
@@ -219,6 +225,7 @@
     }
     reconcileStatusPreviewState(d);
     const currentQuote = d.resolveDisplayedQuote();
+    try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordRenderEvent === 'function') FC.wycenaDiagnostics.recordRenderEvent('shell:resolved-current-quote', { id: currentQuote && (currentQuote.id || currentQuote.snapshotId), versionName: currentQuote && (currentQuote.commercial && currentQuote.commercial.versionName || currentQuote.meta && currentQuote.meta.versionName), grand: currentQuote && currentQuote.totals && currentQuote.totals.grand, error: currentQuote && currentQuote.error }); }catch(_){ }
     renderTopbar(card, ctx, currentQuote, d);
 
     d.renderPreliminaryToggle(card, ctx);
@@ -227,6 +234,7 @@
     d.renderQuotePreview(card, currentQuote, ctx);
     d.renderHistory(card, ctx, currentQuote);
     list.appendChild(card);
+    try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordRenderEvent === 'function') FC.wycenaDiagnostics.recordRenderEvent('shell:render-end', { historyDomCount: document && document.querySelectorAll ? document.querySelectorAll('[data-quote-history-id]').length : null, previewExists: !!(document && document.getElementById && document.getElementById('quotePreviewStart')) }); }catch(_){ }
     applyPostRenderScroll(d);
   }
 

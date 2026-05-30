@@ -3,6 +3,26 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
+
+  function diagRender(label, value){
+    try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordRenderEvent === 'function') FC.wycenaDiagnostics.recordRenderEvent(label, value); }catch(_){ }
+  }
+  function summarizeQuote(snapshot, deps){
+    const snap = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    let id = '';
+    try{ id = deps && typeof deps.getSnapshotId === 'function' ? deps.getSnapshotId(snap) : String(snap.id || snap.snapshotId || ''); }catch(_){ id = String(snap.id || snap.snapshotId || ''); }
+    return {
+      id:String(id || ''),
+      projectId:String(snap.project && snap.project.id || snap.projectId || ''),
+      investorId:String(snap.investor && snap.investor.id || snap.investorId || snap.project && snap.project.investorId || ''),
+      versionName:String(snap.commercial && snap.commercial.versionName || snap.meta && snap.meta.versionName || ''),
+      generatedAt:snap.generatedAt || snap.generatedDate || null,
+      grand:snap.totals && snap.totals.grand,
+      error:String(snap.error || ''),
+      selectedRooms:Array.isArray(snap.scope && snap.scope.selectedRooms) ? snap.scope.selectedRooms : (Array.isArray(snap.selectedRooms) ? snap.selectedRooms : []),
+    };
+  }
+
   // Odpowiedzialność modułu: render podglądu aktywnej/historycznej oferty WYCENY.
   // Nie trzyma stanu zakładki i nie zapisuje danych — dostaje wyłącznie zależności z tabs/wycena.js.
 
@@ -168,14 +188,17 @@
     const d = normalizeDeps(deps);
     const h = d.h;
     if(!currentQuote){
+      diagRender('preview:render-empty', { reason:'no-current-quote' });
       renderEmpty(card, d);
       return;
     }
     if(currentQuote.error){
+      diagRender('preview:render-error', summarizeQuote(currentQuote, d));
       card.appendChild(h('div', { class:'muted', text:currentQuote.error, style:'margin-top:10px;color:#b42318' }));
       return;
     }
 
+    diagRender('preview:render-input', summarizeQuote(currentQuote, d));
     const roomLabels = getScopeRoomLabels(currentQuote);
     const lines = currentQuote.lines || {};
     const materialLines = Array.isArray(currentQuote.materialLines) ? currentQuote.materialLines : (Array.isArray(lines.materials) ? lines.materials : []);
@@ -203,6 +226,7 @@
     laborHint.appendChild(h('div', { class:'muted', text:'Szczegółowy podgląd robocizny, montażu AGD i ręcznie dodanych czynności znajduje się w zakładce CZYNNOŚCI.' }));
     card.appendChild(laborHint);
     renderCommercialSection(card, currentQuote, ctx, d);
+    diagRender('preview:render-end', { quote:summarizeQuote(currentQuote, d), materialLines:materialLines.length, accessoryLines:accessoryLines.length, roomLabels });
   }
 
   FC.wycenaTabPreview = {

@@ -1,3 +1,17 @@
+# WYCENA render source diagnostics v1 — 2026-05-30
+
+- Aktualna paczka robocza po tym etapie: `site_wycena_render_source_diagnostics_v1.zip`.
+- Baza startowa: `site_wycena_orphan_edit_session_cleanup_v1.zip`.
+- Po raportach normalnie/incognito silnik WYCENY liczył poprawnie, ale ekran nadal potrafił pokazywać mylący wariant/snapshot, dlatego dodano diagnostykę źródeł renderu zamiast kolejnej ślepej naprawy.
+- `wycena-diagnostics.js` ma build `20260530_wycena_render_source_diagnostics_v1` i nowe sekcje raportu: `ŹRÓDŁA EKRANU WYCENA`, `NAZWA / WARIANT OFERTY`, `SNAPSHOT STORAGE DEEP DIVE`.
+- Raport zbiera teraz: historię przekazaną do rendererów, stan preview/shell, bieżący draft oferty, rozstrzygnięty `currentQuote`, faktyczne elementy DOM historii/podglądu, decyzje nazwy wariantu oraz zdarzenia zapisu/usunięcia snapshotów.
+- `quote-snapshot-store.js` loguje diagnostycznie `save:before`, `save:after`, `remove:before`, `remove:after`, w tym liczbę rekordów, rozmiar storage, `rawChanged` i widoczność ID po zapisie.
+- `wycena-tab-selection-version.js` loguje, skąd bierze się nazwa typu `Oferta — A — wariant 2`: draft, nazwa bazowa, exact-scope snapshoty, `isVersionNameTaken` i modal nazwy.
+- `wycena-tab-history.js` oraz `wycena-tab-preview.js` logują wejście do renderu i faktyczne snapshoty przekazywane na ekran.
+- `tabs/wycena.js` wystawia dodatkowe metody debug tylko dla diagnostyki: historia, draft, stany preview/shell, `resolveDisplayedQuote`, `getVersionName`.
+- Nie ruszano logiki biznesowej WYCENY, katalogu okuć, resolvera okuć, import/export Excel, backupów/retencji, PRO100, usług stolarskich, ROZRYS ani RYSUNKU.
+- Raport: `tools/reports/wycena-render-source-diagnostics-v1.md`.
+
 
 ## 2026-05-30 — WYCENA orphan edit session cleanup v1
 

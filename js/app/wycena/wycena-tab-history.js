@@ -3,6 +3,28 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
+
+  function diagRender(label, value){
+    try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordRenderEvent === 'function') FC.wycenaDiagnostics.recordRenderEvent(label, value); }catch(_){ }
+  }
+  function diagDelete(label, value){
+    try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordSnapshotDeleteEvent === 'function') FC.wycenaDiagnostics.recordSnapshotDeleteEvent(label, value); }catch(_){ }
+  }
+  function snapSummary(snapshot, deps){
+    const snap = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    return {
+      id:String(deps && typeof deps.getSnapshotId === 'function' ? deps.getSnapshotId(snap) : (snap.id || snap.snapshotId || '') || ''),
+      projectId:String(snap.project && snap.project.id || snap.projectId || ''),
+      investorId:String(snap.investor && snap.investor.id || snap.investorId || snap.project && snap.project.investorId || ''),
+      versionName:String(snap.commercial && snap.commercial.versionName || snap.meta && snap.meta.versionName || ''),
+      preliminary:!!(snap.meta && snap.meta.preliminary || snap.commercial && snap.commercial.preliminary),
+      rejected:!!(snap.meta && (snap.meta.rejectedAt || snap.meta.rejectedReason)),
+      selected:!!(snap.meta && snap.meta.selectedByClient),
+      grand:snap.totals && snap.totals.grand,
+      generatedAt:snap.generatedAt || null,
+    };
+  }
+
   function getProjectStatusForHistory(history, deps){
     const list = Array.isArray(history) ? history : (deps.getSnapshotHistory ? deps.getSnapshotHistory() : []);
     const fallbackQuote = deps.getState ? (deps.getState().lastQuote || null) : null;
@@ -80,11 +102,13 @@
     const history = deps.getSnapshotHistory();
     const activeId = deps.getSnapshotId(currentQuote);
     const projectStatus = getProjectStatusForHistory(history, deps);
+    diagRender('history:render-input', { historyCount:Array.isArray(history) ? history.length : 0, activeId:String(activeId || ''), projectStatus:String(projectStatus || ''), currentQuote:snapSummary(currentQuote, deps), rows:(Array.isArray(history) ? history : []).slice(0, 8).map((row)=> snapSummary(row, deps)) });
     const section = deps.h('section', { class:'card quote-section', style:'margin-top:12px;padding:14px;' });
     section.appendChild(deps.h('h4', { text:'Historia wycen', style:'margin:0 0 10px' }));
     if(!history.length){
       section.appendChild(deps.h('div', { class:'muted', text:'Brak zapisanych wersji oferty dla tego projektu.' }));
       card.appendChild(section);
+      diagRender('history:render-empty', { activeId:String(activeId || ''), projectStatus:String(projectStatus || '') });
       return;
     }
     const wrap = deps.h('div', { class:'quote-history', id:'quoteHistorySection' });
@@ -159,13 +183,17 @@
           deps.clearRememberedQuoteScroll();
           return;
         }
+        const beforeHistory = deps.getSnapshotHistory();
+        diagDelete('history-delete:before-remove', { id:snapId, snapshot:snapSummary(snap, deps), historyCount:Array.isArray(beforeHistory) ? beforeHistory.length : 0, historyRows:(Array.isArray(beforeHistory) ? beforeHistory : []).slice(0, 8).map((row)=> snapSummary(row, deps)) });
+        let removed = false;
         try{
-          if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.remove === 'function') FC.quoteSnapshotStore.remove(snapId);
-        }catch(_){ }
+          if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.remove === 'function') removed = !!FC.quoteSnapshotStore.remove(snapId);
+        }catch(err){ diagDelete('history-delete:remove-error', { id:snapId, message:String(err && err.message || err || 'błąd') }); }
         try{
           deps.reconcileAfterSnapshotRemoval(snap, { refreshUi:false, fallbackStatus:'nowy' });
-        }catch(_){ }
+        }catch(err){ diagDelete('history-delete:reconcile-error', { id:snapId, message:String(err && err.message || err || 'błąd') }); }
         const nextHistory = deps.getSnapshotHistory();
+        diagDelete('history-delete:after-remove', { id:snapId, removed, historyCount:Array.isArray(nextHistory) ? nextHistory.length : 0, stillInHistory:(Array.isArray(nextHistory) ? nextHistory : []).some((row)=> String(deps.getSnapshotId(row) || '') === String(snapId || '')), historyRows:(Array.isArray(nextHistory) ? nextHistory : []).slice(0, 8).map((row)=> snapSummary(row, deps)) });
         if(state.previewSnapshotId === snapId) deps.setState({ previewSnapshotId:'' });
         if(isActive || deps.getSnapshotId(state.lastQuote) === snapId){
           deps.setState({ lastQuote: nextHistory.find((row)=> !deps.isArchivedPreliminary(row, nextHistory, getProjectStatusForHistory(nextHistory, deps))) || nextHistory[0] || null });
@@ -191,6 +219,7 @@
     });
     section.appendChild(wrap);
     card.appendChild(section);
+    diagRender('history:render-end', { renderedCount:history.slice(0, 8).length, activeId:String(activeId || ''), rows:history.slice(0, 8).map((row)=> snapSummary(row, deps)) });
   }
 
   FC.wycenaTabHistory = Object.assign({}, FC.wycenaTabHistory || {}, {

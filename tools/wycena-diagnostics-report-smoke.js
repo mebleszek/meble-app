@@ -59,16 +59,16 @@ async function main(){
 
   const report = await FC.wycenaDiagnostics.buildReport({ dryRun:false });
   assert(report && report.kind === 'meble-app-wycena-diagnostics', 'Raport ma zły format', report);
-  assert(report.runtime && report.storage && report.roomsAndSelection && report.snapshots, 'Raport nie zawiera wymaganych sekcji', report);
+  assert(report.runtime && report.storage && report.roomsAndSelection && report.snapshots && report.renderSources && report.versionNameDiagnostics && report.snapshotStorageDeepDive, 'Raport nie zawiera wymaganych sekcji render/source diagnostics', report);
   assert(report.lastGenerateButtonEvent && report.lastGenerateButtonEvent.source === 'test-button', 'Raport nie zawiera zdarzenia przycisku WYCENY', report.lastGenerateButtonEvent);
   assert(report.lastGenerateTrace && report.lastGenerateTrace.result && report.lastGenerateTrace.result.ok === true, 'Raport nie zawiera śladu generowania WYCENY', report.lastGenerateTrace);
   const text = FC.wycenaDiagnostics.stringifyReport(report);
-  assert(typeof text === 'string' && text.includes('RAPORT DIAGNOSTYCZNY WYCENA') && text.includes('OSTATNI KLIK WYCEN'), 'Tekst raportu jest niekompletny', text.slice(0, 300));
+  assert(typeof text === 'string' && text.includes('RAPORT DIAGNOSTYCZNY WYCENA') && text.includes('OSTATNI KLIK WYCEN') && text.includes('ŹRÓDŁA EKRANU WYCENA') && text.includes('SNAPSHOT STORAGE DEEP DIVE'), 'Tekst raportu jest niekompletny', text.slice(0, 300));
 
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const devTests = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');
-  assert(index.includes('js/app/wycena/wycena-diagnostics.js?v=20260530_wycena_orphan_edit_session_cleanup_v1'), 'index.html nie ładuje diagnostyki z cache-bustingiem');
-  assert(devTests.includes('js/app/wycena/wycena-diagnostics.js?v=20260530_wycena_orphan_edit_session_cleanup_v1'), 'dev_tests.html nie ładuje diagnostyki z cache-bustingiem');
+  assert(index.includes('js/app/wycena/wycena-diagnostics.js?v=20260530_wycena_render_source_diagnostics_v1'), 'index.html nie ładuje diagnostyki z cache-bustingiem');
+  assert(devTests.includes('js/app/wycena/wycena-diagnostics.js?v=20260530_wycena_render_source_diagnostics_v1'), 'dev_tests.html nie ładuje diagnostyki z cache-bustingiem');
   console.log('[wycena-diagnostics-report-smoke] OK');
 }
 

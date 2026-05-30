@@ -334,6 +334,15 @@
   }
 
   FC.wycenaTabDebug = Object.assign({}, FC.wycenaTabDebug || {}, {
+    getCurrentProjectId,
+    getCurrentInvestorId,
+    getSnapshotHistory,
+    getOfferDraft,
+    getHistoryPreviewState,
+    getTabShellState,
+    normalizeDraftSelection,
+    resolveDisplayedQuote,
+    getVersionName,
     currentProjectStatus,
     setProjectStatusFromSnapshot,
     commitAcceptedSnapshotWithSync,

@@ -2,6 +2,21 @@
   'use strict';
   window.FC = window.FC || {};
   const FC = window.FC;
+
+
+  function diagVersion(label, value){
+    try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordVersionNameEvent === 'function') FC.wycenaDiagnostics.recordVersionNameEvent(label, value); }catch(_){ }
+  }
+  function summarizeVersionRows(rows){
+    return (Array.isArray(rows) ? rows : []).slice(0, 8).map((row)=> ({
+      id:String(row && (row.id || row.snapshotId) || ''),
+      projectId:String(row && (row.project && row.project.id || row.projectId) || ''),
+      versionName:String(row && (row.commercial && row.commercial.versionName || row.meta && row.meta.versionName) || ''),
+      preliminary:!!(row && (row.meta && row.meta.preliminary || row.commercial && row.commercial.preliminary)),
+      rejected:!!(row && row.meta && (row.meta.rejectedAt || row.meta.rejectedReason)),
+      generatedAt:row && row.generatedAt || null,
+    }));
+  }
   const scope = FC.wycenaTabSelectionScope || {};
   const normalizeRoomIds = typeof scope.normalizeRoomIds === 'function'
     ? scope.normalizeRoomIds
@@ -108,11 +123,15 @@
     const preliminary = !!commercial.preliminary;
     const defaultName = defaultVersionName(preliminary, { selection:normalizedSelection });
     const currentVersionName = String(commercial.versionName || '').trim();
-    if(!currentVersionName) return defaultName;
-    if(currentVersionName === defaultName) return currentVersionName;
+    if(!currentVersionName){ diagVersion('coerce:no-current-name', { selectedRooms, preliminary, defaultName }); return defaultName; }
+    if(currentVersionName === defaultName){ diagVersion('coerce:already-default', { selectedRooms, preliminary, currentVersionName, defaultName }); return currentVersionName; }
     const projectId = getCurrentProjectId(deps);
-    if(projectId && selectedRooms.length && versionNameExistsForDifferentExactScope(projectId, selectedRooms, preliminary, currentVersionName)) return defaultName;
-    if(projectId && selectedRooms.length && isVersionNameTakenForScope(projectId, selectedRooms, preliminary, currentVersionName)) return currentVersionName;
+    const existsDifferentScope = projectId && selectedRooms.length && versionNameExistsForDifferentExactScope(projectId, selectedRooms, preliminary, currentVersionName);
+    const existsSameScope = projectId && selectedRooms.length && isVersionNameTakenForScope(projectId, selectedRooms, preliminary, currentVersionName);
+    const resultName = existsDifferentScope ? defaultName : currentVersionName;
+    diagVersion('coerce:decision', { projectId, selectedRooms, preliminary, currentVersionName, defaultName, existsDifferentScope:!!existsDifferentScope, existsSameScope:!!existsSameScope, resultName });
+    if(existsDifferentScope) return defaultName;
+    if(existsSameScope) return currentVersionName;
     return currentVersionName;
   }
 
@@ -151,10 +170,18 @@
     const selectedRooms = normalizeRoomIds(selection && selection.selectedRooms);
     const preliminary = !!commercial.preliminary;
     const coercedVersionName = String(coerceVersionNameForSelection(selection, draft, deps) || '').trim() || defaultVersionName(preliminary, { selection });
+    let exactRows = [];
+    try{
+      const projectId = getCurrentProjectId(deps);
+      if(projectId && selectedRooms.length && FC.quoteScopeEntry && typeof FC.quoteScopeEntry.listExactScopeSnapshots === 'function') exactRows = FC.quoteScopeEntry.listExactScopeSnapshots(projectId, selectedRooms, { preliminary, includeRejected:false }) || [];
+    }catch(_){ exactRows = []; }
+    const shouldPrompt = shouldPromptForVersionNameOnGenerate(selection, draft, deps);
+    diagVersion('ensure-before-generate', { selectedRooms, preliminary, currentVersionName:String(commercial.versionName || '').trim(), coercedVersionName, exactScopeCount:Array.isArray(exactRows) ? exactRows.length : null, exactRows:summarizeVersionRows(exactRows), shouldPrompt:!!shouldPrompt });
     if(coercedVersionName && coercedVersionName !== String(commercial.versionName || '').trim()){
       patchOfferDraft({ commercial:{ versionName:coercedVersionName } });
+      diagVersion('ensure-patch-draft-version', { from:String(commercial.versionName || '').trim(), to:coercedVersionName });
     }
-    if(!shouldPromptForVersionNameOnGenerate(selection, draft, deps)) return { cancelled:false, versionName:coercedVersionName };
+    if(!shouldPrompt) return { cancelled:false, versionName:coercedVersionName };
     if(!(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.promptNewVersionName === 'function')) return { cancelled:false, versionName:coercedVersionName };
     const scope = buildSelectionScopeSummary(selection);
     const snapshotLabel = preliminary ? 'wycena wstępna' : 'wycena';
@@ -168,9 +195,10 @@
       submitLabel:'OK',
       cancelLabel:'Anuluj',
     });
-    if(!naming || naming.cancelled) return { cancelled:true };
+    if(!naming || naming.cancelled){ diagVersion('ensure-naming-cancelled', { selectedRooms, preliminary }); return { cancelled:true }; }
     const nextVersionName = String(naming.versionName || '').trim() || coercedVersionName;
     patchOfferDraft({ commercial:{ versionName:nextVersionName } });
+    diagVersion('ensure-naming-result', { selectedRooms, preliminary, versionName:nextVersionName });
     return { cancelled:false, versionName:nextVersionName };
   }
 

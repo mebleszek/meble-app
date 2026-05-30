@@ -3,9 +3,14 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const BUILD = '20260530_wycena_orphan_edit_session_cleanup_v1';
+  const BUILD = '20260530_wycena_render_source_diagnostics_v1';
+  const EVENT_LIMIT = 60;
   let lastGenerateTrace = null;
   let lastGenerateButtonEvent = null;
+  const renderEvents = [];
+  const snapshotStoreEvents = [];
+  const versionNameEvents = [];
+  const snapshotDeleteEvents = [];
 
   function now(){ return Date.now(); }
   function text(value){ return String(value == null ? '' : value).trim(); }
@@ -42,6 +47,60 @@
   }
   function redactId(value){ return text(value); }
   function shallowKeys(value){ return value && typeof value === 'object' ? Object.keys(value).sort() : []; }
+
+
+  function pushEvent(bucket, label, value){
+    const arr = Array.isArray(bucket) ? bucket : [];
+    try{
+      arr.push({ at:new Date().toISOString(), label:text(label), value:clone(value == null ? null : value) });
+      while(arr.length > EVENT_LIMIT) arr.shift();
+    }catch(_){ }
+  }
+  function summarizeEventList(list){
+    return Array.isArray(list) ? list.slice(-EVENT_LIMIT).map(clone) : [];
+  }
+  function getSnapshotId(row){
+    return text(row && (row.id || row.snapshotId));
+  }
+  function getSnapshotProjectId(row){
+    return text(row && (row.projectId || row.project && row.project.id || row.meta && row.meta.projectId));
+  }
+  function getSnapshotInvestorId(row){
+    return text(row && (row.investorId || row.investor && row.investor.id || row.project && row.project.investorId || row.meta && row.meta.investorId));
+  }
+  function getVersionName(row){
+    return text(row && (row.commercial && row.commercial.versionName || row.meta && row.meta.versionName));
+  }
+  function countRows(value){ return Array.isArray(value) ? value.length : 0; }
+  function storageBytes(key){ const raw = storageRaw(key); return raw == null ? 0 : String(raw).length; }
+  function summarizeSnapshotList(rows, limit){
+    const list = Array.isArray(rows) ? rows : [];
+    return list.slice(0, Number(limit) > 0 ? Number(limit) : 12).map(summarizeSnapshot);
+  }
+  function summarizeSnapshotStoreForId(snapshotId){
+    const sid = text(snapshotId);
+    const raw = storageRaw('fc_quote_snapshots_v1');
+    const parsed = safeJson(raw);
+    const rawRows = Array.isArray(parsed.value) ? parsed.value : [];
+    const readRows = safeCall('quoteSnapshotStore.readAll', function(){ return FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.readAll === 'function' ? FC.quoteSnapshotStore.readAll() : []; }, []);
+    const normalizedRows = Array.isArray(readRows) ? readRows : [];
+    const rawMatch = rawRows.find(function(row){ return getSnapshotId(row) === sid; }) || null;
+    const normalizedMatch = normalizedRows.find(function(row){ return getSnapshotId(row) === sid; }) || null;
+    const getById = safeCall('quoteSnapshotStore.getById', function(){ return FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getById === 'function' ? FC.quoteSnapshotStore.getById(sid) : null; }, null);
+    return {
+      id:sid,
+      storageBytes:raw == null ? 0 : String(raw).length,
+      storageJsonOk:!!parsed.ok,
+      storageJsonError:parsed.error || '',
+      rawCount:rawRows.length,
+      normalizedCount:normalizedRows.length,
+      rawHasId:!!rawMatch,
+      normalizedHasId:!!normalizedMatch,
+      getByIdExists:!!getById,
+      rawMatch:rawMatch ? summarizeSnapshot(rawMatch) : null,
+      normalizedMatch:normalizedMatch ? summarizeSnapshot(normalizedMatch) : null,
+    };
+  }
 
   function roomLabel(roomId, projectData){
     const id = text(roomId);
@@ -165,6 +224,7 @@
       accepted:!!(snap.meta && snap.meta.acceptedAt),
       grand:snap.totals && snap.totals.grand,
       generatedAt:snap.generatedAt || null,
+      source:text(snap.meta && snap.meta.source || snap.source),
     };
   }
   function summarizeStorageKey(key){
@@ -327,6 +387,129 @@
     ];
     return names.map(function(row){ return { name:row[0], exists:!!row[1], keys:row[1] && typeof row[1] === 'object' ? shallowKeys(row[1]).slice(0, 24) : [] }; });
   }
+
+  function elementText(el){
+    try{ return text(el && el.textContent); }catch(_){ return ''; }
+  }
+  function elementClasses(el){
+    try{ return text(el && (el.className || el.getAttribute && el.getAttribute('class'))); }catch(_){ return ''; }
+  }
+  function oneText(root, selector){
+    try{ const el = root && typeof root.querySelector === 'function' ? root.querySelector(selector) : null; return elementText(el); }catch(_){ return ''; }
+  }
+  function collectDomRenderSources(){
+    const out = { exists: false, historyItems:[], preview:null, counts:{ historyDom:0, previewBadges:0 } };
+    try{
+      const root = document && document.getElementById ? (document.getElementById('quoteActivePreview') || document.querySelector('.quote-root')) : null;
+      out.exists = !!root;
+      if(root){
+        out.rootTextHead = elementText(root).slice(0, 500);
+        out.rootClasses = elementClasses(root);
+      }
+      const items = Array.prototype.slice.call(document.querySelectorAll ? document.querySelectorAll('[data-quote-history-id]') : []);
+      out.counts.historyDom = items.length;
+      out.historyItems = items.slice(0, 12).map(function(item){
+        return {
+          id:text(item && item.getAttribute && item.getAttribute('data-quote-history-id')),
+          classes:elementClasses(item),
+          title:oneText(item, '.quote-history__title'),
+          meta:oneText(item, '.quote-history__meta'),
+          badges:Array.prototype.slice.call(item.querySelectorAll ? item.querySelectorAll('.quote-history__badge') : []).map(elementText),
+          buttons:Array.prototype.slice.call(item.querySelectorAll ? item.querySelectorAll('button') : []).map(function(btn){ return { text:elementText(btn), disabled:!!btn.disabled, classes:elementClasses(btn) }; }),
+        };
+      });
+      const previewStart = document.getElementById ? document.getElementById('quotePreviewStart') : null;
+      const badges = Array.prototype.slice.call(document.querySelectorAll ? document.querySelectorAll('.quote-preview-badge') : []);
+      out.counts.previewBadges = badges.length;
+      out.preview = {
+        exists:!!previewStart || badges.length > 0,
+        badgeTexts:badges.map(elementText),
+        scopeTexts:Array.prototype.slice.call(document.querySelectorAll ? document.querySelectorAll('.quote-scope') : []).map(elementText).slice(0, 8),
+        totalsText:elementText(document.querySelector ? document.querySelector('.quote-totals') : null).slice(0, 500),
+      };
+    }catch(err){ out.error = String(err && err.message || err || 'błąd DOM'); }
+    return out;
+  }
+
+  function collectRendererRuntimeSources(){
+    const dbg = FC.wycenaTabDebug || {};
+    const history = safeCall('wycenaTabDebug.getSnapshotHistory', function(){ return typeof dbg.getSnapshotHistory === 'function' ? dbg.getSnapshotHistory() : []; }, []);
+    const histRows = Array.isArray(history) ? history : [];
+    const previewState = safeCall('wycenaTabDebug.getHistoryPreviewState', function(){ return typeof dbg.getHistoryPreviewState === 'function' ? dbg.getHistoryPreviewState() : {}; }, {});
+    const shellState = safeCall('wycenaTabDebug.getTabShellState', function(){ return typeof dbg.getTabShellState === 'function' ? dbg.getTabShellState() : {}; }, {});
+    const currentDraft = safeCall('wycenaTabDebug.getOfferDraft', function(){ return typeof dbg.getOfferDraft === 'function' ? dbg.getOfferDraft() : (FC.quoteOfferStore && FC.quoteOfferStore.getCurrentDraft ? FC.quoteOfferStore.getCurrentDraft() : {}); }, {});
+    const resolved = safeCall('wycenaTabDebug.resolveDisplayedQuote', function(){ return typeof dbg.resolveDisplayedQuote === 'function' ? dbg.resolveDisplayedQuote() : null; }, null);
+    return {
+      debugApiExists:!!FC.wycenaTabDebug,
+      historyCount:histRows.length,
+      historyRows:summarizeSnapshotList(histRows, 12),
+      previewState:clone(previewState || {}),
+      shellState:clone(shellState || {}),
+      currentDraft:summarizeDraft(currentDraft),
+      resolvedDisplayedQuote:resolved ? summarizeSnapshot(resolved) : null,
+      dom:collectDomRenderSources(),
+      recentRenderEvents:summarizeEventList(renderEvents),
+      recentSnapshotStoreEvents:summarizeEventList(snapshotStoreEvents),
+      recentVersionNameEvents:summarizeEventList(versionNameEvents),
+      recentSnapshotDeleteEvents:summarizeEventList(snapshotDeleteEvents),
+    };
+  }
+
+  function collectVersionNameDiagnostics(){
+    const draft = safeCall('quoteOfferStore.getCurrentDraft', function(){ return FC.quoteOfferStore && typeof FC.quoteOfferStore.getCurrentDraft === 'function' ? FC.quoteOfferStore.getCurrentDraft() : {}; }, {});
+    const selection = safeCall('wycenaCoreSelection.normalizeQuoteSelection', function(){ return FC.wycenaCoreSelection && typeof FC.wycenaCoreSelection.normalizeQuoteSelection === 'function' ? FC.wycenaCoreSelection.normalizeQuoteSelection(draft && draft.selection) : {}; }, {});
+    const selectedRooms = selection && Array.isArray(selection.selectedRooms) ? selection.selectedRooms.map(text).filter(Boolean) : [];
+    const commercial = draft && draft.commercial && typeof draft.commercial === 'object' ? draft.commercial : {};
+    const preliminary = !!commercial.preliminary;
+    const pid = currentProjectId();
+    const currentName = text(commercial.versionName);
+    const defaultName = safeCall('quoteSnapshot.defaultVersionName', function(){ return FC.quoteSnapshot && typeof FC.quoteSnapshot.defaultVersionName === 'function' ? FC.quoteSnapshot.defaultVersionName(preliminary, { selection, roomIds:selectedRooms }) : (preliminary ? 'Wstępna oferta' : 'Oferta'); }, preliminary ? 'Wstępna oferta' : 'Oferta');
+    const suggested = safeCall('quoteScopeEntry.buildSuggestedVersionName', function(){ return FC.quoteScopeEntry && typeof FC.quoteScopeEntry.buildSuggestedVersionName === 'function' ? FC.quoteScopeEntry.buildSuggestedVersionName(pid, selectedRooms, preliminary) : defaultName; }, defaultName);
+    const exactRows = safeCall('quoteSnapshotStore.listExactScopeSnapshots', function(){ return FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.listExactScopeSnapshots === 'function' ? FC.quoteSnapshotStore.listExactScopeSnapshots(pid, selectedRooms, { preliminary, includeRejected:false }) : []; }, []);
+    const exactList = Array.isArray(exactRows) ? exactRows : [];
+    const currentNameTaken = safeCall('quoteScopeEntry.isVersionNameTaken.current', function(){ return FC.quoteScopeEntry && typeof FC.quoteScopeEntry.isVersionNameTaken === 'function' ? FC.quoteScopeEntry.isVersionNameTaken(pid, selectedRooms, preliminary, currentName) : false; }, false);
+    const defaultNameTaken = safeCall('quoteScopeEntry.isVersionNameTaken.default', function(){ return FC.quoteScopeEntry && typeof FC.quoteScopeEntry.isVersionNameTaken === 'function' ? FC.quoteScopeEntry.isVersionNameTaken(pid, selectedRooms, preliminary, defaultName) : false; }, false);
+    return {
+      projectId:pid,
+      selectedRooms,
+      preliminary,
+      draftVersionName:currentName,
+      defaultName,
+      suggestedName:suggested,
+      currentNameTaken:!!currentNameTaken,
+      defaultNameTaken:!!defaultNameTaken,
+      exactScopeCount:exactList.length,
+      exactScopeRows:summarizeSnapshotList(exactList, 12),
+      recentVersionNameEvents:summarizeEventList(versionNameEvents),
+    };
+  }
+
+  function collectSnapshotStorageDeepDive(){
+    const raw = storageRaw('fc_quote_snapshots_v1');
+    const parsed = safeJson(raw);
+    const rawRows = Array.isArray(parsed.value) ? parsed.value : [];
+    const normalizedRows = safeCall('quoteSnapshotStore.readAll', function(){ return FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.readAll === 'function' ? FC.quoteSnapshotStore.readAll() : []; }, []);
+    const pid = currentProjectId();
+    const iid = currentInvestorId();
+    const ids = new Set();
+    const duplicateIds = [];
+    rawRows.forEach(function(row){ const id = getSnapshotId(row); if(!id) return; if(ids.has(id)) duplicateIds.push(id); ids.add(id); });
+    return {
+      storageKey:'fc_quote_snapshots_v1',
+      bytes:raw == null ? 0 : String(raw).length,
+      jsonOk:!!parsed.ok,
+      jsonError:parsed.error || '',
+      rawCount:rawRows.length,
+      normalizedCount:Array.isArray(normalizedRows) ? normalizedRows.length : null,
+      duplicateIds,
+      rawRows:summarizeSnapshotList(rawRows, 12),
+      normalizedRows:summarizeSnapshotList(Array.isArray(normalizedRows) ? normalizedRows : [], 12),
+      rowsForCurrentProject:summarizeSnapshotList(rawRows.filter(function(row){ return getSnapshotProjectId(row) === pid; }), 12),
+      rowsForCurrentInvestor:summarizeSnapshotList(rawRows.filter(function(row){ return getSnapshotInvestorId(row) === iid; }), 12),
+      recentSnapshotStoreEvents:summarizeEventList(snapshotStoreEvents),
+    };
+  }
+
   async function runDryQuoteCollect(){
     const out = { ok:false, steps:[] };
     const mark = function(step, value){ out.steps.push({ step, value:value == null ? null : clone(value) }); };
@@ -387,6 +570,9 @@
       runtime:collectRuntimeSection(),
       roomsAndSelection:collectRoomsAndSelection(),
       snapshots:collectSnapshots(),
+      renderSources:collectRendererRuntimeSources(),
+      versionNameDiagnostics:collectVersionNameDiagnostics(),
+      snapshotStorageDeepDive:collectSnapshotStorageDeepDive(),
       storage:collectStorageSection(),
       moduleHealth:collectStaticModuleHealth(),
       lastGenerateTrace:lastGenerateTrace ? clone(lastGenerateTrace) : null,
@@ -430,6 +616,15 @@
     lines.push('');
     lines.push('--- SNAPSHOTY ---');
     lines.push(JSON.stringify(rep.snapshots || {}, null, 2));
+    lines.push('');
+    lines.push('--- ŹRÓDŁA EKRANU WYCENA ---');
+    lines.push(JSON.stringify(rep.renderSources || {}, null, 2));
+    lines.push('');
+    lines.push('--- NAZWA / WARIANT OFERTY ---');
+    lines.push(JSON.stringify(rep.versionNameDiagnostics || {}, null, 2));
+    lines.push('');
+    lines.push('--- SNAPSHOT STORAGE DEEP DIVE ---');
+    lines.push(JSON.stringify(rep.snapshotStorageDeepDive || {}, null, 2));
     lines.push('');
     lines.push('--- DRY RUN collectQuoteData BEZ ZAPISU ---');
     lines.push(JSON.stringify(rep.dryRun || {}, null, 2));
@@ -484,7 +679,7 @@
     const closeBtn = h('button', { class:'panel-box__close', type:'button', 'aria-label':'Zamknij', text:'×' });
     const head = h('div', { class:'panel-box__head' }, [title, closeBtn]);
     const body = h('div', { class:'panel-box__body quote-diagnostics-body' });
-    const lead = h('div', { class:'quote-diagnostics-lead', text:'Uruchom ten raport w normalnym trybie i w incognito, skopiuj oba wyniki i wklej je w rozmowie. Raport nie czyści danych i test wyceny wykonuje bez zapisu snapshotu.' });
+    const lead = h('div', { class:'quote-diagnostics-lead', text:'Uruchom ten raport w normalnym trybie i w incognito, skopiuj oba wyniki i wklej je w rozmowie. Raport nie czyści danych, pokazuje źródła renderu ekranu, nazwę wariantu, snapshot storage i test wyceny bez zapisu snapshotu.' });
     const textarea = h('textarea', { class:'quote-diagnostics-textarea', readonly:'readonly', spellcheck:'false' });
     textarea.value = currentText;
     const status = h('div', { class:'quote-diagnostics-status muted', text:'Buduję raport…' });
@@ -578,5 +773,15 @@
     summarizeProjectRecord,
     runDryQuoteCollect,
     recordGenerateButtonEvent,
+    recordRenderEvent(label, value){ pushEvent(renderEvents, label, value); },
+    recordSnapshotStoreEvent(label, value){ pushEvent(snapshotStoreEvents, label, value); },
+    recordVersionNameEvent(label, value){ pushEvent(versionNameEvents, label, value); },
+    recordSnapshotDeleteEvent(label, value){ pushEvent(snapshotDeleteEvents, label, value); },
+    summarizeSnapshot,
+    summarizeSnapshotStoreForId,
+    collectDomRenderSources,
+    collectRendererRuntimeSources,
+    collectVersionNameDiagnostics,
+    collectSnapshotStorageDeepDive,
   };
 })();

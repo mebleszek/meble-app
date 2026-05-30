@@ -25,6 +25,34 @@
     catch(_){ return 'qs_' + Date.now(); }
   }
 
+
+  function rawSnapshotStorage(){
+    try{ return storage && typeof storage.getRaw === 'function' ? storage.getRaw(SNAPSHOT_KEY) : localStorage.getItem(SNAPSHOT_KEY); }
+    catch(_){ return null; }
+  }
+  function bytes(value){ return value == null ? 0 : String(value).length; }
+  function safeParseRows(raw){
+    try{ const parsed = JSON.parse(String(raw || '[]')); return Array.isArray(parsed) ? parsed : []; }
+    catch(err){ return { __error:true, message:String(err && err.message || err || 'parse error') }; }
+  }
+  function snapshotId(row){ return String(row && (row.id || row.snapshotId) || '').trim(); }
+  function summarizeStoreRows(rows, limit){
+    const list = Array.isArray(rows) ? rows : [];
+    return list.slice(0, Number(limit) > 0 ? Number(limit) : 8).map((row)=> ({
+      id:snapshotId(row),
+      projectId:String(row && (row.projectId || row.project && row.project.id || row.meta && row.meta.projectId) || ''),
+      investorId:String(row && (row.investorId || row.investor && row.investor.id || row.project && row.project.investorId || row.meta && row.meta.investorId) || ''),
+      versionName:String(row && (row.commercial && row.commercial.versionName || row.meta && row.meta.versionName) || ''),
+      preliminary:!!(row && (row.meta && row.meta.preliminary || row.commercial && row.commercial.preliminary)),
+      generatedAt:row && row.generatedAt || null,
+    }));
+  }
+  function recordStoreEvent(label, value){
+    try{
+      if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordSnapshotStoreEvent === 'function') FC.wycenaDiagnostics.recordSnapshotStoreEvent(label, value);
+    }catch(_){ }
+  }
+
   function normalizeStatus(value){
     return String(value || '').trim().toLowerCase();
   }
@@ -129,9 +157,25 @@
   }
 
   function save(snapshot){
+    const beforeRaw = rawSnapshotStorage();
+    const beforeParsed = safeParseRows(beforeRaw);
     const list = readAll();
     const normalized = normalizeSnapshot(snapshot, { preserveExplicitLabels:true });
-    const projectRows = list.filter((row)=> String(row && row.project && row.project.id || '') === String(normalized && normalized.project && normalized.project.id || ''));
+    const normalizedId = String(normalized && normalized.id || '');
+    const normalizedProjectId = String(normalized && normalized.project && normalized.project.id || '');
+    const projectRows = list.filter((row)=> String(row && row.project && row.project.id || '') === normalizedProjectId);
+    const beforeProjectRows = projectRows.length;
+    recordStoreEvent('save:before', {
+      id:normalizedId,
+      projectId:normalizedProjectId,
+      beforeBytes:bytes(beforeRaw),
+      beforeRawCount:Array.isArray(beforeParsed) ? beforeParsed.length : null,
+      beforeParseError:beforeParsed && beforeParsed.__error ? beforeParsed.message : '',
+      beforeReadAllCount:list.length,
+      beforeProjectRows,
+      beforeHasId:list.some((row)=> String(row && row.id || '') === normalizedId),
+      versionName:String(normalized && normalized.commercial && normalized.commercial.versionName || normalized && normalized.meta && normalized.meta.versionName || ''),
+    });
     const coercedVersionName = coerceAutoVersionNameForScope(normalized, projectRows);
     if(coercedVersionName){
       normalized.commercial = Object.assign({}, normalized.commercial || {}, { versionName:coercedVersionName });
@@ -139,7 +183,26 @@
     }
     const next = list.filter((row)=> String(row.id || '') !== String(normalized.id || ''));
     next.unshift(normalized);
-    writeAll(next.slice(0, 120));
+    const writtenRows = writeAll(next.slice(0, 120));
+    const afterRaw = rawSnapshotStorage();
+    const afterParsed = safeParseRows(afterRaw);
+    const afterRows = readAll();
+    const visible = afterRows.some((row)=> String(row && row.id || '') === normalizedId);
+    recordStoreEvent('save:after', {
+      id:normalizedId,
+      projectId:normalizedProjectId,
+      coercedVersionName:String(coercedVersionName || ''),
+      returnedVersionName:String(normalized && normalized.commercial && normalized.commercial.versionName || normalized && normalized.meta && normalized.meta.versionName || ''),
+      requestedWriteCount:Array.isArray(writtenRows) ? writtenRows.length : null,
+      afterBytes:bytes(afterRaw),
+      afterRawCount:Array.isArray(afterParsed) ? afterParsed.length : null,
+      afterParseError:afterParsed && afterParsed.__error ? afterParsed.message : '',
+      afterReadAllCount:afterRows.length,
+      afterProjectRows:afterRows.filter((row)=> String(row && row.project && row.project.id || '') === normalizedProjectId).length,
+      visible,
+      rawChanged:String(beforeRaw || '') !== String(afterRaw || ''),
+      firstRows:summarizeStoreRows(afterRows, 5),
+    });
     return normalized;
   }
 
@@ -158,11 +221,33 @@
   function remove(id){
     const key = String(id || '');
     if(!key) return false;
+    const beforeRaw = rawSnapshotStorage();
     const list = readAll();
     const next = list.filter((row)=> String(row && row.id || '') !== key);
-    if(next.length === list.length) return false;
+    recordStoreEvent('remove:before', {
+      id:key,
+      beforeBytes:bytes(beforeRaw),
+      beforeCount:list.length,
+      beforeHasId:list.some((row)=> String(row && row.id || '') === key),
+      beforeRows:summarizeStoreRows(list, 6),
+    });
+    if(next.length === list.length){
+      recordStoreEvent('remove:noop', { id:key, count:list.length });
+      return false;
+    }
     writeAll(next);
     cleanupRemovedSnapshotReferences(key);
+    const afterRaw = rawSnapshotStorage();
+    const afterRows = readAll();
+    const stillVisible = afterRows.some((row)=> String(row && row.id || '') === key);
+    recordStoreEvent('remove:after', {
+      id:key,
+      afterBytes:bytes(afterRaw),
+      afterCount:afterRows.length,
+      stillVisible,
+      rawChanged:String(beforeRaw || '') !== String(afterRaw || ''),
+      afterRows:summarizeStoreRows(afterRows, 6),
+    });
     return true;
   }
 
