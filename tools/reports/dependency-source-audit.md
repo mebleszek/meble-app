@@ -21,7 +21,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | --- | --- | --- | --- | --- | --- | --- |
 | TESTY | 53 | 12480 | 242 | 1 | 5 | 32 |
 | ROZRYS | 42 | 8860 | 6 | 0 | 1 | 5 |
-| WYCENA | 47 | 8737 | 12 | 0 | 3 | 5 |
+| WYCENA | 47 | 8774 | 12 | 0 | 3 | 5 |
 | SZAFKI | 31 | 7597 | 0 | 0 | 0 | 4 |
 | MATERIAŁ | 27 | 5702 | 8 | 3 | 0 | 3 |
 | KATALOG/USŁUGI | 24 | 4789 | 4 | 0 | 1 | 2 |

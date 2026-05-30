@@ -846,7 +846,7 @@ function runWycenaNodeSmoke(sandbox){
       const legacyBaseExpected = '20260510_wycena_core_cache_fix_v1';
       const legacyChangedExpected = '20260524_hardware_producer_preferences_v1';
       const newerExpected = '20260529_wycena_context_richer_source_fix_v1';
-      const currentExpected = '20260530_wycena_snapshot_clean_store_v1';
+      const currentExpected = '20260530_wycena_generate_single_flow_v1';
       const files = ['index.html','dev_tests.html'];
       const scripts = ['wycena-core-selection.js','wycena-core-utils.js','wycena-core-catalog.js','wycena-core-source.js','wycena-core-material-plan.js','wycena-core-offer.js','wycena-core-lines.js','wycena-core-labor.js','wycena-core.js'];
       return files.every((file)=> {

@@ -113,7 +113,7 @@ function runStaleDraftVariantReset(){
 }
 
 function runCacheBustCheck(){
-  const version = '20260530_wycena_snapshot_clean_store_v1';
+  const version = '20260530_wycena_generate_single_flow_v1';
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const dev = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');
   [

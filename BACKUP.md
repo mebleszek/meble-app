@@ -294,3 +294,9 @@ Wynik porównania zamiennika jest stanem runtime/testowym i nie powinien trafia�
 `fc_quote_snapshots_v1` nadal jest kluczem danych użytkowych objętym backupem, ale od etapu `site_wycena_snapshot_clean_store_v1.zip` aktywny format snapshotu WYCENY to lekki format `version: 7` / `quote-snapshot-slim-v1`. Stare ciężkie rekordy historii ofert sprzed tego formatu mogą zostać automatycznie odcięte i usunięte z aktywnego store, ponieważ na tym etapie priorytetem jest stabilna przyszła WYCENA, a nie kompatybilność starych snapshotów po regresji.
 
 Nowe snapshoty nie zapisują pełnych katalogów materiałów/okuć/dostawców. Zachowują natomiast dane potrzebne do korelacji ofert i przyszłych danych wykonawczych: projekt, inwestora, zakres pomieszczeń, linie wyceny, sumy, dane handlowe i metadane statusów.
+
+## Uwaga WYCENA generate single flow v1 — 2026-05-30
+
+Etap `site_wycena_generate_single_flow_v1.zip` nie dodaje nowych kluczy storage i nie zmienia formatu `fc_quote_snapshots_v1`. Poprawia tylko ścieżkę generowania, aby jedno kliknięcie `Wyceń` nie zapisało dwóch snapshotów przez replay `pointerup -> click` po re-renderze przycisku.
+
+Korelacja wielu ofert/wariantów zostaje zachowana: kolejne świadome kliknięcie po oknie deduplikacji nadal tworzy następny snapshot/wariant w tym samym kluczu `fc_quote_snapshots_v1`.

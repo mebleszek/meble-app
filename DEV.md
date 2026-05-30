@@ -1,3 +1,17 @@
+# WYCENA generate single flow v1 — 2026-05-30
+
+- Aktualna paczka robocza po tym etapie: `site_wycena_generate_single_flow_v1.zip`.
+- Baza startowa: `site_wycena_snapshot_clean_store_v1.zip`.
+- Po raporcie użytkownika ustalono, że czysty store działa, ale pierwsze kliknięcie `Wyceń` potrafiło uruchomić generowanie dwa razy: pierwszy snapshot zapisywał się od razu, a drugi flow pokazywał modal nazwy `wariant 2`; po `Anuluj` zostawał pierwszy snapshot.
+- `wycena-tab-shell.js` ma teraz modułowy runtime lock generowania (`generateRuntime`) niezależny od renderu przycisku, więc re-render po `pointerup` nie resetuje ochrony przed syntetycznym `click`.
+- Dodano okno deduplikacji `GENERATE_DEDUP_WINDOW_MS = 1500`: replay tego samego tapnięcia/kliknięcia jest ignorowany jako `generate-skipped-duplicate-event`, a generowanie równoległe jako `generate-skipped-in-flight`.
+- Jedno świadome kliknięcie tworzy maksymalnie jeden snapshot; drugie świadome kliknięcie po oknie deduplikacji nadal tworzy kolejny wariant/ofertę, więc korelacja wielu ofert i statusów zostaje zachowana.
+- Nie zmieniano formatu clean snapshotów v7 ani zasad list wykonawczych; snapshoty nadal trzymają linie materiałów, okuć, usług/AGD, robocizny i elementów, bez pełnych katalogów.
+- Dodano `tools/wycena-generate-single-flow-smoke.js`: pusty store + replay eventu po pierwszym kliknięciu daje dokładnie 1 snapshot; dopiero świadome drugie kliknięcie po oknie deduplikacji daje 2 snapshoty/warianty.
+- Podbito cache-busting do `20260530_wycena_generate_single_flow_v1`.
+- Nie ruszano katalogu okuć, resolvera okuć, import/export Excel, backupów/retencji, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani panelu `Kategorie / rodzaje okuć`.
+- Raport: `tools/reports/wycena-generate-single-flow-v1.md`.
+
 # WYCENA snapshot clean store v1 — 2026-05-30
 
 - Aktualna paczka robocza po tym etapie: `site_wycena_snapshot_clean_store_v1.zip`.

@@ -1,3 +1,8 @@
+
+## Aktualny etap roboczy
+
+- `site_wycena_generate_single_flow_v1.zip` — poprawka WYCENY po clean store: jedno kliknięcie `Wyceń` nie może tworzyć dwóch snapshotów. Dodano runtime lock i deduplikację replayu `pointerup -> click`, zachowując możliwość wielu świadomych wariantów/ofert dla projektu.
+
 # WYCENA render source diagnostics v1 — 2026-05-30
 
 - Aktualna paczka robocza po tym etapie: `site_wycena_render_source_diagnostics_v1.zip`.

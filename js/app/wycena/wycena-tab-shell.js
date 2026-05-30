@@ -23,6 +23,40 @@
     }catch(_){ }
   }
 
+  const GENERATE_DEDUP_WINDOW_MS = 1500;
+  const generateRuntime = { inFlight:false, lastAcceptedAt:0, lastReleasedAt:0 };
+
+  function recordGenerateSkip(reason, extra){
+    try{
+      if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordGenerateButtonEvent === 'function'){
+        FC.wycenaDiagnostics.recordGenerateButtonEvent(reason || 'generate-skipped');
+      }
+      if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordRenderEvent === 'function'){
+        FC.wycenaDiagnostics.recordRenderEvent(reason || 'generate-skipped', Object.assign({ skipped:true }, extra || {}));
+      }
+    }catch(_){ }
+  }
+
+  function acquireGenerateLock(source){
+    const now = Date.now();
+    if(generateRuntime.inFlight){
+      recordGenerateSkip('generate-skipped-in-flight', { source:String(source || ''), lastAcceptedAt:generateRuntime.lastAcceptedAt });
+      return false;
+    }
+    if(generateRuntime.lastAcceptedAt && now - generateRuntime.lastAcceptedAt < GENERATE_DEDUP_WINDOW_MS){
+      recordGenerateSkip('generate-skipped-duplicate-event', { source:String(source || ''), deltaMs:now - generateRuntime.lastAcceptedAt, windowMs:GENERATE_DEDUP_WINDOW_MS });
+      return false;
+    }
+    generateRuntime.inFlight = true;
+    generateRuntime.lastAcceptedAt = now;
+    return true;
+  }
+
+  function releaseGenerateLock(){
+    generateRuntime.inFlight = false;
+    generateRuntime.lastReleasedAt = Date.now();
+  }
+
   function getSnapshotIdFromQuote(snapshot){
     return String(snapshot && (snapshot.id || snapshot.snapshotId) || '').trim();
   }
@@ -71,11 +105,14 @@
     return current;
   }
 
-  async function generateQuote(ctx, deps){
+  async function generateQuote(ctx, deps, meta){
     const d = normalizeDeps(deps);
+    const source = meta && meta.source || '';
+    if(!acquireGenerateLock(source || 'generateQuote')) return;
     const state = typeof d.getState === 'function' ? d.getState() : {};
     if(state.isBusy){
-      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordGenerateButtonEvent === 'function') FC.wycenaDiagnostics.recordGenerateButtonEvent('generate-ignored-busy'); }catch(_){ }
+      recordGenerateSkip('generate-ignored-busy', { source:String(source || '') });
+      releaseGenerateLock();
       return;
     }
     if(typeof d.setState === 'function') d.setState({ isBusy:true });
@@ -132,6 +169,7 @@
       }
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ ok:false, error:String(err && err.message || err || 'Błąd wyceny') }); }catch(_){ }
     }finally{
+      releaseGenerateLock();
       if(typeof d.setState === 'function') d.setState({ isBusy:false });
       if(typeof d.render === 'function') d.render(ctx);
     }
@@ -147,15 +185,11 @@
     const runBtn = h('button', { class:'btn-success', type:'button', text: state.isBusy ? 'Liczę…' : 'Wyceń' });
     runBtn.setAttribute('data-action', 'wycena-generate');
     if(state.isBusy) runBtn.disabled = true;
-    let generateRequestedAt = 0;
     const requestGenerate = (event, source)=> {
       try{ if(event && typeof event.preventDefault === 'function') event.preventDefault(); }catch(_){ }
       try{ if(event && typeof event.stopPropagation === 'function') event.stopPropagation(); }catch(_){ }
-      const ts = Date.now();
-      if(generateRequestedAt && ts - generateRequestedAt < 450) return;
-      generateRequestedAt = ts;
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordGenerateButtonEvent === 'function') FC.wycenaDiagnostics.recordGenerateButtonEvent(source || 'generate-button'); }catch(_){ }
-      void generateQuote(ctx, d);
+      void generateQuote(ctx, d, { source:source || 'generate-button' });
     };
     FC.wycenaGenerateAction = {
       run(event, source){
@@ -252,6 +286,9 @@
     generateQuote,
     renderTopbar,
     ensureSnapshotVisibleInStore,
+    _generateRuntime:generateRuntime,
+    _acquireGenerateLock:acquireGenerateLock,
+    _releaseGenerateLock:releaseGenerateLock,
     reconcileStatusPreviewState,
     applyPostRenderScroll,
   };

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-30T20:23:49.115Z",
+  "generatedAt": "2026-05-30T20:57:46.656Z",
   "summary": {
     "jsFiles": 361,
     "indexScripts": 285,
@@ -77,7 +77,7 @@
     },
     "WYCENA": {
       "files": 47,
-      "lines": 8737,
+      "lines": 8774,
       "storageRefs": 12,
       "dialogRefs": 0,
       "high": 3,
@@ -17188,7 +17188,7 @@
     "js/app/wycena/wycena-tab-shell.js": {
       "area": "WYCENA",
       "category": "ui/render/events",
-      "lines": 259,
+      "lines": 296,
       "defines": [
         "wycenaGenerateAction",
         "wycenaTabShell"
