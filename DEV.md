@@ -1,3 +1,17 @@
+# WYCENA duplicate offer guard v1 — 2026-05-30
+
+- Aktualna paczka robocza po tym etapie: `site_wycena_duplicate_offer_guard_v1.zip`.
+- Baza startowa: `site_wycena_generate_single_flow_v1.zip`.
+- Po ustabilizowaniu clean store i pojedynczego flow generowania użytkownik potwierdził, że dwa świadome kliknięcia `Wyceń` mogą utworzyć dwie identyczne oferty. To poprawiono jako regułę biznesową, nie jako awarię kliknięcia.
+- Dodano fingerprint identycznej oferty: projekt, inwestor, zakres pomieszczeń, zakres materiałowy, typ wyceny, ustawienia handlowe bez nazwy wersji, linie wyceny i sumy. Nazwa `Oferta — A` / `wariant 2` nie decyduje o unikalności, żeby nie dało się tworzyć duplikatu samą nazwą.
+- Jeśli identyczna aktywna oferta już istnieje, program nie tworzy nowego snapshotu. Istniejąca oferta jest podświetlana w historii, a użytkownik dostaje modal aplikacyjny z przyciskami: zielony `Zamień istniejącą` i czerwony `Anuluj`.
+- `Zamień istniejącą` zachowuje slot/ID, nazwę i metadane statusu istniejącej oferty, w tym wybraną/zaakceptowaną/odrzuconą korelację, ale odświeża linie i sumy świeżym przeliczeniem.
+- `Anuluj` nie zapisuje nic nowego.
+- Rzeczywiście inna oferta, np. inny zakres materiałowy `fronty` zamiast `całość`, nadal tworzy kolejny wariant i nie blokuje systemu wielu ofert.
+- Dodano `tools/wycena-duplicate-offer-guard-smoke.js`; zaktualizowano test single-flow pod nowy guard duplikatów.
+- Podbito cache-busting do `20260530_wycena_duplicate_offer_guard_v1`.
+- Nie ruszano katalogu okuć, resolvera okuć, import/export Excel, backupów/retencji, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani panelu `Kategorie / rodzaje okuć`.
+
 # WYCENA generate single flow v1 — 2026-05-30
 
 - Aktualna paczka robocza po tym etapie: `site_wycena_generate_single_flow_v1.zip`.

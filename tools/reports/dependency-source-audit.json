@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-30T20:57:46.656Z",
+  "generatedAt": "2026-05-30T21:35:42.694Z",
   "summary": {
     "jsFiles": 361,
     "indexScripts": 285,
     "devTestScripts": 318,
     "fcSymbols": 261,
     "fcSymbolsAll": 289,
-    "edges": 1892,
+    "edges": 1893,
     "highRisk": 11,
     "mediumRisk": 67
   },
@@ -77,7 +77,7 @@
     },
     "WYCENA": {
       "files": 47,
-      "lines": 8774,
+      "lines": 9038,
       "storageRefs": 12,
       "dialogRefs": 0,
       "high": 3,
@@ -190,6 +190,10 @@
       684
     ],
     [
+      "js/app/quote/quote-snapshot-store.js",
+      655
+    ],
+    [
       "js/testing/wycena/suites/central-status-sync.js",
       649
     ],
@@ -224,10 +228,6 @@
     [
       "js/app/rozrys/rozrys-render.js",
       493
-    ],
-    [
-      "js/app/quote/quote-snapshot-store.js",
-      492
     ],
     [
       "js/testing/rozrys/tests.js",
@@ -379,7 +379,7 @@
     ],
     [
       "js/app/quote/quote-snapshot.js",
-      61
+      62
     ],
     [
       "js/app/investor/investor-persistence.js",
@@ -527,6 +527,25 @@
       ]
     },
     {
+      "file": "js/app/quote/quote-snapshot-store.js",
+      "risk": "wysokie",
+      "score": 11,
+      "area": "WYCENA",
+      "category": "store/storage",
+      "lines": 655,
+      "incoming": 44,
+      "outgoing": 9,
+      "secondLevel": 71,
+      "storageRefs": 4,
+      "dialogRefs": 0,
+      "reasons": [
+        "600+ linii",
+        "dużo zależnych plików",
+        "kilka zależności wychodzących",
+        "bezpośredni storage poza oczywistą granicą"
+      ]
+    },
+    {
       "file": "js/testing/cabinet/tests.js",
       "risk": "wysokie",
       "score": 10,
@@ -562,25 +581,6 @@
         "600+ linii",
         "dużo zależnych plików",
         "dużo zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/app/quote/quote-snapshot-store.js",
-      "risk": "wysokie",
-      "score": 10,
-      "area": "WYCENA",
-      "category": "store/storage",
-      "lines": 492,
-      "incoming": 44,
-      "outgoing": 9,
-      "secondLevel": 71,
-      "storageRefs": 4,
-      "dialogRefs": 0,
-      "reasons": [
-        "400+ linii",
-        "dużo zależnych plików",
-        "kilka zależności wychodzących",
-        "bezpośredni storage poza oczywistą granicą"
       ]
     },
     {
@@ -915,9 +915,9 @@
       "area": "WYCENA",
       "category": "domain/controller",
       "lines": 309,
-      "incoming": 11,
+      "incoming": 12,
       "outgoing": 8,
-      "secondLevel": 61,
+      "secondLevel": 62,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1148,7 +1148,7 @@
       "lines": 317,
       "incoming": 14,
       "outgoing": 1,
-      "secondLevel": 50,
+      "secondLevel": 51,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -8820,7 +8820,7 @@
     "js/app/quote/quote-snapshot-store.js": {
       "area": "WYCENA",
       "category": "store/storage",
-      "lines": 492,
+      "lines": 655,
       "defines": [
         "quoteSnapshotStore"
       ],
@@ -8972,7 +8972,7 @@
       "loadedInDevTests": true,
       "risk": "wysokie",
       "reasons": [
-        "400+ linii",
+        "600+ linii",
         "dużo zależnych plików",
         "kilka zależności wychodzących",
         "bezpośredni storage poza oczywistą granicą"
@@ -9006,6 +9006,7 @@
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-helpers.js",
+        "js/app/wycena/wycena-tab-shell.js",
         "js/testing/wycena/suites/core-offer-basics.js"
       ],
       "outgoingFiles": [
@@ -9046,6 +9047,7 @@
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-history.js",
         "js/app/wycena/wycena-tab-preview.js",
+        "js/app/wycena/wycena-tab-render-bridge.js",
         "js/app/wycena/wycena-tab-selection-bridge.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-selection-version.js",
@@ -10448,6 +10450,7 @@
         "js/app/wycena/wycena-tab-selection-model.js",
         "js/app/wycena/wycena-tab-selection-version.js",
         "js/app/wycena/wycena-tab-selection.js",
+        "js/app/wycena/wycena-tab-shell.js",
         "js/tabs/czynnosci.js",
         "js/tabs/wycena.js",
         "js/testing/investor/suites/registry-manage.js",
@@ -17188,7 +17191,7 @@
     "js/app/wycena/wycena-tab-shell.js": {
       "area": "WYCENA",
       "category": "ui/render/events",
-      "lines": 296,
+      "lines": 397,
       "defines": [
         "wycenaGenerateAction",
         "wycenaTabShell"
@@ -17196,9 +17199,10 @@
       "uses": [
         "infoBox",
         "wycenaDiagnostics",
+        "wycenaCore",
+        "quoteSnapshot",
         "quoteSnapshotStore",
         "wycenaContextRepair",
-        "wycenaCore",
         "wycenaGenerateAction",
         "quotePdf",
         "wycenaTabShell"
@@ -17211,6 +17215,7 @@
       "outgoingFiles": [
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-snapshot-store.js",
+        "js/app/quote/quote-snapshot.js",
         "js/app/ui/info-box.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core.js",
@@ -17241,7 +17246,8 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
-        "250+ linii"
+        "250+ linii",
+        "kilka zależności wychodzących"
       ]
     },
     "js/app/wycena/wycena-tab-state.js": {

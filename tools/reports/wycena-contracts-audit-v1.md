@@ -4,7 +4,7 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 
 ## Wynik skrócony
 
-1. `js/app/quote/quote-snapshot-store.js` — 492 linii; ostrzeżenia: 400+ lines, mixed responsibilities heuristic, direct storage reference.
+1. `js/app/quote/quote-snapshot-store.js` — 655 linii; ostrzeżenia: 600+ lines, mixed responsibilities heuristic, direct storage reference.
 2. `js/app/project/project-status-manual-guard.js` — 395 linii; ostrzeżenia: 250+ lines.
 3. `js/tabs/wycena.js` — 368 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
 4. `js/app/project/project-status-scope.js` — 313 linii; ostrzeżenia: 250+ lines.
@@ -54,10 +54,10 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 
 ### js/app/quote/quote-snapshot-store.js
 
-- Linie: 492
+- Linie: 655
 - Bezpośrednie storage: 4
 - Systemowe dialogi: 0
-- Sygnały odpowiedzialności: snapshot:102, storage-boundary:21, scope:16, status:14
+- Sygnały odpowiedzialności: snapshot:122, pdf-export:47, scope:25, storage-boundary:22, status:14
 
 ### js/app/project/project-status-manual-guard.js
 

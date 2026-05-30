@@ -61,6 +61,80 @@
     return String(snapshot && (snapshot.id || snapshot.snapshotId) || '').trim();
   }
 
+
+  function buildUnsavedQuoteSnapshot(selection){
+    if(!(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteData === 'function')) throw new Error('Brak FC.wycenaCore.collectQuoteData');
+    if(!(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function')) throw new Error('Brak FC.quoteSnapshot.buildSnapshot');
+    return Promise.resolve(FC.wycenaCore.collectQuoteData({ selection })).then((data)=> FC.quoteSnapshot.buildSnapshot(data));
+  }
+
+  function saveQuoteSnapshot(snapshot){
+    if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.save === 'function') return FC.quoteSnapshotStore.save(snapshot);
+    if(FC.quoteSnapshot && typeof FC.quoteSnapshot.saveSnapshot === 'function') return FC.quoteSnapshot.saveSnapshot(snapshot);
+    return snapshot;
+  }
+
+  function getVersionName(snapshot){
+    return String(snapshot && (snapshot.commercial && snapshot.commercial.versionName || snapshot.meta && snapshot.meta.versionName) || '').trim();
+  }
+
+  function summarizeDuplicateSnapshot(snapshot){
+    const snap = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    return {
+      id:String(snap.id || snap.snapshotId || ''),
+      versionName:getVersionName(snap),
+      projectId:String(snap.project && snap.project.id || ''),
+      investorId:String(snap.investor && snap.investor.id || snap.project && snap.project.investorId || ''),
+      selectedRooms:Array.isArray(snap.scope && snap.scope.selectedRooms) ? snap.scope.selectedRooms.slice() : [],
+      materialScope:snap.scope && snap.scope.materialScope || null,
+      preliminary:!!(snap.meta && snap.meta.preliminary || snap.commercial && snap.commercial.preliminary),
+      grand:snap.totals && snap.totals.grand,
+      generatedAt:snap.generatedAt || null,
+    };
+  }
+
+  async function handleDuplicateSnapshot(candidate, selection, ctx, deps){
+    const d = normalizeDeps(deps);
+    if(!(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.findDuplicateSnapshot === 'function')) return null;
+    const duplicate = FC.quoteSnapshotStore.findDuplicateSnapshot(candidate, { includeRejected:false });
+    if(!duplicate) return null;
+    const duplicateId = getSnapshotIdFromQuote(duplicate);
+    try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('duplicateFound', { duplicate:summarizeDuplicateSnapshot(duplicate), candidate:summarizeDuplicateSnapshot(candidate) }); }catch(_){ }
+    if(duplicateId && typeof d.setState === 'function'){
+      d.setState({ lastQuote:duplicate, previewSnapshotId:duplicateId, shouldScrollToPreview:true });
+      try{ if(typeof d.render === 'function') d.render(ctx); }catch(_){ }
+    }
+    let replace = false;
+    try{
+      if(typeof d.askConfirm === 'function'){
+        replace = !!(await d.askConfirm({
+          title:'TAKA SAMA OFERTA JUŻ ISTNIEJE',
+          message:'Nie utworzono nowej oferty, bo identyczna wycena już istnieje dla tego samego projektu, zakresu i ustawień. Istniejąca oferta została podświetlona w historii. Możesz ją zostawić albo zastąpić świeżo przeliczoną wersją.',
+          confirmText:'Zamień istniejącą',
+          cancelText:'Anuluj',
+          confirmTone:'success',
+          cancelTone:'danger',
+          dismissOnOverlay:false,
+          dismissOnEsc:true,
+        }));
+      }
+    }catch(_){ replace = false; }
+    if(!replace){
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('duplicateCancelled', { duplicateId }); }catch(_){ }
+      return { handled:true, cancelled:true, snapshot:duplicate, duplicate };
+    }
+    let replaced = null;
+    if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.replaceSnapshot === 'function') replaced = FC.quoteSnapshotStore.replaceSnapshot(duplicateId, candidate);
+    else {
+      const next = Object.assign({}, candidate || {}, { id:duplicateId });
+      replaced = saveQuoteSnapshot(next);
+    }
+    const replacedId = getSnapshotIdFromQuote(replaced) || duplicateId;
+    try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('duplicateReplaced', { duplicateId, replaced:summarizeDuplicateSnapshot(replaced) }); }catch(_){ }
+    if(typeof d.setState === 'function') d.setState({ lastQuote:replaced, previewSnapshotId:replacedId, shouldScrollToPreview:true });
+    return { handled:true, replaced:true, snapshot:replaced, duplicate };
+  }
+
   function ensureSnapshotVisibleInStore(snapshot){
     let current = snapshot || null;
     let id = getSnapshotIdFromQuote(current);
@@ -135,13 +209,40 @@
       }
       const selection = d.normalizeDraftSelection(d.getOfferDraft());
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('selection', selection); }catch(_){ }
+      let preflightQuote = await buildUnsavedQuoteSnapshot(selection);
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('preflightQuoteBuilt', { hasQuote:!!preflightQuote, id:preflightQuote && (preflightQuote.id || preflightQuote.snapshotId), totals:preflightQuote && preflightQuote.totals, versionName:getVersionName(preflightQuote) }); }catch(_){ }
+      const duplicateBeforeNaming = await handleDuplicateSnapshot(preflightQuote, selection, ctx, d);
+      if(duplicateBeforeNaming && duplicateBeforeNaming.handled){
+        const snap = duplicateBeforeNaming.snapshot || null;
+        const snapId = getSnapshotIdFromQuote(snap);
+        if(snap && !duplicateBeforeNaming.cancelled){
+          d.syncGeneratedQuoteStatus(snap);
+          let liveStatus = '';
+          try{ liveStatus = d.getProjectStatusForHistory(d.getSnapshotHistory()); }catch(_){ }
+          if(typeof d.setState === 'function') d.setState({ lastQuote:snap, previewSnapshotId:snapId, shouldScrollToPreview:true, lastKnownProjectStatus:liveStatus });
+        }
+        try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ ok:true, duplicate:true, cancelled:!!duplicateBeforeNaming.cancelled, replaced:!!duplicateBeforeNaming.replaced, id:snapId }); }catch(_){ }
+        return;
+      }
       const naming = await d.ensureVersionNameBeforeGenerate(selection);
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('naming', naming); }catch(_){ }
       if(naming && naming.cancelled){ try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ stopped:'version-name-cancelled' }); }catch(_){ } return; }
-      let nextQuote = null;
-      if(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function') nextQuote = await FC.wycenaCore.buildQuoteSnapshot({ selection });
-      else if(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteData === 'function') nextQuote = await FC.wycenaCore.collectQuoteData({ selection });
-      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('quoteBuilt', { hasQuote:!!nextQuote, error:nextQuote && nextQuote.error, id:nextQuote && (nextQuote.id || nextQuote.snapshotId), selectedRooms:nextQuote && nextQuote.selectedRooms, roomLabels:nextQuote && nextQuote.roomLabels, totals:nextQuote && nextQuote.totals, materialLines:Array.isArray(nextQuote && nextQuote.materialLines) ? nextQuote.materialLines.length : undefined, accessoryLines:Array.isArray(nextQuote && nextQuote.accessoryLines) ? nextQuote.accessoryLines.length : undefined }); }catch(_){ }
+      let nextQuote = await buildUnsavedQuoteSnapshot(selection);
+      const duplicateAfterNaming = await handleDuplicateSnapshot(nextQuote, selection, ctx, d);
+      if(duplicateAfterNaming && duplicateAfterNaming.handled){
+        const snap = duplicateAfterNaming.snapshot || null;
+        const snapId = getSnapshotIdFromQuote(snap);
+        if(snap && !duplicateAfterNaming.cancelled){
+          d.syncGeneratedQuoteStatus(snap);
+          let liveStatus = '';
+          try{ liveStatus = d.getProjectStatusForHistory(d.getSnapshotHistory()); }catch(_){ }
+          if(typeof d.setState === 'function') d.setState({ lastQuote:snap, previewSnapshotId:snapId, shouldScrollToPreview:true, lastKnownProjectStatus:liveStatus });
+        }
+        try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ ok:true, duplicate:true, cancelled:!!duplicateAfterNaming.cancelled, replaced:!!duplicateAfterNaming.replaced, id:snapId }); }catch(_){ }
+        return;
+      }
+      nextQuote = saveQuoteSnapshot(nextQuote);
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('quoteBuilt', { hasQuote:!!nextQuote, error:nextQuote && nextQuote.error, id:nextQuote && (nextQuote.id || nextQuote.snapshotId), selectedRooms:nextQuote && nextQuote.selectedRooms, roomLabels:nextQuote && nextQuote.roomLabels, totals:nextQuote && nextQuote.totals, versionName:getVersionName(nextQuote), materialLines:Array.isArray(nextQuote && nextQuote.materialLines) ? nextQuote.materialLines.length : undefined, accessoryLines:Array.isArray(nextQuote && nextQuote.accessoryLines) ? nextQuote.accessoryLines.length : undefined }); }catch(_){ }
       nextQuote = ensureSnapshotVisibleInStore(nextQuote);
       const nextQuoteId = nextQuote && typeof d.getSnapshotId === 'function' ? d.getSnapshotId(nextQuote) : String(nextQuote && (nextQuote.id || nextQuote.snapshotId) || '');
       if(typeof d.setState === 'function') d.setState({ lastQuote:nextQuote, previewSnapshotId:nextQuoteId, shouldScrollToPreview:!!nextQuote });

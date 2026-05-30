@@ -300,3 +300,11 @@ Nowe snapshoty nie zapisują pełnych katalogów materiałów/okuć/dostawców. 
 Etap `site_wycena_generate_single_flow_v1.zip` nie dodaje nowych kluczy storage i nie zmienia formatu `fc_quote_snapshots_v1`. Poprawia tylko ścieżkę generowania, aby jedno kliknięcie `Wyceń` nie zapisało dwóch snapshotów przez replay `pointerup -> click` po re-renderze przycisku.
 
 Korelacja wielu ofert/wariantów zostaje zachowana: kolejne świadome kliknięcie po oknie deduplikacji nadal tworzy następny snapshot/wariant w tym samym kluczu `fc_quote_snapshots_v1`.
+
+
+## Uwaga WYCENA duplicate offer guard v1 — 2026-05-30
+
+Etap `site_wycena_duplicate_offer_guard_v1.zip` nie dodaje nowych kluczy storage i nie zmienia zakresu backupu. `fc_quote_snapshots_v1` pozostaje kluczem danych użytkowych objętym backupem.
+
+Nowe pole/pojęcie fingerprintu oferty jest metadanym wewnątrz snapshotu v7. Służy do blokowania identycznych duplikatów przy generowaniu WYCENY i nie zastępuje korelacji ofert/statusów. Zamiana istniejącej identycznej oferty zachowuje slot/ID i metadane statusu, a aktualizuje linie/sumy świeżym przeliczeniem.
+

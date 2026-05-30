@@ -161,6 +161,121 @@
   const filterRowsByRoomScope = requireScopeHelper('filterRowsByRoomScope');
   const filterRowsByQuoteType = requireScopeHelper('filterRowsByQuoteType');
 
+
+  function roundFingerprintNumber(value){
+    const n = Number(value);
+    if(!Number.isFinite(n)) return 0;
+    return Math.round(n * 10000) / 10000;
+  }
+
+  function compactText(value){ return String(value == null ? '' : value).trim().replace(/\s+/g, ' '); }
+
+  function stableCanonical(value){
+    if(value == null) return null;
+    if(typeof value === 'number') return roundFingerprintNumber(value);
+    if(typeof value === 'boolean') return !!value;
+    if(typeof value === 'string') return compactText(value);
+    if(Array.isArray(value)) return value.map(stableCanonical);
+    if(typeof value === 'object'){
+      const out = {};
+      Object.keys(value).sort().forEach((key)=>{ out[key] = stableCanonical(value[key]); });
+      return out;
+    }
+    return compactText(value);
+  }
+
+  function lineFingerprint(row){
+    const src = row && typeof row === 'object' ? row : {};
+    const out = {
+      key:compactText(src.key || ''),
+      type:compactText(src.type || ''),
+      category:compactText(src.category || ''),
+      name:compactText(src.name || ''),
+      qty:roundFingerprintNumber(src.qty),
+      unit:compactText(src.unit || ''),
+      unitPrice:roundFingerprintNumber(src.unitPrice),
+      total:roundFingerprintNumber(src.total),
+      rooms:compactText(src.rooms || ''),
+      note:compactText(src.note || ''),
+      source:compactText(src.source || ''),
+      width:roundFingerprintNumber(src.width),
+      height:roundFingerprintNumber(src.height),
+      materialLabel:compactText(src.materialLabel || ''),
+    };
+    if(src.cabinetNumber != null) out.cabinetNumber = roundFingerprintNumber(src.cabinetNumber);
+    if(src.cabinetId != null) out.cabinetId = compactText(src.cabinetId || '');
+    if(src.roomId != null) out.roomId = compactText(src.roomId || '');
+    if(src.dimensions != null) out.dimensions = compactText(src.dimensions || '');
+    if(src.volumeM3 != null) out.volumeM3 = roundFingerprintNumber(src.volumeM3);
+    if(src.hours != null) out.hours = roundFingerprintNumber(src.hours);
+    if(Array.isArray(src.details)){
+      out.details = src.details.map((detail)=> stableCanonical(detail)).sort((a,b)=> JSON.stringify(a).localeCompare(JSON.stringify(b)));
+    }
+    return out;
+  }
+
+  function linesFingerprint(rows){
+    return (Array.isArray(rows) ? rows : [])
+      .map(lineFingerprint)
+      .sort((a,b)=> JSON.stringify(a).localeCompare(JSON.stringify(b)));
+  }
+
+  function quoteFingerprint(snapshot){
+    const snap = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    const scope = buildCanonicalScope(snap.scope || {}, { preserveExplicitLabels:true });
+    const commercial = snap.commercial && typeof snap.commercial === 'object' ? snap.commercial : {};
+    const totals = snap.totals && typeof snap.totals === 'object' ? snap.totals : {};
+    const lines = snap.lines && typeof snap.lines === 'object' ? snap.lines : {};
+    const comparable = {
+      projectId: compactText(snap.project && snap.project.id || ''),
+      investorId: compactText(snap.investor && snap.investor.id || snap.project && snap.project.investorId || ''),
+      preliminary: isPreliminarySnapshot(snap),
+      scope: {
+        selectedRooms: normalizeRoomIds(scope.selectedRooms).sort(),
+        materialScope: normalizeMaterialScope(scope.materialScope),
+        materialScopeMode: compactText(scope.materialScopeMode || materialScopeMode(scope.materialScope)),
+      },
+      commercial: {
+        discountPercent: roundFingerprintNumber(commercial.discountPercent),
+        discountAmount: roundFingerprintNumber(commercial.discountAmount),
+        offerValidity: compactText(commercial.offerValidity || ''),
+        leadTime: compactText(commercial.leadTime || ''),
+        deliveryTerms: compactText(commercial.deliveryTerms || ''),
+        customerNote: compactText(commercial.customerNote || ''),
+      },
+      totals: {
+        materials: roundFingerprintNumber(totals.materials),
+        accessories: roundFingerprintNumber(totals.accessories),
+        services: roundFingerprintNumber(totals.services),
+        quoteRates: roundFingerprintNumber(totals.quoteRates),
+        labor: roundFingerprintNumber(totals.labor),
+        subtotal: roundFingerprintNumber(totals.subtotal),
+        discount: roundFingerprintNumber(totals.discount),
+        grand: roundFingerprintNumber(totals.grand),
+      },
+      lines: {
+        materials: linesFingerprint(lines.materials),
+        elements: linesFingerprint(lines.elements),
+        accessories: linesFingerprint(lines.accessories),
+        agdServices: linesFingerprint(lines.agdServices),
+        quoteRates: linesFingerprint(lines.quoteRates),
+        labor: linesFingerprint(lines.labor),
+      },
+    };
+    return JSON.stringify(stableCanonical(comparable));
+  }
+
+  function getQuoteFingerprint(snapshot){
+    try{ return quoteFingerprint(snapshot); }
+    catch(_){ return ''; }
+  }
+
+  function sameQuoteFingerprint(left, right){
+    const a = getQuoteFingerprint(left);
+    const b = getQuoteFingerprint(right);
+    return !!a && !!b && a === b;
+  }
+
   function defaultVersionName(preliminary, options){
     try{
       if(FC.quoteSnapshot && typeof FC.quoteSnapshot.defaultVersionName === 'function') return FC.quoteSnapshot.defaultVersionName(preliminary, options || {});
@@ -196,8 +311,10 @@
         rejectedAt: Number(src.meta && src.meta.rejectedAt) > 0 ? Number(src.meta.rejectedAt) : 0,
         rejectedReason: String(src.meta && src.meta.rejectedReason || '').trim().toLowerCase(),
         preliminary,
+        quoteFingerprint:'',
       }
     };
+    out.meta.quoteFingerprint = String(srcMeta.quoteFingerprint || src.meta && src.meta.quoteFingerprint || getQuoteFingerprint(out));
     if(src.__test === true || srcMeta.__test === true || srcMeta.testData){
       out.__test = true;
       out.__testRunId = String(src.__testRunId || srcMeta.__testRunId || srcMeta.testRunId || '');
@@ -323,6 +440,49 @@
       afterRows:summarizeStoreRows(afterRows, 6),
     });
     return true;
+  }
+
+
+  function findDuplicateSnapshot(snapshot, options){
+    const opts = options && typeof options === 'object' ? options : {};
+    const candidate = normalizeSnapshot(snapshot, { preserveExplicitLabels:true });
+    const fingerprint = getQuoteFingerprint(candidate);
+    if(!fingerprint) return null;
+    const projectId = String(candidate && candidate.project && candidate.project.id || '').trim();
+    if(!projectId) return null;
+    const ignoreId = String(opts.ignoreId || candidate.id || '').trim();
+    const includeRejected = opts.includeRejected === true;
+    const rows = listForProject(projectId);
+    return rows.find((row)=> {
+      if(!row) return false;
+      if(ignoreId && String(row.id || '') === ignoreId) return false;
+      if(!includeRejected && isRejectedSnapshot(row)) return false;
+      if(isPreliminarySnapshot(row) !== isPreliminarySnapshot(candidate)) return false;
+      return sameQuoteFingerprint(row, candidate);
+    }) || null;
+  }
+
+  function replaceSnapshot(existingId, snapshot){
+    const key = String(existingId || '').trim();
+    if(!key) throw new Error('Brak ID oferty do zamiany.');
+    const existing = getById(key);
+    if(!existing) throw new Error('Nie znaleziono istniejącej oferty do zamiany.');
+    const next = normalizeSnapshot(snapshot, { preserveExplicitLabels:true });
+    const existingVersionName = String(existing && existing.commercial && existing.commercial.versionName || existing && existing.meta && existing.meta.versionName || '').trim();
+    next.id = key;
+    next.generatedAt = Date.now();
+    try{ next.generatedDate = new Date(next.generatedAt).toISOString(); }catch(_){ next.generatedDate = ''; }
+    next.commercial = Object.assign({}, next.commercial || {}, { versionName: existingVersionName || String(next.commercial && next.commercial.versionName || '') });
+    next.meta = Object.assign({}, next.meta || {}, {
+      versionName: existingVersionName || String(next.meta && next.meta.versionName || next.commercial && next.commercial.versionName || ''),
+      selectedByClient: !!(existing && existing.meta && existing.meta.selectedByClient),
+      acceptedAt: Number(existing && existing.meta && existing.meta.acceptedAt) > 0 ? Number(existing.meta.acceptedAt) : 0,
+      acceptedStage: String(existing && existing.meta && existing.meta.acceptedStage || ''),
+      rejectedAt: Number(existing && existing.meta && existing.meta.rejectedAt) > 0 ? Number(existing.meta.rejectedAt) : 0,
+      rejectedReason: String(existing && existing.meta && existing.meta.rejectedReason || '').trim().toLowerCase(),
+    });
+    next.meta.quoteFingerprint = getQuoteFingerprint(next);
+    return save(next);
   }
 
   function listForProject(projectId){
@@ -458,6 +618,9 @@
     getById,
     save,
     remove,
+    findDuplicateSnapshot,
+    replaceSnapshot,
+    getQuoteFingerprint,
     cleanupRemovedSnapshotReferences,
     purgeLegacyStoredRows,
     isCurrentStoredSnapshot,
