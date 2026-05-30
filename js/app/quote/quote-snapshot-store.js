@@ -10,6 +10,8 @@
 
   const SNAPSHOT_KEY = keys.quoteSnapshots || 'fc_quote_snapshots_v1';
   const FINAL_STATUSES = new Set(['zaakceptowany','umowa','produkcja','montaz','zakonczone']);
+  const SNAPSHOT_STORAGE_VERSION = 7;
+  const SNAPSHOT_STORAGE_SCHEMA = 'quote-snapshot-slim-v1';
 
   // Odpowiedzialność modułu: historia i exact-scope dane ofertowe.
   // Snapshot store przechowuje oraz filtruje snapshoty ofert, ale nie powinien
@@ -51,6 +53,76 @@
     try{
       if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordSnapshotStoreEvent === 'function') FC.wycenaDiagnostics.recordSnapshotStoreEvent(label, value);
     }catch(_){ }
+  }
+
+  function currentStorageVersion(){
+    try{ return Number(FC.quoteSnapshot && FC.quoteSnapshot.SNAPSHOT_STORAGE_VERSION) || SNAPSHOT_STORAGE_VERSION; }catch(_){ return SNAPSHOT_STORAGE_VERSION; }
+  }
+  function currentStorageSchema(){
+    try{ return String(FC.quoteSnapshot && FC.quoteSnapshot.SNAPSHOT_STORAGE_SCHEMA || SNAPSHOT_STORAGE_SCHEMA); }catch(_){ return SNAPSHOT_STORAGE_SCHEMA; }
+  }
+  function isCurrentStoredSnapshot(row){
+    const src = row && typeof row === 'object' ? row : null;
+    if(!src) return false;
+    const meta = src.meta && typeof src.meta === 'object' ? src.meta : {};
+    if(Number(src.version || 0) < currentStorageVersion()) return false;
+    if(String(meta.storageSchema || '') !== currentStorageSchema()) return false;
+    if(Object.prototype.hasOwnProperty.call(src, 'catalogs')) return false;
+    return true;
+  }
+  function createStorageWriteError(message, details, originalError){
+    const error = new Error(message || 'Nie udało się zapisać snapshotu WYCENY.');
+    error.code = 'quote_snapshot_storage_write_failed';
+    error.details = details && typeof details === 'object' ? details : {};
+    if(originalError) error.originalError = originalError;
+    return error;
+  }
+  function invalidateDirtyCache(){
+    try{ if(FC.session && typeof FC.session.invalidateDirtyCache === 'function') FC.session.invalidateDirtyCache(); }catch(_){ }
+  }
+  function writeSnapshotRowsStrict(rows, reason){
+    const list = Array.isArray(rows) ? rows : [];
+    const raw = JSON.stringify(list);
+    let firstError = null;
+    try{ localStorage.setItem(SNAPSHOT_KEY, raw); invalidateDirtyCache(); }
+    catch(err){ firstError = err; }
+    if(firstError){
+      try{ localStorage.removeItem(SNAPSHOT_KEY); invalidateDirtyCache(); }catch(_){ }
+      try{ localStorage.setItem(SNAPSHOT_KEY, raw); invalidateDirtyCache(); firstError = null; }
+      catch(err){
+        recordStoreEvent('write:error', { reason:String(reason || ''), count:list.length, bytes:bytes(raw), message:String(err && err.message || err || 'błąd'), firstMessage:String(firstError && firstError.message || firstError || '') });
+        throw createStorageWriteError('Nie udało się zapisać historii WYCENY. Prawdopodobnie magazyn przeglądarki jest pełny albo zawierał zbyt ciężkie stare snapshoty.', { reason:String(reason || ''), count:list.length, bytes:bytes(raw) }, err || firstError);
+      }
+    }
+    const stored = rawSnapshotStorage();
+    const parsed = safeParseRows(stored);
+    const parsedRows = Array.isArray(parsed) ? parsed : [];
+    const ids = list.map(snapshotId).filter(Boolean);
+    const missingIds = ids.filter((id)=> !parsedRows.some((row)=> snapshotId(row) === id));
+    if(!Array.isArray(parsed) || parsedRows.length !== list.length || missingIds.length){
+      recordStoreEvent('write:verify-failed', { reason:String(reason || ''), requestedCount:list.length, storedCount:Array.isArray(parsed) ? parsedRows.length : null, parseError:parsed && parsed.__error ? parsed.message : '', missingIds, requestedBytes:bytes(raw), storedBytes:bytes(stored) });
+      throw createStorageWriteError('Historia WYCENY nie została poprawnie zapisana w przeglądarce.', { reason:String(reason || ''), requestedCount:list.length, storedCount:Array.isArray(parsed) ? parsedRows.length : null, missingIds }, null);
+    }
+    return list;
+  }
+  function readStoredCurrentRows(){
+    const parsed = safeParseRows(rawSnapshotStorage());
+    if(!Array.isArray(parsed)) return [];
+    return parsed.filter(isCurrentStoredSnapshot);
+  }
+  function purgeLegacyStoredRows(reason){
+    const parsed = safeParseRows(rawSnapshotStorage());
+    if(!Array.isArray(parsed)) return { changed:false, beforeCount:0, afterCount:0 };
+    const kept = parsed.filter(isCurrentStoredSnapshot);
+    if(kept.length === parsed.length) return { changed:false, beforeCount:parsed.length, afterCount:kept.length };
+    try{
+      writeSnapshotRowsStrict(kept, reason || 'purge-legacy-snapshots');
+      recordStoreEvent('legacy:purged', { reason:String(reason || ''), beforeCount:parsed.length, afterCount:kept.length, removed:parsed.length - kept.length });
+      return { changed:true, beforeCount:parsed.length, afterCount:kept.length, removed:parsed.length - kept.length };
+    }catch(err){
+      recordStoreEvent('legacy:purge-error', { reason:String(reason || ''), message:String(err && err.message || err || 'błąd') });
+      return { changed:false, error:String(err && err.message || err || 'błąd'), beforeCount:parsed.length, afterCount:kept.length };
+    }
   }
 
   function normalizeStatus(value){
@@ -105,17 +177,18 @@
     const scope = buildCanonicalScope(src.scope || {}, opts);
     const versionName = String(src.meta && src.meta.versionName || src.commercial && src.commercial.versionName || '').trim() || getCanonicalDefaultVersionName({ scope, commercial:{ preliminary }, meta:{ preliminary } }, opts);
     const out = {
+      version: SNAPSHOT_STORAGE_VERSION,
       id: String(src.id || uid()),
       generatedAt: Number(src.generatedAt) > 0 ? Number(src.generatedAt) : Date.now(),
       investor: src.investor ? clone(src.investor) : null,
       project: src.project ? clone(src.project) : null,
       scope,
-      catalogs: clone(src.catalogs || null),
       lines: clone(src.lines || {}),
       commercial: Object.assign({}, clone(src.commercial || {}), { versionName }),
       totals: clone(src.totals || {}),
       meta: {
-        source:String(src.meta && src.meta.source || 'quote-snapshot-store'),
+        source:String(src.meta && src.meta.source || 'quote-snapshot-slim'),
+        storageSchema: SNAPSHOT_STORAGE_SCHEMA,
         versionName,
         selectedByClient: !!(src.meta && src.meta.selectedByClient),
         acceptedAt: Number(src.meta && src.meta.acceptedAt) > 0 ? Number(src.meta.acceptedAt) : 0,
@@ -138,15 +211,13 @@
   }
 
   function readAll(){
-    const rows = storage.getJSON(SNAPSHOT_KEY, []);
-    return Array.isArray(rows)
-      ? rows.map((row)=> normalizeSnapshot(row, { canonicalizeLabels:true })).sort((a,b)=> Number(b.generatedAt || 0) - Number(a.generatedAt || 0))
-      : [];
+    const rows = readStoredCurrentRows();
+    return rows.map((row)=> normalizeSnapshot(row, { canonicalizeLabels:true })).sort((a,b)=> Number(b.generatedAt || 0) - Number(a.generatedAt || 0));
   }
 
   function writeAll(list){
     const rows = Array.isArray(list) ? list.map((row)=> normalizeSnapshot(row, { preserveExplicitLabels:true })) : [];
-    storage.setJSON(SNAPSHOT_KEY, rows);
+    writeSnapshotRowsStrict(rows, 'writeAll');
     return rows;
   }
 
@@ -203,6 +274,9 @@
       rawChanged:String(beforeRaw || '') !== String(afterRaw || ''),
       firstRows:summarizeStoreRows(afterRows, 5),
     });
+    if(!visible){
+      throw createStorageWriteError('Snapshot WYCENY został zbudowany, ale nie jest widoczny w historii po zapisie.', { id:normalizedId, projectId:normalizedProjectId, afterReadAllCount:afterRows.length, afterRawCount:Array.isArray(afterParsed) ? afterParsed.length : null }, null);
+    }
     return normalized;
   }
 
@@ -385,6 +459,8 @@
     save,
     remove,
     cleanupRemovedSnapshotReferences,
+    purgeLegacyStoredRows,
+    isCurrentStoredSnapshot,
     markSelectedForProject,
     syncSelectionForProjectStatus,
     getRecommendedStatusForProject,
@@ -410,4 +486,6 @@
     isRejectedSnapshot,
     getEffectiveVersionName,
   };
+
+  try{ purgeLegacyStoredRows('module-load-current-snapshot-schema'); }catch(_){ }
 })();

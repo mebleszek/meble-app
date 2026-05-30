@@ -937,3 +937,10 @@ Szczegółowy opis mechanizmu backupu, zakresu snapshotów, retencji i testów z
 - Cel: usunięcie wpływu starej aktywnej `fc_edit_session_v1`, która mogła przywracać usunięte snapshoty ofert.
 - Usuwanie snapshotu czyści również jego kopię w sesji edycji, a diagnostyka WYCENY pokazuje build `20260530_wycena_orphan_edit_session_cleanup_v1`.
 - Szczegóły techniczne: `DEV.md` oraz `tools/reports/wycena-orphan-edit-session-cleanup-v1.md`.
+
+## WYCENA snapshot clean store v1 — 2026-05-30
+
+- WYCENA zapisuje nowe snapshoty w lekkim formacie `quote-snapshot-slim-v1` bez pełnych katalogów w historii ofert.
+- Stare ciężkie snapshoty są odcinane; program ma działać czysto od teraz, bez ratowania starych ofert po regresji.
+- Zachowany jest docelowy model: wiele ofert/wariantów na projekt, statusy/wybór/akceptacja/odrzucenie oraz linie potrzebne do przyszłych list zakupowych i czynności.
+- Zapis historii ofert jest weryfikowany; błąd localStorage nie jest już ukrywany jako udana wycena.

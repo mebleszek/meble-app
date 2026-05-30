@@ -9,7 +9,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | Pliki JS | 361 |
 | Skrypty w index.html | 285 |
 | Skrypty w dev_tests.html | 318 |
-| Krawędzie zależności po symbolach FC | 1893 |
+| Krawędzie zależności po symbolach FC | 1892 |
 | Symbole FC z właścicielem produkcyjnym | 261 |
 | Symbole FC z właścicielem razem | 289 |
 | Pliki z ryzykiem wysokim / nie ruszać | 11 |
@@ -21,7 +21,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | --- | --- | --- | --- | --- | --- | --- |
 | TESTY | 53 | 12480 | 242 | 1 | 5 | 32 |
 | ROZRYS | 42 | 8860 | 6 | 0 | 1 | 5 |
-| WYCENA | 47 | 8617 | 9 | 0 | 3 | 5 |
+| WYCENA | 47 | 8737 | 12 | 0 | 3 | 5 |
 | SZAFKI | 31 | 7597 | 0 | 0 | 0 | 4 |
 | MATERIAŁ | 27 | 5702 | 8 | 3 | 0 | 3 |
 | KATALOG/USŁUGI | 24 | 4789 | 4 | 0 | 1 | 2 |
@@ -59,9 +59,9 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/material/price-modal-hardware-form.js | 563 | MATERIAŁ | niskie |
 | js/app/catalog/catalog-store.js | 524 | KATALOG/USŁUGI | wysokie |
 | js/app/rozrys/rozrys-render.js | 493 | ROZRYS | średnie |
+| js/app/quote/quote-snapshot-store.js | 492 | WYCENA | wysokie |
 | js/testing/rozrys/tests.js | 475 | TESTY | wysokie |
 | js/app/ui/actions-register.js | 473 | UI | średnie |
-| js/app/cabinet/cabinet-choice-launchers.js | 423 | SZAFKI | niskie |
 
 ## Największy wpływ bezpośredni
 
@@ -108,7 +108,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/quote/quote-snapshot-store.js | 71 | WYCENA | wysokie |
 | js/app/quote/quote-snapshot.js | 61 | WYCENA | średnie |
 | js/app/investor/investor-persistence.js | 60 | INWESTOR | średnie |
-| js/app/catalog/catalog-store.js | 57 | KATALOG/USŁUGI | wysokie |
+| js/app/catalog/catalog-store.js | 56 | KATALOG/USŁUGI | wysokie |
 | js/app/rozrys/rozrys.js | 55 | ROZRYS | wysokie |
 | js/app/rozrys/rozrys-shell.js | 54 | ROZRYS | średnie |
 | js/app/investor/investors-model.js | 53 | INWESTOR | niskie |
@@ -132,11 +132,11 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/wycena/wycena-context-repair.js | 5 | WYCENA | wysokie |
 | js/app/catalog/catalog-storage-policy.js | 4 | KATALOG/USŁUGI | niskie |
 | js/app/material/material-part-options.js | 4 | MATERIAŁ | niskie |
+| js/app/quote/quote-snapshot-store.js | 4 | WYCENA | wysokie |
 | js/app/shared/data-storage-audit.js | 4 | DANE/STORAGE | niskie |
 | js/app/bootstrap/reload-restore.js | 3 | BOOT/APP SHELL | niskie |
 | js/app/investor/investor-project-repository.js | 3 | INWESTOR | niskie |
 | js/app/material/material-edge-store.js | 3 | MATERIAŁ | niskie |
-| js/app/shared/data-backup-snapshot-apply.js | 3 | DANE/STORAGE | niskie |
 
 ## Pliki ryzykowne
 
@@ -146,11 +146,11 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/wycena/wycena-diagnostics.js | wysokie | 13 | 788 | 6 | 47 | 600+ linii; kilka zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą; łączy DOM/eventy i storage |
 | js/testing/cabinet/tests.js | wysokie | 10 | 1010 | 6 | 33 | 600+ linii; kilka publicznych symboli FC; kilka zależnych plików; dużo zależności wychodzących; dużo DOM i publicznego API |
 | js/app/rozrys/rozrys.js | wysokie | 10 | 842 | 11 | 55 | 600+ linii; dużo zależnych plików; dużo zależności wychodzących |
+| js/app/quote/quote-snapshot-store.js | wysokie | 10 | 492 | 44 | 71 | 400+ linii; dużo zależnych plików; kilka zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/testing/rozrys/tests.js | wysokie | 10 | 475 | 10 | 37 | 400+ linii; dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
-| js/app/quote/quote-snapshot-store.js | wysokie | 10 | 414 | 44 | 71 | 400+ linii; dużo zależnych plików; kilka zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/testing/wycena/suites/central-status-sync.js | wysokie | 9 | 649 | 15 | 23 | 600+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/app/wycena/wycena-context-repair.js | wysokie | 8 | 578 | 2 | 8 | 400+ linii; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
-| js/app/catalog/catalog-store.js | wysokie | 8 | 524 | 19 | 57 | 400+ linii; dużo zależnych plików; dużo zależności wychodzących |
+| js/app/catalog/catalog-store.js | wysokie | 8 | 524 | 19 | 56 | 400+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/rozrys/suites/helpers-bridges.js | wysokie | 8 | 390 | 14 | 36 | 250+ linii; dużo publicznych symboli FC; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/test-data-manager.js | średnie | 7 | 393 | 15 | 32 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/testing/wycena/fixtures.js | średnie | 7 | 154 | 16 | 24 | dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
@@ -165,8 +165,8 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/wycena/suites/investor-integration.js | średnie | 6 | 356 | 15 | 23 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/rozrys/suites/project-stock.js | średnie | 6 | 342 | 16 | 38 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/wycena/suites/architecture-contract.js | średnie | 6 | 321 | 15 | 23 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
+| js/app/quote/quote-snapshot.js | średnie | 6 | 309 | 11 | 61 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących |
 | js/testing/rozrys/suites/state-ui-runtime.js | średnie | 6 | 305 | 7 | 21 | 250+ linii; kilka publicznych symboli FC; kilka zależnych plików; dużo zależności wychodzących |
-| js/app/quote/quote-snapshot.js | średnie | 6 | 301 | 11 | 61 | 250+ linii; dużo zależnych plików; kilka zależności wychodzących |
 | js/testing/wycena/suites/core-offer-workflow.js | średnie | 6 | 277 | 15 | 23 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/wycena/suites/core-offer-basics.js | średnie | 6 | 252 | 23 | 37 | 250+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/investor/suites/recovery-isolation.js | średnie | 6 | 208 | 8 | 9 | kilka zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |

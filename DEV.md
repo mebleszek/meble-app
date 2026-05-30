@@ -1,3 +1,20 @@
+# WYCENA snapshot clean store v1 — 2026-05-30
+
+- Aktualna paczka robocza po tym etapie: `site_wycena_snapshot_clean_store_v1.zip`.
+- Baza startowa: `site_wycena_render_source_diagnostics_v1.zip`.
+- Po raportach diagnostycznych ustalono, że silnik WYCENY liczy poprawnie, ale historia może nadal pokazywać stary `wariant 2`, bo nowe snapshoty nie zawsze były widoczne po zapisie, a stare ciężkie snapshoty zawierały pełne katalogi.
+- Stare snapshoty/oferty WYCENY sprzed czystego formatu nie są już migrowane ani ratowane. `quote-snapshot-store` odcina i czyści legacy rekordy z `fc_quote_snapshots_v1` przy starcie modułu.
+- Nowy format snapshotu: `version: 7`, `meta.storageSchema: quote-snapshot-slim-v1`, bez pola `catalogs`.
+- Nowy snapshot zachowuje korelację wielu ofert/wariantów i statusów przez `id`, `project`, `investor`, `scope`, `commercial`, `totals`, `meta` i `lines`. Linie pozostają źródłem dla przyszłych list wykonawczych: zakupów, materiałów, okuć, usług/AGD i czynności robocizny.
+- Zapis `fc_quote_snapshots_v1` jest teraz twardy: `quote-snapshot-store` zapisuje bezpośrednio, weryfikuje liczbę rekordów i obecność ID; przy błędzie rzuca widoczny błąd zamiast cichego sukcesu.
+- `wycena-core.buildQuoteSnapshot()` i `quoteSnapshot.saveSnapshot()` nie połykają już błędów zapisu snapshotu.
+- `wycena-tab-shell` przerywa generowanie błędem, jeśli snapshot po zapisie nie jest widoczny w store.
+- Stary draft nazwy automatycznej typu `Oferta — A — wariant 2` resetuje się do nazwy bazowej, jeśli aktualny clean store nie ma snapshotów dla danego scope.
+- Dodano `tools/wycena-snapshot-clean-store-smoke.js`: legacy purge, slim snapshoty, wiele wariantów, wybrany status i reset starego wariantu.
+- Podbito cache-busting dla zmienionych modułów WYCENY/QUOTE oraz diagnostyki.
+- Nie ruszano katalogu okuć, resolvera okuć, import/export Excel, backupów/retencji, PRO100, usług stolarskich, ROZRYS, RYSUNKU ani panelu `Kategorie / rodzaje okuć`.
+- Raport: `tools/reports/wycena-snapshot-clean-store-v1.md`.
+
 # WYCENA render source diagnostics v1 — 2026-05-30
 
 - Aktualna paczka robocza po tym etapie: `site_wycena_render_source_diagnostics_v1.zip`.

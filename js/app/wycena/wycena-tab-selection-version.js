@@ -69,6 +69,26 @@
       .normalize('NFD').replace(/[̀-ͯ]/g, '');
   }
 
+  function escapeRegExp(value){
+    return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function isAutoVariantNameForDefault(versionName, defaultName){
+    const current = String(versionName || '').trim();
+    const base = String(defaultName || '').trim();
+    if(!current || !base) return false;
+    if(current === base) return true;
+    return new RegExp('^' + escapeRegExp(base) + '\\s+—\\s+wariant\\s+\\d+$', 'i').test(current);
+  }
+
+  function listExactRowsForSelection(projectId, selectedRooms, preliminary){
+    if(!projectId || !Array.isArray(selectedRooms) || !selectedRooms.length) return [];
+    try{
+      if(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.listExactScopeSnapshots === 'function') return FC.quoteScopeEntry.listExactScopeSnapshots(projectId, selectedRooms, { preliminary:!!preliminary, includeRejected:false }) || [];
+    }catch(_){ }
+    return [];
+  }
+
   function sameRoomScope(leftRooms, rightRooms){
     try{
       if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.sameRoomScope === 'function') return FC.quoteSnapshotStore.sameRoomScope(leftRooms, rightRooms);
@@ -126,10 +146,16 @@
     if(!currentVersionName){ diagVersion('coerce:no-current-name', { selectedRooms, preliminary, defaultName }); return defaultName; }
     if(currentVersionName === defaultName){ diagVersion('coerce:already-default', { selectedRooms, preliminary, currentVersionName, defaultName }); return currentVersionName; }
     const projectId = getCurrentProjectId(deps);
+    const exactRows = listExactRowsForSelection(projectId, selectedRooms, preliminary);
+    const staleAutoVariant = !exactRows.length && isAutoVariantNameForDefault(currentVersionName, defaultName);
+    if(staleAutoVariant){
+      diagVersion('coerce:stale-auto-variant-reset', { projectId, selectedRooms, preliminary, currentVersionName, defaultName, exactScopeCount:0 });
+      return defaultName;
+    }
     const existsDifferentScope = projectId && selectedRooms.length && versionNameExistsForDifferentExactScope(projectId, selectedRooms, preliminary, currentVersionName);
     const existsSameScope = projectId && selectedRooms.length && isVersionNameTakenForScope(projectId, selectedRooms, preliminary, currentVersionName);
     const resultName = existsDifferentScope ? defaultName : currentVersionName;
-    diagVersion('coerce:decision', { projectId, selectedRooms, preliminary, currentVersionName, defaultName, existsDifferentScope:!!existsDifferentScope, existsSameScope:!!existsSameScope, resultName });
+    diagVersion('coerce:decision', { projectId, selectedRooms, preliminary, currentVersionName, defaultName, exactScopeCount:exactRows.length, existsDifferentScope:!!existsDifferentScope, existsSameScope:!!existsSameScope, resultName });
     if(existsDifferentScope) return defaultName;
     if(existsSameScope) return currentVersionName;
     return currentVersionName;
@@ -173,7 +199,7 @@
     let exactRows = [];
     try{
       const projectId = getCurrentProjectId(deps);
-      if(projectId && selectedRooms.length && FC.quoteScopeEntry && typeof FC.quoteScopeEntry.listExactScopeSnapshots === 'function') exactRows = FC.quoteScopeEntry.listExactScopeSnapshots(projectId, selectedRooms, { preliminary, includeRejected:false }) || [];
+      if(projectId && selectedRooms.length) exactRows = listExactRowsForSelection(projectId, selectedRooms, preliminary);
     }catch(_){ exactRows = []; }
     const shouldPrompt = shouldPromptForVersionNameOnGenerate(selection, draft, deps);
     diagVersion('ensure-before-generate', { selectedRooms, preliminary, currentVersionName:String(commercial.versionName || '').trim(), coercedVersionName, exactScopeCount:Array.isArray(exactRows) ? exactRows.length : null, exactRows:summarizeVersionRows(exactRows), shouldPrompt:!!shouldPrompt });
@@ -217,5 +243,6 @@
     resolveVersionNameAfterRoomChange,
     buildPromptScopeLead,
     ensureVersionNameBeforeGenerate,
+    isAutoVariantNameForDefault,
   };
 })();

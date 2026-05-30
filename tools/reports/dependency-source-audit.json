@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-30T10:09:29.083Z",
+  "generatedAt": "2026-05-30T20:23:49.115Z",
   "summary": {
     "jsFiles": 361,
     "indexScripts": 285,
     "devTestScripts": 318,
     "fcSymbols": 261,
     "fcSymbolsAll": 289,
-    "edges": 1893,
+    "edges": 1892,
     "highRisk": 11,
     "mediumRisk": 67
   },
@@ -77,8 +77,8 @@
     },
     "WYCENA": {
       "files": 47,
-      "lines": 8617,
-      "storageRefs": 9,
+      "lines": 8737,
+      "storageRefs": 12,
       "dialogRefs": 0,
       "high": 3,
       "medium": 5
@@ -226,16 +226,16 @@
       493
     ],
     [
+      "js/app/quote/quote-snapshot-store.js",
+      492
+    ],
+    [
       "js/testing/rozrys/tests.js",
       475
     ],
     [
       "js/app/ui/actions-register.js",
       473
-    ],
-    [
-      "js/app/cabinet/cabinet-choice-launchers.js",
-      423
     ]
   ],
   "topIncoming": [
@@ -387,7 +387,7 @@
     ],
     [
       "js/app/catalog/catalog-store.js",
-      57
+      56
     ],
     [
       "js/app/rozrys/rozrys.js",
@@ -464,6 +464,10 @@
       4
     ],
     [
+      "js/app/quote/quote-snapshot-store.js",
+      4
+    ],
+    [
       "js/app/shared/data-storage-audit.js",
       4
     ],
@@ -477,10 +481,6 @@
     ],
     [
       "js/app/material/material-edge-store.js",
-      3
-    ],
-    [
-      "js/app/shared/data-backup-snapshot-apply.js",
       3
     ]
   ],
@@ -565,6 +565,25 @@
       ]
     },
     {
+      "file": "js/app/quote/quote-snapshot-store.js",
+      "risk": "wysokie",
+      "score": 10,
+      "area": "WYCENA",
+      "category": "store/storage",
+      "lines": 492,
+      "incoming": 44,
+      "outgoing": 9,
+      "secondLevel": 71,
+      "storageRefs": 4,
+      "dialogRefs": 0,
+      "reasons": [
+        "400+ linii",
+        "dużo zależnych plików",
+        "kilka zależności wychodzących",
+        "bezpośredni storage poza oczywistą granicą"
+      ]
+    },
+    {
       "file": "js/testing/rozrys/tests.js",
       "risk": "wysokie",
       "score": 10,
@@ -580,25 +599,6 @@
         "400+ linii",
         "dużo zależnych plików",
         "dużo zależności wychodzących",
-        "bezpośredni storage poza oczywistą granicą"
-      ]
-    },
-    {
-      "file": "js/app/quote/quote-snapshot-store.js",
-      "risk": "wysokie",
-      "score": 10,
-      "area": "WYCENA",
-      "category": "store/storage",
-      "lines": 414,
-      "incoming": 44,
-      "outgoing": 9,
-      "secondLevel": 71,
-      "storageRefs": 1,
-      "dialogRefs": 0,
-      "reasons": [
-        "400+ linii",
-        "dużo zależnych plików",
-        "kilka zależności wychodzących",
         "bezpośredni storage poza oczywistą granicą"
       ]
     },
@@ -647,7 +647,7 @@
       "lines": 524,
       "incoming": 19,
       "outgoing": 12,
-      "secondLevel": 57,
+      "secondLevel": 56,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -909,6 +909,24 @@
       ]
     },
     {
+      "file": "js/app/quote/quote-snapshot.js",
+      "risk": "średnie",
+      "score": 6,
+      "area": "WYCENA",
+      "category": "domain/controller",
+      "lines": 309,
+      "incoming": 11,
+      "outgoing": 8,
+      "secondLevel": 61,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików",
+        "kilka zależności wychodzących"
+      ]
+    },
+    {
       "file": "js/testing/rozrys/suites/state-ui-runtime.js",
       "risk": "średnie",
       "score": 6,
@@ -925,24 +943,6 @@
         "kilka publicznych symboli FC",
         "kilka zależnych plików",
         "dużo zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/app/quote/quote-snapshot.js",
-      "risk": "średnie",
-      "score": 6,
-      "area": "WYCENA",
-      "category": "domain/controller",
-      "lines": 301,
-      "incoming": 11,
-      "outgoing": 9,
-      "secondLevel": 61,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "250+ linii",
-        "dużo zależnych plików",
-        "kilka zależności wychodzących"
       ]
     },
     {
@@ -1387,7 +1387,7 @@
       "score": 5,
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 102,
+      "lines": 100,
       "incoming": 15,
       "outgoing": 8,
       "secondLevel": 46,
@@ -3374,7 +3374,6 @@
         "catalogSelectors"
       ],
       "incomingFiles": [
-        "js/app/quote/quote-snapshot.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/wycena/wycena-core-catalog.js",
         "js/app/wycena/wycena-core-labor.js",
@@ -3388,26 +3387,16 @@
         "js/app/shared/utils.js"
       ],
       "secondLevelFiles": [
-        "js/app/project/project-status-scope.js",
-        "js/app/quote/quote-offer-store.js",
-        "js/app/quote/quote-pdf.js",
-        "js/app/quote/quote-snapshot-scope.js",
-        "js/app/quote/quote-snapshot-store.js",
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core-material-plan.js",
-        "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core.js",
-        "js/app/wycena/wycena-diagnostics.js",
-        "js/app/wycena/wycena-tab-data.js",
-        "js/app/wycena/wycena-tab-helpers.js",
         "js/tabs/czynnosci.js",
         "js/tabs/wycena.js",
         "js/tabs/wywiad.js",
         "js/testing/service/tests.js",
-        "js/testing/wycena/suites/architecture-contract.js",
-        "js/testing/wycena/suites/core-offer-basics.js"
+        "js/testing/wycena/suites/architecture-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -3541,7 +3530,6 @@
         "js/app/material/price-modal-options.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/material/price-modal.js",
-        "js/app/quote/quote-snapshot.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/app/service/cutting/service-order-detail.js",
@@ -8832,7 +8820,7 @@
     "js/app/quote/quote-snapshot-store.js": {
       "area": "WYCENA",
       "category": "store/storage",
-      "lines": 414,
+      "lines": 492,
       "defines": [
         "quoteSnapshotStore"
       ],
@@ -8841,9 +8829,9 @@
         "storage",
         "utils",
         "wycenaDiagnostics",
-        "quoteSnapshotScope",
         "quoteSnapshot",
         "session",
+        "quoteSnapshotScope",
         "quoteSnapshotSelection",
         "quoteSnapshotStore"
       ],
@@ -8977,7 +8965,7 @@
         "js/testing/wycena/suites/status-reconciliation-regression.js",
         "js/testing/wycena/tests.js"
       ],
-      "storageRefs": 1,
+      "storageRefs": 4,
       "dialogRefs": 0,
       "domRefs": 0,
       "loadedInIndex": true,
@@ -8993,7 +8981,7 @@
     "js/app/quote/quote-snapshot.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 301,
+      "lines": 309,
       "defines": [
         "quoteSnapshot"
       ],
@@ -9003,7 +8991,6 @@
         "projectStore",
         "roomRegistry",
         "rozrysScope",
-        "catalogSelectors",
         "wycenaCore",
         "quoteSnapshotStore",
         "quoteSnapshot"
@@ -9023,7 +9010,6 @@
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
-        "js/app/catalog/catalog-selectors.js",
         "js/app/investor/investors-store.js",
         "js/app/project/project-store.js",
         "js/app/quote/quote-snapshot-store.js",
@@ -16247,7 +16233,7 @@
     "js/app/wycena/wycena-core.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 102,
+      "lines": 100,
       "defines": [
         "wycenaCore"
       ],
@@ -17116,7 +17102,7 @@
     "js/app/wycena/wycena-tab-selection-version.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 222,
+      "lines": 249,
       "defines": [
         "wycenaTabSelectionVersion"
       ],
@@ -17202,7 +17188,7 @@
     "js/app/wycena/wycena-tab-shell.js": {
       "area": "WYCENA",
       "category": "ui/render/events",
-      "lines": 250,
+      "lines": 259,
       "defines": [
         "wycenaGenerateAction",
         "wycenaTabShell"

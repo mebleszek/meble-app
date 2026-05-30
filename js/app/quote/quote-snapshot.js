@@ -2,6 +2,8 @@
   'use strict';
   window.FC = window.FC || {};
   const FC = window.FC;
+  const SNAPSHOT_STORAGE_VERSION = 7;
+  const SNAPSHOT_STORAGE_SCHEMA = 'quote-snapshot-slim-v1';
 
   function clone(value){
     try{ return FC.utils && typeof FC.utils.clone === 'function' ? FC.utils.clone(value) : JSON.parse(JSON.stringify(value)); }
@@ -233,7 +235,7 @@
     const materialScope = normalizeMaterialScope(src.materialScope || (src.selection && src.selection.materialScope) || (src.scope && src.scope.materialScope));
     const scopeMode = materialScopeMode(materialScope);
     return {
-      version: 6,
+      version: SNAPSHOT_STORAGE_VERSION,
       generatedAt,
       generatedDate: (()=>{ try{ return new Date(generatedAt).toISOString(); }catch(_){ return ''; } })(),
       investor: investor ? {
@@ -254,16 +256,22 @@
         materialScope: clone(materialScope),
         materialScopeMode: scopeMode,
       },
-      catalogs: FC.catalogSelectors && typeof FC.catalogSelectors.getFurnitureCatalogSnapshot === 'function'
-        ? FC.catalogSelectors.getFurnitureCatalogSnapshot()
-        : null,
       lines,
       commercial,
       totals,
       meta: {
-        source:'quote-snapshot',
+        source:'quote-snapshot-slim',
+        storageSchema: SNAPSHOT_STORAGE_SCHEMA,
         preliminary: !!commercial.preliminary,
         versionName: commercial.versionName,
+        lineCounts: {
+          materials: lines.materials.length,
+          elements: lines.elements.length,
+          accessories: lines.accessories.length,
+          agdServices: lines.agdServices.length,
+          quoteRates: lines.quoteRates.length,
+          labor: lines.labor.length,
+        },
         selectedByClient: !!(src.meta && src.meta.selectedByClient),
         acceptedAt: Number(src.meta && src.meta.acceptedAt) > 0 ? Number(src.meta.acceptedAt) : 0,
         acceptedStage: String(src.meta && src.meta.acceptedStage || ''),
@@ -279,9 +287,7 @@
 
   function saveSnapshot(snapshot){
     const normalized = buildSnapshot(snapshot);
-    try{
-      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.save === 'function') return FC.quoteSnapshotStore.save(normalized);
-    }catch(_){ }
+    if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.save === 'function') return FC.quoteSnapshotStore.save(normalized);
     return normalized;
   }
 
@@ -296,5 +302,7 @@
     resolveVersionScopeLabels,
     buildVersionScopeSuffix,
     materialScopeMode,
+    SNAPSHOT_STORAGE_VERSION,
+    SNAPSHOT_STORAGE_SCHEMA,
   };
 })();

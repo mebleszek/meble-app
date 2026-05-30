@@ -50,7 +50,8 @@
         id = getSnapshotIdFromQuote(current) || id;
       }
     }catch(err){
-      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('snapshotSaveRetryError', { id, message:String(err && err.message || err || 'błąd') }); }catch(_){ }
+      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('snapshotSaveRetryError', { id, message:String(err && err.message || err || 'błąd'), code:String(err && err.code || '') }); }catch(_){ }
+      throw err;
     }
     try{
       const visible = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getById === 'function'
@@ -58,7 +59,15 @@
         : false;
       if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('snapshotVisibleInStore', { id, visible });
       if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function' && typeof FC.wycenaDiagnostics.summarizeSnapshotStoreForId === 'function') FC.wycenaDiagnostics.markGenerateTrace('snapshotStoreAfterEnsure', FC.wycenaDiagnostics.summarizeSnapshotStoreForId(id));
-    }catch(_){ }
+      if(!visible){
+        const err = new Error('Snapshot WYCENY został policzony, ale nie zapisał się w historii.');
+        err.code = 'quote_snapshot_not_visible_after_save';
+        err.details = { id };
+        throw err;
+      }
+    }catch(err){
+      if(err && err.code === 'quote_snapshot_not_visible_after_save') throw err;
+    }
     return current;
   }
 

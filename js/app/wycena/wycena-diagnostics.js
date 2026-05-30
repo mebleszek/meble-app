@@ -3,7 +3,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const BUILD = '20260530_wycena_render_source_diagnostics_v1';
+  const BUILD = '20260530_wycena_snapshot_clean_store_v1';
   const EVENT_LIMIT = 60;
   let lastGenerateTrace = null;
   let lastGenerateButtonEvent = null;
