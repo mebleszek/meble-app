@@ -133,6 +133,41 @@
       note: normalizeText(src.note),
     };
   }
+  function materialSeedKey(row){
+    const src = row && typeof row === 'object' ? row : {};
+    const type = normalizeText(src.materialType).toLowerCase();
+    const symbol = normalizeText(src.symbol).toLowerCase();
+    const name = normalizeText(src.name).toLowerCase();
+    return symbol ? `${type}::symbol::${symbol}` : `${type}::name::${name}`;
+  }
+
+  function isEdgeMaterialRow(row){
+    const type = normalizeText(row && row.materialType).toLowerCase();
+    const unit = normalizeMaterialPriceUnit(row && row.priceUnit, row && row.materialType);
+    const name = normalizeText(row && row.name).toLowerCase();
+    return unit === 'mb' || type === 'obrzeże' || type === 'obrzeze' || name.includes('obrze');
+  }
+
+  function ensureStarterMaterialSeeds(rows){
+    const list = (Array.isArray(rows) ? rows : []).map((row)=> normalizeMaterialRow(row));
+    const keys = new Set(list.map(materialSeedKey));
+
+    // PCV zostało dodane po istniejących bazach użytkownika. Ma wejść jako normalna, widoczna pozycja startowa,
+    // ale nie może nadpisać ręcznie wpisanych/edytowanych cenników ani tworzyć ABS.
+    if(!list.some(isEdgeMaterialRow)){
+      const edgeSeed = DEFAULT_SHEET_MATERIALS.find((row)=> normalizeMaterialPriceUnit(row && row.priceUnit, row && row.materialType) === 'mb');
+      if(edgeSeed){
+        const normalized = normalizeMaterialRow(Object.assign({}, edgeSeed));
+        const key = materialSeedKey(normalized);
+        if(!keys.has(key)){
+          keys.add(key);
+          list.push(normalized);
+        }
+      }
+    }
+    return list;
+  }
+
 
   function normalizeAccessoryRow(row){
     try{
@@ -337,7 +372,7 @@
     const supplierSeed = Array.isArray(seeds.hardwareSuppliers) ? seeds.hardwareSuppliers : readList('hardwareSuppliers', DEFAULT_HARDWARE_SUPPLIERS);
     const hardwareSuppliers = normalizeHardwareSuppliers(supplierSeed);
     currentHardwareSettings = Object.assign({}, hardwareSettings, { hardwareSuppliers, hardwareCategories, hardwareTypes, hardwareTechnicalParams });
-    const sheetMaterials = normalizeList(seeds.sheetMaterials, normalizeMaterialRow, DEFAULT_SHEET_MATERIALS).filter((row)=> String(row.materialType || '').trim().toLowerCase() !== 'akcesoria');
+    const sheetMaterials = ensureStarterMaterialSeeds(normalizeList(seeds.sheetMaterials, normalizeMaterialRow, DEFAULT_SHEET_MATERIALS)).filter((row)=> String(row.materialType || '').trim().toLowerCase() !== 'akcesoria');
     const accessorySeedRows = hardwareSeeds && typeof hardwareSeeds.mergeAccessorySeeds === 'function'
       ? hardwareSeeds.mergeAccessorySeeds(seeds.accessories)
       : seeds.accessories;

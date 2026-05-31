@@ -209,8 +209,6 @@
     diagRender('preview:render-input', summarizeQuote(currentQuote, d));
     const roomLabels = getScopeRoomLabels(currentQuote);
     const lines = currentQuote.lines || {};
-    const materialLines = Array.isArray(currentQuote.materialLines) ? currentQuote.materialLines : (Array.isArray(lines.materials) ? lines.materials : []);
-    const accessoryLines = Array.isArray(currentQuote.accessoryLines) ? currentQuote.accessoryLines : (Array.isArray(lines.accessories) ? lines.accessories : []);
     const generatedAt = currentQuote.generatedAt || currentQuote.generatedDate || null;
     if(generatedAt){
       card.appendChild(h('div', { id:'quotePreviewStart' }));
@@ -227,14 +225,10 @@
       card.appendChild(h('p', { class:'muted quote-scope', text:`Pomieszczenia: ${roomLabels.join(', ')}`, style:'margin-top:6px' }));
     }
     card.appendChild(h('p', { class:'muted quote-scope', text:`Zakres elementów: ${d.getMaterialScopeLabel(currentQuote)}`, style:'margin-top:6px' }));
-    renderSection(card, 'Materiały z ROZRYS', materialLines, 'Brak pozycji materiałowych.', d);
-    renderSection(card, 'Akcesoria', accessoryLines, 'Brak pozycji akcesoriów.', d);
-    const laborHint = h('section', { class:'card quote-section quote-section--labor-moved', style:'margin-top:12px;padding:14px;' });
-    laborHint.appendChild(h('h4', { text:'Czynności i robocizna', style:'margin:0 0 8px' }));
-    laborHint.appendChild(h('div', { class:'muted', text:'Szczegółowy podgląd robocizny, montażu AGD i ręcznie dodanych czynności znajduje się w zakładce CZYNNOŚCI.' }));
-    card.appendChild(laborHint);
+    // Główny widok WYCENY ma pozostać skrótem dla klienta/użytkownika: tylko metadane, podsumowanie i historia.
+    // Szczegóły materiałów, akcesoriów i robocizny są dostępne wyłącznie przez klikalne linie podsumowania i modal audytu.
     renderCommercialSection(card, currentQuote, ctx, d);
-    diagRender('preview:render-end', { quote:summarizeQuote(currentQuote, d), materialLines:materialLines.length, accessoryLines:accessoryLines.length, roomLabels });
+    diagRender('preview:render-end', { quote:summarizeQuote(currentQuote, d), materialLines:0, accessoryLines:0, roomLabels, detailsHidden:true });
   }
 
   FC.wycenaTabPreview = {

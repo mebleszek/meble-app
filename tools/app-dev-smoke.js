@@ -848,13 +848,15 @@ function runWycenaNodeSmoke(sandbox){
       const newerExpected = '20260529_wycena_context_richer_source_fix_v1';
       const currentExpected = '20260530_wycena_duplicate_modal_fix_v1';
       const registerExpected = '20260531_quote_calculation_register_v1';
+      const detailsModalExpected = '20260601_quote_details_modal_ui_hardware_match_fix_v1';
+      const auditMaterialsExpected = '20260601_quote_audit_material_quantities_fix_v1';
       const files = ['index.html','dev_tests.html'];
       const scripts = ['wycena-core-selection.js','wycena-core-utils.js','wycena-core-catalog.js','wycena-core-source.js','wycena-core-material-plan.js','wycena-core-offer.js','wycena-core-lines.js','wycena-core-labor.js','wycena-core.js'];
       return files.every((file)=> {
         const html = fs.readFileSync(path.join(process.cwd(), file), 'utf8');
         return scripts.every((script)=> {
           const legacyExpected = script === 'wycena-core-lines.js' ? legacyChangedExpected : legacyBaseExpected;
-          return html.includes(`js/app/wycena/${script}?v=${legacyExpected}`) || html.includes(`js/app/wycena/${script}?v=${newerExpected}`) || html.includes(`js/app/wycena/${script}?v=${currentExpected}`) || html.includes(`js/app/wycena/${script}?v=${registerExpected}`);
+          return html.includes(`js/app/wycena/${script}?v=${legacyExpected}`) || html.includes(`js/app/wycena/${script}?v=${newerExpected}`) || html.includes(`js/app/wycena/${script}?v=${currentExpected}`) || html.includes(`js/app/wycena/${script}?v=${registerExpected}`) || html.includes(`js/app/wycena/${script}?v=${detailsModalExpected}`) || html.includes(`js/app/wycena/${script}?v=${auditMaterialsExpected}`);
         });
       });
     } },

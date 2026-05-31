@@ -1,3 +1,11 @@
+# WYCENA audyt: ukrycie duplikatów, PCV i jednostki materiałów v1 — 2026-06-01
+
+- Paczka: `site_quote_audit_material_quantities_fix_v1.zip`.
+- Główny widok WYCENY nie pokazuje już szczegółowych kart `Materiały z ROZRYS`, `Akcesoria` ani technicznego hintu robocizny. Szczegóły mają być tylko w modalach audytu po kliknięciu linii podsumowania.
+- Naprawiono przeliczanie ilości w rejestrze WYCENY: agregat ROZRYS przekazuje formatki w mm, a modal audytu m²/mb ma pokazywać te same rzędy wielkości co zakładka MATERIAŁ. Usunięto błąd ×100 dla HDF/frontów m² i obrzeży.
+- Obrzeże `Obrzeże PCV standard` jest dopisywane do cennika materiałów jako widoczna cena startowa, jeżeli istniejące dane użytkownika nie mają żadnej pozycji obrzeża/mb. Nie dodawać ABS.
+- Nie zmieniono logiki rozkroju arkuszy, PRO100, ROZRYS, backupów ani pełnego modelu wymagań technicznych wszystkich okuć.
+
 # WYCENA szczegóły modala i dopasowanie okuć v1 — 2026-06-01
 
 - Paczka: `site_quote_details_modal_ui_hardware_match_fix_v1.zip`.

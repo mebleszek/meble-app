@@ -94,3 +94,10 @@ Nie zrobione w v1 i nie zgubić przy kolejnych etapach:
 5. Szczegółowy PDF dla klienta jako opcjonalny tryb — nie domyślnie.
 6. Lista zakupowa i zestawienia wykonawcze generowane z tego samego rejestru, po potwierdzeniu poprawności audytu.
 7. Porządkowy refaktor `quote-snapshot-store.js` dopiero po stabilizacji rejestru.
+
+
+## Doprecyzowanie po kontroli ilości — 2026-06-01
+
+- Główny widok WYCENY nie może dublować szczegółów rejestru. Widoczne zostają metadane oferty, podsumowanie i historia; szczegóły materiałów/akcesoriów/robocizny są tylko w modalach audytu.
+- Agregat ROZRYS przechowuje wymiary formatek w mm (`w/h`), natomiast zakładka MATERIAŁ liczy powierzchnie i okleiny ze źródłowych części w cm (`a/b`). Rejestr WYCENY musi konwertować mm na m²/mb poprawnie, żeby HDF, fronty i obrzeża nie były zawyżone ×100.
+- Startowe obrzeże PCV ma zostać dopisane do istniejących cenników użytkownika, jeżeli nie ma żadnej pozycji obrzeża/mb. To jest normalna, widoczna pozycja startowa w cenniku, nie ukryty fallback.

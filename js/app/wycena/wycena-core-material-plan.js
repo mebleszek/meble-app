@@ -131,12 +131,20 @@
     return String(value || '');
   }
 
+  function partDimToMm(part, keyA, keyB){
+    const raw = Number(part && (part[keyA] != null ? part[keyA] : part[keyB])) || 0;
+    if(!(raw > 0)) return 0;
+    // Części z agregatu ROZRYS są zapisane w mm; surowe części z MATERIAŁU mają cm.
+    // Próg 300 chroni stare ścieżki cm i usuwa błąd ×100 przy m²/HDF/obrzeżach w WYCENIE.
+    return raw > 300 ? raw : raw * 10;
+  }
+
   function partAreaM2(parts){
     return (Array.isArray(parts) ? parts : []).reduce((sum, part)=>{
-      const w = Number(part && (part.w != null ? part.w : part.a)) || 0;
-      const h = Number(part && (part.h != null ? part.h : part.b)) || 0;
+      const wMm = partDimToMm(part, 'w', 'a');
+      const hMm = partDimToMm(part, 'h', 'b');
       const qty = Number(part && part.qty) || 1;
-      return sum + (w * h * qty) / 10000;
+      return sum + (wMm * hMm * qty) / 1000000;
     }, 0);
   }
 
@@ -165,8 +173,9 @@
     return (Array.isArray(parts) ? parts : []).map((part)=>({
       name:String(part && part.name || 'Element'),
       material:String(part && part.material || ''),
-      a:Number(part && (part.a != null ? part.a : part.w)) || 0,
-      b:Number(part && (part.b != null ? part.b : part.h)) || 0,
+      // materialEdgeStore liczy w cm, a agregat ROZRYS podaje mm.
+      a:partDimToMm(part, 'a', 'w') / 10,
+      b:partDimToMm(part, 'b', 'h') / 10,
       qty:Number(part && part.qty) || 1,
     })).filter((part)=> part.a > 0 && part.b > 0);
   }
