@@ -37,6 +37,12 @@
       catalogPriceGross:11.37,
       purchasePriceGross:11.37,
       priceSource:'Bivert',
+      technicalParams:{
+        nalozenie:{ value:'nakładany' },
+        kat_otwarcia:{ from:110 },
+        hamulec:{ value:true },
+        prowadnik:{ value:'standardowy' }
+      },
       note:'Seed katalogu okuć. Cena startowa brutto z Bivert; przed realną ofertą sprawdzić aktualność i własny rabat.'
     }),
     seed({
@@ -50,6 +56,12 @@
       catalogPriceGross:12.85,
       purchasePriceGross:12.85,
       priceSource:'Bivert',
+      technicalParams:{
+        nalozenie:{ value:'wpuszczany' },
+        kat_otwarcia:{ from:110 },
+        hamulec:{ value:true },
+        prowadnik:{ value:'standardowy' }
+      },
       note:'Seed katalogu okuć. Pozycja do frontów wpuszczanych; przed ofertą dobrać właściwy prowadnik i sprawdzić cenę kompletu.'
     }),
     seed({
@@ -63,6 +75,12 @@
       catalogPriceGross:22.51,
       purchasePriceGross:22.51,
       priceSource:'Bivert',
+      technicalParams:{
+        nalozenie:{ value:'nakładany' },
+        kat_otwarcia:{ from:155 },
+        hamulec:{ value:true },
+        prowadnik:{ value:'standardowy' }
+      },
       note:'Seed katalogu okuć. Zerowy uskok 155°; cena startowa brutto z Bivert.'
     }),
     seed({
@@ -76,6 +94,12 @@
       catalogPriceGross:13.48,
       purchasePriceGross:13.48,
       priceSource:'Bivert',
+      technicalParams:{
+        nalozenie:{ value:'nakładany' },
+        kat_otwarcia:{ from:170 },
+        hamulec:{ value:false },
+        prowadnik:{ value:'specjalny' }
+      },
       note:'Seed katalogu okuć. Do szerokiego otwarcia / narożnych rozwiązań; dobrać zgodnie z konstrukcją szafki.'
     }),
     seed({
@@ -128,6 +152,12 @@
       catalogPriceGross:8.00,
       purchasePriceGross:8.00,
       priceSource:'Filon / cena do weryfikacji',
+      technicalParams:{
+        nalozenie:{ value:'nakładany' },
+        kat_otwarcia:{ from:110 },
+        hamulec:{ value:true },
+        prowadnik:{ value:'standardowy' }
+      },
       note:'Seed odpowiednika GTV. Nie jest to pozycja Bivert; przed ofertą sprawdzić realne źródło zakupu i czy wariant ma wymaganą regulację.'
     }),
     seed({

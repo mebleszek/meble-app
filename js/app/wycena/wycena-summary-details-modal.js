@@ -74,19 +74,62 @@
     const labels = FC.quoteCalculationRegister && FC.quoteCalculationRegister.SECTION_LABELS || {};
     return labels[section] || section || 'Szczegóły';
   }
+  function closeSiblingGroups(group){
+    const parent = group && group.parentNode;
+    if(!parent) return;
+    Array.from(parent.querySelectorAll('.quote-detail-group.is-open')).forEach((node)=>{
+      if(node === group) return;
+      node.classList.remove('is-open');
+      const btn = node.querySelector('.quote-detail-group__toggle');
+      if(btn) btn.setAttribute('aria-expanded', 'false');
+    });
+  }
+  function setGroupOpen(group, open, opts){
+    const cfg = opts || {};
+    if(!group) return;
+    if(open && cfg.closeOthers !== false) closeSiblingGroups(group);
+    group.classList.toggle('is-open', !!open);
+    const btn = group.querySelector('.quote-detail-group__toggle');
+    if(btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if(open && cfg.keepScroll !== false){
+      try{ group.scrollIntoView({ block:'nearest', behavior:'smooth' }); }catch(_){ }
+    }
+  }
+  function renderGroup(container, title, rows, sum, options){
+    const cfg = options || {};
+    const box = h('section', { class:'quote-detail-group' + (cfg.open ? ' is-open' : '') });
+    const button = h('button', { type:'button', class:'quote-detail-group__header quote-detail-group__toggle', 'aria-expanded':cfg.open ? 'true' : 'false' });
+    const left = h('div', { class:'quote-detail-group__titleWrap' });
+    left.appendChild(h('div', { class:'quote-detail-group__title', text:title }));
+    const count = Array.isArray(rows) ? rows.length : 0;
+    if(count) left.appendChild(h('div', { class:'quote-detail-group__count', text:`${count} poz.` }));
+    button.appendChild(left);
+    const right = h('div', { class:'quote-detail-group__right' });
+    right.appendChild(h('div', { class:'quote-detail-group__sum', text:money(sum) }));
+    right.appendChild(h('span', { class:'quote-detail-group__chevron', 'aria-hidden':'true', text:'⌄' }));
+    button.appendChild(right);
+    box.appendChild(button);
+    const panel = h('div', { class:'quote-detail-group__panel' });
+    if(Array.isArray(rows) && rows.length){
+      rows.sort((a,b)=> num(b && b.total) - num(a && a.total)).forEach((row)=> panel.appendChild(renderLine(row)));
+    }else{
+      panel.appendChild(h('div', { class:'quote-detail-empty', text:cfg.emptyText || 'Brak pozycji w tej kategorii dla tej oferty.' }));
+    }
+    box.appendChild(panel);
+    button.addEventListener('click', (event)=>{
+      event.preventDefault();
+      setGroupOpen(box, !box.classList.contains('is-open'), { closeOthers:true });
+    });
+    container.appendChild(box);
+    return box;
+  }
   function renderRows(container, rows, groupBy){
     if(!rows.length){
-      container.appendChild(h('div', { class:'quote-detail-empty', text:'Brak pozycji w tej kategorii dla tej oferty.' }));
+      renderGroup(container, 'Brak pozycji', [], 0, { open:true, emptyText:'Brak pozycji w tej kategorii dla tej oferty.' });
       return;
     }
-    grouped(rows, groupBy || 'subsection').forEach(([group, groupRows])=>{
-      const box = h('section', { class:'quote-detail-group' });
-      const header = h('div', { class:'quote-detail-group__header' });
-      header.appendChild(h('div', { class:'quote-detail-group__title', text:group }));
-      header.appendChild(h('div', { class:'quote-detail-group__sum', text:money(groupRows.reduce((sum, row)=> sum + num(row && row.total), 0)) }));
-      box.appendChild(header);
-      groupRows.sort((a,b)=> num(b && b.total) - num(a && a.total)).forEach((row)=> box.appendChild(renderLine(row)));
-      container.appendChild(box);
+    grouped(rows, groupBy || 'subsection').forEach(([group, groupRows], index)=>{
+      renderGroup(container, group, groupRows, groupRows.reduce((sum, row)=> sum + num(row && row.total), 0), { open:index === 0 });
     });
   }
   function renderTotal(container, register){
@@ -94,28 +137,34 @@
     const totals = register && register.totals || {};
     const grand = num(totals.grand || totals.subtotal);
     const ranking = lines.filter((row)=> num(row && row.total) > 0).sort((a,b)=> num(b.total) - num(a.total)).slice(0, 20);
-    const summary = h('section', { class:'quote-detail-group' });
-    summary.appendChild(h('div', { class:'quote-detail-group__header' }, [h('div', { class:'quote-detail-group__title', text:'Podział kosztów' }), h('div', { class:'quote-detail-group__sum', text:money(grand) })]));
-    [
+    const summaryRows = [
       ['Materiały', totals.materials], ['Akcesoria', totals.accessories], ['Robocizna szafek', totals.labor], ['Robocizna / stawki wyceny', totals.quoteRates], ['Montaż AGD', totals.services], ['Rabat', -num(totals.discount)]
-    ].forEach(([label, value])=>{
-      const row = h('div', { class:'quote-detail-total-row' });
-      row.appendChild(h('span', { text:label }));
-      row.appendChild(h('strong', { text:`${money(value)} • ${pct(Math.abs(num(value)), grand || totals.subtotal)}` }));
-      summary.appendChild(row);
-    });
-    container.appendChild(summary);
-    const rank = h('section', { class:'quote-detail-group' });
-    rank.appendChild(h('div', { class:'quote-detail-group__header' }, [h('div', { class:'quote-detail-group__title', text:'Co kosztuje najwięcej' }), h('div', { class:'quote-detail-group__sum', text:`${ranking.length} poz.` })]));
-    if(!ranking.length) rank.appendChild(h('div', { class:'quote-detail-empty', text:'Brak dodatnich pozycji kosztowych.' }));
-    ranking.forEach((row, index)=>{
-      const item = renderLine(Object.assign({}, row, { name:`${index + 1}. ${row.name}` }));
-      rank.appendChild(item);
-    });
-    container.appendChild(rank);
+    ].map(([label, value])=>({ name:label, quantity:1, unit:'', unitPrice:num(value), total:num(value), calculation:'Udział działu w sumie oferty.', note:pct(Math.abs(num(value)), grand || totals.subtotal) + ' wartości oferty' }));
+    renderGroup(container, 'Podział kosztów', summaryRows, grand, { open:true });
+    renderGroup(container, 'Co kosztuje najwięcej', ranking.map((row, index)=> Object.assign({}, row, { name:`${index + 1}. ${row.name}` })), ranking.reduce((sum, row)=> sum + num(row && row.total), 0), { open:false, emptyText:'Brak dodatnich pozycji kosztowych.' });
   }
-  function renderWarnings(container, register){
-    const warnings = Array.isArray(register && register.warnings) ? register.warnings : [];
+  function collectSectionWarnings(register, section){
+    const current = text(section || 'total');
+    const lines = Array.isArray(register && register.lines) ? register.lines : [];
+    const out = [];
+    lines.forEach((row)=>{
+      if(current !== 'total' && text(row && row.section) !== current) return;
+      (Array.isArray(row && row.warnings) ? row.warnings : []).forEach((msg)=>{
+        if(text(msg)) out.push({ section:text(row.section), sectionLabel:text(row.sectionLabel), message:text(msg) });
+      });
+    });
+    (Array.isArray(register && register.warnings) ? register.warnings : []).forEach((row)=>{
+      const rowSection = text(row && row.section);
+      if(current !== 'total' && rowSection && rowSection !== current) return;
+      if(current !== 'total' && !rowSection) return;
+      const label = current === 'total' && text(row && row.sectionLabel) ? text(row.sectionLabel) + ': ' : '';
+      if(text(row && row.message)) out.push({ section:rowSection, sectionLabel:text(row && row.sectionLabel), message:label + text(row.message) });
+    });
+    const seen = new Set();
+    return out.filter((row)=>{ const key = text(row.section) + '|' + text(row.message); if(!text(row.message) || seen.has(key)) return false; seen.add(key); return true; });
+  }
+  function renderWarnings(container, register, section){
+    const warnings = collectSectionWarnings(register, section);
     if(!warnings.length) return;
     const box = h('section', { class:'quote-detail-warnings' });
     box.appendChild(h('div', { class:'quote-detail-warnings__title', text:'Ostrzeżenia / rzeczy do sprawdzenia' }));
@@ -128,12 +177,14 @@
     overlay = h('div', { id:'quoteSummaryDetailsModal', class:'modal-back quote-detail-modal-back', role:'dialog', 'aria-modal':'true', style:'display:none' });
     const modal = h('div', { class:'modal quote-detail-modal' });
     const head = h('div', { class:'header quote-detail-modal__header' });
-    const titleWrap = h('div');
+    const titleWrap = h('div', { class:'quote-detail-modal__titleWrap' });
     titleWrap.appendChild(h('div', { id:'quoteSummaryDetailsTitle', class:'window-modal-title', text:'Szczegóły wyceny' }));
     titleWrap.appendChild(h('div', { id:'quoteSummaryDetailsSubtitle', class:'window-modal-subtitle', text:'Audyt wewnętrzny — dane ze snapshotu oferty.' }));
+    const closeWrap = h('div', { class:'quote-detail-modal__closeWrap' });
     const close = h('button', { type:'button', class:'window-close-btn', 'aria-label':'Zamknij szczegóły wyceny', text:'×' });
     close.addEventListener('click', closeModal);
-    head.appendChild(titleWrap); head.appendChild(close);
+    closeWrap.appendChild(close);
+    head.appendChild(titleWrap); head.appendChild(closeWrap);
     const body = h('div', { id:'quoteSummaryDetailsBody', class:'body quote-detail-modal__body' });
     const foot = h('div', { class:'quote-detail-modal__footer' });
     const exit = h('button', { type:'button', class:'btn-primary', text:'Wróć' });
@@ -163,9 +214,10 @@
     const current = text(section || 'total');
     if(title) title.textContent = current === 'total' ? 'Analiza oferty' : 'Szczegóły: ' + sectionTitle(current);
     if(subtitle) subtitle.textContent = 'Audyt wewnętrzny — pozycje zapisane w rejestrze wyliczeń tej oferty.';
-    renderWarnings(body, register);
+    renderWarnings(body, register, current);
     if(current === 'total') renderTotal(body, register);
     else renderRows(body, lines.filter((row)=> row.section === current), current === 'labor' ? 'sourceLabel' : 'subsection');
+    body.scrollTop = 0;
     overlay.style.display = 'flex';
     try{ if(typeof lockModalScroll === 'function') lockModalScroll(); }catch(_){ }
   }

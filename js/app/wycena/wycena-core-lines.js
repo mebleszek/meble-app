@@ -22,27 +22,168 @@
     return String(fallback || '').trim();
   }
 
+  function hardwareGroupFromMaterial(rawMaterial){
+    const raw = String(rawMaterial || '').replace(/^Okucia:\s*/i, '').trim().toLowerCase();
+    if(/^zawiasy\b/.test(raw) || raw.indexOf('zawias') !== -1) return 'hinges';
+    if(/^podnośniki\b|^podnosniki\b/.test(raw) || raw.indexOf('podnośnik') !== -1 || raw.indexOf('podnosnik') !== -1) return 'lifts';
+    if(/^szuflady\b|^prowadnice\b/.test(raw) || raw.indexOf('prowadnic') !== -1 || raw.indexOf('szuflad') !== -1) return 'drawers';
+    if(/^cargo\b/.test(raw) || raw.indexOf('cargo') !== -1) return 'cargo';
+    return 'accessories';
+  }
+
   function displayHardwareNameFromPreferences(rawMaterial, roomId){
     const raw = String(rawMaterial || '').trim();
     const name = raw.replace(/^Okucia:\s*/i, '').trim() || raw;
-    const lower = name.toLowerCase();
-    if(/^zawiasy\b/.test(lower)){
+    const group = hardwareGroupFromMaterial(name);
+    if(group === 'hinges'){
       const producer = resolvePreferredHardwareProducer(roomId, 'hinges', 'BLUM');
       return producer ? `zawiasy ${producer}` : name;
     }
-    if(/^podnośniki\b|^podnosniki\b/.test(lower)){
+    if(group === 'lifts'){
       const producer = resolvePreferredHardwareProducer(roomId, 'lifts', 'BLUM');
       return producer ? `podnośniki ${producer}` : name;
     }
-    if(/^szuflady\b|^prowadnice\b/.test(lower)){
+    if(group === 'drawers'){
       const producer = resolvePreferredHardwareProducer(roomId, 'drawers', '');
       return producer ? `${name.replace(/\s+[A-ZŁŚŻŹĆŃÓĘĄÄÖÜÉÈÊ]+$/i, '').trim() || 'szuflady / prowadnice'} ${producer}` : name;
     }
-    if(/^cargo\b/.test(lower)){
+    if(group === 'cargo'){
       const producer = resolvePreferredHardwareProducer(roomId, 'cargo', '');
       return producer ? `cargo ${producer}` : name;
     }
     return name;
+  }
+
+  function text(value){ return String(value == null ? '' : value).trim(); }
+  function norm(value){
+    return text(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+  }
+  function moneySource(item){
+    const parts = [];
+    if(text(item && item.priceSource)) parts.push(text(item.priceSource));
+    if(text(item && item.priceUpdatedAt)) parts.push('cena z ' + text(item.priceUpdatedAt));
+    return parts.join(' • ');
+  }
+  function hardwareItemLabel(item){
+    const src = item || {};
+    const parts = [text(src.manufacturer), text(src.name)].filter(Boolean);
+    const name = parts.join(' — ') || text(src.name) || 'Okucie z katalogu';
+    return text(src.symbol) ? `${name} (${text(src.symbol)})` : name;
+  }
+  function getAccessoryCatalogRows(){
+    try{
+      if(FC.catalogStore && typeof FC.catalogStore === 'function'){
+        const store = FC.catalogStore();
+        if(store && typeof store.getAccessories === 'function') return store.getAccessories();
+      }
+    }catch(_){ }
+    try{ return Array.isArray(typeof accessories !== 'undefined' ? accessories : []) ? accessories : []; }catch(_){ return []; }
+  }
+  function getHardwareTechnicalDefinitions(){
+    try{
+      if(FC.catalogStore && typeof FC.catalogStore === 'function'){
+        const store = FC.catalogStore();
+        if(store && typeof store.getHardwareTechnicalParams === 'function') return store.getHardwareTechnicalParams();
+      }
+    }catch(_){ }
+    return FC.hardwareTechnicalParams && FC.hardwareTechnicalParams.DEFAULT_DEFINITIONS || [];
+  }
+  function normalizeCandidateItem(row){
+    const src = row || {};
+    try{
+      if(FC.hardwareCatalog && typeof FC.hardwareCatalog.normalizeAccessory === 'function'){
+        return FC.hardwareCatalog.normalizeAccessory(src, ()=> text(src.id) || 'quote_hw_candidate', {
+          hardwareTechnicalParams:getHardwareTechnicalDefinitions(),
+          hardwareSuppliers:[]
+        });
+      }
+    }catch(_){ }
+    return src;
+  }
+  function categoryMatches(itemCategory, reqCategory){
+    const a = norm(itemCategory);
+    const b = norm(reqCategory);
+    if(!a || !b) return false;
+    if(a === b) return true;
+    if(b === 'zawiasy') return a.indexOf('zawias') !== -1;
+    if(b.indexOf('szuflad') !== -1) return a.indexOf('szuflad') !== -1 || a.indexOf('prowadnic') !== -1;
+    if(b.indexOf('podnosnik') !== -1) return a.indexOf('podnosnik') !== -1;
+    if(b.indexOf('cargo') !== -1) return a.indexOf('cargo') !== -1;
+    return false;
+  }
+  function requirementText(req){
+    const r = req || {};
+    const parts = [];
+    if(text(r.label)) parts.push(text(r.label));
+    if(text(r.ruleId)) parts.push('reguła: ' + text(r.ruleId));
+    return parts.join(' • ');
+  }
+  function candidateNameFallbackScore(item, req){
+    const n = norm([item && item.name, item && item.symbol, item && item.hardwareType].filter(Boolean).join(' '));
+    const typeId = norm(req && req.typeId);
+    let score = 0;
+    if(typeId.indexOf('110') !== -1 && n.indexOf('110') !== -1) score += 4;
+    if(typeId.indexOf('155') !== -1 && n.indexOf('155') !== -1) score += 6;
+    if(typeId.indexOf('170') !== -1 && n.indexOf('170') !== -1) score += 6;
+    if(typeId.indexOf('parallel') !== -1 && (n.indexOf('rownolegl') !== -1 || n.indexOf('79b9550') !== -1)) score += 8;
+    if(typeId.indexOf('fridge') !== -1 && (n.indexOf('lodow') !== -1 || n.indexOf('91k9550') !== -1)) score += 8;
+    const label = norm(req && req.label);
+    if(label.indexOf('nakladany') !== -1 && n.indexOf('naklad') !== -1) score += 2;
+    if(label.indexOf('wpuszczany') !== -1 && n.indexOf('wpuszcz') !== -1) score += 2;
+    if(label.indexOf('lodowkowy') !== -1 && n.indexOf('lodow') !== -1) score += 3;
+    if(label.indexOf('narozny') !== -1 && (n.indexOf('naroz') !== -1 || n.indexOf('170') !== -1)) score += 3;
+    return score;
+  }
+  function compareRequirementParams(candidate, req){
+    const tech = FC.hardwareTechnicalParams || null;
+    const definitions = getHardwareTechnicalDefinitions();
+    const category = text(req && req.category) || text(candidate && candidate.hardwareCategory);
+    const reqParams = req && req.technicalParams && typeof req.technicalParams === 'object' ? req.technicalParams : {};
+    const candParams = candidate && candidate.technicalParams && typeof candidate.technicalParams === 'object' ? candidate.technicalParams : {};
+    const fields = tech && typeof tech.fieldsForCategory === 'function' ? tech.fieldsForCategory(definitions, category) : [];
+    const checks = [];
+    let score = 0;
+    let required = 0;
+    fields.filter((field)=> field && field.active !== false && field.keyFeature !== false && field.compareMode !== 'ignore').forEach((field)=>{
+      const reqValue = reqParams[field.key];
+      if(!reqValue) return;
+      required += 1;
+      const candValue = candParams[field.key];
+      let ok = false;
+      try{ ok = !!(tech && typeof tech.compareParam === 'function' ? tech.compareParam(field, reqValue, candValue) : false); }catch(_){ ok = false; }
+      checks.push({ key:field.key, ok, hasCandidate:!!candValue });
+      if(ok) score += 10;
+      else if(candValue) score -= 12;
+      else score -= 4;
+    });
+    return { score, required, checks, matched:checks.filter((row)=> row.ok).length };
+  }
+  function resolveHardwareRequirement(req, roomId, rawMaterial){
+    const r = req && typeof req === 'object' ? req : null;
+    const group = r && text(r.hardwareGroup) ? text(r.hardwareGroup) : hardwareGroupFromMaterial(rawMaterial);
+    const preferredProducer = resolvePreferredHardwareProducer(roomId, group, group === 'hinges' ? 'BLUM' : '');
+    if(!r || r.kind === 'none' || r.kind === 'future'){
+      return { item:null, preferredProducer, requirement:r, warning:r && r.kind === 'future' ? text(r.reason) : '' };
+    }
+    const rows = getAccessoryCatalogRows().map(normalizeCandidateItem).filter((item)=>{
+      if(!item || text(item.status) === 'inactive') return false;
+      if(!categoryMatches(item.hardwareCategory || item.category, r.category || '')) return false;
+      if(preferredProducer && norm(item.manufacturer) !== norm(preferredProducer)) return false;
+      return true;
+    });
+    let best = null;
+    rows.forEach((item)=>{
+      const param = compareRequirementParams(item, r);
+      const fallback = candidateNameFallbackScore(item, r);
+      const priceBonus = Number(item && item.price) > 0 ? 2 : 0;
+      const score = param.score + fallback + priceBonus;
+      const record = { item, score, param, fallback };
+      if(!best || record.score > best.score) best = record;
+    });
+    if(best && (best.param.matched > 0 || best.fallback >= 4 || best.score > 0)){
+      return { item:best.item, preferredProducer, requirement:r, score:best.score };
+    }
+    return { item:null, preferredProducer, requirement:r, warning:'Nie znaleziono konkretnej pozycji katalogu spełniającej wymaganie techniczne.' };
   }
 
   function collectAccessories(selectedRooms){
@@ -56,23 +197,61 @@
         const mat = String(part && (part.material || part.name) || '').trim();
         if(a > 0 && b > 0) return;
         if(!mat) return;
-        const name = displayHardwareNameFromPreferences(mat, roomId);
-        const key = utils.slug(name);
+        const req = part && part.hardwareRequirement && typeof part.hardwareRequirement === 'object' ? part.hardwareRequirement : null;
+        const resolved = resolveHardwareRequirement(req, roomId, mat);
+        const priceItem = resolved.item || catalog.accessoryPriceLookup(mat) || catalog.accessoryPriceLookup(displayHardwareNameFromPreferences(mat, roomId));
+        const fallbackName = req && text(req.label)
+          ? `Wymaganie: ${text(req.label)}${resolved.preferredProducer ? ' — ' + resolved.preferredProducer : ''}`
+          : displayHardwareNameFromPreferences(mat, roomId);
+        const name = priceItem ? hardwareItemLabel(priceItem) : fallbackName;
+        const reqKey = req && (text(req.typeId) || text(req.ruleId) || text(req.label));
+        const key = utils.slug(priceItem && (priceItem.id || priceItem.symbol || priceItem.name) || [resolved.preferredProducer, reqKey, name].filter(Boolean).join('_'));
         const qty = Math.max(0, Number(part && part.qty) || 0) || 1;
-        const prev = rows.get(key) || { key, type:'accessory', name, qty:0, unitPrice:0, total:0, rooms:new Set() };
+        const prev = rows.get(key) || {
+          key,
+          type:'accessory',
+          name,
+          qty:0,
+          unitPrice:0,
+          total:0,
+          unit:text(priceItem && priceItem.hardwareUnit) || 'szt.',
+          rooms:new Set(),
+          warnings:[],
+          noteParts:new Set(),
+          hardwareRequirement:req || null,
+          resolvedHardwareItemId:text(priceItem && priceItem.id),
+          resolvedHardwareSymbol:text(priceItem && priceItem.symbol),
+        };
         prev.qty += qty;
         prev.rooms.add(rl);
-        const originalName = mat.replace(/^Okucia:\s*/i, '').trim() || mat;
-        const priceItem = catalog.accessoryPriceLookup(name) || catalog.accessoryPriceLookup(mat) || catalog.accessoryPriceLookup(originalName) || catalog.materialPriceLookup(name) || catalog.materialPriceLookup(mat) || catalog.materialPriceLookup(originalName);
-        prev.unitPrice = Number(priceItem && priceItem.price) || prev.unitPrice || 0;
-        prev.starterPrice = !!(priceItem && priceItem.starterPrice === true && !String(priceItem.priceUserEditedAt || '').trim());
-        prev.priceUserEditedAt = String(priceItem && priceItem.priceUserEditedAt || '');
-        prev.calculation = 'Cena = ilość okuć/akcesoriów × cena do wyceny z katalogu okuć.';
+        if(priceItem){
+          prev.name = hardwareItemLabel(priceItem);
+          prev.unit = text(priceItem.hardwareUnit) || prev.unit || 'szt.';
+          prev.unitPrice = Number(priceItem.price) || prev.unitPrice || 0;
+          prev.starterPrice = !!(priceItem.starterPrice === true && !String(priceItem.priceUserEditedAt || '').trim());
+          prev.priceUserEditedAt = String(priceItem.priceUserEditedAt || '');
+          const src = moneySource(priceItem);
+          if(src) prev.noteParts.add(src);
+        }else{
+          prev.warnings.push(`Wymagane okucie „${text(req && req.label) || mat}”${resolved.preferredProducer ? ' producent ' + resolved.preferredProducer : ''}, ale nie znaleziono konkretnej pozycji w katalogu okuć.`);
+        }
+        if(req){
+          prev.noteParts.add('Wymaganie: ' + requirementText(req));
+          if(resolved.preferredProducer) prev.noteParts.add('Producent z preferencji: ' + resolved.preferredProducer);
+        }
+        if(!prev.unitPrice) prev.warnings.push('Akcesorium ma 0 zł — sprawdź cenę w katalogu okuć.');
+        prev.calculation = req
+          ? 'Cena = ilość okuć wymagana przez szafki × cena konkretnej pozycji dobranej z katalogu okuć po producencie i cechach technicznych.'
+          : 'Cena = ilość okuć/akcesoriów × cena do wyceny z katalogu okuć.';
         prev.total = prev.qty * prev.unitPrice;
         rows.set(key, prev);
       });
     });
-    return Array.from(rows.values()).map((row)=> Object.assign({}, row, { rooms:Array.from(row.rooms).join(', ') }));
+    return Array.from(rows.values()).map((row)=> Object.assign({}, row, {
+      rooms:Array.from(row.rooms).join(', '),
+      note:Array.from(row.noteParts || []).join(' • '),
+      warnings:Array.from(new Set(row.warnings || [])),
+    }));
   }
 
   function collectBuiltInAppliances(selectedRooms){

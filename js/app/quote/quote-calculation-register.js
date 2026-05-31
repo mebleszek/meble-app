@@ -21,7 +21,7 @@
   function clone(value){ try{ return FC.utils && typeof FC.utils.clone === 'function' ? FC.utils.clone(value) : JSON.parse(JSON.stringify(value)); }catch(_){ return JSON.parse(JSON.stringify(value || null)); } }
   function slug(value){ try{ return FC.wycenaCoreUtils && typeof FC.wycenaCoreUtils.slug === 'function' ? FC.wycenaCoreUtils.slug(value) : text(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }catch(_){ return text(value); } }
   function isStarterPrice(row){ return !!(row && row.starterPrice === true && !text(row.priceUserEditedAt)); }
-  function warning(row, message){ return { key:slug((row && row.key || row && row.name || '') + ' ' + message), message:text(message) }; }
+  function warning(row, message){ return { key:slug((row && row.key || row && row.name || '') + ' ' + message), section:text(row && row.section), sectionLabel:text(row && row.sectionLabel), message:text(message) }; }
 
   function normalizeRegisterLine(line, fallback){
     const src = line && typeof line === 'object' ? line : {};
@@ -169,16 +169,16 @@
   function collectWarnings(lines){
     const out = [];
     (Array.isArray(lines) ? lines : []).forEach((row)=>{
-      (Array.isArray(row.warnings) ? row.warnings : []).forEach((msg)=>{ if(text(msg)) out.push(warning(row, `${row.sectionLabel || row.section}: ${msg}`)); });
+      (Array.isArray(row.warnings) ? row.warnings : []).forEach((msg)=>{ if(text(msg)) out.push(warning(row, msg)); });
     });
     ['materials','accessories','labor','quoteRates','services'].forEach((section)=>{
       const rows = lines.filter((row)=> row.section === section);
       const total = totalBy(lines, section);
-      if(!rows.length) out.push({ key:`empty_${section}`, message:`${SECTION_LABELS[section]}: brak pozycji w rejestrze wyliczeń.` });
-      else if(total <= 0) out.push({ key:`zero_${section}`, message:`${SECTION_LABELS[section]}: suma 0 zł — sprawdź, czy cenniki i reguły mają ceny.` });
+      if(!rows.length) out.push({ key:`empty_${section}`, section, sectionLabel:SECTION_LABELS[section], message:'Brak pozycji w rejestrze wyliczeń.' });
+      else if(total <= 0) out.push({ key:`zero_${section}`, section, sectionLabel:SECTION_LABELS[section], message:'Suma 0 zł — sprawdź, czy cenniki i reguły mają ceny.' });
     });
     const seen = new Set();
-    return out.filter((row)=>{ const key = text(row && row.message); if(!key || seen.has(key)) return false; seen.add(key); return true; });
+    return out.filter((row)=>{ const key = text(row && row.section) + '|' + text(row && row.message); if(!text(row && row.message) || seen.has(key)) return false; seen.add(key); return true; });
   }
 
   function buildRegister(lines, commercial){
@@ -243,7 +243,7 @@
         discount:0,
         grand:round2(['materials','accessories','labor','quoteRates','services'].reduce((sum, section)=> sum + totalBy(lines, section), 0)),
       },
-      warnings:Array.isArray(src.warnings) ? src.warnings.map((row)=> ({ key:text(row && row.key) || slug(row && row.message || row), message:text(row && row.message || row) })).filter((row)=> row.message) : collectWarnings(lines),
+      warnings:Array.isArray(src.warnings) ? src.warnings.map((row)=> ({ key:text(row && row.key) || slug(row && row.message || row), section:text(row && row.section), sectionLabel:text(row && row.sectionLabel), message:text(row && row.message || row) })).filter((row)=> row.message) : collectWarnings(lines),
     };
   }
 

@@ -74,6 +74,15 @@ Rejestr wyliczeń ma pokazywać ostrzeżenia, m.in.:
 - brak pozycji w danym dziale,
 - brak cennika obrzeża mimo wykrytych mb obrzeża.
 
+
+## Doprecyzowanie po testach modala — 2026-06-01
+
+- W modalach szczegółów działy mają działać jako akordeony aplikacyjne: otwarcie jednego zwija pozostałe, a środkowa część modala ma własny scroll. Treść nie może być ucinana przez stopkę z przyciskiem `Wróć`.
+- Ostrzeżenia mają być przypisane do właściwego działu. Widok `Razem` może zbierać wszystkie ostrzeżenia, ale `Materiały`, `Akcesoria`, `Robocizna szafek`, `Robocizna / stawki wyceny` i `Montaż AGD` pokazują tylko swoje sprawy.
+- Obrzeże startowe w cenniku materiałów: używać `Obrzeże PCV standard`. Nie dodawać osobnej pozycji ABS jako startowej, bo ABS traktujemy jako zamienny i niepotrzebny na tym etapie.
+- Akcesoria muszą być rozpoznawane po wymaganiu technicznym, nie po ogólnym napisie. Dla pozycji z cutlist/formatki musi być przekazywane `hardwareRequirement`: grupa, kategoria, cechy techniczne, reguła źródłowa i ilość. WYCENA ma próbować dobrać konkretną pozycję katalogową z producenta/preferencji i cech. Jeżeli się nie da, ma pokazać wymaganie i ostrzeżenie zamiast udawać, że `zawiasy Blum` jest konkretnym produktem.
+- Jeżeli dla jakiegoś rodzaju szafki/akcesorium brakuje `hardwareRequirement`, zapisać to jako regresję/odłożone zadanie i poprawiać całościowo dla wszystkich typów szafek, nie jednorazową łatą pod jeden przypadek.
+
 ## Odłożone na później
 
 Nie zrobione w v1 i nie zgubić przy kolejnych etapach:

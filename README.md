@@ -1,3 +1,16 @@
+# WYCENA szczegóły modala i dopasowanie okuć v1 — 2026-06-01
+
+- Paczka: `site_quote_details_modal_ui_hardware_match_fix_v1.zip`.
+- Baza startowa: `site_quote_calculation_register_v1.zip`.
+- Poprawiono modal szczegółów WYCENY: ma własny scroll w środku, stopkę z `Wróć` na dole i treść nie powinna chować się pod przyciskiem.
+- Działy w modalu są akordeonami aplikacyjnymi; otwarcie jednego działu zwija pozostałe. Wygląd linijek podsumowania WYCENY poza modalem nie został zmieniony.
+- Ostrzeżenia są przypisane do działów: w `Materiały` widać materiałowe, w `Akcesoria` akcesoryjne, w `Robocizna` robociznę; `Razem` pokazuje zbiorczy audyt.
+- Startowe obrzeże w cenniku materiałów to tylko `Obrzeże PCV standard` (`mb`, +10% zapasu w wycenie). ABS nie jest dodawany jako osobna pozycja startowa, bo traktujemy go jako zamienny i zbędny na tym etapie.
+- Akcesoria w WYCENIE nie powinny zatrzymywać się na nazwie typu `zawiasy Blum`: jeśli część z WYWIADU/ROZRYSU niesie `hardwareRequirement`, WYCENA próbuje dobrać konkretną pozycję z katalogu okuć po producencie z preferencji i cechach technicznych. Jeśli nie znajdzie konkretnego modelu, pokazuje wymaganie techniczne i ostrzeżenie.
+- Do seedów zawiasów dodano jawne `technicalParams` dla podstawowych pozycji Blum/GTV, żeby resolver miał czym dopasować wymagania techniczne.
+- Stała reguła na przyszłość: każde akcesorium generowane przez materiały/formatki/cutlist dla WYCENY musi mieć przy sobie `hardwareRequirement` z kategorią, grupą, cechami technicznymi i regułą źródłową. Nie wolno opierać wyceny na samej nazwie ogólnej typu `zawiasy Blum`. Jeśli gdzieś brakuje takich wymagań dla rodzaju szafki, dopisać to do kolejki i poprawić reguły dla wszystkich rodzajów szafek, nie punktowo.
+- Zaktualizowano `QUOTE_CALCULATION_REGISTER.md`; raport: `tools/reports/quote-details-modal-ui-hardware-match-fix-v1.md`.
+
 # WYCENA rejestr wyliczeń oferty v1 — 2026-05-31
 
 ## 2026-05-31 — WYCENA: rejestr wyliczeń i modal szczegółów v1

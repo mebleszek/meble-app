@@ -260,7 +260,7 @@
       lines.push({
         key:'obrzeza_zapas_10',
         type:'material',
-        name:String(edgeItem.name || 'Obrzeże ABS standard'),
+        name:String(edgeItem.name || 'Obrzeże PCV standard'),
         qty:quotedMeters,
         unit:'mb',
         unitPrice,
