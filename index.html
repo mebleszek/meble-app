@@ -274,6 +274,11 @@
 <label>Cena do wyceny (PLN)</label>
 <input class="investor-form-input" id="formPrice" step="0.01" type="number"/>
 </div>
+<div style="margin-top:10px">
+<label>Jednostka ceny</label>
+<select hidden="" id="formMaterialPriceUnit"></select>
+<div id="formMaterialPriceUnitLaunch"></div>
+</div>
 <div id="hardwareFormFields" style="display:none;margin-top:14px;border-top:1px solid rgba(226,232,240,.95);padding-top:14px">
 <div class="quote-subsection-title">Dane okucia</div>
 <div class="grid-3" style="margin-top:10px">
@@ -963,8 +968,8 @@
 <!-- load-group: business-domains | Catalog / service / investor domains -->
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-technical-params.js?v=20260526_hinge_dictionary_cleanup_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-replacement-engine.js?v=20260522_hardware_replacement_engine_preview_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog.js?v=20260526_hinge_dictionary_cleanup_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-seed-data.js?v=20260526_hinge_dictionary_cleanup_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog.js?v=20260531_quote_calculation_register_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-seed-data.js?v=20260531_quote_calculation_register_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-seeds.js?v=20260507_hardware_catalog_seed_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-supplier-price-export.js?v=20260518_hardware_technical_data_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-supplier-price-import.js?v=20260518_hardware_technical_data_v1"></script>
@@ -973,14 +978,14 @@
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-import-parser.js?v=20260519_dynamic_technical_params_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-import-plan.js?v=20260519_dynamic_technical_params_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-import-export.js?v=20260514_hardware_import_export_refactor_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20260504_hardware_catalog_model_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20260531_quote_calculation_register_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-migration.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-storage-policy.js?v=20260511_hardware_supplier_status_types_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog-definitions.js?v=20260503_labor_unified_picker_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog.js?v=20260504_gabaryt_compact_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog-definitions.js?v=20260531_quote_calculation_register_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog.js?v=20260531_quote_calculation_register_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/pricing/labor-appliance-rules.js?v=20260503_labor_unified_picker_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/service-order-store.js?v=20260425_test_isolation_stage2_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20260511_hardware_supplier_import_dictionary_ux_fix_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20260531_quote_calculation_register_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-selectors.js?v=20260503_labor_display_fix_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-cutting-common.js?v=20260514_pro100_service_import_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-pro100-parser.js?v=20260514_pro100_file_import_v1"></script>
@@ -1014,7 +1019,7 @@
 <script data-load-group="ui-shell" defer="" src="js/app/material/material-common.js?v=20260331_boot_fix_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/material-registry.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-context.js?v=20260426_material_price_split_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-options.js?v=20260511_hardware_import_bulk_diff_types_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-options.js?v=20260531_quote_calculation_register_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-filters.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-manufacturers.js?v=20260504_hardware_catalog_model_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-suppliers.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
@@ -1023,15 +1028,15 @@
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-import-resolver.js?v=20260512_hardware_supplier_missing_resolver_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-price-confirm.js?v=20260513_hardware_price_change_confirm_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-import-export.js?v=20260513_hardware_price_change_confirm_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-ux.js?v=20260518_hardware_technical_data_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-ux.js?v=20260531_quote_calculation_register_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-bundle.js?v=20260509_hardware_bundle_import_ux_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-supplier-prices.js?v=20260513_hardware_global_vat_import_stabilization_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-replacements.js?v=20260523_hardware_replacement_button_visibility_fix_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-form.js?v=20260523_hardware_choice_launcher_fix_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-field-help.js?v=20260519_dynamic_technical_params_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20260523_hardware_replacement_preview_ui_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20260518_hardware_technical_data_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-persistence.js?v=20260511_hardware_supplier_status_types_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-field-help.js?v=20260531_quote_calculation_register_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20260531_quote_calculation_register_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20260531_quote_calculation_register_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-persistence.js?v=20260531_quote_calculation_register_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal.js?v=20260511_hardware_supplier_status_types_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/confirm-box.js?v=20260328_rozrys_choice_clean_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/choice-box.js?v=20260426_orphan_guard_v1"></script>
@@ -1127,6 +1132,7 @@
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-scope.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-selection.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-store.js?v=20260530_wycena_duplicate_modal_fix_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-calculation-register.js?v=20260531_quote_calculation_register_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-scope-entry-utils.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-scope-entry-scope.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-scope-entry-modal.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
@@ -1139,18 +1145,18 @@
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-status-manual-guard.js?v=20260502_status_reconcile_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-status-scope-decision.js?v=20260502_status_quote_scope_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/project/project-schedule-status.js?v=20260502_schedule_status_prep_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot.js?v=20260530_wycena_duplicate_modal_fix_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot.js?v=20260531_quote_calculation_register_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-pdf.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-room-availability.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-selection.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-utils.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-catalog.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-catalog.js?v=20260531_quote_calculation_register_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-source.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-material-plan.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-material-plan.js?v=20260531_quote_calculation_register_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-offer.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-lines.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-labor.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core.js?v=20260530_wycena_duplicate_modal_fix_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-lines.js?v=20260531_quote_calculation_register_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-labor.js?v=20260531_quote_calculation_register_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core.js?v=20260531_quote_calculation_register_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-context-repair.js?v=20260530_wycena_click_snapshot_relink_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-helpers.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-dom.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
@@ -1173,7 +1179,8 @@
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-history.js?v=20260530_wycena_render_source_diagnostics_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-status-bridge.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-status-actions.js?v=20260529_wycena_context_richer_source_fix_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-preview.js?v=20260530_wycena_render_source_diagnostics_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-summary-details-modal.js?v=20260531_quote_calculation_register_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-preview.js?v=20260531_quote_calculation_register_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-diagnostics.js?v=20260530_wycena_duplicate_modal_fix_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-shell.js?v=20260530_wycena_duplicate_modal_fix_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/wycena.js?v=20260530_wycena_render_source_diagnostics_v1"></script>

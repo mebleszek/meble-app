@@ -11,6 +11,7 @@
   function formCategoryWrapper(){ return ctx.byId('formCategoryLaunch') && ctx.byId('formCategoryLaunch').parentElement; }
   function formServiceNameWrapper(){ return ctx.byId('formServiceName') && ctx.byId('formServiceName').parentElement; }
   function formPriceWrapper(){ return ctx.byId('formPrice') && ctx.byId('formPrice').parentElement; }
+  function formMaterialPriceUnitWrapper(){ return ctx.byId('formMaterialPriceUnitLaunch') && ctx.byId('formMaterialPriceUnitLaunch').parentElement; }
   function formHasGrainRow(){ return ctx.byId('formHasGrain') && ctx.byId('formHasGrain').parentElement; }
   function hardwareSeriesTopWrap(){ return ctx.byId('hardwareSeriesTopWrap'); }
   function laborFields(){ return ctx.byId('laborFormFields'); }
@@ -68,10 +69,17 @@
   }
 
 
+  function defaultMaterialPriceUnit(materialType){
+    const type = String(materialType || '').trim().toLowerCase();
+    if(type === 'akryl' || type === 'lakier' || type === 'hdf') return 'm2';
+    if(type === 'obrzeże' || type === 'obrzeze') return 'mb';
+    if(type === 'blat') return 'piece';
+    return 'sheet';
+  }
   function defaultMaterialDraft(){
     const type = ctx.firstNonEmptyValue(ctx.buildMaterialTypeOptions('laminat')) || 'laminat';
     const manufacturer = ctx.firstNonEmptyValue(ctx.buildManufacturerOptions('materials', type, '', { includeAll:false }));
-    return { materialType:type, manufacturer, symbol:'', name:'', price:'', hasGrain:false };
+    return { materialType:type, manufacturer, symbol:'', name:'', price:'', priceUnit:defaultMaterialPriceUnit(type), hasGrain:false };
   }
   function defaultServiceDraft(kind){
     const isQuoteRates = kind === 'quoteRates';
@@ -131,7 +139,19 @@
     }
   }
 
-  function getCurrentMaterialDraft(){ return { materialType:String((ctx.byId('formMaterialType') && ctx.byId('formMaterialType').value) || ''), manufacturer:String((ctx.byId('formManufacturer') && ctx.byId('formManufacturer').value) || '').trim(), symbol:String((ctx.byId('formSymbol') && ctx.byId('formSymbol').value) || '').trim(), name:String((ctx.byId('formName') && ctx.byId('formName').value) || '').trim(), price:normalizePriceValue(ctx.byId('formPrice') && ctx.byId('formPrice').value), hasGrain:!!(ctx.byId('formHasGrain') && ctx.byId('formHasGrain').checked) }; }
+  function getCurrentMaterialDraft(){
+    const materialType = String((ctx.byId('formMaterialType') && ctx.byId('formMaterialType').value) || '');
+    const priceUnit = String((ctx.byId('formMaterialPriceUnit') && ctx.byId('formMaterialPriceUnit').value) || defaultMaterialPriceUnit(materialType));
+    return {
+      materialType,
+      manufacturer:String((ctx.byId('formManufacturer') && ctx.byId('formManufacturer').value) || '').trim(),
+      symbol:String((ctx.byId('formSymbol') && ctx.byId('formSymbol').value) || '').trim(),
+      name:String((ctx.byId('formName') && ctx.byId('formName').value) || '').trim(),
+      price:normalizePriceValue(ctx.byId('formPrice') && ctx.byId('formPrice').value),
+      priceUnit,
+      hasGrain:!!(ctx.byId('formHasGrain') && ctx.byId('formHasGrain').checked)
+    };
+  }
   function getCurrentAccessoryDraft(opts){ return ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.getCurrentAccessoryDraft === 'function' ? ctx.priceModalHardwareForm.getCurrentAccessoryDraft(opts || {}) : {}; }
   function getCurrentLaborDraft(base){
     if(ctx.currentListKind() !== 'quoteRates') return {};
@@ -192,7 +212,7 @@
 
   function wireItemDirtyEvents(){
     [
-      'formSymbol','formName','formPrice','formServiceName','formServicePrice','formHasGrain','formMaterialType','formManufacturer','formCategory',
+      'formSymbol','formName','formPrice','formMaterialPriceUnit','formServiceName','formServicePrice','formHasGrain','formMaterialType','formManufacturer','formCategory',
       'laborAutoRole','laborRateType','laborTimeBlockHours','laborDefaultMultiplier','laborQuantityMode','laborTierText',
       'laborStartHours','laborStartQty','laborStepEveryQty','laborStepHours','laborVolumePricePerM3','laborVolumeTimeMode','laborVolumeTimePerM3',
       'laborVolumeTimeTierText','laborHeightMinMm','laborHeightMaxMm','laborActive','laborInternalOnly'
@@ -217,6 +237,8 @@
     if(ctx.byId('formSymbol')) ctx.byId('formSymbol').value = String(item && item.symbol || '');
     if(ctx.byId('formName')) ctx.byId('formName').value = String(item && item.name || '');
     if(ctx.byId('formPrice')) ctx.byId('formPrice').value = item && item.price != null ? item.price : '';
+    const unit = String(item && item.priceUnit || defaultMaterialPriceUnit(materialType));
+    if(ctx.byId('formMaterialPriceUnit')) ctx.setSelectOptions(ctx.byId('formMaterialPriceUnit'), ctx.buildMaterialPriceUnitOptions ? ctx.buildMaterialPriceUnitOptions(unit) : [{ value:'sheet', label:'Arkusz' }, { value:'m2', label:'m²' }, { value:'mb', label:'mb' }, { value:'piece', label:'szt.' }], unit, unit);
     if(ctx.byId('formHasGrain')) ctx.byId('formHasGrain').checked = !!(item && item.hasGrain);
   }
   function applyAccessoryFormState(item){
@@ -275,11 +297,13 @@
     const manufacturerWrap = filterManufacturerWrapper();
     const grainRow = formHasGrainRow();
     const priceWrap = formPriceWrapper();
+    const priceUnitWrap = formMaterialPriceUnitWrapper();
     const seriesWrap = hardwareSeriesTopWrap();
     if(materialTypeWrap) materialTypeWrap.style.display = cfg.formKind === 'material' ? '' : 'none';
     if(manufacturerWrap) manufacturerWrap.style.display = (cfg.formKind === 'material' || cfg.formKind === 'accessory') ? '' : 'none';
     if(grainRow) grainRow.style.display = cfg.formKind === 'material' ? 'flex' : 'none';
     if(priceWrap) priceWrap.style.display = cfg.formKind === 'accessory' ? 'none' : '';
+    if(priceUnitWrap) priceUnitWrap.style.display = cfg.formKind === 'material' ? '' : 'none';
     if(seriesWrap) seriesWrap.style.display = cfg.formKind === 'accessory' ? '' : 'none';
     if(cfg.formKind === 'material') applyMaterialFormState(item || defaultMaterialDraft());
     else if(cfg.formKind === 'accessory') applyAccessoryFormState(item || (ctx.priceModalHardwareForm && ctx.priceModalHardwareForm.defaultAccessoryDraft ? ctx.priceModalHardwareForm.defaultAccessoryDraft() : {}));

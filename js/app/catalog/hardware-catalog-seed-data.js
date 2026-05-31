@@ -21,6 +21,7 @@
       status:'active',
       bundleCostMode:'ownPrice',
       bundleItems:[],
+      starterPrice:true,
     }, row || {});
   }
 

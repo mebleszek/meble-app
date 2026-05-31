@@ -3,7 +3,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const SHEET_MATERIAL_TYPES = ['laminat','akryl','lakier','blat'];
+  const SHEET_MATERIAL_TYPES = ['laminat','akryl','lakier','hdf','obrzeże','blat'];
   const QUOTE_RATE_CATEGORIES = ['Stawki godzinowe','Korpusy','Elementy szafki','Usługi przy szafce','Montaż','AGD','Pomiar','Transport','Projekt','Inne'];
   const WORKSHOP_SERVICE_CATEGORIES = ['Cięcie','Oklejanie','Montaż','Naprawa','Transport','Inne'];
 
@@ -98,7 +98,10 @@
           symbol: normalizeText(normalized.symbol),
           name: normalizeText(normalized.name),
           price: Number(normalized.price) || 0,
+          priceUnit: normalizeText(normalized.priceUnit || normalized.unitPriceMode || normalized.unit) || 'sheet',
           hasGrain: !!normalized.hasGrain,
+          starterPrice: normalized.starterPrice === true,
+          priceUserEditedAt: normalizeText(normalized.priceUserEditedAt || normalized.userEditedAt),
         });
       }
     });

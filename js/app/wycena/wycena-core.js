@@ -32,8 +32,17 @@
     const quoteRateLines = offer.collectQuoteRateLines();
     const laborLines = labor.collectCabinetLabor(selectedRooms);
     const commercial = offer.collectCommercialDraft(draft);
+    const calculationRegister = FC.quoteCalculationRegister && typeof FC.quoteCalculationRegister.buildRegister === 'function'
+      ? FC.quoteCalculationRegister.buildRegister({
+          materials: materialLines,
+          accessories: accessoryLines,
+          agdServices: agdLines,
+          quoteRates: quoteRateLines,
+          labor: laborLines,
+        }, commercial)
+      : null;
     const totals = FC.quoteSnapshot && typeof FC.quoteSnapshot.computeTotals === 'function'
-      ? FC.quoteSnapshot.computeTotals({}, {
+      ? FC.quoteSnapshot.computeTotals((calculationRegister && calculationRegister.totals) || {}, {
           materials: materialLines,
           accessories: accessoryLines,
           agdServices: agdLines,
@@ -64,6 +73,7 @@
       quoteRateLines,
       laborLines,
       commercial,
+      calculationRegister,
       totals,
       generatedAt: Date.now(),
     };

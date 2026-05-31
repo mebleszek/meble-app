@@ -31,20 +31,32 @@
     }catch(_){ return null; }
   }
 
+  function normalizeWarnings(rows){
+    return Array.isArray(rows) ? rows.map((row)=> String(row && row.message || row || '').trim()).filter(Boolean).slice(0, 12) : [];
+  }
+
   function normalizeLine(line){
     const row = line && typeof line === 'object' ? line : {};
+    const editedAt = String(row.priceUserEditedAt || row.userEditedAt || '').trim();
     return {
       key: String(row.key || row.id || ''),
       type: String(row.type || ''),
       category: String(row.category || ''),
+      subsection: String(row.subsection || '').trim(),
       name: String(row.name || ''),
       qty: Math.max(0, num(row.qty, 0)),
       unit: String(row.unit || ''),
       unitPrice: Math.max(0, num(row.unitPrice, 0)),
       total: Math.max(0, num(row.total, 0)),
+      priceUnit: String(row.priceUnit || '').trim(),
+      pricingMode: String(row.pricingMode || '').trim(),
+      starterPrice: row.starterPrice === true && !editedAt,
+      priceUserEditedAt: editedAt,
       rooms: String(row.rooms || '').trim(),
       note: String(row.note || '').trim(),
       source: String(row.source || '').trim(),
+      calculation: String(row.calculation || row.calculationNote || '').trim(),
+      warnings: normalizeWarnings(row.warnings),
       width: Math.max(0, num(row.width, 0)),
       height: Math.max(0, num(row.height, 0)),
       materialLabel: String(row.materialLabel || '').trim(),
@@ -71,6 +83,9 @@
       fixedPrice:Math.max(0, num(row.fixedPrice, 0)),
       total:Math.max(0, num(row.total, 0)),
       note:String(row.note || '').trim(),
+      calculation:String(row.calculation || row.calculationNote || '').trim(),
+      starterPrice:row.starterPrice === true && !String(row.priceUserEditedAt || row.userEditedAt || '').trim(),
+      priceUserEditedAt:String(row.priceUserEditedAt || row.userEditedAt || '').trim(),
     };
   }
 
@@ -215,6 +230,18 @@
     };
   }
 
+  function normalizeCalculationRegister(input, lines, commercial){
+    try{
+      if(FC.quoteCalculationRegister && typeof FC.quoteCalculationRegister.normalizeRegister === 'function' && input && input.lines){
+        return FC.quoteCalculationRegister.normalizeRegister(input);
+      }
+      if(FC.quoteCalculationRegister && typeof FC.quoteCalculationRegister.buildRegister === 'function'){
+        return FC.quoteCalculationRegister.buildRegister(lines || {}, commercial || {});
+      }
+    }catch(_){ }
+    return null;
+  }
+
   function buildSnapshot(payload){
     const src = payload && typeof payload === 'object' ? payload : {};
     const investor = src.investor || currentInvestor() || null;
@@ -231,7 +258,8 @@
       labor: normalizeLaborLines(src.laborLines || (src.lines && src.lines.labor)),
     };
     const commercial = normalizeCommercial(src.commercial || {}, { roomIds, roomLabels, scope:{ selectedRooms:roomIds, roomLabels } });
-    const totals = computeTotals(src.totals || {}, lines, commercial);
+    const calculationRegister = normalizeCalculationRegister(src.calculationRegister || (src.lines && src.lines.calculationRegister), lines, commercial);
+    const totals = computeTotals((calculationRegister && calculationRegister.totals) || src.totals || {}, lines, commercial);
     const materialScope = normalizeMaterialScope(src.materialScope || (src.selection && src.selection.materialScope) || (src.scope && src.scope.materialScope));
     const scopeMode = materialScopeMode(materialScope);
     return {
@@ -257,6 +285,7 @@
         materialScopeMode: scopeMode,
       },
       lines,
+      calculationRegister,
       commercial,
       totals,
       meta: {
@@ -271,6 +300,7 @@
           agdServices: lines.agdServices.length,
           quoteRates: lines.quoteRates.length,
           labor: lines.labor.length,
+          calculationRegister: calculationRegister && Array.isArray(calculationRegister.lines) ? calculationRegister.lines.length : 0,
         },
         selectedByClient: !!(src.meta && src.meta.selectedByClient),
         acceptedAt: Number(src.meta && src.meta.acceptedAt) > 0 ? Number(src.meta.acceptedAt) : 0,

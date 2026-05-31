@@ -29,6 +29,11 @@
     if(!String(data && data.category || '').trim()){ ctx.info('Brak kategorii', 'Wybierz kategorię usługi.'); return false; }
     return true;
   }
+  function editedTimestamp(){ try{ return new Date().toISOString(); }catch(_){ return String(Date.now()); } }
+  function markPriceAsUserEdited(payload){
+    return Object.assign({}, payload || {}, { starterPrice:false, priceUserEditedAt:editedTimestamp() });
+  }
+
   function upsertCurrentList(payload){
     const next = ctx.currentList();
     if(ctx.appUiState().editingId){
@@ -40,7 +45,7 @@
 
   function saveMaterialFromForm(){
     const data = ctx.getCurrentMaterialDraft(); if(!validateMaterialForm(data)) return false;
-    upsertCurrentList(Object.assign({}, data, { price:Number(data.price) || 0, hasGrain:!!data.hasGrain }));
+    upsertCurrentList(markPriceAsUserEdited(Object.assign({}, data, { price:Number(data.price) || 0, hasGrain:!!data.hasGrain })));
     ctx.doClosePriceItemModal(); ctx.renderPriceModal(); try{ renderCabinetModal(); }catch(_){ } return true;
   }
   function saveAccessoryFromForm(){
@@ -49,13 +54,13 @@
     try{
       if(FC.hardwareCatalog && typeof FC.hardwareCatalog.normalizeAccessory === 'function') payload = FC.hardwareCatalog.normalizeAccessory(payload, FC.utils && FC.utils.uid);
     }catch(_){ }
-    upsertCurrentList(payload);
+    upsertCurrentList(markPriceAsUserEdited(payload));
     ctx.doClosePriceItemModal(); ctx.renderPriceModal(); return true;
   }
   function saveServiceFromForm(){
     try{ if(ctx.currentListKind() === 'quoteRates' && FC.wycenaCore && typeof FC.wycenaCore.ensureServiceCatalogInRuntime === 'function') FC.wycenaCore.ensureServiceCatalogInRuntime(); }catch(_){ }
     const data = ctx.getCurrentServiceDraft(); if(!validateServiceForm(data)) return false;
-    const payload = Object.assign({}, data, { price:Number(data.price) || 0 });
+    const payload = markPriceAsUserEdited(Object.assign({}, data, { price:Number(data.price) || 0 }));
     try{
       if(ctx.currentListKind() === 'quoteRates' && FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function'){
         upsertCurrentList(FC.laborCatalog.normalizeDefinition(payload));

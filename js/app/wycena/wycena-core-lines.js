@@ -65,6 +65,9 @@
         const originalName = mat.replace(/^Okucia:\s*/i, '').trim() || mat;
         const priceItem = catalog.accessoryPriceLookup(name) || catalog.accessoryPriceLookup(mat) || catalog.accessoryPriceLookup(originalName) || catalog.materialPriceLookup(name) || catalog.materialPriceLookup(mat) || catalog.materialPriceLookup(originalName);
         prev.unitPrice = Number(priceItem && priceItem.price) || prev.unitPrice || 0;
+        prev.starterPrice = !!(priceItem && priceItem.starterPrice === true && !String(priceItem.priceUserEditedAt || '').trim());
+        prev.priceUserEditedAt = String(priceItem && priceItem.priceUserEditedAt || '');
+        prev.calculation = 'Cena = ilość okuć/akcesoriów × cena do wyceny z katalogu okuć.';
         prev.total = prev.qty * prev.unitPrice;
         rows.set(key, prev);
       });
@@ -76,11 +79,14 @@
     const rows = new Map();
     const add = (name, roomLabel)=>{
       const key = utils.slug(name);
-      const prev = rows.get(key) || { key, type:'service', category:'AGD', name, qty:0, unitPrice:0, total:0, rooms:new Set() };
+      const prev = rows.get(key) || { key, type:'service', category:'AGD', name, qty:0, unit:'szt.', unitPrice:0, total:0, rooms:new Set() };
       prev.qty += 1;
       prev.rooms.add(roomLabel);
       const svc = catalog.servicePriceLookup(name);
       prev.unitPrice = Number(svc && svc.price) || prev.unitPrice || 0;
+      prev.starterPrice = !!(svc && svc.starterPrice === true && !String(svc.priceUserEditedAt || '').trim());
+      prev.priceUserEditedAt = String(svc && svc.priceUserEditedAt || '');
+      prev.calculation = 'Cena = liczba urządzeń AGD z zaznaczonym montażem × cena usługi AGD z cennika.';
       prev.total = prev.qty * prev.unitPrice;
       rows.set(key, prev);
     };

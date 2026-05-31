@@ -1,3 +1,14 @@
+# WYCENA rejestr wyliczeń oferty v1 — 2026-05-31
+
+## 2026-05-31 — WYCENA: rejestr wyliczeń i modal szczegółów v1
+- Paczka: `site_quote_calculation_register_v1.zip`.
+- Dodano `QUOTE_CALCULATION_REGISTER.md` jako stały opis ustaleń: jednostki cennika materiałów, cena startowa, obrzeża +10%, robocizna po szafkach, modal audytu i rzeczy odłożone.
+- Dodano centralny `quote-calculation-register`: sumy WYCENY i szczegóły modala pochodzą z jednego rejestru pozycji, bez ukrytych cen.
+- Linie podsumowania WYCENY są klikalne bez zmiany wyglądu; otwierają wewnętrzny modal szczegółów kosztu.
+- Cennik materiałów ma jednostkę ceny: arkusz / m² / mb / szt. Ceny startowe są widoczne przy pozycji w cenniku i znikają po pierwszej ręcznej edycji (`priceUserEditedAt`).
+- Obrzeża są liczone jako mb z elementów + 10% zapasu i zapisują algorytm w szczegółach wyceny.
+- Dalsze prace w WYCENIE/cennikach zaczynać od lektury `DEV.md`, `CLOUD_MIGRATION.md` przy danych/storage oraz `QUOTE_CALCULATION_REGISTER.md`.
+
 # WYCENA duplicate modal fix v1 — 2026-05-30
 
 - Aktualna paczka robocza po tym etapie: `site_wycena_duplicate_modal_fix_v1.zip`.

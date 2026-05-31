@@ -8,17 +8,17 @@
   }
 
   const AGD_SERVICE_DEFAULTS = [
-    { category:'AGD', name:'Piekarnik do zabudowy', price:120 },
-    { category:'AGD', name:'Mikrofalówka do zabudowy', price:100 },
-    { category:'AGD', name:'Lodówka do zabudowy', price:180 },
-    { category:'AGD', name:'Zmywarka do zabudowy', price:170 },
-    { category:'AGD', name:'Płyta indukcyjna / ceramiczna', price:120 },
-    { category:'AGD', name:'Okap podszafkowy / teleskopowy', price:120 },
-    { category:'AGD', name:'Okap kominowy / wyspowy', price:180 },
-    { category:'AGD', name:'Pralka do zabudowy', price:140 },
-    { category:'AGD', name:'Suszarka do zabudowy', price:140 },
-    { category:'AGD', name:'Ekspres do zabudowy', price:120 },
-    { category:'AGD', name:'Podgrzewacz szufladowy', price:100 },
+    { category:'AGD', name:'Piekarnik do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:120 },
+    { category:'AGD', name:'Mikrofalówka do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:100 },
+    { category:'AGD', name:'Lodówka do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:180 },
+    { category:'AGD', name:'Zmywarka do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:170 },
+    { category:'AGD', name:'Płyta indukcyjna / ceramiczna', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:120 },
+    { category:'AGD', name:'Okap podszafkowy / teleskopowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:120 },
+    { category:'AGD', name:'Okap kominowy / wyspowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:180 },
+    { category:'AGD', name:'Pralka do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:140 },
+    { category:'AGD', name:'Suszarka do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:140 },
+    { category:'AGD', name:'Ekspres do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:120 },
+    { category:'AGD', name:'Podgrzewacz szufladowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:100 },
   ];
 
   function uniqByName(items){
@@ -40,7 +40,7 @@
       if(existingKeys.has(key)) return;
       existingKeys.add(key);
       changed = true;
-      current.push({ id:(FC.utils && FC.utils.uid ? FC.utils.uid() : `svc_${Date.now()}_${Math.random().toString(36).slice(2,8)}`), category:item.category, name:item.name, price:item.price });
+      current.push({ id:(FC.utils && FC.utils.uid ? FC.utils.uid() : `svc_${Date.now()}_${Math.random().toString(36).slice(2,8)}`), category:item.category, name:item.name, price:item.price, starterPrice:item.starterPrice === true, note:String(item.note || '') });
     });
     return { list: uniqByName(current), changed };
   }

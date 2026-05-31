@@ -107,6 +107,8 @@
       active:src.active !== false,
       internalOnly:src.internalOnly === true,
       note:text(src.note),
+      starterPrice:src.starterPrice === true,
+      priceUserEditedAt:text(src.priceUserEditedAt || src.userEditedAt),
     };
   }
   function ensureDefaultDefinitions(list){

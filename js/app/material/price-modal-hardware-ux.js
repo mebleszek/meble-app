@@ -83,6 +83,7 @@
   function chip(label, tone){
     return h('span', { class:'hardware-price-chip hardware-price-chip--' + (tone || 'neutral'), text:label });
   }
+  function isStarterPrice(item){ return !!(item && item.starterPrice === true && !text(item.priceUserEditedAt || item.userEditedAt)); }
   function renderMetaLine(parts){
     return h('div', { class:'hardware-price-row__meta', text:(parts || []).filter(Boolean).join(' • ') });
   }
@@ -159,6 +160,7 @@
     const left = h('div', { class:'price-modal-list-main hardware-price-row__main' });
     const title = h('div', { class:'hardware-price-row__title', text:text(item && item.name) || '—' });
     const chips = h('div', { class:'hardware-price-row__chips' }, [chip(hardwarePriceStatus(item).label, hardwarePriceStatus(item).tone)]);
+    if(isStarterPrice(item)) chips.appendChild(chip('Cena startowa', 'warning'));
     if(isBundle(item)) chips.appendChild(chip((Array.isArray(item && item.bundleItems) && item.bundleItems.length ? 'Zestaw: ' + item.bundleItems.length + ' składn.' : 'Zestaw'), 'neutral'));
     const hw = FC.hardwareCatalog || {};
     const statusLabel = hw.statusLabel ? hw.statusLabel(item && item.status) : text(item && item.status);

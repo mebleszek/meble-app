@@ -150,18 +150,26 @@
     const totalsCard = h('div', { class:'card quote-totals', style:'margin-top:12px;padding:14px;' });
     totalsCard.appendChild(h('h4', { text:'Podsumowanie', style:'margin:0 0 8px' }));
     [
-      ['Materiały', totals.materials],
-      ['Akcesoria', totals.accessories],
-      ['Robocizna szafek', totals.labor],
-      ['Robocizna / stawki wyceny', totals.quoteRates],
-      ['Montaż AGD', totals.services],
-      ['Suma przed rabatem', totals.subtotal],
-      ['Rabat', totals.discount],
-      ['Razem', totals.grand],
-    ].forEach(([label, value], index, arr)=>{
-      const row = h('div', { class:`quote-totals__row${index === arr.length - 1 ? ' quote-totals__row--grand' : ''}` });
+      ['Materiały', totals.materials, 'materials'],
+      ['Akcesoria', totals.accessories, 'accessories'],
+      ['Robocizna szafek', totals.labor, 'labor'],
+      ['Robocizna / stawki wyceny', totals.quoteRates, 'quoteRates'],
+      ['Montaż AGD', totals.services, 'services'],
+      ['Suma przed rabatem', totals.subtotal, 'total'],
+      ['Rabat', totals.discount, 'discount'],
+      ['Razem', totals.grand, 'total'],
+    ].forEach(([label, value, detailSection], index, arr)=>{
+      const row = h('div', { class:`quote-totals__row${index === arr.length - 1 ? ' quote-totals__row--grand' : ''}`, 'data-quote-detail-section':detailSection, role:'button', tabindex:'0' });
       row.appendChild(h('span', { text:label }));
       row.appendChild(h('span', { text:d.money(value) }));
+      row.addEventListener('click', ()=>{
+        try{ if(FC.wycenaSummaryDetailsModal && typeof FC.wycenaSummaryDetailsModal.open === 'function') FC.wycenaSummaryDetailsModal.open(snapshot, detailSection); }catch(_){ }
+      });
+      row.addEventListener('keydown', (event)=>{
+        if(event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        try{ if(FC.wycenaSummaryDetailsModal && typeof FC.wycenaSummaryDetailsModal.open === 'function') FC.wycenaSummaryDetailsModal.open(snapshot, detailSection); }catch(_){ }
+      });
       totalsCard.appendChild(row);
     });
     if(d.canAcceptSnapshot(snapshot)){

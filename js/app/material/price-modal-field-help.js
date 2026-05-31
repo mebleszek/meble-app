@@ -9,6 +9,7 @@
   const FORM_CHOICE_FIELDS = [
     { id:'formMaterialType', mountId:'formMaterialTypeLaunch', title:'Wybierz typ materiału', placeholder:'Typ materiału' },
     { id:'formManufacturer', mountId:'formManufacturerLaunch', title:'Wybierz producenta', placeholder:'Producent' },
+    { id:'formMaterialPriceUnit', mountId:'formMaterialPriceUnitLaunch', title:'Wybierz jednostkę ceny materiału', placeholder:'Jednostka ceny' },
     { id:'formCategory', mountId:'formCategoryLaunch', title:'Wybierz kategorię', placeholder:'Kategoria' },
     { id:'hardwareCategory', mountId:'hardwareCategoryLaunch', title:'Wybierz kategorię okucia', placeholder:'Kategoria okucia' },
     { id:'hardwareUnit', mountId:'hardwareUnitLaunch', title:'Wybierz jednostkę', placeholder:'Jednostka' },
@@ -27,6 +28,7 @@
     formName:{ title:'Nazwa', message:'Pełna nazwa pozycji widoczna w katalogu i przy wyborze w aplikacji.' },
     formHasGrain:{ title:'Ma słoje', message:'Włącz, jeśli materiał ma kierunek słojów. Dzięki temu ROZRYS może pilnować właściwego ułożenia elementów.' },
     formPrice:{ title:'Cena (PLN)', message:'Cena jednostkowa pozycji katalogowej. Dla materiałów i akcesoriów to zwykła cena pozycji, dla czynności może to być stała kwota.' },
+    formMaterialPriceUnit:{ title:'Jednostka ceny materiału', message:'Mówi WYCENIE, jak liczyć materiał: arkusz dla płyt/laminatów i wspólnego rozkroju, m² dla gotowych frontów lakier/akryl i HDF, mb dla obrzeży, szt. dla blatów 4,1 m albo innych całych elementów.' },
     hardwareCategory:{ title:'Kategoria okucia', message:'Grupa okucia, np. zawiasy, szuflady, podnośniki albo cargo. To porządkuje katalog i późniejsze filtrowanie.' },
     hardwareUnit:{ title:'Jednostka', message:'Jednostka rozliczeniowa okucia: sztuka, komplet, metr bieżący, m² albo zestaw składany.' },
     hardwareType:{ title:'Typ / cecha', message:'Opis wariantu okucia tworzony automatycznie z kluczowych danych technicznych kategorii, np. 110° nakładany z hamulcem albo M 500 50 kg. Przy nowych danych nie wpisuj go ręcznie, tylko uzupełnij Dane techniczne.' },

@@ -17,8 +17,12 @@
   const storagePolicy = FC.catalogStoragePolicy || null;
 
   const DEFAULT_SHEET_MATERIALS = [
-    { id:'m1', materialType:'laminat', manufacturer:'Egger', symbol:'W1100', name:'Egger W1100 ST9 Biały Alpejski', price:35, hasGrain:false },
-    { id:'m2', materialType:'akryl', manufacturer:'Rehau', symbol:'A01', name:'Akryl Biały', price:180, hasGrain:false },
+    { id:'m1', materialType:'laminat', manufacturer:'Egger', symbol:'W1100', name:'Egger W1100 ST9 Biały Alpejski', price:280, priceUnit:'sheet', hasGrain:false, starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.' },
+    { id:'m2', materialType:'akryl', manufacturer:'Rehau', symbol:'A01', name:'Akryl Biały', price:380, priceUnit:'m2', hasGrain:false, starterPrice:true, note:'Cena startowa za m² gotowego frontu.' },
+    { id:'m3', materialType:'lakier', manufacturer:'Start', symbol:'LAK-MAT', name:'Front lakierowany standard', price:450, priceUnit:'m2', hasGrain:false, starterPrice:true, note:'Cena startowa za m² gotowego frontu.' },
+    { id:'m4', materialType:'hdf', manufacturer:'Start', symbol:'HDF-3-BIALY', name:'HDF biały 3 mm', price:18, priceUnit:'m2', hasGrain:false, starterPrice:true, note:'Cena startowa za m² pleców.' },
+    { id:'m5', materialType:'obrzeże', manufacturer:'Start', symbol:'ABS-STD', name:'Obrzeże ABS standard', price:3, priceUnit:'mb', hasGrain:false, starterPrice:true, note:'Cena startowa za mb; w wycenie doliczane jest +10% zapasu.' },
+    { id:'m6', materialType:'blat', manufacturer:'Start', symbol:'BLAT-4100', name:'Blat roboczy 4100 mm', price:420, priceUnit:'piece', hasGrain:true, starterPrice:true, note:'Cena startowa za całą sztukę blatu 4,1 m.' },
   ];
   const DEFAULT_ACCESSORIES = hardwareSeeds && typeof hardwareSeeds.mergeAccessorySeeds === 'function'
     ? hardwareSeeds.mergeAccessorySeeds([])
@@ -53,7 +57,7 @@
         { id:'labor_body_h072', category:'Korpusy', name:'Skręcenie korpusu do 72 cm', price:0, usage:'cabinet', autoRole:'cabinetBody', rateType:'workshop', timeBlockHours:0.5, defaultMultiplier:1.25, heightMinMm:0, heightMaxMm:720, volumePricePerM3:50, active:true, internalOnly:true },
       ];
   const DEFAULT_WORKSHOP_SERVICES = [
-    { id:'ws1', category:'Cięcie', name:'Przycięcie płyty', price:25 },
+    { id:'ws1', category:'Cięcie', name:'Przycięcie płyty', price:25, starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.' },
   ];
   const DEFAULT_SERVICE_ORDERS = [];
 
@@ -99,16 +103,34 @@
 
   function normalizeText(value){ return String(value == null ? '' : value).trim(); }
 
+  function normalizeMaterialPriceUnit(value, materialType){
+    const raw = normalizeText(value).toLowerCase();
+    if(['sheet','arkusz','ark.','ark'].includes(raw)) return 'sheet';
+    if(['m2','m²','metr2','metry2','metr kw','metry kw'].includes(raw)) return 'm2';
+    if(['mb','metr','metry','metr bieżący','metr biezacy'].includes(raw)) return 'mb';
+    if(['piece','szt','szt.','sztuka'].includes(raw)) return 'piece';
+    const type = normalizeText(materialType).toLowerCase();
+    if(type === 'akryl' || type === 'lakier' || type === 'hdf') return 'm2';
+    if(type === 'obrzeże' || type === 'obrzeze') return 'mb';
+    if(type === 'blat') return 'piece';
+    return 'sheet';
+  }
+
   function normalizeMaterialRow(row){
     const src = row && typeof row === 'object' ? row : {};
+    const materialType = normalizeText(src.materialType) || 'laminat';
     return {
       id: normalizeText(src.id) || uid('m'),
-      materialType: normalizeText(src.materialType) || 'laminat',
+      materialType,
       manufacturer: normalizeText(src.manufacturer),
       symbol: normalizeText(src.symbol),
       name: normalizeText(src.name),
       price: Number(src.price) || 0,
+      priceUnit: normalizeMaterialPriceUnit(src.priceUnit || src.unitPriceMode || src.unit, materialType),
       hasGrain: !!src.hasGrain,
+      starterPrice: src.starterPrice === true,
+      priceUserEditedAt: normalizeText(src.priceUserEditedAt || src.userEditedAt),
+      note: normalizeText(src.note),
     };
   }
 
@@ -131,6 +153,8 @@
       priceSource: normalizeText(src.priceSource),
       priceUpdatedAt: normalizeText(src.priceUpdatedAt),
       status: normalizeText(src.status) || 'active',
+      starterPrice: src.starterPrice === true,
+      priceUserEditedAt: normalizeText(src.priceUserEditedAt || src.userEditedAt),
       note: normalizeText(src.note),
     };
   }
@@ -194,6 +218,9 @@
       category: normalizeText(src.category) || 'Inne',
       name: normalizeText(src.name),
       price: Number(src.price) || 0,
+      starterPrice: src.starterPrice === true,
+      priceUserEditedAt: normalizeText(src.priceUserEditedAt || src.userEditedAt),
+      note: normalizeText(src.note),
     });
     try{
       if(laborCatalog && typeof laborCatalog.normalizeDefinition === 'function') return laborCatalog.normalizeDefinition(base);

@@ -660,3 +660,6 @@
   .hardware-dictionary-panel .hardware-dictionary-categories-card > .hardware-dictionary-categories-body{padding:10px 16px 16px;border-bottom-left-radius:16px;border-bottom-right-radius:16px;}
   .hardware-dictionary-panel .hardware-dictionary-categories-body .hardware-dictionary-row{grid-template-columns:1fr;align-items:stretch;}
 }
+
+/* Cenniki — widoczna etykieta ceny startowej przy pozycji katalogowej. */
+.price-starter-badge{display:inline-flex;align-items:center;margin-left:6px;padding:2px 7px;border-radius:999px;border:1px solid rgba(251,191,36,.62);background:#fffbeb;color:#92400e;font-size:11px;line-height:1.2;font-weight:900;vertical-align:middle;}

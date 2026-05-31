@@ -114,6 +114,8 @@
       laborPrice:Number(calc.laborPrice) || 0,
       fixedPrice:Number(calc.fixedPrice) || 0,
       total:Number(calc.total) || 0,
+      starterPrice:def.starterPrice === true && !text(def.priceUserEditedAt),
+      priceUserEditedAt:text(def.priceUserEditedAt),
       note:text(opts.note || ''),
     };
   }

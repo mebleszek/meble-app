@@ -488,6 +488,8 @@
       effectiveMarkupPercent:derivedMarkupPercent(Object.assign({}, baseDraft, { price })),
       priceUpdatedAt:text(quoteSupplierPrice.priceDate || src.priceUpdatedAt),
       priceStatus:normalizePriceStatus(quoteSupplierPrice.priceStatus || src.priceStatus || src.status_ceny),
+      starterPrice:src.starterPrice === true,
+      priceUserEditedAt:text(src.priceUserEditedAt || src.userEditedAt),
       status:normalizeStatus(src.status),
       note:text(src.note),
       bundleCostMode:normalizeBundleCostMode(src.bundleCostMode),

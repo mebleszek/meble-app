@@ -113,17 +113,17 @@ function runStaleDraftVariantReset(){
 }
 
 function runCacheBustCheck(){
-  const version = '20260530_wycena_duplicate_modal_fix_v1';
+  const versions = {
+    'js/app/quote/quote-snapshot-store.js':'20260530_wycena_duplicate_modal_fix_v1',
+    'js/app/quote/quote-snapshot.js':'20260531_quote_calculation_register_v1',
+    'js/app/wycena/wycena-core.js':'20260531_quote_calculation_register_v1',
+    'js/app/wycena/wycena-tab-selection-version.js':'20260530_wycena_duplicate_modal_fix_v1',
+    'js/app/wycena/wycena-diagnostics.js':'20260530_wycena_duplicate_modal_fix_v1',
+    'js/app/wycena/wycena-tab-shell.js':'20260530_wycena_duplicate_modal_fix_v1',
+  };
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const dev = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');
-  [
-    'js/app/quote/quote-snapshot-store.js',
-    'js/app/quote/quote-snapshot.js',
-    'js/app/wycena/wycena-core.js',
-    'js/app/wycena/wycena-tab-selection-version.js',
-    'js/app/wycena/wycena-diagnostics.js',
-    'js/app/wycena/wycena-tab-shell.js',
-  ].forEach((script)=>{
+  Object.entries(versions).forEach(([script, version])=>{
     assert(index.includes(`${script}?v=${version}`), `index.html nie ma cache-bustingu ${version} dla ${script}`);
     assert(dev.includes(`${script}?v=${version}`), `dev_tests.html nie ma cache-bustingu ${version} dla ${script}`);
   });

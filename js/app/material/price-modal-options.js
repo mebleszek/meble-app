@@ -117,6 +117,18 @@
 
   function buildServiceCategoryOptions(selectedValue, opts){ return buildCategoryOptions('quoteRates', selectedValue, opts); }
 
+  function buildMaterialPriceUnitOptions(selectedValue){
+    const opts = [
+      { value:'sheet', label:'Arkusz' },
+      { value:'m2', label:'m²' },
+      { value:'mb', label:'mb' },
+      { value:'piece', label:'szt.' },
+    ];
+    const selected = text(selectedValue);
+    if(selected && !opts.some((row)=> row.value === selected)) opts.push({ value:selected, label:selected });
+    return opts;
+  }
+
   function currentHardwareItems(){
     try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories') return ctx.currentList(); }catch(_){ }
     try{ const store = ctx.catalogStore && ctx.catalogStore(); return store && store.getAccessories ? store.getAccessories() : []; }catch(_){ return []; }
@@ -218,5 +230,5 @@
     return FC.investorChoice.mountChoice({ mount, selectEl:cfg.selectEl, title:cfg.title, buttonClass:cfg.buttonClass, disabled:!!cfg.disabled, placeholder:cfg.placeholder, onChange:cfg.onChange });
   }
 
-  Object.assign(ctx, { ensureOption, setSelectOptions, buildMaterialTypeOptions, buildManufacturerOptions, buildCategoryOptions, buildServiceCategoryOptions, buildHardwareCategoryOptions, buildHardwareTypeOptions, buildHardwareUnitOptions, buildHardwareStatusOptions, buildHardwareSupplierOptions, buildHardwareQuoteBaseOptions, buildHardwarePricingModeOptions, buildHardwareBundleCostModeOptions, firstNonEmptyValue, mountChoice });
+  Object.assign(ctx, { ensureOption, setSelectOptions, buildMaterialTypeOptions, buildManufacturerOptions, buildCategoryOptions, buildServiceCategoryOptions, buildMaterialPriceUnitOptions, buildHardwareCategoryOptions, buildHardwareTypeOptions, buildHardwareUnitOptions, buildHardwareStatusOptions, buildHardwareSupplierOptions, buildHardwareQuoteBaseOptions, buildHardwarePricingModeOptions, buildHardwareBundleCostModeOptions, firstNonEmptyValue, mountChoice });
 })();
