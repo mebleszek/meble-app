@@ -1,3 +1,15 @@
+# PCV jedna prawda: MATERIAŁ → WYCENA v1 — 2026-06-01
+
+- Paczka: `site_pcv_single_source_truth_v1.zip`.
+- Obrzeża PCV mają jedno źródło prawdy: centralna polityka w `material-edge-store` decyduje, czy dana formatka może mieć PCV, a agregacja mb idzie przez helper MATERIAŁU. WYCENA nie liczy już PCV osobno z agregatu ROZRYSU.
+- PCV można zaznaczać i liczyć wyłącznie dla formatek, których realny materiał ma typ `laminat`. Decyzja zależy od materiału konkretnej formatki, nie od nazwy elementu typu bok/front/półka.
+- Dla lakieru, akrylu, HDF, blatu, okuć i materiałów nie-laminatowych zakładka MATERIAŁ nie pokazuje checkboxów krawędzi; pokazuje komunikat `Bez PCV — materiał nie jest laminatem`. Stare zapisane krawędzie takich elementów są ignorowane w obliczeniach.
+- Audyt WYCENY pokazuje realne mb z elementów z tej samej logiki co `Okleiny — suma mb` w MATERIAŁ, następnie zapas +10%, mb do wyceny, cenę za mb i koszt.
+- Utrzymano tylko `Obrzeże PCV standard`; ABS nie jest dodawany.
+- Dodano test regresyjny zgodności MATERIAŁ ↔ WYCENA oraz testy blokady PCV dla lakieru, akrylu i HDF.
+- Nie ruszano PRO100, ROZRYS, import/export Excel okuć, backupów, panelu kategorii ani modelu ofert poza źródłem ilości PCV.
+- Raport: `tools/reports/pcv-single-source-truth-v1.md`.
+
 # WYCENA audyt: ukrycie duplikatów, PCV i jednostki materiałów v1 — 2026-06-01
 
 - Paczka: `site_quote_audit_material_quantities_fix_v1.zip`.

@@ -169,25 +169,17 @@
       || null;
   }
 
-  function partsForEdgeStore(parts){
-    return (Array.isArray(parts) ? parts : []).map((part)=>({
-      name:String(part && part.name || 'Element'),
-      material:String(part && part.material || ''),
-      // materialEdgeStore liczy w cm, a agregat ROZRYS podaje mm.
-      a:partDimToMm(part, 'a', 'w') / 10,
-      b:partDimToMm(part, 'b', 'h') / 10,
-      qty:Number(part && part.qty) || 1,
-    })).filter((part)=> part.a > 0 && part.b > 0);
-  }
-
-  function edgeMeters(parts){
+  function collectEdgeMetersFromMaterialSource(selectedRooms, materialScope){
     try{
-      const api = FC.materialEdgeStore && typeof FC.materialEdgeStore.createEdgeStore === 'function'
-        ? FC.materialEdgeStore.createEdgeStore({ persist:false })
-        : null;
-      if(api && typeof api.calcEdgeMetersForParts === 'function') return Number(api.calcEdgeMetersForParts(partsForEdgeStore(parts), null)) || 0;
+      const dataApi = FC.materialTabData;
+      if(dataApi && typeof dataApi.collectEdgeMetersForRooms === 'function'){
+        return dataApi.collectEdgeMetersForRooms(selectedRooms, {
+          materialScope,
+          persist:false,
+        }) || { edgeMeters:0 };
+      }
     }catch(_){ }
-    return 0;
+    return { edgeMeters:0 };
   }
 
   function materialCalculationText(unit, planSource){
@@ -241,8 +233,8 @@
     const scope = selectionApi.decodeMaterialScope(selectionOverride);
     const materialsOrdered = source.getScopedMaterials(aggregate, selectionOverride);
     const roomsText = (aggregate && Array.isArray(aggregate.selectedRooms) ? aggregate.selectedRooms : []).map(source.roomLabel).join(', ');
+    const edgeBasis = collectEdgeMetersFromMaterialSource(aggregate && aggregate.selectedRooms, scope);
     const lines = [];
-    let totalEdgeMeters = 0;
     for(const material of materialsOrdered){
       const group = aggregate && aggregate.groups ? aggregate.groups[material] : null;
       const selectedParts = FC.rozrysScope && typeof FC.rozrysScope.getGroupPartsForScope === 'function'
@@ -258,13 +250,13 @@
       const line = buildMaterialLine(material, selectedParts, priceItem, planInfo);
       line.rooms = roomsText;
       lines.push(line);
-      totalEdgeMeters += edgeMeters(selectedParts);
     }
 
     const edgeItem = findEdgePriceItem();
-    const rawEdgeMeters = round(totalEdgeMeters, 3);
+    const rawEdgeMeters = round(Number(edgeBasis && edgeBasis.edgeMeters) || 0, 3);
     if(rawEdgeMeters > 0 && edgeItem){
       const quotedMeters = round(rawEdgeMeters * 1.1, 3);
+      const wasteMeters = round(quotedMeters - rawEdgeMeters, 3);
       const unitPrice = Number(edgeItem && edgeItem.price) || 0;
       lines.push({
         key:'obrzeza_zapas_10',
@@ -280,16 +272,22 @@
         priceUserEditedAt:String(edgeItem && edgeItem.priceUserEditedAt || ''),
         subsection:'Obrzeża',
         rooms:roomsText,
-        source:'edge-store',
-        note:`Z elementów: ${rawEdgeMeters.toFixed(3)} mb • zapas +10% = ${quotedMeters.toFixed(3)} mb`,
-        calculation:'Cena = metry oklejanych krawędzi z elementów + 10% zapasu × cena za mb z cennika materiałów.',
+        source:'material-edge-policy',
+        edgeRawMeters:rawEdgeMeters,
+        edgeWastePercent:10,
+        edgeWasteMeters:wasteMeters,
+        edgeQuotedMeters:quotedMeters,
+        note:`Z elementów: ${rawEdgeMeters.toFixed(3)} mb • zapas +10% (${wasteMeters.toFixed(3)} mb) = ${quotedMeters.toFixed(3)} mb`,
+        calculation:'Cena = realne metry oklein z zakładki MATERIAŁ, tylko dla formatek laminowanych, + 10% zapasu × cena za mb z cennika materiałów.',
       });
     }else if(rawEdgeMeters > 0 && !edgeItem){
+      const quotedMeters = round(rawEdgeMeters * 1.1, 3);
+      const wasteMeters = round(quotedMeters - rawEdgeMeters, 3);
       lines.push({
         key:'obrzeza_brak_ceny',
         type:'material',
         name:'Obrzeża — brak pozycji w cenniku',
-        qty:round(rawEdgeMeters * 1.1, 3),
+        qty:quotedMeters,
         unit:'mb',
         unitPrice:0,
         total:0,
@@ -297,9 +295,13 @@
         pricingMode:'edge',
         subsection:'Obrzeża',
         rooms:roomsText,
-        source:'edge-store',
-        note:`Z elementów: ${rawEdgeMeters.toFixed(3)} mb • zapas +10%`,
-        calculation:'Cena = metry oklejanych krawędzi z elementów + 10% zapasu × cena za mb z cennika materiałów.',
+        source:'material-edge-policy',
+        edgeRawMeters:rawEdgeMeters,
+        edgeWastePercent:10,
+        edgeWasteMeters:wasteMeters,
+        edgeQuotedMeters:quotedMeters,
+        note:`Z elementów: ${rawEdgeMeters.toFixed(3)} mb • zapas +10% (${wasteMeters.toFixed(3)} mb) = ${quotedMeters.toFixed(3)} mb`,
+        calculation:'Cena = realne metry oklein z zakładki MATERIAŁ, tylko dla formatek laminowanych, + 10% zapasu × cena za mb z cennika materiałów.',
         warnings:['Brak pozycji obrzeża w cenniku materiałów.'],
       });
     }
@@ -310,5 +312,6 @@
     isPartRotationAllowed,
     computePlanForMaterial,
     collectMaterialLines,
+    collectEdgeMetersFromMaterialSource,
   };
 })();

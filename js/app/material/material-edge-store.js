@@ -28,6 +28,84 @@
     return m ? String(m[1] || '').trim() : raw;
   }
 
+  function normalizeText(value){
+    return String(value == null ? '' : value)
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toLowerCase()
+      .replace(/[ąćęłńóśźż]/g, (ch)=> ({'ą':'a','ć':'c','ę':'e','ł':'l','ń':'n','ó':'o','ś':'s','ź':'z','ż':'z'}[ch] || ch))
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function getMaterialItems(){
+    try{
+      if(FC.catalogStore && typeof FC.catalogStore === 'function'){
+        const store = FC.catalogStore();
+        if(store && typeof store.getMaterials === 'function') return store.getMaterials() || [];
+      }
+    }catch(_){ }
+    try{ return Array.isArray(typeof materials !== 'undefined' ? materials : []) ? materials : []; }catch(_){ return []; }
+  }
+
+  function splitFrontMaterial(material){
+    const raw = String(material || '').trim();
+    const match = raw.match(/^\s*Front\s*:\s*([^•]+?)(?:\s*•\s*(.+))?\s*$/i);
+    if(!match) return null;
+    return {
+      materialType:String(match[1] || '').trim().toLowerCase(),
+      name:String(match[2] || '').trim(),
+      raw,
+    };
+  }
+
+  function findMaterialRow(material){
+    const raw = String(material || '').trim();
+    if(!raw) return null;
+    const front = splitFrontMaterial(raw);
+    const candidates = [raw, normalizeMaterialKey(raw), front && front.name].map((value)=> normalizeText(value)).filter(Boolean);
+    const list = getMaterialItems();
+    return (Array.isArray(list) ? list : []).find((row)=> {
+      const name = normalizeText(row && row.name);
+      if(!name) return false;
+      if(candidates.includes(name)) return true;
+      const symbol = normalizeText(row && row.symbol);
+      const manufacturer = normalizeText(row && row.manufacturer);
+      if(symbol && candidates.some((candidate)=> candidate === symbol || candidate.includes(symbol))) return true;
+      return !!(manufacturer && symbol && candidates.some((candidate)=> candidate.includes(manufacturer) && candidate.includes(symbol)));
+    }) || null;
+  }
+
+  function resolveMaterialType(material){
+    const raw = String(material || '').trim();
+    const front = splitFrontMaterial(raw);
+    if(front && front.materialType) return front.materialType;
+
+    const row = findMaterialRow(raw);
+    if(row && String(row.materialType || '').trim()) return String(row.materialType || '').trim().toLowerCase();
+
+    const key = normalizeText(raw);
+    if(!key) return '';
+    if(key === 'laminat' || key.includes(' laminat') || key.includes('laminat ')) return 'laminat';
+    if(key.includes('hdf') || key.includes('plecy')) return 'hdf';
+    if(key.includes('lakier')) return 'lakier';
+    if(key.includes('akryl')) return 'akryl';
+    if(key.includes('blat')) return 'blat';
+    if(key.includes('obrzez') || key.includes('pcv')) return 'obrzeże';
+    if(key.includes('okucia') || key.includes('zawias') || key.includes('podnosnik')) return 'okucia';
+    return '';
+  }
+
+  function isPcvEligibleMaterial(material){
+    return resolveMaterialType(material) === 'laminat';
+  }
+
+  function isPcvEligiblePart(part){
+    const qty = Number(part && part.qty) || 0;
+    const a = Number(part && part.a) || 0;
+    const b = Number(part && part.b) || 0;
+    return qty > 0 && a > 0 && b > 0 && isPcvEligibleMaterial(part && part.material);
+  }
+
   function signatureFromPart(part){
     const partOptionsApi = getPartOptionsApi();
     try{
@@ -120,6 +198,7 @@
       : loadStore();
 
     function getEdges(sig, part, cabinet){
+      if(!isPcvEligiblePart(part)) return { w1:false, w2:false, h1:false, h2:false };
       const key = String(sig || '');
       const existing = key ? (store[key] || null) : null;
       if(!existing){
@@ -150,6 +229,7 @@
       let sum = 0;
       (Array.isArray(parts) ? parts : []).forEach((part)=>{
         if(!(Number(part && part.a) > 0 && Number(part && part.b) > 0)) return;
+        if(!isPcvEligiblePart(part)) return;
         const sig = signatureFromPart(part);
         const e = getEdges(sig, part, cabinet);
         sum += edgingMetersForPart(part, e);
@@ -193,6 +273,9 @@
       getDirection,
       labelForDirection,
       normalizeMaterialKey,
+      resolveMaterialType,
+      isPcvEligibleMaterial,
+      isPcvEligiblePart,
       edgingMetersForPart,
     };
   }
@@ -201,6 +284,9 @@
     EDGE_KEY,
     cmToMm,
     normalizeMaterialKey,
+    resolveMaterialType,
+    isPcvEligibleMaterial,
+    isPcvEligiblePart,
     signatureFromPart,
     defaultEdgesForPart,
     edgingMetersForPart,

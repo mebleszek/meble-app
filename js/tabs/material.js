@@ -249,11 +249,14 @@
         }
 
         const isBoard = (Number(p.a)>0 && Number(p.b)>0);
+        const canHavePcv = isBoard && edgeApi && typeof edgeApi.isPcvEligiblePart === 'function'
+          ? edgeApi.isPcvEligiblePart(p)
+          : (isBoard && window.FC && FC.materialEdgeStore && typeof FC.materialEdgeStore.isPcvEligiblePart === 'function' ? FC.materialEdgeStore.isPcvEligiblePart(p) : isBoard);
         const sig = isBoard && edgeApi && typeof edgeApi.signatureFromPart === 'function'
           ? edgeApi.signatureFromPart(p)
           : (isBoard && window.FC && FC.materialEdgeStore && typeof FC.materialEdgeStore.signatureFromPart === 'function' ? FC.materialEdgeStore.signatureFromPart(p) : null);
-        const e = (sig && edgeApi && typeof edgeApi.getEdges === 'function') ? edgeApi.getEdges(sig, p, cab) : {w1:false,w2:false,h1:false,h2:false};
-        const dirLabel = sig && edgeApi && typeof edgeApi.labelForDirection === 'function' ? edgeApi.labelForDirection(sig) : 'Domyślny z materiału';
+        const e = (canHavePcv && sig && edgeApi && typeof edgeApi.getEdges === 'function') ? edgeApi.getEdges(sig, p, cab) : {w1:false,w2:false,h1:false,h2:false};
+        const dirLabel = canHavePcv && sig && edgeApi && typeof edgeApi.labelForDirection === 'function' ? edgeApi.labelForDirection(sig) : 'Domyślny z materiału';
 
         row.innerHTML = `
           <div style="font-weight:900">${p.name}</div>
@@ -265,7 +268,7 @@
           </div>
           <div class="front-meta">${p.material || ''}</div>
           <div class="front-meta" style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
-            ${isBoard ? `
+            ${canHavePcv ? `
               <div class="material-row-tools">
                 <div class="material-row-tools__edges">
                   <label style="display:flex;align-items:flex-start;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
@@ -302,12 +305,12 @@
                   <div class="muted xs material-row-tools__opts-meta">Słój: ${dirLabel}</div>
                 </div>
               </div>
-            ` : `<span class="muted xs">—</span>`}
+            ` : (isBoard ? `<span class="muted xs" style="font-weight:900;line-height:1.25">Bez PCV — materiał nie jest laminatem</span>` : `<span class="muted xs">—</span>`)}
           </div>
         `;
         table.appendChild(row);
 
-        if(isBoard && edgeApi){
+        if(canHavePcv && edgeApi){
           row.querySelectorAll('input[type="checkbox"][data-edge]').forEach(ch => {
             ch.addEventListener('change', ()=>{
               const sig2 = ch.getAttribute('data-sig');

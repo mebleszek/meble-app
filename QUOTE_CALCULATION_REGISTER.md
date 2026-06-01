@@ -83,6 +83,15 @@ Rejestr wyliczeń ma pokazywać ostrzeżenia, m.in.:
 - Akcesoria muszą być rozpoznawane po wymaganiu technicznym, nie po ogólnym napisie. Dla pozycji z cutlist/formatki musi być przekazywane `hardwareRequirement`: grupa, kategoria, cechy techniczne, reguła źródłowa i ilość. WYCENA ma próbować dobrać konkretną pozycję katalogową z producenta/preferencji i cech. Jeżeli się nie da, ma pokazać wymaganie i ostrzeżenie zamiast udawać, że `zawiasy Blum` jest konkretnym produktem.
 - Jeżeli dla jakiegoś rodzaju szafki/akcesorium brakuje `hardwareRequirement`, zapisać to jako regresję/odłożone zadanie i poprawiać całościowo dla wszystkich typów szafek, nie jednorazową łatą pod jeden przypadek.
 
+## Doprecyzowanie PCV: jedna prawda MATERIAŁ → WYCENA — 2026-06-01
+
+- Ilość obrzeża w WYCENIE musi pochodzić z tej samej logiki co `Okleiny — suma mb` w MATERIAŁ. WYCENA nie może liczyć PCV niezależnie z agregatu ROZRYSU.
+- PCV / obrzeże jest właściwością realnego materiału formatki, nie typu elementu. Bok, półka, front, wieniec lub inna formatka może mieć PCV tylko wtedy, gdy jej materiał ma typ `laminat`.
+- Dla lakieru, akrylu, HDF, blatów, okuć i innych materiałów nie-laminatowych checkboxy PCV w MATERIAŁ nie są dostępne, a stare zapisane krawędzie są ignorowane w obliczeniach.
+- W audycie WYCENY linia obrzeża pokazuje: realne mb z elementów, zapas +10%, mb do wyceny, cenę za mb i koszt.
+- Startowe obrzeże pozostaje tylko jako `Obrzeże PCV standard`. Nie dodawać ABS.
+
+
 ## Odłożone na później
 
 Nie zrobione w v1 i nie zgubić przy kolejnych etapach:

@@ -60,6 +60,43 @@
       : '';
   }
 
+  function normalizeMaterialScope(scope){
+    const raw = scope && typeof scope === 'object' ? scope : {};
+    const includeFronts = raw.includeFronts !== false;
+    const includeCorpus = raw.includeCorpus !== false;
+    return {
+      kind:(raw.kind === 'material' && String(raw.material || '').trim()) ? 'material' : 'all',
+      material:(raw.kind === 'material' && String(raw.material || '').trim()) ? String(raw.material || '').trim() : '',
+      includeFronts: includeFronts || (!includeFronts && !includeCorpus),
+      includeCorpus: includeCorpus || (!includeFronts && !includeCorpus),
+    };
+  }
+
+  function isFrontPart(part){
+    const name = String(part && part.name || '').trim().toLowerCase();
+    const material = String(part && part.material || '').trim();
+    return name === 'front' || /^\s*front\s*:/i.test(material);
+  }
+
+  function normalizePartMaterialKey(part, edgeApi){
+    try{
+      if(edgeApi && typeof edgeApi.normalizeMaterialKey === 'function') return String(edgeApi.normalizeMaterialKey(part && part.material) || '').trim();
+    }catch(_){ }
+    try{
+      if(FC.materialEdgeStore && typeof FC.materialEdgeStore.normalizeMaterialKey === 'function') return String(FC.materialEdgeStore.normalizeMaterialKey(part && part.material) || '').trim();
+    }catch(_){ }
+    return String(part && part.material || '').trim();
+  }
+
+  function partMatchesScope(part, scope, edgeApi){
+    const normalized = normalizeMaterialScope(scope);
+    if(normalized.kind === 'material' && normalizePartMaterialKey(part, edgeApi) !== normalized.material) return false;
+    const front = isFrontPart(part);
+    if(front && !normalized.includeFronts) return false;
+    if(!front && !normalized.includeCorpus) return false;
+    return true;
+  }
+
   function collectRoomMaterials(room, options){
     const opts = options || {};
     const deps = resolveDeps();
@@ -100,10 +137,46 @@
     };
   }
 
+  function collectEdgeMetersForRooms(rooms, options){
+    const opts = options || {};
+    const deps = resolveDeps();
+    const edgeApi = opts.edgeApi || (FC.materialEdgeStore && typeof FC.materialEdgeStore.createEdgeStore === 'function'
+      ? FC.materialEdgeStore.createEdgeStore({ persist: opts.persist !== false })
+      : null);
+    const selectedRooms = Array.isArray(rooms) ? rooms.map((room)=> String(room || '').trim()).filter(Boolean) : [];
+    const scope = normalizeMaterialScope(opts.materialScope || {});
+    let edgeMeters = 0;
+    const details = [];
+
+    selectedRooms.forEach((room)=>{
+      const cabinets = getRoomCabinets(room);
+      cabinets.forEach((cabinet, index)=>{
+        const parts = (deps.getCabinetCutListFn(cabinet, room) || []).filter((part)=> partMatchesScope(part, scope, edgeApi));
+        const cabEdgeMeters = edgeApi && typeof edgeApi.calcEdgeMetersForParts === 'function'
+          ? edgeApi.calcEdgeMetersForParts(parts, cabinet)
+          : 0;
+        edgeMeters += cabEdgeMeters;
+        details.push({ room, cabinet, index, parts, edgeMeters:cabEdgeMeters });
+      });
+    });
+
+    return {
+      rooms:selectedRooms,
+      materialScope:scope,
+      edgeMeters,
+      details,
+      edgeApi,
+    };
+  }
+
   FC.materialTabData = {
     fmtCm,
     resolveDeps,
     getRoomCabinets,
     collectRoomMaterials,
+    collectEdgeMetersForRooms,
+    isFrontPart,
+    partMatchesScope,
+    normalizeMaterialScope,
   };
 })();
