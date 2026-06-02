@@ -184,3 +184,62 @@
   font-size:12px;
   font-weight:900;
 }
+
+/* WYWIAD: edytowalne wymagania zawiasów per drzwiczki. */
+.cabinet-hardware-req-door-pair{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 1px minmax(0,1fr);
+  gap:10px;
+  padding:10px 12px;
+  align-items:stretch;
+}
+.cabinet-hardware-req-door-divider{
+  width:1px;
+  background:#cbd5e1;
+  border-radius:999px;
+}
+.cabinet-hardware-req-door-list{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+  padding:10px 12px;
+}
+.cabinet-hardware-req-door{
+  min-width:0;
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+}
+.cabinet-hardware-req-door__title{
+  font-size:13px;
+  font-weight:900;
+  color:#0f172a;
+  padding:0 2px 2px;
+}
+.cabinet-hardware-req-row--choice{
+  padding:8px 10px 10px;
+}
+.cabinet-hardware-req-select{
+  width:100%;
+  min-height:42px;
+}
+.cabinet-hardware-req-row--choice .cabinet-choice-launch-slot{
+  margin-top:4px;
+}
+.cabinet-hardware-req-row--choice .rozrys-choice-launch{
+  width:100%;
+  min-height:42px;
+}
+@media (max-width:420px){
+  .cabinet-hardware-req-door-pair{
+    gap:8px;
+    padding-left:8px;
+    padding-right:8px;
+  }
+  .cabinet-hardware-req-row{
+    padding-left:7px;
+    padding-right:7px;
+  }
+  .cabinet-hardware-req-row__label{font-size:10px}
+  .cabinet-hardware-req-row__value{font-size:12px}
+}

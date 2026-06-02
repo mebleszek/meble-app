@@ -1,3 +1,9 @@
+## 2026-06-02 — Wymagania zawiasów per drzwiczki w WYWIADZIE
+
+- Panel `Wymagania techniczne do wyceny` w modalu szafki pokazuje i zapisuje wymagania zawiasów jako dane techniczne szafki, nie jako konkretny produkt katalogowy.
+- Dla korpusu dwudrzwiowego wymagania lewych i prawych drzwiczek mogą być inne. WYCENA ma dobierać produkty po tych wymaganiach, a nie po ogólnym tekście typu `zawiasy Blum`.
+- Zmiana typu zawiasu w panelu jest przygotowaniem pod przyszłe przeliczanie geometrii frontu dla zawiasów wpuszczanych/nakładanych.
+
 # Rejestr wyliczeń oferty — ustalenia i zakres v1
 
 Plik opisuje ustalenia dla etapu `site_quote_calculation_register_v1.zip`. Czytać przed dalszymi zmianami w WYCENIE, cennikach materiałów, robociznie i snapshotach ofert.

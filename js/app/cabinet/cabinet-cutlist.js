@@ -186,8 +186,21 @@
 
     if(hingeQty > 0){
       const reqApi = getHardwareRequirements();
-      const req = reqApi && typeof reqApi.getHingeRequirementWithQty === 'function' ? reqApi.getHingeRequirementWithQty(room, cab) : null;
-      parts.push({ name:(req && req.label ? req.label : 'Zawias BLUM'), qty:hingeQty, a:0, b:0, dims:'—', material:'Okucia: zawiasy BLUM', hardwareRequirement:req || null });
+      const reqs = reqApi && typeof reqApi.getHingeRequirementsWithQty === 'function'
+        ? (reqApi.getHingeRequirementsWithQty(room, cab) || []).filter((req)=> req && req.kind === 'hinge' && (Number(req.qty) || 0) > 0)
+        : [];
+      if(reqs.length){
+        reqs.forEach((req)=> {
+          const qty = Math.max(0, Math.round(Number(req && req.qty) || 0));
+          if(qty > 0){
+            const suffix = req && req.doorLabel ? ' — ' + req.doorLabel : '';
+            parts.push({ name:(req && req.label ? req.label : 'Zawias') + suffix, qty, a:0, b:0, dims:'—', material:'Okucia: zawiasy BLUM', hardwareRequirement:req || null });
+          }
+        });
+      }else{
+        const req = reqApi && typeof reqApi.getHingeRequirementWithQty === 'function' ? reqApi.getHingeRequirementWithQty(room, cab) : null;
+        parts.push({ name:(req && req.label ? req.label : 'Zawias BLUM'), qty:hingeQty, a:0, b:0, dims:'—', material:'Okucia: zawiasy BLUM', hardwareRequirement:req || null });
+      }
     }
 
     if(String(cab && cab.subType || '') === 'uchylne'){

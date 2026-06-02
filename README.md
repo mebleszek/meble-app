@@ -1,3 +1,10 @@
+## 2026-06-02 — Edytowalne wymagania zawiasów w modalu szafki v1
+
+- Na dole modala szafki panel `Wymagania techniczne do wyceny` pozwala teraz zmienić wymagany typ zawiasu jako cechę techniczną, bez wybierania producenta/modelu katalogowego.
+- Przy dwóch drzwiczkach lewe i prawe wymagania są pokazane obok siebie w jednym rzędzie, oddzielone pionową kreską.
+- Ilość zawiasów odświeża się z bieżących wymiarów i liczby frontów w trakcie edycji modala.
+- Nadpisania wymagań zapisują się w danych konkretnej szafki i przechodzą przez centralny helper wymagań, zgodnie z zasadą jednej prawdy.
+
 # WYWIAD: panel wymagań technicznych szafki v1 — 2026-06-02
 
 - Paczka: `site_cabinet_hardware_requirements_panel_v1.zip`.

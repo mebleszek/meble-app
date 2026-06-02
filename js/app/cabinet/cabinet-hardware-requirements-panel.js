@@ -1,5 +1,5 @@
 // js/app/cabinet/cabinet-hardware-requirements-panel.js
-// Widok wymagań technicznych szafki w modalu WYWIADU. Pokazuje wymagania, nie konkretne produkty katalogowe.
+// Widok i edycja wymagań technicznych szafki w modalu WYWIADU. Pokazuje wymagania, nie konkretne produkty katalogowe.
 (function(){
   'use strict';
   window.FC = window.FC || {};
@@ -56,6 +56,23 @@
     '</div>';
   }
 
+  function selectRow(label, req, doorKey){
+    const api = FC.cabinetHardwareRequirements;
+    const options = api && typeof api.getHingeRequirementOptions === 'function' ? api.getHingeRequirementOptions() : [];
+    const current = text(req && req.typeId);
+    const id = 'cmHingeReq_' + text(doorKey || 'single').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const opts = (Array.isArray(options) ? options : []).map((opt)=> {
+      const value = text(opt && (opt.typeId || opt.value));
+      const selected = value === current ? ' selected' : '';
+      const title = text(opt && opt.label) || value;
+      return '<option value="' + esc(value) + '"' + selected + '>' + esc(title) + '</option>';
+    }).join('');
+    return '<div class="cabinet-hardware-req-row cabinet-hardware-req-row--choice">' +
+      '<label class="cabinet-hardware-req-row__label" for="' + esc(id) + '">' + esc(label) + '</label>' +
+      '<select id="' + esc(id) + '" class="cabinet-hardware-req-select cabinet-choice-source cabinet-dynamic-choice-source" data-launcher-label="' + esc(label) + '" data-choice-title="Wybierz wymagany typ zawiasu" data-choice-placeholder="' + esc(label) + '" data-req-action="hinge-type" data-door-key="' + esc(doorKey || 'single') + '">' + opts + '</select>' +
+    '</div>';
+  }
+
   function statusBadge(req){
     if(!req) return '';
     if(req.kind === 'hinge') return '<span class="cabinet-hardware-req-badge cabinet-hardware-req-badge--ok">wymagane</span>';
@@ -64,18 +81,46 @@
     return '<span class="cabinet-hardware-req-badge">wymaganie</span>';
   }
 
-  function hingeRows(req){
+  function hingeRows(req, opts){
     const params = req && req.technicalParams || {};
     const qty = Math.max(0, Math.round(number(req && req.qty)));
     const rows = [];
-    rows.push(row('Cecha / typ', formatTechnicalValue(param(params, 'nalozenie'), 'nalozenie') || text(req && req.label)));
+    const editable = !!(opts && opts.editable !== false);
+    if(editable && req && req.doorKey){
+      rows.push(selectRow('Cecha / typ', req, req.doorKey));
+    }else{
+      rows.push(row('Cecha / typ', formatTechnicalValue(param(params, 'nalozenie'), 'nalozenie') || text(req && req.label)));
+    }
     rows.push(row('Kąt otwarcia', formatTechnicalValue(param(params, 'kat_otwarcia'), 'kat_otwarcia')));
     rows.push(row('Prowadnik', formatTechnicalValue(param(params, 'prowadnik'), 'prowadnik')));
     if(param(params, 'hamulec') != null) rows.push(row('Hamulec', formatTechnicalValue(param(params, 'hamulec'), 'hamulec')));
     rows.push(row('Ilość do wyceny', qty > 0 ? `${qty} szt.` : '0 szt.'));
+    if(req && req.overridden) rows.push(row('Nadpisanie', 'ręcznie ustawione dla tych drzwiczek', 'cabinet-hardware-req-row--muted'));
     if(req && req.note) rows.push(row('Uwaga', req.note, 'cabinet-hardware-req-row--note'));
     if(req && req.ruleId) rows.push(row('Reguła źródłowa', req.ruleId, 'cabinet-hardware-req-row--muted'));
     return rows.join('');
+  }
+
+  function doorColumn(req, sideClass){
+    return '<div class="cabinet-hardware-req-door cabinet-hardware-req-door--' + esc(sideClass || '') + '">' +
+      '<div class="cabinet-hardware-req-door__title">' + esc(req && req.doorLabel || 'Drzwiczki') + '</div>' +
+      hingeRows(req, { editable:true }) +
+    '</div>';
+  }
+
+  function hingeBody(req){
+    const doors = Array.isArray(req && req.doorRequirements) ? req.doorRequirements.filter((item)=> item && item.kind === 'hinge') : [];
+    if(doors.length === 2){
+      return '<div class="cabinet-hardware-req-door-pair">' +
+        doorColumn(doors[0], 'left') +
+        '<div class="cabinet-hardware-req-door-divider" aria-hidden="true"></div>' +
+        doorColumn(doors[1], 'right') +
+      '</div>';
+    }
+    if(doors.length > 0){
+      return '<div class="cabinet-hardware-req-door-list">' + doors.map((door)=> doorColumn(door, 'single')).join('') + '</div>';
+    }
+    return '<div class="cabinet-hardware-req-card__body">' + hingeRows(req, { editable:false }) + '</div>';
   }
 
   function noneRows(req){
@@ -99,9 +144,9 @@
   function requirementCard(req){
     const title = text((req && req.category) || (req && req.hardwareGroup) || 'Okucie');
     let body = '';
-    if(req && req.kind === 'hinge') body = hingeRows(req);
-    else if(req && req.kind === 'none') body = noneRows(req);
-    else body = genericRows(req);
+    if(req && req.kind === 'hinge') body = hingeBody(req);
+    else if(req && req.kind === 'none') body = '<div class="cabinet-hardware-req-card__body">' + noneRows(req) + '</div>';
+    else body = '<div class="cabinet-hardware-req-card__body">' + genericRows(req) + '</div>';
     return '<div class="cabinet-hardware-req-card" data-requirement-kind="' + esc(req && req.kind || '') + '">' +
       '<div class="cabinet-hardware-req-card__head">' +
         '<div>' +
@@ -109,8 +154,7 @@
           '<div class="cabinet-hardware-req-card__subtitle">Wymagania techniczne, nie konkretny produkt katalogowy</div>' +
         '</div>' +
         statusBadge(req) +
-      '</div>' +
-      '<div class="cabinet-hardware-req-card__body">' + body + '</div>' +
+      '</div>' + body +
     '</div>';
   }
 
@@ -121,19 +165,45 @@
     catch(_){ return []; }
   }
 
-  function renderPanel(container, room, draft){
+  function mountChoices(container){
+    try{
+      const launcherApi = FC && FC.cabinetChoiceLaunchers;
+      if(launcherApi && typeof launcherApi.refreshCabinetChoices === 'function') launcherApi.refreshCabinetChoices(container);
+      else if(launcherApi && typeof launcherApi.mountDynamicSelectLaunchers === 'function') launcherApi.mountDynamicSelectLaunchers(container);
+    }catch(_){ }
+  }
+
+  function bindEvents(container, room, draft, opts){
+    if(!container || !container.addEventListener || container.__cabinetHardwareReqBound) return;
+    container.__cabinetHardwareReqBound = true;
+    container.addEventListener('change', function(ev){
+      const target = ev && ev.target;
+      if(!target || !target.getAttribute || target.getAttribute('data-req-action') !== 'hinge-type') return;
+      const doorKey = target.getAttribute('data-door-key') || 'single';
+      const typeId = target.value || '';
+      const api = FC.cabinetHardwareRequirements;
+      if(api && typeof api.setHingeDoorOverride === 'function') api.setHingeDoorOverride(draft, doorKey, { typeId });
+      if(opts && typeof opts.onChange === 'function') opts.onChange({ doorKey, typeId, draft });
+      renderPanel(container, room, draft, opts || {});
+    });
+  }
+
+  function renderPanel(container, room, draft, opts){
     if(!container) return [];
+    const options = opts || {};
     const requirements = getRequirements(room, draft);
     const cards = requirements.map(requirementCard).join('');
     container.innerHTML = '<div class="cabinet-hardware-req-panel">' +
       '<div class="cabinet-hardware-req-panel__head">' +
         '<div>' +
           '<h3 class="section-title cabinet-hardware-req-panel__title">Wymagania techniczne do wyceny</h3>' +
-          '<div class="cabinet-hardware-req-panel__hint">Tutaj widać cechy, które WYCENA ma później dopasować do katalogu okuć. Nie pokazujemy tu producenta ani modelu.</div>' +
+          '<div class="cabinet-hardware-req-panel__hint">Tutaj ustawiasz cechy, które WYCENA ma później dopasować do katalogu okuć. Nie wybieramy tu producenta ani modelu.</div>' +
         '</div>' +
       '</div>' +
       '<div class="cabinet-hardware-req-panel__cards">' + (cards || '<div class="cabinet-hardware-req-empty">Brak wymagań technicznych dla tej szafki.</div>') + '</div>' +
     '</div>';
+    bindEvents(container, room, draft, options);
+    mountChoices(container);
     return requirements;
   }
 

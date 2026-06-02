@@ -1105,7 +1105,7 @@ function runCabinetNodeSmoke(sandbox){
       const container = { innerHTML:'' };
       api.renderPanel(container, 'kuchnia', { type:'stojąca', subType:'standard', width:60, height:82, depth:51, frontCount:2, frontMaterial:'laminat', details:{} });
       return html.includes('id="cmHardwareRequirements"')
-        && html.includes('cabinet-hardware-requirements-panel.js?v=20260602_cabinet_hardware_requirements_panel_v1')
+        && html.includes('cabinet-hardware-requirements-panel.js?v=20260602_cabinet_hinge_requirements_live_edit_v1')
         && modal.includes('cabinetHardwareRequirementsPanel')
         && container.innerHTML.includes('Wymagania techniczne do wyceny')
         && container.innerHTML.includes('nakładany')

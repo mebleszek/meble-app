@@ -22,6 +22,7 @@
     const raw = text(value).toLowerCase();
     return ['1','true','tak','yes','y'].includes(raw);
   }
+  function clone(value){ try{ return JSON.parse(JSON.stringify(value)); }catch(_){ return value; } }
   function details(cab){ return cab && cab.details && typeof cab.details === 'object' ? cab.details : {}; }
   function typeOf(cab){ return text(cab && cab.type); }
   function subTypeOf(cab){ return text(cab && cab.subType); }
@@ -65,16 +66,32 @@
     }, extra || {});
   }
   function noHinge(ruleId, reason, extra){
-    return Object.assign({ kind:'none', hardwareGroup:'hinges', ruleId, reason:text(reason), resolverReady:true }, extra || {});
+    return Object.assign({ kind:'none', hardwareGroup:'hinges', category:'Zawiasy', ruleId, reason:text(reason), resolverReady:true }, extra || {});
   }
   function future(ruleId, reason, extra){
-    return Object.assign({ kind:'future', hardwareGroup:'hinges', ruleId, reason:text(reason), resolverReady:false }, extra || {});
+    return Object.assign({ kind:'future', hardwareGroup:'hinges', category:'Zawiasy', ruleId, reason:text(reason), resolverReady:false }, extra || {});
   }
 
   function overlay110(ruleId, extra){
     return hingeRequirement(HINGE_TYPES.OVERLAY_110, 'Zawias 110° nakładany', ruleId, {
       nalozenie:{ value:'nakładany' },
       kat_otwarcia:{ from:110 },
+      hamulec:{ value:true },
+      prowadnik:{ value:'standardowy' }
+    }, extra);
+  }
+  function inset110(ruleId, extra){
+    return hingeRequirement(HINGE_TYPES.INSET_110, 'Zawias 110° wpuszczany', ruleId, {
+      nalozenie:{ value:'wpuszczany' },
+      kat_otwarcia:{ from:110 },
+      hamulec:{ value:true },
+      prowadnik:{ value:'standardowy' }
+    }, extra);
+  }
+  function zero155(ruleId, extra){
+    return hingeRequirement(HINGE_TYPES.ZERO_155, 'Zawias 155° zerowy uskok', ruleId, {
+      nalozenie:{ value:'nakładany' },
+      kat_otwarcia:{ from:155 },
       hamulec:{ value:true },
       prowadnik:{ value:'standardowy' }
     }, extra);
@@ -100,6 +117,34 @@
       kat_otwarcia:{ from:95 },
       prowadnik:{ value:'specjalny' }
     }, extra);
+  }
+
+  const HINGE_OPTION_FACTORIES = [
+    { typeId:HINGE_TYPES.OVERLAY_110, label:'110° nakładany', factory:overlay110 },
+    { typeId:HINGE_TYPES.INSET_110, label:'110° wpuszczany', factory:inset110 },
+    { typeId:HINGE_TYPES.ZERO_155, label:'155° zerowy uskok', factory:zero155 },
+    { typeId:HINGE_TYPES.CORNER_170, label:'170° narożny', factory:corner170 },
+    { typeId:HINGE_TYPES.PARALLEL_INSET, label:'równoległy wpuszczany 95°', factory:blindCorner },
+    { typeId:HINGE_TYPES.FRIDGE_OVERLAY, label:'lodówkowy nakładany 95°', factory:fridgeHinge },
+  ];
+
+  function getHingeRequirementPreset(typeId, ruleId, extra){
+    const id = text(typeId) || HINGE_TYPES.OVERLAY_110;
+    const found = HINGE_OPTION_FACTORIES.find((row)=> row.typeId === id) || HINGE_OPTION_FACTORIES[0];
+    return found.factory(ruleId || ('manual_' + found.typeId), extra || {});
+  }
+
+  function getHingeRequirementOptions(){
+    return HINGE_OPTION_FACTORIES.map((row)=> {
+      const req = getHingeRequirementPreset(row.typeId, 'option_preview');
+      return {
+        typeId:row.typeId,
+        value:row.typeId,
+        label:row.label,
+        requirement:req,
+        technicalParams:clone(req.technicalParams || {})
+      };
+    });
   }
 
   function getBaseHingeRequirement(room, cab){
@@ -160,7 +205,6 @@
   }
 
   function countAuxiliaryFlapHinges(room, cab){
-    const d = details(cab);
     if(isBlumHkXsFlap(cab)){
       try{
         const hw = FC.frontHardware || {};
@@ -182,19 +226,161 @@
     return 0;
   }
 
-  function getHingeRequirementWithQty(room, cab){
-    const req = getBaseHingeRequirement(room, cab);
-    if(!req || req.kind !== 'hinge') return req;
-    let qty = 0;
-    if(req.auxiliaryForLift){
-      qty = countAuxiliaryFlapHinges(room, cab);
+  function getHingeOverrides(cab){
+    const all = cab && cab.hardwareRequirementOverrides && typeof cab.hardwareRequirementOverrides === 'object' ? cab.hardwareRequirementOverrides : {};
+    const hinges = all.hinges && typeof all.hinges === 'object' ? all.hinges : {};
+    return hinges;
+  }
+
+  function ensureHingeOverrideStore(cab){
+    if(!cab || typeof cab !== 'object') return null;
+    if(!cab.hardwareRequirementOverrides || typeof cab.hardwareRequirementOverrides !== 'object') cab.hardwareRequirementOverrides = {};
+    if(!cab.hardwareRequirementOverrides.hinges || typeof cab.hardwareRequirementOverrides.hinges !== 'object') cab.hardwareRequirementOverrides.hinges = {};
+    if(!cab.hardwareRequirementOverrides.hinges.doors || typeof cab.hardwareRequirementOverrides.hinges.doors !== 'object') cab.hardwareRequirementOverrides.hinges.doors = {};
+    return cab.hardwareRequirementOverrides.hinges;
+  }
+
+  function doorKeyForIndex(index, total){
+    const i = Math.max(0, Math.round(number(index)));
+    const count = Math.max(0, Math.round(number(total)));
+    if(count === 1) return 'single';
+    if(count === 2) return i === 0 ? 'left' : 'right';
+    return 'door_' + (i + 1);
+  }
+
+  function doorLabelForIndex(index, total){
+    const i = Math.max(0, Math.round(number(index)));
+    const count = Math.max(0, Math.round(number(total)));
+    if(count === 1) return 'Drzwiczki';
+    if(count === 2) return i === 0 ? 'Lewe drzwiczki' : 'Prawe drzwiczki';
+    return 'Drzwiczki ' + (i + 1);
+  }
+
+  function setHingeDoorOverride(cab, doorKey, patch){
+    const store = ensureHingeOverrideStore(cab);
+    if(!store) return false;
+    const key = text(doorKey) || 'single';
+    const next = Object.assign({}, store.doors[key] || {}, patch || {});
+    if(!text(next.typeId)) delete next.typeId;
+    if(Object.keys(next).length){
+      store.doors[key] = next;
     }else{
+      delete store.doors[key];
+    }
+    return true;
+  }
+
+  function clearInvalidDoorOverrides(cab, validKeys){
+    const store = ensureHingeOverrideStore(cab);
+    if(!store) return false;
+    const allowed = new Set((Array.isArray(validKeys) ? validKeys : []).map(text).filter(Boolean));
+    Object.keys(store.doors || {}).forEach((key)=> { if(!allowed.has(key)) delete store.doors[key]; });
+    if(!Object.keys(store.doors || {}).length) delete store.doors;
+    if(!Object.keys(store).length && cab.hardwareRequirementOverrides) delete cab.hardwareRequirementOverrides.hinges;
+    if(cab.hardwareRequirementOverrides && !Object.keys(cab.hardwareRequirementOverrides).length) delete cab.hardwareRequirementOverrides;
+    return true;
+  }
+
+  function getDoorPanelsForHinges(room, cab){
+    try{
+      const hw = FC.frontHardware || {};
+      return hw && typeof hw.getDoorFrontPanelsForHinges === 'function' ? (hw.getDoorFrontPanelsForHinges(room, cab) || []) : [];
+    }catch(_){ return []; }
+  }
+
+  function countHingesForDoorPanel(panel, cab){
+    try{
+      const hw = FC.frontHardware || {};
+      const calc = hw && typeof hw.blumHingesPerDoor === 'function' ? hw.blumHingesPerDoor : null;
+      if(calc) return Math.max(0, Math.round(number(calc(number(panel && panel.w), number(panel && panel.h), text(panel && panel.material) || (cab && cab.frontMaterial) || 'laminat', !!(panel && panel.hasHandle)))));
+    }catch(_){ }
+    return 0;
+  }
+
+  function applyOverrideToDoorRequirement(baseReq, override, extra){
+    const typeId = text(override && override.typeId) || text(baseReq && baseReq.typeId) || HINGE_TYPES.OVERLAY_110;
+    const req = getHingeRequirementPreset(typeId, text(baseReq && baseReq.ruleId) || 'manual_hinge_override', {
+      overridden: !!(override && text(override.typeId)),
+      defaultTypeId:text(baseReq && baseReq.typeId),
+      defaultLabel:text(baseReq && baseReq.label),
+      sourceRuleId:text(baseReq && baseReq.ruleId),
+      note:text(baseReq && baseReq.note),
+      logicalGroup:baseReq && baseReq.logicalGroup,
+      auxiliaryForLift:!!(baseReq && baseReq.auxiliaryForLift)
+    });
+    return Object.assign({}, req, extra || {});
+  }
+
+  function getHingeRequirementsWithQty(room, cab){
+    const baseReq = getBaseHingeRequirement(room, cab);
+    if(!baseReq || baseReq.kind !== 'hinge') return baseReq ? [baseReq] : [];
+
+    if(baseReq.auxiliaryForLift){
+      const qty = Math.max(0, Math.round(countAuxiliaryFlapHinges(room, cab)));
+      return [Object.assign({}, baseReq, { qty })];
+    }
+
+    const panels = getDoorPanelsForHinges(room, cab);
+    if(!Array.isArray(panels) || !panels.length){
+      let qty = 0;
       try{
         const hw = FC.frontHardware || {};
         qty = hw && typeof hw.getHingeCountForCabinet === 'function' ? Number(hw.getHingeCountForCabinet(room, cab)) || 0 : 0;
       }catch(_){ qty = 0; }
+      return [Object.assign({}, baseReq, { qty:Math.max(0, Math.round(qty)) })];
     }
-    return Object.assign({}, req, { qty:Math.max(0, Math.round(qty)) });
+
+    const overrides = getHingeOverrides(cab);
+    const doorOverrides = overrides && overrides.doors && typeof overrides.doors === 'object' ? overrides.doors : {};
+    const total = panels.length;
+    const validKeys = [];
+    const rows = panels.map((panel, index)=> {
+      const doorKey = doorKeyForIndex(index, total);
+      validKeys.push(doorKey);
+      const override = doorOverrides[doorKey] || {};
+      const qty = countHingesForDoorPanel(panel, cab);
+      return applyOverrideToDoorRequirement(baseReq, override, {
+        qty,
+        doorKey,
+        doorIndex:index,
+        doorCount:total,
+        doorLabel:doorLabelForIndex(index, total),
+        frontWidthCm:number(panel && panel.w),
+        frontHeightCm:number(panel && panel.h),
+        frontMaterial:text(panel && panel.material) || text(cab && cab.frontMaterial),
+        hasHandle:!!(panel && panel.hasHandle)
+      });
+    });
+    try{ clearInvalidDoorOverrides(cab, validKeys); }catch(_){ }
+    return rows;
+  }
+
+  function aggregateDoorRequirements(rows, baseReq){
+    const arr = (Array.isArray(rows) ? rows : []).filter((req)=> req && req.kind === 'hinge');
+    if(!arr.length) return baseReq || null;
+    const totalQty = arr.reduce((sum, req)=> sum + Math.max(0, Math.round(number(req.qty))), 0);
+    const first = arr[0];
+    const allSame = arr.every((req)=> text(req.typeId) === text(first.typeId));
+    const aggregate = Object.assign({}, allSame ? first : (baseReq || first), {
+      qty:Math.max(0, Math.round(totalQty)),
+      doorRequirements:arr.map((req)=> clone(req)),
+      mixedDoorRequirements:!allSame
+    });
+    delete aggregate.doorKey;
+    delete aggregate.doorIndex;
+    delete aggregate.doorLabel;
+    delete aggregate.frontWidthCm;
+    delete aggregate.frontHeightCm;
+    delete aggregate.frontMaterial;
+    delete aggregate.hasHandle;
+    return aggregate;
+  }
+
+  function getHingeRequirementWithQty(room, cab){
+    const baseReq = getBaseHingeRequirement(room, cab);
+    if(!baseReq || baseReq.kind !== 'hinge') return baseReq;
+    const rows = getHingeRequirementsWithQty(room, cab);
+    return aggregateDoorRequirements(rows, baseReq);
   }
 
   function getCabinetHardwareRequirements(room, cab){
@@ -206,9 +392,16 @@
 
   FC.cabinetHardwareRequirements = {
     HINGE_TYPES,
+    getHingeRequirementOptions,
+    getHingeRequirementPreset,
     getBaseHingeRequirement,
     getHingeRequirementWithQty,
+    getHingeRequirementsWithQty,
     getCabinetHardwareRequirements,
+    setHingeDoorOverride,
+    clearInvalidDoorOverrides,
+    doorKeyForIndex,
+    doorLabelForIndex,
     needsFridgeFurnitureHinges,
     isHafeleScissorFlap,
     isBlumHkXsFlap,

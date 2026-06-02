@@ -1,3 +1,14 @@
+# Edytowalne wymagania zawiasów w modalu szafki v1 — 2026-06-02
+
+- Paczka: `site_cabinet_hinge_requirements_live_edit_v1.zip`.
+- Panel `Wymagania techniczne do wyceny` nie jest już tylko podglądem dla zawiasów: pozwala zmienić wymagany typ zawiasu jako cechę techniczną, bez wyboru producenta/modelu katalogowego.
+- Dla szafki dwudrzwiowej wymagania zawiasów są rozbite per drzwiczki: lewe po lewej, prawe po prawej, w jednym rzędzie z pionowym separatorem.
+- Zmiana liczby frontów i wymiarów szafki odświeża ilość zawiasów w panelu na żywo, bez zapisywania i ponownego wejścia w edycję.
+- Nadpisania wymagań są częścią danych szafki (`hardwareRequirementOverrides.hinges.doors`) i są używane przez centralny helper `cabinet-hardware-requirements`; nie dodano osobnego storage ani równoległej logiki WYCENY.
+- `cabinet-cutlist` korzysta z per-drzwiowych wymagań zawiasów, więc różne wymagania lewego i prawego frontu mogą później trafić do WYCENY jako osobne wymagania techniczne.
+- Wybór zawiasu wpuszczanego nie zmienia jeszcze geometrii frontu; to zapisane przygotowanie pod przyszłe spięcie wymagań okuć z logiką wymiaru frontu.
+- Raport: `tools/reports/cabinet-hinge-requirements-live-edit-v1.md`.
+
 # WYWIAD: panel wymagań technicznych szafki v1 — 2026-06-02
 
 - Paczka: `site_cabinet_hardware_requirements_panel_v1.zip`.
