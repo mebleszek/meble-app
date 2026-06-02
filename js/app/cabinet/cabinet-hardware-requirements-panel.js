@@ -58,10 +58,14 @@
 
   function selectRow(label, req, doorKey){
     const api = FC.cabinetHardwareRequirements;
-    const options = api && typeof api.getHingeRequirementOptions === 'function' ? api.getHingeRequirementOptions() : [];
+    let options = api && typeof api.getHingeRequirementOptions === 'function' ? api.getHingeRequirementOptions() : [];
     const current = text(req && req.typeId);
     const id = 'cmHingeReq_' + text(doorKey || 'single').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const opts = (Array.isArray(options) ? options : []).map((opt)=> {
+    options = Array.isArray(options) ? options.slice() : [];
+    if(current && !options.some((opt)=> text(opt && (opt.typeId || opt.value)) === current)){
+      options.unshift({ typeId:current, value:current, label:text(req && req.label) || current, requirement:req, currentOnly:true });
+    }
+    const opts = options.map((opt)=> {
       const value = text(opt && (opt.typeId || opt.value));
       const selected = value === current ? ' selected' : '';
       const title = text(opt && opt.label) || value;
@@ -69,7 +73,7 @@
     }).join('');
     return '<div class="cabinet-hardware-req-row cabinet-hardware-req-row--choice">' +
       '<label class="cabinet-hardware-req-row__label" for="' + esc(id) + '">' + esc(label) + '</label>' +
-      '<select id="' + esc(id) + '" class="cabinet-hardware-req-select cabinet-choice-source cabinet-dynamic-choice-source" data-launcher-label="' + esc(label) + '" data-choice-title="Wybierz wymagany typ zawiasu" data-choice-placeholder="' + esc(label) + '" data-req-action="hinge-type" data-door-key="' + esc(doorKey || 'single') + '">' + opts + '</select>' +
+      '<select id="' + esc(id) + '" class="cabinet-hardware-req-select cabinet-choice-source cabinet-dynamic-choice-source" data-launcher-label="' + esc(label) + '" data-choice-title="Wybierz wymaganie kompletu zawiasowego" data-choice-placeholder="' + esc(label) + '" data-req-action="hinge-type" data-door-key="' + esc(doorKey || 'single') + '">' + opts + '</select>' +
     '</div>';
   }
 
@@ -87,14 +91,14 @@
     const rows = [];
     const editable = !!(opts && opts.editable !== false);
     if(editable && req && req.doorKey){
-      rows.push(selectRow('Cecha / typ', req, req.doorKey));
+      rows.push(selectRow('Typ kompletu', req, req.doorKey));
     }else{
-      rows.push(row('Cecha / typ', formatTechnicalValue(param(params, 'nalozenie'), 'nalozenie') || text(req && req.label)));
+      rows.push(row('Typ kompletu', formatTechnicalValue(param(params, 'nalozenie'), 'nalozenie') || text(req && req.label)));
     }
     rows.push(row('Kąt otwarcia', formatTechnicalValue(param(params, 'kat_otwarcia'), 'kat_otwarcia')));
     rows.push(row('Prowadnik', formatTechnicalValue(param(params, 'prowadnik'), 'prowadnik')));
     if(param(params, 'hamulec') != null) rows.push(row('Hamulec', formatTechnicalValue(param(params, 'hamulec'), 'hamulec')));
-    rows.push(row('Ilość do wyceny', qty > 0 ? `${qty} szt.` : '0 szt.'));
+    rows.push(row('Ilość kompletów', qty > 0 ? `${qty} kpl.` : '0 kpl.'));
     if(req && req.overridden) rows.push(row('Nadpisanie', 'ręcznie ustawione dla tych drzwiczek', 'cabinet-hardware-req-row--muted'));
     if(req && req.note) rows.push(row('Uwaga', req.note, 'cabinet-hardware-req-row--note'));
     if(req && req.ruleId) rows.push(row('Reguła źródłowa', req.ruleId, 'cabinet-hardware-req-row--muted'));
@@ -142,7 +146,7 @@
   }
 
   function requirementCard(req){
-    const title = text((req && req.category) || (req && req.hardwareGroup) || 'Okucie');
+    const title = text((req && req.displayTitle) || (req && req.category) || (req && req.hardwareGroup) || 'Okucie');
     let body = '';
     if(req && req.kind === 'hinge') body = hingeBody(req);
     else if(req && req.kind === 'none') body = '<div class="cabinet-hardware-req-card__body">' + noneRows(req) + '</div>';

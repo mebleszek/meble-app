@@ -1,3 +1,24 @@
+## 2026-06-03 — Wymagania zawiasów z katalogu okuć v1
+
+- Paczka: `site_hinge_catalog_requirement_options_v1.zip`.
+- Lista wyboru w panelu `Wymagania techniczne do wyceny` nie jest już źródłowo hardcodowaną listą presetów. W normalnym runtime powstaje z katalogu okuć/akcesoriów kategorii `Zawiasy`, z `technicalParams`, z deduplikacją po cechach technicznych i bez pokazywania producenta/modelu w modalu szafki.
+- W panelu szafki wymaganie zawiasów jest pokazywane jako `Komplet zawiasowy`: typ/nakładanie, kąt, prowadnik, hamulec i ilość kompletów. To nadal nie jest wybór konkretnej pozycji katalogowej.
+- Jedno wymaganie `komplet zawiasowy` niesie informację, że WYCENA ma pokryć je katalogowo jako gotowy komplet albo jako składniki, np. zawias + prowadnik. Brak pokrycia ma być ostrzeżeniem audytu, a nie fallbackiem typu `zawiasy Blum`.
+- `cabinet-cutlist` przekazuje akcesoryjne pozycje zawiasów jako `Okucia: komplet zawiasowy`, bez zaszywania producenta BLUM w nazwie materiału źródłowego.
+- Utrzymano zasadę: wybór w modalu dotyczy wymagań/cech technicznych, a nie producenta, modelu ani symbolu katalogowego. Producent z preferencji i konkretna cena są zadaniem WYCENY.
+- Raport: `tools/reports/hinge-catalog-requirement-options-v1.md`.
+
+## 2026-06-02 — Zasada pokrycia wymagań okuć przez katalog v1
+
+- Paczka: `site_hardware_requirement_coverage_policy_md_v1.zip`.
+- Zapisano zasadę dla przyszłych okuć: wymaganie techniczne szafki opisuje potrzebę funkcjonalno-montażową, a nie konkretną pozycję katalogową.
+- Przykład dla drzwiczek: w panelu szafki ma istnieć wymaganie `komplet zawiasowy`, czyli zestaw cech: typ/nakładanie, kąt otwarcia, prowadnik, hamulec i ilość kompletów. Nie rozbijać tego w modalu na niezależne wymagania `zawias` oraz `prowadnik`, bo katalog może mieć gotowy komplet albo osobne składniki.
+- WYCENA ma pokrywać jedno wymaganie techniczne na dwa dopuszczalne sposoby: najpierw szukać gotowego kompletu spełniającego wszystkie cechy, a jeśli go nie ma, dobrać składniki osobno, np. zawias + prowadnik. Brak składnika ma dawać ostrzeżenie audytu, nie cichy fallback po ogólnej nazwie.
+- Ta sama zasada dotyczy przyszłych prowadnic, szuflad, podnośników, cargo, profili LED, drążków i innych okuć: szafka zapisuje wymaganie techniczne, a resolver WYCENY decyduje, czy katalog pokrywa je kompletem czy częściami.
+- Lista wyboru wymagań w panelu nie może być hardcodowaną listą presetów. Ma pochodzić z systemu: słowników/kategorii okuć, katalogu akcesoriów i parametrów technicznych, z deduplikacją po cechach, bez pokazywania producenta/modelu w modalu szafki.
+- Obecny etap jest zapisem reguły MD i korektą wersjonowania; nie zmienia jeszcze runtime resolvera ani panelu wyboru. Następna poprawka powinna usunąć statyczną listę zawiasów i budować opcje z danych systemu.
+- Raport: `tools/reports/hardware-requirement-coverage-policy-md-v1.md`.
+
 ## 2026-06-02 — Edytowalne wymagania zawiasów w modalu szafki v1
 
 - Na dole modala szafki panel `Wymagania techniczne do wyceny` pozwala teraz zmienić wymagany typ zawiasu jako cechę techniczną, bez wybierania producenta/modelu katalogowego.

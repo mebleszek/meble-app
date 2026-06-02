@@ -851,13 +851,14 @@ function runWycenaNodeSmoke(sandbox){
       const detailsModalExpected = '20260601_quote_details_modal_ui_hardware_match_fix_v1';
       const auditMaterialsExpected = '20260601_quote_audit_material_quantities_fix_v1';
       const pcvTruthExpected = '20260601_pcv_single_source_truth_v1';
+      const hingeCatalogExpected = '20260603_hinge_catalog_requirement_options_v1';
       const files = ['index.html','dev_tests.html'];
       const scripts = ['wycena-core-selection.js','wycena-core-utils.js','wycena-core-catalog.js','wycena-core-source.js','wycena-core-material-plan.js','wycena-core-offer.js','wycena-core-lines.js','wycena-core-labor.js','wycena-core.js'];
       return files.every((file)=> {
         const html = fs.readFileSync(path.join(process.cwd(), file), 'utf8');
         return scripts.every((script)=> {
           const legacyExpected = script === 'wycena-core-lines.js' ? legacyChangedExpected : legacyBaseExpected;
-          return html.includes(`js/app/wycena/${script}?v=${legacyExpected}`) || html.includes(`js/app/wycena/${script}?v=${newerExpected}`) || html.includes(`js/app/wycena/${script}?v=${currentExpected}`) || html.includes(`js/app/wycena/${script}?v=${registerExpected}`) || html.includes(`js/app/wycena/${script}?v=${detailsModalExpected}`) || html.includes(`js/app/wycena/${script}?v=${auditMaterialsExpected}`) || html.includes(`js/app/wycena/${script}?v=${pcvTruthExpected}`);
+          return html.includes(`js/app/wycena/${script}?v=${legacyExpected}`) || html.includes(`js/app/wycena/${script}?v=${newerExpected}`) || html.includes(`js/app/wycena/${script}?v=${currentExpected}`) || html.includes(`js/app/wycena/${script}?v=${registerExpected}`) || html.includes(`js/app/wycena/${script}?v=${detailsModalExpected}`) || html.includes(`js/app/wycena/${script}?v=${auditMaterialsExpected}`) || html.includes(`js/app/wycena/${script}?v=${pcvTruthExpected}`) || html.includes(`js/app/wycena/${script}?v=${hingeCatalogExpected}`);
         });
       });
     } },
@@ -1105,7 +1106,7 @@ function runCabinetNodeSmoke(sandbox){
       const container = { innerHTML:'' };
       api.renderPanel(container, 'kuchnia', { type:'stojąca', subType:'standard', width:60, height:82, depth:51, frontCount:2, frontMaterial:'laminat', details:{} });
       return html.includes('id="cmHardwareRequirements"')
-        && html.includes('cabinet-hardware-requirements-panel.js?v=20260602_cabinet_hinge_requirements_live_edit_v1')
+        && html.includes('cabinet-hardware-requirements-panel.js?v=20260603_hinge_catalog_requirement_options_v1')
         && modal.includes('cabinetHardwareRequirementsPanel')
         && container.innerHTML.includes('Wymagania techniczne do wyceny')
         && container.innerHTML.includes('nakładany')

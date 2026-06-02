@@ -56,12 +56,19 @@
   function hingeRequirement(typeId, label, ruleId, technicalParams, extra){
     return Object.assign({
       kind:'hinge',
+      requirementType:'hingeSet',
+      displayTitle:'Komplet zawiasowy',
       hardwareGroup:'hinges',
       category:'Zawiasy',
       typeId,
       label,
       ruleId,
       technicalParams:technicalParams || {},
+      coverageMode:'catalogSetOrComponents',
+      coverageComponents:[
+        { kind:'hinge', label:'Zawias' },
+        { kind:'mountingPlate', label:'Prowadnik' }
+      ],
       resolverReady:true,
     }, extra || {});
   }
@@ -119,7 +126,7 @@
     }, extra);
   }
 
-  const HINGE_OPTION_FACTORIES = [
+  const DEFAULT_HINGE_REQUIREMENT_FACTORIES = [
     { typeId:HINGE_TYPES.OVERLAY_110, label:'110° nakładany', factory:overlay110 },
     { typeId:HINGE_TYPES.INSET_110, label:'110° wpuszczany', factory:inset110 },
     { typeId:HINGE_TYPES.ZERO_155, label:'155° zerowy uskok', factory:zero155 },
@@ -128,23 +135,42 @@
     { typeId:HINGE_TYPES.FRIDGE_OVERLAY, label:'lodówkowy nakładany 95°', factory:fridgeHinge },
   ];
 
+  function optionApi(){
+    return FC.cabinetHardwareRequirementOptions || null;
+  }
+  function requirementFromOption(option, ruleId, extra){
+    const opt = option && typeof option === 'object' ? option : null;
+    if(!opt) return null;
+    return hingeRequirement(text(opt.typeId || opt.value), 'Komplet zawiasowy ' + text(opt.label || 'z katalogu'), ruleId || ('catalog_' + text(opt.typeId || opt.value)), clone(opt.technicalParams || {}), Object.assign({
+      catalogDriven:!!opt.catalogDriven,
+      catalogOptionSourceCount:Number(opt.sourceCount) || 0,
+      catalogOptionSourceItemIds:Array.isArray(opt.sourceItemIds) ? opt.sourceItemIds.slice() : [],
+      catalogHasSet:!!opt.catalogHasSet,
+      coverageMode:text(opt.coverageMode) || 'catalogSetOrComponents',
+      coverageComponents:Array.isArray(opt.coverageComponents) ? clone(opt.coverageComponents) : [
+        { kind:'hinge', label:'Zawias' },
+        { kind:'mountingPlate', label:'Prowadnik' }
+      ]
+    }, extra || {}));
+  }
   function getHingeRequirementPreset(typeId, ruleId, extra){
     const id = text(typeId) || HINGE_TYPES.OVERLAY_110;
-    const found = HINGE_OPTION_FACTORIES.find((row)=> row.typeId === id) || HINGE_OPTION_FACTORIES[0];
+    const source = optionApi();
+    const catalogFound = source && typeof source.findHingeRequirementOption === 'function' ? source.findHingeRequirementOption(id) : null;
+    if(catalogFound) return requirementFromOption(catalogFound, ruleId || ('manual_' + id), extra || {});
+    const found = DEFAULT_HINGE_REQUIREMENT_FACTORIES.find((row)=> row.typeId === id) || DEFAULT_HINGE_REQUIREMENT_FACTORIES[0];
     return found.factory(ruleId || ('manual_' + found.typeId), extra || {});
   }
 
   function getHingeRequirementOptions(){
-    return HINGE_OPTION_FACTORIES.map((row)=> {
-      const req = getHingeRequirementPreset(row.typeId, 'option_preview');
-      return {
-        typeId:row.typeId,
-        value:row.typeId,
-        label:row.label,
-        requirement:req,
-        technicalParams:clone(req.technicalParams || {})
-      };
-    });
+    const source = optionApi();
+    const catalogOptions = source && typeof source.getHingeRequirementOptions === 'function' ? source.getHingeRequirementOptions() : [];
+    if(Array.isArray(catalogOptions) && catalogOptions.length){
+      return catalogOptions.map((opt)=> Object.assign({}, opt, {
+        requirement:requirementFromOption(opt, 'option_preview')
+      }));
+    }
+    return [];
   }
 
   function getBaseHingeRequirement(room, cab){

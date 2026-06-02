@@ -7,7 +7,7 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 1. `js/app/quote/quote-snapshot-store.js` — 655 linii; ostrzeżenia: 600+ lines, mixed responsibilities heuristic, direct storage reference.
 2. `js/app/project/project-status-manual-guard.js` — 395 linii; ostrzeżenia: 250+ lines.
 3. `js/tabs/wycena.js` — 368 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
-4. `js/app/wycena/wycena-core-lines.js` — 363 linii; ostrzeżenia: 250+ lines.
+4. `js/app/wycena/wycena-core-lines.js` — 362 linii; ostrzeżenia: 250+ lines.
 5. `js/app/quote/quote-snapshot.js` — 339 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
 6. `js/app/wycena/wycena-core-material-plan.js` — 318 linii; ostrzeżenia: 250+ lines.
 7. `js/app/project/project-status-scope.js` — 313 linii; ostrzeżenia: 250+ lines.
@@ -75,7 +75,7 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 
 ### js/app/wycena/wycena-core-lines.js
 
-- Linie: 363
+- Linie: 362
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: scope:8, quote-collect:4

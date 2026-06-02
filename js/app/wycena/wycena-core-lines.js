@@ -70,22 +70,21 @@
     const name = parts.join(' — ') || text(src.name) || 'Okucie z katalogu';
     return text(src.symbol) ? `${name} (${text(src.symbol)})` : name;
   }
-  function getAccessoryCatalogRows(){
+  function getCatalogStore(){
     try{
-      if(FC.catalogStore && typeof FC.catalogStore === 'function'){
-        const store = FC.catalogStore();
-        if(store && typeof store.getAccessories === 'function') return store.getAccessories();
-      }
+      if(FC.catalogStore && typeof FC.catalogStore === 'function') return FC.catalogStore();
+      if(FC.catalogStore && typeof FC.catalogStore === 'object') return FC.catalogStore;
     }catch(_){ }
+    return null;
+  }
+  function getAccessoryCatalogRows(){
+    const store = getCatalogStore();
+    try{ if(store && typeof store.getAccessories === 'function') return store.getAccessories(); }catch(_){ }
     try{ return Array.isArray(typeof accessories !== 'undefined' ? accessories : []) ? accessories : []; }catch(_){ return []; }
   }
   function getHardwareTechnicalDefinitions(){
-    try{
-      if(FC.catalogStore && typeof FC.catalogStore === 'function'){
-        const store = FC.catalogStore();
-        if(store && typeof store.getHardwareTechnicalParams === 'function') return store.getHardwareTechnicalParams();
-      }
-    }catch(_){ }
+    const store = getCatalogStore();
+    try{ if(store && typeof store.getHardwareTechnicalParams === 'function') return store.getHardwareTechnicalParams(); }catch(_){ }
     return FC.hardwareTechnicalParams && FC.hardwareTechnicalParams.DEFAULT_DEFINITIONS || [];
   }
   function normalizeCandidateItem(row){

@@ -15,7 +15,7 @@ function loadContext(){
   };
   ctx.globalThis = ctx.window;
   vm.createContext(ctx);
-  ['js/app/cabinet/cabinet-hardware-requirements.js', 'js/app/cabinet/cabinet-hardware-requirements-panel.js']
+  ['js/app/cabinet/cabinet-hardware-requirement-options.js', 'js/app/cabinet/cabinet-hardware-requirements.js', 'js/app/cabinet/cabinet-hardware-requirements-panel.js']
     .forEach((file)=> vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), ctx, { filename:file }));
   return ctx;
 }
@@ -31,7 +31,7 @@ function runRenderCheck(){
   assert(container.innerHTML.includes('nakładany'), 'panel powinien pokazać cechę zawiasu');
   assert(container.innerHTML.includes('min. 110°'), 'panel powinien pokazać kąt otwarcia');
   assert(container.innerHTML.includes('standardowy'), 'panel powinien pokazać prowadnik');
-  assert(container.innerHTML.includes('4 szt.'), 'panel powinien pokazać ilość z centralnej reguły');
+  assert(container.innerHTML.includes('4 kpl.'), 'panel powinien pokazać ilość kompletów z centralnej reguły');
   assert(!/\bBLUM\b|\bBlum\b|\bGTV\b/.test(container.innerHTML), 'panel nie może pokazywać producenta/modelu katalogowego');
 }
 
@@ -47,7 +47,7 @@ function runNoHingeCheck(){
 function runStaticCheck(){
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert(html.includes('id="cmHardwareRequirements"'), 'modal szafki musi mieć host panelu wymagań technicznych');
-  assert(html.includes('cabinet-hardware-requirements-panel.js?v=20260602_cabinet_hinge_requirements_live_edit_v1'), 'index musi ładować moduł panelu wymagań z aktualnym cache-bustingiem');
+  assert(html.includes('cabinet-hardware-requirements-panel.js?v=20260603_hinge_catalog_requirement_options_v1'), 'index musi ładować moduł panelu wymagań z aktualnym cache-bustingiem');
   const modal = fs.readFileSync(path.join(root, 'js/app/cabinet/cabinet-modal.js'), 'utf8');
   assert(modal.includes('cabinetHardwareRequirementsPanel'), 'modal musi renderować panel przez moduł, nie własną logiką');
   const css = fs.readFileSync(path.join(root, 'css/cabinet-common.css'), 'utf8');

@@ -1,3 +1,22 @@
+## 2026-06-03 — Wymagania zawiasów z katalogu okuć v1
+
+- Panel szafki ma budować listę wymagań zawiasów z katalogu okuć/akcesoriów i parametrów technicznych, nie z ręcznie wpisanej listy presetów.
+- Deduplikacja odbywa się po cechach technicznych wymagania, dzięki czemu np. Blum i GTV o tych samych cechach dają jedną opcję techniczną `110° nakładany`.
+- Wymaganie zawiasowe w danych szafki to `komplet zawiasowy`, czyli potrzeba techniczna zawias + prowadnik z cechami, a nie osobne luźne wpisy `zawias` i `prowadnik`.
+- WYCENA ma później pokryć to wymaganie gotowym kompletem katalogowym albo składnikami, zachowując ostrzeżenia, jeśli czegoś nie da się dobrać.
+- Cutlista nie powinna zaszywać producenta w źródłowym materiale okucia; dla zawiasów używać `Okucia: komplet zawiasowy`.
+- Cache-busting: `20260603_hinge_catalog_requirement_options_v1`. Raport: `tools/reports/hinge-catalog-requirement-options-v1.md`.
+
+## 2026-06-02 — Doprecyzowanie: wymaganie techniczne a pokrycie katalogowe okuć
+
+- Wymaganie techniczne szafki nie jest tym samym co pozycja katalogowa. Szafka ma zapisywać potrzebę funkcjonalno-montażową, a WYCENA ma dopiero znaleźć sposób pokrycia tej potrzeby w katalogu.
+- Dla drzwiczek właściwym wymaganiem jest `komplet zawiasowy`, nie dwa luźne wymagania `zawias` i `prowadnik`. `Komplet zawiasowy` zawiera cechy: typ/nakładanie, kąt otwarcia, wymagany prowadnik, hamulec i ilość kompletów na dane drzwiczki.
+- Katalog może spełnić to wymaganie jedną pozycją typu komplet `zawias + prowadnik` albo kilkoma pozycjami składowymi, np. osobny zawias i osobny prowadnik. To jest decyzja resolvera WYCENY, a nie modala szafki.
+- Strategia resolvera: najpierw szukać gotowego kompletu spełniającego wszystkie cechy, potem — jeśli komplet nie istnieje — próbować dobrać wymagane składniki osobno. Jeśli brakuje składnika, audyt ma pokazać brak pokrycia wymagania.
+- Nie wolno łatać tego ogólnym tekstem typu `zawiasy Blum` albo `prowadnik standardowy` bez powiązania z wymaganiem technicznym.
+- Ta sama zasada ma obowiązywać przyszłe okucia: prowadnice/szuflady, podnośniki, cargo, systemy narożne, profile LED, drążki i inne akcesoria. Wymaganie opisuje funkcję i cechy, katalog może ją pokrywać kompletem lub elementami.
+- Lista wyboru wymagań w panelu szafki ma być budowana z danych systemu: słowników/kategorii okuć, katalogu i `technicalParams`, z deduplikacją po cechach. Nie dodawać hardcodowanych presetów jako źródła prawdy.
+
 ## 2026-06-02 — Wymagania zawiasów per drzwiczki w WYWIADZIE
 
 - Panel `Wymagania techniczne do wyceny` w modalu szafki pokazuje i zapisuje wymagania zawiasów jako dane techniczne szafki, nie jako konkretny produkt katalogowy.
