@@ -1,3 +1,14 @@
+## 2026-06-03 — Skrócony panel wymagań zawiasów w modalu szafki v1
+
+- Paczka: `site_hinge_requirements_compact_actions_v1.zip`.
+- Panel `Wymagania techniczne do wyceny` pokazuje teraz skrót wymagań zawiasowych zamiast pełnej listy pól technicznych na wierzchu modala.
+- Dla drzwiczek panel pokazuje status `Domyślnie` albo `Ręcznie`, krótkie podsumowanie cech kompletu zawiasowego oraz dwa przyciski: `Zmień` i `Przywróć domyślne`.
+- `Zmień` otwiera aplikacyjny modal wyboru wymagania technicznego kompletu zawiasowego; nadal nie wybieramy producenta, modelu ani symbolu katalogowego.
+- `Przywróć domyślne` usuwa ręczne nadpisanie dla danych drzwiczek i wraca do centralnej reguły szafki.
+- Dla szafki dwudrzwiowej zachowano układ: lewe drzwiczki po lewej, prawe po prawej, w jednym rzędzie, z pionową kreską.
+- Nie dodano osobnej edycji kąta/prowadnika/hamulca jako niezależnych pól; to zostaje do następnego kroku po uporządkowaniu pełnej listy opcji z systemu.
+- Cache-busting: `20260603_hinge_requirements_compact_actions_v1`. Raport: `tools/reports/hinge-requirements-compact-actions-v1.md`.
+
 ## 2026-06-03 — Wymagania zawiasów z katalogu okuć v1
 
 - Paczka: `site_hinge_catalog_requirement_options_v1.zip`.

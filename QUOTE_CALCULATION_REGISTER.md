@@ -1,3 +1,11 @@
+## 2026-06-03 — Skrócony widok wymagań zawiasów w WYWIADZIE
+
+- Widok wymagań zawiasów w modalu szafki ma być prosty: skrót + status `Domyślnie`/`Ręcznie` + przyciski `Zmień` i `Przywróć domyślne`.
+- Pełna technika nie ma zaśmiecać prostej szafki na starcie. Szczegóły są dostępne dopiero po akcji `Zmień`.
+- `Przywróć domyślne` usuwa override dla konkretnych drzwiczek i przywraca regułę centralną, bez ręcznego kasowania danych.
+- WYCENA nadal ma korzystać z centralnego wymagania `komplet zawiasowy`; modal szafki nie wybiera producenta/modelu.
+- Cache-busting: `20260603_hinge_requirements_compact_actions_v1`. Raport: `tools/reports/hinge-requirements-compact-actions-v1.md`.
+
 ## 2026-06-03 — Wymagania zawiasów z katalogu okuć v1
 
 - Panel szafki ma budować listę wymagań zawiasów z katalogu okuć/akcesoriów i parametrów technicznych, nie z ręcznie wpisanej listy presetów.
@@ -5,7 +13,7 @@
 - Wymaganie zawiasowe w danych szafki to `komplet zawiasowy`, czyli potrzeba techniczna zawias + prowadnik z cechami, a nie osobne luźne wpisy `zawias` i `prowadnik`.
 - WYCENA ma później pokryć to wymaganie gotowym kompletem katalogowym albo składnikami, zachowując ostrzeżenia, jeśli czegoś nie da się dobrać.
 - Cutlista nie powinna zaszywać producenta w źródłowym materiale okucia; dla zawiasów używać `Okucia: komplet zawiasowy`.
-- Cache-busting: `20260603_hinge_catalog_requirement_options_v1`. Raport: `tools/reports/hinge-catalog-requirement-options-v1.md`.
+- Cache-busting: `20260603_hinge_requirements_compact_actions_v1`. Raport: `tools/reports/hinge-catalog-requirement-options-v1.md`.
 
 ## 2026-06-02 — Doprecyzowanie: wymaganie techniczne a pokrycie katalogowe okuć
 

@@ -130,8 +130,9 @@ function runPanelCheck(){
   assert(container.innerHTML.includes('cabinet-hardware-req-door-divider'), 'lewe i prawe drzwiczki muszą być oddzielone pionową kreską');
   assert(container.innerHTML.includes('Lewe drzwiczki'), 'panel musi pokazać lewą stronę');
   assert(container.innerHTML.includes('Prawe drzwiczki'), 'panel musi pokazać prawą stronę');
-  assert(container.innerHTML.includes('data-req-action="hinge-type"'), 'typ zawiasu musi być edytowalny przez launcher/select aplikacji');
-  assert(container.innerHTML.includes('110° wpuszczany'), 'wybór musi zawierać zawias wpuszczany dostępny w systemie');
+  assert(container.innerHTML.includes('data-req-action="hinge-change"'), 'wymagania muszą mieć przycisk Zmień otwierający aplikacyjny wybór');
+  assert(container.innerHTML.includes('data-req-action="hinge-default"'), 'wymagania muszą mieć przycisk Przywróć domyślne');
+  assert(container.innerHTML.includes('Domyślnie'), 'panel ma pokazywać skrócony status domyślnego wymagania');
   assert(container.innerHTML.includes('Komplet zawiasowy'), 'panel ma używać pojęcia kompletu zawiasowego, nie samego zawiasu');
   assert(!/\bBLUM\b|\bBlum\b|\bGTV\b/.test(container.innerHTML), 'panel nadal nie może pokazywać producenta/modelu katalogowego');
 }
@@ -142,8 +143,9 @@ function runStaticCheck(){
   assert(modal.includes('fcSel.onchange') && modal.includes('refreshCabinetHardwareRequirementsPanel();'), 'zmiana liczby frontów musi odświeżać wymagania');
   const css = fs.readFileSync(path.join(root, 'css/cabinet-common.css'), 'utf8');
   assert(css.includes('cabinet-hardware-req-door-pair') && css.includes('cabinet-hardware-req-door-divider'), 'brak stylów dwóch kolumn i pionowej kreski');
+  assert(css.includes('cabinet-hardware-req-actions') && css.includes('cabinet-hardware-req-summary'), 'brak stylów skrótu i przycisków wymagań');
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  assert(html.includes('20260603_hinge_catalog_requirement_options_v1'), 'index musi mieć aktualny cache-busting tej paczki');
+  assert(html.includes('20260603_hinge_requirements_compact_actions_v1'), 'index musi mieć aktualny cache-busting tej paczki');
 }
 
 runCatalogDrivenOptionsCheck();
