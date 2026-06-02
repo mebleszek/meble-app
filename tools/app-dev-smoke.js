@@ -1097,6 +1097,21 @@ function runCabinetNodeSmoke(sandbox){
         && reqFridgeDefault.kind === 'none' && reqFridgeDefault.canEnableWithFlag === 'requiresFurnitureHinges'
         && reqFridgeChecked.typeId === 'hinge_fridge_overlay' && reqFridgeChecked.technicalParams && reqFridgeChecked.technicalParams.nalozenie && reqFridgeChecked.technicalParams.nalozenie.value === 'lodówkowy nakładany';
     } },
+    { name:'Modal szafki pokazuje panel wymagań technicznych bez produktów katalogowych', explain:'Chroni etap WYWIAD → WYCENA: użytkownik widzi cechy techniczne szafki, a nie producenta/model dobrany dopiero w WYCENIE.', check:()=> {
+      const api = FC.cabinetHardwareRequirementsPanel;
+      if(!(api && typeof api.renderPanel === 'function')) return false;
+      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const modal = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal.js'), 'utf8');
+      const container = { innerHTML:'' };
+      api.renderPanel(container, 'kuchnia', { type:'stojąca', subType:'standard', width:60, height:82, depth:51, frontCount:2, frontMaterial:'laminat', details:{} });
+      return html.includes('id="cmHardwareRequirements"')
+        && html.includes('cabinet-hardware-requirements-panel.js?v=20260602_cabinet_hardware_requirements_panel_v1')
+        && modal.includes('cabinetHardwareRequirementsPanel')
+        && container.innerHTML.includes('Wymagania techniczne do wyceny')
+        && container.innerHTML.includes('nakładany')
+        && container.innerHTML.includes('min. 110°')
+        && !/\bBLUM\b|\bBlum\b|\bGTV\b/.test(container.innerHTML);
+    } },
     { name:'UI lodówki ma ptaszek zawiasów meblowych', explain:'Chroni decyzję: lodówkowa domyślnie nie dostaje zawiasów, ale front może wymagać zawiasów meblowych.', check:()=> {
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-standing-specials.js'), 'utf8');
       return src.includes('appendFridgeFurnitureHingeToggle')

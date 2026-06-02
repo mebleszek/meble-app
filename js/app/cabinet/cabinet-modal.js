@@ -453,6 +453,10 @@ function renderCabinetModal(){
     const laborApi = getCabinetModalLaborApi();
     if(laborApi && typeof laborApi.renderLaborSection === 'function') laborApi.renderLaborSection(document.getElementById('cmLaborAddons'), draft, renderCabinetModal);
   }catch(_){ }
+  try{
+    const reqPanelApi = window.FC && window.FC.cabinetHardwareRequirementsPanel;
+    if(reqPanelApi && typeof reqPanelApi.renderPanel === 'function') reqPanelApi.renderPanel(document.getElementById('cmHardwareRequirements'), room, draft);
+  }catch(_){ }
 
   document.getElementById('cmWidth').value = draft.width;
   document.getElementById('cmHeight').value = draft.height;

@@ -92,6 +92,15 @@ Rejestr wyliczeń ma pokazywać ostrzeżenia, m.in.:
 - Startowe obrzeże pozostaje tylko jako `Obrzeże PCV standard`. Nie dodawać ABS.
 
 
+## Doprecyzowanie WYWIAD → WYCENA: wymagania techniczne widoczne przy szafce — 2026-06-02
+
+- Modal dodawania/edycji szafki ma pokazywać sekcję `Wymagania techniczne do wyceny`, żeby użytkownik widział, jakie cechy techniczne dana szafka przekazuje później do WYCENY.
+- Sekcja nie może pokazywać konkretnych produktów katalogowych ani producentów typu `Blum zawias nakładany`. Pokazuje wymagania: np. zawias, cecha/nakładanie, kąt otwarcia, prowadnik, hamulec, ilość i reguła źródłowa.
+- Źródłem tej sekcji jest centralny helper `cabinet-hardware-requirements`. Modal nie ma tworzyć własnej logiki okuć; jest widokiem tej samej prawdy, z której później korzysta WYCENA.
+- Jeżeli szafka nie wymaga zawiasów, panel ma pokazać jawny powód, np. szafka szufladowa, zmywarka, lodówka bez włączonych zawiasów meblowych.
+- Dla kolejnego etapu prowadnice/szuflady mają zostać dodane do centralnych wymagań technicznych per szuflada. Domyślna długość prowadnicy ma wynikać z głębokości: szuflada frontowa `głębokość - 1 cm`, szuflada wewnętrzna `głębokość - 3 cm`. Ręczna zmiana może być mniejsza, ale nie większa niż dozwolony limit.
+
+
 ## Odłożone na później
 
 Nie zrobione w v1 i nie zgubić przy kolejnych etapach:

@@ -1,3 +1,15 @@
+# WYWIAD: panel wymagań technicznych szafki v1 — 2026-06-02
+
+- Paczka: `site_cabinet_hardware_requirements_panel_v1.zip`.
+- W modalu dodawania/edycji szafki dodano na samym dole sekcję `Wymagania techniczne do wyceny`.
+- Sekcja pokazuje wymagania techniczne konkretnej szafki, a nie konkretne produkty katalogowe. Nie pokazuje napisów typu `Blum zawias nakładany`; producent i model ma dobrać dopiero WYCENA z katalogu po wymaganiach.
+- W v1 panel pokazuje centralne wymagania zawiasów z `cabinet-hardware-requirements`: cechę/nakładanie, kąt otwarcia, prowadnik, hamulec, ilość i regułę źródłową albo jawny powód braku zawiasów.
+- Panel jest tylko widokiem tej samej prawdy, z której korzysta WYCENA. Nie dodano osobnej logiki modala ani równoległych wyliczeń okuć.
+- Nie dodano jeszcze edycji override ani prowadnic/szuflad. To następny etap: wymagania prowadnic mają wynikać centralnie z głębokości szafki, typu szuflady i tego, czy szuflada jest frontowa czy wewnętrzna.
+- Reguła prowadnic zapisana na przyszłość: zwykła szuflada może mieć prowadnicę maksymalnie `głębokość szafki - 1 cm`; szuflada wewnętrzna maksymalnie `głębokość szafki - 3 cm` z powodu dodatkowego miejsca na front wewnętrzny. Ręczna korekta może zmniejszać długość, ale nie może ustawić długości większej niż dozwolona.
+- Nie ruszano PRO100, ROZRYS, import/export Excel okuć, backupów, panelu kategorii, PCV ani modelu snapshotów/ofert.
+- Raport: `tools/reports/cabinet-hardware-requirements-panel-v1.md`.
+
 # PCV jedna prawda: MATERIAŁ → WYCENA v1 — 2026-06-01
 
 - Paczka: `site_pcv_single_source_truth_v1.zip`.

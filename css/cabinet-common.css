@@ -104,3 +104,83 @@
 .assy-note{margin-top:10px;line-height:1.45}
 .assy-note div{margin:2px 0}
 
+
+/* WYWIAD: jawny panel wymagań technicznych okuć przy szafce. */
+.cabinet-hardware-req-panel{
+  border:1px solid #e6eef6;
+  border-radius:14px;
+  background:#fbfdff;
+  box-shadow:0 6px 18px rgba(2,6,23,0.03);
+  padding:12px;
+}
+.cabinet-hardware-req-panel__head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:10px;
+}
+.cabinet-hardware-req-panel__title{margin:0 0 6px 0}
+.cabinet-hardware-req-panel__hint{
+  color:#64748b;
+  font-size:12px;
+  font-weight:800;
+  line-height:1.4;
+}
+.cabinet-hardware-req-panel__cards{display:grid;grid-template-columns:1fr;gap:10px}
+.cabinet-hardware-req-card{
+  border:1px solid #eef6fb;
+  border-radius:12px;
+  overflow:hidden;
+  background:#fff;
+}
+.cabinet-hardware-req-card__head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+  padding:10px 12px;
+  background:#f3f9ff;
+  border-bottom:1px solid #eef6fb;
+}
+.cabinet-hardware-req-card__title{font-weight:900}
+.cabinet-hardware-req-card__subtitle{font-size:11px;color:#64748b;font-weight:800;margin-top:2px;line-height:1.35}
+.cabinet-hardware-req-card__body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px 12px}
+@media (max-width:700px){.cabinet-hardware-req-card__body{grid-template-columns:1fr}}
+.cabinet-hardware-req-row{
+  border:1px solid #eef6fb;
+  border-radius:10px;
+  background:#fbfdff;
+  padding:8px 10px;
+  min-width:0;
+}
+.cabinet-hardware-req-row__label{font-size:11px;color:#64748b;font-weight:900;margin-bottom:3px}
+.cabinet-hardware-req-row__value{font-size:13px;font-weight:900;color:#0f172a;overflow-wrap:anywhere}
+.cabinet-hardware-req-row--note,
+.cabinet-hardware-req-row--muted{grid-column:1/-1}
+.cabinet-hardware-req-row--muted .cabinet-hardware-req-row__value{color:#64748b;font-size:12px}
+.cabinet-hardware-req-badge{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  padding:4px 8px;
+  font-size:11px;
+  font-weight:900;
+  border:1px solid #dbeafe;
+  background:#eaf6ff;
+  color:#0369a1;
+  white-space:nowrap;
+}
+.cabinet-hardware-req-badge--ok{background:#dcfce7;border-color:#86efac;color:#166534}
+.cabinet-hardware-req-badge--empty{background:#f8fafc;border-color:#e2e8f0;color:#64748b}
+.cabinet-hardware-req-badge--warn{background:#ffedd5;border-color:#fb923c;color:#9a3412}
+.cabinet-hardware-req-empty{
+  border:1px dashed #dbeafe;
+  border-radius:12px;
+  padding:12px;
+  color:#64748b;
+  font-size:12px;
+  font-weight:900;
+}
