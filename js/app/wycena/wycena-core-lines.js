@@ -164,9 +164,16 @@
     if(!r || r.kind === 'none' || r.kind === 'future'){
       return { item:null, preferredProducer, requirement:r, warning:r && r.kind === 'future' ? text(r.reason) : '' };
     }
-    const rows = getAccessoryCatalogRows().map(normalizeCandidateItem).filter((item)=>{
+    const allRows = getAccessoryCatalogRows().map(normalizeCandidateItem).filter((item)=>{
       if(!item || text(item.status) === 'inactive') return false;
       if(!categoryMatches(item.hardwareCategory || item.category, r.category || '')) return false;
+      return true;
+    });
+    const directCandidates = findRequirementSourceCandidates(r, allRows, preferredProducer);
+    if(directCandidates && directCandidates.length){
+      return { item:directCandidates[0], preferredProducer, requirement:r, score:1000, directSourceId:true };
+    }
+    const rows = allRows.filter((item)=> {
       if(preferredProducer && norm(item.manufacturer) !== norm(preferredProducer)) return false;
       return true;
     });
@@ -185,11 +192,83 @@
     return { item:null, preferredProducer, requirement:r, warning:'Nie znaleziono konkretnej pozycji katalogu spełniającej wymaganie techniczne.' };
   }
 
+
+  function isHingeRequirement(req){
+    return !!(req && req.kind === 'hinge' && text(req.hardwareGroup) === 'hinges');
+  }
+
+  function makeRequirementPart(req){
+    const qty = Math.max(0, Math.round(Number(req && req.qty) || 0));
+    if(!(qty > 0)) return null;
+    const suffix = req && req.doorLabel ? ' — ' + text(req.doorLabel) : '';
+    return {
+      name:(text(req && req.label) || 'Komplet zawiasowy') + suffix,
+      qty,
+      a:0,
+      b:0,
+      dims:'—',
+      material:'Okucia: komplet zawiasowy',
+      hardwareRequirement:req || null,
+      source:'centralHardwareRequirements'
+    };
+  }
+
+  function collectCentralHingeRequirementParts(roomId, cabinet){
+    const api = FC.cabinetHardwareRequirements;
+    if(!(api && typeof api.getHingeRequirementsWithQty === 'function')) return null;
+    try{
+      const rows = api.getHingeRequirementsWithQty(roomId, cabinet) || [];
+      return (Array.isArray(rows) ? rows : [])
+        .filter((req)=> isHingeRequirement(req))
+        .map(makeRequirementPart)
+        .filter(Boolean);
+    }catch(_){ return null; }
+  }
+
+  function collectAccessoryPartsForCabinet(roomId, cabinet){
+    const centralHinges = collectCentralHingeRequirementParts(roomId, cabinet);
+    const parts = [];
+    if(Array.isArray(centralHinges)) parts.push.apply(parts, centralHinges);
+
+    const cutlist = FC.cabinetCutlist && typeof FC.cabinetCutlist.getCabinetCutList === 'function'
+      ? (FC.cabinetCutlist.getCabinetCutList(cabinet, roomId) || [])
+      : [];
+    (Array.isArray(cutlist) ? cutlist : []).forEach((part)=>{
+      const req = part && part.hardwareRequirement && typeof part.hardwareRequirement === 'object' ? part.hardwareRequirement : null;
+      if(Array.isArray(centralHinges) && isHingeRequirement(req)) return;
+      parts.push(part);
+    });
+    return parts;
+  }
+
+  function findRequirementSourceCandidates(req, rows, preferredProducer){
+    const ids = Array.isArray(req && req.catalogOptionSourceItemIds)
+      ? req.catalogOptionSourceItemIds.map(text).filter(Boolean)
+      : [];
+    if(!ids.length) return null;
+    const idSet = new Set(ids);
+    const sourceRows = (Array.isArray(rows) ? rows : []).filter((item)=> item && idSet.has(text(item.id)));
+    if(!sourceRows.length) return null;
+    const preferred = text(preferredProducer);
+    const preferredRows = preferred
+      ? sourceRows.filter((item)=> norm(item.manufacturer) === norm(preferred))
+      : [];
+    const pool = preferredRows.length ? preferredRows : sourceRows;
+    return pool.slice().sort((a, b)=> {
+      const priceA = Number(a && a.price) || 0;
+      const priceB = Number(b && b.price) || 0;
+      if((priceB > 0) !== (priceA > 0)) return (priceB > 0 ? 1 : 0) - (priceA > 0 ? 1 : 0);
+      if(text(a && a.hardwareUnit) === 'kpl.' && text(b && b.hardwareUnit) !== 'kpl.') return -1;
+      if(text(b && b.hardwareUnit) === 'kpl.' && text(a && a.hardwareUnit) !== 'kpl.') return 1;
+      return priceA - priceB;
+    });
+  }
+
   function collectAccessories(selectedRooms){
     const rows = new Map();
     const cabs = source.selectedCabinets(selectedRooms);
     cabs.forEach(({ roomId, roomLabel:rl, cabinet })=>{
-      const parts = FC.cabinetCutlist && typeof FC.cabinetCutlist.getCabinetCutList === 'function' ? (FC.cabinetCutlist.getCabinetCutList(cabinet, roomId) || []) : [];
+      const parts = collectAccessoryPartsForCabinet(roomId, cabinet);
       parts.forEach((part)=>{
         const a = Number(part && part.a) || 0;
         const b = Number(part && part.b) || 0;

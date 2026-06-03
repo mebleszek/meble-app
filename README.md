@@ -1,3 +1,13 @@
+## 2026-06-03 — WYCENA bierze ręczne wymagania zawiasów z jednej prawdy v1
+
+- Paczka: `site_wycena_hinge_override_source_v1.zip`.
+- Naprawiono ścieżkę `WYWIAD → wymagania zawiasów → WYCENA`: ręczne nadpisanie wymagań kompletu zawiasowego w modalu szafki musi zmieniać pozycję dobraną w WYCENIE i wynik finansowy, jeśli wybrany wariant ma inną cenę.
+- `WYCENA` zbiera wymagania zawiasów bezpośrednio z centralnego helpera `cabinet-hardware-requirements`, a nie z opisowej/starej kopii w cutliście. Cutlista nadal może pokazywać okucia w MATERIAŁ/ROZRYS, ale dla zawiasów WYCENA ma źródło w wymaganiu technicznym szafki.
+- Resolver WYCENY najpierw korzysta z `catalogOptionSourceItemIds` zapisanych przy wymaganiu z katalogu/słowników okuć. Dzięki temu wariant wybrany w panelu, np. równoległy wpuszczany albo lodówkowy, wskazuje konkretną pozycję katalogową wspierającą ten wariant, z preferencją producenta z WYWIADU.
+- Różne wymagania lewych i prawych drzwiczek generują osobne linie akcesoriów w WYCENIE, z osobnymi cenami i ilościami. Nie wolno zlewać ich z powrotem do domyślnego `110° nakładany`.
+- Dodano test `tools/wycena-hinge-requirement-override-smoke.js`, który symuluje stary/stale cutlist i sprawdza, że WYCENA nadal bierze aktualny override z centralnej logiki szafki.
+- Cache-busting: `20260603_wycena_hinge_override_source_v1`. Raport: `tools/reports/wycena-hinge-override-source-v1.md`.
+
 ## 2026-06-03 — Wspólne przyciski zawiasów jeden pod drugim v1
 
 - Paczka: `site_hinge_requirements_pair_buttons_stacked_v1.zip`.
