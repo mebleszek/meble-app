@@ -1,3 +1,12 @@
+## 2026-06-03 — Wspólne akcje zawiasów dla szafki dwudrzwiowej v1
+
+- Paczka: `site_hinge_requirements_pair_actions_v1.zip`.
+- W skróconym panelu `Wymagania techniczne do wyceny` dla korpusu dwudrzwiowego zostają osobne akcje per strona: `Zmień` i `Przywróć domyślne` dla lewych oraz prawych drzwiczek.
+- Pod obydwoma kolumnami dodano wspólne akcje: `Zmień oba` oraz `Przywróć domyślne dla obu`, żeby jednym wyborem ustawić ten sam komplet zawiasowy na lewą i prawą stronę albo zresetować oba override.
+- Wspólna akcja nie zastępuje wyboru per strona. Asymetryczne wymagania nadal są możliwe, a układ `Lewe drzwiczki │ Prawe drzwiczki` pozostaje bez zmian.
+- `Zmień oba` korzysta z tego samego kaskadowego wyboru wymagań technicznych: typ/nakładanie → kąt → prowadnik → hamulec/domyk. Nadal nie wybieramy producenta, modelu ani symbolu katalogowego w modalu szafki.
+- Cache-busting: `20260603_hinge_requirements_pair_actions_v1`. Raport: `tools/reports/hinge-requirements-pair-actions-v1.md`.
+
 ## 2026-06-03 — Kaskadowy wybór wymagań zawiasów w panelu szafki
 
 - Wymagania `komplet zawiasowy` w WYWIADZIE są nadal technicznym wejściem dla WYCENY, nie wyborem produktu.

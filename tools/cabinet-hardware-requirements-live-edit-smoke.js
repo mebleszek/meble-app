@@ -134,6 +134,8 @@ async function runPanelCheck(){
   assert(container.innerHTML.includes('Prawe drzwiczki'), 'panel musi pokazać prawą stronę');
   assert(container.innerHTML.includes('data-req-action="hinge-change"'), 'wymagania muszą mieć przycisk Zmień otwierający aplikacyjny wybór');
   assert(container.innerHTML.includes('data-req-action="hinge-default"'), 'wymagania muszą mieć przycisk Przywróć domyślne');
+  assert(container.innerHTML.includes('data-req-action="hinge-change-all"') && container.innerHTML.includes('Zmień oba'), 'układ dwudrzwiowy musi mieć wspólny przycisk Zmień oba pod obydwoma frontami');
+  assert(container.innerHTML.includes('data-req-action="hinge-default-all"') && container.innerHTML.includes('Przywróć domyślne dla obu'), 'układ dwudrzwiowy musi mieć wspólne przywracanie domyślnych dla obu frontów');
   assert(container.innerHTML.includes('Domyślnie'), 'panel ma pokazywać skrócony status domyślnego wymagania');
   assert(container.innerHTML.includes('Komplet zawiasowy'), 'panel ma używać pojęcia kompletu zawiasowego, nie samego zawiasu');
   assert(!/\bBLUM\b|\bBlum\b|\bGTV\b/.test(container.innerHTML), 'panel nadal nie może pokazywać producenta/modelu katalogowego');
@@ -171,8 +173,9 @@ function runStaticCheck(){
   const css = fs.readFileSync(path.join(root, 'css/cabinet-common.css'), 'utf8');
   assert(css.includes('cabinet-hardware-req-door-pair') && css.includes('cabinet-hardware-req-door-divider'), 'brak stylów dwóch kolumn i pionowej kreski');
   assert(css.includes('cabinet-hardware-req-actions') && css.includes('cabinet-hardware-req-summary'), 'brak stylów skrótu i przycisków wymagań');
+  assert(css.includes('cabinet-hardware-req-pair-actions'), 'brak stylów wspólnych przycisków dla obu drzwiczek');
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  assert(html.includes('20260603_hinge_requirements_cascade_keep_doors_v1'), 'index musi mieć aktualny cache-busting tej paczki');
+  assert(html.includes('20260603_hinge_requirements_pair_actions_v1'), 'index musi mieć aktualny cache-busting tej paczki');
 }
 
 (async function main(){

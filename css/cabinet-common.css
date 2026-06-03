@@ -198,6 +198,11 @@
   background:#cbd5e1;
   border-radius:999px;
 }
+.cabinet-hardware-req-door-pair-wrap{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+}
 .cabinet-hardware-req-door-list{
   display:grid;
   grid-template-columns:1fr;
@@ -272,6 +277,15 @@
   grid-template-columns:1fr;
   gap:7px;
 }
+.cabinet-hardware-req-pair-actions{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:8px;
+  padding:0 12px 12px;
+}
+.cabinet-hardware-req-action--pair{
+  min-height:42px;
+}
 .cabinet-hardware-req-action{
   width:100%;
   min-height:40px;
@@ -303,6 +317,7 @@
 }
 @media (max-width:420px){
   .cabinet-hardware-req-actions{gap:6px}
+  .cabinet-hardware-req-pair-actions{grid-template-columns:1fr;padding-left:8px;padding-right:8px;gap:7px}
   .cabinet-hardware-req-action{min-height:38px;font-size:12px;padding-left:6px;padding-right:6px}
   .cabinet-hardware-req-summary{padding-left:7px;padding-right:7px}
   .cabinet-hardware-req-summary__value{font-size:12px}

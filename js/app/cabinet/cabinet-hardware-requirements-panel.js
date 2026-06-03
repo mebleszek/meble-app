@@ -223,6 +223,18 @@
     '</div>';
   }
 
+  function pairActionButtons(doors){
+    const list = Array.isArray(doors) ? doors.filter((item)=> item && item.kind === 'hinge') : [];
+    const doorKeys = list.map((req)=> text(req && req.doorKey)).filter(Boolean);
+    const anyOverride = list.some((req)=> !!(req && req.overridden));
+    const disabledRestore = anyOverride ? '' : ' disabled aria-disabled="true"';
+    const keysAttr = esc(doorKeys.join(','));
+    return '<div class="cabinet-hardware-req-pair-actions">' +
+      '<button type="button" class="cabinet-hardware-req-action cabinet-hardware-req-action--change cabinet-hardware-req-action--pair" data-req-action="hinge-change-all" data-door-keys="' + keysAttr + '">Zmień oba</button>' +
+      '<button type="button" class="cabinet-hardware-req-action cabinet-hardware-req-action--default cabinet-hardware-req-action--pair" data-req-action="hinge-default-all" data-door-keys="' + keysAttr + '"' + disabledRestore + '>Przywróć domyślne dla obu</button>' +
+    '</div>';
+  }
+
   function compactDoor(req, sideClass){
     const state = req && req.overridden ? 'Ręcznie' : 'Domyślnie';
     return '<div class="cabinet-hardware-req-door cabinet-hardware-req-door--compact cabinet-hardware-req-door--' + esc(sideClass || '') + '">' +
@@ -248,10 +260,13 @@
   function hingeBody(req){
     const doors = Array.isArray(req && req.doorRequirements) ? req.doorRequirements.filter((item)=> item && item.kind === 'hinge') : [];
     if(doors.length === 2){
-      return '<div class="cabinet-hardware-req-door-pair cabinet-hardware-req-door-pair--compact">' +
-        compactDoor(doors[0], 'left') +
-        '<div class="cabinet-hardware-req-door-divider" aria-hidden="true"></div>' +
-        compactDoor(doors[1], 'right') +
+      return '<div class="cabinet-hardware-req-door-pair-wrap">' +
+        '<div class="cabinet-hardware-req-door-pair cabinet-hardware-req-door-pair--compact">' +
+          compactDoor(doors[0], 'left') +
+          '<div class="cabinet-hardware-req-door-divider" aria-hidden="true"></div>' +
+          compactDoor(doors[1], 'right') +
+        '</div>' +
+        pairActionButtons(doors) +
       '</div>';
     }
     if(doors.length > 0){
@@ -316,21 +331,25 @@
       const target = ev && ev.target && ev.target.closest ? ev.target.closest('[data-req-action]') : null;
       if(!target) return;
       const action = target.getAttribute('data-req-action') || '';
-      if(action !== 'hinge-change' && action !== 'hinge-default') return;
+      if(!['hinge-change','hinge-default','hinge-change-all','hinge-default-all'].includes(action)) return;
       ev.preventDefault();
       const doorKey = target.getAttribute('data-door-key') || 'single';
+      const doorKeysAttr = target.getAttribute('data-door-keys') || '';
+      const doorKeys = doorKeysAttr.split(',').map(text).filter(Boolean);
       const api = FC.cabinetHardwareRequirements;
-      if(action === 'hinge-default'){
-        if(api && typeof api.setHingeDoorOverride === 'function') api.setHingeDoorOverride(draft, doorKey, { typeId:'' });
-        if(opts && typeof opts.onChange === 'function') opts.onChange({ doorKey, typeId:'', restoredDefault:true, draft });
+      if(action === 'hinge-default' || action === 'hinge-default-all'){
+        const keys = action === 'hinge-default-all' ? doorKeys : [doorKey];
+        keys.forEach((key)=> { if(api && typeof api.setHingeDoorOverride === 'function') api.setHingeDoorOverride(draft, key, { typeId:'' }); });
+        if(opts && typeof opts.onChange === 'function') opts.onChange({ doorKey:keys[0] || doorKey, doorKeys:keys, typeId:'', restoredDefault:true, draft });
         renderPanel(container, room, draft, opts || {});
         return;
       }
-      const req = findDoorRequirement(container, doorKey);
+      const req = action === 'hinge-change-all' ? (findDoorRequirement(container, doorKeys[0] || 'left') || findDoorRequirement(container, 'single')) : findDoorRequirement(container, doorKey);
       const picked = await openHingeChoice(req);
       if(picked == null) return;
-      if(api && typeof api.setHingeDoorOverride === 'function') api.setHingeDoorOverride(draft, doorKey, { typeId:picked });
-      if(opts && typeof opts.onChange === 'function') opts.onChange({ doorKey, typeId:picked, draft });
+      const keys = action === 'hinge-change-all' ? doorKeys : [doorKey];
+      keys.forEach((key)=> { if(api && typeof api.setHingeDoorOverride === 'function') api.setHingeDoorOverride(draft, key, { typeId:picked }); });
+      if(opts && typeof opts.onChange === 'function') opts.onChange({ doorKey:keys[0] || doorKey, doorKeys:keys, typeId:picked, draft });
       renderPanel(container, room, draft, opts || {});
     });
   }
