@@ -1,3 +1,11 @@
+## 2026-06-03 — Wspólne przyciski zawiasów jeden pod drugim v1
+
+- Paczka: `site_hinge_requirements_pair_buttons_stacked_v1.zip`.
+- W panelu `Wymagania techniczne do wyceny` dla korpusu dwudrzwiowego wspólne akcje pod kolumnami `Lewe drzwiczki │ Prawe drzwiczki` mają teraz pełną szerokość i są ułożone jedna pod drugą: `Zmień oba`, a pod nim `Przywróć domyślne dla obu`.
+- Osobne przyciski per strona (`Zmień`, `Przywróć domyślne`) zostają bez zmian, żeby nadal można było ustawić inne wymagania dla lewych i prawych drzwiczek.
+- Zmiana dotyczy tylko układu UI przycisków wspólnych; nie zmieniono logiki wymagań zawiasów, kaskadowego wyboru, katalogu okuć ani danych override.
+- Cache-busting: `20260603_hinge_requirements_pair_buttons_stacked_v1`. Raport: `tools/reports/hinge-requirements-pair-buttons-stacked-v1.md`.
+
 ## 2026-06-03 — Wspólne akcje zawiasów dla szafki dwudrzwiowej v1
 
 - Paczka: `site_hinge_requirements_pair_actions_v1.zip`.
