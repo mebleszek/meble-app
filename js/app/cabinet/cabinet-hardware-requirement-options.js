@@ -130,12 +130,20 @@
     const p = normalizeHingeParams(params || {});
     const overlay = normalizedText(paramScalar(p, 'nalozenie'));
     const angle = numericParam(p, 'kat_otwarcia');
-    if(overlay === 'nakladany' && angle >= 165) return HINGE_TYPES.CORNER_170;
-    if(overlay === 'nakladany' && angle >= 150) return HINGE_TYPES.ZERO_155;
-    if(overlay === 'nakladany' && angle >= 100 && angle < 150) return HINGE_TYPES.OVERLAY_110;
-    if(overlay === 'wpuszczany' && angle >= 100) return HINGE_TYPES.INSET_110;
-    if(overlay === 'rownolegly wpuszczany') return HINGE_TYPES.PARALLEL_INSET;
-    if(overlay === 'lodowkowy nakladany') return HINGE_TYPES.FRIDGE_OVERLAY;
+    const plate = normalizedText(paramScalar(p, 'prowadnik')) || 'standardowy';
+    const brakeRaw = paramScalar(p, 'hamulec');
+    const brakeKnown = text(brakeRaw) !== '' || typeof brakeRaw === 'boolean';
+    const brake = boolParam(p, 'hamulec');
+
+    // Znane ID zachowujemy tylko dla kanonicznych wariantów reguł szafek.
+    // Inne kombinacje z katalogu, np. 110° bez hamulca albo inny prowadnik,
+    // dostają własne catalog_hinge_* i nie nadpisują standardu.
+    if(overlay === 'nakladany' && angle >= 100 && angle < 150 && plate === 'standardowy' && (!brakeKnown || brake)) return HINGE_TYPES.OVERLAY_110;
+    if(overlay === 'wpuszczany' && angle >= 100 && angle < 150 && plate === 'standardowy' && (!brakeKnown || brake)) return HINGE_TYPES.INSET_110;
+    if(overlay === 'nakladany' && angle >= 150 && angle < 165 && plate === 'standardowy' && (!brakeKnown || brake)) return HINGE_TYPES.ZERO_155;
+    if(overlay === 'nakladany' && angle >= 165 && plate === 'specjalny' && (!brakeKnown || !brake)) return HINGE_TYPES.CORNER_170;
+    if(overlay === 'rownolegly wpuszczany' && angle > 0 && angle <= 100 && plate === 'specjalny' && (!brakeKnown || !brake)) return HINGE_TYPES.PARALLEL_INSET;
+    if(overlay === 'lodowkowy nakladany' && angle > 0 && angle <= 100 && plate === 'specjalny' && (!brakeKnown || !brake)) return HINGE_TYPES.FRIDGE_OVERLAY;
     return '';
   }
   function formatHingeOptionLabel(params){

@@ -1,10 +1,18 @@
+## 2026-06-03 — Kaskadowy wybór wymagań zawiasów w panelu szafki
+
+- Wymagania `komplet zawiasowy` w WYWIADZIE są nadal technicznym wejściem dla WYCENY, nie wyborem produktu.
+- Wybór ręcznego override zawiasów ma być kaskadowy po cechach: typ/nakładanie → kąt → prowadnik → hamulec/domyk. To zabezpiecza przyszłe katalogi z większą liczbą wariantów, bez długiej listy produktów.
+- Wariant katalogowy nie niesie ilości kompletów. Ilość wynika wyłącznie z geometrii i strony drzwiczek konkretnej szafki. Audyt i WYCENA mają pokazywać tę ilość z centralnego wymagania szafki.
+- Dla dwóch drzwiczek override lewy/prawy musi pozostać osobny. Zmiana jednej strony nie może scalać wymagań do jednego bloku ani gubić układu lewe/prawe.
+- Cache-busting: `20260603_hinge_requirements_cascade_keep_doors_v1`. Raport: `tools/reports/hinge-requirements-cascade-keep-doors-v1.md`.
+
 ## 2026-06-03 — Skrócony widok wymagań zawiasów w WYWIADZIE
 
 - Widok wymagań zawiasów w modalu szafki ma być prosty: skrót + status `Domyślnie`/`Ręcznie` + przyciski `Zmień` i `Przywróć domyślne`.
 - Pełna technika nie ma zaśmiecać prostej szafki na starcie. Szczegóły są dostępne dopiero po akcji `Zmień`.
 - `Przywróć domyślne` usuwa override dla konkretnych drzwiczek i przywraca regułę centralną, bez ręcznego kasowania danych.
 - WYCENA nadal ma korzystać z centralnego wymagania `komplet zawiasowy`; modal szafki nie wybiera producenta/modelu.
-- Cache-busting: `20260603_hinge_requirements_compact_actions_v1`. Raport: `tools/reports/hinge-requirements-compact-actions-v1.md`.
+- Cache-busting: `20260603_hinge_requirements_cascade_keep_doors_v1`. Raport: `tools/reports/hinge-requirements-compact-actions-v1.md`.
 
 ## 2026-06-03 — Wymagania zawiasów z katalogu okuć v1
 
@@ -13,7 +21,7 @@
 - Wymaganie zawiasowe w danych szafki to `komplet zawiasowy`, czyli potrzeba techniczna zawias + prowadnik z cechami, a nie osobne luźne wpisy `zawias` i `prowadnik`.
 - WYCENA ma później pokryć to wymaganie gotowym kompletem katalogowym albo składnikami, zachowując ostrzeżenia, jeśli czegoś nie da się dobrać.
 - Cutlista nie powinna zaszywać producenta w źródłowym materiale okucia; dla zawiasów używać `Okucia: komplet zawiasowy`.
-- Cache-busting: `20260603_hinge_requirements_compact_actions_v1`. Raport: `tools/reports/hinge-catalog-requirement-options-v1.md`.
+- Cache-busting: `20260603_hinge_requirements_cascade_keep_doors_v1`. Raport: `tools/reports/hinge-catalog-requirement-options-v1.md`.
 
 ## 2026-06-02 — Doprecyzowanie: wymaganie techniczne a pokrycie katalogowe okuć
 

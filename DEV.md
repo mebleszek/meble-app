@@ -1,3 +1,15 @@
+## 2026-06-03 — Kaskadowy wybór wymagań zawiasów i utrzymanie stron drzwiczek v1
+
+- Paczka: `site_hinge_requirements_cascade_keep_doors_v1.zip`.
+- Panel `Wymagania techniczne do wyceny` zostaje w skróconym widoku: prosta karta z podsumowaniem, statusem `Domyślnie`/`Ręcznie`, przyciskiem `Zmień` i `Przywróć domyślne`.
+- Akcja `Zmień` nie pokazuje już jednej długiej listy wariantów zawiasów. Wybór jest kaskadowy: najpierw typ/nakładanie, potem kąt otwarcia, prowadnik i hamulec/domyk, z opcji zbudowanych z katalogu okuć i `technicalParams`.
+- Lista wyboru nie jest zawężana przez aktualny override. Po ręcznym wybraniu np. `równoległy wpuszczany` nadal można wrócić przez kaskadę do `nakładany → 110° → standardowy → hamulec tak`, o ile taki wariant istnieje w systemie.
+- Ilość kompletów nie jest parametrem wariantu katalogowego. Lista wyboru nie pokazuje `ilość: 0 kpl.`; ilość zostaje liczona z konkretnej szafki/drzwiczek i pokazywana dopiero w panelu szafki.
+- Dla korpusu dwudrzwiowego zmiana jednej strony nie może zwijać układu do jednego bloku `Drzwiczki`; lewe i prawe drzwiczki mają pozostać w dwóch kolumnach z pionową kreską, a override działa per strona.
+- Warianty katalogowe są rozróżniane po pełnej sygnaturze technicznej. Dodatkowe przyszłe warianty, np. 110° bez hamulca, inny prowadnik albo inne rozwiązanie sprężyny/domyk, nie powinny nadpisywać standardowego `110° nakładany`.
+- Nadal nie wybieramy producenta, modelu ani symbolu katalogowego w modalu szafki; WYCENA ma dobrać pokrycie wymagania z katalogu.
+- Cache-busting: `20260603_hinge_requirements_cascade_keep_doors_v1`. Raport: `tools/reports/hinge-requirements-cascade-keep-doors-v1.md`.
+
 ## 2026-06-03 — Skrócony panel wymagań zawiasów w modalu szafki v1
 
 - Paczka: `site_hinge_requirements_compact_actions_v1.zip`.
@@ -7,7 +19,7 @@
 - `Przywróć domyślne` usuwa ręczne nadpisanie dla danych drzwiczek i wraca do centralnej reguły szafki.
 - Dla szafki dwudrzwiowej zachowano układ: lewe drzwiczki po lewej, prawe po prawej, w jednym rzędzie, z pionową kreską.
 - Nie dodano osobnej edycji kąta/prowadnika/hamulca jako niezależnych pól; to zostaje do następnego kroku po uporządkowaniu pełnej listy opcji z systemu.
-- Cache-busting: `20260603_hinge_requirements_compact_actions_v1`. Raport: `tools/reports/hinge-requirements-compact-actions-v1.md`.
+- Cache-busting: `20260603_hinge_requirements_cascade_keep_doors_v1`. Raport: `tools/reports/hinge-requirements-compact-actions-v1.md`.
 
 ## 2026-06-03 — Wymagania zawiasów z katalogu okuć v1
 

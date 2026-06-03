@@ -74,29 +74,39 @@
     return label || text(fallback) || 'wymaganie techniczne';
   }
 
-  function hingeSummary(req){
+  function hingeTechnicalSummary(req){
     const params = req && req.technicalParams || {};
-    const qty = Math.max(0, Math.round(number(req && req.qty)));
     const bits = [];
     const typeLabel = typeLabelFromParams(params, req && req.label);
     if(typeLabel) bits.push(typeLabel);
     const prowadnik = formatTechnicalValue(param(params, 'prowadnik'), 'prowadnik');
     if(prowadnik) bits.push('prowadnik: ' + prowadnik);
     if(param(params, 'hamulec') != null) bits.push('hamulec: ' + formatTechnicalValue(param(params, 'hamulec'), 'hamulec'));
+    return bits.join(' • ');
+  }
+
+  function hingeSummary(req){
+    const qty = Math.max(0, Math.round(number(req && req.qty)));
+    const bits = [];
+    const tech = hingeTechnicalSummary(req);
+    if(tech) bits.push(tech);
     bits.push('ilość: ' + (qty > 0 ? `${qty} kpl.` : '0 kpl.'));
     return bits.join(' • ');
   }
 
   function addChoiceOption(map, option, sourceReq){
-    const value = text(option && (option.typeId || option.value)) || text(sourceReq && sourceReq.typeId);
+    const value = text(option && (option.value || option.typeId)) || text(sourceReq && sourceReq.typeId);
     if(!value || map.has(value)) return;
     const params = (option && option.technicalParams) || (sourceReq && sourceReq.technicalParams) || {};
     const label = text(option && option.label) || typeLabelFromParams(params, sourceReq && sourceReq.label) || value;
-    map.set(value, {
+    const sourceOption = option && typeof option === 'object' ? option : {};
+    map.set(value, Object.assign({}, sourceOption, {
       value,
+      typeId:value,
       label,
-      description: hingeSummary(Object.assign({}, sourceReq || {}, { technicalParams:params, label, typeId:value }))
-    });
+      technicalParams:params,
+      description: hingeTechnicalSummary(Object.assign({}, sourceReq || {}, { technicalParams:params, label, typeId:value }))
+    }));
   }
 
   function buildHingeChoiceOptions(req){
@@ -116,16 +126,92 @@
     return Array.from(map.values());
   }
 
+  function normalizeKey(value){
+    return text(value).toLowerCase().replace(/ł/g, 'l').replace(/Ł/g, 'l').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  }
+
+  function scalarParamValue(params, key){
+    const raw = param(params || {}, key);
+    if(raw == null) return '';
+    if(typeof raw === 'object'){
+      if(raw.value != null) return raw.value;
+      if(raw.from != null) return raw.from;
+      if(raw.to != null) return raw.to;
+    }
+    return raw;
+  }
+
+  function displayParamValue(params, key){
+    return formatTechnicalValue(param(params || {}, key), key) || text(scalarParamValue(params || {}, key));
+  }
+
+  function sameCascadeValue(a, b){
+    return normalizeKey(a) === normalizeKey(b);
+  }
+
+  function uniqueCascadeFieldOptions(options, key){
+    const map = new Map();
+    (Array.isArray(options) ? options : []).forEach((opt)=>{
+      const params = opt && opt.technicalParams || {};
+      const raw = scalarParamValue(params, key);
+      const value = text(raw);
+      const norm = normalizeKey(value);
+      if(!norm || map.has(norm)) return;
+      const label = displayParamValue(params, key) || value;
+      map.set(norm, { value, label });
+    });
+    return Array.from(map.values()).sort((a, b)=> text(a.label).localeCompare(text(b.label), 'pl'));
+  }
+
+  function filterByCascadeValue(options, key, selected){
+    const wanted = normalizeKey(selected);
+    if(!wanted) return Array.isArray(options) ? options.slice() : [];
+    return (Array.isArray(options) ? options : []).filter((opt)=> sameCascadeValue(scalarParamValue(opt && opt.technicalParams || {}, key), selected));
+  }
+
+  async function pickCascadeField(choiceApi, cfg){
+    const values = uniqueCascadeFieldOptions(cfg.options, cfg.key);
+    if(!values.length) return '';
+    const current = displayParamValue(cfg.currentParams || {}, cfg.key) || text(scalarParamValue(cfg.currentParams || {}, cfg.key));
+    if(values.length === 1) return values[0].value;
+    const picked = await choiceApi.openRozrysChoiceOverlay({
+      title:cfg.title,
+      value:values.find((item)=> sameCascadeValue(item.value, current)) ? current : '',
+      options:values.map((item)=> ({ value:item.value, label:item.label }))
+    });
+    return picked == null ? null : picked;
+  }
+
   async function openHingeChoice(req){
     const choiceApi = FC && FC.rozrysChoice;
     if(!(choiceApi && typeof choiceApi.openRozrysChoiceOverlay === 'function')) return null;
-    const options = buildHingeChoiceOptions(req);
-    if(!options.length) return null;
-    return choiceApi.openRozrysChoiceOverlay({
-      title:'Wybierz wymaganie kompletu zawiasowego',
-      value:text(req && req.typeId),
-      options
-    });
+    const allOptions = buildHingeChoiceOptions(req);
+    if(!allOptions.length) return null;
+
+    let filtered = allOptions.slice();
+    const currentParams = req && req.technicalParams || {};
+    const cascade = [
+      { key:'nalozenie', title:'Wybierz typ / nakładanie kompletu zawiasowego' },
+      { key:'kat_otwarcia', title:'Wybierz kąt otwarcia' },
+      { key:'prowadnik', title:'Wybierz prowadnik' },
+      { key:'hamulec', title:'Wybierz hamulec / domyk' }
+    ];
+
+    for(const step of cascade){
+      const values = uniqueCascadeFieldOptions(filtered, step.key);
+      if(values.length <= 1){
+        if(values.length === 1) filtered = filterByCascadeValue(filtered, step.key, values[0].value);
+        continue;
+      }
+      const picked = await pickCascadeField(choiceApi, Object.assign({}, step, { options:filtered, currentParams }));
+      if(picked == null) return null;
+      filtered = filterByCascadeValue(filtered, step.key, picked);
+      if(!filtered.length) return null;
+    }
+
+    const currentType = text(req && req.typeId);
+    const preferred = filtered.find((opt)=> text(opt && (opt.value || opt.typeId)) === currentType || text(opt && opt.typeId) === currentType) || filtered[0];
+    return text(preferred && (preferred.value || preferred.typeId));
   }
 
   function actionButtons(req){
@@ -273,5 +359,6 @@
     getRequirements,
     formatTechnicalValue,
     buildHingeChoiceOptions,
+    openHingeChoice,
   };
 })();

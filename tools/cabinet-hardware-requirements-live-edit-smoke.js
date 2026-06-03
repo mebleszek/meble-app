@@ -121,11 +121,13 @@ function runPerDoorCheck(){
   assert(hingeParts.some((part)=> part.hardwareRequirement.technicalParams.nalozenie.value === 'nakładany'), 'cutlista musi przenieść wymaganie nakładane');
 }
 
-function runPanelCheck(){
+async function runPanelCheck(){
   const ctx = loadCatalogContext();
   const api = ctx.window.FC.cabinetHardwareRequirementsPanel;
+  const reqApi = ctx.window.FC.cabinetHardwareRequirements;
+  const draft = { type:'stojąca', subType:'standard', width:80, height:82, frontCount:2, frontMaterial:'laminat', details:{} };
   const container = { innerHTML:'' };
-  api.renderPanel(container, 'kuchnia', { type:'stojąca', subType:'standard', width:80, height:82, frontCount:2, frontMaterial:'laminat', details:{} });
+  api.renderPanel(container, 'kuchnia', draft);
   assert(container.innerHTML.includes('cabinet-hardware-req-door-pair'), 'panel dwudrzwiowy musi renderować układ dwóch kolumn');
   assert(container.innerHTML.includes('cabinet-hardware-req-door-divider'), 'lewe i prawe drzwiczki muszą być oddzielone pionową kreską');
   assert(container.innerHTML.includes('Lewe drzwiczki'), 'panel musi pokazać lewą stronę');
@@ -135,6 +137,31 @@ function runPanelCheck(){
   assert(container.innerHTML.includes('Domyślnie'), 'panel ma pokazywać skrócony status domyślnego wymagania');
   assert(container.innerHTML.includes('Komplet zawiasowy'), 'panel ma używać pojęcia kompletu zawiasowego, nie samego zawiasu');
   assert(!/\bBLUM\b|\bBlum\b|\bGTV\b/.test(container.innerHTML), 'panel nadal nie może pokazywać producenta/modelu katalogowego');
+
+  reqApi.setHingeDoorOverride(draft, 'left', { typeId:reqApi.HINGE_TYPES.PARALLEL_INSET });
+  api.renderPanel(container, 'kuchnia', draft);
+  assert(container.innerHTML.includes('Lewe drzwiczki') && container.innerHTML.includes('Prawe drzwiczki'), 'po zmianie jednych drzwiczek układ lewe/prawe nie może znikać');
+  assert(container.innerHTML.includes('Ręcznie') && container.innerHTML.includes('Domyślnie'), 'panel ma pokazać ręczne nadpisanie tylko przy zmienionej stronie');
+
+  const leftReq = reqApi.getHingeRequirementWithQty('kuchnia', draft).doorRequirements[0];
+  const options = api.buildHingeChoiceOptions(leftReq);
+  assert(options.length >= 5, 'wybór ma bazować na pełnych wariantach z katalogu');
+  assert(options.every((opt)=> !/ilość:\s*0 kpl\./.test(String(opt.description || ''))), 'lista wyboru wariantu nie może pokazywać ilości 0 kpl.; ilość należy do szafki');
+
+  const titles = [];
+  ctx.window.FC.rozrysChoice = {
+    async openRozrysChoiceOverlay(cfg){
+      titles.push(String(cfg.title || ''));
+      if(String(cfg.title || '').includes('typ')) return 'nakładany';
+      if(String(cfg.title || '').includes('kąt')) return '110';
+      if(String(cfg.title || '').includes('prowadnik')) return 'standardowy';
+      if(String(cfg.title || '').includes('hamulec')) return 'true';
+      return null;
+    }
+  };
+  const picked = await api.openHingeChoice(leftReq);
+  assert(picked === reqApi.HINGE_TYPES.OVERLAY_110, 'kaskadowy wybór nakładany → 110° → standardowy → hamulec ma wrócić do standardowego 110°');
+  assert(titles.some((title)=> title.includes('typ')) && titles.some((title)=> title.includes('kąt')), 'wybór zawiasu ma być kaskadowy, a nie jedną długą listą wariantów');
 }
 
 function runStaticCheck(){
@@ -145,12 +172,14 @@ function runStaticCheck(){
   assert(css.includes('cabinet-hardware-req-door-pair') && css.includes('cabinet-hardware-req-door-divider'), 'brak stylów dwóch kolumn i pionowej kreski');
   assert(css.includes('cabinet-hardware-req-actions') && css.includes('cabinet-hardware-req-summary'), 'brak stylów skrótu i przycisków wymagań');
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  assert(html.includes('20260603_hinge_requirements_compact_actions_v1'), 'index musi mieć aktualny cache-busting tej paczki');
+  assert(html.includes('20260603_hinge_requirements_cascade_keep_doors_v1'), 'index musi mieć aktualny cache-busting tej paczki');
 }
 
-runCatalogDrivenOptionsCheck();
-runNoHardcodedOptionFallbackCheck();
-runPerDoorCheck();
-runPanelCheck();
-runStaticCheck();
-console.log('OK cabinet-hardware-requirements-live-edit smoke');
+(async function main(){
+  runCatalogDrivenOptionsCheck();
+  runNoHardcodedOptionFallbackCheck();
+  runPerDoorCheck();
+  await runPanelCheck();
+  runStaticCheck();
+  console.log('OK cabinet-hardware-requirements-live-edit smoke');
+})().catch((err)=> { console.error(err && err.stack || err); process.exit(1); });
