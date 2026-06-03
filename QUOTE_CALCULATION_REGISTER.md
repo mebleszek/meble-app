@@ -1,3 +1,23 @@
+## 2026-06-03 — Zawiasy: kąt rzeczywisty i klasa zamienności kąta v1
+
+- Paczka: `site_hinge_angle_class_resolver_v1.zip`.
+- Rozdzielono w danych technicznych zawiasów dwa znaczenia kąta: `kat_rzeczywisty` jako nominalny/rzeczywisty kąt konkretnego produktu oraz `klasa_kata` jako słownikowa klasa zamienności, np. `standardowy 90–120°`, `zerowy uskok 155°`, `narożny 170°`, `równoległy wpuszczany 95°`, `lodówkowy 95°`.
+- Stare pole `kat_otwarcia` jest traktowane jako legacy/źródło migracyjne. Nie powinno być głównym polem edycji dla zawiasów; przy odczycie program przenosi jego wartość do `kat_rzeczywisty` i wylicza `klasa_kata`, jeśli jej brakuje.
+- Dobór WYCENY porównuje cechy zawiasów łącznie: nałożenie, klasę zamienności kąta, prowadnik, hamulec/domyk, sprężynę i inne kluczowe parametry. Kąt rzeczywisty służy do rankingu: najpierw dokładny, potem najbliższy w tej samej klasie.
+- Zawias 107° z klasą `standardowy 90–120°` może spełnić wymaganie zwykłego 110° przy tym samym nałożeniu/prowadniku/hamulcu. Zawias 170° narożny nie może spełnić wymagania 110°, bo ma inną klasę funkcjonalną.
+- W technicznych definicjach zawiasów `Prowadnik / montaż` jest cechą kluczową i ma być porównywany, a nie ignorowany.
+- Dodano/rozbudowano test `tools/wycena-hinge-requirement-override-smoke.js`: pilnuje, że GTV 107° w klasie 90–120° może zastąpić wymagane 110°, a 170° narożny nie jest dobierany jako zwykły zawias.
+- Cache-busting: `20260603_hinge_angle_class_resolver_v1`. Raport: `tools/reports/hinge-angle-class-resolver-v1.md`.
+
+## 2026-06-03 — WYCENA: ścisły dobór wariantu zawiasu po wymaganiu v1
+
+- Paczka: `site_wycena_hinge_strict_resolver_v1.zip`.
+- Naprawiono dobór konkretnego okucia w WYCENIE dla wymagań zawiasów bez `catalogOptionSourceItemIds` albo ze starszych danych. Wymaganie `110° nakładany` nie może dobrać zawiasu `170° narożny` tylko dlatego, że ogólny parametr kąta został potraktowany jako „minimum taki sam albo większy”.
+- Resolver WYCENY dla `hardwareGroup: hinges` najpierw sprawdza kanoniczny typ techniczny kandydata: `110° nakładany`, `110° wpuszczany`, `155° zerowy uskok`, `170° narożny`, `równoległy wpuszczany`, `lodówkowy nakładany`. Jeżeli wymaganie jest kanoniczne, kandydat innego typu jest odrzucany.
+- Zachowano wcześniejszą zasadę: aktualne wymagania zawiasów idą do WYCENY z centralnego helpera `cabinet-hardware-requirements`, a nie z opisowej kopii cutlisty.
+- Rozbudowano test `tools/wycena-hinge-requirement-override-smoke.js`: legacy wymaganie `Zawias 110° nakładany` bez source IDs musi dobrać `71B3550+173L6100`, a nie `71T6550+174E6100`.
+- Cache-busting: `20260603_wycena_hinge_strict_resolver_v1`. Raport: `tools/reports/wycena-hinge-strict-resolver-v1.md`.
+
 ## 2026-06-03 — WYCENA bierze ręczne wymagania zawiasów z jednej prawdy v1
 
 - Paczka: `site_wycena_hinge_override_source_v1.zip`.

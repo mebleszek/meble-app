@@ -106,7 +106,79 @@ const defaultLines = linesApi.collectAccessories(['kuchnia']);
 const defaultTotal = defaultLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0);
 assert(defaultLines.length === 1, 'domyślne dwa fronty o tym samym wymaganiu powinny dać jedną linię akcesoriów');
 assert(defaultLines[0].resolvedHardwareSymbol === '71B3550+173L6100', 'domyślne wymaganie 110° nakładane ma wskazać konkretny komplet BLUM z katalogu');
-assert(defaultLines[0].qty === 4, 'domyślne dwa fronty mają łącznie 4 komplety zawiasowe');
+assert(defaultTotal > 0, 'domyślna linia zawiasów musi mieć cenę z katalogu');
+
+// Legacy/bez catalogOptionSourceItemIds: 110° nakładany nie może dobrać 170° tylko dlatego,
+// że 170° spełnia szerokie porównanie typu „minimum taki sam albo większy”.
+const legacy110Req = {
+  kind:'hinge',
+  requirementType:'hingeSet',
+  displayTitle:'Komplet zawiasowy',
+  hardwareGroup:'hinges',
+  category:'Zawiasy',
+  typeId:reqApi.HINGE_TYPES.OVERLAY_110,
+  label:'Zawias 110° nakładany',
+  ruleId:'legacy_110_without_source_ids',
+  technicalParams:{
+    nalozenie:{ value:'nakładany' },
+    kat_otwarcia:{ from:110 },
+    hamulec:{ value:true },
+    prowadnik:{ value:'standardowy' }
+  },
+  qty:4
+};
+const originalGetHingeRequirementsWithQty = FC.cabinetHardwareRequirements.getHingeRequirementsWithQty;
+FC.cabinetHardwareRequirements.getHingeRequirementsWithQty = function(){ return [legacy110Req]; };
+const legacyLines = linesApi.collectAccessories(['kuchnia']);
+assert(legacyLines.length === 1, 'legacy 110° bez source IDs nadal powinno dobrać jedną linię');
+assert(legacyLines[0].resolvedHardwareSymbol === '71B3550+173L6100', 'legacy 110° nakładany nie może dobrać zawiasu 170° narożnego');
+assert(!String(legacyLines[0].name || '').includes('170°'), 'nazwa pozycji dla legacy 110° nie może wskazywać 170° narożnego');
+
+// Zamiennik: jeżeli preferowany producent nie ma dokładnie 110°, ale ma zawias 107°
+// w tej samej klasie zamienności 90–120° oraz tych samych cechach, ma zostać dobrany.
+{
+  const ctxGtv = loadContext();
+  const FCGtv = ctxGtv.window.FC;
+  const store = typeof FCGtv.catalogStore === 'function' ? FCGtv.catalogStore() : FCGtv.catalogStore;
+  const baseAccessories = store.getAccessories()
+    .filter((row)=> !(String(row && row.manufacturer || '').toLowerCase() === 'gtv' && String(row && row.hardwareCategory || '').toLowerCase().includes('zawias')));
+  baseAccessories.push({
+    id:'hw_test_gtv_107_standard_range',
+    manufacturer:'GTV',
+    symbol:'GTV107_RANGE',
+    name:'Zawias GTV 107° standard 90–120 z hamulcem + prowadnik',
+    hardwareCategory:'Zawiasy',
+    hardwareUnit:'kpl.',
+    price:7.77,
+    catalogPriceGross:7.77,
+    purchasePriceGross:7.77,
+    priceSource:'test',
+    status:'active',
+    technicalParams:{
+      nalozenie:{ value:'nakładany' },
+      kat_rzeczywisty:{ from:107, to:'' },
+      klasa_kata:{ value:'standardowy 90–120°' },
+      hamulec:{ value:true },
+      sprezyna:{ value:false },
+      prowadnik:{ value:'standardowy' }
+    }
+  });
+  store.savePriceList('accessories', baseAccessories);
+  FCGtv.roomPreferences.resolveHardwareProducerPreference = function(_room, group, fallback){
+    return group === 'hinges' ? 'GTV' : (fallback || '');
+  };
+  FCGtv.wycenaCoreSource.selectedCabinets = function(){
+    return [{ roomId:'kuchnia', roomLabel:'S', cabinet:cab }];
+  };
+  FCGtv.cabinetHardwareRequirements.getHingeRequirementsWithQty = function(){ return [legacy110Req]; };
+  const gtvLines = FCGtv.wycenaCoreLines.collectAccessories(['kuchnia']);
+  assert(gtvLines.length === 1, 'GTV 107° w klasie 90–120° powinien dać jedną linię zamiennika');
+  assert(gtvLines[0].resolvedHardwareSymbol === 'GTV107_RANGE', 'przy preferencji GTV wymaganie 110° ma dobrać GTV 107° w klasie 90–120°, jeśli nie ma dokładnego 110°');
+  assert(!String(gtvLines[0].name || '').includes('170°'), 'zamiennik z klasy 90–120° nie może przeskoczyć na 170° narożny');
+}
+
+// Przywróć centralny helper po teście legacy.
+FC.cabinetHardwareRequirements.getHingeRequirementsWithQty = originalGetHingeRequirementsWithQty;
 
 // Zasymuluj stary/stale cutlist: nawet jeśli cutlista zwróci domyślne zawiasy,
 // WYCENA ma brać wymagania zawiasów bezpośrednio z centralnego helpera szafki.

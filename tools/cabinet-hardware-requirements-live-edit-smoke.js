@@ -153,17 +153,20 @@ async function runPanelCheck(){
   const titles = [];
   ctx.window.FC.rozrysChoice = {
     async openRozrysChoiceOverlay(cfg){
-      titles.push(String(cfg.title || ''));
-      if(String(cfg.title || '').includes('typ')) return 'nakładany';
-      if(String(cfg.title || '').includes('kąt')) return '110';
-      if(String(cfg.title || '').includes('prowadnik')) return 'standardowy';
-      if(String(cfg.title || '').includes('hamulec')) return 'true';
+      const title = String(cfg.title || '');
+      titles.push(title);
+      if(title.includes('typ')) return 'nakładany';
+      if(title.includes('klasę') || title.includes('zakres')) return 'standardowy 90–120°';
+      if(title.includes('rzeczywisty') || title.includes('nominalny')) return '110';
+      if(title.includes('prowadnik')) return 'standardowy';
+      if(title.includes('hamulec')) return 'true';
+      if(title.includes('sprężyn')) return 'false';
       return null;
     }
   };
   const picked = await api.openHingeChoice(leftReq);
-  assert(picked === reqApi.HINGE_TYPES.OVERLAY_110, 'kaskadowy wybór nakładany → 110° → standardowy → hamulec ma wrócić do standardowego 110°');
-  assert(titles.some((title)=> title.includes('typ')) && titles.some((title)=> title.includes('kąt')), 'wybór zawiasu ma być kaskadowy, a nie jedną długą listą wariantów');
+  assert(picked === reqApi.HINGE_TYPES.OVERLAY_110, 'kaskadowy wybór nakładany → standardowy 90–120° → 110° → standardowy → hamulec ma wrócić do standardowego 110°');
+  assert(titles.some((title)=> title.includes('typ')) && titles.some((title)=> title.includes('prowadnik') || title.includes('hamulec') || title.includes('klas') || title.includes('zakres') || title.includes('rzeczywisty')), 'wybór zawiasu ma być kaskadowy, a nie jedną długą listą wariantów');
 }
 
 function runStaticCheck(){
@@ -175,7 +178,7 @@ function runStaticCheck(){
   assert(css.includes('cabinet-hardware-req-actions') && css.includes('cabinet-hardware-req-summary'), 'brak stylów skrótu i przycisków wymagań');
   assert(css.includes('cabinet-hardware-req-pair-actions'), 'brak stylów wspólnych przycisków dla obu drzwiczek');
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  assert(html.includes('20260603_wycena_hinge_override_source_v1'), 'index musi mieć aktualny cache-busting tej paczki');
+  assert(html.includes('20260603_hinge_angle_class_resolver_v1'), 'index musi mieć aktualny cache-busting tej paczki');
 }
 
 (async function main(){

@@ -227,16 +227,22 @@
         H.assert(engine.compareItems(source, stronger, { definitions }).compatible === true, '50 kg nie zastąpiło 40 kg');
         H.assert(engine.compareItems(source, weaker, { definitions }).compatible === false, '30 kg błędnie zastąpiło 40 kg');
       }),
-      H.makeTest('Akcesoria — zamienniki techniczne', 'Mieści się w zakresie nie udaje przecięcia zakresów', 'Chroni poprawkę z poprzedniego etapu w pełnym silniku zamienników.', ()=>{
+      H.makeTest('Akcesoria — zamienniki techniczne', 'Klasa zamienności kąta nie udaje innej funkcji zawiasu', 'Chroni nowy model: 107° w klasie 90–120 może zastąpić 110°, ale 170° narożny nie może.', ()=>{
         const engine = requireReplacement();
-        const definitions = [{ category:'Zawiasy', key:'kat_otwarcia', label:'Kąt otwarcia', fieldType:'numberRange', unit:'°', compareMode:'withinRange', keyFeature:true, active:true }];
-        const source = { id:'hinge_src_90_110', name:'Zawias 90-110', manufacturer:'Blum', hardwareCategory:'Zawiasy', technicalParams:{ kat_otwarcia:{ from:90, to:110 } } };
-        const covers = { id:'hinge_90_120', name:'Zawias 90-120', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ kat_otwarcia:{ from:90, to:120 } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:12, useForQuote:true }] };
-        const overlapsOnly = { id:'hinge_100_120', name:'Zawias 100-120', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ kat_otwarcia:{ from:100, to:120 } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:12, useForQuote:true }] };
-        H.assert(engine.compareItems(source, covers, { definitions }).compatible === true, 'Szerszy zakres 90-120 nie zastąpił 90-110');
-        H.assert(engine.compareItems(source, overlapsOnly, { definitions }).compatible === false, 'Częściowe przecięcie 100-120 błędnie zastąpiło 90-110');
-        const overlapDefinitions = [{ category:'Zawiasy', key:'kat_otwarcia', label:'Kąt otwarcia', fieldType:'numberRange', unit:'°', compareMode:'rangeOverlap', keyFeature:true, active:true }];
-        H.assert(engine.compareItems(source, overlapsOnly, { definitions:overlapDefinitions }).compatible === true, 'Tryb zakresy się przecinają nie zaakceptował przecięcia 100-120 z 90-110');
+        const definitions = [
+          { category:'Zawiasy', key:'nalozenie', label:'Nałożenie', fieldType:'text', compareMode:'equal', keyFeature:true, active:true },
+          { category:'Zawiasy', key:'klasa_kata', label:'Klasa / zakres zamienności kąta', fieldType:'text', compareMode:'equal', keyFeature:true, active:true },
+          { category:'Zawiasy', key:'prowadnik', label:'Prowadnik', fieldType:'text', compareMode:'equal', keyFeature:true, active:true },
+          { category:'Zawiasy', key:'hamulec', label:'Hamulec', fieldType:'boolean', compareMode:'equal', keyFeature:true, active:true },
+          { category:'Zawiasy', key:'kat_rzeczywisty', label:'Kąt rzeczywisty', fieldType:'numberRange', compareMode:'ignore', keyFeature:false, active:true }
+        ];
+        const source = { id:'hinge_src_110', name:'Zawias 110', manufacturer:'Blum', hardwareCategory:'Zawiasy', technicalParams:{ nalozenie:{ value:'nakładany' }, kat_rzeczywisty:{ from:110 }, klasa_kata:{ value:'standardowy 90–120°' }, prowadnik:{ value:'standardowy' }, hamulec:{ value:true } } };
+        const standard107 = { id:'hinge_107_standard', name:'Zawias 107 standard', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ nalozenie:{ value:'nakładany' }, kat_rzeczywisty:{ from:107 }, klasa_kata:{ value:'standardowy 90–120°' }, prowadnik:{ value:'standardowy' }, hamulec:{ value:true } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:12, useForQuote:true }] };
+        const corner170 = { id:'hinge_170_corner', name:'Zawias 170 narożny', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ nalozenie:{ value:'nakładany' }, kat_rzeczywisty:{ from:170 }, klasa_kata:{ value:'narożny 170°' }, prowadnik:{ value:'specjalny' }, hamulec:{ value:true } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:12, useForQuote:true }] };
+        const noBrake = { id:'hinge_107_no_brake', name:'Zawias 107 bez hamulca', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ nalozenie:{ value:'nakładany' }, kat_rzeczywisty:{ from:107 }, klasa_kata:{ value:'standardowy 90–120°' }, prowadnik:{ value:'standardowy' }, hamulec:{ value:false } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:12, useForQuote:true }] };
+        H.assert(engine.compareItems(source, standard107, { definitions }).compatible === true, '107° w klasie standardowy 90–120° nie zastąpiło 110°');
+        H.assert(engine.compareItems(source, corner170, { definitions }).compatible === false, '170° narożny błędnie zastąpił standardowe 110°');
+        H.assert(engine.compareItems(source, noBrake, { definitions }).compatible === false, 'Zawias bez hamulca błędnie zastąpił wymaganie z hamulcem');
       }),
       H.makeTest('Akcesoria — zamienniki techniczne', 'Wskazany producent ogranicza listę kandydatów', 'Chroni scenariusz Blum → GTV: kandydat z innego producenta nie przechodzi, nawet jeśli technicznie pasuje.', ()=>{
         const engine = requireReplacement();
@@ -298,8 +304,9 @@
         const raw = JSON.stringify(row);
         H.assert(raw.indexOf('[object Object]') === -1, 'Znormalizowane okucie nadal zawiera [object Object]', row);
         H.assert(row.technicalParams.nalozenie.value === 'nakładany', 'Nałożenie nie zostało wyciągnięte z obiektu wyboru', row.technicalParams);
-        H.assert(Number(row.technicalParams.kat_otwarcia.from) === 90 && Number(row.technicalParams.kat_otwarcia.to) === 110, 'Zakres kąta nie został wyciągnięty z obiektów wyboru', row.technicalParams);
-        H.assert(String(row.hardwareType || '').includes('nakładany') && String(row.hardwareType || '').includes('90') && String(row.hardwareType || '').includes('110°'), 'Automatyczny typ nie powstał z czystych wartości', row.hardwareType);
+        H.assert(Number(row.technicalParams.kat_rzeczywisty.from) === 90 && Number(row.technicalParams.kat_rzeczywisty.to) === 110, 'Kąt rzeczywisty nie został wyciągnięty z obiektów wyboru / legacy kąta', row.technicalParams);
+        H.assert(String(row.technicalParams.klasa_kata && row.technicalParams.klasa_kata.value || '') === 'standardowy 90–120°', 'Klasa zamienności kąta nie została wyliczona ze starego zakresu', row.technicalParams);
+        H.assert(String(row.hardwareType || '').includes('nakładany') && String(row.hardwareType || '').includes('90') && String(row.hardwareType || '').includes('110°') && String(row.hardwareType || '').includes('standardowy 90–120°'), 'Automatyczny typ nie powstał z czystych wartości', row.hardwareType);
       }),
 
       H.makeTest('Akcesoria — słowniki', 'Kategorie łączą domyślne i własne bez duplikatów', 'Pilnuje, żeby słownik kategorii był edytowalny, ale bez śmieci po wielkości liter.', ()=>{

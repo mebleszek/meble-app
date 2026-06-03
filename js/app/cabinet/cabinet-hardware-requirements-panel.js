@@ -65,11 +65,13 @@
   }
 
   function typeLabelFromParams(params, fallback){
-    const angle = formatTechnicalValue(param(params, 'kat_otwarcia'), 'kat_otwarcia');
+    const angle = formatTechnicalValue(param(params, 'kat_rzeczywisty') || param(params, 'kat_otwarcia'), 'kat_rzeczywisty');
     const overlay = formatTechnicalValue(param(params, 'nalozenie'), 'nalozenie');
+    const cls = formatTechnicalValue(param(params, 'klasa_kata'), 'klasa_kata');
     const parts = [];
     if(angle) parts.push(angle.replace(/^min\.\s*/i, ''));
     if(overlay) parts.push(overlay);
+    if(cls && parts.join(' ').indexOf(cls) === -1) parts.push('klasa: ' + cls);
     const label = parts.join(' ').replace(/\s+/g, ' ').trim();
     return label || text(fallback) || 'wymaganie techniczne';
   }
@@ -82,6 +84,7 @@
     const prowadnik = formatTechnicalValue(param(params, 'prowadnik'), 'prowadnik');
     if(prowadnik) bits.push('prowadnik: ' + prowadnik);
     if(param(params, 'hamulec') != null) bits.push('hamulec: ' + formatTechnicalValue(param(params, 'hamulec'), 'hamulec'));
+    if(param(params, 'sprezyna') != null) bits.push('sprężyna: ' + formatTechnicalValue(param(params, 'sprezyna'), 'sprezyna'));
     return bits.join(' • ');
   }
 
@@ -192,9 +195,11 @@
     const currentParams = req && req.technicalParams || {};
     const cascade = [
       { key:'nalozenie', title:'Wybierz typ / nakładanie kompletu zawiasowego' },
-      { key:'kat_otwarcia', title:'Wybierz kąt otwarcia' },
+      { key:'klasa_kata', title:'Wybierz klasę / zakres zamienności kąta' },
+      { key:'kat_rzeczywisty', title:'Wybierz kąt rzeczywisty / nominalny' },
       { key:'prowadnik', title:'Wybierz prowadnik' },
-      { key:'hamulec', title:'Wybierz hamulec / domyk' }
+      { key:'hamulec', title:'Wybierz hamulec / domyk' },
+      { key:'sprezyna', title:'Wybierz sprężynę' }
     ];
 
     for(const step of cascade){

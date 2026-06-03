@@ -56,7 +56,7 @@
 
   function text(value){ return String(value == null ? '' : value).trim(); }
   function norm(value){
-    return text(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+    return text(value).toLowerCase().replace(/ł/g, 'l').replace(/Ł/g, 'l').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
   }
   function moneySource(item){
     const parts = [];
@@ -133,12 +133,147 @@
     if(label.indexOf('narozny') !== -1 && (n.indexOf('naroz') !== -1 || n.indexOf('170') !== -1)) score += 3;
     return score;
   }
+
+  function paramScalar(params, key){
+    const raw = params && params[key];
+    if(raw == null) return '';
+    if(typeof raw === 'object'){
+      if(raw.value != null) return raw.value;
+      if(raw.from != null) return raw.from;
+      if(raw.to != null) return raw.to;
+    }
+    return raw;
+  }
+  function paramFrom(params, key){
+    const raw = params && params[key];
+    if(raw && typeof raw === 'object') return raw.from != null ? raw.from : raw.value;
+    return raw;
+  }
+  function paramTo(params, key){
+    const raw = params && params[key];
+    if(raw && typeof raw === 'object') return raw.to != null ? raw.to : '';
+    return '';
+  }
+  function boolParam(params, key){
+    const raw = paramScalar(params, key);
+    if(raw === true) return true;
+    if(raw === false) return false;
+    const v = norm(raw);
+    return ['1','true','tak','yes','y'].includes(v);
+  }
+  function numberParam(params, key){
+    const n = Number(String(paramFrom(params, key) == null ? '' : paramFrom(params, key)).replace(',', '.'));
+    return Number.isFinite(n) ? n : 0;
+  }
+  function normalizeKeyText(value){ return norm(value).replace(/[^a-z0-9]+/g, ' ').trim(); }
+  function hingeActualAngle(params){ return numberParam(params, 'kat_rzeczywisty') || numberParam(params, 'kat_otwarcia'); }
+  function hingeAngleClass(params){ return text(paramScalar(params || {}, 'klasa_kata')); }
+  function inferHingeAngleClass(params){
+    const p = params || {};
+    const overlay = normalizeKeyText(paramScalar(p, 'nalozenie'));
+    const plate = normalizeKeyText(paramScalar(p, 'prowadnik')) || 'standardowy';
+    const angle = hingeActualAngle(p);
+    if(overlay === 'rownolegly wpuszczany') return 'równoległy wpuszczany 95°';
+    if(overlay === 'lodowkowy nakladany') return 'lodówkowy 95°';
+    if(overlay === 'nakladany' && (angle >= 165 || plate === 'specjalny')) return 'narożny 170°';
+    if(angle >= 150 && angle < 165) return 'zerowy uskok 155°';
+    if(angle >= 80 && angle <= 130) return 'standardowy 90–120°';
+    if(angle >= 165) return 'narożny 170°';
+    return '';
+  }
+  function normalizeTechnicalParamsForCompare(category, params){
+    const src = params && typeof params === 'object' ? params : {};
+    const tech = FC.hardwareTechnicalParams || null;
+    try{
+      if(tech && typeof tech.normalizeParamValues === 'function') return tech.normalizeParamValues(src, getHardwareTechnicalDefinitions(), category || 'Zawiasy');
+    }catch(_){ }
+    const out = Object.assign({}, src);
+    if(!out.kat_rzeczywisty && out.kat_otwarcia) out.kat_rzeczywisty = out.kat_otwarcia;
+    if(!hingeAngleClass(out)){
+      const inferred = inferHingeAngleClass(out);
+      if(inferred) out.klasa_kata = { value:inferred };
+    }
+    return out;
+  }
+  function hingeParamSignature(params){
+    const p = normalizeTechnicalParamsForCompare('Zawiasy', params || {});
+    return [
+      'nalozenie=' + normalizeKeyText(paramScalar(p, 'nalozenie')),
+      'klasa_kata=' + normalizeKeyText(hingeAngleClass(p) || inferHingeAngleClass(p)),
+      'kat_rzeczywisty=' + text(paramFrom(p, 'kat_rzeczywisty') || paramFrom(p, 'kat_otwarcia')),
+      'hamulec=' + (boolParam(p, 'hamulec') ? '1' : '0'),
+      'sprezyna=' + (boolParam(p, 'sprezyna') ? '1' : '0'),
+      'prowadnik=' + normalizeKeyText(paramScalar(p, 'prowadnik'))
+    ].join('|');
+  }
+  function canonicalHingeTypeIdFromParams(params){
+    const p = normalizeTechnicalParamsForCompare('Zawiasy', params || {});
+    const overlay = normalizeKeyText(paramScalar(p, 'nalozenie'));
+    const cls = normalizeKeyText(hingeAngleClass(p) || inferHingeAngleClass(p));
+    const plate = normalizeKeyText(paramScalar(p, 'prowadnik')) || 'standardowy';
+    const brakeRaw = paramScalar(p, 'hamulec');
+    const brakeKnown = text(brakeRaw) !== '' || typeof brakeRaw === 'boolean';
+    const brake = boolParam(p, 'hamulec');
+
+    if(overlay === 'nakladany' && cls === 'standardowy 90 120' && plate === 'standardowy' && (!brakeKnown || brake)) return 'hinge_110_overlay';
+    if(overlay === 'wpuszczany' && cls === 'standardowy 90 120' && plate === 'standardowy' && (!brakeKnown || brake)) return 'hinge_110_inset';
+    if(overlay === 'nakladany' && cls === 'zerowy uskok 155' && plate === 'standardowy' && (!brakeKnown || brake)) return 'hinge_155_zero';
+    if(overlay === 'nakladany' && cls === 'narozny 170' && plate === 'specjalny' && (!brakeKnown || !brake)) return 'hinge_170_corner';
+    if(overlay === 'rownolegly wpuszczany' && cls === 'rownolegly wpuszczany 95' && plate === 'specjalny' && (!brakeKnown || !brake)) return 'hinge_parallel_inset';
+    if(overlay === 'lodowkowy nakladany' && cls === 'lodowkowy 95' && plate === 'specjalny' && (!brakeKnown || !brake)) return 'hinge_fridge_overlay';
+    return '';
+  }
+  function isCanonicalHingeTypeId(typeId){
+    return ['hinge_110_overlay','hinge_110_inset','hinge_155_zero','hinge_170_corner','hinge_parallel_inset','hinge_fridge_overlay'].includes(text(typeId));
+  }
+  function hingeCandidateCompatibility(candidate, req){
+    if(!(req && req.kind === 'hinge' && text(req.hardwareGroup) === 'hinges')) return { allowed:true, score:0, exact:false };
+    const reqType = text(req && req.typeId);
+    const reqParams = normalizeTechnicalParamsForCompare('Zawiasy', req && req.technicalParams && typeof req.technicalParams === 'object' ? req.technicalParams : {});
+    const candParams = normalizeTechnicalParamsForCompare('Zawiasy', candidate && candidate.technicalParams && typeof candidate.technicalParams === 'object' ? candidate.technicalParams : {});
+    const candType = canonicalHingeTypeIdFromParams(candParams);
+    const reqTypeFromParams = canonicalHingeTypeIdFromParams(reqParams);
+    const requiredType = isCanonicalHingeTypeId(reqType) ? reqType : reqTypeFromParams;
+
+    if(requiredType && candType && candType !== requiredType){
+      return { allowed:false, score:-1000, exact:false, reason:'functional-class-mismatch' };
+    }
+
+    if(reqType.indexOf('catalog_hinge_') === 0){
+      const reqSig = hingeParamSignature(reqParams);
+      const candSig = hingeParamSignature(candParams);
+      if(reqSig && candSig && reqSig === candSig) return { allowed:true, score:70, exact:true };
+      if(candSig) return { allowed:false, score:-1000, exact:false, reason:'catalog-signature-mismatch' };
+    }
+
+    const reqClass = normalizeKeyText(hingeAngleClass(reqParams) || inferHingeAngleClass(reqParams));
+    const candClass = normalizeKeyText(hingeAngleClass(candParams) || inferHingeAngleClass(candParams));
+    if(reqClass && candClass && reqClass !== candClass){
+      return { allowed:false, score:-1000, exact:false, reason:'angle-class-mismatch' };
+    }
+
+    const reqAngle = hingeActualAngle(reqParams);
+    const candAngle = hingeActualAngle(candParams);
+    let angleScore = 0;
+    let exact = false;
+    if(reqAngle > 0 && candAngle > 0){
+      const distance = Math.abs(reqAngle - candAngle);
+      if(distance === 0){ angleScore += 30; exact = true; }
+      else angleScore += Math.max(0, 20 - distance);
+    }
+
+    if(reqParams && candParams && hingeParamSignature(reqParams) === hingeParamSignature(candParams)) return { allowed:true, score:80 + angleScore, exact:true };
+    return { allowed:true, score:angleScore, exact };
+  }
+
   function compareRequirementParams(candidate, req){
     const tech = FC.hardwareTechnicalParams || null;
     const definitions = getHardwareTechnicalDefinitions();
     const category = text(req && req.category) || text(candidate && candidate.hardwareCategory);
-    const reqParams = req && req.technicalParams && typeof req.technicalParams === 'object' ? req.technicalParams : {};
-    const candParams = candidate && candidate.technicalParams && typeof candidate.technicalParams === 'object' ? candidate.technicalParams : {};
+    const rawReqParams = req && req.technicalParams && typeof req.technicalParams === 'object' ? req.technicalParams : {};
+    const rawCandParams = candidate && candidate.technicalParams && typeof candidate.technicalParams === 'object' ? candidate.technicalParams : {};
+    const reqParams = normalizeTechnicalParamsForCompare(category, rawReqParams);
+    const candParams = normalizeTechnicalParamsForCompare(category, rawCandParams);
     const fields = tech && typeof tech.fieldsForCategory === 'function' ? tech.fieldsForCategory(definitions, category) : [];
     const checks = [];
     let score = 0;
@@ -179,11 +314,14 @@
     });
     let best = null;
     rows.forEach((item)=>{
+      const compat = hingeCandidateCompatibility(item, r);
+      if(!compat.allowed) return;
       const param = compareRequirementParams(item, r);
+      if(r && r.kind === 'hinge' && text(r.hardwareGroup) === 'hinges' && param.required > 0 && param.matched < param.required) return;
       const fallback = candidateNameFallbackScore(item, r);
       const priceBonus = Number(item && item.price) > 0 ? 2 : 0;
-      const score = param.score + fallback + priceBonus;
-      const record = { item, score, param, fallback };
+      const score = compat.score + param.score + fallback + priceBonus;
+      const record = { item, score, param, fallback, compat };
       if(!best || record.score > best.score) best = record;
     });
     if(best && (best.param.matched > 0 || best.fallback >= 4 || best.score > 0)){
@@ -247,7 +385,14 @@
       : [];
     if(!ids.length) return null;
     const idSet = new Set(ids);
-    const sourceRows = (Array.isArray(rows) ? rows : []).filter((item)=> item && idSet.has(text(item.id)));
+    const sourceRows = (Array.isArray(rows) ? rows : []).filter((item)=> {
+      if(!(item && idSet.has(text(item.id)))) return false;
+      const compat = hingeCandidateCompatibility(item, req);
+      if(!compat.allowed) return false;
+      const param = compareRequirementParams(item, req);
+      if(req && req.kind === 'hinge' && text(req.hardwareGroup) === 'hinges' && param.required > 0 && param.matched < param.required) return false;
+      return true;
+    });
     if(!sourceRows.length) return null;
     const preferred = text(preferredProducer);
     const preferredRows = preferred

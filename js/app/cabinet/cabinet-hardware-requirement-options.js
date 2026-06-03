@@ -109,53 +109,75 @@
   }
   function boolParam(params, key){ return bool(paramScalar(params, key)); }
   function numericParam(params, key){ return number(paramRangeFrom(params, key)); }
+  function angleActual(params){ return numericParam(params, 'kat_rzeczywisty') || numericParam(params, 'kat_otwarcia'); }
+  function angleClass(params){ return text(paramScalar(params, 'klasa_kata')); }
+  function inferAngleClass(params){
+    const p = params || {};
+    const overlay = normalizedText(paramScalar(p, 'nalozenie'));
+    const plate = normalizedText(paramScalar(p, 'prowadnik')) || 'standardowy';
+    const angle = angleActual(p);
+    if(overlay === 'rownolegly wpuszczany') return 'równoległy wpuszczany 95°';
+    if(overlay === 'lodowkowy nakladany') return 'lodówkowy 95°';
+    if(overlay === 'nakladany' && (angle >= 165 || plate === 'specjalny')) return 'narożny 170°';
+    if(angle >= 150 && angle < 165) return 'zerowy uskok 155°';
+    if(angle >= 80 && angle <= 130) return 'standardowy 90–120°';
+    if(angle >= 165) return 'narożny 170°';
+    return '';
+  }
   function normalizeHingeParams(params){
     const tech = FC.hardwareTechnicalParams || null;
     try{
       if(tech && typeof tech.normalizeParamValues === 'function') return tech.normalizeParamValues(params || {}, getHardwareTechnicalDefinitions(), 'Zawiasy');
     }catch(_){ }
-    return clone(params || {});
+    const out = clone(params || {});
+    if(!out.kat_rzeczywisty && out.kat_otwarcia) out.kat_rzeczywisty = clone(out.kat_otwarcia);
+    if(!angleClass(out)){
+      const inferred = inferAngleClass(out);
+      if(inferred) out.klasa_kata = { value:inferred };
+    }
+    return out;
   }
   function hingeParamSignature(params){
     const p = normalizeHingeParams(params || {});
     return [
       'nalozenie=' + normalizedText(paramScalar(p, 'nalozenie')),
-      'kat_from=' + text(paramRangeFrom(p, 'kat_otwarcia')),
-      'kat_to=' + text(paramRangeTo(p, 'kat_otwarcia')),
+      'klasa_kata=' + normalizedText(angleClass(p) || inferAngleClass(p)),
+      'kat_rzeczywisty=' + text(paramRangeFrom(p, 'kat_rzeczywisty') || paramRangeFrom(p, 'kat_otwarcia')),
       'hamulec=' + (boolParam(p, 'hamulec') ? '1' : '0'),
+      'sprezyna=' + (boolParam(p, 'sprezyna') ? '1' : '0'),
       'prowadnik=' + normalizedText(paramScalar(p, 'prowadnik'))
     ].join('|');
   }
   function knownHingeTypeIdFromParams(params){
     const p = normalizeHingeParams(params || {});
     const overlay = normalizedText(paramScalar(p, 'nalozenie'));
-    const angle = numericParam(p, 'kat_otwarcia');
+    const cls = normalizedText(angleClass(p) || inferAngleClass(p));
     const plate = normalizedText(paramScalar(p, 'prowadnik')) || 'standardowy';
     const brakeRaw = paramScalar(p, 'hamulec');
     const brakeKnown = text(brakeRaw) !== '' || typeof brakeRaw === 'boolean';
     const brake = boolParam(p, 'hamulec');
 
-    // Znane ID zachowujemy tylko dla kanonicznych wariantów reguł szafek.
-    // Inne kombinacje z katalogu, np. 110° bez hamulca albo inny prowadnik,
-    // dostają własne catalog_hinge_* i nie nadpisują standardu.
-    if(overlay === 'nakladany' && angle >= 100 && angle < 150 && plate === 'standardowy' && (!brakeKnown || brake)) return HINGE_TYPES.OVERLAY_110;
-    if(overlay === 'wpuszczany' && angle >= 100 && angle < 150 && plate === 'standardowy' && (!brakeKnown || brake)) return HINGE_TYPES.INSET_110;
-    if(overlay === 'nakladany' && angle >= 150 && angle < 165 && plate === 'standardowy' && (!brakeKnown || brake)) return HINGE_TYPES.ZERO_155;
-    if(overlay === 'nakladany' && angle >= 165 && plate === 'specjalny' && (!brakeKnown || !brake)) return HINGE_TYPES.CORNER_170;
-    if(overlay === 'rownolegly wpuszczany' && angle > 0 && angle <= 100 && plate === 'specjalny' && (!brakeKnown || !brake)) return HINGE_TYPES.PARALLEL_INSET;
-    if(overlay === 'lodowkowy nakladany' && angle > 0 && angle <= 100 && plate === 'specjalny' && (!brakeKnown || !brake)) return HINGE_TYPES.FRIDGE_OVERLAY;
+    // Znane ID zachowujemy tylko dla kanonicznych klas funkcjonalnych reguł szafek.
+    // Kąt rzeczywisty (np. 107° zamiast 110°) nie rozbija standardu, o ile klasa
+    // zamienności i pozostałe cechy techniczne są te same.
+    if(overlay === 'nakladany' && cls === 'standardowy 90 120' && plate === 'standardowy' && (!brakeKnown || brake)) return HINGE_TYPES.OVERLAY_110;
+    if(overlay === 'wpuszczany' && cls === 'standardowy 90 120' && plate === 'standardowy' && (!brakeKnown || brake)) return HINGE_TYPES.INSET_110;
+    if(overlay === 'nakladany' && cls === 'zerowy uskok 155' && plate === 'standardowy' && (!brakeKnown || brake)) return HINGE_TYPES.ZERO_155;
+    if(overlay === 'nakladany' && cls === 'narozny 170' && plate === 'specjalny' && (!brakeKnown || !brake)) return HINGE_TYPES.CORNER_170;
+    if(overlay === 'rownolegly wpuszczany' && cls === 'rownolegly wpuszczany 95' && plate === 'specjalny' && (!brakeKnown || !brake)) return HINGE_TYPES.PARALLEL_INSET;
+    if(overlay === 'lodowkowy nakladany' && cls === 'lodowkowy 95' && plate === 'specjalny' && (!brakeKnown || !brake)) return HINGE_TYPES.FRIDGE_OVERLAY;
     return '';
   }
   function formatHingeOptionLabel(params){
     const p = normalizeHingeParams(params || {});
     const overlay = text(paramScalar(p, 'nalozenie'));
-    const from = number(paramRangeFrom(p, 'kat_otwarcia'));
-    const toRaw = paramRangeTo(p, 'kat_otwarcia');
-    const to = number(toRaw);
-    const angle = from > 0 && to > 0 && to !== from ? `${from}–${to}°` : (from > 0 ? `${from}°` : '');
+    const actual = angleActual(p);
+    const cls = angleClass(p) || inferAngleClass(p);
+    const angle = actual > 0 ? `${actual}°` : '';
     const parts = [];
     if(angle) parts.push(angle);
     if(overlay) parts.push(overlay);
+    if(cls) parts.push('klasa ' + cls);
     const prowadnik = text(paramScalar(p, 'prowadnik'));
     if(prowadnik && !/^standardowy$/i.test(prowadnik)) parts.push('prowadnik ' + prowadnik);
     if(boolParam(p, 'hamulec')) parts.push('z hamulcem');

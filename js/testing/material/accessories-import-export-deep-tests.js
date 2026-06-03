@@ -228,11 +228,12 @@
         H.assert(exporter && exporter._debug && exporter._debug.buildGroupedAccessorySheets, 'Brak eksportu arkuszy grupowych');
         setup([baseAccessory({
           id:'xlsx_clean_object_1', manufacturer:'Blum', symbol:'HX-CLEAN', name:'Zawias clean', hardwareCategory:'Zawiasy', hardwareUnit:'szt.',
-          technicalParams:{ nalozenie:{ value:{ value:'nakładany', label:'Nakładany' } }, kat_otwarcia:{ from:{ value:'90' }, to:{ label:'110' } }, hamulec:{ value:{ value:true } } }
+          technicalParams:{ nalozenie:{ value:{ value:'nakładany', label:'Nakładany' } }, kat_rzeczywisty:{ from:{ value:'90' }, to:{ label:'110' } }, klasa_kata:{ value:{ value:'standardowy 90–120°', label:'Standardowy' } }, hamulec:{ value:{ value:true } } }
         })], {
           technicalParams:[
             { category:'Zawiasy', key:'nalozenie', label:'Nałożenie', fieldType:'choice', options:['nakładany'], compareMode:'equal', keyFeature:true, typePart:true, active:true },
-            { category:'Zawiasy', key:'kat_otwarcia', label:'Kąt otwarcia', fieldType:'numberRange', unit:'°', compareMode:'withinRange', keyFeature:true, typePart:true, active:true },
+            { category:'Zawiasy', key:'kat_rzeczywisty', label:'Kąt rzeczywisty', fieldType:'numberRange', unit:'°', compareMode:'ignore', keyFeature:false, typePart:true, active:true },
+            { category:'Zawiasy', key:'klasa_kata', label:'Klasa kąta', fieldType:'text', options:['standardowy 90–120°'], compareMode:'equal', keyFeature:true, typePart:true, active:true },
             { category:'Zawiasy', key:'hamulec', label:'Hamulec', fieldType:'boolean', compareMode:'equal', keyFeature:true, typePart:true, active:true },
           ]
         });
@@ -243,7 +244,7 @@
         const sheet = sheets.Okucia_zawiasy || sheets.Okucia_Zawiasy;
         const headers = sheet.rows[0];
         const row = sheet.rows[1];
-        H.assert(row[headers.indexOf('nalozenie')] === 'nakładany' && Number(row[headers.indexOf('kat_otwarcia_od')]) === 90 && Number(row[headers.indexOf('kat_otwarcia_do')]) === 110, 'Eksport nie wyczyścił wartości parametrów', { headers, row });
+        H.assert(row[headers.indexOf('nalozenie')] === 'nakładany' && Number(row[headers.indexOf('kat_rzeczywisty_od')]) === 90 && Number(row[headers.indexOf('kat_rzeczywisty_do')]) === 110 && row[headers.indexOf('klasa_kata')] === 'standardowy 90–120°', 'Eksport nie wyczyścił wartości parametrów', { headers, row });
       })),
 
       H.makeTest('Akcesoria — głęboki import/export', 'Eksport tworzy arkusze grupowe z kolumnami parametrów kategorii', 'Chroni Excela przed jednym puchnącym arkuszem do wszystkich typów okuć.', ()=> withSnapshot(()=>{
@@ -252,11 +253,12 @@
         H.assert(exporter && exporter._debug && exporter._debug.buildGroupedAccessorySheets, 'Brak eksportu arkuszy grupowych');
         setup([baseAccessory({
           id:'xlsx_hinge_1', manufacturer:'Blum', symbol:'HX-1', name:'Zawias grupowy', hardwareCategory:'Zawiasy', hardwareUnit:'szt.',
-          technicalParams:{ nalozenie:{ value:'nakładany' }, kat_otwarcia:{ from:110 }, hamulec:{ value:true } }
+          technicalParams:{ nalozenie:{ value:'nakładany' }, kat_rzeczywisty:{ from:110 }, klasa_kata:{ value:'standardowy 90–120°' }, hamulec:{ value:true } }
         })], {
           technicalParams:[
             { category:'Zawiasy', key:'nalozenie', label:'Nałożenie', fieldType:'choice', options:['nakładany'], compareMode:'equal', keyFeature:true, typePart:true, active:true },
-            { category:'Zawiasy', key:'kat_otwarcia', label:'Kąt otwarcia', fieldType:'numberRange', unit:'°', compareMode:'withinRange', keyFeature:true, typePart:true, active:true },
+            { category:'Zawiasy', key:'kat_rzeczywisty', label:'Kąt rzeczywisty', fieldType:'numberRange', unit:'°', compareMode:'ignore', keyFeature:false, typePart:true, active:true },
+            { category:'Zawiasy', key:'klasa_kata', label:'Klasa kąta', fieldType:'text', options:['standardowy 90–120°'], compareMode:'equal', keyFeature:true, typePart:true, active:true },
             { category:'Zawiasy', key:'hamulec', label:'Hamulec', fieldType:'boolean', compareMode:'equal', keyFeature:true, typePart:true, active:true },
           ]
         });
@@ -265,9 +267,9 @@
         const sheet = sheets.Okucia_zawiasy || sheets.Okucia_Zawiasy;
         H.assert(sheet && Array.isArray(sheet.rows), 'Brak arkusza Okucia_zawiasy', Object.keys(sheets));
         const headers = sheet.rows[0];
-        H.assert(headers.includes('nalozenie') && headers.includes('kat_otwarcia_od') && headers.includes('kat_otwarcia_do') && headers.includes('hamulec'), 'Arkusz kategorii nie ma dynamicznych kolumn', headers);
+        H.assert(headers.includes('nalozenie') && headers.includes('kat_rzeczywisty_od') && headers.includes('kat_rzeczywisty_do') && headers.includes('klasa_kata') && headers.includes('hamulec'), 'Arkusz kategorii nie ma dynamicznych kolumn', headers);
         const row = sheet.rows[1];
-        H.assert(row[headers.indexOf('nalozenie')] === 'nakładany' && Number(row[headers.indexOf('kat_otwarcia_od')]) === 110, 'Wiersz grupowy nie eksportuje wartości parametrów', { headers, row });
+        H.assert(row[headers.indexOf('nalozenie')] === 'nakładany' && Number(row[headers.indexOf('kat_rzeczywisty_od')]) === 110 && row[headers.indexOf('klasa_kata')] === 'standardowy 90–120°', 'Wiersz grupowy nie eksportuje wartości parametrów', { headers, row });
       })),
       H.makeTest('Akcesoria — głęboki import/export', 'Import arkusza grupowego odtwarza parametry i typ automatyczny', 'Chroni dodawanie nowych artykułów przez arkusze grupowe zamiast ręcznego klikania w programie.', ()=> withSnapshot(()=>{
         const parser = FC.hardwareCatalogImportParser;
@@ -276,11 +278,12 @@
           Parametry_techniczne:[
             ['kategoria','klucz','nazwa','typ_pola','jednostka','wartosci','cecha_kluczowa','buduje_typ','sposob_porownania','aktywna','kolejnosc','opis'],
             ['Zawiasy','nalozenie','Nałożenie','choice','','nakładany; wpuszczany','TAK','TAK','equal','TAK','1',''],
-            ['Zawiasy','kat_otwarcia','Kąt otwarcia','numberRange','°','','TAK','TAK','withinRange','TAK','2','']
+            ['Zawiasy','kat_rzeczywisty','Kąt rzeczywisty','numberRange','°','','NIE','TAK','ignore','TAK','2',''],
+            ['Zawiasy','klasa_kata','Klasa kąta','text','','standardowy 90–120°; narożny 170°','TAK','TAK','equal','TAK','3','']
           ],
           Okucia_zawiasy:[
-            ['id','producent','system_okucia','symbol','nazwa','kategoria','jednostka','typ_cecha','nalozenie','kat_otwarcia_od','kat_otwarcia_do'],
-            ['grp_hinge_1','Blum','Blum CLIP top','HX-G1','Zawias grupowy','Zawiasy','szt.','','nakładany',90,110]
+            ['id','producent','system_okucia','symbol','nazwa','kategoria','jednostka','typ_cecha','nalozenie','kat_rzeczywisty_od','kat_rzeczywisty_do','klasa_kata'],
+            ['grp_hinge_1','Blum','Blum CLIP top','HX-G1','Zawias grupowy','Zawiasy','szt.','','nakładany',90,110,'standardowy 90–120°']
           ],
           Ceny_dostawcow:[['okucie_nazwa','okucie_symbol','producent','kategoria','jednostka','dostawca','cena_netto','cena_brutto','do_wyceny','status_ceny','data_ceny','okucie_id','dostawca_id']]
         };
@@ -289,8 +292,8 @@
         H.assert(parsed.accessories.length === 1, 'Import arkusza grupowego nie odczytał jednej pozycji', parsed.accessories);
         const plan = build(parsed);
         const row = (plan.next.accessories || []).find((item)=> item.id === 'grp_hinge_1');
-        H.assert(row && row.technicalParams && row.technicalParams.nalozenie && row.technicalParams.kat_otwarcia, 'Parametry techniczne nie przeszły do planu', row);
-        H.assert(String(row.hardwareType || '').includes('nakładany') && String(row.hardwareType || '').includes('90') && String(row.hardwareType || '').includes('110°'), 'Typ nie został zbudowany z zakresu i cech', row);
+        H.assert(row && row.technicalParams && row.technicalParams.nalozenie && row.technicalParams.kat_rzeczywisty && row.technicalParams.klasa_kata, 'Parametry techniczne nie przeszły do planu', row);
+        H.assert(String(row.hardwareType || '').includes('nakładany') && String(row.hardwareType || '').includes('90') && String(row.hardwareType || '').includes('110°') && String(row.hardwareType || '').includes('standardowy 90–120°'), 'Typ nie został zbudowany z kąta rzeczywistego, klasy i cech', row);
       })),
 
       H.makeTest('Akcesoria — głęboki import/export', 'Potwierdzenie Zostaw starą zwraca plan bez aktualizacji', 'Sprawdza UI-confirm bez klikania ręcznego: pominięcie ma oznaczać brak zapisu.', ()=> withSnapshotAsync(async ()=>{

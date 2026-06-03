@@ -82,46 +82,60 @@
   function overlay110(ruleId, extra){
     return hingeRequirement(HINGE_TYPES.OVERLAY_110, 'Zawias 110° nakładany', ruleId, {
       nalozenie:{ value:'nakładany' },
-      kat_otwarcia:{ from:110 },
+      kat_rzeczywisty:{ from:110, to:'' },
+      klasa_kata:{ value:'standardowy 90–120°' },
       hamulec:{ value:true },
+      sprezyna:{ value:false },
       prowadnik:{ value:'standardowy' }
     }, extra);
   }
   function inset110(ruleId, extra){
     return hingeRequirement(HINGE_TYPES.INSET_110, 'Zawias 110° wpuszczany', ruleId, {
       nalozenie:{ value:'wpuszczany' },
-      kat_otwarcia:{ from:110 },
+      kat_rzeczywisty:{ from:110, to:'' },
+      klasa_kata:{ value:'standardowy 90–120°' },
       hamulec:{ value:true },
+      sprezyna:{ value:false },
       prowadnik:{ value:'standardowy' }
     }, extra);
   }
   function zero155(ruleId, extra){
     return hingeRequirement(HINGE_TYPES.ZERO_155, 'Zawias 155° zerowy uskok', ruleId, {
       nalozenie:{ value:'nakładany' },
-      kat_otwarcia:{ from:155 },
+      kat_rzeczywisty:{ from:155, to:'' },
+      klasa_kata:{ value:'zerowy uskok 155°' },
       hamulec:{ value:true },
+      sprezyna:{ value:false },
       prowadnik:{ value:'standardowy' }
     }, extra);
   }
   function corner170(ruleId, extra){
     return hingeRequirement(HINGE_TYPES.CORNER_170, 'Zawias 170° narożny', ruleId, {
       nalozenie:{ value:'nakładany' },
-      kat_otwarcia:{ from:170 },
+      kat_rzeczywisty:{ from:170, to:'' },
+      klasa_kata:{ value:'narożny 170°' },
       hamulec:{ value:false },
+      sprezyna:{ value:false },
       prowadnik:{ value:'specjalny' }
     }, extra);
   }
   function blindCorner(ruleId, extra){
     return hingeRequirement(HINGE_TYPES.PARALLEL_INSET, 'Zawias równoległy wpuszczany', ruleId, {
       nalozenie:{ value:'równoległy wpuszczany' },
-      kat_otwarcia:{ from:95 },
+      kat_rzeczywisty:{ from:95, to:'' },
+      klasa_kata:{ value:'równoległy wpuszczany 95°' },
+      hamulec:{ value:false },
+      sprezyna:{ value:false },
       prowadnik:{ value:'specjalny' }
     }, extra);
   }
   function fridgeHinge(ruleId, extra){
     return hingeRequirement(HINGE_TYPES.FRIDGE_OVERLAY, 'Zawias lodówkowy nakładany', ruleId, {
       nalozenie:{ value:'lodówkowy nakładany' },
-      kat_otwarcia:{ from:95 },
+      kat_rzeczywisty:{ from:95, to:'' },
+      klasa_kata:{ value:'lodówkowy 95°' },
+      hamulec:{ value:false },
+      sprezyna:{ value:false },
       prowadnik:{ value:'specjalny' }
     }, extra);
   }

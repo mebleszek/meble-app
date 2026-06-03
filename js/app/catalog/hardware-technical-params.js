@@ -19,10 +19,12 @@
   ];
   const DEFAULT_DEFINITIONS = [
     { category:'Zawiasy', key:'nalozenie', label:'Nałożenie', fieldType:'text', unit:'', options:['nakładany','półnakładany / bliźniaczy','wpuszczany','równoległy wpuszczany','lodówkowy nakładany'], keyFeature:true, typePart:true, compareMode:'equal', order:10, active:true },
-    { category:'Zawiasy', key:'kat_otwarcia', label:'Kąt otwarcia', fieldType:'numberRange', unit:'°', options:[], keyFeature:true, typePart:true, compareMode:'withinRange', order:20, active:true },
+    { category:'Zawiasy', key:'kat_rzeczywisty', label:'Kąt rzeczywisty / nominalny', fieldType:'numberRange', unit:'°', options:[], keyFeature:false, typePart:true, compareMode:'ignore', order:20, active:true, legacyField:'kat_otwarcia' },
+    { category:'Zawiasy', key:'klasa_kata', label:'Klasa / zakres zamienności kąta', fieldType:'text', unit:'', options:['standardowy 90–120°','zerowy uskok 155°','narożny 170°','równoległy wpuszczany 95°','lodówkowy 95°'], keyFeature:true, typePart:true, compareMode:'equal', order:25, active:true },
+    { category:'Zawiasy', key:'kat_otwarcia', label:'Kąt otwarcia — legacy', fieldType:'numberRange', unit:'°', options:[], keyFeature:false, typePart:false, compareMode:'ignore', order:26, active:false },
     { category:'Zawiasy', key:'hamulec', label:'Hamulec / domyk', fieldType:'boolean', unit:'', options:[], keyFeature:true, typePart:true, compareMode:'equal', order:30, active:true },
     { category:'Zawiasy', key:'sprezyna', label:'Sprężyna', fieldType:'boolean', unit:'', options:[], keyFeature:true, typePart:false, compareMode:'equal', order:40, active:true },
-    { category:'Zawiasy', key:'prowadnik', label:'Prowadnik / montaż', fieldType:'text', unit:'', options:['standardowy','specjalny','osobno'], keyFeature:false, typePart:false, compareMode:'ignore', order:50, active:true },
+    { category:'Zawiasy', key:'prowadnik', label:'Prowadnik / montaż', fieldType:'text', unit:'', options:['standardowy','specjalny','osobno'], keyFeature:true, typePart:false, compareMode:'equal', order:50, active:true },
 
     { category:'Szuflady / prowadnice', key:'profil_szuflady', label:'Profil / wysokość', fieldType:'text', unit:'', options:['M','N','H','niska','średnia','wysoka'], keyFeature:true, typePart:true, compareMode:'equal', order:10, active:true, legacyField:'drawerProfile' },
     { category:'Szuflady / prowadnice', key:'dlugosc_mm', label:'Długość', fieldType:'numberRange', unit:'mm', options:[], keyFeature:true, typePart:true, compareMode:'equal', order:20, active:true, legacyField:'drawerLengthMm' },
@@ -60,12 +62,12 @@
     key:'Stabilny klucz techniczny używany w Excelu i imporcie. Po utworzeniu nie zmieniaj go bez potrzeby, żeby stare pliki nadal pasowały.',
     fieldType:'Typ danych: tekst/wybór, tak-nie albo liczba z obsługą wartości dokładnej i zakresu od-do.',
     unit:'Jednostka parametru, np. mm, kg albo °. Trafia do opisów i Excela.',
-    options:'Dozwolone wartości dla pola typu tekst/wybór. Wpisz krótkie, konsekwentne opcje rozdzielone średnikiem, np. M; N; H albo lewa; prawa; uniwersalna. Jeżeli parametr ma dozwolone wartości, formularz okucia pokaże wybór z listy aplikacyjnej zamiast zwykłego wpisywania tekstu. Nie dubluj tego samego znaczenia różnymi nazwami, np. lewa, lewy, L. Wybierz jedną wersję i trzymaj się jej w całym katalogu. Starsze wartości spoza tej listy nie będą automatycznie dopasowywane — pole w formularzu będzie puste i trzeba będzie wybrać jedną z wartości słownika.',
+    options:'Dozwolone wartości dla pola typu tekst/wybór. Wpisz krótkie, konsekwentne opcje rozdzielone średnikiem, np. M; N; H albo lewa; prawa; uniwersalna. Jeżeli parametr ma dozwolone wartości, formularz okucia pokaże wybór z listy aplikacyjnej zamiast zwykłego wpisywania tekstu. Nie dubluj tego samego znaczenia różnymi nazwami, np. lewa, lewy, L. Wybierz jedną wersję i trzymaj się jej w całym katalogu. Starsze wartości spoza tej listy nie będą automatycznie dopasowywane — pole w formularzu będzie puste i trzeba będzie wybrać jedną z wartości słownika. Dla zawiasów „Klasa / zakres zamienności kąta” ma być wybierana ze słownika, a nie wpisywana ręcznie.',
     keyFeature:'Zaznacz, jeśli parametr ma być ważny przy szukaniu zamiennika. Przykład: długość prowadnicy 500 mm musi pasować do 500 mm.',
     typePart:'Zaznacz, jeśli parametr ma budować automatyczny opis Typ / cecha, np. „110° nakładany” albo „M 500 50 kg”.',
     compareMode:'Określa, jak program będzie porównywał parametr przy zamianie producenta: dokładnie, przez zakres albo przez minimalną wartość.',
     valueFrom:'Wpisz dokładną wartość albo początek zakresu. Jeśli pole „do” zostawisz puste, program traktuje tę wartość jako dokładną.',
-    valueTo:'Wypełnij tylko wtedy, gdy parametr jest zakresem, np. kąt 90–110° albo szerokość 600–830 mm.',
+    valueTo:'Wypełnij tylko wtedy, gdy parametr jest zakresem, np. szerokość 600–830 mm. Dla zawiasów zakres zamienności kąta nie jest już wpisywany w polu od–do; wybiera się klasę zamienności ze słownika, a kąt rzeczywisty wpisuje jako nominalną liczbę.',
     exact:'Dokładna wartość: pole „od” wypełnione, pole „do” puste. Przykład: prowadnica 500 mm.',
     range:'Zakres: wypełnione pola „od” i „do”. Przykład: zawias 90–110° albo pantograf 600–830 mm.',
     equal:'Zamiennik musi mieć identyczną wartość. Dobre dla długości prowadnic albo szerokości korpusu.',
@@ -97,7 +99,7 @@
   function text(value){ return String(scalarValue(value, 0)).trim(); }
   function number(value){ const n = Number(text(value).replace(',', '.').replace(/\s+/g, '')); return Number.isFinite(n) ? n : 0; }
   function safeKey(value){
-    return text(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || '';
+    return text(value).toLowerCase().replace(/ł/g, 'l').replace(/Ł/g, 'l').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || '';
   }
   function bool(value){
     if(value === true) return true;
@@ -136,25 +138,104 @@
     (Array.isArray(list) ? list : []).forEach(push);
     return out;
   }
+
+  function normalizeHingeAngleClassOptions(list){
+    const base = ['standardowy 90–120°','zerowy uskok 155°','narożny 170°','równoległy wpuszczany 95°','lodówkowy 95°'];
+    const seen = new Set();
+    const out = [];
+    function push(value){
+      const raw = text(value);
+      if(!raw) return;
+      const key = safeKey(raw);
+      if(seen.has(key)) return;
+      seen.add(key);
+      out.push(raw);
+    }
+    base.forEach(push);
+    (Array.isArray(list) ? list : []).forEach(push);
+    return out;
+  }
+  function hingeAngleNumberFromParams(values){
+    const src = values && typeof values === 'object' ? values : {};
+    const direct = src.kat_rzeczywisty;
+    const legacy = src.kat_otwarcia;
+    const raw = direct != null ? direct : legacy;
+    if(raw && typeof raw === 'object'){
+      if(text(raw.value)) return number(raw.value);
+      if(text(raw.from)) return number(raw.from);
+      if(text(raw.to)) return number(raw.to);
+    }
+    return number(raw);
+  }
+  function inferHingeAngleClass(values){
+    const src = values && typeof values === 'object' ? values : {};
+    const overlay = safeKey(src.nalozenie && typeof src.nalozenie === 'object' ? src.nalozenie.value : src.nalozenie).replace(/_/g, ' ');
+    const plate = safeKey(src.prowadnik && typeof src.prowadnik === 'object' ? src.prowadnik.value : src.prowadnik).replace(/_/g, ' ');
+    const angle = hingeAngleNumberFromParams(src);
+    if(overlay === 'rownolegly wpuszczany') return 'równoległy wpuszczany 95°';
+    if(overlay === 'lodowkowy nakladany') return 'lodówkowy 95°';
+    if(overlay === 'nakladany' && (angle >= 165 || plate === 'specjalny')) return 'narożny 170°';
+    if(angle >= 150 && angle < 165) return 'zerowy uskok 155°';
+    if(angle >= 80 && angle <= 130) return 'standardowy 90–120°';
+    if(angle >= 165) return 'narożny 170°';
+    return '';
+  }
+
   function normalizeDefinition(row, index){
     const src = row && typeof row === 'object' ? row : {};
     const category = text(src.category || src.hardwareCategory || src.kategoria);
     const label = text(src.label || src.name || src.nazwa);
     const key = safeKey(src.key || src.klucz || label);
+    const catKey = safeKey(category);
+    let fieldType = normalizeFieldType(src.fieldType || src.typ_pola || src.type);
+    let unit = text(src.unit || src.jednostka);
+    let options = optionsFrom(src.options || src.wartosci);
+    let keyFeature = src.keyFeature === false || text(src.cecha_kluczowa).toLowerCase() === 'nie' ? false : !!(src.keyFeature || src.compareKey || src.cechaKluczowa || src.cecha_kluczowa || src.typePart || src.tworzyTyp);
+    let typePart = src.typePart === false || text(src.tworzy_typ).toLowerCase() === 'nie' ? false : (src.typePart != null ? !!src.typePart : (src.keyFeature != null ? !!src.keyFeature : true));
+    let compareMode = normalizeCompareMode(src.compareMode || src.sposob_porownania || src.porownanie);
+    let order = Number(src.order != null ? src.order : src.kolejnosc) || (index + 1) * 10;
+    let active = src.active === false || text(src.aktywny).toLowerCase() === 'nie' ? false : true;
+    let legacyField = text(src.legacyField || src.legacy_field);
+    let finalLabel = label || key;
+
+    if(catKey === 'zawiasy' && key === 'nalozenie'){
+      options = normalizeHingeOverlayOptions(options);
+      keyFeature = true; typePart = true; compareMode = 'equal'; active = true; order = 10;
+    }
+    if(catKey === 'zawiasy' && key === 'kat_rzeczywisty'){
+      finalLabel = label || 'Kąt rzeczywisty / nominalny';
+      fieldType = 'numberRange'; unit = '°'; options = [];
+      keyFeature = false; typePart = true; compareMode = 'ignore'; active = true; order = 20; legacyField = legacyField || 'kat_otwarcia';
+    }
+    if(catKey === 'zawiasy' && key === 'klasa_kata'){
+      finalLabel = label || 'Klasa / zakres zamienności kąta';
+      fieldType = 'text'; unit = ''; options = normalizeHingeAngleClassOptions(options);
+      keyFeature = true; typePart = true; compareMode = 'equal'; active = true; order = 25;
+    }
+    if(catKey === 'zawiasy' && key === 'kat_otwarcia'){
+      finalLabel = 'Kąt otwarcia — legacy';
+      fieldType = 'numberRange'; unit = '°'; options = [];
+      keyFeature = false; typePart = false; compareMode = 'ignore'; active = false; order = 26;
+    }
+    if(catKey === 'zawiasy' && key === 'prowadnik'){
+      options = options.length ? options : ['standardowy','specjalny','osobno'];
+      keyFeature = true; typePart = false; compareMode = 'equal'; active = true; order = 50;
+    }
+
     return {
       id:text(src.id) || (safeKey(category) + '_' + key),
       category,
       key,
-      label:label || key,
-      fieldType:normalizeFieldType(src.fieldType || src.typ_pola || src.type),
-      unit:text(src.unit || src.jednostka),
-      options:(safeKey(category) === 'zawiasy' && key === 'nalozenie') ? normalizeHingeOverlayOptions(optionsFrom(src.options || src.wartosci)) : optionsFrom(src.options || src.wartosci),
-      keyFeature:src.keyFeature === false || text(src.cecha_kluczowa).toLowerCase() === 'nie' ? false : !!(src.keyFeature || src.compareKey || src.cechaKluczowa || src.cecha_kluczowa || src.typePart || src.tworzyTyp),
-      typePart:src.typePart === false || text(src.tworzy_typ).toLowerCase() === 'nie' ? false : (src.typePart != null ? !!src.typePart : (src.keyFeature != null ? !!src.keyFeature : true)),
-      compareMode:normalizeCompareMode(src.compareMode || src.sposob_porownania || src.porownanie),
-      order:Number(src.order != null ? src.order : src.kolejnosc) || (index + 1) * 10,
-      active:src.active === false || text(src.aktywny).toLowerCase() === 'nie' ? false : true,
-      legacyField:text(src.legacyField || src.legacy_field),
+      label:finalLabel,
+      fieldType,
+      unit,
+      options,
+      keyFeature,
+      typePart,
+      compareMode,
+      order,
+      active,
+      legacyField,
     };
   }
   function normalizeDefinitions(list, categories){
@@ -206,11 +287,23 @@
   function normalizeParamValues(values, definitions, category){
     const src = values && typeof values === 'object' ? values : {};
     const out = {};
-    fieldsForCategory(definitions, category).forEach((field)=>{
+    const fields = fieldsForCategory(definitions, category);
+    fields.forEach((field)=>{
       const raw = src[field.key] != null ? src[field.key] : src[field.legacyField];
       const val = normalizeParamValue(field, raw);
       if(field.fieldType === 'boolean' || text(val.value) || text(val.from) || text(val.to)) out[field.key] = val;
     });
+    if(safeKey(category) === 'zawiasy'){
+      if(!out.kat_rzeczywisty && src.kat_otwarcia != null){
+        const field = fields.find((row)=> row.key === 'kat_rzeczywisty') || normalizeDefinition({ category:'Zawiasy', key:'kat_rzeczywisty', label:'Kąt rzeczywisty / nominalny', fieldType:'numberRange', unit:'°' }, 0);
+        const val = normalizeParamValue(field, src.kat_otwarcia);
+        if(text(val.from) || text(val.to)) out.kat_rzeczywisty = val;
+      }
+      if(!text(out.klasa_kata && out.klasa_kata.value)){
+        const inferred = inferHingeAngleClass(Object.assign({}, src, out));
+        if(inferred) out.klasa_kata = { value:inferred };
+      }
+    }
     return out;
   }
   function paramValueText(field, value, opts){

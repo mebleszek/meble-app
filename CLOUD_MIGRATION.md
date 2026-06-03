@@ -752,3 +752,11 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Przy przyszłej chmurze silnik może działać po danych pobranych z `users/{userId}/catalogs/hardware/*` bez zmiany kontraktu: nie wymaga osobnego dokumentu ani kolekcji dla wyników podglądu.
 - Wyniki `compareItems()` / `findCandidates()` są stanem runtime/raportem UI. Nie synchronizować ich jako danych użytkownika, chyba że później powstanie świadoma historia decyzji zamiany z osobnym modelem.
 - Brak ceny dostawcy `Do wyceny` jest na razie atrybutem raportu, nie zmianą danych katalogu.
+
+
+## Hinge angle class resolver v1 — 2026-06-03
+
+- Model danych technicznych zawiasów rozdziela nominalny `kat_rzeczywisty` od słownikowej `klasa_kata`. To jest zmiana cloud-ready: zakres zamienności nie jest wpisywanym tekstem ani losowym zakresem od-do, tylko kontrolowaną wartością słownikową możliwą do mapowania na przyszły dokument Firestore.
+- Stare `kat_otwarcia` pozostaje obsługiwane jako legacy przy odczycie/normalizacji, bez tworzenia nowego rozproszonego storage.
+- Dobór WYCENY dla zawiasów porównuje pełny zestaw cech technicznych, a nie tylko kąt. Dzięki temu cena/snapshot opiera się na tej samej decyzji technicznej co WYWIAD i katalog okuć.
+
