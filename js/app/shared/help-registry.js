@@ -88,9 +88,6 @@
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = text(cfg.className) || 'info-trigger';
-    // Twardy fallback tekstowy: CSS normalnie rysuje ikonę przez ::before, ale przy
-    // regresji ładowania/pseudo-elementów na mobile przycisk nie może zostać pustym kwadratem.
-    btn.textContent = '?';
     btn.setAttribute('aria-label', cfg.ariaLabel || ('Pokaż informację: ' + text(cfg.title || 'Informacja')));
     if(id) btn.setAttribute('data-help-key', id);
     btn.addEventListener('click', (event)=>{

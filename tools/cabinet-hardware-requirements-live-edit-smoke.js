@@ -309,7 +309,7 @@ function runStaticCheck(){
   assert(css.includes('cabinet-hardware-req-actions') && css.includes('cabinet-hardware-req-summary'), 'brak stylów skrótu i przycisków wymagań');
   assert(css.includes('cabinet-hardware-req-pair-actions'), 'brak stylów wspólnych przycisków dla obu drzwiczek');
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  assert(html.includes('20260604_quote_click_help_duplicate_fix_v1'), 'index musi mieć aktualny cache-busting tej paczki');
+  assert(html.includes('20260604_help_question_mark_restore_v1'), 'index musi mieć aktualny cache-busting tej paczki');
 }
 
 (async function main(){

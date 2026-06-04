@@ -52,9 +52,10 @@ function runStaticChecks(){
   const wycenaCss = read('css/wycena.css');
   assert(bindings.includes("action === 'wycena-generate'"), 'Delegacja data-action nie połyka globalnie syntetycznego click po Wyceń');
   assert(shell.includes('GENERATE_RELEASE_DEDUP_WINDOW_MS') && shell.includes('generate-skipped-after-release-click'), 'WYCENA nie ma blokady drugiego clicka tuż po zakończeniu liczenia');
-  assert(help.includes("btn.textContent = '?';"), 'Centralny helper ? nie ma tekstowego fallbacku');
-  assert(sharedCss.includes('.info-trigger:not(:empty)::before') && sharedCss.includes('font-size:17px'), 'CSS helpera ? nie pokazuje tekstowego fallbacku');
-  assert(wycenaCss.includes('@media (max-width:640px)') && wycenaCss.includes('.quote-selection-grid') && wycenaCss.includes('grid-template-columns:minmax(0,1fr)'), 'Sekcja wyboru WYCENY nie przechodzi na jedną kolumnę na mobile');
+  assert(!help.includes("btn.textContent = '?';"), 'Centralny helper ? nie może mieć tekstowego fallbacku — ma wrócić stara ikonka SVG');
+  assert(sharedCss.includes('.info-trigger::before') && sharedCss.includes('background-image:url') && sharedCss.includes('color:transparent;font-size:0'), 'CSS helpera ? nie jest przywrócony do starego wzorca SVG');
+  assert(!sharedCss.includes('.info-trigger:not(:empty)::before') && !sharedCss.includes('fallback tekstowy'), 'Fallback tekstowy helpera ? nie został usunięty');
+  assert(!wycenaCss.includes('2026-06-04 — WYCENA selection'), 'Dodatkowa korekta layoutu WYCENY pod fallback helpera nie została cofnięta');
 }
 function runDuplicateChecks(){
   const sandbox = loadCatalogSandbox();

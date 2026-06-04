@@ -1,3 +1,12 @@
+## 2026-06-04 — Przywrócenie starych helperów `?` v1
+
+- Paczka: `site_help_question_mark_restore_v1.zip`.
+- Cofnięto wyłącznie ostatnią zmianę wyglądu helperów `?`: `help-registry.js`, `shared-overlays-choice.css` i dodatkową korektę mobile w `wycena.css` przywrócono do wersji z poprzedniej działającej paczki.
+- Usunięto tekstowy fallback `btn.textContent = '?'` oraz dopisany CSS fallbackowy, który na telefonie dawał puste kwadraty/prostokąty zamiast starej okrągłej ikonki.
+- Zachowano naprawę podwójnego kliknięcia `Wyceń` oraz poprawioną logikę duplikatu okucia z paczki `site_quote_click_help_duplicate_fix_v1.zip`.
+- Nie ruszano PRO100, ROZRYS, PCV/obrzeży, import/export Excel, backupów ani modelu snapshotów ofert.
+- Cache-busting: `20260604_help_question_mark_restore_v1`. Raport: `tools/reports/help-question-mark-restore-v1.md`.
+
 
 ## 2026-06-04 — WYCENA click, helpery `?` i duplikaty okuć v1
 
