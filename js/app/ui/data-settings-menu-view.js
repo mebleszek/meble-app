@@ -39,12 +39,15 @@
     ]);
     const message = INFO[infoKey];
     if(message){
-      const infoBtn = h('button', { type:'button', class:'info-trigger data-settings-menu-tile__info', 'aria-label':`Pokaż informację: ${title}` });
-      infoBtn.addEventListener('click', (event)=>{
-        try{ event.preventDefault(); event.stopPropagation(); }catch(_){ }
-        if(dom && typeof dom.info === 'function') dom.info(title, message);
-      });
-      row.appendChild(infoBtn);
+      if(FC.helpRegistry && typeof FC.helpRegistry.createTrigger === 'function') row.appendChild(FC.helpRegistry.createTrigger({ key:'dataSettings.menu.' + (FC.helpRegistry.safeKey ? FC.helpRegistry.safeKey(title) : title), title:title, message:message, scope:'dataSettings', className:'info-trigger data-settings-menu-tile__info', stop:true }));
+      else {
+        const infoBtn = h('button', { type:'button', class:'info-trigger data-settings-menu-tile__info', 'aria-label':`Pokaż informację: ${title}` });
+        infoBtn.addEventListener('click', (event)=>{
+          try{ event.preventDefault(); event.stopPropagation(); }catch(_){ }
+          if(dom && typeof dom.info === 'function') dom.info(title, message);
+        });
+        row.appendChild(infoBtn);
+      }
     }
     return row;
   }

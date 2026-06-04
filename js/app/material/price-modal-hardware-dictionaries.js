@@ -26,6 +26,16 @@
   }
   function uid(prefix){ try{ return FC.utils && FC.utils.uid ? FC.utils.uid() : ((prefix || 'id') + '_' + Date.now()); }catch(_){ return (prefix || 'id') + '_' + Date.now(); } }
   function normalizeCategories(list){ const hw = FC.hardwareCatalog || {}; return hw.normalizeCategoryList ? hw.normalizeCategoryList(list || []) : Array.from(new Set((list || []).map(text).filter(Boolean))); }
+  const DICTIONARY_HELP = {
+    category_name:'Lista kategorii okuć dostępnych przy dodawaniu i filtrowaniu pozycji. To nazwa grupy, np. Zawiasy, Prowadniki albo Podnośniki.',
+    param_name:'Nazwa pola technicznego widoczna w formularzu okucia, np. Kąt rzeczywisty / nominalny albo Typ prowadnika.',
+    key:'Stabilny klucz techniczny używany w Excelu i imporcie. Po utworzeniu nie zmieniaj go bez potrzeby, żeby stare pliki nadal pasowały.',
+    fieldType:'Typ danych: tekst / wybór, tak / nie albo liczba z obsługą wartości dokładnej i zakresu od–do.',
+    unit:'Jednostka parametru, np. mm, kg albo °. Trafia do opisów i Excela.',
+    compareMode:'Określa, jak program porównuje parametr przy doborze zamienników i automatycznej wycenie.',
+    options:'Dozwolone wartości dla pola typu tekst / wybór. Podawaj krótkie, spójne opcje rozdzielone średnikiem.',
+  };
+  try{ if(FC.helpRegistry && typeof FC.helpRegistry.registerMany === 'function') FC.helpRegistry.registerMany(DICTIONARY_HELP, { prefix:'hardwareDict.' }); }catch(_){ }
   function getCategories(){ const s = store(); return s && s.getHardwareCategories ? s.getHardwareCategories() : normalizeCategories([]); }
   function saveCategories(list){ const s = store(); return s && s.saveHardwareCategories ? s.saveHardwareCategories(list) : list; }
   function getTypes(){ const s = store(); return s && s.getHardwareTypes ? s.getHardwareTypes() : []; }
@@ -42,30 +52,32 @@
     const cleanParams = normalizeParams(params, cleanCategories).map((row)=>({ category:text(row.category), key:text(row.key), label:text(row.label), fieldType:text(row.fieldType), unit:text(row.unit), options:(row.options || []).map(text), keyFeature:!!row.keyFeature, typePart:!!row.typePart, compareMode:text(row.compareMode), active:row.active !== false, order:Number(row.order) || 0 }));
     return JSON.stringify({ categories:cleanCategories, params:cleanParams });
   }
-  function resolveHelp(title, key){
-    const helpKey = text(key);
-    let cfg = null;
+  function openHelp(title, key, fallbackMessage){
+    const hr = FC.helpRegistry;
+    const message = fallbackMessage || (DICTIONARY_HELP[key] || (tech().FIELD_HELP || {})[key] || '');
+    if(hr && typeof hr.open === 'function'){
+      hr.open(key.indexOf('.') >= 0 ? key : ((DICTIONARY_HELP[key] ? 'hardwareDict.' : 'hardwareTech.') + key), { title:title || 'Informacja', message });
+      return;
+    }
     try{
-      if(FC.helpRegistry && typeof FC.helpRegistry.lookup === 'function') cfg = FC.helpRegistry.lookup('hardwareTechnical.' + helpKey, { fallbackKeys:[helpKey], title:title || helpKey });
-    }catch(_){ }
-    if(!(cfg && cfg.message) && (tech().FIELD_HELP || {})[helpKey]) cfg = { title:title || helpKey, message:(tech().FIELD_HELP || {})[helpKey] };
-    return cfg;
-  }
-  function openHelp(title, key){
-    const cfg = resolveHelp(title, key);
-    if(!cfg) return;
-    try{
-      if(FC.helpRegistry && typeof FC.helpRegistry.open === 'function') return FC.helpRegistry.open(cfg, { title:title || cfg.title });
-      if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:title || cfg.title || 'Informacja', message:cfg.message || '' });
-      else if(FC.panelBox && typeof FC.panelBox.open === 'function') FC.panelBox.open({ title:title || cfg.title || 'Informacja', message:cfg.message || '', width:'560px', boxClass:'panel-box--rozrys' });
+      if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:title || 'Informacja', message });
+      else if(FC.panelBox && typeof FC.panelBox.open === 'function') FC.panelBox.open({ title:title || 'Informacja', message, width:'560px', boxClass:'panel-box--rozrys' });
     }catch(_){ }
   }
   function helpLabel(textLabel, helpKey){
     const row = h('div', { class:'label-help price-field-help' }, [h('span', { class:'label-help__text', text:textLabel || '' })]);
-    if(resolveHelp(textLabel, helpKey)){
-      const btn = h('button', { type:'button', class:'info-trigger', 'aria-label':'Pomoc: ' + textLabel });
-      btn.addEventListener('click', ()=> openHelp(textLabel, helpKey));
-      row.appendChild(btn);
+    const dictMsg = DICTIONARY_HELP[helpKey] || '';
+    const techMsg = (tech().FIELD_HELP || {})[helpKey] || '';
+    const message = dictMsg || techMsg;
+    if(message){
+      const registryKey = (dictMsg ? 'hardwareDict.' : 'hardwareTech.') + helpKey;
+      const hr = FC.helpRegistry;
+      if(hr && typeof hr.createTrigger === 'function') row.appendChild(hr.createTrigger({ key:registryKey, title:textLabel || '', message, scope:dictMsg ? 'hardwareDict' : 'hardwareTech', stop:false }));
+      else {
+        const btn = h('button', { type:'button', class:'info-trigger', 'aria-label':'Pomoc: ' + textLabel });
+        btn.addEventListener('click', ()=> openHelp(textLabel, registryKey, message));
+        row.appendChild(btn);
+      }
     }
     return row;
   }
@@ -195,7 +207,7 @@
     input.addEventListener('change', ()=> onChange(index, input.value, false, true));
     const remove = h('button', { type:'button', class:'btn btn-danger', text:'Usuń' });
     remove.addEventListener('click', ()=> onChange(index, null, true, true));
-    row.appendChild(h('div', { class:'hardware-supplier-field' }, [helpLabel('Kategoria / rodzaj okucia', 'name'), input]));
+    row.appendChild(h('div', { class:'hardware-supplier-field' }, [helpLabel('Kategoria / rodzaj okucia', 'category_name'), input]));
     row.appendChild(remove);
     return row;
   }
@@ -232,7 +244,7 @@
     active.querySelector('input').addEventListener('change', (e)=>{ item.active = !!e.target.checked; refreshSummary(); onChange(item); });
     const remove = h('button', { type:'button', class:'btn btn-danger', text:'Usuń parametr' });
     remove.addEventListener('click', ()=> onRemove(item));
-    body.appendChild(h('div', { class:'grid-2' }, [h('div', {}, [helpLabel('Nazwa parametru', 'name'), label]), h('div', {}, [helpLabel('Klucz Excel', 'key'), key])]));
+    body.appendChild(h('div', { class:'grid-2' }, [h('div', {}, [helpLabel('Nazwa parametru', 'param_name'), label]), h('div', {}, [helpLabel('Klucz Excel', 'key'), key])]));
     body.appendChild(h('div', { class:'grid-3', style:'margin-top:8px' }, [h('div', {}, [helpLabel('Typ pola', 'fieldType'), fieldType]), h('div', {}, [helpLabel('Jednostka', 'unit'), unit]), h('div', {}, [helpLabel('Sposób porównania', 'compareMode'), compare])]));
     body.appendChild(h('div', { style:'margin-top:8px' }, [helpLabel('Dozwolone wartości', 'options'), options]));
     body.appendChild(h('div', { class:'hardware-type-categories', style:'margin-top:8px' }, [keyFeature, typePart, active]));

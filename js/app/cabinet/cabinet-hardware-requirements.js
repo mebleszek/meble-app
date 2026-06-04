@@ -179,11 +179,20 @@
   }
   function getHingeRequirementPreset(typeId, ruleId, extra){
     const id = text(typeId) || HINGE_TYPES.OVERLAY_110;
+
+    // Kanoniczne wymagania szafki są regułą techniczną, nie konkretnym produktem
+    // z katalogu. Katalog może mieć np. GTV 107° w klasie standardowy 90–120°,
+    // ale domyślna szafka nadal wymaga standardowego 110°; 107° jest dopiero
+    // kandydatem/zamiennikiem w WYCENIE, a nie źródłem prawdy dla WYWIADU.
+    const found = DEFAULT_HINGE_REQUIREMENT_FACTORIES.find((row)=> row.typeId === id);
+    if(found) return found.factory(ruleId || ('manual_' + found.typeId), extra || {});
+
     const source = optionApi();
     const catalogFound = source && typeof source.findHingeRequirementOption === 'function' ? source.findHingeRequirementOption(id) : null;
     if(catalogFound) return requirementFromOption(catalogFound, ruleId || ('manual_' + id), extra || {});
-    const found = DEFAULT_HINGE_REQUIREMENT_FACTORIES.find((row)=> row.typeId === id) || DEFAULT_HINGE_REQUIREMENT_FACTORIES[0];
-    return found.factory(ruleId || ('manual_' + found.typeId), extra || {});
+
+    const fallback = DEFAULT_HINGE_REQUIREMENT_FACTORIES[0];
+    return fallback.factory(ruleId || ('manual_' + fallback.typeId), extra || {});
   }
 
   function getHingeRequirementOptions(){

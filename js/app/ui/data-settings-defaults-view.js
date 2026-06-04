@@ -119,11 +119,14 @@
 
     const card = h('section', { class:'data-settings-card data-settings-defaults-card' });
     const titleRow = h('div', { class:'data-settings-card-title-row' }, [h('h3', { text:'Domyślne materiały i okucia' })]);
-    const infoBtn = h('button', { type:'button', class:'info-trigger data-settings-card-info', 'aria-label':'Pokaż informację: Domyślne materiały i okucia' });
-    infoBtn.addEventListener('click', ()=>{
-      if(dom.info) dom.info('Domyślne materiały i okucia', 'To są globalne fallbacki programu. Preferencje konkretnego pomieszczenia w WYWIADZIE mają pierwszeństwo, a te wartości są używane dopiero wtedy, gdy pomieszczenie nie ma własnego wyboru.');
-    });
-    titleRow.appendChild(infoBtn);
+    if(FC.helpRegistry && typeof FC.helpRegistry.createTrigger === 'function') titleRow.appendChild(FC.helpRegistry.createTrigger({ key:'dataSettings.defaults.card', title:'Domyślne materiały i okucia', message:'To są globalne fallbacki programu. Preferencje konkretnego pomieszczenia w WYWIADZIE mają pierwszeństwo, a te wartości są używane dopiero wtedy, gdy pomieszczenie nie ma własnego wyboru.', scope:'dataSettings', className:'info-trigger data-settings-card-info', stop:false }));
+    else {
+      const infoBtn = h('button', { type:'button', class:'info-trigger data-settings-card-info', 'aria-label':'Pokaż informację: Domyślne materiały i okucia' });
+      infoBtn.addEventListener('click', ()=>{
+        if(dom.info) dom.info('Domyślne materiały i okucia', 'To są globalne fallbacki programu. Preferencje konkretnego pomieszczenia w WYWIADZIE mają pierwszeństwo, a te wartości są używane dopiero wtedy, gdy pomieszczenie nie ma własnego wyboru.');
+      });
+      titleRow.appendChild(infoBtn);
+    }
     card.appendChild(titleRow);
 
     const summary = h('div', { class:'data-settings-defaults-summary muted', text:FC.programDefaults.buildSummary(draft) });

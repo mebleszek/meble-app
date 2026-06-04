@@ -1,13 +1,22 @@
-## 2026-06-04 — Centralny rejestr helperów `?` v1
+## 2026-06-04 — Naprawa domyślnych wymagań zawiasów i kliknięcia „Zmień” v1
 
-- Paczka: `site_central_help_registry_v1.zip`.
-- Dodano centralny moduł `js/app/shared/help-registry.js` jako jedno API do rejestrowania, odczytu i otwierania opisów pod ikoną `?`.
-- Formularz cenników, słowniki okuć i dynamiczne dane techniczne okuć czytają helpery przez centralny rejestr, zamiast pokazywać przypadkowe placeholdery.
-- Naprawiono dynamiczne pola `Dane techniczne`: każdy `?` przy polu technicznym używa teraz konkretnego klucza pola, np. `pokrycie_prowadnika`, `forma_prowadnika`, `system_kompatybilnosci`, `kat_rzeczywisty`, a nie generycznego opisu `name`/`valueFrom`.
-- Uzupełniono indywidualne instrukcje dla nowych pól zawiasów i prowadników: rola w komplecie, system kompatybilności, typ/forma/pokrycie prowadnika, kąt rzeczywisty, klasa kąta, hamulec i sprężyna.
-- Nie dodano nowych pól w innych działach. Zmiana dotyczy centralizacji i treści helperów; brakujące opisy uzupełniono w obszarze akcesoriów/materiałów/cenników.
-- Dodano test `tools/central-help-registry-smoke.js`, który pilnuje, że aktywne parametry techniczne mają indywidualne opisy i że formularz nie wraca do generycznego placeholdera.
-- Cache-busting: `20260604_central_help_registry_v1`. Raport: `tools/reports/central-help-registry-v1.md`.
+- Paczka: `site_hinge_panel_default_fix_v1.zip`.
+- WYWIAD/panel wymagań szafki nie może brać nominalnego kąta z konkretnego produktu katalogowego. Kanoniczne wymaganie szafki `110° nakładany` pozostaje `110°`, a produkt `107°` jest tylko kandydatem/zamiennikiem WYCENY w klasie `standardowy 90–120°`.
+- `getHingeRequirementPreset()` dla kanonicznych typów zawiasów korzysta z reguł technicznych programu, a nie z pierwszej/scalonej pozycji katalogowej.
+- Lista wyboru zawiasów w panelu pokazuje kanoniczne wymagania dla typów bazowych, bez przepisywania kąta zamiennika katalogowego do WYWIADU.
+- Kliknięcie `Zmień` nie ustawia już ręcznego override, jeżeli nie został otwarty żaden modal wyboru i użytkownik nic realnie nie wybrał. To zabezpiecza przed samoczynnym przełączeniem stanu panelu/przycisków.
+- Dodano regresję: pojedynczy front nie może po kliknięciu/odświeżeniu przejść w układ lewe/prawe, a domyślne wymaganie pojedynczych drzwiczek pozostaje `110° nakładany`.
+- Cache-busting: `20260604_hinge_panel_default_fix_v1`.
+
+## 2026-06-04 — Audyt wszystkich helperów `?` i centralny rejestr v1
+
+- Paczka: `site_help_registry_full_audit_v1.zip`.
+- Dodano wspólny moduł `js/app/shared/help-registry.js` jako centralne źródło opisów pod ikoną `?`. Rejestr potrafi przechowywać wpisy, otwierać helpery, budować przyciski `info-trigger` i robić prosty audyt ikon przez `data-help-key`.
+- Do rejestru podpięto helpery formularza cennika, danych technicznych okuć, słowników okuć, części ROZRYS, WYCENY oraz ustawień danych. Najważniejsze miejsca, które wcześniej miały lokalne opisy lub ogólny błędny tekst, korzystają teraz z centralnego klucza.
+- W `Słownikach okuć` poprawiono błędny helper przy `Kategoria / rodzaj okucia`: ma już własny opis, zamiast dziedziczyć tekst od nazwy parametru technicznego.
+- `makeAccordion` w ustawieniach danych obsługuje teraz `infoKey`, więc kolejne helpery można dopinać do centralnego klucza bez powielania lokalnej logiki.
+- Każdy nowy przycisk `?` tworzony przez nowy helper dostaje `data-help-key`, co pozwala wykrywać brakujące migracje w testach/dev-audytach.
+- Cache-busting: `20260604_help_registry_audit_v1`. Raport: `tools/reports/help-registry-audit-v1.md`.
 
 ## 2026-06-04 — Zawias + prowadnik jako komplet lub składane części v1
 

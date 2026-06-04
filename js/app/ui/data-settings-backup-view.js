@@ -42,9 +42,12 @@
   function buildHeader(){
     const headerCard = h('section', { class:'data-settings-card' });
     const titleRow = h('div', { class:'data-settings-card-title-row' }, [h('h3', { text:'Backup i dane' })]);
-    const infoBtn = h('button', { type:'button', class:'info-trigger data-settings-card-info', 'aria-label':'Pokaż informację: Backup i dane' });
-    infoBtn.addEventListener('click', ()=> dom.info('Backup i dane', 'Backup obejmuje pełny stan programu: inwestorów, pomieszczenia, projekty, szafki, materiał, wyceny, ustawienia i dane pomocnicze.'));
-    titleRow.appendChild(infoBtn);
+    if(FC.helpRegistry && typeof FC.helpRegistry.createTrigger === 'function') titleRow.appendChild(FC.helpRegistry.createTrigger({ key:'dataSettings.backup.card', title:'Backup i dane', message:'Backup obejmuje pełny stan programu: inwestorów, pomieszczenia, projekty, szafki, materiał, wyceny, ustawienia i dane pomocnicze.', scope:'dataSettings', className:'info-trigger data-settings-card-info', stop:false }));
+    else {
+      const infoBtn = h('button', { type:'button', class:'info-trigger data-settings-card-info', 'aria-label':'Pokaż informację: Backup i dane' });
+      infoBtn.addEventListener('click', ()=> dom.info('Backup i dane', 'Backup obejmuje pełny stan programu: inwestorów, pomieszczenia, projekty, szafki, materiał, wyceny, ustawienia i dane pomocnicze.'));
+      titleRow.appendChild(infoBtn);
+    }
     headerCard.appendChild(titleRow);
     return headerCard;
   }
@@ -66,7 +69,7 @@
 
   function groupAccordion(ctx, groupKey, title, backups, emptyText, policyText){
     const list = FC.dataSettingsBackupList.buildList(Object.assign({}, ctx, { backups, emptyText }));
-    const accordion = dom.makeAccordion(title, [list], { open:groupOpenState[groupKey] !== false, sub:String((backups || []).length || 0), infoMessage:policyText });
+    const accordion = dom.makeAccordion(title, [list], { open:groupOpenState[groupKey] !== false, sub:String((backups || []).length || 0), infoKey:'dataSettings.backup.' + groupKey + '.policy', infoScope:'dataSettings', infoMessage:policyText });
     accordion.setAttribute('data-backup-group', groupKey);
     accordion.addEventListener('toggle', ()=>{ groupOpenState[groupKey] = !!accordion.open; });
     return accordion;

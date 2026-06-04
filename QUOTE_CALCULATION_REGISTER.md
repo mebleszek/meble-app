@@ -1,14 +1,3 @@
-## 2026-06-04 — Centralny rejestr helperów `?` v1
-
-- Paczka: `site_central_help_registry_v1.zip`.
-- Dodano centralny moduł `js/app/shared/help-registry.js` jako jedno API do rejestrowania, odczytu i otwierania opisów pod ikoną `?`.
-- Formularz cenników, słowniki okuć i dynamiczne dane techniczne okuć czytają helpery przez centralny rejestr, zamiast pokazywać przypadkowe placeholdery.
-- Naprawiono dynamiczne pola `Dane techniczne`: każdy `?` przy polu technicznym używa teraz konkretnego klucza pola, np. `pokrycie_prowadnika`, `forma_prowadnika`, `system_kompatybilnosci`, `kat_rzeczywisty`, a nie generycznego opisu `name`/`valueFrom`.
-- Uzupełniono indywidualne instrukcje dla nowych pól zawiasów i prowadników: rola w komplecie, system kompatybilności, typ/forma/pokrycie prowadnika, kąt rzeczywisty, klasa kąta, hamulec i sprężyna.
-- Nie dodano nowych pól w innych działach. Zmiana dotyczy centralizacji i treści helperów; brakujące opisy uzupełniono w obszarze akcesoriów/materiałów/cenników.
-- Dodano test `tools/central-help-registry-smoke.js`, który pilnuje, że aktywne parametry techniczne mają indywidualne opisy i że formularz nie wraca do generycznego placeholdera.
-- Cache-busting: `20260604_central_help_registry_v1`. Raport: `tools/reports/central-help-registry-v1.md`.
-
 ## 2026-06-04 — Zawias + prowadnik jako komplet lub składane części v1
 
 - Paczka: `site_hinge_driver_components_v1.zip`.

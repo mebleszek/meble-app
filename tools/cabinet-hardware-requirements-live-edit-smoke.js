@@ -84,6 +84,7 @@ function runCatalogDrivenOptionsCheck(){
   assert(!/Blum|BLUM|GTV/.test(labels), 'lista wymagań nie może ujawniać producenta/modelu katalogowego');
   const req = api.getHingeRequirementPreset(api.HINGE_TYPES.OVERLAY_110, 'test_catalog_option');
   assert(req.requirementType === 'hingeSet', 'wymaganie zawiasowe ma być kompletem zawiasowym');
+  assert(Number(req.technicalParams && req.technicalParams.kat_rzeczywisty && req.technicalParams.kat_rzeczywisty.from) === 110, 'kanoniczne wymaganie szafki 110° nie może zostać zastąpione kątem produktu katalogowego 107°');
   assert(Array.isArray(req.coverageComponents) && req.coverageComponents.some((row)=> row.kind === 'mountingPlate'), 'komplet zawiasowy ma wymagać prowadnika jako składnika pokrycia');
 }
 
@@ -140,6 +141,13 @@ async function runPanelCheck(){
   assert(container.innerHTML.includes('Komplet zawiasowy'), 'panel ma używać pojęcia kompletu zawiasowego, nie samego zawiasu');
   assert(!/\bBLUM\b|\bBlum\b|\bGTV\b/.test(container.innerHTML), 'panel nadal nie może pokazywać producenta/modelu katalogowego');
 
+  const singleDraft = { type:'stojąca', subType:'standard', width:60, height:82, frontCount:1, frontMaterial:'laminat', details:{} };
+  const singleContainer = { innerHTML:'' };
+  api.renderPanel(singleContainer, 'kuchnia', singleDraft);
+  assert(!singleContainer.innerHTML.includes('Lewe drzwiczki') && !singleContainer.innerHTML.includes('Prawe drzwiczki'), 'szafka z jednym frontem nie może renderować układu lewe/prawe');
+  assert(singleContainer.innerHTML.includes('Drzwiczki'), 'szafka z jednym frontem ma pokazać pojedyncze drzwiczki');
+  assert(singleContainer.innerHTML.includes('110° nakładany'), 'domyślne wymaganie pojedynczego frontu ma pozostać 110°, a nie kąt katalogowego zamiennika 107°');
+
   reqApi.setHingeDoorOverride(draft, 'left', { typeId:reqApi.HINGE_TYPES.PARALLEL_INSET });
   api.renderPanel(container, 'kuchnia', draft);
   assert(container.innerHTML.includes('Lewe drzwiczki') && container.innerHTML.includes('Prawe drzwiczki'), 'po zmianie jednych drzwiczek układ lewe/prawe nie może znikać');
@@ -178,7 +186,7 @@ function runStaticCheck(){
   assert(css.includes('cabinet-hardware-req-actions') && css.includes('cabinet-hardware-req-summary'), 'brak stylów skrótu i przycisków wymagań');
   assert(css.includes('cabinet-hardware-req-pair-actions'), 'brak stylów wspólnych przycisków dla obu drzwiczek');
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  assert(html.includes('20260604_central_help_registry_v1'), 'index musi mieć aktualny cache-busting tej paczki');
+  assert(html.includes('20260604_hinge_panel_default_fix_v1'), 'index musi mieć aktualny cache-busting tej paczki');
 }
 
 (async function main(){

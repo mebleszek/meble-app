@@ -44,6 +44,10 @@
   function addInfoButton(target, title, message){
     const msg = text(message);
     if(!msg) return;
+    if(FC.helpRegistry && typeof FC.helpRegistry.createTrigger === 'function'){
+      target.appendChild(FC.helpRegistry.createTrigger({ key:'wycena.audit.' + (FC.helpRegistry.safeKey ? FC.helpRegistry.safeKey(text(title)) : text(title)), title:title || 'Algorytm liczenia', message:msg, scope:'wycena', className:'info-trigger quote-detail-info', stop:true, ariaLabel:'Pokaż algorytm: ' + text(title) }));
+      return;
+    }
     const btn = h('button', { type:'button', class:'info-trigger quote-detail-info', 'aria-label':'Pokaż algorytm: ' + text(title) });
     btn.addEventListener('click', (event)=>{
       event.preventDefault(); event.stopPropagation();

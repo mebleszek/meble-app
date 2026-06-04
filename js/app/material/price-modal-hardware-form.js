@@ -62,40 +62,24 @@
     (Array.isArray(children) ? children : (children ? [children] : [])).forEach((child)=> el.appendChild(child));
     return el;
   }
-  function resolveTechHelp(label, helpKey, opts){
-    const options = opts || {};
-    const key = String(helpKey || '').trim();
-    const api = techApi();
-    const fallbackKeys = [];
-    if(key) fallbackKeys.push('hardwareTechnical.' + key, key);
-    if(options.field && options.field.fieldType === 'numberRange') fallbackKeys.push('hardwareTechnical.valueFrom', 'valueFrom');
-    if(options.field && options.field.fieldType === 'boolean') fallbackKeys.push('hardwareTechnical.booleanValue', 'booleanValue');
-    if(options.fallbackKey) fallbackKeys.push('hardwareTechnical.' + options.fallbackKey, options.fallbackKey);
-    let cfg = null;
-    try{ if(FC.helpRegistry && typeof FC.helpRegistry.lookup === 'function') cfg = FC.helpRegistry.lookup(key ? 'hardwareTechnical.' + key : '', { fallbackKeys, title:label }); }catch(_){ }
-    if(!(cfg && cfg.message) && api.FIELD_HELP){
-      const foundKey = fallbackKeys.map((item)=> String(item || '').replace(/^hardwareTechnical\./, '')).find((item)=> api.FIELD_HELP[item]);
-      if(foundKey) cfg = { title:label || foundKey, message:api.FIELD_HELP[foundKey] };
-    }
-    return cfg;
-  }
-  function openTechHelp(label, helpKey, opts){
-    const cfg = resolveTechHelp(label, helpKey, opts);
-    if(!cfg) return false;
+  function openTechHelp(title, message){
     try{
-      if(FC.helpRegistry && typeof FC.helpRegistry.open === 'function') return FC.helpRegistry.open(cfg, { title:label || cfg.title });
-      if(FC.infoBox && typeof FC.infoBox.open === 'function') return FC.infoBox.open({ title:label || cfg.title || 'Informacja', message:cfg.message || '' });
-      if(FC.panelBox && typeof FC.panelBox.open === 'function') return FC.panelBox.open({ title:label || cfg.title || 'Informacja', message:cfg.message || '', width:'560px', boxClass:'panel-box--rozrys' });
+      if(FC.infoBox && typeof FC.infoBox.open === 'function') return FC.infoBox.open({ title:title || 'Informacja', message:message || '' });
+      if(FC.panelBox && typeof FC.panelBox.open === 'function') return FC.panelBox.open({ title:title || 'Informacja', message:message || '', width:'560px', boxClass:'panel-box--rozrys' });
     }catch(_){ }
-    return false;
   }
-  function labelWithHelp(label, helpKey, opts){
-    const cfg = resolveTechHelp(label, helpKey, opts);
+  function labelWithHelp(label, helpKey){
+    const api = techApi();
+    const msg = api.FIELD_HELP && api.FIELD_HELP[helpKey] || '';
     const row = h('div', { class:'label-help price-field-help hardware-tech-label-help' }, [h('span', { class:'label-help__text', text:label || '' })]);
-    if(cfg && cfg.message){
-      const btn = h('button', { type:'button', class:'info-trigger', 'aria-label':'Pokaż informację: ' + (label || '') });
-      btn.addEventListener('click', ()=> openTechHelp(label, helpKey, opts));
-      row.appendChild(btn);
+    if(msg){
+      const hr = FC.helpRegistry;
+      if(hr && typeof hr.createTrigger === 'function') row.appendChild(hr.createTrigger({ key:'hardwareTech.' + helpKey, title:label || '', message:msg, scope:'hardwareTech', stop:false }));
+      else {
+        const btn = h('button', { type:'button', class:'info-trigger', 'aria-label':'Pokaż informację: ' + (label || '') });
+        btn.addEventListener('click', ()=> openTechHelp(label, msg));
+        row.appendChild(btn);
+      }
     }
     return row;
   }
@@ -358,7 +342,7 @@
     fields.forEach((field)=>{
       const value = values[field.key] || {};
       const wrap = h('div', { class:'hardware-dynamic-tech-field', 'data-tech-field-wrap':'1', 'data-tech-field-key':field.key });
-      wrap.appendChild(labelWithHelp(field.label + (field.unit ? ' (' + field.unit + ')' : ''), field.key, { field, fallbackKey:field.fieldType === 'numberRange' ? 'valueFrom' : (field.fieldType === 'boolean' ? 'booleanValue' : 'name') }));
+      wrap.appendChild(labelWithHelp(field.label + (field.unit ? ' (' + field.unit + ')' : ''), field.fieldType === 'numberRange' ? 'valueFrom' : 'name'));
       if(field.fieldType === 'boolean'){
         const fieldKey = String(field && field.key || '');
         const raw = value && value.value;

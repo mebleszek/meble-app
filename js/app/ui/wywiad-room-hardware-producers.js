@@ -157,6 +157,7 @@
   }
 
   function makeInfoButton(title, message){
+    if(FC.helpRegistry && typeof FC.helpRegistry.createTrigger === 'function') return FC.helpRegistry.createTrigger({ key:'wywiad.hardware.' + (FC.helpRegistry.safeKey ? FC.helpRegistry.safeKey(title) : title), title:title, message:message || '', scope:'wywiad', className:'info-trigger wywiad-hardware-info', stop:true });
     const btn = h('button', { type:'button', class:'info-trigger wywiad-hardware-info', 'aria-label':'Pokaż informację: ' + title });
     btn.addEventListener('click', (event)=>{
       try{ event.preventDefault(); event.stopPropagation(); }catch(_){ }

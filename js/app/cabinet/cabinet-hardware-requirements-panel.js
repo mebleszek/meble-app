@@ -97,18 +97,34 @@
     return bits.join(' • ');
   }
 
+  function canonicalHingeTypeIds(){
+    const api = FC.cabinetHardwareRequirements || {};
+    const types = api.HINGE_TYPES || {};
+    return new Set(Object.keys(types).map((key)=> text(types[key])).filter(Boolean));
+  }
+
+  function canonicalRequirementForOption(typeId){
+    const id = text(typeId);
+    if(!id || !canonicalHingeTypeIds().has(id)) return null;
+    const api = FC.cabinetHardwareRequirements;
+    if(!(api && typeof api.getHingeRequirementPreset === 'function')) return null;
+    try{ return api.getHingeRequirementPreset(id, 'option_canonical_preview'); }
+    catch(_){ return null; }
+  }
+
   function addChoiceOption(map, option, sourceReq){
     const value = text(option && (option.value || option.typeId)) || text(sourceReq && sourceReq.typeId);
     if(!value || map.has(value)) return;
-    const params = (option && option.technicalParams) || (sourceReq && sourceReq.technicalParams) || {};
-    const label = text(option && option.label) || typeLabelFromParams(params, sourceReq && sourceReq.label) || value;
     const sourceOption = option && typeof option === 'object' ? option : {};
+    const canonicalReq = canonicalRequirementForOption(value);
+    const params = (canonicalReq && canonicalReq.technicalParams) || (option && option.technicalParams) || (sourceReq && sourceReq.technicalParams) || {};
+    const label = (canonicalReq && text(canonicalReq.label)) || text(option && option.label) || typeLabelFromParams(params, sourceReq && sourceReq.label) || value;
     map.set(value, Object.assign({}, sourceOption, {
       value,
       typeId:value,
       label,
       technicalParams:params,
-      description: hingeTechnicalSummary(Object.assign({}, sourceReq || {}, { technicalParams:params, label, typeId:value }))
+      description: hingeTechnicalSummary(Object.assign({}, sourceReq || canonicalReq || {}, { technicalParams:params, label, typeId:value }))
     }));
   }
 
@@ -203,17 +219,23 @@
       { key:'sprezyna', title:'Wybierz sprężynę' }
     ];
 
+    let openedChoice = false;
     for(const step of cascade){
       const values = uniqueCascadeFieldOptions(filtered, step.key);
       if(values.length <= 1){
         if(values.length === 1) filtered = filterByCascadeValue(filtered, step.key, values[0].value);
         continue;
       }
+      openedChoice = true;
       const picked = await pickCascadeField(choiceApi, Object.assign({}, step, { options:filtered, currentParams }));
       if(picked == null) return null;
       filtered = filterByCascadeValue(filtered, step.key, picked);
       if(!filtered.length) return null;
     }
+
+    // Jeżeli nie pokazaliśmy użytkownikowi żadnego modala wyboru, kliknięcie
+    // „Zmień” nie może samo ustawiać ręcznego override ani przełączać panelu.
+    if(!openedChoice) return null;
 
     const currentType = text(req && req.typeId);
     const preferred = filtered.find((opt)=> text(opt && (opt.value || opt.typeId)) === currentType || text(opt && opt.typeId) === currentType) || filtered[0];

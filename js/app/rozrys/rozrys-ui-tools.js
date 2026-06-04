@@ -32,6 +32,8 @@
   }
 
   function labelWithInfo(title, infoTitle, infoMessage){
+    const hr = FC.helpRegistry;
+    if(hr && typeof hr.labelWithInfo === 'function') return hr.labelWithInfo(title, { key:'rozrys.' + (hr.safeKey ? hr.safeKey(infoTitle || title) : String(infoTitle || title)), title:infoTitle || title, message:infoMessage || '', scope:'rozrys' });
     const row = h('div', { class:'label-help' });
     row.appendChild(h('span', { class:'label-help__text', text:title }));
     if(infoMessage){

@@ -67,63 +67,32 @@
     { category:'Ociekarki', key:'material_wykonczenie', label:'Materiał / wykończenie', fieldType:'text', unit:'', options:['inox','chrom','biały'], keyFeature:false, typePart:false, compareMode:'ignore', order:30, active:true },
   ];
 
-  const HARDWARE_TECHNICAL_HELP = {
-    name:{ title:'Nazwa parametru', message:'Widoczna nazwa pola technicznego w formularzu okucia, np. „Długość”, „Nośność” albo „System kompatybilności”. To opis dla człowieka, nie klucz Excela.' },
-    key:{ title:'Klucz Excel', message:'Stały techniczny klucz parametru używany w imporcie/eksporcie i zapisie danych. Nie zmieniaj go pochopnie po rozpoczęciu używania katalogu.' },
-    fieldType:{ title:'Typ pola', message:'Decyduje, jak użytkownik uzupełnia parametr: tekst/wybór, tak/nie albo liczba/zakres od–do.' },
-    unit:{ title:'Jednostka', message:'Jednostka wyświetlana przy wartości liczbowej, np. mm, kg albo °. Nie wpisuj jej w samej wartości.' },
-    options:{ title:'Dozwolone wartości', message:'Lista wartości dostępnych w launcherze aplikacji. Używaj jej dla pól słownikowych, żeby nie powstawały literówki i różne nazwy tego samego wariantu.' },
-    keyFeature:{ title:'Cecha kluczowa', message:'Zaznacz, jeśli parametr musi być zgodny przy automatycznym doborze lub zamienniku. Brak tej wartości blokuje użycie okucia w automatycznej wycenie.' },
-    typePart:{ title:'Buduje typ / cechę', message:'Zaznacz, jeśli parametr ma budować automatyczny opis „Typ / cecha” widoczny na liście okuć.' },
-    compareMode:{ title:'Sposób porównania', message:'Określa, jak program porównuje parametr przy doborze zamiennika: dokładnie, przez zakres, przez minimum albo tylko informacyjnie.' },
-
-    rola_kompletu:{ title:'Rola w komplecie', message:'Określa, czy pozycja jest gotowym kompletem zawiasowym, samym zawiasem czy osobnym prowadnikiem. WYCENA używa tego do wyboru jednej pozycji albo złożenia kompletu z części.' },
-    system_kompatybilnosci:{ title:'System kompatybilności', message:'Jawny system parowania elementów, np. CLIP top albo GTV clip-on. Zawias i prowadnik mogą zostać automatycznie sparowane tylko wtedy, gdy mają ten sam producent i ten sam system kompatybilności.' },
-    nalozenie:{ title:'Nałożenie zawiasu', message:'Sposób pracy zawiasu względem boku korpusu, np. nakładany, wpuszczany, równoległy wpuszczany albo lodówkowy nakładany. To cecha zawiasu używana przy wymaganiach szafki i WYCENIE.' },
-    kat_rzeczywisty:{ title:'Kąt rzeczywisty / nominalny', message:'Rzeczywisty lub nominalny kąt pracy konkretnego zawiasu, np. 107°, 110°, 155° albo 170°. Program używa go do rankingu w tej samej klasie zamienności — najpierw dokładny, potem najbliższy.' },
-    klasa_kata:{ title:'Klasa / zakres zamienności kąta', message:'Funkcyjna grupa zamienników kąta. Przykład: zawias 107° i 110° mogą należeć do klasy „standardowy 90–120°”, ale 170° narożny jest inną klasą i nie zastąpi zwykłego 110°.' },
-    kat_otwarcia:{ title:'Kąt otwarcia — legacy', message:'Stare pole zachowane tylko do odczytu starszych danych. Nowe zawiasy uzupełniaj przez „Kąt rzeczywisty / nominalny” oraz „Klasa / zakres zamienności kąta”.' },
-    hamulec:{ title:'Hamulec / domyk', message:'Określa, czy okucie ma hamulec albo cichy domyk. To pole ma trzy stany: nie ustawiono, tak, nie. Brak ustawienia nie jest tym samym co „nie”.' },
-    sprezyna:{ title:'Sprężyna', message:'Określa, czy zawias ma sprężynę. Uzupełnij jawnie „tak” albo „nie”, jeśli ta cecha wpływa na dobór zamiennika.' },
-    typ_prowadnika:{ title:'Typ prowadnika', message:'Typ prowadnika wymagany przez zawias albo oferowany przez osobny prowadnik, np. standardowy, podwyższony 3, lodówkowy albo specjalny. „Zerowy uskok” nie jest typem prowadnika — to cecha zawiasu.' },
-    forma_prowadnika:{ title:'Forma prowadnika', message:'Forma wykonania prowadnika, np. krzyżowy albo prosty. Przy składaniu kompletu z osobnego zawiasu i prowadnika WYCENA paruje tylko zgodną formę.' },
-    pokrycie_prowadnika:{ title:'Pokrycie prowadnika', message:'Mówi, czy prowadnik jest już w cenie tej pozycji. „W komplecie” — pozycja zawiera zawias z prowadnikiem. „Osobno” — pozycja jest samym zawiasem i WYCENA ma dobrać prowadnik z kategorii Prowadniki. „Bez prowadnika” — pozycja nie wymaga prowadnika.' },
-    prowadnik:{ title:'Prowadnik / montaż — legacy', message:'Stare pole zgodności. Nowe dane uzupełniaj przez osobne pola: typ prowadnika, forma prowadnika i pokrycie prowadnika.' },
-
-    profil_szuflady:{ title:'Profil / wysokość szuflady', message:'Profil albo wysokość systemu szuflady/prowadnicy, np. M, N, H, niska, średnia lub wysoka. Program używa tej cechy przy doborze zamiennika.' },
-    dlugosc_mm:{ title:'Długość', message:'Długość prowadnicy w milimetrach. Dla prowadnic zwykle musi pasować dokładnie do wymagania szafki.' },
-    nosnosc_kg:{ title:'Nośność', message:'Nośność okucia w kilogramach. Zamiennik może mieć nośność taką samą lub większą, ale nie mniejszą.' },
-    wzmocniona:{ title:'Wzmocniona', message:'Oznacza wersję wzmocnioną okucia. Jeśli jest cechą kluczową, musi być zgodna przy doborze zamiennika.' },
-    kolor_okucia:{ title:'Kolor okucia', message:'Kolor albo wykończenie okucia. Zwykle jest informacyjne, chyba że ustawisz je jako cechę kluczową w słowniku.' },
-    zastosowanie:{ title:'Zastosowanie', message:'Kontekst użycia okucia, np. frontowa, wewnętrzna, zlewowa albo piekarnikowa. Pomaga odróżnić podobne pozycje katalogowe.' },
-
-    szerokosc_modulu_mm:{ title:'Szerokość modułu', message:'Szerokość modułu lub korpusu, dla którego pasuje okucie. Uzupełniaj w milimetrach.' },
-    wysokosc_min_mm:{ title:'Wysokość od', message:'Minimalna wysokość, od której okucie może być użyte. Stosowane np. przy cargo i systemach o zakresie pracy.' },
-    glebokosc_min_mm:{ title:'Głębokość min.', message:'Minimalna głębokość korpusu wymagana przez okucie. Zamiennik musi spełnić ten warunek.' },
-    strona:{ title:'Strona', message:'Strona montażu lub pracy okucia: lewa, prawa albo uniwersalna, zależnie od kategorii.' },
-    typ_podnosnika:{ title:'Typ podnośnika', message:'Rodzaj mechanizmu podnoszenia, np. HK-S, HK-XS, HF, HS albo HL. Program używa go przy dopasowaniu podnośników.' },
-    zakres_sily:{ title:'Zakres siły', message:'Zakres siły lub mocy podnośnika. Dobór powinien mieścić wymaganie frontu w tym zakresie.' },
-    front_wysokosc_mm:{ title:'Wysokość frontu', message:'Wysokość frontu obsługiwana przez okucie. Uzupełniaj w milimetrach, jeśli producent podaje zakres pracy.' },
-    typ_narozny:{ title:'Typ narożny', message:'Rodzaj systemu narożnego, np. nerka, magic corner albo le mans.' },
-    szerokosc_korpusu_mm:{ title:'Szerokość korpusu', message:'Szerokość korpusu, do którego pasuje okucie. Uzupełniaj w milimetrach.' },
-    szerokosc_mm:{ title:'Szerokość', message:'Szerokość obsługiwana przez okucie. Dla pantografów i podobnych elementów może być zakresem.' },
-    poziomy:{ title:'Liczba poziomów', message:'Liczba poziomów, półek albo koszy w okuciu. Używane przy ociekarkach i organizerach.' },
-    material_wykonczenie:{ title:'Materiał / wykończenie', message:'Materiał albo wykończenie okucia, np. inox, chrom albo biały.' },
-
-    valueFrom:{ title:'Wartość od / dokładna', message:'Wpisz dokładną wartość albo początek zakresu. Jeśli pole „do” zostawisz puste, program traktuje tę wartość jako dokładną.' },
-    valueTo:{ title:'Wartość do', message:'Wypełnij tylko wtedy, gdy parametr naprawdę jest zakresem. Dla zawiasów zakres zamienności kąta wybieraj ze słownika klasy kąta, a nie przez przypadkowe od–do.' },
-    booleanValue:{ title:'Tak / nie / nie ustawiono', message:'Wybierz jawnie Tak albo Nie. Stan „Nie ustawiono” oznacza brak danych i przy polu wymaganym blokuje użycie okucia w automatycznej wycenie.' },
-    exact:{ title:'Dokładna wartość', message:'Wartość dokładna: pole „od” wypełnione, pole „do” puste. Przykład: prowadnica 500 mm.' },
-    range:{ title:'Zakres', message:'Zakres: wypełnione pola „od” i „do”. Przykład: szerokość 600–830 mm.' },
-    equal:{ title:'Dokładnie taka sama wartość', message:'Zamiennik musi mieć identyczną wartość tego parametru.' },
-    withinRange:{ title:'Mieści się w zakresie', message:'Zamiennik musi obejmować wymaganą wartość albo cały wymagany zakres. To tryb dla parametrów liczbowych z realnym zakresem pracy.' },
-    rangeOverlap:{ title:'Zakresy się przecinają', message:'Zakres zamiennika i zakres wymagania muszą mieć część wspólną. To luźniejsze dopasowanie niż „mieści się w zakresie”.' },
-    minGte:{ title:'Minimum takie samo lub większe', message:'Zamiennik musi mieć minimum taką samą lub większą wartość. Dobre np. dla nośności.' },
-    ignore:{ title:'Nie porównuj', message:'Parametr zapisuje się informacyjnie, ale nie blokuje zamiany producenta ani doboru zamiennika.' },
+  const FIELD_HELP = {
+    name:'To nazwa pola technicznego, które pojawi się przy okuciu danej kategorii, np. Długość, Kąt otwarcia, Nośność, Strona.',
+    key:'Stabilny klucz techniczny używany w Excelu i imporcie. Po utworzeniu nie zmieniaj go bez potrzeby, żeby stare pliki nadal pasowały.',
+    fieldType:'Typ danych: tekst/wybór, tak-nie albo liczba z obsługą wartości dokładnej i zakresu od-do.',
+    unit:'Jednostka parametru, np. mm, kg albo °. Trafia do opisów i Excela.',
+    options:'Dozwolone wartości dla pola typu tekst/wybór. Wpisz krótkie, konsekwentne opcje rozdzielone średnikiem, np. M; N; H albo lewa; prawa; uniwersalna. Jeżeli parametr ma dozwolone wartości, formularz okucia pokaże wybór z listy aplikacyjnej zamiast zwykłego wpisywania tekstu. Nie dubluj tego samego znaczenia różnymi nazwami, np. lewa, lewy, L. Wybierz jedną wersję i trzymaj się jej w całym katalogu. Starsze wartości spoza tej listy nie będą automatycznie dopasowywane — pole w formularzu będzie puste i trzeba będzie wybrać jedną z wartości słownika. Dla zawiasów „Klasa / zakres zamienności kąta” ma być wybierana ze słownika, a nie wpisywana ręcznie.',
+    keyFeature:'Zaznacz, jeśli parametr ma być ważny przy szukaniu zamiennika. Przykład: długość prowadnicy 500 mm musi pasować do 500 mm.',
+    typePart:'Zaznacz, jeśli parametr ma budować automatyczny opis Typ / cecha, np. „110° nakładany” albo „M 500 50 kg”.',
+    compareMode:'Określa, jak program będzie porównywał parametr przy zamianie producenta: dokładnie, przez zakres albo przez minimalną wartość.',
+    rola_kompletu:'Określa, czy pozycja pokrywa cały komplet zawiasowy, jest samym zawiasem albo osobnym prowadnikiem. WYCENA może dzięki temu kupić gotowy komplet albo złożyć go z zawiasu i prowadnika.',
+    system_kompatybilnosci:'Jawna nazwa systemu, po której wolno parować zawias z osobnym prowadnikiem, np. CLIP top albo GTV clip-on. Nie ma osobnego słownika zgodności — program porównuje tę samą wpisaną/wybraną wartość po obu stronach.',
+    typ_prowadnika:'Typ prowadnika wymagany przez zawias albo oferowany przez osobny prowadnik, np. standardowy, podwyższony 3, lodówkowy. Zerowy uskok nie jest cechą prowadnika — to cecha zawiasu.',
+    forma_prowadnika:'Forma prowadnika, np. krzyżowy albo prosty. Przy składaniu kompletu z osobnego zawiasu i prowadnika WYCENA paruje tylko tę samą formę.',
+    pokrycie_prowadnika:'Informacja, czy prowadnik jest w gotowym komplecie, ma być kupiony osobno albo nie jest wymagany. To nie jest typ prowadnika.',
+    valueFrom:'Wpisz dokładną wartość albo początek zakresu. Jeśli pole „do” zostawisz puste, program traktuje tę wartość jako dokładną.',
+    valueTo:'Wypełnij tylko wtedy, gdy parametr jest zakresem, np. szerokość 600–830 mm. Dla zawiasów zakres zamienności kąta nie jest już wpisywany w polu od–do; wybiera się klasę zamienności ze słownika, a kąt rzeczywisty wpisuje jako nominalną liczbę.',
+    exact:'Dokładna wartość: pole „od” wypełnione, pole „do” puste. Przykład: prowadnica 500 mm.',
+    range:'Zakres: wypełnione pola „od” i „do”. Przykład: zawias 90–110° albo pantograf 600–830 mm.',
+    equal:'Zamiennik musi mieć identyczną wartość. Dobre dla długości prowadnic albo szerokości korpusu.',
+    withinRange:'Zamiennik musi obejmować wymaganą wartość albo cały wymagany zakres. Przykład: zawias 90–120° może zastąpić wymaganie 100–110°, ale zakres 100–120° nie zastąpi 90–110°.',
+    rangeOverlap:'Zakres zamiennika i zakres wymagania muszą mieć część wspólną. To luźniejsze dopasowanie niż „mieści się w zakresie”.',
+    minGte:'Zamiennik musi mieć minimum taką samą lub większą wartość. Dobre dla nośności: 50 kg może zastąpić 30 kg, ale nie odwrotnie.',
+    ignore:'Parametr zapisuje się informacyjnie, ale nie blokuje zamiany producenta.',
   };
-  const FIELD_HELP = (FC.helpRegistry && typeof FC.helpRegistry.register === 'function')
-    ? FC.helpRegistry.register('hardwareTechnical', HARDWARE_TECHNICAL_HELP)
-    : Object.keys(HARDWARE_TECHNICAL_HELP).reduce((out, key)=>{ out[key] = HARDWARE_TECHNICAL_HELP[key].message || String(HARDWARE_TECHNICAL_HELP[key] || ''); return out; }, {});
+
+  try{ if(FC.helpRegistry && typeof FC.helpRegistry.registerMany === 'function') FC.helpRegistry.registerMany(FIELD_HELP, { prefix:'hardwareTech.' }); }catch(_){ }
 
   function clone(value){ try{ return JSON.parse(JSON.stringify(value)); }catch(_){ return value; } }
   function scalarValue(value, depth){

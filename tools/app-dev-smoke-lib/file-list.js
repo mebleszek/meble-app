@@ -1,6 +1,5 @@
 const APP_DEV_SMOKE_FILES = [
   'js/app/shared/utils.js',
-  'js/app/shared/help-registry.js',
   'js/app/shared/constants.js',
   'js/app/shared/storage.js',
   'js/app/settings/program-defaults-store.js',

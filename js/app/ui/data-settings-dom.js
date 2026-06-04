@@ -64,17 +64,23 @@
   }
 
   function makeAccordion(title, contentNodes, options){
-    const opts = Object.assign({ open:false, sub:'', infoMessage:'' }, options || {});
+    const opts = Object.assign({ open:false, sub:'', infoMessage:'', infoKey:'', infoScope:'dataSettings' }, options || {});
     const details = h('details', { class:'data-settings-accordion' + (opts.open ? ' is-open' : '') });
     if(opts.open) details.setAttribute('open', 'open');
     const titleWrap = h('span', { class:'data-settings-accordion__title-wrap' }, [h('span', { class:'data-settings-accordion__title', text:title })]);
-    if(opts.infoMessage){
-      const infoBtn = h('button', { type:'button', class:'info-trigger data-settings-info-trigger', 'aria-label':`Pokaż informację: ${title}` });
-      infoBtn.addEventListener('click', (event)=>{
-        try{ event.preventDefault(); event.stopPropagation(); }catch(_){ }
-        info(title, opts.infoMessage);
-      });
-      titleWrap.appendChild(infoBtn);
+    if(opts.infoMessage || opts.infoKey){
+      const hr = FC.helpRegistry;
+      if(hr && typeof hr.createTrigger === 'function'){
+        const infoBtn = hr.createTrigger({ key:opts.infoKey || '', title:title, message:opts.infoMessage || '', scope:opts.infoScope || 'dataSettings', className:'info-trigger data-settings-info-trigger', stop:true });
+        titleWrap.appendChild(infoBtn);
+      }else{
+        const infoBtn = h('button', { type:'button', class:'info-trigger data-settings-info-trigger', 'aria-label':`Pokaż informację: ${title}` });
+        infoBtn.addEventListener('click', (event)=>{
+          try{ event.preventDefault(); event.stopPropagation(); }catch(_){ }
+          info(title, opts.infoMessage);
+        });
+        titleWrap.appendChild(infoBtn);
+      }
     }
     const actions = h('span', { class:'data-settings-accordion__actions' });
     actions.appendChild(opts.sub ? h('span', { class:'data-settings-accordion__sub', text:opts.sub }) : h('span', { class:'data-settings-accordion__sub data-settings-accordion__sub--empty', 'aria-hidden':'true' }));
