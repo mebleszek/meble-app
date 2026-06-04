@@ -760,3 +760,10 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Stare `kat_otwarcia` pozostaje obsługiwane jako legacy przy odczycie/normalizacji, bez tworzenia nowego rozproszonego storage.
 - Dobór WYCENY dla zawiasów porównuje pełny zestaw cech technicznych, a nie tylko kąt. Dzięki temu cena/snapshot opiera się na tej samej decyzji technicznej co WYWIAD i katalog okuć.
 
+
+
+## Hinge 107 tech todo filter v1 — 2026-06-04
+
+- Dodano centralną ocenę kompletności danych technicznych pozycji katalogowych. To jest cloud-ready: status nie jest nowym trwałym polem w storage, tylko wyliczanym widokiem z definicji parametrów i `technicalParams` pozycji.
+- Pozycje niepełne nie są automatycznie używane w WYCENIE jako dobrane okucia. W przyszłej chmurze filtr `Do uzupełnienia tech.` może działać jako widok kontrolny katalogu bez dodawania osobnej flagi do dokumentów.
+- Dobór zawiasów preferuje producenta z WYWIADU, ale nadal wymaga pełnych parametrów technicznych i tej samej klasy funkcjonalnej kąta.

@@ -389,6 +389,52 @@
   function columnKeyForField(field){ return safeKey(field && field.key); }
   function rangeColumnKeys(field){ return { from:columnKeyForField(field) + '_od', to:columnKeyForField(field) + '_do' }; }
 
+  function paramHasValue(field, value){
+    const val = normalizeParamValue(field, value || {});
+    if(field.fieldType === 'boolean') return true;
+    if(field.fieldType === 'numberRange') return text(val.from) !== '' || text(val.to) !== '';
+    return text(val.value) !== '';
+  }
+  function requiredFieldsForTechnicalStatus(definitions, category){
+    const catKey = safeKey(category);
+    return fieldsForCategory(definitions, category).filter((field)=>{
+      if(!field || field.active === false) return false;
+      if(catKey === 'zawiasy' && field.key === 'kat_rzeczywisty') return true;
+      if(field.compareMode === 'ignore') return false;
+      return field.keyFeature !== false;
+    });
+  }
+  function evaluateItemTechnicalStatus(item, definitions){
+    const row = item && typeof item === 'object' ? item : {};
+    const category = text(row.hardwareCategory || row.category || row.kategoria || '');
+    const defs = definitions && Array.isArray(definitions) ? definitions : DEFAULT_DEFINITIONS;
+    const fields = requiredFieldsForTechnicalStatus(defs, category);
+    const explicit = row.technicalParams && typeof row.technicalParams === 'object' ? row.technicalParams : {};
+    const normalized = mergeLegacyValues(row, defs, category || 'Inne');
+    const missing = [];
+    let filled = 0;
+    fields.forEach((field)=>{
+      let raw = explicit[field.key] != null ? explicit[field.key] : (field.legacyField && row[field.legacyField] != null ? row[field.legacyField] : undefined);
+      if(raw == null && field.fieldType === 'boolean') raw = { value:false };
+      const has = paramHasValue(field, raw);
+      if(has) filled += 1;
+      else missing.push({ key:field.key, label:text(field.label || field.key), category, fieldType:field.fieldType || '' });
+    });
+    const required = fields.length;
+    const code = !required ? 'noDefinition' : (missing.length === required ? 'missing' : (missing.length ? 'incomplete' : 'ok'));
+    const label = code === 'ok' ? 'Dane tech. OK' : (code === 'noDefinition' ? 'Brak definicji tech.' : (code === 'missing' ? 'Brak danych tech.' : 'Niepełne dane tech.'));
+    return {
+      code,
+      label,
+      ok:code === 'ok' || code === 'noDefinition',
+      needsAttention:code === 'missing' || code === 'incomplete',
+      required,
+      filled,
+      missing,
+      category,
+    };
+  }
+
   FC.hardwareTechnicalParams = {
     DEFAULT_DEFINITIONS,
     DEFAULT_COMPARE_MODES,
@@ -412,6 +458,8 @@
     sheetNameForCategory,
     columnKeyForField,
     rangeColumnKeys,
+    requiredFieldsForTechnicalStatus,
+    evaluateItemTechnicalStatus,
     scalarText:text,
   };
 })();

@@ -51,7 +51,7 @@ function runNoHingeCheck(){
 function runStaticCheck(){
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert(html.includes('id="cmHardwareRequirements"'), 'modal szafki musi mieć host panelu wymagań technicznych');
-  assert(html.includes('cabinet-hardware-requirements-panel.js?v=20260603_hinge_angle_class_resolver_v1'), 'index musi ładować moduł panelu wymagań z aktualnym cache-bustingiem');
+  assert(html.includes('cabinet-hardware-requirements-panel.js?v=20260604_hinge_107_tech_todo_filter_v1'), 'index musi ładować moduł panelu wymagań z aktualnym cache-bustingiem');
   const modal = fs.readFileSync(path.join(root, 'js/app/cabinet/cabinet-modal.js'), 'utf8');
   assert(modal.includes('cabinetHardwareRequirementsPanel'), 'modal musi renderować panel przez moduł, nie własną logiką');
   const css = fs.readFileSync(path.join(root, 'css/cabinet-common.css'), 'utf8');

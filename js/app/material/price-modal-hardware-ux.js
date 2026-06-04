@@ -52,6 +52,15 @@
   function isBundle(item){
     return !!(item && ((Array.isArray(item.bundleItems) && item.bundleItems.length) || String(item.hardwareUnit || '') === 'zestaw'));
   }
+  function hardwareTechnicalStatus(item){
+    try{
+      const api = FC.hardwareTechnicalParams || null;
+      const store = ctx.catalogStore && ctx.catalogStore();
+      const defs = store && typeof store.getHardwareTechnicalParams === 'function' ? store.getHardwareTechnicalParams() : (api && api.DEFAULT_DEFINITIONS || []);
+      if(api && typeof api.evaluateItemTechnicalStatus === 'function') return api.evaluateItemTechnicalStatus(item || {}, defs);
+    }catch(_){ }
+    return { ok:true, needsAttention:false, code:'unknown', label:'' };
+  }
   function accessoryList(){
     try{ return ctx.catalogStore && ctx.catalogStore() && ctx.catalogStore().getAccessories ? ctx.catalogStore().getAccessories() : ctx.currentList(); }
     catch(_){ return ctx.currentList ? ctx.currentList() : []; }
@@ -118,6 +127,7 @@
       noPrice:list.filter((row)=> hardwarePriceStatus(row).code === 'noPrice').length,
       stale:list.filter((row)=> hardwarePriceStatus(row).code === 'stale').length,
       bundles:list.filter(isBundle).length,
+      techTodo:list.filter((row)=> hardwareTechnicalStatus(row).needsAttention).length,
     };
   }
   function renderHardwareQuickFilters(){
@@ -133,6 +143,7 @@
       { value:'noPrice', label:'Brak ceny', count:counts.noPrice },
       { value:'stale', label:'Stara cena', count:counts.stale },
       { value:'bundles', label:'Zestawy', count:counts.bundles },
+      { value:'techTodo', label:'Do uzupełnienia tech.', count:counts.techTodo },
     ];
     mount.innerHTML = '';
     options.forEach((opt)=>{
@@ -153,6 +164,7 @@
     if(value === 'noPrice') return status === 'noPrice';
     if(value === 'stale') return status === 'stale';
     if(value === 'bundles') return isBundle(item);
+    if(value === 'techTodo') return hardwareTechnicalStatus(item).needsAttention;
     return true;
   }
   function renderHardwareAccessoryRow(item, onEdit){
@@ -160,6 +172,8 @@
     const left = h('div', { class:'price-modal-list-main hardware-price-row__main' });
     const title = h('div', { class:'hardware-price-row__title', text:text(item && item.name) || '—' });
     const chips = h('div', { class:'hardware-price-row__chips' }, [chip(hardwarePriceStatus(item).label, hardwarePriceStatus(item).tone)]);
+    const techStatus = hardwareTechnicalStatus(item);
+    if(techStatus && techStatus.needsAttention) chips.appendChild(chip('Do uzupełnienia tech.', 'danger'));
     if(isStarterPrice(item)) chips.appendChild(chip('Cena startowa', 'warning'));
     if(isBundle(item)) chips.appendChild(chip((Array.isArray(item && item.bundleItems) && item.bundleItems.length ? 'Zestaw: ' + item.bundleItems.length + ' składn.' : 'Zestaw'), 'neutral'));
     const hw = FC.hardwareCatalog || {};
@@ -187,5 +201,6 @@
     renderHardwareQuickFilters,
     matchesHardwareQuickFilter,
     renderHardwareAccessoryRow,
+    hardwareTechnicalStatus,
   });
 })();

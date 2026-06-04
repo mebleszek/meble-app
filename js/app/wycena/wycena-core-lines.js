@@ -266,6 +266,19 @@
     return { allowed:true, score:angleScore, exact };
   }
 
+  function technicalStatusForCandidate(item){
+    try{
+      const api = FC.hardwareTechnicalParams || null;
+      if(api && typeof api.evaluateItemTechnicalStatus === 'function') return api.evaluateItemTechnicalStatus(item || {}, getHardwareTechnicalDefinitions());
+    }catch(_){ }
+    return { ok:true, needsAttention:false, missing:[], code:'unknown' };
+  }
+  function isTechnicallyUsableCandidate(item, req){
+    if(!(req && req.technicalParams && typeof req.technicalParams === 'object')) return true;
+    const status = technicalStatusForCandidate(item);
+    return !(status && status.needsAttention);
+  }
+
   function compareRequirementParams(candidate, req){
     const tech = FC.hardwareTechnicalParams || null;
     const definitions = getHardwareTechnicalDefinitions();
@@ -305,25 +318,35 @@
       return true;
     });
     const directCandidates = findRequirementSourceCandidates(r, allRows, preferredProducer);
-    if(directCandidates && directCandidates.length){
-      return { item:directCandidates[0], preferredProducer, requirement:r, score:1000, directSourceId:true };
+    function pickBestCandidate(rows, opts){
+      const cfg = Object.assign({ direct:false }, opts || {});
+      let best = null;
+      (Array.isArray(rows) ? rows : []).forEach((item)=>{
+        if(!isTechnicallyUsableCandidate(item, r)) return;
+        const compat = hingeCandidateCompatibility(item, r);
+        if(!compat.allowed) return;
+        const param = compareRequirementParams(item, r);
+        if(r && r.kind === 'hinge' && text(r.hardwareGroup) === 'hinges' && param.required > 0 && param.matched < param.required) return;
+        const fallback = candidateNameFallbackScore(item, r);
+        const priceBonus = Number(item && item.price) > 0 ? 2 : 0;
+        const producerBonus = preferredProducer && norm(item.manufacturer) === norm(preferredProducer) ? 55 : 0;
+        const directBonus = cfg.direct ? 8 : 0;
+        const score = compat.score + param.score + fallback + priceBonus + producerBonus + directBonus;
+        const record = { item, score, param, fallback, compat };
+        if(!best || record.score > best.score) best = record;
+      });
+      return best;
     }
-    const rows = allRows.filter((item)=> {
-      if(preferredProducer && norm(item.manufacturer) !== norm(preferredProducer)) return false;
-      return true;
-    });
-    let best = null;
-    rows.forEach((item)=>{
-      const compat = hingeCandidateCompatibility(item, r);
-      if(!compat.allowed) return;
-      const param = compareRequirementParams(item, r);
-      if(r && r.kind === 'hinge' && text(r.hardwareGroup) === 'hinges' && param.required > 0 && param.matched < param.required) return;
-      const fallback = candidateNameFallbackScore(item, r);
-      const priceBonus = Number(item && item.price) > 0 ? 2 : 0;
-      const score = compat.score + param.score + fallback + priceBonus;
-      const record = { item, score, param, fallback, compat };
-      if(!best || record.score > best.score) best = record;
-    });
+    const preferredRows = preferredProducer ? allRows.filter((item)=> norm(item.manufacturer) === norm(preferredProducer)) : [];
+    const preferredBest = pickBestCandidate(preferredRows, { direct:false });
+    if(preferredBest && (preferredBest.param.matched > 0 || preferredBest.fallback >= 4 || preferredBest.score > 0)){
+      return { item:preferredBest.item, preferredProducer, requirement:r, score:preferredBest.score, preferredProducerMatch:true };
+    }
+    if(directCandidates && directCandidates.length){
+      const directBest = pickBestCandidate(directCandidates, { direct:true });
+      if(directBest) return { item:directBest.item, preferredProducer, requirement:r, score:directBest.score, directSourceId:true };
+    }
+    const best = pickBestCandidate(allRows, { direct:false });
     if(best && (best.param.matched > 0 || best.fallback >= 4 || best.score > 0)){
       return { item:best.item, preferredProducer, requirement:r, score:best.score };
     }

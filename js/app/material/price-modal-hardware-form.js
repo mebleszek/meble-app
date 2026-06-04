@@ -156,6 +156,7 @@
     if(cfg.updateLegacy !== false) syncLegacyHiddenFromParams(params);
     const generated = api && typeof api.buildTypeLabel === 'function' ? api.buildTypeLabel(getTechnicalDefinitions(), category, params) : '';
     if(generated && cfg.updateSelect !== false) setHardwareTypeValue(generated, { remount:!!cfg.remountChoice });
+    try{ refreshTechnicalStatusNotice(cfg.root || ctx.byId('hardwareDynamicTechnicalFields') || null); }catch(_){ }
     if(cfg.updateAction){ try{ ctx.updateItemActionState && ctx.updateItemActionState(); }catch(_){ } }
     return generated;
   }
@@ -259,6 +260,28 @@
     mountTechChoiceLauncher(select, mountId, field, wrap);
     return select;
   }
+  function buildTechnicalStatusNotice(category, params){
+    const api = techApi();
+    if(!(api && typeof api.evaluateItemTechnicalStatus === 'function')) return null;
+    const status = api.evaluateItemTechnicalStatus({ hardwareCategory:category, technicalParams:params || {} }, getTechnicalDefinitions());
+    if(!(status && status.needsAttention)) return null;
+    const missing = Array.isArray(status.missing) ? status.missing.map((row)=> String(row && row.label || row && row.key || '').trim()).filter(Boolean) : [];
+    const box = h('div', { class:'hardware-tech-status-alert', 'data-tech-status-notice':'1' });
+    box.appendChild(h('div', { class:'hardware-tech-status-alert__title', text:'Do uzupełnienia tech.' }));
+    box.appendChild(h('div', { class:'hardware-tech-status-alert__text', text:missing.length ? ('Brakuje danych technicznych do automatycznej wyceny: ' + missing.join(', ') + '.') : 'Brakuje danych technicznych do automatycznej wyceny.' }));
+    return box;
+  }
+  function refreshTechnicalStatusNotice(rootNode){
+    const root = rootNode || ctx.byId('hardwareDynamicTechnicalFields');
+    if(!root) return;
+    const old = root.querySelector('[data-tech-status-notice]');
+    if(old) old.remove();
+    const category = readString('hardwareCategory') || 'Inne';
+    const params = readDynamicTechnicalParams(root);
+    const notice = buildTechnicalStatusNotice(category, params);
+    if(notice) root.insertBefore(notice, root.firstChild || null);
+  }
+
   function renderDynamicTechnicalFields(data){
     const host = ctx.byId('hardwareDynamicTechnicalFields');
     if(!host) return;
@@ -308,6 +331,8 @@
       if(preview) wrap.appendChild(h('div', { class:'muted xs hardware-tech-preview', text:'Wartość: ' + preview }));
       grid.appendChild(wrap);
     });
+    const initialNotice = buildTechnicalStatusNotice(category, values);
+    if(initialNotice) host.appendChild(initialNotice);
     host.appendChild(grid);
     syncHardwareTypeFromTechnicalParams({ root:host, updateAction:false, remountChoice:false });
   }
@@ -558,5 +583,5 @@
     }
   }
 
-  ctx.priceModalHardwareForm = { FIELD_IDS, defaultAccessoryDraft, getCurrentAccessoryDraft, applyAccessoryFormState, syncHardwarePricing, handleHardwareFieldInput, applySupplierDefaults, _debug:{ readDynamicTechnicalParams, renderDynamicTechnicalFields, syncHardwareTypeFromTechnicalParams } };
+  ctx.priceModalHardwareForm = { FIELD_IDS, defaultAccessoryDraft, getCurrentAccessoryDraft, applyAccessoryFormState, syncHardwarePricing, handleHardwareFieldInput, applySupplierDefaults, _debug:{ readDynamicTechnicalParams, renderDynamicTechnicalFields, syncHardwareTypeFromTechnicalParams, refreshTechnicalStatusNotice } };
 })();

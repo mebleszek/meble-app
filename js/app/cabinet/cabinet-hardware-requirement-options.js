@@ -192,10 +192,16 @@
       if(!item || !isActiveCatalogItem(item)) return;
       if(!isHingeCategory(item.hardwareCategory || item.category)) return;
       const params = normalizeHingeParams(item.technicalParams || {});
-      if(!text(paramScalar(params, 'nalozenie')) && !number(paramRangeFrom(params, 'kat_otwarcia'))) return;
+      if(!text(paramScalar(params, 'nalozenie')) && !number(paramRangeFrom(params, 'kat_rzeczywisty')) && !number(paramRangeFrom(params, 'kat_otwarcia'))) return;
+      try{
+        const status = FC.hardwareTechnicalParams && typeof FC.hardwareTechnicalParams.evaluateItemTechnicalStatus === 'function'
+          ? FC.hardwareTechnicalParams.evaluateItemTechnicalStatus(Object.assign({}, item, { technicalParams:params }), getHardwareTechnicalDefinitions())
+          : null;
+        if(status && status.needsAttention) return;
+      }catch(_){ }
       const signature = hingeParamSignature(params);
       const typeId = catalogOptionTypeId(params);
-      const key = typeId + '|' + signature;
+      const key = knownHingeTypeIdFromParams(params) ? (typeId + '|canonical') : (typeId + '|' + signature);
       const existing = map.get(key);
       if(existing){
         existing.sourceCount += 1;

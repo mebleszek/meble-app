@@ -177,6 +177,86 @@ assert(!String(legacyLines[0].name || '').includes('170°'), 'nazwa pozycji dla 
   assert(!String(gtvLines[0].name || '').includes('170°'), 'zamiennik z klasy 90–120° nie może przeskoczyć na 170° narożny');
 }
 
+// Zamiennik z centralnego wymagania: sourceItemIds z opcji katalogowej nie mogą blokować
+// GTV 107° w tej samej klasie, gdy wymaganie domyślne 110° ma preferencję producenta GTV.
+{
+  const ctxGtvCentral = loadContext();
+  const FCGtvCentral = ctxGtvCentral.window.FC;
+  const store = typeof FCGtvCentral.catalogStore === 'function' ? FCGtvCentral.catalogStore() : FCGtvCentral.catalogStore;
+  const baseAccessories = store.getAccessories()
+    .filter((row)=> !(String(row && row.manufacturer || '').toLowerCase() === 'gtv' && String(row && row.hardwareCategory || '').toLowerCase().includes('zawias')));
+  baseAccessories.push({
+    id:'hw_test_gtv_107_standard_source_ids',
+    manufacturer:'GTV',
+    symbol:'GTV107_SOURCE_IDS',
+    name:'Zawias GTV 107° standard 90–120 z hamulcem + prowadnik',
+    hardwareCategory:'Zawiasy',
+    hardwareUnit:'kpl.',
+    price:7.77,
+    catalogPriceGross:7.77,
+    purchasePriceGross:7.77,
+    priceSource:'test',
+    status:'active',
+    technicalParams:{
+      nalozenie:{ value:'nakładany' },
+      kat_rzeczywisty:{ from:107, to:'' },
+      klasa_kata:{ value:'standardowy 90–120°' },
+      hamulec:{ value:true },
+      sprezyna:{ value:false },
+      prowadnik:{ value:'standardowy' }
+    }
+  });
+  store.savePriceList('accessories', baseAccessories);
+  FCGtvCentral.roomPreferences.resolveHardwareProducerPreference = function(_room, group, fallback){
+    return group === 'hinges' ? 'GTV' : (fallback || '');
+  };
+  FCGtvCentral.wycenaCoreSource.selectedCabinets = function(){
+    return [{ roomId:'kuchnia', roomLabel:'S', cabinet:cab }];
+  };
+  const centralLines = FCGtvCentral.wycenaCoreLines.collectAccessories(['kuchnia']);
+  assert(centralLines.length === 1, 'centralne domyślne wymaganie 110° powinno dać jedną linię dla dwóch frontów');
+  assert(centralLines[0].resolvedHardwareSymbol === 'GTV107_SOURCE_IDS', 'sourceItemIds / bezpośrednie źródła opcji nie mogą zablokować preferowanego GTV 107° w klasie 90–120°');
+}
+
+// Okucie z brakującymi parametrami nie może być użyte automatycznie.
+{
+  const ctxIncomplete = loadContext();
+  const FCIncomplete = ctxIncomplete.window.FC;
+  const store = typeof FCIncomplete.catalogStore === 'function' ? FCIncomplete.catalogStore() : FCIncomplete.catalogStore;
+  const baseAccessories = store.getAccessories()
+    .filter((row)=> !(String(row && row.manufacturer || '').toLowerCase() === 'gtv' && String(row && row.hardwareCategory || '').toLowerCase().includes('zawias')));
+  baseAccessories.push({
+    id:'hw_test_gtv_incomplete_tech',
+    manufacturer:'GTV',
+    symbol:'GTV_INCOMPLETE',
+    name:'Zawias GTV bez kompletu danych technicznych',
+    hardwareCategory:'Zawiasy',
+    hardwareUnit:'kpl.',
+    price:1.11,
+    catalogPriceGross:1.11,
+    purchasePriceGross:1.11,
+    priceSource:'test',
+    status:'active',
+    technicalParams:{
+      nalozenie:{ value:'nakładany' },
+      kat_rzeczywisty:{ from:107, to:'' },
+      hamulec:{ value:true }
+    }
+  });
+  store.savePriceList('accessories', baseAccessories);
+  FCIncomplete.roomPreferences.resolveHardwareProducerPreference = function(_room, group, fallback){
+    return group === 'hinges' ? 'GTV' : (fallback || '');
+  };
+  FCIncomplete.wycenaCoreSource.selectedCabinets = function(){
+    return [{ roomId:'kuchnia', roomLabel:'S', cabinet:cab }];
+  };
+  const status = FCIncomplete.hardwareTechnicalParams.evaluateItemTechnicalStatus(baseAccessories.find((row)=> row.id === 'hw_test_gtv_incomplete_tech'), store.getHardwareTechnicalParams());
+  assert(status && status.needsAttention, 'niepełny zawias musi dostać status do uzupełnienia technicznego');
+  const lines = FCIncomplete.wycenaCoreLines.collectAccessories(['kuchnia']);
+  assert(lines.length === 1, 'niepełny GTV nie powinien rozbić linii ani wejść jako dobrany produkt');
+  assert(lines[0].resolvedHardwareSymbol !== 'GTV_INCOMPLETE', 'WYCENA nie może automatycznie użyć zawiasu z brakującymi parametrami technicznymi');
+}
+
 // Przywróć centralny helper po teście legacy.
 FC.cabinetHardwareRequirements.getHingeRequirementsWithQty = originalGetHingeRequirementsWithQty;
 

@@ -198,7 +198,7 @@
       H.makeTest('Akcesoria — zamienniki techniczne', 'Silnik zamienników jest tylko warstwą podglądu bez zapisu do storage', 'Chroni etap 2: testujemy dopasowanie okuć bez przycisków UI i bez modyfikowania katalogu/projektu.', ()=> withSnapshot(()=>{
         const engine = requireReplacement();
         const before = JSON.stringify(snapshot());
-        const result = engine.compareItems({ id:'src_preview', name:'Źródło', manufacturer:'Blum', hardwareCategory:'Zawiasy', technicalParams:{ nalozenie:{ value:'nakładany' }, kat_otwarcia:{ from:110 }, hamulec:{ value:true } } }, { id:'cand_preview', name:'Kandydat', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ nalozenie:{ value:'nakładany' }, kat_otwarcia:{ from:90, to:120 }, hamulec:{ value:true } } });
+        const result = engine.compareItems({ id:'src_preview', name:'Źródło', manufacturer:'Blum', hardwareCategory:'Zawiasy', technicalParams:{ nalozenie:{ value:'nakładany' }, kat_rzeczywisty:{ from:110 }, klasa_kata:{ value:'standardowy 90–120°' }, prowadnik:{ value:'standardowy' }, hamulec:{ value:true }, sprezyna:{ value:false } } }, { id:'cand_preview', name:'Kandydat', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ nalozenie:{ value:'nakładany' }, kat_rzeczywisty:{ from:107 }, klasa_kata:{ value:'standardowy 90–120°' }, prowadnik:{ value:'standardowy' }, hamulec:{ value:true }, sprezyna:{ value:false } } });
         const after = JSON.stringify(snapshot());
         H.assert(result && result.compatible === true, 'Poprawny kandydat nie przeszedł podglądu', result);
         H.assert(before === after, 'Silnik zamienników zmienił storage podczas podglądu', { before, after });
@@ -209,9 +209,9 @@
           { category:'Szuflady / prowadnice', key:'dlugosc_mm', label:'Długość', fieldType:'numberRange', unit:'mm', compareMode:'equal', keyFeature:true, typePart:true, active:true },
           { category:'Szuflady / prowadnice', key:'nosnosc_kg', label:'Nośność', fieldType:'numberRange', unit:'kg', compareMode:'minGte', keyFeature:true, typePart:true, active:true },
         ];
-        const source = { id:'drawer_src_350', name:'Blum 350 30kg', manufacturer:'Blum', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ dlugosc_mm:{ from:350 }, nosnosc_kg:{ from:30 } } };
-        const good = { id:'drawer_gtv_350', name:'GTV 350 40kg', manufacturer:'GTV', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ dlugosc_mm:{ from:350 }, nosnosc_kg:{ from:40 } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:80, useForQuote:true }] };
-        const bad = { id:'drawer_gtv_400', name:'GTV 400 40kg', manufacturer:'GTV', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ dlugosc_mm:{ from:400 }, nosnosc_kg:{ from:40 } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:80, useForQuote:true }] };
+        const source = { id:'drawer_src_350', name:'Blum 350 30kg', manufacturer:'Blum', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ profil_szuflady:{ value:'M' }, dlugosc_mm:{ from:350 }, nosnosc_kg:{ from:30 }, wzmocniona:{ value:false }, zastosowanie:{ value:'frontowa' } } };
+        const good = { id:'drawer_gtv_350', name:'GTV 350 40kg', manufacturer:'GTV', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ profil_szuflady:{ value:'M' }, dlugosc_mm:{ from:350 }, nosnosc_kg:{ from:40 }, wzmocniona:{ value:false }, zastosowanie:{ value:'frontowa' } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:80, useForQuote:true }] };
+        const bad = { id:'drawer_gtv_400', name:'GTV 400 40kg', manufacturer:'GTV', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ profil_szuflady:{ value:'M' }, dlugosc_mm:{ from:400 }, nosnosc_kg:{ from:40 }, wzmocniona:{ value:false }, zastosowanie:{ value:'frontowa' } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:80, useForQuote:true }] };
         const goodResult = engine.compareItems(source, good, { definitions, targetManufacturer:'GTV' });
         const badResult = engine.compareItems(source, bad, { definitions, targetManufacturer:'GTV' });
         H.assert(goodResult.compatible === true, 'Prowadnica 350/40 nie zastąpiła 350/30', goodResult);
@@ -221,9 +221,9 @@
       H.makeTest('Akcesoria — zamienniki techniczne', 'Nośność działa jako minimum takie samo lub większe', 'Chroni prowadnice, cargo i pantografy: mocniejsze okucie może zastąpić słabsze, ale nie odwrotnie.', ()=>{
         const engine = requireReplacement();
         const definitions = [{ category:'Szuflady / prowadnice', key:'nosnosc_kg', label:'Nośność', fieldType:'numberRange', unit:'kg', compareMode:'minGte', keyFeature:true, active:true }];
-        const source = { id:'load_src', name:'Źródło 40kg', manufacturer:'Blum', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ nosnosc_kg:{ from:40 } } };
-        const stronger = { id:'load_50', name:'Kandydat 50kg', manufacturer:'GTV', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ nosnosc_kg:{ from:50 } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:90, useForQuote:true }] };
-        const weaker = { id:'load_30', name:'Kandydat 30kg', manufacturer:'GTV', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ nosnosc_kg:{ from:30 } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:70, useForQuote:true }] };
+        const source = { id:'load_src', name:'Źródło 40kg', manufacturer:'Blum', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ profil_szuflady:{ value:'M' }, dlugosc_mm:{ from:350 }, nosnosc_kg:{ from:40 }, wzmocniona:{ value:false }, zastosowanie:{ value:'frontowa' } } };
+        const stronger = { id:'load_50', name:'Kandydat 50kg', manufacturer:'GTV', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ profil_szuflady:{ value:'M' }, dlugosc_mm:{ from:350 }, nosnosc_kg:{ from:50 }, wzmocniona:{ value:false }, zastosowanie:{ value:'frontowa' } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:90, useForQuote:true }] };
+        const weaker = { id:'load_30', name:'Kandydat 30kg', manufacturer:'GTV', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ profil_szuflady:{ value:'M' }, dlugosc_mm:{ from:350 }, nosnosc_kg:{ from:30 }, wzmocniona:{ value:false }, zastosowanie:{ value:'frontowa' } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:70, useForQuote:true }] };
         H.assert(engine.compareItems(source, stronger, { definitions }).compatible === true, '50 kg nie zastąpiło 40 kg');
         H.assert(engine.compareItems(source, weaker, { definitions }).compatible === false, '30 kg błędnie zastąpiło 40 kg');
       }),
@@ -247,9 +247,9 @@
       H.makeTest('Akcesoria — zamienniki techniczne', 'Wskazany producent ogranicza listę kandydatów', 'Chroni scenariusz Blum → GTV: kandydat z innego producenta nie przechodzi, nawet jeśli technicznie pasuje.', ()=>{
         const engine = requireReplacement();
         const definitions = [{ category:'Zawiasy', key:'hamulec', label:'Hamulec', fieldType:'boolean', compareMode:'equal', keyFeature:true, active:true }];
-        const source = { id:'hinge_blum_src', name:'Blum hamulec', manufacturer:'Blum', hardwareCategory:'Zawiasy', technicalParams:{ hamulec:{ value:true } } };
-        const gtv = { id:'hinge_gtv_ok', name:'GTV hamulec', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ hamulec:{ value:true } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:15, useForQuote:true }] };
-        const rejs = { id:'hinge_rejs_ok', name:'Rejs hamulec', manufacturer:'Rejs', hardwareCategory:'Zawiasy', technicalParams:{ hamulec:{ value:true } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:14, useForQuote:true }] };
+        const source = { id:'hinge_blum_src', name:'Blum hamulec', manufacturer:'Blum', hardwareCategory:'Zawiasy', technicalParams:{ nalozenie:{ value:'nakładany' }, kat_rzeczywisty:{ from:110 }, klasa_kata:{ value:'standardowy 90–120°' }, prowadnik:{ value:'standardowy' }, hamulec:{ value:true }, sprezyna:{ value:false } } };
+        const gtv = { id:'hinge_gtv_ok', name:'GTV hamulec', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ nalozenie:{ value:'nakładany' }, kat_rzeczywisty:{ from:110 }, klasa_kata:{ value:'standardowy 90–120°' }, prowadnik:{ value:'standardowy' }, hamulec:{ value:true }, sprezyna:{ value:false } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:15, useForQuote:true }] };
+        const rejs = { id:'hinge_rejs_ok', name:'Rejs hamulec', manufacturer:'Rejs', hardwareCategory:'Zawiasy', technicalParams:{ nalozenie:{ value:'nakładany' }, kat_rzeczywisty:{ from:110 }, klasa_kata:{ value:'standardowy 90–120°' }, prowadnik:{ value:'standardowy' }, hamulec:{ value:true }, sprezyna:{ value:false } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:14, useForQuote:true }] };
         const results = engine.findCandidates(source, [rejs, gtv], { definitions, targetManufacturer:'GTV' });
         H.assert(results[0].candidateId === 'hinge_gtv_ok' && results[0].compatible === true, 'GTV nie jest pierwszym poprawnym kandydatem', results);
         H.assert(results.find((row)=> row.candidateId === 'hinge_rejs_ok').compatible === false, 'Rejs przeszedł mimo targetManufacturer=GTV', results);
@@ -257,9 +257,9 @@
       H.makeTest('Akcesoria — zamienniki techniczne', 'Brak ceny dostawcy jest ostrzeżeniem albo blokadą zależnie od opcji', 'Chroni przyszły podgląd: technicznie pasujące okucie bez ceny jest widoczne, ale może zostać zablokowane przy wymaganiu ceny.', ()=>{
         const engine = requireReplacement();
         const definitions = [{ category:'Zawiasy', key:'hamulec', label:'Hamulec', fieldType:'boolean', compareMode:'equal', keyFeature:true, active:true }];
-        const source = { id:'price_src', name:'Źródło', manufacturer:'Blum', hardwareCategory:'Zawiasy', technicalParams:{ hamulec:{ value:true } } };
-        const noPrice = { id:'price_no', name:'Bez ceny', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ hamulec:{ value:true } } };
-        const withPrice = { id:'price_yes', name:'Z ceną', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ hamulec:{ value:true } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:10, useForQuote:true }] };
+        const source = { id:'price_src', name:'Źródło', manufacturer:'Blum', hardwareCategory:'Zawiasy', technicalParams:{ nalozenie:{ value:'nakładany' }, kat_rzeczywisty:{ from:110 }, klasa_kata:{ value:'standardowy 90–120°' }, prowadnik:{ value:'standardowy' }, hamulec:{ value:true }, sprezyna:{ value:false } } };
+        const noPrice = { id:'price_no', name:'Bez ceny', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ nalozenie:{ value:'nakładany' }, kat_rzeczywisty:{ from:110 }, klasa_kata:{ value:'standardowy 90–120°' }, prowadnik:{ value:'standardowy' }, hamulec:{ value:true }, sprezyna:{ value:false } } };
+        const withPrice = { id:'price_yes', name:'Z ceną', manufacturer:'GTV', hardwareCategory:'Zawiasy', technicalParams:{ nalozenie:{ value:'nakładany' }, kat_rzeczywisty:{ from:110 }, klasa_kata:{ value:'standardowy 90–120°' }, prowadnik:{ value:'standardowy' }, hamulec:{ value:true }, sprezyna:{ value:false } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:10, useForQuote:true }] };
         const soft = engine.compareItems(source, noPrice, { definitions });
         const strict = engine.compareItems(source, noPrice, { definitions, requireQuotePrice:true });
         const sorted = engine.findCandidates(source, [noPrice, withPrice], { definitions });
@@ -598,12 +598,12 @@
       H.makeTest('Akcesoria — UI kontrakty', 'Podgląd zamienników używa silnika bez zapisu zmian', 'Chroni przycisk Zamienniki pod Wyjdź: lista jest tylko podglądem i filtruje kandydatów technicznie.', ()=>{
         const api = FC.priceModalHardwareReplacements;
         H.assert(api && typeof api.previewRows === 'function', 'Brak modułu podglądu zamienników');
-        const defs = [{ category:'Szuflady / prowadnice', key:'dlugosc', label:'Długość', fieldType:'numberRange', compareMode:'equal', keyFeature:true, active:true }];
-        const source = { id:'src', manufacturer:'Blum', name:'Prowadnica Blum 350', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ dlugosc:{ from:350, to:'' } } };
+        const defs = [{ category:'Testowe prowadnice', key:'dlugosc', label:'Długość', fieldType:'numberRange', compareMode:'equal', keyFeature:true, active:true }];
+        const source = { id:'src', manufacturer:'Blum', name:'Prowadnica Blum 350', hardwareCategory:'Testowe prowadnice', technicalParams:{ dlugosc:{ from:350, to:'' } } };
         const rows = api.previewRows(source, [
-          { id:'ok', manufacturer:'GTV', name:'Prowadnica GTV 350', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ dlugosc:{ from:350, to:'' } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:50, useForQuote:true }] },
-          { id:'bad', manufacturer:'Rejs', name:'Prowadnica Rejs 400', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ dlugosc:{ from:400, to:'' } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:45, useForQuote:true }] },
-          { id:'same', manufacturer:'Blum', name:'Blum 350 kopia', hardwareCategory:'Szuflady / prowadnice', technicalParams:{ dlugosc:{ from:350, to:'' } } },
+          { id:'ok', manufacturer:'GTV', name:'Prowadnica GTV 350', hardwareCategory:'Testowe prowadnice', technicalParams:{ dlugosc:{ from:350, to:'' } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:50, useForQuote:true }] },
+          { id:'bad', manufacturer:'Rejs', name:'Prowadnica Rejs 400', hardwareCategory:'Testowe prowadnice', technicalParams:{ dlugosc:{ from:400, to:'' } }, supplierPrices:[{ supplierId:'mago', catalogPriceGross:45, useForQuote:true }] },
+          { id:'same', manufacturer:'Blum', name:'Blum 350 kopia', hardwareCategory:'Testowe prowadnice', technicalParams:{ dlugosc:{ from:350, to:'' } } },
         ], { definitions:defs, hardwareTechnicalParams:defs, suppliers:suppliers(), defaultVatRate:23 });
         const byId = new Map(rows.map((row)=> [text(row && row.candidateId), row]));
         H.assert(byId.has('ok') && byId.get('ok').compatible, 'Kandydat 350 mm nie przeszedł jako zamiennik', rows);

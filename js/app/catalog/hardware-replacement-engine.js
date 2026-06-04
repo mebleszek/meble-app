@@ -122,6 +122,15 @@
     if(text(source.hardwareCategory) !== text(candidate.hardwareCategory)){
       reasons.push(reason('fail', 'category_mismatch', 'Inna kategoria okucia.', { source:text(source.hardwareCategory), candidate:text(candidate.hardwareCategory) }));
     }
+    try{
+      const tech = techApi();
+      if(tech && typeof tech.evaluateItemTechnicalStatus === 'function'){
+        const sourceStatus = tech.evaluateItemTechnicalStatus(source, definitions);
+        const candidateStatus = tech.evaluateItemTechnicalStatus(candidate, definitions);
+        if(sourceStatus && sourceStatus.needsAttention) reasons.push(reason('fail', 'source_technical_incomplete', 'Źródłowe okucie ma brakujące dane techniczne.', { missing:sourceStatus.missing || [] }));
+        if(candidateStatus && candidateStatus.needsAttention) reasons.push(reason('fail', 'candidate_technical_incomplete', 'Kandydat ma brakujące dane techniczne.', { missing:candidateStatus.missing || [] }));
+      }
+    }catch(_){ }
     if(text(cfg.targetManufacturer) && !sameText(candidate.manufacturer, cfg.targetManufacturer)){
       reasons.push(reason('fail', 'target_manufacturer_mismatch', 'Kandydat nie jest od wskazanego producenta.', { expected:text(cfg.targetManufacturer), candidate:text(candidate.manufacturer) }));
     }

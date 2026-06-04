@@ -1,3 +1,14 @@
+## 2026-06-04 — Zawias 107° jako zamiennik 110° + filtr danych technicznych v1
+
+- Paczka: `site_hinge_107_tech_todo_filter_v1.zip`.
+- Naprawiono dobór zawiasów w WYCENIE: `catalogOptionSourceItemIds` i bezpośrednie źródła opcji nie mogą blokować preferowanego producenta. Jeżeli preferencja w WYWIADZIE wskazuje np. GTV, a GTV ma zawias 107° z klasą `standardowy 90–120°` i tymi samymi cechami (`nakładany`, `prowadnik`, `hamulec`, `sprężyna`), WYCENA może dobrać GTV zamiast Bluma 110°.
+- Opcje katalogowe zawiasów kanonicznych są grupowane po funkcji/klasie, a nie po samym kącie rzeczywistym. Kąt rzeczywisty jest rankingiem w obrębie tej samej klasy, nie blokadą zamiennika.
+- Dodano centralny status kompletności danych technicznych `evaluateItemTechnicalStatus`. Pozycja z brakującymi wymaganymi parametrami technicznymi jest oznaczana jako `Do uzupełnienia tech.` i nie bierze udziału w automatycznym doborze WYCENY ani w podglądzie zamienników jako poprawny kandydat.
+- W katalogu `Okucia i akcesoria` dodano jeden szybki filtr `Do uzupełnienia tech.` obejmujący zarówno brak danych, jak i dane niepełne.
+- Na karcie okucia dodano czerwony chip `Do uzupełnienia tech.` dla pozycji problemowych. W modalu edycji, w sekcji `Dane techniczne`, program pokazuje listę brakujących parametrów do automatycznej wyceny.
+- Dodano test `tools/hardware-technical-completeness-smoke.js` oraz rozbudowano test WYCENY, żeby pilnować przypadku GTV 107° vs Blum 110° i blokowania pozycji z niepełnymi danymi.
+- Cache-busting: `20260604_hinge_107_tech_todo_filter_v1`. Raport: `tools/reports/hinge-107-tech-todo-filter-v1.md`.
+
 ## 2026-06-03 — Zawiasy: kąt rzeczywisty i klasa zamienności kąta v1
 
 - Paczka: `site_hinge_angle_class_resolver_v1.zip`.
