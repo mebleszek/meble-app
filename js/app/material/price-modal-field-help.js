@@ -72,14 +72,30 @@
     laborInternalOnly:{ title:'Szczegóły tylko wewnętrzne', message:'Pozycja i jej szczegóły są przeznaczone do wewnętrznego liczenia. Ma pomagać Tobie, a nie być pokazywana klientowi jako jawny składnik.' },
   };
 
+  const REGISTERED_FIELD_HELP = (FC.helpRegistry && typeof FC.helpRegistry.register === 'function')
+    ? FC.helpRegistry.register('priceField', FIELD_HELP)
+    : null;
+
+  function resolveFieldHelp(fieldId){
+    try{
+      if(FC.helpRegistry && typeof FC.helpRegistry.lookup === 'function'){
+        const cfg = FC.helpRegistry.lookup('priceField.' + String(fieldId || ''), { fallbackKeys:[fieldId] });
+        if(cfg) return cfg;
+      }
+    }catch(_){ }
+    return FIELD_HELP[fieldId] || null;
+  }
+
   function helpOpener(title, message){
     try{
+      const cfg = { title:String(title || 'Informacja'), message:String(message || '') };
+      if(FC.helpRegistry && typeof FC.helpRegistry.open === 'function' && FC.helpRegistry.open(cfg)) return;
       if(FC.infoBox && typeof FC.infoBox.open === 'function'){
-        FC.infoBox.open({ title:String(title || 'Informacja'), message:String(message || '') });
+        FC.infoBox.open(cfg);
         return;
       }
       if(FC.panelBox && typeof FC.panelBox.open === 'function'){
-        FC.panelBox.open({ title:String(title || 'Informacja'), message:String(message || ''), width:'560px', boxClass:'panel-box--rozrys' });
+        FC.panelBox.open({ title:cfg.title, message:cfg.message, width:'560px', boxClass:'panel-box--rozrys' });
       }
     }catch(_){ }
   }
@@ -104,7 +120,7 @@
 
   function decorateFieldHelp(fieldId){
     const control = ctx.byId(fieldId);
-    const helpCfg = FIELD_HELP[fieldId];
+    const helpCfg = resolveFieldHelp(fieldId);
     if(!(control && helpCfg)) return;
     let wrapper = control.parentElement;
     let label = null;

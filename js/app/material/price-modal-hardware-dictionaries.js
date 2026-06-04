@@ -42,17 +42,27 @@
     const cleanParams = normalizeParams(params, cleanCategories).map((row)=>({ category:text(row.category), key:text(row.key), label:text(row.label), fieldType:text(row.fieldType), unit:text(row.unit), options:(row.options || []).map(text), keyFeature:!!row.keyFeature, typePart:!!row.typePart, compareMode:text(row.compareMode), active:row.active !== false, order:Number(row.order) || 0 }));
     return JSON.stringify({ categories:cleanCategories, params:cleanParams });
   }
-  function openHelp(title, key){
-    const help = tech().FIELD_HELP || {};
-    const message = help[key] || '';
+  function resolveHelp(title, key){
+    const helpKey = text(key);
+    let cfg = null;
     try{
-      if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:title || 'Informacja', message });
-      else if(FC.panelBox && typeof FC.panelBox.open === 'function') FC.panelBox.open({ title:title || 'Informacja', message, width:'560px', boxClass:'panel-box--rozrys' });
+      if(FC.helpRegistry && typeof FC.helpRegistry.lookup === 'function') cfg = FC.helpRegistry.lookup('hardwareTechnical.' + helpKey, { fallbackKeys:[helpKey], title:title || helpKey });
+    }catch(_){ }
+    if(!(cfg && cfg.message) && (tech().FIELD_HELP || {})[helpKey]) cfg = { title:title || helpKey, message:(tech().FIELD_HELP || {})[helpKey] };
+    return cfg;
+  }
+  function openHelp(title, key){
+    const cfg = resolveHelp(title, key);
+    if(!cfg) return;
+    try{
+      if(FC.helpRegistry && typeof FC.helpRegistry.open === 'function') return FC.helpRegistry.open(cfg, { title:title || cfg.title });
+      if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:title || cfg.title || 'Informacja', message:cfg.message || '' });
+      else if(FC.panelBox && typeof FC.panelBox.open === 'function') FC.panelBox.open({ title:title || cfg.title || 'Informacja', message:cfg.message || '', width:'560px', boxClass:'panel-box--rozrys' });
     }catch(_){ }
   }
   function helpLabel(textLabel, helpKey){
     const row = h('div', { class:'label-help price-field-help' }, [h('span', { class:'label-help__text', text:textLabel || '' })]);
-    if((tech().FIELD_HELP || {})[helpKey]){
+    if(resolveHelp(textLabel, helpKey)){
       const btn = h('button', { type:'button', class:'info-trigger', 'aria-label':'Pomoc: ' + textLabel });
       btn.addEventListener('click', ()=> openHelp(textLabel, helpKey));
       row.appendChild(btn);

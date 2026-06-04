@@ -10,6 +10,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/shared/dom-guard.js",
       "js/app/shared/constants.js",
       "js/app/shared/utils.js",
+      "js/app/shared/help-registry.js",
       "js/app/shared/migrate.js",
       "js/app/shared/schema.js",
       "js/app/shared/storage.js",
