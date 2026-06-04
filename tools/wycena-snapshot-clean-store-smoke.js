@@ -114,12 +114,12 @@ function runStaleDraftVariantReset(){
 
 function runCacheBustCheck(){
   const versions = {
-    'js/app/quote/quote-snapshot-store.js':'20260604_help_question_mark_restore_v1',
-    'js/app/quote/quote-snapshot.js':'20260604_help_question_mark_restore_v1',
-    'js/app/wycena/wycena-core.js':'20260604_help_question_mark_restore_v1',
-    'js/app/wycena/wycena-tab-selection-version.js':'20260604_help_question_mark_restore_v1',
-    'js/app/wycena/wycena-diagnostics.js':'20260604_help_question_mark_restore_v1',
-    'js/app/wycena/wycena-tab-shell.js':'20260604_help_question_mark_restore_v1',
+    'js/app/quote/quote-snapshot-store.js':'20260604_help_qmark_global_shape_fix_v1',
+    'js/app/quote/quote-snapshot.js':'20260604_help_qmark_global_shape_fix_v1',
+    'js/app/wycena/wycena-core.js':'20260604_help_qmark_global_shape_fix_v1',
+    'js/app/wycena/wycena-tab-selection-version.js':'20260604_help_qmark_global_shape_fix_v1',
+    'js/app/wycena/wycena-diagnostics.js':'20260604_help_qmark_global_shape_fix_v1',
+    'js/app/wycena/wycena-tab-shell.js':'20260604_help_qmark_global_shape_fix_v1',
   };
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const dev = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');

@@ -1,3 +1,20 @@
+## 2026-06-04 — Globalna blokada kształtu helperów `?` v1
+
+- Paczka: `site_help_qmark_global_shape_fix_v1.zip`.
+- Naprawiono realną przyczynę prostokątów: helper `?` mógł być rozciągany przez układy grid/flex formularzy w różnych modułach, więc lokalna poprawka samej WYCENY była niewystarczająca.
+- Dodano globalną regułę kształtu dla `.info-trigger` i wariantów używanych w aplikacji: stały kwadratowy rozmiar, `aspect-ratio: 1 / 1`, `flex: 0 0`, `align-self:center`, `justify-self:end`, pełne `min/max width/height`, okrągły `border-radius` oraz zachowanie starego SVG `?` przez `::before`.
+- Zachowano lokalne rozmiary tam, gdzie były w starej aplikacji: formularz okucia 26 px, małe helpery w tabeli 24 px.
+- Nie zmieniano logiki helperów, treści opisów, WYCENY, duplikatów okuć, override zawiasów, PRO100, ROZRYS, PCV/obrzeży, backupów ani import/export Excel.
+- Cache-busting: `20260604_help_qmark_global_shape_fix_v1`. Raport: `tools/reports/help-qmark-global-shape-fix-v1.md`.
+
+## 2026-06-04 — Poprawka kształtu helperów `?` w WYCENIE v1
+
+- Paczka: `site_wycena_question_mark_shape_fix_v1.zip`.
+- Poprawiono wyłącznie wygląd ikon `?` w sekcji wyboru zakresu WYCENY. WYCENA używa układu ROZRYS (`panel-box--rozrys` / `rozrys-selection-grid`), przez co przycisk helpera rozciągał się do prostokąta w rzędzie formularza.
+- Dodano bardzo wąsko ograniczoną regułę CSS dla `.quote-selection-grid .label-help .info-trigger`, żeby helper zachował okrągły rozmiar 28×28 px jak w działającym modalu okuć.
+- Nie zmieniano logiki helperów, treści opisów, WYCENY, duplikatów okuć, zapisu override zawiasów, PRO100, ROZRYS, backupów, PCV/obrzeży ani import/export Excel.
+- Cache-busting: `20260604_wycena_qmark_shape_fix_v1`. Raport: `tools/reports/wycena-question-mark-shape-fix-v1.md`.
+
 ## 2026-06-04 — Przywrócenie starych helperów `?` v1
 
 - Paczka: `site_help_question_mark_restore_v1.zip`.
@@ -5,7 +22,7 @@
 - Usunięto tekstowy fallback `btn.textContent = '?'` oraz dopisany CSS fallbackowy, który na telefonie dawał puste kwadraty/prostokąty zamiast starej okrągłej ikonki.
 - Zachowano naprawę podwójnego kliknięcia `Wyceń` oraz poprawioną logikę duplikatu okucia z paczki `site_quote_click_help_duplicate_fix_v1.zip`.
 - Nie ruszano PRO100, ROZRYS, PCV/obrzeży, import/export Excel, backupów ani modelu snapshotów ofert.
-- Cache-busting: `20260604_help_question_mark_restore_v1`. Raport: `tools/reports/help-question-mark-restore-v1.md`.
+- Cache-busting: `20260604_wycena_qmark_shape_fix_v1`. Raport: `tools/reports/help-question-mark-restore-v1.md`.
 
 
 ## 2026-06-04 — WYCENA click, helpery `?` i duplikaty okuć v1

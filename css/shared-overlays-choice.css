@@ -332,3 +332,67 @@
   .info-box{width:min(360px, calc(100vw - 18px));padding:15px 14px 13px;}
 }
 
+
+/* 2026-06-04 — globalna blokada kształtu helperów `?`.
+   Helper informacyjny nie może rozciągać się do prostokąta w żadnym gridzie,
+   flexie ani formularzu. Lokalne miejsca mogą zmienić tylko zmienną rozmiaru. */
+.info-trigger,
+button.info-trigger,
+.label-help .info-trigger,
+.price-field-help .info-trigger,
+.hardware-tech-label-help .info-trigger,
+.data-settings-info-trigger,
+.wywiad-hardware-info,
+.quote-detail-info{
+  --fc-info-trigger-size:28px;
+  inline-size:var(--fc-info-trigger-size)!important;
+  block-size:var(--fc-info-trigger-size)!important;
+  width:var(--fc-info-trigger-size)!important;
+  height:var(--fc-info-trigger-size)!important;
+  min-inline-size:var(--fc-info-trigger-size)!important;
+  min-block-size:var(--fc-info-trigger-size)!important;
+  min-width:var(--fc-info-trigger-size)!important;
+  min-height:var(--fc-info-trigger-size)!important;
+  max-inline-size:var(--fc-info-trigger-size)!important;
+  max-block-size:var(--fc-info-trigger-size)!important;
+  max-width:var(--fc-info-trigger-size)!important;
+  max-height:var(--fc-info-trigger-size)!important;
+  aspect-ratio:1 / 1!important;
+  flex:0 0 var(--fc-info-trigger-size)!important;
+  align-self:center!important;
+  justify-self:end!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  box-sizing:border-box!important;
+  padding:0!important;
+  border-radius:999px!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+  color:transparent!important;
+  font-size:0!important;
+  line-height:1!important;
+  appearance:none!important;
+  -webkit-appearance:none!important;
+}
+.info-trigger::before,
+button.info-trigger::before,
+.label-help .info-trigger::before,
+.price-field-help .info-trigger::before,
+.hardware-tech-label-help .info-trigger::before,
+.data-settings-info-trigger::before,
+.wywiad-hardware-info::before,
+.quote-detail-info::before{
+  content:""!important;
+  position:absolute!important;
+  inset:4px!important;
+  display:block!important;
+  background-repeat:no-repeat!important;
+  background-position:center!important;
+  background-size:contain!important;
+  opacity:1!important;
+  z-index:2!important;
+}
+#priceItemModal .price-field-help .info-trigger{--fc-info-trigger-size:26px;}
+.table-list .table-cabcell .info-trigger,
+.table-list .table-cabinfo .info-trigger{--fc-info-trigger-size:24px;}
