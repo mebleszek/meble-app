@@ -1,13 +1,13 @@
 (function(){
   const ns = (window.FC = window.FC || {});
 
-/* ===== Okucia: zawiasy BLUM (wg zaleceń z katalogu/quick reference) =====
-   Uwaga: BLUM zaleca dobór głównie wg wagi frontu; szerokość ma wpływ (dla >600 mm często potrzebny dodatkowy zawias).
-   Ponieważ w projekcie nie mamy wagi z konfiguratora BLUM, szacujemy wagę frontu z wymiarów oraz grubości płyty 18 mm.
+/* ===== Okucia: waga frontu do uniwersalnego doboru zawiasów =====
+   Waga jest liczona w kg z wymiarów frontu i materiału. Kalkulator ilości zawiasów
+   korzysta z kg bez przeliczania na funty.
 */
 const FC_HANDLE_WEIGHT_KG = 0.2; // orientacyjna masa uchwytu/gałki (na 1 front)
 
-// Czy w danej szafce jest faktycznie uchwyt (dla obliczeń okuć BLUM)?
+// Czy w danej szafce jest faktycznie uchwyt dla obliczeń wagi frontu?
 // TIP-ON oraz podchwyt traktujemy jako "bez uchwytu".
 function cabinetHasHandle(cab){
   const os = String(cab?.openingSystem || '').toLowerCase();

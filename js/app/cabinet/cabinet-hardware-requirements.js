@@ -312,7 +312,7 @@
       try{
         const hw = FC.frontHardware || {};
         const fronts = hw && typeof hw.getCabinetFrontCutListForMaterials === 'function' ? hw.getCabinetFrontCutListForMaterials(room, cab) : [];
-        const calc = hw && typeof hw.blumHingesPerDoor === 'function' ? hw.blumHingesPerDoor : null;
+        const calc = hw && (typeof hw.universalHingesPerDoor === 'function' ? hw.universalHingesPerDoor : (typeof hw.blumHingesPerDoor === 'function' ? hw.blumHingesPerDoor : null));
         if(calc && Array.isArray(fronts) && fronts.length){
           return fronts.reduce((sum, front)=> sum + (Math.max(1, number(front && front.qty) || 1) * calc(number(front && front.a), number(front && front.b), cab.frontMaterial || 'laminat', true)), 0);
         }
@@ -417,7 +417,7 @@
   function countHingesForDoorPanel(panel, cab){
     try{
       const hw = FC.frontHardware || {};
-      const calc = hw && typeof hw.blumHingesPerDoor === 'function' ? hw.blumHingesPerDoor : null;
+      const calc = hw && (typeof hw.universalHingesPerDoor === 'function' ? hw.universalHingesPerDoor : (typeof hw.blumHingesPerDoor === 'function' ? hw.blumHingesPerDoor : null));
       if(calc) return Math.max(0, Math.round(number(calc(number(panel && panel.w), number(panel && panel.h), text(panel && panel.material) || (cab && cab.frontMaterial) || 'laminat', !!(panel && panel.hasHandle)))));
     }catch(_){ }
     return 0;

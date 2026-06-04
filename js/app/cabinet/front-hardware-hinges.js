@@ -6,6 +6,14 @@
   const isLeadSetCabinet = hw.isLeadSetCabinet || function(){ return false; };
   const cabinetHasHandle = hw.cabinetHasHandle || function(){ return true; };
   const getCabinetFrontCutListForMaterials = hw.getCabinetFrontCutListForMaterials || function(){ return []; };
+  const resolveDrawerDoorCount = hw.resolveDrawerDoorCount || function(cab){
+    const d = detailsOf(cab);
+    const explicit = Number(d.doorCount || d.doorFrontCount || d.hingedDoorCount || 0);
+    if(explicit > 0) return Math.max(1, Math.round(explicit));
+    const count = Number(cab && cab.frontCount) || 0;
+    if(count > 2) return Math.max(1, Math.round(count - 1));
+    return Math.max(1, Math.round(count || 2));
+  };
 
   function text(value){ return String(value == null ? '' : value).trim(); }
   function bool(value){
@@ -22,32 +30,52 @@
 
   const getProjectRoomData = hw.getProjectRoomData || function(){ return null; };
 
-function blumHingesPerDoor(wCm, hCm, frontMaterial, hasHandle){
-  const weightKg = estimateFrontWeightKg(wCm, hCm, frontMaterial, hasHandle);
-  const weightLb = weightKg * 2.20462;
-  const heightIn = (Math.max(0, Number(hCm) || 0)) / 2.54;
-  const widthMm = (Math.max(0, Number(wCm) || 0)) * 10;
+function hingesByWeightKg(weightKg){
+  const kg = Math.max(0, Number(weightKg) || 0);
+  if(kg <= 0) return 0;
+  if(kg <= 6) return 2;
+  if(kg <= 12) return 3;
+  if(kg <= 17) return 4;
+  if(kg <= 20) return 5;
+  if(kg <= 22) return 6;
+  return 6 + Math.ceil((kg - 22) / 5);
+}
 
-  // Bazowo wg wagi (quick reference: <15 lb, 15–30, 30–45, 45–60 => 2–5 zawiasów)
-  let hinges = 2;
-  if(weightLb <= 15) hinges = 2;
-  else if(weightLb <= 30) hinges = 3;
-  else if(weightLb <= 45) hinges = 4;
-  else if(weightLb <= 60) hinges = 5;
-  else hinges = 5 + Math.ceil((weightLb - 60) / 15);
+function hingesByHeightMm(heightMm){
+  const mm = Math.max(0, Number(heightMm) || 0);
+  if(mm <= 0) return 0;
+  if(mm <= 1000) return 2;
+  if(mm <= 1700) return 3;
+  if(mm <= 2200) return 4;
+  if(mm <= 2400) return 5;
+  if(mm <= 2600) return 6;
+  if(mm <= 2800) return 7;
+  return 7 + Math.ceil((mm - 2800) / 200);
+}
 
-  // Korekta wg wysokości (konserwatywnie, w duchu BLUM: wyższe fronty często potrzebują dodatkowego zawiasu)
-  if(hinges <= 2 && heightIn > 40) hinges = 3;
-  if(hinges <= 3 && heightIn > 60) hinges = 4;
-  if(hinges <= 4 && heightIn > 80) hinges = 5;
-  if(hinges <= 5 && heightIn > 100) hinges = 6;
+function hingeWidthAddOn(widthMm){
+  const mm = Math.max(0, Number(widthMm) || 0);
+  if(mm <= 600) return 0;
+  return Math.ceil((mm - 600) / 100);
+}
 
-  // Korekta wg szerokości (BLUM: wartości bazowe dla szer. do 600 mm; do ~650 mm zwykle +1 zawias)
-  if(widthMm > 600){
-    hinges += Math.ceil((widthMm - 600) / 50);
-  }
+function universalHingesPerDoor(wCm, hCm, frontMaterial, hasHandle){
+  const widthCm = Math.max(0, Number(wCm) || 0);
+  const heightCm = Math.max(0, Number(hCm) || 0);
+  if(widthCm <= 0 || heightCm <= 0) return 0;
+
+  const weightKg = estimateFrontWeightKg(widthCm, heightCm, frontMaterial, hasHandle);
+  const weightHinges = hingesByWeightKg(weightKg);
+  const heightHinges = hingesByHeightMm(heightCm * 10);
+  const widthAdd = hingeWidthAddOn(widthCm * 10);
+  const hinges = Math.max(weightHinges, heightHinges) + widthAdd;
 
   return Math.max(0, Math.round(hinges));
+}
+
+// Backward-compatible API name kept for older modules/tests. The logic is no longer BLUM/lb based.
+function blumHingesPerDoor(wCm, hCm, frontMaterial, hasHandle){
+  return universalHingesPerDoor(wCm, hCm, frontMaterial, hasHandle);
 }
 
 
@@ -104,7 +132,7 @@ function getDoorFrontPanelsForHinges(room, cab){
     const drawerH = Number(cab.details?.drawerHeight) || Math.min(20, fh);
     const doorH = Math.max(0, fh - drawerH);
     if(doorH <= 0) return out;
-    const fc = Math.max(1, Number(cab.details?.doorCount || cab.frontCount || 2));
+    const fc = resolveDrawerDoorCount(cab);
     const wEach = fc ? (effectiveW / fc) : 0;
     for(let i=0;i<fc;i++) out.push({ w: wEach, h: doorH , material: (cab.frontMaterial || 'laminat') , hasHandle: hasHandle });
     return out;
@@ -154,6 +182,10 @@ function getHingeCountForCabinet(room, cab){
 }
 
   ns.frontHardware = Object.assign({}, ns.frontHardware, {
+    hingesByWeightKg,
+    hingesByHeightMm,
+    hingeWidthAddOn,
+    universalHingesPerDoor,
     blumHingesPerDoor,
     getDoorFrontPanelsForHinges,
     getHingeCountForCabinet

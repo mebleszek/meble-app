@@ -32,6 +32,19 @@ function isLeadSetCabinet(room, cab){
   return !!(first && String(first.id || '') === String(cab.id || ''));
 }
 
+function resolveDrawerDoorCount(cab){
+  const d = cab && cab.details && typeof cab.details === 'object' ? cab.details : {};
+  const explicit = Number(d.doorCount || d.doorFrontCount || d.hingedDoorCount || 0);
+  if(explicit > 0) return Math.max(1, Math.round(explicit));
+
+  const count = Number(cab && cab.frontCount) || 0;
+  // Legacy/cutlista mogły zapisać frontCount jako: 1 front szuflady + liczba drzwi.
+  // Do zawiasów i frontów drzwiowych przy tym typie interesują nas wyłącznie drzwi.
+  if(count > 2) return Math.max(1, Math.round(count - 1));
+
+  return Math.max(1, Math.round(count || 2));
+}
+
 function aggregateSetFrontParts(room, cab){
   if(!cab || !cab.setId || !isLeadSetCabinet(room, cab)) return [];
   const fronts = getRoomSetFronts(room, cab.setId);
@@ -154,10 +167,10 @@ function getCabinetFrontCutListForMaterials(room, cab){
     const doorH = Math.max(0, fh - drawerH);
     addFront(Number(cab.width)||0, drawerH);
     if(doorH > 0){
-      const fc = Math.max(1, Number(cab.frontCount||2));
+      const fc = resolveDrawerDoorCount(cab);
       const wEach = fc ? (effectiveW / fc) : 0;
       for(let i=0;i<fc;i++) addFront(wEach, doorH);
-      cab.frontCount = 1 + fc;
+      if(cab.details && typeof cab.details === 'object') cab.details.doorCount = fc;
     } else {
       cab.frontCount = 1;
     }
@@ -253,6 +266,7 @@ function getCabinetFrontCutListForMaterials(room, cab){
     getProjectRoomData,
     getRoomSetFronts,
     isLeadSetCabinet,
+    resolveDrawerDoorCount,
     aggregateSetFrontParts,
     getSetDoorFrontPanels,
     getCabinetFrontCutListForMaterials

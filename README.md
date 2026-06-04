@@ -1,3 +1,16 @@
+## 2026-06-05 — Bezpieczna ilość zawiasów w kg v1
+
+- Paczka: `site_hinge_quantity_kg_safe_v1.zip`.
+- Zmieniono centralny kalkulator ilości zawiasów z progów funtowych na progi w kg: waga frontu, wysokość frontu i dodatek szerokości są liczone bez przeliczenia na funty.
+- Nowa reguła szerokości: do 600 mm bez dodatku, powyżej 600 mm `+1` zawias za każde rozpoczęte 100 mm, zamiast starego `+1` za każde rozpoczęte 50 mm.
+- Dodano publiczne API `universalHingesPerDoor()`, `hingesByWeightKg()`, `hingesByHeightMm()` i `hingeWidthAddOn()`. Stare `blumHingesPerDoor()` zostało jako alias kompatybilności, ale używa nowej logiki kg.
+- Naprawiono przypadek `szuflada_drzwi`: front szuflady pozostaje frontem materiałowym, ale nie jest panelem drzwiowym do zawiasów. Wspólny resolver `resolveDrawerDoorCount()` odcina też legacy `frontCount = 1 + liczba drzwi`.
+- Fronty zestawów nadal są liczone tylko na korpusie prowadzącym; zawiasy zestawu korzystają z tej samej nowej reguły kg i nie dublują się na kolejnych korpusach.
+- Zaktualizowano cache-busting dla modułów front-hardware i wymagań zawiasów.
+- Dodano regresję `tools/cabinet-hinge-quantity-kg-smoke.js` dla przykładów 60×100, 60×105, 66×105, 70×105, 71×105, szuflada+drzwi oraz zestawów.
+- Nie ruszano UI, PRO100, ROZRYS/Optimax, PCV/obrzeży, backupów, import/export Excel ani modelu snapshotów ofert.
+- Cache-busting: `20260605_hinge_quantity_kg_safe_v1`. Raport: `tools/reports/hinge-quantity-kg-safe-v1.md`.
+
 ## 2026-06-04 — Globalna naprawa renderowania helperów `?` v2
 
 - Paczka: `site_help_qmark_label_trigger_fix_v2.zip`.
