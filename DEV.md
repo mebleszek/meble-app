@@ -1,3 +1,13 @@
+## 2026-06-04 — Naprawa przycisku `Zmień` w wymaganiach zawiasów v2
+
+- Paczka: `site_hinge_change_picker_fix_v2.zip`.
+- Naprawiono regresję z poprzedniej paczki: przycisk `Zmień` w panelu `Wymagania techniczne do wyceny` nie może reagować wizualnie i nie otworzyć żadnego okna.
+- Jeżeli kaskadowy wybór nie ma wielu wartości na żadnym kroku, program otwiera końcowy aplikacyjny modal `Wybierz wymaganie kompletu zawiasowego` zamiast milczeć.
+- Wybranie tej samej wartości, którą szafka ma już domyślnie, nie zapisuje ręcznego override i nie aktywuje `Przywróć domyślne`.
+- Zachowano zasadę: WYWIAD pokazuje kanoniczne wymaganie techniczne szafki, a katalogowe 107° pozostaje zamiennikiem WYCENY, nie źródłem domyślnego kąta w panelu.
+- Dodano test regresyjny: kliknięcie `Zmień` przy braku wielu kroków kaskady musi otworzyć modal, ale nie może zapisać override przy wyborze tej samej wartości.
+- Cache-busting: `20260604_hinge_change_picker_fix_v2`.
+
 ## 2026-06-04 — Naprawa domyślnych wymagań zawiasów i kliknięcia „Zmień” v1
 
 - Paczka: `site_hinge_panel_default_fix_v1.zip`.

@@ -177,6 +177,44 @@ async function runPanelCheck(){
   assert(titles.some((title)=> title.includes('typ')) && titles.some((title)=> title.includes('prowadnik') || title.includes('hamulec') || title.includes('klas') || title.includes('zakres') || title.includes('rzeczywisty')), 'wybór zawiasu ma być kaskadowy, a nie jedną długą listą wariantów');
 }
 
+async function runChangeButtonMustOpenFallbackAndNotOverrideSameValue(){
+  const ctx = loadContext();
+  const api = ctx.window.FC.cabinetHardwareRequirementsPanel;
+  const reqApi = ctx.window.FC.cabinetHardwareRequirements;
+  const draft = { type:'stojąca', subType:'standard', width:80, height:82, frontCount:2, frontMaterial:'laminat', details:{} };
+
+  const opened = [];
+  ctx.window.FC.rozrysChoice = {
+    async openRozrysChoiceOverlay(cfg){
+      opened.push(cfg);
+      return reqApi.HINGE_TYPES.OVERLAY_110;
+    }
+  };
+
+  const req = reqApi.getHingeRequirementWithQty('kuchnia', draft).doorRequirements[0];
+  const picked = await api.openHingeChoice(req);
+  assert(opened.length === 1, 'kliknięcie Zmień musi otworzyć modal nawet wtedy, gdy kaskada nie ma wielu wartości');
+  assert(String(opened[0].title || '').includes('Wybierz wymaganie kompletu zawiasowego'), 'fallback wyboru musi mieć czytelny tytuł zamiast milczeć');
+  assert(picked === reqApi.HINGE_TYPES.OVERLAY_110, 'fallback wyboru musi zwrócić bieżący typ, jeśli użytkownik go kliknie');
+
+  const container = {
+    innerHTML:'',
+    addEventListener(type, handler){ if(type === 'click') this.__clickHandler = handler; }
+  };
+  api.renderPanel(container, 'kuchnia', draft);
+  assert(typeof container.__clickHandler === 'function', 'panel musi podpiąć obsługę kliknięcia Zmień');
+  const fakeTarget = {
+    closest(){ return this; },
+    getAttribute(name){
+      if(name === 'data-req-action') return 'hinge-change';
+      if(name === 'data-door-key') return 'left';
+      return '';
+    }
+  };
+  await container.__clickHandler({ target:fakeTarget, preventDefault(){}, stopPropagation(){} });
+  assert(!(draft.hardwareRequirementOverrides && draft.hardwareRequirementOverrides.hinges && draft.hardwareRequirementOverrides.hinges.doors && draft.hardwareRequirementOverrides.hinges.doors.left), 'wybranie tej samej wartości domyślnej nie może zapisać ręcznego override');
+}
+
 function runStaticCheck(){
   const modal = fs.readFileSync(path.join(root, 'js/app/cabinet/cabinet-modal.js'), 'utf8');
   assert(modal.includes('refreshCabinetHardwareRequirementsPanel'), 'modal musi mieć odświeżanie panelu wymagań na żywo');
@@ -186,7 +224,7 @@ function runStaticCheck(){
   assert(css.includes('cabinet-hardware-req-actions') && css.includes('cabinet-hardware-req-summary'), 'brak stylów skrótu i przycisków wymagań');
   assert(css.includes('cabinet-hardware-req-pair-actions'), 'brak stylów wspólnych przycisków dla obu drzwiczek');
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  assert(html.includes('20260604_hinge_panel_default_fix_v1'), 'index musi mieć aktualny cache-busting tej paczki');
+  assert(html.includes('20260604_hinge_change_picker_fix_v2'), 'index musi mieć aktualny cache-busting tej paczki');
 }
 
 (async function main(){
@@ -194,6 +232,7 @@ function runStaticCheck(){
   runNoHardcodedOptionFallbackCheck();
   runPerDoorCheck();
   await runPanelCheck();
+  await runChangeButtonMustOpenFallbackAndNotOverrideSameValue();
   runStaticCheck();
   console.log('OK cabinet-hardware-requirements-live-edit smoke');
 })().catch((err)=> { console.error(err && err.stack || err); process.exit(1); });

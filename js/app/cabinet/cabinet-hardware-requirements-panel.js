@@ -201,6 +201,27 @@
     return picked == null ? null : picked;
   }
 
+  function optionId(option){
+    return text(option && (option.value || option.typeId));
+  }
+
+  async function pickFinalHingeOption(choiceApi, options, req, title){
+    const list = (Array.isArray(options) ? options : []).filter((opt)=> !!optionId(opt));
+    if(!list.length) return null;
+    const currentType = text(req && req.typeId);
+    const hasCurrent = list.some((opt)=> optionId(opt) === currentType);
+    const picked = await choiceApi.openRozrysChoiceOverlay({
+      title:title || 'Wybierz wymaganie kompletu zawiasowego',
+      value:hasCurrent ? currentType : '',
+      options:list.map((opt)=> ({
+        value:optionId(opt),
+        label:text(opt && opt.label) || optionId(opt),
+        description:text(opt && opt.description)
+      }))
+    });
+    return picked == null ? null : picked;
+  }
+
   async function openHingeChoice(req){
     const choiceApi = FC && FC.rozrysChoice;
     if(!(choiceApi && typeof choiceApi.openRozrysChoiceOverlay === 'function')) return null;
@@ -233,13 +254,16 @@
       if(!filtered.length) return null;
     }
 
-    // Jeżeli nie pokazaliśmy użytkownikowi żadnego modala wyboru, kliknięcie
-    // „Zmień” nie może samo ustawiać ręcznego override ani przełączać panelu.
-    if(!openedChoice) return null;
+    // Jeżeli wszystkie kroki kaskady mają tylko jedną wartość, nadal otwieramy
+    // aplikacyjny modal końcowy. Przycisk „Zmień” nie może wyglądać jak aktywny
+    // i nie pokazać żadnego wyboru. Sam wybór bieżącej wartości nie zapisuje
+    // jednak override — to pilnuje obsługa kliknięcia poniżej.
+    if(!openedChoice) return pickFinalHingeOption(choiceApi, filtered.length ? filtered : allOptions, req, 'Wybierz wymaganie kompletu zawiasowego');
 
     const currentType = text(req && req.typeId);
-    const preferred = filtered.find((opt)=> text(opt && (opt.value || opt.typeId)) === currentType || text(opt && opt.typeId) === currentType) || filtered[0];
-    return text(preferred && (preferred.value || preferred.typeId));
+    if(filtered.length > 1) return pickFinalHingeOption(choiceApi, filtered, req, 'Doprecyzuj wymaganie kompletu zawiasowego');
+    const preferred = filtered.find((opt)=> optionId(opt) === currentType) || filtered[0];
+    return optionId(preferred);
   }
 
   function actionButtons(req){
@@ -375,8 +399,17 @@
       const req = action === 'hinge-change-all' ? (findDoorRequirement(container, doorKeys[0] || 'left') || findDoorRequirement(container, 'single')) : findDoorRequirement(container, doorKey);
       const picked = await openHingeChoice(req);
       if(picked == null) return;
-      const keys = action === 'hinge-change-all' ? doorKeys : [doorKey];
-      keys.forEach((key)=> { if(api && typeof api.setHingeDoorOverride === 'function') api.setHingeDoorOverride(draft, key, { typeId:picked }); });
+      const keys = action === 'hinge-change-all' ? (doorKeys.length ? doorKeys : [doorKey]) : [doorKey];
+      let changed = false;
+      keys.forEach((key)=> {
+        const currentReq = findDoorRequirement(container, key);
+        if(text(currentReq && currentReq.typeId) === text(picked) && !(currentReq && currentReq.overridden)) return;
+        if(api && typeof api.setHingeDoorOverride === 'function'){
+          api.setHingeDoorOverride(draft, key, { typeId:picked });
+          changed = true;
+        }
+      });
+      if(!changed) return;
       if(opts && typeof opts.onChange === 'function') opts.onChange({ doorKey:keys[0] || doorKey, doorKeys:keys, typeId:picked, draft });
       renderPanel(container, room, draft, opts || {});
     });
