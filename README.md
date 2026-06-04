@@ -1,3 +1,13 @@
+## 2026-06-04 — Globalna naprawa renderowania helperów `?` v2
+
+- Paczka: `site_help_qmark_label_trigger_fix_v2.zip`.
+- Naprawiono właściwą przyczynę prostokątów w WYCENIE i ROZRYS/Optimax: `helpRegistry.labelWithInfo()` przekazywał do `createTrigger()` tę samą konfigurację `className`, której używał dla wiersza etykiety. W efekcie przycisk `?` dostawał klasę `label-help` zamiast `info-trigger` i był stylowany jak wiersz/formularz, czyli jako pusty prostokąt.
+- Rozdzielono klasę wiersza etykiety od klasy przycisku helpera: `className` zostaje klasą kontenera, a `triggerClassName` domyślnie tworzy przycisk `.info-trigger`.
+- Zachowano centralną blokadę kształtu `.info-trigger` z poprzedniej paczki oraz lokalne rozmiary 26/24 px tam, gdzie były wcześniej.
+- Dodano test regresji `tools/help-registry-label-trigger-smoke.js`, który pilnuje, żeby `labelWithInfo()` nigdy więcej nie przekazał klasy `label-help` do przycisku `?`.
+- Nie ruszano logiki helperów, treści opisów, WYCENY, duplikatów okuć, override zawiasów, PRO100, ROZRYS/algorytmu, PCV/obrzeży, backupów ani import/export Excel.
+- Cache-busting: `20260604_help_qmark_label_trigger_fix_v2`. Raport: `tools/reports/help-qmark-label-trigger-fix-v2.md`.
+
 ## 2026-06-04 — Globalna blokada kształtu helperów `?` v1
 
 - Paczka: `site_help_qmark_global_shape_fix_v1.zip`.

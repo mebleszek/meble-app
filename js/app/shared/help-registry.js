@@ -97,14 +97,17 @@
     return btn;
   }
   function labelWithInfo(label, opts){
-    const cfg = Object.assign({ title:label || 'Informacja', scope:'generic', className:'label-help', key:'', message:'' }, opts || {});
+    const cfg = Object.assign({ title:label || 'Informacja', scope:'generic', className:'label-help', triggerClassName:'info-trigger', key:'', message:'' }, opts || {});
     const row = document.createElement('div');
     row.className = text(cfg.className) || 'label-help';
     const textNode = document.createElement('span');
     textNode.className = 'label-help__text';
     textNode.textContent = text(label || '');
     row.appendChild(textNode);
-    if(text(cfg.key) || text(cfg.message)) row.appendChild(createTrigger(cfg));
+    if(text(cfg.key) || text(cfg.message)){
+      const triggerCfg = Object.assign({}, cfg, { className:text(cfg.triggerClassName) || 'info-trigger' });
+      row.appendChild(createTrigger(triggerCfg));
+    }
     return row;
   }
   function auditInfoButtons(rootNode){
