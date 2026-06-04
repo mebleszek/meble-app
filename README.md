@@ -1,3 +1,14 @@
+## 2026-06-04 — Trwały zapis ręcznych wymagań zawiasów v1
+
+- Paczka: `site_hinge_override_persistence_fix_v1.zip`.
+- Naprawiono błąd, w którym panel `Wymagania techniczne do wyceny` po ponownym renderze modala mógł pracować na starym `draft` szafki. Wizualnie pokazywał `Ręcznie`, ale `Zapisz zmiany` zapisywał aktualny draft bez override.
+- Delegowany listener panelu nie trzyma już `room/draft/opts` w zamknięciu z pierwszego renderu. Każdy `renderPanel()` zapisuje aktualny kontekst na kontenerze, a kliknięcia `Zmień`, `Zmień oba` i `Przywróć domyślne` działają na bieżącym drafcie modala.
+- Jedno źródło prawdy dla ręcznych wymagań pozostaje w `cabinet.hardwareRequirementOverrides.hinges.doors`: `single` dla jednego frontu oraz `left/right` dla dwóch frontów.
+- `setHingeDoorOverride()` zapisuje techniczny snapshot wybranego wymagania (`typeId`, `label`, `technicalParams`) bez producenta i modelu katalogowego. Dzięki temu odczyt po zapisie, MATERIAŁ i WYCENA korzystają z tych samych cech technicznych.
+- `Przywróć domyślne` usuwa cały override i czyści puste struktury, zamiast zostawiać pusty pseudo-zapis.
+- Rozszerzono testy o przypadek ponownego użycia tego samego kontenera panelu dla innego draftu, zapis `single` dla jednego frontu, osobne `left/right` dla dwóch frontów, `Zmień oba`, `Przywróć domyślne`, cutlistę/MATERIAŁ i WYCENĘ.
+- Cache-busting: `20260604_hinge_override_persistence_fix_v1`. Raport: `tools/reports/hinge-override-persistence-fix-v1.md`.
+
 ## 2026-06-04 — Naprawa przycisku `Zmień` w wymaganiach zawiasów v2
 
 - Paczka: `site_hinge_change_picker_fix_v2.zip`.

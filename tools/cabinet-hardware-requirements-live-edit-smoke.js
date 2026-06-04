@@ -122,6 +122,45 @@ function runPerDoorCheck(){
   assert(hingeParts.some((part)=> part.hardwareRequirement.technicalParams.nalozenie.value === 'nakładany'), 'cutlista musi przenieść wymaganie nakładane');
 }
 
+function clone(value){ return JSON.parse(JSON.stringify(value)); }
+
+function runOverridePersistenceAndMaterialCheck(){
+  const ctx = loadContext();
+  const api = ctx.window.FC.cabinetHardwareRequirements;
+  const cutlistApi = ctx.window.FC.cabinetCutlist;
+
+  const one = { id:'cab_single', type:'stojąca', subType:'standard', width:60, height:82, frontCount:1, frontMaterial:'laminat', details:{} };
+  api.setHingeDoorOverride(one, 'single', { typeId:api.HINGE_TYPES.PARALLEL_INSET });
+  const savedOne = clone(one);
+  const oneReq = api.getHingeRequirementWithQty('kuchnia', savedOne);
+  assert(oneReq.doorRequirements.length === 1, 'szafka z 1 frontem ma zachować tylko jedno wymaganie single');
+  assert(oneReq.doorRequirements[0].doorKey === 'single', 'szafka z 1 frontem nie może tworzyć lewe/prawe');
+  assert(oneReq.doorRequirements[0].overridden === true, 'ręczne wymaganie jednego frontu musi przetrwać zapis/odczyt');
+  assert(oneReq.doorRequirements[0].technicalParams.nalozenie.value === 'równoległy wpuszczany', 'po zapisie pojedynczy front ma mieć ręczne wymaganie równoległy wpuszczany');
+  assert(!(savedOne.hardwareRequirementOverrides.hinges.doors.left || savedOne.hardwareRequirementOverrides.hinges.doors.right), 'szafka z 1 frontem nie może zapisywać niepotrzebnych override left/right');
+  const oneParts = cutlistApi.getCabinetCutList(savedOne, 'kuchnia').filter((part)=> part && part.hardwareRequirement && part.hardwareRequirement.kind === 'hinge');
+  assert(oneParts.length === 1 && oneParts[0].name.includes('równoległy wpuszczany'), 'MATERIAŁ/cutlista musi pokazać ręcznie ustawiony zawias pojedynczego frontu');
+
+  api.setHingeDoorOverride(savedOne, 'single', { typeId:'' });
+  const restoredOne = api.getHingeRequirementWithQty('kuchnia', savedOne);
+  assert(!(savedOne.hardwareRequirementOverrides), 'Przywróć domyślne ma usunąć override, nie zostawiać pustych struktur');
+  assert(restoredOne.doorRequirements[0].technicalParams.nalozenie.value === 'nakładany', 'po przywróceniu wraca domyślna reguła 110° nakładany');
+
+  const two = { id:'cab_pair', type:'stojąca', subType:'standard', width:80, height:82, frontCount:2, frontMaterial:'laminat', details:{} };
+  api.setHingeDoorOverride(two, 'left', { typeId:api.HINGE_TYPES.PARALLEL_INSET });
+  const savedTwo = clone(two);
+  const twoReq = api.getHingeRequirementWithQty('kuchnia', savedTwo);
+  assert(twoReq.doorRequirements[0].overridden === true, 'lewe drzwiczki mają zostać ręczne po zapisie');
+  assert(twoReq.doorRequirements[1].overridden === false, 'prawe drzwiczki mają zostać domyślne po zapisie');
+  assert(twoReq.doorRequirements[0].technicalParams.nalozenie.value === 'równoległy wpuszczany', 'lewe drzwiczki mają mieć ręczne wymaganie równoległy wpuszczany');
+  assert(twoReq.doorRequirements[1].technicalParams.nalozenie.value === 'nakładany', 'prawe drzwiczki mają zachować domyślne 110° nakładany');
+
+  api.setHingeDoorOverride(savedTwo, 'left', { typeId:api.HINGE_TYPES.INSET_110 });
+  api.setHingeDoorOverride(savedTwo, 'right', { typeId:api.HINGE_TYPES.INSET_110 });
+  const bothReq = api.getHingeRequirementWithQty('kuchnia', clone(savedTwo));
+  assert(bothReq.doorRequirements.every((req)=> req.overridden && req.technicalParams.nalozenie.value === 'wpuszczany'), 'Zmień oba ma zapisać ten sam override po obu stronach');
+}
+
 async function runPanelCheck(){
   const ctx = loadCatalogContext();
   const api = ctx.window.FC.cabinetHardwareRequirementsPanel;
@@ -215,6 +254,52 @@ async function runChangeButtonMustOpenFallbackAndNotOverrideSameValue(){
   assert(!(draft.hardwareRequirementOverrides && draft.hardwareRequirementOverrides.hinges && draft.hardwareRequirementOverrides.hinges.doors && draft.hardwareRequirementOverrides.hinges.doors.left), 'wybranie tej samej wartości domyślnej nie może zapisać ręcznego override');
 }
 
+async function runReusedPanelContainerUsesLatestDraftCheck(){
+  const ctx = loadCatalogContext();
+  const panelApi = ctx.window.FC.cabinetHardwareRequirementsPanel;
+  const reqApi = ctx.window.FC.cabinetHardwareRequirements;
+  const firstDraft = { id:'first', type:'stojąca', subType:'standard', width:80, height:82, frontCount:2, frontMaterial:'laminat', details:{} };
+  const secondDraft = { id:'second', type:'stojąca', subType:'standard', width:60, height:82, frontCount:1, frontMaterial:'laminat', details:{} };
+  const container = {
+    innerHTML:'',
+    addEventListener(type, handler){ if(type === 'click') this.__clickHandler = handler; }
+  };
+
+  panelApi.renderPanel(container, 'kuchnia', firstDraft);
+  panelApi.renderPanel(container, 'kuchnia', secondDraft);
+  assert(typeof container.__clickHandler === 'function', 'panel musi mieć jeden delegowany listener kliknięć');
+
+  ctx.window.FC.rozrysChoice = {
+    async openRozrysChoiceOverlay(cfg){
+      const title = String(cfg.title || '');
+      if(title.includes('typ')) return 'równoległy wpuszczany';
+      if(title.includes('klas') || title.includes('zakres')) return 'równoległy wpuszczany 95°';
+      if(title.includes('rzeczywisty') || title.includes('nominalny')) return '95';
+      if(title.includes('prowadnik')) return 'specjalny';
+      if(title.includes('hamulec')) return 'false';
+      if(title.includes('sprężyn')) return 'false';
+      return reqApi.HINGE_TYPES.PARALLEL_INSET;
+    }
+  };
+
+  const fakeTarget = {
+    closest(){ return this; },
+    getAttribute(name){
+      if(name === 'data-req-action') return 'hinge-change';
+      if(name === 'data-door-key') return 'single';
+      return '';
+    }
+  };
+  await container.__clickHandler({ target:fakeTarget, preventDefault(){}, stopPropagation(){} });
+
+  assert(!(firstDraft.hardwareRequirementOverrides), 'listener nie może zmienić starego draftu z poprzedniego renderu');
+  assert(secondDraft.hardwareRequirementOverrides && secondDraft.hardwareRequirementOverrides.hinges && secondDraft.hardwareRequirementOverrides.hinges.doors.single, 'listener musi zapisać override do aktualnego draftu modala');
+  assert(secondDraft.hardwareRequirementOverrides.hinges.doors.single.typeId === reqApi.HINGE_TYPES.PARALLEL_INSET, 'aktualny draft musi dostać wybrany typ zawiasu');
+  assert(!(secondDraft.hardwareRequirementOverrides.hinges.doors.left || secondDraft.hardwareRequirementOverrides.hinges.doors.right), 'pojedynczy front ma zapisać single, bez left/right ze starego renderu');
+  const secondReq = reqApi.getHingeRequirementWithQty('kuchnia', secondDraft);
+  assert(secondReq.doorRequirements.length === 1 && secondReq.doorRequirements[0].overridden, 'ponowne odczytanie aktualnego draftu ma pokazać ręczny override');
+}
+
 function runStaticCheck(){
   const modal = fs.readFileSync(path.join(root, 'js/app/cabinet/cabinet-modal.js'), 'utf8');
   assert(modal.includes('refreshCabinetHardwareRequirementsPanel'), 'modal musi mieć odświeżanie panelu wymagań na żywo');
@@ -224,15 +309,17 @@ function runStaticCheck(){
   assert(css.includes('cabinet-hardware-req-actions') && css.includes('cabinet-hardware-req-summary'), 'brak stylów skrótu i przycisków wymagań');
   assert(css.includes('cabinet-hardware-req-pair-actions'), 'brak stylów wspólnych przycisków dla obu drzwiczek');
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  assert(html.includes('20260604_hinge_change_picker_fix_v2'), 'index musi mieć aktualny cache-busting tej paczki');
+  assert(html.includes('20260604_hinge_override_persistence_fix_v1'), 'index musi mieć aktualny cache-busting tej paczki');
 }
 
 (async function main(){
   runCatalogDrivenOptionsCheck();
   runNoHardcodedOptionFallbackCheck();
   runPerDoorCheck();
+  runOverridePersistenceAndMaterialCheck();
   await runPanelCheck();
   await runChangeButtonMustOpenFallbackAndNotOverrideSameValue();
+  await runReusedPanelContainerUsesLatestDraftCheck();
   runStaticCheck();
   console.log('OK cabinet-hardware-requirements-live-edit smoke');
 })().catch((err)=> { console.error(err && err.stack || err); process.exit(1); });

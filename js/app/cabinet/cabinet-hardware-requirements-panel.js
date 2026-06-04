@@ -376,7 +376,29 @@
     return doors.find((req)=> text(req && req.doorKey) === text(doorKey || 'single')) || (text(doorKey) === 'single' ? hinge : null);
   }
 
-  function bindEvents(container, room, draft, opts){
+  function getContext(container){
+    return container && container.__cabinetHardwareReqContext && typeof container.__cabinetHardwareReqContext === 'object'
+      ? container.__cabinetHardwareReqContext
+      : null;
+  }
+
+  function findChoiceOptionByTypeId(req, typeId){
+    const id = text(typeId);
+    if(!id) return null;
+    return buildHingeChoiceOptions(req).find((opt)=> optionId(opt) === id) || null;
+  }
+
+  function buildOverridePatchFromChoice(req, picked){
+    const id = text(picked);
+    const patch = { typeId:id };
+    if(!id) return patch;
+    const opt = findChoiceOptionByTypeId(req, id);
+    if(opt && opt.technicalParams && typeof opt.technicalParams === 'object') patch.technicalParams = opt.technicalParams;
+    if(opt && text(opt.label)) patch.label = text(opt.label);
+    return patch;
+  }
+
+  function bindEvents(container){
     if(!container || !container.addEventListener || container.__cabinetHardwareReqBound) return;
     container.__cabinetHardwareReqBound = true;
     container.addEventListener('click', async function(ev){
@@ -385,6 +407,11 @@
       const action = target.getAttribute('data-req-action') || '';
       if(!['hinge-change','hinge-default','hinge-change-all','hinge-default-all'].includes(action)) return;
       ev.preventDefault();
+      const ctxAtClick = getContext(container);
+      if(!ctxAtClick || !ctxAtClick.draft) return;
+      const room = ctxAtClick.room;
+      const draft = ctxAtClick.draft;
+      const opts = ctxAtClick.opts || {};
       const doorKey = target.getAttribute('data-door-key') || 'single';
       const doorKeysAttr = target.getAttribute('data-door-keys') || '';
       const doorKeys = doorKeysAttr.split(',').map(text).filter(Boolean);
@@ -399,25 +426,30 @@
       const req = action === 'hinge-change-all' ? (findDoorRequirement(container, doorKeys[0] || 'left') || findDoorRequirement(container, 'single')) : findDoorRequirement(container, doorKey);
       const picked = await openHingeChoice(req);
       if(picked == null) return;
+      const latest = getContext(container) || ctxAtClick;
+      const currentRoom = latest.room || room;
+      const currentDraft = latest.draft || draft;
+      const currentOpts = latest.opts || opts || {};
       const keys = action === 'hinge-change-all' ? (doorKeys.length ? doorKeys : [doorKey]) : [doorKey];
       let changed = false;
       keys.forEach((key)=> {
         const currentReq = findDoorRequirement(container, key);
         if(text(currentReq && currentReq.typeId) === text(picked) && !(currentReq && currentReq.overridden)) return;
         if(api && typeof api.setHingeDoorOverride === 'function'){
-          api.setHingeDoorOverride(draft, key, { typeId:picked });
+          api.setHingeDoorOverride(currentDraft, key, buildOverridePatchFromChoice(currentReq || req, picked));
           changed = true;
         }
       });
       if(!changed) return;
-      if(opts && typeof opts.onChange === 'function') opts.onChange({ doorKey:keys[0] || doorKey, doorKeys:keys, typeId:picked, draft });
-      renderPanel(container, room, draft, opts || {});
+      if(currentOpts && typeof currentOpts.onChange === 'function') currentOpts.onChange({ doorKey:keys[0] || doorKey, doorKeys:keys, typeId:picked, draft:currentDraft });
+      renderPanel(container, currentRoom, currentDraft, currentOpts || {});
     });
   }
 
   function renderPanel(container, room, draft, opts){
     if(!container) return [];
     const options = opts || {};
+    container.__cabinetHardwareReqContext = { room, draft, opts:options };
     const requirements = getRequirements(room, draft);
     container.__cabinetHardwareReqLastRequirements = requirements;
     const cards = requirements.map(requirementCard).join('');
@@ -430,7 +462,7 @@
       '</div>' +
       '<div class="cabinet-hardware-req-panel__cards">' + (cards || '<div class="cabinet-hardware-req-empty">Brak wymagań technicznych dla tej szafki.</div>') + '</div>' +
     '</div>';
-    bindEvents(container, room, draft, options);
+    bindEvents(container);
     return requirements;
   }
 

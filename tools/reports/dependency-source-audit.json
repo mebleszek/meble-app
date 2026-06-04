@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-05-30T22:43:01.037Z",
+  "generatedAt": "2026-06-04T20:04:35.311Z",
   "summary": {
-    "jsFiles": 361,
-    "indexScripts": 285,
-    "devTestScripts": 318,
-    "fcSymbols": 261,
-    "fcSymbolsAll": 289,
-    "edges": 1895,
-    "highRisk": 11,
-    "mediumRisk": 68
+    "jsFiles": 366,
+    "indexScripts": 290,
+    "devTestScripts": 322,
+    "fcSymbols": 266,
+    "fcSymbolsAll": 294,
+    "edges": 2024,
+    "highRisk": 12,
+    "mediumRisk": 73
   },
   "byArea": {
     "BOOT/APP SHELL": {
@@ -20,8 +20,8 @@
       "medium": 2
     },
     "SZAFKI": {
-      "files": 31,
-      "lines": 7597,
+      "files": 33,
+      "lines": 8647,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 24,
-      "lines": 4789,
+      "lines": 5156,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 1,
@@ -45,11 +45,11 @@
     },
     "MATERIAŁ": {
       "files": 27,
-      "lines": 5702,
+      "lines": 6038,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
-      "medium": 3
+      "medium": 5
     },
     "OPTIMIZER": {
       "files": 12,
@@ -61,11 +61,11 @@
     },
     "INNE": {
       "files": 7,
-      "lines": 1333,
+      "lines": 1343,
       "storageRefs": 2,
       "dialogRefs": 0,
       "high": 0,
-      "medium": 0
+      "medium": 1
     },
     "PROJEKT": {
       "files": 10,
@@ -76,28 +76,28 @@
       "medium": 6
     },
     "WYCENA": {
-      "files": 47,
-      "lines": 9089,
+      "files": 49,
+      "lines": 10349,
       "storageRefs": 12,
       "dialogRefs": 0,
-      "high": 3,
+      "high": 4,
       "medium": 6
     },
     "ROZRYS": {
       "files": 42,
-      "lines": 8860,
+      "lines": 8862,
       "storageRefs": 6,
       "dialogRefs": 0,
       "high": 1,
-      "medium": 5
+      "medium": 6
     },
     "SHARED": {
-      "files": 11,
-      "lines": 1268,
+      "files": 12,
+      "lines": 1407,
       "storageRefs": 0,
-      "dialogRefs": 0,
+      "dialogRefs": 1,
       "high": 0,
-      "medium": 0
+      "medium": 1
     },
     "DANE/STORAGE": {
       "files": 15,
@@ -117,7 +117,7 @@
     },
     "UI": {
       "files": 32,
-      "lines": 4261,
+      "lines": 4277,
       "storageRefs": 0,
       "dialogRefs": 6,
       "high": 0,
@@ -149,7 +149,7 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 12480,
+      "lines": 12491,
       "storageRefs": 242,
       "dialogRefs": 1,
       "high": 5,
@@ -186,8 +186,12 @@
       788
     ],
     [
+      "js/app/wycena/wycena-core-lines.js",
+      722
+    ],
+    [
       "js/app/cabinet/cabinet-modal.js",
-      684
+      707
     ],
     [
       "js/app/quote/quote-snapshot-store.js",
@@ -198,12 +202,16 @@
       649
     ],
     [
-      "js/testing/material/accessories-tests.js",
-      614
+      "js/app/material/price-modal-hardware-form.js",
+      638
     ],
     [
       "js/app/material/price-modal-hardware-dictionaries.js",
-      609
+      631
+    ],
+    [
+      "js/testing/material/accessories-tests.js",
+      622
     ],
     [
       "js/app/cabinet/cabinet-modal-standing-specials.js",
@@ -211,37 +219,29 @@
     ],
     [
       "js/app/catalog/hardware-catalog.js",
-      584
+      589
+    ],
+    [
+      "js/app/catalog/catalog-store.js",
+      586
     ],
     [
       "js/app/wycena/wycena-context-repair.js",
       578
     ],
     [
-      "js/app/material/price-modal-hardware-form.js",
-      563
+      "js/app/catalog/hardware-technical-params.js",
+      538
     ],
     [
-      "js/app/catalog/catalog-store.js",
-      524
-    ],
-    [
-      "js/app/rozrys/rozrys-render.js",
-      493
-    ],
-    [
-      "js/testing/rozrys/tests.js",
-      475
-    ],
-    [
-      "js/app/ui/actions-register.js",
-      473
+      "js/app/cabinet/cabinet-hardware-requirements.js",
+      506
     ]
   ],
   "topIncoming": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      75
+      76
     ],
     [
       "js/app/investor/investors-store.js",
@@ -253,7 +253,7 @@
     ],
     [
       "js/app/shared/utils.js",
-      42
+      43
     ],
     [
       "js/app/shared/storage.js",
@@ -273,7 +273,19 @@
     ],
     [
       "js/app/ui/info-box.js",
-      29
+      31
+    ],
+    [
+      "js/app/wycena/wycena-core-material-plan.js",
+      28
+    ],
+    [
+      "js/app/wycena/wycena-core-lines.js",
+      26
+    ],
+    [
+      "js/app/material/material-edge-store.js",
+      25
     ],
     [
       "js/app/project/project-bridge.js",
@@ -281,7 +293,15 @@
     ],
     [
       "js/app/ui/panel-box.js",
+      25
+    ],
+    [
+      "js/app/cabinet/cabinet-hardware-requirement-options.js",
       24
+    ],
+    [
+      "js/app/catalog/catalog-store.js",
+      23
     ],
     [
       "js/testing/wycena/suites/core-offer-basics.js",
@@ -296,49 +316,33 @@
       21
     ],
     [
-      "js/app/material/price-modal-context.js",
-      20
-    ],
-    [
-      "js/app/catalog/catalog-store.js",
-      19
-    ],
-    [
       "js/app/catalog/hardware-catalog.js",
-      18
-    ],
-    [
-      "js/app/investor/investor-persistence.js",
-      18
-    ],
-    [
-      "js/app/project/project-status-snapshot-flow.js",
-      17
-    ],
-    [
-      "js/app/project/project-status-sync.js",
-      17
+      20
     ]
   ],
   "topSecond": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      195
+      198
     ],
     [
       "js/app/shared/storage.js",
-      167
+      169
     ],
     [
       "js/app/shared/utils.js",
-      164
+      168
     ],
     [
       "js/app/shared/constants.js",
-      122
+      125
     ],
     [
       "js/app/project/project-bridge.js",
+      114
+    ],
+    [
+      "js/app/investor/session.js",
       113
     ],
     [
@@ -350,19 +354,35 @@
       101
     ],
     [
+      "js/app/wycena/wycena-core-material-plan.js",
+      100
+    ],
+    [
+      "js/app/shared/schema.js",
+      99
+    ],
+    [
       "js/app/shared/room-registry.js",
       98
     ],
     [
-      "js/app/shared/schema.js",
-      98
-    ],
-    [
-      "js/app/investor/session.js",
-      96
+      "js/app/wycena/wycena-core-lines.js",
+      95
     ],
     [
       "js/app/ui/info-box.js",
+      83
+    ],
+    [
+      "js/app/cabinet/cabinet-hardware-requirement-options.js",
+      78
+    ],
+    [
+      "js/app/catalog/catalog-store.js",
+      77
+    ],
+    [
+      "js/app/material/material-edge-store.js",
       76
     ],
     [
@@ -378,28 +398,8 @@
       71
     ],
     [
-      "js/app/quote/quote-snapshot.js",
-      62
-    ],
-    [
-      "js/app/investor/investor-persistence.js",
-      60
-    ],
-    [
-      "js/app/catalog/catalog-store.js",
-      56
-    ],
-    [
-      "js/app/rozrys/rozrys.js",
-      55
-    ],
-    [
-      "js/app/rozrys/rozrys-shell.js",
-      54
-    ],
-    [
-      "js/app/investor/investors-model.js",
-      53
+      "js/app/rozrys/rozrys-scope.js",
+      71
     ]
   ],
   "topStorage": [
@@ -493,7 +493,7 @@
       "category": "test",
       "lines": 848,
       "incoming": 14,
-      "outgoing": 31,
+      "outgoing": 35,
       "secondLevel": 38,
       "storageRefs": 112,
       "dialogRefs": 0,
@@ -584,6 +584,24 @@
       ]
     },
     {
+      "file": "js/app/wycena/wycena-core-lines.js",
+      "risk": "wysokie",
+      "score": 10,
+      "area": "WYCENA",
+      "category": "domain/controller",
+      "lines": 722,
+      "incoming": 26,
+      "outgoing": 15,
+      "secondLevel": 95,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "600+ linii",
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
       "file": "js/testing/rozrys/tests.js",
       "risk": "wysokie",
       "score": 10,
@@ -621,6 +639,24 @@
       ]
     },
     {
+      "file": "js/app/catalog/catalog-store.js",
+      "risk": "wysokie",
+      "score": 8,
+      "area": "KATALOG/USŁUGI",
+      "category": "domain/controller",
+      "lines": 586,
+      "incoming": 23,
+      "outgoing": 16,
+      "secondLevel": 77,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "400+ linii",
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
       "file": "js/app/wycena/wycena-context-repair.js",
       "risk": "wysokie",
       "score": 8,
@@ -636,24 +672,6 @@
         "400+ linii",
         "dużo zależności wychodzących",
         "bezpośredni storage poza oczywistą granicą"
-      ]
-    },
-    {
-      "file": "js/app/catalog/catalog-store.js",
-      "risk": "wysokie",
-      "score": 8,
-      "area": "KATALOG/USŁUGI",
-      "category": "domain/controller",
-      "lines": 524,
-      "incoming": 19,
-      "outgoing": 12,
-      "secondLevel": 56,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "400+ linii",
-        "dużo zależnych plików",
-        "dużo zależności wychodzących"
       ]
     },
     {
@@ -686,6 +704,43 @@
       "outgoing": 7,
       "secondLevel": 32,
       "storageRefs": 15,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików",
+        "kilka zależności wychodzących",
+        "bezpośredni storage poza oczywistą granicą"
+      ]
+    },
+    {
+      "file": "js/app/wycena/wycena-core-material-plan.js",
+      "risk": "średnie",
+      "score": 7,
+      "area": "WYCENA",
+      "category": "domain/controller",
+      "lines": 318,
+      "incoming": 28,
+      "outgoing": 15,
+      "secondLevel": 100,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/app/material/material-edge-store.js",
+      "risk": "średnie",
+      "score": 7,
+      "area": "MATERIAŁ",
+      "category": "store/storage",
+      "lines": 296,
+      "incoming": 25,
+      "outgoing": 8,
+      "secondLevel": 76,
+      "storageRefs": 3,
       "dialogRefs": 0,
       "reasons": [
         "250+ linii",
@@ -735,9 +790,9 @@
       "score": 6,
       "area": "TESTY",
       "category": "test",
-      "lines": 614,
+      "lines": 622,
       "incoming": 1,
-      "outgoing": 16,
+      "outgoing": 20,
       "secondLevel": 1,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -752,10 +807,27 @@
       "score": 6,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 584,
-      "incoming": 18,
+      "lines": 589,
+      "incoming": 20,
       "outgoing": 3,
-      "secondLevel": 25,
+      "secondLevel": 34,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "400+ linii",
+        "dużo zależnych plików"
+      ]
+    },
+    {
+      "file": "js/app/catalog/hardware-technical-params.js",
+      "risk": "średnie",
+      "score": 6,
+      "area": "KATALOG/USŁUGI",
+      "category": "domain/controller",
+      "lines": 538,
+      "incoming": 13,
+      "outgoing": 1,
+      "secondLevel": 42,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -891,6 +963,24 @@
       ]
     },
     {
+      "file": "js/app/quote/quote-snapshot.js",
+      "risk": "średnie",
+      "score": 6,
+      "area": "WYCENA",
+      "category": "domain/controller",
+      "lines": 339,
+      "incoming": 12,
+      "outgoing": 9,
+      "secondLevel": 62,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików",
+        "kilka zależności wychodzących"
+      ]
+    },
+    {
       "file": "js/testing/wycena/suites/architecture-contract.js",
       "risk": "średnie",
       "score": 6,
@@ -906,24 +996,6 @@
         "250+ linii",
         "dużo zależnych plików",
         "dużo zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/app/quote/quote-snapshot.js",
-      "risk": "średnie",
-      "score": 6,
-      "area": "WYCENA",
-      "category": "domain/controller",
-      "lines": 309,
-      "incoming": 12,
-      "outgoing": 8,
-      "secondLevel": 62,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "250+ linii",
-        "dużo zależnych plików",
-        "kilka zależności wychodzących"
       ]
     },
     {
@@ -1076,7 +1148,24 @@
       "score": 5,
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 684,
+      "lines": 707,
+      "incoming": 0,
+      "outgoing": 8,
+      "secondLevel": 0,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "600+ linii",
+        "kilka zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/app/material/price-modal-hardware-form.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "MATERIAŁ",
+      "category": "ui/render/events",
+      "lines": 638,
       "incoming": 0,
       "outgoing": 7,
       "secondLevel": 0,
@@ -1093,9 +1182,9 @@
       "score": 5,
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 609,
+      "lines": 631,
       "incoming": 0,
-      "outgoing": 7,
+      "outgoing": 8,
       "secondLevel": 0,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1148,7 +1237,7 @@
       "lines": 368,
       "incoming": 12,
       "outgoing": 3,
-      "secondLevel": 96,
+      "secondLevel": 113,
       "storageRefs": 15,
       "dialogRefs": 0,
       "reasons": [
@@ -1165,7 +1254,7 @@
       "lines": 317,
       "incoming": 14,
       "outgoing": 1,
-      "secondLevel": 51,
+      "secondLevel": 71,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1252,7 +1341,7 @@
       "lines": 270,
       "incoming": 6,
       "outgoing": 7,
-      "secondLevel": 28,
+      "secondLevel": 47,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1270,7 +1359,7 @@
       "lines": 250,
       "incoming": 15,
       "outgoing": 11,
-      "secondLevel": 39,
+      "secondLevel": 59,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1404,9 +1493,9 @@
       "score": 5,
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 100,
+      "lines": 110,
       "incoming": 15,
-      "outgoing": 8,
+      "outgoing": 9,
       "secondLevel": 46,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1459,6 +1548,23 @@
       "incoming": 15,
       "outgoing": 18,
       "secondLevel": 23,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/app/material/price-modal-context.js",
+      "risk": "średnie",
+      "score": 5,
+      "area": "MATERIAŁ",
+      "category": "domain/controller",
+      "lines": 56,
+      "incoming": 20,
+      "outgoing": 12,
+      "secondLevel": 28,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1547,23 +1653,6 @@
       ]
     },
     {
-      "file": "js/app/catalog/hardware-technical-params.js",
-      "risk": "średnie",
-      "score": 4,
-      "area": "KATALOG/USŁUGI",
-      "category": "domain/controller",
-      "lines": 325,
-      "incoming": 10,
-      "outgoing": 0,
-      "secondLevel": 34,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "250+ linii",
-        "dużo zależnych plików"
-      ]
-    },
-    {
       "file": "js/app/optimizer/cut-optimizer.js",
       "risk": "średnie",
       "score": 4,
@@ -1596,6 +1685,23 @@
         "250+ linii",
         "bezpośredni storage poza oczywistą granicą",
         "systemowe dialogi"
+      ]
+    },
+    {
+      "file": "js/app/pricing/labor-catalog.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "INNE",
+      "category": "domain/controller",
+      "lines": 251,
+      "incoming": 10,
+      "outgoing": 3,
+      "secondLevel": 30,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików"
       ]
     },
     {
@@ -1706,9 +1812,9 @@
       "area": "BOOT/APP SHELL",
       "category": "bootstrap/orchestrator",
       "lines": 178,
-      "incoming": 75,
+      "incoming": 76,
       "outgoing": 4,
-      "secondLevel": 195,
+      "secondLevel": 198,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1724,13 +1830,30 @@
       "category": "test",
       "lines": 146,
       "incoming": 1,
-      "outgoing": 12,
+      "outgoing": 14,
       "secondLevel": 1,
       "storageRefs": 23,
       "dialogRefs": 0,
       "reasons": [
         "dużo zależności wychodzących",
         "bezpośredni storage poza oczywistą granicą"
+      ]
+    },
+    {
+      "file": "js/app/shared/help-registry.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "SHARED",
+      "category": "ui/render/events",
+      "lines": 139,
+      "incoming": 12,
+      "outgoing": 2,
+      "secondLevel": 25,
+      "storageRefs": 0,
+      "dialogRefs": 1,
+      "reasons": [
+        "dużo zależnych plików",
+        "systemowe dialogi"
       ]
     },
     {
@@ -1750,20 +1873,19 @@
       ]
     },
     {
-      "file": "js/app/wycena/wycena-core-material-plan.js",
+      "file": "js/app/rozrys/rozrys-choice.js",
       "risk": "średnie",
       "score": 4,
-      "area": "WYCENA",
-      "category": "domain/controller",
-      "lines": 137,
-      "incoming": 6,
-      "outgoing": 10,
-      "secondLevel": 43,
+      "area": "ROZRYS",
+      "category": "ui/render/events",
+      "lines": 120,
+      "incoming": 10,
+      "outgoing": 0,
+      "secondLevel": 28,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
-        "kilka zależnych plików",
-        "kilka zależności wychodzących"
+        "dużo zależnych plików"
       ]
     },
     {
@@ -1808,7 +1930,7 @@
       "lines": 83,
       "incoming": 25,
       "outgoing": 6,
-      "secondLevel": 113,
+      "secondLevel": 114,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1830,23 +1952,6 @@
       "reasons": [
         "kilka zależnych plików",
         "dużo zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/app/material/price-modal-context.js",
-      "risk": "średnie",
-      "score": 4,
-      "area": "MATERIAŁ",
-      "category": "domain/controller",
-      "lines": 56,
-      "incoming": 20,
-      "outgoing": 8,
-      "secondLevel": 28,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "dużo zależnych plików",
-        "kilka zależności wychodzących"
       ]
     },
     {
@@ -1898,7 +2003,9 @@
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/bootstrap/reload-restore.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-store.js",
+        "js/app/material/material-edge-store.js",
         "js/app/project/project-bridge.js",
         "js/app/rozrys/rozrys-lazy-loader.js",
         "js/app/shared/constants.js",
@@ -1908,6 +2015,8 @@
         "js/app/shared/validate.js",
         "js/app/ui/app-view.js",
         "js/app/ui/bindings.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/tabs/material.js",
         "js/tabs/rysunek.js"
       ],
@@ -1993,6 +2102,7 @@
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
         "js/app/project/project-store.js",
+        "js/app/quote/quote-calculation-register.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot-scope.js",
@@ -2046,6 +2156,7 @@
         "js/app/bootstrap/reload-restore.js",
         "js/app/cabinet/cabinet-actions.js",
         "js/app/cabinet/cabinet-fronts.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/cabinet/cabinet-modal-hanging.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-module.js",
@@ -2112,6 +2223,7 @@
         "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
+        "js/app/quote/quote-calculation-register.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
@@ -2170,6 +2282,7 @@
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-labor-picker.js",
         "js/app/wycena/wycena-room-availability.js",
+        "js/app/wycena/wycena-summary-details-modal.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-history.js",
@@ -2292,12 +2405,16 @@
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-store.js",
+        "js/app/material/material-edge-store.js",
         "js/app/project/project-bridge.js",
         "js/app/shared/constants.js",
         "js/app/shared/storage.js",
         "js/app/shared/ui-state.js",
-        "js/app/shared/validate.js"
+        "js/app/shared/validate.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js"
       ],
       "secondLevelFiles": [
         "js/testing/cabinet/tests.js",
@@ -2551,7 +2668,7 @@
     "js/app/cabinet/cabinet-cutlist.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 238,
+      "lines": 251,
       "defines": [
         "cabinetCutlist"
       ],
@@ -2574,14 +2691,32 @@
         "js/app/material/material-common.js"
       ],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/rozrys/rozrys-lazy-loader.js",
         "js/app/rozrys/rozrys-shell.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
@@ -2589,6 +2724,8 @@
         "js/testing/investor/suites/registry-core.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -2600,6 +2737,7 @@
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -2625,6 +2763,7 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
+        "250+ linii",
         "kilka zależnych plików"
       ]
     },
@@ -2652,28 +2791,133 @@
         "600+ linii"
       ]
     },
-    "js/app/cabinet/cabinet-hardware-requirements.js": {
+    "js/app/cabinet/cabinet-hardware-requirement-options.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 217,
+      "lines": 248,
       "defines": [
-        "cabinetHardwareRequirements"
+        "catalogStore",
+        "cabinetHardwareRequirementOptions"
       ],
       "uses": [
-        "frontHardware",
-        "cabinetHardwareRequirements"
+        "catalogStore",
+        "hardwareTechnicalParams",
+        "hardwareCatalog",
+        "cabinetHardwareRequirementOptions"
       ],
       "incomingFiles": [
-        "js/app/cabinet/cabinet-cutlist.js"
-      ],
-      "outgoingFiles": [],
-      "secondLevelFiles": [
-        "js/app/rozrys/rozrys.js",
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirements.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
+        "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
+        "js/testing/service/tests.js"
+      ],
+      "outgoingFiles": [
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog.js",
+        "js/app/catalog/hardware-technical-params.js",
+        "js/app/material/material-edge-store.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js"
+      ],
+      "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/bootstrap/app-ui-bootstrap.js",
+        "js/app/cabinet/cabinet-cutlist.js",
+        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/cabinet/cabinet-modal.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-export.js",
+        "js/app/catalog/hardware-catalog-import-parser.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
+        "js/app/material/material-registry.js",
+        "js/app/material/material-tab-data.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-field-help.js",
+        "js/app/material/price-modal-filters.js",
+        "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
+        "js/app/material/price-modal-hardware-filter-sort.js",
+        "js/app/material/price-modal-hardware-form.js",
+        "js/app/material/price-modal-hardware-import-export.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/material/price-modal-hardware-manufacturers.js",
+        "js/app/material/price-modal-hardware-replacements.js",
+        "js/app/material/price-modal-hardware-supplier-prices.js",
+        "js/app/material/price-modal-hardware-suppliers.js",
+        "js/app/material/price-modal-hardware-ux.js",
+        "js/app/material/price-modal-item-form.js",
+        "js/app/material/price-modal-list.js",
+        "js/app/material/price-modal-options.js",
+        "js/app/material/price-modal-persistence.js",
+        "js/app/material/price-modal.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-cutting-rozrys.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/actions-register.js",
+        "js/app/ui/app-view.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/ui/data-settings-modal.js",
+        "js/app/ui/views.js",
+        "js/app/wycena/wycena-core-catalog.js",
+        "js/app/wycena/wycena-core-labor.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
+        "js/app/wycena/wycena-core-offer.js",
+        "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
+        "js/app/wycena/wycena-tab-manual-labor.js",
+        "js/tabs/material.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/tabs/wywiad.js",
         "js/testing/cabinet/tests.js",
+        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
+        "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
-        "js/testing/wycena/fixtures.js"
+        "js/testing/rozrys/tests.js",
+        "js/testing/rysunek/tests.js",
+        "js/testing/service/tests.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
+        "js/testing/wycena/tests.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -2681,7 +2925,104 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "dużo zależnych plików"
+      ]
+    },
+    "js/app/cabinet/cabinet-hardware-requirements-panel.js": {
+      "area": "SZAFKI",
+      "category": "ui/render/events",
+      "lines": 477,
+      "defines": [
+        "cabinetHardwareRequirementsPanel"
+      ],
+      "uses": [
+        "cabinetHardwareRequirements",
+        "rozrysChoice",
+        "cabinetHardwareRequirementsPanel"
+      ],
+      "incomingFiles": [
+        "js/app/cabinet/cabinet-modal.js"
+      ],
+      "outgoingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirements.js",
+        "js/app/rozrys/rozrys-choice.js"
+      ],
+      "secondLevelFiles": [],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 3,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": [
+        "400+ linii"
+      ]
+    },
+    "js/app/cabinet/cabinet-hardware-requirements.js": {
+      "area": "SZAFKI",
+      "category": "domain/controller",
+      "lines": 506,
+      "defines": [
+        "cabinetHardwareRequirements"
+      ],
+      "uses": [
+        "frontHardware",
+        "cabinetHardwareRequirementOptions",
+        "cabinetHardwareRequirements"
+      ],
+      "incomingFiles": [
+        "js/app/cabinet/cabinet-cutlist.js",
+        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
+        "js/app/wycena/wycena-core-lines.js"
+      ],
+      "outgoingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirement-options.js"
+      ],
+      "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/cabinet/cabinet-modal.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/rozrys/rozrys.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
+        "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/testing/cabinet/tests.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
+        "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/service/tests.js",
+        "js/testing/wycena/fixtures.js",
+        "js/testing/wycena/suites/architecture-contract.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": [
+        "400+ linii"
+      ]
     },
     "js/app/cabinet/cabinet-modal-draft.js": {
       "area": "SZAFKI",
@@ -2782,9 +3123,13 @@
       ],
       "outgoingFiles": [
         "js/app/cabinet/cabinet-choice-launchers.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-store.js",
+        "js/app/material/material-edge-store.js",
         "js/app/pricing/labor-appliance-rules.js",
-        "js/app/pricing/labor-catalog.js"
+        "js/app/pricing/labor-catalog.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js"
       ],
       "secondLevelFiles": [],
       "storageRefs": 0,
@@ -2793,7 +3138,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "kilka zależności wychodzących"
+      ]
     },
     "js/app/cabinet/cabinet-modal-module.js": {
       "area": "SZAFKI",
@@ -3009,7 +3356,7 @@
     "js/app/cabinet/cabinet-modal.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 684,
+      "lines": 707,
       "defines": [],
       "uses": [
         "cabinetModalValidation",
@@ -3023,6 +3370,7 @@
         "cabinetModalFinalize",
         "listScrollMemory",
         "utils",
+        "cabinetHardwareRequirementsPanel",
         "cabinetChoiceLaunchers",
         "infoBox",
         "confirmBox"
@@ -3031,6 +3379,7 @@
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/cabinet/cabinet-choice-launchers.js",
+        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/shared/utils.js",
         "js/app/ui/confirm-box.js",
@@ -3040,7 +3389,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 68,
+      "domRefs": 69,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "średnie",
@@ -3252,7 +3601,7 @@
     "js/app/catalog/catalog-domain.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 121,
+      "lines": 124,
       "defines": [
         "catalogDomain"
       ],
@@ -3272,10 +3621,12 @@
       "secondLevelFiles": [
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
@@ -3301,6 +3652,8 @@
         "js/app/service/service-orders.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
@@ -3352,10 +3705,12 @@
       "secondLevelFiles": [
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
@@ -3363,6 +3718,8 @@
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
@@ -3400,8 +3757,12 @@
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-store.js",
-        "js/app/shared/utils.js"
+        "js/app/material/material-edge-store.js",
+        "js/app/shared/utils.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js"
       ],
       "secondLevelFiles": [
         "js/app/service/cutting/service-cutting-rozrys.js",
@@ -3422,7 +3783,8 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
-        "kilka zależnych plików"
+        "kilka zależnych plików",
+        "kilka zależności wychodzących"
       ]
     },
     "js/app/catalog/catalog-storage-policy.js": {
@@ -3442,10 +3804,12 @@
       "secondLevelFiles": [
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
@@ -3453,6 +3817,8 @@
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
@@ -3471,7 +3837,7 @@
     "js/app/catalog/catalog-store.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 524,
+      "lines": 586,
       "defines": [
         "catalogStore"
       ],
@@ -3492,10 +3858,12 @@
       "incomingFiles": [
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
@@ -3503,6 +3871,8 @@
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
@@ -3512,24 +3882,39 @@
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-domain.js",
         "js/app/catalog/catalog-migration.js",
         "js/app/catalog/catalog-storage-policy.js",
         "js/app/catalog/hardware-catalog-seeds.js",
         "js/app/catalog/hardware-catalog.js",
         "js/app/catalog/hardware-technical-params.js",
+        "js/app/material/material-edge-store.js",
         "js/app/pricing/labor-catalog.js",
         "js/app/service/service-order-store.js",
         "js/app/shared/constants.js",
         "js/app/shared/storage.js",
-        "js/app/shared/utils.js"
+        "js/app/shared/utils.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js"
       ],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/bootstrap/app-ui-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-hardware-requirements.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
+        "js/app/material/material-registry.js",
+        "js/app/material/material-tab-data.js",
+        "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-filters.js",
         "js/app/material/price-modal-hardware-bundle.js",
@@ -3537,6 +3922,7 @@
         "js/app/material/price-modal-hardware-filter-sort.js",
         "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-export.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/material/price-modal-hardware-manufacturers.js",
         "js/app/material/price-modal-hardware-replacements.js",
         "js/app/material/price-modal-hardware-supplier-prices.js",
@@ -3550,15 +3936,22 @@
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/app-view.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/data-settings-modal.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-core-catalog.js",
         "js/app/wycena/wycena-core-labor.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core-offer.js",
+        "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-manual-labor.js",
+        "js/tabs/material.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/tabs/wywiad.js",
         "js/testing/cabinet/tests.js",
@@ -3569,10 +3962,12 @@
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
         "js/testing/service/tests.js",
+        "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/cross-systems.js",
@@ -3618,12 +4013,16 @@
         "js/testing/material/accessories-tests.js"
       ],
       "outgoingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
         "js/app/catalog/hardware-catalog.js",
         "js/app/catalog/hardware-technical-params.js",
+        "js/app/material/material-edge-store.js",
         "js/app/shared/data-backup-export.js",
-        "js/app/shared/xlsx-lite.js"
+        "js/app/shared/xlsx-lite.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js"
       ],
       "secondLevelFiles": [
         "js/app/catalog/hardware-catalog-import-export.js",
@@ -3641,7 +4040,8 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
-        "kilka zależnych plików"
+        "kilka zależnych plików",
+        "kilka zależności wychodzących"
       ]
     },
     "js/app/catalog/hardware-catalog-import-export.js": {
@@ -3747,11 +4147,15 @@
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
         "js/app/catalog/hardware-catalog.js",
-        "js/app/shared/utils.js"
+        "js/app/material/material-edge-store.js",
+        "js/app/shared/utils.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js"
       ],
       "secondLevelFiles": [
         "js/app/material/price-modal-hardware-import-export.js",
@@ -3767,12 +4171,14 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "kilka zależności wychodzących"
+      ]
     },
     "js/app/catalog/hardware-catalog-seed-data.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 261,
+      "lines": 336,
       "defines": [
         "hardwareCatalogSeedData"
       ],
@@ -3819,10 +4225,12 @@
       "secondLevelFiles": [
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
@@ -3830,6 +4238,8 @@
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
@@ -3890,7 +4300,7 @@
     "js/app/catalog/hardware-catalog.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 584,
+      "lines": 589,
       "defines": [
         "hardwareCatalog"
       ],
@@ -3900,6 +4310,7 @@
         "hardwareCatalog"
       ],
       "incomingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
@@ -3916,6 +4327,7 @@
         "js/app/material/price-modal-list.js",
         "js/app/material/price-modal-options.js",
         "js/app/material/price-modal-persistence.js",
+        "js/app/wycena/wycena-core-lines.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js"
       ],
@@ -3927,14 +4339,18 @@
       "secondLevelFiles": [
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-hardware-requirements.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
         "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
         "js/app/catalog/hardware-supplier-price-import.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/material/price-modal-hardware-replacements.js",
@@ -3943,13 +4359,18 @@
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
+        "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
-        "js/testing/service/tests.js"
+        "js/testing/service/tests.js",
+        "js/testing/wycena/suites/architecture-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -3965,7 +4386,7 @@
     "js/app/catalog/hardware-replacement-engine.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 222,
+      "lines": 231,
       "defines": [
         "hardwareReplacementEngine"
       ],
@@ -4071,14 +4492,16 @@
     "js/app/catalog/hardware-technical-params.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 325,
+      "lines": 538,
       "defines": [
         "hardwareTechnicalParams"
       ],
       "uses": [
+        "helpRegistry",
         "hardwareTechnicalParams"
       ],
       "incomingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
@@ -4087,13 +4510,19 @@
         "js/app/material/price-modal-hardware-dictionaries.js",
         "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-replacements.js",
+        "js/app/material/price-modal-hardware-ux.js",
+        "js/app/wycena/wycena-core-lines.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js"
       ],
-      "outgoingFiles": [],
+      "outgoingFiles": [
+        "js/app/shared/help-registry.js"
+      ],
       "secondLevelFiles": [
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-hardware-requirements.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
@@ -4104,6 +4533,7 @@
         "js/app/catalog/hardware-replacement-engine.js",
         "js/app/catalog/hardware-supplier-price-export.js",
         "js/app/catalog/hardware-supplier-price-import.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-bundle.js",
         "js/app/material/price-modal-hardware-dictionaries.js",
@@ -4120,12 +4550,17 @@
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
+        "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
-        "js/testing/service/tests.js"
+        "js/testing/service/tests.js",
+        "js/testing/wycena/suites/architecture-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -4134,7 +4569,7 @@
       "loadedInDevTests": true,
       "risk": "średnie",
       "reasons": [
-        "250+ linii",
+        "400+ linii",
         "dużo zależnych plików"
       ]
     },
@@ -5520,8 +5955,13 @@
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/bootstrap/reload-restore.js",
         "js/app/cabinet/cabinet-actions.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-set-wizard.js",
+        "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
         "js/app/investor/investor-project-patches.js",
         "js/app/investor/investor-project-repository.js",
         "js/app/investor/investor-project-runtime.js",
@@ -5535,6 +5975,7 @@
         "js/app/material/material-part-options.js",
         "js/app/material/material-tab-data.js",
         "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/project/project-bridge.js",
         "js/app/project/project-schedule-status.js",
         "js/app/project/project-status-manual-guard.js",
@@ -5550,7 +5991,11 @@
         "js/app/quote/quote-snapshot-store.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/rozrys/rozrys.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-order-store.js",
+        "js/app/service/service-orders.js",
         "js/app/settings/program-defaults-store.js",
         "js/app/shared/public-api.js",
         "js/app/shared/room-registry-impact.js",
@@ -5560,12 +6005,15 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/bindings.js",
         "js/app/ui/cabinets-render.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/layout-state.js",
         "js/app/ui/settings-ui.js",
         "js/app/ui/tab-navigation.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-catalog.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/app/wycena/wycena-tab-data.js",
@@ -5580,6 +6028,7 @@
         "js/app/wycena/wycena-tab-status-bridge.js",
         "js/tabs/material.js",
         "js/tabs/rysunek.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/tabs/wywiad.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
@@ -5588,12 +6037,15 @@
         "js/testing/investor/suites/recovery-sources.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -5692,6 +6144,7 @@
         "js/app.js",
         "js/app/rozrys/rozrys.js",
         "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/tabs/material.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
@@ -5717,41 +6170,144 @@
     "js/app/material/material-edge-store.js": {
       "area": "MATERIAŁ",
       "category": "store/storage",
-      "lines": 210,
+      "lines": 296,
       "defines": [
+        "catalogStore",
         "materialEdgeStore"
       ],
       "uses": [
         "materialPartOptions",
+        "catalogStore",
         "session",
         "views",
         "listScrollMemory",
         "materialEdgeStore"
       ],
       "incomingFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
         "js/app/material/material-tab-data.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/tabs/material.js",
-        "js/testing/material/tests.js"
+        "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
+        "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
+        "js/testing/service/tests.js"
       ],
       "outgoingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/catalog/catalog-store.js",
         "js/app/investor/session.js",
         "js/app/material/material-part-options.js",
         "js/app/ui/list-scroll-memory.js",
-        "js/app/ui/views.js"
+        "js/app/ui/views.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js"
       ],
       "secondLevelFiles": [
         "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/bootstrap/app-ui-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-hardware-requirements.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/cabinet/cabinet-modal.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-export.js",
+        "js/app/catalog/hardware-catalog-import-parser.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-registry.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-field-help.js",
+        "js/app/material/price-modal-filters.js",
+        "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
+        "js/app/material/price-modal-hardware-filter-sort.js",
+        "js/app/material/price-modal-hardware-form.js",
+        "js/app/material/price-modal-hardware-import-export.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/material/price-modal-hardware-manufacturers.js",
+        "js/app/material/price-modal-hardware-replacements.js",
+        "js/app/material/price-modal-hardware-supplier-prices.js",
+        "js/app/material/price-modal-hardware-suppliers.js",
+        "js/app/material/price-modal-hardware-ux.js",
+        "js/app/material/price-modal-item-form.js",
+        "js/app/material/price-modal-list.js",
+        "js/app/material/price-modal-options.js",
+        "js/app/material/price-modal-persistence.js",
+        "js/app/material/price-modal.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-cutting-rozrys.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/actions-register.js",
+        "js/app/ui/app-view.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/ui/data-settings-modal.js",
+        "js/app/ui/views.js",
+        "js/app/wycena/wycena-core-catalog.js",
+        "js/app/wycena/wycena-core-labor.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
+        "js/app/wycena/wycena-core-offer.js",
+        "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
+        "js/app/wycena/wycena-tab-manual-labor.js",
         "js/tabs/material.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/tabs/wywiad.js",
+        "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
-        "js/testing/material/tests.js"
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
+        "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/rozrys/tests.js",
+        "js/testing/rysunek/tests.js",
+        "js/testing/service/tests.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/central-status-sync.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/investor-integration.js",
+        "js/testing/wycena/suites/schedule-status-contract.js",
+        "js/testing/wycena/suites/status-contract.js",
+        "js/testing/wycena/suites/status-reconciliation-regression.js",
+        "js/testing/wycena/tests.js"
       ],
       "storageRefs": 3,
       "dialogRefs": 0,
       "domRefs": 0,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "niskie",
+      "risk": "średnie",
       "reasons": [
+        "250+ linii",
+        "dużo zależnych plików",
+        "kilka zależności wychodzących",
         "bezpośredni storage poza oczywistą granicą"
       ]
     },
@@ -5781,18 +6337,39 @@
         "js/app/ui/views.js"
       ],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
         "js/app/material/material-tab-data.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/rozrys/rozrys-lazy-loader.js",
         "js/app/rozrys/rozrys-shell.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
         "js/tabs/material.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/testing/cabinet/tests.js",
         "js/testing/investor/suites/misc.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
         "js/testing/rozrys/suites/project-stock.js",
@@ -5800,6 +6377,7 @@
         "js/testing/rozrys/suites/state-ui-runtime.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/core-offer-basics.js",
         "js/testing/wycena/suites/cross-systems.js",
@@ -5839,12 +6417,33 @@
         "js/app/wycena/wycena-core-material-plan.js"
       ],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/misc.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
@@ -5853,6 +6452,7 @@
         "js/testing/rozrys/suites/state-ui-runtime.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/core-offer-basics.js",
@@ -5870,7 +6470,7 @@
     "js/app/material/material-tab-data.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 110,
+      "lines": 183,
       "defines": [
         "materialTabData"
       ],
@@ -5881,6 +6481,7 @@
         "materialTabData"
       ],
       "incomingFiles": [
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/tabs/material.js",
         "js/testing/material/tests.js"
       ],
@@ -5890,7 +6491,34 @@
       ],
       "secondLevelFiles": [
         "js/app.js",
-        "js/testing/dev-tests-registry.js"
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
+        "js/app/material/material-registry.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/testing/dev-tests-registry.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
+        "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/service/tests.js",
+        "js/testing/wycena/suites/architecture-contract.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -5942,13 +6570,17 @@
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-domain.js",
         "js/app/catalog/catalog-store.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/price-modal.js",
         "js/app/shared/storage.js",
         "js/app/shared/ui-state.js",
         "js/app/ui/confirm-box.js",
-        "js/app/ui/info-box.js"
+        "js/app/ui/info-box.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js"
       ],
       "secondLevelFiles": [
         "js/app/material/price-modal-hardware-import-export.js",
@@ -5988,22 +6620,24 @@
       "risk": "średnie",
       "reasons": [
         "dużo zależnych plików",
-        "kilka zależności wychodzących"
+        "dużo zależności wychodzących"
       ]
     },
     "js/app/material/price-modal-field-help.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 150,
+      "lines": 154,
       "defines": [],
       "uses": [
         "priceModalContext",
+        "helpRegistry",
         "infoBox",
         "panelBox"
       ],
       "incomingFiles": [],
       "outgoingFiles": [
         "js/app/material/price-modal-context.js",
+        "js/app/shared/help-registry.js",
         "js/app/ui/info-box.js",
         "js/app/ui/panel-box.js"
       ],
@@ -6067,7 +6701,7 @@
     "js/app/material/price-modal-hardware-dictionaries.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 609,
+      "lines": 631,
       "defines": [
         "priceModalHardwareDictionaries"
       ],
@@ -6076,6 +6710,7 @@
         "hardwareTechnicalParams",
         "utils",
         "hardwareCatalog",
+        "helpRegistry",
         "infoBox",
         "panelBox",
         "priceModalHardwareDictionaries"
@@ -6086,6 +6721,7 @@
         "js/app/catalog/hardware-catalog.js",
         "js/app/catalog/hardware-technical-params.js",
         "js/app/material/price-modal-context.js",
+        "js/app/shared/help-registry.js",
         "js/app/shared/utils.js",
         "js/app/ui/info-box.js",
         "js/app/ui/panel-box.js"
@@ -6128,7 +6764,7 @@
     "js/app/material/price-modal-hardware-form.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 563,
+      "lines": 638,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -6136,6 +6772,7 @@
         "hardwareTechnicalParams",
         "infoBox",
         "panelBox",
+        "helpRegistry",
         "rozrysChoice"
       ],
       "incomingFiles": [],
@@ -6144,18 +6781,20 @@
         "js/app/catalog/hardware-technical-params.js",
         "js/app/material/price-modal-context.js",
         "js/app/rozrys/rozrys-choice.js",
+        "js/app/shared/help-registry.js",
         "js/app/ui/info-box.js",
         "js/app/ui/panel-box.js"
       ],
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 24,
+      "domRefs": 27,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "niskie",
+      "risk": "średnie",
       "reasons": [
-        "400+ linii"
+        "600+ linii",
+        "kilka zależności wychodzących"
       ]
     },
     "js/app/material/price-modal-hardware-import-export.js": {
@@ -6218,10 +6857,14 @@
         "js/testing/material/accessories-tests.js"
       ],
       "outgoingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
-        "js/app/rozrys/rozrys-choice.js"
+        "js/app/material/material-edge-store.js",
+        "js/app/rozrys/rozrys-choice.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js"
       ],
       "secondLevelFiles": [
         "js/testing/material/tests.js"
@@ -6233,7 +6876,8 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
-        "250+ linii"
+        "250+ linii",
+        "kilka zależności wychodzących"
       ]
     },
     "js/app/material/price-modal-hardware-manufacturers.js": {
@@ -6382,15 +7026,17 @@
     "js/app/material/price-modal-hardware-ux.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 190,
+      "lines": 207,
       "defines": [],
       "uses": [
         "priceModalContext",
+        "hardwareTechnicalParams",
         "hardwareCatalog"
       ],
       "incomingFiles": [],
       "outgoingFiles": [
         "js/app/catalog/hardware-catalog.js",
+        "js/app/catalog/hardware-technical-params.js",
         "js/app/material/price-modal-context.js"
       ],
       "secondLevelFiles": [],
@@ -6405,7 +7051,7 @@
     "js/app/material/price-modal-item-form.js": {
       "area": "MATERIAŁ",
       "category": "domain/controller",
-      "lines": 334,
+      "lines": 358,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -6430,7 +7076,7 @@
     "js/app/material/price-modal-list.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 57,
+      "lines": 72,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -6455,7 +7101,7 @@
     "js/app/material/price-modal-options.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 223,
+      "lines": 235,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -6482,7 +7128,7 @@
     "js/app/material/price-modal-persistence.js": {
       "area": "MATERIAŁ",
       "category": "domain/controller",
-      "lines": 88,
+      "lines": 93,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -7143,10 +7789,33 @@
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/tabs/wywiad.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
+        "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/suites/architecture-contract.js"
       ],
       "storageRefs": 0,
@@ -7160,7 +7829,7 @@
     "js/app/pricing/labor-catalog-definitions.js": {
       "area": "INNE",
       "category": "domain/controller",
-      "lines": 67,
+      "lines": 75,
       "defines": [
         "laborCatalogDefinitions"
       ],
@@ -7194,7 +7863,7 @@
     "js/app/pricing/labor-catalog.js": {
       "area": "INNE",
       "category": "domain/controller",
-      "lines": 249,
+      "lines": 251,
       "defines": [
         "laborCatalog"
       ],
@@ -7223,11 +7892,13 @@
       "secondLevelFiles": [
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
@@ -7236,6 +7907,7 @@
         "js/app/service/service-orders.js",
         "js/app/ui/data-settings-defaults-view.js",
         "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-tab-manual-labor.js",
         "js/tabs/czynnosci.js",
@@ -7254,8 +7926,9 @@
       "domRefs": 0,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "niskie",
+      "risk": "średnie",
       "reasons": [
+        "250+ linii",
         "dużo zależnych plików"
       ]
     },
@@ -7348,6 +8021,7 @@
         "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
+        "js/app/quote/quote-calculation-register.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot-scope.js",
@@ -8204,6 +8878,64 @@
         "dużo zależnych plików"
       ]
     },
+    "js/app/quote/quote-calculation-register.js": {
+      "area": "WYCENA",
+      "category": "domain/controller",
+      "lines": 258,
+      "defines": [
+        "quoteCalculationRegister"
+      ],
+      "uses": [
+        "utils",
+        "wycenaCoreUtils",
+        "quoteCalculationRegister"
+      ],
+      "incomingFiles": [
+        "js/app/quote/quote-snapshot.js",
+        "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-summary-details-modal.js"
+      ],
+      "outgoingFiles": [
+        "js/app/bootstrap/app-core-namespace.js",
+        "js/app/shared/utils.js",
+        "js/app/wycena/wycena-core-utils.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/material/price-modal-persistence.js",
+        "js/app/project/project-status-manual-guard.js",
+        "js/app/project/project-status-scope.js",
+        "js/app/quote/quote-offer-store.js",
+        "js/app/quote/quote-pdf.js",
+        "js/app/quote/quote-scope-entry-flow.js",
+        "js/app/quote/quote-snapshot-scope.js",
+        "js/app/quote/quote-snapshot-store.js",
+        "js/app/quote/quote-snapshot.js",
+        "js/app/wycena/wycena-core-selection.js",
+        "js/app/wycena/wycena-core.js",
+        "js/app/wycena/wycena-diagnostics.js",
+        "js/app/wycena/wycena-tab-data.js",
+        "js/app/wycena/wycena-tab-helpers.js",
+        "js/app/wycena/wycena-tab-preview.js",
+        "js/app/wycena/wycena-tab-selection-scope.js",
+        "js/app/wycena/wycena-tab-shell.js",
+        "js/testing/wycena/suites/architecture-contract.js",
+        "js/testing/wycena/suites/core-offer-basics.js",
+        "js/testing/wycena/suites/core-offer-workflow.js",
+        "js/testing/wycena/suites/core-selection-contract.js",
+        "js/testing/wycena/suites/cross-systems.js",
+        "js/testing/wycena/suites/scope-entry.js",
+        "js/testing/wycena/tests.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 0,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": [
+        "250+ linii"
+      ]
+    },
     "js/app/quote/quote-offer-store.js": {
       "area": "WYCENA",
       "category": "domain/controller",
@@ -8998,7 +9730,7 @@
     "js/app/quote/quote-snapshot.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 309,
+      "lines": 339,
       "defines": [
         "quoteSnapshot"
       ],
@@ -9008,6 +9740,7 @@
         "projectStore",
         "roomRegistry",
         "rozrysScope",
+        "quoteCalculationRegister",
         "wycenaCore",
         "quoteSnapshotStore",
         "quoteSnapshot"
@@ -9030,6 +9763,7 @@
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/investor/investors-store.js",
         "js/app/project/project-store.js",
+        "js/app/quote/quote-calculation-register.js",
         "js/app/quote/quote-snapshot-store.js",
         "js/app/rozrys/rozrys-scope.js",
         "js/app/shared/room-registry.js",
@@ -9216,9 +9950,27 @@
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
@@ -9226,6 +9978,8 @@
         "js/testing/investor/suites/registry-core.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -9236,6 +9990,7 @@
         "js/testing/rozrys/suites/state-ui-runtime.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -9265,6 +10020,7 @@
       ],
       "incomingFiles": [
         "js/app/cabinet/cabinet-choice-launchers.js",
+        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/investor/investor-choice.js",
         "js/app/material/price-modal-hardware-form.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -9310,9 +10066,9 @@
       "domRefs": 7,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "niskie",
+      "risk": "średnie",
       "reasons": [
-        "kilka zależnych plików"
+        "dużo zależnych plików"
       ]
     },
     "js/app/rozrys/rozrys-controller-bridges.js": {
@@ -9437,10 +10193,27 @@
         "js/app/optimizer/start-optimax.js"
       ],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
@@ -9448,6 +10221,8 @@
         "js/testing/investor/suites/registry-core.js",
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -9955,10 +10730,25 @@
         "js/app/rozrys/rozrys-grain.js"
       ],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/rozrys/rozrys-lazy-loader.js",
         "js/app/rozrys/rozrys-shell.js",
+        "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-lines.js",
@@ -9967,7 +10757,11 @@
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/service/tests.js",
@@ -10438,7 +11232,18 @@
         "js/app/shared/room-registry.js"
       ],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/project/project-status-scope.js",
         "js/app/quote/quote-offer-store.js",
@@ -10450,7 +11255,12 @@
         "js/app/rozrys/rozrys-lazy-loader.js",
         "js/app/rozrys/rozrys-shell.js",
         "js/app/rozrys/rozrys.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
         "js/app/shared/room-registry-impact.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/sections.js",
         "js/app/wycena/wycena-context-repair.js",
         "js/app/wycena/wycena-core-labor.js",
@@ -10470,7 +11280,10 @@
         "js/app/wycena/wycena-tab-shell.js",
         "js/tabs/czynnosci.js",
         "js/tabs/wycena.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/testing/investor/suites/registry-manage.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -10481,6 +11294,7 @@
         "js/testing/rozrys/suites/state-ui-runtime.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/core-offer-basics.js",
@@ -10899,9 +11713,27 @@
         "js/app/rozrys/rozrys-sheet-model.js"
       ],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/testing/investor/suites/architecture.js",
         "js/testing/investor/suites/model-actions.js",
         "js/testing/investor/suites/recovery-isolation.js",
@@ -10910,7 +11742,10 @@
         "js/testing/investor/suites/registry-manage.js",
         "js/testing/investor/suites/status-flow.js",
         "js/testing/investor/tests.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
@@ -10918,6 +11753,7 @@
         "js/testing/rozrys/suites/scope-runtime-controllers.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/suites/architecture-contract.js"
       ],
       "storageRefs": 0,
@@ -11030,13 +11866,14 @@
     "js/app/rozrys/rozrys-ui-tools.js": {
       "area": "ROZRYS",
       "category": "ui/render/events",
-      "lines": 122,
+      "lines": 124,
       "defines": [
         "rozrysUiTools"
       ],
       "uses": [
         "infoBox",
         "panelBox",
+        "helpRegistry",
         "rozrysChoice",
         "confirmBox",
         "rozrysUiTools"
@@ -11047,6 +11884,7 @@
       ],
       "outgoingFiles": [
         "js/app/rozrys/rozrys-choice.js",
+        "js/app/shared/help-registry.js",
         "js/app/ui/confirm-box.js",
         "js/app/ui/info-box.js",
         "js/app/ui/panel-box.js"
@@ -11279,9 +12117,13 @@
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
-        "js/app/shared/utils.js"
+        "js/app/material/material-edge-store.js",
+        "js/app/shared/utils.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js"
       ],
       "secondLevelFiles": [
         "js/app/service/cutting/service-order-detail.js",
@@ -11295,7 +12137,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "kilka zależności wychodzących"
+      ]
     },
     "js/app/service/cutting/service-cutting-rozrys.js": {
       "area": "KATALOG/USŁUGI",
@@ -11367,14 +12211,18 @@
         "js/testing/service/tests.js"
       ],
       "outgoingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-store.js",
+        "js/app/material/material-edge-store.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-order-store.js",
         "js/app/ui/confirm-box.js",
         "js/app/ui/info-box.js",
-        "js/app/ui/panel-box.js"
+        "js/app/ui/panel-box.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js"
       ],
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
@@ -11391,7 +12239,7 @@
       "risk": "niskie",
       "reasons": [
         "250+ linii",
-        "kilka zależności wychodzących"
+        "dużo zależności wychodzących"
       ]
     },
     "js/app/service/cutting/service-pro100-import-ui.js": {
@@ -11415,11 +12263,15 @@
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-store.js",
+        "js/app/material/material-edge-store.js",
         "js/app/service/cutting/service-pro100-parser.js",
         "js/app/shared/utils.js",
         "js/app/shared/xlsx-lite.js",
-        "js/app/ui/info-box.js"
+        "js/app/ui/info-box.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js"
       ],
       "secondLevelFiles": [
         "js/app/service/service-orders.js",
@@ -11433,7 +12285,8 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
-        "250+ linii"
+        "250+ linii",
+        "kilka zależności wychodzących"
       ]
     },
     "js/app/service/cutting/service-pro100-parser.js": {
@@ -11499,10 +12352,12 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/bootstrap/app-ui-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/service/cutting/service-cutting-common.js",
@@ -11512,6 +12367,8 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/views.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/cabinet/tests.js",
         "js/testing/data-safety/tests.js",
@@ -11577,12 +12434,16 @@
         "js/testing/service/tests.js"
       ],
       "outgoingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-store.js",
+        "js/app/material/material-edge-store.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-order-store.js",
         "js/app/ui/confirm-box.js",
         "js/app/ui/info-box.js",
-        "js/app/ui/panel-box.js"
+        "js/app/ui/panel-box.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js"
       ],
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
@@ -11612,7 +12473,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "kilka zależności wychodzących"
+      ]
     },
     "js/app/settings/program-defaults-store.js": {
       "area": "INNE",
@@ -11720,6 +12583,7 @@
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/bootstrap/reload-restore.js",
         "js/app/cabinet/cabinet-actions.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-set-wizard.js",
         "js/app/catalog/catalog-selectors.js",
@@ -11785,6 +12649,8 @@
         "js/app/ui/views.js",
         "js/app/ui/wywiad-room-settings.js",
         "js/app/wycena/wycena-context-repair.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core-offer.js",
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-room-availability.js",
@@ -12506,6 +13372,74 @@
       "loadedInDevTests": false,
       "risk": "niskie",
       "reasons": []
+    },
+    "js/app/shared/help-registry.js": {
+      "area": "SHARED",
+      "category": "ui/render/events",
+      "lines": 139,
+      "defines": [
+        "helpRegistry"
+      ],
+      "uses": [
+        "infoBox",
+        "panelBox",
+        "helpRegistry"
+      ],
+      "incomingFiles": [
+        "js/app/catalog/hardware-technical-params.js",
+        "js/app/material/price-modal-field-help.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
+        "js/app/material/price-modal-hardware-form.js",
+        "js/app/rozrys/rozrys-ui-tools.js",
+        "js/app/ui/data-settings-backup-view.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/ui/data-settings-dom.js",
+        "js/app/ui/data-settings-menu-view.js",
+        "js/app/ui/wywiad-room-hardware-producers.js",
+        "js/app/wycena/wycena-summary-details-modal.js",
+        "js/app/wycena/wycena-tab-dom.js"
+      ],
+      "outgoingFiles": [
+        "js/app/ui/info-box.js",
+        "js/app/ui/panel-box.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-parser.js",
+        "js/app/catalog/hardware-catalog.js",
+        "js/app/catalog/hardware-replacement-engine.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
+        "js/app/material/price-modal-hardware-form.js",
+        "js/app/material/price-modal-hardware-replacements.js",
+        "js/app/material/price-modal-hardware-ux.js",
+        "js/app/rozrys/rozrys.js",
+        "js/app/ui/data-settings-backup-actions.js",
+        "js/app/ui/data-settings-backup-list.js",
+        "js/app/ui/data-settings-backup-view.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/ui/data-settings-menu-view.js",
+        "js/app/ui/data-settings-modal.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-tab-preview.js",
+        "js/tabs/czynnosci.js",
+        "js/tabs/wycena.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/wycena/suites/architecture-contract.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 1,
+      "domRefs": 3,
+      "loadedInIndex": true,
+      "loadedInDevTests": false,
+      "risk": "średnie",
+      "reasons": [
+        "dużo zależnych plików",
+        "systemowe dialogi"
+      ]
     },
     "js/app/shared/migrate.js": {
       "area": "SHARED",
@@ -13502,6 +14436,7 @@
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-scope.js",
         "js/app/project/project-store.js",
+        "js/app/quote/quote-calculation-register.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot-scope.js",
@@ -13640,6 +14575,7 @@
         "js/app/bootstrap/reload-restore.js",
         "js/app/cabinet/cabinet-actions.js",
         "js/app/cabinet/cabinet-fronts.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/cabinet/cabinet-modal-hanging.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-module.js",
@@ -13700,6 +14636,7 @@
         "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
+        "js/app/quote/quote-calculation-register.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
@@ -13963,6 +14900,7 @@
         "js/app/pricing/labor-catalog.js",
         "js/app/project/project-model.js",
         "js/app/project/project-store.js",
+        "js/app/quote/quote-calculation-register.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-scope-entry-utils.js",
         "js/app/quote/quote-snapshot-scope.js",
@@ -13996,6 +14934,7 @@
         "js/app/bootstrap/reload-restore.js",
         "js/app/cabinet/cabinet-actions.js",
         "js/app/cabinet/cabinet-fronts.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/cabinet/cabinet-modal-hanging.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-module.js",
@@ -14027,6 +14966,7 @@
         "js/app/investor/project-bootstrap.js",
         "js/app/investor/session.js",
         "js/app/material/magazyn.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-bundle.js",
         "js/app/material/price-modal-hardware-dictionaries.js",
@@ -14049,6 +14989,7 @@
         "js/app/project/project-status-snapshot-flow.js",
         "js/app/project/project-status-sync.js",
         "js/app/project/project-store.js",
+        "js/app/quote/quote-calculation-register.js",
         "js/app/quote/quote-offer-store.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
@@ -14099,6 +15040,7 @@
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-labor-picker.js",
         "js/app/wycena/wycena-room-availability.js",
+        "js/app/wycena/wycena-summary-details-modal.js",
         "js/app/wycena/wycena-tab-data.js",
         "js/app/wycena/wycena-tab-helpers.js",
         "js/app/wycena/wycena-tab-history.js",
@@ -14676,12 +15618,13 @@
     "js/app/ui/data-settings-backup-view.js": {
       "area": "UI",
       "category": "store/storage",
-      "lines": 77,
+      "lines": 80,
       "defines": [
         "dataSettingsBackupView"
       ],
       "uses": [
         "dataSettingsDom",
+        "helpRegistry",
         "dataSettingsBackupActions",
         "dataSettingsBackupList",
         "dataSettingsBackupView"
@@ -14690,6 +15633,7 @@
         "js/app/ui/data-settings-modal.js"
       ],
       "outgoingFiles": [
+        "js/app/shared/help-registry.js",
         "js/app/ui/data-settings-backup-actions.js",
         "js/app/ui/data-settings-backup-list.js",
         "js/app/ui/data-settings-dom.js"
@@ -14708,7 +15652,7 @@
     "js/app/ui/data-settings-defaults-view.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 194,
+      "lines": 197,
       "defines": [
         "dataSettingsDefaultsView"
       ],
@@ -14717,16 +15661,22 @@
         "catalogStore",
         "rozrysChoice",
         "programDefaults",
+        "helpRegistry",
         "dataSettingsDefaultsView"
       ],
       "incomingFiles": [
         "js/app/ui/data-settings-modal.js"
       ],
       "outgoingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-store.js",
+        "js/app/material/material-edge-store.js",
         "js/app/rozrys/rozrys-choice.js",
         "js/app/settings/program-defaults-store.js",
-        "js/app/ui/data-settings-dom.js"
+        "js/app/shared/help-registry.js",
+        "js/app/ui/data-settings-dom.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js"
       ],
       "secondLevelFiles": [
         "js/app/ui/actions-register.js"
@@ -14737,18 +15687,21 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "kilka zależności wychodzących"
+      ]
     },
     "js/app/ui/data-settings-dom.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 92,
+      "lines": 98,
       "defines": [
         "dataSettingsDom"
       ],
       "uses": [
         "confirmBox",
         "infoBox",
+        "helpRegistry",
         "dataSettingsDom"
       ],
       "incomingFiles": [
@@ -14760,6 +15713,7 @@
         "js/app/ui/data-settings-modal.js"
       ],
       "outgoingFiles": [
+        "js/app/shared/help-registry.js",
         "js/app/ui/confirm-box.js",
         "js/app/ui/info-box.js"
       ],
@@ -14782,19 +15736,21 @@
     "js/app/ui/data-settings-menu-view.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 101,
+      "lines": 104,
       "defines": [
         "dataSettingsMenuView"
       ],
       "uses": [
         "dataSettingsDom",
         "appIcons",
+        "helpRegistry",
         "dataSettingsMenuView"
       ],
       "incomingFiles": [
         "js/app/ui/data-settings-modal.js"
       ],
       "outgoingFiles": [
+        "js/app/shared/help-registry.js",
         "js/app/ui/app-icons.js",
         "js/app/ui/data-settings-dom.js"
       ],
@@ -14906,10 +15862,12 @@
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
+        "js/app/shared/help-registry.js",
         "js/app/shared/room-registry-modals-add-edit.js",
         "js/app/shared/room-registry-modals-manage-remove.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/data-settings-dom.js",
+        "js/app/wycena/wycena-summary-details-modal.js",
         "js/app/wycena/wycena-tab-dom.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
@@ -14919,6 +15877,7 @@
       "outgoingFiles": [],
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
+        "js/app/catalog/hardware-technical-params.js",
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-ui-render.js",
         "js/app/investor/investor-ui.js",
@@ -14943,6 +15902,7 @@
         "js/app/quote/quote-scope-entry.js",
         "js/app/rozrys/rozrys-stock-modal.js",
         "js/app/rozrys/rozrys-stock.js",
+        "js/app/rozrys/rozrys-ui-tools.js",
         "js/app/rozrys/rozrys.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
@@ -14952,11 +15912,16 @@
         "js/app/ui/data-settings-backup-list.js",
         "js/app/ui/data-settings-backup-view.js",
         "js/app/ui/data-settings-defaults-view.js",
+        "js/app/ui/data-settings-dom.js",
         "js/app/ui/data-settings-menu-view.js",
         "js/app/ui/data-settings-modal.js",
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
+        "js/app/ui/wywiad-room-hardware-producers.js",
+        "js/app/wycena/wycena-summary-details-modal.js",
+        "js/app/wycena/wycena-tab-dom.js",
         "js/app/wycena/wycena-tab-history.js",
+        "js/app/wycena/wycena-tab-preview.js",
         "js/app/wycena/wycena-tab-render-bridge.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/tabs/czynnosci.js",
@@ -15051,9 +16016,31 @@
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
         "js/app/material/material-tab-data.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/tabs/material.js",
-        "js/testing/material/tests.js"
+        "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
+        "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
+        "js/testing/service/tests.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -15092,6 +16079,7 @@
         "js/app/rozrys/rozrys-ui-tools.js",
         "js/app/service/cutting/service-order-detail.js",
         "js/app/service/service-orders.js",
+        "js/app/shared/help-registry.js",
         "js/app/shared/room-registry-modals-add-edit.js",
         "js/app/shared/room-registry-modals-manage-remove.js",
         "js/app/ui/data-settings-modal.js",
@@ -15102,16 +16090,28 @@
       "outgoingFiles": [],
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
+        "js/app/catalog/hardware-technical-params.js",
         "js/app/investor/investor-actions.js",
         "js/app/material/material-edge-store.js",
+        "js/app/material/price-modal-field-help.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
+        "js/app/material/price-modal-hardware-form.js",
         "js/app/rozrys/rozrys-selection-ui.js",
         "js/app/rozrys/rozrys-ui-bridge.js",
+        "js/app/rozrys/rozrys-ui-tools.js",
         "js/app/rozrys/rozrys.js",
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/app/service/service-orders.js",
         "js/app/shared/room-registry-modals.js",
         "js/app/ui/actions-register.js",
+        "js/app/ui/data-settings-backup-view.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/ui/data-settings-dom.js",
+        "js/app/ui/data-settings-menu-view.js",
         "js/app/ui/views.js",
+        "js/app/ui/wywiad-room-hardware-producers.js",
+        "js/app/wycena/wycena-summary-details-modal.js",
+        "js/app/wycena/wycena-tab-dom.js",
         "js/app/wycena/wycena-tab-manual-labor.js",
         "js/app/wycena/wycena-tab-selection-pickers.js",
         "js/app/wycena/wycena-tab-selection.js",
@@ -15417,37 +16417,57 @@
       ],
       "secondLevelFiles": [
         "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/bootstrap/app-ui-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-set-wizard.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-project-patches.js",
         "js/app/investor/investor-project.js",
         "js/app/investor/investor-ui.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-tab-data.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/project/project-status-mirrors.js",
         "js/app/project/project-status-sync.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/rozrys/rozrys.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
         "js/app/shared/core-failsafe.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/bindings.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/sections.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-tab-status-actions.js",
         "js/app/wycena/wycena-tab-status-bridge.js",
         "js/core/actions.js",
         "js/core/modals.js",
         "js/tabs/material.js",
+        "js/tabs/wywiad-labor-summary.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
         "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
         "js/testing/wycena/suites/investor-integration.js",
@@ -15547,11 +16567,15 @@
     "js/app/ui/wywiad-room-hardware-producers.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 303,
+      "lines": 304,
       "defines": [],
-      "uses": [],
+      "uses": [
+        "helpRegistry"
+      ],
       "incomingFiles": [],
-      "outgoingFiles": [],
+      "outgoingFiles": [
+        "js/app/shared/help-registry.js"
+      ],
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -15722,18 +16746,41 @@
         "js/app/wycena/wycena-core-utils.js"
       ],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-shell.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -15765,7 +16812,7 @@
     "js/app/wycena/wycena-core-labor.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 186,
+      "lines": 188,
       "defines": [
         "wycenaCoreLabor"
       ],
@@ -15814,8 +16861,9 @@
     "js/app/wycena/wycena-core-lines.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 178,
+      "lines": 722,
       "defines": [
+        "catalogStore",
         "wycenaCoreLines"
       ],
       "uses": [
@@ -15826,39 +16874,138 @@
         "wycenaCoreSelection",
         "wycenaCoreLines",
         "roomPreferences",
+        "catalogStore",
+        "hardwareTechnicalParams",
+        "hardwareCatalog",
+        "cabinetHardwareRequirements",
         "cabinetCutlist",
         "laborApplianceRules",
         "rozrysScope"
       ],
       "incomingFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
+        "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/suites/architecture-contract.js"
       ],
       "outgoingFiles": [
         "js/app/cabinet/cabinet-cutlist.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-hardware-requirements.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog.js",
+        "js/app/catalog/hardware-technical-params.js",
+        "js/app/material/material-edge-store.js",
         "js/app/pricing/labor-appliance-rules.js",
         "js/app/rozrys/rozrys-scope.js",
         "js/app/wycena/wycena-core-catalog.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core-offer.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-core-utils.js"
       ],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/bootstrap/app-ui-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-hardware-requirements.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/cabinet/cabinet-modal.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-export.js",
+        "js/app/catalog/hardware-catalog-import-parser.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
+        "js/app/material/material-registry.js",
+        "js/app/material/material-tab-data.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-field-help.js",
+        "js/app/material/price-modal-filters.js",
+        "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
+        "js/app/material/price-modal-hardware-filter-sort.js",
+        "js/app/material/price-modal-hardware-form.js",
+        "js/app/material/price-modal-hardware-import-export.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/material/price-modal-hardware-manufacturers.js",
+        "js/app/material/price-modal-hardware-replacements.js",
+        "js/app/material/price-modal-hardware-supplier-prices.js",
+        "js/app/material/price-modal-hardware-suppliers.js",
+        "js/app/material/price-modal-hardware-ux.js",
+        "js/app/material/price-modal-item-form.js",
+        "js/app/material/price-modal-list.js",
+        "js/app/material/price-modal-options.js",
         "js/app/material/price-modal-persistence.js",
+        "js/app/material/price-modal.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot-store.js",
         "js/app/quote/quote-snapshot.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-cutting-rozrys.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
         "js/app/ui/actions-register.js",
+        "js/app/ui/app-view.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/ui/data-settings-modal.js",
+        "js/app/ui/views.js",
+        "js/app/wycena/wycena-core-catalog.js",
+        "js/app/wycena/wycena-core-labor.js",
+        "js/app/wycena/wycena-core-material-plan.js",
+        "js/app/wycena/wycena-core-offer.js",
+        "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-history.js",
+        "js/app/wycena/wycena-tab-manual-labor.js",
         "js/app/wycena/wycena-tab-preview.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-selection-version.js",
         "js/app/wycena/wycena-tab-shell.js",
+        "js/tabs/material.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/tabs/wywiad.js",
+        "js/testing/cabinet/tests.js",
+        "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
+        "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
+        "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/rozrys/suites/project-stock.js",
+        "js/testing/rozrys/tests.js",
+        "js/testing/rysunek/tests.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -15882,17 +17029,20 @@
       "domRefs": 0,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "niskie",
+      "risk": "wysokie",
       "reasons": [
-        "kilka zależności wychodzących"
+        "600+ linii",
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
       ]
     },
     "js/app/wycena/wycena-core-material-plan.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 137,
+      "lines": 318,
       "defines": [
         "materialHasGrain",
+        "catalogStore",
         "wycenaCoreMaterialPlan"
       ],
       "uses": [
@@ -15906,47 +17056,131 @@
         "rozrysStock",
         "rozrysCache",
         "rozrysEngine",
+        "catalogStore",
+        "materialTabData",
         "rozrysScope"
       ],
       "incomingFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/suites/architecture-contract.js"
       ],
       "outgoingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
+        "js/app/material/material-tab-data.js",
         "js/app/rozrys/rozrys-cache.js",
         "js/app/rozrys/rozrys-engine.js",
         "js/app/rozrys/rozrys-prefs.js",
         "js/app/rozrys/rozrys-scope.js",
         "js/app/rozrys/rozrys-stock.js",
         "js/app/wycena/wycena-core-catalog.js",
+        "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core-selection.js",
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-core-utils.js"
       ],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/bootstrap/app-ui-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-hardware-requirements.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/cabinet/cabinet-modal.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-export.js",
+        "js/app/catalog/hardware-catalog-import-parser.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
+        "js/app/material/material-tab-data.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-field-help.js",
+        "js/app/material/price-modal-filters.js",
+        "js/app/material/price-modal-hardware-bundle.js",
+        "js/app/material/price-modal-hardware-dictionaries.js",
+        "js/app/material/price-modal-hardware-filter-sort.js",
+        "js/app/material/price-modal-hardware-form.js",
+        "js/app/material/price-modal-hardware-import-export.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/material/price-modal-hardware-manufacturers.js",
+        "js/app/material/price-modal-hardware-replacements.js",
+        "js/app/material/price-modal-hardware-supplier-prices.js",
+        "js/app/material/price-modal-hardware-suppliers.js",
+        "js/app/material/price-modal-hardware-ux.js",
+        "js/app/material/price-modal-item-form.js",
+        "js/app/material/price-modal-list.js",
         "js/app/material/price-modal-options.js",
         "js/app/material/price-modal-persistence.js",
+        "js/app/material/price-modal.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot-store.js",
         "js/app/quote/quote-snapshot.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-cutting-rozrys.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
         "js/app/ui/actions-register.js",
+        "js/app/ui/app-view.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/ui/data-settings-modal.js",
+        "js/app/ui/views.js",
+        "js/app/wycena/wycena-core-catalog.js",
+        "js/app/wycena/wycena-core-labor.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-offer.js",
+        "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-history.js",
+        "js/app/wycena/wycena-tab-manual-labor.js",
         "js/app/wycena/wycena-tab-preview.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-selection-version.js",
         "js/app/wycena/wycena-tab-shell.js",
+        "js/tabs/material.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/tabs/wywiad.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
+        "js/testing/investor/suites/architecture.js",
         "js/testing/investor/suites/misc.js",
+        "js/testing/investor/suites/status-flow.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/optimizer-contracts.js",
         "js/testing/rozrys/suites/output-bootstrap.js",
@@ -15955,6 +17189,8 @@
         "js/testing/rozrys/suites/state-ui-runtime.js",
         "js/testing/rozrys/suites/validation-cache-render.js",
         "js/testing/rozrys/tests.js",
+        "js/testing/rysunek/tests.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -15980,8 +17216,9 @@
       "loadedInDevTests": true,
       "risk": "średnie",
       "reasons": [
-        "kilka zależnych plików",
-        "kilka zależności wychodzących"
+        "250+ linii",
+        "dużo zależnych plików",
+        "dużo zależności wychodzących"
       ]
     },
     "js/app/wycena/wycena-core-offer.js": {
@@ -16010,15 +17247,38 @@
         "js/app/wycena/wycena-core-utils.js"
       ],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-shell.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
+        "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -16077,14 +17337,30 @@
         "js/app/shared/room-scope-resolver.js"
       ],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot-store.js",
         "js/app/quote/quote-snapshot.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
         "js/app/ui/actions-register.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/wycena/wycena-core-labor.js",
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core-material-plan.js",
@@ -16095,8 +17371,13 @@
         "js/app/wycena/wycena-tab-selection-scope.js",
         "js/app/wycena/wycena-tab-selection-version.js",
         "js/app/wycena/wycena-tab-shell.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -16155,14 +17436,32 @@
         "js/app/wycena/wycena-core-selection.js"
       ],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/project/project-status-manual-guard.js",
         "js/app/quote/quote-pdf.js",
         "js/app/quote/quote-scope-entry-flow.js",
         "js/app/quote/quote-snapshot-store.js",
         "js/app/quote/quote-snapshot.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
         "js/app/ui/actions-register.js",
+        "js/app/ui/data-settings-defaults-view.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-history.js",
@@ -16171,8 +17470,13 @@
         "js/app/wycena/wycena-tab-selection-version.js",
         "js/app/wycena/wycena-tab-shell.js",
         "js/tabs/czynnosci.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -16212,6 +17516,7 @@
         "wycenaCoreUtils"
       ],
       "incomingFiles": [
+        "js/app/quote/quote-calculation-register.js",
         "js/app/wycena/wycena-core-catalog.js",
         "js/app/wycena/wycena-core-labor.js",
         "js/app/wycena/wycena-core-lines.js",
@@ -16221,14 +17526,37 @@
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
+        "js/app.js",
+        "js/app/bootstrap/app-state-bootstrap.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-selectors.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/catalog/hardware-catalog-export-xlsx.js",
+        "js/app/catalog/hardware-catalog-import-plan.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
+        "js/app/material/price-modal-context.js",
+        "js/app/material/price-modal-hardware-import-resolver.js",
+        "js/app/quote/quote-snapshot.js",
+        "js/app/service/cutting/service-cutting-common.js",
+        "js/app/service/cutting/service-order-detail.js",
+        "js/app/service/cutting/service-pro100-import-ui.js",
+        "js/app/service/service-orders.js",
+        "js/app/ui/data-settings-defaults-view.js",
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
+        "js/app/wycena/wycena-summary-details-modal.js",
         "js/tabs/czynnosci.js",
+        "js/tabs/wywiad-labor-summary.js",
+        "js/testing/material/accessories-import-export-deep-tests.js",
+        "js/testing/material/accessories-tests.js",
         "js/testing/material/tests.js",
+        "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
+        "js/testing/service/tests.js",
         "js/testing/wycena/fixtures.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
@@ -16259,7 +17587,7 @@
     "js/app/wycena/wycena-core.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 100,
+      "lines": 110,
       "defines": [
         "wycenaCore"
       ],
@@ -16272,6 +17600,7 @@
         "wycenaCoreLines",
         "wycenaCoreLabor",
         "wycenaCore",
+        "quoteCalculationRegister",
         "quoteSnapshot"
       ],
       "incomingFiles": [
@@ -16292,6 +17621,7 @@
         "js/testing/wycena/tests.js"
       ],
       "outgoingFiles": [
+        "js/app/quote/quote-calculation-register.js",
         "js/app/quote/quote-snapshot.js",
         "js/app/wycena/wycena-core-catalog.js",
         "js/app/wycena/wycena-core-labor.js",
@@ -16566,6 +17896,38 @@
         "kilka zależnych plików"
       ]
     },
+    "js/app/wycena/wycena-summary-details-modal.js": {
+      "area": "WYCENA",
+      "category": "ui/render/events",
+      "lines": 231,
+      "defines": [
+        "wycenaSummaryDetailsModal"
+      ],
+      "uses": [
+        "quoteCalculationRegister",
+        "helpRegistry",
+        "infoBox",
+        "wycenaSummaryDetailsModal"
+      ],
+      "incomingFiles": [
+        "js/app/wycena/wycena-tab-preview.js"
+      ],
+      "outgoingFiles": [
+        "js/app/quote/quote-calculation-register.js",
+        "js/app/shared/help-registry.js",
+        "js/app/ui/info-box.js"
+      ],
+      "secondLevelFiles": [
+        "js/app/wycena/wycena-tab-render-bridge.js"
+      ],
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "domRefs": 19,
+      "loadedInIndex": true,
+      "loadedInDevTests": true,
+      "risk": "niskie",
+      "reasons": []
+    },
     "js/app/wycena/wycena-tab-data.js": {
       "area": "WYCENA",
       "category": "domain/controller",
@@ -16611,11 +17973,12 @@
     "js/app/wycena/wycena-tab-dom.js": {
       "area": "WYCENA",
       "category": "ui/render/events",
-      "lines": 42,
+      "lines": 44,
       "defines": [
         "wycenaTabDom"
       ],
       "uses": [
+        "helpRegistry",
         "infoBox",
         "wycenaTabDom"
       ],
@@ -16625,6 +17988,7 @@
         "js/testing/wycena/suites/architecture-contract.js"
       ],
       "outgoingFiles": [
+        "js/app/shared/help-registry.js",
         "js/app/ui/info-box.js"
       ],
       "secondLevelFiles": [
@@ -16835,12 +18199,13 @@
     "js/app/wycena/wycena-tab-preview.js": {
       "area": "WYCENA",
       "category": "ui/render/events",
-      "lines": 240,
+      "lines": 242,
       "defines": [
         "wycenaTabPreview"
       ],
       "uses": [
         "wycenaDiagnostics",
+        "wycenaSummaryDetailsModal",
         "quoteSnapshotStore",
         "wycenaTabPreview"
       ],
@@ -16849,14 +18214,15 @@
       ],
       "outgoingFiles": [
         "js/app/quote/quote-snapshot-store.js",
-        "js/app/wycena/wycena-diagnostics.js"
+        "js/app/wycena/wycena-diagnostics.js",
+        "js/app/wycena/wycena-summary-details-modal.js"
       ],
       "secondLevelFiles": [
         "js/tabs/wycena.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 1,
+      "domRefs": 3,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
@@ -17592,7 +18958,7 @@
     "js/tabs/material.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 380,
+      "lines": 383,
       "defines": [
         "tabsMaterial"
       ],
@@ -17782,10 +19148,14 @@
         "js/tabs/wywiad.js"
       ],
       "outgoingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
+        "js/app/material/material-edge-store.js",
         "js/app/pricing/labor-appliance-rules.js",
-        "js/app/pricing/labor-catalog.js"
+        "js/app/pricing/labor-catalog.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js"
       ],
       "secondLevelFiles": [],
       "storageRefs": 0,
@@ -17794,7 +19164,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "kilka zależności wychodzących"
+      ]
     },
     "js/tabs/wywiad.js": {
       "area": "ZAKŁADKI",
@@ -18799,7 +20171,7 @@
     "js/testing/material/accessories-import-export-deep-tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 337,
+      "lines": 340,
       "defines": [
         "materialImportExportDeepTests"
       ],
@@ -18818,13 +20190,17 @@
         "js/testing/material/tests.js"
       ],
       "outgoingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
         "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
         "js/app/catalog/hardware-technical-params.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-hardware-price-confirm.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/testing/shared/harness.js"
       ],
       "secondLevelFiles": [
@@ -18838,13 +20214,13 @@
       "risk": "niskie",
       "reasons": [
         "250+ linii",
-        "kilka zależności wychodzących"
+        "dużo zależności wychodzących"
       ]
     },
     "js/testing/material/accessories-tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 614,
+      "lines": 622,
       "defines": [
         "materialAccessoryTests"
       ],
@@ -18871,6 +20247,7 @@
         "js/testing/material/tests.js"
       ],
       "outgoingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-export.js",
@@ -18882,10 +20259,13 @@
         "js/app/catalog/hardware-supplier-price-export.js",
         "js/app/catalog/hardware-supplier-price-import.js",
         "js/app/catalog/hardware-technical-params.js",
+        "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/material/price-modal-hardware-price-confirm.js",
         "js/app/material/price-modal-hardware-replacements.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/testing/shared/harness.js"
       ],
       "secondLevelFiles": [
@@ -18926,6 +20306,7 @@
         "js/testing/dev-tests-registry.js"
       ],
       "outgoingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
@@ -18933,6 +20314,7 @@
         "js/app/material/material-tab-data.js",
         "js/app/shared/constants.js",
         "js/app/shared/validate.js",
+        "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core-material-plan.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
@@ -19020,12 +20402,14 @@
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/bootstrap/reload-restore.js",
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-domain.js",
         "js/app/catalog/catalog-store.js",
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investors-store.js",
         "js/app/investor/project-bootstrap.js",
         "js/app/investor/session.js",
+        "js/app/material/material-edge-store.js",
         "js/app/project/project-bridge.js",
         "js/app/project/project-store.js",
         "js/app/rozrys/rozrys-choice.js",
@@ -19041,6 +20425,8 @@
         "js/app/ui/app-view.js",
         "js/app/ui/views.js",
         "js/app/ui/work-mode-hub.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/testing/cabinet/tests.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
@@ -19992,7 +21378,9 @@
         "js/testing/dev-tests-registry.js"
       ],
       "outgoingFiles": [
+        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/catalog/catalog-store.js",
+        "js/app/material/material-edge-store.js",
         "js/app/service/cutting/service-cutting-common.js",
         "js/app/service/cutting/service-cutting-rozrys.js",
         "js/app/service/cutting/service-order-detail.js",
@@ -20001,6 +21389,8 @@
         "js/app/service/service-order-store.js",
         "js/app/service/service-orders.js",
         "js/app/shared/xlsx-lite.js",
+        "js/app/wycena/wycena-core-lines.js",
+        "js/app/wycena/wycena-core-material-plan.js",
         "js/testing/shared/harness.js",
         "js/testing/test-data-manager.js"
       ],
@@ -20015,7 +21405,7 @@
       "risk": "niskie",
       "reasons": [
         "250+ linii",
-        "kilka zależności wychodzących"
+        "dużo zależności wychodzących"
       ]
     },
     "js/testing/shared/browser-page.js": {

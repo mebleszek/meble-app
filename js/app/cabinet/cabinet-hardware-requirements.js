@@ -315,17 +315,47 @@
     return 'Drzwiczki ' + (i + 1);
   }
 
+  function cleanupEmptyHingeOverrides(cab){
+    try{
+      const store = cab && cab.hardwareRequirementOverrides && cab.hardwareRequirementOverrides.hinges;
+      if(store && store.doors && !Object.keys(store.doors || {}).length) delete store.doors;
+      if(store && !Object.keys(store || {}).length && cab.hardwareRequirementOverrides) delete cab.hardwareRequirementOverrides.hinges;
+      if(cab && cab.hardwareRequirementOverrides && !Object.keys(cab.hardwareRequirementOverrides || {}).length) delete cab.hardwareRequirementOverrides;
+    }catch(_){ }
+  }
+
+  function buildStoredOverridePatch(patch){
+    const src = patch && typeof patch === 'object' ? patch : {};
+    const id = text(src.typeId);
+    if(!id) return null;
+    const out = { typeId:id };
+    let preset = null;
+    try{ preset = getHingeRequirementPreset(id, 'manual_hinge_override_snapshot'); }catch(_){ preset = null; }
+    const params = src.technicalParams && typeof src.technicalParams === 'object'
+      ? src.technicalParams
+      : (preset && preset.technicalParams && typeof preset.technicalParams === 'object' ? preset.technicalParams : null);
+    if(params) out.technicalParams = clone(params);
+    const label = text(src.label) || text(preset && preset.label);
+    if(label) out.label = label;
+    return out;
+  }
+
   function setHingeDoorOverride(cab, doorKey, patch){
     const store = ensureHingeOverrideStore(cab);
     if(!store) return false;
     const key = text(doorKey) || 'single';
-    const next = Object.assign({}, store.doors[key] || {}, patch || {});
-    if(!text(next.typeId)) delete next.typeId;
-    if(Object.keys(next).length){
-      store.doors[key] = next;
-    }else{
+    if(Object.prototype.hasOwnProperty.call(patch || {}, 'typeId') && !text(patch && patch.typeId)){
       delete store.doors[key];
+      cleanupEmptyHingeOverrides(cab);
+      return true;
     }
+    const prepared = buildStoredOverridePatch(patch);
+    if(!prepared){
+      delete store.doors[key];
+      cleanupEmptyHingeOverrides(cab);
+      return true;
+    }
+    store.doors[key] = Object.assign({}, store.doors[key] || {}, prepared);
     return true;
   }
 
@@ -357,9 +387,10 @@
   }
 
   function applyOverrideToDoorRequirement(baseReq, override, extra){
-    const typeId = text(override && override.typeId) || text(baseReq && baseReq.typeId) || HINGE_TYPES.OVERLAY_110;
-    const req = getHingeRequirementPreset(typeId, text(baseReq && baseReq.ruleId) || 'manual_hinge_override', {
-      overridden: !!(override && text(override.typeId)),
+    const hasOverride = !!(override && text(override.typeId));
+    const typeId = (hasOverride ? text(override && override.typeId) : text(baseReq && baseReq.typeId)) || HINGE_TYPES.OVERLAY_110;
+    let req = getHingeRequirementPreset(typeId, text(baseReq && baseReq.ruleId) || 'manual_hinge_override', {
+      overridden:hasOverride,
       defaultTypeId:text(baseReq && baseReq.typeId),
       defaultLabel:text(baseReq && baseReq.label),
       sourceRuleId:text(baseReq && baseReq.ruleId),
@@ -367,6 +398,12 @@
       logicalGroup:baseReq && baseReq.logicalGroup,
       auxiliaryForLift:!!(baseReq && baseReq.auxiliaryForLift)
     });
+    if(hasOverride && override && override.technicalParams && typeof override.technicalParams === 'object'){
+      req = Object.assign({}, req, {
+        label:text(override.label) || text(req && req.label),
+        technicalParams:clone(override.technicalParams)
+      });
+    }
     return Object.assign({}, req, extra || {});
   }
 
