@@ -44,7 +44,7 @@
         kat_rzeczywisty:{ from:110, to:'' },
         klasa_kata:{ value:'standardowy 90–120°' },
         hamulec:{ value:true },
-        sprezyna:{ value:false },
+        sprezyna:{ value:true },
         typ_prowadnika:{ value:'standardowy' },
         forma_prowadnika:{ value:'krzyżowy' },
         pokrycie_prowadnika:{ value:'w komplecie' }
@@ -69,7 +69,7 @@
         kat_rzeczywisty:{ from:110, to:'' },
         klasa_kata:{ value:'standardowy 90–120°' },
         hamulec:{ value:true },
-        sprezyna:{ value:false },
+        sprezyna:{ value:true },
         typ_prowadnika:{ value:'standardowy' },
         forma_prowadnika:{ value:'krzyżowy' },
         pokrycie_prowadnika:{ value:'osobno' }
@@ -94,7 +94,7 @@
         kat_rzeczywisty:{ from:155, to:'' },
         klasa_kata:{ value:'zerowy uskok 155°' },
         hamulec:{ value:true },
-        sprezyna:{ value:false },
+        sprezyna:{ value:true },
         typ_prowadnika:{ value:'standardowy' },
         forma_prowadnika:{ value:'krzyżowy' },
         pokrycie_prowadnika:{ value:'w komplecie' }
@@ -118,8 +118,8 @@
         nalozenie:{ value:'nakładany' },
         kat_rzeczywisty:{ from:170, to:'' },
         klasa_kata:{ value:'narożny 170°' },
-        hamulec:{ value:false },
-        sprezyna:{ value:false },
+        hamulec:{ value:true },
+        sprezyna:{ value:true },
         typ_prowadnika:{ value:'specjalny' },
         forma_prowadnika:{ value:'krzyżowy' },
         pokrycie_prowadnika:{ value:'w komplecie' }
@@ -144,8 +144,8 @@
         nalozenie:{ value:'równoległy wpuszczany' },
         kat_rzeczywisty:{ from:95, to:'' },
         klasa_kata:{ value:'równoległy wpuszczany 95°' },
-        hamulec:{ value:false },
-        sprezyna:{ value:false },
+        hamulec:{ value:true },
+        sprezyna:{ value:true },
         typ_prowadnika:{ value:'specjalny' },
         forma_prowadnika:{ value:'krzyżowy' },
         pokrycie_prowadnika:{ value:'w komplecie' }
@@ -170,8 +170,8 @@
         nalozenie:{ value:'lodówkowy nakładany' },
         kat_rzeczywisty:{ from:95, to:'' },
         klasa_kata:{ value:'lodówkowy 95°' },
-        hamulec:{ value:false },
-        sprezyna:{ value:false },
+        hamulec:{ value:true },
+        sprezyna:{ value:true },
         typ_prowadnika:{ value:'lodówkowy' },
         forma_prowadnika:{ value:'krzyżowy' },
         pokrycie_prowadnika:{ value:'w komplecie' }
@@ -197,7 +197,7 @@
         kat_rzeczywisty:{ from:110, to:'' },
         klasa_kata:{ value:'standardowy 90–120°' },
         hamulec:{ value:true },
-        sprezyna:{ value:false },
+        sprezyna:{ value:true },
         typ_prowadnika:{ value:'standardowy' },
         forma_prowadnika:{ value:'krzyżowy' },
         pokrycie_prowadnika:{ value:'w komplecie' }

@@ -212,16 +212,16 @@
     const overlay = normalizeKeyText(paramScalar(p, 'nalozenie'));
     const cls = normalizeKeyText(hingeAngleClass(p) || inferHingeAngleClass(p));
     const plate = normalizeKeyText(paramScalar(p, 'typ_prowadnika') || paramScalar(p, 'prowadnik')) || 'standardowy';
-    const brakeRaw = paramScalar(p, 'hamulec');
-    const brakeKnown = text(brakeRaw) !== '' || typeof brakeRaw === 'boolean';
-    const brake = boolParam(p, 'hamulec');
 
-    if(overlay === 'nakladany' && cls === 'standardowy 90 120' && plate === 'standardowy' && (!brakeKnown || brake)) return 'hinge_110_overlay';
-    if(overlay === 'wpuszczany' && cls === 'standardowy 90 120' && plate === 'standardowy' && (!brakeKnown || brake)) return 'hinge_110_inset';
-    if(overlay === 'nakladany' && cls === 'zerowy uskok 155' && plate === 'standardowy' && (!brakeKnown || brake)) return 'hinge_155_zero';
-    if(overlay === 'nakladany' && cls === 'narozny 170' && plate === 'specjalny' && (!brakeKnown || !brake)) return 'hinge_170_corner';
-    if(overlay === 'rownolegly wpuszczany' && cls === 'rownolegly wpuszczany 95' && plate === 'specjalny' && (!brakeKnown || !brake)) return 'hinge_parallel_inset';
-    if(overlay === 'lodowkowy nakladany' && cls === 'lodowkowy 95' && plate === 'specjalny' && (!brakeKnown || !brake)) return 'hinge_fridge_overlay';
+    // Klasa funkcjonalna zawiasu. Hamulec i sprężyna są dalej porównywane
+    // dynamicznie przez parametry `Użyj do porównania`, więc nie mogą decydować
+    // o samej klasie 110/155/170/równoległy/lodówkowy.
+    if(overlay === 'nakladany' && cls === 'standardowy 90 120' && plate === 'standardowy') return 'hinge_110_overlay';
+    if(overlay === 'wpuszczany' && cls === 'standardowy 90 120' && plate === 'standardowy') return 'hinge_110_inset';
+    if(overlay === 'nakladany' && cls === 'zerowy uskok 155' && plate === 'standardowy') return 'hinge_155_zero';
+    if(overlay === 'nakladany' && cls === 'narozny 170' && plate === 'specjalny') return 'hinge_170_corner';
+    if(overlay === 'rownolegly wpuszczany' && cls === 'rownolegly wpuszczany 95' && plate === 'specjalny') return 'hinge_parallel_inset';
+    if(overlay === 'lodowkowy nakladany' && cls === 'lodowkowy 95' && (plate === 'lodowkowy' || plate === 'specjalny')) return 'hinge_fridge_overlay';
     return '';
   }
   function isCanonicalHingeTypeId(typeId){

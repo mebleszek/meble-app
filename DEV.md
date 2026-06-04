@@ -1,3 +1,16 @@
+## 2026-06-05 — Dynamiczne cechy zawiasów i TIP-ON v1
+
+- Paczka: `site_hinge_tipon_dynamic_features_v1.zip`.
+- Poprawiono centralne domyślne wymagania zawiasów: dla normalnego otwierania domyślny zawias ma `hamulec: tak` i `sprężyna: tak`.
+- Dodano centralną obsługę otwierania `TIP-ON` po polu `cabinet.openingSystem`: wymagania zawiasów są dzielone per drzwiczki/front na wariant bez hamulca ze sprężyną (`floor(ilość/2)`) oraz bez hamulca i bez sprężyny (`ceil(ilość/2)`).
+- Przebudowano kaskadę wyboru w panelu `Wymagania techniczne do wyceny`: pola wyboru są budowane z dynamicznych parametrów technicznych kategorii `Zawiasy` oznaczonych jako używane do porównania, zamiast ze sztywnej, płytkiej listy.
+- Warianty zawiasów różniące się cechami technicznymi, np. hamulcem/sprężyną, dostają osobny podpis techniczny wyboru i nie nadpisują kanonicznych typów `110° nakładany`, `155° zerowy uskok`, `170°` itd.
+- WYCENA dalej rozpoznaje funkcjonalną klasę zawiasu, ale dobór produktu katalogowego wymaga zgodności dynamicznych cech oznaczonych `Użyj do porównania`.
+- Starterowe seedy zawiasów poprawiono na `hamulec: tak` i `sprężyna: tak`; nie dodano migracji ani automatycznego nadpisywania istniejącego katalogu użytkownika w localStorage.
+- Dodano regresję `tools/cabinet-hinge-tipon-spring-smoke.js` i zaktualizowano testy panelu oraz doboru zawiasów w WYCENIE.
+- Nie ruszano PRO100, ROZRYS/Optimax jako algorytmu, PCV/obrzeży, backupów, import/export Excel ani modelu snapshotów ofert.
+- Cache-busting: `20260605_hinge_tipon_dynamic_features_v1`. Raport: `tools/reports/hinge-tipon-dynamic-features-v1.md`.
+
 ## 2026-06-04 — Globalna naprawa renderowania helperów `?` v2
 
 - Paczka: `site_help_qmark_label_trigger_fix_v2.zip`.

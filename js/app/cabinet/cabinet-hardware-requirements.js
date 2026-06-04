@@ -23,6 +23,43 @@
     return ['1','true','tak','yes','y'].includes(raw);
   }
   function clone(value){ try{ return JSON.parse(JSON.stringify(value)); }catch(_){ return value; } }
+  function normalizedKey(value){
+    return text(value).toLowerCase().replace(/ł/g, 'l').replace(/Ł/g, 'l').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+  function isTipOnOpening(cab){
+    const raw = normalizedKey(cab && cab.openingSystem);
+    return raw === 'tip on' || raw === 'tipon';
+  }
+  function paramCloneSet(params, key, value){
+    const out = clone(params || {});
+    out[key] = { value:!!value };
+    return out;
+  }
+  function tipOnVariant(baseReq, cfg){
+    const src = baseReq && typeof baseReq === 'object' ? baseReq : {};
+    const spring = !!(cfg && cfg.spring);
+    const variantKey = spring ? 'spring' : 'plain';
+    const params = paramCloneSet(paramCloneSet(src.technicalParams || {}, 'hamulec', false), 'sprezyna', spring);
+    const suffix = spring ? 'TIP-ON — ze sprężyną, bez hamulca' : 'TIP-ON — bez sprężyny i bez hamulca';
+    return Object.assign({}, src, {
+      typeId:(text(src.typeId) || HINGE_TYPES.OVERLAY_110) + '_tipon_' + variantKey,
+      label:(text(src.label) || 'Zawias') + ' ' + suffix,
+      ruleId:(text(src.ruleId) || 'hinge_requirement') + '_tipon_' + variantKey,
+      technicalParams:params,
+      tipOnVariant:variantKey,
+      tipOnSplit:true
+    });
+  }
+  function splitRequirementForTipOn(req){
+    const qty = Math.max(0, Math.round(number(req && req.qty)));
+    if(!(qty > 0)) return [];
+    const springQty = Math.floor(qty / 2);
+    const plainQty = Math.ceil(qty / 2);
+    const rows = [];
+    if(springQty > 0) rows.push(Object.assign({}, tipOnVariant(req, { spring:true }), { qty:springQty }));
+    if(plainQty > 0) rows.push(Object.assign({}, tipOnVariant(req, { spring:false }), { qty:plainQty }));
+    return rows;
+  }
   function details(cab){ return cab && cab.details && typeof cab.details === 'object' ? cab.details : {}; }
   function typeOf(cab){ return text(cab && cab.type); }
   function subTypeOf(cab){ return text(cab && cab.subType); }
@@ -85,7 +122,7 @@
       kat_rzeczywisty:{ from:110, to:'' },
       klasa_kata:{ value:'standardowy 90–120°' },
       hamulec:{ value:true },
-      sprezyna:{ value:false },
+      sprezyna:{ value:true },
       typ_prowadnika:{ value:'standardowy' },
       forma_prowadnika:{ value:'krzyżowy' }
     }, extra);
@@ -96,7 +133,7 @@
       kat_rzeczywisty:{ from:110, to:'' },
       klasa_kata:{ value:'standardowy 90–120°' },
       hamulec:{ value:true },
-      sprezyna:{ value:false },
+      sprezyna:{ value:true },
       typ_prowadnika:{ value:'standardowy' },
       forma_prowadnika:{ value:'krzyżowy' }
     }, extra);
@@ -107,7 +144,7 @@
       kat_rzeczywisty:{ from:155, to:'' },
       klasa_kata:{ value:'zerowy uskok 155°' },
       hamulec:{ value:true },
-      sprezyna:{ value:false },
+      sprezyna:{ value:true },
       typ_prowadnika:{ value:'standardowy' },
       forma_prowadnika:{ value:'krzyżowy' }
     }, extra);
@@ -117,8 +154,8 @@
       nalozenie:{ value:'nakładany' },
       kat_rzeczywisty:{ from:170, to:'' },
       klasa_kata:{ value:'narożny 170°' },
-      hamulec:{ value:false },
-      sprezyna:{ value:false },
+      hamulec:{ value:true },
+      sprezyna:{ value:true },
       typ_prowadnika:{ value:'specjalny' },
       forma_prowadnika:{ value:'krzyżowy' }
     }, extra);
@@ -128,8 +165,8 @@
       nalozenie:{ value:'równoległy wpuszczany' },
       kat_rzeczywisty:{ from:95, to:'' },
       klasa_kata:{ value:'równoległy wpuszczany 95°' },
-      hamulec:{ value:false },
-      sprezyna:{ value:false },
+      hamulec:{ value:true },
+      sprezyna:{ value:true },
       typ_prowadnika:{ value:'specjalny' },
       forma_prowadnika:{ value:'krzyżowy' }
     }, extra);
@@ -139,8 +176,8 @@
       nalozenie:{ value:'lodówkowy nakładany' },
       kat_rzeczywisty:{ from:95, to:'' },
       klasa_kata:{ value:'lodówkowy 95°' },
-      hamulec:{ value:false },
-      sprezyna:{ value:false },
+      hamulec:{ value:true },
+      sprezyna:{ value:true },
       typ_prowadnika:{ value:'specjalny' },
       forma_prowadnika:{ value:'krzyżowy' }
     }, extra);
@@ -423,19 +460,21 @@
         const hw = FC.frontHardware || {};
         qty = hw && typeof hw.getHingeCountForCabinet === 'function' ? Number(hw.getHingeCountForCabinet(room, cab)) || 0 : 0;
       }catch(_){ qty = 0; }
-      return [Object.assign({}, baseReq, { qty:Math.max(0, Math.round(qty)) })];
+      const row = Object.assign({}, baseReq, { qty:Math.max(0, Math.round(qty)) });
+      return isTipOnOpening(cab) ? splitRequirementForTipOn(row) : [row];
     }
 
     const overrides = getHingeOverrides(cab);
     const doorOverrides = overrides && overrides.doors && typeof overrides.doors === 'object' ? overrides.doors : {};
     const total = panels.length;
     const validKeys = [];
-    const rows = panels.map((panel, index)=> {
+    const rows = [];
+    panels.forEach((panel, index)=> {
       const doorKey = doorKeyForIndex(index, total);
       validKeys.push(doorKey);
       const override = doorOverrides[doorKey] || {};
       const qty = countHingesForDoorPanel(panel, cab);
-      return applyOverrideToDoorRequirement(baseReq, override, {
+      const doorReq = applyOverrideToDoorRequirement(baseReq, override, {
         qty,
         doorKey,
         doorIndex:index,
@@ -446,6 +485,11 @@
         frontMaterial:text(panel && panel.material) || text(cab && cab.frontMaterial),
         hasHandle:!!(panel && panel.hasHandle)
       });
+      if(isTipOnOpening(cab)){
+        splitRequirementForTipOn(doorReq).forEach((row)=> rows.push(row));
+      }else{
+        rows.push(doorReq);
+      }
     });
     try{ clearInvalidDoorOverrides(cab, validKeys); }catch(_){ }
     return rows;
@@ -501,5 +545,6 @@
     needsFridgeFurnitureHinges,
     isHafeleScissorFlap,
     isBlumHkXsFlap,
+    isTipOnOpening,
   };
 })();

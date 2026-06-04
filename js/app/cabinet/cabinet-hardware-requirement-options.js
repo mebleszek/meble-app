@@ -154,21 +154,25 @@
     const overlay = normalizedText(paramScalar(p, 'nalozenie'));
     const cls = normalizedText(angleClass(p) || inferAngleClass(p));
     const plate = normalizedText(paramScalar(p, 'typ_prowadnika') || paramScalar(p, 'prowadnik')) || 'standardowy';
-    const brakeRaw = paramScalar(p, 'hamulec');
-    const brakeKnown = text(brakeRaw) !== '' || typeof brakeRaw === 'boolean';
-    const brake = boolParam(p, 'hamulec');
 
-    // Znane ID zachowujemy tylko dla kanonicznych klas funkcjonalnych reguł szafek.
-    // Kąt rzeczywisty (np. 107° zamiast 110°) nie rozbija standardu, o ile klasa
-    // zamienności i pozostałe cechy techniczne są te same.
-    if(overlay === 'nakladany' && cls === 'standardowy 90 120' && plate === 'standardowy' && (!brakeKnown || brake)) return HINGE_TYPES.OVERLAY_110;
-    if(overlay === 'wpuszczany' && cls === 'standardowy 90 120' && plate === 'standardowy' && (!brakeKnown || brake)) return HINGE_TYPES.INSET_110;
-    if(overlay === 'nakladany' && cls === 'zerowy uskok 155' && plate === 'standardowy' && (!brakeKnown || brake)) return HINGE_TYPES.ZERO_155;
-    if(overlay === 'nakladany' && cls === 'narozny 170' && plate === 'specjalny' && (!brakeKnown || !brake)) return HINGE_TYPES.CORNER_170;
-    if(overlay === 'rownolegly wpuszczany' && cls === 'rownolegly wpuszczany 95' && plate === 'specjalny' && (!brakeKnown || !brake)) return HINGE_TYPES.PARALLEL_INSET;
-    if(overlay === 'lodowkowy nakladany' && cls === 'lodowkowy 95' && plate === 'specjalny' && (!brakeKnown || !brake)) return HINGE_TYPES.FRIDGE_OVERLAY;
+    // To jest klasa funkcjonalna zawiasu, nie pełny podpis techniczny.
+    // Hamulec i sprężyna są osobnymi cechami porównania — nie mogą znikać przy scalaniu opcji.
+    if(overlay === 'nakladany' && cls === 'standardowy 90 120' && plate === 'standardowy') return HINGE_TYPES.OVERLAY_110;
+    if(overlay === 'wpuszczany' && cls === 'standardowy 90 120' && plate === 'standardowy') return HINGE_TYPES.INSET_110;
+    if(overlay === 'nakladany' && cls === 'zerowy uskok 155' && plate === 'standardowy') return HINGE_TYPES.ZERO_155;
+    if(overlay === 'nakladany' && cls === 'narozny 170' && plate === 'specjalny') return HINGE_TYPES.CORNER_170;
+    if(overlay === 'rownolegly wpuszczany' && cls === 'rownolegly wpuszczany 95' && plate === 'specjalny') return HINGE_TYPES.PARALLEL_INSET;
+    if(overlay === 'lodowkowy nakladany' && cls === 'lodowkowy 95' && (plate === 'lodowkowy' || plate === 'specjalny')) return HINGE_TYPES.FRIDGE_OVERLAY;
     return '';
   }
+
+  function isDefaultFunctionalHingeParams(params){
+    const p = normalizeHingeParams(params || {});
+    const typeId = knownHingeTypeIdFromParams(p);
+    if(!typeId) return false;
+    return boolParam(p, 'hamulec') === true && boolParam(p, 'sprezyna') === true;
+  }
+
   function formatHingeOptionLabel(params){
     const p = normalizeHingeParams(params || {});
     const overlay = text(paramScalar(p, 'nalozenie'));
@@ -183,11 +187,14 @@
     const forma = text(paramScalar(p, 'forma_prowadnika'));
     if(prowadnik && !/^standardowy$/i.test(prowadnik)) parts.push('prowadnik ' + prowadnik);
     if(forma) parts.push('forma ' + forma);
-    if(boolParam(p, 'hamulec')) parts.push('z hamulcem');
+    parts.push(boolParam(p, 'hamulec') ? 'z hamulcem' : 'bez hamulca');
+    parts.push(boolParam(p, 'sprezyna') ? 'ze sprężyną' : 'bez sprężyny');
     return parts.join(' ').replace(/\s+/g, ' ').trim() || 'Wymaganie zawiasu z katalogu';
   }
   function catalogOptionTypeId(params){
-    return knownHingeTypeIdFromParams(params) || ('catalog_hinge_' + hashKey(hingeParamSignature(params)));
+    const functionalId = knownHingeTypeIdFromParams(params);
+    if(functionalId && isDefaultFunctionalHingeParams(params)) return functionalId;
+    return 'catalog_hinge_' + hashKey(hingeParamSignature(params));
   }
   function buildCatalogHingeRequirementOptions(){
     const map = new Map();
@@ -204,7 +211,7 @@
       }catch(_){ }
       const signature = hingeParamSignature(params);
       const typeId = catalogOptionTypeId(params);
-      const key = knownHingeTypeIdFromParams(params) ? (typeId + '|canonical') : (typeId + '|' + signature);
+      const key = typeId + '|' + signature;
       const existing = map.get(key);
       if(existing){
         existing.sourceCount += 1;

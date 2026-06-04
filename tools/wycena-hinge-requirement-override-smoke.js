@@ -163,7 +163,7 @@ assert(!String(legacyLines[0].name || '').includes('170°'), 'nazwa pozycji dla 
       kat_rzeczywisty:{ from:107, to:'' },
       klasa_kata:{ value:'standardowy 90–120°' },
       hamulec:{ value:true },
-      sprezyna:{ value:false },
+      sprezyna:{ value:true },
       typ_prowadnika:{ value:'standardowy' },
       forma_prowadnika:{ value:'krzyżowy' },
       pokrycie_prowadnika:{ value:'w komplecie' }
@@ -210,7 +210,7 @@ assert(!String(legacyLines[0].name || '').includes('170°'), 'nazwa pozycji dla 
       kat_rzeczywisty:{ from:107, to:'' },
       klasa_kata:{ value:'standardowy 90–120°' },
       hamulec:{ value:true },
-      sprezyna:{ value:false },
+      sprezyna:{ value:true },
       typ_prowadnika:{ value:'standardowy' },
       forma_prowadnika:{ value:'krzyżowy' },
       pokrycie_prowadnika:{ value:'w komplecie' }

@@ -135,6 +135,18 @@
     catalogOptions = Array.isArray(catalogOptions) ? catalogOptions : [];
     catalogOptions.forEach((opt)=> addChoiceOption(map, opt, opt && opt.requirement));
 
+    // Kanoniczne wymagania techniczne nie są produktem katalogowym. Dodajemy je,
+    // żeby panel zawsze pozwalał wybrać regułę szafki z poprawnymi cechami
+    // (np. hamulec/sprężyna), nawet jeśli katalog ma jeszcze stare pozycje.
+    try{
+      const types = api && api.HINGE_TYPES || {};
+      Object.keys(types).map((key)=> text(types[key])).filter(Boolean).forEach((typeId)=> {
+        if(map.has(typeId)) return;
+        const preset = api && typeof api.getHingeRequirementPreset === 'function' ? api.getHingeRequirementPreset(typeId, 'canonical_choice') : null;
+        if(preset) addChoiceOption(map, { typeId, label:text(preset.label), canonicalChoice:true }, preset);
+      });
+    }catch(_){ }
+
     const current = text(req && req.typeId);
     if(current && !map.has(current)) addChoiceOption(map, { typeId:current, label:text(req && req.label) }, req);
 
@@ -168,6 +180,55 @@
     return normalizeKey(a) === normalizeKey(b);
   }
 
+  function getCatalogStore(){
+    try{
+      if(FC.catalogStore && typeof FC.catalogStore === 'function') return FC.catalogStore();
+      if(FC.catalogStore && typeof FC.catalogStore === 'object') return FC.catalogStore;
+    }catch(_){ }
+    return null;
+  }
+
+  function getHardwareTechnicalDefinitions(){
+    const store = getCatalogStore();
+    try{ if(store && typeof store.getHardwareTechnicalParams === 'function') return store.getHardwareTechnicalParams() || []; }catch(_){ }
+    return (FC.hardwareTechnicalParams && FC.hardwareTechnicalParams.DEFAULT_DEFINITIONS) || [];
+  }
+
+  function hingeCascadeFields(){
+    const tech = FC.hardwareTechnicalParams || null;
+    const definitions = getHardwareTechnicalDefinitions();
+    let fields = [];
+    try{
+      if(tech && typeof tech.fieldsForCategory === 'function') fields = tech.fieldsForCategory(definitions, 'Zawiasy') || [];
+    }catch(_){ fields = []; }
+    if(!Array.isArray(fields) || !fields.length){
+      fields = [
+        { key:'nalozenie', label:'Typ / nakładanie kompletu zawiasowego', order:10, keyFeature:true, compareMode:'equal' },
+        { key:'klasa_kata', label:'Klasa / zakres zamienności kąta', order:25, keyFeature:true, compareMode:'equal' },
+        { key:'hamulec', label:'Hamulec / domyk', order:30, keyFeature:true, compareMode:'equal' },
+        { key:'sprezyna', label:'Sprężyna', order:40, keyFeature:true, compareMode:'equal' },
+        { key:'typ_prowadnika', label:'Wymagany typ prowadnika', order:50, keyFeature:true, compareMode:'equal' },
+        { key:'forma_prowadnika', label:'Wymagana forma prowadnika', order:55, keyFeature:true, compareMode:'equal' }
+      ];
+    }
+    const skip = new Set(['rola_kompletu','system_kompatybilnosci','pokrycie_prowadnika','kat_otwarcia','prowadnik']);
+    return fields
+      .filter((field)=> field && field.active !== false && field.key && !skip.has(text(field.key)))
+      .filter((field)=> field.keyFeature !== false && text(field.compareMode || 'equal') !== 'ignore')
+      .sort((a, b)=> (Number(a.order) || 0) - (Number(b.order) || 0) || text(a.label || a.key).localeCompare(text(b.label || b.key), 'pl'));
+  }
+
+  function fieldTitle(field){
+    const label = text(field && (field.label || field.key)) || 'parametr';
+    const lower = label.toLowerCase();
+    if(field && field.key === 'nalozenie') return 'Wybierz typ / nakładanie kompletu zawiasowego';
+    if(field && field.key === 'klasa_kata') return 'Wybierz klasę / zakres zamienności kąta';
+    if(field && field.key === 'hamulec') return 'Wybierz hamulec / domyk';
+    if(field && field.key === 'sprezyna') return 'Wybierz sprężynę';
+    if(lower.startsWith('wybierz ')) return label;
+    return 'Wybierz ' + lower;
+  }
+
   function uniqueCascadeFieldOptions(options, key){
     const map = new Map();
     (Array.isArray(options) ? options : []).forEach((opt)=>{
@@ -191,7 +252,7 @@
   async function pickCascadeField(choiceApi, cfg){
     const values = uniqueCascadeFieldOptions(cfg.options, cfg.key);
     if(!values.length) return '';
-    const current = displayParamValue(cfg.currentParams || {}, cfg.key) || text(scalarParamValue(cfg.currentParams || {}, cfg.key));
+    const current = text(scalarParamValue(cfg.currentParams || {}, cfg.key));
     if(values.length === 1) return values[0].value;
     const picked = await choiceApi.openRozrysChoiceOverlay({
       title:cfg.title,
@@ -230,15 +291,7 @@
 
     let filtered = allOptions.slice();
     const currentParams = req && req.technicalParams || {};
-    const cascade = [
-      { key:'nalozenie', title:'Wybierz typ / nakładanie kompletu zawiasowego' },
-      { key:'klasa_kata', title:'Wybierz klasę / zakres zamienności kąta' },
-      { key:'kat_rzeczywisty', title:'Wybierz kąt rzeczywisty / nominalny' },
-      { key:'typ_prowadnika', title:'Wybierz typ prowadnika' },
-      { key:'forma_prowadnika', title:'Wybierz formę prowadnika' },
-      { key:'hamulec', title:'Wybierz hamulec / domyk' },
-      { key:'sprezyna', title:'Wybierz sprężynę' }
-    ];
+    const cascade = hingeCascadeFields().map((field)=> ({ key:text(field.key), title:fieldTitle(field), field }));
 
     let openedChoice = false;
     for(const step of cascade){
@@ -298,6 +351,34 @@
       actionButtons(req) +
     '</div>';
   }
+  function compactDoorGroup(list, sideClass){
+    const rows = Array.isArray(list) ? list.filter((item)=> item && item.kind === 'hinge') : [];
+    const first = rows[0] || {};
+    const state = rows.some((req)=> !!(req && req.overridden)) ? 'Ręcznie' : 'Domyślnie';
+    const summary = rows.map((req)=> hingeSummary(req)).filter(Boolean).join(' + ');
+    return '<div class="cabinet-hardware-req-door cabinet-hardware-req-door--compact cabinet-hardware-req-door--' + esc(sideClass || '') + '">' +
+      '<div class="cabinet-hardware-req-door__title">' + esc(first.doorLabel || 'Drzwiczki') + '</div>' +
+      '<div class="cabinet-hardware-req-summary">' +
+        '<div class="cabinet-hardware-req-summary__state">' + esc(state) + '</div>' +
+        '<div class="cabinet-hardware-req-summary__value">' + esc(summary) + '</div>' +
+      '</div>' +
+      actionButtons(Object.assign({}, first, { overridden:rows.some((req)=> !!(req && req.overridden)) })) +
+    '</div>';
+  }
+
+  function groupDoorRequirements(doors){
+    const groups = [];
+    const byKey = new Map();
+    (Array.isArray(doors) ? doors : []).forEach((req)=> {
+      const key = text(req && req.doorKey) || 'single';
+      if(!byKey.has(key)){
+        byKey.set(key, []);
+        groups.push(byKey.get(key));
+      }
+      byKey.get(key).push(req);
+    });
+    return groups;
+  }
 
   function compactAggregate(req){
     const state = req && req.overridden ? 'Ręcznie' : 'Domyślnie';
@@ -311,18 +392,20 @@
 
   function hingeBody(req){
     const doors = Array.isArray(req && req.doorRequirements) ? req.doorRequirements.filter((item)=> item && item.kind === 'hinge') : [];
-    if(doors.length === 2){
+    const groups = groupDoorRequirements(doors);
+    if(groups.length === 2){
+      const pairDoors = groups.map((items)=> items[0]).filter(Boolean);
       return '<div class="cabinet-hardware-req-door-pair-wrap">' +
         '<div class="cabinet-hardware-req-door-pair cabinet-hardware-req-door-pair--compact">' +
-          compactDoor(doors[0], 'left') +
+          compactDoorGroup(groups[0], 'left') +
           '<div class="cabinet-hardware-req-door-divider" aria-hidden="true"></div>' +
-          compactDoor(doors[1], 'right') +
+          compactDoorGroup(groups[1], 'right') +
         '</div>' +
-        pairActionButtons(doors) +
+        pairActionButtons(pairDoors) +
       '</div>';
     }
-    if(doors.length > 0){
-      return '<div class="cabinet-hardware-req-door-list cabinet-hardware-req-door-list--compact">' + doors.map((door)=> compactDoor(door, 'single')).join('') + '</div>';
+    if(groups.length > 0){
+      return '<div class="cabinet-hardware-req-door-list cabinet-hardware-req-door-list--compact">' + groups.map((items)=> compactDoorGroup(items, 'single')).join('') + '</div>';
     }
     return compactAggregate(req);
   }

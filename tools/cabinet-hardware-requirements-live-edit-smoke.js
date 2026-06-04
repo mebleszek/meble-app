@@ -225,16 +225,23 @@ async function runChangeButtonMustOpenFallbackAndNotOverrideSameValue(){
   const opened = [];
   ctx.window.FC.rozrysChoice = {
     async openRozrysChoiceOverlay(cfg){
+      const title = String(cfg.title || '');
       opened.push(cfg);
+      if(title.includes('typ')) return 'nakładany';
+      if(title.includes('klas') || title.includes('zakres')) return 'standardowy 90–120°';
+      if(title.includes('hamulec')) return 'true';
+      if(title.includes('sprężyn')) return 'true';
+      if(title.includes('prowadnik')) return 'standardowy';
+      if(title.includes('forma')) return 'krzyżowy';
       return reqApi.HINGE_TYPES.OVERLAY_110;
     }
   };
 
   const req = reqApi.getHingeRequirementWithQty('kuchnia', draft).doorRequirements[0];
   const picked = await api.openHingeChoice(req);
-  assert(opened.length === 1, 'kliknięcie Zmień musi otworzyć modal nawet wtedy, gdy kaskada nie ma wielu wartości');
-  assert(String(opened[0].title || '').includes('Wybierz wymaganie kompletu zawiasowego'), 'fallback wyboru musi mieć czytelny tytuł zamiast milczeć');
-  assert(picked === reqApi.HINGE_TYPES.OVERLAY_110, 'fallback wyboru musi zwrócić bieżący typ, jeśli użytkownik go kliknie');
+  assert(opened.length >= 1, 'kliknięcie Zmień musi otworzyć aplikacyjny wybór zamiast milczeć');
+  assert(opened.some((cfg)=> String(cfg.title || '').includes('Wybierz')), 'wybór musi mieć czytelny tytuł');
+  assert(picked === reqApi.HINGE_TYPES.OVERLAY_110, 'wybranie tych samych cech ma wrócić do standardowego 110°');
 
   const container = {
     innerHTML:'',
@@ -309,7 +316,7 @@ function runStaticCheck(){
   assert(css.includes('cabinet-hardware-req-actions') && css.includes('cabinet-hardware-req-summary'), 'brak stylów skrótu i przycisków wymagań');
   assert(css.includes('cabinet-hardware-req-pair-actions'), 'brak stylów wspólnych przycisków dla obu drzwiczek');
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  assert(html.includes('20260604_help_qmark_global_shape_fix_v1'), 'index musi mieć aktualny cache-busting tej paczki');
+  assert(html.includes('20260605_hinge_tipon_dynamic_features_v1'), 'index musi mieć aktualny cache-busting tej paczki');
 }
 
 (async function main(){

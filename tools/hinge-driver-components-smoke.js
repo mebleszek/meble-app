@@ -47,7 +47,7 @@ accessories.push({
   catalogPriceGross:5.00, purchasePriceGross:5.00, price:5.00, status:'active', priceSource:'test',
   technicalParams:{
     rola_kompletu:{ value:'zawias' }, system_kompatybilnosci:{ value:'GTV clip-on' }, nalozenie:{ value:'nakładany' },
-    kat_rzeczywisty:{ from:107, to:'' }, klasa_kata:{ value:'standardowy 90–120°' }, hamulec:{ value:true }, sprezyna:{ value:false },
+    kat_rzeczywisty:{ from:107, to:'' }, klasa_kata:{ value:'standardowy 90–120°' }, hamulec:{ value:true }, sprezyna:{ value:true },
     typ_prowadnika:{ value:'standardowy' }, forma_prowadnika:{ value:'krzyżowy' }, pokrycie_prowadnika:{ value:'osobno' }
   }
 });
