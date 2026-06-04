@@ -332,3 +332,13 @@
   .info-box{width:min(360px, calc(100vw - 18px));padding:15px 14px 13px;}
 }
 
+
+/* 2026-06-04 — fallback tekstowy dla helperów, gdy pseudo-element/ikona SVG nie wyrenderuje się na mobile. */
+.info-trigger{
+  color:#1e293b;
+  font-size:17px;
+  font-weight:900;
+  text-indent:0;
+}
+.info-trigger::before{content:"";}
+.info-trigger:not(:empty)::before{opacity:0;}

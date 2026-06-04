@@ -136,7 +136,7 @@ async function runDuplicateGuard(){
 }
 
 function runStaticChecks(){
-  const version = '20260530_wycena_duplicate_modal_fix_v1';
+  const version = '20260604_quote_click_help_duplicate_fix_v1';
   const shell = fs.readFileSync(path.join(process.cwd(), 'js/app/wycena/wycena-tab-shell.js'), 'utf8');
   const store = fs.readFileSync(path.join(process.cwd(), 'js/app/quote/quote-snapshot-store.js'), 'utf8');
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');

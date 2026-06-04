@@ -1,3 +1,14 @@
+
+## 2026-06-04 — WYCENA click, helpery `?` i duplikaty okuć v1
+
+- Paczka: `site_quote_click_help_duplicate_fix_v1.zip`.
+- Naprawiono podwójne uruchamianie `Wyceń` na mobile: `wycena-generate` po `pointerup` połyka dokładnie jeden kolejny syntetyczny `click` globalnie, a shell WYCENY ma dodatkową blokadę drugiego wywołania tuż po zakończeniu liczenia.
+- Przywrócono helpery `?`: centralny `help-registry` nadaje przyciskom tekstowy fallback `?`, a CSS nie zostawia pustych kwadratów/prostokątów, gdy pseudo-element/SVG nie wyrenderuje się na telefonie.
+- Sekcja wyboru zakresu WYCENY na mobile przechodzi na jedną kolumnę, żeby helpery i launchery nie zwężały się do pustych prostokątów.
+- Duplikat okucia nie jest już oparty wyłącznie o `hardwareType`/nazwę techniczną. Preferowany klucz to producent + kategoria + system/seria + parametry oznaczone `Użyj do porównania`; `hardwareType` zostaje tylko fallbackiem dla legacy/niepełnych danych.
+- Dodano regresję `tools/quote-generate-helper-duplicate-regression-smoke.js`.
+- Cache-busting: `20260604_quote_click_help_duplicate_fix_v1`. Raport: `tools/reports/quote-click-help-duplicate-fix-v1.md`.
+
 ## 2026-06-04 — Trwały zapis ręcznych wymagań zawiasów v1
 
 - Paczka: `site_hinge_override_persistence_fix_v1.zip`.

@@ -102,7 +102,7 @@ function runSessionMetadataAndDeleteReferenceCleanup(){
 }
 
 function runCacheBustCheck(){
-  const version = '20260530_wycena_duplicate_modal_fix_v1';
+  const version = '20260604_quote_click_help_duplicate_fix_v1';
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const dev = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');
   [

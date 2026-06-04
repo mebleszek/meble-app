@@ -79,6 +79,10 @@ const shouldSwallowGlobalAfterAction = (action, actEl) => {
   if (actEl.closest && actEl.closest('.modal-back')) return true;
   // Extra safety for explicit close/cancel actions
   if (action.startsWith('close-') || action.startsWith('cancel-')) return true;
+  // Wyceń renderuje przycisk na nowo podczas liczenia, więc syntetyczny click po pointerup
+  // może trafić w nowy element i ominąć blokadę 'same element'. Po pointerup połykamy
+  // dokładnie jeden kolejny click globalnie, żeby nie generować tej samej oferty dwa razy.
+  if (action === 'wycena-generate') return true;
   // View transitions can also suffer from "tap-through" on mobile (the synthetic click lands on
   // a newly shown element under the finger, e.g. a room tile after clicking "Nowy inwestor").
   if (action === 'new-investor' || action === 'create-investor' || action === 'new-service-order' || action === 'open-furniture-hub' || action === 'open-workshop-hub' || action === 'open-service-orders-list' || action === 'close-service-orders-list' || action === 'back-rooms' || action === 'open-room' || action === 'open-investor' || action === 'back-investors' || action === 'open-investors-list' || action === 'open-investors') return true;

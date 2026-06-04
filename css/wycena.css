@@ -487,3 +487,10 @@
   .quote-detail-line__price{text-align:left;min-width:0;}
   .quote-detail-line__qty{white-space:normal;}
 }
+
+/* 2026-06-04 — WYCENA selection: helper ? i launchery nie mogą zwężać się w mobile do pustych prostokątów. */
+@media (max-width:640px){
+  .quote-selection-grid{
+    grid-template-columns:minmax(0,1fr);
+  }
+}

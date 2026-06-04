@@ -24,6 +24,7 @@
   }
 
   const GENERATE_DEDUP_WINDOW_MS = 1500;
+  const GENERATE_RELEASE_DEDUP_WINDOW_MS = 1200;
   const generateRuntime = { inFlight:false, lastAcceptedAt:0, lastReleasedAt:0 };
 
   function recordGenerateSkip(reason, extra){
@@ -45,6 +46,10 @@
     }
     if(generateRuntime.lastAcceptedAt && now - generateRuntime.lastAcceptedAt < GENERATE_DEDUP_WINDOW_MS){
       recordGenerateSkip('generate-skipped-duplicate-event', { source:String(source || ''), deltaMs:now - generateRuntime.lastAcceptedAt, windowMs:GENERATE_DEDUP_WINDOW_MS });
+      return false;
+    }
+    if(generateRuntime.lastReleasedAt && now - generateRuntime.lastReleasedAt < GENERATE_RELEASE_DEDUP_WINDOW_MS){
+      recordGenerateSkip('generate-skipped-after-release-click', { source:String(source || ''), deltaMs:now - generateRuntime.lastReleasedAt, windowMs:GENERATE_RELEASE_DEDUP_WINDOW_MS });
       return false;
     }
     generateRuntime.inFlight = true;

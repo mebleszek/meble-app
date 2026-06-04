@@ -203,12 +203,86 @@
     if(selected && !opts.some((opt)=> text(opt.value) === text(selected))) opts.push({ value:text(selected), label:text(selected) });
     return opts;
   }
+  function getTechnicalDefinitionsForDuplicate(candidate){
+    if(Array.isArray(candidate && candidate.hardwareTechnicalParams)) return candidate.hardwareTechnicalParams;
+    try{
+      if(FC.catalogStore && typeof FC.catalogStore.getHardwareTechnicalParams === 'function'){
+        const defs = FC.catalogStore.getHardwareTechnicalParams();
+        if(Array.isArray(defs) && defs.length) return defs;
+      }
+    }catch(_){ }
+    return DEFAULT_TECHNICAL_PARAMS;
+  }
+  function normalizedParamForDuplicate(field, value){
+    const tech = FC.hardwareTechnicalParams || null;
+    if(tech && typeof tech.normalizeParamValue === 'function'){
+      try{ return tech.normalizeParamValue(field, value || {}); }catch(_){ }
+    }
+    return value && typeof value === 'object' ? value : { value };
+  }
+  function paramSignaturePart(field, value){
+    const val = normalizedParamForDuplicate(field, value || {});
+    if(field && field.fieldType === 'boolean'){
+      if(val && val.value === true) return 'tak';
+      if(val && val.value === false) return 'nie';
+      return '';
+    }
+    if(field && field.fieldType === 'numberRange'){
+      const from = text(val && val.from);
+      const to = text(val && val.to);
+      if(!from && !to) return '';
+      return (from || to) + '–' + (to || from);
+    }
+    return text(val && val.value).toLowerCase();
+  }
+  function technicalDuplicateSignature(item, definitions){
+    const row = item && typeof item === 'object' ? item : {};
+    const tech = FC.hardwareTechnicalParams || null;
+    const category = text(row.hardwareCategory || row.category || row.kategoria || '');
+    if(!category || !(tech && typeof tech.fieldsForCategory === 'function')) return '';
+    const defs = Array.isArray(definitions) && definitions.length ? definitions : getTechnicalDefinitionsForDuplicate(row);
+    const params = (tech && typeof tech.mergeLegacyValues === 'function')
+      ? tech.mergeLegacyValues(row, defs, category)
+      : (row.technicalParams || {});
+    let fields = [];
+    try{ fields = tech.fieldsForCategory(defs, category).filter((field)=> field && field.active !== false && field.keyFeature !== false && field.compareMode !== 'ignore'); }catch(_){ fields = []; }
+    if(!fields.length) return '';
+    const parts = [];
+    for(let i = 0; i < fields.length; i += 1){
+      const field = fields[i];
+      const value = params && params[field.key];
+      const part = paramSignaturePart(field, value);
+      if(!part) return '';
+      parts.push(field.key + '=' + part);
+    }
+    return parts.join('|');
+  }
+  function legacyDuplicateKey(item){
+    const row = item && typeof item === 'object' ? item : {};
+    const sys = text(row.hardwareSystem || row.series).toLowerCase();
+    const type = text(row.hardwareType).toLowerCase();
+    if(!text(row.manufacturer) || !text(row.hardwareCategory) || !type) return '';
+    return [text(row.manufacturer).toLowerCase(), text(row.hardwareCategory).toLowerCase(), sys, 'type:' + type].join('|');
+  }
+  function technicalDuplicateKey(item, definitions){
+    const row = item && typeof item === 'object' ? item : {};
+    const sys = text(row.hardwareSystem || row.series).toLowerCase();
+    const signature = technicalDuplicateSignature(row, definitions);
+    if(!text(row.manufacturer) || !text(row.hardwareCategory) || !signature) return '';
+    return [text(row.manufacturer).toLowerCase(), text(row.hardwareCategory).toLowerCase(), sys, 'tech:' + signature].join('|');
+  }
   function uniqueTypeConflict(list, candidate, currentId){
     const c = candidate || {};
-    const sys = (row)=> text((row && row.hardwareSystem) || (row && row.series)).toLowerCase();
-    const key = [text(c.manufacturer).toLowerCase(), text(c.hardwareCategory).toLowerCase(), sys(c), text(c.hardwareType).toLowerCase()].join('|');
-    if(!text(c.manufacturer) || !text(c.hardwareCategory) || !text(c.hardwareType)) return null;
-    return (Array.isArray(list) ? list : []).find((row)=> text(row && row.id) !== text(currentId) && [text(row && row.manufacturer).toLowerCase(), text(row && row.hardwareCategory).toLowerCase(), sys(row), text(row && row.hardwareType).toLowerCase()].join('|') === key) || null;
+    const definitions = getTechnicalDefinitionsForDuplicate(c);
+    const technicalKey = technicalDuplicateKey(c, definitions);
+    const fallbackKey = technicalKey ? '' : legacyDuplicateKey(c);
+    const key = technicalKey || fallbackKey;
+    if(!key) return null;
+    return (Array.isArray(list) ? list : []).find((row)=> {
+      if(text(row && row.id) === text(currentId)) return false;
+      const rowKey = technicalKey ? technicalDuplicateKey(row, definitions) : legacyDuplicateKey(row);
+      return !!rowKey && rowKey === key;
+    }) || null;
   }
   function normalizeStatus(value){
     const raw = text(value) || 'active';
@@ -549,6 +623,8 @@
     priceStatusOptions,
     typeOptions,
     uniqueTypeConflict,
+    technicalDuplicateSignature,
+    technicalDuplicateKey,
     normalizeSupplier,
     normalizeSupplierList,
     normalizeSettings,
