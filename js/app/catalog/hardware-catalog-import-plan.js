@@ -85,7 +85,7 @@
     const snap = getSnapshot();
     const manufacturers = normalizeManufacturers((Array.isArray(data && data.manufacturers) ? data.manufacturers : []).concat(snap.manufacturers || []));
     const storedCategories = s && s.getHardwareCategories ? s.getHardwareCategories() : [];
-    const categories = optionLabels((Array.isArray(data && data.categories) ? data.categories : []).concat(storedCategories.length ? storedCategories : optionValues(hw().CATEGORIES, ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne'])), ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne']);
+    const categories = optionLabels((Array.isArray(data && data.categories) ? data.categories : []).concat(storedCategories.length ? storedCategories : optionValues(hw().CATEGORIES, ['Zawiasy','Prowadniki','Szuflady / prowadnice','Cargo / organizery','Inne'])), ['Zawiasy','Prowadniki','Szuflady / prowadnice','Cargo / organizery','Inne']);
     const units = optionLabels(hw().UNITS, ['szt.','kpl.','mb','m²','zestaw']);
     const importedSuppliers = Array.isArray(data && data.suppliers) && data.suppliers.length ? data.suppliers.map(normalizeSupplier).filter((row)=> text(row && row.name)) : [];
     const storedSuppliers = s && s.getHardwareSuppliers ? s.getHardwareSuppliers() : [];

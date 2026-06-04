@@ -152,7 +152,7 @@
   function buildDictionaryRows(snap){
     const rows = [['typ','wartosc']];
     const add = (type, values)=> (values || []).forEach((value)=> rows.push([type, value]));
-    add('kategoria', (snap.categories && snap.categories.length ? snap.categories : optionValues(hw().CATEGORIES, ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne'])));
+    add('kategoria', (snap.categories && snap.categories.length ? snap.categories : optionValues(hw().CATEGORIES, ['Zawiasy','Prowadniki','Szuflady / prowadnice','Cargo / organizery','Inne'])));
     add('system_okucia', Array.from(new Set((snap.accessories || []).map((row)=> text((row && row.hardwareSystem) || (row && row.series))).filter(Boolean))));
     add('typ_cecha', (snap.types || []).map((row)=> row && row.name).filter(Boolean));
     add('parametr_techniczny', (snap.technicalParams || []).map((row)=> row && row.key).filter(Boolean));
@@ -165,7 +165,7 @@
   }
   function accessoryValidations(_snap){
     const rowEnd = TEMPLATE_ROWS + 1;
-    const categories = (Array.isArray(_snap && _snap.categories) && _snap.categories.length) ? _snap.categories : optionValues(hw().CATEGORIES, ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne']);
+    const categories = (Array.isArray(_snap && _snap.categories) && _snap.categories.length) ? _snap.categories : optionValues(hw().CATEGORIES, ['Zawiasy','Prowadniki','Szuflady / prowadnice','Cargo / organizery','Inne']);
     const types = (Array.isArray(_snap && _snap.types) ? _snap.types.map((row)=> text(row && row.name)).filter(Boolean) : []);
     const units = optionValues(hw().UNITS, ['szt.','kpl.','mb','m²','zestaw']);
     const bundleModes = optionValues(hw().BUNDLE_COST_MODES, [{ value:'ownPrice' }, { value:'components' }]);

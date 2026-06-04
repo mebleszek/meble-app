@@ -38,10 +38,16 @@
       purchasePriceGross:11.37,
       priceSource:'Bivert',
       technicalParams:{
+        rola_kompletu:{ value:'komplet zawiasowy' },
+        system_kompatybilnosci:{ value:'CLIP top' },
         nalozenie:{ value:'nakładany' },
-        kat_otwarcia:{ from:110 },
+        kat_rzeczywisty:{ from:110, to:'' },
+        klasa_kata:{ value:'standardowy 90–120°' },
         hamulec:{ value:true },
-        prowadnik:{ value:'standardowy' }
+        sprezyna:{ value:false },
+        typ_prowadnika:{ value:'standardowy' },
+        forma_prowadnika:{ value:'krzyżowy' },
+        pokrycie_prowadnika:{ value:'w komplecie' }
       },
       note:'Seed katalogu okuć. Cena startowa brutto z Bivert; przed realną ofertą sprawdzić aktualność i własny rabat.'
     }),
@@ -57,10 +63,16 @@
       purchasePriceGross:12.85,
       priceSource:'Bivert',
       technicalParams:{
+        rola_kompletu:{ value:'zawias' },
+        system_kompatybilnosci:{ value:'CLIP top' },
         nalozenie:{ value:'wpuszczany' },
-        kat_otwarcia:{ from:110 },
+        kat_rzeczywisty:{ from:110, to:'' },
+        klasa_kata:{ value:'standardowy 90–120°' },
         hamulec:{ value:true },
-        prowadnik:{ value:'standardowy' }
+        sprezyna:{ value:false },
+        typ_prowadnika:{ value:'standardowy' },
+        forma_prowadnika:{ value:'krzyżowy' },
+        pokrycie_prowadnika:{ value:'osobno' }
       },
       note:'Seed katalogu okuć. Pozycja do frontów wpuszczanych; przed ofertą dobrać właściwy prowadnik i sprawdzić cenę kompletu.'
     }),
@@ -76,10 +88,16 @@
       purchasePriceGross:22.51,
       priceSource:'Bivert',
       technicalParams:{
+        rola_kompletu:{ value:'komplet zawiasowy' },
+        system_kompatybilnosci:{ value:'CLIP top' },
         nalozenie:{ value:'nakładany' },
-        kat_otwarcia:{ from:155 },
+        kat_rzeczywisty:{ from:155, to:'' },
+        klasa_kata:{ value:'zerowy uskok 155°' },
         hamulec:{ value:true },
-        prowadnik:{ value:'standardowy' }
+        sprezyna:{ value:false },
+        typ_prowadnika:{ value:'standardowy' },
+        forma_prowadnika:{ value:'krzyżowy' },
+        pokrycie_prowadnika:{ value:'w komplecie' }
       },
       note:'Seed katalogu okuć. Zerowy uskok 155°; cena startowa brutto z Bivert.'
     }),
@@ -95,10 +113,16 @@
       purchasePriceGross:13.48,
       priceSource:'Bivert',
       technicalParams:{
+        rola_kompletu:{ value:'komplet zawiasowy' },
+        system_kompatybilnosci:{ value:'CLIP top' },
         nalozenie:{ value:'nakładany' },
-        kat_otwarcia:{ from:170 },
+        kat_rzeczywisty:{ from:170, to:'' },
+        klasa_kata:{ value:'narożny 170°' },
         hamulec:{ value:false },
-        prowadnik:{ value:'specjalny' }
+        sprezyna:{ value:false },
+        typ_prowadnika:{ value:'specjalny' },
+        forma_prowadnika:{ value:'krzyżowy' },
+        pokrycie_prowadnika:{ value:'w komplecie' }
       },
       note:'Seed katalogu okuć. Do szerokiego otwarcia / narożnych rozwiązań; dobrać zgodnie z konstrukcją szafki.'
     }),
@@ -115,9 +139,16 @@
       priceSource:'Bivert',
       priceUpdatedAt:'2026-05-26',
       technicalParams:{
+        rola_kompletu:{ value:'komplet zawiasowy' },
+        system_kompatybilnosci:{ value:'CLIP top' },
         nalozenie:{ value:'równoległy wpuszczany' },
-        kat_otwarcia:{ from:95 },
-        prowadnik:{ value:'specjalny' }
+        kat_rzeczywisty:{ from:95, to:'' },
+        klasa_kata:{ value:'równoległy wpuszczany 95°' },
+        hamulec:{ value:false },
+        sprezyna:{ value:false },
+        typ_prowadnika:{ value:'specjalny' },
+        forma_prowadnika:{ value:'krzyżowy' },
+        pokrycie_prowadnika:{ value:'w komplecie' }
       },
       note:'Seed katalogu okuć. Realna pozycja Bivert dla rogowej ślepej: zawias równoległy wpuszczany 95° z prowadnikiem. Przed ofertą sprawdzić aktualność ceny.'
     }),
@@ -134,9 +165,16 @@
       priceSource:'Bivert',
       priceUpdatedAt:'2026-05-26',
       technicalParams:{
+        rola_kompletu:{ value:'komplet zawiasowy' },
+        system_kompatybilnosci:{ value:'MODUL' },
         nalozenie:{ value:'lodówkowy nakładany' },
-        kat_otwarcia:{ from:95 },
-        prowadnik:{ value:'specjalny' }
+        kat_rzeczywisty:{ from:95, to:'' },
+        klasa_kata:{ value:'lodówkowy 95°' },
+        hamulec:{ value:false },
+        sprezyna:{ value:false },
+        typ_prowadnika:{ value:'lodówkowy' },
+        forma_prowadnika:{ value:'krzyżowy' },
+        pokrycie_prowadnika:{ value:'w komplecie' }
       },
       note:'Seed katalogu okuć. Realny komplet Bivert do frontów lodówki: zawias 91K9550 + prowadnik 194K6100E. Przed ofertą sprawdzić aktualność ceny.'
     }),
@@ -153,10 +191,16 @@
       purchasePriceGross:8.00,
       priceSource:'Filon / cena do weryfikacji',
       technicalParams:{
+        rola_kompletu:{ value:'komplet zawiasowy' },
+        system_kompatybilnosci:{ value:'GTV euro' },
         nalozenie:{ value:'nakładany' },
-        kat_otwarcia:{ from:110 },
+        kat_rzeczywisty:{ from:110, to:'' },
+        klasa_kata:{ value:'standardowy 90–120°' },
         hamulec:{ value:true },
-        prowadnik:{ value:'standardowy' }
+        sprezyna:{ value:false },
+        typ_prowadnika:{ value:'standardowy' },
+        forma_prowadnika:{ value:'krzyżowy' },
+        pokrycie_prowadnika:{ value:'w komplecie' }
       },
       note:'Seed odpowiednika GTV. Nie jest to pozycja Bivert; przed ofertą sprawdzić realne źródło zakupu i czy wariant ma wymaganą regulację.'
     }),

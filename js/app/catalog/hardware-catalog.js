@@ -19,7 +19,7 @@
     defaultQuoteBase:'catalogGross',
     defaultPricingMode:'markup',
   };
-  const DEFAULT_CATEGORIES = ['Zawiasy','Szuflady / prowadnice','Podnośniki','Cargo / organizery','Uchwyty / profile','Nóżki / cokoły','Systemy przesuwne','LED / elektryka','AGD / montażowe akcesoria','Drobnica','Inne'];
+  const DEFAULT_CATEGORIES = ['Zawiasy','Prowadniki','Szuflady / prowadnice','Podnośniki','Cargo / organizery','Uchwyty / profile','Nóżki / cokoły','Systemy przesuwne','LED / elektryka','AGD / montażowe akcesoria','Drobnica','Inne'];
   const CATEGORIES = DEFAULT_CATEGORIES;
   const DEFAULT_TYPES = [
     { id:'hinge_110_overlay', name:'110° nakładany', allowedCategories:['Zawiasy'], active:true },
@@ -28,6 +28,9 @@
     { id:'hinge_170_corner', name:'170° narożny', allowedCategories:['Zawiasy'], active:true },
     { id:'hinge_parallel_inset', name:'Równoległy wpuszczany', allowedCategories:['Zawiasy'], active:true },
     { id:'hinge_fridge_overlay', name:'Lodówkowy nakładany', allowedCategories:['Zawiasy'], active:true },
+    { id:'mounting_plate_standard_cross', name:'Prowadnik standardowy krzyżowy', allowedCategories:['Prowadniki'], active:true },
+    { id:'mounting_plate_standard_straight', name:'Prowadnik standardowy prosty', allowedCategories:['Prowadniki'], active:true },
+    { id:'mounting_plate_lift_3_cross', name:'Prowadnik podwyższony 3 krzyżowy', allowedCategories:['Prowadniki'], active:true },
     { id:'drawer_m', name:'Szuflada M', allowedCategories:['Szuflady / prowadnice'], active:true },
     { id:'drawer_k', name:'Szuflada K', allowedCategories:['Szuflady / prowadnice'], active:true },
     { id:'runner_l500', name:'Prowadnica L500', allowedCategories:['Szuflady / prowadnice'], active:true },

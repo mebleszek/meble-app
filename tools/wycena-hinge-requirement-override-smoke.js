@@ -123,7 +123,9 @@ const legacy110Req = {
     nalozenie:{ value:'nakładany' },
     kat_otwarcia:{ from:110 },
     hamulec:{ value:true },
-    prowadnik:{ value:'standardowy' }
+    prowadnik:{ value:'standardowy' },
+    typ_prowadnika:{ value:'standardowy' },
+    forma_prowadnika:{ value:'krzyżowy' }
   },
   qty:4
 };
@@ -155,12 +157,16 @@ assert(!String(legacyLines[0].name || '').includes('170°'), 'nazwa pozycji dla 
     priceSource:'test',
     status:'active',
     technicalParams:{
+      rola_kompletu:{ value:'komplet zawiasowy' },
+      system_kompatybilnosci:{ value:'GTV euro' },
       nalozenie:{ value:'nakładany' },
       kat_rzeczywisty:{ from:107, to:'' },
       klasa_kata:{ value:'standardowy 90–120°' },
       hamulec:{ value:true },
       sprezyna:{ value:false },
-      prowadnik:{ value:'standardowy' }
+      typ_prowadnika:{ value:'standardowy' },
+      forma_prowadnika:{ value:'krzyżowy' },
+      pokrycie_prowadnika:{ value:'w komplecie' }
     }
   });
   store.savePriceList('accessories', baseAccessories);
@@ -198,12 +204,16 @@ assert(!String(legacyLines[0].name || '').includes('170°'), 'nazwa pozycji dla 
     priceSource:'test',
     status:'active',
     technicalParams:{
+      rola_kompletu:{ value:'komplet zawiasowy' },
+      system_kompatybilnosci:{ value:'GTV euro' },
       nalozenie:{ value:'nakładany' },
       kat_rzeczywisty:{ from:107, to:'' },
       klasa_kata:{ value:'standardowy 90–120°' },
       hamulec:{ value:true },
       sprezyna:{ value:false },
-      prowadnik:{ value:'standardowy' }
+      typ_prowadnika:{ value:'standardowy' },
+      forma_prowadnika:{ value:'krzyżowy' },
+      pokrycie_prowadnika:{ value:'w komplecie' }
     }
   });
   store.savePriceList('accessories', baseAccessories);

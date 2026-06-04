@@ -107,7 +107,8 @@
       if(!key) return;
       if(field.fieldType === 'boolean'){
         const el = root.querySelector(techInputSelector(key, '[data-tech-type="boolean"]'));
-        out[key] = { value:!!(el && el.checked) };
+        const raw = el ? String(el.value || '').trim() : '';
+        out[key] = { value:raw === '' ? '' : raw === 'true' };
       }else if(field.fieldType === 'numberRange'){
         const from = root.querySelector(techInputSelector(key, '[data-tech-part="from"]'));
         const to = root.querySelector(techInputSelector(key, '[data-tech-part="to"]'));
@@ -260,15 +261,48 @@
     mountTechChoiceLauncher(select, mountId, field, wrap);
     return select;
   }
+  function technicalMissingKeySet(category, params){
+    const api = techApi();
+    if(!(api && typeof api.evaluateItemTechnicalStatus === 'function')) return new Set();
+    const status = api.evaluateItemTechnicalStatus({ hardwareCategory:category, technicalParams:params || {} }, getTechnicalDefinitions());
+    const keys = new Set();
+    (Array.isArray(status && status.missing) ? status.missing : []).forEach((row)=>{
+      const key = String(row && row.key || '').trim();
+      if(key) keys.add(key);
+    });
+    return keys;
+  }
+  function markTechnicalFieldMissing(wrap, field, missing){
+    if(!wrap || !field) return;
+    wrap.classList.toggle('is-tech-required-missing', !!missing);
+    let note = wrap.querySelector('.hardware-tech-required-note');
+    if(missing && !note){
+      note = h('div', { class:'hardware-tech-required-note', text:'Wymagane do wyceny' });
+      wrap.appendChild(note);
+    }else if(!missing && note){
+      note.remove();
+    }
+  }
+  function refreshTechnicalMissingHighlights(rootNode){
+    const root = rootNode || ctx.byId('hardwareDynamicTechnicalFields');
+    if(!root) return;
+    const category = readString('hardwareCategory') || 'Inne';
+    const params = readDynamicTechnicalParams(root);
+    const missing = technicalMissingKeySet(category, params);
+    root.querySelectorAll('[data-tech-field-wrap]').forEach((wrap)=>{
+      const key = String(wrap.getAttribute('data-tech-field-key') || '').trim();
+      markTechnicalFieldMissing(wrap, { key }, missing.has(key));
+    });
+  }
+
   function buildTechnicalStatusNotice(category, params){
     const api = techApi();
     if(!(api && typeof api.evaluateItemTechnicalStatus === 'function')) return null;
     const status = api.evaluateItemTechnicalStatus({ hardwareCategory:category, technicalParams:params || {} }, getTechnicalDefinitions());
     if(!(status && status.needsAttention)) return null;
-    const missing = Array.isArray(status.missing) ? status.missing.map((row)=> String(row && row.label || row && row.key || '').trim()).filter(Boolean) : [];
     const box = h('div', { class:'hardware-tech-status-alert', 'data-tech-status-notice':'1' });
     box.appendChild(h('div', { class:'hardware-tech-status-alert__title', text:'Do uzupełnienia tech.' }));
-    box.appendChild(h('div', { class:'hardware-tech-status-alert__text', text:missing.length ? ('Brakuje danych technicznych do automatycznej wyceny: ' + missing.join(', ') + '.') : 'Brakuje danych technicznych do automatycznej wyceny.' }));
+    box.appendChild(h('div', { class:'hardware-tech-status-alert__text', text:'Pozycja nie będzie używana w automatycznej wycenie, dopóki czerwone pola nie zostaną uzupełnione.' }));
     return box;
   }
   function refreshTechnicalStatusNotice(rootNode){
@@ -280,6 +314,7 @@
     const params = readDynamicTechnicalParams(root);
     const notice = buildTechnicalStatusNotice(category, params);
     if(notice) root.insertBefore(notice, root.firstChild || null);
+    refreshTechnicalMissingHighlights(root);
   }
 
   function renderDynamicTechnicalFields(data){
@@ -299,17 +334,26 @@
       return;
     }
     const grid = h('div', { class:'hardware-dynamic-tech-grid' });
+    const initialMissing = technicalMissingKeySet(category, values);
     fields.forEach((field)=>{
       const value = values[field.key] || {};
-      const wrap = h('div', { class:'hardware-dynamic-tech-field' });
+      const wrap = h('div', { class:'hardware-dynamic-tech-field', 'data-tech-field-wrap':'1', 'data-tech-field-key':field.key });
       wrap.appendChild(labelWithHelp(field.label + (field.unit ? ' (' + field.unit + ')' : ''), field.fieldType === 'numberRange' ? 'valueFrom' : 'name'));
       if(field.fieldType === 'boolean'){
-        const chip = h('label', { class:'rozrys-scope-chip price-labor-toggle hardware-tech-toggle' }, [
-          h('input', { type:'checkbox', 'data-tech-key':field.key, 'data-tech-type':'boolean', checked:value && value.value }),
-          h('span', { text:field.label })
-        ]);
-        chip.querySelector('input').addEventListener('change', ()=> syncHardwareTypeFromTechnicalParams({ updateAction:true }));
-        wrap.appendChild(chip);
+        const fieldKey = String(field && field.key || '');
+        const raw = value && value.value;
+        const select = h('select', { class:'investor-form-input hardware-tech-choice-select', 'data-tech-key':fieldKey, 'data-tech-type':'boolean', 'aria-label':String(field && field.label || 'Wartość') });
+        select.hidden = true;
+        select.appendChild(h('option', { value:'', text:'Nie ustawiono' }));
+        select.appendChild(h('option', { value:'true', text:'Tak' }));
+        select.appendChild(h('option', { value:'false', text:'Nie' }));
+        select.value = raw === true ? 'true' : (raw === false ? 'false' : '');
+        const mountId = 'hardwareTechChoice_' + fieldKey.replace(/[^a-zA-Z0-9_-]+/g, '_');
+        const mount = h('div', { id:mountId, class:'hardware-tech-choice-launch-slot' });
+        select.addEventListener('change', ()=> runTechChoiceChange(select, field, wrap, { updateAction:true }));
+        wrap.appendChild(select);
+        wrap.appendChild(mount);
+        mountTechChoiceLauncher(select, mountId, field, wrap);
       }else if(field.fieldType === 'numberRange'){
         const row = h('div', { class:'hardware-tech-range-row' });
         const from = h('input', { class:'investor-form-input', type:'number', step:'any', placeholder:'od / dokładnie', value:value && value.from != null ? value.from : '', 'data-tech-key':field.key, 'data-tech-part':'from' });
@@ -329,11 +373,13 @@
       }
       const preview = formatTechnicalValue(field, value);
       if(preview) wrap.appendChild(h('div', { class:'muted xs hardware-tech-preview', text:'Wartość: ' + preview }));
+      markTechnicalFieldMissing(wrap, field, initialMissing.has(String(field.key || '')));
       grid.appendChild(wrap);
     });
     const initialNotice = buildTechnicalStatusNotice(category, values);
     if(initialNotice) host.appendChild(initialNotice);
     host.appendChild(grid);
+    refreshTechnicalMissingHighlights(host);
     syncHardwareTypeFromTechnicalParams({ root:host, updateAction:false, remountChoice:false });
   }
   function findSupplier(id){

@@ -86,7 +86,8 @@
       klasa_kata:{ value:'standardowy 90–120°' },
       hamulec:{ value:true },
       sprezyna:{ value:false },
-      prowadnik:{ value:'standardowy' }
+      typ_prowadnika:{ value:'standardowy' },
+      forma_prowadnika:{ value:'krzyżowy' }
     }, extra);
   }
   function inset110(ruleId, extra){
@@ -96,7 +97,8 @@
       klasa_kata:{ value:'standardowy 90–120°' },
       hamulec:{ value:true },
       sprezyna:{ value:false },
-      prowadnik:{ value:'standardowy' }
+      typ_prowadnika:{ value:'standardowy' },
+      forma_prowadnika:{ value:'krzyżowy' }
     }, extra);
   }
   function zero155(ruleId, extra){
@@ -106,7 +108,8 @@
       klasa_kata:{ value:'zerowy uskok 155°' },
       hamulec:{ value:true },
       sprezyna:{ value:false },
-      prowadnik:{ value:'standardowy' }
+      typ_prowadnika:{ value:'standardowy' },
+      forma_prowadnika:{ value:'krzyżowy' }
     }, extra);
   }
   function corner170(ruleId, extra){
@@ -116,7 +119,8 @@
       klasa_kata:{ value:'narożny 170°' },
       hamulec:{ value:false },
       sprezyna:{ value:false },
-      prowadnik:{ value:'specjalny' }
+      typ_prowadnika:{ value:'specjalny' },
+      forma_prowadnika:{ value:'krzyżowy' }
     }, extra);
   }
   function blindCorner(ruleId, extra){
@@ -126,7 +130,8 @@
       klasa_kata:{ value:'równoległy wpuszczany 95°' },
       hamulec:{ value:false },
       sprezyna:{ value:false },
-      prowadnik:{ value:'specjalny' }
+      typ_prowadnika:{ value:'specjalny' },
+      forma_prowadnika:{ value:'krzyżowy' }
     }, extra);
   }
   function fridgeHinge(ruleId, extra){
@@ -136,7 +141,8 @@
       klasa_kata:{ value:'lodówkowy 95°' },
       hamulec:{ value:false },
       sprezyna:{ value:false },
-      prowadnik:{ value:'specjalny' }
+      typ_prowadnika:{ value:'specjalny' },
+      forma_prowadnika:{ value:'krzyżowy' }
     }, extra);
   }
 
@@ -155,7 +161,11 @@
   function requirementFromOption(option, ruleId, extra){
     const opt = option && typeof option === 'object' ? option : null;
     if(!opt) return null;
-    return hingeRequirement(text(opt.typeId || opt.value), 'Komplet zawiasowy ' + text(opt.label || 'z katalogu'), ruleId || ('catalog_' + text(opt.typeId || opt.value)), clone(opt.technicalParams || {}), Object.assign({
+    const params = clone(opt.technicalParams || {});
+    delete params.rola_kompletu;
+    delete params.system_kompatybilnosci;
+    delete params.pokrycie_prowadnika;
+    return hingeRequirement(text(opt.typeId || opt.value), 'Komplet zawiasowy ' + text(opt.label || 'z katalogu'), ruleId || ('catalog_' + text(opt.typeId || opt.value)), params, Object.assign({
       catalogDriven:!!opt.catalogDriven,
       catalogOptionSourceCount:Number(opt.sourceCount) || 0,
       catalogOptionSourceItemIds:Array.isArray(opt.sourceItemIds) ? opt.sourceItemIds.slice() : [],

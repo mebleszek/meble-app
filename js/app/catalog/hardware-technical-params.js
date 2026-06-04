@@ -18,13 +18,23 @@
     { value:'numberRange', label:'Liczba / zakres od-do' },
   ];
   const DEFAULT_DEFINITIONS = [
+    { category:'Zawiasy', key:'rola_kompletu', label:'Rola w komplecie zawiasowym', fieldType:'text', unit:'', options:['komplet zawiasowy','zawias'], keyFeature:true, typePart:false, compareMode:'equal', order:5, active:true },
+    { category:'Zawiasy', key:'system_kompatybilnosci', label:'System kompatybilności', fieldType:'text', unit:'', options:['CLIP top','MODUL','GTV clip-on','GTV euro','uniwersalny euro'], keyFeature:true, typePart:false, compareMode:'equal', order:8, active:true },
     { category:'Zawiasy', key:'nalozenie', label:'Nałożenie', fieldType:'text', unit:'', options:['nakładany','półnakładany / bliźniaczy','wpuszczany','równoległy wpuszczany','lodówkowy nakładany'], keyFeature:true, typePart:true, compareMode:'equal', order:10, active:true },
     { category:'Zawiasy', key:'kat_rzeczywisty', label:'Kąt rzeczywisty / nominalny', fieldType:'numberRange', unit:'°', options:[], keyFeature:false, typePart:true, compareMode:'ignore', order:20, active:true, legacyField:'kat_otwarcia' },
     { category:'Zawiasy', key:'klasa_kata', label:'Klasa / zakres zamienności kąta', fieldType:'text', unit:'', options:['standardowy 90–120°','zerowy uskok 155°','narożny 170°','równoległy wpuszczany 95°','lodówkowy 95°'], keyFeature:true, typePart:true, compareMode:'equal', order:25, active:true },
     { category:'Zawiasy', key:'kat_otwarcia', label:'Kąt otwarcia — legacy', fieldType:'numberRange', unit:'°', options:[], keyFeature:false, typePart:false, compareMode:'ignore', order:26, active:false },
     { category:'Zawiasy', key:'hamulec', label:'Hamulec / domyk', fieldType:'boolean', unit:'', options:[], keyFeature:true, typePart:true, compareMode:'equal', order:30, active:true },
     { category:'Zawiasy', key:'sprezyna', label:'Sprężyna', fieldType:'boolean', unit:'', options:[], keyFeature:true, typePart:false, compareMode:'equal', order:40, active:true },
-    { category:'Zawiasy', key:'prowadnik', label:'Prowadnik / montaż', fieldType:'text', unit:'', options:['standardowy','specjalny','osobno'], keyFeature:true, typePart:false, compareMode:'equal', order:50, active:true },
+    { category:'Zawiasy', key:'typ_prowadnika', label:'Wymagany typ prowadnika', fieldType:'text', unit:'', options:['standardowy','podwyższony 3','lodówkowy','specjalny'], keyFeature:true, typePart:false, compareMode:'equal', order:50, active:true, legacyField:'prowadnik' },
+    { category:'Zawiasy', key:'forma_prowadnika', label:'Wymagana forma prowadnika', fieldType:'text', unit:'', options:['krzyżowy','prosty'], keyFeature:true, typePart:false, compareMode:'equal', order:55, active:true },
+    { category:'Zawiasy', key:'pokrycie_prowadnika', label:'Pokrycie prowadnika', fieldType:'text', unit:'', options:['w komplecie','osobno','bez prowadnika'], keyFeature:false, typePart:false, compareMode:'ignore', order:60, active:true },
+    { category:'Zawiasy', key:'prowadnik', label:'Prowadnik / montaż — legacy', fieldType:'text', unit:'', options:['standardowy','specjalny','osobno'], keyFeature:false, typePart:false, compareMode:'ignore', order:65, active:false },
+
+    { category:'Prowadniki', key:'rola_kompletu', label:'Rola w komplecie zawiasowym', fieldType:'text', unit:'', options:['prowadnik'], keyFeature:true, typePart:false, compareMode:'equal', order:5, active:true },
+    { category:'Prowadniki', key:'system_kompatybilnosci', label:'System kompatybilności', fieldType:'text', unit:'', options:['CLIP top','MODUL','GTV clip-on','GTV euro','uniwersalny euro'], keyFeature:true, typePart:false, compareMode:'equal', order:10, active:true },
+    { category:'Prowadniki', key:'typ_prowadnika', label:'Typ prowadnika', fieldType:'text', unit:'', options:['standardowy','podwyższony 3','lodówkowy','specjalny'], keyFeature:true, typePart:true, compareMode:'equal', order:20, active:true },
+    { category:'Prowadniki', key:'forma_prowadnika', label:'Forma prowadnika', fieldType:'text', unit:'', options:['krzyżowy','prosty'], keyFeature:true, typePart:true, compareMode:'equal', order:30, active:true },
 
     { category:'Szuflady / prowadnice', key:'profil_szuflady', label:'Profil / wysokość', fieldType:'text', unit:'', options:['M','N','H','niska','średnia','wysoka'], keyFeature:true, typePart:true, compareMode:'equal', order:10, active:true, legacyField:'drawerProfile' },
     { category:'Szuflady / prowadnice', key:'dlugosc_mm', label:'Długość', fieldType:'numberRange', unit:'mm', options:[], keyFeature:true, typePart:true, compareMode:'equal', order:20, active:true, legacyField:'drawerLengthMm' },
@@ -66,6 +76,11 @@
     keyFeature:'Zaznacz, jeśli parametr ma być ważny przy szukaniu zamiennika. Przykład: długość prowadnicy 500 mm musi pasować do 500 mm.',
     typePart:'Zaznacz, jeśli parametr ma budować automatyczny opis Typ / cecha, np. „110° nakładany” albo „M 500 50 kg”.',
     compareMode:'Określa, jak program będzie porównywał parametr przy zamianie producenta: dokładnie, przez zakres albo przez minimalną wartość.',
+    rola_kompletu:'Określa, czy pozycja pokrywa cały komplet zawiasowy, jest samym zawiasem albo osobnym prowadnikiem. WYCENA może dzięki temu kupić gotowy komplet albo złożyć go z zawiasu i prowadnika.',
+    system_kompatybilnosci:'Jawna nazwa systemu, po której wolno parować zawias z osobnym prowadnikiem, np. CLIP top albo GTV clip-on. Nie ma osobnego słownika zgodności — program porównuje tę samą wpisaną/wybraną wartość po obu stronach.',
+    typ_prowadnika:'Typ prowadnika wymagany przez zawias albo oferowany przez osobny prowadnik, np. standardowy, podwyższony 3, lodówkowy. Zerowy uskok nie jest cechą prowadnika — to cecha zawiasu.',
+    forma_prowadnika:'Forma prowadnika, np. krzyżowy albo prosty. Przy składaniu kompletu z osobnego zawiasu i prowadnika WYCENA paruje tylko tę samą formę.',
+    pokrycie_prowadnika:'Informacja, czy prowadnik jest w gotowym komplecie, ma być kupiony osobno albo nie jest wymagany. To nie jest typ prowadnika.',
     valueFrom:'Wpisz dokładną wartość albo początek zakresu. Jeśli pole „do” zostawisz puste, program traktuje tę wartość jako dokładną.',
     valueTo:'Wypełnij tylko wtedy, gdy parametr jest zakresem, np. szerokość 600–830 mm. Dla zawiasów zakres zamienności kąta nie jest już wpisywany w polu od–do; wybiera się klasę zamienności ze słownika, a kąt rzeczywisty wpisuje jako nominalną liczbę.',
     exact:'Dokładna wartość: pole „od” wypełnione, pole „do” puste. Przykład: prowadnica 500 mm.',
@@ -217,9 +232,55 @@
       fieldType = 'numberRange'; unit = '°'; options = [];
       keyFeature = false; typePart = false; compareMode = 'ignore'; active = false; order = 26;
     }
+    if(catKey === 'zawiasy' && key === 'typ_prowadnika'){
+      finalLabel = label || 'Wymagany typ prowadnika';
+      options = options.length ? options : ['standardowy','podwyższony 3','lodówkowy','specjalny'];
+      keyFeature = true; typePart = false; compareMode = 'equal'; active = true; order = 50; legacyField = legacyField || 'prowadnik';
+    }
+    if(catKey === 'zawiasy' && key === 'forma_prowadnika'){
+      finalLabel = label || 'Wymagana forma prowadnika';
+      options = options.length ? options : ['krzyżowy','prosty'];
+      keyFeature = true; typePart = false; compareMode = 'equal'; active = true; order = 55;
+    }
+    if(catKey === 'zawiasy' && key === 'pokrycie_prowadnika'){
+      finalLabel = label || 'Pokrycie prowadnika';
+      options = options.length ? options : ['w komplecie','osobno','bez prowadnika'];
+      keyFeature = false; typePart = false; compareMode = 'ignore'; active = true; order = 60;
+    }
     if(catKey === 'zawiasy' && key === 'prowadnik'){
+      finalLabel = 'Prowadnik / montaż — legacy';
       options = options.length ? options : ['standardowy','specjalny','osobno'];
-      keyFeature = true; typePart = false; compareMode = 'equal'; active = true; order = 50;
+      keyFeature = false; typePart = false; compareMode = 'ignore'; active = false; order = 65;
+    }
+    if(catKey === 'zawiasy' && key === 'rola_kompletu'){
+      finalLabel = label || 'Rola w komplecie zawiasowym';
+      options = options.length ? options : ['komplet zawiasowy','zawias'];
+      keyFeature = true; typePart = false; compareMode = 'equal'; active = true; order = 5;
+    }
+    if(catKey === 'zawiasy' && key === 'system_kompatybilnosci'){
+      finalLabel = label || 'System kompatybilności';
+      options = options.length ? options : ['CLIP top','MODUL','GTV clip-on','GTV euro','uniwersalny euro'];
+      keyFeature = true; typePart = false; compareMode = 'equal'; active = true; order = 8;
+    }
+    if(catKey === 'prowadniki' && key === 'rola_kompletu'){
+      finalLabel = label || 'Rola w komplecie zawiasowym';
+      options = options.length ? options : ['prowadnik'];
+      keyFeature = true; typePart = false; compareMode = 'equal'; active = true; order = 5;
+    }
+    if(catKey === 'prowadniki' && key === 'system_kompatybilnosci'){
+      finalLabel = label || 'System kompatybilności';
+      options = options.length ? options : ['CLIP top','MODUL','GTV clip-on','GTV euro','uniwersalny euro'];
+      keyFeature = true; typePart = false; compareMode = 'equal'; active = true; order = 10;
+    }
+    if(catKey === 'prowadniki' && key === 'typ_prowadnika'){
+      finalLabel = label || 'Typ prowadnika';
+      options = options.length ? options : ['standardowy','podwyższony 3','lodówkowy','specjalny'];
+      keyFeature = true; typePart = true; compareMode = 'equal'; active = true; order = 20;
+    }
+    if(catKey === 'prowadniki' && key === 'forma_prowadnika'){
+      finalLabel = label || 'Forma prowadnika';
+      options = options.length ? options : ['krzyżowy','prosty'];
+      keyFeature = true; typePart = true; compareMode = 'equal'; active = true; order = 30;
     }
 
     return {
@@ -274,7 +335,11 @@
   function normalizeParamValue(field, raw){
     const src = raw && typeof raw === 'object' ? raw : { value:raw };
     if(!field) return { value:text(src.value) };
-    if(field.fieldType === 'boolean') return { value:!!(src.value === true || bool(src.value) || src.checked === true) };
+    if(field.fieldType === 'boolean'){
+      const rawValue = src.value != null ? src.value : (src.checked != null ? src.checked : raw);
+      if(rawValue == null || text(rawValue) === '') return { value:'' };
+      return { value:!!(rawValue === true || bool(rawValue) || src.checked === true) };
+    }
     if(field.fieldType === 'numberRange'){
       const fromRaw = src.from != null ? src.from : (src.value != null ? src.value : src.od);
       const toRaw = src.to != null ? src.to : src.do;
@@ -291,13 +356,18 @@
     fields.forEach((field)=>{
       const raw = src[field.key] != null ? src[field.key] : src[field.legacyField];
       const val = normalizeParamValue(field, raw);
-      if(field.fieldType === 'boolean' || text(val.value) || text(val.from) || text(val.to)) out[field.key] = val;
+      if((field.fieldType === 'boolean' && val.value !== '') || text(val.value) || text(val.from) || text(val.to)) out[field.key] = val;
     });
     if(safeKey(category) === 'zawiasy'){
       if(!out.kat_rzeczywisty && src.kat_otwarcia != null){
         const field = fields.find((row)=> row.key === 'kat_rzeczywisty') || normalizeDefinition({ category:'Zawiasy', key:'kat_rzeczywisty', label:'Kąt rzeczywisty / nominalny', fieldType:'numberRange', unit:'°' }, 0);
         const val = normalizeParamValue(field, src.kat_otwarcia);
         if(text(val.from) || text(val.to)) out.kat_rzeczywisty = val;
+      }
+      if(!out.typ_prowadnika && src.prowadnik != null){
+        const field = fields.find((row)=> row.key === 'typ_prowadnika') || normalizeDefinition({ category:'Zawiasy', key:'typ_prowadnika', label:'Wymagany typ prowadnika', fieldType:'text', options:['standardowy','podwyższony 3','lodówkowy','specjalny'] }, 0);
+        const val = normalizeParamValue(field, src.prowadnik);
+        if(text(val.value)) out.typ_prowadnika = val;
       }
       if(!text(out.klasa_kata && out.klasa_kata.value)){
         const inferred = inferHingeAngleClass(Object.assign({}, src, out));
@@ -391,7 +461,7 @@
 
   function paramHasValue(field, value){
     const val = normalizeParamValue(field, value || {});
-    if(field.fieldType === 'boolean') return true;
+    if(field.fieldType === 'boolean') return val.value === true || val.value === false;
     if(field.fieldType === 'numberRange') return text(val.from) !== '' || text(val.to) !== '';
     return text(val.value) !== '';
   }
@@ -400,6 +470,7 @@
     return fieldsForCategory(definitions, category).filter((field)=>{
       if(!field || field.active === false) return false;
       if(catKey === 'zawiasy' && field.key === 'kat_rzeczywisty') return true;
+      if(catKey === 'zawiasy' && field.key === 'pokrycie_prowadnika') return true;
       if(field.compareMode === 'ignore') return false;
       return field.keyFeature !== false;
     });
@@ -415,7 +486,6 @@
     let filled = 0;
     fields.forEach((field)=>{
       let raw = explicit[field.key] != null ? explicit[field.key] : (field.legacyField && row[field.legacyField] != null ? row[field.legacyField] : undefined);
-      if(raw == null && field.fieldType === 'boolean') raw = { value:false };
       const has = paramHasValue(field, raw);
       if(has) filled += 1;
       else missing.push({ key:field.key, label:text(field.label || field.key), category, fieldType:field.fieldType || '' });

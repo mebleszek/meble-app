@@ -142,7 +142,7 @@
     try{ const store = ctx.catalogStore && ctx.catalogStore(); stored = store && store.getHardwareCategories ? store.getHardwareCategories() : []; }catch(_){ stored = []; }
     const options = hw && typeof hw.categoryOptions === 'function'
       ? hw.categoryOptions((stored || []).concat(dynamic), selectedValue)
-      : buildOrderedValues(['Zawiasy','Szuflady / prowadnice','Podnośniki','Cargo / organizery','Inne'], (stored || []).concat(dynamic), selectedValue, null);
+      : buildOrderedValues(['Zawiasy','Prowadniki','Szuflady / prowadnice','Podnośniki','Cargo / organizery','Inne'], (stored || []).concat(dynamic), selectedValue, null);
     return cfg.includeAll ? [{ value:'', label:'Wszystkie kategorie' }].concat(options) : options;
   }
 

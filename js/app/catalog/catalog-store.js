@@ -40,7 +40,7 @@
     : { defaultSupplierId:'bivert', defaultVatRate:23, defaultMarkupPercent:20, defaultQuoteBase:'catalogGross', defaultPricingMode:'markup' };
   const DEFAULT_HARDWARE_CATEGORIES = hardwareCatalog && Array.isArray(hardwareCatalog.DEFAULT_CATEGORIES)
     ? hardwareCatalog.DEFAULT_CATEGORIES.slice()
-    : ['Zawiasy','Szuflady / prowadnice','Cargo / organizery','Inne'];
+    : ['Zawiasy','Prowadniki','Szuflady / prowadnice','Cargo / organizery','Inne'];
   const DEFAULT_HARDWARE_TYPES = hardwareCatalog && Array.isArray(hardwareCatalog.DEFAULT_TYPES)
     ? hardwareCatalog.DEFAULT_TYPES.slice()
     : [];

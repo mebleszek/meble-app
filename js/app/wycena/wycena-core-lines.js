@@ -171,7 +171,7 @@
   function inferHingeAngleClass(params){
     const p = params || {};
     const overlay = normalizeKeyText(paramScalar(p, 'nalozenie'));
-    const plate = normalizeKeyText(paramScalar(p, 'prowadnik')) || 'standardowy';
+    const plate = normalizeKeyText(paramScalar(p, 'typ_prowadnika') || paramScalar(p, 'prowadnik')) || 'standardowy';
     const angle = hingeActualAngle(p);
     if(overlay === 'rownolegly wpuszczany') return 'równoległy wpuszczany 95°';
     if(overlay === 'lodowkowy nakladany') return 'lodówkowy 95°';
@@ -203,14 +203,15 @@
       'kat_rzeczywisty=' + text(paramFrom(p, 'kat_rzeczywisty') || paramFrom(p, 'kat_otwarcia')),
       'hamulec=' + (boolParam(p, 'hamulec') ? '1' : '0'),
       'sprezyna=' + (boolParam(p, 'sprezyna') ? '1' : '0'),
-      'prowadnik=' + normalizeKeyText(paramScalar(p, 'prowadnik'))
+      'typ_prowadnika=' + normalizeKeyText(paramScalar(p, 'typ_prowadnika') || paramScalar(p, 'prowadnik')),
+      'forma_prowadnika=' + normalizeKeyText(paramScalar(p, 'forma_prowadnika'))
     ].join('|');
   }
   function canonicalHingeTypeIdFromParams(params){
     const p = normalizeTechnicalParamsForCompare('Zawiasy', params || {});
     const overlay = normalizeKeyText(paramScalar(p, 'nalozenie'));
     const cls = normalizeKeyText(hingeAngleClass(p) || inferHingeAngleClass(p));
-    const plate = normalizeKeyText(paramScalar(p, 'prowadnik')) || 'standardowy';
+    const plate = normalizeKeyText(paramScalar(p, 'typ_prowadnika') || paramScalar(p, 'prowadnik')) || 'standardowy';
     const brakeRaw = paramScalar(p, 'hamulec');
     const brakeKnown = text(brakeRaw) !== '' || typeof brakeRaw === 'boolean';
     const brake = boolParam(p, 'hamulec');
@@ -277,6 +278,99 @@
     if(!(req && req.technicalParams && typeof req.technicalParams === 'object')) return true;
     const status = technicalStatusForCandidate(item);
     return !(status && status.needsAttention);
+  }
+
+  function itemTechnicalParams(item){ return item && item.technicalParams && typeof item.technicalParams === 'object' ? item.technicalParams : {}; }
+  function itemRole(item){ return normalizeKeyText(paramScalar(itemTechnicalParams(item), 'rola_kompletu')); }
+  function itemSystem(item){ return normalizeKeyText(paramScalar(itemTechnicalParams(item), 'system_kompatybilnosci')); }
+  function hingeDriverTypeFrom(req, hingeItem){
+    const reqParams = req && req.technicalParams && typeof req.technicalParams === 'object' ? req.technicalParams : {};
+    const hingeParams = itemTechnicalParams(hingeItem);
+    return normalizeKeyText(paramScalar(reqParams, 'typ_prowadnika') || paramScalar(reqParams, 'prowadnik') || paramScalar(hingeParams, 'typ_prowadnika') || paramScalar(hingeParams, 'prowadnik'));
+  }
+  function hingeDriverFormFrom(req, hingeItem){
+    const reqParams = req && req.technicalParams && typeof req.technicalParams === 'object' ? req.technicalParams : {};
+    const hingeParams = itemTechnicalParams(hingeItem);
+    return normalizeKeyText(paramScalar(reqParams, 'forma_prowadnika') || paramScalar(hingeParams, 'forma_prowadnika'));
+  }
+  function hingeCoverage(item){ return normalizeKeyText(paramScalar(itemTechnicalParams(item), 'pokrycie_prowadnika')); }
+  function isCompleteHingeSetItem(item){
+    const role = itemRole(item);
+    const coverage = hingeCoverage(item);
+    if(role === 'komplet zawiasowy') return true;
+    if(coverage === 'w komplecie') return true;
+    if(role === 'zawias') return false;
+    if(coverage === 'osobno') return false;
+    return text(item && item.hardwareUnit) === 'kpl.';
+  }
+  function hingeItemNeedsMountingPlate(item, req){
+    if(!(req && req.kind === 'hinge')) return false;
+    if(isCompleteHingeSetItem(item)) return false;
+    if(hingeCoverage(item) === 'bez prowadnika') return false;
+    return true;
+  }
+  function isMountingPlateItem(item){
+    const category = norm(item && (item.hardwareCategory || item.category));
+    return category === 'prowadniki' || category.indexOf('prowadnik') !== -1 || itemRole(item) === 'prowadnik';
+  }
+  function findMountingPlateForHinge(hingeItem, req){
+    const system = itemSystem(hingeItem);
+    const type = hingeDriverTypeFrom(req, hingeItem);
+    const form = hingeDriverFormFrom(req, hingeItem);
+    const producer = norm(hingeItem && hingeItem.manufacturer);
+    if(!producer || !system || !type) return { item:null, warning:'Nie można dobrać osobnego prowadnika: zawias nie ma producenta, systemu kompatybilności albo wymaganego typu prowadnika.' };
+    const rows = getAccessoryCatalogRows().map(normalizeCandidateItem).filter((item)=>{
+      if(!item || text(item.status) === 'inactive') return false;
+      if(!isMountingPlateItem(item)) return false;
+      if(!isTechnicallyUsableCandidate(item, { technicalParams:{ any:true } })) return false;
+      if(norm(item.manufacturer) !== producer) return false;
+      const params = itemTechnicalParams(item);
+      if(normalizeKeyText(paramScalar(params, 'rola_kompletu')) && normalizeKeyText(paramScalar(params, 'rola_kompletu')) !== 'prowadnik') return false;
+      if(normalizeKeyText(paramScalar(params, 'system_kompatybilnosci')) !== system) return false;
+      if(normalizeKeyText(paramScalar(params, 'typ_prowadnika')) !== type) return false;
+      if(form && normalizeKeyText(paramScalar(params, 'forma_prowadnika')) !== form) return false;
+      return true;
+    }).sort((a, b)=> (Number(a && a.price) || 0) - (Number(b && b.price) || 0));
+    return rows.length ? { item:rows[0] } : { item:null, warning:'Nie znaleziono osobnego prowadnika zgodnego z producentem, systemem, typem i formą prowadnika.' };
+  }
+  function addAccessoryMapRow(rows, cfg){
+    const item = cfg && cfg.item;
+    if(!item) return null;
+    const qty = Math.max(0, Number(cfg.qty) || 0) || 1;
+    const req = cfg.req || null;
+    const rl = text(cfg.roomLabel) || '—';
+    const key = utils.slug([cfg.keyPrefix || 'accessory', item.id || item.symbol || item.name, text(req && req.typeId), text(req && req.doorId)].filter(Boolean).join('_'));
+    const prev = rows.get(key) || {
+      key,
+      type:'accessory',
+      name:hardwareItemLabel(item),
+      qty:0,
+      unitPrice:0,
+      total:0,
+      unit:text(item.hardwareUnit) || 'szt.',
+      rooms:new Set(),
+      warnings:[],
+      noteParts:new Set(),
+      hardwareRequirement:req || null,
+      resolvedHardwareItemId:text(item.id),
+      resolvedHardwareSymbol:text(item.symbol),
+    };
+    prev.qty += qty;
+    prev.rooms.add(rl);
+    prev.name = hardwareItemLabel(item);
+    prev.unit = text(item.hardwareUnit) || prev.unit || 'szt.';
+    prev.unitPrice = Number(item.price) || prev.unitPrice || 0;
+    prev.starterPrice = !!(item.starterPrice === true && !String(item.priceUserEditedAt || '').trim());
+    prev.priceUserEditedAt = String(item.priceUserEditedAt || '');
+    const src = moneySource(item);
+    if(src) prev.noteParts.add(src);
+    if(req) prev.noteParts.add('Wymaganie: ' + requirementText(req));
+    if(cfg.note) prev.noteParts.add(text(cfg.note));
+    if(!prev.unitPrice) prev.warnings.push('Akcesorium ma 0 zł — sprawdź cenę w katalogu okuć.');
+    prev.calculation = cfg.calculation || 'Cena = ilość × cena do wyceny z katalogu okuć.';
+    prev.total = prev.qty * prev.unitPrice;
+    rows.set(key, prev);
+    return prev;
   }
 
   function compareRequirementParams(candidate, req){
@@ -491,6 +585,25 @@
           : 'Cena = ilość okuć/akcesoriów × cena do wyceny z katalogu okuć.';
         prev.total = prev.qty * prev.unitPrice;
         rows.set(key, prev);
+        if(req && isHingeRequirement(req) && priceItem && hingeItemNeedsMountingPlate(priceItem, req)){
+          const driver = findMountingPlateForHinge(priceItem, req);
+          if(driver && driver.item){
+            addAccessoryMapRow(rows, {
+              item:driver.item,
+              req,
+              qty,
+              roomLabel:rl,
+              keyPrefix:'mounting_plate',
+              note:'Prowadnik dobrany jako osobny składnik kompletu zawiasowego po producencie, systemie kompatybilności, typie i formie.',
+              calculation:'Cena = liczba kompletów zawiasowych × cena osobnego prowadnika dobranego do zawiasu.'
+            });
+            prev.noteParts.add('Pokrycie: zawias + osobny prowadnik');
+          }else{
+            prev.warnings.push(driver && driver.warning ? driver.warning : 'Nie znaleziono osobnego prowadnika do kompletu zawiasowego.');
+          }
+        }else if(req && isHingeRequirement(req) && priceItem && isCompleteHingeSetItem(priceItem)){
+          prev.noteParts.add('Pokrycie: gotowy komplet zawias + prowadnik');
+        }
       });
     });
     return Array.from(rows.values()).map((row)=> Object.assign({}, row, {

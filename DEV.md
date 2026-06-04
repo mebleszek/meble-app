@@ -1,3 +1,15 @@
+## 2026-06-04 — Zawias + prowadnik jako komplet lub składane części v1
+
+- Paczka: `site_hinge_driver_components_v1.zip`.
+- Dodano kategorię okuć `Prowadniki` oraz jawne parametry techniczne do parowania bez osobnej tabeli zgodności: `rola_kompletu`, `system_kompatybilnosci`, `typ_prowadnika`, `forma_prowadnika`, `pokrycie_prowadnika`.
+- `Osobno` nie jest już typem prowadnika; jest sposobem pokrycia prowadnika (`w komplecie` / `osobno` / `bez prowadnika`). Typ prowadnika i forma prowadnika są osobnymi cechami technicznymi.
+- `Zerowy uskok` pozostaje cechą zawiasu / klasy zawiasu, nie cechą prowadnika.
+- WYCENA może pokryć `Komplet zawiasowy` gotowym kompletem z katalogu albo, gdy wybrany zawias wymaga prowadnika osobno, dobrać osobny prowadnik po tym samym producencie, systemie kompatybilności, typie i formie prowadnika. Nie dodano słownika zgodności — parowanie jest jawne po parametrach.
+- W formularzu okucia brakujące obowiązkowe dane techniczne są oznaczane bezpośrednio przy polach: czerwona obwódka/tło i opis `Wymagane do wyceny`.
+- Pola boolean, np. hamulec i sprężyna, rozróżniają `Nie ustawiono`, `Tak` i `Nie`; puste pole nie jest już traktowane jak `nie`.
+- Dodano test `tools/hinge-driver-components-smoke.js` i rozszerzono testy kompletności danych technicznych.
+- Cache-busting: `20260604_hinge_driver_components_v1`. Raport: `tools/reports/hinge-driver-components-v1.md`.
+
 ## 2026-06-04 — Zawias 107° jako zamiennik 110° + filtr danych technicznych v1
 
 - Paczka: `site_hinge_107_tech_todo_filter_v1.zip`.

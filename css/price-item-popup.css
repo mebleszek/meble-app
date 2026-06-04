@@ -682,3 +682,24 @@
   font-size:12px;
   line-height:1.35;
 }
+
+/* Hardware technical required fields — explicit missing-field marking. */
+#priceItemModal .hardware-dynamic-tech-field.is-tech-required-missing{
+  border:1px solid rgba(220,38,38,.45);
+  background:rgba(254,226,226,.38);
+  border-radius:14px;
+  padding:8px;
+  box-shadow:0 0 0 2px rgba(248,113,113,.10) inset;
+}
+#priceItemModal .hardware-dynamic-tech-field.is-tech-required-missing .investor-form-input,
+#priceItemModal .hardware-dynamic-tech-field.is-tech-required-missing .hardware-tech-choice-launch{
+  border-color:#ef4444!important;
+  background:#fff7f7!important;
+  box-shadow:0 0 0 2px rgba(239,68,68,.10)!important;
+}
+#priceItemModal .hardware-tech-required-note{
+  margin-top:5px;
+  color:#b91c1c;
+  font-size:12px;
+  font-weight:900;
+}

@@ -114,7 +114,7 @@
   function inferAngleClass(params){
     const p = params || {};
     const overlay = normalizedText(paramScalar(p, 'nalozenie'));
-    const plate = normalizedText(paramScalar(p, 'prowadnik')) || 'standardowy';
+    const plate = normalizedText(paramScalar(p, 'typ_prowadnika') || paramScalar(p, 'prowadnik')) || 'standardowy';
     const angle = angleActual(p);
     if(overlay === 'rownolegly wpuszczany') return 'równoległy wpuszczany 95°';
     if(overlay === 'lodowkowy nakladany') return 'lodówkowy 95°';
@@ -145,14 +145,15 @@
       'kat_rzeczywisty=' + text(paramRangeFrom(p, 'kat_rzeczywisty') || paramRangeFrom(p, 'kat_otwarcia')),
       'hamulec=' + (boolParam(p, 'hamulec') ? '1' : '0'),
       'sprezyna=' + (boolParam(p, 'sprezyna') ? '1' : '0'),
-      'prowadnik=' + normalizedText(paramScalar(p, 'prowadnik'))
+      'typ_prowadnika=' + normalizedText(paramScalar(p, 'typ_prowadnika') || paramScalar(p, 'prowadnik')),
+      'forma_prowadnika=' + normalizedText(paramScalar(p, 'forma_prowadnika'))
     ].join('|');
   }
   function knownHingeTypeIdFromParams(params){
     const p = normalizeHingeParams(params || {});
     const overlay = normalizedText(paramScalar(p, 'nalozenie'));
     const cls = normalizedText(angleClass(p) || inferAngleClass(p));
-    const plate = normalizedText(paramScalar(p, 'prowadnik')) || 'standardowy';
+    const plate = normalizedText(paramScalar(p, 'typ_prowadnika') || paramScalar(p, 'prowadnik')) || 'standardowy';
     const brakeRaw = paramScalar(p, 'hamulec');
     const brakeKnown = text(brakeRaw) !== '' || typeof brakeRaw === 'boolean';
     const brake = boolParam(p, 'hamulec');
@@ -178,8 +179,10 @@
     if(angle) parts.push(angle);
     if(overlay) parts.push(overlay);
     if(cls) parts.push('klasa ' + cls);
-    const prowadnik = text(paramScalar(p, 'prowadnik'));
+    const prowadnik = text(paramScalar(p, 'typ_prowadnika') || paramScalar(p, 'prowadnik'));
+    const forma = text(paramScalar(p, 'forma_prowadnika'));
     if(prowadnik && !/^standardowy$/i.test(prowadnik)) parts.push('prowadnik ' + prowadnik);
+    if(forma) parts.push('forma ' + forma);
     if(boolParam(p, 'hamulec')) parts.push('z hamulcem');
     return parts.join(' ').replace(/\s+/g, ' ').trim() || 'Wymaganie zawiasu z katalogu';
   }

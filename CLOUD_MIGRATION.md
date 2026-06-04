@@ -767,3 +767,12 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Dodano centralną ocenę kompletności danych technicznych pozycji katalogowych. To jest cloud-ready: status nie jest nowym trwałym polem w storage, tylko wyliczanym widokiem z definicji parametrów i `technicalParams` pozycji.
 - Pozycje niepełne nie są automatycznie używane w WYCENIE jako dobrane okucia. W przyszłej chmurze filtr `Do uzupełnienia tech.` może działać jako widok kontrolny katalogu bez dodawania osobnej flagi do dokumentów.
 - Dobór zawiasów preferuje producenta z WYWIADU, ale nadal wymaga pełnych parametrów technicznych i tej samej klasy funkcjonalnej kąta.
+
+
+## Hinge driver components v1 — 2026-06-04
+
+- Dodano cloud-ready model jawnego parowania zawiasu z osobnym prowadnikiem: producent + `system_kompatybilnosci` + `typ_prowadnika` + `forma_prowadnika`. Nie wprowadzono osobnego słownika zgodności między systemami.
+- Model danych rozdziela `rola_kompletu` (`komplet zawiasowy`, `zawias`, `prowadnik`) od sposobu pokrycia prowadnika (`pokrycie_prowadnika`).
+- Kategoria `Prowadniki` jest osobną kategorią katalogu okuć i może być eksportowana/importowana przez istniejący mechanizm dynamicznych parametrów.
+- Booleany w danych technicznych zachowują stan nieustawiony, żeby przyszła synchronizacja z chmurą nie myliła braku danych z wartością `false`.
+- Cache-busting: `20260604_hinge_driver_components_v1`.

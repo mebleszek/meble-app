@@ -620,10 +620,12 @@ function runMaterialNodeSmoke(sandbox){
       if(!(api && Array.isArray(api.DEFAULT_DEFINITIONS) && typeof api.buildTypeLabel === 'function' && typeof api.compareParam === 'function')) return false;
       const hingeFields = api.fieldsForCategory(api.DEFAULT_DEFINITIONS, 'Zawiasy');
       const drawerFields = api.fieldsForCategory(api.DEFAULT_DEFINITIONS, 'Szuflady / prowadnice');
-      const typeLabel = api.buildTypeLabel(api.DEFAULT_DEFINITIONS, 'Zawiasy', { nalozenie:{ value:'nakładany' }, kat_rzeczywisty:{ from:110, to:'' }, klasa_kata:{ value:'standardowy 90–120°' }, hamulec:{ value:true }, prowadnik:{ value:'standardowy' } });
+      const typeLabel = api.buildTypeLabel(api.DEFAULT_DEFINITIONS, 'Zawiasy', { nalozenie:{ value:'nakładany' }, kat_rzeczywisty:{ from:110, to:'' }, klasa_kata:{ value:'standardowy 90–120°' }, hamulec:{ value:true }, typ_prowadnika:{ value:'standardowy' }, forma_prowadnika:{ value:'krzyżowy' } });
       return hingeFields.some((row)=> row.key === 'kat_rzeczywisty' && row.compareMode === 'ignore')
         && hingeFields.some((row)=> row.key === 'klasa_kata' && row.compareMode === 'equal' && Array.isArray(row.options) && row.options.includes('standardowy 90–120°'))
-        && hingeFields.some((row)=> row.key === 'prowadnik' && row.compareMode === 'equal' && row.keyFeature === true)
+        && hingeFields.some((row)=> row.key === 'typ_prowadnika' && row.compareMode === 'equal' && row.keyFeature === true)
+        && hingeFields.some((row)=> row.key === 'forma_prowadnika' && row.compareMode === 'equal' && row.keyFeature === true)
+        && hingeFields.some((row)=> row.key === 'system_kompatybilnosci' && row.compareMode === 'equal' && row.keyFeature === true)
         && !hingeFields.some((row)=> row.key === 'kat_otwarcia' && row.active !== false)
         && drawerFields.some((row)=> row.key === 'dlugosc_mm' && row.compareMode === 'equal')
         && drawerFields.some((row)=> row.key === 'nosnosc_kg' && row.compareMode === 'minGte')
@@ -852,11 +854,11 @@ function runWycenaNodeSmoke(sandbox){
       const legacyChangedExpected = '20260524_hardware_producer_preferences_v1';
       const newerExpected = '20260529_wycena_context_richer_source_fix_v1';
       const currentExpected = '20260530_wycena_duplicate_modal_fix_v1';
-      const registerExpected = '20260604_hinge_107_tech_todo_filter_v1';
+      const registerExpected = '20260604_hinge_driver_components_v1';
       const detailsModalExpected = '20260601_quote_details_modal_ui_hardware_match_fix_v1';
       const auditMaterialsExpected = '20260601_quote_audit_material_quantities_fix_v1';
       const pcvTruthExpected = '20260601_pcv_single_source_truth_v1';
-      const hingeCatalogExpected = '20260604_hinge_107_tech_todo_filter_v1';
+      const hingeCatalogExpected = '20260604_hinge_driver_components_v1';
       const files = ['index.html','dev_tests.html'];
       const scripts = ['wycena-core-selection.js','wycena-core-utils.js','wycena-core-catalog.js','wycena-core-source.js','wycena-core-material-plan.js','wycena-core-offer.js','wycena-core-lines.js','wycena-core-labor.js','wycena-core.js'];
       return files.every((file)=> {
@@ -1111,7 +1113,7 @@ function runCabinetNodeSmoke(sandbox){
       const container = { innerHTML:'' };
       api.renderPanel(container, 'kuchnia', { type:'stojąca', subType:'standard', width:60, height:82, depth:51, frontCount:2, frontMaterial:'laminat', details:{} });
       return html.includes('id="cmHardwareRequirements"')
-        && html.includes('cabinet-hardware-requirements-panel.js?v=20260604_hinge_107_tech_todo_filter_v1')
+        && html.includes('cabinet-hardware-requirements-panel.js?v=20260604_hinge_driver_components_v1')
         && modal.includes('cabinetHardwareRequirementsPanel')
         && container.innerHTML.includes('Wymagania techniczne do wyceny')
         && container.innerHTML.includes('nakładany')

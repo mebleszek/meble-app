@@ -81,7 +81,7 @@
     const bits = [];
     const typeLabel = typeLabelFromParams(params, req && req.label);
     if(typeLabel) bits.push(typeLabel);
-    const prowadnik = formatTechnicalValue(param(params, 'prowadnik'), 'prowadnik');
+    const prowadnik = formatTechnicalValue(param(params, 'typ_prowadnika') || param(params, 'prowadnik'), 'typ_prowadnika');
     if(prowadnik) bits.push('prowadnik: ' + prowadnik);
     if(param(params, 'hamulec') != null) bits.push('hamulec: ' + formatTechnicalValue(param(params, 'hamulec'), 'hamulec'));
     if(param(params, 'sprezyna') != null) bits.push('sprężyna: ' + formatTechnicalValue(param(params, 'sprezyna'), 'sprezyna'));
@@ -197,7 +197,8 @@
       { key:'nalozenie', title:'Wybierz typ / nakładanie kompletu zawiasowego' },
       { key:'klasa_kata', title:'Wybierz klasę / zakres zamienności kąta' },
       { key:'kat_rzeczywisty', title:'Wybierz kąt rzeczywisty / nominalny' },
-      { key:'prowadnik', title:'Wybierz prowadnik' },
+      { key:'typ_prowadnika', title:'Wybierz typ prowadnika' },
+      { key:'forma_prowadnika', title:'Wybierz formę prowadnika' },
       { key:'hamulec', title:'Wybierz hamulec / domyk' },
       { key:'sprezyna', title:'Wybierz sprężynę' }
     ];
