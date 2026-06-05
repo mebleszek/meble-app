@@ -48,7 +48,18 @@ function loadContext(){
     { id:'f1', setId:'set-a', width:66, height:105, material:'akryl' },
     { id:'f2', setId:'set-a', width:66, height:105, material:'akryl' }
   ];
-  assert(hw.getHingeCountForCabinet('kuchnia', ctx.projectData.kuchnia.cabinets[0]) === 8, 'Zestaw ma liczyć zawiasy z frontów zestawu na korpusie prowadzącym: 2×4', hw.getDoorFrontPanelsForHinges('kuchnia', ctx.projectData.kuchnia.cabinets[0]));
+  assert(hw.getHingeCountForCabinet('kuchnia', ctx.projectData.kuchnia.cabinets[0]) === 8, 'Zestaw ma liczyć zawiasy z zapisanych frontów zestawu na korpusie prowadzącym: 2×4', hw.getDoorFrontPanelsForHinges('kuchnia', ctx.projectData.kuchnia.cabinets[0]));
   assert(hw.getHingeCountForCabinet('kuchnia', ctx.projectData.kuchnia.cabinets[1]) === 0, 'Korpus nieprowadzący zestawu nie może dublować zawiasów');
+
+  ctx.projectData.kuchnia.fronts = [];
+  ctx.projectData.kuchnia.sets = [
+    { id:'set-a', presetId:'A', number:1, params:{ w1:66, w2:66, hB:82, hTop:23 }, frontCount:2, frontMaterial:'akryl', frontColor:'biały' }
+  ];
+  const derivedSetFronts = hw.getRoomSetFronts('kuchnia', 'set-a');
+  assert(derivedSetFronts.length === 2, 'Zestaw bez zapisanych projectData.fronts ma odtworzyć fronty z rekordu zestawu', derivedSetFronts);
+  const derivedMaterialFronts = hw.getCabinetFrontCutListForMaterials('kuchnia', ctx.projectData.kuchnia.cabinets[0]);
+  assert(derivedMaterialFronts.reduce((sum, row)=> sum + Number(row.qty || 0), 0) === 2, 'MATERIAŁ ma pokazać fronty zestawu nawet gdy zapisane fronts są puste', derivedMaterialFronts);
+  assert(hw.getHingeCountForCabinet('kuchnia', ctx.projectData.kuchnia.cabinets[0]) === 8, 'Zawiasy zestawu mają liczyć się z odtworzonych frontów zestawu, gdy projectData.fronts jest puste');
+  assert(hw.getHingeCountForCabinet('kuchnia', ctx.projectData.kuchnia.cabinets[1]) === 0, 'Korpus nieprowadzący zestawu nadal nie może dublować odtworzonych zawiasów');
   console.log('OK cabinet-hinge-quantity-kg smoke');
 })();

@@ -1,3 +1,13 @@
+## 2026-06-05 — Fronty i zawiasy zestawów w MATERIAŁACH v1
+
+- Paczka: `site_set_fronts_material_hinges_fix_v1.zip`.
+- Naprawiono regresję w MATERIAŁACH: zestawy nie muszą już polegać wyłącznie na zapisanych rekordach `projectData[room].fronts`. Jeżeli fronty zestawu nie istnieją w tej tablicy, program odtwarza je centralnie z rekordu zestawu (`sets`: preset A/C/D, parametry, ilość frontów, materiał i kolor).
+- To samo centralne źródło odtworzonych frontów jest używane przez MATERIAŁ i przez liczenie zawiasów, więc korpus prowadzący zestawu pokazuje fronty oraz zawiasy, a kolejne korpusy zestawu ich nie dublują.
+- Dodano lokalny formatter wymiarów w `front-hardware-fronts.js`, żeby fronty zestawu nie znikały przez brak globalnego `fmtCm` w środowiskach testowych lub przy zmianie kolejności ładowania.
+- Rozszerzono regresję `tools/cabinet-hinge-quantity-kg-smoke.js` oraz dodano `tools/cabinet-set-material-cutlist-smoke.js`, który sprawdza pełną cutlistę MATERIAŁÓW: fronty i zawiasy zestawu przy korpusie prowadzącym, bez duplikacji na korpusie nieprowadzącym.
+- Nie ruszano UI, PRO100, ROZRYS/Optimax, PCV/obrzeży, backupów, import/export Excel ani modelu snapshotów ofert.
+- Cache-busting: `20260605_set_fronts_material_hinges_fix_v1`. Raport: `tools/reports/set-fronts-material-hinges-fix-v1.md`.
+
 ## 2026-06-05 — Bezpieczna ilość zawiasów w kg v1
 
 - Paczka: `site_hinge_quantity_kg_safe_v1.zip`.

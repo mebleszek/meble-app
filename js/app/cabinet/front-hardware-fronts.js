@@ -3,6 +3,17 @@
   const hw = ns.frontHardware || {};
   const cabinetHasHandle = hw.cabinetHasHandle || function(){ return true; };
 
+  function fmtCm(value){
+    try{
+      if(ns.materialCommon && typeof ns.materialCommon.fmtCm === 'function') return ns.materialCommon.fmtCm(value);
+    }catch(_){ }
+    try{
+      if(typeof window.fmtCm === 'function') return window.fmtCm(value);
+    }catch(_){ }
+    const n = Number(value);
+    return Number.isFinite(n) ? (Math.round(n * 10) / 10).toString() : String(value ?? '');
+  }
+
   function getProjectRoomData(room){
     const rid = String(room || '');
     try{
@@ -14,12 +25,95 @@
     return null;
   }
 
+function getRoomSetRecord(room, setId){
+  const rid = String(room || '');
+  const sid = String(setId || '');
+  const roomData = getProjectRoomData(rid) || null;
+  const sets = Array.isArray(roomData && roomData.sets) ? roomData.sets : [];
+  return sets.find((set)=> String(set && set.id || '') === sid) || null;
+}
+
+function normalizeSetFrontCount(value){
+  const n = Math.max(1, Math.round(Number(value) || 1));
+  return n === 1 ? 1 : 2;
+}
+
+function createVirtualSetFront(set, patch){
+  const source = set && set.frontSource ? set.frontSource : null;
+  return Object.assign({
+    id: `virtual_${String(set && set.id || 'set')}_${String(patch && patch.note || 'front').replace(/\s+/g, '_')}`,
+    setId: set && set.id || null,
+    setNumber: set && set.number || null,
+    material: set && set.frontMaterial || 'laminat',
+    color: set && set.frontColor || '',
+    width: 0,
+    height: 0,
+    note: '',
+    frontMaterialSource: source
+  }, patch || {});
+}
+
+function deriveSetFrontsFromRecord(room, setId){
+  const set = getRoomSetRecord(room, setId);
+  if(!set || !set.presetId) return [];
+  const p = set.params && typeof set.params === 'object' ? set.params : {};
+  const fc = normalizeSetFrontCount(set.frontCount);
+  const presetId = String(set.presetId || '');
+  const setNumber = set.number || null;
+  const out = [];
+
+  function push(width, height, note){
+    const w = Math.max(0, Number(width) || 0);
+    const h = Math.max(0, Number(height) || 0);
+    if(w <= 0 || h <= 0) return;
+    out.push(createVirtualSetFront(set, { width:w, height:h, note:`Zestaw ${setNumber || ''}: ${note}`.replace(/\s+/g, ' ').trim() }));
+  }
+
+  if(presetId === 'A'){
+    const w1 = Number(p.w1) || 0;
+    const w2 = Number(p.w2) || 0;
+    const totalH = (Number(p.hB) || 0) + (Number(p.hTop) || 0);
+    if(fc === 1) push(w1 + w2, totalH, '1 front');
+    else {
+      push(w1, totalH, 'front lewy');
+      push(w2, totalH, 'front prawy');
+    }
+    return out;
+  }
+
+  if(presetId === 'C'){
+    const w = Number(p.w) || 0;
+    const totalH = (Number(p.hB) || 0) + (Number(p.hTop) || 0);
+    if(fc === 1) push(w, totalH, '1 front');
+    else {
+      const half = Math.round((w / 2) * 10) / 10;
+      push(half, totalH, 'front 1/2');
+      push(Math.max(0, w - half), totalH, 'front 2/2');
+    }
+    return out;
+  }
+
+  if(presetId === 'D'){
+    const w = Number(p.w) || 0;
+    const totalH = (Number(p.hB) || 0) + (Number(p.hM) || 0) + (Number(p.hTop) || 0);
+    if(fc === 1) push(w, totalH, '1 front');
+    else {
+      const half = Math.round((w / 2) * 10) / 10;
+      push(half, totalH, 'front 1/2');
+      push(Math.max(0, w - half), totalH, 'front 2/2');
+    }
+  }
+  return out;
+}
+
 function getRoomSetFronts(room, setId){
   const rid = String(room || '');
   const sid = String(setId || '');
   const roomData = getProjectRoomData(rid) || null;
   const fronts = Array.isArray(roomData && roomData.fronts) ? roomData.fronts : [];
-  return fronts.filter((front)=> String(front && front.setId || '') === sid);
+  const stored = fronts.filter((front)=> String(front && front.setId || '') === sid);
+  if(stored.length) return stored;
+  return deriveSetFrontsFromRecord(rid, sid);
 }
 
 function isLeadSetCabinet(room, cab){
@@ -264,6 +358,8 @@ function getCabinetFrontCutListForMaterials(room, cab){
 
   ns.frontHardware = Object.assign({}, ns.frontHardware, {
     getProjectRoomData,
+    getRoomSetRecord,
+    deriveSetFrontsFromRecord,
     getRoomSetFronts,
     isLeadSetCabinet,
     resolveDrawerDoorCount,
