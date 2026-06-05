@@ -1,3 +1,13 @@
+## 2026-06-05 — Testy WYCENA/zamiana zawiasów i poprawka testów katalogów v1
+
+- Paczka: `site_hinge_quote_tests_catalog_dev_fix_v1.zip`.
+- Dodano regresję `tools/wycena-hinge-quote-replacement-flow-smoke.js`, która pilnuje całej ścieżki `WYWIAD/szafka → centralne wymaganie zawiasu → WYCENA`: duży front 66×105 cm w akrylu ma 4 zawiasy w WYCENIE, `szuflada_drzwi` z legacy `frontCount = 3` liczy 2 drzwiczki/4 zawiasy, a zestaw bez zapisanych frontów w `room.fronts` odtwarza front z rekordu zestawu i liczy zawiasy tylko raz.
+- Ten sam test pilnuje zamiany zawiasu w WYCENIE: przy preferencji GTV wymaganie 110° może dobrać GTV 107° w klasie `standardowy 90–120°`, ale nie może dobrać zawiasu narożnego 170°.
+- Poprawiono fałszywe błędy testów przeglądarkowych katalogu: test migracji nie wymaga już, żeby `sheetMaterials` miało dokładnie jedną pozycję, bo obecność startowego PCV/obrzeża jest poprawna. Test sprawdza właściwy kontrakt: legacy akcesorium nie może zostać w materiałach arkuszowych, a zapisane rozdzielone listy nie mogą wskrzesić legacy danych.
+- Podbito cache-busting w `dev_tests.html` dla `js/testing/project/tests.js` i `js/testing/material/tests.js`.
+- Nie zmieniano logiki runtime aplikacji, UI, PRO100, ROZRYS/Optimax, PCV/obrzeży, backupów, import/export Excel ani modelu snapshotów ofert.
+- Cache-busting: `20260605_hinge_quote_tests_catalog_dev_fix_v1`. Raport: `tools/reports/hinge-quote-tests-catalog-dev-fix-v1.md`.
+
 ## 2026-06-05 — Fronty i zawiasy zestawów w MATERIAŁACH v1
 
 - Paczka: `site_set_fronts_material_hinges_fix_v1.zip`.

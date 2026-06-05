@@ -109,7 +109,10 @@
           localStorage.setItem(keys.accessories, JSON.stringify([{ id:'stored_acc', name:'Stored zawias', price:7 }]));
           localStorage.setItem(keys.quoteRates, JSON.stringify([{ id:'stored_rate', category:'Montaż', name:'Stored stawka', price:99 }]));
           const migrated = FC.catalogStore.migrateLegacy({ preferStoredSplit:true });
-          H.assert(Array.isArray(migrated.sheetMaterials) && migrated.sheetMaterials.length === 1 && String(migrated.sheetMaterials[0].id || '') === 'stored_sheet', 'Migracja preferStoredSplit nie utrzymała zapisanej listy płyt', migrated);
+          const migratedSheets = Array.isArray(migrated.sheetMaterials) ? migrated.sheetMaterials : [];
+          H.assert(migratedSheets.some((row)=> String((row && row.id) || '') === 'stored_sheet'), 'Migracja preferStoredSplit nie utrzymała zapisanej listy płyt', migrated);
+          H.assert(!migratedSheets.some((row)=> String((row && row.id) || '') === 'legacy_sheet'), 'Migracja preferStoredSplit wskrzesiła legacy materiał mimo zapisanej listy rozdzielonej', migrated);
+          H.assert(!migratedSheets.some((row)=> String((row && row.materialType) || '').trim().toLowerCase() === 'akcesoria'), 'Migracja preferStoredSplit zostawiła akcesorium w materiałach arkuszowych', migratedSheets);
           const migratedAccessories = Array.isArray(migrated.accessories) ? migrated.accessories : [];
           H.assert(migratedAccessories.some((row)=> String((row && row.id) || '') === 'stored_acc'), 'Migracja preferStoredSplit nie utrzymała zapisanej listy akcesoriów', migrated);
           H.assert(!migratedAccessories.some((row)=> String((row && row.materialType) || '').trim().toLowerCase() === 'akcesoria'), 'Migracja preferStoredSplit zostawiła akcesorium jako typ materiału', migratedAccessories);

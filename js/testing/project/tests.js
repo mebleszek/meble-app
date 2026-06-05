@@ -574,12 +574,14 @@
           ]));
           localStorage.setItem(keys.services, JSON.stringify([{ id:'s_rate', category:'Montaż', name:'Stawka montażowa', price:100 }]));
           const migrated = FC.catalogStore.migrateLegacy();
-          H.assert(Array.isArray(migrated.sheetMaterials) && migrated.sheetMaterials.length === 1, 'Migracja nie wydzieliła materiałów arkuszowych', migrated);
+          const migratedSheets = Array.isArray(migrated.sheetMaterials) ? migrated.sheetMaterials : [];
+          H.assert(migratedSheets.some((row)=> String((row && row.id) || '') === 'm_lam'), 'Migracja nie zachowała legacy materiału arkuszowego', migrated);
+          H.assert(!migratedSheets.some((row)=> String((row && row.id) || '') === 'm_acc'), 'Legacy akcesorium nadal siedzi w materiałach arkuszowych', migratedSheets);
+          H.assert(!migratedSheets.some((row)=> String((row && row.materialType) || '').trim().toLowerCase() === 'akcesoria'), 'Materiały arkuszowe nadal zawierają typ akcesoria', migratedSheets);
           const migratedAccessories = Array.isArray(migrated.accessories) ? migrated.accessories : [];
           H.assert(migratedAccessories.some((row)=> String((row && row.id) || '') === 'm_acc'), 'Migracja nie wydzieliła akcesorium z legacy materials', migrated);
           H.assert(!migratedAccessories.some((row)=> String((row && row.materialType) || '').trim().toLowerCase() === 'akcesoria'), 'Akcesorium po migracji nadal ma typ materiału arkuszowego', migratedAccessories);
           H.assert(Array.isArray(migrated.quoteRates) && migrated.quoteRates[0] && migrated.quoteRates[0].name === 'Stawka montażowa', 'Migracja nie przeniosła usług do stawek wyceny mebli', migrated);
-          H.assert(String(migrated.sheetMaterials[0].materialType || '') !== 'akcesoria', 'Akcesorium nadal siedzi w materiałach arkuszowych', migrated.sheetMaterials);
         } finally {
           const restore = (key, value)=> value == null ? localStorage.removeItem(key) : localStorage.setItem(key, value);
           restore(keys.materials, prevMaterials);
