@@ -2,6 +2,55 @@
 
 Ten plik trzyma plan optymalizacji, scalania duplikacji i kolejności porządkowania. `DEV.md` zostaje krótką mapą zasad pracy, `CLOUD_MIGRATION.md` trzyma decyzje dotyczące danych, storage i przyszłej chmury, a `DEPENDENCY_MAP.md` trzyma mapę zależności oraz wpływu zmian między plikami.
 
+## 2026-06-05 — Plan późniejszy: mieszane fronty / siatka frontów
+
+Status: **odłożone na później**. Nie wdrażać przed ustabilizowaniem WYCENY i pełnego liczenia ceny mebli.
+
+Cel przyszły: obsłużyć szafki typu **Szuflady + drzwiczki**, czyli układy mieszane, gdzie część frontów jest frontami szuflad, a część drzwiczkami na zawiasach. Przykłady:
+
+- 1 szuflada u góry + 1 drzwiczki pod spodem,
+- 1 szuflada u góry + 2 drzwiczki pod spodem,
+- 2 szuflady jedna pod drugą + 1 drzwiczki pod spodem,
+- 2 szuflady jedna pod drugą + 2 drzwiczki pod spodem,
+- układ dwukolumnowy: szuflady w górnych rzędach, drzwiczki w dolnym rzędzie.
+
+Docelowo nie robić tego przez proste `frontCount`, `drawerCount`, `doorCount`, bo to znowu miesza fronty materiałowe z frontami zawiasowymi. Każdy wygenerowany front musi mieć jawnie określoną rolę:
+
+```js
+frontRole: 'drawer' // front szuflady: materiał/PCV + prowadnice/system szuflady, bez zawiasów
+frontRole: 'door'   // drzwiczki: materiał/PCV + zawiasy, bez prowadnic szuflady
+```
+
+Rekomendowana architektura danych na przyszłość: wewnętrznie od razu trzymać układ jako listę/siatkę frontów z rolami, nawet jeśli UI na początku pokaże tylko kilka gotowych presetów. Przykładowy kierunek:
+
+```js
+mixedFrontLayout: {
+  preset: 'two_columns_drawers_top_doors_bottom',
+  rows: [
+    [ { role: 'drawer', col: 1, row: 1 }, { role: 'drawer', col: 2, row: 1 } ],
+    [ { role: 'drawer', col: 1, row: 2 }, { role: 'drawer', col: 2, row: 2 } ],
+    [ { role: 'door',   col: 1, row: 3 }, { role: 'door',   col: 2, row: 3 } ]
+  ]
+}
+```
+
+Pierwszy etap UI, gdy temat wróci: dodać w WYWIADZIE osobny wariant pod `Szuflady`:
+
+```text
+Szuflady
+Szuflady + drzwiczki
+```
+
+Po wejściu w `Szuflady + drzwiczki` pokazać tylko gotowe presety, bez pełnego edytora siatki. Pełny edytor `Własny układ frontów` zostawić na dalszy etap.
+
+Warunki przed rozpoczęciem tego etapu:
+
+1. WYCENA musi stabilnie liczyć cenę mebli z jednego źródła prawdy.
+2. MATERIAŁ, WYCENA, audyt i historia muszą używać tego samego generatora frontów.
+3. Istniejące reguły zawiasów i prowadnic muszą rozróżniać `frontRole`, a nie zgadywać po liczbie frontów.
+4. Testy muszą obejmować: front szuflady bez zawiasów, drzwiczki z zawiasami, prowadnice tylko dla szuflad, brak duplikacji w MATERIAŁACH i zgodną WYCENĘ.
+
+
 ## Cel
 
 Porządkować aplikację etapami bez robienia jednego wielkiego modułu `shared` na wszystko. Wspólne mechaniki łączyć tylko wtedy, gdy mają realnie wspólny kontrakt, testy i podobną odpowiedzialność.

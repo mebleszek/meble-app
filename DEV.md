@@ -1,3 +1,12 @@
+## 2026-06-05 — Plan przyszły: mieszane fronty / siatka frontów v1
+
+- Paczka: `site_future_mixed_fronts_plan_md_v1.zip`.
+- Dodano do `OPTIMIZATION_PLAN.md` odłożony plan rozwoju dla wariantu `Szuflady + drzwiczki`.
+- Decyzja: nie wdrażać teraz pełnego edytora siatki frontów; temat wróci dopiero po ustabilizowaniu WYCENY i pełnego liczenia ceny mebli.
+- Kierunek przyszły: UI może zacząć od kilku presetów pod wariantem `Szuflady + drzwiczki`, ale dane mają być od razu opisane jako lista/siatka frontów z jawną rolą `drawer`/`door`, żeby MATERIAŁ, WYCENA, zawiasy i prowadnice korzystały z jednego źródła prawdy.
+- Nie zmieniano runtime aplikacji, UI, testów, cache-bustingu, PRO100, ROZRYS/Optimax, PCV/obrzeży, backupów, import/export Excel ani snapshotów ofert.
+- Raport: `tools/reports/future-mixed-fronts-plan-md-v1.md`.
+
 ## 2026-06-05 — Testy WYCENA/zamiana zawiasów i poprawka testów katalogów v1
 
 - Paczka: `site_hinge_quote_tests_catalog_dev_fix_v1.zip`.
