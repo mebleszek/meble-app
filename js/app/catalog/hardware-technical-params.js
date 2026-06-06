@@ -196,36 +196,66 @@
     return '';
   }
 
+  function hasOwn(obj, key){ return !!obj && Object.prototype.hasOwnProperty.call(obj, key); }
+  function firstPresent(src, keys){
+    for(let i = 0; i < keys.length; i += 1){
+      if(hasOwn(src, keys[i])) return src[keys[i]];
+    }
+    return undefined;
+  }
+  function explicitYesNo(value){
+    const raw = text(value).toLowerCase();
+    if(['nie','false','0','no','n'].includes(raw)) return false;
+    if(['tak','true','1','yes','y'].includes(raw)) return true;
+    return null;
+  }
+  function boolFromPresent(value, fallback){
+    const yn = explicitYesNo(value);
+    if(yn != null) return yn;
+    if(value === false) return false;
+    if(value === true) return true;
+    return fallback;
+  }
+  function assignDefaultValue(current, explicit, value){ return explicit ? current : value; }
   function normalizeDefinition(row, index){
     const src = row && typeof row === 'object' ? row : {};
     const category = text(src.category || src.hardwareCategory || src.kategoria);
     const label = text(src.label || src.name || src.nazwa);
     const key = safeKey(src.key || src.klucz || label);
     const catKey = safeKey(category);
+    const keyFeatureRaw = firstPresent(src, ['keyFeature','compareKey','cechaKluczowa','uzyj_do_porownania','cecha_kluczowa']);
+    const typePartRaw = firstPresent(src, ['typePart','budujeNazweTechniczna','buduje_nazwe_techniczna','tworzyTyp','tworzy_typ']);
+    const compareRaw = firstPresent(src, ['compareMode','sposob_porownania','porownanie']);
+    const activeRaw = firstPresent(src, ['active','aktywny']);
+    const hasKeyFeature = keyFeatureRaw !== undefined;
+    const hasTypePart = typePartRaw !== undefined;
+    const hasCompareMode = compareRaw !== undefined && text(compareRaw) !== '';
+    const hasActive = activeRaw !== undefined;
+    const hasOrder = src.order != null || src.kolejnosc != null;
     let fieldType = normalizeFieldType(src.fieldType || src.typ_pola || src.type);
     let unit = text(src.unit || src.jednostka);
     let options = optionsFrom(src.options || src.wartosci);
-    let keyFeature = src.keyFeature === false || text(src.uzyj_do_porownania || src.cecha_kluczowa).toLowerCase() === 'nie' ? false : !!(src.keyFeature || src.compareKey || src.cechaKluczowa || src.uzyj_do_porownania || src.cecha_kluczowa || src.typePart || src.budujeNazweTechniczna || src.tworzyTyp);
-    let typePart = src.typePart === false || text(src.buduje_nazwe_techniczna || src.tworzy_typ).toLowerCase() === 'nie' ? false : (src.typePart != null ? !!src.typePart : (src.keyFeature != null ? !!src.keyFeature : true));
-    let compareMode = normalizeCompareMode(src.compareMode || src.sposob_porownania || src.porownanie);
+    let keyFeature = hasKeyFeature ? boolFromPresent(keyFeatureRaw, false) : !!(src.typePart || src.budujeNazweTechniczna || src.tworzyTyp);
+    let typePart = hasTypePart ? boolFromPresent(typePartRaw, false) : (hasKeyFeature ? !!keyFeature : true);
+    let compareMode = normalizeCompareMode(compareRaw);
     let order = Number(src.order != null ? src.order : src.kolejnosc) || (index + 1) * 10;
-    let active = src.active === false || text(src.aktywny).toLowerCase() === 'nie' ? false : true;
+    let active = hasActive ? boolFromPresent(activeRaw, true) : true;
     let legacyField = text(src.legacyField || src.legacy_field);
     let finalLabel = label || key;
 
     if(catKey === 'zawiasy' && key === 'nalozenie'){
       options = normalizeHingeOverlayOptions(options);
-      keyFeature = true; typePart = true; compareMode = 'equal'; active = true; order = 10;
+      keyFeature = assignDefaultValue(keyFeature, hasKeyFeature, true); typePart = assignDefaultValue(typePart, hasTypePart, true); compareMode = assignDefaultValue(compareMode, hasCompareMode, 'equal'); active = assignDefaultValue(active, hasActive, true); order = assignDefaultValue(order, hasOrder, 10);
     }
     if(catKey === 'zawiasy' && key === 'kat_rzeczywisty'){
       finalLabel = label || 'Kąt rzeczywisty / nominalny';
       fieldType = 'numberRange'; unit = '°'; options = [];
-      keyFeature = false; typePart = true; compareMode = 'ignore'; active = true; order = 20; legacyField = legacyField || 'kat_otwarcia';
+      keyFeature = assignDefaultValue(keyFeature, hasKeyFeature, false); typePart = assignDefaultValue(typePart, hasTypePart, true); compareMode = assignDefaultValue(compareMode, hasCompareMode, 'ignore'); active = assignDefaultValue(active, hasActive, true); order = assignDefaultValue(order, hasOrder, 20); legacyField = legacyField || 'kat_otwarcia';
     }
     if(catKey === 'zawiasy' && key === 'klasa_kata'){
       finalLabel = label || 'Klasa / zakres zamienności kąta';
       fieldType = 'text'; unit = ''; options = normalizeHingeAngleClassOptions(options);
-      keyFeature = true; typePart = true; compareMode = 'equal'; active = true; order = 25;
+      keyFeature = assignDefaultValue(keyFeature, hasKeyFeature, true); typePart = assignDefaultValue(typePart, hasTypePart, true); compareMode = assignDefaultValue(compareMode, hasCompareMode, 'equal'); active = assignDefaultValue(active, hasActive, true); order = assignDefaultValue(order, hasOrder, 25);
     }
     if(catKey === 'zawiasy' && key === 'kat_otwarcia'){
       finalLabel = 'Kąt otwarcia — legacy';
@@ -235,17 +265,17 @@
     if(catKey === 'zawiasy' && key === 'typ_prowadnika'){
       finalLabel = label || 'Wymagany typ prowadnika';
       options = options.length ? options : ['standardowy','podwyższony 3','lodówkowy','specjalny'];
-      keyFeature = true; typePart = false; compareMode = 'equal'; active = true; order = 50; legacyField = legacyField || 'prowadnik';
+      keyFeature = assignDefaultValue(keyFeature, hasKeyFeature, true); typePart = assignDefaultValue(typePart, hasTypePart, false); compareMode = assignDefaultValue(compareMode, hasCompareMode, 'equal'); active = assignDefaultValue(active, hasActive, true); order = assignDefaultValue(order, hasOrder, 50); legacyField = legacyField || 'prowadnik';
     }
     if(catKey === 'zawiasy' && key === 'forma_prowadnika'){
       finalLabel = label || 'Wymagana forma prowadnika';
       options = options.length ? options : ['krzyżowy','prosty'];
-      keyFeature = true; typePart = false; compareMode = 'equal'; active = true; order = 55;
+      keyFeature = assignDefaultValue(keyFeature, hasKeyFeature, true); typePart = assignDefaultValue(typePart, hasTypePart, false); compareMode = assignDefaultValue(compareMode, hasCompareMode, 'equal'); active = assignDefaultValue(active, hasActive, true); order = assignDefaultValue(order, hasOrder, 55);
     }
     if(catKey === 'zawiasy' && key === 'pokrycie_prowadnika'){
       finalLabel = label || 'Pokrycie prowadnika';
       options = options.length ? options : ['w komplecie','osobno','bez prowadnika'];
-      keyFeature = false; typePart = false; compareMode = 'ignore'; active = true; order = 60;
+      keyFeature = assignDefaultValue(keyFeature, hasKeyFeature, false); typePart = assignDefaultValue(typePart, hasTypePart, false); compareMode = assignDefaultValue(compareMode, hasCompareMode, 'ignore'); active = assignDefaultValue(active, hasActive, true); order = assignDefaultValue(order, hasOrder, 60);
     }
     if(catKey === 'zawiasy' && key === 'prowadnik'){
       finalLabel = 'Prowadnik / montaż — legacy';
@@ -255,32 +285,32 @@
     if(catKey === 'zawiasy' && key === 'rola_kompletu'){
       finalLabel = label || 'Rola w komplecie zawiasowym';
       options = options.length ? options : ['komplet zawiasowy','zawias'];
-      keyFeature = true; typePart = false; compareMode = 'equal'; active = true; order = 5;
+      keyFeature = assignDefaultValue(keyFeature, hasKeyFeature, true); typePart = assignDefaultValue(typePart, hasTypePart, false); compareMode = assignDefaultValue(compareMode, hasCompareMode, 'equal'); active = assignDefaultValue(active, hasActive, true); order = assignDefaultValue(order, hasOrder, 5);
     }
     if(catKey === 'zawiasy' && key === 'system_kompatybilnosci'){
       finalLabel = label || 'System kompatybilności';
       options = options.length ? options : ['CLIP top','MODUL','GTV clip-on','GTV euro','uniwersalny euro'];
-      keyFeature = true; typePart = false; compareMode = 'equal'; active = true; order = 8;
+      keyFeature = assignDefaultValue(keyFeature, hasKeyFeature, true); typePart = assignDefaultValue(typePart, hasTypePart, false); compareMode = assignDefaultValue(compareMode, hasCompareMode, 'equal'); active = assignDefaultValue(active, hasActive, true); order = assignDefaultValue(order, hasOrder, 8);
     }
     if(catKey === 'prowadniki' && key === 'rola_kompletu'){
       finalLabel = label || 'Rola w komplecie zawiasowym';
       options = options.length ? options : ['prowadnik'];
-      keyFeature = true; typePart = false; compareMode = 'equal'; active = true; order = 5;
+      keyFeature = assignDefaultValue(keyFeature, hasKeyFeature, true); typePart = assignDefaultValue(typePart, hasTypePart, false); compareMode = assignDefaultValue(compareMode, hasCompareMode, 'equal'); active = assignDefaultValue(active, hasActive, true); order = assignDefaultValue(order, hasOrder, 5);
     }
     if(catKey === 'prowadniki' && key === 'system_kompatybilnosci'){
       finalLabel = label || 'System kompatybilności';
       options = options.length ? options : ['CLIP top','MODUL','GTV clip-on','GTV euro','uniwersalny euro'];
-      keyFeature = true; typePart = false; compareMode = 'equal'; active = true; order = 10;
+      keyFeature = assignDefaultValue(keyFeature, hasKeyFeature, true); typePart = assignDefaultValue(typePart, hasTypePart, false); compareMode = assignDefaultValue(compareMode, hasCompareMode, 'equal'); active = assignDefaultValue(active, hasActive, true); order = assignDefaultValue(order, hasOrder, 10);
     }
     if(catKey === 'prowadniki' && key === 'typ_prowadnika'){
       finalLabel = label || 'Typ prowadnika';
       options = options.length ? options : ['standardowy','podwyższony 3','lodówkowy','specjalny'];
-      keyFeature = true; typePart = true; compareMode = 'equal'; active = true; order = 20;
+      keyFeature = assignDefaultValue(keyFeature, hasKeyFeature, true); typePart = assignDefaultValue(typePart, hasTypePart, true); compareMode = assignDefaultValue(compareMode, hasCompareMode, 'equal'); active = assignDefaultValue(active, hasActive, true); order = assignDefaultValue(order, hasOrder, 20);
     }
     if(catKey === 'prowadniki' && key === 'forma_prowadnika'){
       finalLabel = label || 'Forma prowadnika';
       options = options.length ? options : ['krzyżowy','prosty'];
-      keyFeature = true; typePart = true; compareMode = 'equal'; active = true; order = 30;
+      keyFeature = assignDefaultValue(keyFeature, hasKeyFeature, true); typePart = assignDefaultValue(typePart, hasTypePart, true); compareMode = assignDefaultValue(compareMode, hasCompareMode, 'equal'); active = assignDefaultValue(active, hasActive, true); order = assignDefaultValue(order, hasOrder, 30);
     }
 
     return {

@@ -525,6 +525,7 @@
     const originalCategories = categories.slice();
     const originalTypes = getTypes();
     let cleanSignature = signature(categories, params);
+    let userTouched = false;
     const body = h('div', { class:'panel-box-form hardware-dictionary-form' });
     const scroll = h('div', { class:'panel-box-form__scroll hardware-dictionary-scroll' });
     const catList = h('div', { class:'hardware-dictionary-list hardware-dictionary-category-list' });
@@ -577,25 +578,27 @@
     const exit = h('button', { type:'button', class:'btn', text:'Wyjdź' });
     const cancel = h('button', { type:'button', class:'btn btn-danger', text:'Anuluj' });
     const save = h('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
-    function isDirty(){ return signature(categories, params) !== cleanSignature; }
+    function isDirty(){ return userTouched || signature(categories, params) !== cleanSignature; }
     function updateActions(){ const dirty = isDirty(); exit.style.display = dirty ? 'none' : ''; cancel.style.display = dirty ? '' : 'none'; save.style.display = dirty ? '' : 'none'; }
+    function markTouched(){ userTouched = true; updateActions(); }
     function syncCategoriesAccordionAfterRender(){
       setCategoriesAccordionOpen(categoriesOpen);
     }
     function render(){
       catList.innerHTML = '';
       categories.forEach((cat, index)=> catList.appendChild(categoryRow(cat, index, (i, value, remove, refresh)=>{
+        userTouched = true;
         if(remove){ categories.splice(i, 1); render(); return; }
         categories[i] = value;
         if(refresh) render(); else updateActions();
       })));
       paramList.innerHTML = '';
-      normalizeCategories(categories).forEach((cat)=> paramList.appendChild(categoryAccordion(cat, params, updateActions)));
+      normalizeCategories(categories).forEach((cat)=> paramList.appendChild(categoryAccordion(cat, params, markTouched)));
       syncCategoriesAccordionAfterRender();
       updateActions();
     }
     const addCat = h('button', { type:'button', class:'btn', text:'Dodaj kategorię' });
-    addCat.addEventListener('click', ()=>{ categories.push(''); render(); });
+    addCat.addEventListener('click', ()=>{ userTouched = true; categories.push(''); render(); });
     exit.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
     cancel.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
     save.addEventListener('click', ()=>{
@@ -609,6 +612,7 @@
       categories = cleanCategories.slice();
       params = cloneParams(cleanParams);
       cleanSignature = signature(categories, params);
+      userTouched = false;
       try{ if(ctx.renderPriceModal) ctx.renderPriceModal(); }catch(_){ }
       try{ FC.panelBox.close(); }catch(_){ }
     });

@@ -1,3 +1,13 @@
+## 2026-06-06 — Zapis zmian w słownikach parametrów okuć v1
+
+- Paczka: `site_hardware_dictionary_save_actions_fix_v1.zip`.
+- Naprawiono brak przycisków `Zapisz` i `Anuluj` po zmianie checkboxów i innych pól w modalu `Słowniki okuć`.
+- Modal słowników oznacza teraz zmianę użytkownika natychmiast po edycji parametru, więc stopka przełącza się z samego `Wyjdź` na `Anuluj` + `Zapisz` bez polegania wyłącznie na znormalizowanym podpisie danych.
+- `normalizeDefinition()` nie nadpisuje już ręcznie zmienionych ustawień parametrów systemowych, np. `Użyj do porównania`, `Buduje nazwę techniczną`, `Sposób porównania`, `Aktywna` i `Kolejność`. Domyślne wartości nadal startują poprawnie, ale decyzje użytkownika zapisane w słowniku są respektowane.
+- Dodano regresję `tools/hardware-dictionary-save-actions-smoke.js`.
+- Podbito cache-busting dla `hardware-technical-params.js` i `price-modal-hardware-dictionaries.js`.
+- Raport: `tools/reports/hardware-dictionary-save-actions-fix-v1.md`.
+
 ## 2026-06-06 — Nazwa katalogowa i techniczna okuć v1
 
 - Paczka: `site_hardware_technical_name_ui_v1.zip`.
