@@ -1,3 +1,14 @@
+## 2026-06-06 — WYCENA: czytelne akordeony szczegółów na mobile v1
+
+- Paczka: `site_quote_details_accordion_scroll_fix_v1.zip`.
+- Naprawiono modal `Analiza oferty` / szczegóły WYCENY na telefonie: po dużej liczbie ostrzeżeń rozwinięty akordeon nie zostaje już w małym, prawie niewidocznym fragmencie na dole okna.
+- Modal szczegółów ma teraz stałą wysokość liczona od viewportu, własny scroll w treści i zachowaną stałą stopkę `Wróć`.
+- Po otwarciu akordeonu program przewija wewnętrzne body modala do otwartej sekcji, zamiast polegać na `scrollIntoView(...nearest)`, które na mobile potrafiło zostawić zawartość poza widocznym obszarem.
+- Blok `Ostrzeżenia / rzeczy do sprawdzenia` na mobile dostał maksymalną wysokość i własne przewijanie, żeby nie zabierał całej przestrzeni dla akordeonów kosztów.
+- Dodano regresję `tools/quote-details-accordion-scroll-smoke.js`, która pilnuje wejść szczegółów WYCENY: `Razem/Suma`, `Materiały`, `Akcesoria`, `Robocizna szafek`, `Robocizna / stawki`, `Montaż AGD` i `Rabat`.
+- Nie zmieniano wyliczeń WYCENY, rejestru, snapshotów, zawiasów, PCV, materiałów, robocizny, import/export, backupów ani UI poza modalem szczegółów WYCENY.
+- Cache-busting: `20260606_quote_details_accordion_scroll_fix_v1`. Raport: `tools/reports/quote-details-accordion-scroll-fix-v1.md`.
+
 ## 2026-06-06 — Jedna prawda WYCENY przed robocizną v1
 
 - Paczka: `site_quote_single_truth_pre_labor_tests_v1.zip`.

@@ -856,6 +856,7 @@ function runWycenaNodeSmoke(sandbox){
       const currentExpected = '20260605_hinge_tipon_dynamic_features_v1';
       const registerExpected = '20260605_hinge_tipon_dynamic_features_v1';
       const detailsModalExpected = '20260601_quote_details_modal_ui_hardware_match_fix_v1';
+      const detailAccordionScrollExpected = '20260606_quote_details_accordion_scroll_fix_v1';
       const auditMaterialsExpected = '20260601_quote_audit_material_quantities_fix_v1';
       const pcvTruthExpected = '20260601_pcv_single_source_truth_v1';
       const hingeCatalogExpected = '20260605_hinge_tipon_dynamic_features_v1';
@@ -866,7 +867,7 @@ function runWycenaNodeSmoke(sandbox){
         const html = fs.readFileSync(path.join(process.cwd(), file), 'utf8');
         return scripts.every((script)=> {
           const legacyExpected = script === 'wycena-core-lines.js' ? legacyChangedExpected : legacyBaseExpected;
-          return html.includes(`js/app/wycena/${script}?v=${legacyExpected}`) || html.includes(`js/app/wycena/${script}?v=${newerExpected}`) || html.includes(`js/app/wycena/${script}?v=${currentExpected}`) || html.includes(`js/app/wycena/${script}?v=${registerExpected}`) || html.includes(`js/app/wycena/${script}?v=${detailsModalExpected}`) || html.includes(`js/app/wycena/${script}?v=${auditMaterialsExpected}`) || html.includes(`js/app/wycena/${script}?v=${pcvTruthExpected}`) || html.includes(`js/app/wycena/${script}?v=${hingeCatalogExpected}`) || html.includes(`js/app/wycena/${script}?v=${singleTruthPreLaborExpected}`);
+          return html.includes(`js/app/wycena/${script}?v=${legacyExpected}`) || html.includes(`js/app/wycena/${script}?v=${newerExpected}`) || html.includes(`js/app/wycena/${script}?v=${currentExpected}`) || html.includes(`js/app/wycena/${script}?v=${registerExpected}`) || html.includes(`js/app/wycena/${script}?v=${detailsModalExpected}`) || html.includes(`js/app/wycena/${script}?v=${auditMaterialsExpected}`) || html.includes(`js/app/wycena/${script}?v=${pcvTruthExpected}`) || html.includes(`js/app/wycena/${script}?v=${hingeCatalogExpected}`) || html.includes(`js/app/wycena/${script}?v=${singleTruthPreLaborExpected}`) || html.includes(`js/app/wycena/${script}?v=${detailAccordionScrollExpected}`);
         });
       });
     } },

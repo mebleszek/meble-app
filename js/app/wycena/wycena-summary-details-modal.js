@@ -88,6 +88,26 @@
       if(btn) btn.setAttribute('aria-expanded', 'false');
     });
   }
+  function getDetailsBody(group){
+    let node = group && group.parentNode;
+    while(node){
+      if(node.id === 'quoteSummaryDetailsBody' || (node.classList && node.classList.contains('quote-detail-modal__body'))) return node;
+      node = node.parentNode;
+    }
+    return null;
+  }
+  function scrollGroupIntoDetailsBody(group, behavior){
+    const body = getDetailsBody(group);
+    if(!group || !body) return;
+    try{
+      const groupRect = group.getBoundingClientRect();
+      const bodyRect = body.getBoundingClientRect();
+      const target = Math.max(0, body.scrollTop + groupRect.top - bodyRect.top - 8);
+      body.scrollTo({ top:target, behavior:behavior || 'smooth' });
+    }catch(_){
+      try{ group.scrollIntoView({ block:'start', behavior:behavior || 'smooth' }); }catch(__){ }
+    }
+  }
   function setGroupOpen(group, open, opts){
     const cfg = opts || {};
     if(!group) return;
@@ -96,7 +116,7 @@
     const btn = group.querySelector('.quote-detail-group__toggle');
     if(btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     if(open && cfg.keepScroll !== false){
-      try{ group.scrollIntoView({ block:'nearest', behavior:'smooth' }); }catch(_){ }
+      scrollGroupIntoDetailsBody(group, cfg.instantScroll ? 'auto' : 'smooth');
     }
   }
   function renderGroup(container, title, rows, sum, options){
@@ -223,6 +243,12 @@
     else renderRows(body, lines.filter((row)=> row.section === current), current === 'labor' ? 'sourceLabel' : 'subsection');
     body.scrollTop = 0;
     overlay.style.display = 'flex';
+    if(current === 'total' && body.querySelector('.quote-detail-warnings')){
+      const openGroup = body.querySelector('.quote-detail-group.is-open');
+      if(openGroup){
+        setTimeout(()=> scrollGroupIntoDetailsBody(openGroup, 'auto'), 0);
+      }
+    }
     try{ if(typeof lockModalScroll === 'function') lockModalScroll(); }catch(_){ }
   }
 
