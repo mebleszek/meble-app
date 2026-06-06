@@ -204,9 +204,24 @@
   function renderWarnings(container, register, section){
     const warnings = collectSectionWarnings(register, section);
     if(!warnings.length) return;
-    const box = h('section', { class:'quote-detail-warnings' });
-    box.appendChild(h('div', { class:'quote-detail-warnings__title', text:'Ostrzeżenia / rzeczy do sprawdzenia' }));
-    warnings.forEach((row)=> box.appendChild(h('div', { class:'quote-detail-warning', text:text(row && row.message || row) })));
+    const box = h('section', { class:'quote-detail-group quote-detail-group--warnings' });
+    const button = h('button', { type:'button', class:'quote-detail-group__header quote-detail-group__toggle', 'aria-expanded':'false' });
+    const left = h('div', { class:'quote-detail-group__titleWrap' });
+    left.appendChild(h('div', { class:'quote-detail-group__title', text:'Ostrzeżenia / rzeczy do sprawdzenia' }));
+    left.appendChild(h('div', { class:'quote-detail-group__count', text:`${warnings.length} ${warnings.length === 1 ? 'pozycja' : 'pozycji'}` }));
+    button.appendChild(left);
+    const right = h('div', { class:'quote-detail-group__right' });
+    right.appendChild(h('div', { class:'quote-detail-group__sum', text:'Sprawdź' }));
+    right.appendChild(h('span', { class:'quote-detail-group__chevron', 'aria-hidden':'true', text:'⌄' }));
+    button.appendChild(right);
+    box.appendChild(button);
+    const panel = h('div', { class:'quote-detail-group__panel quote-detail-warnings__panel' });
+    warnings.forEach((row)=> panel.appendChild(h('div', { class:'quote-detail-warning', text:text(row && row.message || row) })));
+    box.appendChild(panel);
+    button.addEventListener('click', (event)=>{
+      event.preventDefault();
+      setGroupOpen(box, !box.classList.contains('is-open'), { closeOthers:true });
+    });
     container.appendChild(box);
   }
   function ensureModal(){
@@ -257,12 +272,8 @@
     else renderRows(body, lines.filter((row)=> row.section === current), current === 'labor' ? 'sourceLabel' : 'subsection');
     body.scrollTop = 0;
     overlay.style.display = 'flex';
-    if(current === 'total' && body.querySelector('.quote-detail-warnings')){
-      const openGroup = body.querySelector('.quote-detail-group.is-open');
-      if(openGroup){
-        setTimeout(()=> scrollGroupIntoDetailsBody(openGroup, 'auto'), 0);
-      }
-    }
+    // Przy pierwszym otwarciu zostawiamy body na początku modala.
+    // Automatyczne przewijanie działa dopiero po kliknięciu akordeonu, żeby nie chować nagłówków sekcji.
     try{ if(typeof lockModalScroll === 'function') lockModalScroll(); }catch(_){ }
   }
 

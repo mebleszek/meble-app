@@ -1,13 +1,13 @@
-## 2026-06-06 — WYCENA: jednolite modale szczegółów i pełna widoczność sekcji v1
+## 2026-06-06 — WYCENA: ostrzeżenia jako akordeon i bez zagnieżdżonego małego scrolla v1
 
-- Paczka: `site_quote_details_uniform_modal_scroll_fix_v1.zip`.
-- Dopracowano modal `Analiza oferty` / szczegóły WYCENY na telefonie i w pozostałych wejściach WYCENY: sekcje mają jednolity układ, a rozwinięta zawartość nie chowa się już częściowo przy dolnej krawędzi modala.
-- Modal szczegółów ma stałą wysokość liczona od viewportu, własny scroll w treści, stałą stopkę `Wróć` i jednolny grid header/body/footer.
-- Po otwarciu akordeonu program przewija wewnętrzne body modala tak, żeby była widoczna cała sekcja, a nie tylko jej nagłówek.
-- Blok `Ostrzeżenia / rzeczy do sprawdzenia` zachowuje własny scroll i ograniczoną wysokość, żeby nie zabierał miejsca pozostałym sekcjom.
-- Dodano regresję `tools/quote-details-accordion-scroll-smoke.js`, która pilnuje wejść szczegółów WYCENY: `Razem/Suma`, `Materiały`, `Akcesoria`, `Robocizna szafek`, `Robocizna / stawki`, `Montaż AGD` i `Rabat`.
+- Paczka: `site_quote_details_warning_accordion_fix_v1.zip`.
+- Poprawiono modal `Analiza oferty` / szczegóły WYCENY: ostrzeżenia nie są już małym zagnieżdżonym okienkiem ze scrollbarem, tylko normalnym akordeonem takim jak pozostałe sekcje.
+- Modal szczegółów zachowuje stałą wysokość viewportu, własny główny scroll w treści, stałą stopkę `Wróć` i jednolity grid header/body/footer.
+- Po pierwszym otwarciu modala program nie przeskakuje już automatycznie do pierwszego otwartego akordeonu; przewijanie działa dopiero po kliknięciu sekcji, żeby nie chować nagłówków i początku okna.
+- Blok `Ostrzeżenia / rzeczy do sprawdzenia` jest domyślnie zwinięty i pokazuje liczbę pozycji; po otwarciu korzysta z głównego scrolla modala, bez własnego małego scrolla.
+- Zaktualizowano regresję `tools/quote-details-accordion-scroll-smoke.js`, która pilnuje wejść szczegółów WYCENY oraz tego, że ostrzeżenia są akordeonem bez zagnieżdżonego scrolla.
 - Nie zmieniano wyliczeń WYCENY, rejestru, snapshotów, zawiasów, PCV, materiałów, robocizny, import/export, backupów ani UI poza modalem szczegółów WYCENY.
-- Cache-busting: `20260606_quote_details_uniform_modal_scroll_fix_v1`. Raport: `tools/reports/quote-details-uniform-modal-scroll-fix-v1.md`.
+- Cache-busting: `20260606_quote_details_warning_accordion_fix_v1`. Raport: `tools/reports/quote-details-warning-accordion-fix-v1.md`.
 
 ## 2026-06-06 — Jedna prawda WYCENY przed robocizną v1
 
