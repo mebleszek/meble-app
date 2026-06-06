@@ -11,7 +11,7 @@
     "js/app/rozrys/rozrys-options-modal.js?v=20260331_boot_fix_v1",
     "js/app/rozrys/rozrys-grain-modal.js?v=20260331_boot_fix_v1",
     "js/app/rozrys/rozrys-runner.js?v=20260331_boot_fix_v1",
-    "js/app/rozrys/rozrys-part-helpers.js?v=20260419_rozrys_runtime_bundle_v1",
+    "js/app/rozrys/rozrys-part-helpers.js?v=20260606_quote_single_truth_pre_labor_tests_v1",
     "js/app/rozrys/rozrys-runtime-utils.js?v=20260419_rozrys_runtime_bundle_v1",
     "js/app/rozrys/rozrys-plan-helpers.js?v=20260419_rozrys_runtime_bundle_v1",
     "js/app/rozrys/rozrys-engine-bridge.js?v=20260419_rozrys_runtime_bundle_v1",
@@ -24,7 +24,7 @@
     "js/app/rozrys/rozrys-run-controller.js?v=20260419_rozrys_runtime_bundle_v1",
     "js/app/rozrys/rozrys-accordion.js?v=20260414_rozrys_material_accordion_v1",
     "js/app/rozrys/rozrys-output-controller.js?v=20260419_rozrys_runtime_bundle_v1",
-    "js/app/rozrys/rozrys.js?v=20260420_rozrys_lazy_tab_v1"
+    "js/app/rozrys/rozrys.js?v=20260606_quote_single_truth_pre_labor_tests_v1"
 ]
   };
 })();

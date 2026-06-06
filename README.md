@@ -1,3 +1,14 @@
+## 2026-06-06 — Jedna prawda WYCENY przed robocizną v1
+
+- Paczka: `site_quote_single_truth_pre_labor_tests_v1.zip`.
+- Dodano regresję `tools/quote-single-truth-pre-labor-smoke.js`, która pilnuje, że nowe sumy WYCENY idą przez `quoteCalculationRegister`, a snapshot i audyt korzystają z rejestru zamiast z równoległych sum.
+- Test zabezpiecza parytet MATERIAŁ ↔ WYCENA dla HDF, frontów lakier/akryl/laminat oraz PCV/obrzeży z edge store. Surowe metry PCV muszą zgadzać się z MATERIAŁEM, a zapas `+10%` jest doliczany dopiero w WYCENIE.
+- Poprawiono normalizację frontów `Front: typ • nazwa`, żeby `lakier`, `akryl` i `laminat` trafiały do tej samej pozycji materiału/katalogu, zamiast rozjeżdżać MATERIAŁ i WYCENĘ.
+- Poprawiono przeliczanie wymiarów frontów w planie materiałowym WYCENY: pola `w/h` z agregatu ROZRYS są traktowane jako mm, bez zgadywania progiem `300`, więc front 30 cm nie może zostać policzony jak 300 cm.
+- Dodano test ceny dostawcy `Do wyceny`: oznaczona cena jest używana, a brak oznaczenia przy wielu cenach zostaje udokumentowany jako obecny ryzykowny fallback do pierwszej ceny.
+- Nie wdrażano nowego liczenia robocizny, nie finalizowano prowadnic/szuflad/cargo/podnośników i nie zmieniano UI.
+- Cache-busting: `20260606_quote_single_truth_pre_labor_tests_v1`. Raport: `tools/reports/quote-single-truth-pre-labor-tests-v1.md`.
+
 ## 2026-06-06 — Zapis zmian w słownikach parametrów okuć v1
 
 - Paczka: `site_hardware_dictionary_save_actions_fix_v1.zip`.

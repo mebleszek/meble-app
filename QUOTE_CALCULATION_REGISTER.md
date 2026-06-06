@@ -1,3 +1,11 @@
+## 2026-06-06 — Rejestr jako kotwica nowych sum WYCENY v1
+
+- Paczka: `site_quote_single_truth_pre_labor_tests_v1.zip`.
+- `quoteCalculationRegister` jest traktowany jako główne źródło nowych sum WYCENY: materiały, akcesoria, robocizna szafek, robocizna/stawki, montaż AGD, rabat, suma przed rabatem i razem.
+- `quoteSnapshot.buildSnapshot()` ma brać `totals` z `calculationRegister`, jeżeli rejestr jest dostępny. Fallbacki zostają tylko dla starszych snapshotów.
+- Audyt WYCENY ma preferować `snapshot.calculationRegister`, żeby historia/oferty i szczegóły korzystały z tego samego wyniku.
+- Dodano regresję `tools/quote-single-truth-pre-labor-smoke.js`, która pilnuje tej ścieżki przed podpięciem właściwego liczenia robocizny.
+
 ## 2026-06-04 — Zawias + prowadnik jako komplet lub składane części v1
 
 - Paczka: `site_hinge_driver_components_v1.zip`.

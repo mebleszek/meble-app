@@ -7,8 +7,9 @@
   const DIRECTIONS = ['default','horizontal','vertical','none'];
 
   function normalizeFrontLaminatMaterialKey(materialKey){
-    const m = String(materialKey||'').match(/^\s*Front\s*:\s*laminat\s*•\s*(.+)$/i);
-    return m ? String(m[1]||'').trim() : String(materialKey||'').trim();
+    const raw = String(materialKey || '').trim();
+    const m = raw.match(/^\s*Front\s*:\s*[^•]+?\s*•\s*(.+)$/i);
+    return m ? String(m[1] || '').trim() : raw;
   }
 
   function normalizeMaterialKey(materialKey){

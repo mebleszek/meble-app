@@ -24,7 +24,7 @@
       }
     }catch(_){ }
     const raw = String(material || '').trim();
-    const m = raw.match(/^\s*Front\s*:\s*laminat\s*•\s*(.+)$/i);
+    const m = raw.match(/^\s*Front\s*:\s*[^•]+?\s*•\s*(.+)$/i);
     return m ? String(m[1] || '').trim() : raw;
   }
 

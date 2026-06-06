@@ -132,11 +132,14 @@
   }
 
   function partDimToMm(part, keyA, keyB){
-    const raw = Number(part && (part[keyA] != null ? part[keyA] : part[keyB])) || 0;
-    if(!(raw > 0)) return 0;
-    // Części z agregatu ROZRYS są zapisane w mm; surowe części z MATERIAŁU mają cm.
-    // Próg 300 chroni stare ścieżki cm i usuwa błąd ×100 przy m²/HDF/obrzeżach w WYCENIE.
-    return raw > 300 ? raw : raw * 10;
+    const src = part || {};
+    const primary = Number(src[keyA]) || 0;
+    if(primary > 0) return primary;
+    const fallback = Number(src[keyB]) || 0;
+    if(!(fallback > 0)) return 0;
+    // Agregat ROZRYS przekazuje `w/h` w mm. Surowe części MATERIAŁU używają `a/b` w cm.
+    // Nie wolno zgadywać po progu 300, bo front 30 cm w agregacie ma dokładnie 300 mm.
+    return fallback * 10;
   }
 
   function partAreaM2(parts){
