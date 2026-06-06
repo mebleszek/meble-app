@@ -103,8 +103,8 @@
     const parts = [];
     parts.push(optionLabel(tech().DEFAULT_FIELD_TYPES || [], item.fieldType || 'text', 'Tekst / wybór'));
     parts.push(optionLabel(tech().DEFAULT_COMPARE_MODES || [], item.compareMode || 'equal', 'Dokładnie taka sama wartość'));
-    if(item.keyFeature !== false) parts.push('kluczowa');
-    if(item.typePart !== false) parts.push('buduje typ');
+    if(item.keyFeature !== false) parts.push('do porównania');
+    if(item.typePart !== false) parts.push('buduje nazwę techniczną');
     if(item.active === false) parts.push('nieaktywna');
     const optionsCount = Array.isArray(item.options) ? item.options.length : 0;
     if(optionsCount > 0) parts.push(optionsCount + ' wartości');
@@ -232,8 +232,8 @@
     const options = h('input', { class:'investor-form-input', value:(item.options || []).join('; '), placeholder:'np. M; N; H albo lewa; prawa; uniwersalna' });
     const fieldType = cycleButton(tech().DEFAULT_FIELD_TYPES || [], item.fieldType || 'text', (value)=>{ item.fieldType = value; refreshSummary(); onChange(item); });
     const compare = cycleButton(tech().DEFAULT_COMPARE_MODES || [], item.compareMode || 'equal', (value)=>{ item.compareMode = value; refreshSummary(); onChange(item); });
-    const keyFeature = h('label', { class:'rozrys-scope-chip price-labor-toggle' }, [h('input', { type:'checkbox', checked:item.keyFeature !== false }), h('span', { text:'Cecha kluczowa' })]);
-    const typePart = h('label', { class:'rozrys-scope-chip price-labor-toggle' }, [h('input', { type:'checkbox', checked:item.typePart !== false }), h('span', { text:'Buduje typ' })]);
+    const keyFeature = h('label', { class:'rozrys-scope-chip price-labor-toggle' }, [h('input', { type:'checkbox', checked:item.keyFeature !== false }), h('span', { text:'Użyj do porównania' })]);
+    const typePart = h('label', { class:'rozrys-scope-chip price-labor-toggle' }, [h('input', { type:'checkbox', checked:item.typePart !== false }), h('span', { text:'Buduje nazwę techniczną' })]);
     const active = h('label', { class:'rozrys-scope-chip price-labor-toggle' }, [h('input', { type:'checkbox', checked:item.active !== false }), h('span', { text:'Aktywna' })]);
     label.addEventListener('input', ()=>{ item.label = label.value; if(!key.value.trim()) item.key = safeKey(label.value); refreshSummary(); onChange(item); });
     key.addEventListener('input', ()=>{ item.key = safeKey(key.value); onChange(item); });
@@ -458,7 +458,8 @@
     let openParamId = '';
     let closingPeerAccordions = false;
     let paramOpenSequence = 0;
-    function rows(){ return params.filter((row)=> text(row.category) === text(cat)); }
+    function isHiddenLegacyParam(row){ return row && row.active === false && /legacy/i.test(String(row.label || row.key || '')); }
+    function rows(){ return params.filter((row)=> text(row.category) === text(cat) && !isHiddenLegacyParam(row)); }
     function closePeerAccordions(activeNode){
       Array.from(list.querySelectorAll(':scope > .hardware-tech-param-accordion')).forEach((node)=>{
         if(node !== activeNode && node.open) animateParamClose(node, ()=> alignParamHeaderAfterToggle(activeNode));
@@ -603,7 +604,7 @@
       const cleanParams = normalizeParams(renamed.params, cleanCategories);
       saveCategories(cleanCategories);
       saveParams(cleanParams);
-      // Legacy słownik typów zostaje zapisany bez zmiany, żeby starsze importy i filtry działały.
+      // Nazwa techniczna powstaje z parametrów; dawny słownik typów nie jest edytowany w tym modalu.
       saveTypes(originalTypes || []);
       categories = cleanCategories.slice();
       params = cloneParams(cleanParams);

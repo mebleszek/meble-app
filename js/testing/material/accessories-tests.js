@@ -146,7 +146,7 @@
         const hw = requireHardware();
         const row = hw.normalizeAccessory({
           id:'tech_1', name:'Tandembox M 500', manufacturer:'Blum', hardwareCategory:'Szuflady / prowadnice', hardwareUnit:'kpl.',
-          system_okucia:'Blum TANDEMBOX', typ_cecha:'M 500 50kg', profil_szuflady:'M', dlugosc_mm:'500', nosnosc_kg:'50', wzmocniona:'TAK', kolor_okucia:'biały', zastosowanie:'frontowa'
+          system_okucia:'Blum TANDEMBOX', nazwa_techniczna:'M 500 50kg', profil_szuflady:'M', dlugosc_mm:'500', nosnosc_kg:'50', wzmocniona:'TAK', kolor_okucia:'biały', zastosowanie:'frontowa'
         }, ()=> 'tech_1', { defaultVatRate:23, hardwareSuppliers:suppliers() });
         H.assert(row.hardwareSystem === 'Blum TANDEMBOX', 'System okucia nie został zapisany', row);
         H.assert(String(row.hardwareType || '').includes('M') && String(row.hardwareType || '').includes('500') && String(row.hardwareType || '').includes('50'), 'Typ/cecha nie został zbudowany z parametrów', row);
@@ -163,7 +163,7 @@
         H.assert(!hw.uniqueTypeConflict(rows, { manufacturer:'Blum', hardwareCategory:'Szuflady / prowadnice', hardwareSystem:'Blum MERIVOBOX', hardwareType:'M 500' }, 'new'), 'Inny system został potraktowany jak konflikt');
       }),
 
-      H.makeTest('Akcesoria — dynamiczne dane techniczne', 'Parametry kategorii budują Typ / cechę automatycznie', 'Pilnuje przebudowy słownika: typ/cecha jest opisem z cech technicznych, nie ręcznym polem głównym.', ()=> withSnapshot(()=>{
+      H.makeTest('Akcesoria — dynamiczne dane techniczne', 'Parametry kategorii budują nazwę techniczną automatycznie', 'Pilnuje przebudowy słownika: nazwa techniczna jest opisem z danych technicznych, nie ręcznym polem głównym.', ()=> withSnapshot(()=>{
         const s = store(), hw = requireHardware();
         H.assert(FC.hardwareTechnicalParams && typeof FC.hardwareTechnicalParams.buildTypeLabel === 'function', 'Brak modułu parametrów technicznych');
         s.saveHardwareCategories(['Zawiasy']);
@@ -307,7 +307,7 @@
         H.assert(row.technicalParams.nalozenie.value === 'nakładany', 'Nałożenie nie zostało wyciągnięte z obiektu wyboru', row.technicalParams);
         H.assert(Number(row.technicalParams.kat_rzeczywisty.from) === 90 && Number(row.technicalParams.kat_rzeczywisty.to) === 110, 'Kąt rzeczywisty nie został wyciągnięty z obiektów wyboru / legacy kąta', row.technicalParams);
         H.assert(String(row.technicalParams.klasa_kata && row.technicalParams.klasa_kata.value || '') === 'standardowy 90–120°', 'Klasa zamienności kąta nie została wyliczona ze starego zakresu', row.technicalParams);
-        H.assert(String(row.hardwareType || '').includes('nakładany') && String(row.hardwareType || '').includes('90') && String(row.hardwareType || '').includes('110°') && String(row.hardwareType || '').includes('standardowy 90–120°'), 'Automatyczny typ nie powstał z czystych wartości', row.hardwareType);
+        H.assert(String(row.hardwareType || '').includes('nakładany') && String(row.hardwareType || '').includes('90') && String(row.hardwareType || '').includes('110°') && String(row.hardwareType || '').includes('standardowy 90–120°'), 'Automatyczna nazwa techniczna nie powstała z czystych wartości', row.hardwareType);
       }),
 
       H.makeTest('Akcesoria — słowniki', 'Kategorie łączą domyślne i własne bez duplikatów', 'Pilnuje, żeby słownik kategorii był edytowalny, ale bez śmieci po wielkości liter.', ()=>{
@@ -316,20 +316,20 @@
         H.assert(list.includes('Zawiasy') && list.includes('Nowa kategoria'), 'Brakuje kategorii domyślnej albo własnej', list);
         H.assert(list.filter((row)=> text(row).toLowerCase() === 'nowa kategoria').length === 1, 'Duplikat kategorii nie został usunięty', list);
       }),
-      H.makeTest('Akcesoria — słowniki', 'Typy/cechy pamiętają dozwolone kategorie', 'Chroni słownik typów przed zgubieniem przypisania do kategorii.', ()=>{
+      H.makeTest('Akcesoria — słowniki', 'Nieużywany słownik dawnych typów pamięta dozwolone kategorie', 'Chroni słownik typów przed zgubieniem przypisania do kategorii.', ()=>{
         const hw = requireHardware();
         const list = hw.normalizeTypeList([{ id:'custom_runner', name:'Prowadnica testowa', allowedCategories:['Szuflady / prowadnice'], active:true }]);
         const row = list.find((item)=> item.id === 'custom_runner');
-        H.assert(row && row.allowedCategories.includes('Szuflady / prowadnice'), 'Typ/cecha zgubił dozwoloną kategorię', row);
+        H.assert(row && row.allowedCategories.includes('Szuflady / prowadnice'), 'Dawny typ zgubił dozwoloną kategorię', row);
       }),
-      H.makeTest('Akcesoria — słowniki', 'Typ / cecha filtruje się po kategorii', 'Pilnuje, żeby typy zawiasów nie pojawiały się przy prowadnicach i odwrotnie.', ()=>{
+      H.makeTest('Akcesoria — słowniki', 'Dawna nazwa techniczna filtruje się po kategorii', 'Pilnuje, żeby dawne typy zawiasów nie pojawiały się przy prowadnicach i odwrotnie.', ()=>{
         const hw = requireHardware();
         const list = [{ id:'t1', name:'Tylko zawias', allowedCategories:['Zawiasy'], active:true }, { id:'t2', name:'Tylko cargo', allowedCategories:['Cargo / organizery'], active:true }];
         const hingeOptions = hw.typeOptions(list, 'Zawiasy', '');
-        H.assert(hingeOptions.some((opt)=> opt.value === 'Tylko zawias'), 'Brak typu zawiasu w kategorii Zawiasy', hingeOptions);
-        H.assert(!hingeOptions.some((opt)=> opt.value === 'Tylko cargo'), 'Typ cargo pojawił się przy zawiasach', hingeOptions);
+        H.assert(hingeOptions.some((opt)=> opt.value === 'Tylko zawias'), 'Brak dawnego typu zawiasu w kategorii Zawiasy', hingeOptions);
+        H.assert(!hingeOptions.some((opt)=> opt.value === 'Tylko cargo'), 'Dawny typ cargo pojawił się przy zawiasach', hingeOptions);
       }),
-      H.makeTest('Akcesoria — słowniki', 'Aktualnie wybrany typ zostaje widoczny nawet po zmianie kategorii', 'Chroni edycję starych danych: pole ma pokazać zapisaną wartość, nawet jeśli słownik już ją ogranicza.', ()=>{
+      H.makeTest('Akcesoria — słowniki', 'Aktualnie zapisana nazwa techniczna zostaje widoczna nawet po zmianie kategorii', 'Chroni edycję starych danych: pole ma pokazać zapisaną wartość, nawet jeśli słownik już ją ogranicza.', ()=>{
         const hw = requireHardware();
         const opts = hw.typeOptions([{ id:'t1', name:'Stary typ', allowedCategories:['Zawiasy'], active:true }], 'Cargo / organizery', 'Stary typ');
         H.assert(opts.some((opt)=> opt.value === 'Stary typ'), 'Wybrany stary typ zniknął z listy opcji', opts);
@@ -347,7 +347,7 @@
         H.assert(self == null, 'Rekord blokuje sam siebie', self);
         H.assert(otherProducer && otherProducer.id === 'b', 'Ten sam typ u innego producenta powinien sprawdzać się osobno', otherProducer);
       }),
-      H.makeTest('Akcesoria — słowniki', 'Pusty typ/cecha nie blokuje zapisu jako duplikat', 'Pilnuje, żeby stare okucia bez typu nie były fałszywie blokowane.', ()=>{
+      H.makeTest('Akcesoria — słowniki', 'Pusta nazwa techniczna nie blokuje zapisu jako duplikat', 'Pilnuje, żeby okucia bez nazwy technicznej nie były fałszywie blokowane.', ()=>{
         const hw = requireHardware();
         const conflict = hw.uniqueTypeConflict([{ id:'a', manufacturer:'Blum', hardwareCategory:'Zawiasy', hardwareType:'' }], { manufacturer:'Blum', hardwareCategory:'Zawiasy', hardwareType:'' }, 'b');
         H.assert(conflict == null, 'Pusty typ został potraktowany jako duplikat', conflict);
@@ -419,7 +419,7 @@
         s.saveHardwareSuppliers(suppliers());
         const data = api.parseWorkbook({
           Okucia:[
-            ['nazwa','jednostka','producent','kategoria','system_okucia','typ_cecha','symbol','profil_szuflady','dlugosc_mm','nosnosc_kg','wzmocniona','kolor_okucia','zastosowanie'],
+            ['nazwa','jednostka','producent','kategoria','system_okucia','nazwa_techniczna','symbol','profil_szuflady','dlugosc_mm','nosnosc_kg','wzmocniona','kolor_okucia','zastosowanie'],
             ['Tandembox M 500 50kg','kpl.','Blum','Szuflady / prowadnice','Blum TANDEMBOX','M 500 50kg','TB-M500-50','M','500','50','TAK','biały','frontowa']
           ],
           Dostawcy:[['id','nazwa','rabat_domyslny_proc','aktywny'], ['mago','MAGO',0,'TAK']],
@@ -445,7 +445,7 @@
         s.saveHardwareSuppliers([{ id:'local', name:'Hurtownia lokalna', defaultDiscountPercent:0, active:true }]);
         const plan = api.buildImportPlan({ accessories:[], suppliers:[], settings:{ defaultVatRate:23 }, supplierPriceRows:[{
           __rowIndex:24, producent:'Rejs', okucie_symbol:'RCB-M500-50', okucie_nazwa:'Comfort Box M 500 wzmocniona', kategoria:'Szuflady / prowadnice', jednostka:'kpl.', dostawca:'Hurtownia lokalna', cena_brutto:98,
-          system_okucia:'Rejs Comfort Box', typ_cecha:'M 500 50kg', profil_szuflady:'M', dlugosc_mm:500, nosnosc_kg:50, wzmocniona:'TAK', kolor_okucia:'biały', zastosowanie:'frontowa'
+          system_okucia:'Rejs Comfort Box', nazwa_techniczna:'M 500 50kg', profil_szuflady:'M', dlugosc_mm:500, nosnosc_kg:50, wzmocniona:'TAK', kolor_okucia:'biały', zastosowanie:'frontowa'
         }] }, { mode:'merge' });
         const row = plan.next.accessories.find((item)=> item.symbol === 'RCB-M500-50');
         H.assert(row && plan.summary.supplierPriceCreatedAccessories === 1, 'Ceny_dostawcow nie utworzył nowego okucia technicznego', plan);
@@ -574,7 +574,7 @@
           ctx.runtimeState.filters = prev;
         }
       }),
-      H.makeTest('Akcesoria — UI kontrakty', 'Picker typu/cechy pokazuje pusty wybór jako prawdziwie pusty', 'Chroni błąd, gdzie pusty typ wyglądał jak domyślnie wybrany.', ()=> withSnapshot(()=>{
+      H.makeTest('Akcesoria — UI kontrakty', 'Ukryty dawny picker nazwy technicznej pokazuje pusty wybór jako pusty', 'Chroni błąd, gdzie pusta nazwa techniczna wyglądała jak domyślnie wybrana.', ()=> withSnapshot(()=>{
         const s = store();
         const ctx = FC.priceModalContext || {};
         H.assert(s && s.saveHardwareTypes && typeof ctx.buildHardwareTypeOptions === 'function', 'Brak API typów w UI');

@@ -5,7 +5,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
   const SUPPLIER_PRICE_COLUMNS = (FC.hardwareSupplierPriceExport && FC.hardwareSupplierPriceExport.SUPPLIER_PRICE_COLUMNS) || [
-    ['okucie_nazwa','itemName'], ['okucie_symbol','itemSymbol'], ['producent','itemManufacturer'], ['kategoria','itemCategory'], ['jednostka','itemUnit'], ['dostawca','supplierName'], ['cena_netto','catalogPriceNet'], ['cena_brutto','catalogPriceGross'], ['do_wyceny','useForQuote'], ['status_ceny','priceStatus'], ['data_ceny','priceDate'], ['system_okucia','itemSystem'], ['typ_cecha','itemType'], ['profil_szuflady','drawerProfile'], ['dlugosc_mm','drawerLengthMm'], ['nosnosc_kg','drawerLoadKg'], ['wzmocniona','drawerReinforced'], ['kolor_okucia','hardwareColor'], ['zastosowanie','hardwareUsage'], ['okucie_id','itemId'], ['dostawca_id','supplierId']
+    ['okucie_nazwa','itemName'], ['okucie_symbol','itemSymbol'], ['producent','itemManufacturer'], ['kategoria','itemCategory'], ['jednostka','itemUnit'], ['dostawca','supplierName'], ['cena_netto','catalogPriceNet'], ['cena_brutto','catalogPriceGross'], ['do_wyceny','useForQuote'], ['status_ceny','priceStatus'], ['data_ceny','priceDate'], ['system_okucia','itemSystem'], ['nazwa_techniczna','itemType'], ['profil_szuflady','drawerProfile'], ['dlugosc_mm','drawerLengthMm'], ['nosnosc_kg','drawerLoadKg'], ['wzmocniona','drawerReinforced'], ['kolor_okucia','hardwareColor'], ['zastosowanie','hardwareUsage'], ['okucie_id','itemId'], ['dostawca_id','supplierId']
   ];
 
   function text(value){ return String(value == null ? '' : value).trim(); }
@@ -46,7 +46,7 @@
       itemManufacturer:text(valueFrom(row, ['producent','manufacturer','itemManufacturer','okucie_producent'])),
       itemCategory:text(valueFrom(row, ['kategoria','hardwareCategory','itemCategory','okucie_kategoria'])),
       itemSystem:text(valueFrom(row, ['system_okucia','hardwareSystem','itemSystem','seria','series'])),
-      itemType:text(valueFrom(row, ['typ_cecha','hardwareType','itemType','typ'])),
+      itemType:text(valueFrom(row, ['nazwa_techniczna','technicalName','hardwareType','itemType','typ_cecha','typ'])),
       itemUnit:text(valueFrom(row, ['jednostka','hardwareUnit','itemUnit','okucie_jednostka'])),
       drawerProfile:text(valueFrom(row, ['profil_szuflady','drawerProfile'])),
       drawerLengthMm:optionalNumber(valueFrom(row, ['dlugosc_mm','drawerLengthMm','dlugosc_szuflady_mm'])),
@@ -67,7 +67,7 @@
     };
   }
   function hasSupplierPriceData(row){
-    return !!(text(valueFrom(row, ['okucie_id','okucie_nazwa','okucie_symbol','producent','manufacturer','system_okucia','typ_cecha','dostawca','dostawca_id'])) || hasNumericInput(valueFrom(row, ['cena_netto','catalogPriceNet'])) || hasNumericInput(valueFrom(row, ['cena_brutto','catalogPriceGross'])));
+    return !!(text(valueFrom(row, ['okucie_id','okucie_nazwa','okucie_symbol','producent','manufacturer','system_okucia','nazwa_techniczna','typ_cecha','dostawca','dostawca_id'])) || hasNumericInput(valueFrom(row, ['cena_netto','catalogPriceNet'])) || hasNumericInput(valueFrom(row, ['cena_brutto','catalogPriceGross'])));
   }
   function logicalAccessoryKey(item){ return text(item && item.id) || [safePart(item && item.manufacturer), safePart(item && item.symbol), safePart(item && item.name)].join('|'); }
   function uniqueLogicalMatches(matches){

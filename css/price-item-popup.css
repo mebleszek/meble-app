@@ -703,3 +703,31 @@
   font-size:12px;
   font-weight:900;
 }
+
+/* Okucia — podgląd automatycznej nazwy technicznej pod nazwą katalogową. */
+#priceItemModal .hardware-technical-name-preview{
+  margin-top:10px;
+  border:1px solid rgba(148,163,184,.42);
+  border-radius:16px;
+  background:linear-gradient(180deg,#fff,#f8fafc);
+  box-shadow:0 6px 0 rgba(31,41,55,.06),0 12px 22px rgba(15,23,42,.06);
+  padding:11px 13px;
+  min-width:0;
+}
+#priceItemModal .hardware-technical-name-preview__label{
+  font-size:12px;
+  font-weight:900;
+  line-height:1.15;
+  color:#64748b;
+  margin-bottom:5px;
+}
+#priceItemModal .hardware-technical-name-preview__value{
+  font-size:15px;
+  font-weight:900;
+  line-height:1.25;
+  color:#0f172a;
+  overflow-wrap:anywhere;
+}
+#priceItemModal .hardware-technical-name-preview__value.is-empty{
+  color:#94a3b8;
+}

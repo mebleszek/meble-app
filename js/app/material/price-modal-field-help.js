@@ -15,7 +15,6 @@
     { id:'formCategory', mountId:'formCategoryLaunch', title:'Wybierz kategorię', placeholder:'Kategoria' },
     { id:'hardwareCategory', mountId:'hardwareCategoryLaunch', title:'Wybierz kategorię okucia', placeholder:'Kategoria okucia' },
     { id:'hardwareUnit', mountId:'hardwareUnitLaunch', title:'Wybierz jednostkę', placeholder:'Jednostka' },
-    { id:'hardwareType', mountId:'hardwareTypeLaunch', title:'Wybierz typ / cechę', placeholder:'Typ / cecha' },
     { id:'hardwareSupplierId', mountId:'hardwareSupplierIdLaunch', title:'Wybierz dostawcę', placeholder:'Dostawca' },
     { id:'hardwareQuoteBase', mountId:'hardwareQuoteBaseLaunch', title:'Wybierz cenę bazową', placeholder:'Cena bazowa' },
     { id:'hardwarePricingMode', mountId:'hardwarePricingModeLaunch', title:'Wybierz sposób liczenia ceny', placeholder:'Sposób liczenia' },
@@ -27,13 +26,12 @@
     formMaterialType:{ title:'Typ materiału', message:'Określa rodzaj materiału w katalogu, np. laminat, blat albo HDF. Ten wybór wpływa na dalsze filtrowanie producentów i porządek w katalogu.' },
     formManufacturer:{ title:'Producent', message:'Producent lub marka pozycji katalogowej. Ułatwia filtrowanie oraz późniejsze wybieranie materiałów i akcesoriów w programie.' },
     formSymbol:{ title:'Symbol', message:'Pole na oznaczenie handlowe, kod albo symbol katalogowy. Warto je uzupełniać, jeśli później chcesz łatwo znaleźć konkretną pozycję.' },
-    formName:{ title:'Nazwa', message:'Pełna nazwa pozycji widoczna w katalogu i przy wyborze w aplikacji.' },
+    formName:{ title:'Nazwa katalogowa', message:'Handlowa nazwa pozycji widoczna w katalogu i przy wyborze w aplikacji. Dla okuć pod spodem program pokazuje osobną nazwę techniczną budowaną z danych technicznych.' },
     formHasGrain:{ title:'Ma słoje', message:'Włącz, jeśli materiał ma kierunek słojów. Dzięki temu ROZRYS może pilnować właściwego ułożenia elementów.' },
     formPrice:{ title:'Cena (PLN)', message:'Cena jednostkowa pozycji katalogowej. Dla materiałów i akcesoriów to zwykła cena pozycji, dla czynności może to być stała kwota.' },
     formMaterialPriceUnit:{ title:'Jednostka ceny materiału', message:'Mówi WYCENIE, jak liczyć materiał: arkusz dla płyt/laminatów i wspólnego rozkroju, m² dla gotowych frontów lakier/akryl i HDF, mb dla obrzeży, szt. dla blatów 4,1 m albo innych całych elementów.' },
     hardwareCategory:{ title:'Kategoria okucia', message:'Grupa okucia, np. zawiasy, szuflady, podnośniki albo cargo. To porządkuje katalog i późniejsze filtrowanie.' },
     hardwareUnit:{ title:'Jednostka', message:'Jednostka rozliczeniowa okucia: sztuka, komplet, metr bieżący, m² albo zestaw składany.' },
-    hardwareType:{ title:'Typ / cecha', message:'Opis wariantu okucia tworzony automatycznie z kluczowych danych technicznych kategorii, np. 110° nakładany z hamulcem albo M 500 50 kg. Przy nowych danych nie wpisuj go ręcznie, tylko uzupełnij Dane techniczne.' },
     hardwareBundleCostMode:{ title:'Cena zakupu zestawu', message:'Własna cena zestawu oznacza, że wpisujesz cenę gotowego kompletu u dostawcy, a skład jest informacyjny. Licz ze składników sumuje realny zakup wybranych pozycji katalogu.' },
     hardwareSeries:{ title:'System okucia', message:'Rodzina albo system okucia widoczny jednym wyborem, np. Blum TANDEMBOX, Rejs Comfort Box, Blum CLIP top. Producent i kategoria zostają zapisane osobno, żeby import/export i zamienniki działały bez zgadywania.' },
     hardwareSupplierId:{ title:'Dostawca / miejsce zakupu', message:'Miejsce, z którego zwykle kupujesz tę pozycję. Zmiana dostawcy podstawia rabat dostawcy; VAT jest globalny w ustawieniach cen okuć.' },
@@ -119,6 +117,7 @@
     if(!(wrapper && label) || label.dataset.helpDecorated === '1') return;
     const labelText = String(label.textContent || '').trim() || String(helpCfg.title || '');
     const helpNode = buildLabelHelp(labelText, helpCfg);
+    if(label.id) helpNode.id = label.id;
     label.replaceWith(helpNode);
     helpNode.dataset.helpDecorated = '1';
   }

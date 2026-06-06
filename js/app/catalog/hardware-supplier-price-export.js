@@ -18,7 +18,7 @@
     ['status_ceny','priceStatus'],
     ['data_ceny','priceDate'],
     ['system_okucia','itemSystem'],
-    ['typ_cecha','itemType'],
+    ['nazwa_techniczna','itemType'],
     ['profil_szuflady','drawerProfile'],
     ['dlugosc_mm','drawerLengthMm'],
     ['nosnosc_kg','drawerLoadKg'],

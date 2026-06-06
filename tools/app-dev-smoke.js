@@ -463,7 +463,7 @@ function runMaterialNodeSmoke(sandbox){
         if(store.saveHardwareManufacturers) store.saveHardwareManufacturers(['Blum']);
         if(store.saveHardwareSuppliers) store.saveHardwareSuppliers([{ id:'mago', name:'MAGO', defaultDiscountPercent:0, active:true }]);
         const parsed = api.parseWorkbook({ Okucia:[
-          ['nazwa','jednostka','producent','kategoria','system_okucia','typ_cecha','symbol','profil_szuflady','dlugosc_mm','nosnosc_kg','wzmocniona','kolor_okucia','zastosowanie'],
+          ['nazwa','jednostka','producent','kategoria','system_okucia','nazwa_techniczna','symbol','profil_szuflady','dlugosc_mm','nosnosc_kg','wzmocniona','kolor_okucia','zastosowanie'],
           ['Tandembox M 500','kpl.','Blum','Szuflady / prowadnice','Blum TANDEMBOX','M 500 50kg','TB-500','M',500,50,'TAK','biały','frontowa']
         ], Producenci:[['nazwa'], ['Blum']], Dostawcy:[['id','nazwa','rabat_domyslny_proc','aktywny'], ['mago','MAGO',0,'TAK']] });
         const plan = api.buildImportPlan(parsed, { mode:'merge' });
@@ -613,7 +613,7 @@ function runMaterialNodeSmoke(sandbox){
       const gaps = xlsx.supplierPriceMissingSupplierGaps(rows, [existing, importedSame], suppliers);
       return gaps.length === 1 && gaps[0].rowIndex === 22 && gaps[0].gaps.includes('supplierName') && gaps[0].item && String(gaps[0].item.id || '') === 'same_export_item_1';
     } },
-    { name:'Dynamiczne parametry techniczne okuć mają słownik i helpy', explain:'Chroni nową architekturę: kategorie mają własne parametry, typ/cecha powstaje z cech kluczowych, a opcje techniczne mają opisy pod ?.', check:()=> {
+    { name:'Dynamiczne parametry techniczne okuć mają słownik i helpy', explain:'Chroni nową architekturę: kategorie mają własne parametry, nazwa techniczna powstaje z parametrów oznaczonych jako budujące nazwę, a opcje techniczne mają opisy pod ?.', check:()=> {
       const api = FC.hardwareTechnicalParams;
       const dictionariesSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-dictionaries.js'), 'utf8');
       const formSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-form.js'), 'utf8');
@@ -630,7 +630,7 @@ function runMaterialNodeSmoke(sandbox){
         && drawerFields.some((row)=> row.key === 'dlugosc_mm' && row.compareMode === 'equal')
         && drawerFields.some((row)=> row.key === 'nosnosc_kg' && row.compareMode === 'minGte')
         && typeLabel.includes('nakładany') && typeLabel.includes('110°') && typeLabel.includes('standardowy 90–120°')
-        && dictionariesSrc.includes('Cecha kluczowa') && dictionariesSrc.includes('compareMode') && dictionariesSrc.includes('openHelp')
+        && dictionariesSrc.includes('Użyj do porównania') && dictionariesSrc.includes('compareMode') && dictionariesSrc.includes('openHelp')
         && formSrc.includes('hardwareDynamicTechnicalFields') && formSrc.includes('readDynamicTechnicalParams');
     } },
     { name:'Parametry techniczne okuć nie zapisują [object Object]', explain:'Chroni backup i katalog: obiekty z launcherów/Exceli muszą zostać znormalizowane do tekstu, liczb albo zakresów.', check:()=> {
@@ -654,13 +654,13 @@ function runMaterialNodeSmoke(sandbox){
         && String(row.hardwareType || '').includes('90–110°')
         && String(row.hardwareType || '').includes('standardowy 90–120°');
     } },
-    { name:'Modal edycji okuć używa pasywnego odczytu stanu formularza', explain:'Chroni wydajność na telefonie: sprawdzanie brudnego formularza i zamykanie modala nie może remountować launchera Typ/Cecha ani przeliczać UI z efektami ubocznymi.', check:()=> {
+    { name:'Modal edycji okuć używa pasywnego odczytu stanu formularza', explain:'Chroni wydajność na telefonie: sprawdzanie brudnego formularza i zamykanie modala nie może remountować dawnego launchera Typ/Cecha ani przeliczać UI z efektami ubocznymi.', check:()=> {
       const itemFormSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
       const hardwareFormSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-form.js'), 'utf8');
       return itemFormSrc.includes('getCurrentAccessoryDraft({ passive:true })')
         && hardwareFormSrc.includes('const cfg = Object.assign({ passive:false }')
         && hardwareFormSrc.includes('syncHardwareTypeFromTechnicalParams({ updateAction:false, remountChoice:false })')
-        && hardwareFormSrc.includes("updateChoiceLauncherLabel(select, 'hardwareTypeLaunch', 'Typ / cecha')")
+        && hardwareFormSrc.includes("updateTechnicalNamePreview") && hardwareFormSrc.includes("updateChoiceLauncherLabel(select, 'hardwareTypeLaunch', 'Nazwa techniczna')")
         && !hardwareFormSrc.includes('function syncHardwareTypeFromTechnicalParams(){');
     } },
     { name:'Modal edycji okuć ma podgląd zamienników pod Wyjdź bez zapisu zmian', explain:'Chroni nowy etap: lista zamienników jest tylko podglądem w edycji okucia, ma własny moduł UI i nie dodaje zapisu do storage.', check:()=> {

@@ -9,7 +9,7 @@
   const TEMPLATE_ROWS = 220;
   const ACCESSORY_COLUMNS = [
     ['nazwa','name'], ['jednostka','hardwareUnit'], ['producent','manufacturer'], ['kategoria','hardwareCategory'],
-    ['system_okucia','hardwareSystem'], ['typ_cecha','hardwareType'], ['symbol','symbol'],
+    ['system_okucia','hardwareSystem'], ['nazwa_techniczna','hardwareType'], ['symbol','symbol'],
     ['profil_szuflady','drawerProfile'], ['dlugosc_mm','drawerLengthMm'], ['nosnosc_kg','drawerLoadKg'], ['wzmocniona','drawerReinforced'], ['kolor_okucia','hardwareColor'], ['zastosowanie','hardwareUsage'],
     ['tryb_ceny_zestawu','bundleCostMode'], ['uwagi_techniczne','technicalNote'], ['notatka','note'], ['id','id'],
   ];
@@ -76,7 +76,7 @@
   function buildCategoryRows(categories){ return [['nazwa']].concat((categories || []).map((name)=> [name])); }
   function buildTypeRows(types){ return [['nazwa','dozwolone_kategorie','aktywny','id']].concat((types || []).map((row)=> [row && row.name || '', (row && row.allowedCategories || []).join('; '), row && row.active === false ? 'NIE' : 'TAK', row && row.id || ''])); }
   function buildTechnicalParamRows(params){
-    return [['kategoria','klucz','nazwa','typ_pola','jednostka','wartosci','cecha_kluczowa','tworzy_typ','sposob_porownania','aktywny','kolejnosc','id']].concat((params || []).map((row)=> [
+    return [['kategoria','klucz','nazwa','typ_pola','jednostka','wartosci','uzyj_do_porownania','buduje_nazwe_techniczna','sposob_porownania','aktywny','kolejnosc','id']].concat((params || []).map((row)=> [
       row && row.category || '', row && row.key || '', row && row.label || '', row && row.fieldType || 'text', row && row.unit || '', (row && row.options || []).join('; '), row && row.keyFeature === false ? 'NIE' : 'TAK', row && row.typePart === false ? 'NIE' : 'TAK', row && row.compareMode || 'equal', row && row.active === false ? 'NIE' : 'TAK', row && row.order || '', row && row.id || ''
     ]));
   }
@@ -97,7 +97,7 @@
   function groupColumnsForCategory(snap, category){
     const api = FC.hardwareTechnicalParams || {};
     const fields = api.fieldsForCategory ? api.fieldsForCategory(snap.technicalParams || [], category) : [];
-    const base = [['nazwa','name'], ['jednostka','hardwareUnit'], ['producent','manufacturer'], ['kategoria','hardwareCategory'], ['system_okucia','hardwareSystem'], ['typ_cecha','hardwareType'], ['symbol','symbol']];
+    const base = [['nazwa','name'], ['jednostka','hardwareUnit'], ['producent','manufacturer'], ['kategoria','hardwareCategory'], ['system_okucia','hardwareSystem'], ['nazwa_techniczna','hardwareType'], ['symbol','symbol']];
     const dyn = [];
     fields.forEach((field)=>{
       if(field.fieldType === 'numberRange'){
@@ -154,7 +154,7 @@
     const add = (type, values)=> (values || []).forEach((value)=> rows.push([type, value]));
     add('kategoria', (snap.categories && snap.categories.length ? snap.categories : optionValues(hw().CATEGORIES, ['Zawiasy','Prowadniki','Szuflady / prowadnice','Cargo / organizery','Inne'])));
     add('system_okucia', Array.from(new Set((snap.accessories || []).map((row)=> text((row && row.hardwareSystem) || (row && row.series))).filter(Boolean))));
-    add('typ_cecha', (snap.types || []).map((row)=> row && row.name).filter(Boolean));
+    add('nazwa_techniczna', (snap.accessories || []).map((row)=> row && row.hardwareType).filter(Boolean));
     add('parametr_techniczny', (snap.technicalParams || []).map((row)=> row && row.key).filter(Boolean));
     add('jednostka', optionValues(hw().UNITS, ['szt.','kpl.','mb','m²','zestaw']));
     add('baza_wyceny', optionValues(hw().QUOTE_BASES, [{ value:'catalogGross' }, { value:'purchaseGross' }, { value:'manualGross' }]));
@@ -166,7 +166,7 @@
   function accessoryValidations(_snap){
     const rowEnd = TEMPLATE_ROWS + 1;
     const categories = (Array.isArray(_snap && _snap.categories) && _snap.categories.length) ? _snap.categories : optionValues(hw().CATEGORIES, ['Zawiasy','Prowadniki','Szuflady / prowadnice','Cargo / organizery','Inne']);
-    const types = (Array.isArray(_snap && _snap.types) ? _snap.types.map((row)=> text(row && row.name)).filter(Boolean) : []);
+    const technicalNames = Array.from(new Set(((_snap && _snap.accessories) || []).map((row)=> text(row && row.hardwareType)).filter(Boolean))); 
     const units = optionValues(hw().UNITS, ['szt.','kpl.','mb','m²','zestaw']);
     const bundleModes = optionValues(hw().BUNDLE_COST_MODES, [{ value:'ownPrice' }, { value:'components' }]);
     const range = (prop)=> `${columnFor(prop)}2:${columnFor(prop)}${rowEnd}`;
@@ -174,7 +174,7 @@
       { sqref:range('hardwareUnit'), formula1:listFormula(units) },
       { sqref:range('manufacturer'), formula1:`Producenci!$A$2:$A$500` },
       { sqref:range('hardwareCategory'), formula1:listFormula(categories) },
-      { sqref:range('hardwareType'), formula1:listFormula(types) },
+      { sqref:range('hardwareType'), formula1:listFormula(technicalNames) },
       { sqref:range('bundleCostMode'), formula1:listFormula(bundleModes) },
     ];
   }

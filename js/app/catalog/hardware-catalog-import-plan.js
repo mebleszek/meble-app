@@ -106,7 +106,7 @@
       const src = enrichAccessoryDefaults(raw, settings, suppliers);
       validateChoice('jednostka', src.hardwareUnit, allowed.unit, rowIndex, warnings);
       validateChoice('kategoria', src.hardwareCategory, allowed.category, rowIndex, warnings);
-      validateChoice('typ/cecha', src.hardwareType, allowed.type, rowIndex, warnings);
+      validateChoice('nazwa techniczna', src.hardwareType, allowed.type, rowIndex, warnings);
       validateChoice('baza_wyceny', src.quoteBase, allowed.base, rowIndex, warnings);
       validateChoice('sposob_liczenia', src.pricingMode, allowed.mode, rowIndex, warnings);
       validateChoice('tryb_ceny_zestawu', src.bundleCostMode, allowed.bundleMode, rowIndex, warnings);

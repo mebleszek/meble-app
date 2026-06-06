@@ -1,3 +1,13 @@
+## 2026-06-06 — Nazwa katalogowa i techniczna okuć v1
+
+- Paczka: `site_hardware_technical_name_ui_v1.zip`.
+- W edycji okucia pole `Nazwa` jest teraz etykietowane jako `Nazwa katalogowa`, a bezpośrednio pod nim pojawia się nieedytowalny podgląd `Nazwa techniczna`.
+- Widoczne pole wyboru `Typ / cecha` zostało usunięte z normalnej edycji okucia; techniczna nazwa jest budowana z parametrów oznaczonych jako `Buduje nazwę techniczną`.
+- W słownikach parametrów technicznych zmieniono etykiety checkboxów na `Użyj do porównania` i `Buduje nazwę techniczną`; porównanie/dobór nadal opiera się na danych technicznych, nie na tekście nazwy.
+- Eksport XLSX pokazuje kolumnę `nazwa_techniczna` zamiast starego `typ_cecha`; parser nadal rozpoznaje stare nagłówki przy imporcie, ale nowy eksport i UI używają nowej nazwy.
+- Dodano regresję `tools/hardware-technical-name-ui-smoke.js`; zaktualizowano cache-busting dla edytowanych modułów UI, technicznych parametrów oraz testów akcesoriów.
+- Raport: `tools/reports/hardware-technical-name-ui-v1.md`.
+
 ## 2026-06-05 — Poprawka testu edge store MATERIAŁU v1
 
 - Paczka: `site_material_edge_store_test_fixture_fix_v1.zip`.

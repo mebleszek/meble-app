@@ -533,7 +533,7 @@
       name:text(src.name),
       price,
       hardwareCategory:normalizeCategory(src.hardwareCategory || src.category || ''),
-      hardwareType:text(techData.hardwareTypeAuto || src.hardwareType || src.typeFeature || src.typ_cecha || src.typ || ''),
+      hardwareType:text(techData.hardwareTypeAuto || src.hardwareType || src.technicalName || src.nazwa_techniczna || src.typeFeature || src.typ_cecha || src.typ || ''),
       hardwareUnit:normalizeUnit(src.hardwareUnit || src.unit || 'szt.'),
       hardwareSystem:techData.hardwareSystem,
       series:techData.hardwareSystem || text(src.series),

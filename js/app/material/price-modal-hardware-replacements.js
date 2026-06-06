@@ -127,7 +127,7 @@
   }
   function metaLine(row){
     const item = row && row.candidate || {};
-    return [text(item.manufacturer), categoryOf(item), text(item.hardwareType || item.type)].filter(Boolean).join(' • ');
+    return [text(item.manufacturer), categoryOf(item), text(item.hardwareType || item.type) ? 'Tech: ' + text(item.hardwareType || item.type) : ''].filter(Boolean).join(' • ');
   }
   function renderReasonList(row){
     const important = [];

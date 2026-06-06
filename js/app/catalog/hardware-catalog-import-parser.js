@@ -62,7 +62,7 @@
       name:text(valueFrom(row, ['nazwa','name'])),
       hardwareCategory:text(valueFrom(row, ['kategoria','hardwareCategory'])),
       hardwareSystem:text(valueFrom(row, ['system_okucia','hardwareSystem','system','seria','series'])),
-      hardwareType:text(valueFrom(row, ['typ_cecha','hardwareType','typ'])),
+      hardwareType:text(valueFrom(row, ['nazwa_techniczna','technicalName','hardwareType','typ_cecha','typ'])),
       hardwareUnit:text(valueFrom(row, ['jednostka','hardwareUnit'])),
       series:text(valueFrom(row, ['system_okucia','hardwareSystem','system','seria','series'])),
       drawerProfile:text(valueFrom(row, ['profil_szuflady','drawerProfile','profil'])),
@@ -92,8 +92,8 @@
     };
   }
   function parseCategoryRow(row){ return text(valueFrom(row, ['nazwa','name','kategoria'])); }
-  function parseTypeRow(row){ return { id:text(valueFrom(row, ['id'])), name:text(valueFrom(row, ['nazwa','name','typ_cecha'])), allowedCategories:text(valueFrom(row, ['dozwolone_kategorie','allowedCategories'])).split(/[;,]/).map(text).filter(Boolean), active:text(valueFrom(row, ['aktywny','active'])) ? bool(valueFrom(row, ['aktywny','active'])) : true }; }
-  function parseTechnicalParamRow(row){ return { id:text(valueFrom(row, ['id'])), category:text(valueFrom(row, ['kategoria','category'])), key:text(valueFrom(row, ['klucz','key'])), label:text(valueFrom(row, ['nazwa','label','name'])), fieldType:text(valueFrom(row, ['typ_pola','fieldType'])), unit:text(valueFrom(row, ['jednostka','unit'])), options:text(valueFrom(row, ['wartosci','options'])).split(/[;|]/).map(text).filter(Boolean), keyFeature:text(valueFrom(row, ['cecha_kluczowa','keyFeature'])) ? bool(valueFrom(row, ['cecha_kluczowa','keyFeature'])) : true, typePart:text(valueFrom(row, ['tworzy_typ','typePart'])) ? bool(valueFrom(row, ['tworzy_typ','typePart'])) : true, compareMode:text(valueFrom(row, ['sposob_porownania','compareMode'])), active:text(valueFrom(row, ['aktywny','active'])) ? bool(valueFrom(row, ['aktywny','active'])) : true, order:optionalNumber(valueFrom(row, ['kolejnosc','order'])) }; }
+  function parseTypeRow(row){ return { id:text(valueFrom(row, ['id'])), name:text(valueFrom(row, ['nazwa','name','nazwa_techniczna','typ_cecha'])), allowedCategories:text(valueFrom(row, ['dozwolone_kategorie','allowedCategories'])).split(/[;,]/).map(text).filter(Boolean), active:text(valueFrom(row, ['aktywny','active'])) ? bool(valueFrom(row, ['aktywny','active'])) : true }; }
+  function parseTechnicalParamRow(row){ return { id:text(valueFrom(row, ['id'])), category:text(valueFrom(row, ['kategoria','category'])), key:text(valueFrom(row, ['klucz','key'])), label:text(valueFrom(row, ['nazwa','label','name'])), fieldType:text(valueFrom(row, ['typ_pola','fieldType'])), unit:text(valueFrom(row, ['jednostka','unit'])), options:text(valueFrom(row, ['wartosci','options'])).split(/[;|]/).map(text).filter(Boolean), keyFeature:text(valueFrom(row, ['uzyj_do_porownania','keyFeature','cecha_kluczowa'])) ? bool(valueFrom(row, ['uzyj_do_porownania','keyFeature','cecha_kluczowa'])) : true, typePart:text(valueFrom(row, ['buduje_nazwe_techniczna','typePart','tworzy_typ','buduje_typ'])) ? bool(valueFrom(row, ['buduje_nazwe_techniczna','typePart','tworzy_typ','buduje_typ'])) : true, compareMode:text(valueFrom(row, ['sposob_porownania','compareMode'])), active:text(valueFrom(row, ['aktywny','active'])) ? bool(valueFrom(row, ['aktywny','active'])) : true, order:optionalNumber(valueFrom(row, ['kolejnosc','order'])) }; }
   function parseSupplierRow(row){ return normalizeSupplier({ id:text(valueFrom(row, ['id'])), name:text(valueFrom(row, ['nazwa','name'])), defaultDiscountPercent:number(valueFrom(row, ['rabat_domyslny_proc','defaultDiscountPercent'])), active:text(valueFrom(row, ['aktywny','active'])) ? bool(valueFrom(row, ['aktywny','active'])) : true }); }
   function accessoryKey(row){
     const id = text(row && row.id);

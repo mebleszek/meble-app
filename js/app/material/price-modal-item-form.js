@@ -17,6 +17,17 @@
   function laborFields(){ return ctx.byId('laborFormFields'); }
   function hardwareFields(){ return ctx.byId('hardwareFormFields'); }
 
+  function setFormNameLabel(label){
+    const node = ctx.byId('formNameLabel');
+    if(!node) return;
+    const target = node.querySelector ? (node.querySelector('.label-help__text') || node) : node;
+    target.textContent = String(label || 'Nazwa');
+  }
+  function toggleHardwareTechnicalNamePreview(show){
+    const wrap = ctx.byId('hardwareTechnicalNamePreviewWrap');
+    if(wrap) wrap.style.display = show ? '' : 'none';
+  }
+
 
   const LABOR_CHOICE_FIELDS = [
     { id:'laborAutoRole', title:'Wybierz automat', placeholder:'Automat' },
@@ -305,6 +316,8 @@
     if(priceWrap) priceWrap.style.display = cfg.formKind === 'accessory' ? 'none' : '';
     if(priceUnitWrap) priceUnitWrap.style.display = cfg.formKind === 'material' ? '' : 'none';
     if(seriesWrap) seriesWrap.style.display = cfg.formKind === 'accessory' ? '' : 'none';
+    setFormNameLabel(cfg.formKind === 'accessory' ? 'Nazwa katalogowa' : 'Nazwa');
+    toggleHardwareTechnicalNamePreview(cfg.formKind === 'accessory');
     if(cfg.formKind === 'material') applyMaterialFormState(item || defaultMaterialDraft());
     else if(cfg.formKind === 'accessory') applyAccessoryFormState(item || (ctx.priceModalHardwareForm && ctx.priceModalHardwareForm.defaultAccessoryDraft ? ctx.priceModalHardwareForm.defaultAccessoryDraft() : {}));
     else applyServiceFormState(item || defaultServiceDraft(kind));

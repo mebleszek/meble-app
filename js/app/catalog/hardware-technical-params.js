@@ -1,5 +1,5 @@
 // js/app/catalog/hardware-technical-params.js
-// Dynamiczne parametry techniczne okuć: definicje per kategoria, wartości od-do, typ/cecha i porównywanie.
+// Dynamiczne parametry techniczne okuć: definicje per kategoria, wartości od-do, nazwa techniczna i porównywanie.
 (function(){
   'use strict';
   window.FC = window.FC || {};
@@ -23,13 +23,11 @@
     { category:'Zawiasy', key:'nalozenie', label:'Nałożenie', fieldType:'text', unit:'', options:['nakładany','półnakładany / bliźniaczy','wpuszczany','równoległy wpuszczany','lodówkowy nakładany'], keyFeature:true, typePart:true, compareMode:'equal', order:10, active:true },
     { category:'Zawiasy', key:'kat_rzeczywisty', label:'Kąt rzeczywisty / nominalny', fieldType:'numberRange', unit:'°', options:[], keyFeature:false, typePart:true, compareMode:'ignore', order:20, active:true, legacyField:'kat_otwarcia' },
     { category:'Zawiasy', key:'klasa_kata', label:'Klasa / zakres zamienności kąta', fieldType:'text', unit:'', options:['standardowy 90–120°','zerowy uskok 155°','narożny 170°','równoległy wpuszczany 95°','lodówkowy 95°'], keyFeature:true, typePart:true, compareMode:'equal', order:25, active:true },
-    { category:'Zawiasy', key:'kat_otwarcia', label:'Kąt otwarcia — legacy', fieldType:'numberRange', unit:'°', options:[], keyFeature:false, typePart:false, compareMode:'ignore', order:26, active:false },
     { category:'Zawiasy', key:'hamulec', label:'Hamulec / domyk', fieldType:'boolean', unit:'', options:[], keyFeature:true, typePart:true, compareMode:'equal', order:30, active:true },
     { category:'Zawiasy', key:'sprezyna', label:'Sprężyna', fieldType:'boolean', unit:'', options:[], keyFeature:true, typePart:false, compareMode:'equal', order:40, active:true },
     { category:'Zawiasy', key:'typ_prowadnika', label:'Wymagany typ prowadnika', fieldType:'text', unit:'', options:['standardowy','podwyższony 3','lodówkowy','specjalny'], keyFeature:true, typePart:false, compareMode:'equal', order:50, active:true, legacyField:'prowadnik' },
     { category:'Zawiasy', key:'forma_prowadnika', label:'Wymagana forma prowadnika', fieldType:'text', unit:'', options:['krzyżowy','prosty'], keyFeature:true, typePart:false, compareMode:'equal', order:55, active:true },
     { category:'Zawiasy', key:'pokrycie_prowadnika', label:'Pokrycie prowadnika', fieldType:'text', unit:'', options:['w komplecie','osobno','bez prowadnika'], keyFeature:false, typePart:false, compareMode:'ignore', order:60, active:true },
-    { category:'Zawiasy', key:'prowadnik', label:'Prowadnik / montaż — legacy', fieldType:'text', unit:'', options:['standardowy','specjalny','osobno'], keyFeature:false, typePart:false, compareMode:'ignore', order:65, active:false },
 
     { category:'Prowadniki', key:'rola_kompletu', label:'Rola w komplecie zawiasowym', fieldType:'text', unit:'', options:['prowadnik'], keyFeature:true, typePart:false, compareMode:'equal', order:5, active:true },
     { category:'Prowadniki', key:'system_kompatybilnosci', label:'System kompatybilności', fieldType:'text', unit:'', options:['CLIP top','MODUL','GTV clip-on','GTV euro','uniwersalny euro'], keyFeature:true, typePart:false, compareMode:'equal', order:10, active:true },
@@ -73,8 +71,8 @@
     fieldType:'Typ danych: tekst/wybór, tak-nie albo liczba z obsługą wartości dokładnej i zakresu od-do.',
     unit:'Jednostka parametru, np. mm, kg albo °. Trafia do opisów i Excela.',
     options:'Dozwolone wartości dla pola typu tekst/wybór. Wpisz krótkie, konsekwentne opcje rozdzielone średnikiem, np. M; N; H albo lewa; prawa; uniwersalna. Jeżeli parametr ma dozwolone wartości, formularz okucia pokaże wybór z listy aplikacyjnej zamiast zwykłego wpisywania tekstu. Nie dubluj tego samego znaczenia różnymi nazwami, np. lewa, lewy, L. Wybierz jedną wersję i trzymaj się jej w całym katalogu. Starsze wartości spoza tej listy nie będą automatycznie dopasowywane — pole w formularzu będzie puste i trzeba będzie wybrać jedną z wartości słownika. Dla zawiasów „Klasa / zakres zamienności kąta” ma być wybierana ze słownika, a nie wpisywana ręcznie.',
-    keyFeature:'Zaznacz, jeśli parametr ma być ważny przy szukaniu zamiennika. Przykład: długość prowadnicy 500 mm musi pasować do 500 mm.',
-    typePart:'Zaznacz, jeśli parametr ma budować automatyczny opis Typ / cecha, np. „110° nakładany” albo „M 500 50 kg”.',
+    keyFeature:'Zaznacz, jeśli parametr ma być używany przy porównaniu, doborze zamienników i automatycznej wycenie. Przykład: długość prowadnicy 500 mm musi pasować do 500 mm.',
+    typePart:'Zaznacz, jeśli parametr ma budować Nazwę techniczną widoczną pod nazwą katalogową. Ta nazwa jest podglądem dla człowieka; porównanie opiera się na parametrach oznaczonych „Użyj do porównania”.',
     compareMode:'Określa, jak program będzie porównywał parametr przy zamianie producenta: dokładnie, przez zakres albo przez minimalną wartość.',
     rola_kompletu:'Określa, czy pozycja pokrywa cały komplet zawiasowy, jest samym zawiasem albo osobnym prowadnikiem. WYCENA może dzięki temu kupić gotowy komplet albo złożyć go z zawiasu i prowadnika.',
     system_kompatybilnosci:'Jawna nazwa systemu, po której wolno parować zawias z osobnym prowadnikiem, np. CLIP top albo GTV clip-on. Nie ma osobnego słownika zgodności — program porównuje tę samą wpisaną/wybraną wartość po obu stronach.',
@@ -207,8 +205,8 @@
     let fieldType = normalizeFieldType(src.fieldType || src.typ_pola || src.type);
     let unit = text(src.unit || src.jednostka);
     let options = optionsFrom(src.options || src.wartosci);
-    let keyFeature = src.keyFeature === false || text(src.cecha_kluczowa).toLowerCase() === 'nie' ? false : !!(src.keyFeature || src.compareKey || src.cechaKluczowa || src.cecha_kluczowa || src.typePart || src.tworzyTyp);
-    let typePart = src.typePart === false || text(src.tworzy_typ).toLowerCase() === 'nie' ? false : (src.typePart != null ? !!src.typePart : (src.keyFeature != null ? !!src.keyFeature : true));
+    let keyFeature = src.keyFeature === false || text(src.uzyj_do_porownania || src.cecha_kluczowa).toLowerCase() === 'nie' ? false : !!(src.keyFeature || src.compareKey || src.cechaKluczowa || src.uzyj_do_porownania || src.cecha_kluczowa || src.typePart || src.budujeNazweTechniczna || src.tworzyTyp);
+    let typePart = src.typePart === false || text(src.buduje_nazwe_techniczna || src.tworzy_typ).toLowerCase() === 'nie' ? false : (src.typePart != null ? !!src.typePart : (src.keyFeature != null ? !!src.keyFeature : true));
     let compareMode = normalizeCompareMode(src.compareMode || src.sposob_porownania || src.porownanie);
     let order = Number(src.order != null ? src.order : src.kolejnosc) || (index + 1) * 10;
     let active = src.active === false || text(src.aktywny).toLowerCase() === 'nie' ? false : true;
@@ -522,6 +520,7 @@
     normalizeParamValues,
     paramValueText,
     buildTypeLabel,
+    buildTechnicalName:buildTypeLabel,
     legacyParamValues,
     mergeLegacyValues,
     applyLegacyFieldsFromParams,

@@ -271,18 +271,18 @@
         const row = sheet.rows[1];
         H.assert(row[headers.indexOf('nalozenie')] === 'nakładany' && Number(row[headers.indexOf('kat_rzeczywisty_od')]) === 110 && row[headers.indexOf('klasa_kata')] === 'standardowy 90–120°', 'Wiersz grupowy nie eksportuje wartości parametrów', { headers, row });
       })),
-      H.makeTest('Akcesoria — głęboki import/export', 'Import arkusza grupowego odtwarza parametry i typ automatyczny', 'Chroni dodawanie nowych artykułów przez arkusze grupowe zamiast ręcznego klikania w programie.', ()=> withSnapshot(()=>{
+      H.makeTest('Akcesoria — głęboki import/export', 'Import arkusza grupowego odtwarza parametry i nazwę techniczną', 'Chroni dodawanie nowych artykułów przez arkusze grupowe zamiast ręcznego klikania w programie.', ()=> withSnapshot(()=>{
         const parser = FC.hardwareCatalogImportParser;
         H.assert(parser && typeof parser.parseWorkbook === 'function', 'Brak parsera XLSX');
         const workbook = {
           Parametry_techniczne:[
-            ['kategoria','klucz','nazwa','typ_pola','jednostka','wartosci','cecha_kluczowa','buduje_typ','sposob_porownania','aktywna','kolejnosc','opis'],
+            ['kategoria','klucz','nazwa','typ_pola','jednostka','wartosci','uzyj_do_porownania','buduje_nazwe_techniczna','sposob_porownania','aktywna','kolejnosc','opis'],
             ['Zawiasy','nalozenie','Nałożenie','choice','','nakładany; wpuszczany','TAK','TAK','equal','TAK','1',''],
             ['Zawiasy','kat_rzeczywisty','Kąt rzeczywisty','numberRange','°','','NIE','TAK','ignore','TAK','2',''],
             ['Zawiasy','klasa_kata','Klasa kąta','text','','standardowy 90–120°; narożny 170°','TAK','TAK','equal','TAK','3','']
           ],
           Okucia_zawiasy:[
-            ['id','producent','system_okucia','symbol','nazwa','kategoria','jednostka','typ_cecha','nalozenie','kat_rzeczywisty_od','kat_rzeczywisty_do','klasa_kata'],
+            ['id','producent','system_okucia','symbol','nazwa','kategoria','jednostka','nazwa_techniczna','nalozenie','kat_rzeczywisty_od','kat_rzeczywisty_do','klasa_kata'],
             ['grp_hinge_1','Blum','Blum CLIP top','HX-G1','Zawias grupowy','Zawiasy','szt.','','nakładany',90,110,'standardowy 90–120°']
           ],
           Ceny_dostawcow:[['okucie_nazwa','okucie_symbol','producent','kategoria','jednostka','dostawca','cena_netto','cena_brutto','do_wyceny','status_ceny','data_ceny','okucie_id','dostawca_id']]
