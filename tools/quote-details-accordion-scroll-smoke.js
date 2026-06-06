@@ -13,7 +13,7 @@ const css = read('css/wycena.css');
 const preview = read('js/app/wycena/wycena-tab-preview.js');
 const index = read('index.html');
 const devTests = read('dev_tests.html');
-const token = '20260606_quote_details_accordion_scroll_fix_v1';
+const token = '20260606_quote_details_uniform_modal_scroll_fix_v1';
 
 [
   ['total', "['Suma przed rabatem', totals.subtotal, 'total']"],
@@ -29,24 +29,34 @@ const token = '20260606_quote_details_accordion_scroll_fix_v1';
 [
   'function getDetailsBody(group)',
   'function scrollGroupIntoDetailsBody(group, behavior)',
-  "body.scrollTo({ top:target, behavior:behavior || 'smooth' })",
+  'const viewportTop = bodyRect.top + 8;',
+  'const viewportBottom = bodyRect.bottom - 14;',
+  'const fitsViewport = groupRect.height <= Math.max(0, viewportBottom - viewportTop);',
+  "body.scrollTo({ top:Math.max(0, target), behavior:behavior || 'smooth' })",
   "group.scrollIntoView({ block:'start'",
+  'window.requestAnimationFrame(runner);',
   "setTimeout(()=> scrollGroupIntoDetailsBody(openGroup, 'auto'), 0)",
   "setGroupOpen(box, !box.classList.contains('is-open'), { closeOthers:true })",
   "current === 'labor' ? 'sourceLabel' : 'subsection'",
 ].forEach((needle)=> { if(!has(js, needle)) fail(`Modal szczegółów nie zawiera zabezpieczenia: ${needle}`); });
 
-if(!/#quoteSummaryDetailsModal \.quote-detail-modal\{[^}]*height:calc\(100dvh - var\(--quote-detail-top-offset\) - var\(--quote-detail-bottom-offset\)\)/.test(css)){
-  fail('Modal szczegółów nie ma stałej wysokości opartej o viewport na desktop/tablet.');
+if(!/#quoteSummaryDetailsModal \.quote-detail-modal\{[^}]*height:calc\(100dvh - var\(--quote-detail-top-offset\) - var\(--quote-detail-bottom-offset\)\)[^}]*display:grid[^}]*grid-template-rows:auto minmax\(0,1fr\) auto/.test(css)){
+  fail('Modal szczegółów nie ma jednolitego układu grid i stałej wysokości viewport na desktop/tablet.');
 }
-if(!/#quoteSummaryDetailsModal \.quote-detail-modal__body\{[^}]*overflow-y:auto/.test(css)){
-  fail('Body modala szczegółów nie ma własnego przewijania.');
+if(!/#quoteSummaryDetailsModal \.quote-detail-modal__body\{[^}]*overflow-y:auto[^}]*scroll-padding-top:8px[^}]*scroll-padding-bottom:18px[^}]*padding:14px 16px 28px/.test(css)){
+  fail('Body modala szczegółów nie ma własnego scrolla i buforów odsłaniających pełną sekcję.');
+}
+if(!/\.quote-detail-group\{[^}]*scroll-margin-top:8px[^}]*scroll-margin-bottom:16px/.test(css)){
+  fail('Sekcje akordeonu nie mają marginesów scroll dla spójnego odsłaniania.');
 }
 if(!/#quoteSummaryDetailsModal \.quote-detail-warnings\{[^}]*max-height:min\(34dvh, 360px\)[^}]*overflow-y:auto/.test(css)){
   fail('Ostrzeżenia w modalu szczegółów nie mają ograniczonej wysokości i własnego scrolla na mobile.');
 }
-if(!/#quoteSummaryDetailsModal \.quote-detail-modal\{[^}]*height:calc\(100dvh - clamp\(40px, 10dvh, 96px\)/.test(css)){
-  fail('Mobile modal szczegółów nie ma stałej wysokości opartej o viewport.');
+if(!/#quoteSummaryDetailsModal \.quote-detail-modal\{[^}]*height:calc\(100dvh - clamp\(40px, 10dvh, 96px\)[^}]*grid-template-rows:auto minmax\(0,1fr\) auto/.test(css)){
+  fail('Mobile modal szczegółów nie ma stałej wysokości viewport i jednolitego układu grid.');
+}
+if(!/#quoteSummaryDetailsModal \.quote-detail-modal__body\{[^}]*padding:12px 16px 30px[^}]*scroll-padding-bottom:22px/.test(css)){
+  fail('Mobile body modala szczegółów nie ma większego dolnego bufora scroll.');
 }
 
 [
@@ -62,5 +72,5 @@ if(failures.length){
 }
 console.log('Quote details accordion scroll smoke OK');
 console.log(' - wejścia szczegółów: total/materials/accessories/labor/quoteRates/services/discount');
-console.log(' - modal ma stałą wysokość viewport, body scroll i przewijanie do otwartego akordeonu');
+console.log(' - modal ma jednolity grid, body scroll, scroll-padding i odsłanianie całej sekcji gdy się mieści');
 console.log(' - ostrzeżenia na mobile mają ograniczoną wysokość i własny scroll');

@@ -102,8 +102,19 @@
     try{
       const groupRect = group.getBoundingClientRect();
       const bodyRect = body.getBoundingClientRect();
-      const target = Math.max(0, body.scrollTop + groupRect.top - bodyRect.top - 8);
-      body.scrollTo({ top:target, behavior:behavior || 'smooth' });
+      const viewportTop = bodyRect.top + 8;
+      const viewportBottom = bodyRect.bottom - 14;
+      const fitsViewport = groupRect.height <= Math.max(0, viewportBottom - viewportTop);
+      let target = body.scrollTop;
+      if(groupRect.top < viewportTop){
+        target += groupRect.top - viewportTop;
+      }else if(groupRect.bottom > viewportBottom){
+        if(fitsViewport) target += groupRect.bottom - viewportBottom;
+        else target += groupRect.top - viewportTop;
+      }else if(groupRect.top > viewportTop + 2){
+        target += groupRect.top - viewportTop;
+      }
+      body.scrollTo({ top:Math.max(0, target), behavior:behavior || 'smooth' });
     }catch(_){
       try{ group.scrollIntoView({ block:'start', behavior:behavior || 'smooth' }); }catch(__){ }
     }
@@ -116,7 +127,10 @@
     const btn = group.querySelector('.quote-detail-group__toggle');
     if(btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     if(open && cfg.keepScroll !== false){
-      scrollGroupIntoDetailsBody(group, cfg.instantScroll ? 'auto' : 'smooth');
+      const scrollBehavior = cfg.instantScroll ? 'auto' : 'smooth';
+      const runner = ()=> scrollGroupIntoDetailsBody(group, scrollBehavior);
+      try{ window.requestAnimationFrame(runner); }
+      catch(_){ setTimeout(runner, 0); }
     }
   }
   function renderGroup(container, title, rows, sum, options){

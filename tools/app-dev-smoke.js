@@ -856,7 +856,7 @@ function runWycenaNodeSmoke(sandbox){
       const currentExpected = '20260605_hinge_tipon_dynamic_features_v1';
       const registerExpected = '20260605_hinge_tipon_dynamic_features_v1';
       const detailsModalExpected = '20260601_quote_details_modal_ui_hardware_match_fix_v1';
-      const detailAccordionScrollExpected = '20260606_quote_details_accordion_scroll_fix_v1';
+      const detailAccordionScrollExpected = '20260606_quote_details_uniform_modal_scroll_fix_v1';
       const auditMaterialsExpected = '20260601_quote_audit_material_quantities_fix_v1';
       const pcvTruthExpected = '20260601_pcv_single_source_truth_v1';
       const hingeCatalogExpected = '20260605_hinge_tipon_dynamic_features_v1';

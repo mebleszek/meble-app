@@ -444,13 +444,13 @@
 .quote-totals__row[data-quote-detail-section]{cursor:default;}
 .quote-totals__row[data-quote-detail-section]:focus-visible{outline:2px solid rgba(37,99,235,.45);outline-offset:2px;border-radius:10px;}
 #quoteSummaryDetailsModal.quote-detail-modal-back{--quote-detail-top-offset:clamp(54px, 13dvh, 124px);--quote-detail-bottom-offset:max(14px, env(safe-area-inset-bottom));align-items:flex-start;justify-content:center;padding:var(--quote-detail-top-offset) 14px var(--quote-detail-bottom-offset);overflow:hidden;}
-#quoteSummaryDetailsModal .quote-detail-modal{width:min(760px, calc(100vw - 28px));max-width:760px;height:calc(100dvh - var(--quote-detail-top-offset) - var(--quote-detail-bottom-offset));max-height:calc(100dvh - var(--quote-detail-top-offset) - var(--quote-detail-bottom-offset));display:flex;flex-direction:column;border-radius:22px;overflow:hidden;}
+#quoteSummaryDetailsModal .quote-detail-modal{width:min(760px, calc(100vw - 28px));max-width:760px;height:calc(100dvh - var(--quote-detail-top-offset) - var(--quote-detail-bottom-offset));max-height:calc(100dvh - var(--quote-detail-top-offset) - var(--quote-detail-bottom-offset));display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-height:0;border-radius:22px;overflow:hidden;}
 #quoteSummaryDetailsModal .quote-detail-modal__header{position:static;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:nowrap;padding:18px 20px;}
 #quoteSummaryDetailsModal .quote-detail-modal__titleWrap{min-width:0;flex:1 1 auto;}
 #quoteSummaryDetailsModal .quote-detail-modal__closeWrap{width:auto;flex:0 0 auto;display:flex;justify-content:flex-end;}
-#quoteSummaryDetailsModal .quote-detail-modal__body{display:flex;flex:1 1 auto;min-height:0;max-height:none;flex-direction:column;gap:12px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:14px 16px 18px;}
+#quoteSummaryDetailsModal .quote-detail-modal__body{display:flex;flex:1 1 auto;min-height:0;max-height:none;flex-direction:column;gap:12px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scroll-padding-top:8px;scroll-padding-bottom:18px;padding:14px 16px 28px;}
 #quoteSummaryDetailsModal .quote-detail-modal__footer{display:flex;flex:0 0 auto;justify-content:flex-end;gap:8px;padding:12px 16px max(12px, env(safe-area-inset-bottom));border-top:1px solid rgba(226,232,240,.95);background:#fff;box-shadow:0 -10px 18px rgba(15,23,42,.04);}
-.quote-detail-group{border:1px solid rgba(226,232,240,.95);border-radius:18px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);box-shadow:2px 3px 0 rgba(15,23,42,.07),4px 9px 16px rgba(15,23,42,.05);overflow:hidden;}
+.quote-detail-group{border:1px solid rgba(226,232,240,.95);border-radius:18px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);box-shadow:2px 3px 0 rgba(15,23,42,.07),4px 9px 16px rgba(15,23,42,.05);overflow:hidden;scroll-margin-top:8px;scroll-margin-bottom:16px;}
 .quote-detail-group__header{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:0;border-bottom:1px solid rgba(226,232,240,.9);background:rgba(248,250,252,.9);font:inherit;text-align:left;color:inherit;cursor:pointer;}
 .quote-detail-group__titleWrap{min-width:0;display:flex;flex-direction:column;gap:2px;}
 .quote-detail-group__title{font-weight:900;color:#0f172a;overflow-wrap:anywhere;}
@@ -479,10 +479,10 @@
 .quote-detail-total-row:last-child{border-bottom:none;}
 @media (max-width: 640px){
   #quoteSummaryDetailsModal.quote-detail-modal-back{padding:clamp(40px, 10dvh, 96px) 8px max(12px, env(safe-area-inset-bottom));align-items:flex-start;justify-content:center;}
-  #quoteSummaryDetailsModal .quote-detail-modal{width:calc(100vw - 16px);height:calc(100dvh - clamp(40px, 10dvh, 96px) - max(12px, env(safe-area-inset-bottom)));max-height:calc(100dvh - clamp(40px, 10dvh, 96px) - max(12px, env(safe-area-inset-bottom)));border-radius:22px;grid-template-rows:none;}
+  #quoteSummaryDetailsModal .quote-detail-modal{width:calc(100vw - 16px);height:calc(100dvh - clamp(40px, 10dvh, 96px) - max(12px, env(safe-area-inset-bottom)));max-height:calc(100dvh - clamp(40px, 10dvh, 96px) - max(12px, env(safe-area-inset-bottom)));border-radius:22px;grid-template-rows:auto minmax(0,1fr) auto;min-height:0;}
   #quoteSummaryDetailsModal .quote-detail-modal__header{padding:16px 18px;flex-wrap:nowrap;gap:12px;}
   #quoteSummaryDetailsModal .quote-detail-modal__closeWrap{width:auto;}
-  #quoteSummaryDetailsModal .quote-detail-modal__body{padding:12px 16px 18px;}
+  #quoteSummaryDetailsModal .quote-detail-modal__body{padding:12px 16px 30px;scroll-padding-bottom:22px;}
   #quoteSummaryDetailsModal .quote-detail-warnings{max-height:min(34dvh, 360px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
   .quote-detail-line{grid-template-columns:1fr;gap:6px;}
   .quote-detail-line__price{text-align:left;min-width:0;}

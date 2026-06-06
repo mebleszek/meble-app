@@ -1,13 +1,13 @@
-## 2026-06-06 — WYCENA: czytelne akordeony szczegółów na mobile v1
+## 2026-06-06 — WYCENA: jednolite modale szczegółów i pełna widoczność sekcji v1
 
-- Paczka: `site_quote_details_accordion_scroll_fix_v1.zip`.
-- Naprawiono modal `Analiza oferty` / szczegóły WYCENY na telefonie: po dużej liczbie ostrzeżeń rozwinięty akordeon nie zostaje już w małym, prawie niewidocznym fragmencie na dole okna.
-- Modal szczegółów ma teraz stałą wysokość liczona od viewportu, własny scroll w treści i zachowaną stałą stopkę `Wróć`.
-- Po otwarciu akordeonu program przewija wewnętrzne body modala do otwartej sekcji, zamiast polegać na `scrollIntoView(...nearest)`, które na mobile potrafiło zostawić zawartość poza widocznym obszarem.
-- Blok `Ostrzeżenia / rzeczy do sprawdzenia` na mobile dostał maksymalną wysokość i własne przewijanie, żeby nie zabierał całej przestrzeni dla akordeonów kosztów.
+- Paczka: `site_quote_details_uniform_modal_scroll_fix_v1.zip`.
+- Dopracowano modal `Analiza oferty` / szczegóły WYCENY na telefonie i w pozostałych wejściach WYCENY: sekcje mają jednolity układ, a rozwinięta zawartość nie chowa się już częściowo przy dolnej krawędzi modala.
+- Modal szczegółów ma stałą wysokość liczona od viewportu, własny scroll w treści, stałą stopkę `Wróć` i jednolny grid header/body/footer.
+- Po otwarciu akordeonu program przewija wewnętrzne body modala tak, żeby była widoczna cała sekcja, a nie tylko jej nagłówek.
+- Blok `Ostrzeżenia / rzeczy do sprawdzenia` zachowuje własny scroll i ograniczoną wysokość, żeby nie zabierał miejsca pozostałym sekcjom.
 - Dodano regresję `tools/quote-details-accordion-scroll-smoke.js`, która pilnuje wejść szczegółów WYCENY: `Razem/Suma`, `Materiały`, `Akcesoria`, `Robocizna szafek`, `Robocizna / stawki`, `Montaż AGD` i `Rabat`.
 - Nie zmieniano wyliczeń WYCENY, rejestru, snapshotów, zawiasów, PCV, materiałów, robocizny, import/export, backupów ani UI poza modalem szczegółów WYCENY.
-- Cache-busting: `20260606_quote_details_accordion_scroll_fix_v1`. Raport: `tools/reports/quote-details-accordion-scroll-fix-v1.md`.
+- Cache-busting: `20260606_quote_details_uniform_modal_scroll_fix_v1`. Raport: `tools/reports/quote-details-uniform-modal-scroll-fix-v1.md`.
 
 ## 2026-06-06 — Jedna prawda WYCENY przed robocizną v1
 
