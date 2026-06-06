@@ -1,3 +1,12 @@
+## 2026-06-05 — Poprawka testu edge store MATERIAŁU v1
+
+- Paczka: `site_material_edge_store_test_fixture_fix_v1.zip`.
+- Poprawiono wyłącznie fixture testu `Zakładka Materiał ma wydzielony model danych i edge store`: test używa teraz jawnego materiału laminatowego (`Laminat test`) zamiast niejednoznacznego `Biały test`.
+- Przy obecnej polityce PCV/okleina jest liczona tylko dla laminatu, więc poprzedni test dawał fałszywy błąd mimo poprawnej logiki runtime.
+- Podbito cache-busting w `dev_tests.html` dla `js/testing/material/tests.js`.
+- Nie zmieniano działania aplikacji, UI, MATERIAŁÓW, WYCENY, zawiasów, PRO100, backupów, import/export ani snapshotów ofert.
+- Raport: `tools/reports/material-edge-store-test-fixture-fix-v1.md`.
+
 ## 2026-06-05 — Plan przyszły: mieszane fronty / siatka frontów v1
 
 - Paczka: `site_future_mixed_fronts_plan_md_v1.zip`.

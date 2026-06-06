@@ -25,12 +25,15 @@
         const prevGlobalCutList = typeof getCabinetCutList !== 'undefined' ? getCabinetCutList : undefined;
         try{
           host.projectData = { kuchnia:{ cabinets:[{ id:'cab_material_test', type:'wisząca', subType:'standardowa', width:60, height:72, depth:32, bodyColor:'Biały', backMaterial:'HDF' }] } };
-          host.getCabinetCutList = ()=> ([{ name:'Bok testowy', qty:2, a:72, b:32, material:'Biały test' }]);
+          // Test edge store musi używać materiału jawnie rozpoznanego jako laminat, bo PCV/okleina
+          // w runtime jest celowo liczona tylko dla laminatu. Surowe \"Biały test\" jest niejednoznaczne
+          // i po polityce PCV nie powinno wymuszać oklejania.
+          host.getCabinetCutList = ()=> ([{ name:'Bok testowy', qty:2, a:72, b:32, material:'Laminat test' }]);
           const edgeApi = FC.materialEdgeStore.createEdgeStore({ persist:false, initialStore:{} });
           const model = FC.materialTabData.collectRoomMaterials('kuchnia', { edgeApi });
           H.assert(model && Array.isArray(model.cabinetRows) && model.cabinetRows.length === 1, 'Model materiałów nie zebrał jednej szafki testowej', model);
           H.assert(Array.isArray(model.cabinetRows[0].parts) && model.cabinetRows[0].parts.length === 1, 'Model materiałów nie zebrał części z cutlisty', model.cabinetRows[0]);
-          H.assert(Number(model.projectEdgeMeters) > 0, 'Model materiałów nie policzył okleiny z edge store', model);
+          H.assert(Number(model.projectEdgeMeters) > 0, 'Model materiałów nie policzył okleiny z edge store dla jawnego laminatu', model);
         } finally {
           host.projectData = prevProjectData;
           host.getCabinetCutList = prevCutList;
