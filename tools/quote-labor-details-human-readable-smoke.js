@@ -72,11 +72,15 @@ class FakeDocument{
   addEventListener(){ }
 }
 
+const source = read('js/app/wycena/wycena-summary-details-modal.js');
+const laborRenderer = source.slice(source.indexOf('function renderLaborLine'), source.indexOf('function renderLine'));
+assert(!laborRenderer.includes('addInfoButton'), 'linie robocizny nie mogą doklejać znaków zapytania przy wyliczeniu', laborRenderer);
+
 const document = new FakeDocument();
 const window = {
   FC:{
-    laborCatalog:{ getRateLabel:(code)=> code === 'custom_painter' ? 'Lakiernik' : 'Warsztatowa' },
-    catalogSelectors:{ getQuoteRates:()=> [] },
+    laborCatalog:{ getRateLabel:(code)=> code === 'workshop' ? 'Warsztatowa' : '' },
+    catalogSelectors:{ getQuoteRates:()=> [{ id:'labor_rate_workshop', autoRole:'hourlyRate', name:'Stawka warsztatowa', price:150, rateKey:'workshop' }] },
   },
   document,
   requestAnimationFrame:(fn)=> fn(),
@@ -85,7 +89,7 @@ const window = {
 const ctx = { window, document, console, setTimeout, clearTimeout };
 ctx.globalThis = window;
 vm.createContext(ctx);
-vm.runInContext(read('js/app/wycena/wycena-summary-details-modal.js'), ctx, { filename:'wycena-summary-details-modal.js' });
+vm.runInContext(source, ctx, { filename:'wycena-summary-details-modal.js' });
 
 const baseCabinet = 'Szafka #1 — S — stojąca / standardowa';
 const snapshot = {
@@ -94,6 +98,8 @@ const snapshot = {
       section:'labor',
       sourceLabel:baseCabinet,
       sourceId:'cab_1',
+      workAutomatCode:'front_mount',
+      laborAutomatCode:'front_mount',
       name:'Montaż frontu / drzwi',
       quantity:2,
       unit:'szt.',
@@ -101,81 +107,36 @@ const snapshot = {
       total:75,
       starterPrice:true,
       warnings:['Cena startowa — sprawdź i edytuj w cenniku przed realną ofertą.'],
+      note:'czas bazowy 0.5 h • czas wyceniony 0.5 h • 150 PLN/h • Fronty z MATERIAŁ/WYCENA: 2× 30 × 72',
       calculation:'Cena = 0.5 h × 150 PLN/h.',
-      raw:{
-        sourceRole:'front-labor',
-        sourceType:'fronts',
-        sourceKind:'automatic',
-        sourceId:'cab_1',
-        sourceLabel:baseCabinet,
-        workAutomatCode:'front_mount',
-        laborAutomatCode:'front_mount',
-        rateType:'workshop',
-        hourlyRate:150,
-        baseHours:0.5,
-        hours:0.5,
-        quantity:2,
-        unit:'szt.',
-        total:75,
-        multiplier:1,
-        note:'Fronty z MATERIAŁ/WYCENA: 2× 30 × 72',
-      },
     },{
       section:'labor',
       sourceLabel:baseCabinet + ' — Lewe drzwiczki',
       sourceId:'cab_1',
+      workAutomatCode:'hinge_mount',
+      laborAutomatCode:'hinge_mount',
       name:'Montaż zawiasu',
       quantity:2,
       unit:'szt.',
-      unitPrice:18.75,
-      total:37.5,
-      calculation:'Cena = 0.25 h × 150 PLN/h.',
-      raw:{
-        sourceRole:'hinge-labor',
-        sourceType:'hinges',
-        sourceKind:'automatic',
-        sourceId:'cab_1',
-        sourceLabel:baseCabinet + ' — Lewe drzwiczki',
-        workAutomatCode:'hinge_mount',
-        laborAutomatCode:'hinge_mount',
-        rateType:'workshop',
-        hourlyRate:150,
-        baseHours:0.25,
-        hours:0.25,
-        quantity:2,
-        unit:'szt.',
-        total:37.5,
-        multiplier:1,
-      },
+      unitPrice:37.5,
+      total:75,
+      note:'czas bazowy 0.5 h • czas wyceniony 0.5 h • 150 PLN/h • Lewe drzwiczki',
+      calculation:'Cena = 0.5 h × 150 PLN/h.',
     },{
       section:'labor',
       sourceLabel:baseCabinet + ' — Prawe drzwiczki',
       sourceId:'cab_1',
+      workAutomatCode:'hinge_mount',
+      laborAutomatCode:'hinge_mount',
       name:'Montaż zawiasu',
       quantity:2,
       unit:'szt.',
-      unitPrice:18.75,
-      total:37.5,
-      calculation:'Cena = 0.25 h × 150 PLN/h.',
-      raw:{
-        sourceRole:'hinge-labor',
-        sourceType:'hinges',
-        sourceKind:'automatic',
-        sourceId:'cab_1',
-        sourceLabel:baseCabinet + ' — Prawe drzwiczki',
-        workAutomatCode:'hinge_mount',
-        laborAutomatCode:'hinge_mount',
-        rateType:'workshop',
-        hourlyRate:150,
-        baseHours:0.25,
-        hours:0.25,
-        quantity:2,
-        unit:'szt.',
-        total:37.5,
-        multiplier:1,
-      },
+      unitPrice:37.5,
+      total:75,
+      note:'czas bazowy 0.5 h • czas wyceniony 0.5 h • 150 PLN/h • Prawe drzwiczki',
+      calculation:'Cena = 0.5 h × 150 PLN/h.',
     }],
-    totals:{ labor:150, subtotal:150, grand:150 },
+    totals:{ labor:225, subtotal:225, grand:225 },
     warnings:[],
   }
 };
@@ -187,7 +148,7 @@ const bodyText = body.textContent;
 
 assert(title && title.textContent === 'Szczegóły robocizny szafek', 'nagłówek modala robocizny jest ludzki', title && title.textContent);
 assert(subtitle && subtitle.textContent === 'Sprawdź, co zostało policzone i skąd wzięła się kwota.', 'podtytuł modala robocizny jest ludzki', subtitle && subtitle.textContent);
-assert(bodyText.includes('3 czynności razem = 150,00 zł • czas: 1 h'), 'podsumowanie szafki używa „czynności razem” i pokazuje łączny czas', bodyText);
+assert(bodyText.includes('3 czynności razem = 225,00 zł • czas: 1,5 h'), 'podsumowanie szafki używa „czynności razem” i pokazuje łączny czas z notatki rejestru', bodyText);
 assert(!bodyText.includes('1 poz.'), 'podsumowanie robocizny nie używa skrótu „poz.”', bodyText);
 const cabinetTitleCount = (bodyText.match(new RegExp(baseCabinet.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
 assert(cabinetTitleCount === 1, 'jedna szafka ma jeden akordeon, także gdy ma lewe i prawe drzwiczki', bodyText);
@@ -199,8 +160,8 @@ assert(!bodyText.includes('Fronty z MATERIAŁ/WYCENA'), 'główny opis nie pokaz
 assert(!bodyText.includes('PLN'), 'widok robocizny dla człowieka nie pokazuje PLN', bodyText);
 
 console.log('OK quote-labor-details-human-readable smoke');
-console.log(' - nagłówek/podtytuł robocizny są po ludzku');
+console.log(' - renderer czyta czas i stawkę także z notatki/calculation rejestru, bez raw');
 console.log(' - podsumowanie szafki używa „czynności razem” i pokazuje łączny czas');
 console.log(' - lewe/prawe drzwiczki są skomasowane w jednym akordeonie szafki');
 console.log(' - pozycja montażu frontu pokazuje Dotyczy/Czas/Stawka/Razem');
-console.log(' - stawka startowa ma nowy komunikat i zł zamiast PLN');
+console.log(' - przy liniach robocizny nie ma znaków zapytania');

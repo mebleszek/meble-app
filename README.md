@@ -1,3 +1,16 @@
+## 2026-06-08 — WYCENA: pełne działanie robocizny szafek w audycie v3
+
+- Paczka: `site_quote_labor_details_human_readable_v3.zip`.
+- Naprawiono błąd v2 widoczny na telefonie: renderer robocizny próbował brać czas, stawkę godzinową i wzór głównie z `row.raw`, a realne linie rejestru/snapshotów często mają te informacje w `note` i `calculation`. W efekcie pokazywało się tylko `Dotyczy` i `Razem`.
+- Modal `Szczegóły robocizny szafek` czyta teraz czas bazowy, czas wyceniony i stawkę także z istniejących pól `note` / `calculation`, bez zmiany algorytmów liczenia i bez przebudowy `quoteCalculationRegister`.
+- Każda linia robocizny pokazuje czytelnie: `Dotyczy`, `Czas na 1 sztukę`, `Czas razem`, `Stawka ...` i szkolne działanie `Razem: ilość × czas × stawka = kwota`.
+- Podsumowanie szafki pokazuje łączny czas także dla istniejących snapshotów bez `raw`, np. `3 czynności razem = 225,00 zł • czas: 1,5 h`.
+- Usunięto znaki zapytania przy pojedynczych liniach robocizny w tym modalu, bo wyliczenie jest teraz jawnie pokazane w treści.
+- Zachowano skomasowanie: jedna szafka = jeden akordeon; lewe i prawe drzwiczki są liniami w środku tej samej szafki.
+- Nie zmieniano algorytmów robocizny, stawek, działu CZYNNOŚCI, materiałów, okuć, AGD, szafek ani snapshotów.
+- Rozszerzono `tools/quote-labor-details-human-readable-smoke.js` tak, żeby testował realny przypadek bez `raw`, z danymi tylko w `note`/`calculation`, oraz brak `addInfoButton`/znaków zapytania przy liniach robocizny.
+- Cache-busting: `20260608_quote_labor_details_human_readable_v3`. Raport: `tools/reports/quote-labor-details-human-readable-v3.md`.
+
 ## 2026-06-07 — WYCENA: skomasowane szczegóły robocizny szafek v2
 
 - Paczka: `site_quote_labor_details_human_readable_v2.zip`.

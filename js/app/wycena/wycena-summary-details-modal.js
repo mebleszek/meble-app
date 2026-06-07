@@ -75,8 +75,8 @@
   }
   function laborRowsTotalHours(rows){
     return (Array.isArray(rows) ? rows : []).reduce((sum, row)=> {
-      const raw = rawLabor(row);
-      const hoursValue = num(raw.hours != null ? raw.hours : (row && row.hours != null ? row.hours : raw.baseHours));
+      const metrics = laborMetrics(row);
+      const hoursValue = metrics.pricedHours > 0 ? metrics.pricedHours : metrics.baseHours;
       return sum + Math.max(0, hoursValue);
     }, 0);
   }
@@ -116,11 +116,13 @@
     const raw = text(value);
     return raw ? raw.charAt(0).toLowerCase() + raw.slice(1) : '';
   }
-  function laborRateLabel(row){
+  function laborRateLabel(row, metrics){
     const raw = row && row.raw && typeof row.raw === 'object' ? row.raw : {};
-    const code = text(raw.rateType || row && row.rateType);
+    const m = metrics || laborMetrics(row);
+    const code = text(raw.rateType || row && row.rateType || m.rateType);
     let label = '';
     try{ if(FC.laborCatalog && typeof FC.laborCatalog.getRateLabel === 'function') label = FC.laborCatalog.getRateLabel(code, catalogQuoteRates()); }catch(_){ }
+    if(!label && m.hourlyRate > 0) label = hourlyRateLabelFromAmount(m.hourlyRate);
     if(!label){
       const fallback = { workshop:'Warsztatowa', assembly:'Montażowa', specialist:'Specjalistyczna', helper:'Pomocnika' };
       label = fallback[code] || '';
@@ -140,6 +142,56 @@
     }).filter(Boolean);
   }
   function rawLabor(row){ return row && row.raw && typeof row.raw === 'object' ? row.raw : {}; }
+  function readFirstNumber(value, patterns){
+    const raw = text(value);
+    const list = Array.isArray(patterns) ? patterns : [patterns];
+    for(const pattern of list){
+      const match = raw.match(pattern);
+      if(match && match[1] != null) return num(match[1]);
+    }
+    return 0;
+  }
+  function laborMetrics(row){
+    const raw = rawLabor(row);
+    const note = text((raw && raw.note) || (row && row.note));
+    const calculation = text((row && row.calculation) || (raw && raw.calculation));
+    const quantity = Math.max(0, num((row && row.quantity) || raw.quantity || 1)) || 1;
+    const unit = text((row && row.unit) || raw.unit);
+    const baseHours = num(raw.baseHours) || readFirstNumber(note, /czas\s+bazowy\s+([0-9]+(?:[\.,][0-9]+)?)\s*h/i);
+    let pricedHours = num(raw.hours) || readFirstNumber(note, /czas\s+wyceniony\s+([0-9]+(?:[\.,][0-9]+)?)\s*h/i);
+    if(!(pricedHours > 0)) pricedHours = readFirstNumber(calculation, /(?:Cena\s*=\s*)?([0-9]+(?:[\.,][0-9]+)?)\s*h\s*[×x]\s*[0-9]+(?:[\.,][0-9]+)?\s*(?:PLN|zł)\s*\/\s*h/i);
+    const hourlyRate = num(raw.hourlyRate) || readFirstNumber(note, /([0-9]+(?:[\.,][0-9]+)?)\s*(?:PLN|zł)\s*\/\s*h/i) || readFirstNumber(calculation, /[0-9]+(?:[\.,][0-9]+)?\s*h\s*[×x]\s*([0-9]+(?:[\.,][0-9]+)?)\s*(?:PLN|zł)\s*\/\s*h/i);
+    const volumeHours = num(raw.volumeHours) || readFirstNumber(note, /czas\s+gabarytowy\s+([0-9]+(?:[\.,][0-9]+)?)\s*h/i);
+    const multiplier = num(raw.multiplier) || readFirstNumber(note, /mnożnik\s*[×x]\s*([0-9]+(?:[\.,][0-9]+)?)/i) || 1;
+    const fixedPrice = num(raw.fixedPrice) || readFirstNumber(calculation, /kwota\s+stała\s+([0-9]+(?:[\.,][0-9]+)?)\s*(?:PLN|zł)/i);
+    const volumePrice = num(raw.volumePrice) || readFirstNumber(calculation, /dopłata\s+gabarytowa\s+([0-9]+(?:[\.,][0-9]+)?)\s*(?:PLN|zł)/i);
+    const effectiveBaseHours = baseHours > 0 ? baseHours : ((pricedHours > 0 && volumeHours <= 0 && Math.abs(multiplier - 1) < 0.0001) ? pricedHours : 0);
+    return {
+      quantity,
+      unit,
+      baseHours:effectiveBaseHours,
+      pricedHours,
+      hourlyRate,
+      volumeHours,
+      multiplier,
+      fixedPrice,
+      volumePrice,
+      total:num((row && row.total) || raw.total),
+      rateType:text(raw.rateType || row && row.rateType),
+    };
+  }
+  function hourlyRateLabelFromAmount(amount){
+    const value = num(amount);
+    if(!(value > 0)) return '';
+    const rates = catalogQuoteRates();
+    const matches = (Array.isArray(rates) ? rates : []).filter((row)=> {
+      const price = num(row && row.price);
+      const isHourly = text(row && row.autoRole) === 'hourlyRate' || text(row && row.category).toLowerCase() === 'stawki godzinowe' || /^labor_rate_/.test(text(row && row.id)) || text(row && (row.rateKey || row.rateCode || row.rateType));
+      return isHourly && Math.abs(price - value) < 0.005;
+    });
+    if(matches.length !== 1) return '';
+    return text(matches[0] && matches[0].name).replace(/^stawka\s+/i, '') || text(matches[0] && (matches[0].rateKey || matches[0].rateCode || matches[0].rateType));
+  }
   function laborSubject(row){
     const raw = rawLabor(row);
     const quantity = Math.max(0, num(row && row.quantity || raw.quantity || 1));
@@ -166,13 +218,13 @@
     return withDetail('czynność ręczna');
   }
   function laborTimeFormula(row){
-    const raw = rawLabor(row);
-    const quantity = Math.max(0, num(row && row.quantity || raw.quantity || 1)) || 1;
-    const unit = text(row && row.unit || raw.unit);
-    const baseHours = num(raw.baseHours);
-    const pricedHours = num(raw.hours);
-    const volumeHours = num(raw.volumeHours);
-    const multiplier = num(raw.multiplier) || 1;
+    const m = laborMetrics(row);
+    const quantity = m.quantity;
+    const unit = m.unit;
+    const baseHours = m.baseHours;
+    const pricedHours = m.pricedHours || baseHours;
+    const volumeHours = m.volumeHours;
+    const multiplier = m.multiplier || 1;
     if((unit === 'szt.' || unit === 'szt') && quantity > 0 && baseHours > 0){
       const perUnit = baseHours / quantity;
       const qtyBase = quantity * perUnit;
@@ -190,19 +242,18 @@
     return '';
   }
   function laborFormula(row){
-    const raw = rawLabor(row);
-    const quantity = Math.max(0, num(row && row.quantity || raw.quantity || 1)) || 1;
-    const total = num(row && row.total || raw.total);
-    const hourlyRate = num(raw.hourlyRate);
-    const baseHours = num(raw.baseHours);
-    const pricedHours = num(raw.hours);
-    const fixedPrice = num(raw.fixedPrice);
-    const volumePrice = num(raw.volumePrice);
-    const volumeHours = num(raw.volumeHours);
-    const multiplier = num(raw.multiplier) || 1;
-    const sourceRole = text(raw.sourceRole);
-    const unit = text(row && row.unit || raw.unit);
-    const simpleLinearPiece = (unit === 'szt.' || unit === 'szt') && quantity > 0 && hourlyRate > 0 && baseHours > 0 && fixedPrice <= 0 && volumePrice <= 0 && volumeHours <= 0 && (Math.abs(multiplier - 1) < 0.0001 || sourceRole === 'front-labor');
+    const m = laborMetrics(row);
+    const quantity = m.quantity;
+    const total = m.total;
+    const hourlyRate = m.hourlyRate;
+    const baseHours = m.baseHours;
+    const pricedHours = m.pricedHours || baseHours;
+    const fixedPrice = m.fixedPrice;
+    const volumePrice = m.volumePrice;
+    const volumeHours = m.volumeHours;
+    const multiplier = m.multiplier || 1;
+    const unit = m.unit;
+    const simpleLinearPiece = (unit === 'szt.' || unit === 'szt') && quantity > 0 && hourlyRate > 0 && baseHours > 0 && fixedPrice <= 0 && volumePrice <= 0 && volumeHours <= 0 && Math.abs(multiplier - 1) < 0.0001;
     if(simpleLinearPiece){
       const perUnit = baseHours / quantity;
       return `${formatDecimal(quantity, 2)} × ${hours(perUnit)} × ${rateMoney(hourlyRate)} = ${money(total)}`;
@@ -214,18 +265,18 @@
     return parts.length ? `${parts.join(' + ')} = ${money(total)}` : money(total);
   }
   function laborTimeRows(row){
-    const raw = rawLabor(row);
-    const quantity = Math.max(0, num(row && row.quantity || raw.quantity || 1)) || 1;
-    const unit = text(row && row.unit || raw.unit);
-    const baseHours = num(raw.baseHours);
-    const pricedHours = num(raw.hours);
+    const m = laborMetrics(row);
+    const quantity = m.quantity;
+    const unit = m.unit;
+    const baseHours = m.baseHours;
+    const pricedHours = m.pricedHours || baseHours;
     const out = [];
     if((unit === 'szt.' || unit === 'szt') && quantity > 0 && baseHours > 0){
       out.push(['Czas na 1 sztukę:', hours(baseHours / quantity)]);
       const formula = laborTimeFormula(row);
       if(formula) out.push(['Czas razem:', formula]);
     }else if(pricedHours > 0){
-      out.push(['Czas wyceniony:', hours(pricedHours)]);
+      out.push(['Czas razem:', hours(pricedHours)]);
     }
     return out;
   }
@@ -235,13 +286,12 @@
     const name = h('div', { class:'quote-detail-line__name' });
     name.appendChild(h('span', { text:text(row && row.name) || 'Czynność robocizny' }));
     if(row && row.starterPrice) name.appendChild(h('span', { class:'quote-detail-chip quote-detail-chip--warning', text:'Cena startowa' }));
-    addInfoButton(name, row && row.name, row && row.calculation);
     main.appendChild(name);
     const details = h('div', { class:'quote-detail-labor-human' });
     details.appendChild(h('div', { class:'quote-detail-labor-human__row', text:'Dotyczy: ' + laborSubject(row) }));
     laborTimeRows(row).forEach((time)=> details.appendChild(h('div', { class:'quote-detail-labor-human__row', text:`${time[0]} ${time[1]}` })));
-    const raw = rawLabor(row);
-    if(num(raw.hourlyRate) > 0) details.appendChild(h('div', { class:'quote-detail-labor-human__row', text:`${laborRateLabel(row)}: ${rateMoney(raw.hourlyRate)}` }));
+    const metrics = laborMetrics(row);
+    if(metrics.hourlyRate > 0) details.appendChild(h('div', { class:'quote-detail-labor-human__row', text:`${laborRateLabel(row, metrics)}: ${rateMoney(metrics.hourlyRate)}` }));
     details.appendChild(h('div', { class:'quote-detail-labor-human__row quote-detail-labor-human__row--total', text:'Razem: ' + laborFormula(row) }));
     main.appendChild(details);
     item.appendChild(main);
