@@ -31,7 +31,7 @@
 
   const LABOR_CHOICE_FIELDS = [
     { id:'laborAutoRole', title:'Wybierz automat robocizny', placeholder:'Automat robocizny' },
-    { id:'laborRateType', title:'Wybierz stawkę', placeholder:'Stawka' },
+    { id:'laborRateType', title:'Wybierz stawkę godzinową', placeholder:'Stawka godzinowa' },
     { id:'laborTimeBlockHours', title:'Wybierz czas bazowy', placeholder:'Czas bazowy' },
     { id:'laborQuantityMode', title:'Wybierz tryb ilości', placeholder:'Tryb ilości' },
     { id:'laborStartHours', title:'Wybierz czas startowy', placeholder:'Start h' },
@@ -74,7 +74,7 @@
         title:field.title,
         buttonClass:'investor-choice-launch price-labor-choice-launch',
         placeholder:field.placeholder,
-        onChange:()=>{ if(field.id === 'laborAutoRole') syncLaborAutomatUi(); updateItemActionState(); },
+        onChange:()=>{ if(field.id === 'laborAutoRole') syncLaborAutomatUi(); if(field.id === 'laborRateType') syncLaborRateProfileUi(); updateItemActionState(); },
       });
     });
   }
@@ -103,6 +103,9 @@
       workAutomatCode:isQuoteRates ? 'manual_fixed' : '',
       automatCode:isQuoteRates ? 'manual_fixed' : '',
       laborAutomatCode:isQuoteRates ? 'manual_fixed' : '',
+      isHourlyRate:false,
+      rateKey:'',
+      rateCode:'',
       rateType:'workshop',
       timeBlockHours:0,
       defaultMultiplier:1,
@@ -162,6 +165,97 @@
     if(labor.workAutomatOptions) return labor.workAutomatOptions(getLaborAutomats(), selectedCode);
     return [{ value:'', label:'Brak automatu' }].concat(getLaborAutomats().map((row)=> ({ value:row.code, label:row.label || row.code })));
   }
+
+  function isHourlyRateItem(item){
+    const labor = FC.laborCatalog || {};
+    try{ return labor.isHourlyRateDefinition ? labor.isHourlyRateDefinition(item || {}) : String(item && item.autoRole || '') === 'hourlyRate'; }
+    catch(_){ return String(item && item.autoRole || '') === 'hourlyRate'; }
+  }
+  function selectedLaborRateCode(){
+    const labor = FC.laborCatalog || {};
+    const raw = readString('laborRateType');
+    return labor.normalizeRateCode ? labor.normalizeRateCode(raw) : raw;
+  }
+  function getLaborRateProfiles(selectedCode){
+    const labor = FC.laborCatalog || {};
+    const rows = ctx.currentList ? ctx.currentList() : [];
+    try{ return labor.buildRateProfiles ? labor.buildRateProfiles(rows, selectedCode) : []; }
+    catch(_){ return []; }
+  }
+  function buildLaborRateProfileOptions(selectedCode){
+    const labor = FC.laborCatalog || {};
+    const rows = ctx.currentList ? ctx.currentList() : [];
+    try{
+      if(labor.rateProfileOptions) return labor.rateProfileOptions(rows, selectedCode);
+    }catch(_){ }
+    return [
+      { value:'workshop', label:'Warsztatowa' },
+      { value:'assembly', label:'Montażowa' },
+      { value:'specialist', label:'Specjalistyczna' },
+      { value:'helper', label:'Pomocnika' },
+    ];
+  }
+  function refreshLaborRateTypeSelect(selectedCode){
+    const code = selectedCode || selectedLaborRateCode() || 'workshop';
+    ctx.setSelectOptions(ctx.byId('laborRateType'), buildLaborRateProfileOptions(code), code, code);
+    setValue('laborRateType', code);
+    try{ mountLaborChoiceLaunchers(); }catch(_){ }
+  }
+  function isHourlyRateMode(){ return !!(ctx.byId('laborIsHourlyRate') && ctx.byId('laborIsHourlyRate').checked); }
+  function findRateProfile(code){
+    const labor = FC.laborCatalog || {};
+    try{ return labor.findRateProfile ? labor.findRateProfile(ctx.currentList ? ctx.currentList() : [], code) : null; }
+    catch(_){ return null; }
+  }
+  function setServicePriceLabel(label){
+    const wrap = formPriceWrapper();
+    if(!wrap) return;
+    const lab = wrap.querySelector ? wrap.querySelector(':scope > label, :scope > .label-help') : null;
+    const target = lab && lab.querySelector ? (lab.querySelector('.label-help__text') || lab) : lab;
+    if(target) target.textContent = String(label || 'Kwota stała / cena prosta (PLN)');
+  }
+  function syncLaborRateProfileUi(){
+    if(ctx.currentListKind && ctx.currentListKind() !== 'quoteRates') return;
+    const hourly = isHourlyRateMode();
+    const rule = ctx.byId('laborRuleFields');
+    const rateFields = ctx.byId('laborRateProfileFields');
+    const title = ctx.byId('laborFormSectionTitle');
+    const internalWrap = ctx.byId('laborInternalOnlyWrap');
+    const categoryWrap = formCategoryWrapper();
+    const codeInput = ctx.byId('laborRateCode');
+    const preview = ctx.byId('laborRateProfilePreview');
+    const item = currentEditedItem();
+    const isEdit = !!(ctx.appUiState() && ctx.appUiState().editingId);
+    if(rule) rule.style.display = hourly ? 'none' : '';
+    if(rateFields) rateFields.style.display = hourly ? '' : 'none';
+    if(title) title.textContent = hourly ? 'Stawka godzinowa' : 'Reguła robocizny';
+    if(internalWrap) internalWrap.style.display = hourly ? 'none' : '';
+    if(categoryWrap) categoryWrap.style.display = hourly ? 'none' : '';
+    if(hourly){
+      try{ ctx.setSelectOptions(ctx.byId('formCategory'), ctx.buildCategoryOptions('quoteRates', 'Stawki godzinowe'), 'Stawki godzinowe', 'Stawki godzinowe'); }catch(_){ }
+    }
+    if(hourly && ctx.byId('laborInternalOnly')) ctx.byId('laborInternalOnly').checked = false;
+    setServicePriceLabel(hourly ? 'Kwota stawki godzinowej (PLN/h)' : 'Kwota stała / cena prosta (PLN)');
+    setFormNameLabel(hourly ? 'Nazwa przyjazna stawki' : 'Nazwa przyjazna / nazwa pozycji');
+    if(codeInput){
+      const currentCode = String(codeInput.value || '').trim();
+      codeInput.readOnly = hourly && isEdit;
+      if(hourly && isEdit) codeInput.setAttribute('aria-readonly', 'true');
+      else codeInput.removeAttribute('aria-readonly');
+      if(hourly && !currentCode && item){
+        const labor = FC.laborCatalog || {};
+        const code = labor.normalizeRateCode ? labor.normalizeRateCode(item.rateKey || item.rateCode || item.rateType) : String(item.rateKey || item.rateCode || item.rateType || '');
+        codeInput.value = code;
+      }
+    }
+    const code = codeInput ? String(codeInput.value || '').trim() : '';
+    const profile = findRateProfile(code);
+    if(preview){
+      const price = Number(ctx.byId('formServicePrice') && ctx.byId('formServicePrice').value || 0) || (profile ? Number(profile.price) || 0 : 0);
+      preview.value = hourly && code ? `${code}${price > 0 ? ' • ' + price.toFixed(2) + ' zł/h' : ''}` : '';
+    }
+  }
+
   function syncLaborAutomatUi(){
     if(ctx.currentListKind && ctx.currentListKind() !== 'quoteRates') return;
     const code = selectedLaborAutomatCode();
@@ -305,19 +399,52 @@
   function getCurrentLaborDraft(base){
     if(ctx.currentListKind() !== 'quoteRates') return {};
     const labor = FC.laborCatalog || {};
+    if(isHourlyRateMode()){
+      const code = labor.normalizeRateCode ? labor.normalizeRateCode(readString('laborRateCode')) : readString('laborRateCode');
+      return {
+        category:'Stawki godzinowe',
+        usage:'universal',
+        autoRole:'hourlyRate',
+        workAutomatCode:'manual_hourly',
+        automatCode:'manual_hourly',
+        laborAutomatCode:'manual_hourly',
+        rateKey:code,
+        rateCode:code,
+        rateType:code || 'workshop',
+        timeBlockHours:0,
+        defaultMultiplier:1,
+        quantityMode:'none',
+        quantityTiers:[],
+        startHours:0,
+        startQty:1,
+        stepEveryQty:1,
+        stepHours:0,
+        volumePricePerM3:0,
+        volumeTimeMode:'none',
+        volumeTimePerM3:0,
+        volumeTimeTiers:[],
+        heightMinMm:0,
+        heightMaxMm:0,
+        active:readBool('laborActive'),
+        internalOnly:false,
+        systemRate:false,
+        nonDeletable:true,
+      };
+    }
     const tierText = readString('laborTierText');
     const volumeTierText = readString('laborVolumeTimeTierText');
     const volumeTimeMode = readString('laborVolumeTimeMode') || 'none';
     const selectedCode = selectedLaborAutomatCode();
     const autoRole = labor.workAutomatCodeToAutoRole ? labor.workAutomatCodeToAutoRole(selectedCode, 'none') : 'none';
+    const rateType = labor.normalizeRateCode ? labor.normalizeRateCode(readString('laborRateType')) : (readString('laborRateType') || 'workshop');
     return {
       usage:'universal',
       autoRole,
       workAutomatCode:selectedCode,
       automatCode:selectedCode,
       laborAutomatCode:selectedCode,
-      rateType:readString('laborRateType') || 'workshop',
-      rateKey:autoRole === 'hourlyRate' ? (readString('laborRateType') || 'workshop') : '',
+      rateType:rateType || 'workshop',
+      rateKey:autoRole === 'hourlyRate' ? (rateType || 'workshop') : '',
       timeBlockHours:Number(readNumber('laborTimeBlockHours')) || 0,
       defaultMultiplier:Number(readNumber('laborDefaultMultiplier')) || 1,
       quantityMode:readString('laborQuantityMode') || 'none',
@@ -346,6 +473,7 @@
   function updateItemActionState(){
     syncLaborGabarytMode();
     syncLaborAutomatUi();
+    syncLaborRateProfileUi();
     try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.syncHardwarePricing === 'function') ctx.priceModalHardwareForm.syncHardwarePricing(); }catch(_){ }
     const dirty = isItemDirty();
     const isEdit = !!(ctx.appUiState() && ctx.appUiState().editingId);
@@ -355,7 +483,9 @@
     const saveBtn = ctx.byId('priceItemSaveBtn');
     const footer = ctx.byId('priceItemFooter');
     if(footer) footer.style.display = ctx.runtimeState.itemModalOpen ? 'flex' : 'none';
-    if(deleteBtn) deleteBtn.style.display = isEdit ? '' : 'none';
+    const editedItem = currentEditedItem();
+    const hourlyRateRow = ctx.currentListKind && ctx.currentListKind() === 'quoteRates' && isHourlyRateItem(editedItem);
+    if(deleteBtn) deleteBtn.style.display = (isEdit && !hourlyRateRow) ? '' : 'none';
     if(exitBtn) exitBtn.style.display = dirty ? 'none' : '';
     if(cancelBtn) cancelBtn.style.display = dirty ? '' : 'none';
     if(saveBtn){ saveBtn.style.display = dirty ? '' : 'none'; saveBtn.textContent = isEdit ? 'Zapisz' : ctx.currentConfig().addLabel.replace(/^Dodaj\s+/i, 'Dodaj '); }
@@ -368,7 +498,7 @@
   function wireItemDirtyEvents(){
     [
       'formSymbol','formName','formPrice','formMaterialPriceUnit','formServiceName','formServicePrice','formHasGrain','formMaterialType','formManufacturer','formCategory',
-      'laborAutoRole','laborRateType','laborTimeBlockHours','laborDefaultMultiplier','laborQuantityMode','laborTierText',
+      'laborIsHourlyRate','laborRateCode','laborAutoRole','laborRateType','laborTimeBlockHours','laborDefaultMultiplier','laborQuantityMode','laborTierText',
       'laborStartHours','laborStartQty','laborStepEveryQty','laborStepHours','laborVolumePricePerM3','laborVolumeTimeMode','laborVolumeTimePerM3',
       'laborVolumeTimeTierText','laborHeightMinMm','laborHeightMaxMm','laborActive','laborInternalOnly'
     ].concat((ctx.priceModalHardwareForm && Array.isArray(ctx.priceModalHardwareForm.FIELD_IDS)) ? ctx.priceModalHardwareForm.FIELD_IDS : []).forEach((id)=>{
@@ -402,11 +532,14 @@
   function applyLaborFormState(item){
     const labor = FC.laborCatalog || {};
     const def = labor.normalizeDefinition ? labor.normalizeDefinition(item || defaultServiceDraft('quoteRates')) : (item || {});
+    const hourly = isHourlyRateItem(item || def);
+    setChecked('laborIsHourlyRate', hourly);
+    setValue('laborRateCode', hourly ? (def.rateKey || def.rateCode || def.rateType || '') : '');
     setValue('laborUsage', 'universal');
     const selectedAutomat = def.workAutomatCode || (labor.inferWorkAutomatCode ? labor.inferWorkAutomatCode(def, def.autoRole) : '') || '';
     ctx.setSelectOptions(ctx.byId('laborAutoRole'), buildLaborAutomatOptions(selectedAutomat), selectedAutomat, selectedAutomat);
     setValue('laborAutoRole', selectedAutomat);
-    setValue('laborRateType', def.rateType || def.rateKey || 'workshop');
+    refreshLaborRateTypeSelect(def.rateType || def.rateKey || 'workshop');
     setValue('laborTimeBlockHours', Number(def.timeBlockHours) || 0);
     setValue('laborDefaultMultiplier', Number(def.defaultMultiplier) || 1);
     setValue('laborQuantityMode', def.quantityMode || 'none');
@@ -422,9 +555,10 @@
     setValue('laborHeightMinMm', Number(def.heightMinMm) || 0);
     setValue('laborHeightMaxMm', Number(def.heightMaxMm) || 0);
     setChecked('laborActive', def.active !== false);
-    setChecked('laborInternalOnly', def.internalOnly !== false);
+    setChecked('laborInternalOnly', hourly ? false : def.internalOnly !== false);
     syncLaborGabarytMode();
     syncLaborAutomatUi();
+    syncLaborRateProfileUi();
     try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.syncHardwarePricing === 'function') ctx.priceModalHardwareForm.syncHardwarePricing(); }catch(_){ }
   }
   function applyServiceFormState(item){
@@ -450,7 +584,10 @@
     if(hardwareFields()) hardwareFields().style.display = cfg.formKind === 'accessory' ? '' : 'none';
     if(ctx.byId('serviceFormFields')) ctx.byId('serviceFormFields').style.display = cfg.formKind === 'service' ? '' : 'none';
     const laborWrap = laborFields();
-    if(laborWrap) laborWrap.style.display = (cfg.formKind === 'service' && kind === 'quoteRates') ? '' : 'none';
+    const hourlyToggleWrap = ctx.byId('laborHourlyToggleWrap');
+    const isQuoteRateForm = cfg.formKind === 'service' && kind === 'quoteRates';
+    if(laborWrap) laborWrap.style.display = isQuoteRateForm ? '' : 'none';
+    if(hourlyToggleWrap) hourlyToggleWrap.style.display = isQuoteRateForm ? '' : 'none';
     const materialTypeWrap = filterMaterialWrapper();
     const manufacturerWrap = filterManufacturerWrapper();
     const grainRow = formHasGrainRow();
@@ -475,7 +612,7 @@
       if(nameWrap) nameWrap.style.display = '';
     }
     if(ctx.mountFormChoiceLaunchers) ctx.mountFormChoiceLaunchers(()=> updateItemActionState());
-    if(kind === 'quoteRates') { hideLaborUsageField(); mountLaborChoiceLaunchers(); wireLaborAutomatButtons(); syncLaborAutomatUi(); }
+    if(kind === 'quoteRates') { hideLaborUsageField(); refreshLaborRateTypeSelect(readString('laborRateType') || 'workshop'); mountLaborChoiceLaunchers(); wireLaborAutomatButtons(); syncLaborAutomatUi(); syncLaborRateProfileUi(); }
     if(ctx.decorateFieldHelpLabels) ctx.decorateFieldHelpLabels();
     try{ if(ctx.priceModalHardwareReplacements && typeof ctx.priceModalHardwareReplacements.setSourceItem === 'function') ctx.priceModalHardwareReplacements.setSourceItem(item || null); }catch(_){ }
     wireItemDirtyEvents();

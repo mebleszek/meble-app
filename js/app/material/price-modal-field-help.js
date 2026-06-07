@@ -52,9 +52,12 @@
     formCategory:{ title:'Kategoria', message:'Grupa porządkująca czynności w katalogu. Pomaga utrzymać porządek na liście i szybciej znaleźć właściwą pozycję.' },
     formServiceName:{ title:'Nazwa', message:'Nazwa czynności, stawki lub usługi. Powinna jasno mówić, czego dotyczy pozycja.' },
     formServicePrice:{ title:'Kwota stała / cena prosta', message:'Stała cena pozycji. Użyj jej, gdy czynność ma po prostu konkretną kwotę i nie ma być liczona z czasu albo innych parametrów.' },
+    laborIsHourlyRate:{ title:'To jest stawka godzinowa', message:'Zaznacz tylko wtedy, gdy dodajesz profil stawki za godzinę pracy, np. lakiernik. Wtedy formularz pokazuje tylko nazwę, kod techniczny i kwotę zł/h, bez automatu i reguł ilości.' },
+    laborRateCode:{ title:'Kod techniczny stawki godzinowej', message:'Stały kod stawki, np. workshop, assembly albo painter. Kod musi być unikalny, bez spacji i polskich znaków. Po zapisaniu nie zmienia się — w razie literówki dodaj nową stawkę i wyłącz starą.' },
+    laborRateProfilePreview:{ title:'Podgląd stawki', message:'Szybki podgląd kodu technicznego i kwoty zł/h dla aktualnie edytowanej stawki godzinowej.' },
     laborAutoRole:{ title:'Automat robocizny', message:'Wybór stałego automatu, który łączy definicję czynności, cennik robocizny i przyszłą wycenę. Nazwę przyjazną można zmienić, ale kod techniczny jest trwałym kluczem dopasowania.' },
     laborAutomatCodePreview:{ title:'Kod techniczny automatu', message:'Kod techniczny jest nadawany przy tworzeniu automatu, musi być unikalny i po zapisaniu nie jest edytowalny. Jeśli powstanie literówka, utwórz nowy automat i wyłącz stary.' },
-    laborRateType:{ title:'Stawka', message:'Wybierasz, z której stawki godzinowej korzysta dana reguła, np. warsztatowej albo montażowej.' },
+    laborRateType:{ title:'Stawka godzinowa', message:'Wybierasz profil stawki godzinowej używany przez tę czynność. Lista pochodzi z aktywnych stawek godzinowych w cenniku, także tych dodanych samodzielnie, np. lakiernik.' },
     laborTimeBlockHours:{ title:'Czas bazowy', message:'Podstawowy czas doliczany dla jednej czynności albo jednego zastosowania reguły. Jeśli pozycja ma być czysto kwotowa, ustaw Brak.' },
     laborDefaultMultiplier:{ title:'Mnożnik domyślny', message:'Domyślny mnożnik trudności. Wartość 1 oznacza brak zmiany, 1.25 podnosi wynik o 25%.' },
     laborQuantityMode:{ title:'Tryb ilości', message:'Sposób liczenia przy większej liczbie sztuk. Możesz nie liczyć ilości wcale, liczyć liniowo, pakietami albo metodą start + krok.' },
@@ -109,7 +112,17 @@
     if(!(control && helpCfg)) return;
     let wrapper = control.parentElement;
     let label = null;
-    if(fieldId === 'formHasGrain'){
+    if(wrapper && String(wrapper.tagName || '').toLowerCase() === 'label'){
+      if(wrapper.dataset.helpDecorated === '1') return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'info-trigger';
+      btn.setAttribute('aria-label', 'Pokaż informację: ' + String(helpCfg.title || ''));
+      btn.addEventListener('click', (event)=>{ try{ event.preventDefault(); event.stopPropagation(); }catch(_){ } helpOpener(helpCfg.title || '', helpCfg.message); });
+      wrapper.appendChild(btn);
+      wrapper.dataset.helpDecorated = '1';
+      return;
+    }else if(fieldId === 'formHasGrain'){
       wrapper = control.parentElement;
       label = wrapper ? wrapper.querySelector('label') : null;
     }else if(wrapper){

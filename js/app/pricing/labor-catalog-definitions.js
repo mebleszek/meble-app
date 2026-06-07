@@ -5,10 +5,10 @@
   window.FC = window.FC || {};
 
   const RATE_TYPES = [
-    { key:'workshop', label:'Warsztatowa' },
-    { key:'assembly', label:'Montażowa' },
-    { key:'helper', label:'Pomocnik' },
-    { key:'specialist', label:'Specjalistyczna' },
+    { key:'workshop', label:'Warsztatowa', system:true, price:150 },
+    { key:'assembly', label:'Montażowa', system:true, price:250 },
+    { key:'specialist', label:'Specjalistyczna', system:true, price:300 },
+    { key:'helper', label:'Pomocnika', system:true, price:80 },
   ];
 
   // usage zostaje w modelu wyłącznie jako kompatybilność wsteczna.
@@ -91,10 +91,10 @@
   ];
 
   const DEFAULT_HOURLY_RATES = [
-    { id:'labor_rate_workshop', category:'Stawki godzinowe', name:'Stawka warsztatowa', price:120, autoRole:'hourlyRate', workAutomatCode:'manual_hourly', rateKey:'workshop', usage:'universal', active:true, starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.' },
-    { id:'labor_rate_assembly', category:'Stawki godzinowe', name:'Stawka montażowa', price:140, autoRole:'hourlyRate', workAutomatCode:'manual_hourly', rateKey:'assembly', usage:'universal', active:true, starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.' },
-    { id:'labor_rate_helper', category:'Stawki godzinowe', name:'Stawka pomocnika', price:60, autoRole:'hourlyRate', workAutomatCode:'manual_hourly', rateKey:'helper', usage:'universal', active:true, starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.' },
-    { id:'labor_rate_specialist', category:'Stawki godzinowe', name:'Stawka specjalistyczna', price:180, autoRole:'hourlyRate', workAutomatCode:'manual_hourly', rateKey:'specialist', usage:'universal', active:true, starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.' },
+    { id:'labor_rate_workshop', category:'Stawki godzinowe', name:'Stawka warsztatowa', price:150, autoRole:'hourlyRate', workAutomatCode:'manual_hourly', rateKey:'workshop', rateCode:'workshop', usage:'universal', active:true, systemRate:true, nonDeletable:true, starterPrice:true, note:'Systemowa stawka godzinowa — można zmienić nazwę przyjazną i kwotę, ale nie usuwać ani zmieniać kodu technicznego.' },
+    { id:'labor_rate_assembly', category:'Stawki godzinowe', name:'Stawka montażowa', price:250, autoRole:'hourlyRate', workAutomatCode:'manual_hourly', rateKey:'assembly', rateCode:'assembly', usage:'universal', active:true, systemRate:true, nonDeletable:true, starterPrice:true, note:'Systemowa stawka godzinowa — można zmienić nazwę przyjazną i kwotę, ale nie usuwać ani zmieniać kodu technicznego.' },
+    { id:'labor_rate_specialist', category:'Stawki godzinowe', name:'Stawka specjalistyczna', price:300, autoRole:'hourlyRate', workAutomatCode:'manual_hourly', rateKey:'specialist', rateCode:'specialist', usage:'universal', active:true, systemRate:true, nonDeletable:true, starterPrice:true, note:'Systemowa stawka godzinowa — można zmienić nazwę przyjazną i kwotę, ale nie usuwać ani zmieniać kodu technicznego.' },
+    { id:'labor_rate_helper', category:'Stawki godzinowe', name:'Stawka pomocnika', price:80, autoRole:'hourlyRate', workAutomatCode:'manual_hourly', rateKey:'helper', rateCode:'helper', usage:'universal', active:true, systemRate:true, nonDeletable:true, starterPrice:true, note:'Systemowa stawka godzinowa — można zmienić nazwę przyjazną i kwotę, ale nie usuwać ani zmieniać kodu technicznego.' },
   ];
 
   const DEFAULT_LABOR_DEFINITIONS = [

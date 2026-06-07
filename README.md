@@ -1,3 +1,17 @@
+## 2026-06-07 — Robocizna: profile stawek godzinowych w cenniku v1
+
+- Paczka: `site_labor_rate_profiles_foundation_v1.zip`.
+- Rozdzielono pojęcia: automat robocizny określa, co program ma policzyć, a profil stawki godzinowej określa, ile kosztuje godzina danego rodzaju pracy.
+- Cztery startowe profile stawek godzinowych są systemowe i nieusuwalne: `workshop` — Warsztatowa 150 zł/h, `assembly` — Montażowa 250 zł/h, `specialist` — Specjalistyczna 300 zł/h, `helper` — Pomocnika 80 zł/h.
+- Użytkownik może dodać własną stawkę godzinową z programu, np. `painter` / Lakiernik, przez checkbox „To jest stawka godzinowa”. W tym trybie formularz pokazuje tylko nazwę przyjazną, kod techniczny stawki, kwotę zł/h i aktywność.
+- Kod techniczny stawki godzinowej ma format małe litery/cyfry/podkreślenia, jest unikalny i po utworzeniu niezmienny. Nazwa przyjazna i kwota mogą być edytowane.
+- Zwykłe czynności robocizny wybierają profil stawki godzinowej przez aplikacyjny launcher pola „Stawka godzinowa”. Lista zawiera aktywne stawki systemowe i własne, a stare wybrane nieaktywne stawki pozostają widoczne przy edycji istniejących pozycji.
+- WYCENA liczy robociznę po dokładnym `rateType`/kodzie profilu stawki, także dla stawek własnych; nie dobiera stawki najniższej ani pierwszej aktywnej. Nie przypisano na sztywno, że dana czynność zawsze musi używać konkretnej stawki.
+- Formularz stawek godzinowych nie pokazuje automatu robocizny, czasu bazowego, mnożników, progów, ilości ani gabarytoczasu, bo stawka godzinowa nie jest czynnością.
+- Nie przebudowano działu CZYNNOŚCI, buildera czynności, wariantów szafek, AGD ani głównej architektury WYCENY poza bezpiecznym czytaniem profili stawek.
+- Dodano regresję `tools/labor-rate-profiles-foundation-smoke.js`.
+- Cache-busting: `20260607_labor_rate_profiles_foundation_v1`. Raport: `tools/reports/labor-rate-profiles-foundation-v1.md`.
+
 ## 2026-06-07 — Robocizna: fundament automatów w cenniku v1
 
 - Paczka: `site_work_automats_foundation_v1.zip`.

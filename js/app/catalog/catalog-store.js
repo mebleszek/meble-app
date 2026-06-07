@@ -50,10 +50,10 @@
   const DEFAULT_QUOTE_RATES = laborCatalog && Array.isArray(laborCatalog.DEFAULT_HOURLY_RATES)
     ? laborCatalog.DEFAULT_HOURLY_RATES.concat(laborCatalog.DEFAULT_LABOR_DEFINITIONS || [])
     : [
-        { id:'labor_rate_workshop', category:'Stawki godzinowe', name:'Stawka warsztatowa', price:120, autoRole:'hourlyRate', rateKey:'workshop', active:true },
-        { id:'labor_rate_assembly', category:'Stawki godzinowe', name:'Stawka montażowa', price:140, autoRole:'hourlyRate', rateKey:'assembly', active:true },
-        { id:'labor_rate_helper', category:'Stawki godzinowe', name:'Stawka pomocnika', price:60, autoRole:'hourlyRate', rateKey:'helper', active:true },
-        { id:'labor_rate_specialist', category:'Stawki godzinowe', name:'Stawka specjalistyczna', price:180, autoRole:'hourlyRate', rateKey:'specialist', active:true },
+        { id:'labor_rate_workshop', category:'Stawki godzinowe', name:'Stawka warsztatowa', price:150, autoRole:'hourlyRate', rateKey:'workshop', rateCode:'workshop', active:true, systemRate:true, nonDeletable:true },
+        { id:'labor_rate_assembly', category:'Stawki godzinowe', name:'Stawka montażowa', price:250, autoRole:'hourlyRate', rateKey:'assembly', rateCode:'assembly', active:true, systemRate:true, nonDeletable:true },
+        { id:'labor_rate_specialist', category:'Stawki godzinowe', name:'Stawka specjalistyczna', price:300, autoRole:'hourlyRate', rateKey:'specialist', rateCode:'specialist', active:true, systemRate:true, nonDeletable:true },
+        { id:'labor_rate_helper', category:'Stawki godzinowe', name:'Stawka pomocnika', price:80, autoRole:'hourlyRate', rateKey:'helper', rateCode:'helper', active:true, systemRate:true, nonDeletable:true },
         { id:'labor_body_h072', category:'Korpusy', name:'Skręcenie korpusu do 72 cm', price:0, usage:'cabinet', autoRole:'cabinetBody', rateType:'workshop', timeBlockHours:0.5, defaultMultiplier:1.25, heightMinMm:0, heightMaxMm:720, volumePricePerM3:50, active:true, internalOnly:true },
       ];
   const DEFAULT_LABOR_AUTOMATS = laborCatalog && Array.isArray(laborCatalog.DEFAULT_WORK_AUTOMATS)

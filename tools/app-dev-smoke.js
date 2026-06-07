@@ -863,13 +863,14 @@ function runWycenaNodeSmoke(sandbox){
       const singleTruthPreLaborExpected = '20260606_quote_single_truth_pre_labor_tests_v1';
       const laborSingleTruthExpected = '20260606_quote_labor_single_truth_v1';
       const workAutomatsExpected = '20260607_work_automats_foundation_v1';
+      const rateProfilesExpected = '20260607_labor_rate_profiles_foundation_v1';
       const files = ['index.html','dev_tests.html'];
       const scripts = ['wycena-core-selection.js','wycena-core-utils.js','wycena-core-catalog.js','wycena-core-source.js','wycena-core-material-plan.js','wycena-core-offer.js','wycena-core-lines.js','wycena-core-labor.js','wycena-core.js'];
       return files.every((file)=> {
         const html = fs.readFileSync(path.join(process.cwd(), file), 'utf8');
         return scripts.every((script)=> {
           const legacyExpected = script === 'wycena-core-lines.js' ? legacyChangedExpected : legacyBaseExpected;
-          return html.includes(`js/app/wycena/${script}?v=${legacyExpected}`) || html.includes(`js/app/wycena/${script}?v=${newerExpected}`) || html.includes(`js/app/wycena/${script}?v=${currentExpected}`) || html.includes(`js/app/wycena/${script}?v=${registerExpected}`) || html.includes(`js/app/wycena/${script}?v=${detailsModalExpected}`) || html.includes(`js/app/wycena/${script}?v=${auditMaterialsExpected}`) || html.includes(`js/app/wycena/${script}?v=${pcvTruthExpected}`) || html.includes(`js/app/wycena/${script}?v=${hingeCatalogExpected}`) || html.includes(`js/app/wycena/${script}?v=${singleTruthPreLaborExpected}`) || html.includes(`js/app/wycena/${script}?v=${laborSingleTruthExpected}`) || html.includes(`js/app/wycena/${script}?v=${workAutomatsExpected}`) || html.includes(`js/app/wycena/${script}?v=${detailAccordionScrollExpected}`);
+          return html.includes(`js/app/wycena/${script}?v=${legacyExpected}`) || html.includes(`js/app/wycena/${script}?v=${newerExpected}`) || html.includes(`js/app/wycena/${script}?v=${currentExpected}`) || html.includes(`js/app/wycena/${script}?v=${registerExpected}`) || html.includes(`js/app/wycena/${script}?v=${detailsModalExpected}`) || html.includes(`js/app/wycena/${script}?v=${auditMaterialsExpected}`) || html.includes(`js/app/wycena/${script}?v=${pcvTruthExpected}`) || html.includes(`js/app/wycena/${script}?v=${hingeCatalogExpected}`) || html.includes(`js/app/wycena/${script}?v=${singleTruthPreLaborExpected}`) || html.includes(`js/app/wycena/${script}?v=${laborSingleTruthExpected}`) || html.includes(`js/app/wycena/${script}?v=${workAutomatsExpected}`) || html.includes(`js/app/wycena/${script}?v=${rateProfilesExpected}`) || html.includes(`js/app/wycena/${script}?v=${detailAccordionScrollExpected}`);
         });
       });
     } },

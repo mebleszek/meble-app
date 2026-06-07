@@ -24,8 +24,31 @@
     }
     return true;
   }
+
+  function isQuoteRateHourlyRow(data){
+    if(!(ctx.currentListKind && ctx.currentListKind() === 'quoteRates')) return false;
+    const labor = FC.laborCatalog || {};
+    try{ return labor.isHourlyRateDefinition ? labor.isHourlyRateDefinition(data || {}) : String(data && data.autoRole || '') === 'hourlyRate'; }
+    catch(_){ return String(data && data.autoRole || '') === 'hourlyRate'; }
+  }
+  function validateQuoteRateHourlyProfile(data){
+    if(!isQuoteRateHourlyRow(data)) return true;
+    const labor = FC.laborCatalog || {};
+    const editingId = ctx.appUiState && ctx.appUiState().editingId;
+    const current = editingId ? (ctx.currentList().find((item)=> String(item && item.id || '') === String(editingId)) || null) : null;
+    const oldCode = current ? String(current.rateKey || current.rateCode || current.rateType || '') : '';
+    if(labor.validateRateProfile){
+      const result = labor.validateRateProfile(data, ctx.currentList().filter((item)=> String(item && item.id || '') !== String(editingId || '')), oldCode ? { oldCode } : {});
+      if(!result || !result.ok){
+        ctx.info('Nie można zapisać stawki godzinowej', String((result && result.message) || 'Sprawdź nazwę, kod techniczny i kwotę stawki.'));
+        return false;
+      }
+    }
+    return true;
+  }
   function validateQuoteRateLaborAutomat(data){
     if(!(ctx.currentListKind && ctx.currentListKind() === 'quoteRates')) return true;
+    if(isQuoteRateHourlyRow(data)) return true;
     const labor = FC.laborCatalog || {};
     const raw = String(data && (data.workAutomatCode || data.automatCode || data.laborAutomatCode) || '').trim();
     const code = labor.normalizeWorkAutomatCode ? labor.normalizeWorkAutomatCode(raw) : raw;
@@ -48,6 +71,7 @@
   function validateServiceForm(data){
     if(!String(data && data.name || '').trim()){ ctx.info('Brak nazwy', 'Wprowadź nazwę usługi, zanim ją zapiszesz.'); return false; }
     if(!String(data && data.category || '').trim()){ ctx.info('Brak kategorii', 'Wybierz kategorię usługi.'); return false; }
+    if(!validateQuoteRateHourlyProfile(data)) return false;
     if(!validateQuoteRateLaborAutomat(data)) return false;
     return true;
   }
@@ -100,6 +124,10 @@
     return saveServiceFromForm();
   }
   async function deletePriceItem(item){
+    if(ctx.currentListKind && ctx.currentListKind() === 'quoteRates' && isQuoteRateHourlyRow(item)){
+      ctx.info('Nie można usunąć stawki godzinowej', 'Stawki godzinowe są trwałym cennikiem robocizny. Możesz zmienić nazwę, kwotę albo odznaczyć „Aktywna”, ale nie usuwaj kodu używanego przez czynności i wyceny.');
+      return false;
+    }
     const ok = await ctx.confirmDelete(); if(!ok) return false;
     const next = ctx.currentList().filter((row)=> String(row.id) !== String(item && item.id));
     ctx.saveCurrentList(next);
