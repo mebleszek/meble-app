@@ -24,12 +24,12 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | SZAFKI | 33 | 8929 | 0 | 0 | 0 | 6 |
 | ROZRYS | 42 | 8864 | 6 | 0 | 1 | 6 |
 | MATERIAŁ | 27 | 6411 | 8 | 3 | 0 | 6 |
-| KATALOG/USŁUGI | 24 | 5334 | 4 | 0 | 2 | 1 |
+| KATALOG/USŁUGI | 24 | 5338 | 4 | 0 | 2 | 1 |
 | UI | 32 | 4281 | 0 | 6 | 0 | 2 |
 | INWESTOR | 25 | 3725 | 29 | 0 | 0 | 5 |
 | PROJEKT | 10 | 2067 | 0 | 0 | 0 | 6 |
 | POMIESZCZENIA | 12 | 1909 | 0 | 1 | 0 | 0 |
-| INNE | 7 | 1674 | 2 | 0 | 0 | 1 |
+| INNE | 7 | 1751 | 2 | 0 | 0 | 1 |
 | OPTIMIZER | 12 | 1589 | 0 | 0 | 0 | 1 |
 | RYSUNEK | 1 | 1459 | 0 | 11 | 1 | 0 |
 | SHARED | 12 | 1411 | 0 | 1 | 0 | 1 |
@@ -52,16 +52,16 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/wycena/wycena-core-lines.js | 750 | WYCENA | wysokie |
 | js/app/cabinet/cabinet-modal.js | 707 | SZAFKI | średnie |
 | js/app/catalog/hardware-catalog.js | 665 | KATALOG/USŁUGI | wysokie |
+| js/app/catalog/catalog-store.js | 658 | KATALOG/USŁUGI | wysokie |
 | js/app/material/price-modal-item-form.js | 655 | MATERIAŁ | średnie |
 | js/app/quote/quote-snapshot-store.js | 655 | WYCENA | wysokie |
-| js/app/catalog/catalog-store.js | 654 | KATALOG/USŁUGI | wysokie |
 | js/testing/wycena/suites/central-status-sync.js | 649 | TESTY | wysokie |
 | js/app/material/price-modal-hardware-form.js | 645 | MATERIAŁ | średnie |
 | js/app/material/price-modal-hardware-dictionaries.js | 636 | MATERIAŁ | średnie |
 | js/testing/material/accessories-tests.js | 622 | TESTY | średnie |
 | js/app/cabinet/cabinet-modal-standing-specials.js | 602 | SZAFKI | średnie |
+| js/app/pricing/labor-catalog.js | 599 | INNE | średnie |
 | js/app/wycena/wycena-context-repair.js | 578 | WYCENA | wysokie |
-| js/app/catalog/hardware-technical-params.js | 567 | KATALOG/USŁUGI | średnie |
 
 ## Największy wpływ bezpośredni
 
@@ -149,7 +149,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/rozrys/rozrys.js | wysokie | 10 | 843 | 11 | 55 | 600+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/app/wycena/wycena-core-lines.js | wysokie | 10 | 750 | 28 | 100 | 600+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/rozrys/tests.js | wysokie | 10 | 475 | 10 | 37 | 400+ linii; dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
-| js/app/catalog/catalog-store.js | wysokie | 9 | 654 | 25 | 82 | 600+ linii; dużo zależnych plików; dużo zależności wychodzących |
+| js/app/catalog/catalog-store.js | wysokie | 9 | 658 | 25 | 82 | 600+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/testing/wycena/suites/central-status-sync.js | wysokie | 9 | 649 | 15 | 23 | 600+ linii; dużo zależnych plików; dużo zależności wychodzących |
 | js/app/catalog/hardware-catalog.js | wysokie | 8 | 665 | 20 | 35 | 600+ linii; dużo zależnych plików; kilka zależności wychodzących |
 | js/app/wycena/wycena-context-repair.js | wysokie | 8 | 578 | 2 | 8 | 400+ linii; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
@@ -161,8 +161,8 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/wycena/fixtures.js | średnie | 7 | 154 | 16 | 24 | dużo zależnych plików; dużo zależności wychodzących; bezpośredni storage poza oczywistą granicą |
 | js/tabs/rysunek.js | nie ruszać bez osobnego planu | 6 | 1459 | 2 | 7 | 600+ linii; systemowe dialogi |
 | js/testing/material/accessories-tests.js | średnie | 6 | 622 | 1 | 1 | 600+ linii; dużo zależności wychodzących |
+| js/app/pricing/labor-catalog.js | średnie | 6 | 599 | 11 | 34 | 400+ linii; dużo zależnych plików |
 | js/app/catalog/hardware-technical-params.js | średnie | 6 | 567 | 14 | 45 | 400+ linii; dużo zależnych plików |
-| js/app/pricing/labor-catalog.js | średnie | 6 | 522 | 11 | 34 | 400+ linii; dużo zależnych plików |
 | js/app/ui/actions-register.js | średnie | 6 | 473 | 0 | 0 | 400+ linii; dużo zależności wychodzących; systemowe dialogi |
 | js/testing/rozrys/suites/scope-runtime-controllers.js | średnie | 6 | 369 | 7 | 21 | 250+ linii; kilka publicznych symboli FC; kilka zależnych plików; dużo zależności wychodzących |
 | js/tabs/wycena.js | średnie | 6 | 368 | 7 | 31 | 250+ linii; kilka zależnych plików; dużo zależności wychodzących |

@@ -1,3 +1,14 @@
+## 2026-06-07 — Robocizna: deduplikacja profili stawek godzinowych v1
+
+- Paczka: `site_labor_rate_profiles_dedupe_fix_v1.zip`.
+- Naprawiono regresję po rozdzieleniu profili stawek godzinowych: stare wiersze `quoteRates` z tym samym kodem stawki (`assembly`, `specialist` itd.) mogły pozostać obok nowych stawek systemowych i pokazywać zdublowane pozycje w cenniku.
+- Migracja `ensureDefaultDefinitions` deduplikuje teraz stawki godzinowe po technicznym kodzie stawki, a nie tylko po ID wiersza. Dla kodów systemowych zostaje jeden kanoniczny wiersz `labor_rate_<code>`.
+- Systemowe ceny startowe są przywracane przy konflikcie zdublowanych starych wierszy: `workshop` 150 zł/h, `assembly` 250 zł/h, `specialist` 300 zł/h, `helper` 80 zł/h.
+- Zapis listy `quoteRates` w `catalogStore.savePriceList` również przechodzi przez normalizację/deduplikację, żeby duplikaty nie wracały po zapisie.
+- Własne stawki użytkownika, np. `painter`, nadal są obsługiwane po unikalnym kodzie technicznym i nie są zmieniane na sztywno.
+- Rozszerzono `tools/labor-rate-profiles-foundation-smoke.js` o regresję starego zdublowania: błędne duplikaty `assembly=150` i `specialist=250` są usuwane, a wynik zostaje kanoniczny.
+- Cache-busting: `20260607_labor_rate_profiles_dedupe_fix_v1`. Raport: `tools/reports/labor-rate-profiles-dedupe-fix-v1.md`.
+
 ## 2026-06-07 — Robocizna: profile stawek godzinowych w cenniku v1
 
 - Paczka: `site_labor_rate_profiles_foundation_v1.zip`.

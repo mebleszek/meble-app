@@ -59,6 +59,17 @@ Object.entries(expected).forEach(([code, price])=>{
   assert(profile.nonDeletable === true && profile.systemRate === true, `stawka ${code} jest systemowa i nieusuwalna`, profile);
 });
 
+
+const duplicateHourlyRows = labor.ensureDefaultDefinitions([
+  { id:'old_assembly_wrong_price', category:'Stawki godzinowe', name:'Stawka montażowa', price:150, autoRole:'hourlyRate', rateKey:'assembly', rateCode:'assembly', rateType:'assembly', active:true, starterPrice:false, priceUserEditedAt:'2026-06-07T20:00:00.000Z' },
+  { id:'old_specialist_wrong_price', category:'Stawki godzinowe', name:'Stawka specjalistyczna', price:250, autoRole:'hourlyRate', rateKey:'specialist', rateCode:'specialist', rateType:'specialist', active:true, starterPrice:false, priceUserEditedAt:'2026-06-07T20:01:00.000Z' },
+]);
+const duplicateHourly = duplicateHourlyRows.filter((row)=> labor.isHourlyRateDefinition(row));
+const duplicateCounts = duplicateHourly.reduce((acc, row)=>{ const code = labor.hourlyRateCodeFromRow(row); acc[code] = (acc[code] || 0) + 1; return acc; }, {});
+Object.keys(expected).forEach((code)=> assert(duplicateCounts[code] === 1, `po migracji zostaje jedna stawka godzinowa dla ${code}`, { duplicateCounts, duplicateHourly }));
+const duplicateMap = labor.buildHourlyRates(duplicateHourlyRows);
+assert(Number(duplicateMap.assembly) === 250 && Number(duplicateMap.specialist) === 300, 'migracja usuwa zdublowane błędne systemowe stawki i przywraca ceny bazowe', duplicateMap);
+
 const customRate = { id:'labor_rate_painter', category:'Stawki godzinowe', name:'Lakiernik', price:220, autoRole:'hourlyRate', workAutomatCode:'manual_hourly', rateKey:'painter', rateCode:'painter', rateType:'painter', active:true, nonDeletable:true };
 const rowsWithCustom = defaultRows.concat([customRate]);
 const customProfile = labor.findRateProfile(rowsWithCustom, 'painter');

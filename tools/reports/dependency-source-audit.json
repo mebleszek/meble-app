@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-07T21:04:06.678Z",
+  "generatedAt": "2026-06-07T21:22:55.807Z",
   "summary": {
     "jsFiles": 366,
     "indexScripts": 290,
@@ -29,7 +29,7 @@
     },
     "KATALOG/USŁUGI": {
       "files": 24,
-      "lines": 5334,
+      "lines": 5338,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 2,
@@ -61,7 +61,7 @@
     },
     "INNE": {
       "files": 7,
-      "lines": 1674,
+      "lines": 1751,
       "storageRefs": 2,
       "dialogRefs": 0,
       "high": 0,
@@ -198,16 +198,16 @@
       665
     ],
     [
+      "js/app/catalog/catalog-store.js",
+      658
+    ],
+    [
       "js/app/material/price-modal-item-form.js",
       655
     ],
     [
       "js/app/quote/quote-snapshot-store.js",
       655
-    ],
-    [
-      "js/app/catalog/catalog-store.js",
-      654
     ],
     [
       "js/testing/wycena/suites/central-status-sync.js",
@@ -230,12 +230,12 @@
       602
     ],
     [
-      "js/app/wycena/wycena-context-repair.js",
-      578
+      "js/app/pricing/labor-catalog.js",
+      599
     ],
     [
-      "js/app/catalog/hardware-technical-params.js",
-      567
+      "js/app/wycena/wycena-context-repair.js",
+      578
     ]
   ],
   "topIncoming": [
@@ -626,7 +626,7 @@
       "score": 9,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 654,
+      "lines": 658,
       "incoming": 25,
       "outgoing": 17,
       "secondLevel": 82,
@@ -838,6 +838,23 @@
       ]
     },
     {
+      "file": "js/app/pricing/labor-catalog.js",
+      "risk": "średnie",
+      "score": 6,
+      "area": "INNE",
+      "category": "domain/controller",
+      "lines": 599,
+      "incoming": 11,
+      "outgoing": 3,
+      "secondLevel": 34,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "400+ linii",
+        "dużo zależnych plików"
+      ]
+    },
+    {
       "file": "js/app/catalog/hardware-technical-params.js",
       "risk": "średnie",
       "score": 6,
@@ -847,23 +864,6 @@
       "incoming": 14,
       "outgoing": 1,
       "secondLevel": 45,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "400+ linii",
-        "dużo zależnych plików"
-      ]
-    },
-    {
-      "file": "js/app/pricing/labor-catalog.js",
-      "risk": "średnie",
-      "score": 6,
-      "area": "INNE",
-      "category": "domain/controller",
-      "lines": 522,
-      "incoming": 11,
-      "outgoing": 3,
-      "secondLevel": 34,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -4035,7 +4035,7 @@
     "js/app/catalog/catalog-store.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 654,
+      "lines": 658,
       "defines": [
         "catalogStore"
       ],
@@ -8109,7 +8109,7 @@
     "js/app/pricing/labor-catalog.js": {
       "area": "INNE",
       "category": "domain/controller",
-      "lines": 522,
+      "lines": 599,
       "defines": [
         "laborCatalog"
       ],

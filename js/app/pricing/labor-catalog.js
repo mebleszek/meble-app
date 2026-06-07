@@ -184,6 +184,77 @@
       note:text(src.note),
     };
   }
+  function hasExplicitPriceEdit(row){
+    const src = row && typeof row === 'object' ? row : {};
+    return src.starterPrice === false || !!text(src.priceUserEditedAt || src.userEditedAt);
+  }
+  function hourlyRateCodeFromRow(row){
+    const src = row && typeof row === 'object' ? row : {};
+    let code = normalizeRateCode(src.rateKey || src.rateCode || src.code || src.key || src.rateType);
+    if(code) return code;
+    const id = text(src.id);
+    if(/^labor_rate_[a-z0-9_]+$/.test(id)) return normalizeRateCode(id.replace(/^labor_rate_/, ''));
+    return '';
+  }
+  function defaultHourlyRateForCode(code){
+    const key = normalizeRateCode(code);
+    return DEFAULT_HOURLY_RATES.find((row)=> normalizeRateCode(row && (row.rateKey || row.rateCode || row.rateType)) === key) || null;
+  }
+  function dedupeHourlyRateDefinitions(list){
+    const input = Array.isArray(list) ? list : [];
+    const normalRows = [];
+    const groups = new Map();
+    const order = [];
+    input.forEach((row)=>{
+      if(!isHourlyRateDefinition(row)){ normalRows.push(row); return; }
+      const code = hourlyRateCodeFromRow(row);
+      if(!code){ normalRows.push(row); return; }
+      if(!groups.has(code)){ groups.set(code, []); order.push(code); }
+      groups.get(code).push(row);
+    });
+
+    const mergedHourly = [];
+    order.forEach((code)=>{
+      const rows = groups.get(code) || [];
+      const canonicalId = `labor_rate_${code}`;
+      const base = defaultHourlyRateForCode(code);
+      const canonical = rows.find((row)=> text(row && row.id) === canonicalId) || null;
+      if(base){
+        const editedCanonical = canonical && hasExplicitPriceEdit(canonical);
+        const singleLegacy = !canonical && rows.length === 1 && hasExplicitPriceEdit(rows[0]);
+        const source = canonical || (singleLegacy ? rows[0] : null) || {};
+        const keepUserPrice = !!(editedCanonical || singleLegacy);
+        const next = Object.assign({}, base, source, {
+          id:canonicalId,
+          category:'Stawki godzinowe',
+          autoRole:'hourlyRate',
+          workAutomatCode:'manual_hourly',
+          rateKey:code,
+          rateCode:code,
+          rateType:code,
+          price:keepUserPrice ? Math.max(0, num(source.price, base.price)) : Math.max(0, num(base.price, 0)),
+          systemRate:true,
+          nonDeletable:true,
+          starterPrice:keepUserPrice ? false : true,
+          priceUserEditedAt:keepUserPrice ? text(source.priceUserEditedAt || source.userEditedAt) : '',
+        });
+        mergedHourly.push(next);
+        return;
+      }
+      const preferred = rows.find(hasExplicitPriceEdit) || rows[rows.length - 1] || rows[0] || {};
+      mergedHourly.push(Object.assign({}, preferred, {
+        id:text(preferred.id) || canonicalId,
+        category:'Stawki godzinowe',
+        autoRole:'hourlyRate',
+        workAutomatCode:'manual_hourly',
+        rateKey:code,
+        rateCode:code,
+        rateType:code,
+        nonDeletable:true,
+      }));
+    });
+    return mergedHourly.concat(normalRows);
+  }
   function buildRateProfiles(list, selectedCode){
     const selected = normalizeRateCode(selectedCode);
     const order = [];
@@ -335,7 +406,11 @@
     const byId = new Map();
     rows.forEach((row, index)=>{ const id = text(row && row.id); if(id && !byId.has(id)) byId.set(id, index); });
     DEFAULT_HOURLY_RATES.concat(DEFAULT_LABOR_DEFINITIONS).forEach((row)=>{
-      const idx = byId.has(row.id) ? byId.get(row.id) : -1;
+      const seedHourlyCode = text(row.autoRole) === 'hourlyRate' ? normalizeRateCode(row.rateKey || row.rateCode || row.rateType) : '';
+      const existingHourlyIndex = seedHourlyCode
+        ? rows.findIndex((candidate)=> isHourlyRateDefinition(candidate) && hourlyRateCodeFromRow(candidate) === seedHourlyCode && text(candidate && candidate.id) === `labor_rate_${seedHourlyCode}`)
+        : -1;
+      const idx = existingHourlyIndex >= 0 ? existingHourlyIndex : (byId.has(row.id) ? byId.get(row.id) : -1);
       if(idx >= 0){
         // Systemowe stawki startowe mogą dostać nowy opis/kontrakt i bezpieczną cenę startową,
         // ale nie nadpisujemy kwoty zmienionej ręcznie przez użytkownika.
@@ -360,7 +435,7 @@
       rows.push(clone(row));
       byId.set(row.id, rows.length - 1);
     });
-    return rows;
+    return dedupeHourlyRateDefinitions(rows);
   }
   function getRateLabel(key, list){
     const normalized = normalizeRateCode(key);
@@ -506,6 +581,8 @@
     getWorkAutomatLabel,
     normalizeDefinition,
     ensureDefaultDefinitions,
+    dedupeHourlyRateDefinitions,
+    hourlyRateCodeFromRow,
     buildHourlyRates,
     calculateDefinition,
     describeDefinition,

@@ -570,7 +570,11 @@
       writeList('hardwareManufacturers', cache.hardwareManufacturers);
     }
     else if(key === 'quoteRates'){
-      cache.quoteRates = normalizeList(list, normalizeServiceRow, DEFAULT_QUOTE_RATES);
+      const normalizedQuoteRates = normalizeList(list, normalizeServiceRow, DEFAULT_QUOTE_RATES);
+      const quoteRateSeed = laborCatalog && typeof laborCatalog.ensureDefaultDefinitions === 'function'
+        ? laborCatalog.ensureDefaultDefinitions(normalizedQuoteRates)
+        : normalizedQuoteRates;
+      cache.quoteRates = normalizeList(quoteRateSeed, normalizeServiceRow, DEFAULT_QUOTE_RATES);
       writeList('quoteRates', cache.quoteRates);
       writeList('services', cache.quoteRates);
     }
