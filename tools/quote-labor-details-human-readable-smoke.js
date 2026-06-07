@@ -87,11 +87,13 @@ ctx.globalThis = window;
 vm.createContext(ctx);
 vm.runInContext(read('js/app/wycena/wycena-summary-details-modal.js'), ctx, { filename:'wycena-summary-details-modal.js' });
 
+const baseCabinet = 'Szafka #1 — S — stojąca / standardowa';
 const snapshot = {
   calculationRegister:{
     lines:[{
       section:'labor',
-      sourceLabel:'Szafka #1 — S — stojąca / standardowa',
+      sourceLabel:baseCabinet,
+      sourceId:'cab_1',
       name:'Montaż frontu / drzwi',
       quantity:2,
       unit:'szt.',
@@ -104,6 +106,8 @@ const snapshot = {
         sourceRole:'front-labor',
         sourceType:'fronts',
         sourceKind:'automatic',
+        sourceId:'cab_1',
+        sourceLabel:baseCabinet,
         workAutomatCode:'front_mount',
         laborAutomatCode:'front_mount',
         rateType:'workshop',
@@ -116,8 +120,62 @@ const snapshot = {
         multiplier:1,
         note:'Fronty z MATERIAŁ/WYCENA: 2× 30 × 72',
       },
+    },{
+      section:'labor',
+      sourceLabel:baseCabinet + ' — Lewe drzwiczki',
+      sourceId:'cab_1',
+      name:'Montaż zawiasu',
+      quantity:2,
+      unit:'szt.',
+      unitPrice:18.75,
+      total:37.5,
+      calculation:'Cena = 0.25 h × 150 PLN/h.',
+      raw:{
+        sourceRole:'hinge-labor',
+        sourceType:'hinges',
+        sourceKind:'automatic',
+        sourceId:'cab_1',
+        sourceLabel:baseCabinet + ' — Lewe drzwiczki',
+        workAutomatCode:'hinge_mount',
+        laborAutomatCode:'hinge_mount',
+        rateType:'workshop',
+        hourlyRate:150,
+        baseHours:0.25,
+        hours:0.25,
+        quantity:2,
+        unit:'szt.',
+        total:37.5,
+        multiplier:1,
+      },
+    },{
+      section:'labor',
+      sourceLabel:baseCabinet + ' — Prawe drzwiczki',
+      sourceId:'cab_1',
+      name:'Montaż zawiasu',
+      quantity:2,
+      unit:'szt.',
+      unitPrice:18.75,
+      total:37.5,
+      calculation:'Cena = 0.25 h × 150 PLN/h.',
+      raw:{
+        sourceRole:'hinge-labor',
+        sourceType:'hinges',
+        sourceKind:'automatic',
+        sourceId:'cab_1',
+        sourceLabel:baseCabinet + ' — Prawe drzwiczki',
+        workAutomatCode:'hinge_mount',
+        laborAutomatCode:'hinge_mount',
+        rateType:'workshop',
+        hourlyRate:150,
+        baseHours:0.25,
+        hours:0.25,
+        quantity:2,
+        unit:'szt.',
+        total:37.5,
+        multiplier:1,
+      },
     }],
-    totals:{ labor:75, subtotal:75, grand:75 },
+    totals:{ labor:150, subtotal:150, grand:150 },
     warnings:[],
   }
 };
@@ -129,9 +187,11 @@ const bodyText = body.textContent;
 
 assert(title && title.textContent === 'Szczegóły robocizny szafek', 'nagłówek modala robocizny jest ludzki', title && title.textContent);
 assert(subtitle && subtitle.textContent === 'Sprawdź, co zostało policzone i skąd wzięła się kwota.', 'podtytuł modala robocizny jest ludzki', subtitle && subtitle.textContent);
-assert(bodyText.includes('1 czynność razem = 75,00 zł'), 'podsumowanie szafki używa „czynność razem”, bez skrótu poz.', bodyText);
+assert(bodyText.includes('3 czynności razem = 150,00 zł • czas: 1 h'), 'podsumowanie szafki używa „czynności razem” i pokazuje łączny czas', bodyText);
 assert(!bodyText.includes('1 poz.'), 'podsumowanie robocizny nie używa skrótu „poz.”', bodyText);
-['Dotyczy: 2 frontów 30 × 72 cm', 'Czas na 1 sztukę: 0,25 h', 'Stawka warsztatowa: 150 zł/h', 'Razem: 2 × 0,25 h × 150 zł/h = 75,00 zł'].forEach((needle)=>{
+const cabinetTitleCount = (bodyText.match(new RegExp(baseCabinet.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+assert(cabinetTitleCount === 1, 'jedna szafka ma jeden akordeon, także gdy ma lewe i prawe drzwiczki', bodyText);
+['Dotyczy: 2 frontów 30 × 72 cm', 'Czas na 1 sztukę: 0,25 h', 'Czas razem: 2 × 0,25 h = 0,5 h', 'Stawka warsztatowa: 150 zł/h', 'Razem: 2 × 0,25 h × 150 zł/h = 75,00 zł', 'Dotyczy: Lewe drzwiczki: 2 zawiasów', 'Dotyczy: Prawe drzwiczki: 2 zawiasów'].forEach((needle)=>{
   assert(bodyText.includes(needle), 'brak czytelnej linii robocizny: ' + needle, bodyText);
 });
 assert(bodyText.includes('To jest stawka startowa. Przed wysłaniem oferty sprawdź ją w cenniku.'), 'komunikat ceny startowej ma nowy tekst', bodyText);
@@ -140,6 +200,7 @@ assert(!bodyText.includes('PLN'), 'widok robocizny dla człowieka nie pokazuje P
 
 console.log('OK quote-labor-details-human-readable smoke');
 console.log(' - nagłówek/podtytuł robocizny są po ludzku');
-console.log(' - podsumowanie szafki używa „czynność razem”');
+console.log(' - podsumowanie szafki używa „czynności razem” i pokazuje łączny czas');
+console.log(' - lewe/prawe drzwiczki są skomasowane w jednym akordeonie szafki');
 console.log(' - pozycja montażu frontu pokazuje Dotyczy/Czas/Stawka/Razem');
 console.log(' - stawka startowa ma nowy komunikat i zł zamiast PLN');

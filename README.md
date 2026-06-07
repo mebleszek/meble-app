@@ -1,3 +1,14 @@
+## 2026-06-07 — WYCENA: skomasowane szczegóły robocizny szafek v2
+
+- Paczka: `site_quote_labor_details_human_readable_v2.zip`.
+- Poprawiono regresję prezentacji z v1: w modalu `Szczegóły robocizny szafek` jedna szafka tworzy jeden akordeon, także wtedy, gdy rejestr ma osobne linie dla lewych i prawych drzwiczek.
+- Podsumowanie akordeonu robocizny pokazuje liczbę czynności, sumę pieniędzy oraz łączny czas, np. `3 czynności razem = 150,00 zł • czas: 1 h`.
+- Każda czynność pokazuje teraz pełniejsze działanie dla człowieka: `Dotyczy`, `Czas na 1 sztukę`, `Czas razem`, `Stawka ...` i `Razem`.
+- Dla linii drzwi/zawiasów szczegół typu `Lewe drzwiczki` / `Prawe drzwiczki` jest pokazany w polu `Dotyczy`, ale nie tworzy osobnego akordeonu.
+- Nie zmieniano algorytmów liczenia robocizny, `quoteCalculationRegister`, działu CZYNNOŚCI, materiałów, okuć, AGD, szafek ani stawek; zmiana dotyczy wyłącznie grupowania i prezentacji istniejących danych w modalu WYCENY.
+- Rozszerzono regresję `tools/quote-labor-details-human-readable-smoke.js` o skomasowanie lewych/prawych drzwiczek w jednym akordeonie i o linię `Czas razem`.
+- Cache-busting: `20260607_quote_labor_details_human_readable_v2`. Raport: `tools/reports/quote-labor-details-human-readable-v2.md`.
+
 ## 2026-06-07 — WYCENA: ludzkie szczegóły robocizny szafek v1
 
 - Paczka: `site_quote_labor_details_human_readable_v1.zip`.
