@@ -1,3 +1,15 @@
+## 2026-06-07 — WYCENA: ludzkie szczegóły robocizny szafek v1
+
+- Paczka: `site_quote_labor_details_human_readable_v1.zip`.
+- Poprawiono język modala `Szczegóły / Robocizna szafek`: nagłówek brzmi `Szczegóły robocizny szafek`, a podtytuł `Sprawdź, co zostało policzone i skąd wzięła się kwota.`.
+- W akordeonach szafek podsumowanie robocizny nie używa już skrótu `poz.`; pokazuje np. `1 czynność razem = 75,00 zł` albo `2 czynności razem = 150,00 zł`.
+- Linie robocizny szafek są renderowane czytelnie z istniejących danych rejestru: `Dotyczy`, `Czas`, `Stawka` i `Razem`, z formatem `×`, przecinkiem dziesiętnym i walutą `zł`.
+- Techniczny opis typu `Fronty z MATERIAŁ/WYCENA` nie jest pokazywany w głównej treści linii frontów; pozostaje tylko jako dane źródłowe/diagnostyczne w istniejącym rejestrze.
+- Komunikat stawki startowej w widoku dla człowieka brzmi: `To jest stawka startowa. Przed wysłaniem oferty sprawdź ją w cenniku.`.
+- Nie zmieniano algorytmów liczenia robocizny, `quoteCalculationRegister`, działu CZYNNOŚCI, materiałów, okuć, AGD, szafek ani stawek; zmiana dotyczy prezentacji modala audytu WYCENY.
+- Dodano regresję `tools/quote-labor-details-human-readable-smoke.js` i zachowano regresje WYCENY / `quoteCalculationRegister`.
+- Cache-busting: `20260607_quote_labor_details_human_readable_v1`. Raport: `tools/reports/quote-labor-details-human-readable-v1.md`.
+
 ## 2026-06-07 — Robocizna: deduplikacja profili stawek godzinowych v1
 
 - Paczka: `site_labor_rate_profiles_dedupe_fix_v1.zip`.

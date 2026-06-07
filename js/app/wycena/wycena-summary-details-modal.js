@@ -7,8 +7,14 @@
 
   function text(value){ return String(value == null ? '' : value).trim(); }
   function num(value){ const n = Number(String(value == null ? '' : value).replace(',', '.')); return Number.isFinite(n) ? n : 0; }
-  function money(value){ return (Math.round(num(value) * 100) / 100).toFixed(2) + ' PLN'; }
-  function pct(value, total){ const t = num(total); if(!(t > 0)) return '0%'; return (Math.round((num(value) / t) * 1000) / 10).toFixed(1).replace('.0', '') + '%'; }
+  function formatDecimal(value, precision){
+    const n = Math.round(num(value) * Math.pow(10, precision == null ? 2 : precision)) / Math.pow(10, precision == null ? 2 : precision);
+    return n.toFixed(precision == null ? 2 : precision).replace(/\.?0+$/, '').replace('.', ',');
+  }
+  function money(value){ return (Math.round(num(value) * 100) / 100).toFixed(2).replace('.', ',') + ' zł'; }
+  function rateMoney(value){ return formatDecimal(value, 2) + ' zł/h'; }
+  function hours(value){ return formatDecimal(value, 2) + ' h'; }
+  function pct(value, total){ const t = num(total); if(!(t > 0)) return '0%'; return (Math.round((num(value) / t) * 1000) / 10).toFixed(1).replace('.0', '').replace('.', ',') + '%'; }
   function h(tag, attrs, children){
     const el = document.createElement(tag);
     Object.keys(attrs || {}).forEach((key)=>{
@@ -56,7 +62,133 @@
     });
     target.appendChild(btn);
   }
+  function humanWarningText(message){
+    const msg = text(message);
+    if(msg === 'Cena startowa — sprawdź i edytuj w cenniku przed realną ofertą.') return 'To jest stawka startowa. Przed wysłaniem oferty sprawdź ją w cenniku.';
+    return msg.replace(/\bPLN\b/g, 'zł');
+  }
+  function humanCountWord(count, one, few, many){
+    const n = Math.abs(Math.round(num(count)));
+    if(n === 1) return one;
+    if(n % 10 >= 2 && n % 10 <= 4 && !(n % 100 >= 12 && n % 100 <= 14)) return few || many || one;
+    return many || few || one;
+  }
+  function laborActionSummary(count, sum){
+    const n = Math.max(0, Math.round(num(count)));
+    return `${n} ${humanCountWord(n, 'czynność', 'czynności', 'czynności')} razem = ${money(sum)}`;
+  }
+  function catalogQuoteRates(){
+    try{ return FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : []; }
+    catch(_){ return []; }
+  }
+  function lowerFirst(value){
+    const raw = text(value);
+    return raw ? raw.charAt(0).toLowerCase() + raw.slice(1) : '';
+  }
+  function laborRateLabel(row){
+    const raw = row && row.raw && typeof row.raw === 'object' ? row.raw : {};
+    const code = text(raw.rateType || row && row.rateType);
+    let label = '';
+    try{ if(FC.laborCatalog && typeof FC.laborCatalog.getRateLabel === 'function') label = FC.laborCatalog.getRateLabel(code, catalogQuoteRates()); }catch(_){ }
+    if(!label){
+      const fallback = { workshop:'Warsztatowa', assembly:'Montażowa', specialist:'Specjalistyczna', helper:'Pomocnika' };
+      label = fallback[code] || '';
+    }
+    if(!text(label)) return 'Stawka';
+    return /^stawka\b/i.test(label) ? label : 'Stawka ' + lowerFirst(label);
+  }
+  function parseFrontRows(note){
+    const raw = text(note);
+    const match = raw.match(/Fronty z MATERIAŁ\/WYCENA:\s*(.+)$/i);
+    if(!match) return [];
+    return match[1].split(',').map((chunk)=>{
+      const part = text(chunk);
+      const found = part.match(/^(\d+(?:[\.,]\d+)?)\s*[×x]\s*([0-9]+(?:[\.,][0-9]+)?)\s*×\s*([0-9]+(?:[\.,][0-9]+)?)/i);
+      if(!found) return null;
+      return { qty:num(found[1]), dims:`${formatDecimal(found[2], 1)} × ${formatDecimal(found[3], 1)}`.replace(/,0\b/g, '') };
+    }).filter(Boolean);
+  }
+  function rawLabor(row){ return row && row.raw && typeof row.raw === 'object' ? row.raw : {}; }
+  function laborSubject(row){
+    const raw = rawLabor(row);
+    const quantity = Math.max(0, num(row && row.quantity || raw.quantity || 1));
+    const unit = text(row && row.unit || raw.unit || 'szt.');
+    const role = text(raw.sourceRole || row && row.sourceRole);
+    const code = text(raw.workAutomatCode || raw.laborAutomatCode || row && (row.workAutomatCode || row.laborAutomatCode));
+    const name = text(row && row.name).toLowerCase();
+    if(role === 'front-labor' || code === 'front_mount' || name.includes('frontu')){
+      const rows = parseFrontRows(raw.note || row && row.note);
+      const label = `${formatDecimal(quantity, 2)} ${quantity === 1 ? 'front' : 'frontów'}`;
+      if(rows.length === 1) return `${label} ${rows[0].dims} cm`;
+      if(rows.length > 1) return `${label}: ${rows.map((part)=> `${formatDecimal(part.qty, 2)} × ${part.dims} cm`).join(', ')}`;
+      return `${label}`;
+    }
+    if(role === 'shelf-labor' || code === 'shelf_mount' || name.includes('pół')) return `${formatDecimal(quantity, 2)} ${humanCountWord(quantity, 'półka', 'półki', 'półek')}`;
+    if(role === 'cabinet-body-labor' || code === 'cabinet_body') return `${formatDecimal(quantity || 1, 2)} ${quantity === 1 ? 'korpusu' : 'korpusów'}`;
+    if(role === 'hinge-labor' || code === 'hinge_mount' || name.includes('zawias')) return `${formatDecimal(quantity, 2)} ${quantity === 1 ? 'zawiasu' : 'zawiasów'}`;
+    if(text(raw.sourceType) === 'appliance') return text(raw.sourceLabel) || 'montaż AGD';
+    if(text(raw.sourceKind) === 'manual' || text(raw.sourceType).includes('manual')) return quantity > 0 ? `${formatDecimal(quantity, 2)} szt. — czynność ręczna` : 'czynność ręczna';
+    if(unit === 'szt.' || unit === 'szt') return `${formatDecimal(quantity, 2)} szt.`;
+    if(unit) return `${formatDecimal(quantity, 2)} ${unit}`;
+    return 'czynność ręczna';
+  }
+  function laborFormula(row){
+    const raw = rawLabor(row);
+    const quantity = Math.max(0, num(row && row.quantity || raw.quantity || 1)) || 1;
+    const total = num(row && row.total || raw.total);
+    const hourlyRate = num(raw.hourlyRate);
+    const baseHours = num(raw.baseHours);
+    const pricedHours = num(raw.hours);
+    const fixedPrice = num(raw.fixedPrice);
+    const volumePrice = num(raw.volumePrice);
+    const multiplier = num(raw.multiplier) || 1;
+    const sourceRole = text(raw.sourceRole);
+    const unit = text(row && row.unit || raw.unit);
+    const linearPiece = (unit === 'szt.' || unit === 'szt') && quantity > 0 && hourlyRate > 0 && baseHours > 0 && fixedPrice <= 0 && volumePrice <= 0 && (Math.abs(multiplier - 1) < 0.0001 || sourceRole === 'front-labor');
+    if(linearPiece){
+      const perUnit = baseHours / quantity;
+      return `${formatDecimal(quantity, 2)} × ${hours(perUnit)} × ${rateMoney(hourlyRate)} = ${money(total)}`;
+    }
+    const parts = [];
+    if(pricedHours > 0 && hourlyRate > 0) parts.push(`${hours(pricedHours)} × ${rateMoney(hourlyRate)}`);
+    if(volumePrice > 0) parts.push(`dopłata gabarytowa ${money(volumePrice)}`);
+    if(fixedPrice > 0) parts.push(`kwota stała ${money(fixedPrice)}`);
+    return parts.length ? `${parts.join(' + ')} = ${money(total)}` : money(total);
+  }
+  function laborTimeLabel(row){
+    const raw = rawLabor(row);
+    const quantity = Math.max(0, num(row && row.quantity || raw.quantity || 1)) || 1;
+    const unit = text(row && row.unit || raw.unit);
+    const baseHours = num(raw.baseHours);
+    const pricedHours = num(raw.hours);
+    if((unit === 'szt.' || unit === 'szt') && quantity > 0 && baseHours > 0) return ['Czas na 1 sztukę:', hours(baseHours / quantity)];
+    if(pricedHours > 0) return ['Czas wyceniony:', hours(pricedHours)];
+    return ['', ''];
+  }
+  function renderLaborLine(row){
+    const item = h('div', { class:'quote-detail-line quote-detail-line--labor' });
+    const main = h('div', { class:'quote-detail-line__main' });
+    const name = h('div', { class:'quote-detail-line__name' });
+    name.appendChild(h('span', { text:text(row && row.name) || 'Czynność robocizny' }));
+    if(row && row.starterPrice) name.appendChild(h('span', { class:'quote-detail-chip quote-detail-chip--warning', text:'Cena startowa' }));
+    addInfoButton(name, row && row.name, row && row.calculation);
+    main.appendChild(name);
+    const details = h('div', { class:'quote-detail-labor-human' });
+    details.appendChild(h('div', { class:'quote-detail-labor-human__row', text:'Dotyczy: ' + laborSubject(row) }));
+    const time = laborTimeLabel(row);
+    if(time[0]) details.appendChild(h('div', { class:'quote-detail-labor-human__row', text:`${time[0]} ${time[1]}` }));
+    const raw = rawLabor(row);
+    if(num(raw.hourlyRate) > 0) details.appendChild(h('div', { class:'quote-detail-labor-human__row', text:`${laborRateLabel(row)}: ${rateMoney(raw.hourlyRate)}` }));
+    details.appendChild(h('div', { class:'quote-detail-labor-human__row quote-detail-labor-human__row--total', text:'Razem: ' + laborFormula(row) }));
+    main.appendChild(details);
+    item.appendChild(main);
+    const warnings = Array.isArray(row && row.warnings) ? row.warnings : [];
+    warnings.forEach((msg)=> item.appendChild(h('div', { class:'quote-detail-warning', text:humanWarningText(msg) })));
+    return item;
+  }
+
   function renderLine(row){
+    if(text(row && row.section) === 'labor') return renderLaborLine(row);
     const item = h('div', { class:'quote-detail-line' });
     const main = h('div', { class:'quote-detail-line__main' });
     const name = h('div', { class:'quote-detail-line__name' });
@@ -71,7 +203,7 @@
     price.appendChild(h('div', { class:'quote-detail-line__total', text:money(row && row.total) }));
     item.appendChild(main); item.appendChild(price);
     const warnings = Array.isArray(row && row.warnings) ? row.warnings : [];
-    warnings.forEach((msg)=> item.appendChild(h('div', { class:'quote-detail-warning', text:msg })));
+    warnings.forEach((msg)=> item.appendChild(h('div', { class:'quote-detail-warning', text:humanWarningText(msg) })));
     return item;
   }
   function sectionTitle(section){
@@ -207,10 +339,15 @@
     const titleBox = h('div', { class:'rozrys-material-accordion__title' });
     titleBox.appendChild(h('div', { class:'rozrys-material-accordion__title-line1', text:title }));
     const count = Array.isArray(rows) ? rows.length : 0;
-    const metaParts = [];
-    if(count) metaParts.push(`${count} poz.`);
-    metaParts.push(money(sum));
-    titleBox.appendChild(h('div', { class:'rozrys-material-accordion__title-line2', text:metaParts.join(' • ') }));
+    let summaryText = '';
+    if(cfg.section === 'labor') summaryText = laborActionSummary(count, sum);
+    else{
+      const metaParts = [];
+      if(count) metaParts.push(`${count} ${count === 1 ? 'pozycja' : 'pozycji'}`);
+      metaParts.push(money(sum));
+      summaryText = metaParts.join(' • ');
+    }
+    titleBox.appendChild(h('div', { class:'rozrys-material-accordion__title-line2', text:summaryText }));
     button.appendChild(titleBox);
     button.appendChild(h('span', { class:'rozrys-material-accordion__chevron', 'aria-hidden':'true', html:'&#9662;' }));
     head.appendChild(button);
@@ -230,13 +367,14 @@
     container.appendChild(box);
     return box;
   }
-  function renderRows(container, rows, groupBy){
+  function renderRows(container, rows, groupBy, section){
+    const currentSection = text(section);
     if(!rows.length){
-      renderGroup(container, 'Brak pozycji', [], 0, { open:true, emptyText:'Brak pozycji w tej kategorii dla tej oferty.' });
+      renderGroup(container, 'Brak pozycji', [], 0, { open:true, section:currentSection, emptyText:'Brak pozycji w tej kategorii dla tej oferty.' });
       return;
     }
     grouped(rows, groupBy || 'subsection').forEach(([group, groupRows], index)=>{
-      renderGroup(container, group, groupRows, groupRows.reduce((sum, row)=> sum + num(row && row.total), 0), { open:index === 0 });
+      renderGroup(container, group, groupRows, groupRows.reduce((sum, row)=> sum + num(row && row.total), 0), { open:index === 0, section:currentSection });
     });
   }
   function renderTotal(container, register){
@@ -285,7 +423,7 @@
     box.appendChild(head);
     const panel = h('div', { class:'quote-detail-group__panel quote-detail-warnings__panel rozrys-material-accordion__body' });
     panel.hidden = true;
-    warnings.forEach((row)=> panel.appendChild(h('div', { class:'quote-detail-warning', text:text(row && row.message || row) })));
+    warnings.forEach((row)=> panel.appendChild(h('div', { class:'quote-detail-warning', text:humanWarningText(row && row.message || row) })));
     box.appendChild(panel);
     button.addEventListener('click', (event)=>{
       event.preventDefault();
@@ -334,11 +472,11 @@
     const lines = Array.isArray(register.lines) ? register.lines : [];
     body.innerHTML = '';
     const current = text(section || 'total');
-    if(title) title.textContent = current === 'total' ? 'Analiza oferty' : 'Szczegóły: ' + sectionTitle(current);
-    if(subtitle) subtitle.textContent = 'Audyt wewnętrzny — pozycje zapisane w rejestrze wyliczeń tej oferty.';
+    if(title) title.textContent = current === 'labor' ? 'Szczegóły robocizny szafek' : (current === 'total' ? 'Analiza oferty' : 'Szczegóły: ' + sectionTitle(current));
+    if(subtitle) subtitle.textContent = current === 'labor' ? 'Sprawdź, co zostało policzone i skąd wzięła się kwota.' : 'Audyt wewnętrzny — pozycje zapisane w rejestrze wyliczeń tej oferty.';
     renderWarnings(body, register, current);
     if(current === 'total') renderTotal(body, register);
-    else renderRows(body, lines.filter((row)=> row.section === current), current === 'labor' ? 'sourceLabel' : 'subsection');
+    else renderRows(body, lines.filter((row)=> row.section === current), current === 'labor' ? 'sourceLabel' : 'subsection', current);
     body.scrollTop = 0;
     overlay.style.display = 'flex';
     // Przy pierwszym otwarciu zostawiamy body na początku modala.
