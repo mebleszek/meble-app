@@ -450,21 +450,18 @@
 #quoteSummaryDetailsModal .quote-detail-modal__closeWrap{width:auto;flex:0 0 auto;display:flex;justify-content:flex-end;}
 #quoteSummaryDetailsModal .quote-detail-modal__body{display:flex;flex:1 1 auto;min-height:0;max-height:none;flex-direction:column;gap:12px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scroll-padding-top:8px;scroll-padding-bottom:18px;padding:14px 16px 28px;}
 #quoteSummaryDetailsModal .quote-detail-modal__footer{display:flex;flex:0 0 auto;justify-content:flex-end;gap:8px;padding:12px 16px max(12px, env(safe-area-inset-bottom));border-top:1px solid rgba(226,232,240,.95);background:#fff;box-shadow:0 -10px 18px rgba(15,23,42,.04);}
-/* Szczegóły WYCENY — akordeony korzystają z tego samego wzorca co ROZRYS/UI patterns. */
-.quote-detail-group.rozrys-material-accordion{margin-top:0;border:2px solid rgba(15,23,42,.56);border-radius:22px;background:#fff;box-shadow:2px 3px 0 rgba(15,23,42,.16),4px 9px 16px rgba(15,23,42,.10);overflow:hidden;scroll-margin-top:10px;scroll-margin-bottom:18px;}
-.quote-detail-group.rozrys-material-accordion.is-open{border-color:rgba(15,23,42,.62);box-shadow:2px 3px 0 rgba(15,23,42,.18),6px 12px 20px rgba(15,23,42,.12);}
-.quote-detail-group__head{background:#fff;}
-.quote-detail-group__header.rozrys-material-accordion__trigger{width:100%;border:0;background:#fff;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px 8px;text-align:left;cursor:pointer;font:inherit;color:inherit;}
-.quote-detail-group__titleWrap.rozrys-material-accordion__title{min-width:0;flex:1 1 auto;display:flex;flex-direction:column;gap:2px;color:#0f172a;}
-.quote-detail-group__title.rozrys-material-accordion__title-line1{font-size:20px;line-height:1.12;font-weight:800;color:#0f172a;overflow-wrap:anywhere;word-break:break-word;}
-.quote-detail-group__count{font-size:13px;line-height:1.25;font-weight:900;color:#64748b;overflow-wrap:anywhere;word-break:break-word;}
-.quote-detail-group__right{display:flex;align-items:flex-start;justify-content:flex-end;gap:8px;flex:0 0 auto;min-width:130px;padding-top:1px;}
-.quote-detail-group__sum{font-size:14px;line-height:1.2;font-weight:900;color:#334155;white-space:nowrap;padding-top:7px;text-align:right;}
-.quote-detail-group__chevron.rozrys-material-accordion__chevron{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-width:34px;min-height:34px;font-size:30px;line-height:1;color:#16a34a;transition:transform .18s ease;}
-.quote-detail-group.is-open .quote-detail-group__chevron{transform:rotate(180deg);}
+/* Szczegóły WYCENY — akordeony 1:1 według wzorca `Accordion ROZRYS + ruch`. */
+.quote-detail-group.rozrys-material-accordion{margin-top:0;scroll-margin-top:10px;scroll-margin-bottom:18px;}
+#quoteSummaryDetailsModal .ui-pattern-accordion-motion .rozrys-material-accordion__trigger{align-items:center;padding:16px;}
+#quoteSummaryDetailsModal .ui-pattern-accordion-motion .rozrys-material-accordion__chevron{margin-left:auto;flex:0 0 auto;}
+#quoteSummaryDetailsModal .ui-pattern-accordion-motion .rozrys-material-accordion__body{transition:max-height .42s cubic-bezier(.22,.72,.18,1),opacity .30s ease,transform .36s ease;will-change:max-height,opacity,transform;}
+#quoteSummaryDetailsModal .ui-pattern-accordion-motion .rozrys-material-accordion.is-ui-pattern-animating .rozrys-material-accordion__body{overflow:hidden;}
+#quoteSummaryDetailsModal .ui-pattern-accordion-motion .rozrys-material-accordion__body[hidden]{display:none!important;}
 .quote-detail-group__panel.rozrys-material-accordion__body{padding:0 20px 20px;border-top:1px solid rgba(15,23,42,.10);background:#fff;}
-.quote-detail-group__panel[hidden]{display:none!important;}
-.quote-detail-group.is-quote-detail-animating > .quote-detail-group__panel{overflow:hidden;}
+.quote-detail-warnings__panel.rozrys-material-accordion__body{background:#fff;}
+@media(prefers-reduced-motion:reduce){
+  #quoteSummaryDetailsModal .ui-pattern-accordion-motion .rozrys-material-accordion__body{transition:none!important;}
+}
 .quote-detail-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:13px 0;border-bottom:1px solid rgba(226,232,240,.7);}
 .quote-detail-line:last-child{border-bottom:none;}
 .quote-detail-line__main{min-width:0;}
@@ -477,11 +474,6 @@
 .quote-detail-info{width:22px;height:22px;min-width:22px;}
 .quote-detail-empty{padding:14px 0;color:#64748b;font-size:13px;line-height:1.4;}
 .quote-detail-warning{margin-top:8px;padding:9px 11px;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:12px;line-height:1.35;font-weight:800;}
-.quote-detail-group--warnings.rozrys-material-accordion{border-color:#fed7aa;background:#fff7ed;box-shadow:2px 3px 0 rgba(154,52,18,.08),4px 9px 16px rgba(154,52,18,.05);}
-.quote-detail-group--warnings.rozrys-material-accordion.is-open{border-color:#fbbf24;box-shadow:2px 3px 0 rgba(154,52,18,.10),6px 12px 20px rgba(154,52,18,.08);}
-.quote-detail-group--warnings .quote-detail-group__head,.quote-detail-group--warnings .quote-detail-group__header{background:#fff7ed;}
-.quote-detail-group--warnings .quote-detail-group__title,.quote-detail-group--warnings .quote-detail-group__sum{color:#9a3412;}
-.quote-detail-warnings__panel.rozrys-material-accordion__body{padding:0 20px 16px;background:#fff7ed;border-top:1px solid #fed7aa;}
 .quote-detail-total-row{display:flex;justify-content:space-between;gap:10px;padding:9px 14px;border-bottom:1px solid rgba(226,232,240,.75);font-weight:800;color:#334155;}
 .quote-detail-total-row:last-child{border-bottom:none;}
 @media (max-width: 640px){
@@ -490,13 +482,7 @@
   #quoteSummaryDetailsModal .quote-detail-modal__header{padding:16px 18px;flex-wrap:nowrap;gap:12px;}
   #quoteSummaryDetailsModal .quote-detail-modal__closeWrap{width:auto;}
   #quoteSummaryDetailsModal .quote-detail-modal__body{padding:12px 12px 34px;scroll-padding-top:10px;scroll-padding-bottom:26px;}
-  .quote-detail-group.rozrys-material-accordion{border-radius:18px;scroll-margin-top:10px;scroll-margin-bottom:20px;}
-  .quote-detail-group__header.rozrys-material-accordion__trigger{padding:16px 16px 8px;gap:10px;min-height:0;}
-  .quote-detail-group__title.rozrys-material-accordion__title-line1{font-size:16px;line-height:1.12;letter-spacing:-.02em;}
-  .quote-detail-group__count{font-size:12px;line-height:1.3;}
-  .quote-detail-group__right{min-width:auto;gap:6px;}
-  .quote-detail-group__sum{font-size:13px;padding-top:6px;}
-  .quote-detail-group__chevron.rozrys-material-accordion__chevron{min-width:30px;min-height:30px;font-size:26px;}
+  .quote-detail-group.rozrys-material-accordion{scroll-margin-top:10px;scroll-margin-bottom:20px;}
   .quote-detail-group__panel.rozrys-material-accordion__body{padding:0 16px 16px;}
   .quote-detail-line{grid-template-columns:1fr;gap:6px;padding:13px 0;}
   .quote-detail-line__price{text-align:left;min-width:0;}

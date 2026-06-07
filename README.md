@@ -1,3 +1,14 @@
+## 2026-06-07 — WYCENA: akordeony audytu 1:1 z „Accordion ROZRYS + ruch” v1
+
+- Paczka: `site_quote_details_accordion_rozrys_1to1_v1.zip`.
+- Poprawiono modal szczegółów/audytu WYCENY tak, żeby akordeony korzystały strukturalnie 1:1 ze wzorca `dev_ui_patterns.html → Accordion ROZRYS + ruch`: `rozrys-material-accordion`, `rozrys-material-accordion__trigger`, `rozrys-material-accordion__title`, `title-line1`, `title-line2`, `rozrys-material-accordion__chevron` i `rozrys-material-accordion__body`.
+- Usunięto boczny układ kwoty/chevrona w nagłówku audytu, który tworzył inne proporcje niż wzorzec i powodował przycinanie krótkiej linii `1 poz.` na telefonie. Kwota jest teraz w drugiej linii nagłówka, razem z liczbą pozycji.
+- Chevron w audycie nie ma już własnego, konkurencyjnego stylu WYCENY; używa dokładnie mechanizmu i wyglądu wzorca ROZRYS, bez podwójnego symbolu strzałki.
+- Ostrzeżenia są nadal pierwszą sekcją audytu, ale ich zewnętrzny akordeon ma ten sam wygląd i mechanizm jak pozostałe sekcje; pomarańczowe zostały tylko wewnętrzne komunikaty ostrzegawcze.
+- Zachowano główny scroll modala, stałą stopkę `Wróć`, animację `scrollHeight/max-height`, natychmiastowe zamykanie poprzedniego akordeonu i przewijanie po kliknięciu.
+- Nie zmieniano wyliczeń WYCENY, robocizny, `quoteCalculationRegister`, snapshotów, materiałów, zawiasów, wariantów szafek, import/export, backupów ani UI poza modalem szczegółów WYCENY.
+- Cache-busting: `20260607_quote_details_accordion_rozrys_1to1_v1`. Raport: `tools/reports/quote-details-accordion-rozrys-1to1-v1.md`.
+
 ## 2026-06-07 — WYCENA: akordeony audytu zgodne ze wzorcem ROZRYS v1
 
 - Paczka: `site_quote_details_rozrys_accordion_sync_v1.zip`.

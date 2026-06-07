@@ -88,8 +88,8 @@
       else setTimeout(fn, 0);
     }catch(_){ setTimeout(fn, 0); }
   }
-  function groupPanel(group){ return group ? group.querySelector(':scope > .quote-detail-group__panel') : null; }
-  function groupTrigger(group){ return group ? group.querySelector(':scope .quote-detail-group__toggle') : null; }
+  function groupPanel(group){ return group ? group.querySelector(':scope > .rozrys-material-accordion__body') : null; }
+  function groupTrigger(group){ return group ? group.querySelector(':scope .rozrys-material-accordion__trigger') : null; }
   function resetGroupMotion(group){
     const panel = groupPanel(group);
     if(!group || !panel) return;
@@ -97,7 +97,7 @@
       clearTimeout(group._quoteDetailAccordionTimer);
       group._quoteDetailAccordionTimer = null;
     }
-    group.classList.remove('is-quote-detail-animating');
+    group.classList.remove('is-ui-pattern-animating');
     panel.style.maxHeight = '';
     panel.style.opacity = '';
     panel.style.transform = '';
@@ -129,7 +129,7 @@
     resetGroupMotion(group);
     setGroupState(group, true);
     if(prefersReducedMotion()) return;
-    group.classList.add('is-quote-detail-animating');
+    group.classList.add('is-ui-pattern-animating');
     panel.style.overflow = 'hidden';
     panel.style.maxHeight = '0px';
     panel.style.opacity = '0';
@@ -201,18 +201,18 @@
   }
   function renderGroup(container, title, rows, sum, options){
     const cfg = options || {};
-    const box = h('section', { class:'quote-detail-group rozrys-material-accordion' + (cfg.open ? ' is-open' : '') });
-    const head = h('div', { class:'quote-detail-group__head rozrys-material-accordion__head' });
-    const button = h('button', { type:'button', class:'quote-detail-group__header quote-detail-group__toggle rozrys-material-accordion__trigger', 'aria-expanded':cfg.open ? 'true' : 'false' });
-    const left = h('div', { class:'quote-detail-group__titleWrap rozrys-material-accordion__title' });
-    left.appendChild(h('div', { class:'quote-detail-group__title rozrys-material-accordion__title-line1', text:title }));
+    const box = h('section', { class:'quote-detail-group rozrys-material-accordion' + (cfg.open ? ' is-open' : ''), 'data-ui-pattern-accordion':'true' });
+    const head = h('div', { class:'rozrys-material-accordion__head' });
+    const button = h('button', { type:'button', class:'quote-detail-group__toggle rozrys-material-accordion__trigger', 'aria-expanded':cfg.open ? 'true' : 'false' });
+    const titleBox = h('div', { class:'rozrys-material-accordion__title' });
+    titleBox.appendChild(h('div', { class:'rozrys-material-accordion__title-line1', text:title }));
     const count = Array.isArray(rows) ? rows.length : 0;
-    if(count) left.appendChild(h('div', { class:'quote-detail-group__count', text:`${count} poz.` }));
-    button.appendChild(left);
-    const right = h('div', { class:'quote-detail-group__right' });
-    right.appendChild(h('div', { class:'quote-detail-group__sum', text:money(sum) }));
-    right.appendChild(h('span', { class:'quote-detail-group__chevron rozrys-material-accordion__chevron', 'aria-hidden':'true', html:'&#9662;' }));
-    button.appendChild(right);
+    const metaParts = [];
+    if(count) metaParts.push(`${count} poz.`);
+    metaParts.push(money(sum));
+    titleBox.appendChild(h('div', { class:'rozrys-material-accordion__title-line2', text:metaParts.join(' • ') }));
+    button.appendChild(titleBox);
+    button.appendChild(h('span', { class:'rozrys-material-accordion__chevron', 'aria-hidden':'true', html:'&#9662;' }));
     head.appendChild(button);
     box.appendChild(head);
     const panel = h('div', { class:'quote-detail-group__panel rozrys-material-accordion__body' });
@@ -273,17 +273,14 @@
   function renderWarnings(container, register, section){
     const warnings = collectSectionWarnings(register, section);
     if(!warnings.length) return;
-    const box = h('section', { class:'quote-detail-group quote-detail-group--warnings rozrys-material-accordion' });
-    const head = h('div', { class:'quote-detail-group__head rozrys-material-accordion__head' });
-    const button = h('button', { type:'button', class:'quote-detail-group__header quote-detail-group__toggle rozrys-material-accordion__trigger', 'aria-expanded':'false' });
-    const left = h('div', { class:'quote-detail-group__titleWrap rozrys-material-accordion__title' });
-    left.appendChild(h('div', { class:'quote-detail-group__title rozrys-material-accordion__title-line1', text:'Ostrzeżenia / rzeczy do sprawdzenia' }));
-    left.appendChild(h('div', { class:'quote-detail-group__count', text:`${warnings.length} ${warnings.length === 1 ? 'pozycja' : 'pozycji'}` }));
-    button.appendChild(left);
-    const right = h('div', { class:'quote-detail-group__right' });
-    right.appendChild(h('div', { class:'quote-detail-group__sum', text:'Sprawdź' }));
-    right.appendChild(h('span', { class:'quote-detail-group__chevron rozrys-material-accordion__chevron', 'aria-hidden':'true', html:'&#9662;' }));
-    button.appendChild(right);
+    const box = h('section', { class:'quote-detail-group quote-detail-group--warnings rozrys-material-accordion', 'data-ui-pattern-accordion':'true' });
+    const head = h('div', { class:'rozrys-material-accordion__head' });
+    const button = h('button', { type:'button', class:'quote-detail-group__toggle rozrys-material-accordion__trigger', 'aria-expanded':'false' });
+    const titleBox = h('div', { class:'rozrys-material-accordion__title' });
+    titleBox.appendChild(h('div', { class:'rozrys-material-accordion__title-line1', text:'Ostrzeżenia / rzeczy do sprawdzenia' }));
+    titleBox.appendChild(h('div', { class:'rozrys-material-accordion__title-line2', text:`${warnings.length} ${warnings.length === 1 ? 'pozycja' : 'pozycji'} • Sprawdź` }));
+    button.appendChild(titleBox);
+    button.appendChild(h('span', { class:'rozrys-material-accordion__chevron', 'aria-hidden':'true', html:'&#9662;' }));
     head.appendChild(button);
     box.appendChild(head);
     const panel = h('div', { class:'quote-detail-group__panel quote-detail-warnings__panel rozrys-material-accordion__body' });
@@ -310,7 +307,7 @@
     close.addEventListener('click', closeModal);
     closeWrap.appendChild(close);
     head.appendChild(titleWrap); head.appendChild(closeWrap);
-    const body = h('div', { id:'quoteSummaryDetailsBody', class:'body quote-detail-modal__body' });
+    const body = h('div', { id:'quoteSummaryDetailsBody', class:'body quote-detail-modal__body ui-pattern-accordion-motion', 'data-ui-pattern-accordion-group':'true' });
     const foot = h('div', { class:'quote-detail-modal__footer' });
     const exit = h('button', { type:'button', class:'btn-primary', text:'Wróć' });
     exit.addEventListener('click', closeModal);
