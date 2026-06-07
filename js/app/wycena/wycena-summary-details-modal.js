@@ -99,11 +99,17 @@
   function scrollGroupIntoDetailsBody(group, behavior){
     const body = getDetailsBody(group);
     if(!group || !body) return;
+    const scrollBehavior = behavior || 'smooth';
+    try{
+      const directTop = Math.max(0, (group.offsetTop || 0) - 10);
+      body.scrollTo({ top:directTop, behavior:scrollBehavior });
+      return;
+    }catch(_){ }
     try{
       const groupRect = group.getBoundingClientRect();
       const bodyRect = body.getBoundingClientRect();
-      const viewportTop = bodyRect.top + 8;
-      const viewportBottom = bodyRect.bottom - 14;
+      const viewportTop = bodyRect.top + 10;
+      const viewportBottom = bodyRect.bottom - 16;
       const fitsViewport = groupRect.height <= Math.max(0, viewportBottom - viewportTop);
       let target = body.scrollTop;
       if(groupRect.top < viewportTop){
@@ -114,9 +120,9 @@
       }else if(groupRect.top > viewportTop + 2){
         target += groupRect.top - viewportTop;
       }
-      body.scrollTo({ top:Math.max(0, target), behavior:behavior || 'smooth' });
+      body.scrollTo({ top:Math.max(0, target), behavior:scrollBehavior });
     }catch(_){
-      try{ group.scrollIntoView({ block:'start', behavior:behavior || 'smooth' }); }catch(__){ }
+      try{ group.scrollIntoView({ block:'start', behavior:scrollBehavior }); }catch(__){ }
     }
   }
   function setGroupOpen(group, open, opts){

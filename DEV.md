@@ -1,3 +1,14 @@
+## 2026-06-07 — WYCENA: poprawa mobile akordeonów audytu robocizny v1
+
+- Paczka: `site_quote_details_mobile_accordion_fit_v1.zip`.
+- Poprawiono wyłącznie widok akordeonów w modalu szczegółów/audytu WYCENY, szczególnie w sekcji `Robocizna szafek` na mobile.
+- Zwinięte akordeony mają teraz bezpieczną minimalną wysokość, grid nagłówka, jawny `line-height` tytułu i stałe miejsce po prawej na kwotę oraz przycisk rozwijania, żeby długie nazwy szafek nie były ucinane.
+- Mobile modal szczegółów dostał większy użyteczny obszar okna oraz większe bufory scrolla, żeby rozwinięta pozycja nie wyglądała jak minimalnie przycięta.
+- Kliknięcie akordeonu przewija otwartą sekcję do początku obszaru treści modala, zamiast zostawiać półucięte karty nad aktywną sekcją.
+- Rozszerzono regresję `tools/quote-details-accordion-scroll-smoke.js` o zabezpieczenia wysokości nagłówków, mobile offsetu i scrollowania otwartej sekcji.
+- Nie zmieniano wyliczeń WYCENY, robocizny, `quoteCalculationRegister`, snapshotów, materiałów, zawiasów, wariantów szafek, import/export, backupów ani UI poza modalem szczegółów WYCENY.
+- Cache-busting: `20260607_quote_details_mobile_accordion_fit_v1`. Raport: `tools/reports/quote-details-mobile-accordion-fit-v1.md`.
+
 ## 2026-06-06 — WYCENA: robocizna jako jedna prawda v1
 
 - Paczka: `site_quote_labor_single_truth_v1.zip`.
