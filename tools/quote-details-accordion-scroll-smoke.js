@@ -13,7 +13,7 @@ const css = read('css/wycena.css');
 const preview = read('js/app/wycena/wycena-tab-preview.js');
 const index = read('index.html');
 const devTests = read('dev_tests.html');
-const token = '20260607_quote_details_accordion_rozrys_1to1_v1';
+const token = '20260607_quote_details_accordion_rozrys_auto_height_v1';
 
 [
   ['total', "['Suma przed rabatem', totals.subtotal, 'total']"],
@@ -78,11 +78,17 @@ if(has(css, '.quote-detail-warnings{') || /quote-detail-warnings\{[^}]*overflow-
 if(!/#quoteSummaryDetailsModal \.quote-detail-modal\{[^}]*height:calc\(100dvh - var\(--quote-detail-top-offset\) - var\(--quote-detail-bottom-offset\)\)[^}]*display:grid[^}]*grid-template-rows:auto minmax\(0,1fr\) auto/.test(css)){
   fail('Modal szczegółów nie ma jednolitego układu grid i stałej wysokości viewport na desktop/tablet.');
 }
-if(!/#quoteSummaryDetailsModal \.quote-detail-modal__body\{[^}]*overflow-y:auto[^}]*scroll-padding-top:8px[^}]*scroll-padding-bottom:18px[^}]*padding:14px 16px 28px/.test(css)){
-  fail('Body modala szczegółów nie ma własnego scrolla i buforów odsłaniających pełną sekcję.');
+if(!/#quoteSummaryDetailsModal \.quote-detail-modal__body\{[^}]*display:block[^}]*overflow-y:auto[^}]*scroll-padding-top:8px[^}]*scroll-padding-bottom:18px[^}]*padding:14px 16px 28px/.test(css)){
+  fail('Body modala szczegółów musi być blokowe jak wzorzec UI, z własnym scrollem i bez flex-shrink dzieci.');
 }
-if(!/\.quote-detail-group\.rozrys-material-accordion\{[^}]*margin-top:0[^}]*scroll-margin-top:10px[^}]*scroll-margin-bottom:18px/.test(css)){
-  fail('Sekcje audytu nie mają tylko dopasowania marginesu/scrolla ponad bazowym wzorcem ROZRYS.');
+if(/#quoteSummaryDetailsModal \.quote-detail-modal__body\{[^}]*display:flex/.test(css) || /#quoteSummaryDetailsModal \.quote-detail-modal__body\{[^}]*flex-direction:column/.test(css)){
+  fail('Body modala szczegółów nie może być flex-kolumną, bo flex shrink ścina zwinięte akordeony.');
+}
+if(!/\.quote-detail-group\.rozrys-material-accordion\{[^}]*margin-top:12px[^}]*flex:0 0 auto[^}]*scroll-margin-top:10px[^}]*scroll-margin-bottom:18px/.test(css)){
+  fail('Sekcje audytu muszą mieć naturalną wysokość bez flex-shrink i odstęp jak wzorzec Accordion ROZRYS + ruch.');
+}
+if(!/\.quote-detail-group\.rozrys-material-accordion:first-child\{margin-top:0;\}/.test(css)){
+  fail('Pierwszy akordeon audytu musi startować bez dodatkowego marginesu jak pierwszy element wzorca UI.');
 }
 if(!/#quoteSummaryDetailsModal \.ui-pattern-accordion-motion \.rozrys-material-accordion__trigger\{align-items:center;padding:16px;\}/.test(css)){
   fail('Nagłówek audytu nie kopiuje ustawienia triggera z Accordion ROZRYS + ruch.');

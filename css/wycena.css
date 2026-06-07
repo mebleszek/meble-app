@@ -448,10 +448,11 @@
 #quoteSummaryDetailsModal .quote-detail-modal__header{position:static;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:nowrap;padding:18px 20px;}
 #quoteSummaryDetailsModal .quote-detail-modal__titleWrap{min-width:0;flex:1 1 auto;}
 #quoteSummaryDetailsModal .quote-detail-modal__closeWrap{width:auto;flex:0 0 auto;display:flex;justify-content:flex-end;}
-#quoteSummaryDetailsModal .quote-detail-modal__body{display:flex;flex:1 1 auto;min-height:0;max-height:none;flex-direction:column;gap:12px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scroll-padding-top:8px;scroll-padding-bottom:18px;padding:14px 16px 28px;}
+#quoteSummaryDetailsModal .quote-detail-modal__body{display:block;min-height:0;max-height:none;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scroll-padding-top:8px;scroll-padding-bottom:18px;padding:14px 16px 28px;}
 #quoteSummaryDetailsModal .quote-detail-modal__footer{display:flex;flex:0 0 auto;justify-content:flex-end;gap:8px;padding:12px 16px max(12px, env(safe-area-inset-bottom));border-top:1px solid rgba(226,232,240,.95);background:#fff;box-shadow:0 -10px 18px rgba(15,23,42,.04);}
 /* Szczegóły WYCENY — akordeony 1:1 według wzorca `Accordion ROZRYS + ruch`. */
-.quote-detail-group.rozrys-material-accordion{margin-top:0;scroll-margin-top:10px;scroll-margin-bottom:18px;}
+.quote-detail-group.rozrys-material-accordion{margin-top:12px;flex:0 0 auto;scroll-margin-top:10px;scroll-margin-bottom:18px;}
+.quote-detail-group.rozrys-material-accordion:first-child{margin-top:0;}
 #quoteSummaryDetailsModal .ui-pattern-accordion-motion .rozrys-material-accordion__trigger{align-items:center;padding:16px;}
 #quoteSummaryDetailsModal .ui-pattern-accordion-motion .rozrys-material-accordion__chevron{margin-left:auto;flex:0 0 auto;}
 #quoteSummaryDetailsModal .ui-pattern-accordion-motion .rozrys-material-accordion__body{transition:max-height .42s cubic-bezier(.22,.72,.18,1),opacity .30s ease,transform .36s ease;will-change:max-height,opacity,transform;}

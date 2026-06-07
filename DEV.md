@@ -1,3 +1,13 @@
+## 2026-06-07 — WYCENA: akordeony audytu ROZRYS 1:1 z auto wysokością v1
+
+- Paczka: `site_quote_details_accordion_rozrys_auto_height_v1.zip`.
+- Sprawdzono wzorzec `dev_ui_patterns.html → Accordion ROZRYS + ruch`: po animacji wzorzec czyści `max-height`, więc zawartość działa automatycznie według realnej wysokości treści.
+- Naprawiono realną przyczynę ucinania akordeonów w audycie WYCENY: body modala było `display:flex` z dziećmi jako elementami flex, więc długie listy ściskały zwinięte akordeony i przez `overflow:hidden` ucinały nagłówki.
+- Body modala szczegółów WYCENY jest teraz blokowe jak wzorzec UI, zachowuje własny scroll i nie ściska dzieci. Akordeony mają `flex:0 0 auto` jako dodatkowe zabezpieczenie przed przyszłym przycięciem.
+- Odstępy między akordeonami działają jak we wzorcu: pierwszy element bez dodatkowego marginesu, kolejne z odstępem 12 px.
+- Nie zmieniano wyliczeń WYCENY, robocizny, `quoteCalculationRegister`, snapshotów, materiałów, zawiasów, wariantów szafek, import/export, backupów ani UI poza modalem szczegółów/audytu WYCENY.
+- Cache-busting: `20260607_quote_details_accordion_rozrys_auto_height_v1`. Raport: `tools/reports/quote-details-accordion-rozrys-auto-height-v1.md`.
+
 ## 2026-06-07 — WYCENA: akordeony audytu 1:1 z „Accordion ROZRYS + ruch” v1
 
 - Paczka: `site_quote_details_accordion_rozrys_1to1_v1.zip`.
