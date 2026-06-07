@@ -34,6 +34,7 @@
       storedSheetMaterials:null,
       storedAccessories:null,
       storedQuoteRates:null,
+      storedLaborAutomats:null,
       storedWorkshopServices:null,
       storedServiceOrders:null,
       storedHardwareManufacturers:null,
@@ -42,7 +43,7 @@
       storedHardwareCategories:null,
       storedHardwareTypes:null,
       storedHardwareTechnicalParams:null,
-      defaults:{ sheetMaterials:[], accessories:[], quoteRates:[], workshopServices:[], serviceOrders:[], hardwareManufacturers:[], hardwareSuppliers:[], hardwareSettings:{}, hardwareCategories:[], hardwareTypes:[], hardwareTechnicalParams:[] },
+      defaults:{ sheetMaterials:[], accessories:[], quoteRates:[], laborAutomats:[], workshopServices:[], serviceOrders:[], hardwareManufacturers:[], hardwareSuppliers:[], hardwareSettings:{}, hardwareCategories:[], hardwareTypes:[], hardwareTechnicalParams:[] },
       splitLegacyMaterials:null,
     }, opts || {});
 
@@ -55,6 +56,7 @@
       sheetMaterials: preferStored && Array.isArray(cfg.storedSheetMaterials) ? clone(cfg.storedSheetMaterials) : clone(split.sheetMaterials || cfg.defaults.sheetMaterials || []),
       accessories: preferStored && Array.isArray(cfg.storedAccessories) ? clone(cfg.storedAccessories) : clone(split.accessories || cfg.defaults.accessories || []),
       quoteRates: preferStored && Array.isArray(cfg.storedQuoteRates) ? clone(cfg.storedQuoteRates) : clone(cfg.legacyServices || cfg.defaults.quoteRates || []),
+      laborAutomats: Array.isArray(cfg.storedLaborAutomats) ? clone(cfg.storedLaborAutomats) : clone(cfg.defaults.laborAutomats || []),
       workshopServices: Array.isArray(cfg.storedWorkshopServices) ? clone(cfg.storedWorkshopServices) : clone(cfg.defaults.workshopServices || []),
       serviceOrders: Array.isArray(cfg.storedServiceOrders) ? clone(cfg.storedServiceOrders) : clone(cfg.defaults.serviceOrders || []),
       hardwareManufacturers: Array.isArray(cfg.storedHardwareManufacturers) ? clone(cfg.storedHardwareManufacturers) : clone(cfg.defaults.hardwareManufacturers || []),

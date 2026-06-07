@@ -58,6 +58,12 @@
   function norm(value){
     return text(value).toLowerCase().replace(/ł/g, 'l').replace(/Ł/g, 'l').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
   }
+  function workAutomatCodeForServiceName(name){
+    try{
+      const labor = FC.laborCatalog || {};
+      return labor.inferWorkAutomatCode ? labor.inferWorkAutomatCode({ name }) : '';
+    }catch(_){ return ''; }
+  }
   function moneySource(item){
     const parts = [];
     if(text(item && item.priceSource)) parts.push(text(item.priceSource));
@@ -634,6 +640,8 @@
         type:'service',
         category:'AGD',
         name,
+        workAutomatCode:workAutomatCodeForServiceName(name),
+        laborAutomatCode:workAutomatCodeForServiceName(name),
         qty:1,
         unit:'szt.',
         unitPrice,

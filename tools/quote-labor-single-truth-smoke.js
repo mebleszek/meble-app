@@ -94,6 +94,9 @@ function runLaborRegisterTests(){
   assert(laborRegisterLines.length > 0, 'robocizna szafek trafia do quoteCalculationRegister', register);
   near(register.totals.labor, Math.round(laborRegisterLines.reduce((sum, row)=> sum + Number(row.total || 0), 0) * 100) / 100, 0.001, 'suma robocizny w rejestrze = suma linii rejestru');
   assert(laborRegisterLines.some((row)=> /Szafka #1/.test(row.sourceLabel || '') && row.sourceId === 'cab_body'), 'audyt robocizny pokazuje źródło pozycji: szafka/pokój/id', laborRegisterLines);
+  assert(laborRegisterLines.some((row)=> row.workAutomatCode === 'cabinet_body'), 'quoteCalculationRegister zachowuje kod automatu cabinet_body', laborRegisterLines);
+  assert(laborRegisterLines.some((row)=> row.workAutomatCode === 'front_mount'), 'quoteCalculationRegister zachowuje kod automatu front_mount', laborRegisterLines);
+  assert(laborRegisterLines.some((row)=> row.workAutomatCode === 'hinge_mount'), 'quoteCalculationRegister zachowuje kod automatu hinge_mount', laborRegisterLines);
 
   const drawerLine = laborLines.find((row)=> row.cabinetId === 'cab_drawer_door');
   assert(drawerLine, 'fixture: jest szafka szuflada_drzwi');
@@ -134,6 +137,7 @@ function runApplianceManualAndDiscountTests(){
   load(ctx, ['js/app/wycena/wycena-core-lines.js']);
   const agd = FC.wycenaCoreLines.collectBuiltInAppliances(['kuchnia']);
   assert(agd.length === 1 && agd[0].sourceType === 'appliance' && /Szafka #5/.test(agd[0].sourceLabel || ''), 'montaż AGD trafia do rejestru z audytem szafki/urządzenia', agd);
+  assert(agd[0].workAutomatCode === 'dishwasher_mount', 'montaż AGD zachowuje osobny kod automatu zmywarki bez przebudowy liczenia AGD', agd);
 
   FC.quoteOfferStore = { getCurrentDraft:()=> ({ rateSelections:[{ rateId:'labor_hole_fi60', qty:2 }] }) };
   load(ctx, ['js/app/wycena/wycena-core-offer.js']);
@@ -142,7 +146,7 @@ function runApplianceManualAndDiscountTests(){
 
   const register = FC.quoteCalculationRegister.buildRegister({ agdServices:agd, quoteRates:manual }, { discountPercent:10 });
   near(register.totals.services, 170, 0.001, 'montaż AGD trafia do quoteCalculationRegister');
-  assert(register.lines.some((row)=> row.section === 'services' && /Szafka #5/.test(row.sourceLabel || '')), 'audyt AGD pokazuje szafkę źródłową', register.lines);
+  assert(register.lines.some((row)=> row.section === 'services' && /Szafka #5/.test(row.sourceLabel || '') && row.workAutomatCode === 'dishwasher_mount'), 'audyt AGD pokazuje szafkę źródłową i kod automatu AGD', register.lines);
   near(register.totals.discount, (register.totals.services + register.totals.quoteRates) * 0.1, 0.001, 'rabat/narzut sumy działa przez register');
 }
 
@@ -152,3 +156,4 @@ console.log('OK quote-labor-single-truth smoke');
 console.log(' - robocizna korpusów/frontów/zawiasów trafia do quoteCalculationRegister');
 console.log(' - fronty i zawiasy bazują na centralnych źródłach bez dubli zestawów');
 console.log(' - AGD, ręczne pozycje i snapshot używają ścieżki rejestru');
+console.log(' - quoteCalculationRegister zachowuje workAutomatCode dla robocizny i AGD');

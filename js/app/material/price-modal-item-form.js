@@ -30,7 +30,7 @@
 
 
   const LABOR_CHOICE_FIELDS = [
-    { id:'laborAutoRole', title:'Wybierz automat', placeholder:'Automat' },
+    { id:'laborAutoRole', title:'Wybierz automat robocizny', placeholder:'Automat robocizny' },
     { id:'laborRateType', title:'Wybierz stawkę', placeholder:'Stawka' },
     { id:'laborTimeBlockHours', title:'Wybierz czas bazowy', placeholder:'Czas bazowy' },
     { id:'laborQuantityMode', title:'Wybierz tryb ilości', placeholder:'Tryb ilości' },
@@ -74,7 +74,7 @@
         title:field.title,
         buttonClass:'investor-choice-launch price-labor-choice-launch',
         placeholder:field.placeholder,
-        onChange:()=> updateItemActionState(),
+        onChange:()=>{ if(field.id === 'laborAutoRole') syncLaborAutomatUi(); updateItemActionState(); },
       });
     });
   }
@@ -100,6 +100,9 @@
       price:'',
       usage:isQuoteRates ? 'universal' : '',
       autoRole:'none',
+      workAutomatCode:isQuoteRates ? 'manual_fixed' : '',
+      automatCode:isQuoteRates ? 'manual_fixed' : '',
+      laborAutomatCode:isQuoteRates ? 'manual_fixed' : '',
       rateType:'workshop',
       timeBlockHours:0,
       defaultMultiplier:1,
@@ -131,6 +134,141 @@
   function readBool(id){ return !!(ctx.byId(id) && ctx.byId(id).checked); }
   function setValue(id, value){ const el = ctx.byId(id); if(el) el.value = value == null ? '' : String(value); }
   function setChecked(id, value){ const el = ctx.byId(id); if(el) el.checked = !!value; }
+
+  function store(){ return ctx.catalogStore && ctx.catalogStore(); }
+  function getLaborAutomats(){
+    const s = store();
+    try{
+      if(s && typeof s.getLaborAutomats === 'function') return s.getLaborAutomats();
+    }catch(_){ }
+    try{
+      return FC.laborCatalog && typeof FC.laborCatalog.ensureDefaultWorkAutomats === 'function'
+        ? FC.laborCatalog.ensureDefaultWorkAutomats([])
+        : [];
+    }catch(_){ return []; }
+  }
+  function saveLaborAutomats(list){
+    const s = store();
+    try{ if(s && typeof s.saveLaborAutomats === 'function') return s.saveLaborAutomats(list); }catch(_){ }
+    return list || [];
+  }
+  function selectedLaborAutomatCode(){
+    const labor = FC.laborCatalog || {};
+    const raw = readString('laborAutoRole');
+    return labor.normalizeWorkAutomatCode ? labor.normalizeWorkAutomatCode(raw) : raw;
+  }
+  function buildLaborAutomatOptions(selectedCode){
+    const labor = FC.laborCatalog || {};
+    if(labor.workAutomatOptions) return labor.workAutomatOptions(getLaborAutomats(), selectedCode);
+    return [{ value:'', label:'Brak automatu' }].concat(getLaborAutomats().map((row)=> ({ value:row.code, label:row.label || row.code })));
+  }
+  function syncLaborAutomatUi(){
+    if(ctx.currentListKind && ctx.currentListKind() !== 'quoteRates') return;
+    const code = selectedLaborAutomatCode();
+    const labor = FC.laborCatalog || {};
+    const item = labor.findWorkAutomat ? labor.findWorkAutomat(getLaborAutomats(), code) : null;
+    const preview = ctx.byId('laborAutomatCodePreview');
+    if(preview) preview.value = code || '';
+    const editBtn = ctx.byId('laborAutomatEditBtn');
+    if(editBtn){
+      editBtn.disabled = !code || !item;
+      editBtn.setAttribute('aria-disabled', editBtn.disabled ? 'true' : 'false');
+    }
+  }
+  function refreshLaborAutomatSelect(selectedCode){
+    const code = selectedCode || selectedLaborAutomatCode();
+    ctx.setSelectOptions(ctx.byId('laborAutoRole'), buildLaborAutomatOptions(code), code, code);
+    setValue('laborAutoRole', code);
+    try{ mountLaborChoiceLaunchers(); }catch(_){ }
+    syncLaborAutomatUi();
+  }
+  function makeModalField(label, input){
+    const wrap = document.createElement('div');
+    wrap.style.marginTop = '10px';
+    const lab = document.createElement('label');
+    lab.textContent = label;
+    wrap.appendChild(lab);
+    wrap.appendChild(input);
+    return wrap;
+  }
+  function openLaborAutomatModal(mode){
+    if(!(FC.panelBox && typeof FC.panelBox.open === 'function')) return;
+    const labor = FC.laborCatalog || {};
+    const list = getLaborAutomats();
+    const isEdit = mode === 'edit';
+    const currentCode = isEdit ? selectedLaborAutomatCode() : '';
+    const current = isEdit && labor.findWorkAutomat ? labor.findWorkAutomat(list, currentCode) : null;
+    if(isEdit && !current) return;
+    const body = document.createElement('div');
+    body.className = 'panel-box-form';
+    const nameInput = document.createElement('input');
+    nameInput.className = 'investor-form-input';
+    nameInput.type = 'text';
+    nameInput.id = 'laborAutomatModalLabel';
+    nameInput.value = current ? String(current.label || current.name || '') : '';
+    const codeInput = document.createElement('input');
+    codeInput.className = 'investor-form-input';
+    codeInput.type = 'text';
+    codeInput.id = 'laborAutomatModalCode';
+    codeInput.value = current ? String(current.code || '') : '';
+    if(isEdit){ codeInput.readOnly = true; codeInput.setAttribute('aria-readonly', 'true'); }
+    const activeLabel = document.createElement('label');
+    activeLabel.className = 'check-row';
+    activeLabel.style.marginTop = '10px';
+    const activeInput = document.createElement('input');
+    activeInput.type = 'checkbox';
+    activeInput.checked = current ? current.active !== false : true;
+    activeLabel.appendChild(activeInput);
+    activeLabel.appendChild(document.createTextNode(' Aktywny'));
+    body.appendChild(makeModalField('Nazwa przyjazna', nameInput));
+    body.appendChild(makeModalField('Kod techniczny automatu', codeInput));
+    body.appendChild(activeLabel);
+    const footer = document.createElement('div');
+    footer.className = 'modal-actions';
+    footer.style.marginTop = '16px';
+    const exit = document.createElement('button');
+    exit.type = 'button';
+    exit.className = 'btn';
+    exit.textContent = 'Wyjdź';
+    exit.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
+    const save = document.createElement('button');
+    save.type = 'button';
+    save.className = 'btn primary';
+    save.textContent = 'Zapisz';
+    save.addEventListener('click', ()=>{
+      const payload = {
+        code:String(codeInput.value || '').trim(),
+        label:String(nameInput.value || '').trim(),
+        name:String(nameInput.value || '').trim(),
+        description:current ? current.description : '',
+        system:current ? current.system === true : false,
+        isSystem:current ? current.isSystem === true : false,
+        active:activeInput.checked,
+        createdAt:current ? current.createdAt : undefined,
+      };
+      let result = null;
+      try{ result = labor.upsertWorkAutomat ? labor.upsertWorkAutomat(list, payload, isEdit ? { oldCode:currentCode } : {}) : null; }
+      catch(err){ result = { ok:false, error:err && err.message ? err.message : 'Nie udało się zapisać automatu robocizny.' }; }
+      if(!result || !result.ok){
+        ctx.info('Nie można zapisać automatu', String((result && result.error) || 'Sprawdź nazwę i kod techniczny.'));
+        return;
+      }
+      saveLaborAutomats(result.list || list);
+      refreshLaborAutomatSelect(result.item && result.item.code ? result.item.code : payload.code);
+      try{ FC.panelBox.close(); }catch(_){ }
+      updateItemActionState();
+    });
+    footer.appendChild(exit);
+    footer.appendChild(save);
+    body.appendChild(footer);
+    FC.panelBox.open({ title:isEdit ? 'Edytuj automat robocizny' : 'Nowy automat robocizny', contentNode:body, width:'620px', boxClass:'panel-box--rozrys', dismissOnOverlay:false, dismissOnEsc:true });
+  }
+  function wireLaborAutomatButtons(){
+    const createBtn = ctx.byId('laborAutomatCreateBtn');
+    const editBtn = ctx.byId('laborAutomatEditBtn');
+    if(createBtn) createBtn.onclick = ()=> openLaborAutomatModal('create');
+    if(editBtn) editBtn.onclick = ()=> openLaborAutomatModal('edit');
+  }
 
   function syncLaborGabarytMode(){
     if(ctx.currentListKind && ctx.currentListKind() !== 'quoteRates') return;
@@ -170,11 +308,16 @@
     const tierText = readString('laborTierText');
     const volumeTierText = readString('laborVolumeTimeTierText');
     const volumeTimeMode = readString('laborVolumeTimeMode') || 'none';
+    const selectedCode = selectedLaborAutomatCode();
+    const autoRole = labor.workAutomatCodeToAutoRole ? labor.workAutomatCodeToAutoRole(selectedCode, 'none') : 'none';
     return {
       usage:'universal',
-      autoRole:readString('laborAutoRole') || 'none',
+      autoRole,
+      workAutomatCode:selectedCode,
+      automatCode:selectedCode,
+      laborAutomatCode:selectedCode,
       rateType:readString('laborRateType') || 'workshop',
-      rateKey:readString('laborAutoRole') === 'hourlyRate' ? (readString('laborRateType') || 'workshop') : '',
+      rateKey:autoRole === 'hourlyRate' ? (readString('laborRateType') || 'workshop') : '',
       timeBlockHours:Number(readNumber('laborTimeBlockHours')) || 0,
       defaultMultiplier:Number(readNumber('laborDefaultMultiplier')) || 1,
       quantityMode:readString('laborQuantityMode') || 'none',
@@ -202,6 +345,7 @@
 
   function updateItemActionState(){
     syncLaborGabarytMode();
+    syncLaborAutomatUi();
     try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.syncHardwarePricing === 'function') ctx.priceModalHardwareForm.syncHardwarePricing(); }catch(_){ }
     const dirty = isItemDirty();
     const isEdit = !!(ctx.appUiState() && ctx.appUiState().editingId);
@@ -259,7 +403,9 @@
     const labor = FC.laborCatalog || {};
     const def = labor.normalizeDefinition ? labor.normalizeDefinition(item || defaultServiceDraft('quoteRates')) : (item || {});
     setValue('laborUsage', 'universal');
-    setValue('laborAutoRole', def.autoRole || 'none');
+    const selectedAutomat = def.workAutomatCode || (labor.inferWorkAutomatCode ? labor.inferWorkAutomatCode(def, def.autoRole) : '') || '';
+    ctx.setSelectOptions(ctx.byId('laborAutoRole'), buildLaborAutomatOptions(selectedAutomat), selectedAutomat, selectedAutomat);
+    setValue('laborAutoRole', selectedAutomat);
     setValue('laborRateType', def.rateType || def.rateKey || 'workshop');
     setValue('laborTimeBlockHours', Number(def.timeBlockHours) || 0);
     setValue('laborDefaultMultiplier', Number(def.defaultMultiplier) || 1);
@@ -278,6 +424,7 @@
     setChecked('laborActive', def.active !== false);
     setChecked('laborInternalOnly', def.internalOnly !== false);
     syncLaborGabarytMode();
+    syncLaborAutomatUi();
     try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.syncHardwarePricing === 'function') ctx.priceModalHardwareForm.syncHardwarePricing(); }catch(_){ }
   }
   function applyServiceFormState(item){
@@ -316,7 +463,7 @@
     if(priceWrap) priceWrap.style.display = cfg.formKind === 'accessory' ? 'none' : '';
     if(priceUnitWrap) priceUnitWrap.style.display = cfg.formKind === 'material' ? '' : 'none';
     if(seriesWrap) seriesWrap.style.display = cfg.formKind === 'accessory' ? '' : 'none';
-    setFormNameLabel(cfg.formKind === 'accessory' ? 'Nazwa katalogowa' : 'Nazwa');
+    setFormNameLabel(cfg.formKind === 'accessory' ? 'Nazwa katalogowa' : (kind === 'quoteRates' ? 'Nazwa przyjazna / nazwa pozycji' : 'Nazwa'));
     toggleHardwareTechnicalNamePreview(cfg.formKind === 'accessory');
     if(cfg.formKind === 'material') applyMaterialFormState(item || defaultMaterialDraft());
     else if(cfg.formKind === 'accessory') applyAccessoryFormState(item || (ctx.priceModalHardwareForm && ctx.priceModalHardwareForm.defaultAccessoryDraft ? ctx.priceModalHardwareForm.defaultAccessoryDraft() : {}));
@@ -328,7 +475,7 @@
       if(nameWrap) nameWrap.style.display = '';
     }
     if(ctx.mountFormChoiceLaunchers) ctx.mountFormChoiceLaunchers(()=> updateItemActionState());
-    if(kind === 'quoteRates') { hideLaborUsageField(); mountLaborChoiceLaunchers(); }
+    if(kind === 'quoteRates') { hideLaborUsageField(); mountLaborChoiceLaunchers(); wireLaborAutomatButtons(); syncLaborAutomatUi(); }
     if(ctx.decorateFieldHelpLabels) ctx.decorateFieldHelpLabels();
     try{ if(ctx.priceModalHardwareReplacements && typeof ctx.priceModalHardwareReplacements.setSourceItem === 'function') ctx.priceModalHardwareReplacements.setSourceItem(item || null); }catch(_){ }
     wireItemDirtyEvents();

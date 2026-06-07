@@ -9,6 +9,11 @@
   const RATE_TYPES = defs.RATE_TYPES || [];
   const USAGE_TYPES = defs.USAGE_TYPES || [];
   const AUTO_ROLES = defs.AUTO_ROLES || [];
+  const DEFAULT_WORK_AUTOMATS = defs.DEFAULT_WORK_AUTOMATS || [];
+  const LEGACY_AUTO_ROLE_TO_WORK_AUTOMAT = defs.LEGACY_AUTO_ROLE_TO_WORK_AUTOMAT || {};
+  const WORK_AUTOMAT_TO_LEGACY_AUTO_ROLE = defs.WORK_AUTOMAT_TO_LEGACY_AUTO_ROLE || {};
+  const DEFAULT_RATE_ID_TO_WORK_AUTOMAT = defs.DEFAULT_RATE_ID_TO_WORK_AUTOMAT || {};
+  const SERVICE_NAME_TO_WORK_AUTOMAT = defs.SERVICE_NAME_TO_WORK_AUTOMAT || {};
   const QUANTITY_MODES = defs.QUANTITY_MODES || [];
   const DEFAULT_HOURLY_RATES = defs.DEFAULT_HOURLY_RATES || [];
   const DEFAULT_LABOR_DEFINITIONS = defs.DEFAULT_LABOR_DEFINITIONS || [];
@@ -25,6 +30,115 @@
   function uid(prefix){
     try{ return FC.utils && typeof FC.utils.uid === 'function' ? FC.utils.uid() : `${prefix || 'labor'}_${Date.now()}_${Math.random().toString(36).slice(2,8)}`; }
     catch(_){ return `${prefix || 'labor'}_${Date.now()}_${Math.random().toString(36).slice(2,8)}`; }
+  }
+
+  function nowIso(){
+    try{ return new Date().toISOString(); }catch(_){ return String(Date.now()); }
+  }
+  function stripDiacritics(value){
+    return text(value).replace(/ł/g, 'l').replace(/Ł/g, 'l').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+  function normalizeWorkAutomatCode(value){
+    const raw = text(value);
+    if(!raw) return '';
+    if(LEGACY_AUTO_ROLE_TO_WORK_AUTOMAT[raw]) return LEGACY_AUTO_ROLE_TO_WORK_AUTOMAT[raw];
+    return stripDiacritics(raw).toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+  }
+  function isValidWorkAutomatCode(value){
+    const raw = text(value);
+    return !!raw && raw === normalizeWorkAutomatCode(raw) && /^[a-z0-9_]+$/.test(raw);
+  }
+  function normalizeNameKey(value){
+    return stripDiacritics(value).toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+  function inferWorkAutomatCode(src, autoRole){
+    const row = src && typeof src === 'object' ? src : {};
+    const direct = normalizeWorkAutomatCode(row.workAutomatCode || row.automatCode || row.laborAutomatCode || row.automationCode);
+    if(direct) return direct;
+    const id = text(row.id);
+    if(DEFAULT_RATE_ID_TO_WORK_AUTOMAT[id]) return DEFAULT_RATE_ID_TO_WORK_AUTOMAT[id];
+    const role = text(autoRole || row.autoRole);
+    if(LEGACY_AUTO_ROLE_TO_WORK_AUTOMAT[role]) return LEGACY_AUTO_ROLE_TO_WORK_AUTOMAT[role];
+    const nameKey = normalizeNameKey(row.name);
+    if(SERVICE_NAME_TO_WORK_AUTOMAT[nameKey]) return SERVICE_NAME_TO_WORK_AUTOMAT[nameKey];
+    return '';
+  }
+  function workAutomatCodeToAutoRole(code, fallback){
+    const key = normalizeWorkAutomatCode(code);
+    return WORK_AUTOMAT_TO_LEGACY_AUTO_ROLE[key] || text(fallback) || 'none';
+  }
+  function normalizeWorkAutomat(row, opts){
+    const cfg = opts && typeof opts === 'object' ? opts : {};
+    const src = row && typeof row === 'object' ? row : {};
+    const fallbackCode = normalizeWorkAutomatCode(cfg.fallbackCode);
+    const code = normalizeWorkAutomatCode(src.code || src.id || src.key || fallbackCode);
+    const stamp = text(src.createdAt || src.updatedAt) || nowIso();
+    return {
+      code,
+      id:code,
+      label:text(src.label || src.name) || code,
+      name:text(src.name || src.label) || code,
+      description:text(src.description),
+      system:src.system === true || src.isSystem === true,
+      isSystem:src.isSystem === true || src.system === true,
+      active:src.active !== false,
+      createdAt:text(src.createdAt) || stamp,
+      updatedAt:text(src.updatedAt) || stamp,
+    };
+  }
+  function validateWorkAutomat(row, existingList, opts){
+    const cfg = opts && typeof opts === 'object' ? opts : {};
+    const src = row && typeof row === 'object' ? row : {};
+    const rawCode = text(src.code || src.id || src.key || '');
+    const item = normalizeWorkAutomat(row || {});
+    const oldCode = normalizeWorkAutomatCode(cfg.oldCode || (row && row.oldCode));
+    const existing = Array.isArray(existingList) ? existingList.map((entry)=> normalizeWorkAutomat(entry)).filter((entry)=> entry.code) : [];
+    if(!rawCode) return { ok:false, code:'required', message:'Kod techniczny automatu jest wymagany.' };
+    if(!isValidWorkAutomatCode(rawCode)) return { ok:false, code:'format', message:'Kod techniczny może mieć tylko małe litery, cyfry i podkreślenia, bez spacji i polskich znaków.' };
+    if(oldCode && item.code !== oldCode) return { ok:false, code:'immutable', message:'Nie można zmienić kodu technicznego istniejącego automatu. Utwórz nowy automat i wyłącz stary.' };
+    const duplicate = existing.find((entry)=> entry.code === item.code && (!oldCode || entry.code !== oldCode));
+    if(duplicate) return { ok:false, code:'duplicate', message:'Taki kod techniczny automatu już istnieje.' };
+    if(!item.label) return { ok:false, code:'label', message:'Nazwa przyjazna automatu jest wymagana.' };
+    return { ok:true, item };
+  }
+  function ensureDefaultWorkAutomats(list){
+    const byCode = new Map();
+    DEFAULT_WORK_AUTOMATS.forEach((row)=>{
+      const item = normalizeWorkAutomat(row);
+      if(item.code) byCode.set(item.code, item);
+    });
+    (Array.isArray(list) ? list : []).forEach((row)=>{
+      const item = normalizeWorkAutomat(row);
+      if(!item.code) return;
+      const base = byCode.get(item.code);
+      byCode.set(item.code, base ? Object.assign({}, base, item, { code:base.code, id:base.code, system:base.system === true || item.system === true, isSystem:base.isSystem === true || item.isSystem === true }) : item);
+    });
+    return Array.from(byCode.values()).map((row)=> normalizeWorkAutomat(row));
+  }
+  function findWorkAutomat(list, code){
+    const key = normalizeWorkAutomatCode(code);
+    return ensureDefaultWorkAutomats(list).find((row)=> row.code === key) || null;
+  }
+  function workAutomatOptions(list, selectedCode){
+    const selected = normalizeWorkAutomatCode(selectedCode);
+    const rows = ensureDefaultWorkAutomats(list).filter((row)=> row.active !== false || row.code === selected);
+    return rows.map((row)=> ({ value:row.code, label:row.label || row.code, description:row.description || '' }));
+  }
+  function upsertWorkAutomat(list, payload, opts){
+    const cfg = opts && typeof opts === 'object' ? opts : {};
+    const existing = ensureDefaultWorkAutomats(list);
+    const hasOldCode = Object.prototype.hasOwnProperty.call(cfg, 'oldCode') || !!(payload && payload.oldCode);
+    const oldCode = hasOldCode ? normalizeWorkAutomatCode(cfg.oldCode || (payload && payload.oldCode)) : '';
+    const validation = validateWorkAutomat(payload, existing, oldCode ? { oldCode } : {});
+    if(!validation.ok) return { ok:false, error:validation.message, code:validation.code, list:existing };
+    const nextItem = validation.item;
+    const next = existing.slice();
+    const idx = next.findIndex((row)=> row.code === nextItem.code);
+    if(idx >= 0){
+      const prev = next[idx];
+      next[idx] = normalizeWorkAutomat(Object.assign({}, prev, nextItem, { code:prev.code, id:prev.code, system:prev.system === true, isSystem:prev.isSystem === true, createdAt:prev.createdAt || nextItem.createdAt, updatedAt:nowIso() }));
+    }else next.push(normalizeWorkAutomat(Object.assign({}, nextItem, { createdAt:nextItem.createdAt || nowIso(), updatedAt:nowIso() })));
+    return { ok:true, item:idx >= 0 ? next[idx] : next[next.length - 1], list:next };
   }
 
   function clampTimeBlock(value){
@@ -73,7 +187,10 @@
 
   function normalizeDefinition(row){
     const src = row && typeof row === 'object' ? row : {};
-    const autoRole = normalizeMode(src.autoRole, AUTO_ROLES, 'none');
+    const inferredWorkCode = inferWorkAutomatCode(src, src.autoRole);
+    const rawAutoRole = text(src.autoRole);
+    const autoRole = normalizeMode(rawAutoRole && rawAutoRole !== 'none' ? rawAutoRole : workAutomatCodeToAutoRole(inferredWorkCode, rawAutoRole || 'none'), AUTO_ROLES, 'none');
+    const workAutomatCode = inferredWorkCode || '';
     const rateKey = text(src.rateKey);
     const rateType = normalizeMode(src.rateType || (autoRole === 'hourlyRate' ? rateKey : ''), RATE_TYPES, 'workshop');
     const quantityMode = normalizeMode(src.quantityMode, QUANTITY_MODES, 'none');
@@ -87,6 +204,9 @@
       price,
       usage:normalizeMode(src.usage, USAGE_TYPES, 'universal'),
       autoRole,
+      workAutomatCode,
+      automatCode:workAutomatCode,
+      laborAutomatCode:workAutomatCode,
       rateKey:autoRole === 'hourlyRate' ? (rateKey || rateType) : rateKey,
       rateType,
       timeBlockHours:clampTimeBlock(src.timeBlockHours),
@@ -131,7 +251,11 @@
   }
   function getAutoRoleLabel(key){
     const found = AUTO_ROLES.find((row)=> row.key === key);
-    return found ? found.label : (key || 'Brak automatu');
+    return found ? found.label : (key || 'Brak legacy automatu');
+  }
+  function getWorkAutomatLabel(code, list){
+    const found = findWorkAutomat(list, code);
+    return found ? found.label : (normalizeWorkAutomatCode(code) || 'Brak automatu');
   }
   function getQuantityModeLabel(key){
     const found = QUANTITY_MODES.find((row)=> row.key === key);
@@ -216,7 +340,8 @@
     const def = normalizeDefinition(row);
     if(def.autoRole === 'hourlyRate') return `${getRateLabel(def.rateKey || def.rateType)} • ${Number(def.price || 0).toFixed(2)} PLN/h`;
     const parts = [];
-    if(def.autoRole && def.autoRole !== 'none') parts.push(getAutoRoleLabel(def.autoRole));
+    if(def.workAutomatCode) parts.push(getWorkAutomatLabel(def.workAutomatCode));
+    else if(def.autoRole && def.autoRole !== 'none') parts.push(getAutoRoleLabel(def.autoRole));
     if(def.timeBlockHours > 0) parts.push(`${def.timeBlockHours} h × ${getRateLabel(def.rateType)}`);
     if(def.quantityMode && def.quantityMode !== 'none') parts.push(getQuantityModeLabel(def.quantityMode));
     if(def.volumePricePerM3 > 0) parts.push(`gabaryt ${def.volumePricePerM3} PLN/m³`);
@@ -230,9 +355,25 @@
     RATE_TYPES,
     USAGE_TYPES,
     AUTO_ROLES,
+    DEFAULT_WORK_AUTOMATS,
+    LEGACY_AUTO_ROLE_TO_WORK_AUTOMAT,
+    WORK_AUTOMAT_TO_LEGACY_AUTO_ROLE,
+    DEFAULT_RATE_ID_TO_WORK_AUTOMAT,
+    SERVICE_NAME_TO_WORK_AUTOMAT,
     QUANTITY_MODES,
     DEFAULT_HOURLY_RATES,
     DEFAULT_LABOR_DEFINITIONS,
+    normalizeWorkAutomatCode,
+    isValidWorkAutomatCode,
+    normalizeWorkAutomat,
+    validateWorkAutomat,
+    ensureDefaultWorkAutomats,
+    findWorkAutomat,
+    workAutomatOptions,
+    upsertWorkAutomat,
+    inferWorkAutomatCode,
+    workAutomatCodeToAutoRole,
+    getWorkAutomatLabel,
     normalizeDefinition,
     ensureDefaultDefinitions,
     buildHourlyRates,

@@ -1,3 +1,10 @@
+## 2026-06-07 — Robocizna: słownik automatów pod przyszłą chmurę v1
+
+- Dodano lokalny słownik automatów robocizny `fc_labor_automats_v1` obsługiwany przez `catalogStore`, bez bezpośrednich nowych zapisów rozproszonych po modułach UI.
+- Kod techniczny automatu jest trwałym kluczem biznesowym do późniejszego dopasowania definicji automatu, czynności, stawek, WYCENY, `quoteCalculationRegister` i przyszłego kreatora korpusów. Po utworzeniu kodu nie zmieniamy — literówka oznacza nowy automat i archiwizację starego.
+- `quoteRates` zachowuje kompatybilność przez legacy `autoRole`, ale nowe/normalizowane pozycje mają `workAutomatCode`/`laborAutomatCode`.
+- Montaż AGD ma docelowo osobne automaty per sprzęt (`dishwasher_mount`, `fridge_mount`, `oven_mount`, `hob_mount`, `hood_mount`, `microwave_mount`), a obecne liczenie AGD nadal korzysta z bezpiecznego lookupu usług po nazwie.
+
 # CLOUD_MIGRATION — plan przygotowania meble-app pod chmurę
 
 Ten plik jest stałym punktem odniesienia dla zmian dotyczących danych. `DEV.md` trzyma ogólne zasady pracy, a ten plik trzyma zasady migracji danych, localStorage, backupów i przyszłej synchronizacji.

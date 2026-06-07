@@ -56,6 +56,14 @@
         { id:'labor_rate_specialist', category:'Stawki godzinowe', name:'Stawka specjalistyczna', price:180, autoRole:'hourlyRate', rateKey:'specialist', active:true },
         { id:'labor_body_h072', category:'Korpusy', name:'Skręcenie korpusu do 72 cm', price:0, usage:'cabinet', autoRole:'cabinetBody', rateType:'workshop', timeBlockHours:0.5, defaultMultiplier:1.25, heightMinMm:0, heightMaxMm:720, volumePricePerM3:50, active:true, internalOnly:true },
       ];
+  const DEFAULT_LABOR_AUTOMATS = laborCatalog && Array.isArray(laborCatalog.DEFAULT_WORK_AUTOMATS)
+    ? laborCatalog.DEFAULT_WORK_AUTOMATS.slice()
+    : [
+        { code:'cabinet_body', label:'Skręcenie korpusu', system:true, active:true },
+        { code:'front_mount', label:'Montaż frontu / drzwi', system:true, active:true },
+        { code:'hinge_mount', label:'Montaż zawiasu', system:true, active:true },
+        { code:'shelf_mount', label:'Montaż półek', system:true, active:true },
+      ];
   const DEFAULT_WORKSHOP_SERVICES = [
     { id:'ws1', category:'Cięcie', name:'Przycięcie płyty', price:25, starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.' },
   ];
@@ -263,6 +271,26 @@
     return base;
   }
 
+  function normalizeLaborAutomatRow(row){
+    try{
+      if(laborCatalog && typeof laborCatalog.normalizeWorkAutomat === 'function') return laborCatalog.normalizeWorkAutomat(row);
+    }catch(_){ }
+    const src = row && typeof row === 'object' ? row : {};
+    const code = normalizeText(src.code || src.id || src.key).toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+    return {
+      code,
+      id:code,
+      label:normalizeText(src.label || src.name) || code,
+      name:normalizeText(src.name || src.label) || code,
+      description:normalizeText(src.description),
+      system:src.system === true || src.isSystem === true,
+      isSystem:src.system === true || src.isSystem === true,
+      active:src.active !== false,
+      createdAt:normalizeText(src.createdAt),
+      updatedAt:normalizeText(src.updatedAt),
+    };
+  }
+
   function normalizeServiceOrderRow(row){
     try{
       if(serviceOrderStore && typeof serviceOrderStore.normalizeOrder === 'function') return serviceOrderStore.normalizeOrder(row);
@@ -328,6 +356,7 @@
           storedSheetMaterials: readList('sheetMaterials', null),
           storedAccessories: readList('accessories', null),
           storedQuoteRates: readList('quoteRates', null),
+          storedLaborAutomats: readList('laborAutomats', null),
           storedWorkshopServices: readList('workshopServices', null),
           storedServiceOrders: readList('serviceOrders', null),
           storedHardwareManufacturers: readList('hardwareManufacturers', null),
@@ -340,6 +369,7 @@
             sheetMaterials: DEFAULT_SHEET_MATERIALS,
             accessories: DEFAULT_ACCESSORIES,
             quoteRates: DEFAULT_QUOTE_RATES,
+            laborAutomats: DEFAULT_LABOR_AUTOMATS,
             workshopServices: DEFAULT_WORKSHOP_SERVICES,
             serviceOrders: DEFAULT_SERVICE_ORDERS,
             hardwareManufacturers: DEFAULT_HARDWARE_MANUFACTURERS,
@@ -355,6 +385,7 @@
           sheetMaterials: preferStoredSplit ? readList('sheetMaterials', DEFAULT_SHEET_MATERIALS) : splitLegacyMaterials(legacyMaterials).sheetMaterials,
           accessories: preferStoredSplit ? readList('accessories', DEFAULT_ACCESSORIES) : splitLegacyMaterials(legacyMaterials).accessories,
           quoteRates: preferStoredSplit ? readList('quoteRates', DEFAULT_QUOTE_RATES) : legacyServices,
+          laborAutomats: readList('laborAutomats', DEFAULT_LABOR_AUTOMATS),
           workshopServices: readList('workshopServices', DEFAULT_WORKSHOP_SERVICES),
           serviceOrders: readList('serviceOrders', DEFAULT_SERVICE_ORDERS),
           hardwareManufacturers: readList('hardwareManufacturers', DEFAULT_HARDWARE_MANUFACTURERS),
@@ -381,6 +412,9 @@
       ? laborCatalog.ensureDefaultDefinitions(seeds.quoteRates)
       : seeds.quoteRates;
     const quoteRates = normalizeList(quoteRateSeed, normalizeServiceRow, DEFAULT_QUOTE_RATES);
+    const laborAutomats = laborCatalog && typeof laborCatalog.ensureDefaultWorkAutomats === 'function'
+      ? laborCatalog.ensureDefaultWorkAutomats(seeds.laborAutomats || readList('laborAutomats', DEFAULT_LABOR_AUTOMATS))
+      : normalizeList(seeds.laborAutomats || readList('laborAutomats', DEFAULT_LABOR_AUTOMATS), normalizeLaborAutomatRow, DEFAULT_LABOR_AUTOMATS).filter((row)=> !!normalizeText(row.code));
     const workshopServices = normalizeList(seeds.workshopServices, normalizeServiceRow, DEFAULT_WORKSHOP_SERVICES);
     const serviceOrders = normalizeList(seeds.serviceOrders, normalizeServiceOrderRow, DEFAULT_SERVICE_ORDERS);
     const storedManufacturers = readList('hardwareManufacturers', DEFAULT_HARDWARE_MANUFACTURERS);
@@ -390,6 +424,7 @@
     writeList('sheetMaterials', sheetMaterials);
     writeList('accessories', accessories);
     writeList('quoteRates', quoteRates);
+    writeList('laborAutomats', laborAutomats);
     writeList('workshopServices', workshopServices);
     writeList('hardwareManufacturers', hardwareManufacturers);
     writeList('hardwareSuppliers', hardwareSuppliers);
@@ -406,12 +441,12 @@
     writeList('materials', sheetMaterials);
     writeList('services', quoteRates);
 
-    cache = { sheetMaterials, accessories, quoteRates, workshopServices, serviceOrders, hardwareManufacturers, hardwareSuppliers, hardwareSettings, hardwareCategories, hardwareTypes, hardwareTechnicalParams };
+    cache = { sheetMaterials, accessories, quoteRates, laborAutomats, workshopServices, serviceOrders, hardwareManufacturers, hardwareSuppliers, hardwareSettings, hardwareCategories, hardwareTypes, hardwareTechnicalParams };
     syncRuntimeGlobals();
-    return { sheetMaterials, accessories, quoteRates, workshopServices, serviceOrders, hardwareManufacturers, hardwareSuppliers, hardwareSettings, hardwareCategories, hardwareTypes, hardwareTechnicalParams };
+    return { sheetMaterials, accessories, quoteRates, laborAutomats, workshopServices, serviceOrders, hardwareManufacturers, hardwareSuppliers, hardwareSettings, hardwareCategories, hardwareTypes, hardwareTechnicalParams };
   }
 
-  let cache = { sheetMaterials:[], accessories:[], quoteRates:[], workshopServices:[], serviceOrders:[], hardwareManufacturers:[], hardwareSuppliers:[], hardwareSettings:Object.assign({}, DEFAULT_HARDWARE_SETTINGS), hardwareCategories:DEFAULT_HARDWARE_CATEGORIES.slice(), hardwareTypes:DEFAULT_HARDWARE_TYPES.slice(), hardwareTechnicalParams:DEFAULT_HARDWARE_TECHNICAL_PARAMS.slice() };
+  let cache = { sheetMaterials:[], accessories:[], quoteRates:[], laborAutomats:DEFAULT_LABOR_AUTOMATS.slice(), workshopServices:[], serviceOrders:[], hardwareManufacturers:[], hardwareSuppliers:[], hardwareSettings:Object.assign({}, DEFAULT_HARDWARE_SETTINGS), hardwareCategories:DEFAULT_HARDWARE_CATEGORIES.slice(), hardwareTypes:DEFAULT_HARDWARE_TYPES.slice(), hardwareTechnicalParams:DEFAULT_HARDWARE_TECHNICAL_PARAMS.slice() };
 
   function syncRuntimeGlobals(){
     try{ if(typeof materials !== 'undefined') materials = cache.sheetMaterials.slice(); }catch(_){ }
@@ -437,6 +472,36 @@
   function getAccessories(){ return getPriceList('accessories'); }
   function getQuoteRates(){ return getPriceList('quoteRates'); }
   function getWorkshopServices(){ return getPriceList('workshopServices'); }
+  function getLaborAutomats(){
+    const list = laborCatalog && typeof laborCatalog.ensureDefaultWorkAutomats === 'function'
+      ? laborCatalog.ensureDefaultWorkAutomats(cache.laborAutomats || DEFAULT_LABOR_AUTOMATS)
+      : normalizeList(cache.laborAutomats || DEFAULT_LABOR_AUTOMATS, normalizeLaborAutomatRow, DEFAULT_LABOR_AUTOMATS).filter((row)=> !!normalizeText(row.code));
+    cache.laborAutomats = list;
+    return list.map((row)=> Object.assign({}, row));
+  }
+  function saveLaborAutomats(list){
+    cache.laborAutomats = laborCatalog && typeof laborCatalog.ensureDefaultWorkAutomats === 'function'
+      ? laborCatalog.ensureDefaultWorkAutomats(list)
+      : normalizeList(list, normalizeLaborAutomatRow, DEFAULT_LABOR_AUTOMATS).filter((row)=> !!normalizeText(row.code));
+    writeList('laborAutomats', cache.laborAutomats);
+    return getLaborAutomats();
+  }
+  function upsertLaborAutomat(payload, opts){
+    const current = getLaborAutomats();
+    try{
+      if(laborCatalog && typeof laborCatalog.upsertWorkAutomat === 'function'){
+        const result = laborCatalog.upsertWorkAutomat(current, payload, opts || {});
+        if(!result || !result.ok) return result || { ok:false, error:'Nie udało się zapisać automatu robocizny.' };
+        saveLaborAutomats(result.list);
+        return Object.assign({}, result, { list:getLaborAutomats() });
+      }
+    }catch(err){ return { ok:false, error:err && err.message ? err.message : 'Nie udało się zapisać automatu robocizny.' }; }
+    const row = normalizeLaborAutomatRow(payload);
+    if(!row.code) return { ok:false, error:'Kod techniczny automatu jest wymagany.' };
+    const next = current.filter((item)=> normalizeText(item && item.code) !== row.code);
+    next.push(row);
+    return { ok:true, item:row, list:saveLaborAutomats(next) };
+  }
   function getHardwareManufacturers(){ return (cache.hardwareManufacturers || []).slice(); }
   function saveHardwareManufacturers(list){
     cache.hardwareManufacturers = normalizeHardwareManufacturers(list);
@@ -564,6 +629,9 @@
     getAccessories,
     getQuoteRates,
     getWorkshopServices,
+    getLaborAutomats,
+    saveLaborAutomats,
+    upsertLaborAutomat,
     getHardwareManufacturers,
     saveHardwareManufacturers,
     getHardwareSuppliers,

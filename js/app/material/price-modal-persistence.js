@@ -24,9 +24,31 @@
     }
     return true;
   }
+  function validateQuoteRateLaborAutomat(data){
+    if(!(ctx.currentListKind && ctx.currentListKind() === 'quoteRates')) return true;
+    const labor = FC.laborCatalog || {};
+    const raw = String(data && (data.workAutomatCode || data.automatCode || data.laborAutomatCode) || '').trim();
+    const code = labor.normalizeWorkAutomatCode ? labor.normalizeWorkAutomatCode(raw) : raw;
+    if(!code){
+      // Legacy fallback: stare, istniejące pozycje bez nowego automatu mogą zostać zapisane bez wymuszania migracji.
+      // Nowe pozycje startują z manual_fixed w formularzu, więc nadal dostają automat w nowym modelu.
+      if(ctx.appUiState && ctx.appUiState().editingId) return true;
+      ctx.info('Brak automatu robocizny', 'Wybierz automat robocizny dla nowej stawki wyceny mebli.');
+      return false;
+    }
+    if(labor.isValidWorkAutomatCode && !labor.isValidWorkAutomatCode(code)){ ctx.info('Błędny kod techniczny', 'Kod techniczny automatu może mieć tylko małe litery, cyfry i podkreślenia.'); return false; }
+    try{
+      const store = ctx.catalogStore && ctx.catalogStore();
+      const list = store && typeof store.getLaborAutomats === 'function' ? store.getLaborAutomats() : [];
+      const found = labor.findWorkAutomat ? labor.findWorkAutomat(list, code) : null;
+      if(!found){ ctx.info('Nieznany automat robocizny', 'Wybrany kod automatu nie istnieje w słowniku automatów robocizny.'); return false; }
+    }catch(_){ }
+    return true;
+  }
   function validateServiceForm(data){
     if(!String(data && data.name || '').trim()){ ctx.info('Brak nazwy', 'Wprowadź nazwę usługi, zanim ją zapiszesz.'); return false; }
     if(!String(data && data.category || '').trim()){ ctx.info('Brak kategorii', 'Wybierz kategorię usługi.'); return false; }
+    if(!validateQuoteRateLaborAutomat(data)) return false;
     return true;
   }
   function editedTimestamp(){ try{ return new Date().toISOString(); }catch(_){ return String(Date.now()); } }

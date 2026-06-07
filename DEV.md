@@ -1,3 +1,16 @@
+## 2026-06-07 — Robocizna: fundament automatów w cenniku v1
+
+- Paczka: `site_work_automats_foundation_v1.zip`.
+- Dodano minimalny słownik automatów robocizny przechowywany przez `catalogStore` pod kluczem `fc_labor_automats_v1`, z systemowymi kodami: `cabinet_body`, `front_mount`, `hinge_mount`, `shelf_mount`, `dishwasher_mount`, `fridge_mount`, `oven_mount`, `hob_mount`, `hood_mount`, `microwave_mount`, `manual_hourly`, `manual_fixed`.
+- Każdy automat ma nazwę przyjazną i trwały kod techniczny. Nazwa przyjazna może być edytowana, ale kod techniczny po utworzeniu jest niezmienny i ma format małe litery/cyfry/podkreślenia.
+- Istniejące jednoznaczne stawki robocizny dostały `workAutomatCode`, przy zachowaniu legacy `autoRole`: korpusy → `cabinet_body`, fronty → `front_mount`, zawiasy → `hinge_mount`, półki → `shelf_mount`, stawki godzinowe → `manual_hourly`.
+- Montaż AGD dostał bezpieczne mapowanie nazw usług na osobne kody automatów per sprzęt, ale nadal liczy się obecną ścieżką usług AGD po nazwie z cennika. Nie wprowadzono wspólnego `appliance_mount`.
+- Formularz stawek wyceny mebli pokazuje automat robocizny przez launcher aplikacji, podgląd kodu technicznego jako readonly oraz aplikacyjne akcje dodania/edycji nazwy automatu. Nie dodano natywnych alertów/confirmów/selectów jako nowego wzorca UI.
+- `quoteCalculationRegister` zachowuje `workAutomatCode`/`laborAutomatCode` przy liniach robocizny i AGD, bez zmiany obecnych sum.
+- Ten etap nie przenosi WYCENY na builder czynności, nie przebudowuje działu CZYNNOŚCI i nie zmienia logiki prowadnic/szuflad/cargo/podnośników.
+- Dodano regresję `tools/work-automats-foundation-smoke.js` i rozszerzono `tools/quote-labor-single-truth-smoke.js` o zachowanie kodów automatów w rejestrze.
+- Cache-busting: `20260607_work_automats_foundation_v1`. Raport: `tools/reports/work-automats-foundation-v1.md`.
+
 ## 2026-06-07 — WYCENA: akordeony audytu ROZRYS 1:1 z auto wysokością v1
 
 - Paczka: `site_quote_details_accordion_rozrys_auto_height_v1.zip`.

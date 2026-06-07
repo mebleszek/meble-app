@@ -22,6 +22,7 @@
     fc_materials_v1:{ category:'user', label:'Cennik materiałów — legacy', description:'Starszy klucz zgodności dla materiałów.' },
     fc_accessories_v1:{ category:'user', label:'Akcesoria / okucia', description:'Pozycje akcesoriów i okuć wraz z cenami dostawców oraz parametrami technicznymi.' },
     fc_quote_rates_v1:{ category:'user', label:'Cennik usług do wycen', description:'Stawki używane przy ofertach meblowych.' },
+    fc_labor_automats_v1:{ category:'user', label:'Automaty robocizny', description:'Słownik automatów robocizny z nazwą przyjazną i stałym kodem technicznym używanym przez cennik, czynności i WYCENĘ.' },
     fc_services_v1:{ category:'user', label:'Cennik usług — legacy', description:'Starszy klucz zgodności dla usług ofertowych.' },
     fc_workshop_services_v1:{ category:'user', label:'Cennik drobnych usług', description:'Stawki usług stolarskich poza projektami meblowymi.' },
     fc_service_orders_v1:{ category:'user', label:'Zlecenia usługowe', description:'Lista drobnych zleceń stolarskich.' },

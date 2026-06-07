@@ -28,6 +28,7 @@
   function getAccessories(){ return getList('getAccessories', 'accessories'); }
   function getQuoteRates(){ return getList('getQuoteRates', 'quoteRates'); }
   function getWorkshopServices(){ return getList('getWorkshopServices', 'workshopServices'); }
+  function getLaborAutomats(){ return getList('getLaborAutomats', 'laborAutomats'); }
 
   function matchByNameOrSymbol(rows, query){
     const key = normalizeKey(query);
@@ -49,6 +50,7 @@
       sheetMaterials: clone(getSheetMaterials()),
       accessories: clone(getAccessories()),
       quoteRates: clone(getQuoteRates()),
+      laborAutomats: clone(getLaborAutomats()),
     };
   }
 
@@ -64,6 +66,7 @@
     getAccessories,
     getQuoteRates,
     getWorkshopServices,
+    getLaborAutomats,
     findSheetMaterial,
     findAccessory,
     findQuoteRate,
