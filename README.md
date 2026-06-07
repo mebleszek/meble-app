@@ -1,3 +1,14 @@
+## 2026-06-07 — WYCENA: akordeony audytu zgodne ze wzorcem ROZRYS v1
+
+- Paczka: `site_quote_details_rozrys_accordion_sync_v1.zip`.
+- Ujednolicono wszystkie akordeony w modalu szczegółów/audytu WYCENY z wzorcem ROZRYS / `dev_ui_patterns`: wspólna ramka, cień, chevron, proporcje nagłówka i panelu.
+- Usunięto twarde minimalne wysokości zwiniętych nagłówków, które powodowały przycinanie długich nazw szafek; wysokość akordeonu wynika teraz z treści.
+- Wszystkie działy szczegółów WYCENY korzystają z jednego renderera i tych samych klas akordeonu, w tym `Robocizna szafek`, `Akcesoria` i `Ostrzeżenia / rzeczy do sprawdzenia`.
+- Dodano animację otwierania opartą o `scrollHeight` / `max-height`, zgodną z wzorcem UI, z natychmiastowym zamykaniem poprzedniej sekcji.
+- Zachowano główny scroll modala, stałą stopkę `Wróć` i przewijanie otwartej sekcji do początku obszaru treści.
+- Nie zmieniano wyliczeń WYCENY, robocizny, `quoteCalculationRegister`, snapshotów, materiałów, zawiasów, wariantów szafek, import/export, backupów ani UI poza modalem szczegółów WYCENY.
+- Cache-busting: `20260607_quote_details_rozrys_accordion_sync_v1`. Raport: `tools/reports/quote-details-rozrys-accordion-sync-v1.md`.
+
 ## 2026-06-07 — WYCENA: poprawa mobile akordeonów audytu robocizny v1
 
 - Paczka: `site_quote_details_mobile_accordion_fit_v1.zip`.

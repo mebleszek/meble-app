@@ -78,15 +78,73 @@
     const labels = FC.quoteCalculationRegister && FC.quoteCalculationRegister.SECTION_LABELS || {};
     return labels[section] || section || 'Szczegóły';
   }
+  const QUOTE_DETAIL_ACCORDION_MS = 420;
+  function prefersReducedMotion(){
+    try{ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(_){ return false; }
+  }
+  function frame(fn){
+    try{
+      if(window.requestAnimationFrame) window.requestAnimationFrame(()=> window.requestAnimationFrame(fn));
+      else setTimeout(fn, 0);
+    }catch(_){ setTimeout(fn, 0); }
+  }
+  function groupPanel(group){ return group ? group.querySelector(':scope > .quote-detail-group__panel') : null; }
+  function groupTrigger(group){ return group ? group.querySelector(':scope .quote-detail-group__toggle') : null; }
+  function resetGroupMotion(group){
+    const panel = groupPanel(group);
+    if(!group || !panel) return;
+    if(group._quoteDetailAccordionTimer){
+      clearTimeout(group._quoteDetailAccordionTimer);
+      group._quoteDetailAccordionTimer = null;
+    }
+    group.classList.remove('is-quote-detail-animating');
+    panel.style.maxHeight = '';
+    panel.style.opacity = '';
+    panel.style.transform = '';
+    panel.style.overflow = '';
+  }
+  function setGroupState(group, open){
+    if(!group) return;
+    const panel = groupPanel(group);
+    const btn = groupTrigger(group);
+    group.classList.toggle('is-open', !!open);
+    if(btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if(panel) panel.hidden = !open;
+  }
+  function closeGroupInstant(group){
+    if(!group) return;
+    resetGroupMotion(group);
+    setGroupState(group, false);
+  }
   function closeSiblingGroups(group){
     const parent = group && group.parentNode;
     if(!parent) return;
     Array.from(parent.querySelectorAll('.quote-detail-group.is-open')).forEach((node)=>{
-      if(node === group) return;
-      node.classList.remove('is-open');
-      const btn = node.querySelector('.quote-detail-group__toggle');
-      if(btn) btn.setAttribute('aria-expanded', 'false');
+      if(node !== group) closeGroupInstant(node);
     });
+  }
+  function openGroupAnimated(group){
+    const panel = groupPanel(group);
+    if(!group || !panel){ setGroupState(group, true); return; }
+    resetGroupMotion(group);
+    setGroupState(group, true);
+    if(prefersReducedMotion()) return;
+    group.classList.add('is-quote-detail-animating');
+    panel.style.overflow = 'hidden';
+    panel.style.maxHeight = '0px';
+    panel.style.opacity = '0';
+    panel.style.transform = 'translateY(-4px)';
+    try{ void panel.offsetHeight; }catch(_){ }
+    const targetHeight = Math.max(1, panel.scrollHeight || 1);
+    frame(()=>{
+      panel.style.maxHeight = targetHeight + 'px';
+      panel.style.opacity = '1';
+      panel.style.transform = 'translateY(0)';
+    });
+    group._quoteDetailAccordionTimer = setTimeout(()=>{
+      resetGroupMotion(group);
+      setGroupState(group, true);
+    }, QUOTE_DETAIL_ACCORDION_MS + 40);
   }
   function getDetailsBody(group){
     let node = group && group.parentNode;
@@ -128,10 +186,12 @@
   function setGroupOpen(group, open, opts){
     const cfg = opts || {};
     if(!group) return;
-    if(open && cfg.closeOthers !== false) closeSiblingGroups(group);
-    group.classList.toggle('is-open', !!open);
-    const btn = group.querySelector('.quote-detail-group__toggle');
-    if(btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if(open){
+      if(cfg.closeOthers !== false) closeSiblingGroups(group);
+      openGroupAnimated(group);
+    }else{
+      closeGroupInstant(group);
+    }
     if(open && cfg.keepScroll !== false){
       const scrollBehavior = cfg.instantScroll ? 'auto' : 'smooth';
       const runner = ()=> scrollGroupIntoDetailsBody(group, scrollBehavior);
@@ -141,19 +201,22 @@
   }
   function renderGroup(container, title, rows, sum, options){
     const cfg = options || {};
-    const box = h('section', { class:'quote-detail-group' + (cfg.open ? ' is-open' : '') });
-    const button = h('button', { type:'button', class:'quote-detail-group__header quote-detail-group__toggle', 'aria-expanded':cfg.open ? 'true' : 'false' });
-    const left = h('div', { class:'quote-detail-group__titleWrap' });
-    left.appendChild(h('div', { class:'quote-detail-group__title', text:title }));
+    const box = h('section', { class:'quote-detail-group rozrys-material-accordion' + (cfg.open ? ' is-open' : '') });
+    const head = h('div', { class:'quote-detail-group__head rozrys-material-accordion__head' });
+    const button = h('button', { type:'button', class:'quote-detail-group__header quote-detail-group__toggle rozrys-material-accordion__trigger', 'aria-expanded':cfg.open ? 'true' : 'false' });
+    const left = h('div', { class:'quote-detail-group__titleWrap rozrys-material-accordion__title' });
+    left.appendChild(h('div', { class:'quote-detail-group__title rozrys-material-accordion__title-line1', text:title }));
     const count = Array.isArray(rows) ? rows.length : 0;
     if(count) left.appendChild(h('div', { class:'quote-detail-group__count', text:`${count} poz.` }));
     button.appendChild(left);
     const right = h('div', { class:'quote-detail-group__right' });
     right.appendChild(h('div', { class:'quote-detail-group__sum', text:money(sum) }));
-    right.appendChild(h('span', { class:'quote-detail-group__chevron', 'aria-hidden':'true', text:'⌄' }));
+    right.appendChild(h('span', { class:'quote-detail-group__chevron rozrys-material-accordion__chevron', 'aria-hidden':'true', html:'&#9662;' }));
     button.appendChild(right);
-    box.appendChild(button);
-    const panel = h('div', { class:'quote-detail-group__panel' });
+    head.appendChild(button);
+    box.appendChild(head);
+    const panel = h('div', { class:'quote-detail-group__panel rozrys-material-accordion__body' });
+    panel.hidden = !cfg.open;
     if(Array.isArray(rows) && rows.length){
       rows.sort((a,b)=> num(b && b.total) - num(a && a.total)).forEach((row)=> panel.appendChild(renderLine(row)));
     }else{
@@ -210,18 +273,21 @@
   function renderWarnings(container, register, section){
     const warnings = collectSectionWarnings(register, section);
     if(!warnings.length) return;
-    const box = h('section', { class:'quote-detail-group quote-detail-group--warnings' });
-    const button = h('button', { type:'button', class:'quote-detail-group__header quote-detail-group__toggle', 'aria-expanded':'false' });
-    const left = h('div', { class:'quote-detail-group__titleWrap' });
-    left.appendChild(h('div', { class:'quote-detail-group__title', text:'Ostrzeżenia / rzeczy do sprawdzenia' }));
+    const box = h('section', { class:'quote-detail-group quote-detail-group--warnings rozrys-material-accordion' });
+    const head = h('div', { class:'quote-detail-group__head rozrys-material-accordion__head' });
+    const button = h('button', { type:'button', class:'quote-detail-group__header quote-detail-group__toggle rozrys-material-accordion__trigger', 'aria-expanded':'false' });
+    const left = h('div', { class:'quote-detail-group__titleWrap rozrys-material-accordion__title' });
+    left.appendChild(h('div', { class:'quote-detail-group__title rozrys-material-accordion__title-line1', text:'Ostrzeżenia / rzeczy do sprawdzenia' }));
     left.appendChild(h('div', { class:'quote-detail-group__count', text:`${warnings.length} ${warnings.length === 1 ? 'pozycja' : 'pozycji'}` }));
     button.appendChild(left);
     const right = h('div', { class:'quote-detail-group__right' });
     right.appendChild(h('div', { class:'quote-detail-group__sum', text:'Sprawdź' }));
-    right.appendChild(h('span', { class:'quote-detail-group__chevron', 'aria-hidden':'true', text:'⌄' }));
+    right.appendChild(h('span', { class:'quote-detail-group__chevron rozrys-material-accordion__chevron', 'aria-hidden':'true', html:'&#9662;' }));
     button.appendChild(right);
-    box.appendChild(button);
-    const panel = h('div', { class:'quote-detail-group__panel quote-detail-warnings__panel' });
+    head.appendChild(button);
+    box.appendChild(head);
+    const panel = h('div', { class:'quote-detail-group__panel quote-detail-warnings__panel rozrys-material-accordion__body' });
+    panel.hidden = true;
     warnings.forEach((row)=> panel.appendChild(h('div', { class:'quote-detail-warning', text:text(row && row.message || row) })));
     box.appendChild(panel);
     button.addEventListener('click', (event)=>{

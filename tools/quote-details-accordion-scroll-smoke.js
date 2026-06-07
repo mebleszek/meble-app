@@ -13,7 +13,7 @@ const css = read('css/wycena.css');
 const preview = read('js/app/wycena/wycena-tab-preview.js');
 const index = read('index.html');
 const devTests = read('dev_tests.html');
-const token = '20260607_quote_details_mobile_accordion_fit_v1';
+const token = '20260607_quote_details_rozrys_accordion_sync_v1';
 
 [
   ['total', "['Suma przed rabatem', totals.subtotal, 'total']"],
@@ -29,7 +29,14 @@ const token = '20260607_quote_details_mobile_accordion_fit_v1';
 [
   'function getDetailsBody(group)',
   'function scrollGroupIntoDetailsBody(group, behavior)',
-  'const directTop = Math.max(0, (group.offsetTop || 0) - 10);',
+  'const QUOTE_DETAIL_ACCORDION_MS = 420;',
+  'function openGroupAnimated(group)',
+  'function closeGroupInstant(group)',
+  'function resetGroupMotion(group)',
+  'panel.hidden = !open;',
+  "group.classList.add('is-quote-detail-animating')",
+  'const targetHeight = Math.max(1, panel.scrollHeight || 1);',
+  "panel.style.maxHeight = targetHeight + 'px';",
   'body.scrollTo({ top:directTop, behavior:scrollBehavior });',
   'const viewportTop = bodyRect.top + 10;',
   'const viewportBottom = bodyRect.bottom - 16;',
@@ -39,8 +46,12 @@ const token = '20260607_quote_details_mobile_accordion_fit_v1';
   'window.requestAnimationFrame(runner);',
   "setGroupOpen(box, !box.classList.contains('is-open'), { closeOthers:true })",
   "current === 'labor' ? 'sourceLabel' : 'subsection'",
-  "class:'quote-detail-group quote-detail-group--warnings'",
-  "class:'quote-detail-group__panel quote-detail-warnings__panel'",
+  "class:'quote-detail-group rozrys-material-accordion'",
+  "class:'quote-detail-group quote-detail-group--warnings rozrys-material-accordion'",
+  "class:'quote-detail-group__header quote-detail-group__toggle rozrys-material-accordion__trigger'",
+  "class:'quote-detail-group__panel rozrys-material-accordion__body'",
+  "class:'quote-detail-group__panel quote-detail-warnings__panel rozrys-material-accordion__body'",
+  "panel.hidden = true;",
   "`${warnings.length} ${warnings.length === 1 ? 'pozycja' : 'pozycji'}`",
   "Przy pierwszym otwarciu zostawiamy body na początku modala.",
 ].forEach((needle)=> { if(!has(js, needle)) fail(`Modal szczegółów nie zawiera zabezpieczenia: ${needle}`); });
@@ -57,20 +68,29 @@ if(!/#quoteSummaryDetailsModal \.quote-detail-modal\{[^}]*height:calc\(100dvh - 
 if(!/#quoteSummaryDetailsModal \.quote-detail-modal__body\{[^}]*overflow-y:auto[^}]*scroll-padding-top:8px[^}]*scroll-padding-bottom:18px[^}]*padding:14px 16px 28px/.test(css)){
   fail('Body modala szczegółów nie ma własnego scrolla i buforów odsłaniających pełną sekcję.');
 }
-if(!/\.quote-detail-group\{[^}]*scroll-margin-top:10px[^}]*scroll-margin-bottom:18px/.test(css)){
-  fail('Sekcje akordeonu nie mają marginesów scroll dla spójnego odsłaniania.');
+if(!/\.quote-detail-group\.rozrys-material-accordion\{[^}]*border:2px solid rgba\(15,23,42,\.56\)[^}]*border-radius:22px[^}]*box-shadow:2px 3px 0 rgba\(15,23,42,\.16\)[^}]*scroll-margin-top:10px[^}]*scroll-margin-bottom:18px/.test(css)){
+  fail('Sekcje akordeonu audytu nie korzystają z ramki/cienia i marginesów scroll wzorca ROZRYS.');
 }
-if(!/\.quote-detail-group__header\{[^}]*display:grid[^}]*grid-template-columns:minmax\(0,1fr\) auto[^}]*min-height:74px/.test(css)){
-  fail('Nagłówek akordeonu audytu nie ma bezpiecznego gridu i wysokości dla długich tytułów.');
+if(!/\.quote-detail-group__header\.rozrys-material-accordion__trigger\{[^}]*display:flex[^}]*align-items:flex-start[^}]*justify-content:space-between[^}]*padding:18px 20px 8px/.test(css)){
+  fail('Nagłówek akordeonu audytu nie jest oparty o trigger ROZRYS z automatyczną wysokością.');
 }
-if(!/\.quote-detail-group:not\(\.is-open\) \.quote-detail-group__header\{[^}]*border-bottom:0[^}]*min-height:76px/.test(css)){
-  fail('Zwinięte akordeony nie mają osobnej minimalnej wysokości bez przycinania.');
+if(/\.quote-detail-group:not\(\.is-open\) \.quote-detail-group__header\{[^}]*min-height/.test(css) || /\.quote-detail-group__header\{[^}]*min-height:7/.test(css)){
+  fail('Akordeony audytu nie mogą mieć twardych minimalnych wysokości powodujących przycinanie długich tytułów.');
 }
-if(!/\.quote-detail-group__title\{[^}]*font-size:16px[^}]*line-height:1\.18/.test(css)){
-  fail('Tytuły akordeonów nie mają jawnego line-height chroniącego przed ucięciem.');
+if(!/\.quote-detail-group__title\.rozrys-material-accordion__title-line1\{[^}]*font-size:20px[^}]*line-height:1\.12/.test(css)){
+  fail('Tytuły akordeonów nie dziedziczą proporcji linii ze wzorca ROZRYS na desktop/tablet.');
 }
-if(!/\.quote-detail-group--warnings\{[^}]*border-color:#fed7aa/.test(css) || !/\.quote-detail-warnings__panel\{[^}]*padding:6px 14px 12px/.test(css)){
-  fail('Ostrzeżenia nie mają stylu normalnego akordeonu WYCENY.');
+if(!/\.quote-detail-group__chevron\.rozrys-material-accordion__chevron\{[^}]*min-width:34px[^}]*font-size:30px[^}]*color:#16a34a/.test(css)){
+  fail('Chevron akordeonu audytu nie jest spójny ze wzorcem ROZRYS.');
+}
+if(!/\.quote-detail-group__panel\.rozrys-material-accordion__body\{[^}]*padding:0 20px 20px[^}]*border-top:1px solid rgba\(15,23,42,\.10\)/.test(css)){
+  fail('Panel akordeonu audytu nie korzysta z proporcji body ROZRYS.');
+}
+if(!/\.quote-detail-group__panel\[hidden\]\{display:none!important;\}/.test(css) || !/\.quote-detail-group\.is-quote-detail-animating > \.quote-detail-group__panel\{overflow:hidden;\}/.test(css)){
+  fail('Panel akordeonu nie ma kontraktu hidden + animacja max-height jak wzorce UI.');
+}
+if(!/\.quote-detail-group--warnings\.rozrys-material-accordion\{[^}]*border-color:#fed7aa/.test(css) || !/\.quote-detail-warnings__panel\.rozrys-material-accordion__body\{[^}]*padding:0 20px 16px/.test(css)){
+  fail('Ostrzeżenia nie mają stylu normalnego akordeonu WYCENY/ROZRYS.');
 }
 if(!/#quoteSummaryDetailsModal\.quote-detail-modal-back\{[^}]*--quote-detail-mobile-top-offset:clamp\(18px, 6dvh, 52px\)/.test(css)){
   fail('Mobile modal szczegółów nie ma powiększonego użytecznego obszaru okna.');
@@ -81,8 +101,11 @@ if(!/#quoteSummaryDetailsModal \.quote-detail-modal\{[^}]*height:calc\(100dvh - 
 if(!/#quoteSummaryDetailsModal \.quote-detail-modal__body\{[^}]*padding:12px 12px 34px[^}]*scroll-padding-top:10px[^}]*scroll-padding-bottom:26px/.test(css)){
   fail('Mobile body modala szczegółów nie ma większego dolnego bufora scroll.');
 }
-if(!/@media \(max-width: 640px\)\{[\s\S]*\.quote-detail-group:not\(\.is-open\) \.quote-detail-group__header\{[^}]*min-height:80px/.test(css)){
-  fail('Mobile zwinięte akordeony nie mają zwiększonej wysokości zabezpieczającej długie tytuły.');
+if(!/@media \(max-width: 640px\)\{[\s\S]*\.quote-detail-group__header\.rozrys-material-accordion__trigger\{[^}]*padding:16px 16px 8px[^}]*min-height:0/.test(css)){
+  fail('Mobile akordeon audytu nie ma automatycznej wysokości i proporcji ze wzorca ROZRYS.');
+}
+if(!/@media \(max-width: 640px\)\{[\s\S]*\.quote-detail-group__title\.rozrys-material-accordion__title-line1\{[^}]*font-size:16px[^}]*line-height:1\.12/.test(css)){
+  fail('Mobile tytuł akordeonu audytu nie ma proporcji ROZRYS mobile.');
 }
 
 [
@@ -99,4 +122,4 @@ if(failures.length){
 console.log('Quote details accordion scroll smoke OK');
 console.log(' - wejścia szczegółów: total/materials/accessories/labor/quoteRates/services/discount');
 console.log(' - modal ma jednolity grid, body scroll i scroll-padding');
-console.log(' - ostrzeżenia są zwykłym akordeonem bez zagnieżdżonego małego scrolla');
+console.log(' - akordeony szczegółów używają wzorca ROZRYS/UI patterns bez twardych wysokości');
