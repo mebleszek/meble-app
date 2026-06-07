@@ -105,6 +105,9 @@
         hours:Number(priced.hours) || 0,
         note:String(priced.note || '').trim(),
         internalOnly:def && def.internalOnly === true,
+        sourceType:'manual',
+        sourceLabel:'Ręczna pozycja WYCENY',
+        sourceId:String(def && def.id || ''),
       };
     }).filter(Boolean);
   }

@@ -614,37 +614,57 @@
   }
 
   function collectBuiltInAppliances(selectedRooms){
-    const rows = new Map();
-    const add = (name, roomLabel)=>{
-      const key = utils.slug(name);
-      const prev = rows.get(key) || { key, type:'service', category:'AGD', name, qty:0, unit:'szt.', unitPrice:0, total:0, rooms:new Set() };
-      prev.qty += 1;
-      prev.rooms.add(roomLabel);
-      const svc = catalog.servicePriceLookup(name);
-      prev.unitPrice = Number(svc && svc.price) || prev.unitPrice || 0;
-      prev.starterPrice = !!(svc && svc.starterPrice === true && !String(svc.priceUserEditedAt || '').trim());
-      prev.priceUserEditedAt = String(svc && svc.priceUserEditedAt || '');
-      prev.calculation = 'Cena = liczba urządzeń AGD z zaznaczonym montażem × cena usługi AGD z cennika.';
-      prev.total = prev.qty * prev.unitPrice;
-      rows.set(key, prev);
+    const rows = [];
+    const counters = new Map();
+    const cabinetNumber = (roomId)=> {
+      const key = text(roomId) || 'room';
+      const next = (Number(counters.get(key)) || 0) + 1;
+      counters.set(key, next);
+      return next;
     };
-    source.selectedCabinets(selectedRooms).forEach(({ roomLabel:rl, cabinet })=>{
+    const add = (name, roomLabel, roomId, cabinet, number)=>{
+      const svc = catalog.servicePriceLookup(name);
+      const cab = cabinet || {};
+      const cabType = [text(cab.type), text(cab.subType)].filter(Boolean).join(' / ');
+      const sourceLabel = [`Szafka #${number || '?'}`, text(roomLabel), cabType].filter(Boolean).join(' — ');
+      const key = utils.slug([name, roomId, cab.id || number].filter(Boolean).join('_'));
+      const unitPrice = Number(svc && svc.price) || 0;
+      rows.push({
+        key,
+        type:'service',
+        category:'AGD',
+        name,
+        qty:1,
+        unit:'szt.',
+        unitPrice,
+        total:unitPrice,
+        rooms:text(roomLabel),
+        sourceType:'appliance',
+        sourceLabel,
+        sourceId:text(cab && cab.id),
+        starterPrice:!!(svc && svc.starterPrice === true && !String(svc.priceUserEditedAt || '').trim()),
+        priceUserEditedAt:String(svc && svc.priceUserEditedAt || ''),
+        calculation:'Cena = urządzenie AGD z zaznaczonym montażem × cena usługi AGD z cennika.',
+      });
+    };
+    source.selectedCabinets(selectedRooms).forEach(({ roomId, roomLabel:rl, cabinet })=>{
+      const number = cabinetNumber(roomId);
       const api = FC.laborApplianceRules;
       if(api && typeof api.isMountingEnabled === 'function' && typeof api.getApplianceForCabinet === 'function'){
         if(!api.isMountingEnabled(cabinet)) return;
         const appliance = api.getApplianceForCabinet(cabinet);
-        if(appliance && appliance.serviceName) add(appliance.serviceName, rl);
+        if(appliance && appliance.serviceName) add(appliance.serviceName, rl, roomId, cabinet, number);
         return;
       }
       const cab = cabinet || {};
       const sub = String(cab.subType || '');
       const details = cab.details || {};
-      if(sub === 'zmywarkowa') add('Zmywarka do zabudowy', rl);
-      if(sub === 'lodowkowa' && String(details.fridgeOption || 'zabudowa') === 'zabudowa') add('Lodówka do zabudowy', rl);
-      if(sub === 'piekarnikowa') add('Piekarnik do zabudowy', rl);
-      if(sub === 'okap') add('Okap podszafkowy / teleskopowy', rl);
+      if(sub === 'zmywarkowa') add('Zmywarka do zabudowy', rl, roomId, cab, number);
+      if(sub === 'lodowkowa' && String(details.fridgeOption || 'zabudowa') === 'zabudowa') add('Lodówka do zabudowy', rl, roomId, cab, number);
+      if(sub === 'piekarnikowa') add('Piekarnik do zabudowy', rl, roomId, cab, number);
+      if(sub === 'okap') add('Okap podszafkowy / teleskopowy', rl, roomId, cab, number);
     });
-    return Array.from(rows.values()).map((row)=> Object.assign({}, row, { rooms:Array.from(row.rooms).join(', ') }));
+    return rows;
   }
 
   function collectElementLines(selectionOverride){

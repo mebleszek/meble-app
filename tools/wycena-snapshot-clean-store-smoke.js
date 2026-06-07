@@ -115,7 +115,7 @@ function runStaleDraftVariantReset(){
 function runCacheBustCheck(){
   const versions = {
     'js/app/quote/quote-snapshot-store.js':'20260605_hinge_tipon_dynamic_features_v1',
-    'js/app/quote/quote-snapshot.js':'20260605_hinge_tipon_dynamic_features_v1',
+    'js/app/quote/quote-snapshot.js':'20260606_quote_labor_single_truth_v1',
     'js/app/wycena/wycena-core.js':'20260605_hinge_tipon_dynamic_features_v1',
     'js/app/wycena/wycena-tab-selection-version.js':'20260605_hinge_tipon_dynamic_features_v1',
     'js/app/wycena/wycena-diagnostics.js':'20260605_hinge_tipon_dynamic_features_v1',

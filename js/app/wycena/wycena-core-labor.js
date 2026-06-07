@@ -114,11 +114,119 @@
       laborPrice:Number(calc.laborPrice) || 0,
       fixedPrice:Number(calc.fixedPrice) || 0,
       total:Number(calc.total) || 0,
+      unitPrice:Number(opts.unitPrice != null ? opts.unitPrice : ((Number(calc.quantity) || 0) > 0 ? (Number(calc.total) || 0) / (Number(calc.quantity) || 1) : (Number(calc.total) || 0))) || 0,
+      sourceType:text(opts.sourceType || ''),
+      sourceLabel:text(opts.sourceLabel || ''),
+      sourceId:text(opts.sourceId || ''),
+      sourceRole:text(opts.sourceRole || ''),
+      sourceKind:text(opts.sourceKind || ''),
       starterPrice:def.starterPrice === true && !text(def.priceUserEditedAt),
       priceUserEditedAt:text(def.priceUserEditedAt),
       note:text(opts.note || ''),
+      warnings:Array.isArray(opts.warnings) ? opts.warnings.map(text).filter(Boolean) : [],
     };
   }
+
+  function findDefById(defs, id){
+    const needle = text(id);
+    if(!needle) return null;
+    return (Array.isArray(defs) ? defs : []).find((def)=> def && text(def.id) === needle && def.active !== false) || null;
+  }
+  function cabinetSourceLabel(entry){
+    const number = Number(entry && entry.cabinetNumber) || 0;
+    const cab = entry && entry.cabinet || {};
+    const typeBits = [text(cab.type), text(cab.subType)].filter(Boolean).join(' / ');
+    return [`Szafka #${number || '?'}`, text(entry && entry.roomLabel), typeBits].filter(Boolean).join(' — ');
+  }
+  function frontPartsForCabinet(roomId, cab){
+    try{
+      const hw = FC.frontHardware || {};
+      if(hw && typeof hw.getCabinetFrontCutListForMaterials === 'function'){
+        return (hw.getCabinetFrontCutListForMaterials(roomId, cab) || []).filter((part)=> text(part && part.name).toLowerCase() === 'front');
+      }
+    }catch(_){ }
+    return [];
+  }
+  function frontPartQty(part){ return Math.max(0, Math.round(num(part && part.qty, 0))); }
+  function frontPartsQty(parts){
+    return (Array.isArray(parts) ? parts : []).reduce((sum, part)=> sum + frontPartQty(part), 0);
+  }
+  function frontPartsNote(parts){
+    const rows = (Array.isArray(parts) ? parts : []).map((part)=> {
+      const qty = frontPartQty(part);
+      if(!(qty > 0)) return '';
+      const dims = text(part && part.dims) || [part && part.a, part && part.b].map((v)=> Number(v) || 0).join(' × ');
+      return `${qty}× ${dims}`;
+    }).filter(Boolean);
+    return rows.length ? `Fronty z MATERIAŁ/WYCENA: ${rows.join(', ')}` : '';
+  }
+  function addFrontLabor(components, entry, defs, rates, volumeM3){
+    const def = findDefById(defs, 'labor_mount_front');
+    if(!def) return;
+    const cab = entry && entry.cabinet || {};
+    const parts = frontPartsForCabinet(entry && entry.roomId, cab);
+    const qty = frontPartsQty(parts);
+    if(!(qty > 0)) return;
+    const calc = calculate(def, { quantity:qty, volumeM3, hourlyRates:rates });
+    const cmp = componentFromCalc(calc, {
+      suffix:'fronts',
+      unit:'szt.',
+      name:text(def.name) || 'Montaż frontu / drzwi',
+      note:frontPartsNote(parts) || 'Automatycznie z frontów używanych przez MATERIAŁ/WYCENĘ.',
+      sourceType:'fronts',
+      sourceLabel:cabinetSourceLabel(entry),
+      sourceId:text(cab && cab.id),
+      sourceRole:'front-labor',
+      sourceKind:'automatic'
+    });
+    if(cmp) components.push(cmp);
+  }
+  function hingeRequirementsForCabinet(roomId, cab){
+    try{
+      const api = FC.cabinetHardwareRequirements || {};
+      if(api && typeof api.getHingeRequirementsWithQty === 'function'){
+        return (api.getHingeRequirementsWithQty(roomId, cab) || []).filter((req)=> req && req.kind === 'hinge' && text(req.hardwareGroup) === 'hinges');
+      }
+    }catch(_){ }
+    return [];
+  }
+  function hingeSourceLabel(entry, req){
+    return [cabinetSourceLabel(entry), text(req && req.doorLabel)].filter(Boolean).join(' — ');
+  }
+  function hingeRequirementNote(req){
+    const bits = [];
+    if(text(req && req.label)) bits.push(text(req.label));
+    if(text(req && req.ruleId)) bits.push('reguła: ' + text(req.ruleId));
+    if(text(req && req.doorLabel)) bits.push(text(req.doorLabel));
+    if(num(req && req.frontWidthCm, 0) > 0 && num(req && req.frontHeightCm, 0) > 0) bits.push(`${num(req.frontWidthCm, 0)} × ${num(req.frontHeightCm, 0)} cm`);
+    return bits.length ? bits.join(' • ') : 'Automatycznie z centralnych wymagań zawiasów.';
+  }
+  function addHingeLabor(components, entry, defs, rates, volumeM3){
+    const def = findDefById(defs, 'labor_mount_hinge');
+    if(!def) return;
+    const cab = entry && entry.cabinet || {};
+    const reqs = hingeRequirementsForCabinet(entry && entry.roomId, cab);
+    (Array.isArray(reqs) ? reqs : []).forEach((req, index)=>{
+      const qty = Math.max(0, Math.round(num(req && req.qty, 0)));
+      if(!(qty > 0)) return;
+      const calc = calculate(def, { quantity:qty, volumeM3, hourlyRates:rates });
+      const doorKey = text(req && (req.doorKey || req.doorLabel)) || String(index + 1);
+      const cmp = componentFromCalc(calc, {
+        key:slug(`${text(cab && cab.id) || entry.cabinetNumber || 'cab'}_hinges_${doorKey}`),
+        suffix:`hinges_${doorKey}`,
+        unit:'szt.',
+        name:text(def.name) || 'Montaż zawiasu',
+        note:hingeRequirementNote(req),
+        sourceType:'hinges',
+        sourceLabel:hingeSourceLabel(entry, req),
+        sourceId:text(cab && cab.id),
+        sourceRole:'hinge-labor',
+        sourceKind:'automatic'
+      });
+      if(cmp) components.push(cmp);
+    });
+  }
+
   function buildCabinetLaborLine(entry, defs, rates){
     const cab = entry && entry.cabinet || {};
     const volumeM3 = cabinetVolumeM3(cab);
@@ -126,17 +234,19 @@
     const bodyRule = findBodyRule(defs, cab);
     if(bodyRule){
       const calc = calculate(bodyRule, { quantity:1, volumeM3, hourlyRates:rates });
-      const cmp = componentFromCalc(calc, { suffix:'body', note:'Automatycznie z wysokości i gabarytu korpusu' });
+      const cmp = componentFromCalc(calc, { suffix:'body', note:'Automatycznie z wysokości i gabarytu korpusu', sourceType:'cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'cabinet-body-labor', sourceKind:'automatic' });
       if(cmp) components.push(cmp);
     }
     const shelves = shelfCount(cab);
     if(shelves > 0){
       findAutoDefs(defs, 'cabinetLooseShelves').forEach((def)=>{
         const calc = calculate(def, { quantity:shelves, volumeM3, hourlyRates:rates });
-        const cmp = componentFromCalc(calc, { suffix:'shelves', unit:'szt.', note:`Półki: ${shelves} szt.` });
+        const cmp = componentFromCalc(calc, { suffix:'shelves', unit:'szt.', note:`Półki: ${shelves} szt.`, sourceType:'cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'shelf-labor', sourceKind:'automatic' });
         if(cmp) components.push(cmp);
       });
     }
+    addFrontLabor(components, entry, defs, rates, volumeM3);
+    addHingeLabor(components, entry, defs, rates, volumeM3);
     const manual = Array.isArray(cab && cab.laborItems) ? cab.laborItems : [];
     manual.forEach((item, idx)=>{
       const rateId = text(item && (item.rateId || item.id));
@@ -144,7 +254,9 @@
       if(!def) return;
       const qty = Math.max(0, num(item && item.qty, 1)) || 1;
       const calc = calculate(def, { quantity:qty, volumeM3, hourlyRates:rates });
-      const cmp = componentFromCalc(calc, { suffix:`manual_${idx}`, unit:'szt.', note:text(item && item.note) });
+      const duplicateRisk = ['labor_mount_front','labor_mount_hinge'].includes(text(def && def.id));
+      const manualNote = [text(item && item.note), duplicateRisk ? 'Ręczna pozycja może dublować automat frontów/zawiasów — sprawdź audyt.' : 'Ręczna pozycja przypięta do szafki.'].filter(Boolean).join(' • ');
+      const cmp = componentFromCalc(calc, { suffix:`manual_${idx}`, unit:'szt.', note:manualNote, sourceType:'manual-cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'manual-cabinet-labor', sourceKind:'manual', warnings:duplicateRisk ? ['Możliwy duplikat: ta ręczna czynność ma taki sam typ jak automat frontów/zawiasów.'] : [] });
       if(cmp) components.push(cmp);
     });
     const total = components.reduce((sum, row)=> sum + (Number(row.total) || 0), 0);

@@ -1,3 +1,16 @@
+## 2026-06-06 — WYCENA: robocizna jako jedna prawda v1
+
+- Paczka: `site_quote_labor_single_truth_v1.zip`.
+- Podpięto automatyczną robociznę szafek/korpusów, frontów i zawiasów do centralnej ścieżki WYCENY tak, żeby linie trafiały przez `quoteCalculationRegister`, a nie przez boczne sumowanie.
+- Robocizna frontów korzysta z tego samego źródła frontów co MATERIAŁ/WYCENA (`frontHardware.getCabinetFrontCutListForMaterials`), więc wariant `szuflada_drzwi` oraz zestawy nie powinny dublować frontów.
+- Robocizna zawiasów korzysta z centralnych wymagań zawiasów (`cabinetHardwareRequirements.getHingeRequirementsWithQty`), bez liczenia ilości z legacy cutlisty i bez zmiany samej reguły ilości zawiasów.
+- Montaż AGD trafia do rejestru jako linie usług z audytem źródła szafki/urządzenia zamiast zbiorczego agregowania bez źródła.
+- Ręczne pozycje robocizny zostały zachowane i oznaczone jako ręczne; ręczne pozycje przy szafce o typie front/zawias dostają ostrzeżenie o możliwym dublu z automatem.
+- Snapshot/oferta zachowuje metadane źródła robocizny i preferuje zapis/sumy z `calculationRegister`.
+- Dodano regresję `tools/quote-labor-single-truth-smoke.js` oraz raport `tools/reports/quote-labor-single-truth-v1.md`.
+- Nie przebudowywano prowadnic, szuflad systemowych, cargo, podnośników, innych okuć poza zawiasami, UI katalogu okuć ani wariantów szafek.
+- Cache-busting: `20260606_quote_labor_single_truth_v1`.
+
 ## 2026-06-06 — WYCENA: ostrzeżenia jako akordeon i bez zagnieżdżonego małego scrolla v1
 
 - Paczka: `site_quote_details_warning_accordion_fix_v1.zip`.
