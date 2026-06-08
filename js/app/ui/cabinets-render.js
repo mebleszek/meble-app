@@ -65,12 +65,6 @@
     const roomTitleEl = doc.getElementById('roomTitle');
     if(roomTitleEl) roomTitleEl.textContent = room ? getRoomLabel(room) : 'Pomieszczenie';
 
-    try{
-      const appView = doc.getElementById('appView');
-      const fab = doc.getElementById('floatingAdd');
-      if(room && fab && appView && appView.style.display !== 'none') fab.style.display = 'flex';
-    }catch(_){ }
-
     if(!room){
       const roomlessTab = String(uiState && uiState.activeTab || '').trim().toLowerCase();
       if(roomlessTab === 'wycena'){

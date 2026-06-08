@@ -1,6 +1,5 @@
 (function(){
   const ns = (window.FC = window.FC || {});
-  let cabinetWorkFactsPreviewTimer = null;
 
 function getCabinetModalValidationApi(){ return (window.FC && window.FC.cabinetModalValidation) || {}; }
 function getCabinetModalDraftApi(){ return (window.FC && window.FC.cabinetModalDraft) || {}; }
@@ -443,46 +442,19 @@ function renderCabinetModal(){
   const draft = cabinetModalState.draft;
   const room = uiState.roomType;
 
-  function refreshCabinetWorkFactsPreview(){
-    try{
-      const host = document.getElementById('cmWorkFactsPreview');
-      const previewApi = window.FC && window.FC.cabinetWorkFactsPreview;
-      if(!host || !(previewApi && typeof previewApi.renderPanel === 'function')) return;
-      try{ syncDraftFromCabinetModalFormSafe(draft); }catch(_sync){ }
-      try{ ensureFrontCountRulesSafe(draft); }catch(_rules){ }
-      previewApi.renderPanel(host, room, draft);
-    }catch(_){ }
-  }
-
-  function scheduleCabinetWorkFactsPreview(){
-    try{
-      const host = document.getElementById('cmWorkFactsPreview');
-      if(host && !host.innerHTML){
-        host.innerHTML = '<div class="cabinet-work-facts-panel cabinet-work-facts-panel--loading"><div class="cabinet-work-facts-panel__head"><div><h3 class="section-title cabinet-work-facts-panel__title">Co program odczyta z tej szafki</h3><div class="cabinet-work-facts-panel__hint">Podgląd zostanie policzony po otwarciu okna, żeby nie blokować edycji szafki.</div></div></div></div>';
-      }
-      if(cabinetWorkFactsPreviewTimer) clearTimeout(cabinetWorkFactsPreviewTimer);
-      cabinetWorkFactsPreviewTimer = setTimeout(function(){
-        cabinetWorkFactsPreviewTimer = null;
-        refreshCabinetWorkFactsPreview();
-      }, 60);
-    }catch(_){ }
-  }
-
   function refreshCabinetHardwareRequirementsPanel(){
     try{
       const host = document.getElementById('cmHardwareRequirements');
       const reqPanelApi = window.FC && window.FC.cabinetHardwareRequirementsPanel;
-      if(host && reqPanelApi && typeof reqPanelApi.renderPanel === 'function'){
-        try{ syncDraftFromCabinetModalFormSafe(draft); }catch(_sync){ }
-        try{ ensureFrontCountRulesSafe(draft); }catch(_rules){ }
-        reqPanelApi.renderPanel(host, room, draft, {
-          editable:true,
-          onChange:function(){
-            try{ applyAventosValidationUISafe(room, draft); }catch(_){ }
-            scheduleCabinetWorkFactsPreview();
-          }
-        });
-      }
+      if(!host || !(reqPanelApi && typeof reqPanelApi.renderPanel === 'function')) return;
+      try{ syncDraftFromCabinetModalFormSafe(draft); }catch(_sync){ }
+      try{ ensureFrontCountRulesSafe(draft); }catch(_rules){ }
+      reqPanelApi.renderPanel(host, room, draft, {
+        editable:true,
+        onChange:function(){
+          try{ applyAventosValidationUISafe(room, draft); }catch(_){ }
+        }
+      });
     }catch(_){ }
   }
 
@@ -643,8 +615,6 @@ function renderCabinetModal(){
       }
     }
   }catch(_){ }
-
-  scheduleCabinetWorkFactsPreview();
 
   const _cabCancel = document.getElementById('cabinetModalCancel');
   if(_cabCancel) _cabCancel.onclick = closeCabinetModal;

@@ -47,7 +47,6 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/pricing/labor-catalog.js',
   'js/app/pricing/work-quantity-sources.js',
   'js/app/pricing/labor-appliance-rules.js',
-  'js/app/cabinet/cabinet-work-facts-preview.js',
   'js/app/service/service-order-store.js',
   'js/app/catalog/catalog-store.js',
   'js/app/catalog/catalog-selectors.js',

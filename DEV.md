@@ -1,30 +1,12 @@
-## 2026-06-08 — Szafki: naprawa zawieszania edycji bez zmian UI v1
+## 2026-06-08 — WYWIAD: awaryjne przywrócenie stabilnej edycji szafki v1
 
-- Paczka: `site_cabinet_edit_no_ui_regression_fix_v1.zip`.
-- Poprawka jest wyłącznie techniczna: nie zmieniono układu ani wyglądu WYWIADU/modala szafki.
-- Panel `Co program odczyta z tej szafki` nie wywołuje już ciężkich generatorów frontów i wymagań zawiasów podczas otwierania edycji. Podgląd korzysta z lekkich danych draftu, a dokładne wymagania zawiasów pozostają w istniejącym panelu wymagań technicznych.
-- Dodano zabezpieczenie, które przy renderze WYWIADU przywraca widoczność istniejącego pływającego plusa `Dodaj szafkę`, jeśli stan widoku nie ustawił go poprawnie.
-- Nie dodano nowego storage, nie zmieniono danych szafki, WYCENY, MATERIAŁU ani quoteCalculationRegister.
-- Cache-busting: `20260608_cabinet_edit_no_ui_regression_fix_v1`. Raport: `tools/reports/cabinet-edit-no-ui-regression-fix-v1.md`.
-
-## 2026-06-08 — Szafki: odciążenie podglądu danych przy otwieraniu edycji v1
-
-- Paczka: `site_cabinet_edit_work_facts_defer_fix_v1.zip`.
-- Naprawiono regresję po dodaniu panelu `Co program odczyta z tej szafki`: kliknięcie `Edytuj` na telefonie mogło sprawiać wrażenie zawieszenia, bo podgląd frontów/zawiasów był liczony synchronicznie w trakcie budowania modala.
-- Podgląd faktów roboczych jest teraz uruchamiany z krótkim opóźnieniem/debounce po zbudowaniu okna. Modal może otworzyć się najpierw, a panel ładuje dane chwilę później.
-- Zredukowano powtarzane obliczenia w `cabinet-work-facts-preview.js` przez jednorazowe wyliczenie ilości frontów, wymiarów frontów, zawiasów, półek i szuflad w jednym przebiegu.
-- Zmiana nie zapisuje nowych danych, nie zmienia WYWIADU, WYCENY, materiałów ani wymagań okuć.
-- Cache-busting: `20260608_cabinet_work_facts_defer_fix_v1`. Raport: `tools/reports/cabinet-edit-work-facts-defer-fix-v1.md`.
-
-## 2026-06-08 — Podgląd danych odczytywanych z szafki v1
-
-- Paczka: `site_cabinet_work_facts_preview_v1.zip`.
-- Dodano na dole modala dodawania/edycji szafki panel tylko do odczytu: `Co program odczyta z tej szafki`.
-- Panel pokazuje nazwane źródła danych z aktualnej szafki, m.in. `cabinet.width_mm`, `cabinet.height_mm`, `front.count`, `front.dimensions`, `front.area_m2`, `hinge.count`, `hinge.requirement`, `shelf.count`, `drawer.count`, `appliance.count` i `appliance.type`.
-- Nowy moduł `FC.cabinetWorkFactsPreview` nie zapisuje danych do `localStorage` i nie tworzy drugiej prawdy. Odczytuje bieżący draft szafki oraz istniejące centralne obliczenia frontów i wymagań zawiasów na klonie danych, żeby podgląd nie mutował szafki.
-- Podgląd jest mostem między słownikiem `FC.workQuantitySources` w trybiku a przyszłym wyborem źródła ilości w cenniku czynności. Ten etap nie podpina jeszcze źródeł do WYCENY ani buildera czynności.
-- Dodano regresję `tools/cabinet-work-facts-preview-smoke.js` pilnującą hosta modala, cache-bustingu, braku `localStorage`, braku mutowania draftu i obecności podstawowych faktów roboczych.
-- Cache-busting: `20260608_cabinet_work_facts_defer_fix_v1`. Raport: `tools/reports/cabinet-work-facts-preview-v1.md`.
+- Paczka: `site_cabinet_edit_restore_stable_v1.zip`.
+- Cofnięto wyłącznie podpięcie panelu `Co program odczyta z tej szafki` w modalu szafki, bo po tej zmianie użytkownik zgłosił brak plusa dodawania szafki oraz zawieszanie kliknięcia `Edytuj`.
+- Zachowano zaakceptowaną sekcję w trybiku `Dane do czynności i wyceny` oraz moduł `FC.workQuantitySources`.
+- Nie zmieniono UI WYWIADU, nie dodano nowego panelu, nie ruszono wyglądu modala, kart szafek, przycisków ani akordeonów.
+- Nie zmieniono danych szafek, MATERIAŁU, WYCENY, quoteCalculationRegister ani logiki okuć.
+- Nowe cache-busting dla stabilnego `cabinet-modal.js`: `20260608_cabinet_edit_restore_stable_v1`.
+- Dodano test `tools/cabinet-edit-restore-stable-smoke.js`, który pilnuje, że awaryjna paczka nie ładuje usuniętego podglądu i nie zawiera łaty UI wymuszającej plus.
 
 ## 2026-06-08 — Źródła danych do czynności i wyceny w trybiku v1
 

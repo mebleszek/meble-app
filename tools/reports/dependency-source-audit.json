@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-06-08T16:38:34.304Z",
+  "generatedAt": "2026-06-07T21:22:55.807Z",
   "summary": {
-    "jsFiles": 369,
-    "indexScripts": 293,
-    "devTestScripts": 325,
-    "fcSymbols": 269,
-    "fcSymbolsAll": 297,
-    "edges": 2072,
+    "jsFiles": 366,
+    "indexScripts": 290,
+    "devTestScripts": 322,
+    "fcSymbols": 266,
+    "fcSymbolsAll": 294,
+    "edges": 2063,
     "highRisk": 13,
-    "mediumRisk": 76
+    "mediumRisk": 75
   },
   "byArea": {
     "BOOT/APP SHELL": {
@@ -20,12 +20,12 @@
       "medium": 2
     },
     "SZAFKI": {
-      "files": 34,
-      "lines": 9255,
+      "files": 33,
+      "lines": 8929,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
-      "medium": 7
+      "medium": 6
     },
     "KATALOG/USŁUGI": {
       "files": 24,
@@ -60,8 +60,8 @@
       "medium": 1
     },
     "INNE": {
-      "files": 8,
-      "lines": 1983,
+      "files": 7,
+      "lines": 1751,
       "storageRefs": 2,
       "dialogRefs": 0,
       "high": 0,
@@ -116,8 +116,8 @@
       "medium": 0
     },
     "UI": {
-      "files": 33,
-      "lines": 4366,
+      "files": 32,
+      "lines": 4281,
       "storageRefs": 0,
       "dialogRefs": 6,
       "high": 0,
@@ -191,7 +191,7 @@
     ],
     [
       "js/app/cabinet/cabinet-modal.js",
-      738
+      707
     ],
     [
       "js/app/catalog/hardware-catalog.js",
@@ -371,11 +371,11 @@
     ],
     [
       "js/app/ui/info-box.js",
-      85
+      83
     ],
     [
       "js/app/cabinet/cabinet-hardware-requirement-options.js",
-      83
+      82
     ],
     [
       "js/app/cabinet/cabinet-hardware-requirements-panel.js",
@@ -391,7 +391,7 @@
     ],
     [
       "js/app/ui/confirm-box.js",
-      75
+      74
     ],
     [
       "js/app/rozrys/rozrys-scope.js",
@@ -1184,9 +1184,9 @@
       "score": 5,
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 738,
+      "lines": 707,
       "incoming": 0,
-      "outgoing": 9,
+      "outgoing": 8,
       "secondLevel": 0,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1227,23 +1227,6 @@
       "reasons": [
         "600+ linii",
         "kilka zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/app/cabinet/cabinet-hardware-requirements.js",
-      "risk": "średnie",
-      "score": 5,
-      "area": "SZAFKI",
-      "category": "domain/controller",
-      "lines": 551,
-      "incoming": 5,
-      "outgoing": 1,
-      "secondLevel": 36,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "400+ linii",
-        "kilka zależnych plików"
       ]
     },
     {
@@ -1412,7 +1395,7 @@
       "lines": 255,
       "incoming": 26,
       "outgoing": 7,
-      "secondLevel": 83,
+      "secondLevel": 82,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1916,9 +1899,9 @@
       "area": "SHARED",
       "category": "ui/render/events",
       "lines": 142,
-      "incoming": 14,
+      "incoming": 12,
       "outgoing": 2,
-      "secondLevel": 28,
+      "secondLevel": 26,
       "storageRefs": 0,
       "dialogRefs": 1,
       "reasons": [
@@ -2925,7 +2908,6 @@
         "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal.js",
-        "js/app/cabinet/cabinet-work-facts-preview.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
@@ -3178,7 +3160,6 @@
       "incomingFiles": [
         "js/app/cabinet/cabinet-cutlist.js",
         "js/app/cabinet/cabinet-hardware-requirements-panel.js",
-        "js/app/cabinet/cabinet-work-facts-preview.js",
         "js/app/wycena/wycena-core-labor.js",
         "js/app/wycena/wycena-core-lines.js"
       ],
@@ -3228,10 +3209,9 @@
       "domRefs": 0,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "średnie",
+      "risk": "niskie",
       "reasons": [
-        "400+ linii",
-        "kilka zależnych plików"
+        "400+ linii"
       ]
     },
     "js/app/cabinet/cabinet-modal-draft.js": {
@@ -3567,7 +3547,7 @@
     "js/app/cabinet/cabinet-modal.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 738,
+      "lines": 707,
       "defines": [],
       "uses": [
         "cabinetModalValidation",
@@ -3581,7 +3561,6 @@
         "cabinetModalFinalize",
         "listScrollMemory",
         "utils",
-        "cabinetWorkFactsPreview",
         "cabinetHardwareRequirementsPanel",
         "cabinetChoiceLaunchers",
         "infoBox",
@@ -3593,7 +3572,6 @@
         "js/app/cabinet/cabinet-choice-launchers.js",
         "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
-        "js/app/cabinet/cabinet-work-facts-preview.js",
         "js/app/shared/utils.js",
         "js/app/ui/confirm-box.js",
         "js/app/ui/info-box.js",
@@ -3602,7 +3580,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 73,
+      "domRefs": 69,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "średnie",
@@ -3625,41 +3603,6 @@
       "domRefs": 0,
       "loadedInIndex": true,
       "loadedInDevTests": false,
-      "risk": "niskie",
-      "reasons": [
-        "250+ linii"
-      ]
-    },
-    "js/app/cabinet/cabinet-work-facts-preview.js": {
-      "area": "SZAFKI",
-      "category": "ui/render/events",
-      "lines": 295,
-      "defines": [
-        "cabinetWorkFactsPreview"
-      ],
-      "uses": [
-        "workQuantitySources",
-        "frontHardware",
-        "cabinetHardwareRequirements",
-        "laborApplianceRules",
-        "helpRegistry",
-        "cabinetWorkFactsPreview"
-      ],
-      "incomingFiles": [
-        "js/app/cabinet/cabinet-modal.js"
-      ],
-      "outgoingFiles": [
-        "js/app/cabinet/cabinet-hardware-requirements.js",
-        "js/app/pricing/labor-appliance-rules.js",
-        "js/app/pricing/work-quantity-sources.js",
-        "js/app/shared/help-registry.js"
-      ],
-      "secondLevelFiles": [],
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "domRefs": 2,
-      "loadedInIndex": true,
-      "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
         "250+ linii"
@@ -8083,7 +8026,6 @@
       ],
       "incomingFiles": [
         "js/app/cabinet/cabinet-modal-labor.js",
-        "js/app/cabinet/cabinet-work-facts-preview.js",
         "js/app/wycena/wycena-core-lines.js",
         "js/tabs/czynnosci.js",
         "js/tabs/wywiad-labor-summary.js"
@@ -8127,9 +8069,7 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": [
-        "kilka zależnych plików"
-      ]
+      "reasons": []
     },
     "js/app/pricing/labor-catalog-definitions.js": {
       "area": "INNE",
@@ -8242,33 +8182,6 @@
         "400+ linii",
         "dużo zależnych plików"
       ]
-    },
-    "js/app/pricing/work-quantity-sources.js": {
-      "area": "INNE",
-      "category": "domain/controller",
-      "lines": 232,
-      "defines": [
-        "workQuantitySources"
-      ],
-      "uses": [
-        "workQuantitySources"
-      ],
-      "incomingFiles": [
-        "js/app/cabinet/cabinet-work-facts-preview.js",
-        "js/app/ui/data-settings-work-sources-view.js"
-      ],
-      "outgoingFiles": [],
-      "secondLevelFiles": [
-        "js/app/cabinet/cabinet-modal.js",
-        "js/app/ui/data-settings-modal.js"
-      ],
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "domRefs": 0,
-      "loadedInIndex": true,
-      "loadedInDevTests": true,
-      "risk": "niskie",
-      "reasons": []
     },
     "js/app/project/project-bridge.js": {
       "area": "PROJEKT",
@@ -13764,7 +13677,6 @@
         "helpRegistry"
       ],
       "incomingFiles": [
-        "js/app/cabinet/cabinet-work-facts-preview.js",
         "js/app/catalog/hardware-technical-params.js",
         "js/app/material/price-modal-field-help.js",
         "js/app/material/price-modal-hardware-dictionaries.js",
@@ -13774,7 +13686,6 @@
         "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/data-settings-dom.js",
         "js/app/ui/data-settings-menu-view.js",
-        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/wywiad-room-hardware-producers.js",
         "js/app/wycena/wycena-summary-details-modal.js",
         "js/app/wycena/wycena-tab-dom.js"
@@ -13786,7 +13697,6 @@
       "secondLevelFiles": [
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/cabinet/cabinet-hardware-requirements-panel.js",
-        "js/app/cabinet/cabinet-modal.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
@@ -13803,7 +13713,6 @@
         "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/data-settings-menu-view.js",
         "js/app/ui/data-settings-modal.js",
-        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-tab-preview.js",
         "js/tabs/czynnosci.js",
@@ -15888,7 +15797,6 @@
         "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/data-settings-menu-view.js",
         "js/app/ui/data-settings-modal.js",
-        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
         "js/app/wycena/wycena-tab-render-bridge.js",
@@ -16097,8 +16005,7 @@
         "js/app/ui/data-settings-backup-view.js",
         "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/data-settings-menu-view.js",
-        "js/app/ui/data-settings-modal.js",
-        "js/app/ui/data-settings-work-sources-view.js"
+        "js/app/ui/data-settings-modal.js"
       ],
       "outgoingFiles": [
         "js/app/shared/help-registry.js",
@@ -16124,7 +16031,7 @@
     "js/app/ui/data-settings-menu-view.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 113,
+      "lines": 104,
       "defines": [
         "dataSettingsMenuView"
       ],
@@ -16156,7 +16063,7 @@
     "js/app/ui/data-settings-modal.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 50,
+      "lines": 49,
       "defines": [
         "dataSettingsModal"
       ],
@@ -16167,7 +16074,6 @@
         "panelBox",
         "dataSettingsBackupView",
         "dataSettingsDefaultsView",
-        "dataSettingsWorkSourcesView",
         "dataSettingsMenuView",
         "dataSettingsModal"
       ],
@@ -16181,7 +16087,6 @@
         "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/data-settings-dom.js",
         "js/app/ui/data-settings-menu-view.js",
-        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/panel-box.js"
       ],
       "secondLevelFiles": [],
@@ -16216,38 +16121,6 @@
       "storageRefs": 0,
       "dialogRefs": 0,
       "domRefs": 0,
-      "loadedInIndex": true,
-      "loadedInDevTests": true,
-      "risk": "niskie",
-      "reasons": []
-    },
-    "js/app/ui/data-settings-work-sources-view.js": {
-      "area": "UI",
-      "category": "ui/render/events",
-      "lines": 75,
-      "defines": [
-        "dataSettingsWorkSourcesView"
-      ],
-      "uses": [
-        "dataSettingsDom",
-        "workQuantitySources",
-        "helpRegistry",
-        "dataSettingsWorkSourcesView"
-      ],
-      "incomingFiles": [
-        "js/app/ui/data-settings-modal.js"
-      ],
-      "outgoingFiles": [
-        "js/app/pricing/work-quantity-sources.js",
-        "js/app/shared/help-registry.js",
-        "js/app/ui/data-settings-dom.js"
-      ],
-      "secondLevelFiles": [
-        "js/app/ui/actions-register.js"
-      ],
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "domRefs": 1,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
@@ -16299,7 +16172,6 @@
       "outgoingFiles": [],
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
-        "js/app/cabinet/cabinet-work-facts-preview.js",
         "js/app/catalog/hardware-technical-params.js",
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-ui-render.js",
@@ -16338,7 +16210,6 @@
         "js/app/ui/data-settings-dom.js",
         "js/app/ui/data-settings-menu-view.js",
         "js/app/ui/data-settings-modal.js",
-        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/sections.js",
         "js/app/ui/views.js",
         "js/app/ui/wywiad-room-hardware-producers.js",
@@ -16517,7 +16388,6 @@
       "outgoingFiles": [],
       "secondLevelFiles": [
         "js/app/bootstrap/app-ui-bootstrap.js",
-        "js/app/cabinet/cabinet-work-facts-preview.js",
         "js/app/catalog/hardware-technical-params.js",
         "js/app/investor/investor-actions.js",
         "js/app/material/material-edge-store.js",
@@ -16536,7 +16406,6 @@
         "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/data-settings-dom.js",
         "js/app/ui/data-settings-menu-view.js",
-        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/views.js",
         "js/app/ui/wywiad-room-hardware-producers.js",
         "js/app/wycena/wycena-summary-details-modal.js",

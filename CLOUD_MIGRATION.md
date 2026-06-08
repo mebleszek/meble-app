@@ -1,3 +1,10 @@
+## 2026-06-08 — WYWIAD: awaryjne przywrócenie stabilnej edycji szafki v1
+
+- Paczka `site_cabinet_edit_restore_stable_v1.zip` nie dodaje nowych danych trwałych i nie zmienia modelu danych.
+- Cofnięto tylko podpięcie podglądu faktów roboczych w modalu szafki.
+- Zaakceptowany słownik `FC.workQuantitySources` / `Dane do czynności i wyceny` zostaje jako centralny język nazw, ale nie jest jeszcze używany przez modal szafki ani WYCENĘ.
+- Źródłem prawdy nadal pozostają dane szafki w WYWIADZIE; snapshotem wynikowym pozostaje WYCENA/quoteCalculationRegister.
+
 ## 2026-06-08 — Źródła danych do czynności i wyceny w trybiku v1
 
 - Paczka: `site_work_quantity_sources_settings_v1.zip`.
@@ -44,26 +51,6 @@ Ten plik jest stałym punktem odniesienia dla zmian dotyczących danych. `DEV.md
 Przygotować aplikację tak, żeby obecny tryb lokalny działał dalej, ale żeby dane można było później przenieść do chmury bez przepisywania całego programu.
 
 Docelowy kierunek techniczny: Google/Firebase, najpewniej Firebase Authentication + Cloud Firestore. To nie oznacza natychmiastowego wdrożenia chmury. Najpierw porządkujemy model danych, repozytoria i granice odpowiedzialności.
-
-
-## 2026-06-08 — Podgląd danych odczytywanych z szafki v1
-
-- Zmiana nie dodaje nowego trwałego klucza `localStorage` ani nie zapisuje drugiej kopii danych szafki.
-- `FC.cabinetWorkFactsPreview` działa jako read-only adapter: odczytuje bieżący draft szafki i centralne helpery frontów/zawiasów na klonie, a wynik pokazuje w UI jako podgląd.
-- Źródłem prawdy pozostaje WYWIAD/szafka oraz istniejące centralne obliczenia. Snapshotem pozostaje dopiero wynik WYCENY w `quoteCalculationRegister`, którego ten etap nie zmienia.
-- Kierunek cloud-ready jest zachowany: panel pomaga jawnie zobaczyć mapowanie danych bez dokładania kolejnego repozytorium albo ukrytego cache.
-
-## 2026-06-08 — Szafki: odciążenie podglądu danych przy otwieraniu edycji v1
-
-- Poprawka nie dodaje żadnego nowego storage i nie zapisuje drugiej kopii danych szafki.
-- Podgląd `Co program odczyta z tej szafki` pozostaje read-only adapterem, ale jest liczony po otwarciu modala, a nie synchronicznie w najcięższym momencie kliknięcia `Edytuj`.
-- Kierunek cloud-ready pozostaje bez zmian: źródłem prawdy jest szafka/WYWIAD i istniejące helpery, a trwały snapshot powstaje dopiero w WYCENIE.
-
-## 2026-06-08 — Szafki: naprawa zawieszania edycji bez zmian UI v1
-
-- Poprawka nie dodaje żadnych danych trwałych i nie tworzy drugiej kopii danych szafki.
-- Podgląd faktów roboczych pozostaje read-only, ale podczas otwierania modala nie odpala ciężkich generatorów domenowych.
-- Kierunek cloud-ready pozostaje bez zmian: źródłem prawdy jest szafka/WYWIAD oraz istniejące centralne moduły, a snapshotem wynikowym dopiero WYCENA.
 
 ## Obowiązkowa checklista przy każdej zmianie danych
 
