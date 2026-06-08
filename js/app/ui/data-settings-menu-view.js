@@ -10,7 +10,6 @@
     backup:'Kopie danych służą do zabezpieczenia aktualnego stanu programu oraz przenoszenia danych między urządzeniami. Raport pamięci jest w narzędziach testów.',
     defaults:'Globalne domyślne materiały i marki okuć są fallbackiem programu. Preferencje konkretnego pomieszczenia mają pierwszeństwo.',
     tests:'Testy aplikacji prowadzą do dwóch obszarów: narzędzi pamięci oraz testów regresyjnych dokładanych w trakcie rozwoju programu.',
-    workSources:'Źródła danych do czynności to centralny słownik nazw: techniczna nazwa, ludzka nazwa i opis, skąd program bierze wartość. To nie jest drugi zapis danych w szafkach.',
   };
 
   function addTileActivation(tile, onClick){
@@ -87,14 +86,6 @@
       section:'defaults',
       infoKey:'defaults',
       onClick:()=> setView('defaults'),
-    }));
-    grid.appendChild(buildTile({
-      icon:'settings',
-      title:'Dane do czynności i wyceny',
-      sub:'Nazwa techniczna, nazwa przyjazna i opis, jak program ma czytać dane z szafek.',
-      section:'workSources',
-      infoKey:'workSources',
-      onClick:()=> setView('workSources'),
     }));
     grid.appendChild(buildTile({
       icon:'tests',

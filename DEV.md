@@ -1,14 +1,3 @@
-## 2026-06-08 — Źródła danych do czynności i wyceny w trybiku v1
-
-- Paczka: `site_work_quantity_sources_settings_v1.zip`.
-- Dodano nową opcję w trybiku strony głównej: `Dane do czynności i wyceny`.
-- Dodano systemowy, tylko-odczytowy słownik źródeł danych do przyszłej robocizny: nazwa techniczna, nazwa przyjazna, jednostka i opis „jak liczone”.
-- Nowy moduł `FC.workQuantitySources` nie zapisuje danych do `localStorage` i nie tworzy drugiej prawdy obok WYWIADU; to centralny język nazw pod późniejszy podgląd w szafkach, cennik czynności i WYCENĘ.
-- Widok pokazuje m.in. `cabinet.height_mm`, `front.count`, `hinge.count`, `shelf.count`, `drawer.count`, `appliance.count` i przyszłe źródła typu `cabinet.volume_m3`, `cutout.count`, `routing.count`.
-- Źródła planowane są jawnie oznaczone jako planowane; ten etap nie podpina ich jeszcze do szafek ani nie zmienia obliczeń WYCENY.
-- Dodano regresję `tools/work-quantity-sources-settings-smoke.js`.
-- Cache-busting: `20260608_work_quantity_sources_settings_v1`. Raport: `tools/reports/work-quantity-sources-settings-v1.md`.
-
 ## 2026-06-07 — Robocizna: deduplikacja profili stawek godzinowych v1
 
 - Paczka: `site_labor_rate_profiles_dedupe_fix_v1.zip`.
@@ -2148,8 +2137,3 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Naprawa po diagnostyce normalny tryb vs incognito: `collectQuoteData` potrafiło liczyć dane, ale wygenerowana wycena mogła nie zostać widocznie pokazana po zmianie statusu projektu. `wycena-tab-shell.js` ustawia teraz świeżo utworzony snapshot jako aktywny podgląd (`lastQuote`, `previewSnapshotId`) i nie kasuje go przy pojedynczej synchronizacji statusu.
 - Przycisk `Wyceń` obsługuje `pointerup` oraz `click` przez jeden strzeżony handler, żeby mobile/click-swallow nie kończył się samą reakcją wizualną bez generowania. Diagnostyka zapisuje teraz osobno zdarzenie przycisku i trace generowania.
 - `wycena-context-repair.js` przepina snapshoty tego samego inwestora ze starego `projectId` do aktualnego projektu, jeśli zakres pokoi nadal istnieje. Inwestor odzyskany wcześniej ze źródła `quote-snapshot` z realnymi szafkami jest uzdrawiany jako normalny rekord zamiast blokować bieżący kontekst.
-
-
-## 20260608_restore_quantity_sources_clean_v3
-
-Paczka stabilizująca/rollback: bazuje na `site_work_quantity_sources_settings_v1`. Nie zawiera `cabinet-work-facts-preview.js`, hosta `cmWorkFactsPreview` ani zmian w modalu szafki po podglądzie faktów. Cache-busting zmieniony tylko dla plików ryzyka WYWIAD/szafki, żeby uniknąć mieszania z późniejszą wadliwą paczką.

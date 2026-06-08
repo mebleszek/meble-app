@@ -1,14 +1,3 @@
-## 2026-06-08 — Źródła danych do czynności i wyceny w trybiku v1
-
-- Paczka: `site_work_quantity_sources_settings_v1.zip`.
-- Dodano nową opcję w trybiku strony głównej: `Dane do czynności i wyceny`.
-- Dodano systemowy, tylko-odczytowy słownik źródeł danych do przyszłej robocizny: nazwa techniczna, nazwa przyjazna, jednostka i opis „jak liczone”.
-- Nowy moduł `FC.workQuantitySources` nie zapisuje danych do `localStorage` i nie tworzy drugiej prawdy obok WYWIADU; to centralny język nazw pod późniejszy podgląd w szafkach, cennik czynności i WYCENĘ.
-- Widok pokazuje m.in. `cabinet.height_mm`, `front.count`, `hinge.count`, `shelf.count`, `drawer.count`, `appliance.count` i przyszłe źródła typu `cabinet.volume_m3`, `cutout.count`, `routing.count`.
-- Źródła planowane są jawnie oznaczone jako planowane; ten etap nie podpina ich jeszcze do szafek ani nie zmienia obliczeń WYCENY.
-- Dodano regresję `tools/work-quantity-sources-settings-smoke.js`.
-- Cache-busting: `20260608_work_quantity_sources_settings_v1`. Raport: `tools/reports/work-quantity-sources-settings-v1.md`.
-
 ## 2026-06-07 — Robocizna: deduplikacja profili stawek godzinowych v1
 
 - Paczka: `site_labor_rate_profiles_dedupe_fix_v1.zip`.
