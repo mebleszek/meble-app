@@ -27,6 +27,159 @@
     catch(_){ return `${prefix || 'labor'}_${Date.now()}_${Math.random().toString(36).slice(2,8)}`; }
   }
 
+
+  function normalizeRateCode(value){
+    return text(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+  }
+  function isValidRateCode(value){
+    const raw = text(value);
+    return !!raw && raw === normalizeRateCode(raw) && /^[a-z0-9_]+$/.test(raw);
+  }
+  function isHourlyRateDefinition(row){
+    const src = row && typeof row === 'object' ? row : {};
+    return src.autoRole === 'hourlyRate' || text(src.category).toLowerCase() === 'stawki godzinowe' || !!text(src.rateKey || src.rateCode);
+  }
+  function hourlyRateCodeFromRow(row){
+    const src = row && typeof row === 'object' ? row : {};
+    let code = normalizeRateCode(src.rateKey || src.rateCode || src.code || src.key || src.rateType);
+    if(code) return code;
+    const id = text(src.id);
+    if(/^labor_rate_[a-z0-9_]+$/.test(id)) return normalizeRateCode(id.replace(/^labor_rate_/, ''));
+    return '';
+  }
+  function normalizeRateProfile(row, fallbackCode){
+    const src = row && typeof row === 'object' ? row : {};
+    const code = normalizeRateCode(src.rateKey || src.rateCode || src.code || src.key || src.rateType || fallbackCode);
+    const base = RATE_TYPES.find((entry)=> entry && entry.key === code) || null;
+    const label = text(src.label || src.name) || (base ? base.label : code);
+    return {
+      code,
+      key:code,
+      rateKey:code,
+      rateCode:code,
+      rateType:code,
+      id:text(src.id) || (code ? `labor_rate_${code}` : ''),
+      label,
+      name:text(src.name || src.label) || label,
+      price:Math.max(0, num(src.price, base && base.price != null ? base.price : 0)),
+      active:src.active !== false,
+      system:src.systemRate === true || src.nonDeletable === true || src.system === true || src.isSystem === true || !!(base && base.system),
+      systemRate:src.systemRate === true || src.nonDeletable === true || !!(base && base.system),
+      nonDeletable:src.nonDeletable === true || src.systemRate === true || !!(base && base.system),
+      starterPrice:src.starterPrice === true,
+      priceUserEditedAt:text(src.priceUserEditedAt || src.userEditedAt),
+      note:text(src.note),
+    };
+  }
+  function hasExplicitPriceEdit(row){
+    const src = row && typeof row === 'object' ? row : {};
+    return src.starterPrice === false || !!text(src.priceUserEditedAt || src.userEditedAt);
+  }
+  function defaultHourlyRateForCode(code){
+    const key = normalizeRateCode(code);
+    return DEFAULT_HOURLY_RATES.find((row)=> normalizeRateCode(row && (row.rateKey || row.rateCode || row.rateType)) === key) || null;
+  }
+  function dedupeHourlyRateDefinitions(list){
+    const input = Array.isArray(list) ? list : [];
+    const normalRows = [];
+    const groups = new Map();
+    const order = [];
+    input.forEach((row)=>{
+      if(!isHourlyRateDefinition(row)){ normalRows.push(row); return; }
+      const code = hourlyRateCodeFromRow(row);
+      if(!code){ normalRows.push(row); return; }
+      if(!groups.has(code)){ groups.set(code, []); order.push(code); }
+      groups.get(code).push(row);
+    });
+    const mergedHourly = [];
+    order.forEach((code)=>{
+      const rows = groups.get(code) || [];
+      const canonicalId = `labor_rate_${code}`;
+      const base = defaultHourlyRateForCode(code);
+      const canonical = rows.find((row)=> text(row && row.id) === canonicalId) || null;
+      if(base){
+        const editedCanonical = canonical && hasExplicitPriceEdit(canonical);
+        const singleLegacy = !canonical && rows.length === 1 && hasExplicitPriceEdit(rows[0]);
+        const source = canonical || (singleLegacy ? rows[0] : null) || {};
+        const keepUserPrice = !!(editedCanonical || singleLegacy);
+        mergedHourly.push(Object.assign({}, base, source, {
+          id:canonicalId,
+          category:'Stawki godzinowe',
+          autoRole:'hourlyRate',
+          rateKey:code,
+          rateCode:code,
+          rateType:code,
+          price:keepUserPrice ? Math.max(0, num(source.price, base.price)) : Math.max(0, num(base.price, 0)),
+          systemRate:true,
+          nonDeletable:true,
+          starterPrice:keepUserPrice ? false : true,
+          priceUserEditedAt:keepUserPrice ? text(source.priceUserEditedAt || source.userEditedAt) : '',
+        }));
+        return;
+      }
+      const preferred = rows.find(hasExplicitPriceEdit) || rows[rows.length - 1] || rows[0] || {};
+      mergedHourly.push(Object.assign({}, preferred, {
+        id:text(preferred.id) || canonicalId,
+        category:'Stawki godzinowe',
+        autoRole:'hourlyRate',
+        rateKey:code,
+        rateCode:code,
+        rateType:code,
+        nonDeletable:true,
+      }));
+    });
+    return mergedHourly.concat(normalRows);
+  }
+  function buildRateProfiles(list, selectedCode){
+    const selected = normalizeRateCode(selectedCode);
+    const order = [];
+    const byCode = new Map();
+    RATE_TYPES.forEach((row)=>{
+      const item = normalizeRateProfile({ rateKey:row.key, name:row.label, label:row.label, price:row.price, active:true, systemRate:row.system === true, nonDeletable:row.system === true, id:`labor_rate_${row.key}`, starterPrice:true });
+      if(item.code){ byCode.set(item.code, item); order.push(item.code); }
+    });
+    (Array.isArray(list) ? list : []).forEach((row)=>{
+      if(!isHourlyRateDefinition(row)) return;
+      const item = normalizeRateProfile(row);
+      if(!item.code) return;
+      const prev = byCode.get(item.code);
+      const next = prev ? Object.assign({}, prev, item, { code:prev.code, key:prev.code, rateKey:prev.code, rateCode:prev.code, rateType:prev.code, system:prev.system || item.system, systemRate:prev.systemRate || item.systemRate, nonDeletable:prev.nonDeletable || item.nonDeletable }) : item;
+      byCode.set(item.code, next);
+      if(!order.includes(item.code)) order.push(item.code);
+    });
+    if(selected && !byCode.has(selected)){
+      const item = normalizeRateProfile({ rateKey:selected, name:selected, active:false });
+      byCode.set(selected, item);
+      order.push(selected);
+    }
+    return order.map((code)=> byCode.get(code)).filter((row)=> row && row.code);
+  }
+  function findRateProfile(list, code){
+    const key = normalizeRateCode(code);
+    return buildRateProfiles(list, key).find((row)=> row.code === key) || null;
+  }
+  function rateProfileOptions(list, selectedCode){
+    const selected = normalizeRateCode(selectedCode);
+    return buildRateProfiles(list, selected)
+      .filter((row)=> row.active !== false || row.code === selected)
+      .map((row)=> ({ value:row.code, label:`${row.label || row.name || row.code}${row.price > 0 ? ' — ' + Number(row.price).toFixed(2) + ' zł/h' : ''}`, description:row.note || '' }));
+  }
+  function validateRateProfile(row, existingList, opts){
+    const cfg = opts && typeof opts === 'object' ? opts : {};
+    const src = row && typeof row === 'object' ? row : {};
+    const rawCode = text(src.rateKey || src.rateCode || src.code || src.key || '');
+    const oldCode = normalizeRateCode(cfg.oldCode || src.oldCode);
+    const item = normalizeRateProfile(src);
+    if(!rawCode) return { ok:false, code:'required', message:'Kod techniczny stawki godzinowej jest wymagany.' };
+    if(!isValidRateCode(rawCode)) return { ok:false, code:'format', message:'Kod techniczny stawki może mieć tylko małe litery, cyfry i podkreślenia, bez spacji i polskich znaków.' };
+    if(oldCode && item.code !== oldCode) return { ok:false, code:'immutable', message:'Nie można zmienić kodu technicznego istniejącej stawki godzinowej. Utwórz nową stawkę i wyłącz starą.' };
+    const duplicate = (Array.isArray(existingList) ? existingList : []).filter(isHourlyRateDefinition).map((entry)=> normalizeRateProfile(entry)).find((entry)=> entry.code === item.code && (!oldCode || entry.code !== oldCode));
+    if(duplicate) return { ok:false, code:'duplicate', message:'Taki kod techniczny stawki godzinowej już istnieje.' };
+    if(!item.label) return { ok:false, code:'label', message:'Nazwa przyjazna stawki godzinowej jest wymagana.' };
+    if(!(item.price > 0)) return { ok:false, code:'price', message:'Kwota stawki godzinowej musi być większa od zera.' };
+    return { ok:true, item };
+  }
+
   function clampTimeBlock(value){
     const n = num(value, 0);
     if(n === 0.25 || n === 0.5 || n === 1) return n;
@@ -74,8 +227,9 @@
   function normalizeDefinition(row){
     const src = row && typeof row === 'object' ? row : {};
     const autoRole = normalizeMode(src.autoRole, AUTO_ROLES, 'none');
-    const rateKey = text(src.rateKey);
-    const rateType = normalizeMode(src.rateType || (autoRole === 'hourlyRate' ? rateKey : ''), RATE_TYPES, 'workshop');
+    const rateKey = normalizeRateCode(src.rateKey || src.rateCode);
+    const rawRateType = normalizeRateCode(src.rateType || (autoRole === 'hourlyRate' ? rateKey : ''));
+    const rateType = rawRateType || 'workshop';
     const quantityMode = normalizeMode(src.quantityMode, QUANTITY_MODES, 'none');
     const volumeTimeMode = text(src.volumeTimeMode) === 'perM3' ? 'perM3' : (text(src.volumeTimeMode) === 'tiers' ? 'tiers' : 'none');
     const volumePricePerM3 = volumeTimeMode === 'none' ? Math.max(0, num(src.volumePricePerM3, 0)) : 0;
@@ -88,6 +242,10 @@
       usage:normalizeMode(src.usage, USAGE_TYPES, 'universal'),
       autoRole,
       rateKey:autoRole === 'hourlyRate' ? (rateKey || rateType) : rateKey,
+      rateCode:autoRole === 'hourlyRate' ? (rateKey || rateType) : rateKey,
+      isHourlyRate:autoRole === 'hourlyRate',
+      systemRate:src.systemRate === true,
+      nonDeletable:src.nonDeletable === true,
       rateType,
       timeBlockHours:clampTimeBlock(src.timeBlockHours),
       defaultMultiplier:Math.max(0, num(src.defaultMultiplier, 1)) || 1,
@@ -112,14 +270,14 @@
     };
   }
   function ensureDefaultDefinitions(list){
-    const rows = Array.isArray(list) ? list.slice() : [];
+    const rows = dedupeHourlyRateDefinitions(Array.isArray(list) ? list.slice() : []);
     const seen = new Set(rows.map((row)=> text(row && row.id)).filter(Boolean));
     DEFAULT_HOURLY_RATES.concat(DEFAULT_LABOR_DEFINITIONS).forEach((row)=>{
       if(seen.has(row.id)) return;
       rows.push(clone(row));
       seen.add(row.id);
     });
-    return rows;
+    return dedupeHourlyRateDefinitions(rows);
   }
   function getRateLabel(key){
     const found = RATE_TYPES.find((row)=> row.key === key);
@@ -138,13 +296,12 @@
     return found ? found.label : (key || 'Bez ilości');
   }
   function buildHourlyRates(list){
-    const rates = { workshop:120, assembly:140, helper:60, specialist:180 };
-    (Array.isArray(list) ? list : []).forEach((row)=>{
-      const def = normalizeDefinition(row);
-      if(def.autoRole !== 'hourlyRate') return;
-      const key = def.rateKey || def.rateType;
+    const rates = {};
+    RATE_TYPES.forEach((row)=>{ if(row && row.key) rates[row.key] = Math.max(0, num(row.price, 0)); });
+    buildRateProfiles(list).forEach((profile)=>{
+      const key = normalizeRateCode(profile.code);
       if(!key) return;
-      const price = Math.max(0, num(def.price, 0));
+      const price = Math.max(0, num(profile.price, 0));
       if(price > 0) rates[key] = price;
     });
     return rates;
@@ -214,7 +371,7 @@
 
   function describeDefinition(row){
     const def = normalizeDefinition(row);
-    if(def.autoRole === 'hourlyRate') return `${getRateLabel(def.rateKey || def.rateType)} • ${Number(def.price || 0).toFixed(2)} PLN/h`;
+    if(def.autoRole === 'hourlyRate') return `${getRateLabel(def.rateKey || def.rateType)} • ${Number(def.price || 0).toFixed(2)} zł/h`;
     const parts = [];
     if(def.autoRole && def.autoRole !== 'none') parts.push(getAutoRoleLabel(def.autoRole));
     if(def.timeBlockHours > 0) parts.push(`${def.timeBlockHours} h × ${getRateLabel(def.rateType)}`);
@@ -246,5 +403,14 @@
     getUsageLabel,
     getAutoRoleLabel,
     getQuantityModeLabel,
+    normalizeRateCode,
+    isValidRateCode,
+    isHourlyRateDefinition,
+    normalizeRateProfile,
+    buildRateProfiles,
+    findRateProfile,
+    rateProfileOptions,
+    validateRateProfile,
+    dedupeHourlyRateDefinitions,
   };
 })();

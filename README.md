@@ -1384,3 +1384,9 @@ Szczegółowy opis mechanizmu backupu, zakresu snapshotów, retencji i testów z
 ## Awaryjny rollback — site_restore_thread_start_stable_v1.zip
 
 Ta paczka przywraca aplikację do checkpointu `site_quote_details_accordion_rozrys_auto_height_v1.zip` i wymusza świeże ładowanie plików przez nowy cache-busting. Celem jest odzyskanie stabilnego WYWIADU przed dalszymi pracami.
+
+## 2026-06-09 — Profile stawek godzinowych robocizny
+
+W cenniku stawek wyceny mebli przywrócono cztery systemowe profile stawek godzinowych: warsztatową, montażową, specjalistyczną i pomocnika. Stawki są osobne od zwykłych czynności robocizny. Przy dodawaniu nowej pozycji można zaznaczyć `To jest stawka godzinowa`, podać nazwę przyjazną, kod techniczny i kwotę zł/h. Zwykłe czynności wybierają profil stawki z listy.
+
+Ten etap nie dotyka WYWIADU, modala szafki, źródeł danych w trybiku ani automatów robocizny.

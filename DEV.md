@@ -2108,3 +2108,14 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Naprawa po diagnostyce normalny tryb vs incognito: `collectQuoteData` potrafiło liczyć dane, ale wygenerowana wycena mogła nie zostać widocznie pokazana po zmianie statusu projektu. `wycena-tab-shell.js` ustawia teraz świeżo utworzony snapshot jako aktywny podgląd (`lastQuote`, `previewSnapshotId`) i nie kasuje go przy pojedynczej synchronizacji statusu.
 - Przycisk `Wyceń` obsługuje `pointerup` oraz `click` przez jeden strzeżony handler, żeby mobile/click-swallow nie kończył się samą reakcją wizualną bez generowania. Diagnostyka zapisuje teraz osobno zdarzenie przycisku i trace generowania.
 - `wycena-context-repair.js` przepina snapshoty tego samego inwestora ze starego `projectId` do aktualnego projektu, jeśli zakres pokoi nadal istnieje. Inwestor odzyskany wcześniej ze źródła `quote-snapshot` z realnymi szafkami jest uzdrawiany jako normalny rekord zamiast blokować bieżący kontekst.
+
+## 2026-06-09 — Przywrócenie profili stawek godzinowych bez zmian WYWIADU v1
+
+- Paczka: `site_labor_rate_profiles_restore_clean_v1.zip`.
+- Przywrócono tylko profile stawek godzinowych w cenniku robocizny: `workshop` 150 zł/h, `assembly` 250 zł/h, `specialist` 300 zł/h, `helper` 80 zł/h.
+- Dodano tryb formularza `To jest stawka godzinowa`; w tym trybie formularz pokazuje nazwę przyjazną, kod techniczny stawki, kwotę zł/h i aktywność, a chowa pola reguły robocizny.
+- Zwykła czynność wybiera stawkę godzinową z dynamicznej listy profili; lista może zawierać przyszłe stawki użytkownika, np. `painter`.
+- Stawki godzinowe są nieusuwalne; nazwę, kwotę i aktywność można zmieniać, ale kod techniczny istniejącej stawki jest stały.
+- Celowo nie dodano automatów robocizny, źródeł danych w trybiku ani podglądu danych w modalu szafki.
+- Nie ruszano `cabinet-modal.js`, `cabinets-render.js` ani `css/cabinet-common.css`.
+- Cache-busting: `20260609_labor_rate_profiles_restore_clean_v1`. Raport: `tools/reports/labor-rate-profiles-restore-clean-v1.md`.

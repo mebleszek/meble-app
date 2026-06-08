@@ -776,3 +776,7 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 - Kategoria `Prowadniki` jest osobną kategorią katalogu okuć i może być eksportowana/importowana przez istniejący mechanizm dynamicznych parametrów.
 - Booleany w danych technicznych zachowują stan nieustawiony, żeby przyszła synchronizacja z chmurą nie myliła braku danych z wartością `false`.
 - Cache-busting: `20260604_hinge_driver_components_v1`.
+
+## 2026-06-09 — Profile stawek godzinowych robocizny
+
+Etap `site_labor_rate_profiles_restore_clean_v1.zip` nie dodaje nowego trwałego klucza localStorage. Profile stawek godzinowych pozostają częścią istniejącego katalogu `quoteRates` i są normalizowane po stałym kodzie technicznym (`rateKey`/`rateCode`). Dla przyszłej chmury kod stawki jest stabilnym kluczem domenowym, a nazwa przyjazna i kwota są edytowalnymi właściwościami użytkownika.

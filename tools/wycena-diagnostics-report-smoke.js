@@ -67,8 +67,8 @@ async function main(){
 
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const devTests = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');
-  assert(index.includes('js/app/wycena/wycena-diagnostics.js?v=20260608_restore_thread_start_stable_v1'), 'index.html nie ładuje diagnostyki z cache-bustingiem');
-  assert(devTests.includes('js/app/wycena/wycena-diagnostics.js?v=20260608_restore_thread_start_stable_v1'), 'dev_tests.html nie ładuje diagnostyki z cache-bustingiem');
+  assert(index.includes('js/app/wycena/wycena-diagnostics.js?v=20260609_labor_rate_profiles_restore_clean_v1'), 'index.html nie ładuje diagnostyki z cache-bustingiem');
+  assert(devTests.includes('js/app/wycena/wycena-diagnostics.js?v=20260609_labor_rate_profiles_restore_clean_v1'), 'dev_tests.html nie ładuje diagnostyki z cache-bustingiem');
   console.log('[wycena-diagnostics-report-smoke] OK');
 }
 

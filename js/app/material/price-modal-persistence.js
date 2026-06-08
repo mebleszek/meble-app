@@ -27,6 +27,20 @@
   function validateServiceForm(data){
     if(!String(data && data.name || '').trim()){ ctx.info('Brak nazwy', 'Wprowadź nazwę usługi, zanim ją zapiszesz.'); return false; }
     if(!String(data && data.category || '').trim()){ ctx.info('Brak kategorii', 'Wybierz kategorię usługi.'); return false; }
+    if(ctx.currentListKind && ctx.currentListKind() === 'quoteRates' && data && data.autoRole === 'hourlyRate'){
+      const labor = FC.laborCatalog || {};
+      const existing = ctx.currentList ? ctx.currentList() : [];
+      const editing = ctx.currentEditedItem ? ctx.currentEditedItem() : null;
+      const oldCode = editing && labor.isHourlyRateDefinition && labor.isHourlyRateDefinition(editing)
+        ? (editing.rateKey || editing.rateCode || editing.rateType)
+        : '';
+      try{
+        if(labor.validateRateProfile){
+          const result = labor.validateRateProfile(data, existing.filter((row)=> !editing || String(row.id) !== String(editing.id)), { oldCode });
+          if(!result || !result.ok){ ctx.info('Nie można zapisać stawki godzinowej', String((result && result.message) || 'Sprawdź kod techniczny, nazwę i kwotę.')); return false; }
+        }
+      }catch(err){ ctx.info('Nie można zapisać stawki godzinowej', String(err && err.message ? err.message : 'Sprawdź dane stawki.')); return false; }
+    }
     return true;
   }
   function editedTimestamp(){ try{ return new Date().toISOString(); }catch(_){ return String(Date.now()); } }
@@ -78,6 +92,10 @@
     return saveServiceFromForm();
   }
   async function deletePriceItem(item){
+    if(ctx.currentListKind && ctx.currentListKind() === 'quoteRates' && item && item.nonDeletable === true){
+      ctx.info('Nie można usunąć stawki', 'Ta stawka jest systemowa albo już używana jako profil godzinowy. Możesz zmienić jej nazwę, kwotę albo odznaczyć „Aktywna”.');
+      return false;
+    }
     const ok = await ctx.confirmDelete(); if(!ok) return false;
     const next = ctx.currentList().filter((row)=> String(row.id) !== String(item && item.id));
     ctx.saveCurrentList(next);

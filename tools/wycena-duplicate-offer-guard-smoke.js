@@ -136,7 +136,7 @@ async function runDuplicateGuard(){
 }
 
 function runStaticChecks(){
-  const version = '20260608_restore_thread_start_stable_v1';
+  const version = '20260609_labor_rate_profiles_restore_clean_v1';
   const shell = fs.readFileSync(path.join(process.cwd(), 'js/app/wycena/wycena-tab-shell.js'), 'utf8');
   const store = fs.readFileSync(path.join(process.cwd(), 'js/app/quote/quote-snapshot-store.js'), 'utf8');
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
