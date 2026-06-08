@@ -1,3 +1,11 @@
+
+## 2026-06-09 — Work quantity facts reader v1
+
+- Dodano `FC.workQuantityFacts` jako read-only adapter danych szafki do przyszłych czynności i WYCENY.
+- Adapter nie tworzy nowych kluczy localStorage, nie zapisuje danych w projekcie i nie dubluje pól szafki.
+- Fakty są wyliczane na żądanie z istniejących danych WYWIADU oraz centralnych helperów frontów/zawiasów/AGD.
+- To jest warstwa odczytu, nie nowy magazyn danych. Do chmury/snapshotów nie dochodzi nowa struktura trwała.
+
 # CLOUD_MIGRATION — plan przygotowania meble-app pod chmurę
 
 Ten plik jest stałym punktem odniesienia dla zmian dotyczących danych. `DEV.md` trzyma ogólne zasady pracy, a ten plik trzyma zasady migracji danych, localStorage, backupów i przyszłej synchronizacji.

@@ -1,4 +1,13 @@
 
+## 2026-06-09 — site_work_quantity_facts_reader_v1
+
+- Bazą jest zaakceptowana paczka `site_work_quantity_sources_settings_clean_v1.zip`.
+- Dodano wyłącznie read-only adapter `FC.workQuantityFacts`, który na żądanie czyta z aktualnej szafki nazwane fakty do przyszłych czynności i wyceny.
+- Adapter odczytuje m.in. wymiary, objętość, fronty, zawiasy, półki, szuflady i AGD przez istniejące centralne źródła, bez zapisywania drugiej prawdy w szafce.
+- Nie ruszano UI WYWIADU, `cabinet-modal.js`, `cabinets-render.js`, plusa dodawania, WYCENY, `quoteCalculationRegister`, cennika czynności ani automatów.
+- Cache-busting: `20260609_work_quantity_facts_reader_v1`. Raport: `tools/reports/work-quantity-facts-reader-v1.md`.
+
+
 ## 2026-06-09 — Źródła danych do czynności i wyceny w trybiku clean v1
 
 - Paczka: `site_work_quantity_sources_settings_clean_v1.zip`.
