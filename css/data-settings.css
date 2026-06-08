@@ -190,25 +190,3 @@
   .data-settings-default-choice .rozrys-choice-launch__label{font-size:17px;}
 }
 
-
-
-.data-settings-work-sources-card{display:grid;gap:12px;}
-.data-settings-work-sources-lead{font-size:13px;font-weight:800;line-height:1.38;border:1px solid rgba(148,163,184,.35);border-radius:14px;background:#f8fafc;padding:10px 12px;margin:0;}
-.data-settings-work-sources-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
-.data-settings-work-source-list{display:grid;gap:10px;padding-top:12px;}
-.data-settings-work-source{border:1px solid rgba(148,163,184,.42);border-radius:14px;background:#fff;padding:11px 12px;display:grid;gap:8px;box-shadow:1px 2px 0 rgba(15,23,42,.06);}
-.data-settings-work-source__head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start;}
-.data-settings-work-source__title{display:grid;gap:4px;min-width:0;}
-.data-settings-work-source__title strong{font-size:15px;line-height:1.18;font-weight:950;color:#0f172a;}
-.data-settings-work-source__title code{font-size:12px;line-height:1.25;color:#475569;background:#f8fafc;border:1px solid rgba(148,163,184,.35);border-radius:999px;padding:3px 8px;justify-self:start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.data-settings-work-source__meta{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
-.data-settings-work-source__meta span{border:1px solid rgba(148,163,184,.35);border-radius:999px;background:#f8fafc;padding:4px 8px;font-size:11px;font-weight:950;color:#475569;}
-.data-settings-work-source__badge--system{border-color:rgba(34,197,94,.42)!important;background:rgba(34,197,94,.12)!important;color:#166534!important;}
-.data-settings-work-source__badge--planned{border-color:rgba(245,158,11,.45)!important;background:rgba(245,158,11,.13)!important;color:#92400e!important;}
-.data-settings-work-source__calc{margin:0;font-size:13px;line-height:1.36;font-weight:760;color:#334155;}
-.data-settings-work-sources-note{border:1px solid rgba(14,165,233,.25);background:rgba(14,165,233,.08);border-radius:14px;padding:10px 12px;font-size:13px;font-weight:850;color:#075985;line-height:1.35;}
-@media (max-width:720px){
-  .data-settings-work-sources-summary{grid-template-columns:1fr;}
-  .data-settings-work-source__head{grid-template-columns:1fr;}
-  .data-settings-work-source__meta{justify-content:flex-start;}
-}

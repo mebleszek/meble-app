@@ -7,8 +7,14 @@
 
   function text(value){ return String(value == null ? '' : value).trim(); }
   function num(value){ const n = Number(String(value == null ? '' : value).replace(',', '.')); return Number.isFinite(n) ? n : 0; }
-  function money(value){ return (Math.round(num(value) * 100) / 100).toFixed(2) + ' PLN'; }
-  function pct(value, total){ const t = num(total); if(!(t > 0)) return '0%'; return (Math.round((num(value) / t) * 1000) / 10).toFixed(1).replace('.0', '') + '%'; }
+  function formatDecimal(value, precision){
+    const n = Math.round(num(value) * Math.pow(10, precision == null ? 2 : precision)) / Math.pow(10, precision == null ? 2 : precision);
+    return n.toFixed(precision == null ? 2 : precision).replace(/\.?0+$/, '').replace('.', ',');
+  }
+  function money(value){ return (Math.round(num(value) * 100) / 100).toFixed(2).replace('.', ',') + ' zł'; }
+  function rateMoney(value){ return formatDecimal(value, 2) + ' zł/h'; }
+  function hours(value){ return formatDecimal(value, 2) + ' h'; }
+  function pct(value, total){ const t = num(total); if(!(t > 0)) return '0%'; return (Math.round((num(value) / t) * 1000) / 10).toFixed(1).replace('.0', '').replace('.', ',') + '%'; }
   function h(tag, attrs, children){
     const el = document.createElement(tag);
     Object.keys(attrs || {}).forEach((key)=>{
@@ -56,7 +62,246 @@
     });
     target.appendChild(btn);
   }
+  function humanWarningText(message){
+    const msg = text(message);
+    if(msg === 'Cena startowa — sprawdź i edytuj w cenniku przed realną ofertą.') return 'To jest stawka startowa. Przed wysłaniem oferty sprawdź ją w cenniku.';
+    return msg.replace(/\bPLN\b/g, 'zł');
+  }
+  function humanCountWord(count, one, few, many){
+    const n = Math.abs(Math.round(num(count)));
+    if(n === 1) return one;
+    if(n % 10 >= 2 && n % 10 <= 4 && !(n % 100 >= 12 && n % 100 <= 14)) return few || many || one;
+    return many || few || one;
+  }
+  function laborRowsTotalHours(rows){
+    return (Array.isArray(rows) ? rows : []).reduce((sum, row)=> {
+      const metrics = laborMetrics(row);
+      const hoursValue = metrics.pricedHours > 0 ? metrics.pricedHours : metrics.baseHours;
+      return sum + Math.max(0, hoursValue);
+    }, 0);
+  }
+  function laborActionSummary(count, sum, rows){
+    const n = Math.max(0, Math.round(num(count)));
+    const base = `${n} ${humanCountWord(n, 'czynność', 'czynności', 'czynności')} razem = ${money(sum)}`;
+    const totalHours = laborRowsTotalHours(rows);
+    return totalHours > 0 ? `${base} • czas: ${hours(totalHours)}` : base;
+  }
+  function splitLaborSourceLabel(value){
+    const parts = text(value).split(/\s+—\s+/).map(text).filter(Boolean);
+    if(!parts.length) return { base:'', detail:'' };
+    const last = parts[parts.length - 1] || '';
+    const isDoorDetail = /\b(lewe|prawe|lewy|prawy|drzwiczki|drzwi|front)\b/i.test(last);
+    if(isDoorDetail && parts.length > 1){
+      return { base:parts.slice(0, -1).join(' — '), detail:last };
+    }
+    return { base:parts.join(' — '), detail:'' };
+  }
+  function laborCabinetGroupTitle(row){
+    const split = splitLaborSourceLabel(row && row.sourceLabel);
+    return split.base || text(row && row.sourceLabel) || text(row && row.subsection) || 'Szafka';
+  }
+  function laborCabinetGroupKey(row){
+    const id = text(row && row.sourceId);
+    if(id) return 'cabinet:' + id;
+    return 'cabinet-label:' + laborCabinetGroupTitle(row);
+  }
+  function laborSourceDetail(row){
+    return splitLaborSourceLabel(row && row.sourceLabel).detail;
+  }
+  function catalogQuoteRates(){
+    try{ return FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : []; }
+    catch(_){ return []; }
+  }
+  function lowerFirst(value){
+    const raw = text(value);
+    return raw ? raw.charAt(0).toLowerCase() + raw.slice(1) : '';
+  }
+  function laborRateLabel(row, metrics){
+    const raw = row && row.raw && typeof row.raw === 'object' ? row.raw : {};
+    const m = metrics || laborMetrics(row);
+    const code = text(raw.rateType || row && row.rateType || m.rateType);
+    let label = '';
+    try{ if(FC.laborCatalog && typeof FC.laborCatalog.getRateLabel === 'function') label = FC.laborCatalog.getRateLabel(code, catalogQuoteRates()); }catch(_){ }
+    if(!label && m.hourlyRate > 0) label = hourlyRateLabelFromAmount(m.hourlyRate);
+    if(!label){
+      const fallback = { workshop:'Warsztatowa', assembly:'Montażowa', specialist:'Specjalistyczna', helper:'Pomocnika' };
+      label = fallback[code] || '';
+    }
+    if(!text(label)) return 'Stawka';
+    return /^stawka\b/i.test(label) ? label : 'Stawka ' + lowerFirst(label);
+  }
+  function parseFrontRows(note){
+    const raw = text(note);
+    const match = raw.match(/Fronty z MATERIAŁ\/WYCENA:\s*(.+)$/i);
+    if(!match) return [];
+    return match[1].split(',').map((chunk)=>{
+      const part = text(chunk);
+      const found = part.match(/^(\d+(?:[\.,]\d+)?)\s*[×x]\s*([0-9]+(?:[\.,][0-9]+)?)\s*×\s*([0-9]+(?:[\.,][0-9]+)?)/i);
+      if(!found) return null;
+      return { qty:num(found[1]), dims:`${formatDecimal(found[2], 1)} × ${formatDecimal(found[3], 1)}`.replace(/,0\b/g, '') };
+    }).filter(Boolean);
+  }
+  function rawLabor(row){ return row && row.raw && typeof row.raw === 'object' ? row.raw : {}; }
+  function readFirstNumber(value, patterns){
+    const raw = text(value);
+    const list = Array.isArray(patterns) ? patterns : [patterns];
+    for(const pattern of list){
+      const match = raw.match(pattern);
+      if(match && match[1] != null) return num(match[1]);
+    }
+    return 0;
+  }
+  function laborMetrics(row){
+    const raw = rawLabor(row);
+    const note = text((raw && raw.note) || (row && row.note));
+    const calculation = text((row && row.calculation) || (raw && raw.calculation));
+    const quantity = Math.max(0, num((row && row.quantity) || raw.quantity || 1)) || 1;
+    const unit = text((row && row.unit) || raw.unit);
+    const baseHours = num(raw.baseHours) || readFirstNumber(note, /czas\s+bazowy\s+([0-9]+(?:[\.,][0-9]+)?)\s*h/i);
+    let pricedHours = num(raw.hours) || readFirstNumber(note, /czas\s+wyceniony\s+([0-9]+(?:[\.,][0-9]+)?)\s*h/i);
+    if(!(pricedHours > 0)) pricedHours = readFirstNumber(calculation, /(?:Cena\s*=\s*)?([0-9]+(?:[\.,][0-9]+)?)\s*h\s*[×x]\s*[0-9]+(?:[\.,][0-9]+)?\s*(?:PLN|zł)\s*\/\s*h/i);
+    const hourlyRate = num(raw.hourlyRate) || readFirstNumber(note, /([0-9]+(?:[\.,][0-9]+)?)\s*(?:PLN|zł)\s*\/\s*h/i) || readFirstNumber(calculation, /[0-9]+(?:[\.,][0-9]+)?\s*h\s*[×x]\s*([0-9]+(?:[\.,][0-9]+)?)\s*(?:PLN|zł)\s*\/\s*h/i);
+    const volumeHours = num(raw.volumeHours) || readFirstNumber(note, /czas\s+gabarytowy\s+([0-9]+(?:[\.,][0-9]+)?)\s*h/i);
+    const multiplier = num(raw.multiplier) || readFirstNumber(note, /mnożnik\s*[×x]\s*([0-9]+(?:[\.,][0-9]+)?)/i) || 1;
+    const fixedPrice = num(raw.fixedPrice) || readFirstNumber(calculation, /kwota\s+stała\s+([0-9]+(?:[\.,][0-9]+)?)\s*(?:PLN|zł)/i);
+    const volumePrice = num(raw.volumePrice) || readFirstNumber(calculation, /dopłata\s+gabarytowa\s+([0-9]+(?:[\.,][0-9]+)?)\s*(?:PLN|zł)/i);
+    const effectiveBaseHours = baseHours > 0 ? baseHours : ((pricedHours > 0 && volumeHours <= 0 && Math.abs(multiplier - 1) < 0.0001) ? pricedHours : 0);
+    return {
+      quantity,
+      unit,
+      baseHours:effectiveBaseHours,
+      pricedHours,
+      hourlyRate,
+      volumeHours,
+      multiplier,
+      fixedPrice,
+      volumePrice,
+      total:num((row && row.total) || raw.total),
+      rateType:text(raw.rateType || row && row.rateType),
+    };
+  }
+  function hourlyRateLabelFromAmount(amount){
+    const value = num(amount);
+    if(!(value > 0)) return '';
+    const rates = catalogQuoteRates();
+    const matches = (Array.isArray(rates) ? rates : []).filter((row)=> {
+      const price = num(row && row.price);
+      const isHourly = text(row && row.autoRole) === 'hourlyRate' || text(row && row.category).toLowerCase() === 'stawki godzinowe' || /^labor_rate_/.test(text(row && row.id)) || text(row && (row.rateKey || row.rateCode || row.rateType));
+      return isHourly && Math.abs(price - value) < 0.005;
+    });
+    if(matches.length !== 1) return '';
+    return text(matches[0] && matches[0].name).replace(/^stawka\s+/i, '') || text(matches[0] && (matches[0].rateKey || matches[0].rateCode || matches[0].rateType));
+  }
+  function laborSubject(row){
+    const raw = rawLabor(row);
+    const quantity = Math.max(0, num(row && row.quantity || raw.quantity || 1));
+    const unit = text(row && row.unit || raw.unit || 'szt.');
+    const role = text(raw.sourceRole || row && row.sourceRole);
+    const code = text(raw.workAutomatCode || raw.laborAutomatCode || row && (row.workAutomatCode || row.laborAutomatCode));
+    const name = text(row && row.name).toLowerCase();
+    const detail = laborSourceDetail(row);
+    const withDetail = (value)=> detail ? `${detail}: ${value}` : value;
+    if(role === 'front-labor' || code === 'front_mount' || name.includes('frontu')){
+      const rows = parseFrontRows(raw.note || row && row.note);
+      const label = `${formatDecimal(quantity, 2)} ${quantity === 1 ? 'front' : 'frontów'}`;
+      if(rows.length === 1) return withDetail(`${label} ${rows[0].dims} cm`);
+      if(rows.length > 1) return withDetail(`${label}: ${rows.map((part)=> `${formatDecimal(part.qty, 2)} × ${part.dims} cm`).join(', ')}`);
+      return withDetail(`${label}`);
+    }
+    if(role === 'shelf-labor' || code === 'shelf_mount' || name.includes('pół')) return withDetail(`${formatDecimal(quantity, 2)} ${humanCountWord(quantity, 'półka', 'półki', 'półek')}`);
+    if(role === 'cabinet-body-labor' || code === 'cabinet_body') return withDetail(`${formatDecimal(quantity || 1, 2)} ${quantity === 1 ? 'korpusu' : 'korpusów'}`);
+    if(role === 'hinge-labor' || code === 'hinge_mount' || name.includes('zawias')) return withDetail(`${formatDecimal(quantity, 2)} ${quantity === 1 ? 'zawiasu' : 'zawiasów'}`);
+    if(text(raw.sourceType) === 'appliance') return text(raw.sourceLabel) || 'montaż AGD';
+    if(text(raw.sourceKind) === 'manual' || text(raw.sourceType).includes('manual')) return withDetail(quantity > 0 ? `${formatDecimal(quantity, 2)} szt. — czynność ręczna` : 'czynność ręczna');
+    if(unit === 'szt.' || unit === 'szt') return withDetail(`${formatDecimal(quantity, 2)} szt.`);
+    if(unit) return withDetail(`${formatDecimal(quantity, 2)} ${unit}`);
+    return withDetail('czynność ręczna');
+  }
+  function laborTimeFormula(row){
+    const m = laborMetrics(row);
+    const quantity = m.quantity;
+    const unit = m.unit;
+    const baseHours = m.baseHours;
+    const pricedHours = m.pricedHours || baseHours;
+    const volumeHours = m.volumeHours;
+    const multiplier = m.multiplier || 1;
+    if((unit === 'szt.' || unit === 'szt') && quantity > 0 && baseHours > 0){
+      const perUnit = baseHours / quantity;
+      const qtyBase = quantity * perUnit;
+      if(volumeHours > 0 || Math.abs(multiplier - 1) > 0.0001){
+        const parts = [`${formatDecimal(quantity, 2)} × ${hours(perUnit)}`];
+        if(volumeHours > 0) parts.push(`czas gabarytowy ${hours(volumeHours)}`);
+        const beforeMultiplier = parts.join(' + ');
+        return Math.abs(multiplier - 1) > 0.0001
+          ? `(${beforeMultiplier}) × ${formatDecimal(multiplier, 2)} = ${hours(pricedHours || (qtyBase + volumeHours) * multiplier)}`
+          : `${beforeMultiplier} = ${hours(pricedHours || qtyBase + volumeHours)}`;
+      }
+      return `${formatDecimal(quantity, 2)} × ${hours(perUnit)} = ${hours(pricedHours || baseHours)}`;
+    }
+    if(pricedHours > 0) return hours(pricedHours);
+    return '';
+  }
+  function laborFormula(row){
+    const m = laborMetrics(row);
+    const quantity = m.quantity;
+    const total = m.total;
+    const hourlyRate = m.hourlyRate;
+    const baseHours = m.baseHours;
+    const pricedHours = m.pricedHours || baseHours;
+    const fixedPrice = m.fixedPrice;
+    const volumePrice = m.volumePrice;
+    const volumeHours = m.volumeHours;
+    const multiplier = m.multiplier || 1;
+    const unit = m.unit;
+    const simpleLinearPiece = (unit === 'szt.' || unit === 'szt') && quantity > 0 && hourlyRate > 0 && baseHours > 0 && fixedPrice <= 0 && volumePrice <= 0 && volumeHours <= 0 && Math.abs(multiplier - 1) < 0.0001;
+    if(simpleLinearPiece){
+      const perUnit = baseHours / quantity;
+      return `${formatDecimal(quantity, 2)} × ${hours(perUnit)} × ${rateMoney(hourlyRate)} = ${money(total)}`;
+    }
+    const parts = [];
+    if(pricedHours > 0 && hourlyRate > 0) parts.push(`${hours(pricedHours)} × ${rateMoney(hourlyRate)}`);
+    if(volumePrice > 0) parts.push(`dopłata gabarytowa ${money(volumePrice)}`);
+    if(fixedPrice > 0) parts.push(`kwota stała ${money(fixedPrice)}`);
+    return parts.length ? `${parts.join(' + ')} = ${money(total)}` : money(total);
+  }
+  function laborTimeRows(row){
+    const m = laborMetrics(row);
+    const quantity = m.quantity;
+    const unit = m.unit;
+    const baseHours = m.baseHours;
+    const pricedHours = m.pricedHours || baseHours;
+    const out = [];
+    if((unit === 'szt.' || unit === 'szt') && quantity > 0 && baseHours > 0){
+      out.push(['Czas na 1 sztukę:', hours(baseHours / quantity)]);
+      const formula = laborTimeFormula(row);
+      if(formula) out.push(['Czas razem:', formula]);
+    }else if(pricedHours > 0){
+      out.push(['Czas razem:', hours(pricedHours)]);
+    }
+    return out;
+  }
+  function renderLaborLine(row){
+    const item = h('div', { class:'quote-detail-line quote-detail-line--labor' });
+    const main = h('div', { class:'quote-detail-line__main' });
+    const name = h('div', { class:'quote-detail-line__name' });
+    name.appendChild(h('span', { text:text(row && row.name) || 'Czynność robocizny' }));
+    if(row && row.starterPrice) name.appendChild(h('span', { class:'quote-detail-chip quote-detail-chip--warning', text:'Cena startowa' }));
+    main.appendChild(name);
+    const details = h('div', { class:'quote-detail-labor-human' });
+    details.appendChild(h('div', { class:'quote-detail-labor-human__row', text:'Dotyczy: ' + laborSubject(row) }));
+    laborTimeRows(row).forEach((time)=> details.appendChild(h('div', { class:'quote-detail-labor-human__row', text:`${time[0]} ${time[1]}` })));
+    const metrics = laborMetrics(row);
+    if(metrics.hourlyRate > 0) details.appendChild(h('div', { class:'quote-detail-labor-human__row', text:`${laborRateLabel(row, metrics)}: ${rateMoney(metrics.hourlyRate)}` }));
+    details.appendChild(h('div', { class:'quote-detail-labor-human__row quote-detail-labor-human__row--total', text:'Razem: ' + laborFormula(row) }));
+    main.appendChild(details);
+    item.appendChild(main);
+    const warnings = Array.isArray(row && row.warnings) ? row.warnings : [];
+    warnings.forEach((msg)=> item.appendChild(h('div', { class:'quote-detail-warning', text:humanWarningText(msg) })));
+    return item;
+  }
+
   function renderLine(row){
+    if(text(row && row.section) === 'labor') return renderLaborLine(row);
     const item = h('div', { class:'quote-detail-line' });
     const main = h('div', { class:'quote-detail-line__main' });
     const name = h('div', { class:'quote-detail-line__name' });
@@ -71,7 +316,7 @@
     price.appendChild(h('div', { class:'quote-detail-line__total', text:money(row && row.total) }));
     item.appendChild(main); item.appendChild(price);
     const warnings = Array.isArray(row && row.warnings) ? row.warnings : [];
-    warnings.forEach((msg)=> item.appendChild(h('div', { class:'quote-detail-warning', text:msg })));
+    warnings.forEach((msg)=> item.appendChild(h('div', { class:'quote-detail-warning', text:humanWarningText(msg) })));
     return item;
   }
   function sectionTitle(section){
@@ -207,10 +452,15 @@
     const titleBox = h('div', { class:'rozrys-material-accordion__title' });
     titleBox.appendChild(h('div', { class:'rozrys-material-accordion__title-line1', text:title }));
     const count = Array.isArray(rows) ? rows.length : 0;
-    const metaParts = [];
-    if(count) metaParts.push(`${count} poz.`);
-    metaParts.push(money(sum));
-    titleBox.appendChild(h('div', { class:'rozrys-material-accordion__title-line2', text:metaParts.join(' • ') }));
+    let summaryText = '';
+    if(cfg.section === 'labor') summaryText = laborActionSummary(count, sum, rows);
+    else{
+      const metaParts = [];
+      if(count) metaParts.push(`${count} ${count === 1 ? 'pozycja' : 'pozycji'}`);
+      metaParts.push(money(sum));
+      summaryText = metaParts.join(' • ');
+    }
+    titleBox.appendChild(h('div', { class:'rozrys-material-accordion__title-line2', text:summaryText }));
     button.appendChild(titleBox);
     button.appendChild(h('span', { class:'rozrys-material-accordion__chevron', 'aria-hidden':'true', html:'&#9662;' }));
     head.appendChild(button);
@@ -230,13 +480,36 @@
     container.appendChild(box);
     return box;
   }
-  function renderRows(container, rows, groupBy){
+  function renderLaborRows(container, rows){
     if(!rows.length){
-      renderGroup(container, 'Brak pozycji', [], 0, { open:true, emptyText:'Brak pozycji w tej kategorii dla tej oferty.' });
+      renderGroup(container, 'Brak pozycji', [], 0, { open:true, section:'labor', emptyText:'Brak pozycji w tej kategorii dla tej oferty.' });
+      return;
+    }
+    const map = new Map();
+    rows.forEach((row)=>{
+      const key = laborCabinetGroupKey(row);
+      if(!map.has(key)) map.set(key, { title:laborCabinetGroupTitle(row), rows:[] });
+      const group = map.get(key);
+      const candidateTitle = laborCabinetGroupTitle(row);
+      if(candidateTitle && (!group.title || candidateTitle.length < group.title.length)) group.title = candidateTitle;
+      group.rows.push(row);
+    });
+    Array.from(map.values()).forEach((group, index)=>{
+      renderGroup(container, group.title || 'Szafka', group.rows, group.rows.reduce((sum, row)=> sum + num(row && row.total), 0), { open:index === 0, section:'labor' });
+    });
+  }
+  function renderRows(container, rows, groupBy, section){
+    const currentSection = text(section);
+    if(currentSection === 'labor'){
+      renderLaborRows(container, rows);
+      return;
+    }
+    if(!rows.length){
+      renderGroup(container, 'Brak pozycji', [], 0, { open:true, section:currentSection, emptyText:'Brak pozycji w tej kategorii dla tej oferty.' });
       return;
     }
     grouped(rows, groupBy || 'subsection').forEach(([group, groupRows], index)=>{
-      renderGroup(container, group, groupRows, groupRows.reduce((sum, row)=> sum + num(row && row.total), 0), { open:index === 0 });
+      renderGroup(container, group, groupRows, groupRows.reduce((sum, row)=> sum + num(row && row.total), 0), { open:index === 0, section:currentSection });
     });
   }
   function renderTotal(container, register){
@@ -285,7 +558,7 @@
     box.appendChild(head);
     const panel = h('div', { class:'quote-detail-group__panel quote-detail-warnings__panel rozrys-material-accordion__body' });
     panel.hidden = true;
-    warnings.forEach((row)=> panel.appendChild(h('div', { class:'quote-detail-warning', text:text(row && row.message || row) })));
+    warnings.forEach((row)=> panel.appendChild(h('div', { class:'quote-detail-warning', text:humanWarningText(row && row.message || row) })));
     box.appendChild(panel);
     button.addEventListener('click', (event)=>{
       event.preventDefault();
@@ -334,11 +607,11 @@
     const lines = Array.isArray(register.lines) ? register.lines : [];
     body.innerHTML = '';
     const current = text(section || 'total');
-    if(title) title.textContent = current === 'total' ? 'Analiza oferty' : 'Szczegóły: ' + sectionTitle(current);
-    if(subtitle) subtitle.textContent = 'Audyt wewnętrzny — pozycje zapisane w rejestrze wyliczeń tej oferty.';
+    if(title) title.textContent = current === 'labor' ? 'Szczegóły robocizny szafek' : (current === 'total' ? 'Analiza oferty' : 'Szczegóły: ' + sectionTitle(current));
+    if(subtitle) subtitle.textContent = current === 'labor' ? 'Sprawdź, co zostało policzone i skąd wzięła się kwota.' : 'Audyt wewnętrzny — pozycje zapisane w rejestrze wyliczeń tej oferty.';
     renderWarnings(body, register, current);
     if(current === 'total') renderTotal(body, register);
-    else renderRows(body, lines.filter((row)=> row.section === current), current === 'labor' ? 'sourceLabel' : 'subsection');
+    else renderRows(body, lines.filter((row)=> row.section === current), current === 'labor' ? 'sourceLabel' : 'subsection', current);
     body.scrollTop = 0;
     overlay.style.display = 'flex';
     // Przy pierwszym otwarciu zostawiamy body na początku modala.

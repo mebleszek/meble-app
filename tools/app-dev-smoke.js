@@ -863,7 +863,7 @@ function runWycenaNodeSmoke(sandbox){
       const singleTruthPreLaborExpected = '20260606_quote_single_truth_pre_labor_tests_v1';
       const laborSingleTruthExpected = '20260606_quote_labor_single_truth_v1';
       const workAutomatsExpected = '20260607_work_automats_foundation_v1';
-      const rateProfilesExpected = '20260607_labor_rate_profiles_dedupe_fix_v1';
+      const rateProfilesExpected = '20260608_quote_labor_details_human_readable_v3';
       const files = ['index.html','dev_tests.html'];
       const scripts = ['wycena-core-selection.js','wycena-core-utils.js','wycena-core-catalog.js','wycena-core-source.js','wycena-core-material-plan.js','wycena-core-offer.js','wycena-core-lines.js','wycena-core-labor.js','wycena-core.js'];
       return files.every((file)=> {
