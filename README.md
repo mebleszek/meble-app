@@ -1,3 +1,10 @@
+
+## 2026-06-09 — site_work_quantity_sources_settings_clean_v1
+
+- Przywrócono zaakceptowany dział ustawień `Dane do czynności i wyceny` na bazie z działającymi profilami stawek godzinowych.
+- Dział pokazuje systemowy słownik źródeł danych: kod techniczny, nazwę przyjazną, jednostkę i opis `jak liczone`.
+- Etap jest tylko read-only/podglądowy: bez zapisu drugiej prawdy w szafkach i bez zmian w WYWIADZIE, WYCENIE oraz automatach.
+
 ## 2026-06-07 — WYCENA: akordeony audytu ROZRYS 1:1 z auto wysokością v1
 
 - Paczka: `site_quote_details_accordion_rozrys_auto_height_v1.zip`.

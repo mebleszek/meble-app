@@ -1,4 +1,14 @@
 
+## 2026-06-09 — Źródła danych do czynności i wyceny w trybiku clean v1
+
+- Paczka: `site_work_quantity_sources_settings_clean_v1.zip`.
+- Bazą jest zaakceptowana paczka `site_labor_rate_profiles_restore_clean_v1.zip` z działającym WYWIADem i profilami stawek godzinowych.
+- Dodano wyłącznie dział trybika `Dane do czynności i wyceny`: nazwa techniczna, nazwa przyjazna, jednostka i opis sposobu liczenia.
+- Ten etap nie podpina źródeł do szafek, nie dodaje panelu w modalu szafki, nie zmienia WYCENY, automatów ani `quoteCalculationRegister`.
+- Nie ruszano `cabinet-modal.js`, `cabinets-render.js` ani `cabinet-common.css`.
+- Cache-busting: `20260609_work_quantity_sources_settings_clean_v1`. Raport: `tools/reports/work-quantity-sources-settings-clean-v1.md`.
+
+
 ## 2026-06-08 — Awaryjny rollback do początku wątku v1
 
 - Paczka: `site_restore_thread_start_stable_v1.zip`.

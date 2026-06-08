@@ -780,3 +780,10 @@ W przyszłej migracji chmurowej należy mapować VAT okuć do ustawień tenant/p
 ## 2026-06-09 — Profile stawek godzinowych robocizny
 
 Etap `site_labor_rate_profiles_restore_clean_v1.zip` nie dodaje nowego trwałego klucza localStorage. Profile stawek godzinowych pozostają częścią istniejącego katalogu `quoteRates` i są normalizowane po stałym kodzie technicznym (`rateKey`/`rateCode`). Dla przyszłej chmury kod stawki jest stabilnym kluczem domenowym, a nazwa przyjazna i kwota są edytowalnymi właściwościami użytkownika.
+
+
+## Źródła danych do czynności i wyceny — clean v1 — 2026-06-09
+
+- Etap `site_work_quantity_sources_settings_clean_v1.zip` nie dodaje nowego trwałego storage i nie tworzy drugiej kopii danych szafek.
+- `workQuantitySources` jest słownikiem systemowych nazw/kontraktów odczytu, a nie repozytorium danych użytkownika.
+- Podpięcie do szafek, WYCENY i quoteCalculationRegister musi pozostać osobnym etapem z zasadą jednej prawdy.

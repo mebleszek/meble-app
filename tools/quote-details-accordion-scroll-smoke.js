@@ -13,7 +13,7 @@ const css = read('css/wycena.css');
 const preview = read('js/app/wycena/wycena-tab-preview.js');
 const index = read('index.html');
 const devTests = read('dev_tests.html');
-const token = '20260609_labor_rate_profiles_restore_clean_v1';
+const token = '20260609_work_quantity_sources_settings_clean_v1';
 
 [
   ['total', "['Suma przed rabatem', totals.subtotal, 'total']"],
