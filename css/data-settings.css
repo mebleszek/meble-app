@@ -212,3 +212,23 @@
   .data-settings-work-source__head{grid-template-columns:1fr;}
   .data-settings-work-source__meta{justify-content:flex-start;}
 }
+
+.data-settings-work-facts-preview-card{display:grid;gap:12px;}
+.data-settings-cabinet-facts-list{display:grid;gap:10px;padding-top:12px;}
+.data-settings-cabinet-facts-card{border:1px solid rgba(148,163,184,.42);border-radius:14px;background:#fff;padding:11px 12px;display:grid;gap:10px;box-shadow:1px 2px 0 rgba(15,23,42,.06);}
+.data-settings-cabinet-facts-card__head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.data-settings-cabinet-facts-card__head strong{font-size:15px;line-height:1.22;font-weight:950;color:#0f172a;min-width:0;}
+.data-settings-cabinet-facts-card__head span{border:1px solid rgba(14,165,233,.25);background:rgba(14,165,233,.08);border-radius:999px;padding:4px 8px;font-size:11px;font-weight:950;color:#075985;white-space:nowrap;}
+.data-settings-work-facts-grid{display:grid;gap:8px;}
+.data-settings-work-fact-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,.8fr);gap:10px;align-items:start;border:1px solid rgba(148,163,184,.30);border-radius:12px;background:#fbfcff;padding:9px 10px;}
+.data-settings-work-fact-row__name{display:grid;gap:3px;min-width:0;}
+.data-settings-work-fact-row__name strong{font-size:13px;line-height:1.18;font-weight:900;color:#0f172a;}
+.data-settings-work-fact-row__name code{font-size:11px;line-height:1.25;color:#475569;background:#fff;border:1px solid rgba(148,163,184,.35);border-radius:999px;padding:3px 7px;justify-self:start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.data-settings-work-fact-row__value{display:grid;gap:3px;justify-items:end;text-align:right;min-width:0;}
+.data-settings-work-fact-row__value strong{font-size:13px;line-height:1.18;font-weight:950;color:#0f172a;overflow-wrap:anywhere;}
+.data-settings-work-fact-row__value span{font-size:11px;line-height:1.2;font-weight:800;color:#64748b;overflow-wrap:anywhere;}
+@media (max-width:720px){
+  .data-settings-work-fact-row{grid-template-columns:1fr;}
+  .data-settings-work-fact-row__value{justify-items:start;text-align:left;}
+  .data-settings-cabinet-facts-card__head span{white-space:normal;}
+}

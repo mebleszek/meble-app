@@ -795,3 +795,10 @@ Etap `site_labor_rate_profiles_restore_clean_v1.zip` nie dodaje nowego trwałego
 - Etap `site_work_quantity_sources_settings_clean_v1.zip` nie dodaje nowego trwałego storage i nie tworzy drugiej kopii danych szafek.
 - `workQuantitySources` jest słownikiem systemowych nazw/kontraktów odczytu, a nie repozytorium danych użytkownika.
 - Podpięcie do szafek, WYCENY i quoteCalculationRegister musi pozostać osobnym etapem z zasadą jednej prawdy.
+
+
+## 2026-06-09 — Podgląd faktów szafek poza modalem
+
+- Podgląd w trybiku `Dane do czynności i wyceny` nie dodaje nowego storage ani nowych trwałych kluczy `localStorage`.
+- Dane są odczytywane na żądanie z aktualnego projektu przez `FC.workQuantityFacts`; nie powstaje drugi zapis wartości szafki.
+- Etap jest zgodny z kierunkiem cloud-ready: nazwy źródeł i fakty szafki są widokiem/adaptacją danych projektu, a nie osobnym modelem zapisu.

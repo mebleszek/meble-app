@@ -1,11 +1,18 @@
 
+## 2026-06-09 — Podgląd odczytu szafek w trybiku
+
+W trybiku `Dane do czynności i wyceny` dodano podgląd aktualnego projektu: program pokazuje, jakie nazwane dane potrafi odczytać z istniejących szafek, np. wymiary, liczbę frontów, zawiasów, półek, szuflad i AGD. Podgląd jest poza modalem szafki, tylko do odczytu i nie zapisuje drugiej kopii danych.
+
+Nie zmieniono WYWIADU, modala szafki, plusa dodawania, WYCENY ani cennika czynności.
+
+
 ## 2026-06-09 — site_work_quantity_facts_reader_v1
 
 - Bazą jest zaakceptowana paczka `site_work_quantity_sources_settings_clean_v1.zip`.
 - Dodano wyłącznie read-only adapter `FC.workQuantityFacts`, który na żądanie czyta z aktualnej szafki nazwane fakty do przyszłych czynności i wyceny.
 - Adapter odczytuje m.in. wymiary, objętość, fronty, zawiasy, półki, szuflady i AGD przez istniejące centralne źródła, bez zapisywania drugiej prawdy w szafce.
 - Nie ruszano UI WYWIADU, `cabinet-modal.js`, `cabinets-render.js`, plusa dodawania, WYCENY, `quoteCalculationRegister`, cennika czynności ani automatów.
-- Cache-busting: `20260609_work_quantity_facts_reader_v1`. Raport: `tools/reports/work-quantity-facts-reader-v1.md`.
+- Cache-busting: `20260609_work_quantity_facts_settings_preview_v1`. Raport: `tools/reports/work-quantity-facts-reader-v1.md`.
 
 
 ## 2026-06-09 — site_work_quantity_sources_settings_clean_v1

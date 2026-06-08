@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-08T23:36:10.779Z",
+  "generatedAt": "2026-06-08T23:50:12.191Z",
   "summary": {
     "jsFiles": 369,
     "indexScripts": 293,
     "devTestScripts": 325,
     "fcSymbols": 269,
     "fcSymbolsAll": 297,
-    "edges": 2070,
+    "edges": 2074,
     "highRisk": 13,
     "mediumRisk": 75
   },
@@ -117,7 +117,7 @@
     },
     "UI": {
       "files": 33,
-      "lines": 4366,
+      "lines": 4510,
       "storageRefs": 0,
       "dialogRefs": 6,
       "high": 0,
@@ -241,7 +241,7 @@
   "topIncoming": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      77
+      78
     ],
     [
       "js/app/investor/investors-store.js",
@@ -265,7 +265,7 @@
     ],
     [
       "js/app/shared/room-registry.js",
-      34
+      35
     ],
     [
       "js/app/project/project-store.js",
@@ -296,11 +296,11 @@
       26
     ],
     [
-      "js/app/catalog/catalog-store.js",
-      25
+      "js/app/project/project-bridge.js",
+      26
     ],
     [
-      "js/app/project/project-bridge.js",
+      "js/app/catalog/catalog-store.js",
       25
     ],
     [
@@ -323,31 +323,31 @@
   "topSecond": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      200
+      202
     ],
     [
       "js/app/shared/storage.js",
-      171
+      172
     ],
     [
       "js/app/shared/utils.js",
-      170
+      171
     ],
     [
       "js/app/shared/constants.js",
-      127
+      128
+    ],
+    [
+      "js/app/project/project-bridge.js",
+      117
     ],
     [
       "js/app/investor/session.js",
       115
     ],
     [
-      "js/app/project/project-bridge.js",
-      115
-    ],
-    [
       "js/app/investor/investors-store.js",
-      105
+      106
     ],
     [
       "js/app/wycena/wycena-core-material-plan.js",
@@ -355,11 +355,11 @@
     ],
     [
       "js/app/project/project-store.js",
-      101
+      102
     ],
     [
       "js/app/shared/schema.js",
-      100
+      101
     ],
     [
       "js/app/wycena/wycena-core-lines.js",
@@ -367,7 +367,7 @@
     ],
     [
       "js/app/shared/room-registry.js",
-      98
+      99
     ],
     [
       "js/app/ui/info-box.js",
@@ -1116,7 +1116,7 @@
       "lines": 204,
       "incoming": 45,
       "outgoing": 5,
-      "secondLevel": 105,
+      "secondLevel": 106,
       "storageRefs": 2,
       "dialogRefs": 0,
       "reasons": [
@@ -1238,7 +1238,7 @@
       "lines": 551,
       "incoming": 5,
       "outgoing": 1,
-      "secondLevel": 36,
+      "secondLevel": 37,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1835,7 +1835,7 @@
       "lines": 197,
       "incoming": 31,
       "outgoing": 6,
-      "secondLevel": 101,
+      "secondLevel": 102,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1866,9 +1866,9 @@
       "area": "BOOT/APP SHELL",
       "category": "bootstrap/orchestrator",
       "lines": 178,
-      "incoming": 77,
+      "incoming": 78,
       "outgoing": 4,
-      "secondLevel": 200,
+      "secondLevel": 202,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1982,9 +1982,9 @@
       "area": "PROJEKT",
       "category": "domain/controller",
       "lines": 83,
-      "incoming": 25,
+      "incoming": 26,
       "outgoing": 6,
-      "secondLevel": 115,
+      "secondLevel": 117,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -2180,6 +2180,7 @@
         "js/app/shared/validate.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/cabinets-render.js",
+        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/layout-state.js",
         "js/app/ui/settings-ui.js",
         "js/app/ui/tab-navigation.js",
@@ -2323,6 +2324,8 @@
         "js/app/ui/bindings.js",
         "js/app/ui/cabinets-render.js",
         "js/app/ui/data-settings-defaults-view.js",
+        "js/app/ui/data-settings-modal.js",
+        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/layout-state.js",
         "js/app/ui/sections.js",
         "js/app/ui/settings-ui.js",
@@ -3192,6 +3195,7 @@
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/app/ui/data-settings-defaults-view.js",
+        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core.js",
@@ -6010,6 +6014,7 @@
         "js/app/shared/storage.js",
         "js/app/shared/validate.js",
         "js/app/ui/actions-register.js",
+        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/layout-state.js",
         "js/app/ui/settings-ui.js",
         "js/app/ui/views.js",
@@ -8056,6 +8061,7 @@
         "js/app/service/cutting/service-pro100-import-ui.js",
         "js/app/service/service-orders.js",
         "js/app/ui/data-settings-defaults-view.js",
+        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
@@ -8201,7 +8207,9 @@
         "laborApplianceRules",
         "workQuantityFacts"
       ],
-      "incomingFiles": [],
+      "incomingFiles": [
+        "js/app/ui/data-settings-work-sources-view.js"
+      ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/cabinet/cabinet-hardware-requirements.js",
@@ -8209,7 +8217,9 @@
         "js/app/pricing/work-quantity-sources.js",
         "js/app/shared/utils.js"
       ],
-      "secondLevelFiles": [],
+      "secondLevelFiles": [
+        "js/app/ui/data-settings-modal.js"
+      ],
       "storageRefs": 0,
       "dialogRefs": 0,
       "domRefs": 0,
@@ -8236,7 +8246,8 @@
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
-        "js/app/ui/data-settings-modal.js"
+        "js/app/ui/data-settings-modal.js",
+        "js/app/ui/data-settings-work-sources-view.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -8276,6 +8287,7 @@
         "js/app/shared/room-registry-foundation.js",
         "js/app/shared/validate.js",
         "js/app/ui/actions-register.js",
+        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/layout-state.js",
         "js/app/ui/settings-ui.js",
         "js/app/ui/wywiad-room-settings.js",
@@ -8363,6 +8375,8 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/app-view.js",
         "js/app/ui/cabinets-render.js",
+        "js/app/ui/data-settings-modal.js",
+        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/layout-state.js",
         "js/app/ui/settings-ui.js",
         "js/app/ui/tab-navigation.js",
@@ -8472,6 +8486,7 @@
         "js/app/shared/room-registry-impact.js",
         "js/app/shared/validate.js",
         "js/app/ui/actions-register.js",
+        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/layout-state.js",
         "js/app/ui/settings-ui.js",
         "js/app/ui/wywiad-room-settings.js",
@@ -9124,6 +9139,7 @@
         "js/app/shared/validate.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/cabinets-render.js",
+        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/layout-state.js",
         "js/app/ui/settings-ui.js",
         "js/app/ui/views.js",
@@ -12997,6 +13013,7 @@
         "js/app/ui/bindings.js",
         "js/app/ui/cabinets-render.js",
         "js/app/ui/data-settings-defaults-view.js",
+        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/layout-state.js",
         "js/app/ui/sections.js",
         "js/app/ui/settings-ui.js",
@@ -13926,6 +13943,7 @@
         "js/app/shared/room-scope-resolver.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/cabinets-render.js",
+        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/views.js",
         "js/app/ui/wywiad-room-settings.js",
         "js/app/wycena/wycena-context-repair.js",
@@ -14292,6 +14310,7 @@
         "js/app/shared/room-scope-resolver.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/cabinets-render.js",
+        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/views.js",
         "js/app/ui/wywiad-room-settings.js",
         "js/app/wycena/wycena-context-repair.js",
@@ -14411,6 +14430,7 @@
         "js/app/shared/room-scope-resolver.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/cabinets-render.js",
+        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/views.js",
         "js/app/ui/wywiad-room-settings.js",
         "js/app/wycena/wycena-context-repair.js",
@@ -14518,6 +14538,7 @@
         "js/app/shared/room-scope-resolver.js",
         "js/app/ui/actions-register.js",
         "js/app/ui/cabinets-render.js",
+        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/views.js",
         "js/app/ui/wywiad-room-settings.js",
         "js/app/wycena/wycena-context-repair.js",
@@ -14580,6 +14601,7 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/bindings.js",
         "js/app/ui/cabinets-render.js",
+        "js/app/ui/data-settings-modal.js",
         "js/app/ui/sections.js",
         "js/app/ui/tab-navigation.js",
         "js/app/ui/views.js",
@@ -14821,6 +14843,7 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/app-view.js",
         "js/app/ui/cabinets-render.js",
+        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/layout-state.js",
         "js/app/ui/settings-ui.js",
         "js/app/ui/tab-navigation.js",
@@ -15034,6 +15057,7 @@
         "js/app/ui/bindings.js",
         "js/app/ui/cabinets-render.js",
         "js/app/ui/data-settings-defaults-view.js",
+        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/layout-state.js",
         "js/app/ui/sections.js",
         "js/app/ui/settings-ui.js",
@@ -15388,6 +15412,7 @@
         "js/app/ui/actions-register.js",
         "js/app/ui/cabinets-render.js",
         "js/app/ui/data-settings-defaults-view.js",
+        "js/app/ui/data-settings-work-sources-view.js",
         "js/app/ui/layout-state.js",
         "js/app/ui/settings-ui.js",
         "js/app/ui/tab-navigation.js",
@@ -16203,13 +16228,16 @@
     "js/app/ui/data-settings-work-sources-view.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 75,
+      "lines": 219,
       "defines": [
         "dataSettingsWorkSourcesView"
       ],
       "uses": [
         "dataSettingsDom",
         "workQuantitySources",
+        "project",
+        "roomRegistry",
+        "workQuantityFacts",
         "helpRegistry",
         "dataSettingsWorkSourcesView"
       ],
@@ -16217,8 +16245,12 @@
         "js/app/ui/data-settings-modal.js"
       ],
       "outgoingFiles": [
+        "js/app/bootstrap/app-core-namespace.js",
+        "js/app/pricing/work-quantity-facts.js",
         "js/app/pricing/work-quantity-sources.js",
+        "js/app/project/project-bridge.js",
         "js/app/shared/help-registry.js",
+        "js/app/shared/room-registry.js",
         "js/app/ui/data-settings-dom.js"
       ],
       "secondLevelFiles": [
@@ -16230,7 +16262,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "kilka zależności wychodzących"
+      ]
     },
     "js/app/ui/info-box.js": {
       "area": "UI",
