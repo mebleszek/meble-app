@@ -225,6 +225,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/cabinet/cabinet-choice-launchers.js",
       "js/app/cabinet/cabinet-modal-labor.js",
       "js/app/cabinet/cabinet-hardware-requirements-panel.js",
+      "js/app/cabinet/cabinet-work-facts-preview.js",
       "js/app/cabinet/cabinet-modal.js",
       "js/app/investor/investor-project-repository.js",
       "js/app/investor/investor-project-runtime.js",

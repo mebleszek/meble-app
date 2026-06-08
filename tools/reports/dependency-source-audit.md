@@ -6,14 +6,14 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 
 | Metryka | Wartość |
 | --- | --- |
-| Pliki JS | 366 |
-| Skrypty w index.html | 290 |
-| Skrypty w dev_tests.html | 322 |
-| Krawędzie zależności po symbolach FC | 2063 |
-| Symbole FC z właścicielem produkcyjnym | 266 |
-| Symbole FC z właścicielem razem | 294 |
+| Pliki JS | 369 |
+| Skrypty w index.html | 293 |
+| Skrypty w dev_tests.html | 325 |
+| Krawędzie zależności po symbolach FC | 2072 |
+| Symbole FC z właścicielem produkcyjnym | 269 |
+| Symbole FC z właścicielem razem | 297 |
 | Pliki z ryzykiem wysokim / nie ruszać | 13 |
-| Pliki z ryzykiem średnim | 75 |
+| Pliki z ryzykiem średnim | 76 |
 
 ## Obszary
 
@@ -21,15 +21,15 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | --- | --- | --- | --- | --- | --- | --- |
 | TESTY | 53 | 12499 | 242 | 1 | 5 | 32 |
 | WYCENA | 49 | 10648 | 12 | 0 | 4 | 6 |
-| SZAFKI | 33 | 8929 | 0 | 0 | 0 | 6 |
+| SZAFKI | 34 | 9231 | 0 | 0 | 0 | 7 |
 | ROZRYS | 42 | 8864 | 6 | 0 | 1 | 6 |
 | MATERIAŁ | 27 | 6411 | 8 | 3 | 0 | 6 |
 | KATALOG/USŁUGI | 24 | 5338 | 4 | 0 | 2 | 1 |
-| UI | 32 | 4281 | 0 | 6 | 0 | 2 |
+| UI | 33 | 4366 | 0 | 6 | 0 | 2 |
 | INWESTOR | 25 | 3725 | 29 | 0 | 0 | 5 |
 | PROJEKT | 10 | 2067 | 0 | 0 | 0 | 6 |
+| INNE | 8 | 1983 | 2 | 0 | 0 | 1 |
 | POMIESZCZENIA | 12 | 1909 | 0 | 1 | 0 | 0 |
-| INNE | 7 | 1751 | 2 | 0 | 0 | 1 |
 | OPTIMIZER | 12 | 1589 | 0 | 0 | 0 | 1 |
 | RYSUNEK | 1 | 1459 | 0 | 11 | 1 | 0 |
 | SHARED | 12 | 1411 | 0 | 1 | 0 | 1 |
@@ -50,7 +50,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/rozrys/rozrys.js | 843 | ROZRYS | wysokie |
 | js/app/wycena/wycena-diagnostics.js | 788 | WYCENA | wysokie |
 | js/app/wycena/wycena-core-lines.js | 750 | WYCENA | wysokie |
-| js/app/cabinet/cabinet-modal.js | 707 | SZAFKI | średnie |
+| js/app/cabinet/cabinet-modal.js | 723 | SZAFKI | średnie |
 | js/app/catalog/hardware-catalog.js | 665 | KATALOG/USŁUGI | wysokie |
 | js/app/catalog/catalog-store.js | 658 | KATALOG/USŁUGI | wysokie |
 | js/app/material/price-modal-item-form.js | 655 | MATERIAŁ | średnie |
@@ -104,12 +104,12 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/wycena/wycena-core-lines.js | 100 | WYCENA | wysokie |
 | js/app/shared/schema.js | 99 | SHARED | niskie |
 | js/app/shared/room-registry.js | 98 | POMIESZCZENIA | niskie |
-| js/app/ui/info-box.js | 83 | UI | niskie |
-| js/app/cabinet/cabinet-hardware-requirement-options.js | 82 | SZAFKI | średnie |
+| js/app/ui/info-box.js | 85 | UI | niskie |
+| js/app/cabinet/cabinet-hardware-requirement-options.js | 83 | SZAFKI | średnie |
 | js/app/cabinet/cabinet-hardware-requirements-panel.js | 82 | SZAFKI | średnie |
 | js/app/catalog/catalog-store.js | 82 | KATALOG/USŁUGI | wysokie |
 | js/app/material/material-edge-store.js | 81 | MATERIAŁ | średnie |
-| js/app/ui/confirm-box.js | 74 | UI | niskie |
+| js/app/ui/confirm-box.js | 75 | UI | niskie |
 | js/app/rozrys/rozrys-scope.js | 73 | ROZRYS | średnie |
 | js/app/shared/ui-state.js | 73 | SHARED | niskie |
 
@@ -273,7 +273,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 - Ryzyko: niskie (dużo zależnych plików)
 - Definiuje FC: infoBox
 - Bezpośrednio zależne pliki (31): js/app/cabinet/cabinet-actions.js<br>js/app/cabinet/cabinet-modal.js<br>js/app/investor/investor-actions.js<br>js/app/investor/investor-modals.js<br>js/app/investor/investor-pdf.js<br>js/app/investor/investor-ui-status-flow.js<br>js/app/material/magazyn.js<br>js/app/material/price-modal-context.js +23
-- Pośrednio zależne pliki (83): js/app/bootstrap/app-ui-bootstrap.js<br>js/app/catalog/hardware-technical-params.js<br>js/app/investor/investor-actions.js<br>js/app/investor/investor-ui-render.js<br>js/app/investor/investor-ui.js<br>js/app/material/price-modal-field-help.js<br>js/app/material/price-modal-filters.js<br>js/app/material/price-modal-hardware-bundle.js +75
+- Pośrednio zależne pliki (85): js/app/bootstrap/app-ui-bootstrap.js<br>js/app/cabinet/cabinet-work-facts-preview.js<br>js/app/catalog/hardware-technical-params.js<br>js/app/investor/investor-actions.js<br>js/app/investor/investor-ui-render.js<br>js/app/investor/investor-ui.js<br>js/app/material/price-modal-field-help.js<br>js/app/material/price-modal-filters.js +77
 
 ### js/app/wycena/wycena-core-material-plan.js
 
@@ -309,7 +309,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 - Ryzyko: średnie (250+ linii; dużo zależnych plików; kilka zależności wychodzących)
 - Definiuje FC: catalogStore, cabinetHardwareRequirementOptions
 - Bezpośrednio zależne pliki (26): js/app.js<br>js/app/bootstrap/app-state-bootstrap.js<br>js/app/cabinet/cabinet-hardware-requirements-panel.js<br>js/app/cabinet/cabinet-hardware-requirements.js<br>js/app/cabinet/cabinet-modal-labor.js<br>js/app/catalog/catalog-selectors.js<br>js/app/catalog/catalog-store.js<br>js/app/catalog/hardware-catalog-export-xlsx.js +18
-- Pośrednio zależne pliki (82): js/app.js<br>js/app/bootstrap/app-state-bootstrap.js<br>js/app/bootstrap/app-ui-bootstrap.js<br>js/app/cabinet/cabinet-cutlist.js<br>js/app/cabinet/cabinet-hardware-requirements-panel.js<br>js/app/cabinet/cabinet-modal-labor.js<br>js/app/cabinet/cabinet-modal.js<br>js/app/catalog/catalog-selectors.js +74
+- Pośrednio zależne pliki (83): js/app.js<br>js/app/bootstrap/app-state-bootstrap.js<br>js/app/bootstrap/app-ui-bootstrap.js<br>js/app/cabinet/cabinet-cutlist.js<br>js/app/cabinet/cabinet-hardware-requirements-panel.js<br>js/app/cabinet/cabinet-modal-labor.js<br>js/app/cabinet/cabinet-modal.js<br>js/app/cabinet/cabinet-work-facts-preview.js +75
 
 ### js/app/cabinet/cabinet-hardware-requirements-panel.js
 
@@ -327,4 +327,4 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 - Ryzyko: niskie (dużo zależnych plików)
 - Definiuje FC: panelBox
 - Bezpośrednio zależne pliki (26): js/app/investor/investor-modals.js<br>js/app/material/material-part-options.js<br>js/app/material/price-modal-field-help.js<br>js/app/material/price-modal-hardware-bundle.js<br>js/app/material/price-modal-hardware-dictionaries.js<br>js/app/material/price-modal-hardware-filter-sort.js<br>js/app/material/price-modal-hardware-form.js<br>js/app/material/price-modal-hardware-import-export.js +18
-- Pośrednio zależne pliki (36): js/app/bootstrap/app-ui-bootstrap.js<br>js/app/catalog/hardware-technical-params.js<br>js/app/investor/investor-actions.js<br>js/app/material/material-edge-store.js<br>js/app/material/price-modal-field-help.js<br>js/app/material/price-modal-hardware-dictionaries.js<br>js/app/material/price-modal-hardware-form.js<br>js/app/rozrys/rozrys-selection-ui.js +28
+- Pośrednio zależne pliki (38): js/app/bootstrap/app-ui-bootstrap.js<br>js/app/cabinet/cabinet-work-facts-preview.js<br>js/app/catalog/hardware-technical-params.js<br>js/app/investor/investor-actions.js<br>js/app/material/material-edge-store.js<br>js/app/material/price-modal-field-help.js<br>js/app/material/price-modal-hardware-dictionaries.js<br>js/app/material/price-modal-hardware-form.js +30

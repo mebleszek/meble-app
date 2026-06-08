@@ -442,19 +442,33 @@ function renderCabinetModal(){
   const draft = cabinetModalState.draft;
   const room = uiState.roomType;
 
+  function refreshCabinetWorkFactsPreview(){
+    try{
+      const host = document.getElementById('cmWorkFactsPreview');
+      const previewApi = window.FC && window.FC.cabinetWorkFactsPreview;
+      if(!host || !(previewApi && typeof previewApi.renderPanel === 'function')) return;
+      try{ syncDraftFromCabinetModalFormSafe(draft); }catch(_sync){ }
+      try{ ensureFrontCountRulesSafe(draft); }catch(_rules){ }
+      previewApi.renderPanel(host, room, draft);
+    }catch(_){ }
+  }
+
   function refreshCabinetHardwareRequirementsPanel(){
     try{
       const host = document.getElementById('cmHardwareRequirements');
       const reqPanelApi = window.FC && window.FC.cabinetHardwareRequirementsPanel;
-      if(!host || !(reqPanelApi && typeof reqPanelApi.renderPanel === 'function')) return;
-      try{ syncDraftFromCabinetModalFormSafe(draft); }catch(_sync){ }
-      try{ ensureFrontCountRulesSafe(draft); }catch(_rules){ }
-      reqPanelApi.renderPanel(host, room, draft, {
-        editable:true,
-        onChange:function(){
-          try{ applyAventosValidationUISafe(room, draft); }catch(_){ }
-        }
-      });
+      if(host && reqPanelApi && typeof reqPanelApi.renderPanel === 'function'){
+        try{ syncDraftFromCabinetModalFormSafe(draft); }catch(_sync){ }
+        try{ ensureFrontCountRulesSafe(draft); }catch(_rules){ }
+        reqPanelApi.renderPanel(host, room, draft, {
+          editable:true,
+          onChange:function(){
+            try{ applyAventosValidationUISafe(room, draft); }catch(_){ }
+            refreshCabinetWorkFactsPreview();
+          }
+        });
+      }
+      refreshCabinetWorkFactsPreview();
     }catch(_){ }
   }
 
@@ -615,6 +629,8 @@ function renderCabinetModal(){
       }
     }
   }catch(_){ }
+
+  refreshCabinetWorkFactsPreview();
 
   const _cabCancel = document.getElementById('cabinetModalCancel');
   if(_cabCancel) _cabCancel.onclick = closeCabinetModal;

@@ -45,6 +45,14 @@ Przygotować aplikację tak, żeby obecny tryb lokalny działał dalej, ale żeb
 
 Docelowy kierunek techniczny: Google/Firebase, najpewniej Firebase Authentication + Cloud Firestore. To nie oznacza natychmiastowego wdrożenia chmury. Najpierw porządkujemy model danych, repozytoria i granice odpowiedzialności.
 
+
+## 2026-06-08 — Podgląd danych odczytywanych z szafki v1
+
+- Zmiana nie dodaje nowego trwałego klucza `localStorage` ani nie zapisuje drugiej kopii danych szafki.
+- `FC.cabinetWorkFactsPreview` działa jako read-only adapter: odczytuje bieżący draft szafki i centralne helpery frontów/zawiasów na klonie, a wynik pokazuje w UI jako podgląd.
+- Źródłem prawdy pozostaje WYWIAD/szafka oraz istniejące centralne obliczenia. Snapshotem pozostaje dopiero wynik WYCENY w `quoteCalculationRegister`, którego ten etap nie zmienia.
+- Kierunek cloud-ready jest zachowany: panel pomaga jawnie zobaczyć mapowanie danych bez dokładania kolejnego repozytorium albo ukrytego cache.
+
 ## Obowiązkowa checklista przy każdej zmianie danych
 
 Przed wydaniem paczki, która tworzy albo mocno zmienia zapis/odczyt danych, sprawdzić:

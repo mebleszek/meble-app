@@ -1,3 +1,13 @@
+## 2026-06-08 — Podgląd danych odczytywanych z szafki v1
+
+- Paczka: `site_cabinet_work_facts_preview_v1.zip`.
+- Dodano na dole modala dodawania/edycji szafki panel tylko do odczytu: `Co program odczyta z tej szafki`.
+- Panel pokazuje nazwane źródła danych z aktualnej szafki, m.in. `cabinet.width_mm`, `cabinet.height_mm`, `front.count`, `front.dimensions`, `front.area_m2`, `hinge.count`, `hinge.requirement`, `shelf.count`, `drawer.count`, `appliance.count` i `appliance.type`.
+- Nowy moduł `FC.cabinetWorkFactsPreview` nie zapisuje danych do `localStorage` i nie tworzy drugiej prawdy. Odczytuje bieżący draft szafki oraz istniejące centralne obliczenia frontów i wymagań zawiasów na klonie danych, żeby podgląd nie mutował szafki.
+- Podgląd jest mostem między słownikiem `FC.workQuantitySources` w trybiku a przyszłym wyborem źródła ilości w cenniku czynności. Ten etap nie podpina jeszcze źródeł do WYCENY ani buildera czynności.
+- Dodano regresję `tools/cabinet-work-facts-preview-smoke.js` pilnującą hosta modala, cache-bustingu, braku `localStorage`, braku mutowania draftu i obecności podstawowych faktów roboczych.
+- Cache-busting: `20260608_cabinet_work_facts_preview_v1`. Raport: `tools/reports/cabinet-work-facts-preview-v1.md`.
+
 ## 2026-06-08 — Źródła danych do czynności i wyceny w trybiku v1
 
 - Paczka: `site_work_quantity_sources_settings_v1.zip`.
