@@ -471,10 +471,6 @@
 .quote-detail-line__price{text-align:right;min-width:126px;}
 .quote-detail-line__qty{font-size:12px;line-height:1.3;color:#64748b;white-space:nowrap;}
 .quote-detail-line__total{margin-top:2px;font-weight:900;color:#0f172a;white-space:nowrap;}
-.quote-detail-line--labor{grid-template-columns:1fr;}
-.quote-detail-labor-human{margin-top:8px;display:grid;gap:4px;font-size:13px;line-height:1.42;color:#334155;}
-.quote-detail-labor-human__row{overflow-wrap:anywhere;}
-.quote-detail-labor-human__row--total{margin-top:2px;font-weight:900;color:#0f172a;}
 .quote-detail-chip{display:inline-flex;align-items:center;border-radius:999px;padding:2px 7px;font-size:11px;font-weight:900;border:1px solid rgba(251,191,36,.62);background:#fffbeb;color:#92400e;}
 .quote-detail-info{width:22px;height:22px;min-width:22px;}
 .quote-detail-empty{padding:14px 0;color:#64748b;font-size:13px;line-height:1.4;}
