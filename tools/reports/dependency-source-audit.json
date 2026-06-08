@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-08T06:10:38.978Z",
+  "generatedAt": "2026-06-08T16:38:34.304Z",
   "summary": {
     "jsFiles": 369,
     "indexScripts": 293,
@@ -21,7 +21,7 @@
     },
     "SZAFKI": {
       "files": 34,
-      "lines": 9231,
+      "lines": 9255,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
@@ -191,7 +191,7 @@
     ],
     [
       "js/app/cabinet/cabinet-modal.js",
-      723
+      738
     ],
     [
       "js/app/catalog/hardware-catalog.js",
@@ -1184,7 +1184,7 @@
       "score": 5,
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 723,
+      "lines": 738,
       "incoming": 0,
       "outgoing": 9,
       "secondLevel": 0,
@@ -3567,7 +3567,7 @@
     "js/app/cabinet/cabinet-modal.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 723,
+      "lines": 738,
       "defines": [],
       "uses": [
         "cabinetModalValidation",
@@ -3602,7 +3602,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 70,
+      "domRefs": 73,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "średnie",
@@ -3633,7 +3633,7 @@
     "js/app/cabinet/cabinet-work-facts-preview.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 286,
+      "lines": 295,
       "defines": [
         "cabinetWorkFactsPreview"
       ],

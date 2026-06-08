@@ -1,5 +1,6 @@
 (function(){
   const ns = (window.FC = window.FC || {});
+  let cabinetWorkFactsPreviewTimer = null;
 
 function getCabinetModalValidationApi(){ return (window.FC && window.FC.cabinetModalValidation) || {}; }
 function getCabinetModalDraftApi(){ return (window.FC && window.FC.cabinetModalDraft) || {}; }
@@ -453,6 +454,20 @@ function renderCabinetModal(){
     }catch(_){ }
   }
 
+  function scheduleCabinetWorkFactsPreview(){
+    try{
+      const host = document.getElementById('cmWorkFactsPreview');
+      if(host && !host.innerHTML){
+        host.innerHTML = '<div class="cabinet-work-facts-panel cabinet-work-facts-panel--loading"><div class="cabinet-work-facts-panel__head"><div><h3 class="section-title cabinet-work-facts-panel__title">Co program odczyta z tej szafki</h3><div class="cabinet-work-facts-panel__hint">Podgląd zostanie policzony po otwarciu okna, żeby nie blokować edycji szafki.</div></div></div></div>';
+      }
+      if(cabinetWorkFactsPreviewTimer) clearTimeout(cabinetWorkFactsPreviewTimer);
+      cabinetWorkFactsPreviewTimer = setTimeout(function(){
+        cabinetWorkFactsPreviewTimer = null;
+        refreshCabinetWorkFactsPreview();
+      }, 60);
+    }catch(_){ }
+  }
+
   function refreshCabinetHardwareRequirementsPanel(){
     try{
       const host = document.getElementById('cmHardwareRequirements');
@@ -464,11 +479,11 @@ function renderCabinetModal(){
           editable:true,
           onChange:function(){
             try{ applyAventosValidationUISafe(room, draft); }catch(_){ }
-            refreshCabinetWorkFactsPreview();
+            scheduleCabinetWorkFactsPreview();
           }
         });
       }
-      refreshCabinetWorkFactsPreview();
+      scheduleCabinetWorkFactsPreview();
     }catch(_){ }
   }
 
@@ -630,7 +645,7 @@ function renderCabinetModal(){
     }
   }catch(_){ }
 
-  refreshCabinetWorkFactsPreview();
+  scheduleCabinetWorkFactsPreview();
 
   const _cabCancel = document.getElementById('cabinetModalCancel');
   if(_cabCancel) _cabCancel.onclick = closeCabinetModal;

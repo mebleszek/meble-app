@@ -53,6 +53,12 @@ Docelowy kierunek techniczny: Google/Firebase, najpewniej Firebase Authenticatio
 - Źródłem prawdy pozostaje WYWIAD/szafka oraz istniejące centralne obliczenia. Snapshotem pozostaje dopiero wynik WYCENY w `quoteCalculationRegister`, którego ten etap nie zmienia.
 - Kierunek cloud-ready jest zachowany: panel pomaga jawnie zobaczyć mapowanie danych bez dokładania kolejnego repozytorium albo ukrytego cache.
 
+## 2026-06-08 — Szafki: odciążenie podglądu danych przy otwieraniu edycji v1
+
+- Poprawka nie dodaje żadnego nowego storage i nie zapisuje drugiej kopii danych szafki.
+- Podgląd `Co program odczyta z tej szafki` pozostaje read-only adapterem, ale jest liczony po otwarciu modala, a nie synchronicznie w najcięższym momencie kliknięcia `Edytuj`.
+- Kierunek cloud-ready pozostaje bez zmian: źródłem prawdy jest szafka/WYWIAD i istniejące helpery, a trwały snapshot powstaje dopiero w WYCENIE.
+
 ## Obowiązkowa checklista przy każdej zmianie danych
 
 Przed wydaniem paczki, która tworzy albo mocno zmienia zapis/odczyt danych, sprawdzić:

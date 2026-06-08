@@ -1,3 +1,12 @@
+## 2026-06-08 — Szafki: odciążenie podglądu danych przy otwieraniu edycji v1
+
+- Paczka: `site_cabinet_edit_work_facts_defer_fix_v1.zip`.
+- Naprawiono regresję po dodaniu panelu `Co program odczyta z tej szafki`: kliknięcie `Edytuj` na telefonie mogło sprawiać wrażenie zawieszenia, bo podgląd frontów/zawiasów był liczony synchronicznie w trakcie budowania modala.
+- Podgląd faktów roboczych jest teraz uruchamiany z krótkim opóźnieniem/debounce po zbudowaniu okna. Modal może otworzyć się najpierw, a panel ładuje dane chwilę później.
+- Zredukowano powtarzane obliczenia w `cabinet-work-facts-preview.js` przez jednorazowe wyliczenie ilości frontów, wymiarów frontów, zawiasów, półek i szuflad w jednym przebiegu.
+- Zmiana nie zapisuje nowych danych, nie zmienia WYWIADU, WYCENY, materiałów ani wymagań okuć.
+- Cache-busting: `20260608_cabinet_work_facts_defer_fix_v1`. Raport: `tools/reports/cabinet-edit-work-facts-defer-fix-v1.md`.
+
 ## 2026-06-08 — Podgląd danych odczytywanych z szafki v1
 
 - Paczka: `site_cabinet_work_facts_preview_v1.zip`.
@@ -6,7 +15,7 @@
 - Nowy moduł `FC.cabinetWorkFactsPreview` nie zapisuje danych do `localStorage` i nie tworzy drugiej prawdy. Odczytuje bieżący draft szafki oraz istniejące centralne obliczenia frontów i wymagań zawiasów na klonie danych, żeby podgląd nie mutował szafki.
 - Podgląd jest mostem między słownikiem `FC.workQuantitySources` w trybiku a przyszłym wyborem źródła ilości w cenniku czynności. Ten etap nie podpina jeszcze źródeł do WYCENY ani buildera czynności.
 - Dodano regresję `tools/cabinet-work-facts-preview-smoke.js` pilnującą hosta modala, cache-bustingu, braku `localStorage`, braku mutowania draftu i obecności podstawowych faktów roboczych.
-- Cache-busting: `20260608_cabinet_work_facts_preview_v1`. Raport: `tools/reports/cabinet-work-facts-preview-v1.md`.
+- Cache-busting: `20260608_cabinet_work_facts_defer_fix_v1`. Raport: `tools/reports/cabinet-work-facts-preview-v1.md`.
 
 ## 2026-06-08 — Źródła danych do czynności i wyceny w trybiku v1
 

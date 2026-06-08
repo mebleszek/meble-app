@@ -83,10 +83,11 @@ const smokeList = fs.readFileSync(path.join(root, 'tools/app-dev-smoke-lib/file-
 [index, dev, load, smokeList].forEach((content, idx)=> assert(content.includes('js/app/cabinet/cabinet-work-facts-preview.js'), `plik ładowania ${idx} zawiera cabinet-work-facts-preview.js`));
 assert(index.includes('cmWorkFactsPreview'), 'modal szafki ma host pod podgląd faktów');
 const modal = fs.readFileSync(path.join(root, 'js/app/cabinet/cabinet-modal.js'), 'utf8');
-assert(modal.includes('refreshCabinetWorkFactsPreview') && modal.includes('cmWorkFactsPreview'), 'modal odświeża podgląd faktów na żywo');
+assert(modal.includes('refreshCabinetWorkFactsPreview') && modal.includes('scheduleCabinetWorkFactsPreview') && modal.includes('cmWorkFactsPreview'), 'modal odświeża podgląd faktów na żywo przez odroczony scheduler');
+assert(modal.includes('Podgląd zostanie policzony po otwarciu okna'), 'modal ma lekki placeholder zamiast blokować klik Edytuj synchronicznym podglądem');
 const css = fs.readFileSync(path.join(root, 'css/cabinet-common.css'), 'utf8');
 assert(css.includes('cabinet-work-facts-panel') && css.includes('cabinet-work-facts-row__tech'), 'CSS ma style panelu podglądu faktów');
-assert(index.includes('20260608_cabinet_work_facts_preview_v1') && dev.includes('20260608_cabinet_work_facts_preview_v1'), 'index/dev_tests mają cache-busting nowego etapu');
+assert(index.includes('20260608_cabinet_work_facts_defer_fix_v1') && dev.includes('20260608_cabinet_work_facts_defer_fix_v1'), 'index/dev_tests mają cache-busting nowego etapu');
 
 console.log('OK cabinet-work-facts-preview smoke');
 console.log(' - modal szafki ma read-only podgląd „Co program odczyta z tej szafki”');

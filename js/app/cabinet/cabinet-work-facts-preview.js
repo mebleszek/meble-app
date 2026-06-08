@@ -192,9 +192,16 @@
     const appliance = applianceInfo(cab);
     const volume = cabinetVolumeM3(cab);
     const area = frontAreaM2(fronts);
+    const cabinetQty = cabinetCount(cab);
+    const frontCountValue = frontQty(fronts);
+    const frontDimensionsValue = frontDimensions(fronts);
+    const hingeCountValue = hingeQty(hinges);
+    const hingeRequirementValue = hingeRequirementLabel(hinges);
+    const shelfCountValue = shelfCount(cab);
+    const drawerCountValue = drawerCount(cab);
     const facts = [];
 
-    facts.push(makeFact('cabinet.count', cabinetCount(cab), { displayValue:formatQty(cabinetCount(cab), 'szt.'), source:'typ pozycji szafki' }));
+    facts.push(makeFact('cabinet.count', cabinetQty, { displayValue:formatQty(cabinetQty, 'szt.'), source:'typ pozycji szafki' }));
     facts.push(makeFact('cabinet.width_mm', mmFromCmLike(cab.width), { displayValue:formatQty(mmFromCmLike(cab.width), 'mm'), source:'pole Szerokość' }));
     facts.push(makeFact('cabinet.height_mm', mmFromCmLike(cab.height), { displayValue:formatQty(mmFromCmLike(cab.height), 'mm'), source:'pole Wysokość' }));
     facts.push(makeFact('cabinet.depth_mm', mmFromCmLike(cab.depth), { displayValue:formatQty(mmFromCmLike(cab.depth), 'mm'), source:'pole Głębokość' }));
@@ -202,14 +209,14 @@
     facts.push(makeFact('cabinet.zone', cabinetZone(cab), { source:'typ szafki w WYWIADZIE' }));
     facts.push(makeFact('cabinet.kind', cabinetKind(cab), { source:'wybrany wariant szafki' }));
 
-    facts.push(makeFact('front.count', frontQty(fronts), { displayValue:formatQty(frontQty(fronts), 'szt.'), source:'centralne obliczenia frontów' }));
-    facts.push(makeFact('front.dimensions', frontDimensions(fronts), { displayValue:frontDimensions(fronts) || 'brak frontów', source:'centralne obliczenia frontów', available:!!frontDimensions(fronts) }));
+    facts.push(makeFact('front.count', frontCountValue, { displayValue:formatQty(frontCountValue, 'szt.'), source:'centralne obliczenia frontów' }));
+    facts.push(makeFact('front.dimensions', frontDimensionsValue, { displayValue:frontDimensionsValue || 'brak frontów', source:'centralne obliczenia frontów', available:!!frontDimensionsValue }));
     facts.push(makeFact('front.area_m2', area, { displayValue:area > 0 ? formatNumber(area, 3) + ' m²' : '—', source:'wymiary frontów × ilość', available:area > 0 }));
-    facts.push(makeFact('hinge.count', hingeQty(hinges), { displayValue:formatQty(hingeQty(hinges), 'szt.'), source:'centralne wymagania zawiasów' }));
-    facts.push(makeFact('hinge.requirement', hingeRequirementLabel(hinges), { displayValue:hingeRequirementLabel(hinges) || 'brak zawiasów', source:'panel wymagań technicznych', available:!!hingeRequirementLabel(hinges) }));
+    facts.push(makeFact('hinge.count', hingeCountValue, { displayValue:formatQty(hingeCountValue, 'szt.'), source:'centralne wymagania zawiasów' }));
+    facts.push(makeFact('hinge.requirement', hingeRequirementValue, { displayValue:hingeRequirementValue || 'brak zawiasów', source:'panel wymagań technicznych', available:!!hingeRequirementValue }));
 
-    facts.push(makeFact('shelf.count', shelfCount(cab), { displayValue:formatQty(shelfCount(cab), 'szt.'), source:'pole Półki w szafce' }));
-    facts.push(makeFact('drawer.count', drawerCount(cab), { displayValue:formatQty(drawerCount(cab), 'szt.'), source:'dane szuflad w wariancie szafki' }));
+    facts.push(makeFact('shelf.count', shelfCountValue, { displayValue:formatQty(shelfCountValue, 'szt.'), source:'pole Półki w szafce' }));
+    facts.push(makeFact('drawer.count', drawerCountValue, { displayValue:formatQty(drawerCountValue, 'szt.'), source:'dane szuflad w wariancie szafki' }));
     facts.push(makeFact('appliance.count', appliance.count, { displayValue:formatQty(appliance.count, 'szt.'), source:'wariant AGD / montaż sprzętu' }));
     facts.push(makeFact('appliance.type', appliance.type, { displayValue:appliance.type || 'brak AGD', source:'wariant szafki AGD', available:!!appliance.type }));
 

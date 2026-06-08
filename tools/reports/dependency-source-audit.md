@@ -21,7 +21,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | --- | --- | --- | --- | --- | --- | --- |
 | TESTY | 53 | 12499 | 242 | 1 | 5 | 32 |
 | WYCENA | 49 | 10648 | 12 | 0 | 4 | 6 |
-| SZAFKI | 34 | 9231 | 0 | 0 | 0 | 7 |
+| SZAFKI | 34 | 9255 | 0 | 0 | 0 | 7 |
 | ROZRYS | 42 | 8864 | 6 | 0 | 1 | 6 |
 | MATERIAŁ | 27 | 6411 | 8 | 3 | 0 | 6 |
 | KATALOG/USŁUGI | 24 | 5338 | 4 | 0 | 2 | 1 |
@@ -50,7 +50,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/app/rozrys/rozrys.js | 843 | ROZRYS | wysokie |
 | js/app/wycena/wycena-diagnostics.js | 788 | WYCENA | wysokie |
 | js/app/wycena/wycena-core-lines.js | 750 | WYCENA | wysokie |
-| js/app/cabinet/cabinet-modal.js | 723 | SZAFKI | średnie |
+| js/app/cabinet/cabinet-modal.js | 738 | SZAFKI | średnie |
 | js/app/catalog/hardware-catalog.js | 665 | KATALOG/USŁUGI | wysokie |
 | js/app/catalog/catalog-store.js | 658 | KATALOG/USŁUGI | wysokie |
 | js/app/material/price-modal-item-form.js | 655 | MATERIAŁ | średnie |
