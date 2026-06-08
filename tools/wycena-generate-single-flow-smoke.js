@@ -10,7 +10,7 @@ function assert(condition, message, details){
 }
 
 function runStaticChecks(){
-  const version = '20260605_hinge_tipon_dynamic_features_v1';
+  const version = '20260608_restore_thread_start_stable_v1';
   const shell = fs.readFileSync(path.join(process.cwd(), 'js/app/wycena/wycena-tab-shell.js'), 'utf8');
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const dev = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');

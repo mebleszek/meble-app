@@ -64,14 +64,8 @@
     try{ return FC.laborCatalog && typeof FC.laborCatalog.buildHourlyRates === 'function' ? FC.laborCatalog.buildHourlyRates(defs || catalogRows()) : {}; }
     catch(_){ return {}; }
   }
-  function matchesAutomat(def, workAutomatCode, legacyRole){
-    if(!def) return false;
-    const code = text(def.workAutomatCode || def.automatCode || def.laborAutomatCode);
-    if(workAutomatCode && code === workAutomatCode) return true;
-    return !!legacyRole && text(def.autoRole) === legacyRole;
-  }
   function matchesBodyRule(def, heightMm){
-    if(!matchesAutomat(def, 'cabinet_body', 'cabinetBody')) return false;
+    if(!def || def.autoRole !== 'cabinetBody') return false;
     const min = Math.max(0, Number(def.heightMinMm) || 0);
     const max = Math.max(0, Number(def.heightMaxMm) || 0);
     if(heightMm < min) return false;
@@ -91,7 +85,7 @@
     }
     return 0;
   }
-  function findAutoDefs(defs, role, workAutomatCode){ return (defs || []).filter((def)=> matchesAutomat(def, workAutomatCode || '', role)); }
+  function findAutoDefs(defs, role){ return (defs || []).filter((def)=> def && def.autoRole === role); }
   function calculate(def, ctx){
     try{ return FC.laborCatalog && typeof FC.laborCatalog.calculateDefinition === 'function' ? FC.laborCatalog.calculateDefinition(def, ctx) : null; }
     catch(_){ return null; }
@@ -104,8 +98,6 @@
       key:opts.key || slug(`${def.id || def.name || 'labor'}_${opts.suffix || ''}`),
       name:text(opts.name || def.name || 'Robocizna'),
       category:text(def.category || ''),
-      workAutomatCode:text(def.workAutomatCode || def.automatCode || def.laborAutomatCode),
-      laborAutomatCode:text(def.workAutomatCode || def.automatCode || def.laborAutomatCode),
       quantity:Number(calc.quantity) || 1,
       unit:text(opts.unit || (def.quantityMode && def.quantityMode !== 'none' ? 'szt.' : 'x')),
       rateType:text(def.rateType || ''),
@@ -140,9 +132,6 @@
     if(!needle) return null;
     return (Array.isArray(defs) ? defs : []).find((def)=> def && text(def.id) === needle && def.active !== false) || null;
   }
-  function findDefByIdOrAutomat(defs, id, workAutomatCode){
-    return findDefById(defs, id) || (Array.isArray(defs) ? defs : []).find((def)=> def && text(def.workAutomatCode || def.automatCode || def.laborAutomatCode) === text(workAutomatCode) && def.active !== false) || null;
-  }
   function cabinetSourceLabel(entry){
     const number = Number(entry && entry.cabinetNumber) || 0;
     const cab = entry && entry.cabinet || {};
@@ -172,7 +161,7 @@
     return rows.length ? `Fronty z MATERIAŁ/WYCENA: ${rows.join(', ')}` : '';
   }
   function addFrontLabor(components, entry, defs, rates, volumeM3){
-    const def = findDefByIdOrAutomat(defs, 'labor_mount_front', 'front_mount');
+    const def = findDefById(defs, 'labor_mount_front');
     if(!def) return;
     const cab = entry && entry.cabinet || {};
     const parts = frontPartsForCabinet(entry && entry.roomId, cab);
@@ -213,7 +202,7 @@
     return bits.length ? bits.join(' • ') : 'Automatycznie z centralnych wymagań zawiasów.';
   }
   function addHingeLabor(components, entry, defs, rates, volumeM3){
-    const def = findDefByIdOrAutomat(defs, 'labor_mount_hinge', 'hinge_mount');
+    const def = findDefById(defs, 'labor_mount_hinge');
     if(!def) return;
     const cab = entry && entry.cabinet || {};
     const reqs = hingeRequirementsForCabinet(entry && entry.roomId, cab);
@@ -250,7 +239,7 @@
     }
     const shelves = shelfCount(cab);
     if(shelves > 0){
-      findAutoDefs(defs, 'cabinetLooseShelves', 'shelf_mount').forEach((def)=>{
+      findAutoDefs(defs, 'cabinetLooseShelves').forEach((def)=>{
         const calc = calculate(def, { quantity:shelves, volumeM3, hourlyRates:rates });
         const cmp = componentFromCalc(calc, { suffix:'shelves', unit:'szt.', note:`Półki: ${shelves} szt.`, sourceType:'cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'shelf-labor', sourceKind:'automatic' });
         if(cmp) components.push(cmp);
@@ -265,7 +254,7 @@
       if(!def) return;
       const qty = Math.max(0, num(item && item.qty, 1)) || 1;
       const calc = calculate(def, { quantity:qty, volumeM3, hourlyRates:rates });
-      const duplicateRisk = ['labor_mount_front','labor_mount_hinge'].includes(text(def && def.id)) || ['front_mount','hinge_mount'].includes(text(def && (def.workAutomatCode || def.automatCode || def.laborAutomatCode)));
+      const duplicateRisk = ['labor_mount_front','labor_mount_hinge'].includes(text(def && def.id));
       const manualNote = [text(item && item.note), duplicateRisk ? 'Ręczna pozycja może dublować automat frontów/zawiasów — sprawdź audyt.' : 'Ręczna pozycja przypięta do szafki.'].filter(Boolean).join(' • ');
       const cmp = componentFromCalc(calc, { suffix:`manual_${idx}`, unit:'szt.', note:manualNote, sourceType:'manual-cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'manual-cabinet-labor', sourceKind:'manual', warnings:duplicateRisk ? ['Możliwy duplikat: ta ręczna czynność ma taki sam typ jak automat frontów/zawiasów.'] : [] });
       if(cmp) components.push(cmp);

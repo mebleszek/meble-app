@@ -98,8 +98,6 @@
         type:'quote-rate',
         category: String(def && def.category || ''),
         name: String(def && def.name || 'Czynność'),
-        workAutomatCode:String(def && (def.workAutomatCode || def.automatCode || def.laborAutomatCode) || ''),
-        laborAutomatCode:String(def && (def.workAutomatCode || def.automatCode || def.laborAutomatCode) || ''),
         qty,
         unit:'x',
         unitPrice:Number(priced.unitPrice) || 0,

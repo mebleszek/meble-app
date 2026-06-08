@@ -24,55 +24,9 @@
     }
     return true;
   }
-
-  function isQuoteRateHourlyRow(data){
-    if(!(ctx.currentListKind && ctx.currentListKind() === 'quoteRates')) return false;
-    const labor = FC.laborCatalog || {};
-    try{ return labor.isHourlyRateDefinition ? labor.isHourlyRateDefinition(data || {}) : String(data && data.autoRole || '') === 'hourlyRate'; }
-    catch(_){ return String(data && data.autoRole || '') === 'hourlyRate'; }
-  }
-  function validateQuoteRateHourlyProfile(data){
-    if(!isQuoteRateHourlyRow(data)) return true;
-    const labor = FC.laborCatalog || {};
-    const editingId = ctx.appUiState && ctx.appUiState().editingId;
-    const current = editingId ? (ctx.currentList().find((item)=> String(item && item.id || '') === String(editingId)) || null) : null;
-    const oldCode = current ? String(current.rateKey || current.rateCode || current.rateType || '') : '';
-    if(labor.validateRateProfile){
-      const result = labor.validateRateProfile(data, ctx.currentList().filter((item)=> String(item && item.id || '') !== String(editingId || '')), oldCode ? { oldCode } : {});
-      if(!result || !result.ok){
-        ctx.info('Nie można zapisać stawki godzinowej', String((result && result.message) || 'Sprawdź nazwę, kod techniczny i kwotę stawki.'));
-        return false;
-      }
-    }
-    return true;
-  }
-  function validateQuoteRateLaborAutomat(data){
-    if(!(ctx.currentListKind && ctx.currentListKind() === 'quoteRates')) return true;
-    if(isQuoteRateHourlyRow(data)) return true;
-    const labor = FC.laborCatalog || {};
-    const raw = String(data && (data.workAutomatCode || data.automatCode || data.laborAutomatCode) || '').trim();
-    const code = labor.normalizeWorkAutomatCode ? labor.normalizeWorkAutomatCode(raw) : raw;
-    if(!code){
-      // Legacy fallback: stare, istniejące pozycje bez nowego automatu mogą zostać zapisane bez wymuszania migracji.
-      // Nowe pozycje startują z manual_fixed w formularzu, więc nadal dostają automat w nowym modelu.
-      if(ctx.appUiState && ctx.appUiState().editingId) return true;
-      ctx.info('Brak automatu robocizny', 'Wybierz automat robocizny dla nowej stawki wyceny mebli.');
-      return false;
-    }
-    if(labor.isValidWorkAutomatCode && !labor.isValidWorkAutomatCode(code)){ ctx.info('Błędny kod techniczny', 'Kod techniczny automatu może mieć tylko małe litery, cyfry i podkreślenia.'); return false; }
-    try{
-      const store = ctx.catalogStore && ctx.catalogStore();
-      const list = store && typeof store.getLaborAutomats === 'function' ? store.getLaborAutomats() : [];
-      const found = labor.findWorkAutomat ? labor.findWorkAutomat(list, code) : null;
-      if(!found){ ctx.info('Nieznany automat robocizny', 'Wybrany kod automatu nie istnieje w słowniku automatów robocizny.'); return false; }
-    }catch(_){ }
-    return true;
-  }
   function validateServiceForm(data){
     if(!String(data && data.name || '').trim()){ ctx.info('Brak nazwy', 'Wprowadź nazwę usługi, zanim ją zapiszesz.'); return false; }
     if(!String(data && data.category || '').trim()){ ctx.info('Brak kategorii', 'Wybierz kategorię usługi.'); return false; }
-    if(!validateQuoteRateHourlyProfile(data)) return false;
-    if(!validateQuoteRateLaborAutomat(data)) return false;
     return true;
   }
   function editedTimestamp(){ try{ return new Date().toISOString(); }catch(_){ return String(Date.now()); } }
@@ -124,10 +78,6 @@
     return saveServiceFromForm();
   }
   async function deletePriceItem(item){
-    if(ctx.currentListKind && ctx.currentListKind() === 'quoteRates' && isQuoteRateHourlyRow(item)){
-      ctx.info('Nie można usunąć stawki godzinowej', 'Stawki godzinowe są trwałym cennikiem robocizny. Możesz zmienić nazwę, kwotę albo odznaczyć „Aktywna”, ale nie usuwaj kodu używanego przez czynności i wyceny.');
-      return false;
-    }
     const ok = await ctx.confirmDelete(); if(!ok) return false;
     const next = ctx.currentList().filter((row)=> String(row.id) !== String(item && item.id));
     ctx.saveCurrentList(next);

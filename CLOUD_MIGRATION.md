@@ -1,29 +1,3 @@
-## 2026-06-07 — Robocizna: deduplikacja profili stawek godzinowych v1
-
-- Paczka: `site_labor_rate_profiles_dedupe_fix_v1.zip`.
-- Naprawiono regresję po rozdzieleniu profili stawek godzinowych: stare wiersze `quoteRates` z tym samym kodem stawki (`assembly`, `specialist` itd.) mogły pozostać obok nowych stawek systemowych i pokazywać zdublowane pozycje w cenniku.
-- Migracja `ensureDefaultDefinitions` deduplikuje teraz stawki godzinowe po technicznym kodzie stawki, a nie tylko po ID wiersza. Dla kodów systemowych zostaje jeden kanoniczny wiersz `labor_rate_<code>`.
-- Systemowe ceny startowe są przywracane przy konflikcie zdublowanych starych wierszy: `workshop` 150 zł/h, `assembly` 250 zł/h, `specialist` 300 zł/h, `helper` 80 zł/h.
-- Zapis listy `quoteRates` w `catalogStore.savePriceList` również przechodzi przez normalizację/deduplikację, żeby duplikaty nie wracały po zapisie.
-- Własne stawki użytkownika, np. `painter`, nadal są obsługiwane po unikalnym kodzie technicznym i nie są zmieniane na sztywno.
-- Rozszerzono `tools/labor-rate-profiles-foundation-smoke.js` o regresję starego zdublowania: błędne duplikaty `assembly=150` i `specialist=250` są usuwane, a wynik zostaje kanoniczny.
-- Cache-busting: `20260607_labor_rate_profiles_dedupe_fix_v1`. Raport: `tools/reports/labor-rate-profiles-dedupe-fix-v1.md`.
-
-## 2026-06-07 — Robocizna: profile stawek godzinowych pod przyszłą chmurę v1
-
-- Profile stawek godzinowych są obecnie przechowywane w `quoteRates` jako pozycje `autoRole: hourlyRate`, żeby nie dodawać kolejnego luźnego klucza storage na tym etapie.
-- Profil stawki ma stabilny kod biznesowy `rateKey`/`rateCode`/`rateType`, nazwę przyjazną, kwotę zł/h, aktywność oraz flagi systemowe/nieusuwalne dla stawek startowych.
-- Kod techniczny profilu stawki po utworzeniu jest niezmienny; literówka oznacza nowy profil i wyłączenie starego, a nie przepisywanie historii ofert.
-- Czynności robocizny odwołują się do profilu przez `rateType`. To jest relacja po kodzie, a nie po nazwie ani cenie, więc przyszła chmura powinna traktować profile stawek jako osobną kolekcję lub podkolekcję cennika robocizny.
-- Cztery profile systemowe (`workshop`, `assembly`, `specialist`, `helper`) są stałymi rekordami startowymi i nie powinny być twardo usuwane, bo mogą być referencją historycznych wycen.
-
-## 2026-06-07 — Robocizna: słownik automatów pod przyszłą chmurę v1
-
-- Dodano lokalny słownik automatów robocizny `fc_labor_automats_v1` obsługiwany przez `catalogStore`, bez bezpośrednich nowych zapisów rozproszonych po modułach UI.
-- Kod techniczny automatu jest trwałym kluczem biznesowym do późniejszego dopasowania definicji automatu, czynności, stawek, WYCENY, `quoteCalculationRegister` i przyszłego kreatora korpusów. Po utworzeniu kodu nie zmieniamy — literówka oznacza nowy automat i archiwizację starego.
-- `quoteRates` zachowuje kompatybilność przez legacy `autoRole`, ale nowe/normalizowane pozycje mają `workAutomatCode`/`laborAutomatCode`.
-- Montaż AGD ma docelowo osobne automaty per sprzęt (`dishwasher_mount`, `fridge_mount`, `oven_mount`, `hob_mount`, `hood_mount`, `microwave_mount`), a obecne liczenie AGD nadal korzysta z bezpiecznego lookupu usług po nazwie.
-
 # CLOUD_MIGRATION — plan przygotowania meble-app pod chmurę
 
 Ten plik jest stałym punktem odniesienia dla zmian dotyczących danych. `DEV.md` trzyma ogólne zasady pracy, a ten plik trzyma zasady migracji danych, localStorage, backupów i przyszłej synchronizacji.

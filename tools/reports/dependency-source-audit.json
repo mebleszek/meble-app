@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-06-07T21:22:55.807Z",
+  "generatedAt": "2026-06-04T20:04:35.311Z",
   "summary": {
     "jsFiles": 366,
     "indexScripts": 290,
     "devTestScripts": 322,
     "fcSymbols": 266,
     "fcSymbolsAll": 294,
-    "edges": 2063,
-    "highRisk": 13,
-    "mediumRisk": 75
+    "edges": 2024,
+    "highRisk": 12,
+    "mediumRisk": 73
   },
   "byArea": {
     "BOOT/APP SHELL": {
       "files": 7,
-      "lines": 1391,
+      "lines": 1390,
       "storageRefs": 4,
       "dialogRefs": 0,
       "high": 0,
@@ -21,19 +21,19 @@
     },
     "SZAFKI": {
       "files": 33,
-      "lines": 8929,
+      "lines": 8647,
       "storageRefs": 0,
       "dialogRefs": 0,
       "high": 0,
-      "medium": 6
+      "medium": 4
     },
     "KATALOG/USŁUGI": {
       "files": 24,
-      "lines": 5338,
+      "lines": 5156,
       "storageRefs": 4,
       "dialogRefs": 0,
-      "high": 2,
-      "medium": 1
+      "high": 1,
+      "medium": 2
     },
     "INWESTOR": {
       "files": 25,
@@ -45,11 +45,11 @@
     },
     "MATERIAŁ": {
       "files": 27,
-      "lines": 6411,
+      "lines": 6038,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
-      "medium": 6
+      "medium": 5
     },
     "OPTIMIZER": {
       "files": 12,
@@ -61,7 +61,7 @@
     },
     "INNE": {
       "files": 7,
-      "lines": 1751,
+      "lines": 1343,
       "storageRefs": 2,
       "dialogRefs": 0,
       "high": 0,
@@ -77,7 +77,7 @@
     },
     "WYCENA": {
       "files": 49,
-      "lines": 10648,
+      "lines": 10349,
       "storageRefs": 12,
       "dialogRefs": 0,
       "high": 4,
@@ -85,7 +85,7 @@
     },
     "ROZRYS": {
       "files": 42,
-      "lines": 8864,
+      "lines": 8862,
       "storageRefs": 6,
       "dialogRefs": 0,
       "high": 1,
@@ -93,7 +93,7 @@
     },
     "SHARED": {
       "files": 12,
-      "lines": 1411,
+      "lines": 1407,
       "storageRefs": 0,
       "dialogRefs": 1,
       "high": 0,
@@ -101,7 +101,7 @@
     },
     "DANE/STORAGE": {
       "files": 15,
-      "lines": 1333,
+      "lines": 1332,
       "storageRefs": 36,
       "dialogRefs": 0,
       "high": 0,
@@ -117,7 +117,7 @@
     },
     "UI": {
       "files": 32,
-      "lines": 4281,
+      "lines": 4277,
       "storageRefs": 0,
       "dialogRefs": 6,
       "high": 0,
@@ -149,7 +149,7 @@
     },
     "TESTY": {
       "files": 53,
-      "lines": 12499,
+      "lines": 12491,
       "storageRefs": 242,
       "dialogRefs": 1,
       "high": 5,
@@ -175,11 +175,11 @@
     ],
     [
       "js/testing/project/tests.js",
-      850
+      848
     ],
     [
       "js/app/rozrys/rozrys.js",
-      843
+      842
     ],
     [
       "js/app/wycena/wycena-diagnostics.js",
@@ -187,23 +187,11 @@
     ],
     [
       "js/app/wycena/wycena-core-lines.js",
-      750
+      722
     ],
     [
       "js/app/cabinet/cabinet-modal.js",
       707
-    ],
-    [
-      "js/app/catalog/hardware-catalog.js",
-      665
-    ],
-    [
-      "js/app/catalog/catalog-store.js",
-      658
-    ],
-    [
-      "js/app/material/price-modal-item-form.js",
-      655
     ],
     [
       "js/app/quote/quote-snapshot-store.js",
@@ -215,11 +203,11 @@
     ],
     [
       "js/app/material/price-modal-hardware-form.js",
-      645
+      638
     ],
     [
       "js/app/material/price-modal-hardware-dictionaries.js",
-      636
+      631
     ],
     [
       "js/testing/material/accessories-tests.js",
@@ -230,12 +218,24 @@
       602
     ],
     [
-      "js/app/pricing/labor-catalog.js",
-      599
+      "js/app/catalog/hardware-catalog.js",
+      589
+    ],
+    [
+      "js/app/catalog/catalog-store.js",
+      586
     ],
     [
       "js/app/wycena/wycena-context-repair.js",
       578
+    ],
+    [
+      "js/app/catalog/hardware-technical-params.js",
+      538
+    ],
+    [
+      "js/app/cabinet/cabinet-hardware-requirements.js",
+      506
     ]
   ],
   "topIncoming": [
@@ -277,35 +277,31 @@
     ],
     [
       "js/app/wycena/wycena-core-material-plan.js",
-      30
-    ],
-    [
-      "js/app/wycena/wycena-core-lines.js",
       28
     ],
     [
+      "js/app/wycena/wycena-core-lines.js",
+      26
+    ],
+    [
       "js/app/material/material-edge-store.js",
-      27
-    ],
-    [
-      "js/app/cabinet/cabinet-hardware-requirement-options.js",
-      26
-    ],
-    [
-      "js/app/cabinet/cabinet-hardware-requirements-panel.js",
-      26
-    ],
-    [
-      "js/app/ui/panel-box.js",
-      26
-    ],
-    [
-      "js/app/catalog/catalog-store.js",
       25
     ],
     [
       "js/app/project/project-bridge.js",
       25
+    ],
+    [
+      "js/app/ui/panel-box.js",
+      25
+    ],
+    [
+      "js/app/cabinet/cabinet-hardware-requirement-options.js",
+      24
+    ],
+    [
+      "js/app/catalog/catalog-store.js",
+      23
     ],
     [
       "js/testing/wycena/suites/core-offer-basics.js",
@@ -318,39 +314,39 @@
     [
       "js/app/ui/confirm-box.js",
       21
+    ],
+    [
+      "js/app/catalog/hardware-catalog.js",
+      20
     ]
   ],
   "topSecond": [
     [
       "js/app/bootstrap/app-core-namespace.js",
-      199
+      198
     ],
     [
       "js/app/shared/storage.js",
-      170
-    ],
-    [
-      "js/app/shared/utils.js",
       169
     ],
     [
-      "js/app/shared/constants.js",
-      127
+      "js/app/shared/utils.js",
+      168
     ],
     [
-      "js/app/investor/session.js",
-      115
+      "js/app/shared/constants.js",
+      125
     ],
     [
       "js/app/project/project-bridge.js",
       114
     ],
     [
-      "js/app/investor/investors-store.js",
-      105
+      "js/app/investor/session.js",
+      113
     ],
     [
-      "js/app/wycena/wycena-core-material-plan.js",
+      "js/app/investor/investors-store.js",
       105
     ],
     [
@@ -358,7 +354,7 @@
       101
     ],
     [
-      "js/app/wycena/wycena-core-lines.js",
+      "js/app/wycena/wycena-core-material-plan.js",
       100
     ],
     [
@@ -370,36 +366,40 @@
       98
     ],
     [
+      "js/app/wycena/wycena-core-lines.js",
+      95
+    ],
+    [
       "js/app/ui/info-box.js",
       83
     ],
     [
       "js/app/cabinet/cabinet-hardware-requirement-options.js",
-      82
-    ],
-    [
-      "js/app/cabinet/cabinet-hardware-requirements-panel.js",
-      82
+      78
     ],
     [
       "js/app/catalog/catalog-store.js",
-      82
+      77
     ],
     [
       "js/app/material/material-edge-store.js",
-      81
+      76
     ],
     [
       "js/app/ui/confirm-box.js",
       74
     ],
     [
-      "js/app/rozrys/rozrys-scope.js",
+      "js/app/shared/ui-state.js",
       73
     ],
     [
-      "js/app/shared/ui-state.js",
-      73
+      "js/app/quote/quote-snapshot-store.js",
+      71
+    ],
+    [
+      "js/app/rozrys/rozrys-scope.js",
+      71
     ]
   ],
   "topStorage": [
@@ -491,9 +491,9 @@
       "score": 15,
       "area": "TESTY",
       "category": "test",
-      "lines": 850,
+      "lines": 848,
       "incoming": 14,
-      "outgoing": 36,
+      "outgoing": 35,
       "secondLevel": 38,
       "storageRefs": 112,
       "dialogRefs": 0,
@@ -571,7 +571,7 @@
       "score": 10,
       "area": "ROZRYS",
       "category": "ui/render/events",
-      "lines": 843,
+      "lines": 842,
       "incoming": 11,
       "outgoing": 19,
       "secondLevel": 55,
@@ -589,10 +589,10 @@
       "score": 10,
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 750,
-      "incoming": 28,
-      "outgoing": 17,
-      "secondLevel": 100,
+      "lines": 722,
+      "incoming": 26,
+      "outgoing": 15,
+      "secondLevel": 95,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -621,24 +621,6 @@
       ]
     },
     {
-      "file": "js/app/catalog/catalog-store.js",
-      "risk": "wysokie",
-      "score": 9,
-      "area": "KATALOG/USŁUGI",
-      "category": "domain/controller",
-      "lines": 658,
-      "incoming": 25,
-      "outgoing": 17,
-      "secondLevel": 82,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "600+ linii",
-        "dużo zależnych plików",
-        "dużo zależności wychodzących"
-      ]
-    },
-    {
       "file": "js/testing/wycena/suites/central-status-sync.js",
       "risk": "wysokie",
       "score": 9,
@@ -657,21 +639,21 @@
       ]
     },
     {
-      "file": "js/app/catalog/hardware-catalog.js",
+      "file": "js/app/catalog/catalog-store.js",
       "risk": "wysokie",
       "score": 8,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 665,
-      "incoming": 20,
-      "outgoing": 9,
-      "secondLevel": 35,
+      "lines": 586,
+      "incoming": 23,
+      "outgoing": 16,
+      "secondLevel": 77,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
-        "600+ linii",
+        "400+ linii",
         "dużo zależnych plików",
-        "kilka zależności wychodzących"
+        "dużo zależności wychodzących"
       ]
     },
     {
@@ -712,24 +694,6 @@
       ]
     },
     {
-      "file": "js/app/cabinet/cabinet-hardware-requirements-panel.js",
-      "risk": "średnie",
-      "score": 7,
-      "area": "SZAFKI",
-      "category": "ui/render/events",
-      "lines": 560,
-      "incoming": 26,
-      "outgoing": 8,
-      "secondLevel": 82,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "400+ linii",
-        "dużo zależnych plików",
-        "kilka zależności wychodzących"
-      ]
-    },
-    {
       "file": "js/testing/test-data-manager.js",
       "risk": "średnie",
       "score": 7,
@@ -754,10 +718,10 @@
       "score": 7,
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 321,
-      "incoming": 30,
-      "outgoing": 16,
-      "secondLevel": 105,
+      "lines": 318,
+      "incoming": 28,
+      "outgoing": 15,
+      "secondLevel": 100,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -773,9 +737,9 @@
       "area": "MATERIAŁ",
       "category": "store/storage",
       "lines": 296,
-      "incoming": 27,
-      "outgoing": 9,
-      "secondLevel": 81,
+      "incoming": 25,
+      "outgoing": 8,
+      "secondLevel": 76,
       "storageRefs": 3,
       "dialogRefs": 0,
       "reasons": [
@@ -828,7 +792,7 @@
       "category": "test",
       "lines": 622,
       "incoming": 1,
-      "outgoing": 21,
+      "outgoing": 20,
       "secondLevel": 1,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -838,13 +802,13 @@
       ]
     },
     {
-      "file": "js/app/pricing/labor-catalog.js",
+      "file": "js/app/catalog/hardware-catalog.js",
       "risk": "średnie",
       "score": 6,
-      "area": "INNE",
+      "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 599,
-      "incoming": 11,
+      "lines": 589,
+      "incoming": 20,
       "outgoing": 3,
       "secondLevel": 34,
       "storageRefs": 0,
@@ -860,10 +824,10 @@
       "score": 6,
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 567,
-      "incoming": 14,
+      "lines": 538,
+      "incoming": 13,
       "outgoing": 1,
-      "secondLevel": 45,
+      "secondLevel": 42,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -981,24 +945,6 @@
       ]
     },
     {
-      "file": "js/app/quote/quote-snapshot.js",
-      "risk": "średnie",
-      "score": 6,
-      "area": "WYCENA",
-      "category": "domain/controller",
-      "lines": 349,
-      "incoming": 12,
-      "outgoing": 9,
-      "secondLevel": 62,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "250+ linii",
-        "dużo zależnych plików",
-        "kilka zależności wychodzących"
-      ]
-    },
-    {
       "file": "js/testing/rozrys/suites/project-stock.js",
       "risk": "średnie",
       "score": 6,
@@ -1014,6 +960,24 @@
         "250+ linii",
         "dużo zależnych plików",
         "dużo zależności wychodzących"
+      ]
+    },
+    {
+      "file": "js/app/quote/quote-snapshot.js",
+      "risk": "średnie",
+      "score": 6,
+      "area": "WYCENA",
+      "category": "domain/controller",
+      "lines": 339,
+      "incoming": 12,
+      "outgoing": 9,
+      "secondLevel": 62,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików",
+        "kilka zależności wychodzących"
       ]
     },
     {
@@ -1201,7 +1165,7 @@
       "score": 5,
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 645,
+      "lines": 638,
       "incoming": 0,
       "outgoing": 7,
       "secondLevel": 0,
@@ -1218,7 +1182,7 @@
       "score": 5,
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 636,
+      "lines": 631,
       "incoming": 0,
       "outgoing": 8,
       "secondLevel": 0,
@@ -1235,7 +1199,7 @@
       "score": 5,
       "area": "WYCENA",
       "category": "ui/render/events",
-      "lines": 453,
+      "lines": 448,
       "incoming": 3,
       "outgoing": 9,
       "secondLevel": 16,
@@ -1273,7 +1237,7 @@
       "lines": 368,
       "incoming": 12,
       "outgoing": 3,
-      "secondLevel": 115,
+      "secondLevel": 113,
       "storageRefs": 15,
       "dialogRefs": 0,
       "reasons": [
@@ -1290,7 +1254,7 @@
       "lines": 317,
       "incoming": 14,
       "outgoing": 1,
-      "secondLevel": 73,
+      "secondLevel": 71,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1377,30 +1341,12 @@
       "lines": 270,
       "incoming": 6,
       "outgoing": 7,
-      "secondLevel": 49,
+      "secondLevel": 47,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
         "250+ linii",
         "kilka zależnych plików",
-        "kilka zależności wychodzących"
-      ]
-    },
-    {
-      "file": "js/app/cabinet/cabinet-hardware-requirement-options.js",
-      "risk": "średnie",
-      "score": 5,
-      "area": "SZAFKI",
-      "category": "domain/controller",
-      "lines": 255,
-      "incoming": 26,
-      "outgoing": 7,
-      "secondLevel": 82,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "250+ linii",
-        "dużo zależnych plików",
         "kilka zależności wychodzących"
       ]
     },
@@ -1413,7 +1359,7 @@
       "lines": 250,
       "incoming": 15,
       "outgoing": 11,
-      "secondLevel": 61,
+      "secondLevel": 59,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1617,7 +1563,7 @@
       "category": "domain/controller",
       "lines": 56,
       "incoming": 20,
-      "outgoing": 13,
+      "outgoing": 12,
       "secondLevel": 28,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1635,22 +1581,6 @@
       "lines": 854,
       "incoming": 0,
       "outgoing": 2,
-      "secondLevel": 0,
-      "storageRefs": 0,
-      "dialogRefs": 0,
-      "reasons": [
-        "600+ linii"
-      ]
-    },
-    {
-      "file": "js/app/material/price-modal-item-form.js",
-      "risk": "średnie",
-      "score": 4,
-      "area": "MATERIAŁ",
-      "category": "ui/render/events",
-      "lines": 655,
-      "incoming": 0,
-      "outgoing": 3,
       "secondLevel": 0,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -1755,6 +1685,23 @@
         "250+ linii",
         "bezpośredni storage poza oczywistą granicą",
         "systemowe dialogi"
+      ]
+    },
+    {
+      "file": "js/app/pricing/labor-catalog.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "INNE",
+      "category": "domain/controller",
+      "lines": 251,
+      "incoming": 10,
+      "outgoing": 3,
+      "secondLevel": 30,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "250+ linii",
+        "dużo zależnych plików"
       ]
     },
     {
@@ -1864,10 +1811,10 @@
       "score": 4,
       "area": "BOOT/APP SHELL",
       "category": "bootstrap/orchestrator",
-      "lines": 179,
+      "lines": 178,
       "incoming": 76,
       "outgoing": 4,
-      "secondLevel": 199,
+      "secondLevel": 198,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1881,9 +1828,9 @@
       "score": 4,
       "area": "TESTY",
       "category": "test",
-      "lines": 152,
+      "lines": 146,
       "incoming": 1,
-      "outgoing": 15,
+      "outgoing": 14,
       "secondLevel": 1,
       "storageRefs": 23,
       "dialogRefs": 0,
@@ -1898,10 +1845,10 @@
       "score": 4,
       "area": "SHARED",
       "category": "ui/render/events",
-      "lines": 142,
+      "lines": 139,
       "incoming": 12,
       "outgoing": 2,
-      "secondLevel": 26,
+      "secondLevel": 25,
       "storageRefs": 0,
       "dialogRefs": 1,
       "reasons": [
@@ -1934,7 +1881,7 @@
       "lines": 120,
       "incoming": 10,
       "outgoing": 0,
-      "secondLevel": 50,
+      "secondLevel": 28,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -2057,7 +2004,6 @@
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/bootstrap/reload-restore.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/material/material-edge-store.js",
         "js/app/project/project-bridge.js",
@@ -2105,7 +2051,7 @@
     "js/app/bootstrap/app-core-namespace.js": {
       "area": "BOOT/APP SHELL",
       "category": "bootstrap/orchestrator",
-      "lines": 179,
+      "lines": 178,
       "defines": [
         "appCoreNamespace",
         "utils",
@@ -2211,7 +2157,6 @@
         "js/app/cabinet/cabinet-actions.js",
         "js/app/cabinet/cabinet-fronts.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-hanging.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-module.js",
@@ -2461,7 +2406,6 @@
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/material/material-edge-store.js",
         "js/app/project/project-bridge.js",
@@ -2495,7 +2439,7 @@
       "loadedInDevTests": true,
       "risk": "niskie",
       "reasons": [
-        "dużo zależności wychodzących"
+        "kilka zależności wychodzących"
       ]
     },
     "js/app/bootstrap/app-ui-bootstrap.js": {
@@ -2750,13 +2694,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -2852,7 +2794,7 @@
     "js/app/cabinet/cabinet-hardware-requirement-options.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 255,
+      "lines": 248,
       "defines": [
         "catalogStore",
         "cabinetHardwareRequirementOptions"
@@ -2866,14 +2808,12 @@
       "incomingFiles": [
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-hardware-requirements.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -2892,7 +2832,6 @@
         "js/testing/service/tests.js"
       ],
       "outgoingFiles": [
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog.js",
         "js/app/catalog/hardware-technical-params.js",
@@ -2914,10 +2853,6 @@
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
-        "js/app/catalog/hardware-replacement-engine.js",
-        "js/app/catalog/hardware-supplier-price-export.js",
-        "js/app/catalog/hardware-supplier-price-import.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
         "js/app/material/material-tab-data.js",
@@ -2989,166 +2924,45 @@
       "domRefs": 0,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "średnie",
+      "risk": "niskie",
       "reasons": [
-        "250+ linii",
-        "dużo zależnych plików",
-        "kilka zależności wychodzących"
+        "dużo zależnych plików"
       ]
     },
     "js/app/cabinet/cabinet-hardware-requirements-panel.js": {
       "area": "SZAFKI",
       "category": "ui/render/events",
-      "lines": 560,
+      "lines": 477,
       "defines": [
-        "catalogStore",
         "cabinetHardwareRequirementsPanel"
       ],
       "uses": [
         "cabinetHardwareRequirements",
-        "catalogStore",
-        "hardwareTechnicalParams",
         "rozrysChoice",
         "cabinetHardwareRequirementsPanel"
       ],
       "incomingFiles": [
-        "js/app.js",
-        "js/app/bootstrap/app-state-bootstrap.js",
-        "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-modal-labor.js",
-        "js/app/cabinet/cabinet-modal.js",
-        "js/app/catalog/catalog-selectors.js",
-        "js/app/catalog/catalog-store.js",
-        "js/app/catalog/hardware-catalog-export-xlsx.js",
-        "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
-        "js/app/material/material-edge-store.js",
-        "js/app/material/price-modal-context.js",
-        "js/app/material/price-modal-hardware-import-resolver.js",
-        "js/app/service/cutting/service-cutting-common.js",
-        "js/app/service/cutting/service-order-detail.js",
-        "js/app/service/cutting/service-pro100-import-ui.js",
-        "js/app/service/service-orders.js",
-        "js/app/ui/data-settings-defaults-view.js",
-        "js/app/wycena/wycena-core-lines.js",
-        "js/app/wycena/wycena-core-material-plan.js",
-        "js/tabs/wywiad-labor-summary.js",
-        "js/testing/material/accessories-import-export-deep-tests.js",
-        "js/testing/material/accessories-tests.js",
-        "js/testing/material/tests.js",
-        "js/testing/project/tests.js",
-        "js/testing/service/tests.js"
+        "js/app/cabinet/cabinet-modal.js"
       ],
       "outgoingFiles": [
-        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/cabinet/cabinet-hardware-requirements.js",
-        "js/app/catalog/catalog-store.js",
-        "js/app/catalog/hardware-technical-params.js",
-        "js/app/material/material-edge-store.js",
-        "js/app/rozrys/rozrys-choice.js",
-        "js/app/wycena/wycena-core-lines.js",
-        "js/app/wycena/wycena-core-material-plan.js"
+        "js/app/rozrys/rozrys-choice.js"
       ],
-      "secondLevelFiles": [
-        "js/app.js",
-        "js/app/bootstrap/app-state-bootstrap.js",
-        "js/app/bootstrap/app-ui-bootstrap.js",
-        "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements.js",
-        "js/app/cabinet/cabinet-modal-labor.js",
-        "js/app/cabinet/cabinet-modal.js",
-        "js/app/catalog/catalog-selectors.js",
-        "js/app/catalog/catalog-store.js",
-        "js/app/catalog/hardware-catalog-export-xlsx.js",
-        "js/app/catalog/hardware-catalog-import-export.js",
-        "js/app/catalog/hardware-catalog-import-parser.js",
-        "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
-        "js/app/catalog/hardware-replacement-engine.js",
-        "js/app/catalog/hardware-supplier-price-export.js",
-        "js/app/catalog/hardware-supplier-price-import.js",
-        "js/app/material/material-edge-store.js",
-        "js/app/material/material-registry.js",
-        "js/app/material/material-tab-data.js",
-        "js/app/material/price-modal-context.js",
-        "js/app/material/price-modal-field-help.js",
-        "js/app/material/price-modal-filters.js",
-        "js/app/material/price-modal-hardware-bundle.js",
-        "js/app/material/price-modal-hardware-dictionaries.js",
-        "js/app/material/price-modal-hardware-filter-sort.js",
-        "js/app/material/price-modal-hardware-form.js",
-        "js/app/material/price-modal-hardware-import-export.js",
-        "js/app/material/price-modal-hardware-import-resolver.js",
-        "js/app/material/price-modal-hardware-manufacturers.js",
-        "js/app/material/price-modal-hardware-replacements.js",
-        "js/app/material/price-modal-hardware-supplier-prices.js",
-        "js/app/material/price-modal-hardware-suppliers.js",
-        "js/app/material/price-modal-hardware-ux.js",
-        "js/app/material/price-modal-item-form.js",
-        "js/app/material/price-modal-list.js",
-        "js/app/material/price-modal-options.js",
-        "js/app/material/price-modal-persistence.js",
-        "js/app/material/price-modal.js",
-        "js/app/service/cutting/service-cutting-common.js",
-        "js/app/service/cutting/service-cutting-rozrys.js",
-        "js/app/service/cutting/service-order-detail.js",
-        "js/app/service/cutting/service-pro100-import-ui.js",
-        "js/app/service/service-orders.js",
-        "js/app/ui/actions-register.js",
-        "js/app/ui/app-view.js",
-        "js/app/ui/data-settings-defaults-view.js",
-        "js/app/ui/data-settings-modal.js",
-        "js/app/ui/views.js",
-        "js/app/wycena/wycena-core-catalog.js",
-        "js/app/wycena/wycena-core-labor.js",
-        "js/app/wycena/wycena-core-lines.js",
-        "js/app/wycena/wycena-core-material-plan.js",
-        "js/app/wycena/wycena-core-offer.js",
-        "js/app/wycena/wycena-core.js",
-        "js/app/wycena/wycena-diagnostics.js",
-        "js/app/wycena/wycena-tab-manual-labor.js",
-        "js/tabs/material.js",
-        "js/tabs/wywiad-labor-summary.js",
-        "js/tabs/wywiad.js",
-        "js/testing/cabinet/tests.js",
-        "js/testing/dev-tests-registry.js",
-        "js/testing/investor/suites/architecture.js",
-        "js/testing/investor/suites/status-flow.js",
-        "js/testing/material/accessories-import-export-deep-tests.js",
-        "js/testing/material/accessories-tests.js",
-        "js/testing/material/tests.js",
-        "js/testing/project/tests.js",
-        "js/testing/rozrys/suites/helpers-bridges.js",
-        "js/testing/rozrys/suites/project-stock.js",
-        "js/testing/rozrys/tests.js",
-        "js/testing/rysunek/tests.js",
-        "js/testing/service/tests.js",
-        "js/testing/wycena/suites/architecture-contract.js",
-        "js/testing/wycena/suites/central-status-sync.js",
-        "js/testing/wycena/suites/core-offer-basics.js",
-        "js/testing/wycena/suites/cross-systems.js",
-        "js/testing/wycena/suites/investor-integration.js",
-        "js/testing/wycena/suites/schedule-status-contract.js",
-        "js/testing/wycena/suites/status-contract.js",
-        "js/testing/wycena/suites/status-reconciliation-regression.js",
-        "js/testing/wycena/tests.js"
-      ],
+      "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
       "domRefs": 3,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "średnie",
+      "risk": "niskie",
       "reasons": [
-        "400+ linii",
-        "dużo zależnych plików",
-        "kilka zależności wychodzących"
+        "400+ linii"
       ]
     },
     "js/app/cabinet/cabinet-hardware-requirements.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 551,
+      "lines": 506,
       "defines": [
         "cabinetHardwareRequirements"
       ],
@@ -3160,7 +2974,6 @@
       "incomingFiles": [
         "js/app/cabinet/cabinet-cutlist.js",
         "js/app/cabinet/cabinet-hardware-requirements-panel.js",
-        "js/app/wycena/wycena-core-labor.js",
         "js/app/wycena/wycena-core-lines.js"
       ],
       "outgoingFiles": [
@@ -3170,14 +2983,12 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -3191,7 +3002,6 @@
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
-        "js/tabs/czynnosci.js",
         "js/tabs/wywiad-labor-summary.js",
         "js/testing/cabinet/tests.js",
         "js/testing/material/accessories-import-export-deep-tests.js",
@@ -3314,7 +3124,6 @@
       "outgoingFiles": [
         "js/app/cabinet/cabinet-choice-launchers.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/material/material-edge-store.js",
         "js/app/pricing/labor-appliance-rules.js",
@@ -3705,7 +3514,7 @@
     "js/app/cabinet/front-hardware-fronts.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 371,
+      "lines": 261,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -3724,7 +3533,7 @@
     "js/app/cabinet/front-hardware-hinges.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 194,
+      "lines": 162,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -3758,7 +3567,7 @@
     "js/app/cabinet/front-hardware.js": {
       "area": "SZAFKI",
       "category": "domain/controller",
-      "lines": 35,
+      "lines": 30,
       "defines": [],
       "uses": [],
       "incomingFiles": [],
@@ -3813,12 +3622,10 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-field-help.js",
@@ -3880,7 +3687,7 @@
     "js/app/catalog/catalog-migration.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 75,
+      "lines": 73,
       "defines": [
         "catalogMigration"
       ],
@@ -3899,12 +3706,10 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -3933,7 +3738,7 @@
     "js/app/catalog/catalog-selectors.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 78,
+      "lines": 75,
       "defines": [
         "catalogSelectors"
       ],
@@ -3953,7 +3758,6 @@
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/material/material-edge-store.js",
         "js/app/shared/utils.js",
@@ -4001,12 +3805,10 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -4035,7 +3837,7 @@
     "js/app/catalog/catalog-store.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 658,
+      "lines": 586,
       "defines": [
         "catalogStore"
       ],
@@ -4057,12 +3859,10 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -4083,7 +3883,6 @@
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-domain.js",
         "js/app/catalog/catalog-migration.js",
         "js/app/catalog/catalog-storage-policy.js",
@@ -4104,7 +3903,6 @@
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-hardware-requirements.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal.js",
@@ -4113,10 +3911,6 @@
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
-        "js/app/catalog/hardware-replacement-engine.js",
-        "js/app/catalog/hardware-supplier-price-export.js",
-        "js/app/catalog/hardware-supplier-price-import.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
         "js/app/material/material-tab-data.js",
@@ -4190,7 +3984,7 @@
       "loadedInDevTests": true,
       "risk": "wysokie",
       "reasons": [
-        "600+ linii",
+        "400+ linii",
         "dużo zależnych plików",
         "dużo zależności wychodzących"
       ]
@@ -4220,7 +4014,6 @@
       ],
       "outgoingFiles": [
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
         "js/app/catalog/hardware-catalog.js",
@@ -4355,7 +4148,6 @@
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
@@ -4434,12 +4226,10 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -4510,14 +4300,13 @@
     "js/app/catalog/hardware-catalog.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 665,
+      "lines": 589,
       "defines": [
         "hardwareCatalog"
       ],
       "uses": [
         "hardwareTechnicalParams",
         "utils",
-        "catalogStore",
         "hardwareCatalog"
       ],
       "incomingFiles": [
@@ -4544,20 +4333,13 @@
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
-        "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
-        "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-technical-params.js",
-        "js/app/material/material-edge-store.js",
-        "js/app/shared/utils.js",
-        "js/app/wycena/wycena-core-lines.js",
-        "js/app/wycena/wycena-core-material-plan.js"
+        "js/app/shared/utils.js"
       ],
       "secondLevelFiles": [
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-hardware-requirements.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
@@ -4595,11 +4377,10 @@
       "domRefs": 0,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "wysokie",
+      "risk": "średnie",
       "reasons": [
-        "600+ linii",
-        "dużo zależnych plików",
-        "kilka zależności wychodzących"
+        "400+ linii",
+        "dużo zależnych plików"
       ]
     },
     "js/app/catalog/hardware-replacement-engine.js": {
@@ -4711,7 +4492,7 @@
     "js/app/catalog/hardware-technical-params.js": {
       "area": "KATALOG/USŁUGI",
       "category": "domain/controller",
-      "lines": 567,
+      "lines": 538,
       "defines": [
         "hardwareTechnicalParams"
       ],
@@ -4721,7 +4502,6 @@
       ],
       "incomingFiles": [
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
@@ -4742,17 +4522,14 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-hardware-requirements.js",
         "js/app/cabinet/cabinet-modal-labor.js",
-        "js/app/cabinet/cabinet-modal.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/catalog/hardware-replacement-engine.js",
         "js/app/catalog/hardware-supplier-price-export.js",
         "js/app/catalog/hardware-supplier-price-import.js",
@@ -6179,14 +5956,12 @@
         "js/app/bootstrap/reload-restore.js",
         "js/app/cabinet/cabinet-actions.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-set-wizard.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/investor/investor-project-patches.js",
         "js/app/investor/investor-project-repository.js",
         "js/app/investor/investor-project-runtime.js",
@@ -6412,13 +6187,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-tab-data.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -6439,7 +6212,6 @@
       ],
       "outgoingFiles": [
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/investor/session.js",
         "js/app/material/material-part-options.js",
@@ -6453,7 +6225,6 @@
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-hardware-requirements.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal.js",
@@ -6463,10 +6234,6 @@
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
-        "js/app/catalog/hardware-replacement-engine.js",
-        "js/app/catalog/hardware-supplier-price-export.js",
-        "js/app/catalog/hardware-supplier-price-import.js",
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-field-help.js",
@@ -6547,7 +6314,7 @@
     "js/app/material/material-part-options.js": {
       "area": "MATERIAŁ",
       "category": "store/storage",
-      "lines": 266,
+      "lines": 265,
       "defines": [
         "materialPartOptions"
       ],
@@ -6573,13 +6340,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-tab-data.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -6655,13 +6420,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -6730,13 +6493,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-context.js",
@@ -6810,7 +6571,6 @@
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-domain.js",
         "js/app/catalog/catalog-store.js",
         "js/app/material/material-edge-store.js",
@@ -6866,7 +6626,7 @@
     "js/app/material/price-modal-field-help.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 167,
+      "lines": 154,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -6884,7 +6644,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 4,
+      "domRefs": 3,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
@@ -6941,7 +6701,7 @@
     "js/app/material/price-modal-hardware-dictionaries.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 636,
+      "lines": 631,
       "defines": [
         "priceModalHardwareDictionaries"
       ],
@@ -7004,7 +6764,7 @@
     "js/app/material/price-modal-hardware-form.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 645,
+      "lines": 638,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -7028,7 +6788,7 @@
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 28,
+      "domRefs": 27,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "średnie",
@@ -7098,7 +6858,6 @@
       ],
       "outgoingFiles": [
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/catalog/hardware-catalog-supplier-price-xlsx.js",
@@ -7291,29 +7050,27 @@
     },
     "js/app/material/price-modal-item-form.js": {
       "area": "MATERIAŁ",
-      "category": "ui/render/events",
-      "lines": 655,
+      "category": "domain/controller",
+      "lines": 358,
       "defines": [],
       "uses": [
         "priceModalContext",
-        "laborCatalog",
-        "panelBox"
+        "laborCatalog"
       ],
       "incomingFiles": [],
       "outgoingFiles": [
         "js/app/material/price-modal-context.js",
-        "js/app/pricing/labor-catalog.js",
-        "js/app/ui/panel-box.js"
+        "js/app/pricing/labor-catalog.js"
       ],
       "secondLevelFiles": [],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 8,
+      "domRefs": 0,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "średnie",
+      "risk": "niskie",
       "reasons": [
-        "600+ linii"
+        "250+ linii"
       ]
     },
     "js/app/material/price-modal-list.js": {
@@ -7371,14 +7128,14 @@
     "js/app/material/price-modal-persistence.js": {
       "area": "MATERIAŁ",
       "category": "domain/controller",
-      "lines": 143,
+      "lines": 93,
       "defines": [],
       "uses": [
         "priceModalContext",
         "hardwareCatalog",
-        "laborCatalog",
         "utils",
-        "wycenaCore"
+        "wycenaCore",
+        "laborCatalog"
       ],
       "incomingFiles": [],
       "outgoingFiles": [
@@ -8035,14 +7792,12 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -8074,7 +7829,7 @@
     "js/app/pricing/labor-catalog-definitions.js": {
       "area": "INNE",
       "category": "domain/controller",
-      "lines": 135,
+      "lines": 75,
       "defines": [
         "laborCatalogDefinitions"
       ],
@@ -8092,7 +7847,6 @@
         "js/app/material/price-modal-list.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/wycena/wycena-core-labor.js",
-        "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core-offer.js",
         "js/app/wycena/wycena-labor-picker.js",
         "js/app/wycena/wycena-tab-manual-labor.js",
@@ -8109,7 +7863,7 @@
     "js/app/pricing/labor-catalog.js": {
       "area": "INNE",
       "category": "domain/controller",
-      "lines": 599,
+      "lines": 251,
       "defines": [
         "laborCatalog"
       ],
@@ -8125,7 +7879,6 @@
         "js/app/material/price-modal-list.js",
         "js/app/material/price-modal-persistence.js",
         "js/app/wycena/wycena-core-labor.js",
-        "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core-offer.js",
         "js/app/wycena/wycena-labor-picker.js",
         "js/app/wycena/wycena-tab-manual-labor.js",
@@ -8140,14 +7893,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal.js",
         "js/app/catalog/catalog-selectors.js",
-        "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -8159,7 +7909,6 @@
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core.js",
-        "js/app/wycena/wycena-diagnostics.js",
         "js/app/wycena/wycena-tab-manual-labor.js",
         "js/tabs/czynnosci.js",
         "js/tabs/wycena.js",
@@ -8179,7 +7928,7 @@
       "loadedInDevTests": true,
       "risk": "średnie",
       "reasons": [
-        "400+ linii",
+        "250+ linii",
         "dużo zależnych plików"
       ]
     },
@@ -9132,7 +8881,7 @@
     "js/app/quote/quote-calculation-register.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 263,
+      "lines": 258,
       "defines": [
         "quoteCalculationRegister"
       ],
@@ -9981,7 +9730,7 @@
     "js/app/quote/quote-snapshot.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 349,
+      "lines": 339,
       "defines": [
         "quoteSnapshot"
       ],
@@ -10204,13 +9953,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-context.js",
@@ -10285,48 +10032,26 @@
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
-        "js/app.js",
-        "js/app/bootstrap/app-state-bootstrap.js",
-        "js/app/cabinet/cabinet-hardware-requirement-options.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-set-wizard.js",
         "js/app/cabinet/cabinet-modal.js",
-        "js/app/catalog/catalog-selectors.js",
-        "js/app/catalog/catalog-store.js",
-        "js/app/catalog/hardware-catalog-export-xlsx.js",
-        "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/investor/investor-rooms.js",
         "js/app/investor/investor-ui-status-flow.js",
         "js/app/investor/investor-ui.js",
-        "js/app/material/material-edge-store.js",
-        "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-export.js",
-        "js/app/material/price-modal-hardware-import-resolver.js",
         "js/app/material/price-modal-options.js",
         "js/app/rozrys/rozrys.js",
-        "js/app/service/cutting/service-cutting-common.js",
-        "js/app/service/cutting/service-order-detail.js",
-        "js/app/service/cutting/service-pro100-import-ui.js",
-        "js/app/service/service-orders.js",
-        "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/data-settings-modal.js",
-        "js/app/wycena/wycena-core-lines.js",
-        "js/app/wycena/wycena-core-material-plan.js",
-        "js/tabs/wywiad-labor-summary.js",
         "js/testing/cabinet/tests.js",
         "js/testing/dev-tests-registry.js",
         "js/testing/investor/suites/architecture.js",
         "js/testing/investor/suites/status-flow.js",
-        "js/testing/material/accessories-import-export-deep-tests.js",
         "js/testing/material/accessories-tests.js",
-        "js/testing/material/tests.js",
         "js/testing/project/tests.js",
         "js/testing/rozrys/suites/helpers-bridges.js",
         "js/testing/rozrys/suites/project-stock.js",
         "js/testing/rozrys/tests.js",
         "js/testing/rysunek/tests.js",
-        "js/testing/service/tests.js",
         "js/testing/wycena/suites/architecture-contract.js",
         "js/testing/wycena/suites/central-status-sync.js",
         "js/testing/wycena/suites/cross-systems.js",
@@ -10471,13 +10196,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-context.js",
@@ -10861,7 +10584,7 @@
     "js/app/rozrys/rozrys-part-helpers.js": {
       "area": "ROZRYS",
       "category": "domain/controller",
-      "lines": 86,
+      "lines": 85,
       "defines": [
         "rozrysPartHelpers"
       ],
@@ -11010,13 +10733,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-context.js",
@@ -11514,13 +11235,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-context.js",
@@ -11997,13 +11716,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-context.js",
@@ -12252,7 +11969,7 @@
     "js/app/rozrys/rozrys.js": {
       "area": "ROZRYS",
       "category": "ui/render/events",
-      "lines": 843,
+      "lines": 842,
       "defines": [
         "rozrys"
       ],
@@ -12401,7 +12118,6 @@
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/material/material-edge-store.js",
@@ -12496,7 +12212,6 @@
       ],
       "outgoingFiles": [
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/material/material-edge-store.js",
         "js/app/service/cutting/service-cutting-common.js",
@@ -12549,7 +12264,6 @@
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/material/material-edge-store.js",
         "js/app/service/cutting/service-pro100-parser.js",
@@ -12639,12 +12353,10 @@
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -12723,7 +12435,6 @@
       ],
       "outgoingFiles": [
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/material/material-edge-store.js",
         "js/app/service/cutting/service-order-detail.js",
@@ -12834,7 +12545,7 @@
     "js/app/shared/constants.js": {
       "area": "SHARED",
       "category": "shared/domain/helper",
-      "lines": 42,
+      "lines": 41,
       "defines": [
         "constants"
       ],
@@ -12873,14 +12584,12 @@
         "js/app/bootstrap/reload-restore.js",
         "js/app/cabinet/cabinet-actions.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-set-wizard.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/investor/investor-persistence.js",
         "js/app/investor/investor-project-patches.js",
         "js/app/investor/investor-project-repository.js",
@@ -13502,7 +13211,7 @@
     "js/app/shared/data-storage-classifier.js": {
       "area": "DANE/STORAGE",
       "category": "store/storage",
-      "lines": 208,
+      "lines": 207,
       "defines": [
         "dataStorageClassifier"
       ],
@@ -13667,7 +13376,7 @@
     "js/app/shared/help-registry.js": {
       "area": "SHARED",
       "category": "ui/render/events",
-      "lines": 142,
+      "lines": 139,
       "defines": [
         "helpRegistry"
       ],
@@ -13696,7 +13405,6 @@
       ],
       "secondLevelFiles": [
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
@@ -14868,7 +14576,6 @@
         "js/app/cabinet/cabinet-actions.js",
         "js/app/cabinet/cabinet-fronts.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-hanging.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-module.js",
@@ -15228,7 +14935,6 @@
         "js/app/cabinet/cabinet-actions.js",
         "js/app/cabinet/cabinet-fronts.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-hanging.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-module.js",
@@ -15619,7 +15325,7 @@
     "js/app/ui/bindings.js": {
       "area": "UI",
       "category": "ui/render/events",
-      "lines": 194,
+      "lines": 190,
       "defines": [
         "bindings"
       ],
@@ -15963,7 +15669,6 @@
       ],
       "outgoingFiles": [
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/material/material-edge-store.js",
         "js/app/rozrys/rozrys-choice.js",
@@ -16314,13 +16019,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-tab-data.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -16368,7 +16071,6 @@
         "js/app/material/price-modal-hardware-import-export.js",
         "js/app/material/price-modal-hardware-manufacturers.js",
         "js/app/material/price-modal-hardware-suppliers.js",
-        "js/app/material/price-modal-item-form.js",
         "js/app/rozrys/rozrys-grain-modal.js",
         "js/app/rozrys/rozrys-options-modal.js",
         "js/app/rozrys/rozrys-pickers.js",
@@ -16718,14 +16420,12 @@
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal-set-wizard.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/investor/investor-actions.js",
         "js/app/investor/investor-project-patches.js",
         "js/app/investor/investor-project.js",
@@ -17049,13 +16749,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-context.js",
@@ -17114,7 +16812,7 @@
     "js/app/wycena/wycena-core-labor.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 311,
+      "lines": 188,
       "defines": [
         "wycenaCoreLabor"
       ],
@@ -17123,16 +16821,13 @@
         "wycenaCoreSource",
         "wycenaCoreLabor",
         "catalogSelectors",
-        "laborCatalog",
-        "frontHardware",
-        "cabinetHardwareRequirements"
+        "laborCatalog"
       ],
       "incomingFiles": [
         "js/app/wycena/wycena-core.js",
         "js/tabs/czynnosci.js"
       ],
       "outgoingFiles": [
-        "js/app/cabinet/cabinet-hardware-requirements.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/pricing/labor-catalog.js",
         "js/app/wycena/wycena-core-source.js",
@@ -17161,14 +16856,12 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": [
-        "250+ linii"
-      ]
+      "reasons": []
     },
     "js/app/wycena/wycena-core-lines.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 750,
+      "lines": 722,
       "defines": [
         "catalogStore",
         "wycenaCoreLines"
@@ -17181,7 +16874,6 @@
         "wycenaCoreSelection",
         "wycenaCoreLines",
         "roomPreferences",
-        "laborCatalog",
         "catalogStore",
         "hardwareTechnicalParams",
         "hardwareCatalog",
@@ -17194,13 +16886,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -17223,14 +16913,12 @@
       "outgoingFiles": [
         "js/app/cabinet/cabinet-cutlist.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-hardware-requirements.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog.js",
         "js/app/catalog/hardware-technical-params.js",
         "js/app/material/material-edge-store.js",
         "js/app/pricing/labor-appliance-rules.js",
-        "js/app/pricing/labor-catalog.js",
         "js/app/rozrys/rozrys-scope.js",
         "js/app/wycena/wycena-core-catalog.js",
         "js/app/wycena/wycena-core-material-plan.js",
@@ -17244,7 +16932,6 @@
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-hardware-requirements.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal.js",
@@ -17254,10 +16941,6 @@
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
-        "js/app/catalog/hardware-replacement-engine.js",
-        "js/app/catalog/hardware-supplier-price-export.js",
-        "js/app/catalog/hardware-supplier-price-import.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
         "js/app/material/material-tab-data.js",
@@ -17356,7 +17039,7 @@
     "js/app/wycena/wycena-core-material-plan.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 321,
+      "lines": 318,
       "defines": [
         "materialHasGrain",
         "catalogStore",
@@ -17381,13 +17064,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-context.js",
@@ -17411,7 +17092,6 @@
       ],
       "outgoingFiles": [
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
@@ -17432,7 +17112,6 @@
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-hardware-requirements.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/cabinet/cabinet-modal.js",
@@ -17442,10 +17121,6 @@
         "js/app/catalog/hardware-catalog-import-export.js",
         "js/app/catalog/hardware-catalog-import-parser.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
-        "js/app/catalog/hardware-replacement-engine.js",
-        "js/app/catalog/hardware-supplier-price-export.js",
-        "js/app/catalog/hardware-supplier-price-import.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-tab-data.js",
         "js/app/material/price-modal-context.js",
@@ -17549,7 +17224,7 @@
     "js/app/wycena/wycena-core-offer.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 123,
+      "lines": 118,
       "defines": [
         "wycenaCoreOffer"
       ],
@@ -17575,13 +17250,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/price-modal-context.js",
         "js/app/material/price-modal-hardware-import-resolver.js",
@@ -17667,13 +17340,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-context.js",
@@ -17768,13 +17439,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-context.js",
@@ -17860,13 +17529,11 @@
         "js/app.js",
         "js/app/bootstrap/app-state-bootstrap.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/cabinet/cabinet-modal-labor.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-plan.js",
-        "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
         "js/app/material/material-registry.js",
         "js/app/material/price-modal-context.js",
@@ -18232,7 +17899,7 @@
     "js/app/wycena/wycena-summary-details-modal.js": {
       "area": "WYCENA",
       "category": "ui/render/events",
-      "lines": 351,
+      "lines": 231,
       "defines": [
         "wycenaSummaryDetailsModal"
       ],
@@ -18255,13 +17922,11 @@
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
-      "domRefs": 24,
+      "domRefs": 19,
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": [
-        "250+ linii"
-      ]
+      "reasons": []
     },
     "js/app/wycena/wycena-tab-data.js": {
       "area": "WYCENA",
@@ -18915,7 +18580,7 @@
     "js/app/wycena/wycena-tab-shell.js": {
       "area": "WYCENA",
       "category": "ui/render/events",
-      "lines": 453,
+      "lines": 448,
       "defines": [
         "wycenaGenerateAction",
         "wycenaTabShell"
@@ -19484,7 +19149,6 @@
       ],
       "outgoingFiles": [
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/catalog/catalog-store.js",
         "js/app/material/material-edge-store.js",
@@ -20527,7 +20191,6 @@
       ],
       "outgoingFiles": [
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-export.js",
@@ -20585,7 +20248,6 @@
       ],
       "outgoingFiles": [
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog-export-xlsx.js",
         "js/app/catalog/hardware-catalog-import-export.js",
@@ -20623,7 +20285,7 @@
     "js/testing/material/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 152,
+      "lines": 146,
       "defines": [
         "materialDevTests"
       ],
@@ -20645,7 +20307,6 @@
       ],
       "outgoingFiles": [
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/catalog/hardware-catalog.js",
         "js/app/material/material-edge-store.js",
@@ -20677,7 +20338,7 @@
     "js/testing/project/tests.js": {
       "area": "TESTY",
       "category": "test",
-      "lines": 850,
+      "lines": 848,
       "defines": [
         "project",
         "projectAutosave",
@@ -20742,7 +20403,6 @@
         "js/app/bootstrap/app-ui-bootstrap.js",
         "js/app/bootstrap/reload-restore.js",
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-domain.js",
         "js/app/catalog/catalog-store.js",
         "js/app/investor/investor-persistence.js",
@@ -21719,7 +21379,6 @@
       ],
       "outgoingFiles": [
         "js/app/cabinet/cabinet-hardware-requirement-options.js",
-        "js/app/cabinet/cabinet-hardware-requirements-panel.js",
         "js/app/catalog/catalog-store.js",
         "js/app/material/material-edge-store.js",
         "js/app/service/cutting/service-cutting-common.js",
