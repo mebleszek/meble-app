@@ -1,10 +1,3 @@
-## 2026-06-08 — WYWIAD: awaryjne przywrócenie stabilnej edycji szafki v1
-
-- Paczka `site_cabinet_edit_restore_stable_v1.zip` nie dodaje nowych danych trwałych i nie zmienia modelu danych.
-- Cofnięto tylko podpięcie podglądu faktów roboczych w modalu szafki.
-- Zaakceptowany słownik `FC.workQuantitySources` / `Dane do czynności i wyceny` zostaje jako centralny język nazw, ale nie jest jeszcze używany przez modal szafki ani WYCENĘ.
-- Źródłem prawdy nadal pozostają dane szafki w WYWIADZIE; snapshotem wynikowym pozostaje WYCENA/quoteCalculationRegister.
-
 ## 2026-06-08 — Źródła danych do czynności i wyceny w trybiku v1
 
 - Paczka: `site_work_quantity_sources_settings_v1.zip`.

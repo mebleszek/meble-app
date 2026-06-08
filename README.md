@@ -1,13 +1,3 @@
-## 2026-06-08 — WYWIAD: awaryjne przywrócenie stabilnej edycji szafki v1
-
-- Paczka: `site_cabinet_edit_restore_stable_v1.zip`.
-- Cofnięto wyłącznie podpięcie panelu `Co program odczyta z tej szafki` w modalu szafki, bo po tej zmianie użytkownik zgłosił brak plusa dodawania szafki oraz zawieszanie kliknięcia `Edytuj`.
-- Zachowano zaakceptowaną sekcję w trybiku `Dane do czynności i wyceny` oraz moduł `FC.workQuantitySources`.
-- Nie zmieniono UI WYWIADU, nie dodano nowego panelu, nie ruszono wyglądu modala, kart szafek, przycisków ani akordeonów.
-- Nie zmieniono danych szafek, MATERIAŁU, WYCENY, quoteCalculationRegister ani logiki okuć.
-- Nowe cache-busting dla stabilnego `cabinet-modal.js`: `20260608_cabinet_edit_restore_stable_v1`.
-- Dodano test `tools/cabinet-edit-restore-stable-smoke.js`, który pilnuje, że awaryjna paczka nie ładuje usuniętego podglądu i nie zawiera łaty UI wymuszającej plus.
-
 ## 2026-06-08 — Źródła danych do czynności i wyceny w trybiku v1
 
 - Paczka: `site_work_quantity_sources_settings_v1.zip`.
