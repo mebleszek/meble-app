@@ -83,11 +83,16 @@
     return Math.max(0, (w / 100) * (h / 100) * (d / 100));
   }
   function getFrontParts(room, cab){
+    // Safety fix: the modal preview must never call heavy material/front generators while
+    // the user is opening or editing a cabinet. It is a read-only diagnostic view, not
+    // the source of truth for MATERIAL/WYCENA. Use the current draft fields only.
     try{
-      const hw = FC.frontHardware || {};
-      if(hw && typeof hw.getCabinetFrontCutListForMaterials === 'function'){
-        return (hw.getCabinetFrontCutListForMaterials(room, clone(cab)) || []).filter((part)=> text(part && part.name).toLowerCase() === 'front');
-      }
+      const fc = Math.max(0, Math.round(num(cab && cab.frontCount, 0)));
+      if(!(fc > 0)) return [];
+      const width = cm(cab && cab.width);
+      const height = cm(cab && cab.height);
+      const singleWidth = fc > 0 ? round(width / fc, 2) : width;
+      return [{ name:'front', qty:fc, a:singleWidth, b:height, dims:formatNumber(singleWidth, 1) + ' × ' + formatNumber(height, 1) }];
     }catch(_){ }
     return [];
   }
@@ -112,14 +117,18 @@
     }, 0);
   }
   function getHingeRequirements(room, cab){
+    // Safety fix: do not call the full hardware-requirements engine from the preview
+    // during modal open. The exact editable hinge requirements are already rendered in
+    // their own panel above. This preview only mirrors lightweight facts from the draft.
     try{
-      const api = FC.cabinetHardwareRequirements || {};
-      if(api && typeof api.getHingeRequirementsWithQty === 'function'){
-        return (api.getHingeRequirementsWithQty(room, clone(cab)) || []).filter((req)=> req && req.kind === 'hinge');
-      }
-      if(api && typeof api.getCabinetHardwareRequirements === 'function'){
-        return (api.getCabinetHardwareRequirements(room, clone(cab)) || []).filter((req)=> req && req.kind === 'hinge');
-      }
+      const direct = Math.max(0, Math.round(num(cab && (cab.hingeCount || cab.hingesCount), 0)));
+      if(direct > 0) return [{ kind:'hinge', label:'Zawiasy z danych szafki', qty:direct }];
+      const fc = Math.max(0, Math.round(num(cab && cab.frontCount, 0)));
+      if(!(fc > 0)) return [];
+      // Safe estimate for the preview only. WYCENA and the requirements panel keep using
+      // the central hinge logic; this value is not stored and is not used for pricing.
+      const estimated = fc * 2;
+      return [{ kind:'hinge', label:'Podgląd szybki — dokładne wymaganie sprawdź w panelu zawiasów', qty:estimated }];
     }catch(_){ }
     return [];
   }

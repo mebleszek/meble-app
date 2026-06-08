@@ -1,3 +1,12 @@
+## 2026-06-08 — Szafki: naprawa zawieszania edycji bez zmian UI v1
+
+- Paczka: `site_cabinet_edit_no_ui_regression_fix_v1.zip`.
+- Poprawka jest wyłącznie techniczna: nie zmieniono układu ani wyglądu WYWIADU/modala szafki.
+- Panel `Co program odczyta z tej szafki` nie wywołuje już ciężkich generatorów frontów i wymagań zawiasów podczas otwierania edycji. Podgląd korzysta z lekkich danych draftu, a dokładne wymagania zawiasów pozostają w istniejącym panelu wymagań technicznych.
+- Dodano zabezpieczenie, które przy renderze WYWIADU przywraca widoczność istniejącego pływającego plusa `Dodaj szafkę`, jeśli stan widoku nie ustawił go poprawnie.
+- Nie dodano nowego storage, nie zmieniono danych szafki, WYCENY, MATERIAŁU ani quoteCalculationRegister.
+- Cache-busting: `20260608_cabinet_edit_no_ui_regression_fix_v1`. Raport: `tools/reports/cabinet-edit-no-ui-regression-fix-v1.md`.
+
 ## 2026-06-08 — Szafki: odciążenie podglądu danych przy otwieraniu edycji v1
 
 - Paczka: `site_cabinet_edit_work_facts_defer_fix_v1.zip`.

@@ -483,7 +483,6 @@ function renderCabinetModal(){
           }
         });
       }
-      scheduleCabinetWorkFactsPreview();
     }catch(_){ }
   }
 

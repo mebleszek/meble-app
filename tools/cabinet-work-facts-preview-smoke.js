@@ -67,9 +67,9 @@ const byCode = new Map(facts.map((row)=> [row.code, row]));
   'appliance.type'
 ].forEach((code)=> assert(byCode.has(code), `podgląd ma fakt ${code}`, facts.map((row)=> row.code)));
 assert(byCode.get('cabinet.width_mm').displayValue === '600 mm', 'szerokość jest pokazana w mm z pola szafki', byCode.get('cabinet.width_mm'));
-assert(byCode.get('front.count').displayValue === '2 szt.', 'liczba frontów idzie z centralnych frontów', byCode.get('front.count'));
+assert(byCode.get('front.count').displayValue === '2 szt.', 'liczba frontów idzie z lekkiego podglądu draftu', byCode.get('front.count'));
 assert(/2× 30 × 72 cm/.test(byCode.get('front.dimensions').displayValue), 'wymiary frontów są czytelne', byCode.get('front.dimensions'));
-assert(byCode.get('hinge.count').displayValue === '4 szt.', 'liczba zawiasów idzie z centralnych wymagań zawiasów', byCode.get('hinge.count'));
+assert(byCode.get('hinge.count').displayValue === '4 szt.', 'liczba zawiasów w podglądzie nie uruchamia ciężkich wymagań podczas otwierania modala', byCode.get('hinge.count'));
 assert(byCode.get('shelf.count').displayValue === '1 szt.', 'liczba półek idzie z danych szafki', byCode.get('shelf.count'));
 assert(byCode.get('appliance.type').displayValue === 'brak AGD', 'brak AGD jest opisany po ludzku', byCode.get('appliance.type'));
 
@@ -87,9 +87,9 @@ assert(modal.includes('refreshCabinetWorkFactsPreview') && modal.includes('sched
 assert(modal.includes('Podgląd zostanie policzony po otwarciu okna'), 'modal ma lekki placeholder zamiast blokować klik Edytuj synchronicznym podglądem');
 const css = fs.readFileSync(path.join(root, 'css/cabinet-common.css'), 'utf8');
 assert(css.includes('cabinet-work-facts-panel') && css.includes('cabinet-work-facts-row__tech'), 'CSS ma style panelu podglądu faktów');
-assert(index.includes('20260608_cabinet_work_facts_defer_fix_v1') && dev.includes('20260608_cabinet_work_facts_defer_fix_v1'), 'index/dev_tests mają cache-busting nowego etapu');
+assert(index.includes('20260608_cabinet_edit_no_ui_regression_fix_v1') && dev.includes('20260608_cabinet_edit_no_ui_regression_fix_v1'), 'index/dev_tests mają cache-busting nowego etapu');
 
 console.log('OK cabinet-work-facts-preview smoke');
 console.log(' - modal szafki ma read-only podgląd „Co program odczyta z tej szafki”');
-console.log(' - podgląd czyta aktualne dane i obliczenia bez tworzenia drugiej prawdy');
+console.log(' - podgląd czyta aktualny draft bez tworzenia drugiej prawdy');
 console.log(' - wartości frontów, zawiasów, półek i wymiarów są nazwane kodami źródeł ilości');

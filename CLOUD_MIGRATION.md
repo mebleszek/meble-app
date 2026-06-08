@@ -59,6 +59,12 @@ Docelowy kierunek techniczny: Google/Firebase, najpewniej Firebase Authenticatio
 - Podgląd `Co program odczyta z tej szafki` pozostaje read-only adapterem, ale jest liczony po otwarciu modala, a nie synchronicznie w najcięższym momencie kliknięcia `Edytuj`.
 - Kierunek cloud-ready pozostaje bez zmian: źródłem prawdy jest szafka/WYWIAD i istniejące helpery, a trwały snapshot powstaje dopiero w WYCENIE.
 
+## 2026-06-08 — Szafki: naprawa zawieszania edycji bez zmian UI v1
+
+- Poprawka nie dodaje żadnych danych trwałych i nie tworzy drugiej kopii danych szafki.
+- Podgląd faktów roboczych pozostaje read-only, ale podczas otwierania modala nie odpala ciężkich generatorów domenowych.
+- Kierunek cloud-ready pozostaje bez zmian: źródłem prawdy jest szafka/WYWIAD oraz istniejące centralne moduły, a snapshotem wynikowym dopiero WYCENA.
+
 ## Obowiązkowa checklista przy każdej zmianie danych
 
 Przed wydaniem paczki, która tworzy albo mocno zmienia zapis/odczyt danych, sprawdzić:
