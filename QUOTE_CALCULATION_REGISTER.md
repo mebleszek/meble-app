@@ -1,3 +1,12 @@
+
+## 2026-06-09 — Źródła ilości robocizny w rejestrze v1
+
+- Paczka: `site_labor_quantity_values_link_v1.zip`.
+- Linie robocizny szafek w `quoteCalculationRegister` zachowują teraz metadane `quantitySource`, `quantitySourceLabel`, `quantitySourceValue` i `quantitySourceDisplay`.
+- Nota/audyt linii robocizny pokazuje, z którego źródła pochodzi ilość, np. `Liczba zawiasów (hinge.count) = 4 szt.`.
+- Rejestr zapisuje wynik użyty w ofercie jako snapshot kalkulacji, ale nie tworzy drugiej prawdy w aktualnych danych szafki.
+- Źródła są odczytywane przez `FC.workQuantityFacts` podczas generowania WYCENY.
+
 ## 2026-06-06 — Rejestr jako kotwica nowych sum WYCENY v1
 
 - Paczka: `site_quote_single_truth_pre_labor_tests_v1.zip`.

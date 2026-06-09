@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-06-09T00:06:07.973Z",
+  "generatedAt": "2026-06-09T05:49:10.283Z",
   "summary": {
     "jsFiles": 369,
     "indexScripts": 293,
     "devTestScripts": 325,
     "fcSymbols": 269,
     "fcSymbolsAll": 297,
-    "edges": 2076,
+    "edges": 2077,
     "highRisk": 13,
-    "mediumRisk": 75
+    "mediumRisk": 76
   },
   "byArea": {
     "BOOT/APP SHELL": {
@@ -77,11 +77,11 @@
     },
     "WYCENA": {
       "files": 49,
-      "lines": 10623,
+      "lines": 10743,
       "storageRefs": 12,
       "dialogRefs": 0,
       "high": 4,
-      "medium": 6
+      "medium": 7
     },
     "ROZRYS": {
       "files": 42,
@@ -1238,7 +1238,7 @@
       "lines": 551,
       "incoming": 5,
       "outgoing": 1,
-      "secondLevel": 37,
+      "secondLevel": 38,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -1701,6 +1701,22 @@
       "incoming": 3,
       "outgoing": 1,
       "secondLevel": 10,
+      "storageRefs": 0,
+      "dialogRefs": 0,
+      "reasons": [
+        "400+ linii"
+      ]
+    },
+    {
+      "file": "js/app/wycena/wycena-core-labor.js",
+      "risk": "średnie",
+      "score": 4,
+      "area": "WYCENA",
+      "category": "domain/controller",
+      "lines": 403,
+      "incoming": 2,
+      "outgoing": 6,
+      "secondLevel": 15,
       "storageRefs": 0,
       "dialogRefs": 0,
       "reasons": [
@@ -3196,6 +3212,7 @@
         "js/app/service/service-orders.js",
         "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/data-settings-work-sources-view.js",
+        "js/app/wycena/wycena-core-labor.js",
         "js/app/wycena/wycena-core-lines.js",
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core.js",
@@ -8064,6 +8081,7 @@
         "js/app/service/service-orders.js",
         "js/app/ui/data-settings-defaults-view.js",
         "js/app/ui/data-settings-work-sources-view.js",
+        "js/app/wycena/wycena-core-labor.js",
         "js/app/wycena/wycena-core-material-plan.js",
         "js/app/wycena/wycena-core.js",
         "js/app/wycena/wycena-diagnostics.js",
@@ -8212,7 +8230,8 @@
         "workQuantityFacts"
       ],
       "incomingFiles": [
-        "js/app/ui/data-settings-work-sources-view.js"
+        "js/app/ui/data-settings-work-sources-view.js",
+        "js/app/wycena/wycena-core-labor.js"
       ],
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
@@ -8222,7 +8241,9 @@
         "js/app/shared/utils.js"
       ],
       "secondLevelFiles": [
-        "js/app/ui/data-settings-modal.js"
+        "js/app/ui/data-settings-modal.js",
+        "js/app/wycena/wycena-core.js",
+        "js/tabs/czynnosci.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -9230,7 +9251,7 @@
     "js/app/quote/quote-calculation-register.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 259,
+      "lines": 276,
       "defines": [
         "quoteCalculationRegister"
       ],
@@ -17273,7 +17294,7 @@
     "js/app/wycena/wycena-core-labor.js": {
       "area": "WYCENA",
       "category": "domain/controller",
-      "lines": 300,
+      "lines": 403,
       "defines": [
         "wycenaCoreLabor"
       ],
@@ -17283,6 +17304,7 @@
         "wycenaCoreLabor",
         "catalogSelectors",
         "laborCatalog",
+        "workQuantityFacts",
         "frontHardware",
         "cabinetHardwareRequirements"
       ],
@@ -17294,6 +17316,7 @@
         "js/app/cabinet/cabinet-hardware-requirements.js",
         "js/app/catalog/catalog-selectors.js",
         "js/app/pricing/labor-catalog.js",
+        "js/app/pricing/work-quantity-facts.js",
         "js/app/wycena/wycena-core-source.js",
         "js/app/wycena/wycena-core-utils.js"
       ],
@@ -17319,9 +17342,9 @@
       "domRefs": 0,
       "loadedInIndex": true,
       "loadedInDevTests": true,
-      "risk": "niskie",
+      "risk": "średnie",
       "reasons": [
-        "250+ linii"
+        "400+ linii"
       ]
     },
     "js/app/wycena/wycena-core-lines.js": {

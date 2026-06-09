@@ -9,18 +9,18 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | Pliki JS | 369 |
 | Skrypty w index.html | 293 |
 | Skrypty w dev_tests.html | 325 |
-| Krawędzie zależności po symbolach FC | 2076 |
+| Krawędzie zależności po symbolach FC | 2077 |
 | Symbole FC z właścicielem produkcyjnym | 269 |
 | Symbole FC z właścicielem razem | 297 |
 | Pliki z ryzykiem wysokim / nie ruszać | 13 |
-| Pliki z ryzykiem średnim | 75 |
+| Pliki z ryzykiem średnim | 76 |
 
 ## Obszary
 
 | Obszar | Pliki | Linie | Storage refs | Dialog refs | Wysokie | Średnie |
 | --- | --- | --- | --- | --- | --- | --- |
 | TESTY | 53 | 12499 | 242 | 1 | 5 | 32 |
-| WYCENA | 49 | 10623 | 12 | 0 | 4 | 6 |
+| WYCENA | 49 | 10743 | 12 | 0 | 4 | 7 |
 | SZAFKI | 33 | 8929 | 0 | 0 | 0 | 7 |
 | ROZRYS | 42 | 8864 | 6 | 0 | 1 | 6 |
 | MATERIAŁ | 27 | 6216 | 8 | 3 | 0 | 5 |

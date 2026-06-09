@@ -90,6 +90,45 @@
     try{ return FC.laborCatalog && typeof FC.laborCatalog.calculateDefinition === 'function' ? FC.laborCatalog.calculateDefinition(def, ctx) : null; }
     catch(_){ return null; }
   }
+  function factFor(entry, code){
+    const key = text(code);
+    if(!key) return null;
+    try{
+      const api = FC.workQuantityFacts || {};
+      if(api && typeof api.getCabinetFact === 'function') return api.getCabinetFact(entry && entry.roomId, entry && entry.cabinet, key) || null;
+    }catch(_){ }
+    return null;
+  }
+  function quantityFromSource(def, entry, fallbackQuantity){
+    const code = text(def && def.quantitySource);
+    const fallback = Math.max(0, num(fallbackQuantity, 0));
+    if(!code) return { quantity:fallback, sourceCode:'', usedSource:false, fact:null, warning:'' };
+    const fact = factFor(entry, code);
+    if(fact && fact.available !== false){
+      const n = Number(fact.value);
+      if(Number.isFinite(n)) return { quantity:Math.max(0, n), sourceCode:code, usedSource:true, fact, warning:'' };
+    }
+    return { quantity:fallback, sourceCode:code, usedSource:false, fact, warning:`Nie udało się odczytać źródła ilości ${code}; użyto dotychczasowej ilości.` };
+  }
+  function sourceNote(meta){
+    if(!meta || !text(meta.sourceCode)) return '';
+    const fact = meta.fact || {};
+    const label = text(fact.label) || text(meta.sourceCode);
+    const value = text(fact.displayValue) || String(Number(meta.quantity) || 0);
+    const suffix = meta.usedSource ? '' : ' (fallback)';
+    return `Źródło ilości: ${label} (${meta.sourceCode}) = ${value}${suffix}`;
+  }
+  function sourceOpts(meta){
+    const fact = meta && meta.fact || {};
+    return {
+      quantitySource:text(meta && meta.sourceCode),
+      quantitySourceLabel:text(fact.label),
+      quantitySourceValue:meta ? meta.quantity : 0,
+      quantitySourceDisplay:text(fact.displayValue),
+      quantitySourceUsed:!!(meta && meta.usedSource),
+      quantitySourceWarning:text(meta && meta.warning),
+    };
+  }
   function componentFromCalc(calc, options){
     if(!calc || !(Number(calc.total) > 0 || Number(calc.pricedHours) > 0 || Number(calc.volumePrice) > 0)) return null;
     const opts = options && typeof options === 'object' ? options : {};
@@ -104,6 +143,8 @@
       hourlyRate:Number(calc.hourlyRate) || 0,
       hours:Number(calc.pricedHours) || 0,
       baseHours:Number(calc.quantityHours) || 0,
+      timeBlockHours:Number(def.timeBlockHours) || 0,
+      quantityMode:text(def.quantityMode || 'none'),
       volumeHours:Number(calc.volumeHours) || 0,
       multiplier:Number(calc.multiplier) || 1,
       volumeM3:Number(calc.volumeM3) || 0,
@@ -120,6 +161,12 @@
       sourceId:text(opts.sourceId || ''),
       sourceRole:text(opts.sourceRole || ''),
       sourceKind:text(opts.sourceKind || ''),
+      quantitySource:text(opts.quantitySource || def.quantitySource),
+      quantitySourceLabel:text(opts.quantitySourceLabel),
+      quantitySourceValue:Number(opts.quantitySourceValue) || 0,
+      quantitySourceDisplay:text(opts.quantitySourceDisplay),
+      quantitySourceUsed:opts.quantitySourceUsed === true,
+      quantitySourceWarning:text(opts.quantitySourceWarning),
       starterPrice:def.starterPrice === true && !text(def.priceUserEditedAt),
       priceUserEditedAt:text(def.priceUserEditedAt),
       note:text(opts.note || ''),
@@ -165,20 +212,22 @@
     if(!def) return;
     const cab = entry && entry.cabinet || {};
     const parts = frontPartsForCabinet(entry && entry.roomId, cab);
-    const qty = frontPartsQty(parts);
-    if(!(qty > 0)) return;
-    const calc = calculate(def, { quantity:qty, volumeM3, hourlyRates:rates });
-    const cmp = componentFromCalc(calc, {
+    const meta = quantityFromSource(def, entry, frontPartsQty(parts));
+    if(!(meta.quantity > 0)) return;
+    const calc = calculate(def, { quantity:meta.quantity, volumeM3, hourlyRates:rates });
+    const notes = [frontPartsNote(parts) || 'Automatycznie z frontów używanych przez MATERIAŁ/WYCENĘ.', sourceNote(meta)].filter(Boolean);
+    const cmp = componentFromCalc(calc, Object.assign({
       suffix:'fronts',
       unit:'szt.',
       name:text(def.name) || 'Montaż frontu / drzwi',
-      note:frontPartsNote(parts) || 'Automatycznie z frontów używanych przez MATERIAŁ/WYCENĘ.',
+      note:notes.join(' • '),
       sourceType:'fronts',
       sourceLabel:cabinetSourceLabel(entry),
       sourceId:text(cab && cab.id),
       sourceRole:'front-labor',
-      sourceKind:'automatic'
-    });
+      sourceKind:'automatic',
+      warnings:meta.warning ? [meta.warning] : []
+    }, sourceOpts(meta)));
     if(cmp) components.push(cmp);
   }
   function hingeRequirementsForCabinet(roomId, cab){
@@ -206,26 +255,74 @@
     if(!def) return;
     const cab = entry && entry.cabinet || {};
     const reqs = hingeRequirementsForCabinet(entry && entry.roomId, cab);
+    const sourceCode = text(def.quantitySource);
+    if(sourceCode && sourceCode !== 'hinge.count'){
+      const totalReq = (Array.isArray(reqs) ? reqs : []).reduce((sum, req)=> sum + Math.max(0, Math.round(num(req && req.qty, 0))), 0);
+      const meta = quantityFromSource(def, entry, totalReq);
+      if(!(meta.quantity > 0)) return;
+      const calc = calculate(def, { quantity:meta.quantity, volumeM3, hourlyRates:rates });
+      const cmp = componentFromCalc(calc, Object.assign({
+        suffix:'hinges_source',
+        unit:'szt.',
+        name:text(def.name) || 'Montaż zawiasu',
+        note:[sourceNote(meta), 'Czynność zawiasów policzona z wybranego źródła ilości.'].filter(Boolean).join(' • '),
+        sourceType:'hinges',
+        sourceLabel:cabinetSourceLabel(entry),
+        sourceId:text(cab && cab.id),
+        sourceRole:'hinge-labor',
+        sourceKind:'automatic',
+        warnings:meta.warning ? [meta.warning] : []
+      }, sourceOpts(meta)));
+      if(cmp) components.push(cmp);
+      return;
+    }
     (Array.isArray(reqs) ? reqs : []).forEach((req, index)=>{
-      const qty = Math.max(0, Math.round(num(req && req.qty, 0)));
-      if(!(qty > 0)) return;
-      const calc = calculate(def, { quantity:qty, volumeM3, hourlyRates:rates });
+      const fallbackQty = Math.max(0, Math.round(num(req && req.qty, 0)));
+      if(!(fallbackQty > 0)) return;
+      const meta = { quantity:fallbackQty, sourceCode:sourceCode || 'hinge.count', usedSource:!!sourceCode, fact:null, warning:'' };
+      const calc = calculate(def, { quantity:fallbackQty, volumeM3, hourlyRates:rates });
       const doorKey = text(req && (req.doorKey || req.doorLabel)) || String(index + 1);
-      const cmp = componentFromCalc(calc, {
+      const cmp = componentFromCalc(calc, Object.assign({
         key:slug(`${text(cab && cab.id) || entry.cabinetNumber || 'cab'}_hinges_${doorKey}`),
         suffix:`hinges_${doorKey}`,
         unit:'szt.',
         name:text(def.name) || 'Montaż zawiasu',
-        note:hingeRequirementNote(req),
+        note:[hingeRequirementNote(req), sourceCode ? 'Źródło ilości: Liczba zawiasów (hinge.count)' : ''].filter(Boolean).join(' • '),
         sourceType:'hinges',
         sourceLabel:hingeSourceLabel(entry, req),
         sourceId:text(cab && cab.id),
         sourceRole:'hinge-labor',
         sourceKind:'automatic'
-      });
+      }, sourceOpts(meta)));
       if(cmp) components.push(cmp);
     });
   }
+  function autoQuantityDefs(defs){
+    const blocked = new Set(['labor_mount_front','labor_mount_hinge']);
+    return (Array.isArray(defs) ? defs : []).filter((def)=> def && def.active !== false && text(def.autoRole || 'none') === 'none' && text(def.quantitySource) && !blocked.has(text(def.id)));
+  }
+  function addGenericQuantitySourceLabor(components, entry, defs, rates, volumeM3){
+    const cab = entry && entry.cabinet || {};
+    autoQuantityDefs(defs).forEach((def)=> {
+      const meta = quantityFromSource(def, entry, 0);
+      if(!(meta.quantity > 0)) return;
+      const calc = calculate(def, { quantity:meta.quantity, volumeM3, hourlyRates:rates });
+      const cmp = componentFromCalc(calc, Object.assign({
+        suffix:`source_${text(def.id) || text(def.name)}`,
+        unit:'szt.',
+        name:text(def.name) || 'Czynność',
+        note:[sourceNote(meta), 'Automatycznie z wybranego źródła ilości.'].filter(Boolean).join(' • '),
+        sourceType:'quantity-source',
+        sourceLabel:cabinetSourceLabel(entry),
+        sourceId:text(cab && cab.id),
+        sourceRole:'quantity-source-labor',
+        sourceKind:'automatic',
+        warnings:meta.warning ? [meta.warning] : []
+      }, sourceOpts(meta)));
+      if(cmp) components.push(cmp);
+    });
+  }
+
 
   function buildCabinetLaborLine(entry, defs, rates){
     const cab = entry && entry.cabinet || {};
@@ -233,20 +330,26 @@
     const components = [];
     const bodyRule = findBodyRule(defs, cab);
     if(bodyRule){
-      const calc = calculate(bodyRule, { quantity:1, volumeM3, hourlyRates:rates });
-      const cmp = componentFromCalc(calc, { suffix:'body', note:'Automatycznie z wysokości i gabarytu korpusu', sourceType:'cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'cabinet-body-labor', sourceKind:'automatic' });
-      if(cmp) components.push(cmp);
+      const meta = quantityFromSource(bodyRule, entry, 1);
+      if(meta.quantity > 0){
+        const calc = calculate(bodyRule, { quantity:meta.quantity, volumeM3, hourlyRates:rates });
+        const cmp = componentFromCalc(calc, Object.assign({ suffix:'body', note:['Automatycznie z wysokości i gabarytu korpusu', sourceNote(meta)].filter(Boolean).join(' • '), sourceType:'cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'cabinet-body-labor', sourceKind:'automatic', warnings:meta.warning ? [meta.warning] : [] }, sourceOpts(meta)));
+        if(cmp) components.push(cmp);
+      }
     }
     const shelves = shelfCount(cab);
     if(shelves > 0){
       findAutoDefs(defs, 'cabinetLooseShelves').forEach((def)=>{
-        const calc = calculate(def, { quantity:shelves, volumeM3, hourlyRates:rates });
-        const cmp = componentFromCalc(calc, { suffix:'shelves', unit:'szt.', note:`Półki: ${shelves} szt.`, sourceType:'cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'shelf-labor', sourceKind:'automatic' });
+        const meta = quantityFromSource(def, entry, shelves);
+        if(!(meta.quantity > 0)) return;
+        const calc = calculate(def, { quantity:meta.quantity, volumeM3, hourlyRates:rates });
+        const cmp = componentFromCalc(calc, Object.assign({ suffix:'shelves', unit:'szt.', note:[`Półki: ${shelves} szt.`, sourceNote(meta)].filter(Boolean).join(' • '), sourceType:'cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'shelf-labor', sourceKind:'automatic', warnings:meta.warning ? [meta.warning] : [] }, sourceOpts(meta)));
         if(cmp) components.push(cmp);
       });
     }
     addFrontLabor(components, entry, defs, rates, volumeM3);
     addHingeLabor(components, entry, defs, rates, volumeM3);
+    addGenericQuantitySourceLabor(components, entry, defs, rates, volumeM3);
     const manual = Array.isArray(cab && cab.laborItems) ? cab.laborItems : [];
     manual.forEach((item, idx)=>{
       const rateId = text(item && (item.rateId || item.id));

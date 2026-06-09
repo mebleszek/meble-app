@@ -8,7 +8,7 @@ function read(rel){ return fs.readFileSync(path.join(root, rel), 'utf8'); }
 function assert(cond, msg){ if(!cond){ console.error('FAIL:', msg); process.exit(1); } }
 function load(rel, ctx){ vm.runInContext(read(rel), ctx, { filename: rel }); }
 
-const VERSION = '20260609_labor_quantity_source_selector_v1';
+const VERSION = '20260609_labor_quantity_values_link_v1';
 const index = read('index.html');
 const dev = read('dev_tests.html');
 const itemForm = read('js/app/material/price-modal-item-form.js');
@@ -33,10 +33,9 @@ assert(!modal.includes('cmWorkFactsPreview') && !modal.includes('workQuantityFac
 assert(!cabinetsRender.includes('workQuantityFacts') && !cabinetsRender.includes('cmWorkFactsPreview'), 'Nie wolno w tym etapie podpinać niczego do renderu szafek.');
 assert(index.includes(VERSION) && dev.includes(VERSION), 'Brak aktualnego cache-bustingu etapu w index/dev_tests.');
 
-const wycenaFiles = fs.readdirSync(path.join(root, 'js/app/wycena')).filter((name)=> name.endsWith('.js'));
-wycenaFiles.forEach((name)=> {
-  assert(!read('js/app/wycena/' + name).includes('quantitySource'), 'Ten etap nie powinien podpinać quantitySource do WYCENY: ' + name);
-});
+const wycenaLabor = read('js/app/wycena/wycena-core-labor.js');
+assert(wycenaLabor.includes('quantityFromSource') && wycenaLabor.includes('workQuantityFacts'), 'WYCENA powinna mieć kontrolowane podpięcie quantitySource przez czytnik faktów.');
+assert(!read('js/app/wycena/wycena-core-lines.js').includes('quantityFromSource'), 'Nie wolno w tym etapie przebudowywać innych działów WYCENY poza robocizną szafek.');
 
 const ctx = vm.createContext({ window:{}, console });
 ctx.window.FC = { utils:{ clone:(v)=> JSON.parse(JSON.stringify(v)), uid:()=> 'uid_test' } };
@@ -64,4 +63,4 @@ assert(bad.quantitySource === '', 'Niepoprawny kod źródła ilości nie może w
 
 console.log('OK labor-quantity-source-selector smoke');
 console.log(' - wybór źródła ilości zapisuje się w cenniku robocizny');
-console.log(' - WYCENA i modal szafki nie są podpinane w tym etapie');
+console.log(' - WYCENA używa quantitySource tylko w robociźnie szafek');

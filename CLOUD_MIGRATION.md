@@ -1,4 +1,12 @@
 
+## 2026-06-09 — Źródła ilości robocizny a przyszła chmura
+
+- `quantitySource` w cenniku robocizny jest konfiguracją użytkownika w istniejącym katalogu stawek/czynności.
+- Odczyt wartości przez `FC.workQuantityFacts` nie dodaje nowego trwałego klucza storage i nie zapisuje kopii danych szafki.
+- W snapshotach/ofertach i `quoteCalculationRegister` wolno zapisać wynik oraz metadane użytego źródła, bo to jest historia konkretnej oferty, a nie druga prawda bieżącej szafki.
+- Przyszły kreator nietypowych korpusów ma wystawiać te same źródła ilości co zwykłe szafki, aby WYCENA nie musiała mieć osobnej logiki dla korpusów użytkownika.
+
+
 ## 2026-06-09 — Źródło ilości w cenniku robocizny v1
 
 - Dodano wyłącznie pole konfiguracyjne `quantitySource` w pozycjach `quoteRates`.

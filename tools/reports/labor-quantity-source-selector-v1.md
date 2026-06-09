@@ -23,4 +23,4 @@ Dodać w cenniku robocizny pole wyboru `Źródło ilości`, które zapisuje wybr
 
 ## Cache-busting
 
-`20260609_labor_quantity_source_selector_v1`
+`20260609_labor_quantity_values_link_v1`

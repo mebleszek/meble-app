@@ -1,4 +1,16 @@
 
+## 2026-06-09 — Podpięcie źródeł ilości do robocizny WYCENY v1
+
+- Paczka: `site_labor_quantity_values_link_v1.zip`.
+- Bazą jest zaakceptowana paczka `site_labor_quantity_source_selector_v1.zip`.
+- WYCENA robocizny szafek zaczyna używać pola `quantitySource` z cennika robocizny przez read-only adapter `FC.workQuantityFacts`.
+- Źródła są odczytywane na żądanie z aktualnych danych szafki i nie są zapisywane jako druga prawda.
+- Do `quoteCalculationRegister` trafiają metadane źródła ilości: kod, nazwa, wartość i opis w nocie/audycie.
+- Dodano plan przyszłego kreatora i przycisku `Dane szafki` w `CABINET_CREATOR_PLAN.md`.
+- Nie ruszano `cabinet-modal.js`, `cabinets-render.js`, `cabinet-common.css`, plusa dodawania, edycji szafki ani UI modala szafki.
+- Cache-busting: `20260609_labor_quantity_values_link_v1`. Raport: `tools/reports/labor-quantity-values-link-v1.md`.
+
+
 ## 2026-06-09 — Źródło ilości w cenniku robocizny v1
 
 - Paczka: `site_labor_quantity_source_selector_v1.zip`.
@@ -7,7 +19,7 @@
 - Pole zapisuje wybrany kod w pozycji cennika jako `quantitySource`, ale ten etap nie podpina go jeszcze do WYCENY ani `quoteCalculationRegister`.
 - Lista wyboru pochodzi ze słownika `Dane do czynności i wyceny` i obejmuje aktywne, policzalne źródła; planowane i tekstowe źródła nie są jeszcze wybieralne jako ilość.
 - Nie ruszano `cabinet-modal.js`, `cabinets-render.js`, `cabinet-common.css`, WYWIADU, plusa dodawania, edycji szafki, WYCENY ani automatów robocizny.
-- Cache-busting: `20260609_labor_quantity_source_selector_v1`. Raport: `tools/reports/labor-quantity-source-selector-v1.md`.
+- Cache-busting: `20260609_labor_quantity_values_link_v1`. Raport: `tools/reports/labor-quantity-source-selector-v1.md`.
 
 
 ## 2026-06-09 — Podgląd odczytu szafek w trybiku

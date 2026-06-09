@@ -38,6 +38,13 @@
       sourceType:text(src.sourceType || fb.sourceType || ''),
       sourceLabel:text(src.sourceLabel || src.rooms || fb.sourceLabel || ''),
       sourceId:text(src.sourceId || fb.sourceId || ''),
+      quantitySource:text(src.quantitySource || fb.quantitySource || ''),
+      quantitySourceLabel:text(src.quantitySourceLabel || fb.quantitySourceLabel || ''),
+      quantitySourceValue:num(src.quantitySourceValue != null ? src.quantitySourceValue : fb.quantitySourceValue),
+      quantitySourceDisplay:text(src.quantitySourceDisplay || fb.quantitySourceDisplay || ''),
+      quantitySourceUsed:src.quantitySourceUsed === true || fb.quantitySourceUsed === true,
+      timeBlockHours:num(src.timeBlockHours != null ? src.timeBlockHours : fb.timeBlockHours),
+      quantityMode:text(src.quantityMode || fb.quantityMode || ''),
       name:text(src.name || fb.name || 'Pozycja'),
       quantity,
       unit:text(src.unit || fb.unit || ''),
@@ -127,10 +134,12 @@
           if(num(p.baseHours) > 0) meta.push(`czas bazowy ${round2(p.baseHours)} h`);
           if(num(p.hours) > 0) meta.push(`czas wyceniony ${round2(p.hours)} h`);
           if(num(p.hourlyRate) > 0) meta.push(`${round2(p.hourlyRate)} PLN/h`);
+          if(text(p.quantitySource)) meta.push(`źródło ilości ${text(p.quantitySourceLabel) || text(p.quantitySource)}${text(p.quantitySourceDisplay) ? ': ' + text(p.quantitySourceDisplay) : ''}`);
           if(num(p.multiplier) && num(p.multiplier) !== 1) meta.push(`mnożnik ×${round2(p.multiplier)}`);
           if(num(p.volumeM3) > 0 && num(p.volumePrice) > 0) meta.push(`gabaryt ${round2(p.volumeM3)} m³`);
           const calcBits = [];
-          if(num(p.hours) > 0 && num(p.hourlyRate) > 0) calcBits.push(`${round2(p.hours)} h × ${round2(p.hourlyRate)} PLN/h`);
+          if(text(p.quantityMode) === 'linear' && num(p.quantity) > 0 && num(p.timeBlockHours) > 0 && num(p.hourlyRate) > 0) calcBits.push(`${round2(p.quantity)} × ${round2(p.timeBlockHours)} h × ${round2(p.hourlyRate)} PLN/h`);
+          else if(num(p.hours) > 0 && num(p.hourlyRate) > 0) calcBits.push(`${round2(p.hours)} h × ${round2(p.hourlyRate)} PLN/h`);
           if(num(p.volumePrice) > 0) calcBits.push(`dopłata gabarytowa ${round2(p.volumePrice)} PLN`);
           if(num(p.fixedPrice) > 0) calcBits.push(`kwota stała ${round2(p.fixedPrice)} PLN`);
           const detailLine = normalizeRegisterLine({
@@ -141,6 +150,13 @@
             sourceType:text(p.sourceType) || 'cabinet',
             sourceLabel:text(p.sourceLabel) || text(row && row.name) || `Szafka #${rowIndex + 1}`,
             sourceId:text(p.sourceId) || text(row && (row.cabinetId || row.key)),
+            quantitySource:text(p.quantitySource),
+            quantitySourceLabel:text(p.quantitySourceLabel),
+            quantitySourceValue:num(p.quantitySourceValue),
+            quantitySourceDisplay:text(p.quantitySourceDisplay),
+            quantitySourceUsed:p.quantitySourceUsed === true,
+            timeBlockHours:num(p.timeBlockHours),
+            quantityMode:text(p.quantityMode),
             name:text(p.name) || 'Czynność',
             quantity:num(p.quantity || 1) || 1,
             unit:text(p.unit || 'x'),
@@ -154,6 +170,7 @@
             warnings:Array.isArray(p.warnings) ? p.warnings.map(text).filter(Boolean) : [],
             raw:p,
           });
+          if(text(p.quantitySourceWarning)) detailLine.warnings.push(text(p.quantitySourceWarning));
           if(p.starterPrice === true && !text(p.priceUserEditedAt)) detailLine.warnings.push('Cena startowa — sprawdź i edytuj w cenniku przed realną ofertą.');
           out.push(detailLine);
         });
