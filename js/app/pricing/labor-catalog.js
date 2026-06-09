@@ -197,7 +197,7 @@
   function conditionSourceOptions(selectedCode){
     const api = FC.workQuantitySources || {};
     try{ if(typeof api.conditionOptions === 'function') return api.conditionOptions(selectedCode); }catch(_){ }
-    return [{ value:'', label:'Dodaj warunek', description:'' }];
+    return [{ value:'', label:'Wybierz wartość warunku', description:'' }];
   }
 
   function quantitySourceOptions(selectedCode){

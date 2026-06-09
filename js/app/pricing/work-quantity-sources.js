@@ -267,7 +267,7 @@
   }
 
   function conditionOptions(selectedCode){
-    return [{ value:'', label:'Dodaj warunek', description:'Wybierz aktywne, policzalne źródło danych używane jako warunek zastosowania reguły.' }]
+    return [{ value:'', label:'Wybierz wartość warunku', description:'Wybierz aktywne, policzalne źródło danych używane jako warunek zastosowania reguły.' }]
       .concat(conditionList(selectedCode).map((row)=> ({
         value:row.code,
         label:`${row.label} — ${row.code}${row.unit && row.unit !== '—' ? ' (' + row.unit + ')' : ''}`,

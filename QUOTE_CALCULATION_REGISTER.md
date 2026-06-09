@@ -274,3 +274,16 @@ Rejestr wyliczeń dla robocizny zachowuje:
 - `skippedReason` dla diagnostyki pominiętych reguł, jeżeli informacja trafi do linii audytu.
 
 Stare `autoRole` nie jest aktywnym modelem rejestru i nie jest używane do automatycznego odtwarzania nowych reguł. Nowe obliczenia mają wynikać wyłącznie z jawnego `quantitySource` oraz jawnych `conditions`.
+
+## 2026-06-09 — UI warunków robocizny jako kaskada
+
+Model danych `conditions[]` pozostaje czysty: każdy zapisany warunek ma `source`, `operator: "range"`, `min` i `max`. Zmieniono wyłącznie sposób edycji w UI:
+
+- użytkownik nie klika `Dodaj warunek`,
+- formularz pokazuje pierwszy pusty wybór warunku od razu,
+- wybranie warunku odsłania `Minimum / od` i `Maksimum / do`,
+- wybranie jednego warunku automatycznie tworzy kolejny pusty wybór,
+- puste końcowe pole wyboru nie trafia do rejestru ani do katalogu,
+- wybrany warunek bez żadnej granicy zakresu jest blokowany przy zapisie.
+
+Rejestr wyceny nadal zapisuje wyłącznie realnie zapisane i spełnione warunki. Pusta pozycja końcowa w formularzu jest tylko elementem UI i nie jest stanem domenowym.

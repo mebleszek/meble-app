@@ -2191,3 +2191,19 @@ Warunki dostępne w UI mogą pochodzić tylko z aktywnych, zaimplementowanych i 
 ## 2026-06-09 — Korekta: bez dodatkowych warunków front.max_* bez osobnego etapu
 
 Nie dodawać nowych aktywnych źródeł warunków tylko dlatego, że technicznie da się je policzyć. Po korekcie użytkownika usunięto nadmiarowe `front.max_width_mm` i `front.max_height_mm` z aktywnych warunków robocizny. Warunki frontów/długich elementów można dodać później jako osobny, świadomie zaakceptowany etap.
+
+## 2026-06-09 — Robocizna: warunki kaskadowe bez przycisku Dodaj
+
+W formularzu `Stawki wyceny mebli` sekcja `Warunki zastosowania` nie używa osobnego przycisku `Dodaj warunek`. UI ma działać kaskadowo:
+
+- pierwszy pusty launcher wyboru warunku jest widoczny od razu pod `Źródło ilości`,
+- po wybraniu wartości warunku pokazują się uniwersalne pola `Minimum / od` i `Maksimum / do`,
+- po wyborze pierwszego warunku automatycznie pojawia się drugi pusty launcher,
+- po wyborze drugiego automatycznie pojawia się trzeci itd.,
+- ostatni pusty launcher nie zapisuje się do `conditions`,
+- wybrany warunek bez `min` i bez `max` jest niekompletny i nie może zostać zapisany,
+- nie wolno wracać do osobnego przycisku `Dodaj warunek` ani do natywnych selectów.
+
+Trybik `Dane do czynności i wyceny` pozostaje miejscem podglądu/definicji dostępnych źródeł danych. Wprowadzanie zakresów warunków `od/do` należy wyłącznie do formularza pozycji w `Stawki wyceny mebli`.
+
+Paczka: `site_labor_conditions_cascade_fields_v1.zip`. Cache-busting: `20260609_labor_conditions_cascade_fields_v1`.

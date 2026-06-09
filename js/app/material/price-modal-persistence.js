@@ -30,7 +30,17 @@
     if(ctx.currentListKind && ctx.currentListKind() === 'quoteRates'){
       const labor = FC.laborCatalog || {};
       const isHourly = data && (data.isHourlyRate === true || (labor.isHourlyRateDefinition && labor.isHourlyRateDefinition(data)));
-      if(!isHourly) return true;
+      if(!isHourly){
+        const conditionsApi = ctx.priceModalLaborConditions || null;
+        if(conditionsApi && typeof conditionsApi.validate === 'function'){
+          const result = conditionsApi.validate();
+          if(!result || !result.ok){
+            ctx.info('Niekompletny warunek zastosowania', String((result && result.message) || 'Uzupełnij wybrane warunki albo usuń niepełny wiersz.'));
+            return false;
+          }
+        }
+        return true;
+      }
       const existing = ctx.currentList ? ctx.currentList() : [];
       const editing = ctx.currentEditedItem ? ctx.currentEditedItem() : null;
       const oldCode = editing && labor.isHourlyRateDefinition && labor.isHourlyRateDefinition(editing)

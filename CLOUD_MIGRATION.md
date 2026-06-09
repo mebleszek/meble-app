@@ -830,3 +830,14 @@ Dla przyszłej chmury `autoRole` nie jest docelowym kontraktem domenowym i nie p
 Stare `autoRole` może zostać usunięte/pominięte przy porządkowaniu danych; nie wolno z niego odtwarzać aktywnych reguł robocizny po cichu.
 
 Warunki dostępne w UI powinny pochodzić tylko z aktywnych, zaimplementowanych i liczbowych źródeł `workQuantitySources`. Źródła planowane, tekstowe lub bez kalkulatora nie powinny być wybieralne jako aktywny warunek w cenniku. Nie dodawać nowych aktywnych warunków, takich jak osobne maksymalne wymiary frontu, bez osobnej decyzji użytkownika.
+
+## 2026-06-09 — Robocizna: zapis warunków z kaskadowego UI
+
+Dla przyszłej chmury kaskadowy wygląd formularza nie zmienia kontraktu danych. Dokument `quoteRates` przechowuje tylko jawne, kompletne warunki:
+
+- `conditions[].source`,
+- `conditions[].operator = range`,
+- `conditions[].min`,
+- `conditions[].max`.
+
+Pusty końcowy launcher wyboru warunku nie jest danym do zapisu i nie powinien istnieć w API/chmurze. Walidacja klienta blokuje zapis warunku, jeżeli wybrano `source`, ale nie podano ani `min`, ani `max`.

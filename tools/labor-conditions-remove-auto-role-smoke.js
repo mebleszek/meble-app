@@ -22,11 +22,14 @@ const conditionForm = read('js/app/material/price-modal-labor-conditions.js');
 assert(!index.includes('id="laborAutoRole"'), 'formularz nie może mieć pola Automat / laborAutoRole');
 assert(!index.includes('laborHeightMinMm') && !index.includes('laborHeightMaxMm'), 'formularz nie może mieć starych pól wysokości od/do');
 assert(index.includes('laborConditionsWrap') && index.includes('Warunki zastosowania'), 'formularz ma sekcję Warunki zastosowania');
-assert(index.includes('id="laborConditionSourceSelect"') && index.includes('hidden'), 'wybór warunku jest ukrytym selectem pod launcher aplikacji');
+assert(!index.includes('laborConditionSourceLaunch'), 'formularz nie ma osobnego przycisku/launchera Dodaj warunek poza listą kaskadową');
 assert(!itemForm.includes('laborAutoRole'), 'stary launcher laborAutoRole nie jest ładowany w formularzu');
-assert(conditionForm.includes('laborConditionSourceLaunch'), 'formularz montuje launcher Dodaj warunek');
+assert(conditionForm.includes('Wybierz wartość warunku'), 'formularz montuje kaskadowy wybór wartości warunku bez przycisku Dodaj warunek');
 assert(!itemForm.includes("autoRole:readString('laborAutoRole')") && !conditionForm.includes("autoRole:readString('laborAutoRole')"), 'nowy zapis pozycji nie czyta autoRole z UI');
 assert(!itemForm.includes('heightMinMm:read') && !itemForm.includes('heightMaxMm:read'), 'nowy zapis pozycji nie czyta starych heightMinMm/heightMaxMm z UI');
+assert(conditionForm.includes("renderRow(list, { source:''"), 'sekcja warunków zawsze renderuje pusty kolejny wybór warunku');
+assert(conditionForm.includes('hasSelectedIncompleteRange'), 'formularz ma walidację wybranego warunku bez minimum/maksimum');
+assert(read('js/app/material/price-modal-persistence.js').includes('Niekompletny warunek zastosowania'), 'zapis blokuje wybrany warunek bez minimum/maksimum');
 
 const projectData = {
   kuchnia:{ cabinets:[{
