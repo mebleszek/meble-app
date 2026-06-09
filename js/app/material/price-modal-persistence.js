@@ -27,8 +27,10 @@
   function validateServiceForm(data){
     if(!String(data && data.name || '').trim()){ ctx.info('Brak nazwy', 'Wprowadź nazwę usługi, zanim ją zapiszesz.'); return false; }
     if(!String(data && data.category || '').trim()){ ctx.info('Brak kategorii', 'Wybierz kategorię usługi.'); return false; }
-    if(ctx.currentListKind && ctx.currentListKind() === 'quoteRates' && data && data.autoRole === 'hourlyRate'){
+    if(ctx.currentListKind && ctx.currentListKind() === 'quoteRates'){
       const labor = FC.laborCatalog || {};
+      const isHourly = data && (data.isHourlyRate === true || (labor.isHourlyRateDefinition && labor.isHourlyRateDefinition(data)));
+      if(!isHourly) return true;
       const existing = ctx.currentList ? ctx.currentList() : [];
       const editing = ctx.currentEditedItem ? ctx.currentEditedItem() : null;
       const oldCode = editing && labor.isHourlyRateDefinition && labor.isHourlyRateDefinition(editing)

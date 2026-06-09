@@ -21,7 +21,7 @@
     if(FC.wycenaLaborPicker && typeof FC.wycenaLaborPicker.normalizeCatalog === 'function'){
       try{ return FC.wycenaLaborPicker.normalizeCatalog(raw); }catch(_){ }
     }
-    return (Array.isArray(raw) ? raw : []).filter((rate)=> rate && rate.active !== false && String(rate.autoRole || 'none') === 'none');
+    return (Array.isArray(raw) ? raw : []).map((rate)=> { try{ return FC.laborCatalog && FC.laborCatalog.normalizeDefinition ? FC.laborCatalog.normalizeDefinition(rate) : rate; }catch(_){ return rate; } }).filter((rate)=> rate && rate.active !== false && rate.isHourlyRate !== true);
   }
 
   function buildSelectionMap(draft, deps){

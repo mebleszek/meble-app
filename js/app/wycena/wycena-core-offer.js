@@ -88,8 +88,7 @@
       const rate = catalog.find((item)=> String(item && item.id || '') === String(row && row.rateId || '')) || null;
       if(!rate) return null;
       const def = FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' ? FC.laborCatalog.normalizeDefinition(rate) : rate;
-      const autoRole = String(def && def.autoRole || 'none');
-      if(autoRole !== 'none' || def.active === false) return null;
+      if(!def || def.active === false || def.isHourlyRate === true) return null;
       const qty = Math.max(0, Number(row && row.qty) || 0);
       if(!(qty > 0)) return null;
       const priced = calculateManualRateLine(def, qty, catalog);

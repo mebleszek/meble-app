@@ -66,6 +66,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/material/price-modal-hardware-replacements.js',
   'js/app/material/price-modal-hardware-form.js',
   'js/app/material/price-modal-field-help.js',
+  'js/app/material/price-modal-labor-conditions.js',
   'js/app/material/price-modal-item-form.js',
   'js/app/material/price-modal-list.js',
   'js/app/material/price-modal-persistence.js',

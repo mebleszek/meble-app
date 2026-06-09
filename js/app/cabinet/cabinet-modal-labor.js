@@ -25,7 +25,7 @@
       const rows = FC.catalogStore && typeof FC.catalogStore.getPriceList === 'function' ? FC.catalogStore.getPriceList('quoteRates') : [];
       return (Array.isArray(rows) ? rows : []).map(normalize).filter((row)=> {
         if(!row || row.active === false) return false;
-        return String(row.autoRole || 'none') === 'none';
+        return row.isHourlyRate !== true;
       }).sort((a,b)=> String(a.category || '').localeCompare(String(b.category || ''), 'pl') || String(a.name || '').localeCompare(String(b.name || ''), 'pl'));
     }catch(_){ return []; }
   }

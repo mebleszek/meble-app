@@ -8,7 +8,7 @@ function read(rel){ return fs.readFileSync(path.join(root, rel), 'utf8'); }
 function assert(cond, msg){ if(!cond){ console.error('FAIL:', msg); process.exit(1); } }
 function load(rel, ctx){ vm.runInContext(read(rel), ctx, { filename: rel }); }
 
-const VERSION = '20260609_labor_quantity_values_link_v1';
+const VERSION = '20260609_labor_conditions_clean_model_no_front_extra_v1';
 const index = read('index.html');
 const dev = read('dev_tests.html');
 const itemForm = read('js/app/material/price-modal-item-form.js');
@@ -25,7 +25,7 @@ assert(itemForm.includes("id:'laborQuantitySource'"), 'laborQuantitySource musi 
 assert(itemForm.includes('refreshLaborQuantitySourceSelect'), 'Brak odświeżania listy źródeł ilości.');
 assert(itemForm.includes('quantitySource:readString(\'laborQuantitySource\')'), 'Wybór źródła ilości musi zapisywać się w draftcie pozycji robocizny.');
 assert(itemForm.includes("setValue('laborQuantitySource'"), 'Edycja pozycji musi przywracać zapisane źródło ilości.');
-assert(help.includes('laborQuantitySource') && help.includes('Ten etap zapisuje wybór w cenniku'), 'Brak pomocy ? dla pola Źródło ilości.');
+assert(help.includes('laborQuantitySource') && help.includes('Warunki zastosowania decydują'), 'Brak pomocy ? dla pola Źródło ilości.');
 assert(catalog.includes('normalizeQuantitySource') && catalog.includes('quantitySourceOptions'), 'laborCatalog musi normalizować i wystawiać opcje źródeł ilości.');
 assert(defs.includes("quantitySource:'front.count'") && defs.includes("quantitySource:'hinge.count'") && defs.includes("quantitySource:'shelf.count'"), 'Startowe pozycje robocizny powinny mieć sugestie źródeł ilości.');
 assert(sources.includes('quantityOptions') && sources.includes('canUseAsQuantitySource'), 'Słownik źródeł musi wystawiać opcje do wyboru w cenniku.');
@@ -52,10 +52,12 @@ assert(opts.some((row)=> row.value === 'hinge.count'), 'Opcje źródeł muszą z
 assert(opts.some((row)=> row.value === 'shelf.count'), 'Opcje źródeł muszą zawierać shelf.count.');
 assert(!opts.some((row)=> row.value === 'appliance.type'), 'Tekstowy typ AGD nie powinien być źródłem ilości.');
 assert(!opts.some((row)=> row.value === 'routing.count'), 'Planowane routing.count nie powinno być aktywnym wyborem ilości.');
-const frontDef = labor.normalizeDefinition({ id:'labor_mount_front', category:'Elementy szafki', name:'Montaż frontu', autoRole:'none', rateType:'assembly' });
-assert(frontDef.quantitySource === 'front.count', 'Montaż frontu powinien domyślnie wskazać front.count.');
-const hingeDef = labor.normalizeDefinition({ id:'labor_mount_hinge', category:'Elementy szafki', name:'Montaż zawiasu', autoRole:'none', rateType:'assembly' });
-assert(hingeDef.quantitySource === 'hinge.count', 'Montaż zawiasu powinien domyślnie wskazać hinge.count.');
+const frontDef = labor.normalizeDefinition({ id:'labor_mount_front', category:'Elementy szafki', name:'Montaż frontu', quantitySource:'front.count', rateType:'assembly' });
+assert(frontDef.quantitySource === 'front.count', 'Montaż frontu ma jawnie zapisane front.count.');
+const noGuessDef = labor.normalizeDefinition({ id:'labor_mount_front', category:'Elementy szafki', name:'Montaż frontu', rateType:'assembly' });
+assert(noGuessDef.quantitySource === '', 'normalizeDefinition nie zgaduje quantitySource po id — źródło musi być jawne.');
+const hingeDef = labor.normalizeDefinition({ id:'labor_mount_hinge', category:'Elementy szafki', name:'Montaż zawiasu', quantitySource:'hinge.count', rateType:'assembly' });
+assert(hingeDef.quantitySource === 'hinge.count', 'Montaż zawiasu ma jawnie zapisane hinge.count.');
 const custom = labor.normalizeDefinition({ id:'labor_custom', name:'Frezowanie', quantitySource:'cabinet.height_mm', rateType:'specialist' });
 assert(custom.quantitySource === 'cabinet.height_mm', 'Własne źródło ilości musi zostać zachowane w definicji.');
 const bad = labor.normalizeDefinition({ id:'labor_bad', name:'Błąd', quantitySource:'Źle wpisane', rateType:'workshop' });

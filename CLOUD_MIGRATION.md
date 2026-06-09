@@ -818,3 +818,15 @@ Etap `site_labor_rate_profiles_restore_clean_v1.zip` nie dodaje nowego trwałego
 - Podgląd w trybiku `Dane do czynności i wyceny` nie dodaje nowego storage ani nowych trwałych kluczy `localStorage`.
 - Dane są odczytywane na żądanie z aktualnego projektu przez `FC.workQuantityFacts`; nie powstaje drugi zapis wartości szafki.
 - Etap jest zgodny z kierunkiem cloud-ready: nazwy źródeł i fakty szafki są widokiem/adaptacją danych projektu, a nie osobnym modelem zapisu.
+
+## 2026-06-09 — Robocizna: autoRole nie jest migrowane do nowych reguł
+
+Dla przyszłej chmury `autoRole` nie jest docelowym kontraktem domenowym i nie powinno być mapowane automatycznie na nowe reguły. Program jest jeszcze budowany, więc zamiast utrzymywać stare automaty, nowe i edytowane dokumenty `quoteRates` mają używać czystego modelu:
+
+- `quantitySource` — stabilny kod źródła ilości,
+- `conditions` — lista warunków zastosowania reguły,
+- `conditions[].min` / `conditions[].max` — uniwersalne granice zakresu niezależne od wybranego faktu.
+
+Stare `autoRole` może zostać usunięte/pominięte przy porządkowaniu danych; nie wolno z niego odtwarzać aktywnych reguł robocizny po cichu.
+
+Warunki dostępne w UI powinny pochodzić tylko z aktywnych, zaimplementowanych i liczbowych źródeł `workQuantitySources`. Źródła planowane, tekstowe lub bez kalkulatora nie powinny być wybieralne jako aktywny warunek w cenniku. Nie dodawać nowych aktywnych warunków, takich jak osobne maksymalne wymiary frontu, bez osobnej decyzji użytkownika.

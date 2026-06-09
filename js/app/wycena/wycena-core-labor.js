@@ -64,28 +64,6 @@
     try{ return FC.laborCatalog && typeof FC.laborCatalog.buildHourlyRates === 'function' ? FC.laborCatalog.buildHourlyRates(defs || catalogRows()) : {}; }
     catch(_){ return {}; }
   }
-  function matchesBodyRule(def, heightMm){
-    if(!def || def.autoRole !== 'cabinetBody') return false;
-    const min = Math.max(0, Number(def.heightMinMm) || 0);
-    const max = Math.max(0, Number(def.heightMaxMm) || 0);
-    if(heightMm < min) return false;
-    if(max > 0 && heightMm > max) return false;
-    return true;
-  }
-  function findBodyRule(defs, cabinet){
-    const h = mmFromCmLike(cabinet && cabinet.height);
-    return (defs || []).find((def)=> matchesBodyRule(def, h)) || null;
-  }
-  function shelfCount(cabinet){
-    const details = cabinet && cabinet.details && typeof cabinet.details === 'object' ? cabinet.details : {};
-    const candidates = [details.shelves, details.shelfCount, cabinet && cabinet.shelves, cabinet && cabinet.shelfCount];
-    for(const value of candidates){
-      const n = Math.max(0, Math.floor(num(value, 0)));
-      if(n > 0) return n;
-    }
-    return 0;
-  }
-  function findAutoDefs(defs, role){ return (defs || []).filter((def)=> def && def.autoRole === role); }
   function calculate(def, ctx){
     try{ return FC.laborCatalog && typeof FC.laborCatalog.calculateDefinition === 'function' ? FC.laborCatalog.calculateDefinition(def, ctx) : null; }
     catch(_){ return null; }
@@ -109,6 +87,90 @@
       if(Number.isFinite(n)) return { quantity:Math.max(0, n), sourceCode:code, usedSource:true, fact, warning:'' };
     }
     return { quantity:fallback, sourceCode:code, usedSource:false, fact, warning:`Nie udało się odczytać źródła ilości ${code}; użyto dotychczasowej ilości.` };
+  }
+  function normalizedConditions(def){
+    if(!def || !Array.isArray(def.conditions)) return [];
+    const labor = FC.laborCatalog || {};
+    try{
+      if(typeof labor.normalizeConditions === 'function') return labor.normalizeConditions(def.conditions);
+    }catch(_){ }
+    return def.conditions.map((row)=> {
+      const sourceCode = text(row && row.source);
+      const minRaw = row && row.min;
+      const maxRaw = row && row.max;
+      const min = minRaw === '' || minRaw == null ? null : Number(minRaw);
+      const max = maxRaw === '' || maxRaw == null ? null : Number(maxRaw);
+      if(!sourceCode) return null;
+      if((min == null || !Number.isFinite(min)) && (max == null || !Number.isFinite(max))) return null;
+      return { source:sourceCode, operator:'range', min:Number.isFinite(min) ? min : null, max:Number.isFinite(max) ? max : null };
+    }).filter(Boolean);
+  }
+  function conditionDisplayValue(fact, value){
+    return text(fact && fact.displayValue) || String(value);
+  }
+  function evaluateConditions(def, entry){
+    const conditions = normalizedConditions(def);
+    if(!conditions.length) return { matched:true, conditions:[], matchedConditions:[], skippedReason:'' };
+    const matched = [];
+    for(const condition of conditions){
+      const sourceCode = text(condition && condition.source);
+      const fact = factFor(entry, sourceCode);
+      if(!fact || fact.available === false){
+        return { matched:false, conditions, matchedConditions:matched, skippedReason:`pominięto — brak danych warunku ${sourceCode}` };
+      }
+      const value = Number(fact.value);
+      if(!Number.isFinite(value)){
+        return { matched:false, conditions, matchedConditions:matched, skippedReason:`pominięto — brak liczbowej wartości warunku ${sourceCode}` };
+      }
+      const min = condition.min == null ? null : Number(condition.min);
+      const max = condition.max == null ? null : Number(condition.max);
+      const row = {
+        source:sourceCode,
+        operator:'range',
+        min:Number.isFinite(min) ? min : null,
+        max:Number.isFinite(max) ? max : null,
+        value,
+        displayValue:conditionDisplayValue(fact, value),
+        label:text(fact.label) || sourceCode
+      };
+      if(Number.isFinite(min) && value < min){
+        return { matched:false, conditions, matchedConditions:matched.concat([row]), skippedReason:`pominięto — warunek ${sourceCode} poza zakresem` };
+      }
+      if(Number.isFinite(max) && value > max){
+        return { matched:false, conditions, matchedConditions:matched.concat([row]), skippedReason:`pominięto — warunek ${sourceCode} poza zakresem` };
+      }
+      matched.push(row);
+    }
+    return { matched:true, conditions, matchedConditions:matched, skippedReason:'' };
+  }
+  function conditionNote(meta){
+    const rows = meta && Array.isArray(meta.matchedConditions) ? meta.matchedConditions : [];
+    if(!rows.length) return '';
+    return 'Warunki zastosowania: ' + rows.map((row)=> {
+      const min = row.min == null ? '' : String(row.min);
+      const max = row.max == null ? '' : String(row.max);
+      const range = min || max ? ` [${min || '…'}–${max || '…'}]` : '';
+      return `${text(row.label) || text(row.source)} (${text(row.source)}) = ${text(row.displayValue) || row.value}${range}`;
+    }).join('; ');
+  }
+  function conditionWarnings(meta){
+    const msg = text(meta && meta.skippedReason);
+    return msg ? [msg] : [];
+  }
+  function conditionOpts(meta){
+    return {
+      conditions:Array.isArray(meta && meta.conditions) ? meta.conditions : [],
+      matchedConditions:Array.isArray(meta && meta.matchedConditions) ? meta.matchedConditions : [],
+      skippedReason:text(meta && meta.skippedReason)
+    };
+  }
+  function semanticRole(def){
+    const src = text(def && def.quantitySource);
+    const conditions = normalizedConditions(def);
+    if(src === 'cabinet.count' && conditions.some((row)=> text(row && row.source) === 'cabinet.height_mm')) return { sourceType:'cabinet', sourceRole:'cabinet-body-labor' };
+    if(src === 'cabinet.count') return { sourceType:'cabinet', sourceRole:'cabinet-body-labor' };
+    if(src === 'shelf.count') return { sourceType:'cabinet', sourceRole:'shelf-labor' };
+    return { sourceType:'quantity-source', sourceRole:'quantity-source-labor' };
   }
   function sourceNote(meta){
     if(!meta || !text(meta.sourceCode)) return '';
@@ -167,6 +229,9 @@
       quantitySourceDisplay:text(opts.quantitySourceDisplay),
       quantitySourceUsed:opts.quantitySourceUsed === true,
       quantitySourceWarning:text(opts.quantitySourceWarning),
+      conditions:Array.isArray(opts.conditions) ? opts.conditions : [],
+      matchedConditions:Array.isArray(opts.matchedConditions) ? opts.matchedConditions : [],
+      skippedReason:text(opts.skippedReason),
       starterPrice:def.starterPrice === true && !text(def.priceUserEditedAt),
       priceUserEditedAt:text(def.priceUserEditedAt),
       note:text(opts.note || ''),
@@ -211,11 +276,13 @@
     const def = findDefById(defs, 'labor_mount_front');
     if(!def) return;
     const cab = entry && entry.cabinet || {};
+    const cond = evaluateConditions(def, entry);
+    if(!cond.matched) return;
     const parts = frontPartsForCabinet(entry && entry.roomId, cab);
     const meta = quantityFromSource(def, entry, frontPartsQty(parts));
     if(!(meta.quantity > 0)) return;
     const calc = calculate(def, { quantity:meta.quantity, volumeM3, hourlyRates:rates });
-    const notes = [frontPartsNote(parts) || 'Automatycznie z frontów używanych przez MATERIAŁ/WYCENĘ.', sourceNote(meta)].filter(Boolean);
+    const notes = [frontPartsNote(parts) || 'Automatycznie z frontów używanych przez MATERIAŁ/WYCENĘ.', sourceNote(meta), conditionNote(cond)].filter(Boolean);
     const cmp = componentFromCalc(calc, Object.assign({
       suffix:'fronts',
       unit:'szt.',
@@ -226,8 +293,8 @@
       sourceId:text(cab && cab.id),
       sourceRole:'front-labor',
       sourceKind:'automatic',
-      warnings:meta.warning ? [meta.warning] : []
-    }, sourceOpts(meta)));
+      warnings:(meta.warning ? [meta.warning] : []).concat(conditionWarnings(cond))
+    }, sourceOpts(meta), conditionOpts(cond)));
     if(cmp) components.push(cmp);
   }
   function hingeRequirementsForCabinet(roomId, cab){
@@ -254,6 +321,8 @@
     const def = findDefById(defs, 'labor_mount_hinge');
     if(!def) return;
     const cab = entry && entry.cabinet || {};
+    const cond = evaluateConditions(def, entry);
+    if(!cond.matched) return;
     const reqs = hingeRequirementsForCabinet(entry && entry.roomId, cab);
     const sourceCode = text(def.quantitySource);
     if(sourceCode && sourceCode !== 'hinge.count'){
@@ -265,14 +334,14 @@
         suffix:'hinges_source',
         unit:'szt.',
         name:text(def.name) || 'Montaż zawiasu',
-        note:[sourceNote(meta), 'Czynność zawiasów policzona z wybranego źródła ilości.'].filter(Boolean).join(' • '),
+        note:[sourceNote(meta), conditionNote(cond), 'Czynność zawiasów policzona z wybranego źródła ilości.'].filter(Boolean).join(' • '),
         sourceType:'hinges',
         sourceLabel:cabinetSourceLabel(entry),
         sourceId:text(cab && cab.id),
         sourceRole:'hinge-labor',
         sourceKind:'automatic',
-        warnings:meta.warning ? [meta.warning] : []
-      }, sourceOpts(meta)));
+        warnings:(meta.warning ? [meta.warning] : []).concat(conditionWarnings(cond))
+      }, sourceOpts(meta), conditionOpts(cond)));
       if(cmp) components.push(cmp);
       return;
     }
@@ -287,38 +356,42 @@
         suffix:`hinges_${doorKey}`,
         unit:'szt.',
         name:text(def.name) || 'Montaż zawiasu',
-        note:[hingeRequirementNote(req), sourceCode ? 'Źródło ilości: Liczba zawiasów (hinge.count)' : ''].filter(Boolean).join(' • '),
+        note:[hingeRequirementNote(req), sourceCode ? 'Źródło ilości: Liczba zawiasów (hinge.count)' : '', conditionNote(cond)].filter(Boolean).join(' • '),
         sourceType:'hinges',
         sourceLabel:hingeSourceLabel(entry, req),
         sourceId:text(cab && cab.id),
         sourceRole:'hinge-labor',
-        sourceKind:'automatic'
-      }, sourceOpts(meta)));
+        sourceKind:'automatic',
+        warnings:conditionWarnings(cond)
+      }, sourceOpts(meta), conditionOpts(cond)));
       if(cmp) components.push(cmp);
     });
   }
   function autoQuantityDefs(defs){
     const blocked = new Set(['labor_mount_front','labor_mount_hinge']);
-    return (Array.isArray(defs) ? defs : []).filter((def)=> def && def.active !== false && text(def.autoRole || 'none') === 'none' && text(def.quantitySource) && !blocked.has(text(def.id)));
+    return (Array.isArray(defs) ? defs : []).filter((def)=> def && def.active !== false && def.isHourlyRate !== true && text(def.quantitySource) && !blocked.has(text(def.id)));
   }
   function addGenericQuantitySourceLabor(components, entry, defs, rates, volumeM3){
     const cab = entry && entry.cabinet || {};
     autoQuantityDefs(defs).forEach((def)=> {
+      const cond = evaluateConditions(def, entry);
+      if(!cond.matched) return;
       const meta = quantityFromSource(def, entry, 0);
       if(!(meta.quantity > 0)) return;
       const calc = calculate(def, { quantity:meta.quantity, volumeM3, hourlyRates:rates });
+      const role = semanticRole(def);
       const cmp = componentFromCalc(calc, Object.assign({
         suffix:`source_${text(def.id) || text(def.name)}`,
         unit:'szt.',
         name:text(def.name) || 'Czynność',
-        note:[sourceNote(meta), 'Automatycznie z wybranego źródła ilości.'].filter(Boolean).join(' • '),
-        sourceType:'quantity-source',
+        note:[sourceNote(meta), conditionNote(cond), 'Automatycznie z wybranego źródła ilości.'].filter(Boolean).join(' • '),
+        sourceType:role.sourceType,
         sourceLabel:cabinetSourceLabel(entry),
         sourceId:text(cab && cab.id),
-        sourceRole:'quantity-source-labor',
+        sourceRole:role.sourceRole,
         sourceKind:'automatic',
-        warnings:meta.warning ? [meta.warning] : []
-      }, sourceOpts(meta)));
+        warnings:(meta.warning ? [meta.warning] : []).concat(conditionWarnings(cond))
+      }, sourceOpts(meta), conditionOpts(cond)));
       if(cmp) components.push(cmp);
     });
   }
@@ -328,25 +401,6 @@
     const cab = entry && entry.cabinet || {};
     const volumeM3 = cabinetVolumeM3(cab);
     const components = [];
-    const bodyRule = findBodyRule(defs, cab);
-    if(bodyRule){
-      const meta = quantityFromSource(bodyRule, entry, 1);
-      if(meta.quantity > 0){
-        const calc = calculate(bodyRule, { quantity:meta.quantity, volumeM3, hourlyRates:rates });
-        const cmp = componentFromCalc(calc, Object.assign({ suffix:'body', note:['Automatycznie z wysokości i gabarytu korpusu', sourceNote(meta)].filter(Boolean).join(' • '), sourceType:'cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'cabinet-body-labor', sourceKind:'automatic', warnings:meta.warning ? [meta.warning] : [] }, sourceOpts(meta)));
-        if(cmp) components.push(cmp);
-      }
-    }
-    const shelves = shelfCount(cab);
-    if(shelves > 0){
-      findAutoDefs(defs, 'cabinetLooseShelves').forEach((def)=>{
-        const meta = quantityFromSource(def, entry, shelves);
-        if(!(meta.quantity > 0)) return;
-        const calc = calculate(def, { quantity:meta.quantity, volumeM3, hourlyRates:rates });
-        const cmp = componentFromCalc(calc, Object.assign({ suffix:'shelves', unit:'szt.', note:[`Półki: ${shelves} szt.`, sourceNote(meta)].filter(Boolean).join(' • '), sourceType:'cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'shelf-labor', sourceKind:'automatic', warnings:meta.warning ? [meta.warning] : [] }, sourceOpts(meta)));
-        if(cmp) components.push(cmp);
-      });
-    }
     addFrontLabor(components, entry, defs, rates, volumeM3);
     addHingeLabor(components, entry, defs, rates, volumeM3);
     addGenericQuantitySourceLabor(components, entry, defs, rates, volumeM3);
@@ -355,11 +409,13 @@
       const rateId = text(item && (item.rateId || item.id));
       const def = (defs || []).find((row)=> text(row && row.id) === rateId) || null;
       if(!def) return;
+      const cond = evaluateConditions(def, entry);
+      if(!cond.matched) return;
       const qty = Math.max(0, num(item && item.qty, 1)) || 1;
       const calc = calculate(def, { quantity:qty, volumeM3, hourlyRates:rates });
       const duplicateRisk = ['labor_mount_front','labor_mount_hinge'].includes(text(def && def.id));
-      const manualNote = [text(item && item.note), duplicateRisk ? 'Ręczna pozycja może dublować automat frontów/zawiasów — sprawdź audyt.' : 'Ręczna pozycja przypięta do szafki.'].filter(Boolean).join(' • ');
-      const cmp = componentFromCalc(calc, { suffix:`manual_${idx}`, unit:'szt.', note:manualNote, sourceType:'manual-cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'manual-cabinet-labor', sourceKind:'manual', warnings:duplicateRisk ? ['Możliwy duplikat: ta ręczna czynność ma taki sam typ jak automat frontów/zawiasów.'] : [] });
+      const manualNote = [text(item && item.note), conditionNote(cond), duplicateRisk ? 'Ręczna pozycja może dublować automat frontów/zawiasów — sprawdź audyt.' : 'Ręczna pozycja przypięta do szafki.'].filter(Boolean).join(' • ');
+      const cmp = componentFromCalc(calc, Object.assign({ suffix:`manual_${idx}`, unit:'szt.', note:manualNote, sourceType:'manual-cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'manual-cabinet-labor', sourceKind:'manual', warnings:(duplicateRisk ? ['Możliwy duplikat: ta ręczna czynność ma taki sam typ jak automat frontów/zawiasów.'] : []).concat(conditionWarnings(cond)) }, conditionOpts(cond)));
       if(cmp) components.push(cmp);
     });
     const total = components.reduce((sum, row)=> sum + (Number(row.total) || 0), 0);

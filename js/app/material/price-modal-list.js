@@ -55,7 +55,7 @@
       left.innerHTML = `<div style="font-weight:900">${item && item.name ? item.name : '—'} ${starterBadge(item || {})}</div><div class="muted-tag xs">${itemMeta(kind, item || {})}</div>`;
       const right = document.createElement('div'); right.className = 'price-modal-list-actions';
       const price = document.createElement('div'); price.className = 'price-modal-list-price';
-      if(kind === 'quoteRates' && item && item.autoRole === 'hourlyRate') price.textContent = (Number(item && item.price) || 0).toFixed(2) + ' PLN/h';
+      if(kind === 'quoteRates' && window.FC && window.FC.laborCatalog && window.FC.laborCatalog.isHourlyRateDefinition && window.FC.laborCatalog.isHourlyRateDefinition(item || {})) price.textContent = (Number(item && item.price) || 0).toFixed(2) + ' PLN/h';
       else if(kind === 'quoteRates' && (Number(item && item.price) || 0) <= 0) price.textContent = 'reguła';
       else if(kind === 'accessories') price.textContent = (Number(item && item.price) || 0).toFixed(2) + ' PLN/' + String(item && item.hardwareUnit || 'szt.');
       else if(kind === 'materials') price.textContent = (Number(item && item.price) || 0).toFixed(2) + ' PLN/' + unitLabel(item && item.priceUnit);

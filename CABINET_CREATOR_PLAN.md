@@ -54,3 +54,9 @@ Na start nie robić pełnego kreatora w trybiku. Trybik ma być biblioteką/szab
 - Nie podpinać podglądu faktów do modala edycji szafki bez osobnego etapu i testów regresji.
 - Nie robić kreatora jako drugiego, niezależnego systemu materiałów/czynności/wyceny.
 - Nie wymagać przechodzenia do ustawień, żeby stworzyć jednorazową nietypową szafkę w projekcie.
+
+## 2026-06-09 — Kreator nietypowego korpusu a model robocizny
+
+Przyszły kreator nietypowego korpusu ma działać w WYWIADZIE jako opcja dodania nietypowego korpusu do projektu. Użytkownik powinien móc utworzyć jednorazową szafkę nietypową, a dopiero opcjonalnie zapisać ją jako szablon do ponownego użycia.
+
+Kreator nie ma tworzyć drugiego systemu wyceny. Dane nietypowego korpusu muszą zwracać te same fakty robocze (`FC.workQuantityFacts`) i korzystać z tego samego modelu cennika: `quantitySource` określa, ile liczyć, a `conditions` określają, kiedy reguła ma działać.

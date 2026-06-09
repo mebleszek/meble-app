@@ -247,3 +247,30 @@ Nie zrobione w v1 i nie zgubić przy kolejnych etapach:
 - Główny widok WYCENY nie może dublować szczegółów rejestru. Widoczne zostają metadane oferty, podsumowanie i historia; szczegóły materiałów/akcesoriów/robocizny są tylko w modalach audytu.
 - Agregat ROZRYS przechowuje wymiary formatek w mm (`w/h`), natomiast zakładka MATERIAŁ liczy powierzchnie i okleiny ze źródłowych części w cm (`a/b`). Rejestr WYCENY musi konwertować mm na m²/mb poprawnie, żeby HDF, fronty i obrzeża nie były zawyżone ×100.
 - Startowe obrzeże PCV ma zostać dopisane do istniejących cenników użytkownika, jeżeli nie ma żadnej pozycji obrzeża/mb. To jest normalna, widoczna pozycja startowa w cenniku, nie ukryty fallback.
+
+## 2026-06-09 — Robocizna: quantitySource + conditions
+
+Robocizna szafek w WYCENIE używa modelu:
+
+- `quantitySource` — nazwane źródło ilości, np. `cabinet.count`, `front.count`, `hinge.count`, `shelf.count`, `drawer.count`.
+- `conditions` — warunki zastosowania reguły, aktualnie numeryczne zakresy `range`, np. wysokość korpusu:
+
+```json
+{
+  "source": "cabinet.height_mm",
+  "operator": "range",
+  "min": 721,
+  "max": 1500
+}
+```
+
+Brak `conditions` oznacza regułę ogólną. Jeżeli `conditions` istnieją, wszystkie muszą być spełnione (`AND`). Warunek nie może być po cichu pominięty: jeżeli WYCENA nie potrafi odczytać wartości źródła warunku, reguła nie jest liczona.
+
+Rejestr wyliczeń dla robocizny zachowuje:
+
+- `quantitySource`, `quantitySourceLabel`, `quantitySourceValue`, `quantitySourceDisplay`,
+- `conditions`,
+- `matchedConditions`,
+- `skippedReason` dla diagnostyki pominiętych reguł, jeżeli informacja trafi do linii audytu.
+
+Stare `autoRole` nie jest aktywnym modelem rejestru i nie jest używane do automatycznego odtwarzania nowych reguł. Nowe obliczenia mają wynikać wyłącznie z jawnego `quantitySource` oraz jawnych `conditions`.

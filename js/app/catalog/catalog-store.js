@@ -50,11 +50,11 @@
   const DEFAULT_QUOTE_RATES = laborCatalog && Array.isArray(laborCatalog.DEFAULT_HOURLY_RATES)
     ? laborCatalog.DEFAULT_HOURLY_RATES.concat(laborCatalog.DEFAULT_LABOR_DEFINITIONS || [])
     : [
-        { id:'labor_rate_workshop', category:'Stawki godzinowe', name:'Stawka warsztatowa', price:150, autoRole:'hourlyRate', rateKey:'workshop', rateCode:'workshop', rateType:'workshop', active:true, systemRate:true, nonDeletable:true },
-        { id:'labor_rate_assembly', category:'Stawki godzinowe', name:'Stawka montażowa', price:250, autoRole:'hourlyRate', rateKey:'assembly', rateCode:'assembly', rateType:'assembly', active:true, systemRate:true, nonDeletable:true },
-        { id:'labor_rate_specialist', category:'Stawki godzinowe', name:'Stawka specjalistyczna', price:300, autoRole:'hourlyRate', rateKey:'specialist', rateCode:'specialist', rateType:'specialist', active:true, systemRate:true, nonDeletable:true },
-        { id:'labor_rate_helper', category:'Stawki godzinowe', name:'Stawka pomocnika', price:80, autoRole:'hourlyRate', rateKey:'helper', rateCode:'helper', rateType:'helper', active:true, systemRate:true, nonDeletable:true },
-        { id:'labor_body_h072', category:'Korpusy', name:'Skręcenie korpusu do 72 cm', price:0, usage:'cabinet', autoRole:'cabinetBody', rateType:'workshop', timeBlockHours:0.5, defaultMultiplier:1.25, heightMinMm:0, heightMaxMm:720, volumePricePerM3:50, active:true, internalOnly:true },
+        { id:'labor_rate_workshop', category:'Stawki godzinowe', name:'Stawka warsztatowa', price:150, rateKey:'workshop', rateCode:'workshop', rateType:'workshop', active:true, systemRate:true, nonDeletable:true },
+        { id:'labor_rate_assembly', category:'Stawki godzinowe', name:'Stawka montażowa', price:250, rateKey:'assembly', rateCode:'assembly', rateType:'assembly', active:true, systemRate:true, nonDeletable:true },
+        { id:'labor_rate_specialist', category:'Stawki godzinowe', name:'Stawka specjalistyczna', price:300, rateKey:'specialist', rateCode:'specialist', rateType:'specialist', active:true, systemRate:true, nonDeletable:true },
+        { id:'labor_rate_helper', category:'Stawki godzinowe', name:'Stawka pomocnika', price:80, rateKey:'helper', rateCode:'helper', rateType:'helper', active:true, systemRate:true, nonDeletable:true },
+        { id:'labor_body_h072', category:'Korpusy', name:'Skręcenie korpusu do 72 cm', price:0, usage:'universal', rateType:'workshop', quantitySource:'cabinet.count', conditions:[{ source:'cabinet.height_mm', operator:'range', min:null, max:720 }], timeBlockHours:0.5, defaultMultiplier:1.25, volumePricePerM3:50, active:true, internalOnly:true },
       ];
   const DEFAULT_WORKSHOP_SERVICES = [
     { id:'ws1', category:'Cięcie', name:'Przycięcie płyty', price:25, starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.' },

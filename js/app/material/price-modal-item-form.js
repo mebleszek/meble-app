@@ -30,7 +30,6 @@
 
 
   const LABOR_CHOICE_FIELDS = [
-    { id:'laborAutoRole', title:'Wybierz automat', placeholder:'Automat' },
     { id:'laborRateType', title:'Wybierz stawkę godzinową', placeholder:'Stawka godzinowa' },
     { id:'laborTimeBlockHours', title:'Wybierz czas bazowy', placeholder:'Czas bazowy' },
     { id:'laborQuantitySource', title:'Wybierz źródło ilości', placeholder:'Źródło ilości' },
@@ -100,7 +99,6 @@
       name:'',
       price:'',
       usage:isQuoteRates ? 'universal' : '',
-      autoRole:'none',
       rateType:'workshop',
       timeBlockHours:0,
       defaultMultiplier:1,
@@ -114,8 +112,7 @@
       volumeTimeMode:'none',
       volumeTimePerM3:0,
       volumeTimeTiers:[],
-      heightMinMm:0,
-      heightMaxMm:0,
+      conditions:[],
       active:true,
       internalOnly:true,
     };
@@ -141,8 +138,8 @@
   }
   function isHourlyRateItem(item){
     const labor = FC.laborCatalog || {};
-    try{ return labor.isHourlyRateDefinition ? labor.isHourlyRateDefinition(item || {}) : String(item && item.autoRole || '') === 'hourlyRate'; }
-    catch(_){ return String(item && item.autoRole || '') === 'hourlyRate'; }
+    try{ return labor.isHourlyRateDefinition ? labor.isHourlyRateDefinition(item || {}) : false; }
+    catch(_){ return false; }
   }
   function isHourlyRateMode(){ return !!(ctx.byId('laborIsHourlyRate') && ctx.byId('laborIsHourlyRate').checked); }
   function getLaborRateProfiles(selectedCode){
@@ -172,6 +169,15 @@
     ctx.setSelectOptions(ctx.byId('laborQuantitySource'), buildLaborQuantitySourceOptions(code), code, '');
     setValue('laborQuantitySource', code);
   }
+  function laborConditionsApi(){ return ctx.priceModalLaborConditions || null; }
+  function getCurrentLaborConditions(){
+    const api = laborConditionsApi();
+    return api && typeof api.current === 'function' ? api.current() : [];
+  }
+  function renderLaborConditions(rows){
+    const api = laborConditionsApi();
+    if(api && typeof api.render === 'function') api.render(rows || [], updateItemActionState);
+  }
   function refreshLaborRateTypeSelect(selectedCode){
     const code = selectedCode || readString('laborRateType') || 'workshop';
     ctx.setSelectOptions(ctx.byId('laborRateType'), buildLaborRateProfileOptions(code), code, code);
@@ -183,6 +189,7 @@
     const title = ctx.byId('laborFormSectionTitle');
     const rule = ctx.byId('laborRuleFields');
     const rateFields = ctx.byId('laborRateProfileFields');
+    const conditionWrap = ctx.byId('laborConditionsWrap');
     const toggleWrap = ctx.byId('laborHourlyToggleWrap');
     const internalWrap = ctx.byId('laborInternalOnlyWrap');
     const categoryWrap = formCategoryWrapper();
@@ -193,6 +200,7 @@
     if(toggleWrap) toggleWrap.style.display = '';
     if(rule) rule.style.display = hourly ? 'none' : '';
     if(rateFields) rateFields.style.display = hourly ? '' : 'none';
+    if(conditionWrap) conditionWrap.style.display = hourly ? 'none' : '';
     if(title) title.textContent = hourly ? 'Stawka godzinowa' : 'Reguła robocizny';
     if(internalWrap) internalWrap.style.display = hourly ? 'none' : '';
     if(categoryWrap) categoryWrap.style.display = hourly ? 'none' : '';
@@ -259,7 +267,7 @@
       return {
         category:'Stawki godzinowe',
         usage:'universal',
-        autoRole:'hourlyRate',
+        isHourlyRate:true,
         rateKey:code,
         rateCode:code,
         rateType:code || 'workshop',
@@ -275,8 +283,7 @@
         volumeTimeMode:'none',
         volumeTimePerM3:0,
         volumeTimeTiers:[],
-        heightMinMm:0,
-        heightMaxMm:0,
+        conditions:[],
         active:readBool('laborActive'),
         internalOnly:false,
         systemRate:false,
@@ -289,10 +296,9 @@
     const rateType = labor.normalizeRateCode ? labor.normalizeRateCode(readString('laborRateType')) : (readString('laborRateType') || 'workshop');
     return {
       usage:'universal',
-      autoRole:readString('laborAutoRole') || 'none',
       rateType:rateType || 'workshop',
-      rateKey:readString('laborAutoRole') === 'hourlyRate' ? (rateType || 'workshop') : '',
-      rateCode:readString('laborAutoRole') === 'hourlyRate' ? (rateType || 'workshop') : '',
+      rateKey:'',
+      rateCode:'',
       timeBlockHours:Number(readNumber('laborTimeBlockHours')) || 0,
       defaultMultiplier:Number(readNumber('laborDefaultMultiplier')) || 1,
       quantityMode:readString('laborQuantityMode') || 'none',
@@ -306,8 +312,7 @@
       volumeTimeMode,
       volumeTimePerM3:Number(readNumber('laborVolumeTimePerM3')) || 0,
       volumeTimeTiers:labor.parseVolumeTierText ? labor.parseVolumeTierText(volumeTierText) : [],
-      heightMinMm:Number(readNumber('laborHeightMinMm')) || 0,
-      heightMaxMm:Number(readNumber('laborHeightMaxMm')) || 0,
+      conditions:getCurrentLaborConditions(),
       active:readBool('laborActive'),
       internalOnly:readBool('laborInternalOnly'),
     };
@@ -344,9 +349,9 @@
   function wireItemDirtyEvents(){
     [
       'formSymbol','formName','formPrice','formMaterialPriceUnit','formServiceName','formServicePrice','formHasGrain','formMaterialType','formManufacturer','formCategory',
-      'laborIsHourlyRate','laborRateCode','laborAutoRole','laborRateType','laborTimeBlockHours','laborDefaultMultiplier','laborQuantitySource','laborQuantityMode','laborTierText',
+      'laborIsHourlyRate','laborRateCode','laborRateType','laborTimeBlockHours','laborDefaultMultiplier','laborQuantitySource','laborQuantityMode','laborTierText',
       'laborStartHours','laborStartQty','laborStepEveryQty','laborStepHours','laborVolumePricePerM3','laborVolumeTimeMode','laborVolumeTimePerM3',
-      'laborVolumeTimeTierText','laborHeightMinMm','laborHeightMaxMm','laborActive','laborInternalOnly'
+      'laborVolumeTimeTierText','laborConditionSourceSelect','laborActive','laborInternalOnly'
     ].concat((ctx.priceModalHardwareForm && Array.isArray(ctx.priceModalHardwareForm.FIELD_IDS)) ? ctx.priceModalHardwareForm.FIELD_IDS : []).forEach((id)=>{
       const el = ctx.byId(id);
       if(!el) return;
@@ -381,12 +386,11 @@
     const labor = FC.laborCatalog || {};
     const raw = item || defaultServiceDraft('quoteRates');
     const def = labor.normalizeDefinition ? labor.normalizeDefinition(raw) : (raw || {});
-    const hourly = isHourlyRateItem(raw) || def.autoRole === 'hourlyRate';
+    const hourly = def.isHourlyRate === true || isHourlyRateItem(raw);
     setChecked('laborIsHourlyRate', hourly);
     setValue('laborRateCode', hourly ? (def.rateKey || def.rateCode || def.rateType || '') : '');
     refreshLaborRateTypeSelect(def.rateType || def.rateKey || 'workshop');
     setValue('laborUsage', 'universal');
-    setValue('laborAutoRole', def.autoRole || 'none');
     setValue('laborRateType', def.rateType || def.rateKey || 'workshop');
     setValue('laborTimeBlockHours', Number(def.timeBlockHours) || 0);
     setValue('laborDefaultMultiplier', Number(def.defaultMultiplier) || 1);
@@ -402,8 +406,7 @@
     setValue('laborVolumeTimeMode', def.volumeTimeMode || 'none');
     setValue('laborVolumeTimePerM3', Number(def.volumeTimePerM3) || 0);
     setValue('laborVolumeTimeTierText', labor.volumeTiersToText ? labor.volumeTiersToText(def.volumeTimeTiers || []) : '');
-    setValue('laborHeightMinMm', Number(def.heightMinMm) || 0);
-    setValue('laborHeightMaxMm', Number(def.heightMaxMm) || 0);
+    renderLaborConditions(def.conditions || []);
     setChecked('laborActive', def.active !== false);
     setChecked('laborInternalOnly', def.internalOnly !== false);
     syncLaborGabarytMode();

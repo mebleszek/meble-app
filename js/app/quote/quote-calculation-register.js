@@ -19,6 +19,10 @@
   function num(value){ const n = Number(String(value == null ? '' : value).replace(',', '.')); return Number.isFinite(n) ? n : 0; }
   function round2(value){ const n = num(value); return Math.round(n * 100) / 100; }
   function clone(value){ try{ return FC.utils && typeof FC.utils.clone === 'function' ? FC.utils.clone(value) : JSON.parse(JSON.stringify(value)); }catch(_){ return JSON.parse(JSON.stringify(value || null)); } }
+  function cloneList(value){
+    if(!Array.isArray(value)) return [];
+    try{ return clone(value) || []; }catch(_){ return []; }
+  }
   function slug(value){ try{ return FC.wycenaCoreUtils && typeof FC.wycenaCoreUtils.slug === 'function' ? FC.wycenaCoreUtils.slug(value) : text(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }catch(_){ return text(value); } }
   function isStarterPrice(row){ return !!(row && row.starterPrice === true && !text(row.priceUserEditedAt)); }
   function warning(row, message){ return { key:slug((row && row.key || row && row.name || '') + ' ' + message), section:text(row && row.section), sectionLabel:text(row && row.sectionLabel), message:text(message) }; }
@@ -43,6 +47,9 @@
       quantitySourceValue:num(src.quantitySourceValue != null ? src.quantitySourceValue : fb.quantitySourceValue),
       quantitySourceDisplay:text(src.quantitySourceDisplay || fb.quantitySourceDisplay || ''),
       quantitySourceUsed:src.quantitySourceUsed === true || fb.quantitySourceUsed === true,
+      conditions:cloneList(src.conditions || fb.conditions),
+      matchedConditions:cloneList(src.matchedConditions || fb.matchedConditions),
+      skippedReason:text(src.skippedReason || fb.skippedReason || ''),
       timeBlockHours:num(src.timeBlockHours != null ? src.timeBlockHours : fb.timeBlockHours),
       quantityMode:text(src.quantityMode || fb.quantityMode || ''),
       name:text(src.name || fb.name || 'Pozycja'),
@@ -135,6 +142,8 @@
           if(num(p.hours) > 0) meta.push(`czas wyceniony ${round2(p.hours)} h`);
           if(num(p.hourlyRate) > 0) meta.push(`${round2(p.hourlyRate)} PLN/h`);
           if(text(p.quantitySource)) meta.push(`źródło ilości ${text(p.quantitySourceLabel) || text(p.quantitySource)}${text(p.quantitySourceDisplay) ? ': ' + text(p.quantitySourceDisplay) : ''}`);
+          const matchedConditions = Array.isArray(p.matchedConditions) ? p.matchedConditions : [];
+          if(matchedConditions.length) meta.push('warunki: ' + matchedConditions.map((cond)=> `${text(cond.label) || text(cond.source)} = ${text(cond.displayValue) || num(cond.value)}`).join('; '));
           if(num(p.multiplier) && num(p.multiplier) !== 1) meta.push(`mnożnik ×${round2(p.multiplier)}`);
           if(num(p.volumeM3) > 0 && num(p.volumePrice) > 0) meta.push(`gabaryt ${round2(p.volumeM3)} m³`);
           const calcBits = [];
@@ -155,6 +164,9 @@
             quantitySourceValue:num(p.quantitySourceValue),
             quantitySourceDisplay:text(p.quantitySourceDisplay),
             quantitySourceUsed:p.quantitySourceUsed === true,
+            conditions:cloneList(p.conditions),
+            matchedConditions:cloneList(p.matchedConditions),
+            skippedReason:text(p.skippedReason),
             timeBlockHours:num(p.timeBlockHours),
             quantityMode:text(p.quantityMode),
             name:text(p.name) || 'Czynność',
@@ -171,6 +183,7 @@
             raw:p,
           });
           if(text(p.quantitySourceWarning)) detailLine.warnings.push(text(p.quantitySourceWarning));
+          if(text(p.skippedReason)) detailLine.warnings.push(text(p.skippedReason));
           if(p.starterPrice === true && !text(p.priceUserEditedAt)) detailLine.warnings.push('Cena startowa — sprawdź i edytuj w cenniku przed realną ofertą.');
           out.push(detailLine);
         });

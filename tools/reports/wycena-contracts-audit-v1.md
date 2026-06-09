@@ -1,15 +1,15 @@
-# WYCENA architecture audit v1 — 2026-06-04
+# WYCENA architecture audit v1 — 2026-06-09
 
 Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI, danych ani storage.
 
 ## Wynik skrócony
 
-1. `js/app/wycena/wycena-core-lines.js` — 722 linii; ostrzeżenia: 600+ lines.
+1. `js/app/wycena/wycena-core-lines.js` — 742 linii; ostrzeżenia: 600+ lines.
 2. `js/app/quote/quote-snapshot-store.js` — 655 linii; ostrzeżenia: 600+ lines, mixed responsibilities heuristic, direct storage reference.
 3. `js/app/project/project-status-manual-guard.js` — 395 linii; ostrzeżenia: 250+ lines.
 4. `js/tabs/wycena.js` — 368 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
-5. `js/app/quote/quote-snapshot.js` — 339 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
-6. `js/app/wycena/wycena-core-material-plan.js` — 318 linii; ostrzeżenia: 250+ lines.
+5. `js/app/quote/quote-snapshot.js` — 349 linii; ostrzeżenia: 250+ lines, mixed responsibilities heuristic.
+6. `js/app/wycena/wycena-core-material-plan.js` — 321 linii; ostrzeżenia: 250+ lines.
 7. `js/app/project/project-status-scope.js` — 313 linii; ostrzeżenia: 250+ lines.
 8. `js/app/project/project-status-sync.js` — 309 linii; ostrzeżenia: 250+ lines.
 9. `js/app/quote/quote-snapshot-scope.js` — 304 linii; ostrzeżenia: 250+ lines.
@@ -31,8 +31,8 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 25. `js/app/wycena/wycena-core-selection.js` — 149 linii.
 26. `js/app/wycena/wycena-tab-scroll.js` — 132 linii.
 27. `js/app/wycena/wycena-tab-render-bridge.js` — 122 linii; ostrzeżenia: mixed responsibilities heuristic.
-28. `js/app/wycena/wycena-tab-selection-scope.js` — 120 linii.
-29. `js/app/wycena/wycena-core-offer.js` — 118 linii.
+28. `js/app/wycena/wycena-core-offer.js` — 120 linii.
+29. `js/app/wycena/wycena-tab-selection-scope.js` — 120 linii.
 30. `js/app/wycena/wycena-core-catalog.js` — 117 linii.
 31. `js/app/project/project-status-mirrors.js` — 112 linii.
 32. `js/app/wycena/wycena-core.js` — 110 linii.
@@ -54,7 +54,7 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 
 ### js/app/wycena/wycena-core-lines.js
 
-- Linie: 722
+- Linie: 742
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: scope:8, status:4, quote-collect:4
@@ -82,14 +82,14 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 
 ### js/app/quote/quote-snapshot.js
 
-- Linie: 339
+- Linie: 349
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: scope:52, snapshot:15, quote-collect:2, storage-boundary:1
 
 ### js/app/wycena/wycena-core-material-plan.js
 
-- Linie: 318
+- Linie: 321
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: scope:8, quote-collect:2
@@ -241,19 +241,19 @@ Zakres: statyczny audyt techniczny Wyceny/ofert/statusów bez zmian runtime, UI,
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: snapshot:44, render:22, status:8, modal-ui:2
 
+### js/app/wycena/wycena-core-offer.js
+
+- Linie: 120
+- Bezpośrednie storage: 0
+- Systemowe dialogi: 0
+- Sygnały odpowiedzialności: quote-collect:4
+
 ### js/app/wycena/wycena-tab-selection-scope.js
 
 - Linie: 120
 - Bezpośrednie storage: 0
 - Systemowe dialogi: 0
 - Sygnały odpowiedzialności: scope:34, snapshot:3
-
-### js/app/wycena/wycena-core-offer.js
-
-- Linie: 118
-- Bezpośrednie storage: 0
-- Systemowe dialogi: 0
-- Sygnały odpowiedzialności: quote-collect:4
 
 ### js/app/wycena/wycena-core-catalog.js
 

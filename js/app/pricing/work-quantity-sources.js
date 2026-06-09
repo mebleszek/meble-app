@@ -219,11 +219,22 @@
     return 'systemowe';
   }
 
+  function isNumericSource(row){
+    const unit = text(row && row.unit).toLowerCase();
+    if(!unit || unit === 'tekst') return false;
+    return !['front.dimensions','hinge.requirement','cabinet.zone','cabinet.kind','appliance.type'].includes(text(row && row.code));
+  }
+
   function canUseAsQuantitySource(source){
     const row = normalizeSource(source);
-    if(!row.code || row.status === 'planned') return false;
-    if(row.unit === 'tekst') return false;
-    return !['front.dimensions','hinge.requirement','cabinet.zone','cabinet.kind','appliance.type'].includes(row.code);
+    if(!row.code || row.status === 'planned' || row.active === false) return false;
+    return isNumericSource(row);
+  }
+
+  function canUseAsConditionSource(source){
+    const row = normalizeSource(source);
+    if(!row.code || row.status === 'planned' || row.active === false) return false;
+    return isNumericSource(row);
   }
 
   function quantityList(selectedCode){
@@ -245,6 +256,25 @@
       })));
   }
 
+  function conditionList(selectedCode){
+    const selected = text(selectedCode);
+    const rows = list().filter(canUseAsConditionSource);
+    if(selected && !rows.some((row)=> row.code === selected)){
+      const current = find(selected);
+      if(current && canUseAsConditionSource(current)) rows.push(current);
+    }
+    return rows;
+  }
+
+  function conditionOptions(selectedCode){
+    return [{ value:'', label:'Dodaj warunek', description:'Wybierz aktywne, policzalne źródło danych używane jako warunek zastosowania reguły.' }]
+      .concat(conditionList(selectedCode).map((row)=> ({
+        value:row.code,
+        label:`${row.label} — ${row.code}${row.unit && row.unit !== '—' ? ' (' + row.unit + ')' : ''}`,
+        description:row.calculation || ''
+      })));
+  }
+
   root.FC.workQuantitySources = {
     list,
     find,
@@ -253,8 +283,11 @@
     normalizeSource,
     statusLabel,
     canUseAsQuantitySource,
+    canUseAsConditionSource,
     quantityList,
     quantityOptions,
+    conditionList,
+    conditionOptions,
     _debug:{ SYSTEM_SOURCES:clone(SYSTEM_SOURCES) },
   };
 })();

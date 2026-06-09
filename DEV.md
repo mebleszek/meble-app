@@ -1662,8 +1662,8 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 - Nowe moduły katalogu robocizny: `js/app/pricing/labor-catalog-definitions.js` oraz `js/app/pricing/labor-catalog.js`. Trzymać je w tej kolejności ładowania.
 - Nowy moduł `js/app/wycena/wycena-core-labor.js` zbiera wewnętrzne koszty robocizny po szafkach i używa numerów szafek zgodnych z kolejnością z `WYWIADU`.
 - Podgląd `WYCENA` pokazuje sekcję `Robocizna — szafki` z rozwijanymi szczegółami dla każdej szafki. To jest widok wewnętrzny; PDF/klient nie dostał szczegółowego renderu `lines.labor`.
-- W modalu szafki dodano sekcję `Dodatki robocizny`, obsługiwaną przez `js/app/cabinet/cabinet-modal-labor.js`; wybiera aktywne definicje z `usage: cabinet` i `autoRole: none` oraz zapisuje je jako `laborItems` przy konkretnej szafce.
-- Ręczne stawki oferty filtrują definicje automatyczne/wewnętrzne (`autoRole !== none`, `usage !== manual`, `internalOnly === true`), żeby reguły korpusów/gabarytu nie trafiały jako pozycje klienta.
+- W modalu szafki dodano sekcję `Dodatki robocizny`, obsługiwaną przez `js/app/cabinet/cabinet-modal-labor.js`; wybiera aktywne definicje robocizny i zapisuje je jako `laborItems` przy konkretnej szafce.
+- Ręczne stawki oferty filtrują definicje wewnętrzne (`internalOnly === true`) i stawki systemowe, żeby reguły korpusów/gabarytu nie trafiały przypadkowo jako pozycje klienta.
 - Snapshot oferty ma wersję 6 i zapisuje `lines.labor`; nie usuwać tego pola przy dalszych zmianach WYCENY.
 - Raport: `tools/reports/pricing-labor-rules-v1.md`.
 
@@ -1678,7 +1678,7 @@ Zakres naprawczy po zgłoszeniu rozjazdu statusów i wyboru pomieszczeń do Wyce
 ## 2026-05-03 — Pricing labor unified picker v1
 
 - Ujednolicono robociznę/czynności do jednej wspólnej puli definicji. Pole `usage` zostaje tylko kompatybilnościowym fallbackiem danych i nie może już być traktowane jako twardy podział `ręcznie` vs `szafka`.
-- W formularzu pozycji `Stawki wyceny mebli` ukryto wybór `Użycie`; nowe definicje robocizny zapisują się jako `universal`. O tym, gdzie da się ich użyć, decydują kontekst, `autoRole`, aktywność i wybór użytkownika, a nie osobna kategoria ręczne/szafka.
+- W formularzu pozycji `Stawki wyceny mebli` ukryto wybór `Użycie`; nowe definicje robocizny zapisują się jako `universal`. O tym, gdzie da się ich użyć, decydują kontekst, aktywność, `internalOnly`, `quantitySource`, `conditions` i wybór użytkownika, a nie osobna kategoria ręczne/szafka.
 - W `WYCENA` usunięto długą listę pól ilości dla ręcznych stawek. Ręczne/dodatkowe czynności dodaje się teraz przez aplikacyjne okno `Dodaj czynność`, obsługiwane przez `js/app/wycena/wycena-labor-picker.js`.
 - Szafki AGD/okapowe korzystają z `js/app/pricing/labor-appliance-rules.js`: typ szafki może domyślnie proponować montaż sprzętu, ale w modalu szafki musi istnieć wybór `Z montażem` / `Bez montażu`. `Bez montażu` blokuje automatyczne doliczenie tej pozycji w WYCENIE.
 - `WYWIAD` pokazuje przy szafce zarówno wybrane czynności robocizny, jak i status montażu sprzętu, żeby nie było ukrytych automatycznych dopłat.
@@ -2171,3 +2171,23 @@ Dług techniczny: `hardware-catalog-import-export.js` i `hardware-catalog-suppli
 - Celowo nie dodano automatów robocizny, źródeł danych w trybiku ani podglądu danych w modalu szafki.
 - Nie ruszano `cabinet-modal.js`, `cabinets-render.js` ani `css/cabinet-common.css`.
 - Cache-busting: `20260609_labor_rate_profiles_restore_clean_v1`. Raport: `tools/reports/labor-rate-profiles-restore-clean-v1.md`.
+
+## 2026-06-09 — Robocizna: czysty model quantitySource + conditions
+
+Nie używać starego pola `autoRole` jako aktywnego modelu robocizny ani jako automatycznej migracji nowych reguł. Program jest na etapie budowy, nie łatki produkcyjnej, więc obowiązuje czysty kontrakt:
+
+- `quantitySource` = ile liczyć,
+- `conditions` = kiedy reguła ma działać,
+- `conditions[].source` = kod faktu do odczytu, np. `cabinet.height_mm`, `cabinet.width_mm`, `hinge.count`,
+- `conditions[].min` / `conditions[].max` = uniwersalne minimum i maksimum niezależne od tego, jaki fakt wybrano.
+
+Nie tworzyć pól specyficznych typu `heightMinMm` / `heightMaxMm`. Wysokość, szerokość, waga, liczba frontów, liczba zawiasów i przyszłe dane kreatora mają korzystać z tego samego mechanizmu `source + min/max`.
+
+Warunku nie wolno ignorować. Jeżeli źródło warunku nie zwraca liczbowej wartości, reguła ma zostać pominięta, a nie policzona jak reguła bez warunków.
+
+Warunki dostępne w UI mogą pochodzić tylko z aktywnych, zaimplementowanych i liczbowych źródeł `FC.workQuantitySources`. Źródła planowane, tekstowe albo bez realnego kalkulatora nie mogą być aktywnymi warunkami.
+
+
+## 2026-06-09 — Korekta: bez dodatkowych warunków front.max_* bez osobnego etapu
+
+Nie dodawać nowych aktywnych źródeł warunków tylko dlatego, że technicznie da się je policzyć. Po korekcie użytkownika usunięto nadmiarowe `front.max_width_mm` i `front.max_height_mm` z aktywnych warunków robocizny. Warunki frontów/długich elementów można dodać później jako osobny, świadomie zaakceptowany etap.

@@ -8,7 +8,6 @@
   const defs = FC.laborCatalogDefinitions || {};
   const RATE_TYPES = defs.RATE_TYPES || [];
   const USAGE_TYPES = defs.USAGE_TYPES || [];
-  const AUTO_ROLES = defs.AUTO_ROLES || [];
   const QUANTITY_MODES = defs.QUANTITY_MODES || [];
   const DEFAULT_HOURLY_RATES = defs.DEFAULT_HOURLY_RATES || [];
   const DEFAULT_LABOR_DEFINITIONS = defs.DEFAULT_LABOR_DEFINITIONS || [];
@@ -37,7 +36,7 @@
   }
   function isHourlyRateDefinition(row){
     const src = row && typeof row === 'object' ? row : {};
-    return src.autoRole === 'hourlyRate' || text(src.category).toLowerCase() === 'stawki godzinowe' || !!text(src.rateKey || src.rateCode);
+    return src.isHourlyRate === true || text(src.category).toLowerCase() === 'stawki godzinowe' || !!text(src.rateKey || src.rateCode);
   }
   function hourlyRateCodeFromRow(row){
     const src = row && typeof row === 'object' ? row : {};
@@ -105,7 +104,6 @@
         mergedHourly.push(Object.assign({}, base, source, {
           id:canonicalId,
           category:'Stawki godzinowe',
-          autoRole:'hourlyRate',
           rateKey:code,
           rateCode:code,
           rateType:code,
@@ -121,7 +119,6 @@
       mergedHourly.push(Object.assign({}, preferred, {
         id:text(preferred.id) || canonicalId,
         category:'Stawki godzinowe',
-        autoRole:'hourlyRate',
         rateKey:code,
         rateCode:code,
         rateType:code,
@@ -193,17 +190,16 @@
     const raw = text(value);
     return /^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/.test(raw) ? raw : '';
   }
-  function inferQuantitySource(src, autoRole){
-    const explicit = normalizeQuantitySource(src && src.quantitySource);
-    if(explicit) return explicit;
-    const id = text(src && src.id);
-    if(autoRole === 'cabinetBody') return 'cabinet.count';
-    if(autoRole === 'cabinetLooseShelves') return 'shelf.count';
-    if(id === 'labor_mount_front') return 'front.count';
-    if(id === 'labor_mount_hinge' || id === 'labor_adjust_front') return 'hinge.count';
-    if(id === 'labor_mount_drawer') return 'drawer.count';
-    return '';
+  function inferQuantitySource(src){
+    return normalizeQuantitySource(src && src.quantitySource);
   }
+
+  function conditionSourceOptions(selectedCode){
+    const api = FC.workQuantitySources || {};
+    try{ if(typeof api.conditionOptions === 'function') return api.conditionOptions(selectedCode); }catch(_){ }
+    return [{ value:'', label:'Dodaj warunek', description:'' }];
+  }
+
   function quantitySourceOptions(selectedCode){
     const api = FC.workQuantitySources || {};
     try{ if(typeof api.quantityOptions === 'function') return api.quantityOptions(selectedCode); }catch(_){ }
@@ -217,6 +213,48 @@
     }catch(_){ }
     if(selected && !out.some((row)=> row.value === selected)) out.push({ value:selected, label:selected, description:'Zapisane wcześniej źródło ilości.' });
     return out;
+  }
+
+  function normalizeCondition(row){
+    const src = row && typeof row === 'object' ? row : {};
+    const source = normalizeQuantitySource(src.source || src.code || src.quantitySource);
+    const operator = text(src.operator || 'range') === 'range' ? 'range' : '';
+    if(!source || !operator) return null;
+    const hasMin = src.min !== undefined && src.min !== null && text(src.min) !== '';
+    const hasMax = src.max !== undefined && src.max !== null && text(src.max) !== '';
+    if(!hasMin && !hasMax) return null;
+    const min = hasMin ? num(src.min, null) : null;
+    const max = hasMax ? num(src.max, null) : null;
+    if(hasMin && min == null) return null;
+    if(hasMax && max == null) return null;
+    return {
+      source,
+      operator:'range',
+      min:min == null ? null : min,
+      max:max == null ? null : max,
+    };
+  }
+
+  function normalizeConditions(rows){
+    return (Array.isArray(rows) ? rows : []).map(normalizeCondition).filter(Boolean);
+  }
+
+  function conditionLabel(condition){
+    const row = normalizeCondition(condition);
+    if(!row) return '';
+    let sourceLabel = row.source;
+    try{
+      const api = FC.workQuantitySources || {};
+      const src = api && typeof api.find === 'function' ? api.find(row.source) : null;
+      if(src && src.label) sourceLabel = `${src.label} (${row.source})`;
+    }catch(_){ }
+    const minText = row.min == null ? 'bez dolnej granicy' : `od ${row.min}`;
+    const maxText = row.max == null ? 'bez górnej granicy' : `do ${row.max}`;
+    return `${sourceLabel}: ${minText}, ${maxText}`;
+  }
+
+  function conditionsToText(rows){
+    return (Array.isArray(rows) ? rows : []).map(conditionLabel).filter(Boolean).join(' AND ');
   }
   function normalizeTier(row){
     const src = row && typeof row === 'object' ? row : {};
@@ -255,45 +293,44 @@
 
   function normalizeDefinition(row){
     const src = row && typeof row === 'object' ? row : {};
-    const autoRole = normalizeMode(src.autoRole, AUTO_ROLES, 'none');
+    const isHourly = isHourlyRateDefinition(src);
     const rateKey = normalizeRateCode(src.rateKey || src.rateCode);
-    const rawRateType = normalizeRateCode(src.rateType || (autoRole === 'hourlyRate' ? rateKey : ''));
+    const rawRateType = normalizeRateCode(src.rateType || (isHourly ? rateKey : ''));
     const rateType = rawRateType || 'workshop';
     const quantityMode = normalizeMode(src.quantityMode, QUANTITY_MODES, 'none');
     const volumeTimeMode = text(src.volumeTimeMode) === 'perM3' ? 'perM3' : (text(src.volumeTimeMode) === 'tiers' ? 'tiers' : 'none');
     const volumePricePerM3 = volumeTimeMode === 'none' ? Math.max(0, num(src.volumePricePerM3, 0)) : 0;
     const price = Math.max(0, num(src.price, 0));
+    const conditions = isHourly ? [] : normalizeConditions(src.conditions);
     return {
       id:text(src.id) || uid('labor'),
-      category:text(src.category) || 'Inne',
+      category:text(src.category) || (isHourly ? 'Stawki godzinowe' : 'Inne'),
       name:text(src.name),
       price,
       usage:normalizeMode(src.usage, USAGE_TYPES, 'universal'),
-      autoRole,
-      rateKey:autoRole === 'hourlyRate' ? (rateKey || rateType) : rateKey,
-      rateCode:autoRole === 'hourlyRate' ? (rateKey || rateType) : rateKey,
-      isHourlyRate:autoRole === 'hourlyRate',
+      rateKey:isHourly ? (rateKey || rateType) : rateKey,
+      rateCode:isHourly ? (rateKey || rateType) : rateKey,
+      isHourlyRate:!!isHourly,
       systemRate:src.systemRate === true,
       nonDeletable:src.nonDeletable === true,
       rateType,
-      timeBlockHours:clampTimeBlock(src.timeBlockHours),
-      defaultMultiplier:Math.max(0, num(src.defaultMultiplier, 1)) || 1,
-      quantityMode,
-      quantitySource:inferQuantitySource(src, autoRole),
-      quantityTiers:normalizeTiers(src.quantityTiers),
-      startHours:clampTimeBlock(src.startHours),
-      startQty:Math.max(1, Math.floor(num(src.startQty, 1))),
-      stepEveryQty:Math.max(1, Math.floor(num(src.stepEveryQty, 1))),
-      stepHours:clampTimeBlock(src.stepHours),
-      volumePricePerM3,
-      volumeTimeMode,
-      volumeTimePerM3:Math.max(0, num(src.volumeTimePerM3, 0)),
-      volumeTimeTiers:normalizeTiers(src.volumeTimeTiers),
-      fixedPrice:Math.max(0, num(src.fixedPrice, 0)),
-      heightMinMm:Math.max(0, Math.floor(num(src.heightMinMm, 0))),
-      heightMaxMm:Math.max(0, Math.floor(num(src.heightMaxMm, 0))),
+      timeBlockHours:isHourly ? 0 : clampTimeBlock(src.timeBlockHours),
+      defaultMultiplier:isHourly ? 1 : (Math.max(0, num(src.defaultMultiplier, 1)) || 1),
+      quantityMode:isHourly ? 'none' : quantityMode,
+      quantitySource:isHourly ? '' : inferQuantitySource(src),
+      conditions,
+      quantityTiers:isHourly ? [] : normalizeTiers(src.quantityTiers),
+      startHours:isHourly ? 0 : clampTimeBlock(src.startHours),
+      startQty:isHourly ? 1 : Math.max(1, Math.floor(num(src.startQty, 1))),
+      stepEveryQty:isHourly ? 1 : Math.max(1, Math.floor(num(src.stepEveryQty, 1))),
+      stepHours:isHourly ? 0 : clampTimeBlock(src.stepHours),
+      volumePricePerM3:isHourly ? 0 : volumePricePerM3,
+      volumeTimeMode:isHourly ? 'none' : volumeTimeMode,
+      volumeTimePerM3:isHourly ? 0 : Math.max(0, num(src.volumeTimePerM3, 0)),
+      volumeTimeTiers:isHourly ? [] : normalizeTiers(src.volumeTimeTiers),
+      fixedPrice:isHourly ? 0 : Math.max(0, num(src.fixedPrice, 0)),
       active:src.active !== false,
-      internalOnly:src.internalOnly === true,
+      internalOnly:isHourly ? false : src.internalOnly === true,
       note:text(src.note),
       starterPrice:src.starterPrice === true,
       priceUserEditedAt:text(src.priceUserEditedAt || src.userEditedAt),
@@ -316,10 +353,6 @@
   function getUsageLabel(key){
     const found = USAGE_TYPES.find((row)=> row.key === key);
     return found ? found.label : (key || 'Ręcznie');
-  }
-  function getAutoRoleLabel(key){
-    const found = AUTO_ROLES.find((row)=> row.key === key);
-    return found ? found.label : (key || 'Brak automatu');
   }
   function getQuantityModeLabel(key){
     const found = QUANTITY_MODES.find((row)=> row.key === key);
@@ -401,22 +434,21 @@
 
   function describeDefinition(row){
     const def = normalizeDefinition(row);
-    if(def.autoRole === 'hourlyRate') return `${getRateLabel(def.rateKey || def.rateType)} • ${Number(def.price || 0).toFixed(2)} zł/h`;
+    if(def.isHourlyRate) return `${getRateLabel(def.rateKey || def.rateType)} • ${Number(def.price || 0).toFixed(2)} zł/h`;
     const parts = [];
-    if(def.autoRole && def.autoRole !== 'none') parts.push(getAutoRoleLabel(def.autoRole));
+    if(def.quantitySource) parts.push(`ilość: ${def.quantitySource}`);
+    if(def.conditions && def.conditions.length) parts.push(`warunki: ${conditionsToText(def.conditions)}`);
     if(def.timeBlockHours > 0) parts.push(`${def.timeBlockHours} h × ${getRateLabel(def.rateType)}`);
     if(def.quantityMode && def.quantityMode !== 'none') parts.push(getQuantityModeLabel(def.quantityMode));
     if(def.volumePricePerM3 > 0) parts.push(`gabaryt ${def.volumePricePerM3} PLN/m³`);
     if(def.volumeTimeMode && def.volumeTimeMode !== 'none') parts.push(`gabarytoczas: ${def.volumeTimeMode === 'tiers' ? 'progi' : 'h/m³'}`);
-    if(def.fixedPrice > 0 || (def.price > 0 && def.autoRole !== 'hourlyRate')) parts.push(`kwota stała ${(def.fixedPrice || def.price).toFixed(2)} PLN`);
-    if(def.heightMaxMm > 0) parts.push(`wys. ${def.heightMinMm || 0}–${def.heightMaxMm} mm`);
+    if(def.fixedPrice > 0 || def.price > 0) parts.push(`kwota stała ${(def.fixedPrice || def.price).toFixed(2)} PLN`);
     return parts.join(' • ') || `${Number(def.price || 0).toFixed(2)} PLN`;
   }
 
   FC.laborCatalog = {
     RATE_TYPES,
     USAGE_TYPES,
-    AUTO_ROLES,
     QUANTITY_MODES,
     DEFAULT_HOURLY_RATES,
     DEFAULT_LABOR_DEFINITIONS,
@@ -431,9 +463,13 @@
     volumeTiersToText,
     getRateLabel,
     getUsageLabel,
-    getAutoRoleLabel,
     getQuantityModeLabel,
     normalizeQuantitySource,
+    normalizeCondition,
+    normalizeConditions,
+    conditionLabel,
+    conditionsToText,
+    conditionSourceOptions,
     quantitySourceOptions,
     normalizeRateCode,
     isValidRateCode,

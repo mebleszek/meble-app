@@ -731,3 +731,88 @@
 #priceItemModal .hardware-technical-name-preview__value.is-empty{
   color:#94a3b8;
 }
+
+/* 2026-06-09 — cennik robocizny: warunki zastosowania quantitySource + conditions. */
+#priceItemModal .price-labor-conditions{
+  display:grid;
+  gap:10px;
+  border:1px solid rgba(226,232,240,.95);
+  border-radius:16px;
+  background:linear-gradient(180deg,#fff,#f8fbff);
+  padding:12px;
+}
+#priceItemModal .price-labor-conditions__title{
+  font-weight:900;
+  color:#111827;
+  line-height:1.15;
+}
+#priceItemModal .price-labor-conditions__empty{
+  margin-top:4px;
+  color:#64748b;
+  font-size:13px;
+  font-weight:800;
+  line-height:1.3;
+}
+#priceItemModal .price-labor-conditions__list{
+  display:grid;
+  gap:10px;
+}
+#priceItemModal .price-labor-condition-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(82px,.42fr) minmax(82px,.42fr) auto;
+  gap:8px;
+  align-items:end;
+  border:1px solid rgba(203,213,225,.78);
+  border-radius:14px;
+  background:#fff;
+  padding:10px;
+}
+#priceItemModal .price-labor-condition-row__source{
+  min-height:44px;
+  border:1px solid rgba(226,232,240,.95);
+  border-radius:12px;
+  background:#f8fafc;
+  padding:9px 10px;
+  display:grid;
+  align-content:center;
+  gap:3px;
+}
+#priceItemModal .price-labor-condition-row__label{
+  font-size:13px;
+  line-height:1.15;
+  font-weight:900;
+  color:#111827;
+  overflow-wrap:anywhere;
+}
+#priceItemModal .price-labor-condition-row__code{
+  font-size:12px;
+  line-height:1.1;
+  font-weight:800;
+  color:#64748b;
+  overflow-wrap:anywhere;
+}
+#priceItemModal .price-labor-condition-field{
+  display:grid;
+  gap:5px;
+}
+#priceItemModal .price-labor-condition-field label{
+  font-size:12px;
+  font-weight:900;
+  color:#64748b;
+  line-height:1.1;
+}
+#priceItemModal .price-labor-condition-remove{
+  min-height:44px;
+}
+@media (max-width:640px){
+  #priceItemModal .price-labor-condition-row{
+    grid-template-columns:1fr 1fr;
+  }
+  #priceItemModal .price-labor-condition-row__source{
+    grid-column:1 / -1;
+  }
+  #priceItemModal .price-labor-condition-remove{
+    grid-column:1 / -1;
+    justify-self:start;
+  }
+}
