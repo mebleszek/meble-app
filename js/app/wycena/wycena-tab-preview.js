@@ -35,6 +35,16 @@
     card.appendChild(d.h('p', { class:'muted', text:'Wycena pobiera materiały z działu Materiał, uruchamia rozkrój w tle na logice ROZRYS dla pomieszczeń i zakresu wybranych bezpośrednio tutaj oraz dolicza pozycje AGD z dodanych szafek. Dodaj także stawki wyceny i pola handlowe, aby wygenerować ofertę dla klienta.' }));
   }
 
+  function isUnsavedStorageQuote(snapshot){
+    const meta = snapshot && snapshot.meta && typeof snapshot.meta === 'object' ? snapshot.meta : {};
+    return !!(snapshot && (snapshot.__unsavedDueToStorage || meta.unsavedDueToStorage || meta.unsavedStorage || meta.unsavedPreview));
+  }
+
+  function getUnsavedStorageWarning(snapshot){
+    const meta = snapshot && snapshot.meta && typeof snapshot.meta === 'object' ? snapshot.meta : {};
+    return String(meta.storageWarning || meta.unsavedStorageWarning || 'Wycena została policzona, ale nie zapisała się w historii. Sprawdź wynik poniżej i wyczyść stare snapshoty lub backupy przed zapisem kolejnej wersji.').trim();
+  }
+
   function renderSection(card, title, rows, emptyText, deps){
     const d = normalizeDeps(deps);
     const h = d.h;
@@ -214,12 +224,16 @@
       card.appendChild(h('div', { id:'quotePreviewStart' }));
       const isLatest = d.getSnapshotId(currentQuote) === d.getSnapshotId(d.getSnapshotHistory()[0]);
       const previewMeta = h('div', { class:'quote-preview-meta' });
-      previewMeta.appendChild(h('span', { class:`quote-preview-badge${isLatest ? ' is-latest' : ''}`, text:isLatest ? 'Aktualna wersja oferty' : 'Wersja oferty z historii' }));
+      if(isUnsavedStorageQuote(currentQuote)) previewMeta.appendChild(h('span', { class:'quote-preview-badge quote-preview-badge--storage-warning', text:'Podgląd bez zapisu historii' }));
+      else previewMeta.appendChild(h('span', { class:`quote-preview-badge${isLatest ? ' is-latest' : ''}`, text:isLatest ? 'Aktualna wersja oferty' : 'Wersja oferty z historii' }));
       if(d.isPreliminarySnapshot(currentQuote)) previewMeta.appendChild(h('span', { class:'quote-preview-badge quote-preview-badge--preliminary', text:'Wstępna wycena' }));
       if(d.isSelectedSnapshot(currentQuote)) previewMeta.appendChild(h('span', { class:'quote-preview-badge quote-preview-badge--selected', text:'Zaakceptowana' }));
       if(d.getVersionName(currentQuote)) previewMeta.appendChild(h('span', { class:'quote-preview-badge quote-preview-badge--version', text:d.getVersionName(currentQuote) }));
       previewMeta.appendChild(h('p', { class:'muted quote-scope', text:`Wersja oferty: ${d.formatDateTime(generatedAt)}` }));
       card.appendChild(previewMeta);
+    }
+    if(isUnsavedStorageQuote(currentQuote)){
+      card.appendChild(h('div', { class:'quote-storage-warning', text:getUnsavedStorageWarning(currentQuote) }));
     }
     if(Array.isArray(roomLabels) && roomLabels.length){
       card.appendChild(h('p', { class:'muted quote-scope', text:`Pomieszczenia: ${roomLabels.join(', ')}`, style:'margin-top:6px' }));

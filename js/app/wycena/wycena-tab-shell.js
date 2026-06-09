@@ -66,6 +66,39 @@
     return String(snapshot && (snapshot.id || snapshot.snapshotId) || '').trim();
   }
 
+  function isSnapshotStorageError(err){
+    const code = String(err && err.code || '').trim();
+    const message = String(err && err.message || err || '');
+    return code === 'quote_snapshot_storage_write_failed'
+      || code === 'quote_snapshot_not_visible_after_save'
+      || message.indexOf('Nie udało się zapisać historii WYCENY') !== -1
+      || message.indexOf('Snapshot WYCENY został zbudowany, ale nie jest widoczny') !== -1
+      || message.indexOf('Historia WYCENY nie została poprawnie zapisana') !== -1;
+  }
+
+  function buildUnsavedStoragePreviewQuote(snapshot, err){
+    const warning = 'Wycena została policzona, ale nie zapisała się w historii. Prawdopodobnie magazyn przeglądarki jest pełny albo zawiera zbyt ciężkie stare dane. Wynik poniżej jest tylko podglądem do sprawdzenia.';
+    let out = snapshot && typeof snapshot === 'object' ? snapshot : null;
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.normalizeSnapshot === 'function'){
+        out = FC.quoteSnapshotStore.normalizeSnapshot(out || {}, { preserveExplicitLabels:true });
+      }
+    }catch(_){
+      try{ out = JSON.parse(JSON.stringify(out || {})); }catch(__){ out = {}; }
+    }
+    if(!out || typeof out !== 'object') out = {};
+    if(!String(out.id || '').trim()) out.id = 'unsaved_quote_' + Date.now();
+    out.meta = Object.assign({}, out.meta || {}, {
+      unsavedDueToStorage:true,
+      storageWarning:warning,
+      storageErrorCode:String(err && err.code || ''),
+      storageErrorMessage:String(err && err.message || err || 'błąd zapisu historii'),
+    });
+    out.__unsavedDueToStorage = true;
+    out.__storageErrorMessage = String(err && err.message || err || 'błąd zapisu historii');
+    return out;
+  }
+
 
   function buildUnsavedQuoteSnapshot(selection){
     if(!(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteData === 'function')) throw new Error('Brak FC.wycenaCore.collectQuoteData');
@@ -297,9 +330,19 @@
         try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ ok:true, duplicate:true, cancelled:!!duplicateAfterNaming.cancelled, replaced:!!duplicateAfterNaming.replaced, id:snapId }); }catch(_){ }
         return;
       }
-      nextQuote = saveQuoteSnapshot(nextQuote);
-      try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('quoteBuilt', { hasQuote:!!nextQuote, error:nextQuote && nextQuote.error, id:nextQuote && (nextQuote.id || nextQuote.snapshotId), selectedRooms:nextQuote && nextQuote.selectedRooms, roomLabels:nextQuote && nextQuote.roomLabels, totals:nextQuote && nextQuote.totals, versionName:getVersionName(nextQuote), materialLines:Array.isArray(nextQuote && nextQuote.materialLines) ? nextQuote.materialLines.length : undefined, accessoryLines:Array.isArray(nextQuote && nextQuote.accessoryLines) ? nextQuote.accessoryLines.length : undefined }); }catch(_){ }
-      nextQuote = ensureSnapshotVisibleInStore(nextQuote);
+      try{
+        nextQuote = saveQuoteSnapshot(nextQuote);
+        try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('quoteBuilt', { hasQuote:!!nextQuote, error:nextQuote && nextQuote.error, id:nextQuote && (nextQuote.id || nextQuote.snapshotId), selectedRooms:nextQuote && nextQuote.selectedRooms, roomLabels:nextQuote && nextQuote.roomLabels, totals:nextQuote && nextQuote.totals, versionName:getVersionName(nextQuote), materialLines:Array.isArray(nextQuote && nextQuote.materialLines) ? nextQuote.materialLines.length : undefined, accessoryLines:Array.isArray(nextQuote && nextQuote.accessoryLines) ? nextQuote.accessoryLines.length : undefined }); }catch(_){ }
+        nextQuote = ensureSnapshotVisibleInStore(nextQuote);
+      }catch(saveErr){
+        if(!isSnapshotStorageError(saveErr)) throw saveErr;
+        const unsavedQuote = buildUnsavedStoragePreviewQuote(nextQuote, saveErr);
+        const unsavedId = unsavedQuote && typeof d.getSnapshotId === 'function' ? d.getSnapshotId(unsavedQuote) : String(unsavedQuote && (unsavedQuote.id || unsavedQuote.snapshotId) || '');
+        try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('quoteStorageSaveFailedUnsavedPreview', { id:unsavedId, message:String(saveErr && saveErr.message || saveErr || 'błąd'), code:String(saveErr && saveErr.code || ''), totals:unsavedQuote && unsavedQuote.totals }); }catch(_){ }
+        if(typeof d.setState === 'function') d.setState({ lastQuote:unsavedQuote, previewSnapshotId:'', shouldScrollToPreview:!!unsavedQuote });
+        try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ ok:false, unsavedPreview:true, storageError:true, id:unsavedId, error:String(saveErr && saveErr.message || saveErr || 'błąd') }); }catch(_){ }
+        return;
+      }
       const nextQuoteId = nextQuote && typeof d.getSnapshotId === 'function' ? d.getSnapshotId(nextQuote) : String(nextQuote && (nextQuote.id || nextQuote.snapshotId) || '');
       if(typeof d.setState === 'function') d.setState({ lastQuote:nextQuote, previewSnapshotId:nextQuoteId, shouldScrollToPreview:!!nextQuote });
       if(nextQuote && !nextQuote.error){

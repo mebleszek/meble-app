@@ -311,6 +311,10 @@
         rejectedAt: Number(src.meta && src.meta.rejectedAt) > 0 ? Number(src.meta.rejectedAt) : 0,
         rejectedReason: String(src.meta && src.meta.rejectedReason || '').trim().toLowerCase(),
         preliminary,
+        unsavedDueToStorage: !!(srcMeta.unsavedDueToStorage || srcMeta.unsavedStorage || srcMeta.unsavedPreview || src.__unsavedDueToStorage),
+        storageWarning: String(srcMeta.storageWarning || srcMeta.unsavedStorageWarning || '').trim(),
+        storageErrorCode: String(srcMeta.storageErrorCode || '').trim(),
+        storageErrorMessage: String(srcMeta.storageErrorMessage || src.__storageErrorMessage || '').trim(),
         quoteFingerprint:'',
       }
     };

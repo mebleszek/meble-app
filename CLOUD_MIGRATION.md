@@ -1,4 +1,11 @@
 
+## 2026-06-10 — WYCENA: pełny magazyn nie może ukrywać policzonego wyniku
+
+- Zapis historii ofert nadal idzie przez istniejący `quoteSnapshotStore` i klucz snapshotów; nie dodano nowego trwałego klucza `localStorage`.
+- Jeżeli zapis historii WYCENY nie powiedzie się przez limit magazynu albo stare ciężkie dane, wynik może być pokazany jako niezapisany podgląd runtime. Taki podgląd nie jest nową prawdą danych i nie udaje zapisanego snapshotu.
+- Docelowe czyszczenie starych ciężkich snapshotów/backupu powinno być osobnym, jawnym etapem z raportem danych, a nie ukrytą migracją przy kliknięciu `Wyceń`.
+
+
 ## 2026-06-09 — Źródła ilości robocizny a przyszła chmura
 
 - `quantitySource` w cenniku robocizny jest konfiguracją użytkownika w istniejącym katalogu stawek/czynności.

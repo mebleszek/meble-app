@@ -10,7 +10,7 @@ W paczce `site_labor_conditions_cascade_fields_v1.zip` moduł `js/app/material/p
 
 - Dodano `js/app/material/price-modal-labor-conditions.js` do `index.html`.
 - Dodano ten sam moduł do `tools/index-load-groups.js`, bezpośrednio po `price-modal-field-help.js` i przed `price-modal-item-form.js`.
-- Zaktualizowano cache-busting na `20260609_labor_conditions_cascade_load_fix_v1`.
+- Zaktualizowano cache-busting na `20260610_wycena_unsaved_preview_storage_fix_v1`.
 - Rozszerzono test `tools/labor-conditions-remove-auto-role-smoke.js`, żeby sprawdzał realne `index.html`: moduł warunków musi być wczytany przed formularzem pozycji.
 
 ## Zakres niezmieniony

@@ -1,4 +1,15 @@
 
+## 2026-06-10 — WYCENA: podgląd bez zapisu historii przy pełnym storage v1
+
+- Paczka: `site_wycena_unsaved_preview_storage_fix_v1.zip`.
+- Naprawiono regresję: gdy zapis historii WYCENY do `localStorage` nie powiedzie się przez pełny magazyn lub ciężkie stare dane, program nie pokazuje już pustej oferty 0.00 PLN jako sukcesu.
+- WYCENA po kliknięciu `Wyceń` buduje wynik w pamięci i, jeśli zapis historii zawiedzie, pokazuje użytkownikowi policzony podgląd oznaczony `Podgląd bez zapisu historii` z ostrzeżeniem, że wynik nie trafił do historii.
+- Nie zmieniono modelu ofert, nie dodano nowego klucza storage i nie ukryto migracji danych. Docelowe czyszczenie ciężkich snapshotów/backupu zostaje osobnym etapem.
+- Zaktualizowano build diagnostyki WYCENY, żeby raport nie sugerował starej paczki `20260530_wycena_duplicate_modal_fix_v1`.
+- Nie ruszano WYWIADU, modala szafki, plusa dodawania, katalogów, materiałów ani logiki warunków robocizny poza tym, że nowy błąd storage nie zabija podglądu.
+- Cache-busting: `20260610_wycena_unsaved_preview_storage_fix_v1`. Raport: `tools/reports/wycena-unsaved-preview-storage-fix-v1.md`.
+
+
 ## 2026-06-09 — Robocizna: load fix kaskadowych warunków v1
 
 - Paczka: `site_labor_conditions_cascade_load_fix_v1.zip`.
@@ -6,7 +17,7 @@
 - Moduł warunków jest teraz ładowany po `price-modal-field-help.js` i przed `price-modal-item-form.js`.
 - `tools/index-load-groups.js` pilnuje tej kolejności, a smoke test sprawdza realne `index.html`, nie tylko listę plików testowych.
 - Nie zmieniano modelu warunków, WYCENY, WYWIADU, modala szafki ani plusa dodawania szafki.
-- Cache-busting: `20260609_labor_conditions_cascade_load_fix_v1`. Raport: `tools/reports/labor-conditions-cascade-load-fix-v1.md`.
+- Cache-busting: `20260610_wycena_unsaved_preview_storage_fix_v1`. Raport: `tools/reports/labor-conditions-cascade-load-fix-v1.md`.
 
 
 ## 2026-06-09 — Podpięcie źródeł ilości do robocizny WYCENY v1
@@ -2216,4 +2227,4 @@ W formularzu `Stawki wyceny mebli` sekcja `Warunki zastosowania` nie używa osob
 
 Trybik `Dane do czynności i wyceny` pozostaje miejscem podglądu/definicji dostępnych źródeł danych. Wprowadzanie zakresów warunków `od/do` należy wyłącznie do formularza pozycji w `Stawki wyceny mebli`.
 
-Paczka: `site_labor_conditions_cascade_fields_v1.zip`. Cache-busting: `20260609_labor_conditions_cascade_load_fix_v1`.
+Paczka: `site_labor_conditions_cascade_fields_v1.zip`. Cache-busting: `20260610_wycena_unsaved_preview_storage_fix_v1`.

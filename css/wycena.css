@@ -489,3 +489,19 @@
   .quote-detail-line__price{text-align:left;min-width:0;}
   .quote-detail-line__qty{white-space:normal;}
 }
+
+.quote-storage-warning{
+  margin-top:10px;
+  padding:12px 14px;
+  border:1px solid #f4c430;
+  border-radius:14px;
+  background:#fff8db;
+  color:#5f4700;
+  font-weight:800;
+  line-height:1.35;
+}
+.quote-preview-badge--storage-warning{
+  border-color:#f4c430;
+  background:#fff8db;
+  color:#5f4700;
+}
