@@ -25,6 +25,11 @@ assert(index.includes('laborConditionsWrap') && index.includes('Warunki zastosow
 assert(!index.includes('laborConditionSourceLaunch'), 'formularz nie ma osobnego przycisku/launchera Dodaj warunek poza listą kaskadową');
 assert(!itemForm.includes('laborAutoRole'), 'stary launcher laborAutoRole nie jest ładowany w formularzu');
 assert(conditionForm.includes('Wybierz wartość warunku'), 'formularz montuje kaskadowy wybór wartości warunku bez przycisku Dodaj warunek');
+const laborConditionsScript = 'js/app/material/price-modal-labor-conditions.js';
+const fieldHelpScript = 'js/app/material/price-modal-field-help.js';
+const itemFormScript = 'js/app/material/price-modal-item-form.js';
+assert(index.includes(laborConditionsScript), 'realny index.html musi ładować moduł kaskadowych warunków robocizny');
+assert(index.indexOf(fieldHelpScript) < index.indexOf(laborConditionsScript) && index.indexOf(laborConditionsScript) < index.indexOf(itemFormScript), 'realny index.html musi ładować warunki robocizny po helperach pól i przed formularzem pozycji');
 assert(!itemForm.includes("autoRole:readString('laborAutoRole')") && !conditionForm.includes("autoRole:readString('laborAutoRole')"), 'nowy zapis pozycji nie czyta autoRole z UI');
 assert(!itemForm.includes('heightMinMm:read') && !itemForm.includes('heightMaxMm:read'), 'nowy zapis pozycji nie czyta starych heightMinMm/heightMaxMm z UI');
 assert(conditionForm.includes("renderRow(list, { source:''"), 'sekcja warunków zawsze renderuje pusty kolejny wybór warunku');

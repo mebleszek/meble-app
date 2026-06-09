@@ -1,4 +1,14 @@
 
+## 2026-06-09 — Robocizna: load fix kaskadowych warunków v1
+
+- Paczka: `site_labor_conditions_cascade_load_fix_v1.zip`.
+- Poprawiono błąd z paczki `site_labor_conditions_cascade_fields_v1.zip`: moduł `price-modal-labor-conditions.js` był w testach, ale nie ładował się w realnym `index.html`, więc w Stawkach wyceny mebli nie pojawiał się `Warunek 1`.
+- Moduł warunków jest teraz ładowany po `price-modal-field-help.js` i przed `price-modal-item-form.js`.
+- `tools/index-load-groups.js` pilnuje tej kolejności, a smoke test sprawdza realne `index.html`, nie tylko listę plików testowych.
+- Nie zmieniano modelu warunków, WYCENY, WYWIADU, modala szafki ani plusa dodawania szafki.
+- Cache-busting: `20260609_labor_conditions_cascade_load_fix_v1`. Raport: `tools/reports/labor-conditions-cascade-load-fix-v1.md`.
+
+
 ## 2026-06-09 — Podpięcie źródeł ilości do robocizny WYCENY v1
 
 - Paczka: `site_labor_quantity_values_link_v1.zip`.
@@ -2206,4 +2216,4 @@ W formularzu `Stawki wyceny mebli` sekcja `Warunki zastosowania` nie używa osob
 
 Trybik `Dane do czynności i wyceny` pozostaje miejscem podglądu/definicji dostępnych źródeł danych. Wprowadzanie zakresów warunków `od/do` należy wyłącznie do formularza pozycji w `Stawki wyceny mebli`.
 
-Paczka: `site_labor_conditions_cascade_fields_v1.zip`. Cache-busting: `20260609_labor_conditions_cascade_fields_v1`.
+Paczka: `site_labor_conditions_cascade_fields_v1.zip`. Cache-busting: `20260609_labor_conditions_cascade_load_fix_v1`.
