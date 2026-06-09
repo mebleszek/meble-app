@@ -33,6 +33,7 @@
     { id:'laborAutoRole', title:'Wybierz automat', placeholder:'Automat' },
     { id:'laborRateType', title:'Wybierz stawkę godzinową', placeholder:'Stawka godzinowa' },
     { id:'laborTimeBlockHours', title:'Wybierz czas bazowy', placeholder:'Czas bazowy' },
+    { id:'laborQuantitySource', title:'Wybierz źródło ilości', placeholder:'Źródło ilości' },
     { id:'laborQuantityMode', title:'Wybierz tryb ilości', placeholder:'Tryb ilości' },
     { id:'laborStartHours', title:'Wybierz czas startowy', placeholder:'Start h' },
     { id:'laborStepHours', title:'Wybierz czas kolejnego kroku', placeholder:'Dodaj h' },
@@ -159,6 +160,18 @@
     try{ if(labor.rateProfileOptions) return labor.rateProfileOptions(ctx.currentList ? ctx.currentList() : [], selectedCode); }catch(_){ }
     return getLaborRateProfiles(selectedCode).map((row)=> ({ value:row.code, label:row.label || row.name || row.code }));
   }
+  function buildLaborQuantitySourceOptions(selectedCode){
+    const labor = FC.laborCatalog || {};
+    try{ if(labor.quantitySourceOptions) return labor.quantitySourceOptions(selectedCode); }catch(_){ }
+    const api = FC.workQuantitySources || {};
+    try{ if(api.quantityOptions) return api.quantityOptions(selectedCode); }catch(_){ }
+    return [{ value:'', label:'Brak przypisanego źródła' }];
+  }
+  function refreshLaborQuantitySourceSelect(selectedCode){
+    const code = selectedCode || readString('laborQuantitySource') || '';
+    ctx.setSelectOptions(ctx.byId('laborQuantitySource'), buildLaborQuantitySourceOptions(code), code, '');
+    setValue('laborQuantitySource', code);
+  }
   function refreshLaborRateTypeSelect(selectedCode){
     const code = selectedCode || readString('laborRateType') || 'workshop';
     ctx.setSelectOptions(ctx.byId('laborRateType'), buildLaborRateProfileOptions(code), code, code);
@@ -283,6 +296,7 @@
       timeBlockHours:Number(readNumber('laborTimeBlockHours')) || 0,
       defaultMultiplier:Number(readNumber('laborDefaultMultiplier')) || 1,
       quantityMode:readString('laborQuantityMode') || 'none',
+      quantitySource:readString('laborQuantitySource'),
       quantityTiers:labor.parseTierText ? labor.parseTierText(tierText) : [],
       startHours:Number(readNumber('laborStartHours')) || 0,
       startQty:Number(readNumber('laborStartQty')) || 1,
@@ -330,7 +344,7 @@
   function wireItemDirtyEvents(){
     [
       'formSymbol','formName','formPrice','formMaterialPriceUnit','formServiceName','formServicePrice','formHasGrain','formMaterialType','formManufacturer','formCategory',
-      'laborIsHourlyRate','laborRateCode','laborAutoRole','laborRateType','laborTimeBlockHours','laborDefaultMultiplier','laborQuantityMode','laborTierText',
+      'laborIsHourlyRate','laborRateCode','laborAutoRole','laborRateType','laborTimeBlockHours','laborDefaultMultiplier','laborQuantitySource','laborQuantityMode','laborTierText',
       'laborStartHours','laborStartQty','laborStepEveryQty','laborStepHours','laborVolumePricePerM3','laborVolumeTimeMode','laborVolumeTimePerM3',
       'laborVolumeTimeTierText','laborHeightMinMm','laborHeightMaxMm','laborActive','laborInternalOnly'
     ].concat((ctx.priceModalHardwareForm && Array.isArray(ctx.priceModalHardwareForm.FIELD_IDS)) ? ctx.priceModalHardwareForm.FIELD_IDS : []).forEach((id)=>{
@@ -376,6 +390,8 @@
     setValue('laborRateType', def.rateType || def.rateKey || 'workshop');
     setValue('laborTimeBlockHours', Number(def.timeBlockHours) || 0);
     setValue('laborDefaultMultiplier', Number(def.defaultMultiplier) || 1);
+    refreshLaborQuantitySourceSelect(def.quantitySource || '');
+    setValue('laborQuantitySource', def.quantitySource || '');
     setValue('laborQuantityMode', def.quantityMode || 'none');
     setValue('laborTierText', labor.tiersToText ? labor.tiersToText(def.quantityTiers || []) : '');
     setValue('laborStartHours', Number(def.startHours) || 0);
@@ -444,7 +460,7 @@
       if(nameWrap) nameWrap.style.display = '';
     }
     if(ctx.mountFormChoiceLaunchers) ctx.mountFormChoiceLaunchers(()=> updateItemActionState());
-    if(kind === 'quoteRates') { hideLaborUsageField(); refreshLaborRateTypeSelect(readString('laborRateType') || 'workshop'); mountLaborChoiceLaunchers(); syncLaborRateProfileUi(); }
+    if(kind === 'quoteRates') { hideLaborUsageField(); refreshLaborRateTypeSelect(readString('laborRateType') || 'workshop'); refreshLaborQuantitySourceSelect(readString('laborQuantitySource') || ''); mountLaborChoiceLaunchers(); syncLaborRateProfileUi(); }
     if(ctx.decorateFieldHelpLabels) ctx.decorateFieldHelpLabels();
     try{ if(ctx.priceModalHardwareReplacements && typeof ctx.priceModalHardwareReplacements.setSourceItem === 'function') ctx.priceModalHardwareReplacements.setSourceItem(item || null); }catch(_){ }
     wireItemDirtyEvents();

@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-08T23:50:12.191Z",
+  "generatedAt": "2026-06-09T00:06:07.973Z",
   "summary": {
     "jsFiles": 369,
     "indexScripts": 293,
     "devTestScripts": 325,
     "fcSymbols": 269,
     "fcSymbolsAll": 297,
-    "edges": 2074,
+    "edges": 2076,
     "highRisk": 13,
     "mediumRisk": 75
   },
@@ -45,7 +45,7 @@
     },
     "MATERIAŁ": {
       "files": 27,
-      "lines": 6199,
+      "lines": 6216,
       "storageRefs": 8,
       "dialogRefs": 3,
       "high": 0,
@@ -61,7 +61,7 @@
     },
     "INNE": {
       "files": 9,
-      "lines": 2007,
+      "lines": 2068,
       "storageRefs": 2,
       "dialogRefs": 0,
       "high": 0,
@@ -878,9 +878,9 @@
       "score": 6,
       "area": "INNE",
       "category": "domain/controller",
-      "lines": 417,
+      "lines": 449,
       "incoming": 10,
-      "outgoing": 3,
+      "outgoing": 4,
       "secondLevel": 32,
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -6877,7 +6877,7 @@
     "js/app/material/price-modal-field-help.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 155,
+      "lines": 156,
       "defines": [],
       "uses": [
         "priceModalContext",
@@ -7303,16 +7303,18 @@
     "js/app/material/price-modal-item-form.js": {
       "area": "MATERIAŁ",
       "category": "ui/render/events",
-      "lines": 487,
+      "lines": 503,
       "defines": [],
       "uses": [
         "priceModalContext",
-        "laborCatalog"
+        "laborCatalog",
+        "workQuantitySources"
       ],
       "incomingFiles": [],
       "outgoingFiles": [
         "js/app/material/price-modal-context.js",
-        "js/app/pricing/labor-catalog.js"
+        "js/app/pricing/labor-catalog.js",
+        "js/app/pricing/work-quantity-sources.js"
       ],
       "secondLevelFiles": [],
       "storageRefs": 0,
@@ -8121,13 +8123,14 @@
     "js/app/pricing/labor-catalog.js": {
       "area": "INNE",
       "category": "domain/controller",
-      "lines": 417,
+      "lines": 449,
       "defines": [
         "laborCatalog"
       ],
       "uses": [
         "laborCatalogDefinitions",
         "utils",
+        "workQuantitySources",
         "laborCatalog"
       ],
       "incomingFiles": [
@@ -8145,6 +8148,7 @@
       "outgoingFiles": [
         "js/app/bootstrap/app-core-namespace.js",
         "js/app/pricing/labor-catalog-definitions.js",
+        "js/app/pricing/work-quantity-sources.js",
         "js/app/shared/utils.js"
       ],
       "secondLevelFiles": [
@@ -8233,7 +8237,7 @@
     "js/app/pricing/work-quantity-sources.js": {
       "area": "INNE",
       "category": "domain/controller",
-      "lines": 232,
+      "lines": 261,
       "defines": [
         "workQuantitySources"
       ],
@@ -8241,13 +8245,25 @@
         "workQuantitySources"
       ],
       "incomingFiles": [
+        "js/app/material/price-modal-item-form.js",
+        "js/app/pricing/labor-catalog.js",
         "js/app/pricing/work-quantity-facts.js",
         "js/app/ui/data-settings-work-sources-view.js"
       ],
       "outgoingFiles": [],
       "secondLevelFiles": [
+        "js/app/cabinet/cabinet-modal-labor.js",
+        "js/app/catalog/catalog-store.js",
+        "js/app/material/price-modal-item-form.js",
+        "js/app/material/price-modal-list.js",
+        "js/app/material/price-modal-persistence.js",
         "js/app/ui/data-settings-modal.js",
-        "js/app/ui/data-settings-work-sources-view.js"
+        "js/app/ui/data-settings-work-sources-view.js",
+        "js/app/wycena/wycena-core-labor.js",
+        "js/app/wycena/wycena-core-offer.js",
+        "js/app/wycena/wycena-labor-picker.js",
+        "js/app/wycena/wycena-tab-manual-labor.js",
+        "js/tabs/wywiad-labor-summary.js"
       ],
       "storageRefs": 0,
       "dialogRefs": 0,
@@ -8255,7 +8271,9 @@
       "loadedInIndex": true,
       "loadedInDevTests": true,
       "risk": "niskie",
-      "reasons": []
+      "reasons": [
+        "250+ linii"
+      ]
     },
     "js/app/project/project-bridge.js": {
       "area": "PROJEKT",

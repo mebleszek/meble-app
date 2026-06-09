@@ -1,4 +1,12 @@
 
+## 2026-06-09 — Źródło ilości w cenniku robocizny v1
+
+- Dodano wyłącznie pole konfiguracyjne `quantitySource` w pozycjach `quoteRates`.
+- `quantitySource` jest kodem technicznym wskazującym istniejące źródło danych, np. `front.count` albo `hinge.count`; nie tworzy nowego magazynu danych ani drugiej prawdy w szafce.
+- Etap nie dodaje nowego klucza `localStorage`, nie zmienia modelu projektu i nie zapisuje faktów szafki poza istniejącym cennikiem robocizny.
+- WYCENA i `quoteCalculationRegister` nie zostały jeszcze przełączone na użycie `quantitySource`.
+
+
 ## 2026-06-09 — Work quantity facts reader v1
 
 - Dodano `FC.workQuantityFacts` jako read-only adapter danych szafki do przyszłych czynności i WYCENY.

@@ -58,6 +58,7 @@
     laborRateType:{ title:'Stawka godzinowa', message:'Wybierasz profil stawki godzinowej, według którego liczona jest ta czynność. Lista obejmuje stawki systemowe i Twoje własne aktywne stawki.' },
     laborTimeBlockHours:{ title:'Czas bazowy', message:'Podstawowy czas doliczany dla jednej czynności albo jednego zastosowania reguły. Jeśli pozycja ma być czysto kwotowa, ustaw Brak.' },
     laborDefaultMultiplier:{ title:'Mnożnik domyślny', message:'Domyślny mnożnik trudności. Wartość 1 oznacza brak zmiany, 1.25 podnosi wynik o 25%.' },
+    laborQuantitySource:{ title:'Źródło ilości', message:'Wybierz, z jakiej nazwanej wartości program ma później brać ilość dla tej czynności, np. liczba frontów, zawiasów albo półek. Ten etap zapisuje wybór w cenniku, ale nie zmienia jeszcze obecnego liczenia WYCENY.' },
     laborQuantityMode:{ title:'Tryb ilości', message:'Sposób liczenia przy większej liczbie sztuk. Możesz nie liczyć ilości wcale, liczyć liniowo, pakietami albo metodą start + krok.' },
     laborTierText:{ title:'Progi ilościowe', message:'Tu wpisujesz pakiety ilościowe dla trybu progowego. Przykład: 1-2=0.25;3-5=0.5;6-10=1 oznacza, ile godzin doliczyć dla danych zakresów ilości.' },
     laborStartHours:{ title:'Start h', message:'Początkowy czas przy trybie start + krok. To jednorazowa baza doliczana od startowej liczby sztuk.' },

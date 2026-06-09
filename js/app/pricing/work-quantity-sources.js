@@ -219,6 +219,32 @@
     return 'systemowe';
   }
 
+  function canUseAsQuantitySource(source){
+    const row = normalizeSource(source);
+    if(!row.code || row.status === 'planned') return false;
+    if(row.unit === 'tekst') return false;
+    return !['front.dimensions','hinge.requirement','cabinet.zone','cabinet.kind','appliance.type'].includes(row.code);
+  }
+
+  function quantityList(selectedCode){
+    const selected = text(selectedCode);
+    const rows = list().filter(canUseAsQuantitySource);
+    if(selected && !rows.some((row)=> row.code === selected)){
+      const current = find(selected);
+      rows.push(current || { code:selected, label:selected, unit:'—', group:'Nieaktywne', status:'legacy', calculation:'Zapisane wcześniej źródło ilości, którego nie ma na aktywnej liście.' });
+    }
+    return rows;
+  }
+
+  function quantityOptions(selectedCode){
+    return [{ value:'', label:'Brak przypisanego źródła', description:'Czynność nie ma jeszcze wskazanego źródła ilości. Obecne liczenie WYCENY pozostaje bez zmian.' }]
+      .concat(quantityList(selectedCode).map((row)=> ({
+        value:row.code,
+        label:`${row.label} — ${row.code}${row.unit && row.unit !== '—' ? ' (' + row.unit + ')' : ''}`,
+        description:row.calculation || ''
+      })));
+  }
+
   root.FC.workQuantitySources = {
     list,
     find,
@@ -226,6 +252,9 @@
     groupByCategory,
     normalizeSource,
     statusLabel,
+    canUseAsQuantitySource,
+    quantityList,
+    quantityOptions,
     _debug:{ SYSTEM_SOURCES:clone(SYSTEM_SOURCES) },
   };
 })();

@@ -1,4 +1,15 @@
 
+## 2026-06-09 — Źródło ilości w cenniku robocizny v1
+
+- Paczka: `site_labor_quantity_source_selector_v1.zip`.
+- Bazą jest zaakceptowana paczka `site_work_quantity_facts_settings_preview_v1.zip`.
+- W formularzu stawek wyceny mebli / czynności robocizny dodano pole `Źródło ilości`, np. `front.count`, `hinge.count`, `shelf.count`.
+- Pole zapisuje wybrany kod w pozycji cennika jako `quantitySource`, ale ten etap nie podpina go jeszcze do WYCENY ani `quoteCalculationRegister`.
+- Lista wyboru pochodzi ze słownika `Dane do czynności i wyceny` i obejmuje aktywne, policzalne źródła; planowane i tekstowe źródła nie są jeszcze wybieralne jako ilość.
+- Nie ruszano `cabinet-modal.js`, `cabinets-render.js`, `cabinet-common.css`, WYWIADU, plusa dodawania, edycji szafki, WYCENY ani automatów robocizny.
+- Cache-busting: `20260609_labor_quantity_source_selector_v1`. Raport: `tools/reports/labor-quantity-source-selector-v1.md`.
+
+
 ## 2026-06-09 — Podgląd faktów szafek poza modalem
 
 - Paczka: `site_work_quantity_facts_settings_preview_v1.zip`.

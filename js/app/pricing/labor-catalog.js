@@ -189,6 +189,35 @@
     const raw = text(value) || fallback;
     return allowed.some((row)=> row.key === raw) ? raw : fallback;
   }
+  function normalizeQuantitySource(value){
+    const raw = text(value);
+    return /^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/.test(raw) ? raw : '';
+  }
+  function inferQuantitySource(src, autoRole){
+    const explicit = normalizeQuantitySource(src && src.quantitySource);
+    if(explicit) return explicit;
+    const id = text(src && src.id);
+    if(autoRole === 'cabinetBody') return 'cabinet.count';
+    if(autoRole === 'cabinetLooseShelves') return 'shelf.count';
+    if(id === 'labor_mount_front') return 'front.count';
+    if(id === 'labor_mount_hinge' || id === 'labor_adjust_front') return 'hinge.count';
+    if(id === 'labor_mount_drawer') return 'drawer.count';
+    return '';
+  }
+  function quantitySourceOptions(selectedCode){
+    const api = FC.workQuantitySources || {};
+    try{ if(typeof api.quantityOptions === 'function') return api.quantityOptions(selectedCode); }catch(_){ }
+    const selected = normalizeQuantitySource(selectedCode);
+    const out = [{ value:'', label:'Brak przypisanego źródła', description:'' }];
+    try{
+      (typeof api.list === 'function' ? api.list() : []).forEach((row)=>{
+        if(!row || !row.code || row.status === 'planned' || row.unit === 'tekst') return;
+        out.push({ value:row.code, label:`${row.label || row.code} — ${row.code}`, description:row.calculation || '' });
+      });
+    }catch(_){ }
+    if(selected && !out.some((row)=> row.value === selected)) out.push({ value:selected, label:selected, description:'Zapisane wcześniej źródło ilości.' });
+    return out;
+  }
   function normalizeTier(row){
     const src = row && typeof row === 'object' ? row : {};
     const min = Math.max(0, Math.floor(num(src.min, 0)));
@@ -250,6 +279,7 @@
       timeBlockHours:clampTimeBlock(src.timeBlockHours),
       defaultMultiplier:Math.max(0, num(src.defaultMultiplier, 1)) || 1,
       quantityMode,
+      quantitySource:inferQuantitySource(src, autoRole),
       quantityTiers:normalizeTiers(src.quantityTiers),
       startHours:clampTimeBlock(src.startHours),
       startQty:Math.max(1, Math.floor(num(src.startQty, 1))),
@@ -403,6 +433,8 @@
     getUsageLabel,
     getAutoRoleLabel,
     getQuantityModeLabel,
+    normalizeQuantitySource,
+    quantitySourceOptions,
     normalizeRateCode,
     isValidRateCode,
     isHourlyRateDefinition,

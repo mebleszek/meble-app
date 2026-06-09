@@ -9,7 +9,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | Pliki JS | 369 |
 | Skrypty w index.html | 293 |
 | Skrypty w dev_tests.html | 325 |
-| Krawędzie zależności po symbolach FC | 2074 |
+| Krawędzie zależności po symbolach FC | 2076 |
 | Symbole FC z właścicielem produkcyjnym | 269 |
 | Symbole FC z właścicielem razem | 297 |
 | Pliki z ryzykiem wysokim / nie ruszać | 13 |
@@ -23,12 +23,12 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | WYCENA | 49 | 10623 | 12 | 0 | 4 | 6 |
 | SZAFKI | 33 | 8929 | 0 | 0 | 0 | 7 |
 | ROZRYS | 42 | 8864 | 6 | 0 | 1 | 6 |
-| MATERIAŁ | 27 | 6199 | 8 | 3 | 0 | 5 |
+| MATERIAŁ | 27 | 6216 | 8 | 3 | 0 | 5 |
 | KATALOG/USŁUGI | 24 | 5265 | 4 | 0 | 2 | 1 |
 | UI | 33 | 4510 | 0 | 6 | 0 | 2 |
 | INWESTOR | 25 | 3725 | 29 | 0 | 0 | 5 |
+| INNE | 9 | 2068 | 2 | 0 | 0 | 1 |
 | PROJEKT | 10 | 2067 | 0 | 0 | 0 | 6 |
-| INNE | 9 | 2007 | 2 | 0 | 0 | 1 |
 | POMIESZCZENIA | 12 | 1909 | 0 | 1 | 0 | 0 |
 | OPTIMIZER | 12 | 1589 | 0 | 0 | 0 | 1 |
 | RYSUNEK | 1 | 1459 | 0 | 11 | 1 | 0 |
@@ -163,7 +163,7 @@ Raport generowany przez `node tools/dependency-source-audit.js`. To jest raport 
 | js/testing/material/accessories-tests.js | średnie | 6 | 622 | 1 | 1 | 600+ linii; dużo zależności wychodzących |
 | js/app/catalog/hardware-technical-params.js | średnie | 6 | 567 | 14 | 45 | 400+ linii; dużo zależnych plików |
 | js/app/ui/actions-register.js | średnie | 6 | 473 | 0 | 0 | 400+ linii; dużo zależności wychodzących; systemowe dialogi |
-| js/app/pricing/labor-catalog.js | średnie | 6 | 417 | 10 | 32 | 400+ linii; dużo zależnych plików |
+| js/app/pricing/labor-catalog.js | średnie | 6 | 449 | 10 | 32 | 400+ linii; dużo zależnych plików |
 | js/testing/rozrys/suites/scope-runtime-controllers.js | średnie | 6 | 369 | 7 | 21 | 250+ linii; kilka publicznych symboli FC; kilka zależnych plików; dużo zależności wychodzących |
 | js/tabs/wycena.js | średnie | 6 | 368 | 7 | 31 | 250+ linii; kilka zależnych plików; dużo zależności wychodzących |
 | js/app/investor/investor-ui.js | średnie | 6 | 363 | 7 | 23 | 250+ linii; kilka zależnych plików; dużo zależności wychodzących |

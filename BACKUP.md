@@ -1,3 +1,9 @@
+
+## 2026-06-09 — Źródło ilości w cenniku robocizny v1
+
+- Pole `quantitySource` jest częścią istniejących pozycji `quoteRates`, więc trafia do backupu razem z cennikiem robocizny.
+- Nie dodano nowego klucza backupu ani osobnego magazynu faktów szafki.
+
 # BACKUP — zakres, testy i zasady zmian
 
 Ten plik jest obowiązkową mapą mechanizmu backupu danych w meble-app. Czytać go przed każdą zmianą, która dotyczy danych, storage, backupów, importu/eksportu, testów danych, katalogów/cenników, projektów, inwestorów albo przyszłej chmury.
