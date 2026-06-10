@@ -3,7 +3,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const BUILD = '20260610_wycena_unsaved_preview_storage_fix_v1';
+  const BUILD = '20260610_labor_drawer_count_context_fix_v1';
   const EVENT_LIMIT = 60;
   let lastGenerateTrace = null;
   let lastGenerateButtonEvent = null;

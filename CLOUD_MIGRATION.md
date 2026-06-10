@@ -1,4 +1,11 @@
 
+## 2026-06-10 — `drawer.count` jako odczyt kontekstowy
+
+- Nie dodano nowego klucza storage ani nowego pola trwałego. Poprawiono wyłącznie read-only interpretację istniejących danych szafki przez `FC.workQuantityFacts`.
+- `drawer.count` nie może traktować historycznych/domniemanych pól draftu modala jako realnych szuflad. Dla przyszłej chmury oznacza to, że ukryte techniczne wartości domyślne nie mogą stać się danymi biznesowymi oferty.
+- Snapshot WYCENY może nadal zapisać wynik `drawer.count` w `quoteCalculationRegister`, ale tylko jako wynik konkretnej kalkulacji, nie jako nową prawdę w projekcie.
+
+
 ## 2026-06-10 — WYCENA: pełny magazyn nie może ukrywać policzonego wyniku
 
 - Zapis historii ofert nadal idzie przez istniejący `quoteSnapshotStore` i klucz snapshotów; nie dodano nowego trwałego klucza `localStorage`.

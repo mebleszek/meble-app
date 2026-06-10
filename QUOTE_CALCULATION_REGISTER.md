@@ -1,4 +1,12 @@
 
+## 2026-06-10 — Uwaga dla `drawer.count`
+
+- `drawer.count` w rejestrze oznacza liczbę realnie zastosowanych szuflad/prowadnic, a nie samo istnienie pól `drawerCount` w danych szafki.
+- Ukryte domyślne pola draftu modala nie mogą tworzyć pozycji `Montaż szuflady / prowadnic` dla zwykłej szafki z drzwiczkami.
+- Jeśli linia robocizny ma `quantitySource: drawer.count`, powinna pojawić się tylko dla wariantu szufladowego albo jawnie wybranych szuflad wewnętrznych / specjalnych wariantów z szufladą.
+- Cache-busting etapu: `20260610_labor_drawer_count_context_fix_v1`.
+
+
 ## 2026-06-09 — Źródła ilości robocizny w rejestrze v1
 
 - Paczka: `site_labor_quantity_values_link_v1.zip`.

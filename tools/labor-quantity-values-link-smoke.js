@@ -18,8 +18,8 @@ function slug(value){ return String(value || '').toLowerCase().normalize('NFD').
 
 const projectData = {
   kuchnia:{ cabinets:[{
-    id:'cab_quantity_source', type:'stojąca', subType:'szufladówka', width:60, height:82, depth:51, frontCount:2,
-    details:{ shelves:1, drawerCount:3 }
+    id:'cab_quantity_source', type:'stojąca', subType:'szuflady', width:60, height:82, depth:51, frontCount:2,
+    details:{ shelves:1, drawerLayout:'3_1_2_2', drawerCount:3, innerDrawerType:'brak', innerDrawerCount:'2' }
   }] }
 };
 const FC = {
