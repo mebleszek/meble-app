@@ -102,7 +102,7 @@ function runSessionMetadataAndDeleteReferenceCleanup(){
 }
 
 function runCacheBustCheck(){
-  const version = '20260610_quote_history_storage_maintenance_v1';
+  const version = '20260610_quote_diag_storage_cleanup_v1';
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const dev = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');
   [

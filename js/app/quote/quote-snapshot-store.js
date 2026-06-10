@@ -101,8 +101,23 @@
     invalidateDirtyCache();
   }
 
+  function cleanupStaleEditSessionBeforeWrite(reason){
+    try{
+      const api = FC.quoteSnapshotStorageMaintenance;
+      if(api && typeof api.cleanupStaleEditSession === 'function'){
+        const result = api.cleanupStaleEditSession({ reason:String(reason || 'writeAll') });
+        if(result && (result.removed || result.wouldRemove)) recordStoreEvent('edit-session:cleanup-before-write', result);
+        return result;
+      }
+    }catch(err){
+      recordStoreEvent('edit-session:cleanup-error', { reason:String(reason || ''), message:String(err && err.message || err || 'błąd') });
+    }
+    return null;
+  }
+
   function writeSnapshotRowsStrict(rows, reason){
     const list = Array.isArray(rows) ? rows : [];
+    cleanupStaleEditSessionBeforeWrite(reason || 'writeAll');
     const raw = JSON.stringify(list);
     let firstError = null;
     try{ tryWriteRawSnapshot(raw); }
@@ -489,13 +504,23 @@
       .sort((a,b)=> JSON.stringify(a).localeCompare(JSON.stringify(b)));
   }
 
-  function quoteFingerprint(snapshot){
+  function hashString32(value, seed){
+    const textValue = String(value == null ? '' : value);
+    let h = (Number(seed) >>> 0) || 2166136261;
+    for(let i = 0; i < textValue.length; i += 1){
+      h ^= textValue.charCodeAt(i);
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return ('00000000' + h.toString(16)).slice(-8);
+  }
+
+  function quoteFingerprintPayload(snapshot){
     const snap = snapshot && typeof snapshot === 'object' ? snapshot : {};
     const scope = buildCanonicalScope(snap.scope || {}, { preserveExplicitLabels:true });
     const commercial = snap.commercial && typeof snap.commercial === 'object' ? snap.commercial : {};
     const totals = snap.totals && typeof snap.totals === 'object' ? snap.totals : {};
     const lines = snap.lines && typeof snap.lines === 'object' ? snap.lines : {};
-    const comparable = {
+    return {
       projectId: compactText(snap.project && snap.project.id || ''),
       investorId: compactText(snap.investor && snap.investor.id || snap.project && snap.project.investorId || ''),
       preliminary: isPreliminarySnapshot(snap),
@@ -532,7 +557,17 @@
       },
       calculationRegister: linesFingerprint(snapshot && snapshot.calculationRegister && snapshot.calculationRegister.lines),
     };
-    return JSON.stringify(stableCanonical(comparable));
+  }
+
+  function quoteFingerprint(snapshot){
+    const canonical = JSON.stringify(stableCanonical(quoteFingerprintPayload(snapshot)));
+    // Nie zapisujemy pełnego JSON-a porównawczego w meta snapshotu.
+    // Pełny payload miał kilkadziesiąt KB i puchł przy 30 ofertach; do porównania wariantów wystarcza stabilny odcisk.
+    return 'qfp2:' + canonical.length + ':' + hashString32(canonical, 2166136261) + ':' + hashString32(canonical, 2654435769);
+  }
+
+  function isCompactQuoteFingerprint(value){
+    return /^qfp2:\d+:[0-9a-f]{8}:[0-9a-f]{8}$/.test(compactText(value));
   }
 
   function getQuoteFingerprint(snapshot){
@@ -602,7 +637,8 @@
         quoteFingerprint:'',
       }
     };
-    out.meta.quoteFingerprint = String(srcMeta.quoteFingerprint || src.meta && src.meta.quoteFingerprint || getQuoteFingerprint(out));
+    const storedFingerprint = compactText(srcMeta.quoteFingerprint || src.meta && src.meta.quoteFingerprint || '');
+    out.meta.quoteFingerprint = isCompactQuoteFingerprint(storedFingerprint) ? storedFingerprint : getQuoteFingerprint(out);
     if(src.__test === true || srcMeta.__test === true || srcMeta.testData){
       out.__test = true;
       out.__testRunId = String(src.__testRunId || srcMeta.__testRunId || srcMeta.testRunId || '');

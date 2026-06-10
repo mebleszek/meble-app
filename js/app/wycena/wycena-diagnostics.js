@@ -3,7 +3,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const BUILD = '20260610_quote_history_storage_maintenance_v1';
+  const BUILD = '20260610_quote_diag_storage_cleanup_v1';
   const EVENT_LIMIT = 60;
   let lastGenerateTrace = null;
   let lastGenerateButtonEvent = null;
@@ -249,6 +249,49 @@
     out.lastQuoteSize = lastQuote ? snapshotSizeBreakdown(lastQuote) : null;
     return out;
   }
+  function summarizeTabShellState(state){
+    const src = state && typeof state === 'object' ? state : {};
+    const out = {};
+    Object.keys(src).forEach(function(key){
+      const value = src[key];
+      if(key === 'lastQuote'){
+        out.lastQuote = value && typeof value === 'object' ? summarizeSnapshot(value) : null;
+        out.lastQuoteSize = value && typeof value === 'object' ? snapshotSizeBreakdown(value) : null;
+        return;
+      }
+      if(value == null || typeof value !== 'object') out[key] = value;
+      else if(Array.isArray(value)) out[key] = value.slice(0, 20).map(function(item){ return item && typeof item === 'object' && (item.id || item.snapshotId || item.meta) ? summarizeSnapshot(item) : item; });
+      else out[key] = { keys:shallowKeys(value).slice(0, 30) };
+    });
+    return out;
+  }
+  function getLocalStorageTopKeys(limit){
+    const rows = listStorageKeys().map(function(key){ return summarizeStorageKey(key); });
+    rows.sort(function(a,b){ return Number(b.bytes || 0) - Number(a.bytes || 0); });
+    return rows.slice(0, Number(limit) > 0 ? Number(limit) : 20).map(function(row){
+      const kind = row.key === 'fc_quote_snapshots_v1' ? 'quote-snapshots'
+        : row.key === 'fc_data_backups_v1' ? 'backup-store'
+        : row.key === 'fc_edit_session_v1' ? 'edit-session'
+        : /^fc_project_inv_.+_v1$/.test(row.key) ? 'legacy-project-slot'
+        : /cache/i.test(row.key) ? 'cache'
+        : 'fc-storage';
+      return Object.assign({}, row, { kind });
+    });
+  }
+  function isLikelyEditModalOpen(){
+    try{
+      if(!(document && typeof document.querySelector === 'function')) return false;
+      const selectors = [
+        '.cabinet-modal',
+        '.cabinet-modal-backdrop',
+        '.investor-form-modal',
+        '.price-item-popup',
+        '.panel-box[role="dialog"]',
+        '[role="dialog"][aria-modal="true"]'
+      ];
+      return selectors.some(function(selector){ return !!document.querySelector(selector); });
+    }catch(_){ return false; }
+  }
   function summarizeStorageKey(key){
     const raw = storageRaw(key);
     const parsed = safeJson(raw);
@@ -283,6 +326,7 @@
       source:text(row.source || row.meta && row.meta.source),
     };
   }
+  function storageBytesFromRaw(raw){ return raw == null ? 0 : String(raw).length; }
   function parseEditSession(){
     const parsed = storageJson('fc_edit_session_v1');
     const value = parsed.value;
@@ -291,16 +335,33 @@
       jsonOk:!!parsed.ok,
       bytes:parsed.bytes,
       keys:value && typeof value === 'object' ? shallowKeys(value) : [],
-      summary:value && typeof value === 'object' ? {
-        active:!!(value.active || value.isActive || value.editing || value.mode || value.roomId || value.projectId || value.investorId),
-        schemaVersion:value.schemaVersion || null,
-        legacyOrphan:!!(FC.session && typeof FC.session.isLegacyOrphanPayload === 'function' && FC.session.isLegacyOrphanPayload(value)),
-        mode:text(value.mode || value.type || value.kind),
-        roomId:text(value.roomId || value.currentRoomId || value.editedRoomId || value.context && value.context.roomId),
-        projectId:text(value.projectId || value.context && value.context.projectId),
-        investorId:text(value.investorId || value.context && value.context.investorId),
-        updatedAt:value.updatedAt || value.startedAt || null,
-      } : null,
+      summary:value && typeof value === 'object' ? (function(){
+        const context = value.context && typeof value.context === 'object' ? value.context : {};
+        const snap = value.snapshot && typeof value.snapshot === 'object' ? value.snapshot : null;
+        const mode = text(value.mode || value.type || value.kind);
+        const roomId = text(value.roomId || value.currentRoomId || value.editedRoomId || context.roomId);
+        const activeTab = text(context.activeTab);
+        const modalOpen = isLikelyEditModalOpen();
+        const deadCandidate = !!(value.active && snap && !mode && !roomId && activeTab === 'wycena' && !modalOpen);
+        const snapshotKeys = snap ? Object.keys(snap).sort().map(function(key){ return { key, bytes:storageBytesFromRaw(snap[key]) }; }).sort(function(a,b){ return b.bytes - a.bytes; }).slice(0, 12) : [];
+        return {
+          active:!!(value.active || value.isActive || value.editing || mode || roomId || value.projectId || value.investorId || context.projectId || context.investorId),
+          schemaVersion:value.schemaVersion || null,
+          legacyOrphan:!!(FC.session && typeof FC.session.isLegacyOrphanPayload === 'function' && FC.session.isLegacyOrphanPayload(value)),
+          deadCandidate,
+          safeCleanupEligible:deadCandidate,
+          modalOpen,
+          mode,
+          roomId,
+          activeTab,
+          projectId:text(value.projectId || context.projectId),
+          investorId:text(value.investorId || context.investorId),
+          startedAt:value.startedAt || null,
+          updatedAt:value.updatedAt || value.startedAt || null,
+          snapshotKeyCount:snap ? Object.keys(snap).length : 0,
+          snapshotTopKeys:snapshotKeys,
+        };
+      })() : null,
     };
   }
   function collectStorageSection(){
@@ -322,6 +383,7 @@
     return {
       totalKeys:keys.length,
       fcKeys:keys.filter(function(key){ return key.indexOf('fc_') === 0; }).length,
+      topKeys:getLocalStorageTopKeys(20),
       important:important.map(summarizeStorageKey),
       legacyProjectSlots:legacySlots.map(summarizeStorageKey),
       legacyProjectSlotCount:legacySlots.length,
@@ -476,7 +538,7 @@
       historyCount:histRows.length,
       historyRows:summarizeSnapshotList(histRows, 12),
       previewState:summarizePreviewState(previewState || {}),
-      shellState:clone(shellState || {}),
+      shellState:summarizeTabShellState(shellState || {}),
       currentDraft:summarizeDraft(currentDraft),
       resolvedDisplayedQuote:resolved ? summarizeSnapshot(resolved) : null,
       dom:collectDomRenderSources(),

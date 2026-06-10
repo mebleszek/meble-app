@@ -1,3 +1,9 @@
+## 2026-06-10 — WYCENA: przygotowanie historii ofert pod chmurę
+
+- Historia ofert została dalej odchudzona bez zmiany wyniku wyceny: snapshot ma zachować dane potrzebne do podglądu, audytu i statusów, ale nie powinien trzymać ciężkich technicznych odcisków porównawczych.
+- `quoteFingerprint` jest kompaktowy i deterministyczny, więc nadaje się jako lokalny/przyszły backendowy indeks porównania wariantów, zamiast zapisywać pełny JSON porównawczy w dokumencie oferty.
+- Diagnostyka `topKeys` pomaga oddzielać dane użytkownika od cache/sesji technicznych przed migracją do backendu.
+
 
 ## WYCENA — historia ofert i lokalny storage maintenance — 2026-06-10
 

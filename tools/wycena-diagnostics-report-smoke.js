@@ -60,6 +60,8 @@ async function main(){
   const report = await FC.wycenaDiagnostics.buildReport({ dryRun:false });
   assert(report && report.kind === 'meble-app-wycena-diagnostics', 'Raport ma zły format', report);
   assert(report.runtime && report.storage && report.roomsAndSelection && report.snapshots && report.renderSources && report.versionNameDiagnostics && report.snapshotStorageDeepDive, 'Raport nie zawiera wymaganych sekcji render/source diagnostics', report);
+  assert(Array.isArray(report.storage.topKeys), 'Raport nie zawiera LOCAL STORAGE TOP KEYS / topKeys', report.storage);
+
   assert(report.lastGenerateButtonEvent && report.lastGenerateButtonEvent.source === 'test-button', 'Raport nie zawiera zdarzenia przycisku WYCENY', report.lastGenerateButtonEvent);
   assert(report.lastGenerateTrace && report.lastGenerateTrace.result && report.lastGenerateTrace.result.ok === true, 'Raport nie zawiera śladu generowania WYCENY', report.lastGenerateTrace);
   const text = FC.wycenaDiagnostics.stringifyReport(report);
@@ -67,8 +69,8 @@ async function main(){
 
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const devTests = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');
-  assert(index.includes('js/app/wycena/wycena-diagnostics.js?v=20260610_quote_history_storage_maintenance_v1'), 'index.html nie ładuje diagnostyki z cache-bustingiem');
-  assert(devTests.includes('js/app/wycena/wycena-diagnostics.js?v=20260610_quote_history_storage_maintenance_v1'), 'dev_tests.html nie ładuje diagnostyki z cache-bustingiem');
+  assert(index.includes('js/app/wycena/wycena-diagnostics.js?v=20260610_quote_diag_storage_cleanup_v1'), 'index.html nie ładuje diagnostyki z cache-bustingiem');
+  assert(devTests.includes('js/app/wycena/wycena-diagnostics.js?v=20260610_quote_diag_storage_cleanup_v1'), 'dev_tests.html nie ładuje diagnostyki z cache-bustingiem');
   console.log('[wycena-diagnostics-report-smoke] OK');
 }
 

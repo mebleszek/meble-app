@@ -65,7 +65,7 @@ assert(modal.includes("next === 'workSources'") && modal.includes('dataSettingsW
 assert(view.includes('Nazwa techniczna') || view.includes('data-work-source-code'), 'widok pokazuje techniczną nazwę źródła');
 assert(view.includes('Tu ustalamy wspólny język programu') && view.includes('nie zapisuje kopii danych w szafkach'), 'widok jasno mówi, że to podgląd bez drugiego zapisu danych');
 assert(css.includes('data-settings-work-source__calc') && css.includes('data-settings-work-source__badge--planned'), 'CSS ma style listy źródeł i statusów');
-assert(index.includes('20260610_quote_history_storage_maintenance_v1') && dev.includes('20260610_quote_history_storage_maintenance_v1'), 'index/dev_tests mają aktualny cache-busting etapu');
+assert(index.includes('20260610_quote_diag_storage_cleanup_v1') && dev.includes('20260610_quote_diag_storage_cleanup_v1'), 'index/dev_tests mają aktualny cache-busting etapu');
 
 console.log('OK work-quantity-sources-settings smoke');
 console.log(' - źródła danych do czynności mają techniczne kody, ludzkie nazwy, jednostki i opisy liczenia');

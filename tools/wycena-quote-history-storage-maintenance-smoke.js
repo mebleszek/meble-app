@@ -5,7 +5,7 @@ const { APP_DEV_SMOKE_FILES } = require('./app-dev-smoke-lib/file-list');
 const { SmokeStorage, makeStorage } = require('./app-dev-smoke-lib/smoke-storage');
 const { makeMiniDocument } = require('./app-dev-smoke-lib/mini-document');
 
-const VERSION = '20260610_quote_history_storage_maintenance_v1';
+const VERSION = '20260610_quote_diag_storage_cleanup_v1';
 
 function assert(condition, message, details){
   if(!condition){
@@ -126,6 +126,43 @@ function runThirtyOffersPerProjectLimit(){
   assert(!rows.some((row)=> row.id === 'snap_0'), 'Najstarsze niezaakceptowane warianty powinny zostać odcięte po limicie 30', rows.map((r)=> r.id));
 }
 
+function runStaleWycenaEditSessionCleanupOnSave(){
+  const staleSnapshot = {
+    fc_quote_snapshots_v1: JSON.stringify([makeSnapshot('old_in_session', 'proj_session', 10)]),
+    fc_project_v1: JSON.stringify({ schemaVersion:12 }),
+    fc_projects_v1: JSON.stringify([]),
+  };
+  const sandbox = loadSmokeFiles(createSandbox());
+  sandbox.localStorage.setItem('fc_ui_v1', JSON.stringify({ activeTab:'wycena' }));
+  sandbox.localStorage.setItem('fc_edit_session_v1', JSON.stringify({
+    schemaVersion:2,
+    active:true,
+    startedAt:1000,
+    updatedAt:1000,
+    context:{ activeTab:'wycena', projectId:'proj_session', investorId:'inv_storage', roomId:'' },
+    snapshot:staleSnapshot,
+  }));
+  const FC = sandbox.FC;
+  const saved = FC.quoteSnapshotStore.save(makeSnapshot('snap_after_stale_session_cleanup', 'proj_session', 220));
+  assert(saved && saved.id === 'snap_after_stale_session_cleanup', 'Nie zapisano snapshotu po czyszczeniu martwej sesji WYCENY', saved);
+  assert(!sandbox.localStorage.getItem('fc_edit_session_v1'), 'Martwa sesja edycji WYCENY nie została usunięta przed zapisem historii');
+}
+
+function runCompactQuoteFingerprint(){
+  const sandbox = loadSmokeFiles(createSandbox());
+  const FC = sandbox.FC;
+  const snap = makeSnapshot('snap_fingerprint', 'proj_fingerprint', 333);
+  snap.lines.labor = [{
+    key:'labor_heavy', name:'Robocizna', qty:1, unit:'szt.', unitPrice:100, total:100,
+    details:Array.from({ length:20 }, (_, index)=> ({ name:'Czynność ' + index, calculation:'bardzo długi opis '.repeat(80), total:index }))
+  }];
+  const saved = FC.quoteSnapshotStore.save(snap);
+  assert(saved && saved.meta && /^qfp2:\d+:[0-9a-f]{8}:[0-9a-f]{8}$/.test(saved.meta.quoteFingerprint), 'Odcisk oferty nie jest kompaktowy qfp2', saved && saved.meta);
+  assert(saved.meta.quoteFingerprint.length < 40, 'Odcisk oferty nadal jest zbyt duży', saved.meta.quoteFingerprint);
+  const size = FC.quoteSnapshotStore.snapshotSizeBreakdown(saved);
+  assert(size && size.parts && Number(size.parts.meta || 0) < 2000, 'Meta snapshotu nadal waży podejrzanie dużo po skróceniu fingerprintu', size);
+}
+
 function runStaticChecks(){
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const dev = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');
@@ -137,12 +174,16 @@ function runStaticChecks(){
   assert(store.includes('quoteSnapshotStorageMaintenance'), 'Store nie korzysta z maintenance przy błędzie storage');
   assert(diagnostics.includes("const BUILD = '" + VERSION + "'"), 'Diag ma zły build');
   assert(diagnostics.includes('summarizePreviewState'), 'Diag nadal może wyrzucać pełny lastQuote zamiast skrótu');
+  assert(diagnostics.includes('summarizeTabShellState'), 'Diag nadal może wyrzucać pełny shellState.lastQuote zamiast skrótu');
+  assert(diagnostics.includes('topKeys:getLocalStorageTopKeys'), 'Diag nie pokazuje największych kluczy localStorage');
 }
 
 try{
   runStaticChecks();
   runMaintenanceWriteAfterQuota();
   runThirtyOffersPerProjectLimit();
+  runStaleWycenaEditSessionCleanupOnSave();
+  runCompactQuoteFingerprint();
   console.log('[wycena-quote-history-storage-maintenance-smoke] OK');
 }catch(err){
   console.error('[wycena-quote-history-storage-maintenance-smoke] FAIL:', err && err.message ? err.message : err);

@@ -87,7 +87,7 @@ const dev = read('dev_tests.html');
 const loadGroups = read('tools/index-load-groups.js');
 const fileList = read('tools/app-dev-smoke-lib/file-list.js');
 [index, dev, loadGroups, fileList].forEach((src, idx)=> assert(src.includes('js/app/pricing/work-quantity-facts.js'), `plik ładowania ${idx} ładuje work-quantity-facts.js`));
-assert(index.includes('20260610_quote_history_storage_maintenance_v1') && dev.includes('20260610_quote_history_storage_maintenance_v1'), 'index/dev_tests mają cache-busting faktów roboczych');
+assert(index.includes('20260610_quote_diag_storage_cleanup_v1') && dev.includes('20260610_quote_diag_storage_cleanup_v1'), 'index/dev_tests mają cache-busting faktów roboczych');
 assert(!index.includes('cmWorkFactsPreview') && !index.includes('cabinet-work-facts-preview.js'), 'etap nie przywraca panelu w modalu szafki');
 assert(!read('js/app/cabinet/cabinet-modal.js').includes('cmWorkFactsPreview'), 'cabinet-modal.js nie jest podłączony do panelu faktów');
 assert(!read('js/app/ui/cabinets-render.js').includes('ensureAddCabinet'), 'cabinets-render.js nie ma awaryjnej łaty plusa');

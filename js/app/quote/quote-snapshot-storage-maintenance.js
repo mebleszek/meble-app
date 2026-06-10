@@ -19,6 +19,7 @@
   function remove(key){ try{ localStorage.removeItem(String(key || '')); return true; }catch(_){ return false; } }
   function jsonBytes(value){ try{ return JSON.stringify(value == null ? null : value).length; }catch(_){ return 0; } }
   function parseArray(value){ try{ const parsed = JSON.parse(String(value || '[]')); return Array.isArray(parsed) ? parsed : []; }catch(_){ return []; } }
+  function parseObject(value){ try{ const parsed = JSON.parse(String(value || '{}')); return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null; }catch(_){ return null; } }
   function storageKeys(){
     const out = [];
     try{
@@ -71,6 +72,62 @@
     try{ if(FC.dataStorageKeys && typeof FC.dataStorageKeys.cleanupVolatileKeys === 'function') FC.dataStorageKeys.cleanupVolatileKeys(); }catch(_){ }
     return removed;
   }
+  function currentUiActiveTab(){
+    try{
+      const parsed = parseObject(raw('fc_ui_v1')) || {};
+      return text(parsed.activeTab || parsed.currentTab || '');
+    }catch(_){ return ''; }
+  }
+  function isLikelyDialogOpen(){
+    try{
+      if(!(document && typeof document.querySelector === 'function')) return false;
+      const selectors = [
+        '.cabinet-modal',
+        '.cabinet-modal-backdrop',
+        '.investor-form-modal',
+        '.price-item-popup',
+        '.quote-diagnostics-modal',
+        '[role="dialog"][aria-modal="true"]'
+      ];
+      return selectors.some((selector)=> !!document.querySelector(selector));
+    }catch(_){ return false; }
+  }
+  function cleanupStaleEditSession(options){
+    const opts = options && typeof options === 'object' ? options : {};
+    const key = 'fc_edit_session_v1';
+    const beforeRaw = raw(key);
+    const beforeBytes = bytes(beforeRaw);
+    const payload = parseObject(beforeRaw);
+    if(!beforeBytes || !payload) return { checked:true, removed:false, reason:'missing-or-invalid', beforeBytes };
+    const context = payload.context && typeof payload.context === 'object' ? payload.context : {};
+    const snapshot = payload.snapshot && typeof payload.snapshot === 'object' ? payload.snapshot : null;
+    const mode = text(payload.mode || payload.type || payload.kind);
+    const roomId = text(payload.roomId || payload.currentRoomId || payload.editedRoomId || context.roomId);
+    const contextTab = text(context.activeTab);
+    const currentTab = currentUiActiveTab();
+    const modalOpen = isLikelyDialogOpen();
+    const looksStale = !!(payload.active && snapshot && !mode && !roomId && !modalOpen && (contextTab === 'wycena' || currentTab === 'wycena' || opts.force === true));
+    if(!looksStale){
+      return { checked:true, removed:false, reason:'not-safe', beforeBytes, contextTab, currentTab, mode, roomId, modalOpen, snapshotKeys:snapshot ? Object.keys(snapshot).length : 0 };
+    }
+    if(opts.dryRun === true){
+      return { checked:true, removed:false, wouldRemove:true, reason:'stale-wycena-edit-session', beforeBytes, contextTab, currentTab, mode, roomId, modalOpen, snapshotKeys:snapshot ? Object.keys(snapshot).length : 0 };
+    }
+    let removed = false;
+    try{
+      if(FC.session && typeof FC.session.commit === 'function'){
+        FC.session.commit();
+        removed = !raw(key);
+      }
+    }catch(_){ removed = false; }
+    if(!removed) removed = remove(key);
+    return { checked:true, removed:!!removed, reason:removed ? 'stale-wycena-edit-session' : 'remove-failed', beforeBytes, afterBytes:bytes(raw(key)), contextTab, currentTab, snapshotKeys:snapshot ? Object.keys(snapshot).length : 0 };
+  }
+  function storageTopKeys(limit){
+    const rows = storageKeys().map((key)=> ({ key, bytes:bytes(raw(key)) }));
+    rows.sort((a,b)=> Number(b.bytes || 0) - Number(a.bytes || 0));
+    return rows.slice(0, Number(limit) > 0 ? Number(limit) : 20);
+  }
 
   function compactBackupStore(aggressive){
     const key = (FC.dataBackupStorage && FC.dataBackupStorage.STORE_KEY) || (FC.dataStorageKeys && FC.dataStorageKeys.BACKUP_STORE_KEY) || BACKUP_KEY;
@@ -109,6 +166,7 @@
   function prepareForSnapshotWrite(options){
     const opts = options && typeof options === 'object' ? options : {};
     const before = { fcBytes:totalFcBytes(), snapshotBytes:jsonBytes(opts.rows || []), backupBytes:bytes(raw((FC.dataBackupStorage && FC.dataBackupStorage.STORE_KEY) || BACKUP_KEY)) };
+    const staleEditSession = cleanupStaleEditSession({ reason:opts.reason, force:!!opts.aggressive });
     const technicalRemoved = removeKnownTechnicalKeys();
     const backup = compactBackupStore(!!opts.aggressive);
     const after = { fcBytes:totalFcBytes(), backupBytes:bytes(raw(backup.key || BACKUP_KEY)) };
@@ -118,6 +176,7 @@
       before,
       after,
       freedBytes:Math.max(0, Number(before.fcBytes || 0) - Number(after.fcBytes || 0)),
+      staleEditSession,
       technicalRemoved,
       backup,
     };
@@ -133,6 +192,8 @@
       currentFcBytes:totalFcBytes(),
       backupStoreBytes:bytes(raw((FC.dataBackupStorage && FC.dataBackupStorage.STORE_KEY) || BACKUP_KEY)),
       quoteSnapshotStoreBytes:bytes(raw('fc_quote_snapshots_v1')),
+      topKeys:storageTopKeys(12),
+      staleEditSession:cleanupStaleEditSession({ reason:'audit-only', force:false, dryRun:true }),
     };
   }
 
@@ -141,6 +202,8 @@
     compactBackupStore,
     removeKnownTechnicalKeys,
     auditSnapshotWriteCandidate,
+    cleanupStaleEditSession,
+    storageTopKeys,
     totalFcBytes,
   };
 })();

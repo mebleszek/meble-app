@@ -1,3 +1,14 @@
+## 2026-06-10 — WYCENA: porządek Diag, storage i kompaktowy fingerprint v1
+
+- Paczka: `site_quote_diag_storage_cleanup_v1.zip`.
+- `Diag` skraca teraz także `shellState.lastQuote`, więc raport nie powinien wypluwać pełnej oferty z listą formatek i linii.
+- `Diag` pokazuje `topKeys` — największe klucze `localStorage`, żeby od razu było widać, czy magazyn zjadają snapshoty, backupy, sesja edycji, cache czy inny klucz.
+- `fc_edit_session_v1` jest bezpiecznie czyszczony przed zapisem historii WYCENY tylko wtedy, gdy wygląda na martwą sesję z zakładki WYCENA: aktywna, ze snapshotem, bez trybu, bez pokoju i bez otwartego modala/dialogu.
+- Odcisk porównawczy oferty `meta.quoteFingerprint` nie jest już pełnym JSON-em ważącym dziesiątki KB. Jest kompaktowym stabilnym hashem `qfp2`, więc `meta` snapshotu nie puchnie przy 30 ofertach.
+- Nie zmieniono sensu liczenia WYCENY, automatów robocizny, `quantitySource`, warunków, audytu robocizny ani flow akceptacji ofert.
+- Nie ruszano `drawer.count`, WYWIADU, plusa dodawania szafki, `cabinet-modal.js`, `cabinets-render.js` ani `cabinet-common.css`.
+- Cache-busting: `20260610_quote_diag_storage_cleanup_v1`. Raport: `tools/reports/quote-diag-storage-cleanup-v1.md`.
+
 
 ## 2026-06-10 — WYCENA: historia ofert i storage maintenance v1
 

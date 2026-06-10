@@ -1,3 +1,9 @@
+## 2026-06-10 — WYCENA: martwa sesja edycji i fingerprint snapshotu
+
+- `fc_edit_session_v1` nadal jest kluczem lotnym/sesyjnym i nie wchodzi do backupu.
+- Przed zapisem historii WYCENY program może usunąć tylko martwą sesję edycji z zakładki WYCENA: aktywną, ale bez trybu, bez pokoju i bez otwartego modala/dialogu. Nie dotyczy to realnej edycji szafki/inwestora.
+- `meta.quoteFingerprint` w snapshotach ofert jest teraz kompaktowym odciskiem `qfp2`, a nie pełnym JSON-em porównawczym. Zmiana zmniejsza rozmiar historii i nie dodaje nowego klucza backupu.
+
 
 ## 2026-06-10 — Awaryjne odchudzanie backupów przy zapisie historii WYCENY
 
