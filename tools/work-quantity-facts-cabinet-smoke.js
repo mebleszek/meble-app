@@ -74,15 +74,8 @@ assert(map['front.area_m2'].value === 0.432, 'front.area_m2 liczy powierzchnię 
 assert(map['hinge.count'].value === 4, 'hinge.count czyta ilość zawiasów z wymagań zawiasów');
 assert(/Zawias 110/.test(map['hinge.requirement'].displayValue), 'hinge.requirement pokazuje ludzki opis wymagania zawiasu');
 assert(map['shelf.count'].value === 1, 'shelf.count czyta półki z danych szafki');
-assert(map['drawer.count'].value === 0, 'drawer.count nie liczy ukrytych domyślnych pól szuflad dla szafki standardowej z drzwiczkami');
 assert(map['cabinet.zone'].value === 'dolna', 'cabinet.zone klasyfikuje stojącą jako dolną');
 assert(map['appliance.count'].value === 0, 'appliance.count dla zwykłej szafki wynosi 0');
-
-const drawerCabinet = Object.assign({}, cabinet, { subType:'szuflady', frontCount:3, details:{ drawerLayout:'3_1_2_2', drawerCount:'3', innerDrawerType:'brak', innerDrawerCount:'2' } });
-const drawerMap = api.buildCabinetFactMap('kuchnia', drawerCabinet);
-assert(drawerMap['drawer.count'].value === 3, 'drawer.count liczy fronty szuflad tylko dla wariantu szufladowego i nie dolicza wewnętrznych, gdy typ = brak');
-const innerDrawerMap = api.buildCabinetFactMap('kuchnia', Object.assign({}, cabinet, { details:{ insideMode:'szuflady_wew', innerDrawerCount:'2', innerDrawerType:'blum', shelves:0, drawerCount:'4' } }));
-assert(innerDrawerMap['drawer.count'].value === 2, 'drawer.count dla standardowej szafki liczy tylko jawnie wybrane szuflady wewnętrzne, nie ukryte drawerCount');
 
 const ovenMap = api.buildCabinetFactMap('kuchnia', Object.assign({}, cabinet, { subType:'piekarnikowa' }));
 assert(ovenMap['appliance.count'].value === 1, 'appliance.count wykrywa AGD z reguł montażu sprzętu');
@@ -94,7 +87,7 @@ const dev = read('dev_tests.html');
 const loadGroups = read('tools/index-load-groups.js');
 const fileList = read('tools/app-dev-smoke-lib/file-list.js');
 [index, dev, loadGroups, fileList].forEach((src, idx)=> assert(src.includes('js/app/pricing/work-quantity-facts.js'), `plik ładowania ${idx} ładuje work-quantity-facts.js`));
-assert(index.includes('20260610_labor_drawer_count_context_fix_v1') && dev.includes('20260610_labor_drawer_count_context_fix_v1'), 'index/dev_tests mają cache-busting faktów roboczych');
+assert(index.includes('20260610_wycena_unsaved_preview_storage_fix_v1') && dev.includes('20260610_wycena_unsaved_preview_storage_fix_v1'), 'index/dev_tests mają cache-busting faktów roboczych');
 assert(!index.includes('cmWorkFactsPreview') && !index.includes('cabinet-work-facts-preview.js'), 'etap nie przywraca panelu w modalu szafki');
 assert(!read('js/app/cabinet/cabinet-modal.js').includes('cmWorkFactsPreview'), 'cabinet-modal.js nie jest podłączony do panelu faktów');
 assert(!read('js/app/ui/cabinets-render.js').includes('ensureAddCabinet'), 'cabinets-render.js nie ma awaryjnej łaty plusa');

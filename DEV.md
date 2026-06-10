@@ -1,15 +1,4 @@
 
-## 2026-06-10 — Robocizna: drawer.count tylko dla realnych szuflad v1
-
-- Paczka: `site_labor_drawer_count_context_fix_v1.zip`.
-- Naprawiono błąd WYCENY: `drawer.count` liczył ukryte/domniemane pola `drawerCount` i `innerDrawerCount` z draftu modala także dla zwykłej szafki `stojąca / standardowa / drzwiczki`, przez co pojawiał się `Montaż szuflady / prowadnic` przy szafce bez szuflad.
-- `drawer.count` jest teraz odczytem kontekstowym: liczy szuflady tylko dla realnych wariantów szufladowych (`subType: szuflady`), jawnie wybranych szuflad wewnętrznych, dolnej podblatowej z frontem szufladowym, zlewowej z frontem szufladowym albo piekarnikowej z opcją szuflady.
-- Zwykła szafka standardowa z `insideMode: polki` zwraca `drawer.count = 0`, nawet jeśli w danych technicznych nadal istnieją historyczne pola domyślne szuflad.
-- Nie ruszano `cabinet-modal.js`, `cabinets-render.js`, `cabinet-common.css`, WYWIADU, plusa dodawania szafki ani UI modala szafki.
-- Dodano regresję `tools/labor-drawer-count-context-smoke.js` oraz rozszerzono testy `work-quantity-facts` i `labor-quantity-values-link`.
-- Cache-busting: `20260610_labor_drawer_count_context_fix_v1`. Raport: `tools/reports/labor-drawer-count-context-fix-v1.md`.
-
-
 ## 2026-06-10 — WYCENA: podgląd bez zapisu historii przy pełnym storage v1
 
 - Paczka: `site_wycena_unsaved_preview_storage_fix_v1.zip`.

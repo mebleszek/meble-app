@@ -134,69 +134,17 @@
     }
     return 0;
   }
-  function intQty(value){
-    return Math.max(0, Math.floor(number(value, 0)));
-  }
-  function drawerLayoutCount(detailsObj){
-    const d = detailsObj || {};
-    const layout = text(d.drawerLayout);
-    if(layout === '1_big') return 1;
-    if(layout === '2_equal') return 2;
-    if(layout === '3_equal') return 3;
-    if(layout === '5_equal') return 5;
-    if(layout === '3_1_2_2') return 3;
-    return intQty(d.drawerCount || d.drawers);
-  }
-  function isRealInnerDrawerMode(mode){
-    const value = text(mode);
-    return value === 'szuflady_wew' || value === 'szuflady_wewn' || value === 'szuflady_wewnetrzne' || value === 'mieszane';
-  }
-  function activeInnerDrawerCount(d){
-    const type = text(d && d.innerDrawerType);
-    if(type === 'brak') return 0;
-    return intQty(d && d.innerDrawerCount);
-  }
-  function isSinkDrawerFront(d){
-    const front = text(d && d.sinkFront);
-    const legacy = text(d && d.sinkOption);
-    return front === 'szuflada' || legacy === 'szuflada' || legacy === 'szuflada_i_polka';
-  }
   function drawerCount(cabinet){
-    const cab = cabinet || {};
-    const d = details(cab);
-    const type = text(cab.type);
-    const subType = text(cab.subType);
+    const d = details(cabinet);
+    const candidates = [d.drawerCount, d.drawers, cabinet && cabinet.drawerCount];
     let total = 0;
-
-    // Uwaga: draft modala szafki ma historyczne domyślne pola drawerCount/innerDrawerCount
-    // nawet dla zwykłych drzwiczek. Dlatego drawer.count nie może czytać tych pól
-    // bez kontekstu wariantu szafki. Liczymy je tylko wtedy, gdy WYWIAD realnie
-    // wybrał front szufladowy albo szuflady wewnętrzne.
-    if(subType === 'szuflady'){
-      total += drawerLayoutCount(d);
-      total += activeInnerDrawerCount(d);
+    for(const value of candidates){
+      const n = Math.max(0, Math.floor(number(value, 0)));
+      if(n > 0){ total = n; break; }
     }
-
-    if(type === 'wisząca' && subType === 'dolna_podblatowa'){
-      const podFront = text(d.podFrontMode || (text(d.subTypeOption).indexOf('szuflada') === 0 ? 'szuflady' : ''));
-      if(podFront === 'szuflady') total += intQty(cab.frontCount || d.drawerCount || 1);
-      if(isRealInnerDrawerMode(d.podInsideMode)) total += intQty(d.podInnerDrawerCount || d.podInsideDrawerCount || d.podInsideDrawersCount || 1);
-    }
-
-    if(subType === 'standardowa' && isRealInnerDrawerMode(d.insideMode)){
-      total += intQty(d.innerDrawerCount || 1);
-    }
-
-    if(subType === 'zlewowa'){
-      if(isSinkDrawerFront(d)) total += 1;
-      if(text(d.sinkExtra) === 'szuflada_wew') total += intQty(d.sinkExtraCount || 1);
-    }
-
-    if(subType === 'piekarnikowa' && text(d.ovenOption || 'szuflada_dol').indexOf('szuflada') !== -1){
-      total += 1;
-    }
-
-    return total;
+    const inner = Math.max(0, Math.floor(number(d.innerDrawerCount, 0)));
+    const podInner = Math.max(0, Math.floor(number(d.podInnerDrawerCount, 0)));
+    return total + inner + podInner;
   }
   function cabinetZone(cabinet){
     const type = text(cabinet && cabinet.type);

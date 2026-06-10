@@ -38,8 +38,8 @@ assert(read('js/app/material/price-modal-persistence.js').includes('Niekompletny
 
 const projectData = {
   kuchnia:{ cabinets:[{
-    id:'cab_conditions_smoke', type:'stojąca', subType:'szuflady', width:60, height:82, depth:51, frontCount:2,
-    details:{ shelves:2, drawerLayout:'3_1_2_2', drawerCount:3, innerDrawerType:'brak', innerDrawerCount:'2' }
+    id:'cab_conditions_smoke', type:'stojąca', subType:'standardowa', width:60, height:82, depth:51, frontCount:2,
+    details:{ shelves:2, drawerCount:3 }
   }] }
 };
 const FC = {
