@@ -179,7 +179,7 @@
 
   function clampTimeBlock(value){
     const n = num(value, 0);
-    if(n === 0.25 || n === 0.5 || n === 1) return n;
+    if(n === 0.25 || n === 0.5 || n === 0.75 || n === 1) return n;
     return 0;
   }
   function normalizeMode(value, allowed, fallback){

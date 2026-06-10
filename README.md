@@ -1,3 +1,13 @@
+## 2026-06-10 — Robocizna: osobne automaty montażu AGD v1
+
+- Paczka: `site_labor_appliance_separate_automats_v1.zip`.
+- Montaż AGD został rozbity na osobne techniczne automaty: `dishwasher_mount`, `fridge_mount`, `oven_mount`, `hob_mount`, `hood_mount`, `microwave_mount`.
+- Dodano osobne źródła ilości `appliance.dishwasher.count`, `appliance.fridge.count`, `appliance.oven.count`, `appliance.hob.count`, `appliance.hood.count`, `appliance.microwave.count`.
+- Linie nadal trafiają do działu `Montaż AGD`, ale cena jest liczona z cennika robocizny/stawki wyceny jako osobny automat z czasem i stawką, a nie jako jeden wspólny `appliance_mount`.
+- `Bez montażu` przy szafce nadal wyłącza naliczenie AGD. Automaty AGD nie dublują się w `Robocizna szafek`.
+- Nie ruszano WYWIADU, modala szafki, historii ofert, `drawer.count`, warunków robocizny ani czytelnego audytu.
+- Cache-busting: `20260610_labor_appliance_separate_automats_v1`. Raport: `tools/reports/labor-appliance-separate-automats-v1.md`.
+
 ## 2026-06-10 — Robocizna: edytor warunków i podgląd reguły v1
 
 - Paczka: `site_labor_conditions_editor_preview_v1.zip`.

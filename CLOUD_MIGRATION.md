@@ -1,3 +1,10 @@
+## 2026-06-10 — Robocizna: osobne automaty montażu AGD
+
+- Nie dodano nowego klucza `localStorage`.
+- Osobne automaty AGD są definicjami w istniejącym cenniku robocizny `quoteRates`, więc backupują się razem ze stawkami/czynnościami.
+- Źródła `appliance.<typ>.count` są odczytem z bieżącej szafki i ustawienia `Z montażem / Bez montażu`; nie tworzą drugiej kopii danych AGD.
+- Linie ofertowe `Montaż AGD` zapisują wynik i kod automatu w snapshotcie oferty, co jest zgodne z docelowym modelem chmurowym: oferta przechowuje wynik/audyt decyzji, a nie ponownie cały projekt.
+
 ## 2026-06-10 — Cloud-ready audyt robocizny
 
 - Czytelny audyt robocizny opiera się na strukturalnych polach w `quoteCalculationRegister`, a nie na jednym długim stringu z opisem. To ułatwia późniejsze przeniesienie ofert do dokumentów backendowych.

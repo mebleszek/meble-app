@@ -184,6 +184,20 @@
     }catch(_){ }
     return null;
   }
+  function mountedApplianceInfo(cabinet){
+    const appliance = applianceInfo(cabinet);
+    if(!appliance) return null;
+    try{
+      const api = applianceRules();
+      if(api && typeof api.isMountingEnabled === 'function' && !api.isMountingEnabled(cabinet)) return null;
+    }catch(_){ }
+    return appliance;
+  }
+  function applianceCountByCode(cabinet, code){
+    const appliance = mountedApplianceInfo(cabinet);
+    const match = appliance && text(appliance.code) === text(code);
+    return { appliance, qty:match ? 1 : 0 };
+  }
 
   const FACT_CALCULATORS = {
     'cabinet.count':(roomId, cabinet)=> makeFact('cabinet.count', cabinet && typeof cabinet === 'object' ? 1 : 0, { displayValue:cabinet ? '1' : '0', source:'typ szafki' }),
@@ -225,13 +239,37 @@
       return makeFact('drawer.count', qty, { displayValue:`${qty} szt.`, source:label ? `wymagania szuflad/prowadnic: ${label}` : 'wymagania szuflad/prowadnic' });
     },
     'appliance.count':(roomId, cabinet)=> {
-      const appliance = applianceInfo(cabinet);
+      const appliance = mountedApplianceInfo(cabinet);
       const qty = appliance ? 1 : 0;
-      return makeFact('appliance.count', qty, { displayValue:`${qty} szt.`, source:'typ AGD' });
+      return makeFact('appliance.count', qty, { displayValue:`${qty} szt.`, source:'typ AGD + montaż' });
     },
     'appliance.type':(roomId, cabinet)=> {
-      const appliance = applianceInfo(cabinet);
-      return makeFact('appliance.type', appliance && (appliance.label || appliance.serviceName), { hasValue:!!appliance, source:'typ AGD' });
+      const appliance = mountedApplianceInfo(cabinet);
+      return makeFact('appliance.type', appliance && (appliance.label || appliance.serviceName), { hasValue:!!appliance, source:'typ AGD + montaż' });
+    },
+    'appliance.dishwasher.count':(roomId, cabinet)=> {
+      const data = applianceCountByCode(cabinet, 'dishwasher');
+      return makeFact('appliance.dishwasher.count', data.qty, { displayValue:`${data.qty} szt.`, source:'zmywarka + montaż AGD' });
+    },
+    'appliance.fridge.count':(roomId, cabinet)=> {
+      const data = applianceCountByCode(cabinet, 'fridge');
+      return makeFact('appliance.fridge.count', data.qty, { displayValue:`${data.qty} szt.`, source:'lodówka + montaż AGD' });
+    },
+    'appliance.oven.count':(roomId, cabinet)=> {
+      const data = applianceCountByCode(cabinet, 'oven');
+      return makeFact('appliance.oven.count', data.qty, { displayValue:`${data.qty} szt.`, source:'piekarnik + montaż AGD' });
+    },
+    'appliance.hob.count':(roomId, cabinet)=> {
+      const data = applianceCountByCode(cabinet, 'hob');
+      return makeFact('appliance.hob.count', data.qty, { displayValue:`${data.qty} szt.`, source:'płyta + montaż AGD' });
+    },
+    'appliance.hood.count':(roomId, cabinet)=> {
+      const data = applianceCountByCode(cabinet, 'hood');
+      return makeFact('appliance.hood.count', data.qty, { displayValue:`${data.qty} szt.`, source:'okap + montaż AGD' });
+    },
+    'appliance.microwave.count':(roomId, cabinet)=> {
+      const data = applianceCountByCode(cabinet, 'microwave');
+      return makeFact('appliance.microwave.count', data.qty, { displayValue:`${data.qty} szt.`, source:'mikrofala + montaż AGD' });
     }
   };
 

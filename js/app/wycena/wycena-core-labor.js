@@ -364,9 +364,16 @@
     if(cmp) components.push(cmp);
   }
 
+  function isApplianceAutomation(def){
+    const id = text(def && def.id);
+    const sourceCode = text(def && def.quantitySource);
+    return ['dishwasher_mount','fridge_mount','oven_mount','hob_mount','hood_mount','microwave_mount'].includes(id)
+      || sourceCode.indexOf('appliance.') === 0;
+  }
+
   function autoQuantityDefs(defs){
     const blocked = new Set(['labor_mount_front','labor_mount_hinge']);
-    return (Array.isArray(defs) ? defs : []).filter((def)=> def && def.active !== false && def.isHourlyRate !== true && text(def.quantitySource) && !blocked.has(text(def.id)));
+    return (Array.isArray(defs) ? defs : []).filter((def)=> def && def.active !== false && def.isHourlyRate !== true && text(def.quantitySource) && !blocked.has(text(def.id)) && !isApplianceAutomation(def));
   }
   function addGenericQuantitySourceLabor(components, entry, defs, rates, volumeM3){
     const cab = entry && entry.cabinet || {};

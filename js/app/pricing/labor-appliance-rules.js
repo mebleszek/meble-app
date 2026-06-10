@@ -8,11 +8,24 @@
   const MODE_MOUNT = 'mount';
   const MODE_NONE = 'none';
 
+  const APPLIANCE_TYPES = {
+    dishwasher:{ code:'dishwasher', laborCode:'dishwasher_mount', quantitySource:'appliance.dishwasher.count', serviceName:'Montaż zmywarki do zabudowy', label:'Zmywarka do zabudowy' },
+    fridge:{ code:'fridge', laborCode:'fridge_mount', quantitySource:'appliance.fridge.count', serviceName:'Montaż lodówki do zabudowy', label:'Lodówka do zabudowy' },
+    oven:{ code:'oven', laborCode:'oven_mount', quantitySource:'appliance.oven.count', serviceName:'Montaż piekarnika do zabudowy', label:'Piekarnik do zabudowy' },
+    hob:{ code:'hob', laborCode:'hob_mount', quantitySource:'appliance.hob.count', serviceName:'Montaż płyty indukcyjnej / ceramicznej', label:'Płyta indukcyjna / ceramiczna' },
+    hood:{ code:'hood', laborCode:'hood_mount', quantitySource:'appliance.hood.count', serviceName:'Montaż okapu', label:'Okap podszafkowy / teleskopowy' },
+    microwave:{ code:'microwave', laborCode:'microwave_mount', quantitySource:'appliance.microwave.count', serviceName:'Montaż mikrofali do zabudowy', label:'Mikrofalówka do zabudowy' },
+  };
+
   const APPLIANCE_BY_SUBTYPE = {
-    zmywarkowa: { serviceName:'Zmywarka do zabudowy', label:'Zmywarka do zabudowy' },
-    piekarnikowa: { serviceName:'Piekarnik do zabudowy', label:'Piekarnik do zabudowy' },
-    okap: { serviceName:'Okap podszafkowy / teleskopowy', label:'Okap podszafkowy / teleskopowy' },
-    lodowkowa: { serviceName:'Lodówka do zabudowy', label:'Lodówka do zabudowy' },
+    zmywarkowa: APPLIANCE_TYPES.dishwasher,
+    piekarnikowa: APPLIANCE_TYPES.oven,
+    okap: APPLIANCE_TYPES.hood,
+    lodowkowa: APPLIANCE_TYPES.fridge,
+    plyta: APPLIANCE_TYPES.hob,
+    płyta: APPLIANCE_TYPES.hob,
+    mikrofalowka: APPLIANCE_TYPES.microwave,
+    mikrofalówka: APPLIANCE_TYPES.microwave,
   };
 
   function details(cabinet){
@@ -63,6 +76,7 @@
   FC.laborApplianceRules = {
     MODE_MOUNT,
     MODE_NONE,
+    APPLIANCE_TYPES,
     APPLIANCE_BY_SUBTYPE,
     getApplianceForCabinet,
     normalizeMountingMode,

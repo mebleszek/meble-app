@@ -1,3 +1,9 @@
+## 2026-06-10 — Backup: osobne automaty AGD
+
+- Zmiana nie dodaje nowego magazynu backupu.
+- Nowe automaty AGD są pozycjami istniejącego cennika robocizny `quoteRates`, więc mieszczą się w dotychczasowym zakresie backupu katalogów/cenników.
+- Źródła `appliance.<typ>.count` są definicjami systemowymi w kodzie, nie osobnym zapisem użytkownika.
+
 
 ## 2026-06-10 — Robocizna: podgląd reguły i warunki zastosowania
 

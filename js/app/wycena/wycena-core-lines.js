@@ -613,16 +613,97 @@
     }));
   }
 
+  function laborDefinitions(){
+    try{
+      const rows = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
+      const labor = FC.laborCatalog || null;
+      return (Array.isArray(rows) ? rows : []).map((row)=> {
+        try{ return labor && typeof labor.normalizeDefinition === 'function' ? labor.normalizeDefinition(row) : row; }
+        catch(_){ return row; }
+      }).filter((row)=> row && row.active !== false);
+    }catch(_){ return []; }
+  }
+  function hourlyRatesForLabor(defs){
+    try{ return FC.laborCatalog && typeof FC.laborCatalog.buildHourlyRates === 'function' ? FC.laborCatalog.buildHourlyRates(defs || []) : {}; }
+    catch(_){ return {}; }
+  }
+  function findLaborDefinitionById(defs, id){
+    const key = text(id);
+    if(!key) return null;
+    return (Array.isArray(defs) ? defs : []).find((row)=> text(row && row.id) === key) || null;
+  }
+  function calculateLaborDefinition(def, quantity, rates){
+    try{
+      if(FC.laborCatalog && typeof FC.laborCatalog.calculateDefinition === 'function'){
+        return FC.laborCatalog.calculateDefinition(def, { quantity:Math.max(0, Number(quantity) || 0), volumeM3:0, hourlyRates:rates || {} });
+      }
+    }catch(_){ }
+    return null;
+  }
+  function rateLabel(rateType){
+    try{ return FC.laborCatalog && typeof FC.laborCatalog.getRateLabel === 'function' ? FC.laborCatalog.getRateLabel(rateType) : text(rateType); }
+    catch(_){ return text(rateType); }
+  }
+  function applianceLineFromLaborDefinition(def, appliance, roomLabel, roomId, cabinet, number, rates){
+    const calc = calculateLaborDefinition(def, 1, rates);
+    if(!calc) return null;
+    const cab = cabinet || {};
+    const cabType = [text(cab.type), text(cab.subType)].filter(Boolean).join(' / ');
+    const sourceLabel = [`Szafka #${number || '?'}`, text(roomLabel), cabType].filter(Boolean).join(' — ');
+    const total = Math.round((Number(calc.total) || 0) * 100) / 100;
+    const key = utils.slug([text(def.id), roomId, cab.id || number].filter(Boolean).join('_'));
+    const qty = Math.max(0, Number(calc.quantity) || 1);
+    const hours = Math.round((Number(calc.pricedHours) || 0) * 100) / 100;
+    const hourlyRate = Math.round((Number(calc.hourlyRate) || 0) * 100) / 100;
+    const unitPrice = Math.round((total / (qty || 1)) * 100) / 100;
+    return {
+      key,
+      type:'service',
+      category:'AGD',
+      name:text(def.name) || text(appliance && appliance.serviceName) || 'Montaż AGD',
+      qty:qty || 1,
+      unit:'szt.',
+      unitPrice,
+      total,
+      rooms:text(roomLabel),
+      sourceType:'appliance',
+      sourceLabel,
+      sourceId:text(cab && cab.id),
+      sourceRole:'appliance-labor',
+      sourceKind:'automatic',
+      laborCode:text(def.id),
+      quantitySource:text(def.quantitySource || appliance && appliance.quantitySource),
+      quantitySourceLabel:text(appliance && appliance.label),
+      quantitySourceValue:qty || 1,
+      quantitySourceDisplay:`${qty || 1} szt.`,
+      rateType:text(def.rateType),
+      hourlyRate,
+      hours,
+      baseHours:Number(calc.quantityHours) || 0,
+      timeBlockHours:Number(def.timeBlockHours) || 0,
+      quantityMode:text(def.quantityMode),
+      multiplier:Number(calc.multiplier) || 1,
+      starterPrice:!!(def.starterPrice === true && !text(def.priceUserEditedAt)),
+      priceUserEditedAt:text(def.priceUserEditedAt),
+      note:[`Automat AGD: ${text(def.id)}`, text(appliance && appliance.label), hours > 0 && hourlyRate > 0 ? `${hours} h × ${hourlyRate} PLN/h (${rateLabel(def.rateType)})` : ''].filter(Boolean).join(' • '),
+      calculation:hours > 0 && hourlyRate > 0
+        ? `Cena = osobny automat AGD ${text(def.id)}: ${qty || 1} szt. × ${Number(def.timeBlockHours || 0)} h × ${hourlyRate} PLN/h.`
+        : 'Cena = osobny automat AGD z cennika robocizny/stawki wyceny.',
+      warnings:total > 0 ? [] : ['Automat AGD ma 0 zł — sprawdź czas i stawkę w cenniku robocizny.']
+    };
+  }
   function collectBuiltInAppliances(selectedRooms){
     const rows = [];
     const counters = new Map();
+    const defs = laborDefinitions();
+    const rates = hourlyRatesForLabor(defs);
     const cabinetNumber = (roomId)=> {
       const key = text(roomId) || 'room';
       const next = (Number(counters.get(key)) || 0) + 1;
       counters.set(key, next);
       return next;
     };
-    const add = (name, roomLabel, roomId, cabinet, number)=>{
+    const addFallback = (name, roomLabel, roomId, cabinet, number)=>{
       const svc = catalog.servicePriceLookup(name);
       const cab = cabinet || {};
       const cabType = [text(cab.type), text(cab.subType)].filter(Boolean).join(' / ');
@@ -642,10 +723,19 @@
         sourceType:'appliance',
         sourceLabel,
         sourceId:text(cab && cab.id),
+        sourceRole:'appliance-service-fallback',
         starterPrice:!!(svc && svc.starterPrice === true && !String(svc.priceUserEditedAt || '').trim()),
         priceUserEditedAt:String(svc && svc.priceUserEditedAt || ''),
         calculation:'Cena = urządzenie AGD z zaznaczonym montażem × cena usługi AGD z cennika.',
       });
+    };
+    const addAppliance = (appliance, roomLabel, roomId, cabinet, number)=>{
+      const def = findLaborDefinitionById(defs, appliance && appliance.laborCode);
+      if(def){
+        const line = applianceLineFromLaborDefinition(def, appliance, roomLabel, roomId, cabinet, number, rates);
+        if(line){ rows.push(line); return; }
+      }
+      if(appliance && appliance.serviceName) addFallback(appliance.serviceName, roomLabel, roomId, cabinet, number);
     };
     source.selectedCabinets(selectedRooms).forEach(({ roomId, roomLabel:rl, cabinet })=>{
       const number = cabinetNumber(roomId);
@@ -653,16 +743,16 @@
       if(api && typeof api.isMountingEnabled === 'function' && typeof api.getApplianceForCabinet === 'function'){
         if(!api.isMountingEnabled(cabinet)) return;
         const appliance = api.getApplianceForCabinet(cabinet);
-        if(appliance && appliance.serviceName) add(appliance.serviceName, rl, roomId, cabinet, number);
+        if(appliance && appliance.serviceName) addAppliance(appliance, rl, roomId, cabinet, number);
         return;
       }
       const cab = cabinet || {};
       const sub = String(cab.subType || '');
       const details = cab.details || {};
-      if(sub === 'zmywarkowa') add('Zmywarka do zabudowy', rl, roomId, cab, number);
-      if(sub === 'lodowkowa' && String(details.fridgeOption || 'zabudowa') === 'zabudowa') add('Lodówka do zabudowy', rl, roomId, cab, number);
-      if(sub === 'piekarnikowa') add('Piekarnik do zabudowy', rl, roomId, cab, number);
-      if(sub === 'okap') add('Okap podszafkowy / teleskopowy', rl, roomId, cab, number);
+      if(sub === 'zmywarkowa') addFallback('Zmywarka do zabudowy', rl, roomId, cab, number);
+      if(sub === 'lodowkowa' && String(details.fridgeOption || 'zabudowa') === 'zabudowa') addFallback('Lodówka do zabudowy', rl, roomId, cab, number);
+      if(sub === 'piekarnikowa') addFallback('Piekarnik do zabudowy', rl, roomId, cab, number);
+      if(sub === 'okap') addFallback('Okap podszafkowy / teleskopowy', rl, roomId, cab, number);
     });
     return rows;
   }
