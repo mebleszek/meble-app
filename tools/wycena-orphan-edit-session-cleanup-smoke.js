@@ -102,7 +102,7 @@ function runSessionMetadataAndDeleteReferenceCleanup(){
 }
 
 function runCacheBustCheck(){
-  const version = '20260610_labor_cabinet_single_accordion_dedupe_v1';
+  const version = '20260610_labor_audit_readable_lines_v1';
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const dev = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');
   [

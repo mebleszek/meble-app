@@ -1,3 +1,13 @@
+## 2026-06-10 — Robocizna: czytelny audyt czynności v1
+
+- Paczka: `site_labor_audit_readable_lines_v1.zip`.
+- Modal `Szczegóły: Robocizna szafek` nie pokazuje już długiego opisu czynności sklejonego separatorami `•`, które wyglądały jak mnożenie.
+- Dla linii robocizny dane są renderowane jedno pod drugim: `Dotyczy`, `Ilość`, `Czas`, `Stawka`, `Warunki`, `Źródło ilości`, `Rozbicie`, `Wyliczenie`.
+- Rozbicie zawiasów w robociźnie pokazuje tylko ludzką ilość per drzwiczki; techniczne opisy zawiasu, reguły i wymiary frontu nie zaśmiecają głównego audytu robocizny.
+- `quoteCalculationRegister` i lekki snapshot zachowują strukturalne pola robocizny potrzebne do renderowania czytelnego audytu bez odtwarzania danych z tekstu notatki.
+- Nie zmieniono wyniku WYCENY, automatów robocizny, `quantitySource`, warunków, historii ofert, `drawer.count`, WYWIADU ani modala szafki.
+- Cache-busting: `20260610_labor_audit_readable_lines_v1`. Raport: `tools/reports/labor-audit-readable-lines-v1.md`.
+
 ## 2026-06-10 — Robocizna: jedna szafka = jeden akordeon, bez dubla zawiasów v1
 
 - Paczka: `site_labor_cabinet_single_accordion_dedupe_v1.zip`.
@@ -5,7 +15,7 @@
 - Modal `Szczegóły: Robocizna szafek` grupuje robociznę po szafce, żeby jedna szafka była jednym głównym akordeonem. Drzwi/szuflady są detalem wewnątrz szafki.
 - Nie zmieniono `drawer.count`, jawnych wymagań szuflad/prowadnic, automatów robocizny, `quantitySource`, warunków ani audytu wyliczeń.
 - Nie ruszano `cabinet-modal.js`, `cabinets-render.js`, `cabinet-common.css`, WYWIADU ani plusa dodawania szafki.
-- Cache-busting: `20260610_labor_cabinet_single_accordion_dedupe_v1`. Raport: `tools/reports/labor-cabinet-single-accordion-dedupe-v1.md`.
+- Cache-busting: `20260610_labor_audit_readable_lines_v1`. Raport: `tools/reports/labor-cabinet-single-accordion-dedupe-v1.md`.
 
 ## 2026-06-10 — Szuflady/prowadnice: jawne wymagania jako źródło drawer.count v1
 

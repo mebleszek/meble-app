@@ -1,3 +1,9 @@
+## 2026-06-10 — WYCENA: strukturalne pola robocizny w audycie
+
+- Nie dodano nowego klucza `localStorage`.
+- Lekkie snapshoty ofert zachowują dodatkowe małe pola robocizny (`hours`, `hourlyRate`, `baseHours`, `multiplier`, `volumeM3`, `sourceRole`, `sourceKind`), żeby modal audytu mógł pokazywać czynności jedno pod drugim bez parsowania długich opisów tekstowych.
+- Zmiana nie zmienia zakresu backupu; dane są nadal częścią istniejących snapshotów ofert i rejestru wyliczeń.
+
 ## 2026-06-10 — Szuflady/prowadnice jako jawne wymagania
 
 - Nie dodano nowego klucza `localStorage` ani nowego magazynu backupu.

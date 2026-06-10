@@ -324,12 +324,8 @@
     const rows = (Array.isArray(reqs) ? reqs : []).map((req)=> {
       const qty = Math.max(0, Math.round(num(req && req.qty, 0)));
       if(!(qty > 0)) return '';
-      const label = text(req && req.doorLabel) || text(req && req.label) || 'Zawiasy';
-      const bits = [label + ': ' + qty + ' szt.'];
-      if(text(req && req.label) && text(req && req.label) !== label) bits.push(text(req.label));
-      if(text(req && req.ruleId)) bits.push('reguła: ' + text(req.ruleId));
-      if(num(req && req.frontWidthCm, 0) > 0 && num(req && req.frontHeightCm, 0) > 0) bits.push(`${num(req.frontWidthCm, 0)} × ${num(req.frontHeightCm, 0)} cm`);
-      return bits.join(' • ');
+      const label = text(req && req.doorLabel) || 'Drzwiczki';
+      return label + ': ' + qty + ' szt.';
     }).filter(Boolean);
     return rows.length ? 'Rozbicie zawiasów: ' + rows.join('; ') : '';
   }

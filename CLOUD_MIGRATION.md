@@ -1,3 +1,9 @@
+## 2026-06-10 — Cloud-ready audyt robocizny
+
+- Czytelny audyt robocizny opiera się na strukturalnych polach w `quoteCalculationRegister`, a nie na jednym długim stringu z opisem. To ułatwia późniejsze przeniesienie ofert do dokumentów backendowych.
+- Nie dodano osobnego magazynu ani drugiej prawdy; dane audytu są częścią snapshotu konkretnej oferty.
+- Kierunek dla chmury pozostaje: oferta ma przechowywać wynik i audyt decyzji użytych do tej konkretnej wyceny, a bieżący projekt pozostaje osobnym źródłem danych roboczych.
+
 ## 2026-06-10 — Cloud-ready kierunek dla szuflad/prowadnic
 
 - Nie dodano nowego trwałego klucza `localStorage`.

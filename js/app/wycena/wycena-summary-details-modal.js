@@ -65,7 +65,107 @@
     });
     target.appendChild(btn);
   }
+  function roundText(value){
+    const n = num(value);
+    return (Math.round(n * 100) / 100).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+  }
+  function laborUnit(row){ return text(row && row.unit) || 'szt.'; }
+  function formatQty(row){ return `${roundText(row && row.quantity)}${laborUnit(row) ? ' ' + laborUnit(row) : ''}`; }
+  function formatCondition(row){
+    const label = text(row && row.label) || text(row && row.source) || 'Warunek';
+    const value = text(row && row.displayValue) || roundText(row && row.value);
+    const min = row && row.min != null && text(row.min) !== '' ? text(row.min) : '';
+    const max = row && row.max != null && text(row.max) !== '' ? text(row.max) : '';
+    const range = min || max ? `; zakres ${min || '…'}–${max || '…'}` : '';
+    return `${label} = ${value}${range}`;
+  }
+  function splitLaborNote(note){
+    const raw = text(note);
+    if(!raw) return [];
+    return raw.split(/\s+•\s+|\n+/).map(text).filter(Boolean);
+  }
+  function addFact(facts, label, value){
+    const val = text(value);
+    if(val) facts.push({ label:text(label), value:val });
+  }
+  function cleanLaborNoteFacts(row){
+    const out = [];
+    splitLaborNote(row && row.note).forEach((part)=>{
+      const lower = part.toLowerCase();
+      if(lower.startsWith('źródło ilości:')) return;
+      if(lower.startsWith('warunki zastosowania:')) return;
+      if(lower === 'automatycznie z wybranego źródła ilości.') return;
+      if(lower.startsWith('czynność zawiasów liczona raz')) return;
+      if(lower.startsWith('rozbicie zawiasów:')){
+        addFact(out, 'Rozbicie', part.replace(/^Rozbicie zawiasów:\s*/i, '').replace(/;\s*/g, '\n'));
+        return;
+      }
+      if(lower.startsWith('fronty z materiał/wycena:')){
+        addFact(out, 'Fronty', part.replace(/^Fronty z MATERIAŁ\/WYCENA:\s*/i, ''));
+        return;
+      }
+      if(lower.startsWith('automatycznie z frontów')) return;
+      addFact(out, 'Uwagi', part);
+    });
+    return out;
+  }
+  function laborFacts(row){
+    const facts = [];
+    addFact(facts, 'Dotyczy', text(row && row.sourceLabel) || text(row && row.rooms));
+    addFact(facts, 'Ilość', formatQty(row));
+    const hours = num(row && row.hours);
+    const baseHours = num(row && row.baseHours);
+    const multiplier = num(row && row.multiplier);
+    const timeBits = [];
+    if(hours > 0) timeBits.push(`${roundText(hours)} h`);
+    if(baseHours > 0 && Math.abs(baseHours - hours) > 0.005) timeBits.push(`bazowy ${roundText(baseHours)} h`);
+    if(multiplier > 0 && Math.abs(multiplier - 1) > 0.005) timeBits.push(`mnożnik ×${roundText(multiplier)}`);
+    addFact(facts, 'Czas', timeBits.join('; '));
+    if(num(row && row.hourlyRate) > 0) addFact(facts, 'Stawka', `${roundText(row.hourlyRate)} PLN/h`);
+    const conditionRows = Array.isArray(row && row.matchedConditions) ? row.matchedConditions : [];
+    if(conditionRows.length) addFact(facts, 'Warunki', conditionRows.map(formatCondition).join('\n'));
+    if(text(row && row.quantitySource)){
+      const label = text(row.quantitySourceLabel) || text(row.quantitySource);
+      const display = text(row.quantitySourceDisplay) || String(num(row.quantitySourceValue));
+      addFact(facts, 'Źródło ilości', `${label} (${text(row.quantitySource)}) = ${display}`);
+    }
+    cleanLaborNoteFacts(row).forEach((fact)=> facts.push(fact));
+    addFact(facts, 'Wyliczenie', `${formatQty(row)} × ${money(row && row.unitPrice)} = ${money(row && row.total)}`);
+    return facts;
+  }
+  function appendFactRows(parent, facts){
+    if(!facts.length) return;
+    const box = h('div', { class:'quote-detail-line__facts' });
+    facts.forEach((fact)=>{
+      const row = h('div', { class:'quote-detail-line__fact' });
+      row.appendChild(h('span', { class:'quote-detail-line__fact-label', text:fact.label }));
+      row.appendChild(h('span', { class:'quote-detail-line__fact-value', text:fact.value }));
+      box.appendChild(row);
+    });
+    parent.appendChild(box);
+  }
+  function appendWarnings(item, row){
+    const warnings = Array.isArray(row && row.warnings) ? row.warnings : [];
+    warnings.forEach((msg)=> item.appendChild(h('div', { class:'quote-detail-warning', text:msg })));
+  }
+  function renderLaborLine(row){
+    const item = h('div', { class:'quote-detail-line quote-detail-line--labor' });
+    const main = h('div', { class:'quote-detail-line__main' });
+    const name = h('div', { class:'quote-detail-line__name' });
+    name.appendChild(h('span', { text:text(row && row.name) || 'Pozycja' }));
+    if(row && row.starterPrice) name.appendChild(h('span', { class:'quote-detail-chip quote-detail-chip--warning', text:'Cena startowa' }));
+    addInfoButton(name, row && row.name, row && row.calculation);
+    main.appendChild(name);
+    appendFactRows(main, laborFacts(row));
+    const price = h('div', { class:'quote-detail-line__price quote-detail-line__price--labor' });
+    price.appendChild(h('div', { class:'quote-detail-line__total', text:money(row && row.total) }));
+    item.appendChild(main);
+    item.appendChild(price);
+    appendWarnings(item, row);
+    return item;
+  }
   function renderLine(row){
+    if(text(row && row.section) === 'labor') return renderLaborLine(row);
     const item = h('div', { class:'quote-detail-line' });
     const main = h('div', { class:'quote-detail-line__main' });
     const name = h('div', { class:'quote-detail-line__name' });
@@ -79,8 +179,7 @@
     price.appendChild(h('div', { class:'quote-detail-line__qty', text:`${num(row && row.quantity)}${row && row.unit ? ' ' + text(row.unit) : ''} × ${money(row && row.unitPrice)}` }));
     price.appendChild(h('div', { class:'quote-detail-line__total', text:money(row && row.total) }));
     item.appendChild(main); item.appendChild(price);
-    const warnings = Array.isArray(row && row.warnings) ? row.warnings : [];
-    warnings.forEach((msg)=> item.appendChild(h('div', { class:'quote-detail-warning', text:msg })));
+    appendWarnings(item, row);
     return item;
   }
   function sectionTitle(section){

@@ -8,7 +8,7 @@ function read(rel){ return fs.readFileSync(path.join(root, rel), 'utf8'); }
 function assert(cond, msg){ if(!cond){ console.error('FAIL:', msg); process.exit(1); } }
 function load(rel, ctx){ vm.runInContext(read(rel), ctx, { filename: rel }); }
 
-const VERSION = '20260610_labor_cabinet_single_accordion_dedupe_v1';
+const VERSION = '20260610_labor_audit_readable_lines_v1';
 const index = read('index.html');
 const dev = read('dev_tests.html');
 const itemForm = read('js/app/material/price-modal-item-form.js');

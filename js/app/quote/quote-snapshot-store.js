@@ -337,6 +337,17 @@
     if(src.quantitySourceUsed === true) out.quantitySourceUsed = true;
     addText(out, 'quantityMode', src.quantityMode);
     addNumber(out, 'timeBlockHours', src.timeBlockHours);
+    addText(out, 'rateType', src.rateType);
+    addNumber(out, 'hourlyRate', src.hourlyRate);
+    addNumber(out, 'hours', src.hours);
+    addNumber(out, 'baseHours', src.baseHours);
+    addNumber(out, 'volumeHours', src.volumeHours);
+    addNumber(out, 'multiplier', src.multiplier);
+    addNumber(out, 'volumeM3', src.volumeM3);
+    addNumber(out, 'volumePrice', src.volumePrice);
+    addNumber(out, 'fixedPrice', src.fixedPrice);
+    addText(out, 'sourceRole', src.sourceRole);
+    addText(out, 'sourceKind', src.sourceKind);
     addText(out, 'skippedReason', src.skippedReason);
     addText(out, 'sourceType', src.sourceType);
     addText(out, 'sourceLabel', src.sourceLabel);

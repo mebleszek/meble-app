@@ -69,8 +69,8 @@ async function main(){
 
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const devTests = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');
-  assert(index.includes('js/app/wycena/wycena-diagnostics.js?v=20260610_labor_cabinet_single_accordion_dedupe_v1'), 'index.html nie ładuje diagnostyki z cache-bustingiem');
-  assert(devTests.includes('js/app/wycena/wycena-diagnostics.js?v=20260610_labor_cabinet_single_accordion_dedupe_v1'), 'dev_tests.html nie ładuje diagnostyki z cache-bustingiem');
+  assert(index.includes('js/app/wycena/wycena-diagnostics.js?v=20260610_labor_audit_readable_lines_v1'), 'index.html nie ładuje diagnostyki z cache-bustingiem');
+  assert(devTests.includes('js/app/wycena/wycena-diagnostics.js?v=20260610_labor_audit_readable_lines_v1'), 'dev_tests.html nie ładuje diagnostyki z cache-bustingiem');
   console.log('[wycena-diagnostics-report-smoke] OK');
 }
 

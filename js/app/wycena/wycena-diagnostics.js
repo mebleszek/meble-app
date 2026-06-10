@@ -3,7 +3,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const BUILD = '20260610_labor_cabinet_single_accordion_dedupe_v1';
+  const BUILD = '20260610_labor_audit_readable_lines_v1';
   const EVENT_LIMIT = 60;
   let lastGenerateTrace = null;
   let lastGenerateButtonEvent = null;
