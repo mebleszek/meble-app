@@ -1497,3 +1497,8 @@ Ten etap nie dotyka WYWIADU, modala szafki, źródeł danych w trybiku ani autom
 ## 2026-06-09 — Robocizna: kaskadowe warunki zastosowania
 
 W formularzu `Stawki wyceny mebli` warunki zastosowania reguły robocizny są edytowane kaskadowo: pierwszy wybór warunku jest widoczny od razu, po wyborze pojawiają się pola `Minimum / od` i `Maksimum / do`, a kolejny pusty wybór pojawia się automatycznie. Nie ma osobnego przycisku `Dodaj warunek`.
+
+
+## 2026-06-10 — Robocizna: pojedynczy akordeon szafki
+
+Paczka `site_labor_cabinet_single_accordion_dedupe_v1.zip` naprawia audyt robocizny: jedna szafka jest jednym głównym akordeonem, a montaż zawiasów liczony jest raz jako suma lewych/prawych drzwiczek. Nie zmieniono sensu automatów robocizny ani `drawer.count`.

@@ -317,6 +317,22 @@
     if(num(req && req.frontWidthCm, 0) > 0 && num(req && req.frontHeightCm, 0) > 0) bits.push(`${num(req.frontWidthCm, 0)} × ${num(req.frontHeightCm, 0)} cm`);
     return bits.length ? bits.join(' • ') : 'Automatycznie z centralnych wymagań zawiasów.';
   }
+  function hingeRequirementsQty(reqs){
+    return (Array.isArray(reqs) ? reqs : []).reduce((sum, req)=> sum + Math.max(0, Math.round(num(req && req.qty, 0))), 0);
+  }
+  function hingeRequirementsBreakdown(reqs){
+    const rows = (Array.isArray(reqs) ? reqs : []).map((req)=> {
+      const qty = Math.max(0, Math.round(num(req && req.qty, 0)));
+      if(!(qty > 0)) return '';
+      const label = text(req && req.doorLabel) || text(req && req.label) || 'Zawiasy';
+      const bits = [label + ': ' + qty + ' szt.'];
+      if(text(req && req.label) && text(req && req.label) !== label) bits.push(text(req.label));
+      if(text(req && req.ruleId)) bits.push('reguła: ' + text(req.ruleId));
+      if(num(req && req.frontWidthCm, 0) > 0 && num(req && req.frontHeightCm, 0) > 0) bits.push(`${num(req.frontWidthCm, 0)} × ${num(req.frontHeightCm, 0)} cm`);
+      return bits.join(' • ');
+    }).filter(Boolean);
+    return rows.length ? 'Rozbicie zawiasów: ' + rows.join('; ') : '';
+  }
   function addHingeLabor(components, entry, defs, rates, volumeM3){
     const def = findDefById(defs, 'labor_mount_hinge');
     if(!def) return;
@@ -324,49 +340,34 @@
     const cond = evaluateConditions(def, entry);
     if(!cond.matched) return;
     const reqs = hingeRequirementsForCabinet(entry && entry.roomId, cab);
-    const sourceCode = text(def.quantitySource);
-    if(sourceCode && sourceCode !== 'hinge.count'){
-      const totalReq = (Array.isArray(reqs) ? reqs : []).reduce((sum, req)=> sum + Math.max(0, Math.round(num(req && req.qty, 0))), 0);
-      const meta = quantityFromSource(def, entry, totalReq);
-      if(!(meta.quantity > 0)) return;
-      const calc = calculate(def, { quantity:meta.quantity, volumeM3, hourlyRates:rates });
-      const cmp = componentFromCalc(calc, Object.assign({
-        suffix:'hinges_source',
-        unit:'szt.',
-        name:text(def.name) || 'Montaż zawiasu',
-        note:[sourceNote(meta), conditionNote(cond), 'Czynność zawiasów policzona z wybranego źródła ilości.'].filter(Boolean).join(' • '),
-        sourceType:'hinges',
-        sourceLabel:cabinetSourceLabel(entry),
-        sourceId:text(cab && cab.id),
-        sourceRole:'hinge-labor',
-        sourceKind:'automatic',
-        warnings:(meta.warning ? [meta.warning] : []).concat(conditionWarnings(cond))
-      }, sourceOpts(meta), conditionOpts(cond)));
-      if(cmp) components.push(cmp);
-      return;
-    }
-    (Array.isArray(reqs) ? reqs : []).forEach((req, index)=>{
-      const fallbackQty = Math.max(0, Math.round(num(req && req.qty, 0)));
-      if(!(fallbackQty > 0)) return;
-      const meta = { quantity:fallbackQty, sourceCode:sourceCode || 'hinge.count', usedSource:!!sourceCode, fact:null, warning:'' };
-      const calc = calculate(def, { quantity:fallbackQty, volumeM3, hourlyRates:rates });
-      const doorKey = text(req && (req.doorKey || req.doorLabel)) || String(index + 1);
-      const cmp = componentFromCalc(calc, Object.assign({
-        key:slug(`${text(cab && cab.id) || entry.cabinetNumber || 'cab'}_hinges_${doorKey}`),
-        suffix:`hinges_${doorKey}`,
-        unit:'szt.',
-        name:text(def.name) || 'Montaż zawiasu',
-        note:[hingeRequirementNote(req), sourceCode ? 'Źródło ilości: Liczba zawiasów (hinge.count)' : '', conditionNote(cond)].filter(Boolean).join(' • '),
-        sourceType:'hinges',
-        sourceLabel:hingeSourceLabel(entry, req),
-        sourceId:text(cab && cab.id),
-        sourceRole:'hinge-labor',
-        sourceKind:'automatic',
-        warnings:conditionWarnings(cond)
-      }, sourceOpts(meta), conditionOpts(cond)));
-      if(cmp) components.push(cmp);
-    });
+    const sourceCode = text(def.quantitySource) || 'hinge.count';
+    const totalReq = hingeRequirementsQty(reqs);
+    const meta = quantityFromSource(def, entry, totalReq);
+    const quantity = Math.max(0, Number(meta.quantity) || 0);
+    if(!(quantity > 0)) return;
+    const calc = calculate(def, { quantity, volumeM3, hourlyRates:rates });
+    const notes = [
+      hingeRequirementsBreakdown(reqs),
+      sourceNote(meta) || 'Źródło ilości: Liczba zawiasów (hinge.count) = ' + quantity + ' szt.',
+      conditionNote(cond),
+      'Czynność zawiasów liczona raz na poziomie szafki; lewe/prawe drzwiczki są tylko rozbiciem technicznym.'
+    ].filter(Boolean);
+    const cmp = componentFromCalc(calc, Object.assign({
+      key:slug(`${text(cab && cab.id) || entry.cabinetNumber || 'cab'}_hinges_total`),
+      suffix:'hinges_total',
+      unit:'szt.',
+      name:text(def.name) || 'Montaż zawiasu',
+      note:notes.join(' • '),
+      sourceType:'hinges',
+      sourceLabel:cabinetSourceLabel(entry),
+      sourceId:text(cab && cab.id),
+      sourceRole:'hinge-labor',
+      sourceKind:'automatic',
+      warnings:(meta.warning ? [meta.warning] : []).concat(conditionWarnings(cond))
+    }, sourceOpts(meta), conditionOpts(cond)));
+    if(cmp) components.push(cmp);
   }
+
   function autoQuantityDefs(defs){
     const blocked = new Set(['labor_mount_front','labor_mount_hinge']);
     return (Array.isArray(defs) ? defs : []).filter((def)=> def && def.active !== false && def.isHourlyRate !== true && text(def.quantitySource) && !blocked.has(text(def.id)));

@@ -13,7 +13,7 @@ const css = read('css/wycena.css');
 const preview = read('js/app/wycena/wycena-tab-preview.js');
 const index = read('index.html');
 const devTests = read('dev_tests.html');
-const token = '20260610_quote_diag_storage_cleanup_v1';
+const token = '20260610_labor_cabinet_single_accordion_dedupe_v1';
 
 [
   ['total', "['Suma przed rabatem', totals.subtotal, 'total']"],
@@ -45,7 +45,7 @@ const token = '20260610_quote_diag_storage_cleanup_v1';
   "group.scrollIntoView({ block:'start'",
   'window.requestAnimationFrame(runner);',
   "setGroupOpen(box, !box.classList.contains('is-open'), { closeOthers:true })",
-  "current === 'labor' ? 'sourceLabel' : 'subsection'",
+  "current === 'labor' ? laborCabinetGroupLabel : 'subsection'",
   "class:'quote-detail-group rozrys-material-accordion'",
   "class:'quote-detail-group quote-detail-group--warnings rozrys-material-accordion'",
   "class:'quote-detail-group__toggle rozrys-material-accordion__trigger'",

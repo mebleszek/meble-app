@@ -18,8 +18,8 @@ assert(index.includes('Kwota stawki godzinowej') || itemForm.includes('Kwota sta
 assert(!index.includes('laborAutomatCreateBtn'), 'Nie wolno przywracać UI tworzenia automatów w tym etapie.');
 assert(!index.includes('cmWorkFactsPreview'), 'Nie wolno podłączać podglądu źródeł do modala szafki w tym etapie.');
 assert(!index.includes('cabinet-work-facts-preview.js'), 'Nie wolno ładować panelu podglądu szafki w tym etapie.');
-assert(index.includes('20260610_quote_diag_storage_cleanup_v1'), 'Brak aktualnego cache-bustingu w index.html.');
-assert(read('dev_tests.html').includes('20260610_quote_diag_storage_cleanup_v1'), 'Brak aktualnego cache-bustingu w dev_tests.html.');
+assert(index.includes('20260610_labor_cabinet_single_accordion_dedupe_v1'), 'Brak aktualnego cache-bustingu w index.html.');
+assert(read('dev_tests.html').includes('20260610_labor_cabinet_single_accordion_dedupe_v1'), 'Brak aktualnego cache-bustingu w dev_tests.html.');
 
 assert(catalog.includes('dedupeHourlyRateDefinitions'), 'Brak deduplikacji stawek godzinowych.');
 assert(catalog.includes('validateRateProfile'), 'Brak walidacji profilu stawki godzinowej.');

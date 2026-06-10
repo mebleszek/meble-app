@@ -41,6 +41,15 @@
     });
     return Array.from(map.entries());
   }
+  function laborCabinetGroupLabel(row){
+    const source = text(row && row.sourceLabel);
+    if(!source) return 'Szafka';
+    return source
+      .replace(/\s+—\s+(Lewe|Prawe)\s+drzwiczki\s*$/i, '')
+      .replace(/\s+—\s+Drzwiczki(?:\s+\d+)?\s*$/i, '')
+      .replace(/\s+—\s+(lewe|prawe)\s+drzwi\s*$/i, '')
+      .trim() || source;
+  }
   function addInfoButton(target, title, message){
     const msg = text(message);
     if(!msg) return;
@@ -338,7 +347,7 @@
     if(subtitle) subtitle.textContent = 'Audyt wewnętrzny — pozycje zapisane w rejestrze wyliczeń tej oferty.';
     renderWarnings(body, register, current);
     if(current === 'total') renderTotal(body, register);
-    else renderRows(body, lines.filter((row)=> row.section === current), current === 'labor' ? 'sourceLabel' : 'subsection');
+    else renderRows(body, lines.filter((row)=> row.section === current), current === 'labor' ? laborCabinetGroupLabel : 'subsection');
     body.scrollTop = 0;
     overlay.style.display = 'flex';
     // Przy pierwszym otwarciu zostawiamy body na początku modala.

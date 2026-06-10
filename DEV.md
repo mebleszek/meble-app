@@ -1,3 +1,12 @@
+## 2026-06-10 — Robocizna: jedna szafka = jeden akordeon, bez dubla zawiasów v1
+
+- Paczka: `site_labor_cabinet_single_accordion_dedupe_v1.zip`.
+- `Montaż zawiasu` jest teraz jedną pozycją kosztową na poziomie szafki: ilość = suma wymagań lewych/prawych drzwiczek. Lewa/prawa strona zostaje w opisie technicznym, nie jako osobna główna pozycja kosztowa.
+- Modal `Szczegóły: Robocizna szafek` grupuje robociznę po szafce, żeby jedna szafka była jednym głównym akordeonem. Drzwi/szuflady są detalem wewnątrz szafki.
+- Nie zmieniono `drawer.count`, jawnych wymagań szuflad/prowadnic, automatów robocizny, `quantitySource`, warunków ani audytu wyliczeń.
+- Nie ruszano `cabinet-modal.js`, `cabinets-render.js`, `cabinet-common.css`, WYWIADU ani plusa dodawania szafki.
+- Cache-busting: `20260610_labor_cabinet_single_accordion_dedupe_v1`. Raport: `tools/reports/labor-cabinet-single-accordion-dedupe-v1.md`.
+
 ## 2026-06-10 — Szuflady/prowadnice: jawne wymagania jako źródło drawer.count v1
 
 - Paczka: `site_drawer_requirements_source_of_truth_v1.zip`.
