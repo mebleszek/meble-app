@@ -178,6 +178,92 @@
     const api = laborConditionsApi();
     if(api && typeof api.render === 'function') api.render(rows || [], updateItemActionState);
   }
+
+  function laborSourceLabel(code){
+    const key = readString('laborQuantitySource') || String(code || '').trim();
+    if(!key) return 'Brak przypisanego źródła';
+    try{
+      const api = FC.workQuantitySources || {};
+      const src = api && typeof api.find === 'function' ? api.find(key) : null;
+      if(src && src.label) return `${src.label} (${key})${src.unit && src.unit !== '—' ? ' — ' + src.unit : ''}`;
+    }catch(_){ }
+    return key;
+  }
+  function laborRateLabel(code){
+    const key = String(code || readString('laborRateType') || 'workshop').trim();
+    try{
+      const profile = findRateProfile(key);
+      if(profile) return `${profile.label || profile.name || key}${Number(profile.price) > 0 ? ' — ' + Number(profile.price).toFixed(2) + ' PLN/h' : ''}`;
+    }catch(_){ }
+    try{
+      const labor = FC.laborCatalog || {};
+      if(labor.getRateLabel) return labor.getRateLabel(key);
+    }catch(_){ }
+    return key;
+  }
+  function quantityModeLabel(code){
+    const key = String(code || readString('laborQuantityMode') || 'none').trim();
+    try{
+      const labor = FC.laborCatalog || {};
+      if(labor.getQuantityModeLabel) return labor.getQuantityModeLabel(key);
+    }catch(_){ }
+    return key || 'Bez ilości';
+  }
+  function conditionsHumanText(){
+    const rows = getCurrentLaborConditions();
+    if(!rows.length) return 'Brak ograniczeń — reguła działa dla każdej szafki, która zwróci dodatnią ilość.';
+    const api = laborConditionsApi();
+    return rows.map((row, idx)=> {
+      try{ if(api && typeof api.conditionText === 'function') return `${idx + 1}. ${api.conditionText(row)}`; }catch(_){ }
+      return `${idx + 1}. ${row.source || ''}: ${row.min == null ? '…' : row.min}–${row.max == null ? '…' : row.max}`;
+    }).join(' / ');
+  }
+  function ensureLaborRulePreview(){
+    let preview = ctx.byId('laborRulePreview');
+    if(preview) return preview;
+    const wrap = laborFields();
+    if(!wrap) return null;
+    preview = document.createElement('div');
+    preview.id = 'laborRulePreview';
+    preview.className = 'price-labor-rule-preview';
+    wrap.appendChild(preview);
+    return preview;
+  }
+  function addPreviewRow(rows, key, value){
+    const row = document.createElement('div');
+    row.className = 'price-labor-rule-preview__row';
+    const k = document.createElement('div');
+    k.className = 'price-labor-rule-preview__key';
+    k.textContent = key;
+    const v = document.createElement('div');
+    v.className = 'price-labor-rule-preview__value';
+    v.textContent = String(value || '—');
+    row.appendChild(k);
+    row.appendChild(v);
+    rows.appendChild(row);
+  }
+  function syncLaborRulePreview(){
+    if(ctx.currentListKind && ctx.currentListKind() !== 'quoteRates') return;
+    const preview = ensureLaborRulePreview();
+    if(!preview) return;
+    const hourly = isHourlyRateMode();
+    preview.style.display = hourly ? 'none' : '';
+    if(hourly) return;
+    preview.innerHTML = '';
+    const title = document.createElement('div');
+    title.className = 'price-labor-rule-preview__title';
+    title.textContent = 'Podgląd działania reguły';
+    const rows = document.createElement('div');
+    rows.className = 'price-labor-rule-preview__rows';
+    addPreviewRow(rows, 'Ilość', laborSourceLabel(readString('laborQuantitySource')));
+    addPreviewRow(rows, 'Tryb', quantityModeLabel(readString('laborQuantityMode')));
+    addPreviewRow(rows, 'Czas', `${Number(readNumber('laborTimeBlockHours')) || 0} h bazowo · mnożnik x${Number(readNumber('laborDefaultMultiplier')) || 1}`);
+    addPreviewRow(rows, 'Stawka', laborRateLabel(readString('laborRateType')));
+    addPreviewRow(rows, 'Warunki', conditionsHumanText());
+    addPreviewRow(rows, 'Zapis', 'WYCENA czyta te wartości z aktualnej szafki przez workQuantityFacts; nie tworzy drugiej kopii danych szafki.');
+    preview.appendChild(title);
+    preview.appendChild(rows);
+  }
   function refreshLaborRateTypeSelect(selectedCode){
     const code = selectedCode || readString('laborRateType') || 'workshop';
     ctx.setSelectOptions(ctx.byId('laborRateType'), buildLaborRateProfileOptions(code), code, code);
@@ -201,6 +287,8 @@
     if(rule) rule.style.display = hourly ? 'none' : '';
     if(rateFields) rateFields.style.display = hourly ? '' : 'none';
     if(conditionWrap) conditionWrap.style.display = hourly ? 'none' : '';
+    const rulePreview = ctx.byId('laborRulePreview');
+    if(rulePreview) rulePreview.style.display = hourly ? 'none' : '';
     if(title) title.textContent = hourly ? 'Stawka godzinowa' : 'Reguła robocizny';
     if(internalWrap) internalWrap.style.display = hourly ? 'none' : '';
     if(categoryWrap) categoryWrap.style.display = hourly ? 'none' : '';
@@ -327,6 +415,7 @@
   function updateItemActionState(){
     syncLaborGabarytMode();
     syncLaborRateProfileUi();
+    syncLaborRulePreview();
     try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.syncHardwarePricing === 'function') ctx.priceModalHardwareForm.syncHardwarePricing(); }catch(_){ }
     const dirty = isItemDirty();
     const isEdit = !!(ctx.appUiState() && ctx.appUiState().editingId);
@@ -411,6 +500,7 @@
     setChecked('laborInternalOnly', def.internalOnly !== false);
     syncLaborGabarytMode();
     syncLaborRateProfileUi();
+    syncLaborRulePreview();
     try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.syncHardwarePricing === 'function') ctx.priceModalHardwareForm.syncHardwarePricing(); }catch(_){ }
   }
   function applyServiceFormState(item){

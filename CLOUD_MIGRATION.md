@@ -875,3 +875,11 @@ Dla przyszłej chmury kaskadowy wygląd formularza nie zmienia kontraktu danych.
 - `conditions[].max`.
 
 Pusty końcowy launcher wyboru warunku nie jest danym do zapisu i nie powinien istnieć w API/chmurze. Walidacja klienta blokuje zapis warunku, jeżeli wybrano `source`, ale nie podano ani `min`, ani `max`.
+
+
+## 2026-06-10 — Robocizna: edytor warunków i podgląd reguły
+
+- Nie dodano nowego klucza `localStorage` ani nowego magazynu faktów szafki.
+- `conditions[]` i `quantitySource` pozostają częścią istniejących pozycji cennika robocizny (`quoteRates`).
+- Podgląd działania reguły jest wyłącznie UI/runtime i nie zapisuje osobnych danych.
+- WYCENA nadal czyta wartości przez read-only adapter `FC.workQuantityFacts`, więc nie powstaje druga prawda dla wymiarów, frontów, zawiasów, półek ani szuflad.

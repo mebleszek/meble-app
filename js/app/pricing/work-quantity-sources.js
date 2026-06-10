@@ -122,7 +122,7 @@
       unit:'szt.',
       group:'Wnętrze szafki',
       status:'system',
-      calculation:'Odczytywane z istniejących pól szuflad w szafce, jeśli są dostępne. Nie przebudowuje jeszcze prowadnic ani szuflad systemowych.',
+      calculation:'Odczytywane z jawnych wymagań szuflad/prowadnic szafki. Stare pola typu drawerCount nie są źródłem prawdy.',
     },
     {
       code:'appliance.count',

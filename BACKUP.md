@@ -1,3 +1,10 @@
+
+## 2026-06-10 — Robocizna: podgląd reguły i warunki zastosowania
+
+- Podgląd działania reguły robocizny nie dodaje żadnych nowych danych do backupu.
+- Warunki `conditions[]` nadal są częścią istniejącego cennika robocizny i backupują się razem z katalogiem/stawkami.
+- Nie dodano nowego klucza `localStorage`.
+
 ## 2026-06-10 — WYCENA: strukturalne pola robocizny w audycie
 
 - Nie dodano nowego klucza `localStorage`.

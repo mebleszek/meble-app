@@ -1,3 +1,13 @@
+## 2026-06-10 — Robocizna: edytor warunków i podgląd reguły v1
+
+- Paczka: `site_labor_conditions_editor_preview_v1.zip`.
+- W cenniku robocizny/stawkach wyceny warunki zastosowania są czytelniejsze: każdy wiersz pokazuje `Działa gdy...`, zakres `od–do` z jednostką oraz wspólny podgląd wszystkich warunków.
+- Edytor blokuje puste zakresy i duplikowanie tego samego warunku w jednej regule, zamiast zapisywać niejednoznaczne konfiguracje.
+- Dodano `Podgląd działania reguły`, który pokazuje źródło ilości, tryb ilości, czas, stawkę, warunki i informację, że WYCENA czyta dane z aktualnej szafki przez `workQuantityFacts`, bez tworzenia drugiej kopii danych.
+- Poprawiono opis `drawer.count` w słowniku źródeł ilości na zgodny z jawnymi wymaganiami szuflad/prowadnic.
+- Nie zmieniono wyniku WYCENY, automatów, `quantitySource`, warunków w snapshotach, historii ofert, WYWIADU, modala szafki ani plusa dodawania.
+- Cache-busting: `20260610_labor_conditions_editor_preview_v1`. Raport: `tools/reports/labor-conditions-editor-preview-v1.md`.
+
 ## 2026-06-10 — Robocizna: czytelny audyt czynności v1
 
 - Paczka: `site_labor_audit_readable_lines_v1.zip`.

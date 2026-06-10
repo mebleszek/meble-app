@@ -15,10 +15,20 @@
     const n = Number(String(value).replace(',', '.'));
     return Number.isFinite(n) ? n : null;
   }
-  function options(selected){
+  function selectedSources(exceptIndex){
+    return draft.map((row, idx)=> idx === exceptIndex ? '' : text(row && row.source)).filter(Boolean);
+  }
+  function options(selected, index){
     const api = FC.laborCatalog || {};
-    try{ if(typeof api.conditionSourceOptions === 'function') return api.conditionSourceOptions(selected || ''); }catch(_){ }
-    return [{ value:'', label:'Wybierz wartość warunku', description:'' }];
+    let rows = [];
+    try{ if(typeof api.conditionSourceOptions === 'function') rows = api.conditionSourceOptions(selected || '') || []; }catch(_){ rows = []; }
+    if(!rows.length) rows = [{ value:'', label:'Wybierz wartość warunku', description:'' }];
+    const used = new Set(selectedSources(index));
+    const current = text(selected);
+    return rows.filter((row)=> {
+      const value = text(row && row.value);
+      return !value || value === current || !used.has(value);
+    });
   }
   function sourceInfo(code){
     try{
@@ -53,16 +63,83 @@
     if(hasSelectedIncompleteRange()){
       return { ok:false, message:'Wybrany warunek musi mieć uzupełnione Minimum albo Maksimum. Pusty końcowy wybór warunku nie jest zapisywany.' };
     }
+    const seen = new Set();
+    for(const row of draft){
+      const source = text(row && row.source);
+      if(!source) continue;
+      if(seen.has(source)) return { ok:false, message:'Ten sam warunek nie powinien być dodany dwa razy. Usuń duplikat albo zmień wartość warunku.' };
+      seen.add(source);
+    }
     return { ok:true, message:'' };
+  }
+  function sourceLabel(code){
+    const info = sourceInfo(code) || {};
+    return text(info.label) || text(code);
+  }
+  function sourceUnit(code){
+    const info = sourceInfo(code) || {};
+    const unit = text(info.unit || '');
+    return unit && unit !== '—' ? unit : '';
+  }
+  function rangeText(row){
+    const min = numberOrNull(row && row.min);
+    const max = numberOrNull(row && row.max);
+    const unit = sourceUnit(row && row.source);
+    const suffix = unit ? ' ' + unit : '';
+    if(min != null && max != null) return `${min}${suffix} – ${max}${suffix}`;
+    if(min != null) return `od ${min}${suffix}`;
+    if(max != null) return `do ${max}${suffix}`;
+    return 'zakres nieuzupełniony';
+  }
+  function conditionText(row){
+    const source = text(row && row.source);
+    if(!source) return '';
+    return `${sourceLabel(source)}: ${rangeText(row)}`;
+  }
+  function renderConditionPreview(row){
+    const txt = conditionText(row);
+    if(!txt) return null;
+    const el = document.createElement('div');
+    el.className = 'price-labor-condition-row__preview';
+    el.textContent = 'Działa gdy: ' + txt;
+    return el;
+  }
+  function renderSummary(){
+    const wrap = ctx.byId && ctx.byId('laborConditionsWrap');
+    if(!wrap) return;
+    let summary = ctx.byId && ctx.byId('laborConditionsSummary');
+    if(!summary){
+      summary = document.createElement('div');
+      summary.id = 'laborConditionsSummary';
+      summary.className = 'price-labor-conditions__summary';
+      wrap.appendChild(summary);
+    }
+    const rows = current();
+    if(!rows.length){
+      summary.textContent = 'Podgląd: brak ograniczeń — reguła zadziała dla każdej szafki, która zwróci dodatnią ilość z wybranego źródła.';
+      return;
+    }
+    summary.innerHTML = '';
+    const title = document.createElement('div');
+    title.className = 'price-labor-conditions__summary-title';
+    title.textContent = 'Podgląd warunków: wszystkie poniższe muszą być spełnione';
+    summary.appendChild(title);
+    rows.forEach((row, idx)=> {
+      const item = document.createElement('div');
+      item.className = 'price-labor-conditions__summary-row';
+      item.textContent = `${idx + 1}. ${conditionText(row)}`;
+      summary.appendChild(item);
+    });
   }
   function setSelectOptions(select, selected){
     if(!select) return;
-    if(ctx.setSelectOptions) ctx.setSelectOptions(select, options(selected || ''), selected || '', selected || 'Wybierz wartość warunku');
+    if(ctx.setSelectOptions) ctx.setSelectOptions(select, options(selected || '', Number(select && select.dataset ? select.dataset.conditionIndex : -1)), selected || '', selected || 'Wybierz wartość warunku');
   }
   function makeSelect(index, selected){
     const select = document.createElement('select');
     select.hidden = true;
     select.id = 'laborConditionSourceSelect_' + index + '_' + (++seq);
+    select.dataset.conditionIndex = String(index);
     setSelectOptions(select, selected || '');
     select.value = selected || '';
     return select;
@@ -92,7 +169,7 @@
     const field = document.createElement('div');
     field.className = 'price-labor-condition-field';
     const lab = document.createElement('label');
-    lab.textContent = key === 'min' ? 'Minimum / od' : 'Maksimum / do';
+    lab.textContent = (key === 'min' ? 'Minimum / od' : 'Maksimum / do') + (sourceUnit(row && row.source) ? ' (' + sourceUnit(row && row.source) + ')' : '');
     const input = document.createElement('input');
     input.className = 'investor-form-input';
     input.type = 'number';
@@ -129,10 +206,12 @@
       const info = sourceInfo(source) || { code:source, unit:'' };
       const code = document.createElement('div');
       code.className = 'price-labor-condition-row__code';
-      code.textContent = `${source}${info.unit ? ' • ' + info.unit : ''}`;
+      code.textContent = `${source}${info.unit ? ' · ' + info.unit : ''}`;
       sourceBox.appendChild(code);
     }
     wrap.appendChild(sourceBox);
+    const preview = renderConditionPreview(row);
+    if(preview) wrap.appendChild(preview);
     if(source){
       wrap.appendChild(renderRangeInput(row, index, 'min'));
       wrap.appendChild(renderRangeInput(row, index, 'max'));
@@ -149,7 +228,7 @@
     }else{
       const hint = document.createElement('div');
       hint.className = 'price-labor-condition-row__hint';
-      hint.textContent = draft.length ? 'Wybierz kolejną wartość, jeśli ta reguła ma mieć następny warunek.' : 'Wybierz wartość warunku, jeśli reguła ma działać tylko w określonym zakresie.';
+      hint.textContent = draft.length ? 'Wybierz kolejną wartość tylko wtedy, gdy reguła ma mieć następny warunek. Pusty wiersz nie jest zapisywany.' : 'Wybierz warunek, jeśli reguła ma działać tylko w określonym zakresie. Bez warunku reguła działa zawsze, gdy źródło ilości zwróci dodatnią wartość.';
       wrap.appendChild(hint);
     }
     list.appendChild(wrap);
@@ -167,7 +246,8 @@
       : 'Brak zapisanych warunków — reguła działa dla każdej szafki, która zwraca wybrane źródło ilości. Wybierz pierwszy warunek poniżej, żeby ograniczyć regułę.';
     draft.forEach((condition, index)=> renderRow(list, condition, index, false));
     renderRow(list, { source:'', min:null, max:null }, draft.length, true);
+    renderSummary();
   }
 
-  ctx.priceModalLaborConditions = { render, current, validate, hasSelectedIncompleteRange };
+  ctx.priceModalLaborConditions = { render, current, validate, hasSelectedIncompleteRange, conditionText };
 })();
