@@ -1,4 +1,12 @@
 
+## WYCENA — historia ofert i lokalny storage maintenance — 2026-06-10
+
+- Historia ofert nadal jest lokalna, ale model został przygotowany pod późniejszą chmurę: `quoteSnapshotStore` przechowuje lekkie snapshoty ofert zamiast pełnych katalogów/projektów/cache.
+- Docelowy kierunek chmurowy pozostaje: indeks ofert i szczegóły oferty powinny być osobnymi dokumentami/kolekcjami, a nie jednym wielkim JSON-em localStorage.
+- Lokalny etap `quote-snapshot-storage-maintenance` usuwa wyłącznie śmieci techniczne/cache oraz nadmiar lokalnych backupów przy błędzie quota. Nie dodaje nowego trwałego klucza i nie miesza cache z danymi użytkownika.
+- Limit 30 ofert na projekt jest lokalnym zabezpieczeniem przed puchnięciem `localStorage`; w chmurze odpowiednikiem powinno być stronicowanie/paginacja historii ofert.
+
+
 ## 2026-06-10 — WYCENA: pełny magazyn nie może ukrywać policzonego wyniku
 
 - Zapis historii ofert nadal idzie przez istniejący `quoteSnapshotStore` i klucz snapshotów; nie dodano nowego trwałego klucza `localStorage`.

@@ -12,6 +12,8 @@
   const FINAL_STATUSES = new Set(['zaakceptowany','umowa','produkcja','montaz','zakonczone']);
   const SNAPSHOT_STORAGE_VERSION = 7;
   const SNAPSHOT_STORAGE_SCHEMA = 'quote-snapshot-slim-v1';
+  const MAX_SNAPSHOTS_PER_PROJECT = 30;
+  const MAX_SNAPSHOTS_TOTAL = 240;
 
   // Odpowiedzialność modułu: historia i exact-scope dane ofertowe.
   // Snapshot store przechowuje oraz filtruje snapshoty ofert, ale nie powinien
@@ -80,18 +82,43 @@
   function invalidateDirtyCache(){
     try{ if(FC.session && typeof FC.session.invalidateDirtyCache === 'function') FC.session.invalidateDirtyCache(); }catch(_){ }
   }
+  function runStorageMaintenance(reason, rows, aggressive, err){
+    try{
+      const api = FC.quoteSnapshotStorageMaintenance;
+      if(api && typeof api.prepareForSnapshotWrite === 'function'){
+        const result = api.prepareForSnapshotWrite({ reason:String(reason || ''), rows:Array.isArray(rows) ? rows : [], aggressive:!!aggressive, error:String(err && err.message || err || '') });
+        recordStoreEvent('storage-maintenance:' + (aggressive ? 'aggressive' : 'normal'), result);
+        return result;
+      }
+    }catch(maintenanceErr){
+      recordStoreEvent('storage-maintenance:error', { reason:String(reason || ''), aggressive:!!aggressive, message:String(maintenanceErr && maintenanceErr.message || maintenanceErr || 'błąd') });
+    }
+    return null;
+  }
+
+  function tryWriteRawSnapshot(raw){
+    localStorage.setItem(SNAPSHOT_KEY, raw);
+    invalidateDirtyCache();
+  }
+
   function writeSnapshotRowsStrict(rows, reason){
     const list = Array.isArray(rows) ? rows : [];
     const raw = JSON.stringify(list);
     let firstError = null;
-    try{ localStorage.setItem(SNAPSHOT_KEY, raw); invalidateDirtyCache(); }
+    try{ tryWriteRawSnapshot(raw); }
     catch(err){ firstError = err; }
     if(firstError){
+      const normalMaintenance = runStorageMaintenance(reason || 'writeAll', list, false, firstError);
       try{ localStorage.removeItem(SNAPSHOT_KEY); invalidateDirtyCache(); }catch(_){ }
-      try{ localStorage.setItem(SNAPSHOT_KEY, raw); invalidateDirtyCache(); firstError = null; }
-      catch(err){
-        recordStoreEvent('write:error', { reason:String(reason || ''), count:list.length, bytes:bytes(raw), message:String(err && err.message || err || 'błąd'), firstMessage:String(firstError && firstError.message || firstError || '') });
-        throw createStorageWriteError('Nie udało się zapisać historii WYCENY. Prawdopodobnie magazyn przeglądarki jest pełny albo zawierał zbyt ciężkie stare snapshoty.', { reason:String(reason || ''), count:list.length, bytes:bytes(raw) }, err || firstError);
+      try{ tryWriteRawSnapshot(raw); firstError = null; }
+      catch(secondErr){
+        const aggressiveMaintenance = runStorageMaintenance(reason || 'writeAll', list, true, secondErr);
+        try{ localStorage.removeItem(SNAPSHOT_KEY); invalidateDirtyCache(); }catch(_){ }
+        try{ tryWriteRawSnapshot(raw); firstError = null; }
+        catch(err){
+          recordStoreEvent('write:error', { reason:String(reason || ''), count:list.length, bytes:bytes(raw), message:String(err && err.message || err || 'błąd'), firstMessage:String(firstError && firstError.message || firstError || ''), normalMaintenance, aggressiveMaintenance });
+          throw createStorageWriteError('Nie udało się zapisać historii WYCENY. Magazyn przeglądarki nadal jest pełny po odchudzeniu cache, starych backupów i ciężkich danych technicznych.', { reason:String(reason || ''), count:list.length, bytes:bytes(raw), normalMaintenance, aggressiveMaintenance }, err || firstError);
+        }
       }
     }
     const stored = rawSnapshotStorage();
@@ -184,6 +211,248 @@
     return compactText(value);
   }
 
+
+  function hasValue(value){ return value != null && value !== '' && value !== false; }
+  function addText(out, key, value){ const v = compactText(value); if(v) out[key] = v; }
+  function addNumber(out, key, value, opts){
+    const cfg = opts && typeof opts === 'object' ? opts : {};
+    const n = Number(value);
+    if(!Number.isFinite(n)){
+      if(cfg.always) out[key] = 0;
+      return;
+    }
+    const rounded = roundFingerprintNumber(n);
+    if(cfg.always || rounded !== 0) out[key] = rounded;
+  }
+  function addBool(out, key, value){ if(value === true) out[key] = true; }
+  function compactWarnings(value){
+    const rows = Array.isArray(value) ? value : [];
+    return rows.map((row)=> compactText(row && row.message || row)).filter(Boolean).slice(0, 20);
+  }
+  function assignWarnings(out, value){ const warnings = compactWarnings(value); if(warnings.length) out.warnings = warnings; }
+
+  function compactQuoteLine(row, opts){
+    const src = row && typeof row === 'object' ? row : {};
+    const cfg = opts && typeof opts === 'object' ? opts : {};
+    const out = {};
+    addText(out, 'key', src.key || src.id);
+    addText(out, 'type', src.type || cfg.type);
+    addText(out, 'category', src.category);
+    addText(out, 'subsection', src.subsection);
+    addText(out, 'name', src.name || cfg.defaultName);
+    addNumber(out, 'qty', src.qty != null ? src.qty : src.quantity, { always: cfg.keepMoney !== false });
+    addText(out, 'unit', src.unit || cfg.unit);
+    if(cfg.keepMoney !== false){
+      addNumber(out, 'unitPrice', src.unitPrice != null ? src.unitPrice : src.price, { always:true });
+      addNumber(out, 'total', src.total, { always:true });
+      addText(out, 'priceUnit', src.priceUnit);
+      addText(out, 'pricingMode', src.pricingMode);
+      addBool(out, 'starterPrice', src.starterPrice === true);
+      addText(out, 'priceUserEditedAt', src.priceUserEditedAt || src.userEditedAt);
+    }
+    addText(out, 'rooms', src.rooms);
+    addText(out, 'note', src.note);
+    addText(out, 'source', src.source);
+    addText(out, 'sourceType', src.sourceType);
+    addText(out, 'sourceLabel', src.sourceLabel);
+    addText(out, 'sourceId', src.sourceId);
+    addText(out, 'calculation', src.calculation || src.calculationNote);
+    addNumber(out, 'width', src.width);
+    addNumber(out, 'height', src.height);
+    addText(out, 'materialLabel', src.materialLabel);
+    assignWarnings(out, src.warnings);
+    return out;
+  }
+
+  function compactElementLine(row){
+    const src = row && typeof row === 'object' ? row : {};
+    const out = {};
+    addText(out, 'key', src.key || src.id);
+    addText(out, 'type', src.type || 'element');
+    addText(out, 'category', src.category || 'Element');
+    addText(out, 'name', src.name || 'Element');
+    addNumber(out, 'qty', src.qty != null ? src.qty : src.quantity, { always:true });
+    addText(out, 'unit', src.unit || 'szt.');
+    addText(out, 'rooms', src.rooms);
+    addNumber(out, 'width', src.width);
+    addNumber(out, 'height', src.height);
+    addText(out, 'materialLabel', src.materialLabel);
+    assignWarnings(out, src.warnings);
+    return out;
+  }
+
+  function compactConditionList(rows){
+    return (Array.isArray(rows) ? rows : []).map((row)=>{
+      const src = row && typeof row === 'object' ? row : {};
+      const out = {};
+      addText(out, 'source', src.source || src.code || src.key);
+      addText(out, 'label', src.label || src.name);
+      addText(out, 'operator', src.operator || src.op);
+      if(hasValue(src.value)) out.value = typeof src.value === 'number' ? roundFingerprintNumber(src.value) : compactText(src.value);
+      if(hasValue(src.min)) out.min = typeof src.min === 'number' ? roundFingerprintNumber(src.min) : compactText(src.min);
+      if(hasValue(src.max)) out.max = typeof src.max === 'number' ? roundFingerprintNumber(src.max) : compactText(src.max);
+      addText(out, 'displayValue', src.displayValue || src.display);
+      return Object.keys(out).length ? out : null;
+    }).filter(Boolean).slice(0, 12);
+  }
+
+  function compactLaborComponent(component){
+    const src = component && typeof component === 'object' ? component : {};
+    const out = {};
+    addText(out, 'key', src.key || src.id);
+    addText(out, 'name', src.name);
+    addText(out, 'category', src.category);
+    addNumber(out, 'quantity', src.quantity, { always:true });
+    addText(out, 'unit', src.unit);
+    addText(out, 'rateType', src.rateType);
+    addNumber(out, 'hourlyRate', src.hourlyRate);
+    addNumber(out, 'hours', src.hours);
+    addNumber(out, 'baseHours', src.baseHours);
+    addNumber(out, 'volumeHours', src.volumeHours);
+    addNumber(out, 'multiplier', src.multiplier);
+    addNumber(out, 'volumeM3', src.volumeM3);
+    addNumber(out, 'volumePrice', src.volumePrice);
+    addNumber(out, 'fixedPrice', src.fixedPrice);
+    addNumber(out, 'unitPrice', src.unitPrice);
+    addNumber(out, 'total', src.total, { always:true });
+    addText(out, 'quantitySource', src.quantitySource);
+    addText(out, 'quantitySourceLabel', src.quantitySourceLabel);
+    addNumber(out, 'quantitySourceValue', src.quantitySourceValue);
+    addText(out, 'quantitySourceDisplay', src.quantitySourceDisplay);
+    if(src.quantitySourceUsed === true) out.quantitySourceUsed = true;
+    addText(out, 'quantityMode', src.quantityMode);
+    addNumber(out, 'timeBlockHours', src.timeBlockHours);
+    addText(out, 'skippedReason', src.skippedReason);
+    addText(out, 'sourceType', src.sourceType);
+    addText(out, 'sourceLabel', src.sourceLabel);
+    addText(out, 'sourceId', src.sourceId);
+    addText(out, 'sourceRole', src.sourceRole);
+    addText(out, 'sourceKind', src.sourceKind);
+    addText(out, 'note', src.note);
+    addText(out, 'calculation', src.calculation || src.calculationNote);
+    addBool(out, 'starterPrice', src.starterPrice === true && !compactText(src.priceUserEditedAt || src.userEditedAt));
+    addText(out, 'priceUserEditedAt', src.priceUserEditedAt || src.userEditedAt);
+    assignWarnings(out, src.warnings);
+    const matched = compactConditionList(src.matchedConditions);
+    if(matched.length) out.matchedConditions = matched;
+    return out;
+  }
+
+  function compactLaborLine(row){
+    const src = row && typeof row === 'object' ? row : {};
+    const out = compactQuoteLine(src, { type:src.type || 'labor-cabinet', defaultName:'Robocizna szafki' });
+    addNumber(out, 'cabinetNumber', src.cabinetNumber);
+    addText(out, 'cabinetId', src.cabinetId);
+    addText(out, 'roomId', src.roomId);
+    addText(out, 'dimensions', src.dimensions);
+    addNumber(out, 'volumeM3', src.volumeM3);
+    addNumber(out, 'hours', src.hours);
+    const details = (Array.isArray(src.details) ? src.details : []).map(compactLaborComponent).filter((item)=> item && Object.keys(item).length);
+    if(details.length) out.details = details;
+    return out;
+  }
+
+  function compactRegisterLine(row){
+    const src = row && typeof row === 'object' ? row : {};
+    const out = {};
+    addText(out, 'id', src.id || src.key);
+    addText(out, 'section', src.section);
+    addText(out, 'sectionLabel', src.sectionLabel);
+    addText(out, 'subsection', src.subsection);
+    addText(out, 'sourceType', src.sourceType);
+    addText(out, 'sourceLabel', src.sourceLabel);
+    addText(out, 'sourceId', src.sourceId);
+    addText(out, 'quantitySource', src.quantitySource);
+    addText(out, 'quantitySourceLabel', src.quantitySourceLabel);
+    addNumber(out, 'quantitySourceValue', src.quantitySourceValue);
+    addText(out, 'quantitySourceDisplay', src.quantitySourceDisplay);
+    if(src.quantitySourceUsed === true) out.quantitySourceUsed = true;
+    const conditions = compactConditionList(src.conditions);
+    if(conditions.length) out.conditions = conditions;
+    const matchedConditions = compactConditionList(src.matchedConditions);
+    if(matchedConditions.length) out.matchedConditions = matchedConditions;
+    addText(out, 'skippedReason', src.skippedReason);
+    addNumber(out, 'timeBlockHours', src.timeBlockHours);
+    addText(out, 'quantityMode', src.quantityMode);
+    addText(out, 'name', src.name || 'Pozycja');
+    addNumber(out, 'quantity', src.quantity, { always:true });
+    addText(out, 'unit', src.unit);
+    addNumber(out, 'unitPrice', src.unitPrice, { always:true });
+    addNumber(out, 'total', src.total, { always:true });
+    addText(out, 'rooms', src.rooms);
+    addText(out, 'note', src.note);
+    addText(out, 'calculation', src.calculation || src.calculationNote);
+    addBool(out, 'starterPrice', src.starterPrice === true);
+    addText(out, 'priceUserEditedAt', src.priceUserEditedAt || src.userEditedAt);
+    assignWarnings(out, src.warnings);
+    return out;
+  }
+
+  function compactCalculationRegister(register, lines, commercial){
+    let src = register && typeof register === 'object' ? register : null;
+    try{
+      if(!src && FC.quoteCalculationRegister && typeof FC.quoteCalculationRegister.buildRegister === 'function') src = FC.quoteCalculationRegister.buildRegister(lines || {}, commercial || {});
+      if(src && FC.quoteCalculationRegister && typeof FC.quoteCalculationRegister.normalizeRegister === 'function') src = FC.quoteCalculationRegister.normalizeRegister(src);
+    }catch(_){ }
+    if(!src || typeof src !== 'object') return null;
+    const out = {
+      schema:compactText(src.schema || 'quote-calculation-register-v1'),
+      generatedAt:Number(src.generatedAt) > 0 ? Number(src.generatedAt) : Date.now(),
+      lines:(Array.isArray(src.lines) ? src.lines : []).map(compactRegisterLine).filter((row)=> compactText(row.section)),
+      totals:clone(src.totals || {}),
+    };
+    if(src.sections && typeof src.sections === 'object') out.sections = clone(src.sections);
+    const warnings = Array.isArray(src.warnings) ? src.warnings.map((row)=> ({
+      key:compactText(row && row.key),
+      section:compactText(row && row.section),
+      sectionLabel:compactText(row && row.sectionLabel),
+      message:compactText(row && row.message || row),
+    })).filter((row)=> row.message).slice(0, 40) : [];
+    if(warnings.length) out.warnings = warnings;
+    return out;
+  }
+
+  function compactSnapshotLines(lines){
+    const src = lines && typeof lines === 'object' ? lines : {};
+    return {
+      materials:(Array.isArray(src.materials) ? src.materials : []).map((row)=> compactQuoteLine(row, { type:'material', defaultName:'Materiał' })),
+      elements:(Array.isArray(src.elements) ? src.elements : []).map(compactElementLine),
+      accessories:(Array.isArray(src.accessories) ? src.accessories : []).map((row)=> compactQuoteLine(row, { type:'accessory', defaultName:'Akcesorium' })),
+      agdServices:(Array.isArray(src.agdServices) ? src.agdServices : []).map((row)=> compactQuoteLine(row, { type:'agd-service', defaultName:'Montaż AGD' })),
+      quoteRates:(Array.isArray(src.quoteRates) ? src.quoteRates : []).map((row)=> compactQuoteLine(row, { type:'quote-rate', defaultName:'Robocizna / stawka' })),
+      labor:(Array.isArray(src.labor) ? src.labor : []).map(compactLaborLine),
+    };
+  }
+
+  function jsonBytes(value){ try{ return JSON.stringify(value == null ? null : value).length; }catch(_){ return 0; } }
+  function snapshotSizeBreakdown(snapshot){
+    const src = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    const normalized = normalizeSnapshot(src, { preserveExplicitLabels:true });
+    const lines = normalized.lines || {};
+    return {
+      rawBytes:jsonBytes(src),
+      storageBytes:jsonBytes(normalized),
+      estimate30StorageBytes:jsonBytes(normalized) * 30,
+      storageSchema:compactText(normalized.meta && normalized.meta.storageSchema),
+      lineCounts:normalized.meta && normalized.meta.lineCounts || {},
+      parts:{
+        investor:jsonBytes(normalized.investor),
+        project:jsonBytes(normalized.project),
+        scope:jsonBytes(normalized.scope),
+        commercial:jsonBytes(normalized.commercial),
+        totals:jsonBytes(normalized.totals),
+        meta:jsonBytes(normalized.meta),
+        calculationRegister:jsonBytes(normalized.calculationRegister),
+        linesMaterials:jsonBytes(lines.materials),
+        linesElements:jsonBytes(lines.elements),
+        linesAccessories:jsonBytes(lines.accessories),
+        linesAgdServices:jsonBytes(lines.agdServices),
+        linesQuoteRates:jsonBytes(lines.quoteRates),
+        linesLabor:jsonBytes(lines.labor),
+      },
+    };
+  }
+
   function lineFingerprint(row){
     const src = row && typeof row === 'object' ? row : {};
     const out = {
@@ -261,6 +530,7 @@
         quoteRates: linesFingerprint(lines.quoteRates),
         labor: linesFingerprint(lines.labor),
       },
+      calculationRegister: linesFingerprint(snapshot && snapshot.calculationRegister && snapshot.calculationRegister.lines),
     };
     return JSON.stringify(stableCanonical(comparable));
   }
@@ -291,6 +561,10 @@
     const opts = options && typeof options === 'object' ? options : {};
     const scope = buildCanonicalScope(src.scope || {}, opts);
     const versionName = String(src.meta && src.meta.versionName || src.commercial && src.commercial.versionName || '').trim() || getCanonicalDefaultVersionName({ scope, commercial:{ preliminary }, meta:{ preliminary } }, opts);
+    const rawLines = src.lines && typeof src.lines === 'object' ? src.lines : {};
+    const commercial = Object.assign({}, clone(src.commercial || {}), { versionName });
+    const lines = compactSnapshotLines(rawLines);
+    const calculationRegister = compactCalculationRegister(src.calculationRegister || rawLines.calculationRegister, rawLines, commercial);
     const out = {
       version: SNAPSHOT_STORAGE_VERSION,
       id: String(src.id || uid()),
@@ -298,9 +572,10 @@
       investor: src.investor ? clone(src.investor) : null,
       project: src.project ? clone(src.project) : null,
       scope,
-      lines: clone(src.lines || {}),
-      commercial: Object.assign({}, clone(src.commercial || {}), { versionName }),
-      totals: clone(src.totals || {}),
+      lines,
+      calculationRegister,
+      commercial,
+      totals: clone(src.totals || (calculationRegister && calculationRegister.totals) || {}),
       meta: {
         source:String(src.meta && src.meta.source || 'quote-snapshot-slim'),
         storageSchema: SNAPSHOT_STORAGE_SCHEMA,
@@ -311,6 +586,15 @@
         rejectedAt: Number(src.meta && src.meta.rejectedAt) > 0 ? Number(src.meta.rejectedAt) : 0,
         rejectedReason: String(src.meta && src.meta.rejectedReason || '').trim().toLowerCase(),
         preliminary,
+        lineCounts: {
+          materials: lines.materials.length,
+          elements: lines.elements.length,
+          accessories: lines.accessories.length,
+          agdServices: lines.agdServices.length,
+          quoteRates: lines.quoteRates.length,
+          labor: lines.labor.length,
+          calculationRegister: calculationRegister && Array.isArray(calculationRegister.lines) ? calculationRegister.lines.length : 0,
+        },
         unsavedDueToStorage: !!(srcMeta.unsavedDueToStorage || srcMeta.unsavedStorage || srcMeta.unsavedPreview || src.__unsavedDueToStorage),
         storageWarning: String(srcMeta.storageWarning || srcMeta.unsavedStorageWarning || '').trim(),
         storageErrorCode: String(srcMeta.storageErrorCode || '').trim(),
@@ -336,8 +620,33 @@
     return rows.map((row)=> normalizeSnapshot(row, { canonicalizeLabels:true })).sort((a,b)=> Number(b.generatedAt || 0) - Number(a.generatedAt || 0));
   }
 
+  function limitSnapshotHistory(rows){
+    const src = (Array.isArray(rows) ? rows : []).slice().sort((a,b)=> Number(b && b.generatedAt || 0) - Number(a && a.generatedAt || 0));
+    const groups = new Map();
+    src.forEach((row)=>{
+      const pid = String(row && row.project && row.project.id || row && row.projectId || 'bez-projektu');
+      if(!groups.has(pid)) groups.set(pid, []);
+      groups.get(pid).push(row);
+    });
+    const kept = [];
+    groups.forEach((groupRows)=>{
+      const selected = groupRows.filter((row)=> !!(row && row.meta && row.meta.selectedByClient));
+      const selectedIds = new Set(selected.map((row)=> String(row && row.id || '')).filter(Boolean));
+      const newest = groupRows.filter((row)=> !selectedIds.has(String(row && row.id || ''))).slice(0, MAX_SNAPSHOTS_PER_PROJECT);
+      selected.concat(newest).forEach((row)=>{
+        const id = String(row && row.id || '');
+        if(id && !kept.some((item)=> String(item && item.id || '') === id)) kept.push(row);
+      });
+    });
+    const sorted = kept.sort((a,b)=> Number(b && b.generatedAt || 0) - Number(a && a.generatedAt || 0));
+    if(sorted.length <= MAX_SNAPSHOTS_TOTAL) return sorted;
+    const selected = sorted.filter((row)=> !!(row && row.meta && row.meta.selectedByClient));
+    const selectedIds = new Set(selected.map((row)=> String(row && row.id || '')).filter(Boolean));
+    return selected.concat(sorted.filter((row)=> !selectedIds.has(String(row && row.id || ''))).slice(0, Math.max(0, MAX_SNAPSHOTS_TOTAL - selected.length)));
+  }
+
   function writeAll(list){
-    const rows = Array.isArray(list) ? list.map((row)=> normalizeSnapshot(row, { preserveExplicitLabels:true })) : [];
+    const rows = limitSnapshotHistory(Array.isArray(list) ? list.map((row)=> normalizeSnapshot(row, { preserveExplicitLabels:true })) : []);
     writeSnapshotRowsStrict(rows, 'writeAll');
     return rows;
   }
@@ -375,7 +684,7 @@
     }
     const next = list.filter((row)=> String(row.id || '') !== String(normalized.id || ''));
     next.unshift(normalized);
-    const writtenRows = writeAll(next.slice(0, 120));
+    const writtenRows = writeAll(next);
     const afterRaw = rawSnapshotStorage();
     const afterParsed = safeParseRows(afterRaw);
     const afterRows = readAll();
@@ -624,10 +933,12 @@
     remove,
     findDuplicateSnapshot,
     replaceSnapshot,
+    snapshotSizeBreakdown,
     getQuoteFingerprint,
     cleanupRemovedSnapshotReferences,
     purgeLegacyStoredRows,
     isCurrentStoredSnapshot,
+    limitSnapshotHistory,
     markSelectedForProject,
     syncSelectionForProjectStatus,
     getRecommendedStatusForProject,

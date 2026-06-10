@@ -1,4 +1,12 @@
 
+## 2026-06-10 — Awaryjne odchudzanie backupów przy zapisie historii WYCENY
+
+- `quote-snapshot-storage-maintenance` może odchudzić `fc_data_backups_v1` tylko wtedy, gdy zapis historii WYCENY do `localStorage` nie mieści się w limicie.
+- Najpierw usuwane są cache/klucze techniczne, potem nadmiar backupów testowych i starszych backupów aplikacji.
+- Bieżące dane projektu, inwestorzy, katalogi i cenniki nie są czyszczone przez ten mechanizm.
+- To jest lokalny bezpiecznik do czasu migracji chmurowej; docelowo historia ofert ma być osobną kolekcją/dokumentami, a backupy nie powinny blokować zapisu ofert.
+
+
 ## 2026-06-09 — Źródło ilości w cenniku robocizny v1
 
 - Pole `quantitySource` jest częścią istniejących pozycji `quoteRates`, więc trafia do backupu razem z cennikiem robocizny.

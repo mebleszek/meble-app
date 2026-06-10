@@ -247,6 +247,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/quote/quote-offer-store.js",
       "js/app/quote/quote-snapshot-scope.js",
       "js/app/quote/quote-snapshot-selection.js",
+      "js/app/quote/quote-snapshot-storage-maintenance.js",
       "js/app/quote/quote-snapshot-store.js",
       "js/app/quote/quote-calculation-register.js",
       "js/app/quote/quote-scope-entry-utils.js",

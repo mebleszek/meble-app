@@ -3,7 +3,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const BUILD = '20260610_wycena_unsaved_preview_storage_fix_v1';
+  const BUILD = '20260610_quote_history_storage_maintenance_v1';
   const EVENT_LIMIT = 60;
   let lastGenerateTrace = null;
   let lastGenerateButtonEvent = null;
@@ -227,6 +227,28 @@
       source:text(snap.meta && snap.meta.source || snap.source),
     };
   }
+
+  function snapshotSizeBreakdown(row){
+    try{
+      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.snapshotSizeBreakdown === 'function') return FC.quoteSnapshotStore.snapshotSizeBreakdown(row);
+    }catch(err){ return { error:String(err && err.message || err || 'błąd') }; }
+    return null;
+  }
+  function summarizePreviewState(state){
+    const src = state && typeof state === 'object' ? state : {};
+    const lastQuote = src.lastQuote && typeof src.lastQuote === 'object' ? src.lastQuote : null;
+    const out = {};
+    Object.keys(src).forEach(function(key){
+      if(key === 'lastQuote') return;
+      const value = src[key];
+      if(value == null || typeof value !== 'object') out[key] = value;
+      else if(Array.isArray(value)) out[key] = value.slice(0, 20);
+      else out[key] = { keys:shallowKeys(value).slice(0, 30) };
+    });
+    out.lastQuote = lastQuote ? summarizeSnapshot(lastQuote) : null;
+    out.lastQuoteSize = lastQuote ? snapshotSizeBreakdown(lastQuote) : null;
+    return out;
+  }
   function summarizeStorageKey(key){
     const raw = storageRaw(key);
     const parsed = safeJson(raw);
@@ -296,12 +318,22 @@
       'fc_reload_restore_v1'
     ];
     const legacySlots = keys.filter(function(key){ return /^fc_project_inv_.+_v1$/.test(key); });
+    const audit = safeCall('dataStorageAudit.auditCurrent', function(){ return FC.dataStorageAudit && typeof FC.dataStorageAudit.auditCurrent === 'function' ? FC.dataStorageAudit.auditCurrent() : null; }, null);
     return {
       totalKeys:keys.length,
       fcKeys:keys.filter(function(key){ return key.indexOf('fc_') === 0; }).length,
       important:important.map(summarizeStorageKey),
       legacyProjectSlots:legacySlots.map(summarizeStorageKey),
       legacyProjectSlotCount:legacySlots.length,
+      audit:audit ? {
+        totalBytes:audit.totalBytes,
+        backupStore:audit.backupStore,
+        snapshotIncluded:audit.snapshotIncluded,
+        snapshotExcluded:audit.snapshotExcluded,
+        internalBackups:audit.internalBackups,
+        cacheKeys:audit.cacheKeys,
+        largestKeys:audit.largestKeys,
+      } : null,
     };
   }
   function collectRuntimeSection(){
@@ -443,7 +475,7 @@
       debugApiExists:!!FC.wycenaTabDebug,
       historyCount:histRows.length,
       historyRows:summarizeSnapshotList(histRows, 12),
-      previewState:clone(previewState || {}),
+      previewState:summarizePreviewState(previewState || {}),
       shellState:clone(shellState || {}),
       currentDraft:summarizeDraft(currentDraft),
       resolvedDisplayedQuote:resolved ? summarizeSnapshot(resolved) : null,
@@ -494,18 +526,22 @@
     const ids = new Set();
     const duplicateIds = [];
     rawRows.forEach(function(row){ const id = getSnapshotId(row); if(!id) return; if(ids.has(id)) duplicateIds.push(id); ids.add(id); });
+    const normalizedList = Array.isArray(normalizedRows) ? normalizedRows : [];
     return {
       storageKey:'fc_quote_snapshots_v1',
       bytes:raw == null ? 0 : String(raw).length,
       jsonOk:!!parsed.ok,
       jsonError:parsed.error || '',
       rawCount:rawRows.length,
-      normalizedCount:Array.isArray(normalizedRows) ? normalizedRows.length : null,
+      normalizedCount:normalizedList.length,
       duplicateIds,
       rawRows:summarizeSnapshotList(rawRows, 12),
-      normalizedRows:summarizeSnapshotList(Array.isArray(normalizedRows) ? normalizedRows : [], 12),
+      normalizedRows:summarizeSnapshotList(normalizedList, 12),
       rowsForCurrentProject:summarizeSnapshotList(rawRows.filter(function(row){ return getSnapshotProjectId(row) === pid; }), 12),
       rowsForCurrentInvestor:summarizeSnapshotList(rawRows.filter(function(row){ return getSnapshotInvestorId(row) === iid; }), 12),
+      sizeAudit:{
+        storedRowsTop:normalizedList.slice(0, 8).map(function(row){ return { summary:summarizeSnapshot(row), size:snapshotSizeBreakdown(row) }; }),
+      },
       recentSnapshotStoreEvents:summarizeEventList(snapshotStoreEvents),
     };
   }
@@ -542,7 +578,14 @@
           elementLines:Array.isArray(quote && quote.elementLines) ? quote.elementLines.length : 0,
           totals:quote && quote.totals || null,
         };
+        try{
+          if(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function'){
+            const snap = FC.quoteSnapshot.buildSnapshot(quote);
+            out.snapshot = { summary:summarizeSnapshot(snap), size:snapshotSizeBreakdown(snap) };
+          }
+        }catch(sizeErr){ out.snapshot = { error:String(sizeErr && sizeErr.message || sizeErr || 'błąd') }; }
         mark('collectQuoteDataResult', out.quote);
+        if(out.snapshot) mark('snapshotSizeAudit', out.snapshot);
       }else{
         out.error = { message:'Brak FC.wycenaCore.collectQuoteData' };
         mark('collectQuoteDataResult', out.error);

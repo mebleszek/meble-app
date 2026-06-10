@@ -1,4 +1,17 @@
 
+## 2026-06-10 — WYCENA: historia ofert i storage maintenance v1
+
+- Paczka: `site_quote_history_storage_maintenance_v1.zip`.
+- Dodano moduł `js/app/quote/quote-snapshot-storage-maintenance.js`, który przy pełnym `localStorage` usuwa cache/techniczne kopie i odchudza stare lokalne backupy przed zapisem historii WYCENY.
+- `quote-snapshot-store` nie kończy już od razu na tymczasowym `Podglądzie bez zapisu historii`; najpierw próbuje realnie zapisać odchudzony snapshot oferty.
+- Historia ofert zachowuje flow z BACKUP-u: wiele wariantów, wstępna/końcowa, akceptacja, statusy i odrzucenia nadal idą przez istniejący store/status bridge.
+- Nie cofano ani nie zmieniano sensu nowych automatów robocizny, `quantitySource`, warunków i audytu robocizny.
+- Limit historii: 30 najnowszych ofert na projekt, z zachowaniem wybranych/zaakceptowanych.
+- `Diag` pokazuje teraz skrót `lastQuote` oraz rozbicie rozmiarów snapshotu, zamiast wklejać pełne `lines.elements`.
+- Nie ruszano WYWIADU, plusa dodawania szafki, `cabinet-modal.js`, `cabinets-render.js` ani `cabinet-common.css`.
+- Cache-busting: `20260610_quote_history_storage_maintenance_v1`. Raport: `tools/reports/quote-history-storage-maintenance-v1.md`.
+
+
 ## 2026-06-10 — WYCENA: podgląd bez zapisu historii przy pełnym storage v1
 
 - Paczka: `site_wycena_unsaved_preview_storage_fix_v1.zip`.
