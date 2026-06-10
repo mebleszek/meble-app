@@ -1,6 +1,14 @@
 (function(){
   const ns = (window.FC = window.FC || {});
 
+function cleanDrawerTrash(cabinet){
+  try{
+    const api = ns.cabinetDrawerRequirements;
+    if(api && typeof api.cleanDrawerTrash === 'function') api.cleanDrawerTrash(cabinet);
+  }catch(_){ }
+  return cabinet;
+}
+
 function getSubTypeOptionsForType(typeVal){
   if(typeVal === 'wisząca'){
     return [
@@ -69,6 +77,7 @@ function applyTypeRules(room, updated, typeVal){
     if(typeof updated.frontCount !== 'number' || ![1,2].includes(Number(updated.frontCount))) updated.frontCount = 2;
   }
   updated.type = typeVal;
+  cleanDrawerTrash(updated);
   return updated;
 }
 
@@ -107,7 +116,7 @@ function applySubTypeRules(room, updated, subTypeVal){
       const cur = (updated.details || {});
       // ustaw domyślne wartości szuflad (jak w stojącej)
       updated.details = Object.assign({}, cur, {
-        drawerLayout: (cur.drawerLayout || (cur.drawerCount ? null : '3_1_2_2') || '3_1_2_2'),
+        drawerLayout: (cur.drawerLayout || '3_1_2_2'),
         drawerSystem: (cur.drawerSystem || 'skrzynkowe'),
         innerDrawerType: (cur.innerDrawerType || 'brak'),
         innerDrawerCount: (cur.innerDrawerCount != null ? cur.innerDrawerCount : 0),
@@ -163,21 +172,14 @@ function applySubTypeRules(room, updated, subTypeVal){
     const cur = FC.utils.isPlainObject(updated.details) ? updated.details : {};
     let lay = cur.drawerLayout;
     if(!lay){
-      const legacy = String(cur.drawerCount || '3');
-      if(legacy === '1') lay = '1_big';
-      else if(legacy === '2') lay = '2_equal';
-      else if(legacy === '3') lay = '3_1_2_2';
-      else if(legacy === '5') lay = '5_equal';
-      else lay = '3_equal';
+      lay = '3_1_2_2';
     }
     const innerDef = (lay === '3_equal') ? '3' : '2';
     updated.details = Object.assign({}, cur, {
       drawerLayout: lay,
       drawerSystem: (cur.drawerSystem || 'skrzynkowe'),
       innerDrawerType: (cur.innerDrawerType || 'brak'),
-      innerDrawerCount: (cur.innerDrawerCount != null ? String(cur.innerDrawerCount) : innerDef),
-      // zachowaj legacy dla kompatybilności
-      drawerCount: (cur.drawerCount != null ? String(cur.drawerCount) : (lay === '1_big' ? '1' : lay === '2_equal' ? '2' : lay === '5_equal' ? '5' : '3'))
+      innerDrawerCount: (cur.innerDrawerCount != null ? String(cur.innerDrawerCount) : innerDef)
     });
     // układ 5 szuflad: brak wewnętrznych
     if(lay === '5_equal'){
@@ -324,6 +326,7 @@ if(updated.type === 'stojąca' && subTypeVal === 'zmywarkowa'){
     if(typeof updated.frontCount !== 'number' || updated.frontCount === 0) updated.frontCount = 2;
   }
 
+  cleanDrawerTrash(updated);
   return updated;
 }
 
@@ -641,16 +644,8 @@ function generateFrontsForCabinet(room, cab){
   }
   if(cab.subType === 'szuflady'){
     const d = cab.details || {};
-    // układ szuflad (kompatybilność wstecz: drawerCount)
-    let lay = String(d.drawerLayout || '');
-    if(!lay){
-      const legacy = String(d.drawerCount || '3');
-      if(legacy === '1') lay = '1_big';
-      else if(legacy === '2') lay = '2_equal';
-      else if(legacy === '3') lay = '3_1_2_2';
-      else if(legacy === '5') lay = '5_equal';
-      else lay = '3_equal';
-    }
+    // układ szuflad jest jawny; drawerCount nie jest już źródłem prawdy.
+    let lay = String(d.drawerLayout || '3_1_2_2');
 
     let ratios = [1,2,2];
     if(lay === '1_big') ratios = [1];

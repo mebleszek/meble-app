@@ -31,6 +31,11 @@
     delete cloned.setRole;
     delete cloned.setName;
     delete cloned.setNumber;
+    try{
+      if(ns.cabinetDrawerRequirements && typeof ns.cabinetDrawerRequirements.cleanDrawerTrash === 'function'){
+        ns.cabinetDrawerRequirements.cleanDrawerTrash(cloned);
+      }
+    }catch(_){ }
     return cloned;
   }
 
@@ -71,7 +76,7 @@
       openingSystem: 'uchwyt klienta',
       backMaterial: 'HDF 3mm biała',
       frontCount: 2,
-      details: { insideMode: 'polki', innerDrawerCount: '1', innerDrawerType: 'blum', shelves: 1, cornerOption: 'polki', dishWasherWidth: '60', ovenOption: 'szuflada_dol', ovenHeight: '60', sinkOption: 'zwykle_drzwi', fridgeOption: 'zabudowa', fridgeWidth: '60', drawerCount: '3', subTypeOption: 'polki', fridgeFrontCount: '2' }
+      details: { insideMode: 'polki', shelves: 1, cornerOption: 'polki', dishWasherWidth: '60', ovenOption: 'szuflada_dol', ovenHeight: '60', sinkOption: 'zwykle_drzwi', fridgeOption: 'zabudowa', fridgeWidth: '60', subTypeOption: 'polki', fridgeFrontCount: '2' }
     };
 
     try{
@@ -90,6 +95,11 @@
         if(ns.roomPreferences && typeof ns.roomPreferences.applyPreferencesToDraft === 'function'){
           ns.roomPreferences.applyPreferencesToDraft(room, draft);
         }
+      }
+    }catch(_){ }
+    try{
+      if(ns.cabinetDrawerRequirements && typeof ns.cabinetDrawerRequirements.cleanDrawerTrash === 'function'){
+        ns.cabinetDrawerRequirements.cleanDrawerTrash(draft);
       }
     }catch(_){ }
     return draft;

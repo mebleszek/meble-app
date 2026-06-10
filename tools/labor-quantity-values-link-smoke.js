@@ -18,8 +18,9 @@ function slug(value){ return String(value || '').toLowerCase().normalize('NFD').
 
 const projectData = {
   kuchnia:{ cabinets:[{
-    id:'cab_quantity_source', type:'stojąca', subType:'szufladówka', width:60, height:82, depth:51, frontCount:2,
-    details:{ shelves:1, drawerCount:3 }
+    id:'cab_quantity_source', type:'stojąca', subType:'standardowa', width:60, height:82, depth:51, frontCount:2,
+    drawerRequirements:[{ source:'manual_requirement', qty:3, label:'Ręcznie dodane szuflady' }],
+    details:{ shelves:1 }
   }] }
 };
 const FC = {
@@ -48,6 +49,7 @@ vm.createContext(ctx);
   'js/app/pricing/labor-catalog-definitions.js',
   'js/app/pricing/labor-catalog.js',
   'js/app/pricing/work-quantity-sources.js',
+  'js/app/cabinet/cabinet-drawer-requirements.js',
   'js/app/pricing/work-quantity-facts.js'
 ].forEach((file)=> load(ctx, file));
 const rates = FC.laborCatalog.DEFAULT_HOURLY_RATES.concat(FC.laborCatalog.DEFAULT_LABOR_DEFINITIONS).map(clone);

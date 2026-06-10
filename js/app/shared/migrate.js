@@ -110,24 +110,15 @@
             cab.details = isPlainObject(cab.details) ? cab.details : (cab.details || {});
             const d = cab.details;
             if(cab.subType === 'szuflady'){
-              let lay = String(d.drawerLayout || '');
-              if(!lay){
-                const legacy = String(d.drawerCount || '3');
-                if(legacy === '1') lay = '1_big';
-                else if(legacy === '2') lay = '2_equal';
-                else if(legacy === '3') lay = '3_1_2_2';
-                else if(legacy === '5') lay = '5_equal';
-                else lay = '3_equal';
-              }
+              let lay = String(d.drawerLayout || '3_1_2_2');
               d.drawerLayout = lay;
+              delete d.drawerCount;
+              delete d.drawers;
               if(!d.drawerSystem) d.drawerSystem = 'skrzynkowe';
               if(!d.drawerBrand) d.drawerBrand = 'blum';
               if(!d.drawerModel) d.drawerModel = 'tandembox';
               if(!('innerDrawerType' in d)) d.innerDrawerType = 'brak';
-              if(!('innerDrawerCount' in d) || d.innerDrawerCount == null){
-                d.innerDrawerCount = (lay === '3_equal') ? '3' : '2';
-              }
-              if(lay === '5_equal'){
+              if(String(d.innerDrawerType || 'brak') === 'brak' || lay === '5_equal'){
                 d.innerDrawerType = 'brak';
                 d.innerDrawerCount = '0';
               } else if(lay === '3_equal'){

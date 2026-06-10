@@ -1,3 +1,10 @@
+## 2026-06-10 — Cloud-ready kierunek dla szuflad/prowadnic
+
+- Nie dodano nowego trwałego klucza `localStorage`.
+- Jawne `drawerRequirements` są częścią dokumentu/rekordu szafki, więc później mogą zostać przeniesione do chmury razem z projektem bez osobnego magazynu.
+- `drawer.count` jest odczytem z centralnego modułu wymagań, a nie z luźnych legacy pól. To zmniejsza ryzyko rozjechania danych między lokalnym projektem, ofertą i przyszłą chmurą.
+- Legacy pola szufladowe są czyszczone przy draftach/klonowaniu/zapisie, bo aplikacja jest w trakcie tworzenia i nie utrzymujemy zgodności ze starymi testowymi śmieciami.
+
 ## 2026-06-10 — WYCENA: przygotowanie historii ofert pod chmurę
 
 - Historia ofert została dalej odchudzona bez zmiany wyniku wyceny: snapshot ma zachować dane potrzebne do podglądu, audytu i statusów, ale nie powinien trzymać ciężkich technicznych odcisków porównawczych.

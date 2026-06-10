@@ -1,3 +1,10 @@
+## 2026-06-10 — Szuflady/prowadnice jako jawne wymagania
+
+- Nie dodano nowego klucza `localStorage` ani nowego magazynu backupu.
+- `drawerRequirements`, jeżeli wystąpią w przyszłym kreatorze korpusów, są częścią rekordu szafki w projekcie i trafiają do backupu razem z projektem.
+- Legacy pola `drawerCount`, `drawers` i ukryte `innerDrawerCount` bez realnego wariantu nie są już traktowane jako źródło prawdy do WYCENY.
+- Świeże drafty i zapis szafki czyszczą śmieci szufladowe, zamiast utrzymywać zgodność z dawnymi testowymi danymi.
+
 ## 2026-06-10 — WYCENA: martwa sesja edycji i fingerprint snapshotu
 
 - `fc_edit_session_v1` nadal jest kluczem lotnym/sesyjnym i nie wchodzi do backupu.

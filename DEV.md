@@ -1,3 +1,15 @@
+## 2026-06-10 — Szuflady/prowadnice: jawne wymagania jako źródło drawer.count v1
+
+- Paczka: `site_drawer_requirements_source_of_truth_v1.zip`.
+- Dodano `js/app/cabinet/cabinet-drawer-requirements.js` jako centralny moduł jawnych wymagań szuflad/prowadnic.
+- `drawer.count` w `FC.workQuantityFacts` nie czyta już śmieciowych pól `details.drawerCount`, `details.drawers`, `innerDrawerCount` ani `podInnerDrawerCount` bez kontekstu. Liczy wyłącznie wymagania zwracane przez `FC.cabinetDrawerRequirements`.
+- Świeży draft zwykłej szafki nie dostaje już ukrytych wartości `drawerCount: '3'`, `innerDrawerCount: '1'`, `innerDrawerType: 'blum'`.
+- Klonowanie, zmiana typu/wariantu i zapis szafki czyszczą legacy pola szufladowe, jeżeli nie wynikają z realnego wariantu szuflad/prowadnic.
+- Przyszły kreator korpusów może dodać `drawerRequirements` do dowolnej konstrukcji; wtedy `drawer.count` je policzy niezależnie od typu szafki.
+- Nie robiono whitelisty wariantów szafek i nie maskowano problemu w WYCENIE. Nie zmieniono sensu automatów robocizny, `quantitySource`, warunków ani audytu robocizny.
+- Nie ruszano `cabinet-modal.js`, `cabinets-render.js`, `cabinet-common.css`, WYWIADU ani plusa dodawania szafki.
+- Cache-busting: `20260610_drawer_requirements_source_of_truth_v1`. Raport: `tools/reports/drawer-requirements-source-of-truth-v1.md`.
+
 ## 2026-06-10 — WYCENA: porządek Diag, storage i kompaktowy fingerprint v1
 
 - Paczka: `site_quote_diag_storage_cleanup_v1.zip`.

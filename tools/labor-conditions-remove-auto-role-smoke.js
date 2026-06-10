@@ -39,7 +39,8 @@ assert(read('js/app/material/price-modal-persistence.js').includes('Niekompletny
 const projectData = {
   kuchnia:{ cabinets:[{
     id:'cab_conditions_smoke', type:'stojąca', subType:'standardowa', width:60, height:82, depth:51, frontCount:2,
-    details:{ shelves:2, drawerCount:3 }
+    drawerRequirements:[{ source:'manual_requirement', qty:3, label:'Ręcznie dodane szuflady' }],
+    details:{ shelves:2 }
   }] }
 };
 const FC = {
@@ -57,6 +58,7 @@ vm.createContext(ctx);
   'js/app/pricing/labor-catalog-definitions.js',
   'js/app/pricing/labor-catalog.js',
   'js/app/pricing/work-quantity-sources.js',
+  'js/app/cabinet/cabinet-drawer-requirements.js',
   'js/app/pricing/work-quantity-facts.js'
 ].forEach((file)=> load(ctx, file));
 

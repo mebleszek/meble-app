@@ -15,6 +15,14 @@
     if(api && typeof api.ensureFrontCountRulesSafe === 'function') return api.ensureFrontCountRulesSafe(cab);
     return cab;
   }
+  function cleanDrawerTrashSafe(cab){
+    try{
+      const api = ns.cabinetDrawerRequirements;
+      if(api && typeof api.cleanDrawerTrash === 'function') api.cleanDrawerTrash(cab);
+    }catch(_){ }
+    return cab;
+  }
+
   function validateAventosForDraftSafe(room, draft){
     const api = getValidationApi();
     if(api && typeof api.validateAventosForDraftSafe === 'function') return api.validateAventosForDraftSafe(room, draft);
@@ -42,7 +50,9 @@
   }
 
   function finalizeAddedCabinet(room, draft){
+    cleanDrawerTrashSafe(draft);
     const newCab = cloneSafe(draft);
+    cleanDrawerTrashSafe(newCab);
     newCab.id = (ns.utils && typeof ns.utils.uid === 'function') ? ns.utils.uid() : ('cab_' + Date.now());
     projectData[room].cabinets.push(newCab);
 
@@ -60,7 +70,10 @@
   function finalizeEditedCabinet(room, draft, editingId){
     const id = String(editingId || '');
     projectData[room].cabinets = projectData[room].cabinets.map(function(cab){
-      return String(cab && cab.id || '') === id ? Object.assign({}, cloneSafe(draft), { id:id }) : cab;
+      if(String(cab && cab.id || '') !== id) return cab;
+      const next = Object.assign({}, cloneSafe(draft), { id:id });
+      cleanDrawerTrashSafe(next);
+      return next;
     });
     const updated = projectData[room].cabinets.find(function(cab){ return String(cab && cab.id || '') === id; });
     if(updated && typeof generateFrontsForCabinet === 'function') generateFrontsForCabinet(room, updated);
@@ -88,6 +101,7 @@
 
       syncDraftFromCabinetModalFormSafe(draft);
       ensureFrontCountRulesSafe(draft);
+      cleanDrawerTrashSafe(draft);
 
       const aventos = validateAventosForDraftSafe(room, draft);
       if(aventos && aventos.ok === false){

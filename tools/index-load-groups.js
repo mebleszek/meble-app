@@ -181,6 +181,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/cabinet/front-hardware.js",
       "js/app/cabinet/cabinet-hardware-requirement-options.js",
       "js/app/cabinet/cabinet-hardware-requirements.js",
+      "js/app/cabinet/cabinet-drawer-requirements.js",
       "js/app/pricing/work-quantity-facts.js",
       "js/app/shared/calc.js",
       "js/app/investor/project-bootstrap.js",
