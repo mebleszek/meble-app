@@ -27,6 +27,20 @@
   }
 
 
+  function normalizeSlug(value){
+    return text(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  }
+  function isLegacyAgdDefinition(row){
+    const src = row && typeof row === 'object' ? row : {};
+    const category = text(src.category).toLowerCase();
+    const id = text(src.id);
+    const name = normalizeSlug(src.name);
+    if(category === 'agd') return true;
+    if(id === 'hood_mount') return true;
+    if(category === 'montaż agd' && name === 'montaz_okapu') return true;
+    return false;
+  }
+
   function normalizeRateCode(value){
     return text(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
   }
@@ -337,7 +351,7 @@
     };
   }
   function ensureDefaultDefinitions(list){
-    const rows = dedupeHourlyRateDefinitions(Array.isArray(list) ? list.slice() : []);
+    const rows = dedupeHourlyRateDefinitions((Array.isArray(list) ? list.slice() : []).filter((row)=> !isLegacyAgdDefinition(row)));
     const seen = new Set(rows.map((row)=> text(row && row.id)).filter(Boolean));
     DEFAULT_HOURLY_RATES.concat(DEFAULT_LABOR_DEFINITIONS).forEach((row)=>{
       if(seen.has(row.id)) return;
@@ -480,5 +494,6 @@
     rateProfileOptions,
     validateRateProfile,
     dedupeHourlyRateDefinitions,
+    _isLegacyAgdDefinition:isLegacyAgdDefinition,
   };
 })();

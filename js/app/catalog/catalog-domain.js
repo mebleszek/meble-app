@@ -4,7 +4,7 @@
   const FC = window.FC;
 
   const SHEET_MATERIAL_TYPES = ['laminat','akryl','lakier','hdf','obrzeże','blat'];
-  const QUOTE_RATE_CATEGORIES = ['Stawki godzinowe','Korpusy','Elementy szafki','Usługi przy szafce','Montaż','AGD','Pomiar','Transport','Projekt','Inne'];
+  const QUOTE_RATE_CATEGORIES = ['Stawki godzinowe','Korpusy','Elementy szafki','Usługi przy szafce','Montaż','Montaż AGD','Pomiar','Transport','Projekt','Inne'];
   const WORKSHOP_SERVICE_CATEGORIES = ['Cięcie','Oklejanie','Montaż','Naprawa','Transport','Inne'];
 
   const PRICE_LIST_CONFIG = {

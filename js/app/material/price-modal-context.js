@@ -46,7 +46,7 @@
   FC.priceModal = FC.priceModal || {};
   FC.priceModalContext = Object.assign(FC.priceModalContext || {}, {
     MATERIAL_TYPES:Array.isArray(catalogDomain.SHEET_MATERIAL_TYPES) ? catalogDomain.SHEET_MATERIAL_TYPES.slice() : ['laminat','akryl','lakier','blat'],
-    QUOTE_RATE_CATEGORIES:Array.isArray(catalogDomain.QUOTE_RATE_CATEGORIES) ? catalogDomain.QUOTE_RATE_CATEGORIES.slice() : ['Montaż','AGD','Pomiar','Transport','Projekt','Inne'],
+    QUOTE_RATE_CATEGORIES:Array.isArray(catalogDomain.QUOTE_RATE_CATEGORIES) ? catalogDomain.QUOTE_RATE_CATEGORIES.slice() : ['Montaż','Montaż AGD','Pomiar','Transport','Projekt','Inne'],
     WORKSHOP_SERVICE_CATEGORIES:Array.isArray(catalogDomain.WORKSHOP_SERVICE_CATEGORIES) ? catalogDomain.WORKSHOP_SERVICE_CATEGORIES.slice() : ['Cięcie','Oklejanie','Montaż','Naprawa','Transport','Inne'],
     runtimeState, byId, appUiState, catalogStore, currentListKind, currentConfig, currentList,
     persistUi, saveCurrentList, normalizeKey, info, confirmDelete, confirmDiscard, confirmSave,

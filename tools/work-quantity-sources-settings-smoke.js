@@ -48,7 +48,7 @@ assert(api.find('front.count').label === 'Liczba frontów', 'front.count ma ludz
 assert(/wysokości szafki/i.test(api.find('cabinet.height_mm').calculation), 'cabinet.height_mm opisuje odczyt z pola wysokości');
 assert(/wymagań technicznych zawiasów/i.test(api.find('hinge.count').calculation), 'hinge.count opisuje odczyt z wymagań zawiasów');
 const groups = api.groupByCategory();
-['Korpus i wymiary','Fronty i zawiasy','Wnętrze szafki','AGD'].forEach((name)=> assert(Array.isArray(groups[name]) && groups[name].length > 0, `grupa ${name} ma wpisy`, groups));
+['Korpus i wymiary','Fronty i zawiasy','Wnętrze szafki','Montaż AGD'].forEach((name)=> assert(Array.isArray(groups[name]) && groups[name].length > 0, `grupa ${name} ma wpisy`, groups));
 
 const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const dev = fs.readFileSync(path.join(root, 'dev_tests.html'), 'utf8');
@@ -65,7 +65,7 @@ assert(modal.includes("next === 'workSources'") && modal.includes('dataSettingsW
 assert(view.includes('Nazwa techniczna') || view.includes('data-work-source-code'), 'widok pokazuje techniczną nazwę źródła');
 assert(view.includes('Tu ustalamy wspólny język programu') && view.includes('nie zapisuje kopii danych w szafkach'), 'widok jasno mówi, że to podgląd bez drugiego zapisu danych');
 assert(css.includes('data-settings-work-source__calc') && css.includes('data-settings-work-source__badge--planned'), 'CSS ma style listy źródeł i statusów');
-assert(index.includes('20260610_labor_appliance_separate_automats_v1') && dev.includes('20260610_labor_appliance_separate_automats_v1'), 'index/dev_tests mają aktualny cache-busting etapu');
+assert(index.includes('20260611_labor_appliance_category_clean_rebase_v1') && dev.includes('20260611_labor_appliance_category_clean_rebase_v1'), 'index/dev_tests mają aktualny cache-busting etapu');
 
 console.log('OK work-quantity-sources-settings smoke');
 console.log(' - źródła danych do czynności mają techniczne kody, ludzkie nazwy, jednostki i opisy liczenia');

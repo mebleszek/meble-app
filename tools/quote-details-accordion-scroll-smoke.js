@@ -13,7 +13,7 @@ const css = read('css/wycena.css');
 const preview = read('js/app/wycena/wycena-tab-preview.js');
 const index = read('index.html');
 const devTests = read('dev_tests.html');
-const token = '20260610_labor_appliance_separate_automats_v1';
+const token = '20260611_labor_appliance_category_clean_rebase_v1';
 
 [
   ['total', "['Suma przed rabatem', totals.subtotal, 'total']"],

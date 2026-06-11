@@ -890,3 +890,10 @@ Pusty końcowy launcher wyboru warunku nie jest danym do zapisu i nie powinien i
 - `conditions[]` i `quantitySource` pozostają częścią istniejących pozycji cennika robocizny (`quoteRates`).
 - Podgląd działania reguły jest wyłącznie UI/runtime i nie zapisuje osobnych danych.
 - WYCENA nadal czyta wartości przez read-only adapter `FC.workQuantityFacts`, więc nie powstaje druga prawda dla wymiarów, frontów, zawiasów, półek ani szuflad.
+
+
+## 2026-06-11 — Porządek kategorii AGD / Montaż AGD
+
+- Zmiana nie dodaje nowego klucza `localStorage`.
+- Stare seedowane pozycje robocizny w kategorii `AGD` są odcinane podczas normalizacji katalogu stawek wyceny, bo były wygenerowanymi danymi startowymi programu, nie osobnym modelem użytkownika.
+- Docelowy model chmurowy powinien traktować `Montaż AGD` jako kategorię robocizny, a konkretne automaty jako stabilne techniczne kody typu `oven_mount`, `dishwasher_mount`, `hood_under_cabinet_mount`.

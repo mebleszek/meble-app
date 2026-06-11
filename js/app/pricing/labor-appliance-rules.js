@@ -13,19 +13,34 @@
     fridge:{ code:'fridge', laborCode:'fridge_mount', quantitySource:'appliance.fridge.count', serviceName:'Montaż lodówki do zabudowy', label:'Lodówka do zabudowy' },
     oven:{ code:'oven', laborCode:'oven_mount', quantitySource:'appliance.oven.count', serviceName:'Montaż piekarnika do zabudowy', label:'Piekarnik do zabudowy' },
     hob:{ code:'hob', laborCode:'hob_mount', quantitySource:'appliance.hob.count', serviceName:'Montaż płyty indukcyjnej / ceramicznej', label:'Płyta indukcyjna / ceramiczna' },
-    hood:{ code:'hood', laborCode:'hood_mount', quantitySource:'appliance.hood.count', serviceName:'Montaż okapu', label:'Okap podszafkowy / teleskopowy' },
+    hood_under_cabinet:{ code:'hood_under_cabinet', laborCode:'hood_under_cabinet_mount', quantitySource:'appliance.hood_under_cabinet.count', serviceName:'Montaż okapu podszafkowego / teleskopowego', label:'Okap podszafkowy / teleskopowy' },
+    hood_chimney:{ code:'hood_chimney', laborCode:'hood_chimney_mount', quantitySource:'appliance.hood_chimney.count', serviceName:'Montaż okapu kominowego / wyspowego', label:'Okap kominowy / wyspowy' },
     microwave:{ code:'microwave', laborCode:'microwave_mount', quantitySource:'appliance.microwave.count', serviceName:'Montaż mikrofali do zabudowy', label:'Mikrofalówka do zabudowy' },
+    washer:{ code:'washer', laborCode:'washer_mount', quantitySource:'appliance.washer.count', serviceName:'Montaż pralki do zabudowy', label:'Pralka do zabudowy' },
+    dryer:{ code:'dryer', laborCode:'dryer_mount', quantitySource:'appliance.dryer.count', serviceName:'Montaż suszarki do zabudowy', label:'Suszarka do zabudowy' },
+    coffee_machine:{ code:'coffee_machine', laborCode:'coffee_machine_mount', quantitySource:'appliance.coffee_machine.count', serviceName:'Montaż ekspresu do zabudowy', label:'Ekspres do zabudowy' },
+    warming_drawer:{ code:'warming_drawer', laborCode:'warming_drawer_mount', quantitySource:'appliance.warming_drawer.count', serviceName:'Montaż podgrzewacza szufladowego', label:'Podgrzewacz szufladowy' },
   };
 
   const APPLIANCE_BY_SUBTYPE = {
     zmywarkowa: APPLIANCE_TYPES.dishwasher,
     piekarnikowa: APPLIANCE_TYPES.oven,
-    okap: APPLIANCE_TYPES.hood,
+    okap: APPLIANCE_TYPES.hood_under_cabinet,
+    okap_podszafkowy: APPLIANCE_TYPES.hood_under_cabinet,
+    okap_teleskopowy: APPLIANCE_TYPES.hood_under_cabinet,
+    okap_kominowy: APPLIANCE_TYPES.hood_chimney,
+    okap_wyspowy: APPLIANCE_TYPES.hood_chimney,
     lodowkowa: APPLIANCE_TYPES.fridge,
     plyta: APPLIANCE_TYPES.hob,
     płyta: APPLIANCE_TYPES.hob,
     mikrofalowka: APPLIANCE_TYPES.microwave,
     mikrofalówka: APPLIANCE_TYPES.microwave,
+    pralka: APPLIANCE_TYPES.washer,
+    suszarka: APPLIANCE_TYPES.dryer,
+    ekspres: APPLIANCE_TYPES.coffee_machine,
+    ekspres_do_zabudowy: APPLIANCE_TYPES.coffee_machine,
+    podgrzewacz: APPLIANCE_TYPES.warming_drawer,
+    podgrzewacz_szufladowy: APPLIANCE_TYPES.warming_drawer,
   };
 
   function details(cabinet){

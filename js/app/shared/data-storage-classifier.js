@@ -13,6 +13,8 @@
     fc_project_backup_v1:{ category:'user', label:'Awaryjna kopia aktywnego projektu', description:'Starszy mechanizm zabezpieczenia aktywnego projektu.' },
     fc_sheet_materials_v1:{ category:'user', label:'Cennik materiałów płytowych', description:'Materiały, kolory i ceny używane w wycenach oraz ROZRYS.' },
     fc_program_defaults_v1:{ category:'user', label:'Domyślne materiały i okucia', description:'Globalne fallbacki programu dla materiałów i preferowanych marek okuć.' },
+    fc_company_profile_v1:{ category:'user', label:'Dane firmy i transport', description:'Dane firmowe, adres startowy tras, ustawienia OpenRouteService i zasady kilometrów do WYCENY.' },
+    fc_business_costs_v1:{ category:'user', label:'Koszty firmy', description:'Stałe i pomocnicze koszty firmy: lokal, media, księgowa, ochrona, samochód, programy i inne.' },
     fc_hardware_manufacturers_v1:{ category:'user', label:'Okucia — producenci', description:'Słownik producentów okuć używany w katalogu, imporcie/eksporcie i późniejszej zamianie systemów.' },
     fc_hardware_suppliers_v1:{ category:'user', label:'Okucia — dostawcy', description:'Słownik dostawców okuć, rabatów i domyślnych danych zakupowo-cenowych.' },
     fc_hardware_settings_v1:{ category:'user', label:'Okucia — ustawienia katalogu', description:'Ustawienia katalogu okuć, w tym globalny VAT i konfiguracja ceny używanej do wyceny.' },

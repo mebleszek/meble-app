@@ -367,7 +367,7 @@
   function isApplianceAutomation(def){
     const id = text(def && def.id);
     const sourceCode = text(def && def.quantitySource);
-    return ['dishwasher_mount','fridge_mount','oven_mount','hob_mount','hood_mount','microwave_mount'].includes(id)
+    return ['dishwasher_mount','fridge_mount','oven_mount','hob_mount','hood_under_cabinet_mount','hood_chimney_mount','microwave_mount','washer_mount','dryer_mount','coffee_machine_mount','warming_drawer_mount'].includes(id)
       || sourceCode.indexOf('appliance.') === 0;
   }
 

@@ -15,15 +15,18 @@
         ];
         const result = FC.wycenaCore.ensureServiceCatalog(input);
         H.assert(result && Array.isArray(result.list), 'ensureServiceCatalog nie zwrócił listy', result);
-        const oven = result.list.filter((item)=> String(item && item.name || '') === 'Piekarnik do zabudowy');
-        H.assert(oven.length === 1, 'Usługa AGD została zduplikowana', result.list);
-        H.assert(result.list.some((item)=> String(item && item.name || '') === 'Zmywarka do zabudowy'), 'Brakuje domyślnej usługi AGD dla zmywarki', result.list);
+        const oldOven = result.list.filter((item)=> String(item && item.name || '') === 'Piekarnik do zabudowy');
+        const mountedOven = result.list.filter((item)=> String(item && item.name || '') === 'Montaż piekarnika do zabudowy');
+        H.assert(oldOven.length === 0, 'Stara kategoria AGD nie została odcięta', result.list);
+        H.assert(mountedOven.length === 1, 'Montaż AGD został zduplikowany albo go brakuje', result.list);
+        H.assert(result.list.some((item)=> String(item && item.name || '') === 'Montaż zmywarki do zabudowy'), 'Brakuje domyślnej usługi Montaż AGD dla zmywarki', result.list);
       }),
 
     H.makeTest('Wycena', 'Price modal buduje pełniejsze listy wyboru i filtry dla cennika', 'Pilnuje, czy cennik ma własne filtry, zachowuje producentów z registry i nie gubi opcji „wszystkie”.', ()=>{
         H.assert(FC.priceModal && FC.priceModal._debug, 'Brak debug helpers w priceModal');
-        const cats = FC.priceModal._debug.buildServiceCategoryOptions('AGD', { includeAll:true });
-        H.assert(Array.isArray(cats) && cats.some((item)=> String(item && item.value || '') === 'AGD'), 'Lista kategorii nie zawiera AGD', cats);
+        const cats = FC.priceModal._debug.buildServiceCategoryOptions('Montaż AGD', { includeAll:true });
+        H.assert(Array.isArray(cats) && cats.some((item)=> String(item && item.value || '') === 'Montaż AGD'), 'Lista kategorii nie zawiera Montaż AGD', cats);
+        H.assert(!cats.some((item)=> String(item && item.value || '') === 'AGD'), 'Lista kategorii nie powinna zawierać starego działu AGD', cats);
         H.assert(cats.some((item)=> String(item && item.value || '') === ''), 'Lista kategorii nie ma opcji wszystkich', cats);
         const manufacturers = FC.priceModal._debug.buildManufacturerOptions('akcesoria', 'Blum', { includeAll:true });
         H.assert(Array.isArray(manufacturers) && manufacturers.some((item)=> /blum/i.test(String(item && item.value || ''))), 'Lista producentów akcesoriów nie zawiera Blum', manufacturers);

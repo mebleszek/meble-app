@@ -9,6 +9,8 @@
   const INFO = {
     backup:'Kopie danych służą do zabezpieczenia aktualnego stanu programu oraz przenoszenia danych między urządzeniami. Raport pamięci jest w narzędziach testów.',
     defaults:'Globalne domyślne materiały i marki okuć są fallbackiem programu. Preferencje konkretnego pomieszczenia mają pierwszeństwo.',
+    company:'Dane firmy, adres startowy transportu, telefon, e-mail i klucz OpenRouteService do darmowego przeliczania trasy.',
+    businessCosts:'Koszty firmy to lista kosztów stałych i pomocniczych: lokal, media, księgowa, ochrona, samochód, programy i inne.',
     tests:'Testy aplikacji prowadzą do dwóch obszarów: narzędzi pamięci oraz testów regresyjnych dokładanych w trakcie rozwoju programu.',
     workSources:'Źródła danych do czynności to centralny słownik nazw: techniczna nazwa, ludzka nazwa i opis, skąd program bierze wartość. To nie jest drugi zapis danych w szafkach.',
   };
@@ -95,6 +97,22 @@
       section:'workSources',
       infoKey:'workSources',
       onClick:()=> setView('workSources'),
+    }));
+    grid.appendChild(buildTile({
+      icon:'settings',
+      title:'Dane firmy i transport',
+      sub:'Adres firmy, telefon, e-mail, OpenRouteService i zasady kilometrów.',
+      section:'company',
+      infoKey:'company',
+      onClick:()=> setView('company'),
+    }));
+    grid.appendChild(buildTile({
+      icon:'settings',
+      title:'Koszty firmy',
+      sub:'Czynsz, media, księgowa, ochrona, transport, narzędzia i pozostałe koszty stałe.',
+      section:'businessCosts',
+      infoKey:'businessCosts',
+      onClick:()=> setView('businessCosts'),
     }));
     grid.appendChild(buildTile({
       icon:'tests',

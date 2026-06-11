@@ -1,3 +1,23 @@
+## 2026-06-11 — Robocizna: czysty porządek kategorii AGD / Montaż AGD v1
+
+- Paczka: `site_labor_appliance_category_clean_rebase_v1.zip`.
+- Bazą jest zaakceptowana paczka `site_labor_appliance_separate_automats_v1.zip`; nie bazowano na późniejszych paczkach z niezaakceptowanym cleanupem kategorii/czasów.
+- Stary dział robocizny `AGD` jest usuwany z katalogu stawek wyceny jako seedowany śmieć. W cenniku zostaje jeden dział dla sprzętów: `Montaż AGD`.
+- Automaty AGD pozostają osobnymi technicznymi kodami. Uzupełniono listę `Montaż AGD` o pozycje odpowiadające staremu działowi AGD: okap podszafkowy/teleskopowy, okap kominowy/wyspowy, pralka, suszarka, ekspres i podgrzewacz szufladowy.
+- Nie zmieniano jednostek czasu, listy szybkich opcji czasu ani nie dodano żadnego globalnego zaokrąglania czasu. W szczególności nie ma reguły `0.75 h → 1 h`.
+- Nie ruszano WYWIADU, modala szafki, historii ofert, snapshotów, `drawer.count`, audytu robocizny ani warunków automatów.
+- Cache-busting: `20260611_labor_appliance_category_clean_rebase_v1`. Raport: `tools/reports/labor-appliance-category-clean-rebase-v1.md`.
+
+## 2026-06-11 — Dane firmy, transport i koszty firmy
+
+Build: `20260611_company_transport_business_costs_v1`
+
+Dodano w trybiku dwa nowe obszary: **Dane firmy i transport** oraz **Koszty firmy**. Dane firmy startują od konfiguracji Stolarnia Format, a transport można liczyć ręcznie albo opcjonalnie przez OpenRouteService po wpisaniu darmowego klucza API. Google Maps API nie jest używane.
+
+W inwestorze dodano panel **Dojazd / transport** z kilometrami, czasem dojazdu, notatką, przyciskiem otwarcia trasy w mapach i opcjonalnym przeliczeniem przez OpenRouteService. W WYCENIE dodano źródło ilości `transport.distance_km` oraz domyślną pozycję **Transport do klienta** liczona z ceny za km.
+
+Koszty firmy są zapisywane i sumowane miesięcznie. Obejmują m.in. czynsz, media, księgową, ochronę, ubezpieczenie, telefon/internet, programy, serwis maszyn, samochód, reklamę i opłaty urzędowe. Automatyczny narzut kosztów firmy do WYCENY nie jest jeszcze podłączony — to osobny przyszły etap.
+
 ## 2026-06-10 — Robocizna: osobne automaty montażu AGD v1
 
 - Paczka: `site_labor_appliance_separate_automats_v1.zip`.
@@ -6,7 +26,7 @@
 - Linie nadal trafiają do działu `Montaż AGD`, ale cena jest liczona z cennika robocizny/stawki wyceny jako osobny automat z czasem i stawką, a nie jako jeden wspólny `appliance_mount`.
 - `Bez montażu` przy szafce nadal wyłącza naliczenie AGD. Automaty AGD nie dublują się w `Robocizna szafek`.
 - Nie ruszano WYWIADU, modala szafki, historii ofert, `drawer.count`, warunków robocizny ani czytelnego audytu.
-- Cache-busting: `20260610_labor_appliance_separate_automats_v1`. Raport: `tools/reports/labor-appliance-separate-automats-v1.md`.
+- Cache-busting: `20260611_labor_appliance_category_clean_rebase_v1`. Raport: `tools/reports/labor-appliance-separate-automats-v1.md`.
 
 ## 2026-06-10 — Robocizna: edytor warunków i podgląd reguły v1
 

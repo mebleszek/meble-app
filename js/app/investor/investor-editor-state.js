@@ -24,6 +24,22 @@
     return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : '';
   }
 
+  function normalizeTransport(value){
+    try{ if(FC.investorTransport && typeof FC.investorTransport.normalizeTransport === 'function') return FC.investorTransport.normalizeTransport(value); }catch(_){ }
+    const src = value && typeof value === 'object' ? value : {};
+    return {
+      distanceKm: normalizeText(src.distanceKm),
+      durationMin: normalizeText(src.durationMin),
+      source: normalizeText(src.source),
+      provider: normalizeText(src.provider),
+      calculatedAt: normalizeText(src.calculatedAt),
+      origin: normalizeText(src.origin),
+      destination: normalizeText(src.destination),
+      note: normalizeText(src.note),
+      lastError: normalizeText(src.lastError),
+    };
+  }
+
   function buildDraft(inv){
     const investor = inv || {};
     return {
@@ -39,6 +55,7 @@
       nip: normalizeText(investor.nip),
       notes: normalizeText(investor.notes),
       addedDate: normalizeDate(investor.addedDate),
+      transport: normalizeTransport(investor.transport),
     };
   }
 
@@ -56,6 +73,7 @@
       nip: normalizeText(draft && draft.nip),
       notes: normalizeText(draft && draft.notes),
       addedDate: normalizeDate(draft && draft.addedDate),
+      transport: normalizeTransport(draft && draft.transport),
     });
   }
 
@@ -115,6 +133,15 @@
     return clone(state.draft);
   }
 
+  function setTransportField(key, value){
+    if(!state.draft) state.draft = {};
+    state.draft.transport = normalizeTransport(state.draft.transport);
+    state.draft.transport[key] = normalizeText(value);
+    if(key === 'distanceKm' || key === 'durationMin' || key === 'note') state.draft.transport.source = state.draft.transport.source || 'ręcznie';
+    syncDirty();
+    return clone(state.draft);
+  }
+
   function buildPatchFromDraft(draft){
     const d = draft || {};
     const isCompany = d.kind === 'company';
@@ -131,6 +158,7 @@
       nip: isCompany ? normalizeText(d.nip) : '',
       notes: normalizeText(d.notes),
       addedDate: normalizeDate(d.addedDate),
+      transport: normalizeTransport(d.transport),
     };
   }
 
@@ -156,6 +184,7 @@
     enter,
     exit,
     setField,
+    setTransportField,
     getDraft,
     commit,
     hasUiLock,

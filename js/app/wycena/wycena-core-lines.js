@@ -659,7 +659,7 @@
     return {
       key,
       type:'service',
-      category:'AGD',
+      category:'Montaż AGD',
       name:text(def.name) || text(appliance && appliance.serviceName) || 'Montaż AGD',
       qty:qty || 1,
       unit:'szt.',
@@ -713,7 +713,7 @@
       rows.push({
         key,
         type:'service',
-        category:'AGD',
+        category:'Montaż AGD',
         name,
         qty:1,
         unit:'szt.',
@@ -749,10 +749,10 @@
       const cab = cabinet || {};
       const sub = String(cab.subType || '');
       const details = cab.details || {};
-      if(sub === 'zmywarkowa') addFallback('Zmywarka do zabudowy', rl, roomId, cab, number);
-      if(sub === 'lodowkowa' && String(details.fridgeOption || 'zabudowa') === 'zabudowa') addFallback('Lodówka do zabudowy', rl, roomId, cab, number);
-      if(sub === 'piekarnikowa') addFallback('Piekarnik do zabudowy', rl, roomId, cab, number);
-      if(sub === 'okap') addFallback('Okap podszafkowy / teleskopowy', rl, roomId, cab, number);
+      if(sub === 'zmywarkowa') addFallback('Montaż zmywarki do zabudowy', rl, roomId, cab, number);
+      if(sub === 'lodowkowa' && String(details.fridgeOption || 'zabudowa') === 'zabudowa') addFallback('Montaż lodówki do zabudowy', rl, roomId, cab, number);
+      if(sub === 'piekarnikowa') addFallback('Montaż piekarnika do zabudowy', rl, roomId, cab, number);
+      if(sub === 'okap') addFallback('Montaż okapu podszafkowego / teleskopowego', rl, roomId, cab, number);
     });
     return rows;
   }

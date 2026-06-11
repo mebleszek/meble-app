@@ -166,6 +166,7 @@
       ? linksApi.buildLabelWithAction('Email', 'email', draft.email || inv.email || '')
       : fields.buildStaticLabel('Email');
     const bottomButtons = actionsApi ? actionsApi.buildActionBarHtml({ isEditing, dirty }) : '';
+    const transportPanel = (FC.investorTransport && typeof FC.investorTransport.renderPanel === 'function') ? FC.investorTransport.renderPanel(inv, draft, isEditing) : '';
 
     const projectCards = roomUi() && typeof roomUi().buildProjectCards === 'function'
       ? roomUi().buildProjectCards(inv, isEditing, PROJECT_STATUS_OPTIONS)
@@ -187,6 +188,8 @@
         <div class="investor-details-rows">
           ${rows.join('')}
         </div>
+
+        ${transportPanel}
 
         <div class="investor-bottom-actions" id="investorActionBar">${bottomButtons}</div>
         <div class="investor-action-divider" aria-hidden="true"></div>

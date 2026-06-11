@@ -232,3 +232,26 @@
   .data-settings-work-fact-row__value{justify-items:start;text-align:left;}
   .data-settings-cabinet-facts-card__head span{white-space:normal;}
 }
+
+/* Dane firmy / koszty firmy */
+.data-settings-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px;}
+.data-settings-form-field{display:grid;gap:6px;min-width:0;}
+.data-settings-form-label{font-size:12px;font-weight:900;color:#334155;line-height:1.2;}
+.data-settings-form-control{width:100%;min-height:44px;border:1px solid rgba(148,163,184,.55);border-radius:14px;background:#fff;padding:10px 12px;font-size:14px;font-weight:800;color:#0f172a;box-shadow:inset 0 1px 2px rgba(15,23,42,.05);appearance:none;-webkit-appearance:none;}
+textarea.data-settings-form-control{min-height:90px;resize:vertical;}
+.data-settings-form-control:focus{outline:none;border-color:rgba(37,99,235,.72);box-shadow:0 0 0 3px rgba(37,99,235,.10), inset 0 1px 2px rgba(15,23,42,.05);}
+.data-settings-form-hint{line-height:1.25;font-weight:750;}
+.data-settings-cost-stack{display:grid;gap:12px;}
+.data-settings-cost-group{display:grid;gap:12px;padding-top:12px;}
+.data-settings-cost-row{border:1px solid rgba(148,163,184,.42);border-radius:16px;background:#fff;padding:12px;display:grid;gap:12px;box-shadow:1px 2px 0 rgba(15,23,42,.06);}
+.data-settings-cost-row__head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;}
+.data-settings-cost-row__head strong{font-size:14px;line-height:1.25;font-weight:950;color:#0f172a;overflow-wrap:anywhere;}
+.data-settings-cost-row__actions{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;}
+.data-settings-cost-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.data-settings-cost-grid .data-settings-form-field:nth-child(6){grid-column:1/-1;}
+.data-settings-company-card,.data-settings-costs-card{display:grid;gap:12px;}
+@media (max-width:720px){
+  .data-settings-form-grid,.data-settings-cost-grid{grid-template-columns:1fr;}
+  .data-settings-cost-row__head{grid-template-columns:1fr;}
+  .data-settings-cost-row__actions{justify-content:flex-start;}
+}

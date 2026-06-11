@@ -79,12 +79,48 @@
     return { unitPrice, total:qty * unitPrice, hours:0, note:String(rate && rate.category || '').trim() };
   }
 
+
+  function buildTransportRateLine(catalog, selections){
+    const selectedIds = new Set((Array.isArray(selections) ? selections : []).map((row)=> String(row && row.rateId || '')).filter(Boolean));
+    const defRaw = (Array.isArray(catalog) ? catalog : []).find((row)=> String(row && row.id || '') === 'transport_distance_km') || null;
+    if(!defRaw || selectedIds.has('transport_distance_km')) return null;
+    const def = FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' ? FC.laborCatalog.normalizeDefinition(defRaw) : defRaw;
+    if(!def || def.active === false || def.isHourlyRate === true) return null;
+    const unitPrice = Math.max(0, Number(def.price) || 0);
+    if(!(unitPrice > 0)) return null;
+    const ctx = FC.investorTransport && typeof FC.investorTransport.getCurrentTransportContext === 'function' ? FC.investorTransport.getCurrentTransportContext() : null;
+    const qty = Math.max(0, Number(ctx && ctx.billableKm) || 0);
+    if(!(qty > 0)) return null;
+    const inv = ctx && ctx.investor || null;
+    return {
+      key: utils.slug(def && def.name || def && def.id || 'transport'),
+      type:'quote-rate',
+      category:String(def.category || 'Transport'),
+      name:String(def.name || 'Transport do klienta'),
+      qty,
+      unit:'km',
+      unitPrice,
+      total:qty * unitPrice,
+      hours:0,
+      note:'Automatycznie z Inwestora: ' + (ctx.displayValue || (qty + ' km')),
+      internalOnly:false,
+      sourceType:'transport',
+      sourceLabel:'Inwestor' + (inv && (inv.name || inv.companyName) ? ': ' + String(inv.name || inv.companyName) : ''),
+      sourceId:String(def.id || 'transport_distance_km'),
+      sourceRole:'transport-distance',
+      quantitySource:'transport.distance_km',
+      quantitySourceValue:qty,
+      quantitySourceDisplay:ctx.displayValue || (qty + ' km'),
+      sourceKind:'automatic'
+    };
+  }
+
   function collectQuoteRateLines(){
     const draft = getOfferDraft();
     const selections = Array.isArray(draft && draft.rateSelections) ? draft.rateSelections : [];
     const catalogRows = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
     const catalog = Array.isArray(catalogRows) ? catalogRows : [];
-    return selections.map((row)=>{
+    const manualLines = selections.map((row)=>{
       const rate = catalog.find((item)=> String(item && item.id || '') === String(row && row.rateId || '')) || null;
       if(!rate) return null;
       const def = FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' ? FC.laborCatalog.normalizeDefinition(rate) : rate;
@@ -98,7 +134,7 @@
         category: String(def && def.category || ''),
         name: String(def && def.name || 'Czynność'),
         qty,
-        unit:'x',
+        unit:String(def && def.id || '') === 'transport_distance_km' ? 'km' : 'x',
         unitPrice:Number(priced.unitPrice) || 0,
         total:Number(priced.total) || 0,
         hours:Number(priced.hours) || 0,
@@ -109,6 +145,8 @@
         sourceId:String(def && def.id || ''),
       };
     }).filter(Boolean);
+    const transportLine = buildTransportRateLine(catalog, selections);
+    return transportLine ? manualLines.concat([transportLine]) : manualLines;
   }
 
   FC.wycenaCoreOffer = {

@@ -71,6 +71,25 @@
     };
   }
 
+
+  function normalizeTransport(transport){
+    try{
+      if(FC.investorTransport && typeof FC.investorTransport.normalizeTransport === 'function') return FC.investorTransport.normalizeTransport(transport);
+    }catch(_){ }
+    const src = transport && typeof transport === 'object' ? transport : {};
+    return {
+      distanceKm: String(src.distanceKm == null ? '' : src.distanceKm),
+      durationMin: String(src.durationMin == null ? '' : src.durationMin),
+      source: String(src.source || ''),
+      provider: String(src.provider || ''),
+      calculatedAt: String(src.calculatedAt || ''),
+      origin: String(src.origin || ''),
+      destination: String(src.destination || ''),
+      note: String(src.note || ''),
+      lastError: String(src.lastError || '')
+    };
+  }
+
   function normalizeInvestor(inv){
     const src = inv && typeof inv === 'object' ? inv : {};
     const srcMeta = src.meta && typeof src.meta === 'object' ? src.meta : {};
@@ -92,6 +111,7 @@
       notes: String(src.notes || ''),
       rooms: Array.isArray(src.rooms) ? src.rooms.map(normalizeRoom) : [],
       addedDate: toDateInput(src.addedDate || src.createdDate, createdAt),
+      transport: normalizeTransport(src.transport),
       createdAt,
       updatedAt,
       meta: normalizeMeta(src.meta),
@@ -148,6 +168,7 @@
     prettifyTechnicalRoomText,
     normalizeRoom,
     normalizeMeta,
+    normalizeTransport,
     normalizeInvestor,
     appendUniqueRoom,
     inferRoomBaseType,

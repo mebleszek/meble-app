@@ -8,18 +8,29 @@
   }
 
   const AGD_SERVICE_DEFAULTS = [
-    { category:'AGD', name:'Piekarnik do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:120 },
-    { category:'AGD', name:'Mikrofalówka do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:100 },
-    { category:'AGD', name:'Lodówka do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:180 },
-    { category:'AGD', name:'Zmywarka do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:170 },
-    { category:'AGD', name:'Płyta indukcyjna / ceramiczna', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:120 },
-    { category:'AGD', name:'Okap podszafkowy / teleskopowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:120 },
-    { category:'AGD', name:'Okap kominowy / wyspowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:180 },
-    { category:'AGD', name:'Pralka do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:140 },
-    { category:'AGD', name:'Suszarka do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:140 },
-    { category:'AGD', name:'Ekspres do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:120 },
-    { category:'AGD', name:'Podgrzewacz szufladowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:100 },
+    { category:'Montaż AGD', name:'Montaż piekarnika do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:120 },
+    { category:'Montaż AGD', name:'Montaż mikrofali do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:100 },
+    { category:'Montaż AGD', name:'Montaż lodówki do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:180 },
+    { category:'Montaż AGD', name:'Montaż zmywarki do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:170 },
+    { category:'Montaż AGD', name:'Montaż płyty indukcyjnej / ceramicznej', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:120 },
+    { category:'Montaż AGD', name:'Montaż okapu podszafkowego / teleskopowego', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:120 },
+    { category:'Montaż AGD', name:'Montaż okapu kominowego / wyspowego', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:180 },
+    { category:'Montaż AGD', name:'Montaż pralki do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:140 },
+    { category:'Montaż AGD', name:'Montaż suszarki do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:140 },
+    { category:'Montaż AGD', name:'Montaż ekspresu do zabudowy', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:120 },
+    { category:'Montaż AGD', name:'Montaż podgrzewacza szufladowego', starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.', price:100 },
   ];
+  function normalizeSlug(value){
+    return String(value == null ? '' : value).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  }
+
+  function isLegacyAgdService(item){
+    const category = String(item && item.category || '').trim().toLowerCase();
+    const name = normalizeSlug(item && item.name);
+    if(category === 'agd') return true;
+    if(category === 'montaż agd' && name === 'montaz_okapu') return true;
+    return false;
+  }
 
   function uniqByName(items){
     const seen = new Set();
@@ -32,7 +43,7 @@
   }
 
   function ensureServiceCatalog(list){
-    const current = Array.isArray(list) ? list.slice() : [];
+    const current = (Array.isArray(list) ? list.slice() : []).filter((item)=> !isLegacyAgdService(item));
     const existingKeys = new Set(current.map((item)=> `${utils.slug(item && item.category)}::${utils.slug(item && item.name)}`));
     let changed = false;
     AGD_SERVICE_DEFAULTS.forEach((item)=>{

@@ -263,13 +263,33 @@
       const data = applianceCountByCode(cabinet, 'hob');
       return makeFact('appliance.hob.count', data.qty, { displayValue:`${data.qty} szt.`, source:'płyta + montaż AGD' });
     },
-    'appliance.hood.count':(roomId, cabinet)=> {
-      const data = applianceCountByCode(cabinet, 'hood');
-      return makeFact('appliance.hood.count', data.qty, { displayValue:`${data.qty} szt.`, source:'okap + montaż AGD' });
+    'appliance.hood_under_cabinet.count':(roomId, cabinet)=> {
+      const data = applianceCountByCode(cabinet, 'hood_under_cabinet');
+      return makeFact('appliance.hood_under_cabinet.count', data.qty, { displayValue:`${data.qty} szt.`, source:'okap podszafkowy/teleskopowy + montaż AGD' });
+    },
+    'appliance.hood_chimney.count':(roomId, cabinet)=> {
+      const data = applianceCountByCode(cabinet, 'hood_chimney');
+      return makeFact('appliance.hood_chimney.count', data.qty, { displayValue:`${data.qty} szt.`, source:'okap kominowy/wyspowy + montaż AGD' });
     },
     'appliance.microwave.count':(roomId, cabinet)=> {
       const data = applianceCountByCode(cabinet, 'microwave');
       return makeFact('appliance.microwave.count', data.qty, { displayValue:`${data.qty} szt.`, source:'mikrofala + montaż AGD' });
+    },
+    'appliance.washer.count':(roomId, cabinet)=> {
+      const data = applianceCountByCode(cabinet, 'washer');
+      return makeFact('appliance.washer.count', data.qty, { displayValue:`${data.qty} szt.`, source:'pralka + montaż AGD' });
+    },
+    'appliance.dryer.count':(roomId, cabinet)=> {
+      const data = applianceCountByCode(cabinet, 'dryer');
+      return makeFact('appliance.dryer.count', data.qty, { displayValue:`${data.qty} szt.`, source:'suszarka + montaż AGD' });
+    },
+    'appliance.coffee_machine.count':(roomId, cabinet)=> {
+      const data = applianceCountByCode(cabinet, 'coffee_machine');
+      return makeFact('appliance.coffee_machine.count', data.qty, { displayValue:`${data.qty} szt.`, source:'ekspres + montaż AGD' });
+    },
+    'appliance.warming_drawer.count':(roomId, cabinet)=> {
+      const data = applianceCountByCode(cabinet, 'warming_drawer');
+      return makeFact('appliance.warming_drawer.count', data.qty, { displayValue:`${data.qty} szt.`, source:'podgrzewacz szufladowy + montaż AGD' });
     }
   };
 
