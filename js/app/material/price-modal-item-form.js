@@ -425,7 +425,11 @@
     const saveBtn = ctx.byId('priceItemSaveBtn');
     const footer = ctx.byId('priceItemFooter');
     if(footer) footer.style.display = ctx.runtimeState.itemModalOpen ? 'flex' : 'none';
-    if(deleteBtn){ const item = currentEditedItem(); deleteBtn.style.display = (isEdit && !(item && item.nonDeletable === true)) ? '' : 'none'; }
+    if(deleteBtn){
+      const item = currentEditedItem();
+      const defaultQuoteRate = !!(ctx.currentListKind && ctx.currentListKind() === 'quoteRates' && FC.laborCatalog && typeof FC.laborCatalog.isDefaultLaborDefinitionRow === 'function' && FC.laborCatalog.isDefaultLaborDefinitionRow(item));
+      deleteBtn.style.display = (isEdit && !(item && item.nonDeletable === true) && !defaultQuoteRate) ? '' : 'none';
+    }
     if(exitBtn) exitBtn.style.display = dirty ? 'none' : '';
     if(cancelBtn) cancelBtn.style.display = dirty ? '' : 'none';
     if(saveBtn){ saveBtn.style.display = dirty ? '' : 'none'; saveBtn.textContent = isEdit ? 'Zapisz' : ctx.currentConfig().addLabel.replace(/^Dodaj\s+/i, 'Dodaj '); }

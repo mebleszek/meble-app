@@ -41,6 +41,66 @@
     return false;
   }
 
+  const DEFAULT_LABOR_DEFINITION_IDS = new Set((Array.isArray(DEFAULT_LABOR_DEFINITIONS) ? DEFAULT_LABOR_DEFINITIONS : []).map((row)=> text(row && row.id)).filter(Boolean));
+  function definitionSignature(row){
+    const src = row && typeof row === 'object' ? row : {};
+    return [normalizeSlug(src.category), normalizeSlug(src.name), normalizeSlug(src.quantitySource)].join('|');
+  }
+  function isDefaultLaborDefinitionId(id){ return DEFAULT_LABOR_DEFINITION_IDS.has(text(id)); }
+  function isDefaultLaborDefinitionRow(row){ return !!(row && isDefaultLaborDefinitionId(row.id)); }
+  function explicitEditRank(row){
+    const src = row && typeof row === 'object' ? row : {};
+    if(hasExplicitPriceEdit(src)) return 4;
+    if(Number(src.price) > 0) return 3;
+    if(src.active === false) return 2;
+    return 0;
+  }
+  function mergeDefaultDefinitionGroup(def, group){
+    const rows = Array.isArray(group) ? group.filter(Boolean) : [];
+    const canonical = rows.find((row)=> text(row && row.id) === text(def && def.id)) || null;
+    const preferred = rows.slice().sort((a,b)=>{
+      const scoreA = explicitEditRank(a) + (text(a && a.id) === text(def && def.id) ? 0.5 : 0);
+      const scoreB = explicitEditRank(b) + (text(b && b.id) === text(def && def.id) ? 0.5 : 0);
+      return scoreB - scoreA;
+    })[0] || canonical || def || {};
+    const userEdited = rows.some((row)=> hasExplicitPriceEdit(row) || Number(row && row.price) > 0 || row && row.active === false);
+    const editedAt = rows.map((row)=> text(row && (row.priceUserEditedAt || row.userEditedAt))).filter(Boolean).sort().pop() || text(preferred && preferred.priceUserEditedAt || preferred && preferred.userEditedAt);
+    return Object.assign({}, def || {}, canonical || {}, preferred || {}, {
+      id:text(def && def.id) || text(preferred && preferred.id),
+      starterPrice:userEdited ? false : ((preferred && preferred.starterPrice === true) || (canonical && canonical.starterPrice === true) || (def && def.starterPrice === true)),
+      priceUserEditedAt:userEdited ? (editedAt || text(preferred && preferred.priceUserEditedAt || preferred && preferred.userEditedAt) || new Date().toISOString()) : '',
+    });
+  }
+  function consolidateDefaultDefinitionDuplicates(list){
+    const rows = Array.isArray(list) ? list.slice() : [];
+    const defaults = Array.isArray(DEFAULT_LABOR_DEFINITIONS) ? DEFAULT_LABOR_DEFINITIONS : [];
+    if(!rows.length || !defaults.length) return rows;
+    const used = new Set();
+    const replacements = new Map();
+    defaults.forEach((def)=>{
+      const defId = text(def && def.id);
+      const sig = definitionSignature(def);
+      const candidates = [];
+      rows.forEach((row, idx)=>{
+        if(used.has(idx)) return;
+        const rowId = text(row && row.id);
+        if((defId && rowId === defId) || (sig && definitionSignature(row) === sig)) candidates.push({ row, idx });
+      });
+      if(!candidates.length) return;
+      candidates.forEach((item)=> used.add(item.idx));
+      const firstIdx = candidates.reduce((min, item)=> Math.min(min, item.idx), rows.length);
+      replacements.set(firstIdx, mergeDefaultDefinitionGroup(def, candidates.map((item)=> item.row)));
+    });
+    const out = [];
+    rows.forEach((row, idx)=>{
+      if(replacements.has(idx)) out.push(replacements.get(idx));
+      if(used.has(idx)) return;
+      out.push(row);
+    });
+    replacements.forEach((row, idx)=>{ if(idx >= rows.length) out.push(row); });
+    return out;
+  }
+
   function normalizeRateCode(value){
     return text(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
   }
@@ -351,14 +411,15 @@
     };
   }
   function ensureDefaultDefinitions(list){
-    const rows = dedupeHourlyRateDefinitions((Array.isArray(list) ? list.slice() : []).filter((row)=> !isLegacyAgdDefinition(row)));
+    const input = (Array.isArray(list) ? list.slice() : []).filter((row)=> !isLegacyAgdDefinition(row));
+    const rows = dedupeHourlyRateDefinitions(consolidateDefaultDefinitionDuplicates(input));
     const seen = new Set(rows.map((row)=> text(row && row.id)).filter(Boolean));
     DEFAULT_HOURLY_RATES.concat(DEFAULT_LABOR_DEFINITIONS).forEach((row)=>{
       if(seen.has(row.id)) return;
       rows.push(clone(row));
       seen.add(row.id);
     });
-    return dedupeHourlyRateDefinitions(rows);
+    return dedupeHourlyRateDefinitions(consolidateDefaultDefinitionDuplicates(rows));
   }
   function getRateLabel(key){
     const found = RATE_TYPES.find((row)=> row.key === key);
@@ -494,6 +555,9 @@
     rateProfileOptions,
     validateRateProfile,
     dedupeHourlyRateDefinitions,
+    isDefaultLaborDefinitionId,
+    isDefaultLaborDefinitionRow,
+    _consolidateDefaultDefinitionDuplicates:consolidateDefaultDefinitionDuplicates,
     _isLegacyAgdDefinition:isLegacyAgdDefinition,
   };
 })();

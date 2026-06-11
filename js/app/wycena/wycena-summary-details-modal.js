@@ -353,7 +353,7 @@
     const grand = num(totals.grand || totals.subtotal);
     const ranking = lines.filter((row)=> num(row && row.total) > 0).sort((a,b)=> num(b.total) - num(a.total)).slice(0, 20);
     const summaryRows = [
-      ['Materiały', totals.materials], ['Akcesoria', totals.accessories], ['Robocizna szafek', totals.labor], ['Robocizna / stawki wyceny', totals.quoteRates], ['Montaż AGD', totals.services], ['Rabat', -num(totals.discount)]
+      ['Materiały', totals.materials], ['Akcesoria', totals.accessories], ['Robocizna szafek', totals.labor], ['Robocizna / stawki wyceny', totals.quoteRates], ['Transport', totals.transport], ['Montaż AGD', totals.services], ['Rabat', -num(totals.discount)]
     ].map(([label, value])=>({ name:label, quantity:1, unit:'', unitPrice:num(value), total:num(value), calculation:'Udział działu w sumie oferty.', note:pct(Math.abs(num(value)), grand || totals.subtotal) + ' wartości oferty' }));
     renderGroup(container, 'Podział kosztów', summaryRows, grand, { open:true });
     renderGroup(container, 'Co kosztuje najwięcej', ranking.map((row, index)=> Object.assign({}, row, { name:`${index + 1}. ${row.name}` })), ranking.reduce((sum, row)=> sum + num(row && row.total), 0), { open:false, emptyText:'Brak dodatnich pozycji kosztowych.' });

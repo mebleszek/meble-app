@@ -90,13 +90,14 @@
           materials: materialLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
           accessories: accessoryLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
           services: agdLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
-          quoteRates: quoteRateLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
+          transport: quoteRateLines.filter((row)=> String(row && row.sourceRole || '') === 'transport-distance' || String(row && row.sourceType || '') === 'transport' || String(row && row.quantitySource || '') === 'transport.distance_km' || String(row && row.sourceId || '') === 'transport_distance_km').reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
+          quoteRates: quoteRateLines.filter((row)=> !(String(row && row.sourceRole || '') === 'transport-distance' || String(row && row.sourceType || '') === 'transport' || String(row && row.quantitySource || '') === 'transport.distance_km' || String(row && row.sourceId || '') === 'transport_distance_km')).reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
           labor: laborLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
           subtotal: 0,
           discount: 0,
           grand: 0,
         };
-    if(!(totals.subtotal > 0)) totals.subtotal = totals.materials + totals.accessories + totals.services + totals.quoteRates + (totals.labor || 0);
+    if(!(totals.subtotal > 0)) totals.subtotal = totals.materials + totals.accessories + totals.services + totals.quoteRates + (totals.transport || 0) + (totals.labor || 0);
     if(!(totals.grand >= 0)) totals.grand = Math.max(0, totals.subtotal - (totals.discount || 0));
     const result = {
       selectedRooms,

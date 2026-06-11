@@ -62,9 +62,11 @@
 
   function upsertCurrentList(payload){
     const next = ctx.currentList();
-    if(ctx.appUiState().editingId){
-      const idx = next.findIndex((item)=> item.id === ctx.appUiState().editingId);
-      if(idx >= 0) next[idx] = Object.assign({}, next[idx], payload);
+    const editingId = ctx.appUiState().editingId;
+    if(editingId){
+      const idx = next.findIndex((item)=> String(item && item.id) === String(editingId));
+      if(idx >= 0) next[idx] = Object.assign({}, next[idx], payload, { id:next[idx].id });
+      else next.push(Object.assign({ id:editingId }, payload));
     }else next.push(Object.assign({ id:FC.utils.uid() }, payload));
     ctx.saveCurrentList(next);
   }
@@ -106,6 +108,10 @@
   async function deletePriceItem(item){
     if(ctx.currentListKind && ctx.currentListKind() === 'quoteRates' && item && item.nonDeletable === true){
       ctx.info('Nie można usunąć stawki', 'Ta stawka jest systemowa albo już używana jako profil godzinowy. Możesz zmienić jej nazwę, kwotę albo odznaczyć „Aktywna”.');
+      return false;
+    }
+    if(ctx.currentListKind && ctx.currentListKind() === 'quoteRates' && FC.laborCatalog && typeof FC.laborCatalog.isDefaultLaborDefinitionRow === 'function' && FC.laborCatalog.isDefaultLaborDefinitionRow(item)){
+      ctx.info('Nie można usunąć pozycji startowej', 'To jest domyślna pozycja programu. Żeby jej nie liczyć, ustaw cenę 0 albo odznacz „Aktywna” w edycji pozycji. Dzięki temu program nie odtworzy jej ponownie jako ceny startowej.');
       return false;
     }
     const ok = await ctx.confirmDelete(); if(!ok) return false;

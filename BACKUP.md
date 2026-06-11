@@ -1,3 +1,10 @@
+## 2026-06-11 — Transport: scalanie ceny startowej i osobny total WYCENY
+
+- Nie dodano nowego klucza backupu ani nowego magazynu danych.
+- Cena transportu nadal jest częścią istniejącego cennika `fc_quote_rates_v1` / legacy `fc_services_v1`, więc trafia do backupu razem ze stawkami wyceny.
+- Jeżeli użytkownik ma zdublowaną pozycję **Transport do klienta**, konsolidacja przy starcie katalogu przenosi cenę użytkownika na kanoniczne `transport_distance_km` zamiast wymagać resetu danych.
+- Snapshot oferty może mieć nowy mały total `totals.transport` i sekcję rejestru `transport`; to jest rozdzielenie istniejącej linii transportowej w WYCENIE, nie osobny storage.
+
 ## 2026-06-10 — Backup: osobne automaty AGD
 
 - Zmiana nie dodaje nowego magazynu backupu.

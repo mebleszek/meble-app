@@ -1,3 +1,9 @@
+## 2026-06-11 — Transport w WYCENIE: kanoniczna pozycja i total
+
+- Transport pozostaje rekordem cennika w istniejącym katalogu `quoteRates`, z trwałym ID `transport_distance_km`, więc przyszła chmura powinna traktować go jako element katalogu stawek/pozycji wyceny, a nie jako osobną kolekcję.
+- Konsolidacja duplikatów działa w boundary `laborCatalog` / `catalogStore`; UI nie zapisuje dodatkowych kopii ceny transportu.
+- `totals.transport` w snapshotach ofert jest jawniejszym podziałem kwot dla użytkownika, ale źródłowa linia nadal pochodzi z `quoteRateLines` i rejestru wyliczeń.
+
 ## 2026-06-10 — Robocizna: osobne automaty montażu AGD
 
 - Nie dodano nowego klucza `localStorage`.

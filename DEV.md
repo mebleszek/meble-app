@@ -1,10 +1,23 @@
+## 2026-06-11 — Transport: poprawka cennika i widoczności w WYCENIE v1
+
+- Paczka: `site_transport_catalog_quote_fix_v1.zip`.
+- Poprawiono błąd, w którym edycja startowej pozycji **Transport do klienta** mogła utworzyć drugi wpis z ceną użytkownika, podczas gdy automatyczna WYCENA nadal czytała kanoniczne `transport_distance_km` z ceną 0.
+- `FC.laborCatalog.ensureDefaultDefinitions()` konsoliduje teraz zdublowane domyślne definicje robocizny/transportu po `id` albo po podpisie `kategoria + nazwa + quantitySource`. Cena użytkownika i `priceUserEditedAt` przechodzą na kanoniczne ID.
+- Domyślnych definicji `DEFAULT_LABOR_DEFINITIONS` nie usuwamy fizycznie z cennika, bo seed programu i tak by je odtworzył. W UI ukryto przycisk Usuń dla tych pozycji i dodano blokadę awaryjną; użytkownik ma edytować cenę, aktywność albo ustawić 0.
+- Rejestr WYCENY rozdziela transport do osobnej sekcji `transport`; `totals.quoteRates` nie zawiera transportu, a `totals.transport` jest widoczne jako osobny wiersz **Transport**.
+- Linia transportu nadal powstaje z `quoteRateLines` jako automatyczna pozycja z `sourceRole:'transport-distance'`, więc nie dodano nowego magazynu danych.
+- Nie ruszano inwestora, ustawień firmy, OpenRouteService, kosztów firmy, robocizny szafek, automatów AGD, snapshotów statusów ani `drawer.count`.
+- Cache-busting: `20260611_transport_catalog_quote_fix_v1`.
+- Testy: `node --check` zmienionych JS — OK; `node tools/check-index-load-groups.js` — OK; `node tools/app-dev-smoke.js` — OK 109/109; `node tools/company-transport-business-costs-smoke.js` — OK; `node tools/transport-catalog-quote-fix-smoke.js` — OK.
+- Raport: `tools/reports/transport-catalog-quote-fix-v1.md`.
+
 ## 2026-06-11 — Dane firmy/transport: poprawka pierwszego startu WYCENY v1
 
 - Paczka: `site_company_transport_wycena_core_boot_fix_v1.zip`.
 - Poprawiono błąd pierwszego czystego wejścia po wdrożeniu: `wycena-core.js` nie przerywa już bootowania, jeśli zależności `FC.wycenaCore*` nie są widoczne dokładnie w chwili ładowania orkiestratora.
 - Zależności WYCENY są teraz sprawdzane leniwie, dopiero przy realnym użyciu API WYCENY, z listą brakujących modułów w komunikacie błędu.
 - Nie zmieniono wyniku WYCENY, robocizny, materiałów, transportu, kosztów firmy, danych inwestora ani storage.
-- Cache-busting: `20260611_company_transport_wycena_core_boot_fix_v1`. Raport: `tools/reports/company-transport-wycena-core-boot-fix-v1.md`.
+- Cache-busting: `20260611_transport_catalog_quote_fix_v1`. Raport: `tools/reports/company-transport-wycena-core-boot-fix-v1.md`.
 
 ## 2026-06-11 — Robocizna: czysty porządek kategorii AGD / Montaż AGD v1
 

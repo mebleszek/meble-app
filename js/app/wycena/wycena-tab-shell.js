@@ -290,7 +290,7 @@
         if(typeof d.setState === 'function'){
           const errorQuote = FC.wycenaContextRepair && typeof FC.wycenaContextRepair.buildErrorQuote === 'function'
             ? FC.wycenaContextRepair.buildErrorQuote(contextRepair)
-            : { error:String(contextRepair.message || 'Błąd kontekstu WYCENY'), totals:{ materials:0, accessories:0, services:0, quoteRates:0, subtotal:0, discount:0, grand:0 }, roomLabels:[] };
+            : { error:String(contextRepair.message || 'Błąd kontekstu WYCENY'), totals:{ materials:0, accessories:0, services:0, quoteRates:0, transport:0, subtotal:0, discount:0, grand:0 }, roomLabels:[] };
           d.setState({ lastQuote:errorQuote, previewSnapshotId:'', shouldScrollToPreview:true });
         }
         try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ stopped:'context-repair-failed', code:contextRepair && contextRepair.code }); }catch(_){ }
@@ -362,7 +362,7 @@
         d.setState({
           lastQuote:{
             error:String(err && err.message || err || 'Błąd wyceny'),
-            totals:{ materials:0, accessories:0, services:0, quoteRates:0, subtotal:0, discount:0, grand:0 },
+            totals:{ materials:0, accessories:0, services:0, quoteRates:0, transport:0, subtotal:0, discount:0, grand:0 },
             roomLabels:[],
           }
         });

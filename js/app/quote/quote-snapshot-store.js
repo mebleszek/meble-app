@@ -271,6 +271,11 @@
     addText(out, 'sourceType', src.sourceType);
     addText(out, 'sourceLabel', src.sourceLabel);
     addText(out, 'sourceId', src.sourceId);
+    addText(out, 'sourceRole', src.sourceRole);
+    addText(out, 'sourceKind', src.sourceKind);
+    addText(out, 'quantitySource', src.quantitySource);
+    addNumber(out, 'quantitySourceValue', src.quantitySourceValue);
+    addText(out, 'quantitySourceDisplay', src.quantitySourceDisplay);
     addText(out, 'calculation', src.calculation || src.calculationNote);
     addNumber(out, 'width', src.width);
     addNumber(out, 'height', src.height);
@@ -553,6 +558,7 @@
         accessories: roundFingerprintNumber(totals.accessories),
         services: roundFingerprintNumber(totals.services),
         quoteRates: roundFingerprintNumber(totals.quoteRates),
+        transport: roundFingerprintNumber(totals.transport),
         labor: roundFingerprintNumber(totals.labor),
         subtotal: roundFingerprintNumber(totals.subtotal),
         discount: roundFingerprintNumber(totals.discount),

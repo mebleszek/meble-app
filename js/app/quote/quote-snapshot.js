@@ -58,6 +58,11 @@
       sourceType: String(row.sourceType || '').trim(),
       sourceLabel: String(row.sourceLabel || '').trim(),
       sourceId: String(row.sourceId || '').trim(),
+      sourceRole: String(row.sourceRole || '').trim(),
+      sourceKind: String(row.sourceKind || '').trim(),
+      quantitySource: String(row.quantitySource || '').trim(),
+      quantitySourceValue: Math.max(0, num(row.quantitySourceValue, 0)),
+      quantitySourceDisplay: String(row.quantitySourceDisplay || '').trim(),
       calculation: String(row.calculation || row.calculationNote || '').trim(),
       warnings: normalizeWarnings(row.warnings),
       width: Math.max(0, num(row.width, 0)),
@@ -213,14 +218,27 @@
     return src.includeFronts ? 'fronts' : 'corpus';
   }
 
+  function isTransportQuoteLine(row){
+    const src = row && typeof row === 'object' ? row : {};
+    return String(src.sourceRole || '').trim() === 'transport-distance'
+      || String(src.sourceType || '').trim() === 'transport'
+      || String(src.quantitySource || '').trim() === 'transport.distance_km'
+      || String(src.sourceId || '').trim() === 'transport_distance_km';
+  }
+
   function computeTotals(raw, lines, commercial){
     const base = raw && typeof raw === 'object' ? raw : {};
+    const quoteLines = Array.isArray(lines.quoteRates) ? lines.quoteRates : [];
+    const quoteTransportTotal = quoteLines.filter(isTransportQuoteLine).reduce((sum, row)=> sum + row.total, 0);
+    const quoteOtherTotal = quoteLines.filter((row)=> !isTransportQuoteLine(row)).reduce((sum, row)=> sum + row.total, 0);
+    const hasBaseTransport = Object.prototype.hasOwnProperty.call(base, 'transport');
     const materials = Math.max(0, num(base.materials, lines.materials.reduce((sum, row)=> sum + row.total, 0)));
     const accessories = Math.max(0, num(base.accessories, lines.accessories.reduce((sum, row)=> sum + row.total, 0)));
     const services = Math.max(0, num(base.services, lines.agdServices.reduce((sum, row)=> sum + row.total, 0)));
-    const quoteRates = Math.max(0, num(base.quoteRates, lines.quoteRates.reduce((sum, row)=> sum + row.total, 0)));
+    const transport = Math.max(0, hasBaseTransport ? num(base.transport, quoteTransportTotal) : quoteTransportTotal);
+    const quoteRates = Math.max(0, hasBaseTransport ? num(base.quoteRates, quoteOtherTotal) : (quoteLines.length ? quoteOtherTotal : num(base.quoteRates, 0)));
     const labor = Math.max(0, num(base.labor, (Array.isArray(lines.labor) ? lines.labor : []).reduce((sum, row)=> sum + row.total, 0)));
-    const subtotal = Math.max(0, num(base.subtotal, materials + accessories + services + quoteRates + labor));
+    const subtotal = Math.max(0, num(base.subtotal, materials + accessories + services + quoteRates + transport + labor));
     let discount = Math.max(0, num(base.discount, 0));
     if(!(discount > 0)){
       if(commercial.discountPercent > 0) discount = subtotal * (commercial.discountPercent / 100);
@@ -233,6 +251,7 @@
       accessories,
       services,
       quoteRates,
+      transport,
       labor,
       subtotal,
       discount,

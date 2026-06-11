@@ -1,3 +1,16 @@
+## 2026-06-11 — Transport: poprawka cennika i widoczności w WYCENIE v1
+
+Paczka `site_transport_catalog_quote_fix_v1.zip` poprawia zgłoszony przypadek: edycja startowej pozycji **Transport do klienta** tworzyła drugi wpis zamiast zaktualizować kanoniczny wpis `transport_distance_km`, więc WYCENA nadal czytała starą cenę 0 PLN/km i transport nie pojawiał się w podsumowaniu.
+
+Zmiany:
+- duplikaty transportu po nazwie/kategorii/źródle ilości są scalane do `transport_distance_km`, z zachowaniem ceny użytkownika,
+- domyślna pozycja transportu nie pokazuje już mylącego usuwania — trzeba ją edytować, ustawić cenę 0 albo odznaczyć aktywność,
+- WYCENA pokazuje osobny wiersz **Transport**, zamiast chować go pod „Robocizna / stawki wyceny”,
+- rejestr wyliczeń i audyt mają osobną sekcję `transport`, ale źródłem ilości nadal jest `transport.distance_km` z Inwestora,
+- nie zmieniono ręcznego wpisywania kilometrów, OpenRouteService, kosztów firmy ani robocizny szafek.
+
+Cache-busting: `20260611_transport_catalog_quote_fix_v1`. Raport: `tools/reports/transport-catalog-quote-fix-v1.md`.
+
 ## 2026-06-11 — Dane firmy/transport: WYCENA core boot fix v1
 
 Paczka `site_company_transport_wycena_core_boot_fix_v1.zip` poprawia czerwony błąd `boot-clean-1.5` przy pierwszym uruchomieniu po wdrożeniu. Zmiana dotyczy wyłącznie odporności startu `wycena-core.js`; nie zmienia obliczeń, transportu, kosztów firmy ani danych inwestora.
