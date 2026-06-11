@@ -10,6 +10,7 @@
   function filterManufacturerWrapper(){ return ctx.byId('formManufacturerLaunch') && ctx.byId('formManufacturerLaunch').parentElement; }
   function formCategoryWrapper(){ return ctx.byId('formCategoryLaunch') && ctx.byId('formCategoryLaunch').parentElement; }
   function formServiceNameWrapper(){ return ctx.byId('formServiceName') && ctx.byId('formServiceName').parentElement; }
+  function formServicePriceWrapper(){ return ctx.byId('formServicePrice') && ctx.byId('formServicePrice').parentElement; }
   function formPriceWrapper(){ return ctx.byId('formPrice') && ctx.byId('formPrice').parentElement; }
   function formMaterialPriceUnitWrapper(){ return ctx.byId('formMaterialPriceUnitLaunch') && ctx.byId('formMaterialPriceUnitLaunch').parentElement; }
   function formHasGrainRow(){ return ctx.byId('formHasGrain') && ctx.byId('formHasGrain').parentElement; }

@@ -1,3 +1,14 @@
+## 2026-06-11 — Cennik: poprawka otwierania formularza sposobów naliczania ceny v1
+
+Paczka `site_pricing_modes_form_price_fix_v1.zip` poprawia zgłoszony błąd `ReferenceError: formServicePriceWrapper is not defined` po kliknięciu edycji pozycji w **Cenniku robocizny i usług**. Przyczyna była prosta: nowy moduł ukrywania pól po wyborze **Sposobu naliczania ceny** odwoływał się do wrappera pola ceny usługi, ale helper nie został zdefiniowany w pliku formularza.
+
+Zmiany:
+- dodano brakujący helper `formServicePriceWrapper()` dla pola `formServicePrice`,
+- tryby naliczania ceny, transport `kwota startowa + km`, stawki godzinowe w trybiku i logika WYCENY pozostają bez zmian,
+- dodano smoke test pilnujący, żeby formularz ceny usługi miał ten helper przed użyciem.
+
+Nie ruszano kosztów firmy, OpenRouteService, inwestora, `drawer.count`, automatów AGD, materiałów, okuć ani obliczeń robocizny. Cache-busting: `20260611_pricing_modes_form_price_fix_v1`. Raport: `tools/reports/pricing-modes-form-price-fix-v1.md`.
+
 ## 2026-06-11 — Sposoby naliczania ceny w cenniku v1
 
 Paczka `site_pricing_modes_v1.zip` dodaje w **Cenniku robocizny i usług** pole **Sposób naliczania ceny**. Formularz pokazuje tylko pola potrzebne dla wybranego trybu, więc transport nie miesza się z czasem robocizny, a czynności czasowe nadal wybierają profil stawki godzinowej z trybika.
