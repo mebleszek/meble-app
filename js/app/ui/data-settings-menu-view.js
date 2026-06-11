@@ -11,6 +11,7 @@
     defaults:'Globalne domyślne materiały i marki okuć są fallbackiem programu. Preferencje konkretnego pomieszczenia mają pierwszeństwo.',
     company:'Dane firmy, adres startowy transportu, telefon, e-mail i klucz OpenRouteService do darmowego przeliczania trasy.',
     businessCosts:'Koszty firmy to lista kosztów stałych i pomocniczych: lokal, media, księgowa, ochrona, samochód, programy i inne.',
+    hourlyRates:'Stawki godzinowe firmy to profile używane przez czynności zależne od czasu: warsztat, montaż, specjalistyczna, pomocnik i własne.',
     tests:'Testy aplikacji prowadzą do dwóch obszarów: narzędzi pamięci oraz testów regresyjnych dokładanych w trakcie rozwoju programu.',
     workSources:'Źródła danych do czynności to centralny słownik nazw: techniczna nazwa, ludzka nazwa i opis, skąd program bierze wartość. To nie jest drugi zapis danych w szafkach.',
   };
@@ -113,6 +114,14 @@
       section:'businessCosts',
       infoKey:'businessCosts',
       onClick:()=> setView('businessCosts'),
+    }));
+    grid.appendChild(buildTile({
+      icon:'settings',
+      title:'Stawki godzinowe firmy',
+      sub:'Warsztatowa, montażowa, specjalistyczna, pomocnik i własne profile PLN/h.',
+      section:'hourlyRates',
+      infoKey:'hourlyRates',
+      onClick:()=> setView('hourlyRates'),
     }));
     grid.appendChild(buildTile({
       icon:'tests',

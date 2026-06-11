@@ -5,6 +5,13 @@
   window.FC = window.FC || {};
   const ctx = window.FC.priceModalContext || {};
 
+
+  function isHourlyRateDefinition(item){
+    try{
+      return !!(window.FC && window.FC.laborCatalog && typeof window.FC.laborCatalog.isHourlyRateDefinition === 'function' && window.FC.laborCatalog.isHourlyRateDefinition(item || {}));
+    }catch(_){ return false; }
+  }
+
   function syncFilterSelects(){
     const kind = ctx.currentListKind();
     const materialTypeEl = ctx.byId('priceFilterMaterialType');
@@ -98,6 +105,7 @@
         if(ctx.matchesHardwareQuickFilter && !ctx.matchesHardwareQuickFilter(item)) return false;
         return true;
       }
+      if(kind === 'quoteRates' && isHourlyRateDefinition(item)) return false;
       if(ctx.runtimeState.filters.category && String(item && item.category || '') !== String(ctx.runtimeState.filters.category || '')) return false;
       return true;
     });

@@ -44,6 +44,13 @@
     }
   }
 
+
+  function isHourlyRateDefinition(item){
+    try{
+      return !!(FC.laborCatalog && typeof FC.laborCatalog.isHourlyRateDefinition === 'function' && FC.laborCatalog.isHourlyRateDefinition(item || {}));
+    }catch(_){ return false; }
+  }
+
   function buildOrderedValues(baseList, dynamicList, selectedValue, includeAllLabel){
     const seen = new Set();
     const out = [];
@@ -110,8 +117,12 @@
 
   function buildCategoryOptions(kind, selectedValue, opts){
     const cfg = Object.assign({ includeAll:false }, opts || {});
-    const base = kind === 'workshopServices' ? ctx.WORKSHOP_SERVICE_CATEGORIES : ctx.QUOTE_RATE_CATEGORIES;
-    const dynamic = ctx.currentList().map((item)=> item && item.category);
+    const baseRaw = kind === 'workshopServices' ? ctx.WORKSHOP_SERVICE_CATEGORIES : ctx.QUOTE_RATE_CATEGORIES;
+    const base = kind === 'quoteRates'
+      ? (baseRaw || []).filter((name)=> String(name || '').trim().toLowerCase() !== 'stawki godzinowe')
+      : baseRaw;
+    const dynamicRows = kind === 'quoteRates' ? ctx.currentList().filter((item)=> !isHourlyRateDefinition(item)) : ctx.currentList();
+    const dynamic = dynamicRows.map((item)=> item && item.category).filter((name)=> kind !== 'quoteRates' || String(name || '').trim().toLowerCase() !== 'stawki godzinowe');
     return buildOrderedValues(base, dynamic, selectedValue, cfg.includeAll ? 'Wszystkie kategorie' : null);
   }
 

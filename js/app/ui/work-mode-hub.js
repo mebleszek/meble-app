@@ -11,7 +11,7 @@
       actions:[
         { label:'Materiały', action:'open-sheet-materials', tone:'neutral' },
         { label:'Akcesoria', action:'open-accessories', tone:'neutral' },
-        { label:'Stawki wyceny mebli', action:'open-quote-rates', tone:'neutral' },
+        { label:'Cennik robocizny i usług', action:'open-quote-rates', tone:'neutral' },
         { label:'Lista inwestorów', action:'open-investors-list', tone:'neutral' },
         { label:'Nowy inwestor', action:'new-investor', tone:'primary' },
       ],

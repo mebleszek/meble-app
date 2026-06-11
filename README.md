@@ -1,3 +1,19 @@
+## 2026-06-11 — Stawki godzinowe firmy w trybiku v1
+
+Paczka `site_hourly_rates_settings_v1.zip` przenosi zarządzanie profilami stawek godzinowych do trybika, bez przebudowy samej logiki robocizny. Stawki godzinowe są teraz parametrem firmy, a cennik robocizny i usług zawiera konkretne czynności/usługi, które wybierają odpowiedni profil stawki.
+
+Zmiany:
+- dodano trybik → **Stawki godzinowe firmy**,
+- można edytować stawki systemowe: warsztatową, montażową, specjalistyczną i pomocnika,
+- można dodawać własne stawki godzinowe z własnym kodem technicznym,
+- kod istniejącej stawki jest zablokowany po zapisie, żeby nie rozpiąć czynności w cenniku,
+- cennik nie pokazuje już kategorii **Stawki godzinowe** ani checkboxa tworzenia stawek godzinowych,
+- czynności zależne od czasu nadal wybierają profil stawki godzinowej tak jak wcześniej,
+- okno cennika zmieniono na **Cennik robocizny i usług**,
+- w WYCENIE zmieniono etykietę **Robocizna / stawki wyceny** na **Usługi dodatkowe** i nie ukryto wartości 0.00 PLN.
+
+Nie zmieniono jeszcze transportu w modelu `kwota startowa + kilometry`; to osobny następny etap. Cache-busting: `20260611_hourly_rates_settings_v1`. Raport: `tools/reports/hourly-rates-settings-v1.md`.
+
 ## 2026-06-11 — Boot: start aplikacji po DOMContentLoaded v1
 
 Paczka `site_boot_domcontentloaded_init_fix_v1.zip` poprawia zgłoszony przypadek pierwszego uruchomienia po wdrożeniu: `boot.js` był ładowany jako pierwszy skrypt `defer`, widział `document.readyState = interactive` i mógł zacząć szukać `FC.init()` zanim `app.js` oraz późniejsze moduły zdążyły się wykonać. Na wolniejszym pierwszym ładowaniu mobile dawało to fałszywy czerwony błąd `Nie znaleziono funkcji startowej aplikacji`, a po odświeżeniu cache już maskował problem.

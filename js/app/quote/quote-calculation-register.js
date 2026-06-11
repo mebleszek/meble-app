@@ -9,7 +9,7 @@
     materials:'Materiały',
     accessories:'Akcesoria',
     labor:'Robocizna szafek',
-    quoteRates:'Robocizna / stawki wyceny',
+    quoteRates:'Usługi dodatkowe',
     transport:'Transport',
     services:'Montaż AGD',
     discount:'Rabat',

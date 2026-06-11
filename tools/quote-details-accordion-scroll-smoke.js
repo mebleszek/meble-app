@@ -13,7 +13,7 @@ const css = read('css/wycena.css');
 const preview = read('js/app/wycena/wycena-tab-preview.js');
 const index = read('index.html');
 const devTests = read('dev_tests.html');
-const token = '20260611_labor_appliance_category_clean_rebase_v1';
+const token = '20260611_hourly_rates_settings_v1';
 
 [
   ['total', "['Suma przed rabatem', totals.subtotal, 'total']"],
@@ -21,7 +21,7 @@ const token = '20260611_labor_appliance_category_clean_rebase_v1';
   ['materials', "['Materiały', totals.materials, 'materials']"],
   ['accessories', "['Akcesoria', totals.accessories, 'accessories']"],
   ['labor', "['Robocizna szafek', totals.labor, 'labor']"],
-  ['quoteRates', "['Robocizna / stawki wyceny', totals.quoteRates, 'quoteRates']"],
+  ['quoteRates', "['Usługi dodatkowe', totals.quoteRates, 'quoteRates']"],
   ['services', "['Montaż AGD', totals.services, 'services']"],
   ['discount', "['Rabat', totals.discount, 'discount']"],
 ].forEach(([name, needle])=> { if(!has(preview, needle)) fail(`Brak wejścia szczegółów WYCENY: ${name}`); });

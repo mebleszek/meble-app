@@ -11,19 +11,24 @@ function load(rel, ctx){ vm.runInContext(read(rel), ctx, { filename: rel }); }
 const index = read('index.html');
 const itemForm = read('js/app/material/price-modal-item-form.js');
 const catalog = read('js/app/pricing/labor-catalog.js');
+const hourlyStoreSrc = read('js/app/settings/hourly-rates-store.js');
+const hourlyViewSrc = read('js/app/ui/data-settings-hourly-rates-view.js');
 
-assert(index.includes('laborIsHourlyRate'), 'Brak checkboxa trybu stawki godzinowej.');
-assert(index.includes('laborRateCode'), 'Brak pola kodu technicznego stawki godzinowej.');
-assert(index.includes('Kwota stawki godzinowej') || itemForm.includes('Kwota stawki godzinowej'), 'Brak uproszczonej etykiety kwoty stawki.');
+assert(index.includes('js/app/settings/hourly-rates-store.js'), 'Brak store stawek godzinowych w trybiku.');
+assert(index.includes('js/app/ui/data-settings-hourly-rates-view.js'), 'Brak widoku stawek godzinowych w trybiku.');
+assert(index.includes('laborRateType'), 'Czynność czasowa nadal musi mieć wybór profilu stawki godzinowej.');
+assert(itemForm.includes('function isHourlyRateMode(){ return false; }'), 'Cennik robocizny/usług nie powinien już tworzyć stawek godzinowych przez checkbox.');
 assert(!index.includes('laborAutomatCreateBtn'), 'Nie wolno przywracać UI tworzenia automatów w tym etapie.');
 assert(!index.includes('cmWorkFactsPreview'), 'Nie wolno podłączać podglądu źródeł do modala szafki w tym etapie.');
 assert(!index.includes('cabinet-work-facts-preview.js'), 'Nie wolno ładować panelu podglądu szafki w tym etapie.');
-assert(index.includes('20260611_labor_appliance_category_clean_rebase_v1'), 'Brak aktualnego cache-bustingu w index.html.');
-assert(read('dev_tests.html').includes('20260611_labor_appliance_category_clean_rebase_v1'), 'Brak aktualnego cache-bustingu w dev_tests.html.');
+assert(index.includes('20260611_hourly_rates_settings_v1'), 'Brak aktualnego cache-bustingu w index.html.');
+assert(read('dev_tests.html').includes('20260611_hourly_rates_settings_v1'), 'Brak aktualnego cache-bustingu w dev_tests.html.');
 
 assert(catalog.includes('dedupeHourlyRateDefinitions'), 'Brak deduplikacji stawek godzinowych.');
 assert(catalog.includes('validateRateProfile'), 'Brak walidacji profilu stawki godzinowej.');
 assert(catalog.includes('buildRateProfiles'), 'Brak budowania profili stawek godzinowych.');
+assert(hourlyStoreSrc.includes('FC.hourlyRatesSettings'), 'Brak API FC.hourlyRatesSettings.');
+assert(hourlyViewSrc.includes('Stawki godzinowe firmy'), 'Brak widoku trybika dla stawek godzinowych firmy.');
 
 const ctx = vm.createContext({
   window: {},

@@ -1,3 +1,18 @@
+## 2026-06-11 — Stawki godzinowe firmy w trybiku v1
+
+- Paczka: `site_hourly_rates_settings_v1.zip`.
+- Przeniesiono zarządzanie profilami stawek godzinowych z cennika robocizny/usług do trybika jako osobny widok **Stawki godzinowe firmy**.
+- Zachowano mechanikę stawek: czynności zależne od czasu nadal wybierają konkretny profil stawki (`workshop`, `assembly`, `specialist`, `helper` albo własny kod), a WYCENA czyta te same definicje z `quoteRates` jako jednego źródła prawdy.
+- W trybiku można edytować nazwę przyjazną, kwotę PLN/h, notatkę i aktywność stawek systemowych. Kod techniczny istniejącej stawki jest zablokowany.
+- Dodano możliwość tworzenia własnych stawek godzinowych w trybiku. Nowa stawka ma kod techniczny wpisywany przy tworzeniu, a po zapisie kod jest traktowany jak stały klucz.
+- Cennik ukrywa definicje stawek godzinowych i nie pokazuje już mylącej kategorii **Stawki godzinowe**; cennik służy do robocizny, montażu, transportu i usług, a nie do edycji profili PLN/h.
+- Zmieniono nazwę okna z **Stawki wyceny mebli** na **Cennik robocizny i usług** oraz opis pod nagłówkiem.
+- W podsumowaniu WYCENY zmieniono etykietę **Robocizna / stawki wyceny** na **Usługi dodatkowe**. Nie ukryto zerowych wierszy.
+- Nie zmieniano jeszcze sposobu naliczania transportu typu kwota startowa + kilometry; to zostaje osobnym etapem po uporządkowaniu stawek godzinowych.
+- Cache-busting: `20260611_hourly_rates_settings_v1`.
+- Testy: `node --check` zmienionych JS — OK; `node tools/check-index-load-groups.js` — OK; `node tools/hourly-rates-settings-smoke.js` — OK; `node tools/labor-rate-profiles-restore-clean-smoke.js` — OK; `node tools/transport-catalog-quote-fix-smoke.js` — OK; `node tools/company-transport-business-costs-smoke.js` — OK; `node tools/boot-domcontentloaded-init-fix-smoke.js` — OK; `node tools/app-dev-smoke.js` — OK 109/109.
+- Raport: `tools/reports/hourly-rates-settings-v1.md`.
+
 ## 2026-06-11 — Boot: start aplikacji po DOMContentLoaded v1
 
 - Paczka: `site_boot_domcontentloaded_init_fix_v1.zip`.

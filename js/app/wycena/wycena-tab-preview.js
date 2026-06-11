@@ -163,7 +163,7 @@
       ['Materiały', totals.materials, 'materials'],
       ['Akcesoria', totals.accessories, 'accessories'],
       ['Robocizna szafek', totals.labor, 'labor'],
-      ['Robocizna / stawki wyceny', totals.quoteRates, 'quoteRates'],
+      ['Usługi dodatkowe', totals.quoteRates, 'quoteRates'],
       ['Transport', totals.transport, 'transport'],
       ['Montaż AGD', totals.services, 'services'],
       ['Suma przed rabatem', totals.subtotal, 'total'],

@@ -255,3 +255,6 @@ textarea.data-settings-form-control{min-height:90px;resize:vertical;}
   .data-settings-cost-row__head{grid-template-columns:1fr;}
   .data-settings-cost-row__actions{justify-content:flex-start;}
 }
+.data-settings-hourly-rates-card{display:grid;gap:12px;}
+.data-settings-hourly-rate-row .data-settings-cost-grid .data-settings-form-field:nth-child(4){grid-column:1/-1;}
+.data-settings-hourly-rate-row input[readonly]{background:#f8fafc;color:#475569;}

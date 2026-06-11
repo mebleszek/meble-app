@@ -64,7 +64,7 @@
   const PRICE_LIST_CONFIG = (domain && domain.PRICE_LIST_CONFIG) || {
     materials: { key:'materials', storageKey:'sheetMaterials', title:'Materiały', subtitle:'', addLabel:'Dodaj materiał', icon:'🧩', formKind:'material' },
     accessories: { key:'accessories', storageKey:'accessories', title:'Akcesoria', subtitle:'', addLabel:'Dodaj akcesorium', icon:'🧷', formKind:'accessory' },
-    quoteRates: { key:'quoteRates', storageKey:'quoteRates', title:'Stawki wyceny mebli', subtitle:'', addLabel:'Dodaj stawkę', icon:'💲', formKind:'service' },
+    quoteRates: { key:'quoteRates', storageKey:'quoteRates', title:'Cennik robocizny i usług', subtitle:'', addLabel:'Dodaj usługę / robociznę', icon:'💲', formKind:'service' },
     workshopServices: { key:'workshopServices', storageKey:'workshopServices', title:'Usługi stolarskie', subtitle:'', addLabel:'Dodaj usługę', icon:'🔧', formKind:'service' },
   };
 

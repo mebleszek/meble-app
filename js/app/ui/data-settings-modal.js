@@ -29,7 +29,7 @@
     body.appendChild(footer);
 
     function renderFooter(){ backBtn.style.display = view === 'menu' ? 'none' : ''; }
-    function setView(next){ view = (next === 'backup' || next === 'defaults' || next === 'workSources' || next === 'company' || next === 'businessCosts') ? next : 'menu'; render(); }
+    function setView(next){ view = (next === 'backup' || next === 'defaults' || next === 'workSources' || next === 'company' || next === 'businessCosts' || next === 'hourlyRates') ? next : 'menu'; render(); }
     function render(){
       renderFooter();
       if(view === 'backup') FC.dataSettingsBackupView.render({ scroll, store, snapshot, render });
@@ -37,6 +37,7 @@
       else if(view === 'workSources' && FC.dataSettingsWorkSourcesView) FC.dataSettingsWorkSourcesView.render(scroll);
       else if(view === 'company' && FC.dataSettingsCompanyView) FC.dataSettingsCompanyView.render(scroll);
       else if(view === 'businessCosts' && FC.dataSettingsBusinessCostsView) FC.dataSettingsBusinessCostsView.render(scroll);
+      else if(view === 'hourlyRates' && FC.dataSettingsHourlyRatesView) FC.dataSettingsHourlyRatesView.render(scroll);
       else FC.dataSettingsMenuView.render(scroll, setView);
     }
 

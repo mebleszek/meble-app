@@ -33,7 +33,7 @@
     { id:'laborRateType', title:'Wybierz stawkę godzinową', placeholder:'Stawka godzinowa' },
     { id:'laborTimeBlockHours', title:'Wybierz czas bazowy', placeholder:'Czas bazowy' },
     { id:'laborQuantitySource', title:'Wybierz źródło ilości', placeholder:'Źródło ilości' },
-    { id:'laborQuantityMode', title:'Wybierz tryb ilości', placeholder:'Tryb ilości' },
+    { id:'laborQuantityMode', title:'Wybierz sposób liczenia ilości', placeholder:'Sposób liczenia ilości' },
     { id:'laborStartHours', title:'Wybierz czas startowy', placeholder:'Start h' },
     { id:'laborStepHours', title:'Wybierz czas kolejnego kroku', placeholder:'Dodaj h' },
     { id:'laborVolumeTimeMode', title:'Wybierz gabarytoczas', placeholder:'Gabarytoczas' },
@@ -141,7 +141,7 @@
     try{ return labor.isHourlyRateDefinition ? labor.isHourlyRateDefinition(item || {}) : false; }
     catch(_){ return false; }
   }
-  function isHourlyRateMode(){ return !!(ctx.byId('laborIsHourlyRate') && ctx.byId('laborIsHourlyRate').checked); }
+  function isHourlyRateMode(){ return false; }
   function getLaborRateProfiles(selectedCode){
     const labor = FC.laborCatalog || {};
     try{ return labor.buildRateProfiles ? labor.buildRateProfiles(ctx.currentList ? ctx.currentList() : [], selectedCode) : []; }
@@ -246,7 +246,7 @@
     if(ctx.currentListKind && ctx.currentListKind() !== 'quoteRates') return;
     const preview = ensureLaborRulePreview();
     if(!preview) return;
-    const hourly = isHourlyRateMode();
+    const hourly = false;
     preview.style.display = hourly ? 'none' : '';
     if(hourly) return;
     preview.innerHTML = '';
@@ -271,7 +271,9 @@
   }
   function syncLaborRateProfileUi(){
     if(ctx.currentListKind && ctx.currentListKind() !== 'quoteRates') return;
-    const hourly = isHourlyRateMode();
+    const hourly = false;
+    const toggleEl = ctx.byId('laborIsHourlyRate');
+    if(toggleEl) toggleEl.checked = false;
     const title = ctx.byId('laborFormSectionTitle');
     const rule = ctx.byId('laborRuleFields');
     const rateFields = ctx.byId('laborRateProfileFields');
@@ -283,7 +285,7 @@
     const preview = ctx.byId('laborRateProfilePreview');
     const item = currentEditedItem();
     const isEdit = !!(ctx.appUiState() && ctx.appUiState().editingId);
-    if(toggleWrap) toggleWrap.style.display = '';
+    if(toggleWrap) toggleWrap.style.display = 'none';
     if(rule) rule.style.display = hourly ? 'none' : '';
     if(rateFields) rateFields.style.display = hourly ? '' : 'none';
     if(conditionWrap) conditionWrap.style.display = hourly ? 'none' : '';
@@ -292,8 +294,8 @@
     if(title) title.textContent = hourly ? 'Stawka godzinowa' : 'Reguła robocizny';
     if(internalWrap) internalWrap.style.display = hourly ? 'none' : '';
     if(categoryWrap) categoryWrap.style.display = hourly ? 'none' : '';
-    setServicePriceLabel(hourly ? 'Kwota stawki godzinowej (PLN/h)' : 'Kwota stała / cena prosta (PLN)');
-    setFormNameLabel(hourly ? 'Nazwa przyjazna stawki' : 'Nazwa przyjazna / nazwa pozycji');
+    setServicePriceLabel('Kwota stała / cena prosta (PLN)');
+    setFormNameLabel('Nazwa przyjazna / nazwa pozycji');
     if(hourly){
       try{ ctx.setSelectOptions(ctx.byId('formCategory'), ctx.buildCategoryOptions('quoteRates', 'Stawki godzinowe'), 'Stawki godzinowe', 'Stawki godzinowe'); }catch(_){ }
       if(ctx.byId('laborInternalOnly')) ctx.byId('laborInternalOnly').checked = false;
@@ -442,7 +444,7 @@
   function wireItemDirtyEvents(){
     [
       'formSymbol','formName','formPrice','formMaterialPriceUnit','formServiceName','formServicePrice','formHasGrain','formMaterialType','formManufacturer','formCategory',
-      'laborIsHourlyRate','laborRateCode','laborRateType','laborTimeBlockHours','laborDefaultMultiplier','laborQuantitySource','laborQuantityMode','laborTierText',
+      'laborRateType','laborTimeBlockHours','laborDefaultMultiplier','laborQuantitySource','laborQuantityMode','laborTierText',
       'laborStartHours','laborStartQty','laborStepEveryQty','laborStepHours','laborVolumePricePerM3','laborVolumeTimeMode','laborVolumeTimePerM3',
       'laborVolumeTimeTierText','laborActive','laborInternalOnly'
     ].concat((ctx.priceModalHardwareForm && Array.isArray(ctx.priceModalHardwareForm.FIELD_IDS)) ? ctx.priceModalHardwareForm.FIELD_IDS : []).forEach((id)=>{
@@ -450,12 +452,12 @@
       if(!el) return;
       el.oninput = function(event){
         try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.handleHardwareFieldInput === 'function') ctx.priceModalHardwareForm.handleHardwareFieldInput(event); }catch(_){ }
-        if(id === 'laborIsHourlyRate' || id === 'laborRateCode' || id === 'formServicePrice') syncLaborRateProfileUi();
+        if(id === 'laborRateCode' || id === 'formServicePrice') syncLaborRateProfileUi();
         updateItemActionState();
       };
       el.onchange = function(event){
         try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.handleHardwareFieldInput === 'function') ctx.priceModalHardwareForm.handleHardwareFieldInput(event); }catch(_){ }
-        if(id === 'laborIsHourlyRate' || id === 'laborRateCode' || id === 'formServicePrice') syncLaborRateProfileUi();
+        if(id === 'laborRateCode' || id === 'formServicePrice') syncLaborRateProfileUi();
         updateItemActionState();
       };
     });
@@ -532,7 +534,7 @@
     const laborWrap = laborFields();
     if(laborWrap) laborWrap.style.display = (cfg.formKind === 'service' && kind === 'quoteRates') ? '' : 'none';
     const hourlyToggleWrap = ctx.byId('laborHourlyToggleWrap');
-    if(hourlyToggleWrap) hourlyToggleWrap.style.display = (cfg.formKind === 'service' && kind === 'quoteRates') ? '' : 'none';
+    if(hourlyToggleWrap) hourlyToggleWrap.style.display = 'none';
     const materialTypeWrap = filterMaterialWrapper();
     const manufacturerWrap = filterManufacturerWrapper();
     const grainRow = formHasGrainRow();
@@ -557,7 +559,7 @@
       if(nameWrap) nameWrap.style.display = '';
     }
     if(ctx.mountFormChoiceLaunchers) ctx.mountFormChoiceLaunchers(()=> updateItemActionState());
-    if(kind === 'quoteRates') { hideLaborUsageField(); refreshLaborRateTypeSelect(readString('laborRateType') || 'workshop'); refreshLaborQuantitySourceSelect(readString('laborQuantitySource') || ''); mountLaborChoiceLaunchers(); syncLaborRateProfileUi(); }
+    if(kind === 'quoteRates') { setChecked('laborIsHourlyRate', false); hideLaborUsageField(); refreshLaborRateTypeSelect(readString('laborRateType') || 'workshop'); refreshLaborQuantitySourceSelect(readString('laborQuantitySource') || ''); mountLaborChoiceLaunchers(); syncLaborRateProfileUi(); }
     if(ctx.decorateFieldHelpLabels) ctx.decorateFieldHelpLabels();
     try{ if(ctx.priceModalHardwareReplacements && typeof ctx.priceModalHardwareReplacements.setSourceItem === 'function') ctx.priceModalHardwareReplacements.setSourceItem(item || null); }catch(_){ }
     wireItemDirtyEvents();
