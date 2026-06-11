@@ -1,3 +1,17 @@
+## 2026-06-11 — Sposoby naliczania ceny w cenniku v1
+
+Paczka `site_pricing_modes_v1.zip` dodaje w **Cenniku robocizny i usług** pole **Sposób naliczania ceny**. Formularz pokazuje tylko pola potrzebne dla wybranego trybu, więc transport nie miesza się z czasem robocizny, a czynności czasowe nadal wybierają profil stawki godzinowej z trybika.
+
+Zmiany:
+- dodano tryby: **Kwota stała**, **Cena za ilość**, **Kwota startowa + cena za ilość**, **Czas × stawka godzinowa**, **Progi czasu**, **Czas startowy + kolejne sztuki**, **Zaawansowane**,
+- transport `transport_distance_km` ma tryb **Kwota startowa + cena za ilość**,
+- dla transportu można ustawić kwotę startową, kilometry w cenie startowej i cenę za km,
+- silnik `laborCatalog.calculateDefinition()` centralnie liczy nowe tryby, bez osobnej łatki tylko pod transport,
+- WYCENA transportu korzysta z tego samego kalkulatora i zapisuje w audycie start, limit oraz płatne km,
+- stawki godzinowe zostają w trybiku i nadal wybiera się je przy czynnościach zależnych od czasu.
+
+Nie ruszano kosztów firmy, OpenRouteService, `drawer.count`, automatów AGD, szuflad ani wymagań technicznych szafek. Cache-busting: `20260611_pricing_modes_v1`. Raport: `tools/reports/pricing-modes-v1.md`.
+
 ## 2026-06-11 — Stawki godzinowe firmy w trybiku v1
 
 Paczka `site_hourly_rates_settings_v1.zip` przenosi zarządzanie profilami stawek godzinowych do trybika, bez przebudowy samej logiki robocizny. Stawki godzinowe są teraz parametrem firmy, a cennik robocizny i usług zawiera konkretne czynności/usługi, które wybierają odpowiedni profil stawki.
@@ -12,7 +26,7 @@ Zmiany:
 - okno cennika zmieniono na **Cennik robocizny i usług**,
 - w WYCENIE zmieniono etykietę **Robocizna / stawki wyceny** na **Usługi dodatkowe** i nie ukryto wartości 0.00 PLN.
 
-Nie zmieniono jeszcze transportu w modelu `kwota startowa + kilometry`; to osobny następny etap. Cache-busting: `20260611_hourly_rates_settings_v1`. Raport: `tools/reports/hourly-rates-settings-v1.md`.
+Nie zmieniono jeszcze transportu w modelu `kwota startowa + kilometry`; to osobny następny etap. Cache-busting: `20260611_pricing_modes_v1`. Raport: `tools/reports/hourly-rates-settings-v1.md`.
 
 ## 2026-06-11 — Boot: start aplikacji po DOMContentLoaded v1
 

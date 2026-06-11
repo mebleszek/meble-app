@@ -9,6 +9,7 @@
   const RATE_TYPES = defs.RATE_TYPES || [];
   const USAGE_TYPES = defs.USAGE_TYPES || [];
   const QUANTITY_MODES = defs.QUANTITY_MODES || [];
+  const PRICING_MODES = defs.PRICING_MODES || [];
   const DEFAULT_HOURLY_RATES = defs.DEFAULT_HOURLY_RATES || [];
   const DEFAULT_LABOR_DEFINITIONS = defs.DEFAULT_LABOR_DEFINITIONS || [];
 
@@ -365,22 +366,54 @@
   function parseVolumeTierText(value){ return parseTierText(value); }
   function volumeTiersToText(rows){ return tiersToText(rows); }
 
+
+  function isPricingMode(value){
+    const key = text(value);
+    return !!key && PRICING_MODES.some((row)=> row && row.key === key);
+  }
+  function inferPricingMode(src, quantityMode, price){
+    const explicit = text(src && src.pricingMode);
+    if(isPricingMode(explicit)) return explicit;
+    const id = text(src && src.id);
+    const category = text(src && src.category).toLowerCase();
+    const qSource = text(src && src.quantitySource);
+    const startPrice = Math.max(0, num(src && (src.startPrice != null ? src.startPrice : src.basePrice), 0));
+    if(id === 'transport_distance_km' || qSource === 'transport.distance_km' || category === 'transport') return startPrice > 0 ? 'startPlusUnit' : (qSource ? 'perUnit' : 'fixed');
+    if(Number(src && src.volumePricePerM3) > 0 || Number(src && src.volumeTimePerM3) > 0 || (text(src && src.volumeTimeMode) && text(src && src.volumeTimeMode) !== 'none')) return 'advanced';
+    if(quantityMode === 'tiers') return 'timeTiers';
+    if(quantityMode === 'startStep') return 'timeStartStep';
+    if(Number(src && src.timeBlockHours) > 0) return 'time';
+    if(qSource && price > 0) return 'perUnit';
+    return 'fixed';
+  }
+  function pricingModeToQuantityMode(pricingMode, existing){
+    if(pricingMode === 'timeTiers') return 'tiers';
+    if(pricingMode === 'timeStartStep') return 'startStep';
+    if(pricingMode === 'time' || pricingMode === 'perUnit' || pricingMode === 'startPlusUnit') return 'linear';
+    if(pricingMode === 'advanced') return normalizeMode(existing, QUANTITY_MODES, 'none');
+    return 'none';
+  }
   function normalizeDefinition(row){
     const src = row && typeof row === 'object' ? row : {};
     const isHourly = isHourlyRateDefinition(src);
     const rateKey = normalizeRateCode(src.rateKey || src.rateCode);
     const rawRateType = normalizeRateCode(src.rateType || (isHourly ? rateKey : ''));
     const rateType = rawRateType || 'workshop';
-    const quantityMode = normalizeMode(src.quantityMode, QUANTITY_MODES, 'none');
-    const volumeTimeMode = text(src.volumeTimeMode) === 'perM3' ? 'perM3' : (text(src.volumeTimeMode) === 'tiers' ? 'tiers' : 'none');
-    const volumePricePerM3 = volumeTimeMode === 'none' ? Math.max(0, num(src.volumePricePerM3, 0)) : 0;
+    const rawQuantityMode = normalizeMode(src.quantityMode, QUANTITY_MODES, 'none');
     const price = Math.max(0, num(src.price, 0));
+    const pricingMode = isHourly ? 'fixed' : inferPricingMode(src, rawQuantityMode, price);
+    const quantityMode = isHourly ? 'none' : pricingModeToQuantityMode(pricingMode, rawQuantityMode);
+    const volumeTimeMode = pricingMode === 'advanced' ? (text(src.volumeTimeMode) === 'perM3' ? 'perM3' : (text(src.volumeTimeMode) === 'tiers' ? 'tiers' : 'none')) : 'none';
+    const volumePricePerM3 = (!isHourly && pricingMode === 'advanced' && volumeTimeMode === 'none') ? Math.max(0, num(src.volumePricePerM3, 0)) : 0;
     const conditions = isHourly ? [] : normalizeConditions(src.conditions);
     return {
       id:text(src.id) || uid('labor'),
       category:text(src.category) || (isHourly ? 'Stawki godzinowe' : 'Inne'),
       name:text(src.name),
       price,
+      pricingMode,
+      startPrice:isHourly ? 0 : Math.max(0, num(src.startPrice != null ? src.startPrice : src.basePrice, 0)),
+      includedQty:isHourly ? 0 : Math.max(0, num(src.includedQty != null ? src.includedQty : src.startIncludedQty, 0)),
       usage:normalizeMode(src.usage, USAGE_TYPES, 'universal'),
       rateKey:isHourly ? (rateKey || rateType) : rateKey,
       rateCode:isHourly ? (rateKey || rateType) : rateKey,
@@ -402,7 +435,7 @@
       volumeTimeMode:isHourly ? 'none' : volumeTimeMode,
       volumeTimePerM3:isHourly ? 0 : Math.max(0, num(src.volumeTimePerM3, 0)),
       volumeTimeTiers:isHourly ? [] : normalizeTiers(src.volumeTimeTiers),
-      fixedPrice:isHourly ? 0 : Math.max(0, num(src.fixedPrice, 0)),
+      fixedPrice:isHourly ? 0 : Math.max(0, num(src.fixedPrice != null ? src.fixedPrice : (pricingMode === 'fixed' ? price : 0), 0)),
       active:src.active !== false,
       internalOnly:isHourly ? false : src.internalOnly === true,
       note:text(src.note),
@@ -432,6 +465,10 @@
   function getQuantityModeLabel(key){
     const found = QUANTITY_MODES.find((row)=> row.key === key);
     return found ? found.label : (key || 'Bez ilości');
+  }
+  function getPricingModeLabel(key){
+    const found = PRICING_MODES.find((row)=> row.key === key);
+    return found ? found.label : (key || 'Kwota stała');
   }
   function buildHourlyRates(list){
     const rates = {};
@@ -483,13 +520,32 @@
     const volumeM3 = Math.max(0, Number(c.volumeM3) || 0);
     const rates = c.hourlyRates && typeof c.hourlyRates === 'object' ? c.hourlyRates : {};
     const hourlyRate = Math.max(0, Number(rates[def.rateType]) || Number(c.hourlyRate) || 0);
+    const mode = text(def.pricingMode) || 'fixed';
+    const unitPrice = Math.max(0, Number(def.price) || 0);
+    const startPrice = Math.max(0, Number(def.startPrice) || 0);
+    const includedQty = Math.max(0, Number(def.includedQty) || 0);
+
+    if(mode === 'perUnit'){
+      const total = quantity > 0 ? quantity * unitPrice : 0;
+      return { definition:def, quantity, volumeM3, hourlyRate:0, quantityHours:0, volumeHours:0, multiplier:1, pricedHours:0, laborPrice:0, volumePrice:0, fixedPrice:0, startPrice:0, unitPrice, includedQty:0, billableQty:quantity, total };
+    }
+    if(mode === 'startPlusUnit'){
+      const billableQty = quantity > 0 ? Math.max(0, quantity - includedQty) : 0;
+      const total = quantity > 0 ? startPrice + (billableQty * unitPrice) : 0;
+      return { definition:def, quantity, volumeM3, hourlyRate:0, quantityHours:0, volumeHours:0, multiplier:1, pricedHours:0, laborPrice:0, volumePrice:0, fixedPrice:startPrice, startPrice, unitPrice, includedQty, billableQty, total };
+    }
+    if(mode === 'fixed'){
+      const fixedPrice = Math.max(0, Number(def.fixedPrice || def.price) || 0);
+      return { definition:def, quantity, volumeM3, hourlyRate:0, quantityHours:0, volumeHours:0, multiplier:1, pricedHours:0, laborPrice:0, volumePrice:0, fixedPrice, startPrice:0, unitPrice:fixedPrice, includedQty:0, billableQty:quantity, total:fixedPrice };
+    }
+
     const quantityHours = computeQuantityHours(def, quantity);
     const volumeHours = computeVolumeTime(def, volumeM3);
     const multiplier = Math.max(0, Number(c.multiplier) || Number(def.defaultMultiplier) || 1);
     const pricedHours = (quantityHours + volumeHours) * multiplier;
     const laborPrice = pricedHours * hourlyRate;
     const volumePrice = volumeHours > 0 ? 0 : (volumeM3 * Math.max(0, Number(def.volumePricePerM3) || 0));
-    const fixedPrice = Math.max(0, Number(def.fixedPrice || def.price) || 0);
+    const fixedPrice = mode === 'advanced' ? Math.max(0, Number(def.fixedPrice || def.price) || 0) : Math.max(0, Number(def.fixedPrice) || 0);
     const total = laborPrice + volumePrice + fixedPrice;
     return {
       definition: def,
@@ -503,6 +559,10 @@
       laborPrice,
       volumePrice,
       fixedPrice,
+      startPrice:0,
+      unitPrice:0,
+      includedQty:0,
+      billableQty:quantity,
       total,
     };
   }
@@ -511,13 +571,22 @@
     const def = normalizeDefinition(row);
     if(def.isHourlyRate) return `${getRateLabel(def.rateKey || def.rateType)} • ${Number(def.price || 0).toFixed(2)} zł/h`;
     const parts = [];
+    if(def.pricingMode) parts.push(getPricingModeLabel(def.pricingMode));
     if(def.quantitySource) parts.push(`ilość: ${def.quantitySource}`);
     if(def.conditions && def.conditions.length) parts.push(`warunki: ${conditionsToText(def.conditions)}`);
-    if(def.timeBlockHours > 0) parts.push(`${def.timeBlockHours} h × ${getRateLabel(def.rateType)}`);
-    if(def.quantityMode && def.quantityMode !== 'none') parts.push(getQuantityModeLabel(def.quantityMode));
-    if(def.volumePricePerM3 > 0) parts.push(`gabaryt ${def.volumePricePerM3} PLN/m³`);
-    if(def.volumeTimeMode && def.volumeTimeMode !== 'none') parts.push(`gabarytoczas: ${def.volumeTimeMode === 'tiers' ? 'progi' : 'h/m³'}`);
-    if(def.fixedPrice > 0 || def.price > 0) parts.push(`kwota stała ${(def.fixedPrice || def.price).toFixed(2)} PLN`);
+    if(def.pricingMode === 'perUnit') parts.push(`${Number(def.price || 0).toFixed(2)} PLN/jedn.`);
+    else if(def.pricingMode === 'startPlusUnit'){
+      parts.push(`start ${Number(def.startPrice || 0).toFixed(2)} PLN`);
+      if(Number(def.includedQty) > 0) parts.push(`w cenie ${Number(def.includedQty)} jedn.`);
+      parts.push(`${Number(def.price || 0).toFixed(2)} PLN/jedn.`);
+    }else if(def.pricingMode === 'fixed') parts.push(`kwota ${(def.fixedPrice || def.price || 0).toFixed(2)} PLN`);
+    else{
+      if(def.timeBlockHours > 0) parts.push(`${def.timeBlockHours} h × ${getRateLabel(def.rateType)}`);
+      if(def.quantityMode && def.quantityMode !== 'none') parts.push(getQuantityModeLabel(def.quantityMode));
+      if(def.volumePricePerM3 > 0) parts.push(`gabaryt ${def.volumePricePerM3} PLN/m³`);
+      if(def.volumeTimeMode && def.volumeTimeMode !== 'none') parts.push(`gabarytoczas: ${def.volumeTimeMode === 'tiers' ? 'progi' : 'h/m³'}`);
+      if(def.fixedPrice > 0) parts.push(`kwota stała ${def.fixedPrice.toFixed(2)} PLN`);
+    }
     return parts.join(' • ') || `${Number(def.price || 0).toFixed(2)} PLN`;
   }
 
@@ -525,6 +594,7 @@
     RATE_TYPES,
     USAGE_TYPES,
     QUANTITY_MODES,
+    PRICING_MODES,
     DEFAULT_HOURLY_RATES,
     DEFAULT_LABOR_DEFINITIONS,
     normalizeDefinition,
@@ -539,6 +609,7 @@
     getRateLabel,
     getUsageLabel,
     getQuantityModeLabel,
+    getPricingModeLabel,
     normalizeQuantitySource,
     normalizeCondition,
     normalizeConditions,

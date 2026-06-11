@@ -130,7 +130,9 @@
       addFact(facts, 'Źródło ilości', `${label} (${text(row.quantitySource)}) = ${display}`);
     }
     cleanLaborNoteFacts(row).forEach((fact)=> facts.push(fact));
-    addFact(facts, 'Wyliczenie', `${formatQty(row)} × ${money(row && row.unitPrice)} = ${money(row && row.total)}`);
+    if(num(row && row.startPrice) > 0) addFact(facts, 'Kwota startowa', `${money(row.startPrice)}${num(row && row.includedQty) > 0 ? ' · w cenie ' + roundText(row.includedQty) + ' jedn.' : ''}`);
+    if(text(row && row.calculation)) addFact(facts, 'Wyliczenie', text(row.calculation));
+    else addFact(facts, 'Wyliczenie', `${formatQty(row)} × ${money(row && row.unitPrice)} = ${money(row && row.total)}`);
     return facts;
   }
   function appendFactRows(parent, facts){

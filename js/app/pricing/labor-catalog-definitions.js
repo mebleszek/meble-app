@@ -28,6 +28,16 @@
     { key:'startStep', label:'Start + kolejne sztuki' },
   ];
 
+  const PRICING_MODES = [
+    { key:'fixed', label:'Kwota stała' },
+    { key:'perUnit', label:'Cena za ilość' },
+    { key:'startPlusUnit', label:'Kwota startowa + cena za ilość' },
+    { key:'time', label:'Czas × stawka godzinowa' },
+    { key:'timeTiers', label:'Progi czasu' },
+    { key:'timeStartStep', label:'Czas startowy + kolejne sztuki' },
+    { key:'advanced', label:'Zaawansowane' },
+  ];
+
   const DEFAULT_HOURLY_RATES = [
     { id:'labor_rate_workshop', category:'Stawki godzinowe', name:'Stawka warsztatowa', price:150, rateKey:'workshop', rateCode:'workshop', rateType:'workshop', usage:'universal', active:true, systemRate:true, nonDeletable:true, starterPrice:true, note:'Systemowa stawka godzinowa — można zmienić nazwę przyjazną i kwotę, ale nie usuwać ani zmieniać kodu technicznego.' },
     { id:'labor_rate_assembly', category:'Stawki godzinowe', name:'Stawka montażowa', price:250, rateKey:'assembly', rateCode:'assembly', rateType:'assembly', usage:'universal', active:true, systemRate:true, nonDeletable:true, starterPrice:true, note:'Systemowa stawka godzinowa — można zmienić nazwę przyjazną i kwotę, ale nie usuwać ani zmieniać kodu technicznego.' },
@@ -60,7 +70,7 @@
     { id:'dryer_mount', category:'Montaż AGD', name:'Montaż suszarki do zabudowy', price:0, usage:'universal', rateType:'assembly', quantitySource:'appliance.dryer.count', timeBlockHours:0.5, quantityMode:'linear', active:true, internalOnly:true, starterPrice:true, note:'Osobny automat AGD. Kod techniczny stały: dryer_mount.' },
     { id:'coffee_machine_mount', category:'Montaż AGD', name:'Montaż ekspresu do zabudowy', price:0, usage:'universal', rateType:'assembly', quantitySource:'appliance.coffee_machine.count', timeBlockHours:0.5, quantityMode:'linear', active:true, internalOnly:true, starterPrice:true, note:'Osobny automat AGD. Kod techniczny stały: coffee_machine_mount.' },
     { id:'warming_drawer_mount', category:'Montaż AGD', name:'Montaż podgrzewacza szufladowego', price:0, usage:'universal', rateType:'assembly', quantitySource:'appliance.warming_drawer.count', timeBlockHours:0.5, quantityMode:'linear', active:true, internalOnly:true, starterPrice:true, note:'Osobny automat AGD. Kod techniczny stały: warming_drawer_mount.' },
-    { id:'transport_distance_km', category:'Transport', name:'Transport do klienta', price:0, usage:'project', rateType:'assembly', quantitySource:'transport.distance_km', quantityMode:'linear', active:true, internalOnly:false, starterPrice:true, note:'Cena za 1 km. Ilość kilometrów wynika z Inwestora i ustawień firmy w trybiku.' },
+    { id:'transport_distance_km', category:'Transport', name:'Transport do klienta', price:0, usage:'project', rateType:'assembly', quantitySource:'transport.distance_km', quantityMode:'linear', pricingMode:'startPlusUnit', startPrice:0, includedQty:0, active:true, internalOnly:false, starterPrice:true, note:'Kwota startowa + cena za 1 km. Ilość kilometrów wynika z Inwestora i ustawień firmy w trybiku.' },
     { id:'labor_hole_fi60', category:'Usługi przy szafce', name:'Otwór fi 60', price:0, usage:'universal', rateType:'workshop', timeBlockHours:0.25, quantityMode:'linear', active:true, internalOnly:true },
     { id:'labor_pipe_cutout', category:'Usługi przy szafce', name:'Wcięcie na rury', price:0, usage:'universal', rateType:'workshop', timeBlockHours:0.5, quantityMode:'linear', active:true, internalOnly:true },
     { id:'labor_pipe_boxing', category:'Usługi przy szafce', name:'Zabudowa rur', price:0, usage:'universal', rateType:'workshop', timeBlockHours:1, quantityMode:'linear', active:true, internalOnly:true },
@@ -72,6 +82,7 @@
     RATE_TYPES,
     USAGE_TYPES,
     QUANTITY_MODES,
+    PRICING_MODES,
     DEFAULT_HOURLY_RATES,
     DEFAULT_LABOR_DEFINITIONS,
   };

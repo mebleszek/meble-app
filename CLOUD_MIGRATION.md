@@ -1,3 +1,10 @@
+## 2026-06-11 — Sposoby naliczania ceny w cenniku
+
+- Nie dodano nowego klucza `localStorage`; tryb naliczania ceny jest polem istniejących rekordów `quoteRates`.
+- Nowe pola `pricingMode`, `startPrice` i `includedQty` należą do definicji pozycji cennika robocizny/usług i powinny migrować razem z katalogiem stawek/pozycji.
+- `transport_distance_km` pozostaje kanoniczną pozycją katalogu, ale może być liczony jako `startPrice + max(0, km - includedQty) * price`.
+- Snapshot oferty ma zapisywać wynik i audyt użytego trybu, w tym płatne km / ilość po odjęciu limitu, żeby późniejsza zmiana cennika nie zmieniała starych ofert.
+
 ## 2026-06-11 — Transport w WYCENIE: kanoniczna pozycja i total
 
 - Transport pozostaje rekordem cennika w istniejącym katalogu `quoteRates`, z trwałym ID `transport_distance_km`, więc przyszła chmura powinna traktować go jako element katalogu stawek/pozycji wyceny, a nie jako osobną kolekcję.

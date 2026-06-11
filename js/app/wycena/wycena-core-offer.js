@@ -86,12 +86,20 @@
     if(!defRaw || selectedIds.has('transport_distance_km')) return null;
     const def = FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' ? FC.laborCatalog.normalizeDefinition(defRaw) : defRaw;
     if(!def || def.active === false || def.isHourlyRate === true) return null;
-    const unitPrice = Math.max(0, Number(def.price) || 0);
-    if(!(unitPrice > 0)) return null;
     const ctx = FC.investorTransport && typeof FC.investorTransport.getCurrentTransportContext === 'function' ? FC.investorTransport.getCurrentTransportContext() : null;
     const qty = Math.max(0, Number(ctx && ctx.billableKm) || 0);
     if(!(qty > 0)) return null;
+    const calc = FC.laborCatalog && typeof FC.laborCatalog.calculateDefinition === 'function' ? FC.laborCatalog.calculateDefinition(def, { quantity:qty, hourlyRates:buildHourlyRates(catalog) }) : null;
+    const total = Math.max(0, Number(calc && calc.total) || (qty * (Math.max(0, Number(def.price) || 0))));
+    if(!(total > 0)) return null;
+    const unitPrice = Math.max(0, Number(def.price) || 0);
+    const startPrice = Math.max(0, Number(calc && calc.startPrice != null ? calc.startPrice : def.startPrice) || 0);
+    const includedQty = Math.max(0, Number(calc && calc.includedQty != null ? calc.includedQty : def.includedQty) || 0);
+    const billableQty = Math.max(0, Number(calc && calc.billableQty != null ? calc.billableQty : qty) || 0);
     const inv = ctx && ctx.investor || null;
+    const calcText = startPrice > 0 || includedQty > 0
+      ? `Transport = ${startPrice.toFixed(2)} PLN start${includedQty > 0 ? ' + max(0, ' + qty + ' km - ' + includedQty + ' km) × ' + unitPrice.toFixed(2) + ' PLN/km' : ' + ' + billableQty + ' km × ' + unitPrice.toFixed(2) + ' PLN/km'}.`
+      : `Transport = ${qty} km × ${unitPrice.toFixed(2)} PLN/km.`;
     return {
       key: utils.slug(def && def.name || def && def.id || 'transport'),
       type:'quote-rate',
@@ -100,9 +108,14 @@
       qty,
       unit:'km',
       unitPrice,
-      total:qty * unitPrice,
+      total,
       hours:0,
       note:'Automatycznie z Inwestora: ' + (ctx.displayValue || (qty + ' km')),
+      calculation:calcText,
+      pricingMode:String(def.pricingMode || ''),
+      startPrice,
+      includedQty,
+      billableQty,
       internalOnly:false,
       sourceType:'transport',
       sourceLabel:'Inwestor' + (inv && (inv.name || inv.companyName) ? ': ' + String(inv.name || inv.companyName) : ''),
@@ -143,6 +156,9 @@
         sourceType:'manual',
         sourceLabel:'Ręczna pozycja WYCENY',
         sourceId:String(def && def.id || ''),
+        pricingMode:String(def && def.pricingMode || ''),
+        startPrice:Number(def && def.startPrice) || 0,
+        includedQty:Number(def && def.includedQty) || 0,
       };
     }).filter(Boolean);
     const transportLine = buildTransportRateLine(catalog, selections);
