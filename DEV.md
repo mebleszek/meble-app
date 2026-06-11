@@ -1,3 +1,11 @@
+## 2026-06-11 — Dane firmy/transport: poprawka pierwszego startu WYCENY v1
+
+- Paczka: `site_company_transport_wycena_core_boot_fix_v1.zip`.
+- Poprawiono błąd pierwszego czystego wejścia po wdrożeniu: `wycena-core.js` nie przerywa już bootowania, jeśli zależności `FC.wycenaCore*` nie są widoczne dokładnie w chwili ładowania orkiestratora.
+- Zależności WYCENY są teraz sprawdzane leniwie, dopiero przy realnym użyciu API WYCENY, z listą brakujących modułów w komunikacie błędu.
+- Nie zmieniono wyniku WYCENY, robocizny, materiałów, transportu, kosztów firmy, danych inwestora ani storage.
+- Cache-busting: `20260611_company_transport_wycena_core_boot_fix_v1`. Raport: `tools/reports/company-transport-wycena-core-boot-fix-v1.md`.
+
 ## 2026-06-11 — Robocizna: czysty porządek kategorii AGD / Montaż AGD v1
 
 - Paczka: `site_labor_appliance_category_clean_rebase_v1.zip`.

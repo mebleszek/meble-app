@@ -2,36 +2,73 @@
   'use strict';
   window.FC = window.FC || {};
   const FC = window.FC;
-  const selectionApi = FC.wycenaCoreSelection;
-  const catalog = FC.wycenaCoreCatalog;
-  const source = FC.wycenaCoreSource;
-  const materialPlan = FC.wycenaCoreMaterialPlan;
-  const offer = FC.wycenaCoreOffer;
-  const lines = FC.wycenaCoreLines;
-  const labor = FC.wycenaCoreLabor;
 
-  if(!(selectionApi && catalog && source && materialPlan && offer && lines && labor)){
-    throw new Error('Brak modułów FC.wycenaCore* — sprawdź kolejność ładowania Wyceny.');
+  function getDeps(){
+    return {
+      selectionApi: FC.wycenaCoreSelection,
+      catalog: FC.wycenaCoreCatalog,
+      source: FC.wycenaCoreSource,
+      materialPlan: FC.wycenaCoreMaterialPlan,
+      offer: FC.wycenaCoreOffer,
+      lines: FC.wycenaCoreLines,
+      labor: FC.wycenaCoreLabor,
+    };
   }
 
-  const normalizeQuoteSelection = selectionApi.normalizeQuoteSelection;
-  const decodeSelectedRooms = selectionApi.decodeSelectedRooms;
-  const createQuoteValidationError = selectionApi.createQuoteValidationError;
-  const validateQuoteSelection = selectionApi.validateQuoteSelection;
-  const validateQuoteContent = selectionApi.validateQuoteContent;
+  function listMissing(deps){
+    const out = [];
+    if(!deps.selectionApi) out.push('FC.wycenaCoreSelection');
+    if(!deps.catalog) out.push('FC.wycenaCoreCatalog');
+    if(!deps.source) out.push('FC.wycenaCoreSource');
+    if(!deps.materialPlan) out.push('FC.wycenaCoreMaterialPlan');
+    if(!deps.offer) out.push('FC.wycenaCoreOffer');
+    if(!deps.lines) out.push('FC.wycenaCoreLines');
+    if(!deps.labor) out.push('FC.wycenaCoreLabor');
+    return out;
+  }
+
+  function requireDeps(){
+    const deps = getDeps();
+    const missing = listMissing(deps);
+    if(missing.length){
+      throw new Error('Brak modułów FC.wycenaCore*: ' + missing.join(', ') + ' — odśwież stronę albo sprawdź kolejność ładowania Wyceny.');
+    }
+    return deps;
+  }
+
+  function normalizeQuoteSelection(selection){
+    return requireDeps().selectionApi.normalizeQuoteSelection(selection);
+  }
+
+  function decodeSelectedRooms(selection){
+    return requireDeps().selectionApi.decodeSelectedRooms(selection);
+  }
+
+  function createQuoteValidationError(message, details){
+    return requireDeps().selectionApi.createQuoteValidationError(message, details);
+  }
+
+  function validateQuoteSelection(selection){
+    return requireDeps().selectionApi.validateQuoteSelection(selection);
+  }
+
+  function validateQuoteContent(data){
+    return requireDeps().selectionApi.validateQuoteContent(data);
+  }
 
   async function collectQuoteData(options){
-    const draft = offer.getOfferDraft();
-    const normalizedSelection = validateQuoteSelection(normalizeQuoteSelection((options && options.selection) || (draft && draft.selection)));
-    const selectedRooms = decodeSelectedRooms(normalizedSelection);
-    const aggregate = source.getSelectedAggregate(normalizedSelection);
-    const materialLines = await materialPlan.collectMaterialLines(aggregate, normalizedSelection);
-    const elementLines = lines.collectElementLines(normalizedSelection);
-    const accessoryLines = lines.collectAccessories(selectedRooms);
-    const agdLines = lines.collectBuiltInAppliances(selectedRooms);
-    const quoteRateLines = offer.collectQuoteRateLines();
-    const laborLines = labor.collectCabinetLabor(selectedRooms);
-    const commercial = offer.collectCommercialDraft(draft);
+    const deps = requireDeps();
+    const draft = deps.offer.getOfferDraft();
+    const normalizedSelection = deps.selectionApi.validateQuoteSelection(deps.selectionApi.normalizeQuoteSelection((options && options.selection) || (draft && draft.selection)));
+    const selectedRooms = deps.selectionApi.decodeSelectedRooms(normalizedSelection);
+    const aggregate = deps.source.getSelectedAggregate(normalizedSelection);
+    const materialLines = await deps.materialPlan.collectMaterialLines(aggregate, normalizedSelection);
+    const elementLines = deps.lines.collectElementLines(normalizedSelection);
+    const accessoryLines = deps.lines.collectAccessories(selectedRooms);
+    const agdLines = deps.lines.collectBuiltInAppliances(selectedRooms);
+    const quoteRateLines = deps.offer.collectQuoteRateLines();
+    const laborLines = deps.labor.collectCabinetLabor(selectedRooms);
+    const commercial = deps.offer.collectCommercialDraft(draft);
     const calculationRegister = FC.quoteCalculationRegister && typeof FC.quoteCalculationRegister.buildRegister === 'function'
       ? FC.quoteCalculationRegister.buildRegister({
           materials: materialLines,
@@ -63,7 +100,7 @@
     if(!(totals.grand >= 0)) totals.grand = Math.max(0, totals.subtotal - (totals.discount || 0));
     const result = {
       selectedRooms,
-      roomLabels: selectedRooms.map(source.roomLabel),
+      roomLabels: selectedRooms.map(deps.source.roomLabel),
       materialScope: normalizedSelection.materialScope,
       selection: normalizedSelection,
       materialLines,
@@ -77,7 +114,7 @@
       totals,
       generatedAt: Date.now(),
     };
-    validateQuoteContent(result);
+    deps.selectionApi.validateQuoteContent(result);
     return result;
   }
 
@@ -88,22 +125,64 @@
     return data;
   }
 
-  FC.wycenaCore = {
-    AGD_SERVICE_DEFAULTS: catalog.AGD_SERVICE_DEFAULTS,
-    ensureServiceCatalog: catalog.ensureServiceCatalog,
-    ensureServiceCatalogInRuntime: catalog.ensureServiceCatalogInRuntime,
+  function ensureServiceCatalog(){
+    return requireDeps().catalog.ensureServiceCatalog();
+  }
+
+  function ensureServiceCatalogInRuntime(){
+    return requireDeps().catalog.ensureServiceCatalogInRuntime();
+  }
+
+  function collectQuoteRateLines(){
+    return requireDeps().offer.collectQuoteRateLines();
+  }
+
+  function collectCabinetLabor(selectedRooms){
+    return requireDeps().labor.collectCabinetLabor(selectedRooms);
+  }
+
+  function collectCommercialDraft(draft){
+    return requireDeps().offer.collectCommercialDraft(draft);
+  }
+
+  function collectElementLines(selection){
+    return requireDeps().lines.collectElementLines(selection);
+  }
+
+  function collectClientPdfDetails(selection){
+    return requireDeps().lines.collectClientPdfDetails(selection);
+  }
+
+  const api = {
+    ensureServiceCatalog,
+    ensureServiceCatalogInRuntime,
     normalizeQuoteSelection,
     collectQuoteData,
     buildQuoteSnapshot,
-    collectQuoteRateLines: offer.collectQuoteRateLines,
-    collectCabinetLabor: labor.collectCabinetLabor,
-    collectCommercialDraft: offer.collectCommercialDraft,
-    collectElementLines: lines.collectElementLines,
-    collectClientPdfDetails: lines.collectClientPdfDetails,
+    collectQuoteRateLines,
+    collectCabinetLabor,
+    collectCommercialDraft,
+    collectElementLines,
+    collectClientPdfDetails,
     validateQuoteSelection,
     validateQuoteContent,
     createQuoteValidationError,
+    _debugMissingDeps:function(){ return listMissing(getDeps()); },
   };
 
-  try{ catalog.ensureServiceCatalogInRuntime(); }catch(_){ }
+  Object.defineProperty(api, 'AGD_SERVICE_DEFAULTS', {
+    enumerable: true,
+    get:function(){
+      const catalog = FC.wycenaCoreCatalog;
+      return catalog && catalog.AGD_SERVICE_DEFAULTS ? catalog.AGD_SERVICE_DEFAULTS : [];
+    },
+  });
+
+  FC.wycenaCore = api;
+
+  try{
+    if(FC.wycenaCoreCatalog && typeof FC.wycenaCoreCatalog.ensureServiceCatalogInRuntime === 'function'){
+      FC.wycenaCoreCatalog.ensureServiceCatalogInRuntime();
+    }
+  }catch(_){ }
 })();

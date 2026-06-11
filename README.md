@@ -1,3 +1,7 @@
+## 2026-06-11 — Dane firmy/transport: WYCENA core boot fix v1
+
+Paczka `site_company_transport_wycena_core_boot_fix_v1.zip` poprawia czerwony błąd `boot-clean-1.5` przy pierwszym uruchomieniu po wdrożeniu. Zmiana dotyczy wyłącznie odporności startu `wycena-core.js`; nie zmienia obliczeń, transportu, kosztów firmy ani danych inwestora.
+
 ## 2026-06-11 — Robocizna: czysty porządek kategorii AGD / Montaż AGD v1
 
 - Paczka: `site_labor_appliance_category_clean_rebase_v1.zip`.
@@ -7,16 +11,6 @@
 - Nie zmieniano jednostek czasu, listy szybkich opcji czasu ani nie dodano żadnego globalnego zaokrąglania czasu. W szczególności nie ma reguły `0.75 h → 1 h`.
 - Nie ruszano WYWIADU, modala szafki, historii ofert, snapshotów, `drawer.count`, audytu robocizny ani warunków automatów.
 - Cache-busting: `20260611_labor_appliance_category_clean_rebase_v1`. Raport: `tools/reports/labor-appliance-category-clean-rebase-v1.md`.
-
-## 2026-06-11 — Dane firmy, transport i koszty firmy
-
-Build: `20260611_company_transport_business_costs_v1`
-
-Dodano w trybiku dwa nowe obszary: **Dane firmy i transport** oraz **Koszty firmy**. Dane firmy startują od konfiguracji Stolarnia Format, a transport można liczyć ręcznie albo opcjonalnie przez OpenRouteService po wpisaniu darmowego klucza API. Google Maps API nie jest używane.
-
-W inwestorze dodano panel **Dojazd / transport** z kilometrami, czasem dojazdu, notatką, przyciskiem otwarcia trasy w mapach i opcjonalnym przeliczeniem przez OpenRouteService. W WYCENIE dodano źródło ilości `transport.distance_km` oraz domyślną pozycję **Transport do klienta** liczona z ceny za km.
-
-Koszty firmy są zapisywane i sumowane miesięcznie. Obejmują m.in. czynsz, media, księgową, ochronę, ubezpieczenie, telefon/internet, programy, serwis maszyn, samochód, reklamę i opłaty urzędowe. Automatyczny narzut kosztów firmy do WYCENY nie jest jeszcze podłączony — to osobny przyszły etap.
 
 ## 2026-06-10 — Robocizna: osobne automaty montażu AGD v1
 
