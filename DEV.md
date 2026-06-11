@@ -1,3 +1,14 @@
+## 2026-06-11 — Boot: start aplikacji po DOMContentLoaded v1
+
+- Paczka: `site_boot_domcontentloaded_init_fix_v1.zip`.
+- Poprawiono błąd pierwszego wejścia po świeżym wdrożeniu: `boot.js` nie uruchamia już startu aplikacji przy `document.readyState = interactive`, bo wtedy kolejne `defer` z `index.html` mogły jeszcze nie wykonać `app.js` i nie wystawić `FC.init()`.
+- `boot-clean-1.6` zachowuje wczesne listenery `error` / `unhandledrejection`, ale sam start aplikacji opóźnia do `DOMContentLoaded` albo `complete`.
+- Błąd `Nie znaleziono funkcji startowej aplikacji` jest raportowany dopiero po `window.load` + grace/timeout; nie ma już twardego raportu przed pełnym załadowaniem wszystkich skryptów.
+- Nie zmieniano transportu, WYCENY, inwestora, kosztów firmy, robocizny, `drawer.count`, snapshotów ani danych.
+- Cache-busting: `20260611_boot_domcontentloaded_init_fix_v1`.
+- Testy: `node --check js/boot.js` — OK; `node tools/check-index-load-groups.js` — OK; `node tools/boot-domcontentloaded-init-fix-smoke.js` — OK; `node tools/app-dev-smoke.js` — OK; `node tools/company-transport-business-costs-smoke.js` — OK; `node tools/transport-catalog-quote-fix-smoke.js` — OK.
+- Raport: `tools/reports/boot-domcontentloaded-init-fix-v1.md`.
+
 ## 2026-06-11 — Transport: poprawka cennika i widoczności w WYCENIE v1
 
 - Paczka: `site_transport_catalog_quote_fix_v1.zip`.
@@ -7,7 +18,7 @@
 - Rejestr WYCENY rozdziela transport do osobnej sekcji `transport`; `totals.quoteRates` nie zawiera transportu, a `totals.transport` jest widoczne jako osobny wiersz **Transport**.
 - Linia transportu nadal powstaje z `quoteRateLines` jako automatyczna pozycja z `sourceRole:'transport-distance'`, więc nie dodano nowego magazynu danych.
 - Nie ruszano inwestora, ustawień firmy, OpenRouteService, kosztów firmy, robocizny szafek, automatów AGD, snapshotów statusów ani `drawer.count`.
-- Cache-busting: `20260611_transport_catalog_quote_fix_v1`.
+- Cache-busting: `20260611_boot_domcontentloaded_init_fix_v1`.
 - Testy: `node --check` zmienionych JS — OK; `node tools/check-index-load-groups.js` — OK; `node tools/app-dev-smoke.js` — OK 109/109; `node tools/company-transport-business-costs-smoke.js` — OK; `node tools/transport-catalog-quote-fix-smoke.js` — OK.
 - Raport: `tools/reports/transport-catalog-quote-fix-v1.md`.
 
@@ -17,7 +28,7 @@
 - Poprawiono błąd pierwszego czystego wejścia po wdrożeniu: `wycena-core.js` nie przerywa już bootowania, jeśli zależności `FC.wycenaCore*` nie są widoczne dokładnie w chwili ładowania orkiestratora.
 - Zależności WYCENY są teraz sprawdzane leniwie, dopiero przy realnym użyciu API WYCENY, z listą brakujących modułów w komunikacie błędu.
 - Nie zmieniono wyniku WYCENY, robocizny, materiałów, transportu, kosztów firmy, danych inwestora ani storage.
-- Cache-busting: `20260611_transport_catalog_quote_fix_v1`. Raport: `tools/reports/company-transport-wycena-core-boot-fix-v1.md`.
+- Cache-busting: `20260611_boot_domcontentloaded_init_fix_v1`. Raport: `tools/reports/company-transport-wycena-core-boot-fix-v1.md`.
 
 ## 2026-06-11 — Robocizna: czysty porządek kategorii AGD / Montaż AGD v1
 

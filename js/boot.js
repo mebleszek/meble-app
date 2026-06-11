@@ -1,4 +1,4 @@
-/* boot.js — boot-clean-1.5 (ERROR BANNER + STARTER)
+/* boot.js — boot-clean-1.6 (ERROR BANNER + STARTER)
    - pokazuje czerwony pasek błędów
    - NIE resetuje automatycznie widoku po zwykłym odświeżeniu
    - uruchamia aplikację: FC.init() / App.init() / initApp() / initUI()
@@ -6,7 +6,7 @@
 */
 (() => {
   'use strict';
-  const BOOT_VERSION = 'boot-clean-1.5';
+  const BOOT_VERSION = 'boot-clean-1.6';
   const BOOT_INTERVAL_MS = 50;
   const BOOT_MISSING_INIT_TIMEOUT_MS = 15000;
   const BOOT_MISSING_INIT_LOAD_GRACE_MS = 3000;
@@ -168,12 +168,14 @@
     let timer = null;
 
     function elapsed(){ return Date.now() - startedAt; }
+    let loadAt = loadSeen ? Date.now() : 0;
     function canReportMissingInit(){
-      const waitedLongEnough = elapsed() >= BOOT_MISSING_INIT_TIMEOUT_MS;
-      const loadGracePassed = loadSeen && elapsed() >= BOOT_MISSING_INIT_LOAD_GRACE_MS;
-      // Nie pokazuj fałszywego „brak init” podczas pierwszego, wolniejszego wejścia po wdrożeniu.
-      // Raportuj dopiero po pełnym load albo po twardym limicie czasu, jeśli load z jakiegoś powodu nie nadejdzie.
-      return waitedLongEnough && (loadGracePassed || elapsed() >= BOOT_MISSING_INIT_TIMEOUT_MS + BOOT_MISSING_INIT_LOAD_GRACE_MS);
+      // Nie pokazuj fałszywego „brak init” zanim przeglądarka zakończy ładowanie wszystkich
+      // skryptów z index.html. Na świeżym wdrożeniu mobile potrafi pobierać dziesiątki plików
+      // wolniej niż 15–18 s, a wtedy wcześniejszy twardy timeout zgłaszał błąd mimo że app.js
+      // po chwili jeszcze dochodził i aplikacja startowała po zwykłym odświeżeniu.
+      if(!loadSeen) return false;
+      return Date.now() - loadAt >= BOOT_MISSING_INIT_TIMEOUT_MS + BOOT_MISSING_INIT_LOAD_GRACE_MS;
     }
     function reportMissingInit(){
       showError(`❌ Nie znaleziono funkcji startowej aplikacji.
@@ -191,6 +193,7 @@ Szukam: FC.init(), App.init(), initApp(), initUI().`);
 
     window.addEventListener('load', () => {
       loadSeen = true;
+      loadAt = Date.now();
       tryStartAndStop();
     }, { once:true });
 
@@ -211,9 +214,14 @@ Szukam: FC.init(), App.init(), initApp(), initUI().`);
     tryStartAndStop();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot, { once:true });
-  } else {
+  // boot.js jest ładowany jako pierwszy skrypt `defer`. W tym momencie readyState bywa już
+  // `interactive`, ale kolejne deferred scripts z index.html mogą nadal nie być wykonane.
+  // Start aplikacji dopiero po DOMContentLoaded gwarantuje, że app.js i moduły z listy `defer`
+  // dostały szansę się zarejestrować, bez utraty wczesnego łapania błędów przez listenery powyżej.
+  if (document.readyState === 'complete') {
     boot();
+  } else {
+    document.addEventListener('DOMContentLoaded', boot, { once:true });
+    window.addEventListener('load', boot, { once:true });
   }
 })();

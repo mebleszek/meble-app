@@ -1,3 +1,15 @@
+## 2026-06-11 — Boot: start aplikacji po DOMContentLoaded v1
+
+Paczka `site_boot_domcontentloaded_init_fix_v1.zip` poprawia zgłoszony przypadek pierwszego uruchomienia po wdrożeniu: `boot.js` był ładowany jako pierwszy skrypt `defer`, widział `document.readyState = interactive` i mógł zacząć szukać `FC.init()` zanim `app.js` oraz późniejsze moduły zdążyły się wykonać. Na wolniejszym pierwszym ładowaniu mobile dawało to fałszywy czerwony błąd `Nie znaleziono funkcji startowej aplikacji`, a po odświeżeniu cache już maskował problem.
+
+Zmiany:
+- `boot.js` podniesiony do `boot-clean-1.6`,
+- listenery błędów nadal instalują się wcześnie, ale realny start `init` następuje dopiero po `DOMContentLoaded`, czyli po wykonaniu deferred scripts z `index.html`,
+- komunikat `Nie znaleziono funkcji startowej aplikacji` nie może pojawić się przed `window.load`; timeout liczy się od pełnego załadowania strony, nie od pierwszego skryptu,
+- nie ruszano transportu, WYCENY, inwestora, kosztów firmy, robocizny, danych ani UI.
+
+Cache-busting: `20260611_boot_domcontentloaded_init_fix_v1`. Raport: `tools/reports/boot-domcontentloaded-init-fix-v1.md`.
+
 ## 2026-06-11 — Transport: poprawka cennika i widoczności w WYCENIE v1
 
 Paczka `site_transport_catalog_quote_fix_v1.zip` poprawia zgłoszony przypadek: edycja startowej pozycji **Transport do klienta** tworzyła drugi wpis zamiast zaktualizować kanoniczny wpis `transport_distance_km`, więc WYCENA nadal czytała starą cenę 0 PLN/km i transport nie pojawiał się w podsumowaniu.
@@ -9,7 +21,7 @@ Zmiany:
 - rejestr wyliczeń i audyt mają osobną sekcję `transport`, ale źródłem ilości nadal jest `transport.distance_km` z Inwestora,
 - nie zmieniono ręcznego wpisywania kilometrów, OpenRouteService, kosztów firmy ani robocizny szafek.
 
-Cache-busting: `20260611_transport_catalog_quote_fix_v1`. Raport: `tools/reports/transport-catalog-quote-fix-v1.md`.
+Cache-busting: `20260611_boot_domcontentloaded_init_fix_v1`. Raport: `tools/reports/transport-catalog-quote-fix-v1.md`.
 
 ## 2026-06-11 — Dane firmy/transport: WYCENA core boot fix v1
 

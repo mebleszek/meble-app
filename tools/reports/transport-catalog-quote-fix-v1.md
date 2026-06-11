@@ -1,6 +1,6 @@
 # Transport catalog quote fix v1
 
-Build: `20260611_transport_catalog_quote_fix_v1`
+Build: `20260611_boot_domcontentloaded_init_fix_v1`
 Package: `site_transport_catalog_quote_fix_v1.zip`
 
 ## Problem
