@@ -39,8 +39,8 @@
     { id:'laborTimeBlockHours', title:'Wybierz czas bazowy', placeholder:'Czas bazowy' },
     { id:'laborQuantitySource', title:'Wybierz źródło ilości', placeholder:'Źródło ilości' },
     { id:'laborQuantityMode', title:'Wybierz sposób liczenia ilości', placeholder:'Sposób liczenia ilości' },
-    { id:'laborStartHours', title:'Wybierz czas startowy', placeholder:'Start h' },
-    { id:'laborStepHours', title:'Wybierz czas kolejnego kroku', placeholder:'Dodaj h' },
+    { id:'laborStartHours', title:'Wybierz czas startowy', placeholder:'Czas startowy' },
+    { id:'laborStepHours', title:'Wybierz czas kolejnego kroku', placeholder:'Czas za krok' },
     { id:'laborVolumeTimeMode', title:'Wybierz gabarytoczas', placeholder:'Gabarytoczas' },
   ];
 
@@ -225,6 +225,15 @@
     }catch(_){ }
     return key || 'Kwota stała';
   }
+  function formatLaborTime(value){
+    try{
+      const labor = FC.laborCatalog || {};
+      if(labor.formatHoursAsMinutes) return labor.formatHoursAsMinutes(value);
+    }catch(_){ }
+    const n = Math.max(0, Number(String(value == null ? '' : value).replace(',', '.')) || 0);
+    if(!(n > 0)) return 'Brak';
+    return Math.round(n * 60) + ' min';
+  }
   function isTimePricingMode(mode){ return ['time','timeTiers','timeStartStep','advanced'].includes(String(mode || readString('laborPricingMode') || '')); }
   function conditionsHumanText(){
     const rows = getCurrentLaborConditions();
@@ -278,7 +287,7 @@
     if(mode === 'startPlusUnit') addPreviewRow(rows, 'Start', `${Number(readNumber('laborStartPrice')) || 0} PLN · w cenie ${Number(readNumber('laborIncludedQty')) || 0} jedn.`);
     if(isTimePricingMode(mode)){
       addPreviewRow(rows, 'Tryb czasu', mode === 'advanced' ? quantityModeLabel(readString('laborQuantityMode')) : pricingModeLabel(mode));
-      addPreviewRow(rows, 'Czas', `${Number(readNumber('laborTimeBlockHours')) || 0} h bazowo · mnożnik x${Number(readNumber('laborDefaultMultiplier')) || 1}`);
+      addPreviewRow(rows, 'Czas', `${formatLaborTime(readNumber('laborTimeBlockHours'))} bazowo · mnożnik x${Number(readNumber('laborDefaultMultiplier')) || 1}`);
       addPreviewRow(rows, 'Stawka', laborRateLabel(readString('laborRateType')));
     }
     addPreviewRow(rows, 'Warunki', conditionsHumanText());
@@ -412,7 +421,7 @@
       if(String(priceEl.value || '') !== '0') priceEl.value = '0';
       priceEl.disabled = true;
       priceEl.setAttribute('aria-disabled', 'true');
-      priceEl.title = 'Wyłączone, bo gabaryt jest liczony jako czas. Żeby użyć dopłaty PLN/m³, ustaw Gabarytoczas na Wyłączony.';
+      priceEl.title = 'Wyłączone, bo gabaryt jest liczony jako czas. Żeby użyć dopłaty zł za gabaryt, ustaw Gabarytoczas na Wyłączony.';
     }else{
       priceEl.disabled = false;
       priceEl.removeAttribute('aria-disabled');

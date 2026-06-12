@@ -38,8 +38,8 @@ assert(!cleaned.some((row)=> String(row.category || '') === 'AGD'), 'Normalizacj
 assert(!cleaned.some((row)=> String(row.id || '') === 'hood_mount'), 'Normalizacja usuwa stary generyczny automat hood_mount', cleaned.filter((row)=> /hood/i.test(String(row.id || row.name || ''))));
 ['dishwasher_mount','fridge_mount','oven_mount','hob_mount','hood_under_cabinet_mount','hood_chimney_mount','microwave_mount','washer_mount','dryer_mount','coffee_machine_mount','warming_drawer_mount'].forEach((id)=> assert(cleaned.some((row)=> row.id === id && row.category === 'Montaż AGD'), `brak automatu ${id} w Montaż AGD`, cleaned.map((row)=> [row.id,row.category])));
 const dishwasher = cleaned.find((row)=> row.id === 'dishwasher_mount');
-assert(Number(dishwasher.timeBlockHours) === 0.75, 'Czysty rebase nie zmienia czasu 0.75 h z bazy osobnych automatów', dishwasher);
-assert(Number(ctx.FC.laborCatalog.normalizeDefinition(dishwasher).timeBlockHours) === 0.75, 'Normalizacja nie podbija 0.75 h do 1 h', ctx.FC.laborCatalog.normalizeDefinition(dishwasher));
+assert(Number(dishwasher.timeBlockHours) === 1, 'Baza nie może już zawierać opcji 45 min; startowe AGD ma 60 min', dishwasher);
+assert(Number(ctx.FC.laborCatalog.normalizeDefinition({ name:'Legacy 45 min', timeBlockHours:0.75 }).timeBlockHours) === 1, 'Normalizacja ma zamieniać zapisane 45 min na 60 min', ctx.FC.laborCatalog.normalizeDefinition({ name:'Legacy 45 min', timeBlockHours:0.75 }));
 
 const services = ctx.FC.wycenaCoreCatalog.ensureServiceCatalog([{ id:'legacy', category:'AGD', name:'Piekarnik do zabudowy', price:111 }]).list;
 assert(!services.some((row)=> String(row.category || '') === 'AGD'), 'Fallback usług usuwa stare AGD', services);
@@ -51,9 +51,9 @@ assert(!groups.AGD, 'Źródła ilości nie tworzą już grupy AGD', groups);
 
 const index = read('index.html');
 const dev = read('dev_tests.html');
-assert(index.includes('20260611_labor_appliance_category_clean_rebase_v1') && dev.includes('20260611_labor_appliance_category_clean_rebase_v1'), 'index/dev_tests mają cache-busting czystego rebase');
+assert(index.includes('20260612_labor_gabaryt_label_v1') && dev.includes('20260612_labor_gabaryt_label_v1'), 'index/dev_tests mają aktualny cache-busting');
 
 console.log('OK labor-appliance-category-clean-rebase smoke');
 console.log(' - stary dział AGD jest odcinany');
 console.log(' - Montaż AGD ma pełne automaty');
-console.log(' - czasy z bazy nie są globalnie zaokrąglane');
+console.log(' - zapisane 45 min są zamieniane na 60 min bez zaokrąglania wyników typu 3×15 min');

@@ -252,10 +252,33 @@
     return { ok:true, item };
   }
 
-  function clampTimeBlock(value){
+  function isClose(value, target){ return Math.abs((Number(value) || 0) - target) < 0.000001; }
+  function normalizeLegacyFortyFiveMinutes(value){
     const n = num(value, 0);
-    if(n === 0.25 || n === 0.5 || n === 0.75 || n === 1) return n;
+    return isClose(n, 0.75) ? 1 : n;
+  }
+  function clampTimeBlock(value){
+    const n = normalizeLegacyFortyFiveMinutes(value);
+    if(isClose(n, 1 / 12)) return 1 / 12;
+    if(isClose(n, 0.25)) return 0.25;
+    if(isClose(n, 0.5)) return 0.5;
+    if(isClose(n, 1)) return 1;
     return 0;
+  }
+  function formatHoursAsMinutes(value){
+    const n = Math.max(0, Number(value) || 0);
+    if(!(n > 0)) return 'Brak';
+    const minutes = Math.round(n * 60);
+    return minutes + ' min';
+  }
+  function parseDurationHours(value){
+    const raw = text(value).toLowerCase();
+    if(!raw) return 0;
+    if(/min|minute|minut/.test(raw)){
+      const minutes = num(raw.replace(/[^0-9,.-]+/g, ''), 0);
+      return Math.max(0, minutes / 60);
+    }
+    return Math.max(0, num(raw, 0));
   }
   function normalizeMode(value, allowed, fallback){
     const raw = text(value) || fallback;
@@ -336,7 +359,7 @@
     const min = Math.max(0, Math.floor(num(src.min, 0)));
     const maxRaw = Math.floor(num(src.max, 0));
     const max = maxRaw > 0 ? Math.max(min, maxRaw) : 0;
-    const hours = Math.max(0, num(src.hours, 0));
+    const hours = Math.max(0, normalizeLegacyFortyFiveMinutes(src.hours));
     const price = Math.max(0, num(src.price, 0));
     return { min, max, hours, price };
   }
@@ -352,7 +375,7 @@
       const bits = part.split('=');
       if(bits.length < 2) return null;
       const range = text(bits[0]);
-      const val = Math.max(0, num(bits.slice(1).join('='), 0));
+      const val = Math.max(0, normalizeLegacyFortyFiveMinutes(parseDurationHours(bits.slice(1).join('='))));
       const rangeBits = range.split('-');
       const min = Math.max(0, Math.floor(num(rangeBits[0], 0)));
       const max = Math.max(min, Math.floor(num(rangeBits.length > 1 ? rangeBits[1] : rangeBits[0], min)));
@@ -361,7 +384,7 @@
     }).filter(Boolean);
   }
   function tiersToText(rows){
-    return normalizeTiers(rows).map((row)=> `${row.min}-${row.max || row.min}=${Number(row.hours || row.price || 0)}`).join(';');
+    return normalizeTiers(rows).map((row)=> `${row.min}-${row.max || row.min}=${row.hours > 0 ? formatHoursAsMinutes(row.hours) : Number(row.price || 0)}`).join(';');
   }
   function parseVolumeTierText(value){ return parseTierText(value); }
   function volumeTiersToText(rows){ return tiersToText(rows); }
@@ -581,7 +604,7 @@
       parts.push(`${Number(def.price || 0).toFixed(2)} PLN/jedn.`);
     }else if(def.pricingMode === 'fixed') parts.push(`kwota ${(def.fixedPrice || def.price || 0).toFixed(2)} PLN`);
     else{
-      if(def.timeBlockHours > 0) parts.push(`${def.timeBlockHours} h × ${getRateLabel(def.rateType)}`);
+      if(def.timeBlockHours > 0) parts.push(`${formatHoursAsMinutes(def.timeBlockHours)} × ${getRateLabel(def.rateType)}`);
       if(def.quantityMode && def.quantityMode !== 'none') parts.push(getQuantityModeLabel(def.quantityMode));
       if(def.volumePricePerM3 > 0) parts.push(`gabaryt ${def.volumePricePerM3} PLN/m³`);
       if(def.volumeTimeMode && def.volumeTimeMode !== 'none') parts.push(`gabarytoczas: ${def.volumeTimeMode === 'tiers' ? 'progi' : 'h/m³'}`);
@@ -621,6 +644,7 @@
     isValidRateCode,
     isHourlyRateDefinition,
     normalizeRateProfile,
+    formatHoursAsMinutes,
     buildRateProfiles,
     findRateProfile,
     rateProfileOptions,

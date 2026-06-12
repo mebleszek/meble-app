@@ -1,3 +1,22 @@
+## 2026-06-12 — Cennik: prostsza nazwa dopłaty gabarytowej v1
+
+Paczka `site_labor_gabaryt_label_v1.zip` zmienia tylko nazwę pola w formularzu **Cennik robocizny i usług**: `Gabaryt zł/m³` → **Dopłata zł za gabaryt**. Zaktualizowano też opis pod ikoną `?` i komunikat blokady pola przy aktywnym gabarytoczasie.
+
+Nie zmieniono logiki liczenia gabarytu, gabarytoczasu, stawek, transportu, WYCENY ani danych. `volumePricePerM3` pozostaje technicznym polem dopłaty od objętości, ale UI pokazuje prostszą nazwę. Cache-busting: `20260612_labor_gabaryt_label_v1`. Raport: `tools/reports/labor-gabaryt-label-v1.md`.
+
+## 2026-06-12 — Cennik: czasy robocizny w minutach i usunięcie 45 min v1
+
+Paczka `site_labor_time_minutes_v1.zip` porządkuje wybór czasu w **Cenniku robocizny i usług**. Wybory czasu bazowego, czasu startowego i czasu za krok są pokazane w minutach. Dodano opcję **5 min**, usunięto opcję **45 min**, a zapisane w cenniku dokładne wartości 45 min (`0.75 h`) są normalizowane do **60 min**. Nie ma globalnego zaokrąglania wyników obliczeń: jeśli cena wychodzi z działania typu `3 × 15 min`, wynik nadal daje 45 min jako wynik mnożenia, bo nie jest to osobno wpisany czas 45 min w cenniku.
+
+Zmiany:
+- opcje czasu w formularzu: Brak, 5 min, 15 min, 30 min, 60 min,
+- domyślne automaty zmywarki i lodówki do zabudowy zmienione z 45 min na 60 min,
+- normalizacja cennika zamienia zapisane `timeBlockHours/startHours/stepHours = 0.75` na `1`,
+- progi czasu mogą być wpisywane w minutach, np. `1-2=15 min;3-5=30 min;6-10=60 min`, a stary zapis godzinowy nadal jest odczytywany,
+- opis pozycji cennika pokazuje czas w minutach zamiast `0.25 h` / `0.5 h`.
+
+Nie ruszano transportu, kosztów firmy, danych firmy, `drawer.count`, wymagań technicznych szafek ani silnika materiałów/okuć. Cache-busting: `20260612_labor_gabaryt_label_v1`. Raport: `tools/reports/labor-time-minutes-v1.md`.
+
 ## 2026-06-11 — Cennik: poprawka otwierania formularza sposobów naliczania ceny v1
 
 Paczka `site_pricing_modes_form_price_fix_v1.zip` poprawia zgłoszony błąd `ReferenceError: formServicePriceWrapper is not defined` po kliknięciu edycji pozycji w **Cenniku robocizny i usług**. Przyczyna była prosta: nowy moduł ukrywania pól po wyborze **Sposobu naliczania ceny** odwoływał się do wrappera pola ceny usługi, ale helper nie został zdefiniowany w pliku formularza.
@@ -7,7 +26,7 @@ Zmiany:
 - tryby naliczania ceny, transport `kwota startowa + km`, stawki godzinowe w trybiku i logika WYCENY pozostają bez zmian,
 - dodano smoke test pilnujący, żeby formularz ceny usługi miał ten helper przed użyciem.
 
-Nie ruszano kosztów firmy, OpenRouteService, inwestora, `drawer.count`, automatów AGD, materiałów, okuć ani obliczeń robocizny. Cache-busting: `20260611_pricing_modes_form_price_fix_v1`. Raport: `tools/reports/pricing-modes-form-price-fix-v1.md`.
+Nie ruszano kosztów firmy, OpenRouteService, inwestora, `drawer.count`, automatów AGD, materiałów, okuć ani obliczeń robocizny. Cache-busting: `20260612_labor_gabaryt_label_v1`. Raport: `tools/reports/pricing-modes-form-price-fix-v1.md`.
 
 ## 2026-06-11 — Sposoby naliczania ceny w cenniku v1
 
@@ -76,7 +95,7 @@ Nie ruszano kosztów firmy, OpenRouteService, `drawer.count`, automatów AGD, sz
 - Bazą jest zaakceptowana paczka `site_labor_appliance_separate_automats_v1.zip`; nie bazowano na późniejszych paczkach z niezaakceptowanym cleanupem kategorii/czasów.
 - Stary dział robocizny `AGD` jest usuwany z katalogu stawek wyceny jako seedowany śmieć. W cenniku zostaje jeden dział dla sprzętów: `Montaż AGD`.
 - Automaty AGD pozostają osobnymi technicznymi kodami. Uzupełniono listę `Montaż AGD` o pozycje odpowiadające staremu działowi AGD: okap podszafkowy/teleskopowy, okap kominowy/wyspowy, pralka, suszarka, ekspres i podgrzewacz szufladowy.
-- Nie zmieniano jednostek czasu, listy szybkich opcji czasu ani nie dodano żadnego globalnego zaokrąglania czasu. W szczególności nie ma reguły `0.75 h → 1 h`.
+- Ten punkt historyczny został nadpisany późniejszym etapem `site_labor_time_minutes_v1.zip`: opcja 45 min została usunięta, a zapisane 0.75 h w cenniku jest zamieniane na 60 min. Nadal nie ma globalnego zaokrąglania wyników obliczeń typu 3 × 15 min.
 - Nie ruszano WYWIADU, modala szafki, historii ofert, snapshotów, `drawer.count`, audytu robocizny ani warunków automatów.
 - Cache-busting: `20260611_labor_appliance_category_clean_rebase_v1`. Raport: `tools/reports/labor-appliance-category-clean-rebase-v1.md`.
 
