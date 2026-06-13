@@ -18,7 +18,8 @@
     frontMaterial: '',
     frontColor: '',
     backMaterial: '',
-    openingSystem: ''
+    openingSystem: '',
+    bodyPcvMode: 'body'
   };
 
   const HARDWARE_PRODUCER_GROUPS = [
@@ -59,6 +60,15 @@
   }
 
   function text(value){ return String(value == null ? '' : value).trim(); }
+  function normalizePcvMode(value){
+    try{ if(ns.materialEdgeStore && typeof ns.materialEdgeStore.normalizePcvMode === 'function') return ns.materialEdgeStore.normalizePcvMode(value); }catch(_){ }
+    const raw = text(value).toLowerCase();
+    return ['front','fronts','pod kolor frontow','pod kolor frontów'].includes(raw) ? 'front' : 'body';
+  }
+  function pcvModeLabel(value){
+    try{ if(ns.materialEdgeStore && typeof ns.materialEdgeStore.pcvModeLabel === 'function') return ns.materialEdgeStore.pcvModeLabel(value); }catch(_){ }
+    return normalizePcvMode(value) === 'front' ? 'pod kolor frontów' : 'pod kolor płyty';
+  }
   function isPlainObject(value){ return !!value && typeof value === 'object' && !Array.isArray(value) && Object.prototype.toString.call(value) === '[object Object]'; }
 
   function normalizeZonePreferences(raw, legacy){
@@ -69,7 +79,8 @@
       frontMaterial: text(src.frontMaterial || legacySrc.frontMaterial),
       frontColor: text(src.frontColor || legacySrc.frontColor),
       backMaterial: text(src.backMaterial || legacySrc.backMaterial),
-      openingSystem: text(src.openingSystem || legacySrc.openingSystem)
+      openingSystem: text(src.openingSystem || legacySrc.openingSystem),
+      bodyPcvMode: normalizePcvMode(src.bodyPcvMode || src.pcvMode || src.edgeColorMode || legacySrc.bodyPcvMode || legacySrc.pcvMode || legacySrc.edgeColorMode)
     };
   }
 
@@ -236,6 +247,7 @@
     if(text(src.frontColor)) out.frontColor = text(src.frontColor);
     if(text(src.backMaterial)) out.backMaterial = text(src.backMaterial);
     if(text(src.openingSystem)) out.openingSystem = text(src.openingSystem);
+    if(src.bodyPcvMode != null || src.pcvMode != null || src.edgeColorMode != null) out.bodyPcvMode = normalizePcvMode(src.bodyPcvMode || src.pcvMode || src.edgeColorMode);
     return out;
   }
 
@@ -246,7 +258,8 @@
       frontMaterial: text(src.frontMaterial || src.material),
       frontColor: text(src.frontColor || src.color),
       backMaterial: text(src.backMaterial),
-      openingSystem: text(src.openingSystem)
+      openingSystem: text(src.openingSystem),
+      bodyPcvMode: normalizePcvMode(src.bodyPcvMode || src.pcvMode || src.edgeColorMode)
     };
   }
 
@@ -325,6 +338,7 @@
     if(z.frontMaterial || z.frontColor) chunks.push('front: ' + [z.frontMaterial, z.frontColor].filter(Boolean).join(' / '));
     if(z.backMaterial) chunks.push('plecy: ' + z.backMaterial);
     if(z.openingSystem) chunks.push('otwieranie: ' + z.openingSystem);
+    if(z.bodyPcvMode && normalizePcvMode(z.bodyPcvMode) !== 'body') chunks.push('PCV: ' + pcvModeLabel(z.bodyPcvMode));
     return chunks.length ? (ZONE_META[zoneKey].shortLabel + ': ' + chunks.join(', ')) : '';
   }
 
@@ -361,6 +375,8 @@
     normalizeZonePreferences,
     normalizeHardwareProducerPreferences,
     normalizeRoomPreferences,
+    normalizePcvMode,
+    pcvModeLabel,
     ensureProjectRoom,
     getRoomPreferences,
     setRoomPreferences,

@@ -165,11 +165,55 @@
     try{ return Array.isArray(typeof materials !== 'undefined' ? materials : []) ? materials : []; }catch(_){ return []; }
   }
 
-  function findEdgePriceItem(){
+  function findEdgePriceItem(mode){
     const list = getAllMaterialItems();
-    return list.find((item)=> normalizeUnit(item && item.priceUnit, item && item.name) === 'mb')
-      || list.find((item)=> String((item && item.name) || '').toLowerCase().includes('obrze'))
-      || null;
+    const normalizedMode = mode === 'front' ? 'front' : 'body';
+    const isFront = (item)=> {
+      const symbol = String(item && item.symbol || '').trim().toLowerCase();
+      const name = String(item && item.name || '').trim().toLowerCase();
+      return symbol === 'pcv-front' || symbol === 'pcv_front' || name.includes('pod kolor front');
+    };
+    const isEdge = (item)=> normalizeUnit(item && item.priceUnit, item && item.name) === 'mb' || String(item && item.name || '').toLowerCase().includes('obrze') || String(item && item.name || '').toLowerCase().includes('pcv');
+    if(normalizedMode === 'front') return list.find((item)=> isEdge(item) && isFront(item)) || null;
+    return list.find((item)=> isEdge(item) && !isFront(item)) || list.find((item)=> isEdge(item)) || null;
+  }
+
+  function buildEdgeLine(cfg){
+    const mode = cfg && cfg.mode === 'front' ? 'front' : 'body';
+    const rawMeters = round(Number(cfg && cfg.rawMeters) || 0, 3);
+    const edgeItem = cfg && cfg.priceItem;
+    const roomsText = String(cfg && cfg.roomsText || '');
+    const missingName = mode === 'front' ? 'PCV pod kolor frontów — brak pozycji w cenniku' : 'Obrzeże PCV standard — brak pozycji w cenniku';
+    const fallbackName = mode === 'front' ? 'PCV pod kolor frontów' : 'Obrzeże PCV standard';
+    const quotedMeters = round(rawMeters * 1.1, 3);
+    const wasteMeters = round(quotedMeters - rawMeters, 3);
+    const unitPrice = Number(edgeItem && edgeItem.price) || 0;
+    return {
+      key: mode === 'front' ? 'pcv_pod_kolor_frontow_zapas_10' : 'pcv_standard_zapas_10',
+      type:'material',
+      name: edgeItem ? String(edgeItem.name || fallbackName) : missingName,
+      qty:quotedMeters,
+      unit:'mb',
+      unitPrice,
+      total:round(quotedMeters * unitPrice, 2),
+      priceUnit:'mb',
+      pricingMode:'edge',
+      edgePricingMode:mode,
+      starterPrice:!!(edgeItem && edgeItem.starterPrice === true && !String(edgeItem.priceUserEditedAt || '').trim()),
+      priceUserEditedAt:String(edgeItem && edgeItem.priceUserEditedAt || ''),
+      subsection:'Obrzeża',
+      rooms:roomsText,
+      source:'material-edge-policy',
+      edgeRawMeters:rawMeters,
+      edgeWastePercent:10,
+      edgeWasteMeters:wasteMeters,
+      edgeQuotedMeters:quotedMeters,
+      note:`Z elementów: ${rawMeters.toFixed(3)} mb • zapas +10% (${wasteMeters.toFixed(3)} mb) = ${quotedMeters.toFixed(3)} mb`,
+      calculation: mode === 'front'
+        ? 'Cena = realne metry oklein z szafek ustawionych jako PCV pod kolor frontów, tylko dla formatek laminowanych, + 10% zapasu × cena PCV pod kolor frontów za mb z cennika materiałów.'
+        : 'Cena = realne metry oklein z szafek ustawionych jako PCV pod kolor płyty, tylko dla formatek laminowanych, + 10% zapasu × cena PCV standard za mb z cennika materiałów.',
+      warnings: edgeItem ? [] : ['Brak właściwej pozycji obrzeża w cenniku materiałów.'],
+    };
   }
 
   function collectEdgeMetersFromMaterialSource(selectedRooms, materialScope){
@@ -255,58 +299,14 @@
       lines.push(line);
     }
 
-    const edgeItem = findEdgePriceItem();
-    const rawEdgeMeters = round(Number(edgeBasis && edgeBasis.edgeMeters) || 0, 3);
-    if(rawEdgeMeters > 0 && edgeItem){
-      const quotedMeters = round(rawEdgeMeters * 1.1, 3);
-      const wasteMeters = round(quotedMeters - rawEdgeMeters, 3);
-      const unitPrice = Number(edgeItem && edgeItem.price) || 0;
-      lines.push({
-        key:'obrzeza_zapas_10',
-        type:'material',
-        name:String(edgeItem.name || 'Obrzeże PCV standard'),
-        qty:quotedMeters,
-        unit:'mb',
-        unitPrice,
-        total:round(quotedMeters * unitPrice, 2),
-        priceUnit:'mb',
-        pricingMode:'edge',
-        starterPrice:!!(edgeItem && edgeItem.starterPrice === true && !String(edgeItem.priceUserEditedAt || '').trim()),
-        priceUserEditedAt:String(edgeItem && edgeItem.priceUserEditedAt || ''),
-        subsection:'Obrzeża',
-        rooms:roomsText,
-        source:'material-edge-policy',
-        edgeRawMeters:rawEdgeMeters,
-        edgeWastePercent:10,
-        edgeWasteMeters:wasteMeters,
-        edgeQuotedMeters:quotedMeters,
-        note:`Z elementów: ${rawEdgeMeters.toFixed(3)} mb • zapas +10% (${wasteMeters.toFixed(3)} mb) = ${quotedMeters.toFixed(3)} mb`,
-        calculation:'Cena = realne metry oklein z zakładki MATERIAŁ, tylko dla formatek laminowanych, + 10% zapasu × cena za mb z cennika materiałów.',
-      });
-    }else if(rawEdgeMeters > 0 && !edgeItem){
-      const quotedMeters = round(rawEdgeMeters * 1.1, 3);
-      const wasteMeters = round(quotedMeters - rawEdgeMeters, 3);
-      lines.push({
-        key:'obrzeza_brak_ceny',
-        type:'material',
-        name:'Obrzeża — brak pozycji w cenniku',
-        qty:quotedMeters,
-        unit:'mb',
-        unitPrice:0,
-        total:0,
-        priceUnit:'mb',
-        pricingMode:'edge',
-        subsection:'Obrzeża',
-        rooms:roomsText,
-        source:'material-edge-policy',
-        edgeRawMeters:rawEdgeMeters,
-        edgeWastePercent:10,
-        edgeWasteMeters:wasteMeters,
-        edgeQuotedMeters:quotedMeters,
-        note:`Z elementów: ${rawEdgeMeters.toFixed(3)} mb • zapas +10% (${wasteMeters.toFixed(3)} mb) = ${quotedMeters.toFixed(3)} mb`,
-        calculation:'Cena = realne metry oklein z zakładki MATERIAŁ, tylko dla formatek laminowanych, + 10% zapasu × cena za mb z cennika materiałów.',
-        warnings:['Brak pozycji obrzeża w cenniku materiałów.'],
-      });
+    const edgeSplit = edgeBasis && edgeBasis.edgeMetersByMode ? edgeBasis.edgeMetersByMode : { body:Number(edgeBasis && edgeBasis.edgeMeters) || 0, front:0 };
+    const rawBodyEdgeMeters = round(Number(edgeSplit.body) || 0, 3);
+    const rawFrontEdgeMeters = round(Number(edgeSplit.front) || 0, 3);
+    if(rawBodyEdgeMeters > 0){
+      lines.push(buildEdgeLine({ mode:'body', rawMeters:rawBodyEdgeMeters, priceItem:findEdgePriceItem('body'), roomsText }));
+    }
+    if(rawFrontEdgeMeters > 0){
+      lines.push(buildEdgeLine({ mode:'front', rawMeters:rawFrontEdgeMeters, priceItem:findEdgePriceItem('front'), roomsText }));
     }
     return lines;
   }

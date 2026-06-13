@@ -1,3 +1,18 @@
+## 2026-06-13 — PCV korpusu pod kolor płyty albo frontów v1
+
+Paczka `site_pcv_front_color_mode_v1.zip` dodaje prosty tryb PCV korpusu zgodny z aktualnym modelem programu: ręczne zaznaczanie oklejanych krawędzi w **MATERIAŁACH** zostaje bez zmian, a WYWIAD decyduje tylko, czy metry PCV danej szafki mają trafić do standardowego PCV pod kolor płyty, czy do droższego PCV pod kolor frontów.
+
+Zmiany:
+- w preferencjach WYWIADU dla każdej strefy dodano domyślne pole **PCV korpusu**: **Pod kolor płyty** / **Pod kolor frontów**,
+- w modalu każdej szafki dodano pole **PCV korpusu**, które może nadpisać domyślną wartość strefy,
+- hurtowe zastosowanie preferencji strefowych obsługuje także PCV korpusu,
+- **MATERIAŁ** rozdziela metry PCV na dwa koszyki: PCV pod kolor płyty oraz PCV pod kolor frontów, nadal na podstawie istniejących zaznaczeń krawędzi,
+- do katalogu materiałów dodano startową pozycję **PCV pod kolor frontów** (`PCV-FRONT`) z osobną ceną za mb,
+- WYCENA tworzy osobne linie materiałowe dla standardowego PCV oraz PCV pod kolor frontów, z osobną ceną za mb i zachowaniem dotychczasowego zapasu +10%,
+- dodano automatyczny test `tools/pcv-front-color-mode-smoke.js`, który sprawdza WYWIAD → MATERIAŁ → WYCENA dla obu trybów PCV.
+
+Nie dodano ręcznego wyboru koloru PCV na każdej formatce i nie zmieniono istniejącego mechanizmu zaznaczania oklejanych krawędzi w MATERIAŁACH. Stare oferty/snapshoty nie są przeliczane; nowe wyceny korzystają z rozdzielonych linii PCV. Cache-busting: `20260613_pcv_front_color_mode_v1`. Raport: `tools/reports/pcv-front-color-mode-v1.md`.
+
 ## 2026-06-12 — Automatyczny test trybów naliczania ceny v1
 
 Paczka `site_pricing_modes_auto_tests_v1.zip` dodaje automatyczny smoke test dla **Cennika robocizny i usług** oraz WYCENY, żeby nie trzeba było ręcznie tworzyć wielu konfiguracji szafek tylko po to, aby sprawdzić matematykę trybów naliczania.

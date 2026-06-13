@@ -75,6 +75,7 @@
       frontColor: baseLaminat,
       openingSystem: 'uchwyt klienta',
       backMaterial: 'HDF 3mm biała',
+      bodyPcvMode: 'body',
       frontCount: 2,
       details: { insideMode: 'polki', shelves: 1, cornerOption: 'polki', dishWasherWidth: '60', ovenOption: 'szuflada_dol', ovenHeight: '60', sinkOption: 'zwykle_drzwi', fridgeOption: 'zabudowa', fridgeWidth: '60', subTypeOption: 'polki', fridgeFrontCount: '2' }
     };

@@ -6,6 +6,8 @@
   const FC = window.FC;
 
   const EDGE_KEY = 'fc_edge_v1';
+  const PCV_MODE_BODY = 'body';
+  const PCV_MODE_FRONT = 'front';
 
   function cmToMm(value){
     const n = Number(value);
@@ -26,6 +28,21 @@
     const raw = String(material || '').trim();
     const m = raw.match(/^\s*Front\s*:\s*[^•]+?\s*•\s*(.+)$/i);
     return m ? String(m[1] || '').trim() : raw;
+  }
+
+  function normalizePcvMode(value){
+    const raw = String(value == null ? '' : value).trim().toLowerCase();
+    if(['front','fronts','front_color','frontcolor','pod_front','pod-kolor-frontow','pod kolor frontow','pod kolor frontów','fronts_color'].includes(raw)) return PCV_MODE_FRONT;
+    return PCV_MODE_BODY;
+  }
+
+  function pcvModeLabel(value){
+    return normalizePcvMode(value) === PCV_MODE_FRONT ? 'pod kolor frontów' : 'pod kolor płyty';
+  }
+
+  function getCabinetPcvMode(cabinet){
+    const cab = cabinet && typeof cabinet === 'object' ? cabinet : {};
+    return normalizePcvMode(cab.bodyPcvMode || cab.pcvMode || cab.edgeColorMode || cab.corpusPcvMode || cab.carcassPcvMode);
   }
 
   function normalizeText(value){
@@ -237,6 +254,21 @@
       return sum;
     }
 
+    function calcEdgeMetersByPcvModeForParts(parts, cabinet){
+      const out = { body:0, front:0, total:0, mode:getCabinetPcvMode(cabinet) };
+      const mode = out.mode;
+      (Array.isArray(parts) ? parts : []).forEach((part)=>{
+        if(!(Number(part && part.a) > 0 && Number(part && part.b) > 0)) return;
+        if(!isPcvEligiblePart(part)) return;
+        const sig = signatureFromPart(part);
+        const e = getEdges(sig, part, cabinet);
+        const meters = edgingMetersForPart(part, e);
+        out[mode] += meters;
+        out.total += meters;
+      });
+      return out;
+    }
+
     function openPartOptions(part, sig, options){
       const opts = options || {};
       const partOptionsApi = getPartOptionsApi();
@@ -268,12 +300,16 @@
       getEdges,
       setEdges,
       calcEdgeMetersForParts,
+      calcEdgeMetersByPcvModeForParts,
       openPartOptions,
       signatureFromPart,
       getDirection,
       labelForDirection,
       normalizeMaterialKey,
       resolveMaterialType,
+      normalizePcvMode,
+      pcvModeLabel,
+      getCabinetPcvMode,
       isPcvEligibleMaterial,
       isPcvEligiblePart,
       edgingMetersForPart,
@@ -284,10 +320,15 @@
     EDGE_KEY,
     cmToMm,
     normalizeMaterialKey,
+    normalizePcvMode,
+    pcvModeLabel,
+    getCabinetPcvMode,
     resolveMaterialType,
     isPcvEligibleMaterial,
     isPcvEligiblePart,
     signatureFromPart,
+    PCV_MODE_BODY,
+    PCV_MODE_FRONT,
     defaultEdgesForPart,
     edgingMetersForPart,
     createEdgeStore,

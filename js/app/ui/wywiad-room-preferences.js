@@ -151,7 +151,7 @@
   function ensureZone(draft, zoneKey){
     draft.zones = draft.zones && typeof draft.zones === 'object' ? draft.zones : {};
     const api = getApi();
-    if(!draft.zones[zoneKey]) draft.zones[zoneKey] = api.normalizeZonePreferences ? api.normalizeZonePreferences(null) : { bodyColor:'', frontMaterial:'', frontColor:'', backMaterial:'', openingSystem:'' };
+    if(!draft.zones[zoneKey]) draft.zones[zoneKey] = api.normalizeZonePreferences ? api.normalizeZonePreferences(null) : { bodyColor:'', frontMaterial:'', frontColor:'', backMaterial:'', openingSystem:'', bodyPcvMode:'body' };
     return draft.zones[zoneKey];
   }
 
@@ -166,12 +166,14 @@
 
     const openingOptionsKey = meta.openingOptionsKey || (zoneKey === 'upper' ? 'hanging' : (zoneKey === 'middle' ? 'module' : 'standing'));
     const openingOptions = ()=> ((api.OPENING_OPTIONS || {})[openingOptionsKey] || []);
+    const pcvOptions = ['Pod kolor płyty', 'Pod kolor frontów'];
     const fields = [
       { label:'Korpus', title:'Wybierz korpus — ' + (meta.shortLabel || meta.label), get:()=> zone.bodyColor, set:(d,v)=>{ ensureZone(d, zoneKey).bodyColor = text(v); }, options:getBodyMaterialNames },
       { label:'Materiał frontu', title:'Wybierz materiał frontu — ' + (meta.shortLabel || meta.label), get:()=> zone.frontMaterial, set:(d,v)=>{ ensureZone(d, zoneKey).frontMaterial = text(v); }, options:getMaterialTypes, onChange:(d)=>{ const z = ensureZone(d, zoneKey); if(!getMaterialNamesByType(z.frontMaterial || 'laminat').includes(text(z.frontColor))) z.frontColor = ''; } },
       { label:'Kolor frontu', title:'Wybierz kolor frontu — ' + (meta.shortLabel || meta.label), get:()=> zone.frontColor, set:(d,v)=>{ ensureZone(d, zoneKey).frontColor = text(v); }, options:()=> getMaterialNamesByType(zone.frontMaterial || 'laminat') },
       { label:'Plecy', title:'Wybierz plecy — ' + (meta.shortLabel || meta.label), get:()=> zone.backMaterial, set:(d,v)=>{ ensureZone(d, zoneKey).backMaterial = text(v); }, options:BACK_MATERIALS },
-      { label:'Otwieranie', title:'Wybierz otwieranie — ' + (meta.shortLabel || meta.label), get:()=> zone.openingSystem, set:(d,v)=>{ ensureZone(d, zoneKey).openingSystem = text(v); }, options:openingOptions }
+      { label:'Otwieranie', title:'Wybierz otwieranie — ' + (meta.shortLabel || meta.label), get:()=> zone.openingSystem, set:(d,v)=>{ ensureZone(d, zoneKey).openingSystem = text(v); }, options:openingOptions },
+      { label:'PCV korpusu', title:'Wybierz PCV korpusu — ' + (meta.shortLabel || meta.label), get:()=> (zone.bodyPcvMode === 'front' ? 'Pod kolor frontów' : 'Pod kolor płyty'), set:(d,v)=>{ ensureZone(d, zoneKey).bodyPcvMode = text(v).toLowerCase().includes('front') ? 'front' : 'body'; }, options:pcvOptions, emptyLabel:'Pod kolor płyty' }
     ];
     fields.forEach((cfg)=>{
       const field = makeChoiceField(cfg, draft, refreshAll);

@@ -22,6 +22,7 @@
     { id:'m3', materialType:'lakier', manufacturer:'Start', symbol:'LAK-MAT', name:'Front lakierowany standard', price:450, priceUnit:'m2', hasGrain:false, starterPrice:true, note:'Cena startowa za m² gotowego frontu.' },
     { id:'m4', materialType:'hdf', manufacturer:'Start', symbol:'HDF-3-BIALY', name:'HDF biały 3 mm', price:18, priceUnit:'m2', hasGrain:false, starterPrice:true, note:'Cena startowa za m² pleców.' },
     { id:'m5', materialType:'obrzeże', manufacturer:'Start', symbol:'PCV-STD', name:'Obrzeże PCV standard', price:3, priceUnit:'mb', hasGrain:false, starterPrice:true, note:'Cena startowa za mb; w wycenie doliczane jest +10% zapasu.' },
+    { id:'m7', materialType:'obrzeże', manufacturer:'Start', symbol:'PCV-FRONT', name:'PCV pod kolor frontów', price:5, priceUnit:'mb', hasGrain:false, starterPrice:true, note:'Cena startowa za mb PCV liczonego jako pod kolor frontów; w wycenie doliczane jest +10% zapasu.' },
     { id:'m6', materialType:'blat', manufacturer:'Start', symbol:'BLAT-4100', name:'Blat roboczy 4100 mm', price:420, priceUnit:'piece', hasGrain:true, starterPrice:true, note:'Cena startowa za całą sztukę blatu 4,1 m.' },
   ];
   const DEFAULT_ACCESSORIES = hardwareSeeds && typeof hardwareSeeds.mergeAccessorySeeds === 'function'
@@ -145,7 +146,13 @@
     const type = normalizeText(row && row.materialType).toLowerCase();
     const unit = normalizeMaterialPriceUnit(row && row.priceUnit, row && row.materialType);
     const name = normalizeText(row && row.name).toLowerCase();
-    return unit === 'mb' || type === 'obrzeże' || type === 'obrzeze' || name.includes('obrze');
+    return unit === 'mb' || type === 'obrzeże' || type === 'obrzeze' || name.includes('obrze') || name.includes('pcv');
+  }
+
+  function isFrontColorEdgeRow(row){
+    const symbol = normalizeText(row && row.symbol).toLowerCase();
+    const name = normalizeText(row && row.name).toLowerCase();
+    return symbol === 'pcv-front' || symbol === 'pcv_front' || name.includes('pod kolor front');
   }
 
   function ensureStarterMaterialSeeds(rows){
@@ -155,9 +162,23 @@
     // PCV zostało dodane po istniejących bazach użytkownika. Ma wejść jako normalna, widoczna pozycja startowa,
     // ale nie może nadpisać ręcznie wpisanych/edytowanych cenników ani tworzyć ABS.
     if(!list.some(isEdgeMaterialRow)){
-      const edgeSeed = DEFAULT_SHEET_MATERIALS.find((row)=> normalizeMaterialPriceUnit(row && row.priceUnit, row && row.materialType) === 'mb');
+      const edgeSeed = DEFAULT_SHEET_MATERIALS.find((row)=> normalizeMaterialPriceUnit(row && row.priceUnit, row && row.materialType) === 'mb' && !isFrontColorEdgeRow(row));
       if(edgeSeed){
         const normalized = normalizeMaterialRow(Object.assign({}, edgeSeed));
+        const key = materialSeedKey(normalized);
+        if(!keys.has(key)){
+          keys.add(key);
+          list.push(normalized);
+        }
+      }
+    }
+
+    // Druga cena PCV jest osobnym materiałem, bo PCV pod kolor frontów może mieć inną cenę za mb niż standard.
+    // Dodajemy seed również do istniejących baz, które mają już PCV standard, ale nie mają jeszcze pozycji pod fronty.
+    if(!list.some(isFrontColorEdgeRow)){
+      const frontEdgeSeed = DEFAULT_SHEET_MATERIALS.find((row)=> isFrontColorEdgeRow(row));
+      if(frontEdgeSeed){
+        const normalized = normalizeMaterialRow(Object.assign({}, frontEdgeSeed));
         const key = materialSeedKey(normalized);
         if(!keys.has(key)){
           keys.add(key);

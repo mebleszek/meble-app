@@ -49,6 +49,7 @@
     { id:'cmBackMaterial', title:'Wybierz plecy', placeholder:'Wybierz plecy' },
     { id:'cmBodyColor', title:'Wybierz korpus', placeholder:'Wybierz korpus' },
     { id:'cmOpeningSystem', title:'Wybierz system otwierania', placeholder:'Wybierz system otwierania' },
+    { id:'cmBodyPcvMode', title:'Wybierz PCV korpusu', placeholder:'Wybierz PCV korpusu' },
     {
       id:'cmFrontCount',
       title:'Wybierz ilość frontów',
@@ -399,7 +400,7 @@
   function refreshCabinetChoices(rootEl){
     const root = rootEl || document;
     const mounted = [];
-    if(root === document || (root.querySelector && root.querySelector('#cmSubType, #cmFrontMaterial, #cmFrontColor, #cmBackMaterial, #cmBodyColor, #cmOpeningSystem, #cmFrontCount, #cmFlapVendor, #cmFlapKind, #setBodyColor, #setBackMaterial, #setOpeningSystem'))){
+    if(root === document || (root.querySelector && root.querySelector('#cmSubType, #cmFrontMaterial, #cmFrontColor, #cmBackMaterial, #cmBodyColor, #cmOpeningSystem, #cmBodyPcvMode, #cmFrontCount, #cmFlapVendor, #cmFlapKind, #setBodyColor, #setBackMaterial, #setOpeningSystem'))){
       mounted.push.apply(mounted, mountSafeFieldLaunchers());
     }
     mounted.push.apply(mounted, mountDynamicSelectLaunchers(root));

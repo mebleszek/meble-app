@@ -12,7 +12,7 @@ function assert(cond, msg, details){
     process.exit(1);
   }
 }
-const version = '20260612_pricing_modes_auto_tests_v1';
+const version = '20260613_pcv_front_color_mode_v1';
 const index = read('index.html');
 const defs = read('js/app/pricing/labor-catalog-definitions.js');
 const catalogSrc = read('js/app/pricing/labor-catalog.js');

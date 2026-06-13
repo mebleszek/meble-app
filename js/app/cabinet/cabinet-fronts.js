@@ -577,10 +577,17 @@ function syncDraftFromCabinetModalForm(d){
     const v = String(el.value ?? '').trim();
     return v;
   };
+  const pcvMode = (value) => {
+    try{ if(window.FC && FC.materialEdgeStore && typeof FC.materialEdgeStore.normalizePcvMode === 'function') return FC.materialEdgeStore.normalizePcvMode(value); }catch(_){ }
+    return String(value || '') === 'front' ? 'front' : 'body';
+  };
 
   const w = num('cmWidth');  if(w !== null) d.width = w;
   const h = num('cmHeight'); if(h !== null) d.height = h;
   const dep = num('cmDepth'); if(dep !== null) d.depth = dep;
+
+  const pcv = str('cmBodyPcvMode');
+  if(pcv !== null) d.bodyPcvMode = pcvMode(pcv);
 
   const fc = num('cmFrontCount'); // może nie istnieć (np. klapa/narożna L)
   if(fc !== null) d.frontCount = fc;

@@ -479,6 +479,8 @@ function renderCabinetModal(){
   populateFrontColorsTo(document.getElementById('cmFrontColor'), draft.frontMaterial || 'laminat', draft.frontColor || '');
   populateBodyColorsTo(document.getElementById('cmBodyColor'), draft.bodyColor || '');
   populateOpeningOptionsTo(document.getElementById('cmOpeningSystem'), draft.type, draft.openingSystem || 'uchwyt klienta');
+  const cmPcvMode = document.getElementById('cmBodyPcvMode');
+  if(cmPcvMode) cmPcvMode.value = (draft.bodyPcvMode === 'front' ? 'front' : 'body');
   syncCabinetMaterialVisibility(draft);
 
   // FRONT COUNT UI
@@ -600,6 +602,8 @@ function renderCabinetModal(){
   document.getElementById('cmBackMaterial').onchange = e => { draft.backMaterial = e.target.value; };
   document.getElementById('cmBodyColor').onchange = e => { draft.bodyColor = e.target.value; };
   document.getElementById('cmOpeningSystem').onchange = e => { draft.openingSystem = e.target.value; refreshCabinetHardwareRequirementsPanel(); };
+  const _cmBodyPcvMode = document.getElementById('cmBodyPcvMode');
+  if(_cmBodyPcvMode) _cmBodyPcvMode.onchange = e => { draft.bodyPcvMode = String(e.target.value || '') === 'front' ? 'front' : 'body'; };
 
   try{
     const launcherApi = window.FC && window.FC.cabinetChoiceLaunchers;

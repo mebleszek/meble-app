@@ -1,3 +1,11 @@
+## 2026-06-13 — PCV korpusu pod kolor frontów
+
+- Nie dodano nowego trwałego klucza `localStorage`; `bodyPcvMode` jest polem istniejących rekordów preferencji strefowych pokoju oraz szafek w projekcie.
+- Wartości trybu PCV są proste i przenaszalne do chmury: `body` = PCV pod kolor płyty, `front` = PCV pod kolor frontów.
+- Ręczne zaznaczenia oklejanych krawędzi w MATERIAŁACH pozostają dotychczasowym źródłem ilości metrów; nowy tryb tylko rozdziela te metry na dwa strumienie ilościowe.
+- Pozycja katalogowa `PCV-FRONT` jest zwykłym rekordem istniejącego katalogu materiałów/obrzeży, więc migruje razem z katalogiem materiałów, nie jako osobna kolekcja.
+- Snapshot WYCENY zapisuje wynikowe linie materiałowe dla standardowego PCV i PCV pod kolor frontów, dzięki czemu późniejsza zmiana ceny za mb nie zmienia starych ofert.
+
 ## 2026-06-11 — Sposoby naliczania ceny w cenniku
 
 - Nie dodano nowego klucza `localStorage`; tryb naliczania ceny jest polem istniejących rekordów `quoteRates`.

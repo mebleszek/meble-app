@@ -7,7 +7,7 @@
 
   const DEFAULT_SELECTION = {
     zones:{ lower:true, middle:true, upper:true },
-    fields:{ body:true, front:true, back:false, opening:false }
+    fields:{ body:true, front:true, back:false, opening:false, pcv:false }
   };
 
   function text(value){ return String(value == null ? '' : value).trim(); }
@@ -93,7 +93,7 @@
     wrap.appendChild(h('div', { class:'room-bulk-total', text:'Łącznie do zmiany: ' + plan.total }));
     const planner = getPlanner();
     const zoneKeys = planner.ZONE_KEYS || ['lower','middle','upper'];
-    const fieldKeys = planner.FIELD_KEYS || ['body','front','back','opening'];
+    const fieldKeys = planner.FIELD_KEYS || ['body','front','back','opening','pcv'];
     const zoneLabels = planner.ZONE_LABELS || {};
     const fieldLabels = planner.FIELD_LABELS || {};
 
@@ -150,7 +150,8 @@
       { key:'body', label:'Korpus' },
       { key:'front', label:'Fronty' },
       { key:'back', label:'Plecy' },
-      { key:'opening', label:'Otwieranie' }
+      { key:'opening', label:'Otwieranie' },
+      { key:'pcv', label:'PCV korpusu' }
     ];
     scroll.appendChild(buildToggleGroup('Zakres stref', zones, state.selection.zones, (key)=>{ state.selection.zones[key] = !state.selection.zones[key]; render(); }));
     scroll.appendChild(buildToggleGroup('Co zmienić', fields, state.selection.fields, (key)=>{ state.selection.fields[key] = !state.selection.fields[key]; render(); }));

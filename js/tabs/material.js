@@ -42,6 +42,7 @@
       cabinetRows,
       projectTotals,
       projectEdgeMeters:0,
+      projectEdgeMetersByMode:{ body:0, front:0, total:0 },
       edgeApi,
       fmtCm:fallbackFmtCm,
       deps:{
@@ -110,7 +111,11 @@
 
     const projEdgeEl = top.querySelector('#projectEdgeTotals');
     if(projEdgeEl){
-      projEdgeEl.textContent = `${(Number(model.projectEdgeMeters)||0).toFixed(2)} mb`;
+      const split = model.projectEdgeMetersByMode || {};
+      const body = Number(split.body) || 0;
+      const front = Number(split.front) || 0;
+      const total = Number(model.projectEdgeMeters) || Number(split.total) || (body + front);
+      projEdgeEl.textContent = `Razem: ${total.toFixed(2)} mb • pod kolor płyty: ${body.toFixed(2)} mb • pod kolor frontów: ${front.toFixed(2)} mb`;
     }
 
     const wLamEl = top.querySelector('#wLam');
@@ -195,6 +200,8 @@
 
       const parts = entry.parts || [];
       const cabEdgeMeters = Number(entry.edgeMeters) || 0;
+      const cabEdgeSplit = entry.edgeMetersByMode || {};
+      const cabEdgeModeLabel = edgeApi && typeof edgeApi.pcvModeLabel === 'function' ? edgeApi.pcvModeLabel(cab && cab.bodyPcvMode) : ((cab && cab.bodyPcvMode) === 'front' ? 'pod kolor frontów' : 'pod kolor płyty');
 
       const cabTotalsBox = document.createElement('div');
       cabTotalsBox.style.marginTop = '10px';
@@ -209,7 +216,7 @@
       const cabEdgeBox = document.createElement('div');
       cabEdgeBox.className = 'muted xs';
       cabEdgeBox.style.marginTop = '6px';
-      cabEdgeBox.textContent = `Okleina: ${cabEdgeMeters.toFixed(2)} mb`;
+      cabEdgeBox.textContent = `Okleina: ${cabEdgeMeters.toFixed(2)} mb • PCV korpusu: ${cabEdgeModeLabel}`;
       cabTotalsBox.appendChild(cabEdgeBox);
 
       const table = document.createElement('div');

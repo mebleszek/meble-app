@@ -106,15 +106,21 @@
     const cabinets = getRoomCabinets(room);
     const projectTotals = {};
     let projectEdgeMeters = 0;
+    const projectEdgeMetersByMode = { body:0, front:0, total:0 };
 
     const cabinetRows = cabinets.map((cabinet, index)=>{
       const parts = deps.getCabinetCutListFn(cabinet, room) || [];
       const totals = deps.totalsFromPartsFn(parts);
       deps.mergeTotalsFn(projectTotals, totals);
-      const edgeMeters = edgeApi && typeof edgeApi.calcEdgeMetersForParts === 'function'
-        ? edgeApi.calcEdgeMetersForParts(parts, cabinet)
-        : 0;
+      const edgeMetersByMode = edgeApi && typeof edgeApi.calcEdgeMetersByPcvModeForParts === 'function'
+        ? edgeApi.calcEdgeMetersByPcvModeForParts(parts, cabinet)
+        : { body:(edgeApi && typeof edgeApi.calcEdgeMetersForParts === 'function' ? edgeApi.calcEdgeMetersForParts(parts, cabinet) : 0), front:0, total:0, mode:'body' };
+      if(!(Number(edgeMetersByMode.total) > 0)) edgeMetersByMode.total = (Number(edgeMetersByMode.body) || 0) + (Number(edgeMetersByMode.front) || 0);
+      const edgeMeters = Number(edgeMetersByMode.total) || 0;
       projectEdgeMeters += edgeMeters;
+      projectEdgeMetersByMode.body += Number(edgeMetersByMode.body) || 0;
+      projectEdgeMetersByMode.front += Number(edgeMetersByMode.front) || 0;
+      projectEdgeMetersByMode.total += edgeMeters;
       return {
         cabinet,
         index,
@@ -122,6 +128,7 @@
         parts,
         totals,
         edgeMeters,
+        edgeMetersByMode,
       };
     });
 
@@ -131,6 +138,7 @@
       cabinetRows,
       projectTotals,
       projectEdgeMeters,
+      projectEdgeMetersByMode,
       deps,
       edgeApi,
       fmtCm,
@@ -146,17 +154,23 @@
     const selectedRooms = Array.isArray(rooms) ? rooms.map((room)=> String(room || '').trim()).filter(Boolean) : [];
     const scope = normalizeMaterialScope(opts.materialScope || {});
     let edgeMeters = 0;
+    const edgeMetersByMode = { body:0, front:0, total:0 };
     const details = [];
 
     selectedRooms.forEach((room)=>{
       const cabinets = getRoomCabinets(room);
       cabinets.forEach((cabinet, index)=>{
         const parts = (deps.getCabinetCutListFn(cabinet, room) || []).filter((part)=> partMatchesScope(part, scope, edgeApi));
-        const cabEdgeMeters = edgeApi && typeof edgeApi.calcEdgeMetersForParts === 'function'
-          ? edgeApi.calcEdgeMetersForParts(parts, cabinet)
-          : 0;
+        const cabSplit = edgeApi && typeof edgeApi.calcEdgeMetersByPcvModeForParts === 'function'
+          ? edgeApi.calcEdgeMetersByPcvModeForParts(parts, cabinet)
+          : { body:(edgeApi && typeof edgeApi.calcEdgeMetersForParts === 'function' ? edgeApi.calcEdgeMetersForParts(parts, cabinet) : 0), front:0, total:0, mode:'body' };
+        if(!(Number(cabSplit.total) > 0)) cabSplit.total = (Number(cabSplit.body) || 0) + (Number(cabSplit.front) || 0);
+        const cabEdgeMeters = Number(cabSplit.total) || 0;
         edgeMeters += cabEdgeMeters;
-        details.push({ room, cabinet, index, parts, edgeMeters:cabEdgeMeters });
+        edgeMetersByMode.body += Number(cabSplit.body) || 0;
+        edgeMetersByMode.front += Number(cabSplit.front) || 0;
+        edgeMetersByMode.total += cabEdgeMeters;
+        details.push({ room, cabinet, index, parts, edgeMeters:cabEdgeMeters, edgeMetersByMode:cabSplit });
       });
     });
 
@@ -164,6 +178,7 @@
       rooms:selectedRooms,
       materialScope:scope,
       edgeMeters,
+      edgeMetersByMode,
       details,
       edgeApi,
     };

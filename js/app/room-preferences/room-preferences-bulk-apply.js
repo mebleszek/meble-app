@@ -91,6 +91,7 @@
       if(selection.fields.body) counters.body += setIfDifferent(cab, 'bodyColor', defaults.bodyColor);
       if(selection.fields.back) counters.back += setIfDifferent(cab, 'backMaterial', defaults.backMaterial);
       if(selection.fields.opening) counters.opening += setIfDifferent(cab, 'openingSystem', defaults.openingSystem);
+      if(selection.fields.pcv) counters.pcv += setIfDifferent(cab, 'bodyPcvMode', defaults.bodyPcvMode || 'body');
     });
   }
 
@@ -167,6 +168,7 @@
       if(selection.fields.body) setIfDifferent(set, 'bodyColor', defaults.bodyColor);
       if(selection.fields.back) setIfDifferent(set, 'backMaterial', defaults.backMaterial);
       if(selection.fields.opening) setIfDifferent(set, 'openingSystem', defaults.openingSystem);
+      if(selection.fields.pcv) setIfDifferent(set, 'bodyPcvMode', defaults.bodyPcvMode || 'body');
     });
   }
 
@@ -181,10 +183,10 @@
   function apply(room, selection){
     const normalized = normalizeSelection(selection);
     const plan = buildPlan(room, normalized);
-    if(!plan.ready || !plan.hasChanges) return { ok:false, plan, changed:{ body:0, front:0, back:0, opening:0 }, message:'Brak zmian do zastosowania.' };
+    if(!plan.ready || !plan.hasChanges) return { ok:false, plan, changed:{ body:0, front:0, back:0, opening:0, pcv:0 }, message:'Brak zmian do zastosowania.' };
     const roomData = getRoomData(room);
-    if(!roomData) return { ok:false, plan, changed:{ body:0, front:0, back:0, opening:0 }, message:'Brak pomieszczenia.' };
-    const counters = { body:0, front:0, back:0, opening:0 };
+    if(!roomData) return { ok:false, plan, changed:{ body:0, front:0, back:0, opening:0, pcv:0 }, message:'Brak pomieszczenia.' };
+    const counters = { body:0, front:0, back:0, opening:0, pcv:0 };
 
     applyCabinetMaterials(room, roomData, normalized, counters);
     applySetRecordMaterials(room, roomData, normalized, counters);

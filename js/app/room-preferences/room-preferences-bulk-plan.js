@@ -6,7 +6,7 @@
   const ns = (window.FC = window.FC || {});
 
   const ZONE_KEYS = ['lower','middle','upper'];
-  const FIELD_KEYS = ['body','front','back','opening'];
+  const FIELD_KEYS = ['body','front','back','opening','pcv'];
   const ZONE_LABELS = {
     lower:'Strefa dolna / stojące',
     middle:'Strefa środkowa / moduły',
@@ -16,7 +16,8 @@
     body:'Korpus',
     front:'Fronty',
     back:'Plecy',
-    opening:'Otwieranie'
+    opening:'Otwieranie',
+    pcv:'PCV korpusu'
   };
 
   function text(value){ return String(value == null ? '' : value).trim(); }
@@ -157,6 +158,7 @@
       if(normalized.fields.body && different(cab.bodyColor, defaults.bodyColor)) addCount(plan, zoneKey, 'body', 1);
       if(normalized.fields.back && different(cab.backMaterial, defaults.backMaterial)) addCount(plan, zoneKey, 'back', 1);
       if(normalized.fields.opening && different(cab.openingSystem, defaults.openingSystem)) addCount(plan, zoneKey, 'opening', 1);
+      if(normalized.fields.pcv && different(cab.bodyPcvMode || 'body', defaults.bodyPcvMode || 'body')) addCount(plan, zoneKey, 'pcv', 1);
     });
 
     if(normalized.fields.front){
@@ -183,7 +185,7 @@
     }
 
     // Zestaw jako rekord techniczny też ma korpus/plecy/otwieranie, ale nie liczymy go drugi raz w sumie.
-    if(sets.length && normalized.zones.lower && (normalized.fields.body || normalized.fields.back || normalized.fields.opening)){
+    if(sets.length && normalized.zones.lower && (normalized.fields.body || normalized.fields.back || normalized.fields.opening || normalized.fields.pcv)){
       plan.notes.push('Zestawy: korpusy, plecy i otwieranie są traktowane jak strefa dolna / stojące.');
     }
     plan.hasChanges = plan.total > 0;
