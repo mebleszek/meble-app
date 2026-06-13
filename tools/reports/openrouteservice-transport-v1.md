@@ -1,6 +1,6 @@
 # OpenRouteService / odległość do klienta v1 — raport
 
-Build: `20260613_openrouteservice_transport_v1`
+Build: `20260613_openrouteservice_transport_diag_v1`
 Paczka bazowa: `site_client_offer_preview_v1.zip`
 
 ## Zakres

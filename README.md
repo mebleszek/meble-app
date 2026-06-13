@@ -1,3 +1,18 @@
+## 2026-06-13 — Diagnostyka trasy OpenRouteService v1
+
+Paczka `site_openrouteservice_transport_diag_v1.zip` doprecyzowuje automatyczne liczenie odległości, żeby użytkownik widział, czy problem leży w dystansie z ORS, geokodowaniu adresu, trybie tam/powrót, minimum km czy zaokrągleniu.
+
+Zmiany:
+- panel **Inwestor → Dojazd / transport** rozróżnia teraz surową trasę z ORS w jedną stronę od kilometrów do wyceny,
+- dodano czytelne działanie: km z ORS × tryb tam/powrót → zaokrąglenie → minimum km, z jasną informacją, czy minimum zadziałało,
+- wynik ORS zapisuje diagnostykę geokodowania: oryginalny adres, zapytanie po oczyszczeniu, etykietę rozpoznaną przez ORS, warstwę, pewność i współrzędne,
+- do geokodowania polskich adresów usuwany jest numer mieszkania/lokalu typu `28/88`, `m 88`, `lok. 88`, bo ORS potrafi wtedy złapać błędny lub przybliżony punkt; oryginalny adres inwestora nie jest zmieniany,
+- dodano przycisk **Sprawdź w ORS**, który otwiera klienta map ORS dla zapisanych punktów, żeby porównać trasę z tym, co widzi API,
+- ręczna zmiana kilometrów nadal czyści metadane ORS i przełącza transport na status ręczny,
+- uzupełniono test `tools/openrouteservice-distance-smoke.js` o diagnostykę ORS, link map, czyszczenie lokalu z adresu i rozbicie km do wyceny.
+
+Nie przebudowano WYCENY, trybów naliczania, PCV, oferty klienta, PDF, kosztów firmy, stawek godzinowych, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260613_openrouteservice_transport_diag_v1`. Raport: `tools/reports/openrouteservice-transport-diag-v1.md`.
+
 ## 2026-06-13 — Automatyczne liczenie odległości OpenRouteService v1
 
 Paczka `site_openrouteservice_transport_v1.zip` dopina darmowe liczenie odległości do klienta bez Google Maps API i bez płatnej integracji. Program używa własnego klucza użytkownika OpenRouteService/OpenStreetMap tylko po kliknięciu **Przelicz trasę** w panelu inwestora.
@@ -14,7 +29,7 @@ Zmiany:
 - w trybiku przy kluczu ORS dopisano, że jest to własny darmowy klucz użytkownika działający w limitach darmowego planu dostawcy; Google Maps API nie jest używane,
 - dodano test `tools/openrouteservice-distance-smoke.js` z mockiem odpowiedzi ORS, bez realnych zapytań do API.
 
-Nie przebudowano WYCENY, trybów naliczania, PCV, oferty klienta, PDF, kosztów firmy, stawek godzinowych, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260613_openrouteservice_transport_v1`. Raport: `tools/reports/openrouteservice-transport-v1.md`.
+Nie przebudowano WYCENY, trybów naliczania, PCV, oferty klienta, PDF, kosztów firmy, stawek godzinowych, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260613_openrouteservice_transport_diag_v1`. Raport: `tools/reports/openrouteservice-transport-v1.md`.
 
 ## 2026-06-13 — Podgląd oferty dla klienta v1
 

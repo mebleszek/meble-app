@@ -10,7 +10,7 @@ function assertClose(actual, expected, message){
 }
 
 (async function main(){
-  const version = '20260613_openrouteservice_transport_v1';
+  const version = '20260613_openrouteservice_transport_diag_v1';
   const index = read('index.html');
   const dev = read('dev_tests.html');
   const companyView = read('js/app/ui/data-settings-company-view.js');
@@ -24,6 +24,8 @@ function assertClose(actual, expected, message){
   assert(dev.includes(`js/app/investor/openrouteservice-transport.js?v=${version}`), 'dev_tests.html nie ładuje modułu ORS');
   assert(companyView.includes('własny darmowy klucz użytkownika') && companyView.includes('Google Maps API nie jest używane'), 'Trybik nie opisuje darmowego klucza ORS i braku Google Maps API');
   assert(investorTransportSrc.includes('saveTransport(investor, next)') && investorTransportSrc.includes('statusLabel') && investorTransportSrc.includes('Wynik liczony dla'), 'Panel inwestora nie zapisuje/nie pokazuje statusu i adresów ostatniego przeliczenia');
+  assert(investorTransportSrc.includes('Diagnostyka ORS') && investorTransportSrc.includes('Sprawdź w ORS') && investorTransportSrc.includes('Jak liczono km do wyceny'), 'Panel inwestora musi pokazywać diagnostykę ORS, link ORS i wzór km do wyceny');
+  assert(serviceSrc.includes('prepareGeocodeQuery') && serviceSrc.includes('originGeocode') && serviceSrc.includes('destinationGeocode') && serviceSrc.includes('mapsClientUrl'), 'Moduł ORS musi zapisywać diagnostykę geokodowania i link do map ORS');
   assert(!serviceSrc.includes('apiKey:\'') && !serviceSrc.includes('apiKey:"'), 'Nie wolno zaszywać realnego klucza API w kodzie');
 
   const storage = new Map();
@@ -56,13 +58,15 @@ function assertClose(actual, expected, message){
   assert(ors.validateRouteInput({ apiKey:'', origin:'A', destination:'B' }).status === 'missing_api_key', 'Brak klucza API musi dawać kontrolowany status');
   assert(ors.validateRouteInput({ apiKey:'key', origin:'', destination:'B' }).status === 'missing_company_address', 'Brak adresu firmy musi dawać kontrolowany status');
   assert(ors.validateRouteInput({ apiKey:'key', origin:'A', destination:'' }).status === 'missing_client_address', 'Brak adresu klienta musi dawać kontrolowany status');
+  assert(ors.prepareGeocodeQuery('Krzemieniecka 28/88, Łódź').includes('Krzemieniecka 28'), 'Geokodowanie powinno usuwać numer mieszkania zapisany po slashu');
+  assert(!ors.prepareGeocodeQuery('Krzemieniecka 28 m 88, Łódź').includes('m 88'), 'Geokodowanie powinno usuwać numer mieszkania zapisany jako m');
 
   const fetchCalls = [];
   const fakeFetch = async (url, opts)=>{
     fetchCalls.push({ url:String(url), opts:opts || {} });
     if(String(url).includes('/geocode/search')){
       const idx = fetchCalls.filter((row)=> String(row.url).includes('/geocode/search')).length;
-      return { ok:true, status:200, json:async ()=> ({ features:[{ geometry:{ coordinates:idx === 1 ? [19.45, 51.75] : [19.55, 51.85] } }] }) };
+      return { ok:true, status:200, json:async ()=> ({ features:[{ geometry:{ coordinates:idx === 1 ? [19.45, 51.75] : [19.55, 51.85] }, properties:{ label:idx === 1 ? 'Retkińska 29, Łódź, Polska' : 'Piotrkowska 1, Łódź, Polska', layer:'address', confidence:0.95 } }] }) };
     }
     if(String(url).includes('/v2/directions/')){
       return { ok:true, status:200, json:async ()=> ({ routes:[{ summary:{ distance:12400, duration:2040 } }] }) };
@@ -74,6 +78,9 @@ function assertClose(actual, expected, message){
   assertClose(result.durationMin, 34, 'ORS route duration should be saved as minutes');
   assert(result.source === 'OpenRouteService' && result.provider === 'openrouteservice' && result.status === 'success', 'Wynik ORS musi mieć źródło/provider/status', result);
   assert(result.addressHash && result.originHash && result.destinationHash, 'Wynik ORS musi zapisać hash adresów', result);
+  assert(result.originGeocode && result.destinationGeocode && result.destinationGeocode.label.includes('Piotrkowska'), 'Wynik ORS musi zapisać etykiety i współrzędne geokodowania', result);
+  assert(result.routeDistanceMeters === 12400 && result.routeDurationSeconds === 2040, 'Wynik ORS musi zapisać surowe metry i sekundy z API', result);
+  assert(result.orsMapsUrl && result.orsMapsUrl.includes('maps.openrouteservice.org'), 'Wynik ORS musi mieć link kontrolny do map ORS', result);
   assert(fetchCalls.length === 3 && fetchCalls.every((row)=> row.opts && row.opts.headers && row.opts.headers.Authorization === 'fake-key'), 'Test ma używać mocka fetch i własnego klucza z ustawień');
 
   const profile = sandbox.FC.companyProfile.normalizeProfile(sandbox.FC.companyProfile.DEFAULT_COMPANY_PROFILE);
@@ -98,6 +105,7 @@ function assertClose(actual, expected, message){
   let ctx = sandbox.FC.investorTransport.getCurrentTransportContext();
   assertClose(ctx.billableKm, 7.5, 'Ręcznie wpisane km muszą nadal zasilać transport.distance_km');
   assert(ctx.transport.status === 'manual' && ctx.displayValue.includes('7,5'), 'Ręczny transport musi zachować status i widok');
+  assert(typeof sandbox.FC.investorTransport.billableBreakdown === 'function' && sandbox.FC.investorTransport.renderPanel(investor, null, false).includes('Jak liczono km do wyceny'), 'Panel musi pokazywać rozbicie trasy i km do wyceny');
 
   vm.runInContext(read('js/app/pricing/labor-catalog-definitions.js'), sandbox, { filename:'labor-catalog-definitions.js' });
   vm.runInContext(read('js/app/pricing/labor-catalog.js'), sandbox, { filename:'labor-catalog.js' });

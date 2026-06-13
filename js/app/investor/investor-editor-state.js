@@ -40,6 +40,11 @@
       originHash: normalizeText(src.originHash),
       destinationHash: normalizeText(src.destinationHash),
       addressHash: normalizeText(src.addressHash || src.routeAddressHash),
+      routeDistanceMeters: normalizeText(src.routeDistanceMeters),
+      routeDurationSeconds: normalizeText(src.routeDurationSeconds),
+      originGeocode: src.originGeocode && typeof src.originGeocode === 'object' ? clone(src.originGeocode) : {},
+      destinationGeocode: src.destinationGeocode && typeof src.destinationGeocode === 'object' ? clone(src.destinationGeocode) : {},
+      orsMapsUrl: normalizeText(src.orsMapsUrl),
       note: normalizeText(src.note),
       lastError: normalizeText(src.lastError),
     };
@@ -153,6 +158,11 @@
       state.draft.transport.originHash = '';
       state.draft.transport.destinationHash = '';
       state.draft.transport.addressHash = '';
+      state.draft.transport.routeDistanceMeters = '';
+      state.draft.transport.routeDurationSeconds = '';
+      state.draft.transport.originGeocode = {};
+      state.draft.transport.destinationGeocode = {};
+      state.draft.transport.orsMapsUrl = '';
       state.draft.transport.lastError = '';
     }else if(key === 'note'){
       state.draft.transport.source = state.draft.transport.source || 'ręcznie';

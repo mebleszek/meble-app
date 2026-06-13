@@ -12,7 +12,7 @@ function fail(message, details){
 }
 function assert(cond, msg, details){ if(!cond) fail(msg, details); }
 
-const version = '20260613_openrouteservice_transport_v1';
+const version = '20260613_openrouteservice_transport_diag_v1';
 const index = read('index.html');
 assert(index.includes(version), 'index.html nie ma cache-bustingu podglądu oferty klienta');
 assert(index.includes('js/app/quote/quote-client-preview.js?v=' + version), 'index.html nie ładuje modułu quote-client-preview');

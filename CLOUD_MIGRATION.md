@@ -1,3 +1,10 @@
+## 2026-06-13 — OpenRouteService: diagnostyka geokodowania i trasy
+
+- Dane diagnostyczne ORS są częścią istniejącego `investor.transport`, a nie osobnym localStorage: `originGeocode`, `destinationGeocode`, `routeDistanceMeters`, `routeDurationSeconds`, `orsMapsUrl`.
+- To są metadane wyniku ostatniego świadomego kliknięcia **Przelicz trasę**. Nie tworzą drugiej prawdy; kanoniczne km do WYCENY nadal idą przez `FC.investorTransport.getCurrentTransportContext()` i źródło `transport.distance_km`.
+- Oryginalne adresy firmy i klienta pozostają niezmienione. Oczyszczone zapytanie geokodowania służy tylko do ORS i jest zapisywane diagnostycznie, żeby później dało się wyjaśnić różnice między mapami.
+- W przyszłej wersji chmurowej klucz ORS nadal nie powinien być trzymany jawnie we froncie. Docelowy backend/proxy powinien logować/limitować zapytania i zapisywać wynik trasy oraz diagnostykę jako metadane inwestora albo konkretnego projektu.
+
 ## 2026-06-13 — OpenRouteService / odległość do klienta
 
 - Nie dodano nowego trwałego klucza `localStorage`; dane trasy są częścią istniejącego rekordu inwestora `transport`, a ustawienia ORS są częścią istniejącego profilu firmy `fc_company_profile_v1`.

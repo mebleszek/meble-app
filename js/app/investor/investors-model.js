@@ -90,6 +90,11 @@
       originHash: String(src.originHash || ''),
       destinationHash: String(src.destinationHash || ''),
       addressHash: String(src.addressHash || src.routeAddressHash || ''),
+      routeDistanceMeters: String(src.routeDistanceMeters || ''),
+      routeDurationSeconds: String(src.routeDurationSeconds || ''),
+      originGeocode: src.originGeocode && typeof src.originGeocode === 'object' ? JSON.parse(JSON.stringify(src.originGeocode)) : {},
+      destinationGeocode: src.destinationGeocode && typeof src.destinationGeocode === 'object' ? JSON.parse(JSON.stringify(src.destinationGeocode)) : {},
+      orsMapsUrl: String(src.orsMapsUrl || ''),
       note: String(src.note || ''),
       lastError: String(src.lastError || '')
     };

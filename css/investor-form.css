@@ -145,3 +145,8 @@
 .investor-transport-grid{grid-template-columns:repeat(auto-fit,minmax(132px,1fr));}
 .investor-transport-accordion__sub--warning{color:#92400e;background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.34);}
 .investor-transport-warning{color:#92400e;background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.30);border-radius:10px;padding:8px 10px;}
+.investor-transport-formula{font-size:12px;font-weight:850;line-height:1.35;color:#334155;background:#eef8ff;border:1px solid rgba(14,165,233,.24);border-radius:12px;padding:9px 11px;}
+.investor-transport-diagnostics{display:grid;gap:7px;background:#fff;border:1px dashed rgba(71,85,105,.35);border-radius:12px;padding:9px 10px;}
+.investor-transport-diagnostics>div{display:grid;gap:3px;}
+.investor-transport-diagnostics span{font-weight:950;color:#334155;}
+.investor-transport-diagnostics small{display:block;font-size:11px;line-height:1.3;color:#64748b;font-weight:750;overflow-wrap:anywhere;}
