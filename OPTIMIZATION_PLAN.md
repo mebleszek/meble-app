@@ -1,5 +1,17 @@
 # OPTIMIZATION_PLAN — plan wspólnych mechanik i porządkowania
 
+## 2026-06-13 — PDF / wydruk oferty klienta — etap końcowy
+
+Status: **odłożone na końcowy etap programu**. W bieżących etapach nie przebudowywać PDF-a klienta. Najpierw dopracować i ustabilizować podgląd oferty w aplikacji: zakres, materiały, kolory, strefy, akcesoria z ilościami oraz jedną cenę końcową bez kosztorysu operacyjnego.
+
+Docelowy PDF/wydruk oferty klienta ma korzystać z tego samego modelu danych co podgląd, ale będzie osobnym etapem po ustabilizowaniu WYCENY, materiałów, okuć, transportu, usług dodatkowych i treści handlowej. PDF ma być dopracowany wizualnie dopiero na końcu programu, żeby nie mieszać layoutu wydruku z bieżącymi zmianami logiki i danych.
+
+Wymagania na przyszłość:
+- klient widzi zakres i jedną cenę końcową, bez kilometrów, stawek godzinowych, arkuszy, metrów PCV i cen jednostkowych,
+- klient widzi modele oraz ilości akcesoriów/okuć, kolory korpusów i frontów, PCV opisowo oraz podział na strefy,
+- szczegóły kosztowe zostają tylko w WYCENIE wewnętrznej,
+- PDF ma mieć ten sam zakres co zatwierdzony podgląd oferty, a nie osobną logikę treści.
+
 Ten plik trzyma plan optymalizacji, scalania duplikacji i kolejności porządkowania. `DEV.md` zostaje krótką mapą zasad pracy, `CLOUD_MIGRATION.md` trzyma decyzje dotyczące danych, storage i przyszłej chmury, a `DEPENDENCY_MAP.md` trzyma mapę zależności oraz wpływu zmian między plikami.
 
 ## 2026-06-05 — Plan późniejszy: mieszane fronty / siatka frontów

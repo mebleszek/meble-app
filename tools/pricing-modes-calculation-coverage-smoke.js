@@ -45,7 +45,7 @@ function createSandbox(){
 }
 function run(rel, sandbox){ vm.runInContext(read(rel), sandbox, { filename:rel }); }
 
-const version = '20260613_pcv_front_color_mode_v1';
+const version = '20260613_client_offer_preview_v1';
 const index = read('index.html');
 const devTests = read('dev_tests.html');
 assert(index.includes(`?v=${version}`), 'index.html nie ma aktualnego cache-bustingu dla testów trybów naliczania');

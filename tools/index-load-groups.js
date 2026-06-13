@@ -272,6 +272,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/project/project-schedule-status.js",
       "js/app/quote/quote-snapshot.js",
       "js/app/quote/quote-pdf.js",
+      "js/app/quote/quote-client-preview.js",
       "js/app/wycena/wycena-room-availability.js",
       "js/app/wycena/wycena-core-selection.js",
       "js/app/wycena/wycena-core-utils.js",

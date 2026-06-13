@@ -1,3 +1,19 @@
+## 2026-06-13 — Podgląd oferty dla klienta v1
+
+Paczka `site_client_offer_preview_v1.zip` dodaje w WYCENIE pierwszy **podgląd oferty dla klienta**. To jest widok handlowy w programie, a nie finalny PDF. Klient ma widzieć zakres realizacji, materiały, kolory, modele/ilości okuć oraz jedną cenę końcową, bez rozbijania kosztów operacyjnych.
+
+Zmiany:
+- w górnym pasku WYCENY dodano przycisk **Podgląd oferty** aktywny po wygenerowaniu wyceny,
+- dodano moduł `FC.quoteClientPreview` w `js/app/quote/quote-client-preview.js`,
+- podgląd pokazuje dane firmy, inwestora, zakres pomieszczeń, datę, warunki handlowe, strefy zabudowy, materiały, PCV korpusu, okucia/akcesoria z ilościami, montaż AGD oraz jedną cenę końcową,
+- podział stref w ofercie: **Strefa dolna / stojąca**, **Strefa środkowa**, **Strefa górna / wisząca**,
+- materiały w podglądzie są opisowe: bez ilości arkuszy, bez metrów PCV, bez cen jednostkowych,
+- okucia i akcesoria są agregowane po nazwie/jednostce, żeby klient widział modele i ilości bez cen zakupu,
+- podgląd nie pokazuje kilometrów, stawek godzinowych, roboczogodzin, arkuszy, metrów PCV ani szczegółowego kosztorysu operacyjnego,
+- istniejącego mechanizmu PDF nie przebudowano w tym etapie.
+
+PDF klienta zostaje etapem końcowym programu. Najpierw stabilizujemy treść i układ podglądu w aplikacji, a dopiero na końcu programu dopracujemy PDF/wydruk. Cache-busting: `20260613_client_offer_preview_v1`. Raport: `tools/reports/client-offer-preview-v1.md`.
+
 ## 2026-06-13 — PCV korpusu pod kolor płyty albo frontów v1
 
 Paczka `site_pcv_front_color_mode_v1.zip` dodaje prosty tryb PCV korpusu zgodny z aktualnym modelem programu: ręczne zaznaczanie oklejanych krawędzi w **MATERIAŁACH** zostaje bez zmian, a WYWIAD decyduje tylko, czy metry PCV danej szafki mają trafić do standardowego PCV pod kolor płyty, czy do droższego PCV pod kolor frontów.

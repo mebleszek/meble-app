@@ -399,6 +399,13 @@
     };
     actions.appendChild(runBtn);
 
+    const clientPreviewBtn = h('button', { class:'btn-primary', type:'button', text:'Podgląd oferty' });
+    if(!currentQuote || currentQuote.error) clientPreviewBtn.disabled = true;
+    clientPreviewBtn.addEventListener('click', ()=>{
+      try{ FC.quoteClientPreview && typeof FC.quoteClientPreview.open === 'function' && FC.quoteClientPreview.open(currentQuote); }catch(_){ }
+    });
+    actions.appendChild(clientPreviewBtn);
+
     const pdfBtn = h('button', { class:'btn-primary', type:'button', text:'PDF' });
     if(!currentQuote || currentQuote.error) pdfBtn.disabled = true;
     pdfBtn.addEventListener('click', ()=>{
