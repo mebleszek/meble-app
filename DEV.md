@@ -1,8 +1,21 @@
+## 2026-06-12 — Automatyczny test trybów naliczania ceny v1
+
+Paczka `site_pricing_modes_auto_tests_v1.zip` dodaje automatyczny smoke test dla **Cennika robocizny i usług** oraz WYCENY, żeby nie trzeba było ręcznie tworzyć wielu konfiguracji szafek tylko po to, aby sprawdzić matematykę trybów naliczania.
+
+Zmiany:
+- dodano `tools/pricing-modes-calculation-coverage-smoke.js`,
+- test sprawdza: kwotę stałą, cenę za ilość, kwotę startową + ilość, kwotę startową z limitem km w cenie, czas × stawkę godzinową, własną stawkę z trybika, progi czasu, czas startowy + kolejne sztuki, zaawansowaną dopłatę zł za gabaryt i gabarytoczas h/m³,
+- test pilnuje usunięcia opcji 45 min i normalizacji zapisanego w cenniku `0.75 h` do 60 min, ale jednocześnie potwierdza, że wynik działania `3 × 15 min = 45 min` zostaje poprawny,
+- test sprawdza automatyczny transport z Inwestora: `start + max(0, km - km w cenie startowej) × cena/km`,
+- test sprawdza grupowanie rejestru WYCENY: Transport osobno, Usługi dodatkowe osobno, Robocizna szafek osobno.
+
+Nie zmieniono UI, formularzy, transportu, stawek godzinowych, kosztów firmy, `drawer.count`, materiałów, okuć ani właściwej logiki WYCENY. Cache-busting: `20260612_pricing_modes_auto_tests_v1`. Raport: `tools/reports/pricing-modes-auto-tests-v1.md`.
+
 ## 2026-06-12 — Cennik: prostsza nazwa dopłaty gabarytowej v1
 
 Paczka `site_labor_gabaryt_label_v1.zip` zmienia tylko nazwę pola w formularzu **Cennik robocizny i usług**: `Gabaryt zł/m³` → **Dopłata zł za gabaryt**. Zaktualizowano też opis pod ikoną `?` i komunikat blokady pola przy aktywnym gabarytoczasie.
 
-Nie zmieniono logiki liczenia gabarytu, gabarytoczasu, stawek, transportu, WYCENY ani danych. `volumePricePerM3` pozostaje technicznym polem dopłaty od objętości, ale UI pokazuje prostszą nazwę. Cache-busting: `20260612_labor_gabaryt_label_v1`. Raport: `tools/reports/labor-gabaryt-label-v1.md`.
+Nie zmieniono logiki liczenia gabarytu, gabarytoczasu, stawek, transportu, WYCENY ani danych. `volumePricePerM3` pozostaje technicznym polem dopłaty od objętości, ale UI pokazuje prostszą nazwę. Cache-busting: `20260612_pricing_modes_auto_tests_v1`. Raport: `tools/reports/labor-gabaryt-label-v1.md`.
 
 ## 2026-06-12 — Cennik: czasy robocizny w minutach i usunięcie 45 min v1
 
@@ -15,7 +28,7 @@ Zmiany:
 - progi czasu mogą być wpisywane w minutach, np. `1-2=15 min;3-5=30 min;6-10=60 min`, a stary zapis godzinowy nadal jest odczytywany,
 - opis pozycji cennika pokazuje czas w minutach zamiast `0.25 h` / `0.5 h`.
 
-Nie ruszano transportu, kosztów firmy, danych firmy, `drawer.count`, wymagań technicznych szafek ani silnika materiałów/okuć. Cache-busting: `20260612_labor_gabaryt_label_v1`. Raport: `tools/reports/labor-time-minutes-v1.md`.
+Nie ruszano transportu, kosztów firmy, danych firmy, `drawer.count`, wymagań technicznych szafek ani silnika materiałów/okuć. Cache-busting: `20260612_pricing_modes_auto_tests_v1`. Raport: `tools/reports/labor-time-minutes-v1.md`.
 
 ## 2026-06-11 — Cennik: poprawka otwierania formularza sposobów naliczania ceny v1
 
@@ -26,7 +39,7 @@ Zmiany:
 - tryby naliczania ceny, transport `kwota startowa + km`, stawki godzinowe w trybiku i logika WYCENY pozostają bez zmian,
 - dodano smoke test pilnujący, żeby formularz ceny usługi miał ten helper przed użyciem.
 
-Nie ruszano kosztów firmy, OpenRouteService, inwestora, `drawer.count`, automatów AGD, materiałów, okuć ani obliczeń robocizny. Cache-busting: `20260612_labor_gabaryt_label_v1`. Raport: `tools/reports/pricing-modes-form-price-fix-v1.md`.
+Nie ruszano kosztów firmy, OpenRouteService, inwestora, `drawer.count`, automatów AGD, materiałów, okuć ani obliczeń robocizny. Cache-busting: `20260612_pricing_modes_auto_tests_v1`. Raport: `tools/reports/pricing-modes-form-price-fix-v1.md`.
 
 ## 2026-06-11 — Sposoby naliczania ceny w cenniku v1
 
