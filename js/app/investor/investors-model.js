@@ -71,6 +71,28 @@
     };
   }
 
+  function normalizeCarrying(carrying){
+    const src = carrying && typeof carrying === 'object' ? carrying : {};
+    const elevator = src.elevator && typeof src.elevator === 'object' ? src.elevator : src;
+    const statusRaw = String(src.elevatorStatus || src.liftStatus || src.hasElevator || '').trim();
+    let elevatorStatus = '';
+    if(['yes','tak','true','1'].includes(statusRaw.toLowerCase())) elevatorStatus = 'yes';
+    else if(['no','nie','false','0'].includes(statusRaw.toLowerCase())) elevatorStatus = 'no';
+    const t = (v)=> String(v == null ? '' : v);
+    return {
+      floorNumber:t(src.floorNumber != null ? src.floorNumber : src.floor),
+      elevatorStatus,
+      elevator:{
+        doorWidthCm:t(elevator.doorWidthCm),
+        doorHeightCm:t(elevator.doorHeightCm),
+        cabinWidthCm:t(elevator.cabinWidthCm),
+        cabinDepthCm:t(elevator.cabinDepthCm),
+        cabinHeightCm:t(elevator.cabinHeightCm),
+        capacityKg:t(elevator.capacityKg != null ? elevator.capacityKg : elevator.liftCapacityKg)
+      },
+      note:t(src.note)
+    };
+  }
 
   function normalizeTransport(transport){
     try{
@@ -122,6 +144,7 @@
       rooms: Array.isArray(src.rooms) ? src.rooms.map(normalizeRoom) : [],
       addedDate: toDateInput(src.addedDate || src.createdDate, createdAt),
       transport: normalizeTransport(src.transport),
+      carrying: normalizeCarrying(src.carrying),
       createdAt,
       updatedAt,
       meta: normalizeMeta(src.meta),
@@ -179,6 +202,7 @@
     normalizeRoom,
     normalizeMeta,
     normalizeTransport,
+    normalizeCarrying,
     normalizeInvestor,
     appendUniqueRoom,
     inferRoomBaseType,

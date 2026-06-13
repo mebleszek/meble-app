@@ -375,9 +375,130 @@
       || sourceCode.indexOf('appliance.') === 0;
   }
 
+  function isCarryingAutomation(def){
+    const id = text(def && def.id);
+    const sourceCode = text(def && def.quantitySource);
+    return ['labor_carrying_cabinet','labor_carrying_disassembly'].includes(id)
+      || sourceCode.indexOf('carrying.') === 0;
+  }
+
+  function carryingEvaluation(entry){
+    try{
+      const api = FC.carryingLogistics || {};
+      if(api && typeof api.evaluateCabinet === 'function') return api.evaluateCabinet(entry && entry.roomId, entry && entry.cabinet || {});
+    }catch(_){ }
+    return null;
+  }
+  function carryingLineNote(ev){
+    if(!ev) return '';
+    const dims = ev.dimensionsCm || {};
+    const lift = ev.liftFits ? 'winda: korpus mieści się — liczony jako 2 poziomy' : ('schody/brak dopasowania windy: ' + text(ev.liftReason));
+    const orient = ev.liftOrientation && Array.isArray(ev.liftOrientation.doorPair)
+      ? `orientacja windy: ${ev.liftOrientation.doorPair.join(' × ')} cm przez drzwi, ${ev.liftOrientation.cabinDepth} cm w głąb kabiny`
+      : '';
+    return [
+      `Wymiary korpusu: ${num(dims.width, 0)} × ${num(dims.height, 0)} × ${num(dims.depth, 0)} cm`,
+      `Waga samego korpusu: ${Math.round((Number(ev.bodyWeightKg) || 0) * 10) / 10} kg`,
+      lift,
+      orient,
+      `Poziomy do naliczenia: ${Number(ev.floorUnits) || 0}`,
+      `Liczba pomocników: ${Number(ev.peopleCount) || 1}`,
+      ev.formula
+    ].filter(Boolean).join(' • ');
+  }
+  function addCarryingLabor(components, entry, defs, rates, volumeM3){
+    const cab = entry && entry.cabinet || {};
+    const ev = carryingEvaluation(entry);
+    if(!ev) return;
+    const carryingDef = findDefById(defs, 'labor_carrying_cabinet');
+    if(carryingDef && Number(ev.floorUnits) > 0){
+      const floorFact = factFor(entry, 'carrying.floor_units') || {};
+      const peopleFact = factFor(entry, 'carrying.people_count') || {};
+      const hourlyRate = Math.max(0, Number(rates && rates[carryingDef.rateType]) || 0);
+      const startHours = Math.max(0, Number(carryingDef.startHours) || 0.25);
+      const stepHours = Math.max(0, Number(carryingDef.stepHours) || 0.0833333333);
+      const quantityHours = startHours + ((Number(ev.floorUnits) || 0) * stepHours);
+      const multiplier = Math.max(1, Number(ev.peopleCount) || 1);
+      const pricedHours = quantityHours * multiplier;
+      const total = pricedHours * hourlyRate;
+      const calc = {
+        definition:carryingDef,
+        quantity:Number(ev.floorUnits) || 0,
+        volumeM3,
+        hourlyRate,
+        quantityHours,
+        volumeHours:0,
+        multiplier,
+        pricedHours,
+        laborPrice:total,
+        volumePrice:0,
+        fixedPrice:0,
+        startPrice:0,
+        unitPrice:0,
+        includedQty:0,
+        billableQty:Number(ev.floorUnits) || 0,
+        total
+      };
+      const warnings = Array.isArray(ev.warnings) ? ev.warnings.slice() : [];
+      const cmp = componentFromCalc(calc, {
+        suffix:'carrying_cabinet',
+        unit:'poziom',
+        name:text(carryingDef.name) || 'Wnoszenie korpusu',
+        note:carryingLineNote(ev),
+        sourceType:'carrying',
+        sourceLabel:cabinetSourceLabel(entry),
+        sourceId:text(cab && cab.id),
+        sourceRole:'carrying-labor',
+        sourceKind:'automatic',
+        quantitySource:'carrying.floor_units',
+        quantitySourceLabel:text(floorFact.label) || 'Poziomy wnoszenia korpusu',
+        quantitySourceValue:Number(ev.floorUnits) || 0,
+        quantitySourceDisplay:text(floorFact.displayValue) || `${Number(ev.floorUnits) || 0} poziom(y)`,
+        quantitySourceUsed:true,
+        warnings
+      });
+      if(cmp){
+        cmp.carrying = {
+          bodyWeightKg:ev.bodyWeightKg,
+          peopleCount:ev.peopleCount,
+          floorUnits:ev.floorUnits,
+          liftFits:ev.liftFits,
+          requiresDisassembly:ev.requiresDisassembly,
+          helperSourceDisplay:text(peopleFact.displayValue)
+        };
+        components.push(cmp);
+      }
+    }
+    if(ev.requiresDisassembly){
+      const disassemblyDef = findDefById(defs, 'labor_carrying_disassembly');
+      if(disassemblyDef){
+        const calc = calculate(disassemblyDef, { quantity:1, volumeM3, hourlyRates:rates });
+        const fact = factFor(entry, 'carrying.requires_disassembly') || {};
+        const cmp = componentFromCalc(calc, {
+          suffix:'carrying_disassembly',
+          unit:'kpl.',
+          name:text(disassemblyDef.name) || 'Rozkręcenie i ponowne skręcenie korpusu',
+          note:[carryingLineNote(ev), `Próg rozkręcenia: ${ev.disassemblyThresholdKg} kg dla wnoszenia po schodach w całości.`].filter(Boolean).join(' • '),
+          sourceType:'carrying',
+          sourceLabel:cabinetSourceLabel(entry),
+          sourceId:text(cab && cab.id),
+          sourceRole:'carrying-disassembly-labor',
+          sourceKind:'automatic',
+          quantitySource:'carrying.requires_disassembly',
+          quantitySourceLabel:text(fact.label) || 'Wymaga rozkręcenia do wnoszenia',
+          quantitySourceValue:1,
+          quantitySourceDisplay:text(fact.displayValue) || 'tak',
+          quantitySourceUsed:true,
+          warnings:Array.isArray(ev.warnings) ? ev.warnings.slice() : []
+        });
+        if(cmp) components.push(cmp);
+      }
+    }
+  }
+
   function autoQuantityDefs(defs){
-    const blocked = new Set(['labor_mount_front','labor_mount_hinge']);
-    return (Array.isArray(defs) ? defs : []).filter((def)=> def && def.active !== false && def.isHourlyRate !== true && text(def.quantitySource) && !blocked.has(text(def.id)) && !isApplianceAutomation(def));
+    const blocked = new Set(['labor_mount_front','labor_mount_hinge','labor_carrying_cabinet','labor_carrying_disassembly']);
+    return (Array.isArray(defs) ? defs : []).filter((def)=> def && def.active !== false && def.isHourlyRate !== true && text(def.quantitySource) && !blocked.has(text(def.id)) && !isApplianceAutomation(def) && !isCarryingAutomation(def));
   }
   function addGenericQuantitySourceLabor(components, entry, defs, rates, volumeM3){
     const cab = entry && entry.cabinet || {};
@@ -411,6 +532,7 @@
     const components = [];
     addFrontLabor(components, entry, defs, rates, volumeM3);
     addHingeLabor(components, entry, defs, rates, volumeM3);
+    addCarryingLabor(components, entry, defs, rates, volumeM3);
     addGenericQuantitySourceLabor(components, entry, defs, rates, volumeM3);
     const manual = Array.isArray(cab && cab.laborItems) ? cab.laborItems : [];
     manual.forEach((item, idx)=>{

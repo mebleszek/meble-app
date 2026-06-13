@@ -199,12 +199,52 @@
     return { appliance, qty:match ? 1 : 0 };
   }
 
+  function carryingEvaluation(roomId, cabinet){
+    try{
+      const api = FC.carryingLogistics || {};
+      if(api && typeof api.evaluateCabinet === 'function') return api.evaluateCabinet(roomId, cabinet || {});
+    }catch(_){ }
+    return null;
+  }
+  function carryingDisplay(ev){
+    try{
+      const api = FC.carryingLogistics || {};
+      if(api && typeof api.labelForEvaluation === 'function') return api.labelForEvaluation(ev || {});
+    }catch(_){ }
+    return '';
+  }
+
   const FACT_CALCULATORS = {
     'cabinet.count':(roomId, cabinet)=> makeFact('cabinet.count', cabinet && typeof cabinet === 'object' ? 1 : 0, { displayValue:cabinet ? '1' : '0', source:'typ szafki' }),
     'cabinet.width_mm':(roomId, cabinet)=> makeFact('cabinet.width_mm', mmFromCmLike(cabinet && cabinet.width), { displayValue:`${mmFromCmLike(cabinet && cabinet.width)} mm`, source:'pole szerokości' }),
     'cabinet.height_mm':(roomId, cabinet)=> makeFact('cabinet.height_mm', mmFromCmLike(cabinet && cabinet.height), { displayValue:`${mmFromCmLike(cabinet && cabinet.height)} mm`, source:'pole wysokości' }),
     'cabinet.depth_mm':(roomId, cabinet)=> makeFact('cabinet.depth_mm', mmFromCmLike(cabinet && cabinet.depth), { displayValue:`${mmFromCmLike(cabinet && cabinet.depth)} mm`, source:'pole głębokości' }),
     'cabinet.volume_m3':(roomId, cabinet)=> makeFact('cabinet.volume_m3', volumeM3(cabinet), { displayValue:`${volumeM3(cabinet).toFixed(4)} m³`, source:'wymiary korpusu' }),
+    'cabinet.weight_kg':(roomId, cabinet)=> {
+      const ev = carryingEvaluation(roomId, cabinet);
+      const kg = ev ? Number(ev.bodyWeightKg) || 0 : 0;
+      return makeFact('cabinet.weight_kg', kg, { hasValue:kg > 0, displayValue:`${round(kg, 1)} kg`, source:'formatki korpusu', warning:ev && ev.warnings && ev.warnings.length ? ev.warnings.join(' • ') : '' });
+    },
+    'carrying.floor_units':(roomId, cabinet)=> {
+      const ev = carryingEvaluation(roomId, cabinet);
+      const value = ev ? Number(ev.floorUnits) || 0 : 0;
+      return makeFact('carrying.floor_units', value, { hasValue:value > 0, displayValue:`${value} poziom(y)`, source:carryingDisplay(ev) || 'dane inwestora + winda' });
+    },
+    'carrying.people_count':(roomId, cabinet)=> {
+      const ev = carryingEvaluation(roomId, cabinet);
+      const value = ev ? Number(ev.peopleCount) || 0 : 0;
+      return makeFact('carrying.people_count', value, { hasValue:value > 0, displayValue:`${value} os.`, source:ev ? `${round(ev.bodyWeightKg, 1)} kg korpusu` : 'waga korpusu' });
+    },
+    'carrying.requires_disassembly':(roomId, cabinet)=> {
+      const ev = carryingEvaluation(roomId, cabinet);
+      const value = ev && ev.requiresDisassembly ? 1 : 0;
+      return makeFact('carrying.requires_disassembly', value, { displayValue:value ? 'tak' : 'nie', source:ev ? carryingDisplay(ev) : 'waga/winda/piętro' });
+    },
+    'carrying.lift_fits':(roomId, cabinet)=> {
+      const ev = carryingEvaluation(roomId, cabinet);
+      const value = ev && ev.liftFits ? 1 : 0;
+      return makeFact('carrying.lift_fits', value, { displayValue:value ? 'tak' : 'nie', source:ev ? ev.liftReason : 'wymiary windy' });
+    },
     'cabinet.zone':(roomId, cabinet)=> makeFact('cabinet.zone', cabinetZone(cabinet), { source:'typ szafki' }),
     'cabinet.kind':(roomId, cabinet)=> makeFact('cabinet.kind', cabinetKind(cabinet), { source:'typ i wariant szafki' }),
     'front.count':(roomId, cabinet, cache)=> {
@@ -342,6 +382,6 @@
     getCabinetFact,
     buildCabinetFactMap,
     getRawCabinetFactValues,
-    _debug:{ clone, volumeM3, frontAreaM2, shelfCount, drawerCount, getDrawerRows }
+    _debug:{ clone, volumeM3, frontAreaM2, shelfCount, drawerCount, getDrawerRows, carryingEvaluation }
   };
 })();

@@ -80,6 +80,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/pricing/labor-catalog-definitions.js",
       "js/app/pricing/labor-catalog.js",
       "js/app/pricing/work-quantity-sources.js",
+      "js/app/pricing/carrying-logistics.js",
       "js/app/pricing/labor-appliance-rules.js",
       "js/app/service/service-order-store.js",
       "js/app/catalog/catalog-store.js",
@@ -104,6 +105,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/investor/investor-rooms.js",
       "js/app/investor/openrouteservice-transport.js",
       "js/app/investor/investor-transport.js",
+      "js/app/investor/investor-carrying.js",
       "js/app/investor/investor-ui-render.js",
       "js/app/investor/investor-ui-status-flow.js",
       "js/app/investor/investor-ui.js"

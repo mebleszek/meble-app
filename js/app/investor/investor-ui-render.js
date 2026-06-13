@@ -167,6 +167,7 @@
       : fields.buildStaticLabel('Email');
     const bottomButtons = actionsApi ? actionsApi.buildActionBarHtml({ isEditing, dirty }) : '';
     const transportPanel = (FC.investorTransport && typeof FC.investorTransport.renderPanel === 'function') ? FC.investorTransport.renderPanel(inv, draft, isEditing) : '';
+    const carryingPanel = (FC.investorCarrying && typeof FC.investorCarrying.renderPanel === 'function') ? FC.investorCarrying.renderPanel(inv, draft, isEditing) : '';
 
     const projectCards = roomUi() && typeof roomUi().buildProjectCards === 'function'
       ? roomUi().buildProjectCards(inv, isEditing, PROJECT_STATUS_OPTIONS)
@@ -190,6 +191,7 @@
         </div>
 
         ${transportPanel}
+        ${carryingPanel}
 
         <div class="investor-bottom-actions" id="investorActionBar">${bottomButtons}</div>
         <div class="investor-action-divider" aria-hidden="true"></div>

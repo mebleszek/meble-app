@@ -23,6 +23,25 @@
     const text = normalizeText(value).trim();
     return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : '';
   }
+  function normalizeCarrying(value){
+    try{ if(FC.investorCarrying && typeof FC.investorCarrying.normalizeCarrying === 'function') return FC.investorCarrying.normalizeCarrying(value); }catch(_){ }
+    const src = value && typeof value === 'object' ? value : {};
+    const elevator = src.elevator && typeof src.elevator === 'object' ? src.elevator : {};
+    const t = (v)=> normalizeText(v);
+    return {
+      floorNumber:t(src.floorNumber),
+      elevatorStatus:['yes','no'].includes(t(src.elevatorStatus)) ? t(src.elevatorStatus) : '',
+      elevator:{
+        doorWidthCm:t(elevator.doorWidthCm),
+        doorHeightCm:t(elevator.doorHeightCm),
+        cabinWidthCm:t(elevator.cabinWidthCm),
+        cabinDepthCm:t(elevator.cabinDepthCm),
+        cabinHeightCm:t(elevator.cabinHeightCm),
+        capacityKg:t(elevator.capacityKg)
+      },
+      note:t(src.note)
+    };
+  }
 
   function normalizeTransport(value){
     try{ if(FC.investorTransport && typeof FC.investorTransport.normalizeTransport === 'function') return FC.investorTransport.normalizeTransport(value); }catch(_){ }
@@ -66,6 +85,7 @@
       notes: normalizeText(investor.notes),
       addedDate: normalizeDate(investor.addedDate),
       transport: normalizeTransport(investor.transport),
+      carrying: normalizeCarrying(investor.carrying),
     };
   }
 
@@ -84,6 +104,7 @@
       notes: normalizeText(draft && draft.notes),
       addedDate: normalizeDate(draft && draft.addedDate),
       transport: normalizeTransport(draft && draft.transport),
+      carrying: normalizeCarrying(draft && draft.carrying),
     });
   }
 
@@ -172,6 +193,21 @@
     return clone(state.draft);
   }
 
+  function setCarryingField(key, value){
+    if(!state.draft) state.draft = {};
+    state.draft.carrying = normalizeCarrying(state.draft.carrying);
+    if(key === 'elevatorStatus'){
+      state.draft.carrying.elevatorStatus = normalizeText(value) === 'yes' ? 'yes' : 'no';
+    }else if(key === 'floorNumber' || key === 'note'){
+      state.draft.carrying[key] = normalizeText(value);
+    }else{
+      state.draft.carrying.elevator = state.draft.carrying.elevator || {};
+      state.draft.carrying.elevator[key] = normalizeText(value);
+    }
+    syncDirty();
+    return clone(state.draft);
+  }
+
   function buildPatchFromDraft(draft){
     const d = draft || {};
     const isCompany = d.kind === 'company';
@@ -189,6 +225,7 @@
       notes: normalizeText(d.notes),
       addedDate: normalizeDate(d.addedDate),
       transport: normalizeTransport(d.transport),
+      carrying: normalizeCarrying(d.carrying),
     };
   }
 
@@ -215,6 +252,7 @@
     exit,
     setField,
     setTransportField,
+    setCarryingField,
     getDraft,
     commit,
     hasUiLock,

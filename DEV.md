@@ -1,3 +1,22 @@
+## 2026-06-13 — Wnoszenie i winda v1
+
+Paczka `site_carrying_lift_logistics_v1.zip` dodaje wewnętrzne liczenie wnoszenia korpusów jako część robocizny/logistyki, bez przebudowy ORS, transportu, oferty klienta, PDF, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek.
+
+Zmiany:
+- dodano moduł `FC.carryingLogistics` w `js/app/pricing/carrying-logistics.js`, który liczy dla konkretnej szafki wagę samego korpusu, dopasowanie do windy, poziomy do wniesienia, liczbę pomocników i ewentualne rozkręcenie,
+- dodano moduł `FC.investorCarrying` w `js/app/investor/investor-carrying.js`, który renderuje sekcję **Dostawa / wnoszenie** w Inwestorze,
+- model inwestora dostał pole `carrying` z piętrem, statusem windy, wymiarami drzwi/kabiny, udźwigiem i notatką,
+- UI windy używa dwóch przycisków aplikacji: **Jest winda** / **Brak windy**; pola wymiarów windy są aktywne tylko przy opcji **Jest winda**,
+- dodano fakty robocizny: `cabinet.weight_kg`, `carrying.floor_units`, `carrying.people_count`, `carrying.requires_disassembly`, `carrying.lift_fits`,
+- w katalogu robocizny/usług dodano dwie pozycje: `labor_carrying_cabinet` i `labor_carrying_disassembly`,
+- WYCENA/CZYNNOŚCI dodają automatycznie wnoszenie korpusu: `15 min + 5 min × poziomy`, liczone stawką pomocnika i mnożone przez liczbę pomocników,
+- rozkręcenie i ponowne skręcenie to osobna pozycja: `1 h × stawka montażowa`, aktywna przy zbyt ciężkim korpusie na schody,
+- waga decyzyjna dotyczy wyłącznie korpusu, bez frontów, półek luźnych, blend, cokołów i okuć,
+- dopasowanie windy sprawdza orientacje: para wymiarów przez drzwi, trzeci wymiar w głąb kabiny, plus szerokość/wysokość kabiny jeśli podane,
+- dodano test `tools/carrying-lift-logistics-smoke.js`.
+
+Reguły v1: do 20 kg = 1 pomocnik, powyżej 20 kg = 2 pomocników, powyżej 45 kg na schodach = rozkręcenie/składanie. Cache-busting: `20260613_carrying_lift_logistics_v1`. Raport: `tools/reports/carrying-lift-logistics-v1.md`.
+
 ## 2026-06-13 — ORS geocoding guard v1
 
 Paczka `site_ors_geocoding_guard_v1.zip` poprawia automatyczny wybór adresu z OpenRouteService bez dodawania ręcznego wyboru wielu kandydatów. Problem zgłoszony w praktyce: program potrafił zaakceptować pierwszy wynik ORS z inną miejscowością, np. `Krzemieniecka 2, Koluszki`, mimo że inwestor miał miejscowość `Łódź`.

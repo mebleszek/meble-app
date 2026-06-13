@@ -1,3 +1,13 @@
+## 2026-06-13 — Wnoszenie i winda v1
+
+- Dodano w Inwestorze sekcję **Dostawa / wnoszenie**: piętro, winda tak/nie oraz wymiary windy.
+- WYCENA/CZYNNOŚCI liczą automatycznie wnoszenie korpusów na podstawie danych inwestora, wymiarów korpusu i wagi samego korpusu.
+- Cennik robocizny/usług ma dwie osobne pozycje: **Wnoszenie korpusu** oraz **Rozkręcenie i ponowne skręcenie korpusu**.
+- Wnoszenie liczy się według: `15 min + 5 min × poziomy`, stawką pomocnika, z mnożnikiem 1 albo 2 pomocników zależnie od wagi korpusu.
+- Korpus powyżej 45 kg na schodach dostaje dodatkową pozycję rozkręcenia/składania: `1 h × stawka montażowa`.
+- Szczegóły są wewnętrzne i widoczne w **CZYNNOŚCI → Czynności szafek** oraz w audycie WYCENY.
+- Nie przebudowano oferty klienta ani PDF. Cache-busting: `20260613_carrying_lift_logistics_v1`.
+
 ## 2026-06-13 — ORS: zabezpieczenie geokodowania miejscowości
 
 - Automatyczne liczenie trasy OpenRouteService nie bierze już ślepo pierwszego wyniku geokodowania.

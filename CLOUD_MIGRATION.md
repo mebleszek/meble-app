@@ -1,3 +1,11 @@
+## 2026-06-13 — Wnoszenie i winda v1
+
+- Dodano pole `investor.carrying` w rekordzie inwestora. Dane są częścią inwestora, a nie osobnym storage: `floorNumber`, `elevatorStatus`, `elevator.doorWidthCm`, `elevator.doorHeightCm`, `elevator.cabinWidthCm`, `elevator.cabinDepthCm`, `elevator.cabinHeightCm`, `elevator.capacityKg`, `note`.
+- Fakty logistyczne (`cabinet.weight_kg`, `carrying.floor_units`, `carrying.people_count`, `carrying.requires_disassembly`, `carrying.lift_fits`) są wyliczane na żądanie z danych inwestora i szafki. Nie są drugą prawdą zapisaną w projekcie.
+- Waga korpusu powstaje z centralnej listy formatek korpusu; fronty, półki luźne, blendy, cokoły i okucia są pomijane przy decyzji logistycznej.
+- Snapshot WYCENY powinien przechowywać wynikowe linie robocizny i audyt wnoszenia, tak aby późniejsza zmiana piętra/windy/cennika nie zmieniała starych ofert.
+- W przyszłej chmurze `investor.carrying` należy migrować razem z dokumentem inwestora. Kalkulator wnoszenia pozostaje deterministycznym read-only helperem aplikacji.
+
 ## 2026-06-13 — ORS: walidacja geokodowania miejscowości
 
 - Nie dodano nowego trwałego klucza `localStorage`; dodatkowe metadane geokodowania są częścią istniejącego `investor.transport`.

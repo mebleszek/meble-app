@@ -188,7 +188,7 @@
 
     const topActions = document.getElementById('investorActionBar');
     const kindSelect = document.getElementById('invKind');
-    const fieldIds = ['invName','invPhone','invCity','invEmail','invAddress','invOwnerName','invSource','invNip','invNotes','invAddedDate','invTransportDistanceKm','invTransportDurationMin','invTransportNote'];
+    const fieldIds = ['invName','invPhone','invCity','invEmail','invAddress','invOwnerName','invSource','invNip','invNotes','invAddedDate','invTransportDistanceKm','invTransportDurationMin','invTransportNote','invCarryingFloorNumber','invCarryingDoorWidthCm','invCarryingDoorHeightCm','invCarryingCabinWidthCm','invCarryingCabinDepthCm','invCarryingCabinHeightCm','invCarryingCapacityKg','invCarryingNote'];
     const fields = fieldIds.reduce((acc, id)=> { acc[id] = document.getElementById(id); return acc; }, {});
 
     function currentInvestor(){
@@ -348,6 +348,10 @@
 
     try{
       if(FC.investorTransport && typeof FC.investorTransport.bindPanel === 'function') FC.investorTransport.bindPanel(root, { editorApi, getCurrentInvestor:currentInvestor, onDirty:refreshActionBar, render });
+    }catch(_){ }
+
+    try{
+      if(FC.investorCarrying && typeof FC.investorCarrying.bindPanel === 'function') FC.investorCarrying.bindPanel(root, { editorApi, getCurrentInvestor:currentInvestor, onDirty:refreshActionBar, render });
     }catch(_){ }
 
     refreshActionBar();
