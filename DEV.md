@@ -1,3 +1,14 @@
+## 2026-06-13 — Test migracji katalogów: usługi legacy w stawkach v1
+
+Paczka `site_catalog_migration_test_fix_v1.zip` poprawia fałszywie negatywny test przeglądarkowy `Katalogi rozdzielają legacy materiały, akcesoria i stawki meblowe`.
+
+Zmiany:
+- poprawiono asercję w `js/testing/project/tests.js`: legacy usługa `s_rate` ma być obecna w `quoteRates`, ale nie musi być pierwszym rekordem, bo cennik robocizny automatycznie dokłada systemowe stawki godzinowe na początku listy,
+- test sprawdza teraz właściwy kontrakt danych: legacy usługa trafia do `quoteRates` jako zwykła pozycja cennika (`isHourlyRate !== true`), a nie do materiałów ani akcesoriów,
+- dodano `tools/catalog-migration-test-fix-smoke.js`, który odtwarza ten sam przypadek bez przeglądarki i pilnuje, że usługa może być dalej na liście po systemowych stawkach godzinowych,
+- nie zmieniono migracji danych użytkownika, katalogów, WYCENY, ORS ani modelu oferty klienta,
+- podbito cache-busting do `20260613_catalog_migration_test_fix_v1`.
+
 ## 2026-06-13 — Zamrożony model oferty klienta v2
 
 Paczka `site_client_offer_model_v2.zip` normalizuje podgląd oferty klienta bez przebudowy WYCENY i bez ruszania PDF. Oferta klienta ma teraz własny zamrożony model `snapshot.clientOffer`, budowany przy tworzeniu snapshotu WYCENY.
@@ -12,7 +23,7 @@ Zmiany:
 - warunki handlowe z WYCENY (`deliveryTerms`, `customerNote`) trafiają do sekcji „Warunki i ustalenia”,
 - PDF nadal nie jest przebudowywany; przyszły PDF ma korzystać z tego samego `snapshot.clientOffer`.
 
-Nie przebudowano WYCENY, trybów naliczania, PCV, ORS, transportu, kosztów firmy, stawek godzinowych, `drawer.count`, automatów AGD, wymagań technicznych szafek, materiałów ani okuć. Cache-busting: `20260613_client_offer_model_v2`. Raport: `tools/reports/client-offer-model-v2.md`.
+Nie przebudowano WYCENY, trybów naliczania, PCV, ORS, transportu, kosztów firmy, stawek godzinowych, `drawer.count`, automatów AGD, wymagań technicznych szafek, materiałów ani okuć. Cache-busting: `20260613_catalog_migration_test_fix_v1`. Raport: `tools/reports/client-offer-model-v2.md`.
 
 ## 2026-06-13 — Diagnostyka trasy OpenRouteService v1
 

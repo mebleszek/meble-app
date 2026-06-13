@@ -581,7 +581,9 @@
           const migratedAccessories = Array.isArray(migrated.accessories) ? migrated.accessories : [];
           H.assert(migratedAccessories.some((row)=> String((row && row.id) || '') === 'm_acc'), 'Migracja nie wydzieliła akcesorium z legacy materials', migrated);
           H.assert(!migratedAccessories.some((row)=> String((row && row.materialType) || '').trim().toLowerCase() === 'akcesoria'), 'Akcesorium po migracji nadal ma typ materiału arkuszowego', migratedAccessories);
-          H.assert(Array.isArray(migrated.quoteRates) && migrated.quoteRates[0] && migrated.quoteRates[0].name === 'Stawka montażowa', 'Migracja nie przeniosła usług do stawek wyceny mebli', migrated);
+          const migratedQuoteRates = Array.isArray(migrated.quoteRates) ? migrated.quoteRates : [];
+          const legacyRate = migratedQuoteRates.find((row)=> String((row && row.id) || '') === 's_rate');
+          H.assert(!!legacyRate && legacyRate.name === 'Stawka montażowa' && legacyRate.category === 'Montaż' && legacyRate.isHourlyRate !== true, 'Migracja nie przeniosła legacy usługi do stawek wyceny mebli', { legacyRate, quoteRates:migratedQuoteRates });
         } finally {
           const restore = (key, value)=> value == null ? localStorage.removeItem(key) : localStorage.setItem(key, value);
           restore(keys.materials, prevMaterials);

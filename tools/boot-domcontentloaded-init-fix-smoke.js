@@ -15,7 +15,7 @@ assert(boot.includes("document.addEventListener('DOMContentLoaded', boot"), 'boo
 assert(boot.includes('if(!loadSeen) return false'), 'brak init nie może być raportowany przed window.load');
 assert(boot.includes('Date.now() - loadAt >= BOOT_MISSING_INIT_TIMEOUT_MS + BOOT_MISSING_INIT_LOAD_GRACE_MS'), 'timeout braku init ma liczyć od loadAt');
 assert(!boot.includes("if (document.readyState === 'loading')"), 'nie wolno wrócić do startu boot() już przy readyState interactive');
-assert(index.includes('js/boot.js?v=20260613_client_offer_model_v2'), 'index.html powinien mieć podbity cache-busting boot.js');
+assert(index.includes('js/boot.js?v=20260613_catalog_migration_test_fix_v1'), 'index.html powinien mieć podbity cache-busting boot.js');
 assert(!index.includes('20260611_transport_catalog_quote_fix_v1'), 'index.html nie powinien zawierać starego cache-bustingu');
 
 if(errors.length){

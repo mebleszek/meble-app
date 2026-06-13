@@ -1,3 +1,9 @@
+## 2026-06-13 — Test migracji katalogów: usługi legacy w stawkach
+
+- Nie dodano nowego klucza `localStorage` i nie zmieniono modelu danych.
+- Poprawka dotyczy wyłącznie testu przeglądarkowego: legacy usługi są weryfikowane po obecności w `quoteRates`, a nie po pozycji `quoteRates[0]`.
+- To jest zgodne z kierunkiem cloud-ready, bo `quoteRates` zawiera także systemowe definicje stawek godzinowych i kolejność rekordów nie może być kontraktem migracji.
+
 ## 2026-06-13 — OpenRouteService: diagnostyka geokodowania i trasy
 
 - Dane diagnostyczne ORS są częścią istniejącego `investor.transport`, a nie osobnym localStorage: `originGeocode`, `destinationGeocode`, `routeDistanceMeters`, `routeDurationSeconds`, `orsMapsUrl`.
