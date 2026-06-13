@@ -1,5 +1,5 @@
 // js/app/investor/investor-transport.js
-// Panel dojazdu/transportu przy inwestorze + opcjonalne przeliczenie OpenRouteService.
+// Panel dojazdu/transportu przy inwestorze. Ręczne km + przeliczenie ORS po kliknięciu.
 
 (function(){
   'use strict';
@@ -13,7 +13,7 @@
     return Number.isFinite(n) ? n : (Number.isFinite(fallback) ? fallback : 0);
   }
   function esc(value){
-    return text(value).replace(/[&<>"]/g, (ch)=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch] || ch));
+    return text(value).replace(/[&<>"']/g, (ch)=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch] || ch));
   }
   function formatKm(value){
     const n = num(value, 0);
@@ -25,18 +25,25 @@
   }
   function normalizeTransport(input){
     const src = input && typeof input === 'object' ? input : {};
+    const status = text(src.status || '') || (text(src.source || '') ? (text(src.source || '').toLowerCase().includes('openroute') ? 'success' : 'manual') : '');
     return {
       distanceKm:src.distanceKm === '' || src.distanceKm == null ? '' : String(src.distanceKm),
       durationMin:src.durationMin === '' || src.durationMin == null ? '' : String(src.durationMin),
       source:text(src.source || ''),
       provider:text(src.provider || ''),
+      status,
       calculatedAt:text(src.calculatedAt || ''),
       origin:text(src.origin || ''),
       destination:text(src.destination || ''),
+      routeProfile:text(src.routeProfile || ''),
+      originHash:text(src.originHash || ''),
+      destinationHash:text(src.destinationHash || ''),
+      addressHash:text(src.addressHash || src.routeAddressHash || ''),
       note:text(src.note || ''),
       lastError:text(src.lastError || '')
     };
   }
+  function ors(){ return FC.openRouteServiceTransport || null; }
   function companyProfile(){
     try{ return FC.companyProfile && typeof FC.companyProfile.read === 'function' ? FC.companyProfile.read() : null; }catch(_){ return null; }
   }
@@ -66,25 +73,59 @@
     const params = new URLSearchParams({ api:'1', origin, destination:dest, travelmode:'driving' });
     return 'https://www.google.com/maps/dir/?' + params.toString();
   }
+  function statusLabel(transport, origin, destination){
+    const service = ors();
+    const stale = service && typeof service.isResultStale === 'function' ? service.isResultStale(transport, origin, destination) : false;
+    if(service && typeof service.resultStatusLabel === 'function') return service.resultStatusLabel(transport && transport.status, stale);
+    if(stale) return 'wynik może być nieaktualny';
+    return text(transport && transport.status) || 'ręcznie';
+  }
+  function isStale(transport, origin, destination){
+    const service = ors();
+    return !!(service && typeof service.isResultStale === 'function' && service.isResultStale(transport, origin, destination));
+  }
+  function showInfo(title, message){
+    try{
+      if(FC.infoBox && typeof FC.infoBox.open === 'function') return FC.infoBox.open({ title, message });
+    }catch(_){ }
+    try{ console.info(title + ': ' + message); }catch(_){ }
+    return null;
+  }
+  function saveTransport(investor, transport){
+    const patch = { transport:normalizeTransport(transport) };
+    try{
+      if(FC.investorPersistence && typeof FC.investorPersistence.saveInvestorPatch === 'function') return FC.investorPersistence.saveInvestorPatch(investor.id, patch);
+    }catch(_){ }
+    return false;
+  }
+  function updateTransportError(investor, status, message){
+    const prev = normalizeTransport(investor && investor.transport);
+    const next = normalizeTransport(Object.assign({}, prev, { status:text(status || 'error') || 'error', lastError:text(message) }));
+    saveTransport(investor, next);
+    return next;
+  }
 
   function renderPanel(inv, draft, isEditing){
     const source = isEditing ? (draft || {}) : (inv || {});
     const t = normalizeTransport((isEditing ? source.transport : (inv && inv.transport)) || {});
     const company = companyProfile();
-    const apiConfigured = !!(company && company.transport && text(company.transport.apiKey));
     const distance = num(t.distanceKm, 0);
     const billable = distance > 0 ? billableKm(distance) : 0;
+    const companyAddr = companyAddress();
+    const clientAddr = investorAddress(source);
+    const stale = isStale(t, companyAddr, clientAddr);
     const modeLabel = FC.companyProfile && typeof FC.companyProfile.billingModeLabel === 'function'
       ? FC.companyProfile.billingModeLabel(company && company.transport && company.transport.billingMode)
       : 'tam i z powrotem';
-    const disabledCalc = isEditing || !apiConfigured ? ' disabled' : '';
-    const calcTitle = isEditing ? 'Zapisz dane inwestora przed przeliczeniem trasy.' : (!apiConfigured ? 'Wpisz klucz API OpenRouteService w trybiku.' : 'Przelicz trasę OpenRouteService');
+    const calcTitle = isEditing ? 'Zapisz dane inwestora przed przeliczeniem trasy.' : 'Przelicz trasę OpenRouteService';
     const attribution = company && company.transport ? text(company.transport.attribution) : '';
+    const savedRoute = t.origin || t.destination ? `${t.origin || '—'} → ${t.destination || '—'}` : '';
+    const status = statusLabel(t, companyAddr, clientAddr);
     return `
       <details class="investor-transport-accordion" open>
         <summary class="investor-transport-accordion__summary">
           <span class="investor-transport-accordion__title">Dojazd / transport</span>
-          <span class="investor-transport-accordion__sub">${esc(formatKm(billable))} do wyceny</span>
+          <span class="investor-transport-accordion__sub${stale ? ' investor-transport-accordion__sub--warning' : ''}">${esc(formatKm(billable))} do wyceny</span>
           <span class="investor-transport-accordion__toggle" aria-hidden="true"></span>
         </summary>
         <div class="investor-transport-accordion__body">
@@ -93,6 +134,7 @@
             <div><span>Kilometry do wyceny</span><strong>${esc(formatKm(billable))}</strong><small>${esc(modeLabel)}</small></div>
             <div><span>Czas dojazdu</span><strong>${esc(formatMin(t.durationMin))}</strong></div>
             <div><span>Źródło</span><strong>${esc(t.source || 'ręcznie')}</strong><small>${esc(t.provider || '')}</small></div>
+            <div><span>Status</span><strong>${esc(status)}</strong><small>${esc(t.routeProfile || '')}</small></div>
           </div>
           ${isEditing ? `
             <div class="investor-transport-edit-grid">
@@ -101,51 +143,22 @@
               <label class="investor-transport-note-field"><span>Notatka transportu</span><textarea id="invTransportNote">${esc(t.note)}</textarea></label>
             </div>` : ''}
           <div class="investor-transport-meta">
-            <div><strong>Adres firmy:</strong> ${esc(companyAddress() || 'brak w trybiku')}</div>
-            <div><strong>Adres klienta:</strong> ${esc(investorAddress(source) || 'brak adresu inwestora')}</div>
+            <div><strong>Adres firmy:</strong> ${esc(companyAddr || 'brak w trybiku')}</div>
+            <div><strong>Adres klienta:</strong> ${esc(clientAddr || 'brak adresu inwestora')}</div>
             <div><strong>Ostatnie przeliczenie:</strong> ${esc(dateLabel(t.calculatedAt))}</div>
+            ${savedRoute ? `<div><strong>Wynik liczony dla:</strong> ${esc(savedRoute)}</div>` : ''}
+            ${stale ? `<div class="investor-transport-warning"><strong>Uwaga:</strong> adres firmy albo klienta zmienił się po ostatnim przeliczeniu. Kliknij „Przelicz trasę”, żeby odświeżyć km.</div>` : ''}
             ${t.note ? `<div><strong>Notatka:</strong> ${esc(t.note)}</div>` : ''}
             ${t.lastError ? `<div class="investor-transport-error"><strong>Błąd:</strong> ${esc(t.lastError)}</div>` : ''}
             ${attribution ? `<div class="investor-transport-attribution">${esc(attribution)}</div>` : ''}
           </div>
           <div class="investor-transport-actions">
             <button class="btn btn-primary" type="button" data-investor-transport-action="open-maps">Otwórz trasę w mapach</button>
-            <button class="btn btn-success" type="button" data-investor-transport-action="calculate-ors" title="${esc(calcTitle)}"${disabledCalc}>Przelicz trasę</button>
+            <button class="btn btn-success" type="button" data-investor-transport-action="calculate-ors" title="${esc(calcTitle)}">Przelicz trasę</button>
           </div>
         </div>
       </details>
     `;
-  }
-
-  async function geocode(query, apiKey){
-    const url = 'https://api.openrouteservice.org/geocode/search?' + new URLSearchParams({ text:query, size:'1' }).toString();
-    const res = await fetch(url, { headers:{ Authorization:apiKey } });
-    if(!res.ok) throw new Error('Nie udało się odczytać adresu: ' + res.status);
-    const json = await res.json();
-    const coords = json && json.features && json.features[0] && json.features[0].geometry && json.features[0].geometry.coordinates;
-    if(!Array.isArray(coords) || coords.length < 2) throw new Error('Nie znaleziono adresu: ' + query);
-    return coords;
-  }
-
-  async function route(originCoords, destCoords, apiKey, profile){
-    const res = await fetch('https://api.openrouteservice.org/v2/directions/' + encodeURIComponent(profile || 'driving-car'), {
-      method:'POST',
-      headers:{ Authorization:apiKey, 'Content-Type':'application/json' },
-      body:JSON.stringify({ coordinates:[originCoords, destCoords] })
-    });
-    if(!res.ok) throw new Error('Nie udało się przeliczyć trasy: ' + res.status);
-    const json = await res.json();
-    const summary = json && json.routes && json.routes[0] && json.routes[0].summary;
-    if(!summary) throw new Error('OpenRouteService nie zwrócił podsumowania trasy.');
-    return { distanceKm:Math.round(num(summary.distance, 0) / 100) / 10, durationMin:Math.round(num(summary.duration, 0) / 60) };
-  }
-
-  function saveTransport(investor, transport){
-    const patch = { transport:normalizeTransport(transport) };
-    try{
-      if(FC.investorPersistence && typeof FC.investorPersistence.saveInvestorPatch === 'function') return FC.investorPersistence.saveInvestorPatch(investor.id, patch);
-    }catch(_){ }
-    return false;
   }
 
   function bindPanel(rootEl, ctx){
@@ -175,35 +188,47 @@
     rootNode.querySelectorAll('[data-investor-transport-action="calculate-ors"]').forEach((btn)=>{
       btn.addEventListener('click', async ()=>{
         if(btn.disabled) return;
+        if(editorApi && editorApi.state && editorApi.state.isEditing){
+          showInfo('Najpierw zapisz inwestora', 'Przeliczenie trasy zapisuje wynik przy inwestorze. Zapisz zmiany adresu, a potem kliknij „Przelicz trasę”.');
+          return;
+        }
         const profile = companyProfile();
         const apiKey = profile && profile.transport && text(profile.transport.apiKey);
         const origin = companyAddress();
-        const dest = investorAddress(investor);
-        if(!apiKey || !origin || !dest) return;
+        const destination = investorAddress(investor);
+        const service = ors();
+        if(!(service && typeof service.calculateRoute === 'function')){
+          showInfo('Nie udało się przeliczyć trasy', 'Brakuje modułu OpenRouteService. Wpisz kilometry ręcznie i zgłoś ten błąd.');
+          return;
+        }
+        const validation = typeof service.validateRouteInput === 'function' ? service.validateRouteInput({ apiKey, origin, destination }) : { ok:true };
+        if(!validation.ok){
+          updateTransportError(investor, validation.status, validation.message);
+          showInfo('Nie udało się przeliczyć trasy', validation.message);
+          if(typeof ctx.render === 'function') ctx.render();
+          return;
+        }
         const oldText = btn.textContent;
         btn.disabled = true;
         btn.textContent = 'Liczenie...';
         try{
-          const originCoords = await geocode(origin, apiKey);
-          const destCoords = await geocode(dest, apiKey);
-          const result = await route(originCoords, destCoords, apiKey, profile.transport.profile);
-          const next = normalizeTransport(Object.assign({}, investor.transport || {}, {
-            distanceKm:String(result.distanceKm),
-            durationMin:String(result.durationMin),
-            source:'OpenRouteService',
-            provider:'openrouteservice',
-            calculatedAt:new Date().toISOString(),
+          const result = await service.calculateRoute({
+            apiKey,
             origin,
-            destination:dest,
-            lastError:''
+            destination,
+            profile:profile && profile.transport && profile.transport.profile
+          });
+          const next = normalizeTransport(Object.assign({}, investor.transport || {}, result, {
+            distanceKm:String(result.distanceKm),
+            durationMin:String(result.durationMin)
           }));
           saveTransport(investor, next);
-          if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Trasa przeliczona', message:'Zapisano ' + formatKm(result.distanceKm) + ' w jedną stronę.' });
+          showInfo('Trasa przeliczona', 'Zapisano ' + formatKm(result.distanceKm) + ' w jedną stronę. Do wyceny trafi ' + formatKm(billableKm(result.distanceKm)) + '.');
           if(typeof ctx.render === 'function') ctx.render();
         }catch(err){
-          const next = normalizeTransport(Object.assign({}, investor.transport || {}, { lastError:text(err && err.message || err) }));
-          saveTransport(investor, next);
-          if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Nie udało się przeliczyć trasy', message:next.lastError });
+          const message = text(err && err.message || err) || 'Nieznany błąd OpenRouteService.';
+          updateTransportError(investor, text(err && err.status) || 'error', message);
+          showInfo('Nie udało się przeliczyć trasy', message);
           if(typeof ctx.render === 'function') ctx.render();
         }finally{
           btn.disabled = false;
@@ -225,8 +250,18 @@
     const t = normalizeTransport(investor && investor.transport);
     const oneWay = num(t.distanceKm, 0);
     const billable = oneWay > 0 ? billableKm(oneWay) : 0;
-    return { investor, transport:t, oneWayKm:oneWay, billableKm:billable, displayValue:formatKm(billable) };
+    const companyAddr = companyAddress();
+    const clientAddr = investorAddress(investor || {});
+    return {
+      investor,
+      transport:t,
+      oneWayKm:oneWay,
+      billableKm:billable,
+      isStale:isStale(t, companyAddr, clientAddr),
+      status:statusLabel(t, companyAddr, clientAddr),
+      displayValue:formatKm(billable)
+    };
   }
 
-  FC.investorTransport = { normalizeTransport, renderPanel, bindPanel, getCurrentTransportContext, billableKm, formatKm };
+  FC.investorTransport = { normalizeTransport, renderPanel, bindPanel, getCurrentTransportContext, billableKm, formatKm, investorAddress, companyAddress };
 })();

@@ -102,6 +102,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/investor/investor-modals.js",
       "js/app/investor/investor-pdf.js",
       "js/app/investor/investor-rooms.js",
+      "js/app/investor/openrouteservice-transport.js",
       "js/app/investor/investor-transport.js",
       "js/app/investor/investor-ui-render.js",
       "js/app/investor/investor-ui-status-flow.js",

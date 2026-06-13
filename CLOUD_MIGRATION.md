@@ -1,3 +1,12 @@
+## 2026-06-13 — OpenRouteService / odległość do klienta
+
+- Nie dodano nowego trwałego klucza `localStorage`; dane trasy są częścią istniejącego rekordu inwestora `transport`, a ustawienia ORS są częścią istniejącego profilu firmy `fc_company_profile_v1`.
+- `transport.distanceKm` pozostaje dystansem w jedną stronę, a `transport.distance_km` dla WYCENY jest wyliczane na żądanie przez ustawienia firmy: tryb w jedną stronę / tam i z powrotem, zaokrąglenie i minimum km.
+- Wynik ORS zapisuje status, czas, datę, provider/source, profil trasy oraz hash adresu firmy i klienta. Hash służy wyłącznie do wykrywania nieaktualnego wyniku po zmianie adresu; nie jest osobną prawdą danych.
+- Testy automatyczne używają mocka odpowiedzi ORS i nie wykonują realnych zapytań sieciowych.
+- Lokalny frontend może przechowywać klucz ORS wpisany przez użytkownika, ale w wersji chmurowej klucz nie powinien być trzymany w publicznym froncie. Docelowo routing powinien iść przez backend/proxy użytkownika/aplikacji, z limitem, logowaniem błędów i ochroną klucza.
+- Integracja jest darmowa tylko w ramach limitów zewnętrznego dostawcy OpenRouteService; przekroczenie limitów albo błąd usługi musi zostawić ręczny fallback kilometrów.
+
 ## 2026-06-13 — PCV korpusu pod kolor frontów
 
 - Nie dodano nowego trwałego klucza `localStorage`; `bodyPcvMode` jest polem istniejących rekordów preferencji strefowych pokoju oraz szafek w projekcie.

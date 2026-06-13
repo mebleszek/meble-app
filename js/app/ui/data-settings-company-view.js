@@ -80,7 +80,7 @@
 
     const card = h('section', { class:'data-settings-card data-settings-company-card' });
     const titleRow = h('div', { class:'data-settings-card-title-row' }, [h('h3', { text:'Dane firmy i transport' })]);
-    const infoMessage = 'Tu trzymasz dane firmy, adres startowy trasy i konfigurację darmowego OpenRouteService. Klucz API wpisujesz ręcznie; Google Maps API nie jest używane.';
+    const infoMessage = 'Tu trzymasz dane firmy, adres startowy trasy i konfigurację darmowego OpenRouteService/OpenStreetMap. Wpisujesz własny darmowy klucz użytkownika ORS; działa w limitach darmowego planu zewnętrznego dostawcy. Google Maps API nie jest używane.';
     if(FC.helpRegistry && typeof FC.helpRegistry.createTrigger === 'function') titleRow.appendChild(FC.helpRegistry.createTrigger({ key:'dataSettings.company.card', title:'Dane firmy i transport', message:infoMessage, scope:'dataSettings', className:'info-trigger data-settings-card-info', stop:false }));
     card.appendChild(titleRow);
 
@@ -118,11 +118,11 @@
     ], draft.transport.profile, (val)=>{ draft.transport.profile = val; refreshSummary(); }));
     transportGrid.appendChild(makeInputField('Zaokrąglaj km do', draft.transport.roundingKm, (val)=>{ draft.transport.roundingKm = val; refreshSummary(); }, { inputmode:'decimal', hint:'0 = bez zaokrąglania, 1 = do pełnego kilometra.' }));
     transportGrid.appendChild(makeInputField('Minimalna liczba km do wyceny', draft.transport.minimumBillableKm, (val)=>{ draft.transport.minimumBillableKm = val; refreshSummary(); }, { inputmode:'decimal' }));
-    transportGrid.appendChild(makeInputField('Klucz API OpenRouteService', draft.transport.apiKey, (val)=>{ draft.transport.apiKey = text(val); refreshSummary(); }, { type:'password', autocomplete:'off', hint:'Darmowy klucz z OpenRouteService. Bez klucza zostaje ręczne wpisywanie km i przycisk otwierania map.' }));
+    transportGrid.appendChild(makeInputField('Klucz API OpenRouteService', draft.transport.apiKey, (val)=>{ draft.transport.apiKey = text(val); refreshSummary(); }, { type:'password', autocomplete:'off', hint:'Własny darmowy klucz użytkownika OpenRouteService. Darmowy plan ma limity zapytań; bez klucza zostaje ręczne wpisywanie km i przycisk otwierania map.' }));
     transportGrid.appendChild(makeInputField('Atrybucja map', draft.transport.attribution, (val)=>{ draft.transport.attribution = text(val); refreshSummary(); }, { multiline:true }));
 
     card.appendChild(dom.makeAccordion ? dom.makeAccordion('Dane firmy', [companyGrid], { open:true }) : companyGrid);
-    card.appendChild(dom.makeAccordion ? dom.makeAccordion('Transport i trasy', [transportGrid], { open:false, infoMessage:'Adres klienta zostaje przy inwestorze. Tutaj ustawiasz tylko adres startowy firmy i zasady przeliczania kilometrów do kosztu transportu.' }) : transportGrid);
+    card.appendChild(dom.makeAccordion ? dom.makeAccordion('Transport i trasy', [transportGrid], { open:false, infoMessage:'Adres klienta zostaje przy inwestorze. Tutaj ustawiasz adres startowy firmy, własny klucz ORS oraz zasady przeliczania kilometrów do kosztu transportu. Integracja jest darmowa tylko w limitach OpenRouteService i nie korzysta z Google Maps API.' }) : transportGrid);
 
     const actions = h('div', { class:'data-settings-actions data-settings-defaults-actions' });
     const resetBtn = h('button', { type:'button', class:'btn btn-danger', text:'Przywróć firmę' });

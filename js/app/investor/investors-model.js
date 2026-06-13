@@ -82,9 +82,14 @@
       durationMin: String(src.durationMin == null ? '' : src.durationMin),
       source: String(src.source || ''),
       provider: String(src.provider || ''),
+      status: String(src.status || ''),
       calculatedAt: String(src.calculatedAt || ''),
       origin: String(src.origin || ''),
       destination: String(src.destination || ''),
+      routeProfile: String(src.routeProfile || ''),
+      originHash: String(src.originHash || ''),
+      destinationHash: String(src.destinationHash || ''),
+      addressHash: String(src.addressHash || src.routeAddressHash || ''),
       note: String(src.note || ''),
       lastError: String(src.lastError || '')
     };

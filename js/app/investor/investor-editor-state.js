@@ -32,9 +32,14 @@
       durationMin: normalizeText(src.durationMin),
       source: normalizeText(src.source),
       provider: normalizeText(src.provider),
+      status: normalizeText(src.status),
       calculatedAt: normalizeText(src.calculatedAt),
       origin: normalizeText(src.origin),
       destination: normalizeText(src.destination),
+      routeProfile: normalizeText(src.routeProfile),
+      originHash: normalizeText(src.originHash),
+      destinationHash: normalizeText(src.destinationHash),
+      addressHash: normalizeText(src.addressHash || src.routeAddressHash),
       note: normalizeText(src.note),
       lastError: normalizeText(src.lastError),
     };
@@ -137,7 +142,22 @@
     if(!state.draft) state.draft = {};
     state.draft.transport = normalizeTransport(state.draft.transport);
     state.draft.transport[key] = normalizeText(value);
-    if(key === 'distanceKm' || key === 'durationMin' || key === 'note') state.draft.transport.source = state.draft.transport.source || 'ręcznie';
+    if(key === 'distanceKm' || key === 'durationMin'){
+      state.draft.transport.source = 'ręcznie';
+      state.draft.transport.provider = '';
+      state.draft.transport.status = 'manual';
+      state.draft.transport.calculatedAt = '';
+      state.draft.transport.origin = '';
+      state.draft.transport.destination = '';
+      state.draft.transport.routeProfile = '';
+      state.draft.transport.originHash = '';
+      state.draft.transport.destinationHash = '';
+      state.draft.transport.addressHash = '';
+      state.draft.transport.lastError = '';
+    }else if(key === 'note'){
+      state.draft.transport.source = state.draft.transport.source || 'ręcznie';
+      state.draft.transport.status = state.draft.transport.status || 'manual';
+    }
     syncDirty();
     return clone(state.draft);
   }

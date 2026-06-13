@@ -1,3 +1,21 @@
+## 2026-06-13 — Automatyczne liczenie odległości OpenRouteService v1
+
+Paczka `site_openrouteservice_transport_v1.zip` dopina darmowe liczenie odległości do klienta bez Google Maps API i bez płatnej integracji. Program używa własnego klucza użytkownika OpenRouteService/OpenStreetMap tylko po kliknięciu **Przelicz trasę** w panelu inwestora.
+
+Zmiany:
+- dodano moduł `FC.openRouteServiceTransport` w `js/app/investor/openrouteservice-transport.js`, z geokodowaniem adresu firmy i klienta oraz trasą samochodem przez OpenRouteService,
+- panel **Inwestor → Dojazd / transport** pokazuje trasę w jedną stronę, kilometry do wyceny, czas dojazdu, źródło, status oraz adresy użyte do ostatniego przeliczenia,
+- wynik ORS zapisuje przy inwestorze: km w jedną stronę, czas w minutach, datę przeliczenia, źródło/provider, status, profil trasy i hash adresów firmy/klienta,
+- `transport.distance_km` nadal jest zasilany przez `FC.investorTransport.getCurrentTransportContext()` i respektuje ustawienia z trybika: w jedną stronę / tam i z powrotem, zaokrąglanie km oraz minimum km,
+- ręczne wpisywanie kilometrów zostało zachowane jako fallback; ręczna zmiana km czyści metadane ORS i ustawia status `manual`,
+- kliknięcie **Przelicz trasę** nie wykonuje się automatycznie przy wejściu w inwestora i nie robi zapytań bez świadomej akcji użytkownika,
+- jeżeli brakuje klucza ORS, adresu firmy, adresu klienta, internetu albo API zwróci błąd, program pokazuje komunikat w stylu aplikacji i nie wysypuje panelu,
+- jeżeli adres firmy albo klienta zmieni się po przeliczeniu, panel pokazuje ostrzeżenie, że wynik może być nieaktualny,
+- w trybiku przy kluczu ORS dopisano, że jest to własny darmowy klucz użytkownika działający w limitach darmowego planu dostawcy; Google Maps API nie jest używane,
+- dodano test `tools/openrouteservice-distance-smoke.js` z mockiem odpowiedzi ORS, bez realnych zapytań do API.
+
+Nie przebudowano WYCENY, trybów naliczania, PCV, oferty klienta, PDF, kosztów firmy, stawek godzinowych, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260613_openrouteservice_transport_v1`. Raport: `tools/reports/openrouteservice-transport-v1.md`.
+
 ## 2026-06-13 — Podgląd oferty dla klienta v1
 
 Paczka `site_client_offer_preview_v1.zip` dodaje w WYCENIE pierwszy **podgląd oferty dla klienta**. To jest widok handlowy w programie, a nie finalny PDF. Klient ma widzieć zakres realizacji, materiały, kolory, modele/ilości okuć oraz jedną cenę końcową, bez rozbijania kosztów operacyjnych.
