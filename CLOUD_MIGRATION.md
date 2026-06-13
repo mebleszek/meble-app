@@ -1,8 +1,10 @@
-## 2026-06-13 — Test migracji katalogów: usługi legacy w stawkach
+## 2026-06-13 — ORS: walidacja geokodowania miejscowości
 
-- Nie dodano nowego klucza `localStorage` i nie zmieniono modelu danych.
-- Poprawka dotyczy wyłącznie testu przeglądarkowego: legacy usługi są weryfikowane po obecności w `quoteRates`, a nie po pozycji `quoteRates[0]`.
-- To jest zgodne z kierunkiem cloud-ready, bo `quoteRates` zawiera także systemowe definicje stawek godzinowych i kolejność rekordów nie może być kontraktem migracji.
+- Nie dodano nowego trwałego klucza `localStorage`; dodatkowe metadane geokodowania są częścią istniejącego `investor.transport`.
+- Automatyczne przeliczenie trasy akceptuje tylko wynik geokodowania zgodny z miejscowością/kodem wynikającym z danych inwestora albo firmy.
+- Jeżeli geocoder zwróci tylko kandydatów z inną miejscowością, status transportu zmienia się na `geocode_mismatch`, ale poprzednie/ręczne kilometry nie są nadpisywane.
+- Zasada pod przyszłą chmurę: backend/proxy ORS też powinien walidować wynik geokodowania przed routingiem, a nie ufać pierwszemu kandydatowi Pelias/ORS.
+- Nie dodano ręcznego wyboru kandydatów adresu; automatyka ma działać tylko przy pewnym dopasowaniu, a przy wątpliwości zostaje ręczny fallback.
 
 ## 2026-06-13 — OpenRouteService: diagnostyka geokodowania i trasy
 

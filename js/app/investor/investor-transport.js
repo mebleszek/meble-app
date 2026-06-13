@@ -42,6 +42,20 @@
       source:text(src.source || ''),
       confidence:text(src.confidence || ''),
       accuracy:text(src.accuracy || ''),
+      country:text(src.country || ''),
+      region:text(src.region || ''),
+      county:text(src.county || ''),
+      locality:text(src.locality || ''),
+      localadmin:text(src.localadmin || ''),
+      borough:text(src.borough || ''),
+      postalcode:text(src.postalcode || ''),
+      street:text(src.street || ''),
+      housenumber:text(src.housenumber || ''),
+      expectedLocality:text(src.expectedLocality || ''),
+      expectedPostalCode:text(src.expectedPostalCode || ''),
+      localityMatch:text(src.localityMatch || ''),
+      postalCodeMatch:text(src.postalCodeMatch || ''),
+      candidateCount:text(src.candidateCount || ''),
       coordinates:coords.length >= 2 ? [num(coords[0], 0), num(coords[1], 0)] : [],
       lon:text(src.lon || (coords.length >= 2 ? coords[0] : '')),
       lat:text(src.lat || (coords.length >= 2 ? coords[1] : ''))
@@ -159,7 +173,12 @@
   function geocodeLabel(meta){
     const m = normalizeGeocode(meta);
     const coord = m.coordinates.length >= 2 ? `${Number(m.coordinates[1]).toFixed(6)}, ${Number(m.coordinates[0]).toFixed(6)}` : '';
-    const small = [m.layer ? `warstwa: ${m.layer}` : '', m.confidence ? `pewność: ${m.confidence}` : '', coord ? `współrzędne: ${coord}` : ''].filter(Boolean).join(' • ');
+    const city = m.locality || m.localadmin || m.borough || '';
+    const expected = m.expectedLocality ? `oczekiwana miejscowość: ${m.expectedLocality}` : '';
+    const cityPart = city ? `miejscowość ORS: ${city}` : '';
+    const post = m.postalcode ? `kod: ${m.postalcode}` : '';
+    const candidates = m.candidateCount ? `sprawdzono wyników: ${m.candidateCount}` : '';
+    const small = [m.layer ? `warstwa: ${m.layer}` : '', m.confidence ? `pewność: ${m.confidence}` : '', cityPart, post, expected, candidates, coord ? `współrzędne: ${coord}` : ''].filter(Boolean).join(' • ');
     return { title:m.label || m.name || 'brak etykiety ORS', query:m.query || '', details:small };
   }
   function showInfo(title, message){

@@ -1,13 +1,17 @@
-## 2026-06-13 — Test migracji katalogów: usługi legacy w stawkach v1
+## 2026-06-13 — ORS geocoding guard v1
 
-Paczka `site_catalog_migration_test_fix_v1.zip` poprawia fałszywie negatywny test przeglądarkowy `Katalogi rozdzielają legacy materiały, akcesoria i stawki meblowe`.
+Paczka `site_ors_geocoding_guard_v1.zip` poprawia automatyczny wybór adresu z OpenRouteService bez dodawania ręcznego wyboru wielu kandydatów. Problem zgłoszony w praktyce: program potrafił zaakceptować pierwszy wynik ORS z inną miejscowością, np. `Krzemieniecka 2, Koluszki`, mimo że inwestor miał miejscowość `Łódź`.
 
 Zmiany:
-- poprawiono asercję w `js/testing/project/tests.js`: legacy usługa `s_rate` ma być obecna w `quoteRates`, ale nie musi być pierwszym rekordem, bo cennik robocizny automatycznie dokłada systemowe stawki godzinowe na początku listy,
-- test sprawdza teraz właściwy kontrakt danych: legacy usługa trafia do `quoteRates` jako zwykła pozycja cennika (`isHourlyRate !== true`), a nie do materiałów ani akcesoriów,
-- dodano `tools/catalog-migration-test-fix-smoke.js`, który odtwarza ten sam przypadek bez przeglądarki i pilnuje, że usługa może być dalej na liście po systemowych stawkach godzinowych,
-- nie zmieniono migracji danych użytkownika, katalogów, WYCENY, ORS ani modelu oferty klienta,
-- podbito cache-busting do `20260613_catalog_migration_test_fix_v1`.
+- `FC.openRouteServiceTransport.geocodeAddress()` pobiera teraz kilka kandydatów geokodowania (`size=5`), ale nie pokazuje ich użytkownikowi,
+- program automatycznie wybiera tylko taki wynik, który pasuje do miejscowości wyciągniętej z adresu inwestora/firmy,
+- jeżeli ORS zwróci tylko wynik z inną miejscowością, przeliczenie jest odrzucane ze statusem `geocode_mismatch`,
+- po odrzuceniu nie jest wysyłane zapytanie o trasę i nie są nadpisywane kilometry,
+- diagnostyka ORS zapisuje dodatkowo oczekiwaną miejscowość, kod pocztowy, miejscowość z ORS, liczbę sprawdzonych kandydatów i dane adresowe zwrócone przez geocoder,
+- panel inwestora pokazuje status `adres niepewny` oraz komunikat, że kilometry należy wpisać ręcznie albo poprawić adres,
+- poprawiono test `tools/openrouteservice-distance-smoke.js`, żeby pilnował scenariusza: pierwszy wynik ORS jest z Koluszek, drugi poprawny z Łodzi — program ma wybrać Łódź; jeżeli poprawnego wyniku nie ma, ma przerwać bez trasy.
+
+Nie dodano listy wyboru adresów i nie zmieniono ręcznego fallbacku. Nie przebudowano WYCENY, oferty klienta, PDF, PCV, kosztów firmy, stawek godzinowych, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260613_ors_geocoding_guard_v1`.
 
 ## 2026-06-13 — Zamrożony model oferty klienta v2
 
@@ -23,7 +27,7 @@ Zmiany:
 - warunki handlowe z WYCENY (`deliveryTerms`, `customerNote`) trafiają do sekcji „Warunki i ustalenia”,
 - PDF nadal nie jest przebudowywany; przyszły PDF ma korzystać z tego samego `snapshot.clientOffer`.
 
-Nie przebudowano WYCENY, trybów naliczania, PCV, ORS, transportu, kosztów firmy, stawek godzinowych, `drawer.count`, automatów AGD, wymagań technicznych szafek, materiałów ani okuć. Cache-busting: `20260613_catalog_migration_test_fix_v1`. Raport: `tools/reports/client-offer-model-v2.md`.
+Nie przebudowano WYCENY, trybów naliczania, PCV, ORS, transportu, kosztów firmy, stawek godzinowych, `drawer.count`, automatów AGD, wymagań technicznych szafek, materiałów ani okuć. Cache-busting: `20260613_client_offer_model_v2`. Raport: `tools/reports/client-offer-model-v2.md`.
 
 ## 2026-06-13 — Diagnostyka trasy OpenRouteService v1
 

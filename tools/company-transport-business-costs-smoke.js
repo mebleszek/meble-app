@@ -22,7 +22,7 @@ const sources = read('js/app/pricing/work-quantity-sources.js');
 const defs = read('js/app/pricing/labor-catalog-definitions.js');
 const offer = read('js/app/wycena/wycena-core-offer.js');
 
-const version = '20260613_catalog_migration_test_fix_v1';
+const version = '20260613_ors_geocoding_guard_v1';
 [
   'js/app/settings/company-profile-store.js',
   'js/app/settings/business-costs-store.js',

@@ -10,7 +10,7 @@ function assertClose(actual, expected, message){
 }
 
 (async function main(){
-  const version = '20260613_catalog_migration_test_fix_v1';
+  const version = '20260613_ors_geocoding_guard_v1';
   const index = read('index.html');
   const dev = read('dev_tests.html');
   const companyView = read('js/app/ui/data-settings-company-view.js');
@@ -60,13 +60,21 @@ function assertClose(actual, expected, message){
   assert(ors.validateRouteInput({ apiKey:'key', origin:'A', destination:'' }).status === 'missing_client_address', 'Brak adresu klienta musi dawać kontrolowany status');
   assert(ors.prepareGeocodeQuery('Krzemieniecka 28/88, Łódź').includes('Krzemieniecka 28'), 'Geokodowanie powinno usuwać numer mieszkania zapisany po slashu');
   assert(!ors.prepareGeocodeQuery('Krzemieniecka 28 m 88, Łódź').includes('m 88'), 'Geokodowanie powinno usuwać numer mieszkania zapisany jako m');
+  assert(ors.extractExpectedLocality('Krzemieniecka 2 m 88, Łódź') === 'Łódź', 'Moduł ORS musi rozpoznać oczekiwaną miejscowość inwestora');
+  assert(ors.extractExpectedLocality('ul. Retkińska 29, 94-012 Łódź, Polska') === 'Łódź', 'Moduł ORS musi rozpoznać miejscowość z adresu firmy z kodem pocztowym');
 
   const fetchCalls = [];
   const fakeFetch = async (url, opts)=>{
     fetchCalls.push({ url:String(url), opts:opts || {} });
     if(String(url).includes('/geocode/search')){
       const idx = fetchCalls.filter((row)=> String(row.url).includes('/geocode/search')).length;
-      return { ok:true, status:200, json:async ()=> ({ features:[{ geometry:{ coordinates:idx === 1 ? [19.45, 51.75] : [19.55, 51.85] }, properties:{ label:idx === 1 ? 'Retkińska 29, Łódź, Polska' : 'Piotrkowska 1, Łódź, Polska', layer:'address', confidence:0.95 } }] }) };
+      const isOrigin = idx === 1;
+      return { ok:true, status:200, json:async ()=> ({ features:isOrigin ? [
+        { geometry:{ coordinates:[19.45, 51.75] }, properties:{ label:'Retkińska 29, Łódź, Polska', locality:'Łódź', layer:'address', confidence:0.95, postalcode:'94-012' } }
+      ] : [
+        { geometry:{ coordinates:[19.60, 51.90] }, properties:{ label:'Piotrkowska 1, Koluszki, Polska', locality:'Koluszki', layer:'address', confidence:0.99 } },
+        { geometry:{ coordinates:[19.55, 51.85] }, properties:{ label:'Piotrkowska 1, Łódź, Polska', locality:'Łódź', layer:'address', confidence:0.90 } }
+      ] }) };
     }
     if(String(url).includes('/v2/directions/')){
       return { ok:true, status:200, json:async ()=> ({ routes:[{ summary:{ distance:12400, duration:2040 } }] }) };
@@ -79,9 +87,34 @@ function assertClose(actual, expected, message){
   assert(result.source === 'OpenRouteService' && result.provider === 'openrouteservice' && result.status === 'success', 'Wynik ORS musi mieć źródło/provider/status', result);
   assert(result.addressHash && result.originHash && result.destinationHash, 'Wynik ORS musi zapisać hash adresów', result);
   assert(result.originGeocode && result.destinationGeocode && result.destinationGeocode.label.includes('Piotrkowska'), 'Wynik ORS musi zapisać etykiety i współrzędne geokodowania', result);
+  assert(result.destinationGeocode.label.includes('Łódź') && !result.destinationGeocode.label.includes('Koluszki'), 'Program nie może brać pierwszego wyniku ORS, jeśli nie zgadza się miejscowość', result.destinationGeocode);
+  assert(result.destinationGeocode.candidateCount === '2', 'Diagnostyka ORS musi zapisać liczbę sprawdzonych kandydatów', result.destinationGeocode);
   assert(result.routeDistanceMeters === 12400 && result.routeDurationSeconds === 2040, 'Wynik ORS musi zapisać surowe metry i sekundy z API', result);
   assert(result.orsMapsUrl && result.orsMapsUrl.includes('maps.openrouteservice.org'), 'Wynik ORS musi mieć link kontrolny do map ORS', result);
   assert(fetchCalls.length === 3 && fetchCalls.every((row)=> row.opts && row.opts.headers && row.opts.headers.Authorization === 'fake-key'), 'Test ma używać mocka fetch i własnego klucza z ustawień');
+  assert(fetchCalls.filter((row)=> String(row.url).includes('/geocode/search')).every((row)=> String(row.url).includes('size=5')), 'Geokodowanie musi pobierać kilka kandydatów do automatycznej walidacji, bez pokazywania listy użytkownikowi');
+
+  const mismatchCalls = [];
+  const mismatchFetch = async (url, opts)=>{
+    mismatchCalls.push({ url:String(url), opts:opts || {} });
+    if(String(url).includes('/geocode/search')){
+      const idx = mismatchCalls.filter((row)=> String(row.url).includes('/geocode/search')).length;
+      return { ok:true, status:200, json:async ()=> ({ features:idx === 1 ? [
+        { geometry:{ coordinates:[19.45, 51.75] }, properties:{ label:'Retkińska 29, Łódź, Polska', locality:'Łódź', layer:'address', confidence:0.95 } }
+      ] : [
+        { geometry:{ coordinates:[19.60, 51.90] }, properties:{ label:'Krzemieniecka 2, Koluszki, Polska', locality:'Koluszki', layer:'address', confidence:0.99 } }
+      ] }) };
+    }
+    if(String(url).includes('/v2/directions/')) throw new Error('Nie wolno liczyć trasy po błędnym geokodowaniu miejscowości');
+    return { ok:false, status:404, json:async ()=> ({}) };
+  };
+  let mismatchError = null;
+  try{
+    await ors.calculateRoute({ apiKey:'fake-key', origin:'ul. Retkińska 29, Łódź, Polska', destination:'Krzemieniecka 2 m 88, Łódź', profile:'driving-car' }, { fetchImpl:mismatchFetch, now:'2026-06-13T12:00:00.000Z' });
+  }catch(err){ mismatchError = err; }
+  assert(mismatchError && mismatchError.status === 'geocode_mismatch', 'Inna miejscowość z ORS musi odrzucić automatyczne przeliczenie', mismatchError && { status:mismatchError.status, message:mismatchError.message });
+  assert(/Koluszki/.test(mismatchError.message) && /Łódź/.test(mismatchError.message), 'Komunikat musi jasno pokazać złą i oczekiwaną miejscowość', mismatchError.message);
+  assert(!mismatchCalls.some((row)=> String(row.url).includes('/v2/directions/')), 'Po niepewnym geokodowaniu program nie może wysłać zapytania trasy');
 
   const profile = sandbox.FC.companyProfile.normalizeProfile(sandbox.FC.companyProfile.DEFAULT_COMPANY_PROFILE);
   profile.transport.billingMode = 'round_trip';

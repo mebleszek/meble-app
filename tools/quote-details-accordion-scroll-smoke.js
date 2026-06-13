@@ -13,7 +13,7 @@ const css = read('css/wycena.css');
 const preview = read('js/app/wycena/wycena-tab-preview.js');
 const index = read('index.html');
 const devTests = read('dev_tests.html');
-const token = '20260613_catalog_migration_test_fix_v1';
+const token = '20260613_ors_geocoding_guard_v1';
 
 [
   ['total', "['Suma przed rabatem', totals.subtotal, 'total']"],

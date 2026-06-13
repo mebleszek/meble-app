@@ -27,6 +27,55 @@
       .replace(/^,|,$/g, '')
       .trim();
   }
+  function compareText(value){
+    return normalizeAddress(value)
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/ł/g, 'l')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  }
+  function words(value){
+    const v = compareText(value);
+    return v ? v.split(/\s+/).filter(Boolean) : [];
+  }
+  function hasExactWordOrPhrase(haystack, needle){
+    const h = words(haystack);
+    const n = words(needle);
+    if(!h.length || !n.length) return false;
+    for(let i = 0; i <= h.length - n.length; i += 1){
+      let ok = true;
+      for(let j = 0; j < n.length; j += 1){
+        if(h[i + j] !== n[j]){ ok = false; break; }
+      }
+      if(ok) return true;
+    }
+    return false;
+  }
+  function extractPostalCode(value){
+    const m = normalizeAddress(value).match(/\b\d{2}-\d{3}\b/);
+    return m ? m[0] : '';
+  }
+  function extractExpectedLocality(value){
+    const normalized = normalizeAddress(value);
+    const parts = normalized.split(',').map((x)=> normalizeAddress(x)).filter(Boolean);
+    const countryWords = ['polska','poland'];
+    for(let i = parts.length - 1; i >= 0; i -= 1){
+      let part = parts[i].replace(/\b\d{2}-\d{3}\b/g, '').trim();
+      if(!part) continue;
+      const cmp = compareText(part);
+      if(countryWords.includes(cmp)) continue;
+      // Jeżeli segment wygląda jak ulica z numerem, to nie jest miejscowość.
+      if(/\b\d+[a-z]?\b/i.test(part) && /\b(ul\.?|ulica|al\.?|aleja|pl\.?|plac|os\.?|osiedle)\b/i.test(part)) continue;
+      return part;
+    }
+    return '';
+  }
+  function isPolishAddress(value){
+    const v = normalizeAddress(value);
+    return /\bpolska\b|\bpoland\b|\błódź\b|\blodz\b|\b\d{2}-\d{3}\b/i.test(v);
+  }
   function prepareGeocodeQuery(value){
     // W polskich adresach użytkownik często wpisuje lokal/mieszkanie: "28/88", "28 m 88", "lok. 88".
     // ORS potrafi wtedy złapać słaby punkt albo wynik przybliżony. Do geokodowania używamy wejścia bez lokalu,
@@ -67,6 +116,7 @@
     if(s === 'missing_api_key') return 'brak klucza ORS';
     if(s === 'missing_company_address') return 'brak adresu firmy';
     if(s === 'missing_client_address') return 'brak adresu klienta';
+    if(s === 'geocode_mismatch') return 'adres niepewny';
     if(s === 'error') return 'błąd przeliczenia';
     return 'nieprzeliczona';
   }
@@ -88,10 +138,10 @@
   async function readJson(response){
     try{ return await response.json(); }catch(_){ return null; }
   }
-  function geocodeMeta(query, feature){
+  function geocodeMeta(query, feature, expected){
     const coords = feature && feature.geometry && feature.geometry.coordinates;
     const props = feature && feature.properties && typeof feature.properties === 'object' ? feature.properties : {};
-    return {
+    const meta = {
       query:normalizeAddress(query),
       label:text(props.label || props.name || ''),
       name:text(props.name || ''),
@@ -99,10 +149,82 @@
       source:text(props.source || ''),
       confidence:props.confidence == null ? '' : String(props.confidence),
       accuracy:text(props.accuracy || props.match_type || ''),
+      country:text(props.country || props.country_a || ''),
+      region:text(props.region || props.region_a || ''),
+      county:text(props.county || ''),
+      locality:text(props.locality || ''),
+      localadmin:text(props.localadmin || ''),
+      borough:text(props.borough || ''),
+      postalcode:text(props.postalcode || props.postal_code || ''),
+      street:text(props.street || ''),
+      housenumber:text(props.housenumber || props.house_number || ''),
       coordinates:Array.isArray(coords) && coords.length >= 2 ? [num(coords[0], 0), num(coords[1], 0)] : [],
       lon:Array.isArray(coords) && coords.length >= 2 ? String(num(coords[0], 0)) : '',
       lat:Array.isArray(coords) && coords.length >= 2 ? String(num(coords[1], 0)) : ''
     };
+    const exp = expected && typeof expected === 'object' ? expected : {};
+    meta.expectedLocality = text(exp.locality || '');
+    meta.expectedPostalCode = text(exp.postalCode || '');
+    meta.localityMatch = meta.expectedLocality ? String(localityMatches(meta, meta.expectedLocality)) : '';
+    meta.postalCodeMatch = meta.expectedPostalCode && meta.postalcode ? String(compareText(meta.postalcode) === compareText(meta.expectedPostalCode)) : '';
+    return meta;
+  }
+  function localityMatches(meta, expectedLocality){
+    const expected = text(expectedLocality);
+    if(!expected) return true;
+    const m = meta && typeof meta === 'object' ? meta : {};
+    const direct = [m.locality, m.localadmin, m.borough].filter(Boolean);
+    if(direct.some((value)=> compareText(value) === compareText(expected))) return true;
+    // Pelias czasem nie wypełnia locality/localadmin, ale etykieta zawiera miejscowość.
+    // Szukamy dokładnego słowa/frazy, żeby „łódzki” nie zaliczyło się jako „Łódź”.
+    return hasExactWordOrPhrase(m.label || '', expected);
+  }
+  function postalCodeCompatible(meta, expectedPostalCode){
+    const expected = text(expectedPostalCode);
+    if(!expected) return true;
+    const actual = text(meta && meta.postalcode);
+    if(!actual) return true;
+    return compareText(actual) === compareText(expected);
+  }
+  function layerRank(layer){
+    const l = compareText(layer);
+    if(l === 'address') return 5;
+    if(l === 'venue') return 4;
+    if(l === 'street') return 3;
+    if(l === 'intersection') return 2;
+    return 1;
+  }
+  function pickSafeGeocodeFeature(features, query, expected){
+    const list = Array.isArray(features) ? features : [];
+    const metas = list.map((feature)=> geocodeMeta(query, feature, expected));
+    const viable = metas.filter((meta)=> {
+      if(!Array.isArray(meta.coordinates) || meta.coordinates.length < 2) return false;
+      if(expected && expected.locality && !localityMatches(meta, expected.locality)) return false;
+      if(expected && expected.postalCode && !postalCodeCompatible(meta, expected.postalCode)) return false;
+      return true;
+    });
+    viable.sort((a, b)=> {
+      const cityA = expected && expected.locality && localityMatches(a, expected.locality) ? 100 : 0;
+      const cityB = expected && expected.locality && localityMatches(b, expected.locality) ? 100 : 0;
+      const postA = expected && expected.postalCode && postalCodeCompatible(a, expected.postalCode) ? 20 : 0;
+      const postB = expected && expected.postalCode && postalCodeCompatible(b, expected.postalCode) ? 20 : 0;
+      const rankA = layerRank(a.layer) * 10 + num(a.confidence, 0);
+      const rankB = layerRank(b.layer) * 10 + num(b.confidence, 0);
+      return (cityB + postB + rankB) - (cityA + postA + rankA);
+    });
+    return { picked:viable[0] || null, candidates:metas };
+  }
+  function describeGeocodeFailure(normalized, searchText, candidates, expected){
+    const expCity = text(expected && expected.locality);
+    const expPost = text(expected && expected.postalCode);
+    const first = Array.isArray(candidates) && candidates[0] ? candidates[0] : null;
+    if(first && expCity && !localityMatches(first, expCity)){
+      return `OpenRouteService rozpoznał adres jako „${first.label || first.name || 'bez etykiety'}”, ale w danych jest miejscowość „${expCity}”. Nie zapisano kilometrów. Popraw adres albo wpisz km ręcznie.`;
+    }
+    if(first && expPost && !postalCodeCompatible(first, expPost)){
+      return `OpenRouteService zwrócił adres z innym kodem pocztowym niż „${expPost}”. Nie zapisano kilometrów. Popraw adres albo wpisz km ręcznie.`;
+    }
+    return `OpenRouteService nie znalazł pewnego wyniku dla adresu: ${normalized || searchText}. Nie zapisano kilometrów. Popraw adres albo wpisz km ręcznie.`;
   }
   async function geocodeAddress(query, apiKey, options){
     const opts = options || {};
@@ -110,20 +232,35 @@
     if(typeof fetchImpl !== 'function') throw new Error('Brak połączenia albo fetch API w przeglądarce. Wpisz kilometry ręcznie albo spróbuj później.');
     const normalized = normalizeAddress(query);
     const searchText = prepareGeocodeQuery(normalized);
-    const params = new URLSearchParams({ text:searchText, size:'1' });
+    const expected = {
+      locality:text(opts.expectedLocality || extractExpectedLocality(normalized)),
+      postalCode:text(opts.expectedPostalCode || extractPostalCode(normalized))
+    };
+    const params = new URLSearchParams({ text:searchText, size:'5' });
     // Bezpieczne zawężenie dla typowych polskich danych użytkownika. Jeśli w przyszłości program będzie używany za granicą,
     // wystarczy dodać jawny kraj w ustawieniach zamiast zgadywać po adresie.
-    if(/\bpolska\b|\błódź\b|\blodz\b/i.test(normalized)) params.set('boundary.country', 'PL');
+    if(isPolishAddress(normalized)) params.set('boundary.country', 'PL');
     const url = ORS_GEOCODE_URL + '?' + params.toString();
     let response;
     try{ response = await fetchImpl(url, { headers:{ Authorization:apiKey } }); }
     catch(_){ throw new Error('Nie udało się połączyć z OpenRouteService. Sprawdź internet albo wpisz kilometry ręcznie.'); }
     const json = await readJson(response);
     if(!response || !response.ok) throw new Error(apiErrorText('Nie udało się odczytać adresu', response, json));
-    const feature = json && Array.isArray(json.features) ? json.features[0] : null;
-    const meta = geocodeMeta(searchText, feature);
+    const features = json && Array.isArray(json.features) ? json.features : [];
+    const picked = pickSafeGeocodeFeature(features, searchText, expected);
+    const meta = picked.picked;
+    if(!meta){
+      const err = new Error(describeGeocodeFailure(normalized, searchText, picked.candidates, expected));
+      err.status = 'geocode_mismatch';
+      err.query = searchText;
+      err.expectedLocality = expected.locality;
+      err.expectedPostalCode = expected.postalCode;
+      err.candidates = picked.candidates;
+      throw err;
+    }
     if(!Array.isArray(meta.coordinates) || meta.coordinates.length < 2) throw new Error('OpenRouteService nie znalazł adresu: ' + normalized);
     meta.input = normalized;
+    meta.candidateCount = String(features.length);
     return meta;
   }
   async function geocode(query, apiKey, options){
@@ -220,12 +357,18 @@
     SOURCE_LABEL,
     normalizeAddress,
     prepareGeocodeQuery,
+    compareText,
+    extractPostalCode,
+    extractExpectedLocality,
     stableHash,
     routeAddressHash,
     isResultStale,
     resultStatusLabel,
     validateRouteInput,
     geocodeAddress,
+    geocodeMeta,
+    localityMatches,
+    pickSafeGeocodeFeature,
     geocode,
     route,
     mapsClientUrl,
