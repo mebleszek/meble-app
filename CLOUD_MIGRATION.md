@@ -163,6 +163,15 @@ Małe lokalne poprawki cloud-ready robić od razu, jeśli nie zmieniają UI ani 
 - Raport rentowności ma rozdzielać: koszt przyjęty w ofercie, sugerowany koszt zakupu, rzeczywisty koszt zakupu i różnicę zakupową. Ta różnica nie powinna automatycznie zmieniać zaakceptowanej oferty klienta.
 - Przy przyszłej chmurze trzeba zachować historię: zmiana cennika/dostawcy nie może przepisać historycznych ofert, list zakupów ani faktycznych kosztów projektu.
 
+
+## 2026-06-13 — Zamrożony model oferty klienta a przyszła chmura
+
+- `snapshot.clientOffer` jest świadomie zapisaną częścią historii oferty, a nie nowym bieżącym magazynem danych projektu.
+- Model klienta jest budowany przy tworzeniu snapshotu WYCENY i zamraża dane potrzebne do podglądu/PDF: klienta, firmę, zakres, materiały opisowe, okucia, AGD, cenę końcową oraz warunki handlowe.
+- Podgląd oferty nie powinien odczytywać aktualnego projektu ani aktualnego inwestora, jeśli pokazuje zapisaną ofertę. To chroni historię przed zmianą po późniejszych poprawkach projektu.
+- W chmurze `clientOffer` powinien być polem dokumentu oferty/snapshotu, np. `users/{userId}/quotes/{quoteId}.clientOffer`, a nie osobną prawdą bieżącego projektu.
+- PDF klienta w przyszłości ma renderować ten sam `clientOffer`, bez osobnego liczenia i bez ponownego pobierania bieżących danych projektu.
+
 ## Podział danych docelowo
 
 ### Dane użytkownika — docelowo do chmury

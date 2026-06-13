@@ -291,7 +291,7 @@
     const totals = computeTotals((calculationRegister && calculationRegister.totals) || src.totals || {}, lines, commercial);
     const materialScope = normalizeMaterialScope(src.materialScope || (src.selection && src.selection.materialScope) || (src.scope && src.scope.materialScope));
     const scopeMode = materialScopeMode(materialScope);
-    return {
+    const snapshot = {
       version: SNAPSHOT_STORAGE_VERSION,
       generatedAt,
       generatedDate: (()=>{ try{ return new Date(generatedAt).toISOString(); }catch(_){ return ''; } })(),
@@ -300,6 +300,11 @@
         kind: String(investor.kind || ''),
         name: String(investor.name || investor.companyName || ''),
         companyName: String(investor.companyName || ''),
+        address: String(investor.address || ''),
+        city: String(investor.city || ''),
+        postalCode: String(investor.postalCode || investor.zip || ''),
+        phone: String(investor.phone || ''),
+        email: String(investor.email || ''),
       } : null,
       project: projectRecord ? {
         id: String(projectRecord.id || ''),
@@ -336,6 +341,12 @@
         acceptedStage: String(src.meta && src.meta.acceptedStage || ''),
       },
     };
+    try{
+      if(FC.quoteClientOfferModel && typeof FC.quoteClientOfferModel.buildFromSnapshot === 'function'){
+        snapshot.clientOffer = FC.quoteClientOfferModel.buildFromSnapshot(snapshot, { investor, projectRecord });
+      }
+    }catch(_){ }
+    return snapshot;
   }
 
   async function buildFromCore(){

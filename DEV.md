@@ -1,3 +1,19 @@
+## 2026-06-13 — Zamrożony model oferty klienta v2
+
+Paczka `site_client_offer_model_v2.zip` normalizuje podgląd oferty klienta bez przebudowy WYCENY i bez ruszania PDF. Oferta klienta ma teraz własny zamrożony model `snapshot.clientOffer`, budowany przy tworzeniu snapshotu WYCENY.
+
+Zmiany:
+- dodano moduł `FC.quoteClientOfferModel` w `js/app/quote/quote-client-offer-model.js`,
+- `FC.quoteSnapshot.buildSnapshot()` zapisuje w snapshotcie `clientOffer`, czyli gotowy model do pokazania klientowi,
+- `FC.quoteSnapshotStore.normalizeSnapshot()` zachowuje i normalizuje `clientOffer`, żeby historia ofert nie traciła danych handlowych,
+- `FC.quoteClientPreview` renderuje podgląd z `snapshot.clientOffer`, a nie miesza historycznej oferty z aktualnym projektem, aktualnym inwestorem i aktualnymi ustawieniami firmy,
+- dane klienta w snapshotcie zostały uzupełnione o adres, miasto, kod, telefon i e-mail, żeby oferta nie zależała od późniejszych zmian w Inwestorze,
+- teksty zakresu oferty są generowane w modelu klienta i nie używają już sztywnych deklaracji typu „standardowy transport” jako jedynej prawdy,
+- warunki handlowe z WYCENY (`deliveryTerms`, `customerNote`) trafiają do sekcji „Warunki i ustalenia”,
+- PDF nadal nie jest przebudowywany; przyszły PDF ma korzystać z tego samego `snapshot.clientOffer`.
+
+Nie przebudowano WYCENY, trybów naliczania, PCV, ORS, transportu, kosztów firmy, stawek godzinowych, `drawer.count`, automatów AGD, wymagań technicznych szafek, materiałów ani okuć. Cache-busting: `20260613_client_offer_model_v2`. Raport: `tools/reports/client-offer-model-v2.md`.
+
 ## 2026-06-13 — Diagnostyka trasy OpenRouteService v1
 
 Paczka `site_openrouteservice_transport_diag_v1.zip` doprecyzowuje automatyczne liczenie odległości, żeby użytkownik widział, czy problem leży w dystansie z ORS, geokodowaniu adresu, trybie tam/powrót, minimum km czy zaokrągleniu.

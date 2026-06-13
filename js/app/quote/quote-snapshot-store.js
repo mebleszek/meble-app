@@ -628,6 +628,7 @@
       calculationRegister,
       commercial,
       totals: clone(src.totals || (calculationRegister && calculationRegister.totals) || {}),
+      clientOffer: null,
       meta: {
         source:String(src.meta && src.meta.source || 'quote-snapshot-slim'),
         storageSchema: SNAPSHOT_STORAGE_SCHEMA,
@@ -654,6 +655,14 @@
         quoteFingerprint:'',
       }
     };
+    try{
+      if(FC.quoteClientOfferModel && typeof FC.quoteClientOfferModel.normalize === 'function'){
+        out.clientOffer = FC.quoteClientOfferModel.normalize(src.clientOffer) || null;
+      }
+      if(!out.clientOffer && FC.quoteClientOfferModel && typeof FC.quoteClientOfferModel.buildFromSnapshot === 'function'){
+        out.clientOffer = FC.quoteClientOfferModel.buildFromSnapshot(out);
+      }
+    }catch(_){ out.clientOffer = src.clientOffer ? clone(src.clientOffer) : null; }
     const storedFingerprint = compactText(srcMeta.quoteFingerprint || src.meta && src.meta.quoteFingerprint || '');
     out.meta.quoteFingerprint = isCompactQuoteFingerprint(storedFingerprint) ? storedFingerprint : getQuoteFingerprint(out);
     if(src.__test === true || srcMeta.__test === true || srcMeta.testData){

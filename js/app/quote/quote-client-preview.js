@@ -161,33 +161,41 @@
       return true;
     }).map((row)=> ({ name:text(row.name), subsection:text(row.subsection), note:text(row.note) }));
   }
+  function defaultClientOfferModel(snapshot){
+    const snap = normalizeSnapshot(snapshot);
+    try{
+      if(FC.quoteClientOfferModel && typeof FC.quoteClientOfferModel.resolve === 'function') return FC.quoteClientOfferModel.resolve(snap);
+    }catch(_){ }
+    return null;
+  }
   function buildSummaryData(snapshot){
     const snap = normalizeSnapshot(snapshot);
-    const company = getCompany();
-    const investor = getCurrentInvestor(snap);
-    const project = snap && snap.project || {};
-    const commercial = snap && snap.commercial || {};
-    const roomLabels = scopeRoomLabels(snap);
-    const title = text(project && project.title) || text(commercial && commercial.versionName) || text(investor && (investor.companyName || investor.name)) || 'Oferta meblowa';
-    const clientName = text(investor && (investor.companyName || investor.name)) || text(snap && snap.investor && (snap.investor.companyName || snap.investor.name)) || '—';
-    const clientAddress = [text(investor && investor.address), text(investor && investor.city)].filter(Boolean).join(', ');
+    const model = defaultClientOfferModel(snap) || {};
+    const company = model.company || {};
+    const client = model.client || {};
+    const project = model.project || (snap && snap.project) || {};
+    const commercial = model.commercial || (snap && snap.commercial) || {};
+    const scope = model.scope || {};
+    const totals = model.totals || {};
     return {
       snapshot:snap,
+      clientOffer:model,
       company,
-      investor,
+      investor:client,
       project,
       commercial,
-      title,
-      clientName,
-      clientAddress,
-      roomLabels,
-      scopeLabel:scopeModeLabel(snap),
-      generatedAt:snap && snap.generatedAt,
-      grand:Number(snap && snap.totals && snap.totals.grand) || 0,
-      zones:collectZoneData(snap),
-      materials:materialRowsForClient(snap),
-      accessories:aggregateLines(snap && snap.lines && snap.lines.accessories, 'szt.'),
-      agd:aggregateLines(snap && snap.lines && snap.lines.agdServices, 'szt.'),
+      title:text(model.title) || text(project && project.title) || text(commercial && commercial.versionName) || 'Oferta meblowa',
+      clientName:text(client.name) || '—',
+      clientAddress:text(client.address),
+      roomLabels:Array.isArray(scope.roomLabels) ? scope.roomLabels.map(text).filter(Boolean) : [],
+      scopeLabel:text(scope.scopeLabel) || scopeModeLabel(snap),
+      generatedAt:Number(model.generatedAt) > 0 ? Number(model.generatedAt) : (snap && snap.generatedAt),
+      grand:Number(totals.grand) || 0,
+      zones:Array.isArray(model.zones) ? model.zones : collectZoneData(snap),
+      materials:Array.isArray(model.materials) ? model.materials : materialRowsForClient(snap),
+      accessories:Array.isArray(model.accessories) ? model.accessories : aggregateLines(snap && snap.lines && snap.lines.accessories, 'szt.'),
+      agd:Array.isArray(model.agd) ? model.agd : aggregateLines(snap && snap.lines && snap.lines.agdServices, 'szt.'),
+      sections:model.sections || {},
     };
   }
   function appendInfoGrid(parent, rows){
@@ -206,15 +214,24 @@
     const section = h('section', { class:'client-offer-section' });
     section.appendChild(h('h4', { text:'Zakres oferty' }));
     const list = h('ul', { class:'client-offer-bullets' });
-    [
+    const includes = Array.isArray(data.sections && data.sections.includes) ? data.sections.includes : [];
+    (includes.length ? includes : [
       'wykonanie zabudowy meblowej według ustalonego projektu',
-      'zastosowane materiały, kolory, okucia i akcesoria zgodnie z poniższą specyfikacją',
-      'standardowy transport pod wskazany adres',
-      'standardowe wniesienie i montaż mebli',
-      data.agd.length ? 'montaż przewidzianych elementów AGD wskazanych w ofercie' : '',
-    ].filter(Boolean).forEach((item)=> list.appendChild(h('li', { text:item })));
+      'zastosowane materiały, kolory, okucia i akcesoria zgodnie ze specyfikacją oferty',
+    ]).filter(Boolean).forEach((item)=> list.appendChild(h('li', { text:item })));
     section.appendChild(list);
-    section.appendChild(h('p', { class:'client-offer-note', text:'Szczegółowy kosztorys operacyjny, stawki, kilometry, arkusze i metry PCV pozostają w wewnętrznej WYCENIE programu.' }));
+    const hidden = Array.isArray(data.sections && data.sections.hiddenDetails) ? data.sections.hiddenDetails : [];
+    section.appendChild(h('p', { class:'client-offer-note', text:hidden.length ? `Wewnętrznie ukryte przed klientem: ${hidden.join(', ')}.` : 'Szczegółowy kosztorys operacyjny pozostaje w wewnętrznej WYCENIE programu.' }));
+    parent.appendChild(section);
+  }
+  function appendOfferTerms(parent, data){
+    const terms = Array.isArray(data.sections && data.sections.terms) ? data.sections.terms.map(text).filter(Boolean) : [];
+    if(!terms.length) return;
+    const section = h('section', { class:'client-offer-section' });
+    section.appendChild(h('h4', { text:'Warunki i ustalenia' }));
+    const list = h('ul', { class:'client-offer-bullets' });
+    terms.forEach((item)=> list.appendChild(h('li', { text:item })));
+    section.appendChild(list);
     parent.appendChild(section);
   }
   function lineText(label, values, fallback){
@@ -296,6 +313,7 @@
       { label:'Termin', value:text(data.commercial.leadTime) },
     ]);
     appendScopeList(body, data);
+    appendOfferTerms(body, data);
     appendZones(body, data.zones);
     appendSimpleRows(body, 'Materiały / kolory z WYCENY', data.materials, 'Brak linii materiałowych w aktualnej wycenie.', { showQty:false });
     appendSimpleRows(body, 'Okucia i akcesoria', data.accessories, 'Brak akcesoriów w aktualnej wycenie.', { unit:'szt.' });
@@ -303,7 +321,8 @@
     const final = h('section', { class:'client-offer-section client-offer-final' });
     final.appendChild(h('div', { class:'client-offer-final__label', text:'Razem do przedstawienia klientowi' }));
     final.appendChild(h('div', { class:'client-offer-final__value', text:money(data.grand) }));
-    final.appendChild(h('p', { text:'Bez rozbijania kwotowego transportu, wniesienia, robocizny, arkuszy, PCV i cen jednostkowych okuć.' }));
+    const hidden = Array.isArray(data.sections && data.sections.hiddenDetails) ? data.sections.hiddenDetails : [];
+    final.appendChild(h('p', { text:hidden.length ? `Bez pokazywania klientowi: ${hidden.join(', ')}.` : 'Bez rozbijania szczegółowego kosztorysu operacyjnego.' }));
     body.appendChild(final);
     return body;
   }
@@ -365,7 +384,13 @@
     open,
     close,
     buildSummaryData,
-    collectZoneData,
-    aggregateLines,
+    collectZoneData(snapshot){
+      try{ if(FC.quoteClientOfferModel && typeof FC.quoteClientOfferModel.collectZoneData === 'function') return FC.quoteClientOfferModel.collectZoneData(snapshot); }catch(_){ }
+      return collectZoneData(snapshot);
+    },
+    aggregateLines(rows, fallbackUnit){
+      try{ if(FC.quoteClientOfferModel && typeof FC.quoteClientOfferModel.aggregateLines === 'function') return FC.quoteClientOfferModel.aggregateLines(rows, fallbackUnit); }catch(_){ }
+      return aggregateLines(rows, fallbackUnit);
+    },
   };
 })();

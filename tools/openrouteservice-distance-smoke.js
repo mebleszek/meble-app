@@ -10,7 +10,7 @@ function assertClose(actual, expected, message){
 }
 
 (async function main(){
-  const version = '20260613_openrouteservice_transport_diag_v1';
+  const version = '20260613_client_offer_model_v2';
   const index = read('index.html');
   const dev = read('dev_tests.html');
   const companyView = read('js/app/ui/data-settings-company-view.js');
