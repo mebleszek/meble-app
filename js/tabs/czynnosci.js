@@ -369,12 +369,12 @@
 
   function renderCabinetLabor(card, roomId){
     const rows = buildCabinetRows(roomId);
-    const section = h('section', { class:'card quote-section czynnosci-cabinet-shell', style:'margin-top:12px;padding:18px;' });
-    section.appendChild(h('div', { class:'quote-offer-accordion__title-line1', text:'Czynności szafek' }));
-    section.appendChild(h('div', { class:'quote-offer-accordion__summary-line', text:`Pomieszczenie: ${roomLabel(roomId)} • szafki: ${rows.length}` }));
-    const body = h('div', { class:'czynnosci-cabinet-shell__body', style:'margin-top:14px;' });
-    renderCabinetRows(body, rows);
-    section.appendChild(body);
+    const section = h('section', { class:'czynnosci-cabinet-section' });
+    const head = h('div', { class:'czynnosci-cabinet-section__head' });
+    head.appendChild(h('div', { class:'czynnosci-cabinet-section__title', text:'Czynności szafek' }));
+    head.appendChild(h('div', { class:'czynnosci-cabinet-section__meta', text:`Pomieszczenie: ${roomLabel(roomId)} • szafki: ${rows.length}` }));
+    section.appendChild(head);
+    renderCabinetRows(section, rows);
     card.appendChild(section);
   }
 
