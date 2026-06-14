@@ -1,3 +1,13 @@
+## 2026-06-14 — Diagnostyka do pliku i czystszy widok czynności v1
+
+- W diagnostyce WYCENY usunięto przycisk kopiowania raportu; został jeden przycisk `Zapisz raport`, który pobiera pełny `.txt` z buildem i timestampem w nazwie.
+- W WYWIADZIE usunięto tylko dolny, szczegółowy blok `Czynności robocizny` z rozwiniętej karty szafki. Pomarańczowe czynności u góry zostają bez zmiany układu, jedna pod drugą.
+- W CZYNNOŚCIACH czasy są pokazywane po ludzku jako `h:mm`, np. `1:30`; przy braku normoczasu widnieje `Brak informacji o czasie`.
+- Zakładka CZYNNOŚCI nie pokazuje finalnych złotówek dla ręcznych czynności; pieniądze pozostają domeną WYCENY.
+- Dodano `MD_CLEANUP_AUDIT.md` z analizą, które pliki `.md` można odchudzić w osobnym porządkowym etapie.
+
+Nie ruszano cache faktów, ORS, PDF, oferty klienta, PCV, transportu, `drawer.count`, automatów AGD ani wymagań technicznych. Cache-busting: `20260614_diag_file_labor_view_v1`.
+
 ## 2026-06-14 — Fakty pochodne szafki/cache v1
 
 Paczka `site_cabinet_derived_facts_cache_v1.zip` przenosi ciężkie liczenie jednej szafki do cache faktów pochodnych zapisywanego po dodaniu/edycji szafki.

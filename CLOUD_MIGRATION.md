@@ -1,3 +1,9 @@
+## 2026-06-14 — Diagnostyka do pliku bez zmiany modelu danych
+
+- Zapis raportu diagnostycznego WYCENY do `.txt` jest akcją przeglądarki i nie dodaje nowego trwałego klucza `localStorage`.
+- Usunięcie dolnego bloku robocizny z WYWIADU jest zmianą prezentacji; nie zmienia modelu szafki, cache faktów ani snapshotów.
+- `MD_CLEANUP_AUDIT.md` wskazuje pliki dokumentacji do przyszłego odchudzenia. Nie usunięto historii na ślepo, żeby nie zgubić aktywnych decyzji projektowych.
+
 ## 2026-06-14 — Fakty pochodne szafki/cache v1
 
 `cabinet.derivedFacts` jest technicznym cachem wyniku kalkulatorów, a nie nowym źródłem prawdy. W przyszłej chmurze można go przechowywać jako cache dokumentu szafki albo pominąć przy migracji i przeliczyć po stronie aplikacji/workerem.

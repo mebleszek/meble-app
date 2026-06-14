@@ -42,7 +42,7 @@ function sandbox(){
   return s;
 }
 
-const version = '20260614_cabinet_derived_facts_v1';
+const version = '20260614_diag_file_labor_view_v1';
 const index = read('index.html');
 assert(index.includes(version), 'index.html nie ma nowego cache-bustingu PCV');
 assert(index.includes('id="cmBodyPcvMode"'), 'Modal szafki nie ma pola PCV korpusu');

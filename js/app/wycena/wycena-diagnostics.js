@@ -3,7 +3,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const BUILD = '20260614_cabinet_derived_facts_v1';
+  const BUILD = '20260614_diag_file_labor_view_v1';
   const EVENT_LIMIT = 60;
   let lastGenerateTrace = null;
   let lastGenerateButtonEvent = null;
@@ -803,40 +803,67 @@
   function modalLock(on){
     try{ document.documentElement.classList.toggle('modal-lock', !!on); document.body.classList.toggle('modal-lock', !!on); }catch(_){ }
   }
-  function copyText(value, textarea, statusEl){
+  function safeFilePart(value){
+    return String(value || '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9_-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase() || 'raport';
+  }
+  function reportFileName(report){
+    const build = safeFilePart(report && report.build || BUILD);
+    const rawDate = report && report.createdAt ? new Date(report.createdAt) : new Date();
+    const date = Number.isFinite(rawDate.getTime()) ? rawDate : new Date();
+    const pad = function(n){ return String(n).padStart(2, '0'); };
+    const stamp = `${date.getFullYear()}${pad(date.getMonth()+1)}${pad(date.getDate())}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+    return `wycena_diag_${build}_${stamp}.txt`;
+  }
+  function saveReportFile(value, report, statusEl){
     const textValue = String(value || '');
-    const done = function(ok){ if(statusEl) statusEl.textContent = ok ? 'Skopiowano raport.' : 'Nie udało się skopiować. Zaznacz tekst raportu i skopiuj ręcznie.'; };
+    if(!textValue || textValue === 'Buduję raport…'){
+      if(statusEl) statusEl.textContent = 'Raport nie jest jeszcze gotowy.';
+      return false;
+    }
     try{
-      if(navigator.clipboard && typeof navigator.clipboard.writeText === 'function'){
-        navigator.clipboard.writeText(textValue).then(function(){ done(true); }, function(){ throw new Error('clipboard rejected'); });
-        return;
-      }
-    }catch(_){ }
-    try{
-      if(textarea){ textarea.focus(); textarea.select(); }
-      const ok = document.execCommand && document.execCommand('copy');
-      done(!!ok);
-    }catch(_){ done(false); }
+      const blob = new Blob([textValue], { type:'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = reportFileName(report || {});
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){
+        try{ URL.revokeObjectURL(url); }catch(_){ }
+        try{ a.remove(); }catch(_){ }
+      }, 0);
+      if(statusEl) statusEl.textContent = `Raport zapisany jako ${a.download}. W razie potrzeby prześlij plik do analizy.`;
+      return true;
+    }catch(err){
+      if(statusEl) statusEl.textContent = 'Nie udało się zapisać raportu jako pliku.';
+      return false;
+    }
   }
   function openReportModal(){
     let currentText = 'Buduję raport…';
+    let currentReport = null;
     const overlay = h('div', { class:'quote-diagnostics-backdrop' });
     const dialog = h('div', { class:'quote-diagnostics-modal panel-box panel-box--rozrys', role:'dialog', 'aria-modal':'true' });
     const title = h('div', { class:'panel-box__title', text:'Diagnostyka WYCENY' });
     const closeBtn = h('button', { class:'panel-box__close', type:'button', 'aria-label':'Zamknij', text:'×' });
     const head = h('div', { class:'panel-box__head' }, [title, closeBtn]);
     const body = h('div', { class:'panel-box__body quote-diagnostics-body' });
-    const lead = h('div', { class:'quote-diagnostics-lead', text:'Uruchom ten raport w normalnym trybie i w incognito, skopiuj oba wyniki i wklej je w rozmowie. Raport nie czyści danych, pokazuje źródła renderu ekranu, nazwę wariantu, snapshot storage i test wyceny bez zapisu snapshotu.' });
+    const lead = h('div', { class:'quote-diagnostics-lead', text:'Raport nie czyści danych. Zapisz pełny raport do pliku .txt i prześlij go do analizy, jeśli trzeba sprawdzić całość.' });
     const textarea = h('textarea', { class:'quote-diagnostics-textarea', readonly:'readonly', spellcheck:'false' });
     textarea.value = currentText;
     const status = h('div', { class:'quote-diagnostics-status muted', text:'Buduję raport…' });
     const footer = h('div', { class:'panel-box-form__footer quote-diagnostics-footer rozrys-picker-footer rozrys-picker-footer--material' });
     const actions = h('div', { class:'quote-diagnostics-actions rozrys-picker-footer-actions' });
     const refreshBtn = h('button', { class:'btn', type:'button', text:'Odśwież raport' });
-    const copyBtn = h('button', { class:'btn-success', type:'button', text:'Kopiuj raport' });
+    const saveBtn = h('button', { class:'btn-success', type:'button', text:'Zapisz raport' });
     const closeFooterBtn = h('button', { class:'btn-primary', type:'button', text:'Zamknij' });
     actions.appendChild(refreshBtn);
-    actions.appendChild(copyBtn);
+    actions.appendChild(saveBtn);
     actions.appendChild(closeFooterBtn);
     footer.appendChild(actions);
     body.appendChild(lead);
@@ -858,19 +885,21 @@
     overlay.addEventListener('pointerdown', function(event){ if(event.target === overlay) close(); });
     closeBtn.addEventListener('click', close);
     closeFooterBtn.addEventListener('click', close);
-    copyBtn.addEventListener('click', function(){ copyText(currentText, textarea, status); });
+    saveBtn.addEventListener('click', function(){ saveReportFile(currentText, currentReport, status); });
     async function refresh(){
       status.textContent = 'Buduję raport…';
       textarea.value = 'Buduję raport…';
       try{
         const report = await buildReport({ dryRun:true });
+        currentReport = report;
         currentText = stringifyReport(report);
         textarea.value = currentText;
-        status.textContent = 'Raport gotowy. Skopiuj i wklej w rozmowie.';
+        status.textContent = 'Raport gotowy. Kliknij „Zapisz raport”, żeby pobrać pełny plik .txt.';
       }catch(err){
+        currentReport = { build:BUILD, createdAt:new Date().toISOString() };
         currentText = 'BŁĄD BUDOWANIA RAPORTU: ' + String(err && err.message || err || 'błąd') + '\n' + String(err && err.stack || '');
         textarea.value = currentText;
-        status.textContent = 'Raport diagnostyczny sam zgłosił błąd — skopiuj ten tekst.';
+        status.textContent = 'Raport diagnostyczny sam zgłosił błąd — zapisz plik i prześlij go do analizy.';
       }
     }
     refreshBtn.addEventListener('click', function(){ void refresh(); });
@@ -912,6 +941,8 @@
     buildReport,
     stringifyReport,
     openReportModal,
+    reportFileName,
+    saveReportFile,
     renderTopbarButton,
     beginGenerateTrace,
     markGenerateTrace,

@@ -57,6 +57,7 @@
   function buildManualLaborSummary(draft, catalog, deps){
     const parse = getFn(deps, 'num', num);
     const money = getFn(deps, 'money', (value)=> `${(Number(value)||0).toFixed(2)} PLN`);
+    const hideMoney = !!(deps && deps.hideMoney);
     const map = buildSelectionMap(draft, deps);
     const rows = (Array.isArray(catalog) ? catalog : []).filter((rate)=> parse(map[String(rate && rate.id || '')], 0) > 0);
     const qtyTotal = rows.reduce((sum, rate)=> sum + parse(map[String(rate && rate.id || '')], 0), 0);
@@ -68,7 +69,7 @@
         try{ total += Number((FC.laborCatalog.calculateDefinition(rate, { quantity:qty }) || {}).total || 0); }catch(_){ }
       }
     });
-    return `Wybrane czynności: ${rows.length} • ilość razem: ${qtyTotal}${total > 0 ? ` • ${money(total)}` : ''}`;
+    return `Wybrane czynności: ${rows.length} • ilość razem: ${qtyTotal}${(!hideMoney && total > 0) ? ` • ${money(total)}` : ''}`;
   }
 
   function openPicker(catalog, selectionMap, onSave){

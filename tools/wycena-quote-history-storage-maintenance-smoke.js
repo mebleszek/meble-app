@@ -5,7 +5,7 @@ const { APP_DEV_SMOKE_FILES } = require('./app-dev-smoke-lib/file-list');
 const { SmokeStorage, makeStorage } = require('./app-dev-smoke-lib/smoke-storage');
 const { makeMiniDocument } = require('./app-dev-smoke-lib/mini-document');
 
-const VERSION = '20260614_cabinet_derived_facts_v1';
+const VERSION = '20260614_diag_file_labor_view_v1';
 
 function assert(condition, message, details){
   if(!condition){

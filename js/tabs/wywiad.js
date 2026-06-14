@@ -148,12 +148,6 @@
       `;
       body.appendChild(ro);
 
-      try{
-        const laborBlock = window.FC && window.FC.wywiadLaborSummary && typeof window.FC.wywiadLaborSummary.renderCabinetLaborSummary === 'function'
-          ? window.FC.wywiadLaborSummary.renderCabinetLaborSummary(cab)
-          : null;
-        if(laborBlock) body.appendChild(laborBlock);
-      }catch(_){ }
 
       const frontsForThis = cab.setId ? getFrontsForSetSafe(room, cab.setId) : getFrontsForCabSafe(room, cab.id);
       if(frontsForThis && frontsForThis.length){

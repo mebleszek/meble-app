@@ -114,12 +114,20 @@
       render,
       getOfferDraft,
       patchOfferDraft,
+      hideMoney:true,
       getIsOpen(){ return manualOpen; },
       setIsOpen(next){ manualOpen = !!next; },
     });
   }
 
-  function fmtHours(value){ return `${(Number(value) || 0).toFixed(2)} h`; }
+  function fmtHours(value){
+    const raw = Number(value);
+    if(!Number.isFinite(raw) || raw <= 0) return '0:00';
+    const totalMinutes = Math.max(0, Math.round(raw * 60));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}:${String(minutes).padStart(2, '0')}`;
+  }
   function fmtRate(value){ return String(value || '').trim() || '—'; }
   function fmtMultiplier(value){ return `×${(Number(value) || 1).toFixed(2)}`; }
   function fmtM3(value){ return `${(Number(value) || 0).toFixed(3)} m³`; }
@@ -146,7 +154,7 @@
       const mode = String(part && part.volumeTimeMode || 'none');
       const perM3 = Math.max(0, Number(part && part.volumeTimePerM3) || 0);
       const value = (mode === 'perM3' && perM3 > 0 && volumeM3 > 0)
-        ? `${fmtM3(volumeM3)} × ${perM3.toFixed(2)} h/m³ = ${fmtHours(volumeHours)}`
+        ? `${fmtM3(volumeM3)} × ${fmtHours(perM3)}/m³ = ${fmtHours(volumeHours)}`
         : `${fmtHours(volumeHours)} z progu objętości`;
       box.appendChild(breakdownRow('Gabarytoczas', value));
     }
@@ -173,7 +181,7 @@
       return;
     }
     const hours = rows.reduce((sum, row)=> sum + (Number(row.hours) || 0), 0);
-    container.appendChild(h('div', { class:'czynnosci-summary-pill', text:`Czynności szafek: ${rows.length} • normoczas: ${hours.toFixed(2)} h` }));
+    container.appendChild(h('div', { class:'czynnosci-summary-pill', text:`Czynności szafek: ${rows.length} • normoczas: ${fmtHours(hours)}` }));
     const list = h('div', { class:'quote-labor-list czynnosci-cabinet-list' });
     rows.forEach((row)=> {
       const details = h('details', { class:'quote-labor-cabinet czynnosci-cabinet' });
@@ -190,6 +198,7 @@
         item.appendChild(h('div', { class:'quote-labor-detail__main', text:part.name || 'Czynność' }));
         item.appendChild(renderDetailBreakdown(part));
         if(Number(part && part.hours) > 0) item.appendChild(h('div', { class:'quote-labor-detail__total', text:fmtHours(part.hours) }));
+        else item.appendChild(h('div', { class:'quote-labor-detail__total quote-labor-detail__total--missing', text:'Brak informacji o czasie' }));
         body.appendChild(item);
       });
       if(!body.childNodes.length) body.appendChild(h('div', { class:'muted', text:'Brak szczegółów czynności dla tej szafki.' }));

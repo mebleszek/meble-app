@@ -51,6 +51,7 @@ async function main(){
   assert(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.buildReport === 'function', 'Brak modułu diagnostyki WYCENY');
   assert(typeof FC.wycenaDiagnostics.stringifyReport === 'function', 'Brak stringifyReport diagnostyki WYCENY');
   assert(typeof FC.wycenaDiagnostics.renderTopbarButton === 'function', 'Brak przycisku diagnostyki WYCENY');
+  assert(typeof FC.wycenaDiagnostics.reportFileName === 'function', 'Brak generatora nazwy pliku raportu diagnostycznego');
 
   FC.wycenaDiagnostics.recordGenerateButtonEvent('test-button');
   FC.wycenaDiagnostics.beginGenerateTrace('test');
@@ -66,11 +67,15 @@ async function main(){
   assert(report.lastGenerateTrace && report.lastGenerateTrace.result && report.lastGenerateTrace.result.ok === true, 'Raport nie zawiera śladu generowania WYCENY', report.lastGenerateTrace);
   const text = FC.wycenaDiagnostics.stringifyReport(report);
   assert(typeof text === 'string' && text.includes('RAPORT DIAGNOSTYCZNY WYCENA') && text.includes('OSTATNI KLIK WYCEN') && text.includes('ŹRÓDŁA EKRANU WYCENA') && text.includes('SNAPSHOT STORAGE DEEP DIVE'), 'Tekst raportu jest niekompletny', text.slice(0, 300));
+  const filename = FC.wycenaDiagnostics.reportFileName(report);
+  assert(/^wycena_diag_20260614_diag_file_labor_view_v1_\d{8}_\d{6}\.txt$/.test(filename), 'Nazwa pliku raportu ma zawierać build i timestamp', filename);
 
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const devTests = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');
-  assert(index.includes('js/app/wycena/wycena-diagnostics.js?v=20260614_cabinet_derived_facts_v1'), 'index.html nie ładuje diagnostyki z cache-bustingiem');
-  assert(devTests.includes('js/app/wycena/wycena-diagnostics.js?v=20260614_cabinet_derived_facts_v1'), 'dev_tests.html nie ładuje diagnostyki z cache-bustingiem');
+  assert(index.includes('js/app/wycena/wycena-diagnostics.js?v=20260614_diag_file_labor_view_v1'), 'index.html nie ładuje diagnostyki z cache-bustingiem');
+  assert(devTests.includes('js/app/wycena/wycena-diagnostics.js?v=20260614_diag_file_labor_view_v1'), 'dev_tests.html nie ładuje diagnostyki z cache-bustingiem');
+  const diagSource = fs.readFileSync(path.join(process.cwd(), 'js/app/wycena/wycena-diagnostics.js'), 'utf8');
+  assert(diagSource.includes('Zapisz raport') && !diagSource.includes('Kopiuj raport'), 'Diagnostyka ma zapisywać raport do pliku, bez przycisku kopiowania');
   console.log('[wycena-diagnostics-report-smoke] OK');
 }
 
