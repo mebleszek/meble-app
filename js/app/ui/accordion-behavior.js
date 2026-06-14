@@ -30,13 +30,17 @@
   }
 
   function topOffset(){
-    let offset = 14;
+    let offset = 16;
     try{
       const header = document.querySelector('header');
       if(header){
         const rect = header.getBoundingClientRect();
         const visible = rect && rect.bottom > 0 && rect.height > 0;
-        if(visible) offset += Math.max(0, Math.ceil(rect.height || 0));
+        if(visible){
+          // Sticky menu can wrap into two rows on mobile. rect.bottom is safer than height
+          // when the header is already stuck at the top.
+          offset += Math.max(0, Math.ceil(Math.max(rect.bottom || 0, rect.height || 0)));
+        }
       }
     }catch(_){ }
     return offset;
@@ -46,19 +50,25 @@
     try{ document.documentElement.style.setProperty('--fc-sticky-offset', topOffset() + 'px'); }catch(_){ }
   }
 
+  function scrollOnce(element, cfg){
+    if(!element) return;
+    try{
+      const rect = element.getBoundingClientRect();
+      const top = Math.max(0, window.pageYOffset + rect.top - topOffset());
+      window.scrollTo({ top, behavior: cfg.instant ? 'auto' : 'smooth' });
+    }catch(_){
+      try{ element.scrollIntoView({ block:'start', behavior: cfg.instant ? 'auto' : 'smooth' }); }catch(__){ }
+    }
+  }
+
   function scrollIntoView(element, options){
     if(!element) return;
     const cfg = options && typeof options === 'object' ? options : {};
-    const delay = Number.isFinite(Number(cfg.delay)) ? Number(cfg.delay) : 70;
-    window.setTimeout(()=>{
-      try{
-        const rect = element.getBoundingClientRect();
-        const top = Math.max(0, window.pageYOffset + rect.top - topOffset());
-        window.scrollTo({ top, behavior: cfg.instant ? 'auto' : 'smooth' });
-      }catch(_){
-        try{ element.scrollIntoView({ block:'start', behavior: cfg.instant ? 'auto' : 'smooth' }); }catch(__){ }
-      }
-    }, delay);
+    const delay = Number.isFinite(Number(cfg.delay)) ? Number(cfg.delay) : 80;
+    const passes = Array.isArray(cfg.passes) && cfg.passes.length ? cfg.passes : [delay, EXPAND_MS + 80, EXPAND_MS + 220];
+    passes.forEach((ms, index)=>{
+      window.setTimeout(()=> scrollOnce(element, Object.assign({}, cfg, { instant: cfg.instant && index === 0 })), Math.max(0, Number(ms) || 0));
+    });
   }
 
   function groupRoot(element){
@@ -76,6 +86,7 @@
   function directBody(root){
     if(!root || !root.querySelector) return null;
     return root.querySelector(':scope > .wywiad-room-accordion__body')
+      || root.querySelector(':scope > .cabinet-body')
       || root.querySelector(':scope > .quote-labor-cabinet__body')
       || root.querySelector(':scope > .investor-transport-accordion__body')
       || root.querySelector(':scope > .investor-carrying-accordion__body')
@@ -143,7 +154,7 @@
       resetAnimation(root);
       setOpenState(root, true);
     }, EXPAND_MS + 40);
-    if(!(options && options.noScroll)) scrollIntoView(root);
+    if(!(options && options.noScroll)) scrollIntoView(root, { passes:[70, EXPAND_MS + 90, EXPAND_MS + 260] });
   }
 
   function animateClose(root, options){
@@ -205,10 +216,12 @@
       return;
     }
     if(node.classList && (node.classList.contains('is-open') || node.classList.contains('selected'))){
-      if(node.classList.contains('rozrys-material-accordion') || node.classList.contains('quote-manual-labor-accordion')){
-        animateClose(node);
+      if(node.classList.contains('rozrys-material-accordion') || node.classList.contains('quote-manual-labor-accordion') || node.classList.contains('cabinet-card-shell') || node.classList.contains('material-cabinet-accordion')){
+        animateClose(node, { after:function(){ node.classList.remove('selected'); } });
       }else{
         node.classList.remove('is-open', 'selected');
+        const body = directBody(node);
+        if(body) body.hidden = true;
       }
     }
   }

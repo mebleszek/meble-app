@@ -176,7 +176,7 @@
         FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
         renderCabinets();
         if(!nowOpen){
-          try{ const node = document.getElementById(`mat-${cab.id}`); if(window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.scrollIntoView(node); else setTimeout(()=> node?.scrollIntoView({ block:'start', behavior:'smooth' }), 40); }catch(_){ }
+          try{ const node = document.getElementById(`mat-${cab.id}`); if(window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.scrollIntoView(node, { passes:[80, 520, 720] }); else setTimeout(()=> node?.scrollIntoView({ block:'start', behavior:'smooth' }), 80); }catch(_){ }
         }
       });
 

@@ -576,3 +576,22 @@
   .investor-carrying-accordion__body{transition:none!important;}
 }
 
+
+/* 2026-06-14 — scroll correction for accordions below sticky top menu. */
+.wywiad-room-accordion,
+.rozrys-material-accordion,
+.investor-transport-accordion,
+.investor-carrying-accordion,
+.cabinet-card-shell,
+.material-cabinet-accordion,
+.czynnosci-cabinet{
+  scroll-margin-top:var(--fc-sticky-offset, 140px)!important;
+}
+.is-ui-pattern-animating > .cabinet-body,
+.is-ui-pattern-animating > .wywiad-room-accordion__body,
+.is-ui-pattern-animating > .rozrys-material-accordion__body,
+.is-ui-pattern-animating > .quote-labor-cabinet__body,
+.is-ui-pattern-animating > .investor-transport-accordion__body,
+.is-ui-pattern-animating > .investor-carrying-accordion__body{
+  overflow:hidden!important;
+}

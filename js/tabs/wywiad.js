@@ -214,7 +214,7 @@
         }
       }catch(_){ }
       callLegacy('renderCabinets', []);
-      try{ const node = document.getElementById(`cab-${cab.id}`); if(window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.scrollIntoView(node); else setTimeout(()=> node?.scrollIntoView({ block:'start', behavior:'smooth' }), 40); }catch(_){ }
+      try{ const node = document.getElementById(`cab-${cab.id}`); if(window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.scrollIntoView(node, { passes:[80, 520, 720] }); else setTimeout(()=> node?.scrollIntoView({ block:'start', behavior:'smooth' }), 80); }catch(_){ }
     };
 
     header.addEventListener('click', (e) => {
