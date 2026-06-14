@@ -137,11 +137,11 @@
       const cab = entry.cabinet || {};
       const idx = Number(entry.index) || 0;
       const card = document.createElement('div');
-      card.className = 'card';
+      card.className = 'card material-cabinet-accordion wywiad-room-accordion';
       card.id = `mat-${cab.id}`;
 
       const head = document.createElement('div');
-      head.className = 'mat-cab-head';
+      head.className = 'mat-cab-head wywiad-room-accordion__summary';
       head.style.display = 'flex';
       head.style.justifyContent = 'space-between';
       head.style.alignItems = 'baseline';
@@ -157,11 +157,12 @@
           <button class="btn" type="button" data-act="editCab" data-cab="${cab.id}">Edytuj</button>
           <button class="btn" type="button" data-act="jumpCab" data-cab="${cab.id}">← Szafka</button>
         </div>
+        <span class="wywiad-room-accordion__chevron" aria-hidden="true"></span>
       `;
       card.appendChild(head);
 
       const isOpen = String(uiState.matExpandedId || '') === String(cab.id);
-      if(isOpen) card.classList.add('selected');
+      if(isOpen){ card.classList.add('selected'); card.classList.add('is-open'); }
 
       head.style.cursor = 'pointer';
       head.addEventListener('click', (e) => {
@@ -189,14 +190,13 @@
       }
 
       if(!isOpen){
-        const collapsedHint = document.createElement('div');
-        collapsedHint.className = 'muted xs';
-        collapsedHint.style.marginTop = '10px';
-        collapsedHint.textContent = 'Kliknij nagłówek, aby rozwinąć rozpis materiałów tej szafki.';
-        card.appendChild(collapsedHint);
         listEl.appendChild(card);
         return;
       }
+
+      const materialAccordionBody = document.createElement('div');
+      materialAccordionBody.className = 'wywiad-room-accordion__body material-cabinet-accordion__body';
+      card.appendChild(materialAccordionBody);
 
       const parts = entry.parts || [];
       const cabEdgeMeters = Number(entry.edgeMeters) || 0;
@@ -210,7 +210,7 @@
       cabTotalsBox.innerHTML = `<div class="muted xs" style="font-weight:900; margin-bottom:6px">Suma m² materiałów — ta szafka</div>`;
       const cabTotalsEl = document.createElement('div');
       cabTotalsBox.appendChild(cabTotalsEl);
-      card.appendChild(cabTotalsBox);
+      materialAccordionBody.appendChild(cabTotalsBox);
       renderTotalsFn(cabTotalsEl, entry.totals || totalsFromPartsFn(parts));
 
       const cabEdgeBox = document.createElement('div');
@@ -343,7 +343,7 @@
         }
       });
 
-      card.appendChild(table);
+      materialAccordionBody.appendChild(table);
       listEl.appendChild(card);
     });
   }

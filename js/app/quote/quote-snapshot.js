@@ -357,7 +357,7 @@
     try{
       const elapsed = roundMs(perfNow() - snapshotStart);
       snapshot.meta.performance = Object.assign({}, snapshot.meta.performance || {}, {
-        build:'20260614_labor_items_time_display_v1',
+        build:'20260614_labor_readable_modes_v1',
         snapshotMs:elapsed,
         snapshotSizeBytes:jsonBytes(snapshot),
         calculationRegisterSizeBytes:jsonBytes(calculationRegister),

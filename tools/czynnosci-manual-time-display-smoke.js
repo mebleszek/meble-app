@@ -10,7 +10,7 @@ function assert(cond, msg){
     process.exit(1);
   }
 }
-const version = '20260614_labor_items_time_display_v1';
+const version = '20260614_labor_readable_modes_v1';
 const index = read('index.html');
 const dev = read('dev_tests.html');
 const core = read('js/app/wycena/wycena-core-labor.js');
@@ -23,7 +23,7 @@ const manualBlock = core.slice(core.indexOf('manual.forEach'), core.indexOf('con
 assert(manualBlock.includes('manualFallbackComponent') && !manualBlock.includes('if(!def) return;'), 'ręczna czynność nie może znikać tylko dlatego, że nie ma pozycji w cenniku');
 assert(core.includes('allowZero:true'), 'ręczne czynności z zerową kwotą/czasem mają być przepuszczane do szczegółów');
 assert(core.includes('opts.allowZero'), 'componentFromCalc obsługuje pozycje zerowe tylko jawnie');
-assert(czyn.includes("breakdownRow('Czas / jednostkę'"), 'CZYNNOŚCI pokazują czas jednostkowy, a nie czas łączny jako jednostkowy');
+assert(czyn.includes("breakdownRow('Czas jednostkowy'"), 'CZYNNOŚCI pokazują czas jednostkowy, a nie czas łączny jako jednostkowy');
 assert(czyn.includes("breakdownRow('Wyliczenie czasu'"), 'CZYNNOŚCI pokazują działanie typu ilość × czas jednostkowy = razem');
 assert(!czyn.includes('Czas / jednostkę albo pakiet'), 'stara myląca etykieta czasu nie może zostać w CZYNNOŚCIACH');
 assert(czyn.includes("breakdownRow('Czas', 'Brak informacji o czasie')") && czyn.includes("text:'Brak informacji o czasie'"), 'brak czasu ma być pokazany jawnie, nie jako ukryta czynność');

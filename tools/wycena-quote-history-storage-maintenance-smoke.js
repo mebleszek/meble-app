@@ -5,7 +5,7 @@ const { APP_DEV_SMOKE_FILES } = require('./app-dev-smoke-lib/file-list');
 const { SmokeStorage, makeStorage } = require('./app-dev-smoke-lib/smoke-storage');
 const { makeMiniDocument } = require('./app-dev-smoke-lib/mini-document');
 
-const VERSION = '20260614_labor_items_time_display_v1';
+const VERSION = '20260614_labor_readable_modes_v1';
 
 function assert(condition, message, details){
   if(!condition){

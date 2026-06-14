@@ -102,3 +102,55 @@
 @media (max-width:640px){
   .quote-labor-breakdown__row{ grid-template-columns:minmax(0,.9fr) minmax(0,1.35fr); gap:7px; }
 }
+
+/* 2026-06-14 — wspólny wygląd akordeonów MATERIAŁ/CZYNNOŚCI zgodny z WYWIAD. */
+.wywiad-room-accordion.is-open{
+  border-color:rgba(15,23,42,.62);
+  box-shadow:2px 3px 0 rgba(15,23,42,.18), 6px 12px 20px rgba(15,23,42,.12);
+}
+.wywiad-room-accordion.is-open .wywiad-room-accordion__chevron{
+  transform:rotate(180deg);
+  border-color:rgba(22,163,74,.28);
+  box-shadow:2px 3px 0 rgba(15,23,42,.07), 0 8px 16px rgba(22,163,74,.12);
+}
+.material-cabinet-accordion.wywiad-room-accordion,
+.czynnosci-cabinet.wywiad-room-accordion{
+  padding:0;
+}
+.material-cabinet-accordion .wywiad-room-accordion__summary,
+.czynnosci-cabinet .wywiad-room-accordion__summary{
+  align-items:flex-start;
+}
+.material-cabinet-accordion .mat-head-right{
+  flex:1 1 260px;
+}
+.material-cabinet-accordion .wywiad-room-accordion__chevron,
+.czynnosci-cabinet .wywiad-room-accordion__chevron{
+  margin-left:4px;
+}
+.czynnosci-cabinet.wywiad-room-accordion{
+  margin-top:12px;
+}
+.czynnosci-cabinet.wywiad-room-accordion:first-child{
+  margin-top:0;
+}
+.czynnosci-cabinet .quote-labor-cabinet__amount{
+  align-self:center;
+  margin-left:auto;
+}
+.czynnosci-cabinet .quote-labor-cabinet__body.wywiad-room-accordion__body{
+  padding:0 20px 20px;
+}
+@media (max-width:640px){
+  .material-cabinet-accordion .wywiad-room-accordion__summary,
+  .czynnosci-cabinet .wywiad-room-accordion__summary{
+    padding:16px;
+  }
+  .material-cabinet-accordion .mat-head-right{
+    flex-basis:100%;
+    justify-content:flex-start!important;
+  }
+  .czynnosci-cabinet .quote-labor-cabinet__amount{
+    margin-left:0;
+  }
+}

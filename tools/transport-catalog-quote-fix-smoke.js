@@ -17,7 +17,7 @@ const preview = read('js/app/wycena/wycena-tab-preview.js');
 const details = read('js/app/wycena/wycena-summary-details-modal.js');
 const store = read('js/app/quote/quote-snapshot-store.js');
 
-const version = '20260614_labor_items_time_display_v1';
+const version = '20260614_labor_readable_modes_v1';
 assert(index.includes(`?v=${version}`), 'index.html ma zły cache-busting dla poprawki transportu');
 assert(defs.includes("id:'transport_distance_km'"), 'Brak kanonicznej pozycji transport_distance_km');
 assert(laborCatalogSrc.includes('consolidateDefaultDefinitionDuplicates'), 'Brak konsolidacji zdublowanych pozycji startowych');
