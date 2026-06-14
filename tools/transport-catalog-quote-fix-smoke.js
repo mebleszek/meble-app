@@ -17,7 +17,7 @@ const preview = read('js/app/wycena/wycena-tab-preview.js');
 const details = read('js/app/wycena/wycena-summary-details-modal.js');
 const store = read('js/app/quote/quote-snapshot-store.js');
 
-const version = '20260614_carrying_separate_quote_v1';
+const version = '20260614_other_actions_travel_time_v1';
 assert(index.includes(`?v=${version}`), 'index.html ma zły cache-busting dla poprawki transportu');
 assert(defs.includes("id:'transport_distance_km'"), 'Brak kanonicznej pozycji transport_distance_km');
 assert(laborCatalogSrc.includes('consolidateDefaultDefinitionDuplicates'), 'Brak konsolidacji zdublowanych pozycji startowych');
@@ -42,10 +42,13 @@ const duplicated = [
   { id:'transport_distance_km', category:'Transport', name:'Transport do klienta', price:0, usage:'project', rateType:'assembly', quantitySource:'transport.distance_km', quantityMode:'linear', active:true, internalOnly:false, starterPrice:true }
 ];
 const consolidated = sandbox.FC.laborCatalog.ensureDefaultDefinitions(duplicated).filter((row)=> row.category === 'Transport');
-assert(consolidated.length === 1, `Transport powinien zostać skonsolidowany do jednej pozycji, jest: ${consolidated.length}`);
-assert(consolidated[0].id === 'transport_distance_km', 'Cena użytkownika musi przejść na kanoniczny transport_distance_km');
-assert(Number(consolidated[0].price) === 5, 'Cena transportu po konsolidacji powinna zostać 5 PLN/km');
-assert(consolidated[0].starterPrice === false, 'Po edycji transport nie może zostać oznaczony jako Cena startowa');
+const distanceRows = consolidated.filter((row)=> row.id === 'transport_distance_km');
+const travelRows = consolidated.filter((row)=> row.id === 'transport_travel_time');
+assert(distanceRows.length === 1, `Transport km powinien zostać skonsolidowany do jednej pozycji, jest: ${distanceRows.length}`);
+assert(travelRows.length === 1, 'Domyślna pozycja Czas dojazdu ma istnieć osobno w Transporcie');
+assert(distanceRows[0].id === 'transport_distance_km', 'Cena użytkownika musi przejść na kanoniczny transport_distance_km');
+assert(Number(distanceRows[0].price) === 5, 'Cena transportu po konsolidacji powinna zostać 5 PLN/km');
+assert(distanceRows[0].starterPrice === false, 'Po edycji transport km nie może zostać oznaczony jako Cena startowa');
 
 vm.runInContext(registerSrc, sandbox, { filename:'quote-calculation-register.js' });
 const reg = sandbox.FC.quoteCalculationRegister.buildRegister({ quoteRates:[

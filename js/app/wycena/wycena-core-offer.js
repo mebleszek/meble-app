@@ -128,6 +128,55 @@
     };
   }
 
+  function buildTransportTravelTimeLine(catalog, selections){
+    const selectedIds = new Set((Array.isArray(selections) ? selections : []).map((row)=> String(row && row.rateId || '')).filter(Boolean));
+    const defRaw = (Array.isArray(catalog) ? catalog : []).find((row)=> String(row && row.id || '') === 'transport_travel_time') || null;
+    if(!defRaw || selectedIds.has('transport_travel_time')) return null;
+    const def = FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' ? FC.laborCatalog.normalizeDefinition(defRaw) : defRaw;
+    if(!def || def.active === false || def.isHourlyRate === true) return null;
+    const ctx = FC.investorTransport && typeof FC.investorTransport.getCurrentTransportContext === 'function' ? FC.investorTransport.getCurrentTransportContext() : null;
+    const durationMin = Math.max(0, Math.round(Number(ctx && ctx.durationMin) || 0));
+    const durationHours = durationMin > 0 ? durationMin / 60 : Math.max(0, Number(ctx && ctx.durationHours) || 0);
+    if(!(durationHours > 0)) return null;
+    const rates = buildHourlyRates(catalog);
+    const hourlyRate = Math.max(0, Number(rates[def.rateType || 'assembly']) || 0);
+    const total = durationHours * hourlyRate;
+    const inv = ctx && ctx.investor || null;
+    const display = ctx && ctx.durationDisplay ? String(ctx.durationDisplay) : (durationMin ? durationMin + ' min' : (Math.round(durationHours * 60) + ' min'));
+    return {
+      key:'transport_travel_time',
+      type:'quote-rate',
+      category:String(def.category || 'Transport'),
+      name:String(def.name || 'Czas dojazdu'),
+      qty:durationHours,
+      unit:'h',
+      unitPrice:hourlyRate,
+      total,
+      hours:durationHours,
+      baseHours:durationHours,
+      timeBlockHours:1,
+      quantity:durationHours,
+      quantityMode:'linear',
+      pricingMode:'time',
+      rateType:String(def.rateType || 'assembly'),
+      hourlyRate,
+      note:'Automatycznie z Inwestora: czas dojazdu ' + display + '. Kilometry są liczone osobno w pozycji Transport do klienta.',
+      calculation:`Czas dojazdu = ${display} × ${hourlyRate.toFixed(2)} PLN/h stawki montażowej.`,
+      internalOnly:true,
+      sourceType:'transport',
+      sourceLabel:'Inwestor' + (inv && (inv.name || inv.companyName) ? ': ' + String(inv.name || inv.companyName) : ''),
+      sourceId:String(def.id || 'transport_travel_time'),
+      sourceRole:'transport-travel-time',
+      sourceKind:'automatic',
+      quantitySource:'transport.duration_hours',
+      quantitySourceLabel:'Czas dojazdu z inwestora',
+      quantitySourceValue:durationHours,
+      quantitySourceDisplay:display,
+      quantitySourceUsed:true
+    };
+  }
+
+
   function collectQuoteRateLines(){
     const draft = getOfferDraft();
     const selections = Array.isArray(draft && draft.rateSelections) ? draft.rateSelections : [];
@@ -162,7 +211,8 @@
       };
     }).filter(Boolean);
     const transportLine = buildTransportRateLine(catalog, selections);
-    return transportLine ? manualLines.concat([transportLine]) : manualLines;
+    const travelTimeLine = buildTransportTravelTimeLine(catalog, selections);
+    return manualLines.concat([transportLine, travelTimeLine].filter(Boolean));
   }
 
   FC.wycenaCoreOffer = {

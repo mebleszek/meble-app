@@ -236,6 +236,7 @@
   function isTransportLine(row){
     const src = row && typeof row === 'object' ? row : {};
     return text(src.sourceRole) === 'transport-distance'
+      || text(src.sourceRole) === 'transport-travel-time'
       || text(src.sourceType) === 'transport'
       || text(src.quantitySource) === 'transport.distance_km'
       || text(src.sourceId) === 'transport_distance_km';

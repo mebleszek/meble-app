@@ -277,6 +277,14 @@
       calculation:'Z odległości zapisanej przy inwestorze oraz zasad transportu z trybika. To źródło służy pozycji Transport w WYCENIE, nie jest daną pojedynczej szafki.',
     },
     {
+      code:'transport.duration_hours',
+      label:'Czas dojazdu z inwestora',
+      unit:'h',
+      group:'Transport',
+      status:'system',
+      calculation:'Czas dojazdu zapisany przy inwestorze. W CZYNNOŚCIACH pokazujemy go jako czas, a w WYCENIE naliczamy pozycję Czas dojazdu stawką montażową.',
+    },
+    {
       code:'worktop.length_m',
       label:'Długość blatu',
       unit:'mb',

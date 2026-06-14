@@ -26,7 +26,7 @@ assert(!view.includes('localStorage') && !view.includes('sessionStorage'), 'wido
 assert(css.includes('data-settings-work-facts-preview-card') && css.includes('data-settings-work-fact-row'), 'CSS ma style podglądu faktów w trybiku');
 assert(!modal.includes('cmWorkFactsPreview') && !modal.includes('workQuantityFacts'), 'cabinet-modal.js nie został podpięty do podglądu faktów');
 assert(!render.includes('workQuantityFacts') && !render.includes('cmWorkFactsPreview'), 'cabinets-render.js nie został podpięty do podglądu faktów');
-assert(index.includes('20260614_labor_readable_modes_v1') && dev.includes('20260614_labor_readable_modes_v1'), 'index/dev_tests mają cache-busting etapu podglądu poza modalem');
+assert(index.includes('20260614_other_actions_travel_time_v1') && dev.includes('20260614_other_actions_travel_time_v1'), 'index/dev_tests mają cache-busting etapu podglądu poza modalem');
 assert(index.includes('js/app/pricing/work-quantity-facts.js') && index.includes('js/app/ui/data-settings-work-sources-view.js'), 'index ładuje fakty i widok źródeł w ustawieniach');
 console.log('OK work-quantity-facts-settings-preview smoke');
 console.log(' - podgląd faktów szafki jest w trybiku, poza modalem szafki');

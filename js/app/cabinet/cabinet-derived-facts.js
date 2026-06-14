@@ -6,7 +6,7 @@
   root.FC = root.FC || {};
   const FC = root.FC;
 
-  const VERSION = '20260614_cabinet_derived_facts_v1';
+  const VERSION = '20260614_other_actions_travel_time_v1';
   const CACHE_FIELD = 'derivedFacts';
   const STATS_LIMIT = 20;
   let computingDepth = 0;

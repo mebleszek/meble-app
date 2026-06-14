@@ -104,6 +104,74 @@
     });
   }
 
+
+  function isTransportDistanceLine(row){
+    const src = row || {};
+    return String(src.sourceRole || '').trim() === 'transport-distance'
+      || String(src.quantitySource || '').trim() === 'transport.distance_km'
+      || String(src.sourceId || '').trim() === 'transport_distance_km';
+  }
+  function isOtherActionLine(row){
+    const src = row || {};
+    if(isTransportDistanceLine(src)) return false;
+    if(String(src.sourceRole || '').trim() === 'transport-travel-time') return true;
+    if(Number(src.hours) > 0) return true;
+    const label = [src.category, src.name, src.sourceRole, src.sourceType].map((x)=> String(x || '').toLowerCase()).join(' ');
+    return /projekt|pomiar|transport|dojazd|inne|usługi dodatkowe|uslugi dodatkowe/.test(label);
+  }
+  function buildOtherActionRows(){
+    let rows = [];
+    try{
+      if(FC.wycenaCoreOffer && typeof FC.wycenaCoreOffer.collectQuoteRateLines === 'function') rows = FC.wycenaCoreOffer.collectQuoteRateLines() || [];
+      else if(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteRateLines === 'function') rows = FC.wycenaCore.collectQuoteRateLines() || [];
+    }catch(_){ rows = []; }
+    return (Array.isArray(rows) ? rows : []).filter(isOtherActionLine).map((row)=> {
+      const hours = Math.max(0, Number(row && row.hours) || Number(row && row.baseHours) || 0);
+      return Object.assign({}, row, { hours, baseHours:Math.max(0, Number(row && row.baseHours) || hours) });
+    });
+  }
+  function renderOtherActionBreakdown(row){
+    if(row && String(row.sourceRole || '').trim() === 'transport-travel-time'){
+      const box = h('div', { class:'quote-labor-breakdown' });
+      const hours = Math.max(0, Number(row.hours) || Number(row.baseHours) || 0);
+      box.appendChild(breakdownRow('Czas dojazdu', hours > 0 ? fmtHours(hours) : 'Brak informacji o czasie'));
+      const rateName = String(row.rateType || 'assembly').trim();
+      if(rateName) box.appendChild(breakdownRow('Stawka', rateDisplay(rateName)));
+      box.appendChild(breakdownRow('Źródło', 'Inwestor'));
+      if(row.note) box.appendChild(breakdownRow('Z czego wynika', String(row.note)));
+      return box;
+    }
+    return renderDetailBreakdown(row || {});
+  }
+  function renderOtherActions(container){
+    const rows = buildOtherActionRows();
+    const details = h('details', { class:'quote-labor-cabinet czynnosci-other-accordion wywiad-room-accordion' });
+    const summary = h('summary', { class:'quote-labor-cabinet__summary wywiad-room-accordion__summary' });
+    const title = h('div', { class:'quote-labor-cabinet__title' });
+    const hours = rows.reduce((sum, row)=> sum + (Number(row.hours) || 0), 0);
+    title.appendChild(h('div', { class:'quote-labor-cabinet__name', text:'Inne czynności' }));
+    title.appendChild(h('div', { class:'quote-labor-cabinet__meta', text:rows.length ? `${rows.length} pozycji ogólnych mebli` : 'Transport, projekt, pomiar i inne ogólne czynności mebli' }));
+    title.appendChild(h('div', { class:'quote-labor-cabinet__meta quote-labor-cabinet__meta--time', text:`Normoczas: ${fmtHours(hours)}` }));
+    summary.appendChild(title);
+    summary.appendChild(h('span', { class:'wywiad-room-accordion__chevron', 'aria-hidden':'true' }));
+    details.appendChild(summary);
+    const body = h('div', { class:'quote-labor-cabinet__body wywiad-room-accordion__body' });
+    if(rows.length){
+      rows.forEach((row)=> {
+        const item = h('div', { class:'quote-labor-detail' });
+        item.appendChild(h('div', { class:'quote-labor-detail__main', text:String(row && row.name || 'Inna czynność') }));
+        item.appendChild(renderOtherActionBreakdown(row));
+        if(Number(row && row.hours) > 0) item.appendChild(h('div', { class:'quote-labor-detail__total', text:fmtHours(row.hours) }));
+        else item.appendChild(h('div', { class:'quote-labor-detail__total quote-labor-detail__total--missing', text:'Brak informacji o czasie' }));
+        body.appendChild(item);
+      });
+    }else{
+      body.appendChild(h('div', { class:'muted', text:'Brak innych czynności ogólnych. Gdy przy inwestorze będzie czas dojazdu, transport pojawi się tutaj jako czas dojazdu.' }));
+    }
+    details.appendChild(body);
+    container.appendChild(details);
+  }
+
   function renderManualLabor(card, ctx){
     if(!(FC.wycenaTabManualLabor && typeof FC.wycenaTabManualLabor.renderManualLaborEditor === 'function')) return;
     FC.wycenaTabManualLabor.renderManualLaborEditor(card, ctx, {
@@ -400,6 +468,7 @@
     list.appendChild(intro);
 
     renderManualLabor(list, ctx || {});
+    renderOtherActions(list);
     if(roomId) renderCabinetLabor(list, roomId);
     else list.appendChild(h('div', { class:'card quote-section', style:'margin-top:12px;padding:14px;', text:'Wybierz pomieszczenie, żeby zobaczyć czynności szafek.' }));
   }

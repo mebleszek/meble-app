@@ -1,3 +1,13 @@
+## 2026-06-14 — CZYNNOŚCI: Inne czynności + czas dojazdu v1
+
+- W zakładce CZYNNOŚCI pod `Czynności dodane ręcznie` dodano akordeon `Inne czynności`.
+- Do `Inne czynności` trafiają ogólne czynności mebli niezwiązane z konkretną szafką. Na tym etapie automatycznie trafia tam `Czas dojazdu` z Inwestora.
+- W CZYNNOŚCIACH dla transportu pokazywany jest czas dojazdu, bez kilometrów.
+- W WYCENIE dodano osobną pozycję transportową `Czas dojazdu`, liczoną z czasu dojazdu przy inwestorze i stawki montażowej.
+- Kilometry transportu zostają w osobnej pozycji `Transport do klienta`.
+
+Cache-busting: `20260614_other_actions_travel_time_v1`.
+
 ## 2026-06-14 — WYCENA: wnoszenie jako osobny dział v1
 
 - Wnoszenie/logistyka mebli zostały wyjęte z działu `Robocizna szafek` w WYCENIE.
@@ -5,7 +15,7 @@
 - `quoteCalculationRegister`, snapshot, podsumowanie WYCENY i modal szczegółów mają osobny total `carrying`.
 - Nie usuwano żadnych trybów robocizny ani stawek; zmiana dotyczy klasyfikacji wyniku w WYCENIE.
 
-Cache-busting: `20260614_carrying_separate_quote_v1`.
+Cache-busting: `20260614_other_actions_travel_time_v1`.
 
 
 ## 2026-06-09 — Źródła ilości robocizny w rejestrze v1

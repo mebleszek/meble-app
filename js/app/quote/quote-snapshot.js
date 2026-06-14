@@ -228,6 +228,7 @@
   function isTransportQuoteLine(row){
     const src = row && typeof row === 'object' ? row : {};
     return String(src.sourceRole || '').trim() === 'transport-distance'
+      || String(src.sourceRole || '').trim() === 'transport-travel-time'
       || String(src.sourceType || '').trim() === 'transport'
       || String(src.quantitySource || '').trim() === 'transport.distance_km'
       || String(src.sourceId || '').trim() === 'transport_distance_km';
@@ -360,7 +361,7 @@
     try{
       const elapsed = roundMs(perfNow() - snapshotStart);
       snapshot.meta.performance = Object.assign({}, snapshot.meta.performance || {}, {
-        build:'20260614_labor_readable_modes_v1',
+        build:'20260614_other_actions_travel_time_v1',
         snapshotMs:elapsed,
         snapshotSizeBytes:jsonBytes(snapshot),
         calculationRegisterSizeBytes:jsonBytes(calculationRegister),

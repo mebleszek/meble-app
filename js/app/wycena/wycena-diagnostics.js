@@ -3,7 +3,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const BUILD = '20260614_labor_readable_modes_v1';
+  const BUILD = '20260614_other_actions_travel_time_v1';
   const EVENT_LIMIT = 60;
   let lastGenerateTrace = null;
   let lastGenerateButtonEvent = null;

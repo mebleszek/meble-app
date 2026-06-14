@@ -372,6 +372,8 @@
     const oneWay = num(t.distanceKm, 0);
     const breakdown = billableBreakdown(oneWay);
     const billable = oneWay > 0 ? breakdown.finalKm : 0;
+    const durationMin = Math.max(0, Math.round(num(t.durationMin, 0)));
+    const durationHours = durationMin > 0 ? durationMin / 60 : 0;
     const companyAddr = companyAddress();
     const clientAddr = investorAddress(investor || {});
     return {
@@ -380,6 +382,9 @@
       oneWayKm:oneWay,
       billableKm:billable,
       billableBreakdown:breakdown,
+      durationMin,
+      durationHours,
+      durationDisplay:formatMin(durationMin),
       isStale:isStale(t, companyAddr, clientAddr),
       status:statusLabel(t, companyAddr, clientAddr),
       displayValue:formatKm(billable)
@@ -395,6 +400,7 @@
     billableKm,
     billableBreakdown,
     formatKm,
+    formatMin,
     investorAddress,
     companyAddress,
     mapsUrl,
