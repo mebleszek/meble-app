@@ -134,29 +134,41 @@
     trigger.addEventListener('click', (event)=>{
       try{ event.preventDefault(); }catch(_){ }
       const nextOpen = !isOpen;
-      if(nextOpen){
-        try{
-          if(window.uiState){
-            uiState.czynnosciExpandedCabId = null;
-            if(window.FC && window.FC.storage && typeof window.FC.storage.setJSON === 'function' && window.STORAGE_KEYS){
-              window.FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+
+      const applyAndRender = (animateAfterOpen) => {
+        if(nextOpen){
+          try{
+            if(window.uiState){
+              uiState.czynnosciExpandedCabId = null;
+              if(window.FC && window.FC.storage && typeof window.FC.storage.setJSON === 'function' && window.STORAGE_KEYS){
+                window.FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+              }
             }
-          }
-        }catch(_){ }
-      }
-      setIsOpen(nextOpen);
-      render(ctx);
-      if(nextOpen){
+          }catch(_){ }
+        }
+        setIsOpen(nextOpen);
+        render(ctx);
+        if(nextOpen){
+          try{
+            const node = document.querySelector('.quote-manual-labor-accordion.is-open');
+            if(node && window.FC && window.FC.accordionBehavior){
+              window.FC.accordionBehavior.closeInGroup(node);
+              if(animateAfterOpen) window.FC.accordionBehavior.animateRenderedOpen(node);
+              else window.FC.accordionBehavior.scrollIntoView(node);
+            }else if(node){
+              setTimeout(()=> node.scrollIntoView({ block:'start', behavior:'smooth' }), 40);
+            }
+          }catch(_){ }
+        }
+      };
+
+      if(!nextOpen && window.FC && window.FC.accordionBehavior){
         try{
-          const node = document.querySelector('.quote-manual-labor-accordion.is-open');
-          if(window.FC && window.FC.accordionBehavior){
-            window.FC.accordionBehavior.closeInGroup(node);
-            window.FC.accordionBehavior.animateOpen(node);
-          }else if(node){
-            setTimeout(()=> node.scrollIntoView({ block:'start', behavior:'smooth' }), 40);
-          }
+          window.FC.accordionBehavior.animateClose(section, { after:()=> applyAndRender(false) });
+          return;
         }catch(_){ }
       }
+      applyAndRender(nextOpen);
     });
     head.appendChild(trigger);
     section.appendChild(head);

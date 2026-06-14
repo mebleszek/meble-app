@@ -595,3 +595,65 @@
 .is-ui-pattern-animating > .investor-carrying-accordion__body{
   overflow:hidden!important;
 }
+
+
+/* 2026-06-14 — animation fix for all rendered accordion bodies. */
+.cabinet-body,
+.material-cabinet-accordion__body,
+.wywiad-room-accordion__body,
+.rozrys-material-accordion__body,
+.quote-labor-cabinet__body,
+.investor-transport-accordion__body,
+.investor-carrying-accordion__body{
+  transition:max-height .42s cubic-bezier(.22,.72,.18,1), opacity .30s ease, transform .36s ease;
+  will-change:max-height,opacity,transform;
+}
+.is-ui-pattern-animating > .cabinet-body,
+.is-ui-pattern-animating > .material-cabinet-accordion__body,
+.is-ui-pattern-animating > .wywiad-room-accordion__body,
+.is-ui-pattern-animating > .rozrys-material-accordion__body,
+.is-ui-pattern-animating > .quote-labor-cabinet__body,
+.is-ui-pattern-animating > .investor-transport-accordion__body,
+.is-ui-pattern-animating > .investor-carrying-accordion__body{
+  overflow:hidden!important;
+}
+
+/* 2026-06-14 — INWESTOR: strzałki transportu/wnoszenia zgodne ze wzorcem. */
+.investor-transport-accordion__toggle,
+.investor-carrying-accordion__toggle{
+  flex:0 0 40px!important;
+  min-width:40px!important;
+  width:40px!important;
+  height:40px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+.investor-transport-accordion__toggle::before,
+.investor-carrying-accordion__toggle::before{
+  content:''!important;
+  position:static!important;
+  left:auto!important;
+  top:auto!important;
+  width:10px!important;
+  height:10px!important;
+  border:0!important;
+  border-right:3px solid #166534!important;
+  border-bottom:3px solid #166534!important;
+  transform:rotate(45deg)!important;
+  margin-top:-4px!important;
+  background:transparent!important;
+}
+.investor-transport-accordion[open] .investor-transport-accordion__toggle::before,
+.investor-transport-accordion.is-open .investor-transport-accordion__toggle::before,
+.investor-carrying-accordion[open] .investor-carrying-accordion__toggle::before,
+.investor-carrying-accordion.is-open .investor-carrying-accordion__toggle::before{
+  transform:rotate(45deg)!important;
+}
+.investor-transport-accordion[open] .investor-transport-accordion__toggle,
+.investor-transport-accordion.is-open .investor-transport-accordion__toggle,
+.investor-carrying-accordion[open] .investor-carrying-accordion__toggle,
+.investor-carrying-accordion.is-open .investor-carrying-accordion__toggle{
+  transform:rotate(180deg)!important;
+}
+

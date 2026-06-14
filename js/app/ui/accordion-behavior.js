@@ -36,11 +36,7 @@
       if(header){
         const rect = header.getBoundingClientRect();
         const visible = rect && rect.bottom > 0 && rect.height > 0;
-        if(visible){
-          // Sticky menu can wrap into two rows on mobile. rect.bottom is safer than height
-          // when the header is already stuck at the top.
-          offset += Math.max(0, Math.ceil(Math.max(rect.bottom || 0, rect.height || 0)));
-        }
+        if(visible) offset += Math.max(0, Math.ceil(Math.max(rect.bottom || 0, rect.height || 0)));
       }
     }catch(_){ }
     return offset;
@@ -119,9 +115,7 @@
     const body = directBody(root);
     const trigger = directTrigger(root);
     root.classList.toggle('is-open', !!open);
-    if(root.tagName && root.tagName.toLowerCase() === 'details'){
-      root.open = !!open;
-    }
+    if(root.tagName && root.tagName.toLowerCase() === 'details') root.open = !!open;
     if(trigger) trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
     if(body && !open) body.hidden = true;
     if(body && open) body.hidden = false;
@@ -135,6 +129,7 @@
     if(!body || prefersReducedMotion()){
       resetAnimation(root);
       setOpenState(root, true);
+      if(!(options && options.noScroll)) scrollIntoView(root, { passes:(options && options.passes) || [70, EXPAND_MS + 90, EXPAND_MS + 260] });
       return;
     }
     root.classList.add('is-ui-pattern-animating');
@@ -154,7 +149,11 @@
       resetAnimation(root);
       setOpenState(root, true);
     }, EXPAND_MS + 40);
-    if(!(options && options.noScroll)) scrollIntoView(root, { passes:[70, EXPAND_MS + 90, EXPAND_MS + 260] });
+    if(!(options && options.noScroll)) scrollIntoView(root, { passes:(options && options.passes) || [70, EXPAND_MS + 90, EXPAND_MS + 260] });
+  }
+
+  function animateRenderedOpen(root, options){
+    return animateOpen(root, options);
   }
 
   function animateClose(root, options){
@@ -163,6 +162,7 @@
     resetAnimation(root);
     if(!body || prefersReducedMotion()){
       setOpenState(root, false);
+      if(options && typeof options.after === 'function'){ try{ options.after(root); }catch(_){ } }
       return;
     }
     root.classList.add('is-ui-pattern-animating');
@@ -180,9 +180,7 @@
     root._fcAccordionTimer = setTimeout(()=>{
       resetAnimation(root);
       setOpenState(root, false);
-      if(options && typeof options.after === 'function'){
-        try{ options.after(root); }catch(_){ }
-      }
+      if(options && typeof options.after === 'function'){ try{ options.after(root); }catch(_){ } }
     }, EXPAND_MS + 40);
   }
 
@@ -192,20 +190,12 @@
       const inApp = root && root.closest && root.closest('#appView');
       if(!inApp) return;
       if(!(keep && keep.classList && keep.classList.contains('cabinet-card-shell'))){
-        if(uiState.expanded && typeof uiState.expanded === 'object'){
-          Object.keys(uiState.expanded).forEach((key)=>{ uiState.expanded[key] = false; });
-        }
+        if(uiState.expanded && typeof uiState.expanded === 'object') Object.keys(uiState.expanded).forEach((key)=>{ uiState.expanded[key] = false; });
         uiState.selectedCabinetId = null;
       }
-      if(!(keep && keep.classList && keep.classList.contains('material-cabinet-accordion'))){
-        uiState.matExpandedId = null;
-      }
-      if(!(keep && keep.classList && keep.classList.contains('czynnosci-cabinet'))){
-        uiState.czynnosciExpandedCabId = null;
-      }
-      if(window.FC && window.FC.storage && typeof window.FC.storage.setJSON === 'function' && window.STORAGE_KEYS){
-        window.FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      }
+      if(!(keep && keep.classList && keep.classList.contains('material-cabinet-accordion'))) uiState.matExpandedId = null;
+      if(!(keep && keep.classList && keep.classList.contains('czynnosci-cabinet'))) uiState.czynnosciExpandedCabId = null;
+      if(window.FC && window.FC.storage && typeof window.FC.storage.setJSON === 'function' && window.STORAGE_KEYS) window.FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
     }catch(_){ }
   }
 
@@ -290,6 +280,7 @@
     closeInGroup,
     animateOpen,
     animateClose,
+    animateRenderedOpen,
     initDetails,
     syncCssOffset,
     toggleDetails

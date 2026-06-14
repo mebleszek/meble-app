@@ -201,20 +201,36 @@
 
     const toggleExpanded = () => {
       const wasOpen = !!(typeof uiState !== 'undefined' && uiState && uiState.expanded && uiState.expanded[cab.id]);
-      if(!wasOpen){
-        try{ if(window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.closeInGroup(cabEl); }catch(_){ }
-      }
-      if(typeof uiState !== 'undefined' && uiState && uiState.activeTab === 'wywiad'){
-        uiState.selectedCabinetId = (uiState.selectedCabinetId === cab.id) ? null : cab.id;
-      }
-      callLegacy('toggleExpandAll', [cab.id]);
-      try{
-        if(window.FC && window.FC.storage && typeof window.FC.storage.setJSON === 'function'){
-          window.FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+
+      const applyToggleAndRender = (animateAfterOpen) => {
+        if(!wasOpen){
+          try{ if(window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.closeInGroup(cabEl); }catch(_){ }
         }
-      }catch(_){ }
-      callLegacy('renderCabinets', []);
-      try{ const node = document.getElementById(`cab-${cab.id}`); if(window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.scrollIntoView(node, { passes:[80, 520, 720] }); else setTimeout(()=> node?.scrollIntoView({ block:'start', behavior:'smooth' }), 80); }catch(_){ }
+        if(typeof uiState !== 'undefined' && uiState && uiState.activeTab === 'wywiad'){
+          uiState.selectedCabinetId = (uiState.selectedCabinetId === cab.id) ? null : cab.id;
+        }
+        callLegacy('toggleExpandAll', [cab.id]);
+        try{
+          if(window.FC && window.FC.storage && typeof window.FC.storage.setJSON === 'function'){
+            window.FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+          }
+        }catch(_){ }
+        callLegacy('renderCabinets', []);
+        try{
+          const node = document.getElementById(`cab-${cab.id}`);
+          if(node && animateAfterOpen && window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.animateRenderedOpen(node, { passes:[80, 520, 720] });
+          else if(node && window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.scrollIntoView(node, { passes:[80, 520, 720] });
+          else setTimeout(()=> node?.scrollIntoView({ block:'start', behavior:'smooth' }), 80);
+        }catch(_){ }
+      };
+
+      if(wasOpen && window.FC && window.FC.accordionBehavior){
+        try{
+          window.FC.accordionBehavior.animateClose(cabEl, { after:()=> applyToggleAndRender(false) });
+          return;
+        }catch(_){ }
+      }
+      applyToggleAndRender(!wasOpen);
     };
 
     header.addEventListener('click', (e) => {

@@ -169,15 +169,31 @@
       head.addEventListener('click', (e) => {
         if(e && e.target && e.target.closest && e.target.closest('button')) return;
         const nowOpen = String(uiState.matExpandedId || '') === String(cab.id);
-        if(!nowOpen){
-          try{ if(window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.closeInGroup(card); }catch(_){ }
+
+        const applyAndRender = (animateAfterOpen) => {
+          if(!nowOpen){
+            try{ if(window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.closeInGroup(card); }catch(_){ }
+          }
+          uiState.matExpandedId = nowOpen ? null : String(cab.id);
+          FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+          renderCabinets();
+          if(!nowOpen){
+            try{
+              const node = document.getElementById(`mat-${cab.id}`);
+              if(node && animateAfterOpen && window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.animateRenderedOpen(node, { passes:[80, 520, 720] });
+              else if(node && window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.scrollIntoView(node, { passes:[80, 520, 720] });
+              else setTimeout(()=> node?.scrollIntoView({ block:'start', behavior:'smooth' }), 80);
+            }catch(_){ }
+          }
+        };
+
+        if(nowOpen && window.FC && window.FC.accordionBehavior){
+          try{
+            window.FC.accordionBehavior.animateClose(card, { after:()=> applyAndRender(false) });
+            return;
+          }catch(_){ }
         }
-        uiState.matExpandedId = nowOpen ? null : String(cab.id);
-        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-        renderCabinets();
-        if(!nowOpen){
-          try{ const node = document.getElementById(`mat-${cab.id}`); if(window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.scrollIntoView(node, { passes:[80, 520, 720] }); else setTimeout(()=> node?.scrollIntoView({ block:'start', behavior:'smooth' }), 80); }catch(_){ }
-        }
+        applyAndRender(!nowOpen);
       });
 
       const editCabBtn = head.querySelector('[data-act="editCab"]');
