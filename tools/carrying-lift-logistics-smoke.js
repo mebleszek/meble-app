@@ -25,7 +25,7 @@ let investor = {
   carrying:{
     floorNumber:'3',
     elevatorStatus:'yes',
-    elevator:{ doorWidthCm:'90', doorHeightCm:'230', cabinWidthCm:'110', cabinDepthCm:'120', cabinHeightCm:'230' },
+    elevator:{ doorWidthCm:'90', doorHeightCm:'230', cabinDepthCm:'120', cabinHeightCm:'230' },
     note:''
   }
 };
@@ -127,14 +127,39 @@ investor = { id:'inv1', carrying:{ floorNumber:'3', elevatorStatus:'no', elevato
 let evHeavy = carrying.evaluateCabinet('room_a', project.room_a.cabinets[1], investor);
 assert.equal(evHeavy.liftFits, false, 'no lift means stairs');
 assert.equal(evHeavy.floorUnits, 4, 'third floor without lift counts as 4 levels');
-assert.equal(evHeavy.peopleCount, 2, 'heavy cabinet uses two helpers');
+assert.equal(evHeavy.peopleCount, 1, 'disassembled heavy cabinet uses one helper per flat element');
 assert.equal(evHeavy.requiresDisassembly, true, 'over-threshold stairs cabinet requires disassembly');
+assert.equal(evHeavy.carryingItemCount, 3, 'after disassembly only large flat items are counted for stairs');
+assert.equal(evHeavy.disassembled.stairsItemCount, 3, 'without lift all large flat items go by stairs');
 assert.ok(evHeavy.bodyWeightKg > 45, `heavy body should exceed threshold, got ${evHeavy.bodyWeightKg}`);
+assert.equal(evHeavy.highFronts.itemCount, 2, 'two high fronts over 2m should be detected');
+assert.equal(evHeavy.highFronts.stairsItemCount, 2, 'without lift high fronts are counted for stairs');
+assert.equal(evHeavy.highFronts.stairsFloorUnits, 4, 'high fronts by stairs use investor floor units');
+
+
+const diagonalLift = { floorNumber:'5', elevatorStatus:'yes', elevator:{ doorWidthCm:'80', doorHeightCm:'210', cabinDepthCm:'110', cabinHeightCm:'220' } };
+let evDiag = carrying.evaluateCabinet('room_a', project.room_a.cabinets[1], { id:'inv2', carrying:diagonalLift });
+assert.equal(evDiag.requiresDisassembly, true, 'heavy cabinet not fitting whole requires disassembly');
+assert.equal(evDiag.disassembled.stairsItemCount, 0, 'side panels fitting through door and cabin diagonal are not counted for stairs');
+assert.equal(evDiag.carryingItemCount, 0, 'no stair carrying line when all large disassembled items fit lift');
+assert.equal(evDiag.highFronts.elevatorItemCount, 2, 'high fronts fitting through door/cabin diagonals are counted as elevator items');
+assert.equal(evDiag.highFronts.stairsItemCount, 0, 'high fronts fitting elevator are not counted for stairs');
+assert.equal(evDiag.highFronts.elevatorItems[0].lift.method, 'cabin_diagonal', 'high front uses cabin diagonal when needed');
+
+const blockedSide = carrying.flatElementFitsLift({ name:'Bok', aCm:220, bCm:90 }, diagonalLift);
+assert.equal(blockedSide.fits, false, 'side wider than elevator door width must not pass only because cabin diagonal is long enough');
+assert.equal(blockedSide.method, 'door_blocked', 'wide side is blocked by elevator door width');
 
 const fact = context.FC.workQuantityFacts.getCabinetFact('room_a', project.room_a.cabinets[1], 'carrying.requires_disassembly');
 assert.equal(fact.value, 1, 'requires disassembly fact should be 1');
 assert.equal(context.FC.workQuantitySources.find('carrying.floor_units').status, 'system', 'carrying floor source should be system');
+assert.equal(context.FC.workQuantitySources.find('carrying.stairs_item_count').status, 'system', 'carrying stair item source should be system');
 assert.equal(context.FC.workQuantitySources.find('cabinet.weight_kg').status, 'system', 'cabinet weight source should be system');
+const normalizedCarrying = context.FC.carryingLogistics.normalizeCarrying({ elevatorStatus:'yes', elevator:{ doorWidthCm:'80', doorHeightCm:'200', cabinWidthCm:'120', cabinDepthCm:'140', cabinHeightCm:'210', capacityKg:'400' } });
+assert.ok(!Object.prototype.hasOwnProperty.call(normalizedCarrying.elevator, 'cabinWidthCm'), 'normalizeCarrying drops cabinWidthCm');
+assert.ok(!Object.prototype.hasOwnProperty.call(normalizedCarrying.elevator, 'capacityKg'), 'normalizeCarrying drops capacityKg');
+assert.equal(normalizedCarrying.elevator.cabinDepthCm, '140', 'normalizeCarrying keeps cabin depth');
+assert.equal(normalizedCarrying.elevator.cabinHeightCm, '210', 'normalizeCarrying keeps cabin height');
 
 const defs = context.FC.laborCatalogDefinitions.DEFAULT_LABOR_DEFINITIONS;
 assert.ok(defs.some((d)=>d.id === 'labor_carrying_cabinet'), 'default labor includes carrying item');
@@ -148,10 +173,18 @@ assert.ok(carryingPart, 'carrying labor component exists');
 assert.equal(carryingPart.rateType, 'helper', 'carrying uses helper rate');
 assert.equal(carryingPart.quantitySource, 'carrying.floor_units', 'carrying quantity source is floor units');
 assert.equal(carryingPart.quantity, 4, 'carrying quantity is floor units');
-assert.equal(carryingPart.multiplier, 2, 'carrying multiplier is helper count');
+assert.equal(carryingPart.multiplier, 3, 'carrying multiplier is one helper times three stair elements');
 approx(carryingPart.baseHours, 0.25 + 4 * 0.0833333333, 0.0002, 'base hours = 15 min + 4*5 min');
-approx(carryingPart.hours, (0.25 + 4 * 0.0833333333) * 2, 0.0002, 'priced hours multiplied by 2 helpers');
-assert.ok(carryingPart.note.includes('Liczba pomocników: 2'), 'audit note includes helper count');
+approx(carryingPart.hours, (0.25 + 4 * 0.0833333333) * 3, 0.0002, 'priced hours multiplied by disassembled stair elements');
+assert.ok(carryingPart.note.includes('po schodach: 3 szt.'), 'audit note includes stair element count');
+const highFrontPart = heavyLine.details.find((row)=>row.sourceRole === 'carrying-high-front-labor');
+assert.ok(highFrontPart, 'high front carrying component exists');
+assert.equal(highFrontPart.rateType, 'helper', 'high front carrying uses helper rate');
+assert.equal(highFrontPart.name, 'Wnoszenie wysokich frontów — po schodach', 'high front carrying line is explicit');
+assert.equal(highFrontPart.quantity, 4, 'high front stairs quantity is floor units');
+assert.equal(highFrontPart.multiplier, 2, 'two high fronts are counted as two helper passes');
+approx(highFrontPart.hours, (0.25 + 4 * 0.0833333333) * 2, 0.0002, 'high front hours = base stairs hours times front count');
+assert.ok(highFrontPart.note.includes('Wysokie fronty powyżej 200 cm'), 'high front audit mentions threshold');
 const disassemblyPart = heavyLine.details.find((row)=>row.sourceRole === 'carrying-disassembly-labor');
 assert.ok(disassemblyPart, 'disassembly component exists');
 assert.equal(disassemblyPart.rateType, 'assembly', 'disassembly uses assembly rate');
@@ -159,10 +192,10 @@ approx(disassemblyPart.hours, 1, 0.0001, 'disassembly is 1 hour');
 
 const index = read('index.html');
 const devTests = read('dev_tests.html');
-assert.ok(index.includes('js/app/pricing/carrying-logistics.js?v=20260613_carrying_lift_logistics_v1'), 'index loads carrying-logistics');
-assert.ok(index.includes('js/app/investor/investor-carrying.js?v=20260613_carrying_lift_logistics_v1'), 'index loads investor-carrying');
-assert.ok(devTests.includes('js/app/pricing/carrying-logistics.js?v=20260613_carrying_lift_logistics_v1'), 'dev_tests loads carrying-logistics');
-assert.ok(devTests.includes('js/app/investor/investor-carrying.js?v=20260613_carrying_lift_logistics_v1'), 'dev_tests loads investor-carrying');
+assert.ok(index.includes('js/app/pricing/carrying-logistics.js?v=20260614_carrying_high_fronts_v1'), 'index loads carrying-logistics');
+assert.ok(index.includes('js/app/investor/investor-carrying.js?v=20260614_carrying_high_fronts_v1'), 'index loads investor-carrying');
+assert.ok(devTests.includes('js/app/pricing/carrying-logistics.js?v=20260614_carrying_high_fronts_v1'), 'dev_tests loads carrying-logistics');
+assert.ok(devTests.includes('js/app/investor/investor-carrying.js?v=20260614_carrying_high_fronts_v1'), 'dev_tests loads investor-carrying');
 
 const group = require(path.join(ROOT, 'tools/index-load-groups.js'));
 const business = group.INDEX_LOAD_GROUPS.find((row)=>row.id === 'business-domains');

@@ -22,7 +22,7 @@ const sources = read('js/app/pricing/work-quantity-sources.js');
 const defs = read('js/app/pricing/labor-catalog-definitions.js');
 const offer = read('js/app/wycena/wycena-core-offer.js');
 
-const version = '20260613_carrying_lift_logistics_v1';
+const version = '20260614_carrying_high_fronts_v1';
 [
   'js/app/settings/company-profile-store.js',
   'js/app/settings/business-costs-store.js',

@@ -34,10 +34,8 @@
       elevator:{
         doorWidthCm:t(elevator.doorWidthCm),
         doorHeightCm:t(elevator.doorHeightCm),
-        cabinWidthCm:t(elevator.cabinWidthCm),
         cabinDepthCm:t(elevator.cabinDepthCm),
-        cabinHeightCm:t(elevator.cabinHeightCm),
-        capacityKg:t(elevator.capacityKg)
+        cabinHeightCm:t(elevator.cabinHeightCm)
       },
       note:t(src.note)
     };

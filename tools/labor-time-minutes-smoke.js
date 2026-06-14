@@ -12,7 +12,7 @@ function assert(cond, msg, details){
     process.exit(1);
   }
 }
-const version = '20260613_carrying_lift_logistics_v1';
+const version = '20260614_carrying_high_fronts_v1';
 const index = read('index.html');
 const defs = read('js/app/pricing/labor-catalog-definitions.js');
 const catalogSrc = read('js/app/pricing/labor-catalog.js');

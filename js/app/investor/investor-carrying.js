@@ -17,7 +17,7 @@
       floorNumber:text(src.floorNumber || ''),
       elevatorStatus:['yes','no'].includes(text(src.elevatorStatus)) ? text(src.elevatorStatus) : '',
       elevator:{
-        doorWidthCm:text(elevator.doorWidthCm || ''), doorHeightCm:text(elevator.doorHeightCm || ''), cabinWidthCm:text(elevator.cabinWidthCm || ''), cabinDepthCm:text(elevator.cabinDepthCm || ''), cabinHeightCm:text(elevator.cabinHeightCm || ''), capacityKg:text(elevator.capacityKg || '')
+        doorWidthCm:text(elevator.doorWidthCm || ''), doorHeightCm:text(elevator.doorHeightCm || ''), cabinDepthCm:text(elevator.cabinDepthCm || ''), cabinHeightCm:text(elevator.cabinHeightCm || '')
       },
       note:text(src.note || '')
     };
@@ -43,7 +43,7 @@
         <div class="investor-carrying-accordion__body">
           <div class="investor-carrying-grid">
             <div><span>Piętro</span><strong>${esc(floorLabel)}</strong><small>parter = 0, do wyceny parter liczy się jako 1 poziom</small></div>
-            <div><span>Winda</span><strong>${esc(elevatorLabel(carrying.elevatorStatus))}</strong><small>${hasElevator ? 'program sprawdzi drzwi i głębokość kabiny' : 'korpusy liczone jak schody'}</small></div>
+            <div><span>Winda</span><strong>${esc(elevatorLabel(carrying.elevatorStatus))}</strong><small>${hasElevator ? 'program sprawdzi drzwi i długość/głębokość windy' : 'korpusy liczone jak schody'}</small></div>
           </div>
           ${isEditing ? `
             <div class="investor-carrying-edit-grid">
@@ -57,19 +57,16 @@
               </div>
               ${field('invCarryingDoorWidthCm', 'Drzwi windy — szerokość cm', e.doorWidthCm, disabled)}
               ${field('invCarryingDoorHeightCm', 'Drzwi windy — wysokość cm', e.doorHeightCm, disabled)}
-              ${field('invCarryingCabinWidthCm', 'Kabina — szerokość cm', e.cabinWidthCm, disabled)}
-              ${field('invCarryingCabinDepthCm', 'Kabina — głębokość cm', e.cabinDepthCm, disabled)}
-              ${field('invCarryingCabinHeightCm', 'Kabina — wysokość cm', e.cabinHeightCm, disabled)}
-              ${field('invCarryingCapacityKg', 'Udźwig windy kg', e.capacityKg, disabled)}
+              ${field('invCarryingCabinDepthCm', 'Winda — głębokość cm', e.cabinDepthCm, disabled)}
+              ${field('invCarryingCabinHeightCm', 'Winda — wysokość cm', e.cabinHeightCm, disabled)}
               <label class="investor-carrying-note-field"><span>Notatka wnoszenia</span><textarea id="invCarryingNote">${esc(carrying.note)}</textarea></label>
             </div>` : `
             <div class="investor-carrying-meta">
               <div><strong>Drzwi windy:</strong> ${hasElevator ? `${esc(e.doorWidthCm || '—')} × ${esc(e.doorHeightCm || '—')} cm` : '—'}</div>
-              <div><strong>Kabina:</strong> ${hasElevator ? `${esc(e.cabinWidthCm || '—')} × ${esc(e.cabinDepthCm || '—')} × ${esc(e.cabinHeightCm || '—')} cm` : '—'}</div>
-              <div><strong>Udźwig:</strong> ${hasElevator && e.capacityKg ? esc(e.capacityKg) + ' kg' : '—'}</div>
+              <div><strong>Winda:</strong> ${hasElevator ? `głębokość ${esc(e.cabinDepthCm || '—')} cm • wysokość ${esc(e.cabinHeightCm || '—')} cm` : '—'}</div>
               ${carrying.note ? `<div><strong>Notatka:</strong> ${esc(carrying.note)}</div>` : ''}
             </div>`}
-          <div class="investor-carrying-hint">WYCENA używa tych danych do automatu wnoszenia: lekki korpus ×1 pomocnik, ciężki ×2, a zbyt ciężki na schody dostaje osobne rozkręcenie/składanie.</div>
+          <div class="investor-carrying-hint">WYCENA używa tych danych do automatu wnoszenia: korpus w całości albo — po rozkręceniu — tylko duże elementy, które nie weszły do windy.</div>
         </div>
       </details>`;
   }
@@ -82,7 +79,7 @@
       if(typeof ctx.onDirty === 'function') ctx.onDirty();
     }
     const ids = {
-      invCarryingFloorNumber:'floorNumber', invCarryingDoorWidthCm:'doorWidthCm', invCarryingDoorHeightCm:'doorHeightCm', invCarryingCabinWidthCm:'cabinWidthCm', invCarryingCabinDepthCm:'cabinDepthCm', invCarryingCabinHeightCm:'cabinHeightCm', invCarryingCapacityKg:'capacityKg', invCarryingNote:'note'
+      invCarryingFloorNumber:'floorNumber', invCarryingDoorWidthCm:'doorWidthCm', invCarryingDoorHeightCm:'doorHeightCm', invCarryingCabinDepthCm:'cabinDepthCm', invCarryingCabinHeightCm:'cabinHeightCm', invCarryingNote:'note'
     };
     Object.keys(ids).forEach((id)=>{
       const node = rootNode.querySelector('#' + id);

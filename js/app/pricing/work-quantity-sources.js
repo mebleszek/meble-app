@@ -69,6 +69,14 @@
       calculation:'1 pomocnik dla lekkiego korpusu do 20 kg, 2 pomocników dla cięższego. To mnożnik robocizny, nie nowy zapis w szafce.',
     },
     {
+      code:'carrying.stairs_item_count',
+      label:'Elementy po schodach po rozkręceniu',
+      unit:'szt.',
+      group:'Wnoszenie i logistyka',
+      status:'system',
+      calculation:'Dla rozkręconego korpusu: liczba dużych elementów, które nie weszły do windy nawet po sprawdzeniu przekątnej drzwi/kabiny. Dla całego korpusu zwykle 1.',
+    },
+    {
       code:'carrying.requires_disassembly',
       label:'Wymaga rozkręcenia do wnoszenia',
       unit:'0/1',
@@ -82,7 +90,7 @@
       unit:'0/1',
       group:'Wnoszenie i logistyka',
       status:'system',
-      calculation:'1, gdy jakaś para wymiarów przechodzi przez drzwi windy, a trzeci wymiar mieści się w głębokości kabiny.',
+      calculation:'1, gdy jakaś para wymiarów przechodzi przez drzwi windy, a trzeci wymiar mieści się w głębokości windy.',
     },
     {
       code:'cabinet.zone',

@@ -1,3 +1,34 @@
+## 2026-06-14 — Wnoszenie wysokich frontów v1
+
+Paczka `site_carrying_high_fronts_v1.zip` rozszerza wnoszenie/logistykę o wysokie fronty powyżej 2 m.
+
+Zmiany:
+- wysokie fronty są czytane z centralnych helperów frontów używanych przez MATERIAŁ/WYCENĘ, z fallbackiem do cutlisty,
+- każdy front, którego dłuższy wymiar przekracza 200 cm, jest traktowany jako osobny element logistyczny,
+- wysokie fronty są sprawdzane jak płaskie elementy: przejście przez drzwi windy wprost, przekątna drzwi, głębokość windy oraz przekątna kabiny `wysokość × głębokość`,
+- przekątna kabiny dla frontu działa tylko wtedy, gdy drugi wymiar frontu mieści się w szerokości drzwi windy,
+- jeżeli front mieści się do windy, dostaje osobną linię wnoszenia jako 2 poziomy; jeżeli nie mieści się albo nie ma windy, dostaje osobną linię po schodach według `piętro + 1`,
+- WYCENA/CZYNNOŚCI pokazują osobny komponent `Wnoszenie wysokich frontów — windą/po schodach`, z audytem wymiarów i metody dopasowania,
+- waga korpusu nadal nie obejmuje frontów; fronty są doliczane tylko jako osobna logistyka, nie jako masa korpusu.
+
+Nie przebudowano WYCENY, ORS, transportu km, oferty klienta, PDF, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260614_carrying_high_fronts_v1`. Raport: `tools/reports/carrying-high-fronts-v1.md`.
+
+## 2026-06-14 — Wnoszenie: rozkręcone elementy i przekątne windy v2
+
+Paczka `site_carrying_disassembled_elements_v2.zip` upraszcza i urealnia automat wnoszenia po praktycznych testach windy/schodów.
+
+Zmiany:
+- usunięto z UI, normalizacji danych i logiki pola udźwigu windy oraz szerokości kabiny; przy zapisie danych inwestora te pola nie są już utrzymywane,
+- sprawdzanie całego korpusu do windy jest proste: para wymiarów przez drzwi + trzeci wymiar w głębokość windy, bez przekątnych dla całej skrzynki,
+- jeżeli korpus wymaga rozkręcenia, program sprawdza duże płaskie elementy z formatek korpusu, m.in. boki, plecy, przegrody i długie wieńce,
+- przekątna kabiny `wysokość × głębokość` jest dopuszczona tylko dla płaskich elementów po rozkręceniu i tylko wtedy, gdy drugi wymiar elementu mieści się w szerokości drzwi windy,
+- wnoszenie po schodach po rozkręceniu liczone jest tylko dla elementów, które nie weszły do windy; elementy, które weszły do windy, nie podbijają mnożnika schodów,
+- dodano fakt `carrying.stairs_item_count` do audytu/źródeł ilości,
+- cennik nadal ma dwie osobne pozycje: `labor_carrying_cabinet` oraz `labor_carrying_disassembly`, ale pierwsza opisowo działa teraz jako **Wnoszenie korpusu / elementów**,
+- zaktualizowano test `tools/carrying-lift-logistics-smoke.js`.
+
+Nie przebudowano WYCENY, ORS, oferty klienta, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260614_carrying_high_fronts_v1`. Raport: `tools/reports/carrying-disassembled-elements-v2.md`.
+
 ## 2026-06-13 — Wnoszenie i winda v1
 
 Paczka `site_carrying_lift_logistics_v1.zip` dodaje wewnętrzne liczenie wnoszenia korpusów jako część robocizny/logistyki, bez przebudowy ORS, transportu, oferty klienta, PDF, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek.
@@ -5,7 +36,7 @@ Paczka `site_carrying_lift_logistics_v1.zip` dodaje wewnętrzne liczenie wnoszen
 Zmiany:
 - dodano moduł `FC.carryingLogistics` w `js/app/pricing/carrying-logistics.js`, który liczy dla konkretnej szafki wagę samego korpusu, dopasowanie do windy, poziomy do wniesienia, liczbę pomocników i ewentualne rozkręcenie,
 - dodano moduł `FC.investorCarrying` w `js/app/investor/investor-carrying.js`, który renderuje sekcję **Dostawa / wnoszenie** w Inwestorze,
-- model inwestora dostał pole `carrying` z piętrem, statusem windy, wymiarami drzwi/kabiny, udźwigiem i notatką,
+- model inwestora dostał pole `carrying` z piętrem, statusem windy, szerokością/wysokością drzwi windy, głębokością/wysokością windy i notatką,
 - UI windy używa dwóch przycisków aplikacji: **Jest winda** / **Brak windy**; pola wymiarów windy są aktywne tylko przy opcji **Jest winda**,
 - dodano fakty robocizny: `cabinet.weight_kg`, `carrying.floor_units`, `carrying.people_count`, `carrying.requires_disassembly`, `carrying.lift_fits`,
 - w katalogu robocizny/usług dodano dwie pozycje: `labor_carrying_cabinet` i `labor_carrying_disassembly`,

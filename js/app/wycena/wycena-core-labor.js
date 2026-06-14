@@ -394,36 +394,90 @@
     const dims = ev.dimensionsCm || {};
     const lift = ev.liftFits ? 'winda: korpus mieści się — liczony jako 2 poziomy' : ('schody/brak dopasowania windy: ' + text(ev.liftReason));
     const orient = ev.liftOrientation && Array.isArray(ev.liftOrientation.doorPair)
-      ? `orientacja windy: ${ev.liftOrientation.doorPair.join(' × ')} cm przez drzwi, ${ev.liftOrientation.cabinDepth} cm w głąb kabiny`
+      ? `orientacja windy: ${ev.liftOrientation.doorPair.join(' × ')} cm przez drzwi, ${ev.liftOrientation.cabinDepth} cm w głąb windy`
       : '';
-    return [
+    const lines = [
       `Wymiary korpusu: ${num(dims.width, 0)} × ${num(dims.height, 0)} × ${num(dims.depth, 0)} cm`,
       `Waga samego korpusu: ${Math.round((Number(ev.bodyWeightKg) || 0) * 10) / 10} kg`,
       lift,
       orient,
       `Poziomy do naliczenia: ${Number(ev.floorUnits) || 0}`,
-      `Liczba pomocników: ${Number(ev.peopleCount) || 1}`,
-      ev.formula
-    ].filter(Boolean).join(' • ');
+      `Liczba pomocników: ${Number(ev.peopleCount) || 1}`
+    ];
+    if(ev.requiresDisassembly){
+      const dis = ev.disassembled || {};
+      lines.push(`Korpus rozkręcany: sprawdzono ${Number(dis.itemCount) || 0} dużych elementów`);
+      lines.push(`Do windy weszło: ${Number(dis.elevatorItemCount) || 0} szt. • po schodach: ${Number(dis.stairsItemCount) || 0} szt.`);
+      const stairs = Array.isArray(dis.stairsItems) ? dis.stairsItems.slice(0, 8) : [];
+      if(stairs.length){
+        lines.push(`Elementy po schodach: ${stairs.map((it)=> `${text(it.name)} ${num(it.aCm,0)} × ${num(it.bCm,0)} cm`).join(', ')}`);
+      }
+    }
+    if(ev.highFronts && Number(ev.highFronts.itemCount) > 0){
+      const hf = ev.highFronts || {};
+      lines.push(`Wysokie fronty >${Number(hf.thresholdCm) || 200} cm: ${Number(hf.itemCount) || 0} szt. • windą: ${Number(hf.elevatorItemCount) || 0} szt. • po schodach: ${Number(hf.stairsItemCount) || 0} szt.`);
+    }
+    lines.push(ev.formula);
+    return lines.filter(Boolean).join(' • ');
   }
-  function addCarryingLabor(components, entry, defs, rates, volumeM3){
+  function highFrontGroupNote(ev, group, modeLabel){
+    const hf = ev && ev.highFronts || {};
+    const rows = Array.isArray(group && group.items) ? group.items : [];
+    const floorUnits = Number(group && group.floorUnits) || 0;
+    const people = Number(group && group.peopleCount) || rows.length || 0;
+    const location = text(modeLabel) || 'logistyka';
+    const lines = [
+      `Wysokie fronty powyżej ${Number(hf.thresholdCm) || 200} cm — ${location}: ${rows.length} szt.`,
+      `Poziomy do naliczenia: ${floorUnits}`,
+      `Pomocnicy łącznie: ${people}`,
+      `${ev.startMinutes || 15} min + ${floorUnits} poziom(y) × ${ev.minutesPerFloorUnit || 5} min = ${Math.round(((ev.startMinutes || 15) + floorUnits * (ev.minutesPerFloorUnit || 5)) * 10) / 10} min na front/pakiet`
+    ];
+    if(rows.length){
+      lines.push('Fronty: ' + rows.slice(0, 8).map((it)=> {
+        const lift = it && it.lift ? ` — ${text(it.lift.reason) || (it.lift.fits ? 'mieści się' : 'nie mieści się')}` : '';
+        return `${num(it.aCm,0)} × ${num(it.bCm,0)} cm${lift}`;
+      }).join(', '));
+    }
+    return lines.filter(Boolean).join(' • ');
+  }
+
+  function addHighFrontCarryingLabor(components, entry, carryingDef, rates, volumeM3, ev){
     const cab = entry && entry.cabinet || {};
-    const ev = carryingEvaluation(entry);
-    if(!ev) return;
-    const carryingDef = findDefById(defs, 'labor_carrying_cabinet');
-    if(carryingDef && Number(ev.floorUnits) > 0){
-      const floorFact = factFor(entry, 'carrying.floor_units') || {};
-      const peopleFact = factFor(entry, 'carrying.people_count') || {};
+    const hf = ev && ev.highFronts || {};
+    if(!carryingDef || !(Number(hf.itemCount) > 0)) return;
+    const groups = [];
+    if(Number(hf.elevatorItemCount) > 0){
+      groups.push({
+        key:'lift',
+        label:'windą',
+        items:Array.isArray(hf.elevatorItems) ? hf.elevatorItems : [],
+        count:Number(hf.elevatorItemCount) || 0,
+        floorUnits:Number(hf.elevatorFloorUnits) || 2,
+        peopleCount:Number(hf.elevatorPeopleCount) || Number(hf.elevatorItemCount) || 0
+      });
+    }
+    if(Number(hf.stairsItemCount) > 0){
+      groups.push({
+        key:'stairs',
+        label:'po schodach',
+        items:Array.isArray(hf.stairsItems) ? hf.stairsItems : [],
+        count:Number(hf.stairsItemCount) || 0,
+        floorUnits:Number(hf.stairsFloorUnits) || 0,
+        peopleCount:Number(hf.stairsPeopleCount) || Number(hf.stairsItemCount) || 0
+      });
+    }
+    groups.forEach((group)=> {
+      if(!(group.count > 0 && group.floorUnits > 0)) return;
       const hourlyRate = Math.max(0, Number(rates && rates[carryingDef.rateType]) || 0);
       const startHours = Math.max(0, Number(carryingDef.startHours) || 0.25);
       const stepHours = Math.max(0, Number(carryingDef.stepHours) || 0.0833333333);
-      const quantityHours = startHours + ((Number(ev.floorUnits) || 0) * stepHours);
-      const multiplier = Math.max(1, Number(ev.peopleCount) || 1);
+      const quantityHours = startHours + (group.floorUnits * stepHours);
+      const multiplier = Math.max(1, Number(group.peopleCount) || group.count || 1);
       const pricedHours = quantityHours * multiplier;
       const total = pricedHours * hourlyRate;
       const calc = {
         definition:carryingDef,
-        quantity:Number(ev.floorUnits) || 0,
+        quantity:group.floorUnits,
         volumeM3,
         hourlyRate,
         quantityHours,
@@ -436,39 +490,112 @@
         startPrice:0,
         unitPrice:0,
         includedQty:0,
-        billableQty:Number(ev.floorUnits) || 0,
+        billableQty:group.floorUnits,
         total
       };
       const warnings = Array.isArray(ev.warnings) ? ev.warnings.slice() : [];
       const cmp = componentFromCalc(calc, {
-        suffix:'carrying_cabinet',
+        suffix:`carrying_high_fronts_${group.key}`,
         unit:'poziom',
-        name:text(carryingDef.name) || 'Wnoszenie korpusu',
-        note:carryingLineNote(ev),
-        sourceType:'carrying',
+        name:`Wnoszenie wysokich frontów — ${group.label}`,
+        note:highFrontGroupNote(ev, group, group.label),
+        sourceType:'carrying-fronts',
         sourceLabel:cabinetSourceLabel(entry),
         sourceId:text(cab && cab.id),
-        sourceRole:'carrying-labor',
+        sourceRole:'carrying-high-front-labor',
         sourceKind:'automatic',
         quantitySource:'carrying.floor_units',
-        quantitySourceLabel:text(floorFact.label) || 'Poziomy wnoszenia korpusu',
-        quantitySourceValue:Number(ev.floorUnits) || 0,
-        quantitySourceDisplay:text(floorFact.displayValue) || `${Number(ev.floorUnits) || 0} poziom(y)`,
+        quantitySourceLabel:group.key === 'lift' ? 'Poziomy wnoszenia frontów windą' : 'Poziomy wnoszenia frontów po schodach',
+        quantitySourceValue:group.floorUnits,
+        quantitySourceDisplay:`${group.floorUnits} poziom(y)`,
         quantitySourceUsed:true,
         warnings
       });
       if(cmp){
         cmp.carrying = {
-          bodyWeightKg:ev.bodyWeightKg,
-          peopleCount:ev.peopleCount,
-          floorUnits:ev.floorUnits,
-          liftFits:ev.liftFits,
-          requiresDisassembly:ev.requiresDisassembly,
-          helperSourceDisplay:text(peopleFact.displayValue)
+          highFronts:true,
+          mode:group.key,
+          itemCount:group.count,
+          peopleCount:group.peopleCount,
+          floorUnits:group.floorUnits,
+          items:group.items.map((it)=> ({ aCm:it.aCm, bCm:it.bCm, weightKg:it.weightKg, lift:it.lift }))
         };
         components.push(cmp);
       }
+    });
+  }
+
+  function addCarryingLabor(components, entry, defs, rates, volumeM3){
+    const cab = entry && entry.cabinet || {};
+    const ev = carryingEvaluation(entry);
+    if(!ev) return;
+    const carryingDef = findDefById(defs, 'labor_carrying_cabinet');
+    if(carryingDef && Number(ev.floorUnits) > 0){
+      const floorFact = factFor(entry, 'carrying.floor_units') || {};
+      const peopleFact = factFor(entry, 'carrying.people_count') || {};
+      const itemFact = factFor(entry, 'carrying.stairs_item_count') || {};
+      const itemCount = Math.max(0, Number(ev.carryingItemCount) || (ev.requiresDisassembly ? 0 : 1));
+      if(itemCount > 0){
+        const hourlyRate = Math.max(0, Number(rates && rates[carryingDef.rateType]) || 0);
+        const startHours = Math.max(0, Number(carryingDef.startHours) || 0.25);
+        const stepHours = Math.max(0, Number(carryingDef.stepHours) || 0.0833333333);
+        const quantityHours = startHours + ((Number(ev.floorUnits) || 0) * stepHours);
+        const helperMultiplier = Math.max(1, Number(ev.peopleCount) || 1);
+        const multiplier = helperMultiplier * itemCount;
+        const pricedHours = quantityHours * multiplier;
+        const total = pricedHours * hourlyRate;
+        const calc = {
+          definition:carryingDef,
+          quantity:Number(ev.floorUnits) || 0,
+          volumeM3,
+          hourlyRate,
+          quantityHours,
+          volumeHours:0,
+          multiplier,
+          pricedHours,
+          laborPrice:total,
+          volumePrice:0,
+          fixedPrice:0,
+          startPrice:0,
+          unitPrice:0,
+          includedQty:0,
+          billableQty:Number(ev.floorUnits) || 0,
+          total
+        };
+        const warnings = Array.isArray(ev.warnings) ? ev.warnings.slice() : [];
+        const cmp = componentFromCalc(calc, {
+          suffix:'carrying_cabinet',
+          unit:'poziom',
+          name:text(carryingDef.name) || 'Wnoszenie korpusu / elementów',
+          note:carryingLineNote(ev),
+          sourceType:'carrying',
+          sourceLabel:cabinetSourceLabel(entry),
+          sourceId:text(cab && cab.id),
+          sourceRole:'carrying-labor',
+          sourceKind:'automatic',
+          quantitySource:'carrying.floor_units',
+          quantitySourceLabel:text(floorFact.label) || 'Poziomy wnoszenia',
+          quantitySourceValue:Number(ev.floorUnits) || 0,
+          quantitySourceDisplay:text(floorFact.displayValue) || `${Number(ev.floorUnits) || 0} poziom(y)`,
+          quantitySourceUsed:true,
+          warnings
+        });
+        if(cmp){
+          cmp.carrying = {
+            bodyWeightKg:ev.bodyWeightKg,
+            peopleCount:ev.peopleCount,
+            floorUnits:ev.floorUnits,
+            liftFits:ev.liftFits,
+            requiresDisassembly:ev.requiresDisassembly,
+            helperSourceDisplay:text(peopleFact.displayValue),
+            carryingItemCount:itemCount,
+            carryingItemSourceDisplay:text(itemFact.displayValue)
+          };
+          components.push(cmp);
+        }
+      }
     }
+    addHighFrontCarryingLabor(components, entry, carryingDef, rates, volumeM3, ev);
     if(ev.requiresDisassembly){
       const disassemblyDef = findDefById(defs, 'labor_carrying_disassembly');
       if(disassemblyDef){

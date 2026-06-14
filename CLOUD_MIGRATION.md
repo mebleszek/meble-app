@@ -1,6 +1,29 @@
+## 2026-06-14 — Wnoszenie wysokich frontów v1
+
+- Wysokie fronty powyżej 2 m są traktowane jako osobne elementy logistyczne, a nie jako część wagi korpusu.
+- Dane frontów są odczytywane z centralnych helperów frontów używanych przez MATERIAŁ/WYCENĘ, więc nie powstaje nowy magazyn wymiarów frontów.
+- Wynik wnoszenia frontów jest liczony na żądanie do robocizny/WYCENY i snapshotowany w liniach robocizny oferty, tak jak pozostałe pozycje robocizny.
+- Przy przyszłej chmurze przechowywać należy dane inwestora (`carrying`) oraz snapshot przeliczonej robocizny; nie duplikować listy wysokich frontów w inwestorze.
+
+## 2026-06-14 — Wnoszenie: rozkręcone elementy i przekątne windy v2
+
+Paczka `site_carrying_disassembled_elements_v2.zip` upraszcza i urealnia automat wnoszenia po praktycznych testach windy/schodów.
+
+Zmiany:
+- usunięto z UI, normalizacji danych i logiki pola udźwigu windy oraz szerokości kabiny; przy zapisie danych inwestora te pola nie są już utrzymywane,
+- sprawdzanie całego korpusu do windy jest proste: para wymiarów przez drzwi + trzeci wymiar w głębokość windy, bez przekątnych dla całej skrzynki,
+- jeżeli korpus wymaga rozkręcenia, program sprawdza duże płaskie elementy z formatek korpusu, m.in. boki, plecy, przegrody i długie wieńce,
+- przekątna kabiny `wysokość × głębokość` jest dopuszczona tylko dla płaskich elementów po rozkręceniu i tylko wtedy, gdy drugi wymiar elementu mieści się w szerokości drzwi windy,
+- wnoszenie po schodach po rozkręceniu liczone jest tylko dla elementów, które nie weszły do windy; elementy, które weszły do windy, nie podbijają mnożnika schodów,
+- dodano fakt `carrying.stairs_item_count` do audytu/źródeł ilości,
+- cennik nadal ma dwie osobne pozycje: `labor_carrying_cabinet` oraz `labor_carrying_disassembly`, ale pierwsza opisowo działa teraz jako **Wnoszenie korpusu / elementów**,
+- zaktualizowano test `tools/carrying-lift-logistics-smoke.js`.
+
+Nie przebudowano WYCENY, ORS, oferty klienta, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260614_carrying_high_fronts_v1`. Raport: `tools/reports/carrying-disassembled-elements-v2.md`.
+
 ## 2026-06-13 — Wnoszenie i winda v1
 
-- Dodano pole `investor.carrying` w rekordzie inwestora. Dane są częścią inwestora, a nie osobnym storage: `floorNumber`, `elevatorStatus`, `elevator.doorWidthCm`, `elevator.doorHeightCm`, `elevator.cabinWidthCm`, `elevator.cabinDepthCm`, `elevator.cabinHeightCm`, `elevator.capacityKg`, `note`.
+- Dodano pole `investor.carrying` w rekordzie inwestora. Dane są częścią inwestora, a nie osobnym storage: `floorNumber`, `elevatorStatus`, `elevator.doorWidthCm`, `elevator.doorHeightCm`, `elevator.cabinDepthCm`, `elevator.cabinHeightCm`, `note`.
 - Fakty logistyczne (`cabinet.weight_kg`, `carrying.floor_units`, `carrying.people_count`, `carrying.requires_disassembly`, `carrying.lift_fits`) są wyliczane na żądanie z danych inwestora i szafki. Nie są drugą prawdą zapisaną w projekcie.
 - Waga korpusu powstaje z centralnej listy formatek korpusu; fronty, półki luźne, blendy, cokoły i okucia są pomijane przy decyzji logistycznej.
 - Snapshot WYCENY powinien przechowywać wynikowe linie robocizny i audyt wnoszenia, tak aby późniejsza zmiana piętra/windy/cennika nie zmieniała starych ofert.

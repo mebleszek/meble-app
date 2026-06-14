@@ -85,10 +85,8 @@
       elevator:{
         doorWidthCm:t(elevator.doorWidthCm),
         doorHeightCm:t(elevator.doorHeightCm),
-        cabinWidthCm:t(elevator.cabinWidthCm),
         cabinDepthCm:t(elevator.cabinDepthCm),
-        cabinHeightCm:t(elevator.cabinHeightCm),
-        capacityKg:t(elevator.capacityKg != null ? elevator.capacityKg : elevator.liftCapacityKg)
+        cabinHeightCm:t(elevator.cabinHeightCm)
       },
       note:t(src.note)
     };
