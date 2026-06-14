@@ -200,6 +200,10 @@
     }
 
     const toggleExpanded = () => {
+      const wasOpen = !!(typeof uiState !== 'undefined' && uiState && uiState.expanded && uiState.expanded[cab.id]);
+      if(!wasOpen){
+        try{ if(window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.closeInGroup(cabEl); }catch(_){ }
+      }
       if(typeof uiState !== 'undefined' && uiState && uiState.activeTab === 'wywiad'){
         uiState.selectedCabinetId = (uiState.selectedCabinetId === cab.id) ? null : cab.id;
       }

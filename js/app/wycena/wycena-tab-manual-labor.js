@@ -134,6 +134,16 @@
     trigger.addEventListener('click', (event)=>{
       try{ event.preventDefault(); }catch(_){ }
       const nextOpen = !isOpen;
+      if(nextOpen){
+        try{
+          if(window.uiState){
+            uiState.czynnosciExpandedCabId = null;
+            if(window.FC && window.FC.storage && typeof window.FC.storage.setJSON === 'function' && window.STORAGE_KEYS){
+              window.FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+            }
+          }
+        }catch(_){ }
+      }
       setIsOpen(nextOpen);
       render(ctx);
       if(nextOpen){
@@ -141,7 +151,7 @@
           const node = document.querySelector('.quote-manual-labor-accordion.is-open');
           if(window.FC && window.FC.accordionBehavior){
             window.FC.accordionBehavior.closeInGroup(node);
-            window.FC.accordionBehavior.scrollIntoView(node);
+            window.FC.accordionBehavior.animateOpen(node);
           }else if(node){
             setTimeout(()=> node.scrollIntoView({ block:'start', behavior:'smooth' }), 40);
           }

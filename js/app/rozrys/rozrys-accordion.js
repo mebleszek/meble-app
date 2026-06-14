@@ -92,23 +92,15 @@
     trigger.addEventListener('click', ()=>{
       const willOpen = !wrap.classList.contains('is-open');
       if(willOpen){
-        try{
-          const root = wrap.closest('#rozrysRoot') || wrap.parentElement;
-          if(root){
-            root.querySelectorAll('.rozrys-material-accordion.is-open').forEach((other)=>{
-              if(other === wrap) return;
-              other.classList.remove('is-open');
-              const otherBody = other.querySelector('.rozrys-material-accordion__body');
-              if(otherBody){ otherBody.hidden = true; otherBody.style.display = 'none'; }
-              const otherTrigger = other.querySelector('.rozrys-material-accordion__trigger');
-              if(otherTrigger) otherTrigger.setAttribute('aria-expanded', 'false');
-            });
-          }
-        }catch(_){ }
-      }
-      setOpenState(willOpen, true);
-      if(willOpen){
-        try{ if(window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.scrollIntoView(wrap); else setTimeout(()=> wrap.scrollIntoView({ block:'start', behavior:'smooth' }), 40); }catch(_){ }
+        try{ if(window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.closeInGroup(wrap); }catch(_){ }
+        setOpenState(true, true);
+        try{ if(window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.animateOpen(wrap); else setTimeout(()=> wrap.scrollIntoView({ block:'start', behavior:'smooth' }), 40); }catch(_){ }
+      }else{
+        if(window.FC && window.FC.accordionBehavior){
+          try{ window.FC.accordionBehavior.animateClose(wrap, { after:()=> setOpenState(false, true) }); }catch(_){ setOpenState(false, true); }
+        }else{
+          setOpenState(false, true);
+        }
       }
     });
     setOpenState(!!opts.open, false);

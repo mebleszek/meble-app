@@ -456,3 +456,123 @@
   padding:14px 16px 16px!important;
   background:#fff!important;
 }
+
+
+/* 2026-06-14 — global accordion behavior fix: unified arrows, animation and spacing. */
+.wywiad-room-accordion,
+.rozrys-material-accordion,
+.investor-transport-accordion,
+.investor-carrying-accordion,
+.cabinet-card-shell{
+  scroll-margin-top:var(--fc-sticky-offset, 118px);
+}
+.wywiad-room-accordion.is-open,
+.wywiad-room-accordion[open],
+.rozrys-material-accordion.is-open,
+.investor-transport-accordion.is-open,
+.investor-transport-accordion[open],
+.investor-carrying-accordion.is-open,
+.investor-carrying-accordion[open],
+.cabinet-card-shell.is-open,
+.cabinet-card-shell.selected{
+  border-color:#0ea5e9!important;
+  box-shadow:0 0 0 1px rgba(14,165,233,.12), 2px 3px 0 rgba(14,165,233,.18), 6px 12px 20px rgba(14,165,233,.12)!important;
+}
+.wywiad-room-accordion__chevron,
+.rozrys-material-accordion__chevron,
+.investor-transport-accordion__toggle,
+.investor-carrying-accordion__toggle{
+  position:relative;
+  flex:0 0 auto;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:40px!important;
+  min-height:40px!important;
+  width:40px!important;
+  height:40px!important;
+  border:2px solid rgba(22,163,74,.18)!important;
+  border-radius:14px!important;
+  background:#f4fbf6!important;
+  box-shadow:2px 3px 0 rgba(15,23,42,.06), 0 6px 14px rgba(22,163,74,.08)!important;
+  color:transparent!important;
+  font-size:0!important;
+  line-height:1!important;
+  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease!important;
+}
+.wywiad-room-accordion__chevron::before,
+.rozrys-material-accordion__chevron::before,
+.investor-transport-accordion__toggle::before,
+.investor-carrying-accordion__toggle::before{
+  content:''!important;
+  position:static!important;
+  display:block!important;
+  width:10px!important;
+  height:10px!important;
+  border:0!important;
+  border-right:3px solid #166534!important;
+  border-bottom:3px solid #166534!important;
+  transform:rotate(45deg)!important;
+  margin-top:-4px!important;
+  background:transparent!important;
+}
+.wywiad-room-accordion[open] .wywiad-room-accordion__chevron,
+.wywiad-room-accordion.is-open .wywiad-room-accordion__chevron,
+.rozrys-material-accordion.is-open .rozrys-material-accordion__chevron,
+.investor-transport-accordion[open] .investor-transport-accordion__toggle,
+.investor-transport-accordion.is-open .investor-transport-accordion__toggle,
+.investor-carrying-accordion[open] .investor-carrying-accordion__toggle,
+.investor-carrying-accordion.is-open .investor-carrying-accordion__toggle{
+  transform:rotate(180deg)!important;
+  border-color:rgba(22,163,74,.28)!important;
+  box-shadow:2px 3px 0 rgba(15,23,42,.07), 0 8px 16px rgba(22,163,74,.12)!important;
+}
+.wywiad-room-accordion__body,
+.rozrys-material-accordion__body,
+.investor-transport-accordion__body,
+.investor-carrying-accordion__body{
+  transition:max-height .42s cubic-bezier(.22,.72,.18,1), opacity .30s ease, transform .36s ease;
+  will-change:max-height,opacity,transform;
+}
+.is-ui-pattern-animating > .wywiad-room-accordion__body,
+.is-ui-pattern-animating > .rozrys-material-accordion__body,
+.is-ui-pattern-animating > .investor-transport-accordion__body,
+.is-ui-pattern-animating > .investor-carrying-accordion__body{
+  overflow:hidden!important;
+}
+.czynnosci-cabinet .quote-labor-cabinet__summary,
+.material-cabinet-accordion .wywiad-room-accordion__summary,
+.cabinet-card-shell .cabinet-header{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 42px!important;
+  column-gap:12px!important;
+  align-items:start!important;
+  padding-right:16px!important;
+}
+.czynnosci-cabinet .quote-labor-cabinet__title,
+.material-cabinet-accordion__title,
+.cabinet-card-shell__copy{
+  grid-column:1!important;
+  min-width:0!important;
+}
+.czynnosci-cabinet .wywiad-room-accordion__chevron,
+.material-cabinet-accordion .wywiad-room-accordion__chevron,
+.cabinet-card-shell__toggle{
+  position:relative!important;
+  top:auto!important;
+  right:auto!important;
+  grid-column:2!important;
+  grid-row:1!important;
+  justify-self:end!important;
+  align-self:start!important;
+  margin:0!important;
+}
+.czynnosci-cabinet .quote-labor-cabinet__amount{display:none!important;}
+.czynnosci-cabinet .quote-labor-cabinet__meta--time{margin-top:6px;color:#0f172a;font-weight:900;}
+@media (prefers-reduced-motion: reduce){
+  .wywiad-room-accordion__body,
+  .rozrys-material-accordion__body,
+  .investor-transport-accordion__body,
+  .investor-carrying-accordion__body{transition:none!important;}
+}
+

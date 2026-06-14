@@ -358,16 +358,7 @@
         if(opened){
           details.classList.add('is-open');
           manualOpen = false;
-          try{
-            const manual = document.querySelector('.quote-manual-labor-accordion.is-open');
-            if(manual){
-              manual.classList.remove('is-open');
-              const body = manual.querySelector('.rozrys-material-accordion__body');
-              if(body) body.hidden = true;
-              const trigger = manual.querySelector('.rozrys-material-accordion__trigger');
-              if(trigger) trigger.setAttribute('aria-expanded', 'false');
-            }
-          }catch(_){ }
+          try{ if(window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.closeInGroup(details); }catch(_){ }
           if(typeof uiState !== 'undefined' && uiState){ uiState.czynnosciExpandedCabId = currentId; }
           try{ (window.FC && window.FC.accordionBehavior ? window.FC.accordionBehavior.scrollIntoView(details) : setTimeout(()=> details.scrollIntoView({ block:'start', behavior:'smooth' }), 40)); }catch(_){ }
         }else{

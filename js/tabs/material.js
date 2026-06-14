@@ -169,6 +169,9 @@
       head.addEventListener('click', (e) => {
         if(e && e.target && e.target.closest && e.target.closest('button')) return;
         const nowOpen = String(uiState.matExpandedId || '') === String(cab.id);
+        if(!nowOpen){
+          try{ if(window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.closeInGroup(card); }catch(_){ }
+        }
         uiState.matExpandedId = nowOpen ? null : String(cab.id);
         FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
         renderCabinets();
