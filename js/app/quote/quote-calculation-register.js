@@ -9,6 +9,7 @@
     materials:'Materiały',
     accessories:'Akcesoria',
     labor:'Robocizna szafek',
+    carrying:'Wnoszenie mebli',
     quoteRates:'Usługi dodatkowe',
     transport:'Transport',
     services:'Montaż AGD',
@@ -146,7 +147,7 @@
     return out;
   }
 
-  function laborLines(rows){
+  function laborLikeLines(rows, section, label, defaultName, defaultCalculation){
     const out = [];
     (Array.isArray(rows) ? rows : []).forEach((row, rowIndex)=>{
       const details = Array.isArray(row && row.details) ? row.details : [];
@@ -169,8 +170,8 @@
           if(num(p.fixedPrice) > 0) calcBits.push(`kwota stała ${round2(p.fixedPrice)} PLN`);
           const detailLine = normalizeRegisterLine({
             id:p.key || `${row.key || rowIndex}_${partIndex}`,
-            section:'labor',
-            sectionLabel:SECTION_LABELS.labor,
+            section,
+            sectionLabel:label,
             subsection:text(p.category || 'Czynności przy szafce'),
             sourceType:text(p.sourceType) || 'cabinet',
             sourceLabel:text(p.sourceLabel) || text(row && row.name) || `Szafka #${rowIndex + 1}`,
@@ -196,14 +197,14 @@
             skippedReason:text(p.skippedReason),
             timeBlockHours:num(p.timeBlockHours),
             quantityMode:text(p.quantityMode),
-            name:text(p.name) || 'Czynność',
+            name:text(p.name) || defaultName || 'Czynność',
             quantity:num(p.quantity || 1) || 1,
             unit:text(p.unit || 'x'),
             unitPrice:num(p.unitPrice != null ? p.unitPrice : (num(p.quantity || 1) > 0 ? num(p.total) / num(p.quantity || 1) : num(p.total))),
             total:num(p.total),
             rooms:text(row && row.rooms),
             note:text(p.note),
-            calculation:calcBits.length ? `Cena = ${calcBits.join(' + ')}.` : 'Cena wyliczona z reguły robocizny przypisanej do szafki.',
+            calculation:calcBits.length ? `Cena = ${calcBits.join(' + ')}.` : (defaultCalculation || 'Cena wyliczona z reguły przypisanej do szafki.'),
             starterPrice:p.starterPrice === true && !text(p.priceUserEditedAt),
             priceUserEditedAt:text(p.priceUserEditedAt),
             warnings:Array.isArray(p.warnings) ? p.warnings.map(text).filter(Boolean) : [],
@@ -215,10 +216,20 @@
           out.push(detailLine);
         });
       }else{
-        out.push(simpleLine('labor', row, rowIndex, { label:SECTION_LABELS.labor, defaultName:text(row && row.name) || 'Robocizna szafki', unit:'kpl.', calculation:'Cena = suma czynności przypisanych do tej szafki.' }));
+        out.push(simpleLine(section, row, rowIndex, { label, defaultName:text(row && row.name) || defaultName || 'Pozycja szafki', unit:'kpl.', calculation:defaultCalculation || 'Cena = suma czynności przypisanych do tej szafki.' }));
       }
     });
     return out;
+  }
+
+
+
+  function laborLines(rows){
+    return laborLikeLines(rows, 'labor', SECTION_LABELS.labor, 'Robocizna szafki', 'Cena = suma czynności robocizny przypisanych do tej szafki.');
+  }
+
+  function carryingLines(rows){
+    return laborLikeLines(rows, 'carrying', SECTION_LABELS.carrying, 'Wnoszenie szafki', 'Cena = suma czynności wnoszenia/logistyki przypisanych do tej szafki.');
   }
 
 
@@ -238,7 +249,7 @@
     (Array.isArray(lines) ? lines : []).forEach((row)=>{
       (Array.isArray(row.warnings) ? row.warnings : []).forEach((msg)=>{ if(text(msg)) out.push(warning(row, msg)); });
     });
-    ['materials','accessories','labor','quoteRates','transport','services'].forEach((section)=>{
+    ['materials','accessories','labor','carrying','quoteRates','transport','services'].forEach((section)=>{
       const rows = lines.filter((row)=> row.section === section);
       const total = totalBy(lines, section);
       if(!rows.length) out.push({ key:`empty_${section}`, section, sectionLabel:SECTION_LABELS[section], message:'Brak pozycji w rejestrze wyliczeń.' });
@@ -254,6 +265,7 @@
     (Array.isArray(src.materials) ? src.materials : []).forEach((row, index)=> out.push(materialLine(row, index)));
     (Array.isArray(src.accessories) ? src.accessories : []).forEach((row, index)=> out.push(simpleLine('accessories', row, index, { defaultName:'Akcesorium', calculation:'Cena = ilość okuć/akcesoriów × cena do wyceny z katalogu okuć.', emptyWarning:'Akcesorium ma 0 zł — sprawdź cenę w katalogu okuć.' })));
     laborLines(src.labor).forEach((row)=> out.push(row));
+    carryingLines(src.carrying).forEach((row)=> out.push(row));
     (Array.isArray(src.quoteRates) ? src.quoteRates : []).forEach((row, index)=> {
       if(isTransportLine(row)){
         out.push(simpleLine('transport', row, index, { defaultName:'Transport', calculation:'Cena = kilometry do wyceny zapisane przy inwestorze × cena za 1 km z cennika transportu.', emptyWarning:'Transport ma 0 zł — sprawdź kilometry przy inwestorze i cenę za km w cenniku.' }));
@@ -262,7 +274,7 @@
       }
     });
     (Array.isArray(src.agdServices) ? src.agdServices : []).forEach((row, index)=> out.push(simpleLine('services', row, index, { defaultName:'Montaż AGD', calculation:'Cena = liczba urządzeń AGD z zaznaczonym montażem × cena usługi AGD z cennika.', emptyWarning:'Usługa AGD ma 0 zł — sprawdź cennik AGD.' })));
-    const subtotal = ['materials','accessories','labor','quoteRates','transport','services'].reduce((sum, section)=> sum + totalBy(out, section), 0);
+    const subtotal = ['materials','accessories','labor','carrying','quoteRates','transport','services'].reduce((sum, section)=> sum + totalBy(out, section), 0);
     const comm = commercial && typeof commercial === 'object' ? commercial : {};
     let discount = 0;
     if(num(comm.discountPercent) > 0) discount = subtotal * (num(comm.discountPercent) / 100);
@@ -272,6 +284,7 @@
       materials:totalBy(out, 'materials'),
       accessories:totalBy(out, 'accessories'),
       labor:totalBy(out, 'labor'),
+      carrying:totalBy(out, 'carrying'),
       quoteRates:totalBy(out, 'quoteRates'),
       transport:totalBy(out, 'transport'),
       services:totalBy(out, 'services'),
@@ -315,9 +328,9 @@
         quoteRates:totalBy(lines, 'quoteRates'),
         transport:totalBy(lines, 'transport'),
         services:totalBy(lines, 'services'),
-        subtotal:round2(['materials','accessories','labor','quoteRates','transport','services'].reduce((sum, section)=> sum + totalBy(lines, section), 0)),
+        subtotal:round2(['materials','accessories','labor','carrying','quoteRates','transport','services'].reduce((sum, section)=> sum + totalBy(lines, section), 0)),
         discount:0,
-        grand:round2(['materials','accessories','labor','quoteRates','transport','services'].reduce((sum, section)=> sum + totalBy(lines, section), 0)),
+        grand:round2(['materials','accessories','labor','carrying','quoteRates','transport','services'].reduce((sum, section)=> sum + totalBy(lines, section), 0)),
       },
       warnings:Array.isArray(src.warnings) ? src.warnings.map((row)=> ({ key:text(row && row.key) || slug(row && row.message || row), section:text(row && row.section), sectionLabel:text(row && row.sectionLabel), message:text(row && row.message || row) })).filter((row)=> row.message) : collectWarnings(lines),
     };

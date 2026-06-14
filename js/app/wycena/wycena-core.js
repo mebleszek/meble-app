@@ -79,7 +79,7 @@
     const totalStart = perfNow();
     const deps = requireDeps();
     const perf = {
-      build:'20260614_labor_readable_modes_v1',
+      build:'20260614_carrying_separate_quote_v1',
       generatedAt:new Date().toISOString(),
       timingsMs:{ cabinetFacts:0, materials:0, accessories:0, labor:0, logisticsCarrying:0, snapshot:0, total:0 },
       counts:{ cabinetCount:0, factCacheReads:0, factCacheHits:0, factRecalculations:0, factMissing:0, factStale:0, factVersion:0, factErrors:0 },
@@ -122,6 +122,7 @@
 
     sectionStart = perfNow();
     const laborLines = deps.labor.collectCabinetLabor(selectedRooms);
+    const carryingLines = deps.labor && typeof deps.labor.collectCarryingLines === 'function' ? deps.labor.collectCarryingLines(selectedRooms) : [];
     perf.timingsMs.labor = roundMs(perfNow() - sectionStart);
 
     const commercial = deps.offer.collectCommercialDraft(draft);
@@ -132,6 +133,7 @@
           agdServices: agdLines,
           quoteRates: quoteRateLines,
           labor: laborLines,
+          carrying: carryingLines,
         }, commercial)
       : null;
     const totals = FC.quoteSnapshot && typeof FC.quoteSnapshot.computeTotals === 'function'
@@ -141,6 +143,7 @@
           agdServices: agdLines,
           quoteRates: quoteRateLines,
           labor: laborLines,
+          carrying: carryingLines,
         }, commercial)
       : {
           materials: materialLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
@@ -149,14 +152,16 @@
           transport: quoteRateLines.filter((row)=> String(row && row.sourceRole || '') === 'transport-distance' || String(row && row.sourceType || '') === 'transport' || String(row && row.quantitySource || '') === 'transport.distance_km' || String(row && row.sourceId || '') === 'transport_distance_km').reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
           quoteRates: quoteRateLines.filter((row)=> !(String(row && row.sourceRole || '') === 'transport-distance' || String(row && row.sourceType || '') === 'transport' || String(row && row.quantitySource || '') === 'transport.distance_km' || String(row && row.sourceId || '') === 'transport_distance_km')).reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
           labor: laborLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
+          carrying: carryingLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
           subtotal: 0,
           discount: 0,
           grand: 0,
         };
-    if(!(totals.subtotal > 0)) totals.subtotal = totals.materials + totals.accessories + totals.services + totals.quoteRates + (totals.transport || 0) + (totals.labor || 0);
+    if(!(totals.subtotal > 0)) totals.subtotal = totals.materials + totals.accessories + totals.services + totals.quoteRates + (totals.transport || 0) + (totals.labor || 0) + (totals.carrying || 0);
     if(!(totals.grand >= 0)) totals.grand = Math.max(0, totals.subtotal - (totals.discount || 0));
     perf.sizes.calculationRegister = jsonBytes(calculationRegister);
     perf.sizes.labor = jsonBytes(laborLines);
+    perf.sizes.carrying = jsonBytes(carryingLines);
     perf.timingsMs.total = roundMs(perfNow() - totalStart);
     const result = {
       selectedRooms,
@@ -169,6 +174,7 @@
       agdLines,
       quoteRateLines,
       laborLines,
+      carryingLines,
       commercial,
       calculationRegister,
       totals,
@@ -203,6 +209,11 @@
     return requireDeps().labor.collectCabinetLabor(selectedRooms);
   }
 
+  function collectCarryingLines(selectedRooms){
+    const labor = requireDeps().labor;
+    return labor && typeof labor.collectCarryingLines === 'function' ? labor.collectCarryingLines(selectedRooms) : [];
+  }
+
   function collectCommercialDraft(draft){
     return requireDeps().offer.collectCommercialDraft(draft);
   }
@@ -223,6 +234,7 @@
     buildQuoteSnapshot,
     collectQuoteRateLines,
     collectCabinetLabor,
+    collectCarryingLines,
     collectCommercialDraft,
     collectElementLines,
     collectClientPdfDetails,

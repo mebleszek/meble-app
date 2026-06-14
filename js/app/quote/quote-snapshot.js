@@ -245,7 +245,8 @@
     const transport = Math.max(0, hasBaseTransport ? num(base.transport, quoteTransportTotal) : quoteTransportTotal);
     const quoteRates = Math.max(0, hasBaseTransport ? num(base.quoteRates, quoteOtherTotal) : (quoteLines.length ? quoteOtherTotal : num(base.quoteRates, 0)));
     const labor = Math.max(0, num(base.labor, (Array.isArray(lines.labor) ? lines.labor : []).reduce((sum, row)=> sum + row.total, 0)));
-    const subtotal = Math.max(0, num(base.subtotal, materials + accessories + services + quoteRates + transport + labor));
+    const carrying = Math.max(0, num(base.carrying, (Array.isArray(lines.carrying) ? lines.carrying : []).reduce((sum, row)=> sum + row.total, 0)));
+    const subtotal = Math.max(0, num(base.subtotal, materials + accessories + services + quoteRates + transport + labor + carrying));
     let discount = Math.max(0, num(base.discount, 0));
     if(!(discount > 0)){
       if(commercial.discountPercent > 0) discount = subtotal * (commercial.discountPercent / 100);
@@ -260,6 +261,7 @@
       quoteRates,
       transport,
       labor,
+      carrying,
       subtotal,
       discount,
       grand,
@@ -293,6 +295,7 @@
       agdServices: normalizeLines(src.agdLines || (src.lines && src.lines.agdServices)),
       quoteRates: normalizeLines(src.quoteRateLines || (src.lines && src.lines.quoteRates)),
       labor: normalizeLaborLines(src.laborLines || (src.lines && src.lines.labor)),
+      carrying: normalizeLaborLines(src.carryingLines || (src.lines && src.lines.carrying)),
     };
     const commercial = normalizeCommercial(src.commercial || {}, { roomIds, roomLabels, scope:{ selectedRooms:roomIds, roomLabels } });
     const calculationRegister = normalizeCalculationRegister(src.calculationRegister || (src.lines && src.lines.calculationRegister), lines, commercial);

@@ -452,6 +452,7 @@
       agdServices:(Array.isArray(src.agdServices) ? src.agdServices : []).map((row)=> compactQuoteLine(row, { type:'agd-service', defaultName:'Montaż AGD' })),
       quoteRates:(Array.isArray(src.quoteRates) ? src.quoteRates : []).map((row)=> compactQuoteLine(row, { type:'quote-rate', defaultName:'Robocizna / stawka' })),
       labor:(Array.isArray(src.labor) ? src.labor : []).map(compactLaborLine),
+      carrying:(Array.isArray(src.carrying) ? src.carrying : []).map(compactLaborLine),
     };
   }
 
@@ -480,6 +481,7 @@
         linesAgdServices:jsonBytes(lines.agdServices),
         linesQuoteRates:jsonBytes(lines.quoteRates),
         linesLabor:jsonBytes(lines.labor),
+        linesCarrying:jsonBytes(lines.carrying),
       },
     };
   }
@@ -559,6 +561,7 @@
         services: roundFingerprintNumber(totals.services),
         quoteRates: roundFingerprintNumber(totals.quoteRates),
         transport: roundFingerprintNumber(totals.transport),
+      carrying: roundFingerprintNumber(totals.carrying),
         labor: roundFingerprintNumber(totals.labor),
         subtotal: roundFingerprintNumber(totals.subtotal),
         discount: roundFingerprintNumber(totals.discount),

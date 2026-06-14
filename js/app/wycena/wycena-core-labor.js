@@ -724,13 +724,43 @@
   }
 
 
+  function buildCabinetCarryingLine(entry, defs, rates){
+    const cab = entry && entry.cabinet || {};
+    const volumeM3 = cabinetVolumeM3(cab);
+    const components = [];
+    addCarryingLabor(components, entry, defs, rates, volumeM3);
+    const total = components.reduce((sum, row)=> sum + (Number(row.total) || 0), 0);
+    const hours = components.reduce((sum, row)=> sum + (Number(row.hours) || 0), 0);
+    if(!(total > 0) && !components.length) return null;
+    const number = Number(entry && entry.cabinetNumber) || 0;
+    const name = `Wnoszenie — szafka #${number}${entry.roomLabel ? ' — ' + entry.roomLabel : ''}`;
+    return {
+      key:slug(`${entry.roomId || 'room'}_${cab.id || number}_carrying`),
+      type:'carrying-cabinet',
+      category:'Wnoszenie mebli',
+      name,
+      cabinetNumber:number,
+      cabinetId:text(cab && cab.id),
+      roomId:text(entry && entry.roomId),
+      rooms:text(entry && entry.roomLabel),
+      dimensions:cabinetDimensionsLabel(cab),
+      volumeM3,
+      qty:1,
+      unit:'kpl.',
+      unitPrice:total,
+      total,
+      hours,
+      details:components,
+      note:text(cab.type || '') + (cab.subType ? ' • ' + text(cab.subType) : ''),
+    };
+  }
+
   function buildCabinetLaborLine(entry, defs, rates){
     const cab = entry && entry.cabinet || {};
     const volumeM3 = cabinetVolumeM3(cab);
     const components = [];
     addFrontLabor(components, entry, defs, rates, volumeM3);
     addHingeLabor(components, entry, defs, rates, volumeM3);
-    addCarryingLabor(components, entry, defs, rates, volumeM3);
     addGenericQuantitySourceLabor(components, entry, defs, rates, volumeM3);
     const manual = Array.isArray(cab && cab.laborItems) ? cab.laborItems : [];
     manual.forEach((item, idx)=>{
@@ -805,9 +835,20 @@
     return enumerateSelectedCabinets(selectedRooms).map((entry)=> buildCabinetLaborLine(entry, defs, rates)).filter(Boolean);
   }
 
+  function collectCarryingLines(selectedRooms){
+    try{
+      const factsApi = FC.cabinetDerivedFacts || null;
+      if(factsApi && typeof factsApi.ensureForRooms === 'function') factsApi.ensureForRooms(selectedRooms || [], { persist:true, recalculate:true });
+    }catch(_){ }
+    const defs = laborDefs();
+    const rates = hourlyRates(defs);
+    return enumerateSelectedCabinets(selectedRooms).map((entry)=> buildCabinetCarryingLine(entry, defs, rates)).filter(Boolean);
+  }
+
   FC.wycenaCoreLabor = {
     enumerateSelectedCabinets,
     cabinetVolumeM3,
     collectCabinetLabor,
+    collectCarryingLines,
   };
 })();

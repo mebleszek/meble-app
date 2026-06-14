@@ -1,3 +1,8 @@
+## 2026-06-14 — Wnoszenie jako osobny total WYCENY
+
+- Nie dodano nowej prawdy danych wejściowych. `carrying` jest osobnym wynikiem rejestru/snapshotu, wyliczanym z tych samych faktów logistycznych szafki i z tych samych pozycji cennika.
+- W przyszłej chmurze można synchronizować `carrying` jak pozostałe totals snapshotu; fakty logistyczne nadal są cachem możliwym do przeliczenia.
+
 ## 2026-06-14 — Czynności bez zmiany modelu danych
 
 - Ręczne czynności szafki pozostają w dotychczasowym polu szafki; zmieniono tylko przepuszczanie ich do widoku CZYNNOŚCI i czytelność czasu.
@@ -43,7 +48,7 @@ Zmiany:
 - cennik nadal ma dwie osobne pozycje: `labor_carrying_cabinet` oraz `labor_carrying_disassembly`, ale pierwsza opisowo działa teraz jako **Wnoszenie korpusu / elementów**,
 - zaktualizowano test `tools/carrying-lift-logistics-smoke.js`.
 
-Nie przebudowano WYCENY, ORS, oferty klienta, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260614_accordion_animation_fix_v1`. Raport: `tools/reports/carrying-disassembled-elements-v2.md`.
+Nie przebudowano WYCENY, ORS, oferty klienta, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260614_carrying_separate_quote_v1`. Raport: `tools/reports/carrying-disassembled-elements-v2.md`.
 
 ## 2026-06-13 — Wnoszenie i winda v1
 

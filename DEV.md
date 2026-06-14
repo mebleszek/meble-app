@@ -1,3 +1,12 @@
+## 2026-06-14 — WYCENA: wnoszenie jako osobny dział v1
+
+- Wnoszenie/logistyka mebli zostały wyjęte z działu `Robocizna szafek` w WYCENIE.
+- Automaty `labor_carrying_cabinet`, `labor_carrying_disassembly` oraz wnoszenie wysokich frontów dalej korzystają z tych samych cenników i stawek, ale ich wynik trafia do osobnego działu `Wnoszenie mebli`.
+- `quoteCalculationRegister`, snapshot, podsumowanie WYCENY i modal szczegółów mają osobny total `carrying`.
+- Nie usuwano żadnych trybów robocizny ani stawek; zmiana dotyczy klasyfikacji wyniku w WYCENIE.
+
+Cache-busting: `20260614_carrying_separate_quote_v1`.
+
 ## 2026-06-14 — poprawka animacji akordeonów v1
 
 - Przywrócono animację rozwijania i zwijania dla akordeonów renderowanych od nowa po kliknięciu, szczególnie kart szafek w WYWIADZIE i MATERIALE.
@@ -6,7 +15,7 @@
 - Poprawiono strzałki akordeonów w INWESTORZE, żeby wyglądały jak wzorcowe strzałki aplikacji.
 - Nie zmieniano obliczeń, trybów cennika, ORS, PCV, PDF ani oferty klienta.
 
-Cache-busting: `20260614_accordion_animation_fix_v1`.
+Cache-busting: `20260614_carrying_separate_quote_v1`.
 
 ## 2026-06-14 — poprawka scrollowania akordeonów v1
 
@@ -15,7 +24,7 @@ Cache-busting: `20260614_accordion_animation_fix_v1`.
 - Zamykanie kart szafek przy otwarciu preferencji ukrywa też ich treść, dzięki czemu po zwinięciu nie zostaje stary, wizualnie otwarty blok.
 - Nie zmieniano obliczeń, cennika, trybów robocizny, ORS, PCV, PDF ani oferty klienta.
 
-Cache-busting: `20260614_accordion_animation_fix_v1`.
+Cache-busting: `20260614_carrying_separate_quote_v1`.
 
 ## 2026-06-14 — Akordeony globalne: animacja, grupa i scroll v2
 
@@ -25,7 +34,7 @@ Cache-busting: `20260614_accordion_animation_fix_v1`.
 - Scroll po otwarciu liczy wysokość górnego menu, żeby nagłówek nie chował się pod paskiem.
 - Ujednolicono strzałki rozwijania do wzorca aplikacji.
 
-Nie ruszano wyliczeń, trybów cennika, ORS, PCV, PDF, oferty klienta ani cache faktów szafki. Cache-busting: `20260614_accordion_animation_fix_v1`.
+Nie ruszano wyliczeń, trybów cennika, ORS, PCV, PDF, oferty klienta ani cache faktów szafki. Cache-busting: `20260614_carrying_separate_quote_v1`.
 
 ## 2026-06-14 — Czynności: ręczne pozycje i czas jednostkowy v1
 
@@ -34,7 +43,7 @@ Nie ruszano wyliczeń, trybów cennika, ORS, PCV, PDF, oferty klienta ani cache 
 - WYWIAD nie dostał nowego układu: pomarańczowe ręczne czynności u góry karty zostają jedna pod drugą, a dolny blok szczegółów robocizny pozostaje usunięty.
 - Analiza raportu diagnostycznego została wykonana tylko kontrolnie; nie poprawiano niczego na podstawie raportu poza zgłoszonymi błędami widoku CZYNNOŚCI.
 
-Nie ruszano cache faktów szafki, ORS, transportu km, PDF, oferty klienta, PCV, `drawer.count`, automatów AGD ani wymagań technicznych. Cache-busting: `20260614_accordion_animation_fix_v1`.
+Nie ruszano cache faktów szafki, ORS, transportu km, PDF, oferty klienta, PCV, `drawer.count`, automatów AGD ani wymagań technicznych. Cache-busting: `20260614_carrying_separate_quote_v1`.
 
 ## 2026-06-14 — Diagnostyka do pliku i czystszy widok czynności v1
 
@@ -44,7 +53,7 @@ Nie ruszano cache faktów szafki, ORS, transportu km, PDF, oferty klienta, PCV, 
 - Zakładka CZYNNOŚCI nie pokazuje finalnych złotówek dla ręcznych czynności; pieniądze pozostają domeną WYCENY.
 - Dodano `MD_CLEANUP_AUDIT.md` z analizą, które pliki `.md` można odchudzić w osobnym porządkowym etapie.
 
-Nie ruszano cache faktów, ORS, PDF, oferty klienta, PCV, transportu, `drawer.count`, automatów AGD ani wymagań technicznych. Cache-busting: `20260614_accordion_animation_fix_v1`.
+Nie ruszano cache faktów, ORS, PDF, oferty klienta, PCV, transportu, `drawer.count`, automatów AGD ani wymagań technicznych. Cache-busting: `20260614_carrying_separate_quote_v1`.
 
 ## 2026-06-14 — Fakty pochodne szafki/cache v1
 
@@ -56,7 +65,7 @@ Zmiany techniczne:
 - `cabinet-modal-finalize.js` i `cabinet-modal-set-wizard.js` przeliczają pełny pakiet faktów po zapisie jednej szafki/zestawu, bez mapy zależności i bez podglądu na żywo,
 - `work-quantity-facts`, `material-tab-data`, `wycena-core-source` i `wycena-core-labor` najpierw próbują czytać aktualne fakty, a dopiero potem używają dawnych kalkulatorów fallback,
 - `wycena-core` mierzy sekcje: fakty szafek, materiały, akcesoria, robocizna, logistyka/wnoszenie i całość; `quote-snapshot` dopisuje metrykę snapshotu,
-- `wycena-diagnostics` ma build `20260614_accordion_animation_fix_v1`, liczniki cache i rozmiary `snapshot`, `calculationRegister`, `labor`,
+- `wycena-diagnostics` ma build `20260614_carrying_separate_quote_v1`, liczniki cache i rozmiary `snapshot`, `calculationRegister`, `labor`,
 - `tabs/czynnosci.js` ogranicza ekspozycję cen w głównym widoku szafek; ceny pozostają domeną WYCENY/audytu.
 
 Testy dodane/zaktualizowane: `tools/cabinet-derived-facts-cache-smoke.js`, cache-busting w smoke-testach i load-order dla `index.html`, `dev_tests.html`, `tools/index-load-groups.js`, `tools/app-dev-smoke-lib/file-list.js`.
@@ -74,7 +83,7 @@ Zmiany:
 - WYCENA/CZYNNOŚCI pokazują osobny komponent `Wnoszenie wysokich frontów — windą/po schodach`, z audytem wymiarów i metody dopasowania,
 - waga korpusu nadal nie obejmuje frontów; fronty są doliczane tylko jako osobna logistyka, nie jako masa korpusu.
 
-Nie przebudowano WYCENY, ORS, transportu km, oferty klienta, PDF, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260614_accordion_animation_fix_v1`. Raport: `tools/reports/carrying-high-fronts-v1.md`.
+Nie przebudowano WYCENY, ORS, transportu km, oferty klienta, PDF, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260614_carrying_separate_quote_v1`. Raport: `tools/reports/carrying-high-fronts-v1.md`.
 
 ## 2026-06-14 — Wnoszenie: rozkręcone elementy i przekątne windy v2
 
@@ -90,7 +99,7 @@ Zmiany:
 - cennik nadal ma dwie osobne pozycje: `labor_carrying_cabinet` oraz `labor_carrying_disassembly`, ale pierwsza opisowo działa teraz jako **Wnoszenie korpusu / elementów**,
 - zaktualizowano test `tools/carrying-lift-logistics-smoke.js`.
 
-Nie przebudowano WYCENY, ORS, oferty klienta, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260614_accordion_animation_fix_v1`. Raport: `tools/reports/carrying-disassembled-elements-v2.md`.
+Nie przebudowano WYCENY, ORS, oferty klienta, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260614_carrying_separate_quote_v1`. Raport: `tools/reports/carrying-disassembled-elements-v2.md`.
 
 ## 2026-06-13 — Wnoszenie i winda v1
 

@@ -1,3 +1,12 @@
+## 2026-06-14 — WYCENA: wnoszenie jako osobny dział v1
+
+- Wnoszenie/logistyka mebli zostały wyjęte z działu `Robocizna szafek` w WYCENIE.
+- Automaty `labor_carrying_cabinet`, `labor_carrying_disassembly` oraz wnoszenie wysokich frontów dalej korzystają z tych samych cenników i stawek, ale ich wynik trafia do osobnego działu `Wnoszenie mebli`.
+- `quoteCalculationRegister`, snapshot, podsumowanie WYCENY i modal szczegółów mają osobny total `carrying`.
+- Nie usuwano żadnych trybów robocizny ani stawek; zmiana dotyczy klasyfikacji wyniku w WYCENIE.
+
+Cache-busting: `20260614_carrying_separate_quote_v1`.
+
 
 ## 2026-06-09 — Źródła ilości robocizny w rejestrze v1
 

@@ -163,6 +163,7 @@
       ['Materiały', totals.materials, 'materials'],
       ['Akcesoria', totals.accessories, 'accessories'],
       ['Robocizna szafek', totals.labor, 'labor'],
+      ['Wnoszenie mebli', totals.carrying, 'carrying'],
       ['Usługi dodatkowe', totals.quoteRates, 'quoteRates'],
       ['Transport', totals.transport, 'transport'],
       ['Montaż AGD', totals.services, 'services'],

@@ -114,7 +114,9 @@
     const accessoryLines = Array.isArray(data && data.accessoryLines) ? data.accessoryLines : [];
     const agdLines = Array.isArray(data && data.agdLines) ? data.agdLines : [];
     const quoteRateLines = Array.isArray(data && data.quoteRateLines) ? data.quoteRateLines : [];
-    if(materialLines.length || accessoryLines.length || agdLines.length || quoteRateLines.length) return;
+    const laborLines = Array.isArray(data && data.laborLines) ? data.laborLines : [];
+    const carryingLines = Array.isArray(data && data.carryingLines) ? data.carryingLines : [];
+    if(materialLines.length || accessoryLines.length || agdLines.length || quoteRateLines.length || laborLines.length || carryingLines.length) return;
     throw createQuoteValidationError(
       'empty_quote_scope',
       selectedRooms.length > 1 ? 'Brak danych w pomieszczeniach' : 'Brak danych w pomieszczeniu',
