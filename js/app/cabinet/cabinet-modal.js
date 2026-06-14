@@ -266,6 +266,16 @@ function renderCabinetTypeChoices(){
       if(ch.key !== 'zestaw'){
         const room = uiState.roomType;
 
+
+  function draftHeightIncludesLegs(){
+    const det = draft && draft.details && typeof draft.details === 'object' ? draft.details : {};
+    const raw = det.heightIncludesLegs;
+    if(raw === false || raw === 0) return false;
+    const txt = String(raw == null ? '' : raw).trim().toLowerCase();
+    if(['0','false','nie','no','off'].includes(txt)) return false;
+    return true;
+  }
+
   function effectiveDraftLegHeight(){
     const det = draft && draft.details && typeof draft.details === 'object' ? draft.details : {};
     if(det.legHeightCm != null && String(det.legHeightCm).trim() !== '') return Number(det.legHeightCm) || 0;
@@ -274,10 +284,19 @@ function renderCabinetTypeChoices(){
   function syncLegHeightUi(){
     const wrap = document.getElementById('cmLegHeightWrap');
     const input = document.getElementById('cmLegHeight');
+    const checkWrap = document.getElementById('cmHeightIncludesLegsWrap');
+    const check = document.getElementById('cmHeightIncludesLegs');
     if(!wrap || !input) return;
     const show = String(draft && draft.type || '') === 'stojąca';
+    if(checkWrap) checkWrap.style.display = show ? '' : 'none';
     wrap.style.display = show ? '' : 'none';
-    if(show) input.value = effectiveDraftLegHeight();
+    if(show){
+      const includes = draftHeightIncludesLegs();
+      if(check) check.checked = includes;
+      input.value = effectiveDraftLegHeight();
+      input.disabled = !includes;
+      input.closest && input.closest('div') && input.closest('div').classList.toggle('is-muted', !includes);
+    }
   }
 
     projectData[room].cabinets = projectData[room].cabinets || [];
@@ -457,6 +476,16 @@ function renderCabinetModal(){
   const draft = cabinetModalState.draft;
   const room = uiState.roomType;
 
+
+  function draftHeightIncludesLegs(){
+    const det = draft && draft.details && typeof draft.details === 'object' ? draft.details : {};
+    const raw = det.heightIncludesLegs;
+    if(raw === false || raw === 0) return false;
+    const txt = String(raw == null ? '' : raw).trim().toLowerCase();
+    if(['0','false','nie','no','off'].includes(txt)) return false;
+    return true;
+  }
+
   function effectiveDraftLegHeight(){
     const det = draft && draft.details && typeof draft.details === 'object' ? draft.details : {};
     if(det.legHeightCm != null && String(det.legHeightCm).trim() !== '') return Number(det.legHeightCm) || 0;
@@ -465,10 +494,19 @@ function renderCabinetModal(){
   function syncLegHeightUi(){
     const wrap = document.getElementById('cmLegHeightWrap');
     const input = document.getElementById('cmLegHeight');
+    const checkWrap = document.getElementById('cmHeightIncludesLegsWrap');
+    const check = document.getElementById('cmHeightIncludesLegs');
     if(!wrap || !input) return;
     const show = String(draft && draft.type || '') === 'stojąca';
+    if(checkWrap) checkWrap.style.display = show ? '' : 'none';
     wrap.style.display = show ? '' : 'none';
-    if(show) input.value = effectiveDraftLegHeight();
+    if(show){
+      const includes = draftHeightIncludesLegs();
+      if(check) check.checked = includes;
+      input.value = effectiveDraftLegHeight();
+      input.disabled = !includes;
+      input.closest && input.closest('div') && input.closest('div').classList.toggle('is-muted', !includes);
+    }
   }
 
 
@@ -582,6 +620,16 @@ function renderCabinetModal(){
     try{
       const room = uiState.roomType;
 
+
+  function draftHeightIncludesLegs(){
+    const det = draft && draft.details && typeof draft.details === 'object' ? draft.details : {};
+    const raw = det.heightIncludesLegs;
+    if(raw === false || raw === 0) return false;
+    const txt = String(raw == null ? '' : raw).trim().toLowerCase();
+    if(['0','false','nie','no','off'].includes(txt)) return false;
+    return true;
+  }
+
   function effectiveDraftLegHeight(){
     const det = draft && draft.details && typeof draft.details === 'object' ? draft.details : {};
     if(det.legHeightCm != null && String(det.legHeightCm).trim() !== '') return Number(det.legHeightCm) || 0;
@@ -590,10 +638,19 @@ function renderCabinetModal(){
   function syncLegHeightUi(){
     const wrap = document.getElementById('cmLegHeightWrap');
     const input = document.getElementById('cmLegHeight');
+    const checkWrap = document.getElementById('cmHeightIncludesLegsWrap');
+    const check = document.getElementById('cmHeightIncludesLegs');
     if(!wrap || !input) return;
     const show = String(draft && draft.type || '') === 'stojąca';
+    if(checkWrap) checkWrap.style.display = show ? '' : 'none';
     wrap.style.display = show ? '' : 'none';
-    if(show) input.value = effectiveDraftLegHeight();
+    if(show){
+      const includes = draftHeightIncludesLegs();
+      if(check) check.checked = includes;
+      input.value = effectiveDraftLegHeight();
+      input.disabled = !includes;
+      input.closest && input.closest('div') && input.closest('div').classList.toggle('is-muted', !includes);
+    }
   }
 
       syncDraftFromCabinetModalFormSafe(draft);
@@ -636,6 +693,13 @@ function renderCabinetModal(){
   if(_cmDepthEl){
     _cmDepthEl.oninput = _liveAventosCheck;
     _cmDepthEl.onchange = _liveAventosCheck;
+  }
+  const _cmHeightIncludesLegsEl = document.getElementById('cmHeightIncludesLegs');
+  if(_cmHeightIncludesLegsEl){
+    _cmHeightIncludesLegsEl.onchange = () => {
+      _liveAventosCheck();
+      syncLegHeightUi();
+    };
   }
   const _cmLegHeightEl = document.getElementById('cmLegHeight');
   if(_cmLegHeightEl){

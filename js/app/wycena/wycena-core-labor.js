@@ -28,6 +28,16 @@
     const project = source.project() || {};
     return project && project[roomId] && project[roomId].settings || {};
   }
+
+  function heightIncludesLegs(cabinet){
+    const det = cabinet && cabinet.details && typeof cabinet.details === 'object' ? cabinet.details : {};
+    const raw = det.heightIncludesLegs;
+    if(raw === false || raw === 0) return false;
+    const txt = text(raw).toLowerCase();
+    if(['0','false','nie','no','off'].includes(txt)) return false;
+    return true;
+  }
+
   function effectiveLegHeightCm(roomId, cabinet){
     const det = cabinet && cabinet.details && typeof cabinet.details === 'object' ? cabinet.details : {};
     if(det.legHeightCm != null && text(det.legHeightCm) !== '') return cm(det.legHeightCm);
@@ -36,7 +46,7 @@
   }
   function cabinetBodyHeightCm(roomId, cabinet){
     const h = cm(cabinet && cabinet.height);
-    return text(cabinet && cabinet.type) === 'stojąca' ? Math.max(0, h - effectiveLegHeightCm(roomId, cabinet)) : h;
+    return text(cabinet && cabinet.type) === 'stojąca' && heightIncludesLegs(cabinet) ? Math.max(0, h - effectiveLegHeightCm(roomId, cabinet)) : h;
   }
   function cabinetBodyVolumeM3(roomId, cabinet){
     const w = cm(cabinet && cabinet.width);

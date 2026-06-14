@@ -10,7 +10,7 @@ function assertClose(actual, expected, message){
 }
 
 (async function main(){
-  const version = '20260615_body_height_legs_labor_v1';
+  const version = '20260615_project_recalculate_v1';
   const index = read('index.html');
   const dev = read('dev_tests.html');
   const companyView = read('js/app/ui/data-settings-company-view.js');

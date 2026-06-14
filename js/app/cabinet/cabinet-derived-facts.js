@@ -6,7 +6,7 @@
   root.FC = root.FC || {};
   const FC = root.FC;
 
-  const VERSION = '20260614_other_actions_travel_time_v1';
+  const VERSION = '20260615_project_recalculate_v1';
   const CACHE_FIELD = 'derivedFacts';
   const STATS_LIMIT = 20;
   let computingDepth = 0;
@@ -306,7 +306,8 @@
     sessionStats.reads += 1;
     sessionStats.cabinets += 1;
     const status = cacheStatus(roomId, cabinet);
-    if(status === 'hit'){
+    const force = opts.force === true;
+    if(status === 'hit' && !force){
       sessionStats.hits += 1;
       note('hit', roomId, cabinet);
       return { status:'hit', fromCache:true, cache:cacheOf(cabinet), recalculated:false };
@@ -390,7 +391,7 @@
     ids.forEach((roomId)=> {
       const list = proj && proj[roomId] && Array.isArray(proj[roomId].cabinets) ? proj[roomId].cabinets : [];
       list.forEach((cabinet)=> {
-        const res = ensureCabinetFacts(roomId, cabinet, { recalculate:opts.recalculate !== false });
+        const res = ensureCabinetFacts(roomId, cabinet, { recalculate:opts.recalculate !== false, force:opts.force === true });
         results.push(Object.assign(res || {}, { roomId, cabinetId:text(cabinet && cabinet.id) }));
       });
     });

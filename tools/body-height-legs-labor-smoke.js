@@ -38,10 +38,15 @@ near(back.b, 71.5, 'Plecy stojącej 82 cm z nogą 10 mają mieć 71.5 cm');
 const override = sandbox.FC.cabinetCutlist.getCabinetCutList({ id:'cab2', type:'stojąca', subType:'standardowa', width:60, height:82, depth:51, bodyColor:'Egger', backMaterial:'HDF', details:{ legHeightCm:'15' } }, 'kuchnia');
 near(override.find((p)=> p.name === 'Bok').a, 65.2, 'Indywidualna wysokość nóg musi zmienić bok');
 
+const bodyAlready = sandbox.FC.cabinetCutlist.getCabinetCutList({ id:'cab3', type:'stojąca', subType:'standardowa', width:60, height:82, depth:51, bodyColor:'Egger', backMaterial:'HDF', details:{ heightIncludesLegs:'0' } }, 'kuchnia');
+near(bodyAlready.find((p)=> p.name === 'Bok').a, 80.2, 'Odznaczone Wysokość z nogami ma nie odejmować nóg od boku');
+
 const map = sandbox.FC.workQuantityFacts.buildCabinetFactMap('kuchnia', { type:'stojąca', width:60, height:82, depth:51, details:{} });
 assert(map['cabinet.height_mm'].value === 820, 'Stare cabinet.height_mm zostaje wysokością całkowitą');
-assert(map['cabinet.body_height_mm'].value === 720, 'Nowe cabinet.body_height_mm ma odejmować nogi');
+assert(map['cabinet.body_height_mm'].value === 720, 'Nowe cabinet.body_height_mm ma odejmować nogi, gdy Wysokość z nogami jest zaznaczone');
 near(map['cabinet.body_volume_m3'].value, 0.2203, 'body_volume_m3 ma liczyć gabaryt bez nóg');
+const bodyMap = sandbox.FC.workQuantityFacts.buildCabinetFactMap('kuchnia', { type:'stojąca', width:60, height:82, depth:51, details:{ heightIncludesLegs:'0' } });
+assert(bodyMap['cabinet.body_height_mm'].value === 820, 'Odznaczone Wysokość z nogami ma zostawić body_height bez odejmowania nóg');
 
 const defs = sandbox.FC.laborCatalog.ensureDefaultDefinitions([
   { id:'labor_body_h072', category:'Korpusy', name:'Skręcenie korpusu do 72 cm', quantitySource:'cabinet.count', conditions:[{ source:'cabinet.height_mm', operator:'range', min:null, max:720 }], timeBlockHours:0.5, active:true },

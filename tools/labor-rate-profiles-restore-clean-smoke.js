@@ -21,8 +21,8 @@ assert(itemForm.includes('function isHourlyRateMode(){ return false; }'), 'Cenni
 assert(!index.includes('laborAutomatCreateBtn'), 'Nie wolno przywracać UI tworzenia automatów w tym etapie.');
 assert(!index.includes('cmWorkFactsPreview'), 'Nie wolno podłączać podglądu źródeł do modala szafki w tym etapie.');
 assert(!index.includes('cabinet-work-facts-preview.js'), 'Nie wolno ładować panelu podglądu szafki w tym etapie.');
-assert(index.includes('20260615_body_height_legs_labor_v1'), 'Brak aktualnego cache-bustingu w index.html.');
-assert(read('dev_tests.html').includes('20260615_body_height_legs_labor_v1'), 'Brak aktualnego cache-bustingu w dev_tests.html.');
+assert(index.includes('20260615_project_recalculate_v1'), 'Brak aktualnego cache-bustingu w index.html.');
+assert(read('dev_tests.html').includes('20260615_project_recalculate_v1'), 'Brak aktualnego cache-bustingu w dev_tests.html.');
 
 assert(catalog.includes('dedupeHourlyRateDefinitions'), 'Brak deduplikacji stawek godzinowych.');
 assert(catalog.includes('validateRateProfile'), 'Brak walidacji profilu stawki godzinowej.');

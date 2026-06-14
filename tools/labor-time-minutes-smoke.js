@@ -12,7 +12,7 @@ function assert(cond, msg, details){
     process.exit(1);
   }
 }
-const version = '20260615_body_height_legs_labor_v1';
+const version = '20260615_project_recalculate_v1';
 const index = read('index.html');
 const defs = read('js/app/pricing/labor-catalog-definitions.js');
 const catalogSrc = read('js/app/pricing/labor-catalog.js');

@@ -657,3 +657,26 @@
   transform:rotate(180deg)!important;
 }
 
+
+
+/* 2026-06-15 — cabinet height with legs checkbox. */
+.cabinet-check-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:44px;
+  padding:10px 12px;
+  border:1px solid #dbe4ee;
+  border-radius:12px;
+  background:#fff;
+  font-weight:800;
+  color:#111827;
+}
+.cabinet-check-row input[type="checkbox"]{
+  width:22px;
+  height:22px;
+  accent-color:#1684e5;
+}
+.cabinet-form-grid .is-muted{
+  opacity:.58;
+}

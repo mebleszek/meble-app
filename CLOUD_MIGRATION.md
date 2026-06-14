@@ -1,3 +1,14 @@
+## 2026-06-15 — globalne przeliczenie projektu
+
+- `Przelicz projekt` nie tworzy nowej prawdy danych. Wymusza ponowne wyliczenie cache/faktów pochodnych `derivedFacts` z aktualnych danych projektu, cenników i ustawień.
+- W chmurze ten mechanizm powinien być traktowany jak lokalny rebuild cache: dane wejściowe zostają te same, a wynik można odtworzyć po stronie klienta lub serwera.
+
+## 2026-06-15 — wysokość z nogami jako decyzja szafki
+
+- `details.heightIncludesLegs = '0'` jest zapisywane tylko wtedy, gdy konkretna stojąca szafka ma wysokość wpisaną jako sam korpus bez nóg.
+- Brak tej wartości oznacza domyślne zachowanie: wysokość stojącej szafki zawiera nogi/cokół i program odejmuje efektywną wysokość nóg.
+- Fakty `cabinet.body_height_mm` i `cabinet.body_volume_m3` pozostają pochodne i odtwarzalne.
+
 ## 2026-06-15 — body height jako fakt pochodny szafki
 
 - Nie dodano nowego obowiązkowego źródła prawdy dla każdego korpusu. `cabinet.body_height_mm` i `cabinet.body_volume_m3` są faktami pochodnymi z istniejącej wysokości szafki oraz efektywnej wysokości nóg.
@@ -60,7 +71,7 @@ Zmiany:
 - cennik nadal ma dwie osobne pozycje: `labor_carrying_cabinet` oraz `labor_carrying_disassembly`, ale pierwsza opisowo działa teraz jako **Wnoszenie korpusu / elementów**,
 - zaktualizowano test `tools/carrying-lift-logistics-smoke.js`.
 
-Nie przebudowano WYCENY, ORS, oferty klienta, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260615_body_height_legs_labor_v1`. Raport: `tools/reports/carrying-disassembled-elements-v2.md`.
+Nie przebudowano WYCENY, ORS, oferty klienta, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260615_project_recalculate_v1`. Raport: `tools/reports/carrying-disassembled-elements-v2.md`.
 
 ## 2026-06-13 — Wnoszenie i winda v1
 

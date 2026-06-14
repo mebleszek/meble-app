@@ -71,8 +71,9 @@
     const top = document.createElement('div');
     top.className = 'card';
     top.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
         <h3 style="margin:0">Materiały — rozpiska mebli</h3>
+        <button type="button" class="btn btn-primary material-recalculate-project-btn">Przelicz projekt</button>
   </div>
       <p class="muted" style="margin:6px 0 0">
         Poniżej jest rozpisany każdy dodany mebel (korpus). Wymiary są liczone "na czysto" z założeniem płyty 18&nbsp;mm.
@@ -105,6 +106,17 @@
       </div>
     `;
     listEl.appendChild(top);
+    const recalcBtn = top.querySelector('.material-recalculate-project-btn');
+    if(recalcBtn){
+      recalcBtn.addEventListener('click', (event)=>{
+        try{ event.preventDefault(); event.stopPropagation(); }catch(_){ }
+        try{
+          if(window.FC && FC.projectRecalculator && typeof FC.projectRecalculator.recalculateAndNotify === 'function') FC.projectRecalculator.recalculateAndNotify({ refresh:true });
+        }catch(error){
+          try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Nie udało się przeliczyć', message:String(error && error.message || error || 'Błąd') }); }catch(_){ }
+        }
+      });
+    }
 
     const projTotalsEl = top.querySelector('#projectMatTotals');
     if(projTotalsEl) renderTotalsFn(projTotalsEl, model.projectTotals || {});

@@ -144,8 +144,32 @@
     if(FC.helpRegistry && typeof FC.helpRegistry.createTrigger === 'function'){
       titleRow.appendChild(FC.helpRegistry.createTrigger({ key:'dataSettings.workQuantityFacts.preview', title:'Podgląd odczytu z aktualnego projektu', message:PREVIEW_MESSAGE, scope:'dataSettings', className:'info-trigger data-settings-card-info', stop:false }));
     }
+    const actions = h('div', { class:'data-settings-actions data-settings-recalculate-actions' });
+    const recalcBtn = h('button', { type:'button', class:'btn btn-primary', text:'Przelicz projekt' });
+    const status = h('div', { class:'data-settings-recalculate-status muted xs', text:'Przelicza formatki, fakty szafek, wymagania i dane do wyceny bez edycji każdej szafki.' });
+    recalcBtn.addEventListener('click', ()=>{
+      try{
+        const api = FC.projectRecalculator;
+        if(!(api && typeof api.recalculateCurrentProject === 'function')){
+          status.textContent = 'Moduł przeliczania projektu nie jest dostępny.';
+          return;
+        }
+        recalcBtn.disabled = true;
+        recalcBtn.textContent = 'Przeliczam...';
+        const summary = api.recalculateCurrentProject({ refresh:true });
+        status.textContent = `Przeliczono: ${Number(summary && summary.recalculations) || 0} / ${Number(summary && summary.cabinetCount) || 0} szafek. Błędy: ${Number(summary && summary.errors) || 0}.`;
+      }catch(error){
+        status.textContent = 'Błąd przeliczenia: ' + String(error && error.message || error || 'błąd');
+      }finally{
+        recalcBtn.disabled = false;
+        recalcBtn.textContent = 'Przelicz projekt';
+      }
+    });
+    actions.appendChild(recalcBtn);
+    actions.appendChild(status);
     card.appendChild(titleRow);
     card.appendChild(h('p', { class:'data-settings-work-sources-lead muted', text:'Ten podgląd działa poza modalem szafki. Czyta aktualne szafki z projektu i pokazuje, jakie nazwane dane program potrafi z nich odczytać. Niczego tu nie zapisujemy.' }));
+    card.appendChild(actions);
 
     if(!(FC.workQuantityFacts && typeof FC.workQuantityFacts.buildCabinetFactMap === 'function')){
       card.appendChild(h('div', { class:'data-settings-defaults-summary muted', text:'Moduł odczytu danych z szafek nie został załadowany.' }));

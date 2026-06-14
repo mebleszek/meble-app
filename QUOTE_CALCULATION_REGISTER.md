@@ -6,7 +6,7 @@
 - Cennik startowy skręcania korpusów został zastąpiony nowym czystym zestawem: progi 90/150/210/230/powyżej 230 cm po `body_height` oraz dopłaty za szerokość.
 - Stare startowe pozycje skręcania oparte o pełne `cabinet.height_mm` są usuwane przez migrację/deduplikację cennika, a nie zostawiane jako wyłączone śmieci.
 
-Cache-busting: `20260615_body_height_legs_labor_v1`.
+Cache-busting: `20260615_project_recalculate_v1`.
 
 ## 2026-06-14 — CZYNNOŚCI: Inne czynności + czas dojazdu v1
 
@@ -16,7 +16,7 @@ Cache-busting: `20260615_body_height_legs_labor_v1`.
 - W WYCENIE dodano osobną pozycję transportową `Czas dojazdu`, liczoną z czasu dojazdu przy inwestorze i stawki montażowej.
 - Kilometry transportu zostają w osobnej pozycji `Transport do klienta`.
 
-Cache-busting: `20260615_body_height_legs_labor_v1`.
+Cache-busting: `20260615_project_recalculate_v1`.
 
 ## 2026-06-14 — WYCENA: wnoszenie jako osobny dział v1
 
@@ -25,7 +25,7 @@ Cache-busting: `20260615_body_height_legs_labor_v1`.
 - `quoteCalculationRegister`, snapshot, podsumowanie WYCENY i modal szczegółów mają osobny total `carrying`.
 - Nie usuwano żadnych trybów robocizny ani stawek; zmiana dotyczy klasyfikacji wyniku w WYCENIE.
 
-Cache-busting: `20260615_body_height_legs_labor_v1`.
+Cache-busting: `20260615_project_recalculate_v1`.
 
 
 ## 2026-06-09 — Źródła ilości robocizny w rejestrze v1

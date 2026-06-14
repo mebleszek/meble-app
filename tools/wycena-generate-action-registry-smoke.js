@@ -16,7 +16,7 @@ function main(){
   const shell = read('js/app/wycena/wycena-tab-shell.js');
   const index = read('index.html');
   const devTests = read('dev_tests.html');
-  const version = '20260615_body_height_legs_labor_v1';
+  const version = '20260615_project_recalculate_v1';
 
   assert(actions.includes("'wycena-generate'"), 'Actions registry nie rejestruje akcji wycena-generate');
   assert(actions.includes('FC.wycenaGenerateAction') && actions.includes('.run'), 'Akcja wycena-generate nie woła runtime handlera WYCENY');

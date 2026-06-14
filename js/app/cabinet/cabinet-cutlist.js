@@ -39,6 +39,17 @@
     return {};
   }
 
+
+  function heightIncludesLegs(cab){
+    const det = cab && cab.details && typeof cab.details === 'object' ? cab.details : {};
+    const raw = det.heightIncludesLegs;
+    if(raw === false || raw === 0) return false;
+    const txt = String(raw == null ? '' : raw).trim().toLowerCase();
+    if(['0','false','nie','no','off'].includes(txt)) return false;
+    return true;
+  }
+
+
   function standingLegHeightCm(cab, room){
     const det = cab && cab.details && typeof cab.details === 'object' ? cab.details : {};
     const direct = det.legHeightCm != null && String(det.legHeightCm).trim() !== '' ? cmLike(det.legHeightCm) : null;
@@ -49,7 +60,7 @@
 
   function bodyHeightCm(cab, room, effType, isUnderCounterWall){
     const h = cmLike(cab && cab.height);
-    if(effType === 'stojąca' && !isUnderCounterWall){
+    if(effType === 'stojąca' && !isUnderCounterWall && heightIncludesLegs(cab)){
       const leg = standingLegHeightCm(cab, room);
       return Math.max(0, h - leg);
     }
