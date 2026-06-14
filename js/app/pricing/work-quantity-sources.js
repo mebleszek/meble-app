@@ -22,11 +22,19 @@
     },
     {
       code:'cabinet.height_mm',
-      label:'Wysokość korpusu',
+      label:'Wysokość całkowita szafki',
       unit:'mm',
       group:'Korpus i wymiary',
       status:'system',
-      calculation:'Z pola wysokości szafki w WYWIADZIE. Może później służyć jako próg dla czynności, np. skręcenia korpusu według wysokości.',
+      calculation:'Z pola wysokości szafki w WYWIADZIE. Dla stojących szafek może zawierać nóżki/cokół, dlatego do skręcania korpusu używaj cabinet.body_height_mm.',
+    },
+    {
+      code:'cabinet.body_height_mm',
+      label:'Wysokość korpusu bez nóżek',
+      unit:'mm',
+      group:'Korpus i wymiary',
+      status:'system',
+      calculation:'Wysokość korpusu bez nóżek/cokołu. Dla stojącej szafki: wysokość całkowita minus wysokość nóżek/cokołu z szafki albo z ustawień pomieszczenia. Dla pozostałych szafek: pełna wysokość korpusu.',
     },
     {
       code:'cabinet.depth_mm',
@@ -38,11 +46,19 @@
     },
     {
       code:'cabinet.volume_m3',
-      label:'Objętość korpusu',
+      label:'Objętość całkowita szafki',
       unit:'m³',
       group:'Korpus i wymiary',
       status:'system',
-      calculation:'Wyliczane na żądanie z szerokości × wysokości × głębokości aktualnej szafki. Nie jest zapisywane jako drugie pole w szafce.',
+      calculation:'Wyliczane z szerokości × pełnej wysokości × głębokości. Do skręcania stojącego korpusu używaj cabinet.body_volume_m3.',
+    },
+    {
+      code:'cabinet.body_volume_m3',
+      label:'Objętość korpusu bez nóżek',
+      unit:'m³',
+      group:'Korpus i wymiary',
+      status:'system',
+      calculation:'Wyliczane z szerokości × wysokości korpusu bez nóżek × głębokości. To źródło służy gabarytoczasowi skręcania korpusu.',
     },
     {
       code:'cabinet.weight_kg',

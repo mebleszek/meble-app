@@ -35,6 +35,34 @@
     const d = cmLike(cabinet && cabinet.depth);
     return (w > 0 && h > 0 && d > 0) ? round((w / 100) * (h / 100) * (d / 100), 4) : 0;
   }
+
+  function roomSettings(roomId){
+    const key = text(roomId);
+    try{ if(key && root.projectData && root.projectData[key] && root.projectData[key].settings) return root.projectData[key].settings || {}; }catch(_){ }
+    try{ if(key && FC.projectData && FC.projectData[key] && FC.projectData[key].settings) return FC.projectData[key].settings || {}; }catch(_){ }
+    return {};
+  }
+  function isStandingCabinet(cabinet){
+    return text(cabinet && cabinet.type) === 'stojąca';
+  }
+  function effectiveLegHeightCm(roomId, cabinet){
+    const det = details(cabinet);
+    if(det.legHeightCm != null && text(det.legHeightCm) !== '') return cmLike(det.legHeightCm);
+    if(!isStandingCabinet(cabinet)) return 0;
+    return cmLike(roomSettings(roomId).legHeight);
+  }
+  function bodyHeightCm(roomId, cabinet){
+    const h = cmLike(cabinet && cabinet.height);
+    if(isStandingCabinet(cabinet)) return Math.max(0, h - effectiveLegHeightCm(roomId, cabinet));
+    return h;
+  }
+  function bodyVolumeM3(roomId, cabinet){
+    const w = cmLike(cabinet && cabinet.width);
+    const h = bodyHeightCm(roomId, cabinet);
+    const d = cmLike(cabinet && cabinet.depth);
+    return (w > 0 && h > 0 && d > 0) ? round((w / 100) * (h / 100) * (d / 100), 4) : 0;
+  }
+
   function sourceInfo(code){
     try{
       const api = FC.workQuantitySources;
@@ -217,9 +245,11 @@
   const FACT_CALCULATORS = {
     'cabinet.count':(roomId, cabinet)=> makeFact('cabinet.count', cabinet && typeof cabinet === 'object' ? 1 : 0, { displayValue:cabinet ? '1' : '0', source:'typ szafki' }),
     'cabinet.width_mm':(roomId, cabinet)=> makeFact('cabinet.width_mm', mmFromCmLike(cabinet && cabinet.width), { displayValue:`${mmFromCmLike(cabinet && cabinet.width)} mm`, source:'pole szerokości' }),
-    'cabinet.height_mm':(roomId, cabinet)=> makeFact('cabinet.height_mm', mmFromCmLike(cabinet && cabinet.height), { displayValue:`${mmFromCmLike(cabinet && cabinet.height)} mm`, source:'pole wysokości' }),
+    'cabinet.height_mm':(roomId, cabinet)=> makeFact('cabinet.height_mm', mmFromCmLike(cabinet && cabinet.height), { displayValue:`${mmFromCmLike(cabinet && cabinet.height)} mm`, source:'pole wysokości całkowitej' }),
+    'cabinet.body_height_mm':(roomId, cabinet)=> makeFact('cabinet.body_height_mm', Math.round(bodyHeightCm(roomId, cabinet) * 10), { displayValue:`${Math.round(bodyHeightCm(roomId, cabinet) * 10)} mm`, source:isStandingCabinet(cabinet) ? 'wysokość minus nóżki/cokół' : 'wysokość korpusu' }),
     'cabinet.depth_mm':(roomId, cabinet)=> makeFact('cabinet.depth_mm', mmFromCmLike(cabinet && cabinet.depth), { displayValue:`${mmFromCmLike(cabinet && cabinet.depth)} mm`, source:'pole głębokości' }),
-    'cabinet.volume_m3':(roomId, cabinet)=> makeFact('cabinet.volume_m3', volumeM3(cabinet), { displayValue:`${volumeM3(cabinet).toFixed(4)} m³`, source:'wymiary korpusu' }),
+    'cabinet.volume_m3':(roomId, cabinet)=> makeFact('cabinet.volume_m3', volumeM3(cabinet), { displayValue:`${volumeM3(cabinet).toFixed(4)} m³`, source:'wymiary całkowite szafki' }),
+    'cabinet.body_volume_m3':(roomId, cabinet)=> makeFact('cabinet.body_volume_m3', bodyVolumeM3(roomId, cabinet), { displayValue:`${bodyVolumeM3(roomId, cabinet).toFixed(4)} m³`, source:isStandingCabinet(cabinet) ? 'szer. × wysokość bez nóg × głęb.' : 'szer. × wys. × głęb.' }),
     'cabinet.weight_kg':(roomId, cabinet)=> {
       const ev = carryingEvaluation(roomId, cabinet);
       const kg = ev ? Number(ev.bodyWeightKg) || 0 : 0;

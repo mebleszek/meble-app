@@ -585,6 +585,20 @@ function syncDraftFromCabinetModalForm(d){
   const w = num('cmWidth');  if(w !== null) d.width = w;
   const h = num('cmHeight'); if(h !== null) d.height = h;
   const dep = num('cmDepth'); if(dep !== null) d.depth = dep;
+  const leg = num('cmLegHeight');
+  const legWrap = document.getElementById('cmLegHeightWrap');
+  const legVisible = !!(legWrap && legWrap.style.display !== 'none');
+  if(leg !== null && legVisible){
+    const det = Object.assign({}, d.details || {});
+    let roomDefaultLeg = 0;
+    try{
+      const roomKey = window.uiState && window.uiState.roomType;
+      roomDefaultLeg = Number(window.projectData && window.projectData[roomKey] && window.projectData[roomKey].settings && window.projectData[roomKey].settings.legHeight) || 0;
+    }catch(_){ }
+    if(Math.abs(Math.max(0, leg) - Math.max(0, roomDefaultLeg)) < 0.0001) delete det.legHeightCm;
+    else det.legHeightCm = String(Math.max(0, leg));
+    d.details = det;
+  }
 
   const pcv = str('cmBodyPcvMode');
   if(pcv !== null) d.bodyPcvMode = pcvMode(pcv);

@@ -13,7 +13,7 @@ const css = read('css/wycena.css');
 const preview = read('js/app/wycena/wycena-tab-preview.js');
 const index = read('index.html');
 const devTests = read('dev_tests.html');
-const token = '20260614_other_actions_travel_time_v1';
+const token = '20260615_body_height_legs_labor_v1';
 
 [
   ['total', "['Suma przed rabatem', totals.subtotal, 'total']"],

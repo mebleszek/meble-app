@@ -42,7 +42,8 @@ const FC = {
     }
   }
 };
-const ctx = { window:{ FC }, FC, console, JSON, String, Number, Array, Object, Set, Map, Math };
+const ctx = { window:{ FC }, FC, console, JSON, String, Number, Array, Object, Set, Map, Math, projectData:{ kuchnia:{ settings:{ legHeight:10 } } } };
+ctx.window.projectData = ctx.projectData;
 ctx.globalThis = ctx.window;
 vm.createContext(ctx);
 load('js/app/pricing/work-quantity-sources.js', ctx);
@@ -66,9 +67,11 @@ const before = JSON.stringify(cabinet);
 const map = api.buildCabinetFactMap('kuchnia', cabinet);
 assert(JSON.stringify(cabinet) === before, 'adapter faktów roboczych nie mutuje oryginalnej szafki', cabinet);
 assert(map['cabinet.width_mm'].value === 600, 'szerokość 60 cm jest widoczna jako cabinet.width_mm = 600');
-assert(map['cabinet.height_mm'].value === 820, 'wysokość 82 cm jest widoczna jako cabinet.height_mm = 820');
+assert(map['cabinet.height_mm'].value === 820, 'wysokość całkowita 82 cm jest widoczna jako cabinet.height_mm = 820');
+assert(map['cabinet.body_height_mm'].value === 720, 'wysokość korpusu bez nóg jest widoczna jako cabinet.body_height_mm = 720');
 assert(map['cabinet.depth_mm'].value === 510, 'głębokość 51 cm jest widoczna jako cabinet.depth_mm = 510');
-assert(map['cabinet.volume_m3'].value === 0.2509, 'objętość jest liczona z wymiarów, bez zapisu w szafce', map['cabinet.volume_m3']);
+assert(map['cabinet.volume_m3'].value === 0.2509, 'objętość całkowita jest liczona z wymiarów, bez zapisu w szafce', map['cabinet.volume_m3']);
+assert(map['cabinet.body_volume_m3'].value === 0.2203, 'objętość korpusu bez nóg jest liczona jako body_volume_m3', map['cabinet.body_volume_m3']);
 assert(map['front.count'].value === 2, 'front.count czyta ilość frontów z centralnego źródła frontów');
 assert(/30 × 72/.test(map['front.dimensions'].displayValue), 'front.dimensions pokazuje wymiary frontów');
 assert(map['front.area_m2'].value === 0.432, 'front.area_m2 liczy powierzchnię frontów');
@@ -91,7 +94,7 @@ const fileList = read('tools/app-dev-smoke-lib/file-list.js');
   assert(src.includes('js/app/cabinet/cabinet-drawer-requirements.js'), `plik ładowania ${idx} ładuje cabinet-drawer-requirements.js`);
   assert(src.includes('js/app/pricing/work-quantity-facts.js'), `plik ładowania ${idx} ładuje work-quantity-facts.js`);
 });
-assert(index.includes('20260614_other_actions_travel_time_v1') && dev.includes('20260614_other_actions_travel_time_v1'), 'index/dev_tests mają cache-busting faktów roboczych');
+assert(index.includes('20260615_body_height_legs_labor_v1') && dev.includes('20260615_body_height_legs_labor_v1'), 'index/dev_tests mają cache-busting faktów roboczych');
 assert(!index.includes('cmWorkFactsPreview') && !index.includes('cabinet-work-facts-preview.js'), 'etap nie przywraca panelu w modalu szafki');
 assert(!read('js/app/cabinet/cabinet-modal.js').includes('cmWorkFactsPreview'), 'cabinet-modal.js nie jest podłączony do panelu faktów');
 assert(!read('js/app/ui/cabinets-render.js').includes('ensureAddCabinet'), 'cabinets-render.js nie ma awaryjnej łaty plusa');

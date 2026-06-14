@@ -42,6 +42,29 @@
     return false;
   }
 
+
+  const DEPRECATED_BODY_LABOR_IDS = new Set(['labor_body_h072','labor_body_h225']);
+  const DEPRECATED_BODY_LABOR_NAMES = new Set([
+    'skrecenie_korpusu_do_72_cm',
+    'skrecenie_korpusu_do_225_cm',
+    'skrecenie_korpusu_powyzej_225_cm'
+  ]);
+  function isDeprecatedBodyLaborRow(row){
+    const id = text(row && row.id);
+    const name = normalizeSlug(row && row.name);
+    if(DEPRECATED_BODY_LABOR_IDS.has(id)) return true;
+    if(id === 'labor_body_h150'){
+      const conds = Array.isArray(row && row.conditions) ? row.conditions : [];
+      return conds.some((cond)=> text(cond && cond.source) === 'cabinet.height_mm');
+    }
+    if(id === 'labor_body_h999'){
+      const conds = Array.isArray(row && row.conditions) ? row.conditions : [];
+      return conds.some((cond)=> text(cond && cond.source) === 'cabinet.height_mm');
+    }
+    return DEPRECATED_BODY_LABOR_NAMES.has(name);
+  }
+
+
   const DEFAULT_LABOR_DEFINITION_IDS = new Set((Array.isArray(DEFAULT_LABOR_DEFINITIONS) ? DEFAULT_LABOR_DEFINITIONS : []).map((row)=> text(row && row.id)).filter(Boolean));
   function definitionSignature(row){
     const src = row && typeof row === 'object' ? row : {};
@@ -467,7 +490,7 @@
     };
   }
   function ensureDefaultDefinitions(list){
-    const input = (Array.isArray(list) ? list.slice() : []).filter((row)=> !isLegacyAgdDefinition(row));
+    const input = (Array.isArray(list) ? list.slice() : []).filter((row)=> !isLegacyAgdDefinition(row) && !isDeprecatedBodyLaborRow(row));
     const rows = dedupeHourlyRateDefinitions(consolidateDefaultDefinitionDuplicates(input));
     const seen = new Set(rows.map((row)=> text(row && row.id)).filter(Boolean));
     DEFAULT_HOURLY_RATES.concat(DEFAULT_LABOR_DEFINITIONS).forEach((row)=>{

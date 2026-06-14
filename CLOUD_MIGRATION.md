@@ -1,3 +1,9 @@
+## 2026-06-15 — body height jako fakt pochodny szafki
+
+- Nie dodano nowego obowiązkowego źródła prawdy dla każdego korpusu. `cabinet.body_height_mm` i `cabinet.body_volume_m3` są faktami pochodnymi z istniejącej wysokości szafki oraz efektywnej wysokości nóg.
+- Indywidualna wysokość nóg jest zapisywana tylko wtedy, gdy różni się od domyślnej wartości z ustawień pomieszczenia.
+- W przyszłej chmurze synchronizacji wymaga tylko ewentualne nadpisanie `details.legHeightCm`; fakty body height/body volume można odtworić.
+
 ## 2026-06-14 — Czas dojazdu jako pozycja transportowa
 
 - Nie dodano nowego źródła danych wejściowych. Czas dojazdu jest odczytywany z istniejącego `investor.transport.durationMin`.
@@ -54,7 +60,7 @@ Zmiany:
 - cennik nadal ma dwie osobne pozycje: `labor_carrying_cabinet` oraz `labor_carrying_disassembly`, ale pierwsza opisowo działa teraz jako **Wnoszenie korpusu / elementów**,
 - zaktualizowano test `tools/carrying-lift-logistics-smoke.js`.
 
-Nie przebudowano WYCENY, ORS, oferty klienta, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260614_other_actions_travel_time_v1`. Raport: `tools/reports/carrying-disassembled-elements-v2.md`.
+Nie przebudowano WYCENY, ORS, oferty klienta, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260615_body_height_legs_labor_v1`. Raport: `tools/reports/carrying-disassembled-elements-v2.md`.
 
 ## 2026-06-13 — Wnoszenie i winda v1
 

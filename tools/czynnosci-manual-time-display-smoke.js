@@ -10,7 +10,7 @@ function assert(cond, msg){
     process.exit(1);
   }
 }
-const version = '20260614_other_actions_travel_time_v1';
+const version = '20260615_body_height_legs_labor_v1';
 const index = read('index.html');
 const dev = read('dev_tests.html');
 const core = read('js/app/wycena/wycena-core-labor.js');

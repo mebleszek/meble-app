@@ -23,6 +23,28 @@
     return n > 1000 ? n / 10 : n;
   }
   function mmFromCmLike(value){ return Math.round(cm(value) * 10); }
+
+  function roomSettings(roomId){
+    const project = source.project() || {};
+    return project && project[roomId] && project[roomId].settings || {};
+  }
+  function effectiveLegHeightCm(roomId, cabinet){
+    const det = cabinet && cabinet.details && typeof cabinet.details === 'object' ? cabinet.details : {};
+    if(det.legHeightCm != null && text(det.legHeightCm) !== '') return cm(det.legHeightCm);
+    if(text(cabinet && cabinet.type) !== 'stojąca') return 0;
+    return cm(roomSettings(roomId).legHeight);
+  }
+  function cabinetBodyHeightCm(roomId, cabinet){
+    const h = cm(cabinet && cabinet.height);
+    return text(cabinet && cabinet.type) === 'stojąca' ? Math.max(0, h - effectiveLegHeightCm(roomId, cabinet)) : h;
+  }
+  function cabinetBodyVolumeM3(roomId, cabinet){
+    const w = cm(cabinet && cabinet.width);
+    const h = cabinetBodyHeightCm(roomId, cabinet);
+    const d = cm(cabinet && cabinet.depth);
+    return Math.max(0, (w / 100) * (h / 100) * (d / 100));
+  }
+
   function cabinetVolumeM3(cabinet){
     const w = cm(cabinet && cabinet.width);
     const h = cm(cabinet && cabinet.height);
@@ -167,7 +189,7 @@
   function semanticRole(def){
     const src = text(def && def.quantitySource);
     const conditions = normalizedConditions(def);
-    if(src === 'cabinet.count' && conditions.some((row)=> text(row && row.source) === 'cabinet.height_mm')) return { sourceType:'cabinet', sourceRole:'cabinet-body-labor' };
+    if(src === 'cabinet.count' && conditions.some((row)=> ['cabinet.height_mm','cabinet.body_height_mm','cabinet.body_volume_m3'].includes(text(row && row.source)))) return { sourceType:'cabinet', sourceRole:'cabinet-body-labor' };
     if(src === 'cabinet.count') return { sourceType:'cabinet', sourceRole:'cabinet-body-labor' };
     if(src === 'shelf.count') return { sourceType:'cabinet', sourceRole:'shelf-labor' };
     return { sourceType:'quantity-source', sourceRole:'quantity-source-labor' };
@@ -705,8 +727,9 @@
       if(!cond.matched) return;
       const meta = quantityFromSource(def, entry, 0);
       if(!(meta.quantity > 0)) return;
-      const calc = calculate(def, { quantity:meta.quantity, volumeM3, hourlyRates:rates });
       const role = semanticRole(def);
+      const calcVolumeM3 = role.sourceRole === 'cabinet-body-labor' ? cabinetBodyVolumeM3(entry && entry.roomId, cab) : volumeM3;
+      const calc = calculate(def, { quantity:meta.quantity, volumeM3:calcVolumeM3, hourlyRates:rates });
       const cmp = componentFromCalc(calc, Object.assign({
         suffix:`source_${text(def.id) || text(def.name)}`,
         unit:'szt.',
@@ -848,6 +871,8 @@
   FC.wycenaCoreLabor = {
     enumerateSelectedCabinets,
     cabinetVolumeM3,
+    cabinetBodyHeightCm,
+    cabinetBodyVolumeM3,
     collectCabinetLabor,
     collectCarryingLines,
   };

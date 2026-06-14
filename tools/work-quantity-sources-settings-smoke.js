@@ -28,6 +28,7 @@ const expected = [
   'cabinet.count',
   'cabinet.width_mm',
   'cabinet.height_mm',
+  'cabinet.body_height_mm',
   'cabinet.depth_mm',
   'front.count',
   'front.dimensions',
@@ -45,7 +46,8 @@ list.forEach((row)=>{
   assert(row.label && row.unit && row.calculation, `źródło ${row.code} ma nazwę przyjazną, jednostkę i opis jak liczone`, row);
 });
 assert(api.find('front.count').label === 'Liczba frontów', 'front.count ma ludzką nazwę Liczba frontów');
-assert(/wysokości szafki/i.test(api.find('cabinet.height_mm').calculation), 'cabinet.height_mm opisuje odczyt z pola wysokości');
+assert(/wysokości szafki/i.test(api.find('cabinet.height_mm').calculation), 'cabinet.height_mm opisuje odczyt z pola wysokości całkowitej');
+assert(/bez nóżek/i.test(api.find('cabinet.body_height_mm').calculation), 'cabinet.body_height_mm opisuje wysokość bez nóżek');
 assert(/wymagań technicznych zawiasów/i.test(api.find('hinge.count').calculation), 'hinge.count opisuje odczyt z wymagań zawiasów');
 const groups = api.groupByCategory();
 ['Korpus i wymiary','Fronty i zawiasy','Wnętrze szafki','Montaż AGD'].forEach((name)=> assert(Array.isArray(groups[name]) && groups[name].length > 0, `grupa ${name} ma wpisy`, groups));
@@ -65,7 +67,7 @@ assert(modal.includes("next === 'workSources'") && modal.includes('dataSettingsW
 assert(view.includes('Nazwa techniczna') || view.includes('data-work-source-code'), 'widok pokazuje techniczną nazwę źródła');
 assert(view.includes('Tu ustalamy wspólny język programu') && view.includes('nie zapisuje kopii danych w szafkach'), 'widok jasno mówi, że to podgląd bez drugiego zapisu danych');
 assert(css.includes('data-settings-work-source__calc') && css.includes('data-settings-work-source__badge--planned'), 'CSS ma style listy źródeł i statusów');
-assert(index.includes('20260614_other_actions_travel_time_v1') && dev.includes('20260614_other_actions_travel_time_v1'), 'index/dev_tests mają aktualny cache-busting etapu');
+assert(index.includes('20260615_body_height_legs_labor_v1') && dev.includes('20260615_body_height_legs_labor_v1'), 'index/dev_tests mają aktualny cache-busting etapu');
 
 console.log('OK work-quantity-sources-settings smoke');
 console.log(' - źródła danych do czynności mają techniczne kody, ludzkie nazwy, jednostki i opisy liczenia');

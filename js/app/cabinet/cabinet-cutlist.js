@@ -25,6 +25,38 @@
       || 9;
   }
 
+
+  function cmLike(value){
+    const n = Math.max(0, Number(value) || 0);
+    return n > 1000 ? n / 10 : n;
+  }
+
+  function roomSettings(room){
+    if(room && typeof room === 'object' && room.settings) return room.settings || {};
+    const key = String(room || '').trim();
+    try{ if(key && window.projectData && window.projectData[key] && window.projectData[key].settings) return window.projectData[key].settings || {}; }catch(_){ }
+    try{ if(key && FC.projectData && FC.projectData[key] && FC.projectData[key].settings) return FC.projectData[key].settings || {}; }catch(_){ }
+    return {};
+  }
+
+  function standingLegHeightCm(cab, room){
+    const det = cab && cab.details && typeof cab.details === 'object' ? cab.details : {};
+    const direct = det.legHeightCm != null && String(det.legHeightCm).trim() !== '' ? cmLike(det.legHeightCm) : null;
+    if(direct != null) return direct;
+    const s = roomSettings(room);
+    return cmLike(s && s.legHeight);
+  }
+
+  function bodyHeightCm(cab, room, effType, isUnderCounterWall){
+    const h = cmLike(cab && cab.height);
+    if(effType === 'stojąca' && !isUnderCounterWall){
+      const leg = standingLegHeightCm(cab, room);
+      return Math.max(0, h - leg);
+    }
+    return h;
+  }
+
+
   function fmt(v){
     const common = getMaterialCommon();
     if(common && typeof common.fmtCm === 'function') return common.fmtCm(v);
@@ -91,10 +123,11 @@
     const effType = isUnderCounterWall ? 'stojąca' : String(cab && cab.type || '');
 
     const hasBack = !(isUnderCounterWall && String((cab && cab.details || {}).hasBack) === '0');
+    const bodyH = bodyHeightCm(cab, room, effType, isUnderCounterWall);
 
     const parts = [];
 
-    const sideH = (effType === 'stojąca' && !isUnderCounterWall) ? Math.max(0, h - t) : h;
+    const sideH = (effType === 'stojąca' && !isUnderCounterWall) ? Math.max(0, bodyH - t) : bodyH;
     parts.push({ name:'Bok', qty:2, a: sideH, b: d, dims:`${fmt(sideH)} × ${fmt(d)}`, material: bodyMat });
 
     if(String(cab && cab.subType || '') === 'narozna_l'){
@@ -123,7 +156,7 @@
     if(effType === 'wisząca' && String(cab && cab.subType || '') === 'rogowa_slepa'){
       const blind = Math.max(0, Number(cab && cab.details && cab.details.blindPart) || 0);
       const zA = Math.max(0, blind - (t + 9));
-      const zB = h;
+      const zB = bodyH;
       if(zA > 0 && zB > 0){
         parts.push({ name:'Zaślepka', qty:1, a:zA, b:zB, dims:`${fmt(zA)} × ${fmt(zB)}`, material: bodyMat });
       }
@@ -131,7 +164,7 @@
       const fMat = cab && cab.frontMaterial || 'laminat';
       const fCol = cab && cab.frontColor || '';
       const frontMatKey = `Front: ${fMat}${fCol ? ` • ${fCol}` : ''}`;
-      parts.push({ name:'Blenda', qty:1, a:15, b:h, dims:`${fmt(15)} × ${fmt(h)}`, material: frontMatKey });
+      parts.push({ name:'Blenda', qty:1, a:15, b:bodyH, dims:`${fmt(15)} × ${fmt(h)}`, material: frontMatKey });
     }
 
     if(effType === 'wisząca' || effType === 'moduł'){
@@ -161,14 +194,14 @@
 
     if(backMat && hasBack){
       let backW = w;
-      let backH = h;
+      let backH = bodyH;
       if(effType === 'stojąca' || effType === 'moduł'){
         backW = Math.max(0, w - 0.5);
-        backH = Math.max(0, h - 0.5);
+        backH = Math.max(0, bodyH - 0.5);
       }
       if(effType === 'wisząca'){
         backW = Math.max(0, wIn + 2);
-        backH = Math.max(0, h - 0.5);
+        backH = Math.max(0, bodyH - 0.5);
       }
       parts.push({ name:'Plecy', qty:1, a:backW, b:backH, dims:`${fmt(backW)} × ${fmt(backH)}`, material: backMat });
     }

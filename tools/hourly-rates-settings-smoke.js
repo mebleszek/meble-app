@@ -26,7 +26,7 @@ ctx.window.FC = {
 load('js/app/pricing/labor-catalog-definitions.js', ctx);
 load('js/app/pricing/labor-catalog.js', ctx);
 const quoteRows = ctx.window.FC.laborCatalog.DEFAULT_HOURLY_RATES.concat([
-  { id:'labor_body_h072', category:'Korpusy', name:'Skręcenie smoke', price:0, rateType:'workshop', quantitySource:'cabinet.count', timeBlockHours:0.5, active:true },
+  { id:'labor_body_h090', category:'Korpusy', name:'Skręcenie smoke', price:0, rateType:'workshop', quantitySource:'cabinet.count', timeBlockHours:0.5, active:true },
 ]);
 ctx.window.FC.catalogStore = {
   getPriceList(kind){ return kind === 'quoteRates' ? quoteRows.slice() : []; },
@@ -41,7 +41,7 @@ const result = settings.write(next);
 assert(result.ok === true, 'Zapis własnej stawki painter powinien przejść.');
 assert(saved.length === 1 && saved[0].kind === 'quoteRates', 'Stawki godzinowe powinny zapisać się do katalogu quoteRates jako źródła prawdy WYCENY.');
 assert(saved[0].rows.some((row)=> row.rateCode === 'painter' && Number(row.price) === 220 && row.isHourlyRate === true), 'Zapis musi dodać własną stawkę painter.');
-assert(saved[0].rows.some((row)=> row.id === 'labor_body_h072'), 'Zapis stawek nie może usunąć reguł robocizny z cennika.');
+assert(saved[0].rows.some((row)=> row.id === 'labor_body_h090'), 'Zapis stawek nie może usunąć reguł robocizny z cennika.');
 const bad = settings.write(next.concat([{ name:'Duplikat', price:200, rateCode:'painter', rateKey:'painter', rateType:'painter', active:true }]));
 assert(bad.ok === false, 'Duplikat kodu stawki musi być zablokowany.');
 console.log('hourly-rates-settings-smoke: OK');

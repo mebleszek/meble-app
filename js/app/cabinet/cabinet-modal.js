@@ -265,6 +265,21 @@ function renderCabinetTypeChoices(){
 
       if(ch.key !== 'zestaw'){
         const room = uiState.roomType;
+
+  function effectiveDraftLegHeight(){
+    const det = draft && draft.details && typeof draft.details === 'object' ? draft.details : {};
+    if(det.legHeightCm != null && String(det.legHeightCm).trim() !== '') return Number(det.legHeightCm) || 0;
+    try{ return Number(projectData && projectData[room] && projectData[room].settings && projectData[room].settings.legHeight) || 0; }catch(_){ return 0; }
+  }
+  function syncLegHeightUi(){
+    const wrap = document.getElementById('cmLegHeightWrap');
+    const input = document.getElementById('cmLegHeight');
+    if(!wrap || !input) return;
+    const show = String(draft && draft.type || '') === 'stojąca';
+    wrap.style.display = show ? '' : 'none';
+    if(show) input.value = effectiveDraftLegHeight();
+  }
+
     projectData[room].cabinets = projectData[room].cabinets || [];
         if(cabinetModalState.mode === 'add'){
           cabinetModalState.draft = makeDefaultCabinetDraftForType(room, ch.key) || cabinetModalState.draft || makeDefaultCabinetDraftForRoom(room);
@@ -442,6 +457,21 @@ function renderCabinetModal(){
   const draft = cabinetModalState.draft;
   const room = uiState.roomType;
 
+  function effectiveDraftLegHeight(){
+    const det = draft && draft.details && typeof draft.details === 'object' ? draft.details : {};
+    if(det.legHeightCm != null && String(det.legHeightCm).trim() !== '') return Number(det.legHeightCm) || 0;
+    try{ return Number(projectData && projectData[room] && projectData[room].settings && projectData[room].settings.legHeight) || 0; }catch(_){ return 0; }
+  }
+  function syncLegHeightUi(){
+    const wrap = document.getElementById('cmLegHeightWrap');
+    const input = document.getElementById('cmLegHeight');
+    if(!wrap || !input) return;
+    const show = String(draft && draft.type || '') === 'stojąca';
+    wrap.style.display = show ? '' : 'none';
+    if(show) input.value = effectiveDraftLegHeight();
+  }
+
+
   function refreshCabinetHardwareRequirementsPanel(){
     try{
       const host = document.getElementById('cmHardwareRequirements');
@@ -472,6 +502,7 @@ function renderCabinetModal(){
   document.getElementById('cmWidth').value = draft.width;
   document.getElementById('cmHeight').value = draft.height;
   document.getElementById('cmDepth').value = draft.depth;
+  syncLegHeightUi();
 
   document.getElementById('cmFrontMaterial').value = draft.frontMaterial || 'laminat';
   document.getElementById('cmBackMaterial').value = draft.backMaterial || 'HDF 3mm biała';
@@ -550,6 +581,21 @@ function renderCabinetModal(){
   const _liveAventosCheck = () => {
     try{
       const room = uiState.roomType;
+
+  function effectiveDraftLegHeight(){
+    const det = draft && draft.details && typeof draft.details === 'object' ? draft.details : {};
+    if(det.legHeightCm != null && String(det.legHeightCm).trim() !== '') return Number(det.legHeightCm) || 0;
+    try{ return Number(projectData && projectData[room] && projectData[room].settings && projectData[room].settings.legHeight) || 0; }catch(_){ return 0; }
+  }
+  function syncLegHeightUi(){
+    const wrap = document.getElementById('cmLegHeightWrap');
+    const input = document.getElementById('cmLegHeight');
+    if(!wrap || !input) return;
+    const show = String(draft && draft.type || '') === 'stojąca';
+    wrap.style.display = show ? '' : 'none';
+    if(show) input.value = effectiveDraftLegHeight();
+  }
+
       syncDraftFromCabinetModalFormSafe(draft);
       ensureFrontCountRulesSafe(draft);
 
@@ -590,6 +636,11 @@ function renderCabinetModal(){
   if(_cmDepthEl){
     _cmDepthEl.oninput = _liveAventosCheck;
     _cmDepthEl.onchange = _liveAventosCheck;
+  }
+  const _cmLegHeightEl = document.getElementById('cmLegHeight');
+  if(_cmLegHeightEl){
+    _cmLegHeightEl.oninput = _liveAventosCheck;
+    _cmLegHeightEl.onchange = _liveAventosCheck;
   }
 
   document.getElementById('cmFrontMaterial').onchange = e => {

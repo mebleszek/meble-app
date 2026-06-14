@@ -11,8 +11,10 @@
   const FACT_ORDER = [
     'cabinet.width_mm',
     'cabinet.height_mm',
+    'cabinet.body_height_mm',
     'cabinet.depth_mm',
     'cabinet.volume_m3',
+    'cabinet.body_volume_m3',
     'front.count',
     'front.dimensions',
     'front.area_m2',
