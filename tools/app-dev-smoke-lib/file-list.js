@@ -186,6 +186,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/cabinet/cabinet-hardware-requirements.js',
   'js/app/cabinet/cabinet-drawer-requirements.js',
   'js/app/pricing/work-quantity-facts.js',
+  'js/app/cabinet/cabinet-derived-facts.js',
   'js/app/cabinet/cabinet-hardware-requirements-panel.js',
   'js/app/quote/quote-calculation-register.js',
   'js/app/quote/quote-snapshot.js',

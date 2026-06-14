@@ -15,6 +15,13 @@
     return Number.isFinite(n) ? n : fallback;
   }
 
+  function perfNow(){
+    try{ return performance && typeof performance.now === 'function' ? performance.now() : Date.now(); }
+    catch(_){ return Date.now(); }
+  }
+  function roundMs(value){ return Math.round((Number(value) || 0) * 1000) / 1000; }
+  function jsonBytes(value){ try{ return JSON.stringify(value == null ? null : value).length; }catch(_){ return 0; } }
+
   function currentInvestor(){
     try{ return FC.investors && typeof FC.investors.getById === 'function' && typeof FC.investors.getCurrentId === 'function' ? FC.investors.getById(FC.investors.getCurrentId()) : null; }
     catch(_){ return null; }
@@ -272,6 +279,7 @@
   }
 
   function buildSnapshot(payload){
+    const snapshotStart = perfNow();
     const src = payload && typeof payload === 'object' ? payload : {};
     const investor = src.investor || currentInvestor() || null;
     const projectRecord = src.projectRecord || currentProjectRecord() || null;
@@ -345,6 +353,22 @@
       if(FC.quoteClientOfferModel && typeof FC.quoteClientOfferModel.buildFromSnapshot === 'function'){
         snapshot.clientOffer = FC.quoteClientOfferModel.buildFromSnapshot(snapshot, { investor, projectRecord });
       }
+    }catch(_){ }
+    try{
+      const elapsed = roundMs(perfNow() - snapshotStart);
+      snapshot.meta.performance = Object.assign({}, snapshot.meta.performance || {}, {
+        build:'20260614_cabinet_derived_facts_v1',
+        snapshotMs:elapsed,
+        snapshotSizeBytes:jsonBytes(snapshot),
+        calculationRegisterSizeBytes:jsonBytes(calculationRegister),
+        laborSizeBytes:jsonBytes(lines.labor),
+        quotePerformance:src.diagnostics && src.diagnostics.performance ? clone(src.diagnostics.performance) : null
+      });
+      if(src.diagnostics && src.diagnostics.performance){
+        src.diagnostics.performance.timingsMs.snapshot = elapsed;
+        src.diagnostics.performance.sizes.snapshot = snapshot.meta.performance.snapshotSizeBytes;
+      }
+      if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordSnapshotPerformance === 'function') FC.wycenaDiagnostics.recordSnapshotPerformance(snapshot.meta.performance);
     }catch(_){ }
     return snapshot;
   }

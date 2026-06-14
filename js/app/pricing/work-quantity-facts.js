@@ -345,6 +345,14 @@
       drawerRows:getDrawerRows(roomId, cabinet)
     };
   }
+  function derivedWorkFacts(roomId, cabinet){
+    try{
+      const api = FC.cabinetDerivedFacts || null;
+      if(!api || typeof api.getWorkFacts !== 'function') return null;
+      if(typeof api.isComputing === 'function' && api.isComputing()) return null;
+      return api.getWorkFacts(roomId, cabinet || {}, { recalculate:true, persist:false });
+    }catch(_){ return null; }
+  }
   function getSourceList(){
     try{
       const api = FC.workQuantitySources;
@@ -352,6 +360,8 @@
     }catch(_){ return []; }
   }
   function getCabinetFacts(roomId, cabinet){
+    const derived = derivedWorkFacts(roomId, cabinet);
+    if(Array.isArray(derived)) return derived;
     const sources = getSourceList();
     const cache = buildCache(roomId, cabinet || {});
     return sources.map((source)=> {

@@ -45,7 +45,7 @@ function createSandbox(){
 }
 function run(rel, sandbox){ vm.runInContext(read(rel), sandbox, { filename:rel }); }
 
-const version = '20260614_carrying_high_fronts_v1';
+const version = '20260614_cabinet_derived_facts_v1';
 const index = read('index.html');
 const devTests = read('dev_tests.html');
 assert(index.includes(`?v=${version}`), 'index.html nie ma aktualnego cache-bustingu dla testów trybów naliczania');

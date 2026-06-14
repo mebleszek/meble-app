@@ -30,6 +30,13 @@
   function getSelectedAggregate(selectionOverride){
     const rooms = selectionApi.decodeSelectedRooms(selectionOverride);
     try{
+      const factsApi = FC.cabinetDerivedFacts || null;
+      if(factsApi && typeof factsApi.aggregatePartsForRooms === 'function'){
+        const aggregate = factsApi.aggregatePartsForRooms(rooms, { ensure:true, persist:true });
+        if(aggregate && Array.isArray(aggregate.materials)) return aggregate;
+      }
+    }catch(_){ }
+    try{
       return FC.rozrys && typeof FC.rozrys.aggregatePartsForProject === 'function'
         ? FC.rozrys.aggregatePartsForProject(rooms)
         : { byMaterial:{}, materials:[], groups:{}, selectedRooms:rooms };

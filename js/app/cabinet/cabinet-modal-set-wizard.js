@@ -822,6 +822,12 @@
       }
 
       created.forEach(function(cab){ projectData[room].cabinets.push(cab); });
+      try{
+        const factsApi = FC.cabinetDerivedFacts || null;
+        if(factsApi && typeof factsApi.ensureCabinetFacts === 'function'){
+          created.forEach(function(cab){ factsApi.ensureCabinetFacts(room, cab, { recalculate:true }); });
+        }
+      }catch(_){ }
 
       const setRecord = { id:setId, presetId:presetId, number:setNumber, params:params, bodyColor:setMaterials.bodyColor, backMaterial:setMaterials.backMaterial, openingSystem:setMaterials.openingSystem, frontCount:frontCount, frontMaterial:frontMaterial, frontColor:frontColor, frontSource:serializedFrontSource };
       if(isEdit){

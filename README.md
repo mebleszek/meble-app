@@ -1,3 +1,17 @@
+## 2026-06-14 — Fakty pochodne szafki/cache v1
+
+Paczka `site_cabinet_derived_facts_cache_v1.zip` przenosi ciężkie liczenie jednej szafki do cache faktów pochodnych zapisywanego po dodaniu/edycji szafki.
+
+Zmiany:
+- dodano moduł `FC.cabinetDerivedFacts` (`js/app/cabinet/cabinet-derived-facts.js`) z wersją kalkulatora, `inputHash` i cachem `cabinet.derivedFacts`,
+- cache obejmuje formatki korpusu/frontów, metry PCV, powierzchnie materiałów, wymagania okuć, fakty robocizny, wagę/logistykę, wysokie fronty oraz rozkręcone elementy do windy/schodów,
+- zapis i edycja szafki odświeżają fakty tej jednej szafki; zmiana hash, wersji kalkulatora albo danych wnoszenia powoduje przeliczenie,
+- CZYNNOŚCI i WYCENA korzystają z gotowych faktów tam, gdzie to bezpieczne, zamiast wielokrotnie odpalać cutlistę/logistykę,
+- diagnostyka WYCENY pokazuje build `20260614_cabinet_derived_facts_v1`, czasy sekcji, liczniki cache i rozmiary snapshot/register/labor,
+- główny widok CZYNNOŚCI jest technicznym widokiem pracy: pokazuje ilości, normoczas i źródła, bez finalnych złotówek z wyceny szafek.
+
+Nie dodano live preview w formularzu szafki. Nie przywrócono martwych pól windy `capacityKg` ani `cabinWidthCm`. Nie przebudowano ORS, transportu km, PDF, oferty klienta, PCV pod kolor frontów, kosztów firmy, `drawer.count` ani automatów AGD. Cache-busting: `20260614_cabinet_derived_facts_v1`. Raport: `tools/reports/cabinet-derived-facts-cache-v1.md`.
+
 ## 2026-06-14 — Wnoszenie wysokich frontów v1
 
 Paczka `site_carrying_high_fronts_v1.zip` rozszerza wnoszenie/logistykę o wysokie fronty powyżej 2 m.

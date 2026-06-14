@@ -1,3 +1,18 @@
+## 2026-06-14 — Fakty pochodne szafki/cache v1
+
+Paczka `site_cabinet_derived_facts_cache_v1.zip` wprowadza cache faktów pochodnych szafki jako wynik kalkulatorów, a nie drugą prawdę danych.
+
+Zmiany techniczne:
+- nowy moduł `js/app/cabinet/cabinet-derived-facts.js` zapisuje `cabinet.derivedFacts` z `kind`, `version`, `calculatorVersion`, `inputHash`, `calculatedAt`, `cutlists`, `material`, `workFacts`, `hardwareRequirements`, `laborRequirements`, `logistics`, `highFronts`, `sizes` i `timingsMs`,
+- `inputHash` obejmuje dane szafki bez cache oraz znormalizowane dane wnoszenia inwestora, więc zmiana piętra/windy unieważnia logistykę,
+- `cabinet-modal-finalize.js` i `cabinet-modal-set-wizard.js` przeliczają pełny pakiet faktów po zapisie jednej szafki/zestawu, bez mapy zależności i bez podglądu na żywo,
+- `work-quantity-facts`, `material-tab-data`, `wycena-core-source` i `wycena-core-labor` najpierw próbują czytać aktualne fakty, a dopiero potem używają dawnych kalkulatorów fallback,
+- `wycena-core` mierzy sekcje: fakty szafek, materiały, akcesoria, robocizna, logistyka/wnoszenie i całość; `quote-snapshot` dopisuje metrykę snapshotu,
+- `wycena-diagnostics` ma build `20260614_cabinet_derived_facts_v1`, liczniki cache i rozmiary `snapshot`, `calculationRegister`, `labor`,
+- `tabs/czynnosci.js` ogranicza ekspozycję cen w głównym widoku szafek; ceny pozostają domeną WYCENY/audytu.
+
+Testy dodane/zaktualizowane: `tools/cabinet-derived-facts-cache-smoke.js`, cache-busting w smoke-testach i load-order dla `index.html`, `dev_tests.html`, `tools/index-load-groups.js`, `tools/app-dev-smoke-lib/file-list.js`.
+
 ## 2026-06-14 — Wnoszenie wysokich frontów v1
 
 Paczka `site_carrying_high_fronts_v1.zip` rozszerza wnoszenie/logistykę o wysokie fronty powyżej 2 m.

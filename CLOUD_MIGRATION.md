@@ -1,3 +1,15 @@
+## 2026-06-14 — Fakty pochodne szafki/cache v1
+
+`cabinet.derivedFacts` jest technicznym cachem wyniku kalkulatorów, a nie nowym źródłem prawdy. W przyszłej chmurze można go przechowywać jako cache dokumentu szafki albo pominąć przy migracji i przeliczyć po stronie aplikacji/workerem.
+
+Zasady migracyjne:
+- źródłem prawdy zostają dane szafki, dane inwestora `carrying`, katalogi/cenniki i ustawienia projektu; cache ma tylko `version` + `inputHash`,
+- brak cache, stary hash albo stara wersja kalkulatora oznacza przeliczenie faktów, nie błąd danych,
+- nie dodano nowego klucza `localStorage`; cache siedzi przy szafce w istniejącym modelu projektu,
+- hash obejmuje znormalizowane dane wnoszenia inwestora, więc zmiana piętra/windy może unieważnić logistykę wszystkich szafek bez ręcznej mapy zależności,
+- snapshoty ofert nadal powinny przechowywać wynik wyceny/historyczną ofertę, a nie odwołanie do bieżącego cache szafki,
+- przy backendzie/chmurze trzeba wersjonować kalkulator faktów i móc masowo odświeżyć cache po zmianie algorytmu.
+
 ## 2026-06-14 — Wnoszenie wysokich frontów v1
 
 - Wysokie fronty powyżej 2 m są traktowane jako osobne elementy logistyczne, a nie jako część wagi korpusu.

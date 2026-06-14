@@ -12,7 +12,7 @@ function fail(message, details){
 }
 function assert(cond, msg, details){ if(!cond) fail(msg, details); }
 
-const version = '20260614_carrying_high_fronts_v1';
+const version = '20260614_cabinet_derived_facts_v1';
 const index = read('index.html');
 assert(index.includes(version), 'index.html nie ma cache-bustingu podglądu oferty klienta');
 assert(index.includes('js/app/quote/quote-client-offer-model.js?v=' + version), 'index.html nie ładuje modułu quote-client-offer-model');

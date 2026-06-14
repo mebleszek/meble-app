@@ -54,6 +54,17 @@
     }catch(_){ return []; }
   }
 
+  function getCabinetPartsFromFacts(room, cabinet, deps){
+    try{
+      const api = FC.cabinetDerivedFacts || null;
+      if(api && typeof api.getCutlist === 'function'){
+        const parts = api.getCutlist(room, cabinet, { recalculate:true, persist:false });
+        if(Array.isArray(parts)) return parts;
+      }
+    }catch(_){ }
+    return deps.getCabinetCutListFn(cabinet, room) || [];
+  }
+
   function buildCabinetBadge(cabinet){
     return cabinet && cabinet.setId && typeof cabinet.setNumber === 'number'
       ? `<span class="badge">Zestaw ${cabinet.setNumber}</span>`
@@ -109,7 +120,7 @@
     const projectEdgeMetersByMode = { body:0, front:0, total:0 };
 
     const cabinetRows = cabinets.map((cabinet, index)=>{
-      const parts = deps.getCabinetCutListFn(cabinet, room) || [];
+      const parts = getCabinetPartsFromFacts(room, cabinet, deps);
       const totals = deps.totalsFromPartsFn(parts);
       deps.mergeTotalsFn(projectTotals, totals);
       const edgeMetersByMode = edgeApi && typeof edgeApi.calcEdgeMetersByPcvModeForParts === 'function'
@@ -160,7 +171,7 @@
     selectedRooms.forEach((room)=>{
       const cabinets = getRoomCabinets(room);
       cabinets.forEach((cabinet, index)=>{
-        const parts = (deps.getCabinetCutListFn(cabinet, room) || []).filter((part)=> partMatchesScope(part, scope, edgeApi));
+        const parts = getCabinetPartsFromFacts(room, cabinet, deps).filter((part)=> partMatchesScope(part, scope, edgeApi));
         const cabSplit = edgeApi && typeof edgeApi.calcEdgeMetersByPcvModeForParts === 'function'
           ? edgeApi.calcEdgeMetersByPcvModeForParts(parts, cabinet)
           : { body:(edgeApi && typeof edgeApi.calcEdgeMetersForParts === 'function' ? edgeApi.calcEdgeMetersForParts(parts, cabinet) : 0), front:0, total:0, mode:'body' };
@@ -188,6 +199,7 @@
     fmtCm,
     resolveDeps,
     getRoomCabinets,
+    getCabinetPartsFromFacts,
     collectRoomMaterials,
     collectEdgeMetersForRooms,
     isFrontPart,

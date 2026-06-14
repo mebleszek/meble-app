@@ -49,6 +49,14 @@
     return projectData;
   }
 
+  function refreshDerivedFactsSafe(room, cabinet){
+    try{
+      const api = ns.cabinetDerivedFacts || null;
+      if(api && typeof api.ensureCabinetFacts === 'function') api.ensureCabinetFacts(room, cabinet, { recalculate:true });
+    }catch(_){ }
+    return cabinet;
+  }
+
   function finalizeAddedCabinet(room, draft){
     cleanDrawerTrashSafe(draft);
     const newCab = cloneSafe(draft);
@@ -64,6 +72,7 @@
     uiState.lastAddedCabinetType = String(newCab.type || '');
 
     if(typeof generateFrontsForCabinet === 'function') generateFrontsForCabinet(room, newCab);
+    refreshDerivedFactsSafe(room, newCab);
     return newCab;
   }
 
@@ -77,6 +86,7 @@
     });
     const updated = projectData[room].cabinets.find(function(cab){ return String(cab && cab.id || '') === id; });
     if(updated && typeof generateFrontsForCabinet === 'function') generateFrontsForCabinet(room, updated);
+    if(updated) refreshDerivedFactsSafe(room, updated);
     return updated;
   }
 
@@ -159,6 +169,7 @@
 
   ns.cabinetModalFinalize = {
     persistProjectAndUi,
+    refreshDerivedFactsSafe,
     finalizeAddedCabinet,
     finalizeEditedCabinet,
     isAddMode,

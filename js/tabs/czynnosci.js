@@ -1,5 +1,5 @@
 // js/tabs/czynnosci.js
-// Zakładka CZYNNOŚCI — robocizna projektu: ręczne czynności, automatyczne czynności szafek i podgląd kosztów wewnętrznych.
+// Zakładka CZYNNOŚCI — techniczny widok pracy: czynności, ilości, normoczas i źródła bez finalnej wyceny złotówkowej.
 
 (function(){
   'use strict';
@@ -57,18 +57,11 @@
     const appliance = api.getApplianceForCabinet(cabinet);
     if(!appliance) return null;
     const enabled = typeof api.isMountingEnabled === 'function' ? api.isMountingEnabled(cabinet) : true;
-    let price = 0;
-    if(enabled){
-      try{
-        const svc = FC.wycenaCoreCatalog && typeof FC.wycenaCoreCatalog.servicePriceLookup === 'function' ? FC.wycenaCoreCatalog.servicePriceLookup(appliance.serviceName) : null;
-        price = Math.max(0, Number(svc && svc.price) || 0);
-      }catch(_){ price = 0; }
-    }
     return {
       name: appliance.label || appliance.serviceName || 'Montaż sprzętu',
       enabled,
-      price,
-      meta: enabled ? `Montaż sprzętu • ${money(price)}` : 'Bez montażu sprzętu',
+      price:0,
+      meta: enabled ? 'Montaż sprzętu' : 'Bez montażu sprzętu',
     };
   }
 
@@ -91,14 +84,14 @@
       if(appliance){
         details.push({
           name: appliance.name,
-          total: appliance.enabled ? appliance.price : 0,
+          total:0,
           note: appliance.enabled ? 'Automatycznie z typu szafki' : 'Wyłączone przy szafce',
           hours:0,
           hourlyRate:0,
         });
       }
       const laborTotal = labor ? Number(labor.total) || 0 : 0;
-      const total = laborTotal + (appliance && appliance.enabled ? Number(appliance.price) || 0 : 0);
+      const total = laborTotal;
       const volume = labor ? Number(labor.volumeM3) || 0 : (FC.wycenaCoreLabor && typeof FC.wycenaCoreLabor.cabinetVolumeM3 === 'function' ? FC.wycenaCoreLabor.cabinetVolumeM3(cabinet) : 0);
       return {
         cabinet,
@@ -127,7 +120,7 @@
   }
 
   function fmtHours(value){ return `${(Number(value) || 0).toFixed(2)} h`; }
-  function fmtRate(value){ return `${(Number(value) || 0).toFixed(2)} PLN/h`; }
+  function fmtRate(value){ return String(value || '').trim() || '—'; }
   function fmtMultiplier(value){ return `×${(Number(value) || 1).toFixed(2)}`; }
   function fmtM3(value){ return `${(Number(value) || 0).toFixed(3)} m³`; }
   function breakdownRow(label, value){
@@ -142,16 +135,13 @@
     const baseHours = Math.max(0, Number(part && part.baseHours) || 0);
     const volumeHours = Math.max(0, Number(part && part.volumeHours) || 0);
     const multiplier = Math.max(0, Number(part && part.multiplier) || 1) || 1;
-    const hourlyRate = Math.max(0, Number(part && part.hourlyRate) || 0);
-    const laborPrice = Math.max(0, Number(part && part.laborPrice) || 0);
-    const fixedPrice = Math.max(0, Number(part && part.fixedPrice) || 0);
-    const volumePrice = Math.max(0, Number(part && part.volumePrice) || 0);
     const volumeM3 = Math.max(0, Number(part && part.volumeM3) || 0);
     const quantity = Math.max(0, Number(part && part.quantity) || 0);
     const unit = String(part && part.unit || '').trim();
+    const rawHours = baseHours + volumeHours;
 
     if(quantity > 0 && unit && unit !== 'x') box.appendChild(breakdownRow('Ilość', `${quantity} ${unit}`));
-    if(baseHours > 0) box.appendChild(breakdownRow('Czas bazowy / pakiet', fmtHours(baseHours)));
+    if(baseHours > 0) box.appendChild(breakdownRow('Czas / jednostkę albo pakiet', fmtHours(baseHours)));
     if(volumeHours > 0){
       const mode = String(part && part.volumeTimeMode || 'none');
       const perM3 = Math.max(0, Number(part && part.volumeTimePerM3) || 0);
@@ -160,22 +150,20 @@
         : `${fmtHours(volumeHours)} z progu objętości`;
       box.appendChild(breakdownRow('Gabarytoczas', value));
     }
-    if(hourlyRate > 0) box.appendChild(breakdownRow('Stawka', fmtRate(hourlyRate)));
     if(multiplier !== 1) box.appendChild(breakdownRow('Mnożnik', fmtMultiplier(multiplier)));
-    if(laborPrice > 0){
-      const rawHours = baseHours + volumeHours;
-      const formula = multiplier !== 1
-        ? `${fmtHours(rawHours)} × ${fmtMultiplier(multiplier)} × ${fmtRate(hourlyRate)} = ${money(laborPrice)}`
-        : `${fmtHours(rawHours)} × ${fmtRate(hourlyRate)} = ${money(laborPrice)}`;
-      box.appendChild(breakdownRow('Robocizna czasowa', formula));
+    if(rawHours > 0) box.appendChild(breakdownRow('Normoczas przed mnożnikiem', fmtHours(rawHours)));
+    if(Number(part && part.hours) > 0) box.appendChild(breakdownRow('Normoczas razem', fmtHours(part.hours)));
+    const rateName = String(part && (part.rateType || part.rateName || '') || '').trim();
+    if(rateName) box.appendChild(breakdownRow('Stawka / automat', rateName));
+    const source = String(part && part.quantitySource || '').trim();
+    const sourceLabel = String(part && part.quantitySourceLabel || '').trim();
+    const sourceDisplay = String(part && part.quantitySourceDisplay || '').trim();
+    if(source || sourceLabel || sourceDisplay){
+      box.appendChild(breakdownRow('Źródło ilości', [sourceLabel || source, sourceDisplay].filter(Boolean).join(' = ') || source));
     }
-    if(volumeM3 > 0 && volumePrice > 0){
-      const perM3 = volumeM3 > 0 ? (volumePrice / volumeM3) : 0;
-      box.appendChild(breakdownRow('Dopłata gabarytowa', `${fmtM3(volumeM3)} × ${perM3.toFixed(2)} PLN/m³ = ${money(volumePrice)}`));
-    }
-    if(fixedPrice > 0) box.appendChild(breakdownRow('Kwota stała', money(fixedPrice)));
-    if(part && part.note) box.appendChild(breakdownRow('Opis', String(part.note)));
-    box.appendChild(breakdownRow('Razem', money(part && part.total)));
+    if(part && part.note) box.appendChild(breakdownRow('Z czego wynika', String(part.note)));
+    const warning = String(part && (part.quantitySourceWarning || part.skippedReason) || '').trim();
+    if(warning) box.appendChild(breakdownRow('Uwaga', warning));
     return box;
   }
 
@@ -184,9 +172,8 @@
       container.appendChild(h('div', { class:'muted', text:'Brak szafek w tym pomieszczeniu.' }));
       return;
     }
-    const total = rows.reduce((sum, row)=> sum + (Number(row.total) || 0), 0);
     const hours = rows.reduce((sum, row)=> sum + (Number(row.hours) || 0), 0);
-    container.appendChild(h('div', { class:'czynnosci-summary-pill', text:`Suma czynności szafek: ${money(total)} • normoczas: ${hours.toFixed(2)} h` }));
+    container.appendChild(h('div', { class:'czynnosci-summary-pill', text:`Czynności szafek: ${rows.length} • normoczas: ${hours.toFixed(2)} h` }));
     const list = h('div', { class:'quote-labor-list czynnosci-cabinet-list' });
     rows.forEach((row)=> {
       const details = h('details', { class:'quote-labor-cabinet czynnosci-cabinet' });
@@ -195,14 +182,14 @@
       title.appendChild(h('div', { class:'quote-labor-cabinet__name', text:row.label }));
       title.appendChild(h('div', { class:'quote-labor-cabinet__meta', text:row.meta || '—' }));
       summary.appendChild(title);
-      summary.appendChild(h('div', { class:'quote-labor-cabinet__amount', text:money(row.total) }));
+      summary.appendChild(h('div', { class:'quote-labor-cabinet__amount', text:fmtHours(row.hours) }));
       details.appendChild(summary);
       const body = h('div', { class:'quote-labor-cabinet__body' });
       (Array.isArray(row.details) ? row.details : []).forEach((part)=> {
         const item = h('div', { class:'quote-labor-detail' });
         item.appendChild(h('div', { class:'quote-labor-detail__main', text:part.name || 'Czynność' }));
         item.appendChild(renderDetailBreakdown(part));
-        item.appendChild(h('div', { class:'quote-labor-detail__total', text:money(part.total) }));
+        if(Number(part && part.hours) > 0) item.appendChild(h('div', { class:'quote-labor-detail__total', text:fmtHours(part.hours) }));
         body.appendChild(item);
       });
       if(!body.childNodes.length) body.appendChild(h('div', { class:'muted', text:'Brak szczegółów czynności dla tej szafki.' }));

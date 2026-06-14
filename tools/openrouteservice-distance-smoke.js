@@ -10,7 +10,7 @@ function assertClose(actual, expected, message){
 }
 
 (async function main(){
-  const version = '20260614_carrying_high_fronts_v1';
+  const version = '20260614_cabinet_derived_facts_v1';
   const index = read('index.html');
   const dev = read('dev_tests.html');
   const companyView = read('js/app/ui/data-settings-company-view.js');

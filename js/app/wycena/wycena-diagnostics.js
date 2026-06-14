@@ -3,10 +3,12 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const BUILD = '20260611_pricing_modes_v1';
+  const BUILD = '20260614_cabinet_derived_facts_v1';
   const EVENT_LIMIT = 60;
   let lastGenerateTrace = null;
   let lastGenerateButtonEvent = null;
+  let lastQuotePerformance = null;
+  let lastSnapshotPerformance = null;
   const renderEvents = [];
   const snapshotStoreEvents = [];
   const versionNameEvents = [];
@@ -47,7 +49,25 @@
   }
   function redactId(value){ return text(value); }
   function shallowKeys(value){ return value && typeof value === 'object' ? Object.keys(value).sort() : []; }
+  function perfNow(){
+    try{ return performance && typeof performance.now === 'function' ? performance.now() : Date.now(); }
+    catch(_){ return Date.now(); }
+  }
+  function roundMs(value){ return Math.round((Number(value) || 0) * 1000) / 1000; }
 
+  function recordQuotePerformance(value){ lastQuotePerformance = clone(value || {}); }
+  function recordSnapshotPerformance(value){ lastSnapshotPerformance = clone(value || {}); }
+  function collectDerivedFactsDiagnostics(){
+    try{
+      const api = FC.cabinetDerivedFacts || null;
+      return {
+        exists:!!api,
+        version:text(api && api.VERSION),
+        cacheField:text(api && api.CACHE_FIELD),
+        stats:api && typeof api.getStats === 'function' ? api.getStats() : null
+      };
+    }catch(err){ return { exists:false, error:String(err && err.message || err || 'błąd') }; }
+  }
 
   function pushEvent(bucket, label, value){
     const arr = Array.isArray(bucket) ? bucket : [];
@@ -627,8 +647,11 @@
         : (draft && draft.selection || {});
       mark('normalizedSelection', selection);
       if(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteData === 'function'){
+        const collectStarted = perfNow();
         const quote = await FC.wycenaCore.collectQuoteData({ selection });
+        const collectMs = roundMs(perfNow() - collectStarted);
         out.ok = true;
+        out.performance = { collectQuoteDataMs:collectMs, quote:quote && quote.diagnostics && quote.diagnostics.performance || null };
         out.quote = {
           selectedRooms:Array.isArray(quote && quote.selectedRooms) ? quote.selectedRooms : [],
           roomLabels:Array.isArray(quote && quote.roomLabels) ? quote.roomLabels : [],
@@ -642,8 +665,12 @@
         };
         try{
           if(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function'){
+            const snapshotStarted = perfNow();
             const snap = FC.quoteSnapshot.buildSnapshot(quote);
-            out.snapshot = { summary:summarizeSnapshot(snap), size:snapshotSizeBreakdown(snap) };
+            const snapshotMs = roundMs(perfNow() - snapshotStarted);
+            out.snapshot = { summary:summarizeSnapshot(snap), size:snapshotSizeBreakdown(snap), performance:snap && snap.meta && snap.meta.performance || null, snapshotMs };
+            out.performance.snapshotMs = snapshotMs;
+            out.performance.snapshotSizeBytes = snap && snap.meta && snap.meta.performance && snap.meta.performance.snapshotSizeBytes || 0;
           }
         }catch(sizeErr){ out.snapshot = { error:String(sizeErr && sizeErr.message || sizeErr || 'błąd') }; }
         mark('collectQuoteDataResult', out.quote);
@@ -678,6 +705,12 @@
       renderSources:collectRendererRuntimeSources(),
       versionNameDiagnostics:collectVersionNameDiagnostics(),
       snapshotStorageDeepDive:collectSnapshotStorageDeepDive(),
+      performance:{
+        build:BUILD,
+        lastQuotePerformance:lastQuotePerformance ? clone(lastQuotePerformance) : null,
+        lastSnapshotPerformance:lastSnapshotPerformance ? clone(lastSnapshotPerformance) : null,
+        derivedFacts:collectDerivedFactsDiagnostics()
+      },
       storage:collectStorageSection(),
       moduleHealth:collectStaticModuleHealth(),
       lastGenerateTrace:lastGenerateTrace ? clone(lastGenerateTrace) : null,
@@ -730,6 +763,15 @@
     lines.push('');
     lines.push('--- SNAPSHOT STORAGE DEEP DIVE ---');
     lines.push(JSON.stringify(rep.snapshotStorageDeepDive || {}, null, 2));
+    lines.push('');
+    lines.push('--- WYDAJNOŚĆ WYCENY / CACHE FAKTÓW ---');
+    lines.push(JSON.stringify({
+      build:text(rep.build),
+      lastQuotePerformance:rep.performance && rep.performance.lastQuotePerformance || null,
+      lastSnapshotPerformance:rep.performance && rep.performance.lastSnapshotPerformance || null,
+      derivedFacts:rep.performance && rep.performance.derivedFacts || null,
+      dryRunPerformance:rep.dryRun && rep.dryRun.performance || null
+    }, null, 2));
     lines.push('');
     lines.push('--- DRY RUN collectQuoteData BEZ ZAPISU ---');
     lines.push(JSON.stringify(rep.dryRun || {}, null, 2));
@@ -878,6 +920,9 @@
     summarizeProjectRecord,
     runDryQuoteCollect,
     recordGenerateButtonEvent,
+    recordQuotePerformance,
+    recordSnapshotPerformance,
+    collectDerivedFactsDiagnostics,
     recordRenderEvent(label, value){ pushEvent(renderEvents, label, value); },
     recordSnapshotStoreEvent(label, value){ pushEvent(snapshotStoreEvents, label, value); },
     recordVersionNameEvent(label, value){ pushEvent(versionNameEvents, label, value); },

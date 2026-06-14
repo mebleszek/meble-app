@@ -256,6 +256,13 @@
   }
   function frontPartsForCabinet(roomId, cab){
     try{
+      const factsApi = FC.cabinetDerivedFacts || null;
+      if(factsApi && typeof factsApi.getCutlist === 'function'){
+        const parts = factsApi.getCutlist(roomId, cab, { recalculate:true, persist:false }) || [];
+        return (Array.isArray(parts) ? parts : []).filter((part)=> text(part && part.name).toLowerCase() === 'front' || /^\s*front\s*:/i.test(text(part && part.material)));
+      }
+    }catch(_){ }
+    try{
       const hw = FC.frontHardware || {};
       if(hw && typeof hw.getCabinetFrontCutListForMaterials === 'function'){
         return (hw.getCabinetFrontCutListForMaterials(roomId, cab) || []).filter((part)=> text(part && part.name).toLowerCase() === 'front');
@@ -302,6 +309,14 @@
     if(cmp) components.push(cmp);
   }
   function hingeRequirementsForCabinet(roomId, cab){
+    try{
+      const factsApi = FC.cabinetDerivedFacts || null;
+      if(factsApi && typeof factsApi.ensureCabinetFacts === 'function'){
+        const res = factsApi.ensureCabinetFacts(roomId, cab, { recalculate:true, persist:false });
+        const rows = res && res.cache && res.cache.hardwareRequirements && Array.isArray(res.cache.hardwareRequirements.hinges) ? res.cache.hardwareRequirements.hinges : null;
+        if(rows) return rows.filter((req)=> req && req.kind === 'hinge' && (!text(req.hardwareGroup) || text(req.hardwareGroup) === 'hinges'));
+      }
+    }catch(_){ }
     try{
       const api = FC.cabinetHardwareRequirements || {};
       if(api && typeof api.getHingeRequirementsWithQty === 'function'){
@@ -383,6 +398,13 @@
   }
 
   function carryingEvaluation(entry){
+    try{
+      const factsApi = FC.cabinetDerivedFacts || null;
+      if(factsApi && typeof factsApi.getLogistics === 'function'){
+        const ev = factsApi.getLogistics(entry && entry.roomId, entry && entry.cabinet || {}, { recalculate:true, persist:false });
+        if(ev) return ev;
+      }
+    }catch(_){ }
     try{
       const api = FC.carryingLogistics || {};
       if(api && typeof api.evaluateCabinet === 'function') return api.evaluateCabinet(entry && entry.roomId, entry && entry.cabinet || {});
@@ -702,6 +724,10 @@
   }
 
   function collectCabinetLabor(selectedRooms){
+    try{
+      const factsApi = FC.cabinetDerivedFacts || null;
+      if(factsApi && typeof factsApi.ensureForRooms === 'function') factsApi.ensureForRooms(selectedRooms || [], { persist:true, recalculate:true });
+    }catch(_){ }
     const defs = laborDefs();
     const rates = hourlyRates(defs);
     return enumerateSelectedCabinets(selectedRooms).map((entry)=> buildCabinetLaborLine(entry, defs, rates)).filter(Boolean);
