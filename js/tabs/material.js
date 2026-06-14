@@ -173,7 +173,7 @@
         FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
         renderCabinets();
         if(!nowOpen){
-          try{ setTimeout(()=> document.getElementById(`mat-${cab.id}`)?.scrollIntoView({ block:'start', behavior:'smooth' }), 40); }catch(_){ }
+          try{ const node = document.getElementById(`mat-${cab.id}`); if(window.FC && window.FC.accordionBehavior) window.FC.accordionBehavior.scrollIntoView(node); else setTimeout(()=> node?.scrollIntoView({ block:'start', behavior:'smooth' }), 40); }catch(_){ }
         }
       });
 

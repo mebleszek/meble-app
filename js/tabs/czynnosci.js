@@ -115,7 +115,12 @@
       patchOfferDraft,
       hideMoney:true,
       getIsOpen(){ return manualOpen; },
-      setIsOpen(next){ manualOpen = !!next; },
+      setIsOpen(next){
+        manualOpen = !!next;
+        if(manualOpen){
+          try{ if(typeof uiState !== 'undefined' && uiState){ uiState.czynnosciExpandedCabId = null; } }catch(_){ }
+        }
+      },
     });
   }
 
@@ -352,8 +357,19 @@
         const opened = !!details.open;
         if(opened){
           details.classList.add('is-open');
+          manualOpen = false;
+          try{
+            const manual = document.querySelector('.quote-manual-labor-accordion.is-open');
+            if(manual){
+              manual.classList.remove('is-open');
+              const body = manual.querySelector('.rozrys-material-accordion__body');
+              if(body) body.hidden = true;
+              const trigger = manual.querySelector('.rozrys-material-accordion__trigger');
+              if(trigger) trigger.setAttribute('aria-expanded', 'false');
+            }
+          }catch(_){ }
           if(typeof uiState !== 'undefined' && uiState){ uiState.czynnosciExpandedCabId = currentId; }
-          try{ setTimeout(()=> details.scrollIntoView({ block:'start', behavior:'smooth' }), 40); }catch(_){ }
+          try{ (window.FC && window.FC.accordionBehavior ? window.FC.accordionBehavior.scrollIntoView(details) : setTimeout(()=> details.scrollIntoView({ block:'start', behavior:'smooth' }), 40)); }catch(_){ }
         }else{
           details.classList.remove('is-open');
           if(typeof uiState !== 'undefined' && uiState && String(uiState.czynnosciExpandedCabId || '') === currentId){ uiState.czynnosciExpandedCabId = null; }

@@ -133,8 +133,20 @@
     trigger.appendChild(chevron);
     trigger.addEventListener('click', (event)=>{
       try{ event.preventDefault(); }catch(_){ }
-      setIsOpen(!isOpen);
+      const nextOpen = !isOpen;
+      setIsOpen(nextOpen);
       render(ctx);
+      if(nextOpen){
+        try{
+          const node = document.querySelector('.quote-manual-labor-accordion.is-open');
+          if(window.FC && window.FC.accordionBehavior){
+            window.FC.accordionBehavior.closeInGroup(node);
+            window.FC.accordionBehavior.scrollIntoView(node);
+          }else if(node){
+            setTimeout(()=> node.scrollIntoView({ block:'start', behavior:'smooth' }), 40);
+          }
+        }catch(_){ }
+      }
     });
     head.appendChild(trigger);
     section.appendChild(head);
