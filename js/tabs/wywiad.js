@@ -65,6 +65,10 @@
 
     const header = document.createElement('div');
     header.className = 'cabinet-header cabinet-header--stacked cabinet-card-shell__header';
+    header.setAttribute('role', 'button');
+    header.setAttribute('tabindex', '0');
+    const isExpanded = !!(typeof uiState !== 'undefined' && uiState && uiState.expanded && uiState.expanded[cab.id]);
+    if(isExpanded) cabEl.classList.add('is-open');
 
     const badge = cab.setId && typeof cab.setNumber === 'number'
       ? `<span class="badge">Zestaw ${cab.setNumber}</span>`
@@ -103,8 +107,13 @@
     actions.className = 'cab-actions cabinet-header__actions cabinet-card-shell__actions';
     actions.innerHTML = `<button class="btn" data-act="edit" type="button">Edytuj</button> <button class="btn" data-act="mat" type="button">Materiały</button> <button class="btn btn-danger" data-act="del" type="button">Usuń</button>`;
 
+    const toggle = document.createElement('span');
+    toggle.className = 'cabinet-card-shell__toggle wywiad-room-accordion__chevron';
+    toggle.setAttribute('aria-hidden', 'true');
+
     header.appendChild(copy);
     header.appendChild(actions);
+    header.appendChild(toggle);
     cabEl.appendChild(header);
     cabEl.setAttribute('data-cabinet-kind', String(cab.type || ''));
 
@@ -190,9 +199,7 @@
       cabEl.appendChild(body);
     }
 
-    header.addEventListener('click', (e) => {
-      if(e.target && e.target.closest && e.target.closest('button')) return;
-
+    const toggleExpanded = () => {
       if(typeof uiState !== 'undefined' && uiState && uiState.activeTab === 'wywiad'){
         uiState.selectedCabinetId = (uiState.selectedCabinetId === cab.id) ? null : cab.id;
       }
@@ -203,7 +210,22 @@
         }
       }catch(_){ }
       callLegacy('renderCabinets', []);
+    };
+
+    header.addEventListener('click', (e) => {
+      if(e.target && e.target.closest && e.target.closest('button')) return;
+      toggleExpanded();
     });
+    header.addEventListener('keydown', (e) => {
+      const key = e && e.key;
+      if(key !== 'Enter' && key !== ' ') return;
+      e.preventDefault();
+      toggleExpanded();
+    });
+
+    /* legacy click handler body kept via toggleExpanded */
+    /*
+    */
 
     list.appendChild(cabEl);
   }

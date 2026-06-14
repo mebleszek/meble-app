@@ -5,7 +5,7 @@
 - WYWIAD nie dostał nowego układu: pomarańczowe ręczne czynności u góry karty zostają jedna pod drugą, a dolny blok szczegółów robocizny pozostaje usunięty.
 - Analiza raportu diagnostycznego została wykonana tylko kontrolnie; nie poprawiano niczego na podstawie raportu poza zgłoszonymi błędami widoku CZYNNOŚCI.
 
-Nie ruszano cache faktów szafki, ORS, transportu km, PDF, oferty klienta, PCV, `drawer.count`, automatów AGD ani wymagań technicznych. Cache-busting: `20260614_labor_readable_modes_v1`.
+Nie ruszano cache faktów szafki, ORS, transportu km, PDF, oferty klienta, PCV, `drawer.count`, automatów AGD ani wymagań technicznych. Cache-busting: `20260614_accordion_unify_v1`.
 
 ## 2026-06-14 — Diagnostyka do pliku i czystszy widok czynności v1
 
@@ -2620,11 +2620,3 @@ W formularzu `Stawki wyceny mebli` sekcja `Warunki zastosowania` nie używa osob
 Trybik `Dane do czynności i wyceny` pozostaje miejscem podglądu/definicji dostępnych źródeł danych. Wprowadzanie zakresów warunków `od/do` należy wyłącznie do formularza pozycji w `Stawki wyceny mebli`.
 
 Paczka: `site_labor_conditions_cascade_fields_v1.zip`. Cache-busting: `20260610_wycena_unsaved_preview_storage_fix_v1`.
-
-## 2026-06-14 — Labor readable modes + accordion sync v1
-
-- Nie usunięto żadnych trybów naliczania robocizny. Użytkownik może sam zmieniać tryby w cenniku; CZYNNOŚCI mają tylko czytelnie tłumaczyć wynik.
-- `js/tabs/czynnosci.js` tłumaczy tryby czasu na ludzkie linie: czas jednostkowy, wyliczenie, próg, start + kolejne sztuki, mnożnik i gabarytoczas.
-- `js/app/wycena/wycena-core-labor.js` przekazuje do szczegółów robocizny progi ilościowe i progi gabarytoczasu, żeby widok nie musiał zgadywać, który próg został użyty.
-- `js/tabs/material.js` oraz `js/tabs/czynnosci.js` używają wizualnego wzorca akordeonu z WYWIADU. To zmiana prezentacji, bez przebudowy modelu danych.
-- Test regresji: `node tools/labor-readable-modes-accordion-smoke.js`.

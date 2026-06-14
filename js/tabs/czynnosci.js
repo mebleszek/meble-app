@@ -7,7 +7,6 @@
   const FC = window.FC;
 
   let manualOpen = true;
-  let cabinetOpen = true;
 
   function h(tag, attrs, children){
     const api = FC.wycenaTabDom;
@@ -323,7 +322,11 @@
     container.appendChild(h('div', { class:'czynnosci-summary-pill', text:`Czynności szafek: ${rows.length} • normoczas: ${fmtHours(hours)}` }));
     const list = h('div', { class:'quote-labor-list czynnosci-cabinet-list' });
     rows.forEach((row)=> {
-      const details = h('details', { class:'quote-labor-cabinet czynnosci-cabinet wywiad-room-accordion' });
+      const details = h('details', { class:'quote-labor-cabinet czynnosci-cabinet wywiad-room-accordion', 'data-cabinet-id': String(row && row.cabinet && row.cabinet.id || '') });
+      const expandedId = String((typeof uiState !== 'undefined' && uiState && uiState.czynnosciExpandedCabId) || '');
+      const currentId = String(row && row.cabinet && row.cabinet.id || '');
+      const isOpen = expandedId && currentId && expandedId === currentId;
+      if(isOpen){ details.setAttribute('open', 'open'); details.classList.add('is-open'); }
       const summary = h('summary', { class:'quote-labor-cabinet__summary wywiad-room-accordion__summary' });
       const title = h('div', { class:'quote-labor-cabinet__title' });
       title.appendChild(h('div', { class:'quote-labor-cabinet__name', text:row.label }));
@@ -343,6 +346,22 @@
       });
       if(!body.childNodes.length) body.appendChild(h('div', { class:'muted', text:'Brak szczegółów czynności dla tej szafki.' }));
       details.appendChild(body);
+      details.addEventListener('toggle', ()=> {
+        const opened = !!details.open;
+        if(opened){
+          details.classList.add('is-open');
+          if(typeof uiState !== 'undefined' && uiState){ uiState.czynnosciExpandedCabId = currentId; }
+        }else{
+          details.classList.remove('is-open');
+          if(typeof uiState !== 'undefined' && uiState && String(uiState.czynnosciExpandedCabId || '') === currentId){ uiState.czynnosciExpandedCabId = null; }
+        }
+        try{ if(window.FC && window.FC.storage && typeof window.FC.storage.setJSON === 'function'){ window.FC.storage.setJSON(STORAGE_KEYS.ui, uiState); } }catch(_){ }
+        if(opened){
+          list.querySelectorAll('details.czynnosci-cabinet').forEach((other)=> {
+            if(other !== details && other.open){ other.open = false; other.classList.remove('is-open'); }
+          });
+        }
+      });
       list.appendChild(details);
     });
     container.appendChild(list);
@@ -350,22 +369,12 @@
 
   function renderCabinetLabor(card, roomId){
     const rows = buildCabinetRows(roomId);
-    const section = h('section', { class:`quote-offer-accordion czynnosci-cabinet-accordion rozrys-material-accordion${cabinetOpen ? ' is-open' : ''}`, style:'margin-top:12px;' });
-    const head = h('div', { class:'quote-offer-accordion__head' });
-    const trigger = h('button', { class:'rozrys-material-accordion__trigger quote-offer-accordion__trigger', type:'button' });
-    const titleBox = h('div', { class:'rozrys-material-accordion__title quote-offer-accordion__titlebox' });
-    titleBox.appendChild(h('div', { class:'rozrys-material-accordion__title-line1', text:'Czynności szafek' }));
-    titleBox.appendChild(h('div', { class:'rozrys-material-accordion__title-line2 quote-offer-accordion__summary-line', text:`Pomieszczenie: ${roomLabel(roomId)} • szafki: ${rows.length}` }));
-    trigger.appendChild(titleBox);
-    trigger.appendChild(h('span', { class:`rozrys-material-accordion__chevron${cabinetOpen ? ' is-open' : ''}`, html:'&#9662;', 'aria-hidden':'true' }));
-    trigger.addEventListener('click', (event)=>{ event.preventDefault(); cabinetOpen = !cabinetOpen; render({ listEl:card.parentNode, room:roomId }); });
-    head.appendChild(trigger);
-    section.appendChild(head);
-    if(cabinetOpen){
-      const body = h('div', { class:'quote-offer-accordion__body rozrys-material-accordion__body' });
-      renderCabinetRows(body, rows);
-      section.appendChild(body);
-    }
+    const section = h('section', { class:'card quote-section czynnosci-cabinet-shell', style:'margin-top:12px;padding:18px;' });
+    section.appendChild(h('div', { class:'quote-offer-accordion__title-line1', text:'Czynności szafek' }));
+    section.appendChild(h('div', { class:'quote-offer-accordion__summary-line', text:`Pomieszczenie: ${roomLabel(roomId)} • szafki: ${rows.length}` }));
+    const body = h('div', { class:'czynnosci-cabinet-shell__body', style:'margin-top:14px;' });
+    renderCabinetRows(body, rows);
+    section.appendChild(body);
     card.appendChild(section);
   }
 

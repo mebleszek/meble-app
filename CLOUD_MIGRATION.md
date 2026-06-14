@@ -1006,9 +1006,3 @@ Pusty końcowy launcher wyboru warunku nie jest danym do zapisu i nie powinien i
 - Zmiana nie dodaje nowego klucza `localStorage`.
 - Stare seedowane pozycje robocizny w kategorii `AGD` są odcinane podczas normalizacji katalogu stawek wyceny, bo były wygenerowanymi danymi startowymi programu, nie osobnym modelem użytkownika.
 - Docelowy model chmurowy powinien traktować `Montaż AGD` jako kategorię robocizny, a konkretne automaty jako stabilne techniczne kody typu `oven_mount`, `dishwasher_mount`, `hood_under_cabinet_mount`.
-
-## 2026-06-14 — Prezentacja trybów robocizny bez migracji danych
-
-- Czytelne opisy trybów w CZYNNOŚCIACH są warstwą prezentacji. Nie dodano nowego `localStorage`, nie zmieniono schematu cennika i nie usunięto żadnego trybu naliczania.
-- Dodatkowe pola `quantityTiers` i `volumeTimeTiers` w szczegółach robocizny są snapshotowalnym audytem wyliczenia, a nie nowym źródłem prawdy. Źródłem pozostaje definicja pozycji cennika i fakty szafki.
-- Synchronizacja stylu akordeonów MATERIAŁ/CZYNNOŚCI z WYWIAD nie wpływa na model projektu ani przyszłą chmurę.

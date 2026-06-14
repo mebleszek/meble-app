@@ -105,8 +105,8 @@
 
 /* 2026-06-14 — wspólny wygląd akordeonów MATERIAŁ/CZYNNOŚCI zgodny z WYWIAD. */
 .wywiad-room-accordion.is-open{
-  border-color:rgba(15,23,42,.62);
-  box-shadow:2px 3px 0 rgba(15,23,42,.18), 6px 12px 20px rgba(15,23,42,.12);
+  border-color:#0ea5e9;
+  box-shadow:0 0 0 1px rgba(14,165,233,.12), 2px 3px 0 rgba(14,165,233,.18), 6px 12px 20px rgba(14,165,233,.12);
 }
 .wywiad-room-accordion.is-open .wywiad-room-accordion__chevron{
   transform:rotate(180deg);
@@ -141,6 +141,27 @@
 .czynnosci-cabinet .quote-labor-cabinet__body.wywiad-room-accordion__body{
   padding:0 20px 20px;
 }
+
+.material-cabinet-accordion .wywiad-room-accordion__summary,
+.czynnosci-cabinet .wywiad-room-accordion__summary,
+.cabinet-card-shell .cabinet-header{
+  position:relative;
+  padding-right:72px;
+}
+.material-cabinet-accordion .wywiad-room-accordion__chevron,
+.czynnosci-cabinet .wywiad-room-accordion__chevron,
+.cabinet-card-shell__toggle{
+  position:absolute;
+  top:16px;
+  right:18px;
+  margin-left:0;
+}
+.czynnosci-cabinet .quote-labor-cabinet__summary{align-items:flex-start;}
+.czynnosci-cabinet .quote-labor-cabinet__amount{margin-left:0;padding-right:0;}
+.czynnosci-cabinet .quote-labor-cabinet__summary .quote-labor-cabinet__amount{padding-top:2px;}
+.czynnosci-cabinet-shell .quote-offer-accordion__title-line1{font-size:18px;font-weight:900;color:#0f172a;}
+.czynnosci-cabinet-shell .quote-offer-accordion__summary-line{margin-top:4px;font-size:14px;font-weight:800;color:#64748b;}
+.czynnosci-cabinet-list{gap:12px;}
 @media (max-width:640px){
   .material-cabinet-accordion .wywiad-room-accordion__summary,
   .czynnosci-cabinet .wywiad-room-accordion__summary{

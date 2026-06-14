@@ -5,7 +5,7 @@
 - WYWIAD nie dostał nowego układu: pomarańczowe ręczne czynności u góry karty zostają jedna pod drugą, a dolny blok szczegółów robocizny pozostaje usunięty.
 - Analiza raportu diagnostycznego została wykonana tylko kontrolnie; nie poprawiano niczego na podstawie raportu poza zgłoszonymi błędami widoku CZYNNOŚCI.
 
-Nie ruszano cache faktów szafki, ORS, transportu km, PDF, oferty klienta, PCV, `drawer.count`, automatów AGD ani wymagań technicznych. Cache-busting: `20260614_labor_readable_modes_v1`.
+Nie ruszano cache faktów szafki, ORS, transportu km, PDF, oferty klienta, PCV, `drawer.count`, automatów AGD ani wymagań technicznych. Cache-busting: `20260614_accordion_unify_v1`.
 
 ## 2026-06-14 — Diagnostyka do pliku i czystszy widok czynności v1
 
@@ -1806,9 +1806,3 @@ W formularzu `Stawki wyceny mebli` warunki zastosowania reguły robocizny są ed
 ## 2026-06-10 — Robocizna: pojedynczy akordeon szafki
 
 Paczka `site_labor_cabinet_single_accordion_dedupe_v1.zip` naprawia audyt robocizny: jedna szafka jest jednym głównym akordeonem, a montaż zawiasów liczony jest raz jako suma lewych/prawych drzwiczek. Nie zmieniono sensu automatów robocizny ani `drawer.count`.
-
-## 2026-06-14 — Czytelne tryby robocizny w CZYNNOŚCIACH
-
-- CZYNNOŚCI pokazują polskie nazwy stawek godzinowych z cennika zamiast kodów technicznych typu `workshop`/`assembly`.
-- Tryby robocizny nie zostały usunięte ani wymuszone. Widok tłumaczy aktywny tryb po ludzku: liniowo `ilość × czas`, progi czasu, start + kolejne sztuki, czas stały, kwoty bez czasu oraz gabarytoczas.
-- MATERIAŁ i CZYNNOŚCI dostały ramkę/chevron/aktywne otwarcie spójne z akordeonem z WYWIADU.

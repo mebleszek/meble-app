@@ -138,6 +138,7 @@
       const idx = Number(entry.index) || 0;
       const card = document.createElement('div');
       card.className = 'card material-cabinet-accordion wywiad-room-accordion';
+      card.setAttribute('data-cabinet-id', String(cab.id || ''));
       card.id = `mat-${cab.id}`;
 
       const head = document.createElement('div');
