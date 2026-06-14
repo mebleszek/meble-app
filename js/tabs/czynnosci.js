@@ -331,8 +331,10 @@
       const title = h('div', { class:'quote-labor-cabinet__title' });
       title.appendChild(h('div', { class:'quote-labor-cabinet__name', text:row.label }));
       title.appendChild(h('div', { class:'quote-labor-cabinet__meta', text:row.meta || '—' }));
+      const timeText = fmtHours(row.hours);
+      const timeMeta = h('div', { class:'quote-labor-cabinet__meta quote-labor-cabinet__meta--time', text:`Normoczas: ${timeText}` });
+      title.appendChild(timeMeta);
       summary.appendChild(title);
-      summary.appendChild(h('div', { class:'quote-labor-cabinet__amount', text:fmtHours(row.hours) }));
       summary.appendChild(h('span', { class:'wywiad-room-accordion__chevron', 'aria-hidden':'true' }));
       details.appendChild(summary);
       const body = h('div', { class:'quote-labor-cabinet__body wywiad-room-accordion__body' });
@@ -351,6 +353,7 @@
         if(opened){
           details.classList.add('is-open');
           if(typeof uiState !== 'undefined' && uiState){ uiState.czynnosciExpandedCabId = currentId; }
+          try{ setTimeout(()=> details.scrollIntoView({ block:'start', behavior:'smooth' }), 40); }catch(_){ }
         }else{
           details.classList.remove('is-open');
           if(typeof uiState !== 'undefined' && uiState && String(uiState.czynnosciExpandedCabId || '') === currentId){ uiState.czynnosciExpandedCabId = null; }
@@ -383,13 +386,15 @@
     const roomId = String(ctx && ctx.room || '').trim();
     if(!list) return;
     list.innerHTML = '';
-    const card = h('div', { class:'build-card czynnosci-root' });
-    card.appendChild(h('h3', { text:'Czynności' }));
-    card.appendChild(h('p', { class:'muted', text:'Tu zarządzasz robocizną: ręczne czynności do oferty oraz automatyczne czynności szafek z WYWIADU. Szczegóły są wewnętrzne — nie dla klienta.' }));
-    renderManualLabor(card, ctx || {});
-    if(roomId) renderCabinetLabor(card, roomId);
-    else card.appendChild(h('div', { class:'card quote-section', style:'margin-top:12px;padding:14px;', text:'Wybierz pomieszczenie, żeby zobaczyć czynności szafek.' }));
-    list.appendChild(card);
+
+    const intro = h('div', { class:'card czynnosci-info-card' });
+    intro.appendChild(h('h3', { text:'Czynności' }));
+    intro.appendChild(h('p', { class:'muted', text:'Tu zarządzasz robocizną: ręczne czynności do oferty oraz automatyczne czynności szafek z WYWIADU. Szczegóły są wewnętrzne — nie dla klienta.' }));
+    list.appendChild(intro);
+
+    renderManualLabor(list, ctx || {});
+    if(roomId) renderCabinetLabor(list, roomId);
+    else list.appendChild(h('div', { class:'card quote-section', style:'margin-top:12px;padding:14px;', text:'Wybierz pomieszczenie, żeby zobaczyć czynności szafek.' }));
   }
 
   FC.tabsCzynnosci = {

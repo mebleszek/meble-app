@@ -210,6 +210,7 @@
         }
       }catch(_){ }
       callLegacy('renderCabinets', []);
+      try{ setTimeout(()=> document.getElementById(`cab-${cab.id}`)?.scrollIntoView({ block:'start', behavior:'smooth' }), 40); }catch(_){ }
     };
 
     header.addEventListener('click', (e) => {

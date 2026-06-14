@@ -177,13 +177,26 @@
 }
 
 
-/* 2026-06-14 — CZYNNOŚCI: lista szafek bez dodatkowego okna wokół akordeonów. */
+
+
+
+/* 2026-06-14 — unified accordion corrections v2 */
+.czynnosci-info-card{
+  margin-bottom:14px;
+}
+.czynnosci-root{
+  border:0!important;
+  box-shadow:none!important;
+  background:transparent!important;
+  padding:0!important;
+}
 .czynnosci-cabinet-section{
   margin-top:14px;
   display:flex;
   flex-direction:column;
   gap:12px;
   min-width:0;
+  width:100%;
 }
 .czynnosci-cabinet-section__head{
   padding:0 2px;
@@ -224,5 +237,126 @@
   box-shadow:none!important;
   background:transparent!important;
   padding:0!important;
+}
+.czynnosci-cabinet .quote-labor-cabinet__summary{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 42px;
+  align-items:start;
+  column-gap:12px;
+  padding-right:16px!important;
+}
+.czynnosci-cabinet .quote-labor-cabinet__title{
+  min-width:0;
+  padding-right:0;
+}
+.czynnosci-cabinet .quote-labor-cabinet__meta--time{
+  margin-top:6px;
+  color:#0f172a;
+  font-weight:900;
+}
+.czynnosci-cabinet .quote-labor-cabinet__amount{
+  display:none!important;
+}
+.czynnosci-cabinet .wywiad-room-accordion__chevron{
+  position:relative!important;
+  top:auto!important;
+  right:auto!important;
+  grid-column:2;
+  grid-row:1 / span 2;
+  justify-self:end;
+  align-self:start;
+  margin:0!important;
+}
+.material-cabinet-accordion .wywiad-room-accordion__summary{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 42px;
+  gap:12px;
+  padding-right:16px!important;
+  align-items:start!important;
+}
+.material-cabinet-accordion__title{
+  min-width:0;
+  grid-column:1;
+}
+.material-cabinet-accordion__name{
+  font-weight:900;
+  color:#0f172a;
+  overflow-wrap:anywhere;
+}
+.material-cabinet-accordion__meta,
+.material-cabinet-accordion__assembly{
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.material-cabinet-accordion__assembly{
+  margin-top:12px;
+  white-space:normal;
+  max-width:100%;
+}
+.material-cabinet-accordion__actions{
+  grid-column:1 / -1;
+  display:flex!important;
+  gap:10px!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  flex-wrap:wrap!important;
+  min-width:0!important;
+  max-width:100%!important;
+}
+.material-cabinet-accordion .wywiad-room-accordion__chevron{
+  position:relative!important;
+  top:auto!important;
+  right:auto!important;
+  grid-column:2;
+  grid-row:1;
+  justify-self:end;
+  align-self:start;
+  margin:0!important;
+}
+.cabinet-card-shell .cabinet-header{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 42px;
+  column-gap:12px;
+  padding-right:16px!important;
+}
+.cabinet-card-shell__copy,
+.cabinet-card-shell__actions{
+  grid-column:1;
+  min-width:0;
+}
+.cabinet-card-shell__toggle{
+  position:relative!important;
+  top:auto!important;
+  right:auto!important;
+  grid-column:2;
+  grid-row:1;
+  justify-self:end;
+  align-self:start;
+  margin:0!important;
+}
+.wywiad-room-accordion.is-open,
+.wywiad-room-accordion[open],
+.cabinet-card-shell.is-open,
+.cabinet-card-shell.selected,
+.rozrys-material-accordion.is-open{
+  border-color:#0ea5e9!important;
+  box-shadow:0 0 0 1px rgba(14,165,233,.12), 2px 3px 0 rgba(14,165,233,.18), 6px 12px 20px rgba(14,165,233,.12)!important;
+}
+.ui-pattern-accordion-motion .wywiad-room-accordion__body,
+.ui-pattern-accordion-motion .rozrys-material-accordion__body,
+.wywiad-room-accordion__body,
+.rozrys-material-accordion__body{
+  transition:max-height .42s cubic-bezier(.22,.72,.18,1), opacity .30s ease, transform .36s ease;
+  will-change:max-height,opacity,transform;
+}
+.is-ui-pattern-animating .wywiad-room-accordion__body,
+.is-ui-pattern-animating .rozrys-material-accordion__body{
+  overflow:hidden;
+}
+@media (prefers-reduced-motion: reduce){
+  .wywiad-room-accordion__body,
+  .rozrys-material-accordion__body{
+    transition:none!important;
+  }
 }
 

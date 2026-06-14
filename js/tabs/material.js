@@ -149,12 +149,12 @@
       head.style.gap = '12px';
       head.style.flexWrap = 'wrap';
       head.innerHTML = `
-        <div>
-          <div style="font-weight:900">#${idx+1} • ${cab.type || ''} • ${cab.subType || ''} ${entry.badge || ''}</div>
-          <div class="muted xs">${cab.width} × ${cab.height} × ${cab.depth} • korpus: ${cab.bodyColor || ''} • plecy: ${cab.backMaterial || ''}</div>
+        <div class="material-cabinet-accordion__title">
+          <div class="material-cabinet-accordion__name">#${idx+1} • ${cab.type || ''} • ${cab.subType || ''} ${entry.badge || ''}</div>
+          <div class="muted xs material-cabinet-accordion__meta">${cab.width} × ${cab.height} × ${cab.depth} • korpus: ${cab.bodyColor || ''} • plecy: ${cab.backMaterial || ''}</div>
+          <div class="muted xs mat-assembly material-cabinet-accordion__assembly">${getAssemblyRuleTextFn(cab)}</div>
         </div>
-        <div class="mat-head-right" style="display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;min-width:0;max-width:100%">
-          <div class="muted xs mat-assembly" style="white-space:normal;max-width:100%;flex:1 1 260px;min-width:180px">${getAssemblyRuleTextFn(cab)}</div>
+        <div class="mat-head-right material-cabinet-accordion__actions">
           <button class="btn" type="button" data-act="editCab" data-cab="${cab.id}">Edytuj</button>
           <button class="btn" type="button" data-act="jumpCab" data-cab="${cab.id}">← Szafka</button>
         </div>
@@ -172,6 +172,9 @@
         uiState.matExpandedId = nowOpen ? null : String(cab.id);
         FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
         renderCabinets();
+        if(!nowOpen){
+          try{ setTimeout(()=> document.getElementById(`mat-${cab.id}`)?.scrollIntoView({ block:'start', behavior:'smooth' }), 40); }catch(_){ }
+        }
       });
 
       const editCabBtn = head.querySelector('[data-act="editCab"]');
