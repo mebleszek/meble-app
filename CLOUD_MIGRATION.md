@@ -1,3 +1,9 @@
+## 2026-06-14 — Czynności bez zmiany modelu danych
+
+- Ręczne czynności szafki pozostają w dotychczasowym polu szafki; zmieniono tylko przepuszczanie ich do widoku CZYNNOŚCI i czytelność czasu.
+- Nie dodano nowego źródła prawdy ani nowej struktury storage. Brak czasu jest stanem prezentacji/audytu, nie osobną migracją danych.
+- Zmiana jest neutralna dla przyszłej chmury: nie zwiększa zakresu synchronizacji i nie przywraca ciężkich snapshotów.
+
 ## 2026-06-14 — Diagnostyka do pliku bez zmiany modelu danych
 
 - Zapis raportu diagnostycznego WYCENY do `.txt` jest akcją przeglądarki i nie dodaje nowego trwałego klucza `localStorage`.

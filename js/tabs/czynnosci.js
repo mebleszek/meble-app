@@ -131,6 +131,11 @@
   function fmtRate(value){ return String(value || '').trim() || '—'; }
   function fmtMultiplier(value){ return `×${(Number(value) || 1).toFixed(2)}`; }
   function fmtM3(value){ return `${(Number(value) || 0).toFixed(3)} m³`; }
+  function fmtQty(value){
+    const n = Number(value);
+    if(!Number.isFinite(n)) return '0';
+    return Math.abs(n - Math.round(n)) < 0.000001 ? String(Math.round(n)) : n.toFixed(2).replace(/\.?0+$/, '');
+  }
   function breakdownRow(label, value){
     const row = h('div', { class:'quote-labor-breakdown__row' });
     row.appendChild(h('span', { class:'quote-labor-breakdown__label', text:label }));
@@ -141,15 +146,24 @@
   function renderDetailBreakdown(part){
     const box = h('div', { class:'quote-labor-breakdown' });
     const baseHours = Math.max(0, Number(part && part.baseHours) || 0);
+    const unitHours = Math.max(0, Number(part && part.timeBlockHours) || 0);
     const volumeHours = Math.max(0, Number(part && part.volumeHours) || 0);
     const multiplier = Math.max(0, Number(part && part.multiplier) || 1) || 1;
     const volumeM3 = Math.max(0, Number(part && part.volumeM3) || 0);
     const quantity = Math.max(0, Number(part && part.quantity) || 0);
     const unit = String(part && part.unit || '').trim();
+    const quantityMode = String(part && part.quantityMode || '').trim();
     const rawHours = baseHours + volumeHours;
 
-    if(quantity > 0 && unit && unit !== 'x') box.appendChild(breakdownRow('Ilość', `${quantity} ${unit}`));
-    if(baseHours > 0) box.appendChild(breakdownRow('Czas / jednostkę albo pakiet', fmtHours(baseHours)));
+    if(quantity > 0 && unit && unit !== 'x') box.appendChild(breakdownRow('Ilość', `${fmtQty(quantity)} ${unit}`));
+    if(unitHours > 0 && quantityMode === 'linear'){
+      box.appendChild(breakdownRow('Czas / jednostkę', fmtHours(unitHours)));
+      if(quantity > 0) box.appendChild(breakdownRow('Wyliczenie czasu', `${fmtQty(quantity)} × ${fmtHours(unitHours)} = ${fmtHours(baseHours || quantity * unitHours)}`));
+    } else if(baseHours > 0){
+      box.appendChild(breakdownRow('Czas / pakiet', fmtHours(baseHours)));
+    } else if(!(Number(part && part.hours) > 0)){
+      box.appendChild(breakdownRow('Czas', 'Brak informacji o czasie'));
+    }
     if(volumeHours > 0){
       const mode = String(part && part.volumeTimeMode || 'none');
       const perM3 = Math.max(0, Number(part && part.volumeTimePerM3) || 0);
@@ -159,8 +173,9 @@
       box.appendChild(breakdownRow('Gabarytoczas', value));
     }
     if(multiplier !== 1) box.appendChild(breakdownRow('Mnożnik', fmtMultiplier(multiplier)));
-    if(rawHours > 0) box.appendChild(breakdownRow('Normoczas przed mnożnikiem', fmtHours(rawHours)));
-    if(Number(part && part.hours) > 0) box.appendChild(breakdownRow('Normoczas razem', fmtHours(part.hours)));
+    if(multiplier !== 1 && rawHours > 0) box.appendChild(breakdownRow('Normoczas przed mnożnikiem', fmtHours(rawHours)));
+    const totalHours = Math.max(0, Number(part && part.hours) || 0);
+    if(totalHours > 0 && (multiplier !== 1 || Math.abs(totalHours - rawHours) > 0.0001)) box.appendChild(breakdownRow('Normoczas razem', fmtHours(totalHours)));
     const rateName = String(part && (part.rateType || part.rateName || '') || '').trim();
     if(rateName) box.appendChild(breakdownRow('Stawka / automat', rateName));
     const source = String(part && part.quantitySource || '').trim();

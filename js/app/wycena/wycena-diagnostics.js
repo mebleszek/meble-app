@@ -3,7 +3,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const BUILD = '20260614_diag_file_labor_view_v1';
+  const BUILD = '20260614_labor_items_time_display_v1';
   const EVENT_LIMIT = 60;
   let lastGenerateTrace = null;
   let lastGenerateButtonEvent = null;

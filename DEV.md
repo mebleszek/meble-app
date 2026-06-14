@@ -1,3 +1,12 @@
+## 2026-06-14 — Czynności: ręczne pozycje i czas jednostkowy v1
+
+- Ręczne czynności przypięte do szafki zawsze trafiają do zakładki CZYNNOŚCI, także wtedy, gdy pozycja nie ma czasu albo nie daje kwoty. W takim przypadku widok pokazuje brak informacji o czasie zamiast ukrywać czynność.
+- Widok CZYNNOŚCI rozdziela czas jednostkowy od czasu łącznego, np. `4 × 0:05 = 0:20`, żeby regulacja frontu i podobne automaty były czytelne dla człowieka.
+- WYWIAD nie dostał nowego układu: pomarańczowe ręczne czynności u góry karty zostają jedna pod drugą, a dolny blok szczegółów robocizny pozostaje usunięty.
+- Analiza raportu diagnostycznego została wykonana tylko kontrolnie; nie poprawiano niczego na podstawie raportu poza zgłoszonymi błędami widoku CZYNNOŚCI.
+
+Nie ruszano cache faktów szafki, ORS, transportu km, PDF, oferty klienta, PCV, `drawer.count`, automatów AGD ani wymagań technicznych. Cache-busting: `20260614_labor_items_time_display_v1`.
+
 ## 2026-06-14 — Diagnostyka do pliku i czystszy widok czynności v1
 
 - W diagnostyce WYCENY usunięto przycisk kopiowania raportu; został jeden przycisk `Zapisz raport`, który pobiera pełny `.txt` z buildem i timestampem w nazwie.

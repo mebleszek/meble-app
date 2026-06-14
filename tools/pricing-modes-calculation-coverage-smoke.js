@@ -45,7 +45,7 @@ function createSandbox(){
 }
 function run(rel, sandbox){ vm.runInContext(read(rel), sandbox, { filename:rel }); }
 
-const version = '20260614_diag_file_labor_view_v1';
+const version = '20260614_labor_items_time_display_v1';
 const index = read('index.html');
 const devTests = read('dev_tests.html');
 assert(index.includes(`?v=${version}`), 'index.html nie ma aktualnego cache-bustingu dla testów trybów naliczania');

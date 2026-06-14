@@ -192,8 +192,8 @@
     };
   }
   function componentFromCalc(calc, options){
-    if(!calc || !(Number(calc.total) > 0 || Number(calc.pricedHours) > 0 || Number(calc.volumePrice) > 0)) return null;
     const opts = options && typeof options === 'object' ? options : {};
+    if(!calc || (!opts.allowZero && !(Number(calc.total) > 0 || Number(calc.pricedHours) > 0 || Number(calc.volumePrice) > 0))) return null;
     const def = calc.definition || {};
     return {
       key:opts.key || slug(`${def.id || def.name || 'labor'}_${opts.suffix || ''}`),
@@ -205,7 +205,11 @@
       hourlyRate:Number(calc.hourlyRate) || 0,
       hours:Number(calc.pricedHours) || 0,
       baseHours:Number(calc.quantityHours) || 0,
-      timeBlockHours:Number(def.timeBlockHours) || 0,
+      timeBlockHours:Number(opts.timeBlockHours != null ? opts.timeBlockHours : def.timeBlockHours) || 0,
+      startHours:Number(def.startHours) || 0,
+      stepHours:Number(def.stepHours) || 0,
+      stepEveryQty:Number(def.stepEveryQty) || 0,
+      startQty:Number(def.startQty) || 0,
       pricingMode:text(def.pricingMode || ''),
       quantityMode:text(def.quantityMode || 'none'),
       startPrice:Number(calc.startPrice != null ? calc.startPrice : def.startPrice) || 0,
@@ -240,6 +244,49 @@
       priceUserEditedAt:text(def.priceUserEditedAt),
       note:text(opts.note || ''),
       warnings:Array.isArray(opts.warnings) ? opts.warnings.map(text).filter(Boolean) : [],
+    };
+  }
+
+  function manualFallbackComponent(item, entry, idx, opts){
+    const cab = entry && entry.cabinet || {};
+    const qty = Math.max(0, num(item && item.qty, 1)) || 1;
+    const rateId = text(item && (item.rateId || item.id));
+    const options = opts && typeof opts === 'object' ? opts : {};
+    const warnings = Array.isArray(options.warnings) ? options.warnings.map(text).filter(Boolean) : [];
+    return {
+      key:slug(`${text(cab && cab.id) || entry.cabinetNumber || 'cab'}_manual_${idx}_${rateId || 'labor'}`),
+      name:text(options.name || rateId || 'Czynność ręczna'),
+      category:text(options.category || 'Czynności przy szafce'),
+      quantity:qty,
+      unit:'szt.',
+      rateType:text(options.rateType || ''),
+      hourlyRate:0,
+      hours:0,
+      baseHours:0,
+      timeBlockHours:0,
+      pricingMode:text(options.pricingMode || ''),
+      quantityMode:text(options.quantityMode || 'linear'),
+      startPrice:0,
+      includedQty:0,
+      billableQty:qty,
+      volumeHours:0,
+      multiplier:1,
+      volumeM3:Math.max(0, Number(options.volumeM3) || 0),
+      volumePrice:0,
+      volumePricePerM3:0,
+      volumeTimeMode:'none',
+      volumeTimePerM3:0,
+      laborPrice:0,
+      fixedPrice:0,
+      total:0,
+      unitPrice:0,
+      sourceType:'manual-cabinet',
+      sourceLabel:cabinetSourceLabel(entry),
+      sourceId:text(cab && cab.id),
+      sourceRole:'manual-cabinet-labor',
+      sourceKind:'manual',
+      note:text(options.note || 'Ręczna pozycja przypięta do szafki.'),
+      warnings,
     };
   }
 
@@ -687,14 +734,37 @@
     manual.forEach((item, idx)=>{
       const rateId = text(item && (item.rateId || item.id));
       const def = (defs || []).find((row)=> text(row && row.id) === rateId) || null;
-      if(!def) return;
-      const cond = evaluateConditions(def, entry);
-      if(!cond.matched) return;
       const qty = Math.max(0, num(item && item.qty, 1)) || 1;
-      const calc = calculate(def, { quantity:qty, volumeM3, hourlyRates:rates });
+      if(!def){
+        const cmp = manualFallbackComponent(item, entry, idx, {
+          volumeM3,
+          name:rateId || 'Czynność ręczna',
+          note:[text(item && item.note), 'Brak pozycji w cenniku robocizny — czynność pokazana bez czasu.'].filter(Boolean).join(' • '),
+          warnings:['Brak pozycji w cenniku robocizny.']
+        });
+        if(cmp) components.push(cmp);
+        return;
+      }
+      const cond = evaluateConditions(def, entry);
       const duplicateRisk = ['labor_mount_front','labor_mount_hinge'].includes(text(def && def.id));
+      const condWarn = conditionWarnings(cond);
+      if(!cond.matched){
+        const cmp = manualFallbackComponent(item, entry, idx, {
+          volumeM3,
+          name:text(def.name) || rateId || 'Czynność ręczna',
+          category:text(def.category || 'Czynności przy szafce'),
+          rateType:text(def.rateType || ''),
+          pricingMode:text(def.pricingMode || ''),
+          quantityMode:text(def.quantityMode || 'linear'),
+          note:[text(item && item.note), 'Ręczna pozycja przypięta do szafki.', text(cond && cond.skippedReason)].filter(Boolean).join(' • '),
+          warnings:condWarn
+        });
+        if(cmp) components.push(cmp);
+        return;
+      }
+      const calc = calculate(def, { quantity:qty, volumeM3, hourlyRates:rates });
       const manualNote = [text(item && item.note), conditionNote(cond), duplicateRisk ? 'Ręczna pozycja może dublować automat frontów/zawiasów — sprawdź audyt.' : 'Ręczna pozycja przypięta do szafki.'].filter(Boolean).join(' • ');
-      const cmp = componentFromCalc(calc, Object.assign({ suffix:`manual_${idx}`, unit:'szt.', note:manualNote, sourceType:'manual-cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'manual-cabinet-labor', sourceKind:'manual', warnings:(duplicateRisk ? ['Możliwy duplikat: ta ręczna czynność ma taki sam typ jak automat frontów/zawiasów.'] : []).concat(conditionWarnings(cond)) }, conditionOpts(cond)));
+      const cmp = componentFromCalc(calc, Object.assign({ suffix:`manual_${idx}`, unit:'szt.', note:manualNote, sourceType:'manual-cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'manual-cabinet-labor', sourceKind:'manual', allowZero:true, warnings:(duplicateRisk ? ['Możliwy duplikat: ta ręczna czynność ma taki sam typ jak automat frontów/zawiasów.'] : []).concat(condWarn) }, conditionOpts(cond)));
       if(cmp) components.push(cmp);
     });
     const total = components.reduce((sum, row)=> sum + (Number(row.total) || 0), 0);
