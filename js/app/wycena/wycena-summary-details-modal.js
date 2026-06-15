@@ -167,7 +167,7 @@
     return item;
   }
   function renderLine(row){
-    if(text(row && row.section) === 'labor') return renderLaborLine(row);
+    if(['labor','project'].includes(text(row && row.section))) return renderLaborLine(row);
     const item = h('div', { class:'quote-detail-line' });
     const main = h('div', { class:'quote-detail-line__main' });
     const name = h('div', { class:'quote-detail-line__name' });
@@ -355,7 +355,7 @@
     const grand = num(totals.grand || totals.subtotal);
     const ranking = lines.filter((row)=> num(row && row.total) > 0).sort((a,b)=> num(b.total) - num(a.total)).slice(0, 20);
     const summaryRows = [
-      ['Materiały', totals.materials], ['Akcesoria', totals.accessories], ['Robocizna szafek', totals.labor], ['Wnoszenie mebli', totals.carrying], ['Usługi dodatkowe', totals.quoteRates], ['Transport', totals.transport], ['Montaż AGD', totals.services], ['Rabat', -num(totals.discount)]
+      ['Materiały', totals.materials], ['Akcesoria', totals.accessories], ['Projekt i przygotowanie', totals.project], ['Robocizna szafek', totals.labor], ['Wnoszenie mebli', totals.carrying], ['Usługi dodatkowe', totals.quoteRates], ['Transport', totals.transport], ['Montaż AGD', totals.services], ['Rabat', -num(totals.discount)]
     ].map(([label, value])=>({ name:label, quantity:1, unit:'', unitPrice:num(value), total:num(value), calculation:'Udział działu w sumie oferty.', note:pct(Math.abs(num(value)), grand || totals.subtotal) + ' wartości oferty' }));
     renderGroup(container, 'Podział kosztów', summaryRows, grand, { open:true });
     renderGroup(container, 'Co kosztuje najwięcej', ranking.map((row, index)=> Object.assign({}, row, { name:`${index + 1}. ${row.name}` })), ranking.reduce((sum, row)=> sum + num(row && row.total), 0), { open:false, emptyText:'Brak dodatnich pozycji kosztowych.' });

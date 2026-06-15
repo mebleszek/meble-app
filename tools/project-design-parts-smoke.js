@@ -23,8 +23,10 @@ assert(material.includes('Formatki: ${partCount} szt.'), 'MATERIAŁ ma pokazywa�
 assert(modal.includes('syncProjectUnusualUi') && fronts.includes('det.projectUnusual'), 'Ptaszek Nietypowy projekt musi synchronizować się z draftem/szafką');
 assert(sources.includes("code:'cabinet.part_count'") && sources.includes("code:'cabinet.unusual_project_count'"), 'Brak źródeł cabinet.part_count / cabinet.unusual_project_count');
 assert(defs.includes("id:'project_design_parts'") && defs.includes("id:'project_design_unusual'"), 'Brak startowych pozycji projektu technicznego');
-assert(laborCore.includes("project-design-parts-labor") && laborCore.includes("project-design-unusual-labor"), 'WYCENA robocizny ma rozpoznawać role projektu');
-assert(derived.includes("const VERSION = '20260615_project_design_parts_v1'"), 'derivedFacts musi mieć nową wersję cache');
+assert(laborCore.includes('collectProjectPreparationLines') && laborCore.includes('project-design-parts') && laborCore.includes('project-design-unusual'), 'WYCENA ma osobny kolektor Projekt i przygotowanie');
+assert(!laborCore.includes('project-design-parts-labor') && !laborCore.includes('project-design-unusual-labor'), 'Pozycje projektu nie mogą już mieć roli robocizny szafek');
+assert(read('js/app/quote/quote-calculation-register.js').includes("project:'Projekt i przygotowanie'"), 'Rejestr wyliczeń musi mieć dział Projekt i przygotowanie');
+assert(derived.includes("const VERSION = '20260616_project_preparation_section_v1'"), 'derivedFacts musi mieć nową wersję cache');
 
 const sandbox = {
   console,

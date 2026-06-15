@@ -162,6 +162,7 @@
     [
       ['Materiały', totals.materials, 'materials'],
       ['Akcesoria', totals.accessories, 'accessories'],
+      ['Projekt i przygotowanie', totals.project, 'project'],
       ['Robocizna szafek', totals.labor, 'labor'],
       ['Wnoszenie mebli', totals.carrying, 'carrying'],
       ['Usługi dodatkowe', totals.quoteRates, 'quoteRates'],

@@ -79,9 +79,9 @@
     const totalStart = perfNow();
     const deps = requireDeps();
     const perf = {
-      build:'20260614_other_actions_travel_time_v1',
+      build:'20260616_project_preparation_section_v1',
       generatedAt:new Date().toISOString(),
-      timingsMs:{ cabinetFacts:0, materials:0, accessories:0, labor:0, logisticsCarrying:0, snapshot:0, total:0 },
+      timingsMs:{ cabinetFacts:0, materials:0, accessories:0, project:0, labor:0, logisticsCarrying:0, snapshot:0, total:0 },
       counts:{ cabinetCount:0, factCacheReads:0, factCacheHits:0, factRecalculations:0, factMissing:0, factStale:0, factVersion:0, factErrors:0 },
       sizes:{ snapshot:0, calculationRegister:0, labor:0 }
     };
@@ -121,6 +121,10 @@
     perf.timingsMs.accessories = roundMs(perfNow() - sectionStart);
 
     sectionStart = perfNow();
+    const projectLines = deps.labor && typeof deps.labor.collectProjectPreparationLines === 'function' ? deps.labor.collectProjectPreparationLines(selectedRooms) : [];
+    perf.timingsMs.project = roundMs(perfNow() - sectionStart);
+
+    sectionStart = perfNow();
     const laborLines = deps.labor.collectCabinetLabor(selectedRooms);
     const carryingLines = deps.labor && typeof deps.labor.collectCarryingLines === 'function' ? deps.labor.collectCarryingLines(selectedRooms) : [];
     perf.timingsMs.labor = roundMs(perfNow() - sectionStart);
@@ -132,6 +136,7 @@
           accessories: accessoryLines,
           agdServices: agdLines,
           quoteRates: quoteRateLines,
+          project: projectLines,
           labor: laborLines,
           carrying: carryingLines,
         }, commercial)
@@ -142,6 +147,7 @@
           accessories: accessoryLines,
           agdServices: agdLines,
           quoteRates: quoteRateLines,
+          project: projectLines,
           labor: laborLines,
           carrying: carryingLines,
         }, commercial)
@@ -151,15 +157,17 @@
           services: agdLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
           transport: quoteRateLines.filter((row)=> String(row && row.sourceRole || '') === 'transport-distance' || String(row && row.sourceType || '') === 'transport' || String(row && row.quantitySource || '') === 'transport.distance_km' || String(row && row.sourceId || '') === 'transport_distance_km').reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
           quoteRates: quoteRateLines.filter((row)=> !(String(row && row.sourceRole || '') === 'transport-distance' || String(row && row.sourceType || '') === 'transport' || String(row && row.quantitySource || '') === 'transport.distance_km' || String(row && row.sourceId || '') === 'transport_distance_km')).reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
+          project: projectLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
           labor: laborLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
           carrying: carryingLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0),
           subtotal: 0,
           discount: 0,
           grand: 0,
         };
-    if(!(totals.subtotal > 0)) totals.subtotal = totals.materials + totals.accessories + totals.services + totals.quoteRates + (totals.transport || 0) + (totals.labor || 0) + (totals.carrying || 0);
+    if(!(totals.subtotal > 0)) totals.subtotal = totals.materials + totals.accessories + (totals.project || 0) + totals.services + totals.quoteRates + (totals.transport || 0) + (totals.labor || 0) + (totals.carrying || 0);
     if(!(totals.grand >= 0)) totals.grand = Math.max(0, totals.subtotal - (totals.discount || 0));
     perf.sizes.calculationRegister = jsonBytes(calculationRegister);
+    perf.sizes.project = jsonBytes(projectLines);
     perf.sizes.labor = jsonBytes(laborLines);
     perf.sizes.carrying = jsonBytes(carryingLines);
     perf.timingsMs.total = roundMs(perfNow() - totalStart);
@@ -173,6 +181,7 @@
       accessoryLines,
       agdLines,
       quoteRateLines,
+      projectLines,
       laborLines,
       carryingLines,
       commercial,
@@ -209,6 +218,11 @@
     return requireDeps().labor.collectCabinetLabor(selectedRooms);
   }
 
+  function collectProjectPreparationLines(selectedRooms){
+    const labor = requireDeps().labor;
+    return labor && typeof labor.collectProjectPreparationLines === 'function' ? labor.collectProjectPreparationLines(selectedRooms) : [];
+  }
+
   function collectCarryingLines(selectedRooms){
     const labor = requireDeps().labor;
     return labor && typeof labor.collectCarryingLines === 'function' ? labor.collectCarryingLines(selectedRooms) : [];
@@ -234,6 +248,7 @@
     buildQuoteSnapshot,
     collectQuoteRateLines,
     collectCabinetLabor,
+    collectProjectPreparationLines,
     collectCarryingLines,
     collectCommercialDraft,
     collectElementLines,

@@ -1,3 +1,14 @@
+## 2026-06-16 — WYCENA: Projekt i przygotowanie jako osobny dział v1
+
+- W WYCENIE dodano osobny dział `Projekt i przygotowanie` z własnym totalem `project` w rejestrze wyliczeń, snapshotach, podsumowaniu i modalu szczegółów.
+- Pozycje `Projekt techniczny — formatki` oraz `Projekt techniczny — nietypowa szafka` są zbierane przez osobny strumień `collectProjectPreparationLines`, a nie przez zwykłą `Robociznę szafek`.
+- Klasyfikacja działa po roli/kategorii pozycji projektu (`project-design-*`, kategoria `Projekt`, źródła `cabinet.part_count` i `cabinet.unusual_project_count`), bez dublowania matematyki.
+- Matematyka została bez zmian: formatki dalej liczą `1 min × stawka specjalistyczna × cabinet.part_count`, a nietypowy projekt dalej liczy `15 min + gabarytoczas 1 h/m³` po `cabinet.unusual_project_count`.
+- Stare projekty po `Przelicz projekt` mają pokazywać pozycje projektu w nowej sekcji, a suma końcowa nadal zawiera te koszty.
+- Nie ruszano transportu, wnoszenia, ORS, PCV, PDF, szuflad, cargo, klap ani skręcania korpusów.
+
+Cache-busting: `20260616_project_preparation_section_v1`.
+
 ## 2026-06-15 — projekt techniczny z formatek v1
 
 - W MATERIALE przy każdej szafce dodano podsumowanie `Formatki: X szt.` liczone z pozycji materiałowych szafki, razem z frontami i HDF/plecami.
@@ -11,7 +22,7 @@
   - `Projekt techniczny — nietypowa szafka`: 15 min + gabarytoczas 1 h/m³ dla szafki z ptaszkiem.
 - Podbito wersję `derivedFacts`, żeby stare cache bez nowych faktów nie były używane jako aktualne.
 
-Cache-busting: `20260615_project_design_parts_v1`.
+Cache-busting: `20260616_project_preparation_section_v1`.
 
 ## 2026-06-15 — wysokość korpusu bez nóg + nowe skręcanie v1
 
@@ -21,7 +32,7 @@ Cache-busting: `20260615_project_design_parts_v1`.
 - Cennik startowy skręcania korpusów został zastąpiony nowym czystym zestawem: progi 90/150/210/230/powyżej 230 cm po `body_height` oraz dopłaty za szerokość.
 - Stare startowe pozycje skręcania oparte o pełne `cabinet.height_mm` są usuwane przez migrację/deduplikację cennika, a nie zostawiane jako wyłączone śmieci.
 
-Cache-busting: `20260615_project_design_parts_v1`.
+Cache-busting: `20260616_project_preparation_section_v1`.
 
 ## 2026-06-14 — CZYNNOŚCI: Inne czynności + czas dojazdu v1
 
@@ -31,7 +42,7 @@ Cache-busting: `20260615_project_design_parts_v1`.
 - W WYCENIE dodano osobną pozycję transportową `Czas dojazdu`, liczoną z czasu dojazdu przy inwestorze i stawki montażowej.
 - Kilometry transportu zostają w osobnej pozycji `Transport do klienta`.
 
-Cache-busting: `20260615_project_design_parts_v1`.
+Cache-busting: `20260616_project_preparation_section_v1`.
 
 ## 2026-06-14 — WYCENA: wnoszenie jako osobny dział v1
 
@@ -40,7 +51,7 @@ Cache-busting: `20260615_project_design_parts_v1`.
 - `quoteCalculationRegister`, snapshot, podsumowanie WYCENY i modal szczegółów mają osobny total `carrying`.
 - Nie usuwano żadnych trybów robocizny ani stawek; zmiana dotyczy klasyfikacji wyniku w WYCENIE.
 
-Cache-busting: `20260615_project_design_parts_v1`.
+Cache-busting: `20260616_project_preparation_section_v1`.
 
 
 ## 2026-06-09 — Źródła ilości robocizny w rejestrze v1

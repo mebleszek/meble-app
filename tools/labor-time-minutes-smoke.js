@@ -12,7 +12,7 @@ function assert(cond, msg, details){
     process.exit(1);
   }
 }
-const version = '20260615_project_design_parts_v1';
+const version = '20260616_project_preparation_section_v1';
 const index = read('index.html');
 const defs = read('js/app/pricing/labor-catalog-definitions.js');
 const catalogSrc = read('js/app/pricing/labor-catalog.js');

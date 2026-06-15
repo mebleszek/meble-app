@@ -8,6 +8,7 @@
   const SECTION_LABELS = {
     materials:'Materiały',
     accessories:'Akcesoria',
+    project:'Projekt i przygotowanie',
     labor:'Robocizna szafek',
     carrying:'Wnoszenie mebli',
     quoteRates:'Usługi dodatkowe',
@@ -162,10 +163,13 @@
           const matchedConditions = Array.isArray(p.matchedConditions) ? p.matchedConditions : [];
           if(matchedConditions.length) meta.push('warunki: ' + matchedConditions.map((cond)=> `${text(cond.label) || text(cond.source)} = ${text(cond.displayValue) || num(cond.value)}`).join('; '));
           if(num(p.multiplier) && num(p.multiplier) !== 1) meta.push(`mnożnik ×${round2(p.multiplier)}`);
-          if(num(p.volumeM3) > 0 && num(p.volumePrice) > 0) meta.push(`gabaryt ${round2(p.volumeM3)} m³`);
+          if(num(p.volumeHours) > 0) meta.push(`gabarytoczas ${round2(p.volumeHours)} h`);
+          if(num(p.volumeM3) > 0 && (num(p.volumePrice) > 0 || num(p.volumeHours) > 0)) meta.push(`gabaryt ${round2(p.volumeM3)} m³`);
           const calcBits = [];
-          if(text(p.quantityMode) === 'linear' && num(p.quantity) > 0 && num(p.timeBlockHours) > 0 && num(p.hourlyRate) > 0) calcBits.push(`${round2(p.quantity)} × ${round2(p.timeBlockHours)} h × ${round2(p.hourlyRate)} PLN/h`);
-          else if(num(p.hours) > 0 && num(p.hourlyRate) > 0) calcBits.push(`${round2(p.hours)} h × ${round2(p.hourlyRate)} PLN/h`);
+          if(text(p.quantityMode) === 'linear' && num(p.quantity) > 0 && num(p.timeBlockHours) > 0 && num(p.hourlyRate) > 0){
+            calcBits.push(`${round2(p.quantity)} × ${round2(p.timeBlockHours)} h × ${round2(p.hourlyRate)} PLN/h`);
+            if(num(p.volumeHours) > 0) calcBits.push(`gabarytoczas ${round2(p.volumeHours)} h × ${round2(p.hourlyRate)} PLN/h`);
+          }else if(num(p.hours) > 0 && num(p.hourlyRate) > 0) calcBits.push(`${round2(p.hours)} h × ${round2(p.hourlyRate)} PLN/h`);
           if(num(p.volumePrice) > 0) calcBits.push(`dopłata gabarytowa ${round2(p.volumePrice)} PLN`);
           if(num(p.fixedPrice) > 0) calcBits.push(`kwota stała ${round2(p.fixedPrice)} PLN`);
           const detailLine = normalizeRegisterLine({
@@ -228,6 +232,10 @@
     return laborLikeLines(rows, 'labor', SECTION_LABELS.labor, 'Robocizna szafki', 'Cena = suma czynności robocizny przypisanych do tej szafki.');
   }
 
+  function projectLines(rows){
+    return laborLikeLines(rows, 'project', SECTION_LABELS.project, 'Projekt techniczny', 'Cena = suma czynności projektu i przygotowania przypisanych do tej szafki.');
+  }
+
   function carryingLines(rows){
     return laborLikeLines(rows, 'carrying', SECTION_LABELS.carrying, 'Wnoszenie szafki', 'Cena = suma czynności wnoszenia/logistyki przypisanych do tej szafki.');
   }
@@ -242,6 +250,19 @@
       || text(src.sourceId) === 'transport_distance_km';
   }
 
+  function isProjectLine(row){
+    const src = row && typeof row === 'object' ? row : {};
+    const cat = slug(src.category || src.subsection || '');
+    const role = text(src.sourceRole);
+    const qSource = text(src.quantitySource);
+    const id = text(src.id || src.key || src.sourceId);
+    return cat === 'projekt'
+      || role.indexOf('project-design') === 0
+      || qSource === 'cabinet.part_count'
+      || qSource === 'cabinet.unusual_project_count'
+      || id.indexOf('project_design') === 0;
+  }
+
   function totalBy(lines, section){
     return round2((Array.isArray(lines) ? lines : []).filter((row)=> row.section === section).reduce((sum, row)=> sum + num(row.total), 0));
   }
@@ -250,7 +271,7 @@
     (Array.isArray(lines) ? lines : []).forEach((row)=>{
       (Array.isArray(row.warnings) ? row.warnings : []).forEach((msg)=>{ if(text(msg)) out.push(warning(row, msg)); });
     });
-    ['materials','accessories','labor','carrying','quoteRates','transport','services'].forEach((section)=>{
+    ['materials','accessories','project','labor','carrying','quoteRates','transport','services'].forEach((section)=>{
       const rows = lines.filter((row)=> row.section === section);
       const total = totalBy(lines, section);
       if(!rows.length) out.push({ key:`empty_${section}`, section, sectionLabel:SECTION_LABELS[section], message:'Brak pozycji w rejestrze wyliczeń.' });
@@ -265,17 +286,20 @@
     const out = [];
     (Array.isArray(src.materials) ? src.materials : []).forEach((row, index)=> out.push(materialLine(row, index)));
     (Array.isArray(src.accessories) ? src.accessories : []).forEach((row, index)=> out.push(simpleLine('accessories', row, index, { defaultName:'Akcesorium', calculation:'Cena = ilość okuć/akcesoriów × cena do wyceny z katalogu okuć.', emptyWarning:'Akcesorium ma 0 zł — sprawdź cenę w katalogu okuć.' })));
+    projectLines(src.project).forEach((row)=> out.push(row));
     laborLines(src.labor).forEach((row)=> out.push(row));
     carryingLines(src.carrying).forEach((row)=> out.push(row));
     (Array.isArray(src.quoteRates) ? src.quoteRates : []).forEach((row, index)=> {
       if(isTransportLine(row)){
         out.push(simpleLine('transport', row, index, { defaultName:'Transport', calculation:'Cena = kilometry do wyceny zapisane przy inwestorze × cena za 1 km z cennika transportu.', emptyWarning:'Transport ma 0 zł — sprawdź kilometry przy inwestorze i cenę za km w cenniku.' }));
+      }else if(isProjectLine(row)){
+        out.push(simpleLine('project', row, index, { defaultName:'Projekt i przygotowanie', calculation:'Cena = ilość pozycji projektowej × cena/czas z cennika projektu.', emptyWarning:'Pozycja projektu ma 0 zł — sprawdź stawkę.' }));
       }else{
         out.push(simpleLine('quoteRates', row, index, { defaultName:'Robocizna / stawka', calculation:'Cena = ilość ręcznej pozycji/stawki × cena z cennika robocizny.', emptyWarning:'Pozycja robocizny ma 0 zł — sprawdź stawkę.' }));
       }
     });
     (Array.isArray(src.agdServices) ? src.agdServices : []).forEach((row, index)=> out.push(simpleLine('services', row, index, { defaultName:'Montaż AGD', calculation:'Cena = liczba urządzeń AGD z zaznaczonym montażem × cena usługi AGD z cennika.', emptyWarning:'Usługa AGD ma 0 zł — sprawdź cennik AGD.' })));
-    const subtotal = ['materials','accessories','labor','carrying','quoteRates','transport','services'].reduce((sum, section)=> sum + totalBy(out, section), 0);
+    const subtotal = ['materials','accessories','project','labor','carrying','quoteRates','transport','services'].reduce((sum, section)=> sum + totalBy(out, section), 0);
     const comm = commercial && typeof commercial === 'object' ? commercial : {};
     let discount = 0;
     if(num(comm.discountPercent) > 0) discount = subtotal * (num(comm.discountPercent) / 100);
@@ -284,6 +308,7 @@
     const totals = {
       materials:totalBy(out, 'materials'),
       accessories:totalBy(out, 'accessories'),
+      project:totalBy(out, 'project'),
       labor:totalBy(out, 'labor'),
       carrying:totalBy(out, 'carrying'),
       quoteRates:totalBy(out, 'quoteRates'),
@@ -309,7 +334,9 @@
     const totals = src.totals && typeof src.totals === 'object' ? {
       materials:round2(src.totals.materials),
       accessories:round2(src.totals.accessories),
+      project:round2(src.totals.project),
       labor:round2(src.totals.labor),
+      carrying:round2(src.totals.carrying),
       quoteRates:round2(src.totals.quoteRates),
       transport:round2(src.totals.transport),
       services:round2(src.totals.services),
@@ -325,13 +352,15 @@
       totals:totals || {
         materials:totalBy(lines, 'materials'),
         accessories:totalBy(lines, 'accessories'),
+        project:totalBy(lines, 'project'),
         labor:totalBy(lines, 'labor'),
+        carrying:totalBy(lines, 'carrying'),
         quoteRates:totalBy(lines, 'quoteRates'),
         transport:totalBy(lines, 'transport'),
         services:totalBy(lines, 'services'),
-        subtotal:round2(['materials','accessories','labor','carrying','quoteRates','transport','services'].reduce((sum, section)=> sum + totalBy(lines, section), 0)),
+        subtotal:round2(['materials','accessories','project','labor','carrying','quoteRates','transport','services'].reduce((sum, section)=> sum + totalBy(lines, section), 0)),
         discount:0,
-        grand:round2(['materials','accessories','labor','carrying','quoteRates','transport','services'].reduce((sum, section)=> sum + totalBy(lines, section), 0)),
+        grand:round2(['materials','accessories','project','labor','carrying','quoteRates','transport','services'].reduce((sum, section)=> sum + totalBy(lines, section), 0)),
       },
       warnings:Array.isArray(src.warnings) ? src.warnings.map((row)=> ({ key:text(row && row.key) || slug(row && row.message || row), section:text(row && row.section), sectionLabel:text(row && row.sectionLabel), message:text(row && row.message || row) })).filter((row)=> row.message) : collectWarnings(lines),
     };

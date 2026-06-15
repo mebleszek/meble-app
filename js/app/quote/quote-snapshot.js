@@ -98,11 +98,20 @@
       fixedPrice:Math.max(0, num(row.fixedPrice, 0)),
       unitPrice:Math.max(0, num(row.unitPrice, 0)),
       total:Math.max(0, num(row.total, 0)),
+      quantitySource:String(row.quantitySource || '').trim(),
+      quantitySourceLabel:String(row.quantitySourceLabel || '').trim(),
+      quantitySourceValue:Math.max(0, num(row.quantitySourceValue, 0)),
+      quantitySourceDisplay:String(row.quantitySourceDisplay || '').trim(),
+      quantitySourceUsed:row.quantitySourceUsed === true,
+      quantityMode:String(row.quantityMode || '').trim(),
+      timeBlockHours:Math.max(0, num(row.timeBlockHours, 0)),
       sourceType:String(row.sourceType || '').trim(),
       sourceLabel:String(row.sourceLabel || '').trim(),
       sourceId:String(row.sourceId || '').trim(),
       sourceRole:String(row.sourceRole || '').trim(),
       sourceKind:String(row.sourceKind || '').trim(),
+      skippedReason:String(row.skippedReason || '').trim(),
+      matchedConditions:Array.isArray(row.matchedConditions) ? row.matchedConditions.map((cond)=> clone(cond)).filter(Boolean) : [],
       note:String(row.note || '').trim(),
       calculation:String(row.calculation || row.calculationNote || '').trim(),
       warnings:normalizeWarnings(row.warnings),
@@ -245,9 +254,10 @@
     const services = Math.max(0, num(base.services, lines.agdServices.reduce((sum, row)=> sum + row.total, 0)));
     const transport = Math.max(0, hasBaseTransport ? num(base.transport, quoteTransportTotal) : quoteTransportTotal);
     const quoteRates = Math.max(0, hasBaseTransport ? num(base.quoteRates, quoteOtherTotal) : (quoteLines.length ? quoteOtherTotal : num(base.quoteRates, 0)));
+    const project = Math.max(0, num(base.project, (Array.isArray(lines.project) ? lines.project : []).reduce((sum, row)=> sum + row.total, 0)));
     const labor = Math.max(0, num(base.labor, (Array.isArray(lines.labor) ? lines.labor : []).reduce((sum, row)=> sum + row.total, 0)));
     const carrying = Math.max(0, num(base.carrying, (Array.isArray(lines.carrying) ? lines.carrying : []).reduce((sum, row)=> sum + row.total, 0)));
-    const subtotal = Math.max(0, num(base.subtotal, materials + accessories + services + quoteRates + transport + labor + carrying));
+    const subtotal = Math.max(0, num(base.subtotal, materials + accessories + project + services + quoteRates + transport + labor + carrying));
     let discount = Math.max(0, num(base.discount, 0));
     if(!(discount > 0)){
       if(commercial.discountPercent > 0) discount = subtotal * (commercial.discountPercent / 100);
@@ -261,6 +271,7 @@
       services,
       quoteRates,
       transport,
+      project,
       labor,
       carrying,
       subtotal,
@@ -295,6 +306,7 @@
       accessories: normalizeLines(src.accessoryLines || (src.lines && src.lines.accessories)),
       agdServices: normalizeLines(src.agdLines || (src.lines && src.lines.agdServices)),
       quoteRates: normalizeLines(src.quoteRateLines || (src.lines && src.lines.quoteRates)),
+      project: normalizeLaborLines(src.projectLines || (src.lines && src.lines.project)),
       labor: normalizeLaborLines(src.laborLines || (src.lines && src.lines.labor)),
       carrying: normalizeLaborLines(src.carryingLines || (src.lines && src.lines.carrying)),
     };
@@ -345,6 +357,7 @@
           accessories: lines.accessories.length,
           agdServices: lines.agdServices.length,
           quoteRates: lines.quoteRates.length,
+          project: lines.project.length,
           labor: lines.labor.length,
           calculationRegister: calculationRegister && Array.isArray(calculationRegister.lines) ? calculationRegister.lines.length : 0,
         },
@@ -361,7 +374,7 @@
     try{
       const elapsed = roundMs(perfNow() - snapshotStart);
       snapshot.meta.performance = Object.assign({}, snapshot.meta.performance || {}, {
-        build:'20260614_other_actions_travel_time_v1',
+        build:'20260616_project_preparation_section_v1',
         snapshotMs:elapsed,
         snapshotSizeBytes:jsonBytes(snapshot),
         calculationRegisterSizeBytes:jsonBytes(calculationRegister),

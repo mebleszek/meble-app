@@ -555,7 +555,7 @@
     return {
       error:String(res.message || 'Nie można utworzyć wyceny przez niespójny kontekst projektu.'),
       errorTitle:String(res.title || 'Błąd kontekstu WYCENY'),
-      totals:{ materials:0, accessories:0, services:0, quoteRates:0, transport:0, subtotal:0, discount:0, grand:0 },
+      totals:{ materials:0, accessories:0, project:0, services:0, quoteRates:0, transport:0, subtotal:0, discount:0, grand:0 },
       roomLabels:[],
       lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] },
       meta:{ source:'wycena-context-repair', code:String(res.code || 'quote_context_error') },

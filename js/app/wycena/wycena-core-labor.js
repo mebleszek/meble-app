@@ -199,8 +199,8 @@
   function semanticRole(def){
     const src = text(def && def.quantitySource);
     const conditions = normalizedConditions(def);
-    if(src === 'cabinet.part_count') return { sourceType:'cabinet', sourceRole:'project-design-parts-labor' };
-    if(src === 'cabinet.unusual_project_count') return { sourceType:'cabinet', sourceRole:'project-design-unusual-labor' };
+    if(src === 'cabinet.part_count') return { sourceType:'cabinet', sourceRole:'project-design-parts' };
+    if(src === 'cabinet.unusual_project_count') return { sourceType:'cabinet', sourceRole:'project-design-unusual' };
     if(src === 'cabinet.count' && conditions.some((row)=> ['cabinet.height_mm','cabinet.body_height_mm','cabinet.body_volume_m3'].includes(text(row && row.source)))) return { sourceType:'cabinet', sourceRole:'cabinet-body-labor' };
     if(src === 'cabinet.count') return { sourceType:'cabinet', sourceRole:'cabinet-body-labor' };
     if(src === 'shelf.count') return { sourceType:'cabinet', sourceRole:'shelf-labor' };
@@ -480,6 +480,18 @@
       || sourceCode.indexOf('carrying.') === 0;
   }
 
+  function isProjectAutomation(def){
+    const id = text(def && def.id);
+    const category = slug(def && def.category);
+    const sourceCode = text(def && def.quantitySource);
+    const role = text(def && def.sourceRole);
+    return category === 'projekt'
+      || role.indexOf('project-design') === 0
+      || id.indexOf('project_design') === 0
+      || sourceCode === 'cabinet.part_count'
+      || sourceCode === 'cabinet.unusual_project_count';
+  }
+
   function carryingEvaluation(entry){
     try{
       const factsApi = FC.cabinetDerivedFacts || null;
@@ -728,25 +740,33 @@
     }
   }
 
-  function autoQuantityDefs(defs){
+  function autoQuantityDefs(defs, options){
+    const opts = options && typeof options === 'object' ? options : {};
+    const projectOnly = opts.projectOnly === true;
     const blocked = new Set(['labor_mount_front','labor_mount_hinge','labor_carrying_cabinet','labor_carrying_disassembly']);
-    return (Array.isArray(defs) ? defs : []).filter((def)=> def && def.active !== false && def.isHourlyRate !== true && text(def.quantitySource) && !blocked.has(text(def.id)) && !isApplianceAutomation(def) && !isCarryingAutomation(def));
+    return (Array.isArray(defs) ? defs : []).filter((def)=> {
+      if(!(def && def.active !== false && def.isHourlyRate !== true && text(def.quantitySource))) return false;
+      if(blocked.has(text(def.id)) || isApplianceAutomation(def) || isCarryingAutomation(def)) return false;
+      const project = isProjectAutomation(def);
+      return projectOnly ? project : !project;
+    });
   }
-  function addGenericQuantitySourceLabor(components, entry, defs, rates, volumeM3){
+  function addGenericQuantitySourceLabor(components, entry, defs, rates, volumeM3, options){
     const cab = entry && entry.cabinet || {};
-    autoQuantityDefs(defs).forEach((def)=> {
+    const opts = options && typeof options === 'object' ? options : {};
+    autoQuantityDefs(defs, opts).forEach((def)=> {
       const cond = evaluateConditions(def, entry);
       if(!cond.matched) return;
       const meta = quantityFromSource(def, entry, 0);
       if(!(meta.quantity > 0)) return;
       const role = semanticRole(def);
-      const calcVolumeM3 = (role.sourceRole === 'cabinet-body-labor' || role.sourceRole === 'project-design-unusual-labor') ? cabinetBodyVolumeM3(entry && entry.roomId, cab) : volumeM3;
+      const calcVolumeM3 = (role.sourceRole === 'cabinet-body-labor' || role.sourceRole === 'project-design-unusual') ? cabinetBodyVolumeM3(entry && entry.roomId, cab) : volumeM3;
       const calc = calculate(def, { quantity:meta.quantity, volumeM3:calcVolumeM3, hourlyRates:rates });
       const cmp = componentFromCalc(calc, Object.assign({
         suffix:`source_${text(def.id) || text(def.name)}`,
         unit:'szt.',
         name:text(def.name) || 'Czynność',
-        note:[sourceNote(meta), conditionNote(cond), 'Automatycznie z wybranego źródła ilości.'].filter(Boolean).join(' • '),
+        note:[sourceNote(meta), conditionNote(cond), text(opts.note) || 'Automatycznie z wybranego źródła ilości.'].filter(Boolean).join(' • '),
         sourceType:role.sourceType,
         sourceLabel:cabinetSourceLabel(entry),
         sourceId:text(cab && cab.id),
@@ -756,6 +776,41 @@
       }, sourceOpts(meta), conditionOpts(cond)));
       if(cmp) components.push(cmp);
     });
+  }
+
+
+  function buildCabinetProjectLine(entry, defs, rates){
+    const cab = entry && entry.cabinet || {};
+    const volumeM3 = cabinetVolumeM3(cab);
+    const components = [];
+    addGenericQuantitySourceLabor(components, entry, defs, rates, volumeM3, {
+      projectOnly:true,
+      note:'Automatycznie z roli/kategorii Projekt.'
+    });
+    const total = components.reduce((sum, row)=> sum + (Number(row.total) || 0), 0);
+    const hours = components.reduce((sum, row)=> sum + (Number(row.hours) || 0), 0);
+    if(!(total > 0) && !components.length) return null;
+    const number = Number(entry && entry.cabinetNumber) || 0;
+    const name = `Projekt — szafka #${number}${entry.roomLabel ? ' — ' + entry.roomLabel : ''}`;
+    return {
+      key:slug(`${entry.roomId || 'room'}_${cab.id || number}_project`),
+      type:'project-cabinet',
+      category:'Projekt i przygotowanie',
+      name,
+      cabinetNumber:number,
+      cabinetId:text(cab && cab.id),
+      roomId:text(entry && entry.roomId),
+      rooms:text(entry && entry.roomLabel),
+      dimensions:cabinetDimensionsLabel(cab),
+      volumeM3,
+      qty:1,
+      unit:'kpl.',
+      unitPrice:total,
+      total,
+      hours,
+      details:components,
+      note:text(cab.type || '') + (cab.subType ? ' • ' + text(cab.subType) : ''),
+    };
   }
 
 
@@ -870,6 +925,16 @@
     return enumerateSelectedCabinets(selectedRooms).map((entry)=> buildCabinetLaborLine(entry, defs, rates)).filter(Boolean);
   }
 
+  function collectProjectPreparationLines(selectedRooms){
+    try{
+      const factsApi = FC.cabinetDerivedFacts || null;
+      if(factsApi && typeof factsApi.ensureForRooms === 'function') factsApi.ensureForRooms(selectedRooms || [], { persist:true, recalculate:true });
+    }catch(_){ }
+    const defs = laborDefs();
+    const rates = hourlyRates(defs);
+    return enumerateSelectedCabinets(selectedRooms).map((entry)=> buildCabinetProjectLine(entry, defs, rates)).filter(Boolean);
+  }
+
   function collectCarryingLines(selectedRooms){
     try{
       const factsApi = FC.cabinetDerivedFacts || null;
@@ -886,6 +951,7 @@
     cabinetBodyHeightCm,
     cabinetBodyVolumeM3,
     collectCabinetLabor,
+    collectProjectPreparationLines,
     collectCarryingLines,
   };
 })();
