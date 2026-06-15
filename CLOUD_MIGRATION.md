@@ -1,3 +1,9 @@
+## 2026-06-15 — projekt techniczny jako fakty pochodne
+
+- `cabinet.part_count` jest faktem pochodnym z aktualnej cutlisty szafki, a nie ręcznie zapisywaną drugą prawdą.
+- `details.projectUnusual = '1'` jest zapisywane tylko wtedy, gdy konkretna szafka ma ptaszek `Nietypowy projekt`.
+- W przyszłej chmurze synchronizacji wymaga tylko flagowanie nietypowego projektu; ilość formatek można odtworzyć z cutlisty.
+
 ## 2026-06-15 — globalne przeliczenie projektu
 
 - `Przelicz projekt` nie tworzy nowej prawdy danych. Wymusza ponowne wyliczenie cache/faktów pochodnych `derivedFacts` z aktualnych danych projektu, cenników i ustawień.
@@ -71,7 +77,7 @@ Zmiany:
 - cennik nadal ma dwie osobne pozycje: `labor_carrying_cabinet` oraz `labor_carrying_disassembly`, ale pierwsza opisowo działa teraz jako **Wnoszenie korpusu / elementów**,
 - zaktualizowano test `tools/carrying-lift-logistics-smoke.js`.
 
-Nie przebudowano WYCENY, ORS, oferty klienta, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260615_project_recalculate_v1`. Raport: `tools/reports/carrying-disassembled-elements-v2.md`.
+Nie przebudowano WYCENY, ORS, oferty klienta, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260615_project_design_parts_v1`. Raport: `tools/reports/carrying-disassembled-elements-v2.md`.
 
 ## 2026-06-13 — Wnoszenie i winda v1
 

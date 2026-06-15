@@ -61,6 +61,22 @@
       calculation:'Wyliczane z szerokości × wysokości korpusu bez nóżek × głębokości. To źródło służy gabarytoczasowi skręcania korpusu.',
     },
     {
+      code:'cabinet.part_count',
+      label:'Ilość formatek szafki',
+      unit:'szt.',
+      group:'Projekt i przygotowanie',
+      status:'system',
+      calculation:'Liczba formatek materiałowych tej szafki: korpus + fronty + HDF/plecy. Ilość z pozycji materiałowych, więc qty=2 liczy się jako 2 formatki.',
+    },
+    {
+      code:'cabinet.unusual_project_count',
+      label:'Nietypowy projekt szafki',
+      unit:'szt.',
+      group:'Projekt i przygotowanie',
+      status:'system',
+      calculation:'Z ptaszka Nietypowy projekt w szafce. Zwraca 1, gdy szafka ma dostać dopłatę projektową; w przeciwnym razie 0.',
+    },
+    {
       code:'cabinet.weight_kg',
       label:'Orientacyjna waga korpusu',
       unit:'kg',

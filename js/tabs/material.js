@@ -13,6 +13,18 @@
     return s.endsWith('.0') ? s.slice(0, -2) : s;
   }
 
+
+  function materialPartQty(part){
+    const a = Number(part && part.a) || 0;
+    const b = Number(part && part.b) || 0;
+    const qty = Math.max(0, Math.round(Number(part && part.qty) || 0));
+    return a > 0 && b > 0 ? qty : 0;
+  }
+  function materialPartCount(parts){
+    return (Array.isArray(parts) ? parts : []).reduce((sum, part)=> sum + materialPartQty(part), 0);
+  }
+
+
   function getMaterialModel(room){
     const dataApi = window.FC && window.FC.materialTabData;
     const edgeApi = window.FC && window.FC.materialEdgeStore && typeof window.FC.materialEdgeStore.createEdgeStore === 'function'
@@ -251,7 +263,8 @@
       const cabEdgeBox = document.createElement('div');
       cabEdgeBox.className = 'muted xs';
       cabEdgeBox.style.marginTop = '6px';
-      cabEdgeBox.textContent = `Okleina: ${cabEdgeMeters.toFixed(2)} mb • PCV korpusu: ${cabEdgeModeLabel}`;
+      const partCount = materialPartCount(parts);
+      cabEdgeBox.textContent = `Formatki: ${partCount} szt. • Okleina: ${cabEdgeMeters.toFixed(2)} mb • PCV korpusu: ${cabEdgeModeLabel}`;
       cabTotalsBox.appendChild(cabEdgeBox);
 
       const table = document.createElement('div');

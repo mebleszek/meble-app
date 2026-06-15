@@ -6,7 +6,7 @@
   root.FC = root.FC || {};
   const FC = root.FC;
 
-  const VERSION = '20260615_project_recalculate_v1';
+  const VERSION = '20260615_project_design_parts_v1';
   const CACHE_FIELD = 'derivedFacts';
   const STATS_LIMIT = 20;
   let computingDepth = 0;

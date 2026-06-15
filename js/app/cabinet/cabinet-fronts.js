@@ -604,6 +604,17 @@ function syncDraftFromCabinetModalForm(d){
     d.details = det;
   }
 
+  const projectUnusualEl = document.getElementById('cmProjectUnusual');
+  if(projectUnusualEl){
+    const det = Object.assign({}, d.details || {});
+    if(projectUnusualEl.checked) det.projectUnusual = '1';
+    else {
+      delete det.projectUnusual;
+      delete det.unusualProject;
+    }
+    d.details = det;
+  }
+
   const pcv = str('cmBodyPcvMode');
   if(pcv !== null) d.bodyPcvMode = pcvMode(pcv);
 

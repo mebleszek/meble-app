@@ -509,6 +509,20 @@ function renderCabinetModal(){
     }
   }
 
+  function isProjectUnusual(){
+    const det = draft && draft.details && typeof draft.details === 'object' ? draft.details : {};
+    const raw = det.projectUnusual != null ? det.projectUnusual : det.unusualProject;
+    if(raw === true || raw === 1) return true;
+    const txt = String(raw == null ? '' : raw).trim().toLowerCase();
+    return ['1','true','tak','yes','on'].includes(txt);
+  }
+  function syncProjectUnusualUi(){
+    const wrap = document.getElementById('cmProjectUnusualWrap');
+    const check = document.getElementById('cmProjectUnusual');
+    if(wrap) wrap.style.display = cabinetModalState.chosen === 'zestaw' ? 'none' : '';
+    if(check) check.checked = isProjectUnusual();
+  }
+
 
   function refreshCabinetHardwareRequirementsPanel(){
     try{
@@ -541,6 +555,7 @@ function renderCabinetModal(){
   document.getElementById('cmHeight').value = draft.height;
   document.getElementById('cmDepth').value = draft.depth;
   syncLegHeightUi();
+  syncProjectUnusualUi();
 
   document.getElementById('cmFrontMaterial').value = draft.frontMaterial || 'laminat';
   document.getElementById('cmBackMaterial').value = draft.backMaterial || 'HDF 3mm biała';
@@ -705,6 +720,10 @@ function renderCabinetModal(){
   if(_cmLegHeightEl){
     _cmLegHeightEl.oninput = _liveAventosCheck;
     _cmLegHeightEl.onchange = _liveAventosCheck;
+  }
+  const _cmProjectUnusualEl = document.getElementById('cmProjectUnusual');
+  if(_cmProjectUnusualEl){
+    _cmProjectUnusualEl.onchange = _liveAventosCheck;
   }
 
   document.getElementById('cmFrontMaterial').onchange = e => {

@@ -94,7 +94,7 @@ const fileList = read('tools/app-dev-smoke-lib/file-list.js');
   assert(src.includes('js/app/cabinet/cabinet-drawer-requirements.js'), `plik ładowania ${idx} ładuje cabinet-drawer-requirements.js`);
   assert(src.includes('js/app/pricing/work-quantity-facts.js'), `plik ładowania ${idx} ładuje work-quantity-facts.js`);
 });
-assert(index.includes('20260615_project_recalculate_v1') && dev.includes('20260615_project_recalculate_v1'), 'index/dev_tests mają cache-busting faktów roboczych');
+assert(index.includes('20260615_project_design_parts_v1') && dev.includes('20260615_project_design_parts_v1'), 'index/dev_tests mają cache-busting faktów roboczych');
 assert(!index.includes('cmWorkFactsPreview') && !index.includes('cabinet-work-facts-preview.js'), 'etap nie przywraca panelu w modalu szafki');
 assert(!read('js/app/cabinet/cabinet-modal.js').includes('cmWorkFactsPreview'), 'cabinet-modal.js nie jest podłączony do panelu faktów');
 assert(!read('js/app/ui/cabinets-render.js').includes('ensureAddCabinet'), 'cabinets-render.js nie ma awaryjnej łaty plusa');

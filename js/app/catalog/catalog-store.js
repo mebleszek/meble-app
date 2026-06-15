@@ -29,6 +29,8 @@
     ? hardwareSeeds.mergeAccessorySeeds([])
     : [
         { id:'a1', manufacturer:'Blum', symbol:'B1', name:'Zawias Blum', price:18, hardwareCategory:'Zawiasy', hardwareUnit:'szt.', series:'', purchasePrice:0, markupPercent:0, priceSource:'', priceUpdatedAt:'', status:'active', note:'' },
+        { id:'project_design_parts', category:'Projekt', name:'Projekt techniczny — formatki', price:0, usage:'universal', rateType:'specialist', quantitySource:'cabinet.part_count', timeBlockHours:0.0166666667, quantityMode:'linear', pricingMode:'time', active:true, internalOnly:true, starterPrice:true, note:'Projekt techniczny liczony od liczby formatek szafki. 1 min × stawka specjalistyczna 300 zł/h daje około 5 zł za formatkę.' },
+        { id:'project_design_unusual', category:'Projekt', name:'Projekt techniczny — nietypowa szafka', price:0, usage:'universal', rateType:'specialist', quantitySource:'cabinet.unusual_project_count', timeBlockHours:0.25, quantityMode:'linear', pricingMode:'advanced', volumeTimeMode:'perM3', volumeTimePerM3:1, volumePricePerM3:0, active:true, internalOnly:true, starterPrice:true, note:'Dopłata projektowa dla szafki z ptaszkiem Nietypowy projekt: 15 min + gabarytoczas 1 h/m³.' },
       ];
   const DEFAULT_HARDWARE_MANUFACTURERS = hardwareCatalog && Array.isArray(hardwareCatalog.DEFAULT_MANUFACTURERS)
     ? hardwareCatalog.DEFAULT_MANUFACTURERS.slice()

@@ -72,6 +72,43 @@
     return (w > 0 && h > 0 && d > 0) ? round((w / 100) * (h / 100) * (d / 100), 4) : 0;
   }
 
+
+  function getCabinetCutListParts(roomId, cabinet){
+    try{
+      const factsApi = FC.cabinetDerivedFacts || null;
+      if(factsApi && typeof factsApi.getCutlist === 'function' && !(typeof factsApi.isComputing === 'function' && factsApi.isComputing())){
+        const parts = factsApi.getCutlist(roomId, cabinet || {}, { recalculate:true, persist:false });
+        if(Array.isArray(parts)) return parts;
+      }
+    }catch(_){ }
+    try{
+      if(FC.cabinetCutlist && typeof FC.cabinetCutlist.getCabinetCutList === 'function'){
+        return FC.cabinetCutlist.getCabinetCutList(cabinet || {}, roomId) || [];
+      }
+    }catch(_){ }
+    try{
+      if(typeof root.getCabinetCutList === 'function') return root.getCabinetCutList(cabinet || {}, roomId) || [];
+    }catch(_){ }
+    return [];
+  }
+  function isMaterialPart(part){
+    return (Number(part && part.a) || 0) > 0 && (Number(part && part.b) || 0) > 0;
+  }
+  function materialPartCountFromParts(parts){
+    return (Array.isArray(parts) ? parts : []).reduce((sum, part)=> {
+      if(!isMaterialPart(part)) return sum;
+      return sum + Math.max(0, Math.round(number(part && part.qty, 0)));
+    }, 0);
+  }
+  function isUnusualProject(cabinet){
+    const det = details(cabinet);
+    const raw = det.projectUnusual != null ? det.projectUnusual : det.unusualProject;
+    if(raw === true || raw === 1) return true;
+    const txt = text(raw).toLowerCase();
+    return ['1','true','tak','yes','on'].includes(txt);
+  }
+
+
   function sourceInfo(code){
     try{
       const api = FC.workQuantitySources;
@@ -259,6 +296,14 @@
     'cabinet.depth_mm':(roomId, cabinet)=> makeFact('cabinet.depth_mm', mmFromCmLike(cabinet && cabinet.depth), { displayValue:`${mmFromCmLike(cabinet && cabinet.depth)} mm`, source:'pole głębokości' }),
     'cabinet.volume_m3':(roomId, cabinet)=> makeFact('cabinet.volume_m3', volumeM3(cabinet), { displayValue:`${volumeM3(cabinet).toFixed(4)} m³`, source:'wymiary całkowite szafki' }),
     'cabinet.body_volume_m3':(roomId, cabinet)=> makeFact('cabinet.body_volume_m3', bodyVolumeM3(roomId, cabinet), { displayValue:`${bodyVolumeM3(roomId, cabinet).toFixed(4)} m³`, source:isStandingCabinet(cabinet) ? 'szer. × wysokość bez nóg × głęb.' : 'szer. × wys. × głęb.' }),
+    'cabinet.part_count':(roomId, cabinet)=> {
+      const qty = materialPartCountFromParts(getCabinetCutListParts(roomId, cabinet));
+      return makeFact('cabinet.part_count', qty, { displayValue:`${qty} szt.`, source:'formatki korpusu + fronty + HDF' });
+    },
+    'cabinet.unusual_project_count':(roomId, cabinet)=> {
+      const qty = isUnusualProject(cabinet) ? 1 : 0;
+      return makeFact('cabinet.unusual_project_count', qty, { displayValue:qty ? 'tak' : 'nie', source:'ptaszek Nietypowy projekt' });
+    },
     'cabinet.weight_kg':(roomId, cabinet)=> {
       const ev = carryingEvaluation(roomId, cabinet);
       const kg = ev ? Number(ev.bodyWeightKg) || 0 : 0;

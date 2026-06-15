@@ -199,6 +199,8 @@
   function semanticRole(def){
     const src = text(def && def.quantitySource);
     const conditions = normalizedConditions(def);
+    if(src === 'cabinet.part_count') return { sourceType:'cabinet', sourceRole:'project-design-parts-labor' };
+    if(src === 'cabinet.unusual_project_count') return { sourceType:'cabinet', sourceRole:'project-design-unusual-labor' };
     if(src === 'cabinet.count' && conditions.some((row)=> ['cabinet.height_mm','cabinet.body_height_mm','cabinet.body_volume_m3'].includes(text(row && row.source)))) return { sourceType:'cabinet', sourceRole:'cabinet-body-labor' };
     if(src === 'cabinet.count') return { sourceType:'cabinet', sourceRole:'cabinet-body-labor' };
     if(src === 'shelf.count') return { sourceType:'cabinet', sourceRole:'shelf-labor' };
@@ -738,7 +740,7 @@
       const meta = quantityFromSource(def, entry, 0);
       if(!(meta.quantity > 0)) return;
       const role = semanticRole(def);
-      const calcVolumeM3 = role.sourceRole === 'cabinet-body-labor' ? cabinetBodyVolumeM3(entry && entry.roomId, cab) : volumeM3;
+      const calcVolumeM3 = (role.sourceRole === 'cabinet-body-labor' || role.sourceRole === 'project-design-unusual-labor') ? cabinetBodyVolumeM3(entry && entry.roomId, cab) : volumeM3;
       const calc = calculate(def, { quantity:meta.quantity, volumeM3:calcVolumeM3, hourlyRates:rates });
       const cmp = componentFromCalc(calc, Object.assign({
         suffix:`source_${text(def.id) || text(def.name)}`,

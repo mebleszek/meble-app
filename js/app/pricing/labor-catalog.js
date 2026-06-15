@@ -282,6 +282,7 @@
   }
   function clampTimeBlock(value){
     const n = normalizeLegacyFortyFiveMinutes(value);
+    if(isClose(n, 1 / 60)) return 1 / 60;
     if(isClose(n, 1 / 12)) return 1 / 12;
     if(isClose(n, 0.25)) return 0.25;
     if(isClose(n, 0.5)) return 0.5;
