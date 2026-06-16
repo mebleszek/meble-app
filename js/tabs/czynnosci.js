@@ -119,13 +119,58 @@
     const label = [src.category, src.name, src.sourceRole, src.sourceType].map((x)=> String(x || '').toLowerCase()).join(' ');
     return /projekt|pomiar|transport|dojazd|inne|usługi dodatkowe|uslugi dodatkowe/.test(label);
   }
-  function buildOtherActionRows(){
+  function selectedProjectRooms(roomId){
+    const direct = String(roomId || '').trim();
+    if(direct) return [direct];
+    try{
+      const draft = getOfferDraft();
+      const rooms = draft && draft.selection && Array.isArray(draft.selection.selectedRooms) ? draft.selection.selectedRooms : [];
+      return rooms.map((id)=> String(id || '').trim()).filter(Boolean);
+    }catch(_){ return []; }
+  }
+  function buildProjectPreparationActionRows(roomId){
+    const rooms = selectedProjectRooms(roomId);
+    if(!rooms.length) return [];
+    let lines = [];
+    try{
+      if(FC.wycenaCoreLabor && typeof FC.wycenaCoreLabor.collectProjectPreparationLines === 'function'){
+        lines = FC.wycenaCoreLabor.collectProjectPreparationLines(rooms) || [];
+      }
+    }catch(_){ lines = []; }
+    const out = [];
+    (Array.isArray(lines) ? lines : []).forEach((line)=> {
+      const details = Array.isArray(line && line.details) ? line.details : [];
+      details.forEach((part)=> {
+        const sourceLabel = String(part && part.sourceLabel || line && line.name || '').trim();
+        const note = [
+          String(part && part.note || '').trim(),
+          sourceLabel ? `Dotyczy: ${sourceLabel}` : ''
+        ].filter(Boolean).join(' • ');
+        out.push(Object.assign({}, part || {}, {
+          type:'other-action-project',
+          category:'Projekt i przygotowanie',
+          name:String(part && part.name || line && line.name || 'Projekt i przygotowanie'),
+          sourceType:String(part && part.sourceType || 'project'),
+          sourceLabel,
+          sourceId:String(part && part.sourceId || line && line.cabinetId || ''),
+          sourceRole:String(part && part.sourceRole || 'project-design'),
+          sourceKind:String(part && part.sourceKind || 'automatic'),
+          note,
+          hours:Math.max(0, Number(part && part.hours) || Number(part && part.baseHours) || 0),
+          baseHours:Math.max(0, Number(part && part.baseHours) || Number(part && part.hours) || 0),
+        }));
+      });
+    });
+    return out;
+  }
+  function buildOtherActionRows(roomId){
     let rows = [];
     try{
       if(FC.wycenaCoreOffer && typeof FC.wycenaCoreOffer.collectQuoteRateLines === 'function') rows = FC.wycenaCoreOffer.collectQuoteRateLines() || [];
       else if(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteRateLines === 'function') rows = FC.wycenaCore.collectQuoteRateLines() || [];
     }catch(_){ rows = []; }
-    return (Array.isArray(rows) ? rows : []).filter(isOtherActionLine).map((row)=> {
+    rows = (Array.isArray(rows) ? rows : []).concat(buildProjectPreparationActionRows(roomId));
+    return rows.filter(isOtherActionLine).map((row)=> {
       const hours = Math.max(0, Number(row && row.hours) || Number(row && row.baseHours) || 0);
       return Object.assign({}, row, { hours, baseHours:Math.max(0, Number(row && row.baseHours) || hours) });
     });
@@ -143,8 +188,8 @@
     }
     return renderDetailBreakdown(row || {});
   }
-  function renderOtherActions(container){
-    const rows = buildOtherActionRows();
+  function renderOtherActions(container, roomId){
+    const rows = buildOtherActionRows(roomId);
     const details = h('details', { class:'quote-labor-cabinet czynnosci-other-accordion wywiad-room-accordion' });
     const summary = h('summary', { class:'quote-labor-cabinet__summary wywiad-room-accordion__summary' });
     const title = h('div', { class:'quote-labor-cabinet__title' });
@@ -468,7 +513,7 @@
     list.appendChild(intro);
 
     renderManualLabor(list, ctx || {});
-    renderOtherActions(list);
+    renderOtherActions(list, roomId);
     if(roomId) renderCabinetLabor(list, roomId);
     else list.appendChild(h('div', { class:'card quote-section', style:'margin-top:12px;padding:14px;', text:'Wybierz pomieszczenie, żeby zobaczyć czynności szafek.' }));
   }
@@ -476,6 +521,7 @@
   FC.tabsCzynnosci = {
     render,
     buildCabinetRows,
+    buildOtherActionRows,
   };
 
   (FC.tabsRouter || FC.tabs || {}).register?.('czynnosci', { mount(){}, render, unmount(){} });

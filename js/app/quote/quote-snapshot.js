@@ -374,7 +374,7 @@
     try{
       const elapsed = roundMs(perfNow() - snapshotStart);
       snapshot.meta.performance = Object.assign({}, snapshot.meta.performance || {}, {
-        build:'20260616_project_preparation_section_v1',
+        build:'20260616_czynnosci_project_preparation_v1',
         snapshotMs:elapsed,
         snapshotSizeBytes:jsonBytes(snapshot),
         calculationRegisterSizeBytes:jsonBytes(calculationRegister),

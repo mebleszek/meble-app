@@ -192,10 +192,10 @@ approx(disassemblyPart.hours, 1, 0.0001, 'disassembly is 1 hour');
 
 const index = read('index.html');
 const devTests = read('dev_tests.html');
-assert.ok(index.includes('js/app/pricing/carrying-logistics.js?v=20260616_project_preparation_section_v1'), 'index loads carrying-logistics');
-assert.ok(index.includes('js/app/investor/investor-carrying.js?v=20260616_project_preparation_section_v1'), 'index loads investor-carrying');
-assert.ok(devTests.includes('js/app/pricing/carrying-logistics.js?v=20260616_project_preparation_section_v1'), 'dev_tests loads carrying-logistics');
-assert.ok(devTests.includes('js/app/investor/investor-carrying.js?v=20260616_project_preparation_section_v1'), 'dev_tests loads investor-carrying');
+assert.ok(index.includes('js/app/pricing/carrying-logistics.js?v=20260616_czynnosci_project_preparation_v1'), 'index loads carrying-logistics');
+assert.ok(index.includes('js/app/investor/investor-carrying.js?v=20260616_czynnosci_project_preparation_v1'), 'index loads investor-carrying');
+assert.ok(devTests.includes('js/app/pricing/carrying-logistics.js?v=20260616_czynnosci_project_preparation_v1'), 'dev_tests loads carrying-logistics');
+assert.ok(devTests.includes('js/app/investor/investor-carrying.js?v=20260616_czynnosci_project_preparation_v1'), 'dev_tests loads investor-carrying');
 
 const group = require(path.join(ROOT, 'tools/index-load-groups.js'));
 const business = group.INDEX_LOAD_GROUPS.find((row)=>row.id === 'business-domains');

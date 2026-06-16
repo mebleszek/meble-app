@@ -51,7 +51,7 @@ assert(!groups.AGD, 'Źródła ilości nie tworzą już grupy AGD', groups);
 
 const index = read('index.html');
 const dev = read('dev_tests.html');
-assert(index.includes('20260616_project_preparation_section_v1') && dev.includes('20260616_project_preparation_section_v1'), 'index/dev_tests mają aktualny cache-busting');
+assert(index.includes('20260616_czynnosci_project_preparation_v1') && dev.includes('20260616_czynnosci_project_preparation_v1'), 'index/dev_tests mają aktualny cache-busting');
 
 console.log('OK labor-appliance-category-clean-rebase smoke');
 console.log(' - stary dział AGD jest odcinany');

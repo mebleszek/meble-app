@@ -17,7 +17,7 @@ const material = read('js/tabs/material.js');
 
 assert(index.includes('js/app/project/project-recalculate.js'), 'index.html ładuje project-recalculate.js');
 assert(dev.includes('js/app/project/project-recalculate.js'), 'dev_tests.html ładuje project-recalculate.js');
-assert(derived.includes("const VERSION = '20260616_project_preparation_section_v1'"), 'derived facts ma nową wersję cache');
+assert(derived.includes("const VERSION = '20260616_czynnosci_project_preparation_v1'"), 'derived facts ma nową wersję cache');
 assert(derived.includes('force:opts.force === true'), 'ensureForRooms przekazuje force do ensureCabinetFacts');
 assert(derived.includes("status === 'hit' && !force"), 'force ma wymuszać przeliczenie nawet przy cache hit');
 assert(view.includes('Przelicz projekt'), 'trybik Dane do czynności i wyceny ma przycisk Przelicz projekt');

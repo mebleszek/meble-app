@@ -3,7 +3,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const BUILD = '20260616_project_preparation_section_v1';
+  const BUILD = '20260616_czynnosci_project_preparation_v1';
   const EVENT_LIMIT = 60;
   let lastGenerateTrace = null;
   let lastGenerateButtonEvent = null;

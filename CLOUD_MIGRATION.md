@@ -1,11 +1,10 @@
-## 2026-06-16 — WYCENA: Projekt i przygotowanie w snapshotach v1
+## 2026-06-16 — CZYNNOŚCI: normoczas projektu z tego samego kolektora v1
 
-- Snapshot WYCENY ma osobny strumień `lines.project` oraz osobny total `totals.project` dla działu `Projekt i przygotowanie`.
-- `quoteCalculationRegister` zachowuje sekcję `project`, żeby historia ofert i szczegóły audytu korzystały z tej samej klasyfikacji co bieżąca WYCENA.
-- Kompaktowanie snapshotów w storage uwzględnia `lines.project`, fingerprint projektu i licznik `lineCounts.project`, bez zmiany matematyki pozycji projektu.
-- Stare dane nie są ręcznie migrowane; po użyciu `Przelicz projekt` oferta zapisuje nowy układ sekcji.
+- Zakładka CZYNNOŚCI czyta czas projektu technicznego przez `FC.wycenaCoreLabor.collectProjectPreparationLines`.
+- To utrzymuje jedną prawdę: WYCENA zapisuje osobny dział `Projekt i przygotowanie`, a CZYNNOŚCI pokazują ten sam normoczas w `Inne czynności` bez osobnego modelu danych.
+- Dla przyszłego planowania dni pracy projekt techniczny jest traktowany jako czas ogólny projektu, a nie jako robocizna szafek.
 
-Cache-busting: `20260616_project_preparation_section_v1`.
+Cache-busting: `20260616_czynnosci_project_preparation_v1`.
 
 ## 2026-06-15 — projekt techniczny jako fakty pochodne
 
@@ -86,7 +85,7 @@ Zmiany:
 - cennik nadal ma dwie osobne pozycje: `labor_carrying_cabinet` oraz `labor_carrying_disassembly`, ale pierwsza opisowo działa teraz jako **Wnoszenie korpusu / elementów**,
 - zaktualizowano test `tools/carrying-lift-logistics-smoke.js`.
 
-Nie przebudowano WYCENY, ORS, oferty klienta, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260616_project_preparation_section_v1`. Raport: `tools/reports/carrying-disassembled-elements-v2.md`.
+Nie przebudowano WYCENY, ORS, oferty klienta, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260616_czynnosci_project_preparation_v1`. Raport: `tools/reports/carrying-disassembled-elements-v2.md`.
 
 ## 2026-06-13 — Wnoszenie i winda v1
 

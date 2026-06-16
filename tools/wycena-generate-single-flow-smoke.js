@@ -10,7 +10,7 @@ function assert(condition, message, details){
 }
 
 function runStaticChecks(){
-  const version = '20260616_project_preparation_section_v1';
+  const version = '20260616_czynnosci_project_preparation_v1';
   const shell = fs.readFileSync(path.join(process.cwd(), 'js/app/wycena/wycena-tab-shell.js'), 'utf8');
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const dev = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');
