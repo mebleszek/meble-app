@@ -74,7 +74,45 @@
     el.style.display = 'block';
   }
 
+
+  const SCRIPT_RECOVERY_LIMIT = 2;
+  function scriptRecoveryKey(src){
+    try{
+      const url = new URL(src, location.href);
+      url.searchParams.delete('boot_script_retry');
+      return url.pathname + '?' + (url.searchParams.get('v') || '');
+    }catch(_){ return String(src || '').split('&boot_script_retry=')[0]; }
+  }
+  function retryFailedScript(scriptEl){
+    try{
+      const rawSrc = scriptEl && (scriptEl.getAttribute('src') || scriptEl.src || '');
+      if(!rawSrc) return false;
+      if(!/^(js\/|\.\/js\/|https?:.*\/js\/)/.test(rawSrc) && rawSrc.indexOf('/meble-app/js/') === -1) return false;
+      const state = window.__FC_BOOT_SCRIPT_RETRIES__ = window.__FC_BOOT_SCRIPT_RETRIES__ || {};
+      const key = scriptRecoveryKey(rawSrc);
+      const count = state[key] = (Number(state[key]) || 0) + 1;
+      if(count > SCRIPT_RECOVERY_LIMIT) return false;
+      window.setTimeout(() => {
+        try{
+          const retry = document.createElement('script');
+          retry.defer = scriptEl.defer !== false;
+          retry.async = false;
+          retry.src = rawSrc + (rawSrc.indexOf('?') === -1 ? '?' : '&') + 'boot_script_retry=' + count + '_' + Date.now();
+          const parent = scriptEl.parentNode || document.head || document.documentElement;
+          if(scriptEl.parentNode) parent.insertBefore(retry, scriptEl.nextSibling);
+          else parent.appendChild(retry);
+        }catch(_){}
+      }, Math.min(1500, 250 * count));
+      return true;
+    }catch(_){ return false; }
+  }
+
   window.addEventListener('error', (e) => {
+    const target = e && e.target;
+    if(target && target.tagName === 'SCRIPT' && retryFailedScript(target)){
+      try{ e.preventDefault(); }catch(_){}
+      return;
+    }
     const err = e.error;
     const details = [
       `❌ Błąd JavaScript (${BOOT_VERSION})`,
@@ -82,7 +120,7 @@
       e.filename ? `Plik: ${e.filename}:${e.lineno||0}:${e.colno||0}` : ''
     ].filter(Boolean).join('\n');
     showError(details);
-  });
+  }, true);
 
   window.addEventListener('unhandledrejection', (e) => {
     const r = e.reason;

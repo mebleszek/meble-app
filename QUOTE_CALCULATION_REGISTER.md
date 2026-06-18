@@ -1,10 +1,18 @@
+## 2026-06-18 — WYCENA: retry zależności bez zmiany rejestru
+
+- Rejestr wyliczeń WYCENY nie zmienia struktury ani matematyki.
+- Poprawka dotyczy wyłącznie startu modułów `wycena-core-*`: przy chwilowo brakującej zależności moduł nie rzuca czerwonego błędu, tylko ponawia ładowanie.
+- Sekcje `project`, `labor`, `carrying`, `quoteRates`, materiały i akcesoria pozostają w tym samym modelu.
+
+Cache-busting: `20260618_wycena_boot_dependency_retry_v1`.
+
 ## 2026-06-16 — CZYNNOŚCI a Projekt i przygotowanie v1
 
 - Rejestr WYCENY bez zmian trzyma `Projekt i przygotowanie` w sekcji `project`.
 - Zakładka CZYNNOŚCI używa tego samego kolektora `collectProjectPreparationLines`, żeby pokazać normoczas projektu technicznego w `Inne czynności`.
 - Dzięki temu koszt projektu nie wraca do `Robocizny szafek`, ale czas projektu jest widoczny przy planowaniu pracy.
 
-Cache-busting: `20260616_czynnosci_project_preparation_v1`.
+Cache-busting: `20260618_wycena_boot_dependency_retry_v1`.
 
 ## 2026-06-15 — projekt techniczny z formatek v1
 
@@ -19,7 +27,7 @@ Cache-busting: `20260616_czynnosci_project_preparation_v1`.
   - `Projekt techniczny — nietypowa szafka`: 15 min + gabarytoczas 1 h/m³ dla szafki z ptaszkiem.
 - Podbito wersję `derivedFacts`, żeby stare cache bez nowych faktów nie były używane jako aktualne.
 
-Cache-busting: `20260616_czynnosci_project_preparation_v1`.
+Cache-busting: `20260618_wycena_boot_dependency_retry_v1`.
 
 ## 2026-06-15 — wysokość korpusu bez nóg + nowe skręcanie v1
 
@@ -29,7 +37,7 @@ Cache-busting: `20260616_czynnosci_project_preparation_v1`.
 - Cennik startowy skręcania korpusów został zastąpiony nowym czystym zestawem: progi 90/150/210/230/powyżej 230 cm po `body_height` oraz dopłaty za szerokość.
 - Stare startowe pozycje skręcania oparte o pełne `cabinet.height_mm` są usuwane przez migrację/deduplikację cennika, a nie zostawiane jako wyłączone śmieci.
 
-Cache-busting: `20260616_czynnosci_project_preparation_v1`.
+Cache-busting: `20260618_wycena_boot_dependency_retry_v1`.
 
 ## 2026-06-14 — CZYNNOŚCI: Inne czynności + czas dojazdu v1
 
@@ -39,7 +47,7 @@ Cache-busting: `20260616_czynnosci_project_preparation_v1`.
 - W WYCENIE dodano osobną pozycję transportową `Czas dojazdu`, liczoną z czasu dojazdu przy inwestorze i stawki montażowej.
 - Kilometry transportu zostają w osobnej pozycji `Transport do klienta`.
 
-Cache-busting: `20260616_czynnosci_project_preparation_v1`.
+Cache-busting: `20260618_wycena_boot_dependency_retry_v1`.
 
 ## 2026-06-14 — WYCENA: wnoszenie jako osobny dział v1
 
@@ -48,7 +56,7 @@ Cache-busting: `20260616_czynnosci_project_preparation_v1`.
 - `quoteCalculationRegister`, snapshot, podsumowanie WYCENY i modal szczegółów mają osobny total `carrying`.
 - Nie usuwano żadnych trybów robocizny ani stawek; zmiana dotyczy klasyfikacji wyniku w WYCENIE.
 
-Cache-busting: `20260616_czynnosci_project_preparation_v1`.
+Cache-busting: `20260618_wycena_boot_dependency_retry_v1`.
 
 
 ## 2026-06-09 — Źródła ilości robocizny w rejestrze v1

@@ -19,5 +19,5 @@ assert(!/row\.appendChild\(createTrigger\(cfg\)\)/.test(block), 'labelWithInfo n
 assert(!/btn\.className\s*=\s*text\(cfg\.className\)\s*\|\|\s*'label-help'/.test(src), 'createTrigger nie może tworzyć przycisku z domyślną klasą label-help');
 
 const index = fs.readFileSync('index.html', 'utf8');
-assert(index.includes('js/app/shared/help-registry.js?v=20260616_czynnosci_project_preparation_v1'), 'index.html musi ładować help-registry.js z cache-bustingiem v2');
+assert(index.includes('js/app/shared/help-registry.js?v=20260618_wycena_boot_dependency_retry_v1'), 'index.html musi ładować help-registry.js z cache-bustingiem v2');
 console.log('help-registry-label-trigger-smoke OK');

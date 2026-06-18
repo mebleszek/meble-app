@@ -8,7 +8,7 @@ function read(rel){ return fs.readFileSync(path.join(root, rel), 'utf8'); }
 function assert(cond, msg, data){ if(!cond){ throw new Error(msg + (data ? '\n' + JSON.stringify(data, null, 2) : '')); } }
 function close(actual, expected, msg){ if(Math.abs(Number(actual) - Number(expected)) > 0.001){ throw new Error(`${msg}: ${actual} !== ${expected}`); } }
 
-const version = '20260616_czynnosci_project_preparation_v1';
+const version = '20260618_wycena_boot_dependency_retry_v1';
 assert(read('index.html').includes(version), 'index.html ma mieć aktualny build/cache-busting działu Projekt i przygotowanie');
 assert(read('dev_tests.html').includes(version), 'dev_tests.html ma mieć aktualny build/cache-busting działu Projekt i przygotowanie');
 

@@ -22,7 +22,7 @@ const sources = read('js/app/pricing/work-quantity-sources.js');
 const defs = read('js/app/pricing/labor-catalog-definitions.js');
 const offer = read('js/app/wycena/wycena-core-offer.js');
 
-const version = '20260616_czynnosci_project_preparation_v1';
+const version = '20260618_wycena_boot_dependency_retry_v1';
 [
   'js/app/settings/company-profile-store.js',
   'js/app/settings/business-costs-store.js',

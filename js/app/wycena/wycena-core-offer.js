@@ -3,8 +3,33 @@
   window.FC = window.FC || {};
   const FC = window.FC;
   const utils = FC.wycenaCoreUtils;
+
+  function retryWycenaCoreModule(apiKey, missingLabel){
+    try{
+      const state = FC.__wycenaCoreModuleRetries = FC.__wycenaCoreModuleRetries || {};
+      const count = state[apiKey] = (Number(state[apiKey]) || 0) + 1;
+      if(count > 12){
+        try{ console.warn('WYCENA: moduł nie wystartował po ponowieniach', apiKey, missingLabel); }catch(_){}
+        return;
+      }
+      const current = document.currentScript && document.currentScript.getAttribute ? (document.currentScript.getAttribute('src') || '') : '';
+      if(!current) return;
+      window.setTimeout(function(){
+        try{
+          if(FC[apiKey]) return;
+          const script = document.createElement('script');
+          script.defer = true;
+          script.async = false;
+          script.src = current + (current.indexOf('?') === -1 ? '?' : '&') + 'wycena_dep_retry=' + count + '_' + Date.now();
+          document.head.appendChild(script);
+        }catch(_){}
+      }, Math.min(1200, 80 * count));
+    }catch(_){}
+  }
+
   if(!utils){
-    throw new Error('Brak FC.wycenaCoreUtils — sprawdź kolejność ładowania Wyceny.');
+    retryWycenaCoreModule('wycenaCoreOffer', 'FC.wycenaCoreUtils');
+    return;
   }
 
   function collectCommercialDraft(draft){

@@ -1,10 +1,18 @@
+## 2026-06-18 — WYCENA: retry ładowania modułów po wznowieniu karty
+
+- Zmiana nie dodaje żadnych nowych danych ani migracji danych użytkownika.
+- Dotyczy tylko odporności frontendu: moduły WYCENY przy chwilowo brakujących zależnościach ponawiają rejestrację zamiast rzucać błędem startowym.
+- W modelu chmurowym nie powstaje nowe źródło prawdy; WYCENA i CZYNNOŚCI nadal korzystają z dotychczasowych kolektorów i rejestru.
+
+Cache-busting: `20260618_wycena_boot_dependency_retry_v1`.
+
 ## 2026-06-16 — CZYNNOŚCI: normoczas projektu z tego samego kolektora v1
 
 - Zakładka CZYNNOŚCI czyta czas projektu technicznego przez `FC.wycenaCoreLabor.collectProjectPreparationLines`.
 - To utrzymuje jedną prawdę: WYCENA zapisuje osobny dział `Projekt i przygotowanie`, a CZYNNOŚCI pokazują ten sam normoczas w `Inne czynności` bez osobnego modelu danych.
 - Dla przyszłego planowania dni pracy projekt techniczny jest traktowany jako czas ogólny projektu, a nie jako robocizna szafek.
 
-Cache-busting: `20260616_czynnosci_project_preparation_v1`.
+Cache-busting: `20260618_wycena_boot_dependency_retry_v1`.
 
 ## 2026-06-15 — projekt techniczny jako fakty pochodne
 
@@ -85,7 +93,7 @@ Zmiany:
 - cennik nadal ma dwie osobne pozycje: `labor_carrying_cabinet` oraz `labor_carrying_disassembly`, ale pierwsza opisowo działa teraz jako **Wnoszenie korpusu / elementów**,
 - zaktualizowano test `tools/carrying-lift-logistics-smoke.js`.
 
-Nie przebudowano WYCENY, ORS, oferty klienta, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260616_czynnosci_project_preparation_v1`. Raport: `tools/reports/carrying-disassembled-elements-v2.md`.
+Nie przebudowano WYCENY, ORS, oferty klienta, PCV, kosztów firmy, `drawer.count`, automatów AGD ani wymagań technicznych szafek. Cache-busting: `20260618_wycena_boot_dependency_retry_v1`. Raport: `tools/reports/carrying-disassembled-elements-v2.md`.
 
 ## 2026-06-13 — Wnoszenie i winda v1
 

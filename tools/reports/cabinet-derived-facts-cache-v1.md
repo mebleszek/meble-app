@@ -11,4 +11,4 @@ Najważniejsze zmiany:
 
 Nie ruszano: ORS, transport km, PDF, oferta klienta, PCV pod kolor frontów, koszty firmy, `drawer.count`, automaty AGD, live preview formularza szafki.
 
-Cache-busting: `20260616_czynnosci_project_preparation_v1`.
+Cache-busting: `20260618_wycena_boot_dependency_retry_v1`.
