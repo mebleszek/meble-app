@@ -1,3 +1,9 @@
+## 2026-06-28 — Plan: brakujące zjadacze czasu w wycenie
+
+Status: **analiza, bez wdrożenia matematyki**. Raport `tools/reports/time-eaters-quote-analysis-v1.md` wskazuje potencjalne braki w czasie pracy: pomiar i ryzyko wnęk, kontakt z klientem i poprawki koncepcji, zamawianie materiałów/okuć, kontrola dostaw, oklejanie/czyszczenie, montaż frontów i regulacja, wycięcia, pakowanie, sprzątanie oraz bufor ryzyka.
+
+Rekomendowana kolejność: najpierw automaty montażu frontów/zawiasów/prowadnic/podnośników i regulacji, potem wycięcia/blendy/trudne wnęki, później logistyka zakupowa i pakowanie.
+
 # OPTIMIZATION_PLAN — plan wspólnych mechanik i porządkowania
 
 ## 2026-06-13 — PDF / wydruk oferty klienta — etap końcowy

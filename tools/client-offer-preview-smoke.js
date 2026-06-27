@@ -12,7 +12,7 @@ function fail(message, details){
 }
 function assert(cond, msg, details){ if(!cond) fail(msg, details); }
 
-const version = '20260618_wycena_boot_dependency_retry_v1';
+const version = '20260628_client_offer_time_scope_v1';
 const index = read('index.html');
 assert(index.includes(version), 'index.html nie ma cache-bustingu podglądu oferty klienta');
 assert(index.includes('js/app/quote/quote-client-offer-model.js?v=' + version), 'index.html nie ładuje modułu quote-client-offer-model');
@@ -24,8 +24,9 @@ assert(shell.includes('FC.quoteClientPreview.open(currentQuote)'), 'Przycisk nie
 const css = read('css/wycena.css');
 assert(css.includes('Oferta dla klienta — podgląd handlowy'), 'Brak stylów podglądu oferty klienta');
 assert(css.includes('#quoteClientOfferPreviewModal'), 'Brak stylów modala oferty klienta');
+assert(css.includes('.client-offer-service-grid'), 'Brak stylów sekcji usług ujętych w cenie');
 const dev = read('DEV.md');
-assert(dev.includes('Zamrożony model oferty klienta v2'), 'DEV.md nie opisuje zamrożonego modelu oferty klienta');
+assert(dev.includes('Podgląd oferty klienta — usługi w cenie v3'), 'DEV.md nie opisuje podglądu oferty klienta v3');
 const opt = read('OPTIMIZATION_PLAN.md');
 assert(opt.includes('PDF / wydruk oferty klienta — etap końcowy'), 'OPTIMIZATION_PLAN.md nie ma wpisu o późniejszym PDF');
 
@@ -59,8 +60,10 @@ const summary = sandbox.FC.quoteClientPreview.buildSummaryData({
   project:{ id:'p1', title:'Kuchnia testowa' },
   scope:{ selectedRooms:['kuchnia'], roomLabels:['Kuchnia'], materialScopeMode:'both' },
   commercial:{ versionName:'Oferta testowa', offerValidity:'14 dni', leadTime:'6 tygodni' },
-  totals:{ grand:12345.67 },
+  totals:{ project:300, carrying:250, transport:200, labor:500, services:150, quoteRates:0, grand:12345.67 },
   lines:{
+    project:[{ name:'Projekt techniczny — formatki', qty:12, unit:'szt.', total:300 }],
+    carrying:[{ name:'Wnoszenie mebli', qty:1, unit:'kpl.', total:250 }],
     materials:[
       { name:'Egger W1100', subsection:'Arkusze / rozkrój', qty:3, unit:'ark.' },
       { name:'PCV pod kolor frontów', subsection:'Obrzeża', qty:12, unit:'mb' },
@@ -84,7 +87,10 @@ assert(hinge && hinge.qty === 12, 'Akcesoria mają być agregowane ilościowo be
 assert(summary.materials.some((row)=> row.name === 'PCV pod kolor frontów'), 'Materiały klienta mają pokazywać PCV opisowo bez arkuszy/cen');
 
 assert(summary.clientOffer && summary.clientOffer.meta && summary.clientOffer.meta.frozen === true, 'Podgląd ma używać zamrożonego modelu klienta');
-assert(summary.sections && summary.sections.includes && summary.sections.includes.some((txt)=> /transport|logistyka/i.test(txt)), 'Model klienta ma mieć dynamiczny zakres transportu, gdy transport jest w snapshotcie');
+assert(summary.sections && summary.sections.includes && summary.sections.includes.some((txt)=> /transport/i.test(txt)), 'Model klienta ma mieć dynamiczny zakres transportu, gdy transport jest w snapshotcie');
+assert(summary.sections.includedServices.some((txt)=> /projekt techniczny/i.test(txt)), 'Model klienta ma pokazać usługę projektu technicznego bez kosztu');
+assert(summary.sections.includedServices.some((txt)=> /wniesienie/i.test(txt)), 'Model klienta ma pokazać wnoszenie jako usługę w cenie');
+assert(summary.sections.includedServices.some((txt)=> /transport/i.test(txt)), 'Model klienta ma pokazać transport jako usługę w cenie');
 
 vm.runInContext(read('js/app/quote/quote-snapshot.js'), sandbox, { filename:'js/app/quote/quote-snapshot.js' });
 const frozenSnapshot = sandbox.FC.quoteSnapshot.buildSnapshot({
@@ -97,6 +103,8 @@ const frozenSnapshot = sandbox.FC.quoteSnapshot.buildSnapshot({
   totals:{ grand:9999 },
   materialLines:[{ name:'Egger W1100', subsection:'Płyta', qty:2, unit:'ark.' }],
   accessoryLines:[{ name:'Blum TANDEM 500', qty:1, unit:'kpl.', subsection:'Prowadnice' }],
+  projectLines:[{ name:'Projekt techniczny — formatki', qty:10, unit:'szt.', total:200 }],
+  carryingLines:[{ name:'Wnoszenie mebli', qty:1, unit:'kpl.', total:180 }],
   quoteRateLines:[{ name:'Transport', qty:6, unit:'km', total:120, sourceRole:'transport-distance', quantitySource:'transport.distance_km' }],
 });
 assert(frozenSnapshot.clientOffer && frozenSnapshot.clientOffer.client && frozenSnapshot.clientOffer.client.address.includes('Stary adres'), 'Snapshot nie zamroził danych klienta w clientOffer');
@@ -107,5 +115,6 @@ assert(frozenSummary.company.displayName === 'Stolarnia Format', 'Podgląd nie m
 assert(frozenSummary.clientAddress.includes('Stary adres'), 'Podgląd nie może brać zmienionego adresu po zapisaniu snapshotu');
 assert(frozenSummary.zones.find((z)=> z.key === 'upper').count === 1, 'Podgląd ma pokazać zamrożoną liczbę szafek, nie aktualny projekt po zmianach');
 assert(frozenSummary.sections.terms.includes('Transport według wyceny') && frozenSummary.sections.terms.includes('Kolor do potwierdzenia'), 'Warunki handlowe mają być częścią modelu klienta');
+assert(frozenSummary.sections.includedServices.some((txt)=> /projekt techniczny/i.test(txt)), 'Zamrożony model ma zachować usługę projektu technicznego');
 
 console.log('OK client-offer-preview smoke');

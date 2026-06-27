@@ -1,3 +1,13 @@
+## 2026-06-28 — Podgląd oferty klienta — usługi w cenie v3
+
+- Doprecyzowano podgląd oferty dla klienta w WYCENIE: oprócz zakresu, materiałów, stref, okuć i ceny końcowej pokazuje teraz osobną sekcję `Usługi ujęte w cenie`.
+- Sekcja jest handlowa, nie kosztorysowa. Pokazuje nazwy zakresów typu projekt techniczny, robocizna szafek, wnoszenie/logistyka, transport, montaż AGD i usługi dodatkowe bez stawek, roboczogodzin, kilometrów ani cen jednostkowych.
+- Model `snapshot.clientOffer.sections.includedServices` jest zamrażany razem ze snapshotem, żeby stara oferta po zmianie projektu nadal pokazywała ten sam zakres klientowi.
+- Nie ruszano PDF-a, matematyki WYCENY, CZYNNOŚCI, ORS, PCV, transportu, wnoszenia ani okuć.
+- Dodano raport analityczny `tools/reports/time-eaters-quote-analysis-v1.md` z listą brakujących potencjalnych zjadaczy czasu do późniejszych etapów.
+
+Cache-busting zmienionych plików klienta: `20260628_client_offer_time_scope_v1`.
+
 ## 2026-06-18 — WYCENA: poprawka błędu pierwszego wejścia po kilku dniach v1
 
 - Naprawiono sytuację, w której po wznowieniu starej karty albo chwilowym problemie z pobraniem skryptu mógł pojawić się czerwony błąd `Brak zależności FC.wycenaCoreLabor`.

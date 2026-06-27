@@ -1,3 +1,9 @@
+## 2026-06-28 — Podgląd klienta a rejestr wyliczeń
+
+- Podgląd oferty klienta nadal nie pokazuje rejestru wyliczeń ani technicznych linii kosztowych.
+- Na podstawie `totals` i `lines` model klienta buduje jedynie opisową listę `includedServices`, czyli zakres usług ujętych w cenie bez stawek, godzin, kilometrów i cen jednostkowych.
+- Rejestr pozostaje jedynym źródłem kwot. `clientOffer.sections.includedServices` jest zamrożonym opisem handlowym, nie dodatkową matematyką.
+
 ## 2026-06-18 — WYCENA: retry zależności bez zmiany rejestru
 
 - Rejestr wyliczeń WYCENY nie zmienia struktury ani matematyki.

@@ -147,6 +147,34 @@
         || text(row && row.sourceId) === 'transport_distance_km';
     });
   }
+  function isTransportQuoteRate(row){
+    return text(row && row.sourceRole) === 'transport-distance'
+      || text(row && row.sourceRole) === 'transport-travel-time'
+      || text(row && row.sourceType) === 'transport'
+      || text(row && row.quantitySource) === 'transport.distance_km'
+      || text(row && row.sourceId) === 'transport_distance_km';
+  }
+  function sectionHasMoney(snapshot, section){
+    const totals = snapshot && snapshot.totals || {};
+    if(num(totals && totals[section], 0) > 0) return true;
+    const lines = snapshot && snapshot.lines || {};
+    const rows = safeArray(lines && lines[section]);
+    return rows.some((row)=> num(row && row.total, 0) > 0 || num(row && row.qty, 0) > 0 || num(row && row.hours, 0) > 0);
+  }
+  function hasNonTransportQuoteRates(snapshot){
+    const rows = safeArray(snapshot && snapshot.lines && snapshot.lines.quoteRates);
+    return rows.some((row)=> !isTransportQuoteRate(row) && (num(row && row.total, 0) > 0 || num(row && row.qty, 0) > 0));
+  }
+  function collectIncludedServices(snapshot, agdRows){
+    const out = [];
+    if(sectionHasMoney(snapshot, 'project')) out.push('projekt techniczny i przygotowanie produkcji');
+    if(sectionHasMoney(snapshot, 'labor')) out.push('robocizna szafek ujęta w wycenie');
+    if(sectionHasMoney(snapshot, 'carrying')) out.push('wniesienie i logistyka gabarytowa mebli');
+    if(hasTransportLine(snapshot) || sectionHasMoney(snapshot, 'transport')) out.push('transport do klienta');
+    if(safeArray(agdRows).length || sectionHasMoney(snapshot, 'services')) out.push('montaż AGD wskazany w ofercie');
+    if(hasNonTransportQuoteRates(snapshot)) out.push('usługi dodatkowe zgodnie z wyceną');
+    return normalizeTextList(out);
+  }
   function formatAddress(entity){
     const src = entity && typeof entity === 'object' ? entity : {};
     const line = [text(src.address), text(src.postalCode || src.zip), text(src.city)].filter(Boolean).join(', ');
@@ -191,8 +219,10 @@
       'wykonanie zabudowy meblowej według ustalonego projektu',
       'zastosowane materiały, kolory, okucia i akcesoria zgodnie ze specyfikacją oferty',
     ];
-    if(hasTransportLine(snapshot)) out.push('transport i logistyka zgodnie z warunkami tej wyceny');
-    if(safeArray(lines.labor).length || safeArray(lines.quoteRates).length) out.push('montaż i usługi ujęte w wycenie');
+    if(sectionHasMoney(snapshot, 'project')) out.push('projekt techniczny i przygotowanie produkcji');
+    if(sectionHasMoney(snapshot, 'carrying')) out.push('wniesienie i logistyka gabarytowa mebli');
+    if(hasTransportLine(snapshot) || sectionHasMoney(snapshot, 'transport')) out.push('transport do klienta zgodnie z warunkami tej wyceny');
+    if(safeArray(lines.labor).length || hasNonTransportQuoteRates(snapshot)) out.push('robocizna i usługi dodatkowe ujęte w cenie');
     if(safeArray(agdRows).length) out.push('montaż przewidzianych elementów AGD wskazanych w ofercie');
     return out;
   }
@@ -216,6 +246,7 @@
     const agd = aggregateLines(snap.lines && snap.lines.agdServices, 'szt.');
     const includes = normalizeTextList((snap.clientOffer && snap.clientOffer.sections && snap.clientOffer.sections.includes) || (opts.sections && opts.sections.includes));
     const hiddenDetails = normalizeTextList((snap.clientOffer && snap.clientOffer.sections && snap.clientOffer.sections.hiddenDetails) || (opts.sections && opts.sections.hiddenDetails));
+    const includedServices = normalizeTextList((snap.clientOffer && snap.clientOffer.sections && snap.clientOffer.sections.includedServices) || (opts.sections && opts.sections.includedServices) || collectIncludedServices(snap, agd));
     return normalize({
       version:MODEL_VERSION,
       builtAt:Number(snap.generatedAt) > 0 ? Number(snap.generatedAt) : Date.now(),
@@ -237,6 +268,7 @@
       agd,
       sections:{
         includes: includes.length ? includes : defaultIncludes(snap, agd),
+        includedServices,
         terms: normalizeTextList([commercial.deliveryTerms, commercial.customerNote]),
         hiddenDetails: hiddenDetails.length ? hiddenDetails : defaultHiddenDetails(),
       },
@@ -317,6 +349,7 @@
       agd:safeArray(src.agd).map(normalizeLine).filter((row)=> row.name),
       sections:{
         includes:normalizeTextList(sections.includes),
+        includedServices:normalizeTextList(sections.includedServices),
         terms:normalizeTextList(sections.terms),
         hiddenDetails:normalizeTextList(sections.hiddenDetails),
       },
@@ -337,5 +370,6 @@
     collectZoneData,
     aggregateLines,
     materialRowsForClient,
+    collectIncludedServices,
   };
 })();

@@ -1,3 +1,10 @@
+## 2026-06-28 — clientOffer.sections.includedServices v1
+
+- Snapshot oferty klienta może zawierać `snapshot.clientOffer.sections.includedServices`.
+- Pole jest zamrożonym, handlowym opisem usług ujętych w cenie: projekt techniczny, robocizna, wnoszenie/logistyka, transport, montaż AGD, usługi dodatkowe.
+- To nie jest źródło matematyki. Kwoty nadal wynikają z rejestru WYCENY i `snapshot.totals/lines`.
+- Celem pola jest stabilny podgląd klienta i przyszły PDF, żeby stara oferta po zmianie projektu nie zmieniała opisowego zakresu.
+
 ## 2026-06-18 — WYCENA: retry ładowania modułów po wznowieniu karty
 
 - Zmiana nie dodaje żadnych nowych danych ani migracji danych użytkownika.

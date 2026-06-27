@@ -224,6 +224,17 @@
     section.appendChild(h('p', { class:'client-offer-note', text:hidden.length ? `Wewnętrznie ukryte przed klientem: ${hidden.join(', ')}.` : 'Szczegółowy kosztorys operacyjny pozostaje w wewnętrznej WYCENIE programu.' }));
     parent.appendChild(section);
   }
+  function appendIncludedServices(parent, data){
+    const services = Array.isArray(data.sections && data.sections.includedServices) ? data.sections.includedServices.map(text).filter(Boolean) : [];
+    if(!services.length) return;
+    const section = h('section', { class:'client-offer-section' });
+    section.appendChild(h('h4', { text:'Usługi ujęte w cenie' }));
+    const grid = h('div', { class:'client-offer-service-grid' });
+    services.forEach((item)=> grid.appendChild(h('div', { class:'client-offer-service', text:item })));
+    section.appendChild(grid);
+    section.appendChild(h('p', { class:'client-offer-service-note', text:'Pokazujemy zakres usługi bez rozbijania stawek, roboczogodzin i wewnętrznych kosztów.' }));
+    parent.appendChild(section);
+  }
   function appendOfferTerms(parent, data){
     const terms = Array.isArray(data.sections && data.sections.terms) ? data.sections.terms.map(text).filter(Boolean) : [];
     if(!terms.length) return;
@@ -313,6 +324,7 @@
       { label:'Termin', value:text(data.commercial.leadTime) },
     ]);
     appendScopeList(body, data);
+    appendIncludedServices(body, data);
     appendOfferTerms(body, data);
     appendZones(body, data.zones);
     appendSimpleRows(body, 'Materiały / kolory z WYCENY', data.materials, 'Brak linii materiałowych w aktualnej wycenie.', { showQty:false });

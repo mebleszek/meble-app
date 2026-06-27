@@ -515,7 +515,7 @@
   color:#5f4700;
 }
 
-/* Oferta dla klienta — podgląd handlowy bez kosztorysu operacyjnego v1 */
+/* Oferta dla klienta — podgląd handlowy bez kosztorysu operacyjnego v3 */
 #quoteClientOfferPreviewModal.client-offer-modal-back{
   --client-offer-top-offset:clamp(44px, 10dvh, 96px);
   --client-offer-bottom-offset:max(12px, env(safe-area-inset-bottom));
@@ -591,6 +591,9 @@
 .client-offer-bullets{margin:0;padding-left:20px;display:grid;gap:6px;}
 .client-offer-bullets li{font-size:13px;line-height:1.4;font-weight:750;color:#334155;}
 .client-offer-note{margin:10px 0 0;padding:10px 12px;border-radius:14px;background:#eff6ff;border:1px solid rgba(59,130,246,.20);color:#1e3a8a;font-size:12px;line-height:1.35;font-weight:800;}
+.client-offer-service-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+.client-offer-service{padding:10px 12px;border-radius:14px;background:#f8fafc;border:1px solid rgba(203,213,225,.85);font-size:13px;line-height:1.35;color:#0f172a;font-weight:850;overflow-wrap:anywhere;}
+.client-offer-service-note{margin:10px 0 0;font-size:12px;line-height:1.35;color:#64748b;font-weight:750;}
 .client-offer-zones{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
 .client-offer-zone{padding:12px;}
 .client-offer-zone__title{font-weight:950;color:#0f172a;line-height:1.25;}
@@ -615,6 +618,7 @@
   #quoteClientOfferPreviewModal .client-offer-modal__body{padding:12px 12px 34px;}
   .client-offer-hero{grid-template-columns:1fr;}
   .client-offer-info-grid{grid-template-columns:1fr;}
+  .client-offer-service-grid{grid-template-columns:1fr;}
   .client-offer-zones{grid-template-columns:1fr;}
   .client-offer-total__value,.client-offer-final__value{font-size:26px;white-space:normal;}
   .client-offer-line{grid-template-columns:1fr;}
