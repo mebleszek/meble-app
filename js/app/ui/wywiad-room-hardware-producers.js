@@ -135,7 +135,36 @@
     const api = getApi();
     const normalized = api.normalizeRoomPreferences ? api.normalizeRoomPreferences(draft) : (draft || {});
     draft.hardwareProducers = Object.assign({}, normalized.hardwareProducers || {});
+    draft.hardwareDrawerSystems = Object.assign({}, normalized.hardwareDrawerSystems || {});
     return draft.hardwareProducers;
+  }
+
+  function ensureDrawerSystemDraft(draft){
+    ensureHardwareDraft(draft);
+    draft.hardwareDrawerSystems = Object.assign({}, draft.hardwareDrawerSystems || {});
+    return draft.hardwareDrawerSystems;
+  }
+
+  function drawerSystemOptions(){
+    const api = getApi();
+    try{ if(api && typeof api.getDrawerSystemOptions === 'function') return api.getDrawerSystemOptions() || []; }catch(_){ }
+    return [];
+  }
+
+  function drawerSystemOptionList(){
+    const rows = drawerSystemOptions();
+    return (Array.isArray(rows) ? rows : []).map((row)=> ({ value:text(row && row.key), label:text(row && row.label) || EMPTY_OPTION }));
+  }
+
+  function drawerSystemLabel(value){
+    const api = getApi();
+    try{
+      if(api && typeof api.getDrawerSystemOption === 'function'){
+        const opt = api.getDrawerSystemOption(value);
+        return text(opt && opt.label) || EMPTY_OPTION;
+      }
+    }catch(_){ }
+    return EMPTY_OPTION;
   }
 
   function sanitizeDraftToExistingManufacturers(draft, options){
@@ -147,6 +176,17 @@
       if(!key) return;
       values[key] = canonicalManufacturer(values[key], options);
     });
+    return draft;
+  }
+
+  function syncDrawerProducerFromSystem(draft){
+    const values = ensureHardwareDraft(draft);
+    const drawerSystems = ensureDrawerSystemDraft(draft);
+    const api = getApi();
+    try{
+      const opt = api && typeof api.getDrawerSystemOption === 'function' ? api.getDrawerSystemOption(drawerSystems.drawers) : null;
+      if(opt && opt.key && opt.manufacturer) values.drawers = opt.manufacturer;
+    }catch(_){ }
     return draft;
   }
 
@@ -207,13 +247,45 @@
       if(typeof refreshAll === 'function') refreshAll();
     });
     wrap.appendChild(btn);
+
+    let sysBtn = null;
+    if(key === 'drawers'){
+      const systems = ensureDrawerSystemDraft(draft);
+      const sysLabel = h('div', { class:'wywiad-zone-field__label', text:'System / model szuflad' });
+      sysLabel.style.marginTop = '10px';
+      wrap.appendChild(sysLabel);
+      sysBtn = makeChoiceButton(drawerSystemLabel(systems.drawers));
+      sysBtn.setAttribute('aria-label', 'Wybierz system szuflad / prowadnic');
+      sysBtn.setAttribute('data-hardware-drawer-system-key', 'drawers');
+      sysBtn.setAttribute('data-hardware-drawer-system-value', text(systems.drawers));
+      sysBtn.addEventListener('click', async ()=>{
+        const picked = await openChoice('Wybierz system szuflad / prowadnic', drawerSystemOptionList(), systems.drawers);
+        if(picked == null) return;
+        systems.drawers = text(picked);
+        sysBtn.setAttribute('data-hardware-drawer-system-value', systems.drawers);
+        syncDrawerProducerFromSystem(draft);
+        btn.setAttribute('data-hardware-producer-value', values[key]);
+        rememberDraft(room, draft);
+        setChoiceButtonLabel(sysBtn, drawerSystemLabel(systems.drawers));
+        setChoiceButtonLabel(btn, selectedLabel(getHardwareManufacturers(), values[key]));
+        if(typeof refreshAll === 'function') refreshAll();
+      });
+      wrap.appendChild(sysBtn);
+    }
+
     return {
       wrap,
       refresh(){
         const nextOptions = getHardwareManufacturers();
+        syncDrawerProducerFromSystem(draft);
         values[key] = canonicalManufacturer(values[key], nextOptions);
         btn.setAttribute('data-hardware-producer-value', values[key]);
         setChoiceButtonLabel(btn, selectedLabel(nextOptions, values[key]));
+        if(sysBtn){
+          const systems = ensureDrawerSystemDraft(draft);
+          sysBtn.setAttribute('data-hardware-drawer-system-value', text(systems.drawers));
+          setChoiceButtonLabel(sysBtn, drawerSystemLabel(systems.drawers));
+        }
       }
     };
   }
@@ -229,13 +301,23 @@
       if(!key) return;
       values[key] = canonicalManufacturer(btn.getAttribute('data-hardware-producer-value'), options);
     });
+    const systems = ensureDrawerSystemDraft(draft);
+    const systemButtons = form && typeof form.querySelectorAll === 'function'
+      ? Array.from(form.querySelectorAll('[data-hardware-drawer-system-key]'))
+      : [];
+    systemButtons.forEach((btn)=>{
+      const key = text(btn && btn.getAttribute && btn.getAttribute('data-hardware-drawer-system-key'));
+      if(!key) return;
+      systems[key] = text(btn.getAttribute('data-hardware-drawer-system-value'));
+    });
+    syncDrawerProducerFromSystem(draft);
     return draft;
   }
 
   function buildInlineForm(room, draft){
     const api = getApi();
     const normalized = getWorkingPreferences(room, draft);
-    const working = Object.assign({}, normalized, { hardwareProducers:Object.assign({}, normalized.hardwareProducers || {}) });
+    const working = Object.assign({}, normalized, { hardwareProducers:Object.assign({}, normalized.hardwareProducers || {}), hardwareDrawerSystems:Object.assign({}, normalized.hardwareDrawerSystems || {}) });
     const manufacturerOptions = getHardwareManufacturers();
     sanitizeDraftToExistingManufacturers(working, manufacturerOptions);
 

@@ -1,3 +1,15 @@
+## 2026-06-28 — Szuflady: systemy/preferencje i formatki skrzynkowe v1
+
+- W preferencjach pomieszczenia pole `Szuflady / prowadnice` ma teraz dodatkowy wybór konkretnego systemu/modelu, np. `Blum TANDEMBOX Antaro` albo `GTV Axis Pro`, zamiast samego producenta.
+- Szuflady skrzynkowe generują wymaganie prowadnic oraz osobną podgrupę materiałową `Szuflady skrzynkowe` przy danej szafce w MATERIAŁACH.
+- Dla szuflad skrzynkowych boki i tyły są liczone jako formatki z materiału korpusu 18 mm, a dno jako osobny materiał `Dno szuflad 10 mm`. Dno ma `pcvEligible:false`, żeby nie wpadało automatycznie w PCV.
+- Szuflady systemowe zapisują wymaganie katalogowe konkretnego systemu, ale nie są liczone jak skrzynkowe; formatki systemowe pozostają do późniejszego dopięcia według specyfikacji producenta.
+- Usunięto blokadę zapisu systemowych szuflad GTV/Rejs w formularzu szafki. Brak ceny ma wyjść w WYCENIE jako problem katalogu, a nie jako blokada formularza.
+- Podbito wersję `derivedFacts`, bo liczba formatek szafki może się zmienić przez formatki szuflad skrzynkowych.
+- Raport: `tools/reports/drawer-systems-materials-v1.md`.
+
+Cache-busting: `20260628_drawer_systems_materials_v1`.
+
 ## 2026-06-28 — Podgląd oferty klienta — usługi w cenie v3
 
 - Doprecyzowano podgląd oferty dla klienta w WYCENIE: oprócz zakresu, materiałów, stref, okuć i ceny końcowej pokazuje teraz osobną sekcję `Usługi ujęte w cenie`.

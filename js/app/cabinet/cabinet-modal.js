@@ -671,24 +671,8 @@ function renderCabinetModal(){
       syncDraftFromCabinetModalFormSafe(draft);
       ensureFrontCountRulesSafe(draft);
 
-      // Walidacja szuflad systemowych (GTV/Rejs – w budowie -> blokada zapisu)
-      const _drawerBlockMsg = (function(){
-        const dd = draft.details || {};
-        const checkSystem = (sys, brand, ctx) => {
-          if(String(sys||'') !== 'systemowe') return null;
-          const b = String(brand||'blum');
-          if(b !== 'blum') return `Szuflady ${ctx}: ${b.toUpperCase()} – w budowie. Nie można zatwierdzić.`;
-          return null;
-        };
-        // główna szuflada (szufladowa / moduł / zlewowa front / piekarnikowa)
-        let m = checkSystem(dd.drawerSystem, dd.drawerBrand, 'frontowe');
-        if(m) return m;
-        // zlewowa: szuflada wewnętrzna
-        m = checkSystem(dd.sinkInnerDrawerType, dd.sinkInnerDrawerBrand, 'wewnętrzne (zlewowa)');
-        if(m) return m;
-        return null;
-      })();
-      if(_drawerBlockMsg){ showCabinetInfo('Zmiana zablokowana', _drawerBlockMsg); return; }
+      // Szuflady systemowe GTV/Rejs nie są już blokowane w formularzu.
+      // Szafka zapisuje wymaganie techniczne, a WYCENA dobiera konkretny wpis z katalogu albo pokazuje brak ceny.
       applyAventosValidationUISafe(room, draft);
       refreshCabinetHardwareRequirementsPanel();
     }catch(_e){ /* nie psuj modala */ }

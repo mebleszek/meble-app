@@ -5,8 +5,46 @@
     const warn = document.createElement('div');
     warn.className = 'muted xs';
     warn.style.marginTop = '6px';
-    warn.textContent = 'GTV/Rejs – w budowie. Nie można zatwierdzić.';
+    warn.textContent = 'Ten system wymaga kompletnego wpisu w katalogu okuć. Program zapisze wymaganie i pokaże ostrzeżenie w WYCENIE, jeśli nie znajdzie ceny.';
     container.appendChild(warn);
+  }
+
+  const DRAWER_BRAND_OPTIONS = [{v:'blum', t:'BLUM'}, {v:'gtv', t:'GTV'}, {v:'rejs', t:'Rejs'}];
+  const DRAWER_MODEL_OPTIONS = {
+    blum:[
+      {v:'tandembox_antaro', t:'TANDEMBOX Antaro'},
+      {v:'legrabox', t:'LEGRABOX'},
+      {v:'merivobox', t:'MERIVOBOX'},
+      {v:'metabox', t:'METABOX'}
+    ],
+    gtv:[{v:'axis_pro', t:'Axis Pro'}],
+    rejs:[{v:'rejs_systemowe', t:'System szuflady Rejs'}]
+  };
+  function drawerModelOptions(brand){ return DRAWER_MODEL_OPTIONS[String(brand || 'blum')] || DRAWER_MODEL_OPTIONS.blum; }
+  function ensureDrawerModel(details, brandKey, modelKey){
+    const d = details || {};
+    const brand = String(d[brandKey] || 'blum');
+    const opts = drawerModelOptions(brand);
+    if(!d[modelKey] || !opts.some((row)=> row.v === d[modelKey])) d[modelKey] = opts[0].v;
+  }
+  function applyDrawerPreference(ctx, prefix){
+    const draft = ctx && ctx.draft;
+    const d = draft && draft.details ? draft.details : null;
+    if(!d || d.drawerPreferenceApplied) return;
+    const room = ctx && ctx.uiState && ctx.uiState.roomType;
+    const api = ns.roomPreferences;
+    if(!api || typeof api.resolveDrawerSystemPreference !== 'function') return;
+    const opt = api.resolveDrawerSystemPreference(room, '');
+    if(!opt || !opt.key) return;
+    const sysKey = prefix ? (prefix + 'DrawerType') : 'drawerSystem';
+    const brandKey = prefix ? (prefix + 'DrawerBrand') : 'drawerBrand';
+    const modelKey = prefix ? (prefix + 'DrawerModel') : 'drawerModel';
+    const hasManual = !!(d[brandKey] || d[modelKey] || (d[sysKey] && String(d[sysKey]) !== 'skrzynkowe'));
+    if(hasManual) return;
+    d[sysKey] = opt.drawerSystem || opt.system || 'skrzynkowe';
+    if(opt.brand || opt.manufacturer) d[brandKey] = opt.brand || String(opt.manufacturer || '').toLowerCase();
+    if(opt.model) d[modelKey] = opt.model;
+    d.drawerPreferenceApplied = opt.key;
   }
 
 
@@ -182,6 +220,7 @@
       else if(legacy === '5') d.drawerLayout = '5_equal';
       else d.drawerLayout = '3_equal';
     }
+    applyDrawerPreference(ctx, '');
     if(!d.drawerSystem) d.drawerSystem = 'skrzynkowe';
     if(!('innerDrawerType' in d)) d.innerDrawerType = 'brak';
     if(!('innerDrawerCount' in d) || d.innerDrawerCount == null) d.innerDrawerCount = '0';
@@ -223,25 +262,13 @@
     const ds = String((draft.details && draft.details.drawerSystem) ? draft.details.drawerSystem : 'skrzynkowe');
     if(ds === 'systemowe'){
       if(!draft.details.drawerBrand) draft.details.drawerBrand = 'blum';
-      if(draft.details.drawerBrand === 'blum' && !draft.details.drawerModel) draft.details.drawerModel = 'tandembox';
+      ensureDrawerModel(draft.details, 'drawerBrand', 'drawerModel');
 
-      addSelect('Firma systemu', 'drawerBrand', [
-        {v:'blum', t:'BLUM'},
-        {v:'gtv', t:'GTV'},
-        {v:'rejs', t:'Rejs'}
-      ], ()=>{ renderCabinetModal(); });
+      addSelect('Firma systemu', 'drawerBrand', DRAWER_BRAND_OPTIONS, ()=>{ renderCabinetModal(); });
 
       const br = String(draft.details.drawerBrand || 'blum');
-      if(br === 'blum'){
-        addSelect('Typ szuflady BLUM', 'drawerModel', [
-          {v:'tandembox', t:'TANDEMBOX (domyślnie)'},
-          {v:'legrabox', t:'LEGRABOX'},
-          {v:'merivobox', t:'MERIVOBOX'},
-          {v:'metabox', t:'METABOX'}
-        ]);
-      } else {
-        appendSystemBrandWarning(container);
-      }
+      addSelect('Model systemu', 'drawerModel', drawerModelOptions(br));
+      if(br !== 'blum') appendSystemBrandWarning(container);
     }
 
     const lay = String(d.drawerLayout || '3_1_2_2');
@@ -333,9 +360,10 @@
     }
 
     if(curFront === 'szuflada'){
+      applyDrawerPreference(ctx, '');
       if(!draft.details.drawerSystem) draft.details.drawerSystem = 'skrzynkowe';
       if(!draft.details.drawerBrand) draft.details.drawerBrand = 'blum';
-      if(!draft.details.drawerModel) draft.details.drawerModel = 'tandembox';
+      ensureDrawerModel(draft.details, 'drawerBrand', 'drawerModel');
 
       addSelect('Typ szuflady (zlewowa)', 'drawerSystem', [
         {v:'skrzynkowe', t:'Skrzynkowe'},
@@ -344,23 +372,12 @@
 
       const ds = String(draft.details.drawerSystem || 'skrzynkowe');
       if(ds === 'systemowe'){
-        addSelect('Firma systemu', 'drawerBrand', [
-          {v:'blum', t:'BLUM'},
-          {v:'gtv', t:'GTV'},
-          {v:'rejs', t:'Rejs'}
-        ], ()=>{ ctx.renderCabinetModal(); });
+        addSelect('Firma systemu', 'drawerBrand', DRAWER_BRAND_OPTIONS, ()=>{ ctx.renderCabinetModal(); });
 
         const br = String(draft.details.drawerBrand || 'blum');
-        if(br === 'blum'){
-          addSelect('Typ szuflady BLUM', 'drawerModel', [
-            {v:'tandembox', t:'TANDEMBOX (domyślnie)'},
-            {v:'legrabox', t:'LEGRABOX'},
-            {v:'merivobox', t:'MERIVOBOX'},
-            {v:'metabox', t:'METABOX'}
-          ]);
-        } else {
-          appendSystemBrandWarning(ctx.container);
-        }
+        ensureDrawerModel(draft.details, 'drawerBrand', 'drawerModel');
+        addSelect('Model systemu', 'drawerModel', drawerModelOptions(br));
+        if(br !== 'blum') appendSystemBrandWarning(ctx.container);
       }
     }
 
@@ -383,23 +400,11 @@
       const inner = String(draft.details.sinkInnerDrawerType || 'skrzynkowe');
       if(inner === 'systemowe'){
         if(!draft.details.sinkInnerDrawerBrand) draft.details.sinkInnerDrawerBrand = 'blum';
-        if(!draft.details.sinkInnerDrawerModel) draft.details.sinkInnerDrawerModel = 'tandembox';
-        addSelect('Firma systemu', 'sinkInnerDrawerBrand', [
-          {v:'blum', t:'BLUM'},
-          {v:'gtv', t:'GTV'},
-          {v:'rejs', t:'Rejs'}
-        ], ()=>{ ctx.renderCabinetModal(); });
+        ensureDrawerModel(draft.details, 'sinkInnerDrawerBrand', 'sinkInnerDrawerModel');
+        addSelect('Firma systemu', 'sinkInnerDrawerBrand', DRAWER_BRAND_OPTIONS, ()=>{ ctx.renderCabinetModal(); });
         const br2 = String(draft.details.sinkInnerDrawerBrand || 'blum');
-        if(br2 === 'blum'){
-          addSelect('Typ szuflady BLUM', 'sinkInnerDrawerModel', [
-            {v:'tandembox', t:'TANDEMBOX (domyślnie)'},
-            {v:'legrabox', t:'LEGRABOX'},
-            {v:'merivobox', t:'MERIVOBOX'},
-            {v:'metabox', t:'METABOX'}
-          ]);
-        } else {
-          appendSystemBrandWarning(ctx.container);
-        }
+        addSelect('Model systemu', 'sinkInnerDrawerModel', drawerModelOptions(br2));
+        if(br2 !== 'blum') appendSystemBrandWarning(ctx.container);
       }
     }
   }
@@ -561,31 +566,21 @@
     addNumber('Przegroda techniczna (szt)', 'techShelfCount', 1);
     const oo = String((draft.details && draft.details.ovenOption) ? draft.details.ovenOption : 'szuflada_dol');
     if(oo.indexOf('szuflada') !== -1){
+      applyDrawerPreference(ctx, '');
       if(!draft.details.drawerSystem) draft.details.drawerSystem = 'skrzynkowe';
       if(!draft.details.drawerBrand) draft.details.drawerBrand = 'blum';
-      if(!draft.details.drawerModel) draft.details.drawerModel = 'tandembox';
+      ensureDrawerModel(draft.details, 'drawerBrand', 'drawerModel');
       addSelect('Typ szuflady (piekarnikowa)', 'drawerSystem', [
         {v:'skrzynkowe', t:'Skrzynkowe'},
         {v:'systemowe', t:'Systemowe'}
       ], ()=>{ ctx.renderCabinetModal(); });
       const ds2 = String(draft.details.drawerSystem || 'skrzynkowe');
       if(ds2 === 'systemowe'){
-        addSelect('Firma systemu', 'drawerBrand', [
-          {v:'blum', t:'BLUM'},
-          {v:'gtv', t:'GTV'},
-          {v:'rejs', t:'Rejs'}
-        ], ()=>{ ctx.renderCabinetModal(); });
+        addSelect('Firma systemu', 'drawerBrand', DRAWER_BRAND_OPTIONS, ()=>{ ctx.renderCabinetModal(); });
         const br = String(draft.details.drawerBrand || 'blum');
-        if(br === 'blum'){
-          addSelect('Typ szuflady BLUM', 'drawerModel', [
-            {v:'tandembox', t:'TANDEMBOX (domyślnie)'},
-            {v:'legrabox', t:'LEGRABOX'},
-            {v:'merivobox', t:'MERIVOBOX'},
-            {v:'metabox', t:'METABOX'}
-          ]);
-        } else {
-          appendSystemBrandWarning(ctx.container);
-        }
+        ensureDrawerModel(draft.details, 'drawerBrand', 'drawerModel');
+        addSelect('Model systemu', 'drawerModel', drawerModelOptions(br));
+        if(br !== 'blum') appendSystemBrandWarning(ctx.container);
       }
     }
   }

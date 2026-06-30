@@ -10,7 +10,7 @@ function assert(cond, msg){
     process.exit(1);
   }
 }
-const version = '20260618_wycena_boot_dependency_retry_v1';
+const version = '20260628_drawer_systems_materials_v1';
 const index = read('index.html');
 const dev = read('dev_tests.html');
 const core = read('js/app/wycena/wycena-core-labor.js');

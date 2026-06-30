@@ -1,3 +1,12 @@
+## 2026-06-28 — Szuflady jako wymagania i formatki pochodne v1
+
+- Preferencja systemu szuflad jest zapisywana w `room.preferences.hardwareDrawerSystems.drawers`. Jest to ustawienie pomieszczenia, a nie wynik wyceny.
+- Szafka nadal zapisuje wybór typu/systemu w `details`, a wymagania okuć i formatki szuflad są pochodne z danych szafki.
+- Formatki szuflad skrzynkowych oraz materiał dna 10 mm można odtworzyć z cutlisty; nie są nową niezależną prawdą danych.
+- Szuflady systemowe zapisują wymaganie katalogowe systemu. Dane techniczne producenta powinny docelowo pochodzić z katalogu okuć/specyfikacji systemu.
+
+Cache-busting: `20260628_drawer_systems_materials_v1`.
+
 ## 2026-06-28 — clientOffer.sections.includedServices v1
 
 - Snapshot oferty klienta może zawierać `snapshot.clientOffer.sections.includedServices`.

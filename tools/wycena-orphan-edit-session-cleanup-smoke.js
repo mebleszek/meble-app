@@ -102,7 +102,7 @@ function runSessionMetadataAndDeleteReferenceCleanup(){
 }
 
 function runCacheBustCheck(){
-  const version = '20260618_wycena_boot_dependency_retry_v1';
+  const version = '20260628_drawer_systems_materials_v1';
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const dev = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');
   [

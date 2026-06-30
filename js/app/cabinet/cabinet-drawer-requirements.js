@@ -41,19 +41,127 @@
     if(key === '5_equal') return '5 równych';
     return '1 mała + 2 duże';
   }
+  function normalizeBrand(value){
+    const raw = text(value).toLowerCase();
+    if(raw === 'blum') return 'blum';
+    if(raw === 'gtv') return 'gtv';
+    if(raw === 'rejs') return 'rejs';
+    if(raw === 'häfele' || raw === 'hafele') return 'hafele';
+    return raw;
+  }
+  function brandLabel(value){
+    const brand = normalizeBrand(value);
+    if(brand === 'blum') return 'Blum';
+    if(brand === 'gtv') return 'GTV';
+    if(brand === 'rejs') return 'Rejs';
+    if(brand === 'hafele') return 'Häfele';
+    return text(value);
+  }
+  function normalizeModel(value){
+    const raw = text(value).toLowerCase().replace(/[\s\-]+/g, '_');
+    if(raw === 'tandembox' || raw === 'tandembox_antaro' || raw === 'antaro') return 'tandembox_antaro';
+    if(raw === 'legrabox') return 'legrabox';
+    if(raw === 'merivobox') return 'merivobox';
+    if(raw === 'metabox') return 'metabox';
+    if(raw === 'axis_pro' || raw === 'axispro') return 'axis_pro';
+    if(raw === 'rejs_systemowe' || raw === 'rejs') return 'rejs_systemowe';
+    return raw;
+  }
+  function modelLabel(model, brand){
+    const m = normalizeModel(model);
+    if(m === 'tandembox_antaro') return 'TANDEMBOX Antaro';
+    if(m === 'legrabox') return 'LEGRABOX';
+    if(m === 'merivobox') return 'MERIVOBOX';
+    if(m === 'metabox') return 'METABOX';
+    if(m === 'axis_pro') return 'Axis Pro';
+    if(m === 'rejs_systemowe') return 'system szuflady';
+    return text(model) || (normalizeBrand(brand) === 'gtv' ? 'Axis Pro' : '');
+  }
+  function systemKey(system, brand, model){
+    const sys = text(system) || 'skrzynkowe';
+    const b = normalizeBrand(brand);
+    const m = normalizeModel(model);
+    if(sys === 'systemowe'){
+      if(b === 'blum') return m ? ('blum_' + m) : 'blum_tandembox_antaro';
+      if(b === 'gtv' && (!m || m === 'axis_pro')) return 'gtv_axis_pro';
+      if(b === 'rejs') return 'rejs_systemowe';
+      return [b, m].filter(Boolean).join('_') || 'systemowe';
+    }
+    return 'box_runners';
+  }
+  function resolvePreferenceOption(roomId){
+    try{
+      const prefs = FC.roomPreferences;
+      if(prefs && typeof prefs.resolveDrawerSystemPreference === 'function') return prefs.resolveDrawerSystemPreference(roomId, '');
+    }catch(_){ }
+    return null;
+  }
+  function canonicalSystemTechnical(roomId, raw, prefix){
+    const src = raw && typeof raw === 'object' ? raw : {};
+    let sys = text(src.system || src.drawerSystem || '');
+    let brand = text(src.brand || src.drawerBrand || '');
+    let model = text(src.model || src.drawerModel || '');
+    if(!sys || sys === 'wedlug_preferencji' || sys === 'według_preferencji'){
+      const opt = resolvePreferenceOption(roomId);
+      if(opt && opt.key){
+        sys = opt.drawerSystem || opt.system || sys;
+        brand = opt.brand || opt.manufacturer || brand;
+        model = opt.model || model;
+      }
+    }
+    if(!sys) sys = 'skrzynkowe';
+    if(sys === 'blum') { sys = 'systemowe'; brand = 'blum'; }
+    if(sys === 'gtv') { sys = 'systemowe'; brand = 'gtv'; }
+    if(sys === 'rejs') { sys = 'systemowe'; brand = 'rejs'; }
+    if(sys === 'systemowe'){
+      brand = normalizeBrand(brand || 'blum');
+      if(!model){
+        if(brand === 'gtv') model = 'axis_pro';
+        else if(brand === 'rejs') model = 'rejs_systemowe';
+        else model = 'tandembox_antaro';
+      }
+      model = normalizeModel(model);
+    }
+    const key = systemKey(sys, brand, model);
+    const bLabel = brandLabel(brand);
+    const mLabel = modelLabel(model, brand);
+    const systemLabel = sys === 'systemowe'
+      ? [bLabel, mLabel].filter(Boolean).join(' ')
+      : 'Skrzynkowe — same prowadnice';
+    return {
+      system:sys,
+      brand:normalizeBrand(brand),
+      model:normalizeModel(model),
+      drawerKind: sys === 'systemowe' ? 'system' : 'box',
+      drawerSystemKey:key,
+      manufacturer:bLabel,
+      systemLabel,
+      materialSpec: sys === 'systemowe' ? 'producer_spec' : 'box_18_bottom_10',
+      boxSidesThicknessMm: sys === 'systemowe' ? null : 18,
+      boxBottomThicknessMm: sys === 'systemowe' ? null : 10,
+      prefix:text(prefix)
+    };
+  }
   function row(source, qty, label, technical, extra){
     const n = cleanPositive(qty, 0);
     if(!(n > 0)) return null;
+    const tech = Object.assign({}, technical || {});
+    const typeId = tech.drawerSystemKey || (tech.drawerKind === 'system' ? 'drawer_system' : 'drawer_box_runners');
     return Object.assign({
       kind:'drawer',
       requirementType:'drawerRunner',
       hardwareGroup:'drawers',
       category:'Szuflady / prowadnice',
+      typeId,
       source:text(source) || 'manual_requirement',
       qty:n,
       unit:'szt.',
       label:text(label) || 'Szuflada / prowadnice',
-      technical:Object.assign({}, technical || {})
+      technical:tech,
+      technicalParams:{
+        zastosowanie:{ value: text(tech.usage || tech.sourceUsage || 'frontowa') },
+        nosnosc_kg:{ from: Number(tech.loadKg) || 30 }
+      }
     }, extra && typeof extra === 'object' ? extra : {});
   }
   function explicitRows(cabinet){
@@ -71,28 +179,31 @@
   function addRows(out, maybeRows){
     (Array.isArray(maybeRows) ? maybeRows : []).forEach((item)=> { if(item) out.push(item); });
   }
-  function systemTechnical(d, prefix){
+  function systemTechnical(roomId, d, prefix){
     const p = text(prefix);
     const direct = {
       system:text(d.drawerSystem || ''),
       brand:text(d.drawerBrand || ''),
-      model:text(d.drawerModel || '')
+      model:text(d.drawerModel || ''),
+      usage:'frontowa'
     };
     if(p === 'sinkInner'){
-      return {
+      return canonicalSystemTechnical(roomId, {
         system:text(d.sinkInnerDrawerType || ''),
         brand:text(d.sinkInnerDrawerBrand || ''),
-        model:text(d.sinkInnerDrawerModel || '')
-      };
+        model:text(d.sinkInnerDrawerModel || ''),
+        usage:'zlewowa'
+      }, p);
     }
     if(p === 'inner'){
-      return {
+      return canonicalSystemTechnical(roomId, {
         system:text(d.innerDrawerType || ''),
         brand:text(d.innerDrawerBrand || ''),
-        model:text(d.innerDrawerModel || '')
-      };
+        model:text(d.innerDrawerModel || ''),
+        usage:'wewnętrzna'
+      }, p);
     }
-    return direct;
+    return canonicalSystemTechnical(roomId, direct, p);
   }
   function derivedRows(roomId, cabinet){
     const out = [];
@@ -102,33 +213,33 @@
 
     if((type === 'stojąca' || type === 'moduł') && sub === 'szuflady'){
       const layout = text(d.drawerLayout) || '3_1_2_2';
-      out.push(row('front_drawers', drawerLayoutQty(layout), `Szuflady frontowe — ${drawerLayoutLabel(layout)}`, Object.assign({ drawerLayout:layout }, systemTechnical(d))));
+      out.push(row('front_drawers', drawerLayoutQty(layout), `Szuflady frontowe — ${drawerLayoutLabel(layout)}`, Object.assign({ drawerLayout:layout }, systemTechnical(roomId, d))));
       if(!isNoDrawerType(d.innerDrawerType)){
-        out.push(row('inner_drawers', d.innerDrawerCount, 'Szuflady wewnętrzne', systemTechnical(d, 'inner')));
+        out.push(row('inner_drawers', d.innerDrawerCount, 'Szuflady wewnętrzne', systemTechnical(roomId, d, 'inner')));
       }
     }
 
     if(type === 'stojąca' && sub === 'zlewowa'){
       if(text(d.sinkFront || 'drzwi') === 'szuflada'){
-        out.push(row('sink_front_drawer', 1, 'Szuflada frontowa w szafce zlewowej', systemTechnical(d)));
+        out.push(row('sink_front_drawer', 1, 'Szuflada frontowa w szafce zlewowej', systemTechnical(roomId, d)));
       }
       if(text(d.sinkExtra) === 'szuflada_wew'){
-        out.push(row('sink_inner_drawers', d.sinkExtraCount || 1, 'Szuflady wewnętrzne w szafce zlewowej', systemTechnical(d, 'sinkInner')));
+        out.push(row('sink_inner_drawers', d.sinkExtraCount || 1, 'Szuflady wewnętrzne w szafce zlewowej', systemTechnical(roomId, d, 'sinkInner')));
       }
     }
 
     if(type === 'stojąca' && sub === 'piekarnikowa'){
       if(text(d.ovenOption || 'szuflada_dol').indexOf('szuflada') !== -1){
-        out.push(row('oven_drawer', 1, 'Szuflada przy piekarniku', systemTechnical(d)));
+        out.push(row('oven_drawer', 1, 'Szuflada przy piekarniku', systemTechnical(roomId, d)));
       }
     }
 
     if(type === 'wisząca' && sub === 'dolna_podblatowa'){
       const frontMode = text(d.podFrontMode || (d.subTypeOption && String(d.subTypeOption).indexOf('szuflada') === 0 ? 'szuflady' : 'drzwi')) || 'drzwi';
       if(frontMode === 'szuflady'){
-        out.push(row('under_counter_front_drawers', cabinet && cabinet.frontCount, 'Szuflady frontowe w dolnej podblatowej', { drawerLayout:'equal' }));
+        out.push(row('under_counter_front_drawers', cabinet && cabinet.frontCount, 'Szuflady frontowe w dolnej podblatowej', Object.assign({ drawerLayout:'equal' }, systemTechnical(roomId, d))));
       } else if(text(d.podInsideMode) === 'szuflady_wewn'){
-        out.push(row('under_counter_inner_drawers', d.podInnerDrawerCount || 1, 'Szuflady wewnętrzne w dolnej podblatowej', {}));
+        out.push(row('under_counter_inner_drawers', d.podInnerDrawerCount || 1, 'Szuflady wewnętrzne w dolnej podblatowej', systemTechnical(roomId, d, 'inner')));
       }
     }
 
@@ -229,6 +340,9 @@
     countDrawerRequirements,
     labelDrawerRequirements,
     cleanDrawerTrash,
+    canonicalSystemTechnical,
+    normalizeModel,
+    modelLabel,
     cleanClone,
     _debug:{ drawerLayoutQty, explicitRows, derivedRows }
   };

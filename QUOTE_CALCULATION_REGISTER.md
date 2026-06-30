@@ -1,3 +1,11 @@
+## 2026-06-28 — Szuflady a rejestr wyliczeń v1
+
+- Cutlista szafki dodaje wymagania okuć `Szuflady / prowadnice`, więc WYCENA dobiera prowadnice/system szuflady z katalogu tak jak inne okucia.
+- Dla szuflad skrzynkowych formatki 18 mm i dno 10 mm zwiększają materiały oraz `cabinet.part_count`, więc wpływają też na projekt techniczny liczony od formatek.
+- Szuflady systemowe nie generują fałszywych formatek skrzynkowych; rejestr powinien pokazać okucie systemowe albo brak ceny w katalogu.
+
+Cache-busting: `20260628_drawer_systems_materials_v1`.
+
 ## 2026-06-28 — Podgląd klienta a rejestr wyliczeń
 
 - Podgląd oferty klienta nadal nie pokazuje rejestru wyliczeń ani technicznych linii kosztowych.

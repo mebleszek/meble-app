@@ -106,6 +106,61 @@
     return FC.cabinetHardwareRequirements || {};
   }
 
+  function getDrawerRequirements(room, cab){
+    try{
+      const api = FC.cabinetDrawerRequirements;
+      if(api && typeof api.getDrawerRequirementsWithQty === 'function') return api.getDrawerRequirementsWithQty(room, cab) || [];
+      if(api && typeof api.getDrawerRequirements === 'function') return api.getDrawerRequirements(room, cab) || [];
+    }catch(_){ }
+    return [];
+  }
+
+  function safeRoundCm(value, fallback){
+    const n = Number(value);
+    if(!Number.isFinite(n) || n <= 0) return fallback || 0;
+    return Math.round(n * 10) / 10;
+  }
+
+  function addDrawerHardwareAndBoxParts(parts, room, cab, dims){
+    const reqs = getDrawerRequirements(room, cab);
+    if(!Array.isArray(reqs) || !reqs.length) return;
+    const bodyMat = cab && cab.bodyColor || 'laminat';
+    const wIn = Number(dims && dims.wIn) || 0;
+    const d = Number(dims && dims.depth) || 0;
+    const sideThicknessCm = 1.8;
+    const runnerClearanceCm = 2.6;
+    const boxOuterWidth = Math.max(0, safeRoundCm(wIn - runnerClearanceCm, wIn));
+    const boxDepth = Math.max(25, Math.min(55, Math.floor(Math.max(0, d - 5) / 5) * 5 || Math.max(0, d - 5)));
+    const boxHeight = 12;
+    const backWidth = Math.max(0, safeRoundCm(boxOuterWidth - 2 * sideThicknessCm, boxOuterWidth));
+    const bottomMaterial = `Dno szuflad 10 mm: ${bodyMat}`;
+
+    reqs.forEach((req)=>{
+      const qty = Math.max(0, Math.round(Number(req && req.qty) || 0));
+      if(qty <= 0) return;
+      const tech = req && req.technical && typeof req.technical === 'object' ? req.technical : {};
+      const label = tech.systemLabel || req.label || 'Szuflada / prowadnice';
+      const material = tech.drawerKind === 'box' ? 'Okucia: prowadnice szuflad skrzynkowych' : 'Okucia: system szuflady';
+      parts.push({
+        name: label,
+        qty,
+        a:0, b:0,
+        dims: tech.drawerKind === 'box' ? 'same prowadnice' : 'wg specyfikacji producenta',
+        material,
+        hardwareRequirement:req || null
+      });
+      if(tech.drawerKind !== 'box') return;
+      const group = 'Szuflady skrzynkowe';
+      const sourceLabel = req.label ? ` — ${req.label}` : '';
+      parts.push({ name:'Bok szuflady skrzynkowej' + sourceLabel, group, qty:qty * 2, a:boxDepth, b:boxHeight, dims:`${fmt(boxDepth)} × ${fmt(boxHeight)}`, material:bodyMat, materialThicknessMm:18 });
+      parts.push({ name:'Tył szuflady skrzynkowej' + sourceLabel, group, qty, a:backWidth, b:boxHeight, dims:`${fmt(backWidth)} × ${fmt(boxHeight)}`, material:bodyMat, materialThicknessMm:18 });
+      parts.push({ name:'Dno szuflady skrzynkowej 10 mm' + sourceLabel, group, qty, a:boxOuterWidth, b:boxDepth, dims:`${fmt(boxOuterWidth)} × ${fmt(boxDepth)}`, material:bottomMaterial, materialThicknessMm:10, pcvEligible:false });
+      if(tech.hasConstructionFront){
+        parts.push({ name:'Przód konstrukcyjny szuflady skrzynkowej' + sourceLabel, group, qty, a:backWidth, b:boxHeight, dims:`${fmt(backWidth)} × ${fmt(boxHeight)}`, material:bodyMat, materialThicknessMm:18 });
+      }
+    });
+  }
+
   function getAventosInfo(cab, room){
     try{
       const hardware = getFrontHardware();
@@ -218,6 +273,8 @@
     }
 
     getFrontParts(room, cab).forEach((p)=> parts.push(p));
+
+    addDrawerHardwareAndBoxParts(parts, room, cab, { wIn, depth:d });
 
     let hingeQty = getHingeCount(room, cab);
     try{

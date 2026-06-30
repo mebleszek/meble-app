@@ -117,6 +117,7 @@
   }
 
   function isPcvEligiblePart(part){
+    if(part && part.pcvEligible === false) return false;
     const qty = Number(part && part.qty) || 0;
     const a = Number(part && part.a) || 0;
     const b = Number(part && part.b) || 0;

@@ -35,6 +35,18 @@
     return out;
   }, {});
 
+  const DRAWER_SYSTEM_OPTIONS = [
+    { key:'', label:'— nie ustawiaj —', manufacturer:'', system:'', model:'', drawerSystem:'' },
+    { key:'box_runners', label:'Skrzynkowe — same prowadnice', manufacturer:'', system:'skrzynkowe', model:'', drawerSystem:'skrzynkowe', materialSpec:'box_18_bottom_10' },
+    { key:'blum_tandembox_antaro', label:'Blum TANDEMBOX Antaro', manufacturer:'Blum', system:'systemowe', brand:'blum', model:'tandembox_antaro', drawerSystem:'systemowe', materialSpec:'producer_spec' },
+    { key:'blum_legrabox', label:'Blum LEGRABOX', manufacturer:'Blum', system:'systemowe', brand:'blum', model:'legrabox', drawerSystem:'systemowe', materialSpec:'producer_spec' },
+    { key:'blum_merivobox', label:'Blum MERIVOBOX', manufacturer:'Blum', system:'systemowe', brand:'blum', model:'merivobox', drawerSystem:'systemowe', materialSpec:'producer_spec' },
+    { key:'gtv_axis_pro', label:'GTV Axis Pro', manufacturer:'GTV', system:'systemowe', brand:'gtv', model:'axis_pro', drawerSystem:'systemowe', materialSpec:'producer_spec' },
+    { key:'rejs_systemowe', label:'Rejs — system szuflady', manufacturer:'Rejs', system:'systemowe', brand:'rejs', model:'rejs_systemowe', drawerSystem:'systemowe', materialSpec:'producer_spec' }
+  ];
+
+  const DEFAULT_HARDWARE_DRAWER_SYSTEM_PREFERENCES = { drawers:'' };
+
   const DEFAULT_ROOM_PREFERENCES = {
     finishStandard: '',
     blendStandard: '',
@@ -44,6 +56,7 @@
       upper: Object.assign({}, DEFAULT_ZONE_PREFERENCES)
     },
     hardwareProducers: Object.assign({}, DEFAULT_HARDWARE_PRODUCER_PREFERENCES),
+    hardwareDrawerSystems: Object.assign({}, DEFAULT_HARDWARE_DRAWER_SYSTEM_PREFERENCES),
     // legacy-only: zachowywane przy normalizacji starych projektów, nie jest już pokazywane w UI WYWIADU.
     hardwareManufacturer: ''
   };
@@ -81,6 +94,29 @@
       backMaterial: text(src.backMaterial || legacySrc.backMaterial),
       openingSystem: text(src.openingSystem || legacySrc.openingSystem),
       bodyPcvMode: normalizePcvMode(src.bodyPcvMode || src.pcvMode || src.edgeColorMode || legacySrc.bodyPcvMode || legacySrc.pcvMode || legacySrc.edgeColorMode)
+    };
+  }
+
+  function normalizeDrawerSystemKey(value){
+    const raw = text(value);
+    if(!raw) return '';
+    const normalized = raw.toLowerCase().replace(/[\s\-]+/g, '_');
+    const hit = DRAWER_SYSTEM_OPTIONS.find((opt)=> opt.key === raw || opt.key === normalized || text(opt.label).toLowerCase() === raw.toLowerCase());
+    return hit ? hit.key : '';
+  }
+
+  function getDrawerSystemOption(value){
+    const key = normalizeDrawerSystemKey(value);
+    return clone(DRAWER_SYSTEM_OPTIONS.find((opt)=> opt.key === key) || DRAWER_SYSTEM_OPTIONS[0]);
+  }
+
+  function getDrawerSystemOptions(){ return clone(DRAWER_SYSTEM_OPTIONS); }
+
+  function normalizeHardwareDrawerSystemPreferences(raw, legacy){
+    const src = isPlainObject(raw) ? raw : {};
+    const legacySrc = isPlainObject(legacy) ? legacy : {};
+    return {
+      drawers: normalizeDrawerSystemKey(src.drawers || src.drawerSystem || legacySrc.drawerSystemPreference || legacySrc.defaultDrawerSystem || legacySrc.drawerSystem)
     };
   }
 
@@ -134,6 +170,7 @@
       blendStandard: text(src.blendStandard),
       zones: {},
       hardwareProducers: normalizeHardwareProducerPreferences(src.hardwareProducers || src.hardware, src),
+      hardwareDrawerSystems: normalizeHardwareDrawerSystemPreferences(src.hardwareDrawerSystems || src.drawerSystems || src.hardwareDrawerSystem, src),
       hardwareManufacturer: text(src.hardwareManufacturer)
     };
     ZONE_KEYS.forEach((zoneKey)=>{
@@ -304,6 +341,30 @@
     return normalizeHardwareProducerPreferences((normalizeRoomPreferences(preferences).hardwareProducers || {}), preferences);
   }
 
+  function getHardwareDrawerSystemPreferences(preferences){
+    return normalizeHardwareDrawerSystemPreferences((normalizeRoomPreferences(preferences).hardwareDrawerSystems || {}), preferences);
+  }
+
+  function resolveDrawerSystemPreference(room, fallback){
+    const fallbackKey = normalizeDrawerSystemKey(fallback);
+    const prefs = getRoomPreferences(room);
+    const roomKey = normalizeDrawerSystemKey(prefs.hardwareDrawerSystems && prefs.hardwareDrawerSystems.drawers);
+    return getDrawerSystemOption(roomKey || fallbackKey || '');
+  }
+
+  function applyDrawerSystemPreferenceToDetails(room, details, opts){
+    const target = details && typeof details === 'object' ? details : {};
+    const force = !!(opts && opts.force);
+    const opt = resolveDrawerSystemPreference(room, opts && opts.fallback);
+    if(!opt || !opt.key) return target;
+    if(!force && (target.drawerSystem || target.drawerBrand || target.drawerModel)) return target;
+    target.drawerSystem = opt.drawerSystem || opt.system || 'skrzynkowe';
+    if(opt.brand || opt.manufacturer) target.drawerBrand = opt.brand || String(opt.manufacturer || '').toLowerCase();
+    if(opt.model) target.drawerModel = opt.model;
+    target.drawerPreferenceApplied = opt.key;
+    return target;
+  }
+
   function resolveHardwareProducerPreference(room, groupKey, fallback){
     const group = getHardwareProducerGroup(groupKey);
     if(!group) return text(fallback);
@@ -312,7 +373,8 @@
     if(roomValue) return roomValue;
     const defaults = getProgramHardwareDefaults();
     const globalValue = text(defaults[group.defaultField] || defaults[group.key]);
-    return globalValue || text(fallback);
+    const drawerPref = group.key === 'drawers' ? resolveDrawerSystemPreference(room, '').manufacturer : '';
+    return drawerPref || globalValue || text(fallback);
   }
 
   function hasMeaningfulZone(zone){
@@ -327,7 +389,7 @@
 
   function hasMeaningfulPreferences(preferences){
     const prefs = normalizeRoomPreferences(preferences);
-    if(text(prefs.finishStandard) || text(prefs.blendStandard) || text(prefs.hardwareManufacturer) || hasMeaningfulHardwareProducers(prefs)) return true;
+    if(text(prefs.finishStandard) || text(prefs.blendStandard) || text(prefs.hardwareManufacturer) || hasMeaningfulHardwareProducers(prefs) || text(prefs.hardwareDrawerSystems && prefs.hardwareDrawerSystems.drawers)) return true;
     return ZONE_KEYS.some((zoneKey)=> hasMeaningfulZone(prefs.zones && prefs.zones[zoneKey]));
   }
 
@@ -359,6 +421,10 @@
     const chunks = [];
     HARDWARE_PRODUCER_GROUPS.forEach((group)=>{
       const value = text(prefs.hardwareProducers && prefs.hardwareProducers[group.key]);
+      if(group.key === 'drawers'){
+        const opt = getDrawerSystemOption(prefs.hardwareDrawerSystems && prefs.hardwareDrawerSystems.drawers);
+        if(opt && opt.key){ chunks.push(group.shortLabel + ': ' + opt.label); return; }
+      }
       if(value) chunks.push(group.shortLabel + ': ' + value);
     });
     return chunks.length ? chunks.join(' • ') : 'Brak preferencji producentów okuć — program użyje globalnych domyślnych z trybiku albo dotychczasowych wartości szafki.';
@@ -367,6 +433,8 @@
   ns.roomPreferences = Object.assign({}, ns.roomPreferences || {}, {
     DEFAULT_ZONE_PREFERENCES: clone(DEFAULT_ZONE_PREFERENCES),
     DEFAULT_HARDWARE_PRODUCER_PREFERENCES: clone(DEFAULT_HARDWARE_PRODUCER_PREFERENCES),
+    DEFAULT_HARDWARE_DRAWER_SYSTEM_PREFERENCES: clone(DEFAULT_HARDWARE_DRAWER_SYSTEM_PREFERENCES),
+    DRAWER_SYSTEM_OPTIONS: clone(DRAWER_SYSTEM_OPTIONS),
     DEFAULT_ROOM_PREFERENCES: clone(DEFAULT_ROOM_PREFERENCES),
     ROOM_PREFERENCE_ZONES: clone(ZONE_META),
     HARDWARE_PRODUCER_GROUPS: clone(HARDWARE_PRODUCER_GROUPS),
@@ -374,6 +442,8 @@
     OPENING_OPTIONS: clone(OPENING_OPTIONS),
     normalizeZonePreferences,
     normalizeHardwareProducerPreferences,
+    normalizeHardwareDrawerSystemPreferences,
+    normalizeDrawerSystemKey,
     normalizeRoomPreferences,
     normalizePcvMode,
     pcvModeLabel,
@@ -387,8 +457,13 @@
     getProgramMaterialDefaults,
     getProgramHardwareDefaults,
     getHardwareProducerPreferences,
+    getHardwareDrawerSystemPreferences,
+    getDrawerSystemOptions,
+    getDrawerSystemOption,
     getHardwareProducerGroup,
     resolveHardwareProducerPreference,
+    resolveDrawerSystemPreference,
+    applyDrawerSystemPreferenceToDetails,
     resolveZoneDefaults,
     resolveZoneFrontMaterial,
     applyZoneDefaultsToDraft,

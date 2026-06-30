@@ -4,7 +4,7 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 function read(rel){ return fs.readFileSync(path.join(root, rel), 'utf8'); }
 function assert(cond, msg){ if(!cond){ console.error('FAIL labor-readable-modes-accordion-smoke:', msg); process.exit(1); } }
-const version = '20260618_wycena_boot_dependency_retry_v1';
+const version = '20260628_drawer_systems_materials_v1';
 const index = read('index.html');
 const dev = read('dev_tests.html');
 const czyn = read('js/tabs/czynnosci.js');

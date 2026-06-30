@@ -68,7 +68,7 @@ function getCabinetExtraSummary(room, cab){
 
       const kindLabel = (vendor === 'blum') ? blumKindLabel
                       : (vendor === 'hafele') ? 'Rozwórka nożycowa DUO.'
-                      : '(w budowie)';
+                      : '';
 
       parts.push(`Podnośniki: ${vendorLabel} • ${kindLabel}`);
     }
@@ -113,7 +113,7 @@ function getCabinetExtraSummary(room, cab){
 
       const kindLabel = (vendor === 'blum') ? blumKindLabel
                       : (vendor === 'hafele') ? 'Rozwórka nożycowa DUO.'
-                      : '(w budowie)';
+                      : '';
 
       parts.push(`Podnośniki: ${vendorLabel} • ${kindLabel}`);
     }
@@ -138,10 +138,10 @@ function getCabinetExtraSummary(room, cab){
       if(sys === 'systemowe'){
         const br = String(d.drawerBrand || 'blum');
         if(br !== 'blum'){
-          sysLabel = br.toUpperCase() + ' (w budowie)';
+          sysLabel = br.toUpperCase() + ' ';
         } else {
           const mdl = String(d.drawerModel || 'tandembox');
-          const map = {tandembox:'TANDEMBOX', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX'};
+          const map = {tandembox:'TANDEMBOX Antaro', tandembox_antaro:'TANDEMBOX Antaro', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX', axis_pro:'Axis Pro', rejs_systemowe:'system Rejs'};
           sysLabel = 'BLUM ' + (map[mdl] || mdl.toUpperCase());
         }
       }
@@ -182,10 +182,10 @@ function getCabinetExtraSummary(room, cab){
       if(sys === 'systemowe'){
         const br = String(d.drawerBrand || 'blum');
         if(br !== 'blum'){
-          sysLabel = br.toUpperCase() + ' (w budowie)';
+          sysLabel = br.toUpperCase() + ' ';
         } else {
           const mdl = String(d.drawerModel || 'tandembox');
-          const map = {tandembox:'TANDEMBOX', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX'};
+          const map = {tandembox:'TANDEMBOX Antaro', tandembox_antaro:'TANDEMBOX Antaro', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX', axis_pro:'Axis Pro', rejs_systemowe:'system Rejs'};
           sysLabel = 'BLUM ' + (map[mdl] || mdl.toUpperCase());
         }
       }
@@ -216,10 +216,10 @@ function getCabinetExtraSummary(room, cab){
         let sysLabel = 'Skrzynkowe';
         if(sys === 'systemowe'){
           const br = String(d.drawerBrand || 'blum');
-          if(br !== 'blum') sysLabel = br.toUpperCase() + ' (w budowie)';
+          if(br !== 'blum') sysLabel = br.toUpperCase() + ' ';
           else {
             const mdl = String(d.drawerModel || 'tandembox');
-            const map = {tandembox:'TANDEMBOX', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX'};
+            const map = {tandembox:'TANDEMBOX Antaro', tandembox_antaro:'TANDEMBOX Antaro', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX', axis_pro:'Axis Pro', rejs_systemowe:'system Rejs'};
             sysLabel = 'BLUM ' + (map[mdl] || mdl.toUpperCase());
           }
         }
@@ -240,10 +240,10 @@ function getCabinetExtraSummary(room, cab){
         if(t === 'systemowe'){
           const br = String(d.sinkInnerDrawerBrand || 'blum');
           if(br !== 'blum'){
-            parts.push(`Szuflady wew.: ${ec} • ${br.toUpperCase()} (w budowie)`);
+            parts.push(`Szuflady wew.: ${ec} • ${br.toUpperCase()} `);
           } else {
             const mdl = String(d.sinkInnerDrawerModel || 'tandembox');
-            const map = {tandembox:'TANDEMBOX', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX'};
+            const map = {tandembox:'TANDEMBOX Antaro', tandembox_antaro:'TANDEMBOX Antaro', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX', axis_pro:'Axis Pro', rejs_systemowe:'system Rejs'};
             parts.push(`Szuflady wew.: ${ec} • BLUM ${(map[mdl]||mdl.toUpperCase())}`);
           }
         } else {
@@ -281,10 +281,10 @@ if(cab.subType === 'zmywarkowa'){
         let sysLabel = 'Skrzynkowe';
         if(sys === 'systemowe'){
           const br = String(d.drawerBrand || 'blum');
-          if(br !== 'blum') sysLabel = br.toUpperCase() + ' (w budowie)';
+          if(br !== 'blum') sysLabel = br.toUpperCase() + ' ';
           else {
             const mdl = String(d.drawerModel || 'tandembox');
-            const map = {tandembox:'TANDEMBOX', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX'};
+            const map = {tandembox:'TANDEMBOX Antaro', tandembox_antaro:'TANDEMBOX Antaro', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX', axis_pro:'Axis Pro', rejs_systemowe:'system Rejs'};
             sysLabel = 'BLUM ' + (map[mdl] || mdl.toUpperCase());
           }
         }

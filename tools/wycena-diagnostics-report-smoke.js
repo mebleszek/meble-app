@@ -68,12 +68,12 @@ async function main(){
   const text = FC.wycenaDiagnostics.stringifyReport(report);
   assert(typeof text === 'string' && text.includes('RAPORT DIAGNOSTYCZNY WYCENA') && text.includes('OSTATNI KLIK WYCEN') && text.includes('ŹRÓDŁA EKRANU WYCENA') && text.includes('SNAPSHOT STORAGE DEEP DIVE'), 'Tekst raportu jest niekompletny', text.slice(0, 300));
   const filename = FC.wycenaDiagnostics.reportFileName(report);
-  assert(/^wycena_diag_20260618_wycena_boot_dependency_retry_v1_\d{8}_\d{6}\.txt$/.test(filename), 'Nazwa pliku raportu ma zawierać build i timestamp', filename);
+  assert(/^wycena_diag_20260628_drawer_systems_materials_v1_\d{8}_\d{6}\.txt$/.test(filename), 'Nazwa pliku raportu ma zawierać build i timestamp', filename);
 
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const devTests = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');
-  assert(index.includes('js/app/wycena/wycena-diagnostics.js?v=20260618_wycena_boot_dependency_retry_v1'), 'index.html nie ładuje diagnostyki z cache-bustingiem');
-  assert(devTests.includes('js/app/wycena/wycena-diagnostics.js?v=20260618_wycena_boot_dependency_retry_v1'), 'dev_tests.html nie ładuje diagnostyki z cache-bustingiem');
+  assert(index.includes('js/app/wycena/wycena-diagnostics.js?v=20260628_drawer_systems_materials_v1'), 'index.html nie ładuje diagnostyki z cache-bustingiem');
+  assert(devTests.includes('js/app/wycena/wycena-diagnostics.js?v=20260628_drawer_systems_materials_v1'), 'dev_tests.html nie ładuje diagnostyki z cache-bustingiem');
   const diagSource = fs.readFileSync(path.join(process.cwd(), 'js/app/wycena/wycena-diagnostics.js'), 'utf8');
   assert(diagSource.includes('Zapisz raport') && !diagSource.includes('Kopiuj raport'), 'Diagnostyka ma zapisywać raport do pliku, bez przycisku kopiowania');
   console.log('[wycena-diagnostics-report-smoke] OK');

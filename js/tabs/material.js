@@ -288,7 +288,23 @@
       tHead.style.gap = '10px';
       table.appendChild(tHead);
 
+      let lastGroup = '';
       parts.forEach(p => {
+        const group = String(p && p.group || '').trim();
+        if(group && group !== lastGroup){
+          lastGroup = group;
+          const groupRow = document.createElement('div');
+          groupRow.className = 'front-row material-part-group-row';
+          groupRow.style.display = 'grid';
+          groupRow.style.gridTemplateColumns = '1fr';
+          groupRow.style.background = '#eef9ff';
+          groupRow.style.borderTop = '1px solid #d8edf8';
+          groupRow.style.borderBottom = '1px solid #d8edf8';
+          groupRow.style.fontWeight = '900';
+          groupRow.style.color = '#075985';
+          groupRow.textContent = group;
+          table.appendChild(groupRow);
+        }
         const row = document.createElement('div');
         row.className = 'front-row';
         row.style.display = 'grid';

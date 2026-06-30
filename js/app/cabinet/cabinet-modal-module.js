@@ -1,6 +1,43 @@
 (function(){
   const ns = (window.FC = window.FC || {});
 
+  const DRAWER_BRAND_OPTIONS = [{v:'blum', t:'BLUM'}, {v:'gtv', t:'GTV'}, {v:'rejs', t:'Rejs'}];
+  const DRAWER_MODEL_OPTIONS = {
+    blum:[{v:'tandembox_antaro', t:'TANDEMBOX Antaro'}, {v:'legrabox', t:'LEGRABOX'}, {v:'merivobox', t:'MERIVOBOX'}, {v:'metabox', t:'METABOX'}],
+    gtv:[{v:'axis_pro', t:'Axis Pro'}],
+    rejs:[{v:'rejs_systemowe', t:'System szuflady Rejs'}]
+  };
+  function drawerModelOptions(brand){ return DRAWER_MODEL_OPTIONS[String(brand || 'blum')] || DRAWER_MODEL_OPTIONS.blum; }
+  function ensureDrawerModel(details, brandKey, modelKey){
+    const d = details || {};
+    const brand = String(d[brandKey] || 'blum');
+    const opts = drawerModelOptions(brand);
+    if(!d[modelKey] || !opts.some((row)=> row.v === d[modelKey])) d[modelKey] = opts[0].v;
+  }
+  function appendDrawerSystemWarning(container){
+    const warn = document.createElement('div');
+    warn.className = 'muted xs';
+    warn.style.marginTop = '6px';
+    warn.textContent = 'Ten system wymaga wpisu w katalogu okuć. Jeśli brakuje ceny, WYCENA pokaże ostrzeżenie.';
+    container.appendChild(warn);
+  }
+  function applyDrawerPreference(ctx){
+    const draft = ctx && ctx.draft;
+    const d = draft && draft.details ? draft.details : null;
+    if(!d || d.drawerPreferenceApplied) return;
+    const room = ctx && ctx.uiState && ctx.uiState.roomType;
+    const api = ns.roomPreferences;
+    if(!api || typeof api.resolveDrawerSystemPreference !== 'function') return;
+    const opt = api.resolveDrawerSystemPreference(room, '');
+    if(!opt || !opt.key) return;
+    const hasManual = !!(d.drawerBrand || d.drawerModel || (d.drawerSystem && String(d.drawerSystem) !== 'skrzynkowe'));
+    if(hasManual) return;
+    d.drawerSystem = opt.drawerSystem || opt.system || 'skrzynkowe';
+    if(opt.brand || opt.manufacturer) d.drawerBrand = opt.brand || String(opt.manufacturer || '').toLowerCase();
+    if(opt.model) d.drawerModel = opt.model;
+    d.drawerPreferenceApplied = opt.key;
+  }
+
   function renderDrawerExtras(ctx){
     const container = ctx.container;
     const draft = ctx.draft;
@@ -16,6 +53,7 @@
       else if(legacy === '5') d.drawerLayout = '5_equal';
       else d.drawerLayout = '3_equal';
     }
+    applyDrawerPreference(ctx);
     if(!d.drawerSystem) d.drawerSystem = 'skrzynkowe';
     if(!('innerDrawerType' in d)) d.innerDrawerType = 'brak';
     if(!('innerDrawerCount' in d) || d.innerDrawerCount == null) d.innerDrawerCount = '0';
@@ -46,23 +84,11 @@
     const ds = String((draft.details && draft.details.drawerSystem) ? draft.details.drawerSystem : 'skrzynkowe');
     if(ds === 'systemowe'){
       if(!draft.details.drawerBrand) draft.details.drawerBrand = 'blum';
-      if(draft.details.drawerBrand === 'blum' && !draft.details.drawerModel) draft.details.drawerModel = 'tandembox';
-      addSelect('Firma systemu', 'drawerBrand', [{v:'blum', t:'BLUM'},{v:'gtv', t:'GTV'},{v:'rejs', t:'Rejs'}], ()=>{ renderCabinetModal(); });
+      ensureDrawerModel(draft.details, 'drawerBrand', 'drawerModel');
+      addSelect('Firma systemu', 'drawerBrand', DRAWER_BRAND_OPTIONS, ()=>{ renderCabinetModal(); });
       const br = String(draft.details.drawerBrand || 'blum');
-      if(br === 'blum'){
-        addSelect('Typ szuflady BLUM', 'drawerModel', [
-          {v:'tandembox', t:'TANDEMBOX (domyślnie)'},
-          {v:'legrabox', t:'LEGRABOX'},
-          {v:'merivobox', t:'MERIVOBOX'},
-          {v:'metabox', t:'METABOX'}
-        ]);
-      } else {
-        const warn = document.createElement('div');
-        warn.className = 'muted xs';
-        warn.style.marginTop = '6px';
-        warn.textContent = 'GTV/Rejs – w budowie. Nie można zatwierdzić.';
-        container.appendChild(warn);
-      }
+      addSelect('Model systemu', 'drawerModel', drawerModelOptions(br));
+      if(br !== 'blum') appendDrawerSystemWarning(container);
     }
 
     const lay = String(d.drawerLayout || '3_1_2_2');

@@ -140,6 +140,7 @@
     const parts = [];
     if(text(r.label)) parts.push(text(r.label));
     if(text(r.ruleId)) parts.push('reguła: ' + text(r.ruleId));
+    if(r.technical && text(r.technical.systemLabel)) parts.push('system: ' + text(r.technical.systemLabel));
     return parts.join(' • ');
   }
   function candidateNameFallbackScore(item, req){
@@ -156,6 +157,19 @@
     if(label.indexOf('wpuszczany') !== -1 && n.indexOf('wpuszcz') !== -1) score += 2;
     if(label.indexOf('lodowkowy') !== -1 && n.indexOf('lodow') !== -1) score += 3;
     if(label.indexOf('narozny') !== -1 && (n.indexOf('naroz') !== -1 || n.indexOf('170') !== -1)) score += 3;
+    const tech = req && req.technical && typeof req.technical === 'object' ? req.technical : {};
+    const group = norm(req && req.hardwareGroup);
+    if(group === 'drawers' || typeId.indexOf('drawer') !== -1 || typeId.indexOf('szuflad') !== -1){
+      const systemKey = norm(tech.drawerSystemKey || '');
+      const model = norm(tech.model || '');
+      const manufacturer = norm(tech.manufacturer || tech.brand || '');
+      if(manufacturer && n.indexOf(manufacturer) !== -1) score += 6;
+      if(systemKey.indexOf('axis') !== -1 && n.indexOf('axis') !== -1) score += 10;
+      if(systemKey.indexOf('tandembox') !== -1 && n.indexOf('tandembox') !== -1) score += 10;
+      if(systemKey.indexOf('antaro') !== -1 && n.indexOf('antaro') !== -1) score += 6;
+      if(model && n.indexOf(model.replace(/_/g, ' ')) !== -1) score += 8;
+      if((systemKey.indexOf('box') !== -1 || systemKey.indexOf('runner') !== -1) && (n.indexOf('prowadnic') !== -1 || n.indexOf('movento') !== -1 || n.indexOf('tandem') !== -1)) score += 6;
+    }
     return score;
   }
 

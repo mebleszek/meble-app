@@ -12,7 +12,7 @@ function assert(cond, msg, details){
     process.exit(1);
   }
 }
-const version = '20260618_wycena_boot_dependency_retry_v1';
+const version = '20260628_drawer_systems_materials_v1';
 const index = read('index.html');
 const defs = read('js/app/pricing/labor-catalog-definitions.js');
 const catalogSrc = read('js/app/pricing/labor-catalog.js');
