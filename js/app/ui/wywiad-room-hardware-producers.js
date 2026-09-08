@@ -131,17 +131,29 @@
     return rows.find((item)=> item.toLowerCase() === raw.toLowerCase()) || '';
   }
 
+  function syncDraftObject(draft, key, normalizedValue){
+    const normalized = normalizedValue && typeof normalizedValue === 'object' && !Array.isArray(normalizedValue)
+      ? normalizedValue
+      : {};
+    const current = draft[key];
+    if(current && typeof current === 'object' && !Array.isArray(current)){
+      Object.assign(current, normalized);
+      return current;
+    }
+    draft[key] = Object.assign({}, normalized);
+    return draft[key];
+  }
+
   function ensureHardwareDraft(draft){
     const api = getApi();
     const normalized = api.normalizeRoomPreferences ? api.normalizeRoomPreferences(draft) : (draft || {});
-    draft.hardwareProducers = Object.assign({}, normalized.hardwareProducers || {});
-    draft.hardwareDrawerSystems = Object.assign({}, normalized.hardwareDrawerSystems || {});
-    return draft.hardwareProducers;
+    const producers = syncDraftObject(draft, 'hardwareProducers', normalized.hardwareProducers);
+    syncDraftObject(draft, 'hardwareDrawerSystems', normalized.hardwareDrawerSystems);
+    return producers;
   }
 
   function ensureDrawerSystemDraft(draft){
     ensureHardwareDraft(draft);
-    draft.hardwareDrawerSystems = Object.assign({}, draft.hardwareDrawerSystems || {});
     return draft.hardwareDrawerSystems;
   }
 

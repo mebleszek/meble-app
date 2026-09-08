@@ -1,3 +1,12 @@
+## 2026-09-08 — poprawka zapisu systemu/modelu szuflad v1
+
+- Paczka wdrożeniowa: `site_drawer_system_save_fix_v1.zip`.
+- W WYWIADZIE wybór konkretnego systemu, np. `Blum TANDEMBOX Antaro`, pozostaje ustawiony po kliknięciu `Zapisz zmiany` i po ponownym otwarciu formularza.
+- Poprawka zachowuje stabilne referencje roboczego stanu `hardwareProducers` i `hardwareDrawerSystems`, dzięki czemu launcher nie zapisuje już do odłączonej kopii.
+- Dodano automatyczny test regresji pełnej ścieżki wyboru i zapisu.
+
+Cache-busting: `20260908_drawer_system_save_fix_v1`.
+
 ## 2026-06-28 — Szuflady: systemy/preferencje i formatki skrzynkowe v1
 
 - W preferencjach pomieszczenia pole `Szuflady / prowadnice` ma teraz dodatkowy wybór konkretnego systemu/modelu, np. `Blum TANDEMBOX Antaro` albo `GTV Axis Pro`, zamiast samego producenta.

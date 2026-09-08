@@ -1,3 +1,13 @@
+## 2026-09-08 — zapis wyboru systemu szuflad v1
+
+- Paczka: `site_drawer_system_save_fix_v1.zip`.
+- Naprawiono formularz `Preferencje producentów okuć`: wybrany `System / model szuflad` nie znika już po zamknięciu pickera ani po kliknięciu `Zapisz zmiany`.
+- Przyczyną były podmieniane obiekty `hardwareProducers` i `hardwareDrawerSystems`; listenery mobilnych launcherów zapisywały wtedy do nieaktualnych referencji. Normalizacja aktualizuje teraz istniejące obiekty draftu bez zrywania referencji.
+- Dodano test całej ścieżki UI `Blum TANDEMBOX Antaro -> Zapisz zmiany -> ponowne zbudowanie formularza` oraz rozszerzono smoke modelu projektu o `hardwareDrawerSystems`.
+- Nie zmieniano katalogu systemów, sposobu liczenia szuflad, materiałów, WYCENY ani istniejących danych projektu.
+
+Cache-busting: `20260908_drawer_system_save_fix_v1`.
+
 ## 2026-06-28 — Szuflady: systemy/preferencje i formatki skrzynkowe v1
 
 - W preferencjach pomieszczenia pole `Szuflady / prowadnice` ma teraz dodatkowy wybór konkretnego systemu/modelu, np. `Blum TANDEMBOX Antaro` albo `GTV Axis Pro`, zamiast samego producenta.
