@@ -64,6 +64,14 @@
     return hit ? hit.label : (current || emptyLabel || EMPTY_OPTION);
   }
 
+  function syncDraftObject(target, next){
+    const current = target && typeof target === 'object' ? target : {};
+    const normalized = FC.programDefaults.normalizeProgramDefaults(next);
+    Object.keys(current).forEach((key)=>{ delete current[key]; });
+    Object.assign(current, normalized);
+    return current;
+  }
+
   function makeChoiceButton(label){
     const api = getChoiceApi();
     if(api && typeof api.createChoiceLauncher === 'function'){
@@ -114,7 +122,7 @@
 
   function render(scroll){
     if(!(scroll && h && FC.programDefaults)) return;
-    let draft = FC.programDefaults.normalizeProgramDefaults(FC.programDefaults.read());
+    const draft = FC.programDefaults.normalizeProgramDefaults(FC.programDefaults.read());
     scroll.innerHTML = '';
 
     const card = h('section', { class:'data-settings-card data-settings-defaults-card' });
@@ -174,12 +182,12 @@
     const cancelBtn = h('button', { type:'button', class:'btn btn-primary', text:'Anuluj zmiany' });
     const saveBtn = h('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
     resetBtn.addEventListener('click', ()=>{
-      draft = FC.programDefaults.normalizeProgramDefaults(null);
+      syncDraftObject(draft, null);
       refreshAll();
     });
     cancelBtn.addEventListener('click', ()=> render(scroll));
     saveBtn.addEventListener('click', ()=>{
-      draft = FC.programDefaults.write(draft);
+      syncDraftObject(draft, FC.programDefaults.write(draft));
       refreshAll();
       if(dom.info) dom.info('Zapisano', 'Domyślne materiały i okucia programu zostały zapisane.');
     });

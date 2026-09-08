@@ -1,3 +1,14 @@
+## 2026-09-08 — stosowanie globalnych ustawień domyślnych v1
+
+- Paczka: `site_program_defaults_apply_fix_v1.zip`.
+- `cabinet-modal-draft.js` nakłada teraz centralny resolver strefowych materiałów zarówno na świeży draft, jak i na draft powstały ze sklonowania ostatniej szafki.
+- Konstrukcja poprzednika zostaje zachowana, natomiast `bodyColor`, `frontMaterial`, `frontColor` i `backMaterial` są ponownie rozstrzygane według kolejności `pokój → trybik → fallback`.
+- `data-settings-defaults-view.js` zachowuje stabilny obiekt draftu po zapisie/resetowaniu, więc drugi cykl edycji bez zamykania widoku nie gubi zmian.
+- Poprawka nie mutuje istniejących szafek i zachowuje wcześniejszą poprawkę zapisu systemu szuflad.
+- Regresję pokrywają `tools/program-defaults-application-smoke.js`, `tools/program-defaults-ui-save-smoke.js` oraz kontrakty w `tools/app-dev-smoke.js` i `js/testing/cabinet/tests.js`.
+
+Cache-busting: `20260908_program_defaults_apply_fix_v1`.
+
 ## 2026-09-08 — zapis wyboru systemu szuflad v1
 
 - Paczka: `site_drawer_system_save_fix_v1.zip`.

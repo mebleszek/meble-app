@@ -216,7 +216,7 @@
           H.assert(Number(draft.depth) === 51, 'Domyślna głębokość draftu kuchni nie jest zgodna z bezpiecznym ustawieniem startowym', draft);
         });
       }),
-      H.makeTest('Szafki', 'Domyślny draft klonuje ostatnią szafkę bez limitu czasu i bez identyfikatorów technicznych', 'Pilnuje dodawania szafka za szafką: nowy draft w danym pomieszczeniu kopiuje ostatni rodzaj i ustawienia, ale nie niesie starych id/setId.', ()=>{
+      H.makeTest('Szafki', 'Domyślny draft klonuje konstrukcję ostatniej szafki bez identyfikatorów technicznych', 'Pilnuje dodawania szafka za szafką: nowy draft kopiuje rodzaj, wymiary i szczegóły, ale nie niesie starych id/setId.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.makeDefaultCabinetDraftForRoom === 'function', 'Brak FC.cabinetModal.makeDefaultCabinetDraftForRoom');
         if(typeof document === 'undefined' || !document || !document.body) return;
         return withCabinetGlobals({
@@ -225,10 +225,29 @@
         }, ()=>{
           const draft = FC.cabinetModal.makeDefaultCabinetDraftForRoom('pokoj');
           H.assert(draft && draft.type === 'moduł' && draft.subType === 'uchylne', 'Draft nie sklonował ostatniej szafki mimo braku limitu czasu', draft);
+          H.assert(Number(draft.width) === 91 && Number(draft.height) === 210 && Number(draft.depth) === 62, 'Draft nie zachował wymiarów ostatniej szafki', draft);
           H.assert(draft.id == null, 'Skopiowany draft nadal niesie stare id', draft);
           H.assert(!('setId' in draft), 'Skopiowany draft nadal niesie setId poprzedniej szafki', draft);
           H.assert(!('setNumber' in draft), 'Skopiowany draft nadal niesie setNumber poprzedniej szafki', draft);
         });
+      }),
+
+      H.makeTest('Szafki', 'Globalne domyślne z trybiku obowiązują także po sklonowaniu ostatniej szafki', 'Chroni zgłoszoną regresję: nowa szafka zachowuje konstrukcję poprzedniej, ale materiały bierze ponownie w kolejności pomieszczenie → trybik → poprzednia wartość.', ()=>{
+        H.assert(FC.cabinetModal && typeof FC.cabinetModal.makeDefaultCabinetDraftForRoom === 'function', 'Brak FC.cabinetModal.makeDefaultCabinetDraftForRoom');
+        return withProgramMaterialDefaults({ bodyColor:'Globalny korpus', frontMaterial:'akryl', frontColor:'Globalny front', backMaterial:'Globalne plecy' }, ()=> withCabinetGlobals({
+          projectData:{ schemaVersion:12, kuchnia:{ cabinets:[{ id:'cab_prev', width:77, height:88, depth:55, type:'stojąca', subType:'standardowa', bodyColor:'Stary korpus', frontMaterial:'laminat', frontColor:'Stary front', backMaterial:'Brak', openingSystem:'uchwyt klienta', details:{ shelves:3 } }], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:86, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 }, preferences:{ zones:{ lower:{}, middle:{}, upper:{} } } } },
+          materials:[
+            { name:'Stary korpus', materialType:'laminat' },
+            { name:'Globalny korpus', materialType:'laminat' },
+            { name:'Globalny front', materialType:'akryl' }
+          ]
+        }, ()=>{
+          const draft = FC.cabinetModal.makeDefaultCabinetDraftForRoom('kuchnia');
+          H.assert(Number(draft.width) === 77 && draft.details && Number(draft.details.shelves) === 3, 'Nowy draft stracił konstrukcję ostatniej szafki', draft);
+          H.assert(draft.bodyColor === 'Globalny korpus', 'Nowy draft nie przejął globalnego korpusu z trybiku', draft);
+          H.assert(draft.frontMaterial === 'akryl' && draft.frontColor === 'Globalny front', 'Nowy draft nie przejął globalnego frontu z trybiku', draft);
+          H.assert(draft.backMaterial === 'Globalne plecy', 'Nowy draft nie przejął globalnych pleców z trybiku', draft);
+        }));
       }),
       H.makeTest('Szafki', 'Nowa szafka bez poprzednika bierze preferencje strefowe pokoju', 'Pilnuje Etapu 1B: preferencje stref dolna/środkowa/górna ustawiają domyślny korpus, front, plecy i otwieranie tylko dla nowych szafek danego typu.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.makeDefaultCabinetDraftForRoom === 'function', 'Brak FC.cabinetModal.makeDefaultCabinetDraftForRoom');
@@ -279,7 +298,7 @@
         }));
       }),
 
-      H.makeTest('Szafki', 'Draft dla wybranego typu kopiuje ostatnią szafkę tego samego typu', 'Pilnuje decyzji: nowa stojąca kopiuje ostatnią stojącą, moduł ostatni moduł, a wisząca ostatnią wiszącą — bez mieszania stref.', ()=>{
+      H.makeTest('Szafki', 'Draft wybranego typu kopiuje konstrukcję poprzednika i odświeża preferencje strefy', 'Pilnuje decyzji: nowa stojąca kopiuje konstrukcję ostatniej stojącej, moduł ostatniego modułu, a materiały ponownie bierze z właściwej strefy.', ()=>{
         H.assert(FC.cabinetModal && typeof FC.cabinetModal.makeDefaultCabinetDraftForType === 'function', 'Brak FC.cabinetModal.makeDefaultCabinetDraftForType');
         if(typeof document === 'undefined' || !document || !document.body) return;
         return withCabinetGlobals({
@@ -289,9 +308,9 @@
           ], fronts:[], sets:[], settings:{ roomHeight:250, bottomHeight:86, legHeight:10, counterThickness:3.8, gapHeight:60, ceilingBlende:10 }, preferences:{ zones:{ lower:{ bodyColor:'Strefa dół' }, middle:{ bodyColor:'Strefa środek' }, upper:{ bodyColor:'Strefa góra' } } } } }
         }, ()=>{
           const standing = FC.cabinetModal.makeDefaultCabinetDraftForType('kuchnia', 'stojąca');
-          H.assert(standing.bodyColor === 'Stojący korpus' && standing.id == null, 'Nowa stojąca nie kopiuje ostatniej stojącej albo niesie id', standing);
+          H.assert(standing.bodyColor === 'Strefa dół' && Number(standing.width) === 60 && standing.id == null, 'Nowa stojąca nie połączyła konstrukcji poprzednika z preferencją dolnej strefy', standing);
           const moduleDraft = FC.cabinetModal.makeDefaultCabinetDraftForType('kuchnia', 'moduł');
-          H.assert(moduleDraft.bodyColor === 'Moduł korpus' && moduleDraft.subType === 'uchylne', 'Nowy moduł nie kopiuje ostatniego modułu', moduleDraft);
+          H.assert(moduleDraft.bodyColor === 'Strefa środek' && moduleDraft.subType === 'uchylne' && Number(moduleDraft.width) === 70, 'Nowy moduł nie połączył konstrukcji poprzednika z preferencją środkowej strefy', moduleDraft);
           const hanging = FC.cabinetModal.makeDefaultCabinetDraftForType('kuchnia', 'wisząca');
           H.assert(hanging.bodyColor === 'Strefa góra', 'Pierwsza wisząca bez poprzednika nie bierze strefy górnej', hanging);
         });

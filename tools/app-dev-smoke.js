@@ -163,7 +163,9 @@ function runDataNodeSmoke(sandbox){
         && src.includes("dom.makeAccordion('Materiały', [materialGrid], { open:false })")
         && src.includes("dom.makeAccordion('Okucia', [hardwareGrid], { open:false })")
         && src.includes('rozrys-choice-launch--options-clean')
-        && (html.includes('20260524_hardware_producer_preferences_v1') || html.includes('20260628_drawer_systems_materials_v1') || html.includes('20260628_drawer_systems_materials_v1') || html.includes('20260628_drawer_systems_materials_v1'));
+        && src.includes('function syncDraftObject(target, next)')
+        && !src.includes('draft = FC.programDefaults.write(draft)')
+        && html.includes('20260908_program_defaults_apply_fix_v1');
     } },
     { name:'Backup store jest dostępny', check:()=> !!(FC.dataBackupStore && typeof FC.dataBackupStore.listBackups === 'function') },
     { name:'BACKUP.md opisuje zakres backupu i jest podpięty do dokumentacji', explain:'Pilnuje decyzji: przed zmianami storage/backup trzeba czytać osobny dokument BACKUP.md, a nie zgadywać zakres snapshotu.', check:()=> {
@@ -958,9 +960,46 @@ function runCabinetNodeSmoke(sandbox){
       const draftSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-draft.js'), 'utf8');
       const wizardSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
       const frontSourceSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/front-material-source.js'), 'utf8');
-      return draftSrc.includes('applyZoneDefaultsToDraft(room, draft, type)')
+      return draftSrc.includes('function applyCurrentDefaultsToDraft(room, draft, typeValue)')
+        && draftSrc.includes('applyZoneDefaultsToDraft(room, target, type)')
+        && draftSrc.includes('applyCurrentDefaultsToDraft(room, cloned, type)')
         && wizardSrc.includes("resolveZoneDefaults(room, 'lower', fallback)")
         && frontSourceSrc.includes('resolveZoneFrontMaterial(room, zone, {})');
+    } },
+    { name:'Nowa szafka po poprzedniku nadal bierze globalne materiały z trybiku', explain:'Chroni zgłoszoną regresję: konstrukcja może pochodzić z ostatniej szafki, ale aktualne domyślne materiały muszą zostać nałożone także w niepustym pomieszczeniu.', check:()=> {
+      if(!(FC.cabinetModalDraft && typeof FC.cabinetModalDraft.makeDefaultCabinetDraftForRoom === 'function' && FC.roomPreferences)) return false;
+      const previousProject = sandbox.projectData;
+      const previousMaterials = sandbox.materials;
+      const previousDefaults = FC.programDefaults;
+      try{
+        sandbox.materials = [
+          { name:'Stary korpus', materialType:'laminat' },
+          { name:'Globalny korpus', materialType:'laminat' },
+          { name:'Globalny front', materialType:'akryl' }
+        ];
+        sandbox.projectData = { schemaVersion:12, kuchnia:{
+          cabinets:[{ id:'cab_old', width:77, height:88, depth:55, type:'stojąca', subType:'standardowa', bodyColor:'Stary korpus', frontMaterial:'laminat', frontColor:'Stary front', backMaterial:'Brak', openingSystem:'uchwyt klienta', details:{ shelves:3 } }],
+          fronts:[], sets:[], settings:{ bottomHeight:86 }, preferences:{ zones:{ lower:{}, middle:{}, upper:{} } }
+        } };
+        FC.programDefaults = Object.assign({}, previousDefaults || {}, {
+          getMaterialDefaults:()=> ({ bodyColor:'Globalny korpus', frontMaterial:'akryl', frontColor:'Globalny front', backMaterial:'Globalne plecy' })
+        });
+        const draft = FC.cabinetModalDraft.makeDefaultCabinetDraftForRoom('kuchnia');
+        const old = sandbox.projectData.kuchnia.cabinets[0];
+        return !!(draft
+          && draft.id == null
+          && Number(draft.width) === 77
+          && draft.details && Number(draft.details.shelves) === 3
+          && draft.bodyColor === 'Globalny korpus'
+          && draft.frontMaterial === 'akryl'
+          && draft.frontColor === 'Globalny front'
+          && draft.backMaterial === 'Globalne plecy'
+          && old.bodyColor === 'Stary korpus');
+      }finally{
+        sandbox.projectData = previousProject;
+        sandbox.materials = previousMaterials;
+        FC.programDefaults = previousDefaults;
+      }
     } },
     { name:'Preferencje WYWIADU używają stref i launcherów aplikacji', explain:'Chroni UI przed powrotem do płaskich preferencji, natywnych selectów i sekcji Domyślne w WYWIADZIE.', check:()=> {
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-preferences.js'), 'utf8');

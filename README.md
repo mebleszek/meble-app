@@ -1,3 +1,15 @@
+## 2026-09-08 — globalne ustawienia domyślne są stosowane v1
+
+- Paczka wdrożeniowa: `site_program_defaults_apply_fix_v1.zip`.
+- Nowa szafka bierze korpus, materiał i kolor frontu oraz plecy z aktualnych ustawień w trybiku także wtedy, gdy w pomieszczeniu są już inne szafki.
+- Program nadal kopiuje z poprzedniej szafki jej konstrukcję (typ, wariant, wymiary i szczegóły), ale nie pozwala już, aby stare materiały ominęły globalne ustawienia.
+- Pierwszeństwo: preferencje strefy pomieszczenia → ustawienia globalne z trybiku → poprzednia/awaryjna wartość.
+- Istniejące zapisane szafki pozostają bez zmian.
+- Kolejne zmiany wykonywane w tym samym otwarciu ustawień nie zapisują się już do nieaktualnej kopii formularza.
+- Dodano testy `tools/program-defaults-application-smoke.js` i `tools/program-defaults-ui-save-smoke.js`.
+
+Cache-busting: `20260908_program_defaults_apply_fix_v1`.
+
 ## 2026-09-08 — poprawka zapisu systemu/modelu szuflad v1
 
 - Paczka wdrożeniowa: `site_drawer_system_save_fix_v1.zip`.

@@ -59,6 +59,24 @@
 
   function getDefaultTypeForRoom(room){ return room === 'kuchnia' ? 'stojąca' : 'moduł'; }
 
+  function applyCurrentDefaultsToDraft(room, draft, typeValue){
+    const target = draft && typeof draft === 'object' ? draft : {};
+    const type = String(typeValue || target.type || getDefaultTypeForRoom(room));
+    try{
+      if(ns.roomPreferences && typeof ns.roomPreferences.applyZoneDefaultsToDraft === 'function'){
+        ns.roomPreferences.applyZoneDefaultsToDraft(room, target, type);
+        return target;
+      }
+      if(ns.programDefaults && typeof ns.programDefaults.applyMaterialsToDraft === 'function'){
+        ns.programDefaults.applyMaterialsToDraft(target);
+      }
+      if(ns.roomPreferences && typeof ns.roomPreferences.applyPreferencesToDraft === 'function'){
+        ns.roomPreferences.applyPreferencesToDraft(room, target);
+      }
+    }catch(_){ }
+    return target;
+  }
+
   function buildFreshDraft(room, typeValue){
     const settings = getRoomSettings(room);
     const baseLaminat = getBaseLaminat();
@@ -86,18 +104,7 @@
       }
     }catch(_){ draft.type = type; }
 
-    try{
-      if(ns.roomPreferences && typeof ns.roomPreferences.applyZoneDefaultsToDraft === 'function'){
-        ns.roomPreferences.applyZoneDefaultsToDraft(room, draft, type);
-      } else {
-        if(ns.programDefaults && typeof ns.programDefaults.applyMaterialsToDraft === 'function'){
-          ns.programDefaults.applyMaterialsToDraft(draft);
-        }
-        if(ns.roomPreferences && typeof ns.roomPreferences.applyPreferencesToDraft === 'function'){
-          ns.roomPreferences.applyPreferencesToDraft(room, draft);
-        }
-      }
-    }catch(_){ }
+    applyCurrentDefaultsToDraft(room, draft, type);
     try{
       if(ns.cabinetDrawerRequirements && typeof ns.cabinetDrawerRequirements.cleanDrawerTrash === 'function'){
         ns.cabinetDrawerRequirements.cleanDrawerTrash(draft);
@@ -110,14 +117,20 @@
     const type = String(typeValue || getDefaultTypeForRoom(room));
     if(type && type !== 'zestaw'){
       const lastSameType = findLastCabinet(room, type);
-      if(lastSameType) return sanitizeClonedCabinet(lastSameType);
+      if(lastSameType){
+        const cloned = sanitizeClonedCabinet(lastSameType);
+        return applyCurrentDefaultsToDraft(room, cloned, type);
+      }
     }
     return buildFreshDraft(room, type === 'zestaw' ? getDefaultTypeForRoom(room) : type);
   }
 
   function makeDefaultCabinetDraftForRoom(room){
     const last = findLastCabinet(room, '');
-    if(last) return sanitizeClonedCabinet(last);
+    if(last){
+      const cloned = sanitizeClonedCabinet(last);
+      return applyCurrentDefaultsToDraft(room, cloned, cloned.type || getDefaultTypeForRoom(room));
+    }
     return makeDefaultCabinetDraftForType(room, getDefaultTypeForRoom(room));
   }
 
