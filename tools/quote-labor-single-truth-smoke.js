@@ -87,7 +87,7 @@ function runLaborRegisterTests(){
   loadLabor(ctx);
   const FC = ctx.FC;
   const laborLines = FC.wycenaCoreLabor.collectCabinetLabor(['kuchnia']);
-  assert(laborLines.length >= 4, 'robocizna szafek ma powstać dla szafek z czynnościami', laborLines);
+  assert(laborLines.length >= 3, 'robocizna szafek ma powstać dla trzech korpusów prowadzących czynności bez dublowania korpusów pomocniczych', laborLines);
 
   const register = FC.quoteCalculationRegister.buildRegister({ labor:laborLines }, { discountPercent:10 });
   const laborRegisterLines = register.lines.filter((row)=> row.section === 'labor');

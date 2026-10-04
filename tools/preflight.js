@@ -76,10 +76,7 @@ function phaseLoadOrder(){
     throw new Error('Audyt kolejności skryptów nie przeszedł');
   }
   const config = require(path.join(TOOLS, 'index-load-groups.js'));
-  const count = (config.INDEX_LOAD_GROUPS || []).reduce(
-    (sum, group)=> sum + (group.scripts || []).length,
-    0
-  );
+  const count = (config.INDEX_LOAD_GROUPS || []).reduce((sum, group)=> sum + (group.scripts || []).length, 0);
   return `Kolejność skryptów: ${count} pozycji PASS`;
 }
 
@@ -87,19 +84,16 @@ function phaseSmoke(){
   const files = fs.readdirSync(TOOLS)
     .filter((name)=> /-smoke\.js$/i.test(name))
     .sort();
-
   const failed = [];
   let appInternal = '';
 
   for(const name of files){
     const result = runNode(path.join(TOOLS, name));
     const output = outputFor(result);
-
     if(name === 'app-dev-smoke.js'){
       const match = output.match(/APP smoke testy:\s*(\d+)\/(\d+)\s+OK/i);
       if(match) appInternal = `${match[1]}/${match[2]}`;
     }
-
     if(result.status !== 0){
       failed.push({ name, output });
     }
@@ -107,51 +101,30 @@ function phaseSmoke(){
 
   if(failed.length){
     failed.forEach((row)=> printFailure(`Smoke: ${row.name}`, row.output));
-    throw new Error(
-      `Smoke testy: ${files.length - failed.length}/${files.length} PASS`
-    );
+    throw new Error(`Smoke testy: ${files.length - failed.length}/${files.length} PASS`);
   }
 
-  return `Smoke testy: ${files.length}/${files.length} PASS${
-    appInternal ? ` | APP: ${appInternal} PASS` : ''
-  }`;
+  return `Smoke testy: ${files.length}/${files.length} PASS${appInternal ? ` | APP: ${appInternal} PASS` : ''}`;
 }
 
 function phaseDependencyAudit(){
-  const { scanDependencies } = require(
-    path.join(TOOLS, 'dependency-audit-lib', 'scan-dependencies.js')
-  );
-
+  const { scanDependencies } = require(path.join(TOOLS, 'dependency-audit-lib', 'scan-dependencies.js'));
   const scan = scanDependencies(ROOT);
-
-  const missing = Array.from(
-    new Set([...scan.indexOrder, ...scan.devOrder])
-  ).filter((file)=> !fs.existsSync(path.join(ROOT, file)));
-
+  const missing = Array.from(new Set([...scan.indexOrder, ...scan.devOrder]))
+    .filter((file)=> !fs.existsSync(path.join(ROOT, file)));
   if(missing.length){
-    throw new Error(
-      `Audyt zależności: HTML odwołuje się do brakujących plików: ${missing.join(', ')}`
-    );
+    throw new Error(`Audyt zależności: HTML odwołuje się do brakujących plików: ${missing.join(', ')}`);
   }
-
   return `Audyt zależności: PASS | JS domenowe: ${scan.jsFiles.length} | index: ${scan.indexOrder.length} | dev_tests: ${scan.devOrder.length}`;
 }
 
 function phaseStorageAudit(){
-  const { buildAudit } = require(
-    path.join(TOOLS, 'local-storage-source-audit.js')
-  );
-
+  const { buildAudit } = require(path.join(TOOLS, 'local-storage-source-audit.js'));
   const previousCwd = process.cwd();
-
   try{
     process.chdir(ROOT);
     const audit = buildAudit(['js']);
-
-    if(!audit || !Array.isArray(audit.rows)){
-      throw new Error('brak wyniku audytu');
-    }
-
+    if(!audit || !Array.isArray(audit.rows)) throw new Error('brak wyniku audytu');
     return `Audyt storage: PASS | referencje: ${audit.totalReferences} | pliki: ${audit.filesWithHits.length}`;
   }finally{
     process.chdir(previousCwd);
@@ -171,12 +144,9 @@ console.log(`Katalog: ${ROOT}`);
 console.log('');
 
 let failed = false;
-
 for(const [name, fn] of phases){
   const started = Date.now();
-
   process.stdout.write(`[RUN ] ${name} ... `);
-
   try{
     const message = fn();
     console.log(`OK (${Date.now() - started} ms)`);
@@ -184,22 +154,14 @@ for(const [name, fn] of phases){
   }catch(error){
     failed = true;
     console.log(`FAIL (${Date.now() - started} ms)`);
-    console.error(
-      `       ${error && error.message ? error.message : String(error)}`
-    );
+    console.error(`       ${error && error.message ? error.message : String(error)}`);
     break;
   }
 }
 
 console.log('');
-
 if(failed){
-  console.error(
-    `PRE-FLIGHT FAIL — zatrzymano po ${Date.now() - STARTED} ms`
-  );
+  console.error(`PRE-FLIGHT FAIL — zatrzymano po ${Date.now() - STARTED} ms`);
   process.exit(1);
 }
-
-console.log(
-  `PRE-FLIGHT PASS — wszystkie kontrole zakończone poprawnie (${Date.now() - STARTED} ms)`
-);
+console.log(`PRE-FLIGHT PASS — wszystkie kontrole zakończone poprawnie (${Date.now() - STARTED} ms)`);

@@ -23,7 +23,7 @@ assert(index.includes('id="laborQuantitySource"'), 'Brak pola laborQuantitySourc
 assert(index.includes('Źródło ilości'), 'Formularz musi pokazywać etykietę Źródło ilości.');
 assert(itemForm.includes("id:'laborQuantitySource'"), 'laborQuantitySource musi być obsługiwane przez aplikacyjny launcher, nie natywny select.');
 assert(itemForm.includes('refreshLaborQuantitySourceSelect'), 'Brak odświeżania listy źródeł ilości.');
-assert(itemForm.includes('quantitySource:readString(\'laborQuantitySource\')'), 'Wybór źródła ilości musi zapisywać się w draftcie pozycji robocizny.');
+assert(itemForm.includes("quantitySource:usesQuantity ? readString('laborQuantitySource') : ''"), 'Wybór źródła ilości musi zapisywać się w draftcie dla trybów korzystających z ilości.');
 assert(itemForm.includes("setValue('laborQuantitySource'"), 'Edycja pozycji musi przywracać zapisane źródło ilości.');
 assert(help.includes('laborQuantitySource') && help.includes('Warunki zastosowania decydują'), 'Brak pomocy ? dla pola Źródło ilości.');
 assert(catalog.includes('normalizeQuantitySource') && catalog.includes('quantitySourceOptions'), 'laborCatalog musi normalizować i wystawiać opcje źródeł ilości.');

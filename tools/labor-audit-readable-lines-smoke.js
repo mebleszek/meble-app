@@ -18,7 +18,7 @@ const snapshotStore = read('js/app/quote/quote-snapshot-store.js');
 const css = read('css/wycena.css');
 
 assert(modal.includes('function renderLaborLine'), 'modal ma osobny renderer robocizny');
-assert(modal.includes("text(row && row.section) === 'labor'"), 'modal kieruje linie robocizny do czytelnego renderera');
+assert(modal.includes("['labor','project'].includes(text(row && row.section))"), 'modal kieruje linie robocizny i projektu do czytelnego renderera');
 ['Dotyczy','Ilość','Czas','Stawka','Warunki','Źródło ilości','Wyliczenie'].forEach((label)=>{
   assert(modal.includes(label), `brak etykiety ${label} w czytelnym audycie robocizny`);
 });

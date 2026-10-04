@@ -165,9 +165,11 @@ const defs = context.FC.laborCatalogDefinitions.DEFAULT_LABOR_DEFINITIONS;
 assert.ok(defs.some((d)=>d.id === 'labor_carrying_cabinet'), 'default labor includes carrying item');
 assert.ok(defs.some((d)=>d.id === 'labor_carrying_disassembly'), 'default labor includes disassembly item');
 
-const lines = context.FC.wycenaCoreLabor.collectCabinetLabor(['room_a']);
+const lines = context.FC.wycenaCoreLabor.collectCarryingLines(['room_a']);
 const heavyLine = lines.find((line)=>line.cabinetId === 'cab_heavy');
-assert.ok(heavyLine, 'heavy cabinet labor line exists');
+assert.ok(heavyLine, 'heavy cabinet carrying line exists');
+assert.equal(heavyLine.type, 'carrying-cabinet', 'carrying uses dedicated quote line type');
+assert.equal(heavyLine.category, 'Wnoszenie mebli', 'carrying is separated from cabinet labor');
 const carryingPart = heavyLine.details.find((row)=>row.sourceRole === 'carrying-labor');
 assert.ok(carryingPart, 'carrying labor component exists');
 assert.equal(carryingPart.rateType, 'helper', 'carrying uses helper rate');

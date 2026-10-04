@@ -56,8 +56,10 @@ const reg = sandbox.FC.quoteCalculationRegister.buildRegister({ quoteRates:[
   { name:'Projekt', category:'Projekt', qty:1, unit:'x', unitPrice:100, total:100 }
 ] }, {});
 assert(reg.totals.transport === 5, 'Transport powinien mieć osobny total 5');
-assert(reg.totals.quoteRates === 100, 'Robocizna/stawki nie mogą zawierać transportu');
-assert(reg.totals.subtotal === 105 && reg.totals.grand === 105, 'Suma oferty powinna zawierać transport');
+assert(reg.totals.project === 100, 'Pozycja kategorii Projekt powinna trafić do osobnego totalu projektu');
+assert(reg.totals.quoteRates === 0, 'Robocizna/stawki nie mogą zawierać transportu ani pozycji projektu');
+assert(reg.totals.subtotal === 105 && reg.totals.grand === 105, 'Suma oferty powinna zawierać transport i projekt');
 assert(reg.lines.some((row)=> row.section === 'transport'), 'Transport powinien być osobną sekcją rejestru');
+assert(reg.lines.some((row)=> row.section === 'project'), 'Projekt powinien być osobną sekcją rejestru');
 
 console.log('Transport catalog quote fix smoke: OK');

@@ -13,7 +13,7 @@ const css = read('css/wycena.css');
 const index = read('index.html');
 const VERSION = '20260628_drawer_systems_materials_v1';
 assert(index.includes(VERSION), 'index.html ma aktualny cache-busting dla poprawki WYCENY');
-assert(diag.includes("const BUILD = '20260628_drawer_systems_materials_v1'"), 'diagnostyka WYCENY ma aktualny build');
+assert(/const BUILD = '[^']+'/.test(diag), 'diagnostyka WYCENY deklaruje własny build');
 assert(shell.includes('function isSnapshotStorageError'), 'shell rozpoznaje błąd zapisu historii WYCENY');
 assert(shell.includes('function buildUnsavedStoragePreviewQuote'), 'shell buduje podgląd bez zapisu historii');
 assert(shell.includes('quoteStorageSaveFailedUnsavedPreview'), 'shell zapisuje diagnostykę podglądu bez historii');

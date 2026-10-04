@@ -68,13 +68,20 @@ async function main(){
   const text = FC.wycenaDiagnostics.stringifyReport(report);
   assert(typeof text === 'string' && text.includes('RAPORT DIAGNOSTYCZNY WYCENA') && text.includes('OSTATNI KLIK WYCEN') && text.includes('ŹRÓDŁA EKRANU WYCENA') && text.includes('SNAPSHOT STORAGE DEEP DIVE'), 'Tekst raportu jest niekompletny', text.slice(0, 300));
   const filename = FC.wycenaDiagnostics.reportFileName(report);
-  assert(/^wycena_diag_20260628_drawer_systems_materials_v1_\d{8}_\d{6}\.txt$/.test(filename), 'Nazwa pliku raportu ma zawierać build i timestamp', filename);
+  const diagSource = fs.readFileSync(path.join(process.cwd(), 'js/app/wycena/wycena-diagnostics.js'), 'utf8');
+  const buildMatch = diagSource.match(/const BUILD = '([^']+)'/);
+  assert(buildMatch && buildMatch[1], 'Diagnostyka musi deklarować własny BUILD');
+  const escapedBuild = buildMatch[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  assert(new RegExp(`^wycena_diag_${escapedBuild}_\\d{8}_\\d{6}\\.txt$`).test(filename), 'Nazwa pliku raportu ma zawierać BUILD modułu i timestamp', filename);
 
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const devTests = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');
-  assert(index.includes('js/app/wycena/wycena-diagnostics.js?v=20260628_drawer_systems_materials_v1'), 'index.html nie ładuje diagnostyki z cache-bustingiem');
-  assert(devTests.includes('js/app/wycena/wycena-diagnostics.js?v=20260628_drawer_systems_materials_v1'), 'dev_tests.html nie ładuje diagnostyki z cache-bustingiem');
-  const diagSource = fs.readFileSync(path.join(process.cwd(), 'js/app/wycena/wycena-diagnostics.js'), 'utf8');
+  const assetPattern = /js\/app\/wycena\/wycena-diagnostics\.js\?v=([^"']+)/;
+  const indexAsset = index.match(assetPattern);
+  const devAsset = devTests.match(assetPattern);
+  assert(indexAsset && indexAsset[1], 'index.html nie ładuje diagnostyki z cache-bustingiem');
+  assert(devAsset && devAsset[1], 'dev_tests.html nie ładuje diagnostyki z cache-bustingiem');
+  assert(indexAsset[1] === devAsset[1], 'index.html i dev_tests.html muszą ładować tę samą wersję assetu diagnostyki');
   assert(diagSource.includes('Zapisz raport') && !diagSource.includes('Kopiuj raport'), 'Diagnostyka ma zapisywać raport do pliku, bez przycisku kopiowania');
   console.log('[wycena-diagnostics-report-smoke] OK');
 }

@@ -81,8 +81,8 @@ assert(!Object.prototype.hasOwnProperty.call(fresh, 'heightMinMm') && !Object.pr
 assert(fresh.conditions.length === 0, 'reguła bez warunków ma pustą listę conditions', fresh);
 
 const conditionCodes = FC.workQuantitySources.conditionList().map((row)=> row.code);
-['cabinet.height_mm','cabinet.width_mm','cabinet.depth_mm','cabinet.volume_m3','front.count','hinge.count','shelf.count','drawer.count','appliance.count'].forEach((code)=> assert(conditionCodes.includes(code), `warunek ${code} jest dostępny`, conditionCodes));
-['cabinet.weight_kg','cabinet.zone','cabinet.kind','appliance.type','hinge.requirement','front.max_width_mm','front.max_height_mm'].forEach((code)=> assert(!conditionCodes.includes(code), `warunek ${code} nie może być aktywny bez świadomego etapu wdrożenia`, conditionCodes));
+['cabinet.height_mm','cabinet.width_mm','cabinet.depth_mm','cabinet.volume_m3','cabinet.weight_kg','front.count','hinge.count','shelf.count','drawer.count','appliance.count','carrying.floor_units','carrying.stairs_item_count','transport.distance_km','transport.duration_hours'].forEach((code)=> assert(conditionCodes.includes(code), `warunek ${code} jest dostępny`, conditionCodes));
+['cabinet.zone','cabinet.kind','appliance.type','hinge.requirement','front.max_width_mm','front.max_height_mm'].forEach((code)=> assert(!conditionCodes.includes(code), `planowany/tekstowy warunek ${code} nie może być aktywnym źródłem liczbowym`, conditionCodes));
 
 const rates = [
   { id:'labor_rate_workshop', category:'Stawki godzinowe', name:'Warsztatowa', price:100, isHourlyRate:true, rateKey:'workshop', rateCode:'workshop', rateType:'workshop', active:true },

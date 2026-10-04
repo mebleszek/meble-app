@@ -312,8 +312,9 @@ function runMaterialNodeSmoke(sandbox){
       const ctx = FC.priceModalContext || {};
       if(!(typeof ctx.hardwarePriceStatus === 'function' && typeof ctx.hardwareItemNeedsPriceCheck === 'function' && typeof ctx.matchesHardwareQuickFilter === 'function' && typeof ctx.renderHardwareAccessoryRow === 'function')) return false;
       const noPrice = ctx.hardwarePriceStatus({ name:'Brak', manufacturer:'Blum', hardwareCategory:'Zawiasy', hardwareUnit:'szt.' });
-      const imported = ctx.hardwarePriceStatus({ name:'Import', manufacturer:'Blum', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', price:10, priceSource:'Import Excel', priceUpdatedAt:'2026-05-10' });
-      const importedCurrent = ctx.hardwarePriceStatus({ name:'Import current', manufacturer:'Blum', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', price:10, priceSource:'Import Excel', priceUpdatedAt:'2026-05-10', priceStatus:'current' });
+      const freshImportDate = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000)).toISOString().slice(0,10);
+      const imported = ctx.hardwarePriceStatus({ name:'Import', manufacturer:'Blum', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', price:10, priceSource:'Import Excel', priceUpdatedAt:freshImportDate });
+      const importedCurrent = ctx.hardwarePriceStatus({ name:'Import current', manufacturer:'Blum', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', price:10, priceSource:'Import Excel', priceUpdatedAt:freshImportDate, priceStatus:'current' });
       const stale = ctx.hardwarePriceStatus({ name:'Stare', manufacturer:'Blum', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', price:10, priceSource:'Bivert', priceUpdatedAt:'2020-01-01' });
       return noPrice.code === 'noPrice' && imported.code === 'check' && importedCurrent.code === 'current' && stale.code === 'stale'
         && html.includes('price-modal-hardware-ux.js')

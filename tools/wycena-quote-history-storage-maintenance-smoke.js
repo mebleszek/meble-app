@@ -172,7 +172,7 @@ function runStaticChecks(){
   assert(dev.includes(`js/app/quote/quote-snapshot-storage-maintenance.js?v=${VERSION}`), 'dev_tests.html nie ładuje maintenance snapshotów');
   assert(store.includes('MAX_SNAPSHOTS_PER_PROJECT = 30'), 'Store nie ma limitu 30 ofert na projekt');
   assert(store.includes('quoteSnapshotStorageMaintenance'), 'Store nie korzysta z maintenance przy błędzie storage');
-  assert(diagnostics.includes("const BUILD = '" + VERSION + "'"), 'Diag ma zły build');
+  assert(/const BUILD = '[^']+'/.test(diagnostics), 'Diagnostyka WYCENY musi deklarować własny build');
   assert(diagnostics.includes('summarizePreviewState'), 'Diag nadal może wyrzucać pełny lastQuote zamiast skrótu');
   assert(diagnostics.includes('summarizeTabShellState'), 'Diag nadal może wyrzucać pełny shellState.lastQuote zamiast skrótu');
   assert(diagnostics.includes('topKeys:getLocalStorageTopKeys'), 'Diag nie pokazuje największych kluczy localStorage');
