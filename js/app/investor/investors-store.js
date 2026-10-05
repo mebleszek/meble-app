@@ -23,7 +23,8 @@
   }
 
   function writeAll(list){
-    if(typeof repo.writeAll === 'function') repo.writeAll(list);
+    if(typeof repo.writeAll === 'function') return repo.writeAll(list) !== false;
+    return false;
   }
 
 
@@ -108,7 +109,7 @@
     const idx = list.findIndex(x => x && x.id === normalized.id);
     if(idx >= 0) list[idx] = normalized;
     else list.unshift(normalized);
-    writeAll(list);
+    if(!writeAll(list)) return null;
     return normalized;
   }
 
@@ -135,7 +136,7 @@
     });
     const list = readAll();
     list.unshift(inv);
-    writeAll(list);
+    if(!writeAll(list)) return null;
     setCurrentId(inv.id);
     return inv;
   }

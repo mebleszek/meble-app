@@ -30,9 +30,29 @@
     return Array.isArray(list) ? list.map((row)=> normalizeRecord(row)).filter(Boolean) : [];
   }
 
-  function writeAll(list){
+  function writeAll(list, options){
     const normalized = Array.isArray(list) ? list.map((row)=> normalizeRecord(row)).filter(Boolean) : [];
-    storage.setJSON(PROJECTS_KEY, normalized);
+    const ok = storage.setJSON(PROJECTS_KEY, normalized);
+    if(ok === false){
+      try{
+        const failure = typeof storage.getLastWriteError === 'function' ? storage.getLastWriteError() : null;
+        const opts = options || {};
+        let handled = false;
+        if(opts.projectRecord && FC.projectFileRecovery && typeof FC.projectFileRecovery.handleProjectWriteFailure === 'function') {
+          handled = FC.projectFileRecovery.handleProjectWriteFailure(failure, {
+            projectRecord:opts.projectRecord,
+            retry:typeof opts.retry === 'function' ? opts.retry : null,
+          }) === true;
+        }
+        if(!handled && typeof storage.notifyWriteFailure === 'function') storage.notifyWriteFailure(failure, { label:'projektu' });
+      }catch(_){
+        try{
+          const failure = typeof storage.getLastWriteError === 'function' ? storage.getLastWriteError() : null;
+          if(typeof storage.notifyWriteFailure === 'function') storage.notifyWriteFailure(failure, { label:'projektu' });
+        }catch(__){ }
+      }
+      return null;
+    }
     return normalized;
   }
 
@@ -87,7 +107,11 @@
     const idx = list.findIndex((row)=> String(row.id || '') === String(normalized.id || ''));
     if(idx >= 0) list[idx] = normalized;
     else list.unshift(normalized);
-    writeAll(list);
+    const written = writeAll(list, {
+      projectRecord:normalized,
+      retry:()=> upsert(normalized),
+    });
+    if(!written) return null;
     return normalized;
   }
 

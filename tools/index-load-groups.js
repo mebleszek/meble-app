@@ -37,6 +37,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/room-preferences/room-preferences-bulk-plan.js",
       "js/app/room-preferences/room-preferences-bulk-apply.js",
       "js/app/project/project-store.js",
+      "js/app/project/project-file-recovery.js",
       "js/app/project/project-bridge.js",
       "js/app/shared/ui-state.js",
       "js/app/investor/session.js",

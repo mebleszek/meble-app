@@ -64,7 +64,27 @@
   }
 
   function writeAll(list){
-    try{ localStorage.setItem(KEY_INVESTORS, JSON.stringify((list || []).map(normalizeInvestor))); }catch(_){ }
+    const normalized = (list || []).map(normalizeInvestor);
+    try{
+      if(FC.storage && typeof FC.storage.setJSON === 'function'){
+        const ok = FC.storage.setJSON(KEY_INVESTORS, normalized);
+        if(ok === false){
+          const failure = typeof FC.storage.getLastWriteError === 'function' ? FC.storage.getLastWriteError() : null;
+          if(typeof FC.storage.notifyWriteFailure === 'function') FC.storage.notifyWriteFailure(failure, { label:'danych inwestora' });
+          return false;
+        }
+        return true;
+      }
+      localStorage.setItem(KEY_INVESTORS, JSON.stringify(normalized));
+      return true;
+    }catch(error){
+      try{
+        if(FC.storage && typeof FC.storage.notifyWriteFailure === 'function'){
+          FC.storage.notifyWriteFailure({ ok:false, key:KEY_INVESTORS, error, name:String(error && error.name || ''), message:String(error && error.message || ''), isQuotaExceeded:String(error && error.name || '') === 'QuotaExceededError' }, { label:'danych inwestora' });
+        }
+      }catch(_){ }
+      return false;
+    }
   }
 
   function readRemovedIds(){

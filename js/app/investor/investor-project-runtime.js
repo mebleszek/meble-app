@@ -42,19 +42,27 @@
   }
 
   function writeProjectFor(id, projectObj){
-    if(!id) return;
+    if(!id) return null;
     const normalized = normalizeProject(projectObj);
+    let centralSaved = null;
+    try{
+      if(repo && typeof repo.saveCentralProjectForInvestor === 'function'){
+        centralSaved = repo.saveCentralProjectForInvestor(id, normalized, { meta:{ source:'investor-project-slot' } });
+      }
+    }catch(_){ centralSaved = null; }
+    if(!centralSaved) return null;
     try{ if(repo && typeof repo.writeLegacySlotProject === 'function') repo.writeLegacySlotProject(id, normalized); }catch(_){ }
-    try{ if(repo && typeof repo.saveCentralProjectForInvestor === 'function') repo.saveCentralProjectForInvestor(id, normalized, { meta:{ source:'investor-project-slot' } }); }catch(_){ }
+    return normalized;
   }
 
   function saveActiveProjectToInvestor(id){
     if(!id) return;
     try{
       if(typeof projectData !== 'undefined' && projectData){
-        writeProjectFor(id, normalizeProject(projectData));
+        return writeProjectFor(id, normalizeProject(projectData));
       }
     }catch(_){ }
+    return null;
   }
 
   function persistAsActiveProject(proj){
