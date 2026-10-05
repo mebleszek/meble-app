@@ -94,6 +94,21 @@
   function ensureInvestorProjectLoadedOnBoot(){
     const id = repo && typeof repo.getCurrentInvestorId === 'function' ? repo.getCurrentInvestorId() : null;
     if(!id) return;
+
+    // Centralny projectStore jest autorytatywnym źródłem na starcie.
+    // Brak legacy slotu nie może już powodować utworzenia świeżego projektu
+    // i nadpisania istniejącego rekordu centralnego.
+    let centralProject = null;
+    try{
+      if(repo && typeof repo.loadCentralProjectForInvestor === 'function'){
+        centralProject = repo.loadCentralProjectForInvestor(id, null);
+      }
+    }catch(_){ centralProject = null; }
+    if(centralProject){
+      setActiveProjectFromInvestor(id);
+      return;
+    }
+
     const hasLegacySlot = repo && typeof repo.readLegacySlotRaw === 'function' ? !!repo.readLegacySlotRaw(id) : false;
     if(hasLegacySlot){
       setActiveProjectFromInvestor(id);
