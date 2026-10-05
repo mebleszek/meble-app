@@ -109,7 +109,7 @@ function main(){
 }
 
 
-function runEmptyCentralRecordRicherLegacyScenario(){
+function runCentralRecordWinsAgainstRicherLegacyScenario(){
   const sandbox = loadSmokeFiles(createSandbox());
   const FC = sandbox.FC;
   if(FC.investorProject && typeof FC.investorProject.init === 'function') FC.investorProject.init();
@@ -138,18 +138,19 @@ function runEmptyCentralRecordRicherLegacyScenario(){
   sandbox.window.projectData = sandbox.projectData;
   sandbox.localStorage.setItem('fc_ui_v1', JSON.stringify({ currentInvestorId:'inv_richer_legacy', activeTab:'wycena' }));
 
-  const result = FC.wycenaContextRepair.repairActiveQuoteContext({ reason:'test-richer-legacy' });
-  assert(result && result.ok, 'Naprawa kontekstu dla bogatszego legacy slotu nie zwróciła OK', result);
-  assert(result.projectData && result.projectData.room_dynamic && result.projectData.room_dynamic.cabinets.length === 1, 'Nie wybrano bogatszego legacy slotu zamiast pustego rekordu centralnego', result);
+  const result = FC.wycenaContextRepair.repairActiveQuoteContext({ reason:'test-central-wins-richer-legacy' });
+  assert(result && result.ok, 'Naprawa kontekstu przy konflikcie central/legacy nie zwróciła OK', result);
+  assert(result.projectData && result.projectData.room_dynamic && result.projectData.room_dynamic.cabinets.length === 0, 'WYCENA ma użyć pustego centralnego projektu zamiast bogatszego legacy slotu', result);
+  assert(!(result.repairs || []).some((item)=> String(item).indexOf('hydrated-project-record-from-') === 0), 'WYCENA nie może już hydratować projectStore z legacy/aktywnej kopii', result.repairs);
   const saved = FC.projectStore.getById('proj_empty_central');
-  assert(saved && saved.projectData && saved.projectData.room_dynamic && saved.projectData.room_dynamic.cabinets.length === 1, 'Bogatszy projekt nie został zapisany z powrotem do centralnego projectStore', saved);
+  assert(saved && saved.projectData && saved.projectData.room_dynamic && saved.projectData.room_dynamic.cabinets.length === 0, 'Legacy slot nie może nadpisać centralnego projectStore', saved);
   const draft = FC.quoteOfferStore.getDraft({ projectId:'proj_empty_central', investorId:'inv_richer_legacy' });
-  assert(draft && draft.selection && draft.selection.selectedRooms[0] === 'room_dynamic', 'Draft nie wskazuje realnego dynamicznego pokoju po naprawie', draft);
+  assert(draft && draft.selection && draft.selection.selectedRooms[0] === 'room_dynamic', 'Draft ma nadal wskazywać pokój z centralnego projektu', draft);
 }
 
 try{
   main();
-  runEmptyCentralRecordRicherLegacyScenario();
+  runCentralRecordWinsAgainstRicherLegacyScenario();
 }
 catch(err){
   console.error('[wycena-local-storage-context-repair-smoke] FAIL:', err && err.message ? err.message : err);

@@ -154,19 +154,6 @@
     return key;
   }
 
-  function legacySlotKey(investorId){
-    const id = text(investorId);
-    return id ? `fc_project_inv_${id}_v1` : '';
-  }
-
-  function readLegacyProjectSlot(investorId){
-    const key = legacySlotKey(investorId);
-    if(!key) return null;
-    try{
-      const raw = storageGetRaw(key);
-      return raw ? JSON.parse(raw) : null;
-    }catch(_){ return null; }
-  }
 
   function freshProjectData(){
     try{ return normalizeProjectData(FC.project && FC.project.DEFAULT_PROJECT ? clone(FC.project.DEFAULT_PROJECT) : null); }catch(_){ return normalizeProjectData({ schemaVersion:1 }); }
@@ -227,20 +214,6 @@
     return score;
   }
 
-  function chooseBetterProjectData(candidates){
-    const rows = (Array.isArray(candidates) ? candidates : [])
-      .map((item, index)=> {
-        const data = item && item.data ? normalizeProjectData(item.data) : null;
-        return data ? Object.assign({}, item, { data, index, score:roomContentScore(data) }) : null;
-      })
-      .filter(Boolean);
-    if(!rows.length) return null;
-    rows.sort((a, b)=> {
-      if(Number(b.score || 0) !== Number(a.score || 0)) return Number(b.score || 0) - Number(a.score || 0);
-      return Number(a.priority || 0) - Number(b.priority || 0);
-    });
-    return rows[0];
-  }
 
   function projectHasContent(projectData){
     const data = projectData && typeof projectData === 'object' ? projectData : {};
@@ -250,41 +223,19 @@
     });
   }
 
-  function readActiveProjectData(){
-    try{
-      const raw = storageGetRaw((getKeys()).projectData || 'fc_project_v1');
-      return raw ? JSON.parse(raw) : null;
-    }catch(_){ return null; }
-  }
-
   function chooseProjectDataForInvestor(investorId, record){
     const rid = text(investorId);
+    // 2B.3a: WYCENA nie wybiera już "bogatszej" kopii z fc_project_v1 ani
+    // fc_project_inv_*. Autorytatywny jest rekord centralnego projectStore,
+    // nawet gdy jest celowo pusty.
+    if(record && text(record.investorId) === rid && record.projectData){
+      return normalizeProjectData(record.projectData);
+    }
     const current = currentProjectId();
     const activeRecord = current ? getProjectRecordById(current) : null;
-    const slot = readLegacyProjectSlot(rid);
-    const active = readActiveProjectData();
-    const candidates = [];
-
-    // Priorytet 1: centralny rekord projektu, ale tylko jeśli nie jest pustym szkieletem.
-    // Poprzednia wersja brała go zawsze jako pierwszy, więc pusty rekord mógł wygrać z realnym
-    // projektem zapisanym w legacy slocie fc_project_inv_* albo w fc_project_v1.
-    if(record && text(record.investorId) === rid && record.projectData){
-      candidates.push({ source:'central-record', priority:30, data:record.projectData });
-    }
-    if(slot){
-      candidates.push({ source:'legacy-investor-slot', priority:10, data:slot });
-    }
     if(activeRecord && text(activeRecord.investorId) === rid && activeRecord.projectData){
-      candidates.push({ source:'active-project-record', priority:20, data:activeRecord.projectData });
+      return normalizeProjectData(activeRecord.projectData);
     }
-    try{
-      if(active && active.meta && text(active.meta.assignedInvestorId) === rid){
-        candidates.push({ source:'active-fc-project', priority:15, data:active });
-      }
-    }catch(_){ }
-
-    const best = chooseBetterProjectData(candidates);
-    if(best) return best.data;
     return freshProjectData();
   }
 
@@ -423,20 +374,6 @@
     if(!record || text(record.investorId) !== investorId){
       record = upsertProjectRecord(investorId, chosenProjectData, null);
       repairs.push('created-missing-project-record');
-    }else{
-      const chosenScore = roomContentScore(chosenProjectData);
-      const recordScore = roomContentScore(record.projectData);
-      if(chosenScore > recordScore){
-        record = upsertProjectRecord(investorId, chosenProjectData, record);
-        repairs.push('hydrated-project-record-from-richer-source');
-      }else if(!record.projectData || !projectDataRoomIds(record.projectData).length){
-        const slot = readLegacyProjectSlot(investorId);
-        if(slot && projectDataRoomIds(slot).length){
-          chosenProjectData = normalizeProjectData(slot);
-          record = upsertProjectRecord(investorId, chosenProjectData, record);
-          repairs.push('hydrated-project-record-from-legacy-slot');
-        }
-      }
     }
 
     if(text(currentProjectId()) !== text(record && record.id)) repairs.push('fixed-current-project-id');

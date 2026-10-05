@@ -34,17 +34,28 @@
   }
 
   function getCurrentInvestorId(){
-    try{ return FC.investors && typeof FC.investors.getCurrentId === 'function' ? String(FC.investors.getCurrentId() || '').trim() : ''; }catch(_){ return ''; }
+    try{
+      if(FC.investors && typeof FC.investors.getCurrentId === 'function'){
+        const id = String(FC.investors.getCurrentId() || '').trim();
+        if(id) return id;
+      }
+    }catch(_){ }
+    try{ return String(storage.getRaw('fc_current_investor_v1') || '').trim(); }catch(_){ return ''; }
   }
 
   function getCentralProjectForActiveContext(){
-    try{
-      const investorId = getCurrentInvestorId();
-      if(investorId && projectStore && typeof projectStore.getByInvestorId === 'function'){
-        const byInvestor = projectStore.getByInvestorId(investorId);
-        if(byInvestor && byInvestor.projectData) return byInvestor.projectData;
-      }
-    }catch(_){ }
+    const investorId = getCurrentInvestorId();
+    if(investorId){
+      try{
+        if(projectStore && typeof projectStore.getByInvestorId === 'function'){
+          const byInvestor = projectStore.getByInvestorId(investorId);
+          if(byInvestor && byInvestor.projectData) return byInvestor.projectData;
+        }
+      }catch(_){ }
+      // Jeżeli aktywny inwestor jest znany, nie wolno podmieniać go projektem
+      // wskazywanym przez stary/stale currentProjectId należący do innego inwestora.
+      return null;
+    }
     try{
       if(projectStore && typeof projectStore.getCurrentRecord === 'function'){
         const current = projectStore.getCurrentRecord();
@@ -55,13 +66,11 @@
   }
 
   function load(){
-    const primaryKey = keys.projectData || 'fc_project_v1';
-    const backupKey = keys.projectBackup || 'fc_project_backup_v1';
-    const rawPrimary = loadRaw(primaryKey);
-    const rawBackup = loadRaw(backupKey);
-    function parseOrNull(raw){ if(!raw) return null; try{ return JSON.parse(raw); }catch(_){ return null; } }
+    // 2B.3a: normalny odczyt projektu ma jedno źródło prawdy — projectStore.
+    // fc_project_v1 i fc_project_backup_v1 pozostają jeszcze zapisami pomocniczymi,
+    // ale nie mogą już automatycznie decydować o projekcie widocznym w aplikacji.
     const central = getCentralProjectForActiveContext();
-    const chosen = central || parseOrNull(rawPrimary) || parseOrNull(rawBackup) || (model && model.DEFAULT_PROJECT_DATA) || { schemaVersion:1 };
+    const chosen = central || (model && model.DEFAULT_PROJECT_DATA) || { schemaVersion:1 };
     return normalizeProject(chosen);
   }
 

@@ -32,12 +32,7 @@
         if(fromStore) return normalizeProject(fromStore);
       }
     }catch(_){ }
-    try{
-      if(repo && typeof repo.readLegacySlotProject === 'function'){
-        const fromLegacySlot = repo.readLegacySlotProject(id);
-        if(fromLegacySlot) return normalizeProject(fromLegacySlot);
-      }
-    }catch(_){ }
+    // Legacy sloty pozostają danymi awaryjnymi, ale nie są już normalnym źródłem odczytu.
     return normalizeProject(freshProject());
   }
 
@@ -117,15 +112,11 @@
       return;
     }
 
-    const hasLegacySlot = repo && typeof repo.readLegacySlotRaw === 'function' ? !!repo.readLegacySlotRaw(id) : false;
-    if(hasLegacySlot){
-      setActiveProjectFromInvestor(id);
-      return;
-    }
     const proj = normalizeProject(freshProject());
     try{ proj.meta = proj.meta || {}; proj.meta.assignedInvestorId = id; }catch(_){ }
+    // Brak rekordu centralnego oznacza utworzenie nowego rekordu centralnego.
+    // Istniejący legacy slot nie jest importowany automatycznie w zwykłym bootcie.
     writeProjectFor(id, proj);
-    try{ if(repo && typeof repo.ensureCentralProjectForInvestor === 'function') repo.ensureCentralProjectForInvestor(id, { projectData:proj, title:'' }); }catch(_){ }
     setActiveProjectFromInvestor(id);
   }
 

@@ -164,6 +164,25 @@ function testCentralWinsAgainstConflictingLegacy(){
     scenario.getCentral());
 }
 
+
+function testMissingCentralDoesNotAutoImportLegacy(){
+  const legacy = projectWithCabinets('inv_legacy_only', ['cab_legacy_only']);
+  const scenario = createRuntimeScenario({
+    investorId:'inv_legacy_only',
+    centralProject:null,
+    legacyProject:legacy,
+  });
+
+  scenario.runtime.ensureInvestorProjectLoadedOnBoot();
+
+  assert(cabinetIds(scenario.getCentral()).length === 0,
+    'Brak centralnego projektu nie może automatycznie importować danych z legacy slotu',
+    { central:scenario.getCentral(), legacy:scenario.getLegacy(), writes:scenario.writes });
+  assert(cabinetIds(scenario.getActive()).length === 0,
+    'Normalny boot bez centralnego projektu ma aktywować nowy centralny projekt, nie legacy',
+    scenario.getActive());
+}
+
 function testRestartKeepsCentralProject(){
   const central = projectWithCabinets('inv_restart', ['cab_restart_1', 'cab_restart_2']);
   const scenario = createRuntimeScenario({
@@ -189,6 +208,7 @@ function testRestartKeepsCentralProject(){
 try{
   testCentralSurvivesWithoutLegacySlot();
   testCentralWinsAgainstConflictingLegacy();
+  testMissingCentralDoesNotAutoImportLegacy();
   testRestartKeepsCentralProject();
   console.log('investor-project-boot-source-truth smoke: OK');
 }catch(error){
