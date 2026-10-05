@@ -146,6 +146,14 @@ let carryingStale = api.ensureCabinetFacts('kuchnia', cab, { recalculate:true, p
 assert.equal(carryingStale.status, 'stale', 'zmiana danych wnoszenia unieważnia logistykę/fakty');
 assert.notEqual(cab.derivedFacts.inputHash, hashBeforeCarrying, 'zmiana wnoszenia zmienia hash');
 
+const beforeRebuild = JSON.parse(JSON.stringify(cab.derivedFacts));
+delete cab.derivedFacts;
+const rebuilt = api.ensureCabinetFacts('kuchnia', cab, { recalculate:true, persist:false });
+assert.equal(rebuilt.status, 'missing', 'projekt wczytany bez derivedFacts odbudowuje cache od zera');
+assert.deepEqual(rebuilt.cache.cutlists, beforeRebuild.cutlists, 'odbudowany cache daje identyczne formatki');
+assert.deepEqual(rebuilt.cache.hardwareRequirements, beforeRebuild.hardwareRequirements, 'odbudowany cache daje identyczne wymagania okuć');
+assert.deepEqual(rebuilt.cache.workFacts.rawValues, beforeRebuild.workFacts.rawValues, 'odbudowany cache daje identyczne źródła robocizny/WYCENY');
+
 const aggregate = api.aggregatePartsForRooms(['kuchnia'], { ensure:true, persist:false });
 assert.ok(Array.isArray(aggregate.materials) && aggregate.materials.length > 0, 'WYCENA/ROZRYS może agregować formatki z cache');
 assert.ok(!read('js/app/cabinet/cabinet-derived-facts.js').includes('localStorage'), 'derivedFacts nie tworzy nowego localStorage');

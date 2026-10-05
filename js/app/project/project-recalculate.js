@@ -56,7 +56,11 @@
     try{
       if(FC.storage && typeof FC.storage.setJSON === 'function'){
         const keys = root.STORAGE_KEYS || (FC.constants && FC.constants.STORAGE_KEYS) || {};
-        FC.storage.setJSON(keys.projectData || 'fc_project_v1', project || getProject());
+        const source = project || getProject();
+        const persisted = FC.projectStore && typeof FC.projectStore.prepareProjectDataForPersistence === 'function'
+          ? FC.projectStore.prepareProjectDataForPersistence(source)
+          : source;
+        FC.storage.setJSON(keys.projectData || 'fc_project_v1', persisted);
         return true;
       }
     }catch(_){ }

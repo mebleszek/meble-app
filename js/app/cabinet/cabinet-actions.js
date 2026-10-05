@@ -60,7 +60,12 @@
 
     try{
       if(FC.project && typeof FC.project.save === 'function') FC.project.save(projectData);
-      else FC.storage && typeof FC.storage.setJSON === 'function' && FC.storage.setJSON(STORAGE_KEYS.projectData, projectData);
+      else if(FC.storage && typeof FC.storage.setJSON === 'function'){
+        const persisted = FC.projectStore && typeof FC.projectStore.prepareProjectDataForPersistence === 'function'
+          ? FC.projectStore.prepareProjectDataForPersistence(projectData)
+          : projectData;
+        FC.storage.setJSON(STORAGE_KEYS.projectData, persisted);
+      }
     }catch(_){ }
     try{ FC.storage && typeof FC.storage.setJSON === 'function' && FC.storage.setJSON(STORAGE_KEYS.ui, uiState); }catch(_){ }
     try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }

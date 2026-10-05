@@ -25,6 +25,31 @@
     catch(_){ return 'proj_' + Date.now(); }
   }
 
+  // derivedFacts to odtwarzalny cache roboczy szafki. Nie może być częścią trwałego zapisu projektu.
+  // Funkcja zawsze pracuje na kopii, więc cache pozostaje dostępny w bieżącym obiekcie w RAM.
+  function prepareProjectDataForPersistence(projectData){
+    const out = clone(projectData && typeof projectData === 'object' ? projectData : {});
+    Object.keys(out || {}).forEach((key)=> {
+      if(key === 'schemaVersion' || key === 'meta') return;
+      const room = out[key];
+      if(!(room && typeof room === 'object' && Array.isArray(room.cabinets))) return;
+      room.cabinets.forEach((cabinet)=> {
+        if(!(cabinet && typeof cabinet === 'object')) return;
+        try{ delete cabinet.derivedFacts; }catch(_){ }
+        try{ delete cabinet._derivedFacts; }catch(_){ }
+      });
+    });
+    return out;
+  }
+
+  function prepareRecordForPersistence(record){
+    const normalized = normalizeRecord(record);
+    if(!normalized) return null;
+    const out = clone(normalized);
+    out.projectData = prepareProjectDataForPersistence(normalized.projectData);
+    return out;
+  }
+
   function readAll(){
     const list = storage.getJSON(PROJECTS_KEY, []);
     return Array.isArray(list) ? list.map((row)=> normalizeRecord(row)).filter(Boolean) : [];
@@ -32,7 +57,8 @@
 
   function writeAll(list, options){
     const normalized = Array.isArray(list) ? list.map((row)=> normalizeRecord(row)).filter(Boolean) : [];
-    const ok = storage.setJSON(PROJECTS_KEY, normalized);
+    const persisted = normalized.map((row)=> prepareRecordForPersistence(row)).filter(Boolean);
+    const ok = storage.setJSON(PROJECTS_KEY, persisted);
     if(ok === false){
       try{
         const failure = typeof storage.getLastWriteError === 'function' ? storage.getLastWriteError() : null;
@@ -196,7 +222,10 @@
   }
 
   function syncLegacyActiveProject(projectData){
-    try{ storage.setJSON(LEGACY_PROJECT_KEY, model && typeof model.normalizeProjectData === 'function' ? model.normalizeProjectData(projectData) : clone(projectData)); }catch(_){ }
+    try{
+      const normalized = model && typeof model.normalizeProjectData === 'function' ? model.normalizeProjectData(projectData) : clone(projectData);
+      storage.setJSON(LEGACY_PROJECT_KEY, prepareProjectDataForPersistence(normalized));
+    }catch(_){ }
   }
 
   FC.projectStore = {
@@ -205,6 +234,8 @@
     readAll,
     writeAll,
     normalizeRecord,
+    prepareProjectDataForPersistence,
+    prepareRecordForPersistence,
     getById,
     getByInvestorId,
     getCurrentRecord,

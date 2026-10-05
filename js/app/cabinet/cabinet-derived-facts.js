@@ -350,7 +350,10 @@
         return true;
       }
       if(typeof projectData !== 'undefined' && FC.storage && typeof FC.storage.setJSON === 'function' && typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS && STORAGE_KEYS.projectData){
-        FC.storage.setJSON(STORAGE_KEYS.projectData, projectData);
+        const persisted = FC.projectStore && typeof FC.projectStore.prepareProjectDataForPersistence === 'function'
+          ? FC.projectStore.prepareProjectDataForPersistence(projectData)
+          : projectData;
+        FC.storage.setJSON(STORAGE_KEYS.projectData, persisted);
         return true;
       }
     }catch(_){ }

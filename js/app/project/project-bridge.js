@@ -17,6 +17,18 @@
     catch(_){ return raw; }
   }
 
+  function prepareForPersistence(projectData){
+    try{
+      if(projectStore && typeof projectStore.prepareProjectDataForPersistence === 'function') return projectStore.prepareProjectDataForPersistence(projectData);
+    }catch(_){ }
+    return normalizeProject(projectData);
+  }
+
+  function prepareRawForPersistence(raw){
+    if(!raw) return raw;
+    try{ return JSON.stringify(prepareForPersistence(JSON.parse(raw))); }catch(_){ return raw; }
+  }
+
   function loadRaw(key){
     try{ return storage.getRaw(key); }catch(_){ return null; }
   }
@@ -61,11 +73,11 @@
     try{
       const currentRaw = loadRaw(primaryKey);
       if(currentRaw){
-        storage.setRaw(backupKey, currentRaw);
+        storage.setRaw(backupKey, prepareRawForPersistence(currentRaw));
         storage.setJSON(backupMetaKey, { savedAt: Date.now() });
       }
     }catch(_){ }
-    try{ storage.setJSON(primaryKey, normalized); }catch(_){ }
+    try{ storage.setJSON(primaryKey, prepareForPersistence(normalized)); }catch(_){ }
     try{
       if(projectStore && typeof projectStore.syncLegacyActiveProject === 'function') projectStore.syncLegacyActiveProject(normalized);
     }catch(_){ }

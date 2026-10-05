@@ -50,10 +50,13 @@
             projectData = validator.validateProject ? validator.validateProject(projectData) : projectData;
             uiState = validator.validateUIState ? validator.validateUIState(uiState) : uiState;
 
+            const persistedProjectData = FC.projectStore && typeof FC.projectStore.prepareProjectDataForPersistence === 'function'
+              ? FC.projectStore.prepareProjectDataForPersistence(projectData)
+              : projectData;
             if(validator.persistIfPossible){
               validator.persistIfPossible(storageKeys.materials, materials);
               validator.persistIfPossible(storageKeys.services, services);
-              validator.persistIfPossible(storageKeys.projectData, projectData);
+              validator.persistIfPossible(storageKeys.projectData, persistedProjectData);
               validator.persistIfPossible(storageKeys.ui, uiState);
             } else {
               if(catalogStore){
@@ -67,7 +70,7 @@
                 storage.setJSON(storageKeys.materials, materials);
                 storage.setJSON(storageKeys.services, services);
               }
-              storage.setJSON(storageKeys.projectData, projectData);
+              storage.setJSON(storageKeys.projectData, persistedProjectData);
               storage.setJSON(storageKeys.ui, uiState);
             }
           }

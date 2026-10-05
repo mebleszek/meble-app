@@ -142,12 +142,17 @@
         },
         save(data){
           const normalized = normalizeProject(data);
+          const prepare = window.FC && window.FC.projectStore && typeof window.FC.projectStore.prepareProjectDataForPersistence === 'function'
+            ? window.FC.projectStore.prepareProjectDataForPersistence
+            : (value)=> value;
           const currentRaw = storage.getRaw(storageKeys.projectData);
           if (currentRaw){
-            storage.setRaw(storageKeys.projectBackup, currentRaw);
+            let backupValue = currentRaw;
+            try{ backupValue = JSON.stringify(prepare(JSON.parse(currentRaw))); }catch(_){ }
+            storage.setRaw(storageKeys.projectBackup, backupValue);
             storage.setJSON(storageKeys.projectBackupMeta, { savedAt: Date.now() });
           }
-          storage.setJSON(storageKeys.projectData, normalized);
+          storage.setJSON(storageKeys.projectData, prepare(normalized));
           return normalized;
         },
         normalize: normalizeProject,

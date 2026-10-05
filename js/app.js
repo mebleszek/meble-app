@@ -80,10 +80,13 @@ try{
     projectData = V.validateProject ? V.validateProject(projectData) : projectData;
     uiState   = V.validateUIState ? V.validateUIState(uiState) : uiState;
 
+    const persistedProjectData = FC.projectStore && typeof FC.projectStore.prepareProjectDataForPersistence === 'function'
+      ? FC.projectStore.prepareProjectDataForPersistence(projectData)
+      : projectData;
     if (V.persistIfPossible){
       V.persistIfPossible(STORAGE_KEYS.materials, materials);
       V.persistIfPossible(STORAGE_KEYS.services, services);
-      V.persistIfPossible(STORAGE_KEYS.projectData, projectData);
+      V.persistIfPossible(STORAGE_KEYS.projectData, persistedProjectData);
       V.persistIfPossible(STORAGE_KEYS.ui, uiState);
     } else {
       if(window.FC && window.FC.catalogStore){
@@ -93,7 +96,7 @@ try{
         FC.storage.setJSON(STORAGE_KEYS.materials, materials);
         FC.storage.setJSON(STORAGE_KEYS.services, services);
       }
-      FC.storage.setJSON(STORAGE_KEYS.projectData, projectData);
+      FC.storage.setJSON(STORAGE_KEYS.projectData, persistedProjectData);
       FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
     }
   }

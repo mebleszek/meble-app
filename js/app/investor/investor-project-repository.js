@@ -19,6 +19,14 @@
     try{ return FC.projectStore || null; }catch(_){ return null; }
   }
 
+  function prepareForPersistence(projectObj){
+    const projectStore = getProjectStore();
+    try{
+      if(projectStore && typeof projectStore.prepareProjectDataForPersistence === 'function') return projectStore.prepareProjectDataForPersistence(projectObj);
+    }catch(_){ }
+    return projectObj;
+  }
+
   function invKey(id){
     const key = String(id || '').trim();
     return key ? (PREFIX + key + SUFFIX) : null;
@@ -46,7 +54,7 @@
   function writeLegacySlotProject(id, projectObj){
     const key = invKey(id);
     if(!key) return null;
-    try{ storage.setRaw(key, JSON.stringify(projectObj)); }catch(_){ }
+    try{ storage.setRaw(key, JSON.stringify(prepareForPersistence(projectObj))); }catch(_){ }
     return projectObj || null;
   }
 
@@ -61,7 +69,7 @@
   }
 
   function writeActiveProject(projectObj){
-    try{ storage.setRaw(ACTIVE_PROJECT_KEY, JSON.stringify(projectObj)); }catch(_){ }
+    try{ storage.setRaw(ACTIVE_PROJECT_KEY, JSON.stringify(prepareForPersistence(projectObj))); }catch(_){ }
     return projectObj || null;
   }
 

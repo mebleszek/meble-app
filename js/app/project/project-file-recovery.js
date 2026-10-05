@@ -28,6 +28,26 @@
     return record && typeof record === 'object' ? clone(record) : null;
   }
 
+  function prepareProjectForPersistence(record){
+    try{
+      if(FC.projectStore && typeof FC.projectStore.prepareRecordForPersistence === 'function') return FC.projectStore.prepareRecordForPersistence(record);
+    }catch(_){ }
+    const out = record && typeof record === 'object' ? clone(record) : null;
+    const data = out && out.projectData && typeof out.projectData === 'object' ? out.projectData : null;
+    if(data){
+      Object.keys(data).forEach((key)=> {
+        const room = data[key];
+        if(!(room && typeof room === 'object' && Array.isArray(room.cabinets))) return;
+        room.cabinets.forEach((cabinet)=> {
+          if(!(cabinet && typeof cabinet === 'object')) return;
+          try{ delete cabinet.derivedFacts; }catch(_){ }
+          try{ delete cabinet._derivedFacts; }catch(_){ }
+        });
+      });
+    }
+    return out;
+  }
+
   function associatedInvestor(projectRecord){
     const investorId = String(projectRecord && projectRecord.investorId || '').trim();
     if(!investorId) return null;
@@ -38,7 +58,7 @@
   }
 
   function buildPayload(record){
-    const project = normalizeProjectRecord(record);
+    const project = prepareProjectForPersistence(normalizeProjectRecord(record));
     if(!(project && String(project.id || '').trim() && project.projectData && typeof project.projectData === 'object')) return null;
     return {
       kind:KIND,
