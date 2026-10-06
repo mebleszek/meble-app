@@ -7,7 +7,16 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  const EXTRA_KEYS = [
+  // Explicit rollback scope: new global storage keys must never join implicitly.
+  const ROLLBACK_KEYS = new Set([
+    'fc_projects_v1',
+    'fc_current_project_id_v1',
+    'fc_quote_snapshots_v1',
+    'fc_quote_offer_drafts_v1',
+    'fc_ui_v1',
+    'fc_project_backup_v1',
+    'fc_project_backup_meta_v1',
+    'fc_project_v1', // Legacy rollback compatibility only; not a project source.
     // investors store
     'fc_investors_v1',
     // correct key for current investor
@@ -17,22 +26,21 @@
     // material tab per-part settings / edge choices
     'fc_edge_v1',
     'fc_material_part_options_v1',
-  ];
+  ]);
 
   const PROJECT_INV_PREFIX = 'fc_project_inv_';
   const PROJECT_INV_SUFFIX = '_v1';
   const SESSION_STORAGE_KEY = 'fc_edit_session_v1';
   const SESSION_SCHEMA_VERSION = 2;
   const DIRTY_CACHE_WINDOW_MS = 120;
-  const TRACKING_IGNORE_KEYS = new Set([SESSION_STORAGE_KEY]);
+
+  function canRollbackKey(key){
+    return typeof key === 'string' && (ROLLBACK_KEYS.has(key)
+      || (key.startsWith(PROJECT_INV_PREFIX) && key.endsWith(PROJECT_INV_SUFFIX)));
+  }
 
   function getKeysToSnapshot(){
-    const keys = [];
-    const K = FC.constants && FC.constants.STORAGE_KEYS ? FC.constants.STORAGE_KEYS : null;
-    if(K){
-      Object.keys(K).forEach((k)=> { if(K[k]) keys.push(String(K[k])); });
-    }
-    EXTRA_KEYS.forEach((k)=> keys.push(k));
+    const keys = Array.from(ROLLBACK_KEYS);
 
     // Include all per-investor project slots so Cancel can restore them.
     // (Without this, Cancel could revert only the active project and leave investor slots modified.)
@@ -40,10 +48,10 @@
       for(let i = 0; i < localStorage.length; i++){
         const k = localStorage.key(i);
         if(!k) continue;
-        if(k.startsWith(PROJECT_INV_PREFIX) && k.endsWith(PROJECT_INV_SUFFIX)) keys.push(k);
+        if(canRollbackKey(k)) keys.push(k);
       }
     }catch(_){ }
-    return Array.from(new Set(keys));
+    return Array.from(new Set(keys)).filter(canRollbackKey);
   }
 
   function readRaw(key){
@@ -144,17 +152,11 @@
     return changed;
   }
 
-  function hasComparableKey(key){
-    const comparable = getComparableKeys();
-    return comparable.includes(String(key || ''));
-  }
-
   function shouldTrackKey(key){
     const normalizedKey = String(key || '');
-    if(!normalizedKey || TRACKING_IGNORE_KEYS.has(normalizedKey)) return false;
+    if(!canRollbackKey(normalizedKey)) return false;
     if(!session.active || !session.snapshot || session.suspendTracking) return false;
-    if(hasComparableKey(normalizedKey)) return true;
-    return normalizedKey.startsWith(PROJECT_INV_PREFIX) && normalizedKey.endsWith(PROJECT_INV_SUFFIX);
+    return true;
   }
 
   function trackKeyMutation(key, nextRaw){
@@ -215,15 +217,25 @@
   }
 
   function getComparableKeys(){
-    if(Array.isArray(session.comparableKeys) && session.comparableKeys.length) return session.comparableKeys;
+    if(Array.isArray(session.comparableKeys) && session.comparableKeys.length){
+      session.comparableKeys = session.comparableKeys.filter(canRollbackKey);
+      return session.comparableKeys;
+    }
     const keys = new Set(Object.keys(session.snapshot || {}));
     try{ getKeysToSnapshot().forEach((k)=> keys.add(k)); }catch(_){ }
-    session.comparableKeys = Array.from(keys);
+    session.comparableKeys = Array.from(keys).filter(canRollbackKey);
     return session.comparableKeys;
   }
 
   function isDirty(){
     if(!session.active || !session.snapshot) return false;
+    for(const key of session.changedKeys){
+      if(!canRollbackKey(key)){
+        session.changedKeys.delete(key);
+        session.lastDirtyCheckAt = 0;
+        session.lastDirtyValue = false;
+      }
+    }
     if(session.changedKeys && session.changedKeys.size) return true;
     const now = Date.now();
     if(session.lastDirtyCheckAt && (now - session.lastDirtyCheckAt) < DIRTY_CACHE_WINDOW_MS){
@@ -278,6 +290,9 @@
       }
       session.active = !!parsed.active;
       session.snapshot = parsed.snapshot && typeof parsed.snapshot === 'object' ? parsed.snapshot : null;
+      if(session.snapshot){
+        session.snapshot = Object.fromEntries(Object.entries(session.snapshot).filter(([key])=> canRollbackKey(key)));
+      }
       session.startedAt = Number(parsed.startedAt || parsed.createdAt || 0);
       session.updatedAt = Number(parsed.updatedAt || 0);
       session.context = parsed.context && typeof parsed.context === 'object' ? parsed.context : resolveSessionContext();
@@ -342,7 +357,10 @@
         return;
       }
       withTrackingSuspended(()=> {
-        for(const [k, raw] of Object.entries(session.snapshot)) writeRaw(k, raw);
+        for(const [k, raw] of Object.entries(session.snapshot)){
+          // Last safety boundary, including old or manually modified snapshots.
+          if(canRollbackKey(k)) writeRaw(k, raw);
+        }
         session.snapshot = null;
         session.comparableKeys = null;
         session.startedAt = 0;
