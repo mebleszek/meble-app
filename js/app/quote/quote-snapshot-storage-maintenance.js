@@ -51,7 +51,6 @@
   function removeKnownTechnicalKeys(){
     const removed = [];
     const fixed = [
-      'fc_edit_session_v1',
       'fc_reload_restore_v1',
       'fc_project_backup_v1',
       'fc_project_backup_meta_v1',
@@ -69,28 +68,9 @@
       const before = bytes(raw(key));
       if(before > 0 && remove(key)) removed.push({ key, bytes:before });
     });
-    try{ if(FC.dataStorageKeys && typeof FC.dataStorageKeys.cleanupVolatileKeys === 'function') FC.dataStorageKeys.cleanupVolatileKeys(); }catch(_){ }
+    // Do not call cleanupVolatileKeys(): it also removes the durable edit session.
+    // The other known volatile caches are already covered by the fixed list above.
     return removed;
-  }
-  function currentUiActiveTab(){
-    try{
-      const parsed = parseObject(raw('fc_ui_v1')) || {};
-      return text(parsed.activeTab || parsed.currentTab || '');
-    }catch(_){ return ''; }
-  }
-  function isLikelyDialogOpen(){
-    try{
-      if(!(document && typeof document.querySelector === 'function')) return false;
-      const selectors = [
-        '.cabinet-modal',
-        '.cabinet-modal-backdrop',
-        '.investor-form-modal',
-        '.price-item-popup',
-        '.quote-diagnostics-modal',
-        '[role="dialog"][aria-modal="true"]'
-      ];
-      return selectors.some((selector)=> !!document.querySelector(selector));
-    }catch(_){ return false; }
   }
   function cleanupStaleEditSession(options){
     const opts = options && typeof options === 'object' ? options : {};
@@ -98,30 +78,21 @@
     const beforeRaw = raw(key);
     const beforeBytes = bytes(beforeRaw);
     const payload = parseObject(beforeRaw);
+    if(FC.session && FC.session.active) return { checked:true, removed:false, reason:'active-session', beforeBytes };
     if(!beforeBytes || !payload) return { checked:true, removed:false, reason:'missing-or-invalid', beforeBytes };
-    const context = payload.context && typeof payload.context === 'object' ? payload.context : {};
-    const snapshot = payload.snapshot && typeof payload.snapshot === 'object' ? payload.snapshot : null;
-    const mode = text(payload.mode || payload.type || payload.kind);
-    const roomId = text(payload.roomId || payload.currentRoomId || payload.editedRoomId || context.roomId);
-    const contextTab = text(context.activeTab);
-    const currentTab = currentUiActiveTab();
-    const modalOpen = isLikelyDialogOpen();
-    const looksStale = !!(payload.active && snapshot && !mode && !roomId && !modalOpen && (contextTab === 'wycena' || currentTab === 'wycena' || opts.force === true));
-    if(!looksStale){
-      return { checked:true, removed:false, reason:'not-safe', beforeBytes, contextTab, currentTab, mode, roomId, modalOpen, snapshotKeys:snapshot ? Object.keys(snapshot).length : 0 };
+    // Match session.js's technical cleanup contract, never infer completion from UI.
+    const inactiveEmpty = payload.active === false && !payload.snapshot;
+    const legacyOrphan = !!(FC.session && typeof FC.session.isLegacyOrphanPayload === 'function'
+      && FC.session.isLegacyOrphanPayload(payload));
+    if(!inactiveEmpty && !legacyOrphan){
+      return { checked:true, removed:false, reason:'not-safe', beforeBytes };
     }
+    const reason = inactiveEmpty ? 'inactive-empty-session' : 'legacy-orphan-session';
     if(opts.dryRun === true){
-      return { checked:true, removed:false, wouldRemove:true, reason:'stale-wycena-edit-session', beforeBytes, contextTab, currentTab, mode, roomId, modalOpen, snapshotKeys:snapshot ? Object.keys(snapshot).length : 0 };
+      return { checked:true, removed:false, wouldRemove:true, reason, beforeBytes };
     }
-    let removed = false;
-    try{
-      if(FC.session && typeof FC.session.commit === 'function'){
-        FC.session.commit();
-        removed = !raw(key);
-      }
-    }catch(_){ removed = false; }
-    if(!removed) removed = remove(key);
-    return { checked:true, removed:!!removed, reason:removed ? 'stale-wycena-edit-session' : 'remove-failed', beforeBytes, afterBytes:bytes(raw(key)), contextTab, currentTab, snapshotKeys:snapshot ? Object.keys(snapshot).length : 0 };
+    const removed = remove(key);
+    return { checked:true, removed:!!removed, reason:removed ? reason : 'remove-failed', beforeBytes, afterBytes:bytes(raw(key)) };
   }
   function storageTopKeys(limit){
     const rows = storageKeys().map((key)=> ({ key, bytes:bytes(raw(key)) }));
@@ -166,7 +137,7 @@
   function prepareForSnapshotWrite(options){
     const opts = options && typeof options === 'object' ? options : {};
     const before = { fcBytes:totalFcBytes(), snapshotBytes:jsonBytes(opts.rows || []), backupBytes:bytes(raw((FC.dataBackupStorage && FC.dataBackupStorage.STORE_KEY) || BACKUP_KEY)) };
-    const staleEditSession = cleanupStaleEditSession({ reason:opts.reason, force:!!opts.aggressive });
+    const staleEditSession = cleanupStaleEditSession({ reason:opts.reason });
     const technicalRemoved = removeKnownTechnicalKeys();
     const backup = compactBackupStore(!!opts.aggressive);
     const after = { fcBytes:totalFcBytes(), backupBytes:bytes(raw(backup.key || BACKUP_KEY)) };
