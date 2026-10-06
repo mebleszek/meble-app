@@ -126,8 +126,8 @@ function runThirtyOffersPerProjectLimit(){
   assert(!rows.some((row)=> row.id === 'snap_0'), 'Najstarsze niezaakceptowane warianty powinny zostać odcięte po limicie 30', rows.map((r)=> r.id));
 }
 
-function runStaleWycenaEditSessionCleanupOnSave(){
-  const staleSnapshot = {
+function runActiveWycenaEditSessionPreservedOnSave(){
+  const sessionSnapshot = {
     fc_quote_snapshots_v1: JSON.stringify([makeSnapshot('old_in_session', 'proj_session', 10)]),
     fc_project_v1: JSON.stringify({ schemaVersion:12 }),
     fc_projects_v1: JSON.stringify([]),
@@ -140,12 +140,13 @@ function runStaleWycenaEditSessionCleanupOnSave(){
     startedAt:1000,
     updatedAt:1000,
     context:{ activeTab:'wycena', projectId:'proj_session', investorId:'inv_storage', roomId:'' },
-    snapshot:staleSnapshot,
+    snapshot:sessionSnapshot,
   }));
+  const sessionRaw = sandbox.localStorage.getItem('fc_edit_session_v1');
   const FC = sandbox.FC;
-  const saved = FC.quoteSnapshotStore.save(makeSnapshot('snap_after_stale_session_cleanup', 'proj_session', 220));
-  assert(saved && saved.id === 'snap_after_stale_session_cleanup', 'Nie zapisano snapshotu po czyszczeniu martwej sesji WYCENY', saved);
-  assert(!sandbox.localStorage.getItem('fc_edit_session_v1'), 'Martwa sesja edycji WYCENY nie została usunięta przed zapisem historii');
+  const saved = FC.quoteSnapshotStore.save(makeSnapshot('snap_with_active_session', 'proj_session', 220));
+  assert(saved && saved.id === 'snap_with_active_session', 'Nie zapisano snapshotu przy aktywnej sesji WYCENY', saved);
+  assert(sandbox.localStorage.getItem('fc_edit_session_v1') === sessionRaw, 'Zapis historii zmienił aktywną sesję tylko z powodu kontekstu WYCENY');
 }
 
 function runCompactQuoteFingerprint(){
@@ -182,7 +183,7 @@ try{
   runStaticChecks();
   runMaintenanceWriteAfterQuota();
   runThirtyOffersPerProjectLimit();
-  runStaleWycenaEditSessionCleanupOnSave();
+  runActiveWycenaEditSessionPreservedOnSave();
   runCompactQuoteFingerprint();
   console.log('[wycena-quote-history-storage-maintenance-smoke] OK');
 }catch(err){

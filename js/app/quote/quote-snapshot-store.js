@@ -124,11 +124,10 @@
     catch(err){ firstError = err; }
     if(firstError){
       const normalMaintenance = runStorageMaintenance(reason || 'writeAll', list, false, firstError);
-      try{ localStorage.removeItem(SNAPSHOT_KEY); invalidateDirtyCache(); }catch(_){ }
+      // setItem is atomic on failure; keep the previous history throughout retries.
       try{ tryWriteRawSnapshot(raw); firstError = null; }
       catch(secondErr){
         const aggressiveMaintenance = runStorageMaintenance(reason || 'writeAll', list, true, secondErr);
-        try{ localStorage.removeItem(SNAPSHOT_KEY); invalidateDirtyCache(); }catch(_){ }
         try{ tryWriteRawSnapshot(raw); firstError = null; }
         catch(err){
           recordStoreEvent('write:error', { reason:String(reason || ''), count:list.length, bytes:bytes(raw), message:String(err && err.message || err || 'błąd'), firstMessage:String(firstError && firstError.message || firstError || ''), normalMaintenance, aggressiveMaintenance });
