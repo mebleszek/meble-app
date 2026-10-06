@@ -46,7 +46,6 @@
       }
     }catch(_){ centralSaved = null; }
     if(!centralSaved) return null;
-    try{ if(repo && typeof repo.writeLegacySlotProject === 'function') repo.writeLegacySlotProject(id, normalized); }catch(_){ }
     return normalized;
   }
 
@@ -61,17 +60,16 @@
   }
 
   function persistAsActiveProject(proj){
+    // 2B.3b: aktywacja projektu nie tworzy już pełnej kopii fc_project_v1.
+    // loadCentralProjectForInvestor() ustawia currentProjectId; tutaj tylko upewniamy się,
+    // że wskazanie ID odpowiada aktywnemu inwestorowi.
     try{
-      if(FC.project && typeof FC.project.save === 'function'){
-        FC.project.__suspendSessionTracking = true;
-        FC.project.save(proj);
-      } else if(repo && typeof repo.writeActiveProject === 'function') {
-        repo.writeActiveProject(proj);
-      }
+      const id = repo && typeof repo.getCurrentInvestorId === 'function' ? repo.getCurrentInvestorId() : null;
+      const store = FC.projectStore || null;
+      const record = id && store && typeof store.getByInvestorId === 'function' ? store.getByInvestorId(id) : null;
+      if(record && store && typeof store.setCurrentProjectId === 'function') store.setCurrentProjectId(record.id);
     }catch(_){ }
-    finally{
-      try{ if(FC.project) FC.project.__suspendSessionTracking = false; }catch(_){ }
-    }
+    return proj || null;
   }
 
   function refreshProjectUi(){
@@ -126,6 +124,41 @@
     }catch(_){ }
   }
 
+  function comparableProjectData(value){
+    let normalized = value;
+    try{
+      if(FC.project && typeof FC.project.normalize === 'function') normalized = FC.project.normalize(value);
+    }catch(_){ }
+    try{
+      if(FC.projectStore && typeof FC.projectStore.prepareProjectDataForPersistence === 'function') {
+        normalized = FC.projectStore.prepareProjectDataForPersistence(normalized);
+      }
+    }catch(_){ }
+    return normalized;
+  }
+
+  function currentCentralProjectForSessionCompare(){
+    const id = repo && typeof repo.getCurrentInvestorId === 'function' ? repo.getCurrentInvestorId() : null;
+    if(id){
+      try{
+        if(repo && typeof repo.loadCentralProjectForInvestor === 'function') {
+          const central = repo.loadCentralProjectForInvestor(id, null);
+          if(central) return central;
+        }
+      }catch(_){ }
+    }
+    try{
+      if(FC.projectStore && typeof FC.projectStore.getCurrentRecord === 'function') {
+        const record = FC.projectStore.getCurrentRecord();
+        if(record && record.projectData) return record.projectData;
+      }
+    }catch(_){ }
+    try{
+      const raw = repo && typeof repo.readActiveProjectRaw === 'function' ? repo.readActiveProjectRaw() : null;
+      return raw ? JSON.parse(raw) : null;
+    }catch(_){ return null; }
+  }
+
   function shouldTrackProjectSession(nextData){
     try{
       if(FC.project && FC.project.__suspendSessionTracking) return false;
@@ -133,14 +166,12 @@
     const session = FC.session;
     if(!(session && typeof session.begin === 'function')) return false;
     if(session.active) return false;
+    const before = comparableProjectData(currentCentralProjectForSessionCompare());
+    const next = comparableProjectData(nextData);
     let beforeRaw = null;
-    try{ beforeRaw = repo && typeof repo.readActiveProjectRaw === 'function' ? repo.readActiveProjectRaw() : null; }catch(_){ beforeRaw = null; }
-    let normalized = nextData;
-    try{
-      if(FC.project && typeof FC.project.normalize === 'function') normalized = FC.project.normalize(nextData);
-    }catch(_){ }
     let nextRaw = null;
-    try{ nextRaw = JSON.stringify(normalized); }catch(_){ nextRaw = null; }
+    try{ beforeRaw = JSON.stringify(before); }catch(_){ beforeRaw = null; }
+    try{ nextRaw = JSON.stringify(next); }catch(_){ nextRaw = null; }
     return beforeRaw !== nextRaw;
   }
 

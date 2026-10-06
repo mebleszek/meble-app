@@ -74,22 +74,56 @@
     return normalizeProject(chosen);
   }
 
-  function save(data){
-    const normalized = normalizeProject(data);
-    const primaryKey = keys.projectData || 'fc_project_v1';
+  function currentCentralRecord(){
+    const investorId = getCurrentInvestorId();
+    if(investorId){
+      try{
+        if(projectStore && typeof projectStore.getByInvestorId === 'function'){
+          const record = projectStore.getByInvestorId(investorId);
+          if(record) return record;
+        }
+      }catch(_){ }
+    }
+    try{
+      if(projectStore && typeof projectStore.getCurrentRecord === 'function') return projectStore.getCurrentRecord();
+    }catch(_){ }
+    return null;
+  }
+
+  function writeSafetyBackup(projectData){
+    if(!projectData) return false;
     const backupKey = keys.projectBackup || 'fc_project_backup_v1';
     const backupMetaKey = keys.projectBackupMeta || 'fc_project_backup_meta_v1';
     try{
-      const currentRaw = loadRaw(primaryKey);
-      if(currentRaw){
-        storage.setRaw(backupKey, prepareRawForPersistence(currentRaw));
-        storage.setJSON(backupMetaKey, { savedAt: Date.now() });
-      }
-    }catch(_){ }
-    try{ storage.setJSON(primaryKey, prepareForPersistence(normalized)); }catch(_){ }
+      const ok = storage.setJSON(backupKey, prepareForPersistence(projectData));
+      if(ok === false) return false;
+      storage.setJSON(backupMetaKey, { savedAt: Date.now() });
+      return true;
+    }catch(_){ return false; }
+  }
+
+  function save(data){
+    const normalized = normalizeProject(data);
+    const before = currentCentralRecord();
+    const investorId = getCurrentInvestorId();
+    let saved = null;
+
+    // 2B.3b: pełny projekt zapisujemy wyłącznie do centralnego projectStore.
+    // fc_project_v1 i fc_project_inv_* nie są już normalnymi mirrorami zapisu.
     try{
-      if(projectStore && typeof projectStore.syncLegacyActiveProject === 'function') projectStore.syncLegacyActiveProject(normalized);
-    }catch(_){ }
+      if(investorId && projectStore && typeof projectStore.saveProjectDataForInvestor === 'function'){
+        saved = projectStore.saveProjectDataForInvestor(investorId, normalized);
+      }else if(before && projectStore && typeof projectStore.upsert === 'function'){
+        saved = projectStore.upsert(Object.assign({}, before, {
+          projectData:normalized,
+          updatedAt:Date.now(),
+        }));
+      }
+    }catch(_){ saved = null; }
+
+    // Backup jest tylko zabezpieczeniem. Powstaje dopiero po potwierdzonym zapisie
+    // centralnym i zawiera poprzedni stan projektu, nigdy nowszy od źródła prawdy.
+    if(saved && before && before.projectData) writeSafetyBackup(before.projectData);
     return normalized;
   }
 

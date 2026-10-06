@@ -220,11 +220,12 @@
       const key = String(sig || '');
       const existing = key ? (store[key] || null) : null;
       if(!existing){
+        // Domyślna okleina jest wartością wyliczaną. Sam odczyt/render MATERIAŁU
+        // nie może tworzyć wpisu w storage ani uruchamiać sesji Zapisz/Anuluj.
+        // Trzymamy ją tylko w pamięci tego store, aby pierwszy ręczny checkbox
+        // zachował pozostałe domyślne krawędzie przy późniejszym zapisie override.
         const def = defaultEdgesForPart(part, cabinet);
-        if(key){
-          store[key] = Object.assign({}, def);
-          saveStore(store, cfg);
-        }
+        if(key) store[key] = Object.assign({}, def);
         return Object.assign({}, def);
       }
       return {

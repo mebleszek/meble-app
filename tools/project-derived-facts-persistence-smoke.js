@@ -113,11 +113,13 @@ try{
   assert(centralRaw && !centralRaw.includes('"derivedFacts"'), 'fc_projects_v1 nadal zapisuje derivedFacts', centralRaw && centralRaw.slice(0, 500));
   assert(hasManualChoices(JSON.parse(centralRaw)[0].projectData), 'fc_projects_v1 zgubił ręczne decyzje użytkownika');
 
-  // Aktywny projekt oraz jego backup muszą być lekkie, nawet gdy wcześniejszy aktywny zapis był ciężki.
+  // 2B.3b: FC.project.save zapisuje już tylko centralny ProjectStore. Stary fc_project_v1
+  // może nadal istnieć jako nieużywana kopia, ale zwykły zapis nie może go modyfikować.
   ctx.localStorage.setItem('fc_project_v1', JSON.stringify(source));
+  const activeLegacyBefore = ctx.localStorage.getItem('fc_project_v1');
   const activeReturned = FC.project.save(source);
   assert(activeReturned && activeReturned.pokoj.cabinets[0].derivedFacts, 'FC.project.save usunął cache z obiektu w RAM');
-  assert(noDerived(JSON.parse(ctx.localStorage.getItem('fc_project_v1'))), 'Aktywny fc_project_v1 nadal zapisuje derivedFacts');
+  assert(ctx.localStorage.getItem('fc_project_v1') === activeLegacyBefore, 'FC.project.save nadal nadpisuje fc_project_v1');
   assert(noDerived(JSON.parse(ctx.localStorage.getItem('fc_project_backup_v1'))), 'Backup aktywnego projektu nadal kopiuje derivedFacts');
 
   FC.investorProjectRepository.writeLegacySlotProject('inv_cache', source);
@@ -141,7 +143,7 @@ try{
   assert(sourceFiles.includes('prepareProjectDataForPersistence'), 'Fallbackowe ścieżki zapisu projektu nie korzystają z centralnego sanitizera');
 
   console.log('project-derived-facts-persistence smoke: OK');
-  console.log(' - derivedFacts zostaje w RAM, ale nie trafia do centralnego/aktywnego/legacy/backup zapisu');
+  console.log(' - derivedFacts zostaje w RAM, nie trafia do centralnego/backup zapisu, a normalny save nie dotyka fc_project_v1');
   console.log(' - ręczne wybory szafki pozostają w trwałych danych źródłowych');
   console.log(' - kopia awaryjna JSON nie zawiera ciężkiego cache');
 }catch(error){

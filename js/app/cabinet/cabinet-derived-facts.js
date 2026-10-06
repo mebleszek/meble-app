@@ -399,7 +399,9 @@
       });
     });
     const summary = summarizeEnsure(results, started);
-    if(opts.persist !== false && summary.recalculations > 0) summary.persisted = persistProject();
+    // Od 2B.2b derivedFacts jest wyłącznie cache w RAM. Jego odbudowanie nie jest
+    // zmianą danych źródłowych projektu i nie może samo uruchamiać zapisu/sesji.
+    summary.persisted = false;
     return summary;
   }
   function getWorkFacts(roomId, cabinet, options){

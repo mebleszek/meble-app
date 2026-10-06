@@ -943,7 +943,7 @@
   function collectCabinetLabor(selectedRooms){
     try{
       const factsApi = FC.cabinetDerivedFacts || null;
-      if(factsApi && typeof factsApi.ensureForRooms === 'function') factsApi.ensureForRooms(selectedRooms || [], { persist:true, recalculate:true });
+      if(factsApi && typeof factsApi.ensureForRooms === 'function') factsApi.ensureForRooms(selectedRooms || [], { persist:false, recalculate:true });
     }catch(_){ }
     const defs = laborDefs();
     const rates = hourlyRates(defs);
@@ -953,7 +953,7 @@
   function collectProjectPreparationLines(selectedRooms){
     try{
       const factsApi = FC.cabinetDerivedFacts || null;
-      if(factsApi && typeof factsApi.ensureForRooms === 'function') factsApi.ensureForRooms(selectedRooms || [], { persist:true, recalculate:true });
+      if(factsApi && typeof factsApi.ensureForRooms === 'function') factsApi.ensureForRooms(selectedRooms || [], { persist:false, recalculate:true });
     }catch(_){ }
     const defs = laborDefs();
     const rates = hourlyRates(defs);
@@ -963,7 +963,7 @@
   function collectCarryingLines(selectedRooms){
     try{
       const factsApi = FC.cabinetDerivedFacts || null;
-      if(factsApi && typeof factsApi.ensureForRooms === 'function') factsApi.ensureForRooms(selectedRooms || [], { persist:true, recalculate:true });
+      if(factsApi && typeof factsApi.ensureForRooms === 'function') factsApi.ensureForRooms(selectedRooms || [], { persist:false, recalculate:true });
     }catch(_){ }
     const defs = laborDefs();
     const rates = hourlyRates(defs);

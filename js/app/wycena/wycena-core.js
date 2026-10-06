@@ -94,7 +94,7 @@
     let sectionStart = perfNow();
     try{
       const factsApi = FC.cabinetDerivedFacts || null;
-      if(factsApi && typeof factsApi.ensureForRooms === 'function') cabinetFactsSummary = factsApi.ensureForRooms(selectedRooms, { persist:true, recalculate:true });
+      if(factsApi && typeof factsApi.ensureForRooms === 'function') cabinetFactsSummary = factsApi.ensureForRooms(selectedRooms, { persist:false, recalculate:true });
     }catch(_){ }
     perf.timingsMs.cabinetFacts = roundMs(perfNow() - sectionStart);
     if(cabinetFactsSummary){

@@ -154,6 +154,12 @@ assert.deepEqual(rebuilt.cache.cutlists, beforeRebuild.cutlists, 'odbudowany cac
 assert.deepEqual(rebuilt.cache.hardwareRequirements, beforeRebuild.hardwareRequirements, 'odbudowany cache daje identyczne wymagania okuć');
 assert.deepEqual(rebuilt.cache.workFacts.rawValues, beforeRebuild.workFacts.rawValues, 'odbudowany cache daje identyczne źródła robocizny/WYCENY');
 
+delete cab.derivedFacts;
+saved = 0;
+const ramOnlySummary = api.ensureForRooms(['kuchnia'], { persist:true, recalculate:true });
+assert.ok(ramOnlySummary.recalculations >= 1, 'ensureForRooms powinno odbudować brakujący cache');
+assert.equal(saved, 0, 'Odbudowanie derivedFacts nie może zapisywać projektu — cache jest tylko w RAM');
+
 const aggregate = api.aggregatePartsForRooms(['kuchnia'], { ensure:true, persist:false });
 assert.ok(Array.isArray(aggregate.materials) && aggregate.materials.length > 0, 'WYCENA/ROZRYS może agregować formatki z cache');
 assert.ok(!read('js/app/cabinet/cabinet-derived-facts.js').includes('localStorage'), 'derivedFacts nie tworzy nowego localStorage');

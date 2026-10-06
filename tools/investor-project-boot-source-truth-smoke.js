@@ -137,9 +137,12 @@ function testCentralSurvivesWithoutLegacySlot(){
   assert(cabinetIds(scenario.getCentral()).includes('cab_keep_1'),
     'Start bez legacy slotu nie może nadpisać istniejącego projektu centralnego',
     { central:scenario.getCentral(), writes:scenario.writes });
-  assert(cabinetIds(scenario.getActive()).includes('cab_keep_1'),
-    'Aktywny projekt po starcie ma pochodzić z centralnego projectStore',
-    scenario.getActive());
+  assert(cabinetIds(scenario.sandbox.projectData).includes('cab_keep_1'),
+    'Projekt w runtime po starcie ma pochodzić z centralnego projectStore',
+    scenario.sandbox.projectData);
+  assert(scenario.writes.active.length === 0,
+    'Boot istniejącego projektu nie powinien już zapisywać pełnej kopii fc_project_v1',
+    scenario.writes);
   assert(scenario.writes.central.length === 0,
     'Samo uruchomienie przy istniejącym projekcie centralnym nie powinno tworzyć świeżego zapisu centralnego',
     scenario.writes);
@@ -156,9 +159,12 @@ function testCentralWinsAgainstConflictingLegacy(){
 
   scenario.runtime.ensureInvestorProjectLoadedOnBoot();
 
-  assert(cabinetIds(scenario.getActive()).length === 0,
+  assert(cabinetIds(scenario.sandbox.projectData).length === 0,
     'Przy konflikcie centralny projekt ma wygrać ze starszym legacy slotem',
-    { active:scenario.getActive(), legacy:scenario.getLegacy() });
+    { runtime:scenario.sandbox.projectData, legacy:scenario.getLegacy() });
+  assert(scenario.writes.active.length === 0,
+    'Aktywacja centralnego projektu nie może odświeżać fc_project_v1',
+    scenario.writes);
   assert(cabinetIds(scenario.getCentral()).length === 0,
     'Legacy slot nie może nadpisać centralnego projektu podczas bootu',
     scenario.getCentral());
@@ -178,9 +184,12 @@ function testMissingCentralDoesNotAutoImportLegacy(){
   assert(cabinetIds(scenario.getCentral()).length === 0,
     'Brak centralnego projektu nie może automatycznie importować danych z legacy slotu',
     { central:scenario.getCentral(), legacy:scenario.getLegacy(), writes:scenario.writes });
-  assert(cabinetIds(scenario.getActive()).length === 0,
+  assert(cabinetIds(scenario.sandbox.projectData).length === 0,
     'Normalny boot bez centralnego projektu ma aktywować nowy centralny projekt, nie legacy',
-    scenario.getActive());
+    scenario.sandbox.projectData);
+  assert(scenario.writes.active.length === 0,
+    'Nowy projekt centralny nie powinien tworzyć pełnej kopii fc_project_v1',
+    scenario.writes);
 }
 
 function testRestartKeepsCentralProject(){

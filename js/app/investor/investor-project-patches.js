@@ -60,8 +60,6 @@
         try{ FC.session && typeof FC.session.begin === 'function' && FC.session.begin(); }catch(_){ }
       }
       const out = origSave(data);
-      const id = repo().getCurrentInvestorId && repo().getCurrentInvestorId();
-      if(id && runtime().writeProjectFor) runtime().writeProjectFor(id, out);
       if(runtime().refreshSessionButtons) runtime().refreshSessionButtons();
       return out;
     };
