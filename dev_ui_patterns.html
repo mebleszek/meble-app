@@ -131,6 +131,55 @@
     </section>
 
     <section class="patterns__grid">
+      <article class="pattern-card" data-ui-pattern="info-ok">
+        <h2>Informacja — jeden przycisk OK</h2>
+        <p>Pojedynczy przycisk OK korzysta z tego samego wzorca co przyciski confirmBox. Nie tworzyć osobnej szerokiej zielonej belki.</p>
+        <div class="pattern-preview pattern-preview--modal">
+          <div class="info-box info-box--ok-only ui-pattern-modal">
+            <div class="info-box__head">
+              <div class="info-box__title">Projekt zapisany</div>
+            </div>
+            <div class="info-box__body">Wszystkie zmiany zostały zapisane poprawnie.</div>
+            <div class="info-box__actions info-box__actions--single">
+              <button class="confirm-btn is-success info-box__action" type="button">OK</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="pattern-card" data-ui-pattern="confirm-destructive">
+        <h2>Potwierdzenie — powrót / akcja destrukcyjna</h2>
+        <p>To jest wzorzec dla decyzji wymagających potwierdzenia. Lewy przycisk wraca bez działania, prawy wykonuje akcję destrukcyjną.</p>
+        <div class="pattern-preview pattern-preview--modal">
+          <div class="confirm-box ui-pattern-modal">
+            <div class="confirm-title">ANULOWAĆ ZMIANY?</div>
+            <div class="confirm-message">Niezapisane zmiany zostaną utracone.</div>
+            <div class="confirm-actions">
+              <button class="confirm-btn is-neutral" type="button">WRÓĆ</button>
+              <button class="confirm-btn is-danger" type="button">✕ ANULUJ ZMIANY</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="pattern-card" data-ui-pattern="local-draft">
+        <h2>Lokalny draft — Wyjdź vs Anuluj / Zapisz</h2>
+        <p>Jeżeli lokalny formularz nie różni się od stanu wejściowego, pokazuj tylko Wyjdź. Po rzeczywistej zmianie pokazuj Anuluj + Zapisz. Powrót do wartości wejściowych przywraca stan clean.</p>
+        <div class="pattern-preview">
+          <p>CLEAN</p>
+          <div class="material-part-options__footer-actions">
+            <button class="btn-primary" type="button">Wyjdź</button>
+          </div>
+        </div>
+        <div class="pattern-preview">
+          <p>DIRTY</p>
+          <div class="material-part-options__footer-actions">
+            <button class="btn-danger" type="button">Anuluj</button>
+            <button class="btn-success" type="button">Zapisz</button>
+          </div>
+        </div>
+      </article>
+
       <article class="pattern-card" data-ui-pattern="modal-shell">
         <h2>Modal / shell / header / X</h2>
         <p>Kopiować 1:1 przez klasy: <code>panel-box panel-box--rozrys</code>, <code>panel-box__head</code>, <code>panel-box__title</code>, <code>panel-box__close</code>.</p>

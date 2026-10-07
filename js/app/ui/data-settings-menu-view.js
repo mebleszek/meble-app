@@ -7,6 +7,7 @@
   const h = dom.h;
 
   const INFO = {
+    patterns:'Wzorce UI są źródłem prawdy dla nowych elementów interfejsu. Przed tworzeniem nowego modala, przycisku, pola lub ikony należy użyć istniejącego wzorca zamiast tworzyć lokalny wariant.',
     backup:'Kopie danych służą do zabezpieczenia aktualnego stanu programu oraz przenoszenia danych między urządzeniami. Raport pamięci jest w narzędziach testów.',
     defaults:'Globalne domyślne materiały i marki okuć są fallbackiem programu. Preferencje konkretnego pomieszczenia mają pierwszeństwo.',
     company:'Dane firmy, adres startowy transportu, telefon, e-mail i klucz OpenRouteService do darmowego przeliczania trasy.',
@@ -130,6 +131,14 @@
       section:'tests',
       infoKey:'tests',
       onClick:()=> { root.location.href = 'dev_tests.html'; },
+    }));
+    grid.appendChild(buildTile({
+      icon:'settings',
+      title:'Wzorce UI',
+      sub:'Wzorcowe modale, przyciski, pola, ikony i elementy interfejsu do kopiowania 1:1.',
+      section:'patterns',
+      infoKey:'patterns',
+      onClick:()=> { root.location.href = 'dev_ui_patterns.html'; },
     }));
     card.appendChild(grid);
     scroll.appendChild(card);
