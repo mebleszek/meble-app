@@ -243,10 +243,11 @@
       const inInvestorTab = !!(typeof uiState !== 'undefined' && uiState && uiState.activeTab === 'inwestor');
       const investorEditing = !!(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock());
 
-      if(dirty){
+      // A failed durable cleanup leaves an active session even after data is clean.
+      if(dirty || (session && session.active)){
         let ok = true;
         try{
-          if(window.FC && window.FC.confirmBox && typeof window.FC.confirmBox.ask === 'function'){
+          if(dirty && window.FC && window.FC.confirmBox && typeof window.FC.confirmBox.ask === 'function'){
             ok = await window.FC.confirmBox.ask({
               title:'ANULOWAĆ ZMIANY?',
               message:'Niezapisane zmiany zostaną utracone. Czy na pewno chcesz cofnąć zmiany?',
@@ -259,7 +260,16 @@
           }
         }catch(_){ ok = true; }
         if(!ok) return true;
-        try{ if(session && typeof session.cancel === 'function') session.cancel(); }catch(_){ }
+        let cancelled = false;
+        try{ if(session && typeof session.cancel === 'function') cancelled = session.cancel() === true; }catch(_){ }
+        if(!cancelled){
+          const message = 'Nie udało się anulować wszystkich zmian. Sesja edycji została zachowana i nie została zakończona. Spróbuj ponownie. Nie zamykaj programu, jeżeli problem się powtarza.';
+          try{
+            if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Nie udało się anulować zmian', message });
+            else window.alert(message);
+          }catch(_){ }
+          return true;
+        }
         try{ if(typeof uiState !== 'undefined' && window.FC && FC.storage && typeof FC.storage.setJSON === 'function') FC.storage.setJSON(STORAGE_KEYS.ui, uiState); }catch(_){ }
         try{ restoreProjectUiAfterSessionChange(); }catch(_){ }
         try{ window.location.reload(); }catch(_){ }

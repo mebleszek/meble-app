@@ -62,7 +62,8 @@
     try{
       if(raw === null || typeof raw === 'undefined') localStorage.removeItem(key);
       else localStorage.setItem(key, raw);
-    }catch(_){ }
+      return true;
+    }catch(_){ return false; }
   }
 
   function invalidateDirtyCache(){
@@ -344,22 +345,18 @@
       });
     },
     cancel(){
-      if(!session.snapshot){
-        withTrackingSuspended(()=> {
-          session.active = false;
-          session.comparableKeys = null;
-          session.startedAt = 0;
-          session.updatedAt = 0;
-          session.context = null;
-          invalidateDirtyCache();
-          persistSession();
-        });
-        return;
-      }
-      withTrackingSuspended(()=> {
-        for(const [k, raw] of Object.entries(session.snapshot)){
+      return withTrackingSuspended(()=> {
+        let restored = true;
+        for(const [k, raw] of Object.entries(session.snapshot || {})){
           // Last safety boundary, including old or manually modified snapshots.
-          if(canRollbackKey(k)) writeRaw(k, raw);
+          if(canRollbackKey(k) && !writeRaw(k, raw)) restored = false;
+        }
+        // Finish durably before discarding RAM state, also when there is no snapshot.
+        if(!restored || !writeRaw(SESSION_STORAGE_KEY, null)){
+          // Keep the original RAM and persisted snapshot for another cancel attempt.
+          session.active = true;
+          invalidateDirtyCache();
+          return false;
         }
         session.snapshot = null;
         session.comparableKeys = null;
@@ -368,7 +365,7 @@
         session.context = null;
         session.active = false;
         invalidateDirtyCache();
-        persistSession();
+        return true;
       });
     },
     invalidateDirtyCache,
