@@ -239,7 +239,10 @@
     // Session buttons
     'session-cancel': async ({event}) => {
       const session = (window.FC && window.FC.session) ? window.FC.session : null;
-      const dirty = !!(session && typeof session.isDirty === 'function' && session.isDirty());
+      const storageDirty = !!(session && typeof session.isDirty === 'function' && session.isDirty());
+      const runtime = FC.investorProjectRuntime;
+      const dirty = storageDirty || !!(session && session.active && runtime && typeof runtime.hasProjectDivergence === 'function'
+        && typeof projectData !== 'undefined' && runtime.hasProjectDivergence(projectData));
       const inInvestorTab = !!(typeof uiState !== 'undefined' && uiState && uiState.activeTab === 'inwestor');
       const investorEditing = !!(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock());
 
@@ -295,8 +298,22 @@
 
       if(dirty || (session && session.active)){
         let saved = null;
+        let previousWriteError = null;
+        try{ previousWriteError = FC.storage.getLastWriteError(); }catch(_){ }
         try{ saved = FC.project.saveConfirmed(projectData); }catch(_){ }
-        if(!saved || saved.ok !== true) return true;
+        if(!saved || saved.ok !== true){
+          try{
+            const recovery = FC.projectFileRecovery;
+            const pending = recovery && typeof recovery.lastPendingRecord === 'function' && recovery.lastPendingRecord();
+            const writeError = FC.storage && typeof FC.storage.getLastWriteError === 'function' && FC.storage.getLastWriteError();
+            // The central store already reports a fresh storage error; avoid a second dialog.
+            const storageReported = writeError && writeError !== previousWriteError && typeof FC.storage.notifyWriteFailure === 'function';
+            if(!pending && !storageReported && FC.infoBox && typeof FC.infoBox.open === 'function'){
+              FC.infoBox.open({ title:'Nie udało się zapisać projektu', message:'Zmiany nie zostały zapisane. Sesja edycji pozostała aktywna. Nie zamykaj programu i spróbuj ponownie.', okOnly:true });
+            }
+          }catch(_){ }
+          return true;
+        }
         projectData = saved.project;
         let committed = false;
         try{ committed = session.commit() === true; }catch(_){ }
@@ -309,6 +326,9 @@
           return true;
         }
         try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
+        try{
+          if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Projekt zapisany', message:'Wszystkie zmiany zostały zapisane poprawnie.', okOnly:true });
+        }catch(_){ }
         return true;
       }
 

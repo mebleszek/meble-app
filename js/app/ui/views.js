@@ -27,7 +27,10 @@
     const saveBtn = $('sessionSave');
     if(!sb || !cancelBtn || !saveBtn) return;
     const session = (FC && FC.session) ? FC.session : null;
-    const dirty = !!(session && typeof session.isDirty === 'function' && session.isDirty());
+    const storageDirty = !!(session && typeof session.isDirty === 'function' && session.isDirty());
+    const runtime = FC.investorProjectRuntime;
+    const dirty = storageDirty || !!(session && session.active && runtime && typeof runtime.hasProjectDivergence === 'function'
+      && typeof projectData !== 'undefined' && runtime.hasProjectDivergence(projectData));
     if(dirty){
       cancelBtn.style.display = '';
       cancelBtn.textContent = 'Anuluj';
