@@ -153,10 +153,17 @@
         if(record && record.projectData) return record.projectData;
       }
     }catch(_){ }
-    try{
-      const raw = repo && typeof repo.readActiveProjectRaw === 'function' ? repo.readActiveProjectRaw() : null;
-      return raw ? JSON.parse(raw) : null;
-    }catch(_){ return null; }
+    return null;
+  }
+
+  function hasProjectDivergence(nextData){
+    const before = comparableProjectData(currentCentralProjectForSessionCompare());
+    const next = comparableProjectData(nextData);
+    let beforeRaw = null;
+    let nextRaw = null;
+    try{ beforeRaw = JSON.stringify(before); }catch(_){ beforeRaw = null; }
+    try{ nextRaw = JSON.stringify(next); }catch(_){ nextRaw = null; }
+    return beforeRaw !== nextRaw;
   }
 
   function shouldTrackProjectSession(nextData){
@@ -166,13 +173,7 @@
     const session = FC.session;
     if(!(session && typeof session.begin === 'function')) return false;
     if(session.active) return false;
-    const before = comparableProjectData(currentCentralProjectForSessionCompare());
-    const next = comparableProjectData(nextData);
-    let beforeRaw = null;
-    let nextRaw = null;
-    try{ beforeRaw = JSON.stringify(before); }catch(_){ beforeRaw = null; }
-    try{ nextRaw = JSON.stringify(next); }catch(_){ nextRaw = null; }
-    return beforeRaw !== nextRaw;
+    return hasProjectDivergence(nextData);
   }
 
   FC.investorProjectRuntime = {
@@ -186,6 +187,7 @@
     setActiveProjectFromInvestor,
     ensureInvestorProjectLoadedOnBoot,
     refreshSessionButtons,
+    hasProjectDivergence,
     shouldTrackProjectSession,
   };
 })();
