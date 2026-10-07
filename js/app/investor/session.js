@@ -33,6 +33,7 @@
   const SESSION_STORAGE_KEY = 'fc_edit_session_v1';
   const SESSION_SCHEMA_VERSION = 2;
   const DIRTY_CACHE_WINDOW_MS = 120;
+  let beginFailureNotified = false;
 
   function canRollbackKey(key){
     return typeof key === 'string' && (ROLLBACK_KEYS.has(key)
@@ -261,7 +262,7 @@
 
   function persistSession(){
     try{
-      withTrackingSuspended(()=> {
+      return withTrackingSuspended(()=> {
         const payload = {
           schemaVersion: SESSION_SCHEMA_VERSION,
           active: !!session.active,
@@ -271,11 +272,24 @@
           snapshot: session.snapshot || null
         };
         if(!payload.active && !payload.snapshot){
-          localStorage.removeItem(SESSION_STORAGE_KEY);
-          return;
+          return writeRaw(SESSION_STORAGE_KEY, null);
         }
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(payload));
+        return writeRaw(SESSION_STORAGE_KEY, JSON.stringify(payload));
       });
+    }catch(_){ return false; }
+  }
+
+  function notifyBeginFailure(){
+    if(beginFailureNotified) return;
+    beginFailureNotified = true;
+    try{
+      if(FC.infoBox && typeof FC.infoBox.open === 'function'){
+        FC.infoBox.open({
+          title:'Nie udało się zabezpieczyć sesji edycji',
+          message:'Nie udało się zapisać stanu potrzebnego do bezpiecznego cofnięcia zmian. Zapis zmian został wstrzymany. Nie zamykaj programu i spróbuj ponownie.',
+          okOnly:true,
+        });
+      }
     }catch(_){ }
   }
 
@@ -294,6 +308,7 @@
       if(session.snapshot){
         session.snapshot = Object.fromEntries(Object.entries(session.snapshot).filter(([key])=> canRollbackKey(key)));
       }
+      session.durable = !!(session.active && session.snapshot);
       session.startedAt = Number(parsed.startedAt || parsed.createdAt || 0);
       session.updatedAt = Number(parsed.updatedAt || 0);
       session.context = parsed.context && typeof parsed.context === 'object' ? parsed.context : resolveSessionContext();
@@ -308,6 +323,7 @@
 
   const session = {
     active: false,
+    durable: false,
     snapshot: null,
     startedAt: 0,
     updatedAt: 0,
@@ -319,18 +335,24 @@
     lastDirtyValue: false,
     begin(){
       // Idempotent: once we started an edit session, do not overwrite the snapshot.
-      if(session.active && session.snapshot) return;
-      const keys = getKeysToSnapshot();
-      const snap = {};
-      keys.forEach((k)=> { snap[k] = readRaw(k); });
-      session.snapshot = snap;
-      session.comparableKeys = keys.slice();
-      session.startedAt = nowStamp();
-      session.updatedAt = session.startedAt;
-      session.context = resolveSessionContext();
-      session.active = true;
-      invalidateDirtyCache();
-      persistSession();
+      if(!(session.active && session.snapshot)){
+        const keys = getKeysToSnapshot();
+        const snap = {};
+        keys.forEach((k)=> { snap[k] = readRaw(k); });
+        session.snapshot = snap;
+        session.comparableKeys = keys.slice();
+        session.startedAt = nowStamp();
+        session.updatedAt = session.startedAt;
+        session.context = resolveSessionContext();
+        session.active = true;
+        session.durable = false;
+        invalidateDirtyCache();
+      }
+      if(session.durable) return true;
+      session.durable = persistSession();
+      if(!session.durable) notifyBeginFailure();
+      else beginFailureNotified = false;
+      return session.durable;
     },
     commit(){
       return withTrackingSuspended(()=> {
@@ -344,6 +366,8 @@
         session.updatedAt = 0;
         session.context = null;
         session.active = false;
+        session.durable = false;
+        beginFailureNotified = false;
         invalidateDirtyCache();
         return true;
       });
@@ -368,6 +392,8 @@
         session.updatedAt = 0;
         session.context = null;
         session.active = false;
+        session.durable = false;
+        beginFailureNotified = false;
         invalidateDirtyCache();
         return true;
       });

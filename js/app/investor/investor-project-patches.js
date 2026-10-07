@@ -56,8 +56,14 @@
     const origSave = FC.project.save.bind(FC.project);
     FC.project.save = function(data){
       const shouldBeginSession = runtime().shouldTrackProjectSession ? runtime().shouldTrackProjectSession(data) : false;
-      if(shouldBeginSession){
-        try{ FC.session && typeof FC.session.begin === 'function' && FC.session.begin(); }catch(_){ }
+      const session = FC.session;
+      if(shouldBeginSession || (session && session.active && session.durable !== true)){
+        let ready = false;
+        try{ ready = !!(session && typeof session.begin === 'function' && session.begin() === true); }catch(_){ }
+        if(!ready){
+          if(runtime().refreshSessionButtons) runtime().refreshSessionButtons();
+          return data;
+        }
       }
       const out = origSave(data);
       if(runtime().refreshSessionButtons) runtime().refreshSessionButtons();

@@ -77,7 +77,7 @@ function createSandbox(){
     } },
     schema:{ CURRENT_SCHEMA_VERSION:1, DEFAULT_PROJECT:{ schemaVersion:1 } },
     investors:{ getCurrentId(){ return currentInvestorId; } },
-    session:{ active:false, begin(){ this.active = true; } },
+    session:{ active:false, durable:false, begin(){ this.active = true; this.durable = true; return true; } },
     views:{ refreshSessionButtons(){} },
     infoBox:{ open(payload){ notices.push(String(payload && payload.message || '')); } },
   };

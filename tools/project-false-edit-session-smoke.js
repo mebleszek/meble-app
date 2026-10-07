@@ -73,7 +73,8 @@ function testDerivedFactsDoNotStartProjectSession(){
     },
     session:{
       active:false,
-      begin(){ sessionBegins += 1; this.active = true; },
+      durable:false,
+      begin(){ sessionBegins += 1; this.active = true; this.durable = true; return true; },
     },
     investorProjectRepository:{
       getCurrentInvestorId(){ return 'inv_session'; },
@@ -110,7 +111,8 @@ function testMaterialDefaultsAreReadOnlyUntilManualChange(){
   sandbox.FC = {
     session:{
       active:false,
-      begin(){ sessionBegins += 1; this.active = true; },
+      durable:false,
+      begin(){ sessionBegins += 1; this.active = true; this.durable = true; return true; },
     },
     views:{ refreshSessionButtons(){} },
   };
