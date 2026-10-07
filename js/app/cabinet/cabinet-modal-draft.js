@@ -141,6 +141,8 @@
     cabinetModalState.chosen = null;
     cabinetModalState.setPreset = null;
     cabinetModalState.draft = makeDefaultCabinetDraftForRoom(room);
+    cabinetModalState.initialDraft = null;
+    cabinetModalState.initialComparableDraft = null;
     try{ cabinetModalState.chosen = cabinetModalState.draft && cabinetModalState.draft.type ? cabinetModalState.draft.type : null; }catch(_){ }
     return cabinetModalState;
   }
@@ -152,6 +154,8 @@
     cabinetModalState.chosen = cab && cab.type ? cab.type : null;
     cabinetModalState.setPreset = null;
     cabinetModalState.draft = cloneSafe(cab);
+    cabinetModalState.initialDraft = cloneSafe(cab);
+    cabinetModalState.initialComparableDraft = null;
     return cabinetModalState;
   }
 
@@ -162,7 +166,56 @@
     cabinetModalState.chosen = 'zestaw';
     cabinetModalState.setPreset = set && set.presetId ? set.presetId : null;
     cabinetModalState.draft = null;
+    cabinetModalState.initialDraft = null;
+    cabinetModalState.initialComparableDraft = null;
     return cabinetModalState;
+  }
+
+  function comparableCabinetDraft(value){
+    const copy = cloneSafe(value || {});
+    if(copy === value) throw new Error('Nie można sklonować draftu szafki');
+    delete copy.derivedFacts;
+    delete copy._derivedFacts;
+    const drawerApi = ns.cabinetDrawerRequirements;
+    if(drawerApi && typeof drawerApi.cleanDrawerTrash === 'function') drawerApi.cleanDrawerTrash(copy);
+    const numericFields = new Set(['width','height','depth','frontCount','shelves','legHeightCm','blindPart','ovenHeight',
+      'dishWasherWidth','fridgeWidth','fridgeNicheHeight','innerDrawerCount','sinkExtraCount','techShelfCount',
+      'techDividerCount','podInnerDrawerCount','gl','gp','st','sp']);
+    function canonical(data, key){
+      if(Array.isArray(data)) return data.map(function(item){ return canonical(item, ''); });
+      if(data && typeof data === 'object'){
+        return Object.fromEntries(Object.keys(data).sort().filter(function(k){
+          return k !== 'derivedFacts' && k !== '_derivedFacts' && typeof data[k] !== 'undefined';
+        }).map(function(k){ return [k, canonical(data[k], k)]; }));
+      }
+      if(numericFields.has(key) && typeof data === 'string' && data.trim()){
+        const number = Number(data.trim().replace(',', '.'));
+        if(Number.isFinite(number)) return number;
+      }
+      return data;
+    }
+    return canonical(copy, '');
+  }
+
+  function syncLocalDraft(){
+    const api = ns.cabinetModalValidation;
+    if(api && typeof api.syncDraftFromCabinetModalFormSafe === 'function'){
+      api.syncDraftFromCabinetModalFormSafe(cabinetModalState.draft);
+    }
+  }
+
+  function captureEditBaseline(){
+    if(cabinetModalState.mode !== 'edit' || !cabinetModalState.initialDraft || cabinetModalState.initialComparableDraft) return;
+    syncLocalDraft();
+    // Capture the first rendered form's equivalent defaults once. Keep the original clone untouched.
+    cabinetModalState.initialComparableDraft = comparableCabinetDraft(cabinetModalState.draft);
+  }
+
+  function isEditDirty(){
+    if(cabinetModalState.mode !== 'edit' || !cabinetModalState.draft || !cabinetModalState.initialDraft) return false;
+    syncLocalDraft();
+    const baseline = cabinetModalState.initialComparableDraft || comparableCabinetDraft(cabinetModalState.initialDraft);
+    return JSON.stringify(comparableCabinetDraft(cabinetModalState.draft)) !== JSON.stringify(baseline);
   }
 
   ns.cabinetModalDraft = {
@@ -171,5 +224,8 @@
     beginAddState,
     beginEditState,
     beginSetEditState,
+    comparableCabinetDraft,
+    captureEditBaseline,
+    isEditDirty,
   };
 })();

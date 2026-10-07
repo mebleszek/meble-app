@@ -106,10 +106,10 @@
         return false;
       }
       const room = uiState.roomType;
-      projectData[room] = projectData[room] || { cabinets:[], fronts:[], sets:[], settings:{} };
-      projectData[room].cabinets = Array.isArray(projectData[room].cabinets) ? projectData[room].cabinets : [];
 
       syncDraftFromCabinetModalFormSafe(draft);
+      const draftApi = ns.cabinetModalDraft;
+      if(!isAddMode() && draftApi && typeof draftApi.isEditDirty === 'function' && !draftApi.isEditDirty()) return false;
       ensureFrontCountRulesSafe(draft);
       cleanDrawerTrashSafe(draft);
 
@@ -118,6 +118,12 @@
         applyAventosValidationUISafe(room, draft);
         return false;
       }
+
+      try{
+        if(!(ns.session && typeof ns.session.begin === 'function' && ns.session.begin() === true)) return false;
+      }catch(_){ return false; }
+      projectData[room] = projectData[room] || { cabinets:[], fronts:[], sets:[], settings:{} };
+      projectData[room].cabinets = Array.isArray(projectData[room].cabinets) ? projectData[room].cabinets : [];
 
       const beforeCount = (projectData[room].cabinets || []).length;
       if(isAddMode()) finalizeAddedCabinet(room, draft);

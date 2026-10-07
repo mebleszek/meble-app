@@ -732,10 +732,6 @@
       const params = getSetParamsFromUI(presetId);
       if(!params){ showCabinetInfo('Brak parametrów', 'Brak parametrów zestawu.'); return; }
 
-      projectData[room] = projectData[room] || { cabinets:[], settings:{} };
-      projectData[room].cabinets = Array.isArray(projectData[room].cabinets) ? projectData[room].cabinets : [];
-      projectData[room].sets = Array.isArray(projectData[room].sets) ? projectData[room].sets : [];
-
       const cntEl = document.getElementById('setFrontCount');
       const matEl = document.getElementById('setFrontMaterial');
       const colEl = document.getElementById('setFrontColor');
@@ -756,6 +752,13 @@
       const frontMaterial = resolvedFront.material || customFrontMaterial || 'laminat';
       const frontColor = resolvedFront.color || customFrontColor || '';
       const serializedFrontSource = serializeSetFrontSource(resolvedFront, frontSourceSpec);
+
+      try{
+        if(!(ns.session && typeof ns.session.begin === 'function' && ns.session.begin() === true)) return false;
+      }catch(_){ return false; }
+      projectData[room] = projectData[room] || { cabinets:[], settings:{} };
+      projectData[room].cabinets = Array.isArray(projectData[room].cabinets) ? projectData[room].cabinets : [];
+      projectData[room].sets = Array.isArray(projectData[room].sets) ? projectData[room].sets : [];
 
       const isEdit = !!(cabinetModalState && cabinetModalState.setEditId);
       const setId = isEdit ? cabinetModalState.setEditId : uidSafe();
