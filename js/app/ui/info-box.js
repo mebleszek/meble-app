@@ -46,7 +46,7 @@
     const closeBtn = okOnly ? null : el('button', { type:'button', class:'info-box__close', 'aria-label':'Zamknij informację', text:'×' });
     const body = el('div', { class:'info-box__body', text:message });
     const actions = okOnly ? el('div', { class:'info-box__actions info-box__actions--single' }) : null;
-    const okBtn = okOnly ? el('button', { type:'button', class:'btn-success info-box__action', text:'OK' }) : null;
+    const okBtn = okOnly ? el('button', { type:'button', class:'confirm-btn is-success info-box__action', text:'OK' }) : null;
 
     head.appendChild(titleEl);
     if(closeBtn) head.appendChild(closeBtn);
