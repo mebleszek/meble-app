@@ -152,12 +152,15 @@
     return 'Domyślny z materiału';
   }
 
-  function loadStore(){
+  function parseStore(raw){
     try{
-      const raw = localStorage.getItem(EDGE_KEY);
       const obj = raw ? JSON.parse(raw) : {};
       return (obj && typeof obj === 'object') ? obj : {};
     }catch(_){ return {}; }
+  }
+
+  function loadStore(){
+    try{ return parseStore(localStorage.getItem(EDGE_KEY)); }catch(_){ return {}; }
   }
 
   function explicitEdges(value){
@@ -192,20 +195,15 @@
     return JSON.stringify(store);
   }
 
-  function saveStore(obj, config){
-    const cfg = config || {};
-    if(cfg.persist === false) return true;
+  function saveStore(plan, config){
+    if(config && config.persist === false) return true;
+    if(!plan.changed) return true;
     try{
-      const nextRaw = desiredStoreRaw(obj || {});
-      const prevRaw = localStorage.getItem(EDGE_KEY);
-      if(prevRaw === nextRaw) return true;
       const session = FC.session;
       if(!(session && typeof session.begin === 'function' && session.begin() === true)) return false;
-      if(nextRaw === null) localStorage.removeItem(EDGE_KEY);
-      else localStorage.setItem(EDGE_KEY, nextRaw);
+      if(plan.nextRaw === null) localStorage.removeItem(EDGE_KEY);
+      else localStorage.setItem(EDGE_KEY, plan.nextRaw);
     }catch(_){ return false; }
-    try{ window.FC && FC.views && typeof FC.views.refreshSessionButtons === 'function' && FC.views.refreshSessionButtons(); }catch(_){ }
-    try{ typeof cfg.onAfterSave === 'function' && cfg.onAfterSave(obj || {}); }catch(_){ }
     return true;
   }
 
@@ -258,31 +256,46 @@
       return explicitEdges(existing || defaults);
     }
 
-    function setEdges(sig, patch){
+    function prepareEdges(sig, patch){
       const key = String(sig || '');
-      if(!key) return false;
-      const hadKey = Object.prototype.hasOwnProperty.call(store, key);
-      const prev = store[key];
+      if(!key) return null;
       const defaults = defaultsBySig.get(key);
-      // getEdges supplies part/cabinet defaults; a signature alone cannot determine them safely.
-      if(!defaults) return false;
-      const effective = explicitEdges(prev || defaults);
+      // getEdges supplies part/cabinet defaults; never infer them from the signature.
+      if(!defaults) return null;
+      const prevRaw = localStorage.getItem(EDGE_KEY);
+      const nextStore = Object.assign({}, cfg.persist === false ? store : parseStore(prevRaw));
+      const effective = explicitEdges(nextStore[key] || defaults);
       const next = explicitEdges(Object.assign({}, effective, patch || {}));
-      if(sameEdges(next, effective)) return true;
+      if(sameEdges(next, effective)) return { key:EDGE_KEY, changed:false, prevRaw, nextRaw:prevRaw, nextStore };
       const baseline = sessionEdgeBaseline();
       const baselineRecord = baseline && baseline.store[key];
       if(baselineRecord && typeof baselineRecord === 'object' && sameEdges(next, baselineRecord)){
-        // Restore the touched record exactly, including a pre-existing redundant override.
-        store[key] = baselineRecord;
+        nextStore[key] = baselineRecord;
       }else if(sameEdges(next, defaults)){
-        delete store[key];
+        delete nextStore[key];
       }else{
-        store[key] = next;
+        nextStore[key] = next;
       }
-      if(!saveStore(store, cfg)){
-        if(hadKey) store[key] = prev;
-        else delete store[key];
-        return false;
+      const nextRaw = desiredStoreRaw(nextStore);
+      return { key:EDGE_KEY, changed:prevRaw !== nextRaw, prevRaw, nextRaw, nextStore };
+    }
+
+    function applyEdgesPlan(plan){
+      Object.keys(store).forEach((key)=> { delete store[key]; });
+      Object.assign(store, plan.nextStore);
+    }
+
+    function setEdges(sig, patch){
+      try{
+        const plan = prepareEdges(sig, patch);
+        if(!plan) return false;
+        if(!plan.changed) return true;
+        if(!saveStore(plan, cfg)) return false;
+        applyEdgesPlan(plan);
+      }catch(_){ return false; }
+      if(cfg.persist !== false){
+        try{ FC.views && typeof FC.views.refreshSessionButtons === 'function' && FC.views.refreshSessionButtons(); }catch(_){ }
+        try{ typeof cfg.onAfterSave === 'function' && cfg.onAfterSave(store); }catch(_){ }
       }
       return true;
     }
@@ -333,6 +346,7 @@
           aCm: Number(part && part.a),
           bCm: Number(part && part.b),
           edges: explicitEdges(opts.edges),
+          edgeEditor:{ prepare:(patch)=> prepareEdges(sig, patch), apply:applyEdgesPlan },
           fmtCm,
           initialDirection: getDirection(sig),
           onSave: typeof opts.onSave === 'function' ? opts.onSave : function(){},
@@ -348,6 +362,8 @@
       store,
       getEdges,
       setEdges,
+      prepareEdges,
+      applyEdgesPlan,
       calcEdgeMetersForParts,
       calcEdgeMetersByPcvModeForParts,
       openPartOptions,
