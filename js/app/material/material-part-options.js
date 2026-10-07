@@ -59,21 +59,47 @@
     return normalizeDirection(all[String(sig || '')]);
   }
 
+  function sessionOptionsBaseline(){
+    const session = root.FC && root.FC.session;
+    if(!(session && session.active && session.snapshot && Object.prototype.hasOwnProperty.call(session.snapshot, STORAGE_KEY))) return null;
+    try{
+      const raw = session.snapshot[STORAGE_KEY];
+      const store = raw === null ? {} : JSON.parse(raw);
+      if(!(store && typeof store === 'object' && !Array.isArray(store))) return null;
+      return { raw, store };
+    }catch(_){ return null; }
+  }
+
+  function desiredOptionsRaw(store, baseline){
+    const keys = Object.keys(store);
+    if(baseline && keys.length === Object.keys(baseline.store).length && keys.every((key)=>
+      Object.prototype.hasOwnProperty.call(baseline.store, key)
+      && JSON.stringify(store[key]) === JSON.stringify(baseline.store[key]))){
+      // A complete revert preserves missing keys, whitespace, ordering and legacy records.
+      return baseline.raw;
+    }
+    return JSON.stringify(store);
+  }
+
   function setDirection(sig, dir){
     const key = String(sig || '').trim();
     if(!key) return false;
     const all = loadAll();
     const value = normalizeDirection(dir);
-    if(value === 'default') delete all[key];
+    if(value === normalizeDirection(all[key])) return true;
+    const baseline = sessionOptionsBaseline();
+    if(baseline && Object.prototype.hasOwnProperty.call(baseline.store, key)
+      && value === normalizeDirection(baseline.store[key])) all[key] = baseline.store[key];
+    else if(value === 'default') delete all[key];
     else all[key] = value;
     try{
       const prevRaw = localStorage.getItem(STORAGE_KEY);
-      const nextRaw = JSON.stringify(all || {});
-      if(prevRaw !== nextRaw){
-        const session = root.FC && root.FC.session;
-        if(!(session && typeof session.begin === 'function' && session.begin() === true)) return false;
-      }
-      localStorage.setItem(STORAGE_KEY, nextRaw);
+      const nextRaw = desiredOptionsRaw(all, baseline);
+      if(prevRaw === nextRaw) return true;
+      const session = root.FC && root.FC.session;
+      if(!(session && typeof session.begin === 'function' && session.begin() === true)) return false;
+      if(nextRaw === null) localStorage.removeItem(STORAGE_KEY);
+      else localStorage.setItem(STORAGE_KEY, nextRaw);
     }catch(_){ return false; }
     try{ root.FC && root.FC.views && typeof root.FC.views.refreshSessionButtons === 'function' && root.FC.views.refreshSessionButtons(); }catch(_){ }
     return true;
