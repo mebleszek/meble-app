@@ -49,8 +49,8 @@
     if(!ok) return;
 
     try{
-      if(FC.session && typeof FC.session.begin === 'function' && !(FC.session.active)) FC.session.begin();
-    }catch(_){ }
+      if(!(FC.session && typeof FC.session.begin === 'function' && FC.session.begin() === true)) return;
+    }catch(_){ return; }
 
     if(typeof removeFrontsForCab === 'function') removeFrontsForCab(room, cabId);
 

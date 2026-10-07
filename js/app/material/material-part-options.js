@@ -42,10 +42,6 @@
     }catch(_){ return {}; }
   }
 
-  function saveAll(state){
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state || {})); }catch(_){ }
-  }
-
   function signature(materialKey, name, aMm, bMm){
     return `${normalizeMaterialKey(materialKey)}||${String(name || 'Element').trim()}||${Math.round(Number(aMm)||0)}x${Math.round(Number(bMm)||0)}`;
   }
@@ -65,7 +61,7 @@
 
   function setDirection(sig, dir){
     const key = String(sig || '').trim();
-    if(!key) return;
+    if(!key) return false;
     const all = loadAll();
     const value = normalizeDirection(dir);
     if(value === 'default') delete all[key];
@@ -74,11 +70,13 @@
       const prevRaw = localStorage.getItem(STORAGE_KEY);
       const nextRaw = JSON.stringify(all || {});
       if(prevRaw !== nextRaw){
-        try{ if(root.FC && root.FC.session && typeof root.FC.session.begin === 'function' && !(root.FC.session.active)) root.FC.session.begin(); }catch(_){ }
+        const session = root.FC && root.FC.session;
+        if(!(session && typeof session.begin === 'function' && session.begin() === true)) return false;
       }
       localStorage.setItem(STORAGE_KEY, nextRaw);
-    }catch(_){ saveAll(all); }
+    }catch(_){ return false; }
     try{ root.FC && root.FC.views && typeof root.FC.views.refreshSessionButtons === 'function' && root.FC.views.refreshSessionButtons(); }catch(_){ }
+    return true;
   }
 
   function resolveDimsMm(aMm, bMm, dir){
@@ -230,7 +228,7 @@
       try{ FC.panelBox.close(); }catch(_){ } finally{ notifyClose(); }
     });
     saveBtn.addEventListener('click', ()=>{
-      setDirection(sig, draft);
+      if(setDirection(sig, draft) !== true) return;
       try{ if(typeof cfg.onSave === 'function') cfg.onSave(normalizeDirection(draft)); }catch(_){ }
       try{ FC.panelBox.close(); }catch(_){ } finally{ notifyClose(); }
     });

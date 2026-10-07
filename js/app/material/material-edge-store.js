@@ -162,19 +162,19 @@
 
   function saveStore(obj, config){
     const cfg = config || {};
-    if(cfg.persist === false) return;
+    if(cfg.persist === false) return true;
     try{
       const nextRaw = JSON.stringify(obj || {});
       const prevRaw = localStorage.getItem(EDGE_KEY);
       if(prevRaw !== nextRaw){
-        try{
-          if(window.FC && FC.session && typeof FC.session.begin === 'function' && !(FC.session.active)) FC.session.begin();
-        }catch(_){ }
+        const session = FC.session;
+        if(!(session && typeof session.begin === 'function' && session.begin() === true)) return false;
       }
       localStorage.setItem(EDGE_KEY, nextRaw);
-    }catch(_){ }
+    }catch(_){ return false; }
     try{ window.FC && FC.views && typeof FC.views.refreshSessionButtons === 'function' && FC.views.refreshSessionButtons(); }catch(_){ }
     try{ typeof cfg.onAfterSave === 'function' && cfg.onAfterSave(obj || {}); }catch(_){ }
+    return true;
   }
 
   function defaultEdgesForPart(part, cabinet){
@@ -238,10 +238,16 @@
 
     function setEdges(sig, patch){
       const key = String(sig || '');
-      if(!key) return;
+      if(!key) return false;
+      const hadKey = Object.prototype.hasOwnProperty.call(store, key);
       const prev = store[key] || {};
       store[key] = Object.assign({}, prev, patch || {});
-      saveStore(store, cfg);
+      if(!saveStore(store, cfg)){
+        if(hadKey) store[key] = prev;
+        else delete store[key];
+        return false;
+      }
+      return true;
     }
 
     function calcEdgeMetersForParts(parts, cabinet){
