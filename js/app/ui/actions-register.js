@@ -293,8 +293,21 @@
       const inInvestorTab = !!(typeof uiState !== 'undefined' && uiState && uiState.activeTab === 'inwestor');
       const investorEditing = !!(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock());
 
-      if(dirty){
-        try{ if(session && typeof session.commit === 'function') session.commit(); }catch(_){ }
+      if(dirty || (session && session.active)){
+        let saved = null;
+        try{ saved = FC.project.saveConfirmed(projectData); }catch(_){ }
+        if(!saved || saved.ok !== true) return true;
+        projectData = saved.project;
+        let committed = false;
+        try{ committed = session.commit() === true; }catch(_){ }
+        if(!committed){
+          const message = 'Projekt został zapisany, ale nie udało się zakończyć sesji edycji. Spróbuj ponownie.';
+          try{
+            if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Sesja nadal aktywna', message });
+            else window.alert(message);
+          }catch(_){ }
+          return true;
+        }
         try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
         return true;
       }

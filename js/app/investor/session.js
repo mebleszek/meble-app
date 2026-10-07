@@ -333,7 +333,11 @@
       persistSession();
     },
     commit(){
-      withTrackingSuspended(()=> {
+      return withTrackingSuspended(()=> {
+        if(!writeRaw(SESSION_STORAGE_KEY, null)){
+          session.active = true;
+          return false;
+        }
         session.snapshot = null;
         session.comparableKeys = null;
         session.startedAt = 0;
@@ -341,7 +345,7 @@
         session.context = null;
         session.active = false;
         invalidateDirtyCache();
-        persistSession();
+        return true;
       });
     },
     cancel(){

@@ -102,7 +102,7 @@
     }catch(_){ return false; }
   }
 
-  function save(data){
+  function saveConfirmed(data){
     const normalized = normalizeProject(data);
     const before = currentCentralRecord();
     const investorId = getCurrentInvestorId();
@@ -124,7 +124,12 @@
     // Backup jest tylko zabezpieczeniem. Powstaje dopiero po potwierdzonym zapisie
     // centralnym i zawiera poprzedni stan projektu, nigdy nowszy od źródła prawdy.
     if(saved && before && before.projectData) writeSafetyBackup(before.projectData);
-    return normalized;
+    return { ok:!!saved, project:normalized };
+  }
+
+  function save(data){
+    // Existing callers assign this result to projectData, including on write failure.
+    return saveConfirmed(data).project;
   }
 
   FC.project = Object.assign({}, FC.project || {}, {
@@ -132,6 +137,7 @@
     DEFAULT_PROJECT: model.DEFAULT_PROJECT_DATA || (FC.project && FC.project.DEFAULT_PROJECT) || { schemaVersion:1 },
     load,
     save,
+    saveConfirmed,
     normalize: normalizeProject,
   });
 })();
