@@ -209,6 +209,8 @@ function openCabinetModalForEdit(cabId){
     cabinetModalState.chosen = cab.type;
     cabinetModalState.setPreset = null;
     cabinetModalState.draft = FC.utils.clone(cab);
+    cabinetModalState.initialDraft = FC.utils.clone(cab);
+    cabinetModalState.initialComparableDraft = null;
   }
   renderCabinetModal();
   const m = document.getElementById('cabinetModal');
@@ -237,6 +239,61 @@ function closeCabinetModal(){
     const listScrollMemory = window.FC && window.FC.listScrollMemory;
     if(listScrollMemory && typeof listScrollMemory.restorePending === 'function') listScrollMemory.restorePending();
   }catch(_){ }
+}
+
+function refreshCabinetModalButtons(){
+  if(cabinetModalState.mode !== 'edit' || cabinetModalState.chosen === 'zestaw') return;
+  const api = getCabinetModalDraftApi();
+  const dirty = !!(api && typeof api.isEditDirty === 'function' && api.isEditDirty());
+  const cancel = document.getElementById('cabinetModalCancel');
+  const save = document.getElementById('cabinetModalSave');
+  if(cancel){
+    cancel.textContent = dirty ? 'Anuluj' : 'Wyjdź';
+    cancel.className = dirty ? 'btn btn-danger' : 'btn btn-primary';
+  }
+  if(save){
+    save.textContent = 'Zapisz zmiany';
+    save.className = 'btn btn-success';
+    save.style.display = dirty ? 'inline-flex' : 'none';
+    save.disabled = !dirty;
+    if(dirty){
+      const validation = validateAventosForDraftSafe(uiState.roomType, cabinetModalState.draft);
+      if(validation && validation.ok === false) save.disabled = true;
+    }
+  }
+}
+
+async function requestCabinetModalClose(e){
+  if(e){ e.preventDefault(); e.stopPropagation(); }
+  const api = getCabinetModalDraftApi();
+  if(cabinetModalState.mode === 'edit' && api && typeof api.isEditDirty === 'function' && api.isEditDirty()){
+    try{
+      if(!(ns.confirmBox && typeof ns.confirmBox.ask === 'function')) return false;
+      const discard = await ns.confirmBox.ask({
+        title:'ANULOWAĆ ZMIANY?',
+        message:'Niezapisane zmiany w szafce zostaną utracone.',
+        confirmText:'✕ ANULUJ ZMIANY', cancelText:'WRÓĆ',
+        confirmTone:'danger', cancelTone:'neutral', dismissOnOverlay:false,
+      });
+      if(!discard) return false;
+    }catch(_){ return false; }
+  }
+  closeCabinetModal();
+  return true;
+}
+
+function bindCabinetModalDraftEvents(){
+  const modal = document.getElementById('cabinetModal');
+  if(modal && !modal.__localDirtyBound){
+    ['input','change','click'].forEach(function(event){ modal.addEventListener(event, refreshCabinetModalButtons); });
+    modal.__localDirtyBound = true;
+  }
+  const cancel = document.getElementById('cabinetModalCancel');
+  if(cancel){
+    // This local draft owns confirmation; the global data-action must not close it as well.
+    cancel.removeAttribute('data-action');
+    cancel.onclick = requestCabinetModalClose;
+  }
 }
 
 /* ===== Cabinet Modal rendering ===== */
@@ -299,7 +356,6 @@ function renderCabinetTypeChoices(){
     }
   }
 
-    projectData[room].cabinets = projectData[room].cabinets || [];
         if(cabinetModalState.mode === 'add'){
           cabinetModalState.draft = makeDefaultCabinetDraftForType(room, ch.key) || cabinetModalState.draft || makeDefaultCabinetDraftForRoom(room);
         }
@@ -362,11 +418,15 @@ function renderCabinetExtraDetailsInto(container, draft){
   const d = draft.details || {};
 
   function addSelect(labelText, key, options, onChangeExtra){
+    draft.details = draft.details || {};
+    if(!draft.details[key]) draft.details[key] = (options[0] && options[0].v) || '';
     if(fieldsApi && typeof fieldsApi.appendExtraSelectField === 'function') return fieldsApi.appendExtraSelectField(container, { draft, labelText, key, options, onChangeExtra, onRender: renderCabinetModal });
     return null;
   }
 
   function addNumber(labelText, key, fallback){
+    draft.details = draft.details || {};
+    if(draft.details[key] == null) draft.details[key] = fallback;
     if(fieldsApi && typeof fieldsApi.appendExtraNumberField === 'function') return fieldsApi.appendExtraNumberField(container, { draft, labelText, key, fallback });
     return null;
   }
@@ -413,6 +473,7 @@ function wireSetParamsLiveUpdate(presetId){
 /* ===== Cabinet modal render ===== */
 function renderCabinetModal(){
   const isSetEdit = !!cabinetModalState.setEditId;
+  bindCabinetModalDraftEvents();
 
   // Nagłówek: Anuluj zawsze widoczne, Zatwierdź tylko gdy pokazujemy formularz / zestaw.
   const saveTopBtn = document.getElementById('cabinetModalSave');
@@ -421,6 +482,7 @@ function renderCabinetModal(){
     cancelTopBtn.style.display = 'inline-flex';
     cancelTopBtn.disabled = false;
     cancelTopBtn.textContent = 'Anuluj';
+    cancelTopBtn.className = 'btn btn-danger';
   }
   if(saveTopBtn){
     saveTopBtn.style.display = 'none';
@@ -535,6 +597,7 @@ function renderCabinetModal(){
         editable:true,
         onChange:function(){
           try{ applyAventosValidationUISafe(room, draft); }catch(_){ }
+          refreshCabinetModalButtons();
         }
       });
     }catch(_){ }
@@ -738,8 +801,6 @@ function renderCabinetModal(){
     }
   }catch(_){ }
 
-  const _cabCancel = document.getElementById('cabinetModalCancel');
-  if(_cabCancel) _cabCancel.onclick = closeCabinetModal;
   const finalizeApi = getCabinetModalFinalizeApi();
   if(finalizeApi && typeof finalizeApi.bindTopSaveButton === 'function'){
     finalizeApi.bindTopSaveButton({
@@ -754,6 +815,9 @@ function renderCabinetModal(){
 
   // Walidacja klapy (AVENTOS) – blokuj zapis jeśli poza zakresem
   applyAventosValidationUISafe(room, draft);
+  const draftApi = getCabinetModalDraftApi();
+  if(draftApi && typeof draftApi.captureEditBaseline === 'function') draftApi.captureEditBaseline();
+  refreshCabinetModalButtons();
 }
 
 /* ===== set wizard delegated to js/app/cabinet/cabinet-modal-set-wizard.js ===== */
@@ -792,6 +856,8 @@ function createOrUpdateSetFromWizard(){
     openCabinetModalForEdit,
     openSetWizardForEdit,
     closeCabinetModal,
+    refreshCabinetModalButtons,
+    requestCabinetModalClose,
     renderCabinetTypeChoices,
     populateSelect,
     populateFrontColorsTo,
