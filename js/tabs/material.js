@@ -399,6 +399,7 @@
                   cabinetId:cab.id,
                   selectedCabinetId:(typeof uiState !== 'undefined' && uiState ? uiState.selectedCabinetId : ''),
                   fmtCm,
+                  edges:e,
                   onSave:()=> renderCabinets(),
                 });
               }

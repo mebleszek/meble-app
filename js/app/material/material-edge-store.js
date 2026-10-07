@@ -330,6 +330,10 @@
           name: String((part && part.name) || 'Element'),
           material: normalizeMaterialKey(part && part.material),
           sizeText: `${fmtCm(part && part.a)} × ${fmtCm(part && part.b)} cm`,
+          aCm: Number(part && part.a),
+          bCm: Number(part && part.b),
+          edges: explicitEdges(opts.edges),
+          fmtCm,
           initialDirection: getDirection(sig),
           onSave: typeof opts.onSave === 'function' ? opts.onSave : function(){},
           onClose: function(){

@@ -332,12 +332,30 @@
 .material-part-options__meta{display:flex;flex-direction:column;gap:4px;}
 .material-part-options__name{font-size:24px;line-height:1.1;font-weight:900;color:#0f172a;overflow-wrap:anywhere;word-break:break-word;}
 .material-part-options__sub{font-size:14px;line-height:1.35;font-weight:700;color:#64748b;overflow-wrap:anywhere;word-break:break-word;}
-.material-part-options__preview{display:flex;justify-content:center;align-items:center;padding:4px 0 2px;}
-.material-part-options__preview-rect{width:min(100%,260px);aspect-ratio:1.5/1;border-radius:18px;border:2px solid rgba(15,23,42,.24);background:#fff;box-shadow:8px 8px 0 rgba(15,23,42,.08);position:relative;overflow:hidden;}
+.material-part-options__preview{display:flex;flex-direction:column;gap:10px;align-items:center;padding:4px 0 2px;min-width:0;}
+.material-part-options__preview-rect{grid-area:surface;width:100%;max-width:100%;max-height:216px;aspect-ratio:var(--part-map-ratio);box-sizing:border-box;border-radius:10px;border:2px solid rgba(15,23,42,.24);background:#fff;box-shadow:8px 8px 0 rgba(15,23,42,.08);position:relative;overflow:hidden;}
+.material-part-options__map{--edge-label-width:64px;--edge-gap:8px;display:grid;grid-template-columns:var(--edge-label-width) minmax(0,var(--part-map-width)) var(--edge-label-width);grid-template-areas:'. edge1a .' 'edge2a surface edge2b' '. edge1b .';gap:var(--edge-gap);align-items:center;width:100%;max-width:calc(var(--part-map-width) + 2 * var(--edge-label-width) + 2 * var(--edge-gap));min-width:0;}
+.material-part-options__edge{display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;font-size:12px;line-height:1.35;font-weight:700;color:#64748b;text-align:center;}
+.material-part-options__edge--1a{grid-area:edge1a;}
+.material-part-options__edge--1b{grid-area:edge1b;}
+.material-part-options__edge--2a{grid-area:edge2a;flex-direction:column;}
+.material-part-options__edge--2b{grid-area:edge2b;flex-direction:column;}
+.material-part-options__edge input{width:15px;height:15px;margin:0;flex:0 0 auto;accent-color:#0b91b7;opacity:1;}
+.material-part-options__edge.is-on{color:#0b718e;}
+.material-part-options__surface.has-w1{border-top:4px solid #0b91b7;}
+.material-part-options__surface.has-w2{border-bottom:4px solid #0b91b7;}
+.material-part-options__surface.has-h1{border-left:4px solid #0b91b7;}
+.material-part-options__surface.has-h2{border-right:4px solid #0b91b7;}
+.material-part-options__map-note{font-size:12px;line-height:1.4;color:#b91c1c;text-align:center;}
+@media (max-width:430px){
+  .material-part-options__map{--edge-label-width:52px;--edge-gap:5px;}
+  .material-part-options__edge{font-size:11px;gap:3px;}
+  .material-part-options__map-note{font-size:11px;}
+}
 .material-part-options__preview-rect::before{content:"";position:absolute;inset:18px;border-radius:12px;background:repeating-linear-gradient(to bottom, rgba(15,23,42,.14) 0, rgba(15,23,42,.14) 3px, transparent 3px, transparent 18px);} 
 .material-part-options__preview-rect.is-default::before{background:repeating-linear-gradient(to bottom, rgba(15,23,42,.14) 0, rgba(15,23,42,.14) 3px, transparent 3px, transparent 18px);} 
 .material-part-options__preview-rect.is-vertical::before{background:repeating-linear-gradient(to right, rgba(15,23,42,.14) 0, rgba(15,23,42,.14) 3px, transparent 3px, transparent 18px);} 
-.material-part-options__preview-rect.is-none::before{background:repeating-linear-gradient(135deg, rgba(15,23,42,.10) 0, rgba(15,23,42,.10) 3px, transparent 3px, transparent 18px);} 
+.material-part-options__preview-rect.is-none::before{background:rgba(148,163,184,.08);}
 .material-part-options__preview-rect.is-default::after,.material-part-options__preview-rect.is-horizontal::after,.material-part-options__preview-rect.is-vertical::after,.material-part-options__preview-rect.is-none::after{content:"";position:absolute;right:14px;bottom:14px;width:44px;height:44px;border-radius:999px;background:rgba(255,255,255,.92);box-shadow:0 6px 16px rgba(15,23,42,.12);} 
 .material-part-options__preview-rect.is-default::after{background:rgba(11,145,183,.10);}
 .material-part-options__preview-rect.is-horizontal::after{background:rgba(34,197,94,.12);} 

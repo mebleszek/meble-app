@@ -155,9 +155,43 @@
     if(sizeText) meta.appendChild(h('div', { class:'material-part-options__sub', text:sizeText }));
     scroll.appendChild(meta);
 
+    const aCm = Number(cfg.aCm);
+    const bCm = Number(cfg.bCm);
+    const ratio = Number.isFinite(aCm) && aCm > 0 && Number.isFinite(bCm) && bCm > 0
+      ? Math.min(2.6, Math.max(0.45, aCm / bCm)) : 1;
+    const mapWidth = Math.min(300, 216 * ratio);
+    const fmtCm = typeof cfg.fmtCm === 'function' ? cfg.fmtCm
+      : (value)=> Number.isFinite(value) ? String(value).replace('.', ',') : '—';
+    const edges = cfg.edges || {};
     const preview = h('div', { class:'material-part-options__preview' });
-    const previewRect = h('div', { class:'material-part-options__preview-rect' });
-    preview.appendChild(previewRect);
+    const map = h('div', {
+      class:'material-part-options__map',
+      style:`--part-map-width:${mapWidth}px;--part-map-ratio:${ratio};`,
+    });
+    const surfaceClass = 'material-part-options__preview-rect material-part-options__surface'
+      + ['w1', 'w2', 'h1', 'h2'].filter((key)=> edges[key]).map((key)=> ` has-${key}`).join('');
+    const previewRect = h('div', { class:surfaceClass, 'aria-label':'Powierzchnia formatki — kierunek słojów' });
+    map.appendChild(previewRect);
+    [
+      ['1A', 'w1', aCm], ['1B', 'w2', aCm],
+      ['2A', 'h1', bCm], ['2B', 'h2', bCm],
+    ].forEach(([code, key, dimension])=>{
+      const on = !!edges[key];
+      const label = `${code} · ${fmtCm(dimension)} cm`;
+      const edge = h('div', {
+        class:`material-part-options__edge material-part-options__edge--${code.toLowerCase()}${on ? ' is-on' : ''}`,
+      });
+      edge.appendChild(h('input', {
+        type:'checkbox', disabled:'disabled', checked:on ? 'checked' : null,
+        'aria-label':`${code}: ${on ? 'krawędź oklejana' : 'brak PCV'}`,
+      }));
+      edge.appendChild(h('span', { class:'material-part-options__edge-label', text:label }));
+      map.appendChild(edge);
+    });
+    preview.appendChild(map);
+    preview.appendChild(h('div', {
+      class:'material-part-options__map-note', text:'Widok poglądowy — proporcje orientacyjne.',
+    }));
     scroll.appendChild(preview);
 
     const optionsWrap = h('div', { class:'material-part-options__choices' });
@@ -189,7 +223,7 @@
 
     function isDirty(){ return normalizeDirection(draft) !== normalizeDirection(initial); }
     function updatePreview(){
-      previewRect.className = 'material-part-options__preview-rect';
+      previewRect.className = surfaceClass;
       previewRect.classList.add(`is-${normalizeDirection(draft)}`);
     }
     function renderFooter(){
