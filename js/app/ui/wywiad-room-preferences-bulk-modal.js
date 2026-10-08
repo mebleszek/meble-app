@@ -164,8 +164,8 @@
     applyBtn.addEventListener('click', ()=>{
       if(applyBtn.disabled) return;
       const api = getApplyApi();
-      if(api && typeof api.apply === 'function') api.apply(room, state.selection);
-      close();
+      const result = api && typeof api.apply === 'function' && api.apply(room, state.selection);
+      if(result && result.ok === true) close();
     });
     footer.appendChild(exitBtn);
     footer.appendChild(applyBtn);

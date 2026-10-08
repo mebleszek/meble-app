@@ -23,12 +23,6 @@
     return null;
   }
 
-  function syncSharedProjectData(nextProject){
-    try{ if(typeof projectData !== 'undefined') projectData = nextProject; }catch(_){ }
-    try{ window.projectData = nextProject; }catch(_){ }
-    return nextProject;
-  }
-
   function getCurrentRoom(){
     try{
       const state = getSharedUiState();
@@ -167,8 +161,8 @@
     });
 
     box.appendChild(createSaveFooter('Parametry pomieszczenia', ()=>{
-      applySettingsValues(room, buildPreviewSettings(inputs));
-      renderSummary(room);
+      const result = applySettingsValues(room, buildPreviewSettings(inputs));
+      if(result.ok === true) renderSummary(room);
     }));
 
     refreshPreview();
@@ -206,40 +200,33 @@
     try{
       const room = String(roomArg || getCurrentRoom() || '').trim();
       const project = getSharedProjectData();
-      if(!room || !project || !project[room] || !project[room].settings) return;
+      if(!room || !project || !project[room] || !project[room].settings) return { ok:false };
+      const updates = {};
       FIELD_DEFS.forEach((field)=>{
-        project[room].settings[field.key] = parseSettingValue(values && values[field.key]);
+        if(values && Object.prototype.hasOwnProperty.call(values, field.key)){
+          const value = parseSettingValue(values[field.key]);
+          if(value !== parseSettingValue(project[room].settings[field.key])) updates[field.key] = value;
+        }
       });
-      if(window.FC && window.FC.project && typeof window.FC.project.save === 'function'){
-        syncSharedProjectData(window.FC.project.save(project));
-      } else {
-        syncSharedProjectData(project);
-      }
+      if(!Object.keys(updates).length) return { ok:true, changed:false, project };
+      const nextProject = JSON.parse(JSON.stringify(project));
+      Object.assign(nextProject[room].settings, updates);
+      const api = ns.roomPreferences;
+      const result = api && typeof api.saveRoomProjectConfirmed === 'function'
+        ? api.saveRoomProjectConfirmed(nextProject) : { ok:false };
+      if(result.ok !== true) return result;
       try{ typeof window.renderTopHeight === 'function' && window.renderTopHeight(room); }catch(_){ }
       try{ typeof window.renderCabinets === 'function' && window.renderCabinets(); }catch(_){ }
-    }catch(_){ }
+      return result;
+    }catch(_){
+      try{ ns.roomPreferences.notifyRoomSaveFailure(); }catch(_){ }
+      return { ok:false };
+    }
   }
 
   function applySetting(field, value){
-    try{
-      if(typeof window.handleSettingChange === 'function'){
-        window.handleSettingChange(field, value);
-        return;
-      }
-    }catch(_){ }
-    try{
-      const room = getCurrentRoom();
-      const project = getSharedProjectData();
-      if(!room || !project || !project[room] || !project[room].settings) return;
-      project[room].settings[field] = value === '' ? 0 : parseFloat(value);
-      if(window.FC && window.FC.project && typeof window.FC.project.save === 'function'){
-        syncSharedProjectData(window.FC.project.save(project));
-      } else {
-        syncSharedProjectData(project);
-      }
-      try{ typeof window.renderTopHeight === 'function' && window.renderTopHeight(); }catch(_){ }
-      try{ typeof window.renderCabinets === 'function' && window.renderCabinets(); }catch(_){ }
-    }catch(_){ }
+    if(!FIELD_DEFS.some((definition)=> definition.key === field)) return { ok:false };
+    return applySettingsValues(getCurrentRoom(), { [field]:value });
   }
 
   function open(){
@@ -299,8 +286,8 @@
       input.value = formatNumber(settings[field.key]).replace(',', '.');
       input.addEventListener('input', refreshPreview);
       input.addEventListener('change', ()=>{
-        applySetting(field.key, input.value);
-        renderSummary(room);
+        const result = applySetting(field.key, input.value);
+        if(result.ok === true) renderSummary(room);
         refreshPreview();
       });
 
@@ -353,6 +340,8 @@
     close,
     renderSummary,
     getAutoTopHeight,
+    applySettingsValues,
+    applySetting,
     bindTriggerButtons,
   });
 })();

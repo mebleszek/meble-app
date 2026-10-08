@@ -231,7 +231,8 @@
     });
     form.appendChild(createSaveFooter('Preferencje materiałów i kolorów', [bulkBtn], ()=>{
       const nextApi = getApi();
-      if(nextApi && typeof nextApi.setRoomPreferences === 'function') nextApi.setRoomPreferences(room, draft);
+      const result = nextApi && typeof nextApi.setRoomPreferencesConfirmed === 'function' && nextApi.setRoomPreferencesConfirmed(room, draft);
+      if(!(result && result.ok === true)) return;
       renderSummary(room);
     }));
     refreshAll();
@@ -258,7 +259,8 @@
     const saveBtn = h('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
     saveBtn.addEventListener('click', ()=>{
       const api = getApi();
-      if(api && typeof api.setRoomPreferences === 'function') api.setRoomPreferences(room, draft);
+      const result = api && typeof api.setRoomPreferencesConfirmed === 'function' && api.setRoomPreferencesConfirmed(room, draft);
+      if(!(result && result.ok === true)) return;
       renderSummary(room);
       try{ if(typeof renderCabinets === 'function') renderCabinets(); }catch(_){ }
       close();

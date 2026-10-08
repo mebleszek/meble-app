@@ -52,8 +52,12 @@ async function main(){
   sandbox.FC.catalogStore = {
     getHardwareManufacturers(){ return ['Blum', 'GTV', 'Rejs']; }
   };
+  sandbox.FC.session = {
+    active:false, durable:false,
+    begin(){ this.active = true; this.durable = true; return true; }
+  };
   sandbox.FC.project = {
-    save(data){ return clone(data); }
+    saveConfirmed(data){ return { ok:true, project:clone(data) }; }
   };
   sandbox.FC.rozrysChoice = {
     createChoiceLauncher(label){

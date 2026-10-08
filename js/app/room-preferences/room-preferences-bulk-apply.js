@@ -72,13 +72,12 @@
   }
 
   function regenerateCabinetFronts(room, cab){
-    try{
-      if(ns.cabinetFronts && typeof ns.cabinetFronts.generateFrontsForCabinet === 'function'){
-        ns.cabinetFronts.generateFrontsForCabinet(room, cab);
-        return true;
-      }
-    }catch(_){ }
-    return false;
+    if(!(ns.cabinetFronts && typeof ns.cabinetFronts.generateFrontsForCabinet === 'function')){
+      throw new Error('Brak generatora frontów.');
+    }
+    // A generation failure must reach the RAM-baseline recovery, not become a partial success.
+    ns.cabinetFronts.generateFrontsForCabinet(room, cab);
+    return true;
   }
 
   function applyCabinetMaterials(room, roomData, selection, counters){
@@ -172,10 +171,7 @@
     });
   }
 
-  function saveAndRender(){
-    try{
-      if(ns.project && typeof ns.project.save === 'function') projectData = ns.project.save(projectData);
-    }catch(_){ }
+  function renderAfterSave(){
     try{ if(typeof renderCabinets === 'function') renderCabinets(); }catch(_){ }
     try{ if(ns.wywiadRoomPreferences && typeof ns.wywiadRoomPreferences.renderSummary === 'function'){ ns.wywiadRoomPreferences.renderSummary(); } }catch(_){ }
   }
@@ -183,17 +179,34 @@
   function apply(room, selection){
     const normalized = normalizeSelection(selection);
     const plan = buildPlan(room, normalized);
-    if(!plan.ready || !plan.hasChanges) return { ok:false, plan, changed:{ body:0, front:0, back:0, opening:0, pcv:0 }, message:'Brak zmian do zastosowania.' };
+    if(plan.ready !== true || plan.hasChanges !== true) return { ok:false, plan, changed:{ body:0, front:0, back:0, opening:0, pcv:0 }, message:'Brak zmian do zastosowania.' };
     const roomData = getRoomData(room);
     if(!roomData) return { ok:false, plan, changed:{ body:0, front:0, back:0, opening:0, pcv:0 }, message:'Brak pomieszczenia.' };
     const counters = { body:0, front:0, back:0, opening:0, pcv:0 };
 
-    applyCabinetMaterials(room, roomData, normalized, counters);
-    applySetRecordMaterials(room, roomData, normalized, counters);
-    applyPlainCabinetFronts(room, roomData, normalized, counters);
-    applySourceFronts(room, roomData, normalized, counters);
-
-    saveAndRender();
+    const api = ns.roomPreferences;
+    let baseline;
+    let mutated = false;
+    try{
+      const project = api.getSharedProjectData();
+      baseline = JSON.parse(JSON.stringify(project));
+      const result = api.saveRoomProjectConfirmed(project, ()=>{
+        mutated = true;
+        applyCabinetMaterials(room, roomData, normalized, counters);
+        applySetRecordMaterials(room, roomData, normalized, counters);
+        applyPlainCabinetFronts(room, roomData, normalized, counters);
+        applySourceFronts(room, roomData, normalized, counters);
+      });
+      if(result.ok !== true){
+        if(mutated) api.syncSharedProjectData(baseline);
+        return { ok:false, plan, changed:{ body:0, front:0, back:0, opening:0, pcv:0 }, message:'Zmian nie zapisano. Spróbuj ponownie.' };
+      }
+    }catch(_){
+      if(mutated) api.syncSharedProjectData(baseline);
+      try{ api.notifyRoomSaveFailure(); }catch(_){ }
+      return { ok:false, plan, message:'Zmian nie zapisano. Spróbuj ponownie.' };
+    }
+    renderAfterSave();
     return { ok:true, plan:buildPlan(room, normalized), changed:counters, message:'Zastosowano preferencje do istniejących szafek.' };
   }
 

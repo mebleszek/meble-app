@@ -366,7 +366,8 @@
       readFormSelections(form, working);
       sanitizeDraftToExistingManufacturers(working, getHardwareManufacturers());
       rememberDraft(room, working);
-      if(nextApi && typeof nextApi.setRoomPreferences === 'function') nextApi.setRoomPreferences(room, working);
+      const result = nextApi && typeof nextApi.setRoomPreferencesConfirmed === 'function' && nextApi.setRoomPreferencesConfirmed(room, working);
+      if(!(result && result.ok === true)) return;
       clearDraft(room);
       renderSummary(room);
       try{ if(ns.wywiadRoomPreferences && typeof ns.wywiadRoomPreferences.renderSummary === 'function') ns.wywiadRoomPreferences.renderSummary(room); }catch(_){ }

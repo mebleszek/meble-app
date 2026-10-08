@@ -25,11 +25,14 @@
     }
   }
   function handleSettingChange(field, value){
-    const room = uiState.roomType; if(!room) return;
-    projectData[room].settings[field] = value === '' ? 0 : parseFloat(value);
-    projectData = FC.project.save(projectData);
-    renderTopHeight();
-    renderCabinets();
+    // Do not throw into app.js's legacy, mutating fallback.
+    try{
+      const api = ns.wywiadRoomSettings;
+      return api && typeof api.applySetting === 'function' ? api.applySetting(field, value) : { ok:false };
+    }catch(_){
+      try{ ns.roomPreferences.notifyRoomSaveFailure(); }catch(_){ }
+      return { ok:false };
+    }
   }
   ns.settingsUI = Object.assign({}, ns.settingsUI || {}, {
     renderTopHeight,
