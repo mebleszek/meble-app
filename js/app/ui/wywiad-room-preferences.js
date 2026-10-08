@@ -10,6 +10,7 @@
   const BLEND_STANDARDS = ['standardowe','dokładne pod wymiar','minimalne / tylko konieczne'];
   const BACK_MATERIALS = ['HDF 3mm biała','HDF 3mm pod kolor','Płyta 18mm pod kolor','Brak'];
   const EMPTY_OPTION = '— nie ustawiaj —';
+  const GLOBAL_OPTION = '— użyj ustawienia globalnego —';
 
   function text(value){ return String(value == null ? '' : value).trim(); }
   function getApi(){ return ns.roomPreferences || {}; }
@@ -133,7 +134,16 @@
     const wrap = h('div', { class:'wywiad-zone-field' });
     wrap.appendChild(h('div', { class:'wywiad-zone-field__label', text:cfg.label }));
     const getOptions = ()=> unique((typeof cfg.options === 'function' ? cfg.options(rootDraft) : (cfg.options || [])).concat(text(cfg.get(rootDraft)) ? [text(cfg.get(rootDraft))] : []));
-    const btn = makeChoiceButton(selectedLabel(getOptions(), cfg.get(rootDraft), cfg.emptyLabel || EMPTY_OPTION));
+    const btn = makeChoiceButton('');
+    const sourceMeta = cfg.effective ? h('div', { class:'wywiad-zone-field__source' }) : null;
+    const refresh = ()=>{
+      const effective = cfg.effective && cfg.effective(rootDraft);
+      setChoiceButtonLabel(btn, effective && effective.value ? effective.value : selectedLabel(getOptions(), cfg.get(rootDraft), cfg.emptyLabel || EMPTY_OPTION));
+      if(sourceMeta){
+        sourceMeta.textContent = getApi().preferenceSourceLabel(effective.source);
+        sourceMeta.setAttribute('data-preference-source', effective.source);
+      }
+    };
     btn.setAttribute('aria-label', cfg.title || ('Wybierz: ' + cfg.label));
     btn.addEventListener('click', async ()=>{
       const options = optionList(getOptions(), cfg.emptyLabel || EMPTY_OPTION);
@@ -141,11 +151,13 @@
       if(picked == null || String(picked) === String(cfg.get(rootDraft) || '')) return;
       cfg.set(rootDraft, picked);
       if(typeof cfg.onChange === 'function') cfg.onChange(rootDraft, picked, btn);
-      setChoiceButtonLabel(btn, selectedLabel(getOptions(), cfg.get(rootDraft), cfg.emptyLabel || EMPTY_OPTION));
+      refresh();
       if(typeof onChange === 'function') onChange(rootDraft);
     });
     wrap.appendChild(btn);
-    return { wrap, refresh(){ setChoiceButtonLabel(btn, selectedLabel(getOptions(), cfg.get(rootDraft), cfg.emptyLabel || EMPTY_OPTION)); } };
+    if(sourceMeta) wrap.appendChild(sourceMeta);
+    refresh();
+    return { wrap, refresh };
   }
 
   function ensureZone(draft, zoneKey){
@@ -168,14 +180,18 @@
     const openingOptions = ()=> ((api.OPENING_OPTIONS || {})[openingOptionsKey] || []);
     const pcvOptions = ['Pod kolor płyty', 'Pod kolor frontów'];
     const fields = [
-      { label:'Korpus', title:'Wybierz korpus — ' + (meta.shortLabel || meta.label), get:()=> zone.bodyColor, set:(d,v)=>{ ensureZone(d, zoneKey).bodyColor = text(v); }, options:getBodyMaterialNames },
-      { label:'Materiał frontu', title:'Wybierz materiał frontu — ' + (meta.shortLabel || meta.label), get:()=> zone.frontMaterial, set:(d,v)=>{ ensureZone(d, zoneKey).frontMaterial = text(v); }, options:getMaterialTypes, onChange:(d)=>{ const z = ensureZone(d, zoneKey); if(!getMaterialNamesByType(z.frontMaterial || 'laminat').includes(text(z.frontColor))) z.frontColor = ''; } },
-      { label:'Kolor frontu', title:'Wybierz kolor frontu — ' + (meta.shortLabel || meta.label), get:()=> zone.frontColor, set:(d,v)=>{ ensureZone(d, zoneKey).frontColor = text(v); }, options:()=> getMaterialNamesByType(zone.frontMaterial || 'laminat') },
-      { label:'Plecy', title:'Wybierz plecy — ' + (meta.shortLabel || meta.label), get:()=> zone.backMaterial, set:(d,v)=>{ ensureZone(d, zoneKey).backMaterial = text(v); }, options:BACK_MATERIALS },
+      { key:'bodyColor', label:'Korpus', title:'Wybierz korpus — ' + (meta.shortLabel || meta.label), get:()=> zone.bodyColor, set:(d,v)=>{ ensureZone(d, zoneKey).bodyColor = text(v); }, options:getBodyMaterialNames },
+      { key:'frontMaterial', label:'Materiał frontu', title:'Wybierz materiał frontu — ' + (meta.shortLabel || meta.label), get:()=> zone.frontMaterial, set:(d,v)=>{ ensureZone(d, zoneKey).frontMaterial = text(v); }, options:getMaterialTypes, onChange:(d)=>{ const z = ensureZone(d, zoneKey); if(!getMaterialNamesByType(api.getEffectiveZonePreference(d, zoneKey, 'frontMaterial', 'laminat').value).includes(text(z.frontColor))) z.frontColor = ''; } },
+      { key:'frontColor', label:'Kolor frontu', title:'Wybierz kolor frontu — ' + (meta.shortLabel || meta.label), get:()=> zone.frontColor, set:(d,v)=>{ ensureZone(d, zoneKey).frontColor = text(v); }, options:()=> getMaterialNamesByType(api.getEffectiveZonePreference(draft, zoneKey, 'frontMaterial', 'laminat').value) },
+      { key:'backMaterial', label:'Plecy', title:'Wybierz plecy — ' + (meta.shortLabel || meta.label), get:()=> zone.backMaterial, set:(d,v)=>{ ensureZone(d, zoneKey).backMaterial = text(v); }, options:BACK_MATERIALS },
       { label:'Otwieranie', title:'Wybierz otwieranie — ' + (meta.shortLabel || meta.label), get:()=> zone.openingSystem, set:(d,v)=>{ ensureZone(d, zoneKey).openingSystem = text(v); }, options:openingOptions },
       { label:'PCV korpusu', title:'Wybierz PCV korpusu — ' + (meta.shortLabel || meta.label), get:()=> (zone.bodyPcvMode === 'front' ? 'Pod kolor frontów' : 'Pod kolor płyty'), set:(d,v)=>{ ensureZone(d, zoneKey).bodyPcvMode = text(v).toLowerCase().includes('front') ? 'front' : 'body'; }, options:pcvOptions, emptyLabel:'Pod kolor płyty' }
     ];
     fields.forEach((cfg)=>{
+      if(cfg.key){
+        cfg.emptyLabel = GLOBAL_OPTION;
+        cfg.effective = (d)=> api.getEffectiveZonePreference(d, zoneKey, cfg.key);
+      }
       const field = makeChoiceField(cfg, draft, refreshAll);
       refreshers.push(field.refresh);
       grid.appendChild(field.wrap);
@@ -195,6 +211,15 @@
 
     const note = h('div', { class:'wywiad-room-inline-form__note muted xs', text:'Strefy pokoju mają pierwszeństwo przed globalnymi domyślnymi z trybiku. Istniejące szafki nie są zmieniane w tym etapie.' });
     form.appendChild(note);
+
+    const bulkBtn = h('button', { type:'button', class:'btn wywiad-room-inline-form__bulk', text:'Zastosuj do istniejących szafek' });
+    bulkBtn.addEventListener('click', ()=>{
+      try{
+        if(ns.wywiadRoomPreferencesBulk && typeof ns.wywiadRoomPreferencesBulk.open === 'function') ns.wywiadRoomPreferencesBulk.open(room);
+      }catch(_){ }
+    });
+    const bulkAccess = h('div', { class:'wywiad-room-inline-form__bulk-access' }, [bulkBtn, h('div', { class:'muted xs', text:'Zastosowane zostaną zapisane preferencje pomieszczenia.' })]);
+    form.appendChild(bulkAccess);
 
     const general = h('section', { class:'wywiad-zone-card wywiad-zone-card--general' });
     general.appendChild(h('div', { class:'wywiad-zone-card__title', text:'Standardy ogólne pomieszczenia' }));
@@ -223,13 +248,7 @@
     const zoneKeys = Array.isArray(api.ZONE_KEYS) ? api.ZONE_KEYS : ['lower','middle','upper'];
     zoneKeys.forEach((zoneKey)=> form.appendChild(buildZoneCard(zoneKey, draft, refreshers, refreshAll)));
 
-    const bulkBtn = h('button', { type:'button', class:'btn wywiad-room-inline-form__bulk', text:'Zastosuj do istniejących szafek' });
-    bulkBtn.addEventListener('click', ()=>{
-      try{
-        if(ns.wywiadRoomPreferencesBulk && typeof ns.wywiadRoomPreferencesBulk.open === 'function') ns.wywiadRoomPreferencesBulk.open(room);
-      }catch(_){ }
-    });
-    form.appendChild(createSaveFooter('Preferencje materiałów i kolorów', [bulkBtn], ()=>{
+    form.appendChild(createSaveFooter('Preferencje materiałów i kolorów', [], ()=>{
       const nextApi = getApi();
       const result = nextApi && typeof nextApi.setRoomPreferencesConfirmed === 'function' && nextApi.setRoomPreferencesConfirmed(room, draft);
       if(!(result && result.ok === true)) return;

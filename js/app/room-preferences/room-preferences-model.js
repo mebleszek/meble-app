@@ -428,6 +428,34 @@
     return drawerPref || globalValue || text(fallback);
   }
 
+  // Read-only presentation of the same inheritance used by the project resolvers.
+  // Accept the local preferences draft so a selection can be previewed without saving it.
+  function getEffectiveZonePreference(preferences, zoneKey, field, fallback){
+    const zone = getZonePreferences(preferences, zoneKey);
+    if(text(zone[field])) return { value:text(zone[field]), source:'room' };
+    const globalFields = ['bodyColor','frontMaterial','frontColor','backMaterial'];
+    const globalValue = globalFields.includes(field) ? text(getProgramMaterialDefaults()[field]) : '';
+    if(globalValue) return { value:globalValue, source:'global' };
+    return { value:text(fallback), source:text(fallback) ? 'fallback' : '' };
+  }
+
+  function getEffectiveHardwarePreference(preferences, groupKey, fallback){
+    const group = getHardwareProducerGroup(groupKey);
+    if(!group) return { value:text(fallback), source:text(fallback) ? 'fallback' : '' };
+    const prefs = normalizeRoomPreferences(preferences);
+    const roomValue = text(prefs.hardwareProducers[group.key]);
+    const drawerValue = group.key === 'drawers' ? text(getDrawerSystemOption(prefs.hardwareDrawerSystems.drawers).manufacturer) : '';
+    if(roomValue || drawerValue) return { value:roomValue || drawerValue, source:'room' };
+    const defaults = getProgramHardwareDefaults();
+    const globalValue = text(defaults[group.defaultField] || defaults[group.key]);
+    if(globalValue) return { value:globalValue, source:'global' };
+    return { value:text(fallback), source:text(fallback) ? 'fallback' : '' };
+  }
+
+  function preferenceSourceLabel(source){
+    return { room:'ustawienie tego pomieszczenia', global:'z ustawień globalnych', fallback:'wartość awaryjna programu' }[source] || '';
+  }
+
   function hasMeaningfulZone(zone){
     const normalized = normalizeZonePreferences(zone);
     return Object.keys(DEFAULT_ZONE_PREFERENCES).some((key)=> !!text(normalized[key]));
@@ -518,6 +546,9 @@
     getDrawerSystemOption,
     getHardwareProducerGroup,
     resolveHardwareProducerPreference,
+    getEffectiveZonePreference,
+    getEffectiveHardwarePreference,
+    preferenceSourceLabel,
     resolveDrawerSystemPreference,
     applyDrawerSystemPreferenceToDetails,
     resolveZoneDefaults,
