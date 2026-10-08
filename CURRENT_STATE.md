@@ -231,7 +231,33 @@ Nie należy budować tego na samych licznikach `frontCount/drawerCount/doorCount
 
 `js/tabs/rysunek.js` ma ok. **1459 linii** i jest oznaczony jako obszar **„nie ruszać bez osobnego planu”**.
 
-Nie jest obecnie blokadą dla chmury ani WYCENY. Duży refaktor RYSUNKU powinien być późnym etapem, po wzmocnieniu testów i ograniczeniu systemowych dialogów.
+Nie jest obecnie blokadą dla chmury ani WYCENY. Duży refaktor RYSUNKU powinien być późnym, osobnym etapem. Nie należy teraz inwestować w szerokie łatanie starego monolitu tylko po to, żeby zachować jego obecną strukturę.
+
+### Znany dług bezpieczeństwa zapisu — odłożyć do przebudowy RYSUNKU
+
+Audyt zamykający 2B.4 po wdrożeniu MATERIAŁU 6f potwierdził, że obecny RYSUNEK ma ścieżki **mutation-before-durable-begin**:
+
+- helpery takie jak `addFinish()`, `removeFinish()`, `insertGapAfter()` oraz część interakcji RYSUNKU najpierw mutują współdzielone `projectData`, a dopiero potem wywołują `saveProject()`,
+- `saveProject()` dopiero później dochodzi do `FC.project.save(projectData)`, więc zabezpieczenie sesji może nastąpić już po zmianie RAM,
+- przy awarii durable `session.begin()` zapis centralny może zostać zablokowany, ale RAM może być już zmieniony,
+- `ensureLayout()` potrafi normalizować / tworzyć `layout`, wiersze i `finishes` podczas wejścia/renderu, czyli istnieją mutacje niebędące jednoznacznie zatwierdzoną akcją użytkownika,
+- `fc_ui_v1` należy do rollback scope; przed przebudową trzeba testem rozdzielić prawdziwe dirty projektu od czysto wizualnego/UI dirty w RYSUNKU,
+- moduł nadal miesza render SVG, interakcje, drag/drop, inspektor, listy wykończeń oraz stare `alert/confirm/prompt`.
+
+### Decyzja
+
+Nie tworzyć teraz osobnego patcha typu „6h” naprawiającego wszystkie powyższe ścieżki w obecnym monolicie.
+
+Gdy temat RYSUNKU zostanie świadomie wznowiony:
+
+1. najpierw ustalić docelowy UX i zakres funkcji,
+2. zinwentaryzować mutacje danych vs stan czysto wizualny,
+3. usunąć / zastąpić systemowe dialogi i wzmocnić testy kontraktowe,
+4. dopiero potem rozdzielać render, interakcje i domenę,
+5. nowe mutacje budować od początku według kontraktu: **lokalny draft / plan → durable session.begin → trwały zapis → aktualizacja współdzielonego RAM**,
+6. nie przenosić automatycznie starych mutacji 1:1 do nowych modułów.
+
+Wcześniejsze paczki przebudowy RYSUNKU nie zostały świadomie przeniesione do stabilnej bazy, dlatego przy przyszłej pracy nie traktować ich jako obowiązującej architektury bez ponownej decyzji.
 
 ---
 
