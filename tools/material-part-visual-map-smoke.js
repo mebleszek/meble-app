@@ -76,17 +76,23 @@ const cases = [
     for(const node of r.edges()) assert.doesNotMatch(node.children[1].textContent, /góra|dół|lewo|prawo/i);
     assert.match(read('js/tabs/material.js'), /openPartOptions\(p, sig,[\s\S]*?edges:e,/);
   }],
-  ['passive PCV mapping and read-only opening', ()=>{
+  ['active PCV mapping and read-only opening', ()=>{
     const r = runtime(); r.open();
     assert.deepEqual(r.edges().map((node)=> !!node.children[0].attributes.checked), [true, false, true, false]);
     for(const node of r.edges()){
-      assert.equal(node.children[0].attributes.disabled, 'disabled');
-      assert.deepEqual(node.children[0].listeners, {});
-      node.children[0].click();
+      assert.equal(node.children[0].attributes.disabled, undefined);
+      assert.equal(typeof node.children[0].listeners.change, 'function');
     }
     const surface = r.byClass('material-part-options__surface');
     assert.match(surface.className, /has-w1/); assert.match(surface.className, /has-h1/);
     assert.doesNotMatch(surface.className, /has-w2|has-h2/);
+    const input = r.edges()[0].children[0];
+    input.checked = false; input.listeners.change();
+    assert.doesNotMatch(surface.className, /has-w1/);
+    assert.deepEqual(r.footer(), ['Anuluj', 'Zapisz']);
+    input.checked = true; input.listeners.change();
+    assert.match(surface.className, /has-w1/);
+    assert.deepEqual(r.footer(), ['Wyjdź']);
     assert.equal(r.ui.writes, 0); assert.equal(r.ui.begins, 0);
   }],
   ['bounded proportional geometry', ()=>{

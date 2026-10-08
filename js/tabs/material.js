@@ -328,6 +328,8 @@
           : (isBoard && window.FC && FC.materialEdgeStore && typeof FC.materialEdgeStore.signatureFromPart === 'function' ? FC.materialEdgeStore.signatureFromPart(p) : null);
         const e = (canHavePcv && sig && edgeApi && typeof edgeApi.getEdges === 'function') ? edgeApi.getEdges(sig, p, cab) : {w1:false,w2:false,h1:false,h2:false};
         const dirLabel = canHavePcv && sig && edgeApi && typeof edgeApi.labelForDirection === 'function' ? edgeApi.labelForDirection(sig) : 'Domyślny z materiału';
+        const edgeSummary = [['w1','1A'], ['w2','1B'], ['h1','2A'], ['h2','2B']]
+          .filter(([key])=> e[key]).map(([, label])=> label).join(', ') || 'brak';
 
         row.innerHTML = `
           <div style="font-weight:900">${p.name}</div>
@@ -341,36 +343,7 @@
           <div class="front-meta" style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
             ${canHavePcv ? `
               <div class="material-row-tools">
-                <div class="material-row-tools__edges">
-                  <label style="display:flex;align-items:flex-start;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
-                    <input type="checkbox" data-edge="w1" ${e.w1?'checked':''} data-sig="${sig}" />
-                    <span style="display:flex;flex-direction:column;line-height:1.05">
-                      <span style="white-space:nowrap">${fmtCm(p.a)} cm</span>
-                      <span class="muted" style="font-size:11px;font-weight:900">1A</span>
-                    </span>
-                  </label>
-                  <label style="display:flex;align-items:flex-start;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
-                    <input type="checkbox" data-edge="w2" ${e.w2?'checked':''} data-sig="${sig}" />
-                    <span style="display:flex;flex-direction:column;line-height:1.05">
-                      <span style="white-space:nowrap">${fmtCm(p.a)} cm</span>
-                      <span class="muted" style="font-size:11px;font-weight:900">1B</span>
-                    </span>
-                  </label>
-                  <label style="display:flex;align-items:flex-start;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
-                    <input type="checkbox" data-edge="h1" ${e.h1?'checked':''} data-sig="${sig}" />
-                    <span style="display:flex;flex-direction:column;line-height:1.05">
-                      <span style="white-space:nowrap">${fmtCm(p.b)} cm</span>
-                      <span class="muted" style="font-size:11px;font-weight:900">2A</span>
-                    </span>
-                  </label>
-                  <label style="display:flex;align-items:flex-start;gap:6px;margin:0;font-weight:800;font-size:12px;color:#334155">
-                    <input type="checkbox" data-edge="h2" ${e.h2?'checked':''} data-sig="${sig}" />
-                    <span style="display:flex;flex-direction:column;line-height:1.05">
-                      <span style="white-space:nowrap">${fmtCm(p.b)} cm</span>
-                      <span class="muted" style="font-size:11px;font-weight:900">2B</span>
-                    </span>
-                  </label>
-                </div>
+                <div class="material-row-tools__edges">PCV: ${edgeSummary}</div>
                 <div class="material-row-tools__opts">
                   <button class="btn material-row-tools__opts-btn" type="button" data-part-options="${sig}">Opcje</button>
                   <div class="muted xs material-row-tools__opts-meta">Słój: ${dirLabel}</div>
@@ -382,15 +355,6 @@
         table.appendChild(row);
 
         if(canHavePcv && edgeApi){
-          row.querySelectorAll('input[type="checkbox"][data-edge]').forEach(ch => {
-            ch.addEventListener('change', ()=>{
-              const sig2 = ch.getAttribute('data-sig');
-              const edge = ch.getAttribute('data-edge');
-              if(!sig2 || !edge || !(typeof edgeApi.setEdges === 'function')) return;
-              edgeApi.setEdges(sig2, { [edge]: !!ch.checked });
-              renderCabinets();
-            });
-          });
           const optsBtn = row.querySelector('[data-part-options]');
           if(optsBtn){
             optsBtn.addEventListener('click', ()=> {

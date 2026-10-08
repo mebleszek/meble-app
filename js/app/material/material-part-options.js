@@ -5,6 +5,15 @@
 
   const STORAGE_KEY = 'fc_material_part_options_v1';
   const DIRECTIONS = ['default','horizontal','vertical','none'];
+  const EDGE_KEYS = ['w1','w2','h1','h2'];
+
+  function copyEdges(value){
+    return Object.fromEntries(EDGE_KEYS.map((key)=> [key, !!(value && value[key])]));
+  }
+
+  function sameEdges(a, b){
+    return EDGE_KEYS.every((key)=> !!(a && a[key]) === !!(b && b[key]));
+  }
 
   function normalizeFrontLaminatMaterialKey(materialKey){
     const raw = String(materialKey || '').trim();
@@ -81,27 +90,92 @@
     return JSON.stringify(store);
   }
 
-  function setDirection(sig, dir){
+  function prepareDirection(sig, dir){
     const key = String(sig || '').trim();
-    if(!key) return false;
+    if(!key) return null;
+    const prevRaw = localStorage.getItem(STORAGE_KEY);
     const all = loadAll();
     const value = normalizeDirection(dir);
-    if(value === normalizeDirection(all[key])) return true;
+    if(value === normalizeDirection(all[key])) return { key:STORAGE_KEY, changed:false, prevRaw, nextRaw:prevRaw, nextStore:all };
     const baseline = sessionOptionsBaseline();
     if(baseline && Object.prototype.hasOwnProperty.call(baseline.store, key)
       && value === normalizeDirection(baseline.store[key])) all[key] = baseline.store[key];
     else if(value === 'default') delete all[key];
     else all[key] = value;
+    const nextRaw = desiredOptionsRaw(all, baseline);
+    return { key:STORAGE_KEY, changed:prevRaw !== nextRaw, prevRaw, nextRaw, nextStore:all };
+  }
+
+  function writeRaw(key, raw){
+    if(raw === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, raw);
+  }
+
+  function refreshSessionButtons(){
+    try{ root.FC && root.FC.views && typeof root.FC.views.refreshSessionButtons === 'function' && root.FC.views.refreshSessionButtons(); }catch(_){ }
+  }
+
+  function setDirection(sig, dir){
     try{
-      const prevRaw = localStorage.getItem(STORAGE_KEY);
-      const nextRaw = desiredOptionsRaw(all, baseline);
-      if(prevRaw === nextRaw) return true;
+      const plan = prepareDirection(sig, dir);
+      if(!plan) return false;
+      if(!plan.changed) return true;
       const session = root.FC && root.FC.session;
       if(!(session && typeof session.begin === 'function' && session.begin() === true)) return false;
-      if(nextRaw === null) localStorage.removeItem(STORAGE_KEY);
-      else localStorage.setItem(STORAGE_KEY, nextRaw);
+      writeRaw(plan.key, plan.nextRaw);
     }catch(_){ return false; }
-    try{ root.FC && root.FC.views && typeof root.FC.views.refreshSessionButtons === 'function' && root.FC.views.refreshSessionButtons(); }catch(_){ }
+    refreshSessionButtons();
+    return true;
+  }
+
+  function notifySaveFailure(rollbackFailed){
+    try{
+      if(root.FC.infoBox && typeof root.FC.infoBox.open === 'function') root.FC.infoBox.open({
+        title:'Nie udało się zapisać opcji formatki',
+        message:rollbackFailed
+          ? 'Zapis częściowo się nie powiódł i nie udało się przywrócić poprzednich ustawień. Sesja edycji została zachowana. Ponów zapis lub użyj globalnego Anuluj, aby cofnąć zmiany sesji.'
+          : 'Opcje formatki nie zostały zapisane. Wprowadzone zmiany pozostały w formularzu. Spróbuj ponownie.',
+        okOnly:true,
+      });
+    }catch(_){ }
+  }
+
+  // Only this modal coordinates these two stores; their planners own semantic revert.
+  function saveDraft(sig, initial, draft, edgeEditor){
+    const written = [];
+    let edgePlan = null;
+    try{
+      const plans = [];
+      if(normalizeDirection(draft.direction) !== normalizeDirection(initial.direction)){
+        const plan = prepareDirection(sig, draft.direction);
+        if(!plan) return false;
+        plans.push(plan);
+      }
+      if(!sameEdges(draft.edges, initial.edges)){
+        if(!(edgeEditor && typeof edgeEditor.prepare === 'function' && typeof edgeEditor.apply === 'function')) return false;
+        edgePlan = edgeEditor.prepare(draft.edges);
+        if(!edgePlan) return false;
+        plans.push(edgePlan);
+      }
+      const changed = plans.filter((plan)=> plan.changed);
+      if(changed.length){
+        const session = root.FC && root.FC.session;
+        if(!(session && typeof session.begin === 'function' && session.begin() === true)) return false;
+        for(const plan of changed){
+          writeRaw(plan.key, plan.nextRaw);
+          written.push(plan);
+        }
+      }
+    }catch(_){
+      let rollbackFailed = false;
+      for(const plan of written.reverse()){
+        try{ writeRaw(plan.key, plan.prevRaw); }catch(_){ rollbackFailed = true; }
+      }
+      notifySaveFailure(rollbackFailed);
+      return false;
+    }
+    if(edgePlan) edgeEditor.apply(edgePlan);
+    refreshSessionButtons();
     return true;
   }
 
@@ -156,8 +230,11 @@
     const name = String((cfg && cfg.name) || 'Formatka');
     const material = String((cfg && cfg.material) || 'Materiał');
     const sizeText = String((cfg && cfg.sizeText) || '');
-    const initial = normalizeDirection((cfg && cfg.initialDirection) || getDirection(sig));
-    let draft = initial;
+    const initial = {
+      direction:normalizeDirection((cfg && cfg.initialDirection) || getDirection(sig)),
+      edges:copyEdges(cfg && cfg.edges),
+    };
+    const draft = { direction:initial.direction, edges:copyEdges(initial.edges) };
 
     function h(tag, attrs, children){
       const node = document.createElement(tag);
@@ -188,29 +265,34 @@
     const mapWidth = Math.min(300, 216 * ratio);
     const fmtCm = typeof cfg.fmtCm === 'function' ? cfg.fmtCm
       : (value)=> Number.isFinite(value) ? String(value).replace('.', ',') : '—';
-    const edges = cfg.edges || {};
     const preview = h('div', { class:'material-part-options__preview' });
     const map = h('div', {
       class:'material-part-options__map',
       style:`--part-map-width:${mapWidth}px;--part-map-ratio:${ratio};`,
     });
-    const surfaceClass = 'material-part-options__preview-rect material-part-options__surface'
-      + ['w1', 'w2', 'h1', 'h2'].filter((key)=> edges[key]).map((key)=> ` has-${key}`).join('');
+    const surfaceClass = 'material-part-options__preview-rect material-part-options__surface';
+    const edgeControls = [];
     const previewRect = h('div', { class:surfaceClass, 'aria-label':'Powierzchnia formatki — kierunek słojów' });
     map.appendChild(previewRect);
     [
       ['1A', 'w1', aCm], ['1B', 'w2', aCm],
       ['2A', 'h1', bCm], ['2B', 'h2', bCm],
     ].forEach(([code, key, dimension])=>{
-      const on = !!edges[key];
+      const on = draft.edges[key];
       const label = `${code} · ${fmtCm(dimension)} cm`;
-      const edge = h('div', {
+      const edge = h('label', {
         class:`material-part-options__edge material-part-options__edge--${code.toLowerCase()}${on ? ' is-on' : ''}`,
       });
-      edge.appendChild(h('input', {
-        type:'checkbox', disabled:'disabled', checked:on ? 'checked' : null,
-        'aria-label':`${code}: ${on ? 'krawędź oklejana' : 'brak PCV'}`,
-      }));
+      const input = h('input', {
+        type:'checkbox', checked:on ? 'checked' : null,
+        'aria-label':`PCV ${code}`,
+      });
+      input.addEventListener('change', ()=>{
+        draft.edges[key] = !!input.checked;
+        updateState();
+      });
+      edgeControls.push({ key, edge, input });
+      edge.appendChild(input);
       edge.appendChild(h('span', { class:'material-part-options__edge-label', text:label }));
       map.appendChild(edge);
     });
@@ -233,7 +315,7 @@
       btn.appendChild(h('div', { class:'material-part-options__choice-label', text:opt.label }));
       btn.appendChild(h('div', { class:'material-part-options__choice-hint', text:opt.hint }));
       btn.addEventListener('click', ()=>{
-        draft = opt.key;
+        draft.direction = opt.key;
         updateState();
       });
       cards.push({ key:opt.key, btn });
@@ -247,10 +329,15 @@
     const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' });
     const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zapisz' });
 
-    function isDirty(){ return normalizeDirection(draft) !== normalizeDirection(initial); }
+    function isDirty(){ return draft.direction !== initial.direction || !sameEdges(draft.edges, initial.edges); }
     function updatePreview(){
       previewRect.className = surfaceClass;
-      previewRect.classList.add(`is-${normalizeDirection(draft)}`);
+      previewRect.classList.add(`is-${normalizeDirection(draft.direction)}`);
+      edgeControls.forEach(({ key, edge, input })=>{
+        input.checked = draft.edges[key];
+        edge.classList.toggle('is-on', draft.edges[key]);
+        previewRect.classList.toggle(`has-${key}`, draft.edges[key]);
+      });
     }
     function renderFooter(){
       footerActions.innerHTML = '';
@@ -262,7 +349,7 @@
       }
     }
     function updateState(){
-      cards.forEach((item)=> item.btn.classList.toggle('is-selected', item.key === normalizeDirection(draft)));
+      cards.forEach((item)=> item.btn.classList.toggle('is-selected', item.key === normalizeDirection(draft.direction)));
       updatePreview();
       renderFooter();
     }
@@ -288,9 +375,10 @@
       try{ FC.panelBox.close(); }catch(_){ } finally{ notifyClose(); }
     });
     saveBtn.addEventListener('click', ()=>{
-      if(setDirection(sig, draft) !== true) return;
-      try{ if(typeof cfg.onSave === 'function') cfg.onSave(normalizeDirection(draft)); }catch(_){ }
+      if(saveDraft(sig, initial, draft, cfg.edgeEditor) !== true) return false;
+      try{ if(typeof cfg.onSave === 'function') cfg.onSave(normalizeDirection(draft.direction)); }catch(_){ }
       try{ FC.panelBox.close(); }catch(_){ } finally{ notifyClose(); }
+      return true;
     });
 
     FC.panelBox.open({
@@ -316,6 +404,8 @@
     signatureFromPart,
     getDirection,
     setDirection,
+    prepareDirection,
+    saveDraft,
     resolveDimsMm,
     resolvePartForRozrys,
     openOptionsModal,
