@@ -92,11 +92,20 @@ function runProjectNodeSmoke(sandbox){
     { name:'Preferencje producentów okuć zapisują Pozostałe akcesoria', explain:'Chroni zgłoszoną regresję: wybór w polu Pozostałe akcesoria nie może znikać po kliknięciu Zapisz zmiany.', check:()=> {
       if(!(FC.roomPreferences && typeof FC.roomPreferences.setRoomPreferences === 'function' && typeof FC.roomPreferences.getRoomPreferences === 'function')) return false;
       const previous = sandbox.projectData;
-      sandbox.projectData = FC.projectModel.normalizeProjectData({ schemaVersion:9, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{}, preferences:{} } });
-      FC.roomPreferences.setRoomPreferences('kuchnia', { hardwareProducers:{ hinges:'Blum', accessories:'Rejs' } }, { skipSave:true });
-      const got = FC.roomPreferences.getRoomPreferences('kuchnia');
-      sandbox.projectData = previous;
-      return !!(got && got.hardwareProducers && got.hardwareProducers.hinges === 'Blum' && got.hardwareProducers.accessories === 'Rejs');
+      const previousSession = FC.session;
+      const previousSaveConfirmed = FC.project.saveConfirmed;
+      try{
+        sandbox.projectData = FC.projectModel.normalizeProjectData({ schemaVersion:9, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{}, preferences:{} } });
+        FC.session = { active:false, durable:false, begin(){ this.active = true; this.durable = true; return true; } };
+        FC.project.saveConfirmed = (data)=> ({ ok:true, project:JSON.parse(JSON.stringify(data)) });
+        FC.roomPreferences.setRoomPreferences('kuchnia', { hardwareProducers:{ hinges:'Blum', accessories:'Rejs' } });
+        const got = FC.roomPreferences.getRoomPreferences('kuchnia');
+        return !!(got && got.hardwareProducers && got.hardwareProducers.hinges === 'Blum' && got.hardwareProducers.accessories === 'Rejs');
+      }finally{
+        sandbox.projectData = previous;
+        FC.session = previousSession;
+        FC.project.saveConfirmed = previousSaveConfirmed;
+      }
     } },
     { name:'UI producentów okuć czyta wartości z launcherów przy zapisie', explain:'Chroni mobilny scenariusz, w którym formularz zostaje przebudowany albo closure draftu jest nieaktualne — Zapisz zmiany ma czytać realne wartości pól, w tym Pozostałe akcesoria.', check:()=> {
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-hardware-producers.js'), 'utf8');

@@ -179,43 +179,94 @@
     return out;
   }
 
+  function getSharedProjectData(){
+    try{ if(typeof projectData !== 'undefined' && projectData && typeof projectData === 'object') return projectData; }catch(_){ }
+    return window.projectData && typeof window.projectData === 'object' ? window.projectData : null;
+  }
+
+  function syncSharedProjectData(nextProject){
+    try{ if(typeof projectData !== 'undefined') projectData = nextProject; }catch(_){ }
+    window.projectData = nextProject;
+    return nextProject;
+  }
+
+  function notifyRoomSaveFailure(){
+    try{
+      // File recovery already owns the storage-error dialog when it is pending.
+      if(ns.projectFileRecovery && typeof ns.projectFileRecovery.lastPendingRecord === 'function'
+        && ns.projectFileRecovery.lastPendingRecord()) return;
+      if(ns.infoBox && typeof ns.infoBox.open === 'function') ns.infoBox.open({
+        title:'Nie zapisano zmian pomieszczenia',
+        message:'Zmian nie udało się zapisać. Formularz i Twoje wybory pozostały dostępne. Spróbuj ponownie.',
+        okOnly:true,
+      });
+    }catch(_){ }
+  }
+
+  // Room-level saves only. Bulk mutations may run after the durable gate;
+  // their caller owns the RAM baseline and restores it if this result is false.
+  function saveRoomProjectConfirmed(nextProject, applyAfterBegin){
+    try{
+      if(!(ns.session && typeof ns.session.begin === 'function')){
+        notifyRoomSaveFailure();
+        return { ok:false };
+      }
+      // begin() owns the failed-durability warning and its suppression.
+      if(ns.session.begin() !== true) return { ok:false };
+      if(typeof applyAfterBegin === 'function') applyAfterBegin();
+      const result = ns.project && typeof ns.project.saveConfirmed === 'function'
+        ? ns.project.saveConfirmed(nextProject) : null;
+      if(!(result && result.ok === true && result.project && typeof result.project === 'object')){
+        notifyRoomSaveFailure();
+        return { ok:false };
+      }
+      syncSharedProjectData(result.project);
+      try{ ns.views && typeof ns.views.refreshSessionButtons === 'function' && ns.views.refreshSessionButtons(); }catch(_){ }
+      return { ok:true, changed:true, project:result.project };
+    }catch(_){ notifyRoomSaveFailure(); return { ok:false }; }
+  }
+
   function ensureProjectRoom(room){
     const key = text(room);
-    if(!key) return null;
-    try{
-      if(typeof projectData === 'undefined' || !projectData || typeof projectData !== 'object') return null;
-      projectData[key] = projectData[key] && typeof projectData[key] === 'object'
-        ? projectData[key]
-        : { cabinets:[], fronts:[], sets:[], settings:{} };
-      projectData[key].preferences = normalizeRoomPreferences(projectData[key].preferences);
-      return projectData[key];
-    }catch(_){ return null; }
+    const project = getSharedProjectData();
+    if(!key || !project) return null;
+    // Preparing/reading a room must not normalize the shared project in place.
+    const roomData = project[key] && typeof project[key] === 'object'
+      ? JSON.parse(JSON.stringify(project[key]))
+      : { cabinets:[], fronts:[], sets:[], settings:{} };
+    roomData.preferences = normalizeRoomPreferences(roomData.preferences);
+    return roomData;
   }
 
   function getRoomPreferences(room){
-    const key = text(room);
-    try{
-      const roomData = (typeof projectData !== 'undefined' && projectData && projectData[key]) ? projectData[key] : null;
-      return normalizeRoomPreferences(roomData && roomData.preferences);
-    }catch(_){ return normalizeRoomPreferences(null); }
+    const project = getSharedProjectData();
+    const roomData = project && project[text(room)];
+    return normalizeRoomPreferences(roomData && roomData.preferences);
   }
 
-  function saveProject(){
+  function setRoomPreferencesConfirmed(room, nextPreferences){
     try{
-      if(ns.project && typeof ns.project.save === 'function'){
-        projectData = ns.project.save(projectData);
+      const key = text(room);
+      const project = getSharedProjectData();
+      if(!key || !project) return { ok:false };
+      const preferences = normalizeRoomPreferences(nextPreferences);
+      if(JSON.stringify(preferences) === JSON.stringify(getRoomPreferences(key))){
+        return { ok:true, changed:false, project, preferences };
       }
-    }catch(_){ }
-    return projectData;
+      // Strict clone: failure must not fall back to mutating the original object.
+      const nextProject = JSON.parse(JSON.stringify(project));
+      nextProject[key] = ensureProjectRoom(key);
+      nextProject[key].preferences = preferences;
+      const result = saveRoomProjectConfirmed(nextProject);
+      return Object.assign({}, result, { preferences:getRoomPreferences(key) });
+    }catch(_){ notifyRoomSaveFailure(); return { ok:false }; }
   }
 
   function setRoomPreferences(room, nextPreferences, opts){
-    const key = text(room);
-    const roomData = ensureProjectRoom(key);
-    if(!roomData) return normalizeRoomPreferences(null);
-    roomData.preferences = normalizeRoomPreferences(nextPreferences);
-    if(!(opts && opts.skipSave)) saveProject();
-    return clone(roomData.preferences);
+    // Legacy preparation-only callers may request a normalized draft, never a shared RAM mutation.
+    if(opts && opts.skipSave) return normalizeRoomPreferences(nextPreferences);
+    setRoomPreferencesConfirmed(room, nextPreferences);
+    return getRoomPreferences(room);
   }
 
   function zoneKeyForCabinetType(typeValue){
@@ -450,6 +501,11 @@
     ensureProjectRoom,
     getRoomPreferences,
     setRoomPreferences,
+    setRoomPreferencesConfirmed,
+    getSharedProjectData,
+    syncSharedProjectData,
+    saveRoomProjectConfirmed,
+    notifyRoomSaveFailure,
     zoneKeyForCabinetType,
     openingKeyForType,
     getZonePreferences,
