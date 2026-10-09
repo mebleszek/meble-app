@@ -61,8 +61,8 @@ test('ROOM OVERRIDE',()=>{
 test('GLOBAL MATERIALS',()=>{
   const r = runtime(); const fields = r.materials().querySelectorAll('.wywiad-zone-card--lower .wywiad-zone-field');
   ['Egger W1100','akryl','Front global','HDF 3mm biała'].forEach((value,i)=> shows(fields[i],value,'global'));
-  assert.equal(fields[4].querySelector('.wywiad-zone-field__source'),null);
-  assert.equal(fields[5].querySelector('.wywiad-zone-field__source'),null);
+  assert.equal(fields[4].querySelector('.wywiad-zone-field__source').getAttribute('data-preference-source'),'');
+  assert.equal(fields[5].querySelector('.wywiad-zone-field__source').getAttribute('data-preference-source'),'global');
 });
 test('CLEAR OVERRIDE persists empty room value',async()=>{
   const r = runtime(); r.s.projectData.kuchnia.preferences = { zones:{ lower:{ bodyColor:'Egger U999' } } };

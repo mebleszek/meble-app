@@ -60,10 +60,10 @@
     };
   }
 
-  function getProgramMaterialDefaults(){
+  function getProgramMaterialDefaults(zone){
     try{
       if(ns.programDefaults && typeof ns.programDefaults.getMaterialDefaults === 'function'){
-        return ns.programDefaults.getMaterialDefaults() || {};
+        return ns.programDefaults.getMaterialDefaults(zone) || {};
       }
     }catch(_){ }
     return {};
@@ -108,7 +108,7 @@
       color = text(zoneMat.color);
     }
 
-    const defaults = getProgramMaterialDefaults();
+    const defaults = getProgramMaterialDefaults(spec.source === 'custom' ? 'lower' : spec.source);
     material = text(material || defaults.frontMaterial || fb.material || fb.frontMaterial || 'laminat') || 'laminat';
     color = text(color || defaults.frontColor || fb.color || fb.frontColor || firstColorForMaterialType(material));
 
