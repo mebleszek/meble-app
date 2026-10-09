@@ -20,15 +20,13 @@
     const footer = h('div', { class:'panel-box-form__footer rozrys-panel-footer' });
     const footerActions = h('div', { class:'rozrys-panel-footer__actions' });
     const backBtn = h('button', { type:'button', class:'btn btn-primary', text:'Wróć' });
-    const closeBtn = h('button', { type:'button', class:'btn btn-primary', text:'Wyjdź' });
 
     footerActions.appendChild(backBtn);
-    footerActions.appendChild(closeBtn);
     footer.appendChild(footerActions);
     body.appendChild(scroll);
     body.appendChild(footer);
 
-    function renderFooter(){ backBtn.style.display = view === 'menu' ? 'none' : ''; }
+    function renderFooter(){ backBtn.style.display = view === 'menu' ? 'none' : ''; footer.style.display = view === 'menu' ? 'none' : ''; }
     function setView(next){ view = (next === 'backup' || next === 'defaults' || next === 'workSources' || next === 'company' || next === 'businessCosts' || next === 'hourlyRates') ? next : 'menu'; render(); }
     function render(){
       renderFooter();
@@ -42,7 +40,6 @@
     }
 
     backBtn.addEventListener('click', ()=> setView('menu'));
-    closeBtn.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
     render();
     FC.panelBox.open({ title:'Ustawienia', contentNode:body, width:'920px', boxClass:'panel-box--rozrys data-settings-panel', dismissOnOverlay:false, dismissOnEsc:true });
     return true;

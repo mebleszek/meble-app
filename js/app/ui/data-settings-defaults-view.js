@@ -105,19 +105,20 @@
     const wrap = h('div', { class:'data-settings-default-field' });
     wrap.appendChild(h('div', { class:'data-settings-default-label', text:cfg.label }));
     const getOptions = ()=> unique((typeof cfg.options === 'function' ? cfg.options(draft) : (cfg.options || [])).concat(text(cfg.get(draft)) ? [text(cfg.get(draft))] : []));
-    const btn = makeChoiceButton(selectedLabel(getOptions(), cfg.get(draft), cfg.emptyLabel || EMPTY_OPTION));
+    const displayLabel = ()=> cfg.format ? cfg.format(cfg.get(draft)) : selectedLabel(getOptions(), cfg.get(draft), cfg.emptyLabel || EMPTY_OPTION);
+    const btn = makeChoiceButton(displayLabel());
     btn.setAttribute('aria-label', cfg.title || ('Wybierz: ' + cfg.label));
     btn.addEventListener('click', async ()=>{
-      const options = optionList(getOptions(), cfg.emptyLabel || EMPTY_OPTION);
+      const options = cfg.choices ? cfg.choices() : optionList(getOptions(), cfg.emptyLabel || EMPTY_OPTION);
       const picked = await openChoice(cfg.title || ('Wybierz: ' + cfg.label), options, cfg.get(draft));
       if(picked == null || String(picked) === String(cfg.get(draft) || '')) return;
       cfg.set(draft, picked);
       if(typeof cfg.onChange === 'function') cfg.onChange(draft, picked, btn);
-      setChoiceButtonLabel(btn, selectedLabel(getOptions(), cfg.get(draft), cfg.emptyLabel || EMPTY_OPTION));
+      setChoiceButtonLabel(btn, displayLabel());
       if(typeof onChange === 'function') onChange(draft);
     });
     wrap.appendChild(btn);
-    return { wrap, refresh(){ setChoiceButtonLabel(btn, selectedLabel(getOptions(), cfg.get(draft), cfg.emptyLabel || EMPTY_OPTION)); } };
+    return { wrap, refresh(){ setChoiceButtonLabel(btn, displayLabel()); } };
   }
 
   function render(scroll){
@@ -147,17 +148,42 @@
       summary.textContent = FC.programDefaults.buildSummary(draft);
     }
 
-    const materialFields = [
-      { label:'Domyślny korpus', get:(d)=> d.materials.bodyColor, set:(d,v)=>{ d.materials.bodyColor = text(v); }, options:()=> getMaterialNamesByType('laminat') },
-      { label:'Domyślny materiał frontu', get:(d)=> d.materials.frontMaterial, set:(d,v)=>{ d.materials.frontMaterial = text(v); }, options:getMaterialTypes, onChange:(d)=>{ if(!getMaterialNamesByType(d.materials.frontMaterial || 'laminat').includes(text(d.materials.frontColor))) d.materials.frontColor = ''; } },
-      { label:'Domyślny kolor frontu', get:(d)=> d.materials.frontColor, set:(d,v)=>{ d.materials.frontColor = text(v); }, options:(d)=> getMaterialNamesByType(d.materials.frontMaterial || 'laminat') },
-      { label:'Domyślne plecy', get:(d)=> d.materials.backMaterial, set:(d,v)=>{ d.materials.backMaterial = text(v); }, options:BACK_MATERIALS }
-    ];
+    const api = FC.roomPreferences;
+    const generalGrid = h('div', { class:'data-settings-defaults-grid' });
+    [ ['Standard wykończenia','finishStandard',api.FINISH_STANDARDS], ['Standard blend','blendStandard',api.BLEND_STANDARDS] ].forEach(([label,key,options])=>{
+      const field = makeChoiceField({ label, get:d=>d.general[key], set:(d,v)=>{ d.general[key] = text(v); }, options }, draft, refreshAll);
+      refreshers.push(field.refresh); generalGrid.appendChild(field.wrap);
+    });
+    card.appendChild(dom.makeAccordion('Ogólne', [generalGrid], { open:false }));
 
-    materialFields.forEach((cfg)=>{
-      const field = makeChoiceField(cfg, draft, refreshAll);
-      refreshers.push(field.refresh);
-      materialGrid.appendChild(field.wrap);
+    api.ZONE_KEYS.forEach((zoneKey)=>{
+      const meta = api.ROOM_PREFERENCE_ZONES[zoneKey];
+      const grid = h('div', { class:'data-settings-defaults-grid', 'data-default-zone':zoneKey });
+      const fields = [
+        { label:'Korpus', key:'bodyColor', options:()=>getMaterialNamesByType('laminat') },
+        { label:'Materiał frontu', key:'frontMaterial', options:getMaterialTypes, onChange:d=>{ const z = d.zones[zoneKey]; if(!getMaterialNamesByType(z.frontMaterial || 'laminat').includes(z.frontColor)) z.frontColor = ''; } },
+        { label:'Kolor frontu', key:'frontColor', options:d=>getMaterialNamesByType(d.zones[zoneKey].frontMaterial || 'laminat') },
+        { label:'Plecy', key:'backMaterial', options:BACK_MATERIALS },
+        { label:'Otwieranie', key:'openingSystem', options:api.OPENING_OPTIONS[meta.openingOptionsKey] },
+        { label:'PCV korpusu', key:'bodyPcvMode', choices:()=>api.PCV_OPTIONS, format:api.pcvModeTitle }
+      ];
+      fields.forEach((cfg)=>{
+        const field = makeChoiceField(Object.assign({},cfg,{ title:'Wybierz: ' + cfg.label + ' — ' + meta.shortLabel,
+          get:d=>d.zones[zoneKey][cfg.key], set:(d,v)=>{ d.zones[zoneKey][cfg.key] = text(v); } }),draft,refreshAll);
+        refreshers.push(field.refresh); grid.appendChild(field.wrap);
+      });
+      const custom = h('div', { class:'data-settings-default-field' });
+      custom.appendChild(h('label', { class:'data-settings-default-label', text:'Kolor PCV korpusu', for:'defaultPcvColor_' + zoneKey }));
+      const input = h('input', { id:'defaultPcvColor_' + zoneKey, type:'text', class:'investor-form-input', 'data-pcv-custom-zone':zoneKey });
+      input.addEventListener('input', ()=>{ draft.zones[zoneKey].bodyPcvCustomColor = String(input.value || ''); });
+      custom.appendChild(input); grid.appendChild(custom);
+      refreshers.push(()=>{
+        const zone = draft.zones[zoneKey];
+        custom.hidden = !api.requiresCustomPcv(zone.bodyPcvMode, zone.frontMaterial || 'laminat');
+        custom.style.display = custom.hidden ? 'none' : '';
+        input.value = zone.bodyPcvCustomColor;
+      });
+      materialGrid.appendChild(dom.makeAccordion(meta.label, [grid], { open:false }));
     });
 
     const hardwareGrid = h('div', { class:'data-settings-defaults-grid' });
@@ -167,12 +193,19 @@
       ['Domyślne szuflady / prowadnice', 'drawerSystemManufacturer'],
       ['Domyślne podnośniki', 'liftManufacturer'],
       ['Domyślne systemy przesuwne', 'slidingSystemManufacturer'],
-      ['Domyślne cargo / organizery', 'cargoManufacturer']
+      ['Domyślne cargo / organizery', 'cargoManufacturer'],
+      ['Pozostałe akcesoria', 'accessoriesManufacturer']
     ].forEach(([label, key])=>{
       const field = makeChoiceField({ label, get:(d)=> d.hardware[key], set:(d,v)=>{ d.hardware[key] = text(v); }, options:manufacturerOptions }, draft, refreshAll);
       refreshers.push(field.refresh);
       hardwareGrid.appendChild(field.wrap);
     });
+
+    const drawerField = makeChoiceField({ label:'System / model szuflad', get:d=>d.hardware.drawerSystemKey,
+      set:(d,v)=>{ d.hardware.drawerSystemKey = api.normalizeDrawerSystemKey(v); const opt = api.getDrawerSystemOption(v); if(opt.manufacturer) d.hardware.drawerSystemManufacturer = opt.manufacturer; },
+      choices:()=>api.getDrawerSystemOptions().map(opt=>({ value:opt.key, label:opt.label })), format:key=>api.getDrawerSystemOption(key).label
+    },draft,refreshAll);
+    refreshers.push(drawerField.refresh); hardwareGrid.appendChild(drawerField.wrap);
 
     card.appendChild(dom.makeAccordion ? dom.makeAccordion('Materiały', [materialGrid], { open:false }) : materialGrid);
     card.appendChild(dom.makeAccordion ? dom.makeAccordion('Okucia', [hardwareGrid], { open:false }) : hardwareGrid);
@@ -187,7 +220,12 @@
     });
     cancelBtn.addEventListener('click', ()=> render(scroll));
     saveBtn.addEventListener('click', ()=>{
-      syncDraftObject(draft, FC.programDefaults.write(draft));
+      if(!api.ZONE_KEYS.every(key=> !api.requiresCustomPcv(draft.zones[key].bodyPcvMode, draft.zones[key].frontMaterial || 'laminat') || text(draft.zones[key].bodyPcvCustomColor))){
+        api.showCustomPcvRequired(); return;
+      }
+      const saved = FC.programDefaults.write(draft);
+      if(!saved){ if(FC.infoBox) FC.infoBox.open({ title:'Nie zapisano ustawień', message:'Ustawienia pozostały w formularzu. Spróbuj ponownie.', okOnly:true }); return; }
+      syncDraftObject(draft, saved);
       refreshAll();
       if(dom.info) dom.info('Zapisano', 'Domyślne materiały i okucia programu zostały zapisane.');
     });

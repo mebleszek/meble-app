@@ -70,9 +70,9 @@ function run(){
   });
 
   const stored = FC.programDefaults.read();
-  assert(stored.materials.bodyColor === 'Globalny korpus', 'Store nie zapisał globalnego korpusu.', stored);
-  assert(stored.materials.frontMaterial === 'akryl' && stored.materials.frontColor === 'Globalny front', 'Store nie zapisał globalnego frontu.', stored);
-  assert(stored.materials.backMaterial === 'Globalne plecy', 'Store nie zapisał globalnych pleców.', stored);
+  assert(stored.zones.lower.bodyColor === 'Globalny korpus', 'Store nie zapisał globalnego korpusu.', stored);
+  assert(stored.zones.lower.frontMaterial === 'akryl' && stored.zones.lower.frontColor === 'Globalny front', 'Store nie zapisał globalnego frontu.', stored);
+  assert(stored.zones.lower.backMaterial === 'Globalne plecy', 'Store nie zapisał globalnych pleców.', stored);
 
   sandbox.projectData = { schemaVersion:12, kuchnia:blankRoom([]) };
   const first = FC.cabinetModalDraft.makeDefaultCabinetDraftForRoom('kuchnia');

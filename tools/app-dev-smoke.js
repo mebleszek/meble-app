@@ -145,7 +145,7 @@ function runDataNodeSmoke(sandbox){
       const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
       const menu = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/data-settings-menu-view.js'), 'utf8');
       const classifier = fs.readFileSync(path.join(process.cwd(), 'js/app/shared/data-storage-classifier.js'), 'utf8');
-      return saved.materials.bodyColor === 'Egger W1100'
+      return saved.zones.lower.bodyColor === 'Egger W1100'
         && saved.hardware.drawerSystemManufacturer === 'Rejs'
         && saved.hardware.accessoriesManufacturer === 'Rejs'
         && draft.frontColor === 'Egger W1100'
@@ -962,8 +962,8 @@ function runCabinetNodeSmoke(sandbox){
       const src = fs.readFileSync(path.join(process.cwd(), 'js/app/room-preferences/room-preferences-model.js'), 'utf8');
       return apiOk
         && src.includes('function resolveZoneDefaults(room, zoneOrType, fallback)')
-        && src.includes('getProgramMaterialDefaults()')
-        && src.includes('applyMaterialFields(resolved, zone)')
+        && src.includes('getProgramMaterialDefaults(zoneKey)')
+        && src.includes('getEffectiveZonePreference(prefs, zoneOrType, field, resolved[field])')
         && src.includes('function resolveZoneFrontMaterial(room, zoneOrType, fallback)');
     } },
     { name:'Drafty i zestawy używają centralnego resolvera stref', explain:'Chroni kod przed dublowaniem logiki materiałów między nową szafką, zestawem i źródłami frontu.', check:()=> {
@@ -992,7 +992,7 @@ function runCabinetNodeSmoke(sandbox){
           fronts:[], sets:[], settings:{ bottomHeight:86 }, preferences:{ zones:{ lower:{}, middle:{}, upper:{} } }
         } };
         FC.programDefaults = Object.assign({}, previousDefaults || {}, {
-          getMaterialDefaults:()=> ({ bodyColor:'Globalny korpus', frontMaterial:'akryl', frontColor:'Globalny front', backMaterial:'Globalne plecy' })
+          getZoneDefaults:()=> ({ bodyColor:'Globalny korpus', frontMaterial:'akryl', frontColor:'Globalny front', backMaterial:'Globalne plecy', bodyPcvMode:'body', bodyPcvCustomColor:'' })
         });
         const draft = FC.cabinetModalDraft.makeDefaultCabinetDraftForRoom('kuchnia');
         const old = sandbox.projectData.kuchnia.cabinets[0];

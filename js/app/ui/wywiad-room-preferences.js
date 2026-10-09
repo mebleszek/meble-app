@@ -138,7 +138,8 @@
     const sourceMeta = cfg.effective ? h('div', { class:'wywiad-zone-field__source' }) : null;
     const refresh = ()=>{
       const effective = cfg.effective && cfg.effective(rootDraft);
-      setChoiceButtonLabel(btn, effective && effective.value ? effective.value : selectedLabel(getOptions(), cfg.get(rootDraft), cfg.emptyLabel || EMPTY_OPTION));
+      const value = effective && effective.value ? effective.value : selectedLabel(getOptions(), cfg.get(rootDraft), cfg.emptyLabel || EMPTY_OPTION);
+      setChoiceButtonLabel(btn, cfg.format ? cfg.format(value) : value);
       if(sourceMeta){
         sourceMeta.textContent = getApi().preferenceSourceLabel(effective.source);
         sourceMeta.setAttribute('data-preference-source', effective.source);
@@ -146,9 +147,9 @@
     };
     btn.setAttribute('aria-label', cfg.title || ('Wybierz: ' + cfg.label));
     btn.addEventListener('click', async ()=>{
-      const options = optionList(getOptions(), cfg.emptyLabel || EMPTY_OPTION);
+      const options = cfg.choices ? cfg.choices() : optionList(getOptions(), cfg.emptyLabel || EMPTY_OPTION);
       const picked = await openChoice(cfg.title || ('Wybierz: ' + cfg.label), options, cfg.get(rootDraft));
-      if(picked == null || String(picked) === String(cfg.get(rootDraft) || '')) return;
+      if(picked == null || (!cfg.applySame && String(picked) === String(cfg.get(rootDraft) || ''))) return;
       cfg.set(rootDraft, picked);
       if(typeof cfg.onChange === 'function') cfg.onChange(rootDraft, picked, btn);
       refresh();
@@ -178,14 +179,16 @@
 
     const openingOptionsKey = meta.openingOptionsKey || (zoneKey === 'upper' ? 'hanging' : (zoneKey === 'middle' ? 'module' : 'standing'));
     const openingOptions = ()=> ((api.OPENING_OPTIONS || {})[openingOptionsKey] || []);
-    const pcvOptions = ['Pod kolor płyty', 'Pod kolor frontów'];
     const fields = [
       { key:'bodyColor', label:'Korpus', title:'Wybierz korpus — ' + (meta.shortLabel || meta.label), get:()=> zone.bodyColor, set:(d,v)=>{ ensureZone(d, zoneKey).bodyColor = text(v); }, options:getBodyMaterialNames },
       { key:'frontMaterial', label:'Materiał frontu', title:'Wybierz materiał frontu — ' + (meta.shortLabel || meta.label), get:()=> zone.frontMaterial, set:(d,v)=>{ ensureZone(d, zoneKey).frontMaterial = text(v); }, options:getMaterialTypes, onChange:(d)=>{ const z = ensureZone(d, zoneKey); if(!getMaterialNamesByType(api.getEffectiveZonePreference(d, zoneKey, 'frontMaterial', 'laminat').value).includes(text(z.frontColor))) z.frontColor = ''; } },
       { key:'frontColor', label:'Kolor frontu', title:'Wybierz kolor frontu — ' + (meta.shortLabel || meta.label), get:()=> zone.frontColor, set:(d,v)=>{ ensureZone(d, zoneKey).frontColor = text(v); }, options:()=> getMaterialNamesByType(api.getEffectiveZonePreference(draft, zoneKey, 'frontMaterial', 'laminat').value) },
       { key:'backMaterial', label:'Plecy', title:'Wybierz plecy — ' + (meta.shortLabel || meta.label), get:()=> zone.backMaterial, set:(d,v)=>{ ensureZone(d, zoneKey).backMaterial = text(v); }, options:BACK_MATERIALS },
-      { label:'Otwieranie', title:'Wybierz otwieranie — ' + (meta.shortLabel || meta.label), get:()=> zone.openingSystem, set:(d,v)=>{ ensureZone(d, zoneKey).openingSystem = text(v); }, options:openingOptions },
-      { label:'PCV korpusu', title:'Wybierz PCV korpusu — ' + (meta.shortLabel || meta.label), get:()=> (zone.bodyPcvMode === 'front' ? 'Pod kolor frontów' : 'Pod kolor płyty'), set:(d,v)=>{ ensureZone(d, zoneKey).bodyPcvMode = text(v).toLowerCase().includes('front') ? 'front' : 'body'; }, options:pcvOptions, emptyLabel:'Pod kolor płyty' }
+      { key:'openingSystem', label:'Otwieranie', title:'Wybierz otwieranie — ' + (meta.shortLabel || meta.label), get:()=> zone.openingSystem, set:(d,v)=>{ ensureZone(d, zoneKey).openingSystem = text(v); }, options:openingOptions },
+      { key:'bodyPcvMode', label:'PCV korpusu', title:'Wybierz PCV korpusu — ' + (meta.shortLabel || meta.label),
+        get:()=>api.getEffectiveZonePreference(draft, zoneKey, 'bodyPcvMode').value,
+        set:(d,v)=>{ ensureZone(d, zoneKey).bodyPcvMode = api.pcvOverrideForGlobal(zoneKey, v); },
+        choices:()=>api.PCV_OPTIONS, format:api.pcvModeTitle, applySame:true }
     ];
     fields.forEach((cfg)=>{
       if(cfg.key){
@@ -195,6 +198,21 @@
       const field = makeChoiceField(cfg, draft, refreshAll);
       refreshers.push(field.refresh);
       grid.appendChild(field.wrap);
+    });
+    const custom = h('div', { class:'wywiad-zone-field' });
+    custom.appendChild(h('label', { class:'wywiad-zone-field__label', text:'Kolor PCV korpusu', for:'roomPcvColor_' + zoneKey }));
+    const input = h('input', { id:'roomPcvColor_' + zoneKey, type:'text', class:'investor-form-input', 'data-pcv-custom-zone':zoneKey });
+    const sourceMeta = h('div', { class:'wywiad-zone-field__source' });
+    input.addEventListener('input', ()=>{ ensureZone(draft, zoneKey).bodyPcvCustomColor = String(input.value || ''); });
+    custom.appendChild(input); custom.appendChild(sourceMeta); grid.appendChild(custom);
+    refreshers.push(()=>{
+      const mode = api.getEffectiveZonePreference(draft, zoneKey, 'bodyPcvMode').value;
+      const material = api.getEffectiveZonePreference(draft, zoneKey, 'frontMaterial', 'laminat').value;
+      custom.hidden = !api.requiresCustomPcv(mode, material);
+      custom.style.display = custom.hidden ? 'none' : '';
+      const effective = api.getEffectiveZonePreference(draft, zoneKey, 'bodyPcvCustomColor');
+      input.value = effective.value;
+      sourceMeta.textContent = api.preferenceSourceLabel(effective.source);
     });
     card.appendChild(grid);
     return card;
@@ -233,7 +251,9 @@
         title:cfg.title,
         get:(d)=> d[cfg.key],
         set:(d,v)=>{ d[cfg.key] = text(v); },
-        options:cfg.options
+        options:cfg.options,
+        emptyLabel:GLOBAL_OPTION,
+        effective:d=>api.getEffectiveGeneralPreference(d, cfg.key)
       }, draft, ()=>{ refreshSummary(); refreshers.forEach((fn)=>{ try{ fn(); }catch(_){ } }); });
       refreshers.push(field.refresh);
       generalGrid.appendChild(field.wrap);
@@ -250,6 +270,7 @@
 
     form.appendChild(createSaveFooter('Preferencje materiałów i kolorów', [], ()=>{
       const nextApi = getApi();
+      if(!nextApi.validatePcvPreferences(draft)) return;
       const result = nextApi && typeof nextApi.setRoomPreferencesConfirmed === 'function' && nextApi.setRoomPreferencesConfirmed(room, draft);
       if(!(result && result.ok === true)) return;
       renderSummary(room);
@@ -278,6 +299,7 @@
     const saveBtn = h('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
     saveBtn.addEventListener('click', ()=>{
       const api = getApi();
+      if(!api.validatePcvPreferences(draft)) return;
       const result = api && typeof api.setRoomPreferencesConfirmed === 'function' && api.setRoomPreferencesConfirmed(room, draft);
       if(!(result && result.ok === true)) return;
       renderSummary(room);

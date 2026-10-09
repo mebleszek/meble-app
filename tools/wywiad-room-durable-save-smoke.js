@@ -15,7 +15,7 @@ function project(){
   const old = { bodyColor:'Old body', frontMaterial:'laminat', frontColor:'Old front', backMaterial:'HDF', openingSystem:'Uchwyt', bodyPcvMode:'body' };
   return { schemaVersion:12, kuchnia:{
     settings:{ roomHeight:260, bottomHeight:86, legHeight:10, counterThickness:4, gapHeight:60, ceilingBlende:5 },
-    preferences:{ zones:{ lower:{ bodyColor:'New body', frontMaterial:'MDF', frontColor:'New front', backMaterial:'Płyta 18', openingSystem:'TIP-ON', bodyPcvMode:'front' } } },
+    preferences:{ zones:{ lower:{ bodyColor:'New body', frontMaterial:'MDF', frontColor:'New front', backMaterial:'Płyta 18', openingSystem:'TIP-ON', bodyPcvMode:'front', bodyPcvCustomColor:'New PCV' } } },
     cabinets:[{ ...old, id:'drawer', type:'stojąca', subType:'szuflady', width:60, height:86, frontCount:1, details:{ drawerLayout:'3_equal' } }, { ...old, id:'member', setId:'set', type:'stojąca' }],
     fronts:[{ id:'old-drawer-front', cabId:'drawer', material:'laminat', color:'Old front' }, { id:'set-front', setId:'set', material:'laminat', color:'Old front', frontMaterialSource:{ source:'lower' } }],
     sets:[{ ...old, id:'set', frontSource:{ source:'lower' } }],

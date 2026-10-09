@@ -165,7 +165,7 @@
 
   function drawerSystemOptionList(){
     const rows = drawerSystemOptions();
-    return (Array.isArray(rows) ? rows : []).map((row)=> ({ value:text(row && row.key), label:text(row && row.label) || EMPTY_OPTION }));
+    return (Array.isArray(rows) ? rows : []).map((row)=> ({ value:text(row && row.key), label:row && !row.key ? '— użyj ustawienia globalnego —' : text(row && row.label) || EMPTY_OPTION }));
   }
 
   function drawerSystemLabel(value){
@@ -270,12 +270,21 @@
     wrap.appendChild(sourceMeta);
 
     let sysBtn = null;
+    let sysMeta = null;
+    const refreshSystem = ()=>{
+      const effective = getApi().getEffectiveDrawerSystemPreference(draft);
+      setChoiceButtonLabel(sysBtn, drawerSystemLabel(effective.value));
+      sysMeta.textContent = getApi().preferenceSourceLabel(effective.source);
+      sysMeta.setAttribute('data-preference-source', effective.source);
+    };
     if(key === 'drawers'){
       const systems = ensureDrawerSystemDraft(draft);
       const sysLabel = h('div', { class:'wywiad-zone-field__label', text:'System / model szuflad' });
       sysLabel.style.marginTop = '10px';
       wrap.appendChild(sysLabel);
-      sysBtn = makeChoiceButton(drawerSystemLabel(systems.drawers));
+      sysBtn = makeChoiceButton('');
+      sysMeta = h('div', { class:'wywiad-zone-field__source' });
+      refreshSystem();
       sysBtn.setAttribute('aria-label', 'Wybierz system szuflad / prowadnic');
       sysBtn.setAttribute('data-hardware-drawer-system-key', 'drawers');
       sysBtn.setAttribute('data-hardware-drawer-system-value', text(systems.drawers));
@@ -287,11 +296,12 @@
         syncDrawerProducerFromSystem(draft);
         btn.setAttribute('data-hardware-producer-value', values[key]);
         rememberDraft(room, draft);
-        setChoiceButtonLabel(sysBtn, drawerSystemLabel(systems.drawers));
+        refreshSystem();
         refreshEffective();
         if(typeof refreshAll === 'function') refreshAll();
       });
       wrap.appendChild(sysBtn);
+      wrap.appendChild(sysMeta);
     }
 
     return {
@@ -305,7 +315,7 @@
         if(sysBtn){
           const systems = ensureDrawerSystemDraft(draft);
           sysBtn.setAttribute('data-hardware-drawer-system-value', text(systems.drawers));
-          setChoiceButtonLabel(sysBtn, drawerSystemLabel(systems.drawers));
+          refreshSystem();
         }
       }
     };

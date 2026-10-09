@@ -45,6 +45,7 @@ async function main(){
   load(sandbox, 'js/app/shared/constants.js');
   load(sandbox, 'js/app/shared/storage.js');
   load(sandbox, 'js/app/settings/program-defaults-store.js');
+  load(sandbox, 'js/app/room-preferences/room-preferences-model.js');
   load(sandbox, 'js/app/ui/data-settings-dom.js');
   load(sandbox, 'js/app/ui/data-settings-defaults-view.js');
 
@@ -79,7 +80,7 @@ async function main(){
   document.body.appendChild(scroll);
   sandbox.FC.dataSettingsDefaultsView.render(scroll);
 
-  const choiceButtons = Array.from(scroll.querySelectorAll('.data-settings-default-choice'));
+  const choiceButtons = Array.from(scroll.querySelectorAll('[data-default-zone="lower"] .data-settings-default-choice'));
   const saveButton = scroll.querySelector('.btn-success');
   assert(choiceButtons.length >= 4, 'Widok nie utworzył pól globalnych ustawień.', { count:choiceButtons.length });
   assert(saveButton, 'Widok nie utworzył przycisku Zapisz.');
@@ -95,8 +96,8 @@ async function main(){
   saveButton.click();
 
   const stored = sandbox.FC.programDefaults.read();
-  assert(stored.materials.bodyColor === 'Korpus B', 'Pierwszy zapis ustawień zginął.', stored);
-  assert(stored.materials.frontColor === 'Front B', 'Zmiana wykonana po pierwszym zapisie trafiła do starej kopii draftu.', stored);
+  assert(stored.zones.lower.bodyColor === 'Korpus B', 'Pierwszy zapis ustawień zginął.', stored);
+  assert(stored.zones.lower.frontColor === 'Front B', 'Zmiana wykonana po pierwszym zapisie trafiła do starej kopii draftu.', stored);
   assert(choiceButtons[0].textContent === 'Korpus B' && choiceButtons[2].textContent === 'Front B', 'Launchery nie pokazują zapisanych wartości.', choiceButtons.map((button)=> button.textContent));
 
   console.log('Program defaults UI save smoke: OK');

@@ -19,7 +19,8 @@
     frontColor: '',
     backMaterial: '',
     openingSystem: '',
-    bodyPcvMode: 'body'
+    bodyPcvMode: '',
+    bodyPcvCustomColor: ''
   };
 
   const HARDWARE_PRODUCER_GROUPS = [
@@ -61,6 +62,10 @@
     hardwareManufacturer: ''
   };
 
+  const FINISH_STANDARDS = ['standard ekonomiczny','standard dobry','standard premium'];
+  const BLEND_STANDARDS = ['standardowe','dokładne pod wymiar','minimalne / tylko konieczne'];
+  const PCV_OPTIONS = [{ value:'body', label:'Pod kolor płyty' }, { value:'front', label:'Pod kolor frontu' }];
+
   const OPENING_OPTIONS = {
     standing: ['uchwyt klienta','TIP-ON','krawędziowy HEXA GTV','UKW','korytkowy'],
     hanging: ['uchwyt klienta','podchwyt','TIP-ON','krawędziowy HEXA GTV','korytkowy','UKW'],
@@ -78,6 +83,9 @@
     const raw = text(value).toLowerCase();
     return ['front','fronts','pod kolor frontow','pod kolor frontów'].includes(raw) ? 'front' : 'body';
   }
+  function normalizePcvOverride(value){ return text(value) ? normalizePcvMode(value) : ''; }
+  function pcvModeTitle(value){ return normalizePcvMode(value) === 'front' ? 'Pod kolor frontu' : 'Pod kolor płyty'; }
+
   function pcvModeLabel(value){
     try{ if(ns.materialEdgeStore && typeof ns.materialEdgeStore.pcvModeLabel === 'function') return ns.materialEdgeStore.pcvModeLabel(value); }catch(_){ }
     return normalizePcvMode(value) === 'front' ? 'pod kolor frontów' : 'pod kolor płyty';
@@ -93,7 +101,8 @@
       frontColor: text(src.frontColor || legacySrc.frontColor),
       backMaterial: text(src.backMaterial || legacySrc.backMaterial),
       openingSystem: text(src.openingSystem || legacySrc.openingSystem),
-      bodyPcvMode: normalizePcvMode(src.bodyPcvMode || src.pcvMode || src.edgeColorMode || legacySrc.bodyPcvMode || legacySrc.pcvMode || legacySrc.edgeColorMode)
+      bodyPcvMode: normalizePcvOverride(src.bodyPcvMode || src.pcvMode || src.edgeColorMode || legacySrc.bodyPcvMode || legacySrc.pcvMode || legacySrc.edgeColorMode),
+      bodyPcvCustomColor: text(src.bodyPcvCustomColor || legacySrc.bodyPcvCustomColor)
     };
   }
 
@@ -174,7 +183,7 @@
       hardwareManufacturer: text(src.hardwareManufacturer)
     };
     ZONE_KEYS.forEach((zoneKey)=>{
-      out.zones[zoneKey] = normalizeZonePreferences(rawZones[zoneKey], legacyZoneFor(src, zoneKey));
+      out.zones[zoneKey] = normalizeZonePreferences(rawZones[zoneKey], Object.assign({ bodyPcvMode:src.bodyPcvMode, bodyPcvCustomColor:src.bodyPcvCustomColor }, legacyZoneFor(src, zoneKey)));
     });
     return out;
   }
@@ -291,26 +300,19 @@
   }
 
   function getOpeningSystemForCabinetType(preferences, typeValue){
-    const zone = getZonePreferences(preferences, typeValue);
-    return text(zone.openingSystem);
+    return getEffectiveZonePreference(preferences, typeValue, 'openingSystem').value;
   }
 
   function applyPreferencesToDraft(room, draft){
-    const target = draft && typeof draft === 'object' ? draft : {};
-    const prefs = getRoomPreferences(room);
-    const zone = getZonePreferences(prefs, target.type);
-    if(zone.bodyColor) target.bodyColor = zone.bodyColor;
-    if(zone.frontMaterial) target.frontMaterial = zone.frontMaterial;
-    if(zone.frontColor) target.frontColor = zone.frontColor;
-    if(zone.backMaterial) target.backMaterial = zone.backMaterial;
-    if(zone.openingSystem) target.openingSystem = zone.openingSystem;
-    return target;
+    return applyZoneDefaultsToDraft(room, draft, draft && draft.type);
   }
 
 
-
-  function getProgramMaterialDefaults(){
+  function getProgramMaterialDefaults(zoneOrType){
     try{
+      if(ns.programDefaults && typeof ns.programDefaults.getZoneDefaults === 'function'){
+        return ns.programDefaults.getZoneDefaults(ZONE_KEYS.includes(zoneOrType) ? zoneOrType : zoneKeyForCabinetType(zoneOrType)) || {};
+      }
       if(ns.programDefaults && typeof ns.programDefaults.getMaterialDefaults === 'function'){
         return ns.programDefaults.getMaterialDefaults() || {};
       }
@@ -335,7 +337,8 @@
     if(text(src.frontColor)) out.frontColor = text(src.frontColor);
     if(text(src.backMaterial)) out.backMaterial = text(src.backMaterial);
     if(text(src.openingSystem)) out.openingSystem = text(src.openingSystem);
-    if(src.bodyPcvMode != null || src.pcvMode != null || src.edgeColorMode != null) out.bodyPcvMode = normalizePcvMode(src.bodyPcvMode || src.pcvMode || src.edgeColorMode);
+    if(text(src.bodyPcvMode || src.pcvMode || src.edgeColorMode)) out.bodyPcvMode = normalizePcvMode(src.bodyPcvMode || src.pcvMode || src.edgeColorMode);
+    if(text(src.bodyPcvCustomColor)) out.bodyPcvCustomColor = text(src.bodyPcvCustomColor);
     return out;
   }
 
@@ -347,22 +350,17 @@
       frontColor: text(src.frontColor || src.color),
       backMaterial: text(src.backMaterial),
       openingSystem: text(src.openingSystem),
-      bodyPcvMode: normalizePcvMode(src.bodyPcvMode || src.pcvMode || src.edgeColorMode)
+      bodyPcvMode: normalizePcvMode(src.bodyPcvMode || src.pcvMode || src.edgeColorMode),
+      bodyPcvCustomColor:text(src.bodyPcvCustomColor)
     };
   }
 
   function resolveZoneDefaults(room, zoneOrType, fallback){
     const resolved = normalizeFallbackDefaults(fallback);
-    const globalDefaults = getProgramMaterialDefaults();
-    applyMaterialFields(resolved, {
-      bodyColor: globalDefaults.bodyColor,
-      frontMaterial: globalDefaults.frontMaterial,
-      frontColor: globalDefaults.frontColor,
-      backMaterial: globalDefaults.backMaterial
-    });
     const prefs = getRoomPreferences(room);
-    const zone = getZonePreferences(prefs, zoneOrType);
-    applyMaterialFields(resolved, zone);
+    Object.keys(resolved).forEach((field)=>{
+      resolved[field] = getEffectiveZonePreference(prefs, zoneOrType, field, resolved[field]).value;
+    });
     return resolved;
   }
 
@@ -400,7 +398,8 @@
     const fallbackKey = normalizeDrawerSystemKey(fallback);
     const prefs = getRoomPreferences(room);
     const roomKey = normalizeDrawerSystemKey(prefs.hardwareDrawerSystems && prefs.hardwareDrawerSystems.drawers);
-    return getDrawerSystemOption(roomKey || fallbackKey || '');
+    const globalKey = normalizeDrawerSystemKey(getProgramHardwareDefaults().drawerSystemKey);
+    return getDrawerSystemOption(roomKey || globalKey || fallbackKey || '');
   }
 
   function applyDrawerSystemPreferenceToDetails(room, details, opts){
@@ -417,15 +416,7 @@
   }
 
   function resolveHardwareProducerPreference(room, groupKey, fallback){
-    const group = getHardwareProducerGroup(groupKey);
-    if(!group) return text(fallback);
-    const prefs = getRoomPreferences(room);
-    const roomValue = text(prefs.hardwareProducers && prefs.hardwareProducers[group.key]);
-    if(roomValue) return roomValue;
-    const defaults = getProgramHardwareDefaults();
-    const globalValue = text(defaults[group.defaultField] || defaults[group.key]);
-    const drawerPref = group.key === 'drawers' ? resolveDrawerSystemPreference(room, '').manufacturer : '';
-    return drawerPref || globalValue || text(fallback);
+    return getEffectiveHardwarePreference(getRoomPreferences(room), groupKey, fallback).value;
   }
 
   // Read-only presentation of the same inheritance used by the project resolvers.
@@ -433,10 +424,57 @@
   function getEffectiveZonePreference(preferences, zoneKey, field, fallback){
     const zone = getZonePreferences(preferences, zoneKey);
     if(text(zone[field])) return { value:text(zone[field]), source:'room' };
-    const globalFields = ['bodyColor','frontMaterial','frontColor','backMaterial'];
-    const globalValue = globalFields.includes(field) ? text(getProgramMaterialDefaults()[field]) : '';
+    const globalValue = text(getProgramMaterialDefaults(zoneKey)[field]);
     if(globalValue) return { value:globalValue, source:'global' };
-    return { value:text(fallback), source:text(fallback) ? 'fallback' : '' };
+    const value = field === 'bodyPcvMode' ? normalizePcvMode(fallback) : text(fallback);
+    return { value, source:value ? 'fallback' : '' };
+  }
+
+  function getEffectiveGeneralPreference(preferences, field){
+    const roomValue = text(normalizeRoomPreferences(preferences)[field]);
+    if(roomValue) return { value:roomValue, source:'room' };
+    const defaults = ns.programDefaults && typeof ns.programDefaults.getGeneralDefaults === 'function' ? ns.programDefaults.getGeneralDefaults() : {};
+    return { value:text(defaults[field]), source:text(defaults[field]) ? 'global' : '' };
+  }
+
+  function getEffectiveDrawerSystemPreference(preferences){
+    const roomKey = normalizeRoomPreferences(preferences).hardwareDrawerSystems.drawers;
+    if(roomKey) return { value:roomKey, source:'room' };
+    const key = normalizeDrawerSystemKey(getProgramHardwareDefaults().drawerSystemKey);
+    return { value:key, source:key ? 'global' : '' };
+  }
+
+  function pcvOverrideForGlobal(zoneKey, mode){
+    const selected = normalizePcvMode(mode);
+    return selected === normalizePcvMode(getProgramMaterialDefaults(zoneKey).bodyPcvMode) ? '' : selected;
+  }
+
+  function requiresCustomPcv(mode, frontMaterial){
+    return normalizePcvMode(mode) === 'front' && text(frontMaterial).toLowerCase() !== 'laminat';
+  }
+
+  function validatePcvPreferences(preferences){
+    const valid = ZONE_KEYS.every((key)=>{
+      const mode = getEffectiveZonePreference(preferences, key, 'bodyPcvMode').value;
+      const material = getEffectiveZonePreference(preferences, key, 'frontMaterial', 'laminat').value;
+      return !requiresCustomPcv(mode, material) || !!getEffectiveZonePreference(preferences, key, 'bodyPcvCustomColor').value;
+    });
+    if(!valid) showCustomPcvRequired();
+    return valid;
+  }
+
+  function showCustomPcvRequired(){
+    if(ns.infoBox && typeof ns.infoBox.open === 'function') ns.infoBox.open({
+      title:'Podaj kolor PCV korpusu',
+      message:'Dla tego materiału frontu program nie może automatycznie ustalić koloru PCV. Wpisz kolor PCV korpusu przed zapisem.', okOnly:true
+    });
+  }
+
+  function resolveBodyPcvColor(room, zoneKey, fallback){
+    const resolved = resolveZoneDefaults(room, zoneKey, fallback);
+    const mode = resolved.bodyPcvMode;
+    const customRequired = requiresCustomPcv(mode, resolved.frontMaterial || 'laminat');
+    return { mode, color:customRequired ? resolved.bodyPcvCustomColor : (mode === 'front' ? resolved.frontColor : resolved.bodyColor), customRequired };
   }
 
   function getEffectiveHardwarePreference(preferences, groupKey, fallback){
@@ -447,7 +485,8 @@
     const drawerValue = group.key === 'drawers' ? text(getDrawerSystemOption(prefs.hardwareDrawerSystems.drawers).manufacturer) : '';
     if(roomValue || drawerValue) return { value:roomValue || drawerValue, source:'room' };
     const defaults = getProgramHardwareDefaults();
-    const globalValue = text(defaults[group.defaultField] || defaults[group.key]);
+    const globalDrawer = group.key === 'drawers' ? text(getDrawerSystemOption(defaults.drawerSystemKey).manufacturer) : '';
+    const globalValue = globalDrawer || text(defaults[group.defaultField] || defaults[group.key]);
     if(globalValue) return { value:globalValue, source:'global' };
     return { value:text(fallback), source:text(fallback) ? 'fallback' : '' };
   }
@@ -519,12 +558,24 @@
     HARDWARE_PRODUCER_GROUPS: clone(HARDWARE_PRODUCER_GROUPS),
     ZONE_KEYS: ZONE_KEYS.slice(),
     OPENING_OPTIONS: clone(OPENING_OPTIONS),
+    FINISH_STANDARDS: FINISH_STANDARDS.slice(),
+    BLEND_STANDARDS: BLEND_STANDARDS.slice(),
+    PCV_OPTIONS: clone(PCV_OPTIONS),
     normalizeZonePreferences,
     normalizeHardwareProducerPreferences,
     normalizeHardwareDrawerSystemPreferences,
     normalizeDrawerSystemKey,
     normalizeRoomPreferences,
     normalizePcvMode,
+    normalizePcvOverride,
+    pcvModeTitle,
+    pcvOverrideForGlobal,
+    requiresCustomPcv,
+    validatePcvPreferences,
+    showCustomPcvRequired,
+    resolveBodyPcvColor,
+    getEffectiveGeneralPreference,
+    getEffectiveDrawerSystemPreference,
     pcvModeLabel,
     ensureProjectRoom,
     getRoomPreferences,
