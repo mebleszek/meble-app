@@ -141,7 +141,7 @@
     const summary = h('div', { class:'data-settings-defaults-summary muted', text:FC.programDefaults.buildSummary(draft) });
     card.appendChild(summary);
 
-    const materialGrid = h('div', { class:'data-settings-defaults-grid' });
+    const materialGrid = h('div', { class:'data-settings-defaults-grid', 'data-accordion-group':'' });
     const refreshers = [];
     function refreshAll(){
       refreshers.forEach((fn)=>{ try{ fn(); }catch(_){ } });
