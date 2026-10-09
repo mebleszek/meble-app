@@ -32,7 +32,7 @@ function runtime(){
     clear(){ throw new Error('clear forbidden'); }
   }
   const storage = new Storage();
-  const ui = { begin:0, saves:0, renders:0, refreshes:0, closes:0, generated:0, messages:[], order:[], saveMode:'ok', panel:null, choice:'New body', beforeSave:null };
+  const ui = { begin:0, saves:0, renders:0, refreshes:0, closes:0, generated:0, messages:[], order:[], saveMode:'ok', panel:null, choice:'New body', picks:[], beforeSave:null };
   const s = { console, String, Number, Math, Map, Set, Date, Promise,
     Storage, localStorage:storage, document:makeMiniDocument(), projectData:project(),
     uiState:{ roomType:'kuchnia', activeTab:'wywiad' },
@@ -50,7 +50,7 @@ function runtime(){
     rozrysChoice:{
       createChoiceLauncher(label){ const b = s.document.createElement('button'); b.textContent = label; return b; },
       setChoiceLaunchValue(b,label){ b.textContent = label; },
-      async openRozrysChoiceOverlay(){ return ui.choice; },
+      async openRozrysChoiceOverlay(){ return ui.picks.length ? ui.picks.shift() : ui.choice; },
     },
     project:{ save(){ throw new Error('Unconfirmed save forbidden'); }, saveConfirmed(next){
       ui.saves++; ui.order.push('save');
@@ -90,7 +90,7 @@ function settingsForm(r){
   return { host, input:host.querySelector('#roomSettingInline_roomHeight'), save:host.querySelector('.wywiad-room-inline-form__save') };
 }
 function button(node,label){ return Array.from(node.querySelectorAll('button')).find(b=> b.textContent === label); }
-async function choose(node){ node.click(); await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); }
+async function choose(node){ node.click(); for(let i=0;i<18;i++) await Promise.resolve(); }
 function prefsNext(r){ const p = r.FC.roomPreferences.getRoomPreferences('kuchnia'); p.zones.lower.bodyColor = 'Changed'; return p; }
 function preserved(r, baseline, central){
   assert.equal(raw(r.s.projectData), baseline);
@@ -152,25 +152,26 @@ test('8 HARDWARE FAILURE keeps draft cache and working selection', async()=>{
   for(const mode of ['begin','fail']){
     const r = runtime(); const before = raw(r.s.projectData); const api = r.FC.wywiadRoomHardwareProducers;
     const form = api.buildInlineForm('kuchnia',r.FC.roomPreferences.getRoomPreferences('kuchnia'));
-    r.ui.choice = 'blum_tandembox_antaro'; await choose(form.querySelector('[data-hardware-drawer-system-key]'));
+    r.ui.picks = ['configure','system','Blum','blum_tandembox_antaro']; await choose(form.querySelector('[data-drawer-preference]'));
     if(mode === 'begin') r.storage.fail.add(SESSION); else r.ui.saveMode = 'fail';
     form.querySelector('.wywiad-room-inline-form__save').click(); preserved(r,before,before);
     const rebuilt = api.buildInlineForm('kuchnia',r.FC.roomPreferences.getRoomPreferences('kuchnia'));
-    assert.equal(rebuilt.querySelector('[data-hardware-drawer-system-key]').getAttribute('data-hardware-drawer-system-value'),'blum_tandembox_antaro');
+    assert.equal(JSON.parse(rebuilt.querySelector('[data-drawer-preference]').getAttribute('data-drawer-preference')).systemKey,'blum_tandembox_antaro');
     assert.equal(r.ui.renders,0);
   }
 });
 test('9 HARDWARE SUCCESS clears draft only after confirmation', async()=>{
   const r = runtime(); const api = r.FC.wywiadRoomHardwareProducers;
   const form = api.buildInlineForm('kuchnia',r.FC.roomPreferences.getRoomPreferences('kuchnia'));
-  r.ui.choice = 'blum_tandembox_antaro'; await choose(form.querySelector('[data-hardware-drawer-system-key]'));
+  r.ui.picks = ['configure','system','Blum','blum_tandembox_antaro']; await choose(form.querySelector('[data-drawer-preference]'));
   form.querySelector('.wywiad-room-inline-form__save').click();
-  assert.equal(r.FC.roomPreferences.getRoomPreferences('kuchnia').hardwareDrawerSystems.drawers,'blum_tandembox_antaro');
+  assert.equal(r.FC.roomPreferences.getRoomPreferences('kuchnia').drawerPreference.systemKey,'blum_tandembox_antaro');
   // A later external value must be used; an uncleared draft would resurrect Antaro.
+  r.s.projectData.kuchnia.preferences.drawerPreference = null;
   r.s.projectData.kuchnia.preferences.hardwareDrawerSystems.drawers = '';
   r.s.projectData.kuchnia.preferences.hardwareProducers.drawers = '';
   const reopened = api.buildInlineForm('kuchnia',r.FC.roomPreferences.getRoomPreferences('kuchnia'));
-  assert.equal(reopened.querySelector('[data-hardware-drawer-system-key]').getAttribute('data-hardware-drawer-system-value'),'');
+  assert.equal(reopened.querySelector('[data-drawer-preference]').getAttribute('data-drawer-preference'),'null');
 });
 test('10 BULK no changes / not ready', ()=>{
   const r = runtime(); const before = raw(r.s.projectData);

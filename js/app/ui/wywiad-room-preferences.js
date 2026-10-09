@@ -68,7 +68,7 @@
     return out;
   }
 
-  function getMaterialTypes(){ return unique(getMaterials().map((row)=> row && row.materialType)); }
+  function getMaterialTypes(){ return getApi().frontMaterialTypes(getMaterials()); }
   function getMaterialNamesByType(typeValue){
     const type = text(typeValue || 'laminat');
     return unique(getMaterials().filter((row)=> row && text(row.materialType) === type).map((row)=> row && row.name));

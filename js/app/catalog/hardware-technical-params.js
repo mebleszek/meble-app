@@ -34,6 +34,7 @@
     { category:'Prowadniki', key:'typ_prowadnika', label:'Typ prowadnika', fieldType:'text', unit:'', options:['standardowy','podwyższony 3','lodówkowy','specjalny'], keyFeature:true, typePart:true, compareMode:'equal', order:20, active:true },
     { category:'Prowadniki', key:'forma_prowadnika', label:'Forma prowadnika', fieldType:'text', unit:'', options:['krzyżowy','prosty'], keyFeature:true, typePart:true, compareMode:'equal', order:30, active:true },
 
+    { category:'Szuflady / prowadnice', key:'rodzaj_prowadnicy', label:'Rodzaj prowadnicy', fieldType:'text', unit:'', options:['kulkowa','dolnego montażu','rolkowa'], keyFeature:true, typePart:true, compareMode:'equal', order:5, active:true },
     { category:'Szuflady / prowadnice', key:'profil_szuflady', label:'Profil / wysokość', fieldType:'text', unit:'', options:['M','N','H','niska','średnia','wysoka'], keyFeature:true, typePart:true, compareMode:'equal', order:10, active:true, legacyField:'drawerProfile' },
     { category:'Szuflady / prowadnice', key:'dlugosc_mm', label:'Długość', fieldType:'numberRange', unit:'mm', options:[], keyFeature:true, typePart:true, compareMode:'equal', order:20, active:true, legacyField:'drawerLengthMm' },
     { category:'Szuflady / prowadnice', key:'nosnosc_kg', label:'Nośność', fieldType:'numberRange', unit:'kg', options:[], keyFeature:true, typePart:true, compareMode:'minGte', order:30, active:true, legacyField:'drawerLoadKg' },

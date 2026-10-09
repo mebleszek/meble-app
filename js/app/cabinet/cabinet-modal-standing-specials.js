@@ -44,6 +44,7 @@
     d[sysKey] = opt.drawerSystem || opt.system || 'skrzynkowe';
     if(opt.brand || opt.manufacturer) d[brandKey] = opt.brand || String(opt.manufacturer || '').toLowerCase();
     if(opt.model) d[modelKey] = opt.model;
+    if(opt.runnerType){ d.drawerRunnerType = opt.runnerType; d.drawerRunnerSeries = opt.runnerSeries; }
     d.drawerPreferenceApplied = opt.key;
   }
 

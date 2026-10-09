@@ -36,7 +36,7 @@ const drawerApi = ctx.window.FC.cabinetDrawerRequirements;
 const cutApi = ctx.window.FC.cabinetCutlist;
 assert(prefsApi && drawerApi && cutApi, 'API szuflad/preferencji/cutlisty musi być dostępne');
 const pref = prefsApi.normalizeRoomPreferences({ hardwareDrawerSystems:{ drawers:'gtv_axis_pro' } });
-assert(pref.hardwareDrawerSystems.drawers === 'gtv_axis_pro', 'Preferencje normalizują system GTV Axis Pro', pref);
+assert(pref.drawerPreference.kind === 'system' && pref.drawerPreference.systemKey === 'gtv_axis_pro', 'Preferencje normalizują system GTV Axis Pro', pref);
 assert(/GTV Axis Pro/.test(prefsApi.getHardwareProducerSummary(pref)), 'Podsumowanie preferencji pokazuje konkretny system, nie tylko producenta', prefsApi.getHardwareProducerSummary(pref));
 
 const boxCab = { id:'box', type:'stojąca', subType:'szuflady', width:60, height:82, depth:51, bodyColor:'Laminat korpus 18 mm', backMaterial:'HDF', frontMaterial:'laminat', frontColor:'biały', frontCount:3, details:{ drawerLayout:'3_equal', drawerSystem:'skrzynkowe', innerDrawerType:'brak' } };

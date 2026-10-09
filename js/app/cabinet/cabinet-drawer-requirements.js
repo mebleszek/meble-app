@@ -101,12 +101,15 @@
     let sys = text(src.system || src.drawerSystem || '');
     let brand = text(src.brand || src.drawerBrand || '');
     let model = text(src.model || src.drawerModel || '');
+    let runnerType = text(src.runnerType || src.drawerRunnerType);
+    let runnerSeries = text(src.runnerSeries || src.drawerRunnerSeries);
     if(!sys || sys === 'wedlug_preferencji' || sys === 'według_preferencji'){
       const opt = resolvePreferenceOption(roomId);
       if(opt && opt.key){
         sys = opt.drawerSystem || opt.system || sys;
         brand = opt.brand || opt.manufacturer || brand;
         model = opt.model || model;
+        runnerType = opt.runnerType || runnerType; runnerSeries = opt.runnerSeries || runnerSeries;
       }
     }
     if(!sys) sys = 'skrzynkowe';
@@ -139,6 +142,8 @@
       materialSpec: sys === 'systemowe' ? 'producer_spec' : 'box_18_bottom_10',
       boxSidesThicknessMm: sys === 'systemowe' ? null : 18,
       boxBottomThicknessMm: sys === 'systemowe' ? null : 10,
+      runnerType:sys === 'systemowe' ? '' : runnerType,
+      runnerSeries:sys === 'systemowe' ? '' : runnerSeries,
       prefix:text(prefix)
     };
   }
@@ -160,7 +165,8 @@
       technical:tech,
       technicalParams:{
         zastosowanie:{ value: text(tech.usage || tech.sourceUsage || 'frontowa') },
-        nosnosc_kg:{ from: Number(tech.loadKg) || 30 }
+        nosnosc_kg:{ from: Number(tech.loadKg) || 30 },
+        ...(tech.drawerKind === 'box' && tech.runnerType ? { rodzaj_prowadnicy:{ value:FC.roomPreferences && FC.roomPreferences.runnerTypeTechnicalValue ? FC.roomPreferences.runnerTypeTechnicalValue(tech.runnerType) : tech.runnerType } } : {})
       }
     }, extra && typeof extra === 'object' ? extra : {});
   }
@@ -185,6 +191,7 @@
       system:text(d.drawerSystem || ''),
       brand:text(d.drawerBrand || ''),
       model:text(d.drawerModel || ''),
+      runnerType:text(d.drawerRunnerType), runnerSeries:text(d.drawerRunnerSeries),
       usage:'frontowa'
     };
     if(p === 'sinkInner'){

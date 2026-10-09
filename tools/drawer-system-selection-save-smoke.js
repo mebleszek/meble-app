@@ -24,8 +24,7 @@ function assert(condition, message, details){
 function clone(value){ return JSON.parse(JSON.stringify(value)); }
 
 async function flushAsyncClick(){
-  await Promise.resolve();
-  await Promise.resolve();
+  for(let i=0;i<18;i++) await Promise.resolve();
 }
 
 async function main(){
@@ -59,6 +58,7 @@ async function main(){
   sandbox.FC.project = {
     saveConfirmed(data){ return { ok:true, project:clone(data) }; }
   };
+  const picks = ['configure','system','Blum','blum_tandembox_antaro'];
   sandbox.FC.rozrysChoice = {
     createChoiceLauncher(label){
       const button = document.createElement('button');
@@ -66,7 +66,7 @@ async function main(){
       return button;
     },
     setChoiceLaunchValue(button, label){ button.textContent = String(label || ''); },
-    async openRozrysChoiceOverlay(){ return 'blum_tandembox_antaro'; }
+    async openRozrysChoiceOverlay(){ return picks.shift() ?? null; }
   };
 
   const ui = sandbox.FC.wywiadRoomHardwareProducers;
@@ -74,15 +74,15 @@ async function main(){
   const form = ui.buildInlineForm('kuchnia', preferences.getRoomPreferences('kuchnia'));
   document.body.appendChild(form);
 
-  const systemButton = form.querySelector('[data-hardware-drawer-system-key]');
+  const systemButton = form.querySelector('[data-drawer-preference]');
   assert(systemButton, 'Formularz nie utworzył launchera systemu szuflad');
   systemButton.click();
   await flushAsyncClick();
 
   assert(
-    systemButton.getAttribute('data-hardware-drawer-system-value') === 'blum_tandembox_antaro',
+    JSON.parse(systemButton.getAttribute('data-drawer-preference')).systemKey === 'blum_tandembox_antaro',
     'Wybrany system zniknął ze stanu launchera przed zapisem',
-    { value:systemButton.getAttribute('data-hardware-drawer-system-value'), label:systemButton.textContent }
+    { value:systemButton.getAttribute('data-drawer-preference'), label:systemButton.textContent }
   );
   assert(/Blum TANDEMBOX Antaro/.test(systemButton.textContent), 'Launcher nie pokazuje wybranego systemu', systemButton.textContent);
 
@@ -92,24 +92,25 @@ async function main(){
 
   const saved = preferences.getRoomPreferences('kuchnia');
   assert(
-    saved.hardwareDrawerSystems && saved.hardwareDrawerSystems.drawers === 'blum_tandembox_antaro',
+    saved.drawerPreference && saved.drawerPreference.kind === 'system' && saved.drawerPreference.systemKey === 'blum_tandembox_antaro',
     'Zapis preferencji zgubił wybrany system szuflad',
     saved
   );
-  assert(saved.hardwareProducers && saved.hardwareProducers.drawers === 'Blum', 'System nie zsynchronizował producenta Blum', saved);
+  assert(preferences.getEffectiveHardwarePreference(saved,'drawers').value === 'Blum', 'System nie rozwiązał producenta Blum', saved);
+  assert(saved.hardwareProducers.drawers === '' && saved.hardwareDrawerSystems.drawers === '', 'Zapis nie powinien dublować kanonicznego wyboru', saved);
 
   const reopened = ui.buildInlineForm('kuchnia', preferences.getRoomPreferences('kuchnia'));
-  const reopenedSystemButton = reopened.querySelector('[data-hardware-drawer-system-key]');
+  const reopenedSystemButton = reopened.querySelector('[data-drawer-preference]');
   assert(
-    reopenedSystemButton && reopenedSystemButton.getAttribute('data-hardware-drawer-system-value') === 'blum_tandembox_antaro',
+    reopenedSystemButton && JSON.parse(reopenedSystemButton.getAttribute('data-drawer-preference')).systemKey === 'blum_tandembox_antaro',
     'Ponownie otwarty formularz nie odczytał zapisanego systemu',
-    reopenedSystemButton && reopenedSystemButton.getAttribute('data-hardware-drawer-system-value')
+    reopenedSystemButton && reopenedSystemButton.getAttribute('data-drawer-preference')
   );
   assert(/Blum TANDEMBOX Antaro/.test(reopenedSystemButton.textContent), 'Ponownie otwarty formularz ma błędną etykietę systemu', reopenedSystemButton.textContent);
 
   console.log('OK drawer system selection save smoke');
   console.log(' - wybór pozostaje w launcherze');
-  console.log(' - zapisuje się w hardwareDrawerSystems.drawers');
+  console.log(' - zapisuje się jako kanoniczna drawerPreference');
   console.log(' - wraca po ponownym zbudowaniu formularza');
 }
 

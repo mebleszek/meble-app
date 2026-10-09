@@ -15,7 +15,7 @@
     version:2,
     general:{ finishStandard:'', blendStandard:'' },
     zones:{ lower:Object.assign({}, DEFAULT_ZONE), middle:Object.assign({}, DEFAULT_ZONE), upper:Object.assign({}, DEFAULT_ZONE) },
-    hardware:{ hingesManufacturer:'', drawerSystemManufacturer:'', drawerSystemKey:'', liftManufacturer:'', slidingSystemManufacturer:'', cargoManufacturer:'', accessoriesManufacturer:'' }
+    hardware:{ drawerPreference:null, hingesManufacturer:'', drawerSystemManufacturer:'', drawerSystemKey:'', liftManufacturer:'', slidingSystemManufacturer:'', cargoManufacturer:'', accessoriesManufacturer:'' }
   };
 
   function clone(value){
@@ -47,7 +47,7 @@
         bodyPcvCustomColor:text(zone.bodyPcvCustomColor)
       };
     });
-    return {
+    const out = {
       version:2,
       general:{ finishStandard:text(general.finishStandard), blendStandard:text(general.blendStandard) },
       zones,
@@ -61,6 +61,13 @@
         accessoriesManufacturer:text(hardware.accessoriesManufacturer || hardware.otherAccessoriesManufacturer || hardware.defaultAccessoriesManufacturer)
       }
     };
+    const api = FC.roomPreferences;
+    const preference = api && api.normalizeDrawerPreference
+      ? api.normalizeDrawerPreference(hardware.drawerPreference, hardware.drawerSystemKey)
+      : (hardware.drawerPreference ? clone(hardware.drawerPreference) : null);
+    out.hardware.drawerPreference = preference;
+    if(preference){ delete out.hardware.drawerSystemManufacturer; delete out.hardware.drawerSystemKey; }
+    return out;
   }
 
   function read(){
@@ -95,7 +102,16 @@
     return { bodyColor:z.bodyColor, frontMaterial:z.frontMaterial, frontColor:z.frontColor, backMaterial:z.backMaterial };
   }
   function getGeneralDefaults(){ return clone(read().general); }
-  function getHardwareDefaults(){ return clone(read().hardware); }
+  function getHardwareDefaults(){
+    const hardware = clone(read().hardware);
+    // Read-only compatibility projection; derived legacy fields are never persisted beside the canonical value.
+    if(hardware.drawerPreference && FC.roomPreferences){
+      const opt = FC.roomPreferences.drawerPreferenceOption(hardware.drawerPreference);
+      hardware.drawerSystemManufacturer = opt.manufacturer;
+      hardware.drawerSystemKey = opt.key;
+    }
+    return hardware;
+  }
 
   function applyMaterialsToDraft(draft, defaults){
     const target = draft && typeof draft === 'object' ? draft : {};
@@ -111,7 +127,7 @@
     const defaults = normalizeProgramDefaults(value || read());
     return Object.values(defaults.general).some(Boolean)
       || Object.values(defaults.zones).some((zone)=> Object.entries(zone).some(([key,value])=> key === 'bodyPcvMode' ? value === 'front' : !!text(value)))
-      || Object.values(defaults.hardware).some((value)=> !!text(value));
+      || Object.values(defaults.hardware).some((value)=> value && typeof value === 'object' ? !!value.kind : !!text(value));
   }
 
   function buildSummary(value){
@@ -124,7 +140,7 @@
       const values = [z.bodyColor, z.frontMaterial, z.frontColor, z.backMaterial, z.openingSystem, z.bodyPcvMode === 'front' ? 'PCV pod kolor frontu' : '', z.bodyPcvCustomColor].filter(Boolean);
       if(values.length) parts.push(({ lower:'Dolna', middle:'Środkowa', upper:'Górna' })[key] + ': ' + values.join(' / '));
     });
-    Object.values(defaults.hardware).filter(Boolean).forEach((value)=> parts.push(value));
+    Object.values(defaults.hardware).filter(Boolean).forEach((value)=> parts.push(typeof value === 'object' && FC.roomPreferences ? FC.roomPreferences.drawerPreferenceLabel(value) : value));
     return parts.length ? parts.join(' • ') : 'Brak globalnych domyślnych — program użyje starych awaryjnych wartości.';
   }
 

@@ -76,9 +76,10 @@ test('CLEAR OVERRIDE persists empty room value',async()=>{
 });
 test('HARDWARE GLOBAL and no invented drawer model',()=>{
   const r = runtime(); const form = r.hardware();
-  [['hinges','Blum'],['drawers','Blum'],['lifts','Rejs'],['cargo','GTV'],['accessories','Hettich']].forEach(([key,value])=> shows(producer(form,key),value,'global'));
-  assert.equal(form.querySelector('[data-hardware-drawer-system-key]').getAttribute('data-hardware-drawer-system-value'),'');
-  assert.ok(!/Antaro|LEGRABOX|MERIVOBOX/.test(form.querySelector('[data-hardware-drawer-system-key]').textContent));
+  [['hinges','Blum'],['lifts','Rejs'],['cargo','GTV'],['accessories','Hettich']].forEach(([key,value])=> shows(producer(form,key),value,'global'));
+  shows(producer(form,'drawers'),'Blum — konfiguracja niekompletna','global');
+  assert.equal(form.querySelector('[data-drawer-preference]').getAttribute('data-drawer-preference'),'null');
+  assert.ok(!/Antaro|LEGRABOX|MERIVOBOX/.test(form.querySelector('[data-drawer-preference]').textContent));
 });
 test('HARDWARE ROOM and clear override',async()=>{
   const r = runtime(); r.s.projectData.kuchnia.preferences = { hardwareProducers:{ hinges:'GTV' } };
