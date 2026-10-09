@@ -83,7 +83,7 @@
   }
 
   function optionList(values){
-    const out = [{ value:'', label:EMPTY_OPTION }];
+    const out = [{ value:'', label:'— użyj ustawienia globalnego —' }];
     unique(values || []).forEach((value)=> out.push({ value, label:value }));
     return out;
   }
@@ -244,7 +244,15 @@
     wrap.appendChild(labelRow);
     const current = canonicalManufacturer(values[key], options);
     values[key] = current;
-    const btn = makeChoiceButton(selectedLabel(options, current));
+    const btn = makeChoiceButton('');
+    const sourceMeta = h('div', { class:'wywiad-zone-field__source' });
+    const refreshEffective = ()=>{
+      const effective = getApi().getEffectiveHardwarePreference(draft, key);
+      setChoiceButtonLabel(btn, effective.value || EMPTY_OPTION);
+      sourceMeta.textContent = getApi().preferenceSourceLabel(effective.source);
+      sourceMeta.setAttribute('data-preference-source', effective.source);
+    };
+    refreshEffective();
     btn.setAttribute('aria-label', 'Wybierz producenta: ' + (group.label || key));
     btn.setAttribute('data-hardware-producer-key', key);
     btn.setAttribute('data-hardware-producer-value', current);
@@ -255,10 +263,11 @@
       values[key] = canonicalManufacturer(picked, nextOptions);
       btn.setAttribute('data-hardware-producer-value', values[key]);
       rememberDraft(room, draft);
-      setChoiceButtonLabel(btn, selectedLabel(nextOptions, values[key]));
+      refreshEffective();
       if(typeof refreshAll === 'function') refreshAll();
     });
     wrap.appendChild(btn);
+    wrap.appendChild(sourceMeta);
 
     let sysBtn = null;
     if(key === 'drawers'){
@@ -279,7 +288,7 @@
         btn.setAttribute('data-hardware-producer-value', values[key]);
         rememberDraft(room, draft);
         setChoiceButtonLabel(sysBtn, drawerSystemLabel(systems.drawers));
-        setChoiceButtonLabel(btn, selectedLabel(getHardwareManufacturers(), values[key]));
+        refreshEffective();
         if(typeof refreshAll === 'function') refreshAll();
       });
       wrap.appendChild(sysBtn);
@@ -292,7 +301,7 @@
         syncDrawerProducerFromSystem(draft);
         values[key] = canonicalManufacturer(values[key], nextOptions);
         btn.setAttribute('data-hardware-producer-value', values[key]);
-        setChoiceButtonLabel(btn, selectedLabel(nextOptions, values[key]));
+        refreshEffective();
         if(sysBtn){
           const systems = ensureDrawerSystemDraft(draft);
           sysBtn.setAttribute('data-hardware-drawer-system-value', text(systems.drawers));

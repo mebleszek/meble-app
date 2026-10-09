@@ -475,3 +475,9 @@
 @media (max-width:640px){
   .wywiad-hardware-card__title-row{align-items:flex-start;}
 }
+
+/* Effective room preferences keep the inherited value separate from the override. */
+.wywiad-zone-field__source{font-size:12px;line-height:1.35;color:#475569;overflow-wrap:anywhere;}
+.wywiad-zone-field__source:empty{display:none;}
+.wywiad-room-inline-form__bulk-access{display:grid;gap:6px;justify-items:start;min-width:0;}
+.wywiad-room-inline-form__bulk-access .wywiad-room-inline-form__bulk{max-width:100%;white-space:normal;}
