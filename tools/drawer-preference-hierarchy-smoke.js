@@ -262,4 +262,9 @@ test('42 Patterns share trybik-style multi-step picker Wróć',()=>{
   const css=fs.readFileSync(path.join(ROOT,'css/shared-overlays-choice.css'),'utf8');
   assert.match(css,/\.rozrys-choice-modal > \.rozrys-choice-modal__footer\s*\{[^}]*flex-shrink:0/);
 });
+test('43 index cache-busts updated rozrys choice asset',()=>{
+  const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
+  assert.match(html,/js\/app\/rozrys\/rozrys-choice\.js\?v=20261011_drawer_picker_back_style_v2/);
+  assert.doesNotMatch(html,/js\/app\/rozrys\/rozrys-choice\.js\?v=20260628_drawer_systems_materials_v1/);
+});
 (async()=>{for(const [name,fn] of tests){await fn();console.log('PASS '+name);}console.log('Drawer preference hierarchy: '+tests.length+'/'+tests.length+' PASS');})().catch(e=>{console.error(e);process.exitCode=1;});
