@@ -66,7 +66,9 @@
       ? api.normalizeDrawerPreference(hardware.drawerPreference, hardware.drawerSystemKey)
       : (hardware.drawerPreference ? clone(hardware.drawerPreference) : null);
     out.hardware.drawerPreference = preference;
-    if(preference){ delete out.hardware.drawerSystemManufacturer; delete out.hardware.drawerSystemKey; }
+    if(preference || (hardware.drawerPreference === null && !out.hardware.drawerSystemManufacturer && !out.hardware.drawerSystemKey)){
+      delete out.hardware.drawerSystemManufacturer; delete out.hardware.drawerSystemKey;
+    }
     return out;
   }
 

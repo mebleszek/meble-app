@@ -36,6 +36,7 @@
     if(opt.brand || opt.manufacturer) d.drawerBrand = opt.brand || String(opt.manufacturer || '').toLowerCase();
     if(opt.model) d.drawerModel = opt.model;
     if(opt.runnerType){ d.drawerRunnerType = opt.runnerType; d.drawerRunnerSeries = opt.runnerSeries; }
+    else if(opt.system === 'systemowe'){ delete d.drawerRunnerType; delete d.drawerRunnerSeries; }
     d.drawerPreferenceApplied = opt.key;
   }
 

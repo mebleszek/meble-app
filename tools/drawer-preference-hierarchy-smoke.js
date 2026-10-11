@@ -73,7 +73,7 @@ test('10 Missing family informs and permits return',async()=>{
   assert.equal(r.messages.length,1);assert.match(r.messages[0].title,/Brak modeli/);assert.equal(result.value.runnerSeries,'Rejs family');assert.ok(!JSON.stringify(result).includes('500'));
 });
 test('11 One settings drawer field',()=>{const r=runtime(),form=r.settings();assert.equal(form.querySelectorAll('[data-drawer-preference]').length,1);assert.ok(!/Domyślne szuflady|System \/ model szuflad/.test(form.textContent));});
-test('12 Same flow in WYWIAD',async()=>{const r=runtime(),form=r.room();await click(r,drawer(form),['configure','system','Blum','blum_tandembox_antaro']);save(form);assert.deepEqual(clone(r.api.getRoomPreferences('kuchnia').drawerPreference),antaro);assert.equal(r.counts().saves,1);});
+test('12 Same flow in WYWIAD',async()=>{const r=runtime(),form=r.room();await click(r,drawer(form),['system','Blum','blum_tandembox_antaro']);save(form);assert.deepEqual(clone(r.api.getRoomPreferences('kuchnia').drawerPreference),antaro);assert.equal(r.counts().saves,1);});
 test('13 Room inherits global Antaro',()=>{const r=runtime();r.s.FC.programDefaults.write({hardware:{drawerPreference:antaro}});const form=r.room();assert.equal(drawer(form).textContent,'Blum TANDEMBOX Antaro');assert.equal(form.querySelector('.wywiad-hardware-field--drawers .wywiad-zone-field__source').textContent,'z ustawień globalnych');});
 test('14 Room wins',()=>{const r=runtime();r.s.FC.programDefaults.write({hardware:{drawerPreference:antaro}});r.s.projectData.kuchnia.preferences={drawerPreference:{kind:'system',systemKey:'gtv_axis_pro'}};const form=r.room();assert.equal(drawer(form).textContent,'GTV Axis Pro');assert.equal(form.querySelector('.wywiad-hardware-field--drawers .wywiad-zone-field__source').textContent,'ustawienie tego pomieszczenia');});
 test('15 Clear restores inheritance',async()=>{const r=runtime();r.s.FC.programDefaults.write({hardware:{drawerPreference:antaro}});r.s.projectData.kuchnia.preferences={drawerPreference:{kind:'system',systemKey:'gtv_axis_pro'}};const form=r.room();await click(r,drawer(form),['inherit']);save(form);assert.equal(r.api.getRoomPreferences('kuchnia').drawerPreference,null);assert.equal(drawer(r.room()).textContent,'Blum TANDEMBOX Antaro');});
@@ -120,5 +120,73 @@ test('26 Producer/category filters apply to both UI pickers',async()=>{
   const roomForm=r.room();await click(r,roomForm.querySelector('[data-hardware-producer-key="hinges"]'),[null]);
   assert.deepEqual(clone(r.choices.at(-1).options).filter(x=>x.value).map(x=>x.value),['Blum']);
   assert.deepEqual(clone(r.api.hardwareManufacturersForGroup('lifts')),['LiftOnly']);
+});
+test('27 GLOBAL CLEAR preserves other defaults and clears legacy',async()=>{
+  const r=runtime();r.s.FC.programDefaults.write({general:{finishStandard:'premium'},zones:{lower:{bodyColor:'W1100'}},hardware:{drawerPreference:antaro,hingesManufacturer:'Blum',cargoManufacturer:'Rejs'}});
+  const before=clone(r.s.FC.programDefaults.read()),form=r.settings();await click(r,drawer(form),['clear']);save(form);
+  const after=JSON.parse(r.s.localStorage.getItem(KEY));assert.equal(after.hardware.drawerPreference,null);
+  assert.ok(!Object.hasOwn(after.hardware,'drawerSystemManufacturer'));assert.ok(!Object.hasOwn(after.hardware,'drawerSystemKey'));
+  before.hardware.drawerPreference=null;assert.deepEqual(after,before);
+  // Incomplete legacy manufacturer/key are cleared independently as well.
+  const legacy=runtime(JSON.stringify({hardware:{drawerSystemManufacturer:'Blum',drawerSystemKey:'',hingesManufacturer:'GTV'}}));
+  const legacyForm=legacy.settings();await click(legacy,drawer(legacyForm),['clear']);save(legacyForm);
+  const h=JSON.parse(legacy.s.localStorage.getItem(KEY)).hardware;assert.equal(h.drawerPreference,null);
+  assert.ok(!Object.hasOwn(h,'drawerSystemManufacturer'));assert.ok(!Object.hasOwn(h,'drawerSystemKey'));assert.equal(h.hingesManufacturer,'GTV');
+});
+test('28 ROOM FIRST PICKER has inheritance and both kinds directly',async()=>{
+  const r=runtime(),form=r.room();await click(r,drawer(form),[null]);
+  assert.deepEqual(clone(r.choices[0].options),[{value:'inherit',label:'Użyj ustawienia globalnego'},{value:'system',label:'Systemowe'},{value:'box',label:'Skrzynkowe'}]);
+});
+test('29 GLOBAL FIRST PICKER has clear and both kinds directly',async()=>{
+  const r=runtime(),form=r.settings();await click(r,drawer(form),[null]);
+  assert.deepEqual(clone(r.choices[0].options),[{value:'clear',label:'— nie ustawiaj domyślnie —'},{value:'system',label:'Systemowe'},{value:'box',label:'Skrzynkowe'}]);
+});
+test('30 SYSTEM PRESELECT derives producer from key; BACK preserves draft',async()=>{
+  const r=runtime();r.s.FC.programDefaults.write({hardware:{drawerPreference:antaro}});
+  const form=r.settings(),before=r.s.localStorage.getItem(KEY);
+  await click(r,drawer(form),['system','Blum','__back','Blum',null]);
+  assert.deepEqual(r.choices.map(x=>x.value),['system','Blum','blum_tandembox_antaro','Blum','blum_tandembox_antaro']);
+  assert.equal(drawer(form).textContent,'Blum TANDEMBOX Antaro');assert.equal(r.s.localStorage.getItem(KEY),before);
+});
+test('31 BOX PRESELECT includes current family',async()=>{
+  const r=runtime();r.s.projectData.kuchnia.preferences={drawerPreference:{kind:'box',runnerType:'undermount',manufacturer:'Blum',runnerSeries:'MOVENTO'}};
+  const form=r.room();await click(r,drawer(form),['box','undermount','Blum',null]);
+  assert.deepEqual(r.choices.map(x=>x.value),['box','undermount','Blum','MOVENTO']);
+  assert.match(drawer(form).textContent,/MOVENTO/);assert.equal(r.counts().saves,0);
+});
+test('32 SERIES FALLBACK skips dimensional candidates at each metadata level',()=>{
+  const r=runtime();r.catalog.length=0;
+  r.catalog.push({hardwareCategory:'Szuflady / prowadnice',manufacturer:'Blum',technicalParams:{rodzaj_prowadnicy:'dolnego montażu'},series:'MOVENTO L500',hardwareSystem:'MOVENTO'});
+  assert.deepEqual(clone(r.api.runnerSeries('undermount','Blum')),['MOVENTO']);
+  r.catalog[0].hardwareSystem='MOVENTO 500 mm';r.catalog[0].hardwareType='MOVENTO family';
+  assert.deepEqual(clone(r.api.runnerSeries('undermount','Blum')),['MOVENTO family']);
+  r.catalog[0].hardwareType='L450';r.catalog[0].name='Not a family';r.catalog[0].symbol='SKU';
+  assert.deepEqual(clone(r.api.runnerSeries('undermount','Blum')),[]);
+});
+test('33 SYSTEM CLEANS BOX METADATA in public and modal application paths',()=>{
+  const r=runtime();r.s.projectData.kuchnia.preferences={drawerPreference:antaro};
+  const d={drawerSystem:'skrzynkowe',drawerRunnerType:'undermount',drawerRunnerSeries:'MOVENTO'};
+  r.api.applyDrawerSystemPreferenceToDetails('kuchnia',d,{force:true});
+  assert.equal(d.drawerSystem,'systemowe');assert.ok(!Object.hasOwn(d,'drawerRunnerType'));assert.ok(!Object.hasOwn(d,'drawerRunnerSeries'));
+  for(const type of ['stojąca','moduł']){
+    const draft={type,subType:'szuflady',details:{drawerSystem:'skrzynkowe',drawerRunnerType:'undermount',drawerRunnerSeries:'MOVENTO',drawerLayout:'5_equal'}};
+    const ctx={draft,details:draft.details,subType:'szuflady',uiState:{roomType:'kuchnia'},container:r.s.document.createElement('div'),addSelect(){},renderCabinetModal(){}};
+    if(type==='stojąca')r.s.FC.cabinetModalStandingSpecials.renderDrawerExtras(ctx);else r.s.FC.cabinetModalModule.renderExtraDetails(ctx);
+    assert.equal(draft.details.drawerSystem,'systemowe');assert.ok(!Object.hasOwn(draft.details,'drawerRunnerType'));assert.ok(!Object.hasOwn(draft.details,'drawerRunnerSeries'));
+  }
+});
+test('34 CLEAN DRAWER TRASH removes irrelevant metadata and preserves valid box',()=>{
+  const r=runtime(),api=r.s.FC.cabinetDrawerRequirements;
+  const initial={drawerSystem:'skrzynkowe',drawerBrand:'blum',drawerModel:'',drawerRunnerType:'undermount',drawerRunnerSeries:'MOVENTO'};
+  for(const cabinet of [{type:'stojąca',subType:'standardowa'},{type:'stojąca',subType:'zlewowa',details:{sinkFront:'drzwi'}},{type:'stojąca',subType:'piekarnikowa',details:{ovenOption:'drzwi'}}]){
+    cabinet.details=Object.assign({},initial,cabinet.details);api.cleanDrawerTrash(cabinet);
+    for(const key of ['drawerSystem','drawerBrand','drawerModel','drawerRunnerType','drawerRunnerSeries'])assert.ok(!Object.hasOwn(cabinet.details,key));
+  }
+  for(const cabinet of [{type:'stojąca',subType:'szuflady'},{type:'moduł',subType:'szuflady'},{type:'stojąca',subType:'zlewowa',details:{sinkFront:'szuflada'}},{type:'stojąca',subType:'piekarnikowa',details:{ovenOption:'szuflada_dol'}},{type:'wisząca',subType:'dolna_podblatowa',details:{podFrontMode:'szuflady'}}]){
+    cabinet.details=Object.assign({},initial,cabinet.details);api.cleanDrawerTrash(cabinet);
+    assert.equal(cabinet.details.drawerSystem,'skrzynkowe');assert.equal(cabinet.details.drawerRunnerType,'undermount');assert.equal(cabinet.details.drawerRunnerSeries,'MOVENTO');
+    cabinet.details.drawerSystem='systemowe';api.cleanDrawerTrash(cabinet);
+    assert.ok(!Object.hasOwn(cabinet.details,'drawerRunnerType'));assert.ok(!Object.hasOwn(cabinet.details,'drawerRunnerSeries'));
+  }
 });
 (async()=>{for(const [name,fn] of tests){await fn();console.log('PASS '+name);}console.log('Drawer preference hierarchy: '+tests.length+'/'+tests.length+' PASS');})().catch(e=>{console.error(e);process.exitCode=1;});

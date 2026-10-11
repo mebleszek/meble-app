@@ -152,7 +152,7 @@ test('8 HARDWARE FAILURE keeps draft cache and working selection', async()=>{
   for(const mode of ['begin','fail']){
     const r = runtime(); const before = raw(r.s.projectData); const api = r.FC.wywiadRoomHardwareProducers;
     const form = api.buildInlineForm('kuchnia',r.FC.roomPreferences.getRoomPreferences('kuchnia'));
-    r.ui.picks = ['configure','system','Blum','blum_tandembox_antaro']; await choose(form.querySelector('[data-drawer-preference]'));
+    r.ui.picks = ['system','Blum','blum_tandembox_antaro']; await choose(form.querySelector('[data-drawer-preference]'));
     if(mode === 'begin') r.storage.fail.add(SESSION); else r.ui.saveMode = 'fail';
     form.querySelector('.wywiad-room-inline-form__save').click(); preserved(r,before,before);
     const rebuilt = api.buildInlineForm('kuchnia',r.FC.roomPreferences.getRoomPreferences('kuchnia'));
@@ -163,7 +163,7 @@ test('8 HARDWARE FAILURE keeps draft cache and working selection', async()=>{
 test('9 HARDWARE SUCCESS clears draft only after confirmation', async()=>{
   const r = runtime(); const api = r.FC.wywiadRoomHardwareProducers;
   const form = api.buildInlineForm('kuchnia',r.FC.roomPreferences.getRoomPreferences('kuchnia'));
-  r.ui.picks = ['configure','system','Blum','blum_tandembox_antaro']; await choose(form.querySelector('[data-drawer-preference]'));
+  r.ui.picks = ['system','Blum','blum_tandembox_antaro']; await choose(form.querySelector('[data-drawer-preference]'));
   form.querySelector('.wywiad-room-inline-form__save').click();
   assert.equal(r.FC.roomPreferences.getRoomPreferences('kuchnia').drawerPreference.systemKey,'blum_tandembox_antaro');
   // A later external value must be used; an uncleared draft would resurrect Antaro.

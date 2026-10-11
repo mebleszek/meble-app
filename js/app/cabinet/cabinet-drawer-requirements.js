@@ -277,6 +277,14 @@
     cab.details = d;
     const type = typeOf(cab);
     const sub = subTypeOf(cab);
+    const hasFrontDrawers = ((type === 'stojąca' || type === 'moduł') && sub === 'szuflady')
+      || (type === 'stojąca' && sub === 'zlewowa' && text(d.sinkFront || 'drzwi') === 'szuflada')
+      || (type === 'stojąca' && sub === 'piekarnikowa' && text(d.ovenOption || 'szuflada_dol').includes('szuflada'))
+      || (type === 'wisząca' && sub === 'dolna_podblatowa' && text(d.podFrontMode || (d.subTypeOption && String(d.subTypeOption).startsWith('szuflada') ? 'szuflady' : 'drzwi')) === 'szuflady');
+    if(!hasFrontDrawers || d.drawerSystem === 'systemowe'){
+      delete d.drawerRunnerType;
+      delete d.drawerRunnerSeries;
+    }
 
     delete cab.drawerCount;
     delete cab.drawers;
@@ -285,7 +293,7 @@
 
     if(!((type === 'stojąca' || type === 'moduł') && sub === 'szuflady')){
       delete d.drawerLayout;
-      if(!(type === 'stojąca' && (sub === 'zlewowa' || sub === 'piekarnikowa'))){
+      if(!hasFrontDrawers){
         delete d.drawerSystem;
         delete d.drawerBrand;
         delete d.drawerModel;
@@ -321,7 +329,7 @@
       }
     }
 
-    if(!(type === 'stojąca' && sub === 'piekarnikowa' && text(d.ovenOption || 'szuflada_dol').indexOf('szuflada') !== -1)){
+    if(!hasFrontDrawers && !(type === 'stojąca' && sub === 'piekarnikowa' && text(d.ovenOption || 'szuflada_dol').indexOf('szuflada') !== -1)){
       if(!(type === 'stojąca' && sub === 'zlewowa' && text(d.sinkFront || 'drzwi') === 'szuflada')){
         delete d.drawerSystem;
         delete d.drawerBrand;

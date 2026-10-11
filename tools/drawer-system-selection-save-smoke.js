@@ -58,7 +58,7 @@ async function main(){
   sandbox.FC.project = {
     saveConfirmed(data){ return { ok:true, project:clone(data) }; }
   };
-  const picks = ['configure','system','Blum','blum_tandembox_antaro'];
+  const picks = ['system','Blum','blum_tandembox_antaro'];
   sandbox.FC.rozrysChoice = {
     createChoiceLauncher(label){
       const button = document.createElement('button');

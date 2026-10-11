@@ -187,8 +187,8 @@
   function runnerSeries(type, manufacturer){
     // A family comes from explicit catalogue metadata, never the SKU/name or length.
     return uniquePreferenceValues(runnerRows(type, manufacturer).map(row=>{
-      const family = text(row.series || row.hardwareSystem || row.hardwareType);
-      return /\b(?:L\s*\d{3,4}|\d{3,4}\s*mm)\b/i.test(family) ? '' : family;
+      return [row.series, row.hardwareSystem, row.hardwareType].map(text)
+        .find(family=>family && !/\b(?:L\s*\d{3,4}|\d{3,4}\s*mm)\b/i.test(family)) || '';
     }));
   }
   function systemManufacturers(){ return uniquePreferenceValues(DRAWER_SYSTEM_OPTIONS.filter(row=>row.system === 'systemowe').map(row=>row.manufacturer)); }
@@ -198,15 +198,14 @@
   // One cancellable flow for both forms. Only a complete final value is returned to the caller's draft.
   async function chooseDrawerPreference(pick, initial, allowInheritance){
     const current = normalizeDrawerPreference(initial);
-    if(allowInheritance){
-      const action = await pick('Szuflady', [{ value:'configure', label:'Skonfiguruj szuflady' }, { value:'inherit', label:'Użyj ustawienia globalnego' }], 'configure');
-      if(action === 'inherit') return { ok:true, value:null };
-      if(action !== 'configure') return null;
-    }
-    let step = 0, kind = current && current.kind || '', type = current && current.runnerType || '', manufacturer = '', selected;
+    const currentOption = current ? drawerPreferenceOption(current) : null;
+    const emptyAction = allowInheritance ? 'inherit' : 'clear';
+    let step = 0, kind = current && current.kind || '', type = current && current.runnerType || '',
+      manufacturer = currentOption && currentOption.manufacturer || '',
+      model = current && (current.systemKey || current.runnerSeries) || '', selected;
     while(true){
       let title, options, value;
-      if(step === 0){ title = 'Wybierz rodzaj szuflad'; options = [{ value:'system', label:'Systemowe' }, { value:'box', label:'Skrzynkowe' }]; value = kind; }
+      if(step === 0){ title = 'Wybierz rodzaj szuflad'; options = [{ value:emptyAction, label:allowInheritance ? 'Użyj ustawienia globalnego' : '— nie ustawiaj domyślnie —' }, { value:'system', label:'Systemowe' }, { value:'box', label:'Skrzynkowe' }]; value = kind || emptyAction; }
       else if(kind === 'box' && step === 1){ title = 'Wybierz rodzaj prowadnic'; options = RUNNER_TYPES; value = type; }
       else if(step === (kind === 'box' ? 2 : 1)){
         title = 'Wybierz producenta'; options = (kind === 'box' ? runnerManufacturers(type) : systemManufacturers()).map(value=>({ value, label:value })); value = manufacturer;
@@ -214,16 +213,18 @@
         title = kind === 'box' ? 'Wybierz model / serię prowadnicy' : 'Wybierz system / model';
         options = kind === 'box' ? runnerSeries(type, manufacturer).map(value=>({ value, label:value }))
           : systemsForManufacturer(manufacturer).map(row=>({ value:row.key, label:row.label }));
-        value = current && current.systemKey || '';
+        value = model;
       }
       if(step && !options.length && ns.infoBox) ns.infoBox.open({ title:'Brak modeli w katalogu dla tego wyboru.', message:'Wróć i wybierz innego producenta lub rodzaj prowadnicy.', okOnly:true });
+      if(step && !options.some(row=>row.value === value)) value = '';
       selected = await pick(title, (step ? [{ value:'__back', label:'Wróć' }] : []).concat(options), value);
       if(selected == null) return null;
       if(selected === '__back' && step){ step--; continue; }
       if(!options.some(row=>row.value === selected)) return null;
-      if(step === 0) kind = selected;
-      else if(kind === 'box' && step === 1) type = selected;
-      else if(step === (kind === 'box' ? 2 : 1)) manufacturer = selected;
+      if(step === 0 && selected === emptyAction) return { ok:true, value:null };
+      if(step === 0){ if(kind !== selected){ manufacturer = ''; model = ''; } kind = selected; }
+      else if(kind === 'box' && step === 1){ if(type !== selected){ manufacturer = ''; model = ''; } type = selected; }
+      else if(step === (kind === 'box' ? 2 : 1)){ if(manufacturer !== selected) model = ''; manufacturer = selected; }
       else return { ok:true, value:normalizeDrawerPreference(kind === 'system' ? { kind, systemKey:selected } : { kind, runnerType:type, manufacturer, runnerSeries:selected }) };
       step++;
     }
@@ -536,6 +537,7 @@
     if(opt.brand || opt.manufacturer) target.drawerBrand = opt.brand || String(opt.manufacturer || '').toLowerCase();
     if(opt.model) target.drawerModel = opt.model;
     if(opt.system === 'skrzynkowe'){ target.drawerRunnerType = opt.runnerType || ''; target.drawerRunnerSeries = opt.runnerSeries || ''; }
+    else if(opt.system === 'systemowe'){ delete target.drawerRunnerType; delete target.drawerRunnerSeries; }
     target.drawerPreferenceApplied = opt.key;
     return target;
   }
