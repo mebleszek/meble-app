@@ -8,6 +8,10 @@ on:
     types: [opened, synchronize, reopened]
   workflow_dispatch: {}
 
+concurrency:
+  group: preflight-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   preflight:
     runs-on: ubuntu-latest
@@ -91,13 +95,28 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    outputs:
+      merge_sha: ${{ steps.merge.outputs.result }}
 
     steps:
       - name: Merge the exact tested PR head
+        id: merge
         uses: actions/github-script@v7
         with:
+          result-encoding: string
           script: |
             const pr = context.payload.pull_request;
+            const current = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number
+            });
+
+            if (current.data.head.sha !== pr.head.sha) {
+              core.setFailed(`PR head moved from ${pr.head.sha} to ${current.data.head.sha}; refusing stale merge.`);
+              return '';
+            }
+
             const result = await github.rest.pulls.merge({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -110,4 +129,198 @@ jobs:
 
             if (!result.data.merged) {
               core.setFailed(`Auto-merge failed: ${result.data.message || 'unknown reason'}`);
+              return '';
             }
+
+            core.notice(`Merged as ${result.data.sha}`);
+            return result.data.sha;
+
+  post-merge-verify:
+    if: ${{ github.event_name == 'pull_request' && needs.auto-merge.result == 'success' }}
+    needs: auto-merge
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout exact merge commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.auto-merge.outputs.merge_sha }}
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Select merged site to test
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ZIP="$(ls -1t site*.zip 2>/dev/null | head -n 1 || true)"
+
+          if [ -z "$ZIP" ]; then
+            echo "No site*.zip found — testing exact merge commit."
+            echo "PREFLIGHT_DIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          echo "Using ZIP: $ZIP"
+          rm -rf _preflight_raw _preflight_site
+          mkdir -p _preflight_raw _preflight_site
+          unzip -q "$ZIP" -d _preflight_raw
+
+          if [ -f _preflight_raw/index.html ]; then
+            cp -a _preflight_raw/. _preflight_site/
+          else
+            topdir="$(find _preflight_raw -mindepth 1 -maxdepth 1 -type d | head -n 1 || true)"
+            if [ -n "$topdir" ] && [ -f "$topdir/index.html" ]; then
+              echo "Flattening top folder: $topdir"
+              cp -a "$topdir"/. _preflight_site/
+            fi
+          fi
+
+          if [ ! -f _preflight_site/index.html ]; then
+            echo "ERROR: index.html not found after unzip/flatten."
+            exit 1
+          fi
+
+          if [ ! -f _preflight_site/tools/preflight.js ]; then
+            echo "ERROR: tools/preflight.js not found in tested package."
+            exit 1
+          fi
+
+          echo "PREFLIGHT_DIR=$GITHUB_WORKSPACE/_preflight_site" >> "$GITHUB_ENV"
+
+      - name: Run full Preflight on merge commit
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          echo "Testing merge commit: ${{ needs.auto-merge.outputs.merge_sha }}"
+          set +e
+          node "$PREFLIGHT_DIR/tools/preflight.js" 2>&1 | tee post-merge-preflight-output.txt
+          status=${PIPESTATUS[0]}
+          set -e
+
+          {
+            echo "## Post-merge Meble-App preflight"
+            echo
+            echo 'Merge commit: `${{ needs.auto-merge.outputs.merge_sha }}`'
+            echo
+            echo '```text'
+            tail -n 120 post-merge-preflight-output.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit "$status"
+
+      - name: Wait for Pages on exact merge commit
+        uses: actions/github-script@v7
+        env:
+          MERGE_SHA: ${{ needs.auto-merge.outputs.merge_sha }}
+        with:
+          script: |
+            const mergeSha = process.env.MERGE_SHA;
+            const maxAttempts = 60;
+            const delayMs = 10000;
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              const response = await github.rest.actions.listWorkflowRunsForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                head_sha: mergeSha,
+                per_page: 100
+              });
+
+              const pagesRun = response.data.workflow_runs.find(
+                run => run.name === 'pages build and deployment'
+              );
+
+              if (pagesRun) {
+                core.info(`Pages run #${pagesRun.run_number}: ${pagesRun.status}/${pagesRun.conclusion || 'pending'}`);
+
+                if (pagesRun.status === 'completed') {
+                  if (pagesRun.conclusion === 'success') {
+                    core.notice(`Pages succeeded for ${mergeSha}`);
+                    return;
+                  }
+
+                  core.setFailed(`Pages finished with conclusion: ${pagesRun.conclusion}`);
+                  return;
+                }
+              } else {
+                core.info(`Waiting for Pages run for ${mergeSha} (attempt ${attempt}/${maxAttempts})`);
+              }
+
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+            }
+
+            core.setFailed(`Timed out waiting for Pages for merge commit ${mergeSha}`);
+
+  final-status:
+    if: ${{ always() && github.event_name == 'pull_request' && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
+    needs: [preflight, auto-merge, post-merge-verify]
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: read
+
+    steps:
+      - name: Comment READY or BLOCKED on PR
+        uses: actions/github-script@v7
+        env:
+          PREFLIGHT_RESULT: ${{ needs.preflight.result }}
+          MERGE_RESULT: ${{ needs.auto-merge.result }}
+          VERIFY_RESULT: ${{ needs.post-merge-verify.result }}
+          MERGE_SHA: ${{ needs.auto-merge.outputs.merge_sha }}
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const current = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number
+            });
+
+            if (!current.data.merged && current.data.head.sha !== pr.head.sha) {
+              core.notice('Stale workflow run detected; skipping final notification.');
+              return;
+            }
+
+            const preflight = process.env.PREFLIGHT_RESULT;
+            const merge = process.env.MERGE_RESULT;
+            const verify = process.env.VERIFY_RESULT;
+            const mergeSha = process.env.MERGE_SHA || '';
+
+            const ready = preflight === 'success' && merge === 'success' && verify === 'success';
+            const body = ready
+              ? [
+                  '✅ **READY — można przejść do następnego etapu.**',
+                  '',
+                  'Preflight PR: **OK**',
+                  'Auto-merge: **OK**',
+                  'Preflight po merge: **OK**',
+                  'Pages: **OK**',
+                  mergeSha ? `Merge commit: \`${mergeSha}\`` : ''
+                ].filter(Boolean).join('\n')
+              : [
+                  '❌ **BLOCKED — nie przechodź jeszcze do następnego etapu.**',
+                  '',
+                  `Preflight PR: **${preflight}**`,
+                  `Auto-merge: **${merge}**`,
+                  `Weryfikacja po merge / Pages: **${verify}**`,
+                  '',
+                  'Trzeba sprawdzić nieudany etap w GitHub Actions.'
+                ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body
+            });
+
+            core.notice(ready ? 'READY notification posted.' : 'BLOCKED notification posted.');
