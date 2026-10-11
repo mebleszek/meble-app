@@ -93,10 +93,10 @@
     if(labelEl) labelEl.textContent = String(label || '');
   }
 
-  async function openChoice(title, options, value){
+  async function openChoice(title, options, value, pickerOptions){
     const api = getChoiceApi();
     if(api && typeof api.openRozrysChoiceOverlay === 'function'){
-      return api.openRozrysChoiceOverlay({ title, value:String(value || ''), options });
+      return api.openRozrysChoiceOverlay(Object.assign({ title, value:String(value || ''), options }, pickerOptions || {}));
     }
     return null;
   }

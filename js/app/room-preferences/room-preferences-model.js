@@ -215,9 +215,13 @@
           : systemsForManufacturer(manufacturer).map(row=>({ value:row.key, label:row.label }));
         value = model;
       }
-      if(step && !options.length && ns.infoBox) ns.infoBox.open({ title:'Brak modeli w katalogu dla tego wyboru.', message:'Wróć i wybierz innego producenta lub rodzaj prowadnicy.', okOnly:true });
+      const pickerOptions = step ? { backAction:{ label:'Wróć', value:'__back' } } : {};
+      if(step && !options.length){
+        pickerOptions.emptyMessage = 'Brak modeli w katalogu dla tego wyboru.';
+        pickerOptions.emptyDescription = 'Wróć i wybierz innego producenta lub rodzaj prowadnicy.';
+      }
       if(step && !options.some(row=>row.value === value)) value = '';
-      selected = await pick(title, (step ? [{ value:'__back', label:'Wróć' }] : []).concat(options), value);
+      selected = await pick(title, options, value, pickerOptions);
       if(selected == null) return null;
       if(selected === '__back' && step){ step--; continue; }
       if(!options.some(row=>row.value === selected)) return null;

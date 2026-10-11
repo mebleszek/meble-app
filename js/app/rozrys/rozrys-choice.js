@@ -72,7 +72,14 @@
       header.appendChild(closeBtn);
       modal.appendChild(header);
       const body = h('div', { class:'rozrys-choice-modal__body' });
-      (Array.isArray(cfg.options) ? cfg.options : []).forEach((entry)=>{
+      const options = Array.isArray(cfg.options) ? cfg.options : [];
+      if(!options.length && cfg.emptyMessage){
+        const empty = h('div', { class:'rozrys-choice-modal__empty', role:'status' });
+        empty.appendChild(h('div', { class:'rozrys-choice-option__title', text:String(cfg.emptyMessage) }));
+        if(cfg.emptyDescription) empty.appendChild(h('div', { class:'rozrys-choice-option__subtitle', text:String(cfg.emptyDescription) }));
+        body.appendChild(empty);
+      }
+      options.forEach((entry)=>{
         const opt = entry || {};
         const value = String(opt.value == null ? '' : opt.value);
         const disabled = !!opt.disabled;
@@ -83,6 +90,15 @@
         body.appendChild(optionBtn);
       });
       modal.appendChild(body);
+      if(cfg.backAction){
+        const footer = h('div', { class:'rozrys-picker-footer rozrys-choice-modal__footer' });
+        const actions = h('div', { class:'rozrys-picker-footer-actions' });
+        const backBtn = h('button', { type:'button', class:'btn-success', text:String(cfg.backAction.label || 'Wróć') });
+        backBtn.addEventListener('click', ()=> done(cfg.backAction.value));
+        actions.appendChild(backBtn);
+        footer.appendChild(actions);
+        modal.appendChild(footer);
+      }
       backdrop.appendChild(modal);
 
       let closed = false;
