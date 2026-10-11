@@ -91,9 +91,9 @@
       });
       modal.appendChild(body);
       if(cfg.backAction){
-        const footer = h('div', { class:'rozrys-picker-footer rozrys-choice-modal__footer' });
-        const actions = h('div', { class:'rozrys-picker-footer-actions' });
-        const backBtn = h('button', { type:'button', class:'btn-success', text:String(cfg.backAction.label || 'Wróć') });
+        const footer = h('div', { class:'rozrys-panel-footer rozrys-choice-modal__footer' });
+        const actions = h('div', { class:'rozrys-panel-footer__actions' });
+        const backBtn = h('button', { type:'button', class:'btn btn-primary', text:String(cfg.backAction.label || 'Wróć') });
         backBtn.addEventListener('click', ()=> done(cfg.backAction.value));
         actions.appendChild(backBtn);
         footer.appendChild(actions);

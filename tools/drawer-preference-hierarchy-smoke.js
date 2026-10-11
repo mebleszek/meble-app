@@ -221,13 +221,13 @@ function realChoiceRuntime(){
   const r=runtime();vm.runInContext(fs.readFileSync(path.join(ROOT,'js/app/rozrys/rozrys-choice.js'),'utf8'),r.s);
   return r;
 }
-test('38 Real overlay footer is separate, green and returns BACK',async()=>{
+test('38 Real overlay footer matches trybik Wróć and returns BACK',async()=>{
   const r=realChoiceRuntime(),d=r.s.document;
   const pending=r.s.FC.rozrysChoice.openRozrysChoiceOverlay({title:'Producent',options:[{value:'Blum',label:'Blum'}],backAction:{label:'Wróć',value:'__back'}});
-  const modal=d.querySelector('.rozrys-choice-modal'),body=modal.querySelector('.rozrys-choice-modal__body'),footer=modal.querySelector('.rozrys-picker-footer');
+  const modal=d.querySelector('.rozrys-choice-modal'),body=modal.querySelector('.rozrys-choice-modal__body'),footer=modal.querySelector('.rozrys-panel-footer');
   assert.equal(body.querySelectorAll('button').length,1);assert.equal(body.textContent,'Blum');
   assert.equal(footer.parentNode,modal);assert.equal(modal.children.at(-1),footer);
-  const back=footer.querySelector('.btn-success');assert.equal(back.textContent,'Wróć');back.click();
+  const back=footer.querySelector('.btn.btn-primary');assert.equal(back.textContent,'Wróć');assert.equal(footer.querySelector('.btn-success'),null);back.click();
   assert.equal(await pending,'__back');assert.equal(d.querySelector('.rozrys-choice-backdrop'),null);
 });
 test('39 Real empty overlay shows message, no choices, BACK works',async()=>{
@@ -235,7 +235,7 @@ test('39 Real empty overlay shows message, no choices, BACK works',async()=>{
   const pending=r.s.FC.rozrysChoice.openRozrysChoiceOverlay({options:[],emptyMessage:'Brak modeli w katalogu dla tego wyboru.',emptyDescription:'Wróć i wybierz innego producenta lub rodzaj prowadnicy.',backAction:{label:'Wróć',value:'__back'}});
   assert.match(d.querySelector('.rozrys-choice-modal__empty').textContent,/Brak modeli.*Wróć/);
   assert.equal(d.querySelectorAll('.rozrys-choice-option').length,0);
-  d.querySelector('.rozrys-picker-footer .btn-success').click();assert.equal(await pending,'__back');assert.equal(r.messages.length,0);
+  d.querySelector('.rozrys-panel-footer .btn.btn-primary').click();assert.equal(await pending,'__back');assert.equal(r.messages.length,0);
 });
 test('40 Real X, backdrop and Escape cancel normal and empty overlays',async()=>{
   for(const empty of [false,true])for(const dismiss of ['x','backdrop','escape']){
@@ -251,14 +251,14 @@ test('40 Real X, backdrop and Escape cancel normal and empty overlays',async()=>
 test('41 Existing overlay callers have no footer and keep selection contract',async()=>{
   const r=realChoiceRuntime(),d=r.s.document;
   const pending=r.s.FC.rozrysChoice.openRozrysChoiceOverlay({options:[{value:'Blum',label:'Blum'}],value:'Blum'});
-  assert.equal(d.querySelector('.rozrys-picker-footer'),null);assert.equal(d.querySelector('.rozrys-choice-modal__empty'),null);
+  assert.equal(d.querySelector('.rozrys-panel-footer'),null);assert.equal(d.querySelector('.rozrys-choice-modal__empty'),null);
   const option=d.querySelector('.rozrys-choice-option');assert.ok(option.classList.contains('is-selected'));option.click();assert.equal(await pending,'Blum');
 });
-test('42 Patterns share real multi-step picker footer and green button',()=>{
+test('42 Patterns share trybik-style multi-step picker Wróć',()=>{
   const html=fs.readFileSync(path.join(ROOT,'dev_ui_patterns.html'),'utf8');
   const pattern=html.match(/<article[^>]*data-ui-pattern="multi-step-picker"[\s\S]*?<\/article>/)[0];
-  for(const token of ['WIELOETAPOWY PICKER','rozrys-choice-modal__header','rozrys-choice-modal__close','rozrys-choice-modal__body','rozrys-picker-footer rozrys-choice-modal__footer','rozrys-picker-footer-actions'])assert.ok(pattern.includes(token));
-  assert.match(pattern,/<button class="btn-success"[^>]*>Wróć<\/button>/);
+  for(const token of ['WIELOETAPOWY PICKER','Niebieski Wróć','po lewej','rozrys-choice-modal__header','rozrys-choice-modal__close','rozrys-choice-modal__body','rozrys-panel-footer rozrys-choice-modal__footer','rozrys-panel-footer__actions'])assert.ok(pattern.includes(token));
+  assert.match(pattern,/<button class="btn btn-primary"[^>]*>Wróć<\/button>/);assert.doesNotMatch(pattern,/<button class="btn-success"[^>]*>Wróć<\/button>/);
   const css=fs.readFileSync(path.join(ROOT,'css/shared-overlays-choice.css'),'utf8');
   assert.match(css,/\.rozrys-choice-modal > \.rozrys-choice-modal__footer\s*\{[^}]*flex-shrink:0/);
 });
