@@ -44,7 +44,7 @@ function runtime(seed){
     counts:()=>({begins,saves}),
     settings(){const node=s.document.createElement('div');s.FC.dataSettingsDefaultsView.render(node);return node;},
     room(){return s.FC.wywiadRoomHardwareProducers.buildInlineForm('kuchnia',api.getRoomPreferences('kuchnia'));},
-    async flow(values,inherit=false){picks.push(...values);return api.chooseDrawerPreference((title,options,value)=>s.FC.rozrysChoice.openRozrysChoiceOverlay({title,options,value}),null,inherit);}
+    async flow(values,inherit=false){picks.push(...values);return api.chooseDrawerPreference((title,options,value,pickerOptions)=>s.FC.rozrysChoice.openRozrysChoiceOverlay(Object.assign({title,options,value},pickerOptions)),null,inherit);}
   };
 }
 async function click(r,button,values){r.picks.push(...values);button.click();for(let i=0;i<18;i++)await Promise.resolve();}
@@ -65,12 +65,12 @@ test('5 Cancel after producer preserves previous draft',async()=>{
   assert.deepEqual(JSON.parse(r.s.localStorage.getItem(KEY)).hardware.drawerPreference,antaro);
 });
 test('6 Incomplete manufacturer is not a complete selection',()=>{const r=runtime();assert.equal(r.api.normalizeDrawerPreference({manufacturer:'Blum'}),null);assert.equal(r.api.normalizeDrawerPreference({kind:'system',systemKey:''}),null);});
-test('7 Box runner types',async()=>{const r=runtime();await r.flow(['box',null]);assert.deepEqual(clone(r.choices[1].options).filter(x=>x.value!=='__back').map(x=>[x.value,x.label]),[['ball','Kulkowe'],['undermount','Dolnego montażu'],['roller','Rolkowe']]);});
+test('7 Box runner types',async()=>{const r=runtime();await r.flow(['box',null]);assert.deepEqual(clone(r.choices[1].options).map(x=>[x.value,x.label]),[['ball','Kulkowe'],['undermount','Dolnego montażu'],['roller','Rolkowe']]);});
 test('8 Runner producers from matching active catalogue',()=>{const r=runtime();assert.deepEqual(clone(r.api.runnerManufacturers('ball')),['Blum','GTV']);assert.deepEqual(clone(r.api.runnerManufacturers('undermount')),['Blum']);});
 test('9 Runner families filtered, not length SKU',()=>{const r=runtime();assert.deepEqual(clone(r.api.runnerSeries('undermount','Blum')),['MOVENTO']);assert.deepEqual(clone(r.api.runnerSeries('ball','GTV')),['GTV family']);assert.deepEqual(clone(r.api.runnerSeries('roller','Rejs')),['Rejs family']);assert.deepEqual(clone(r.api.runnerSeries('roller','Length SKU')),[]);});
 test('10 Missing family informs and permits return',async()=>{
   const r=runtime();const result=await r.flow(['box','roller','No family','__back','Rejs','Rejs family']);
-  assert.equal(r.messages.length,1);assert.match(r.messages[0].title,/Brak modeli/);assert.equal(result.value.runnerSeries,'Rejs family');assert.ok(!JSON.stringify(result).includes('500'));
+  assert.equal(r.messages.length,0);const empty=r.choices.find(x=>x.emptyMessage);assert.ok(empty);assert.equal(empty.options.length,0);assert.match(empty.emptyMessage,/Brak modeli/);assert.equal(empty.backAction.value,'__back');assert.equal(r.choices[4].title,'Wybierz producenta');assert.equal(result.value.runnerSeries,'Rejs family');assert.ok(!JSON.stringify(result).includes('500'));
 });
 test('11 One settings drawer field',()=>{const r=runtime(),form=r.settings();assert.equal(form.querySelectorAll('[data-drawer-preference]').length,1);assert.ok(!/Domyślne szuflady|System \/ model szuflad/.test(form.textContent));});
 test('12 Same flow in WYWIAD',async()=>{const r=runtime(),form=r.room();await click(r,drawer(form),['system','Blum','blum_tandembox_antaro']);save(form);assert.deepEqual(clone(r.api.getRoomPreferences('kuchnia').drawerPreference),antaro);assert.equal(r.counts().saves,1);});
@@ -188,5 +188,78 @@ test('34 CLEAN DRAWER TRASH removes irrelevant metadata and preserves valid box'
     cabinet.details.drawerSystem='systemowe';api.cleanDrawerTrash(cabinet);
     assert.ok(!Object.hasOwn(cabinet.details,'drawerRunnerType'));assert.ok(!Object.hasOwn(cabinet.details,'drawerRunnerSeries'));
   }
+});
+test('35 BACK is a footer action, absent on first step in both forms',async()=>{
+  for(const formName of ['settings','room']){
+    const r=runtime(),form=r[formName]();
+    await click(r,drawer(form),['system','Blum','blum_merivobox']);
+    assert.equal(r.choices[0].backAction,undefined);
+    for(const cfg of r.choices){assert.ok(!cfg.options.some(x=>x.value==='__back'||x.label==='Wróć'));}
+    for(const cfg of r.choices.slice(1)){assert.deepEqual(clone(cfg.backAction),{label:'Wróć',value:'__back'});}
+    assert.match(drawer(form).textContent,/MERIVOBOX/);
+  }
+});
+test('36 MERIVOBOX preselection and BACK through model, producer and kind',async()=>{
+  const r=runtime();r.s.FC.programDefaults.write({hardware:{drawerPreference:{kind:'system',systemKey:'blum_merivobox'}}});
+  const form=r.settings();await click(r,drawer(form),['system','Blum','__back','__back',null]);
+  assert.deepEqual(r.choices.map(x=>x.value),['system','Blum','blum_merivobox','Blum','system']);
+  assert.deepEqual(r.choices.map(x=>x.title),['Wybierz rodzaj szuflad','Wybierz producenta','Wybierz system / model','Wybierz producenta','Wybierz rodzaj szuflad']);
+  assert.match(drawer(form).textContent,/MERIVOBOX/);assert.equal(r.choices.at(-1).backAction,undefined);
+});
+test('37 Empty-state X cancels both forms without messages or draft loss',async()=>{
+  for(const formName of ['settings','room']){
+    const r=runtime();r.s.FC.programDefaults.write({hardware:{drawerPreference:antaro}});
+    const form=r[formName](),before=JSON.stringify(r.s.projectData),raw=r.s.localStorage.getItem(KEY),label=drawer(form).textContent;
+    await click(r,drawer(form),['box','roller','No family',null]);
+    const empty=r.choices.at(-1);assert.equal(empty.options.length,0);assert.match(empty.emptyMessage,/Brak modeli/);
+    assert.match(empty.emptyDescription,/Wróć/);assert.equal(empty.backAction.value,'__back');
+    assert.equal(drawer(form).textContent,label);assert.equal(JSON.stringify(r.s.projectData),before);
+    assert.equal(r.s.localStorage.getItem(KEY),raw);assert.equal(r.messages.length,0);
+  }
+});
+function realChoiceRuntime(){
+  const r=runtime();vm.runInContext(fs.readFileSync(path.join(ROOT,'js/app/rozrys/rozrys-choice.js'),'utf8'),r.s);
+  return r;
+}
+test('38 Real overlay footer is separate, green and returns BACK',async()=>{
+  const r=realChoiceRuntime(),d=r.s.document;
+  const pending=r.s.FC.rozrysChoice.openRozrysChoiceOverlay({title:'Producent',options:[{value:'Blum',label:'Blum'}],backAction:{label:'Wróć',value:'__back'}});
+  const modal=d.querySelector('.rozrys-choice-modal'),body=modal.querySelector('.rozrys-choice-modal__body'),footer=modal.querySelector('.rozrys-picker-footer');
+  assert.equal(body.querySelectorAll('button').length,1);assert.equal(body.textContent,'Blum');
+  assert.equal(footer.parentNode,modal);assert.equal(modal.children.at(-1),footer);
+  const back=footer.querySelector('.btn-success');assert.equal(back.textContent,'Wróć');back.click();
+  assert.equal(await pending,'__back');assert.equal(d.querySelector('.rozrys-choice-backdrop'),null);
+});
+test('39 Real empty overlay shows message, no choices, BACK works',async()=>{
+  const r=realChoiceRuntime(),d=r.s.document;
+  const pending=r.s.FC.rozrysChoice.openRozrysChoiceOverlay({options:[],emptyMessage:'Brak modeli w katalogu dla tego wyboru.',emptyDescription:'Wróć i wybierz innego producenta lub rodzaj prowadnicy.',backAction:{label:'Wróć',value:'__back'}});
+  assert.match(d.querySelector('.rozrys-choice-modal__empty').textContent,/Brak modeli.*Wróć/);
+  assert.equal(d.querySelectorAll('.rozrys-choice-option').length,0);
+  d.querySelector('.rozrys-picker-footer .btn-success').click();assert.equal(await pending,'__back');assert.equal(r.messages.length,0);
+});
+test('40 Real X, backdrop and Escape cancel normal and empty overlays',async()=>{
+  for(const empty of [false,true])for(const dismiss of ['x','backdrop','escape']){
+    const r=realChoiceRuntime(),d=r.s.document;
+    const pending=r.s.FC.rozrysChoice.openRozrysChoiceOverlay({options:empty?[]:[{value:'Blum',label:'Blum'}],emptyMessage:empty?'Brak modeli':null,backAction:{label:'Wróć',value:'__back'}});
+    if(dismiss==='x')d.querySelector('.rozrys-choice-modal__close').click();
+    else if(dismiss==='backdrop')d.querySelector('.rozrys-choice-backdrop').click();
+    else d.__listeners.keydown.slice().forEach(fn=>fn({key:'Escape',preventDefault(){}}));
+    assert.equal(await pending,null);assert.equal(d.querySelector('.rozrys-choice-backdrop'),null);
+    assert.equal(d.__listeners.keydown.length,0);assert.equal(r.messages.length,0);
+  }
+});
+test('41 Existing overlay callers have no footer and keep selection contract',async()=>{
+  const r=realChoiceRuntime(),d=r.s.document;
+  const pending=r.s.FC.rozrysChoice.openRozrysChoiceOverlay({options:[{value:'Blum',label:'Blum'}],value:'Blum'});
+  assert.equal(d.querySelector('.rozrys-picker-footer'),null);assert.equal(d.querySelector('.rozrys-choice-modal__empty'),null);
+  const option=d.querySelector('.rozrys-choice-option');assert.ok(option.classList.contains('is-selected'));option.click();assert.equal(await pending,'Blum');
+});
+test('42 Patterns share real multi-step picker footer and green button',()=>{
+  const html=fs.readFileSync(path.join(ROOT,'dev_ui_patterns.html'),'utf8');
+  const pattern=html.match(/<article[^>]*data-ui-pattern="multi-step-picker"[\s\S]*?<\/article>/)[0];
+  for(const token of ['WIELOETAPOWY PICKER','rozrys-choice-modal__header','rozrys-choice-modal__close','rozrys-choice-modal__body','rozrys-picker-footer rozrys-choice-modal__footer','rozrys-picker-footer-actions'])assert.ok(pattern.includes(token));
+  assert.match(pattern,/<button class="btn-success"[^>]*>Wróć<\/button>/);
+  const css=fs.readFileSync(path.join(ROOT,'css/shared-overlays-choice.css'),'utf8');
+  assert.match(css,/\.rozrys-choice-modal > \.rozrys-choice-modal__footer\s*\{[^}]*flex-shrink:0/);
 });
 (async()=>{for(const [name,fn] of tests){await fn();console.log('PASS '+name);}console.log('Drawer preference hierarchy: '+tests.length+'/'+tests.length+' PASS');})().catch(e=>{console.error(e);process.exitCode=1;});

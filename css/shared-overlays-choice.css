@@ -395,3 +395,10 @@ button.info-trigger::before,
 #priceItemModal .price-field-help .info-trigger{--fc-info-trigger-size:26px;}
 .table-list .table-cabcell .info-trigger,
 .table-list .table-cabinfo .info-trigger{--fc-info-trigger-size:24px;}
+
+/* Navigation stays outside the scrollable choice list. Button geometry is shared. */
+.rozrys-choice-modal > .rozrys-choice-modal__footer{
+  flex-shrink:0;
+  margin-top:0;
+  padding:0 22px 22px;
+}
