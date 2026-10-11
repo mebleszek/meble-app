@@ -12,7 +12,7 @@ const v1 = { version:1, materials:{ bodyColor:'W1100', frontMaterial:'akryl', fr
   hardware:{ hingesManufacturer:'Blum', drawerSystemManufacturer:'Rejs', liftManufacturer:'GTV', slidingSystemManufacturer:'Sevroll', cargoManufacturer:'Peka', accessoriesManufacturer:'Hettich' } };
 function runtime(seed){
   const rows = new Map(seed ? [[KEY,seed]] : []); const writes = [];
-  const ui = { messages:[], choices:[], picked:null, begins:0, saves:0, panel:null, closes:0, setView:null };
+  const ui = { messages:[], choices:[], picked:null, picks:[], begins:0, saves:0, panel:null, closes:0, setView:null };
   const s = { console, document:makeMiniDocument(), uiState:{ roomType:'kuchnia' },
     projectData:{ schemaVersion:12, kuchnia:{ settings:{}, cabinets:[], fronts:[], sets:[], preferences:{} } },
     localStorage:{ getItem:key=>rows.get(key) ?? null,
@@ -26,12 +26,12 @@ function runtime(seed){
     panelBox:{ open(cfg){ ui.panel = cfg; }, close(){ ui.closes++; } },
     dataBackupStore:{}, dataBackupSnapshot:{},
     dataSettingsMenuView:{ render(scroll,setView){ ui.setView = setView; } },
-    catalogStore:{ getHardwareManufacturers:()=>['Blum','Rejs','GTV','Hettich'], getSheetMaterials:()=>[
+    catalogStore:{ getAccessories:()=>[{manufacturer:'Hettich',hardwareCategory:'Inne',status:'active'}], getHardwareManufacturers:()=>['Blum','Rejs','GTV','Hettich'], getSheetMaterials:()=>[
       { name:'W1100', materialType:'laminat' }, { name:'U999', materialType:'laminat' }, { name:'White acrylic', materialType:'akryl' },
     ] },
     rozrysChoice:{ createChoiceLauncher(label){ const btn = s.document.createElement('button'); btn.textContent = label; return btn; },
       setChoiceLaunchValue(btn,label){ btn.textContent = label; },
-      async openRozrysChoiceOverlay(cfg){ ui.choices.push(cfg); return ui.picked; } },
+      async openRozrysChoiceOverlay(cfg){ ui.choices.push(cfg); return ui.picks.length ? ui.picks.shift() : ui.picked; } },
   };
   vm.createContext(s);
   for(const file of ['js/app/settings/program-defaults-store.js','js/app/room-preferences/room-preferences-model.js',
@@ -126,15 +126,17 @@ test('12 PCV PICKER exactly two options in both forms',async()=>{
 });
 test('13 DRAWER MODEL GLOBAL Antaro without room copy',async()=>{
   const r=runtime(); const defaultsForm=r.settings();
-  await pick(r,field(defaultsForm,'Wybierz: System / model szuflad'),'blum_tandembox_antaro'); save(defaultsForm);
-  assert.equal(r.FC.programDefaults.read().hardware.drawerSystemManufacturer,'Blum');
-  assert.equal(r.FC.programDefaults.read().hardware.drawerSystemKey,'blum_tandembox_antaro');
+  r.ui.picks = ['system','Blum','blum_tandembox_antaro'];
+  field(defaultsForm,'Wybierz: Szuflady').click();
+  for(let i=0;i<18;i++) await Promise.resolve(); save(defaultsForm);
+  assert.deepEqual(clone(r.FC.programDefaults.read().hardware.drawerPreference),{kind:'system',systemKey:'blum_tandembox_antaro'});
+  assert.equal(r.FC.programDefaults.getHardwareDefaults().drawerSystemManufacturer,'Blum');
   const before=JSON.stringify(r.s.projectData); const form=r.FC.wywiadRoomHardwareProducers.buildInlineForm('kuchnia',r.api.getRoomPreferences('kuchnia'));
-  const btn=form.querySelector('[data-hardware-drawer-system-key]'); assert.equal(btn.textContent,'Blum TANDEMBOX Antaro');
-  assert.equal(btn.getAttribute('data-hardware-drawer-system-value'),'');
+  const btn=form.querySelector('[data-drawer-preference]'); assert.equal(btn.textContent,'Blum TANDEMBOX Antaro');
+  assert.equal(btn.getAttribute('data-drawer-preference'),'null');
   assert.equal(r.api.resolveDrawerSystemPreference('kuchnia').key,'blum_tandembox_antaro');
   assert.equal(JSON.stringify(r.s.projectData),before);
-  assert.equal(btn.parentNode.querySelectorAll('.wywiad-zone-field__source')[1].getAttribute('data-preference-source'),'global');
+  assert.equal(btn.parentNode.querySelectorAll('.wywiad-zone-field__source')[0].getAttribute('data-preference-source'),'global');
   save(form); assert.equal(r.ui.begins,0); assert.equal(r.ui.saves,0);
   const details={}; r.api.applyDrawerSystemPreferenceToDetails('kuchnia',details);
   assert.equal(details.drawerPreferenceApplied,'blum_tandembox_antaro');

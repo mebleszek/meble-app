@@ -33,7 +33,7 @@
     return [];
   }
 
-  function getMaterialTypes(){ return unique(getMaterials().map((row)=> row && row.materialType)); }
+  function getMaterialTypes(){ return FC.roomPreferences.frontMaterialTypes(getMaterials()); }
 
   function getMaterialNamesByType(typeValue){
     const type = text(typeValue || 'laminat');
@@ -104,7 +104,7 @@
   function makeChoiceField(cfg, draft, onChange){
     const wrap = h('div', { class:'data-settings-default-field' });
     wrap.appendChild(h('div', { class:'data-settings-default-label', text:cfg.label }));
-    const getOptions = ()=> unique((typeof cfg.options === 'function' ? cfg.options(draft) : (cfg.options || [])).concat(text(cfg.get(draft)) ? [text(cfg.get(draft))] : []));
+    const getOptions = ()=> unique((typeof cfg.options === 'function' ? cfg.options(draft) : (cfg.options || [])).concat(!cfg.catalogOnly && text(cfg.get(draft)) ? [text(cfg.get(draft))] : []));
     const displayLabel = ()=> cfg.format ? cfg.format(cfg.get(draft)) : selectedLabel(getOptions(), cfg.get(draft), cfg.emptyLabel || EMPTY_OPTION);
     const btn = makeChoiceButton(displayLabel());
     btn.setAttribute('aria-label', cfg.title || ('Wybierz: ' + cfg.label));
@@ -187,25 +187,33 @@
     });
 
     const hardwareGrid = h('div', { class:'data-settings-defaults-grid' });
-    const manufacturerOptions = ()=> getHardwareManufacturers();
     [
       ['Domyślne zawiasy', 'hingesManufacturer'],
-      ['Domyślne szuflady / prowadnice', 'drawerSystemManufacturer'],
       ['Domyślne podnośniki', 'liftManufacturer'],
       ['Domyślne systemy przesuwne', 'slidingSystemManufacturer'],
       ['Domyślne cargo / organizery', 'cargoManufacturer'],
       ['Pozostałe akcesoria', 'accessoriesManufacturer']
     ].forEach(([label, key])=>{
-      const field = makeChoiceField({ label, get:(d)=> d.hardware[key], set:(d,v)=>{ d.hardware[key] = text(v); }, options:manufacturerOptions }, draft, refreshAll);
+      const field = makeChoiceField({ label, get:(d)=> d.hardware[key], set:(d,v)=>{ d.hardware[key] = text(v); }, catalogOnly:true, format:value=>text(value) || EMPTY_OPTION, options:()=>api.hardwareManufacturersForGroup(({ hingesManufacturer:'hinges', liftManufacturer:'lifts', slidingSystemManufacturer:'sliding', cargoManufacturer:'cargo', accessoriesManufacturer:'accessories' })[key]) }, draft, refreshAll);
       refreshers.push(field.refresh);
       hardwareGrid.appendChild(field.wrap);
     });
 
-    const drawerField = makeChoiceField({ label:'System / model szuflad', get:d=>d.hardware.drawerSystemKey,
-      set:(d,v)=>{ d.hardware.drawerSystemKey = api.normalizeDrawerSystemKey(v); const opt = api.getDrawerSystemOption(v); if(opt.manufacturer) d.hardware.drawerSystemManufacturer = opt.manufacturer; },
-      choices:()=>api.getDrawerSystemOptions().map(opt=>({ value:opt.key, label:opt.label })), format:key=>api.getDrawerSystemOption(key).label
-    },draft,refreshAll);
-    refreshers.push(drawerField.refresh); hardwareGrid.appendChild(drawerField.wrap);
+    const drawerWrap = h('div', { class:'data-settings-default-field' });
+    drawerWrap.appendChild(h('div', { class:'data-settings-default-label', text:'Szuflady' }));
+    const drawerBtn = makeChoiceButton('');
+    drawerBtn.setAttribute('aria-label','Wybierz: Szuflady');
+    drawerBtn.setAttribute('data-drawer-preference','');
+    const refreshDrawer = ()=>setChoiceButtonLabel(drawerBtn, api.drawerPreferenceLabel(draft.hardware.drawerPreference, draft.hardware.drawerSystemManufacturer, draft.hardware.drawerSystemKey));
+    drawerBtn.addEventListener('click', async ()=>{
+      const result = await api.chooseDrawerPreference(openChoice, draft.hardware.drawerPreference, false);
+      if(!result || !result.ok) return;
+      draft.hardware.drawerPreference = result.value;
+      delete draft.hardware.drawerSystemManufacturer;
+      delete draft.hardware.drawerSystemKey;
+      refreshAll();
+    });
+    drawerWrap.appendChild(drawerBtn); hardwareGrid.appendChild(drawerWrap); refreshers.push(refreshDrawer);
 
     card.appendChild(dom.makeAccordion ? dom.makeAccordion('Materiały', [materialGrid], { open:false }) : materialGrid);
     card.appendChild(dom.makeAccordion ? dom.makeAccordion('Okucia', [hardwareGrid], { open:false }) : hardwareGrid);

@@ -128,7 +128,7 @@
     if(!raw) return '';
     const rows = unique(options || []);
     if(!rows.length) return raw;
-    return rows.find((item)=> item.toLowerCase() === raw.toLowerCase()) || '';
+    return rows.find((item)=> item.toLowerCase() === raw.toLowerCase()) || raw;
   }
 
   function syncDraftObject(draft, key, normalizedValue){
@@ -152,54 +152,31 @@
     return producers;
   }
 
-  function ensureDrawerSystemDraft(draft){
-    ensureHardwareDraft(draft);
-    return draft.hardwareDrawerSystems;
-  }
-
-  function drawerSystemOptions(){
+  function makeDrawerField(room, draft, refreshAll){
     const api = getApi();
-    try{ if(api && typeof api.getDrawerSystemOptions === 'function') return api.getDrawerSystemOptions() || []; }catch(_){ }
-    return [];
-  }
-
-  function drawerSystemOptionList(){
-    const rows = drawerSystemOptions();
-    return (Array.isArray(rows) ? rows : []).map((row)=> ({ value:text(row && row.key), label:row && !row.key ? '— użyj ustawienia globalnego —' : text(row && row.label) || EMPTY_OPTION }));
-  }
-
-  function drawerSystemLabel(value){
-    const api = getApi();
-    try{
-      if(api && typeof api.getDrawerSystemOption === 'function'){
-        const opt = api.getDrawerSystemOption(value);
-        return text(opt && opt.label) || EMPTY_OPTION;
-      }
-    }catch(_){ }
-    return EMPTY_OPTION;
-  }
-
-  function sanitizeDraftToExistingManufacturers(draft, options){
-    const values = ensureHardwareDraft(draft);
-    const api = getApi();
-    const groups = Array.isArray(api.HARDWARE_PRODUCER_GROUPS) ? api.HARDWARE_PRODUCER_GROUPS : [];
-    groups.forEach((group)=>{
-      const key = text(group && group.key);
-      if(!key) return;
-      values[key] = canonicalManufacturer(values[key], options);
+    const wrap = h('div', { class:'wywiad-zone-field wywiad-hardware-field wywiad-hardware-field--drawers' });
+    wrap.appendChild(h('div', { class:'wywiad-zone-field__label', text:'Szuflady' }));
+    const btn = makeChoiceButton('');
+    btn.setAttribute('aria-label','Wybierz: Szuflady');
+    btn.setAttribute('data-drawer-preference','');
+    const meta = h('div', { class:'wywiad-zone-field__source' });
+    const refresh = ()=>{
+      const effective = api.getEffectiveDrawerPreference(draft);
+      setChoiceButtonLabel(btn, api.drawerPreferenceLabel(effective.value, effective.legacyManufacturer, effective.legacyKey));
+      btn.setAttribute('data-drawer-preference', JSON.stringify(draft.drawerPreference));
+      meta.textContent = api.preferenceSourceLabel(effective.source);
+      meta.setAttribute('data-preference-source',effective.source);
+    };
+    btn.addEventListener('click', async ()=>{
+      const result = await api.chooseDrawerPreference(openChoice, api.getEffectiveDrawerPreference(draft).value, true);
+      if(!result || !result.ok) return;
+      draft.drawerPreference = result.value;
+      draft.hardwareProducers.drawers = '';
+      draft.hardwareDrawerSystems.drawers = '';
+      rememberDraft(room,draft); refresh(); refreshAll();
     });
-    return draft;
-  }
-
-  function syncDrawerProducerFromSystem(draft){
-    const values = ensureHardwareDraft(draft);
-    const drawerSystems = ensureDrawerSystemDraft(draft);
-    const api = getApi();
-    try{
-      const opt = api && typeof api.getDrawerSystemOption === 'function' ? api.getDrawerSystemOption(drawerSystems.drawers) : null;
-      if(opt && opt.key && opt.manufacturer) values.drawers = opt.manufacturer;
-    }catch(_){ }
-    return draft;
+    wrap.appendChild(btn); wrap.appendChild(meta); refresh();
+    return { wrap, refresh };
   }
 
   function openInfo(title, message){
@@ -232,9 +209,10 @@
   }
 
   function makeProducerField(room, group, draft, form, refreshAll){
-    const options = getHardwareManufacturers();
-    const values = ensureHardwareDraft(draft);
     const key = text(group && group.key);
+    if(key === 'drawers') return makeDrawerField(room,draft,refreshAll);
+    const options = getApi().hardwareManufacturersForGroup(key);
+    const values = ensureHardwareDraft(draft);
     const wrap = h('div', { class:'wywiad-zone-field wywiad-hardware-field wywiad-hardware-field--' + key });
     const labelRow = h('div', { class:'wywiad-hardware-field__label-row' });
     labelRow.appendChild(h('div', { class:'wywiad-zone-field__label', text:group.label || key }));
@@ -257,7 +235,7 @@
     btn.setAttribute('data-hardware-producer-key', key);
     btn.setAttribute('data-hardware-producer-value', current);
     btn.addEventListener('click', async ()=>{
-      const nextOptions = getHardwareManufacturers();
+      const nextOptions = getApi().hardwareManufacturersForGroup(key);
       const picked = await openChoice('Wybierz producenta — ' + (group.label || key), optionList(nextOptions), values[key]);
       if(picked == null) return;
       values[key] = canonicalManufacturer(picked, nextOptions);
@@ -269,56 +247,9 @@
     wrap.appendChild(btn);
     wrap.appendChild(sourceMeta);
 
-    let sysBtn = null;
-    let sysMeta = null;
-    const refreshSystem = ()=>{
-      const effective = getApi().getEffectiveDrawerSystemPreference(draft);
-      setChoiceButtonLabel(sysBtn, drawerSystemLabel(effective.value));
-      sysMeta.textContent = getApi().preferenceSourceLabel(effective.source);
-      sysMeta.setAttribute('data-preference-source', effective.source);
-    };
-    if(key === 'drawers'){
-      const systems = ensureDrawerSystemDraft(draft);
-      const sysLabel = h('div', { class:'wywiad-zone-field__label', text:'System / model szuflad' });
-      sysLabel.style.marginTop = '10px';
-      wrap.appendChild(sysLabel);
-      sysBtn = makeChoiceButton('');
-      sysMeta = h('div', { class:'wywiad-zone-field__source' });
-      refreshSystem();
-      sysBtn.setAttribute('aria-label', 'Wybierz system szuflad / prowadnic');
-      sysBtn.setAttribute('data-hardware-drawer-system-key', 'drawers');
-      sysBtn.setAttribute('data-hardware-drawer-system-value', text(systems.drawers));
-      sysBtn.addEventListener('click', async ()=>{
-        const picked = await openChoice('Wybierz system szuflad / prowadnic', drawerSystemOptionList(), systems.drawers);
-        if(picked == null) return;
-        systems.drawers = text(picked);
-        sysBtn.setAttribute('data-hardware-drawer-system-value', systems.drawers);
-        syncDrawerProducerFromSystem(draft);
-        btn.setAttribute('data-hardware-producer-value', values[key]);
-        rememberDraft(room, draft);
-        refreshSystem();
-        refreshEffective();
-        if(typeof refreshAll === 'function') refreshAll();
-      });
-      wrap.appendChild(sysBtn);
-      wrap.appendChild(sysMeta);
-    }
-
-    return {
-      wrap,
-      refresh(){
-        const nextOptions = getHardwareManufacturers();
-        syncDrawerProducerFromSystem(draft);
-        values[key] = canonicalManufacturer(values[key], nextOptions);
-        btn.setAttribute('data-hardware-producer-value', values[key]);
-        refreshEffective();
-        if(sysBtn){
-          const systems = ensureDrawerSystemDraft(draft);
-          sysBtn.setAttribute('data-hardware-drawer-system-value', text(systems.drawers));
-          refreshSystem();
-        }
-      }
-    };
+    return { wrap, refresh(){
+      btn.setAttribute('data-hardware-producer-value',values[key]); refreshEffective();
+    } };
   }
 
   function readFormSelections(form, draft){
@@ -332,16 +263,10 @@
       if(!key) return;
       values[key] = canonicalManufacturer(btn.getAttribute('data-hardware-producer-value'), options);
     });
-    const systems = ensureDrawerSystemDraft(draft);
-    const systemButtons = form && typeof form.querySelectorAll === 'function'
-      ? Array.from(form.querySelectorAll('[data-hardware-drawer-system-key]'))
-      : [];
-    systemButtons.forEach((btn)=>{
-      const key = text(btn && btn.getAttribute && btn.getAttribute('data-hardware-drawer-system-key'));
-      if(!key) return;
-      systems[key] = text(btn.getAttribute('data-hardware-drawer-system-value'));
-    });
-    syncDrawerProducerFromSystem(draft);
+    const drawerButton = form && form.querySelector('[data-drawer-preference]');
+    if(drawerButton){
+      try{ draft.drawerPreference = getApi().normalizeDrawerPreference(JSON.parse(drawerButton.getAttribute('data-drawer-preference'))); }catch(_){ }
+    }
     return draft;
   }
 
@@ -349,8 +274,6 @@
     const api = getApi();
     const normalized = getWorkingPreferences(room, draft);
     const working = Object.assign({}, normalized, { hardwareProducers:Object.assign({}, normalized.hardwareProducers || {}), hardwareDrawerSystems:Object.assign({}, normalized.hardwareDrawerSystems || {}) });
-    const manufacturerOptions = getHardwareManufacturers();
-    sanitizeDraftToExistingManufacturers(working, manufacturerOptions);
 
     const form = h('div', { class:'wywiad-room-inline-form wywiad-room-inline-form--hardware-producers' });
     const refreshers = [];
@@ -383,7 +306,6 @@
     form.appendChild(createSaveFooter('Preferencje producentów okuć', ()=>{
       const nextApi = getApi();
       readFormSelections(form, working);
-      sanitizeDraftToExistingManufacturers(working, getHardwareManufacturers());
       rememberDraft(room, working);
       const result = nextApi && typeof nextApi.setRoomPreferencesConfirmed === 'function' && nextApi.setRoomPreferencesConfirmed(room, working);
       if(!(result && result.ok === true)) return;
