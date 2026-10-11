@@ -266,7 +266,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
-      pull-requests: read
+      pull-requests: write
 
     steps:
       - name: Comment READY or BLOCKED on PR
