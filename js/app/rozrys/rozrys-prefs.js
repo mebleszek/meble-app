@@ -99,8 +99,15 @@
     try{
       const store = getGrainStore();
       if(!store) return {};
-      if(typeof store.pruneMaterialExceptions === 'function' && Array.isArray(allowedKeys)) return store.pruneMaterialExceptions(material, allowedKeys, hasGrain);
-      if(typeof store.getMaterialExceptions === 'function') return store.getMaterialExceptions(material) || {};
+      if(typeof store.getMaterialExceptions === 'function'){
+        const exceptions = Object.assign({}, store.getMaterialExceptions(material) || {});
+        if(!Array.isArray(allowedKeys)) return exceptions;
+        const allowed = new Set(allowedKeys.map(key=>String(key || '')));
+        // Scope/dimension filtering is a read-only RAM view, never a storage cleanup.
+        return Object.fromEntries(Object.entries(exceptions)
+          .filter(([key])=>allowed.has(String(key || '')))
+          .map(([key,value])=>[key,!!value]));
+      }
     }catch(_){ }
     return {};
   }
