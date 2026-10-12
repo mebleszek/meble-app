@@ -28,7 +28,7 @@
   function saveManufacturers(list){
     const store = getStore();
     if(store && typeof store.saveHardwareManufacturers === 'function') return store.saveHardwareManufacturers(list);
-    return [];
+    throw new Error('Magazyn katalogu jest niedostępny.');
   }
   function normalize(value){ return String(value == null ? '' : value).trim(); }
 
@@ -75,7 +75,7 @@
     input.addEventListener('keydown', (event)=>{ if(event && event.key === 'Enter'){ event.preventDefault(); addCurrent(); } });
     backBtn.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
     saveBtn.addEventListener('click', ()=>{
-      saveManufacturers(list);
+      try{ saveManufacturers(list); }catch(error){ if(ctx.info) ctx.info('Nie zapisano danych', String(error && error.message || error)); return; }
       try{ ctx.syncFilterSelects && ctx.syncFilterSelects(); ctx.mountFilterChoices && ctx.mountFilterChoices(); ctx.renderPriceList && ctx.renderPriceList(); }catch(_){ }
       try{ FC.panelBox.close(); }catch(_){ }
     });

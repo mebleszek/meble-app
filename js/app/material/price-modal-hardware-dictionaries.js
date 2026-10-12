@@ -37,12 +37,12 @@
   };
   try{ if(FC.helpRegistry && typeof FC.helpRegistry.registerMany === 'function') FC.helpRegistry.registerMany(DICTIONARY_HELP, { prefix:'hardwareDict.' }); }catch(_){ }
   function getCategories(){ const s = store(); return s && s.getHardwareCategories ? s.getHardwareCategories() : normalizeCategories([]); }
-  function saveCategories(list){ const s = store(); return s && s.saveHardwareCategories ? s.saveHardwareCategories(list) : list; }
+  function saveCategories(list){ const s = store(); if(!(s && s.saveHardwareCategories)) throw new Error('Magazyn katalogu jest niedostępny.'); return s.saveHardwareCategories(list); }
   function getTypes(){ const s = store(); return s && s.getHardwareTypes ? s.getHardwareTypes() : []; }
-  function saveTypes(list){ const s = store(); return s && s.saveHardwareTypes ? s.saveHardwareTypes(list) : list; }
+  function saveTypes(list){ const s = store(); if(!(s && s.saveHardwareTypes)) throw new Error('Magazyn katalogu jest niedostępny.'); return s.saveHardwareTypes(list); }
   function getParams(){ const s = store(); return s && s.getHardwareTechnicalParams ? s.getHardwareTechnicalParams() : (tech().DEFAULT_DEFINITIONS || []); }
-  function saveParams(list){ const s = store(); return s && s.saveHardwareTechnicalParams ? s.saveHardwareTechnicalParams(list) : list; }
-  function saveAccessories(list){ const s = store(); return s && s.savePriceList ? s.savePriceList('accessories', list) : list; }
+  function saveParams(list){ const s = store(); if(!(s && s.saveHardwareTechnicalParams)) throw new Error('Magazyn katalogu jest niedostępny.'); return s.saveHardwareTechnicalParams(list); }
+  function saveAccessories(list){ const s = store(); if(!(s && s.savePriceList)) throw new Error('Magazyn katalogu jest niedostępny.'); return s.savePriceList('accessories', list); }
   function getAccessories(){ const s = store(); return s && s.getAccessories ? s.getAccessories() : []; }
   function normalizeParams(list, categories){ return tech().normalizeDefinitions ? tech().normalizeDefinitions(list, categories) : (Array.isArray(list) ? list : []); }
   function safeKey(value){ return tech().safeKey ? tech().safeKey(value) : text(value).toLowerCase().replace(/[^a-z0-9]+/g, '_'); }
@@ -603,12 +603,15 @@
     cancel.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
     save.addEventListener('click', ()=>{
       const cleanCategories = normalizeCategories(categories);
-      const renamed = applyCategoryRenames(originalCategories, cleanCategories, params);
-      const cleanParams = normalizeParams(renamed.params, cleanCategories);
-      saveCategories(cleanCategories);
-      saveParams(cleanParams);
-      // Nazwa techniczna powstaje z parametrów; dawny słownik typów nie jest edytowany w tym modalu.
-      saveTypes(originalTypes || []);
+      let cleanParams;
+      try{
+        const renamed = applyCategoryRenames(originalCategories, cleanCategories, params);
+        cleanParams = normalizeParams(renamed.params, cleanCategories);
+        saveCategories(cleanCategories);
+        saveParams(cleanParams);
+        // The legacy type dictionary is not edited by this form.
+        saveTypes(originalTypes || []);
+      }catch(error){ if(ctx.info) ctx.info('Nie zapisano danych', String(error && error.message || error)); return; }
       categories = cleanCategories.slice();
       params = cloneParams(cleanParams);
       cleanSignature = signature(categories, params);

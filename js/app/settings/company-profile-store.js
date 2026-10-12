@@ -105,9 +105,11 @@
     const profile = normalizeProfile(input);
     profile.meta.updatedAt = new Date().toISOString();
     const storage = getStorage();
-    if(storage){
-      try{ storage.setItem(STORAGE_KEY, JSON.stringify(profile)); }catch(_){ }
-    }
+    if(!storage) return null;
+    try{
+      const raw = JSON.stringify(profile);
+      if(storage.setItem(STORAGE_KEY, raw) === false || storage.getItem(STORAGE_KEY) !== raw) return null;
+    }catch(_){ return null; }
     return profile;
   }
 

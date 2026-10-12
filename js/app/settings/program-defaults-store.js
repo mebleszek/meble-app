@@ -90,7 +90,9 @@
       if(storage && typeof storage.setJSON === 'function'){
         if(storage.setJSON(STORAGE_KEY, normalized) === false) return null;
       }
-      else localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+      else if(localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized)) === false) return null;
+      const raw = storage && typeof storage.getRaw === 'function' ? storage.getRaw(STORAGE_KEY) : localStorage.getItem(STORAGE_KEY);
+      if(raw !== JSON.stringify(normalized)) return null;
     }catch(_){ return null; }
     return clone(normalized);
   }

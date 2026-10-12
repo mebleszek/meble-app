@@ -2,11 +2,12 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { makeStorage } = require('./app-dev-smoke-lib/smoke-storage');
 const root = path.resolve(__dirname, '..');
 function assert(cond, msg, details){ if(!cond){ console.error('FAIL:', msg); if(details) console.error(JSON.stringify(details, null, 2)); process.exit(1); } }
 function slug(value){ return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'x'; }
 function loadContext(){
-  const storage = { getItem(){ return null; }, setItem(){}, removeItem(){} };
+  const storage = makeStorage();
   const FC = {
     utils:{ slug },
     frontHardware:{
@@ -25,6 +26,7 @@ function loadContext(){
   ctx.globalThis = ctx.window;
   vm.createContext(ctx);
   [
+    'js/app/shared/storage.js',
     'js/app/catalog/hardware-technical-params.js',
     'js/app/catalog/hardware-catalog.js',
     'js/app/catalog/hardware-catalog-seed-data.js',

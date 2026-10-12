@@ -100,7 +100,9 @@
     resetBtn.addEventListener('click', ()=>{ draft = FC.businessCosts.normalizeCosts(FC.businessCosts.DEFAULT_BUSINESS_COSTS); render(scroll); });
     cancelBtn.addEventListener('click', ()=> render(scroll));
     saveBtn.addEventListener('click', ()=>{
-      draft = FC.businessCosts.write(draft);
+      const saved = FC.businessCosts.write(draft);
+      if(!saved){ if(dom.info) dom.info('Nie zapisano danych', 'Zmiany pozostały w formularzu. Spróbuj ponownie.'); return; }
+      draft = saved;
       summary.textContent = FC.businessCosts.buildSummary(draft);
       if(dom.info) dom.info('Zapisano', 'Koszty firmy zostały zapisane.');
     });

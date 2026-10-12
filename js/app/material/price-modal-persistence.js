@@ -68,12 +68,12 @@
       if(idx >= 0) next[idx] = Object.assign({}, next[idx], payload, { id:next[idx].id });
       else next.push(Object.assign({ id:editingId }, payload));
     }else next.push(Object.assign({ id:FC.utils.uid() }, payload));
-    ctx.saveCurrentList(next);
+    return ctx.saveCurrentList(next) === true;
   }
 
   function saveMaterialFromForm(){
     const data = ctx.getCurrentMaterialDraft(); if(!validateMaterialForm(data)) return false;
-    upsertCurrentList(markPriceAsUserEdited(Object.assign({}, data, { price:Number(data.price) || 0, hasGrain:!!data.hasGrain })));
+    if(!upsertCurrentList(markPriceAsUserEdited(Object.assign({}, data, { price:Number(data.price) || 0, hasGrain:!!data.hasGrain })))) return false;
     ctx.doClosePriceItemModal(); ctx.renderPriceModal(); try{ renderCabinetModal(); }catch(_){ } return true;
   }
   function saveAccessoryFromForm(){
@@ -82,18 +82,17 @@
     try{
       if(FC.hardwareCatalog && typeof FC.hardwareCatalog.normalizeAccessory === 'function') payload = FC.hardwareCatalog.normalizeAccessory(payload, FC.utils && FC.utils.uid);
     }catch(_){ }
-    upsertCurrentList(markPriceAsUserEdited(payload));
+    if(!upsertCurrentList(markPriceAsUserEdited(payload))) return false;
     ctx.doClosePriceItemModal(); ctx.renderPriceModal(); return true;
   }
   function saveServiceFromForm(){
     try{ if(ctx.currentListKind() === 'quoteRates' && FC.wycenaCore && typeof FC.wycenaCore.ensureServiceCatalogInRuntime === 'function') FC.wycenaCore.ensureServiceCatalogInRuntime(); }catch(_){ }
     const data = ctx.getCurrentServiceDraft(); if(!validateServiceForm(data)) return false;
-    const payload = markPriceAsUserEdited(Object.assign({}, data, { price:Number(data.price) || 0 }));
+    let payload = markPriceAsUserEdited(Object.assign({}, data, { price:Number(data.price) || 0 }));
     try{
-      if(ctx.currentListKind() === 'quoteRates' && FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function'){
-        upsertCurrentList(FC.laborCatalog.normalizeDefinition(payload));
-      }else upsertCurrentList(payload);
-    }catch(_){ upsertCurrentList(payload); }
+      if(ctx.currentListKind() === 'quoteRates' && FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function') payload = FC.laborCatalog.normalizeDefinition(payload);
+    }catch(_){ }
+    if(!upsertCurrentList(payload)) return false;
     ctx.doClosePriceItemModal(); ctx.renderPriceModal(); return true;
   }
   async function saveActivePriceItem(){
@@ -116,7 +115,7 @@
     }
     const ok = await ctx.confirmDelete(); if(!ok) return false;
     const next = ctx.currentList().filter((row)=> String(row.id) !== String(item && item.id));
-    ctx.saveCurrentList(next);
+    if(ctx.saveCurrentList(next) !== true) return false;
     if(String(ctx.appUiState().editingId || '') === String(item && item.id || '')) ctx.doClosePriceItemModal();
     ctx.renderPriceModal();
     try{ renderCabinetModal(); }catch(_){ }

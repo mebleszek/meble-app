@@ -73,6 +73,7 @@ function loadContext(opts){
   ctx.globalThis = ctx.window;
   vm.createContext(ctx);
   [
+    'js/app/shared/storage.js',
     'js/app/catalog/catalog-domain.js',
     'js/app/catalog/catalog-migration.js',
     'js/app/catalog/hardware-technical-params.js',

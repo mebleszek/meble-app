@@ -172,13 +172,16 @@
         const value = text(input.value);
         if(!value){ showError('Wpisz nazwę kategorii.'); return; }
         if(optionExists(options.categories || [], value)){ showError('Taka kategoria już istnieje.'); return; }
-        options.categories = addOption(options.categories || [], value);
-        data.categories = (Array.isArray(data.categories) ? data.categories.slice() : (options.categories || []).map((opt)=> opt.value).filter(Boolean));
-        if(!data.categories.some((name)=> norm(name) === norm(value))) data.categories.push(value);
+        const nextOptions = addOption(options.categories || [], value);
+        const nextCategories = Array.isArray(data.categories) ? data.categories.slice() : nextOptions.map((opt)=> opt.value).filter(Boolean);
+        if(!nextCategories.some((name)=> norm(name) === norm(value))) nextCategories.push(value);
         try{
           const store = FC.catalogStore;
-          if(store && typeof store.saveHardwareCategories === 'function') store.saveHardwareCategories(data.categories);
-        }catch(_){ }
+          if(!(store && typeof store.saveHardwareCategories === 'function')) throw new Error('Magazyn katalogu jest niedostępny.');
+          store.saveHardwareCategories(nextCategories);
+        }catch(error){ showError(String(error && error.message || 'Nie zapisano kategorii.')); return; }
+        options.categories = nextOptions;
+        data.categories = nextCategories;
         if(typeof onAdded === 'function') onAdded(value);
         cleanup(value);
       };
