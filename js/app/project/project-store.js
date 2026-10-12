@@ -94,6 +94,7 @@
   }
 
   function setCurrentProjectId(id){
+    if(FC.session && FC.session.canSwitchProject && !FC.session.canSwitchProject(id)) return false;
     try{ storage.setRaw(CURRENT_PROJECT_ID_KEY, String(id || '')); }catch(_){ }
     return id || '';
   }
@@ -146,9 +147,10 @@
     if(!key) return null;
     const existing = getByInvestorId(key);
     if(existing){
-      setCurrentProjectId(existing.id);
+      if(setCurrentProjectId(existing.id) === false) return null;
       return existing;
     }
+    if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor(key)) return null;
     const projectData = model && typeof model.normalizeProjectData === 'function'
       ? model.normalizeProjectData(options && options.projectData)
       : clone(options && options.projectData || {});
@@ -201,7 +203,7 @@
     }
     const record = getByInvestorId(key);
     if(record && record.projectData){
-      setCurrentProjectId(record.id);
+      if(setCurrentProjectId(record.id) === false) return null;
       return model && typeof model.normalizeProjectData === 'function'
         ? model.normalizeProjectData(record.projectData)
         : clone(record.projectData);

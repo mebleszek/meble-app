@@ -154,7 +154,8 @@ function retryBegin(){
   assert.equal(r.session.snapshot, snapshot);
   assert.equal(r.session.context, context);
   assert.equal(r.session.startedAt, startedAt);
-  assert.equal(snapshot.fc_ui_v1, null, 'Later storage state must not become the rollback baseline');
+  assert.equal(Object.hasOwn(snapshot, 'fc_ui_v1'), false, 'Independent UI state is outside project rollback');
+  assert.equal(r.storage.getItem('fc_ui_v1'), '{"activeTab":"material"}');
   assertPersisted(r, snapshot);
 }
 

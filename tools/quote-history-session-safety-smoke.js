@@ -14,7 +14,7 @@ const project = (title)=> JSON.stringify([{ id:'A', projectData:{ title } }]);
 function runtime(rows = {}){
   // A separate prototype per runtime keeps session storage hooks isolated.
   class MemoryStorage{
-    constructor(){ this.map = new Map(Object.entries(rows)); this.calls = []; this.failWrites = 0; }
+    constructor(){ this.map = new Map(Object.entries({ fc_current_project_id_v1:'A', ...rows })); this.calls = []; this.failWrites = 0; }
     get length(){ return this.map.size; }
     key(i){ return Array.from(this.map.keys())[i] || null; }
     getItem(key){ return this.map.has(String(key)) ? this.map.get(String(key)) : null; }
@@ -165,7 +165,6 @@ function protectEitherActiveSource(){
 function safeDeadSessionCleanup(){
   for(const payload of [
     { active:false, snapshot:null },
-    { active:true, snapshot:{ [PROJECTS]:project('old orphan') } },
   ]){
     const r = runtime();
     const raw = JSON.stringify(payload);
@@ -177,7 +176,7 @@ function safeDeadSessionCleanup(){
     assert.equal(r.commits, 0);
   }
   const r = runtime();
-  for(const raw of ['{invalid', JSON.stringify({ active:false, snapshot:{ [PROJECTS]:project('P1') } })]){
+  for(const raw of [JSON.stringify({ active:true, snapshot:{ [PROJECTS]:project('old orphan') } }), '{invalid', JSON.stringify({ active:false, snapshot:{ [PROJECTS]:project('P1') } })]){
     r.storage.setItem(SESSION, raw);
     assert.equal(r.maintenance.cleanupStaleEditSession({ force:true }).removed, false);
     assert.equal(r.storage.getItem(SESSION), raw, 'Ambiguous payload must be preserved');

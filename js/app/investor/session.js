@@ -7,52 +7,107 @@
   window.FC = window.FC || {};
   const FC = window.FC;
 
-  // Explicit rollback scope: new global storage keys must never join implicitly.
-  const ROLLBACK_KEYS = new Set([
-    'fc_projects_v1',
-    'fc_current_project_id_v1',
-    'fc_quote_snapshots_v1',
-    'fc_quote_offer_drafts_v1',
-    'fc_ui_v1',
-    'fc_project_backup_v1',
-    'fc_project_backup_meta_v1',
-    'fc_project_v1', // Legacy rollback compatibility only; not a project source.
-    // investors store
-    'fc_investors_v1',
-    // correct key for current investor
-    'fc_current_investor_v1',
-    // investor UI state
-    'fc_investor_ui_v1',
-    // material tab per-part settings / edge choices
-    'fc_edge_v1',
-    'fc_material_part_options_v1',
-  ]);
-
-  const PROJECT_INV_PREFIX = 'fc_project_inv_';
-  const PROJECT_INV_SUFFIX = '_v1';
+  const PROJECTS_KEY = 'fc_projects_v1';
+  const UNSCOPED_PART_KEYS = ['fc_edge_v1', 'fc_material_part_options_v1'];
+  // These are monitored; only the owner's project record may actually be restored.
+  const SNAPSHOT_KEYS = new Set([PROJECTS_KEY, ...UNSCOPED_PART_KEYS]);
   const SESSION_STORAGE_KEY = 'fc_edit_session_v1';
-  const SESSION_SCHEMA_VERSION = 2;
+  const SESSION_SCHEMA_VERSION = 3;
   const DIRTY_CACHE_WINDOW_MS = 120;
   let beginFailureNotified = false;
 
-  function canRollbackKey(key){
-    return typeof key === 'string' && (ROLLBACK_KEYS.has(key)
-      || (key.startsWith(PROJECT_INV_PREFIX) && key.endsWith(PROJECT_INV_SUFFIX)));
+  function canSnapshotKey(key){ return SNAPSHOT_KEYS.has(key); }
+  function getKeysToSnapshot(){ return Array.from(SNAPSHOT_KEYS); }
+
+  function fail(code, message){ session.lastError = { code, message }; invalidateDirtyCache(); return false; }
+  function notifyBlocked(message){
+    try{ if(FC.infoBox && FC.infoBox.open) FC.infoBox.open({ title:'Sesja edycji wymaga zakończenia', message, okOnly:true }); }catch(_){ }
   }
 
-  function getKeysToSnapshot(){
-    const keys = Array.from(ROLLBACK_KEYS);
+  function projectRows(raw){
+    const rows = raw === null ? [] : JSON.parse(raw);
+    if(!Array.isArray(rows)) throw new Error('Niepoprawny magazyn projektów.');
+    const ids = new Set();
+    for(const row of rows){
+      if(!row || typeof row !== 'object' || !String(row.id || '').trim() || ids.has(String(row.id))) throw new Error('Niejednoznaczne rekordy projektów.');
+      ids.add(String(row.id));
+    }
+    return rows;
+  }
+  function ownerRaw(raw){
+    if(!session.projectId) throw new Error('Brak właściciela sesji.');
+    const row = projectRows(raw).find(row=>String(row.id) === session.projectId);
+    return row ? JSON.stringify(row) : null;
+  }
+  function resolveOwner(context, snapshot, explicitId){
+    const id = String(explicitId || context && context.projectId || snapshot && snapshot.fc_current_project_id_v1 || '').trim();
+    if(!id || (explicitId && context && context.projectId && String(context.projectId) !== id)) return '';
+    const rows = projectRows(snapshot && snapshot[PROJECTS_KEY]);
+    const row = rows.find(row=>String(row.id) === id);
+    if(!row || (context && context.investorId && row.investorId && String(context.investorId) !== String(row.investorId))) return '';
+    return id;
+  }
 
-    // Include all per-investor project slots so Cancel can restore them.
-    // (Without this, Cancel could revert only the active project and leave investor slots modified.)
+  function canSwitchProject(id){
+    if(!session.active || (session.projectId && String(id || '') === session.projectId)) return true;
+    notifyBlocked('Najpierw zakończ sesję przyciskiem Zapisz lub Anuluj. Projekt nie został przełączony.');
+    return false;
+  }
+  function canSwitchInvestor(id){
+    if(!session.active) return true;
+    let ownerInvestor = session.context && session.context.investorId || '';
+    try{ ownerInvestor = JSON.parse(ownerRaw(session.snapshot[PROJECTS_KEY])).investorId || ownerInvestor; }catch(_){ }
+    if(ownerInvestor && String(id || '') === String(ownerInvestor)) return true;
+    notifyBlocked('Najpierw zakończ sesję przyciskiem Zapisz lub Anuluj. Inwestor nie został przełączony.');
+    return false;
+  }
+  function canSaveProject(){
+    if(!session.active) return true;
+    const current = resolveSessionContext();
+    if(session.projectId && current.projectId === session.projectId
+      && !(session.context && session.context.investorId && current.investorId && current.investorId !== session.context.investorId)){
+      try{
+        const record = ownerRaw(localStorage.getItem(PROJECTS_KEY));
+        const before = ownerRaw(session.snapshot[PROJECTS_KEY]);
+        if(!session.expectedOwnerKnown || record === session.expectedOwnerRaw || record === before) return true;
+      }catch(_){ }
+      fail('PROJECT_WRITE_CONFLICT', 'Nie potwierdzono aktualnej wersji właściciela sesji. Zapis został wstrzymany; zachowano snapshot.');
+      notifyBlocked(session.lastError.message);
+      return false;
+    }
+    fail('SESSION_OWNER_MISMATCH', 'Nie można zapisać projektu w sesji należącej do innego lub nieustalonego projektu. Wróć do właściciela sesji; zachowano snapshot.');
+    notifyBlocked(session.lastError.message);
+    return false;
+  }
+
+  function keyChanged(key, raw){
+    const before = hasOwn(session.snapshot, key) ? session.snapshot[key] : null;
+    if(key !== PROJECTS_KEY) return before !== raw;
+    try{ return ownerRaw(before) !== ownerRaw(raw); }catch(_){ return true; }
+  }
+
+  function restoreOwnerProject(){
     try{
-      for(let i = 0; i < localStorage.length; i++){
-        const k = localStorage.key(i);
-        if(!k) continue;
-        if(canRollbackKey(k)) keys.push(k);
+      const before = ownerRaw(session.snapshot[PROJECTS_KEY]);
+      if(before === null) return fail('SESSION_OWNER_MISSING', 'Snapshot nie zawiera jednoznacznego rekordu właściciela sesji.');
+      const observed = localStorage.getItem(PROJECTS_KEY);
+      const current = ownerRaw(observed);
+      if(current !== before && (!session.expectedOwnerKnown || current !== session.expectedOwnerRaw)){
+        return fail('PROJECT_WRITE_CONFLICT', 'Rekord właściciela zmienił się poza potwierdzonymi zapisami tej sesji. Nie cofnięto danych. Sesja i snapshot zostały zachowane.');
       }
-    }catch(_){ }
-    return Array.from(new Set(keys)).filter(canRollbackKey);
+      if(current === before) return true;
+      const rows = projectRows(observed);
+      const index = rows.findIndex(row=>String(row.id) === session.projectId);
+      if(index >= 0) rows[index] = JSON.parse(before);
+      else rows.push(JSON.parse(before));
+      const next = JSON.stringify(rows);
+      // Optimistic conflict check: never write a merge built from a stale container.
+      if(localStorage.getItem(PROJECTS_KEY) !== observed) return fail('PROJECT_WRITE_CONFLICT', 'Magazyn projektów zmienił się podczas przygotowania cofnięcia. Spróbuj ponownie.');
+      if(!writeRaw(PROJECTS_KEY, next)) return fail('PROJECT_ROLLBACK_WRITE_FAILED', 'Nie potwierdzono cofnięcia projektu. Sesja edycji została zachowana. Spróbuj ponownie.');
+      session.expectedOwnerRaw = before;
+      session.expectedOwnerKnown = true;
+      return true;
+    }catch(_){ return fail('PROJECT_ROLLBACK_INVALID', 'Nie można bezpiecznie odczytać lub scalić magazynu projektów. Sesja i snapshot zostały zachowane.'); }
   }
 
   function readRaw(key){
@@ -61,9 +116,12 @@
 
   function writeRaw(key, raw){
     try{
-      if(raw === null || typeof raw === 'undefined') localStorage.removeItem(key);
-      else localStorage.setItem(key, raw);
-      return true;
+      if(raw === null || typeof raw === 'undefined'){
+        if(localStorage.removeItem(key) === false) return false;
+        return localStorage.getItem(key) === null;
+      }
+      if(localStorage.setItem(key, raw) === false) return false;
+      return localStorage.getItem(key) === String(raw);
     }catch(_){ return false; }
   }
 
@@ -80,8 +138,8 @@
 
   function resolveSessionContext(){
     const ctx = {};
-    try{ ctx.investorId = FC.investors && typeof FC.investors.getCurrentId === 'function' ? String(FC.investors.getCurrentId() || '') : ''; }catch(_){ ctx.investorId = ''; }
-    try{ ctx.projectId = FC.projectStore && typeof FC.projectStore.getCurrentProjectId === 'function' ? String(FC.projectStore.getCurrentProjectId() || '') : ''; }catch(_){ ctx.projectId = ''; }
+    try{ ctx.investorId = FC.investors && typeof FC.investors.getCurrentId === 'function' ? String(FC.investors.getCurrentId() || '') : String(localStorage.getItem('fc_current_investor_v1') || ''); }catch(_){ ctx.investorId = ''; }
+    try{ ctx.projectId = FC.projectStore && typeof FC.projectStore.getCurrentProjectId === 'function' ? String(FC.projectStore.getCurrentProjectId() || '') : String(localStorage.getItem('fc_current_project_id_v1') || ''); }catch(_){ ctx.projectId = ''; }
     try{ ctx.activeTab = typeof uiState !== 'undefined' && uiState ? String(uiState.activeTab || '') : ''; }catch(_){ ctx.activeTab = ''; }
     try{ ctx.roomId = typeof uiState !== 'undefined' && uiState ? String(uiState.roomType || '') : ''; }catch(_){ ctx.roomId = ''; }
     return ctx;
@@ -92,16 +150,8 @@
   }
 
   function isLegacyOrphanPayload(payload){
-    if(!(payload && typeof payload === 'object')) return false;
-    if(!payload.active) return false;
-    if(!(payload.snapshot && typeof payload.snapshot === 'object')) return false;
-    // Stare sesje sprzed tej poprawki nie miały metadanych kontekstu/czasu.
-    // Taki wpis po odświeżeniu potrafił odtwarzać usunięte snapshoty ofert.
-    const hasMetadata = Number(payload.schemaVersion || 0) >= SESSION_SCHEMA_VERSION
-      || Number(payload.startedAt || payload.createdAt || 0) > 0
-      || Number(payload.updatedAt || 0) > 0
-      || !!(payload.context && typeof payload.context === 'object');
-    return !hasMetadata;
+    // Missing owner metadata is not evidence that an active snapshot may be discarded.
+    return !!(payload && payload.active === false && !payload.snapshot);
   }
 
   function removeSnapshotIdFromRaw(raw, snapshotId){
@@ -156,17 +206,28 @@
 
   function shouldTrackKey(key){
     const normalizedKey = String(key || '');
-    if(!canRollbackKey(normalizedKey)) return false;
+    if(!canSnapshotKey(normalizedKey)) return false;
     if(!session.active || !session.snapshot || session.suspendTracking) return false;
     return true;
   }
 
-  function trackKeyMutation(key, nextRaw){
+  function trackKeyMutation(key, nextRaw, previousRaw){
     const normalizedKey = String(key || '');
     if(!shouldTrackKey(normalizedKey)) return;
-    const before = Object.prototype.hasOwnProperty.call(session.snapshot || {}, normalizedKey) ? session.snapshot[normalizedKey] : null;
-    if(before !== nextRaw) session.changedKeys.add(normalizedKey);
+    if(keyChanged(normalizedKey, nextRaw)) session.changedKeys.add(normalizedKey);
     else session.changedKeys.delete(normalizedKey);
+    if(normalizedKey === PROJECTS_KEY && session.projectId){
+      try{
+        const previous = ownerRaw(previousRaw);
+        const next = ownerRaw(nextRaw);
+        if(previous !== next && session.expectedOwnerKnown && previous === session.expectedOwnerRaw){
+          session.expectedOwnerRaw = next;
+          // Persist only a witnessed local owner update, never adopt an external version
+          // merely because an unrelated project was saved in this tab.
+          persistSession();
+        }
+      }catch(_){ session.expectedOwnerKnown = false; }
+    }
     session.lastDirtyCheckAt = Date.now();
     session.lastDirtyValue = session.changedKeys.size > 0;
   }
@@ -196,14 +257,18 @@
       };
       if(rawSetItem){
         target.setItem = function(key, value){
-          rawSetItem.call(this === target && !protoHasStorageMethods ? storage : this, key, value);
-          if(isLocalStorageCall(this)) trackKeyMutation(key, String(value));
+          const previousRaw = isLocalStorageCall(this) && shouldTrackKey(key) && String(key) === PROJECTS_KEY ? storage.getItem(key) : undefined;
+          const result = rawSetItem.call(this === target && !protoHasStorageMethods ? storage : this, key, value);
+          if(result !== false && isLocalStorageCall(this) && shouldTrackKey(key)) trackKeyMutation(key, storage.getItem(key), previousRaw);
+          return result;
         };
       }
       if(rawRemoveItem){
         target.removeItem = function(key){
-          rawRemoveItem.call(this === target && !protoHasStorageMethods ? storage : this, key);
-          if(isLocalStorageCall(this)) trackKeyMutation(key, null);
+          const previousRaw = isLocalStorageCall(this) && shouldTrackKey(key) && String(key) === PROJECTS_KEY ? storage.getItem(key) : undefined;
+          const result = rawRemoveItem.call(this === target && !protoHasStorageMethods ? storage : this, key);
+          if(result !== false && isLocalStorageCall(this) && shouldTrackKey(key)) trackKeyMutation(key, storage.getItem(key), previousRaw);
+          return result;
         };
       }
       if(rawClear){
@@ -220,19 +285,19 @@
 
   function getComparableKeys(){
     if(Array.isArray(session.comparableKeys) && session.comparableKeys.length){
-      session.comparableKeys = session.comparableKeys.filter(canRollbackKey);
+      session.comparableKeys = session.comparableKeys.filter(canSnapshotKey);
       return session.comparableKeys;
     }
     const keys = new Set(Object.keys(session.snapshot || {}));
     try{ getKeysToSnapshot().forEach((k)=> keys.add(k)); }catch(_){ }
-    session.comparableKeys = Array.from(keys).filter(canRollbackKey);
+    session.comparableKeys = Array.from(keys).filter(canSnapshotKey);
     return session.comparableKeys;
   }
 
   function isDirty(){
     if(!session.active || !session.snapshot) return false;
     for(const key of session.changedKeys){
-      if(!canRollbackKey(key)){
+      if(!canSnapshotKey(key)){
         session.changedKeys.delete(key);
         session.lastDirtyCheckAt = 0;
         session.lastDirtyValue = false;
@@ -246,9 +311,8 @@
     let dirty = false;
     try{
       for(const k of getComparableKeys()){
-        const before = Object.prototype.hasOwnProperty.call(session.snapshot, k) ? session.snapshot[k] : null;
         const current = readRaw(k);
-        if(before !== current){
+        if(keyChanged(k, current)){
           dirty = true;
           if(session.changedKeys) session.changedKeys.add(k);
           break;
@@ -266,6 +330,9 @@
         const payload = {
           schemaVersion: SESSION_SCHEMA_VERSION,
           active: !!session.active,
+          projectId:session.projectId,
+          expectedOwnerRaw:session.expectedOwnerRaw,
+          expectedOwnerKnown:session.expectedOwnerKnown,
           startedAt: Number(session.startedAt || 0),
           updatedAt: nowStamp(),
           context: session.context && typeof session.context === 'object' ? session.context : resolveSessionContext(),
@@ -305,13 +372,16 @@
       }
       session.active = !!parsed.active;
       session.snapshot = parsed.snapshot && typeof parsed.snapshot === 'object' ? parsed.snapshot : null;
-      if(session.snapshot){
-        session.snapshot = Object.fromEntries(Object.entries(session.snapshot).filter(([key])=> canRollbackKey(key)));
-      }
+      const context = parsed.context && typeof parsed.context === 'object' ? parsed.context : {};
+      try{ session.projectId = resolveOwner(context, session.snapshot, parsed.projectId); }catch(_){ session.projectId = ''; }
+      if(session.snapshot) session.snapshot = Object.fromEntries(Object.entries(session.snapshot).filter(([key])=> canSnapshotKey(key)));
+      session.expectedOwnerKnown = Number(parsed.schemaVersion || 0) >= SESSION_SCHEMA_VERSION && parsed.expectedOwnerKnown === true;
+      session.expectedOwnerRaw = session.expectedOwnerKnown ? parsed.expectedOwnerRaw : null;
       session.durable = !!(session.active && session.snapshot);
       session.startedAt = Number(parsed.startedAt || parsed.createdAt || 0);
       session.updatedAt = Number(parsed.updatedAt || 0);
-      session.context = parsed.context && typeof parsed.context === 'object' ? parsed.context : resolveSessionContext();
+      session.context = context;
+      if(session.projectId) session.context.projectId = session.projectId;
       session.comparableKeys = session.snapshot ? Array.from(new Set(Object.keys(session.snapshot))) : null;
       session.changedKeys = new Set();
       if(!session.active && !session.snapshot){
@@ -324,6 +394,10 @@
   const session = {
     active: false,
     durable: false,
+    projectId:'',
+    expectedOwnerRaw:null,
+    expectedOwnerKnown:false,
+    lastError:null,
     snapshot: null,
     startedAt: 0,
     updatedAt: 0,
@@ -334,16 +408,29 @@
     lastDirtyCheckAt: 0,
     lastDirtyValue: false,
     begin(){
+      if(session.active && !canSaveProject()) return false;
       // Idempotent: once we started an edit session, do not overwrite the snapshot.
       if(!(session.active && session.snapshot)){
         const keys = getKeysToSnapshot();
         const snap = {};
-        keys.forEach((k)=> { snap[k] = readRaw(k); });
+        const context = resolveSessionContext();
+        try{
+          keys.forEach((k)=> { snap[k] = localStorage.getItem(k); });
+          session.projectId = resolveOwner(context, snap);
+        }catch(_){ session.projectId = ''; }
+        if(!session.projectId){
+          fail('SESSION_OWNER_MISSING', 'Nie można ustalić jednoznacznego właściciela sesji. Zapis zmian został wstrzymany. Otwórz poprawny projekt i spróbuj ponownie.');
+          notifyBlocked(session.lastError.message);
+          return false;
+        }
         session.snapshot = snap;
+        session.expectedOwnerRaw = ownerRaw(snap[PROJECTS_KEY]);
+        session.expectedOwnerKnown = true;
         session.comparableKeys = keys.slice();
         session.startedAt = nowStamp();
         session.updatedAt = session.startedAt;
-        session.context = resolveSessionContext();
+        session.context = context;
+        session.context.projectId = session.projectId;
         session.active = true;
         session.durable = false;
         invalidateDirtyCache();
@@ -355,6 +442,7 @@
       return session.durable;
     },
     commit(){
+      if(session.active && !canSaveProject()) return false;
       return withTrackingSuspended(()=> {
         if(!writeRaw(SESSION_STORAGE_KEY, null)){
           session.active = true;
@@ -365,6 +453,10 @@
         session.startedAt = 0;
         session.updatedAt = 0;
         session.context = null;
+        session.projectId = '';
+        session.expectedOwnerRaw = null;
+        session.expectedOwnerKnown = false;
+        session.lastError = null;
         session.active = false;
         session.durable = false;
         beginFailureNotified = false;
@@ -374,13 +466,22 @@
     },
     cancel(){
       return withTrackingSuspended(()=> {
-        let restored = true;
-        for(const [k, raw] of Object.entries(session.snapshot || {})){
-          // Last safety boundary, including old or manually modified snapshots.
-          if(canRollbackKey(k) && !writeRaw(k, raw)) restored = false;
+        session.lastError = null;
+        if(session.snapshot){
+          if(!session.projectId) return fail('SESSION_OWNER_MISSING', 'Nie ustalono właściciela starego snapshotu. Automatyczne cofnięcie zostało zablokowane; zachowano sesję i dane.');
+          try{
+            for(const key of UNSCOPED_PART_KEYS){
+              const before = hasOwn(session.snapshot, key) ? session.snapshot[key] : null;
+              if(localStorage.getItem(key) !== before){
+                return fail('UNSCOPED_PART_ROLLBACK_BLOCKED', 'Nie można bezpiecznie cofnąć globalnych opcji formatek, ponieważ nie mają właściciela projektu. Anuluj zostało wstrzymane; sesja i dane pozostały zachowane. Zapisz zachowa bieżące ustawienia; bezpieczne cofanie wymaga ich przypisania do projektu.');
+              }
+            }
+          }catch(_){ return fail('SESSION_READ_FAILED', 'Nie można sprawdzić bezpieczeństwa cofnięcia. Sesja została zachowana.'); }
         }
+        const restored = !session.snapshot || restoreOwnerProject();
         // Finish durably before discarding RAM state, also when there is no snapshot.
         if(!restored || !writeRaw(SESSION_STORAGE_KEY, null)){
+          if(!session.lastError) fail('SESSION_CLEANUP_FAILED', 'Nie udało się trwale zakończyć sesji. Sesja edycji została zachowana. Spróbuj ponownie.');
           // Keep the original RAM and persisted snapshot for another cancel attempt.
           session.active = true;
           invalidateDirtyCache();
@@ -391,6 +492,10 @@
         session.startedAt = 0;
         session.updatedAt = 0;
         session.context = null;
+        session.projectId = '';
+        session.expectedOwnerRaw = null;
+        session.expectedOwnerKnown = false;
+        session.lastError = null;
         session.active = false;
         session.durable = false;
         beginFailureNotified = false;
@@ -398,6 +503,9 @@
         return true;
       });
     },
+    canSwitchProject,
+    canSwitchInvestor,
+    canSaveProject,
     invalidateDirtyCache,
     isDirty,
     trackKeyMutation,

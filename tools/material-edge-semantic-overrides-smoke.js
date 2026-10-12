@@ -32,6 +32,8 @@ function runtime(){
     clear(){ throw new Error('localStorage.clear is forbidden'); }
   }
   const storage = new MemoryStorage();
+  storage.map.set('fc_projects_v1', JSON.stringify([{ id:'A', projectData:{} }]));
+  storage.map.set('fc_current_project_id_v1', 'A');
   const metrics = { begins:0, afterSaves:0, messages:[] };
   const nodes = Object.fromEntries(['sessionButtons','sessionCancel','sessionSave'].map((id)=> [id, {
     style:{}, textContent:'', setAttribute(){},

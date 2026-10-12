@@ -15,6 +15,7 @@
       const origSetCurrent = FC.investors.setCurrentId.bind(FC.investors);
       FC.investors.setCurrentId = function(id){
         const prev = repo().getCurrentInvestorId && repo().getCurrentInvestorId();
+        if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor(id)) return prev || null;
         if(prev && prev !== id && runtime().saveActiveProjectToInvestor) runtime().saveActiveProjectToInvestor(prev);
         origSetCurrent(id);
         if(id && prev !== id && runtime().setActiveProjectFromInvestor) runtime().setActiveProjectFromInvestor(id);
@@ -25,6 +26,7 @@
     if(typeof FC.investors.create === 'function' && !FC.investors.__patchedCreateProject){
       const origCreate = FC.investors.create.bind(FC.investors);
       FC.investors.create = function(initial){
+        if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor('')) return null;
         const prev = repo().getCurrentInvestorId && repo().getCurrentInvestorId();
         if(prev && runtime().saveActiveProjectToInvestor) runtime().saveActiveProjectToInvestor(prev);
         const inv = origCreate(initial);
@@ -43,6 +45,7 @@
     if(typeof FC.investors.remove === 'function' && !FC.investors.__patchedRemoveProject){
       const origRemove = FC.investors.remove.bind(FC.investors);
       FC.investors.remove = function(id){
+        if(FC.session && FC.session.active && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor('')) return false;
         try{ if(repo().removeCentralProjectByInvestor) repo().removeCentralProjectByInvestor(id); }catch(_){ }
         try{ if(repo().removeLegacySlot) repo().removeLegacySlot(id); }catch(_){ }
         return origRemove(id);
@@ -55,6 +58,7 @@
     if(!FC.project || typeof FC.project.save !== 'function' || FC.project.__patchedInvestorMirror) return;
     const origSave = FC.project.save.bind(FC.project);
     FC.project.save = function(data){
+      if(FC.session && FC.session.canSaveProject && !FC.session.canSaveProject()) return data;
       const shouldBeginSession = runtime().shouldTrackProjectSession ? runtime().shouldTrackProjectSession(data) : false;
       const session = FC.session;
       if(shouldBeginSession || (session && session.active && session.durable !== true)){

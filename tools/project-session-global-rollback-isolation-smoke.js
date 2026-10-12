@@ -94,12 +94,12 @@ function assertClean(session){
   }
 }
 
-function assertCancel(runtime){
+function assertCancel(runtime, expectWrite = true){
   const { storage, session } = runtime;
   const keys = [...PROTECTED_KEYS, 'fc_new_global_after_begin_v1'];
   const currentGlobals = new Map(keys.map((key)=> [key, storage.getItem(key)]));
   storage.operations.length = 0;
-  session.cancel();
+  assert.equal(session.cancel(), true);
   assert.equal(storage.getItem(PROJECT_KEY), projectRaw('P1'), 'Cancel must restore project P2 -> P1');
   assert.equal(storage.getItem('fc_quote_rates_v1'), '250');
   assert.equal(storage.getItem('fc_accessories_v1'), '25');
@@ -110,8 +110,8 @@ function assertCancel(runtime){
   }
   assert.deepEqual(storage.operations.filter((op)=> keys.includes(op.key) || op.method === 'clear'), [],
     'Cancel must never call setItem/removeItem for protected keys or clear');
-  assert.ok(storage.operations.some((op)=> op.key === PROJECT_KEY && op.method === 'setItem'),
-    'Disabling cancel entirely must not pass');
+  assert.equal(storage.operations.some((op)=> op.key === PROJECT_KEY && op.method === 'setItem'), expectWrite,
+    'Only changed owned project records require rollback writes');
   assert.equal(session.active, false);
   assert.equal(session.isDirty(), false);
   assert.equal(storage.getItem(SESSION_KEY), null);
@@ -158,7 +158,16 @@ function testOldSession(projectChanged){
   }
   if(projectChanged) assert.equal(session.isDirty(), true);
   else assertClean(session);
-  assertCancel(runtime);
+  if(projectChanged){
+    const raw = runtime.storage.getItem(SESSION_KEY);
+    const current = Object.fromEntries(runtime.storage.map);
+    runtime.storage.operations.length = 0;
+    assert.equal(session.cancel(), false, 'Old schema lacks confirmed owner revision: block ambiguous rollback');
+    assert.deepEqual(Object.fromEntries(runtime.storage.map), current);
+    assert.equal(runtime.storage.getItem(SESSION_KEY), raw);
+    assert.equal(session.active, true);
+    assert.deepEqual(runtime.storage.operations, []);
+  }else assertCancel(runtime, false);
 }
 
 function testInjectedRuntimeSnapshot(){
@@ -183,21 +192,26 @@ function testInjectedRuntimeSnapshot(){
   assertCancel(runtime);
 }
 
-function testTemporaryRollbackScope(){
-  const rows = Object.fromEntries(ALLOWED_KEYS.map((key)=> [key, 'before:' + key]));
+function testIndependentKeysRemain(){
+  const rows = initialRows();
+  const independent = ALLOWED_KEYS.filter(key=> ![PROJECT_KEY, 'fc_edge_v1', 'fc_material_part_options_v1'].includes(key));
   const { storage, session } = makeRuntime(rows);
-  session.begin();
-  ALLOWED_KEYS.forEach((key)=> {
+  assert.equal(session.begin(), true);
+  independent.forEach(key=> {
     storage.setItem(key, 'after:' + key);
-    assert.ok(session.changedKeys.has(key), 'Allowed mutation was not tracked: ' + key);
+    assert.ok(!session.changedKeys.has(key), 'Independent mutation must not dirty project: ' + key);
+    assert.ok(!Object.hasOwn(session.snapshot, key));
   });
-  session.cancel();
-  ALLOWED_KEYS.forEach((key)=> assert.equal(storage.getItem(key), rows[key], 'Lost existing rollback: ' + key));
+  assert.equal(session.isDirty(), false);
+  storage.operations.length = 0;
+  assert.equal(session.cancel(), true);
+  independent.forEach(key=> assert.equal(storage.getItem(key), 'after:' + key));
+  assert.deepEqual(storage.operations.filter(op=> independent.includes(op.key)), []);
 }
 
 testNewSession();
 testOldSession(true);
 testOldSession(false);
 testInjectedRuntimeSnapshot();
-testTemporaryRollbackScope();
+testIndependentKeysRemain();
 console.log('project-session-global-rollback-isolation smoke: PASS (5 scenarios)');

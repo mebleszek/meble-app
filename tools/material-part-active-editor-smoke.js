@@ -36,7 +36,10 @@ function runtime(initial = {}){
     removeItem(key){ this.mutate('removeItem', String(key), null); }
     clear(){ throw new Error('clear forbidden'); }
   }
-  const storage = new MemoryStorage(initial);
+  const storage = new MemoryStorage({
+    fc_projects_v1:JSON.stringify([{ id:'A', projectData:{ title:'P1' } }]),
+    fc_current_project_id_v1:'A', ...initial,
+  });
   const all = (node)=> [node, ...node.children.flatMap(all)];
   function element(tag){
     const node = {
@@ -263,13 +266,13 @@ const cases = [
     }
   }],
   ['15 existing dirty global session keeps its original snapshot', ()=>{
-    const r = runtime({ fc_projects_v1:'P1' });
+    const r = runtime();
     assert.equal(r.FC.session.begin(), true); const snapshot = r.FC.session.snapshot;
+    r.storage.setItem('fc_projects_v1', JSON.stringify([{ id:'A', projectData:{ title:'P2' } }]));
     const persisted = r.storage.getItem(SESSION);
-    r.storage.setItem('fc_projects_v1', 'P2');
     r.open(); changeBoth(r); assert.equal(r.save(), true);
     assert.equal(r.FC.session.snapshot, snapshot); assert.equal(r.storage.getItem(SESSION), persisted);
-    assert.equal(r.storage.getItem('fc_projects_v1'), 'P2'); assert.equal(r.FC.session.isDirty(), true);
+    assert.equal(JSON.parse(r.storage.getItem('fc_projects_v1'))[0].projectData.title, 'P2'); assert.equal(r.FC.session.isDirty(), true);
   }],
   ['16 table has no edge checkbox editor or direct setEdges handler', ()=>{
     const r = runtime(); const { html } = r.renderTable();
