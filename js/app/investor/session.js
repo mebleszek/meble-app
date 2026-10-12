@@ -12,7 +12,7 @@
   // These are monitored; only the owner's project record may actually be restored.
   const SNAPSHOT_KEYS = new Set([PROJECTS_KEY, ...UNSCOPED_PART_KEYS]);
   const SESSION_STORAGE_KEY = 'fc_edit_session_v1';
-  const SESSION_SCHEMA_VERSION = 3;
+  const SESSION_SCHEMA_VERSION = 4;
   const DIRTY_CACHE_WINDOW_MS = 120;
   let beginFailureNotified = false;
 
@@ -38,6 +38,27 @@
     if(!session.projectId) throw new Error('Brak właściciela sesji.');
     const row = projectRows(raw).find(row=>String(row.id) === session.projectId);
     return row ? JSON.stringify(row) : null;
+  }
+  // Scope v4: an editing session owns one functional room, not every room of its investor.
+  // Legacy sessions without a room keep C2.0's fail-closed whole-record contract.
+  function scopeRaw(raw){
+    const owner = ownerRaw(raw);
+    if(owner === null || !session.roomId) return owner;
+    const record = JSON.parse(owner);
+    const data = record.projectData || {};
+    const defs = data.meta && data.meta.roomDefs || {};
+    const roomId = session.roomId;
+    return JSON.stringify({
+      roomPresent:hasOwn(data,roomId),
+      room:hasOwn(data,roomId) ? data[roomId] : null,
+      definitionPresent:hasOwn(defs,roomId),
+      definition:hasOwn(defs,roomId) ? defs[roomId] : null
+    });
+  }
+  function canSwitchRoom(id){
+    if(!session.active || (session.roomId && String(id || '') === session.roomId)) return true;
+    notifyBlocked('Najpierw zakończ sesję przyciskiem Zapisz lub Anuluj. Pomieszczenie nie zostało przełączone.');
+    return false;
   }
   function resolveOwner(context, snapshot, explicitId){
     const id = String(explicitId || context && context.projectId || snapshot && snapshot.fc_current_project_id_v1 || '').trim();
@@ -65,10 +86,11 @@
     if(!session.active) return true;
     const current = resolveSessionContext();
     if(session.projectId && current.projectId === session.projectId
+      && (!session.roomId || current.roomId === session.roomId)
       && !(session.context && session.context.investorId && current.investorId && current.investorId !== session.context.investorId)){
       try{
-        const record = ownerRaw(localStorage.getItem(PROJECTS_KEY));
-        const before = ownerRaw(session.snapshot[PROJECTS_KEY]);
+        const record = scopeRaw(localStorage.getItem(PROJECTS_KEY));
+        const before = scopeRaw(session.snapshot[PROJECTS_KEY]);
         if(!session.expectedOwnerKnown || record === session.expectedOwnerRaw || record === before) return true;
       }catch(_){ }
       fail('PROJECT_WRITE_CONFLICT', 'Nie potwierdzono aktualnej wersji właściciela sesji. Zapis został wstrzymany; zachowano snapshot.');
@@ -83,22 +105,37 @@
   function keyChanged(key, raw){
     const before = hasOwn(session.snapshot, key) ? session.snapshot[key] : null;
     if(key !== PROJECTS_KEY) return before !== raw;
-    try{ return ownerRaw(before) !== ownerRaw(raw); }catch(_){ return true; }
+    try{ return scopeRaw(before) !== scopeRaw(raw); }catch(_){ return true; }
   }
 
   function restoreOwnerProject(){
     try{
-      const before = ownerRaw(session.snapshot[PROJECTS_KEY]);
+      const before = scopeRaw(session.snapshot[PROJECTS_KEY]);
       if(before === null) return fail('SESSION_OWNER_MISSING', 'Snapshot nie zawiera jednoznacznego rekordu właściciela sesji.');
       const observed = localStorage.getItem(PROJECTS_KEY);
-      const current = ownerRaw(observed);
+      const current = scopeRaw(observed);
       if(current !== before && (!session.expectedOwnerKnown || current !== session.expectedOwnerRaw)){
-        return fail('PROJECT_WRITE_CONFLICT', 'Rekord właściciela zmienił się poza potwierdzonymi zapisami tej sesji. Nie cofnięto danych. Sesja i snapshot zostały zachowane.');
+        return fail('PROJECT_WRITE_CONFLICT', 'Edytowany zakres zmienił się poza potwierdzonymi zapisami tej sesji. Nie cofnięto danych. Sesja i snapshot zostały zachowane.');
       }
       if(current === before) return true;
       const rows = projectRows(observed);
       const index = rows.findIndex(row=>String(row.id) === session.projectId);
-      if(index >= 0) rows[index] = JSON.parse(before);
+      if(session.roomId){
+        // Never restore an entire investor record from a room-scoped snapshot.
+        if(index < 0) return fail('SESSION_OWNER_MISSING', 'Rekord centralny zniknął. Nie przywrócono go starszą kopią.');
+        const baseline = JSON.parse(ownerRaw(session.snapshot[PROJECTS_KEY]));
+        const fresh = rows[index];
+        const roomId = session.roomId;
+        const original = baseline.projectData || {};
+        const data = fresh.projectData && typeof fresh.projectData === 'object' ? fresh.projectData : (fresh.projectData = {});
+        if(hasOwn(original,roomId)) data[roomId] = original[roomId];
+        else delete data[roomId];
+        const oldDefs = original.meta && original.meta.roomDefs || {};
+        const meta = data.meta && typeof data.meta === 'object' ? data.meta : (data.meta = {});
+        const defs = meta.roomDefs && typeof meta.roomDefs === 'object' ? meta.roomDefs : (meta.roomDefs = {});
+        if(hasOwn(oldDefs,roomId)) defs[roomId] = oldDefs[roomId];
+        else delete defs[roomId];
+      }else if(index >= 0) rows[index] = JSON.parse(before);
       else rows.push(JSON.parse(before));
       const next = JSON.stringify(rows);
       // Optimistic conflict check: never write a merge built from a stale container.
@@ -218,8 +255,8 @@
     else session.changedKeys.delete(normalizedKey);
     if(normalizedKey === PROJECTS_KEY && session.projectId){
       try{
-        const previous = ownerRaw(previousRaw);
-        const next = ownerRaw(nextRaw);
+        const previous = scopeRaw(previousRaw);
+        const next = scopeRaw(nextRaw);
         if(previous !== next && session.expectedOwnerKnown && previous === session.expectedOwnerRaw){
           session.expectedOwnerRaw = next;
           // Persist only a witnessed local owner update, never adopt an external version
@@ -331,6 +368,7 @@
           schemaVersion: SESSION_SCHEMA_VERSION,
           active: !!session.active,
           projectId:session.projectId,
+          roomId:session.roomId,
           expectedOwnerRaw:session.expectedOwnerRaw,
           expectedOwnerKnown:session.expectedOwnerKnown,
           startedAt: Number(session.startedAt || 0),
@@ -374,6 +412,8 @@
       session.snapshot = parsed.snapshot && typeof parsed.snapshot === 'object' ? parsed.snapshot : null;
       const context = parsed.context && typeof parsed.context === 'object' ? parsed.context : {};
       try{ session.projectId = resolveOwner(context, session.snapshot, parsed.projectId); }catch(_){ session.projectId = ''; }
+      // Old v3 snapshots cannot be silently reinterpreted as room-scoped.
+      session.roomId = Number(parsed.schemaVersion || 0) >= SESSION_SCHEMA_VERSION ? String(parsed.roomId || '') : '';
       if(session.snapshot) session.snapshot = Object.fromEntries(Object.entries(session.snapshot).filter(([key])=> canSnapshotKey(key)));
       session.expectedOwnerKnown = Number(parsed.schemaVersion || 0) >= SESSION_SCHEMA_VERSION && parsed.expectedOwnerKnown === true;
       session.expectedOwnerRaw = session.expectedOwnerKnown ? parsed.expectedOwnerRaw : null;
@@ -395,6 +435,7 @@
     active: false,
     durable: false,
     projectId:'',
+    roomId:'',
     expectedOwnerRaw:null,
     expectedOwnerKnown:false,
     lastError:null,
@@ -423,14 +464,20 @@
           notifyBlocked(session.lastError.message);
           return false;
         }
+        // Only bind room ownership when the room exists in the durable baseline.
+        // Structural room creation/deletion remains outside this edit scope.
+        const owner = JSON.parse(ownerRaw(snap[PROJECTS_KEY]));
+        const candidateRoom = String(context.roomId || '');
+        session.roomId = candidateRoom && owner.projectData && hasOwn(owner.projectData,candidateRoom) ? candidateRoom : '';
         session.snapshot = snap;
-        session.expectedOwnerRaw = ownerRaw(snap[PROJECTS_KEY]);
+        session.expectedOwnerRaw = scopeRaw(snap[PROJECTS_KEY]);
         session.expectedOwnerKnown = true;
         session.comparableKeys = keys.slice();
         session.startedAt = nowStamp();
         session.updatedAt = session.startedAt;
         session.context = context;
         session.context.projectId = session.projectId;
+        session.context.roomId = session.roomId;
         session.active = true;
         session.durable = false;
         invalidateDirtyCache();
@@ -454,6 +501,7 @@
         session.updatedAt = 0;
         session.context = null;
         session.projectId = '';
+        session.roomId = '';
         session.expectedOwnerRaw = null;
         session.expectedOwnerKnown = false;
         session.lastError = null;
@@ -493,6 +541,7 @@
         session.updatedAt = 0;
         session.context = null;
         session.projectId = '';
+        session.roomId = '';
         session.expectedOwnerRaw = null;
         session.expectedOwnerKnown = false;
         session.lastError = null;
@@ -505,6 +554,7 @@
     },
     canSwitchProject,
     canSwitchInvestor,
+    canSwitchRoom,
     canSaveProject,
     invalidateDirtyCache,
     isDirty,

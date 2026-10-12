@@ -127,6 +127,14 @@
     return id ? getById(id) : null;
   }
 
+  function getUnambiguousInvestorProject(investorId){
+    const key = String(investorId || '');
+    const current = getCurrentRecord();
+    if(current && String(current.investorId || '') === key) return current;
+    const matches = readAll().filter(row=>String(row.investorId || '') === key);
+    return matches.length === 1 ? matches[0] : null;
+  }
+
   function upsert(record){
     const normalized = normalizeRecord(record);
     if(!normalized) return null;
@@ -145,12 +153,13 @@
   function ensureForInvestor(investorId, options){
     const key = String(investorId || '');
     if(!key) return null;
-    const existing = getByInvestorId(key);
+    const existing = getUnambiguousInvestorProject(key);
     if(existing){
       if(setCurrentProjectId(existing.id) === false) return null;
       return existing;
     }
     if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor(key)) return null;
+    if(readAll().some(row=>String(row.investorId || '') === key)) return null; // ambiguous, never create a duplicate
     const projectData = model && typeof model.normalizeProjectData === 'function'
       ? model.normalizeProjectData(options && options.projectData)
       : clone(options && options.projectData || {});
@@ -171,7 +180,14 @@
   function saveProjectDataForInvestor(investorId, projectData, options){
     const key = String(investorId || '');
     if(!key) return null;
-    const base = getByInvestorId(key) || ensureForInvestor(key, options);
+    const explicitId = String(options && options.projectId || '').trim();
+    const activeId = explicitId || getCurrentProjectId();
+    const active = activeId ? getById(activeId) : null;
+    if(explicitId && (!active || String(active.investorId || '') !== key)) return null;
+    const matches = readAll().filter(row=>String(row.investorId || '') === key);
+    const base = active && String(active.investorId || '') === key
+      ? active
+      : matches.length === 1 ? matches[0] : matches.length === 0 ? ensureForInvestor(key, options) : null;
     if(!base) return null;
     const normalizedData = model && typeof model.normalizeProjectData === 'function'
       ? model.normalizeProjectData(projectData)
@@ -201,13 +217,14 @@
         ? model.normalizeProjectData(fallback)
         : clone(fallback);
     }
-    const record = getByInvestorId(key);
+    const record = getUnambiguousInvestorProject(key);
     if(record && record.projectData){
       if(setCurrentProjectId(record.id) === false) return null;
       return model && typeof model.normalizeProjectData === 'function'
         ? model.normalizeProjectData(record.projectData)
         : clone(record.projectData);
     }
+    if(readAll().some(row=>String(row.investorId || '') === key)) return null; // ambiguous project ownership
     if(hasFallback && fallback == null) return null;
     return model && typeof model.normalizeProjectData === 'function'
       ? model.normalizeProjectData(fallback)

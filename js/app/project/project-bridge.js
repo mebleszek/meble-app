@@ -43,26 +43,26 @@
     try{ return String(storage.getRaw('fc_current_investor_v1') || '').trim(); }catch(_){ return ''; }
   }
 
-  function getCentralProjectForActiveContext(){
+  function centralRecordForContext(){
     const investorId = getCurrentInvestorId();
-    if(investorId){
-      try{
-        if(projectStore && typeof projectStore.getByInvestorId === 'function'){
-          const byInvestor = projectStore.getByInvestorId(investorId);
-          if(byInvestor && byInvestor.projectData) return byInvestor.projectData;
-        }
-      }catch(_){ }
-      // Jeżeli aktywny inwestor jest znany, nie wolno podmieniać go projektem
-      // wskazywanym przez stary/stale currentProjectId należący do innego inwestora.
-      return null;
-    }
     try{
-      if(projectStore && typeof projectStore.getCurrentRecord === 'function'){
-        const current = projectStore.getCurrentRecord();
-        if(current && current.projectData) return current.projectData;
+      if(projectStore && typeof projectStore.getCurrentProjectId === 'function' && typeof projectStore.getById === 'function'){
+        const id = String(projectStore.getCurrentProjectId() || '');
+        const current = id && projectStore.getById(id);
+        if(current && (!investorId || String(current.investorId || '') === investorId)) return current;
       }
     }catch(_){ }
-    return null;
+    if(!investorId || !projectStore || typeof projectStore.readAll !== 'function') return null;
+    try{
+      const matches = projectStore.readAll().filter(row=>String(row.investorId || '') === investorId);
+      // Never choose an arbitrary first record when several records share an investor.
+      return matches.length === 1 ? matches[0] : null;
+    }catch(_){ return null; }
+  }
+
+  function getCentralProjectForActiveContext(){
+    const record = centralRecordForContext();
+    return record && record.projectData || null;
   }
 
   function load(){
@@ -75,21 +75,8 @@
   }
 
   function currentCentralRecord(){
-    const investorId = getCurrentInvestorId();
-    if(investorId){
-      try{
-        if(projectStore && typeof projectStore.getByInvestorId === 'function'){
-          const record = projectStore.getByInvestorId(investorId);
-          if(record) return record;
-        }
-      }catch(_){ }
-    }
-    try{
-      if(projectStore && typeof projectStore.getCurrentRecord === 'function') return projectStore.getCurrentRecord();
-    }catch(_){ }
-    return null;
+    return centralRecordForContext();
   }
-
   function writeSafetyBackup(projectData){
     if(!projectData) return false;
     const backupKey = keys.projectBackup || 'fc_project_backup_v1';
@@ -102,30 +89,72 @@
     }catch(_){ return false; }
   }
 
+  function scopedProjectData(draft, currentRecord, session){
+    const roomId = String(session && session.roomId || '');
+    if(!roomId || !session.snapshot || !session.snapshot.fc_projects_v1) return null;
+    const saved = JSON.parse(session.snapshot.fc_projects_v1);
+    if(!Array.isArray(saved)) return null;
+    const originalRecord = saved.find(row=>String(row && row.id || '') === String(session.projectId || ''));
+    if(!originalRecord || !originalRecord.projectData || !currentRecord || String(currentRecord.id || '') !== String(session.projectId || '')) return null;
+    const baseline = prepareForPersistence(normalizeProject(originalRecord.projectData));
+    const input = prepareForPersistence(draft);
+    const current = prepareForPersistence(currentRecord.projectData);
+    if(!Object.prototype.hasOwnProperty.call(baseline,roomId)
+      || !Object.prototype.hasOwnProperty.call(input,roomId)
+      || !Object.prototype.hasOwnProperty.call(current,roomId)) return null;
+
+    const withoutOwnedRoom = (value)=>{
+      const cloned = JSON.parse(JSON.stringify(value));
+      delete cloned[roomId];
+      if(cloned.meta && cloned.meta.roomDefs && typeof cloned.meta.roomDefs === 'object'){
+        delete cloned.meta.roomDefs[roomId];
+      }
+      return JSON.stringify(cloned);
+    };
+    // Refuse edits of global metadata, room order or other rooms in this narrow session.
+    if(withoutOwnedRoom(input) !== withoutOwnedRoom(baseline)) return null;
+    const merged = JSON.parse(JSON.stringify(current));
+    merged[roomId] = input[roomId];
+    const sourceDefs = input.meta && input.meta.roomDefs || {};
+    const meta = merged.meta && typeof merged.meta === 'object' ? merged.meta : (merged.meta = {});
+    const defs = meta.roomDefs && typeof meta.roomDefs === 'object' ? meta.roomDefs : (meta.roomDefs = {});
+    if(Object.prototype.hasOwnProperty.call(sourceDefs,roomId)) defs[roomId] = sourceDefs[roomId];
+    else delete defs[roomId];
+    return merged;
+  }
+
   function saveConfirmed(data){
     const normalized = normalizeProject(data);
-    if(FC.session && FC.session.canSaveProject && !FC.session.canSaveProject()) return { ok:false, project:normalized };
+    const blocked = { ok:false, project:normalized };
+    if(FC.session && FC.session.canSaveProject && !FC.session.canSaveProject()) return blocked;
     const before = currentCentralRecord();
     const investorId = getCurrentInvestorId();
+    if(before && investorId && String(before.investorId || '') !== investorId) return blocked;
+    const session = FC.session;
+    const narrow = !!(session && session.active && session.roomId);
+    if(narrow && (!before || String(before.id) !== String(session.projectId))) return blocked;
+    const projectToWrite = narrow ? scopedProjectData(normalized, before, session) : normalized;
+    if(!projectToWrite) return blocked;
     let saved = null;
 
-    // 2B.3b: pełny projekt zapisujemy wyłącznie do centralnego projectStore.
-    // fc_project_v1 i fc_project_inv_* nie są już normalnymi mirrorami zapisu.
     try{
-      if(investorId && projectStore && typeof projectStore.saveProjectDataForInvestor === 'function'){
-        saved = projectStore.saveProjectDataForInvestor(investorId, normalized);
-      }else if(before && projectStore && typeof projectStore.upsert === 'function'){
+      if(before && projectStore && typeof projectStore.upsert === 'function'){
         saved = projectStore.upsert(Object.assign({}, before, {
-          projectData:normalized,
+          projectData:projectToWrite,
           updatedAt:Date.now(),
         }));
+      }else if(!narrow && investorId && projectStore && typeof projectStore.saveProjectDataForInvestor === 'function'){
+        saved = projectStore.saveProjectDataForInvestor(investorId, projectToWrite);
       }
     }catch(_){ saved = null; }
 
-    // Backup jest tylko zabezpieczeniem. Powstaje dopiero po potwierdzonym zapisie
-    // centralnym i zawiera poprzedni stan projektu, nigdy nowszy od źródła prawdy.
+    // The store must actually contain the expected project before reporting success.
+    try{
+      const readBack = saved && projectStore && typeof projectStore.getById === 'function' ? projectStore.getById(saved.id) : null;
+      if(!readBack || JSON.stringify(prepareForPersistence(readBack.projectData)) !== JSON.stringify(prepareForPersistence(projectToWrite))) saved = null;
+    }catch(_){ saved = null; }
     if(saved && before && before.projectData) writeSafetyBackup(before.projectData);
-    return { ok:!!saved, project:normalized };
+    return { ok:!!saved, project:saved ? normalizeProject(projectToWrite) : normalized };
   }
 
   function save(data){

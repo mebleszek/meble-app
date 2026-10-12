@@ -9,22 +9,33 @@
     if (typeof window.App.init !== 'function' && typeof initApp === 'function') window.App.init = initApp;
 
     FC.openRoom = function(room){
-      try{
-        uiState.roomType = room;
-        uiState.entry = 'app';
-        uiState.activeTab = uiState.activeTab || 'wywiad';
-        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-        const rv = document.getElementById('roomsView');
-        const av = document.getElementById('appView');
-        const tabs = document.getElementById('topTabs');
-        if(rv) rv.style.display = 'none';
-        if(av) av.style.display = 'block';
-        if(tabs) tabs.style.display = 'inline-block';
-        try{ document.querySelectorAll('.tab-btn').forEach(tbtn => tbtn.style.background = (tbtn.getAttribute('data-tab') === uiState.activeTab) ? '#e6f7ff' : 'var(--card)'); }catch(_){}
-        try{ renderTopHeight(); }catch(_){}
-        try{ renderCabinets(); }catch(_){}
-        try{ window.scrollTo({top:0, behavior:'smooth'}); } catch(_){ window.scrollTo(0,0); }
-      }catch(_){ }
+      const open = ()=>{
+        try{
+          if(FC.session && FC.session.canSwitchRoom && !FC.session.canSwitchRoom(room)) return false;
+          if(typeof uiState === 'undefined' || !uiState) return false;
+          uiState.roomType = room;
+          uiState.entry = 'app';
+          uiState.activeTab = 'wywiad';
+          FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+          if(FC.views && typeof FC.views.applyFromState === 'function') FC.views.applyFromState(uiState);
+          else{
+            const rv = document.getElementById('roomsView');
+            const av = document.getElementById('appView');
+            const tabs = document.getElementById('topTabs');
+            if(rv) rv.style.display = 'none';
+            if(av) av.style.display = 'block';
+            if(tabs) tabs.style.display = 'inline-block';
+          }
+          try{ renderTopHeight(); }catch(_){ }
+          try{ renderCabinets(); }catch(_){ }
+          try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(_){ }
+          return true;
+        }catch(_){ return false; }
+      };
+      const nav = FC.sessionNavigation;
+      if(nav && typeof nav.requestTransition === 'function') return nav.requestTransition('innego pomieszczenia', open);
+      if(FC.session && FC.session.active) return false;
+      return open();
     };
 
     FC.setActiveTabSafe = function(tab){

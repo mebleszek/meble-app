@@ -18,6 +18,11 @@
   }
 
   async function generate(force, deps){
+    // C2.0b: never calculate from an open or diverging edit session.
+    if(FC.sessionNavigation && typeof FC.sessionNavigation.canCalculate === 'function'){
+      if(!FC.sessionNavigation.canCalculate()) return;
+    }else if(FC.session && FC.session.active) return;
+
     const cfg = Object.assign({ progressCtrl:null }, deps || {});
     const progress = cfg.progressCtrl;
     if(!progress || typeof progress.startRun !== 'function') return;

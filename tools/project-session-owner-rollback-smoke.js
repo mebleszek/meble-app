@@ -28,7 +28,7 @@ function runtime(seed){
   s.FC.investors={getCurrentId:()=>investor,setCurrentId(id){investor=id;storage.setItem('fc_current_investor_v1',id||'');return id;},create(){throw Error('blocked create must not run');},remove(){throw Error('blocked remove must not run');}};
   for(const file of ['js/app/shared/constants.js','js/app/shared/storage.js','js/app/project/project-model.js','js/app/project/project-store.js',
     'js/app/project/project-bridge.js','js/app/investor/investor-project-repository.js','js/app/investor/investor-project-runtime.js',
-    'js/app/investor/investor-project-patches.js','js/app/investor/session.js','js/app/ui/actions-register.js']){
+    'js/app/investor/investor-project-patches.js','js/app/investor/session.js','js/app/ui/actions-register.js','js/app/ui/session-navigation.js']){
     vm.runInContext(fs.readFileSync(path.join(ROOT,file),'utf8'),s,{filename:file});
   }
   const FC=s.FC;
@@ -175,5 +175,93 @@ test('Reload of ownerless legacy session cannot bootstrap a fresh project over e
   reloaded.FC.investorProjectRuntime.ensureInvestorProjectLoadedOnBoot();
   assert.equal(reloaded.storage.getItem(PROJECTS),before);assert.deepEqual(clone(reloaded.s.projectData),ram);
   assert.equal(reloaded.session.active,true);assert.equal(reloaded.session.cancel(),false);
+});
+
+function multiRoom(){
+  const r=runtime();
+  const record=r.FC.projectStore.getById('A');
+  record.projectData.other={cabinets:[{id:'cab-other',width:70}],fronts:[],sets:[],settings:{}};
+  record.projectData.meta=Object.assign({},record.projectData.meta,{
+    roomDefs:{room:{id:'room',label:'Kuchnia'},other:{id:'other',label:'Salon'}},
+    roomOrder:['room','other']
+  });
+  assert.ok(r.FC.projectStore.upsert(record));
+  r.s.uiState.roomType='room';
+  r.s.projectData=r.FC.project.load();
+  assert.equal(r.session.begin(),true);
+  assert.equal(r.session.roomId,'room');
+  return r;
+}
+function updateOther(r,width){
+  const record=r.FC.projectStore.getById('A');
+  record.projectData.other.cabinets[0].width=width;
+  assert.ok(r.FC.projectStore.upsert(record));
+}
+test('C2.0b room-owned save merges A and keeps newer B within one record',()=>{
+  const r=multiRoom();
+  updateOther(r,75);
+  r.s.projectData.room.cabinets[0].width=65;
+  assert.equal(r.FC.project.saveConfirmed(r.s.projectData).ok,true);
+  assert.equal(r.row('A').projectData.room.cabinets[0].width,65);
+  assert.equal(r.row('A').projectData.other.cabinets[0].width,75);
+  assert.equal(r.session.commit(),true);
+});
+test('C2.0b room-owned cancel preserves newer B within one record',()=>{
+  const r=multiRoom();
+  r.s.projectData.room.cabinets[0].width=65;
+  assert.equal(r.FC.project.saveConfirmed(r.s.projectData).ok,true);
+  updateOther(r,75);
+  assert.equal(r.session.cancel(),true);
+  assert.equal(r.row('A').projectData.room.cabinets[0].width,60);
+  assert.equal(r.row('A').projectData.other.cabinets[0].width,75);
+});
+test('C2.0b scoped save refuses edits to other rooms',()=>{
+  const r=multiRoom();
+  r.s.projectData.other.cabinets[0].width=123;
+  const before=r.storage.getItem(PROJECTS);
+  assert.equal(r.FC.project.saveConfirmed(r.s.projectData).ok,false);
+  assert.equal(r.storage.getItem(PROJECTS),before);
+  assert.equal(r.session.canSwitchRoom('other'),false);
+  assert.equal(r.session.canSwitchRoom('room'),true);
+});
+test('C2.0b external owned-room conflict blocks save and cancel',()=>{
+  const r=multiRoom();
+  const raw=r.storage.getItem(SESSION);
+  const rows=JSON.parse(r.storage.getItem(PROJECTS));
+  rows.find(row=>row.id==='A').projectData.room.cabinets[0].width=88;
+  r.storage.rows.set(PROJECTS,JSON.stringify(rows));
+  r.s.projectData.room.cabinets[0].width=65;
+  assert.equal(r.FC.project.saveConfirmed(r.s.projectData).ok,false);
+  assert.equal(r.session.cancel(),false);
+  assert.equal(r.storage.getItem(SESSION),raw);
+  assert.equal(r.row('A').projectData.room.cabinets[0].width,88);
+});
+test('C2.0b navigation asks and switches only after confirmed save',async()=>{
+  const r=multiRoom();
+  const picks=[];
+  r.FC.choiceBox={async ask(payload){picks.push(payload);return 'save';}};
+  r.s.projectData.room.cabinets[0].width=65;
+  let entered=0;
+  const ok=await r.FC.sessionNavigation.requestTransition('WYCENY',()=>{entered++;});
+  assert.equal(ok,true);assert.equal(entered,1);
+  assert.equal(picks.length,1);assert.equal(picks[0].actions.length,3);
+  assert.equal(r.session.active,false);
+  assert.equal(r.row('A').projectData.room.cabinets[0].width,65);
+});
+test('C2.0b back or cancel failure cannot enter ROZRYS',async()=>{
+  const r=multiRoom();
+  let entered=0;
+  r.FC.choiceBox={async ask(){return 'back';}};
+  assert.equal(await r.FC.sessionNavigation.requestTransition('ROZRYSU',()=>{entered++;}),false);
+  assert.equal(entered,0);assert.equal(r.session.active,true);
+  r.FC.choiceBox={async ask(){return 'discard';}};
+  r.s.projectData.room.cabinets[0].width=65;
+  r.storage.fail.set('remove:'+SESSION,'throw');
+  assert.equal(await r.FC.sessionNavigation.requestTransition('ROZRYSU',()=>{entered++;}),false);
+  assert.equal(entered,0);assert.equal(r.session.active,true);
+  r.storage.fail.clear();
+  assert.equal(await r.FC.sessionNavigation.requestTransition('ROZRYSU',()=>{entered++;}),true);
+  assert.equal(entered,1);assert.equal(r.session.active,false);
+  assert.equal(r.row('A').projectData.room.cabinets[0].width,60);
 });
 (async()=>{for(const [name,fn] of tests){await fn();console.log('PASS '+name);}console.log('Project-owned session rollback: '+tests.length+'/'+tests.length+' PASS');})().catch(error=>{console.error(error);process.exitCode=1;});

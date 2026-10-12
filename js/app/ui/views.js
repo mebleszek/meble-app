@@ -229,6 +229,13 @@
     return openHome();
   }
 
+  function guardedView(destination, action){
+    const nav = FC.sessionNavigation;
+    if(nav && typeof nav.requestTransition === 'function') return nav.requestTransition(destination, action);
+    if(FC.session && FC.session.active) return false;
+    return action();
+  }
+
   FC.views = FC.views || {};
   FC.views.showHome = showHome;
   FC.views.showModeHub = showModeHub;
@@ -240,13 +247,13 @@
   FC.views.showRozrys = showRozrys;
   FC.views.showMagazyn = showMagazyn;
   FC.views.applyFromState = applyFromState;
-  FC.views.openHome = openHome;
-  FC.views.openModeHub = openModeHub;
-  FC.views.openInvestorsList = openInvestorsList;
-  FC.views.openServiceOrdersList = openServiceOrdersList;
-  FC.views.openRooms = openRooms;
-  FC.views.openRoom = openRoom;
-  FC.views.back = back;
+  FC.views.openHome = (...args)=> guardedView('strony głównej', ()=> openHome(...args));
+  FC.views.openModeHub = (...args)=> guardedView('wyboru trybu pracy', ()=> openModeHub(...args));
+  FC.views.openInvestorsList = (...args)=> guardedView('listy inwestorów', ()=> openInvestorsList(...args));
+  FC.views.openServiceOrdersList = (...args)=> guardedView('listy zleceń', ()=> openServiceOrdersList(...args));
+  FC.views.openRooms = (...args)=> guardedView('listy pomieszczeń', ()=> openRooms(...args));
+  FC.views.openRoom = (...args)=> guardedView('innego pomieszczenia', ()=> openRoom(...args));
+  FC.views.back = (...args)=> guardedView('poprzedniego ekranu', ()=> back(...args));
   FC.views.refreshSessionButtons = refreshSessionButtons;
   FC.views.shouldOpenRoomlessWycena = shouldOpenRoomlessWycena;
 })();

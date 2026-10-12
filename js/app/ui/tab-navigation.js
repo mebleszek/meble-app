@@ -11,7 +11,7 @@
     window.setTimeout(() => el.classList.remove('focus-flash'), 1300);
   }
 
-  function setActiveTab(tabName){
+  function applyTab(tabName){
     if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock() && tabName !== 'inwestor') return;
     if(tabName === 'wywiad' && !uiState.roomType){
       uiState.entry = 'rooms';
@@ -44,6 +44,20 @@
     }
 
     try{ window.scrollTo({top:0, behavior:'smooth'}); } catch(_){ try{ window.scrollTo(0,0); }catch(__){} }
+  }
+
+  function setActiveTab(tabName){
+    const name = String(tabName || '');
+    if(name === 'wycena' || name === 'rozrys'){
+      const nav = window.FC && window.FC.sessionNavigation;
+      if(nav && typeof nav.requestTransition === 'function'){
+        const destination = name === 'wycena' ? 'WYCENY' : 'ROZRYSU';
+        return nav.requestTransition(destination, ()=> applyTab(name), { refreshCentral:true });
+      }
+      // Never allow an unguarded calculation tab when session-navigation did not load.
+      if(window.FC && window.FC.session && window.FC.session.active) return false;
+    }
+    return applyTab(name);
   }
 
   function jumpToMaterialsForCabinet(cabId){

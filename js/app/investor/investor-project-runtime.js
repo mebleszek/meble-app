@@ -67,7 +67,8 @@
     try{
       const id = repo && typeof repo.getCurrentInvestorId === 'function' ? repo.getCurrentInvestorId() : null;
       const store = FC.projectStore || null;
-      const record = id && store && typeof store.getByInvestorId === 'function' ? store.getByInvestorId(id) : null;
+      const current = store && typeof store.getCurrentRecord === 'function' ? store.getCurrentRecord() : null;
+      const record = current && String(current.investorId || '') === String(id || '') ? current : null;
       if(record && store && typeof store.setCurrentProjectId === 'function') store.setCurrentProjectId(record.id);
     }catch(_){ }
     return proj || null;
@@ -142,18 +143,13 @@
 
   function currentCentralProjectForSessionCompare(){
     const id = repo && typeof repo.getCurrentInvestorId === 'function' ? repo.getCurrentInvestorId() : null;
-    if(id){
-      try{
-        if(repo && typeof repo.loadCentralProjectForInvestor === 'function') {
-          const central = repo.loadCentralProjectForInvestor(id, null);
-          if(central) return central;
-        }
-      }catch(_){ }
-    }
     try{
-      if(FC.projectStore && typeof FC.projectStore.getCurrentRecord === 'function') {
-        const record = FC.projectStore.getCurrentRecord();
-        if(record && record.projectData) return record.projectData;
+      const store = FC.projectStore;
+      const current = store && typeof store.getCurrentRecord === 'function' ? store.getCurrentRecord() : null;
+      if(current && (!id || String(current.investorId || '') === String(id))) return current.projectData || null;
+      if(id && store && typeof store.readAll === 'function'){
+        const matches = store.readAll().filter(row=>String(row.investorId || '') === String(id));
+        return matches.length === 1 ? matches[0].projectData : null;
       }
     }catch(_){ }
     return null;

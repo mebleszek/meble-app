@@ -185,26 +185,8 @@
     'open-workshop-services': ({event}) => openPriceCatalog('workshopServices'),
 
     'open-investors-list': ({event}) => {
-      // open separate investors list screen (no top tabs)
-      try{
-        if(FC.views && typeof FC.views.openInvestorsList === 'function') FC.views.openInvestorsList();
-        else {
-          uiState.entry = 'investorsList';
-          FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-          if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
-        }
-      }catch(_){ }
-
-      // render list
-      try{
-        const root = document.getElementById('investorsListRoot');
-        if(root && window.FC && window.FC.investorUI && typeof window.FC.investorUI.renderListOnly === 'function'){
-          window.FC.investorUI.state.mode = 'list';
-          window.FC.investorUI.state.allowListAccess = false;
-          window.FC.investorUI.renderListOnly(root);
-        }
-      }catch(_){ }
-      return true;
+      if(FC.views && typeof FC.views.openInvestorsList === 'function') return FC.views.openInvestorsList();
+      return false;
     },
 
     // backward compat
@@ -349,33 +331,40 @@
       return true;
     },
     'open-investor': ({event, element}) => {
-      const id = element?.getAttribute ? element.getAttribute('data-inv-id') : null;
+      const id = element && element.getAttribute ? element.getAttribute('data-inv-id') : null;
       if(!id) return true;
-
-      try{
-        const persistence = (window.FC && window.FC.investorPersistence) ? window.FC.investorPersistence : null;
-        if(persistence && typeof persistence.setCurrentInvestorId === 'function') persistence.setCurrentInvestorId(id);
-        try{ if(window.FC && window.FC.investorProjectRuntime && typeof window.FC.investorProjectRuntime.setActiveProjectFromInvestor === 'function') window.FC.investorProjectRuntime.setActiveProjectFromInvestor(id); }catch(_){ }
-        if(typeof uiState !== 'undefined' && uiState) uiState.currentInvestorId = id;
-        // move to full workflow and open INWESTOR tab
+      const activate = ()=>{
         try{
+          const persistence = FC.investorPersistence;
+          if(!(persistence && typeof persistence.setCurrentInvestorId === 'function')) return false;
+          persistence.setCurrentInvestorId(id);
+          const actualId = typeof persistence.getCurrentInvestorId === 'function' ? persistence.getCurrentInvestorId() : '';
+          if(String(actualId || '') !== String(id)) return false;
+          if(FC.investorProjectRuntime && typeof FC.investorProjectRuntime.setActiveProjectFromInvestor === 'function') FC.investorProjectRuntime.setActiveProjectFromInvestor(id);
+          const selected = FC.projectStore && FC.projectStore.getCurrentRecord ? FC.projectStore.getCurrentRecord() : null;
+          if(!selected || String(selected.investorId || '') !== String(id)) return false;
           if(typeof uiState !== 'undefined' && uiState){
+            uiState.currentInvestorId = id;
             uiState.entry = 'rooms';
             uiState.activeTab = 'inwestor';
             FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+            if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
           }
-          if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
-        }catch(_){ }
-        if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
-          window.FC.investorUI.state.selectedId = id;
-          window.FC.investorUI.state.mode = 'detail';
-          window.FC.investorUI.state.allowListAccess = false;
-          window.FC.investorUI.state.newlyCreatedId = null;
-          window.FC.investorUI.state.transientInvestor = null;
-        }
-        try{ window.FC.investorUI && window.FC.investorUI.render && window.FC.investorUI.render(); }catch(_){ }
-      }catch(_){ }
-      return true;
+          if(FC.investorUI && FC.investorUI.state){
+            FC.investorUI.state.selectedId = id;
+            FC.investorUI.state.mode = 'detail';
+            FC.investorUI.state.allowListAccess = false;
+            FC.investorUI.state.newlyCreatedId = null;
+            FC.investorUI.state.transientInvestor = null;
+          }
+          if(FC.investorUI && FC.investorUI.render) FC.investorUI.render();
+          return true;
+        }catch(_){ return false; }
+      };
+      const nav = FC.sessionNavigation;
+      if(nav && typeof nav.requestTransition === 'function') return nav.requestTransition('projektu inwestora', activate);
+      if(FC.session && FC.session.active) return false;
+      return activate();
     },
     'back-investors': ({event}) => {
       try{
@@ -490,21 +479,25 @@
     },
 
     'open-room': ({event, element}) => {
-      if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock()) return true;
-      const room = element.getAttribute('data-room');
-      // Enter room editor
-      uiState.roomType = room;
-      uiState.lastRoomType = room;
-      // From investor screen we want a fast jump to pricing. From other placeholder screens, go to WYWIAD.
-      if(uiState.activeTab === 'inwestor') uiState.activeTab = 'wywiad';
-      else if(uiState.activeTab === 'pokoje' || uiState.activeTab === 'rozrys' || uiState.activeTab === 'magazyn') uiState.activeTab = 'wywiad';
-      uiState.entry = 'app';
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      if(FC.views && FC.views.openRoom) FC.views.openRoom(room);
-
-      // Ensure tab content refreshes immediately after the navigation.
-      try{ if(typeof setActiveTab === 'function' && uiState && uiState.activeTab) setActiveTab(uiState.activeTab); }catch(_){ }
-      return true;
+      if(FC.investorEditorState && typeof FC.investorEditorState.hasUiLock === 'function' && FC.investorEditorState.hasUiLock()) return false;
+      const room = element && element.getAttribute ? String(element.getAttribute('data-room') || '') : '';
+      if(!room) return false;
+      const activate = ()=>{
+        if(FC.session && FC.session.canSwitchRoom && !FC.session.canSwitchRoom(room)) return false;
+        uiState.roomType = room;
+        uiState.lastRoomType = room;
+        if(uiState.activeTab === 'inwestor' || uiState.activeTab === 'pokoje'
+          || uiState.activeTab === 'rozrys' || uiState.activeTab === 'magazyn') uiState.activeTab = 'wywiad';
+        uiState.entry = 'app';
+        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+        if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
+        if(typeof setActiveTab === 'function' && uiState.activeTab) setActiveTab(uiState.activeTab);
+        return true;
+      };
+      const nav = FC.sessionNavigation;
+      if(nav && typeof nav.requestTransition === 'function') return nav.requestTransition('projektu pomieszczenia', activate);
+      if(FC.session && FC.session.active && FC.session.canSwitchRoom && !FC.session.canSwitchRoom(room)) return false;
+      return activate();
     },
 
     'tab': ({event, element}) => {
