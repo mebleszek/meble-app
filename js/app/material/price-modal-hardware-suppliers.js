@@ -21,9 +21,9 @@
   }
   function getStore(){ return ctx.catalogStore && ctx.catalogStore(); }
   function getSuppliers(){ const store = getStore(); return store && typeof store.getHardwareSuppliers === 'function' ? store.getHardwareSuppliers() : []; }
-  function saveSuppliers(list){ const store = getStore(); return store && typeof store.saveHardwareSuppliers === 'function' ? store.saveHardwareSuppliers(list) : []; }
+  function saveSuppliers(list){ const store = getStore(); if(!(store && store.saveHardwareSuppliers)) throw new Error('Magazyn katalogu jest niedostępny.'); return store.saveHardwareSuppliers(list); }
   function getSettings(){ const store = getStore(); return store && typeof store.getHardwareSettings === 'function' ? store.getHardwareSettings() : {}; }
-  function saveSettings(settings){ const store = getStore(); return store && typeof store.saveHardwareSettings === 'function' ? store.saveHardwareSettings(settings) : settings; }
+  function saveSettings(settings){ const store = getStore(); if(!(store && store.saveHardwareSettings)) throw new Error('Magazyn katalogu jest niedostępny.'); return store.saveHardwareSettings(settings); }
   function normalize(value){ return String(value == null ? '' : value).trim(); }
   function number(value){ const n = Number(String(value == null ? '' : value).replace(',', '.')); return Number.isFinite(n) ? n : 0; }
   function uid(name){ return normalize(name).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || ('supplier_' + Date.now()); }
@@ -75,7 +75,7 @@
     input.addEventListener('keydown', (event)=>{ if(event && event.key === 'Enter'){ event.preventDefault(); addCurrent(); } });
     backBtn.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
     saveBtn.addEventListener('click', ()=>{
-      saveSuppliers(list);
+      try{ saveSuppliers(list); }catch(error){ if(ctx.info) ctx.info(error && error.partial ? 'Zapis częściowy' : (error && error.code === 'CATALOG_RECOVERY_REQUIRED' ? 'Wymagane odzyskanie katalogu' : 'Nie zapisano danych'), String(error && error.message || error)); return; }
       try{ ctx.syncFilterSelects && ctx.syncFilterSelects(); ctx.mountFilterChoices && ctx.mountFilterChoices(); ctx.renderPriceList && ctx.renderPriceList(); }catch(_){ }
       try{ FC.panelBox.close(); }catch(_){ }
     });
@@ -124,7 +124,7 @@
     body.appendChild(h('div', { class:'muted', style:'margin-top:10px;line-height:1.35', text:'VAT jest globalny dla całego katalogu okuć. Rabat zostaje przy dostawcy.' }));
     backBtn.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
     saveBtn.addEventListener('click', ()=>{
-      saveSettings({ defaultSupplierId:supplierSelect.value, defaultVatRate:number(vat.value) || 23, defaultMarkupPercent:number(markup.value), defaultQuoteBase:quoteBase.value || 'catalogGross', defaultPricingMode:pricingMode.value || 'markup' });
+      try{ saveSettings({ defaultSupplierId:supplierSelect.value, defaultVatRate:number(vat.value) || 23, defaultMarkupPercent:number(markup.value), defaultQuoteBase:quoteBase.value || 'catalogGross', defaultPricingMode:pricingMode.value || 'markup' }); }catch(error){ if(ctx.info) ctx.info(error && error.partial ? 'Zapis częściowy' : (error && error.code === 'CATALOG_RECOVERY_REQUIRED' ? 'Wymagane odzyskanie katalogu' : 'Nie zapisano danych'), String(error && error.message || error)); return; }
       try{ FC.panelBox.close(); }catch(_){ }
     });
     footer.appendChild(backBtn); footer.appendChild(saveBtn); body.appendChild(footer);

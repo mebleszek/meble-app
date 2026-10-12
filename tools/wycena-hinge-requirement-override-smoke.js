@@ -2,6 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { makeStorage } = require('./app-dev-smoke-lib/smoke-storage');
 const root = path.resolve(__dirname, '..');
 
 function assert(cond, msg){
@@ -20,7 +21,7 @@ function slug(value){
 }
 
 function loadContext(){
-  const storage = { getItem(){ return null; }, setItem(){}, removeItem(){} };
+  const storage = makeStorage();
   const FC = {
     utils:{ slug },
     frontHardware:{
@@ -69,6 +70,7 @@ function loadContext(){
   ctx.globalThis = ctx.window;
   vm.createContext(ctx);
   [
+    'js/app/shared/storage.js',
     'js/app/catalog/hardware-technical-params.js',
     'js/app/catalog/hardware-catalog.js',
     'js/app/catalog/hardware-catalog-seed-data.js',

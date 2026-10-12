@@ -24,7 +24,10 @@
   function info(title, message){ try{ if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title, message }); }catch(_){ } }
   function catalog(){ return FC.catalogStore || null; }
   function getMaterials(){ try{ return catalog() && catalog().getSheetMaterials ? catalog().getSheetMaterials() : []; }catch(_){ return []; } }
-  function saveMaterials(list){ try{ return catalog() && catalog().savePriceList ? catalog().savePriceList('materials', list) : list; }catch(_){ return list; } }
+  function saveMaterials(list){
+    if(!(catalog() && catalog().savePriceList)) throw new Error('Magazyn materiałów jest niedostępny.');
+    return catalog().savePriceList('materials', list);
+  }
   function materialKey(row){ return parser() && parser().makeMaterialKey ? parser().makeMaterialKey(row && row.materialSymbol, row && row.thickness) : `${text(row && row.materialSymbol).toLowerCase()}|${text(row && row.thickness)}`; }
   function findMaterial(row, materials){
     const symbol = text(row && row.materialSymbol).toLowerCase();
@@ -225,7 +228,9 @@
     closeBtn.addEventListener('click', closeSelf);
     applyBtn.addEventListener('click', ()=>{
       if(!(parsed && parsed.ok)) return;
-      const materialMap = buildResolvedMaterialMap(parsed.rows, missingState);
+      let materialMap;
+      try{ materialMap = buildResolvedMaterialMap(parsed.rows, missingState); }
+      catch(error){ info(error && error.partial ? 'Zapis częściowy' : 'Nie zapisano materiałów', String(error && error.message || error)); return; }
       const importedParts = rowsToParts(parsed.rows, materialMap);
       const firstPart = importedParts[0] || null;
       const current = cfg.draft && typeof cfg.draft === 'object' ? clone(cfg.draft) : {};

@@ -70,14 +70,27 @@
     return cloneFallback(fallback, cloneFn);
   }
 
+  // Success preserves the data-returning API; failure is explicit and never falls back to a second writer.
   function writeJSON(storage, constantsKeys, logicalKey, value){
     const primary = resolveKey(constantsKeys, logicalKey);
     const legacy = legacyKey(logicalKey);
     try{
-      if(storage && typeof storage.setJSON === 'function') storage.setJSON(primary, value);
-    }catch(_){ }
-    const primarySaved = readRaw(storage, primary) != null;
-    if(primarySaved && legacy && legacy !== primary && readRaw(storage, legacy) != null) removeRaw(storage, legacy);
+      const raw = JSON.stringify(value);
+      if(storage && typeof storage.setJSON === 'function'){
+        if(storage.setJSON(primary, value) === false) throw new Error('Magazyn odrzucił zapis.');
+      }else if(typeof localStorage !== 'undefined'){
+        if(localStorage.setItem(primary, raw) === false) throw new Error('Magazyn odrzucił zapis.');
+      }
+      else throw new Error('Magazyn danych jest niedostępny.');
+      if(readRaw(storage, primary) !== raw) throw new Error('Nie potwierdzono zapisanej wartości.');
+    }catch(cause){
+      const error = new Error('Nie udało się zapisać danych globalnych (' + primary + '). Spróbuj ponownie.');
+      error.code = 'GLOBAL_WRITE_FAILED';
+      error.key = primary;
+      error.cause = cause;
+      throw error;
+    }
+    if(legacy && legacy !== primary && readRaw(storage, legacy) != null) removeRaw(storage, legacy);
     return value;
   }
 

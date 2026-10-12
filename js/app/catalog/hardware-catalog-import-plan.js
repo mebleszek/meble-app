@@ -218,13 +218,18 @@
     const s = store();
     if(plan && plan.errors && plan.errors.length) throw new Error('Import ma błędy walidacji.');
     if(!(s && typeof s.savePriceList === 'function')) throw new Error('Brak zapisu katalogu.');
-    if(s.saveHardwareSettings) s.saveHardwareSettings(plan.next.settings || {});
-    if(s.saveHardwareSuppliers) s.saveHardwareSuppliers(plan.next.suppliers || []);
-    if(s.saveHardwareCategories) s.saveHardwareCategories(plan.next.categories || []);
-    if(s.saveHardwareTypes) s.saveHardwareTypes(plan.next.types || []);
-    if(s.saveHardwareTechnicalParams) s.saveHardwareTechnicalParams(plan.next.technicalParams || []);
-    s.savePriceList('accessories', plan.next.accessories || []);
-    if(s.saveHardwareManufacturers) s.saveHardwareManufacturers(plan.next.manufacturers || []);
+    const confirmedKeys = [];
+    const saved = (logical, action)=>{ action(); confirmedKeys.push((FC.constants && FC.constants.STORAGE_KEYS && FC.constants.STORAGE_KEYS[logical]) || logical); };
+    try{
+      if(s.saveHardwareSettings) saved('hardwareSettings', ()=>s.saveHardwareSettings(plan.next.settings || {}));
+      if(s.saveHardwareSuppliers) saved('hardwareSuppliers', ()=>s.saveHardwareSuppliers(plan.next.suppliers || []));
+      if(s.saveHardwareCategories) saved('hardwareCategories', ()=>s.saveHardwareCategories(plan.next.categories || []));
+      if(s.saveHardwareTypes) saved('hardwareTypes', ()=>s.saveHardwareTypes(plan.next.types || []));
+      if(s.saveHardwareTechnicalParams) saved('hardwareTechnicalParams', ()=>s.saveHardwareTechnicalParams(plan.next.technicalParams || []));
+      saved('accessories', ()=>s.savePriceList('accessories', plan.next.accessories || []));
+      if(s.saveHardwareManufacturers) saved('hardwareManufacturers', ()=>s.saveHardwareManufacturers(plan.next.manufacturers || []));
+    }catch(error){ throw s.markPartialWrite ? s.markPartialWrite(error, confirmedKeys) : error; }
+
     return plan.summary || {};
   }
 

@@ -131,7 +131,9 @@
     resetBtn.addEventListener('click', ()=>{ draft = FC.companyProfile.normalizeProfile(FC.companyProfile.DEFAULT_COMPANY_PROFILE); render(scroll); });
     cancelBtn.addEventListener('click', ()=> render(scroll));
     saveBtn.addEventListener('click', ()=>{
-      draft = FC.companyProfile.write(draft);
+      const saved = FC.companyProfile.write(draft);
+      if(!saved){ if(dom.info) dom.info('Nie zapisano danych', 'Zmiany pozostały w formularzu. Spróbuj ponownie.'); return; }
+      draft = saved;
       refreshSummary();
       if(dom.info) dom.info('Zapisano', 'Dane firmy i ustawienia transportu zostały zapisane.');
     });

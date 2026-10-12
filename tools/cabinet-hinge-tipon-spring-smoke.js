@@ -2,12 +2,13 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { makeStorage } = require('./app-dev-smoke-lib/smoke-storage');
 const root = path.resolve(__dirname, '..');
 function assert(cond, msg){ if(!cond) throw new Error(msg); }
 function slug(v){ return String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'x'; }
 
 function loadContext(){
-  const storage = { getItem(){ return null; }, setItem(){}, removeItem(){} };
+  const storage = makeStorage();
   const FC = {
     frontHardware:{
       getDoorFrontPanelsForHinges(_room, cab){
@@ -31,6 +32,7 @@ function loadContext(){
   ctx.globalThis = ctx.window;
   vm.createContext(ctx);
   [
+    'js/app/shared/storage.js',
     'js/app/catalog/hardware-technical-params.js',
     'js/app/catalog/hardware-catalog.js',
     'js/app/catalog/hardware-catalog-seed-data.js',

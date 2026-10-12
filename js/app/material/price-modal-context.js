@@ -25,7 +25,14 @@
   }
   function currentList(){ return catalogStore() && catalogStore().getPriceList ? catalogStore().getPriceList(currentListKind()) : []; }
   function persistUi(){ try{ FC.storage.setJSON(STORAGE_KEYS.ui, appUiState()); }catch(_){ } }
-  function saveCurrentList(next){ if(catalogStore() && typeof catalogStore().savePriceList === 'function') catalogStore().savePriceList(currentListKind(), next); }
+  function saveCurrentList(next){
+    try{
+      const store = catalogStore();
+      if(!(store && typeof store.savePriceList === 'function')) throw new Error('Magazyn katalogu jest niedostępny.');
+      if(!Array.isArray(store.savePriceList(currentListKind(), next))) throw new Error('Nie potwierdzono zapisu katalogu.');
+      return true;
+    }catch(error){ info(error && error.partial ? 'Zapis częściowy' : (error && error.code === 'CATALOG_RECOVERY_REQUIRED' ? 'Wymagane odzyskanie katalogu' : 'Nie zapisano danych'), String(error && error.message || 'Zmiany pozostały w formularzu. Spróbuj ponownie.')); return false; }
+  }
   function normalizeKey(value){ return String(value == null ? '' : value).trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' '); }
   function info(title, message){ try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title, message }); }catch(_){ } }
   function askConfirm(opts){ try{ return FC.confirmBox && FC.confirmBox.ask ? FC.confirmBox.ask(opts || {}) : Promise.resolve(true); }catch(_){ return Promise.resolve(true); } }

@@ -104,7 +104,10 @@
     });
     const s = store();
     if(!(s && typeof s.savePriceList === 'function')) return { ok:false, message:'Brak magazynu cennika. Nie można zapisać stawek.' };
-    s.savePriceList('quoteRates', normalizedRates.concat(nonHourly));
+    try{
+      const saved = s.savePriceList('quoteRates', normalizedRates.concat(nonHourly));
+      if(!Array.isArray(saved)) return { ok:false, message:'Nie udało się zapisać stawek. Zmiany pozostały w formularzu.' };
+    }catch(error){ return { ok:false, message:String(error && error.message || 'Nie udało się zapisać stawek.') }; }
     return { ok:true, rows:read() };
   }
 
