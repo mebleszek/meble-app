@@ -44,8 +44,8 @@
     return requireDeps().selectionApi.decodeSelectedRooms(selection);
   }
 
-  function createQuoteValidationError(message, details){
-    return requireDeps().selectionApi.createQuoteValidationError(message, details);
+  function createQuoteValidationError(...args){
+    return requireDeps().selectionApi.createQuoteValidationError(...args);
   }
 
   function validateQuoteSelection(selection){
@@ -76,6 +76,11 @@
   }
 
   async function collectQuoteData(options){
+    const nav = FC.sessionNavigation;
+    const context = nav && nav.calculationContext ? nav.calculationContext() : null;
+    if((nav && !context) || (FC.session && FC.session.active)){
+      throw createQuoteValidationError('active_edit', 'Najpierw zakończ edycję', 'Zapisz lub anuluj edycję przed obliczeniem nowej wyceny.');
+    }
     const totalStart = perfNow();
     const deps = requireDeps();
     const perf = {
@@ -191,6 +196,9 @@
       generatedAt: Date.now(),
     };
     deps.selectionApi.validateQuoteContent(result);
+    if(nav && !nav.calculationUnchanged(context)){
+      throw createQuoteValidationError('calculation_context_changed', 'Dane projektu zmieniły się', 'Nie zapisano wyceny. Ponów kalkulację na aktualnych danych.');
+    }
     recordQuotePerformance(perf);
     return result;
   }

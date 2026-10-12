@@ -76,11 +76,10 @@
       if(FC.projectStatusSync && typeof FC.projectStatusSync.setInvestorRoomStatus === 'function'){
         const result = FC.projectStatusSync.setInvestorRoomStatus(investorId, targetRoomId, nextStatus, { syncSelection:true });
         const investor = result && result.investor ? result.investor : getInvestorById(investorId);
-        return opts.returnDetails ? { applied:true, blocked:false, investor, result:result || null } : investor;
+        return opts.returnDetails ? { applied:!!(result && result.ok === true), blocked:!(result && result.ok === true), investor, result:result || null } : investor;
       }
     }catch(_){ }
-    const investor = updateInvestorRoom(investorId, targetRoomId, { projectStatus:nextStatus, lastManualProjectStatus:nextStatus });
-    return opts.returnDetails ? { applied:true, blocked:false, investor, result:null } : investor;
+    return opts.returnDetails ? { applied:false, blocked:true, investor:currentInvestor, result:null } : currentInvestor;
   }
 
 
@@ -101,12 +100,12 @@
           preserveCurrentWhenNoQuoteRows: Object.prototype.hasOwnProperty.call(opts, 'preserveCurrentWhenNoQuoteRows') ? !!opts.preserveCurrentWhenNoQuoteRows : true,
         });
         const investor = result && result.investor ? result.investor : getInvestorById(investorId);
-        return opts.returnDetails ? { applied:true, blocked:false, investor, result:result || null } : investor;
+        return opts.returnDetails ? { applied:!!(result && result.ok === true), blocked:!(result && result.ok === true), investor, result:result || null } : investor;
       }
     }catch(_){ }
-    ids.forEach((roomId)=> updateInvestorRoom(investorId, roomId, { projectStatus:nextStatus, lastManualProjectStatus:nextStatus }));
+    // Missing/failed confirmed status service must not fall back to a mirror-only write.
     const investor = getInvestorById(investorId);
-    return opts.returnDetails ? { applied:true, blocked:false, investor, result:null } : investor;
+    return opts.returnDetails ? { applied:false, blocked:true, investor, result:null } : investor;
   }
 
   function removeInvestor(id){

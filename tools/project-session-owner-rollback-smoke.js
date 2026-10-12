@@ -28,7 +28,7 @@ function runtime(seed){
   s.FC.investors={getCurrentId:()=>investor,setCurrentId(id){investor=id;storage.setItem('fc_current_investor_v1',id||'');return id;},create(){throw Error('blocked create must not run');},remove(){throw Error('blocked remove must not run');}};
   for(const file of ['js/app/shared/constants.js','js/app/shared/storage.js','js/app/project/project-model.js','js/app/project/project-store.js',
     'js/app/project/project-bridge.js','js/app/investor/investor-project-repository.js','js/app/investor/investor-project-runtime.js',
-    'js/app/investor/investor-project-patches.js','js/app/investor/session.js','js/app/ui/actions-register.js','js/app/ui/session-navigation.js']){
+    'js/app/investor/investor-project-patches.js','js/app/investor/session.js','js/app/project/project-domain-operations.js','js/app/ui/actions-register.js','js/app/ui/session-navigation.js']){
     vm.runInContext(fs.readFileSync(path.join(ROOT,file),'utf8'),s,{filename:file});
   }
   const FC=s.FC;
@@ -121,7 +121,7 @@ test('Untracked owner modification is a conflict, not cancellation success',()=>
   assert.equal(r.storage.getItem(PROJECTS),before);assert.equal(r.storage.calls.length,0);assert.equal(r.FC.project.saveConfirmed(r.s.projectData).ok,false);
 });
 test('Container changed during merge causes conflict without overwriting new B',()=>{
-  const r=edited(),raw=r.storage.getItem(SESSION);let reads=0;r.storage.onRead=key=>{if(key===PROJECTS&&++reads===2){const rows=JSON.parse(r.storage.rows.get(PROJECTS));rows.find(row=>row.id==='B').projectData.room.cabinets[0].width=83;r.storage.rows.set(PROJECTS,JSON.stringify(rows));}};
+  const r=edited(),raw=r.storage.getItem(SESSION);let reads=0;r.storage.onRead=key=>{if(key===PROJECTS&&++reads===3){const rows=JSON.parse(r.storage.rows.get(PROJECTS));rows.find(row=>row.id==='B').projectData.room.cabinets[0].width=83;r.storage.rows.set(PROJECTS,JSON.stringify(rows));}};
   assert.equal(r.session.cancel(),false);r.storage.onRead=null;preserved(r,raw);assert.equal(r.row('B').projectData.room.cabinets[0].width,83);
 });
 test('Saving B cannot adopt an externally modified A as a session-owned revision',()=>{
@@ -264,4 +264,6 @@ test('C2.0b back or cancel failure cannot enter ROZRYS',async()=>{
   assert.equal(entered,1);assert.equal(r.session.active,false);
   assert.equal(r.row('A').projectData.room.cabinets[0].width,60);
 });
-(async()=>{for(const [name,fn] of tests){await fn();console.log('PASS '+name);}console.log('Project-owned session rollback: '+tests.length+'/'+tests.length+' PASS');})().catch(error=>{console.error(error);process.exitCode=1;});
+if(require.main === module) (async()=>{for(const [name,fn] of tests){await fn();console.log('PASS '+name);}console.log('Project-owned session rollback: '+tests.length+'/'+tests.length+' PASS');})().catch(error=>{console.error(error);process.exitCode=1;});
+
+module.exports = { runtime, multiRoom, updateOther };

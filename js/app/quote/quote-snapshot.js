@@ -397,6 +397,9 @@
   }
 
   function saveSnapshot(snapshot){
+    if((FC.sessionNavigation && !FC.sessionNavigation.canCalculate()) || (FC.session && FC.session.active)){
+      throw new Error('Najpierw zakończ edycję projektu. Nie utrwalono oferty.');
+    }
     const normalized = buildSnapshot(snapshot);
     if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.save === 'function') return FC.quoteSnapshotStore.save(normalized);
     return normalized;

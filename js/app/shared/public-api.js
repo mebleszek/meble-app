@@ -13,9 +13,12 @@
         try{
           if(FC.session && FC.session.canSwitchRoom && !FC.session.canSwitchRoom(room)) return false;
           if(typeof uiState === 'undefined' || !uiState) return false;
+          const proposed = Object.assign({}, uiState, { roomType:room, entry:'app', activeTab:'wywiad', currentInvestorId:FC.investors && FC.investors.getCurrentId() });
+          if(FC.sessionNavigation && !FC.sessionNavigation.prepareEditState(proposed,true)) return false;
           uiState.roomType = room;
           uiState.entry = 'app';
           uiState.activeTab = 'wywiad';
+          uiState.currentInvestorId = proposed.currentInvestorId;
           FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
           if(FC.views && typeof FC.views.applyFromState === 'function') FC.views.applyFromState(uiState);
           else{
@@ -33,9 +36,8 @@
         }catch(_){ return false; }
       };
       const nav = FC.sessionNavigation;
-      if(nav && typeof nav.requestTransition === 'function') return nav.requestTransition('innego pomieszczenia', open);
-      if(FC.session && FC.session.active) return false;
-      return open();
+      if(nav && typeof nav.requestTransition === 'function') return nav.requestTransition('innego pomieszczenia', open, { roomId:room });
+      return false; // Missing navigation gate cannot open an unsecured editor.
     };
 
     FC.setActiveTabSafe = function(tab){

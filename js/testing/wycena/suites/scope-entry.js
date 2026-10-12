@@ -110,13 +110,13 @@
         });
       }),
 
-    H.makeTest('Wycena ↔ Scope wejścia', 'Otwarcie istniejącej wyceny scoped nie tworzy duplikatu i ustawia draft oraz podgląd właściwej wersji', 'Pilnuje, czy wybór „Otwórz istniejącą” ładuje dokładnie tę wersję do Wyceny zamiast generować nowy snapshot albo podmieniać scope.', ()=>{
+    H.makeTest('Wycena ↔ Scope wejścia', 'Otwarcie istniejącej wyceny scoped nie tworzy duplikatu i ustawia draft oraz podgląd właściwej wersji', 'Pilnuje, czy wybór „Otwórz istniejącą” ładuje dokładnie tę wersję do Wyceny zamiast generować nowy snapshot albo podmieniać scope.', async ()=>{
         H.assert(FC.quoteScopeEntry && typeof FC.quoteScopeEntry.openExistingSnapshot === 'function', 'Brak FC.quoteScopeEntry.openExistingSnapshot');
         H.assert(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.showSnapshotPreview === 'function', 'Brak FC.wycenaTabDebug.showSnapshotPreview');
-        withInvestorProjectFixture({}, ({ investorId, projectId })=>{
+        await withInvestorProjectFixture({}, async ({ investorId, projectId })=>{
           const saved = FC.quoteSnapshotStore.save({ id:'snap_scope_open_existing', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope open' }, scope:{ selectedRooms:['room_kuchnia_gora','room_salon'], roomLabels:['Kuchnia góra','Salon'] }, commercial:{ preliminary:true, versionName:'Wspólna pre 2' }, totals:{ grand:240 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820446000 });
           const beforeCount = FC.quoteSnapshotStore.listForProject(projectId).length;
-          const result = FC.quoteScopeEntry.openExistingSnapshot(saved, 'wstepna_wycena');
+          const result = await FC.quoteScopeEntry.openExistingSnapshot(saved, 'wstepna_wycena');
           const draft = FC.quoteOfferStore.getCurrentDraft();
           const afterCount = FC.quoteSnapshotStore.listForProject(projectId).length;
           H.assert(result && String(result.action || '') === 'opened-existing', 'Otwarcie istniejącej wyceny nie zwróciło poprawnej akcji', result);
@@ -143,7 +143,7 @@
           let finalNotice = null;
           try{
             H.assert(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function', 'Brak FC.wycenaCore.buildQuoteSnapshot');
-            FC.wycenaCore.buildQuoteSnapshot = async ({ selection })=> ({
+            FC.wycenaCore.buildQuoteSnapshot = async ({ selection })=> FC.quoteSnapshotStore.save({
               id:`snap_pre_${Array.isArray(selection && selection.selectedRooms) ? selection.selectedRooms.join('_') : 'scope'}`,
               investor:{ id:investorId },
               project:{ id:projectId, investorId, title:'Projekt notice pre' },
@@ -161,7 +161,7 @@
               notifyCreated:(scope)=> { prelimNotice = scope; }
             });
             H.assert(prelimNotice && Array.isArray(prelimNotice.roomIds) && prelimNotice.roomIds.join('|') === 'room_salon', 'Nowa wycena wstępna nie wywołała prostego potwierdzenia utworzenia', prelimNotice);
-            FC.wycenaCore.buildQuoteSnapshot = async ({ selection })=> ({
+            FC.wycenaCore.buildQuoteSnapshot = async ({ selection })=> FC.quoteSnapshotStore.save({
               id:`snap_final_${Array.isArray(selection && selection.selectedRooms) ? selection.selectedRooms.join('_') : 'scope'}`,
               investor:{ id:investorId },
               project:{ id:projectId, investorId, title:'Projekt notice final' },
@@ -263,7 +263,7 @@
           try{
             H.assert(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function', 'Brak FC.wycenaCore.buildQuoteSnapshot');
             H.assert(FC.infoBox && typeof FC.infoBox.open === 'function', 'Brak FC.infoBox.open');
-            FC.wycenaCore.buildQuoteSnapshot = async ({ selection })=> ({
+            FC.wycenaCore.buildQuoteSnapshot = async ({ selection })=> FC.quoteSnapshotStore.save({
               id:`snap_notice_${Array.isArray(selection && selection.selectedRooms) ? selection.selectedRooms.join('_') : 'scope'}`,
               investor:{ id:investorId },
               project:{ id:projectId, investorId, title:'Projekt notice info' },

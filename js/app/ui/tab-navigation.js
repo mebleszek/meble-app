@@ -13,6 +13,8 @@
 
   function applyTab(tabName){
     if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock() && tabName !== 'inwestor') return;
+    const proposed = Object.assign({}, uiState, { activeTab:tabName });
+    if(FC.sessionNavigation && !FC.sessionNavigation.prepareEditState(proposed)) return false;
     if(tabName === 'wywiad' && !uiState.roomType){
       uiState.entry = 'rooms';
     }
@@ -48,13 +50,12 @@
 
   function setActiveTab(tabName){
     const name = String(tabName || '');
-    if(name === 'wycena' || name === 'rozrys'){
+    if(['pokoje','wycena','rozrys'].includes(name)){
       const nav = window.FC && window.FC.sessionNavigation;
       if(nav && typeof nav.requestTransition === 'function'){
-        const destination = name === 'wycena' ? 'WYCENY' : 'ROZRYSU';
-        return nav.requestTransition(destination, ()=> applyTab(name), { refreshCentral:true });
+        return nav.requestTransition(name === 'pokoje' ? 'listy pomieszczeń' : name.toUpperCase(), ()=> applyTab(name));
       }
-      // Never allow an unguarded calculation tab when session-navigation did not load.
+      // Read-only calculation tabs keep the edit owner; generation has its own gate.
       if(window.FC && window.FC.session && window.FC.session.active) return false;
     }
     return applyTab(name);

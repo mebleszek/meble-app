@@ -153,6 +153,8 @@
 
   function applyFromState(state){
     const st = state || (FC.uiState && FC.uiState.get ? FC.uiState.get() : {});
+    if(!FC.sessionNavigation && st.entry === 'app' && st.roomType) return false;
+    if(FC.sessionNavigation && !FC.sessionNavigation.prepareEditState(st)) return false;
     const entry = st && st.entry ? st.entry : 'home';
     const tab = st && st.activeTab ? st.activeTab : null;
     const currentInvestorId = readCurrentInvestorId(st);
@@ -213,9 +215,12 @@
   }
 
   function openRoom(room){
-    if(!room) return;
-    const nextState = setUiStatePatch({ entry:'app', roomType:room });
-    applyFromState(nextState || { entry:'app', roomType:room });
+    if(!room) return false;
+    const patch = { entry:'app', roomType:room, activeTab:'wywiad', currentInvestorId:FC.investors && FC.investors.getCurrentId() };
+    const proposed = Object.assign({}, typeof uiState !== 'undefined' ? uiState : {}, patch);
+    if(FC.sessionNavigation && !FC.sessionNavigation.prepareEditState(proposed,true)) return false;
+    const nextState = setUiStatePatch(patch);
+    return applyFromState(nextState || proposed) !== false;
   }
 
   function back(){
@@ -229,22 +234,27 @@
     return openHome();
   }
 
-  function guardedView(destination, action){
+  function guardedView(destination, action, options){
     const nav = FC.sessionNavigation;
-    if(nav && typeof nav.requestTransition === 'function') return nav.requestTransition(destination, action);
+    if(nav && typeof nav.requestTransition === 'function') return nav.requestTransition(destination, action, options);
     if(FC.session && FC.session.active) return false;
     return action();
   }
 
   FC.views = FC.views || {};
-  FC.views.showHome = showHome;
-  FC.views.showModeHub = showModeHub;
-  FC.views.showInvestorsList = showInvestorsList;
-  FC.views.showServiceOrdersList = showServiceOrdersList;
-  FC.views.showRooms = showRooms;
-  FC.views.showApp = showApp;
+  const directView = (patch, action)=>{
+    const state = Object.assign({}, typeof uiState !== 'undefined' ? uiState : {}, patch);
+    if(FC.sessionNavigation && !FC.sessionNavigation.canApplyUiState(state)) return false;
+    return action();
+  };
+  FC.views.showHome = ()=> directView({ entry:'home' }, showHome);
+  FC.views.showModeHub = mode=> directView({ entry:'modeHub' }, ()=> showModeHub(mode));
+  FC.views.showInvestorsList = ()=> directView({ entry:'investorsList' }, showInvestorsList);
+  FC.views.showServiceOrdersList = ()=> directView({ entry:'serviceOrdersList' }, showServiceOrdersList);
+  FC.views.showRooms = ()=> directView({ roomType:null }, showRooms);
+  FC.views.showApp = ()=>{ const state = typeof uiState !== 'undefined' ? uiState : {}; return FC.sessionNavigation && !FC.sessionNavigation.prepareEditState(state) ? false : showApp(); };
   FC.views.showInvestor = showInvestor;
-  FC.views.showRozrys = showRozrys;
+  FC.views.showRozrys = ()=>directView({activeTab:'rozrys'},showRozrys);
   FC.views.showMagazyn = showMagazyn;
   FC.views.applyFromState = applyFromState;
   FC.views.openHome = (...args)=> guardedView('strony głównej', ()=> openHome(...args));
@@ -252,7 +262,7 @@
   FC.views.openInvestorsList = (...args)=> guardedView('listy inwestorów', ()=> openInvestorsList(...args));
   FC.views.openServiceOrdersList = (...args)=> guardedView('listy zleceń', ()=> openServiceOrdersList(...args));
   FC.views.openRooms = (...args)=> guardedView('listy pomieszczeń', ()=> openRooms(...args));
-  FC.views.openRoom = (...args)=> guardedView('innego pomieszczenia', ()=> openRoom(...args));
+  FC.views.openRoom = room=> FC.sessionNavigation ? guardedView('innego pomieszczenia', ()=> openRoom(room), { roomId:room }) : false;
   FC.views.back = (...args)=> guardedView('poprzedniego ekranu', ()=> back(...args));
   FC.views.refreshSessionButtons = refreshSessionButtons;
   FC.views.shouldOpenRoomlessWycena = shouldOpenRoomlessWycena;

@@ -882,6 +882,7 @@ function runWycenaNodeSmoke(sandbox){
       return files.every((file)=> {
         const html = fs.readFileSync(path.join(process.cwd(), file), 'utf8');
         return scripts.every((script)=> {
+          if(script === 'wycena-core.js') return html.includes(`js/app/wycena/${script}?v=20261012_c2_0b`);
           const legacyExpected = script === 'wycena-core-lines.js' ? legacyChangedExpected : legacyBaseExpected;
           return html.includes(`js/app/wycena/${script}?v=${legacyExpected}`) || html.includes(`js/app/wycena/${script}?v=${newerExpected}`) || html.includes(`js/app/wycena/${script}?v=${currentExpected}`) || html.includes(`js/app/wycena/${script}?v=${registerExpected}`) || html.includes(`js/app/wycena/${script}?v=${detailsModalExpected}`) || html.includes(`js/app/wycena/${script}?v=${auditMaterialsExpected}`) || html.includes(`js/app/wycena/${script}?v=${pcvTruthExpected}`) || html.includes(`js/app/wycena/${script}?v=${hingeCatalogExpected}`) || html.includes(`js/app/wycena/${script}?v=${singleTruthPreLaborExpected}`) || html.includes(`js/app/wycena/${script}?v=${laborSingleTruthExpected}`) || html.includes(`js/app/wycena/${script}?v=${detailAccordionScrollExpected}`);
         });

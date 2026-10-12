@@ -82,16 +82,21 @@
     notifyBlocked('Najpierw zakończ sesję przyciskiem Zapisz lub Anuluj. Inwestor nie został przełączony.');
     return false;
   }
-  function canSaveProject(){
+  function canSaveProject(openingRoom){
     if(!session.active) return true;
+    if(FC.projectDomainOperations && FC.projectDomainOperations.hasPending(session.projectId)) return fail('PENDING_DOMAIN_OPERATION','Najpierw dokończ operację projektu.');
     const current = resolveSessionContext();
+    if(openingRoom) current.roomId = String(openingRoom);
     if(session.projectId && current.projectId === session.projectId
       && (!session.roomId || current.roomId === session.roomId)
       && !(session.context && session.context.investorId && current.investorId && current.investorId !== session.context.investorId)){
       try{
-        const record = scopeRaw(localStorage.getItem(PROJECTS_KEY));
+        const raw = localStorage.getItem(PROJECTS_KEY);
+        const owner = JSON.parse(ownerRaw(raw));
+        if(owner && owner.meta && owner.meta.pendingDomainOperation) return fail('PENDING_DOMAIN_OPERATION','Najpierw dokończ operację projektu.');
+        const record = scopeRaw(raw);
         const before = scopeRaw(session.snapshot[PROJECTS_KEY]);
-        if(!session.expectedOwnerKnown || record === session.expectedOwnerRaw || record === before) return true;
+        if(record === before || (session.expectedOwnerKnown && record === session.expectedOwnerRaw)) return true;
       }catch(_){ }
       fail('PROJECT_WRITE_CONFLICT', 'Nie potwierdzono aktualnej wersji właściciela sesji. Zapis został wstrzymany; zachowano snapshot.');
       notifyBlocked(session.lastError.message);
@@ -120,6 +125,7 @@
       if(current === before) return true;
       const rows = projectRows(observed);
       const index = rows.findIndex(row=>String(row.id) === session.projectId);
+      if(index >= 0 && rows[index].meta && rows[index].meta.pendingDomainOperation) return fail('PENDING_DOMAIN_OPERATION','Nie cofnięto niedokończonej operacji projektu.');
       if(session.roomId){
         // Never restore an entire investor record from a room-scoped snapshot.
         if(index < 0) return fail('SESSION_OWNER_MISSING', 'Rekord centralny zniknął. Nie przywrócono go starszą kopią.');
@@ -140,6 +146,9 @@
         }
       }else if(index >= 0) rows[index] = JSON.parse(before);
       else rows.push(JSON.parse(before));
+      if(session.roomId && FC.projectModel && typeof FC.projectModel.summarizeProjectData === 'function'){
+        Object.assign(rows[index], FC.projectModel.summarizeProjectData(rows[index].projectData));
+      }
       const next = JSON.stringify(rows);
       // Optimistic conflict check: never write a merge built from a stale container.
       if(localStorage.getItem(PROJECTS_KEY) !== observed) return fail('PROJECT_WRITE_CONFLICT', 'Magazyn projektów zmienił się podczas przygotowania cofnięcia. Spróbuj ponownie.');
@@ -417,6 +426,12 @@
       try{ session.projectId = resolveOwner(context, session.snapshot, parsed.projectId); }catch(_){ session.projectId = ''; }
       // Old v3 snapshots cannot be silently reinterpreted as room-scoped.
       session.roomId = Number(parsed.schemaVersion || 0) >= SESSION_SCHEMA_VERSION ? String(parsed.roomId || '') : '';
+      if(session.roomId){
+        try{
+          const owner = JSON.parse(ownerRaw(session.snapshot[PROJECTS_KEY]));
+          if(String(context.roomId || '') !== session.roomId || !hasOwn(owner.projectData, session.roomId)) session.projectId = '';
+        }catch(_){ session.projectId = ''; }
+      }
       if(session.snapshot) session.snapshot = Object.fromEntries(Object.entries(session.snapshot).filter(([key])=> canSnapshotKey(key)));
       session.expectedOwnerKnown = Number(parsed.schemaVersion || 0) >= SESSION_SCHEMA_VERSION && parsed.expectedOwnerKnown === true;
       session.expectedOwnerRaw = session.expectedOwnerKnown ? parsed.expectedOwnerRaw : null;
@@ -451,13 +466,18 @@
     suspendTracking: false,
     lastDirtyCheckAt: 0,
     lastDirtyValue: false,
-    begin(){
-      if(session.active && !canSaveProject()) return false;
+    begin(openingRoom){
+      if(FC.projectDomainOperations && FC.projectDomainOperations.hasPending(session.projectId || resolveSessionContext().projectId)){
+        notifyBlocked('Najpierw dokończ odzyskiwanie operacji projektu. Edytor nie został otwarty.');
+        return false;
+      }
+      if(session.active && !canSaveProject(openingRoom)) return false;
       // Idempotent: once we started an edit session, do not overwrite the snapshot.
       if(!(session.active && session.snapshot)){
         const keys = getKeysToSnapshot();
         const snap = {};
         const context = resolveSessionContext();
+        if(openingRoom) context.roomId = String(openingRoom);
         try{
           keys.forEach((k)=> { snap[k] = localStorage.getItem(k); });
           session.projectId = resolveOwner(context, snap);
@@ -470,7 +490,13 @@
         // Only bind room ownership when the room exists in the durable baseline.
         // Structural room creation/deletion remains outside this edit scope.
         const owner = JSON.parse(ownerRaw(snap[PROJECTS_KEY]));
+        if(owner.meta && owner.meta.pendingDomainOperation) return fail('PENDING_DOMAIN_OPERATION','Najpierw dokończ operację projektu.');
         const candidateRoom = String(context.roomId || '');
+        if(candidateRoom && !hasOwn(owner.projectData, candidateRoom)){
+          fail('SESSION_ROOM_MISSING', 'Pomieszczenie nie istnieje w trwałym projekcie. Wstrzymano edycję; nie utworzono sesji całego inwestora.');
+          notifyBlocked(session.lastError.message);
+          return false;
+        }
         session.roomId = candidateRoom && owner.projectData && hasOwn(owner.projectData,candidateRoom) ? candidateRoom : '';
         session.snapshot = snap;
         session.expectedOwnerRaw = scopeRaw(snap[PROJECTS_KEY]);
@@ -498,6 +524,7 @@
           session.active = true;
           return false;
         }
+        if(FC.sessionNavigation && FC.sessionNavigation.sessionFinished) FC.sessionNavigation.sessionFinished({projectId:session.projectId,roomId:session.roomId});
         session.snapshot = null;
         session.comparableKeys = null;
         session.startedAt = 0;
@@ -518,6 +545,7 @@
     cancel(){
       return withTrackingSuspended(()=> {
         session.lastError = null;
+        if(FC.projectDomainOperations && FC.projectDomainOperations.hasPending(session.projectId)) return fail('PENDING_DOMAIN_OPERATION','Nie cofnięto niedokończonej operacji projektu.');
         if(session.snapshot){
           if(!session.projectId) return fail('SESSION_OWNER_MISSING', 'Nie ustalono właściciela starego snapshotu. Automatyczne cofnięcie zostało zablokowane; zachowano sesję i dane.');
           try{
@@ -538,6 +566,7 @@
           invalidateDirtyCache();
           return false;
         }
+        if(FC.sessionNavigation && FC.sessionNavigation.sessionFinished) FC.sessionNavigation.sessionFinished({projectId:session.projectId,roomId:session.roomId});
         session.snapshot = null;
         session.comparableKeys = null;
         session.startedAt = 0;

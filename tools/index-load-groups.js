@@ -41,6 +41,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/project/project-bridge.js",
       "js/app/shared/ui-state.js",
       "js/app/investor/session.js",
+  "js/app/project/project-domain-operations.js",
       "js/app/investor/investors-model.js",
       "js/app/investor/investors-local-repository.js",
       "js/app/investor/investors-recovery.js",

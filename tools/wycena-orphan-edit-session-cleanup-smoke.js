@@ -116,8 +116,9 @@ function runCacheBustCheck(){
     'js/app/wycena/wycena-diagnostics.js',
     'js/app/wycena/wycena-tab-shell.js',
   ].forEach((script)=>{
-    assert(index.includes(`${script}?v=${version}`), `index.html nie ma cache-bustingu ${version} dla ${script}`);
-    assert(dev.includes(`${script}?v=${version}`), `dev_tests.html nie ma cache-bustingu ${version} dla ${script}`);
+    const expectedVersion = ['js/app/investor/session.js', 'js/app/wycena/wycena-tab-shell.js', 'js/app/quote/quote-snapshot-store.js'].includes(script) ? '20261012_c2_0b' : version;
+    assert(index.includes(`${script}?v=${expectedVersion}`), `index.html nie ma cache-bustingu ${version} dla ${script}`);
+    assert(dev.includes(`${script}?v=${expectedVersion}`), `dev_tests.html nie ma cache-bustingu ${version} dla ${script}`);
   });
 }
 

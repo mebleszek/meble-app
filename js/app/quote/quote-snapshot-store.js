@@ -964,7 +964,7 @@
     return factory;
   }
 
-  const selectionApi = requireSelectionFactory()({
+  const selectionDependencies = {
     FINAL_STATUSES,
     normalizeStatus,
     readAll,
@@ -983,7 +983,20 @@
     getRejectReason,
     getCanonicalDefaultVersionName,
     buildScopedVersionName,
-  });
+  };
+  const selectionApi = requireSelectionFactory()(selectionDependencies);
+  // Same selection rules on a private list, without storage writes or repricing.
+  function previewSelection(method, args, sourceRows){
+    let rows = clone(Array.isArray(sourceRows) ? sourceRows : readAll());
+    const api = requireSelectionFactory()(Object.assign({},selectionDependencies,{
+      readAll:()=>clone(rows), writeAll:value=>{ rows = clone(value); return rows; },
+      getById:id=>clone(rows.find(row=>String(row.id) === String(id)) || null),
+      listForProject:id=>clone(rows.filter(row=>String(row.project && row.project.id) === String(id))),
+    }));
+    if(typeof api[method] !== 'function') throw Error('Unknown selection operation');
+    const result = api[method](...(args || []));
+    return { rows, result };
+  }
 
   const markSelectedForProject = selectionApi.markSelectedForProject;
   const syncSelectionForProjectStatus = selectionApi.syncSelectionForProjectStatus;
@@ -1009,6 +1022,7 @@
     isCurrentStoredSnapshot,
     limitSnapshotHistory,
     markSelectedForProject,
+    previewSelection,
     syncSelectionForProjectStatus,
     getRecommendedStatusForProject,
     getRecommendedStatusMapForProject,

@@ -109,10 +109,16 @@
       if(cloned.meta && cloned.meta.roomDefs && typeof cloned.meta.roomDefs === 'object'){
         delete cloned.meta.roomDefs[roomId];
       }
-      return JSON.stringify(cloned);
+      return cloned;
     };
     // Refuse edits of global metadata, room order or other rooms in this narrow session.
-    if(withoutOwnedRoom(input) !== withoutOwnedRoom(baseline)) return null;
+    const inputRest = withoutOwnedRoom(input), baselineRest = withoutOwnedRoom(baseline), currentRest = withoutOwnedRoom(current);
+    // A successful merge returns current data from other rooms. Accept those fresh
+    // values as well as the original stale values, but never write them back.
+    for(const key of new Set([...Object.keys(inputRest), ...Object.keys(baselineRest), ...Object.keys(currentRest)])){
+      const raw = JSON.stringify(inputRest[key]);
+      if(raw !== JSON.stringify(baselineRest[key]) && raw !== JSON.stringify(currentRest[key])) return null;
+    }
     const merged = JSON.parse(JSON.stringify(current));
     merged[roomId] = input[roomId];
     const sourceDefs = input.meta && input.meta.roomDefs || {};
@@ -136,12 +142,16 @@
     const blocked = { ok:false, project:normalized };
     if(FC.session && FC.session.canSaveProject && !FC.session.canSaveProject()) return blocked;
     const before = currentCentralRecord();
+    if(before && before.meta && before.meta.pendingDomainOperation) return blocked;
     const investorId = getCurrentInvestorId();
     if(before && investorId && String(before.investorId || '') !== investorId) return blocked;
     const session = FC.session;
+    if(session && session.active && session.durable !== true
+      && !(typeof session.begin === 'function' && session.begin() === true)) return blocked;
     const narrow = !!(session && session.active && session.roomId);
     if(narrow && (!before || String(before.id) !== String(session.projectId))) return blocked;
-    const projectToWrite = narrow ? scopedProjectData(normalized, before, session) : normalized;
+    let projectToWrite = null;
+    try{ projectToWrite = narrow ? scopedProjectData(normalized, before, session) : normalized; }catch(_){ return blocked; }
     if(!projectToWrite) return blocked;
     let saved = null;
 

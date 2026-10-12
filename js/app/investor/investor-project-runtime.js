@@ -5,6 +5,7 @@
   window.FC = window.FC || {};
   const FC = window.FC;
   const repo = FC.investorProjectRepository || {};
+  let bootLoaded = false;
 
   function clone(obj){
     try{ return FC.utils && typeof FC.utils.clone === 'function' ? FC.utils.clone(obj) : JSON.parse(JSON.stringify(obj)); }
@@ -81,21 +82,37 @@
     try{ if(FC.sections && typeof FC.sections.update === 'function') FC.sections.update(); }catch(_){ }
   }
 
-  function setActiveProjectFromInvestor(id){
+  function activateProjectFromInvestor(id, initialRead){
     if(!id) return;
     if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor(id)) return;
+    // Re-entering the same investor must not replace an active local draft.
+    if(FC.session && FC.session.active) return false;
     try{
+      const store = FC.projectStore;
+      const current = store && store.getCurrentRecord ? store.getCurrentRecord() : null;
+      const target = store && store.getByInvestorId ? store.getByInvestorId(id) : null;
+      if(!target) return false;
+      if(!initialRead && typeof projectData !== 'undefined' && projectData){
+        const ram = JSON.stringify(comparableProjectData(projectData));
+        if(ram !== JSON.stringify(comparableProjectData(current && current.projectData))
+          && ram !== JSON.stringify(comparableProjectData(target.projectData))) return false;
+      }
       const proj = loadProjectFor(id);
+      if(store.getCurrentProjectId() !== String(target.id)) return false;
       try{ proj.meta = proj.meta || {}; proj.meta.assignedInvestorId = id; }catch(_){ }
       try{
         if(typeof projectData !== 'undefined') projectData = proj;
       }catch(_){ }
       persistAsActiveProject(proj);
       refreshProjectUi();
-    }catch(_){ }
+      return true;
+    }catch(_){ return false; }
   }
 
+  function setActiveProjectFromInvestor(id){ return activateProjectFromInvestor(id, false); }
+
   function ensureInvestorProjectLoadedOnBoot(){
+    if(bootLoaded) return;
     const id = repo && typeof repo.getCurrentInvestorId === 'function' ? repo.getCurrentInvestorId() : null;
     if(!id) return;
     if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor(id)) return;
@@ -110,7 +127,7 @@
       }
     }catch(_){ centralProject = null; }
     if(centralProject){
-      setActiveProjectFromInvestor(id);
+      bootLoaded = activateProjectFromInvestor(id, true) === true;
       return;
     }
 
@@ -119,7 +136,7 @@
     // Brak rekordu centralnego oznacza utworzenie nowego rekordu centralnego.
     // Istniejący legacy slot nie jest importowany automatycznie w zwykłym bootcie.
     writeProjectFor(id, proj);
-    setActiveProjectFromInvestor(id);
+    bootLoaded = activateProjectFromInvestor(id, true) === true;
   }
 
   function refreshSessionButtons(){

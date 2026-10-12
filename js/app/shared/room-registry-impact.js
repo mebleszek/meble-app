@@ -169,9 +169,9 @@
     if(snapshots.length){
       if(snapshots.length <= 3){
         const names = snapshots.map((snapshot)=> `• ${getSnapshotVersionName(snapshot)}`).join('\n');
-        lines.push(`Zostaną też usunięte powiązane wyceny:\n${names}`);
+        lines.push(`Historyczne wyceny zostaną zachowane z pierwotnym zakresem:\n${names}`);
       } else {
-        lines.push(`Zostanie też usuniętych ${snapshots.length} wycen powiązanych z tym pomieszczeniem.`);
+        lines.push(`Historyczne wyceny (${snapshots.length}) zostaną zachowane z pierwotnym zakresem.`);
       }
     }
 

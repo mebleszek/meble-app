@@ -111,7 +111,7 @@
   }
 
 
-  FC.actions.register({
+  const actions = {
     'wycena-generate': ({event}) => {
       try{
         if(window.FC && FC.wycenaGenerateAction && typeof FC.wycenaGenerateAction.run === 'function'){
@@ -255,7 +255,7 @@
           }catch(_){ }
           return true;
         }
-        try{ if(typeof uiState !== 'undefined' && window.FC && FC.storage && typeof FC.storage.setJSON === 'function') FC.storage.setJSON(STORAGE_KEYS.ui, uiState); }catch(_){ }
+        try{ if(FC.uiState && typeof uiState !== 'undefined') uiState = FC.uiState.set({entry:'rooms',activeTab:'pokoje',roomType:null,lastRoomType:null,selectedCabinetId:null}); }catch(_){ }
         try{ restoreProjectUiAfterSessionChange(); }catch(_){ }
         try{ window.location.reload(); }catch(_){ }
         return true;
@@ -465,13 +465,8 @@
         if(window.FC && window.FC.roomRegistry && typeof window.FC.roomRegistry.openAddRoomModal === 'function'){
           const room = await window.FC.roomRegistry.openAddRoomModal();
           if(room){
-            uiState.roomType = room.id;
-            uiState.lastRoomType = room.id;
-            uiState.activeTab = 'wywiad';
-            uiState.entry = 'app';
-            FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
             try{ if(window.FC.roomRegistry.renderRoomsView) window.FC.roomRegistry.renderRoomsView(); }catch(_){ }
-            if(FC.views && FC.views.openRoom) FC.views.openRoom(room.id);
+            if(FC.views && FC.views.openRoom) await FC.views.openRoom(room.id);
           }
         }
       }catch(_){ }
@@ -479,25 +474,9 @@
     },
 
     'open-room': ({event, element}) => {
-      if(FC.investorEditorState && typeof FC.investorEditorState.hasUiLock === 'function' && FC.investorEditorState.hasUiLock()) return false;
+      if(FC.investorEditorState && FC.investorEditorState.hasUiLock && FC.investorEditorState.hasUiLock()) return false;
       const room = element && element.getAttribute ? String(element.getAttribute('data-room') || '') : '';
-      if(!room) return false;
-      const activate = ()=>{
-        if(FC.session && FC.session.canSwitchRoom && !FC.session.canSwitchRoom(room)) return false;
-        uiState.roomType = room;
-        uiState.lastRoomType = room;
-        if(uiState.activeTab === 'inwestor' || uiState.activeTab === 'pokoje'
-          || uiState.activeTab === 'rozrys' || uiState.activeTab === 'magazyn') uiState.activeTab = 'wywiad';
-        uiState.entry = 'app';
-        FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-        if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
-        if(typeof setActiveTab === 'function' && uiState.activeTab) setActiveTab(uiState.activeTab);
-        return true;
-      };
-      const nav = FC.sessionNavigation;
-      if(nav && typeof nav.requestTransition === 'function') return nav.requestTransition('projektu pomieszczenia', activate);
-      if(FC.session && FC.session.active && FC.session.canSwitchRoom && !FC.session.canSwitchRoom(room)) return false;
-      return activate();
+      return room && FC.views && FC.views.openRoom ? FC.views.openRoom(room) : false;
     },
 
     'tab': ({event, element}) => {
@@ -506,5 +485,16 @@
       setActiveTab(tab);
       return true;
     },
+  };
+  // Guard destructive/context-changing actions before their first RAM or UI mutation.
+  ['new-investor','create-investor','back-investors','assign-investor','delete-investor','new-project'].forEach(name=> {
+    const action = actions[name];
+    actions[name] = args=> {
+      const nav = FC.sessionNavigation;
+      if(nav && nav.needsClosure()) return nav.requestTransition('wybranej operacji', ()=> action(args));
+      if(FC.session && FC.session.active) return false;
+      return action(args);
+    };
   });
+  FC.actions.register(actions);
 })();

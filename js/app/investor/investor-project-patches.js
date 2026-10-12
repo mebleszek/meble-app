@@ -17,8 +17,14 @@
         const prev = repo().getCurrentInvestorId && repo().getCurrentInvestorId();
         if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor(id)) return prev || null;
         if(prev && prev !== id && runtime().saveActiveProjectToInvestor) runtime().saveActiveProjectToInvestor(prev);
-        origSetCurrent(id);
-        if(id && prev !== id && runtime().setActiveProjectFromInvestor) runtime().setActiveProjectFromInvestor(id);
+        try{ origSetCurrent(id); }catch(_){ return prev || null; }
+        if(String(FC.investors.getCurrentId() || '') !== String(id || '')) return prev || null;
+        if(id && prev !== id && runtime().setActiveProjectFromInvestor
+          && runtime().setActiveProjectFromInvestor(id) === false){
+          try{ origSetCurrent(prev || null); }catch(_){ }
+          return prev || null;
+        }
+        return id || null;
       };
       FC.investors.__patchedProject = true;
     }
@@ -45,6 +51,7 @@
     if(typeof FC.investors.remove === 'function' && !FC.investors.__patchedRemoveProject){
       const origRemove = FC.investors.remove.bind(FC.investors);
       FC.investors.remove = function(id){
+        if(FC.projectStore && FC.projectStore.readAll().some(row=>String(row.investorId) === String(id) && row.meta && row.meta.pendingDomainOperation)) return false;
         if(FC.session && FC.session.active && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor('')) return false;
         try{ if(repo().removeCentralProjectByInvestor) repo().removeCentralProjectByInvestor(id); }catch(_){ }
         try{ if(repo().removeLegacySlot) repo().removeLegacySlot(id); }catch(_){ }

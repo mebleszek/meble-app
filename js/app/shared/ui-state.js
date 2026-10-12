@@ -45,6 +45,7 @@
 
   function save(state){
     const s = normalize(state);
+    if(FC.sessionNavigation && !FC.sessionNavigation.prepareEditState(s)) return load();
     if(FC.storage && FC.storage.setJSON) FC.storage.setJSON(STORAGE_KEYS.ui, s);
     return s;
   }

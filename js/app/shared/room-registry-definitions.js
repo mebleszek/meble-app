@@ -102,15 +102,15 @@
   }
 
   function getProjectRoomDefs(proj){
-    const meta = ensureProjectMeta(proj);
+    const meta = proj && proj.meta && typeof proj.meta === 'object' ? proj.meta : {};
     const defs = [];
     if(meta){
-      meta.roomOrder.forEach((id)=>{
-        const raw = meta.roomDefs[id];
+      (Array.isArray(meta.roomOrder) ? meta.roomOrder : []).forEach((id)=>{
+        const raw = (meta.roomDefs || {})[id];
         if(raw && !defs.find((x)=> x.id === id)) defs.push(normalizeRoomDef(raw, { id, baseType: raw.baseType || id }));
       });
-      Object.keys(meta.roomDefs).forEach((id)=>{
-        const raw = meta.roomDefs[id];
+      Object.keys(meta.roomDefs || {}).forEach((id)=>{
+        const raw = (meta.roomDefs || {})[id];
         if(raw && !defs.find((x)=> x.id === id)) defs.push(normalizeRoomDef(raw, { id, baseType: raw.baseType || id }));
       });
     }
@@ -129,7 +129,7 @@
   }
 
   function buildProjectMetaSignature(proj){
-    const meta = ensureProjectMeta(proj);
+    const meta = proj && proj.meta && typeof proj.meta === 'object' ? proj.meta : {};
     if(meta && meta.roomDefs && Object.keys(meta.roomDefs).length){
       const orderedIds = [];
       const seen = new Set();
@@ -195,14 +195,11 @@
     const projectMetaRooms = getProjectRoomDefs(proj);
     const projectMap = new Map(projectMetaRooms.map((room)=> [room.id, room]));
 
-    if(inv && Array.isArray(inv.rooms) && inv.rooms.length){
-      inv.rooms.forEach((room)=>{
-        const id = String((room && room.id) || '');
-        push(Object.assign({}, projectMap.get(id) || {}, room || {}, { id }));
-      });
-    }else{
-      projectMetaRooms.filter((room)=> String(room.id || '').startsWith('room_')).forEach(push);
-    }
+    // Canonical project definitions win over an incomplete compatibility mirror.
+    projectMetaRooms.filter(room=>String(room.id || '').startsWith('room_')).forEach(room=>{
+      const mirror = inv && Array.isArray(inv.rooms) ? inv.rooms.find(item=>item.id === room.id) : null;
+      push(Object.assign({},mirror || {},room));
+    });
 
     if(hasLegacyKitchen(proj) && !seen.has('kuchnia')) push(createLegacyKitchenDef());
     return defs;

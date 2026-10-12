@@ -4,6 +4,8 @@
   window.FC = window.FC || {};
   const FC = window.FC;
   let pending = false;
+  let applying = false;
+  let finishedScope = null;
 
   function isDivergent(){
     try{
@@ -21,10 +23,18 @@
   function reloadCentral(){
     try{
       if(!(FC.project && typeof FC.project.load === 'function')) return false;
+      if(FC.projectStore){
+        const id = FC.projectStore.getCurrentProjectId();
+        const rows = JSON.parse(localStorage.getItem(FC.projectStore.PROJECTS_KEY));
+        const matches = Array.isArray(rows) ? rows.filter(row=>row && String(row.id) === String(id)) : [];
+        const investorId = FC.investors && FC.investors.getCurrentId ? FC.investors.getCurrentId() : localStorage.getItem('fc_current_investor_v1');
+        if(!id || matches.length !== 1 || !matches[0].projectData
+          || (investorId && String(matches[0].investorId || '') !== String(investorId))) return false;
+      }
       const loaded = FC.project.load();
       if(!(loaded && typeof loaded === 'object')) return false;
       if(typeof projectData !== 'undefined') projectData = loaded;
-      else window.projectData = loaded;
+      window.projectData = loaded;
       return true;
     }catch(_){ return false; }
   }
@@ -37,6 +47,8 @@
       const data = typeof projectData !== 'undefined' ? projectData : window.projectData;
       const result = FC.project.saveConfirmed(data);
       if(!(result && result.ok === true)) return false;
+      if(typeof projectData !== 'undefined') projectData = result.project;
+      window.projectData = result.project;
       if(typeof session.commit !== 'function' || session.commit() !== true) return false;
     }else if(action === 'discard'){
       if(typeof session.cancel !== 'function' || session.cancel() !== true) return false;
@@ -44,11 +56,17 @@
     return reloadCentral();
   }
   async function requestTransition(destination, onApproved, options){
-    if(pending) return false;
+    if(pending){
+      if(applying && !needsClosure()) return typeof onApproved === 'function' ? (await onApproved()) !== false : true;
+      return false;
+    }
     pending = true;
     try{
       const cfg = options || {};
-      if(needsClosure()){
+      const session = FC.session;
+      const sameRoom = cfg.roomId && session && session.active && String(cfg.roomId) === session.roomId
+        && FC.projectStore && FC.projectStore.getCurrentProjectId() === session.projectId;
+      if(needsClosure() && !sameRoom){
         const session = FC.session;
         if(!(session && typeof session.begin === 'function')) return false;
         // An untracked RAM edit must receive a durable baseline before a user can discard it.
@@ -78,17 +96,75 @@
         message('Nie udało się odczytać projektu', 'Nie potwierdzono aktualnych danych projektu. Nie przełączono widoku.');
         return false;
       }
-      return typeof onApproved === 'function' ? (await onApproved()) !== false : true;
+      applying = true;
+      let result;
+      try{ result = typeof onApproved === 'function' ? onApproved() : true; }
+      finally{ applying = false; }
+      return (await result) !== false;
     }catch(_){
       message('Nie można przełączyć widoku', 'Operacja została wstrzymana. Sprawdź sesję i spróbuj ponownie.');
       return false;
-    }finally{ pending = false; }
+    }finally{ applying = false; pending = false; }
+  }
+  function isEditState(state){
+    return !!(state && state.entry === 'app' && state.roomType
+      && !['wycena','rozrys','pokoje','inwestor'].includes(String(state.activeTab || 'wywiad')));
+  }
+  function prepareEditState(state, reopen){
+    if(!canApplyUiState(state)) return false;
+    if(!isEditState(state)) return true;
+    if(!reopen && !(FC.session && FC.session.active) && finishedScope
+      && finishedScope.projectId === FC.projectStore.getCurrentProjectId() && finishedScope.roomId === String(state.roomType)) return true;
+    try{
+      const record = FC.projectStore && FC.projectStore.getCurrentRecord();
+      const investor = FC.investors && FC.investors.getCurrentId();
+      if(!record || String(record.investorId) !== String(investor || '')
+        || !Object.prototype.hasOwnProperty.call(record.projectData || {}, String(state.roomType))) return false;
+      if(FC.projectDomainOperations && !FC.projectDomainOperations.recoverProject(record.id).ok) return false;
+      if(FC.session && !FC.session.active){
+        if(isDivergent() || !reloadCentral()) return false;
+      }
+      if(!(FC.session && FC.session.begin(state.roomType) === true)) return false;
+      finishedScope = null;
+      return true;
+    }catch(_){ return false; }
+  }
+  function canApplyUiState(next){
+    const session = FC.session;
+    if(!(session && session.active)) return true;
+    const state = next || {};
+    const context = session.context || {};
+    const room = String(session.roomId || context.roomId || '');
+    const investor = String(context.investorId || '');
+    if((FC.projectStore && FC.projectStore.getCurrentProjectId() !== session.projectId)
+      || ['home','modeHub','investorsList','serviceOrdersList'].includes(String(state.entry || ''))
+      || ['wycena','rozrys','pokoje'].includes(String(state.activeTab || ''))
+      || (room && String(state.roomType || '') !== room)
+      || (investor && String(state.currentInvestorId || '') !== investor)){
+      message('Najpierw zakończ edycję', 'Użyj Zapisz lub Anuluj. Zachowano bieżący projekt i sesję.');
+      return false;
+    }
+    return true;
   }
   // Strict direct entry point for actions bypassing the tab router.
   function canCalculate(){
+    if(FC.projectDomainOperations && !FC.projectDomainOperations.recoverProject(FC.projectStore.getCurrentProjectId()).ok) return false;
     if(!needsClosure()) return true;
     message('Najpierw zakończ edycję', 'Zapisz lub anuluj zmiany przed obliczeniem ROZRYSU lub utworzeniem WYCENY.');
     return false;
   }
-  FC.sessionNavigation = { requestTransition, needsClosure, canCalculate, confirmedFinish, reloadCentral };
+  function calculationContext(){
+    if(!canCalculate() || !reloadCentral()) return null;
+    if(FC.rozrys && FC.rozrys.__projectOverride) FC.rozrys.__projectOverride = window.projectData;
+    return {
+      projectId:FC.projectStore.getCurrentProjectId(),
+      raw:localStorage.getItem(FC.projectStore.PROJECTS_KEY),
+    };
+  }
+  function calculationUnchanged(context){
+    return !!(context && !needsClosure() && FC.projectStore
+      && FC.projectStore.getCurrentProjectId() === context.projectId
+      && localStorage.getItem(FC.projectStore.PROJECTS_KEY) === context.raw);
+  }
+  FC.sessionNavigation = { requestTransition, needsClosure, canCalculate, confirmedFinish, reloadCentral, canApplyUiState, calculationContext, calculationUnchanged, prepareEditState, isEditState, sessionFinished:scope=>{ finishedScope = scope; } };
 })();

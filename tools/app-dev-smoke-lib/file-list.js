@@ -116,6 +116,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/investor/investors-recovery.js',
   'js/app/investor/investors-store.js',
   'js/app/investor/session.js',
+  'js/app/project/project-domain-operations.js',
   'js/app/investor/investor-persistence.js',
   'js/app/investor/investor-navigation-guard.js',
   'js/app/investor/investor-pdf.js',

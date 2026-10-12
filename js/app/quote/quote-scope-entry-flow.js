@@ -59,8 +59,8 @@
 
   function openWycenaTab(){
     try{
-      if(typeof window.setActiveTab === 'function') window.setActiveTab('wycena');
-      else if(FC.tabNavigation && typeof FC.tabNavigation.setActiveTab === 'function') FC.tabNavigation.setActiveTab('wycena');
+      if(typeof window.setActiveTab === 'function') return window.setActiveTab('wycena');
+      else if(FC.tabNavigation && typeof FC.tabNavigation.setActiveTab === 'function') return FC.tabNavigation.setActiveTab('wycena');
     }catch(_){ }
   }
 
@@ -92,7 +92,7 @@
 
   function syncScopeStatus(snapshot, status){
     try{
-      if(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.setProjectStatusFromSnapshot === 'function') FC.wycenaTabDebug.setProjectStatusFromSnapshot(snapshot, status, { syncSelection:true });
+      if(FC.wycenaTabDebug && typeof FC.wycenaTabDebug.setProjectStatusFromSnapshot === 'function') return FC.wycenaTabDebug.setProjectStatusFromSnapshot(snapshot, status, { syncSelection:true });
     }catch(_){ }
   }
 
@@ -104,7 +104,7 @@
     }catch(_){ }
   }
 
-  function openExistingSnapshot(snapshot, status){
+  function applyExistingSnapshot(snapshot, openTab){
     const snap = snapshot && typeof snapshot === 'object' ? clone(snapshot) : null;
     if(!snap) throw new Error('Brak istniejącej wyceny do otwarcia');
     const roomIds = normalizeRoomIds(snap && snap.scope && snap.scope.selectedRooms);
@@ -112,30 +112,38 @@
     const versionName = getEffectiveVersionName(snap);
     patchDraftForScope(roomIds, preliminary, versionName, { versionName:true });
     previewSnapshot(String(snap && snap.id || ''));
-    if(status) syncScopeStatus(snap, status);
-    openWycenaTab();
+    // Viewing history never changes selection/statuses or recalculates archived values.
+    if(openTab !== false) openWycenaTab();
     return { action:'opened-existing', cancelled:false, snapshot:snap, roomIds, preliminary };
   }
 
+  function openExistingSnapshot(snapshot, status){
+    const nav = FC.sessionNavigation;
+    if(!nav) return Promise.resolve(false);
+    let result = null;
+    return nav.requestTransition('WYCENY',()=>{ result = applyExistingSnapshot(snapshot); },{refreshCentral:true}).then(allowed=>allowed ? result : false);
+  }
   async function createNewSnapshot(projectId, investorId, roomIds, preliminary, versionName, options){
     const ids = normalizeRoomIds(roomIds);
     if(!ids.length) throw new Error('Brak wybranego zakresu pomieszczeń');
     const opts = options && typeof options === 'object' ? options : {};
     const scopeSummary = getScopeSummary(ids);
-    if(FC.investors && typeof FC.investors.setCurrentId === 'function' && investorId) FC.investors.setCurrentId(String(investorId || ''));
-    if(FC.projectStore && typeof FC.projectStore.setCurrentProjectId === 'function' && projectId) FC.projectStore.setCurrentProjectId(String(projectId || ''));
+    if((FC.session && FC.session.active) || getCurrentProjectId() !== String(projectId) || getCurrentInvestorId() !== String(investorId)) throw Error('Kontekst projektu zmienił się. Ponów wejście do WYCENY.');
     patchDraftForScope(ids, preliminary, versionName, { versionName:true });
     if(!(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function')) throw new Error('Brak wycenaCore.buildQuoteSnapshot');
     const snapshot = await FC.wycenaCore.buildQuoteSnapshot({ selection:{ selectedRooms: ids } });
     if(!snapshot || snapshot.error) throw new Error(String(snapshot && snapshot.error || 'Nie udało się utworzyć wyceny.'));
-    if(opts.status) syncScopeStatus(snapshot, opts.status);
+    if(opts.status){
+      const result = syncScopeStatus(snapshot, opts.status);
+      if(!(result && result.ok === true)) throw Error('Oferta została zapisana, ale nie potwierdzono statusów. Ponów dokończenie operacji.');
+    }
     previewSnapshot(String(snapshot && snapshot.id || ''));
     if(!(opts.openTab === false)) openWycenaTab();
     if(preliminary) await notifyCreatedPreliminary(scopeSummary, opts);
     return { action:'created-new', cancelled:false, snapshot, roomIds:ids, preliminary:!!preliminary, scope:scopeSummary };
   }
 
-  async function ensureScopedQuoteEntry(options){
+  async function applyScopedQuoteEntry(options){
     const opts = options && typeof options === 'object' ? options : {};
     const preliminary = normalizeType(opts);
     const projectId = String(opts.projectId || getCurrentProjectId() || '');
@@ -144,23 +152,38 @@
     if(!projectId) throw new Error('Brak projektu dla wybranego inwestora');
     if(!scope.roomIds.length) throw new Error('Brak wybranego pomieszczenia lub zakresu');
     const status = String(opts.status || (preliminary ? 'wstepna_wycena' : 'wycena') || '').trim().toLowerCase();
+    const contextValid = ()=>getCurrentProjectId() === projectId && getCurrentInvestorId() === investorId && !(FC.session && FC.session.active);
+    if(!contextValid()) throw Error('Nie potwierdzono kontekstu projektu.');
     const existing = findExactScopeSnapshot(projectId, scope.roomIds, { preliminary, includeRejected:false });
     if(existing){
       const decision = typeof opts.chooseAction === 'function'
         ? await opts.chooseAction({ projectId, investorId, scope:clone(scope), preliminary, existingSnapshot:clone(existing) })
         : await Modal.openExistingOrCreateModal(scope, preliminary, existing);
+      if(!contextValid()) throw Error('Kontekst projektu zmienił się.');
       if(!decision || decision.cancelled) return { cancelled:true, action:'cancelled', roomIds:scope.roomIds, preliminary };
-      if(decision.action === 'open-existing') return openExistingSnapshot(existing, status);
+      if(decision.action === 'open-existing') return applyExistingSnapshot(existing,false);
       const naming = typeof opts.chooseName === 'function'
         ? await opts.chooseName({ projectId, investorId, scope:clone(scope), preliminary, suggestedVersionName:buildSuggestedVersionName(projectId, scope.roomIds, preliminary) })
         : await Modal.openNameModal(projectId, scope, preliminary);
+      if(!contextValid()) throw Error('Kontekst projektu zmienił się.');
       if(!naming || naming.cancelled) return { cancelled:true, action:'cancelled', roomIds:scope.roomIds, preliminary };
-      return createNewSnapshot(projectId, investorId, scope.roomIds, preliminary, naming.versionName, { status, openTab: opts.openTab !== false, notifyCreated: opts.notifyCreated });
+      return createNewSnapshot(projectId, investorId, scope.roomIds, preliminary, naming.versionName, { status, openTab:false, notifyCreated: opts.notifyCreated });
     }
     const initialName = buildSuggestedVersionName(projectId, scope.roomIds, preliminary);
-    return createNewSnapshot(projectId, investorId, scope.roomIds, preliminary, initialName, { status, openTab: opts.openTab !== false, notifyCreated: opts.notifyCreated });
+    return createNewSnapshot(projectId, investorId, scope.roomIds, preliminary, initialName, { status, openTab:false, notifyCreated: opts.notifyCreated });
   }
 
+  async function ensureScopedQuoteEntry(options){
+    const nav = FC.sessionNavigation;
+    if(!nav) return {cancelled:true,action:'blocked'};
+    let outcome = null;
+    const allowed = await nav.requestTransition('WYCENY',async()=>{outcome = await applyScopedQuoteEntry(options);},{refreshCentral:true});
+    if(allowed && outcome && !outcome.cancelled){
+      if(!options || options.openTab !== false) await openWycenaTab();
+      return outcome;
+    }
+    return {cancelled:true,action:'blocked'};
+  }
   function promptNewVersionName(options){
     const opts = options && typeof options === 'object' ? options : {};
     const projectId = String(opts.projectId || getCurrentProjectId() || '');
