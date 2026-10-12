@@ -39,13 +39,13 @@ function offers(r){
  return out;
 }
 const tests=[],test=(name,fn)=>tests.push([name,fn]);
-test('1 clean Kitchen opens a durable owned session and cannot silently open Salon',async()=>{
+test('1 clean Kitchen opens a durable owned session and switches to Salon without a prompt',async()=>{
  const r=fixture();assert.equal(await r.open(),true);assert.equal(r.FC.session.active,true);assert.equal(r.FC.session.durable,true);
  const payload=JSON.parse(r.storage.getItem(E));assert.equal(payload.projectId,'P');assert.equal(payload.roomId,'room_k');assert.equal(r.FC.session.isDirty(),false);
- assert.equal(await r.FC.views.openRoom('room_s'),false);assert.equal(r.s.uiState.roomType,'room_k');
+ let prompts=0;r.FC.choiceBox.ask=async()=>{prompts++;return 'back';};assert.equal(await r.FC.views.openRoom('room_s'),true);assert.equal(r.s.uiState.roomType,'room_s');assert.equal(prompts,0);assert.equal(r.FC.session.roomId,'room_s');
 });
-test('2 clean Kitchen Save and Go to ROZRYS ends durably, without rebegin',async()=>{
- const r=fixture();await r.open();r.FC.choiceBox.ask=async()=> 'save';await r.FC.tabNavigation.setActiveTab('rozrys');
+test('2 clean Kitchen enters ROZRYS without asking, saving or rebeginning',async()=>{
+ const r=fixture();await r.open();let prompts=0;r.FC.choiceBox.ask=async()=>{prompts++;return 'back';};const raw=r.storage.getItem(P);await r.FC.tabNavigation.setActiveTab('rozrys');assert.equal(prompts,0);assert.equal(r.storage.getItem(P),raw);
  assert.equal(r.s.uiState.activeTab,'rozrys');assert.equal(r.FC.session.active,false);assert.equal(r.storage.getItem(E),null);
  r.FC.views.applyFromState(r.s.uiState);assert.equal(r.FC.session.active,false);
 });
@@ -212,7 +212,7 @@ test('28 room metadata modal retains its typed draft on save failure',async()=>{
  await new Promise(resolve=>setTimeout(resolve,0));assert.equal(closes,0);assert.equal(input.value,'Salon Draft');assert.equal(r.record().projectData.meta.roomDefs.room_s.name,'Salon');
 });
 test('29 quote entry Back does not patch calculation draft or show historical offer',async()=>{
- const r=fixture(),rows=offers(r);await r.open();const history=r.storage.getItem(H),draft=r.storage.getItem('fc_quote_offer_drafts_v1');
+ const r=fixture(),rows=offers(r);await r.open();r.s.projectData.room_k.cabinets[0].width=65;const history=r.storage.getItem(H),draft=r.storage.getItem('fc_quote_offer_drafts_v1');
  assert.equal(await r.FC.quoteScopeEntryFlow.openExistingSnapshot(rows[2]),false);assert.equal(r.s.uiState.activeTab,'wywiad');assert.equal(r.storage.getItem(H),history);assert.equal(r.storage.getItem('fc_quote_offer_drafts_v1'),draft);
 });
 test('30 explicit Save finishes once; rerender does not rebegin, explicit reopen does',async()=>{

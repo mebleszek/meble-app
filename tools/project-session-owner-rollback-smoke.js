@@ -249,7 +249,7 @@ test('C2.0b navigation asks and switches only after confirmed save',async()=>{
   assert.equal(r.row('A').projectData.room.cabinets[0].width,65);
 });
 test('C2.0b back or cancel failure cannot enter ROZRYS',async()=>{
-  const r=multiRoom();
+  const r=multiRoom();r.s.projectData.room.cabinets[0].width=65;
   let entered=0;
   r.FC.choiceBox={async ask(){return 'back';}};
   assert.equal(await r.FC.sessionNavigation.requestTransition('ROZRYSU',()=>{entered++;}),false);

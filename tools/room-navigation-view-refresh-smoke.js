@@ -100,7 +100,7 @@ test('Repeated open refreshes DOM without dialog, session duplication or project
   assert.equal(r.storage.calls.filter(c=>['fc_projects_v1','fc_edit_session_v1'].includes(c[1])).length,0);
 });
 test('Active Salon exposes only Salon cabinet editing controls',async()=>{
-  const r=setup();await r.start();assert.equal(await r.decision('other',1),true);r.visible('other',70);
+  const r=setup();await r.start();assert.equal(await r.open('other'),true);r.visible('other',70);
   assert.equal(r.element('cabinetsList').querySelectorAll('button[data-act="edit"]').length,1);
   assert.equal(r.element('cab-cab-A'),null);
   const payload=JSON.parse(r.storage.getItem('fc_edit_session_v1'));
@@ -109,9 +109,9 @@ test('Active Salon exposes only Salon cabinet editing controls',async()=>{
 test('Room list → Salon → Kitchen refreshes both ways with no stale editable cards',async()=>{
   const r=setup();r.FC.views.applyFromState(r.s.uiState);
   assert.equal(await r.open('other'),true);r.visible('other',70);
-  assert.equal(await r.decision('room',0),true);r.visible('room',60);
+  assert.equal(await r.open('room'),true);r.visible('room',60);
   assert.equal(r.element('cab-cab-salon'),null);
-  assert.equal(await r.decision('other',1),true);r.visible('other',70);
+  assert.equal(await r.open('other'),true);r.visible('other',70);
   assert.equal(r.element('cab-cab-A'),null);
 });
 test('Failed save and rollback keep old DOM and session, then retry renders destination',async()=>{

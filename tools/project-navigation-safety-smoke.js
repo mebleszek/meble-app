@@ -30,7 +30,7 @@ test('Room cancel recomputes durable cabinet summary',()=>{
  assert.equal(r.session.cancel(),true);const row=r.row('A');assert.equal(row.projectData.room.cabinets.length,1);assert.equal(row.cabinetCount,2);
 });
 test('WYCENA entry requires the approved closure dialog and Back keeps editing',async()=>{
- const r=setup();let asks=0;r.FC.choiceBox.ask=async()=>{asks++;return'back';};
+ const r=setup();r.s.projectData.room.cabinets[0].width=65;let asks=0;r.FC.choiceBox.ask=async()=>{asks++;return'back';};
  await r.FC.tabNavigation.setActiveTab('wycena');assert.equal(r.s.uiState.activeTab,'wywiad');assert.equal(asks,1);assert.equal(r.session.active,true);
 });
 test('UI-state API cannot switch a scoped active room',()=>{
@@ -42,10 +42,10 @@ test('Low-level investor repository cannot bypass active ownership',()=>{
  assert.equal(r.storage.getItem('fc_current_investor_v1'),'inv-A');
 });
 test('New-project action cannot reset active shared RAM before a navigation decision',async()=>{
- const r=setup(),before=clone(r.s.projectData);await r.handlers['new-project']({});assert.deepEqual(clone(r.s.projectData),before);
+ const r=setup();r.s.projectData.room.cabinets[0].width=65;const before=clone(r.s.projectData);await r.handlers['new-project']({});assert.deepEqual(clone(r.s.projectData),before);
 });
 test('Assign-investor action cannot mutate owner metadata after denied switch',async()=>{
- const r=setup(),before=clone(r.s.projectData);await r.handlers['assign-investor']({element:{getAttribute:()=> 'inv-B'}});
+ const r=setup();r.s.projectData.room.cabinets[0].width=65;const before=clone(r.s.projectData);await r.handlers['assign-investor']({element:{getAttribute:()=> 'inv-B'}});
  assert.deepEqual(clone(r.s.projectData),before);assert.equal(r.s.uiState.currentInvestorId,'inv-A');
 });
 test('Direct view renderer cannot hide active editor',()=>{
@@ -73,7 +73,7 @@ test('Contradictory persisted room owner is rejected',()=>{
 });
 test('Physical dialog uses all three actions and Back keeps the scope',async()=>{
  const r=setup();r.load('js/app/ui/choice-box.js');
- const before=r.storage.getItem('fc_ui_v1'),snapshot=r.session.snapshot;
+ r.s.projectData.room.cabinets[0].width=65;const before=r.storage.getItem('fc_ui_v1'),snapshot=r.session.snapshot;
  const transition=r.FC.views.openRoom('other');
  const buttons=[...r.s.document.querySelectorAll('.confirm-actions button')];
  assert.deepEqual(buttons.map(b=>b.textContent),['Zapisz i przejdź','Anuluj zmiany i przejdź','Wróć do edycji']);

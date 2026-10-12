@@ -71,26 +71,44 @@
         if(!(session && typeof session.begin === 'function')) return false;
         // An untracked RAM edit must receive a durable baseline before a user can discard it.
         if(!session.active && session.begin() !== true) return false;
-        const picker = FC.choiceBox;
-        if(!(picker && typeof picker.ask === 'function')) return false;
-        const label = String(destination || 'wybranego miejsca');
-        const action = await picker.ask({
-          title:'ZAKOŃCZ EDYCJĘ PROJEKTU',
-          message:'Przed przejściem do ' + label + ' wybierz, co zrobić z bieżącą sesją.',
-          dismissValue:'back',
-          dismissOnOverlay:false,
-          actions:[
-            { value:'save', text:'Zapisz i przejdź', tone:'success' },
-            { value:'discard', text:'Anuluj zmiany i przejdź', tone:'danger' },
-            { value:'back', text:'Wróć do edycji', tone:'neutral' },
-          ],
-        });
-        if(action !== 'save' && action !== 'discard') return false;
-        if(confirmedFinish(action) !== true){
-          message('Nie udało się zakończyć edycji',
-            (session.lastError && session.lastError.message) ||
-            'Nie potwierdzono bezpiecznego zapisu lub anulowania. Nie przełączono widoku.');
+        const evidence = typeof session.inspectNavigationState === 'function' ? session.inspectNavigationState() : null;
+        const runtime = FC.investorProjectRuntime;
+        if(!evidence || !runtime || typeof runtime.hasProjectDivergence !== 'function'
+          || typeof projectData === 'undefined' || !projectData || typeof projectData !== 'object'
+          || !Object.prototype.hasOwnProperty.call(projectData,session.roomId)){
+          message('Nie można potwierdzić stanu sesji', 'Zachowano sesję i bieżący widok. Sprawdź dane i spróbuj ponownie.');
           return false;
+        }
+        const ramDirty = runtime.hasProjectDivergence(projectData);
+        if(typeof ramDirty !== 'boolean' || Object.keys(evidence.raws).some(key=>localStorage.getItem(key) !== evidence.raws[key])) return false;
+        if(!evidence.dirty && !ramDirty){
+          // A clean session needs durable cleanup only, never another project save.
+          if(session.commit() !== true || session.active || localStorage.getItem('fc_edit_session_v1') !== null || !reloadCentral()){
+            message('Nie udało się zakończyć edycji', 'Nie potwierdzono zakończenia czystej sesji. Nie przełączono widoku.');
+            return false;
+          }
+        }else{
+          const picker = FC.choiceBox;
+          if(!(picker && typeof picker.ask === 'function')) return false;
+          const label = String(destination || 'wybranego miejsca');
+          const action = await picker.ask({
+            title:'ZAKOŃCZ EDYCJĘ PROJEKTU',
+            message:'Przed przejściem do ' + label + ' wybierz, co zrobić z bieżącą sesją.',
+            dismissValue:'back',
+            dismissOnOverlay:false,
+            actions:[
+              { value:'save', text:'Zapisz i przejdź', tone:'success' },
+              { value:'discard', text:'Anuluj zmiany i przejdź', tone:'danger' },
+              { value:'back', text:'Wróć do edycji', tone:'neutral' },
+            ],
+          });
+          if(action !== 'save' && action !== 'discard') return false;
+          if(confirmedFinish(action) !== true){
+            message('Nie udało się zakończyć edycji',
+              (session.lastError && session.lastError.message) ||
+              'Nie potwierdzono bezpiecznego zapisu lub anulowania. Nie przełączono widoku.');
+            return false;
+          }
         }
       }else if(cfg.refreshCentral === true && !reloadCentral()){
         message('Nie udało się odczytać projektu', 'Nie potwierdzono aktualnych danych projektu. Nie przełączono widoku.');
