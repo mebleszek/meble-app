@@ -82,6 +82,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/tabs/rysunek.js',
   'js/app/ui/info-box.js',
   'js/app/ui/choice-box.js',
+  'js/app/ui/session-navigation.js',
   'js/app/ui/storage-orphan-cleanup-modal.js',
   'js/app/ui/test-backup-fallback-modal.js',
   'js/app/ui/app-icons.js',
