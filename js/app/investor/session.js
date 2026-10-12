@@ -113,6 +113,42 @@
     try{ return scopeRaw(before) !== scopeRaw(raw); }catch(_){ return true; }
   }
 
+  // Fresh read-only evidence for automatic navigation; never use the dirty cache.
+  function inspectNavigationState(){
+    try{
+      if(!session.active || !session.durable || !session.projectId || !session.roomId || !session.snapshot) return null;
+      const raws = {};
+      for(const key of [SESSION_STORAGE_KEY, ...getKeysToSnapshot()]) raws[key] = localStorage.getItem(key);
+      const payload = JSON.parse(raws[SESSION_STORAGE_KEY]);
+      if(!payload || payload.schemaVersion !== SESSION_SCHEMA_VERSION || payload.active !== true
+        || payload.projectId !== session.projectId || payload.roomId !== session.roomId
+        || payload.startedAt !== session.startedAt || !payload.snapshot
+        || !payload.context || !session.context
+        || payload.context.projectId !== session.projectId || payload.context.roomId !== session.roomId
+        || payload.context.investorId !== session.context.investorId
+        || payload.expectedOwnerKnown !== true || session.expectedOwnerKnown !== true) return null;
+      for(const key of getKeysToSnapshot()){
+        if(!hasOwn(payload.snapshot,key) || !hasOwn(session.snapshot,key)
+          || payload.snapshot[key] !== session.snapshot[key]) return null;
+      }
+      const owner = JSON.parse(ownerRaw(raws[PROJECTS_KEY]));
+      const original = JSON.parse(ownerRaw(session.snapshot[PROJECTS_KEY]));
+      const currentContext = resolveSessionContext();
+      if(currentContext.projectId !== session.projectId || currentContext.roomId !== session.roomId
+        || currentContext.investorId !== session.context.investorId) return null;
+      // Cancel may have restored baseline before its durable cleanup failed.
+      if(keyChanged(PROJECTS_KEY,raws[PROJECTS_KEY]) && payload.expectedOwnerRaw !== session.expectedOwnerRaw) return null;
+      if(!owner || !original || !owner.projectData || !hasOwn(owner.projectData,session.roomId)
+        || !original.projectData || !hasOwn(original.projectData,session.roomId)
+        || String(owner.investorId || '') !== String(session.context.investorId || '')
+        || String(original.investorId || '') !== String(session.context.investorId || '')
+        || canSaveProject() !== true) return null;
+      const dirty = getKeysToSnapshot().some(key=>keyChanged(key,raws[key]));
+      if(Object.keys(raws).some(key=>localStorage.getItem(key) !== raws[key])) return null;
+      return { dirty, raws };
+    }catch(_){ return null; }
+  }
+
   function restoreOwnerProject(){
     try{
       const before = scopeRaw(session.snapshot[PROJECTS_KEY]);
@@ -588,6 +624,7 @@
     canSwitchInvestor,
     canSwitchRoom,
     canSaveProject,
+    inspectNavigationState,
     invalidateDirtyCache,
     isDirty,
     trackKeyMutation,
