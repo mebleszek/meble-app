@@ -137,4 +137,79 @@ test('Reload reads saved rooms and restores Salon ownership without rollback or 
   assert.equal(restored.storage.getItem('fc_projects_v1'),raw);
   assert.equal(restored.storage.calls.filter(c=>['fc_projects_v1','fc_edit_session_v1'].includes(c[1])).length,0);
 });
+async function changedKitchen(persist=true){
+  const r=setup();await r.start();r.FC.confirmBox={ask:async cfg=>{assert.equal(cfg.title,'ANULOWAĆ ZMIANY?');return true;}};
+  r.s.projectData.room.cabinets[0].width=65;
+  if(persist)assert.equal(r.FC.project.saveConfirmed(r.s.projectData).ok,true);
+  r.s.renderCabinets();r.FC.views.refreshSessionButtons();
+  assert.equal(r.element('sessionCancel').textContent,'Anuluj');assert.equal(r.element('sessionSave').style.display,'');
+  return r;
+}
+test('Cancel restores Kitchen in the rendered editor and starts a new clean durable session',async()=>{
+  const r=await changedKitchen(),snapshot=r.FC.session.snapshot;
+  const newer=r.FC.projectStore.getById('A');newer.projectData.other.cabinets[0].width=75;assert.ok(r.FC.projectStore.upsert(newer));
+  const salon=clone(r.row('A').projectData.other);
+  await r.handlers['session-cancel']({});r.visible('room',60);
+  assert.equal(r.s.location.reloads,0);assert.equal(r.FC.session.active,true);assert.equal(r.FC.session.durable,true);
+  assert.notEqual(r.FC.session.snapshot,snapshot);assert.equal(r.FC.session.isDirty(),false);
+  assert.equal(r.element('sessionCancel').textContent,'Wyjdź');assert.equal(r.element('sessionSave').style.display,'none');
+  assert.deepEqual(r.row('A').projectData.other,salon);assert.equal(JSON.parse(r.storage.getItem('fc_edit_session_v1')).roomId,'room');
+});
+test('Failed central reload hides the editor; later tab entry cannot skip a new durable session',async()=>{
+  const r=await changedKitchen(),reload=r.FC.sessionNavigation.reloadCentral;
+  r.FC.sessionNavigation.reloadCentral=()=>false;await r.handlers['session-cancel']({});
+  assert.equal(r.row('A').projectData.room.cabinets[0].width,60);assert.equal(r.FC.session.active,false);
+  assert.equal(r.element('appView').style.display,'none');assert.equal(r.s.location.reloads,0);
+  r.FC.sessionNavigation.reloadCentral=reload;assert.equal(reload(),true);
+  await r.FC.tabNavigation.setActiveTab('wywiad');r.visible('room',60);assert.equal(r.FC.session.durable,true);
+});
+test('RAM-only Cancel stays in Kitchen without writing the project',async()=>{
+  const r=await changedKitchen(false),raw=r.storage.getItem('fc_projects_v1');r.storage.calls.length=0;
+  await r.handlers['session-cancel']({});r.visible('room',60);
+  assert.equal(r.storage.getItem('fc_projects_v1'),raw);assert.ok(!r.storage.calls.some(c=>c[1]==='fc_projects_v1'));assert.equal(r.s.location.reloads,0);
+});
+test('Next edit saves inside the new session, and clean Exit still leaves the editor',async()=>{
+  const r=await changedKitchen();await r.handlers['session-cancel']({});r.visible('room',60);
+  r.s.projectData.room.cabinets[0].width=66;r.s.renderCabinets();r.FC.views.refreshSessionButtons();
+  r.handlers['session-save']({});
+  assert.equal(r.row('A').projectData.room.cabinets[0].width,66);assert.equal(r.FC.session.active,false);
+  assert.equal(r.element('appView').style.display,'block');assert.equal(r.element('roomTitle').textContent,'Kuchnia');assert.match(r.element('cab-cab-A').textContent,/66 ×/);
+  assert.equal(r.element('sessionCancel').textContent,'Wyjdź');assert.equal(r.element('sessionSave').style.display,'none');
+  await r.handlers['session-cancel']({});assert.equal(r.element('appView').style.display,'none');assert.equal(r.element('homeView').style.display,'block');assert.equal(r.s.location.reloads,0);
+});
+test('Declined Cancel keeps edited DOM, RAM and the original durable snapshot',async()=>{
+  const r=await changedKitchen(),snapshot=r.FC.session.snapshot,payload=r.storage.getItem('fc_edit_session_v1'),raw=r.storage.getItem('fc_projects_v1');
+  r.FC.confirmBox.ask=async()=>false;await r.handlers['session-cancel']({});r.visible('room',65);
+  assert.equal(r.FC.session.snapshot,snapshot);assert.equal(r.storage.getItem('fc_edit_session_v1'),payload);assert.equal(r.storage.getItem('fc_projects_v1'),raw);
+  assert.equal(r.element('sessionCancel').textContent,'Anuluj');assert.equal(r.s.location.reloads,0);
+});
+test('Confirmation error never cancels or replaces the editing session',async()=>{
+  const r=await changedKitchen(),snapshot=r.FC.session.snapshot,raw=r.storage.getItem('fc_projects_v1');
+  r.FC.confirmBox.ask=async()=>{throw Error('Dialog unavailable');};await r.handlers['session-cancel']({});r.visible('room',65);
+  assert.equal(r.FC.session.snapshot,snapshot);assert.equal(r.storage.getItem('fc_projects_v1'),raw);assert.equal(r.s.location.reloads,0);
+});
+test('Rollback and cleanup failure keep the current editor and snapshot; retry stays in Kitchen',async()=>{
+  for(const failure of ['set:fc_projects_v1','remove:fc_edit_session_v1']){
+    const r=await changedKitchen(),snapshot=r.FC.session.snapshot,payload=r.storage.getItem('fc_edit_session_v1'),salon=clone(r.row('A').projectData.other);
+    r.storage.fail.set(failure,'throw');await r.handlers['session-cancel']({});r.visible('room',65);
+    assert.equal(r.FC.session.snapshot,snapshot);assert.equal(r.storage.getItem('fc_edit_session_v1'),payload);assert.equal(r.s.location.reloads,0);
+    assert.deepEqual(r.row('A').projectData.other,salon);r.storage.fail.clear();await r.handlers['session-cancel']({});r.visible('room',60);
+  }
+});
+test('Failed new durable baseline hides unsafe editor, preserves rollback and permits reopening',async()=>{
+  const r=await changedKitchen(),salon=clone(r.row('A').projectData.other);
+  r.storage.fail.set('set:fc_edit_session_v1','throw');await r.handlers['session-cancel']({});
+  assert.equal(r.row('A').projectData.room.cabinets[0].width,60);assert.deepEqual(r.row('A').projectData.other,salon);
+  assert.equal(r.s.uiState.roomType,'room');assert.equal(r.s.uiState.currentInvestorId,'inv-A');assert.equal(r.FC.projectStore.getCurrentProjectId(),'A');
+  assert.equal(r.element('appView').style.display,'none');assert.equal(r.s.location.reloads,0);
+  assert.equal(r.FC.session.active,true);assert.equal(r.FC.session.durable,false);const snapshot=r.FC.session.snapshot;
+  assert.ok(r.messages.some(m=>/zabezpieczyć|zabezpieczenia/.test(m.title+' '+m.message)));
+  r.storage.fail.clear();assert.equal(await r.open('room'),true);r.visible('room',60);assert.equal(r.FC.session.snapshot,snapshot);assert.equal(r.FC.session.durable,true);
+});
+test('Clean Exit after local Cancel still leaves the room rather than cancelling again',async()=>{
+  const r=await changedKitchen();await r.handlers['session-cancel']({});r.visible('room',60);
+  let confirmations=0;r.FC.confirmBox.ask=async()=>{confirmations++;return true;};
+  await r.handlers['session-cancel']({});assert.equal(confirmations,0);assert.equal(r.FC.session.active,false);
+  assert.equal(r.s.uiState.entry,'rooms');assert.equal(r.element('appView').style.display,'none');assert.equal(r.element('roomsView').style.display,'block');
+});
 (async()=>{let failed=0;for(const [name,fn] of tests){try{await fn();console.log('PASS '+name);}catch(e){failed++;console.error('FAIL '+name+'\n'+e.stack);}}console.log(`${tests.length-failed}/${tests.length} PASS`);process.exitCode=failed?1:0;})();
