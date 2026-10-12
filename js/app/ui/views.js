@@ -220,7 +220,12 @@
     const proposed = Object.assign({}, typeof uiState !== 'undefined' ? uiState : {}, patch);
     if(FC.sessionNavigation && !FC.sessionNavigation.prepareEditState(proposed,true)) return false;
     const nextState = setUiStatePatch(patch);
-    return applyFromState(nextState || proposed) !== false;
+    if(applyFromState(nextState || proposed) === false) return false;
+    // Opening a room must refresh its contents and tab highlight, not only containers.
+    if(FC.tabNavigation && typeof FC.tabNavigation.setActiveTab === 'function'){
+      return FC.tabNavigation.setActiveTab('wywiad') !== false;
+    }
+    return true;
   }
 
   function back(){
