@@ -19,8 +19,9 @@ function runStaticChecks(){
   assert(shell.includes('_generateRuntime:generateRuntime'), 'Runtime lock generowania nie jest dostępny do testów/debugu');
   assert(shell.includes('duplicateFound'), 'Single-flow powinien współpracować z guardem identycznych ofert');
   ['js/app/wycena/wycena-tab-shell.js','js/app/wycena/wycena-diagnostics.js'].forEach((script)=>{
-    assert(index.includes(`${script}?v=${version}`), `index.html nie ma cache-bustingu ${version} dla ${script}`);
-    assert(dev.includes(`${script}?v=${version}`), `dev_tests.html nie ma cache-bustingu ${version} dla ${script}`);
+    const expectedVersion = ['js/app/ui/actions-register.js','js/app/wycena/wycena-tab-shell.js'].includes(script) ? '20261012_c2_0b' : version;
+    assert(index.includes(`${script}?v=${expectedVersion}`), `index.html nie ma cache-bustingu ${expectedVersion} dla ${script}`);
+    assert(dev.includes(`${script}?v=${expectedVersion}`), `dev_tests.html nie ma cache-bustingu ${expectedVersion} dla ${script}`);
   });
 }
 

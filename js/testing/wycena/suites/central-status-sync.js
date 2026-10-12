@@ -483,10 +483,8 @@
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{
           const sharedPre = FC.quoteSnapshotStore.save({ id:'snap_shared_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt przełączenie' }, scope:{ selectedRooms:['room_kuchnia_gora','room_salon'], roomLabels:['Kuchnia góra','Salon'] }, commercial:{ preliminary:true, versionName:'Wspólna pre' }, totals:{ grand:210 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820450000 });
           const kitchenPre = FC.quoteSnapshotStore.save({ id:'snap_kitchen_pre_only', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt przełączenie' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Kuchnia pre' }, totals:{ grand:105 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820460000 });
-          FC.quoteSnapshotStore.markSelectedForProject(projectId, sharedPre.id, { status:'pomiar' });
-          FC.wycenaTabDebug.setProjectStatusFromSnapshot(sharedPre, 'pomiar');
-          FC.quoteSnapshotStore.markSelectedForProject(projectId, kitchenPre.id, { status:'pomiar' });
-          FC.wycenaTabDebug.setProjectStatusFromSnapshot(kitchenPre, 'pomiar');
+          FC.projectStatusSync.commitAcceptedSnapshot(sharedPre, 'pomiar');
+          FC.projectStatusSync.commitAcceptedSnapshot(kitchenPre, 'pomiar');
           const investor = FC.investors.getById(investorId);
           const byId = Object.fromEntries((investor.rooms || []).map((room)=> [String(room && room.id || ''), room]));
           H.assert(String(byId.room_kuchnia_gora && byId.room_kuchnia_gora.projectStatus || '') === 'pomiar', 'Pokój z nowo zaakceptowaną wyceną jednopomieszczeniową stracił status pomiar', investor.rooms);
@@ -500,10 +498,8 @@
           const sharedPre = FC.quoteSnapshotStore.save({ id:'snap_shared_pre_restore', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt przywrócenie' }, scope:{ selectedRooms:['room_kuchnia_gora','room_salon'], roomLabels:['Kuchnia góra','Salon'] }, commercial:{ preliminary:true, versionName:'Wspólna pre' }, totals:{ grand:210 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820465000 });
           const kitchenPre = FC.quoteSnapshotStore.save({ id:'snap_kitchen_pre_restore', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt przywrócenie' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Kuchnia pre' }, totals:{ grand:105 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820466000 });
           const salonPre = FC.quoteSnapshotStore.save({ id:'snap_salon_pre_restore', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt przywrócenie' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon pre' }, totals:{ grand:115 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820467000 });
-          FC.quoteSnapshotStore.markSelectedForProject(projectId, sharedPre.id, { status:'pomiar' });
-          FC.wycenaTabDebug.setProjectStatusFromSnapshot(sharedPre, 'pomiar');
-          FC.quoteSnapshotStore.markSelectedForProject(projectId, kitchenPre.id, { status:'pomiar' });
-          FC.wycenaTabDebug.setProjectStatusFromSnapshot(kitchenPre, 'pomiar');
+          FC.projectStatusSync.commitAcceptedSnapshot(sharedPre, 'pomiar');
+          FC.projectStatusSync.commitAcceptedSnapshot(kitchenPre, 'pomiar');
           const investor = FC.investors.getById(investorId);
           const byId = Object.fromEntries((investor.rooms || []).map((room)=> [String(room && room.id || ''), room]));
           H.assert(String(byId.room_kuchnia_gora && byId.room_kuchnia_gora.projectStatus || '') === 'pomiar', 'Pokój z nowo zaakceptowaną wyceną solo stracił status pomiar', investor.rooms);
@@ -622,6 +618,8 @@
         withInvestorProjectFixture({}, ({ investorId, projectId })=>{
           const kitchenPre = FC.quoteSnapshotStore.save({ id:'snap_room_kitchen_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt ręczny' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, commercial:{ preliminary:true, versionName:'Kuchnia pre' }, totals:{ grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820600000 });
           const salonPre = FC.quoteSnapshotStore.save({ id:'snap_room_salon_pre', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt ręczny' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Salon pre' }, totals:{ grand:120 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820700000 });
+          // Generation establishes Kitchen's own status before a separate Salon operation.
+          FC.projectStatusSync.setStatusFromSnapshot(kitchenPre, 'wstepna_wycena', {syncSelection:false,refreshUi:false});
           FC.quoteSnapshotStore.markSelectedForProject(projectId, salonPre.id, { status:'pomiar', roomIds:['room_salon'] });
           FC.investorPersistence.setInvestorProjectStatus(investorId, 'room_salon', 'pomiar');
           const investor = FC.investors.getById(investorId);

@@ -269,6 +269,11 @@
   }
 
   async function generateQuote(ctx, deps, meta){
+    // C2.0b: never calculate from an open or diverging edit session.
+    if(FC.sessionNavigation && typeof FC.sessionNavigation.canCalculate === 'function'){
+      if(!FC.sessionNavigation.canCalculate()) return;
+    }else if(FC.session && FC.session.active) return;
+
     const d = normalizeDeps(deps);
     const source = meta && meta.source || '';
     if(!acquireGenerateLock(source || 'generateQuote')) return;

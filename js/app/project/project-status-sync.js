@@ -42,6 +42,46 @@
 
 
 
+  function persistStatusPlan(record, investor, roomStatusMap, manualStatusMap, targetRoomIds, masterStatus, historyRows, options){
+    if(!record || !investor || record.investorId !== investor.id || !targetRoomIds.length
+      || targetRoomIds.some(id=>!Object.prototype.hasOwnProperty.call(record.projectData || {},id))) return {ok:false,reason:'invalid-status-owner'};
+    if(FC.projectStore.readAll().some(other=>other.id !== record.id && other.investorId === record.investorId
+      && targetRoomIds.some(id=>Object.prototype.hasOwnProperty.call(other.projectData || {},id)))) return {ok:false,reason:'ambiguous-investor-room-mirror'};
+    const data = JSON.parse(JSON.stringify(record.projectData));
+    const meta = data.meta || (data.meta = {}), defs = meta.roomDefs || (meta.roomDefs = {});
+    const target = new Set(targetRoomIds);
+    const statusChanges = [];
+    for(const id of target){
+      const prev = defs[id] || { id };
+      const before = {projectStatus:prev.projectStatus || '',lastManualProjectStatus:prev.lastManualProjectStatus || ''};
+      const after = {projectStatus:roomStatusMap[id] || before.projectStatus || 'nowy',lastManualProjectStatus:manualStatusMap[id] || before.lastManualProjectStatus};
+      defs[id] = Object.assign({},prev,after);
+      statusChanges.push({id,before,after});
+    }
+    meta.projectStatus = masterStatus;
+    const nextInvestor = Object.assign({},investor,{rooms:(investor.rooms || []).map(room=>target.has(String(room.id))
+      ? Object.assign({},room,defs[room.id],{id:room.id}) : room)});
+    const result = {ok:true,investor:nextInvestor,projectRecord:Object.assign({},record,{status:masterStatus,projectData:data}),
+      loadedProject:data,masterStatus,mirrorStatus:masterStatus,aggregateStatus:masterStatus,roomStatusMap,roomIds:targetRoomIds,projectId:record.id,investorId:investor.id};
+    Object.assign(result,options.operationResult || {});
+    if(options.preview === true) return result;
+    if(!FC.projectDomainOperations) return {ok:false,reason:'missing-confirmed-status-store'};
+    const histories = FC.projectDomainOperations.readHistory();
+    const requestKey = options.requestKey || 'status:'+JSON.stringify([record.id,targetRoomIds,masterStatus]);
+    const pending = record.meta && record.meta.pendingDomainOperation;
+    if(pending) return pending.kind === 'offerStatus' && pending.requestKey === requestKey
+      ? FC.projectDomainOperations.recoverProject(record.id) : {ok:false,partial:true,reason:'different-pending-operation'};
+    const intentResult = {masterStatus,mirrorStatus:masterStatus,roomStatusMap,roomIds:targetRoomIds,projectId:record.id,investorId:investor.id};
+    const extra = options.operationResult || {};
+    Object.assign(intentResult,{roomIds:Array.isArray(extra.roomIds) ? extra.roomIds : targetRoomIds,snapshotId:extra.selectedSnapshot && extra.selectedSnapshot.id || '',promoted:!!extra.convertedSnapshot,
+      releasedRoomIds:extra.releasedRoomIds || [],affectedRoomIds:extra.affectedRoomIds || targetRoomIds});
+    const spec = {kind:'offerStatus',beforeStatus:record.status,afterStatus:masterStatus,beforeMetaStatus:record.projectData.meta && record.projectData.meta.projectStatus || '',
+      statusChanges,mirrorChanges:FC.projectDomainOperations.rowChanges(investor.rooms || [],nextInvestor.rooms),
+      historyChanges:FC.projectDomainOperations.rowChanges(histories,historyRows || histories),requestKey,result:intentResult};
+    const written = FC.projectDomainOperations.start(record,spec);
+    return written.ok ? Object.assign({},result,written) : written;
+  }
+
   function getLastManualStatusMap(roomIds, sources){
     const ids = normalizeRoomIds(roomIds);
     const src = sources && typeof sources === 'object' ? sources : {};
@@ -89,6 +129,7 @@
 
   function applyProjectStatusChange(params){
     const options = params && typeof params === 'object' ? params : {};
+    if(options.preview !== true && FC.session && FC.session.active) return {ok:false,reason:'active-session'};
     const snapshot = normalizeSnapshot(options.snapshot) || null;
     const nextStatus = normalizeStatus(options.status);
     if(!nextStatus) return null;
@@ -107,20 +148,28 @@
     const refreshUi = options.refreshUi !== false;
 
     let projectRecord = projectId ? getProjectRecordById(projectId) : null;
-    if(!projectRecord && investorId) projectRecord = getProjectRecordByInvestorId(investorId);
+    if(!projectId && investorId) projectRecord = getProjectRecordByInvestorId(investorId);
     if(!projectId && projectRecord && projectRecord.id) projectId = String(projectRecord.id || '');
     if(!investorId && projectRecord && projectRecord.investorId) investorId = String(projectRecord.investorId || '');
 
+    const historyBefore = FC.projectDomainOperations.readHistory();
+    let plannedHistory = Array.isArray(options.historyRows) ? options.historyRows : historyBefore;
     if(syncSelection){
-      try{
-        if(projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.syncSelectionForProjectStatus === 'function'){
-          FC.quoteSnapshotStore.syncSelectionForProjectStatus(projectId, nextStatus, targetRoomIds.length ? { roomIds:targetRoomIds } : undefined);
-        }
-      }catch(_){ }
+      const selection = FC.quoteSnapshotStore.previewSelection('syncSelectionForProjectStatus',[projectId,nextStatus,targetRoomIds.length ? {roomIds:targetRoomIds} : undefined],plannedHistory);
+      plannedHistory = selection.rows;
     }
 
+    const releasedRoomIds = [];
+    if(syncSelection){
+      historyBefore.filter(row=>String(row.project && row.project.id) === projectId && row.meta && row.meta.selectedByClient).forEach(row=>{
+        const after = plannedHistory.find(item=>item.id === row.id);
+        const ids = getSnapshotRoomIds(row);
+        if(after && !(after.meta && after.meta.selectedByClient) && ids.some(id=>targetRoomIds.includes(id)))
+          ids.filter(id=>!targetRoomIds.includes(id)).forEach(id=>{if(!releasedRoomIds.includes(id)) releasedRoomIds.push(id);});
+      });
+    }
     const investor = getSelectedInvestor(investorId);
-    const loadedProject = loadCurrentProject();
+    const loadedProject = projectRecord && projectRecord.projectData;
     const mergedRoomDefs = getMergedRoomDefs(projectRecord, loadedProject);
     const knownRoomIds = getKnownProjectRoomIds(projectId, investor, loadedProject, targetRoomIds);
     const currentStatusMap = getRoomStatusMap(knownRoomIds, {
@@ -133,6 +182,7 @@
       touchedRoomIds:targetRoomIds,
       preserveCurrentForUntouched:true,
       preserveCurrentWhenNoQuoteRows: !!options.preserveCurrentWhenNoQuoteRows,
+      historyRows:plannedHistory,
     });
     const existingManualStatusMap = getLastManualStatusMap(knownRoomIds, {
       investorRooms: investor && investor.rooms,
@@ -164,7 +214,7 @@
       roomStatusMap[key] = nextStatus;
     });
 
-    const nextInvestor = saveInvestorRooms(investor, roomStatusMap, { manualStatusMap }) || investor;
+
     const masterRoomIds = resolveAggregateScopeRoomIds(targetRoomIds, knownRoomIds);
     const masterStatus = resolveScopedMasterStatus(masterRoomIds, roomStatusMap, {
       fallbackStatus: nextStatus,
@@ -173,38 +223,31 @@
       allowMirrorFallback:false,
     });
 
-    const mirrorSync = syncStatusMirrors(projectRecord, loadedProject, masterStatus, roomStatusMap);
-    const nextProjectRecord = mirrorSync.projectRecord;
-    const nextLoadedProject = mirrorSync.loadedProject;
-    const mirrorStatus = mirrorSync.mirrorStatus;
-
-    if(refreshUi) refreshStatusViews();
-
-    return {
-      investor: nextInvestor,
-      projectRecord: nextProjectRecord,
-      loadedProject: nextLoadedProject,
-      masterStatus,
-      mirrorStatus,
-      aggregateStatus:masterStatus,
-      roomStatusMap,
-      roomIds: targetRoomIds,
-      projectId,
-      investorId,
-    };
+    if(releasedRoomIds.length){
+      const released = computeRecommendedRoomStatusMap(projectId,releasedRoomIds,currentStatusMap,{
+        fallbackStatus:'nowy',preserveCurrentWhenNoQuoteRows:false,historyRows:plannedHistory,
+      });
+      releasedRoomIds.forEach(id=>{roomStatusMap[id] = released[id] === 'nowy' && manualStatusMap[id] ? manualStatusMap[id] : released[id];});
+    }
+    const affectedRoomIds = normalizeRoomIds(targetRoomIds.concat(releasedRoomIds));
+    const result = persistStatusPlan(projectRecord,investor,roomStatusMap,manualStatusMap,affectedRoomIds,masterStatus,plannedHistory,options);
+    if(result && result.ok){ result.roomIds = targetRoomIds; result.affectedRoomIds = affectedRoomIds; result.releasedRoomIds = releasedRoomIds; }
+    if(result.ok && refreshUi && options.preview !== true) refreshStatusViews();
+    return result;
   }
 
   function reconcileProjectStatuses(params){
     const options = params && typeof params === 'object' ? params : {};
+    if(options.preview !== true && FC.session && FC.session.active) return {ok:false,reason:'active-session'};
     let projectId = String(options.projectId || getCurrentProjectId() || '');
     let investorId = String(options.investorId || getCurrentInvestorId() || '');
     let projectRecord = projectId ? getProjectRecordById(projectId) : null;
-    if(!projectRecord && investorId) projectRecord = getProjectRecordByInvestorId(investorId);
+    if(!projectId && investorId) projectRecord = getProjectRecordByInvestorId(investorId);
     if(!projectId && projectRecord && projectRecord.id) projectId = String(projectRecord.id || '');
     if(!investorId && projectRecord && projectRecord.investorId) investorId = String(projectRecord.investorId || '');
 
     const investor = getSelectedInvestor(investorId);
-    const loadedProject = loadCurrentProject();
+    const loadedProject = projectRecord && projectRecord.projectData;
     const mergedRoomDefs = getMergedRoomDefs(projectRecord, loadedProject);
     const explicitRoomIds = normalizeRoomIds(options.roomIds);
     const knownRoomIds = options.restrictToRoomIds
@@ -214,7 +257,7 @@
       investorRooms: investor && investor.rooms,
       roomDefs: mergedRoomDefs,
     });
-    const roomStatusMap = computeRecommendedRoomStatusMap(projectId, knownRoomIds, currentStatusMap, { fallbackStatus: options.fallbackStatus || 'nowy' });
+    const roomStatusMap = computeRecommendedRoomStatusMap(projectId, knownRoomIds, currentStatusMap, { fallbackStatus: options.fallbackStatus || 'nowy',historyRows:options.historyRows });
     const existingManualStatusMap = getLastManualStatusMap(knownRoomIds, {
       investorRooms: investor && investor.rooms,
       roomDefs: mergedRoomDefs,
@@ -228,7 +271,7 @@
         if(key && manual && (!currentResolved || currentResolved === 'nowy')) roomStatusMap[key] = manual;
       });
     }
-    const nextInvestor = investor ? (saveInvestorRooms(investor, roomStatusMap, { manualStatusMap: restoreManualStatusMap }) || investor) : investor;
+
     const masterRoomIds = resolveAggregateScopeRoomIds(explicitRoomIds, knownRoomIds);
     const masterStatus = resolveScopedMasterStatus(masterRoomIds, roomStatusMap, {
       fallbackStatus: options.fallbackStatus || 'nowy',
@@ -236,23 +279,9 @@
       loadedProject,
       allowMirrorFallback:false,
     });
-    const mirrorSync = syncStatusMirrors(projectRecord, loadedProject, masterStatus, roomStatusMap);
-    const nextProjectRecord = mirrorSync.projectRecord;
-    const nextLoadedProject = mirrorSync.loadedProject;
-    const mirrorStatus = mirrorSync.mirrorStatus;
-    if(options.refreshUi !== false) refreshStatusViews();
-    return {
-      investor: nextInvestor,
-      projectRecord: nextProjectRecord,
-      loadedProject: nextLoadedProject,
-      masterStatus,
-      mirrorStatus,
-      aggregateStatus:masterStatus,
-      roomStatusMap,
-      roomIds: knownRoomIds,
-      projectId,
-      investorId,
-    };
+    const result = persistStatusPlan(projectRecord,investor,roomStatusMap,restoreManualStatusMap,knownRoomIds,masterStatus,options.historyRows,options);
+    if(result.ok && options.refreshUi !== false && options.preview !== true) refreshStatusViews();
+    return result;
   }
 
   function setInvestorRoomStatus(investorId, roomId, status, options){
@@ -296,6 +325,7 @@
     reconcileProjectStatuses,
     setInvestorRoomStatus,
     setStatusFromSnapshot,
+    persistStatusPlan,
     _debug:{
       getMergedRoomDefs,
       updateLoadedProject,

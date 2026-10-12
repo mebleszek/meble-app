@@ -42,6 +42,7 @@
 
   async function openManageRoomsModal(){
     const inv = getCurrentInvestor();
+    const openingProject = FC.projectStore && FC.projectStore.getCurrentRecord();
     if(!(inv && FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
     const rooms = getManageableRooms(inv);
     if(!rooms.length){
@@ -177,6 +178,8 @@
           if(FC.confirmBox && typeof FC.confirmBox.ask === 'function') ok = await FC.confirmBox.ask({ title:'ZAPISAĆ ZMIANY?', message:'Zapisać zmiany w liście pomieszczeń?', confirmText:'Zapisz', cancelText:'Wróć', confirmTone:'success', cancelTone:'neutral' });
         }catch(_){ }
         if(!ok) return;
+        if(!openingProject || !FC.projectStore.getCurrentRecord() || FC.projectStore.getCurrentProjectId() !== openingProject.id
+          || JSON.stringify(FC.projectStore.getCurrentRecord().projectData) !== JSON.stringify(openingProject.projectData) && !FC.projectDomainOperations.hasPending(openingProject.id)) { openInfo('Projekt zmienił się', 'Zamknij formularz i otwórz go ponownie.'); return; }
         const result = applyManageRoomsDraftDetailed(inv, drafts);
         if(!(result && result.ok)) return;
         initialDrafts = cloneRoomDrafts(drafts);
@@ -203,6 +206,7 @@
 
   async function openRemoveRoomModal(){
     const inv = getCurrentInvestor();
+    const openingProject = FC.projectStore && FC.projectStore.getCurrentRecord();
     if(!inv || !(FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
     const rooms = getManageableRooms(inv);
     if(!rooms.length){
@@ -239,8 +243,10 @@
         if(!selectedId) return;
         const ok = await askDeleteRoomWithQuotes(inv, [selectedId], { deferred:false });
         if(!ok) return;
+        if(!openingProject || !FC.projectStore.getCurrentRecord() || FC.projectStore.getCurrentProjectId() !== openingProject.id
+          || JSON.stringify(FC.projectStore.getCurrentRecord().projectData) !== JSON.stringify(openingProject.projectData) && !FC.projectDomainOperations.hasPending(openingProject.id)) { openInfo('Projekt zmienił się', 'Zamknij formularz i otwórz go ponownie.'); return; }
         const result = removeRoomByIdDetailed(selectedId);
-        done(result && result.ok ? result.roomId : null);
+        if(result && result.ok) done(result.roomId);
       });
       FC.panelBox.open({ title:'Usuń pomieszczenie', contentNode: body, width:'640px', boxClass:'panel-box--rozrys' });
     });

@@ -96,6 +96,11 @@ async function runDuplicateGuard(){
   assert(FC.wycenaTabShell && typeof FC.wycenaTabShell.generateQuote === 'function', 'Brak FC.wycenaTabShell.generateQuote');
   assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.findDuplicateSnapshot === 'function', 'Brak findDuplicateSnapshot');
   assert(typeof FC.quoteSnapshotStore.replaceSnapshot === 'function', 'Brak replaceSnapshot');
+  // The calculation gate now validates an actual canonical project, not only the repair stub.
+  FC.investors.writeAll([{id:'inv_dup',kind:'person',name:'Test',rooms:[{id:'room_A',name:'A',baseType:'pokoj'}]}]);
+  FC.projectStore.upsert({id:'proj_dup',investorId:'inv_dup',title:'Projekt testowy',projectData:{meta:{assignedInvestorId:'inv_dup',roomDefs:{room_A:{id:'room_A',name:'A',baseType:'pokoj'}}},room_A:{cabinets:[],fronts:[],sets:[],settings:{}}}});
+  sandbox.localStorage.setItem('fc_current_investor_v1','inv_dup');
+  FC.projectStore.setCurrentProjectId('proj_dup');sandbox.projectData=FC.project.load();
   const model = { collectCount:0, renderCount:0, versionName:'Oferta — A', includeCorpus:true, confirmReplace:false, modalCalls:0, lastModalPayload:null };
   FC.choiceBox = Object.assign({}, FC.choiceBox || {}, { ask:async (payload)=>{ model.modalCalls += 1; model.lastModalPayload = payload; return model.confirmReplace ? 'replace' : 'cancel'; } });
   const deps = makeDeps(sandbox, model);
@@ -154,8 +159,9 @@ function runStaticChecks(){
     'js/app/wycena/wycena-tab-shell.js',
     'js/app/wycena/wycena-diagnostics.js',
   ].forEach((script)=>{
-    assert(index.includes(`${script}?v=${version}`), `index.html nie ma cache-bustingu ${version} dla ${script}`);
-    assert(dev.includes(`${script}?v=${version}`), `dev_tests.html nie ma cache-bustingu ${version} dla ${script}`);
+    const expectedVersion = ['js/app/ui/actions-register.js','js/app/wycena/wycena-tab-shell.js','js/app/quote/quote-snapshot-store.js'].includes(script) ? '20261012_c2_0b' : version;
+    assert(index.includes(`${script}?v=${expectedVersion}`), `index.html nie ma cache-bustingu ${expectedVersion} dla ${script}`);
+    assert(dev.includes(`${script}?v=${expectedVersion}`), `dev_tests.html nie ma cache-bustingu ${expectedVersion} dla ${script}`);
   });
 }
 

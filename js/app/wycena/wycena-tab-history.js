@@ -206,7 +206,7 @@
         convertBtn.addEventListener('click', ()=>{
           deps.rememberQuoteScroll(deps.getQuoteHistoryItemDomId(snapId));
           const promoteResult = deps.promotePreliminarySnapshotToFinal(snap);
-          const converted = promoteResult && (promoteResult.convertedSnapshot || promoteResult.snapshot) || null;
+          const converted = promoteResult && promoteResult.ok === true && (promoteResult.convertedSnapshot || promoteResult.snapshot) || null;
           if(converted){
             deps.setState({ previewSnapshotId:snapId, lastQuote:converted });
             deps.render(ctx);

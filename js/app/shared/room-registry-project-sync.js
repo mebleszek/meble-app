@@ -69,188 +69,148 @@
 
   function buildInvestorRoomRecord(room, previous){
     const prev = previous && typeof previous === 'object' ? previous : {};
-    return {
+    return Object.assign({},prev,{
       id: room.id,
       baseType: room.baseType,
       name: room.name,
       label: room.label,
-      projectStatus: prev.projectStatus || getDefaultProjectStatus(),
-    };
-  }
-
-  function ensureRoomData(id, baseType){
-    const proj = getProject();
-    if(!proj || !id) return null;
-    const meta = ensureProjectMeta(proj);
-    let changed = false;
-    if(!proj[id]){
-      proj[id] = roomTemplate(baseType);
-      changed = true;
-    }
-    if(!meta.roomDefs[id]){
-      meta.roomDefs[id] = { id, baseType, name: BASE_LABELS[baseType] || id, label: BASE_LABELS[baseType] || id };
-      changed = true;
-    }
-    if(!meta.roomOrder.includes(id)){
-      meta.roomOrder.push(id);
-      changed = true;
-    }
-    if(changed){
-      try{ invalidateCache(); }catch(_){ }
-      saveProject(proj);
-    }
-    return proj[id];
-  }
-
-  function removeRoomsData(proj, meta, roomIds){
-    const ids = impact.normalizeRoomIds(roomIds);
-    let changed = false;
-    ids.forEach((selectedId)=>{
-      try{
-        if(Object.prototype.hasOwnProperty.call(proj || {}, selectedId)){
-          delete proj[selectedId];
-          changed = true;
-        }
-      }catch(_){ }
-      try{
-        if(meta && meta.roomDefs && Object.prototype.hasOwnProperty.call(meta.roomDefs, selectedId)){
-          delete meta.roomDefs[selectedId];
-          changed = true;
-        }
-      }catch(_){ }
-      try{
-        if(meta && Array.isArray(meta.roomOrder)) {
-          const nextOrder = meta.roomOrder.filter((id)=> String(id || '') !== selectedId);
-          if(nextOrder.length !== meta.roomOrder.length){
-            meta.roomOrder = nextOrder;
-            changed = true;
-          }
-        }
-      }catch(_){ }
-      syncRoomSelectionAfterRemoval(selectedId);
+      projectStatus: prev.projectStatus || room.projectStatus || getDefaultProjectStatus(),
     });
-    if(changed){
-      try{ invalidateCache(); }catch(_){ }
-    }
   }
 
-  function updateInvestorRooms(inv, rooms){
-    try{ FC.investors && FC.investors.update && FC.investors.update(inv.id, { rooms }); }catch(_){ }
+  function functionalRoomIds(data){
+    const defs = data && data.meta && data.meta.roomDefs || {};
+    return discoverProjectRoomKeys(data).filter(id=>Object.prototype.hasOwnProperty.call(defs,id) || id.startsWith('room_')
+      || ['cabinets','fronts','sets'].some(field=>Array.isArray(data[id][field]) && data[id][field].length));
+  }
+  function context(inv){
+    const investor = inv || getCurrentInvestor();
+    const record = FC.projectStore && FC.projectStore.getCurrentRecord();
+    if(!investor || !record || String(record.investorId) !== String(investor.id)) return null;
+    if(FC.session && FC.session.active) return null;
+    if(FC.investorProjectRuntime && FC.investorProjectRuntime.hasProjectDivergence(getProject())) return null;
+    // Investor room entries have no projectId. Refuse an ambiguous compatibility mirror.
+    const ids = functionalRoomIds(record.projectData);
+    if(FC.projectStore.readAll().some(other=>other.id !== record.id && other.investorId === record.investorId
+      && functionalRoomIds(other.projectData).some(id=>ids.includes(id)))) return null;
+    return { investor:FC.investors.getById(investor.id), record, project:foundation.clone(record.projectData) };
+  }
+  function rejected(reason){
+    try{ if(FC.infoBox && FC.infoBox.open) FC.infoBox.open({ title:'Nie zapisano pomieszczenia', message:'Zakończ bieżącą edycję lub ponów operację po odzyskaniu danych. Formularz pozostaje otwarty.', okOnly:true }); }catch(_){ }
+    return { ok:false, reason:reason || 'edit-or-context-conflict' };
+  }
+  function resumed(inv, requestKey){
+    const record = FC.projectStore && FC.projectStore.getCurrentRecord();
+    const op = record && record.meta && record.meta.pendingDomainOperation;
+    if(!op) return null;
+    if(!inv || record.investorId !== inv.id || op.kind !== 'rooms' || op.requestKey !== requestKey) return rejected('different-pending-operation');
+    const result = FC.projectDomainOperations.recoverProject(record.id);
+    return result.ok ? Object.assign({},op.result,result) : result;
+  }
+  function persistRooms(ctx, nextProject, nextRooms, result, requestKey){
+    if(!ctx || !FC.projectDomainOperations) return rejected();
+    const normalized = FC.project.normalize(nextProject);
+    const owned = new Set([...discoverProjectRoomKeys(ctx.record.projectData),...discoverProjectRoomKeys(normalized)]);
+    const previous = ctx.investor.rooms || [];
+    const desired = previous.filter(room=>!owned.has(String(room.id))).concat(nextRooms);
+    const changes = FC.projectDomainOperations.rowChanges(previous,desired);
+    // Room order is canonical in projectData.meta.roomOrder, not in the compatibility list.
+    if(JSON.stringify(normalized) === JSON.stringify(ctx.record.projectData) && !changes.length) return Object.assign({ok:true,project:ctx.record.projectData},result);
+    const written = FC.projectDomainOperations.start(ctx.record,{kind:'rooms',afterData:normalized,mirrorChanges:changes,requestKey,result});
+    if(!written.ok) return written;
     try{ invalidateCache(); }catch(_){ }
+    return Object.assign({},result,written);
   }
-
-  function createRoomRecord(inv, payload){
-    const currentInvestor = inv || getCurrentInvestor();
-    if(!currentInvestor) return { ok:false, room:null, rooms:[] };
-    const roomPatch = sanitizeRoomPatch('', payload, 'kuchnia');
-    if(!roomPatch.name) return { ok:false, room:null, rooms:Array.isArray(currentInvestor.rooms) ? currentInvestor.rooms.slice() : [] };
-    const roomId = makeRoomId(roomPatch.baseType, roomPatch.name);
-    const room = Object.assign({}, roomPatch, { id: roomId });
-    const proj = getProject() || {};
-    const meta = ensureProjectMeta(proj);
-    meta.roomDefs[roomId] = { id:roomId, baseType:room.baseType, name:room.name, label:room.label, legacy:false };
-    if(!meta.roomOrder.includes(roomId)) meta.roomOrder.push(roomId);
-    if(!proj[roomId]) proj[roomId] = roomTemplate(room.baseType);
-    saveProject(proj);
-    const currentRooms = Array.isArray(currentInvestor.rooms) ? currentInvestor.rooms : [];
-    const nextRooms = currentRooms.concat([buildInvestorRoomRecord(room)]);
-    updateInvestorRooms(currentInvestor, nextRooms);
-    return { ok:true, room, rooms:nextRooms, project:proj };
+  function ensureRoomData(id, baseType){
+    const existing = getProject();
+    if(existing && existing[id]) return existing[id];
+    // Read/render must never invent and persist a missing functional project.
+    return null;
   }
-
-  function updateRoomRecord(inv, roomId, payload){
-    const currentInvestor = inv || getCurrentInvestor();
-    const selectedId = String(roomId || '').trim();
-    if(!(currentInvestor && selectedId)) return { ok:false, room:null, rooms:[] };
-    const currentRoom = getEditableRoom(currentInvestor, selectedId);
-    if(!(currentRoom && currentRoom.id)) return { ok:false, room:null, rooms:Array.isArray(currentInvestor.rooms) ? currentInvestor.rooms.slice() : [] };
-    const room = sanitizeRoomPatch(selectedId, payload, currentRoom.baseType || 'pokoj');
-    if(!room.name) return { ok:false, room:null, rooms:Array.isArray(currentInvestor.rooms) ? currentInvestor.rooms.slice() : [] };
-    const proj = getProject() || {};
-    const meta = ensureProjectMeta(proj);
-    const currentDef = normalizeRoomDef(meta && meta.roomDefs && meta.roomDefs[selectedId], currentRoom);
-    if(meta && meta.roomDefs){
-      meta.roomDefs[selectedId] = Object.assign({}, currentDef, { id:selectedId, baseType:room.baseType, name:room.name, label:room.label });
-    }
-    if(!proj[selectedId]) proj[selectedId] = roomTemplate(room.baseType);
-    saveProject(proj);
-    const currentRooms = Array.isArray(currentInvestor.rooms) ? currentInvestor.rooms : [];
-    const nextRooms = currentRooms.map((item)=> {
-      if(String(item && item.id || '') !== selectedId) return item;
-      return buildInvestorRoomRecord(room, item);
+  function removeRoomsData(proj, meta, roomIds){
+    impact.normalizeRoomIds(roomIds).forEach(id=>{
+      delete proj[id];
+      if(meta.roomDefs) delete meta.roomDefs[id];
+      if(Array.isArray(meta.roomOrder)) meta.roomOrder = meta.roomOrder.filter(key=>key !== id);
     });
-    updateInvestorRooms(currentInvestor, nextRooms);
-    return { ok:true, room, rooms:nextRooms, project:proj };
   }
-
+  function updateInvestorRooms(){ return false; } // Mirrors are persisted by the confirmed room operation only.
+  function createRoomRecord(inv, payload){
+    const investor = inv || getCurrentInvestor();
+    const patch = sanitizeRoomPatch('',payload,'kuchnia');
+    const key = 'create:'+JSON.stringify(patch);
+    const retry = resumed(investor,key); if(retry) return retry;
+    const ctx = context(investor); if(!ctx || !patch.name) return rejected();
+    if(getManageableRooms(investor).some(room=>definitions.normalizeComparableLabel(room.label) === definitions.normalizeComparableLabel(patch.name))) return rejected('duplicate-name');
+    const id = makeRoomId(patch.baseType,patch.name);
+    if(ctx.project[id]) return rejected('room-id-collision');
+    const room = Object.assign({},patch,{id});
+    const meta = ensureProjectMeta(ctx.project);
+    meta.roomDefs[id] = Object.assign({},room,{legacy:false,projectStatus:getDefaultProjectStatus()});
+    meta.roomOrder.push(id); ctx.project[id] = roomTemplate(room.baseType);
+    const rooms = getManageableRooms(investor).map(item=>buildInvestorRoomRecord(item,(ctx.investor.rooms || []).find(r=>r.id === item.id))).concat([buildInvestorRoomRecord(room)]);
+    return persistRooms(ctx,ctx.project,rooms,{room,rooms},key);
+  }
+  function updateRoomRecord(inv, roomId, payload){
+    const investor = inv || getCurrentInvestor();
+    const id = String(roomId || '');
+    const key = 'update:'+id+':'+JSON.stringify(payload);
+    const retry = resumed(investor,key); if(retry) return retry;
+    const ctx = context(investor); if(!ctx || !ctx.project[id]) return rejected();
+    const prev = getEditableRoom(investor,id); if(!prev) return rejected();
+    const patch = sanitizeRoomPatch(id,payload,prev.baseType);
+    if(!patch.name) return rejected('missing-name');
+    const meta = ensureProjectMeta(ctx.project);
+    const room = Object.assign({},meta.roomDefs[id] || prev,patch);
+    meta.roomDefs[id] = room;
+    const rooms = getManageableRooms(investor).map(item=>buildInvestorRoomRecord(item.id === id ? room : item,(ctx.investor.rooms || []).find(r=>r.id === item.id)));
+    return persistRooms(ctx,ctx.project,rooms,{room,rooms},key);
+  }
   function removeRoomByIdDetailed(roomId){
-    const inv = getCurrentInvestor();
-    const selectedId = String(roomId || '').trim();
-    if(!(inv && selectedId)) return { ok:false, roomId:null, rooms:[] };
-    const proj = getProject() || {};
-    const meta = ensureProjectMeta(proj);
-    removeRoomsData(proj, meta, [selectedId]);
-    saveProject(proj);
-    removeQuotesForRooms(inv, [selectedId]);
-    const currentRooms = Array.isArray(inv.rooms) ? inv.rooms : [];
-    const nextRooms = currentRooms.filter((room)=> String(room && room.id || '') !== selectedId).map((room)=> buildInvestorRoomRecord(room, room));
-    updateInvestorRooms(inv, nextRooms);
-    reconcileStatusesAfterRoomSetChange(inv, nextRooms.map((room)=> room.id));
-    return { ok:true, roomId:selectedId, rooms:nextRooms, project:proj };
+    const investor = getCurrentInvestor(),id = String(roomId || '');
+    const key = 'remove:'+id;
+    const retry = resumed(investor,key); if(retry) return retry;
+    const ctx = context(investor); if(!ctx || !ctx.project[id]) return rejected();
+    const meta = ensureProjectMeta(ctx.project);
+    removeRoomsData(ctx.project,meta,[id]);
+    const rooms = getManageableRooms(investor).filter(room=>room.id !== id).map(room=>buildInvestorRoomRecord(room,(ctx.investor.rooms || []).find(r=>r.id === room.id)));
+    // Historical offers remain immutable, including scopes referencing a deleted room.
+    const result = persistRooms(ctx,ctx.project,rooms,{roomId:id,rooms,removedRoomIds:[id]},key);
+    if(result.ok) syncRoomSelectionAfterRemoval(id);
+    return result;
   }
-
   function removeRoomById(roomId){
     const result = removeRoomByIdDetailed(roomId);
-    return result && result.ok ? result.roomId : null;
+    return result.ok ? result.roomId : null;
   }
-
   function getManageableRooms(inv){
-    return mergeRoomCollections({
-      activeRooms: getActiveRoomDefs(),
-      investorRooms: Array.isArray(inv && inv.rooms) ? inv.rooms : [],
-      includeLegacyKitchen: hasLegacyKitchen(getProject()),
-      legacyRoom: createLegacyKitchenDef(),
-      normalizeRoomDef,
-    });
+    const project = getProject();
+    const ids = new Set(functionalRoomIds(project || {}));
+    return mergeRoomCollections({activeRooms:definitions.getProjectRoomDefs(foundation.clone(project || {})).filter(room=>ids.has(room.id)),
+      investorRooms:[],includeLegacyKitchen:hasLegacyKitchen(project),legacyRoom:createLegacyKitchenDef(),normalizeRoomDef});
   }
-
   function applyManageRoomsDraftDetailed(inv, drafts){
-    const currentDrafts = Array.isArray(drafts) ? drafts.map((room)=> normalizeRoomDef(room, room)).filter((room)=> room && room.id) : [];
-    const keepIds = new Set(currentDrafts.map((room)=> String(room.id || '')));
-    const proj = getProject() || {};
-    const meta = ensureProjectMeta(proj);
-    const previousRooms = Array.isArray(inv && inv.rooms) ? inv.rooms : [];
-
-    const removedRoomIds = [];
-    discoverProjectRoomKeys(proj).forEach((roomId)=>{
-      const key = String(roomId || '');
-      if(key === 'kuchnia' && hasLegacyKitchen(proj)) return;
-      if(keepIds.has(key)) return;
-      removedRoomIds.push(key);
+    const key = 'manage:'+JSON.stringify(drafts);
+    const retry = resumed(inv,key); if(retry) return retry;
+    const ctx = context(inv); if(!ctx) return rejected();
+    const rooms = (Array.isArray(drafts) ? drafts : []).map(room=>normalizeRoomDef(room,room)).filter(room=>room.id);
+    if(new Set(rooms.map(room=>room.id)).size !== rooms.length) return rejected('duplicate-room');
+    const keep = new Set(rooms.map(room=>room.id));
+    const removedRoomIds = discoverProjectRoomKeys(ctx.project).filter(id=>!keep.has(id) && !(id === 'kuchnia' && hasLegacyKitchen(ctx.project)));
+    const meta = ensureProjectMeta(ctx.project);
+    removeRoomsData(ctx.project,meta,removedRoomIds);
+    rooms.forEach(room=>{
+      if(!ctx.project[room.id]) return;
+      meta.roomDefs[room.id] = Object.assign({},meta.roomDefs[room.id] || {},room);
     });
-    removeRoomsData(proj, meta, removedRoomIds);
-
-    currentDrafts.forEach((room)=>{
-      if(!proj[room.id]) proj[room.id] = roomTemplate(room.baseType);
-      if(meta && meta.roomDefs) meta.roomDefs[room.id] = { id:room.id, baseType:room.baseType, name:room.name, label:room.label, legacy:!!room.legacy };
-      if(meta && Array.isArray(meta.roomOrder) && !meta.roomOrder.includes(room.id)) meta.roomOrder.push(room.id);
-    });
-    try{ if(meta && Array.isArray(meta.roomOrder)) meta.roomOrder = meta.roomOrder.filter((id)=> keepIds.has(String(id || '')) || String(id || '') === 'kuchnia'); }catch(_){ }
-    saveProject(proj);
-    if(removedRoomIds.length) removeQuotesForRooms(inv, removedRoomIds);
-
-    const nextRooms = currentDrafts.map((room)=> {
-      const prev = previousRooms.find((item)=> String(item && item.id || '') === String(room.id || '')) || {};
-      return buildInvestorRoomRecord(room, prev);
-    });
-    updateInvestorRooms(inv, nextRooms);
-    reconcileStatusesAfterRoomSetChange(inv, nextRooms.map((room)=> room.id));
-    return { ok:true, rooms:nextRooms, removedRoomIds, project:proj };
+    if(rooms.some(room=>!ctx.project[room.id])) return rejected('unknown-room');
+    meta.roomOrder = rooms.map(room=>room.id);
+    const nextRooms = rooms.map(room=>buildInvestorRoomRecord(room,(ctx.investor.rooms || []).find(r=>r.id === room.id)));
+    return persistRooms(ctx,ctx.project,nextRooms,{rooms:nextRooms,removedRoomIds},key);
   }
-
   function applyManageRoomsDraft(inv, drafts){
-    const result = applyManageRoomsDraftDetailed(inv, drafts);
-    return result && result.ok ? result.rooms : [];
+    const result = applyManageRoomsDraftDetailed(inv,drafts);
+    return result.ok ? result.rooms : [];
   }
 
   function getEditableRoom(inv, roomId){

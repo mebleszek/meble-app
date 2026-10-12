@@ -34,6 +34,7 @@
 
   async function openEditRoomModal(roomId){
     const inv = getCurrentInvestor();
+    const openingProject = FC.projectStore && FC.projectStore.getCurrentRecord();
     if(!inv || !(FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
     const room = getEditableRoom(inv, roomId);
     if(!(room && room.id)) return null;
@@ -122,6 +123,8 @@
           }
         }catch(_){ }
         if(!confirmed) return;
+        if(!openingProject || !FC.projectStore.getCurrentRecord() || FC.projectStore.getCurrentProjectId() !== openingProject.id
+          || JSON.stringify(FC.projectStore.getCurrentRecord().projectData) !== JSON.stringify(openingProject.projectData) && !FC.projectDomainOperations.hasPending(openingProject.id)) { openInfo('Projekt zmienił się', 'Zamknij formularz i otwórz go ponownie.'); return; }
         const result = updateRoomRecord(inv, room.id, { baseType:selectedBase, name, label:name });
         if(!(result && result.ok && result.room)) return;
         dirty = false;
@@ -130,8 +133,10 @@
       deleteBtn.addEventListener('click', async ()=>{
         const ok = await askDelete();
         if(!ok) return;
+        if(!openingProject || !FC.projectStore.getCurrentRecord() || FC.projectStore.getCurrentProjectId() !== openingProject.id
+          || JSON.stringify(FC.projectStore.getCurrentRecord().projectData) !== JSON.stringify(openingProject.projectData) && !FC.projectDomainOperations.hasPending(openingProject.id)) { openInfo('Projekt zmienił się', 'Zamknij formularz i otwórz go ponownie.'); return; }
         const result = removeRoomByIdDetailed(room.id);
-        done(result && result.ok ? { deleted:true, roomId:result.roomId } : null);
+        if(result && result.ok) done({ deleted:true, roomId:result.roomId });
       });
       refreshFooter();
       FC.panelBox.open({ title:'Edytuj pomieszczenie', contentNode: body, width:'640px', boxClass:'panel-box--rozrys' });
@@ -141,6 +146,7 @@
 
   async function openAddRoomModal(){
     const inv = getCurrentInvestor();
+    const openingProject = FC.projectStore && FC.projectStore.getCurrentRecord();
     if(!inv || !(FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
     return new Promise((resolve)=>{
       let selectedBase = 'kuchnia';
@@ -189,6 +195,8 @@
           try{ nameInput.focus(); nameInput.select && nameInput.select(); }catch(_){ }
           return;
         }
+        if(!openingProject || !FC.projectStore.getCurrentRecord() || FC.projectStore.getCurrentProjectId() !== openingProject.id
+          || JSON.stringify(FC.projectStore.getCurrentRecord().projectData) !== JSON.stringify(openingProject.projectData) && !FC.projectDomainOperations.hasPending(openingProject.id)) { openInfo('Projekt zmienił się', 'Zamknij formularz i otwórz go ponownie.'); return; }
         const result = createRoomRecord(inv, { baseType:selectedBase, name, label:name });
         if(!(result && result.ok && result.room)) return;
         done(result.room);

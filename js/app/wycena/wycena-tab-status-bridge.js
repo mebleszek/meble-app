@@ -115,11 +115,13 @@
     if(!canAcceptSnapshot(snap, history, d)) return false;
     const targetStatus = d.isPreliminarySnapshot(snap) ? 'pomiar' : 'zaakceptowany';
     if(opts.rememberScroll && typeof d.rememberQuoteScroll === 'function') d.rememberQuoteScroll(String(opts.anchorId || ''), String(opts.fallbackAnchorId || ''));
+    const impact = FC.projectStatusSnapshotFlow && FC.projectStatusSnapshotFlow.getAcceptanceImpact(snap);
+    const scopeNote = impact ? '\n\nZakres: '+impact.roomIds.join(', ')+(impact.releasedRoomIds.length ? '\nRozpięcie poprzedniej wspólnej oferty przywróci statusy: '+impact.releasedRoomIds.join(', ') : '') : '';
     const confirmed = await askConfirm({
       title:'OZNACZYĆ OFERTĘ?',
-      message:d.isPreliminarySnapshot(snap)
+      message:(d.isPreliminarySnapshot(snap)
         ? 'Ta wersja zostanie zaakceptowana, a status projektu zmieni się na „Pomiar”.'
-        : 'Ta wersja zostanie zaakceptowana, a status projektu zmieni się na „Zaakceptowany”.',
+        : 'Ta wersja zostanie zaakceptowana, a status projektu zmieni się na „Zaakceptowany”.')+scopeNote,
       confirmText:'Zaakceptuj ofertę',
       cancelText:'Wróć',
       confirmTone:'success',
@@ -130,6 +132,7 @@
       return false;
     }
     const commitResult = commitAcceptedSnapshotWithSync(snap, targetStatus, undefined, d);
+    if(!(commitResult && commitResult.ok === true)) return false;
     const selected = commitResult && (commitResult.selectedSnapshot || commitResult.snapshot) || null;
     if(!selected) return false;
     if(typeof d.setHistoryPreviewState === 'function'){
@@ -149,68 +152,13 @@
     if(!nextStatus) return;
     try{
       if(FC.projectStatusSync && typeof FC.projectStatusSync.setStatusFromSnapshot === 'function'){
-        FC.projectStatusSync.setStatusFromSnapshot(snap, nextStatus, normalizeOptions(options));
-        return;
+        return FC.projectStatusSync.setStatusFromSnapshot(snap, nextStatus, normalizeOptions(options));
       }
     }catch(_){ }
 
+    // A missing or failed confirmed service cannot degrade to independent mirror/history writes.
     warnMissingProjectStatusSync();
-    const opts = normalizeOptions(options);
-    const syncSelection = !!opts.syncSelection;
-    const projectId = String(snap && snap.project && snap.project.id || (typeof d.getCurrentProjectId === 'function' ? d.getCurrentProjectId() : '') || '');
-    const investorId = String(
-      snap && snap.investor && snap.investor.id
-      || snap && snap.project && snap.project.investorId
-      || (typeof d.getCurrentInvestorId === 'function' ? d.getCurrentInvestorId() : '')
-      || ''
-    );
-    const targetRoomIds = d.getTargetRoomIdsFromSnapshot(snap);
-
-    if(syncSelection){
-      try{
-        if(projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.syncSelectionForProjectStatus === 'function'){
-          FC.quoteSnapshotStore.syncSelectionForProjectStatus(projectId, nextStatus, targetRoomIds.length ? { roomIds:targetRoomIds } : undefined);
-        }
-      }catch(_){ }
-    }
-
-    try{
-      if(investorId && targetRoomIds.length && FC.investorPersistence && typeof FC.investorPersistence.updateInvestorRoom === 'function'){
-        targetRoomIds.forEach((roomId)=> {
-          const key = String(roomId || '');
-          if(key) FC.investorPersistence.updateInvestorRoom(investorId, key, { projectStatus:nextStatus });
-        });
-      }
-    }catch(_){ }
-
-    try{
-      if(projectId && FC.projectStore && typeof FC.projectStore.getById === 'function' && typeof FC.projectStore.upsert === 'function'){
-        const record = FC.projectStore.getById(projectId) || (typeof FC.projectStore.getCurrentRecord === 'function' ? FC.projectStore.getCurrentRecord() : null);
-        if(record) FC.projectStore.upsert(Object.assign({}, record, { status:nextStatus, updatedAt:Date.now() }));
-      }
-    }catch(_){ }
-
-    try{
-      if(FC.project && typeof FC.project.save === 'function'){
-        const proj = FC.project.load ? (FC.project.load() || {}) : {};
-        const meta = proj && proj.meta && typeof proj.meta === 'object' ? proj.meta : null;
-        if(meta){
-          meta.projectStatus = nextStatus;
-          if(meta.roomDefs && typeof meta.roomDefs === 'object'){
-            targetRoomIds.forEach((roomId)=> {
-              const key = String(roomId || '');
-              const row = meta.roomDefs[key];
-              if(row && typeof row === 'object') meta.roomDefs[key] = Object.assign({}, row, { projectStatus:nextStatus });
-            });
-          }
-          FC.project.save(proj);
-        }
-      }
-    }catch(_){ }
-
-    try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
-    try{ if(FC.investorUI && typeof FC.investorUI.render === 'function') FC.investorUI.render(); }catch(_){ }
-    try{ if(FC.roomRegistry && typeof FC.roomRegistry.renderRoomsView === 'function') FC.roomRegistry.renderRoomsView(); }catch(_){ }
+    return {ok:false,reason:'confirmed-status-service-unavailable'};
   }
 
   function syncGeneratedQuoteStatus(snapshot, deps){

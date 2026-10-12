@@ -142,6 +142,10 @@
   }
 
   function importPayload(payload){
+    if(FC.session && FC.session.active){
+      info('Najpierw zakończ edycję', 'Nie zaimportowano projektu. Użyj Zapisz lub Anuluj.');
+      return { ok:false, reason:'active-edit-session' };
+    }
     const parsed = parseImportPayload(payload);
     if(!parsed) return { ok:false, reason:'invalid-payload' };
     const projectStore = FC.projectStore || null;

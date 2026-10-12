@@ -84,15 +84,23 @@
   }
 
   async function applyManualStatusChange({ persistenceApi, investorId, roomId, value, render }){
+    const projectId = FC.projectStore && FC.projectStore.getCurrentProjectId();
     const targetRoomIds = await resolveManualStatusTargetRooms(investorId, roomId, value, render);
-    if(!targetRoomIds) return;
+    if(!targetRoomIds) return false;
+    if(!FC.projectStore || FC.projectStore.getCurrentProjectId() !== projectId) return false;
+    let outcome = null;
     if(targetRoomIds.length > 1 && persistenceApi && typeof persistenceApi.setInvestorProjectStatusScope === 'function'){
-      persistenceApi.setInvestorProjectStatusScope(investorId, targetRoomIds, value, { skipGuard:true, syncSelection:true });
+      outcome = persistenceApi.setInvestorProjectStatusScope(investorId, targetRoomIds, value, { skipGuard:true, syncSelection:true, returnDetails:true });
     }else if(persistenceApi && typeof persistenceApi.setInvestorProjectStatus === 'function'){
-      persistenceApi.setInvestorProjectStatus(investorId, targetRoomIds[0] || roomId, value, { skipGuard:true });
+      outcome = persistenceApi.setInvestorProjectStatus(investorId, targetRoomIds[0] || roomId, value, { skipGuard:true, returnDetails:true });
+    }
+    if(!outcome || outcome.applied !== true){
+      if(!(outcome && outcome.result && outcome.result.partial)) openInfo('Nie potwierdzono zmiany statusu','Status nie został potwierdzony. Zakończ edycję lub ponów operację.');
+      return false;
     }
     refreshSessionButtons();
     render();
+    return true;
   }
 
   async function handleStatusChange(args, roomId, value){

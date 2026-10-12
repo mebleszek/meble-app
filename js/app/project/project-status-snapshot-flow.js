@@ -144,71 +144,70 @@
     return null;
   }
 
+  function getAcceptanceImpact(snapshot){
+    const projectId = snapshot && snapshot.project && snapshot.project.id;
+    const roomIds = getTargetRoomIdsFromSnapshot(snapshot);
+    return {roomIds,releasedRoomIds:collectReleasedRoomIds(listSelectedRowsForProject(projectId),snapshot,roomIds)};
+  }
   function commitAcceptedSnapshot(snapshot, status, options){
-    const snap = normalizeSnapshot(snapshot) || null;
-    const nextStatus = normalizeStatus(status);
-    if(!snap || !nextStatus) return null;
+    return applySnapshotWorkflow(snapshot,status,options,false);
+  }
+  function applySnapshotWorkflow(snapshot,status,options,promote){
     const opts = options && typeof options === 'object' ? options : {};
-    const projectId = String(snap && snap.project && snap.project.id || getCurrentProjectId() || '');
-    const investorId = String(
-      opts.investorId
-      || snap && snap.investor && snap.investor.id
-      || snap && snap.project && snap.project.investorId
-      || getCurrentInvestorId()
-      || ''
-    );
-    const targetRoomIds = normalizeRoomIds(opts.roomIds).length ? normalizeRoomIds(opts.roomIds) : getTargetRoomIdsFromSnapshot(snap);
-    let selectedSnapshot = snap;
-    let selectionCommitted = false;
-    const selectedRowsBefore = listSelectedRowsForProject(projectId);
-    try{
-      const snapshotId = String(snap && snap.id || '');
-      if(projectId && snapshotId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.markSelectedForProject === 'function'){
-        selectedSnapshot = FC.quoteSnapshotStore.markSelectedForProject(projectId, snapshotId, { status:nextStatus, roomIds:targetRoomIds }) || selectedSnapshot;
-        selectionCommitted = true;
-      }
-    }catch(_){ }
-    const releasedRoomIds = collectReleasedRoomIds(selectedRowsBefore, selectedSnapshot, targetRoomIds);
-    const forceStatusRoomIds = collectPreliminaryDowngradeRoomIds(selectedRowsBefore, selectedSnapshot, targetRoomIds, nextStatus);
-    const manualBaseStatusMap = collectManualBaseStatusMap(selectedRowsBefore, investorId, targetRoomIds);
-    const restoreManualStatusMap = collectManualBaseStatusMap(selectedRowsBefore, investorId, releasedRoomIds);
-    const statusResult = setStatusFromSnapshot(selectedSnapshot, nextStatus, Object.assign({}, opts, {
-      investorId,
-      roomIds:targetRoomIds,
-      syncSelection: selectionCommitted ? false : !!opts.syncSelection,
-      preserveCurrentWhenNoQuoteRows:true,
-      preserveForwardProgress:true,
-      forceStatusRoomIds,
-      manualBaseStatusMap,
-    }));
-    let releaseStatusResult = null;
-    if(releasedRoomIds.length){
-      releaseStatusResult = reconcileProjectStatuses({
-        projectId,
-        investorId,
-        roomIds:releasedRoomIds,
-        restrictToRoomIds:true,
-        fallbackStatus:'nowy',
-        restoreManualStatusMap,
-        restoreManualForReleasedRooms:true,
-        refreshUi:false,
-      });
+    const projectId = String(snapshot && snapshot.project && snapshot.project.id || '');
+    const snapshotId = String(snapshot && snapshot.id || '');
+    const nextStatus = normalizeStatus(status);
+    const requestKey = (promote ? 'promote:' : 'accept:')+snapshotId+':'+nextStatus;
+    const record = projectId && FC.projectStore.getById(projectId);
+    if(!record || !snapshotId || !nextStatus) return {ok:false,reason:'invalid-offer-owner'};
+    if(FC.session && FC.session.active){
+      try{ FC.infoBox && FC.infoBox.open({title:'Najpierw zakończ edycję',message:'Zapisz lub anuluj edycję przed zatwierdzeniem oferty.',okOnly:true}); }catch(_){ }
+      return {ok:false,reason:'active-session'};
     }
-    return {
-      snapshot: normalizeSnapshot(selectedSnapshot) || snap,
-      selectedSnapshot: normalizeSnapshot(selectedSnapshot) || snap,
-      statusResult,
-      releaseStatusResult,
-      releasedRoomIds,
-      forceStatusRoomIds,
-      manualBaseStatusMap,
-      restoreManualStatusMap,
-      masterStatus: normalizeStatus(statusResult && statusResult.masterStatus || nextStatus) || nextStatus,
-      mirrorStatus: normalizeStatus(statusResult && statusResult.mirrorStatus || nextStatus) || nextStatus,
-      roomIds:targetRoomIds,
-      projectId: String(projectId || statusResult && statusResult.projectId || ''),
-      investorId: String(investorId || statusResult && statusResult.investorId || ''),
-    };
+    const pending = record.meta && record.meta.pendingDomainOperation;
+    if(pending){
+      if(pending.kind !== 'offerStatus' || pending.requestKey !== requestKey) return {ok:false,partial:true,reason:'different-pending-operation'};
+      return FC.projectDomainOperations.recoverProject(projectId);
+    }
+    const snap = FC.quoteSnapshotStore.getById(snapshotId);
+    const investorId = record.investorId;
+    if(!snap || String(snap.project && snap.project.id) !== projectId
+      || String(snap.project && snap.project.investorId || snap.investor && snap.investor.id) !== investorId
+      || (snap.investor && String(snap.investor.id) !== investorId)
+      || (opts.investorId && String(opts.investorId) !== investorId)) return {ok:false,reason:'offer-context-mismatch'};
+    const targetRoomIds = getTargetRoomIdsFromSnapshot(snap);
+    if(!targetRoomIds.length || (opts.roomIds && !FC.quoteSnapshotScope.sameRoomScope(normalizeRoomIds(opts.roomIds),targetRoomIds))) return {ok:false,reason:'offer-scope-mismatch'};
+    const before = listSelectedRowsForProject(projectId);
+    const history = FC.projectDomainOperations.readHistory();
+    const planned = FC.quoteSnapshotStore.previewSelection(promote ? 'convertPreliminaryToFinal' : 'markSelectedForProject',
+      promote ? [projectId,snapshotId] : [projectId,snapshotId,{status:nextStatus,roomIds:targetRoomIds}],history);
+    if(!planned.result) return {ok:false,reason:'selection-not-confirmed'};
+    const selected = planned.result;
+    const releasedRoomIds = collectReleasedRoomIds(before,selected,targetRoomIds);
+    const forceStatusRoomIds = collectPreliminaryDowngradeRoomIds(before,selected,targetRoomIds,nextStatus);
+    const manualBaseStatusMap = collectManualBaseStatusMap(before,investorId,targetRoomIds);
+    const restoreManualStatusMap = collectManualBaseStatusMap(before,investorId,releasedRoomIds);
+    const statusResult = setStatusFromSnapshot(selected,nextStatus,Object.assign({},opts,{
+      preview:true,historyRows:planned.rows,investorId,roomIds:targetRoomIds,syncSelection:false,
+      preserveCurrentWhenNoQuoteRows:true,preserveForwardProgress:true,forceStatusRoomIds,manualBaseStatusMap,
+    }));
+    if(!statusResult || statusResult.ok !== true) return {ok:false,reason:'status-plan-invalid'};
+    const releaseStatusResult = releasedRoomIds.length ? reconcileProjectStatuses({
+      preview:true,historyRows:planned.rows,projectId,investorId,roomIds:releasedRoomIds,restrictToRoomIds:true,
+      fallbackStatus:'nowy',restoreManualStatusMap,restoreManualForReleasedRooms:true,refreshUi:false,
+    }) : null;
+    if(releaseStatusResult && releaseStatusResult.ok !== true) return {ok:false,reason:'released-status-plan-invalid'};
+    const roomStatusMap = Object.assign({},statusResult.roomStatusMap);
+    for(const id of releasedRoomIds) roomStatusMap[id] = releaseStatusResult.roomStatusMap[id];
+    const affectedRoomIds = normalizeRoomIds(targetRoomIds.concat(releasedRoomIds));
+    const manualMap = Object.assign({},manualBaseStatusMap,restoreManualStatusMap);
+    const operationResult = {snapshot:selected,selectedSnapshot:selected,convertedSnapshot:promote ? selected : undefined,
+      statusResult,releaseStatusResult,releasedRoomIds,forceStatusRoomIds,manualBaseStatusMap,restoreManualStatusMap,
+      roomIds:targetRoomIds,affectedRoomIds,projectId,investorId,masterStatus:statusResult.masterStatus,mirrorStatus:statusResult.masterStatus};
+    const result = FC.projectStatusSync.persistStatusPlan(record,getInvestorById(investorId),roomStatusMap,manualMap,affectedRoomIds,
+      statusResult.masterStatus,planned.rows,{requestKey,operationResult});
+    if(result.ok && opts.refreshUi !== false && FC.projectStatusMirrors) FC.projectStatusMirrors.refreshStatusViews();
+    return result;
   }
 
   function reconcileStatusAfterSnapshotRemoval(snapshot, options){
@@ -227,38 +226,12 @@
   }
 
   function promotePreliminarySnapshotToFinal(snapshot, options){
-    const snap = normalizeSnapshot(snapshot) || null;
-    if(!snap) return null;
-    const opts = options && typeof options === 'object' ? options : {};
-    const projectId = String(opts.projectId || snap && snap.project && snap.project.id || getCurrentProjectId() || '');
-    const snapshotId = String(snap && snap.id || '');
-    if(!projectId || !snapshotId) return null;
-    let converted = null;
-    try{
-      if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.convertPreliminaryToFinal === 'function'){
-        converted = FC.quoteSnapshotStore.convertPreliminaryToFinal(projectId, snapshotId);
-      }
-    }catch(_){ converted = null; }
-    if(!converted) return null;
-    const statusResult = setStatusFromSnapshot(converted, 'zaakceptowany', Object.assign({}, opts, {
-      syncSelection:false,
-      preserveCurrentWhenNoQuoteRows:true,
-      preserveForwardProgress:true,
-    }));
-    return {
-      snapshot: normalizeSnapshot(converted) || converted,
-      convertedSnapshot: normalizeSnapshot(converted) || converted,
-      statusResult,
-      masterStatus: normalizeStatus(statusResult && statusResult.masterStatus || 'zaakceptowany') || 'zaakceptowany',
-      mirrorStatus: normalizeStatus(statusResult && statusResult.mirrorStatus || 'zaakceptowany') || 'zaakceptowany',
-      projectId,
-      investorId: String(opts.investorId || converted && converted.investor && converted.investor.id || converted && converted.project && converted.project.investorId || getCurrentInvestorId() || ''),
-      roomIds: getTargetRoomIdsFromSnapshot(converted),
-    };
+    return applySnapshotWorkflow(snapshot,'zaakceptowany',options,true);
   }
 
   const api = {
     commitAcceptedSnapshot,
+    getAcceptanceImpact,
     reconcileStatusAfterSnapshotRemoval,
     promotePreliminarySnapshotToFinal,
   };

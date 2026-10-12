@@ -143,6 +143,7 @@
   }
 
   function setCurrentId(id){
+    if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor(id)) return false;
     try{
       if(!id) localStorage.removeItem(KEY_CURRENT);
       else localStorage.setItem(KEY_CURRENT, String(id));

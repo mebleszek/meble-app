@@ -11,8 +11,10 @@
     window.setTimeout(() => el.classList.remove('focus-flash'), 1300);
   }
 
-  function setActiveTab(tabName){
+  function applyTab(tabName){
     if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock() && tabName !== 'inwestor') return;
+    const proposed = Object.assign({}, uiState, { activeTab:tabName });
+    if(FC.sessionNavigation && !FC.sessionNavigation.prepareEditState(proposed)) return false;
     if(tabName === 'wywiad' && !uiState.roomType){
       uiState.entry = 'rooms';
     }
@@ -44,6 +46,19 @@
     }
 
     try{ window.scrollTo({top:0, behavior:'smooth'}); } catch(_){ try{ window.scrollTo(0,0); }catch(__){} }
+  }
+
+  function setActiveTab(tabName){
+    const name = String(tabName || '');
+    if(['pokoje','wycena','rozrys'].includes(name)){
+      const nav = window.FC && window.FC.sessionNavigation;
+      if(nav && typeof nav.requestTransition === 'function'){
+        return nav.requestTransition(name === 'pokoje' ? 'listy pomieszczeń' : name.toUpperCase(), ()=> applyTab(name));
+      }
+      // Read-only calculation tabs keep the edit owner; generation has its own gate.
+      if(window.FC && window.FC.session && window.FC.session.active) return false;
+    }
+    return applyTab(name);
   }
 
   function jumpToMaterialsForCabinet(cabId){

@@ -40,6 +40,8 @@ function createRuntimeScenario(options){
   let centralProject = clone(opts.centralProject || null);
   let legacyProject = clone(opts.legacyProject || null);
   let activeProject = null;
+  let currentProjectId = centralProject ? 'proj_boot' : '';
+  const centralRecord = ()=> centralProject && currentProjectId ? { id:'proj_boot', investorId, projectData:clone(centralProject) } : null;
   const writes = { central:[], legacy:[], active:[] };
 
   const sandbox = {
@@ -64,9 +66,16 @@ function createRuntimeScenario(options){
         return clone(project);
       },
     },
+    projectStore:{
+      getCurrentRecord:centralRecord,
+      getByInvestorId(id){ return String(id) === investorId && centralProject ? { id:'proj_boot', investorId, projectData:clone(centralProject) } : null; },
+      getCurrentProjectId(){ return currentProjectId; },
+      setCurrentProjectId(id){ currentProjectId = String(id || ''); return currentProjectId; },
+    },
     investorProjectRepository:{
       getCurrentInvestorId(){ return investorId; },
       loadCentralProjectForInvestor(_id, fallback){
+        if(centralProject) currentProjectId = 'proj_boot';
         return centralProject == null ? fallback : clone(centralProject);
       },
       saveCentralProjectForInvestor(_id, project){
@@ -202,7 +211,9 @@ function testRestartKeepsCentralProject(){
 
   scenario.runtime.ensureInvestorProjectLoadedOnBoot();
   const afterFirstBoot = scenario.getCentral();
+  scenario.sandbox.projectData.kuchnia.cabinets.push({ id:'local_unsaved' });
   scenario.runtime.ensureInvestorProjectLoadedOnBoot();
+  assert(cabinetIds(scenario.sandbox.projectData).includes('local_unsaved'), 'Ponowne wywołanie bootu nie może skasować lokalnego draftu');
   const afterSecondBoot = scenario.getCentral();
 
   assert(cabinetIds(afterFirstBoot).join(',') === 'cab_restart_1,cab_restart_2',

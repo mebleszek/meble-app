@@ -228,12 +228,17 @@
     let suggestedMap = {};
     try{
       if(projectId && FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getRecommendedStatusMapForProject === 'function'){
-        suggestedMap = FC.quoteSnapshotStore.getRecommendedStatusMapForProject(projectId, currentStatusMap || {}, ids, {
+        const recommendationOptions = {
           matchMode:'exact',
           fallbackStatus:suggestionFallbackStatus || fallbackStatus,
           allowProjectWideExact: ids.length === 1,
           preserveCurrentWhenNoQuoteRows: !!opts.preserveCurrentWhenNoQuoteRows,
-        }) || {};
+        };
+        const args = [projectId, currentStatusMap || {}, ids, recommendationOptions];
+        suggestedMap = Array.isArray(opts.historyRows)
+          ? FC.quoteSnapshotStore.previewSelection('getRecommendedStatusMapForProject',args,opts.historyRows).result
+          : FC.quoteSnapshotStore.getRecommendedStatusMapForProject(...args);
+        suggestedMap = suggestedMap || {};
       }
     }catch(_){ suggestedMap = {}; }
     ids.forEach((roomId)=> {

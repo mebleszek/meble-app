@@ -111,7 +111,7 @@
   }
 
 
-  FC.actions.register({
+  const actions = {
     'wycena-generate': ({event}) => {
       try{
         if(window.FC && FC.wycenaGenerateAction && typeof FC.wycenaGenerateAction.run === 'function'){
@@ -185,26 +185,8 @@
     'open-workshop-services': ({event}) => openPriceCatalog('workshopServices'),
 
     'open-investors-list': ({event}) => {
-      // open separate investors list screen (no top tabs)
-      try{
-        if(FC.views && typeof FC.views.openInvestorsList === 'function') FC.views.openInvestorsList();
-        else {
-          uiState.entry = 'investorsList';
-          FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-          if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
-        }
-      }catch(_){ }
-
-      // render list
-      try{
-        const root = document.getElementById('investorsListRoot');
-        if(root && window.FC && window.FC.investorUI && typeof window.FC.investorUI.renderListOnly === 'function'){
-          window.FC.investorUI.state.mode = 'list';
-          window.FC.investorUI.state.allowListAccess = false;
-          window.FC.investorUI.renderListOnly(root);
-        }
-      }catch(_){ }
-      return true;
+      if(FC.views && typeof FC.views.openInvestorsList === 'function') return FC.views.openInvestorsList();
+      return false;
     },
 
     // backward compat
@@ -273,7 +255,7 @@
           }catch(_){ }
           return true;
         }
-        try{ if(typeof uiState !== 'undefined' && window.FC && FC.storage && typeof FC.storage.setJSON === 'function') FC.storage.setJSON(STORAGE_KEYS.ui, uiState); }catch(_){ }
+        try{ if(FC.uiState && typeof uiState !== 'undefined') uiState = FC.uiState.set({entry:'rooms',activeTab:'pokoje',roomType:null,lastRoomType:null,selectedCabinetId:null}); }catch(_){ }
         try{ restoreProjectUiAfterSessionChange(); }catch(_){ }
         try{ window.location.reload(); }catch(_){ }
         return true;
@@ -349,33 +331,40 @@
       return true;
     },
     'open-investor': ({event, element}) => {
-      const id = element?.getAttribute ? element.getAttribute('data-inv-id') : null;
+      const id = element && element.getAttribute ? element.getAttribute('data-inv-id') : null;
       if(!id) return true;
-
-      try{
-        const persistence = (window.FC && window.FC.investorPersistence) ? window.FC.investorPersistence : null;
-        if(persistence && typeof persistence.setCurrentInvestorId === 'function') persistence.setCurrentInvestorId(id);
-        try{ if(window.FC && window.FC.investorProjectRuntime && typeof window.FC.investorProjectRuntime.setActiveProjectFromInvestor === 'function') window.FC.investorProjectRuntime.setActiveProjectFromInvestor(id); }catch(_){ }
-        if(typeof uiState !== 'undefined' && uiState) uiState.currentInvestorId = id;
-        // move to full workflow and open INWESTOR tab
+      const activate = ()=>{
         try{
+          const persistence = FC.investorPersistence;
+          if(!(persistence && typeof persistence.setCurrentInvestorId === 'function')) return false;
+          persistence.setCurrentInvestorId(id);
+          const actualId = typeof persistence.getCurrentInvestorId === 'function' ? persistence.getCurrentInvestorId() : '';
+          if(String(actualId || '') !== String(id)) return false;
+          if(FC.investorProjectRuntime && typeof FC.investorProjectRuntime.setActiveProjectFromInvestor === 'function') FC.investorProjectRuntime.setActiveProjectFromInvestor(id);
+          const selected = FC.projectStore && FC.projectStore.getCurrentRecord ? FC.projectStore.getCurrentRecord() : null;
+          if(!selected || String(selected.investorId || '') !== String(id)) return false;
           if(typeof uiState !== 'undefined' && uiState){
+            uiState.currentInvestorId = id;
             uiState.entry = 'rooms';
             uiState.activeTab = 'inwestor';
             FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
+            if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
           }
-          if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
-        }catch(_){ }
-        if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
-          window.FC.investorUI.state.selectedId = id;
-          window.FC.investorUI.state.mode = 'detail';
-          window.FC.investorUI.state.allowListAccess = false;
-          window.FC.investorUI.state.newlyCreatedId = null;
-          window.FC.investorUI.state.transientInvestor = null;
-        }
-        try{ window.FC.investorUI && window.FC.investorUI.render && window.FC.investorUI.render(); }catch(_){ }
-      }catch(_){ }
-      return true;
+          if(FC.investorUI && FC.investorUI.state){
+            FC.investorUI.state.selectedId = id;
+            FC.investorUI.state.mode = 'detail';
+            FC.investorUI.state.allowListAccess = false;
+            FC.investorUI.state.newlyCreatedId = null;
+            FC.investorUI.state.transientInvestor = null;
+          }
+          if(FC.investorUI && FC.investorUI.render) FC.investorUI.render();
+          return true;
+        }catch(_){ return false; }
+      };
+      const nav = FC.sessionNavigation;
+      if(nav && typeof nav.requestTransition === 'function') return nav.requestTransition('projektu inwestora', activate);
+      if(FC.session && FC.session.active) return false;
+      return activate();
     },
     'back-investors': ({event}) => {
       try{
@@ -476,13 +465,8 @@
         if(window.FC && window.FC.roomRegistry && typeof window.FC.roomRegistry.openAddRoomModal === 'function'){
           const room = await window.FC.roomRegistry.openAddRoomModal();
           if(room){
-            uiState.roomType = room.id;
-            uiState.lastRoomType = room.id;
-            uiState.activeTab = 'wywiad';
-            uiState.entry = 'app';
-            FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
             try{ if(window.FC.roomRegistry.renderRoomsView) window.FC.roomRegistry.renderRoomsView(); }catch(_){ }
-            if(FC.views && FC.views.openRoom) FC.views.openRoom(room.id);
+            if(FC.views && FC.views.openRoom) await FC.views.openRoom(room.id);
           }
         }
       }catch(_){ }
@@ -490,21 +474,9 @@
     },
 
     'open-room': ({event, element}) => {
-      if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock()) return true;
-      const room = element.getAttribute('data-room');
-      // Enter room editor
-      uiState.roomType = room;
-      uiState.lastRoomType = room;
-      // From investor screen we want a fast jump to pricing. From other placeholder screens, go to WYWIAD.
-      if(uiState.activeTab === 'inwestor') uiState.activeTab = 'wywiad';
-      else if(uiState.activeTab === 'pokoje' || uiState.activeTab === 'rozrys' || uiState.activeTab === 'magazyn') uiState.activeTab = 'wywiad';
-      uiState.entry = 'app';
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-      if(FC.views && FC.views.openRoom) FC.views.openRoom(room);
-
-      // Ensure tab content refreshes immediately after the navigation.
-      try{ if(typeof setActiveTab === 'function' && uiState && uiState.activeTab) setActiveTab(uiState.activeTab); }catch(_){ }
-      return true;
+      if(FC.investorEditorState && FC.investorEditorState.hasUiLock && FC.investorEditorState.hasUiLock()) return false;
+      const room = element && element.getAttribute ? String(element.getAttribute('data-room') || '') : '';
+      return room && FC.views && FC.views.openRoom ? FC.views.openRoom(room) : false;
     },
 
     'tab': ({event, element}) => {
@@ -513,5 +485,16 @@
       setActiveTab(tab);
       return true;
     },
+  };
+  // Guard destructive/context-changing actions before their first RAM or UI mutation.
+  ['new-investor','create-investor','back-investors','assign-investor','delete-investor','new-project'].forEach(name=> {
+    const action = actions[name];
+    actions[name] = args=> {
+      const nav = FC.sessionNavigation;
+      if(nav && nav.needsClosure()) return nav.requestTransition('wybranej operacji', ()=> action(args));
+      if(FC.session && FC.session.active) return false;
+      return action(args);
+    };
   });
+  FC.actions.register(actions);
 })();

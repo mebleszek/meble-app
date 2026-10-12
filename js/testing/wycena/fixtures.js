@@ -117,9 +117,11 @@
     try{
       try{ localStorage.removeItem('fc_edit_session_v1'); }catch(_){ }
       FC.investors && FC.investors.writeAll && FC.investors.writeAll([investor]);
-      FC.investors && FC.investors.setCurrentId && FC.investors.setCurrentId(investorId);
+      // Activation requires an existing canonical target and coherent RAM context.
       FC.projectStore && FC.projectStore.writeAll && FC.projectStore.writeAll([projectRecord]);
       FC.projectStore && FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(projectId);
+      host.projectData = FC.project && FC.project.normalize ? FC.project.normalize(projectData) : clone(projectData);
+      FC.investors && FC.investors.setCurrentId && FC.investors.setCurrentId(investorId);
       if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.writeAll === 'function') FC.quoteSnapshotStore.writeAll([]);
       if(FC.quoteOfferStore && typeof FC.quoteOfferStore.writeAll === 'function') FC.quoteOfferStore.writeAll([]);
       host.projectData = clone(projectData);
