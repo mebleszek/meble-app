@@ -221,10 +221,10 @@ test('30 explicit Save finishes once; rerender does not rebegin, explicit reopen
  r.FC.views.applyFromState(r.s.uiState);assert.equal(r.FC.session.active,false);assert.equal(r.storage.getItem(E),null);
  await r.open();assert.equal(r.FC.session.active,true);assert.equal(r.FC.session.roomId,'room_k');
 });
-test('31 explicit Cancel exits editing and cannot immediately recreate the session',async()=>{
+test('31 explicit Cancel reopens the same room with a new durable clean session',async()=>{
  const r=fixture();await r.open();r.FC.confirmBox={ask:async()=>true};r.s.projectData.room_k.cabinets[0].width=65;
- await r.handlers['session-cancel']({});assert.equal(r.FC.session.active,false);assert.equal(r.storage.getItem(E),null);assert.equal(r.s.uiState.entry,'rooms');
- const reboot=fixture(r.seed());reboot.FC.views.applyFromState(reboot.s.uiState);assert.equal(reboot.FC.session.active,false);
+ const previous=r.FC.session.snapshot;await r.handlers['session-cancel']({});assert.equal(r.FC.session.active,true);assert.equal(r.FC.session.durable,true);assert.equal(r.FC.session.roomId,'room_k');assert.notEqual(r.FC.session.snapshot,previous);assert.equal(r.FC.session.isDirty(),false);assert.equal(r.s.uiState.entry,'app');
+ const reboot=fixture(r.seed());reboot.FC.views.applyFromState(reboot.s.uiState);assert.equal(reboot.FC.session.active,true);assert.equal(reboot.FC.session.roomId,'room_k');
 });
 test('32 unfinished intention cannot be deleted or replaced through project API',()=>{
  const r=fixture();r.storage.fail.set(I,true);r.FC.roomRegistryProjectSync.updateRoomRecord(r.inv(),'room_s',{name:'Salon Nowy',baseType:'pokoj'});

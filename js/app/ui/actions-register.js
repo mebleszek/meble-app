@@ -230,6 +230,11 @@
 
       // A failed durable cleanup leaves an active session even after data is clean.
       if(dirty || (session && session.active)){
+        const roomContext = dirty && session && session.roomId ? {
+          projectId:session.projectId, roomId:session.roomId,
+          investorId:session.context && session.context.investorId,
+          snapshot:session.snapshot,
+        } : null;
         let ok = true;
         try{
           if(dirty && window.FC && window.FC.confirmBox && typeof window.FC.confirmBox.ask === 'function'){
@@ -243,8 +248,12 @@
               dismissOnOverlay:false
             });
           }
-        }catch(_){ ok = true; }
+        }catch(_){ ok = false; }
         if(!ok) return true;
+        if(roomContext && (session.projectId !== roomContext.projectId || session.roomId !== roomContext.roomId
+          || session.snapshot !== roomContext.snapshot || !FC.projectStore || FC.projectStore.getCurrentProjectId() !== roomContext.projectId
+          || !FC.investors || FC.investors.getCurrentId() !== roomContext.investorId
+          || typeof uiState === 'undefined' || uiState.roomType !== roomContext.roomId)) return false;
         let cancelled = false;
         try{ if(session && typeof session.cancel === 'function') cancelled = session.cancel() === true; }catch(_){ }
         if(!cancelled){
@@ -253,6 +262,30 @@
             if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Nie udało się anulować zmian', message });
             else window.alert(message);
           }catch(_){ }
+          return true;
+        }
+        if(roomContext){
+          let reopened = false;
+          try{
+            const nav = FC.sessionNavigation;
+            if(FC.projectStore.getCurrentProjectId() === roomContext.projectId
+              && FC.investors.getCurrentId() === roomContext.investorId
+              && nav && nav.reloadCentral() && FC.views && typeof FC.views.openRoom === 'function'){
+              // openRoom uses prepareEditState(..., true), bypassing the finished-scope shortcut.
+              reopened = await FC.views.openRoom(roomContext.roomId) === true;
+            }
+            reopened = reopened && session.active && session.durable
+              && session.projectId === roomContext.projectId && session.roomId === roomContext.roomId;
+          }catch(_){ reopened = false; }
+          if(!reopened){
+            // The rollback is complete, but an unsecured or stale editor must not remain usable.
+            try{ FC.sessionNavigation.sessionFinished(null); }catch(_){ }
+            for(const id of ['appView','floatingAdd','sessionButtons']){
+              const element = document.getElementById(id);
+              if(element) element.style.display = 'none';
+            }
+            try{ FC.infoBox.open({title:'Nie udało się ponownie zabezpieczyć edytora',message:'Zmiany zostały cofnięte, ale nie potwierdzono zabezpieczenia edytora. Edycja została zablokowana. Spróbuj ponownie otworzyć to pomieszczenie.',okOnly:true}); }catch(_){ }
+          }
           return true;
         }
         try{ if(FC.uiState && typeof uiState !== 'undefined') uiState = FC.uiState.set({entry:'rooms',activeTab:'pokoje',roomType:null,lastRoomType:null,selectedCabinetId:null}); }catch(_){ }
