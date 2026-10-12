@@ -230,7 +230,7 @@
       if(!(parsed && parsed.ok)) return;
       let materialMap;
       try{ materialMap = buildResolvedMaterialMap(parsed.rows, missingState); }
-      catch(error){ info('Nie zapisano materiałów', String(error && error.message || error)); return; }
+      catch(error){ info(error && error.partial ? 'Zapis częściowy' : 'Nie zapisano materiałów', String(error && error.message || error)); return; }
       const importedParts = rowsToParts(parsed.rows, materialMap);
       const firstPart = importedParts[0] || null;
       const current = cfg.draft && typeof cfg.draft === 'object' ? clone(cfg.draft) : {};

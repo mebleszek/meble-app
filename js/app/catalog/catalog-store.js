@@ -89,7 +89,81 @@
     catch(_){ return (prefix || 'id') + '_' + Date.now(); }
   }
 
+  const CATALOG_LABELS = {
+    materials:'Materiały (dane historyczne)', services:'Usługi (dane historyczne)',
+    sheetMaterials:'Materiały', accessories:'Katalog okuć', quoteRates:'Cennik robocizny',
+    workshopServices:'Usługi stolarskie', hardwareManufacturers:'Producenci okuć',
+    hardwareSuppliers:'Dostawcy okuć', hardwareSettings:'Ustawienia cen okuć',
+    hardwareCategories:'Kategorie okuć', hardwareTypes:'Typy okuć', hardwareTechnicalParams:'Parametry techniczne okuć',
+  };
+  // A fallback displayed after a failed read is never allowed to become the persisted catalog.
+  // Only a fresh initialization after recovery can release this instance's lock.
+  const recoveryRequired = new Map();
+  let recoveryNoticeQueued = false, lastRecoveryNotice = '';
+
+  function notifyRecoveryRequired(){
+    if(FC.catalogStore && FC.catalogStore.notifyRecoveryRequired !== notifyRecoveryRequired) return;
+    const labels = Array.from(recoveryRequired.keys()).map(key=>CATALOG_LABELS[key]);
+    const signature = labels.join(', ');
+    if(!signature || signature === lastRecoveryNotice || !(FC.infoBox && FC.infoBox.open)) return;
+    FC.infoBox.open({ title:'Wymagane odzyskanie danych katalogu',
+      message:'Nie można odczytać danych: ' + signature + '. Widoczne wartości zastępcze nie są odzyskanymi danymi użytkownika. Zapis tych katalogów został zablokowany. Odzyskaj poprawne dane i uruchom program ponownie.', okOnly:true });
+    lastRecoveryNotice = signature;
+  }
+
+  function recoveryError(key){
+    const error = new Error('Nie można odczytać katalogu „' + CATALOG_LABELS[key] + '”. Zapis został zablokowany, aby nie nadpisać danych wartościami zastępczymi. Odzyskaj poprawne dane i uruchom program ponownie.');
+    error.code = 'CATALOG_RECOVERY_REQUIRED';
+    error.key = recoveryRequired.get(key);
+    return error;
+  }
+
+  function catalogRaw(name){
+    return typeof localStorage !== 'undefined' ? localStorage.getItem(name) : storage.getRaw(name);
+  }
+
+  function assertCatalogReadable(key){
+    if(!Object.prototype.hasOwnProperty.call(CATALOG_LABELS, key)) return;
+    if(recoveryRequired.has(key)) throw recoveryError(key);
+    const primary = storagePolicy ? storagePolicy.resolveKey(KEYS, key) : (KEYS[key] || key);
+    const legacy = storagePolicy ? storagePolicy.legacyKey(key) : '';
+    let source = primary;
+    try{
+      let raw = catalogRaw(primary);
+      if(raw == null && legacy){ source = legacy; raw = catalogRaw(legacy); }
+      if(raw == null) return;
+      const value = JSON.parse(raw);
+      if(key === 'hardwareSettings' ? (!value || typeof value !== 'object' || Array.isArray(value)) : !Array.isArray(value)) throw new Error('Niepoprawna struktura katalogu.');
+    }catch(_){
+      recoveryRequired.set(key, source);
+      if(!recoveryNoticeQueued && typeof document !== 'undefined' && document.addEventListener){
+        recoveryNoticeQueued = true;
+        document.addEventListener('DOMContentLoaded', notifyRecoveryRequired, { once:true });
+        if(document.readyState === 'complete') setTimeout(notifyRecoveryRequired, 0);
+      }
+      throw recoveryError(key);
+    }
+  }
+
+  function assertCatalogWriteAllowed(key){
+    assertCatalogReadable(key);
+    // Missing split catalogs may be seeded from historical materials/services, never from their corrupt fallback.
+    const source = { sheetMaterials:'materials', accessories:'materials', quoteRates:'services' }[key];
+    if(source && catalogRaw(KEYS[key] || key) == null) assertCatalogReadable(source);
+  }
+
+  function markPartialWrite(error, confirmedKeys){
+    if(!confirmedKeys.length) return error;
+    error.partial = true;
+    error.confirmedKeys = Array.from(new Set((error.confirmedKeys || []).concat(confirmedKeys)));
+    error.failureMessage = error.failureMessage || error.message;
+    error.message = 'Zapis częściowy: część danych została już zapisana, ale nie udało się zapisać całości. ' + error.failureMessage;
+    return error;
+  }
+
   function readList(key, fallback){
+    try{ assertCatalogReadable(key); }
+    catch(_){ return clone(fallback); }
     try{
       if(storagePolicy && typeof storagePolicy.hasManagedKey === 'function' && storagePolicy.hasManagedKey(key)){
         return storagePolicy.readJSON(storage, KEYS, key, fallback, clone);
@@ -101,6 +175,7 @@
   }
 
   function writeList(key, list){
+    assertCatalogWriteAllowed(key);
     if(storagePolicy && typeof storagePolicy.writeJSON === 'function'){
       return storagePolicy.writeJSON(storage, KEYS, key, list);
     }
@@ -432,22 +507,16 @@
       else writeList('serviceOrders', serviceOrders);
     }catch(_){ }
     const failedKeys = [];
+    const confirmedKeys = [];
     function persistMigrated(key, next){
       try{
-        // An unreadable/corrupt existing value must not be replaced by starter defaults.
-        const primary = storagePolicy ? storagePolicy.resolveKey(KEYS, key) : (KEYS[key] || key);
-        const legacy = storagePolicy ? storagePolicy.legacyKey(key) : '';
-        const rawFor = (name)=> typeof localStorage !== 'undefined' ? localStorage.getItem(name) : storage.getRaw(name);
-        let raw = rawFor(primary);
-        if(raw == null && legacy) raw = rawFor(legacy);
-        if(raw != null){
-          const stored = JSON.parse(raw);
-          if(key === 'hardwareSettings' ? (!stored || typeof stored !== 'object' || Array.isArray(stored)) : !Array.isArray(stored)) throw new Error('Niepoprawny istniejący katalog.');
-        }
-        return writeList(key, next);
+        const source = { sheetMaterials:'materials', accessories:'materials', quoteRates:'services' }[key];
+        if(!preferStoredSplit && source) assertCatalogReadable(source);
+        const saved = writeList(key, next); confirmedKeys.push(KEYS[key] || key); return saved;
       }
       catch(_){ failedKeys.push(key); return readList(key, seeds[key]); }
     }
+
     cache = {
       sheetMaterials:persistMigrated('sheetMaterials', sheetMaterials),
       accessories:persistMigrated('accessories', accessories),
@@ -466,7 +535,7 @@
     if(!failedKeys.includes('quoteRates')) persistMigrated('services', cache.quoteRates);
     refreshHardwareRuntimeSettings();
     syncRuntimeGlobals();
-    return Object.assign({}, cache, { ok:failedKeys.length === 0, failedKeys });
+    return Object.assign({}, cache, { ok:failedKeys.length === 0, partial:failedKeys.length > 0 && confirmedKeys.length > 0, failedKeys, confirmedKeys });
   }
 
   let cache = { sheetMaterials:[], accessories:[], quoteRates:[], workshopServices:[], serviceOrders:[], hardwareManufacturers:[], hardwareSuppliers:[], hardwareSettings:Object.assign({}, DEFAULT_HARDWARE_SETTINGS), hardwareCategories:DEFAULT_HARDWARE_CATEGORIES.slice(), hardwareTypes:DEFAULT_HARDWARE_TYPES.slice(), hardwareTechnicalParams:DEFAULT_HARDWARE_TECHNICAL_PARAMS.slice() };
@@ -481,6 +550,7 @@
   cache = migrateLegacy(false);
 
   function getPriceList(kind){
+    notifyRecoveryRequired();
     const key = String(kind || 'materials');
     if(key === 'materials') return clone(cache.sheetMaterials);
     if(key === 'accessories') return clone(cache.accessories);
@@ -533,13 +603,17 @@
   function saveHardwareCategories(list){
     const next = normalizeHardwareCategories(list);
     const params = normalizeHardwareTechnicalParams(cache.hardwareTechnicalParams || DEFAULT_HARDWARE_TECHNICAL_PARAMS, next);
-    writeList('hardwareCategories', next);
-    cache.hardwareCategories = next;
-    refreshHardwareRuntimeSettings();
-    writeList('hardwareTechnicalParams', params);
-    cache.hardwareTechnicalParams = params;
-    refreshHardwareRuntimeSettings();
-    return getHardwareCategories();
+    const confirmedKeys = [];
+    try{
+      writeList('hardwareCategories', next);
+      confirmedKeys.push(KEYS.hardwareCategories || 'hardwareCategories');
+      cache.hardwareCategories = next;
+      refreshHardwareRuntimeSettings();
+      writeList('hardwareTechnicalParams', params);
+      cache.hardwareTechnicalParams = params;
+      refreshHardwareRuntimeSettings();
+      return getHardwareCategories();
+    }catch(error){ throw markPartialWrite(error, confirmedKeys); }
   }
 
   function getHardwareTypes(){ return (cache.hardwareTypes || []).map((row)=> Object.assign({}, row, { allowedCategories:Array.isArray(row && row.allowedCategories) ? row.allowedCategories.slice() : [] })); }
@@ -562,10 +636,12 @@
 
   function savePriceList(kind, list){
     const key = String(kind || 'materials');
+    const confirmedKeys = [];
     try{
       if(key === 'materials'){
         const next = normalizeList(list, normalizeMaterialRow, DEFAULT_SHEET_MATERIALS).filter((row)=> String(row.materialType || '').trim().toLowerCase() !== 'akcesoria');
         writeList('sheetMaterials', next);
+        confirmedKeys.push(KEYS.sheetMaterials || 'sheetMaterials');
         cache.sheetMaterials = next;
         writeList('materials', next);
       }
@@ -573,6 +649,7 @@
         refreshHardwareRuntimeSettings();
         const next = normalizeList(list, normalizeAccessoryRow, DEFAULT_ACCESSORIES);
         writeList('accessories', next);
+        confirmedKeys.push(KEYS.accessories || 'accessories');
         cache.accessories = next;
         saveHardwareManufacturers((cache.hardwareManufacturers || []).concat(next.map((row)=> row && row.manufacturer)));
       }
@@ -581,17 +658,20 @@
         const seed = laborCatalog && typeof laborCatalog.ensureDefaultDefinitions === 'function' ? laborCatalog.ensureDefaultDefinitions(normalized) : normalized;
         const next = normalizeList(seed, normalizeServiceRow, DEFAULT_QUOTE_RATES);
         writeList('quoteRates', next);
+        confirmedKeys.push(KEYS.quoteRates || 'quoteRates');
         cache.quoteRates = next;
         writeList('services', next);
       }
       else if(key === 'workshopServices'){
         const next = normalizeList(list, normalizeServiceRow, DEFAULT_WORKSHOP_SERVICES);
         writeList('workshopServices', next);
+        confirmedKeys.push(KEYS.workshopServices || 'workshopServices');
         cache.workshopServices = next;
       }
       else throw new Error('Nieznany cennik: ' + key);
       return getPriceList(key);
-    }finally{ syncRuntimeGlobals(); }
+    }catch(error){ throw markPartialWrite(error, confirmedKeys); }
+    finally{ syncRuntimeGlobals(); }
   }
 
   function readServiceOrdersFromStore(){
@@ -634,6 +714,8 @@
   }
 
   FC.catalogStore = {
+    markPartialWrite,
+    notifyRecoveryRequired,
     getPriceList,
     savePriceList,
     getPriceConfig,

@@ -31,7 +31,7 @@
       if(!(store && typeof store.savePriceList === 'function')) throw new Error('Magazyn katalogu jest niedostępny.');
       if(!Array.isArray(store.savePriceList(currentListKind(), next))) throw new Error('Nie potwierdzono zapisu katalogu.');
       return true;
-    }catch(error){ info('Nie zapisano danych', String(error && error.message || 'Zmiany pozostały w formularzu. Spróbuj ponownie.')); return false; }
+    }catch(error){ info(error && error.partial ? 'Zapis częściowy' : (error && error.code === 'CATALOG_RECOVERY_REQUIRED' ? 'Wymagane odzyskanie katalogu' : 'Nie zapisano danych'), String(error && error.message || 'Zmiany pozostały w formularzu. Spróbuj ponownie.')); return false; }
   }
   function normalizeKey(value){ return String(value == null ? '' : value).trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' '); }
   function info(title, message){ try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title, message }); }catch(_){ } }

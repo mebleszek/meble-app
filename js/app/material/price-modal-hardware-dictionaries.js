@@ -604,14 +604,24 @@
     save.addEventListener('click', ()=>{
       const cleanCategories = normalizeCategories(categories);
       let cleanParams;
+      const confirmedKeys = [];
+      const keys = (FC.constants && FC.constants.STORAGE_KEYS) || {};
       try{
         const renamed = applyCategoryRenames(originalCategories, cleanCategories, params);
+        if(renamed.changed) confirmedKeys.push(keys.accessories || 'accessories');
         cleanParams = normalizeParams(renamed.params, cleanCategories);
         saveCategories(cleanCategories);
+        confirmedKeys.push(keys.hardwareCategories || 'hardwareCategories', keys.hardwareTechnicalParams || 'hardwareTechnicalParams');
         saveParams(cleanParams);
+        confirmedKeys.push(keys.hardwareTechnicalParams || 'hardwareTechnicalParams');
         // The legacy type dictionary is not edited by this form.
         saveTypes(originalTypes || []);
-      }catch(error){ if(ctx.info) ctx.info('Nie zapisano danych', String(error && error.message || error)); return; }
+      }catch(error){
+        const catalog = store();
+        if(catalog && catalog.markPartialWrite) error = catalog.markPartialWrite(error, confirmedKeys);
+        if(ctx.info) ctx.info(error && error.partial ? 'Zapis częściowy' : (error && error.code === 'CATALOG_RECOVERY_REQUIRED' ? 'Wymagane odzyskanie katalogu' : 'Nie zapisano danych'), String(error && error.message || error));
+        return;
+      }
       categories = cleanCategories.slice();
       params = cloneParams(cleanParams);
       cleanSignature = signature(categories, params);

@@ -15,7 +15,7 @@ const modules = [
   'js/app/catalog/hardware-catalog-seeds.js', 'js/app/catalog/catalog-domain.js',
   'js/app/catalog/catalog-migration.js', 'js/app/catalog/catalog-storage-policy.js',
   'js/app/pricing/labor-catalog-definitions.js', 'js/app/pricing/labor-catalog.js',
-  'js/app/catalog/catalog-store.js', 'js/app/settings/hourly-rates-store.js',
+  'js/app/catalog/catalog-store.js', 'js/app/catalog/hardware-catalog-import-plan.js', 'js/app/settings/hourly-rates-store.js',
   'js/app/ui/data-settings-dom.js', 'js/app/ui/data-settings-company-view.js',
   'js/app/ui/data-settings-business-costs-view.js', 'js/app/ui/data-settings-hourly-rates-view.js', 'js/app/material/price-modal-context.js',
   'js/app/material/price-modal-persistence.js', 'js/app/material/price-modal-hardware-manufacturers.js',
@@ -247,5 +247,99 @@ test('Manufacturer and supplier/settings dialogs remain open after a rejected sa
     assert.equal(r.closes(),0);assert.equal(r.s.localStorage.getItem(key),before);assert.ok(r.messages.length);
     r.retry();body.querySelector('.btn-success').click();assert.equal(r.closes(),1);
   }
+});
+test('Corrupt startup catalogs block all ordinary saves and announce recovery after UI loads',()=>{
+  for(const [logical,,save] of saves){
+    const seed=runtime(),key=seed.FC.constants.STORAGE_KEYS[logical],raw='USER damaged JSON {';
+    const r=runtime({[key]:raw});
+    assert.equal(r.messages.length,0);
+    (r.s.document.__listeners.DOMContentLoaded || []).slice().forEach(fn=>fn());
+    assert.equal(r.messages.length,1);assert.match(r.messages[0].title,/odzyskanie/);
+    assert.match(r.messages[0].message,/wartości zastępcze.*Zapis.*zablokowany.*Odzyskaj/);
+    r.ops.length=0;
+    assert.throws(()=>save(r),error=>error.code==='CATALOG_RECOVERY_REQUIRED'&&error.key===key);
+    assert.equal(r.s.localStorage.getItem(key),raw);assert.equal(r.ops.length,0);
+    r.FC.catalogStore.notifyRecoveryRequired();assert.equal(r.messages.length,1);
+  }
+});
+test('Repair requires fresh initialization; stale fallback cannot overwrite recovered RAW',()=>{
+  const key='fc_sheet_materials_v1',r=runtime({[key]:'USER damaged JSON {'});
+  const recovered=JSON.stringify([{id:'recovered',name:'RECOVERED board',materialType:'laminat',manufacturer:'USER',price:901}]);
+  // Simulates recovery outside this save path. No reset or recovery implementation is added.
+  r.rows.set(key,recovered);r.ops.length=0;
+  assert.throws(()=>saves[0][2](r),error=>error.code==='CATALOG_RECOVERY_REQUIRED');
+  assert.equal(r.s.localStorage.getItem(key),recovered);assert.equal(r.ops.length,0);
+  r.load('js/app/catalog/catalog-store.js');assert.equal(r.FC.catalogStore.getSheetMaterials().find(x=>x.id==='recovered').price,901);
+  r.messages.length=0;(r.s.document.__listeners.DOMContentLoaded || []).slice().forEach(fn=>fn());assert.equal(r.messages.length,0);
+  assert.ok(saves[0][2](r));
+});
+test('Corrupt historical source cannot seed replacement split catalogs',()=>{
+  for(const [source,targets] of [['fc_materials_v1',['fc_sheet_materials_v1','fc_accessories_v1']],['fc_services_v1',['fc_quote_rates_v1']]]){
+    const raw='USER damaged JSON {',r=runtime({[source]:raw});
+    assert.equal(r.s.localStorage.getItem(source),raw);
+    for(const key of targets)assert.equal(r.s.localStorage.getItem(key),null);
+    for(const kind of source==='fc_materials_v1'?['materials','accessories']:['quoteRates']){
+      assert.throws(()=>r.FC.catalogStore.savePriceList(kind,r.FC.catalogStore.getPriceList(kind)),error=>error.code==='CATALOG_RECOVERY_REQUIRED');
+    }
+    for(const key of targets)assert.equal(r.s.localStorage.getItem(key),null);
+    assert.equal(r.s.localStorage.getItem(source),raw);
+  }
+});
+test('Explicit legacy migration cannot replace healthy primary catalogs from a corrupt source',()=>{
+  const original=runtime();saves[0][2](original);saves[1][2](original);
+  const seed=Object.fromEntries(original.rows);seed.fc_materials_v1='USER damaged JSON {';
+  const r=runtime(seed),keys=['fc_sheet_materials_v1','fc_accessories_v1'];
+  const before=keys.map(key=>r.s.localStorage.getItem(key));r.ops.length=0;
+  assert.equal(r.FC.catalogStore.migrateLegacy().ok,false);
+  keys.forEach((key,index)=>{assert.equal(r.s.localStorage.getItem(key),before[index]);assert.ok(!r.ops.some(op=>op[0]==='set'&&op[1]===key));});
+  assert.equal(r.s.localStorage.getItem('fc_materials_v1'),seed.fc_materials_v1);
+});
+test('Fallback material form cannot overwrite a corrupt catalog or close as a success',()=>{
+  const key='fc_sheet_materials_v1',raw='USER damaged JSON {',r=runtime({[key]:raw}),ctx=r.FC.priceModalContext;let closed=0;
+  const draft=clone(r.FC.catalogStore.getSheetMaterials()[0]);draft.price=1234;
+  ctx.getCurrentMaterialDraft=()=>draft;ctx.doClosePriceItemModal=()=>closed++;ctx.renderPriceModal=()=>{};
+  r.messages.length=0;r.ops.length=0;
+  assert.equal(ctx.saveMaterialFromForm(),false);assert.equal(closed,0);assert.equal(draft.price,1234);
+  assert.equal(r.s.localStorage.getItem(key),raw);assert.equal(r.ops.length,0);
+  assert.match(r.messages.at(-1).title,/odzyskanie/);assert.match(r.messages.at(-1).message,/Odzyskaj/);
+});
+test('Confirmed primary / failed historical copy carries partial result through UI and retry',()=>{
+  const r=runtime(),primary='fc_sheet_materials_v1',copy='fc_materials_v1',old=r.s.localStorage.getItem(copy);
+  const data=[{id:'new',name:'NEW board',materialType:'laminat',manufacturer:'USER',price:903}];
+  r.fail(copy,'false');assert.throws(()=>r.FC.catalogStore.savePriceList('materials',data),error=>{
+    assert.equal(error.partial,true);assert.deepEqual(clone(error.confirmedKeys),[primary]);assert.equal(error.key,copy);
+    assert.match(error.message,/Zapis częściowy.*została już zapisana.*nie udało się zapisać całości/);return true;
+  });
+  assert.equal(JSON.parse(r.s.localStorage.getItem(primary))[0].price,903);assert.equal(r.s.localStorage.getItem(copy),old);
+  assert.equal(r.FC.priceModalContext.saveCurrentList(data),false);
+  assert.equal(r.messages.at(-1).title,'Zapis częściowy');assert.match(r.messages.at(-1).message,/została już zapisana/);
+  r.retry();assert.equal(r.FC.priceModalContext.saveCurrentList(data),true);
+  assert.equal(r.s.localStorage.getItem(primary),r.s.localStorage.getItem(copy));
+});
+test('Failed related manufacturer / parameter catalog reports already confirmed primary data',()=>{
+  for(const [related,primary,save] of [
+    ['fc_hardware_manufacturers_v1','fc_accessories_v1',saves[1][2]],
+    ['fc_hardware_technical_params_v1','fc_hardware_categories_v1',saves[7][2]],
+  ]){
+    const r=runtime(),old=r.s.localStorage.getItem(related),before=r.s.localStorage.getItem(primary);r.fail(related,'false');
+    assert.throws(()=>save(r),error=>error.partial===true&&error.confirmedKeys.includes(primary)&&/Zapis częściowy/.test(error.message));
+    assert.notEqual(r.s.localStorage.getItem(primary),before);assert.equal(r.s.localStorage.getItem(related),old);
+  }
+});
+test('Hourly rates report partial copy failure without claiming nothing was saved',()=>{
+  const r=runtime(),rates=r.FC.hourlyRatesSettings.read(),old=r.s.localStorage.getItem('fc_services_v1');rates[0].price=923;
+  r.fail('fc_services_v1','false');const result=r.FC.hourlyRatesSettings.write(rates);
+  assert.equal(result.ok,false);assert.match(result.message,/Zapis częściowy.*została już zapisana/);
+  assert.equal(r.FC.hourlyRatesSettings.read()[0].price,923);assert.equal(r.s.localStorage.getItem('fc_services_v1'),old);
+});
+test('Import and dictionary batches report earlier confirmed writes when a later catalog fails',()=>{
+  const r=runtime(),old=r.s.localStorage.getItem('fc_hardware_suppliers_v1');r.fail('fc_hardware_suppliers_v1','false');
+  assert.throws(()=>r.FC.hardwareCatalogImportPlan.applyImportPlan({errors:[],next:{settings:{defaultVatRate:8},suppliers:[]}}),error=>{
+    assert.equal(error.partial,true);assert.ok(error.confirmedKeys.includes('fc_hardware_settings_v1'));assert.match(error.message,/Zapis częściowy/);return true;
+  });
+  assert.equal(r.FC.catalogStore.getHardwareSettings().defaultVatRate,8);assert.equal(r.s.localStorage.getItem('fc_hardware_suppliers_v1'),old);
+  const d=runtime();d.FC.priceModalContext.openHardwareDictionariesModal();d.fail('fc_hardware_types_v1','false');
+  d.panel().contentNode.querySelector('.btn-success').click();assert.equal(d.closes(),0);
+  assert.equal(d.messages.at(-1).title,'Zapis częściowy');assert.match(d.messages.at(-1).message,/została już zapisana/);
 });
 (async()=>{for(const [name,fn] of tests){await fn();console.log('PASS '+name);}console.log('Global data write safety: '+tests.length+'/'+tests.length+' PASS');})().catch(error=>{console.error(error);process.exitCode=1;});
