@@ -24,7 +24,10 @@ function runtime(initial = {}){
     removeItem(key){ key = String(key); this.check('removeItem', key); this.map.delete(key); }
     clear(){ throw new Error('localStorage.clear forbidden'); }
   }
-  const storage = new MemoryStorage(initial);
+  const storage = new MemoryStorage({
+    fc_projects_v1:JSON.stringify([{ id:'A', projectData:{ title:'P1' } }]),
+    fc_current_project_id_v1:'A', ...initial,
+  });
   const metrics = { begins:0, refreshes:0, warnings:0 };
   const sandbox = {
     console, Date, Storage:MemoryStorage, localStorage:storage, sessionStorage:new MemoryStorage(),

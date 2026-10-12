@@ -81,8 +81,13 @@ function assertPreserved(r){
   assert.equal(r.FC.session.snapshot, r.state.snapshot);
   assert.equal(r.FC.session.context, r.state.context);
   assert.equal(r.FC.session.startedAt, r.state.startedAt);
-  assert.equal(r.storage.getItem(SESSION), r.state.raw);
-  assert.equal(JSON.parse(r.state.raw).active, true);
+  const persisted = JSON.parse(r.storage.getItem(SESSION));
+  const before = JSON.parse(r.state.raw);
+  assert.equal(persisted.active, true);
+  assert.equal(persisted.projectId, 'A');
+  assert.deepEqual(persisted.snapshot, before.snapshot, 'Confirmed writes may update revision metadata, never the baseline');
+  assert.deepEqual(persisted.context, before.context);
+  assert.equal(persisted.startedAt, before.startedAt);
   assert.equal(r.ui.refreshes, 0, 'No successful completion refresh on failure');
   assert.equal(r.ui.home, 0);
   assert.equal(r.ui.reloads, 0);
@@ -142,7 +147,10 @@ function cleanupFailureAndRetry(){
   assert.deepEqual(r.results, { saves:[true], commits:[false] });
   assert.equal(width(r), 250);
   assertPreserved(r);
-  assert.deepEqual(r.storage.calls.filter(({ key })=> key === SESSION), [{ method:'removeItem', key:SESSION }]);
+  assert.deepEqual(r.storage.calls.filter(({ key })=> key === SESSION), [
+    { method:'setItem', key:SESSION }, // retain the witnessed saved-owner revision
+    { method:'removeItem', key:SESSION },
+  ]);
   assert.ok(r.ui.messages.some(({ message })=> /Projekt został zapisany.*nie udało się zakończyć sesji.*Spróbuj ponownie/.test(message)));
   r.storage.failures.clear();
   r.saveUi();

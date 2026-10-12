@@ -10,6 +10,7 @@ const PROJECTS = 'fc_projects_v1';
 const SESSION = 'fc_edit_session_v1';
 const clone = value => JSON.parse(JSON.stringify(value));
 const raw = value => JSON.stringify(value);
+const centralRaw = value => raw([{ id:'A', projectData:value }]);
 const selection = { zones:{ lower:true }, fields:{ body:true, front:true, back:true, opening:true, pcv:true } };
 function project(){
   const old = { bodyColor:'Old body', frontMaterial:'laminat', frontColor:'Old front', backMaterial:'HDF', openingSystem:'Uchwyt', bodyPcvMode:'body' };
@@ -59,11 +60,12 @@ function runtime(){
       if(ui.beforeSave) ui.beforeSave(next);
       if(ui.saveMode === 'throw') throw new Error('Central save exception');
       if(ui.saveMode === 'fail') return { ok:false, project:clone(next) };
-      storage.setItem(PROJECTS, raw(next));
+      storage.setItem(PROJECTS, centralRaw(next));
       return { ok:true, project:clone(next) };
     } },
   };
-  storage.setItem(PROJECTS, raw(s.projectData)); storage.calls = [];
+  storage.setItem(PROJECTS, centralRaw(s.projectData));
+  storage.setItem('fc_current_project_id_v1', 'A'); storage.calls = [];
   vm.createContext(s);
   const load = file => vm.runInContext(fs.readFileSync(path.join(ROOT,file),'utf8'),s,{ filename:file });
   [ 'js/app/investor/session.js', 'js/app/room-preferences/room-preferences-model.js',
@@ -94,7 +96,7 @@ async function choose(node){ node.click(); for(let i=0;i<18;i++) await Promise.r
 function prefsNext(r){ const p = r.FC.roomPreferences.getRoomPreferences('kuchnia'); p.zones.lower.bodyColor = 'Changed'; return p; }
 function preserved(r, baseline, central){
   assert.equal(raw(r.s.projectData), baseline);
-  assert.equal(r.storage.getItem(PROJECTS), central);
+  assert.equal(r.storage.getItem(PROJECTS), centralRaw(JSON.parse(central)));
 }
 const tests = [];
 function test(name, fn){ tests.push([name, fn]); }
@@ -127,7 +129,7 @@ test('4 SETTINGS SUCCESS adopts confirmed project only after save', ()=>{
   const result = r.FC.wywiadRoomSettings.applySettingsValues('kuchnia',{ roomHeight:280 });
   assert.equal(result.ok,true); assert.deepEqual(r.ui.order,['begin','save']);
   assert.equal(r.s.projectData,result.project); assert.equal(r.s.projectData.kuchnia.settings.roomHeight,280);
-  assert.equal(raw(original),before); assert.equal(r.storage.getItem(PROJECTS),raw(r.s.projectData));
+  assert.equal(raw(original),before); assert.equal(r.storage.getItem(PROJECTS),centralRaw(r.s.projectData));
 });
 test('5 PREFERENCES normalized NO-OP and read-only preparation', ()=>{
   const r = runtime(); const before = raw(r.s.projectData);
@@ -211,7 +213,7 @@ test('14 BULK SUCCESS persists cabinets, sets, fronts', ()=>{
   assert.equal(room.sets[0].frontColor,'New front'); assert.equal(room.sets[0].bodyColor,'New body');
   assert.equal(room.fronts.find(f=> f.id === 'set-front').color,'New front');
   assert.equal(room.fronts.filter(f=>f.cabId === 'drawer').length,3);
-  assert.equal(r.storage.getItem(PROJECTS),raw(r.s.projectData)); assert.deepEqual(r.ui.order,['begin','save']);
+  assert.equal(r.storage.getItem(PROJECTS),centralRaw(r.s.projectData)); assert.deepEqual(r.ui.order,['begin','save']);
   assert.equal(r.FC.session.active,true); assert.equal(r.FC.session.isDirty(),true);
 });
 test('15 BULK MODAL FAILURE keeps selection/preview and allows retry', ()=>{
@@ -224,7 +226,7 @@ test('15 BULK MODAL FAILURE keeps selection/preview and allows retry', ()=>{
 test('16 EXISTING DURABLE SESSION retains original baseline; global rollback remains possible', ()=>{
   const r = runtime(); const initial = r.storage.getItem(PROJECTS); assert.equal(r.FC.session.begin(),true);
   const snapshot = r.FC.session.snapshot; const started = r.FC.session.startedAt;
-  r.s.projectData.kuchnia.settings.legHeight = 12; r.storage.setItem(PROJECTS,raw(r.s.projectData));
+  r.s.projectData.kuchnia.settings.legHeight = 12; r.storage.setItem(PROJECTS,centralRaw(r.s.projectData));
   assert.equal(r.FC.roomPreferences.setRoomPreferencesConfirmed('kuchnia',prefsNext(r)).ok,true);
   assert.equal(r.FC.session.snapshot,snapshot); assert.equal(r.FC.session.startedAt,started);
   assert.equal(r.FC.session.snapshot[PROJECTS],initial); assert.equal(r.FC.session.active,true);
@@ -238,7 +240,7 @@ test('17 RETRY settings and bulk after failed begin / save', ()=>{
     r.storage.fail.add(SESSION); save(); preserved(r,before,before); const snapshot = r.FC.session.snapshot;
     r.storage.fail.clear(); r.ui.saveMode = 'fail'; save(); preserved(r,before,before);
     r.ui.saveMode = 'ok'; save(); assert.notEqual(raw(r.s.projectData),before); assert.equal(r.FC.session.snapshot,snapshot);
-    assert.equal(r.FC.session.durable,true); assert.equal(r.storage.getItem(PROJECTS),raw(r.s.projectData));
+    assert.equal(r.FC.session.durable,true); assert.equal(r.storage.getItem(PROJECTS),centralRaw(r.s.projectData));
     if(f) assert.equal(r.s.projectData.kuchnia.settings.roomHeight,285);
   }
 });

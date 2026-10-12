@@ -15,7 +15,7 @@ const project = (title)=> JSON.stringify([{ id:'A', projectData:{ title } }]);
 
 function runtime(rows = { [PROJECTS]:project('P1'), [UI]:'{"activeTab":"wywiad"}', [GLOBAL]:'100' }){
   class MemoryStorage{
-    constructor(){ this.map = new Map(Object.entries(rows)); this.calls = []; this.failures = new Set(); }
+    constructor(){ this.map = new Map(Object.entries({ fc_current_project_id_v1:'A', ...rows })); this.calls = []; this.failures = new Set(); }
     get length(){ return this.map.size; }
     key(i){ return Array.from(this.map.keys())[i] || null; }
     getItem(key){ return this.map.has(String(key)) ? this.map.get(String(key)) : null; }
@@ -106,7 +106,7 @@ function failedCancelAndRetry(method, key, reload){
   assert.equal(persisted.active, true);
   assert.equal(persisted.snapshot[PROJECTS], project('P1'));
   assertNoSessionWrites(r);
-  assert.equal(r.storage.getItem(UI), snapshot[UI], 'Other keys may already have been restored');
+  assert.equal(r.storage.getItem(UI), '{"activeTab":"wycena"}', 'Project rollback must preserve independent UI state');
   assert.equal(r.session.lastDirtyCheckAt, 0, 'Partial rollback must invalidate the dirty cache');
   assert.equal(r.session.changedKeys.size, 0);
   assert.equal(r.session.isDirty(), true);
@@ -213,7 +213,7 @@ function assertUiFailure(r){
   assert.ok(r.session.snapshot);
   assertNoSessionWrites(r);
   assert.equal(r.ui.messages.length, 1);
-  assert.match(r.ui.messages[0].message, /Nie udało się anulować wszystkich zmian/);
+  assert.match(r.ui.messages[0].message, /Nie udało się anulować wszystkich zmian|Nie potwierdzono cofnięcia projektu/);
   assert.match(r.ui.messages[0].message, /Sesja edycji została zachowana/);
   assert.match(r.ui.messages[0].message, /Spróbuj ponownie/);
 }
@@ -269,7 +269,14 @@ async function uiNormalAndDeclined(){
 async function main(){
   const tests = [
     ['Failed setItem and retry', ()=> failedCancelAndRetry('setItem', PROJECTS, false)],
-    ['Failed removeItem and retry', ()=> failedCancelAndRetry('removeItem', DRAFTS, false)],
+    ['Independent offer drafts are never removed by project cancel', ()=> {
+      const r = editedRuntime(); r.storage.failures.add('removeItem:' + DRAFTS);
+      assert.equal(r.session.cancel(), true);
+      assert.equal(r.storage.getItem(DRAFTS), '[{"id":"new-draft"}]');
+      assert.equal(r.storage.getItem(PROJECTS), project('P1'));
+      assert.equal(r.storage.getItem(SESSION), null);
+      assert.equal(r.storage.calls.some(call=>call.key === DRAFTS), false);
+    }],
     ['Failed cancel, reload and retry', ()=> failedCancelAndRetry('setItem', PROJECTS, true)],
     ['Normal cancel', normalCancel],
     ['Failed durable cleanup and retry', cleanupFailureAndRetry],

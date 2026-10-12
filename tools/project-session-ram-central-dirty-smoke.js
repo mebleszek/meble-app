@@ -149,7 +149,7 @@ function storageDirtyAndInactiveControls(){
   assert.equal(r.nodes.sessionSave.style.display, 'none', 'RAM divergence contributes only for an active session');
   r.sandbox.projectData = r.FC.project.normalize(project(60));
   r.FC.session.begin();
-  r.storage.setItem('fc_quote_offer_drafts_v1', '[{"id":"edited"}]');
+  r.storage.setItem('fc_edge_v1', '{"edited":{"w1":true}}');
   assert.equal(r.FC.investorProjectRuntime.hasProjectDivergence(r.sandbox.projectData), false);
   assert.equal(r.FC.session.isDirty(), true);
   r.FC.views.refreshSessionButtons();
@@ -225,7 +225,12 @@ function commitFailure(){
   assert.match(r.ui.messages[0].message, /Projekt został zapisany, ale nie udało się zakończyć sesji edycji/);
   assert.equal(r.FC.session.active, true);
   assert.equal(r.FC.session.snapshot, snapshot);
-  assert.equal(r.storage.getItem(SESSION), raw);
+  const before = JSON.parse(raw), persisted = JSON.parse(r.storage.getItem(SESSION));
+  assert.equal(persisted.active, true);
+  assert.equal(persisted.projectId, 'A');
+  assert.deepEqual(persisted.snapshot, before.snapshot);
+  assert.deepEqual(persisted.context, before.context);
+  assert.equal(persisted.startedAt, before.startedAt);
 }
 
 function noLegacyComparison(){

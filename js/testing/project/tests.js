@@ -310,24 +310,31 @@
       }),
       H.makeTest('Projekt', 'Sesja wykrywa zmianę od razu po zapisie do localStorage i czyści ją po commit', 'Pilnuje nowego lżejszego wykrywania zmian: po edycji nie trzeba czekać na pełne skanowanie storage, a po Zapisz stan dirty ma zniknąć.', ()=>{
         H.assert(FC.session && typeof FC.session.begin === 'function', 'Brak FC.session.begin');
-        const key = (FC.constants && FC.constants.STORAGE_KEYS && FC.constants.STORAGE_KEYS.ui) || 'fc_ui_v1';
-        const prevRaw = localStorage.getItem(key);
-        const prevSessionRaw = localStorage.getItem('fc_edit_session_v1');
+        const key = 'fc_projects_v1';
+        const keys = [key, 'fc_current_project_id_v1', 'fc_edit_session_v1'];
+        const saved = Object.fromEntries(keys.map(k=> [k, localStorage.getItem(k)]));
+        const state = Object.assign({}, FC.session);
+        // Dedicated canonical fixture; never use independent UI state as project dirtiness.
         try{
-          localStorage.setItem(key, JSON.stringify({ activeTab:'wywiad' }));
-          FC.session.commit();
-          FC.session.begin();
+          FC.session.active = false;
+          FC.session.snapshot = null;
+          const id = '__test_session_owner';
+          const rows = JSON.parse(saved[key] || '[]');
+          rows.push({ id, investorId:FC.investors && FC.investors.getCurrentId ? FC.investors.getCurrentId() : '', projectData:{ title:'before' } });
+          localStorage.setItem(key, JSON.stringify(rows));
+          localStorage.setItem('fc_current_project_id_v1', id);
+          H.assert(FC.session.begin() === true, 'Nie utrwalono sesji z właścicielem');
           H.assert(FC.session.isDirty() === false, 'Nowa sesja nie powinna startować jako dirty');
-          localStorage.setItem(key, JSON.stringify({ activeTab:'wycena' }));
-          H.assert(FC.session.isDirty() === true, 'Sesja nie wykryła zmiany od razu po zapisie do localStorage');
-          FC.session.commit();
+          rows[rows.length - 1].projectData.title = 'after';
+          localStorage.setItem(key, JSON.stringify(rows));
+          H.assert(FC.session.isDirty() === true, 'Sesja nie wykryła zmiany właściciela od razu');
+          H.assert(FC.session.commit() === true, 'Commit nie zakończył trwale sesji');
           H.assert(FC.session.isDirty() === false, 'Commit nie wyczyścił stanu dirty');
         } finally {
-          if(prevRaw === null) localStorage.removeItem(key);
-          else localStorage.setItem(key, prevRaw);
-          if(prevSessionRaw === null) localStorage.removeItem('fc_edit_session_v1');
-          else localStorage.setItem('fc_edit_session_v1', prevSessionRaw);
-          try{ FC.session.commit(); }catch(_){ }
+          FC.session.withTrackingSuspended(()=> {
+            keys.forEach(k=> { if(saved[k] === null) localStorage.removeItem(k); else localStorage.setItem(k, saved[k]); });
+          });
+          Object.assign(FC.session, state);
         }
       }),
 

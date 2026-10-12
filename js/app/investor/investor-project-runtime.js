@@ -38,6 +38,7 @@
 
   function writeProjectFor(id, projectObj){
     if(!id) return null;
+    if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor(id)) return null;
     const normalized = normalizeProject(projectObj);
     let centralSaved = null;
     try{
@@ -81,6 +82,7 @@
 
   function setActiveProjectFromInvestor(id){
     if(!id) return;
+    if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor(id)) return;
     try{
       const proj = loadProjectFor(id);
       try{ proj.meta = proj.meta || {}; proj.meta.assignedInvestorId = id; }catch(_){ }
@@ -95,6 +97,7 @@
   function ensureInvestorProjectLoadedOnBoot(){
     const id = repo && typeof repo.getCurrentInvestorId === 'function' ? repo.getCurrentInvestorId() : null;
     if(!id) return;
+    if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor(id)) return;
 
     // Centralny projectStore jest autorytatywnym źródłem na starcie.
     // Brak legacy slotu nie może już powodować utworzenia świeżego projektu

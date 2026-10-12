@@ -104,6 +104,7 @@
 
   function saveConfirmed(data){
     const normalized = normalizeProject(data);
+    if(FC.session && FC.session.canSaveProject && !FC.session.canSaveProject()) return { ok:false, project:normalized };
     const before = currentCentralRecord();
     const investorId = getCurrentInvestorId();
     let saved = null;

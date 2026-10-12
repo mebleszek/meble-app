@@ -266,7 +266,7 @@
         let cancelled = false;
         try{ if(session && typeof session.cancel === 'function') cancelled = session.cancel() === true; }catch(_){ }
         if(!cancelled){
-          const message = 'Nie udało się anulować wszystkich zmian. Sesja edycji została zachowana i nie została zakończona. Spróbuj ponownie. Nie zamykaj programu, jeżeli problem się powtarza.';
+          const message = (session.lastError && session.lastError.message) || 'Nie udało się anulować wszystkich zmian. Sesja edycji została zachowana i nie została zakończona. Spróbuj ponownie. Nie zamykaj programu, jeżeli problem się powtarza.';
           try{
             if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Nie udało się anulować zmian', message });
             else window.alert(message);
@@ -297,6 +297,7 @@
       const investorEditing = !!(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock());
 
       if(dirty || (session && session.active)){
+        if(session && session.canSaveProject && !session.canSaveProject()) return true;
         let saved = null;
         let previousWriteError = null;
         try{ previousWriteError = FC.storage.getLastWriteError(); }catch(_){ }

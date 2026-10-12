@@ -73,8 +73,10 @@ function runLegacyOrphanSessionBootCleanup(){
   const sandbox = loadSmokeFiles(createSandbox({
     fc_edit_session_v1: JSON.stringify(legacyPayload),
   }));
-  assert(!sandbox.localStorage.getItem('fc_edit_session_v1'), 'Legacy aktywna sesja bez metadanych nie została wyczyszczona na starcie');
-  assert(sandbox.FC.session && sandbox.FC.session.active === false, 'Runtime FC.session nadal jest aktywny po czyszczeniu legacy orphan');
+  assert(sandbox.localStorage.getItem('fc_edit_session_v1') === JSON.stringify(legacyPayload), 'Nie wolno odrzucić aktywnego starego snapshotu bez właściciela');
+  assert(sandbox.FC.session.active === true, 'Aktywna sesja musi pozostać dostępna');
+  assert(sandbox.FC.session.cancel() === false, 'Nieustalony właściciel blokuje rollback');
+  assert(sandbox.localStorage.getItem('fc_edit_session_v1') === JSON.stringify(legacyPayload), 'Failed cancel zachowuje trwały snapshot');
 }
 
 function runSessionMetadataAndDeleteReferenceCleanup(){
@@ -82,7 +84,9 @@ function runSessionMetadataAndDeleteReferenceCleanup(){
   const FC = sandbox.FC;
   const initialRows = [makeSnapshot('snap_keep'), makeSnapshot('snap_delete')];
   FC.quoteSnapshotStore.writeAll(initialRows);
-  FC.session.begin();
+  FC.projectStore.upsert({ id:'A', projectData:{} });
+  FC.projectStore.setCurrentProjectId('A');
+  assert(FC.session.begin() === true, 'Sesja wymaga jednoznacznego projektu A');
   const sessionRawBefore = sandbox.localStorage.getItem('fc_edit_session_v1');
   const sessionBefore = JSON.parse(sessionRawBefore);
   assert(sessionBefore.schemaVersion >= 2, 'Nowa sesja edycji nie ma schemaVersion >= 2', sessionBefore);
@@ -96,9 +100,10 @@ function runSessionMetadataAndDeleteReferenceCleanup(){
   assert(currentRows.length === 1 && currentRows[0].id === 'snap_keep', 'Główny store snapshotów ma niepoprawną zawartość po usunięciu', currentRows);
 
   const sessionAfter = JSON.parse(sandbox.localStorage.getItem('fc_edit_session_v1'));
-  const sessionRows = JSON.parse(sessionAfter.snapshot.fc_quote_snapshots_v1 || '[]');
-  assert(sessionRows.some((row)=> row.id === 'snap_keep'), 'Snapshot pozostający w historii zniknął z sesji edycji', sessionRows);
-  assert(!sessionRows.some((row)=> row.id === 'snap_delete'), 'Usunięty snapshot nadal siedzi w fc_edit_session_v1 i mógłby wrócić po Anuluj', sessionRows);
+  assert(!Object.hasOwn(sessionAfter.snapshot, 'fc_quote_snapshots_v1'), 'Historia ofert jest niezależna od rollbacku projektu');
+  assert(FC.session.cancel() === true, 'Anuluj projekt powinno się udać');
+  assert(FC.quoteSnapshotStore.getById('snap_keep'), 'Anuluj nie usuwa niezależnej historii');
+  assert(!FC.quoteSnapshotStore.getById('snap_delete'), 'Anuluj nie odtwarza usuniętej oferty');
 }
 
 function runCacheBustCheck(){
