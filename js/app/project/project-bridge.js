@@ -116,10 +116,18 @@
     const merged = JSON.parse(JSON.stringify(current));
     merged[roomId] = input[roomId];
     const sourceDefs = input.meta && input.meta.roomDefs || {};
-    const meta = merged.meta && typeof merged.meta === 'object' ? merged.meta : (merged.meta = {});
-    const defs = meta.roomDefs && typeof meta.roomDefs === 'object' ? meta.roomDefs : (meta.roomDefs = {});
-    if(Object.prototype.hasOwnProperty.call(sourceDefs,roomId)) defs[roomId] = sourceDefs[roomId];
-    else delete defs[roomId];
+    const baselineDefs = baseline.meta && baseline.meta.roomDefs || {};
+    const originalDef = Object.prototype.hasOwnProperty.call(baselineDefs,roomId);
+    const draftDef = Object.prototype.hasOwnProperty.call(sourceDefs,roomId);
+    const definitionChanged = originalDef !== draftDef
+      || (originalDef && JSON.stringify(baselineDefs[roomId]) !== JSON.stringify(sourceDefs[roomId]));
+    if(definitionChanged){
+      if(draftDef){
+        const meta = merged.meta && typeof merged.meta === 'object' ? merged.meta : (merged.meta = {});
+        const defs = meta.roomDefs && typeof meta.roomDefs === 'object' ? meta.roomDefs : (meta.roomDefs = {});
+        defs[roomId] = sourceDefs[roomId];
+      }else if(merged.meta && merged.meta.roomDefs) delete merged.meta.roomDefs[roomId];
+    }
     return merged;
   }
 

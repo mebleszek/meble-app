@@ -131,10 +131,13 @@
         if(hasOwn(original,roomId)) data[roomId] = original[roomId];
         else delete data[roomId];
         const oldDefs = original.meta && original.meta.roomDefs || {};
-        const meta = data.meta && typeof data.meta === 'object' ? data.meta : (data.meta = {});
-        const defs = meta.roomDefs && typeof meta.roomDefs === 'object' ? meta.roomDefs : (meta.roomDefs = {});
-        if(hasOwn(oldDefs,roomId)) defs[roomId] = oldDefs[roomId];
-        else delete defs[roomId];
+        if(hasOwn(oldDefs,roomId)){
+          const meta = data.meta && typeof data.meta === 'object' ? data.meta : (data.meta = {});
+          const defs = meta.roomDefs && typeof meta.roomDefs === 'object' ? meta.roomDefs : (meta.roomDefs = {});
+          defs[roomId] = oldDefs[roomId];
+        }else if(data.meta && data.meta.roomDefs && hasOwn(data.meta.roomDefs,roomId)){
+          delete data.meta.roomDefs[roomId];
+        }
       }else if(index >= 0) rows[index] = JSON.parse(before);
       else rows.push(JSON.parse(before));
       const next = JSON.stringify(rows);
