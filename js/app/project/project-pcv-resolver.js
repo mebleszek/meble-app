@@ -100,15 +100,17 @@
   function planKey(part){
     return part.sourceSig+'||'+part.grainMode+'||'+part.w+'x'+part.h+'||pcv:'+part.effectivePcv.projectId+':'+part.effectivePcv.key;
   }
-  function withQuantity(part){
+  function withQuantity(part, offset){
     const row=clone(part),pcv=row.effectivePcv;
     if(!pcv || !Array.isArray(pcv.contributions))fail('PLAN_CONTEXT_MISMATCH');
-    let skip=pcv.contributions.reduce((n,c)=>n+c.qty,0)-row.qty;
-    if(!Number.isInteger(row.qty)||row.qty<=0||skip<0)fail('QUANTITY_MISMATCH');
-    if(skip===0)return row;
+    const total=pcv.contributions.reduce((n,c)=>n+c.qty,0);
+    let skip=offset && typeof offset === 'object' ? offset.skip : total-row.qty;
+    if(!Number.isInteger(row.qty)||row.qty<=0||!Number.isInteger(skip)||skip<0||skip+row.qty>total)fail('QUANTITY_MISMATCH');
+    if(skip===0 && row.qty===total)return row;
+    let remaining=row.qty;
     const kept=[];
     for(const c of pcv.contributions){
-      const drop=Math.min(skip,c.qty);skip-=drop;c.qty-=drop;
+      const drop=Math.min(skip,c.qty);skip-=drop;c.qty=Math.min(c.qty-drop,remaining);remaining-=c.qty;
       if(c.qty){c.meters=FC.materialEdgeStore.edgingMetersForPart({a:c.aCm,b:c.bCm,qty:c.qty},c.edges);kept.push(c);}
     }
     pcv.contributions=kept;pcv.body=0;pcv.front=0;pcv.total=0;row.sourceRefs=[];row.sourceGroups=[];
@@ -167,5 +169,84 @@
     if(JSON.stringify(ledger(selected))!==JSON.stringify(expected))fail('AGGREGATE_QUANTITY_MISMATCH');
     return current;
   }
-  FC.projectPcvResolver={collect,requireCollection,copy,merge,validateAggregate,validatePlanParts,planKey,withQuantity,error};
+
+  // Attach source metadata after packing; never change placement geometry or rotation.
+  function attachPlanProvenance(plan,parts,options){
+    validatePlanParts(parts,options);
+    const rows=new Map(),used=new Map(),out=clone(plan || {sheets:[]});
+    for(const row of parts){
+      const key=planKey(row),existing=rows.get(key);
+      if(existing){existing.qty+=row.qty;FC.partProvenance.merge(existing,row);}
+      else rows.set(key,clone(row));
+    }
+    for(const sheet of out.sheets || [])for(const placement of sheet.placements || []){
+      if(placement.unplaced)continue;
+      const row=rows.get(placement.key),index=used.get(placement.key)||0;
+      if(!row || index>=row.qty)fail('PLACEMENT_QUANTITY_MISMATCH');
+      used.set(placement.key,index+1);
+      // Repacking after stock starts item numbering again; identifiers must be unique in the combined plan.
+      placement.id=placement.key+'#'+(index+1);
+      const piece=withQuantity(Object.assign({},row,{qty:1}),{skip:index});
+      const original=row.effectivePcv.edges;
+      const swap=edges=>({w1:edges.h1,w2:edges.h2,h1:edges.w1,h2:edges.w2});
+      const displayed=row.grainMode==='vertical' ? swap(original) : original;
+      const edges=placement.rotated ? swap(displayed) : displayed;
+      if(['w1','w2','h1','h2'].some(key=>placement['edge'+key.toUpperCase()]!==edges[key]))fail('PLACEMENT_EDGES_MISMATCH');
+      Object.assign(placement,{sourceRefs:clone(piece.sourceRefs),sourceGroups:clone(piece.sourceGroups),sourceIssues:[],effectivePcv:clone(piece.effectivePcv)});
+    }
+    if(options.complete && (out.cancelled || out.workerFailed || Array.from(rows.entries()).some(([key,row])=>(used.get(key)||0)!==row.qty)))fail('INCOMPLETE_PLAN');
+    return out;
+  }
+
+  // Proofs live only for new candidates in this process; history never needs them.
+  const quoteProofs=new Map();let quoteProofSequence=0;
+  const candidateMode=value=>!!value && (value.pcvMode==='project' || value.__projectPcvCandidate!==undefined);
+  const roomSet=rooms=>JSON.stringify((rooms||[]).slice().sort());
+  const candidateScope=value=>({rooms:value.selectedRooms || value.scope && value.scope.selectedRooms,
+    materialScope:FC.materialTabData.normalizeMaterialScope(value.materialScope || value.scope && value.scope.materialScope)});
+  function materialSignature(value){
+    const rows=value.materialLines || value.lines && value.lines.materials || [];
+    return JSON.stringify(rows.map(row=>[String(row.key||''),String(row.name||''),Number(row.qty)||0,String(row.unit||''),Number(row.unitPrice)||0,Number(row.total)||0]));
+  }
+  function draftSelection(){
+    const api=FC.wycenaCoreOffer,selection=FC.wycenaCoreSelection;
+    const draft=api && api.getOfferDraft && api.getOfferDraft();
+    return draft && draft.selection && selection ? JSON.stringify(selection.normalizeQuoteSelection(draft.selection)) : null;
+  }
+  function registerQuoteCalculation(value,aggregate,options,initialDraft){
+    const current=validateAggregate(aggregate,options),record=FC.projectStore.getById(options.projectId);
+    const token=String(Date.now())+':'+(++quoteProofSequence);
+    quoteProofs.set(token,{projectId:options.projectId,investorId:String(record.investorId),revision:current.revision,
+      rooms:roomSet(aggregate.selectedRooms),materialScope:JSON.stringify(current.materialScope),draft:initialDraft,
+      materials:materialSignature(value)});
+    while(quoteProofs.size>64)quoteProofs.delete(quoteProofs.keys().next().value);
+    value.pcvMode='project';value.projectId=options.projectId;value.__projectPcvCandidate=token;
+    validateQuoteCandidate(value);return value;
+  }
+  function validateQuoteCandidate(value,selection){
+    if(!candidateMode(value))return true;
+    const proof=quoteProofs.get(value.__projectPcvCandidate);
+    if(!proof)fail('QUOTE_PROOF_REQUIRED');
+    if((FC.session && FC.session.active) || (FC.sessionNavigation && !FC.sessionNavigation.canCalculate()))fail('ACTIVE_EDIT');
+    const scope=candidateScope(value),id=value.project && value.project.id || value.projectId;
+    if(id!==proof.projectId || (value.project && String(value.project.investorId)!==proof.investorId)
+      || (value.investor && String(value.investor.id)!==proof.investorId)
+      || roomSet(scope.rooms)!==proof.rooms || JSON.stringify(scope.materialScope)!==proof.materialScope
+      || materialSignature(value)!==proof.materials || draftSelection()!==proof.draft)fail('QUOTE_CONTEXT_CHANGED');
+    if(selection){const selected=FC.wycenaCoreSelection.normalizeQuoteSelection(selection);
+      if(roomSet(selected.selectedRooms)!==proof.rooms || JSON.stringify(FC.materialTabData.normalizeMaterialScope(selected.materialScope))!==proof.materialScope)fail('QUOTE_CONTEXT_CHANGED');}
+    const current=requireCollection(scope.rooms,{pcvMode:'project',projectId:proof.projectId,materialScope:scope.materialScope});
+    if(current.revision!==proof.revision)fail('STALE_QUOTE');
+    return true;
+  }
+  function carryQuoteProof(source,target){
+    if(!candidateMode(source))return target;
+    target.pcvMode='project';target.projectId=source.projectId;target.__projectPcvCandidate=source.__projectPcvCandidate;
+    return target;
+  }
+  function stripQuoteProof(value){
+    const out=clone(value);delete out.pcvMode;delete out.projectId;delete out.__projectPcvCandidate;return out;
+  }
+
+  FC.projectPcvResolver={collect,requireCollection,copy,merge,validateAggregate,validatePlanParts,planKey,withQuantity,error,attachPlanProvenance,registerQuoteCalculation,validateQuoteCandidate,carryQuoteProof,stripQuoteProof,draftSelection};
 })();

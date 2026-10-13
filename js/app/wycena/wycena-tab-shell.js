@@ -100,10 +100,10 @@
   }
 
 
-  function buildUnsavedQuoteSnapshot(selection){
+  function buildUnsavedQuoteSnapshot(selection, options){
     if(!(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteData === 'function')) throw new Error('Brak FC.wycenaCore.collectQuoteData');
     if(!(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function')) throw new Error('Brak FC.quoteSnapshot.buildSnapshot');
-    return Promise.resolve(FC.wycenaCore.collectQuoteData({ selection })).then((data)=> FC.quoteSnapshot.buildSnapshot(data));
+    return Promise.resolve(FC.wycenaCore.collectQuoteData(Object.assign({},options || {},{selection}))).then((data)=> FC.quoteSnapshot.buildSnapshot(data));
   }
 
   function saveQuoteSnapshot(snapshot){
@@ -212,6 +212,10 @@
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('duplicateCancelled', { duplicateId }); }catch(_){ }
       return { handled:true, cancelled:true, snapshot:duplicate, duplicate };
     }
+    if(FC.projectPcvResolver && (candidate.pcvMode==='project' || candidate.__projectPcvCandidate!==undefined)){
+      const latest=d.normalizeDraftSelection && d.getOfferDraft ? d.normalizeDraftSelection(d.getOfferDraft()) : selection;
+      FC.projectPcvResolver.validateQuoteCandidate(candidate,latest);
+    }
     let replaced = null;
     if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.replaceSnapshot === 'function') replaced = FC.quoteSnapshotStore.replaceSnapshot(duplicateId, candidate);
     else {
@@ -275,6 +279,8 @@
     }else if(FC.session && FC.session.active) return;
 
     const d = normalizeDeps(deps);
+    const calculationOptions=meta && meta.pcvMode==='project' ? {pcvMode:'project',projectId:meta.projectId}
+      : ctx && ctx.calculationOptions || {};
     const source = meta && meta.source || '';
     if(!acquireGenerateLock(source || 'generateQuote')) return;
     const state = typeof d.getState === 'function' ? d.getState() : {};
@@ -303,7 +309,7 @@
       }
       const selection = d.normalizeDraftSelection(d.getOfferDraft());
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('selection', selection); }catch(_){ }
-      let preflightQuote = await buildUnsavedQuoteSnapshot(selection);
+      let preflightQuote = await buildUnsavedQuoteSnapshot(selection,calculationOptions);
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('preflightQuoteBuilt', { hasQuote:!!preflightQuote, id:preflightQuote && (preflightQuote.id || preflightQuote.snapshotId), totals:preflightQuote && preflightQuote.totals, versionName:getVersionName(preflightQuote) }); }catch(_){ }
       const duplicateBeforeNaming = await handleDuplicateSnapshot(preflightQuote, selection, ctx, d);
       if(duplicateBeforeNaming && duplicateBeforeNaming.handled){
@@ -321,7 +327,7 @@
       const naming = await d.ensureVersionNameBeforeGenerate(selection);
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('naming', naming); }catch(_){ }
       if(naming && naming.cancelled){ try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ stopped:'version-name-cancelled' }); }catch(_){ } return; }
-      let nextQuote = await buildUnsavedQuoteSnapshot(selection);
+      let nextQuote = await buildUnsavedQuoteSnapshot(selection,calculationOptions);
       const duplicateAfterNaming = await handleDuplicateSnapshot(nextQuote, selection, ctx, d);
       if(duplicateAfterNaming && duplicateAfterNaming.handled){
         const snap = duplicateAfterNaming.snapshot || null;
@@ -336,6 +342,7 @@
         return;
       }
       try{
+        if(calculationOptions.pcvMode==='project')FC.projectPcvResolver.validateQuoteCandidate(nextQuote,d.normalizeDraftSelection(d.getOfferDraft()));
         nextQuote = saveQuoteSnapshot(nextQuote);
         try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('quoteBuilt', { hasQuote:!!nextQuote, error:nextQuote && nextQuote.error, id:nextQuote && (nextQuote.id || nextQuote.snapshotId), selectedRooms:nextQuote && nextQuote.selectedRooms, roomLabels:nextQuote && nextQuote.roomLabels, totals:nextQuote && nextQuote.totals, versionName:getVersionName(nextQuote), materialLines:Array.isArray(nextQuote && nextQuote.materialLines) ? nextQuote.materialLines.length : undefined, accessoryLines:Array.isArray(nextQuote && nextQuote.accessoryLines) ? nextQuote.accessoryLines.length : undefined }); }catch(_){ }
         nextQuote = ensureSnapshotVisibleInStore(nextQuote);

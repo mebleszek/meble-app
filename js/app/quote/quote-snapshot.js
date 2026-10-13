@@ -387,12 +387,18 @@
       }
       if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordSnapshotPerformance === 'function') FC.wycenaDiagnostics.recordSnapshotPerformance(snapshot.meta.performance);
     }catch(_){ }
+    if(src.pcvMode==='project' || src.__projectPcvCandidate!==undefined){
+      if(!FC.projectPcvResolver)throw new Error('Brak walidacji projektowego kandydata WYCENY.');
+      FC.projectPcvResolver.validateQuoteCandidate(src);
+      FC.projectPcvResolver.carryQuoteProof(src,snapshot);
+      FC.projectPcvResolver.validateQuoteCandidate(snapshot);
+    }
     return snapshot;
   }
 
-  async function buildFromCore(){
+  async function buildFromCore(options){
     if(!(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteData === 'function')) return buildSnapshot({});
-    const data = await FC.wycenaCore.collectQuoteData();
+    const data = await FC.wycenaCore.collectQuoteData(options);
     return buildSnapshot(data);
   }
 

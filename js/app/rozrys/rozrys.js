@@ -470,7 +470,10 @@ function aggregatePartsForProject(selectedRooms, options){
   const formatHeurLabel = typeof engineBridge.formatHeurLabel === 'function' ? engineBridge.formatHeurLabel : ((st)=> String((st && st.heur) || ''));
   const computePlanPanelProAsync = typeof engineBridge.computePlanPanelProAsync === 'function' ? engineBridge.computePlanPanelProAsync : (()=> Promise.resolve({ sheets: [], note: 'Brak modułu rozrysEngine.' }));
 
-  function render(){
+  function render(options){
+    const calculationOptions=options && options.pcvMode==='project'
+      ? {pcvMode:'project',projectId:options.projectId,engineMode:options.engineMode} : {};
+    const aggregateForScope=rooms=>aggregatePartsForProject(rooms,calculationOptions);
     const root = document.getElementById('rozrysRoot');
     if(!root) return;
 
@@ -479,7 +482,7 @@ function aggregatePartsForProject(selectedRooms, options){
     const card = h('div', { class:'card' });
     const panelPrefs = loadPanelPrefs();
     let selectedRooms = resolveInitialSelectedRooms(panelPrefs.selectedRooms);
-    let agg = aggregatePartsForProject(selectedRooms);
+    let agg = aggregateForScope(selectedRooms);
     let materialScope = normalizeMaterialScopeForAggregate(decodeMaterialScope(panelPrefs.materialScope), agg);
     const headerRow = h('div', { style:'display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap' });
     headerRow.appendChild(h('h3', { style:'margin:0', text:'Optimax — optymalizacja rozkroju' }));
@@ -627,7 +630,7 @@ function aggregatePartsForProject(selectedRooms, options){
       setAggregate: (nextAgg)=>{ agg = nextAgg; },
       tryAutoRenderFromCache,
       scopeApi,
-      aggregatePartsForProject,
+      aggregatePartsForProject:aggregateForScope,
       savePanelPrefs,
       loadPanelPrefs,
       encodeRoomsSelection,
@@ -652,6 +655,7 @@ function aggregatePartsForProject(selectedRooms, options){
     selectionBridge.init();
 
     const planHelpers = runtimeBundleApi.createPlanHelpers(renderComposeApi.buildPlanHelpersConfig({
+      calculationOptions,
       FC,
       materials,
       unitSel,
@@ -703,7 +707,7 @@ function aggregatePartsForProject(selectedRooms, options){
       getSetGenBtnMode: ()=> setGenBtnMode,
       normalizeMaterialScopeForAggregate,
       decodeMaterialScope,
-      aggregatePartsForProject,
+      aggregatePartsForProject:aggregateForScope,
       getOrderedMaterialsForSelection,
       getGroupPartsForScope,
       getAccordionPref,
@@ -739,6 +743,7 @@ function aggregatePartsForProject(selectedRooms, options){
     }));
 
     const runCtrl = runtimeBundleApi.createRunController(renderComposeApi.buildRunControllerConfig({
+      calculationOptions,
       FC,
       statusBox,
       statusMain,

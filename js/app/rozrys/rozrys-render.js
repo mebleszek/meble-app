@@ -165,6 +165,16 @@
       : (meta && meta.meta && (meta.meta.unit === 'cm' || meta.meta.unit === 'mm'))
         ? meta.meta.unit
         : 'mm';
+    // Dialogs opened from the result can outlive it. Validate again at export time.
+    const guardedAction=action=>(...args)=>{
+      try{if(meta && typeof meta.validateCurrent==='function')meta.validateCurrent();}
+      catch(error){if(FC.infoBox)FC.infoBox.open({title:'ROZRYS wymaga ponowienia',message:error.message,okOnly:true});return false;}
+      return typeof action==='function' ? action(...args) : undefined;
+    };
+    if(meta && typeof meta.validateCurrent==='function'){
+      cfg.openPrintView=guardedAction(cfg.openPrintView);
+      cfg.downloadText=guardedAction(cfg.downloadText);
+    }
     const diagnostics = typeof cfg.buildRozrysDiagnostics === 'function'
       ? cfg.buildRozrysDiagnostics(meta && meta.material, meta && meta.scopeMode, meta && meta.parts, plan, meta && meta.selectedRooms)
       : null;
@@ -238,7 +248,16 @@
       hasVirtualHalf: sum.hasVirtualHalf,
       hasRealHalf: sum.hasRealHalf,
     };
+    if(meta && typeof meta.validateCurrent==='function')meta.validateCurrent();
     const sections = createRenderSections(tgt);
+    if(meta && typeof meta.validateCurrent==='function'){
+      sections.shell.addEventListener('click',event=>{
+        try{meta.validateCurrent();}catch(error){
+          event.preventDefault();event.stopImmediatePropagation();
+          if(FC.infoBox)FC.infoBox.open({title:'ROZRYS wymaga ponowienia',message:error.message,okOnly:true});
+        }
+      },true);
+    }
     if(lists && typeof lists.renderSummarySection === 'function'){
       sections.summaryHost.appendChild(lists.renderSummarySection({ meta, diagnostics, validationLabel, summary: summaryPayload, wastePct: pct }));
     } else if(lists && typeof lists.renderSummaryCard === 'function'){
@@ -340,7 +359,7 @@
       if(supplyMeta) tools.appendChild(h('span', { class:`rozrys-stock-chip ${supplyMeta.cls}`, text:supplyMeta.text }));
       if(diagnostics && diagnostics.sheets && diagnostics.sheets[index] && typeof cfg.openSheetListModal === 'function'){
         const sheetBtn = h('button', { class:'btn', type:'button', text:'Formatki arkusza' });
-        sheetBtn.addEventListener('click', ()=> cfg.openSheetListModal(meta.material, `Arkusz ${index + 1}`, diagnostics.sheets[index].rows, u, { openPrintView: FC.openPrintView, mmToUnitStr: FC.mmToUnitStr }));
+        sheetBtn.addEventListener('click', ()=> cfg.openSheetListModal(meta.material, `Arkusz ${index + 1}`, diagnostics.sheets[index].rows, u, { openPrintView: cfg.openPrintView, mmToUnitStr: FC.mmToUnitStr }));
         tools.appendChild(sheetBtn);
       }
       if(typeof cfg.mmToUnitStr === 'function') tools.appendChild(h('div', { class:'muted xs', text:`${cfg.mmToUnitStr(boardMeta.boardW, u)}×${cfg.mmToUnitStr(boardMeta.boardH, u)} ${u}` }));
@@ -413,6 +432,12 @@
       setCacheState:null,
     }, deps || {});
     try{
+      if(cfg.agg && cfg.agg.pcvMode==='project'){
+        if(cfg.out)cfg.out.innerHTML='';
+        if(cfg.setGenBtnMode)cfg.setGenBtnMode('idle');
+        if(cfg.setCacheState)cfg.setCacheState({lastAutoRenderHit:false,lastScopeKey:''});
+        return false;
+      }
       if(cfg._rozrysRunning) return false;
       const scope = typeof cfg.normalizeMaterialScopeForAggregate === 'function' && typeof cfg.decodeMaterialScope === 'function'
         ? cfg.normalizeMaterialScopeForAggregate(cfg.decodeMaterialScope(cfg.matSelValue), cfg.agg)
