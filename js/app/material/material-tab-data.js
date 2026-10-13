@@ -110,6 +110,16 @@
 
   function collectRoomMaterials(room, options){
     const opts = options || {};
+    if(opts.pcvMode === 'project'){
+      const calculation=FC.projectPcvResolver.requireCollection([room],opts);
+      const deps=resolveDeps(),projectTotals={};
+      const cabinetRows=calculation.details.map(detail=>{
+        const totals=deps.totalsFromPartsFn(detail.parts);deps.mergeTotalsFn(projectTotals,totals);
+        return Object.assign({},detail,{totals,badge:buildCabinetBadge(detail.cabinet)});
+      });
+      return {room,cabinets:calculation.details.map(detail=>detail.cabinet),cabinetRows,projectTotals,projectEdgeMeters:calculation.edgeMeters,
+        projectEdgeMetersByMode:calculation.edgeMetersByMode,pcvMode:'project',projectId:opts.projectId,deps,fmtCm};
+    }
     const deps = resolveDeps();
     const edgeApi = opts.edgeApi || (FC.materialEdgeStore && typeof FC.materialEdgeStore.createEdgeStore === 'function'
       ? FC.materialEdgeStore.createEdgeStore()
@@ -158,6 +168,7 @@
 
   function collectEdgeMetersForRooms(rooms, options){
     const opts = options || {};
+    if(opts.pcvMode === 'project') return FC.projectPcvResolver.requireCollection(rooms,opts);
     const deps = resolveDeps();
     const edgeApi = opts.edgeApi || (FC.materialEdgeStore && typeof FC.materialEdgeStore.createEdgeStore === 'function'
       ? FC.materialEdgeStore.createEdgeStore({ persist: opts.persist !== false })

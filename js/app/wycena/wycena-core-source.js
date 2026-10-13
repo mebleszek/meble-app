@@ -52,7 +52,12 @@
     return out;
   }
 
-  function getSelectedAggregate(selectionOverride){
+  function getSelectedAggregate(selectionOverride, options){
+    const opts=options||{};
+    if(opts.pcvMode === 'project'){
+      if(!selectionOverride || !Array.isArray(selectionOverride.selectedRooms) || !selectionOverride.selectedRooms.length)throw FC.projectPcvResolver.error('ROOM_SCOPE_REQUIRED');
+      return FC.cabinetDerivedFacts.aggregatePartsForRooms(selectionOverride.selectedRooms,opts);
+    }
     const rooms = selectionApi.decodeSelectedRooms(selectionOverride);
     try{
       const factsApi = FC.cabinetDerivedFacts || null;

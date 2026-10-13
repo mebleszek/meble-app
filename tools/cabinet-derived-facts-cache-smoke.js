@@ -165,8 +165,8 @@ assert.ok(Array.isArray(aggregate.materials) && aggregate.materials.length > 0, 
 assert.ok(!read('js/app/cabinet/cabinet-derived-facts.js').includes('localStorage'), 'derivedFacts nie tworzy nowego localStorage');
 assert.ok(!read('js/app/cabinet/cabinet-derived-facts.js').includes('document.'), 'derivedFacts nie dotyka DOM');
 assert.ok(!read('index.html').includes('capacityKg') && !read('dev_tests.html').includes('cabinWidthCm'), 'nie przywrócono martwych pól windy');
-assert.ok(read('index.html').includes('js/app/cabinet/cabinet-derived-facts.js?v=20261013_c2_1b1a'), 'index ładuje cabinet-derived-facts');
-assert.ok(read('dev_tests.html').includes('js/app/cabinet/cabinet-derived-facts.js?v=20261013_c2_1b1a'), 'dev_tests ładuje cabinet-derived-facts');
+assert.ok(read('index.html').includes('js/app/cabinet/cabinet-derived-facts.js?v=20261013_c2_1b2b'), 'index ładuje cabinet-derived-facts');
+assert.ok(read('dev_tests.html').includes('js/app/cabinet/cabinet-derived-facts.js?v=20261013_c2_1b2b'), 'dev_tests ładuje cabinet-derived-facts');
 assert.ok(read('tools/app-dev-smoke-lib/file-list.js').includes('js/app/cabinet/cabinet-derived-facts.js'), 'app-dev smoke ładuje cabinet-derived-facts');
 assert.ok(read('js/app/wycena/wycena-core-source.js').includes('aggregatePartsForRooms'), 'WYCENA materiałowa ma odczyt agregatu z cache faktów');
 assert.ok(read('js/app/wycena/wycena-core-labor.js').includes('getLogistics'), 'WYCENA robocizny ma odczyt logistyki z cache faktów');

@@ -473,6 +473,7 @@
   }
   function aggregatePartsForRooms(rooms, options){
     const opts = options && typeof options === 'object' ? options : {};
+    if(opts.pcvMode === 'project')return FC.rozrysScope.aggregatePartsForProject(rooms,{pcvMode:'project',projectId:opts.projectId,safeGetProject:project,resolveRozrysPartFromSource:resolveRozrysPart});
     const proj = project() || {};
     const ids = normalizeRooms(rooms);
     if(opts.ensure !== false) ensureForRooms(ids, { persist:opts.persist !== false, recalculate:true });

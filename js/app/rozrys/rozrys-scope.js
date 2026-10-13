@@ -149,7 +149,9 @@
       projectId:undefined,
     }, deps || {});
     const proj = typeof cfg.safeGetProject === 'function' ? cfg.safeGetProject() : null;
-    const rooms = normalizeRoomSelection(Array.isArray(selectedRooms) ? selectedRooms : (typeof cfg.getRooms === 'function' ? cfg.getRooms() : []), cfg);
+    const projectCalculation=cfg.pcvMode === 'project' ? FC.projectPcvResolver.requireCollection(selectedRooms,{projectId:cfg.projectId}) : null;
+    if(projectCalculation && proj!==window.projectData)throw FC.projectPcvResolver.error('PROJECT_CONTEXT_MISMATCH');
+    const rooms = projectCalculation ? projectCalculation.rooms : normalizeRoomSelection(Array.isArray(selectedRooms) ? selectedRooms : (typeof cfg.getRooms === 'function' ? cfg.getRooms() : []), cfg);
     if(!proj) return { byMaterial: {}, materials: [], groups: {}, selectedRooms: rooms };
 
     const groups = {};
@@ -169,11 +171,11 @@
     for(const room of rooms){
       const cabinets = (proj[room] && Array.isArray(proj[room].cabinets)) ? proj[room].cabinets : [];
       for(const cab of cabinets){
-        if(typeof cfg.getCabinetCutList !== 'function') continue;
+        if(!projectCalculation && typeof cfg.getCabinetCutList !== 'function') continue;
         const provenance=FC.partProvenance;
         const owner=provenance?provenance.context(cab,room,provenance.projectContext(proj,cfg.projectId)):null;
-        const generated=cfg.getCabinetCutList(cab,room,owner) || [];
-        const parts=provenance?provenance.bind(generated,owner):generated;
+        const generated=projectCalculation ? projectCalculation.details.find(row=>row.room===room && row.cabinet.id===cab.id).parts : cfg.getCabinetCutList(cab,room,owner) || [];
+        const parts=projectCalculation ? generated : provenance?provenance.bind(generated,owner):generated;
         for(const p of parts){
           const sourceMaterial = String(p.material || '').trim();
           if(!sourceMaterial) continue;
@@ -187,7 +189,7 @@
           const isFront = (String(resolved.name || '').trim() === 'Front') || !!(typeof cfg.isFrontMaterialKey === 'function' && cfg.isFrontMaterialKey(sourceMaterial));
           const materialKey = resolved.materialKey;
           const name = resolved.name;
-          const key = `${resolved.sourceSig}||${resolved.direction}||${w}||${h}`;
+          const key = `${resolved.sourceSig}||${resolved.direction}||${w}||${h}`+(projectCalculation?'||pcv:'+p.effectivePcv.key:'');
           const group = ensureGroup(materialKey);
           group.sourceMaterials.add(sourceMaterial);
           group.rooms.add(room);
@@ -232,7 +234,7 @@
         rooms: Array.from(group.rooms),
       };
     }
-    return { byMaterial: outByMat, materials, groups: outGroups, selectedRooms: rooms };
+    return Object.assign({ byMaterial: outByMat, materials, groups: outGroups, selectedRooms: rooms },projectCalculation?{pcvMode:'project',projectId:cfg.projectId,projectPcvRevision:projectCalculation.revision,edgeMeters:projectCalculation.edgeMeters,edgeMetersByMode:projectCalculation.edgeMetersByMode}:{});
   }
 
   function getScopeSummary(scope, aggregate, deps){
