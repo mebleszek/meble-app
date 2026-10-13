@@ -2,6 +2,8 @@
 
 Status: addytywny fundament w RAM, z jawnie zatrzymaną częścią wymagającą trwałych slotów. Nie jest to wdrożenie własności nadpisań PCV/słojów ani naprawa D1–D6.
 
+Uwaga historyczna: decyzja C2.1b.1 / Issue #32 zastępuje rekomendację indywidualnych slotów dla grup standardowych szablonów. Aktualny model grup, stabilny właściciel frontów zestawu i pozostające ograniczenia opisuje [raport C2.1b.1](c2-1b1-template-part-groups.md). Poniższy opis pozostaje zapisem zakresu etapu C2.1b.0.
+
 Baza: `ab2d9718514cad0639d6efebdad6e2e66720b0cc` (main po C2.1a).
 
 ## Model danych generowanych

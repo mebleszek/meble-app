@@ -6,7 +6,7 @@
   root.FC = root.FC || {};
   const FC = root.FC;
 
-  const VERSION = '20261013_part_provenance_v1';
+  const VERSION = '20261013_part_groups_v1';
   const CACHE_FIELD = 'derivedFacts';
   const STATS_LIMIT = 20;
   let computingDepth = 0;
@@ -68,10 +68,20 @@
     }catch(_){ return {}; }
   }
   function inputPayload(roomId, cabinet){
+    const data=project();
+    const room=data && data[roomId];
+    const setId=cabinet && cabinet.setId;
+    const setContext=setId && room ? {
+      record:(Array.isArray(room.sets)?room.sets:[]).find(set=>set && String(set.id)===String(setId))||null,
+      fronts:(Array.isArray(room.fronts)?room.fronts:[]).filter(front=>front && String(front.setId)===String(setId)),
+      leadCabinetId:((Array.isArray(room.cabinets)?room.cabinets:[]).find(cab=>cab && String(cab.setId)===String(setId))||{}).id||null,
+      projectId:FC.partProvenance?FC.partProvenance.projectContext(data).projectId:''
+    } : null;
     return {
       calculatorVersion:VERSION,
       roomId:text(roomId),
       cabinet:cabinetWithoutCache(cabinet),
+      ...(setId?{setContext}:{}),
       carrying:currentInvestorCarrying()
     };
   }
@@ -171,7 +181,7 @@
     let rows = [];
     try{
       const hw = FC.frontHardware || {};
-      if(hw && typeof hw.getCabinetFrontCutListForMaterials === 'function') rows = hw.getCabinetFrontCutListForMaterials(roomId, clone(cabinet || {})) || [];
+      if(hw && typeof hw.getCabinetFrontCutListForMaterials === 'function') rows = hw.getCabinetFrontCutListForMaterials(roomId, clone(cabinet || {}), FC.partProvenance?FC.partProvenance.context(cabinet,roomId):undefined) || [];
     }catch(_){ rows = []; }
     rows = (Array.isArray(rows) ? rows : []).filter(isFrontPart);
     if(rows.length) return clone(rows);
@@ -471,7 +481,7 @@
       const cabinets = proj && proj[roomId] && Array.isArray(proj[roomId].cabinets) ? proj[roomId].cabinets : [];
       cabinets.forEach((cabinet)=> {
         const cache = cacheOf(cabinet);
-        const generated = cache && cache.cutlists && Array.isArray(cache.cutlists.all) ? cache.cutlists.all : getCabinetCutListRaw(roomId, cabinet);
+        const generated = cache && isCurrent(roomId,cabinet) && cache.cutlists && Array.isArray(cache.cutlists.all) ? cache.cutlists.all : getCabinetCutListRaw(roomId, cabinet);
         const provenance=FC.partProvenance;
         const owner=provenance?provenance.context(cabinet,roomId,provenance.projectContext(proj,opts.projectId)):null;
         const parts=provenance?provenance.bind(generated,owner):generated;

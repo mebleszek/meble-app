@@ -2,6 +2,8 @@
 
 Status: propozycja do zatwierdzenia, NIE wdrożony model. C2.1a zmienia wyłącznie odczyt wyjątków w `rozrys-prefs.js`. Nie migruje danych ani nie usuwa kluczy.
 
+Aktualizacja C2.1b.1: fundament pochodzenia jest już wdrożony w RAM; poniższy model trwałych nadpisań nadal pozostaje propozycją do C2.1b.2. Decyzja użytkownika z [Issue #32](https://github.com/mebleszek/meble-app/issues/32): standardowe szafki z `+` są szablonowe; równoważne konstrukcyjnie elementy jednej szafki mają jedno wspólne ustawienie grupowe. Tryb Zaawansowane i kreator niestandardowych mebli pozostają odłożone. API GitHub nie udostępniło treści issue w tym środowisku (`Forbidden`); wykorzystano decyzje przytoczone w poleceniu użytkownika.
+
 ## 1. Stan po C2.1a i reprodukcje
 
 `getMaterialGrainExceptions(material, allowedKeys, hasGrain)` odczytuje pełną mapę, tworzy niezależną kopię i filtruje ją w RAM. Dla listy aktywnych podpisów zachowuje dotychczasowe wartości boolean; bez listy zwraca kopię pełnej mapy. Pusta lista zwraca pustą mapę. Nie inicjalizuje storage, nie zmienia `enabled`, nie uruchamia sesji i nie wywołuje destrukcyjnego `pruneMaterialExceptions()`.
@@ -69,7 +71,13 @@ Adres źródłowy: `{ projectId, roomId, cabinetId, partRoleId }`. Etykieta, dek
 
 Generator powinien nadawać stałe role, np. `body.side.left`, `body.side.right`, `body.bottom`, `body.back`. Nie wystarczy obecny `name:'Bok', qty:2`: lewy i prawy bok są osobnymi elementami. Jeśli UI pozwala edytować je razem, operacja ma jawnie wskazywać oba adresy, a nie utrwalać decyzję pod wspólnym podpisem.
 
-Powtarzane półki, fronty i szuflady wymagają stabilnych identyfikatorów źródłowych/slotów. Należy wykorzystać istniejące `front.id` / identyfikatory źródeł. Gdzie istnieje tylko liczba, potrzebna jest mała addytywna lista slotów w konfiguracji szafki, np. `shelfSlotIds`, a nie pozycja tablicy cutlisty. Usunięcie jednego slotu nie może przenosić jego decyzji na następny. To jest szczegół do zatwierdzenia i implementacji w C2.1b, nie zmiana schematu w C2.1a.
+Standardowe powtarzane półki, fronty i komponenty szuflad NIE wymagają indywidualnych slotów. Aktualna decyzja zastępuje wcześniejsze zalecenie slotów dla takich szablonów. Adres grupy szafki to `{ projectId, roomId, ownerType:'cabinet', cabinetId, groupRoleId }`, a jej udział w wierszu opisuje osobne `qty`. Zmiana półek 3 → 5 zachowuje `body.shelves`; zmiana liczby nie jest zmianą tożsamości grupy. Druga szafka/pokój/projekt ma własny adres.
+
+`sourceRefs` nadal opisuje konkretne sztuki, np. dwa boki. `sourceGroups` opisuje wspólne ustawienie i liczbę sztuk, nigdy jedną sztukę udającą grupę. `sourceIssues` obejmuje nierozstrzygniętą ilość. Dla każdego wiersza suma liczby refs, ilości grup oraz ilości issues musi równać się `qty`. Przy agregacji zachowujemy wszystkie wkłady, nawet gdy różne grupy konstrukcyjne mają identyczną geometrię.
+
+Fronty wspólnego zestawu mają jawnego właściciela `{ projectId, roomId, ownerType:'set', setId, groupRoleId }`. `set.id` jest zachowywane przez obecny wizard przy edycji; nowe ID szafek/frontów nie jest nowym właścicielem tego frontu zestawu. Pierwsza szafka pozostaje jedynie miejscem emisji ilości w dotychczasowym algorytmie. Rola pochodzi z rozpoznanego szablonu zestawu, a nie z pozycji szafki/frontu. Niespójny lub nieznany zestaw pozostaje issue przypisanym do `setId`, bez sztucznego `cabinetId`.
+
+Przyszłe przekształcenie standardowej grupy w osobne elementy w trybie Zaawansowane musi być jawną operacją kanonicznego projektu, ze stabilnymi ID, mapowaniem ustawień i potwierdzonym zapisem. Sam render ani zmiana liczby sztuk nie uruchamia tego procesu. Nie implementujemy tego trybu w C2.1b.1.
 
 ## 4. Źródło a agregacja produkcyjna
 
@@ -131,4 +139,14 @@ Przed wdrożeniem C2.1b wymagane są zielone rzeczywiste testy:
 - niejednoznaczne i uszkodzone legacy dane pozostają dostępne i nie migrują podczas renderu;
 - historyczne oferty, globalne katalogi/cenniki i rollback innych pokojów pozostają nienaruszone.
 
-Zalecana kolejność C2.1b: najpierw stabilne adresy/sloty i wspólny resolver; następnie scoped confirmed write dla PCV/kierunku/rotacji; potem integracja MATERIAŁ–ROZRYS–WYCENA (w tym D5), cache/provenance i opcjonalny jawny import. Jeśli stabilne role wymagają większej przebudowy generatora, przed implementacją należy zatwierdzić osobny najmniejszy etap. Nie rozpoczynać C2.1b bez decyzji użytkownika.
+Zalecana kolejność po C2.1b.1: najpierw scoped confirmed write dla rozpoznanych indywidualnych ról i standardowych grup; następnie integracja efektywnych danych MATERIAŁ–ROZRYS–WYCENA (w tym D5), cache i ewentualny jawny import. Indywidualne sloty standardowych półek są zbędne zgodnie z decyzją użytkownika. Odłożone funkcje Zaawansowane wymagają osobnego zatwierdzenia.
+
+## 9. Kontrakt następnego C2.1b.2
+
+Kanoniczne dane pokoju mogą otrzymać oddzielne przestrzenie `production.partOverrides[cabinetId][partRoleId]`, `production.cabinetGroupOverrides[cabinetId][groupRoleId]` i `production.setGroupOverrides[setId][groupRoleId]`. To propozycja, NIE pola zapisywane przez C2.1b.1. Wszystkie pozostają w tej samej gałęzi kanonicznego projektu; nie tworzymy osobnego store.
+
+Operacja ma sprawdzić właściwy fizyczny rekord i pokój, istnienie właściciela oraz aktywną rolę. Liczba sztuk nie jest częścią klucza override'u. Ustawienie grupowe stosuje się do całego aktualnego wkładu tej grupy; nie można dodać wyjątku pojedynczej półki w szablonie. PCV i grain mają niezależne komponenty. Brak pewnego kontekstu, `sourceIssues` lub konflikt oznacza odmowę zapisu, bez dopasowania po nazwie, wymiarach lub legacy podpisie.
+
+Zmianę należy przygotować na kopii, sprawdzić semantic no-op, wymagać durable begin i confirmed room save; RAM aktualizować tylko po sukcesie. Nie wpisywać do projektu pełnej cutlisty, `sourceRefs`, `sourceGroups`, ilości pochodnych ani cache. Przy agregacji grup ustawienia produkcyjne należy rozwiązać PRZED grupowaniem, zachowując dotychczasowe obliczenia i zakresy ofert. Copy/delete oraz powrót do defaultu dotyczą wyłącznie jawnego właściciela.
+
+Szczegółowy zakres obsłużonych grup i ograniczenia generatorów: [C2.1b.1](c2-1b1-template-part-groups.md). Rozpoznane adresy mogą być fundamentem zapisu C2.1b.2, ale nie dowodzą jeszcze bezpieczeństwa globalnych setterów ani naprawienia D1–D6.

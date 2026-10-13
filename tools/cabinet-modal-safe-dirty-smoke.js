@@ -289,6 +289,9 @@ function normalSetSave(){
   assert.equal(r.sandbox.projectData.kuchnia.cabinets.length, 2);
   assert.equal(r.sandbox.projectData.kuchnia.cabinets[0].width, 65);
   assert.equal(r.sandbox.projectData.kuchnia.sets[0].params.w, 65);
+  assert.equal(r.sandbox.projectData.kuchnia.sets[0].id, 'set', 'Wizard rebuild preserves the canonical set owner ID');
+  assert.ok(r.sandbox.projectData.kuchnia.cabinets.every(cab=>cab.setId==='set'));
+  assert.ok(r.sandbox.projectData.kuchnia.fronts.every(front=>front.setId==='set'));
   assert.equal(r.sandbox.projectData.kuchnia.fronts.length, 2);
   assert.equal(r.get('cabinetModal').style.display, 'none');
 }

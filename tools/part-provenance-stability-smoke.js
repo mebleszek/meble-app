@@ -63,22 +63,24 @@ test('Deleting fridge lower cover never reassigns its address to the upper cover
  r.s.projectData.room.settings.bottomHeight=10;const after=r.parts().flatMap(p=>p.sourceRefs);
  assert.deepEqual(clone(after.find(x=>x.partRoleId==='front.fridge.upper')),clone(upper));assert.equal(after.some(x=>x.partRoleId==='front.fridge.lower'),false);
 });
-test('Anonymous shelf counts remain explicitly unresolved rather than getting positional IDs',()=>{
+test('Standard shelf counts use one stable group rather than positional physical IDs',()=>{
  const r=fixture(),row=r.parts().find(p=>p.name==='Półka');assert.equal(row.qty,2);assert.deepEqual(clone(row.sourceRefs),[]);
- assert.equal(row.sourceIssues[0].qty,2);assert.equal(row.sourceIssues[0].reason,'persistent_shelf_slots_required');
- r.cab().details.shelves=1;const next=r.parts().find(p=>p.name==='Półka');assert.equal(next.sourceIssues[0].qty,1);assert.deepEqual(clone(next.sourceRefs),[]);
+ assert.equal(row.sourceGroups[0].qty,2);assert.equal(row.sourceGroups[0].groupRoleId,'body.shelves');assert.equal(row.sourceIssues.length,0);
+ r.cab().details.shelves=1;const next=r.parts().find(p=>p.name==='Półka');assert.equal(next.sourceGroups[0].qty,1);assert.deepEqual(clone(next.sourceRefs),[]);
+ assert.deepEqual(clone({...row.sourceGroups[0],qty:1}),clone(next.sourceGroups[0]));
 });
-test('Drawer singleton components are distinct; anonymous drawer groups preserve unresolved qty',()=>{
+test('Drawer singleton components are distinct; standard drawer groups preserve full qty',()=>{
  const r=fixture();r.FC.cabinetDrawerRequirements={getDrawerRequirements:()=>[{source:'oven_drawer',qty:1,technical:{drawerKind:'box'}}]};
  let row=r.parts().find(p=>p.name.startsWith('Bok szuflady'));assert.equal(row.qty,2);assert.equal(new Set(row.sourceRefs.map(x=>x.partRoleId)).size,2);
  r.FC.cabinetDrawerRequirements.getDrawerRequirements=()=>[{source:'front_drawers',qty:3,technical:{drawerKind:'box'}}];
- row=r.parts().find(p=>p.name.startsWith('Bok szuflady'));assert.equal(row.qty,6);assert.deepEqual(clone(row.sourceRefs),[]);assert.equal(row.sourceIssues[0].qty,6);
+ row=r.parts().find(p=>p.name.startsWith('Bok szuflady'));assert.equal(row.qty,6);assert.deepEqual(clone(row.sourceRefs),[]);assert.equal(row.sourceGroups[0].qty,6);
 });
-test('Corner roles survive dimension changes; shared set fronts never acquire an arbitrary lead owner',()=>{
+test('Corner roles survive dimension changes; shared set fronts have a set owner',()=>{
  const r=fixture(),cab=r.cab();cab.subType='narozna_l';cab.details={gl:60,gp:50,st:90,sp:60};const before=r.keys(r.parts());
  cab.details.gl=70;cab.details.gp=40;assert.deepEqual(r.keys(r.parts()),before);
  cab.subType='standardowa';cab.setId='set';r.s.projectData.room.sets=[{id:'set',presetId:'A',number:1,frontCount:2,params:{w1:30,w2:30,hB:80,hTop:20}}];
- const front=r.parts().find(p=>p.name==='Front');assert.equal(front.qty,2);assert.deepEqual(clone(front.sourceRefs),[]);assert.equal(front.sourceIssues[0].reason,'stable_set_front_owner_required');
+ const front=r.parts().find(p=>p.name==='Front');assert.equal(front.qty,2);assert.deepEqual(clone(front.sourceRefs),[]);
+ assert.equal(front.sourceGroups.reduce((sum,g)=>sum+g.qty,0),2);assert.ok(front.sourceGroups.every(g=>g.setId==='set' && !g.cabinetId));assert.equal(front.sourceIssues.length,0);
 });
 test('Both aggregation paths keep all owners and quantities while grouping compatible parts',()=>{
  const r=fixture(),sum=parts=>parts.reduce((n,p)=>n+p.qty,0),raw=r.parts().concat(r.parts(r.s.projectData.room.cabinets[1]),r.parts(r.s.projectData.other.cabinets[0],'other'));
@@ -86,7 +88,7 @@ test('Both aggregation paths keep all owners and quantities while grouping compa
  const geometry=raw.filter(p=>p.a>0&&p.b>0);assert.equal(sum(parts),sum(geometry));assert.deepEqual(r.keys(parts),r.keys(raw));
  const facts=r.FC.cabinetDerivedFacts.aggregatePartsForRooms(['room','other']);const factParts=facts.materials.flatMap(m=>facts.groups[m].allParts);
  assert.equal(sum(factParts),sum(geometry));assert.deepEqual(r.keys(factParts),r.keys(raw));
- for(const p of parts)assert.equal((p.sourceRefs||[]).length+(p.sourceIssues||[]).reduce((n,x)=>n+x.qty,0),p.qty);
+ for(const p of parts)assert.equal((p.sourceRefs||[]).length+(p.sourceGroups||[]).reduce((n,x)=>n+x.qty,0)+(p.sourceIssues||[]).reduce((n,x)=>n+x.qty,0),p.qty);
 });
 test('MATERIAL, WYCENA source and ROZRYS raw diagnostics carry the same provenance',()=>{
  const r=fixture(),model=r.FC.materialTabData.collectRoomMaterials('room'),expected=r.keys(r.parts());
@@ -120,9 +122,9 @@ test('RAM cache copied to project B is rebound on read, never exposing A owners'
  assert.ok(r.refs(rows).length>0);assert.ok(r.refs(rows).every(ref=>ref.projectId==='B'));
  assert.ok(r.refs(r.cab().derivedFacts.cutlists.all).every(ref=>ref.projectId==='A'));assert.deepEqual(r.storage.calls,[]);
 });
-test('Anonymous drawer fronts have no positional owners, while the fixed single drawer has a role',()=>{
+test('Standard drawer fronts have group ownership, while the fixed single drawer keeps its role',()=>{
  const r=fixture(),cab=r.cab();cab.subType='szuflady';cab.details={drawers:3};
- const fronts=r.parts().filter(p=>p.name==='Front');assert.equal(fronts.length,1);assert.equal(fronts[0].qty,3);assert.deepEqual(clone(fronts[0].sourceRefs),[]);
+ const fronts=r.parts().filter(p=>p.name==='Front');assert.equal(fronts.length,1);assert.equal(fronts[0].qty,3);assert.deepEqual(clone(fronts[0].sourceRefs),[]);assert.equal(fronts[0].sourceGroups[0].qty,3);
  cab.subType='szuflada_drzwi';cab.details={drawerHeight:20,doorCount:2};
  assert.ok(r.refs(r.parts()).some(ref=>ref.partRoleId==='front.drawer.main'));
 });
@@ -132,4 +134,5 @@ test('Returned metadata does not alias another renderer or the generated part',(
  const aggregate=r.aggregate(['room']);aggregate.groups['laminat White'].allParts[0].sourceRefs[0].cabinetId='bad';
  assert.ok(r.refs(r.parts()).every(ref=>ref.cabinetId==='one'));
 });
-(async()=>{let failures=0;for(const [name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name+'\n'+error.stack);}}console.log(`${tests.length-failures}/${tests.length} PASS`);process.exitCode=failures?1:0;})();
+module.exports={fixture};
+if(require.main===module)(async()=>{let failures=0;for(const [name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name+'\n'+error.stack);}}console.log(`${tests.length-failures}/${tests.length} PASS`);process.exitCode=failures?1:0;})();
