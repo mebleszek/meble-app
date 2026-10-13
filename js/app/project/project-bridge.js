@@ -137,11 +137,14 @@
     return merged;
   }
 
-  function saveConfirmed(data){
+  function saveConfirmed(data, options){
     const normalized = normalizeProject(data);
     const blocked = { ok:false, project:normalized };
     if(FC.session && FC.session.canSaveProject && !FC.session.canSaveProject()) return blocked;
     const before = currentCentralRecord();
+    const conditional = options && Object.prototype.hasOwnProperty.call(options,'expectedRecord');
+    if(conditional && (!before || !options.expectedRecord || String(options.expectedRecord.id) !== String(before.id)
+      || !projectStore || typeof projectStore.updateRecordConfirmed !== 'function')) return blocked;
     if(before && before.meta && before.meta.pendingDomainOperation) return blocked;
     const investorId = getCurrentInvestorId();
     if(before && investorId && String(before.investorId || '') !== investorId) return blocked;
@@ -157,10 +160,12 @@
 
     try{
       if(before && projectStore && typeof projectStore.upsert === 'function'){
-        saved = projectStore.upsert(Object.assign({}, before, {
+        const nextRecord = Object.assign({}, before, {
           projectData:projectToWrite,
           updatedAt:Date.now(),
-        }));
+        });
+        // Optional optimistic guard for domain setters; legacy save callers keep their contract.
+        saved = conditional ? projectStore.updateRecordConfirmed(nextRecord, options.expectedRecord) : projectStore.upsert(nextRecord);
       }else if(!narrow && investorId && projectStore && typeof projectStore.saveProjectDataForInvestor === 'function'){
         saved = projectStore.saveProjectDataForInvestor(investorId, projectToWrite);
       }

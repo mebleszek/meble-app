@@ -180,6 +180,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/cabinet/corner-sketch.js",
       "js/app/cabinet/part-provenance.js",
       "js/app/cabinet/cabinet-cutlist.js",
+      "js/app/project/project-pcv-overrides.js",
       "js/app/cabinet/cabinet-actions.js",
       "js/app/cabinet/cabinet-summary.js",
       "js/app/ui/layout-state.js",
