@@ -61,6 +61,12 @@
     try{
       const current = JSON.parse(localStorage.getItem(PROJECTS_KEY) || '[]');
       if(!Array.isArray(current)) return null;
+      const session = FC.session;
+      if(session && session.canSaveProject){
+        const before = current.find(row=>row && String(row.id) === session.projectId);
+        const after = persisted.find(row=>String(row.id) === session.projectId);
+        if((!session.active || JSON.stringify(before) !== JSON.stringify(after)) && !session.canSaveProject()) return null;
+      }
       for(const row of current.filter(item=>item && item.meta && item.meta.pendingDomainOperation)){
         const next = persisted.find(item=>item.id === row.id);
         if(!next || JSON.stringify(normalizeRecord(row)) !== JSON.stringify(normalizeRecord(next))) return null;
@@ -172,6 +178,8 @@
       if(index < 0 || JSON.stringify(normalizeRecord(rows[index])) !== JSON.stringify(expected)) return null;
       const normalized = prepareRecordForPersistence(record);
       if(!normalized || String(normalized.investorId) !== String(rows[index].investorId)) return null;
+      if(FC.session && (!FC.session.active || String(record.id) === FC.session.projectId)
+        && FC.session.canSaveProject && !FC.session.canSaveProject()) return null;
       rows[index] = Object.assign({}, rows[index], normalized);
       if(localStorage.getItem(PROJECTS_KEY) !== observed) return null;
       if(storage.setJSON(PROJECTS_KEY, rows) === false) return null;

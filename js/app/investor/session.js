@@ -15,11 +15,15 @@
   const SESSION_SCHEMA_VERSION = 4;
   const DIRTY_CACHE_WINDOW_MS = 120;
   let beginFailureNotified = false;
+  let rollbackRestored = false;
+  let writeUnconfirmed = false;
 
   function canSnapshotKey(key){ return SNAPSHOT_KEYS.has(key); }
   function getKeysToSnapshot(){ return Array.from(SNAPSHOT_KEYS); }
 
-  function fail(code, message){ session.lastError = { code, message }; invalidateDirtyCache(); return false; }
+  const UNCONFIRMED_MESSAGE = 'Dane projektu mogły zostać zapisane, ale nie potwierdzono sesji. Dalszy zapis został wstrzymany, aby chronić dane. Zachowano formularz i snapshot.';
+
+  function fail(code, message, details){ session.lastError = Object.assign({ code, message }, details || {}); invalidateDirtyCache(); return false; }
   function notifyBlocked(message){
     try{ if(FC.infoBox && FC.infoBox.open) FC.infoBox.open({ title:'Sesja edycji wymaga zakończenia', message, okOnly:true }); }catch(_){ }
   }
@@ -82,14 +86,14 @@
     notifyBlocked('Najpierw zakończ sesję przyciskiem Zapisz lub Anuluj. Inwestor nie został przełączony.');
     return false;
   }
-  function canSaveProject(openingRoom){
+  function canUseSessionOwner(openingRoom, options){
     if(!session.active) return true;
     if(FC.projectDomainOperations && FC.projectDomainOperations.hasPending(session.projectId)) return fail('PENDING_DOMAIN_OPERATION','Najpierw dokończ operację projektu.');
     const current = resolveSessionContext();
     if(openingRoom) current.roomId = String(openingRoom);
-    if(session.projectId && current.projectId === session.projectId
-      && (!session.roomId || current.roomId === session.roomId)
-      && !(session.context && session.context.investorId && current.investorId && current.investorId !== session.context.investorId)){
+    if(session.projectId && ((options && options.checkContext === false)
+      || (current.projectId === session.projectId && (!session.roomId || current.roomId === session.roomId)
+        && !(session.context && session.context.investorId && current.investorId && current.investorId !== session.context.investorId)))){
       try{
         const raw = localStorage.getItem(PROJECTS_KEY);
         const owner = JSON.parse(ownerRaw(raw));
@@ -113,10 +117,12 @@
     try{ return scopeRaw(before) !== scopeRaw(raw); }catch(_){ return true; }
   }
 
-  // Fresh read-only evidence for automatic navigation; never use the dirty cache.
-  function inspectNavigationState(){
+  // Shared read-only proof. It never calls canSaveProject (no validation cycle).
+  // A restored baseline is also valid after Cancel's durable cleanup failed.
+  function inspectDurableSession(openingRoom, options){
+    const opts = options || {};
     try{
-      if(!session.active || !session.durable || !session.projectId || !session.roomId || !session.snapshot) return null;
+      if(writeUnconfirmed || !session.active || (!session.durable && !opts.allowUndurable) || !session.projectId || !session.snapshot) return null;
       const raws = {};
       for(const key of [SESSION_STORAGE_KEY, ...getKeysToSnapshot()]) raws[key] = localStorage.getItem(key);
       const payload = JSON.parse(raws[SESSION_STORAGE_KEY]);
@@ -133,20 +139,61 @@
       }
       const owner = JSON.parse(ownerRaw(raws[PROJECTS_KEY]));
       const original = JSON.parse(ownerRaw(session.snapshot[PROJECTS_KEY]));
-      const currentContext = resolveSessionContext();
-      if(currentContext.projectId !== session.projectId || currentContext.roomId !== session.roomId
-        || currentContext.investorId !== session.context.investorId) return null;
-      // Cancel may have restored baseline before its durable cleanup failed.
-      if(keyChanged(PROJECTS_KEY,raws[PROJECTS_KEY]) && payload.expectedOwnerRaw !== session.expectedOwnerRaw) return null;
-      if(!owner || !original || !owner.projectData || !hasOwn(owner.projectData,session.roomId)
-        || !original.projectData || !hasOwn(original.projectData,session.roomId)
-        || String(owner.investorId || '') !== String(session.context.investorId || '')
-        || String(original.investorId || '') !== String(session.context.investorId || '')
-        || canSaveProject() !== true) return null;
-      const dirty = getKeysToSnapshot().some(key=>keyChanged(key,raws[key]));
+      if(opts.checkContext !== false){
+        const current = resolveSessionContext();
+        if(openingRoom) current.roomId = String(openingRoom);
+        if(current.projectId !== session.projectId || (session.roomId && current.roomId !== session.roomId)
+          || String(current.investorId || '') !== String(session.context.investorId || '')) return null;
+      }
+      const currentScope = scopeRaw(raws[PROJECTS_KEY]);
+      const baselineScope = scopeRaw(session.snapshot[PROJECTS_KEY]);
+      if(!original || String(original.investorId || '') !== String(session.context.investorId || '')
+        || (owner && String(owner.investorId || '') !== String(session.context.investorId || ''))
+        || (session.roomId && (!owner || !owner.projectData || !hasOwn(owner.projectData,session.roomId)
+          || !original.projectData || !hasOwn(original.projectData,session.roomId)))) return null;
+      if(payload.expectedOwnerRaw !== session.expectedOwnerRaw
+        && !(currentScope === baselineScope && rollbackRestored)) return null;
+      if(currentScope !== baselineScope && currentScope !== payload.expectedOwnerRaw) return null;
       if(Object.keys(raws).some(key=>localStorage.getItem(key) !== raws[key])) return null;
-      return { dirty, raws };
+      return { dirty:getKeysToSnapshot().some(key=>keyChanged(key,raws[key])), raws };
     }catch(_){ return null; }
+  }
+
+  function unconfirmedSession(){
+    let projectSaved = writeUnconfirmed;
+    try{
+      const current = scopeRaw(localStorage.getItem(PROJECTS_KEY));
+      projectSaved = projectSaved || (session.expectedOwnerKnown && current === session.expectedOwnerRaw
+        && current !== scopeRaw(session.snapshot[PROJECTS_KEY]));
+    }catch(_){ }
+    fail('SESSION_UNCONFIRMED', UNCONFIRMED_MESSAGE, projectSaved ? {projectSaved:true} : null);
+    notifyBlocked(UNCONFIRMED_MESSAGE);
+    return false;
+  }
+
+  // Only latches failure; no API to adopt a newer revision or reset its baseline.
+  function markUnconfirmedProjectWrite(){
+    writeUnconfirmed = true;
+    return unconfirmedSession();
+  }
+
+  function canSaveProject(openingRoom){
+    if(!session.active){
+      if(writeUnconfirmed) return unconfirmedSession();
+      try{
+        const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+        if(raw !== null && !isLegacyOrphanPayload(JSON.parse(raw))) return unconfirmedSession();
+      }catch(_){ return unconfirmedSession(); }
+      return true;
+    }
+    if(!canUseSessionOwner(openingRoom)) return false;
+    return inspectDurableSession(openingRoom) ? true : unconfirmedSession();
+  }
+
+  // Navigation requires the same proof, additionally bound to an editing room.
+  function inspectNavigationState(){
+    if(!session.roomId || !canUseSessionOwner()) return null;
+    return inspectDurableSession();
   }
 
   function restoreOwnerProject(){
@@ -191,6 +238,7 @@
       if(!writeRaw(PROJECTS_KEY, next)) return fail('PROJECT_ROLLBACK_WRITE_FAILED', 'Nie potwierdzono cofnięcia projektu. Sesja edycji została zachowana. Spróbuj ponownie.');
       session.expectedOwnerRaw = before;
       session.expectedOwnerKnown = true;
+      rollbackRestored = true;
       return true;
     }catch(_){ return fail('PROJECT_ROLLBACK_INVALID', 'Nie można bezpiecznie odczytać lub scalić magazynu projektów. Sesja i snapshot zostały zachowane.'); }
   }
@@ -306,10 +354,14 @@
         const previous = scopeRaw(previousRaw);
         const next = scopeRaw(nextRaw);
         if(previous !== next && session.expectedOwnerKnown && previous === session.expectedOwnerRaw){
+          rollbackRestored = false;
           session.expectedOwnerRaw = next;
           // Persist only a witnessed local owner update, never adopt an external version
           // merely because an unrelated project was saved in this tab.
-          persistSession();
+          if(!persistSession()){
+            writeUnconfirmed = true;
+            fail('SESSION_UNCONFIRMED', UNCONFIRMED_MESSAGE, {projectSaved:true});
+          }
         }
       }catch(_){ session.expectedOwnerKnown = false; }
     }
@@ -503,11 +555,24 @@
     lastDirtyCheckAt: 0,
     lastDirtyValue: false,
     begin(openingRoom){
+      if(!session.active && !canSaveProject(openingRoom)) return false;
       if(FC.projectDomainOperations && FC.projectDomainOperations.hasPending(session.projectId || resolveSessionContext().projectId)){
         notifyBlocked('Najpierw dokończ odzyskiwanie operacji projektu. Edytor nie został otwarty.');
         return false;
       }
-      if(session.active && !canSaveProject(openingRoom)) return false;
+      if(session.active){
+        if(session.durable){
+          if(!canSaveProject(openingRoom)) return false;
+        }else{
+          // Retry an initial failed begin only, never adopt a post-write revision.
+          if(!canUseSessionOwner(openingRoom)) return false;
+          try{
+            if(scopeRaw(localStorage.getItem(PROJECTS_KEY)) !== scopeRaw(session.snapshot[PROJECTS_KEY])
+              || (localStorage.getItem(SESSION_STORAGE_KEY) !== null
+                && !inspectDurableSession(openingRoom, {allowUndurable:true}))) return unconfirmedSession();
+          }catch(_){ return unconfirmedSession(); }
+        }
+      }
       // Idempotent: once we started an edit session, do not overwrite the snapshot.
       if(!(session.active && session.snapshot)){
         const keys = getKeysToSnapshot();
@@ -545,6 +610,8 @@
         session.context.roomId = session.roomId;
         session.active = true;
         session.durable = false;
+        rollbackRestored = false;
+        writeUnconfirmed = false;
         invalidateDirtyCache();
       }
       if(session.durable) return true;
@@ -554,7 +621,7 @@
       return session.durable;
     },
     commit(){
-      if(session.active && !canSaveProject()) return false;
+      if(!canSaveProject()) return false;
       return withTrackingSuspended(()=> {
         if(!writeRaw(SESSION_STORAGE_KEY, null)){
           session.active = true;
@@ -574,11 +641,22 @@
         session.active = false;
         session.durable = false;
         beginFailureNotified = false;
+        rollbackRestored = false;
+        writeUnconfirmed = false;
         invalidateDirtyCache();
         return true;
       });
     },
     cancel(){
+      if(writeUnconfirmed) return unconfirmedSession();
+      // Legacy owner-only snapshots retain their existing baseline-only rollback.
+      // Modern sessions must prove their revision before any rollback or cleanup.
+      if(!session.active && !canSaveProject()) return false;
+      if(session.active && !session.snapshot) return unconfirmedSession();
+      if(session.active && session.expectedOwnerKnown){
+        if(!canUseSessionOwner(null, {checkContext:false})) return false;
+        if(!inspectDurableSession(null, {checkContext:false})) return unconfirmedSession();
+      }
       return withTrackingSuspended(()=> {
         session.lastError = null;
         if(FC.projectDomainOperations && FC.projectDomainOperations.hasPending(session.projectId)) return fail('PENDING_DOMAIN_OPERATION','Nie cofnięto niedokończonej operacji projektu.');
@@ -616,6 +694,8 @@
         session.active = false;
         session.durable = false;
         beginFailureNotified = false;
+        rollbackRestored = false;
+        writeUnconfirmed = false;
         invalidateDirtyCache();
         return true;
       });
@@ -624,6 +704,7 @@
     canSwitchInvestor,
     canSwitchRoom,
     canSaveProject,
+    markUnconfirmedProjectWrite,
     inspectNavigationState,
     invalidateDirtyCache,
     isDirty,

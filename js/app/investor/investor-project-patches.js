@@ -65,7 +65,6 @@
     if(!FC.project || typeof FC.project.save !== 'function' || FC.project.__patchedInvestorMirror) return;
     const origSave = FC.project.save.bind(FC.project);
     FC.project.save = function(data){
-      if(FC.session && FC.session.canSaveProject && !FC.session.canSaveProject()) return data;
       const shouldBeginSession = runtime().shouldTrackProjectSession ? runtime().shouldTrackProjectSession(data) : false;
       const session = FC.session;
       if(shouldBeginSession || (session && session.active && session.durable !== true)){
@@ -76,6 +75,7 @@
           return data;
         }
       }
+      if(session && session.canSaveProject && !session.canSaveProject()) return data;
       const out = origSave(data);
       if(runtime().refreshSessionButtons) runtime().refreshSessionButtons();
       return out;

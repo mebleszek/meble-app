@@ -121,7 +121,7 @@ test('Untracked owner modification is a conflict, not cancellation success',()=>
   assert.equal(r.storage.getItem(PROJECTS),before);assert.equal(r.storage.calls.length,0);assert.equal(r.FC.project.saveConfirmed(r.s.projectData).ok,false);
 });
 test('Container changed during merge causes conflict without overwriting new B',()=>{
-  const r=edited(),raw=r.storage.getItem(SESSION);let reads=0;r.storage.onRead=key=>{if(key===PROJECTS&&++reads===3){const rows=JSON.parse(r.storage.rows.get(PROJECTS));rows.find(row=>row.id==='B').projectData.room.cabinets[0].width=83;r.storage.rows.set(PROJECTS,JSON.stringify(rows));}};
+  const r=edited(),raw=r.storage.getItem(SESSION);let reads=0;r.storage.onRead=key=>{if(key===PROJECTS&&r.session.suspendTracking&&++reads===3){const rows=JSON.parse(r.storage.rows.get(PROJECTS));rows.find(row=>row.id==='B').projectData.room.cabinets[0].width=83;r.storage.rows.set(PROJECTS,JSON.stringify(rows));}};
   assert.equal(r.session.cancel(),false);r.storage.onRead=null;preserved(r,raw);assert.equal(r.row('B').projectData.room.cabinets[0].width,83);
 });
 test('Saving B cannot adopt an externally modified A as a session-owned revision',()=>{
@@ -140,8 +140,10 @@ test('Lost revision persistence blocks rollback after reload rather than trustin
   const reloaded=runtime(r.rows());assert.equal(reloaded.session.cancel(),false);preserved(reloaded,baseline);
   assert.equal(reloaded.row('A').projectData.room.cabinets[0].width,65);
   assert.equal(reloaded.row('B').projectData.room.cabinets[0].width,75);
-  r.storage.fail.clear();assert.equal(r.session.cancel(),true);
-  assert.equal(r.row('A').projectData.room.cabinets[0].width,60);
+  r.storage.fail.clear();assert.equal(r.session.cancel(),false);
+  assert.equal(r.session.lastError.code,'SESSION_UNCONFIRMED');preserved(r,baseline);
+  assert.equal(r.row('A').projectData.room.cabinets[0].width,65);
+  assert.equal(r.row('B').projectData.room.cabinets[0].width,75);
 });
 test('Corrupt or duplicate current records never trigger destructive restoration',()=>{
   for(const invalid of ['broken JSON','[{"id":"B"},{"id":"B"}]']){const r=edited(),raw=r.storage.getItem(SESSION);r.storage.rows.set(PROJECTS,invalid);r.storage.calls.length=0;
