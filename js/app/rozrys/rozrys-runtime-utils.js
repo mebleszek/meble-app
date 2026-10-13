@@ -50,7 +50,10 @@
         const cabinets = (project[room] && Array.isArray(project[room].cabinets)) ? project[room].cabinets : [];
         for(let cabIndex = 0; cabIndex < cabinets.length; cabIndex += 1){
           const cabinet = cabinets[cabIndex];
-          const parts = cutListFn(cabinet, room) || [];
+          const provenance=apiFC.partProvenance;
+          const owner=provenance?provenance.context(cabinet,room,provenance.projectContext(project,deps.projectId)):null;
+          const generated=cutListFn(cabinet,room,owner) || [];
+          const parts=provenance?provenance.bind(generated,owner):generated;
           for(const part of parts){
             const sourceMaterial = String(part.material || '').trim();
             if(!sourceMaterial) continue;
@@ -65,6 +68,7 @@
             const qty = resolved.qty;
             if(!(w > 0 && h > 0 && qty > 0)) continue;
             rows.push({
+              ...(provenance?provenance.copy(part):{}),
               key: partSignature({ material: materialKey, name: resolved.name, w, h, sourceSig: resolved.sourceSig, grainMode: resolved.direction }),
               material: materialKey,
               name: resolved.name,

@@ -79,6 +79,9 @@
   function getFrontParts(room, cab){
     try{
       const hardware = getFrontHardware();
+      if(hardware && typeof hardware.getCabinetFrontPartsForLocalDraft === 'function'){
+        return hardware.getCabinetFrontPartsForLocalDraft(room,cab) || [];
+      }
       if(hardware && typeof hardware.getCabinetFrontCutListForMaterials === 'function'){
         return hardware.getCabinetFrontCutListForMaterials(room, cab) || [];
       }
@@ -152,11 +155,13 @@
       if(tech.drawerKind !== 'box') return;
       const group = 'Szuflady skrzynkowe';
       const sourceLabel = req.label ? ` — ${req.label}` : '';
-      parts.push({ name:'Bok szuflady skrzynkowej' + sourceLabel, group, qty:qty * 2, a:boxDepth, b:boxHeight, dims:`${fmt(boxDepth)} × ${fmt(boxHeight)}`, material:bodyMat, materialThicknessMm:18 });
-      parts.push({ name:'Tył szuflady skrzynkowej' + sourceLabel, group, qty, a:backWidth, b:boxHeight, dims:`${fmt(backWidth)} × ${fmt(boxHeight)}`, material:bodyMat, materialThicknessMm:18 });
-      parts.push({ name:'Dno szuflady skrzynkowej 10 mm' + sourceLabel, group, qty, a:boxOuterWidth, b:boxDepth, dims:`${fmt(boxOuterWidth)} × ${fmt(boxDepth)}`, material:bottomMaterial, materialThicknessMm:10, pcvEligible:false });
+      const singleton=qty===1 && ['sink_front_drawer','oven_drawer'].includes(req.source);
+      const drawerSource=(roles)=>singleton ? {partRoleIds:roles.map(role=>'drawer.'+req.source+'.'+role)} : {sourceFamily:'drawer.'+String(req.source||'manual'),sourceReason:'persistent_drawer_slots_required'};
+      parts.push({ name:'Bok szuflady skrzynkowej' + sourceLabel, group, ...drawerSource(['side.left','side.right']), qty:qty * 2, a:boxDepth, b:boxHeight, dims:`${fmt(boxDepth)} × ${fmt(boxHeight)}`, material:bodyMat, materialThicknessMm:18 });
+      parts.push({ name:'Tył szuflady skrzynkowej' + sourceLabel, group, ...drawerSource(['back']), qty, a:backWidth, b:boxHeight, dims:`${fmt(backWidth)} × ${fmt(boxHeight)}`, material:bodyMat, materialThicknessMm:18 });
+      parts.push({ name:'Dno szuflady skrzynkowej 10 mm' + sourceLabel, group, ...drawerSource(['bottom']), qty, a:boxOuterWidth, b:boxDepth, dims:`${fmt(boxOuterWidth)} × ${fmt(boxDepth)}`, material:bottomMaterial, materialThicknessMm:10, pcvEligible:false });
       if(tech.hasConstructionFront){
-        parts.push({ name:'Przód konstrukcyjny szuflady skrzynkowej' + sourceLabel, group, qty, a:backWidth, b:boxHeight, dims:`${fmt(backWidth)} × ${fmt(boxHeight)}`, material:bodyMat, materialThicknessMm:18 });
+        parts.push({ name:'Przód konstrukcyjny szuflady skrzynkowej' + sourceLabel, group, ...drawerSource(['construction-front']), qty, a:backWidth, b:boxHeight, dims:`${fmt(backWidth)} × ${fmt(boxHeight)}`, material:bodyMat, materialThicknessMm:18 });
       }
     });
   }
@@ -174,7 +179,11 @@
     return null;
   }
 
-  function getCabinetCutList(cab, room){
+  function getCabinetCutList(cab, room, sourceContext){
+    const provenance=FC.partProvenance;
+    const owner=provenance ? provenance.context(cab,room,sourceContext) : null;
+    // Front generation may adjust working counts; never mutate the source cabinet on read.
+    cab=Object.assign({},cab,{details:Object.assign({},cab&&cab.details)});
     const t = boardThicknessCm();
     const topTraverseDepth = topTraverseDepthCm();
     const w = Number(cab && cab.width) || 0;
@@ -194,7 +203,7 @@
     const parts = [];
 
     const sideH = (effType === 'stojąca' && !isUnderCounterWall) ? Math.max(0, bodyH - t) : bodyH;
-    parts.push({ name:'Bok', qty:2, a: sideH, b: d, dims:`${fmt(sideH)} × ${fmt(d)}`, material: bodyMat });
+    parts.push({ name:'Bok', partRoleIds:['body.side.left','body.side.right'], qty:2, a: sideH, b: d, dims:`${fmt(sideH)} × ${fmt(d)}`, material: bodyMat });
 
     if(String(cab && cab.subType || '') === 'narozna_l'){
       parts.pop();
@@ -209,11 +218,11 @@
       const smallDepth = (GP > 0 ? GP : Math.max(0, Math.min(bigDepth, d)));
       const blindDepth = Math.max(0, SP - t);
 
-      parts.push({ name:'Bok duży', qty:1, a: sideH, b: bigDepth, dims:`${fmt(sideH)} × ${fmt(bigDepth)}`, material: bodyMat });
-      parts.push({ name:'Bok mały', qty:1, a: sideH, b: smallDepth, dims:`${fmt(sideH)} × ${fmt(smallDepth)}`, material: bodyMat });
+      parts.push({ name:'Bok duży', partRoleIds:['body.corner.gl-side'], qty:1, a: sideH, b: bigDepth, dims:`${fmt(sideH)} × ${fmt(bigDepth)}`, material: bodyMat });
+      parts.push({ name:'Bok mały', partRoleIds:['body.corner.gp-side'], qty:1, a: sideH, b: smallDepth, dims:`${fmt(sideH)} × ${fmt(smallDepth)}`, material: bodyMat });
 
       if(blindDepth > 0){
-        parts.push({ name:'Bok zaślepiający', qty:1, a: sideH, b: blindDepth, dims:`${fmt(sideH)} × ${fmt(blindDepth)}`, material: bodyMat });
+        parts.push({ name:'Bok zaślepiający', partRoleIds:['body.corner.blind-side'], qty:1, a: sideH, b: blindDepth, dims:`${fmt(sideH)} × ${fmt(blindDepth)}`, material: bodyMat });
       }
     }
 
@@ -224,29 +233,29 @@
       const zA = Math.max(0, blind - (t + 9));
       const zB = bodyH;
       if(zA > 0 && zB > 0){
-        parts.push({ name:'Zaślepka', qty:1, a:zA, b:zB, dims:`${fmt(zA)} × ${fmt(zB)}`, material: bodyMat });
+        parts.push({ name:'Zaślepka', partRoleIds:['body.blind-panel'], qty:1, a:zA, b:zB, dims:`${fmt(zA)} × ${fmt(zB)}`, material: bodyMat });
       }
 
       const fMat = cab && cab.frontMaterial || 'laminat';
       const fCol = cab && cab.frontColor || '';
       const frontMatKey = `Front: ${fMat}${fCol ? ` • ${fCol}` : ''}`;
-      parts.push({ name:'Blenda', qty:1, a:15, b:bodyH, dims:`${fmt(15)} × ${fmt(h)}`, material: frontMatKey });
+      parts.push({ name:'Blenda', partRoleIds:['body.blend'], qty:1, a:15, b:bodyH, dims:`${fmt(15)} × ${fmt(h)}`, material: frontMatKey });
     }
 
     if(effType === 'wisząca' || effType === 'moduł'){
       const crownDepth = (effType === 'wisząca') ? Math.max(0, d - 2) : d;
-      parts.push({ name:'Wieniec górny', qty:1, a:wIn, b:crownDepth, dims:`${fmt(wIn)} × ${fmt(crownDepth)}`, material: bodyMat });
-      parts.push({ name:'Wieniec dolny', qty:1, a:wIn, b:crownDepth, dims:`${fmt(wIn)} × ${fmt(crownDepth)}`, material: bodyMat });
+      parts.push({ name:'Wieniec górny', partRoleIds:['body.top'], qty:1, a:wIn, b:crownDepth, dims:`${fmt(wIn)} × ${fmt(crownDepth)}`, material: bodyMat });
+      parts.push({ name:'Wieniec dolny', partRoleIds:['body.bottom'], qty:1, a:wIn, b:crownDepth, dims:`${fmt(wIn)} × ${fmt(crownDepth)}`, material: bodyMat });
     }
 
     if(effType === 'stojąca'){
       if(isUnderCounterWall){
-        parts.push({ name:'Wieniec dolny', qty:1, a:wIn, b:d, dims:`${fmt(wIn)} × ${fmt(d)}`, material: bodyMat });
+        parts.push({ name:'Wieniec dolny', partRoleIds:['body.bottom'], qty:1, a:wIn, b:d, dims:`${fmt(wIn)} × ${fmt(d)}`, material: bodyMat });
       } else {
-        parts.push({ name:'Wieniec dolny', qty:1, a:w, b:d, dims:`${fmt(w)} × ${fmt(d)}`, material: bodyMat });
+        parts.push({ name:'Wieniec dolny', partRoleIds:['body.bottom'], qty:1, a:w, b:d, dims:`${fmt(w)} × ${fmt(d)}`, material: bodyMat });
       }
 
-      parts.push({ name:`Trawers górny (${fmt(topTraverseDepth)} cm)`, qty:2, a:wIn, b:topTraverseDepth, dims:`${fmt(wIn)} × ${fmt(topTraverseDepth)}`, material: bodyMat });
+      parts.push({ name:`Trawers górny (${fmt(topTraverseDepth)} cm)`, partRoleIds:['body.top-traverse.a','body.top-traverse.b'], qty:2, a:wIn, b:topTraverseDepth, dims:`${fmt(wIn)} × ${fmt(topTraverseDepth)}`, material: bodyMat });
     }
 
     const shelves = parseInt((cab && cab.details && cab.details.shelves) ?? 0, 10);
@@ -255,7 +264,7 @@
       let shelfDepth = d;
       if(effType === 'stojąca' || effType === 'moduł') shelfDepth = Math.max(0, d - 0.5);
       if(effType === 'wisząca') shelfDepth = Math.max(0, (d - 2) - 0.5);
-      parts.push({ name:'Półka', qty:shelves, a:wIn, b:shelfDepth, dims:`${fmt(wIn)} × ${fmt(shelfDepth)}`, material: bodyMat });
+      parts.push({ name:'Półka', sourceFamily:'body.shelf', sourceReason:'persistent_shelf_slots_required', qty:shelves, a:wIn, b:shelfDepth, dims:`${fmt(wIn)} × ${fmt(shelfDepth)}`, material: bodyMat });
     }
 
     if(backMat && hasBack){
@@ -269,7 +278,7 @@
         backW = Math.max(0, wIn + 2);
         backH = Math.max(0, bodyH - 0.5);
       }
-      parts.push({ name:'Plecy', qty:1, a:backW, b:backH, dims:`${fmt(backW)} × ${fmt(backH)}`, material: backMat });
+      parts.push({ name:'Plecy', partRoleIds:['body.back'], qty:1, a:backW, b:backH, dims:`${fmt(backW)} × ${fmt(backH)}`, material: backMat });
     }
 
     getFrontParts(room, cab).forEach((p)=> parts.push(p));
@@ -343,7 +352,7 @@
       }
     }catch(_){ }
 
-    return parts;
+    return provenance ? provenance.bind(parts,owner) : parts;
   }
 
   window.FC.cabinetCutlist = window.FC.cabinetCutlist || {};

@@ -178,6 +178,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/rozrys/rozrys-grain.js",
       "js/app/rozrys/rozrys-validation.js",
       "js/app/cabinet/corner-sketch.js",
+      "js/app/cabinet/part-provenance.js",
       "js/app/cabinet/cabinet-cutlist.js",
       "js/app/cabinet/cabinet-actions.js",
       "js/app/cabinet/cabinet-summary.js",

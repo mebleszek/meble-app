@@ -159,7 +159,7 @@ function aggregateSetFrontParts(room, cab){
       return;
     }
     acc.set(key, {
-      name:'Front',
+      name:'Front', sourceFamily:'set.front', sourceReason:'stable_set_front_owner_required',
       qty:1,
       a: wr,
       b: hr,
@@ -183,7 +183,7 @@ function getSetDoorFrontPanels(room, cab){
     .filter((front)=> front.w > 0 && front.h > 0);
 }
 
-function getCabinetFrontCutListForMaterials(room, cab){
+function getCabinetFrontPartsForLocalDraft(room, cab){
   // Zwraca listę elementów "Front" do zakładki Materiały.
   // Ważne: bez komentarzy w polu wymiarów oraz z agregacją identycznych frontów (qty zamiast duplikatów).
   const out = [];
@@ -198,7 +198,7 @@ function getCabinetFrontCutListForMaterials(room, cab){
 
   // Agregator: klucz = material|W|H (W/H zaokrąglone do 0,1cm)
   const acc = new Map();
-  function addFront(w, h){
+  function addFront(w, h, role){
     const W = Math.max(0, Number(w) || 0);
     const H = Math.max(0, Number(h) || 0);
     if(W <= 0 || H <= 0) return;
@@ -209,10 +209,12 @@ function getCabinetFrontCutListForMaterials(room, cab){
     const key = `${materialKey}|${Wr}|${Hr}`;
 
     if(acc.has(key)){
-      acc.get(key).qty += 1;
+      const row=acc.get(key);row.qty += 1;
+      if(role)row.partRoleIds.push(role);
       return;
     }
     acc.set(key, {
+      partRoleIds:role?[role]:[], sourceFamily:'front', sourceReason:'persistent_front_slots_required',
       name: 'Front',
       qty: 1,
       a: Wr,
@@ -223,6 +225,7 @@ function getCabinetFrontCutListForMaterials(room, cab){
     });
   }
   function finalize(){ return Array.from(acc.values()); }
+  const pairRole=(family,count,index)=>count===1?family+'.single':count===2?(index===0?family+'.left':family+'.right'):null;
 
   // wysokość frontów: dla stojących odejmujemy wysokość nóżek (ustawienia pomieszczenia)
   function getFrontHeightForCab(){
@@ -259,11 +262,11 @@ function getCabinetFrontCutListForMaterials(room, cab){
     const fh = getFrontHeightForCab();
     const drawerH = Number(cab.details?.drawerHeight) || Math.min(20, fh);
     const doorH = Math.max(0, fh - drawerH);
-    addFront(Number(cab.width)||0, drawerH);
+    addFront(Number(cab.width)||0, drawerH,'front.drawer.main');
     if(doorH > 0){
       const fc = resolveDrawerDoorCount(cab);
       const wEach = fc ? (effectiveW / fc) : 0;
-      for(let i=0;i<fc;i++) addFront(wEach, doorH);
+      for(let i=0;i<fc;i++) addFront(wEach, doorH,pairRole('front.door',fc,i));
       if(cab.details && typeof cab.details === 'object') cab.details.doorCount = fc;
     } else {
       cab.frontCount = 1;
@@ -273,7 +276,7 @@ function getCabinetFrontCutListForMaterials(room, cab){
 
   // Zmywarkowa: 1 front (wysokość wg ustawień)
   if(cab.type === 'stojąca' && cab.subType === 'zmywarkowa'){
-    addFront(Number(cab.width)||0, getFrontHeightForCab());
+    addFront(Number(cab.width)||0, getFrontHeightForCab(),'front.dishwasher');
     cab.frontCount = 1;
     return finalize();
   }
@@ -293,7 +296,7 @@ function getCabinetFrontCutListForMaterials(room, cab){
     const totalFrontH = getFrontHeightForCab();
 
     if(fc === '1'){
-      addFront(width, totalFrontH);
+      addFront(width, totalFrontH,'front.fridge.single');
       cab.frontCount = 1;
       return finalize();
     }
@@ -304,8 +307,8 @@ function getCabinetFrontCutListForMaterials(room, cab){
     const lowerH = Math.max(0, (Number(s.bottomHeight) || 0) - legH);
     const upperH = Math.max(0, totalFrontH - lowerH);
     let count = 0;
-    if(lowerH > 0){ addFront(width, lowerH); count += 1; }
-    if(upperH > 0){ addFront(width, upperH); count += 1; }
+    if(lowerH > 0){ addFront(width, lowerH,'front.fridge.lower'); count += 1; }
+    if(upperH > 0){ addFront(width, upperH,'front.fridge.upper'); count += 1; }
     cab.frontCount = count;
     return finalize();
   }
@@ -314,7 +317,7 @@ function getCabinetFrontCutListForMaterials(room, cab){
   if(cab.type === 'stojąca' && cab.subType === 'piekarnikowa'){
     const ovenH = Number(cab.details?.ovenHeight) || 60;
     const hRest = Math.max(0, getFrontHeightForCab() - ovenH);
-    if(hRest > 0) addFront(Number(cab.width)||0, hRest);
+    if(hRest > 0) addFront(Number(cab.width)||0, hRest,'front.oven.cover');
     cab.frontCount = hRest > 0 ? 1 : 0;
     return finalize();
   }
@@ -324,7 +327,7 @@ function getCabinetFrontCutListForMaterials(room, cab){
     const fc = Math.max(1, Number(cab.frontCount||1));
     const fh = getFrontHeightForCab();
     const wEach = fc ? (effectiveW / fc) : 0;
-    for(let i=0;i<fc;i++) addFront(wEach, fh);
+    for(let i=0;i<fc;i++) addFront(wEach, fh,pairRole('front.flap',fc,i));
     cab.frontCount = fc;
     return finalize();
   }
@@ -340,8 +343,8 @@ function getCabinetFrontCutListForMaterials(room, cab){
     const FL = Math.abs(GL - GP);
     const FP = Math.abs(ST - SP - t);
     const fh = getFrontHeightForCab();
-    addFront(FL, fh);
-    addFront(FP, fh);
+    addFront(FL, fh,'front.corner.gl-gp');
+    addFront(FP, fh,'front.corner.st-sp');
     cab.frontCount = 2;
     return finalize();
   }
@@ -350,11 +353,19 @@ function getCabinetFrontCutListForMaterials(room, cab){
   const fcDoors = Math.max(1, Number(cab.frontCount||2));
   const fh = getFrontHeightForCab();
   const wEach = fcDoors ? Math.round((effectiveW / fcDoors) * 10) / 10 : 0;
-  for(let i=0;i<fcDoors;i++) addFront(wEach, fh);
+  for(let i=0;i<fcDoors;i++) addFront(wEach, fh,pairRole('front.door',fcDoors,i));
   cab.frontCount = fcDoors;
 
   return finalize();
 }
+
+  function getCabinetFrontCutListForMaterials(room,cab,sourceContext){
+    const provenance=ns.partProvenance;
+    const owner=provenance?provenance.context(cab,room,sourceContext):null;
+    const local=Object.assign({},cab,{details:Object.assign({},cab&&cab.details)});
+    const parts=getCabinetFrontPartsForLocalDraft(room,local);
+    return provenance?provenance.bind(parts,owner):parts;
+  }
 
   ns.frontHardware = Object.assign({}, ns.frontHardware, {
     getProjectRoomData,
@@ -365,6 +376,7 @@ function getCabinetFrontCutListForMaterials(room, cab){
     resolveDrawerDoorCount,
     aggregateSetFrontParts,
     getSetDoorFrontPanels,
-    getCabinetFrontCutListForMaterials
+    getCabinetFrontCutListForMaterials,
+    getCabinetFrontPartsForLocalDraft
   });
 })();

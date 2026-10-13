@@ -177,6 +177,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/rozrys/rozrys-run-controller.js',
   'js/app/rozrys/rozrys-output-controller.js',
   'js/app/cabinet/front-hardware-weights.js',
+  'js/app/cabinet/part-provenance.js',
   'js/app/cabinet/front-hardware-fronts.js',
   'js/app/cabinet/front-hardware-hinges.js',
   'js/app/cabinet/front-hardware-aventos-data.js',
