@@ -62,21 +62,21 @@ function deriveSetFrontsFromRecord(room, setId){
   const setNumber = set.number || null;
   const out = [];
 
-  function push(width, height, note){
+  function push(width, height, note, groupRoleId){
     const w = Math.max(0, Number(width) || 0);
     const h = Math.max(0, Number(height) || 0);
     if(w <= 0 || h <= 0) return;
-    out.push(createVirtualSetFront(set, { width:w, height:h, note:`Zestaw ${setNumber || ''}: ${note}`.replace(/\s+/g, ' ').trim() }));
+    out.push(createVirtualSetFront(set, { width:w, height:h, groupRoleId, note:`Zestaw ${setNumber || ''}: ${note}`.replace(/\s+/g, ' ').trim() }));
   }
 
   if(presetId === 'A'){
     const w1 = Number(p.w1) || 0;
     const w2 = Number(p.w2) || 0;
     const totalH = (Number(p.hB) || 0) + (Number(p.hTop) || 0);
-    if(fc === 1) push(w1 + w2, totalH, '1 front');
+    if(fc === 1) push(w1 + w2, totalH, '1 front','front.A.single');
     else {
-      push(w1, totalH, 'front lewy');
-      push(w2, totalH, 'front prawy');
+      push(w1, totalH, 'front lewy','front.A.left');
+      push(w2, totalH, 'front prawy','front.A.right');
     }
     return out;
   }
@@ -84,11 +84,11 @@ function deriveSetFrontsFromRecord(room, setId){
   if(presetId === 'C'){
     const w = Number(p.w) || 0;
     const totalH = (Number(p.hB) || 0) + (Number(p.hTop) || 0);
-    if(fc === 1) push(w, totalH, '1 front');
+    if(fc === 1) push(w, totalH, '1 front','front.C.panels');
     else {
       const half = Math.round((w / 2) * 10) / 10;
-      push(half, totalH, 'front 1/2');
-      push(Math.max(0, w - half), totalH, 'front 2/2');
+      push(half, totalH, 'front 1/2','front.C.panels');
+      push(Math.max(0, w - half), totalH, 'front 2/2','front.C.panels');
     }
     return out;
   }
@@ -96,11 +96,11 @@ function deriveSetFrontsFromRecord(room, setId){
   if(presetId === 'D'){
     const w = Number(p.w) || 0;
     const totalH = (Number(p.hB) || 0) + (Number(p.hM) || 0) + (Number(p.hTop) || 0);
-    if(fc === 1) push(w, totalH, '1 front');
+    if(fc === 1) push(w, totalH, '1 front','front.D.panels');
     else {
       const half = Math.round((w / 2) * 10) / 10;
-      push(half, totalH, 'front 1/2');
-      push(Math.max(0, w - half), totalH, 'front 2/2');
+      push(half, totalH, 'front 1/2','front.D.panels');
+      push(Math.max(0, w - half), totalH, 'front 2/2','front.D.panels');
     }
   }
   return out;
@@ -159,7 +159,7 @@ function aggregateSetFrontParts(room, cab){
       return;
     }
     acc.set(key, {
-      name:'Front', sourceFamily:'set.front', sourceReason:'stable_set_front_owner_required',
+      name:'Front', sourceFamily:'set.front', sourceSetId:String(cab.setId), sourceReason:'unverified_set_front_structure',
       qty:1,
       a: wr,
       b: hr,
@@ -167,6 +167,27 @@ function aggregateSetFrontParts(room, cab){
       material: materialKey
     });
   });
+  // Validate stored fronts against the template before assigning structural groups.
+  // Geometry checks membership; the address itself comes only from set ID and template role.
+  const expected=new Map();
+  deriveSetFrontsFromRecord(room,cab.setId).forEach(front=>{
+    const material=String(front.material||cab.frontMaterial||'laminat');
+    const color=String(front.color||cab.frontColor||'');
+    const materialKey=`Front: ${material}${color ? ` • ${color}` : ''}`;
+    const key=`${materialKey}|${Math.round(front.width*10)/10}|${Math.round(front.height*10)/10}`;
+    const roles=expected.get(key)||[];
+    roles.push(front.groupRoleId);expected.set(key,roles);
+  });
+  const verified=expected.size===acc.size && Array.from(acc.entries()).every(([key,row])=>{
+    const roles=expected.get(key);return roles && roles.length===row.qty && roles.every(Boolean);
+  });
+  if(verified){
+    const sourceProjectId=ns.partProvenance ? ns.partProvenance.projectContext(window.projectData).projectId : '';
+    acc.forEach((row,key)=>{
+      const counts=new Map();expected.get(key).forEach(role=>counts.set(role,(counts.get(role)||0)+1));
+      row.sourceGroupRoles=Array.from(counts,([groupRoleId,qty])=>({ownerType:'set',setId:String(cab.setId),sourceProjectId,groupRoleId,qty}));
+    });
+  }
   return Array.from(acc.values());
 }
 
@@ -198,7 +219,7 @@ function getCabinetFrontPartsForLocalDraft(room, cab){
 
   // Agregator: klucz = material|W|H (W/H zaokrąglone do 0,1cm)
   const acc = new Map();
-  function addFront(w, h, role){
+  function addFront(w, h, role, groupRoleId){
     const W = Math.max(0, Number(w) || 0);
     const H = Math.max(0, Number(h) || 0);
     if(W <= 0 || H <= 0) return;
@@ -211,10 +232,16 @@ function getCabinetFrontPartsForLocalDraft(room, cab){
     if(acc.has(key)){
       const row=acc.get(key);row.qty += 1;
       if(role)row.partRoleIds.push(role);
+      if(groupRoleId){
+        const group=row.sourceGroupRoles.find(item=>item.groupRoleId===groupRoleId);
+        if(group)group.qty+=1;
+        else row.sourceGroupRoles.push({ownerType:'cabinet',groupRoleId,qty:1});
+      }
       return;
     }
     acc.set(key, {
       partRoleIds:role?[role]:[], sourceFamily:'front', sourceReason:'persistent_front_slots_required',
+      sourceGroupRoles:groupRoleId?[{ownerType:'cabinet',groupRoleId,qty:1}]:[],
       name: 'Front',
       qty: 1,
       a: Wr,
@@ -224,7 +251,14 @@ function getCabinetFrontPartsForLocalDraft(room, cab){
       material: materialKey
     });
   }
-  function finalize(){ return Array.from(acc.values()); }
+  function finalize(){
+    const rows=Array.from(acc.values());
+    if(cab.setId) rows.forEach(row=>{
+      row.partRoleIds=[];row.sourceGroupRoles=[];
+      row.sourceSetId=String(cab.setId);row.sourceFamily='set.front';row.sourceReason='unverified_set_front_structure';
+    });
+    return rows;
+  }
   const pairRole=(family,count,index)=>count===1?family+'.single':count===2?(index===0?family+'.left':family+'.right'):null;
 
   // wysokość frontów: dla stojących odejmujemy wysokość nóżek (ustawienia pomieszczenia)
@@ -252,7 +286,13 @@ function getCabinetFrontPartsForLocalDraft(room, cab){
     const drawers = Math.max(1, Number(cab.details?.drawers) || 1);
     const fh = getFrontHeightForCab();
     const hEach = drawers ? (fh / drawers) : 0;
-    for(let i=0;i<drawers;i++) addFront(Number(cab.width)||0, hEach);
+    const layout=String(cab.details?.drawerLayout||'');
+    for(let i=0;i<drawers;i++){
+      const groupRoleId=layout==='3_1_2_2'
+        ? (drawers===3 ? (i===0?'front.drawer.small':'front.drawer.large') : null)
+        : (!layout||['1_big','2_equal','3_equal','5_equal'].includes(layout) ? 'front.drawer.standard' : null);
+      addFront(Number(cab.width)||0,hEach,null,groupRoleId);
+    }
     cab.frontCount = drawers;
     return finalize();
   }

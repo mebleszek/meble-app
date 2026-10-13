@@ -155,8 +155,12 @@
       if(tech.drawerKind !== 'box') return;
       const group = 'Szuflady skrzynkowe';
       const sourceLabel = req.label ? ` — ${req.label}` : '';
-      const singleton=qty===1 && ['sink_front_drawer','oven_drawer'].includes(req.source);
-      const drawerSource=(roles)=>singleton ? {partRoleIds:roles.map(role=>'drawer.'+req.source+'.'+role)} : {sourceFamily:'drawer.'+String(req.source||'manual'),sourceReason:'persistent_drawer_slots_required'};
+      const knownSource=!req.explicit && ['front_drawers','inner_drawers','sink_front_drawer','sink_inner_drawers','oven_drawer','under_counter_front_drawers','under_counter_inner_drawers'].includes(req.source)
+        && reqs.filter(item=>item.source===req.source).length===1;
+      const singleton=knownSource && qty===1 && ['sink_front_drawer','oven_drawer'].includes(req.source);
+      const drawerSource=(roles)=>singleton ? {partRoleIds:roles.map(role=>'drawer.'+req.source+'.'+role)}
+        : knownSource ? {sourceGroupRoles:[{ownerType:'cabinet',groupRoleId:'drawer.'+req.source+'.'+(roles.length===2?'sides':roles[0]),qty:qty*roles.length}]}
+        : {sourceFamily:'drawer.'+String(req.source||'manual'),sourceReason:'ambiguous_drawer_requirement'};
       parts.push({ name:'Bok szuflady skrzynkowej' + sourceLabel, group, ...drawerSource(['side.left','side.right']), qty:qty * 2, a:boxDepth, b:boxHeight, dims:`${fmt(boxDepth)} × ${fmt(boxHeight)}`, material:bodyMat, materialThicknessMm:18 });
       parts.push({ name:'Tył szuflady skrzynkowej' + sourceLabel, group, ...drawerSource(['back']), qty, a:backWidth, b:boxHeight, dims:`${fmt(backWidth)} × ${fmt(boxHeight)}`, material:bodyMat, materialThicknessMm:18 });
       parts.push({ name:'Dno szuflady skrzynkowej 10 mm' + sourceLabel, group, ...drawerSource(['bottom']), qty, a:boxOuterWidth, b:boxDepth, dims:`${fmt(boxOuterWidth)} × ${fmt(boxDepth)}`, material:bottomMaterial, materialThicknessMm:10, pcvEligible:false });
@@ -264,7 +268,7 @@
       let shelfDepth = d;
       if(effType === 'stojąca' || effType === 'moduł') shelfDepth = Math.max(0, d - 0.5);
       if(effType === 'wisząca') shelfDepth = Math.max(0, (d - 2) - 0.5);
-      parts.push({ name:'Półka', sourceFamily:'body.shelf', sourceReason:'persistent_shelf_slots_required', qty:shelves, a:wIn, b:shelfDepth, dims:`${fmt(wIn)} × ${fmt(shelfDepth)}`, material: bodyMat });
+      parts.push({ name:'Półka', sourceGroupRoles:[{ownerType:'cabinet',groupRoleId:'body.shelves',qty:shelves}], qty:shelves, a:wIn, b:shelfDepth, dims:`${fmt(wIn)} × ${fmt(shelfDepth)}`, material: bodyMat });
     }
 
     if(backMat && hasBack){
