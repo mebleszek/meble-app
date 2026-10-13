@@ -113,6 +113,14 @@
       ensureFrontCountRulesSafe(draft);
       cleanDrawerTrashSafe(draft);
 
+      if((draft.type==='stojąca'||draft.type==='moduł') && draft.subType==='szuflady'){
+        const geometry=ns.cabinetCutlist.resolveDrawerFrontGeometry(draft,room);
+        if(!geometry.ok){
+          if(typeof showInfo==='function') showInfo('Nieprawidłowe fronty szuflad',geometry.message);
+          return false;
+        }
+      }
+
       const aventos = validateAventosForDraftSafe(room, draft);
       if(aventos && aventos.ok === false){
         applyAventosValidationUISafe(room, draft);

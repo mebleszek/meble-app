@@ -60,12 +60,13 @@
         const aggregate = factsApi.aggregatePartsForRooms(rooms, { ensure:true, persist:true });
         if(aggregate && Array.isArray(aggregate.materials)) return aggregate;
       }
-    }catch(_){ }
+    }catch(error){ if(error && error.code==='INVALID_DRAWER_FRONT_GEOMETRY') throw error; }
     try{
       return FC.rozrys && typeof FC.rozrys.aggregatePartsForProject === 'function'
         ? FC.rozrys.aggregatePartsForProject(rooms)
         : { byMaterial:{}, materials:[], groups:{}, selectedRooms:rooms };
-    }catch(_){
+    }catch(error){
+      if(error && error.code==='INVALID_DRAWER_FRONT_GEOMETRY') throw error;
       return { byMaterial:{}, materials:[], groups:{}, selectedRooms:rooms };
     }
   }

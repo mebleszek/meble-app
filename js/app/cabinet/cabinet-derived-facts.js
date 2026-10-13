@@ -6,7 +6,7 @@
   root.FC = root.FC || {};
   const FC = root.FC;
 
-  const VERSION = '20261013_part_groups_v1';
+  const VERSION = '20261013_drawer_front_geometry_v1';
   const CACHE_FIELD = 'derivedFacts';
   const STATS_LIMIT = 20;
   let computingDepth = 0;
@@ -81,6 +81,8 @@
       calculatorVersion:VERSION,
       roomId:text(roomId),
       cabinet:cabinetWithoutCache(cabinet),
+      ...(cabinet && cabinet.subType==='szuflady' && FC.cabinetCutlist && FC.cabinetCutlist.resolveDrawerFrontGeometry
+        ? {drawerFrontGeometry:FC.cabinetCutlist.resolveDrawerFrontGeometry(cabinet,roomId)} : {}),
       ...(setId?{setContext}:{}),
       carrying:currentInvestorCarrying()
     };
@@ -174,7 +176,7 @@
     try{
       const api = FC.cabinetCutlist || FC.cabinetCutList || {};
       if(api && typeof api.getCabinetCutList === 'function') return clone(api.getCabinetCutList(cabinet || {}, roomId) || []);
-    }catch(_){ }
+    }catch(error){ if(error && error.code==='INVALID_DRAWER_FRONT_GEOMETRY') throw error; }
     return [];
   }
   function getFrontPartsRaw(roomId, cabinet, allParts){
@@ -425,6 +427,8 @@
     return res && res.cache && res.cache.workFacts && res.cache.workFacts.map ? clone(res.cache.workFacts.map) : null;
   }
   function getCutlist(roomId, cabinet, options){
+    if(cabinet && (cabinet.type==='stojąca'||cabinet.type==='moduł') && cabinet.subType==='szuflady'
+      && FC.cabinetCutlist && FC.cabinetCutlist.requireDrawerFrontGeometry) FC.cabinetCutlist.requireDrawerFrontGeometry(cabinet,roomId);
     const res = ensureCabinetFacts(roomId, cabinet, options || {});
     const parts=res && res.cache && res.cache.cutlists ? clone(res.cache.cutlists.all || []) : null;
     const provenance=FC.partProvenance;

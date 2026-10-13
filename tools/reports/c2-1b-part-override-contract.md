@@ -150,3 +150,5 @@ Operacja ma sprawdzić właściwy fizyczny rekord i pokój, istnienie właścici
 Zmianę należy przygotować na kopii, sprawdzić semantic no-op, wymagać durable begin i confirmed room save; RAM aktualizować tylko po sukcesie. Nie wpisywać do projektu pełnej cutlisty, `sourceRefs`, `sourceGroups`, ilości pochodnych ani cache. Przy agregacji grup ustawienia produkcyjne należy rozwiązać PRZED grupowaniem, zachowując dotychczasowe obliczenia i zakresy ofert. Copy/delete oraz powrót do defaultu dotyczą wyłącznie jawnego właściciela.
 
 Szczegółowy zakres obsłużonych grup i ograniczenia generatorów: [C2.1b.1](c2-1b1-template-part-groups.md). Rozpoznane adresy mogą być fundamentem zapisu C2.1b.2, ale nie dowodzą jeszcze bezpieczeństwa globalnych setterów ani naprawienia D1–D6.
+
+W C2.1b.1a standardowe fronty szuflad otrzymały jeden wspólny resolver geometrii, zachowując adresy grup. Wzór stolarski, walidacja wysokości korpusu i rzeczywisty wpływ na ilości WYCENY/PCV: [raport geometrii](c2-1b1a-drawer-front-geometry.md). Nieprawidłowa geometria musi blokować późniejszy zapis ustawień produkcyjnych; nie wolno zastępować jej pustą cutlistą.

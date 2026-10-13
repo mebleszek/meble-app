@@ -2,6 +2,8 @@
 
 Baza: `4597522ab633d5199f39ac7daf6a59dd27d45cad`, main po PR #31 / C2.1b.0.
 
+Aktualizacja C2.1b.1a: wspólny resolver usuwa opisaną niżej rozbieżność geometrii standardowych szuflad. Obowiązujący wzór i wyniki przed/po: [raport C2.1b.1a](c2-1b1a-drawer-front-geometry.md). Nie zmienia to odłożonego zakresu migracji/zapisu nadpisań.
+
 ## Decyzja produktowa i reprezentacja
 
 Zgodnie z decyzją użytkownika przytoczoną z [Issue #32](https://github.com/mebleszek/meble-app/issues/32), standardowa szafka z `+` jest szablonem. Jedna równoważna konstrukcyjnie grupa ma wspólne ustawienie produkcyjne. Nie wprowadzamy indywidualnych slotów półek ani wyjątków w grupie. Tryb Zaawansowane / tworzenie nietypowych korpusów pozostaje odłożony. Odczyt issue przez API był zablokowany (`Forbidden`); nie deklarujemy znajomości dodatkowej treści poza decyzjami użytkownika.
@@ -59,11 +61,11 @@ Nie zmieniono wzorów powierzchni/PCV, cen, optymalizatora, historii ofert, UI, 
 
 - C2.1b.2 może używać kompletnych rozpoznanych adresów grup do scoped operacji we właściwym pokoju/rekordzie. `qty` nie jest częścią klucza. Każdy zapis musi ponownie sprawdzić właściciela, rolę, kontekst, durable begin i confirmed central save. Nie może używać `sourceIssues` jako adresu ani wracać do globalnego store przy błędzie kontekstu.
 - Nie wszystkie legacy/ręczne konfiguracje mają grupę. Ich niejednoznaczność ma pozostać widoczna do osobnej decyzji, bez migracji przy renderze.
-- Istnieje wcześniejsza rozbieżność generatorów frontów szuflad: `cabinet-fronts.js` używa `drawerLayout` i proporcji 1/2/2, natomiast materiałowa cutlista używa `details.drawers` oraz równych wysokości. Nie zmieniono tych obliczeń w etapie read-only. Dla zgodnej liczby 3 metadane rozróżniają role małej i dużych grup, ale nie naprawiają tej geometrii. Przed pełnym zapisem/oznaczaniem tych mieszanych frontów w C2.1b.2 należy osobno uzgodnić minimalną korektę wspólnego źródła geometrii i ilości; przypadki niespójne pozostają issues. Nie należy uznawać testu tożsamości za dowód zgodności wszystkich generatorów.
+- W C2.1b.1a naprawiono wcześniejszą rozbieżność generatorów standardowych frontów szuflad. Oba generatory korzystają z `drawerLayout` i wspólnej geometrii; stary licznik `details.drawers` nie wpływa na ilość. Mały front mieszanego layoutu ma wysokość `H_korpusu - 581`, dwie duże sztuki po 283 mm. Nie zmieniono identyfikatorów grup. Nieprawidłowy korpus jest walidowany, zamiast tworzyć pozorne wymiary lub pustą kalkulację.
 - D1–D6 pozostają otwarte: stare globalne PCV/kierunki/wyjątki wciąż nie są danymi kanonicznego projektu. Ten etap nie dowodzi bezpieczeństwa istniejących globalnych setterów.
 - Zaawansowane przekształcenie grupy w osobne elementy będzie wymagało jawnej operacji z trwałymi ID i mapowaniem wspólnych ustawień. Nie implementujemy tego teraz.
 
-Rekomendacja: ograniczony C2.1b.2 dla zweryfikowanych adresów i clone-first confirmed write w gałęzi pokoju, ze wspólnym resolverem przed agregacją. Dla niespójnych generatorów frontów najpierw osobna mała korekta, bez zmian silnika rozkroju lub cen. Bez automatycznego importu legacy nadpisań.
+Rekomendacja: ograniczony C2.1b.2 dla zweryfikowanych adresów i clone-first confirmed write w gałęzi pokoju, ze wspólnym resolverem przed agregacją. Korekta standardowych frontów została wykonana w C2.1b.1a, bez zmian silnika rozkroju lub cen. Bez automatycznego importu legacy nadpisań.
 
 ## Weryfikacja
 
