@@ -318,6 +318,8 @@
         try{ previousWriteError = FC.storage.getLastWriteError(); }catch(_){ }
         try{ saved = FC.project.saveConfirmed(projectData); }catch(_){ }
         if(!saved || saved.ok !== true){
+          // The shared session gate already explains partial/unconfirmed writes.
+          if(saved && (saved.projectSaved || saved.code === 'SESSION_UNCONFIRMED')) return true;
           try{
             const recovery = FC.projectFileRecovery;
             const pending = recovery && typeof recovery.lastPendingRecord === 'function' && recovery.lastPendingRecord();

@@ -133,6 +133,12 @@
   }
   function change(address,patch,clear){
     try{
+      const sessionGuard=FC.session;
+      if(addressInfo(address) && sessionGuard && sessionGuard.active && sessionGuard.durable
+        && sessionGuard.projectId === address.projectId && sessionGuard.roomId === address.roomId
+        && sessionGuard.canSaveProject && !sessionGuard.canSaveProject()){
+        return Object.assign({ok:false},sessionGuard.lastError || {code:'SESSION_UNCONFIRMED'});
+      }
       const state=context(address);
       if(!state.ok) return state;
       const ui=window.uiState, session=FC.session;
@@ -163,11 +169,18 @@
       if(!Object.keys(space).length && !(baseline && object(baseline[info.space]) && !Object.keys(baseline[info.space]).length)) delete production[info.space];
       if(!Object.keys(production).length && baseline === undefined) delete room.production;
       const result=FC.project.saveConfirmed(next,{expectedRecord:state.record});
-      if(!result || result.ok !== true) return failure('SAVE_FAILED');
+      if(!result || result.ok !== true){
+        return result && result.projectSaved
+          ? {ok:false,code:result.code || 'SAVE_UNCONFIRMED',projectSaved:true}
+          : failure(result && result.code || 'SAVE_FAILED');
+      }
       // A central write with failed session revision persistence is partial, never a full success.
       if(!session.inspectNavigationState()) return {ok:false,code:'SESSION_UNCONFIRMED',projectSaved:true};
       const readBack=FC.projectStore.getById(address.projectId);
-      if(!readBack || !equal(persisted(readBack.projectData)[address.roomId],persisted(next)[address.roomId])) return {ok:false,code:'SAVE_UNCONFIRMED',projectSaved:true};
+      if(!readBack || !equal(persisted(readBack.projectData)[address.roomId],persisted(next)[address.roomId])){
+        if(session.markUnconfirmedProjectWrite) session.markUnconfirmedProjectWrite();
+        return {ok:false,code:'SAVE_UNCONFIRMED',projectSaved:true};
+      }
       try{ if(typeof projectData !== 'undefined') projectData=result.project; }catch(_){ }
       window.projectData=result.project;
       return {ok:true,changed:true,edges:clone(desired)};

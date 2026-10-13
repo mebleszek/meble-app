@@ -162,16 +162,20 @@ function cleanupFailureWithoutSnapshot(){
     r.session.snapshot = null;
     r.session.active = active;
     r.storage.failures.add('removeItem:' + SESSION);
-    assert.equal(r.session.cancel(), false, 'No snapshot does not imply durable cleanup success');
-    assertCleanupFailure(r, null, raw);
-    assert.equal(r.storage.calls.length, 1, 'Without a snapshot only session cleanup should be attempted');
-    assert.equal(r.storage.getItem(PROJECTS), project('P2'));
-    r.storage.failures.clear();
-    assert.equal(r.session.cancel(), true);
-    assert.equal(r.session.active, false);
+    assert.equal(r.session.cancel(), false, 'Missing RAM proof must not discard a durable active session');
     assert.equal(r.session.snapshot, null);
-    assert.equal(r.storage.getItem(SESSION), null);
-    assert.equal(r.session.isDirty(), false);
+    assert.equal(r.storage.getItem(SESSION), raw);
+    assert.equal(r.storage.getItem(PROJECTS), project('P2'));
+    assert.equal(r.session.lastError.code, 'SESSION_UNCONFIRMED');
+    assert.deepEqual(r.storage.calls, [], 'No rollback or cleanup without matching proof');
+    r.storage.failures.clear();
+    assert.equal(r.session.cancel(), false, 'Freeing storage cannot manufacture the missing snapshot');
+    assert.equal(r.storage.getItem(SESSION), raw);
+    // A real restart can restore the complete original proof from its unchanged payload.
+    const restarted = runtime(Object.fromEntries(r.storage.map));
+    assert.equal(restarted.session.cancel(), true);
+    assert.equal(restarted.storage.getItem(PROJECTS), project('P1'));
+    assert.equal(restarted.storage.getItem(SESSION), null);
   }
 }
 
@@ -280,7 +284,7 @@ async function main(){
     ['Failed cancel, reload and retry', ()=> failedCancelAndRetry('setItem', PROJECTS, true)],
     ['Normal cancel', normalCancel],
     ['Failed durable cleanup and retry', cleanupFailureAndRetry],
-    ['Failed durable cleanup without snapshot', cleanupFailureWithoutSnapshot],
+    ['Missing RAM snapshot blocks cleanup; durable proof survives restart', cleanupFailureWithoutSnapshot],
     ['UI durable cleanup failure and clean-state retry', uiCleanupFailureAndRetry],
     ['UI failure and successful retry', uiFailureAndRetry],
     ['UI requires explicit success', uiRequiresExplicitSuccess],

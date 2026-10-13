@@ -346,13 +346,14 @@
         return { ok:false };
       }
       // begin() owns the failed-durability warning and its suppression.
-      if(ns.session.begin() !== true) return { ok:false };
+      if(ns.session.begin() !== true) return Object.assign({ok:false}, ns.session.lastError || {});
       if(typeof applyAfterBegin === 'function') applyAfterBegin();
       const result = ns.project && typeof ns.project.saveConfirmed === 'function'
         ? ns.project.saveConfirmed(nextProject) : null;
       if(!(result && result.ok === true && result.project && typeof result.project === 'object')){
-        notifyRoomSaveFailure();
-        return { ok:false };
+        // The common session gate already reports an unconfirmed/partial write.
+        if(!(result && (result.projectSaved || result.code === 'SESSION_UNCONFIRMED'))) notifyRoomSaveFailure();
+        return Object.assign({ok:false}, result || {});
       }
       syncSharedProjectData(result.project);
       try{ ns.views && typeof ns.views.refreshSessionButtons === 'function' && ns.views.refreshSessionButtons(); }catch(_){ }

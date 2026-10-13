@@ -199,7 +199,11 @@
       });
       if(result.ok !== true){
         if(mutated) api.syncSharedProjectData(baseline);
-        return { ok:false, plan, changed:{ body:0, front:0, back:0, opening:0, pcv:0 }, message:'Zmian nie zapisano. Spróbuj ponownie.' };
+        return Object.assign({ok:false,plan,changed:{body:0,front:0,back:0,opening:0,pcv:0},
+          message:result.projectSaved
+            ? 'Dane projektu mogły zostać zapisane, ale nie potwierdzono sesji. Dalszy zapis został wstrzymany, aby chronić dane.'
+            : 'Zmian nie zapisano. Spróbuj ponownie.'},
+          result.projectSaved ? {projectSaved:true,code:result.code} : {});
       }
     }catch(_){
       if(mutated) api.syncSharedProjectData(baseline);

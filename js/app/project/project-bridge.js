@@ -140,7 +140,12 @@
   function saveConfirmed(data, options){
     const normalized = normalizeProject(data);
     const blocked = { ok:false, project:normalized };
-    if(FC.session && FC.session.canSaveProject && !FC.session.canSaveProject()) return blocked;
+    const session = FC.session;
+    if(session && session.active && session.durable !== true
+      && !(typeof session.begin === 'function' && session.begin() === true)) return blocked;
+    if(session && session.canSaveProject && !session.canSaveProject()){
+      return Object.assign(blocked, session.lastError || {});
+    }
     const before = currentCentralRecord();
     const conditional = options && Object.prototype.hasOwnProperty.call(options,'expectedRecord');
     if(conditional && (!before || !options.expectedRecord || String(options.expectedRecord.id) !== String(before.id)
@@ -148,9 +153,6 @@
     if(before && before.meta && before.meta.pendingDomainOperation) return blocked;
     const investorId = getCurrentInvestorId();
     if(before && investorId && String(before.investorId || '') !== investorId) return blocked;
-    const session = FC.session;
-    if(session && session.active && session.durable !== true
-      && !(typeof session.begin === 'function' && session.begin() === true)) return blocked;
     const narrow = !!(session && session.active && session.roomId);
     if(narrow && (!before || String(before.id) !== String(session.projectId))) return blocked;
     let projectToWrite = null;
@@ -171,12 +173,21 @@
       }
     }catch(_){ saved = null; }
 
+    const centralWriteAcknowledged = !!saved;
     // The store must actually contain the expected project before reporting success.
     try{
       const readBack = saved && projectStore && typeof projectStore.getById === 'function' ? projectStore.getById(saved.id) : null;
       if(!readBack || JSON.stringify(prepareForPersistence(readBack.projectData)) !== JSON.stringify(prepareForPersistence(projectToWrite))) saved = null;
     }catch(_){ saved = null; }
+    if(!saved && centralWriteAcknowledged){
+      if(session && session.active && session.markUnconfirmedProjectWrite) session.markUnconfirmedProjectWrite();
+      return {ok:false,project:normalized,code:'SAVE_UNCONFIRMED',projectSaved:true};
+    }
     if(saved && before && before.projectData) writeSafetyBackup(before.projectData);
+    // A confirmed central write is not a confirmed session revision.
+    if(saved && session && session.active && session.canSaveProject && !session.canSaveProject()){
+      return Object.assign({ok:false, project:normalized, projectSaved:true}, session.lastError || {code:'SESSION_UNCONFIRMED'});
+    }
     return { ok:!!saved, project:saved ? normalizeProject(projectToWrite) : normalized };
   }
 
