@@ -47,22 +47,32 @@
         : source.ownerType === address.ownerType && source.groupRoleId === info.roleId
           && (source.ownerType === 'set' ? source.setId : source.cabinetId) === info.ownerId);
   }
-  function context(address){
-    const info=addressInfo(address);
-    if(!info) return failure('INVALID_ADDRESS');
+  function roomContext(projectId,roomId){
+    if(!safeId(projectId) || !safeId(roomId)) return failure('INVALID_ADDRESS');
     const store=FC.projectStore, project=window.projectData;
     if(!store || !FC.project || !FC.cabinetCutlist || !FC.materialEdgeStore) return failure('DEPENDENCIES_UNAVAILABLE');
     // Native generators resolve room settings and set definitions from activated RAM.
     // Never bind detached data to an arbitrary project ID or silently switch context.
-    if(store.getCurrentProjectId() !== address.projectId) return failure('PROJECT_CONTEXT_MISMATCH');
-    const records=store.readAll().filter(row=>String(row.id) === address.projectId);
+    if(store.getCurrentProjectId() !== projectId) return failure('PROJECT_CONTEXT_MISMATCH');
+    const records=store.readAll().filter(row=>String(row.id) === projectId);
     if(records.length !== 1) return failure('PROJECT_OWNER_AMBIGUOUS');
     const record=records[0], investorId=FC.investors && FC.investors.getCurrentId && FC.investors.getCurrentId();
     if(!investorId || String(record.investorId) !== String(investorId)
       || !project || !project.meta || String(project.meta.assignedInvestorId) !== String(record.investorId)) return failure('INVESTOR_CONTEXT_MISMATCH');
-    if(!has(project,address.roomId) || !has(record.projectData,address.roomId)) return failure('ROOM_NOT_FOUND');
-    const room=project[address.roomId];
-    if(!equal(persisted(project)[address.roomId],persisted(record.projectData)[address.roomId])) return failure('RAM_DIVERGENCE');
+    if(!has(project,roomId) || !has(record.projectData,roomId)) return failure('ROOM_NOT_FOUND');
+    const room=project[roomId];
+    if(!equal(persisted(project)[roomId],persisted(record.projectData)[roomId])) return failure('RAM_DIVERGENCE');
+    return {ok:true,project,record,room};
+  }
+  function inspectRoom(projectId,roomId){
+    try{ const state=roomContext(projectId,roomId); return state.ok ? {ok:true} : state; }catch(_){return failure('READ_FAILED');}
+  }
+  function context(address, calculation){
+    const info=addressInfo(address);
+    if(!info) return failure('INVALID_ADDRESS');
+    const state=roomContext(address.projectId,address.roomId);
+    if(!state.ok) return state;
+    const {project,record,room}=state;
     const cabinets=room.cabinets;
     if(!Array.isArray(cabinets) || new Set(cabinets.map(c=>c && c.id)).size !== cabinets.length) return failure('CABINET_OWNER_AMBIGUOUS');
     let owners;
@@ -80,15 +90,18 @@
         const matching=(sources || []).filter(source=>matchingSource(source,address,info));
         if(!matching.length) continue;
         if((part.sourceIssues || []).length) return failure('SOURCE_UNRESOLVED');
-        if(![part.a,part.b,part.qty].every(value=>Number.isFinite(Number(value)) && Number(value)>0)
-          || !FC.materialEdgeStore.isPcvEligiblePart(part)) return failure('PCV_INELIGIBLE');
-        matches.push({part,cabinet,count:matching.length});
+        if(![part.a,part.b,part.qty].every(value=>Number.isFinite(Number(value)) && Number(value)>0)) return failure('PCV_INELIGIBLE');
+        if(calculation && part.pcvEligible!==false && !FC.materialEdgeStore.resolveMaterialType(part.material))return failure('MATERIAL_TYPE_UNRESOLVED');
+        if(!calculation && !FC.materialEdgeStore.isPcvEligiblePart(part)) return failure('PCV_INELIGIBLE');
+        matches.push({part,cabinet,count:matching.length,qty:info.space==='partOverrides'?matching.length:matching.reduce((n,source)=>n+source.qty,0)});
       }
     }
     if(!matches.length) return failure('ROLE_NOT_FOUND');
     if(info.space === 'partOverrides' && matches.reduce((n,row)=>n+row.count,0)!==1) return failure('ROLE_AMBIGUOUS');
-    const defaults=FC.materialEdgeStore.defaultEdgesForPart(matches[0].part,matches[0].cabinet);
-    if(!edgesValid(defaults) || matches.some(row=>!equal(defaults,FC.materialEdgeStore.defaultEdgesForPart(row.part,row.cabinet)))) return failure('DEFAULTS_AMBIGUOUS');
+    const eligible=FC.materialEdgeStore.isPcvEligiblePart(matches[0].part);
+    if(matches.some(row=>FC.materialEdgeStore.isPcvEligiblePart(row.part)!==eligible)) return failure('DEFAULTS_AMBIGUOUS');
+    const defaults=eligible ? FC.materialEdgeStore.defaultEdgesForPart(matches[0].part,matches[0].cabinet) : {w1:false,w2:false,h1:false,h2:false};
+    if(!edgesValid(defaults) || eligible && matches.some(row=>!equal(defaults,FC.materialEdgeStore.defaultEdgesForPart(row.part,row.cabinet)))) return failure('DEFAULTS_AMBIGUOUS');
     const production=record.projectData[address.roomId].production;
     let entry;
     if(production !== undefined){
@@ -104,13 +117,13 @@
         }
       }
     }
-    return {ok:true,address,info,project,record,defaults,entry,edges:clone(entry && entry.edges || defaults)};
+    return {ok:true,address,info,project,record,defaults,entry,eligible,matches,edges:clone(eligible && entry && entry.edges || defaults)};
   }
-  function get(address){
+  function get(address, calculation){
     try{
-      const state=context(address);
+      const state=context(address,calculation);
       if(!state.ok) return state;
-      return {ok:true,edges:state.edges,source:state.entry && has(state.entry,'edges') ? 'override' : 'default'};
+      return Object.assign({ok:true,edges:state.edges,source:state.eligible ? (state.entry && has(state.entry,'edges') ? 'override' : 'default') : 'ineligible',eligible:state.eligible},calculation?{geometries:state.matches.map(row=>({aCm:Number(row.part.a),bCm:Number(row.part.b),qty:row.qty,material:FC.materialEdgeStore.normalizeMaterialKey(row.part.material),mode:FC.materialEdgeStore.getCabinetPcvMode(row.cabinet)}))}:{});
     }catch(error){return failure(error && error.code === 'INVALID_DRAWER_FRONT_GEOMETRY' ? error.code : 'READ_FAILED');}
   }
   function baselineProduction(session,address){
@@ -160,5 +173,5 @@
       return {ok:true,changed:true,edges:clone(desired)};
     }catch(error){return failure(error && error.code === 'INVALID_DRAWER_FRONT_GEOMETRY' ? error.code : 'WRITE_FAILED');}
   }
-  FC.projectPcvOverrides={get,setEdges:(address,patch)=>change(address,patch,false),clearEdges:address=>change(address,null,true)};
+  FC.projectPcvOverrides={inspectRoom,get:address=>get(address,false),getForCalculation:address=>get(address,true),setEdges:(address,patch)=>change(address,patch,false),clearEdges:address=>change(address,null,true)};
 })();

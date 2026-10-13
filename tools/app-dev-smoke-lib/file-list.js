@@ -240,6 +240,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/rozrys/rozrys-state.js',
   'js/app/cabinet/cabinet-cutlist.js',
   'js/app/project/project-pcv-overrides.js',
+  'js/app/project/project-pcv-resolver.js',
   'js/app/cabinet/front-material-source.js',
   'js/app/cabinet/cabinet-fronts.js',
   'js/app/cabinet/cabinet-modal-validation.js',

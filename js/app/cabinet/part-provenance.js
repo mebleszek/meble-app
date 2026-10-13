@@ -29,6 +29,7 @@
     if(part&&part.sourceFamily)out.sourceFamily=text(part.sourceFamily);
     if(part&&part.sourceReason)out.sourceReason=text(part.sourceReason);
     if(part&&part.sourceSetId)out.sourceSetId=text(part.sourceSetId);
+    if(FC.projectPcvResolver)Object.assign(out,FC.projectPcvResolver.copy(part));
     return out;
   }
   function bind(parts,owner){
@@ -63,6 +64,7 @@
     });
   }
   function merge(target,part){
+    if(FC.projectPcvResolver)FC.projectPcvResolver.merge(target,part);
     for(const key of ['sourceRefs','sourceGroups','sourceIssues']){
       if(Array.isArray(part&&part[key]))target[key]=(target[key]||[]).concat(part[key].map(row=>Object.assign({},row)));
     }

@@ -53,7 +53,8 @@
     }
   }
 
-  async function computePlanForMaterial(material, parts){
+  async function computePlanForMaterial(material, parts, options){
+    const projectMode=options && options.pcvMode === 'project';
     const unit = String(readRozrysControl('rozUnit', 'cm') || 'cm');
     const st = {
       material,
@@ -97,8 +98,8 @@
     st.stockSignature = FC.rozrysStock && typeof FC.rozrysStock.buildStockSignatureForMaterial === 'function'
       ? FC.rozrysStock.buildStockSignatureForMaterial(material)
       : '';
-    const cache = FC.rozrysCache && typeof FC.rozrysCache.loadPlanCache === 'function' ? (FC.rozrysCache.loadPlanCache() || {}) : {};
-    const cacheKey = FC.rozrysCache && typeof FC.rozrysCache.makePlanCacheKey === 'function'
+    const cache = !projectMode && FC.rozrysCache && typeof FC.rozrysCache.loadPlanCache === 'function' ? (FC.rozrysCache.loadPlanCache() || {}) : {};
+    const cacheKey = !projectMode && FC.rozrysCache && typeof FC.rozrysCache.makePlanCacheKey === 'function'
       ? FC.rozrysCache.makePlanCacheKey(st, parts, { partSignature:FC.rozrysPrefs && FC.rozrysPrefs.partSignature, isPartRotationAllowed, loadEdgeStore:FC.rozrysPrefs && FC.rozrysPrefs.loadEdgeStore })
       : '';
     if(cacheKey && cache[cacheKey] && cache[cacheKey].plan){
@@ -107,12 +108,12 @@
     let plan = null;
     if(FC.rozrysEngine && typeof FC.rozrysEngine.computePlanWithCurrentEngine === 'function'){
       plan = await FC.rozrysEngine.computePlanWithCurrentEngine(st, parts, {}, {
-        computePlan: FC.rozrysEngine.computePlan,
-        computePlanPanelProAsync: FC.rozrysEngine.computePlanPanelProAsync,
+        computePlan:projectMode ? (state,rows)=>FC.rozrysEngine.computePlan(state,rows.map(FC.projectPcvResolver.withQuantity),options) : FC.rozrysEngine.computePlan,
+        computePlanPanelProAsync:projectMode ? (state,rows,progress,control,panel)=>FC.rozrysEngine.computePlanPanelProAsync(state,rows.map(FC.projectPcvResolver.withQuantity),progress,control,panel,options) : FC.rozrysEngine.computePlanPanelProAsync,
       });
     }
     if(FC.rozrysStock && typeof FC.rozrysStock.applySheetStockLimit === 'function'){
-      plan = await FC.rozrysStock.applySheetStockLimit(material, st, parts, plan, {}, { computePlanWithCurrentEngine:(nextSt, nextParts)=> FC.rozrysEngine.computePlanWithCurrentEngine(nextSt, nextParts, {}, { computePlan: FC.rozrysEngine.computePlan, computePlanPanelProAsync: FC.rozrysEngine.computePlanPanelProAsync }), partSignature:FC.rozrysPrefs && FC.rozrysPrefs.partSignature, isPartRotationAllowed });
+      plan = await FC.rozrysStock.applySheetStockLimit(material, st, parts, plan, {}, { computePlanWithCurrentEngine:(nextSt, nextParts)=> FC.rozrysEngine.computePlanWithCurrentEngine(nextSt, nextParts, {}, { computePlan:projectMode ? (state,rows)=>FC.rozrysEngine.computePlan(state,rows.map(FC.projectPcvResolver.withQuantity),options) : FC.rozrysEngine.computePlan, computePlanPanelProAsync:projectMode ? (state,rows,progress,control,panel)=>FC.rozrysEngine.computePlanPanelProAsync(state,rows.map(FC.projectPcvResolver.withQuantity),progress,control,panel,options) : FC.rozrysEngine.computePlanPanelProAsync }), partSignature:projectMode ? FC.projectPcvResolver.planKey : FC.rozrysPrefs && FC.rozrysPrefs.partSignature, isPartRotationAllowed });
     }
     if(cacheKey && plan && FC.rozrysCache && typeof FC.rozrysCache.savePlanCache === 'function'){
       cache[cacheKey] = { ts:Date.now(), plan:utils.clone(plan) };
@@ -241,7 +242,8 @@
     };
   }
 
-  function collectEdgeMetersFromMaterialSource(selectedRooms, materialScope){
+  function collectEdgeMetersFromMaterialSource(selectedRooms, materialScope, options){
+    if(options && options.pcvMode === 'project')return FC.materialTabData.collectEdgeMetersForRooms(selectedRooms,Object.assign({},options,{materialScope,persist:false}));
     try{
       const dataApi = FC.materialTabData;
       if(dataApi && typeof dataApi.collectEdgeMetersForRooms === 'function'){
@@ -301,11 +303,13 @@
     };
   }
 
-  async function collectMaterialLines(aggregate, selectionOverride){
+  async function collectMaterialLines(aggregate, selectionOverride, options){
+    const opts=options||{};
+    if((aggregate && aggregate.pcvMode === 'project') !== (opts.pcvMode === 'project'))throw FC.projectPcvResolver.error('CALCULATION_MODE_MISMATCH');
     const scope = selectionApi.decodeMaterialScope(selectionOverride);
     const materialsOrdered = source.getScopedMaterials(aggregate, selectionOverride);
     const roomsText = (aggregate && Array.isArray(aggregate.selectedRooms) ? aggregate.selectedRooms : []).map(source.roomLabel).join(', ');
-    const edgeBasis = collectEdgeMetersFromMaterialSource(aggregate && aggregate.selectedRooms, scope);
+    const edgeBasis = opts.pcvMode === 'project' ? FC.projectPcvResolver.validateAggregate(aggregate,Object.assign({},opts,{materialScope:scope})) : collectEdgeMetersFromMaterialSource(aggregate && aggregate.selectedRooms, scope);
     const lines = [];
     for(const material of materialsOrdered){
       const group = aggregate && aggregate.groups ? aggregate.groups[material] : null;
@@ -317,7 +321,7 @@
       const priceUnit = normalizeUnit(priceItem && priceItem.priceUnit, material);
       let planInfo = { plan:null, source:'missing' };
       if(priceUnit === 'sheet'){
-        try{ planInfo = await computePlanForMaterial(material, selectedParts); }catch(_){ }
+        try{ planInfo = await computePlanForMaterial(material, selectedParts,opts); }catch(error){ if(opts.pcvMode === 'project')throw error; }
       }
       const line = buildMaterialLine(material, selectedParts, priceItem, planInfo);
       line.rooms = roomsText;
@@ -332,6 +336,10 @@
     }
     if(rawFrontEdgeMeters > 0){
       lines.push(buildEdgeLine({ mode:'front', rawMeters:rawFrontEdgeMeters, priceItem:findEdgePriceItem('front'), roomsText }));
+    }
+    if(opts.pcvMode === 'project'){
+      const after=FC.projectPcvResolver.validateAggregate(aggregate,Object.assign({},opts,{materialScope:scope}));
+      if(after.revision!==edgeBasis.revision)throw FC.projectPcvResolver.error('READ_CONFLICT');
     }
     return lines;
   }

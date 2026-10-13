@@ -401,7 +401,8 @@ function resolveInitialSelectedRooms(raw){
   const openSheetListModal = runtimeUtils.openSheetListModal;
 
 
-function aggregatePartsForProject(selectedRooms){
+function aggregatePartsForProject(selectedRooms, options){
+  if(options && options.pcvMode==='project')return FC.rozrysScope.aggregatePartsForProject(selectedRooms,{pcvMode:'project',projectId:options.projectId,safeGetProject,getCabinetCutList:resolveCabinetCutListFn(),resolveRozrysPartFromSource,isFrontMaterialKey});
   if(FC.rozrysScope && typeof FC.rozrysScope.aggregatePartsForProject === 'function'){
     const baseDeps = {
       getRooms,

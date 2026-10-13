@@ -45,13 +45,19 @@
     const cfg = Object.assign({ loadEdgeStore:null, partSignature:null, isPartRotationAllowed:null }, deps || {});
     const grainOn = !!(state && state.grain);
     const overrides = Object.assign({}, state && state.grainExceptions || {});
-    const edgeStore = typeof cfg.loadEdgeStore === 'function' ? cfg.loadEdgeStore() : {};
+    const projectMode=cfg.pcvMode === 'project';
+    if(projectMode)FC.projectPcvResolver.validatePlanParts(parts,cfg);
+    else if((parts||[]).some(p=>p.effectivePcv))throw FC.projectPcvResolver.error('PLAN_MODE_MISMATCH');
+    const edgeStore = !projectMode && typeof cfg.loadEdgeStore === 'function' ? cfg.loadEdgeStore() : {};
     return (parts || []).map((p)=>{
       const sig = typeof cfg.partSignature === 'function' ? cfg.partSignature(p) : String(p && p.key || '');
       const allow = typeof cfg.isPartRotationAllowed === 'function' ? cfg.isPartRotationAllowed(p, grainOn, overrides) : true;
-      const e = edgeStore[sig] || {};
+      if(projectMode && (!p.effectivePcv || p.effectivePcv.projectId!==cfg.projectId || p.effectivePcv.contributions.reduce((n,c)=>n+c.qty,0)!==p.qty))throw FC.projectPcvResolver.error('PLAN_CONTEXT_MISMATCH');
+      const originalEdges=projectMode ? p.effectivePcv.edges : edgeStore[sig] || {};
+      // Grain's existing vertical transform swaps display axes, never technological labels.
+      const e=projectMode && p.grainMode==='vertical' ? {w1:originalEdges.h1,w2:originalEdges.h2,h1:originalEdges.w1,h2:originalEdges.w2} : originalEdges;
       return {
-        key: sig,
+        key: projectMode ? FC.projectPcvResolver.planKey(p) : sig,
         name: p.name,
         w: p.w,
         h: p.h,
