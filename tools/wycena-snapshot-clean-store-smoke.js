@@ -114,12 +114,12 @@ function runStaleDraftVariantReset(){
 
 function runCacheBustCheck(){
   const versions = {
-    'js/app/quote/quote-snapshot-store.js':'20261012_c2_0b',
-    'js/app/quote/quote-snapshot.js':'20261012_c2_0b',
-    'js/app/wycena/wycena-core.js':'20261012_c2_0b',
+    'js/app/quote/quote-snapshot-store.js':'20261013_c2_1b2c2',
+    'js/app/quote/quote-snapshot.js':'20261013_c2_1b2c2',
+    'js/app/wycena/wycena-core.js':'20261013_c2_1b2c2',
     'js/app/wycena/wycena-tab-selection-version.js':'20260628_drawer_systems_materials_v1',
     'js/app/wycena/wycena-diagnostics.js':'20260628_drawer_systems_materials_v1',
-    'js/app/wycena/wycena-tab-shell.js':'20261012_c2_0b',
+    'js/app/wycena/wycena-tab-shell.js':'20261013_c2_1b2c2',
   };
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const dev = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');

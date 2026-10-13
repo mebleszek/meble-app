@@ -681,12 +681,16 @@
       out.meta.testOwner = String(srcMeta.testOwner || 'dev-tests');
       out.meta.testRunId = out.__testRunId;
     }
+    if(!opts.historical && (src.pcvMode==='project' || src.__projectPcvCandidate!==undefined)){
+      if(!FC.projectPcvResolver)throw new Error('Brak walidacji projektowego kandydata WYCENY.');
+      FC.projectPcvResolver.carryQuoteProof(src,out);
+    }
     return out;
   }
 
   function readAll(){
     const rows = readStoredCurrentRows();
-    return rows.map((row)=> normalizeSnapshot(row, { canonicalizeLabels:true })).sort((a,b)=> Number(b.generatedAt || 0) - Number(a.generatedAt || 0));
+    return rows.map((row)=> normalizeSnapshot(row, { canonicalizeLabels:true,historical:true })).sort((a,b)=> Number(b.generatedAt || 0) - Number(a.generatedAt || 0));
   }
 
   function limitSnapshotHistory(rows){
@@ -714,8 +718,19 @@
     return selected.concat(sorted.filter((row)=> !selectedIds.has(String(row && row.id || ''))).slice(0, Math.max(0, MAX_SNAPSHOTS_TOTAL - selected.length)));
   }
 
+  function validateNewCandidate(snapshot){
+    if(snapshot && (snapshot.pcvMode==='project' || snapshot.__projectPcvCandidate!==undefined)){
+      if(!FC.projectPcvResolver)throw new Error('Brak walidacji projektowego kandydata WYCENY.');
+      FC.projectPcvResolver.validateQuoteCandidate(snapshot);
+    }
+  }
   function writeAll(list){
-    const rows = limitSnapshotHistory(Array.isArray(list) ? list.map((row)=> normalizeSnapshot(row, { preserveExplicitLabels:true })) : []);
+    const rows = limitSnapshotHistory(Array.isArray(list) ? list.map((row)=>{
+      validateNewCandidate(row);
+      const normalized=normalizeSnapshot(row,{preserveExplicitLabels:true});
+      validateNewCandidate(normalized);
+      return normalized.pcvMode==='project' ? FC.projectPcvResolver.stripQuoteProof(normalized) : normalized;
+    }) : []);
     writeSnapshotRowsStrict(rows, 'writeAll');
     return rows;
   }
@@ -727,6 +742,7 @@
   }
 
   function save(snapshot){
+    validateNewCandidate(snapshot);
     const beforeRaw = rawSnapshotStorage();
     const beforeParsed = safeParseRows(beforeRaw);
     const list = readAll();
@@ -776,7 +792,7 @@
     if(!visible){
       throw createStorageWriteError('Snapshot WYCENY został zbudowany, ale nie jest widoczny w historii po zapisie.', { id:normalizedId, projectId:normalizedProjectId, afterReadAllCount:afterRows.length, afterRawCount:Array.isArray(afterParsed) ? afterParsed.length : null }, null);
     }
-    return normalized;
+    return normalized.pcvMode==='project' ? FC.projectPcvResolver.stripQuoteProof(normalized) : normalized;
   }
 
   function cleanupRemovedSnapshotReferences(snapshotId){
@@ -845,6 +861,7 @@
   }
 
   function replaceSnapshot(existingId, snapshot){
+    validateNewCandidate(snapshot);
     const key = String(existingId || '').trim();
     if(!key) throw new Error('Brak ID oferty do zamiany.');
     const existing = getById(key);

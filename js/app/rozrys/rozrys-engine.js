@@ -115,7 +115,8 @@
       const toShelfDir = (d)=> (d === 'across') ? 'wpoprz' : 'wzdłuż';
       sheets = opt.packShelf(items, W, H, K, toShelfDir(dir));
     }
-    return { sheets, meta: { trim, boardW: W0, boardH: H0, unit } };
+    const plan={ sheets, meta: { trim, boardW: W0, boardH: H0, unit } };
+    return cfg.pcvMode==='project' ? FC.projectPcvResolver.attachPlanProvenance(plan,parts,cfg) : plan;
   }
 
   function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts, deps){
@@ -144,6 +145,7 @@
         if(blockMainThreadFallback){
           return resolve({ sheets: [], note: 'Nie udało się uruchomić Web Workera dla trybu MAX.', workerFailed: true, noSyncFallback: true, meta: { trim, boardW: W0, boardH: H0, unit } });
         }
+        if(cfg.pcvMode==='project')return resolve(computePlan(Object.assign({},state,{heur:'max'}),parts,cfg));
         try{
           const startMode = normalizeCutDirection(state && state.direction);
           const speedMode = FC.cutOptimizer && FC.cutOptimizer.normalizeSpeedMode ? FC.cutOptimizer.normalizeSpeedMode(state && state.optimaxProfile) : 'max';
@@ -212,7 +214,7 @@
       }catch(_){
         finish({ sheets: [], note: 'Nie udało się wystartować liczenia.', workerFailed: true, noSyncFallback: !!blockMainThreadFallback, meta: { trim, boardW: W0, boardH: H0, unit } });
       }
-    });
+    }).then(plan=>cfg.pcvMode==='project' ? FC.projectPcvResolver.attachPlanProvenance(plan,parts,cfg) : plan);
   }
 
   async function computePlanWithCurrentEngine(state, parts, panelOpts, deps){
@@ -251,7 +253,8 @@
           realHalfBoardH: Math.round(Number(state && state.realHalfBoardH) || 0),
         });
       }
-    }catch(_){
+    }catch(error){
+      if(error && error.projectPcv)throw error;
       plan = null;
     }
     if(plan && Array.isArray(plan.sheets) && plan.sheets.length) return plan;

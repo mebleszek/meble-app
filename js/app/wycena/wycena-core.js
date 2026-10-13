@@ -90,6 +90,8 @@
       counts:{ cabinetCount:0, factCacheReads:0, factCacheHits:0, factRecalculations:0, factMissing:0, factStale:0, factVersion:0, factErrors:0 },
       sizes:{ snapshot:0, calculationRegister:0, labor:0 }
     };
+    const calculationOptions=options && options.pcvMode==='project' ? {pcvMode:'project',projectId:options.projectId} : {};
+    const initialDraft=calculationOptions.pcvMode==='project' ? FC.projectPcvResolver.draftSelection() : null;
     const draft = deps.offer.getOfferDraft();
     const normalizedSelection = deps.selectionApi.validateQuoteSelection(deps.selectionApi.normalizeQuoteSelection((options && options.selection) || (draft && draft.selection)));
     const selectedRooms = deps.selectionApi.decodeSelectedRooms(normalizedSelection);
@@ -114,8 +116,8 @@
     }
 
     sectionStart = perfNow();
-    const aggregate = deps.source.getSelectedAggregate(normalizedSelection);
-    const materialLines = await deps.materialPlan.collectMaterialLines(aggregate, normalizedSelection);
+    const aggregate = deps.source.getSelectedAggregate(normalizedSelection,calculationOptions);
+    const materialLines = await deps.materialPlan.collectMaterialLines(aggregate, normalizedSelection,calculationOptions);
     perf.timingsMs.materials = roundMs(perfNow() - sectionStart);
 
     sectionStart = perfNow();
@@ -199,6 +201,8 @@
     if(nav && !nav.calculationUnchanged(context)){
       throw createQuoteValidationError('calculation_context_changed', 'Dane projektu zmieniły się', 'Nie zapisano wyceny. Ponów kalkulację na aktualnych danych.');
     }
+    if(calculationOptions.pcvMode==='project')FC.projectPcvResolver.registerQuoteCalculation(result,aggregate,
+      Object.assign({},calculationOptions,{materialScope:normalizedSelection.materialScope}),initialDraft);
     recordQuotePerformance(perf);
     return result;
   }

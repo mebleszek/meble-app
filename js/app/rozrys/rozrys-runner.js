@@ -26,7 +26,9 @@
     const nav = FC.sessionNavigation;
     const context = nav && nav.calculationContext ? nav.calculationContext() : null;
     if(nav && nav.calculationContext && !context) return false;
+    let assertProject=()=>{};
     const assertCurrent = ()=>{
+      assertProject();
       if(context && !nav.calculationUnchanged(context)){
         const error = new Error('Dane projektu zmieniły się podczas obliczeń. Ponów ROZRYS.');
         error.code = 'calculation_context_changed';
@@ -35,17 +37,30 @@
     };
 
     const cfg = Object.assign({ progressCtrl:null }, deps || {});
-    if(context && FC.rozrys && typeof FC.rozrys.aggregatePartsForProject === 'function'){
-      cfg.agg = FC.rozrys.aggregatePartsForProject(cfg.agg && cfg.agg.selectedRooms);
-    }
+    const projectMode=cfg.pcvMode==='project';
+    const calculationOptions={pcvMode:cfg.pcvMode,projectId:cfg.projectId};
     const progress = cfg.progressCtrl;
     if(!progress || typeof progress.startRun !== 'function') return;
     const runId = progress.startRun();
     if(runId == null) return;
     try{ await new Promise((resolve)=>{ try{ requestAnimationFrame(()=> resolve()); } catch(_){ setTimeout(resolve, 0); } }); }catch(_){ }
     try{
+      if(!projectMode && cfg.agg && cfg.agg.pcvMode==='project')throw FC.projectPcvResolver.error('PLAN_MODE_MISMATCH');
+      if(context && FC.rozrys && typeof FC.rozrys.aggregatePartsForProject==='function'){
+        cfg.agg=FC.rozrys.aggregatePartsForProject(cfg.agg && cfg.agg.selectedRooms,calculationOptions);
+      }
+      if(projectMode && (!cfg.agg || cfg.agg.pcvMode!=='project' || cfg.agg.projectId!==cfg.projectId))throw FC.projectPcvResolver.error('AGGREGATE_CONTEXT_MISMATCH');
       assertCurrent();
       const scope = cfg.normalizeMaterialScopeForAggregate(cfg.decodeMaterialScope(cfg.matSelValue), cfg.agg);
+      if(projectMode){
+        const requested=cfg.decodeMaterialScope(cfg.matSelValue);
+        if(requested.kind==='material' && (scope.kind!=='material' || scope.material!==requested.material))throw FC.projectPcvResolver.error('MATERIAL_SCOPE_CHANGED');
+        assertProject=()=>{
+          if(cfg.isScopeCurrent && !cfg.isScopeCurrent())throw FC.projectPcvResolver.error('CALCULATION_SCOPE_CHANGED');
+          FC.projectPcvResolver.validateAggregate(cfg.agg,Object.assign({},calculationOptions,{materialScope:scope}));
+        };
+        assertProject();
+      }
       const baseSt = {
         unit: cfg.unitValue,
         edgeSubMm: Math.max(0, Number(cfg.edgeValue)||0),
@@ -55,12 +70,12 @@
         edgeTrim: Number(cfg.trimValue)|| (cfg.unitValue==="mm"?10:1),
         minScrapW: Math.max(0, Number(cfg.minScrapWValue)||0),
         minScrapH: Math.max(0, Number(cfg.minScrapHValue)||0),
-        heur: 'optimax',
+        heur: cfg.engineMode==='sync' ? 'max' : 'optimax',
         optimaxProfile: cfg.heurValue,
         direction: cfg.normalizeCutDirection(cfg.directionValue),
       };
 
-      const cache = cfg.loadPlanCache();
+      const cache = projectMode ? {} : cfg.loadPlanCache();
 
       const runOne = async (material, parts, target)=>{
         assertCurrent();
@@ -90,12 +105,12 @@
         st.stockFullBoardH = Math.round(Number(fullStock.height) || 0);
         st.stockPolicy = 'stock_limit_v4';
         st.stockSignature = cfg.buildStockSignatureForMaterial(material);
-        const cacheKey = cfg.makePlanCacheKey(st, parts);
+        const cacheKey = projectMode ? null : cfg.makePlanCacheKey(st, parts);
         if(!force && cache[cacheKey] && cache[cacheKey].plan){
           const cached = cache[cacheKey].plan;
           if(!progress.isActiveRun(runId)) return;
           assertCurrent();
-          cfg.renderOutput(cached, { material, kerf: st.kerf, heur: cfg.formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: cached.meta, parts, scopeMode: cfg.getRozrysScopeMode(scope), selectedRooms: cfg.agg.selectedRooms }, target);
+          cfg.renderOutput(cached, { material, kerf: st.kerf, heur: cfg.formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: cached.meta, parts, scopeMode: cfg.getRozrysScopeMode(scope), selectedRooms: cfg.agg.selectedRooms,validateCurrent:projectMode ? assertCurrent : null }, target);
           progress.setGenBtnMode('done');
           return;
         }
@@ -193,8 +208,9 @@
               realHalfQty: Math.max(0, Number(st.realHalfQty) || 0),
               realHalfBoardW: Math.round(Number(st.realHalfBoardW) || 0),
               realHalfBoardH: Math.round(Number(st.realHalfBoardH) || 0),
-            });
-          }catch(_){
+            },calculationOptions);
+          }catch(error){
+            if(error && error.projectPcv)throw error;
             plan = { sheets: [], note: 'Błąd podczas liczenia (Optimax).' };
           } finally {
             try{ clearInterval(materialTicker); }catch(_){ }
@@ -202,7 +218,9 @@
           }
 
           if((!plan || !Array.isArray(plan.sheets) || plan.sheets.length === 0) && !(plan && plan.noSyncFallback)){
-            try{
+            if(projectMode){
+              plan=cfg.computePlan(Object.assign({},st,{heur:'max'}),parts,calculationOptions);
+            }else try{
               const opt2 = FC.cutOptimizer;
               const grainOn2 = !!st.grain;
               const overrides2 = Object.assign({}, st.grainExceptions || {});
@@ -266,18 +284,20 @@
             }
           });
           assertCurrent();
-          try{ cache[cacheKey] = { ts: Date.now(), plan }; cfg.savePlanCache(cache); }catch(_){ }
-          cfg.renderOutput(plan, { material, kerf: st.kerf, heur: cfg.formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, cancelled: !!plan.cancelled, parts, scopeMode: cfg.getRozrysScopeMode(scope), selectedRooms: cfg.agg.selectedRooms }, target);
+          if(projectMode)plan=FC.projectPcvResolver.attachPlanProvenance(plan,parts,Object.assign({},calculationOptions,{complete:!plan.cancelled}));
+          try{ if(!projectMode){ cache[cacheKey] = { ts: Date.now(), plan }; cfg.savePlanCache(cache); } }catch(_){ }
+          cfg.renderOutput(plan, { material, kerf: st.kerf, heur: cfg.formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, cancelled: !!plan.cancelled, parts, scopeMode: cfg.getRozrysScopeMode(scope), selectedRooms: cfg.agg.selectedRooms,validateCurrent:projectMode ? assertCurrent : null }, target);
           try{ progress.setStatus(false, '', ''); }catch(_){ }
           progress.setGenBtnMode('done');
           return;
         }
 
-        let plan = cfg.computePlan(st, parts);
+        let plan = cfg.computePlan(st, parts,calculationOptions);
         plan = await cfg.applySheetStockLimit(material, st, parts, plan);
         assertCurrent();
-        try{ cache[cacheKey] = { ts: Date.now(), plan }; cfg.savePlanCache(cache); }catch(_){ }
-        cfg.renderOutput(plan, { material, kerf: st.kerf, heur: cfg.formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, parts, scopeMode: cfg.getRozrysScopeMode(scope), selectedRooms: cfg.agg.selectedRooms }, target);
+        if(projectMode)plan=FC.projectPcvResolver.attachPlanProvenance(plan,parts,Object.assign({},calculationOptions,{complete:true}));
+        try{ if(!projectMode){ cache[cacheKey] = { ts: Date.now(), plan }; cfg.savePlanCache(cache); } }catch(_){ }
+        cfg.renderOutput(plan, { material, kerf: st.kerf, heur: cfg.formatHeurLabel(st), unit: st.unit, edgeSubMm: st.edgeSubMm, meta: plan.meta, parts, scopeMode: cfg.getRozrysScopeMode(scope), selectedRooms: cfg.agg.selectedRooms,validateCurrent:projectMode ? assertCurrent : null }, target);
         progress.setGenBtnMode('done');
       };
 
@@ -312,7 +332,8 @@
         if(progress.wasCancelRequested()) break;
       }
     } catch(error){
-      if(error.code !== 'calculation_context_changed') throw error;
+      if(error.code !== 'calculation_context_changed' && !error.projectPcv) throw error;
+      if(projectMode && cfg.out){cfg.out.innerHTML='';cfg.out.appendChild(h('div',{class:'muted',text:error.message}));}
       progress.setGenBtnMode('idle');
       try{ FC.infoBox.open({ title:'ROZRYS wymaga ponowienia', message:error.message, okOnly:true }); }catch(_){ }
       return false;

@@ -124,8 +124,13 @@
     async function generate(force){
       if(!(cfg.FC && cfg.FC.rozrysRunner && typeof cfg.FC.rozrysRunner.generate === 'function')) return;
       const aggregate = typeof cfg.getAggregate === 'function' ? cfg.getAggregate() : cfg.agg;
-      return cfg.FC.rozrysRunner.generate(force, {
+      const scopeKey=JSON.stringify([aggregate && aggregate.selectedRooms,cfg.matSel && cfg.matSel.value]);
+      return cfg.FC.rozrysRunner.generate(force, Object.assign({},cfg.calculationOptions || {},{
         progressCtrl,
+        isScopeCurrent:()=>{
+          const current=typeof cfg.getAggregate==='function' ? cfg.getAggregate() : cfg.agg;
+          return JSON.stringify([current && current.selectedRooms,cfg.matSel && cfg.matSel.value])===scopeKey;
+        },
         normalizeMaterialScopeForAggregate: d.normalizeMaterialScopeForAggregate,
         decodeMaterialScope: d.decodeMaterialScope,
         matSelValue: cfg.matSel && cfg.matSel.value,
@@ -173,7 +178,7 @@
         setMaterialGrainEnabled: d.setMaterialGrainEnabled,
         tryAutoRenderFromCache: d.tryAutoRenderFromCache,
         openMaterialGrainExceptions: d.openMaterialGrainExceptions,
-      });
+      }));
     }
 
     function openAddStockModal(){

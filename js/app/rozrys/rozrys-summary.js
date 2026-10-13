@@ -38,7 +38,15 @@
     }, deps || {});
     const rv = FC.rozrysValidation;
     if(!(rv && typeof rv.aggregateRows === 'function' && typeof rv.summarizePlan === 'function' && typeof rv.validate === 'function')) return null;
-    const rawRows = typeof cfg.buildRawSnapshotForMaterial === 'function'
+    const projectMode=(parts||[]).some(part=>part.effectivePcv);
+    if(projectMode)FC.projectPcvResolver.validatePlanParts(parts,{pcvMode:'project',projectId:parts[0].effectivePcv.projectId});
+    const projectRows=projectMode ? parts.map(part=>({
+      key:FC.projectPcvResolver.planKey(part),name:part.name,material:part.material,w:part.w,h:part.h,qty:part.qty,
+      room:Array.from(new Set(part.effectivePcv.contributions.map(c=>c.address.roomId))).join(' • '),
+      cabinet:Array.from(new Set(part.effectivePcv.contributions.map(c=>c.address.cabinetId || 'Zestaw '+c.address.setId))).join(' • '),
+      source:part.name,sourceRows:part.effectivePcv.contributions.length,
+    })) : [];
+    const rawRows = projectMode ? projectRows : typeof cfg.buildRawSnapshotForMaterial === 'function'
       ? (cfg.buildRawSnapshotForMaterial(targetMaterial, mode, selectedRooms) || [])
       : [];
     const mergedRows = rawRows.length

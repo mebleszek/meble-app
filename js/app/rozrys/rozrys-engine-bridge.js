@@ -23,14 +23,14 @@
       }
     }
 
-    function computePlan(state, parts){
+    function engineOptions(options){
+      return Object.assign({pcvMode:deps.pcvMode,projectId:deps.projectId},options || {},{
+        loadEdgeStore,partSignature,isPartRotationAllowed,cutOptimizer:apiFC.cutOptimizer});
+    }
+    function computePlan(state, parts, options){
       if(apiFC.rozrysEngine && typeof apiFC.rozrysEngine.computePlan === 'function'){
-        return apiFC.rozrysEngine.computePlan(state, parts, {
-          loadEdgeStore,
-          partSignature,
-          isPartRotationAllowed,
-          cutOptimizer: apiFC.cutOptimizer,
-        });
+        const opts=engineOptions(options);
+        return apiFC.rozrysEngine.computePlan(state, opts.pcvMode==='project' ? parts.map(apiFC.projectPcvResolver.withQuantity) : parts, opts);
       }
       return { sheets: [], note: 'Brak modułu rozrysEngine.' };
     }
@@ -64,14 +64,10 @@
       return String((st && st.heur) || '');
     }
 
-    function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts){
+    function computePlanPanelProAsync(state, parts, onProgress, control, panelOpts, options){
       if(apiFC.rozrysEngine && typeof apiFC.rozrysEngine.computePlanPanelProAsync === 'function'){
-        return apiFC.rozrysEngine.computePlanPanelProAsync(state, parts, onProgress, control, panelOpts, {
-          loadEdgeStore,
-          partSignature,
-          isPartRotationAllowed,
-          cutOptimizer: apiFC.cutOptimizer,
-        });
+        const opts=engineOptions(options);
+        return apiFC.rozrysEngine.computePlanPanelProAsync(state, opts.pcvMode==='project' ? parts.map(apiFC.projectPcvResolver.withQuantity) : parts, onProgress, control, panelOpts, opts);
       }
       return Promise.resolve({ sheets: [], note: 'Brak modułu rozrysEngine.' });
     }

@@ -203,4 +203,6 @@ test('Real stock adapter subtracts only used quantities and never packs the same
  assert.equal(result.plan.sheets.flatMap(s=>s.placements).length,4);assert.equal(result.plan.stockContext.usedStockSheets,1);
  assert.equal(JSON.stringify(sides),before);assert.deepEqual(r.storage.calls.filter(c=>c[1].includes('rozrys')),[]);
 });
-(async()=>{let failures=0;for(const [name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name+'\n'+error.stack);}}console.log(`${tests.length-failures}/${tests.length} PASS`);process.exitCode=failures?1:0;})();
+if(require.main===module)(async()=>{let failures=0;for(const [name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name+'\n'+error.stack);}}console.log(`${tests.length-failures}/${tests.length} PASS`);process.exitCode=failures?1:0;})();
+
+module.exports={fixture,load,seed,drawers,select,address,group,options,aggParts,clone};

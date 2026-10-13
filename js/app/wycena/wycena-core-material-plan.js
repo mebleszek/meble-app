@@ -55,6 +55,7 @@
 
   async function computePlanForMaterial(material, parts, options){
     const projectMode=options && options.pcvMode === 'project';
+    const engineOptions=Object.assign({},options,{isPartRotationAllowed,partSignature:FC.rozrysPrefs && FC.rozrysPrefs.partSignature});
     const unit = String(readRozrysControl('rozUnit', 'cm') || 'cm');
     const st = {
       material,
@@ -108,13 +109,14 @@
     let plan = null;
     if(FC.rozrysEngine && typeof FC.rozrysEngine.computePlanWithCurrentEngine === 'function'){
       plan = await FC.rozrysEngine.computePlanWithCurrentEngine(st, parts, {}, {
-        computePlan:projectMode ? (state,rows)=>FC.rozrysEngine.computePlan(state,rows.map(FC.projectPcvResolver.withQuantity),options) : FC.rozrysEngine.computePlan,
-        computePlanPanelProAsync:projectMode ? (state,rows,progress,control,panel)=>FC.rozrysEngine.computePlanPanelProAsync(state,rows.map(FC.projectPcvResolver.withQuantity),progress,control,panel,options) : FC.rozrysEngine.computePlanPanelProAsync,
+        computePlan:projectMode ? (state,rows)=>FC.rozrysEngine.computePlan(state,rows.map(FC.projectPcvResolver.withQuantity),engineOptions) : FC.rozrysEngine.computePlan,
+        computePlanPanelProAsync:projectMode ? (state,rows,progress,control,panel)=>FC.rozrysEngine.computePlanPanelProAsync(state,rows.map(FC.projectPcvResolver.withQuantity),progress,control,panel,engineOptions) : FC.rozrysEngine.computePlanPanelProAsync,
       });
     }
     if(FC.rozrysStock && typeof FC.rozrysStock.applySheetStockLimit === 'function'){
-      plan = await FC.rozrysStock.applySheetStockLimit(material, st, parts, plan, {}, { computePlanWithCurrentEngine:(nextSt, nextParts)=> FC.rozrysEngine.computePlanWithCurrentEngine(nextSt, nextParts, {}, { computePlan:projectMode ? (state,rows)=>FC.rozrysEngine.computePlan(state,rows.map(FC.projectPcvResolver.withQuantity),options) : FC.rozrysEngine.computePlan, computePlanPanelProAsync:projectMode ? (state,rows,progress,control,panel)=>FC.rozrysEngine.computePlanPanelProAsync(state,rows.map(FC.projectPcvResolver.withQuantity),progress,control,panel,options) : FC.rozrysEngine.computePlanPanelProAsync }), partSignature:projectMode ? FC.projectPcvResolver.planKey : FC.rozrysPrefs && FC.rozrysPrefs.partSignature, isPartRotationAllowed });
+      plan = await FC.rozrysStock.applySheetStockLimit(material, st, parts, plan, {}, { computePlanWithCurrentEngine:(nextSt, nextParts)=> FC.rozrysEngine.computePlanWithCurrentEngine(nextSt, nextParts, {}, { computePlan:projectMode ? (state,rows)=>FC.rozrysEngine.computePlan(state,rows.map(FC.projectPcvResolver.withQuantity),engineOptions) : FC.rozrysEngine.computePlan, computePlanPanelProAsync:projectMode ? (state,rows,progress,control,panel)=>FC.rozrysEngine.computePlanPanelProAsync(state,rows.map(FC.projectPcvResolver.withQuantity),progress,control,panel,engineOptions) : FC.rozrysEngine.computePlanPanelProAsync }), partSignature:projectMode ? FC.projectPcvResolver.planKey : FC.rozrysPrefs && FC.rozrysPrefs.partSignature, isPartRotationAllowed });
     }
+    if(projectMode)plan=FC.projectPcvResolver.attachPlanProvenance(plan,parts,Object.assign({},engineOptions,{complete:true}));
     if(cacheKey && plan && FC.rozrysCache && typeof FC.rozrysCache.savePlanCache === 'function'){
       cache[cacheKey] = { ts:Date.now(), plan:utils.clone(plan) };
       FC.rozrysCache.savePlanCache(cache);

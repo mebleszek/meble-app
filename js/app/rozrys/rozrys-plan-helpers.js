@@ -117,7 +117,7 @@
 
     function subtractPlacedParts(parts, usedMap){
       if(apiFC.rozrysStock && typeof apiFC.rozrysStock.subtractPlacedParts === 'function'){
-        return apiFC.rozrysStock.subtractPlacedParts(parts, usedMap, { partSignature });
+        return apiFC.rozrysStock.subtractPlacedParts(parts, usedMap, { partSignature:projectMode ? apiFC.projectPcvResolver.planKey : partSignature });
       }
       return Array.isArray(parts) ? parts.slice() : [];
     }
@@ -129,11 +129,14 @@
       return { trim:10, boardW:2800, boardH:2070, unit:'mm' };
     }
 
+    const calculationOptions=deps.calculationOptions || {};
+    const projectMode=calculationOptions.pcvMode==='project';
+    const stockSignature=projectMode ? apiFC.projectPcvResolver.planKey : partSignature;
     async function computePlanWithCurrentEngine(st, parts, panelOpts){
       if(apiFC.rozrysEngine && typeof apiFC.rozrysEngine.computePlanWithCurrentEngine === 'function'){
         return apiFC.rozrysEngine.computePlanWithCurrentEngine(st, parts, panelOpts, {
-          computePlan,
-          computePlanPanelProAsync,
+          computePlan:(state,rows)=>computePlan(state,rows,calculationOptions),
+          computePlanPanelProAsync:(state,rows,progress,control,panel)=>computePlanPanelProAsync(state,rows,progress,control,panel,calculationOptions),
         });
       }
       return computePlan(st, parts);
@@ -143,7 +146,7 @@
       if(apiFC.rozrysStock && typeof apiFC.rozrysStock.applySheetStockLimit === 'function'){
         return apiFC.rozrysStock.applySheetStockLimit(material, st, parts, plan, opts, {
           computePlanWithCurrentEngine,
-          partSignature,
+          partSignature:stockSignature,
           isPartRotationAllowed,
         });
       }

@@ -78,6 +78,7 @@
       FC: config.FC,
       materials: config.materials,
       controls: { unitSel: config.unitSel },
+      calculationOptions:config.calculationOptions,
       computePlan: config.computePlan,
       computePlanPanelProAsync: config.computePlanPanelProAsync,
       isPartRotationAllowed: config.isPartRotationAllowed,
@@ -163,6 +164,7 @@
     return {
       ctx: {
         FC: config.FC,
+        calculationOptions:config.calculationOptions,
         statusBox: config.statusBox,
         statusMain: config.statusMain,
         statusSub: config.statusSub,
