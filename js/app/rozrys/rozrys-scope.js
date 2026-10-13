@@ -146,6 +146,7 @@
       getCabinetCutList:null,
       resolveRozrysPartFromSource:null,
       isFrontMaterialKey:null,
+      projectId:undefined,
     }, deps || {});
     const proj = typeof cfg.safeGetProject === 'function' ? cfg.safeGetProject() : null;
     const rooms = normalizeRoomSelection(Array.isArray(selectedRooms) ? selectedRooms : (typeof cfg.getRooms === 'function' ? cfg.getRooms() : []), cfg);
@@ -169,7 +170,10 @@
       const cabinets = (proj[room] && Array.isArray(proj[room].cabinets)) ? proj[room].cabinets : [];
       for(const cab of cabinets){
         if(typeof cfg.getCabinetCutList !== 'function') continue;
-        const parts = cfg.getCabinetCutList(cab, room) || [];
+        const provenance=FC.partProvenance;
+        const owner=provenance?provenance.context(cab,room,provenance.projectContext(proj,cfg.projectId)):null;
+        const generated=cfg.getCabinetCutList(cab,room,owner) || [];
+        const parts=provenance?provenance.bind(generated,owner):generated;
         for(const p of parts){
           const sourceMaterial = String(p.material || '').trim();
           if(!sourceMaterial) continue;
@@ -190,8 +194,10 @@
           const map = isFront ? group.frontMap : group.corpusMap;
           if(map.has(key)){
             map.get(key).qty += qty;
+            if(provenance)provenance.merge(map.get(key),p);
           } else {
             map.set(key, {
+              ...(provenance ? provenance.copy(p) : {}),
               name,
               w,
               h,

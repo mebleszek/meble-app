@@ -17,7 +17,7 @@ let nextId=0; FC.utils.uid=()=> 'generated-offer-'+(++nextId);
 FC.wycenaCoreUtils={clone,slug:x=>x};
 FC.wycenaCoreCatalog={materialPriceLookup:()=>s.materials[0]};
 const load=file=>vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),s,{filename:file});
-for(const file of ['js/app/shared/room-scope-resolver.js','js/app/optimizer/cut-optimizer.js','js/app/rozrys/rozrys-engine.js','js/app/rozrys/rozrys-cache.js','js/app/rozrys/rozrys-scope.js','js/app/wycena/wycena-core-selection.js'])load(file);
+for(const file of ['js/app/cabinet/part-provenance.js','js/app/shared/room-scope-resolver.js','js/app/optimizer/cut-optimizer.js','js/app/rozrys/rozrys-engine.js','js/app/rozrys/rozrys-cache.js','js/app/rozrys/rozrys-scope.js','js/app/wycena/wycena-core-selection.js'])load(file);
 const deps={safeGetProject:()=>s.projectData,getRooms:()=>['kuchnia','salon'],getCabinetCutList:c=>c.parts,
  resolveRozrysPartFromSource:p=>({name:p.name,w:p.a*10,h:p.b*10,qty:p.qty,sourceSig:p.name+'|'+p.a+'|'+p.b,materialKey:p.material,direction:'none',ignoreGrain:true})};
 FC.rozrys={safeGetProject:()=>s.projectData,aggregatePartsForProject:rooms=>FC.rozrysScope.aggregatePartsForProject(rooms,deps)};

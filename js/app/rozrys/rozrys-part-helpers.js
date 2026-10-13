@@ -40,6 +40,7 @@
       }catch(_){ }
       const materialKey = normalizeFrontLaminatMaterialKey(String((p && p.material) || '').trim());
       return {
+        ...(apiFC.partProvenance ? apiFC.partProvenance.copy(p) : {}),
         materialKey,
         name: String((p && p.name) || 'Element'),
         sourceSig: `${materialKey}||${String((p && p.name) || 'Element')}||${cmToMm(p && p.a)}x${cmToMm(p && p.b)}`,

@@ -6,7 +6,7 @@
   root.FC = root.FC || {};
   const FC = root.FC;
 
-  const VERSION = '20260628_drawer_systems_materials_v1';
+  const VERSION = '20261013_part_provenance_v1';
   const CACHE_FIELD = 'derivedFacts';
   const STATS_LIMIT = 20;
   let computingDepth = 0;
@@ -416,7 +416,9 @@
   }
   function getCutlist(roomId, cabinet, options){
     const res = ensureCabinetFacts(roomId, cabinet, options || {});
-    return res && res.cache && res.cache.cutlists ? clone(res.cache.cutlists.all || []) : null;
+    const parts=res && res.cache && res.cache.cutlists ? clone(res.cache.cutlists.all || []) : null;
+    const provenance=FC.partProvenance;
+    return parts && provenance ? provenance.bind(parts,provenance.context(cabinet,roomId,options)) : parts;
   }
   function getLogistics(roomId, cabinet, options){
     const res = ensureCabinetFacts(roomId, cabinet, options || {});
@@ -469,7 +471,10 @@
       const cabinets = proj && proj[roomId] && Array.isArray(proj[roomId].cabinets) ? proj[roomId].cabinets : [];
       cabinets.forEach((cabinet)=> {
         const cache = cacheOf(cabinet);
-        const parts = cache && cache.cutlists && Array.isArray(cache.cutlists.all) ? cache.cutlists.all : getCabinetCutListRaw(roomId, cabinet);
+        const generated = cache && cache.cutlists && Array.isArray(cache.cutlists.all) ? cache.cutlists.all : getCabinetCutListRaw(roomId, cabinet);
+        const provenance=FC.partProvenance;
+        const owner=provenance?provenance.context(cabinet,roomId,provenance.projectContext(proj,opts.projectId)):null;
+        const parts=provenance?provenance.bind(generated,owner):generated;
         (Array.isArray(parts) ? parts : []).forEach((part)=> {
           const sourceMaterial = text(part && part.material);
           if(!sourceMaterial) return;
@@ -487,8 +492,8 @@
           const isFront = text(resolved.name) === 'Front' || /^\s*Front\s*:/i.test(sourceMaterial);
           const map = isFront ? group.frontMap : group.corpusMap;
           const key = `${resolved.sourceSig}||${resolved.direction}||${w}||${h}`;
-          if(map.has(key)) map.get(key).qty += qty;
-          else map.set(key, { name:resolved.name, w, h, qty, material:materialKey, sourceSig:resolved.sourceSig, grainMode:resolved.direction, ignoreGrain:!!resolved.ignoreGrain });
+          if(map.has(key)) { map.get(key).qty += qty; if(provenance)provenance.merge(map.get(key),part); }
+          else map.set(key, { ...(provenance?provenance.copy(part):{}), name:resolved.name, w, h, qty, material:materialKey, sourceSig:resolved.sourceSig, grainMode:resolved.direction, ignoreGrain:!!resolved.ignoreGrain });
         });
       });
     });

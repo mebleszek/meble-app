@@ -196,6 +196,7 @@
     const direction = getDirection(sourceSig);
     const dims = resolveDimsMm(aMm, bMm, direction);
     return {
+      ...(root.FC.partProvenance ? root.FC.partProvenance.copy(part) : {}),
       materialKey,
       name,
       sourceSig,
