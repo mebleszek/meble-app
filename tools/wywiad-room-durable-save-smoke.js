@@ -70,7 +70,7 @@ function runtime(){
   const load = file => vm.runInContext(fs.readFileSync(path.join(ROOT,file),'utf8'),s,{ filename:file });
   [ 'js/app/investor/session.js', 'js/app/room-preferences/room-preferences-model.js',
     'js/app/room-preferences/room-preferences-bulk-plan.js', 'js/app/room-preferences/room-preferences-bulk-apply.js',
-    'js/app/cabinet/cabinet-fronts.js', 'js/app/ui/wywiad-room-accordion-actions.js',
+    'js/app/cabinet/cabinet-cutlist.js', 'js/app/cabinet/cabinet-fronts.js', 'js/app/ui/wywiad-room-accordion-actions.js',
     'js/app/ui/wywiad-room-settings.js', 'js/app/ui/settings-ui.js',
     'js/app/ui/wywiad-room-preferences.js', 'js/app/ui/wywiad-room-hardware-producers.js',
     'js/app/ui/wywiad-room-preferences-bulk-modal.js' ].forEach(load);
@@ -215,6 +215,12 @@ test('14 BULK SUCCESS persists cabinets, sets, fronts', ()=>{
   assert.equal(room.fronts.filter(f=>f.cabId === 'drawer').length,3);
   assert.equal(r.storage.getItem(PROJECTS),centralRaw(r.s.projectData)); assert.deepEqual(r.ui.order,['begin','save']);
   assert.equal(r.FC.session.active,true); assert.equal(r.FC.session.isDirty(),true);
+});
+test('BULK invalid drawer fronts fail and restore RAM rather than saving a partial regeneration', ()=>{
+  const r=runtime();r.s.projectData.kuchnia.cabinets[0].height=60;r.s.projectData.kuchnia.cabinets[0].details.drawerLayout='3_1_2_2';
+  const baseline=raw(r.s.projectData),central=r.storage.getItem(PROJECTS);
+  assert.equal(r.apply().ok,false);assert.equal(raw(r.s.projectData),baseline);assert.equal(r.storage.getItem(PROJECTS),central);
+  assert.equal(r.ui.saves,0);assert.equal(r.FC.session.active,true);assert.ok(r.ui.messages.length>0);
 });
 test('15 BULK MODAL FAILURE keeps selection/preview and allows retry', ()=>{
   const r = runtime(); r.FC.wywiadRoomPreferencesBulk.open('kuchnia'); const panel = r.ui.panel.contentNode;

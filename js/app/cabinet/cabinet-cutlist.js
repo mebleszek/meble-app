@@ -67,6 +67,40 @@
     return h;
   }
 
+  // One millimetre-based source for standard drawer fronts and their group roles.
+  function resolveDrawerFrontGeometry(cab, room){
+    const layout=String(cab && cab.details && cab.details.drawerLayout || '3_1_2_2');
+    const rawBodyHeightMm=bodyHeightCm(cab,room,cab && cab.type,false)*10;
+    const bodyHeightMm=Math.round(rawBodyHeightMm);
+    const widthMm=Math.round(cmLike(cab && cab.width)*10);
+    const failure=(code,message)=>({ok:false,code,message,layout,bodyHeightMm,panels:[]});
+    if(!(Number.isFinite(widthMm) && Number.isFinite(bodyHeightMm) && widthMm>0 && bodyHeightMm>0)) return failure('invalid_cabinet_dimensions','Podaj dodatnią szerokość i wysokość korpusu.');
+    let heights;
+    if(layout==='3_1_2_2'){
+      const small=bodyHeightMm-581; // 7 mm total clearance + two 4 mm gaps + two 283 mm fronts.
+      if(small<=0) return failure('body_too_short','Dla układu 1 mała + 2 duże wysokość korpusu musi przekraczać 581 mm.');
+      heights=[small,283,283];
+    }else{
+      const count={ '1_big':1,'2_equal':2,'3_equal':3,'5_equal':5 }[layout];
+      if(!Number.isInteger(count)) return failure('unsupported_drawer_layout','Nieznany standardowy układ szuflad. Wybierz obsługiwany układ.');
+      // Preserve the existing cabinet-fronts rounding and final panel correction.
+      const equal=Math.round(rawBodyHeightMm/count);
+      heights=Array(count-1).fill(equal).concat(Math.round(rawBodyHeightMm-equal*(count-1)));
+      if(heights.some(height=>height<=0)) return failure('body_too_short','Wysokość korpusu jest zbyt mała dla wybranego układu szuflad.');
+    }
+    return {ok:true,layout,bodyHeightMm,gapMm:layout==='3_1_2_2'?4:0,totalClearanceMm:layout==='3_1_2_2'?7:0,
+      panels:heights.map((heightMm,index)=>({widthMm,heightMm,groupRoleId:layout==='3_1_2_2'
+        ? (index===0?'front.drawer.small':'front.drawer.large') : 'front.drawer.standard'}))};
+  }
+
+  function requireDrawerFrontGeometry(cab,room){
+    const result=resolveDrawerFrontGeometry(cab,room);
+    if(!result.ok){
+      const error=new Error(result.message);error.code='INVALID_DRAWER_FRONT_GEOMETRY';throw error;
+    }
+    return result;
+  }
+
 
   function fmt(v){
     const common = getMaterialCommon();
@@ -88,7 +122,7 @@
       if(typeof window.getCabinetFrontCutListForMaterials === 'function'){
         return window.getCabinetFrontCutListForMaterials(room, cab) || [];
       }
-    }catch(_){ }
+    }catch(error){ if(error && error.code==='INVALID_DRAWER_FRONT_GEOMETRY') throw error; }
     return [];
   }
 
@@ -184,6 +218,7 @@
   }
 
   function getCabinetCutList(cab, room, sourceContext){
+    if(cab && (cab.type==='stojąca'||cab.type==='moduł') && cab.subType==='szuflady') requireDrawerFrontGeometry(cab,room);
     const provenance=FC.partProvenance;
     const owner=provenance ? provenance.context(cab,room,sourceContext) : null;
     // Front generation may adjust working counts; never mutate the source cabinet on read.
@@ -361,4 +396,6 @@
 
   window.FC.cabinetCutlist = window.FC.cabinetCutlist || {};
   window.FC.cabinetCutlist.getCabinetCutList = getCabinetCutList;
+  window.FC.cabinetCutlist.resolveDrawerFrontGeometry = resolveDrawerFrontGeometry;
+  window.FC.cabinetCutlist.requireDrawerFrontGeometry = requireDrawerFrontGeometry;
 })();

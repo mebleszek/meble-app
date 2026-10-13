@@ -6,7 +6,7 @@ const clone=value=>JSON.parse(JSON.stringify(value));
 const tests=[],test=(name,fn)=>tests.push([name,fn]);
 const groups=parts=>Array.from(parts).flatMap(part=>Array.from(part.sourceGroups||[]));
 const address=group=>{const out=clone(group);delete out.qty;return out;};
-const keys=parts=>groups(parts).map(group=>JSON.stringify(address(group))).sort();
+const keys=parts=>Array.from(new Set(groups(parts).map(group=>JSON.stringify(address(group))))).sort();
 const geometry=parts=>Array.from(parts).filter(part=>(part.a||part.w)>0&&(part.b||part.h)>0);
 const aggregateRows=aggregate=>aggregate.materials.flatMap(material=>Array.from(aggregate.groups[material].allParts));
 function balanced(parts){
@@ -55,11 +55,11 @@ test('Copying with a new cabinet ID never reuses group ownership',()=>{
 });
 test('Native drawer front and box groups retain quantities through 3 -> 5',()=>{
  const r=drawers(fixture()),first=r.parts(),before=groups(first).filter(g=>g.groupRoleId!=='body.shelves');
- assert.equal(first.find(p=>p.name==='Front').qty,3);
+ assert.equal(first.filter(p=>p.name==='Front').reduce((n,p)=>n+p.qty,0),3);
  assert.equal(before.find(g=>g.groupRoleId==='drawer.front_drawers.sides').qty,6);
  r.cab().details.drawers=5;r.cab().details.drawerLayout='5_equal';const next=r.parts(),after=groups(next).filter(g=>g.groupRoleId!=='body.shelves');
- assert.equal(next.find(p=>p.name==='Front').qty,5);assert.equal(after.find(g=>g.groupRoleId==='drawer.front_drawers.sides').qty,10);
- assert.deepEqual(after.map(address).sort((a,b)=>a.groupRoleId.localeCompare(b.groupRoleId)),before.map(address).sort((a,b)=>a.groupRoleId.localeCompare(b.groupRoleId)));
+ assert.equal(next.filter(p=>p.name==='Front').reduce((n,p)=>n+p.qty,0),5);assert.equal(after.find(g=>g.groupRoleId==='drawer.front_drawers.sides').qty,10);
+ assert.deepEqual(keys(next),keys(first));
  balanced(first);balanced(next);
 });
 test('Front and inner drawers are distinct structural groups even with identical box geometry',()=>{
@@ -71,12 +71,13 @@ test('Front and inner drawers are distinct structural groups even with identical
  assert.ok(groups(parts).some(g=>g.groupRoleId==='drawer.inner_drawers.sides'));
 });
 test('Mixed 1-small/2-large template fronts retain two semantic groups, never one geometry-based owner',()=>{
- const r=drawers(fixture());r.cab().details.drawerLayout='3_1_2_2';const front=r.parts().find(p=>p.name==='Front');
- assert.equal(front.qty,3);assert.equal(front.sourceGroups.length,2);
- assert.equal(front.sourceGroups.find(g=>g.groupRoleId==='front.drawer.small').qty,1);
- assert.equal(front.sourceGroups.find(g=>g.groupRoleId==='front.drawer.large').qty,2);balanced([front]);
- r.cab().height=90;assert.deepEqual(groups(r.parts()).filter(g=>g.groupRoleId.startsWith('front.drawer')).map(address),Array.from(front.sourceGroups,address));
- r.cab().details.drawers=5;const inconsistent=r.parts().find(p=>p.name==='Front');assert.equal(inconsistent.qty,5);assert.equal(inconsistent.sourceGroups.length,0);assert.equal(inconsistent.sourceIssues[0].qty,5);
+ const r=drawers(fixture());r.cab().details.drawerLayout='3_1_2_2';const fronts=r.parts().filter(p=>p.name==='Front'),frontGroups=groups(fronts);
+ assert.equal(fronts.reduce((n,p)=>n+p.qty,0),3);assert.equal(frontGroups.length,2);
+ assert.equal(frontGroups.find(g=>g.groupRoleId==='front.drawer.small').qty,1);
+ assert.equal(frontGroups.find(g=>g.groupRoleId==='front.drawer.large').qty,2);balanced(fronts);
+ r.cab().height=90;assert.deepEqual(groups(r.parts()).filter(g=>g.groupRoleId.startsWith('front.drawer')).map(address),frontGroups.map(address));
+ // The canonical layout determines the count; obsolete details.drawers cannot change it.
+ r.cab().details.drawers=5;const canonical=r.parts().filter(p=>p.name==='Front');assert.equal(canonical.reduce((n,p)=>n+p.qty,0),3);assert.equal(groups(canonical).length,2);assert.ok(canonical.every(p=>p.sourceIssues.length===0));
 });
 test('Existing fixed parts stay individual refs; singleton drawer roles are preserved',()=>{
  const r=drawers(fixture());r.cab().subType='piekarnikowa';r.cab().details={ovenOption:'szuflada_dol',drawerSystem:'skrzynkowe'};
@@ -111,8 +112,8 @@ test('MATERIAL, ROZRYS raw reads, WYCENA source and cache carry copied groups',(
  assert.deepEqual(keys(raw),keys(r.parts().concat(r.parts(r.s.projectData.room.cabinets[1])).filter(p=>p.material==='laminat White')));
  assert.ok(groups(r.cab().derivedFacts.cutlists.fronts).some(g=>g.groupRoleId==='front.drawer.standard'));
  const p=r.parts().find(p=>p.name==='Front'),resolved=r.FC.materialPartOptions.resolvePartForRozrys(p);resolved.sourceGroups[0].qty=999;
- assert.equal(p.sourceGroups[0].qty,3);material.cabinetRows[0].parts.find(p=>p.name==='Front').sourceGroupRoles[0].qty=888;
- assert.equal(groups(r.parts()).find(g=>g.groupRoleId==='front.drawer.standard').qty,3);
+ assert.equal(p.sourceGroups[0].qty,p.qty);material.cabinetRows[0].parts.find(p=>p.name==='Front').sourceGroupRoles[0].qty=888;
+ assert.equal(groups(r.parts()).filter(g=>g.groupRoleId==='front.drawer.standard').reduce((n,g)=>n+g.qty,0),3);
 });
 test('A copied RAM cache is rebound to the explicit new cabinet/project owner',()=>{
  const r=fixture();r.FC.cabinetDerivedFacts.getCutlist('room',r.cab());const copy=clone(r.cab());copy.id='new-copy';

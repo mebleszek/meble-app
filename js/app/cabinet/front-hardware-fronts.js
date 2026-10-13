@@ -281,19 +281,11 @@ function getCabinetFrontPartsForLocalDraft(room, cab){
     if(blind > 0) effectiveW = Math.max(0, effectiveW - blind);
   }
 
-  // Szuflady: licz fronty szuflad wg zadeklarowanej ilości
-  if(cab.type === 'stojąca' && cab.subType === 'szuflady'){
-    const drawers = Math.max(1, Number(cab.details?.drawers) || 1);
-    const fh = getFrontHeightForCab();
-    const hEach = drawers ? (fh / drawers) : 0;
-    const layout=String(cab.details?.drawerLayout||'');
-    for(let i=0;i<drawers;i++){
-      const groupRoleId=layout==='3_1_2_2'
-        ? (drawers===3 ? (i===0?'front.drawer.small':'front.drawer.large') : null)
-        : (!layout||['1_big','2_equal','3_equal','5_equal'].includes(layout) ? 'front.drawer.standard' : null);
-      addFront(Number(cab.width)||0,hEach,null,groupRoleId);
-    }
-    cab.frontCount = drawers;
+  // Canonical layout, body height and millimetre rounding shared with persisted fronts.
+  if((cab.type === 'stojąca'||cab.type === 'moduł') && cab.subType === 'szuflady'){
+    const geometry=ns.cabinetCutlist.requireDrawerFrontGeometry(cab,room);
+    geometry.panels.forEach(panel=>addFront(panel.widthMm/10,panel.heightMm/10,null,panel.groupRoleId));
+    cab.frontCount = geometry.panels.length;
     return finalize();
   }
 

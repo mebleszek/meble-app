@@ -123,8 +123,8 @@ test('RAM cache copied to project B is rebound on read, never exposing A owners'
  assert.ok(r.refs(r.cab().derivedFacts.cutlists.all).every(ref=>ref.projectId==='A'));assert.deepEqual(r.storage.calls,[]);
 });
 test('Standard drawer fronts have group ownership, while the fixed single drawer keeps its role',()=>{
- const r=fixture(),cab=r.cab();cab.subType='szuflady';cab.details={drawers:3};
- const fronts=r.parts().filter(p=>p.name==='Front');assert.equal(fronts.length,1);assert.equal(fronts[0].qty,3);assert.deepEqual(clone(fronts[0].sourceRefs),[]);assert.equal(fronts[0].sourceGroups[0].qty,3);
+ const r=fixture(),cab=r.cab();cab.subType='szuflady';cab.details={drawerLayout:'3_equal'};
+ const fronts=r.parts().filter(p=>p.name==='Front');assert.equal(fronts.reduce((n,p)=>n+p.qty,0),3);assert.ok(fronts.every(p=>p.sourceRefs.length===0));assert.equal(fronts.reduce((n,p)=>n+p.sourceGroups.reduce((sum,g)=>sum+g.qty,0),0),3);
  cab.subType='szuflada_drzwi';cab.details={drawerHeight:20,doorCount:2};
  assert.ok(r.refs(r.parts()).some(ref=>ref.partRoleId==='front.drawer.main'));
 });

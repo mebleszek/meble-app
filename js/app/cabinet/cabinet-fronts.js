@@ -662,6 +662,13 @@ function syncDraftFromCabinetModalForm(d){
 
 
 function generateFrontsForCabinet(room, cab){
+  let drawerGeometry=null;
+  if((cab.type==='stojąca'||cab.type==='moduł') && cab.subType==='szuflady'){
+    drawerGeometry=ns.cabinetCutlist.resolveDrawerFrontGeometry(cab,room);
+    if(!drawerGeometry.ok){
+      const error=new Error(drawerGeometry.message);error.code='INVALID_DRAWER_FRONT_GEOMETRY';throw error;
+    }
+  }
   // czyścimy stare
   removeFrontsForCab(room, cab.id);
 
@@ -678,44 +685,15 @@ function generateFrontsForCabinet(room, cab){
     }
     return h;
   }
-  if(cab.subType === 'szuflady'){
-    const d = cab.details || {};
-    // układ szuflad jest jawny; drawerCount nie jest już źródłem prawdy.
-    let lay = String(d.drawerLayout || '3_1_2_2');
-
-    let ratios = [1,2,2];
-    if(lay === '1_big') ratios = [1];
-    else if(lay === '2_equal') ratios = [1,1];
-    else if(lay === '3_equal') ratios = [1,1,1];
-    else if(lay === '5_equal') ratios = [1,1,1,1,1];
-    else if(lay === '3_1_2_2') ratios = [1,2,2];
-
-    const cabW = Number(cab.width) || 0;
-    const cabH = getFrontHeightForCab();
-    const sum = ratios.reduce((a,b)=>a+b,0) || 1;
-
-    // wylicz wysokości z zaokrągleniem do 0.1 i korektą ostatniego
-    const heights = [];
-    let acc = 0;
-    for(let i=0;i<ratios.length;i++){
-      let h = (cabH * ratios[i]) / sum;
-      h = Math.round(h*10)/10;
-      if(i === ratios.length-1){
-        h = Math.round((cabH - acc)*10)/10;
-      }
-      acc += h;
-      heights.push(h);
-    }
-
+  if(drawerGeometry){
     const mat = cab.frontMaterial || 'laminat';
     const col = cab.frontColor || '';
     // zapisujemy też poprawną ilość frontów dla podsumowania
-    cab.frontCount = ratios.length;
-
-    for(let i=0;i<heights.length;i++){
-      addFront(room, { id: FC.utils.uid(), cabId: cab.id, setId: cab.setId||null, setNumber: cab.setNumber||null, material: mat, color: col, width: cabW, height: heights[i], note: `Szuflada ${i+1}` });
-    }
-    return;
+    cab.frontCount = drawerGeometry.panels.length;
+    drawerGeometry.panels.forEach((panel,index)=>{
+      addFront(room, { id: FC.utils.uid(), cabId: cab.id, setId: cab.setId||null, setNumber: cab.setNumber||null, material: mat, color: col, width:panel.widthMm/10, height:panel.heightMm/10, note: `Szuflada ${index+1}` });
+    });
+    return true;
   }
 
   const mat = cab.frontMaterial || 'laminat';
