@@ -277,4 +277,34 @@ test('56 A2 missing project store cannot hide a central marker behind an unmarke
  const r=fixture();activate(r);delete r.s.projectData.meta.productionPcvMode;delete r.FC.projectPcvPolicy;delete r.FC.projectStore;
  const before=r.rows();r.storage.calls.length=0;assert.equal(r.FC.projectPcvGuard.read().ok,false);assert.throws(()=>r.FC.projectPcvGuard.calculationOptions(),e=>e.projectPcv);assert.deepEqual(r.rows(),before);assert.deepEqual(r.storage.calls,[]);
 });
+test('57 B1 apparently valid legacy response cannot override RAM or central project marker',()=>{
+ for(const source of ['both','ram','central']){
+  const r=fixture();activate(r);
+  if(source==='ram')r.storage.rows.set('fc_projects_v1',JSON.stringify(r.FC.projectStore.readAll().map(row=>{if(row.id==='A')delete row.projectData.meta.productionPcvMode;return row;})));
+  if(source==='central')delete r.s.projectData.meta.productionPcvMode;
+  r.FC.projectPcvPolicy={read:()=>({ok:true,mode:'legacy',options:{}})};
+  const before=r.rows();r.storage.calls.length=0;assert.equal(r.FC.projectPcvGuard.read().ok,false);assert.throws(()=>r.FC.projectPcvGuard.calculationOptions(),e=>e.projectPcv);assert.deepEqual(r.rows(),before);assert.deepEqual(r.storage.calls,[]);
+ }
+});
+test('58 B1 fake legacy policy stops ordinary MATERIAL, ROZRYS and WYCENA rather than showing legacy price',async()=>{
+ const r=fixture();activate(r);r.open();r.edge('w2',true);r.save();r.session.commit();
+ r.FC.projectPcvPolicy={read:()=>({ok:true,mode:'legacy',options:{}})};
+ const before=r.rows();r.storage.calls.length=0;r.render();assert.equal(r.list.querySelector('[data-part-options]'),null);await assert.rejects(r.FC.wycenaCore.collectQuoteData(),e=>e.projectPcv);
+ for(const f of ['js/app/rozrys/rozrys-project-source.js','js/app/rozrys/rozrys.js'])load(r,f);const root=r.s.document.createElement('div');root.id='rozrysRoot';r.s.document.body.appendChild(root);assert.equal(r.FC.rozrys.render(),false);assert.equal(root.querySelectorAll('canvas').length,0);
+ const q=quotedUI(r);q.button.click();await tick();assert.equal(r.FC.quoteSnapshotStore.listForProject('A').length,0);assert.deepEqual(r.rows(),before);assert.deepEqual(r.storage.calls,[]);
+});
+test('59 B2 missing project store refuses new legacy save, replace and writeAll without changing history',async()=>{
+ for(const marked of [false,true])for(const method of ['save','replace','writeAll']){
+  const r=fixture(),history=r.FC.quoteSnapshotStore.save(r.FC.quoteSnapshot.buildSnapshot(await r.FC.wycenaCore.collectQuoteData()));
+  const candidate=clone(history);candidate.id='unverified';candidate.lines.materials[0].total+=1;if(marked)activate(r);delete r.FC.projectStore;
+  const before=r.storage.getItem('fc_quote_snapshots_v1');assert.throws(()=>method==='save'?r.FC.quoteSnapshotStore.save(candidate):method==='replace'?r.FC.quoteSnapshotStore.replaceSnapshot(history.id,candidate):r.FC.quoteSnapshotStore.writeAll([candidate]),e=>e.projectPcv);
+  assert.equal(r.storage.getItem('fc_quote_snapshots_v1'),before);assert.ok(r.FC.quoteSnapshotStore.getById(history.id));
+ }
+});
+test('60 B2 missing project store preserves historical reads and allowed metadata, but not frozen-price edits',async()=>{
+ const r=fixture(),saved=r.FC.quoteSnapshotStore.save(r.FC.quoteSnapshot.buildSnapshot(await r.FC.wycenaCore.collectQuoteData()));activate(r);delete r.FC.projectStore;
+ const history=r.FC.quoteSnapshotStore.getById(saved.id),before=clone({lines:history.lines,totals:history.totals,scope:history.scope});history.commercial.versionName='Historia bez store';history.meta.versionName='Historia bez store';r.FC.quoteSnapshotStore.save(history);
+ const after=r.FC.quoteSnapshotStore.getById(saved.id);assert.equal(after.commercial.versionName,'Historia bez store');assert.deepEqual(clone({lines:after.lines,totals:after.totals,scope:after.scope}),before);
+ const raw=r.storage.getItem('fc_quote_snapshots_v1');after.lines.materials[0].total+=1;assert.throws(()=>r.FC.quoteSnapshotStore.save(after),e=>e.projectPcv);assert.equal(r.storage.getItem('fc_quote_snapshots_v1'),raw);
+});
 (async()=>{let failures=0;for(const[name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(e){failures++;console.error('FAIL '+name+'\n'+e.stack);}}console.log(`${tests.length-failures}/${tests.length} PASS`);process.exitCode=failures?1:0;})();

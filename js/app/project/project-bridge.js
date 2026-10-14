@@ -213,6 +213,17 @@
         if(result.ok && (!['legacy','project'].includes(result.mode) || !result.options
           || result.mode === 'project' && (!result.projectId || result.options.pcvMode !== 'project' || result.options.projectId !== result.projectId)))
           return refuse('PCV_POLICY_UNAVAILABLE');
+        if(result.ok && result.mode === 'legacy'){
+          const verified = pcvPolicyState({legacyWrite:true});
+          if(!verified.ok) return verified;
+          if(result.options.pcvMode || result.projectId && result.projectId !== verified.projectId) return refuse('PCV_POLICY_MISMATCH');
+        }else if(result.ok){
+          const id = FC.projectStore.getCurrentProjectId();
+          const owners = FC.projectStore.readAll().filter(row => String(row.id) === String(id));
+          if(id !== result.projectId || owners.length !== 1 || !window.projectData || !window.projectData.meta
+            || window.projectData.meta.productionPcvMode !== 'project' || !owners[0].projectData.meta
+            || owners[0].projectData.meta.productionPcvMode !== 'project') return refuse('PCV_POLICY_MISMATCH');
+        }
         return result;
       }
       const ram = window.projectData;

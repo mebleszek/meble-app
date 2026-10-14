@@ -725,6 +725,7 @@
       && String(historical.investor && historical.investor.id || '') === String(snapshot.investor && snapshot.investor.id || '')
       && ['lines','totals','scope'].every(key => JSON.stringify(historical[key]) === JSON.stringify(snapshot[key]));
     const isProjectCandidate = snapshot && (snapshot.pcvMode === 'project' || snapshot.__projectPcvCandidate !== undefined);
+    if(!frozenHistory && !FC.projectStore) throw FC.projectPcvGuard.error('PROJECT_OWNER_UNCONFIRMED');
     if(!frozenHistory && FC.projectStore){
       let owners;
       let records;
