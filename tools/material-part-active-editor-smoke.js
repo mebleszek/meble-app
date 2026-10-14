@@ -384,6 +384,16 @@ const cases = [
     assert.equal(r.modal().querySelectorAll('button').filter(b=>b.textContent==='Zapisz').length,1);
   }],
 
+  ['29 project failure exposes its code and keeps the original map, edges, grain controls and retry draft', ()=>{
+    const {fixture,activate}=require('./project-pcv-ui-activation-smoke'),r=fixture();activate(r);r.open();
+    const map=r.modal().querySelector('.material-part-options__map'),style=map.getAttribute('style');r.edge('h2',true);
+    r.storage.fail.set('set:fc_projects_v1','throw');r.save();assert.ok(r.modal());
+    assert.equal(r.modal().querySelector('.material-part-options__map'),map);assert.equal(map.getAttribute('style'),style);
+    assert.ok(r.modal().querySelector('.material-part-options__surface').classList.contains('has-h2'));
+    assert.equal(r.modal().querySelectorAll('.material-part-options__choice').length,4);
+    assert.ok(r.modal().querySelectorAll('button').some(b=>b.textContent==='Przywróć domyślne PCV'));
+    assert.ok(r.messages.some(m=>m.message.includes('(SAVE_FAILED)')));r.storage.fail.clear();r.save();assert.equal(r.modal(),null);
+  }],
 ];
 (async ()=>{
   let passed = 0;

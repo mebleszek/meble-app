@@ -81,11 +81,21 @@
     };
   }
 
+  function projectRecordFingerprint(record){
+    // The capture-phase autosave also runs for Options/accordion clicks. A
+    // confirmed no-op save changes updatedAt without changing the rendered
+    // data. Keep every other field (including owners, geometry and metadata)
+    // in the conflict witness; native PCV saves still use their fresh record.
+    const comparable=Object.assign({},record);
+    delete comparable.updatedAt;
+    return JSON.stringify(comparable);
+  }
+
   function renderMaterialsTab(listEl, room){
     let model;
     try{model=getMaterialModel(room);}catch(error){listEl.innerHTML='';listEl.textContent='Nie można wyświetlić PCV. '+error.message+' '+String(error.code||'');return false;}
     const projectMode=model.pcvMode==='project';
-    const renderedRecord=projectMode?JSON.stringify(model.policy && model.policy.record):null;
+    const renderedRecord=projectMode?projectRecordFingerprint(model.policy && model.policy.record):null;
     const cabinets = model.cabinets || [];
     const cabinetRows = model.cabinetRows || [];
     const deps = model.deps || {};
@@ -384,7 +394,7 @@
             const recordFingerprint=()=>{
               const record=FC.projectStore.getById(source.projectId);
               if(!record || String(record.id)!==source.projectId)throw {code:'PROJECT_CONTEXT_MISMATCH'};
-              return JSON.stringify(record);
+              return projectRecordFingerprint(record);
             };
             const policy=FC.projectPcvGuard.read({roomId:room,edit:true});
             if(!policy.ok){FC.projectPcvGuard.notify(policy);return;}

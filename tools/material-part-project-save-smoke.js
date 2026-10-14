@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 const assert=require('node:assert/strict');
-const {fixture,activate,reopen,protectedSeed,tick}=require('./project-pcv-ui-activation-smoke');
+const {fixture,activate,reopen,protectedSeed,tick,openAutomatically,load}=require('./project-pcv-ui-activation-smoke');
 const G='fc_material_part_options_v1',P='fc_projects_v1',E='fc_edit_session_v1';
 const address={projectId:'A',roomId:'room',cabinetId:'one',partRoleId:'body.side.left'};
 const clone=x=>JSON.parse(JSON.stringify(x)),tests=[],test=(name,fn)=>tests.push([name,fn]);
@@ -108,6 +108,72 @@ test('Global Cancel retains its grain safety block; exact grain revert then perm
  const snapshot=r.session.snapshot,project=r.storage.getItem(P),grain=r.storage.getItem(G);
  assert.equal(r.session.cancel(),false);assert.equal(r.session.lastError.code,'UNSCOPED_PART_ROLLBACK_BLOCKED');assert.equal(r.session.snapshot,snapshot);assert.equal(r.storage.getItem(P),project);assert.equal(r.storage.getItem(G),grain);
  r.open();direction(r,'default');r.save();assert.equal(r.storage.getItem(G),raw);assert.equal(r.session.cancel(),true);r.s.projectData=r.FC.project.load();assert.equal(override(r),undefined);assert.deepEqual(r.row('B'),b);assert.deepEqual(r.row('A').projectData.other,other);
+});
+
+// The browser runs appView's capture listener BEFORE the Options button opens
+// panelBox. MiniDocument has neither event propagation nor closest(), so model
+// those two DOM capabilities here; keep the actual autosave/store/session code.
+function autosavedEditor(){
+ const r=fixture();assert.equal(openAutomatically(r),true);r.render();
+ const root=r.s.document.getElementById('appView');r.list.parentNode.removeChild(r.list);root.appendChild(r.list);
+ const pending=new Map();let timerId=0;
+ r.s.setTimeout=(fn,ms)=>{pending.set(++timerId,{fn,ms});return timerId;};r.s.clearTimeout=id=>pending.delete(id);
+ load(r,'js/app/investor/project-autosave.js');r.FC.projectAutosave.installProjectAutosave();
+ let cfg;const open=r.FC.materialPartOptions.openOptionsModal;r.FC.materialPartOptions.openOptionsModal=value=>{cfg=value;return open(value);};r.config=()=>cfg;
+ const openButton=r.rowNode('body.side.left').querySelector('[data-part-options]');
+ openButton.closest=function(selector){for(let n=this;n;n=n.parentNode){
+  if(selector==='button'&&n.tagName==='BUTTON' || selector.startsWith('.')&&n.classList.contains(selector.slice(1))
+   || selector.startsWith('#')&&n.id===selector.slice(1) || selector.startsWith('[')&&n.getAttribute(selector.slice(1,-1))!==null)return n;
+ }return null;};
+ r.captureOpen=()=>{root.dispatchEvent({type:'click',target:openButton});openButton.click();};
+ r.flushAutosave=()=>{
+  const before=r.FC.projectStore.getById('A');r.s.Date=class extends Date {static now(){return before.updatedAt+1000;}};
+  assert.ok([...pending.values()].some(t=>t.ms===180),'real capture click must schedule autosave');
+  for(const[id,t]of pending)if(t.ms===180){pending.delete(id);t.fn();}
+  const after=r.FC.projectStore.getById('A');
+  assert.deepEqual(Object.keys(before).filter(k=>JSON.stringify(before[k])!==JSON.stringify(after[k])),['updatedAt']);
+  assert.deepEqual(after.projectData,before.projectData);assert.ok(r.session.inspectNavigationState());
+ };
+ r.captureOpen();assert.ok(r.modal());return r;
+}
+test('Android clean Options -> autosave -> Exit -> same rendered Options reopens without conflict',()=>{
+ const r=autosavedEditor(),snapshot=r.session.snapshot;r.flushAutosave();button(r,'Wyjdź').click();assert.equal(r.modal(),null);
+ r.storage.calls.length=0;r.captureOpen();assert.ok(r.modal(),'timestamp-only autosave must not stale the rendered row');
+ assert.equal(r.session.snapshot,snapshot);assert.equal(r.storage.calls.length,0);assert.equal(r.messages.length,0);
+});
+test('Android capture autosave does not reject PCV-only, grain-only or combined Save and rerender/reopen',()=>{
+ for(const mode of ['pcv','grain','both']){
+  const r=autosavedEditor();r.flushAutosave();const before=clone(r.row('A').projectData);
+  if(mode!=='grain')r.edge('h2',true);if(mode!=='pcv')direction(r,'vertical');
+  r.save();assert.equal(r.modal(),null,mode+' save after real autosave must succeed');
+  assert.equal(edges(r).h2,mode!=='grain');if(mode==='grain')assert.deepEqual(r.row('A').projectData,before);
+  r.rowNode('body.side.left').querySelector('[data-part-options]').click();assert.ok(r.modal(),'freshly rendered Save callback must reopen without a manual render');assert.equal(r.modal().querySelectorAll('input').find(i=>i.getAttribute('aria-label')==='PCV 2B').checked,mode!=='grain');
+  assert.equal(r.FC.materialPartOptions.getDirection(r.config().sig),mode==='pcv'?'default':'vertical');
+  r.FC.panelBox.close();assert.equal(r.session.commit(),true);
+  const fresh=reopen(r,true);assert.equal(fresh.FC.projectPcvOverrides.get(address).edges.h2,mode!=='grain');fresh.render();fresh.rowNode('body.side.left').querySelector('[data-part-options]').click();assert.ok(fresh.modal());assert.equal(fresh.modal().querySelectorAll('input').find(i=>i.getAttribute('aria-label')==='PCV 2B').checked,mode!=='grain');
+ }
+});
+test('Failed PCV save after capture autosave retains draft, reports code and allows a confirmed retry',()=>{
+ const r=autosavedEditor();r.flushAutosave();r.edge('h2',true);const before=r.storage.getItem(P);
+ r.storage.fail.set('set:'+P,'throw');r.save();assert.ok(r.modal());assert.equal(r.storage.getItem(P),before);
+ assert.equal(r.modal().querySelectorAll('input').find(i=>i.getAttribute('aria-label')==='PCV 2B').checked,true);
+ assert.ok(r.messages.some(m=>m.message.includes('(SAVE_FAILED)')),'existing failure must expose the actual diagnostic code');
+ r.storage.fail.clear();r.save();assert.equal(r.modal(),null);assert.equal(edges(r).h2,true);r.open();assert.ok(r.modal());
+});
+test('A real concurrent data change after autosave still refuses the opened draft and preserves the newer project',()=>{
+ const r=autosavedEditor();r.flushAutosave();r.edge('h2',true);const rows=JSON.parse(r.storage.getItem(P));
+ rows.find(row=>row.id==='A').projectData.room.cabinets[0].width=75;r.storage.rows.set(P,JSON.stringify(rows));
+ const before=r.rows();r.save();assert.ok(r.modal());assert.deepEqual(r.rows(),before);
+ assert.equal(r.row('A').projectData.room.cabinets[0].width,75);assert.equal(override(r),undefined);
+});
+
+test('Only updatedAt is ignored: changed title, status, creation time and metadata remain real conflicts',()=>{
+ for(const field of ['title','status','createdAt','meta']){
+  const r=autosavedEditor();r.flushAutosave();r.edge('h2',true);const record=r.FC.projectStore.getById('A');
+  if(field==='meta')record.meta.note='newer';else if(field==='createdAt')record.createdAt+=1;else record[field]='newer';
+  assert.ok(r.FC.projectStore.upsert(record));const before=r.rows();r.save();assert.ok(r.modal());assert.deepEqual(r.rows(),before);
+  assert.ok(r.messages.some(m=>m.message.includes('(PROJECT_WRITE_CONFLICT)')));assert.equal(override(r),undefined);
+ }
 });
 
 (async()=>{let failures=0;for(const[name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(e){failures++;console.error('FAIL '+name+'\n'+e.stack);}}console.log(`${tests.length-failures}/${tests.length} PASS`);process.exitCode=failures?1:0;})();
