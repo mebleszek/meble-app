@@ -107,8 +107,8 @@
   }
 
   function writeRaw(key, raw){
-    if(raw === null) localStorage.removeItem(key);
-    else localStorage.setItem(key, raw);
+    if(raw === null) return localStorage.removeItem(key);
+    return localStorage.setItem(key, raw);
   }
 
   function refreshSessionButtons(){
@@ -180,6 +180,76 @@
     return true;
   }
 
+  // Grain first, then confirmed project PCV. Only our witnessed grain RAW may
+  // be compensated; project/session uncertainty is latched, never Cancelled here.
+  function saveProjectDraft(sig, initial, draft, editor, restoreDefaults, openedRaw){
+    const FC=root.FC,session=FC.session;
+    const fail=code=>({ok:false,code});
+    let plan,grainAttempted=false,projectAttempted=false,projectSaved=false,result;
+    function checkedRaw(raw,expected){
+      if(localStorage.getItem(STORAGE_KEY)!==expected)throw fail('GRAIN_WRITE_CONFLICT');
+      if(writeRaw(STORAGE_KEY,raw)===false || localStorage.getItem(STORAGE_KEY)!==raw)throw fail('GRAIN_WRITE_UNCONFIRMED');
+    }
+    try{
+      const owner=editor.validate();if(!owner || !owner.ok)throw owner || fail('EDIT_CONTEXT_MISMATCH');
+      const raw=localStorage.getItem(STORAGE_KEY);
+      if(raw!==openedRaw)throw fail('GRAIN_WRITE_CONFLICT');
+      const store=raw===null?{}:JSON.parse(raw);
+      if(!store || typeof store!=='object' || Array.isArray(store))throw fail('INVALID_GRAIN_DATA');
+      plan=prepareDirection(sig,draft.direction);
+      if(!plan)throw fail('INVALID_GRAIN_DATA');
+      const changeEdges=!sameEdges(initial.edges,draft.edges) || restoreDefaults && owner.source==='override';
+      if(!plan.changed && !changeEdges)return {ok:true,changed:false};
+      if(!session || session.begin(editor.roomId)!==true)throw fail('BEGIN_FAILED');
+      if(!session.inspectNavigationState || !session.inspectNavigationState())throw fail('SESSION_UNCONFIRMED');
+      const fresh=editor.validate();if(!fresh || !fresh.ok)throw fresh || fail('EDIT_CONTEXT_MISMATCH');
+      if(localStorage.getItem(STORAGE_KEY)!==openedRaw)throw fail('GRAIN_WRITE_CONFLICT');
+      // Replan after begin so semantic revert can use its durable baseline.
+      plan=prepareDirection(sig,draft.direction);
+      if(plan.prevRaw!==openedRaw)throw fail('GRAIN_WRITE_CONFLICT');
+      if(plan.changed){grainAttempted=true;checkedRaw(plan.nextRaw,plan.prevRaw);}
+      if(changeEdges){
+        // The global write may expose a competing project/context change.
+        const beforeProject=editor.validate();if(!beforeProject || !beforeProject.ok)throw beforeProject || fail('EDIT_CONTEXT_MISMATCH');
+        if(localStorage.getItem(STORAGE_KEY)!==plan.nextRaw)throw fail('GRAIN_WRITE_CONFLICT');
+        projectAttempted=true;result=editor.saveEdges(copyEdges(draft.edges),restoreDefaults);
+        if(!result || result.ok!==true)throw result || fail('SAVE_FAILED');
+        projectSaved=result.changed===true;
+      }
+      const after=editor.validate(true);
+      if(!after || !after.ok)throw after || fail('EDIT_CONTEXT_MISMATCH');
+      const desired=restoreDefaults?after.defaults:draft.edges;
+      if(!sameEdges(after.edges,desired) || localStorage.getItem(STORAGE_KEY)!==plan.nextRaw
+        || !session.inspectNavigationState())throw fail('SAVE_UNCONFIRMED');
+      refreshSessionButtons();return {ok:true,changed:plan.changed || projectSaved};
+    }catch(error){
+      let unconfirmed=!!(error && error.projectSaved) || projectSaved;
+      if(projectAttempted){
+        try{if(editor.recordFingerprint()!==editor.openedRecord)unconfirmed=true;}catch(_){unconfirmed=true;}
+      }
+      if(grainAttempted){
+        try{
+          const current=localStorage.getItem(STORAGE_KEY);
+          if(current!==plan.prevRaw){
+            // Never restore an old global store over a concurrent writer.
+            if(current!==plan.nextRaw)throw fail('GRAIN_ROLLBACK_CONFLICT');
+            checkedRaw(plan.prevRaw,plan.nextRaw);
+          }
+        }catch(_){unconfirmed=true;}
+      }
+      if(unconfirmed && session && session.markUnconfirmedProjectWrite)session.markUnconfirmedProjectWrite();
+      return {ok:false,code:error && error.code || 'WRITE_FAILED',unconfirmed,projectSaved:projectSaved || !!(error && error.projectSaved)};
+    }
+  }
+
+  function notifyProjectSaveFailure(result){
+    if(result.projectSaved){root.FC.projectPcvGuard.notify(result);return;}
+    if(result.unconfirmed){
+      root.FC.infoBox && root.FC.infoBox.open({title:'Nie udało się zapisać opcji formatki',okOnly:true,
+        message:'Zapis jest częściowy lub niepotwierdzony. Dalszy zapis został wstrzymany, aby chronić dane. Zachowano formularz i snapshot sesji.'});
+    }else notifySaveFailure(false);
+  }
+
   function resolveDimsMm(aMm, bMm, dir){
     const w = Math.max(0, Math.round(Number(aMm) || 0));
     const h = Math.max(0, Math.round(Number(bMm) || 0));
@@ -232,8 +302,12 @@
     const name = String((cfg && cfg.name) || 'Formatka');
     const material = String((cfg && cfg.material) || 'Materiał');
     const sizeText = String((cfg && cfg.sizeText) || '');
+    let openedRaw,openedDirection;
+    if(cfg.projectEditor){
+      try{openedRaw=localStorage.getItem(STORAGE_KEY);openedDirection=normalizeDirection((openedRaw===null?{}:JSON.parse(openedRaw))[sig]);}catch(_){ }
+    }
     const initial = {
-      direction:normalizeDirection((cfg && cfg.initialDirection) || getDirection(sig)),
+      direction:cfg.projectEditor?normalizeDirection(openedDirection):normalizeDirection((cfg && cfg.initialDirection) || getDirection(sig)),
       edges:copyEdges(cfg && cfg.edges),
     };
     const draft = { direction:initial.direction, edges:copyEdges(initial.edges) };
@@ -327,7 +401,7 @@
       optionsWrap.appendChild(btn);
     });
     if(!pcvOnly)scroll.appendChild(optionsWrap);
-    if(pcvOnly){
+    if(pcvOnly || cfg.projectEditor){
       const reset=h('button',{type:'button',class:'btn-primary',text:'Przywróć domyślne PCV'});
       reset.addEventListener('click',()=>{draft.edges=copyEdges(cfg.defaults);restoreDefaults=true;updateState();});scroll.appendChild(reset);
     }
@@ -384,7 +458,10 @@
       try{ FC.panelBox.close(); }catch(_){ } finally{ notifyClose(); }
     });
     saveBtn.addEventListener('click', ()=>{
-      if(pcvOnly){
+      if(cfg.projectEditor){
+        const result=saveProjectDraft(sig,initial,draft,cfg.projectEditor,restoreDefaults,openedRaw);
+        if(!result.ok){notifyProjectSaveFailure(result);return false;}
+      }else if(pcvOnly){
         let result;try{result=cfg.saveEdges(copyEdges(draft.edges),restoreDefaults);}catch(_){result={ok:false,code:'WRITE_FAILED'};}
         if(!result || result.ok!==true){if(FC.projectPcvGuard)FC.projectPcvGuard.notify(result);return false;}
       }else if(saveDraft(sig, initial, draft, cfg.edgeEditor) !== true) return false;
@@ -418,6 +495,7 @@
     setDirection,
     prepareDirection,
     saveDraft,
+    saveProjectDraft,
     resolveDimsMm,
     resolvePartForRozrys,
     openOptionsModal,

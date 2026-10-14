@@ -106,7 +106,7 @@ test('17 Failed session revision reports partial state and blocks stale RAM save
  const r=fixture();activate(r);assert.equal(r.session.begin('room'),true);r.open();r.edge('w2',true);r.storage.fail.set('set:fc_edit_session_v1','throw');r.save();assert.ok(r.modal());assert.equal(canonical(r).w2,true);assert.ok(r.messages.some(m=>m.message.includes('mogły zostać zapisane')));r.storage.fail.clear();r.handlers['session-save']({});assert.equal(canonical(r).w2,true);assert.equal(r.session.commit(),false);r.save();assert.ok(r.modal());
 });
 test('18 Project PCV edit is isolated from grain and rotation with no legacy writes',()=>{
- const r=fixture();activate(r);const keys=['fc_edge_v1','fc_material_part_options_v1','fc_rozrys_grain_state_v1'];keys.forEach(key=>r.storage.rows.set(key,'{"keep":true}'));const before=keys.map(key=>r.storage.getItem(key));r.open();assert.equal(r.modal().querySelectorAll('.material-part-options__choice').length,0);r.edge('w2',true);r.save();keys.forEach((key,i)=>assert.equal(r.storage.getItem(key),before[i]));
+ const r=fixture();activate(r);const keys=['fc_edge_v1','fc_material_part_options_v1','fc_rozrys_grain_state_v1'];keys.forEach(key=>r.storage.rows.set(key,'{"keep":true}'));const before=keys.map(key=>r.storage.getItem(key));r.open();assert.equal(r.modal().querySelectorAll('.material-part-options__choice').length,4);r.edge('w2',true);r.save();keys.forEach((key,i)=>assert.equal(r.storage.getItem(key),before[i]));
 });
 test('19 Legacy PCV setter and stale combined modal cannot write in project mode',()=>{
  const r=fixture(),legacy=r.FC.materialEdgeStore.createEdgeStore(),p=r.parts().find(p=>p.name==='Bok'),sig=r.FC.materialEdgeStore.signatureFromPart(p);legacy.getEdges(sig,p,r.cab());activate(r);const before=r.storage.getItem('fc_edge_v1');assert.equal(legacy.setEdges(sig,{w2:true}),false);
@@ -156,9 +156,10 @@ test('30 Active or unconfirmed edit blocks normal quote generation without histo
 test('31 Historical offers stay immutable and readable after current PCV changes',async()=>{
  const r=fixture();activate(r);const q=quotedUI(r);q.button.click();await tick();const history=r.storage.getItem('fc_quote_snapshots_v1');r.open();r.edge('w2',true);r.save();r.session.commit();assert.equal(r.storage.getItem('fc_quote_snapshots_v1'),history);assert.ok(r.FC.quoteSnapshotStore.getById(q.state.lastQuote.id));
 });
-test('32 Grain-only controls are disabled for PCV and direction save leaves project edges unchanged',()=>{
- const r=fixture();activate(r);r.render();r.rowNode('body.side.left').querySelector('[data-grain-options]').click();assert.ok(r.modal().textContent.includes('ustawienie globalne'));assert.ok(r.modal().querySelectorAll('input').every(i=>i.getAttribute('disabled')!==null));const before=r.row('A');btn(r.modal(),'Pion')?.click(); // Grain cards have a label and a hint; locate by label when text includes both.
- const vertical=r.modal().querySelectorAll('.material-part-options__choice').find(b=>b.textContent.startsWith('Pion'));assert.ok(vertical);vertical.click();r.save();assert.deepEqual(r.row('A'),before);assert.equal(r.storage.getItem('fc_edge_v1'),null);assert.ok(r.storage.getItem('fc_material_part_options_v1'));
+test('32 One Options button opens both controls; grain-only save leaves project PCV unchanged',()=>{
+ const r=fixture();activate(r);r.render();const row=r.rowNode('body.side.left');assert.equal(row.querySelector('[data-grain-options]'),null);assert.equal(row.querySelector('[data-part-options]').textContent,'Opcje');r.open();
+ assert.ok(r.modal().textContent.includes('Opcje formatki'));assert.equal(r.modal().querySelectorAll('.material-part-options__choice').length,4);assert.ok(r.modal().querySelectorAll('input').every(i=>i.getAttribute('disabled')===null));const before=r.row('A');
+ const vertical=r.modal().querySelectorAll('.material-part-options__choice').find(b=>b.textContent.startsWith('Pion'));vertical.click();r.save();assert.deepEqual(r.row('A'),before);assert.equal(r.storage.getItem('fc_edge_v1'),null);assert.ok(r.storage.getItem('fc_material_part_options_v1'));
 });
 test('33 Failed begin retains PCV draft with no project mutation, then allows safe retry',()=>{
  const r=fixture();activate(r);r.open();r.edge('w2',true);const before=r.row('A');r.storage.fail.set('set:fc_edit_session_v1','throw');r.save();assert.ok(r.modal());assert.deepEqual(r.row('A'),before);r.storage.fail.clear();r.save();assert.equal(r.modal(),null);assert.equal(canonical(r).w2,true);
