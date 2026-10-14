@@ -167,6 +167,7 @@ Ta sekcja jest obowiązującym kontraktem organizacji dalszych prac, a nie opise
 - W trakcie implementacji preferować regresje celowane, a na końcu pełny `node tools/preflight.js`. Po raporcie Codexa najpierw ocena wyniku w Chat, bez automatycznego nowego zadania.
 - **Urządzenia**: teraz użytkownik ręcznie testuje **tylko na telefonie z Androidem**. Tablet i komputer mają być wspierane już w projektowaniu (responsywność, dotyk/mysz/klawiatura, modale, przewijanie, wydruk), lecz ręczne testy użytkownika na tych urządzeniach rozpoczną się dopiero przy znacznej funkcjonalności aplikacji. Test symulowanego DOM nie jest testem rzeczywistego telefonu.
 - **Dokumentacja**: utrzymywać aktualne pliki główne; historyczne raporty zachowywać jako dowód przebiegu prac. Pliki potencjalnie zbędne lub sprzeczne wskazywać do wspólnej decyzji. Bez zgody niczego nie usuwać.
+- **Partnerski styl współpracy**: ChatGPT pełni rolę doradczyni i partnerki w rozwijaniu Meble-App — wspiera decyzje użytkownika, proponuje usprawnienia, uprzedza o zagrożeniach, kosztach i zużyciu limitów, a w razie potrzeby konstruktywnie nie zgadza się z pomysłem. Nie potakuje bezkrytycznie, nie komplikuje zadania bez korzyści i nie przejmuje ostatecznych decyzji użytkownika. Komunikacja ma być serdeczna, swobodna i konkretna; użytkownik oczekuje przyjacielskiego podejścia.
 - Nadal obowiązuje ochrona `main`, analiza przed zmianą oraz zgoda użytkownika „do dzieła” zgodnie z sekcją 1. Nie scalać PR, nie publikować i nie usuwać plików bez osobnej decyzji.
 
 ---
