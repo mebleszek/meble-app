@@ -155,6 +155,20 @@ Bez osobnego planu i komendy „do dzieła” nie należy:
 - usuwać wsparcia dla starych danych,
 - wykonywać masowego rename/refactor obejmującego wiele domen.
 
+## 12. Współpraca ChatGPT / Work / Codex i oszczędzanie limitów — decyzja 2026-10-14
+
+Ta sekcja jest obowiązującym kontraktem organizacji dalszych prac, a nie opisem ukończonej funkcjonalności.
+
+- **ChatGPT (Chat)**: domyślnie wykonuje analizę repozytorium, dokumentacji, zależności i ryzyk; tworzy plan oraz krótki, precyzyjny prompt implementacyjny.
+- **Work**: duże, wieloetapowe analizy tylko wtedy, gdy są efektywniejsze niż analiza w Chat.
+- **Codex**: przede wszystkim programowanie, poprawki, testy i weryfikacja wymagająca wykonania kodu. Zlecać mu szeroką analizę wyłącznie, jeśli będzie wydajniejszy od Chat i Work.
+- Przy istotnych zadaniach ChatGPT rekomenduje **tryb, model i poziom rozumowania**, uwzględniając **zużycie limitów**.
+- Prompty dla Codexa mają obejmować jeden jasno określony etap: problem, zakres plików, oczekiwane zachowanie, zakazy zmian pobocznych i kryteria akceptacji. Nie kazać ponownie badać całego repozytorium, gdy analiza jest już wykonana. Korzystać z konkretnych ustaleń i dokumentów, zamiast bezwarunkowo czytać setki plików.
+- W trakcie implementacji preferować regresje celowane, a na końcu pełny `node tools/preflight.js`. Po raporcie Codexa najpierw ocena wyniku w Chat, bez automatycznego nowego zadania.
+- **Urządzenia**: teraz użytkownik ręcznie testuje **tylko na telefonie z Androidem**. Tablet i komputer mają być wspierane już w projektowaniu (responsywność, dotyk/mysz/klawiatura, modale, przewijanie, wydruk), lecz ręczne testy użytkownika na tych urządzeniach rozpoczną się dopiero przy znacznej funkcjonalności aplikacji. Test symulowanego DOM nie jest testem rzeczywistego telefonu.
+- **Dokumentacja**: utrzymywać aktualne pliki główne; historyczne raporty zachowywać jako dowód przebiegu prac. Pliki potencjalnie zbędne lub sprzeczne wskazywać do wspólnej decyzji. Bez zgody niczego nie usuwać.
+- Nadal obowiązuje ochrona `main`, analiza przed zmianą oraz zgoda użytkownika „do dzieła” zgodnie z sekcją 1. Nie scalać PR, nie publikować i nie usuwać plików bez osobnej decyzji.
+
 ---
 
 Najważniejsza zasada w skrócie: **najpierw diagnoza i uzgodnienie, potem „do dzieła”, następnie minimalna zmiana i pełny preflight.**
