@@ -128,13 +128,13 @@
     return true;
   }
 
-  function notifySaveFailure(rollbackFailed){
+  function notifySaveFailure(rollbackFailed, code){
     try{
       if(root.FC.infoBox && typeof root.FC.infoBox.open === 'function') root.FC.infoBox.open({
         title:'Nie udało się zapisać opcji formatki',
-        message:rollbackFailed
+        message:(rollbackFailed
           ? 'Zapis częściowo się nie powiódł i nie udało się przywrócić poprzednich ustawień. Sesja edycji została zachowana. Ponów zapis lub użyj globalnego Anuluj, aby cofnąć zmiany sesji.'
-          : 'Opcje formatki nie zostały zapisane. Wprowadzone zmiany pozostały w formularzu. Spróbuj ponownie.',
+          : 'Opcje formatki nie zostały zapisane. Wprowadzone zmiany pozostały w formularzu. Spróbuj ponownie.') + (code ? ' ('+code+')' : ''),
         okOnly:true,
       });
     }catch(_){ }
@@ -246,8 +246,8 @@
     if(result.projectSaved){root.FC.projectPcvGuard.notify(result);return;}
     if(result.unconfirmed){
       root.FC.infoBox && root.FC.infoBox.open({title:'Nie udało się zapisać opcji formatki',okOnly:true,
-        message:'Zapis jest częściowy lub niepotwierdzony. Dalszy zapis został wstrzymany, aby chronić dane. Zachowano formularz i snapshot sesji.'});
-    }else notifySaveFailure(false);
+        message:'Zapis jest częściowy lub niepotwierdzony. Dalszy zapis został wstrzymany, aby chronić dane. Zachowano formularz i snapshot sesji. ('+String(result.code||'WRITE_FAILED')+')'});
+    }else notifySaveFailure(false,result.code);
   }
 
   function resolveDimsMm(aMm, bMm, dir){

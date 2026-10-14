@@ -49,7 +49,7 @@
   }
   function notify(result){
     if(FC.infoBox)FC.infoBox.open({title:'Nie potwierdzono PCV projektu',okOnly:true,message:result && result.projectSaved
-      ? 'Dane projektu mogły zostać zapisane, ale nie potwierdzono sesji. Dalszy zapis został wstrzymany, aby chronić dane. Zachowano formularz i snapshot.'
+      ? 'Dane projektu mogły zostać zapisane, ale nie potwierdzono sesji. Dalszy zapis został wstrzymany, aby chronić dane. Zachowano formularz i snapshot. ('+String(result.code||'SAVE_FAILED')+')'
       : 'Operacja została wstrzymana. Zachowano ustawienia i formularz. Sprawdź projekt oraz sesję i spróbuj ponownie. ('+String(result && result.code || 'SAVE_FAILED')+')'});
   }
   function activate(expected){

@@ -31,10 +31,11 @@ async function legacyCandidate(r){
  return r.FC.projectPcvResolver.stripQuoteProof(snapshot);
 }
 function canonical(r,role='body.side.left',cab='one',space='partOverrides'){return r.row('A').projectData.room.production?.[space]?.[cab]?.[role]?.edges;}
-function reopen(r){const fresh=runtime(r.rows()); // Real store, bridge, session restoration, then real production/domain/UI modules.
+function reopen(r,withUi=false){const fresh=runtime(r.rows()); // Real store, bridge, session restoration, then real production/domain/UI modules.
  fresh.s.materials=clone(r.s.materials);fresh.s.uiState.roomType='room';
  // Reuse the actual static dependencies, not previous APIs/closures.
  for(const f of ['js/app/cabinet/part-provenance.js','js/app/material/material-common.js','js/app/cabinet/front-hardware-fronts.js','js/app/cabinet/cabinet-cutlist.js','js/app/material/material-part-options.js','js/app/material/material-edge-store.js','js/app/cabinet/cabinet-derived-facts.js','js/app/material/material-tab-data.js','js/app/project/project-pcv-overrides.js','js/app/project/project-pcv-resolver.js','js/app/project/project-pcv-policy.js'])load(fresh,f);
+ if(withUi){fresh.s.document=require('./app-dev-smoke-lib/mini-document').makeMiniDocument();fresh.s.requestAnimationFrame=fn=>setImmediate(fn);fresh.api=fresh.FC.projectPcvOverrides;return install(fresh);}
  return fresh;
 }
 function protectedSeed(r){for(const key of ['fc_edge_v1','fc_material_part_options_v1','fc_rozrys_grain_state_v1','fc_program_defaults_v1','fc_quote_snapshots_v1','fc_price_list_v1','fc_catalog_materials_v1'])r.storage.rows.set(key,'{"preserve":true}');return Object.fromEntries([...r.storage.rows].filter(([key])=>key!=='fc_projects_v1'));}
@@ -100,10 +101,10 @@ test('15 Local Cancel confirms discard and causes no central mutation',async()=>
  const r=fixture();activate(r);const before=r.rows();r.open();r.edge('w2',true);btn(r.modal(),'Anuluj').click();await tick();btn(r.s.document.querySelector('.confirm-box'),'✕ ANULUJ ZMIANY').click();await tick();assert.equal(r.modal(),null);assert.deepEqual(r.rows(),before);
 });
 test('16 Failed confirmed PCV save preserves open editor, draft and current project',()=>{
- const r=fixture();activate(r);r.open();r.edge('w2',true);const before=r.row('A');r.storage.fail.set('set:fc_projects_v1','throw');r.save();assert.ok(r.modal());assert.equal(edgeInput(r.modal(),'1B').checked,true);assert.deepEqual(r.row('A'),before);r.storage.fail.clear();r.save();assert.equal(r.modal(),null);assert.equal(canonical(r).w2,true);
+ const r=fixture();activate(r);r.open();r.edge('w2',true);const before=r.row('A');r.storage.fail.set('set:fc_projects_v1','throw');r.save();assert.ok(r.modal());assert.equal(edgeInput(r.modal(),'1B').checked,true);assert.deepEqual(r.row('A'),before);assert.ok(r.messages.some(m=>m.message.includes('(SAVE_FAILED)')));r.storage.fail.clear();r.save();assert.equal(r.modal(),null);assert.equal(canonical(r).w2,true);
 });
 test('17 Failed session revision reports partial state and blocks stale RAM save/commit',()=>{
- const r=fixture();activate(r);assert.equal(r.session.begin('room'),true);r.open();r.edge('w2',true);r.storage.fail.set('set:fc_edit_session_v1','throw');r.save();assert.ok(r.modal());assert.equal(canonical(r).w2,true);assert.ok(r.messages.some(m=>m.message.includes('mogły zostać zapisane')));r.storage.fail.clear();r.handlers['session-save']({});assert.equal(canonical(r).w2,true);assert.equal(r.session.commit(),false);r.save();assert.ok(r.modal());
+ const r=fixture();activate(r);assert.equal(r.session.begin('room'),true);r.open();r.edge('w2',true);r.storage.fail.set('set:fc_edit_session_v1','throw');r.save();assert.ok(r.modal());assert.equal(canonical(r).w2,true);assert.ok(r.messages.some(m=>m.message.includes('mogły zostać zapisane')&&m.message.includes('(SESSION_UNCONFIRMED)')));r.storage.fail.clear();r.handlers['session-save']({});assert.equal(canonical(r).w2,true);assert.equal(r.session.commit(),false);r.save();assert.ok(r.modal());
 });
 test('18 Project PCV edit is isolated from grain and rotation with no legacy writes',()=>{
  const r=fixture();activate(r);const keys=['fc_edge_v1','fc_material_part_options_v1','fc_rozrys_grain_state_v1'];keys.forEach(key=>r.storage.rows.set(key,'{"keep":true}'));const before=keys.map(key=>r.storage.getItem(key));r.open();assert.equal(r.modal().querySelectorAll('.material-part-options__choice').length,4);r.edge('w2',true);r.save();keys.forEach((key,i)=>assert.equal(r.storage.getItem(key),before[i]));
