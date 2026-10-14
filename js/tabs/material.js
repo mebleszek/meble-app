@@ -27,11 +27,24 @@
 
   function getMaterialModel(room){
     const dataApi = window.FC && window.FC.materialTabData;
-    const edgeApi = window.FC && window.FC.materialEdgeStore && typeof window.FC.materialEdgeStore.createEdgeStore === 'function'
+    const policy=window.FC.projectPcvGuard.read({roomId:room});
+    if(!policy.ok)throw Object.assign(new Error('Nie można potwierdzić PCV projektu: '+policy.code),policy);
+    const edgeApi = policy.mode!=='project' && window.FC && window.FC.materialEdgeStore && typeof window.FC.materialEdgeStore.createEdgeStore === 'function'
       ? window.FC.materialEdgeStore.createEdgeStore()
       : null;
     if(dataApi && typeof dataApi.collectRoomMaterials === 'function'){
-      return dataApi.collectRoomMaterials(room, { edgeApi });
+      const model=dataApi.collectRoomMaterials(room,Object.assign({edgeApi},policy.options));
+      if(model.pcvMode==='project'){
+        model.cabinetRows.forEach(entry=>{entry.parts=entry.parts.flatMap(part=>{
+          if(!part.effectivePcv)return [part];
+          let skip=0;
+          return part.effectivePcv.contributions.map(contribution=>{
+            const row=FC.projectPcvResolver.withQuantity(Object.assign({},part,{qty:contribution.qty}),{skip});skip+=contribution.qty;
+            return row;
+          });
+        });});
+      }
+      model.policy=policy;return model;
     }
     const common = (window.FC && window.FC.materialCommon) || {};
     const hw = (window.FC && window.FC.frontHardware) || {};
@@ -68,7 +81,9 @@
   }
 
   function renderMaterialsTab(listEl, room){
-    const model = getMaterialModel(room);
+    let model;
+    try{model=getMaterialModel(room);}catch(error){listEl.innerHTML='';listEl.textContent='Nie można wyświetlić PCV. '+error.message+' '+String(error.code||'');return false;}
+    const projectMode=model.pcvMode==='project';
     const cabinets = model.cabinets || [];
     const cabinetRows = model.cabinetRows || [];
     const deps = model.deps || {};
@@ -118,6 +133,12 @@
       </div>
     `;
     listEl.appendChild(top);
+    if(FC.projectPcvPolicy){
+      const policyLine=document.createElement('div');policyLine.className='muted xs';
+      policyLine.textContent=projectMode?'PCV: ustawienia tego projektu. Słoje pozostają ustawieniem globalnym.':'PCV: dotychczasowe ustawienia globalne.';top.appendChild(policyLine);
+      if(!projectMode){const activate=document.createElement('button');activate.className='btn-primary material-project-pcv-activate';activate.type='button';activate.textContent='Włącz projektowe PCV';
+        activate.addEventListener('click',()=>FC.projectPcvPolicy.requestActivation(()=>renderCabinets()));top.appendChild(activate);}
+    }
     const recalcBtn = top.querySelector('.material-recalculate-project-btn');
     if(recalcBtn){
       recalcBtn.addEventListener('click', (event)=>{
@@ -139,7 +160,7 @@
       const body = Number(split.body) || 0;
       const front = Number(split.front) || 0;
       const total = Number(model.projectEdgeMeters) || Number(split.total) || (body + front);
-      projEdgeEl.textContent = `Razem: ${total.toFixed(2)} mb • pod kolor płyty: ${body.toFixed(2)} mb • pod kolor frontów: ${front.toFixed(2)} mb`;
+      projEdgeEl.textContent = `Razem: ${total.toFixed(projectMode?3:2)} mb • pod kolor płyty: ${body.toFixed(projectMode?3:2)} mb • pod kolor frontów: ${front.toFixed(projectMode?3:2)} mb`;
     }
 
     const wLamEl = top.querySelector('#wLam');
@@ -264,7 +285,7 @@
       cabEdgeBox.className = 'muted xs';
       cabEdgeBox.style.marginTop = '6px';
       const partCount = materialPartCount(parts);
-      cabEdgeBox.textContent = `Formatki: ${partCount} szt. • Okleina: ${cabEdgeMeters.toFixed(2)} mb • PCV korpusu: ${cabEdgeModeLabel}`;
+      cabEdgeBox.textContent = `Formatki: ${partCount} szt. • Okleina: ${cabEdgeMeters.toFixed(projectMode?3:2)} mb • PCV korpusu: ${cabEdgeModeLabel}`;
       cabTotalsBox.appendChild(cabEdgeBox);
 
       const table = document.createElement('div');
@@ -326,13 +347,16 @@
         const sig = isBoard && edgeApi && typeof edgeApi.signatureFromPart === 'function'
           ? edgeApi.signatureFromPart(p)
           : (isBoard && window.FC && FC.materialEdgeStore && typeof FC.materialEdgeStore.signatureFromPart === 'function' ? FC.materialEdgeStore.signatureFromPart(p) : null);
-        const e = (canHavePcv && sig && edgeApi && typeof edgeApi.getEdges === 'function') ? edgeApi.getEdges(sig, p, cab) : {w1:false,w2:false,h1:false,h2:false};
-        const dirLabel = canHavePcv && sig && edgeApi && typeof edgeApi.labelForDirection === 'function' ? edgeApi.labelForDirection(sig) : 'Domyślny z materiału';
+        const e = projectMode && p.effectivePcv ? p.effectivePcv.edges : (canHavePcv && sig && edgeApi && typeof edgeApi.getEdges === 'function') ? edgeApi.getEdges(sig, p, cab) : {w1:false,w2:false,h1:false,h2:false};
+        const dirLabel = projectMode && sig ? FC.materialPartOptions.labelForDirection(FC.materialPartOptions.getDirection(sig)) : canHavePcv && sig && edgeApi && typeof edgeApi.labelForDirection === 'function' ? edgeApi.labelForDirection(sig) : 'Domyślny z materiału';
         const edgeSummary = [['w1','1A'], ['w2','1B'], ['h1','2A'], ['h2','2B']]
           .filter(([key])=> e[key]).map(([, label])=> label).join(', ') || 'brak';
 
+        const source=projectMode && p.effectivePcv && p.effectivePcv.contributions[0].address;
+        const sourceLabel=source && source.partRoleId==='body.side.left'?' — lewy':source && source.partRoleId==='body.side.right'?' — prawy':'';
+        if(source)row.setAttribute('data-pcv-owner',JSON.stringify(source));
         row.innerHTML = `
-          <div style="font-weight:900">${p.name}</div>
+          <div style="font-weight:900">${p.name}${sourceLabel}</div>
           <div style="font-weight:900">${p.qty}</div>
           <div style="font-weight:900;text-align:center;line-height:1.05">
             <div>${fmtCm(p.a)}</div>
@@ -345,8 +369,9 @@
               <div class="material-row-tools">
                 <div class="material-row-tools__edges">PCV: ${edgeSummary}</div>
                 <div class="material-row-tools__opts">
-                  <button class="btn material-row-tools__opts-btn" type="button" data-part-options="${sig}">Opcje</button>
-                  <div class="muted xs material-row-tools__opts-meta">Słój: ${dirLabel}</div>
+                  <button class="btn material-row-tools__opts-btn" type="button" data-part-options="${sig}">${projectMode ? 'PCV' : 'Opcje'}</button>
+                  ${projectMode ? '<button type="button" class="btn" data-grain-options="1">Słoje (globalne)</button>' : ''}
+                  <div class="muted xs material-row-tools__opts-meta">Słój: ${dirLabel}${source && source.ownerType==='set' ? ' • Zestaw '+source.setId : ''}</div>
                 </div>
               </div>
             ` : (isBoard ? `<span class="muted xs" style="font-weight:900;line-height:1.25">Bez PCV — materiał nie jest laminatem</span>` : `<span class="muted xs">—</span>`)}
@@ -354,6 +379,30 @@
         `;
         table.appendChild(row);
 
+        if(canHavePcv && projectMode && source){
+          const config={sig,name:p.name+sourceLabel,material:p.material,aCm:Number(p.a),bCm:Number(p.b),fmtCm,sizeText:`${fmtCm(p.a)} × ${fmtCm(p.b)} cm`,initialDirection:FC.materialPartOptions.getDirection(sig)};
+          row.querySelector('[data-part-options]').addEventListener('click',()=>{
+            const policy=FC.projectPcvGuard.read({roomId:room,edit:true});
+            const current=policy.ok && policy.mode==='project' && policy.projectId===source.projectId ? FC.projectPcvOverrides.get(source) : {ok:false,code:policy.code||'PCV_POLICY_MISMATCH'};
+            if(!current.ok){FC.projectPcvGuard.notify(current);return;}
+            FC.materialPartOptions.openOptionsModal(Object.assign({},config,{editorMode:'pcv',edges:current.edges,defaults:current.defaults,
+              saveEdges:(edges,clear)=>{
+                const session=FC.session;
+                if(session && session.active && !session.durable && session.projectId===source.projectId && session.roomId===room
+                  && session.begin(room)!==true)return {ok:false,code:'BEGIN_FAILED'};
+                const now=FC.projectPcvGuard.read({roomId:room,edit:true});
+                if(!now.ok || now.mode!=='project' || now.projectId!==source.projectId)return {ok:false,code:now.code||'PCV_POLICY_MISMATCH',projectSaved:!!now.projectSaved};
+                const fresh=FC.projectPcvOverrides.get(source);
+                if(!fresh.ok)return fresh;
+                if(JSON.stringify(fresh.edges)!==JSON.stringify(current.edges))return {ok:false,code:'PROJECT_WRITE_CONFLICT'};
+                return clear?FC.projectPcvOverrides.clearEdges(source):FC.projectPcvOverrides.setEdges(source,edges);
+              },onSave:()=>{renderCabinets();if(FC.views && FC.views.refreshSessionButtons)FC.views.refreshSessionButtons();}}));
+          });
+          row.querySelector('[data-grain-options]').addEventListener('click',()=>{
+            const policy=FC.projectPcvGuard.read({roomId:room,edit:true});if(!policy.ok){FC.projectPcvGuard.notify(policy);return;}
+            FC.materialPartOptions.openOptionsModal(Object.assign({},config,{editorMode:'grain',edges:e,onSave:()=>renderCabinets()}));
+          });
+        }
         if(canHavePcv && edgeApi){
           const optsBtn = row.querySelector('[data-part-options]');
           if(optsBtn){

@@ -5,6 +5,7 @@ const vm = require('vm');
 
 const rootDir = path.resolve(__dirname, '..');
 const files = [
+  'js/app/project/project-bridge.js',
   'js/app/optimizer/cut-optimizer.js',
   'js/app/optimizer/speed-max-core.js',
   'js/app/optimizer/speed-max-bands.js',

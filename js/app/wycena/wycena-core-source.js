@@ -53,7 +53,7 @@
   }
 
   function getSelectedAggregate(selectionOverride, options){
-    const opts=options||{};
+    const opts=FC.projectPcvGuard.calculationOptions(options);
     if(opts.pcvMode === 'project'){
       if(!selectionOverride || !Array.isArray(selectionOverride.selectedRooms) || !selectionOverride.selectedRooms.length)throw FC.projectPcvResolver.error('ROOM_SCOPE_REQUIRED');
       return FC.cabinetDerivedFacts.aggregatePartsForRooms(selectionOverride.selectedRooms,opts);

@@ -9,12 +9,12 @@ const ROOT = path.resolve(__dirname, '..');
 const HISTORY = 'fc_quote_snapshots_v1';
 const SESSION = 'fc_edit_session_v1';
 const PROJECTS = 'fc_projects_v1';
-const project = (title)=> JSON.stringify([{ id:'A', projectData:{ title } }]);
+const project = (title)=> JSON.stringify([{ id:'A', investorId:'I', projectData:{ title, meta:{ assignedInvestorId:'I' } } }]);
 
 function runtime(rows = {}){
   // A separate prototype per runtime keeps session storage hooks isolated.
   class MemoryStorage{
-    constructor(){ this.map = new Map(Object.entries({ fc_current_project_id_v1:'A', ...rows })); this.calls = []; this.failWrites = 0; }
+    constructor(){ this.map = new Map(Object.entries({ fc_current_project_id_v1:'A', fc_current_investor_v1:'I', [PROJECTS]:project('P0'), ...rows })); this.calls = []; this.failWrites = 0; }
     get length(){ return this.map.size; }
     key(i){ return Array.from(this.map.keys())[i] || null; }
     getItem(key){ return this.map.has(String(key)) ? this.map.get(String(key)) : null; }
@@ -44,6 +44,9 @@ function runtime(rows = {}){
   vm.createContext(sandbox);
   [
     'js/app/shared/constants.js',
+    'js/app/shared/storage.js',
+    'js/app/project/project-store.js',
+    'js/app/project/project-bridge.js',
     'js/app/shared/data-storage-keys.js',
     'js/app/investor/session.js',
     'js/app/quote/quote-snapshot-scope.js',

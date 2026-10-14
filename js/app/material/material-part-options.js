@@ -152,6 +152,7 @@
         plans.push(plan);
       }
       if(!sameEdges(draft.edges, initial.edges)){
+        if(root.FC.projectPcvGuard){const policy=root.FC.projectPcvGuard.read({legacyWrite:true});if(!policy.ok || policy.mode==='project'){root.FC.projectPcvGuard.notify({code:policy.code || 'PROJECT_PCV_EDITOR_REQUIRED'});return false;}}
         if(!(edgeEditor && typeof edgeEditor.prepare === 'function' && typeof edgeEditor.apply === 'function')) return false;
         edgePlan = edgeEditor.prepare(draft.edges);
         if(!edgePlan) return false;
@@ -236,6 +237,8 @@
       edges:copyEdges(cfg && cfg.edges),
     };
     const draft = { direction:initial.direction, edges:copyEdges(initial.edges) };
+    const pcvOnly=cfg.editorMode==='pcv',grainOnly=cfg.editorMode==='grain';
+    let restoreDefaults=false;
 
     function h(tag, attrs, children){
       const node = document.createElement(tag);
@@ -286,10 +289,11 @@
       });
       const input = h('input', {
         type:'checkbox', checked:on ? 'checked' : null,
-        'aria-label':`PCV ${code}`,
+        'aria-label':`PCV ${code}`,disabled:grainOnly?'disabled':null,
       });
       input.addEventListener('change', ()=>{
-        draft.edges[key] = !!input.checked;
+        if(grainOnly)return;
+        restoreDefaults=false;draft.edges[key] = !!input.checked;
         updateState();
       });
       edgeControls.push({ key, edge, input });
@@ -311,7 +315,7 @@
       { key:'none', label:'Bez znaczenia', hint:'Ta formatka może być obracana jak bez słojów.' },
     ];
     const cards = [];
-    optionDefs.forEach((opt)=>{
+    (pcvOnly ? [] : optionDefs).forEach((opt)=>{
       const btn = h('button', { type:'button', class:'material-part-options__choice' });
       btn.appendChild(h('div', { class:'material-part-options__choice-label', text:opt.label }));
       btn.appendChild(h('div', { class:'material-part-options__choice-hint', text:opt.hint }));
@@ -322,7 +326,11 @@
       cards.push({ key:opt.key, btn });
       optionsWrap.appendChild(btn);
     });
-    scroll.appendChild(optionsWrap);
+    if(!pcvOnly)scroll.appendChild(optionsWrap);
+    if(pcvOnly){
+      const reset=h('button',{type:'button',class:'btn-primary',text:'Przywróć domyślne PCV'});
+      reset.addEventListener('click',()=>{draft.edges=copyEdges(cfg.defaults);restoreDefaults=true;updateState();});scroll.appendChild(reset);
+    }
 
     const footer = h('div', { class:'material-part-options__footer' });
     const footerActions = h('div', { class:'material-part-options__footer-actions' });
@@ -330,7 +338,7 @@
     const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' });
     const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zapisz' });
 
-    function isDirty(){ return draft.direction !== initial.direction || !sameEdges(draft.edges, initial.edges); }
+    function isDirty(){ return restoreDefaults || draft.direction !== initial.direction || !sameEdges(draft.edges, initial.edges); }
     function updatePreview(){
       previewRect.className = surfaceClass;
       previewRect.classList.add(`is-${normalizeDirection(draft.direction)}`);
@@ -376,14 +384,17 @@
       try{ FC.panelBox.close(); }catch(_){ } finally{ notifyClose(); }
     });
     saveBtn.addEventListener('click', ()=>{
-      if(saveDraft(sig, initial, draft, cfg.edgeEditor) !== true) return false;
+      if(pcvOnly){
+        let result;try{result=cfg.saveEdges(copyEdges(draft.edges),restoreDefaults);}catch(_){result={ok:false,code:'WRITE_FAILED'};}
+        if(!result || result.ok!==true){if(FC.projectPcvGuard)FC.projectPcvGuard.notify(result);return false;}
+      }else if(saveDraft(sig, initial, draft, cfg.edgeEditor) !== true) return false;
       try{ if(typeof cfg.onSave === 'function') cfg.onSave(normalizeDirection(draft.direction)); }catch(_){ }
       try{ FC.panelBox.close(); }catch(_){ } finally{ notifyClose(); }
       return true;
     });
 
     FC.panelBox.open({
-      title:'Opcje formatki',
+      title:pcvOnly?'PCV formatki':grainOnly?'Kierunek słojów — ustawienie globalne':'Opcje formatki',
       contentNode: body,
       width:'720px',
       dismissOnOverlay:false,

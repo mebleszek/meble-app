@@ -138,6 +138,7 @@ async function runMaterialQuoteParity(){
   };
   vm.createContext(ctx);
   load(ctx, [
+    'js/app/project/project-bridge.js',
     'js/app/material/material-common.js',
     'js/app/material/material-part-options.js',
     'js/app/material/material-edge-store.js',

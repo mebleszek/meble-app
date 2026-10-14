@@ -196,6 +196,86 @@
     return saveConfirmed(data).project;
   }
 
+  // Available before the optional UI policy. Missing policy never authorizes a marked project as legacy.
+  function pcvError(code){
+    if(FC.projectPcvResolver && typeof FC.projectPcvResolver.error === 'function') return FC.projectPcvResolver.error(code);
+    const error = new Error('Nie można potwierdzić ustawień PCV projektu. (' + code + ')');
+    error.code = 'PROJECT_PCV_' + code; error.projectPcv = true;
+    return error;
+  }
+  function pcvPolicyState(config){
+    const refuse = code => ({ok:false, code, projectModeRequired:true});
+    const cfg = config || {};
+    try{
+      if(FC.projectPcvPolicy && !cfg.legacyWrite){
+        const result = FC.projectPcvPolicy.read(config);
+        if(!result || typeof result.ok !== 'boolean') return refuse('PCV_POLICY_UNAVAILABLE');
+        if(result.ok && (!['legacy','project'].includes(result.mode) || !result.options
+          || result.mode === 'project' && (!result.projectId || result.options.pcvMode !== 'project' || result.options.projectId !== result.projectId)))
+          return refuse('PCV_POLICY_UNAVAILABLE');
+        if(result.ok && result.mode === 'legacy'){
+          const verified = pcvPolicyState({legacyWrite:true});
+          if(!verified.ok) return verified;
+          if(result.options.pcvMode || result.projectId && result.projectId !== verified.projectId) return refuse('PCV_POLICY_MISMATCH');
+        }else if(result.ok){
+          const id = FC.projectStore.getCurrentProjectId();
+          const owners = FC.projectStore.readAll().filter(row => String(row.id) === String(id));
+          if(id !== result.projectId || owners.length !== 1 || !window.projectData || !window.projectData.meta
+            || window.projectData.meta.productionPcvMode !== 'project' || !owners[0].projectData.meta
+            || owners[0].projectData.meta.productionPcvMode !== 'project') return refuse('PCV_POLICY_MISMATCH');
+        }
+        return result;
+      }
+      const ram = window.projectData;
+      const ramMode = ram && ram.meta && ram.meta.productionPcvMode;
+      if(ramMode) return refuse('PCV_POLICY_UNAVAILABLE');
+      const store = FC.projectStore;
+      if(!store){
+        const raw = FC.storage && typeof FC.storage.getRaw === 'function' ? FC.storage.getRaw(keys.projects || 'fc_projects_v1')
+          : window.localStorage && window.localStorage.getItem('fc_projects_v1');
+        const rows = raw == null ? [] : JSON.parse(raw);
+        if(!Array.isArray(rows) || rows.some(row => row.projectData && row.projectData.meta && row.projectData.meta.productionPcvMode))
+          return refuse('PCV_POLICY_UNAVAILABLE');
+        return {ok:true, mode:'legacy', options:{}};
+      }
+      const id = store.getCurrentProjectId(), rows = store.readAll();
+      if(!Array.isArray(rows)) return refuse('PCV_POLICY_UNAVAILABLE');
+      if(!id){
+        return rows.some(row => row.projectData && row.projectData.meta && row.projectData.meta.productionPcvMode)
+          ? refuse('PROJECT_REQUIRED') : {ok:true, mode:'legacy', options:{}};
+      }
+      const owners = rows.filter(row => String(row.id) === String(id));
+      if(owners.length !== 1) return refuse('PROJECT_OWNER_AMBIGUOUS');
+      const record = owners[0], mode = record.projectData && record.projectData.meta && record.projectData.meta.productionPcvMode;
+      if(mode) return refuse('PCV_POLICY_UNAVAILABLE');
+      // Classification only: the legacy setter still requires confirmed session.begin() before its first mutation.
+      if(cfg.legacyWrite) return {ok:true, mode:'legacy', projectId:id, options:{}};
+      const investorId = getCurrentInvestorId();
+      if(!investorId || String(record.investorId) !== investorId || !ram || !ram.meta
+        || String(ram.meta.assignedInvestorId) !== investorId) return refuse('INVESTOR_CONTEXT_MISMATCH');
+      const session = FC.session;
+      if(session && session.canSaveProject && session.canSaveProject() !== true)
+        return Object.assign(refuse('SESSION_UNCONFIRMED'), session.lastError || {});
+      if(session && session.active && (session.projectId !== id || !session.durable)) return refuse('EDIT_CONTEXT_MISMATCH');
+      if(cfg.roomId && (!record.projectData[cfg.roomId] || !ram[cfg.roomId])) return refuse('ROOM_NOT_FOUND');
+      return {ok:true, mode:'legacy', projectId:id, options:{}};
+    }catch(_){ return refuse('PCV_POLICY_UNAVAILABLE'); }
+  }
+  function pcvCalculationOptions(requested){
+    const state = pcvPolicyState();
+    if(!state.ok) throw pcvError(state.code);
+    const opts = requested || {};
+    if(state.mode === 'project' && (opts.pcvMode && opts.pcvMode !== 'project' || opts.projectId && opts.projectId !== state.projectId))
+      throw pcvError('PCV_POLICY_MISMATCH');
+    return Object.assign({}, opts, state.options);
+  }
+  function notifyPcvFailure(result){
+    if(FC.projectPcvPolicy && typeof FC.projectPcvPolicy.notify === 'function') return FC.projectPcvPolicy.notify(result);
+    if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({title:'Nie potwierdzono PCV projektu', okOnly:true,
+      message:'Obliczenie lub zapis zostały wstrzymane, aby chronić ustawienia projektu. Spróbuj ponownie po poprawnym załadowaniu aplikacji. (' + String(result && result.code || 'PCV_POLICY_UNAVAILABLE') + ')'});
+  }
+  FC.projectPcvGuard = {read:pcvPolicyState, calculationOptions:pcvCalculationOptions, error:pcvError, notify:notifyPcvFailure};
+
   FC.project = Object.assign({}, FC.project || {}, {
     CURRENT_SCHEMA_VERSION: model.CURRENT_SCHEMA_VERSION || (FC.project && FC.project.CURRENT_SCHEMA_VERSION) || 1,
     DEFAULT_PROJECT: model.DEFAULT_PROJECT_DATA || (FC.project && FC.project.DEFAULT_PROJECT) || { schemaVersion:1 },

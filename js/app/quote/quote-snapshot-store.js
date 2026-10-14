@@ -719,6 +719,35 @@
   }
 
   function validateNewCandidate(snapshot){
+    const pid = String(snapshot && (snapshot.project && snapshot.project.id || snapshot.projectId) || '');
+    const historical = snapshot && getById(snapshot.id);
+    const frozenHistory = historical && String(historical.project && historical.project.id || '') === pid
+      && String(historical.investor && historical.investor.id || '') === String(snapshot.investor && snapshot.investor.id || '')
+      && ['lines','totals','scope'].every(key => JSON.stringify(historical[key]) === JSON.stringify(snapshot[key]));
+    const isProjectCandidate = snapshot && (snapshot.pcvMode === 'project' || snapshot.__projectPcvCandidate !== undefined);
+    if(!frozenHistory && !FC.projectStore) throw FC.projectPcvGuard.error('PROJECT_OWNER_UNCONFIRMED');
+    if(!frozenHistory && FC.projectStore){
+      let owners;
+      let records;
+      try{ records = FC.projectStore.readAll(); owners = records.filter(row => String(row.id) === pid); }
+      catch(_){ throw FC.projectPcvGuard.error('PROJECT_OWNER_UNCONFIRMED'); }
+      if(owners.length > 1) throw FC.projectPcvGuard.error('PROJECT_OWNER_AMBIGUOUS');
+      const owner = owners[0];
+      const marked = row => !!(row && row.projectData && row.projectData.meta && row.projectData.meta.productionPcvMode);
+      const historicalOwner = historical && records.find(row => String(row.id) === String(historical.project && historical.project.id || ''));
+      // Preserve legacy orphan-history repair, but never reassign a project-owned offer.
+      if(historical && (isProjectCandidate || marked(owner) || marked(historicalOwner))
+        && (String(historical.project && historical.project.id || '') !== pid
+          || String(historical.investor && historical.investor.id || '') !== String(snapshot.investor && snapshot.investor.id || '')))
+        throw FC.projectPcvGuard.error('QUOTE_OWNER_MISMATCH');
+      if(!owner && records.some(marked))
+        throw FC.projectPcvGuard.error('PROJECT_OWNER_UNCONFIRMED');
+      if(!isProjectCandidate && marked(owner)){
+        throw FC.projectPcvGuard.error('QUOTE_PROOF_REQUIRED');
+      }
+      if(owner && snapshot.investor && snapshot.investor.id && String(owner.investorId) !== String(snapshot.investor.id))
+        throw FC.projectPcvGuard.error('INVESTOR_CONTEXT_MISMATCH');
+    }
     if(snapshot && (snapshot.pcvMode==='project' || snapshot.__projectPcvCandidate!==undefined)){
       if(!FC.projectPcvResolver)throw new Error('Brak walidacji projektowego kandydata WYCENY.');
       FC.projectPcvResolver.validateQuoteCandidate(snapshot);

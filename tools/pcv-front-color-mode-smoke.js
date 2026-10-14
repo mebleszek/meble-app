@@ -59,6 +59,7 @@ assert(materialPlan.includes('pcv_pod_kolor_frontow_zapas_10'), 'WYCENA nie budu
 assert(materialPlan.includes("findEdgePriceItem('front')"), 'WYCENA nie szuka osobnej ceny PCV pod kolor frontów');
 
 const s = sandbox();
+run('js/app/project/project-bridge.js', s);
 run('js/app/material/material-edge-store.js', s);
 assert(s.FC.materialEdgeStore.normalizePcvMode('pod kolor frontów') === 'front', 'Normalizacja PCV frontów nie działa');
 assert(s.FC.materialEdgeStore.normalizePcvMode('cokolwiek') === 'body', 'Nieznana opcja PCV powinna wracać do standardu');

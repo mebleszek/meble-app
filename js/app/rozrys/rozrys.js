@@ -402,6 +402,7 @@ function resolveInitialSelectedRooms(raw){
 
 
 function aggregatePartsForProject(selectedRooms, options){
+  options=FC.projectPcvGuard.calculationOptions(options);
   if(options && options.pcvMode==='project')return FC.rozrysScope.aggregatePartsForProject(selectedRooms,{pcvMode:'project',projectId:options.projectId,safeGetProject,getCabinetCutList:resolveCabinetCutListFn(),resolveRozrysPartFromSource,isFrontMaterialKey});
   if(FC.rozrysScope && typeof FC.rozrysScope.aggregatePartsForProject === 'function'){
     const baseDeps = {
@@ -471,9 +472,20 @@ function aggregatePartsForProject(selectedRooms, options){
   const computePlanPanelProAsync = typeof engineBridge.computePlanPanelProAsync === 'function' ? engineBridge.computePlanPanelProAsync : (()=> Promise.resolve({ sheets: [], note: 'Brak modułu rozrysEngine.' }));
 
   function render(options){
+    {
+      try{options=FC.projectPcvGuard.calculationOptions(options);}
+      catch(error){const root=document.getElementById('rozrysRoot');if(root){root.innerHTML='';root.textContent=error.message;}FC.projectPcvGuard.notify(error);return false;}
+    }
     const calculationOptions=options && options.pcvMode==='project'
       ? {pcvMode:'project',projectId:options.projectId,engineMode:options.engineMode} : {};
-    const aggregateForScope=rooms=>aggregatePartsForProject(rooms,calculationOptions);
+    let selectionError=null;
+    const aggregateForScope=rooms=>{
+      try{return aggregatePartsForProject(rooms,calculationOptions);}
+      catch(error){if(calculationOptions.pcvMode==='project'){
+        selectionError=error;const root=document.getElementById('rozrysRoot');if(root){root.innerHTML='';root.textContent=error.message+' '+String(error.code||'');}
+        if(FC.projectPcvPolicy)FC.projectPcvGuard.notify(error);
+      }throw error;}
+    };
     const root = document.getElementById('rozrysRoot');
     if(!root) return;
 
@@ -482,7 +494,7 @@ function aggregatePartsForProject(selectedRooms, options){
     const card = h('div', { class:'card' });
     const panelPrefs = loadPanelPrefs();
     let selectedRooms = resolveInitialSelectedRooms(panelPrefs.selectedRooms);
-    let agg = aggregateForScope(selectedRooms);
+    let agg;try{agg=aggregateForScope(selectedRooms);}catch(error){if(calculationOptions.pcvMode==='project')return false;throw error;}
     let materialScope = normalizeMaterialScopeForAggregate(decodeMaterialScope(panelPrefs.materialScope), agg);
     const headerRow = h('div', { style:'display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap' });
     headerRow.appendChild(h('h3', { style:'margin:0', text:'Optimax — optymalizacja rozkroju' }));
@@ -626,7 +638,7 @@ function aggregatePartsForProject(selectedRooms, options){
       setSelectedRooms: (rooms)=>{ selectedRooms = Array.isArray(rooms) ? rooms.slice() : []; },
       getMaterialScope: ()=> materialScope,
       setMaterialScope: (nextScope)=>{ materialScope = nextScope; },
-      getAggregate: ()=> agg,
+      getAggregate: ()=> {if(selectionError)throw selectionError;return agg;},
       setAggregate: (nextAgg)=>{ agg = nextAgg; },
       tryAutoRenderFromCache,
       scopeApi,
@@ -699,7 +711,7 @@ function aggregatePartsForProject(selectedRooms, options){
 
     outputCtrl = runtimeBundleApi.createOutputController(renderComposeApi.buildOutputControllerConfig({
       out,
-      getAggregate: ()=> agg,
+      getAggregate: ()=> {if(selectionError)throw selectionError;return agg;},
       getMatSelValue: ()=> matSel.value,
       getBaseState,
       setCacheState: (patch)=>{ try{ if(rozState) rozState.setCacheState(patch); }catch(_){ } },
@@ -766,7 +778,7 @@ function aggregatePartsForProject(selectedRooms, options){
       heurSel,
       dirSel,
       out,
-      getAggregate: ()=> agg,
+      getAggregate: ()=> {if(selectionError)throw selectionError;return agg;},
       setUiState: (patch)=>{ try{ if(rozState) rozState.setUiState(patch); }catch(_){ } },
       createProgressApi: uiBridge.createProgressApi,
       openAddStockModalBridge: uiBridge.openAddStockModal,
