@@ -72,7 +72,7 @@ test('5 save, rollback and session cleanup failures block navigation',async()=>{
 });
 test('6 failed durable begin does not open editor, retry reuses baseline',async()=>{
  const r=fixture(),before=clone(r.s.projectData),ui=r.storage.getItem('fc_ui_v1');r.storage.fail.set(E,true);
- assert.equal(await r.open(),false);assert.deepEqual(clone(r.s.projectData),before);assert.equal(r.storage.getItem('fc_ui_v1'),ui);assert.equal(r.FC.session.durable,false);
+ assert.equal(await r.open(),false);before.meta.productionPcvMode='project';assert.deepEqual(clone(r.s.projectData),before);assert.equal(r.record().projectData.meta.productionPcvMode,'project');assert.equal(r.storage.getItem('fc_ui_v1'),ui);assert.equal(r.FC.session.durable,false);
  const snapshot=r.FC.session.snapshot;r.storage.fail.clear();assert.equal(await r.open(),true);assert.equal(r.FC.session.snapshot,snapshot);assert.equal(r.FC.session.durable,true);
 });
 test('7 reload of clean editor restores ownership without rollback or rebaseline',async()=>{
@@ -160,10 +160,10 @@ test('19 scoped Save and Cancel preserve a newer Salon',async()=>{
 });
 test('20 global catalogs, prices and legacy part stores are untouched',async()=>{
  const r=fixture(),keys=['fc_company_profile_v1','fc_program_defaults_v1','fc_edge_v1','fc_material_part_options_v1','materials','accessories','quoteRates'];
- keys.forEach(key=>r.storage.setItem(key,'{"sentinel":"'+key+'"}'));const raw=keys.map(key=>r.storage.getItem(key));
+ keys.forEach(key=>r.storage.setItem(key,'{"sentinel":"'+key+'"}'));const raw=keys.map(key=>r.storage.getItem(key)),rows=offers(r);
  await r.open();assert.equal(r.FC.session.cancel(),true);r.FC.sessionNavigation.reloadCentral();
  assert.equal(r.FC.roomRegistryProjectSync.updateRoomRecord(r.inv(),'room_s',{name:'Salon Nowy',baseType:'pokoj'}).ok,true);
- const rows=offers(r);assert.equal(r.FC.projectStatusSync.commitAcceptedSnapshot(rows[2],'zaakceptowany').ok,true);
+ assert.equal(r.FC.projectStatusSync.commitAcceptedSnapshot(rows[2],'zaakceptowany').ok,true);
  assert.deepEqual(keys.map(key=>r.storage.getItem(key)),raw);
 });
 test('21 ordering and metadata edits are confirmed without changing cabinet data',()=>{

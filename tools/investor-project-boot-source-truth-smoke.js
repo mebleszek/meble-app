@@ -26,7 +26,7 @@ function assert(condition, message, details){
 function projectWithCabinets(investorId, cabinetIds){
   return {
     schemaVersion:2,
-    meta:{ assignedInvestorId:investorId },
+    meta:{ assignedInvestorId:investorId, productionPcvMode:'project' },
     kuchnia:{
       cabinets:(cabinetIds || []).map((id)=>({ id })),
       fronts:[], sets:[], settings:{},
@@ -66,7 +66,12 @@ function createRuntimeScenario(options){
         return clone(project);
       },
     },
+    investors:{getCurrentId:()=>investorId},
+    session:{active:false,canSaveProject:()=>true},
     projectStore:{
+      prepareProjectDataForPersistence:clone,
+      readAll:()=>centralRecord()?[centralRecord()]:[],
+      getById:id=>id==='proj_boot'?centralRecord():null,
       getCurrentRecord:centralRecord,
       getByInvestorId(id){ return String(id) === investorId && centralProject ? { id:'proj_boot', investorId, projectData:clone(centralProject) } : null; },
       getCurrentProjectId(){ return currentProjectId; },
@@ -114,6 +119,7 @@ function createRuntimeScenario(options){
   sandbox.window.FC = sandbox.FC;
 
   vm.createContext(sandbox);
+  vm.runInContext(read('js/app/project/project-pcv-policy.js'), sandbox, { filename:'project-pcv-policy.js' });
   vm.runInContext(read(RUNTIME), sandbox, { filename:RUNTIME });
 
   return {

@@ -4,7 +4,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {runtime}=require('./project-session-owner-rollback-smoke');
 const ROOT=path.resolve(__dirname,'..'),clone=x=>JSON.parse(JSON.stringify(x));
 function fixture(){
- const r=runtime(),s=r.s,FC=r.FC;
+ // Isolate the read-only adapters from project-opening policy; full UI lifecycle has its own smoke.
+ const r=runtime(undefined,{adapterOnly:true}),s=r.s,FC=r.FC;
  const cabinet=id=>({id,type:'stojąca',subType:'standardowa',width:60,height:80,depth:50,bodyColor:'laminat White',frontMaterial:'laminat',frontColor:'White',backMaterial:'HDF',frontCount:2,details:{shelves:2}});
  const room=cabs=>({cabinets:cabs,fronts:[],sets:[],settings:{legHeight:10,bottomHeight:82}});
  const a=FC.projectStore.getById('A');a.projectData={meta:{assignedInvestorId:'inv-A'},room:room([cabinet('one'),cabinet('two')]),other:room([cabinet('one')])};FC.projectStore.upsert(a);

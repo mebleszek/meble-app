@@ -5,6 +5,7 @@
   'use strict';
   window.FC = window.FC || {};
   window.FC.tabsMaterial = window.FC.tabsMaterial || {};
+  const FC = window.FC;
 
   function fallbackFmtCm(value){
     const n = Number(value);
@@ -136,8 +137,6 @@
     if(FC.projectPcvPolicy){
       const policyLine=document.createElement('div');policyLine.className='muted xs';
       policyLine.textContent=projectMode?'PCV: ustawienia tego projektu. Słoje pozostają ustawieniem globalnym.':'PCV: dotychczasowe ustawienia globalne.';top.appendChild(policyLine);
-      if(!projectMode){const activate=document.createElement('button');activate.className='btn-primary material-project-pcv-activate';activate.type='button';activate.textContent='Włącz projektowe PCV';
-        activate.addEventListener('click',()=>FC.projectPcvPolicy.requestActivation(()=>renderCabinets()));top.appendChild(activate);}
     }
     const recalcBtn = top.querySelector('.material-recalculate-project-btn');
     if(recalcBtn){

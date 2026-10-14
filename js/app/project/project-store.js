@@ -201,6 +201,7 @@
     const projectData = model && typeof model.normalizeProjectData === 'function'
       ? model.normalizeProjectData(options && options.projectData)
       : clone(options && options.projectData || {});
+    projectData.meta = Object.assign({}, projectData.meta, {assignedInvestorId:key, productionPcvMode:'project'});
     const record = upsert({
       id: uid(),
       investorId:key,
@@ -236,6 +237,7 @@
     const normalizedData = model && typeof model.normalizeProjectData === 'function'
       ? model.normalizeProjectData(projectData)
       : clone(projectData);
+    if(matches.length === 0) normalizedData.meta = Object.assign({}, normalizedData.meta, {assignedInvestorId:key, productionPcvMode:'project'});
     const next = normalizeRecord({
       id: base.id,
       investorId: base.investorId,

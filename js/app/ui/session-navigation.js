@@ -142,6 +142,7 @@
       if(FC.session && !FC.session.active){
         if(isDivergent() || !reloadCentral()) return false;
       }
+      if(!FC.projectPcvPolicy || FC.projectPcvPolicy.ensureProjectMode(state.roomType).ok!==true) return false;
       if(!(FC.session && FC.session.begin(state.roomType) === true)) return false;
       finishedScope = null;
       return true;

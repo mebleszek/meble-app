@@ -262,7 +262,7 @@
     }catch(_){ return refuse('PCV_POLICY_UNAVAILABLE'); }
   }
   function pcvCalculationOptions(requested){
-    const state = pcvPolicyState();
+    const state = pcvPolicyState({allowLegacy:requested && requested.pcvMode === 'project'});
     if(!state.ok) throw pcvError(state.code);
     const opts = requested || {};
     if(state.mode === 'project' && (opts.pcvMode && opts.pcvMode !== 'project' || opts.projectId && opts.projectId !== state.projectId))

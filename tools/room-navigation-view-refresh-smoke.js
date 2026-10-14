@@ -32,7 +32,7 @@ function setup(seed){
   s.projectData = FC.project.load();
   FC.roomRegistry = {getRoomLabel:room=>s.projectData.meta.roomDefs[room].label};
   const load = file => vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),s,{filename:file});
-  for(const file of ['js/app/shared/ui-state.js','js/app/ui/views.js','js/app/ui/tab-navigation.js','js/app/shared/public-api.js',
+  for(const file of ['js/app/project/project-pcv-policy.js','js/app/shared/ui-state.js','js/app/ui/views.js','js/app/ui/tab-navigation.js','js/app/shared/public-api.js',
     'js/app/ui/choice-box.js','js/app/ui/sections.js','js/app/ui/tabs-router.js','js/app/ui/cabinets-render.js',
     'js/tabs/wywiad.js','js/app/ui/wywiad-room-settings.js']) load(file);
   // Same adapter contract as app.js; actual production renderers build the DOM.

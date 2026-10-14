@@ -8,7 +8,8 @@ const ROOT = path.resolve(__dirname,'..');
 const PROJECTS='fc_projects_v1', SESSION='fc_edit_session_v1';
 const PARTS=['fc_edge_v1','fc_material_part_options_v1'];
 const clone=value=>JSON.parse(JSON.stringify(value));
-function runtime(seed){
+function runtime(seed, options){
+  const lifecycle = !(options && options.adapterOnly);
   class MemoryStorage{
     constructor(rows={}){this.rows=new Map(Object.entries(rows));this.calls=[];this.fail=new Map();this.onRead=null;}
     get length(){return this.rows.size;}
@@ -27,7 +28,7 @@ function runtime(seed){
   let investor=seed?storage.getItem('fc_current_investor_v1'):'inv-A';
   s.FC.investors={getCurrentId:()=>investor,setCurrentId(id){investor=id;storage.setItem('fc_current_investor_v1',id||'');return id;},create(){throw Error('blocked create must not run');},remove(){throw Error('blocked remove must not run');}};
   for(const file of ['js/app/shared/constants.js','js/app/shared/storage.js','js/app/project/project-model.js','js/app/project/project-store.js',
-    'js/app/project/project-bridge.js','js/app/investor/investor-project-repository.js','js/app/investor/investor-project-runtime.js',
+    'js/app/project/project-bridge.js',...(lifecycle?['js/app/project/project-pcv-policy.js']:[]),'js/app/investor/investor-project-repository.js','js/app/investor/investor-project-runtime.js',
     'js/app/investor/investor-project-patches.js','js/app/investor/session.js','js/app/project/project-domain-operations.js','js/app/ui/actions-register.js','js/app/ui/session-navigation.js']){
     vm.runInContext(fs.readFileSync(path.join(ROOT,file),'utf8'),s,{filename:file});
   }
@@ -36,7 +37,7 @@ function runtime(seed){
     for(const [id,width] of [['A',60],['B',70]])assert.ok(FC.projectStore.upsert({id,investorId:'inv-'+id,projectData:{meta:{assignedInvestorId:'inv-'+id},room:{cabinets:[{id:'cab-'+id,width}],fronts:[],sets:[],settings:{}}}}));
     FC.projectStore.setCurrentProjectId('A');storage.setItem('fc_current_investor_v1','inv-A');
   }
-  s.projectData=FC.project.load();FC.investorProjectPatches.patchInvestorsAPI();
+  s.projectData=FC.project.load();if(lifecycle)FC.investorProjectPatches.patchInvestorsAPI();
   const update=(id,width)=>{const record=FC.projectStore.getById(id);record.projectData.room.cabinets[0].width=width;assert.ok(FC.projectStore.upsert(record));};
   const row=id=>JSON.parse(storage.getItem(PROJECTS)).find(row=>row.id===id);
   return {s,FC,session:FC.session,storage,handlers,messages,update,row,rows:()=>Object.fromEntries(storage.rows)};
