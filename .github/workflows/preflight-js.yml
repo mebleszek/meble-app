@@ -1,11 +1,10 @@
 name: Preflight (full Meble-App)
 
+# One full preflight after approved Draft -> Ready. No duplicate on Draft or main push.
 on:
-  push:
-    branches: ["main"]
   pull_request:
     branches: ["main"]
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [ready_for_review]
   workflow_dispatch: {}
 
 concurrency:
@@ -123,6 +122,12 @@ jobs:
               return '';
             }
 
+            // Do not merge if main moved after the tested event.
+            if (current.data.base.sha !== pr.base.sha) {
+              core.setFailed(`PR base changed from ${pr.base.sha} to ${current.data.base.sha}; refusing untested merge.`);
+              return '';
+            }
+
             const result = await github.rest.pulls.merge({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -149,80 +154,8 @@ jobs:
       contents: read
       actions: read
 
+    # Lightweight deployment check only; full preflight already passed before merge.
     steps:
-      - name: Checkout exact merge commit
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.auto-merge.outputs.merge_sha }}
-
-      - name: Use Node.js 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Select merged site to test
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          ZIP="$(ls -1t site*.zip 2>/dev/null | head -n 1 || true)"
-
-          if [ -z "$ZIP" ]; then
-            echo "No site*.zip found — testing exact merge commit."
-            echo "PREFLIGHT_DIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
-            exit 0
-          fi
-
-          echo "Using ZIP: $ZIP"
-          rm -rf _preflight_raw _preflight_site
-          mkdir -p _preflight_raw _preflight_site
-          unzip -q "$ZIP" -d _preflight_raw
-
-          if [ -f _preflight_raw/index.html ]; then
-            cp -a _preflight_raw/. _preflight_site/
-          else
-            topdir="$(find _preflight_raw -mindepth 1 -maxdepth 1 -type d | head -n 1 || true)"
-            if [ -n "$topdir" ] && [ -f "$topdir/index.html" ]; then
-              echo "Flattening top folder: $topdir"
-              cp -a "$topdir"/. _preflight_site/
-            fi
-          fi
-
-          if [ ! -f _preflight_site/index.html ]; then
-            echo "ERROR: index.html not found after unzip/flatten."
-            exit 1
-          fi
-
-          if [ ! -f _preflight_site/tools/preflight.js ]; then
-            echo "ERROR: tools/preflight.js not found in tested package."
-            exit 1
-          fi
-
-          echo "PREFLIGHT_DIR=$GITHUB_WORKSPACE/_preflight_site" >> "$GITHUB_ENV"
-
-      - name: Run full Preflight on merge commit
-        shell: bash
-        run: |
-          set -uo pipefail
-
-          echo "Testing merge commit: ${{ needs.auto-merge.outputs.merge_sha }}"
-          set +e
-          node "$PREFLIGHT_DIR/tools/preflight.js" 2>&1 | tee post-merge-preflight-output.txt
-          status=${PIPESTATUS[0]}
-          set -e
-
-          {
-            echo "## Post-merge Meble-App preflight"
-            echo
-            echo 'Merge commit: `${{ needs.auto-merge.outputs.merge_sha }}`'
-            echo
-            echo '```text'
-            tail -n 120 post-merge-preflight-output.txt
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          exit "$status"
-
       - name: Wait for Pages on exact merge commit
         uses: actions/github-script@v7
         env:
@@ -308,7 +241,6 @@ jobs:
                   '',
                   'Preflight PR: **OK**',
                   'Auto-merge: **OK**',
-                  'Preflight po merge: **OK**',
                   'Pages: **OK**',
                   mergeSha ? `Merge commit: \`${mergeSha}\`` : ''
                 ].filter(Boolean).join('\n')
@@ -317,7 +249,7 @@ jobs:
                   '',
                   `Preflight PR: **${preflight}**`,
                   `Auto-merge: **${merge}**`,
-                  `Weryfikacja po merge / Pages: **${verify}**`,
+                  `Pages dla scalonego commita: **${verify}**`,
                   '',
                   'Trzeba sprawdzić nieudany etap w GitHub Actions.'
                 ].join('\n');
