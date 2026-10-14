@@ -97,12 +97,25 @@
         if(ram !== JSON.stringify(comparableProjectData(current && current.projectData))
           && ram !== JSON.stringify(comparableProjectData(target.projectData))) return false;
       }
+      const previousProject = typeof projectData !== 'undefined' ? projectData : window.projectData;
       const proj = loadProjectFor(id);
       if(store.getCurrentProjectId() !== String(target.id)) return false;
       try{ proj.meta = proj.meta || {}; proj.meta.assignedInvestorId = id; }catch(_){ }
       try{
         if(typeof projectData !== 'undefined') projectData = proj;
       }catch(_){ }
+      window.projectData = proj;
+      let policyResult;
+      try{ policyResult = FC.projectPcvPolicy && FC.projectPcvPolicy.ensureProjectMode(); }catch(_){ }
+      if(!policyResult || policyResult.ok !== true){
+        // The investor wrapper restores its previous investor on refusal. Restore
+        // the matching RAM/pointer too, so a retry cannot save target data as it.
+        if(store.setCurrentProjectId(current && current.id || '') === false
+          && FC.session && FC.session.markUnconfirmedProjectWrite) FC.session.markUnconfirmedProjectWrite();
+        if(typeof projectData !== 'undefined') projectData = previousProject;
+        window.projectData = previousProject;
+        return false;
+      }
       persistAsActiveProject(proj);
       refreshProjectUi();
       return true;

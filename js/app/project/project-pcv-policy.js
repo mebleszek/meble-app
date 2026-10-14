@@ -17,7 +17,7 @@
     const refusal=code=>Object.assign(fail(code),{projectModeRequired});
     try{
       const cfg=config||{},store=FC.projectStore,ram=window.projectData,id=store && store.getCurrentProjectId();
-      if(!id)return !cfg.strict && !marker(ram) ? {ok:true,mode:'legacy',options:{}} : refusal('PROJECT_REQUIRED');
+      if(!id)return refusal('PROJECT_REQUIRED');
       const rows=store.readAll().filter(row=>String(row.id)===String(id));
       projectModeRequired=projectModeRequired || rows.some(row=>!!marker(row.projectData));
       if(rows.length!==1)return refusal('PROJECT_OWNER_AMBIGUOUS');
@@ -27,6 +27,7 @@
       const mode=marker(record.projectData),ramMode=marker(ram);
       if(mode!==ramMode)return refusal('PCV_POLICY_MISMATCH');
       if(mode!==undefined && mode!=='' && mode!=='project')return refusal('PCV_POLICY_INVALID');
+      if(mode!=='project' && !cfg.allowLegacy)return Object.assign(refusal('PCV_POLICY_REQUIRED'),{projectModeRequired:true});
       const session=FC.session;
       if(session && session.canSaveProject && session.canSaveProject()!==true)return Object.assign(refusal('SESSION_UNCONFIRMED'),session.lastError||{});
       if(session && session.active && (session.projectId!==id || !session.durable))return refusal('EDIT_CONTEXT_MISMATCH');
@@ -39,7 +40,7 @@
     }catch(_){return refusal('POLICY_READ_FAILED');}
   }
   function calculationOptions(requested){
-    const state=read();
+    const state=read({allowLegacy:requested && requested.pcvMode==='project'});
     if(!state.ok)throw FC.projectPcvResolver.error(state.code);
     const opts=requested||{};
     if(state.mode==='project' && (opts.pcvMode && opts.pcvMode!=='project' || opts.projectId && opts.projectId!==state.projectId))throw FC.projectPcvResolver.error('PCV_POLICY_MISMATCH');
@@ -52,9 +53,10 @@
       : 'Operacja została wstrzymana. Zachowano ustawienia i formularz. Sprawdź projekt oraz sesję i spróbuj ponownie. ('+String(result && result.code || 'SAVE_FAILED')+')'});
   }
   function activate(expected){
-    const state=read({strict:true});
+    const state=read({strict:true,allowLegacy:true});
     if(!state.ok)return state;
     if(expected && (state.projectId!==expected.projectId || state.investorId!==expected.investorId))return fail('PROJECT_CONTEXT_MISMATCH');
+    if(!FC.session || typeof FC.session.canSaveProject!=='function')return fail('SESSION_UNAVAILABLE');
     if(FC.session && FC.session.active || FC.sessionNavigation && FC.sessionNavigation.needsClosure())return fail('ACTIVE_EDIT');
     if(state.mode==='project')return {ok:true,changed:false};
     try{
@@ -80,21 +82,21 @@
       return {ok:false,code:'ACTIVATION_UNCONFIRMED',projectSaved:true};
     }
   }
-  async function requestActivation(onActivated){
-    const before=read();
-    if(!before.ok || !before.projectId){notify(before.ok?fail('PROJECT_REQUIRED'):before);return false;}
-    if(!FC.confirmBox || !FC.sessionNavigation)return false;
-    if(!await FC.confirmBox.ask({title:'Włączyć projektowe PCV?',message:'Od tej chwili ustawienia krawędzi będą zapisywane osobno dla elementów tego projektu. Dotychczasowe globalne nadpisania PCV nie zostaną przeniesione ani usunięte. Nowe ustawienia rozpoczną się od domyślnych wartości technologicznych.',cancelText:'Anuluj',confirmText:'Włącz projektowe PCV',dismissOnOverlay:false}))return false;
-    return FC.sessionNavigation.requestTransition('włączenia projektowego PCV',()=>{
-      const result=activate(before);
-      if(!result.ok){notify(result);return false;}
-      const ui=window.uiState;
-      if(FC.sessionNavigation.isEditState(ui) && !FC.sessionNavigation.prepareEditState(ui,true)){
-        notify({code:'BEGIN_FAILED',projectSaved:true});return false;
-      }
-      if(typeof onActivated==='function')onActivated();
-      return true;
-    });
+  function ensureProjectMode(openingRoom){
+    const session=FC.session;
+    if(session && session.active){
+      try{
+        const id=FC.projectStore.getCurrentProjectId(),record=FC.projectStore.getById(id),investor=FC.investors.getCurrentId();
+        // This no-write check precedes session.begin(openingRoom), which validates
+        // the durable proof and permits retry of an initial failed begin.
+        if(session.projectId!==id || openingRoom && session.roomId!==String(openingRoom)
+          || !record || String(record.investorId)!==String(investor) || !window.projectData || !window.projectData.meta
+          || String(window.projectData.meta.assignedInvestorId)!==String(investor)
+          || marker(record.projectData)!=='project' || marker(window.projectData)!=='project')return fail('ACTIVE_EDIT');
+        return {ok:true,changed:false};
+      }catch(_){return fail('ACTIVE_EDIT');}
+    }
+    return activate();
   }
-  FC.projectPcvPolicy={read,calculationOptions,activate,requestActivation,notify};
+  FC.projectPcvPolicy={read,calculationOptions,activate,ensureProjectMode,notify};
 })();

@@ -3,7 +3,7 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),tools=path.join(root,'tools');
 const { runtime:makeRuntime }=require('./project-session-owner-rollback-smoke');
-const r=makeRuntime(),s=r.s,FC=r.FC;
+const r=makeRuntime(undefined,{adapterOnly:true}),s=r.s,FC=r.FC;
 const clone=x=>JSON.parse(JSON.stringify(x)),material='Egger W1100';
 const mkRoom=(id,qty)=>({cabinets:[{id,type:'stojąca',parts:[{name:'Panel',a:270,b:95,qty,material}]}],fronts:[],sets:[],settings:{}});
 const record=FC.projectStore.getById('A');

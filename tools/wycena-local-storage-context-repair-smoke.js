@@ -183,9 +183,12 @@ function runSameInvestorSnapshotRelinkScenario(){
 
   const result = FC.wycenaContextRepair.repairActiveQuoteContext({ reason:'test-relink-snapshots' });
   assert(result && result.ok, 'Naprawa kontekstu relink nie zwróciła OK', result);
-  assert(result.repairs.some((item)=> String(item).indexOf('relinked-investor-snapshots:1') === 0), 'Nie zgłoszono relinku snapshotu inwestora', result.repairs);
+  assert(!result.repairs.some((item)=> String(item).indexOf('relinked-investor-snapshots:') === 0), 'Automatycznie aktywowany projekt nie może przejąć historii innego fizycznego projektu', result.repairs);
   const history = FC.quoteSnapshotStore.listForProject('proj_current_relink');
-  assert(history.length === 1 && history[0].project && history[0].project.id === 'proj_current_relink', 'Snapshot starego projectId nie został przepięty do aktualnego projektu', history);
+  assert(history.length === 0, 'Historia starego projektu nie może zostać przypisana do nowego właściciela', history);
+  const original=FC.quoteSnapshotStore.getById('snap_old_project');
+  assert(original.project.id==='proj_old_relink' && original.totals.grand===10 && original.lines.materials[0].total===10, 'Oryginalny właściciel i zamrożona wycena muszą pozostać nietknięte',original);
+  assert(FC.projectStore.getById('proj_current_relink').projectData.meta.productionPcvMode==='project', 'Cykl otwierania ma potwierdzić automatyczny tryb projektu');
   const healed = FC.investors.getById('inv_relink_snapshots');
   assert(healed && healed.source !== 'quote-snapshot', 'Inwestor quote-snapshot z realnym projektem nie został uzdrowiony', healed);
 }

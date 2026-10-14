@@ -53,11 +53,11 @@ function makeDeps(sandbox, model){
   FC.wycenaContextRepair = FC.wycenaContextRepair || {};
   FC.wycenaContextRepair.repairActiveQuoteContext = ()=> ({ ok:true, investorId:'inv_dup', projectId:'proj_dup', activeRoomIds:['room_A'], selectedRooms:['room_A'], repairs:[], hadProjectContent:true });
   FC.wycenaCore = FC.wycenaCore || {};
-  FC.wycenaCore.collectQuoteData = async ()=> {
+  FC.wycenaCore.collectQuoteData = async (options)=> {
     model.collectCount += 1;
     const includeCorpus = model.includeCorpus !== false;
     const grand = includeCorpus ? 100 : 40;
-    return {
+    const data = {
       selectedRooms:['room_A'],
       roomLabels:['A'],
       materialScope:{ kind:'all', includeFronts:true, includeCorpus },
@@ -74,6 +74,12 @@ function makeDeps(sandbox, model){
       investor:{ id:'inv_dup', kind:'person', name:'Test' },
       projectRecord:{ id:'proj_dup', investorId:'inv_dup', title:'Projekt testowy', status:'nowy' },
     };
+    // Commercial duplicate behavior is isolated; use real project proof/owner validation.
+    data.materialScope=FC.materialTabData.normalizeMaterialScope(data.materialScope);
+    data.selection.materialScope=data.materialScope;
+    const projectOptions=Object.assign({},options,{materialScope:data.materialScope});
+    const aggregate=FC.wycenaCoreSource.getSelectedAggregate(data.selection,projectOptions);
+    return FC.projectPcvResolver.registerQuoteCalculation(data,aggregate,projectOptions,FC.projectPcvResolver.draftSelection());
   };
   return {
     getState:()=> state,
@@ -101,6 +107,7 @@ async function runDuplicateGuard(){
   FC.projectStore.upsert({id:'proj_dup',investorId:'inv_dup',title:'Projekt testowy',projectData:{meta:{assignedInvestorId:'inv_dup',roomDefs:{room_A:{id:'room_A',name:'A',baseType:'pokoj'}}},room_A:{cabinets:[],fronts:[],sets:[],settings:{}}}});
   sandbox.localStorage.setItem('fc_current_investor_v1','inv_dup');
   FC.projectStore.setCurrentProjectId('proj_dup');sandbox.projectData=FC.project.load();
+  assert(FC.projectPcvPolicy.ensureProjectMode().ok, 'Automatic project opening must confirm PCV before duplicate tests');
   const model = { collectCount:0, renderCount:0, versionName:'Oferta — A', includeCorpus:true, confirmReplace:false, modalCalls:0, lastModalPayload:null };
   FC.choiceBox = Object.assign({}, FC.choiceBox || {}, { ask:async (payload)=>{ model.modalCalls += 1; model.lastModalPayload = payload; return model.confirmReplace ? 'replace' : 'cancel'; } });
   const deps = makeDeps(sandbox, model);

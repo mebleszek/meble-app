@@ -19,11 +19,17 @@ function install(r){
  r.open=(role='body.side.left',id='one',owner='cabinet')=>{r.s.uiState.matExpandedId=owner==='set'?'one':id;r.render();const row=r.rowNode(role,id,owner);assert.ok(row,role+' not rendered: '+list.textContent);row.querySelector('[data-part-options]').click();assert.ok(r.modal());return r.modal();};
  r.edge=(key,checked)=>{const input=edgeInput(r.modal(),{w1:'1A',w2:'1B',h1:'2A',h2:'2B'}[key]);assert.ok(input);input.checked=checked;input.dispatchEvent({type:'change'});return input;};
  r.save=()=>{const button=btn(r.modal(),'Zapisz');assert.ok(button);button.click();};
+ r.FC.investorProjectPatches.patchInvestorsAPI();
  r.policy=r.FC.projectPcvPolicy;return r;
 }
 function fixture(){return install(quoteSetup(setup()));}
 function activate(r){const result=r.policy.activate();assert.equal(result.ok,true,JSON.stringify(result));r.render();}
-async function activateUI(r,approve=true){r.render();r.list.querySelector('.material-project-pcv-activate').click();assert.ok(r.s.document.querySelector('.confirm-box'));btn(r.s.document.querySelector('.confirm-box'),approve?'Włącz projektowe PCV':'Anuluj').click();await tick();}
+function openAutomatically(r){return r.FC.sessionNavigation.prepareEditState({...r.s.uiState,entry:'app',activeTab:'material',roomType:'room'},true);}
+async function legacyCandidate(r){
+ // A frozen pre-switch fixture; explicit adapter mode never activates a project.
+ const snapshot=r.FC.quoteSnapshot.buildSnapshot(await r.FC.wycenaCore.collectQuoteData({pcvMode:'project',projectId:'A'}));
+ return r.FC.projectPcvResolver.stripQuoteProof(snapshot);
+}
 function canonical(r,role='body.side.left',cab='one',space='partOverrides'){return r.row('A').projectData.room.production?.[space]?.[cab]?.[role]?.edges;}
 function reopen(r){const fresh=runtime(r.rows()); // Real store, bridge, session restoration, then real production/domain/UI modules.
  fresh.s.materials=clone(r.s.materials);fresh.s.uiState.roomType='room';
@@ -40,30 +46,30 @@ function quotedUI(r){const state={},card=r.s.document.createElement('div');r.s.d
  card.querySelector('[data-action="wycena-generate"]').addEventListener('click',event=>r.FC.wycenaGenerateAction.run(event));
  return {state,button:card.querySelector('[data-action="wycena-generate"]')};
 }
-test('1 Legacy project remains unchanged, with no automatic activation or global import',()=>{
- const r=fixture(),before=r.rows();r.render();assert.equal(r.policy.read().mode,'legacy');assert.ok(r.list.querySelector('.material-project-pcv-activate'));assert.ok(r.list.querySelector('[data-part-options]').textContent==='Opcje');assert.deepEqual(r.rows(),before);
+test('1 Unmarked render refuses legacy and never migrates or presents an activation control',()=>{
+ const r=fixture(),before=r.rows();r.render();assert.equal(r.policy.read().ok,false);assert.equal(r.list.querySelector('.material-project-pcv-activate'),null);assert.equal(r.list.querySelector('[data-part-options]'),null);assert.deepEqual(r.rows(),before);
 });
-test('2 Real activation confirmation precedes central marker and rerenders project MATERIAL',async()=>{
- const r=fixture();r.render();r.list.querySelector('.material-project-pcv-activate').click();assert.equal(r.row('A').projectData.meta.productionPcvMode,undefined);
- assert.ok(r.s.document.querySelector('.confirm-message').textContent.includes('nie zostaną przeniesione ani usunięte'));btn(r.s.document.querySelector('.confirm-box'),'Włącz projektowe PCV').click();await tick();
- assert.equal(r.row('A').projectData.meta.productionPcvMode,'project');assert.equal(r.policy.read().mode,'project');assert.equal(r.list.querySelector('.material-project-pcv-activate'),null);assert.ok(r.list.textContent.includes('ustawienia tego projektu'));
+test('2 Room opening confirms automatic marker before durable baseline, with no activation dialog',()=>{
+ const r=fixture();assert.equal(openAutomatically(r),true);r.render();
+ assert.equal(r.row('A').projectData.meta.productionPcvMode,'project');assert.equal(r.policy.read().mode,'project');assert.equal(r.list.querySelector('.material-project-pcv-activate'),null);assert.equal(r.s.document.querySelector('.confirm-box'),null);assert.ok(r.list.textContent.includes('ustawienia tego projektu'));
+ assert.equal(JSON.parse(r.session.snapshot.fc_projects_v1).find(row=>row.id==='A').projectData.meta.productionPcvMode,'project');
 });
-test('3 Declining activation has zero project writes and preserves all values',async()=>{
- const r=fixture(),before=r.rows();r.storage.calls.length=0;await activateUI(r,false);assert.deepEqual(r.rows(),before);assert.equal(r.storage.calls.length,0);
+test('3 Missing physical owner refuses automatic opening without writes',()=>{
+ const r=fixture();r.FC.projectStore.setCurrentProjectId('');const before=r.rows();r.storage.calls.length=0;assert.equal(openAutomatically(r),false);assert.deepEqual(r.rows(),before);assert.equal(r.storage.calls.length,0);
 });
-test('4 Direct activation refuses active session; real UI closes clean edit before global marker save',async()=>{
- const r=fixture();assert.equal(r.session.begin('room'),true);const before=r.rows();assert.equal(r.policy.activate().ok,false);assert.deepEqual(r.rows(),before);
- await activateUI(r);assert.equal(r.session.active,true);assert.equal(r.session.durable,true);assert.equal(JSON.parse(r.session.snapshot.fc_projects_v1).find(row=>row.id==='A').projectData.meta.productionPcvMode,'project');assert.equal(r.row('A').projectData.meta.productionPcvMode,'project');
+test('4 Active unmarked session is preserved and refused; completion permits automatic opening',()=>{
+ const r=fixture();assert.equal(r.session.begin('room'),true);const before=r.rows();assert.equal(openAutomatically(r),false);assert.deepEqual(r.rows(),before);assert.equal(r.session.active,true);
+ assert.equal(r.session.commit(),true);assert.equal(openAutomatically(r),true);assert.equal(r.session.durable,true);assert.equal(JSON.parse(r.session.snapshot.fc_projects_v1).find(row=>row.id==='A').projectData.meta.productionPcvMode,'project');
 });
-test('5 Failed marker storage does not switch RAM or MATERIAL to project',async()=>{
- const r=fixture(),before=r.row('A');r.storage.fail.set('set:fc_projects_v1','throw');await activateUI(r);assert.equal(r.policy.read().mode,'legacy');assert.deepEqual(r.row('A'),before);assert.ok(r.list.querySelector('.material-project-pcv-activate'));assert.ok(r.messages.some(x=>x.title==='Nie potwierdzono PCV projektu'));
+test('5 Failed automatic marker save refuses opening, preserves RAM and allows retry',()=>{
+ const r=fixture(),before=r.row('A'),ram=clone(r.s.projectData);r.storage.fail.set('set:fc_projects_v1','throw');assert.equal(openAutomatically(r),false);assert.deepEqual(r.row('A'),before);assert.deepEqual(clone(r.s.projectData),ram);assert.equal(r.policy.read().ok,false);r.storage.fail.clear();assert.equal(openAutomatically(r),true);
 });
 test('6 Confirmed marker survives real restart and is preserved by normalization',()=>{
  const r=fixture();activate(r);const next=reopen(r);assert.equal(next.FC.projectPcvPolicy.read().mode,'project');assert.equal(next.FC.project.load().meta.productionPcvMode,'project');
 });
 test('7 Two physical projects have independent policy and overrides',()=>{
  const r=fixture();activate(r);r.open();r.edge('w2',true);r.save();assert.equal(r.session.commit(),true);
- r.FC.investors.setCurrentId('inv-B');r.FC.projectStore.setCurrentProjectId('B');r.s.projectData=r.FC.project.load();assert.equal(r.policy.read().mode,'legacy');assert.equal(r.row('B').projectData.meta.productionPcvMode,undefined);
+ r.FC.investors.setCurrentId('inv-B');r.FC.projectStore.setCurrentProjectId('B');r.s.projectData=r.FC.project.load();assert.equal(r.policy.read().mode,'project');assert.equal(r.row('B').projectData.meta.productionPcvMode,'project');assert.equal(r.row('B').projectData.room.production,undefined);
  r.FC.investors.setCurrentId('inv-A');r.FC.projectStore.setCurrentProjectId('A');r.s.projectData=r.FC.project.load();assert.equal(r.policy.read().mode,'project');assert.equal(canonical(r).w2,true);
 });
 test('8 Left and right sides are separate visible controls; saved left does not alter right',()=>{
@@ -157,8 +163,8 @@ test('32 Grain-only controls are disabled for PCV and direction save leaves proj
 test('33 Failed begin retains PCV draft with no project mutation, then allows safe retry',()=>{
  const r=fixture();activate(r);r.open();r.edge('w2',true);const before=r.row('A');r.storage.fail.set('set:fc_edit_session_v1','throw');r.save();assert.ok(r.modal());assert.deepEqual(r.row('A'),before);r.storage.fail.clear();r.save();assert.equal(r.modal(),null);assert.equal(canonical(r).w2,true);
 });
-test('34 Legacy global overrides still apply for an unactivated project and mixed UI save is unchanged',()=>{
- const r=fixture(),sig=r.FC.materialEdgeStore.signatureFromPart(r.parts().find(p=>p.name==='Bok'));r.storage.rows.set('fc_edge_v1',JSON.stringify({[sig]:{w1:false,w2:false,h1:false,h2:false}}));r.render();const legacy=r.FC.materialTabData.collectRoomMaterials('room').projectEdgeMeters;assert.ok(legacy<16.44);r.list.querySelector('[data-part-options]').click();assert.ok(r.modal().querySelectorAll('.material-part-options__choice').length);r.edge('w2',true);r.save();assert.ok(JSON.parse(r.storage.getItem('fc_edge_v1'))[sig].w2);assert.equal(r.row('A').projectData.meta.productionPcvMode,undefined);
+test('34 Automatic opening retains legacy RAW but uses technological defaults without importing it',()=>{
+ const r=fixture(),sig=r.FC.materialEdgeStore.signatureFromPart(r.parts().find(p=>p.name==='Bok')),raw=JSON.stringify({[sig]:{w1:false,w2:false,h1:false,h2:false}});r.storage.rows.set('fc_edge_v1',raw);assert.equal(openAutomatically(r),true);r.render();near(r.FC.materialTabData.collectRoomMaterials('room').projectEdgeMeters,16.44);assert.equal(r.storage.getItem('fc_edge_v1'),raw);assert.equal(r.row('A').projectData.meta.productionPcvMode,'project');
 });
 test('35 Failed activation read-back preserves RAM and blocks stale write despite central marker',()=>{
  const r=fixture(),ram=JSON.stringify(r.s.projectData);let fired=false;r.storage.onRead=key=>{if(!fired&&key==='fc_projects_v1'&&r.storage.rows.get(key).includes('productionPcvMode')){fired=true;throw Error('read-back failed');}};
@@ -167,14 +173,11 @@ test('35 Failed activation read-back preserves RAM and blocks stale write despit
 test('36 Cancel removes only owned PCV while marker and other room survive',()=>{
  const r=fixture();activate(r);const other=clone(r.row('A').projectData.other);r.open();r.edge('w2',true);r.save();assert.equal(r.session.cancel(),true);r.s.projectData=r.FC.project.load();assert.equal(canonical(r),undefined);assert.equal(r.policy.read().mode,'project');assert.deepEqual(r.row('A').projectData.other,other);
 });
-test('37 Dirty activation dialog preserves draft on Back and only activates after confirmed Save',async()=>{
- const r=fixture();r.session.begin('room');r.s.projectData.room.cabinets[0].width=65;r.render();
- r.list.querySelector('.material-project-pcv-activate').click();btn(r.s.document.querySelector('.confirm-box'),'Włącz projektowe PCV').click();await tick();
- btn(r.s.document.querySelector('.confirm-box'),'Wróć do edycji').click();await tick();assert.equal(r.session.active,true);assert.equal(r.cab().width,65);assert.equal(r.row('A').projectData.meta.productionPcvMode,undefined);
- r.list.querySelector('.material-project-pcv-activate').click();btn(r.s.document.querySelector('.confirm-box'),'Włącz projektowe PCV').click();await tick();btn(r.s.document.querySelector('.confirm-box'),'Zapisz i przejdź').click();await tick();assert.equal(r.row('A').projectData.meta.productionPcvMode,'project');assert.equal(r.cab().width,65);assert.equal(r.session.active,true);assert.equal(r.session.durable,true);
+test('37 Automatic lifecycle never discards dirty RAM or creates an activation dialog',()=>{
+ const r=fixture();r.session.begin('room');r.s.projectData.room.cabinets[0].width=65;const snapshot=r.session.snapshot,before=r.rows();assert.equal(openAutomatically(r),false);r.render();assert.equal(r.s.document.querySelector('.confirm-box'),null);assert.equal(r.cab().width,65);assert.equal(r.session.snapshot,snapshot);assert.deepEqual(r.rows(),before);
 });
 test('38 Pre-activation legacy candidate cannot be newly saved after project activation',async()=>{
- const r=fixture(),candidate=r.FC.quoteSnapshot.buildSnapshot(await r.FC.wycenaCore.collectQuoteData());activate(r);
+ const r=fixture(),candidate=await legacyCandidate(r);activate(r);
  assert.throws(()=>r.FC.quoteSnapshotStore.save(candidate),e=>e.code==='PROJECT_PCV_QUOTE_PROOF_REQUIRED');assert.equal(r.FC.quoteSnapshotStore.listForProject('A').length,0);
 });
 test('39 Historical frozen offer metadata remains editable without recalculation proof',async()=>{
@@ -204,7 +207,7 @@ test('44 Policy read, MATERIAL render and PCV editor opening have zero write/rem
 function switchToB(r){r.FC.investors.setCurrentId('inv-B');r.FC.projectStore.setCurrentProjectId('B');r.s.projectData=r.FC.project.load();}
 test('45 A1 stale legacy candidate for marked A is refused by save, replace and writeAll while B is active',async()=>{
  for(const method of ['save','replace','writeAll']){
-  const r=fixture(),candidate=r.FC.quoteSnapshot.buildSnapshot(await r.FC.wycenaCore.collectQuoteData());
+  const r=fixture(),candidate=await legacyCandidate(r);
   const historical=r.FC.quoteSnapshotStore.save(candidate);candidate.id='stale-new-'+method;
   activate(r);switchToB(r);const before=r.storage.getItem('fc_quote_snapshots_v1');
   assert.throws(()=>method==='save'?r.FC.quoteSnapshotStore.save(candidate):method==='replace'?r.FC.quoteSnapshotStore.replaceSnapshot(historical.id,candidate):r.FC.quoteSnapshotStore.writeAll([candidate]),e=>e.code==='PROJECT_PCV_QUOTE_PROOF_REQUIRED');
@@ -212,7 +215,7 @@ test('45 A1 stale legacy candidate for marked A is refused by save, replace and 
  }
 });
 test('46 A1 historical metadata for marked A remains editable from B, but frozen data and owner cannot change',async()=>{
- const r=fixture(),saved=r.FC.quoteSnapshotStore.save(r.FC.quoteSnapshot.buildSnapshot(await r.FC.wycenaCore.collectQuoteData()));activate(r);switchToB(r);
+ const r=fixture(),saved=r.FC.quoteSnapshotStore.save(await legacyCandidate(r));activate(r);switchToB(r);
  const history=r.FC.quoteSnapshotStore.getById(saved.id),frozen=clone({lines:history.lines,totals:history.totals,scope:history.scope});
  history.commercial.versionName='Dozwolona nazwa';history.meta.versionName='Dozwolona nazwa';r.FC.quoteSnapshotStore.save(history);
  const edited=r.FC.quoteSnapshotStore.getById(saved.id);assert.equal(edited.commercial.versionName,'Dozwolona nazwa');assert.deepEqual(clone({lines:edited.lines,totals:edited.totals,scope:edited.scope}),frozen);
@@ -222,7 +225,7 @@ test('46 A1 historical metadata for marked A remains editable from B, but frozen
  }
 });
 test('47 A1 target-owner validation works without policy and refuses ambiguous physical owners',async()=>{
- const r=fixture(),candidate=r.FC.quoteSnapshot.buildSnapshot(await r.FC.wycenaCore.collectQuoteData());activate(r);switchToB(r);delete r.FC.projectPcvPolicy;
+ const r=fixture(),candidate=await legacyCandidate(r);activate(r);switchToB(r);delete r.FC.projectPcvPolicy;
  assert.throws(()=>r.FC.quoteSnapshotStore.save(candidate),e=>e.code==='PROJECT_PCV_QUOTE_PROOF_REQUIRED');
  const read=r.FC.projectStore.readAll;r.FC.projectStore.readAll=()=>{const rows=read();return rows.concat(rows.filter(row=>row.id==='A'));};
  assert.throws(()=>r.FC.quoteSnapshotStore.save(candidate),e=>e.code==='PROJECT_PCV_PROJECT_OWNER_AMBIGUOUS');
@@ -257,12 +260,12 @@ test('51 A2 central-only marker, RAM-only marker, missing owner and failing stor
 test('52 A2 broken policy API cannot select legacy and dependency errors preserve central data',async()=>{
  const r=fixture();activate(r);const before=r.rows();r.FC.projectPcvPolicy={};assert.equal(r.FC.projectPcvGuard.read().ok,false);await assert.rejects(r.FC.wycenaCore.collectQuoteData(),e=>e.projectPcv);assert.deepEqual(r.rows(),before);
 });
-test('53 valid unmarked legacy still calculates and saves with the policy module absent',async()=>{
- const r=fixture();delete r.FC.projectPcvPolicy;assert.equal(r.FC.projectPcvGuard.read().mode,'legacy');near(r.FC.materialTabData.collectRoomMaterials('room').projectEdgeMeters,16.44);
- const data=await r.FC.wycenaCore.collectQuoteData(),line=data.materialLines.find(l=>l.priceUnit==='mb');near(line.edgeRawMeters,16.44);near(line.qty,18.084);r.FC.quoteSnapshotStore.save(r.FC.quoteSnapshot.buildSnapshot(data));assert.equal(r.FC.quoteSnapshotStore.listForProject('A').length,1);
+test('53 Missing policy refuses automatic opening; isolated unmarked legacy adapter remains compatible',async()=>{
+ const r=fixture();delete r.FC.projectPcvPolicy;const before=r.rows();assert.equal(openAutomatically(r),false);assert.deepEqual(r.rows(),before);
+ const data=await r.FC.wycenaCore.collectQuoteData();const line=data.materialLines.find(l=>l.priceUnit==='mb');near(line.edgeRawMeters,16.44);near(line.qty,18.084);
 });
 test('54 A1 missing physical target, wrong investor and reparented historical offer cannot be persisted',async()=>{
- const r=fixture(),saved=r.FC.quoteSnapshotStore.save(r.FC.quoteSnapshot.buildSnapshot(await r.FC.wycenaCore.collectQuoteData()));activate(r);
+ const r=fixture(),saved=r.FC.quoteSnapshotStore.save(await legacyCandidate(r));activate(r);
  for(const fault of ['missing','investor','reparent']){
   const candidate=r.FC.quoteSnapshotStore.getById(saved.id);if(fault!=='reparent')candidate.id='new-'+fault;
   if(fault==='missing')candidate.project.id='missing';else if(fault==='investor')candidate.investor={id:'inv-B'};else candidate.project.id='B';
@@ -295,16 +298,18 @@ test('58 B1 fake legacy policy stops ordinary MATERIAL, ROZRYS and WYCENA rather
 });
 test('59 B2 missing project store refuses new legacy save, replace and writeAll without changing history',async()=>{
  for(const marked of [false,true])for(const method of ['save','replace','writeAll']){
-  const r=fixture(),history=r.FC.quoteSnapshotStore.save(r.FC.quoteSnapshot.buildSnapshot(await r.FC.wycenaCore.collectQuoteData()));
+  const r=fixture(),history=r.FC.quoteSnapshotStore.save(await legacyCandidate(r));
   const candidate=clone(history);candidate.id='unverified';candidate.lines.materials[0].total+=1;if(marked)activate(r);delete r.FC.projectStore;
   const before=r.storage.getItem('fc_quote_snapshots_v1');assert.throws(()=>method==='save'?r.FC.quoteSnapshotStore.save(candidate):method==='replace'?r.FC.quoteSnapshotStore.replaceSnapshot(history.id,candidate):r.FC.quoteSnapshotStore.writeAll([candidate]),e=>e.projectPcv);
   assert.equal(r.storage.getItem('fc_quote_snapshots_v1'),before);assert.ok(r.FC.quoteSnapshotStore.getById(history.id));
  }
 });
 test('60 B2 missing project store preserves historical reads and allowed metadata, but not frozen-price edits',async()=>{
- const r=fixture(),saved=r.FC.quoteSnapshotStore.save(r.FC.quoteSnapshot.buildSnapshot(await r.FC.wycenaCore.collectQuoteData()));activate(r);delete r.FC.projectStore;
+ const r=fixture(),saved=r.FC.quoteSnapshotStore.save(await legacyCandidate(r));activate(r);delete r.FC.projectStore;
  const history=r.FC.quoteSnapshotStore.getById(saved.id),before=clone({lines:history.lines,totals:history.totals,scope:history.scope});history.commercial.versionName='Historia bez store';history.meta.versionName='Historia bez store';r.FC.quoteSnapshotStore.save(history);
  const after=r.FC.quoteSnapshotStore.getById(saved.id);assert.equal(after.commercial.versionName,'Historia bez store');assert.deepEqual(clone({lines:after.lines,totals:after.totals,scope:after.scope}),before);
  const raw=r.storage.getItem('fc_quote_snapshots_v1');after.lines.materials[0].total+=1;assert.throws(()=>r.FC.quoteSnapshotStore.save(after),e=>e.projectPcv);assert.equal(r.storage.getItem('fc_quote_snapshots_v1'),raw);
 });
-(async()=>{let failures=0;for(const[name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(e){failures++;console.error('FAIL '+name+'\n'+e.stack);}}console.log(`${tests.length-failures}/${tests.length} PASS`);process.exitCode=failures?1:0;})();
+if(require.main===module)(async()=>{let failures=0;for(const[name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(e){failures++;console.error('FAIL '+name+'\n'+e.stack);}}console.log(`${tests.length-failures}/${tests.length} PASS`);process.exitCode=failures?1:0;})();
+
+module.exports={fixture,activate,reopen,openAutomatically,load,protectedSeed,tick};
