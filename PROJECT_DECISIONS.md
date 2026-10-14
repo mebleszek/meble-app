@@ -34,6 +34,15 @@ Oznaczenia: **ZATWIERDZONE** = obowiązująca decyzja; **DO WDROŻENIA** = zakre
 6. Utrzymać dwa strumienie/stawki PCV, tylko jeden zapas 10%, zgodne metry między MATERIAŁ/ROZRYS/WYCENA, geometrię i referencję rozkroju 4/3/6. Nie zmieniać globalnych danych, stawek, katalogów, historii ofert ani przyszłego modelu dekorów.
 7. Implementacja po osobnej komendzie „do dzieła” w Draft PR i testach, a następnie ręczne sprawdzenie na Androidzie.
 
+## 2026-10-14 — ZATWIERDZONE: uproszczenie workflow CI/CD
+
+- Użytkownik zatwierdził scalenie PCV (PR #43) oraz korektę workflow GitHub Actions (PR #44).
+- **Jedno pełne uruchomienie Preflight w CI na jedno zatwierdzone wydanie**: przejście Draft → Ready jest jawną zgodą na próbę wdrożenia, uruchamia pełny Preflight; jego FAIL blokuje merge.
+- Preflight nie uruchamia się ponownie tylko dlatego, że PR został utworzony jako Draft, scalony do `main`, ani podczas weryfikacji po merge. Ręczny `workflow_dispatch` pozostaje możliwy wyłącznie na żądanie, bez automatycznego scalania.
+- Po zielonym Preflight automatyczne scalanie tylko niezmienionego `head SHA` i niezmienionej bazy `main` (`base SHA`). Odmowa przy zmianie któregokolwiek podczas testu. Po merge **tylko kontrola Pages dla dokładnego commita**, bez dodatkowego pełnego Preflightu.
+- Kolejny commit, ponowna próba po błędzie lub nowa decyzja o wdrożeniu wymagają świeżej jawnej akceptacji; nie uruchamiać ukrytego auto-merge po samym wypchnięciu kodu.
+- Zmiana wyłącznie w `.github/workflows/preflight-js.yml`; bez ingerencji w UI, dane lub cenniki. Status rzeczywistego scalenia PR #44 należy odczytać z GitHub, nie zgadywać na podstawie niniejszego wpisu.
+
 ## DO OMÓWIENIA — poza obecną poprawką
 - Docelowa rola istniejącego przycisku „Przelicz projekt” po potwierdzeniu automatycznego odświeżania faktów pochodnych.
 - Pełne dekor/kolor PCV oraz przyszły cennik i szczegóły słojów projektowych.
