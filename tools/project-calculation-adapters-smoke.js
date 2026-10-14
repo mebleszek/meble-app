@@ -190,7 +190,7 @@ test('Public explicit render loads real lazy adapters and generates project plac
  const r=setup();setOverride(r);r.s.Node=r.s.document.createElement('div').constructor;
  for(const file of ['js/app/rozrys/rozrys-project-source.js','js/app/rozrys/rozrys-prefs.js','js/app/rozrys/rozrys-validation.js','js/app/rozrys/rozrys-render.js','js/app/rozrys/rozrys-lazy-manifest.js'])load(r,file);
  const changed=['rozrys-runner','rozrys-plan-helpers','rozrys-engine-bridge','rozrys-render-compose','rozrys-run-controller','rozrys'];
- for(const item of r.FC.rozrysLazyManifest.scripts){if(changed.some(name=>item.startsWith('js/app/rozrys/'+name+'.js?')))assert.ok(item.endsWith('v='+(['rozrys.js','rozrys-runner.js'].some(name=>item.startsWith('js/app/rozrys/'+name+'?'))?'20261013_c2_1b2c3':'20261013_c2_1b2c2')));load(r,item.split('?')[0]);}
+ for(const item of r.FC.rozrysLazyManifest.scripts){if(changed.some(name=>item.startsWith('js/app/rozrys/'+name+'.js?')))assert.ok(item.endsWith('v='+(['rozrys.js','rozrys-runner.js'].some(name=>item.startsWith('js/app/rozrys/'+name+'?'))?'20261014_c2_1b2c3a':'20261013_c2_1b2c2')));load(r,item.split('?')[0]);}
  const root=r.s.document.createElement('div');root.id='rozrysRoot';r.s.document.body.appendChild(root);
  r.storage.calls.length=0;let forbiddenReads=0;r.storage.onRead=key=>{if(key==='fc_edge_v1'||key==='fc_rozrys_plan_cache_v2')forbiddenReads++;};
  r.FC.rozrys.render({...options,engineMode:'sync'});let run=null;const generate=r.FC.rozrysRunner.generate;r.FC.rozrysRunner.generate=(...args)=>{run=generate(...args);return run;};

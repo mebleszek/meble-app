@@ -201,4 +201,80 @@ test('44 Policy read, MATERIAL render and PCV editor opening have zero write/rem
  const r=fixture();activate(r);const before=r.rows(),ram=JSON.stringify(r.s.projectData);let begins=0;const begin=r.session.begin;r.session.begin=(...args)=>{begins++;return begin.apply(r.session,args);};r.storage.calls.length=0;
  assert.equal(r.policy.read().mode,'project');r.open();assert.equal(begins,0);assert.deepEqual(r.storage.calls,[]);assert.deepEqual(r.rows(),before);assert.equal(JSON.stringify(r.s.projectData),ram);
 });
+function switchToB(r){r.FC.investors.setCurrentId('inv-B');r.FC.projectStore.setCurrentProjectId('B');r.s.projectData=r.FC.project.load();}
+test('45 A1 stale legacy candidate for marked A is refused by save, replace and writeAll while B is active',async()=>{
+ for(const method of ['save','replace','writeAll']){
+  const r=fixture(),candidate=r.FC.quoteSnapshot.buildSnapshot(await r.FC.wycenaCore.collectQuoteData());
+  const historical=r.FC.quoteSnapshotStore.save(candidate);candidate.id='stale-new-'+method;
+  activate(r);switchToB(r);const before=r.storage.getItem('fc_quote_snapshots_v1');
+  assert.throws(()=>method==='save'?r.FC.quoteSnapshotStore.save(candidate):method==='replace'?r.FC.quoteSnapshotStore.replaceSnapshot(historical.id,candidate):r.FC.quoteSnapshotStore.writeAll([candidate]),e=>e.code==='PROJECT_PCV_QUOTE_PROOF_REQUIRED');
+  assert.equal(r.storage.getItem('fc_quote_snapshots_v1'),before);assert.equal(r.FC.projectStore.getCurrentProjectId(),'B');
+ }
+});
+test('46 A1 historical metadata for marked A remains editable from B, but frozen data and owner cannot change',async()=>{
+ const r=fixture(),saved=r.FC.quoteSnapshotStore.save(r.FC.quoteSnapshot.buildSnapshot(await r.FC.wycenaCore.collectQuoteData()));activate(r);switchToB(r);
+ const history=r.FC.quoteSnapshotStore.getById(saved.id),frozen=clone({lines:history.lines,totals:history.totals,scope:history.scope});
+ history.commercial.versionName='Dozwolona nazwa';history.meta.versionName='Dozwolona nazwa';r.FC.quoteSnapshotStore.save(history);
+ const edited=r.FC.quoteSnapshotStore.getById(saved.id);assert.equal(edited.commercial.versionName,'Dozwolona nazwa');assert.deepEqual(clone({lines:edited.lines,totals:edited.totals,scope:edited.scope}),frozen);
+ for(const field of ['lines','totals','scope','investor']){
+  const changed=clone(edited);if(field==='lines')changed.lines.materials[0].total+=1;else if(field==='totals')changed.totals.total+=1;else if(field==='scope')changed.scope.selectedRooms=['other'];else changed.investor={id:'inv-B'};
+  const before=r.storage.getItem('fc_quote_snapshots_v1');assert.throws(()=>r.FC.quoteSnapshotStore.save(changed),e=>e.projectPcv);assert.equal(r.storage.getItem('fc_quote_snapshots_v1'),before);
+ }
+});
+test('47 A1 target-owner validation works without policy and refuses ambiguous physical owners',async()=>{
+ const r=fixture(),candidate=r.FC.quoteSnapshot.buildSnapshot(await r.FC.wycenaCore.collectQuoteData());activate(r);switchToB(r);delete r.FC.projectPcvPolicy;
+ assert.throws(()=>r.FC.quoteSnapshotStore.save(candidate),e=>e.code==='PROJECT_PCV_QUOTE_PROOF_REQUIRED');
+ const read=r.FC.projectStore.readAll;r.FC.projectStore.readAll=()=>{const rows=read();return rows.concat(rows.filter(row=>row.id==='A'));};
+ assert.throws(()=>r.FC.quoteSnapshotStore.save(candidate),e=>e.code==='PROJECT_PCV_PROJECT_OWNER_AMBIGUOUS');
+});
+test('48 A2 missing policy blocks real MATERIAL and ordinary WYCENA, with no legacy writes or zero-priced offer',async()=>{
+ const r=fixture();activate(r);r.open();r.edge('w2',true);r.save();r.session.commit();delete r.FC.projectPcvPolicy;
+ const before=r.rows();r.storage.calls.length=0;r.render();assert.ok(r.list.textContent.includes('PCV_POLICY_UNAVAILABLE'));assert.equal(r.list.querySelector('[data-part-options]'),null);
+ assert.throws(()=>r.FC.materialTabData.collectRoomMaterials('room'),e=>e.code==='PROJECT_PCV_PCV_POLICY_UNAVAILABLE');await assert.rejects(r.FC.wycenaCore.collectQuoteData(),e=>e.code==='PROJECT_PCV_PCV_POLICY_UNAVAILABLE');
+ const q=quotedUI(r);q.button.click();await tick();assert.equal(r.FC.quoteSnapshotStore.listForProject('A').length,0);assert.deepEqual(r.rows(),before);assert.deepEqual(r.storage.calls,[]);
+});
+test('49 A2 missing policy stops normal ROZRYS before creating placements or touching cache',()=>{
+ const r=fixture();activate(r);delete r.FC.projectPcvPolicy;
+ for(const f of ['js/app/rozrys/rozrys-project-source.js','js/app/rozrys/rozrys.js'])load(r,f);
+ const root=r.s.document.createElement('div');root.id='rozrysRoot';r.s.document.body.appendChild(root);r.storage.calls.length=0;
+ assert.equal(r.FC.rozrys.render(),false);assert.ok(root.textContent.includes('PCV_POLICY_UNAVAILABLE'));assert.equal(root.querySelectorAll('canvas').length,0);assert.deepEqual(r.storage.calls,[]);
+});
+test('50 A2 stale PCV modal and direct global edge setter cannot write when policy disappears',()=>{
+ const r=fixture();activate(r);r.open();r.edge('w2',true);delete r.FC.projectPcvPolicy;const before=r.rows();r.save();assert.ok(r.modal());assert.equal(edgeInput(r.modal(),'1B').checked,true);assert.deepEqual(r.rows(),before);
+ const edge=r.FC.materialEdgeStore.createEdgeStore(),part={name:'Bok',a:68.2,b:50,material:r.cab().bodyColor,qty:1};const sig=r.FC.materialPartOptions.signatureFromPart(part);
+ assert.equal(edge.setEdges(sig,{w1:true}),false);assert.equal(r.storage.getItem('fc_edge_v1'),null);
+});
+test('51 A2 central-only marker, RAM-only marker, missing owner and failing storage are refused',()=>{
+ for(const fault of ['central','ram','pointer','read']){
+  const r=fixture();activate(r);delete r.FC.projectPcvPolicy;
+  if(fault==='central')delete r.s.projectData.meta.productionPcvMode;
+  if(fault==='ram')r.storage.rows.set('fc_projects_v1',JSON.stringify(r.FC.projectStore.readAll().map(row=>{if(row.id==='A')delete row.projectData.meta.productionPcvMode;return row;})));
+  if(fault==='pointer')r.FC.projectStore.setCurrentProjectId('');
+  if(fault==='read')r.FC.projectStore.readAll=()=>{throw Error('read failed');};
+  assert.equal(r.FC.projectPcvGuard.read().ok,false);assert.throws(()=>r.FC.projectPcvGuard.calculationOptions(),e=>e.projectPcv);
+ }
+});
+test('52 A2 broken policy API cannot select legacy and dependency errors preserve central data',async()=>{
+ const r=fixture();activate(r);const before=r.rows();r.FC.projectPcvPolicy={};assert.equal(r.FC.projectPcvGuard.read().ok,false);await assert.rejects(r.FC.wycenaCore.collectQuoteData(),e=>e.projectPcv);assert.deepEqual(r.rows(),before);
+});
+test('53 valid unmarked legacy still calculates and saves with the policy module absent',async()=>{
+ const r=fixture();delete r.FC.projectPcvPolicy;assert.equal(r.FC.projectPcvGuard.read().mode,'legacy');near(r.FC.materialTabData.collectRoomMaterials('room').projectEdgeMeters,16.44);
+ const data=await r.FC.wycenaCore.collectQuoteData(),line=data.materialLines.find(l=>l.priceUnit==='mb');near(line.edgeRawMeters,16.44);near(line.qty,18.084);r.FC.quoteSnapshotStore.save(r.FC.quoteSnapshot.buildSnapshot(data));assert.equal(r.FC.quoteSnapshotStore.listForProject('A').length,1);
+});
+test('54 A1 missing physical target, wrong investor and reparented historical offer cannot be persisted',async()=>{
+ const r=fixture(),saved=r.FC.quoteSnapshotStore.save(r.FC.quoteSnapshot.buildSnapshot(await r.FC.wycenaCore.collectQuoteData()));activate(r);
+ for(const fault of ['missing','investor','reparent']){
+  const candidate=r.FC.quoteSnapshotStore.getById(saved.id);if(fault!=='reparent')candidate.id='new-'+fault;
+  if(fault==='missing')candidate.project.id='missing';else if(fault==='investor')candidate.investor={id:'inv-B'};else candidate.project.id='B';
+  const before=r.storage.getItem('fc_quote_snapshots_v1');assert.throws(()=>r.FC.quoteSnapshotStore.save(candidate),e=>e.projectPcv);assert.equal(r.storage.getItem('fc_quote_snapshots_v1'),before);
+ }
+});
+test('55 A2 incomplete policy result cannot downgrade a marked project or omit its calculation context',()=>{
+ const r=fixture();activate(r);r.FC.projectPcvPolicy={read:()=>({ok:true,mode:'project',projectId:'A'})};
+ assert.equal(r.FC.projectPcvGuard.read().ok,false);assert.throws(()=>r.FC.projectPcvGuard.calculationOptions(),e=>e.projectPcv);
+});
+test('56 A2 missing project store cannot hide a central marker behind an unmarked RAM copy',()=>{
+ const r=fixture();activate(r);delete r.s.projectData.meta.productionPcvMode;delete r.FC.projectPcvPolicy;delete r.FC.projectStore;
+ const before=r.rows();r.storage.calls.length=0;assert.equal(r.FC.projectPcvGuard.read().ok,false);assert.throws(()=>r.FC.projectPcvGuard.calculationOptions(),e=>e.projectPcv);assert.deepEqual(r.rows(),before);assert.deepEqual(r.storage.calls,[]);
+});
 (async()=>{let failures=0;for(const[name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(e){failures++;console.error('FAIL '+name+'\n'+e.stack);}}console.log(`${tests.length-failures}/${tests.length} PASS`);process.exitCode=failures?1:0;})();

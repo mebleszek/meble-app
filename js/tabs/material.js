@@ -27,7 +27,7 @@
 
   function getMaterialModel(room){
     const dataApi = window.FC && window.FC.materialTabData;
-    const policy=window.FC.projectPcvPolicy ? window.FC.projectPcvPolicy.read({roomId:room}) : {ok:true,mode:'legacy',options:{}};
+    const policy=window.FC.projectPcvGuard.read({roomId:room});
     if(!policy.ok)throw Object.assign(new Error('Nie można potwierdzić PCV projektu: '+policy.code),policy);
     const edgeApi = policy.mode!=='project' && window.FC && window.FC.materialEdgeStore && typeof window.FC.materialEdgeStore.createEdgeStore === 'function'
       ? window.FC.materialEdgeStore.createEdgeStore()
@@ -382,15 +382,15 @@
         if(canHavePcv && projectMode && source){
           const config={sig,name:p.name+sourceLabel,material:p.material,aCm:Number(p.a),bCm:Number(p.b),fmtCm,sizeText:`${fmtCm(p.a)} × ${fmtCm(p.b)} cm`,initialDirection:FC.materialPartOptions.getDirection(sig)};
           row.querySelector('[data-part-options]').addEventListener('click',()=>{
-            const policy=FC.projectPcvPolicy.read({roomId:room,edit:true});
+            const policy=FC.projectPcvGuard.read({roomId:room,edit:true});
             const current=policy.ok && policy.mode==='project' && policy.projectId===source.projectId ? FC.projectPcvOverrides.get(source) : {ok:false,code:policy.code||'PCV_POLICY_MISMATCH'};
-            if(!current.ok){FC.projectPcvPolicy.notify(current);return;}
+            if(!current.ok){FC.projectPcvGuard.notify(current);return;}
             FC.materialPartOptions.openOptionsModal(Object.assign({},config,{editorMode:'pcv',edges:current.edges,defaults:current.defaults,
               saveEdges:(edges,clear)=>{
                 const session=FC.session;
                 if(session && session.active && !session.durable && session.projectId===source.projectId && session.roomId===room
                   && session.begin(room)!==true)return {ok:false,code:'BEGIN_FAILED'};
-                const now=FC.projectPcvPolicy.read({roomId:room,edit:true});
+                const now=FC.projectPcvGuard.read({roomId:room,edit:true});
                 if(!now.ok || now.mode!=='project' || now.projectId!==source.projectId)return {ok:false,code:now.code||'PCV_POLICY_MISMATCH',projectSaved:!!now.projectSaved};
                 const fresh=FC.projectPcvOverrides.get(source);
                 if(!fresh.ok)return fresh;
@@ -399,7 +399,7 @@
               },onSave:()=>{renderCabinets();if(FC.views && FC.views.refreshSessionButtons)FC.views.refreshSessionButtons();}}));
           });
           row.querySelector('[data-grain-options]').addEventListener('click',()=>{
-            const policy=FC.projectPcvPolicy.read({roomId:room,edit:true});if(!policy.ok){FC.projectPcvPolicy.notify(policy);return;}
+            const policy=FC.projectPcvGuard.read({roomId:room,edit:true});if(!policy.ok){FC.projectPcvGuard.notify(policy);return;}
             FC.materialPartOptions.openOptionsModal(Object.assign({},config,{editorMode:'grain',edges:e,onSave:()=>renderCabinets()}));
           });
         }

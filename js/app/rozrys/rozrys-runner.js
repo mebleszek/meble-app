@@ -45,8 +45,8 @@
     if(runId == null) return;
     try{ await new Promise((resolve)=>{ try{ requestAnimationFrame(()=> resolve()); } catch(_){ setTimeout(resolve, 0); } }); }catch(_){ }
     try{
-      if(FC.projectPcvPolicy){
-        const policy=FC.projectPcvPolicy.read();
+      {
+        const policy=FC.projectPcvGuard.read();
         if(!policy.ok || policy.mode==='project' && (!projectMode || cfg.projectId!==policy.projectId))throw FC.projectPcvResolver.error(policy.code||'PCV_POLICY_MISMATCH');
       }
       if(!projectMode && cfg.agg && cfg.agg.pcvMode==='project')throw FC.projectPcvResolver.error('PLAN_MODE_MISMATCH');

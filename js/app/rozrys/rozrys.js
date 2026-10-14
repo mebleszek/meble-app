@@ -402,7 +402,7 @@ function resolveInitialSelectedRooms(raw){
 
 
 function aggregatePartsForProject(selectedRooms, options){
-  if(FC.projectPcvPolicy)options=FC.projectPcvPolicy.calculationOptions(options);
+  options=FC.projectPcvGuard.calculationOptions(options);
   if(options && options.pcvMode==='project')return FC.rozrysScope.aggregatePartsForProject(selectedRooms,{pcvMode:'project',projectId:options.projectId,safeGetProject,getCabinetCutList:resolveCabinetCutListFn(),resolveRozrysPartFromSource,isFrontMaterialKey});
   if(FC.rozrysScope && typeof FC.rozrysScope.aggregatePartsForProject === 'function'){
     const baseDeps = {
@@ -472,9 +472,9 @@ function aggregatePartsForProject(selectedRooms, options){
   const computePlanPanelProAsync = typeof engineBridge.computePlanPanelProAsync === 'function' ? engineBridge.computePlanPanelProAsync : (()=> Promise.resolve({ sheets: [], note: 'Brak modułu rozrysEngine.' }));
 
   function render(options){
-    if(FC.projectPcvPolicy){
-      try{options=FC.projectPcvPolicy.calculationOptions(options);}
-      catch(error){const root=document.getElementById('rozrysRoot');if(root){root.innerHTML='';root.textContent=error.message;}FC.projectPcvPolicy.notify(error);return false;}
+    {
+      try{options=FC.projectPcvGuard.calculationOptions(options);}
+      catch(error){const root=document.getElementById('rozrysRoot');if(root){root.innerHTML='';root.textContent=error.message;}FC.projectPcvGuard.notify(error);return false;}
     }
     const calculationOptions=options && options.pcvMode==='project'
       ? {pcvMode:'project',projectId:options.projectId,engineMode:options.engineMode} : {};
@@ -483,7 +483,7 @@ function aggregatePartsForProject(selectedRooms, options){
       try{return aggregatePartsForProject(rooms,calculationOptions);}
       catch(error){if(calculationOptions.pcvMode==='project'){
         selectionError=error;const root=document.getElementById('rozrysRoot');if(root){root.innerHTML='';root.textContent=error.message+' '+String(error.code||'');}
-        if(FC.projectPcvPolicy)FC.projectPcvPolicy.notify(error);
+        if(FC.projectPcvPolicy)FC.projectPcvGuard.notify(error);
       }throw error;}
     };
     const root = document.getElementById('rozrysRoot');

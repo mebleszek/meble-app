@@ -107,7 +107,7 @@ function runtime(initial = {}){
   };
   sandbox.window = sandbox;
   vm.createContext(sandbox);
-  for(const file of ['js/app/shared/constants.js', 'js/app/shared/storage.js', 'js/app/investor/session.js',
+  for(const file of ['js/app/shared/constants.js', 'js/app/shared/storage.js', 'js/app/project/project-bridge.js', 'js/app/investor/session.js',
     'js/app/material/material-part-options.js', 'js/app/material/material-edge-store.js', 'js/tabs/material.js']){
     vm.runInContext(read(file), sandbox, { filename:file });
   }

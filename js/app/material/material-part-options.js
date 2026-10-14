@@ -152,7 +152,7 @@
         plans.push(plan);
       }
       if(!sameEdges(draft.edges, initial.edges)){
-        if(root.FC.projectPcvPolicy){const policy=root.FC.projectPcvPolicy.read();if(!policy.ok || policy.mode==='project'){root.FC.projectPcvPolicy.notify({code:'PROJECT_PCV_EDITOR_REQUIRED'});return false;}}
+        if(root.FC.projectPcvGuard){const policy=root.FC.projectPcvGuard.read({legacyWrite:true});if(!policy.ok || policy.mode==='project'){root.FC.projectPcvGuard.notify({code:policy.code || 'PROJECT_PCV_EDITOR_REQUIRED'});return false;}}
         if(!(edgeEditor && typeof edgeEditor.prepare === 'function' && typeof edgeEditor.apply === 'function')) return false;
         edgePlan = edgeEditor.prepare(draft.edges);
         if(!edgePlan) return false;
@@ -386,7 +386,7 @@
     saveBtn.addEventListener('click', ()=>{
       if(pcvOnly){
         let result;try{result=cfg.saveEdges(copyEdges(draft.edges),restoreDefaults);}catch(_){result={ok:false,code:'WRITE_FAILED'};}
-        if(!result || result.ok!==true){if(FC.projectPcvPolicy)FC.projectPcvPolicy.notify(result);return false;}
+        if(!result || result.ok!==true){if(FC.projectPcvGuard)FC.projectPcvGuard.notify(result);return false;}
       }else if(saveDraft(sig, initial, draft, cfg.edgeEditor) !== true) return false;
       try{ if(typeof cfg.onSave === 'function') cfg.onSave(normalizeDirection(draft.direction)); }catch(_){ }
       try{ FC.panelBox.close(); }catch(_){ } finally{ notifyClose(); }

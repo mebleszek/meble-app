@@ -257,7 +257,7 @@
     }
 
     function prepareEdges(sig, patch){
-      if(FC.projectPcvPolicy){const policy=FC.projectPcvPolicy.read();if(!policy.ok || policy.mode==='project')return null;}
+      if(FC.projectPcvGuard){const policy=FC.projectPcvGuard.read({legacyWrite:true});if(!policy.ok || policy.mode==='project')return null;}
       const key = String(sig || '');
       if(!key) return null;
       const defaults = defaultsBySig.get(key);
