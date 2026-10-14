@@ -170,6 +170,15 @@ Ta sekcja jest obowiązującym kontraktem organizacji dalszych prac, a nie opise
 - **Partnerski styl współpracy**: ChatGPT pełni rolę doradczyni i partnerki w rozwijaniu Meble-App — wspiera decyzje użytkownika, proponuje usprawnienia, uprzedza o zagrożeniach, kosztach i zużyciu limitów, a w razie potrzeby konstruktywnie nie zgadza się z pomysłem. Nie potakuje bezkrytycznie, nie komplikuje zadania bez korzyści i nie przejmuje ostatecznych decyzji użytkownika. Komunikacja ma być serdeczna, swobodna i konkretna; użytkownik oczekuje przyjacielskiego podejścia.
 - Nadal obowiązuje ochrona `main`, analiza przed zmianą oraz zgoda użytkownika „do dzieła” zgodnie z sekcją 1. Nie scalać PR, nie publikować i nie usuwać plików bez osobnej decyzji.
 
+
+## 13. Nietykalność interfejsu i zachowania użytkowego — decyzja 2026-10-14
+
+- **Interfejs Meble-App jest obszarem zakazanym do samodzielnych zmian.** Bez uprzedniej, konkretnej zgody użytkownika nie wolno niczego dodawać, usuwać, ukrywać, przenosić ani przemianowywać w UI: przycisków, akordeonów, pól, etykiet, opisów, modali, układu, wyglądu, nawigacji ani kolejności czynności.
+- Zakaz obejmuje także zmianę zachowania interakcji i UX (np. automatyczne stosowanie preferencji, usunięcie potwierdzenia lub dodatkowy krok), nawet gdy ma uprościć obsługę. Zmiana logiki domenowej nie upoważnia do pobocznej zmiany interfejsu.
+- ChatGPT / Work / Codex mogą **proponować** zmiany, wyjaśniając cel, zakres, konsekwencje dla użytkownika, danych i bezpieczeństwa oraz wariant bez zmiany UI. Najpierw wspólnie omawiają propozycje; **ostateczną decyzję o każdej zmianie interfejsu podejmuje użytkownik**.
+- Zgoda na jeden konkretny element UI nie oznacza zgody na przebudowę całej zakładki ani na inne usprawnienia. Przy implementacji zachowuj dotychczasowy interfejs 1:1 poza elementami wyraźnie zaakceptowanymi.
+- Nadal obowiązują osobny plan, jednoznaczne polecenie „do dzieła”, ochrona globalnych danych i testy regresyjne. Przedstawienie pomysłu lub pozytywny wynik testów nie są zgodą na wdrożenie.
+
 ---
 
 Najważniejsza zasada w skrócie: **najpierw diagnoza i uzgodnienie, potem „do dzieła”, następnie minimalna zmiana i pełny preflight.**
