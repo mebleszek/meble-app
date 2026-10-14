@@ -274,11 +274,11 @@ const cases = [
     assert.equal(r.FC.session.snapshot, snapshot); assert.equal(r.storage.getItem(SESSION), persisted);
     assert.equal(JSON.parse(r.storage.getItem('fc_projects_v1'))[0].projectData.title, 'P2'); assert.equal(r.FC.session.isDirty(), true);
   }],
-  ['16 table has no edge checkbox editor or direct setEdges handler', ()=>{
+  ['16 table has no inline edge checkbox or direct legacy setter', ()=>{
     const r = runtime(); const { html } = r.renderTable();
     assert.doesNotMatch(html, /data-edge=/);
     const source = read('js/tabs/material.js');
-    assert.doesNotMatch(source, /data-edge|\.setEdges\(/);
+    assert.doesNotMatch(source, /data-edge|edgeApi\.setEdges\(/);
     assert.match(source, /edgeApi\.getEdges\(sig, p, cab\)/);
   }],
   ['17 real table renderer shows ordered PCV and grain summary', ()=>{

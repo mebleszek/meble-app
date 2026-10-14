@@ -81,6 +81,7 @@
     if((nav && !context) || (FC.session && FC.session.active)){
       throw createQuoteValidationError('active_edit', 'Najpierw zakończ edycję', 'Zapisz lub anuluj edycję przed obliczeniem nowej wyceny.');
     }
+    if(FC.projectPcvPolicy)options=FC.projectPcvPolicy.calculationOptions(options);
     const totalStart = perfNow();
     const deps = requireDeps();
     const perf = {

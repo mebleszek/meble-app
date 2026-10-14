@@ -109,7 +109,7 @@
   }
 
   function collectRoomMaterials(room, options){
-    const opts = options || {};
+    const opts = FC.projectPcvPolicy ? FC.projectPcvPolicy.calculationOptions(options) : options || {};
     if(opts.pcvMode === 'project'){
       const calculation=FC.projectPcvResolver.requireCollection([room],opts);
       const deps=resolveDeps(),projectTotals={};
@@ -167,7 +167,7 @@
   }
 
   function collectEdgeMetersForRooms(rooms, options){
-    const opts = options || {};
+    const opts = FC.projectPcvPolicy ? FC.projectPcvPolicy.calculationOptions(options) : options || {};
     if(opts.pcvMode === 'project') return FC.projectPcvResolver.requireCollection(rooms,opts);
     const deps = resolveDeps();
     const edgeApi = opts.edgeApi || (FC.materialEdgeStore && typeof FC.materialEdgeStore.createEdgeStore === 'function'

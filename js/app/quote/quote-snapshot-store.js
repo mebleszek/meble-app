@@ -719,6 +719,16 @@
   }
 
   function validateNewCandidate(snapshot){
+    if(FC.projectPcvPolicy){
+      const policy=FC.projectPcvPolicy.read();
+      if(!policy.ok && policy.projectModeRequired)throw FC.projectPcvResolver.error(policy.code);
+      if(policy.mode==='project' && snapshot && snapshot.project && snapshot.project.id===policy.projectId
+        && snapshot.pcvMode!=='project' && snapshot.__projectPcvCandidate===undefined){
+        const historical=getById(snapshot.id);
+        // Frozen historical financial data may retain metadata/status edits; a new calculation requires its proof.
+        if(!historical || ['lines','totals','scope'].some(key=>JSON.stringify(historical[key])!==JSON.stringify(snapshot[key])))throw FC.projectPcvResolver.error('QUOTE_PROOF_REQUIRED');
+      }
+    }
     if(snapshot && (snapshot.pcvMode==='project' || snapshot.__projectPcvCandidate!==undefined)){
       if(!FC.projectPcvResolver)throw new Error('Brak walidacji projektowego kandydata WYCENY.');
       FC.projectPcvResolver.validateQuoteCandidate(snapshot);

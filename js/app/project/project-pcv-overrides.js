@@ -123,7 +123,7 @@
     try{
       const state=context(address,calculation);
       if(!state.ok) return state;
-      return Object.assign({ok:true,edges:state.edges,source:state.eligible ? (state.entry && has(state.entry,'edges') ? 'override' : 'default') : 'ineligible',eligible:state.eligible},calculation?{geometries:state.matches.map(row=>({aCm:Number(row.part.a),bCm:Number(row.part.b),qty:row.qty,material:FC.materialEdgeStore.normalizeMaterialKey(row.part.material),mode:FC.materialEdgeStore.getCabinetPcvMode(row.cabinet)}))}:{});
+      return Object.assign({ok:true,edges:state.edges,defaults:clone(state.defaults),source:state.eligible ? (state.entry && has(state.entry,'edges') ? 'override' : 'default') : 'ineligible',eligible:state.eligible},calculation?{geometries:state.matches.map(row=>({aCm:Number(row.part.a),bCm:Number(row.part.b),qty:row.qty,material:FC.materialEdgeStore.normalizeMaterialKey(row.part.material),mode:FC.materialEdgeStore.getCabinetPcvMode(row.cabinet)}))}:{});
     }catch(error){return failure(error && error.code === 'INVALID_DRAWER_FRONT_GEOMETRY' ? error.code : 'READ_FAILED');}
   }
   function baselineProduction(session,address){

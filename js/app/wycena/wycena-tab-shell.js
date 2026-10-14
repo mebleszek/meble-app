@@ -279,8 +279,13 @@
     }else if(FC.session && FC.session.active) return;
 
     const d = normalizeDeps(deps);
-    const calculationOptions=meta && meta.pcvMode==='project' ? {pcvMode:'project',projectId:meta.projectId}
+    let calculationOptions=meta && meta.pcvMode==='project' ? {pcvMode:'project',projectId:meta.projectId}
       : ctx && ctx.calculationOptions || {};
+    if(FC.projectPcvPolicy){
+      const policy=FC.projectPcvPolicy.read();
+      if(!policy.ok && (policy.projectModeRequired || calculationOptions.pcvMode==='project')){FC.projectPcvPolicy.notify(policy);return false;}
+      if(policy.ok)calculationOptions=Object.assign({},calculationOptions,policy.options);
+    }
     const source = meta && meta.source || '';
     if(!acquireGenerateLock(source || 'generateQuote')) return;
     const state = typeof d.getState === 'function' ? d.getState() : {};
@@ -307,6 +312,7 @@
         try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ stopped:'context-repair-failed', code:contextRepair && contextRepair.code }); }catch(_){ }
         return;
       }
+      if(FC.projectPcvPolicy)calculationOptions=FC.projectPcvPolicy.calculationOptions(calculationOptions);
       const selection = d.normalizeDraftSelection(d.getOfferDraft());
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('selection', selection); }catch(_){ }
       let preflightQuote = await buildUnsavedQuoteSnapshot(selection,calculationOptions);
