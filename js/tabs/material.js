@@ -85,6 +85,7 @@
     let model;
     try{model=getMaterialModel(room);}catch(error){listEl.innerHTML='';listEl.textContent='Nie można wyświetlić PCV. '+error.message+' '+String(error.code||'');return false;}
     const projectMode=model.pcvMode==='project';
+    const renderedRecord=projectMode?JSON.stringify(model.policy && model.policy.record):null;
     const cabinets = model.cabinets || [];
     const cabinetRows = model.cabinetRows || [];
     const deps = model.deps || {};
@@ -368,8 +369,7 @@
               <div class="material-row-tools">
                 <div class="material-row-tools__edges">PCV: ${edgeSummary}</div>
                 <div class="material-row-tools__opts">
-                  <button class="btn material-row-tools__opts-btn" type="button" data-part-options="${sig}">${projectMode ? 'PCV' : 'Opcje'}</button>
-                  ${projectMode ? '<button type="button" class="btn" data-grain-options="1">Słoje (globalne)</button>' : ''}
+                  <button class="btn material-row-tools__opts-btn" type="button" data-part-options="${sig}">Opcje</button>
                   <div class="muted xs material-row-tools__opts-meta">Słój: ${dirLabel}${source && source.ownerType==='set' ? ' • Zestaw '+source.setId : ''}</div>
                 </div>
               </div>
@@ -379,29 +379,38 @@
         table.appendChild(row);
 
         if(canHavePcv && projectMode && source){
-          const config={sig,name:p.name+sourceLabel,material:p.material,aCm:Number(p.a),bCm:Number(p.b),fmtCm,sizeText:`${fmtCm(p.a)} × ${fmtCm(p.b)} cm`,initialDirection:FC.materialPartOptions.getDirection(sig)};
+          const config={sig,name:p.name+sourceLabel,material:p.material,aCm:Number(p.a),bCm:Number(p.b),fmtCm,sizeText:`${fmtCm(p.a)} × ${fmtCm(p.b)} cm`};
           row.querySelector('[data-part-options]').addEventListener('click',()=>{
+            const recordFingerprint=()=>{
+              const record=FC.projectStore.getById(source.projectId);
+              if(!record || String(record.id)!==source.projectId)throw {code:'PROJECT_CONTEXT_MISMATCH'};
+              return JSON.stringify(record);
+            };
             const policy=FC.projectPcvGuard.read({roomId:room,edit:true});
+            if(!policy.ok){FC.projectPcvGuard.notify(policy);return;}
+            let openedRecord;try{openedRecord=recordFingerprint();}catch(error){FC.projectPcvGuard.notify({code:error.code||'READ_FAILED'});return;}
+            if(openedRecord!==renderedRecord){FC.projectPcvGuard.notify({code:'PROJECT_WRITE_CONFLICT'});return;}
             const current=policy.ok && policy.mode==='project' && policy.projectId===source.projectId ? FC.projectPcvOverrides.get(source) : {ok:false,code:policy.code||'PCV_POLICY_MISMATCH'};
             if(!current.ok){FC.projectPcvGuard.notify(current);return;}
-            FC.materialPartOptions.openOptionsModal(Object.assign({},config,{editorMode:'pcv',edges:current.edges,defaults:current.defaults,
-              saveEdges:(edges,clear)=>{
-                const session=FC.session;
-                if(session && session.active && !session.durable && session.projectId===source.projectId && session.roomId===room
-                  && session.begin(room)!==true)return {ok:false,code:'BEGIN_FAILED'};
-                const now=FC.projectPcvGuard.read({roomId:room,edit:true});
-                if(!now.ok || now.mode!=='project' || now.projectId!==source.projectId)return {ok:false,code:now.code||'PCV_POLICY_MISMATCH',projectSaved:!!now.projectSaved};
-                const fresh=FC.projectPcvOverrides.get(source);
-                if(!fresh.ok)return fresh;
-                if(JSON.stringify(fresh.edges)!==JSON.stringify(current.edges))return {ok:false,code:'PROJECT_WRITE_CONFLICT'};
-                return clear?FC.projectPcvOverrides.clearEdges(source):FC.projectPcvOverrides.setEdges(source,edges);
-              },onSave:()=>{renderCabinets();if(FC.views && FC.views.refreshSessionButtons)FC.views.refreshSessionButtons();}}));
-          });
-          row.querySelector('[data-grain-options]').addEventListener('click',()=>{
-            const policy=FC.projectPcvGuard.read({roomId:room,edit:true});if(!policy.ok){FC.projectPcvGuard.notify(policy);return;}
-            FC.materialPartOptions.openOptionsModal(Object.assign({},config,{editorMode:'grain',edges:e,onSave:()=>renderCabinets()}));
+            try{if(recordFingerprint()!==openedRecord){FC.projectPcvGuard.notify({code:'PROJECT_WRITE_CONFLICT'});return;}}catch(error){FC.projectPcvGuard.notify({code:error.code||'READ_FAILED'});return;}
+            const validate=(after)=>{
+              const session=FC.session;
+              if(session && session.active && !session.durable && session.projectId===source.projectId && session.roomId===room
+                && session.begin(room)!==true)return {ok:false,code:'BEGIN_FAILED'};
+              const now=FC.projectPcvGuard.read({roomId:room,edit:true});
+              if(!now.ok || now.mode!=='project' || now.projectId!==source.projectId)return {ok:false,code:now.code||'PCV_POLICY_MISMATCH',projectSaved:!!now.projectSaved};
+              const fresh=FC.projectPcvOverrides.get(source);
+              if(!fresh.ok)return fresh;
+              if(!after && recordFingerprint()!==openedRecord)return {ok:false,code:'PROJECT_WRITE_CONFLICT'};
+              return fresh;
+            };
+            FC.materialPartOptions.openOptionsModal(Object.assign({},config,{edges:current.edges,defaults:current.defaults,
+              projectEditor:{roomId:room,openedRecord,recordFingerprint,validate,
+                saveEdges:(edges,clear)=>clear?FC.projectPcvOverrides.clearEdges(source):FC.projectPcvOverrides.setEdges(source,edges)},
+              onSave:()=>{renderCabinets();if(FC.views && FC.views.refreshSessionButtons)FC.views.refreshSessionButtons();}}));
           });
         }
+
         if(canHavePcv && edgeApi){
           const optsBtn = row.querySelector('[data-part-options]');
           if(optsBtn){

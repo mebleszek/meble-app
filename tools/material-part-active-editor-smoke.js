@@ -365,7 +365,25 @@ const cases = [
     assert.equal(r.save(), false); assert.equal(r.storage.getItem(OPTIONS), before);
     assert.equal(r.storage.getItem(EDGES), null); assert.equal(r.metrics.closes, 0);
     assert.equal(writes(r).at(-1).method, 'setItem');
+  }],  ['27 project row uses one Options action and the original map with both controls', ()=>{
+    const {fixture,activate}=require('./project-pcv-ui-activation-smoke'),r=fixture();activate(r);
+    let cfg;const open=r.FC.materialPartOptions.openOptionsModal;r.FC.materialPartOptions.openOptionsModal=value=>{cfg=value;return open(value);};r.open();
+    const row=r.rowNode('body.side.left');assert.equal(row.querySelector('[data-part-options]').textContent,'Opcje');assert.equal(row.querySelector('[data-grain-options]'),null);
+    assert.equal(r.modal().querySelectorAll('.material-part-options__choice').length,4);assert.equal(r.modal().querySelectorAll('input').length,4);
+    const geometry=r.api.getForCalculation({projectId:'A',roomId:'room',cabinetId:'one',partRoleId:'body.side.left'}).geometries[0];
+    assert.equal(cfg.aCm,geometry.aCm);assert.equal(cfg.bCm,geometry.bCm);
+    const ratio=Math.min(2.6,Math.max(0.45,cfg.aCm/cfg.bCm)),map=r.modal().querySelector('.material-part-options__map');
+    assert.equal(map.getAttribute('style'),`--part-map-width:${Math.min(300,216*ratio)}px;--part-map-ratio:${ratio};`);
+    assert.ok(r.modal().textContent.includes('Przywróć domyślne PCV'));assert.ok(r.list.querySelector('.material-recalculate-project-btn'));
   }],
+  ['28 live project preview updates edge and grain classes without changing map geometry', ()=>{
+    const {fixture,activate}=require('./project-pcv-ui-activation-smoke'),r=fixture();activate(r);r.open();const map=r.modal().querySelector('.material-part-options__map'),style=map.getAttribute('style');
+    r.edge('w2',true);r.modal().querySelectorAll('.material-part-options__choice').find(b=>b.textContent.startsWith('Pion')).click();
+    assert.ok(r.modal().querySelector('.material-part-options__surface').classList.contains('is-vertical'));assert.ok(r.modal().querySelector('.material-part-options__surface').classList.contains('has-w2'));
+    assert.ok(r.modal().querySelector('.material-part-options__edge--1b').classList.contains('is-on'));assert.equal(map.getAttribute('style'),style);
+    assert.equal(r.modal().querySelectorAll('button').filter(b=>b.textContent==='Zapisz').length,1);
+  }],
+
 ];
 (async ()=>{
   let passed = 0;
