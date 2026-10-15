@@ -1,6 +1,6 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
-Data aktualizacji priorytetów: **2026-10-15**, main po PR #46 (`f3b6905e`). Niezwiązane plany poniżej zachowano; nie stanowią zgody na implementację.
+Data aktualizacji priorytetów: **2026-10-15**, main po PR #48 (`8bfc7584`), kod po PR #46. Niezwiązane plany poniżej zachowano; nie stanowią zgody na implementację.
 
 ## Aktualny priorytet — CLOUD-1
 
@@ -8,18 +8,25 @@ Kanoniczny [rejestr CLOUD-1A](CLOUD_DATA_REGISTER.md) i [kontrakt/granice](CLOUD
 
 **Ukończone w main:** stabilizacja preflightu, CI po świadomym Ready (#44), C3.1 confirmed global saves, C2.0b pokojowe sesje/nawigacja, C2.1a odczyt bez przycinania, role/grupy formatek i geometria, projektowe PCV z adapterami obliczeń, guardy sesji/ofert (#38–40), automatyczny tryb (#43), wspólne Opcje (#45), poprawka konfliktu autosave (#46). Ręczne testy użytkownika nie są utożsamiane z PASS symulowanego DOM.
 
-**Bieżące CLOUD-1A:** wyłącznie rejestr i aktualizacja dokumentacji, do przeglądu w Draft PR. Bez eksportera/Firebase/runtime.
+**Ukończone CLOUD-1A:** kanoniczny rejestr i dokumentacja scalone w PR #48. **CLOUD-1B:** analiza techniczna wykonana, eksporter jeszcze niezaimplementowany. Decyzje chmurowe z 2026-10-15 są zatwierdzone i zapisane w [CLOUD_MIGRATION.md](CLOUD_MIGRATION.md); ta aktualizacja nie wdraża synchronizacji.
 
-**Wymagana kolejność kolejnych osobno zatwierdzanych zadań:** CLOUD-1B → CLOUD-2A → CLOUD-2B → CLOUD-2C. Pełnego kontraktu CLOUD-1 z 15.10.2026 nie znaleziono w repo; nie udajemy znajomości jego szczegółowych definicji. Roboczy podział do potwierdzenia:
+**Wymagana kolejność kolejnych osobno zatwierdzanych zadań:** CLOUD-1B → CLOUD-2A → CLOUD-2B → CLOUD-2C → obowiązkowe wdrożenie docelowej chmury. Zakresy techniczne etapów po analizie wymagają osobnych poleceń; nie są zgodą na kodowanie teraz.
 
-| Etap | Propozycja zakresu, NIE decyzja implementacyjna |
+| Etap | Cel i status |
 |---|---|
-| CLOUD-1B | Kontrakt i testy selektywnego eksportu jednego I/P, wykluczeń/sekretów, kontroli spójnego projektu i zakończonej sesji. |
-| CLOUD-2A | Uzgodnienie izolowanego środowiska pilotażu, uwierzytelnienia/reguł i modelu Firestore; bez samodzielnego wyboru metody loginu/schematu. |
-| CLOUD-2B | Kontrolowany zapis wybranego testowego I/P, bez globalnych magazynów i bez automatycznej synchronizacji. |
-| CLOUD-2C | Kontrolowane pobranie i porównanie ustalonego zakresu, ochrona lokalnych globalnych danych i konfliktów. |
+| CLOUD-1B | Kontrakt i późniejsza implementacja/testy selektywnego eksportu jednego I/P; jawna allowlista, integralność, zakończona sesja, potwierdzony zapis i brak sekretów. Analiza wykonana, implementacja nierozpoczęta. |
+| CLOUD-2A | Porównanie darmowych planów Firebase/Firestore, Supabase i Cloudflare przy celu **0 zł stałych opłat miesięcznych**; limity odczytów, zapisów, transferu i przestrzeni, ryzyka kosztów. Dopiero po decyzji: dostawca, uwierzytelnienie/reguły i model przechowywania. Bez samodzielnego włączenia billingu/płatnych API. |
+| CLOUD-2B | Kontrolowany techniczny zapis syntetycznego I/P, bez globalnych magazynów. Ręczne wywołanie testowe nie oznacza ręcznego workflow ani nowych przycisków użytkownika. |
+| CLOUD-2C | Kontrolowane techniczne pobranie i porównanie tego zakresu, bez nadpisywania globalnych danych. Odtworzenie projektu nie dowodzi pełnej zdolności przeliczenia WYCENY. |
+| Po CLOUD-2C — ochrona danych i rozszerzenie zakresu | Obowiązkowo zaprojektować i wdrożyć ochronę oraz zatwierdzone przeniesienie wypracowanych katalogów/cenników/stawek/słowników/ustawień; zachować historię ofert. Objąć wspierane struktury produkcyjne, prawdziwe dane inwestorów i duże projekty. Rozstrzygnąć projektową własność słojów/rotacji (Issue #47); pilot ich nie kończy. |
+| Po CLOUD-2C — autorytet chmury i automatyczna synchronizacja | Obowiązkowe, osobno zatwierdzane wdrożenie chmury jako autorytetu domen, automatyczne otrzymywanie aktualnych danych i zapis zatwierdzonych zmian na Androidzie/tablecie/komputerze. Bez ręcznych Eksportuj/Importuj/Wyślij/Pobierz/Synchronizuj i bez zmian UI. Zachować Zapisz/Anuluj; lokalny cache/draft nie jest drugim autorytetem. |
+| Po CLOUD-2C — konflikty, sieć i praca między urządzeniami | Obowiązkowe testy konfliktów, niepotwierdzonych zapisów, ponowień i błędów sieci; zakaz nadpisania nowszych zmian innym urządzeniem. Przyszły bezpieczny offline wymaga oddzielnego kontraktu. Kontrolować koszty/limity i nie zapisywać zbędnie niezmienionych danych. |
 
-Pilot obejmuje **jednego testowego inwestora i jeden fizyczny projekt z pokojami, szafkami i projektowym PCV**. Nie obejmuje słojów globalnych, katalogów, cen/stawek, historii/draftów ofert ani pełnego transferu aplikacji. Powyższych propozycji nie wdrażać przed potwierdzeniem kontraktu i osobną zgodą. Issue #47 (słoje) pozostaje osobnym planem. Retencja backupów odłożona do czasu po migracji. Android pozostaje obecnym urządzeniem ręcznej akceptacji; tablet/komputer mają być wspierane, bez wymagania ręcznej akceptacji teraz.
+Szczegółowy podział i kolejność wdrożeń **po CLOUD-2C** wymagają planu technicznego; obowiązkowość celów została zatwierdzona. Nie wolno uznać ręcznego pilotażu za zakończenie migracji ani przełączyć obecnych lokalnych domen na chmurowy autorytet bez oddzielnej zgody.
+
+**Tylko pierwszy test CLOUD-1B ma ograniczenia A–D:** odmowa przy nieobsługiwanych istotnych danych (bez cichego pomijania), fikcyjny inwestor/projekt bez niekontrolowanych notatek, wyłącznie jawne ID aktywnego projektu po potwierdzonym zapisie i zakończonej sesji, robocze 800 KiB pliku UTF-8 z odmową zamiast obcięcia. Nie są to docelowe ograniczenia produktu. Pełne wymagania, w tym daty/liczniki/roomId oraz `front.note`, są w [kontrakcie](CLOUD_MIGRATION.md#cloud-1b--wymagania-bezpieczeństwa-do-przyszłej-implementacji).
+
+Pilot nie obejmuje globalnych słojów, katalogów, cen/stawek, historii/draftów ofert ani pełnego transferu aplikacji. Ich bezpieczeństwo i przyszła obsługa nie zostały anulowane. Retencja backupów pozostaje bez zmian; optymalizacja odłożona do czasu po migracji. Android pozostaje obecnym urządzeniem ręcznej akceptacji; tablet/komputer mają być wspierane, bez wymagania ręcznej akceptacji teraz.
 
 ## Zasada nadrzędna
 
@@ -33,7 +40,7 @@ Nie realizować starych wpisów historycznych bez sprawdzenia, czy nie zostały 
 
 # ETAP 0 — wiarygodny punkt startowy
 
-**Stan historycznego Etapu 0:** dokumenty istnieją; aktualizacja danych CLOUD-1A trwa w tym Draft PR.
+**Stan historycznego Etapu 0:** dokumenty istnieją; aktualizacja CLOUD-1A została scalona w PR #48.
 
 Cel:
 
@@ -186,7 +193,7 @@ Każda czynność powinna mieć jawne `quantitySource`, warunki oraz test, a nie
 
 # ETAP 5 — model chmury i pilotaż Firebase
 
-Ten starszy cel jest teraz realizowany kolejnością **CLOUD-1A → CLOUD-1B → CLOUD-2A → CLOUD-2B → CLOUD-2C** z tabeli priorytetów. Nie wybierać samodzielnie metody logowania, finalnych dokumentów Firestore, nowych przycisków Wyślij/Pobierz ani dwukierunkowego sync. Nie wymagać pełnego transferu komputer → telefon w pierwszym pilotażu; testuje on wyłącznie ustalony I/P. Przyszła synchronizacja ma obejmować Android, tablet i komputer.
+Ten starszy cel jest teraz realizowany kolejnością **CLOUD-1A → CLOUD-1B → CLOUD-2A → CLOUD-2B → CLOUD-2C** z tabeli priorytetów. Historyczny tytuł Firebase nie rozstrzyga wyboru dostawcy. Nie wybierać samodzielnie logowania/modelu przechowywania ani wdrażać synchronizacji bez osobnego polecenia. Przyciski Wyślij/Pobierz nie są dozwolonym docelowym UI; automatyczna synchronizacja bez zmiany interfejsu jest obowiązkowym celem po pilotażu. Nie wymagać pełnego transferu komputer → telefon w pierwszym pilotażu; testuje on wyłącznie ustalony I/P. Przyszła synchronizacja ma obejmować Android, tablet i komputer.
 
 ---
 
@@ -308,8 +315,9 @@ Najpierw stabilna treść i dane, potem wygląd.
 
 # Najbliższe kroki
 
-1. Ocena dokumentacji i nierozstrzygniętych punktów CLOUD-1A.
-2. Potwierdzenie pełnego kontraktu kolejnego zakresu i osobna zgoda na CLOUD-1B.
-3. Następnie CLOUD-2A → CLOUD-2B → CLOUD-2C, bez rozszerzania pilotażu na globalne dane.
+1. Ocena zapisanych decyzji i dopracowanie kontraktu CLOUD-1B; analiza już wykonana, implementacja dopiero po osobnym poleceniu.
+2. Osobna zgoda na CLOUD-2A: porównanie darmowej infrastruktury, bez wyboru dostawcy teraz.
+3. Następnie CLOUD-2B → CLOUD-2C, bez rozszerzania pierwszego pilotażu na globalne dane.
+4. Obowiązkowo dalej: ochrona pozostałych domen, zatwierdzone przełączenie autorytetu, automatyczna synchronizacja, konflikty i praca między urządzeniami — według tabeli priorytetów. Pilot nie kończy migracji.
 
 Nie rozpoczynać następnego etapu po samym zielonym preflight ani utworzeniu Draft PR.

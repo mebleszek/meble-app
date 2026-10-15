@@ -1,7 +1,7 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
 Data przeglądu danych i integracji: **2026-10-15**
-Baza kodu: **`f3b6905e` — main po PR #46**. Nie wykonywano ponownego audytu całej logiki biznesowej; niezwiązane rozdziały zachowują wcześniejszy kontekst.
+Baza dokumentacji: **`8bfc7584` — main po PR #48 (CLOUD-1A)**; baza kodu: **`f3b6905e` — po PR #46**. Nie wykonywano ponownego audytu całej logiki biznesowej; niezwiązane rozdziały zachowują wcześniejszy kontekst.
 
 ## Po co jest ten plik
 
@@ -39,10 +39,12 @@ Kanoniczna mapa: [CLOUD_DATA_REGISTER.md](CLOUD_DATA_REGISTER.md), zasady etapó
 - Nowy projekt od początku używa `projectData.meta.productionPcvMode='project'`; istniejący testowy przechodzi przy bezpiecznym otwarciu. Brak aktywacyjnego przycisku/dialogu i importu globalnych krawędzi. Decyzje PCV są w `projectData[roomId].production`, z niezależnymi rolami elementów/grup i setId.
 - Słoje nadal globalne (`fc_material_part_options_v1`), a ROZRYS ma globalne enabled/exceptions. To decyzje produkcyjne z nierozstrzygniętą własnością, nie dowolnie usuwalny cache. Issue #47 dotyczy ich przyszłej przebudowy. `fc_rozrys_overrides_v1` ma dormant API, bez znalezionego aktualnego konsumenta.
 - Globalne cenniki, katalogi, słowniki, stawki, magazyn i ustawienia są chronione, zgodne wstecz i **poza pilotem**. C3.1 nie daje automatycznie gwarancji confirmed write wszystkim pozostałym store.
-- CLOUD-1A tylko dokumentuje dane. **Nie wdrożono Firebase/Firestore, loginu, selektywnego eksportera ani synchronizacji.** Pierwszy planowany pilot to jeden testowy inwestor i jeden fizyczny projekt z pokojami/szafkami/PCV. Bez globalnych słojów/katalogów/cenników, ofert, sesji/cache/kopii/sekretów; nie jest pełnym przenoszeniem aplikacji.
+- CLOUD-1A zakończono i scalono w PR #48; analiza CLOUD-1B została wykonana, implementacja eksportera nie rozpoczęła się. **Nie wdrożono Firebase/Firestore, loginu, selektywnego eksportera ani synchronizacji.** Pierwszy planowany pilot to jeden testowy inwestor i jeden fizyczny projekt z pokojami/szafkami/PCV. Bez globalnych słojów/katalogów/cenników, ofert, sesji/cache/kopii/sekretów; nie jest pełnym przenoszeniem aplikacji.
 - Obecny pełny backup fc_* nie jest pilot payloadem: może zawierać ORS apiKey profilu firmy i pomija nieprefiksowane aliasy katalogów. Bez zmian mechanizmu/retencji; rozdzielenie i filtrowanie eksportu wymaga kolejnego zakresu.
 
-Pełny kontrakt CLOUD-1 z 15.10.2026 nie jest osobnym plikiem w odczytanym repo. Potwierdzone granice bieżącego polecenia są zapisane w rejestrze; szczegóły CLOUD-1B/2A/B/C, finalny Firestore i metoda loginu pozostają do potwierdzenia. `PROJECT_DECISIONS.md` nadal jest w Draft PR #41; tu nie tworzymy konkurencyjnego rejestru, a propozycja wpisu jest w rejestrze danych.
+**ZATWIERDZONE 2026-10-15, JESZCZE NIEWDROŻONE:** docelowo chmura jest autorytetem trwałych danych; telefon/tablet/komputer otrzymują aktualny stan automatycznie, zatwierdzone zmiany synchronizują się bez ręcznego eksportu/importu/Wyślij/Pobierz/Synchronizuj i bez zmiany UI. Zapisz/Anuluj pozostaje; draft nie jest zatwierdzonym projektem. Lokalny cache nie stanowi drugiego autorytetu. Przełączenie domen wymaga osobnej zgody, ochrony konfliktów i danych globalnych. Cel kosztowy: **0 zł stałych opłat miesięcznych**; w CLOUD-2A porównamy Firebase/Firestore, Supabase i Cloudflare, **bez wyboru dostawcy i uruchomienia kosztów teraz**.
+
+Cztery zatwierdzone ograniczenia **tylko pierwszego testu CLOUD-1B**: odmowa nieobsługiwanych istotnych struktur bez cichej utraty, syntetyczny I/P bez niekontrolowanych notatek, jawny aktywny I/P po zakończonej sesji i potwierdzonym zapisie, 800 KiB bez obcinania. Nie są limitami docelowego produktu. Pełny aktualny kontrakt, wymagania bezpieczeństwa oraz propozycja wpisu do `PROJECT_DECISIONS.md` są w [CLOUD_MIGRATION.md](CLOUD_MIGRATION.md). Sam pilotaż nie kończy migracji; obowiązkowe dalsze cele po CLOUD-2C opisuje [ROADMAP.md](ROADMAP.md). `PROJECT_DECISIONS.md` nadal jest na osobnej gałęzi PR #41; nie zmieniono jej i nie utworzono konkurencyjnego rejestru.
 
 ---
 

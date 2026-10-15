@@ -1,31 +1,76 @@
-# CLOUD-1 — aktualny kontrakt i status, 2026-10-15
+# CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
-Baza: main po PR #46 (`f3b6905e`). Kanoniczny rejestr magazynów: **[CLOUD_DATA_REGISTER.md](CLOUD_DATA_REGISTER.md)**. To dokumentacja; Firebase/Firestore/Authentication i synchronizacja nie są wdrożone.
+Stan decyzji: **2026-10-15**. Baza: `main` po scaleniu PR #48 CLOUD-1A (`8bfc7584`); kod aplikacji po PR #46. Kanoniczna mapa obecnych magazynów: **[CLOUD_DATA_REGISTER.md](CLOUD_DATA_REGISTER.md)**. Ten dokument zawiera aktualne wymagania chmurowe; starsze plany poniżej są historią.
 
-## Zatwierdzone granice bieżącego etapu
+## Status prac i sposób odczytywania decyzji
 
-- Jeden fizyczny projekt = jeden autorytatywny rekord fc_projects_v1. Pokój, szafka i projektowe PCV są jego częścią; RAM/cache/kopia ratunkowa nie są drugim źródłem prawdy.
-- Pierwszy planowany pilot: **jeden testowy inwestor i jeden projekt**, jego pokoje, szafki/zestawy oraz zapisane projektowe PCV. Bez globalnych słojów, katalogów/cenników, historii/draftów ofert, backupów, sekretów i stanu technicznego.
-- Globalne dane użytkownika (w tym historyczne aliasy) są bezwzględnie chronione i zgodne wstecz. Testowy charakter inwestorów/projektów nie upoważnia do resetu w CLOUD-1A ani naruszenia innych domen.
-- Nie używać pełnego backupu RAW fc_* jako eksportera pilotażu: obejmuje szerszy zakres, może zawierać ORS apiKey, a pomija nieprefiksowane legacy katalogi. Bez zmian eksportera lub backupu w CLOUD-1A.
-- Brak aktywnej/niepotwierdzonej sesji i niedokończonej operacji domenowej, potwierdzony fizyczny właściciel I/P oraz świeże dane kanoniczne są wymaganiami bezpieczeństwa przyszłego eksportu, nie zgodą na import całej sesji.
-- To nie pełne przeniesienie aplikacji między urządzeniami. Android to obecna ręczna platforma testowa użytkownika; tablet i komputer pozostają docelowymi platformami. Ręczna akceptacja na nich nie jest wymagana teraz.
+- **WYKONANE:** CLOUD-1A — rejestr 46 stałych nazw magazynów i 3 rodzin dynamicznych, scalony PR #48. W main działają lokalne zabezpieczenia C3.1, sesje C2.0b, projektowe PCV z resolverem/adapterami i guardami sesji/ofert, automatyczny tryb PCV (#43), wspólne Opcje (#45) oraz hotfix konfliktu updatedAt (#46).
+- **ANALIZA WYKONANA, IMPLEMENTACJA NIEROZPOCZĘTA:** CLOUD-1B — projekt selektywnego eksportu. Cztery ograniczenia pierwszego testu poniżej zostały zatwierdzone; szczegóły formatu, allowlisty i API z analizy pozostają propozycją do osobnej akceptacji implementacji.
+- **ZATWIERDZONE, DO WDROŻENIA W KOLEJNYCH ETAPACH:** docelowy autorytet chmury, automatyczny zapis zatwierdzonych zmian i synchronizacja między urządzeniami. **Synchronizacji, eksportera CLOUD-1B ani integracji Firebase/Firestore/Authentication jeszcze nie wdrożono.**
+- Obecnie autorytetem projektu pozostaje fizyczny rekord `fc_projects_v1`; poniższy cel nie upoważnia do przełączenia żadnej lokalnej domeny bez osobnej zgody.
+- `PROJECT_DECISIONS.md` pozostaje poza main, na gałęzi `docs/collaboration-rules-20261014` (PR #41). Nie zmieniamy tej gałęzi ani nie zakładamy drugiego rejestru decyzji. Propozycja wpisu do późniejszego przeniesienia jest na końcu aktywnej części tego dokumentu.
 
-## Wykonane w main, propozycje i otwarte decyzje
+## ZATWIERDZONE — docelowa praca w chmurze
 
-W main są C3.1 oraz C2.0b/C2.1a–C2.1b: bezpieczne sesje i zapis, stabilne role/grupy, projektowy resolver/adaptery PCV, ochrona nowego kandydata oferty, automatyczne PCV (#43), wspólne Opcje (#45) i hotfix fałszywego konfliktu updatedAt (#46). Słoje i rotacja nadal globalne; Issue #47 i pozostałe D1–D6 nie są całościowo zamknięte. Szczegóły w rejestrze i raportach etapów, bez przepisywania historii.
+1. **Chmura jest głównym, autorytatywnym źródłem trwałych danych.** Jeden projekt ma jedno źródło prawdy; lokalny cache nie jest równorzędnym magazynem autorytatywnym.
+2. Po otwarciu Meble-App na **telefonie, tablecie lub komputerze** użytkownik automatycznie otrzymuje aktualne dane. Docelowa synchronizacja nie wymaga ręcznego otwierania każdego projektu.
+3. **Zatwierdzone zmiany zapisują się i synchronizują automatycznie.** Dotychczasowa semantyka **Zapisz / Anuluj** pozostaje nienaruszona: niedokończony draft nie staje się samoczynnie zatwierdzonym projektem, a błąd zapisu nie jest sukcesem.
+4. Użytkownik **nie wykonuje ręcznie** operacji „Eksportuj”, „Importuj”, „Wyślij do chmury”, „Pobierz z chmury” ani „Synchronizuj”. Nie jest to docelowy workflow aplikacji.
+5. **Dotychczasowy interfejs pozostaje bez zmian:** bez nowych przycisków, okien, pól i przebudowy UI. Techniczny pilotaż nie upoważnia do ich dodania.
+6. Dane lokalne mogą służyć jako **cache i podstawa przyszłej bezpiecznej pracy offline**, lecz nie jako drugie konkurencyjne źródło prawdy. Zachowanie przy braku sieci wymaga osobnego projektu i testów; nie obiecujemy go jako już działającego.
+7. Docelowy mechanizm chroni przed konfliktami, błędami sieci, utratą danych i przypadkowym nadpisaniem zmian z innego urządzenia. Nie wolno nadpisywać nowszego rekordu starym RAM ani uznawać niepotwierdzonej rewizji za zatwierdzoną.
+8. **Przełączenie obecnych lokalnych domen na autorytet chmurowy wymaga osobnego zatwierdzenia**, zakresu i regresji ochrony danych. Ten dokument sam nie uruchamia migracji.
 
-**CLOUD-1A** opracowuje mapę źródeł i statusów danych. **Dalsza kolejność zatwierdzona w poleceniu:** CLOUD-1B → CLOUD-2A → CLOUD-2B → CLOUD-2C. Osobnego pełnego tekstu zatwierdzonego kontraktu CLOUD-1 z 15.10.2026 nie znaleziono w main ani w odczytanym PR #41; definicje podetapów w ROADMAP są **propozycją do potwierdzenia**, nie odtworzeniem nieudostępnionej decyzji.
+**Pilot a produkt końcowy:** testy pilotażu mogą ręcznie wywoływać techniczne operacje wysłania i pobrania danych. Nie oznacza to zgody na ręczny workflow użytkownika ani nowe kontrolki. Zaliczenie takiego testu **nie kończy migracji**. Automatyczna synchronizacja, ochrona danych globalnych i praca między urządzeniami są obowiązkowym dalszym celem, nie opcjonalnym dodatkiem po CLOUD-2C.
 
-Nie wybrano metody loginu, schematu kolekcji/podkolekcji, nowego UI chmury ani formatu selektywnego eksportu. Dawne ścieżki `users/{uid}/...` i plany Wyślij/Pobierz poniżej są wyłącznie propozycjami. Nie wdrażać ich automatycznie. Format/allowlista I/P, referencje statusów/ofert, wielkość dokumentów, zasady konfliktów i ochrona sekretów wymagają osobnego kontraktu przed kodowaniem. Nie dodawać pełnych kopii projektu ani trwałej cutlisty; derivedFacts i proof kalkulacji pozostają odtwarzalne/techniczne.
+Android pozostaje obecnym urządzeniem ręcznej akceptacji użytkownika. Tablet i komputer są platformami docelowymi; projektowanie i dostępne testy automatyczne mają je uwzględniać, lecz nie wymagamy teraz ręcznej akceptacji na tych urządzeniach. Symulowany DOM nie jest testem rzeczywistego urządzenia.
 
-Obecny rejestr PROJECT_DECISIONS.md jest w osobnym Draft PR #41. Nie zmieniono jego gałęzi; propozycję późniejszego dopisku zamieszczono w końcu CLOUD_DATA_REGISTER.md. Nie ustanawiamy konkurencyjnego rejestru decyzji.
+## ZATWIERDZONE — cztery TYMCZASOWE ograniczenia pierwszego pilotażu CLOUD-1B
+
+Pilot obejmuje dokładnie **jednego fikcyjnego inwestora i jeden przypisany mu fizyczny projekt**, z jego pomieszczeniami, szafkami, zestawami i zapisanym projektowym PCV. Nie jest pełnym transferem aplikacji między urządzeniami.
+
+| Ograniczenie pierwszego testu | Wymagane zachowanie | Obowiązujący cel końcowy |
+|---|---|---|
+| **A. Nieobsługiwane dane** | Eksporter odmawia, jeśli nie potrafi bezstratnie zachować istotnej struktury biznesowej, np. ręcznych wymagań okuć, konfiguracji szuflad lub wykończeń. Nie pomija ich po cichu. Obsługiwane standardowe konfiguracje nie są wykluczone samą nazwą kategorii. | Obsługa wszystkich wspieranych struktur produkcyjnych; odmowa w pilotażu nie usprawiedliwia trwałego uszczuplenia modelu. |
+| **B. Dane syntetyczne** | Jeden fikcyjny inwestor i projekt, bez prawdziwych danych klientów i niekontrolowanych swobodnych notatek. | Migracja obejmie także prawdziwych inwestorów i ich dane; konieczny bezpieczny kontrakt ochrony danych. |
+| **C. Aktualny projekt** | Jawne `investorId` i `projectId` aktualnie aktywnego projektu; sesja zakończona, zapis potwierdzony. Eksporter nie przełącza kontekstu, nie zatwierdza edycji i niczego nie modyfikuje. | Synchronizacja działa automatycznie i nie wymaga otwierania każdego projektu przez użytkownika. |
+| **D. Limit 800 KiB** | Roboczy limit pliku testowego: **800 KiB = 819 200 bajtów UTF-8**. Przekroczenie oznacza odmowę, bez obcinania danych. | Duże projekty muszą być obsługiwane odpowiednim modelem przechowywania. 800 KiB nie jest limitem produktu ani zatwierdzonym podziałem dokumentów chmury. |
+
+## CLOUD-1B — wymagania bezpieczeństwa do przyszłej implementacji
+
+- **Ścisły odczyt zapisanego stanu:** bez zapisu, normalizowania, uzupełniania braków, przepisywania rekordów ani uruchamiania recovery przy eksporcie. Normalizator generujący ID/daty/defaulty nie jest dowodem poprawności źródła. Brak/uszkodzenie wymaganych danych oznacza odmowę.
+- **Integralność rekordów:** zweryfikować `createdAt` i `updatedAt` (typ, poprawność i spójność chronologiczną zgodnie z przyszłym schematem), liczniki oraz identyfikatory pomieszczeń. Porównać zapisane liczniki z rzeczywistym zakresem pokojów/szafek; wykryć brakujące, powtórzone i sprzeczne ID oraz referencje. Nie naprawiać ich ani nie zastępować świeżo wygenerowanymi wartościami w eksporcie. Poprawne daty zachować; ostateczna allowlista określi jawnie ich miejsce i wymaganie obecności.
+- **Właściciel i świeżość:** potwierdzić fizyczny projekt, zgodność inwestora, trwały read-back, zakończenie sesji oraz zgodność RAM i zapisanego źródła. Aktywna sesja (także czysta), niepotwierdzona rewizja, failed save, `pendingDomainOperation`, niejednoznaczny właściciel lub zmiana źródła podczas przygotowania eksportu blokują operację. Eksporter nie wywołuje Save/Cancel, nie resetuje snapshotu i nie przyjmuje dowolnej najnowszej rewizji jako własnej.
+- **Jawna, zagnieżdżona allowlista:** kopiować tylko zaakceptowane pola, także wewnątrz `meta`, `details`, `params` i danych inwestora. Nie kopiować całych obiektów z późniejszym usunięciem kilku pól. Nieznane istotne dane biznesowe oznaczają odmowę, a nie ciche pominięcie.
+- **Notatki, w tym `front.note`:** nie wolno kopiować ich automatycznie jako dowolnego tekstu ani usuwać istotnej informacji po cichu. W pierwszym teście dopuszczalne są puste/brakujące notatki oraz jawnie rozpoznane, syntetyczne opisy frontów generowane przez aplikację, które zostaną objęte ścisłą allowlistą i testami. Nierozpoznana niepusta `front.note` lub swobodna notatka inwestora/projektu blokuje eksport do rozstrzygnięcia. Samo pole tekstowe z allowlisty nie gwarantuje braku sekretu; pilotaż nie korzysta z rzeczywistych notatek klienta.
+- **Wykluczenia:** inni inwestorzy/projekty, katalogi, cenniki i stawki, dostawcy/producenci jako globalne katalogi, globalne ustawienia i słoje, `fc_edge_v1`, historia i drafty ofert, pełny backup `fc_*`, kopie ratunkowe, sesje i snapshoty rollbacku, cache/`derivedFacts`, techniczny stan UI oraz niepotwierdzone operacje domenowe. Zachowanie identyfikatorów/nazw referencyjnych w samym projekcie nie oznacza dołączania katalogu.
+- **Sekrety:** zakaz eksportu kluczy API, danych uwierzytelniających i ich ukrytych kopii w `meta` lub innych zagnieżdżeniach. Szczególnie ORS: `fc_company_profile_v1.transport.apiKey` może też występować w pełnych/historycznych backupach. Nie czytać i nie ujawniać wartości w raportach; nie używać pełnego backupu jako wejścia pilotażu.
+- **PCV:** zachować marker `projectData.meta.productionPcvMode` i projektowe nadpisania `production.partOverrides`, `cabinetGroupOverrides`, `setGroupOverrides`, cztery krawędzie `w1/w2/h1/h2` oraz właścicieli. Identyczne fizyczne elementy różnych szafek/pokojów/projektów pozostają niezależne; grupy szablonowe mają własną wspólną tożsamość, a fronty zestawu należą do `setId`. Bez importowania globalnego PCV i bez utrwalania cutlisty/ilości pochodnych.
+- **Słoje:** globalne `fc_material_part_options_v1`, `fc_rozrys_grain_state_v1` i nierozstrzygnięte ustawienia produkcyjne pozostają nietknięte. Issue [#47](https://github.com/mebleszek/meble-app/issues/47) i pozostałe D1–D6 są odłożone, lecz właściwa własność słojów/rotacji nadal jest wymaganą częścią pełnej migracji; nie oznaczać jej jako zbędnej tylko dlatego, że nie wchodzi do pilotażu.
+- **Dane globalne i historia:** bezwzględnie chronić wypracowane cenniki, katalogi materiałów/okuć, stawki, producentów/dostawców, słowniki, ustawienia oraz historię ofert. Bez resetów, automatycznych migracji lub nadpisywania. Historyczne oferty zachowują zamrożone ceny/linie i dokładny zakres, bez przeliczenia według nowych katalogów.
+- **Trzy poziomy poprawności:** odtworzenie danych projektu, możliwość jego wyświetlenia i poprawne przeliczenie materiałów/PCV/WYCENY to osobne wyniki. Brak katalogów, globalnych defaultów lub słojów na drugim urządzeniu wymaga raportu zależności; nie oznacza 0 zł/0 mb ani zgody na automatyczne dołączenie katalogów. Pierwszy pilot nie gwarantuje identycznej WYCENY na pustym urządzeniu.
+
+Format wersjonowanego eksportu, pełna allowlista, proof integralności, kody odmowy i testy wymagają uzgodnionego kontraktu implementacyjnego. Wykonana analiza CLOUD-1B nie stanowi wdrożenia eksportera ani zgody na rozpoczęcie kodowania w tym zadaniu dokumentacyjnym.
+
+## ZATWIERDZONE — cel kosztowy i wybór dostawcy
+
+**Cel: 0 zł stałych opłat miesięcznych.** W CLOUD-2A porównamy darmowe plany **Firebase/Firestore, Supabase i Cloudflare**, limity odczytów/zapisów, transferu i przestrzeni dyskowej, ograniczenia funkcji i ryzyko kosztów. **Dostawca nie został wybrany**; historyczne preferencje Firebase nie są decyzją wdrożeniową. Nie wybrano też metody logowania ani ostatecznego modelu kolekcji/dokumentów.
+
+Bez oddzielnej zgody użytkownika nie aktywować płatnych planów, rozliczeń, płatnych API ani funkcji mogących generować koszty. Architektura ma unikać zbędnego zapisywania niezmienionych danych i uwzględniać limity darmowego planu. Cel kosztowy nie jest gwarancją nieograniczonych darmowych zasobów. Przy braku bezpiecznego rozwiązania w tych limitach przedstawić ograniczenie do decyzji zamiast uruchamiać billing.
+
+## Propozycja późniejszego wpisu do PROJECT_DECISIONS.md
+
+Poniższy tekst jest **propozycją miejsca/formy przeniesienia zatwierdzonych decyzji**, a nie nowym konkurencyjnym rejestrem. Wpis w PR #41 zostanie zaktualizowany osobno; nie zmieniamy teraz jego gałęzi. Starsze oznaczenia PCV „DO WDROŻENIA” w tym PR wymagają odrębnego sprostowania wobec main po PR #43/#45/#46.
+
+> **2026-10-15 — ZATWIERDZONE, DOCELOWA CHMURA (do wdrożenia):** chmura jest autorytetem trwałych danych; telefon/tablet/komputer automatycznie otrzymują aktualny stan. Zatwierdzone zmiany synchronizują się automatycznie przy zachowaniu Zapisz/Anuluj i dotychczasowego UI, bez ręcznych Eksportuj/Importuj/Wyślij/Pobierz/Synchronizuj. Lokalny stan jest cachem lub bezpiecznym draftem/offline, nie konkurencyjnym autorytetem. Wymagane konflikty/sieć/ochrona danych innych urządzeń; przełączenie domen wyłącznie po osobnej zgodzie. Cel 0 zł stałych opłat; CLOUD-2A porównuje Firebase/Firestore, Supabase i Cloudflare, bez wyboru dostawcy lub uruchomienia kosztów. CLOUD-1B: tylko pierwszy test ma ograniczenia A–D (odmowa nieobsługiwanych istotnych danych, syntetyczny I/P bez swobodnych notatek, aktywny jawnie wskazany zapisany projekt po zakończeniu sesji, 800 KiB bez obcinania). Nie są to limity docelowego produktu. Globalne dane i historia ofert chronione; słoje Issue #47 pozostają wymagane później. CLOUD-1A scalony (#48), CLOUD-1B przeanalizowany, eksporter i synchronizacja niewdrożone. Szczegółowy kontrakt i granice: CLOUD_MIGRATION.md.
+
+Przy nowym wątku najpierw czytać `AGENTS.md`, właściwy `PROJECT_DECISIONS.md`, aktualny stan i tę aktywną część `CLOUD_MIGRATION.md`; nie polegać na pamięci rozmowy. Dalsza implementacja CLOUD-1B/CLOUD-2A wymaga osobnego polecenia „do dzieła”.
 
 ---
 
 ## Historia i wcześniejsze kierunki (zachowane)
 
-Poniższe wpisy opisują stan swoich dat. Ich nazwy kolekcji/etapów i stare stwierdzenia o równoległych projektach nie zastępują powyższego stanu oraz aktualnego kodu. Dawna etykieta „technical” dla globalnych wyjątków nie pozwala uznać decyzji produkcyjnych za kasowalny cache.
+Poniższe wpisy opisują stan swoich dat. Ich nazwy kolekcji/etapów i stare stwierdzenia o równoległych projektach nie zastępują powyższego stanu oraz aktualnego kodu. Dawna etykieta „technical” dla globalnych wyjątków nie pozwala uznać decyzji produkcyjnych za kasowalny cache. **Poniższy dawny wybór Google/Firebase i ręczne przyciski Wyślij/Pobierz zostały zastąpione decyzją 2026-10-15 powyżej**; zachowujemy je wyłącznie jako historię planowania, bez zgody na ich implementację.
 
 ## 2026-06-28 — Szuflady jako wymagania i formatki pochodne v1
 
@@ -266,6 +311,8 @@ Ten plik jest stałym punktem odniesienia dla zmian dotyczących danych. `DEV.md
 
 Przygotować aplikację tak, żeby obecny tryb lokalny działał dalej, ale żeby dane można było później przenieść do chmury bez przepisywania całego programu.
 
+> **Sprostowanie 2026-10-15:** poniższa preferencja dostawcy jest historyczna. Obowiązuje porównanie Firebase/Firestore, Supabase i Cloudflare w CLOUD-2A; dostawcy jeszcze nie wybrano.
+
 Docelowy kierunek techniczny: Google/Firebase, najpewniej Firebase Authentication + Cloud Firestore. To nie oznacza natychmiastowego wdrożenia chmury. Najpierw porządkujemy model danych, repozytoria i granice odpowiedzialności.
 
 ## Obowiązkowa checklista przy każdej zmianie danych
@@ -419,7 +466,9 @@ Kierunek: krótkoterminowo zostaje lokalnie. Później możliwy osobny mechanizm
 - zdecydować, które dane są dokumentami, a które podkolekcjami,
 - przygotować reguły bezpieczeństwa i logowanie.
 
-### Etap 4 — ręczna synchronizacja/pilotaż
+### Etap 4 — ręczna synchronizacja/pilotaż (plan historyczny, zastąpiony)
+
+**Sprostowanie 2026-10-15:** poniższe przyciski nie są zatwierdzonym UI. Dopuszczono wyłącznie techniczne wywołania wysłania/pobrania przez testy; docelowo obowiązuje automatyczna synchronizacja bez zmiany interfejsu. Stare punkty zachowano jako zapis poprzedniego planu.
 
 - dodać logowanie,
 - dodać ręczne `Wyślij do chmury` / `Pobierz z chmury`,
