@@ -159,10 +159,14 @@
     try{ projectToWrite = narrow ? scopedProjectData(normalized, before, session) : normalized; }catch(_){ return blocked; }
     if(!projectToWrite) return blocked;
     let saved = null;
+    let summary = null;
 
     try{
+      // Summarize the final merged scope, never the possibly stale full RAM draft.
+      // Counters and projectData are persisted together, under the same guard.
+      summary = typeof model.summarizeProjectData === 'function' ? model.summarizeProjectData(projectToWrite) : null;
       if(before && projectStore && typeof projectStore.upsert === 'function'){
-        const nextRecord = Object.assign({}, before, {
+        const nextRecord = Object.assign({}, before, summary, {
           projectData:projectToWrite,
           updatedAt:Date.now(),
         });
@@ -178,6 +182,8 @@
     try{
       const readBack = saved && projectStore && typeof projectStore.getById === 'function' ? projectStore.getById(saved.id) : null;
       if(!readBack || JSON.stringify(prepareForPersistence(readBack.projectData)) !== JSON.stringify(prepareForPersistence(projectToWrite))) saved = null;
+      if(readBack && summary && (readBack.roomCount !== summary.roomCount || readBack.cabinetCount !== summary.cabinetCount
+        || JSON.stringify(readBack.roomKeys) !== JSON.stringify(summary.roomKeys))) saved = null;
     }catch(_){ saved = null; }
     if(!saved && centralWriteAcknowledged){
       if(session && session.active && session.markUnconfirmedProjectWrite) session.markUnconfirmedProjectWrite();

@@ -1,10 +1,11 @@
 name: Preflight (full Meble-App)
 
-# One full preflight after approved Draft -> Ready. No duplicate on Draft or main push.
+# One full preflight on explicit approval: opened non-draft PR or Draft -> Ready.
+# Never run full preflight on Draft creation, synchronize or main push.
 on:
   pull_request:
     branches: ["main"]
-    types: [ready_for_review]
+    types: [opened, ready_for_review]
   workflow_dispatch: {}
 
 concurrency:
@@ -13,6 +14,7 @@ concurrency:
 
 jobs:
   preflight:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -88,7 +90,7 @@ jobs:
           exit "$status"
 
   auto-merge:
-    if: ${{ github.event_name == 'pull_request' && github.event.action == 'ready_for_review' && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
+    if: ${{ github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
     needs: preflight
     runs-on: ubuntu-latest
     permissions:
@@ -200,7 +202,7 @@ jobs:
             core.setFailed(`Timed out waiting for Pages for merge commit ${mergeSha}`);
 
   final-status:
-    if: ${{ always() && github.event_name == 'pull_request' && github.event.action == 'ready_for_review' && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
+    if: ${{ always() && github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
     needs: [preflight, auto-merge, post-merge-verify]
     runs-on: ubuntu-latest
     permissions:

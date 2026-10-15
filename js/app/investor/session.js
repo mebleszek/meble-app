@@ -190,6 +190,18 @@
     return inspectDurableSession(openingRoom) ? true : unconfirmedSession();
   }
 
+  // CLOUD-1B only observes existing evidence. Even a clean editing session is
+  // not an exportable committed state. Never notify, recover or clean payloads.
+  function inspectExportState(){
+    try{
+      if(writeUnconfirmed) return {ok:false,code:'EXPORT_SESSION_UNCONFIRMED'};
+      if(session.active) return {ok:false,code:'EXPORT_ACTIVE_SESSION'};
+      if(session.snapshot || session.durable || session.projectId || session.roomId
+        || localStorage.getItem(SESSION_STORAGE_KEY) !== null) return {ok:false,code:'EXPORT_SESSION_UNCONFIRMED'};
+      return {ok:true};
+    }catch(_){ return {ok:false,code:'EXPORT_READ_FAILED'}; }
+  }
+
   // Navigation requires the same proof, additionally bound to an editing room.
   function inspectNavigationState(){
     if(!session.roomId || !canUseSessionOwner()) return null;
@@ -706,6 +718,7 @@
     canSaveProject,
     markUnconfirmedProjectWrite,
     inspectNavigationState,
+    inspectExportState,
     invalidateDirtyCache,
     isDirty,
     trackKeyMutation,

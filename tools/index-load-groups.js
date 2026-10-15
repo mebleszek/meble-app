@@ -183,6 +183,8 @@ const INDEX_LOAD_GROUPS = [
       "js/app/project/project-pcv-overrides.js",
   "js/app/project/project-pcv-resolver.js",
       "js/app/project/project-pcv-policy.js",
+      "js/app/project/project-export-contract.js",
+      "js/app/project/project-selective-export.js",
       "js/app/cabinet/cabinet-actions.js",
       "js/app/cabinet/cabinet-summary.js",
       "js/app/ui/layout-state.js",

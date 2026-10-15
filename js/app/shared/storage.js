@@ -10,6 +10,16 @@
     let lastNoticeKey = '';
     let lastNoticeAt = 0;
 
+    // No fallback, parsing, notices, dirty-cache updates or recovery on read.
+    // Callers can distinguish an absent key from an unavailable store.
+    function readRawStrict(key){
+      try{
+        const raw = localStorage.getItem(key);
+        if(raw !== null && typeof raw !== 'string') return {ok:false,code:'STORAGE_READ_FAILED'};
+        return {ok:true,raw};
+      }catch(_){ return {ok:false,code:'STORAGE_READ_FAILED'}; }
+    }
+
     function cloneFallback(fallback){
       try{ return utils && utils.clone ? utils.clone(fallback) : JSON.parse(JSON.stringify(fallback)); }catch(_){ return fallback; }
     }
@@ -148,10 +158,12 @@
         removeRaw(key){ return tryRemoveRaw(key).ok; },
         tryRemoveRaw,
         getLastWriteError,
+        readRawStrict,
         notifyWriteFailure,
         session: makeSessionStorageApi(),
       };
     } else {
+      if(typeof window.FC.storage.readRawStrict !== 'function') window.FC.storage.readRawStrict = readRawStrict;
       if(typeof window.FC.storage.removeRaw !== 'function'){
         window.FC.storage.removeRaw = function removeRaw(key){ return tryRemoveRaw(key).ok; };
       }
