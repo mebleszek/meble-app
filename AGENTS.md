@@ -94,6 +94,7 @@ Przed większym zadaniem korzystaj przede wszystkim z:
 - `CURRENT_STATE.md` — aktualny stan projektu,
 - `ROADMAP.md` — kolejność dalszego rozwoju,
 - `CLOUD_MIGRATION.md` — kierunek architektury danych i chmury,
+- `tools/reports/cloud-2a-firebase-google-architecture.md` — zatwierdzony wybór Firebase Spark i Google Sign-In, proponowane (jeszcze niewdrożone) Rules, rewizje i plan CLOUD-2B; przy zadaniach chmurowych czytaj razem z rejestrem `CLOUD_DATA_REGISTER.md`,
 - `TEST_BASELINE.md` — punkt odniesienia dla testów,
 - `DEPENDENCY_MAP.md` — informacje o zależnościach,
 - odpowiednich testów i aktualnego kodu.
