@@ -37,13 +37,16 @@
   const dateInput=(v,p)=>{text(v,p);const time=Date.parse(v);if(!/^\d{4}-\d{2}-\d{2}$/.test(v)||!Number.isFinite(time)||new Date(time).toISOString().slice(0,10)!==v)fail('EXPORT_INVALID_DATE',p);return v;};
   const technicalMeta=shape({...fields('testData __test',boolean),...fields('testOwner testRunId __testRunId createdBy source',text)});
   const mirror=shape({...fields('id',ident),...fields('baseType name label projectStatus lastManualProjectStatus',text)},['id']);
+  // normalizeGeocode() persists this empty template even without a route.
+  // Preserve it exactly; populated/free-form geocoder responses are outside the pilot.
+  const emptyGeocode=shape({...fields('input query label name layer source confidence accuracy country region county locality localadmin borough postalcode street housenumber expectedLocality expectedPostalCode localityMatch postalCodeMatch candidateCount lon lat',empty),
+    coordinates:(v,p)=>{if(!Array.isArray(v)||v.length)bad(p);return [];}});
   const investor=shape({id:ident,kind:oneOf(['person','company']),
     ...fields('name companyName ownerName phone email city address source nip',text),notes:empty,
     createdAt:stamp,updatedAt:stamp,addedDate:dateInput,rooms:array(mirror),meta:technicalMeta,__test:boolean,__testRunId:text,
     carrying:shape({floorNumber:text,elevatorStatus:oneOf(['','yes','no']),elevator:shape(fields('doorWidthCm doorHeightCm cabinDepthCm cabinHeightCm',text)),note:empty}),
     transport:shape({...fields('distanceKm durationMin source provider status calculatedAt origin destination routeProfile originHash destinationHash addressHash routeDistanceMeters routeDurationSeconds orsMapsUrl',text),note:empty,lastError:empty,
-      // Geocoder responses have no closed business schema in this pilot.
-      originGeocode:shape({}),destinationGeocode:shape({})})
+      originGeocode:emptyGeocode,destinationGeocode:emptyGeocode})
   },['id','kind','createdAt','updatedAt']);
   const zone=shape({...fields('bodyColor frontMaterial frontColor backMaterial openingSystem bodyPcvCustomColor',text),bodyPcvMode:oneOf(['','body','front'])});
   const drawer=(v,p)=>{
@@ -61,7 +64,10 @@
   const preferences=shape({...fields('finishStandard blendStandard hardwareManufacturer',text),zones:shape({lower:zone,middle:zone,upper:zone}),
     hardwareProducers:shape(fields('hinges drawers lifts sliding cargo accessories',text)),hardwareDrawerSystems:shape({drawers:text}),drawerPreference:drawer});
   const materialSource=shape({...fields('source material color',text)});
-  const serializedSource=shape({...fields('source label part',text)});
+  const sourceLabels={lower:'jak dolna / stojące',middle:'jak środkowa / moduły',upper:'jak górna / wiszące',custom:'własny'};
+  const sourceFields={source:oneOf(Object.keys(sourceLabels)),...fields('label material color',text)};
+  const setSource=shape(sourceFields,['source','label','material','color']);
+  const serializedSource=shape({...sourceFields,part:oneOf(['single','lower','upper'])},['source','label']);
   const details=shape({...fields('insideMode heightIncludesLegs projectUnusual subTypeOption cornerOption cornerFlip dishWasherWidth ovenOption sinkOption sinkFront sinkExtra sinkDoorCount fridgeOption fridgeFreeOption fridgeRequiresFurnitureHinges needsFurnitureHinges requiresFurnitureHinges drawerLayout drawerSystem drawerBrand drawerModel drawerRunnerType drawerRunnerSeries innerDrawerType innerDrawerBrand innerDrawerModel sinkInnerDrawerType sinkInnerDrawerBrand sinkInnerDrawerModel podFrontMode podInsideMode flapVendor flapKind hoodFrontMode hasBack hasHandle applianceMounting applianceMountingMode drawerPreferenceApplied',text),
     ...fields('shelves sinkExtraCount fridgeFrontCount techDividerCount techShelfCount innerDrawerCount podInnerDrawerCount',count),
     ...fields('legHeightCm blindPart gl gp st sp ovenHeight fridgeWidth fridgeNicheHeight',numeric),
@@ -75,7 +81,7 @@
     derivedFacts:()=>excluded,_derivedFacts:()=>excluded
   },['id','type','subType','width','height','depth','details']);
   const set=shape({id:ident,presetId:oneOf(['A','C','D']),number:count,
-    ...fields('bodyColor backMaterial openingSystem frontMaterial frontColor',text),frontCount:oneOf([1,2]),frontSource:serializedSource,
+    ...fields('bodyColor backMaterial openingSystem frontMaterial frontColor',text),frontCount:oneOf([1,2]),frontSource:setSource,
     params:shape({presetId:oneOf(['A','C','D']),...fields('w1 w2 w hB hM hTop dBottom dModule blende',numeric)})},['id','presetId','frontCount','params']);
   const front=shape({id:ident,cabId:nullable(ident),setId:nullable(ident),setNumber:nullable(count),...fields('material color',text),width:positive,height:positive,note:text,frontMaterialSource:serializedSource},['id','width','height']);
   const edges=shape(fields('w1 w2 h1 h2',boolean),['w1','w2','h1','h2']);
@@ -100,6 +106,53 @@
   function unique(values,p){if(new Set(values).size!==values.length)fail('EXPORT_DUPLICATE_ID',p);}
   function sameKeys(a,b){return a.length===b.length&&a.every(k=>b.includes(k));}
   function chronological(v,p){if(v.updatedAt<v.createdAt)fail('EXPORT_INVALID_DATE',p+'.updatedAt');}
+  function validateSource(source,p){
+    if(source && source.label!==sourceLabels[source.source])fail('EXPORT_INVALID_REFERENCE',p);
+  }
+  // Exact captions AND owner/quantity/material/geometry, never a free-text regex.
+  // This is structural validation of controlled synthetic data, not proof of authorship.
+  function validateFrontCaptions(value,cabinets,sets,p){
+    const owners=new Map();
+    for(const f of value.fronts){
+      const key=(f.setId?'set:':'cabinet:')+(f.setId||f.cabId);
+      if(!owners.has(key))owners.set(key,[]);
+      owners.get(key).push(f);
+    }
+    for(const fronts of owners.values()){
+      if(!fronts.some(f=>f.note))continue; // Empty/missing notes retain the original contract.
+      const first=fronts[0],owner=first.setId?sets.get(first.setId):cabinets.get(first.cabId);
+      let expected;
+      if(first.setId){
+        const s=owner,d=s.params,height=Number(d.hB)+Number(d.hTop)+(s.presetId==='D'?Number(d.hM):0);
+        const width=s.presetId==='A'?Number(d.w1)+Number(d.w2):Number(d.w);
+        const left=s.presetId==='A'?Number(d.w1):Math.round(width/2*10)/10;
+        expected=Number(s.frontCount)===1?[[width,height,'1 front']]
+          :[[left,height,s.presetId==='A'?'front lewy':'front 1/2'],[width-left,height,s.presetId==='A'?'front prawy':'front 2/2']];
+        if(!Number.isSafeInteger(Number(s.number))||Number(s.number)<=0)fail('EXPORT_INVALID_REFERENCE',p+'.sets[].number');
+        expected=expected.map(([w,h,n])=>[w,h,`Zestaw ${s.number}: ${n}`]);
+      }else if(owner.subType==='szuflady'){
+        const geometry=FC.cabinetCutlist.resolveDrawerFrontGeometry(owner,value);
+        expected=geometry.panels.map((panel,index)=>[panel.widthMm/10,panel.heightMm/10,`Szuflada ${index+1}`]);
+        if(Number(owner.frontCount)!==expected.length)fail('EXPORT_INVALID_GEOMETRY',p+'.cabinets[].frontCount');
+      }else{
+        const width=Number(owner.width),height=Number(owner.height)-(owner.type==='stojąca'?Number(value.settings.legHeight||0):0);
+        const left=Math.round(width/2*10)/10;
+        expected=Number(owner.frontCount)===1?[[width,height,'1 front']]
+          :Number(owner.frontCount)===2?[[left,height,'Front 1/2'],[width-left,height,'Front 2/2']]:[];
+      }
+      const used=new Set();
+      for(const f of fronts){
+        const index=expected.findIndex(item=>item[2]===f.note);
+        if(index<0||used.has(index))fail('EXPORT_UNSUPPORTED_NOTE',p+'.fronts[].note');
+        used.add(index);
+        const [width,height]=expected[index];
+        if(!(width>0&&height>0)||Math.abs(Number(f.width)-width)>1e-8||Math.abs(Number(f.height)-height)>1e-8)
+          fail('EXPORT_INVALID_GEOMETRY',p+'.fronts[]');
+        if(f.material!==(owner.frontMaterial||'laminat')||f.color!==(owner.frontColor||''))fail('EXPORT_INVALID_REFERENCE',p+'.fronts[]');
+      }
+      if(fronts.length!==expected.length)fail('EXPORT_INVALID_GEOMETRY',p+'.fronts[]');
+    }
+  }
   // This pilot validates only roles whose existence follows directly from supported
   // native template fields. Unknown/custom roles are refused, never guessed.
   function roleAllowed(space,role,owner,roomValue){
@@ -147,14 +200,26 @@
       // A params map cannot quietly carry another template's construction.
       const allowed=s.presetId==='A'?['presetId','w1','w2','hB','hTop','dBottom','dModule','blende']:s.presetId==='D'?['presetId','w','hB','hM','hTop','dBottom','dModule','blende']:['presetId','w','hB','hTop','dBottom','dModule','blende'];
       if(Object.keys(s.params).some(k=>!allowed.includes(k)))fail('EXPORT_UNSUPPORTED_FIELD',p+'.sets[].params');
+      validateSource(s.frontSource,p+'.sets[].frontSource');
+      // In a zone-based choice material/color in frontSource remember the custom
+      // selector, while frontMaterial/frontColor are the saved resolved material.
+      if(s.frontSource && s.frontSource.source==='custom'
+        && (s.frontSource.material!==s.frontMaterial||s.frontSource.color!==s.frontColor))fail('EXPORT_INVALID_REFERENCE',p+'.sets[].frontSource');
     }
     for(const f of value.fronts){
       if((!f.cabId&&!f.setId)||(f.cabId&&!cabinets.has(f.cabId))||(f.setId&&!sets.has(f.setId))||(f.setId&&f.cabId&&cabinets.get(f.cabId).setId!==f.setId))fail('EXPORT_INVALID_REFERENCE',p+'.fronts[]');
+      if(!f.setId && cabinets.get(f.cabId).setId)fail('EXPORT_INVALID_REFERENCE',p+'.fronts[]');
       if(f.setNumber!=null&&(!f.setId||f.setNumber!==sets.get(f.setId).number))fail('EXPORT_INVALID_REFERENCE',p+'.fronts[].setNumber');
-      // Persisted front.note has no provenance tag; matching a caption alone does
-      // not prove origin. For this first pilot nonempty notes must be refused.
-      if(f.note)fail('EXPORT_UNSUPPORTED_NOTE',p+'.fronts[].note');
+      validateSource(f.frontMaterialSource,p+'.fronts[].frontMaterialSource');
+      if(f.setId){
+        const parent=sets.get(f.setId);
+        if(f.cabId || f.material!==parent.frontMaterial||f.color!==parent.frontColor
+          || canonical(f.frontMaterialSource||null)!==canonical(parent.frontSource||null))fail('EXPORT_INVALID_REFERENCE',p+'.fronts[]');
+      }else if(f.frontMaterialSource && (f.frontMaterialSource.part
+        || (own(f.frontMaterialSource,'material')&&f.frontMaterialSource.material!==f.material)
+        || (own(f.frontMaterialSource,'color')&&f.frontMaterialSource.color!==f.color)))fail('EXPORT_INVALID_REFERENCE',p+'.fronts[].frontMaterialSource');
     }
+    validateFrontCaptions(value,cabinets,sets,p);
     for(const space of Object.keys(value.production||{}))for(const ownerId of Object.keys(value.production[space])){
       const owner=(space==='setGroupOverrides'?sets:cabinets).get(ownerId);
       if(!owner)fail('EXPORT_PCV_OWNER_INVALID',p+'.production.'+space);

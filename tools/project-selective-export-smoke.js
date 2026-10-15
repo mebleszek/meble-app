@@ -240,6 +240,200 @@ test('Canonicalizer rejects non-JSON and invalid Unicode without coercion',()=>{
  const c=fixture().FC.projectExportContract;for(const value of [undefined,NaN,Infinity,{x:undefined},'\ud800'])assert.throws(()=>c.canonical(value));
  assert.equal(c.canonical({b:2,a:[true,null,'ż']}),'{"a":[true,null,"ż"],"b":2}');
 });
+// Native creators, wizard and global Save, with the full existing module loader.
+// No cabinet/front/set fixture is shaped to the export allowlist.
+async function nativeFixture(seed){
+ const {createSandbox,loadSmokeFiles}=require('./app-dev-smoke');
+ const {APP_DEV_SMOKE_FILES}=require('./app-dev-smoke-lib/file-list');
+ const s=createSandbox(),Storage=class extends MemoryStorage{};
+ s.Storage=Storage;s.localStorage=new Storage(seed);s.sessionStorage=new Storage();s.TextEncoder=TextEncoder;s.Uint8Array=Uint8Array;
+ s.location={reload(){throw Error('Unexpected reload');}};s.scrollTo=()=>{};
+ loadSmokeFiles(s,APP_DEV_SMOKE_FILES);
+ for(const file of ['js/app/shared/calc.js','js/app/shared/ui-state.js','js/app/project/project-export-contract.js','js/app/project/project-selective-export.js']){
+  if(!APP_DEV_SMOKE_FILES.includes(file))vm.runInContext(fs.readFileSync(path.join(ROOT,file),'utf8'),s,{filename:file});
+ }
+ // Let the real scheduled investor/project bootstrap finish before measuring an export.
+ await new Promise(resolve=>setTimeout(resolve,0));
+ const FC=s.FC,messages=[],handlers={};s.STORAGE_KEYS=FC.constants.STORAGE_KEYS;
+ FC.infoBox={open:m=>messages.push(m)};FC.actions={register:map=>Object.assign(handlers,map)};
+ vm.runInContext(fs.readFileSync(path.join(ROOT,'js/app/ui/actions-register.js'),'utf8'),s,{filename:'js/app/ui/actions-register.js'});
+ let investorId,projectId,roomId;
+ if(!seed){
+  const inv=FC.investors.create({name:'Fikcyjny CLOUD-1B',notes:'',meta:{testData:true,testOwner:'cloud-1b-native'}});assert.ok(inv);investorId=inv.id;
+  let record=FC.projectStore.ensureForInvestor(inv.id,{title:'Fikcyjny natywny projekt',meta:{testData:true,testOwner:'cloud-1b-native'}});assert.ok(record);
+  // The boot-patched investor create may already have created its physical project.
+  // Explicitly label that isolated synthetic record through the real store API.
+  record=FC.projectStore.upsert({...record,meta:{...record.meta,testData:true,testOwner:'cloud-1b-native'}});assert.ok(record);projectId=record.id;
+  s.projectData=FC.project.load();s.uiState=FC.uiState.set({entry:'rooms',activeTab:'pokoje',roomType:null,currentInvestorId:inv.id});
+  const created=FC.roomRegistryProjectSync.createRoomRecord(FC.investors.getById(inv.id),{name:'Kuchnia testowa',baseType:'kuchnia'});assert.equal(created.ok,true,JSON.stringify(created));roomId=created.room.id;
+  s.projectData=FC.project.load();s.uiState=FC.uiState.set({entry:'app',activeTab:'wywiad',roomType:roomId,currentInvestorId:inv.id});
+ }else{
+  investorId=s.localStorage.getItem('fc_current_investor_v1');projectId=s.localStorage.getItem('fc_current_project_id_v1');
+  s.projectData=FC.project.load();roomId=s.projectData.meta.roomOrder[0];
+  s.uiState=FC.uiState.set({entry:'rooms',activeTab:'pokoje',roomType:null,currentInvestorId:investorId});
+ }
+ s.cabinetModalState={mode:'add',editingId:null};s.materials=[{name:'TEST laminat',materialType:'laminat'}];
+ s.generateFrontsForCabinet=FC.cabinetFronts.generateFrontsForCabinet;
+ const storage=s.localStorage,rows=()=>Object.fromEntries(storage.rows),row=()=>JSON.parse(storage.getItem(P)).find(x=>x.id===projectId);
+ function finish(){
+  const previous=messages.length;handlers['session-save']({event:null});
+  assert.equal(FC.session.active,false,JSON.stringify(FC.session.lastError));assert.equal(storage.getItem(S),null);
+  assert.ok(messages.slice(previous).some(m=>m.title==='Projekt zapisany'));
+  assert.deepEqual(clone(s.projectData),row().projectData);
+ }
+ function addCab({frontCount=2,drawer=false,box=false,type='stojąca',shelves,layout='3_1_2_2'}={}){
+  const draft=FC.cabinetModalDraft.makeDefaultCabinetDraftForType(roomId,type);draft.frontCount=frontCount;
+  if(drawer){FC.cabinetFronts.applySubTypeRules(roomId,draft,'szuflady');draft.details.drawerLayout=layout;draft.details.drawerSystem=box?'skrzynkowe':'systemowe';if(!box){draft.details.drawerBrand='blum';draft.details.drawerModel='tandembox_antaro';}}
+  if(shelves!==undefined)draft.details.shelves=shelves;
+  s.cabinetModalState={mode:'add',editingId:null,draft};
+  assert.equal(FC.cabinetModalFinalize.saveRegularCabinetDraft({draft}),true,JSON.stringify(messages));finish();
+  return row().projectData[roomId].cabinets.at(-1);
+ }
+ function addSet(preset,count,source='custom'){
+  const values={setFrontCount:count,setFrontMaterial:'laminat',setFrontColor:'TEST laminat',setFrontSource:source,setBodyColor:'TEST laminat',setBackMaterial:'HDF 3mm biała',setOpeningSystem:'uchwyt klienta',setW1:60,setW2:60,setW:60,setHBottom:82,setHMiddle:100,setDBottom:51,setBlende:7};
+  for(const [id,value]of Object.entries(values)){let el=s.document.getElementById(id);if(!el){el=s.document.createElement('input');el.setAttribute('id',id);s.document.body.appendChild(el);}el.value=String(value);}
+  s.cabinetModalState={mode:'add',chosen:'zestaw',setPreset:preset,setEditId:null};FC.cabinetModalSetWizard.createOrUpdateSetFromWizard();
+  assert.equal(s.projectData[roomId].sets.length,1,JSON.stringify(messages));finish();return row().projectData[roomId].sets[0];
+ }
+ // Corruption/concurrency injection for negative tests only, never a positive fixture repair.
+ const mutate=fn=>{const list=JSON.parse(storage.getItem(P)),record=list.find(p=>p.id===projectId);fn(record,list);storage.rows.set(P,JSON.stringify(list));s.projectData=clone(record.projectData);};
+ const inv=fn=>{const list=JSON.parse(storage.getItem(I));fn(list.find(i=>i.id===investorId));storage.rows.set(I,JSON.stringify(list));};
+ const build=()=>FC.projectSelectiveExport.build({investorId,projectId,purpose:'pilot'});
+ return {s,FC,storage,sessionStorage:s.sessionStorage,messages,handlers,investorId,projectId,roomId,rows,row,finish,addCab,addSet,mutate,inv,build};
+}
+function assertNativePayload(r,out){
+ assert.equal(out.ok,true,JSON.stringify(out));const saved=r.row(),payload=clone(out.document.payload);
+ assert.deepEqual(payload.project.projectData,saved.projectData,'No lost or transformed project business fields');
+ const expectedProject=clone(saved);delete expectedProject.meta;delete expectedProject.__test;delete expectedProject.__testRunId;
+ assert.deepEqual(payload.project,expectedProject);
+ const expectedInvestor=JSON.parse(r.storage.getItem(I)).find(i=>i.id===r.investorId);delete expectedInvestor.rooms;delete expectedInvestor.meta;delete expectedInvestor.__test;delete expectedInvestor.__testRunId;
+ assert.deepEqual(payload.investor,expectedInvestor,'Native empty geocodes and notes remain byte-for-byte values');
+ assert.deepEqual({roomKeys:saved.roomKeys,roomCount:saved.roomCount,cabinetCount:saved.cabinetCount},clone(r.FC.projectModel.summarizeProjectData(saved.projectData)));
+}
+async function nativeRoundTrip(r){
+ const out=await unchanged(r);assertNativePayload(r,out);
+ const restarted=await nativeFixture(r.rows()),next=await unchanged(restarted);assertNativePayload(restarted,next);
+ assert.equal(out.document.integrity.payloadSha256,next.document.integrity.payloadSha256);
+ return out;
+}
+test('Native empty investor/project/room: confirmed global Save, restart and lossless export',async()=>{
+ const r=await nativeFixture();r.finish();await nativeRoundTrip(r);
+});
+for(const spec of [{frontCount:1},{frontCount:2},{frontCount:2,shelves:3},{drawer:true},{drawer:true,box:true},{type:'wisząca',frontCount:1},{type:'wisząca',frontCount:2},{type:'moduł',frontCount:1},{type:'moduł',frontCount:2},{type:'moduł',drawer:true},...['1_big','2_equal','3_equal','5_equal'].map(layout=>({drawer:true,layout}))])test('Native cabinet '+JSON.stringify(spec)+': fronts, PCV, Save/restart/export',async()=>{
+ const r=await nativeFixture(),cab=r.addCab(spec),room=r.row().projectData[r.roomId];
+ if(spec.drawer){const geometry=r.FC.cabinetCutlist.resolveDrawerFrontGeometry(cab,room);assert.deepEqual(room.fronts.map(f=>Math.round(f.height*10)),clone(geometry.panels.map(panel=>panel.heightMm)));if(!spec.layout&&!spec.type)assert.deepEqual(room.fronts.map(f=>f.height*10),[139,283,283]);}
+ assert.equal(r.FC.projectPcvOverrides.setEdges({projectId:r.projectId,roomId:r.roomId,cabinetId:cab.id,partRoleId:'body.side.left'},edges).ok,true);r.finish();
+ await nativeRoundTrip(r);
+});
+for(const preset of ['A','C','D'])for(const count of [1,2])for(const source of ['custom','lower'])test(`Native wizard ${preset}, ${count} fronts, ${source}: set owner, sources and PCV round-trip`,async()=>{
+ const r=await nativeFixture(),set=r.addSet(preset,count,source),role=preset==='A'?(count===1?'front.A.single':'front.A.left'):'front.'+preset+'.panels';
+ const room=r.row().projectData[r.roomId];assert.equal(room.fronts.length,count);assert.ok(room.fronts.every(f=>f.setId===set.id));
+ assert.deepEqual(Object.keys(set.frontSource).sort(),['color','label','material','source']);
+ assert.equal(r.FC.projectPcvOverrides.setEdges({projectId:r.projectId,roomId:r.roomId,ownerType:'set',setId:set.id,groupRoleId:role},edges).ok,true);r.finish();
+ await nativeRoundTrip(r);
+});
+
+test('Native independent cabinet/side and shelf/drawer group PCV survives export without global data',async()=>{
+ const r=await nativeFixture(),first=r.addCab({shelves:3}),second=r.addCab({shelves:5});
+ const protectedKeys=['fc_edge_v1','fc_material_part_options_v1','fc_rozrys_grain_state_v1','fc_company_profile_v1','fc_materials_v1','fc_accessories_v1','fc_quote_rates_v1','fc_program_defaults_v1','fc_quote_snapshots_v1'];
+ for(const key of protectedKeys)r.storage.rows.set(key,'{"synthetic":"DO_NOT_EXPORT","apiKey":"SECRET_TEST_ONLY"}');
+ const before=Object.fromEntries(protectedKeys.map(key=>[key,r.storage.getItem(key)]));
+ const part=(cabinetId,partRoleId)=>({projectId:r.projectId,roomId:r.roomId,cabinetId,partRoleId});
+ for(const [a,e]of [[part(first.id,'body.side.left'),edges],[part(first.id,'body.side.right'),{...edges,w2:true}],[part(second.id,'body.side.left'),{...edges,h1:true}],
+  [{projectId:r.projectId,roomId:r.roomId,ownerType:'cabinet',cabinetId:first.id,groupRoleId:'body.shelves'},edges]])assert.equal(r.FC.projectPcvOverrides.setEdges(a,e).ok,true);
+ r.finish();const out=await nativeRoundTrip(r),prod=out.document.payload.project.projectData[r.roomId].production;
+ assert.notDeepEqual(clone(prod.partOverrides[first.id]),clone(prod.partOverrides[second.id]));
+ assert.equal(prod.partOverrides[first.id]['body.side.right'].edges.w2,true);
+ assert.deepEqual(clone(prod.cabinetGroupOverrides[first.id]['body.shelves'].edges),edges);
+ assert.equal(JSON.stringify(out).includes('SECRET_TEST_ONLY'),false);
+ assert.deepEqual(Object.fromEntries(protectedKeys.map(key=>[key,r.storage.getItem(key)])),before);
+ const d=await nativeFixture(),drawer=d.addCab({drawer:true});
+ for(const groupRoleId of ['front.drawer.small','front.drawer.large'])assert.equal(d.FC.projectPcvOverrides.setEdges({projectId:d.projectId,roomId:d.roomId,ownerType:'cabinet',cabinetId:drawer.id,groupRoleId},edges).ok,true);
+ d.finish();await nativeRoundTrip(d);
+ const b=await nativeFixture(),box=b.addCab({drawer:true,box:true});
+ for(const groupRoleId of ['drawer.front_drawers.sides','drawer.front_drawers.back'])assert.equal(b.FC.projectPcvOverrides.setEdges({projectId:b.projectId,roomId:b.roomId,ownerType:'cabinet',cabinetId:box.id,groupRoleId},edges).ok,true);b.finish();await nativeRoundTrip(b);
+});
+test('Native zone source retains remembered custom fields separately from resolved front material',async()=>{
+ const r=await nativeFixture(),prefs=r.FC.roomPreferences.getRoomPreferences(r.roomId);
+ prefs.zones.lower.frontMaterial='akryl';prefs.zones.lower.frontColor='TEST AKRYL';
+ assert.equal(r.FC.roomPreferences.setRoomPreferencesConfirmed(r.roomId,prefs).ok,true);r.finish();
+ const set=r.addSet('C',2,'lower');assert.equal(set.frontMaterial,'akryl');assert.equal(set.frontSource.material,'laminat');
+ await nativeRoundTrip(r);
+});
+test('Empty native geocodes are lossless; populated text, coordinates and unknown secrets still refuse',async()=>{
+ const r=await nativeFixture();r.finish();const seed=r.rows();
+ for(const [code,mutate]of [
+  ['EXPORT_UNSUPPORTED_NOTE',i=>i.transport.originGeocode.label='SYNTHETIC_SECRET'],
+  ['EXPORT_INVALID_FIELD',i=>i.transport.destinationGeocode.coordinates=[1,2]],
+  ['EXPORT_UNSUPPORTED_FIELD',i=>i.transport.originGeocode.apiKey='SYNTHETIC_SECRET'],
+  ['EXPORT_UNSUPPORTED_NOTE',i=>i.notes='dowolna notatka']
+ ]){const bad=await nativeFixture(seed);bad.inv(mutate);const result=await refused(bad,code);assert.equal(JSON.stringify(result).includes('SYNTHETIC_SECRET'),false);}
+});
+test('Native captions require exact owner/count/geometry; no free text or duplicate captions',async()=>{
+ const r=await nativeFixture();r.addCab({frontCount:1});const seed=r.rows();
+ for(const [code,mutate]of [
+  ['EXPORT_UNSUPPORTED_NOTE',room=>room.fronts[0].note+=' dodatkowy tekst'],
+  ['EXPORT_UNSUPPORTED_NOTE',room=>room.fronts[0].note='Front 1/2'],
+  ['EXPORT_INVALID_GEOMETRY',room=>room.fronts[0].height++],
+  ['EXPORT_INVALID_REFERENCE',room=>room.fronts[0].material='inny'],
+  ['EXPORT_INVALID_REFERENCE',room=>room.fronts[0].cabId='missing'],
+  ['EXPORT_UNSUPPORTED_NOTE',room=>room.fronts.push({...room.fronts[0],id:'extra-native-caption'})],
+  ['EXPORT_UNSUPPORTED_FIELD',room=>room.fronts[0].meta={apiKey:'SYNTHETIC_SECRET'}]
+ ]){const bad=await nativeFixture(seed);bad.mutate(p=>mutate(p.projectData[r.roomId]));await refused(bad,code);}
+ const d=await nativeFixture();d.addCab({drawer:true});d.mutate(p=>p.projectData[d.roomId].cabinets[0].height=40);await refused(d,'EXPORT_INVALID_GEOMETRY');
+});
+test('Native sets refuse inconsistent source labels/material/owner, wrong count or geometry',async()=>{
+ const r=await nativeFixture();r.addSet('A',2,'custom');const seed=r.rows();
+ for(const [code,mutate]of [
+  ['EXPORT_UNSUPPORTED_FIELD',room=>room.sets[0].frontSource.apiKey='SYNTHETIC_SECRET'],
+  ['EXPORT_INVALID_FIELD',room=>room.sets[0].frontSource.source='unknown'],
+  ['EXPORT_INVALID_REFERENCE',room=>room.sets[0].frontSource.label='inne'],
+  ['EXPORT_INVALID_REFERENCE',room=>room.sets[0].frontSource.material='inne'],
+  ['EXPORT_INVALID_REFERENCE',room=>room.fronts[0].frontMaterialSource.color='inne'],
+  ['EXPORT_INVALID_REFERENCE',room=>room.fronts[0].frontMaterialSource.part='lower'],
+  ['EXPORT_INVALID_REFERENCE',room=>room.fronts[0].setId='missing'],
+  ['EXPORT_INVALID_REFERENCE',room=>{room.fronts[0].cabId=room.cabinets[0].id;delete room.fronts[0].setId;delete room.fronts[0].setNumber;}],
+  ['EXPORT_INVALID_GEOMETRY',room=>room.fronts[0].width++],
+  ['EXPORT_INVALID_GEOMETRY',room=>room.fronts.pop()]
+ ]){const bad=await nativeFixture(seed);bad.mutate(p=>mutate(p.projectData[r.roomId]));await refused(bad,code);}
+});
+test('Confirmed scoped save summarizes the merged rooms once, preserving newer room/project data and Cancel',async()=>{
+ const r=fixture(),otherProject=clone(JSON.parse(r.storage.getItem(P)).find(p=>p.id==='B'));
+ assert.equal(r.FC.session.begin('kuchnia'),true);
+ const latest=r.FC.projectStore.getById('A');latest.projectData.pokoj.cabinets.push({...latest.projectData.pokoj.cabinets[0],id:'new-other'});
+ Object.assign(latest,r.FC.projectModel.summarizeProjectData(latest.projectData));assert.ok(r.FC.projectStore.upsert(latest));
+ const newerOther=clone(r.row().projectData.pokoj);
+ r.s.projectData.kuchnia.cabinets.push({...r.s.projectData.kuchnia.cabinets[0],id:'new-owned'});
+ const expected=r.FC.projectStore.getById('A');r.storage.calls=[];
+ const saved=r.FC.project.saveConfirmed(r.s.projectData,{expectedRecord:expected});assert.equal(saved.ok,true);
+ assert.equal(r.storage.calls.filter(c=>c[0]==='set'&&c[1]===P).length,1,'No second repair write');
+ assert.equal(r.row().cabinetCount,5);assert.deepEqual(r.row().projectData.pokoj,newerOther);
+ assert.deepEqual(clone(JSON.parse(r.storage.getItem(P)).find(p=>p.id==='B')),otherProject);
+ r.s.projectData=saved.project;assert.equal(r.FC.session.commit(),true);
+ assert.equal(r.FC.session.begin('kuchnia'),true);r.s.projectData.kuchnia.cabinets.pop();
+ const changed=r.FC.project.saveConfirmed(r.s.projectData);assert.equal(changed.ok,true);assert.equal(r.row().cabinetCount,4);
+ assert.equal(r.FC.session.cancel(),true);assert.equal(r.row().cabinetCount,5);assert.deepEqual(r.row().projectData.pokoj,newerOther);
+});
+test('Summary follows a full confirmed room-set save, not a stale saved count',()=>{
+ const r=fixture(),next=clone(r.s.projectData);next.salon=clone(next.pokoj);next.meta.roomDefs.salon={id:'salon',baseType:'pokoj',name:'Salon',label:'Salon'};next.meta.roomOrder.push('salon');
+ r.storage.calls=[];const result=r.FC.project.saveConfirmed(next);assert.equal(result.ok,true);
+ assert.equal(r.row().roomCount,5);assert.equal(r.row().cabinetCount,4);assert.ok(r.row().roomKeys.includes('salon'));
+ assert.equal(r.storage.calls.filter(c=>c[0]==='set'&&c[1]===P).length,1);
+});
+test('Counter update honors failed writes, optimistic conflicts and unconfirmed read-back',()=>{
+ const r=fixture();assert.equal(r.FC.session.begin('kuchnia'),true);r.s.projectData.kuchnia.cabinets.push({...r.s.projectData.kuchnia.cabinets[0],id:'new'});
+ const original=r.storage.getItem(P),draft=JSON.stringify(r.s.projectData),snapshot=JSON.stringify(r.FC.session.snapshot);
+ r.storage.fail.add('set:'+P);assert.equal(r.FC.project.saveConfirmed(r.s.projectData).ok,false);assert.equal(r.storage.getItem(P),original);assert.equal(JSON.stringify(r.s.projectData),draft);assert.equal(JSON.stringify(r.FC.session.snapshot),snapshot);
+ r.storage.fail.clear();const stale=r.FC.projectStore.getById('A');
+ const concurrent=r.FC.projectStore.getById('A');concurrent.title='Concurrent synthetic';assert.ok(r.FC.projectStore.upsert(concurrent));const before=r.storage.getItem(P);
+ assert.equal(r.FC.project.saveConfirmed(r.s.projectData,{expectedRecord:stale}).ok,false);assert.equal(r.storage.getItem(P),before);
+ const update=r.FC.projectStore.updateRecordConfirmed;
+ r.FC.projectStore.updateRecordConfirmed=(...args)=>{const saved=update(...args);assert.ok(saved);const list=JSON.parse(r.storage.getItem(P));list.find(p=>p.id==='A').cabinetCount++;r.storage.rows.set(P,JSON.stringify(list));return saved;};
+ const result=r.FC.project.saveConfirmed(r.s.projectData,{expectedRecord:r.FC.projectStore.getById('A')});
+ assert.equal(result.ok,false);assert.equal(result.projectSaved,true);assert.equal(result.code,'SAVE_UNCONFIRMED');assert.equal(JSON.stringify(r.s.projectData),draft);
+ assert.equal(r.FC.session.commit(),false);assert.equal(r.FC.session.canSaveProject(),false);
+});
+
 async function main(){for(const [name,fn]of tests){await fn();console.log('PASS '+name);}console.log('CLOUD-1B selective project export: '+tests.length+'/'+tests.length+' PASS');}
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});
 module.exports={fixture};
