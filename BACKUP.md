@@ -1,3 +1,15 @@
+# Dopisek CLOUD-1A — 2026-10-15, bez zmian mechanizmu
+
+Aktualna mapa wszystkich magazynów, ich właścicieli i granic migracji: [CLOUD_DATA_REGISTER.md](CLOUD_DATA_REGISTER.md). Pełny lokalny backup opisany poniżej **nie jest** selektywnym eksportem pilotażu CLOUD-1 (jeden testowy I/P).
+
+- Obecny RAW collector nie usuwa `fc_company_profile_v1.transport.apiKey` ORS; kopia tego sekretu może też znajdować się w starszych backupach. Nie publikować/uploadować pełnego backupu jako pilotażu. W tym zadaniu nie czytano wartości i nie zmieniono filtrowania.
+- Pięć aliasów `hardwareSuppliers`, `hardwareSettings`, `hardwareCategories`, `hardwareTypes`, `hardwareTechnicalParams` nie zaczyna się od fc_ i nie jest objętych obecnym snapshotem fc_*. Nadal są chronionymi globalnymi danymi; główny klucz ma pierwszeństwo, a usunięcie aliasu wymaga potwierdzonego zapisu głównego według istniejącej polityki katalogu.
+- `fc_material_part_options_v1` i `fc_rozrys_grain_state_v1` zawierają realne decyzje produkcyjne; etykieta technical nie daje zgody na czyszczenie. Projektowe PCV znajduje się już wewnątrz fc_projects_v1, a dawne fc_edge_v1 nie jest automatycznie importowane.
+- `fc_projects_v1` jest kanoniczny; fc_project_v1 i sloty per inwestor są historyczne, a nie równorzędne źródła bieżącego projektu. Starsze wpisy poniżej zachowano jako historię.
+- Retencja i awaryjna kompaktacja quota pozostają bez zmian. Ich optymalizacja jest odłożona do czasu po migracji. Export/restore pełnego backupu nie może zastąpić przyszłego kontrolowanego eksportu/pobrania I/P.
+
+---
+
 ## 2026-06-11 — Transport: scalanie ceny startowej i osobny total WYCENY
 
 - Nie dodano nowego klucza backupu ani nowego magazynu danych.
