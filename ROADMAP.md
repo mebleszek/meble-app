@@ -29,6 +29,13 @@ Ta roadmapa łączy aktualne, nadal ważne cele rozsiane dotąd po `DEV.md`, `RE
 
 Nie realizować starych wpisów historycznych bez sprawdzenia, czy nie zostały już wdrożone.
 
+## Organizacja pracy i limity (decyzja 2026-10-14)
+
+Obowiązujące zasady opisano w [AGENTS.md](AGENTS.md), sekcja 12: **ChatGPT analizuje i planuje**, **Work służy do większych analiz, gdy to efektywniejsze**, a **Codex przede wszystkim implementuje i testuje**. Prompty Codexa mają być małe, precyzyjne i nie powinny ponawiać wykonanych analiz. Dobór trybu/modelu/rozumowania uwzględnia limit.
+
+**Teraz odbiór ręczny odbywa się na telefonie z Androidem.** Projektujemy od początku również pod tablet i komputer, ale ręczne testy tych urządzeń przez użytkownika nastąpią dopiero przy znacznej funkcjonalności aplikacji. Docelowo wszystkie mają korzystać ze wspólnych danych po migracji chmurowej.
+
+
 ---
 
 # ETAP 0 — wiarygodny punkt startowy
