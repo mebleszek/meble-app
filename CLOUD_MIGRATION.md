@@ -1,3 +1,32 @@
+# CLOUD-1 — aktualny kontrakt i status, 2026-10-15
+
+Baza: main po PR #46 (`f3b6905e`). Kanoniczny rejestr magazynów: **[CLOUD_DATA_REGISTER.md](CLOUD_DATA_REGISTER.md)**. To dokumentacja; Firebase/Firestore/Authentication i synchronizacja nie są wdrożone.
+
+## Zatwierdzone granice bieżącego etapu
+
+- Jeden fizyczny projekt = jeden autorytatywny rekord fc_projects_v1. Pokój, szafka i projektowe PCV są jego częścią; RAM/cache/kopia ratunkowa nie są drugim źródłem prawdy.
+- Pierwszy planowany pilot: **jeden testowy inwestor i jeden projekt**, jego pokoje, szafki/zestawy oraz zapisane projektowe PCV. Bez globalnych słojów, katalogów/cenników, historii/draftów ofert, backupów, sekretów i stanu technicznego.
+- Globalne dane użytkownika (w tym historyczne aliasy) są bezwzględnie chronione i zgodne wstecz. Testowy charakter inwestorów/projektów nie upoważnia do resetu w CLOUD-1A ani naruszenia innych domen.
+- Nie używać pełnego backupu RAW fc_* jako eksportera pilotażu: obejmuje szerszy zakres, może zawierać ORS apiKey, a pomija nieprefiksowane legacy katalogi. Bez zmian eksportera lub backupu w CLOUD-1A.
+- Brak aktywnej/niepotwierdzonej sesji i niedokończonej operacji domenowej, potwierdzony fizyczny właściciel I/P oraz świeże dane kanoniczne są wymaganiami bezpieczeństwa przyszłego eksportu, nie zgodą na import całej sesji.
+- To nie pełne przeniesienie aplikacji między urządzeniami. Android to obecna ręczna platforma testowa użytkownika; tablet i komputer pozostają docelowymi platformami. Ręczna akceptacja na nich nie jest wymagana teraz.
+
+## Wykonane w main, propozycje i otwarte decyzje
+
+W main są C3.1 oraz C2.0b/C2.1a–C2.1b: bezpieczne sesje i zapis, stabilne role/grupy, projektowy resolver/adaptery PCV, ochrona nowego kandydata oferty, automatyczne PCV (#43), wspólne Opcje (#45) i hotfix fałszywego konfliktu updatedAt (#46). Słoje i rotacja nadal globalne; Issue #47 i pozostałe D1–D6 nie są całościowo zamknięte. Szczegóły w rejestrze i raportach etapów, bez przepisywania historii.
+
+**CLOUD-1A** opracowuje mapę źródeł i statusów danych. **Dalsza kolejność zatwierdzona w poleceniu:** CLOUD-1B → CLOUD-2A → CLOUD-2B → CLOUD-2C. Osobnego pełnego tekstu zatwierdzonego kontraktu CLOUD-1 z 15.10.2026 nie znaleziono w main ani w odczytanym PR #41; definicje podetapów w ROADMAP są **propozycją do potwierdzenia**, nie odtworzeniem nieudostępnionej decyzji.
+
+Nie wybrano metody loginu, schematu kolekcji/podkolekcji, nowego UI chmury ani formatu selektywnego eksportu. Dawne ścieżki `users/{uid}/...` i plany Wyślij/Pobierz poniżej są wyłącznie propozycjami. Nie wdrażać ich automatycznie. Format/allowlista I/P, referencje statusów/ofert, wielkość dokumentów, zasady konfliktów i ochrona sekretów wymagają osobnego kontraktu przed kodowaniem. Nie dodawać pełnych kopii projektu ani trwałej cutlisty; derivedFacts i proof kalkulacji pozostają odtwarzalne/techniczne.
+
+Obecny rejestr PROJECT_DECISIONS.md jest w osobnym Draft PR #41. Nie zmieniono jego gałęzi; propozycję późniejszego dopisku zamieszczono w końcu CLOUD_DATA_REGISTER.md. Nie ustanawiamy konkurencyjnego rejestru decyzji.
+
+---
+
+## Historia i wcześniejsze kierunki (zachowane)
+
+Poniższe wpisy opisują stan swoich dat. Ich nazwy kolekcji/etapów i stare stwierdzenia o równoległych projektach nie zastępują powyższego stanu oraz aktualnego kodu. Dawna etykieta „technical” dla globalnych wyjątków nie pozwala uznać decyzji produkcyjnych za kasowalny cache.
+
 ## 2026-06-28 — Szuflady jako wymagania i formatki pochodne v1
 
 - Preferencja systemu szuflad jest zapisywana w `room.preferences.hardwareDrawerSystems.drawers`. Jest to ustawienie pomieszczenia, a nie wynik wyceny.

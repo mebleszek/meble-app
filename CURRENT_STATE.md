@@ -1,7 +1,7 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
-Data przeglądu: **2026-10-04**  
-Punkt bazowy: **`site_program_defaults_apply_fix_v1.zip`** (paczka z 2026-09-08)
+Data przeglądu danych i integracji: **2026-10-15**
+Baza kodu: **`f3b6905e` — main po PR #46**. Nie wykonywano ponownego audytu całej logiki biznesowej; niezwiązane rozdziały zachowują wcześniejszy kontekst.
 
 ## Po co jest ten plik
 
@@ -13,98 +13,36 @@ Przy kolejnych pracach najpierw czytać ten plik i `ROADMAP.md`. Historyczne wpi
 
 ## 1. Skala i architektura
 
-Aktualny projekt jest dużą aplikacją przeglądarkową rozwijaną bez frameworka i bundlera.
+Aplikacja przeglądarkowa bez frameworka/bundlera, moduły classic-script w `window.FC`, publikacja statyczna. Na bazie main po PR #46: **824 śledzone pliki**, **524 JS**, **261 Markdown**, **394 domenowe JS** w audycie zależności, **318** skryptów index.html i **346** dev_tests.html. CLOUD-1A dodaje jeden dokument rejestru; liczby odnoszą się do bazy.
 
-- wszystkie pliki w paczce: ok. **756**,
-- pliki JavaScript łącznie: **473**,
-- produkcyjne pliki JS wykryte przez audyt zależności: **387**,
-- skrypty ładowane przez `index.html`: **311**,
-- skrypty ładowane przez `dev_tests.html`: **339**,
-- produkcyjny kod JS: ok. **83 tys. linii**,
-- komunikacja modułów opiera się głównie o namespace `window.FC`,
-- aplikacja jest publikowana jako statyczna strona (GitHub Pages / repozytorium GitHub).
-
-To już nie jest mały jednoplikowy program. Zmiany trzeba robić modułowo i pod osłoną testów.
-
----
+Projekt jest jednym fizycznym rekordem `fc_projects_v1`, z investorId i wieloma pokojami w projectData. Lista pomieszczeń inwestora jest powiązaną projekcją. RAM to stan roboczy, nie drugie trwałe źródło prawdy. `derivedFacts` jest odtwarzalnym cachem usuwanym z kopii do zapisu.
 
 ## 2. Kontrola składni i zależności
 
-Na bazowej paczce:
+Aktualny preflight obejmuje składnię wszystkich JS, load order, wszystkie `tools/*-smoke.js`, audyt zależności i storage. Ponowne uruchomienie dla CLOUD-1A: **PRE-FLIGHT PASS**, składnia **524/524**, load order **318**, smoke **118/118**, APP **110/110**, dependency/storage PASS. Szczegóły w [rejestrze](CLOUD_DATA_REGISTER.md#9-dowód-pokrycia-audytu-i-weryfikacja).
 
-- **473/473** pliki JS przechodzą `node --check`,
-- audyt zależności wykrywa **2231** krawędzi zależności po symbolach `FC`,
-- **16** plików ma klasę ryzyka „wysokie / nie ruszać bez osobnego planu”,
-- **86** plików ma ryzyko średnie.
+Wysokie ryzyko nadal dotyczy persistence/sesji, WYCENY/historii, katalogów i ROZRYSU; RYSUNEK pozostaje osobnym długiem, bez refaktoru w CLOUD-1A. `TEST_BASELINE.md` opisuje także dawną paczkę i nie zastępuje aktualnego wyniku preflightu.
 
-Najbardziej ryzykowne obszary:
+## 3. Testy i ukończone fundamenty
 
-- `js/tabs/rysunek.js` — duży monolit, osobny plan przed refaktorem,
-- WYCENA: `quote-snapshot-store.js`, `wycena-core-labor.js`, `wycena-core-lines.js`, `wycena-diagnostics.js`,
-- katalog okuć: `hardware-catalog.js`, `catalog-store.js`,
-- ROZRYS: część logiki ma wysokie ryzyko i wymaga testów kontraktowych.
+Nie obowiązuje już stary baseline 66/76 z 10 FAIL. W main są pełny preflight i CI, zabezpieczenia C3.1 globalnych zapisów, pokojowa sesja/nawigacja C2.0b, bezdestrukcyjny odczyt wyjątków C2.1a, stabilne role/grupy formatek i geometria frontów, projektowe PCV oraz adaptery obliczeń i ochrona nowego kandydata oferty.
 
----
+PR #40 uruchomił UI PCV; #43 automatyzował tryb projektu; #45 przywrócił wspólne Opcje; #46 naprawił fałszywy konflikt updatedAt po autosave. Są **scalone**, nie otwarte propozycje. Diagnostyka i symulowany DOM nie dowodzą ręcznej akceptacji na telefonie. Użytkownik obecnie ręcznie testuje Androida; tablet/komputer pozostają platformami docelowymi.
 
-## 3. Testy — stan bazowy
-
-Szczegółowa klasyfikacja jest w `TEST_BASELINE.md`.
-
-Najważniejsze liczby:
-
-- samodzielne pliki `tools/*-smoke.js`: **76**,
-- przechodzi: **66**,
-- nie przechodzi: **10**,
-- `app-dev-smoke.js` wewnętrznie: **109/110 OK**,
-- osobny audyt kolejności skryptów `check-index-load-groups.js`: **FAIL**.
-
-Obecne czerwone wyniki **nie oznaczają 10 usterek runtime**. Większość to historyczne albo kruche oczekiwania testów, które nie zostały odświeżone po późniejszych zmianach architektury. Trzy testy WYCENY wskazują wspólną niespójność numeru `BUILD`, a audyt kolejności skryptów ma nieaktualną konfigurację 309 vs 311 skryptów.
-
-Testy najnowszych zmian dotyczących globalnych ustawień i szuflad przechodzą.
-
----
+Regresje referencyjne: **16,440 → 17,122 → 18,834 mb**, fronty **5,010 → 5,511 mb**, jeden zapas PCV 10%, wielopomieszczeniowy rozkrój **4 / 3 / 6 arkuszy**. Historyczne oferty A/B/A+B zachowują własny zakres i zamrożone wyniki.
 
 ## 4. Dane i przygotowanie do chmury
 
-Docelowy kierunek zapisany w `CLOUD_MIGRATION.md` to **Firebase Authentication + Cloud Firestore**, wdrażane etapami, bez przepisywania całej aplikacji naraz.
+Kanoniczna mapa: [CLOUD_DATA_REGISTER.md](CLOUD_DATA_REGISTER.md), zasady etapów: [CLOUD_MIGRATION.md](CLOUD_MIGRATION.md). Aktualny audyt to **339** referencji w **41** plikach: **204** test/tooling, **135** poza testami (32 pliki). Mapa obejmuje **46 stałych nazw + 3 dynamiczne rodziny**; to nie liczba wpisów w urządzeniu użytkownika.
 
-Obecnie program nadal działa lokalnie, ale część warstw została już przygotowana pod wymianę storage na zdalne repozytorium:
+- Zapis projektu: durable begin + saveConfirmed + read-back; active owner **projectId + roomId**. Zapis/rollback nie może cofać innego pokoju/projektu. Niepotwierdzona rewizja blokuje kolejne operacje, bez nadpisywania centralnego rekordu starym RAM.
+- Nowy projekt od początku używa `projectData.meta.productionPcvMode='project'`; istniejący testowy przechodzi przy bezpiecznym otwarciu. Brak aktywacyjnego przycisku/dialogu i importu globalnych krawędzi. Decyzje PCV są w `projectData[roomId].production`, z niezależnymi rolami elementów/grup i setId.
+- Słoje nadal globalne (`fc_material_part_options_v1`), a ROZRYS ma globalne enabled/exceptions. To decyzje produkcyjne z nierozstrzygniętą własnością, nie dowolnie usuwalny cache. Issue #47 dotyczy ich przyszłej przebudowy. `fc_rozrys_overrides_v1` ma dormant API, bez znalezionego aktualnego konsumenta.
+- Globalne cenniki, katalogi, słowniki, stawki, magazyn i ustawienia są chronione, zgodne wstecz i **poza pilotem**. C3.1 nie daje automatycznie gwarancji confirmed write wszystkim pozostałym store.
+- CLOUD-1A tylko dokumentuje dane. **Nie wdrożono Firebase/Firestore, loginu, selektywnego eksportera ani synchronizacji.** Pierwszy planowany pilot to jeden testowy inwestor i jeden fizyczny projekt z pokojami/szafkami/PCV. Bez globalnych słojów/katalogów/cenników, ofert, sesji/cache/kopii/sekretów; nie jest pełnym przenoszeniem aplikacji.
+- Obecny pełny backup fc_* nie jest pilot payloadem: może zawierać ORS apiKey profilu firmy i pomija nieprefiksowane aliasy katalogów. Bez zmian mechanizmu/retencji; rozdzielenie i filtrowanie eksportu wymaga kolejnego zakresu.
 
-- inwestorzy mają lokalne repository/store,
-- projekt inwestora ma wydzielone repository/runtime,
-- snapshoty ofert mają własny store,
-- katalogi i część ustawień mają własne store/boundary,
-- statusy projektu/ofert są stopniowo oddzielane od UI,
-- `derivedFacts` są traktowane jako odtwarzalny cache, a nie druga prawda danych.
-
-Aktualny audyt storage:
-
-- pliki z referencjami do storage: **36**,
-- referencje storage łącznie: **313**,
-- z tego test/tooling: **208**,
-- kategoria `direct-or-legacy-storage`: **31** referencji.
-
-Wniosek: **Etap 1/2 przygotowania do chmury jest częściowo wykonany, ale jeszcze nie zakończony**. Firebase nie powinien być podłączany przed ponownym audytem granic danych i uporządkowaniem testów.
-
-### Docelowo do chmury
-
-- inwestorzy,
-- projekty, pomieszczenia, szafki,
-- ustawienia i dane źródłowe projektu,
-- wyceny, historia ofert, drafty,
-- katalogi/cenniki użytkownika,
-- zlecenia usługowe,
-- w przyszłości zakupy i rzeczywiste koszty.
-
-### Powinno pozostać lokalne / odtwarzalne
-
-- stan UI i rozwinięcia accordionów,
-- aktywna zakładka,
-- techniczne sesje restore/reload,
-- automatyczny cache ROZRYS,
-- diagnostyka,
-- dane testowe,
-- część `derivedFacts`, jeśli można je bezpiecznie przeliczyć ponownie.
+Pełny kontrakt CLOUD-1 z 15.10.2026 nie jest osobnym plikiem w odczytanym repo. Potwierdzone granice bieżącego polecenia są zapisane w rejestrze; szczegóły CLOUD-1B/2A/B/C, finalny Firestore i metoda loginu pozostają do potwierdzenia. `PROJECT_DECISIONS.md` nadal jest w Draft PR #41; tu nie tworzymy konkurencyjnego rejestru, a propozycja wpisu jest w rejestrze danych.
 
 ---
 
@@ -126,23 +64,17 @@ WYCENA ma już mocno rozwinięte fundamenty „jednej prawdy”:
 - wnoszenie/logistyka,
 - wymagania techniczne okuć.
 
-Nie należy teraz robić dużego refaktoru WYCENY. Najpierw trzeba uzyskać wiarygodny zielony baseline testów i potwierdzić brakujące elementy matematyki.
+Nie należy teraz robić dużego refaktoru WYCENY. Zielony baseline już istnieje; brakujące elementy matematyki wymagają osobnej decyzji, bez zmian przy dokumentacji chmury.
 
 ---
 
 ## 6. MATERIAŁ / ROZRYS
 
-Istnieje już dużo wspólnych zależności i część zasad jednej prawdy, np. PCV ma pochodzić z tych samych danych materiałowych.
+Projektowe PCV jest wspólnym źródłem krawędzi i metrów dla normalnego MATERIAŁU, ROZRYSU i WYCENY. Resolver rozlicza osobno lewy/prawy bok oraz grupy półek i frontów przed agregacją; planKey i placements zachowują różne krawędzie identycznych części. Projektowy tryb omija trwały legacy cache planu.
 
-Nadal otwarty jest plan pełniejszego wspólnego modelu:
+Jedno **Opcje → Opcje formatki → Zapisz** zachowuje oryginalną proporcjonalną mapę, PCV i globalne słoje. Koordynator chroni oba zapisy/draft i nie potwierdza częściowego sukcesu. PR #46 pomija jedynie updatedAt rekordu w lokalnym świadku, zachowując prawdziwe konflikty i kody błędów. Przelicz projekt pozostaje.
 
-- formatki,
-- materiały,
-- okleiny,
-- dane wejściowe dla ROZRYS,
-- zgodność ilości użytych w WYCENIE.
-
-`OPTIMIZATION_PLAN.md` wprost wskazuje **Materiał + ROZRYS** jako ważny etap danych przed większymi refaktorami.
+Otwarta pozostaje własność globalnych słojów/rotacji, część źródeł z sourceIssues i dalsze funkcje odłożone. D1–D6 nie są zbiorczo zamknięte przez projektowe PCV. Historyczne plany OPTIMIZATION_PLAN nie oznaczają ponownej implementacji już scalonych elementów.
 
 ---
 
@@ -279,13 +211,7 @@ Plan późniejszy obejmuje rozpoznawanie dodatkowych operacji (`NUT`, `FREZ`, `R
 
 ## 15. GitHub / publikacja
 
-Obecny workflow `preflight-js.yml` sprawdza głównie:
-
-- rozpakowanie ZIP,
-- składnię JS,
-- istnienie `index.html`, `js/boot.js`, `js/app.js`.
-
-**Nie uruchamia pełnego zestawu testów regresyjnych.** To jest jeden z najważniejszych krótkoterminowych długów technicznych.
+Po PR #44 `preflight-js.yml` uruchamia pełny preflight przy jawnym **Draft → Ready** (oraz na ręczne workflow_dispatch). Automatyczny merge jest ograniczony do zaakceptowanego, niezmienionego head/base po PASS; po merge jest kontrola Pages konkretnego commita. Draft sam nie uruchamia tej ścieżki scalenia. CLOUD-1A nie wykonuje Ready, merge ani publikacji. To opis konfiguracji, nie deklaracja wykonania nowego CI w tym zadaniu.
 
 ---
 
@@ -298,6 +224,6 @@ Przed zmianą programu:
 3. nie zmieniać niczego przed komendą użytkownika **„do dzieła”**,
 4. po zatwierdzeniu robić możliwie mały diff,
 5. po zmianie uruchomić testy obszaru i baseline,
-6. dopiero potem publikacja/test użytkownika.
+6. przygotować Draft PR/raport, a decyzję o Ready/merge/publikacji pozostawić użytkownikowi.
 
-Najbliższy techniczny etap: **stabilizacja testów i utworzenie wiarygodnego preflightu**, bez dużego refaktoru runtime.
+Najbliższy etap po akceptacji CLOUD-1A: **CLOUD-1B**, wyłącznie na osobne polecenie. Kolejność dalsza: CLOUD-2A → CLOUD-2B → CLOUD-2C; szczegóły do potwierdzenia pełnym kontraktem.

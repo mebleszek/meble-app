@@ -1,6 +1,25 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
-Data uporządkowania: **2026-10-04**
+Data aktualizacji priorytetów: **2026-10-15**, main po PR #46 (`f3b6905e`). Niezwiązane plany poniżej zachowano; nie stanowią zgody na implementację.
+
+## Aktualny priorytet — CLOUD-1
+
+Kanoniczny [rejestr CLOUD-1A](CLOUD_DATA_REGISTER.md) i [kontrakt/granice](CLOUD_MIGRATION.md) mają pierwszeństwo przed historyczną kolejnością Etapów 0–11 poniżej.
+
+**Ukończone w main:** stabilizacja preflightu, CI po świadomym Ready (#44), C3.1 confirmed global saves, C2.0b pokojowe sesje/nawigacja, C2.1a odczyt bez przycinania, role/grupy formatek i geometria, projektowe PCV z adapterami obliczeń, guardy sesji/ofert (#38–40), automatyczny tryb (#43), wspólne Opcje (#45), poprawka konfliktu autosave (#46). Ręczne testy użytkownika nie są utożsamiane z PASS symulowanego DOM.
+
+**Bieżące CLOUD-1A:** wyłącznie rejestr i aktualizacja dokumentacji, do przeglądu w Draft PR. Bez eksportera/Firebase/runtime.
+
+**Wymagana kolejność kolejnych osobno zatwierdzanych zadań:** CLOUD-1B → CLOUD-2A → CLOUD-2B → CLOUD-2C. Pełnego kontraktu CLOUD-1 z 15.10.2026 nie znaleziono w repo; nie udajemy znajomości jego szczegółowych definicji. Roboczy podział do potwierdzenia:
+
+| Etap | Propozycja zakresu, NIE decyzja implementacyjna |
+|---|---|
+| CLOUD-1B | Kontrakt i testy selektywnego eksportu jednego I/P, wykluczeń/sekretów, kontroli spójnego projektu i zakończonej sesji. |
+| CLOUD-2A | Uzgodnienie izolowanego środowiska pilotażu, uwierzytelnienia/reguł i modelu Firestore; bez samodzielnego wyboru metody loginu/schematu. |
+| CLOUD-2B | Kontrolowany zapis wybranego testowego I/P, bez globalnych magazynów i bez automatycznej synchronizacji. |
+| CLOUD-2C | Kontrolowane pobranie i porównanie ustalonego zakresu, ochrona lokalnych globalnych danych i konfliktów. |
+
+Pilot obejmuje **jednego testowego inwestora i jeden fizyczny projekt z pokojami, szafkami i projektowym PCV**. Nie obejmuje słojów globalnych, katalogów, cen/stawek, historii/draftów ofert ani pełnego transferu aplikacji. Powyższych propozycji nie wdrażać przed potwierdzeniem kontraktu i osobną zgodą. Issue #47 (słoje) pozostaje osobnym planem. Retencja backupów odłożona do czasu po migracji. Android pozostaje obecnym urządzeniem ręcznej akceptacji; tablet/komputer mają być wspierane, bez wymagania ręcznej akceptacji teraz.
 
 ## Zasada nadrzędna
 
@@ -14,7 +33,7 @@ Nie realizować starych wpisów historycznych bez sprawdzenia, czy nie zostały 
 
 # ETAP 0 — wiarygodny punkt startowy
 
-**Stan:** rozpoczęty teraz.
+**Stan historycznego Etapu 0:** dokumenty istnieją; aktualizacja danych CLOUD-1A trwa w tym Draft PR.
 
 Cel:
 
@@ -32,11 +51,13 @@ Nie zmieniać runtime.
 
 # ETAP 1 — stabilizacja testów i jeden preflight
 
+**Stan: Etap 1 wykonany.** Aktualny baseline 118/118 smoke, APP 110/110; pełny preflight i świadomie uruchamiane CI już są w main. Poniższe punkty zachowują historyczny cel, nie listę nowych zadań.
+
 ## 1A. Uporządkowanie obecnych FAIL-i
 
 Najpierw poprawić wyłącznie testy/kontrakty, które są historyczne lub kruche. Osobno rozstrzygnąć wersję `BUILD` diagnostyki WYCENY.
 
-Cel: **76/76 smoke PASS** + PASS `check-index-load-groups`.
+Historyczny cel: 76/76 smoke; aktualny wynik i zakres określa CURRENT_STATE.md / CLOUD_DATA_REGISTER.md.
 
 ## 1B. Jedno polecenie kontrolne
 
@@ -62,6 +83,8 @@ Dopiero po zielonym lokalnym baseline rozszerzyć `.github/workflows/preflight-j
 # ETAP 2 — audyt cloud-ready i domknięcie granic danych
 
 Nie podłączać jeszcze Firebase.
+
+**Aktualizacja:** mapa storage i domen jest opracowana w CLOUD-1A. Dalsza implementacja adapterów nie wynika automatycznie z tego audytu.
 
 ## 2A. Aktualny audyt storage
 
@@ -115,6 +138,8 @@ Potwierdzić, że każda złotówka ma pozycję w `quoteCalculationRegister`, a 
 
 ## 3B. MATERIAŁ ↔ ROZRYS
 
+**Część PCV wykonana:** projektowy resolver, normalny UI i obliczenia są scalone. Własność słojów/rotacji i niejednoznaczne źródła pozostają osobno; nie powtarzać zakończonego zakresu.
+
 Ujednolicić kontrakty dla:
 
 - formatek,
@@ -161,44 +186,7 @@ Każda czynność powinna mieć jawne `quantitySource`, warunki oraz test, a nie
 
 # ETAP 5 — model chmury i pilotaż Firebase
 
-Dopiero po Etapach 1–3.
-
-## 5A. Model Firestore
-
-Zaprojektować:
-
-- kolekcje/dokumenty,
-- stabilne ID,
-- wielkość dokumentów,
-- podkolekcje,
-- reguły bezpieczeństwa,
-- wersjonowanie danych.
-
-Przykładowy kierunek z istniejącego planu:
-
-- `users/{userId}/investors/{investorId}`,
-- `users/{userId}/projects/{projectId}`,
-- `users/{userId}/quotes/{quoteId}`.
-
-Nie wrzucać całej aplikacji do jednego JSON-a.
-
-## 5B. Authentication
-
-Dodać logowanie użytkownika.
-
-## 5C. Pilotaż ręczny
-
-Najpierw tylko:
-
-- `Wyślij do chmury`,
-- `Pobierz z chmury`,
-- raport porównania lokalne vs chmura.
-
-Test: komputer → chmura → telefon → dane 1:1.
-
-Nie robić jeszcze automatycznej dwukierunkowej synchronizacji.
-
-**Tryb:** projekt architektury — Chat High; szeroki projekt wdrożeniowy może uzasadniać Work/Astra; implementacja i testy repo — Codex.
+Ten starszy cel jest teraz realizowany kolejnością **CLOUD-1A → CLOUD-1B → CLOUD-2A → CLOUD-2B → CLOUD-2C** z tabeli priorytetów. Nie wybierać samodzielnie metody logowania, finalnych dokumentów Firestore, nowych przycisków Wyślij/Pobierz ani dwukierunkowego sync. Nie wymagać pełnego transferu komputer → telefon w pierwszym pilotażu; testuje on wyłącznie ustalony I/P. Przyszła synchronizacja ma obejmować Android, tablet i komputer.
 
 ---
 
@@ -318,10 +306,10 @@ Najpierw stabilna treść i dane, potem wygląd.
 
 ---
 
-# Co robimy jako najbliższe trzy kroki
+# Najbliższe kroki
 
-1. **Etap 1A:** uporządkować czerwone testy bez zmiany logiki biznesowej.
-2. **Etap 1B:** zrobić jeden lokalny preflight.
-3. **Etap 1C:** dopiero po zielonym baseline podpiąć go do GitHub Actions.
+1. Ocena dokumentacji i nierozstrzygniętych punktów CLOUD-1A.
+2. Potwierdzenie pełnego kontraktu kolejnego zakresu i osobna zgoda na CLOUD-1B.
+3. Następnie CLOUD-2A → CLOUD-2B → CLOUD-2C, bez rozszerzania pilotażu na globalne dane.
 
-Dopiero po tych trzech krokach zaczynać właściwy audyt cloud-ready Etapu 2.
+Nie rozpoczynać następnego etapu po samym zielonym preflight ani utworzeniu Draft PR.
