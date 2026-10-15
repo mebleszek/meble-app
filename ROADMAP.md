@@ -1,23 +1,23 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
-Data aktualizacji priorytetów: **2026-10-15**, main po PR #49 (`98fffb87`), kod przed CLOUD-1B po PR #46. Niezwiązane plany poniżej zachowano; nie stanowią zgody na implementację.
+Data aktualizacji priorytetów: **2026-10-15**, main po PR #50 (merge `732c9833`), CLOUD-1B ukończono i przeszło CI. CLOUD-2A: wybór Firebase Spark i logowania Google zatwierdzony, przygotowano projekt techniczny w gałęzi dokumentacyjnej. Niezwiązane plany poniżej zachowano; nie stanowią zgody na implementację.
 
-## Aktualny priorytet — CLOUD-1
+## Aktualny priorytet — CLOUD-2A / przygotowanie CLOUD-2B
 
 Kanoniczny [rejestr CLOUD-1A](CLOUD_DATA_REGISTER.md) i [kontrakt/granice](CLOUD_MIGRATION.md) mają pierwszeństwo przed historyczną kolejnością Etapów 0–11 poniżej.
 
 **Ukończone w main:** stabilizacja preflightu, CI po świadomym Ready (#44), C3.1 confirmed global saves, C2.0b pokojowe sesje/nawigacja, C2.1a odczyt bez przycinania, role/grupy formatek i geometria, projektowe PCV z adapterami obliczeń, guardy sesji/ofert (#38–40), automatyczny tryb (#43), wspólne Opcje (#45), poprawka konfliktu autosave (#46). Ręczne testy użytkownika nie są utożsamiane z PASS symulowanego DOM.
 
-**Ukończone CLOUD-1A:** kanoniczny rejestr i dokumentacja scalone w PR #48. **CLOUD-1B:** analiza techniczna wykonana, wewnętrzny eksporter zaimplementowany w tej gałęzi po bazie #49, do oceny PR (bez UI/chmury). Decyzje chmurowe z 2026-10-15 są zatwierdzone i zapisane w [CLOUD_MIGRATION.md](CLOUD_MIGRATION.md); ta aktualizacja nie wdraża synchronizacji.
+**Ukończone CLOUD-1A i CLOUD-1B:** rejestr danych w PR #48; selektywny eksporter RAM w PR #50, pełny CI i Pages PASS. **CLOUD-2A:** użytkownik wybrał Firebase Spark/Cloud Firestore i Google Sign-In. Architektura pilota, bezpieczeństwo i model docelowy są **projektem**, a nie uruchomioną usługą: [CLOUD-2A](tools/reports/cloud-2a-firebase-google-architecture.md). Aktualizacja dokumentacji nie wdraża synchronizacji.
 
-**Wymagana kolejność kolejnych osobno zatwierdzanych zadań:** CLOUD-1B → CLOUD-2A → CLOUD-2B → CLOUD-2C → obowiązkowe wdrożenie docelowej chmury. Zakresy techniczne etapów po analizie wymagają osobnych poleceń; nie są zgodą na kodowanie teraz.
+**Wymagana kolejność:** CLOUD-1B (scalone) → CLOUD-2A (wybrany dostawca/auth; dokumentacja projektu) → **CLOUD-2B** (dopiero po osobnej zgodzie na konfigurację Firebase Spark i wdrożenie bezpiecznego testowego uploadu) → CLOUD-2C (osobna akceptacja odczytu/weryfikacji) → obowiązkowa pełna migracja domen i automatyczna synchronizacja. Żaden etap pilotażu sam nie przełącza lokalnego autorytetu.
 
 | Etap | Cel i status |
 |---|---|
-| CLOUD-1B | Kontrakt i późniejsza implementacja/testy selektywnego eksportu jednego I/P; jawna allowlista, integralność, zakończona sesja, potwierdzony zapis i brak sekretów. Implementacja i syntetyczne regresje w tej gałęzi do oceny PR; [kontrakt/odmowy](tools/reports/cloud-1b-selective-project-export.md). |
-| CLOUD-2A | Porównanie darmowych planów Firebase/Firestore, Supabase i Cloudflare przy celu **0 zł stałych opłat miesięcznych**; limity odczytów, zapisów, transferu i przestrzeni, ryzyka kosztów. Dopiero po decyzji: dostawca, uwierzytelnienie/reguły i model przechowywania. Bez samodzielnego włączenia billingu/płatnych API. |
-| CLOUD-2B | Kontrolowany techniczny zapis syntetycznego I/P, bez globalnych magazynów. Ręczne wywołanie testowe nie oznacza ręcznego workflow ani nowych przycisków użytkownika. |
-| CLOUD-2C | Kontrolowane techniczne pobranie i porównanie tego zakresu, bez nadpisywania globalnych danych. Odtworzenie projektu nie dowodzi pełnej zdolności przeliczenia WYCENY. |
+| CLOUD-1B | **SCALONE PR #50, CI/Pages PASS.** Selektywny eksport w RAM jednego syntetycznego I/P; jawna allowlista, integralność, zakończona sesja i potwierdzony zapis. [Raport](tools/reports/cloud-1b-selective-project-export.md). |
+| CLOUD-2A | **ZATWIERDZONE:** Firebase Spark + Cloud Firestore + Firebase Authentication (Google). **PROJEKT TECHNICZNY:** ścieżki, Rules, UID, bezpieczne rewizje, odczyty/zapisy/limity, backup i granice pilota. [Raport CLOUD-2A](tools/reports/cloud-2a-firebase-google-architecture.md). Bez uruchomienia projektu/billingu/SDK. |
+| CLOUD-2B | **NIE ROZPOCZĘTO.** Po odrębnej zgodzie: skonfigurować darmowy projekt/region/Google Auth i zamknięte Rules; emulator, bezstratne fragmenty + atomowy manifest rewizji, kontrolowany upload syntetycznego I/P. Bez globalnych magazynów i nowych kontrolek użytkownika. |
+| CLOUD-2C | **NIE ROZPOCZĘTO.** Osobny test pobrania, składania, hashy i identyczności syntetycznego I/P; bez nadpisywania lokalnych projektów/globalnych magazynów. Odtworzenie projektu nie dowodzi identycznej WYCENY. |
 | Po CLOUD-2C — ochrona danych i rozszerzenie zakresu | Obowiązkowo zaprojektować i wdrożyć ochronę oraz zatwierdzone przeniesienie wypracowanych katalogów/cenników/stawek/słowników/ustawień; zachować historię ofert. Objąć wspierane struktury produkcyjne, prawdziwe dane inwestorów i duże projekty. Rozstrzygnąć projektową własność słojów/rotacji (Issue #47); pilot ich nie kończy. |
 | Po CLOUD-2C — autorytet chmury i automatyczna synchronizacja | Obowiązkowe, osobno zatwierdzane wdrożenie chmury jako autorytetu domen, automatyczne otrzymywanie aktualnych danych i zapis zatwierdzonych zmian na Androidzie/tablecie/komputerze. Bez ręcznych Eksportuj/Importuj/Wyślij/Pobierz/Synchronizuj i bez zmian UI. Zachować Zapisz/Anuluj; lokalny cache/draft nie jest drugim autorytetem. |
 | Po CLOUD-2C — konflikty, sieć i praca między urządzeniami | Obowiązkowe testy konfliktów, niepotwierdzonych zapisów, ponowień i błędów sieci; zakaz nadpisania nowszych zmian innym urządzeniem. Przyszły bezpieczny offline wymaga oddzielnego kontraktu. Kontrolować koszty/limity i nie zapisywać zbędnie niezmienionych danych. |
