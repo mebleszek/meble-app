@@ -1,12 +1,12 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
-Stan decyzji: **2026-10-15**. Baza: `main` po scaleniu PR #48 CLOUD-1A (`8bfc7584`); kod aplikacji po PR #46. Kanoniczna mapa obecnych magazynów: **[CLOUD_DATA_REGISTER.md](CLOUD_DATA_REGISTER.md)**. Ten dokument zawiera aktualne wymagania chmurowe; starsze plany poniżej są historią.
+Stan decyzji: **2026-10-15**. Baza: `main` po scaleniu PR #49 (`98fffb87`), obejmujący rejestr CLOUD-1A (#48); kod aplikacji przed tym zadaniem po PR #46. Kanoniczna mapa obecnych magazynów: **[CLOUD_DATA_REGISTER.md](CLOUD_DATA_REGISTER.md)**. Ten dokument zawiera aktualne wymagania chmurowe; starsze plany poniżej są historią.
 
 ## Status prac i sposób odczytywania decyzji
 
 - **WYKONANE:** CLOUD-1A — rejestr 46 stałych nazw magazynów i 3 rodzin dynamicznych, scalony PR #48. W main działają lokalne zabezpieczenia C3.1, sesje C2.0b, projektowe PCV z resolverem/adapterami i guardami sesji/ofert, automatyczny tryb PCV (#43), wspólne Opcje (#45) oraz hotfix konfliktu updatedAt (#46).
-- **ANALIZA WYKONANA, IMPLEMENTACJA NIEROZPOCZĘTA:** CLOUD-1B — projekt selektywnego eksportu. Cztery ograniczenia pierwszego testu poniżej zostały zatwierdzone; szczegóły formatu, allowlisty i API z analizy pozostają propozycją do osobnej akceptacji implementacji.
-- **ZATWIERDZONE, DO WDROŻENIA W KOLEJNYCH ETAPACH:** docelowy autorytet chmury, automatyczny zapis zatwierdzonych zmian i synchronizacja między urządzeniami. **Synchronizacji, eksportera CLOUD-1B ani integracji Firebase/Firestore/Authentication jeszcze nie wdrożono.**
+- **CLOUD-1B — IMPLEMENTACJA W TEJ GAŁĘZI, DO OCENY:** wewnętrzne `FC.projectSelectiveExport.build()` przygotowuje dokument jednego syntetycznego I/P z zamkniętą allowlistą, RAW, read-only bramką sesji, SHA-256, limitem 800 KiB i końcową kontrolą świeżości. Bez UI/uploadu/importera. Baza main po #49 nie zawierała eksportera; nie przedstawiać tej implementacji jako scalonej przed akceptacją PR. Szczegóły i granice: [raport CLOUD-1B](tools/reports/cloud-1b-selective-project-export.md).
+- **ZATWIERDZONE, DO WDROŻENIA W KOLEJNYCH ETAPACH:** docelowy autorytet chmury, automatyczny zapis zatwierdzonych zmian i synchronizacja między urządzeniami. **Synchronizacji ani integracji Firebase/Firestore/Authentication nie wdrożono; techniczne API eksportu w tej gałęzi nie jest synchronizacją.**
 - Obecnie autorytetem projektu pozostaje fizyczny rekord `fc_projects_v1`; poniższy cel nie upoważnia do przełączenia żadnej lokalnej domeny bez osobnej zgody.
 - `PROJECT_DECISIONS.md` pozostaje poza main, na gałęzi `docs/collaboration-rules-20261014` (PR #41). Nie zmieniamy tej gałęzi ani nie zakładamy drugiego rejestru decyzji. Propozycja wpisu do późniejszego przeniesienia jest na końcu aktywnej części tego dokumentu.
 
@@ -50,7 +50,7 @@ Pilot obejmuje dokładnie **jednego fikcyjnego inwestora i jeden przypisany mu f
 - **Dane globalne i historia:** bezwzględnie chronić wypracowane cenniki, katalogi materiałów/okuć, stawki, producentów/dostawców, słowniki, ustawienia oraz historię ofert. Bez resetów, automatycznych migracji lub nadpisywania. Historyczne oferty zachowują zamrożone ceny/linie i dokładny zakres, bez przeliczenia według nowych katalogów.
 - **Trzy poziomy poprawności:** odtworzenie danych projektu, możliwość jego wyświetlenia i poprawne przeliczenie materiałów/PCV/WYCENY to osobne wyniki. Brak katalogów, globalnych defaultów lub słojów na drugim urządzeniu wymaga raportu zależności; nie oznacza 0 zł/0 mb ani zgody na automatyczne dołączenie katalogów. Pierwszy pilot nie gwarantuje identycznej WYCENY na pustym urządzeniu.
 
-Format wersjonowanego eksportu, pełna allowlista, proof integralności, kody odmowy i testy wymagają uzgodnionego kontraktu implementacyjnego. Wykonana analiza CLOUD-1B nie stanowi wdrożenia eksportera ani zgody na rozpoczęcie kodowania w tym zadaniu dokumentacyjnym.
+Zatwierdzona implementacja CLOUD-1B jest opisana w [raporcie kontraktu](tools/reports/cloud-1b-selective-project-export.md). Oba rekordy wymagają istniejącej flagi testowej; szersze konstrukcje, nieznane istotne pola i wszystkie niepuste notatki (również front.note bez dowodu pochodzenia) są w tym pierwszym profilu odrzucane. Nie zmieniono zapisów źródłowych ani backupów. CLOUD-2A i każdy upload/import wymagają kolejnej osobnej zgody.
 
 ## ZATWIERDZONE — cel kosztowy i wybór dostawcy
 
@@ -59,6 +59,8 @@ Format wersjonowanego eksportu, pełna allowlista, proof integralności, kody od
 Bez oddzielnej zgody użytkownika nie aktywować płatnych planów, rozliczeń, płatnych API ani funkcji mogących generować koszty. Architektura ma unikać zbędnego zapisywania niezmienionych danych i uwzględniać limity darmowego planu. Cel kosztowy nie jest gwarancją nieograniczonych darmowych zasobów. Przy braku bezpiecznego rozwiązania w tych limitach przedstawić ograniczenie do decyzji zamiast uruchamiać billing.
 
 ## Propozycja późniejszego wpisu do PROJECT_DECISIONS.md
+
+**Aktualizacja CLOUD-1B w tej gałęzi:** propozycja poniżej zachowuje stan decyzji z zadania dokumentacyjnego #49. Przy przeniesieniu osobno należy zaktualizować status eksportera według raportu CLOUD-1B; chmura i synchronizacja nadal nie są wdrożone.
 
 Poniższy tekst jest **propozycją miejsca/formy przeniesienia zatwierdzonych decyzji**, a nie nowym konkurencyjnym rejestrem. Wpis w PR #41 zostanie zaktualizowany osobno; nie zmieniamy teraz jego gałęzi. Starsze oznaczenia PCV „DO WDROŻENIA” w tym PR wymagają odrębnego sprostowania wobec main po PR #43/#45/#46.
 

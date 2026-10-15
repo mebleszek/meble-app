@@ -1,7 +1,7 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
 Data przeglądu danych i integracji: **2026-10-15**
-Baza dokumentacji: **`8bfc7584` — main po PR #48 (CLOUD-1A)**; baza kodu: **`f3b6905e` — po PR #46**. Nie wykonywano ponownego audytu całej logiki biznesowej; niezwiązane rozdziały zachowują wcześniejszy kontekst.
+Baza dokumentacji: **`98fffb87` — main po PR #49**; baza kodu przed CLOUD-1B: **`f3b6905e` — po PR #46**. Nie wykonywano ponownego audytu całej logiki biznesowej; niezwiązane rozdziały zachowują wcześniejszy kontekst.
 
 ## Po co jest ten plik
 
@@ -39,7 +39,8 @@ Kanoniczna mapa: [CLOUD_DATA_REGISTER.md](CLOUD_DATA_REGISTER.md), zasady etapó
 - Nowy projekt od początku używa `projectData.meta.productionPcvMode='project'`; istniejący testowy przechodzi przy bezpiecznym otwarciu. Brak aktywacyjnego przycisku/dialogu i importu globalnych krawędzi. Decyzje PCV są w `projectData[roomId].production`, z niezależnymi rolami elementów/grup i setId.
 - Słoje nadal globalne (`fc_material_part_options_v1`), a ROZRYS ma globalne enabled/exceptions. To decyzje produkcyjne z nierozstrzygniętą własnością, nie dowolnie usuwalny cache. Issue #47 dotyczy ich przyszłej przebudowy. `fc_rozrys_overrides_v1` ma dormant API, bez znalezionego aktualnego konsumenta.
 - Globalne cenniki, katalogi, słowniki, stawki, magazyn i ustawienia są chronione, zgodne wstecz i **poza pilotem**. C3.1 nie daje automatycznie gwarancji confirmed write wszystkim pozostałym store.
-- CLOUD-1A zakończono i scalono w PR #48; analiza CLOUD-1B została wykonana, implementacja eksportera nie rozpoczęła się. **Nie wdrożono Firebase/Firestore, loginu, selektywnego eksportera ani synchronizacji.** Pierwszy planowany pilot to jeden testowy inwestor i jeden fizyczny projekt z pokojami/szafkami/PCV. Bez globalnych słojów/katalogów/cenników, ofert, sesji/cache/kopii/sekretów; nie jest pełnym przenoszeniem aplikacji.
+- CLOUD-1A zakończono i scalono w PR #48; analiza CLOUD-1B została wykonana, implementacja eksportera powstała w tej gałęzi po bazie #49 i wymaga oceny PR. **Nie wdrożono Firebase/Firestore, loginu ani synchronizacji.** Pierwszy planowany pilot to jeden testowy inwestor i jeden fizyczny projekt z pokojami/szafkami/PCV. Bez globalnych słojów/katalogów/cenników, ofert, sesji/cache/kopii/sekretów; nie jest pełnym przenoszeniem aplikacji.
+- CLOUD-1B w tej gałęzi: wewnętrzny builder dokumentu w RAM, bez UI, downloadu i uploadu. Jawna allowlista, surowe źródło, zakończona sesja, zgodny RAM, SHA-256 i 800 KiB; wymagane istniejące oznaczenia testowe obu rekordów. Nieobsługiwane konstrukcje i notatki bez dowodu pochodzenia blokują eksport. [Kontrakt i ograniczenia](tools/reports/cloud-1b-selective-project-export.md).
 - Obecny pełny backup fc_* nie jest pilot payloadem: może zawierać ORS apiKey profilu firmy i pomija nieprefiksowane aliasy katalogów. Bez zmian mechanizmu/retencji; rozdzielenie i filtrowanie eksportu wymaga kolejnego zakresu.
 
 **ZATWIERDZONE 2026-10-15, JESZCZE NIEWDROŻONE:** docelowo chmura jest autorytetem trwałych danych; telefon/tablet/komputer otrzymują aktualny stan automatycznie, zatwierdzone zmiany synchronizują się bez ręcznego eksportu/importu/Wyślij/Pobierz/Synchronizuj i bez zmiany UI. Zapisz/Anuluj pozostaje; draft nie jest zatwierdzonym projektem. Lokalny cache nie stanowi drugiego autorytetu. Przełączenie domen wymaga osobnej zgody, ochrony konfliktów i danych globalnych. Cel kosztowy: **0 zł stałych opłat miesięcznych**; w CLOUD-2A porównamy Firebase/Firestore, Supabase i Cloudflare, **bez wyboru dostawcy i uruchomienia kosztów teraz**.
