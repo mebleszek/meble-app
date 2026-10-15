@@ -155,6 +155,18 @@ Bez osobnego planu i komendy „do dzieła” nie należy:
 - usuwać wsparcia dla starych danych,
 - wykonywać masowego rename/refactor obejmującego wiele domen.
 
+## 12. PR, CI i scalanie — zatwierdzona procedura (2026-10-15)
+
+Ta sekcja jest obowiązująca również **na początku nowych wątków**. W razie rozbieżności ze starszymi raportami lub planami o Draft PR decyduje aktualna procedura i rzeczywisty plik `.github/workflows/preflight-js.yml`.
+
+- **Nie twórz Draft PR jako domyślnego etapu.** Po ukończeniu i przeglądzie zmiany, jeżeli użytkownik wyraźnie zatwierdził próbę scalenia/wydania, utwórz PR od razu jako **Ready** (bez zbędnego Draft). Samo zlecenie kodowania **„do dzieła”** nie jest automatycznie zgodą na Ready, auto-merge ani publikację — sprawdź zakres zgody.
+- Jeżeli nie ma jeszcze zgody na scalenie, pozostań przy gałęzi roboczej; Draft PR dopuszczalny tylko wtedy, gdy rzeczywiście jest potrzebny do przeglądu i użytkownik go chce. Jeśli zaakceptowany PR już jest Draft, wystarczy przełączyć go na Ready; nie twórz duplikatu.
+- **Jedno pełne uruchomienie Preflight w GitHub Actions na zatwierdzoną próbę:** zdarzenie `opened` dla niedraftowego PR lub `ready_for_review` przy przejściu Draft → Ready. Utworzenie Draft, samo wypchnięcie commita (`synchronize`), merge do `main` ani zwykły push nie uruchamiają ponownego pełnego Preflightu. Testy lokalne Codexa są oddzielnym warunkiem jakości, nie zastępują CI.
+- Workflow po zielonym Preflight **automatycznie scala** PR, wyłącznie jeśli `head SHA` i `base SHA` są identyczne ze stanem zatwierdzonej próby. Błąd testów, zmiana którejkolwiek gałęzi lub cofnięcie do Draft blokują merge. Nie wykonuj drugiego, ręcznego merge „dla pewności” i nie omijaj zabezpieczeń.
+- Po merge workflow sprawdza GitHub Pages **dla dokładnego merge SHA** bez kolejnego pełnego Preflightu. Rozróżniaj: PR scalony, CI PASS i Pages PASS; nie deklaruj wdrożenia jako gotowego, jeśli Pages nie zostało potwierdzone.
+- Każda zmiana `head SHA`, ponowienie po FAIL oraz nowa próba wdrożenia wymagają nowej świadomej zgody użytkownika. Nie uruchamiaj ukrytego auto-merge z samego commita lub automatycznego ponowienia.
+- Każdy nowy wątek dotyczący Meble-App powinien przed proponowaniem Ready/merge sprawdzić aktualne `AGENTS.md`, `CURRENT_STATE.md`, dokumenty decyzji i faktyczny workflow. Starsze zasady „obowiązkowy Draft PR” nie są już aktualne. Pozostałe zasady ochrony danych, UI oraz planowania zmian pozostają w mocy.
+
 ---
 
 Najważniejsza zasada w skrócie: **najpierw diagnoza i uzgodnienie, potem „do dzieła”, następnie minimalna zmiana i pełny preflight.**
