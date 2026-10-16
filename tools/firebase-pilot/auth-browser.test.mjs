@@ -57,19 +57,20 @@ async function businessAbsent(r){assert.equal(r.requests.some(x=>/\/(?:boot\.js|
 async function geometry(page){const box=await page.locator('.auth-card').boundingBox();assert.ok(box.width>0);assert.ok(box.x>=0);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);const buttons=await page.locator('button:visible').all();for(const button of buttons){const b=await button.boundingBox();assert.ok(b.height>=48);}}
 test('Original supplied JPG, full proportions, stable loading and reachable controls at all target sizes',async()=>{
  const logoFile=path.join(root,'assets/branding/MebLeszek_logo_oryginal.jpg');
- assert.equal(createHash('sha256').update(fs.readFileSync(logoFile)).digest('hex'),'d2958e9cb5fd738352418d6d03bf6d4d086cb8a000fd97f92420db4590716836','original attachment, no regenerated logo');
+ const logoBytes=fs.readFileSync(logoFile);assert.equal(logoBytes.length,197205);
+ assert.equal(createHash('sha256').update(logoBytes).digest('hex'),'10140e7c8652a54168f2ffbee619a1693a4c104b78ce67aff48d1d51bba7f51a','original ZIP attachment, no regenerated logo');
  for(const [width,height,mobile]of [[320,640,true],[393,852,true],[768,1024,true],[1440,900,false],[393,360,true],[1440,480,false]]){
   const r=await context({viewport:{width,height},mobile});let release=()=>{};
   try{
    if(width===320){
     const pending=new Promise(resolve=>{release=resolve;});
-    await r.ctx.route('**/assets/branding/MebLeszek_logo_oryginal.jpg',async route=>{await pending;await route.continue();});
+    await r.ctx.route('**/assets/branding/MebLeszek_logo_oryginal.jpg*',async route=>{await pending;await route.continue();});
    }
    await r.page.goto(base+'/auth-test.html',{waitUntil:'domcontentloaded'});await state(r.page,'unauthenticated');
    const logo=r.page.locator('.auth-logo'),reserved=await logo.boundingBox();release();await logo.evaluate(img=>img.decode());
    assert.deepEqual(await logo.boundingBox(),reserved,'image loading must not shift layout');
    const image=await logo.evaluate(img=>({src:img.getAttribute('src'),width:img.naturalWidth,height:img.naturalHeight,fit:getComputedStyle(img).objectFit}));
-   assert.deepEqual(image,{src:'assets/branding/MebLeszek_logo_oryginal.jpg',width:1280,height:1280,fit:'contain'});
+   assert.deepEqual(image,{src:'assets/branding/MebLeszek_logo_oryginal.jpg?v=10140e7c',width:1536,height:1536,fit:'contain'});
    assert.ok(Math.abs(reserved.width-reserved.height)<1);assert.ok(reserved.x>=0);assert.ok(reserved.x+reserved.width<=width);
    assert.equal(await r.page.locator('.auth-brand-mark,.auth-eyebrow,.auth-intro,h1 span').count(),0);
    assert.equal(await r.page.locator('#auth-title').innerText(),'Logowanie MebLeszek');

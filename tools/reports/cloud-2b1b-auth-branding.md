@@ -4,9 +4,11 @@
 
 ## Oryginalny plik i wygląd
 
-Użyto dokładnie załącznika użytkownika `1-12299.jpg`, skopiowanego bajt w bajt do `assets/branding/MebLeszek_logo_oryginal.jpg`. Dostępny plik ma **1280 × 1280 px**, 71 610 bajtów, zamiast podanych w opisie 1536 × 1536. Nie przeskalowano ani nie zrekonstruowano zasobu; nie generowano innego logo, WebP, SVG lub znaku CSS.
+Użyto dokładnie pliku `MebLeszek_logo_oryginal.jpg` z dostarczonego przez użytkownika archiwum `MebLeszek_logo_oryginal_1536px.zip`, skopiowanego bajt w bajt do `assets/branding/MebLeszek_logo_oryginal.jpg`. Zweryfikowano **1536 × 1536 px** i **197 205 bajtów**. Nie kompresowano, nie przeskalowano ani nie zrekonstruowano zasobu; nie generowano innego logo, WebP, SVG lub znaku CSS.
 
-SHA-256 załącznika i lokalnego JPG jest identyczny: `d2958e9cb5fd738352418d6d03bf6d4d086cb8a000fd97f92420db4590716836`.
+SHA-256 rozpakowanego oryginału i lokalnego JPG jest identyczny i zgodny z wartością użytkownika: `10140e7c8652a54168f2ffbee619a1693a4c104b78ce67aff48d1d51bba7f51a`.
+
+Korekta na tej samej gałęzi zastępuje wariant 1280 × 1280 / 71 610 bajtów, który otrzymano we wcześniejszych załącznikach obrazowych i wykorzystano w commicie `63a2196f`. Drugi załącznik obrazowy również zawierał ten sam mniejszy plik, więc wtedy nie wykonano podmiany. Dopiero ZIP dostarczył właściwe bajty. W HTML zaktualizowano width/height do 1536 i dodano wersję URL obrazu `?v=10140e7c`, aby nie używać poprzedniego JPG z cache. CSS i logika Auth pozostały bez zmian.
 
 `auth-test.html` pokazuje cały kwadratowy JPG przez lokalny `img`, z proporcjami 1:1 i `object-fit:contain`. Jawne width/height rezerwują miejsce przed pobraniem; `fetchpriority=high` daje priorytet centralnej grafice. Nie ma przycinania ani filtrów koloru logo. Bardzo ciemne tło i miękki cień wewnętrzny wyłącznie na zewnętrznym marginesie fotografii łagodzą jej granice, zachowując znak, litery, fakturę i kolory. Kontrolki zajmują pusty dolny obszar kwadratowego tła, poniżej całego znaku i hasła, bez usuwania pikseli pliku.
 
@@ -18,7 +20,9 @@ Wszystkie identyfikatory kontrolek i skrypty pozostają takie same. Nie zmienion
 
 ## Testy
 
-Nowa regresja w istniejącym `auth-browser.test.mjs` kontroluje oryginalny hash JPG, poprawny odczyt obrazu, naturalne wymiary, pełne proporcje, brak zastępczego logo i przesunięcia po opóźnionym pobraniu obrazu. Sprawdza **320 × 640, 393 × 852, 768 × 1024, 1440 × 900**, a także niskie **393 × 360 i 1440 × 480**. Weryfikuje brak poziomego przewijania, dostępność przycisku/statusu/noty po przewinięciu i fokus. Serwer testowy podaje JPG z właściwym MIME.
+Poniższe wyniki ponownie potwierdzono po podmianie na oryginał 1536 px z ZIP. Zrzut 393 px sprawdzono wizualnie: pełny znak i napisy są widoczne, a układ pozostał bez zmian.
+
+Regresja w istniejącym `auth-browser.test.mjs` kontroluje oryginalny hash i dokładny rozmiar JPG, poprawny odczyt obrazu, naturalne wymiary, pełne proporcje, brak zastępczego logo i przesunięcia po opóźnionym pobraniu obrazu. Sprawdza **320 × 640, 393 × 852, 768 × 1024, 1440 × 900**, a także niskie **393 × 360 i 1440 × 480**. Weryfikuje brak poziomego przewijania, dostępność przycisku/statusu/noty po przewinięciu i fokus. Serwer testowy podaje JPG z właściwym MIME.
 
 - `node tools/cloud-auth-smoke.js`: **13/13 PASS**.
 - `AUTH_POPUP_TEST=1 npm run test:browser`: **8/8 PASS**, zero FAIL/SKIP, po końcowej kontroli wyglądu. Obejmuje nową regresję logo i układu oraz dotychczasowy rzeczywisty browser SDK, popup emulatora, zamknięcie/blokadę popupu, odtworzenie UID/persistence po reload/nowej karcie, wylogowanie, błędy, brak dostępu biznesowego i niezmieniony start `index.html`.
