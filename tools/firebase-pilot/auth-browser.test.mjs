@@ -29,7 +29,7 @@ before(async()=>{
  browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||(fs.existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),headless:true,args:['--disable-dev-shm-usage']});
 });
 after(async()=>{await browser?.close();if(server)await new Promise(resolve=>server.close(resolve));});
-async function context({configured=true,viewport={width:393,height:852},mobile=true,blockPopup=false}={}){
+async function context({configured=true,viewport={width:393,height:852},mobile=true,blockPopup=false,allowHelper=process.env.AUTH_POPUP_TEST==='1'}={}){
  const ctx=await browser.newContext({viewport,isMobile:mobile,hasTouch:mobile});const requests=[],external=[];
  await ctx.route('**/*',async route=>{
   const url=new URL(route.request().url());requests.push(url.href);
@@ -37,13 +37,13 @@ async function context({configured=true,viewport={width:393,height:852},mobile=t
    const name=path.basename(url.pathname);if(!hashes[name]){external.push(url.href);await route.abort();return;}
    await route.fulfill({contentType:'text/javascript',body:fs.readFileSync(path.join(cache,name))});return;
   }
-  if(process.env.AUTH_POPUP_TEST==='1'&&url.hostname==='apis.google.com'&&(url.pathname==='/js/api.js'||url.pathname.startsWith('/_/scs/'))&&route.request().method()==='GET'){
+  if(allowHelper&&url.hostname==='apis.google.com'&&(url.pathname==='/js/api.js'||url.pathname.startsWith('/_/scs/'))&&route.request().method()==='GET'){
    try{const body=execFileSync('curl',['--fail','--silent','--show-error','--location','--max-time','25',url.href]);await route.fulfill({contentType:'text/javascript',body});}catch(_){external.push(url.href);await route.abort();}return;
   }
   // Optional emulator widget styling is not part of the app or Auth proof.
   if(['fonts.googleapis.com','fonts.gstatic.com'].includes(url.hostname)||(url.hostname==='unpkg.com'&&url.pathname.startsWith('/material-components-web@10/'))){await route.abort();return;}
   if(!['localhost','127.0.0.1'].includes(url.hostname)){external.push(url.href);await route.abort();return;}
-  if(url.pathname==='/js/auth-test-config.js')await route.fulfill({contentType:'text/javascript',body:'window.FC_AUTH_TEST_OPTIONS='+JSON.stringify(configured?options:null)});
+  if(url.pathname==='/js/auth-test-config.js'&&configured!=='live')await route.fulfill({contentType:'text/javascript',body:'window.FC_AUTH_TEST_OPTIONS='+JSON.stringify(configured?options:null)});
   else await route.continue();
  });
  await ctx.addInitScript(({blockPopup})=>{
@@ -55,6 +55,20 @@ async function context({configured=true,viewport={width:393,height:852},mobile=t
 async function state(page,wanted){await page.waitForFunction(value=>document.body.dataset.authState===value,wanted,{timeout:15000});}
 async function businessAbsent(r){assert.equal(r.requests.some(x=>/\/(?:boot\.js|app\.js|project-store\.js|catalog-store\.js|firebase-firestore\.js)(?:\?|$)/.test(x)),false);assert.deepEqual(r.external,[]);assert.equal(await r.page.evaluate(()=>window.projectData!==undefined),false);}
 async function geometry(page){const box=await page.locator('.auth-card').boundingBox();assert.ok(box.width>0);assert.ok(box.x>=0);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);const buttons=await page.locator('button:visible').all();for(const button of buttons){const b=await button.boundingBox();assert.ok(b.height>=48);}}
+test('Committed live config initializes real Auth SDK without login, live API requests or Firestore',async()=>{
+ const r=await context({configured:'live'});try{
+  await r.page.goto(base+'/auth-test.html');await state(r.page,'unauthenticated');
+  assert.equal(await r.page.locator('#auth-google').isEnabled(),true);
+  const info=await r.page.evaluate(async()=>{
+   const {getApp}=await import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js');
+   const {getAuth}=await import('https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js');
+   const app=getApp('meble-auth-test'),auth=getAuth(app);
+   return {target:window.FC_AUTH_TEST_OPTIONS.target,projectId:app.options.projectId,appId:app.options.appId,uid:auth.currentUser?.uid??null,emulator:auth.emulatorConfig};
+  });
+  assert.deepEqual(info,{target:'live-auth',projectId:'mebleszek-meble-app',appId:'1:447820686604:web:6bc0817aa365b1b613d529',uid:null,emulator:null});
+  await r.page.reload();await state(r.page,'unauthenticated');await businessAbsent(r);
+ }finally{await r.ctx.close();}
+});
 test('Missing config loads no SDK/data; phone, tablet and desktop layouts fit and support keyboard focus',async()=>{
  for(const [width,height,mobile]of [[320,640,true],[768,1024,true],[1440,900,false]]){
   const r=await context({configured:false,viewport:{width,height},mobile});try{
@@ -108,7 +122,7 @@ test('Real browser SDK persistence: synthetic Google credential, reload, new tab
  }finally{await r.ctx.close();}
 });
 test('Unavailable Google helper is a safe retryable error, not an opened business UI',async()=>{
- const r=await context();try{
+ const r=await context({allowHelper:false});try{
   await r.page.goto(base+'/auth-test.html');await state(r.page,'unauthenticated');
   await r.page.locator('#auth-google').tap();await state(r.page,'error');assert.match(await r.page.locator('#auth-error').innerText(),/auth\/internal-error/);assert.equal(await r.page.locator('#auth-google').isEnabled(),true);
   assert.ok(r.external.every(x=>x.startsWith('https://apis.google.com/')));r.external.length=0;await businessAbsent(r);
