@@ -1,0 +1,18 @@
+// CLOUD-2B.2 candidate for a separately approved Auth-only deployment.
+// Never deploy the data-pilot Rules merely to test app authorization.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function appApproved(uid) {
+      return request.auth != null && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && get(/databases/$(database)/documents/authorizedUsers/$(uid)).data.appEnabled == true;
+    }
+    match /authorizedUsers/{uid} { allow read, write: if false; }
+    match /appAccess/{uid} {
+      allow get: if appApproved(uid);
+      allow list, create, update, delete: if false;
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

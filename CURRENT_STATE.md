@@ -61,6 +61,10 @@ CLOUD-2B jest już scalony w PR #52 (main `96f43f04`); emulatorowy adapter nie j
 
 **Uzupełnienie CLOUD-2B.1a, gałąź `cloud-2b1a-live-auth-config`, baza main `bf81b14c` po PR #53:** powyższy opis pustej konfiguracji i blokady sieci dotyczy poprzedniego etapu. Na tej gałęzi wyłącznie `auth-test.html` otrzymuje publiczny config użytkownika z `target:'live-auth'`. Strona inicjuje prawdziwe Firebase Auth; nie inicjuje Firestore i nie przyznaje dostępu biznesowego. `index.html` pozostaje bez zmian. Nie wykonano scalenia ani publikacji tej konfiguracji. [Instrukcja Androida, aktualne wyniki i wyłączenie testu](tools/reports/cloud-2b1a-live-auth-config.md).
 
+## CLOUD-2B.2 — serwerowe zatwierdzenie UID, nadal bez obowiązkowej bramki
+
+Gałąź `cloud-2b2-single-user-access`, baza main `9d87b393` po PR #55: wcześniejsze config live i oryginalne logo są już scalone. Ta gałąź podłącza do strony testowej tylko własny dokument kontrolny Firestore, chroniony administracyjnym `appEnabled` w `/authorizedUsers/{uid}` i Google UID. Lista/granty pozostają nieczytelne i niezmienialne dla klienta. Proof wymaga świeżego odczytu transakcyjnego bez zapisów, wygasa po 45 s i jest sprawdzany co 30 s. Powstał osobny, emulatorowo testowany profil Auth-only Rules; **nie wdrożono go ani nie utworzono rzeczywistych grantów**. Produkcyjne Rules nadal deny-all. `index.html`, lokalne dane i Zapisz/Anuluj bez zmian; zatwierdzenie na stronie testowej nie ładuje biznesu. [Model, testy, UID/bootstrap i blokery właściwego loadera](tools/reports/cloud-2b2-single-user-access.md).
+
 ## 5. WYCENA — obecny kierunek
 
 Centralnym kontraktem jest `QUOTE_CALCULATION_REGISTER.md`.

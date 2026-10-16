@@ -17,7 +17,7 @@ const root=new URL('../../',import.meta.url),sdk={app,auth,firestore};
 let env,serial=0,clients=[];
 const ref=(db,suffix='')=>firestore.doc(db,'users/'+UID+'/pilotProjects/A'+suffix);
 const raw=(uid=UID,google=true)=>env.authenticatedContext(uid,{firebase:{sign_in_provider:google?'google.com':'anonymous'}}).firestore();
-async function bootstrap(uid=UID){await env.withSecurityRulesDisabled(async ctx=>firestore.setDoc(firestore.doc(ctx.firestore(),'authorizedUsers',uid),{enabled:true,pilotProjectId:'A',pilotInvestorId:'inv-A'}));}
+async function bootstrap(uid=UID){await env.withSecurityRulesDisabled(async ctx=>firestore.setDoc(firestore.doc(ctx.firestore(),'authorizedUsers',uid),{appEnabled:true,enabled:true,pilotProjectId:'A',pilotInvestorId:'inv-A'}));}
 function runtime(seed){
  const r=fixture(seed);
  // The browser and SDK share one realm. Keep new modules in the SDK realm,

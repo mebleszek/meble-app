@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "firebase emulators:exec --config firebase.json --project demo-meble-app --only auth,firestore --non-interactive \"node --test --test-concurrency=1 pilot.test.mjs auth.test.mjs\"",
+    "test": "firebase emulators:exec --config firebase.json --project demo-meble-app --only auth,firestore --non-interactive \"node --test --test-concurrency=1 pilot.test.mjs auth.test.mjs access.test.mjs\"",
     "test:browser": "firebase emulators:exec --config firebase.json --project demo-meble-app --only auth,firestore --non-interactive \"node --test auth-browser.test.mjs\""
   },
   "devDependencies": {

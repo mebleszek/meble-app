@@ -4,7 +4,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const tests=[],test=(name,fn)=>tests.push([name,fn]);
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 const config={target:'live-auth',firebaseConfig:{apiKey:'synthetic-public',authDomain:'mebleszek-meble-app.firebaseapp.com',projectId:'mebleszek-meble-app',appId:'synthetic-app'}};
-function runtime(){const s={FC:{}};for(const name of ['firebase-pilot-transport','cloud-auth','auth-access-gate'])new Function('window',fs.readFileSync(path.join(__dirname,'../js/app/cloud',name+'.js'),'utf8'))(s);return s;}
+function runtime(){const s={FC:{}};for(const name of ['firebase-pilot-transport','cloud-auth','auth-access-gate','cloud-access-verifier'])new Function('window',fs.readFileSync(path.join(__dirname,'../js/app/cloud',name+'.js'),'utf8'))(s);return s;}
 function fakeSdk(){
  let listener,current=null,popup,stored=null,sets=0,inits=0,providerCalls=0;
  const sdk={app:{initializeApp(){inits++;return {};},deleteApp:async()=>{}},auth:{
@@ -85,6 +85,42 @@ test('Only verified exact UID obtains a revocable lease; logout blocks immediate
 test('Changing account while the authorization promise waits cannot activate stale identity',async()=>{
  const {s,fake,auth}=await instance();const decisions=[],opened=[];const gate=s.FC.authAccessGate.create(auth,{verifyAccess:({uid})=>new Promise(resolve=>decisions.push(()=>resolve({ok:true,uid}))),onAuthorized:lease=>opened.push(lease.uid)});
  fake.emit('synthetic-A');fake.emit('synthetic-B');decisions[0]();await tick();assert.deepEqual(opened,[]);decisions[1]();await tick();assert.deepEqual(opened,['synthetic-B']);gate.close();await auth.close();
+});
+test('Server-watch revocation invalidates and never resurrects the old lease',async()=>{
+ const {s,fake,auth}=await instance();let invalidate,lease,stops=0;
+ const gate=s.FC.authAccessGate.create(auth,{verifyAccess:async({uid})=>({ok:true,uid,validUntil:Date.now()+45000}),watchAccess:(_,fn)=>{invalidate=fn;return ()=>stops++;},onAuthorized:value=>{lease=value;}});
+ fake.emit('synthetic-approved');await tick();assert.equal(lease.isValid(),true);
+ invalidate({ok:false,denied:true});assert.equal(gate.state().status,'revoked');assert.equal(lease.isValid(),false);assert.equal(stops,1);
+ invalidate({ok:true,uid:'synthetic-approved',validUntil:Date.now()+45000});assert.equal(lease.isValid(),false);
+ gate.close();await auth.close();
+});
+test('A bounded proof expires even when no new Auth event occurs',async()=>{
+ const {s,fake,auth}=await instance();let lease;
+ const gate=s.FC.authAccessGate.create(auth,{verifyAccess:async({uid})=>({ok:true,uid,validUntil:Date.now()+50}),onAuthorized:value=>{lease=value;}});
+ fake.emit('synthetic-expiry');await tick();assert.equal(lease.isValid(),true);
+ await new Promise(resolve=>setTimeout(resolve,80));assert.equal(lease.isValid(),false);assert.equal(gate.state().code,'AUTH_ACCESS_EXPIRED');gate.close();await auth.close();
+});
+test('Broken access watcher cannot open a business loader or leave a valid lease',async()=>{
+ const {s,fake,auth}=await instance();let opened=0;
+ const gate=s.FC.authAccessGate.create(auth,{verifyAccess:async({uid})=>({ok:true,uid}),watchAccess:()=>undefined,onAuthorized:()=>opened++});
+ fake.emit('synthetic-broken-watch');await tick();assert.equal(gate.state().status,'error');assert.equal(opened,0);gate.close();await auth.close();
+});
+test('Cache, pending writes, wrong document and unknown probe fields cannot produce server proof',async()=>{
+ for(const variant of ['cache','pending','wrong-uid','extra']){
+  const {s,fake,auth}=await instance();fake.emit('synthetic-probe');
+  auth.verificationContext=()=>({app:{options:{projectId:'mebleszek-meble-app'}},auth:{currentUser:{uid:'synthetic-probe'}},target:'live-auth'});
+  const verifier=s.FC.cloudAccessVerifier.create(auth,{sdk:{initializeFirestore:()=>({}),memoryLocalCache:()=>({}),doc:(_,collection,uid)=>{assert.equal(collection,'appAccess');assert.equal(uid,'synthetic-probe');return {};},getDocFromServer:async()=>({metadata:{fromCache:variant==='cache',hasPendingWrites:variant==='pending'},exists:()=>true,id:variant==='wrong-uid'?'foreign':'synthetic-probe',data:()=>variant==='extra'?{schemaVersion:1,secret:'synthetic'}:{schemaVersion:1}}),terminate:async()=>{}}});
+  await assert.rejects(verifier.verify(auth.identity()));await verifier.close();await auth.close();
+ }
+});
+test('A previously server-marked snapshot cannot replace a new transactional Rules decision',async()=>{
+ const {s,fake,auth}=await instance();fake.emit('synthetic-fresh-rpc');let revoked=false,transactions=0;
+ auth.verificationContext=()=>({app:{options:{projectId:'mebleszek-meble-app'}},auth:{currentUser:{uid:'synthetic-fresh-rpc'}},target:'live-auth'});
+ const snapshot={metadata:{fromCache:false,hasPendingWrites:false},exists:()=>true,id:'synthetic-fresh-rpc',data:()=>({schemaVersion:1})};
+ const verifier=s.FC.cloudAccessVerifier.create(auth,{sdk:{initializeFirestore:()=>({}),memoryLocalCache:()=>({}),doc:()=>({}),
+  getDocFromServer:async()=>snapshot,runTransaction:async(_,fn)=>{transactions++;if(revoked)throw {code:'permission-denied'};return fn({get:async()=>snapshot});},terminate:async()=>{}}});
+ assert.equal((await verifier.verify(auth.identity())).ok,true);revoked=true;
+ assert.equal((await verifier.verify(auth.identity())).ok,false);assert.equal(transactions,2);await verifier.close();await auth.close();
 });
 async function main(){for(const [name,fn]of tests){await fn();console.log('PASS '+name);}console.log('Auth opt-in and prepared gate: '+tests.length+'/'+tests.length+' PASS');}
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});
