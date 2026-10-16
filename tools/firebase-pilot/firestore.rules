@@ -5,9 +5,13 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/authorizedUsers/$(uid)).data;
     }
     function approved(uid, projectId) {
+      return appApproved(uid)
+        && grant(uid).enabled == true && grant(uid).pilotProjectId == projectId;
+    }
+    function appApproved(uid) {
       return request.auth != null && request.auth.uid == uid
         && request.auth.token.firebase.sign_in_provider == 'google.com'
-        && grant(uid).enabled == true && grant(uid).pilotProjectId == projectId;
+        && grant(uid).appEnabled == true;
     }
     function hash(value) { return value is string && value.matches('^[a-f0-9]{64}$'); }
     function revisionId(value) { return value is string && value.matches('^[a-f0-9]{32}$'); }
@@ -80,6 +84,11 @@ service cloud.firestore {
         && rev.baseFileSha256 == old.fileSha256 && rev.baseDocumentSha256 == old.documentSha256 && rev.basePayloadSha256 == old.payloadSha256;
     }
     match /authorizedUsers/{uid} { allow read, write: if false; }
+    // Admin-created probe contains no catalog, project, email or UID list.
+    match /appAccess/{uid} {
+      allow get: if appApproved(uid);
+      allow list, create, update, delete: if false;
+    }
     match /users/{uid}/pilotProjects/{projectId} {
       allow get: if approved(uid,projectId);
       allow create: if approved(uid,projectId) && publishable(request.resource.data,uid,projectId)

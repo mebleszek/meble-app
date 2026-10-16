@@ -9,11 +9,13 @@ import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {chromium} from 'playwright-core';
+import {initializeTestEnvironment} from '@firebase/rules-unit-testing';
+import {doc,setDoc,updateDoc} from 'firebase/firestore';
 if(process.env.FIREBASE_AUTH_EMULATOR_HOST!=='127.0.0.1:19099'||process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:18080')throw Error('Demo loopback emulators required');
 const root=path.resolve(fileURLToPath(new URL('../../',import.meta.url))),cache=path.join(os.tmpdir(),'meble-firebase-browser-sdk-12.19.0');
-const hashes={'firebase-app.js':'39a50952b5def557337b2290069c7d7371f3515ad46c44a43b9c520f734d8d14','firebase-auth.js':'59f60ce3adcb4c85a5260e963fd14134eec088de5b18ddfb9e95771c72f65264'};
-const options={target:'emulator',firebaseConfig:{apiKey:'demo-emulator-only',projectId:'demo-meble-app',appId:'demo-only',authDomain:'demo-meble-app.firebaseapp.com'},emulator:{host:'127.0.0.1',port:19099}};
-let browser,server,base;
+const hashes={'firebase-app.js':'39a50952b5def557337b2290069c7d7371f3515ad46c44a43b9c520f734d8d14','firebase-auth.js':'59f60ce3adcb4c85a5260e963fd14134eec088de5b18ddfb9e95771c72f65264','firebase-firestore.js':'86cfce95e3b598a2c0188a06b98fa1adc0cdb378bfc0a5ea207dd7627f7e7460'};
+const options={target:'emulator',firebaseConfig:{apiKey:'demo-emulator-only',projectId:'demo-meble-app',appId:'demo-only',authDomain:'demo-meble-app.firebaseapp.com'},emulator:{host:'127.0.0.1',port:19099,firestorePort:18080}};
+let browser,server,base,env;
 before(async()=>{
  fs.mkdirSync(cache,{recursive:true});
  for(const [name,sha]of Object.entries(hashes)){
@@ -27,8 +29,9 @@ before(async()=>{
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));base='http://127.0.0.1:'+server.address().port;
  browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||(fs.existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),headless:true,args:['--disable-dev-shm-usage']});
+ env=await initializeTestEnvironment({projectId:'demo-meble-app',firestore:{host:'127.0.0.1',port:18080,rules:fs.readFileSync(new URL('./firestore.rules',import.meta.url),'utf8')}});
 });
-after(async()=>{await browser?.close();if(server)await new Promise(resolve=>server.close(resolve));});
+after(async()=>{await browser?.close();await env?.cleanup();if(server)await new Promise(resolve=>server.close(resolve));});
 async function context({configured=true,viewport={width:393,height:852},mobile=true,blockPopup=false,allowHelper=process.env.AUTH_POPUP_TEST==='1'}={}){
  const ctx=await browser.newContext({viewport,isMobile:mobile,hasTouch:mobile});const requests=[],external=[];
  await ctx.route('**/*',async route=>{
@@ -53,7 +56,7 @@ async function context({configured=true,viewport={width:393,height:852},mobile=t
  const page=await ctx.newPage();return {ctx,page,requests,external};
 }
 async function state(page,wanted){await page.waitForFunction(value=>document.body.dataset.authState===value,wanted,{timeout:15000});}
-async function businessAbsent(r){assert.equal(r.requests.some(x=>/\/(?:boot\.js|app\.js|project-store\.js|catalog-store\.js|firebase-firestore\.js)(?:\?|$)/.test(x)),false);assert.deepEqual(r.external,[]);assert.equal(await r.page.evaluate(()=>window.projectData!==undefined),false);}
+async function businessAbsent(r){assert.equal(r.requests.some(x=>/\/(?:boot\.js|app\.js|project-store\.js|catalog-store\.js)(?:\?|$)/.test(x)),false);assert.deepEqual(r.external,[]);assert.equal(await r.page.evaluate(()=>window.projectData!==undefined),false);}
 async function geometry(page){const box=await page.locator('.auth-card').boundingBox();assert.ok(box.width>0);assert.ok(box.x>=0);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);const buttons=await page.locator('button:visible').all();for(const button of buttons){const b=await button.boundingBox();assert.ok(b.height>=48);}}
 test('Original supplied JPG, full proportions, stable loading and reachable controls at all target sizes',async()=>{
  const logoFile=path.join(root,'assets/branding/MebLeszek_logo_oryginal.jpg');
@@ -96,6 +99,7 @@ test('Committed live config initializes real Auth SDK without login, live API re
   });
   assert.deepEqual(info,{target:'live-auth',projectId:'mebleszek-meble-app',appId:'1:447820686604:web:6bc0817aa365b1b613d529',uid:null,emulator:null});
   await r.page.reload();await state(r.page,'unauthenticated');await businessAbsent(r);
+  assert.equal(r.requests.some(x=>x.includes('firebase-firestore.js')),false,'no Firestore even with live config before login');
  }finally{await r.ctx.close();}
 });
 test('Missing config loads no SDK/data; phone, tablet and desktop layouts fit and support keyboard focus',async()=>{
@@ -161,4 +165,29 @@ test('Normal main entry still boots without importing Auth or Firebase SDK',asyn
  const ctx=await browser.newContext(),page=await ctx.newPage(),requests=[];
  await ctx.route('**/*',async route=>{const url=new URL(route.request().url());requests.push(url.href);if(!['localhost','127.0.0.1'].includes(url.hostname)){await route.abort();return;}await route.continue();});
  try{await page.goto(base+'/index.html');await page.locator('#homeView h2').waitFor({state:'visible'});assert.equal(await page.evaluate(()=>typeof window.FC.cloudAuth),'undefined');assert.equal(requests.some(x=>/firebasejs|googleapis|cloud-auth\.js|auth-test/.test(x)),false);assert.equal(await page.locator('#homeView h2').innerText(),'Start');}finally{await ctx.close();}
+});
+test('Actual test page authorizes only admin-approved UID, revokes access, keeps branding and local data',async()=>{
+ const r=await context();try{
+  await r.page.goto(base+'/auth-test.html');await state(r.page,'unauthenticated');
+  const before=await r.page.evaluate(()=>Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('fc_'))));
+  const uid=await r.page.evaluate(async()=>{
+   const {getApp}=await import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js');
+   const {getAuth,GoogleAuthProvider,signInWithCredential}=await import('https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js');
+   const payload=btoa(JSON.stringify({sub:'browser-approved-owner',email:'browser-approved@example.invalid',email_verified:true})).replaceAll('=','');
+   return (await signInWithCredential(getAuth(getApp('meble-auth-test')),GoogleAuthProvider.credential('e30.'+payload+'.'))).user.uid;
+  });
+  await state(r.page,'unapproved');assert.match(await r.page.locator('#auth-status').innerText(),/nie został zatwierdzony/);
+  await env.withSecurityRulesDisabled(async ctx=>{
+   await setDoc(doc(ctx.firestore(),'authorizedUsers',uid),{appEnabled:true,enabled:false});
+   await setDoc(doc(ctx.firestore(),'appAccess',uid),{schemaVersion:1});
+  });
+  await r.page.reload();await state(r.page,'authorized');assert.match(await r.page.locator('#auth-status').innerText(),/Konto zatwierdzone/);
+  await r.page.locator('#auth-uid-toggle').click();assert.equal(await r.page.locator('#auth-uid').innerText(),uid);
+  assert.equal(await r.page.locator('.auth-logo').evaluate(img=>img.naturalWidth),1536);await geometry(r.page);await businessAbsent(r);
+  await env.withSecurityRulesDisabled(ctx=>updateDoc(doc(ctx.firestore(),'authorizedUsers',uid),{appEnabled:false}));
+  await r.page.waitForFunction(()=>document.body.dataset.authState==='revoked',null,{timeout:40000});
+  assert.match(await r.page.locator('#auth-status').innerText(),/Uprawnienia zostały cofnięte/);
+  assert.deepEqual(await r.page.evaluate(()=>Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('fc_')))),before);
+  await r.page.locator('#auth-signout').click();await state(r.page,'unauthenticated');await businessAbsent(r);
+ }finally{await r.ctx.close();}
 });

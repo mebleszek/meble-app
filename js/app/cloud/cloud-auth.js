@@ -63,6 +63,8 @@
       state:()=>state,
       subscribe(fn){listeners.add(fn);fn(state);return ()=>listeners.delete(fn);},
       identity:()=>observer.identity(),
+      // Internal verifier uses this exact Auth/app instance, never a second login.
+      verificationContext(){observer.identity();return {app,auth,target:options.target,emulator:options.emulator?{...options.emulator}:null};},
       signInGoogle(){
         if(closed||busy)return Promise.resolve({ok:false,code:'AUTH_SESSION_UNCONFIRMED'});
         busy=true;emit({status:'checking',uid:null,epoch:null});
