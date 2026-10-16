@@ -2,6 +2,8 @@
 
 Stan źródeł: **2026-10-15**, `main` **f3b6905e** po PR #46. Etap wyłącznie analityczny/dokumentacyjny. Żadnych odczytów browser storage użytkownika, eksportów jego danych, migracji ani zmian runtime. Rejestr zastępuje starsze ogólne listy magazynów jako mapa **obecnego kodu**, nie zastępuje `PROJECT_DECISIONS.md` ani historii raportów.
 
+> **CLOUD-2B.1 — dodatek dotyczący tylko testu Auth:** `auth-test.html` korzysta z własnego persistence Firebase SDK (preferowany IndexedDB `firebaseLocalStorageDb`, fallback SDK browser-local). To sesja uwierzytelniania z danymi wrażliwymi/tokenami zarządzanymi wyłącznie przez SDK, nie projekt ani nowy autorytet danych biznesowych. Nie kopiować jej do eksportera/backupów, raportów lub repo. Normalny `index.html` nie inicjuje Auth. Nie zmieniono 46 nazw i 3 rodzin magazynów aplikacji z audytu; SDK-owned storage jest oddzielne od `fc_*`. [Zakres i blokery CLOUD-2B.1](tools/reports/cloud-2b1-google-login.md).
+
 ## 1. Status decyzji i ograniczenie pilotażu
 
 **ZATWIERDZONE w bieżącym poleceniu:** jedno autorytatywne źródło projektu; pilot tylko **jeden testowy inwestor I + jeden fizyczny projekt P**, jego pokoje, szafki, zestawy i zapisane projektowe PCV. Globalne słoje, katalogi/cenniki, magazyn płyt, ustawienia firmy, historia i drafty ofert, kopie ratunkowe, sesje/cache i sekrety **nie wchodzą** do testowego eksportu.
