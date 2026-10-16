@@ -2,6 +2,7 @@
 (function(){
   'use strict';
   const FC=window.FC=window.FC||{};
+  const MAX_LEASE_MS=45000;
   function create(auth,{verifyAccess,watchAccess,onAuthorized=()=>{},onBlocked=()=>{},onState=()=>{}}={}){
     let generation=0,closed=false,state={status:'checking',uid:null},stopWatch=()=>{},expiry=null;
     function stop(){stopWatch();stopWatch=()=>{};clearTimeout(expiry);expiry=null;}
@@ -17,7 +18,7 @@
         if(closed||turn!==generation)return false;
         try{const now=auth.identity();return now.uid===identity.uid&&now.epoch===identity.epoch;}catch(_){return false;}
       }
-      let granted=false,validUntil=Infinity;
+      let granted=false,validUntil=0;
       const valid=()=>current()&&granted&&Date.now()<validUntil;
       const lease=Object.freeze({uid:identity.uid,isValid:valid,assert(){if(!valid())throw Error('AUTH_ACCESS_REVOKED');}});
       function revoke(code,status='error'){
@@ -25,10 +26,11 @@
       }
       function renew(result){
         if(result?.ok!==true||result.uid!==identity.uid)return false;
-        validUntil=result.validUntil===undefined?Infinity:result.validUntil;
-        if(!(validUntil===Infinity||(Number.isFinite(validUntil)&&validUntil>Date.now())))return false;
+        const now=Date.now(),deadline=result.validUntil;
+        if(!Number.isFinite(deadline)||deadline<=now||deadline>now+MAX_LEASE_MS)return false;
+        validUntil=deadline;
         clearTimeout(expiry);
-        if(Number.isFinite(validUntil))expiry=setTimeout(()=>revoke('AUTH_ACCESS_EXPIRED'),Math.max(0,validUntil-Date.now()));
+        expiry=setTimeout(()=>revoke('AUTH_ACCESS_EXPIRED'),Math.max(0,validUntil-Date.now()));
         return true;
       }
       emit({status:'authenticated',uid:identity.uid,code:'AUTH_ACCESS_PENDING'});

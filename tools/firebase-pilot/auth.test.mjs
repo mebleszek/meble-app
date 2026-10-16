@@ -23,7 +23,7 @@ test('Real Google UID drives the prepared gate; missing server approval remains 
  await r.controller.signOut();assert.equal(gate.state().status,'unauthenticated');assert.equal(business,0);gate.close();
 });
 test('Real account change revokes an already verified lease before a second server decision',async()=>{
- const r=await create();let lease;const gate=r.s.FC.authAccessGate.create(r.controller,{verifyAccess:async({uid})=>({ok:true,uid}),onAuthorized:value=>{lease=value;}});
+ const r=await create();let lease;const gate=r.s.FC.authAccessGate.create(r.controller,{verifyAccess:async({uid})=>({ok:true,uid,validUntil:Date.now()+45000}),onAuthorized:value=>{lease=value;}});
  await signIn(r.auth,'synthetic-auth-two');await new Promise(resolve=>setImmediate(resolve));const old=lease;assert.equal(old.isValid(),true);
  await r.controller.signOut();assert.equal(old.isValid(),false);await signIn(r.auth,'synthetic-auth-three');await new Promise(resolve=>setImmediate(resolve));assert.notEqual(lease.uid,old.uid);assert.equal(old.isValid(),false);gate.close();
 });

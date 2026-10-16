@@ -114,5 +114,17 @@ test('Auth-only Rules profile never opens pilot/business paths even if a grant a
    await assertFails(f.getDocFromServer(f.doc(db,path)));await assertFails(f.setDoc(f.doc(db,path),{synthetic:true}));
   }
   await assertFails(f.getDocs(f.collection(db,'appAccess')));await assertFails(f.setDoc(probe(db,uid),{schemaVersion:1}));
+  const other='synthetic-auth-only-unapproved';
+  await isolated.withSecurityRulesDisabled(async ctx=>{await f.setDoc(probe(ctx.firestore(),other),{schemaVersion:1});});
+  const unapproved=isolated.authenticatedContext(other,{firebase:{sign_in_provider:'google.com'}}).firestore();
+  await assertFails(f.getDocFromServer(probe(unapproved,other)));
+  await assertFails(f.getDocFromServer(probe(unapproved,uid)));
+  const anonymous=isolated.authenticatedContext(uid,{firebase:{sign_in_provider:'anonymous'}}).firestore();
+  await assertFails(f.getDocFromServer(probe(anonymous,uid)));
+  await assertFails(f.getDocFromServer(probe(isolated.unauthenticatedContext().firestore(),uid)));
+  await isolated.withSecurityRulesDisabled(async ctx=>{await f.updateDoc(grant(ctx.firestore(),uid),{appEnabled:false});});
+  // A fresh server transaction must re-evaluate the dependent grant, even if
+  // an SDK listen target still remembers the earlier successful get.
+  await assertFails(f.runTransaction(db,tx=>tx.get(probe(db,uid)),{maxAttempts:1}));
  }finally{await isolated.cleanup();}
 });

@@ -73,17 +73,52 @@ test('Google login without a server verifier never initializes business modules'
  const {s,fake,auth}=await instance();let business=0;const gate=s.FC.authAccessGate.create(auth,{onAuthorized:()=>business++});fake.emit('synthetic-A');await tick();assert.equal(gate.state().status,'unapproved');assert.equal(gate.state().code,'AUTH_AUTHORIZATION_NOT_CONFIGURED');assert.equal(business,0);gate.close();await auth.close();
 });
 test('Server refusal/foreign UID/error and unresolved verification all keep the business loader blocked',async()=>{
- for(const reply of [{ok:false},{ok:true,uid:'foreign'},null]){
+ for(const reply of [{ok:false},{ok:true,uid:'foreign',validUntil:Date.now()+45000},null]){
   const {s,fake,auth}=await instance();let business=0;const gate=s.FC.authAccessGate.create(auth,{verifyAccess:async()=>reply,onAuthorized:()=>business++});fake.emit('synthetic-A');await tick();assert.equal(gate.state().status,'unapproved');assert.equal(business,0);gate.close();await auth.close();
  }
  const {s,fake,auth}=await instance();let business=0;const gate=s.FC.authAccessGate.create(auth,{verifyAccess:async()=>{throw Error('network');},onAuthorized:()=>business++});fake.emit('synthetic-A');await tick();assert.equal(gate.state().status,'error');assert.equal(business,0);gate.close();await auth.close();
 });
+const invalidDeadlines=[
+ ['missing',()=>undefined],['infinite',()=>Infinity],['negative infinity',()=>-Infinity],['NaN',()=>NaN],
+ ['past',()=>Date.now()-1],['now',()=>Date.now()],['over 45 seconds',()=>Date.now()+60000],
+ ['string',()=>String(Date.now()+45000)],['null',()=>null]
+];
+for(const [name,deadline]of invalidDeadlines)test('Initial proof rejects '+name+' validUntil',async()=>{
+ const {s,fake,auth}=await instance();let opened=0,watched=0;
+ const gate=s.FC.authAccessGate.create(auth,{verifyAccess:async({uid})=>({ok:true,uid,...(name==='missing'?{}:{validUntil:deadline()})}),
+  watchAccess:()=>{watched++;return ()=>{};},onAuthorized:()=>opened++});
+ try{fake.emit('synthetic-deadline');await tick();assert.equal(gate.state().status,'unapproved');assert.equal(opened,0);assert.equal(watched,0);}
+ finally{gate.close();await auth.close();}
+});
+for(const [name,deadline]of invalidDeadlines)test('Renewal rejects '+name+' validUntil and permanently revokes the lease',async()=>{
+ const {s,fake,auth}=await instance();let lease,reply,stops=0,opened=0;
+ const gate=s.FC.authAccessGate.create(auth,{verifyAccess:async({uid})=>({ok:true,uid,validUntil:Date.now()+45000}),
+  watchAccess:(_,fn)=>{reply=fn;return ()=>stops++;},onAuthorized:value=>{lease=value;opened++;}});
+ try{
+  fake.emit('synthetic-deadline');await tick();assert.equal(lease.isValid(),true);
+  reply({ok:true,uid:'synthetic-deadline',...(name==='missing'?{}:{validUntil:deadline()})});
+  assert.equal(gate.state().status,'error');assert.equal(gate.state().code,'AUTH_ACCESS_UNCONFIRMED');
+  assert.equal(lease.isValid(),false);assert.throws(()=>lease.assert(),/AUTH_ACCESS_REVOKED/);assert.equal(stops,1);
+  reply({ok:true,uid:'synthetic-deadline',validUntil:Date.now()+45000});assert.equal(lease.isValid(),false);assert.equal(opened,1);
+ }finally{gate.close();await auth.close();}
+});
+test('The finite lease boundary accepts 45 seconds and rejects 45 seconds plus one millisecond',async()=>{
+ const originalNow=Date.now,now=originalNow();Date.now=()=>now;
+ try{
+  for(const duration of [45000,45001]){
+   const {s,fake,auth}=await instance();let lease,opened=0;
+   const gate=s.FC.authAccessGate.create(auth,{verifyAccess:async({uid})=>({ok:true,uid,validUntil:now+duration}),onAuthorized:value=>{lease=value;opened++;}});
+   try{fake.emit('synthetic-boundary');await tick();assert.equal(opened,duration===45000?1:0);assert.equal(gate.state().status,duration===45000?'authorized':'unapproved');if(lease)assert.equal(lease.isValid(),true);}
+   finally{gate.close();await auth.close();}
+  }
+ }finally{Date.now=originalNow;}
+});
 test('Only verified exact UID obtains a revocable lease; logout blocks immediately',async()=>{
- const {s,fake,auth}=await instance();let lease,started=0;const gate=s.FC.authAccessGate.create(auth,{verifyAccess:async({uid})=>({ok:true,uid}),onAuthorized:value=>{lease=value;started++;}});
+ const {s,fake,auth}=await instance();let lease,started=0;const gate=s.FC.authAccessGate.create(auth,{verifyAccess:async({uid})=>({ok:true,uid,validUntil:Date.now()+45000}),onAuthorized:value=>{lease=value;started++;}});
  fake.emit('synthetic-A');await tick();assert.equal(started,1);assert.equal(lease.isValid(),true);const out=auth.signOut();assert.equal(lease.isValid(),false);assert.throws(()=>lease.assert(),/AUTH_ACCESS_REVOKED/);await out;gate.close();await auth.close();
 });
 test('Changing account while the authorization promise waits cannot activate stale identity',async()=>{
- const {s,fake,auth}=await instance();const decisions=[],opened=[];const gate=s.FC.authAccessGate.create(auth,{verifyAccess:({uid})=>new Promise(resolve=>decisions.push(()=>resolve({ok:true,uid}))),onAuthorized:lease=>opened.push(lease.uid)});
+ const {s,fake,auth}=await instance();const decisions=[],opened=[];const gate=s.FC.authAccessGate.create(auth,{verifyAccess:({uid})=>new Promise(resolve=>decisions.push(()=>resolve({ok:true,uid,validUntil:Date.now()+45000}))),onAuthorized:lease=>opened.push(lease.uid)});
  fake.emit('synthetic-A');fake.emit('synthetic-B');decisions[0]();await tick();assert.deepEqual(opened,[]);decisions[1]();await tick();assert.deepEqual(opened,['synthetic-B']);gate.close();await auth.close();
 });
 test('Server-watch revocation invalidates and never resurrects the old lease',async()=>{
@@ -102,7 +137,7 @@ test('A bounded proof expires even when no new Auth event occurs',async()=>{
 });
 test('Broken access watcher cannot open a business loader or leave a valid lease',async()=>{
  const {s,fake,auth}=await instance();let opened=0;
- const gate=s.FC.authAccessGate.create(auth,{verifyAccess:async({uid})=>({ok:true,uid}),watchAccess:()=>undefined,onAuthorized:()=>opened++});
+ const gate=s.FC.authAccessGate.create(auth,{verifyAccess:async({uid})=>({ok:true,uid,validUntil:Date.now()+45000}),watchAccess:()=>undefined,onAuthorized:()=>opened++});
  fake.emit('synthetic-broken-watch');await tick();assert.equal(gate.state().status,'error');assert.equal(opened,0);gate.close();await auth.close();
 });
 test('Cache, pending writes, wrong document and unknown probe fields cannot produce server proof',async()=>{
