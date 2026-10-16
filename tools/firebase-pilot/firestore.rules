@@ -1,0 +1,105 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function grant(uid) {
+      return get(/databases/$(database)/documents/authorizedUsers/$(uid)).data;
+    }
+    function approved(uid, projectId) {
+      return request.auth != null && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && grant(uid).enabled == true && grant(uid).pilotProjectId == projectId;
+    }
+    function hash(value) { return value is string && value.matches('^[a-f0-9]{64}$'); }
+    function revisionId(value) { return value is string && value.matches('^[a-f0-9]{32}$'); }
+    function owned(data, uid, projectId) {
+      return data.ownerUid == uid && data.projectId == projectId
+        && data.investorId == grant(uid).pilotInvestorId && data.formatVersion == 1;
+    }
+    function bounded(data) {
+      return data.chunkCount is int && data.chunkCount >= 1 && data.chunkCount <= 7
+        && data.byteLength is int && data.byteLength > (data.chunkCount - 1) * 131072
+        && data.byteLength <= data.chunkCount * 131072 && data.byteLength <= 819200;
+    }
+    function hashAt(data, i) { return data.chunkCount <= i || hash(data.chunkSha256[i]); }
+    function validRevision(data, uid, projectId, revId) {
+      return data.keys().hasAll(['ownerUid','investorId','projectId','revisionId','formatVersion','generationCandidate','baseGeneration','baseRevisionId','baseFileSha256','baseDocumentSha256','basePayloadSha256','chunkCount','byteLength','chunkSha256','fileSha256','documentSha256','payloadSha256','createdAt'])
+        && data.keys().hasOnly(['ownerUid','investorId','projectId','revisionId','formatVersion','generationCandidate','baseGeneration','baseRevisionId','baseFileSha256','baseDocumentSha256','basePayloadSha256','chunkCount','byteLength','chunkSha256','fileSha256','documentSha256','payloadSha256','createdAt'])
+        && owned(data, uid, projectId) && revisionId(revId) && data.revisionId == revId
+        && data.baseGeneration is int && data.baseGeneration >= 0 && data.generationCandidate is int
+        && data.generationCandidate == data.baseGeneration + 1
+        && ((data.baseGeneration == 0 && data.baseRevisionId == '' && data.baseFileSha256 == '' && data.baseDocumentSha256 == '' && data.basePayloadSha256 == '')
+          || (data.baseGeneration > 0 && revisionId(data.baseRevisionId) && hash(data.baseFileSha256) && hash(data.baseDocumentSha256) && hash(data.basePayloadSha256)))
+        && bounded(data) && hash(data.fileSha256) && hash(data.documentSha256) && hash(data.payloadSha256)
+        && data.chunkSha256 is list && data.chunkSha256.size() == data.chunkCount
+        && hashAt(data,0) && hashAt(data,1) && hashAt(data,2) && hashAt(data,3) && hashAt(data,4) && hashAt(data,5) && hashAt(data,6)
+        && data.createdAt == request.time;
+    }
+    function chunkLength(rev, i) {
+      return i == rev.chunkCount - 1 ? rev.byteLength - i * 131072 : 131072;
+    }
+    function validChunk(data, rev, chunkId) {
+      return data.keys().hasAll(['index','byteLength','bytes','sha256'])
+        && data.keys().hasOnly(['index','byteLength','bytes','sha256'])
+        && data.index is int && data.index >= 0 && data.index < rev.chunkCount
+        && chunkId == string(data.index) && data.byteLength is int
+        && data.byteLength == chunkLength(rev,data.index)
+        && data.bytes is bytes && data.bytes.size() == data.byteLength
+        && data.sha256 == rev.chunkSha256[data.index];
+    }
+    function completeChunk(uid, projectId, revId, rev, i) {
+      let part = getAfter(/databases/$(database)/documents/users/$(uid)/pilotProjects/$(projectId)/revisions/$(revId)/chunks/$(string(i))).data;
+      return part.index == i && part.byteLength == chunkLength(rev,i) && part.sha256 == rev.chunkSha256[i];
+    }
+    function optionalChunk(uid, projectId, revId, rev, i) {
+      return rev.chunkCount <= i || completeChunk(uid,projectId,revId,rev,i);
+    }
+    function publishable(data, uid, projectId) {
+      let rev = getAfter(/databases/$(database)/documents/users/$(uid)/pilotProjects/$(projectId)/revisions/$(data.currentRevisionId)).data;
+      return data.keys().hasAll(['ownerUid','investorId','projectId','formatVersion','generation','currentRevisionId','fileSha256','documentSha256','payloadSha256','chunkCount','byteLength','updatedAt'])
+        && data.keys().hasOnly(['ownerUid','investorId','projectId','formatVersion','generation','currentRevisionId','fileSha256','documentSha256','payloadSha256','chunkCount','byteLength','updatedAt'])
+        && owned(data,uid,projectId) && data.generation is int && data.generation >= 1
+        && revisionId(data.currentRevisionId) && bounded(data)
+        && hash(data.fileSha256) && hash(data.documentSha256) && hash(data.payloadSha256) && data.updatedAt == request.time
+        && rev.ownerUid == uid && rev.projectId == projectId && rev.investorId == data.investorId
+        && rev.formatVersion == 1 && rev.generationCandidate == data.generation
+        && rev.fileSha256 == data.fileSha256 && rev.documentSha256 == data.documentSha256 && rev.payloadSha256 == data.payloadSha256
+        && rev.chunkCount == data.chunkCount && rev.byteLength == data.byteLength
+        && completeChunk(uid,projectId,data.currentRevisionId,rev,0)
+        && optionalChunk(uid,projectId,data.currentRevisionId,rev,1)
+        && optionalChunk(uid,projectId,data.currentRevisionId,rev,2)
+        && optionalChunk(uid,projectId,data.currentRevisionId,rev,3)
+        && optionalChunk(uid,projectId,data.currentRevisionId,rev,4)
+        && optionalChunk(uid,projectId,data.currentRevisionId,rev,5)
+        && optionalChunk(uid,projectId,data.currentRevisionId,rev,6);
+    }
+    function baseMatches(data, uid, projectId, old) {
+      let rev = getAfter(/databases/$(database)/documents/users/$(uid)/pilotProjects/$(projectId)/revisions/$(data.currentRevisionId)).data;
+      return data.generation == old.generation + 1 && data.ownerUid == old.ownerUid
+        && data.investorId == old.investorId && data.projectId == old.projectId
+        && rev.baseGeneration == old.generation && rev.baseRevisionId == old.currentRevisionId
+        && rev.baseFileSha256 == old.fileSha256 && rev.baseDocumentSha256 == old.documentSha256 && rev.basePayloadSha256 == old.payloadSha256;
+    }
+    match /authorizedUsers/{uid} { allow read, write: if false; }
+    match /users/{uid}/pilotProjects/{projectId} {
+      allow get: if approved(uid,projectId);
+      allow create: if approved(uid,projectId) && publishable(request.resource.data,uid,projectId)
+        && request.resource.data.generation == 1
+        && getAfter(/databases/$(database)/documents/users/$(uid)/pilotProjects/$(projectId)/revisions/$(request.resource.data.currentRevisionId)).data.baseGeneration == 0;
+      allow update: if approved(uid,projectId) && publishable(request.resource.data,uid,projectId)
+        && baseMatches(request.resource.data,uid,projectId,resource.data);
+      allow delete, list: if false;
+      match /revisions/{revId} {
+        allow get: if approved(uid,projectId);
+        allow create: if approved(uid,projectId) && validRevision(request.resource.data,uid,projectId,revId);
+        allow update, delete, list: if false;
+        match /chunks/{chunkId} {
+          allow get: if approved(uid,projectId);
+          allow create: if approved(uid,projectId)
+            && validChunk(request.resource.data,getAfter(/databases/$(database)/documents/users/$(uid)/pilotProjects/$(projectId)/revisions/$(revId)).data,chunkId);
+          allow update, delete, list: if false;
+        }
+      }
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

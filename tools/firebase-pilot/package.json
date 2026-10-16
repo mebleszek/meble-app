@@ -1,0 +1,15 @@
+{
+  "name": "meble-app-firebase-pilot-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Isolated Firebase emulators and Web SDK tests; no application bundler or live deployment.",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "firebase emulators:exec --config firebase.json --project demo-meble-app --only auth,firestore --non-interactive \"node --test pilot.test.mjs\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "5.0.0",
+    "firebase": "12.19.0",
+    "firebase-tools": "15.34.0"
+  }
+}
