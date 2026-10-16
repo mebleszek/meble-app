@@ -62,6 +62,10 @@ Bez oddzielnej zgody użytkownika nie aktywować płatnych planów, rozliczeń, 
 
 Gałąź CLOUD-2B (baza `5a63cda6`, 2026-10-16) przygotowuje jawny adapter Web SDK/Google UID i testy Auth/Firestore Emulator Suite, zachowując selektywny dokument CLOUD-1B. Niezmienne fragmenty/rewizje poprzedzają transakcyjny manifest oparty na dokładnym poprzednim head. Utrata potwierdzenia nie oznacza sukcesu ani zgody na ślepe ponowienie. Cały transport jest ograniczony do `demo-*` i loopback; **brak transportu live, publikacji Rules, logowania przy starcie i synchronizacji aplikacji**. Nie zmienia się lokalny autorytet, UI ani dane globalne. Historia CLOUD-2A pozostaje projektem wcześniejszego etapu. [Raport CLOUD-2B](tools/reports/cloud-2b-firebase-pilot.md) opisuje testy, luki Rules/SDK, koszty i osobne warunki dopuszczenia pierwszego rzeczywistego zapisu. Sam merge tej gałęzi nie jest zgodą na upload lub deployment.
 
+## CLOUD-2B.1 — Auth-only test, nie aktywna bramka produkcyjna
+
+Po scaleniu CLOUD-2B (#52) ta gałąź przygotowuje wyłączony domyślnie, oddzielny `auth-test.html`. SDK Auth/persistence i obserwator UID są współdzielone z adapterem; Firestore live pozostaje zablokowany. Nie ładuje się biznesu na stronie testowej; sam Google UID nie zatwierdza dostępu. Normalny start Meble-App bez zmian. Przyszła bramka musi poprzedzać pobranie wszystkich eager modułów biznesowych, mieć świeżą autoryzację serwerową opartą na administracyjnych grantach i Rules oraz bezpieczny model istniejących lokalnych danych na wspólnym urządzeniu. Nie przypisywać ich automatycznie kontu i nie usuwać przy logout. [Kontrakt, konfiguracja, ograniczenia testów i plan](tools/reports/cloud-2b1-google-login.md). Bez wdrożenia reguł, uploadu i synchronizacji.
+
 ## Propozycja późniejszego wpisu do PROJECT_DECISIONS.md
 
 **Aktualizacja CLOUD-1B w tej gałęzi:** propozycja poniżej zachowuje stan decyzji z zadania dokumentacyjnego #49. Przy przeniesieniu osobno należy zaktualizować status eksportera według raportu CLOUD-1B; chmura i synchronizacja nadal nie są wdrożone.

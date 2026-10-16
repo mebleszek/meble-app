@@ -89,6 +89,24 @@ jobs:
 
           exit "$status"
 
+      # Same approval event, before the existing auto-merge dependency succeeds.
+      # Emulator-only demo project; never login/deploy or read live Firebase.
+      - name: Use Java 21 for Firebase emulators
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Run Firebase SDK and Security Rules emulator regressions
+        shell: bash
+        env:
+          CI: '1'
+        run: |
+          set -euo pipefail
+          cd "$PREFLIGHT_DIR/tools/firebase-pilot"
+          npm ci --no-audit
+          npm test
+
   auto-merge:
     if: ${{ github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
     needs: preflight

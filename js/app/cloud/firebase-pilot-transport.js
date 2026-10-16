@@ -3,10 +3,35 @@
   'use strict';
   const FC=window.FC=window.FC||{};
   const SDK_VERSION='12.19.0';
+  let authSdkPromise;
+  function loadAuthSdk(){
+    // Auth test page must not import or initialize Firestore.
+    if(!authSdkPromise){
+      const base='https://www.gstatic.com/firebasejs/'+SDK_VERSION+'/';
+      authSdkPromise=Promise.all([import(base+'firebase-app.js'),import(base+'firebase-auth.js')])
+        .then(([app,auth])=>({app,auth})).catch(error=>{authSdkPromise=null;throw error;});
+    }
+    return authSdkPromise;
+  }
   async function loadSdk(){
-    const base='https://www.gstatic.com/firebasejs/'+SDK_VERSION+'/';
-    const [app,auth,firestore]=await Promise.all([import(base+'firebase-app.js'),import(base+'firebase-auth.js'),import(base+'firebase-firestore.js')]);
-    return {app,auth,firestore};
+    const [sdk,firestore]=await Promise.all([loadAuthSdk(),import('https://www.gstatic.com/firebasejs/'+SDK_VERSION+'/firebase-firestore.js')]);
+    return {...sdk,firestore};
+  }
+  function observeIdentity(auth,a,onState=()=>{}){
+    let epoch=0,lastUid=null,closed=false,failed=false,unsubscribe;
+    const reject=code=>{const error=new Error(code);error.code=code;throw error;};
+    const ready=new Promise(resolve=>{
+      unsubscribe=a.onAuthStateChanged(auth,user=>{
+        const uid=user?.uid||null;if(uid!==lastUid){epoch++;lastUid=uid;}
+        onState({uid,epoch,failed:false});resolve();
+      },()=>{failed=true;epoch++;onState({uid:null,epoch,failed:true});resolve();});
+    });
+    return {ready:()=>ready,identity(){
+      if(closed||failed)reject('CLOUD_AUTH_UNCONFIRMED');
+      const user=auth.currentUser;if(!user)reject('CLOUD_AUTH_REQUIRED');
+      if(!user.providerData.some(p=>p.providerId==='google.com'))reject('CLOUD_GOOGLE_REQUIRED');
+      return {uid:user.uid,epoch};
+    },invalidate(){epoch++;},close(){closed=true;epoch++;unsubscribe?.();}};
   }
   async function create(options){
     const c=FC.cloudPilotContract,opts=options||{},em=opts.emulator;
@@ -20,14 +45,8 @@
     const auth=a.initializeAuth(app,{persistence:a.inMemoryPersistence,...(typeof a.browserPopupRedirectResolver==='function'?{popupRedirectResolver:a.browserPopupRedirectResolver}:{})});
     a.connectAuthEmulator(auth,'http://'+em.host+':'+em.authPort,{disableWarnings:true});
     const db=f.initializeFirestore(app,{localCache:f.memoryLocalCache()});f.connectFirestoreEmulator(db,em.host,em.firestorePort);
-    let epoch=0,lastUid=null,closed=false,authFailure=false,unsub;
-    const ready=new Promise(resolve=>{unsub=a.onAuthStateChanged(auth,user=>{const uid=user?.uid||null;if(uid!==lastUid){epoch++;lastUid=uid;}resolve();},()=>{authFailure=true;epoch++;resolve();});});
-    function identity(){
-      if(closed||authFailure)c.reject('CLOUD_AUTH_UNCONFIRMED');
-      const user=auth.currentUser;if(!user)c.reject('CLOUD_AUTH_REQUIRED');
-      if(!user.providerData.some(p=>p.providerId==='google.com'))c.reject('CLOUD_GOOGLE_REQUIRED');
-      return {uid:user.uid,epoch};
-    }
+    let closed=false;
+    const observer=observeIdentity(auth,a),identity=()=>observer.identity();
     function check(scope){const state=identity();if(state.uid!==scope.ownerUid)c.reject('CLOUD_AUTH_CHANGED');}
     function refs(packed){const d=packed.revision,base=f.doc(db,'users',d.ownerUid,'pilotProjects',d.projectId),rev=f.doc(base,'revisions',d.revisionId);return {base,rev,chunks:packed.chunks.map(chunk=>f.doc(rev,'chunks',String(chunk.index)))};}
     function scopeRef(scope){check(scope);return f.doc(db,'users',scope.ownerUid,'pilotProjects',scope.projectId);}
@@ -75,11 +94,11 @@
       },{maxAttempts:3});
       check(scope);
     }
-    const transport={ready:()=>ready,identity,readHead,stage,publish,
-      async signInGoogle(){await ready;if(closed)c.reject('CLOUD_AUTH_UNCONFIRMED');return a.signInWithPopup(auth,new a.GoogleAuthProvider());},
-      async signOut(){epoch++;await a.signOut(auth);},
-      async close(){closed=true;epoch++;unsub?.();await f.terminate(db);await sdk.app.deleteApp(app);}};
+    const transport={ready:()=>observer.ready(),identity,readHead,stage,publish,
+      async signInGoogle(){await observer.ready();if(closed)c.reject('CLOUD_AUTH_UNCONFIRMED');return a.signInWithPopup(auth,new a.GoogleAuthProvider());},
+      async signOut(){observer.invalidate();await a.signOut(auth);},
+      async close(){closed=true;observer.close();await f.terminate(db);await sdk.app.deleteApp(app);}};
     return {transport,app,auth,db}; // Internal handles also allow real SDK emulator tests.
   }
-  FC.firebasePilotTransport={SDK_VERSION,loadSdk,create};
+  FC.firebasePilotTransport={SDK_VERSION,loadAuthSdk,observeIdentity,loadSdk,create};
 })();

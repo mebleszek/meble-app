@@ -3,13 +3,20 @@
   "version": "1.0.0",
   "private": true,
   "description": "Isolated Firebase emulators and Web SDK tests; no application bundler or live deployment.",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "test": "firebase emulators:exec --config firebase.json --project demo-meble-app --only auth,firestore --non-interactive \"node --test pilot.test.mjs\""
+    "test": "firebase emulators:exec --config firebase.json --project demo-meble-app --only auth,firestore --non-interactive \"node --test --test-concurrency=1 pilot.test.mjs auth.test.mjs\"",
+    "test:browser": "firebase emulators:exec --config firebase.json --project demo-meble-app --only auth,firestore --non-interactive \"node --test auth-browser.test.mjs\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.0",
     "firebase": "12.19.0",
-    "firebase-tools": "15.34.0"
+    "firebase-tools": "15.34.0",
+    "playwright-core": "1.64.1"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "1.14.6"
   }
 }
