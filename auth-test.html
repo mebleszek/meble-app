@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="no-referrer">
 <title>MebLeszek — test logowania</title>
-<link rel="stylesheet" href="css/auth-test.css?v=20261016_auth1">
+<link rel="stylesheet" href="css/auth-test.css?v=20261016_auth1b">
 <script defer src="js/auth-test-config.js?v=20261016_auth1a"></script>
 <script defer src="js/app/cloud/firebase-pilot-transport.js?v=20261016_auth1"></script>
 <script defer src="js/app/cloud/cloud-auth.js?v=20261016_auth1"></script>
@@ -14,19 +14,21 @@
 </head>
 <body>
 <main class="auth-card" aria-labelledby="auth-title">
-<div class="auth-brand-mark" aria-hidden="true">ML</div>
-<p class="auth-eyebrow">MEBLE NA WYMIAR</p>
-<h1 id="auth-title">Meb<span>Leszek</span></h1>
-<p class="auth-intro">Twoja pracownia. W jednym miejscu.</p>
+<h1 id="auth-title" class="visually-hidden">Logowanie MebLeszek</h1>
+<div class="auth-logo-frame">
+<img class="auth-logo" src="assets/branding/MebLeszek_logo_oryginal.jpg" alt="MebLeszek — meble na wymiar" width="1280" height="1280" fetchpriority="high" decoding="async">
+</div>
+<div class="auth-controls">
+<button id="auth-google" class="auth-primary" type="button" disabled><span aria-hidden="true">G</span> Zaloguj przez Google</button>
 <p id="auth-status" role="status" aria-live="polite">Sprawdzanie sesji…</p>
 <p id="auth-error" role="alert" hidden></p>
-<button id="auth-google" class="auth-primary" type="button" disabled><span aria-hidden="true">G</span> Zaloguj przez Google</button>
 <div id="auth-account" hidden>
 <button id="auth-uid-toggle" class="auth-secondary" type="button" aria-expanded="false" aria-controls="auth-uid">Pokaż Firebase UID</button>
 <output id="auth-uid" hidden></output>
 <button id="auth-signout" class="auth-secondary" type="button">Wyloguj</button>
 </div>
 <p class="auth-test-note">Kontrolowany test logowania. Dane aplikacji nie są wczytywane.</p>
+</div>
 </main>
 </body>
 </html>
