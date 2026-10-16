@@ -59,6 +59,8 @@ PR #52 dodał nieaktywny, jawnie emulatorowy adapter Firebase Web SDK, UID/Googl
 
 CLOUD-2B jest już scalony w PR #52 (main `96f43f04`); emulatorowy adapter nie jest połączeniem z produkcyjną bazą. Ta gałąź dodaje odseparowany **`auth-test.html`** i Auth-only SDK, domyślnie bez konfiguracji. Normalny `index.html` i start biznesowy pozostają bez Auth. SDK odtwarza sesję, ale brak weryfikatora serwerowego oznacza stan zalogowany/niezatwierdzony i brak ładowania biznesu. Przygotowano revocable gate; nie aktywowano obowiązkowego logowania. Produkcyjne Rules nadal deny-all; bez uploadu/synchronizacji. [Raport, instrukcja konfiguracji, testy i blokery](tools/reports/cloud-2b1-google-login.md). Pełny popup blokuje obecnie sieć Codexa (`apis.google.com`, 403); nie jest to test PASS ani akceptacja Androida.
 
+**Uzupełnienie CLOUD-2B.1a, gałąź `cloud-2b1a-live-auth-config`, baza main `bf81b14c` po PR #53:** powyższy opis pustej konfiguracji i blokady sieci dotyczy poprzedniego etapu. Na tej gałęzi wyłącznie `auth-test.html` otrzymuje publiczny config użytkownika z `target:'live-auth'`. Strona inicjuje prawdziwe Firebase Auth; nie inicjuje Firestore i nie przyznaje dostępu biznesowego. `index.html` pozostaje bez zmian. Nie wykonano scalenia ani publikacji tej konfiguracji. [Instrukcja Androida, aktualne wyniki i wyłączenie testu](tools/reports/cloud-2b1a-live-auth-config.md).
+
 ## 5. WYCENA — obecny kierunek
 
 Centralnym kontraktem jest `QUOTE_CALCULATION_REGISTER.md`.

@@ -21,6 +21,24 @@ test('Auth module registration is inert and normal index/boot stay outside opt-i
  const s=runtime();assert.ok(s.FC.cloudAuth);const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');assert.equal(/auth-test|cloud-auth\.js|auth-access-gate\.js/.test(index),false);
  const page=fs.readFileSync(path.join(__dirname,'../auth-test.html'),'utf8');assert.equal(/src=["'][^"']*(?:boot\.js|app\.js|project-store|catalog-store|firebase-firestore)/.test(page),false);
 });
+test('Dedicated page public live-auth config matches the Console fields and loads only Auth SDK',async()=>{
+ const s=runtime(),fake=fakeSdk();let loads=0,business=0;
+ s.FC.firebasePilotTransport.loadAuthSdk=async()=>{loads++;return fake.sdk;};
+ s.FC.firebasePilotTransport.loadSdk=()=>{throw Error('Firestore must not load');};
+ new Function('window',fs.readFileSync(path.join(__dirname,'../js/auth-test-config.js'),'utf8'))(s);
+ assert.equal(loads,0,'config evaluation is inert');
+ assert.deepEqual(s.FC_AUTH_TEST_OPTIONS,{target:'live-auth',firebaseConfig:{
+  apiKey:'AIzaSyDv89lIX2ZLUJwwO1dMxvQuNU17zNMxqUQ',authDomain:'mebleszek-meble-app.firebaseapp.com',
+  projectId:'mebleszek-meble-app',appId:'1:447820686604:web:6bc0817aa365b1b613d529'
+ }});
+ assert.deepEqual(s.FC.cloudAuth.configOf(s.FC_AUTH_TEST_OPTIONS),s.FC_AUTH_TEST_OPTIONS.firebaseConfig);
+ const auth=await s.FC.cloudAuth.create(s.FC_AUTH_TEST_OPTIONS);assert.equal(loads,1);
+ const gate=s.FC.authAccessGate.create(auth,{onAuthorized:()=>business++});
+ fake.emit('synthetic-live-config');await tick();assert.equal(gate.state().status,'unapproved');assert.equal(business,0);
+ gate.close();await auth.close();
+ const page=fs.readFileSync(path.join(__dirname,'../auth-test.html'),'utf8');
+ assert.match(page,/auth-test-config\.js\?v=20261016_auth1a/);
+});
 test('Missing/invalid config refuses before any SDK initialization; real target is pinned',async()=>{
  const s=runtime(),fake=fakeSdk();await assert.rejects(s.FC.cloudAuth.create({sdk:fake.sdk}),e=>e.code==='AUTH_CONFIG_REQUIRED');
  for(const value of [{...config,firebaseConfig:{...config.firebaseConfig,projectId:'other'}},{...config,firebaseConfig:{...config.firebaseConfig,serviceAccount:{}}},{...config,target:'emulator',emulator:{host:'example.org',port:19099}}])await assert.rejects(s.FC.cloudAuth.create({...value,sdk:fake.sdk}),e=>e.code==='AUTH_CONFIG_INVALID');assert.equal(fake.counts.inits,0);
