@@ -23,7 +23,7 @@ before(async()=>{
  server=http.createServer((req,res)=>{
   const name=decodeURIComponent(new URL(req.url,'http://localhost').pathname),file=path.resolve(root,'.'+name);
   if(!file.startsWith(root+path.sep)||!/^\/(?:index\.html|auth-test\.html|js\/|css\/|assets\/)/.test(name)){res.writeHead(404);res.end();return;}
-  try{const type={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml'}[path.extname(file)]||'application/octet-stream';res.writeHead(200,{'content-type':type,'cache-control':'no-store'});res.end(fs.readFileSync(file));}catch(_){res.writeHead(404);res.end();}
+  try{const type={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.jpg':'image/jpeg'}[path.extname(file)]||'application/octet-stream';res.writeHead(200,{'content-type':type,'cache-control':'no-store'});res.end(fs.readFileSync(file));}catch(_){res.writeHead(404);res.end();}
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));base='http://127.0.0.1:'+server.address().port;
  browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||(fs.existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),headless:true,args:['--disable-dev-shm-usage']});
@@ -55,6 +55,35 @@ async function context({configured=true,viewport={width:393,height:852},mobile=t
 async function state(page,wanted){await page.waitForFunction(value=>document.body.dataset.authState===value,wanted,{timeout:15000});}
 async function businessAbsent(r){assert.equal(r.requests.some(x=>/\/(?:boot\.js|app\.js|project-store\.js|catalog-store\.js|firebase-firestore\.js)(?:\?|$)/.test(x)),false);assert.deepEqual(r.external,[]);assert.equal(await r.page.evaluate(()=>window.projectData!==undefined),false);}
 async function geometry(page){const box=await page.locator('.auth-card').boundingBox();assert.ok(box.width>0);assert.ok(box.x>=0);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);const buttons=await page.locator('button:visible').all();for(const button of buttons){const b=await button.boundingBox();assert.ok(b.height>=48);}}
+test('Original supplied JPG, full proportions, stable loading and reachable controls at all target sizes',async()=>{
+ const logoFile=path.join(root,'assets/branding/MebLeszek_logo_oryginal.jpg');
+ const logoBytes=fs.readFileSync(logoFile);assert.equal(logoBytes.length,197205);
+ assert.equal(createHash('sha256').update(logoBytes).digest('hex'),'10140e7c8652a54168f2ffbee619a1693a4c104b78ce67aff48d1d51bba7f51a','original ZIP attachment, no regenerated logo');
+ for(const [width,height,mobile]of [[320,640,true],[393,852,true],[768,1024,true],[1440,900,false],[393,360,true],[1440,480,false]]){
+  const r=await context({viewport:{width,height},mobile});let release=()=>{};
+  try{
+   if(width===320){
+    const pending=new Promise(resolve=>{release=resolve;});
+    await r.ctx.route('**/assets/branding/MebLeszek_logo_oryginal.jpg*',async route=>{await pending;await route.continue();});
+   }
+   await r.page.goto(base+'/auth-test.html',{waitUntil:'domcontentloaded'});await state(r.page,'unauthenticated');
+   const logo=r.page.locator('.auth-logo'),reserved=await logo.boundingBox();release();await logo.evaluate(img=>img.decode());
+   assert.deepEqual(await logo.boundingBox(),reserved,'image loading must not shift layout');
+   const image=await logo.evaluate(img=>({src:img.getAttribute('src'),width:img.naturalWidth,height:img.naturalHeight,fit:getComputedStyle(img).objectFit}));
+   assert.deepEqual(image,{src:'assets/branding/MebLeszek_logo_oryginal.jpg?v=10140e7c',width:1536,height:1536,fit:'contain'});
+   assert.ok(Math.abs(reserved.width-reserved.height)<1);assert.ok(reserved.x>=0);assert.ok(reserved.x+reserved.width<=width);
+   assert.equal(await r.page.locator('.auth-brand-mark,.auth-eyebrow,.auth-intro,h1 span').count(),0);
+   assert.equal(await r.page.locator('#auth-title').innerText(),'Logowanie MebLeszek');
+   await geometry(r.page);await businessAbsent(r);
+   for(const selector of ['#auth-google','#auth-status','.auth-test-note']){
+    const el=r.page.locator(selector);await el.scrollIntoViewIfNeeded();assert.equal(await el.isVisible(),true);
+    const b=await el.boundingBox();assert.ok(b.y>=0&&b.y+b.height<=height,'controls reachable on short screens');
+   }
+   if(height>560)await r.page.screenshot({path:'/tmp/cloud-2b1b-auth-'+width+'.png',fullPage:true});
+   await r.page.locator('#auth-google').focus();assert.equal(await r.page.locator('#auth-google').evaluate(el=>el===document.activeElement),true);
+  }finally{release();await r.ctx.close();}
+ }
+});
 test('Committed live config initializes real Auth SDK without login, live API requests or Firestore',async()=>{
  const r=await context({configured:'live'});try{
   await r.page.goto(base+'/auth-test.html');await state(r.page,'unauthenticated');
