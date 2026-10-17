@@ -1,5 +1,14 @@
 # CLOUD-1A — kanoniczny rejestr danych Meble-App
 
+## Uzupełnienie CLOUD-2B.3 — lokalny dowód dostępu (gałąź, niewdrożone)
+
+`meble_access_profile_v1` — lokalny dowód `{version:2, uid, attemptId}` w localStorage, zarządzany przez `js/app/cloud/local-access-profile.js` i główne wejście `js/main-login.js`. Rola: dostęp do profilu przeglądarki, **nie** własność rekordów, grant serwera, token lub drugi autorytet danych biznesowych. Zaufany tylko przy braku blokady opisanej poniżej i po świeżym proofie serwerowym. Pusty profil wiązany jest po proofie; istniejący wymaga osobnej zgody właściciela i oświadczenia o kopii. Historyczny format v1 jest niezaufany (nie odróżniał sukcesu od awarii) i wymaga ponownej zgody, bez resetu danych. Inny UID lub korupcja blokują dostęp.
+
+`meble_access_profile_pending_v1` — **nowa techniczna blokada operacji**, `{version:1, uid, attemptId}`, localStorage, ten sam moduł i Web Lock. Zapisana i sprawdzona przed kandydatem dowodu. Pozostaje po błędzie, nie jest czyszczona przy logout/reload; unieważnia także poprawnie wyglądający kandydat v2. Usuwana wyłącznie jako ostatnia operacja poprawnie potwierdzonego dopuszczenia, po read-back i kontroli danych, albo zastępowana nową próbą tego samego UID po świeżej autoryzacji i zgodzie. Nie usuwać ręcznie jako obejścia; obcy UID/uszkodzona blokada oznaczają odmowę. Nie jest magazynem projektu ani kopią jego treści.
+
+Oba klucze: **LOKALNIE**, bez odwzorowania Firestore, poza selektywnym eksportem i standardowym backupem `fc_*`, chronione przez powłokę przed zwykłym zapisem/usunięciem. Nie odtwarzać z backupu innego profilu. Wartości `fc_*` i pięciu aliasów są porównywane tylko w RAM na czas dopuszczenia, bez zapisu/normalizacji. Blokada oraz dowód nie zastępują Rules ani zabezpieczenia profilu systemowego przed DevTools/XSS. [Kontrakt, wyniki i ograniczenia](tools/reports/cloud-2b3-main-login.md). Liczby historycznej inwentaryzacji CLOUD-1A poniżej nie obejmują tych dwóch późniejszych kluczy.
+
+
 Stan źródeł: **2026-10-15**, `main` **f3b6905e** po PR #46. Etap wyłącznie analityczny/dokumentacyjny. Żadnych odczytów browser storage użytkownika, eksportów jego danych, migracji ani zmian runtime. Rejestr zastępuje starsze ogólne listy magazynów jako mapa **obecnego kodu**, nie zastępuje `PROJECT_DECISIONS.md` ani historii raportów.
 
 > **CLOUD-2B.1 — dodatek dotyczący tylko testu Auth:** `auth-test.html` korzysta z własnego persistence Firebase SDK (preferowany IndexedDB `firebaseLocalStorageDb`, fallback SDK browser-local). To sesja uwierzytelniania z danymi wrażliwymi/tokenami zarządzanymi wyłącznie przez SDK, nie projekt ani nowy autorytet danych biznesowych. Nie kopiować jej do eksportera/backupów, raportów lub repo. Normalny `index.html` nie inicjuje Auth. Nie zmieniono 46 nazw i 3 rodzin magazynów aplikacji z audytu; SDK-owned storage jest oddzielne od `fc_*`. [Zakres i blokery CLOUD-2B.1](tools/reports/cloud-2b1-google-login.md).

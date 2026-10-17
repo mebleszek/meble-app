@@ -1,7 +1,7 @@
-// Public Web config supplied from Firebase Console. Used ONLY by auth-test.html,
-// never by index.html. Google sign-in does not grant business data access.
+// Public Web config supplied from Firebase Console, reused by the main login.
+// Google sign-in does not grant access without a fresh server authorization.
 // To disable new Auth initialization, set FC_AUTH_TEST_OPTIONS to null and bump
-// this script's version in auth-test.html. This does not sign out existing users.
+// this script's version in index.html. This does not sign out existing users.
 // Never add service-account JSON, tokens, ORS keys or private credentials.
 window.FC_AUTH_TEST_OPTIONS = {
   target: 'live-auth',

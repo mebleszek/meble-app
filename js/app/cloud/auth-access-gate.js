@@ -1,4 +1,4 @@
-// Prepared boundary for a FUTURE business-script loader, not an activated main gate.
+// Server-verified access boundary shared by the main entry and isolated tests.
 (function(){
   'use strict';
   const FC=window.FC=window.FC||{};

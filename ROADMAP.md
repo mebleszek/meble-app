@@ -1,5 +1,9 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
+## CLOUD-2B.3 — przygotowane główne logowanie, jeszcze bez publikacji (2026-10-17)
+
+Baza: main po PR #56. Gałąź `cloud-2b3-main-login` przygotowuje jeden ekran pod `index.html`, serwerową autoryzację oraz loader biznesu dopiero po zgodzie. Nie wdrożono Rules, synchronizacji ani zmian danych. **Właściciel zatwierdził dostęp do swojego istniejącego profilu.** Przygotowano jednorazowe dopuszczenie po świeżej autoryzacji serwerowej, potwierdzeniu zachowania kopii i świadomej zgodzie właściciela. Zapisuje dowód `meble_access_profile_v1` w wersji 2 oraz techniczną blokadę `meble_access_profile_pending_v1` do czasu potwierdzenia operacji, bez przepisywania `fc_*` lub aliasów. Niedokończona próba pozostaje zablokowana również po restarcie; stary dowód v1 wymaga ponownej zgody. Nowy pusty profil nadal wymaga potwierdzonego proofu. Publikacja i Rules pozostają osobno zatwierdzane; kopię trzeba wykonać przed publikacją, a akceptację Android — po uzgodnionym wdrożeniu. [Raport, ograniczenia, procedura Rules i rollback](tools/reports/cloud-2b3-main-login.md).
+
 Data aktualizacji priorytetów: **2026-10-15**, main po PR #50 (merge `732c9833`), CLOUD-1B ukończono i przeszło CI. CLOUD-2A: wybór Firebase Spark i logowania Google zatwierdzony, przygotowano projekt techniczny w gałęzi dokumentacyjnej. Niezwiązane plany poniżej zachowano; nie stanowią zgody na implementację.
 
 ## Aktualny priorytet — weryfikacja CLOUD-2B, bez rzeczywistego zapisu

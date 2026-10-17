@@ -1,5 +1,9 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
+## CLOUD-2B.3 — przygotowane główne logowanie, jeszcze bez publikacji (2026-10-17)
+
+Baza: main po PR #56. Użytkownik potwierdził istnienie dwóch administracyjnych dokumentów dostępu; nie tworzymy ich ponownie, produkcyjne Rules nadal deny-all. Gałąź `cloud-2b3-main-login` przygotowuje jeden ekran pod `index.html`, serwerową autoryzację oraz loader biznesu dopiero po zgodzie. Nie wdrożono Rules, synchronizacji ani zmian danych. **Właściciel zatwierdził dostęp do swojego istniejącego profilu.** Przygotowano jednorazowe dopuszczenie po świeżej autoryzacji serwerowej, potwierdzeniu zachowania kopii i świadomej zgodzie właściciela. Zapisuje dowód `meble_access_profile_v1` w wersji 2 oraz techniczną blokadę `meble_access_profile_pending_v1` do czasu potwierdzenia operacji, bez przepisywania `fc_*` lub aliasów. Niedokończona próba pozostaje zablokowana również po restarcie; stary dowód v1 wymaga ponownej zgody. Nowy pusty profil nadal wymaga potwierdzonego proofu. Publikacja i Rules pozostają osobno zatwierdzane; kopię trzeba wykonać przed publikacją, a akceptację Android — po uzgodnionym wdrożeniu. [Raport, ograniczenia, procedura Rules i rollback](tools/reports/cloud-2b3-main-login.md).
+
 Stan decyzji: **2026-10-15**. Baza: `main` po **scaleniu CLOUD-1B w PR #50** (merge `732c9833`); CLOUD-1A scalono w PR #48. Kanoniczna mapa obecnych magazynów: **[CLOUD_DATA_REGISTER.md](CLOUD_DATA_REGISTER.md)**. Zatwierdzone wybory CLOUD-2A to Firebase Spark / Cloud Firestore oraz logowanie Google. Szczegółowy dokumentacyjny projekt (jeszcze nie wdrożony): [CLOUD-2A](tools/reports/cloud-2a-firebase-google-architecture.md). Poniższa aktywna część ma pierwszeństwo przed wpisami historycznymi.
 
 ## Status prac i sposób odczytywania decyzji
