@@ -109,6 +109,72 @@ service cloud.firestore {
         }
       }
     }
+    // CLOUD-3 candidate only. Never deployed by tooling or normal startup.
+    function globalApproved(uid) {
+      return appApproved(uid) && grant(uid).globalDataEnabled == true
+        && grant(uid).globalSchemaVersion == 1;
+    }
+    function globalDomain(d) {
+      return d in ['materials','hardware','manufacturers','suppliers','categories','types',
+        'technicalParams','hardwareSettings','labor','workshopServices','stock',
+        'programDefaults','company','businessCosts'];
+    }
+    function globalHead(data, uid) {
+      return data.keys().hasOnly(['ownerUid','version','generation','revisionId','directoryHash','recordCount','updatedAt'])
+        && data.ownerUid == uid && data.version == 1 && data.generation is int && data.generation > 0
+        && revisionId(data.revisionId) && hash(data.directoryHash)
+        && data.recordCount is int && data.recordCount >= 0 && data.recordCount <= 1024
+        && data.updatedAt == request.time;
+    }
+    function globalRevision(data, uid, revId) {
+      return data.keys().hasOnly(['ownerUid','version','generation','revisionId','directoryHash','recordCount','directory',
+        'baseGeneration','baseRevisionId','baseDirectoryHash','createdAt'])
+        && data.ownerUid == uid && data.version == 1 && data.revisionId == revId && revisionId(revId)
+        && data.generation is int && data.baseGeneration is int && data.baseGeneration >= 0
+        && data.generation == data.baseGeneration + 1 && hash(data.directoryHash)
+        && data.recordCount is int && data.recordCount >= 0 && data.recordCount <= 1024
+        && data.directory is string && data.directory.size() > 0 && data.directory.size() <= 131072
+        && ((data.baseGeneration == 0 && data.baseRevisionId == '' && data.baseDirectoryHash == '')
+          || (data.baseGeneration > 0 && revisionId(data.baseRevisionId) && hash(data.baseDirectoryHash)))
+        && data.createdAt == request.time;
+    }
+    function globalPublished(data, uid) {
+      let rev = getAfter(/databases/$(database)/documents/users/$(uid)/globalRevisions/$(data.revisionId)).data;
+      return rev.ownerUid == uid && rev.version == data.version && rev.generation == data.generation
+        && rev.revisionId == data.revisionId && rev.directoryHash == data.directoryHash
+        && rev.recordCount == data.recordCount;
+    }
+    function globalBaseMatches(data, uid, old) {
+      let rev = getAfter(/databases/$(database)/documents/users/$(uid)/globalRevisions/$(data.revisionId)).data;
+      return data.generation == old.generation + 1 && rev.baseGeneration == old.generation
+        && rev.baseRevisionId == old.revisionId && rev.baseDirectoryHash == old.directoryHash;
+    }
+    match /users/{uid}/globalData/{headId} {
+      allow get: if headId == 'current' && globalApproved(uid);
+      allow create: if headId == 'current' && globalApproved(uid) && globalHead(request.resource.data,uid)
+        && globalPublished(request.resource.data,uid) && request.resource.data.generation == 1;
+      allow update: if headId == 'current' && globalApproved(uid) && globalHead(request.resource.data,uid)
+        && globalPublished(request.resource.data,uid) && globalBaseMatches(request.resource.data,uid,resource.data);
+      allow delete, list: if false;
+    }
+    match /users/{uid}/globalRevisions/{revId} {
+      allow get: if globalApproved(uid);
+      allow create: if globalApproved(uid) && globalRevision(request.resource.data,uid,revId)
+        && getAfter(/databases/$(database)/documents/users/$(uid)/globalData/current).data.revisionId == revId;
+      allow update, delete, list: if false;
+    }
+    match /users/{uid}/globalRecords/{recordHash} {
+      allow get: if globalApproved(uid);
+      allow create: if globalApproved(uid)
+        && request.resource.data.keys().hasOnly(['ownerUid','version','domain','recordId','hash','json','byteLength'])
+        && request.resource.data.ownerUid == uid && request.resource.data.version == 1
+        && globalDomain(request.resource.data.domain) && request.resource.data.recordId is string
+        && request.resource.data.recordId.size() > 0 && request.resource.data.recordId.size() <= 256
+        && hash(recordHash) && request.resource.data.hash == recordHash
+        && request.resource.data.json is string && request.resource.data.json.size() <= 131072
+        && request.resource.data.byteLength is int && request.resource.data.byteLength > 0 && request.resource.data.byteLength <= 131072;
+      allow update, delete, list: if false;
+    }
     match /{document=**} { allow read, write: if false; }
   }
 }

@@ -1,0 +1,7 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    { "collectionGroup": "globalRecords", "fieldPath": "json", "indexes": [] },
+    { "collectionGroup": "globalRevisions", "fieldPath": "directory", "indexes": [] }
+  ]
+}

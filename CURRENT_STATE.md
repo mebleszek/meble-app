@@ -1,6 +1,15 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
-## CLOUD-2B.4a + techniczne CLOUD-2C — gałąź robocza, bez aktywacji LIVE
+## CLOUD-3 — gałąź robocza, bez przełączenia autorytetu
+
+Weryfikacja lokalna gałęzi: Preflight **123/123 smoke, 547/547 syntax, APP 110/110 PASS**; Emulator Suite **58/58 PASS**; Chromium **28/28 PASS**, kontrakty globalne **13/13 PASS**, bez pominięć. Zachowano PCV/jeden zapas 10% i 4/3/6 arkuszy. To wyniki lokalne, nie nowy CI/merge/Pages.
+
+Baza `65085d18` po PR #59. **PR #59 scalony: CI PASS, auto-merge PASS, Pages PASS, Android zaakceptowany przez właściciela.** Główne Google Auth i produkcyjny profil Auth-only działają; nie wdrożono biznesowych Rules ani synchronizacji.
+
+CLOUD-3 przygotowuje nieaktywne, niezarejestrowane kontrakty 14 domen globalnych, RAW capture bez normalizacji, rekordy immutable i grupowy manifest CAS, niezależny odczyt oraz prywatną granicę pożyczenia istniejącej sesji Firebase. Tylko emulatory i dane syntetyczne; brak zmian startupu, UI, lokalnych setterów, IndexedDB właściciela, katalogów użytkownika, ofert lub kalkulatorów. Globalne słoje/legacy overrides/drafty pozostają poza transferem. **Nie jest to uruchomiona synchronizacja między urządzeniami.** [Dokładny kontrakt, testy, koszty i brakujące zależności](tools/reports/cloud-3-global-data-foundation.md).
+
+
+## CLOUD-2B.4a + techniczne CLOUD-2C — scalone PR #59, LIVE nadal nieaktywny
 
 **Rozszerzenie pakietu zatwierdzone przez właściciela:** naprawiono wyścig dopuszczenia profilu przez transakcyjny rekord właściciela IndexedDB (`meble-access-profile-v1`, store `ownership`, klucz `owner`). Stan pending nie daje dostępu; poprawny v2 przechodzi bez przepisywania danych, nowe powiązanie v3 nie jest samodzielnym uprawnieniem. Usunięto produkcyjny przycisk/wyświetlanie UID, zachowując wewnętrzną autoryzację. Końcowa weryfikacja: Emulator Suite **41/41**, Chromium **28/28** (w tym 100 prób bez podwójnego dopuszczenia), profil **36/36**, pełny Preflight **PASS** (543/543 składnia, 122/122 smoke, APP 110/110), syntax/diff check PASS. Bez zgody na Ready/merge/Pages lub Firebase LIVE.
 
