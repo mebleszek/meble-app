@@ -19,10 +19,10 @@ const ref=(db,suffix='')=>firestore.doc(db,'users/'+UID+'/pilotProjects/A'+suffi
 const raw=(uid=UID,google=true)=>env.authenticatedContext(uid,{firebase:{sign_in_provider:google?'google.com':'anonymous'}}).firestore();
 async function bootstrap(uid=UID){await env.withSecurityRulesDisabled(async ctx=>firestore.setDoc(firestore.doc(ctx.firestore(),'authorizedUsers',uid),{appEnabled:true,enabled:true,pilotProjectId:'A',pilotInvestorId:'inv-A'}));}
 function runtime(seed){
- const r=fixture(seed);
+ const r=fixture(seed);r.s.TextDecoder=TextDecoder;
  // The browser and SDK share one realm. Keep new modules in the SDK realm,
  // while existing app/session modules still use isolated fixture globals.
- for(const name of ['cloud-pilot-contract','firebase-pilot-transport','project-cloud-pilot'])new Function('window',fs.readFileSync(new URL('js/app/cloud/'+name+'.js',root),'utf8'))(r.s);
+ for(const name of ['cloud-pilot-contract','firebase-pilot-transport','project-cloud-pilot','cloud-auth','auth-access-gate','cloud-access-verifier','firebase-pilot-live-transport'])new Function('window',fs.readFileSync(new URL('js/app/cloud/'+name+'.js',root),'utf8'))(r.s);
  return r;
 }
 async function client(r=runtime(),uid=UID){
@@ -103,6 +103,7 @@ test('Rules and real adapter accept all seven chunks at exact 800 KiB, no Rules 
  r.mutate(p=>{p.title+='X'.repeat(819200-size);});assert.equal((await r.build()).utf8Bytes,819200);
  const c=await client(r),p=await prepare(c);assert.equal(p.chunkCount,7);assert.equal(p.byteLength,819200);
  const out=await c.pilot.publish(p.handle);assert.equal(out.ok,true,JSON.stringify(out));assert.equal(out.published,true);
+ const fresh=await client(),read=await fresh.pilot.read(scope);assert.equal(read.ok,true,JSON.stringify(read));assert.equal(read.utf8Bytes,819200);assert.deepEqual(clone(read.document.payload),clone((await r.build()).document.payload));
  r.mutate(p=>p.title+='X');const before=await count();const failed=await c.pilot.prepare({...scope,expectedHead:out.head});assert.equal(failed.code,'EXPORT_SIZE_LIMIT');assert.equal(await count(),before);
 });
 test('Two actual SDK devices with the same base: one winner, explicit conflict, no overwrite',async()=>{
@@ -191,4 +192,153 @@ test('Google logout/login into the same UID invalidates old prepared handles by 
  const token=Buffer.from(JSON.stringify({sub:UID,email:UID+'@example.invalid',email_verified:true})).toString('base64url');
  await auth.signInWithCredential(c.auth,auth.GoogleAuthProvider.credential('e30.'+token+'.'));
  assert.equal((await c.pilot.publish(p.handle)).code,'CLOUD_AUTH_CHANGED');assert.equal(await count(),0);
+});
+
+// Shared Auth adapter: the same objects/observer as the server-approved login.
+async function sharedClient(r=runtime()){
+ const controller=await r.FC.cloudAuth.create({target:'emulator',appName:'shared-'+(++serial),
+  firebaseConfig:{projectId:PROJECT,apiKey:'demo-only',appId:'demo-only',authDomain:PROJECT+'.firebaseapp.com'},
+  emulator:{host:'127.0.0.1',port:19099,firestorePort:18080},
+  sdk:{app,auth:{...auth,indexedDBLocalPersistence:auth.inMemoryPersistence}}});
+ const ctx=controller.verificationContext; // Context becomes available only after Google identity.
+ const instance=app.getApp('shared-'+serial),a=auth.getAuth(instance);
+ const token=Buffer.from(JSON.stringify({sub:UID,email:UID+'@example.invalid',email_verified:true})).toString('base64url');
+ await auth.signInWithCredential(a,auth.GoogleAuthProvider.credential('e30.'+token+'.'));
+ await env.withSecurityRulesDisabled(x=>firestore.setDoc(firestore.doc(x.firestore(),'appAccess',UID),{schemaVersion:1}));
+ const verifier=r.FC.cloudAccessVerifier.create(controller,{sdk:firestore});let lease;
+ const gate=r.FC.authAccessGate.create(controller,{verifyAccess:verifier.verify,watchAccess:verifier.watch,onAuthorized:value=>{lease=value;}});
+ const end=Date.now()+7000;while(!lease){assert.ok(Date.now()<end,'shared server authorization timeout');await new Promise(resolve=>setTimeout(resolve,10));}
+ const handles=await r.FC.firebasePilotLiveTransport.create({authSession:controller,assertAccess:()=>lease.assert(),sdk});
+ clients.push({close:async()=>{await handles.transport.close();gate.close();await verifier.close();await controller.close();}});
+ assert.equal(handles.app,instance);assert.equal(handles.auth,a);assert.equal(handles.db,firestore.getFirestore(instance));
+ assert.equal(ctx().auth,a);
+ return {r,...handles,pilot:r.FC.projectCloudPilot.create(handles.transport),controller,verifier,gate,lease:()=>lease};
+}
+test('Independent fresh SDK reader reconstructs exact published bytes and native PCV without local source access',async()=>{
+ const writer=await client();setPcv(writer.r,true);const p=await prepare(writer);let written;
+ const stage=writer.transport.stage;writer.transport.stage=async packed=>{written=packed.chunks.flatMap(c=>Array.from(c.bytes));return stage(packed);};
+ assert.equal((await writer.pilot.publish(p.handle)).ok,true);
+ const reader=await client(),before=reader.r.rows(),ram=clone(reader.r.s.projectData);
+ reader.r.FC.projectSelectiveExport.build=()=>{throw Error('reader must not export its own project');};
+ const out=await reader.pilot.read(scope);assert.equal(out.ok,true,JSON.stringify(out));
+ assert.deepEqual(Array.from(out.bytes),written);assert.equal(out.utf8Bytes,written.length);
+ assert.equal(out.document.payload.project.projectData.kuchnia.production.partOverrides.one['body.side.left'].edges.w2,true);
+ assert.deepEqual(clone(out.document.payload),clone((await writer.r.build()).document.payload));
+ assert.ok(out.dependencies.length);assert.ok(out.warnings.length);assert.deepEqual(reader.r.rows(),before);assert.deepEqual(clone(reader.r.s.projectData),ram);
+ assert.deepEqual(reader.r.storage.calls,[]);assert.deepEqual(reader.r.sessionStorage.calls,[]);
+});
+test('Shared approved App/Auth/Firestore survive pilot close; verifier and original Google session remain usable',async()=>{
+ const c=await sharedClient(),who=c.controller.identity(),p=await prepare(c);
+ assert.equal((await c.pilot.publish(p.handle)).ok,true);assert.equal((await c.pilot.read(scope)).ok,true);
+ await c.pilot.close();assert.deepEqual(c.controller.identity(),who);assert.equal(app.getApp(c.app.name),c.app);
+ assert.equal(c.auth.currentUser.uid,who.uid);assert.equal((await c.verifier.verify(who)).ok,true);assert.equal(c.lease().isValid(),true);
+ assert.equal((await c.pilot.read(scope)).code,'CLOUD_CLIENT_CLOSED');
+});
+test('Shared app approval alone is not a data grant; revoked pilot grant denies cached reads and writes',async()=>{
+ const c=await sharedClient();assert.equal((await c.pilot.readHead(scope)).ok,true);
+ await env.withSecurityRulesDisabled(x=>firestore.updateDoc(firestore.doc(x.firestore(),'authorizedUsers',UID),{enabled:false}));
+ assert.equal(c.lease().isValid(),true,'app approval and data grant are different');
+ assert.equal((await c.pilot.readHead(scope)).code,'CLOUD_PERMISSION_DENIED');
+ assert.equal((await c.pilot.read(scope)).code,'CLOUD_PERMISSION_DENIED');
+ assert.equal((await c.pilot.prepare({...scope,expectedHead:null})).code,'CLOUD_PERMISSION_DENIED');assert.equal(await count(),0);
+});
+test('Shared logout/login same UID, foreign account and closed authorization gate permanently invalidate borrowed transport',async()=>{
+ for(const mode of ['same','foreign','gate']){
+  const c=await sharedClient(),p=await prepare(c),before=c.r.rows();
+  if(mode==='gate')c.gate.close();
+  else{
+   await c.controller.signOut();
+   const uid=mode==='same'?UID:'synthetic-other-shared';
+   const token=Buffer.from(JSON.stringify({sub:uid,email:uid+'@example.invalid',email_verified:true})).toString('base64url');
+   await auth.signInWithCredential(c.auth,auth.GoogleAuthProvider.credential('e30.'+token+'.'));
+  }
+  assert.equal((await c.pilot.publish(p.handle)).ok,false);assert.equal((await c.pilot.read(scope)).ok,false);
+  assert.deepEqual(c.r.rows(),before);assert.equal(await count(),0);
+ }
+});
+test('Shared appEnabled revocation and offline cannot be bypassed through direct transport',async()=>{
+ const c=await sharedClient(),p=await prepare(c);await firestore.disableNetwork(c.db);
+ assert.equal((await c.pilot.publish(p.handle)).ok,false);assert.equal((await c.pilot.read(scope)).ok,false);
+ await firestore.enableNetwork(c.db);assert.equal(await count(),0);
+ await env.withSecurityRulesDisabled(x=>firestore.updateDoc(firestore.doc(x.firestore(),'authorizedUsers',UID),{appEnabled:false}));
+ assert.equal((await c.pilot.publish(p.handle)).code,'CLOUD_PERMISSION_DENIED');
+ assert.equal((await c.pilot.read(scope)).code,'CLOUD_PERMISSION_DENIED');assert.equal(await count(),0);
+});
+test('Fresh reader rejects missing manifest and missing revision/chunk, corrupt bytes, hashes and ownership',async()=>{
+ const c=await client();assert.equal((await c.pilot.read(scope)).code,'CLOUD_PROJECT_NOT_FOUND');
+ const p=await prepare(c);assert.equal((await c.pilot.publish(p.handle)).ok,true);
+ let saved;await env.withSecurityRulesDisabled(async x=>{const db=x.firestore();saved={manifest:(await firestore.getDoc(ref(db))).data(),revision:(await firestore.getDoc(ref(db,'/revisions/'+p.revisionId))).data(),chunk:(await firestore.getDoc(ref(db,'/revisions/'+p.revisionId+'/chunks/0'))).data()};});
+ const cases=[
+  ['missing revision','CLOUD_REVISION_INCOMPLETE',async db=>firestore.deleteDoc(ref(db,'/revisions/'+p.revisionId))],
+  ['missing chunk','CLOUD_REVISION_INCOMPLETE',async db=>firestore.deleteDoc(ref(db,'/revisions/'+p.revisionId+'/chunks/0'))],
+  ['bytes','CLOUD_INTEGRITY_INVALID',async db=>{const b=saved.chunk.bytes.toUint8Array();b[0]^=1;await firestore.updateDoc(ref(db,'/revisions/'+p.revisionId+'/chunks/0'),{bytes:firestore.Bytes.fromUint8Array(b)});}],
+  ['chunk hash','CLOUD_CHUNK_INVALID',async db=>firestore.updateDoc(ref(db,'/revisions/'+p.revisionId+'/chunks/0'),{sha256:'f'.repeat(64)})],
+  ['manifest','CLOUD_MANIFEST_INVALID',async db=>firestore.updateDoc(ref(db),{chunkCount:8})],
+  ...['ownerUid','investorId','projectId'].map(key=>[key,'CLOUD_BASE_INVALID',async db=>firestore.updateDoc(ref(db),{[key]:'foreign'})]),
+  ['revision owner','CLOUD_REVISION_INVALID',async db=>firestore.updateDoc(ref(db,'/revisions/'+p.revisionId),{ownerUid:'foreign'})]
+ ];
+ for(const [name,code,damage] of cases){
+  await env.withSecurityRulesDisabled(async x=>{const db=x.firestore();await firestore.setDoc(ref(db),saved.manifest);await firestore.setDoc(ref(db,'/revisions/'+p.revisionId),saved.revision);await firestore.setDoc(ref(db,'/revisions/'+p.revisionId+'/chunks/0'),saved.chunk);await damage(db);});
+  const reader=await client(),before=reader.r.rows(),out=await reader.pilot.read(scope);
+  assert.equal(out.code,code,name+': '+JSON.stringify(out));assert.deepEqual(reader.r.rows(),before);assert.deepEqual(reader.r.storage.calls,[]);
+ }
+});
+test('Read detects a manifest switch during hashing instead of returning a stale current project',async()=>{
+ const c=await client(),p=await prepare(c);assert.equal((await c.pilot.publish(p.handle)).ok,true);
+ const reader=await client(),original=reader.r.FC.cloudPilotContract.unpack;let changed=false;
+ reader.r.FC.cloudPilotContract.unpack=async(...args)=>{const value=await original(...args);if(!changed){changed=true;setPcv(c.r,true);const next=await prepare(c,(await c.pilot.readHead(scope)).head);assert.equal((await c.pilot.publish(next.handle)).ok,true);}return value;};
+ assert.equal((await reader.pilot.read(scope)).code,'CLOUD_READ_CONFLICT');
+});
+test('Reader denies foreign/no auth, wrong scope and offline without changing local business bytes',async()=>{
+ const writer=await client(),p=await prepare(writer);assert.equal((await writer.pilot.publish(p.handle)).ok,true);
+ const reader=await client(),before=reader.r.rows();
+ assert.equal((await reader.pilot.read({investorId:'other',projectId:'A'})).code,'CLOUD_BASE_INVALID');
+ assert.equal((await reader.pilot.read({investorId:'inv-A',projectId:'B'})).code,'CLOUD_PERMISSION_DENIED');
+ await firestore.disableNetwork(reader.db);assert.equal((await reader.pilot.read(scope)).code,'CLOUD_NETWORK_UNCONFIRMED');await firestore.enableNetwork(reader.db);
+ await reader.transport.signOut();assert.equal((await reader.pilot.read(scope)).code,'CLOUD_AUTH_REQUIRED');
+ const other=await client(runtime(),'reader-foreign');assert.equal((await other.pilot.read(scope)).code,'CLOUD_PERMISSION_DENIED');
+ assert.deepEqual(reader.r.rows(),before);assert.deepEqual(reader.r.storage.calls,[]);
+});
+
+test('Independent read preserves all rooms, individual sides, shelf/drawer groups and real setId ownership',async()=>{
+ const r=runtime(),edges={w1:true,w2:false,h1:true,h2:false};
+ r.mutate(p=>{
+  const room=p.projectData.kuchnia,cab=room.cabinets[0];cab.subType='szuflady';cab.details={drawerLayout:'3_1_2_2',drawerSystem:'skrzynkowe'};
+  room.cabinets[1].details.shelves=5;room.cabinets[1].setId='set-A';
+  room.sets=[{id:'set-A',presetId:'A',frontCount:2,params:{w1:30,w2:30,hB:72,hTop:20}}];
+  room.production={cabinetGroupOverrides:{one:{'front.drawer.small':{edges},'front.drawer.large':{edges},'drawer.front_drawers.sides':{edges}},two:{'body.shelves':{edges}}},setGroupOverrides:{'set-A':{'front.A.left':{edges}}}};
+ });
+ setPcv(r,true);const c=await client(r),p=await prepare(c);assert.equal((await c.pilot.publish(p.handle)).ok,true);
+ const reader=await client(),out=await reader.pilot.read(scope);assert.equal(out.ok,true,JSON.stringify(out));
+ assert.deepEqual(clone(out.document.payload),clone((await r.build()).document.payload));
+ const data=out.document.payload.project.projectData;
+ assert.equal(data.kuchnia.production.setGroupOverrides['set-A']['front.A.left'].edges.h1,true);
+ assert.equal(data.kuchnia.production.cabinetGroupOverrides.two['body.shelves'].edges.h1,true);
+ assert.equal(data.pokoj.cabinets.length,1);assert.equal(data.kuchnia.cabinets.length,2);
+ assert.equal(data.kuchnia.production.partOverrides.one['body.side.left'].edges.w2,true);
+ assert.equal(data.kuchnia.production.partOverrides.one['body.side.right'],undefined);
+});
+
+test('Logout during independent decoding cannot return a result under an obsolete Auth epoch',async()=>{
+ const c=await client(),p=await prepare(c);assert.equal((await c.pilot.publish(p.handle)).ok,true);
+ const reader=await client(),original=reader.r.FC.cloudPilotContract.unpack;
+ reader.r.FC.cloudPilotContract.unpack=async(...args)=>{const result=await original(...args);await reader.transport.signOut();return result;};
+ assert.equal((await reader.pilot.read(scope)).code,'CLOUD_AUTH_REQUIRED');
+});
+
+
+test('Fresh server reads retry transient aborted transactions but never publish after exhausted retries',async()=>{
+ const c=await client(),before=c.r.rows();
+ for(const permanent of [false,true]){
+  let attempts=0;
+  const f={...firestore,runTransaction(db,fn,options){return firestore.runTransaction(db,async tx=>{
+   attempts++;if(permanent||attempts===1)throw new firestore.FirestoreError('aborted','synthetic transaction contention');
+   return fn(tx);
+  },options);}};
+  const transport=c.r.FC.firebasePilotTransport.fromConnection({firestore:f,db:c.db,session:{identity:()=>c.transport.identity()}});
+  const pilot=c.r.FC.projectCloudPilot.create(transport),out=await pilot.prepare({...scope,expectedHead:null});
+  if(permanent){assert.equal(out.ok,false);assert.equal(out.code,'CLOUD_REMOTE_UNCONFIRMED');assert.equal(attempts,3);}
+  else{assert.equal(out.ok,true,JSON.stringify(out));assert.equal(attempts,2);}
+  assert.deepEqual(c.r.rows(),before);assert.equal(await count(),0);await pilot.close();
+ }
 });

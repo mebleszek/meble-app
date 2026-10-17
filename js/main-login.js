@@ -3,9 +3,12 @@
   'use strict';
   const FC=window.FC=window.FC||{},el=id=>document.getElementById(id),shell=el('main-login');
   let profile;
-  try{profile=FC.localAccessProfile.create(localStorage,sessionStorage);}
+  try{profile=FC.localAccessProfile.create(localStorage,sessionStorage,{authorize(uid){
+    if(!lease||lease.uid!==uid)throw Error('AUTH_ACCESS_REVOKED');lease.assert();
+    const identity=auth.identity();if(identity.uid!==uid)throw Error('AUTH_ACCESS_REVOKED');return identity.epoch;
+  }});}
   catch(_){el('auth-status').textContent='Pamięć przeglądarki jest niedostępna. Nie uruchomiono aplikacji.';el('auth-error').hidden=false;el('auth-error').textContent='LOCAL_ACCESS_UNCONFIRMED';document.body.dataset.authState='error';return;}
-  let auth=null,access=null,gate=null,lease=null,blocked=true,started=false,starting=false,fatal=false,loader=null,lastUid=null;
+  let auth=null,access=null,gate=null,lease=null,blocked=true,started=false,starting=false,fatal=false,loader=null;
   let displayed={status:'checking'},initializing=false,admission=null;
   const businessNodes=new Set(),styles=[];
   function isValid(){
@@ -36,14 +39,13 @@
   function block(){
     admission=null;el('auth-profile-admission').hidden=true;
     el('auth-profile-backup').checked=false;el('auth-profile-owner').checked=false;el('auth-profile-confirm').disabled=true;
-    blocked=true;lease=null;showBusiness(false);
+    profile.revoke();blocked=true;lease=null;showBusiness(false);
     if(starting){fatal=true;loader?.abort();}
   }
   function render(state){
     displayed=state;document.body.dataset.authState=state.status;
     const signed=!!state.uid;el('auth-google').disabled=state.status==='checking';el('auth-google').hidden=signed;
     el('auth-account').hidden=!signed;
-    if(lastUid!==state.uid||!signed){el('auth-uid').hidden=true;el('auth-uid').textContent='';el('auth-uid-toggle').setAttribute('aria-expanded','false');}lastUid=state.uid||null;
     const texts={checking:'Sprawdzanie sesji…',unauthenticated:'Zaloguj się, aby rozpocząć.',authenticated:'Zalogowano. Sprawdzanie uprawnień…',unapproved:'Dostęp do aplikacji nie został zatwierdzony.',authorized:'Uruchamianie Meble-App…','profile-pending':'Konto zostało zatwierdzone. Potwierdź dostęp do istniejącego profilu przeglądarki.',revoked:'Uprawnienia zostały cofnięte. Praca została wstrzymana. Niezakończonej edycji nie zapisano ani nie anulowano.',error:'Nie potwierdzono dostępu. Praca pozostała zablokowana.'};
     el('auth-status').textContent=state.message||texts[state.status]||texts.error;
     el('auth-error').hidden=state.status!=='error';el('auth-error').textContent=state.status==='error'?'Nie zmieniono danych. ('+(state.code||'AUTH_ACCESS_UNCONFIRMED')+')':'';
@@ -63,14 +65,14 @@
       // is not compare-and-swap; never let two first logins claim an empty origin.
       if(!navigator.locks?.request)throw Object.assign(Error(),{code:'LOCAL_ACCESS_LOCK_REQUIRED'});
       const pending=new AbortController(),timer=setTimeout(()=>pending.abort(),8000);
-      try{await navigator.locks.request('meble-main-access-profile-v1',{signal:pending.signal},()=>{
+      try{await navigator.locks.request('meble-main-access-profile-v1',{signal:pending.signal},async()=>{
         grant.assert();
         if(lease!==grant)throw Object.assign(Error(),{code:'LOCAL_ACCESS_UNCONFIRMED'});
         if(intent){
           const identity=auth.identity();
           if(identity.uid!==intent.uid||identity.epoch!==intent.epoch)throw Object.assign(Error(),{code:'LOCAL_ACCESS_UNCONFIRMED'});
-          profile.admitExisting(grant.uid,intent.ticket,intent);
-        }else profile.confirm(grant.uid);
+          await profile.admitExisting(grant.uid,intent.ticket,intent);
+        }else await profile.confirm(grant.uid);
       });}
       finally{clearTimeout(timer);}
       if(lease!==grant)return;assert();
@@ -78,7 +80,9 @@
       if(lease!==grant)return;blocked=true;
       if(error.code==='LOCAL_DATA_UNCLAIMED'&&!intent){
         grant.assert();const identity=auth.identity();
-        admission={...identity,ticket:profile.prepareAdmission(grant.uid)};
+        const ticket=await profile.prepareAdmission(grant.uid);
+        grant.assert();if(lease!==grant)return;
+        admission={...identity,ticket};
         render({status:'profile-pending',uid:grant.uid});el('auth-profile-admission').hidden=false;return;
       }
       throw error;
@@ -124,7 +128,7 @@
   window.addEventListener('click',event=>{
     const button=event.target.closest?.('button');
     const action=button?.id;
-    if(['auth-google','auth-signout','main-signout','auth-uid-toggle','auth-profile-confirm','auth-profile-cancel'].includes(action)){
+    if(['auth-google','auth-signout','main-signout','auth-profile-confirm','auth-profile-cancel'].includes(action)){
       event.stopImmediatePropagation();event.preventDefault();
       if(button.disabled)return;
       if(action==='auth-profile-confirm'){
@@ -137,7 +141,6 @@
       }
       else if(action==='auth-google'){if(auth)auth.signInGoogle();else initialize();}
       else if(action==='auth-signout'||action==='main-signout')auth?.signOut();
-      else{try{el('auth-uid').textContent=auth.identity().uid;el('auth-uid').hidden=!el('auth-uid').hidden;button.setAttribute('aria-expanded',String(!el('auth-uid').hidden));}catch(_){}}
       return;
     }
     if(admission&&el('auth-profile-admission').contains(event.target))return;

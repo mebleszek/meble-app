@@ -1,6 +1,15 @@
 # CLOUD-1A — kanoniczny rejestr danych Meble-App
 
-## Uzupełnienie CLOUD-2B.3 — lokalny dowód dostępu (gałąź, niewdrożone)
+## CLOUD-2B.4a / techniczne CLOUD-2C — atomowy dowód profilu (gałąź robocza)
+
+Nowy **techniczny IndexedDB** `meble-access-profile-v1`, store `ownership`, singleton `owner`: zamknięty rekord `{version:1,uid,state:'pending'|'active',attemptId}`. Rola: rozstrzygający dowód dostępu do tego profilu przeglądarki; **nie** projekt, token, grant Firebase lub własność poszczególnych danych. Właściciel UID jest niezmienny w publicznym API. Rezerwacja i aktywacja używają transakcji readwrite z strict durability; request success nie zastępuje transaction complete. Brak dostępu/błąd/nieznany rekord = odmowa, bez fallbacku do localStorage. Klasyfikacja: **LOKALNIE**, poza chmurą, selektywnym eksportem i backupem danych biznesowych; bez TTL, resetu lub automatycznego usuwania.
+
+`meble_access_profile_v1` zachowuje istniejący poprawny v2 bajt w bajt przy przejściu do IndexedDB po świeżej autoryzacji tego samego UID. Nowe dopuszczenia zapisują odnośnik **v3** `{version:3,uid,attemptId}` — sam v3 bez aktywnego rekordu IndexedDB nigdy nie uprawnia do wejścia. `meble_access_profile_pending_v1` pozostaje dodatkowym wetem; nawet brak lokalnego weta po nieudanej transakcji nie pokona `pending` w IndexedDB. Historyczny v1 wymaga zgody; uszkodzenie lub obcy UID oznacza odmowę. Nie stosować starszego loadera ufającego wyłącznie v2 jako zamiennika tej kontroli.
+
+Moduły: `js/app/cloud/local-access-profile.js`, `js/main-login.js`. Dopuszczenie nadal nie zmienia `fc_*`, aliasów, sesji, backupów ani katalogów i nie wysyła danych. Lokalny dowód nie jest serwerowym ACL ani ochroną przed DevTools/XSS/właścicielem profilu systemowego. Te nowe wpisy nie zmieniają historycznej liczby 46 nazw local/sessionStorage z CLOUD-1A. [Raport i testy](tools/reports/cloud-2b4a-technical-2c.md).
+
+
+## Historia CLOUD-2B.3 — lokalny dowód przed atomową koordynacją
 
 `meble_access_profile_v1` — lokalny dowód `{version:2, uid, attemptId}` w localStorage, zarządzany przez `js/app/cloud/local-access-profile.js` i główne wejście `js/main-login.js`. Rola: dostęp do profilu przeglądarki, **nie** własność rekordów, grant serwera, token lub drugi autorytet danych biznesowych. Zaufany tylko przy braku blokady opisanej poniżej i po świeżym proofie serwerowym. Pusty profil wiązany jest po proofie; istniejący wymaga osobnej zgody właściciela i oświadczenia o kopii. Historyczny format v1 jest niezaufany (nie odróżniał sukcesu od awarii) i wymaga ponownej zgody, bez resetu danych. Inny UID lub korupcja blokują dostęp.
 

@@ -77,5 +77,39 @@
     }
     if(offset!==header.byteLength||await sha(bytes)!==header.fileSha256)reject('CLOUD_INTEGRITY_INVALID');
   }
-  FC.cloudPilotContract={CHUNK_BYTES,MAX_BYTES,MAX_CHUNKS,reject,id,revisionId,canonical,equal,sha,validHead,headOf,pack,candidateHead,verifyStored};
+  // Independent reader: no writer handle, local project, storage or import.
+  async function unpack(manifest,header,chunks,scope){
+    const head=headOf(manifest,scope);
+    if(!header||header.chunkCount!==manifest.chunkCount||header.byteLength!==manifest.byteLength
+      ||header.generationCandidate!==head.generation||header.baseGeneration!==head.generation-1
+      ||!Array.isArray(header.chunkSha256)||header.chunkSha256.length!==manifest.chunkCount
+      ||!header.chunkSha256.every(hashId)||chunks.length!==manifest.chunkCount)reject('CLOUD_REVISION_INVALID');
+    const bytes=new Uint8Array(manifest.byteLength);let offset=0;
+    for(let i=0;i<chunks.length;i++){
+      const chunk=chunks[i],length=Math.min(CHUNK_BYTES,bytes.length-offset);
+      if(!exact(chunk,['index','byteLength','bytes','sha256'])||chunk.index!==i||chunk.byteLength!==length
+        ||chunk.sha256!==header.chunkSha256[i]||typeof chunk.bytes?.toUint8Array!=='function')reject('CLOUD_CHUNK_INVALID');
+      const raw=chunk.bytes.toUint8Array();
+      if(raw.length!==length||await sha(raw)!==chunk.sha256)reject('CLOUD_INTEGRITY_INVALID');
+      bytes.set(raw,offset);offset+=raw.length;
+    }
+    if(offset!==bytes.length||await sha(bytes)!==head.fileSha256)reject('CLOUD_INTEGRITY_INVALID');
+    let document;
+    try{
+      if(!window.TextDecoder)reject('CLOUD_EXPORT_DEPENDENCY');
+      const text=new window.TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes);
+      document=JSON.parse(text);
+      if(text!==canonical(document))reject('CLOUD_EXPORT_INVALID');
+    }catch(_){reject('CLOUD_EXPORT_INVALID');}
+    const base=header.baseGeneration===0?null:{ownerUid:scope.ownerUid,investorId:scope.investorId,projectId:scope.projectId,
+      generation:header.baseGeneration,currentRevisionId:header.baseRevisionId,fileSha256:header.baseFileSha256,
+      documentSha256:header.baseDocumentSha256,payloadSha256:header.basePayloadSha256};
+    // Reuse exactly the CLOUD-1B schema, PCV/reference validator and hashes.
+    const packed=await pack({ok:true,document,utf8Bytes:bytes.length},scope,base,head.currentRevisionId);
+    if(!equal(candidateHead(packed),head))reject('CLOUD_REVISION_INVALID');
+    await verifyStored(packed,header,chunks);
+    return {document,bytes,utf8Bytes:bytes.length,dependencies:FC.projectExportContract.dependencies(document.payload),
+      warnings:['Catalogs, prices, global grain settings and offer history are not included; identical quotation is not guaranteed.']};
+  }
+  FC.cloudPilotContract={CHUNK_BYTES,MAX_BYTES,MAX_CHUNKS,reject,id,revisionId,canonical,equal,sha,validHead,headOf,pack,candidateHead,verifyStored,unpack};
 })();

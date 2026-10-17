@@ -1,5 +1,7 @@
 # CLOUD-2B.3 — jedno logowanie przed główną aplikacją
 
+> Aktualizacja statusu po PR #57/#58: główne logowanie scalono, CI/Pages PASS, Android zaakceptowany i Auth-only produkcyjnie działa (potwierdzenie właściciela). Biznesowy transport/Rules i synchronizacja nadal nieaktywne. Rozszerzenie CLOUD-2B.4a usuwa produkcyjną kontrolkę UID; rzeczywisty UID administrator odczytuje w Firebase Console → Authentication, bez publikowania go w repo. Poniższe wyniki zachowują historię swojego etapu; nowy zakres i ograniczenia: [CLOUD-2B.4a + techniczne CLOUD-2C](cloud-2b4a-technical-2c.md).
+
 2026-10-17. Gałąź `cloud-2b3-main-login`, baza main `154fc365` po PR #56. **Kod przygotowany do przeglądu; bez publikacji, wdrożenia Rules, grantu, uploadu lub synchronizacji.**
 
 ## Finalna korekta bezpieczeństwa po a3e1bedf

@@ -19,12 +19,11 @@ button:disabled { cursor: wait; opacity: .6; }
 .auth-secondary { border: 1px solid #65503e; background: #100e0c; color: #e6c5a5; margin-top: 12px; }
 .auth-primary:hover:enabled { background: #efcba7; }
 .auth-secondary:hover:enabled { background: #221a14; }
-#auth-uid { display: block; padding: 14px 4px; color: #d6cec4; font-family: ui-monospace, monospace; font-size: 13px; overflow-wrap: anywhere; user-select: all; }
 .auth-test-note { margin: 22px 0 0; font-size: 12px; line-height: 1.7; color: #a99e91; text-wrap: pretty; }
 #auth-profile-admission { text-align: left; line-height: 1.6; font-size: 14px; overflow-wrap: anywhere; }
 #auth-profile-title { font-size: 19px; }
 #auth-profile-admission label { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; cursor: pointer; }
 #auth-profile-admission input { flex: 0 0 22px; width: 22px; height: 22px; margin: 2px 0; accent-color: #c9976e; }
 #auth-profile-confirm { margin-top: 16px; }
-[hidden], #auth-uid[hidden] { display: none !important; }
+[hidden] { display: none !important; }
 @media (max-height: 560px) { body { place-items: start center; } .auth-card { width: min(100%, 26rem); } }
