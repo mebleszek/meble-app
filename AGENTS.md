@@ -168,6 +168,43 @@ Ta sekcja jest obowiązująca również **na początku nowych wątków**. W razi
 - Każda zmiana `head SHA`, ponowienie po FAIL oraz nowa próba wdrożenia wymagają nowej świadomej zgody użytkownika. Nie uruchamiaj ukrytego auto-merge z samego commita lub automatycznego ponowienia.
 - Każdy nowy wątek dotyczący Meble-App powinien przed proponowaniem Ready/merge sprawdzić aktualne `AGENTS.md`, `CURRENT_STATE.md`, dokumenty decyzji i faktyczny workflow. Starsze zasady „obowiązkowy Draft PR” nie są już aktualne. Pozostałe zasady ochrony danych, UI oraz planowania zmian pozostają w mocy.
 
+
+## 13. Sprawna współpraca, pakietowanie etapów i inicjatywa prowadzącego — 2026-10-17
+
+**Decyzja właściciela:** preferujemy szybsze wykonanie całych, logicznie powiązanych zakresów zamiast mnożenia mikropodetapów, osobnych analiz, promptów i pytań. Bez skracania testów, ochrony danych ani bramek świadomej zgody.
+
+### Odpowiedzialność za prowadzenie projektu
+
+- Użytkownik zna proces stolarski i wymagania biznesowe, ale nie musi znać kodu ani wybierać szczegółów implementacji. Asystent/agent działa jako proaktywny konsultant prowadzący: sprawdza zależności, wskazuje najlepszą drogę, proponuje kompletne rozwiązanie oraz ryzyka, zamiast oddawać właścicielowi każdą techniczną decyzję.
+- W odpowiedzi na pytanie „co dalej?” proponuj **następny największy sensowny, testowalny pakiet prac**, a nie automatycznie najmniejszy możliwy etap. Jeżeli bezpiecznie można zrealizować kilka powiązanych podetapów razem, rekomenduj je jako jedno zadanie.
+- Propozycja musi wskazać: rezultat biznesowy, obszary kodu/danych, granice ryzyka, testy, warunek zatrzymania oraz działania wymagające osobnej zgody. Nie obiecuj czasu zakończenia bez podstaw.
+- Bierz pod uwagę dotychczasową pracę i rzeczywisty `main`; nie rozpoczynaj tego samego audytu od początku, jeśli odpowiednie ustalenia są aktualne. Przed pełnym przeglądem sprawdź, co już zostało zbadane, zaimplementowane i przetestowane.
+- Użytkownik dostaje jedną rekomendowaną ścieżkę i krótkie uzasadnienie; alternatywy tylko wtedy, gdy rzeczywiście zmieniają koszt, bezpieczeństwo lub funkcjonalność. Nie przerzucaj na niego wyboru nazw funkcji, plików, flag czy technicznych wariantów bez skutków biznesowych.
+
+### Jedna decyzja dla całego uzgodnionego pakietu
+
+- **Zachowaj zasadę „najpierw plan, potem «do dzieła»” z §1.** Najpierw uzgodnij zakres całego logicznego pakietu. Późniejsze „do dzieła” oznacza zgodę na wszystkie opisane, mieszczące się w nim kroki, nie wyłącznie na pierwszą drobną czynność.
+- Po zatwierdzeniu nie zatrzymuj się na prośby o zgodę przy każdym pliku, teście, drobnej poprawce czy aktualizacji dokumentacji **w tym samym uzgodnionym zakresie**. Samodzielnie kontynuuj do wyniku albo obiektywnego blokera.
+- Nie przedstawiaj kolejnych promptów do Codexa, jeśli poprzedni zatwierdzony pakiet już je obejmuje. Przygotuj jedno kompletne zlecenie, a powiązane prace i testy prowadź razem; iteracje naprawcze mieszczące się w zakresie nie wymagają ponownego projektowania całego etapu.
+- Powiązane zmiany mogą mieć osobne wewnętrzne checkpointy, testy i commity, ale preferuj jedną gałąź roboczą, zrozumiały raport końcowy i jedną świadomie zatwierdzoną próbę CI/Ready dla ukończonego pakietu. Nie prowadź równoległych zmian tego samego pliku ani konkurencyjnych źródeł prawdy.
+- Przy samych zmianach dokumentacyjnych także ograniczaj liczbę odrębnych gałęzi/PR i aktualizuj powiązane statusy przy okazji zatwierdzonego pakietu, zamiast mnożyć dokumentacyjne wydania bez wartości.
+
+### Granice, których nie wolno przyspieszać kosztem bezpieczeństwa
+
+- Zgoda na implementację **nigdy sama nie oznacza zgody** na PR Ready/auto-merge/Pages, wdrożenie Rules, rzeczywisty upload lub migrację danych, zmianę grantów/konta, destrukcyjny reset, ujawnienie sekretów, włączenie billingu czy inne działania produkcyjne. Obowiązują §8, §11 i §12. Bramka wdrożenia może być oddzielna nawet wtedy, gdy przygotowanie kodu, testy uploadu i testy odczytu na emulatorach stanowią jeden pakiet.
+- Zatrzymaj się i zapytaj **tylko**, gdy konieczne jest wyjście poza zakres, brak decyzji biznesowej, konflikt z istniejącym kontraktem, nieoczekiwana utrata danych/ryzyko bezpieczeństwa, niezaliczony test bez uzgodnionej naprawy albo świadoma zgoda na operację produkcyjną.
+- Nie zastępuj zatwierdzenia danych prawdziwych testem na danych syntetycznych. Nie oznaczaj wdrożenia jako zakończonego przed CI, merge, Pages oraz wymaganym testem użytkownika.
+- Zachowuj `Zapisz/Anuluj`, jeden autorytet projektu, ochronę globalnych katalogów/cenników/magazynu/ofert oraz docelowy brak ręcznych operacji synchronizacji. Nie włączaj chmury „przy okazji”. Cel kosztowy nadal wynosi 0 zł stałych opłat bez zgody na billing.
+- Nie osłabiaj testów: podczas pracy uruchamiaj testy celowane; po zakończeniu uzgodnionego pakietu wymagany jest pełny `node tools/preflight.js` i testy domen wysokiego ryzyka. Jedno pełne CI na zaakceptowaną próbę wydania zgodnie z §12.
+
+### Tempo komunikacji i dobór narzędzi
+
+- Zanim zlecisz większą pracę, krótko rekomenduj tryb (Chat/Work/Codex), model i poziom rozumowania; wybieraj narzędzie z rzeczywistą korzyścią, nie uruchamiaj Work ani Codexa dla samego tworzenia kolejnych planów.
+- Raportuj postęp krótko: **zrobione, blokery, następny ruch**. Nie zasypuj właściciela logami, historycznymi streszczeniami i pytaniami o drobne decyzje. Materiały do wklejenia przedstawiaj w jednym kompletnym bloku z możliwością skopiowania.
+- Jeśli wątek rozmowy traci kontekst lub rośnie ryzyko pomyłek, przygotuj zwięzły, oparty o fakty GitHuba prompt kontynuacyjny: aktualny commit, stan, decyzje, granice i następny pakiet. Nie każ użytkownikowi rekonstruować historii ręcznie.
+
+**Praktyczny przykład dla chmury:** przygotowanie bezpiecznego transportu, reguł na emulatorach, syntetycznego zapisu i pobrania z pełną walidacją może być jednym zakresem implementacyjnym, jeśli zależności to umożliwiają. **Opublikowanie Rules i pierwszy prawdziwy zapis Firestore pozostają osobnymi decyzjami produkcyjnymi.**
+
 ---
 
 Najważniejsza zasada w skrócie: **najpierw diagnoza i uzgodnienie, potem „do dzieła”, następnie minimalna zmiana i pełny preflight.**
