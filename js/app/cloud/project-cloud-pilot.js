@@ -4,9 +4,9 @@
   const FC=window.FC=window.FC||{};
   const failure=(e,extra={})=>({ok:false,code:typeof e?.code==='string'&&/^(CLOUD_|EXPORT_)/.test(e.code)?e.code
     :e?.code==='permission-denied'?'CLOUD_PERMISSION_DENIED':e?.code==='unavailable'?'CLOUD_NETWORK_UNCONFIRMED':'CLOUD_REMOTE_UNCONFIRMED',...extra});
-  function create(transport){
-    const c=FC.cloudPilotContract,builder=FC.projectSelectiveExport;
-    if(!c||!builder||!transport)throw Error('CLOUD_DEPENDENCY_UNAVAILABLE');
+  function create(transport,{builder=FC.projectSelectiveExport}={}){
+    const c=FC.cloudPilotContract;
+    if(!c||typeof builder?.build!=='function'||!transport)throw Error('CLOUD_DEPENDENCY_UNAVAILABLE');
     const attempts=new WeakMap();let closed=false;
     function check(attempt){
       if(closed)c.reject('CLOUD_CLIENT_CLOSED');

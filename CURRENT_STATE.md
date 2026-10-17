@@ -1,12 +1,22 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
-## CLOUD-3 — gałąź robocza, bez przełączenia autorytetu
+## CLOUD-4 — przygotowanie pilota, bez aktywacji LIVE
+
+Baza **`0cafb432f18bcd052672aac020d36128155388a7` po PR #60**. Właściciel potwierdził: **PR #60 scalony, CI/Pages PASS, Android zaakceptowany**, cenniki/materiały/okucia zachowane. Pojedynczy pierwszy `AUTH_STARTUP_FAILED` nie ma potwierdzonej przyczyny; nie dodano retry ani przebudowy logowania.
+
+Gałąź `cloud-4-live-pilot-readiness` przygotowuje niezarejestrowany, prywatny kontrakt przekazania istniejącej sesji/lease, izolowane natywne źródło syntetyczne CLOUD-1B, minimalne first-publication-only Rules z Auth-only i singletonem jednego UID oraz procedurę ograniczonego grantu. Testy dotyczą wyłącznie emulatorów i Chromium. Nie ma prywatnego call-site uruchamiającego LIVE w main-login, nowego UI, deployu Rules, grantu, uploadu, synchronizacji ani zmiany lokalnego autorytetu. Globalne dane CLOUD-3 pozostają poza pilotem.
+
+Weryfikacja CLOUD-4: **Preflight 124/124 smoke, 552/552 syntax, APP 110/110 PASS; Emulator Suite 71/71 PASS; Chromium 28/28 PASS**, bez pominięć. Zachowano PCV/jeden zapas 10% i rozkrój 4/3/6. To testy lokalne gałęzi, nie nowe CI/Pages ani produkcyjny roundtrip.
+
+[Raport CLOUD-4: dokładny Rules SHA, źródło, testy, budżet Spark, plan zapisu/odczytu i zatrzymania](tools/reports/cloud-4-live-pilot-readiness.md). Przed rzeczywistym uruchomieniem potrzebne są **cztery osobne zgody**: (1) Ready/auto-merge/Pages kodu, (2) deploy dokładnych Rules, (3) administracyjny grant syntetycznego scope, (4) pierwszy zapis i niezależny odczyt przez przejrzany prywatny launcher. Żadna zgoda nie obejmuje automatycznie kolejnej.
+
+## CLOUD-3 — scalone PR #60, bez przełączenia autorytetu
 
 Weryfikacja lokalna gałęzi: Preflight **123/123 smoke, 547/547 syntax, APP 110/110 PASS**; Emulator Suite **58/58 PASS**; Chromium **28/28 PASS**, kontrakty globalne **13/13 PASS**, bez pominięć. Zachowano PCV/jeden zapas 10% i 4/3/6 arkuszy. To wyniki lokalne, nie nowy CI/merge/Pages.
 
 Baza `65085d18` po PR #59. **PR #59 scalony: CI PASS, auto-merge PASS, Pages PASS, Android zaakceptowany przez właściciela.** Główne Google Auth i produkcyjny profil Auth-only działają; nie wdrożono biznesowych Rules ani synchronizacji.
 
-CLOUD-3 przygotowuje nieaktywne, niezarejestrowane kontrakty 14 domen globalnych, RAW capture bez normalizacji, rekordy immutable i grupowy manifest CAS, niezależny odczyt oraz prywatną granicę pożyczenia istniejącej sesji Firebase. Tylko emulatory i dane syntetyczne; brak zmian startupu, UI, lokalnych setterów, IndexedDB właściciela, katalogów użytkownika, ofert lub kalkulatorów. Globalne słoje/legacy overrides/drafty pozostają poza transferem. **Nie jest to uruchomiona synchronizacja między urządzeniami.** [Dokładny kontrakt, testy, koszty i brakujące zależności](tools/reports/cloud-3-global-data-foundation.md).
+CLOUD-3 przygotował nieaktywne, niezarejestrowane kontrakty 14 domen globalnych, RAW capture bez normalizacji, rekordy immutable i grupowy manifest CAS, niezależny odczyt oraz prywatną granicę pożyczenia istniejącej sesji Firebase. Tylko emulatory i dane syntetyczne; brak zmian startupu, UI, lokalnych setterów, IndexedDB właściciela, katalogów użytkownika, ofert lub kalkulatorów. Globalne słoje/legacy overrides/drafty pozostają poza transferem. **Nie jest to uruchomiona synchronizacja między urządzeniami.** [Dokładny kontrakt, testy, koszty i brakujące zależności](tools/reports/cloud-3-global-data-foundation.md).
 
 
 ## CLOUD-2B.4a + techniczne CLOUD-2C — scalone PR #59, LIVE nadal nieaktywny

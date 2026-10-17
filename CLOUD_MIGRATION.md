@@ -1,10 +1,18 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
-## CLOUD-3 — przygotowany fundament, nie aktywna migracja
+## CLOUD-4 — przygotowanie pilota, bez aktywacji LIVE
+
+Baza **`0cafb432f18bcd052672aac020d36128155388a7` po PR #60**. Właściciel potwierdził: **PR #60 scalony, CI/Pages PASS, Android zaakceptowany**, cenniki/materiały/okucia zachowane. Pojedynczy pierwszy `AUTH_STARTUP_FAILED` nie ma potwierdzonej przyczyny; nie dodano retry ani przebudowy logowania.
+
+Gałąź `cloud-4-live-pilot-readiness` przygotowuje niezarejestrowany, prywatny kontrakt przekazania istniejącej sesji/lease, izolowane natywne źródło syntetyczne CLOUD-1B, minimalne first-publication-only Rules z Auth-only i singletonem jednego UID oraz procedurę ograniczonego grantu. Testy dotyczą wyłącznie emulatorów i Chromium. Nie ma prywatnego call-site uruchamiającego LIVE w main-login, nowego UI, deployu Rules, grantu, uploadu, synchronizacji ani zmiany lokalnego autorytetu. Globalne dane CLOUD-3 pozostają poza pilotem.
+
+[Raport CLOUD-4: dokładny Rules SHA, źródło, testy, budżet Spark, plan zapisu/odczytu i zatrzymania](tools/reports/cloud-4-live-pilot-readiness.md). Przed rzeczywistym uruchomieniem potrzebne są **cztery osobne zgody**: (1) Ready/auto-merge/Pages kodu, (2) deploy dokładnych Rules, (3) administracyjny grant syntetycznego scope, (4) pierwszy zapis i niezależny odczyt przez przejrzany prywatny launcher. Żadna zgoda nie obejmuje automatycznie kolejnej.
+
+## CLOUD-3 — scalone PR #60, nie aktywna migracja
 
 Baza po PR #59 `65085d18`: **CI PASS, auto-merge PASS, Pages PASS, Android zaakceptowany** — potwierdzenie właściciela. Działający Google Auth/Auth-only nie został zmieniony. Biznesowe Rules i chmurowy autorytet nadal niewdrożone.
 
-Gałąź CLOUD-3 implementuje 14 zamkniętych domen z [rejestru](CLOUD_DATA_REGISTER.md), bezstratne rekordy immutable, grupowy CAS manifest, niezależny odczyt i emulatorowe Rules z oddzielnym `globalDataEnabled/globalSchemaVersion`. Nowy `cloudDataSession.borrow` opisuje minimalne przyszłe pożyczenie prywatnej sesji main-login; nie jest rejestrowany ani wywoływany przez program. Stary `create({target:'live'})` nadal odmawia. Nie dodano importera, transportu offline z kolejką, automatycznego uploadu albo nowego UI. Szczegóły: [raport CLOUD-3](tools/reports/cloud-3-global-data-foundation.md).
+Scalony CLOUD-3 implementuje 14 zamkniętych domen z [rejestru](CLOUD_DATA_REGISTER.md), bezstratne rekordy immutable, grupowy CAS manifest, niezależny odczyt i emulatorowe Rules z oddzielnym `globalDataEnabled/globalSchemaVersion`. Nowy `cloudDataSession.borrow` opisuje minimalne przyszłe pożyczenie prywatnej sesji main-login; nie jest rejestrowany ani wywoływany przez program. Stary `create({target:'live'})` nadal odmawia. Nie dodano importera, transportu offline z kolejką, automatycznego uploadu albo nowego UI. Szczegóły: [raport CLOUD-3](tools/reports/cloud-3-global-data-foundation.md).
 
 Projektowe PCV pozostaje w CLOUD-1B; globalne słoje/rotacja Issue #47, legacy PCV/overrides i drafty o nieustalonej własności pozostają nietknięte, poza transferem. Globalny kontrakt wyklucza znany ORS apiKey przed serializacją; nie kopiuje pełnego backupu. Zamrożone oferty nadal odczytuje dotychczasowy magazyn, bez przeliczenia cen. Kontrakt przyszłej historii/inwestorów opisano bez tworzenia nowego eksportera tych domen.
 
