@@ -1,4 +1,4 @@
-// Access receipt for a NEW, empty browser profile. Never adopts existing data.
+// Local access receipt. Existing data requires a separate, explicit admission.
 (function(){
   'use strict';
   const FC=window.FC=window.FC||{},KEY='meble_access_profile_v1';
@@ -7,6 +7,7 @@
   const fail=code=>{const e=Error(code);e.code=code;throw e;};
   function create(local,session){
     const proto=Storage.prototype,get=proto.getItem,set=proto.setItem,key=proto.key;
+    const admissions=new WeakMap();
     const read=()=>get.call(local,KEY);
     function receipt(uid){
       const raw=read();if(raw===null)return false;
@@ -18,6 +19,13 @@
       for(const store of [local,session])for(let i=0;i<store.length;i++)if(businessKey(key.call(store,i)))return false;
       return true;
     }
+    // Ephemeral evidence only: never persists or exposes the business values.
+    function evidence(){
+      return JSON.stringify([local,session].map(store=>{
+        const names=[];for(let i=0;i<store.length;i++){const name=key.call(store,i);if(businessKey(name))names.push(name);}
+        return names.sort().map(name=>[name,get.call(store,name)]);
+      }));
+    }
     return {
       confirm(uid){
         if(typeof uid!=='string'||!uid)fail('LOCAL_ACCESS_UNCONFIRMED');
@@ -26,6 +34,24 @@
         // Synchronous, read-back confirmed. No business values are read or changed.
         const raw=JSON.stringify({version:1,uid});set.call(local,KEY,raw);
         if(read()!==raw||!empty())fail('LOCAL_ACCESS_UNCONFIRMED');
+      },
+      prepareAdmission(uid){
+        if(typeof uid!=='string'||!uid||receipt(uid)||empty())fail('LOCAL_ACCESS_UNCONFIRMED');
+        const ticket=Object.freeze({});admissions.set(ticket,{uid,evidence:evidence()});return ticket;
+      },
+      admitExisting(uid,ticket,{backupConfirmed,ownerConfirmed}={}){
+        if(backupConfirmed!==true||ownerConfirmed!==true)fail('LOCAL_ACCESS_CONSENT_REQUIRED');
+        const pending=ticket&&admissions.get(ticket);
+        if(!pending||pending.uid!==uid)fail('LOCAL_ACCESS_UNCONFIRMED');
+        const exists=receipt(uid); // A corrupt receipt or another UID is never repaired.
+        if(evidence()!==pending.evidence)fail('LOCAL_ACCESS_DATA_CHANGED');
+        if(!exists){
+          const raw=JSON.stringify({version:1,uid});
+          try{set.call(local,KEY,raw);if(read()!==raw)fail('LOCAL_ACCESS_UNCONFIRMED');}
+          catch(_){fail('LOCAL_ACCESS_UNCONFIRMED');}
+        }
+        if(evidence()!==pending.evidence)fail('LOCAL_ACCESS_DATA_CHANGED');
+        admissions.delete(ticket);
       },
       assert(uid){if(!receipt(uid))fail('LOCAL_ACCESS_UNCONFIRMED');},
       key:KEY,businessKey

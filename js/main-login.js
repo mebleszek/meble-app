@@ -6,7 +6,7 @@
   try{profile=FC.localAccessProfile.create(localStorage,sessionStorage);}
   catch(_){el('auth-status').textContent='Pamięć przeglądarki jest niedostępna. Nie uruchomiono aplikacji.';el('auth-error').hidden=false;el('auth-error').textContent='LOCAL_ACCESS_UNCONFIRMED';document.body.dataset.authState='error';return;}
   let auth=null,access=null,gate=null,lease=null,blocked=true,started=false,starting=false,fatal=false,loader=null,lastUid=null;
-  let displayed={status:'checking'},initializing=false;
+  let displayed={status:'checking'},initializing=false,admission=null;
   const businessNodes=new Set(),styles=[];
   function isValid(){
     if(blocked||!lease?.isValid())return false;
@@ -34,6 +34,8 @@
     for(const node of businessNodes)node.inert=!visible;
   }
   function block(){
+    admission=null;el('auth-profile-admission').hidden=true;
+    el('auth-profile-backup').checked=false;el('auth-profile-owner').checked=false;el('auth-profile-confirm').disabled=true;
     blocked=true;lease=null;showBusiness(false);
     if(starting){fatal=true;loader?.abort();}
   }
@@ -42,17 +44,18 @@
     const signed=!!state.uid;el('auth-google').disabled=state.status==='checking';el('auth-google').hidden=signed;
     el('auth-account').hidden=!signed;
     if(lastUid!==state.uid||!signed){el('auth-uid').hidden=true;el('auth-uid').textContent='';el('auth-uid-toggle').setAttribute('aria-expanded','false');}lastUid=state.uid||null;
-    const texts={checking:'Sprawdzanie sesji…',unauthenticated:'Zaloguj się, aby rozpocząć.',authenticated:'Zalogowano. Sprawdzanie uprawnień…',unapproved:'Dostęp do aplikacji nie został zatwierdzony.',authorized:'Uruchamianie Meble-App…',revoked:'Uprawnienia zostały cofnięte. Praca została wstrzymana. Niezakończonej edycji nie zapisano ani nie anulowano.',error:'Nie potwierdzono dostępu. Praca pozostała zablokowana.'};
+    const texts={checking:'Sprawdzanie sesji…',unauthenticated:'Zaloguj się, aby rozpocząć.',authenticated:'Zalogowano. Sprawdzanie uprawnień…',unapproved:'Dostęp do aplikacji nie został zatwierdzony.',authorized:'Uruchamianie Meble-App…','profile-pending':'Konto zostało zatwierdzone. Potwierdź dostęp do istniejącego profilu przeglądarki.',revoked:'Uprawnienia zostały cofnięte. Praca została wstrzymana. Niezakończonej edycji nie zapisano ani nie anulowano.',error:'Nie potwierdzono dostępu. Praca pozostała zablokowana.'};
     el('auth-status').textContent=state.message||texts[state.status]||texts.error;
     el('auth-error').hidden=state.status!=='error';el('auth-error').textContent=state.status==='error'?'Nie zmieniono danych. ('+(state.code||'AUTH_ACCESS_UNCONFIRMED')+')':'';
   }
   function failure(error){
-    fatal=!started&&!String(error?.code||'').startsWith('LOCAL_');block();if(fatal)gate?.close();render({status:'error',uid:auth?.state().uid,code:error?.code||'AUTH_STARTUP_FAILED',message:error?.code==='LOCAL_DATA_UNCLAIMED'
-      ?'Ta przeglądarka zawiera dane bez potwierdzonego powiązania z kontem. Uruchomienie wstrzymano, aby ich nie przypisać ani nie nadpisać. Potrzebna jest decyzja administratora.'
+    fatal=!started&&!String(error?.code||'').startsWith('LOCAL_');block();if(fatal)gate?.close();render({status:'error',uid:auth?.state().uid,code:error?.code||'AUTH_STARTUP_FAILED',message:error?.code==='LOCAL_ACCESS_DATA_CHANGED'
+      ?'Dane profilu zmieniły się podczas potwierdzania. Nie dopuszczono dostępu. Zamknij pozostałe karty i ponownie sprawdź profil oraz kopię bezpieczeństwa.'
+      :error?.code==='LOCAL_ACCESS_UNCONFIRMED'?'Nie potwierdzono lokalnego dowodu dostępu. Mógł zostać zapisany, ale praca pozostaje zablokowana. Nie zmieniono danych biznesowych ani sesji edycji.'
       :error?.code==='LOCAL_ACCESS_OTHER_ACCOUNT'?'Dane tej przeglądarki są dostępne dla innego konta. Użyj właściwego konta lub osobnego profilu przeglądarki.'
       :'Nie udało się bezpiecznie uruchomić aplikacji. Zachowano dane i niezakończoną edycję. Nie odświeżaj strony z niezapisanym formularzem.'});
   }
-  async function loadBusiness(grant){
+  async function loadBusiness(grant,intent){
     if(fatal)throw Object.assign(Error(),{code:'AUTH_RELOAD_REQUIRED'});
     lease=grant;blocked=false;
     try{
@@ -60,10 +63,26 @@
       // is not compare-and-swap; never let two first logins claim an empty origin.
       if(!navigator.locks?.request)throw Object.assign(Error(),{code:'LOCAL_ACCESS_LOCK_REQUIRED'});
       const pending=new AbortController(),timer=setTimeout(()=>pending.abort(),8000);
-      try{await navigator.locks.request('meble-main-access-profile-v1',{signal:pending.signal},()=>{grant.assert();profile.confirm(grant.uid);});}
+      try{await navigator.locks.request('meble-main-access-profile-v1',{signal:pending.signal},()=>{
+        grant.assert();
+        if(lease!==grant)throw Object.assign(Error(),{code:'LOCAL_ACCESS_UNCONFIRMED'});
+        if(intent){
+          const identity=auth.identity();
+          if(identity.uid!==intent.uid||identity.epoch!==intent.epoch)throw Object.assign(Error(),{code:'LOCAL_ACCESS_UNCONFIRMED'});
+          profile.admitExisting(grant.uid,intent.ticket,intent);
+        }else profile.confirm(grant.uid);
+      });}
       finally{clearTimeout(timer);}
       if(lease!==grant)return;assert();
-    }catch(error){if(lease!==grant)return;blocked=true;throw error;}
+    }catch(error){
+      if(lease!==grant)return;blocked=true;
+      if(error.code==='LOCAL_DATA_UNCLAIMED'&&!intent){
+        grant.assert();const identity=auth.identity();
+        admission={...identity,ticket:profile.prepareAdmission(grant.uid)};
+        render({status:'profile-pending',uid:grant.uid});el('auth-profile-admission').hidden=false;return;
+      }
+      throw error;
+    }
     if(started){showBusiness(true);return;}
     if(starting)return;starting=true;
     try{
@@ -86,10 +105,15 @@
       started=true;starting=false;document.body.dataset.businessState='ready';showBusiness(true);
     }catch(error){starting=false;throw error;}
   }
-  function observe(){
+  function observe(intent=null){
     gate?.close();
     gate=FC.authAccessGate.create(auth,{verifyAccess:access.verify,watchAccess:access.watch,onBlocked:block,
-      onState:state=>{if(!fatal)render(state);},onAuthorized:async grant=>{try{await loadBusiness(grant);}catch(error){failure(error);}}});
+      onState:state=>{if(!fatal)render(state);},onAuthorized:async grant=>{
+        // A consent is single-use and bound to the exact Auth identity/epoch.
+        // This new gate obtains a fresh server proof through the common verifier.
+        const once=intent;intent=null;
+        try{await loadBusiness(grant,once);}catch(error){failure(error);}
+      }});
   }
   async function initialize(){
     if(initializing||auth)return;initializing=true;render({status:'checking'});
@@ -100,17 +124,29 @@
   window.addEventListener('click',event=>{
     const button=event.target.closest?.('button');
     const action=button?.id;
-    if(['auth-google','auth-signout','main-signout','auth-uid-toggle'].includes(action)){
+    if(['auth-google','auth-signout','main-signout','auth-uid-toggle','auth-profile-confirm','auth-profile-cancel'].includes(action)){
       event.stopImmediatePropagation();event.preventDefault();
       if(button.disabled)return;
-      if(action==='auth-google'){if(auth)auth.signInGoogle();else initialize();}
+      if(action==='auth-profile-confirm'){
+        if(!admission||!el('auth-profile-backup').checked||!el('auth-profile-owner').checked)return;
+        const intent={...admission,backupConfirmed:true,ownerConfirmed:true};
+        observe(intent);
+      }
+      else if(action==='auth-profile-cancel'){
+        block();render({status:'error',uid:auth?.state().uid,code:'LOCAL_ACCESS_CANCELLED',message:'Nie dopuszczono profilu. Dane pozostały bez zmian. Wróć po wykonaniu i zachowaniu kopii bezpieczeństwa.'});
+      }
+      else if(action==='auth-google'){if(auth)auth.signInGoogle();else initialize();}
       else if(action==='auth-signout'||action==='main-signout')auth?.signOut();
       else{try{el('auth-uid').textContent=auth.identity().uid;el('auth-uid').hidden=!el('auth-uid').hidden;button.setAttribute('aria-expanded',String(!el('auth-uid').hidden));}catch(_){}}
       return;
     }
+    if(admission&&el('auth-profile-admission').contains(event.target))return;
     if(!isValid()){event.stopImmediatePropagation();event.preventDefault();block();}
   },true);
   for(const type of ['keydown','input','change','submit','pointerdown'])window.addEventListener(type,event=>{
+    if(type==='change'&&admission&&['auth-profile-backup','auth-profile-owner'].includes(event.target.id)){
+      el('auth-profile-confirm').disabled=!(el('auth-profile-backup').checked&&el('auth-profile-owner').checked);
+    }
     if(!isValid()){event.stopImmediatePropagation();if(!shell.contains(event.target))event.preventDefault();}
   },true);
   window.addEventListener('storage',event=>{if(event.key===profile.key&&!isValid())block();});

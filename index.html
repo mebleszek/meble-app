@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="referrer" content="no-referrer">
 <title>MebLeszek</title>
-<link id="auth-theme" rel="stylesheet" href="css/auth-test.css?v=20261016_auth1b">
+<link id="auth-theme" rel="stylesheet" href="css/auth-test.css?v=20261017_profile_admission">
 <style>
 html.auth-blocked>:not(head):not(body){display:none!important}
 body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style){display:none!important}
@@ -19,9 +19,9 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="auth-shell" defer src="js/app/cloud/cloud-auth.js?v=20261017_main_login"></script>
 <script data-load-group="auth-shell" defer src="js/app/cloud/auth-access-gate.js?v=20261017_main_login"></script>
 <script data-load-group="auth-shell" defer src="js/app/cloud/cloud-access-verifier.js?v=20261017_main_login"></script>
-<script data-load-group="auth-shell" defer src="js/app/cloud/local-access-profile.js?v=20261017_main_login"></script>
+<script data-load-group="auth-shell" defer src="js/app/cloud/local-access-profile.js?v=20261017_profile_admission"></script>
 <script data-load-group="auth-shell" defer src="js/app/cloud/main-business-loader.js?v=20261017_main_login"></script>
-<script data-load-group="auth-shell" defer src="js/main-login.js?v=20261017_main_login"></script>
+<script data-load-group="auth-shell" defer src="js/main-login.js?v=20261017_profile_admission"></script>
 </head>
 <body>
 <div id="main-login"><main class="auth-card" aria-labelledby="auth-title">
@@ -33,6 +33,15 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <button id="auth-google" class="auth-primary" type="button" disabled><span aria-hidden="true">G</span> Zaloguj przez Google</button>
 <p id="auth-status" role="status" aria-live="polite">Sprawdzanie sesji…</p>
 <p id="auth-error" role="alert" hidden></p>
+<section id="auth-profile-admission" aria-labelledby="auth-profile-title" hidden>
+<h2 id="auth-profile-title">Dostęp do istniejącego profilu</h2>
+<p>Dopuszczasz dostęp swojego zatwierdzonego konta do danych tej przeglądarki. Nie zmienia to własności poszczególnych rekordów. Dane nie zostaną przepisane ani wysłane do chmury.</p>
+<p>Przed wdrożeniem logowania wykonaj w dotychczasowej Meble-App kopię przez Ustawienia danych → Eksportuj wszystkie dane. Zachowaj pobrany plik poza pamięcią witryny i sprawdź go. Jeśli kopii nie masz lub nie obejmuje potrzebnych danych, anuluj. Zamknij inne karty Meble-App.</p>
+<label><input id="auth-profile-backup" type="checkbox">Potwierdzam wykonanie, sprawdzenie i zachowanie kopii bezpieczeństwa moich danych.</label>
+<label><input id="auth-profile-owner" type="checkbox">Jestem jedynym użytkownikiem tego profilu, wszystkie zastane dane należą do mnie. Świadomie dopuszczam dostęp mojego konta.</label>
+<button id="auth-profile-confirm" class="auth-primary" type="button" disabled>Dopuść ten profil</button>
+<button id="auth-profile-cancel" class="auth-secondary" type="button">Anuluj</button>
+</section>
 <div id="auth-account" hidden>
 <button id="auth-uid-toggle" class="auth-secondary" type="button" aria-expanded="false" aria-controls="auth-uid">Pokaż Firebase UID</button>
 <output id="auth-uid" hidden></output>

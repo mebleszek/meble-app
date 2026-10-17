@@ -184,7 +184,10 @@ test('Server-approved UID cannot silently adopt existing local data; revocation 
    await setDoc(doc(ctx.firestore(),'authorizedUsers',uid),{appEnabled:true,enabled:false});
    await setDoc(doc(ctx.firestore(),'appAccess',uid),{schemaVersion:1});
   });
-  await r.page.reload();await state(r.page,'error');assert.match(await r.page.locator('#auth-error').innerText(),/LOCAL_DATA_UNCLAIMED/);
+  await r.page.reload();await state(r.page,'profile-pending');
+  assert.equal(await r.page.locator('#auth-profile-admission').isVisible(),true);
+  assert.equal(await r.page.locator('#auth-profile-confirm').isDisabled(),true);
+  assert.equal(await r.page.evaluate(()=>localStorage.getItem('meble_access_profile_v1')),null);
   await r.page.locator('#auth-uid-toggle').click();assert.equal(await r.page.locator('#auth-uid').innerText(),uid);
   assert.equal(await r.page.locator('.auth-logo').evaluate(img=>img.naturalWidth),1536);await geometry(r.page);await businessAbsent(r);
   await env.withSecurityRulesDisabled(ctx=>updateDoc(doc(ctx.firestore(),'authorizedUsers',uid),{appEnabled:false}));
@@ -341,5 +344,152 @@ test('Logout during a pending local-profile lock cannot create a receipt or over
   await r.page.waitForFunction(()=>navigator.locks.query().then(info=>info.held.every(x=>x.name!=='meble-main-access-profile-v1')&&info.pending.every(x=>x.name!=='meble-main-access-profile-v1')));
   assert.equal(await r.page.evaluate(()=>document.body.dataset.authState),'unauthenticated');
   assert.equal(await r.page.evaluate(()=>localStorage.getItem('meble_access_profile_v1')),null);await businessAbsent(r);
+ }finally{await locker.close();await r.ctx.close();}
+});
+
+async function consentToProfile(page){
+ await page.locator('#auth-profile-backup').check();
+ await page.locator('label').filter({hasText:'Jestem jedynym użytkownikiem'}).click();
+ assert.equal(await page.locator('#auth-profile-owner').isChecked(),true);
+ await page.locator('#auth-profile-confirm').click();
+}
+test('Existing profile requires both confirmations; cancellation, offline and a revoked fresh proof never admit it',async()=>{
+ const r=await context();try{
+  await r.page.goto(base+'/index.html');await state(r.page,'unauthenticated');const uid=await syntheticLogin(r.page,'admission-refusal-owner');await state(r.page,'unapproved');await approve(uid);
+  await r.page.reload();await state(r.page,'profile-pending');const before=await fcBytes(r.page);
+  await r.page.locator('#auth-profile-owner').check();assert.equal(await r.page.locator('#auth-profile-confirm').isDisabled(),true,'a backup is mandatory');
+  await r.page.locator('#auth-profile-cancel').click();await state(r.page,'error');assert.match(await r.page.locator('#auth-error').innerText(),/LOCAL_ACCESS_CANCELLED/);
+  assert.equal(await r.page.evaluate(()=>localStorage.getItem('meble_access_profile_v1')),null);await businessAbsent(r);assert.deepEqual(await fcBytes(r.page),before);
+  await r.page.reload();await state(r.page,'profile-pending');assert.equal(await r.page.locator('#auth-profile-owner').isChecked(),false);
+  await r.page.evaluate(()=>dispatchEvent(new Event('offline')));await state(r.page,'error');
+  assert.equal(await r.page.locator('#auth-profile-admission').isVisible(),false);assert.equal(await r.page.evaluate(()=>localStorage.getItem('meble_access_profile_v1')),null);
+  await r.page.evaluate(()=>dispatchEvent(new Event('online')));await state(r.page,'profile-pending');
+  await approve(uid,false);await consentToProfile(r.page);await state(r.page,'unapproved');
+  assert.equal(await r.page.evaluate(()=>localStorage.getItem('meble_access_profile_v1')),null);await businessAbsent(r);assert.deepEqual(await fcBytes(r.page),before);
+ }finally{await r.ctx.close();}
+});
+
+test('Native existing profile: one explicit admission preserves bytes and an active room session, then real startup and Auth restore work',async()=>{
+ const r=await context({seed:false});let release=()=>{};
+ r.page.on('dialog',dialog=>dialog.accept()); // Deliberate reload of a persisted, clean durable session.
+ try{
+  await r.page.goto(base+'/index.html');await state(r.page,'unauthenticated');const uid=await syntheticLogin(r.page,'admission-native-owner');await state(r.page,'unapproved');await approve(uid);
+  await r.page.reload();await businessReady(r.page);
+  const saved=await r.page.evaluate(async()=>{
+   const api=window.FC,inv=api.investors.create({name:'Syntetyczny właściciel zastanego profilu'});
+   const cab={id:'admission-cabinet',type:'stojąca',subType:'standardowa',width:60,height:80,depth:50,bodyColor:'laminat White',frontMaterial:'laminat',frontColor:'White',backMaterial:'HDF',frontCount:2,details:{shelves:2}};
+   const record=api.projectStore.ensureForInvestor(inv.id,{projectData:{kuchnia:{settings:{legHeight:10},cabinets:[cab],fronts:[],sets:[]}}});
+   const candidate=structuredClone(record);candidate.projectData.kuchnia.cabinets=[cab];
+   const central=api.projectStore.updateRecordConfirmed(candidate,record);if(!central)throw Error('Synthetic confirmed save refused');
+   projectData=structuredClone(central.projectData);uiState=api.uiState.set({currentInvestorId:inv.id,roomType:'kuchnia',entry:'app',activeTab:'wywiad'});
+   const confirmed=api.project.saveConfirmed(projectData);if(!confirmed.ok)throw Error('Synthetic final scoped data/summary save refused');projectData=confirmed.project;
+   if(!await api.openRoom('kuchnia'))throw Error('Synthetic durable session refused');
+   return {projectId:api.session.projectId,roomId:api.session.roomId,snapshot:localStorage.getItem('fc_edit_session_v1')};
+  });
+  assert.ok(saved.snapshot);
+  // Validate the pre-release backup procedure through the CURRENT existing
+  // exporter, without introducing another backup path or restoring anything.
+  const backupBefore=await fcBytes(r.page),downloaded=r.page.waitForEvent('download');
+  await r.page.evaluate(()=>window.FC.dataBackupStore.exportCurrent());
+  const download=await downloaded;assert.match(download.suggestedFilename(),/^meble-app-export-.*\.json$/);
+  const copy=JSON.parse(fs.readFileSync(await download.path(),'utf8'));
+  assert.equal(copy.kind,'meble-app-data-export');assert.equal(copy.version,1);
+  for(const key of ['fc_projects_v1','fc_investors_v1','fc_quote_rates_v1','fc_sheet_materials_v1','fc_accessories_v1'])if(key in backupBefore)assert.equal(copy.snapshot.keys[key],backupBefore[key],key+' in retained backup');
+  assert.equal('fc_edit_session_v1' in copy.snapshot.keys,false,'existing backup deliberately excludes active session');
+  assert.deepEqual(await fcBytes(r.page),backupBefore,'existing export procedure does not rewrite the source');
+  // Fixture preparation only: emulate the pre-deployment profile, without its
+  // future receipt. Never run this operation against an owner's browser data.
+  const inspection=await r.ctx.newPage();await inspection.goto(base+'/__synthetic_inspection');
+  await inspection.evaluate(()=>localStorage.removeItem('meble_access_profile_v1'));await inspection.close();
+  await r.page.reload();await state(r.page,'profile-pending');const before=await fcBytes(r.page);
+  assert.equal(before.fc_edit_session_v1,saved.snapshot);
+  for(const [width,height]of [[320,640],[393,360],[768,1024],[1440,900]]){
+   await r.page.setViewportSize({width,height});await geometry(r.page);
+   await r.page.locator('#auth-profile-cancel').scrollIntoViewIfNeeded();assert.equal(await r.page.locator('#auth-profile-cancel').isVisible(),true);
+  }
+  await r.page.setViewportSize({width:393,height:852});await r.page.screenshot({path:'/tmp/cloud-2b3-profile-admission-phone.png',fullPage:true});
+  let heldResolve;const held=new Promise(resolve=>{heldResolve=resolve;}),pending=new Promise(resolve=>{release=resolve;});
+  await r.ctx.route('**/js/app/shared/constants.js*',async route=>{heldResolve();await pending;try{await route.continue();}catch(_){}});
+  await consentToProfile(r.page);await held;
+  assert.equal(await r.page.evaluate(()=>window.__APP_STARTED__),undefined);
+  assert.deepEqual(await fcBytes(r.page),before,'admission itself changes zero fc_* bytes, before any business module executes');
+  assert.deepEqual(await r.page.evaluate(()=>JSON.parse(localStorage.getItem('meble_access_profile_v1'))),{version:1,uid});
+  release();await businessReady(r.page);await r.ctx.unroute('**/js/app/shared/constants.js*');
+  const after=await fcBytes(r.page);assert.equal(after.fc_edit_session_v1,saved.snapshot,'startup must not cancel or replace the durable snapshot');
+  for(const key of ['fc_investors_v1','fc_quote_rates_v1','fc_sheet_materials_v1','fc_accessories_v1','fc_quote_snapshots_v1','fc_data_backups_v1'])assert.equal(after[key],before[key],key+' unchanged after normal startup');
+  const oldProjects=JSON.parse(before.fc_projects_v1),newProjects=JSON.parse(after.fc_projects_v1);
+  // Ordinary, unchanged startup autosave updates only the central timestamp.
+  // The stronger byte-for-byte assertion above applies before any business JS.
+  assert.equal(newProjects.length,oldProjects.length);
+  newProjects.forEach((project,i)=>{assert.ok(Number.isFinite(project.updatedAt)&&project.updatedAt>=oldProjects[i].updatedAt);assert.deepEqual({...project,updatedAt:oldProjects[i].updatedAt},oldProjects[i]);});
+  assert.deepEqual(await r.page.evaluate(()=>({active:window.FC.session.active,projectId:window.FC.session.projectId,roomId:window.FC.session.roomId})),{active:true,projectId:saved.projectId,roomId:saved.roomId});
+  await r.page.reload();await businessReady(r.page);assert.equal(await r.page.locator('#auth-profile-admission').isVisible(),false);assert.equal((await fcBytes(r.page)).fc_edit_session_v1,saved.snapshot);
+  await r.page.locator('#main-signout').click();await state(r.page,'unauthenticated');
+  const other=await syntheticLogin(r.page,'admission-other-owner');await state(r.page,'unapproved');await approve(other);await r.page.reload();await state(r.page,'error');
+  assert.match(await r.page.locator('#auth-error').innerText(),/LOCAL_ACCESS_OTHER_ACCOUNT/);assert.equal(await r.page.locator('#auth-profile-admission').isVisible(),false);
+  assert.equal((await fcBytes(r.page)).fc_edit_session_v1,saved.snapshot);
+ }finally{release();await r.ctx.close();}
+});
+
+test('Profile admission detects concurrent business changes, receipt corruption and failed/partial writes without starting business',async()=>{
+ for(const kind of ['changed-data','corrupt-receipt','swallowed-write','partial-write']){
+  const r=await context();try{
+   if(['swallowed-write','partial-write'].includes(kind))await r.ctx.addInitScript(kind=>{
+    const set=Storage.prototype.setItem,get=Storage.prototype.getItem;let written=false;
+    Storage.prototype.setItem=function(k,v){if(k==='meble_access_profile_v1'){if(kind==='swallowed-write')return;written=true;}return set.call(this,k,v);};
+    Storage.prototype.getItem=function(k){if(k==='meble_access_profile_v1'&&written)throw Error('synthetic readback failure');return get.call(this,k);};
+   },kind);
+   await r.page.goto(base+'/index.html');await state(r.page,'unauthenticated');const uid=await syntheticLogin(r.page,'admission-fault-'+kind);await state(r.page,'unapproved');await approve(uid);
+   await r.page.reload();await state(r.page,'profile-pending');
+   const inspector=await r.ctx.newPage();await inspector.goto(base+'/__synthetic_inspection');
+   if(kind==='changed-data')await inspector.evaluate(()=>localStorage.setItem('fc_price_list_v1','{"sentinel":"newer-synthetic-price"}'));
+   if(kind==='corrupt-receipt')await inspector.evaluate(()=>localStorage.setItem('meble_access_profile_v1','broken'));
+   // Returning focus can legitimately start a fresh proof/confirmation; use the
+   // original visible page without bringing another page to the foreground.
+   const before=await fcBytes(r.page);
+   if(kind==='corrupt-receipt'){
+    await r.page.reload();await state(r.page,'error');assert.match(await r.page.locator('#auth-error').innerText(),/LOCAL_ACCESS_INVALID/);
+   }else{
+    await consentToProfile(r.page);await state(r.page,'error');
+    assert.match(await r.page.locator('#auth-error').innerText(),kind==='changed-data'?/LOCAL_ACCESS_DATA_CHANGED/:/LOCAL_ACCESS_UNCONFIRMED/);
+   }
+   await businessAbsent(r);assert.deepEqual(await fcBytes(r.page),before);
+   const raw=await inspector.evaluate(()=>Object.fromEntries(Object.entries(localStorage)).meble_access_profile_v1??null);
+   assert.equal(raw,kind==='corrupt-receipt'?'broken':kind==='partial-write'?JSON.stringify({version:1,uid}):null);
+   await inspector.close();
+  }finally{await r.ctx.close();}
+ }
+});
+
+test('Two existing-profile admissions use the real cross-tab Web Lock and never overwrite a foreign UID',async()=>{
+ const r=await context(),other=await r.ctx.newPage();try{
+  for(const page of [r.page,other]){await page.goto(base+'/__synthetic_inspection');await page.addScriptTag({url:base+'/js/app/cloud/local-access-profile.js'});}
+  const before=await fcBytes(r.page);
+  const prepare=async(page,uid)=>page.evaluate(uid=>{window.__profile=window.FC.localAccessProfile.create(localStorage,sessionStorage);window.__ticket=window.__profile.prepareAdmission(uid);},uid);
+  await prepare(r.page,'synthetic-existing-owner');await prepare(other,'synthetic-foreign-owner');
+  await r.page.evaluate(()=>{window.__held=false;navigator.locks.request('meble-main-access-profile-v1',()=>new Promise(resolve=>{window.__release=resolve;window.__held=true;}));});await r.page.waitForFunction(()=>window.__held);
+  const submit=async(page,uid)=>page.evaluate(uid=>navigator.locks.request('meble-main-access-profile-v1',()=>{
+   try{window.__profile.admitExisting(uid,window.__ticket,{backupConfirmed:true,ownerConfirmed:true});return 'ok';}catch(e){return e.code;}
+  }),uid);
+  const first=submit(r.page,'synthetic-existing-owner');
+  await r.page.waitForFunction(()=>navigator.locks.query().then(x=>x.pending.length===1));
+  const second=submit(other,'synthetic-foreign-owner');
+  await r.page.waitForFunction(()=>navigator.locks.query().then(x=>x.pending.length===2));
+  await r.page.evaluate(()=>window.__release());assert.equal(await first,'ok');assert.equal(await second,'LOCAL_ACCESS_OTHER_ACCOUNT');
+  assert.deepEqual(await fcBytes(r.page),before);assert.equal(await r.page.evaluate(()=>JSON.parse(localStorage.getItem('meble_access_profile_v1')).uid),'synthetic-existing-owner');
+ }finally{await other.close();await r.ctx.close();}
+});
+
+test('Logout while explicit admission waits for the profile lock invalidates consent and cannot write the receipt',async()=>{
+ const r=await context(),locker=await r.ctx.newPage();try{
+  await r.page.goto(base+'/index.html');await state(r.page,'unauthenticated');const uid=await syntheticLogin(r.page,'admission-waiting-owner');await state(r.page,'unapproved');await approve(uid);
+  await r.page.reload();await state(r.page,'profile-pending');const before=await fcBytes(r.page);
+  await locker.goto(base+'/__synthetic_inspection');
+  await locker.evaluate(()=>{window.__held=false;navigator.locks.request('meble-main-access-profile-v1',()=>new Promise(resolve=>{window.__release=resolve;window.__held=true;}));});await locker.waitForFunction(()=>window.__held);
+  await consentToProfile(r.page);await r.page.waitForFunction(()=>navigator.locks.query().then(x=>x.pending.some(lock=>lock.name==='meble-main-access-profile-v1')));
+  await r.page.locator('#auth-signout').click();await state(r.page,'unauthenticated');await locker.evaluate(()=>window.__release());
+  await r.page.waitForFunction(()=>navigator.locks.query().then(x=>!x.pending.length&&!x.held.length));
+  assert.equal(await r.page.evaluate(()=>localStorage.getItem('meble_access_profile_v1')),null);assert.equal(await r.page.locator('#auth-profile-admission').isVisible(),false);
+  assert.deepEqual(await fcBytes(r.page),before);await businessAbsent(r);
  }finally{await locker.close();await r.ctx.close();}
 });
