@@ -1,6 +1,17 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
-## CLOUD-2B.4a + techniczne CLOUD-2C — gałąź robocza, bez aktywacji LIVE
+## CLOUD-3 — przygotowany fundament, nie aktywna migracja
+
+Baza po PR #59 `65085d18`: **CI PASS, auto-merge PASS, Pages PASS, Android zaakceptowany** — potwierdzenie właściciela. Działający Google Auth/Auth-only nie został zmieniony. Biznesowe Rules i chmurowy autorytet nadal niewdrożone.
+
+Gałąź CLOUD-3 implementuje 14 zamkniętych domen z [rejestru](CLOUD_DATA_REGISTER.md), bezstratne rekordy immutable, grupowy CAS manifest, niezależny odczyt i emulatorowe Rules z oddzielnym `globalDataEnabled/globalSchemaVersion`. Nowy `cloudDataSession.borrow` opisuje minimalne przyszłe pożyczenie prywatnej sesji main-login; nie jest rejestrowany ani wywoływany przez program. Stary `create({target:'live'})` nadal odmawia. Nie dodano importera, transportu offline z kolejką, automatycznego uploadu albo nowego UI. Szczegóły: [raport CLOUD-3](tools/reports/cloud-3-global-data-foundation.md).
+
+Projektowe PCV pozostaje w CLOUD-1B; globalne słoje/rotacja Issue #47, legacy PCV/overrides i drafty o nieustalonej własności pozostają nietknięte, poza transferem. Globalny kontrakt wyklucza znany ORS apiKey przed serializacją; nie kopiuje pełnego backupu. Zamrożone oferty nadal odczytuje dotychczasowy magazyn, bez przeliczenia cen. Kontrakt przyszłej historii/inwestorów opisano bez tworzenia nowego eksportera tych domen.
+
+Przed LIVE: osobna zgoda na prywatną integrację sesji, Rules i grant syntetycznego zakresu, zweryfikowany backup wraz z aliasami, ocena granicy zaufania klienta (Rules nie walidują SHA/JSON/pełnych relacji), budżetu Spark i zależności kalkulacji. Przełączenie każdej domeny na jeden autorytet wymaga oddzielnego zatwierdzenia. Odtworzenie modelu na drugim kliencie SDK **nie dowodzi** identycznej WYCENY ani produkcyjnej synchronizacji.
+
+
+## CLOUD-2B.4a + techniczne CLOUD-2C — scalone PR #59, LIVE nadal nieaktywny
 
 **Rozszerzenie pakietu zatwierdzone przez właściciela:** naprawiono wyścig dopuszczenia profilu przez transakcyjny rekord właściciela IndexedDB (`meble-access-profile-v1`, store `ownership`, klucz `owner`). Stan pending nie daje dostępu; poprawny v2 przechodzi bez przepisywania danych, nowe powiązanie v3 nie jest samodzielnym uprawnieniem. Usunięto produkcyjny przycisk/wyświetlanie UID, zachowując wewnętrzną autoryzację. Końcowa weryfikacja: Emulator Suite **41/41**, Chromium **28/28** (w tym 100 prób bez podwójnego dopuszczenia), profil **36/36**, pełny Preflight **PASS** (543/543 składnia, 122/122 smoke, APP 110/110), syntax/diff check PASS. Bez zgody na Ready/merge/Pages lub Firebase LIVE.
 

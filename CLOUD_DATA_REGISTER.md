@@ -1,5 +1,14 @@
 # CLOUD-1A — kanoniczny rejestr danych Meble-App
 
+## CLOUD-3 — model domenowy bez transferu danych właściciela
+
+Stan bazy po PR #59 (`65085d18`): CI/auto-merge/Pages PASS, Android zaakceptowany przez właściciela. Nowa gałąź CLOUD-3 nie dodaje kluczy localStorage/IndexedDB ani nie zmienia historycznych liczb inwentaryzacji CLOUD-1A. Przygotowuje niezarejestrowany kontrakt i transport 14 domen: materiały, okucia, producenci, dostawcy, kategorie, typy, parametry techniczne, ustawienia okuć, robocizna/stawki, usługi warsztatowe, magazyn, domyślne programu, profil firmy bez ORS apiKey, koszty firmy.
+
+Właścicielem przyszłej przestrzeni globalnej jest zatwierdzony UID, niezależnie od investorId/projectId. Fizyczne rekordy są immutable, a jeden manifest CAS zatwierdza kompletny zestaw. Źródłowe ID, nazwy-klucze słowników, ceny, parametry i referencje pozostają bez normalizacji; pięć aliasów oraz legacy materials/services mają kontrolę rozbieżności. Nie powstaje druga chmurowa kolekcja kopii kompatybilności. [Tabela źródeł, walidacja, ścieżki, limity i testy CLOUD-3](tools/reports/cloud-3-global-data-foundation.md).
+
+**LOKALNIE i DO WYJAŚNIENIA nadal nie są automatycznie transferowane.** Dotyczy to zwłaszcza fc_edge_v1, globalnych słojów/rotacji (Issue #47), fc_rozrys_overrides_v1, draftów ofert, technicznych dowodów dostępu, sesji, cache i backupów. Zlecenia usługowe, tombstones inwestorów i frozen historia to odrębne domeny biznesowe, nie katalogi globalne; nie są objęte nowym adapterem. Magazyn material keys, domyślne materiałowe i nieużyte kategorie definicji wymagają jawnego rozpoznania zależności przed kalkulacją na pustym urządzeniu. Nie zgadujemy ich mapowania ani nie dopisujemy brakujących danych.
+
+
 ## CLOUD-2B.4a / techniczne CLOUD-2C — atomowy dowód profilu (gałąź robocza)
 
 Nowy **techniczny IndexedDB** `meble-access-profile-v1`, store `ownership`, singleton `owner`: zamknięty rekord `{version:1,uid,state:'pending'|'active',attemptId}`. Rola: rozstrzygający dowód dostępu do tego profilu przeglądarki; **nie** projekt, token, grant Firebase lub własność poszczególnych danych. Właściciel UID jest niezmienny w publicznym API. Rezerwacja i aktywacja używają transakcji readwrite z strict durability; request success nie zastępuje transaction complete. Brak dostępu/błąd/nieznany rekord = odmowa, bez fallbacku do localStorage. Klasyfikacja: **LOKALNIE**, poza chmurą, selektywnym eksportem i backupem danych biznesowych; bez TTL, resetu lub automatycznego usuwania.

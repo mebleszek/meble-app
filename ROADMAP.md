@@ -1,6 +1,15 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
-## CLOUD-2B.4a + techniczne CLOUD-2C — gałąź robocza, bez aktywacji LIVE
+## CLOUD-3 — obecny pakiet techniczny (gałąź robocza)
+
+**Stan bazy po PR #59 (`65085d18`): scalony, CI PASS, auto-merge PASS, Pages PASS, Android zaakceptowany przez właściciela.** Atomowy profil IndexedDB, nieaktywny LIVE i techniczny CLOUD-2C są już w main. Nie oznacza to wdrożenia transportu biznesowego.
+
+CLOUD-3 dodaje zamknięty model 14 jednoznacznych domen globalnych, niezależny transport immutable/CAS, kandydackie Rules i testy dwóch klientów SDK. Pożyczona sesja App/Auth/Firestore jest przygotowana do przyszłego prywatnego podłączenia; **nie** jest uruchamiana przez login/startup. [Zakres, wyniki i ograniczenia](tools/reports/cloud-3-global-data-foundation.md).
+
+Dalsza kolejność: przegląd CLOUD-3 → rozstrzygnięcie Issue #47, draftów/legacy, zależności i budżetu → osobno zatwierdzony syntetyczny LIVE oraz Rules/grant → potwierdzenie realnego roundtripu → zatwierdzone przełączenie domen na jeden autorytet i automatyczna synchronizacja. Bez przycisków eksportu/synchronizacji, bez ślepego importu, z zachowaniem Zapisz/Anuluj, frozen historii i ochrony danych globalnych. Zaliczone emulatory nie zastępują tych zgód ani testu na urządzeniach.
+
+
+## CLOUD-2B.4a + techniczne CLOUD-2C — scalone PR #59, LIVE nadal nieaktywny
 
 **Rozszerzenie pakietu zatwierdzone przez właściciela:** naprawiono wyścig dopuszczenia profilu przez transakcyjny rekord właściciela IndexedDB (`meble-access-profile-v1`, store `ownership`, klucz `owner`). Stan pending nie daje dostępu; poprawny v2 przechodzi bez przepisywania danych, nowe powiązanie v3 nie jest samodzielnym uprawnieniem. Usunięto produkcyjny przycisk/wyświetlanie UID, zachowując wewnętrzną autoryzację. Końcowa weryfikacja: Emulator Suite **41/41**, Chromium **28/28** (w tym 100 prób bez podwójnego dopuszczenia), profil **36/36**, pełny Preflight **PASS** (543/543 składnia, 122/122 smoke, APP 110/110), syntax/diff check PASS. Bez zgody na Ready/merge/Pages lub Firebase LIVE.
 
@@ -31,8 +40,8 @@ Kanoniczny [rejestr CLOUD-1A](CLOUD_DATA_REGISTER.md) i [kontrakt/granice](CLOUD
 | CLOUD-2B | **SCALONE PR #52, TYLKO EMULATORY.** Adapter SDK/Auth, immutable chunks/revisions i transakcyjny manifest oparte na CLOUD-1B, realne testy emulatorowe. Transport wyłącznie lokalny demo/loopback; live zablokowany. Konsola: Spark/Google/region potwierdzone przez użytkownika; Auth-only jest produkcyjnie wdrożony; biznesowe Rules pozostają deny-all. Pierwszy upload/deployment wymagają osobnej zgody oraz zamknięcia warunków [raportu](tools/reports/cloud-2b-firebase-pilot.md). Bez UI, globalnych danych i synchronizacji. |
 | CLOUD-2B.1–1b | **SCALONE, PR #53–55.** Oddzielny ekran Google Auth, publiczny config wyłącznie strony testowej, persistence i oryginalne logo. Historyczny etap testowy; zastąpiony głównym logowaniem w PR #57. [Raport](tools/reports/cloud-2b1b-auth-branding.md). |
 | CLOUD-2B.2–3 | **SCALONE PR #56–57.** Główne logowanie, serwerowa weryfikacja appEnabled, bezpieczne dopuszczenie lokalnego profilu. CI/Pages PASS, Android zaakceptowany, Auth-only działa; bez biznesowej synchronizacji. |
-| CLOUD-2B.4a | **TEN PAKIET, GAŁĄŹ ROBOCZA.** Przygotowany, niezarejestrowany adapter pożyczający istniejącą sesję; brak aktywacji LIVE, UI i zmian grantów/Rules. |
-| CLOUD-2C — techniczne | **TEN PAKIET, TYLKO EMULATORY.** Niezależny odczyt rewizji i fragmentów, pełna integralność i model CLOUD-1B, porównanie ze źródłem, bez importu. |
+| CLOUD-2B.4a | **SCALONE PR #59.** Przygotowany, niezarejestrowany adapter pożyczający istniejącą sesję; brak aktywacji LIVE, UI i zmian grantów/Rules. |
+| CLOUD-2C — techniczne | **SCALONE PR #59, TYLKO EMULATORY.** Niezależny odczyt rewizji i fragmentów, pełna integralność i model CLOUD-1B, porównanie ze źródłem, bez importu. |
 | CLOUD-2C — produkcyjne | **NIEWYKONANE.** Osobna zgoda na rzeczywiste połączenie, biznesowe Rules i grant oraz kontrolowany syntetyczny zapis/odczyt. Odtworzenie danych nie dowodzi identycznej WYCENY bez katalogów i cen. |
 | Po CLOUD-2C — ochrona danych i rozszerzenie zakresu | Obowiązkowo zaprojektować i wdrożyć ochronę oraz zatwierdzone przeniesienie wypracowanych katalogów/cenników/stawek/słowników/ustawień; zachować historię ofert. Objąć wspierane struktury produkcyjne, prawdziwe dane inwestorów i duże projekty. Rozstrzygnąć projektową własność słojów/rotacji (Issue #47); pilot ich nie kończy. |
 | Po CLOUD-2C — autorytet chmury i automatyczna synchronizacja | Obowiązkowe, osobno zatwierdzane wdrożenie chmury jako autorytetu domen, automatyczne otrzymywanie aktualnych danych i zapis zatwierdzonych zmian na Androidzie/tablecie/komputerze. Bez ręcznych Eksportuj/Importuj/Wyślij/Pobierz/Synchronizuj i bez zmian UI. Zachować Zapisz/Anuluj; lokalny cache/draft nie jest drugim autorytetem. |

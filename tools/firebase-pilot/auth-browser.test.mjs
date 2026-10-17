@@ -559,7 +559,9 @@ test('Prepared pilot borrows actual main Google session; close preserves Auth, s
   const uid=await syntheticLogin(r.page,'main-shared-pilot-owner');await state(r.page,'unapproved');await approve(uid);
   await r.page.reload();await businessReady(r.page);const before=await fcBytes(r.page);
   assert.equal(r.requests.some(url=>url.includes('firebase-pilot-live-transport')),false,'normal business startup does not load LIVE adapter');
-  // Only this isolated emulator test loads the otherwise unregistered candidate.
+  for(const name of ['global-data-contract','firebase-global-transport','cloud-data-session'])assert.equal(r.requests.some(url=>url.includes(name)),false,'normal startup does not load CLOUD-3');
+  // Only this isolated emulator test loads the otherwise unregistered candidates.
+  for(const name of ['global-data-contract','firebase-global-transport','cloud-data-session'])await r.page.addScriptTag({url:base+'/js/app/cloud/'+name+'.js'});
   await r.page.addScriptTag({url:base+'/js/app/cloud/firebase-pilot-live-transport.js'});
   const result=await r.page.evaluate(async()=>{
    const session=window.__syntheticSharedAuth,who=session.identity(),ctx=session.verificationContext();
@@ -570,6 +572,11 @@ test('Prepared pilot borrows actual main Google session; close preserves Auth, s
    const pilot=window.FC.projectCloudPilot.create(handles.transport);
    const denied=await pilot.readHead({investorId:'synthetic-investor',projectId:'synthetic-project'});
    if(denied.code!=='CLOUD_PERMISSION_DENIED')throw Error('App approval must not authorize business pilot');
+   const boundary=await window.FC.cloudDataSession.borrow({authSession:session,assertAccess:()=>window.__FC_MAIN_ACCESS__.assert()});
+   const globalDenied=await boundary.globals.readHead();
+   if(globalDenied.code!=='GLOBAL_PERMISSION_DENIED')throw Error('App approval must not authorize global data');
+   await boundary.close();
+   if(session.verificationContext().auth!==ctx.auth||f.getFirestore(ctx.app)!==original)throw Error('Global close replaced shared instance');
    await pilot.close();
    window.__FC_MAIN_ACCESS__.assert();
    const proof=await window.__syntheticSharedVerifier.verify(who);
