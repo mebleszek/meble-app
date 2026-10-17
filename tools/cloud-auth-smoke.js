@@ -17,9 +17,9 @@ function fakeSdk(){
  return {sdk,emit(uid){current=uid?{uid,providerData:[{providerId:'google.com'}]}:null;stored=current;listener?.(current);},popupError(code){sdk.auth.signInWithPopup=()=>{popup=true;return Promise.reject({code,message:'private data must not leak'});};},get popup(){return popup;},get counts(){return {sets,inits,providerCalls};}};
 }
 async function instance(){const s=runtime(),fake=fakeSdk(),auth=await s.FC.cloudAuth.create({...config,sdk:fake.sdk});return {s,fake,auth};}
-test('Auth module registration is inert and normal index/boot stay outside opt-in page',()=>{
- const s=runtime();assert.ok(s.FC.cloudAuth);const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');assert.equal(/auth-test|cloud-auth\.js|auth-access-gate\.js/.test(index),false);
- const page=fs.readFileSync(path.join(__dirname,'../auth-test.html'),'utf8');assert.equal(/src=["'][^"']*(?:boot\.js|app\.js|project-store|catalog-store|firebase-firestore)/.test(page),false);
+test('Auth registration is inert; main entry gates business scripts and the old URL redirects',()=>{
+ const s=runtime();assert.ok(s.FC.cloudAuth);const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');assert.match(index,/<template id="business-template">/);assert.match(index,/js\/main-login\.js/);
+ const page=fs.readFileSync(path.join(__dirname,'../auth-test.html'),'utf8');assert.match(page,/url=index\.html/);assert.equal(/<script/.test(page),false);
 });
 test('Dedicated page public live-auth config matches the Console fields and loads only Auth SDK',async()=>{
  const s=runtime(),fake=fakeSdk();let loads=0,business=0;
@@ -36,8 +36,8 @@ test('Dedicated page public live-auth config matches the Console fields and load
  const gate=s.FC.authAccessGate.create(auth,{onAuthorized:()=>business++});
  fake.emit('synthetic-live-config');await tick();assert.equal(gate.state().status,'unapproved');assert.equal(business,0);
  gate.close();await auth.close();
- const page=fs.readFileSync(path.join(__dirname,'../auth-test.html'),'utf8');
- assert.match(page,/auth-test-config\.js\?v=20261016_auth1a/);
+ const page=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+ assert.match(page,/auth-test-config\.js\?v=20261017_main_login/);
 });
 test('Missing/invalid config refuses before any SDK initialization; real target is pinned',async()=>{
  const s=runtime(),fake=fakeSdk();await assert.rejects(s.FC.cloudAuth.create({sdk:fake.sdk}),e=>e.code==='AUTH_CONFIG_REQUIRED');

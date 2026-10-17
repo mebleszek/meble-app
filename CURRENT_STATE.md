@@ -1,5 +1,9 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## CLOUD-2B.3 — przygotowane główne logowanie, jeszcze bez publikacji (2026-10-17)
+
+Baza: main po PR #56. Użytkownik potwierdził istnienie dwóch administracyjnych dokumentów dostępu; nie tworzymy ich ponownie, produkcyjne Rules nadal deny-all. Gałąź `cloud-2b3-main-login` przygotowuje jeden ekran pod `index.html`, serwerową autoryzację oraz loader biznesu dopiero po zgodzie. Nie wdrożono Rules, synchronizacji ani zmian danych. **Publikację obecnemu użytkownikowi wstrzymuje decyzja o dostępie do istniejącego nieprzypisanego lokalnego profilu** — bez automatycznego przejęcia lub resetu. Nowy pusty profil może być dopuszczony po potwierdzonym proofie. [Raport, ograniczenia, procedura Rules i rollback](tools/reports/cloud-2b3-main-login.md).
+
 Data przeglądu danych i integracji: **2026-10-15**
 Baza dokumentacji: **`98fffb87` — main po PR #49**; baza kodu przed CLOUD-1B: **`f3b6905e` — po PR #46**. Nie wykonywano ponownego audytu całej logiki biznesowej; niezwiązane rozdziały zachowują wcześniejszy kontekst.
 

@@ -1,5 +1,19 @@
 const INDEX_LOAD_GROUPS = [
   {
+  "id": "auth-shell",
+  "label": "Auth before inert business startup",
+  "scripts": [
+    "js/auth-test-config.js",
+    "js/app/cloud/firebase-pilot-transport.js",
+    "js/app/cloud/cloud-auth.js",
+    "js/app/cloud/auth-access-gate.js",
+    "js/app/cloud/cloud-access-verifier.js",
+    "js/app/cloud/local-access-profile.js",
+    "js/app/cloud/main-business-loader.js",
+    "js/main-login.js"
+  ]
+},
+  {
     "id": "startup-foundation",
     "label": "Bootstrap / core / state foundation",
     "scripts": [

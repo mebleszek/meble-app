@@ -1,4 +1,4 @@
-// Auth only. Not loaded by index.html; never imports Firestore or business data.
+// Shared Google Auth. Never imports Firestore or business data.
 (function(){
   'use strict';
   const FC=window.FC=window.FC||{};

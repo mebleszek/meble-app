@@ -1,11 +1,48 @@
 <!DOCTYPE html>
-
-<html lang="pl">
+<html lang="pl" class="auth-blocked">
 <head>
-<meta charset="utf-8"/>
-<meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
-<meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>Furniture Calc — wariant/rodzaj</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title>MebLeszek</title>
+<link id="auth-theme" rel="stylesheet" href="css/auth-test.css?v=20261016_auth1b">
+<style>
+html.auth-blocked>:not(head):not(body){display:none!important}
+body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style){display:none!important}
+#main-login[hidden],#main-auth-bar[hidden]{display:none!important}
+#main-login{width:100%;display:grid;place-items:center}
+#main-auth-bar{display:flex;justify-content:flex-end;padding:4px 12px;background:#111;color:#e6c5a5}
+#main-signout{font:inherit;border:0;background:transparent;color:inherit;min-height:40px;cursor:pointer}
+</style>
+<script data-load-group="auth-shell" defer src="js/auth-test-config.js?v=20261017_main_login"></script>
+<script data-load-group="auth-shell" defer src="js/app/cloud/firebase-pilot-transport.js?v=20261017_main_login"></script>
+<script data-load-group="auth-shell" defer src="js/app/cloud/cloud-auth.js?v=20261017_main_login"></script>
+<script data-load-group="auth-shell" defer src="js/app/cloud/auth-access-gate.js?v=20261017_main_login"></script>
+<script data-load-group="auth-shell" defer src="js/app/cloud/cloud-access-verifier.js?v=20261017_main_login"></script>
+<script data-load-group="auth-shell" defer src="js/app/cloud/local-access-profile.js?v=20261017_main_login"></script>
+<script data-load-group="auth-shell" defer src="js/app/cloud/main-business-loader.js?v=20261017_main_login"></script>
+<script data-load-group="auth-shell" defer src="js/main-login.js?v=20261017_main_login"></script>
+</head>
+<body>
+<div id="main-login"><main class="auth-card" aria-labelledby="auth-title">
+<h1 id="auth-title" class="visually-hidden">Logowanie MebLeszek</h1>
+<div class="auth-logo-frame">
+<img class="auth-logo" src="assets/branding/MebLeszek_logo_oryginal.jpg?v=10140e7c" alt="MebLeszek — meble na wymiar" width="1536" height="1536" fetchpriority="high" decoding="async">
+</div>
+<div class="auth-controls">
+<button id="auth-google" class="auth-primary" type="button" disabled><span aria-hidden="true">G</span> Zaloguj przez Google</button>
+<p id="auth-status" role="status" aria-live="polite">Sprawdzanie sesji…</p>
+<p id="auth-error" role="alert" hidden></p>
+<div id="auth-account" hidden>
+<button id="auth-uid-toggle" class="auth-secondary" type="button" aria-expanded="false" aria-controls="auth-uid">Pokaż Firebase UID</button>
+<output id="auth-uid" hidden></output>
+<button id="auth-signout" class="auth-secondary" type="button">Wyloguj</button>
+</div>
+<p class="auth-test-note">Dostęp wymaga zatwierdzenia konta. Dane pozostają w tej przeglądarce.</p>
+</div>
+</main><noscript>Włącz JavaScript, aby bezpiecznie zalogować się do Meble-App.</noscript></div>
+<div id="main-auth-bar" hidden><button id="main-signout" type="button">Wyloguj</button></div>
+<template id="business-styles">
 <link href="css/base-ui.css?v=20260628_drawer_systems_materials_v1" rel="stylesheet"/>
 <link href="css/app-runtime.css?v=20260628_drawer_systems_materials_v1" rel="stylesheet"/>
 <link href="css/cabinet-common.css?v=20260628_drawer_systems_materials_v1" rel="stylesheet"/>
@@ -30,8 +67,8 @@
 <link href="css/price-item-popup.css?v=20260628_drawer_systems_materials_v1" rel="stylesheet"/>
 <link href="css/hardware-replacement-preview.css?v=20260628_drawer_systems_materials_v1" rel="stylesheet"/>
 <link href="css/quote-labor-picker.css?v=20260628_drawer_systems_materials_v1" rel="stylesheet"/>
-</head>
-<body>
+</template>
+<template id="business-template">
 <header>
 <div class="left">
 <!-- legacy: wymagane przez validator (nie pokazujemy w UI) -->
@@ -962,7 +999,7 @@
 <!-- startup-foundation: Bootstrap / core / state foundation -->
 <!-- load-group: startup-foundation | Bootstrap / core / state foundation -->
 <!-- load-group: startup-foundation | Bootstrap / core / state foundation -->
-<script data-load-group="startup-foundation" defer="" src="js/boot.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/boot.js?v=20261017_main_login"></script>
 <script data-load-group="startup-foundation" defer="" src="js/core/actions.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/core/modals.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/core-failsafe.js?v=20260628_drawer_systems_materials_v1"></script>
@@ -1299,5 +1336,6 @@
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-lists.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-render.js?v=20261013_c2_1b2c2"></script>
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-summary.js?v=20261013_c2_1b2c2"></script>
+</template>
 </body>
 </html>

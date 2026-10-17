@@ -84,6 +84,7 @@
     }catch(_){ return String(src || '').split('&boot_script_retry=')[0]; }
   }
   function retryFailedScript(scriptEl){
+    if(window.__FC_MAIN_ACCESS__ && !window.__FC_MAIN_ACCESS__.isValid()) return false;
     try{
       const rawSrc = scriptEl && (scriptEl.getAttribute('src') || scriptEl.src || '');
       if(!rawSrc) return false;
@@ -140,6 +141,7 @@
   }
 
   function startOnce(){
+    if(window.__FC_MAIN_ACCESS__ && !window.__FC_MAIN_ACCESS__.isValid()) return false;
     if (window.__APP_STARTED__) return true;
     const init = findInit();
     if (!init) return false;
@@ -256,7 +258,9 @@ Szukam: FC.init(), App.init(), initApp(), initUI().`);
   // `interactive`, ale kolejne deferred scripts z index.html mogą nadal nie być wykonane.
   // Start aplikacji dopiero po DOMContentLoaded gwarantuje, że app.js i moduły z listy `defer`
   // dostały szansę się zarejestrować, bez utraty wczesnego łapania błędów przez listenery powyżej.
-  if (document.readyState === 'complete') {
+  if (window.__FC_MAIN_ACCESS__ && window.__FC_MAIN_ACCESS__.isLoading()) {
+    document.addEventListener('DOMContentLoaded', boot, { once:true });
+  } else if (document.readyState === 'complete') {
     boot();
   } else {
     document.addEventListener('DOMContentLoaded', boot, { once:true });
