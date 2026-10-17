@@ -1,12 +1,20 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
-## CLOUD-3 — obecny pakiet techniczny (gałąź robocza)
+## CLOUD-4 — przygotowanie pilota, bez aktywacji LIVE
+
+Baza **`0cafb432f18bcd052672aac020d36128155388a7` po PR #60**. Właściciel potwierdził: **PR #60 scalony, CI/Pages PASS, Android zaakceptowany**, cenniki/materiały/okucia zachowane. Pojedynczy pierwszy `AUTH_STARTUP_FAILED` nie ma potwierdzonej przyczyny; nie dodano retry ani przebudowy logowania.
+
+Gałąź `cloud-4-live-pilot-readiness` przygotowuje niezarejestrowany, prywatny kontrakt przekazania istniejącej sesji/lease, izolowane natywne źródło syntetyczne CLOUD-1B, minimalne first-publication-only Rules z Auth-only i singletonem jednego UID oraz procedurę ograniczonego grantu. Testy dotyczą wyłącznie emulatorów i Chromium. Nie ma prywatnego call-site uruchamiającego LIVE w main-login, nowego UI, deployu Rules, grantu, uploadu, synchronizacji ani zmiany lokalnego autorytetu. Globalne dane CLOUD-3 pozostają poza pilotem.
+
+[Raport CLOUD-4: dokładny Rules SHA, źródło, testy, budżet Spark, plan zapisu/odczytu i zatrzymania](tools/reports/cloud-4-live-pilot-readiness.md). Przed rzeczywistym uruchomieniem potrzebne są **cztery osobne zgody**: (1) Ready/auto-merge/Pages kodu, (2) deploy dokładnych Rules, (3) administracyjny grant syntetycznego scope, (4) pierwszy zapis i niezależny odczyt przez przejrzany prywatny launcher. Żadna zgoda nie obejmuje automatycznie kolejnej.
+
+## CLOUD-3 — scalone PR #60, fundament pozostaje nieaktywny
 
 **Stan bazy po PR #59 (`65085d18`): scalony, CI PASS, auto-merge PASS, Pages PASS, Android zaakceptowany przez właściciela.** Atomowy profil IndexedDB, nieaktywny LIVE i techniczny CLOUD-2C są już w main. Nie oznacza to wdrożenia transportu biznesowego.
 
 CLOUD-3 dodaje zamknięty model 14 jednoznacznych domen globalnych, niezależny transport immutable/CAS, kandydackie Rules i testy dwóch klientów SDK. Pożyczona sesja App/Auth/Firestore jest przygotowana do przyszłego prywatnego podłączenia; **nie** jest uruchamiana przez login/startup. [Zakres, wyniki i ograniczenia](tools/reports/cloud-3-global-data-foundation.md).
 
-Dalsza kolejność: przegląd CLOUD-3 → rozstrzygnięcie Issue #47, draftów/legacy, zależności i budżetu → osobno zatwierdzony syntetyczny LIVE oraz Rules/grant → potwierdzenie realnego roundtripu → zatwierdzone przełączenie domen na jeden autorytet i automatyczna synchronizacja. Bez przycisków eksportu/synchronizacji, bez ślepego importu, z zachowaniem Zapisz/Anuluj, frozen historii i ochrony danych globalnych. Zaliczone emulatory nie zastępują tych zgód ani testu na urządzeniach.
+Dalsza kolejność: CLOUD-4 — kontrolowane przygotowanie syntetycznego LIVE → osobne zgody na publikację kodu, minimalne Rules, grant i wykonanie roundtripu → rozstrzygnięcie Issue #47, draftów/legacy i zależności → zatwierdzone przełączenie domen na jeden autorytet i automatyczna synchronizacja. Bez przycisków eksportu/synchronizacji, bez ślepego importu, z zachowaniem Zapisz/Anuluj, frozen historii i ochrony danych globalnych. Zaliczone emulatory nie zastępują tych zgód ani testu na urządzeniach.
 
 
 ## CLOUD-2B.4a + techniczne CLOUD-2C — scalone PR #59, LIVE nadal nieaktywny

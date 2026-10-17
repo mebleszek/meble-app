@@ -25,7 +25,7 @@ before(async()=>{
  server=http.createServer((req,res)=>{
   const name=decodeURIComponent(new URL(req.url,'http://localhost').pathname),file=path.resolve(root,'.'+name);
   if(name==='/__synthetic_inspection'){res.writeHead(200,{'content-type':'text/html'});res.end('<!doctype html><title>Synthetic inspection</title>');return;}
-  if(!file.startsWith(root+path.sep)||!/^\/(?:index\.html|auth-test\.html|dev_tests\.html|debug_price_materials\.html|autorun_cabinet_tests\.html|js\/|css\/|assets\/)/.test(name)){res.writeHead(404);res.end();return;}
+  if(!file.startsWith(root+path.sep)||!/^\/(?:index\.html|auth-test\.html|dev_tests\.html|debug_price_materials\.html|autorun_cabinet_tests\.html|js\/|css\/|assets\/|tools\/firebase-pilot\/cloud4-(?:source-worker|synthetic-source)\.js$)/.test(name)){res.writeHead(404);res.end();return;}
   try{const type={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.jpg':'image/jpeg'}[path.extname(file)]||'application/octet-stream';res.writeHead(200,{'content-type':type,'cache-control':'no-store'});res.end(fs.readFileSync(file));}catch(_){res.writeHead(404);res.end();}
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));base='http://127.0.0.1:'+server.address().port;
@@ -554,19 +554,42 @@ test('Prepared pilot borrows actual main Google session; close preserves Auth, s
    const body=fs.readFileSync(path.join(root,'js/app/cloud/cloud-access-verifier.js'),'utf8');
    await route.fulfill({contentType:'text/javascript',body:body+'\n{const original=window.FC.cloudAccessVerifier.create;window.FC.cloudAccessVerifier.create=function(...args){const verifier=original(...args);window.__syntheticSharedVerifier=verifier;return verifier;};}'});
   });
+  await r.ctx.route('**/js/app/cloud/auth-access-gate.js*',async route=>{
+   const body=fs.readFileSync(path.join(root,'js/app/cloud/auth-access-gate.js'),'utf8');
+   await route.fulfill({contentType:'text/javascript',body:body+'\n{const original=window.FC.authAccessGate.create;window.FC.authAccessGate.create=function(session,options){return original(session,{...options,onAuthorized(lease){window.__syntheticLease=lease;return options.onAuthorized(lease);}});};}'});
+  });
   await r.page.goto(base+'/index.html');await state(r.page,'unauthenticated');
   assert.equal(r.requests.some(url=>url.includes('firebase-pilot-live-transport')),false,'normal login does not load LIVE adapter');
   const uid=await syntheticLogin(r.page,'main-shared-pilot-owner');await state(r.page,'unapproved');await approve(uid);
   await r.page.reload();await businessReady(r.page);const before=await fcBytes(r.page);
   assert.equal(r.requests.some(url=>url.includes('firebase-pilot-live-transport')),false,'normal business startup does not load LIVE adapter');
+  assert.equal(r.requests.some(url=>url.includes('controlled-project-pilot')||url.includes('cloud4-source-worker')),false,'normal startup cannot launch CLOUD-4');
   for(const name of ['global-data-contract','firebase-global-transport','cloud-data-session'])assert.equal(r.requests.some(url=>url.includes(name)),false,'normal startup does not load CLOUD-3');
   // Only this isolated emulator test loads the otherwise unregistered candidates.
   for(const name of ['global-data-contract','firebase-global-transport','cloud-data-session'])await r.page.addScriptTag({url:base+'/js/app/cloud/'+name+'.js'});
   await r.page.addScriptTag({url:base+'/js/app/cloud/firebase-pilot-live-transport.js'});
+  await r.page.addScriptTag({url:base+'/js/app/cloud/controlled-project-pilot.js'});
   const result=await r.page.evaluate(async()=>{
    const session=window.__syntheticSharedAuth,who=session.identity(),ctx=session.verificationContext();
    const f=await import('https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js');
    const original=f.getFirestore(ctx.app);
+   // Actual worker imports native project/session/export modules into an isolated
+   // MemoryStorage realm, never the real page localStorage or active project.
+   const worker=new Worker('tools/firebase-pilot/cloud4-source-worker.js');
+   let serial=0;
+   const builder={build:options=>new Promise((resolve,reject)=>{
+    const id=++serial,timer=setTimeout(()=>reject(Error('Synthetic source worker timeout')),15000);
+    worker.onmessage=event=>{if(event.data.id===id){clearTimeout(timer);resolve(event.data.result);}};
+    worker.onerror=()=>{clearTimeout(timer);reject(Error('Synthetic source worker failed'));};
+    worker.postMessage({id,options});
+   })};
+   const contract=window.FC.controlledProjectPilot,source=await builder.build({...contract.scope,purpose:'pilot'});
+   if(!source.ok||source.utf8Bytes!==6797||source.document.integrity.payloadSha256!==contract.payloadSha256)throw Error('Native source mismatch');
+   const controlled=await contract.borrow({authSession:session,lease:window.__syntheticLease,assertLocalAccess:()=>window.__FC_MAIN_ACCESS__.assert(),builder,
+    approval:{version:1,ownerUid:who.uid,...contract.scope,payloadSha256:contract.payloadSha256,rulesSha256:contract.rulesSha256,expiresAt:Date.now()+600000}});
+   const refusal=await controlled.prepare();
+   if(refusal.code!=='CLOUD_PERMISSION_DENIED')throw Error('CLOUD-4 must require separate project grant');
+   await controlled.close();worker.terminate();
    const handles=await window.FC.firebasePilotLiveTransport.create({authSession:session,assertAccess:()=>window.__FC_MAIN_ACCESS__.assert()});
    if(handles.app!==ctx.app||handles.auth!==ctx.auth||handles.db!==original)throw Error('Shared instance mismatch');
    const pilot=window.FC.projectCloudPilot.create(handles.transport);
