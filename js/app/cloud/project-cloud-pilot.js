@@ -27,6 +27,16 @@
         return {ok:true,head:await transport.readHead(scope)};
       }catch(e){return failure(e);}
     }
+    async function read({investorId,projectId}){
+      try{
+        if(closed)c.reject('CLOUD_CLIENT_CLOSED');
+        await transport.ready();const user=transport.identity(),scope={ownerUid:user.uid,investorId,projectId};
+        if(!c.id(investorId)||!c.id(projectId))c.reject('CLOUD_SCOPE_INVALID');
+        const result=await transport.readProject(scope);
+        check({scope,epoch:user.epoch});
+        return {ok:true,...result};
+      }catch(e){return failure(e);}
+    }
     async function prepare({investorId,projectId,expectedHead}){
       try{
         if(closed)c.reject('CLOUD_CLIENT_CLOSED');await transport.ready();const user=transport.identity(),scope={ownerUid:user.uid,investorId,projectId};
@@ -68,7 +78,7 @@
         return failure(e,{phase,published:attempt?.state==='published'?true:unconfirmed?'unconfirmed':false,staging:attempt?.staged?'confirmed':phase==='staging'?'unconfirmed':'not_confirmed'});
       }
     }
-    return {readHead,prepare,publish,confirm,async close(){closed=true;await transport.close();}};
+    return {readHead,read,prepare,publish,confirm,async close(){closed=true;await transport.close();}};
   }
   FC.projectCloudPilot={create};
 })();

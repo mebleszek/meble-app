@@ -1,5 +1,7 @@
 # CLOUD-2B — przygotowanie pierwszego zapisu Firebase
 
+> Aktualizacja statusu po PR #57/#58: główne logowanie scalono, CI/Pages PASS, Android zaakceptowany i Auth-only produkcyjnie działa (potwierdzenie właściciela). Biznesowy transport/Rules i synchronizacja nadal nieaktywne. Poniższe wyniki zachowują historię swojego etapu; nowy zakres i ograniczenia: [CLOUD-2B.4a + techniczne CLOUD-2C](cloud-2b4a-technical-2c.md).
+
 Data: 2026-10-16. Baza: main `5a63cda6`. Zakres tej gałęzi: nieaktywny adapter, realne SDK i testy Auth/Firestore Emulator Suite. **Bez połączenia aplikacji z rzeczywistym Firebase, publikacji Rules, uploadu, zmiany UI lub lokalnego autorytetu danych.**
 
 ## Stan usługi a stan aplikacji

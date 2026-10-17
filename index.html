@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="referrer" content="no-referrer">
 <title>MebLeszek</title>
-<link id="auth-theme" rel="stylesheet" href="css/auth-test.css?v=20261017_profile_admission">
+<link id="auth-theme" rel="stylesheet" href="css/auth-test.css?v=20261017_atomic_profile">
 <style>
 html.auth-blocked>:not(head):not(body){display:none!important}
 body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style){display:none!important}
@@ -15,13 +15,13 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 #main-signout{font:inherit;border:0;background:transparent;color:inherit;min-height:40px;cursor:pointer}
 </style>
 <script data-load-group="auth-shell" defer src="js/auth-test-config.js?v=20261017_main_login"></script>
-<script data-load-group="auth-shell" defer src="js/app/cloud/firebase-pilot-transport.js?v=20261017_main_login"></script>
+<script data-load-group="auth-shell" defer src="js/app/cloud/firebase-pilot-transport.js?v=20261017_atomic_profile"></script>
 <script data-load-group="auth-shell" defer src="js/app/cloud/cloud-auth.js?v=20261017_main_login"></script>
 <script data-load-group="auth-shell" defer src="js/app/cloud/auth-access-gate.js?v=20261017_main_login"></script>
 <script data-load-group="auth-shell" defer src="js/app/cloud/cloud-access-verifier.js?v=20261017_main_login"></script>
-<script data-load-group="auth-shell" defer src="js/app/cloud/local-access-profile.js?v=20261017_profile_commit"></script>
+<script data-load-group="auth-shell" defer src="js/app/cloud/local-access-profile.js?v=20261017_atomic_profile"></script>
 <script data-load-group="auth-shell" defer src="js/app/cloud/main-business-loader.js?v=20261017_main_login"></script>
-<script data-load-group="auth-shell" defer src="js/main-login.js?v=20261017_profile_commit"></script>
+<script data-load-group="auth-shell" defer src="js/main-login.js?v=20261017_atomic_profile"></script>
 </head>
 <body>
 <div id="main-login"><main class="auth-card" aria-labelledby="auth-title">
@@ -43,8 +43,6 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <button id="auth-profile-cancel" class="auth-secondary" type="button">Anuluj</button>
 </section>
 <div id="auth-account" hidden>
-<button id="auth-uid-toggle" class="auth-secondary" type="button" aria-expanded="false" aria-controls="auth-uid">Pokaż Firebase UID</button>
-<output id="auth-uid" hidden></output>
 <button id="auth-signout" class="auth-secondary" type="button">Wyloguj</button>
 </div>
 <p class="auth-test-note">Dostęp wymaga zatwierdzenia konta. Dane pozostają w tej przeglądarce.</p>
@@ -1178,9 +1176,9 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="app-runtime" defer="" src="js/app/project/project-pcv-policy.js?v=20261014_pcv_save_conflict"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/project/project-export-contract.js?v=20261015_cloud1b"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/project/project-selective-export.js?v=20261015_cloud1b"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/cloud/cloud-pilot-contract.js?v=20261015_cloud2b"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/cloud/firebase-pilot-transport.js?v=20261015_cloud2b"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/cloud/project-cloud-pilot.js?v=20261015_cloud2b"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/cloud/cloud-pilot-contract.js?v=20261017_atomic_profile"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/cloud/firebase-pilot-transport.js?v=20261017_atomic_profile"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/cloud/project-cloud-pilot.js?v=20261017_atomic_profile"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-actions.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-summary.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/ui/layout-state.js?v=20260628_drawer_systems_materials_v1"></script>

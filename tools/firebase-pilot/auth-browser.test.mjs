@@ -44,6 +44,13 @@ async function context({seed=true,configured=true,viewport={width:393,height:852
   if(allowHelper&&url.hostname==='apis.google.com'&&(url.pathname==='/js/api.js'||url.pathname.startsWith('/_/scs/'))&&route.request().method()==='GET'){
    try{const body=execFileSync('curl',['--fail','--silent','--show-error','--location','--max-time','25',url.href]);await route.fulfill({contentType:'text/javascript',body});}catch(_){external.push(url.href);await route.abort();}return;
   }
+  // Google's helper intermittently sends this numeric loader timing beacon.
+  // Stub it locally: no telemetry is forwarded, and all other API traffic
+  // remains an unexpected external request (including Auth/Firestore live).
+  if(allowHelper&&url.hostname==='apis.google.com'&&url.pathname==='/js/gen_204'&&route.request().method()==='GET'
+    &&Array.from(url.searchParams.keys()).every(key=>key==='c')&&/^\d+:\d+$/.test(url.searchParams.get('c')||'')){
+   await route.fulfill({status:204,body:''});return;
+  }
   // Optional emulator widget styling is not part of the app or Auth proof.
   if(['fonts.googleapis.com','fonts.gstatic.com'].includes(url.hostname)||(url.hostname==='unpkg.com'&&url.pathname.startsWith('/material-components-web@10/'))){await route.abort();return;}
   if(!['localhost','127.0.0.1'].includes(url.hostname)){external.push(url.href);await route.abort();return;}
@@ -118,10 +125,10 @@ test('Actual Google popup, independent UID, SDK persistence across reload, logou
   await popup.getByRole('button',{name:'Add new account'}).click();
   await popup.locator('#email-input').fill('browser-synthetic@example.invalid');
   await popup.locator('#sign-in').click();
-  await state(r.page,'unapproved');await r.page.locator('#auth-uid-toggle').click();const uid=await r.page.locator('#auth-uid').innerText();assert.ok(uid.length>0);
-  await r.page.reload();await state(r.page,'unapproved');await r.page.locator('#auth-uid-toggle').click();assert.equal(await r.page.locator('#auth-uid').innerText(),uid);
+  await state(r.page,'unapproved');const uid=await currentUid(r.page);assert.ok(uid.length>0);
+  await r.page.reload();await state(r.page,'unapproved');assert.equal(await currentUid(r.page),uid);assert.equal(await r.page.locator('#auth-uid-toggle, #auth-uid').count(),0);
   await geometry(r.page);await businessAbsent(r);assert.deepEqual(await r.page.evaluate(()=>Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('fc_')))),before);
-  await r.page.locator('#auth-signout').click();await state(r.page,'unauthenticated');assert.equal(await r.page.locator('#auth-uid').isVisible(),false);
+  await r.page.locator('#auth-signout').click();await state(r.page,'unauthenticated');assert.equal(await r.page.locator('#auth-uid-toggle, #auth-uid').count(),0);
   await r.page.reload();await state(r.page,'unauthenticated');
  }finally{await r.ctx.close();}
 });
@@ -146,12 +153,12 @@ test('Real browser SDK persistence: synthetic Google credential, reload, new tab
    const payload=btoa(JSON.stringify({sub:'browser-persistence',email:'browser-persistence@example.invalid',email_verified:true})).replaceAll('=','');
    return (await signInWithCredential(getAuth(getApp('meble-auth-test')),GoogleAuthProvider.credential('e30.'+payload+'.'))).user.uid;
   });
-  await state(r.page,'unapproved');await r.page.locator('#auth-uid-toggle').click();assert.equal(await r.page.locator('#auth-uid').innerText(),expected);
+  await state(r.page,'unapproved');assert.equal(await currentUid(r.page),expected);assert.equal(await r.page.locator('#auth-uid-toggle, #auth-uid').count(),0);
   assert.ok((await r.page.evaluate(()=>indexedDB.databases())).some(x=>x.name==='firebaseLocalStorageDb'));
-  await r.page.reload();await state(r.page,'unapproved');await r.page.locator('#auth-uid-toggle').click();assert.equal(await r.page.locator('#auth-uid').innerText(),expected);
+  await r.page.reload();await state(r.page,'unapproved');assert.equal(await currentUid(r.page),expected);assert.equal(await r.page.locator('#auth-uid-toggle, #auth-uid').count(),0);
   await r.page.close();r.page=await r.ctx.newPage();await r.page.goto(base+'/index.html');await state(r.page,'unapproved');
   await geometry(r.page);await businessAbsent(r);assert.deepEqual(await r.page.evaluate(()=>Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('fc_')))),before);
-  await r.page.locator('#auth-signout').tap();await state(r.page,'unauthenticated');assert.equal(await r.page.locator('#auth-uid').isVisible(),false);
+  await r.page.locator('#auth-signout').tap();await state(r.page,'unauthenticated');assert.equal(await r.page.locator('#auth-uid-toggle, #auth-uid').count(),0);
   await r.page.reload();await state(r.page,'unauthenticated');
  }finally{await r.ctx.close();}
 });
@@ -188,7 +195,7 @@ test('Server-approved UID cannot silently adopt existing local data; revocation 
   assert.equal(await r.page.locator('#auth-profile-admission').isVisible(),true);
   assert.equal(await r.page.locator('#auth-profile-confirm').isDisabled(),true);
   assert.equal(await r.page.evaluate(()=>localStorage.getItem('meble_access_profile_v1')),null);
-  await r.page.locator('#auth-uid-toggle').click();assert.equal(await r.page.locator('#auth-uid').innerText(),uid);
+  assert.equal(await currentUid(r.page),uid);assert.equal(await r.page.locator('#auth-uid-toggle, #auth-uid').count(),0);
   assert.equal(await r.page.locator('.auth-logo').evaluate(img=>img.naturalWidth),1536);await geometry(r.page);await businessAbsent(r);
   await env.withSecurityRulesDisabled(ctx=>updateDoc(doc(ctx.firestore(),'authorizedUsers',uid),{appEnabled:false}));
   try{await r.page.waitForFunction(()=>document.body.dataset.authState==='revoked',null,{timeout:40000});}catch(error){error.message+=' '+await r.page.locator('#auth-status').innerText()+' '+await r.page.locator('#auth-error').innerText();throw error;}
@@ -197,6 +204,7 @@ test('Server-approved UID cannot silently adopt existing local data; revocation 
   await r.page.locator('#auth-signout').click();await state(r.page,'unauthenticated');await businessAbsent(r);
  }finally{await r.ctx.close();}
 });
+async function currentUid(page){return page.evaluate(async()=>{const a=await import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js');const f=await import('https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js');return f.getAuth(a.getApp('meble-auth-test')).currentUser?.uid||null;});}
 async function syntheticLogin(page,sub){
  return page.evaluate(async sub=>{
   const {getApp}=await import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js');
@@ -324,7 +332,7 @@ test('Concurrent first-use profiles serialize their receipts; only one UID can b
   await r.page.goto(base+'/__synthetic_inspection');await r.page.addScriptTag({url:base+'/js/app/cloud/local-access-profile.js'});
   const result=await r.page.evaluate(async()=>{
    const profile=window.FC.localAccessProfile.create(localStorage,sessionStorage);
-   const results=await Promise.all(['synthetic-first','synthetic-second'].map(uid=>navigator.locks.request('meble-main-access-profile-v1',()=>{try{profile.confirm(uid);return 'ok';}catch(e){return e.code;}})));
+   const results=await Promise.all(['synthetic-first','synthetic-second'].map(uid=>navigator.locks.request('meble-main-access-profile-v1',async()=>{try{await profile.confirm(uid);return 'ok';}catch(e){return e.code;}})));
    return {results,receipt:JSON.parse(localStorage.getItem(profile.key)),business:Object.keys(localStorage).filter(k=>k.startsWith('fc_'))};
   });
   assert.equal(result.results.filter(x=>x==='ok').length,1);assert.equal(result.results.filter(x=>x==='LOCAL_ACCESS_OTHER_ACCOUNT').length,1);assert.deepEqual(result.business,[]);assert.equal(result.receipt.uid,'synthetic-first');
@@ -405,7 +413,11 @@ test('Native existing profile: one explicit admission preserves bytes and an act
   // Fixture preparation only: emulate the pre-deployment profile, without its
   // future receipt. Never run this operation against an owner's browser data.
   const inspection=await r.ctx.newPage();await inspection.goto(base+'/__synthetic_inspection');
-  await inspection.evaluate(()=>localStorage.removeItem('meble_access_profile_v1'));await inspection.close();
+  await inspection.evaluate(async()=>{
+   localStorage.removeItem('meble_access_profile_v1');
+   // Synthetic pre-upgrade fixture only: the old release had no coordinator DB.
+   await new Promise((resolve,reject)=>{const request=indexedDB.deleteDatabase('meble-access-profile-v1');request.onsuccess=()=>resolve();request.onerror=request.onblocked=()=>reject(Error('synthetic database fixture cleanup blocked'));});
+  });await inspection.close();
   await r.page.reload();await state(r.page,'profile-pending');const before=await fcBytes(r.page);
   assert.equal(before.fc_edit_session_v1,saved.snapshot);
   await r.page.evaluate(()=>{window.__syntheticAdmissionFail=true;});await consentToProfile(r.page);await state(r.page,'error');
@@ -423,7 +435,7 @@ test('Native existing profile: one explicit admission preserves bytes and an act
   assert.equal(await r.page.evaluate(()=>window.__APP_STARTED__),undefined);
   assert.deepEqual(await fcBytes(r.page),before,'admission itself changes zero fc_* bytes, before any business module executes');
   const receipt=await r.page.evaluate(()=>JSON.parse(localStorage.getItem('meble_access_profile_v1')));
-  assert.equal(receipt.version,2);assert.equal(receipt.uid,uid);assert.match(receipt.attemptId,/^[0-9a-f-]{36}$/);
+  assert.equal(receipt.version,3);assert.equal(receipt.uid,uid);assert.match(receipt.attemptId,/^[0-9a-f-]{36}$/);
   assert.equal(await r.page.evaluate(()=>localStorage.getItem('meble_access_profile_pending_v1')),null);
   release();await businessReady(r.page);await r.ctx.unroute('**/js/app/shared/constants.js*');
   const after=await fcBytes(r.page);assert.equal(after.fc_edit_session_v1,saved.snapshot,'startup must not cancel or replace the durable snapshot');
@@ -469,7 +481,7 @@ test('Profile admission detects concurrent business changes, receipt corruption 
    await businessAbsent(r);assert.deepEqual(await fcBytes(r.page),expected);
    const raw=await inspector.evaluate(()=>Object.fromEntries(Object.entries(localStorage)).meble_access_profile_v1??null);
    if(kind==='corrupt-receipt')assert.equal(raw,'broken');
-   else if(['partial-write','changed-during-write','commit-removal'].includes(kind)){assert.equal(JSON.parse(raw).version,2);assert.equal(JSON.parse(raw).uid,uid);}
+   else if(['partial-write','changed-during-write','commit-removal'].includes(kind)){assert.equal(JSON.parse(raw).version,3);assert.equal(JSON.parse(raw).uid,uid);}
    else assert.equal(raw,null);
    if(kind!=='corrupt-receipt'){
     // A NEW document forgets all in-memory fault flags. A persisted candidate
@@ -501,11 +513,11 @@ test('Two existing-profile admissions use the real cross-tab Web Lock and never 
  const r=await context(),other=await r.ctx.newPage();try{
   for(const page of [r.page,other]){await page.goto(base+'/__synthetic_inspection');await page.addScriptTag({url:base+'/js/app/cloud/local-access-profile.js'});}
   const before=await fcBytes(r.page);
-  const prepare=async(page,uid)=>page.evaluate(uid=>{window.__profile=window.FC.localAccessProfile.create(localStorage,sessionStorage);window.__ticket=window.__profile.prepareAdmission(uid);},uid);
+  const prepare=async(page,uid)=>page.evaluate(async uid=>{window.__profile=window.FC.localAccessProfile.create(localStorage,sessionStorage);window.__ticket=await window.__profile.prepareAdmission(uid);},uid);
   await prepare(r.page,'synthetic-existing-owner');await prepare(other,'synthetic-foreign-owner');
   await r.page.evaluate(()=>{window.__held=false;navigator.locks.request('meble-main-access-profile-v1',()=>new Promise(resolve=>{window.__release=resolve;window.__held=true;}));});await r.page.waitForFunction(()=>window.__held);
-  const submit=async(page,uid)=>page.evaluate(uid=>navigator.locks.request('meble-main-access-profile-v1',()=>{
-   try{window.__profile.admitExisting(uid,window.__ticket,{backupConfirmed:true,ownerConfirmed:true});return 'ok';}catch(e){return e.code;}
+  const submit=async(page,uid)=>page.evaluate(uid=>navigator.locks.request('meble-main-access-profile-v1',async()=>{
+   try{await window.__profile.admitExisting(uid,window.__ticket,{backupConfirmed:true,ownerConfirmed:true});return 'ok';}catch(e){return e.code;}
   }),uid);
   const first=submit(r.page,'synthetic-existing-owner');
   await r.page.waitForFunction(()=>navigator.locks.query().then(x=>x.pending.length===1));
@@ -528,4 +540,158 @@ test('Logout while explicit admission waits for the profile lock invalidates con
   assert.equal(await r.page.evaluate(()=>localStorage.getItem('meble_access_profile_v1')),null);assert.equal(await r.page.locator('#auth-profile-admission').isVisible(),false);
   assert.deepEqual(await fcBytes(r.page),before);await businessAbsent(r);
  }finally{await locker.close();await r.ctx.close();}
+});
+
+test('Prepared pilot borrows actual main Google session; close preserves Auth, server verifier and business access',async()=>{
+ const r=await context({seed:false});
+ try{
+  // Test-only observation of the real factory result: production main keeps it private.
+  await r.ctx.route('**/js/app/cloud/cloud-auth.js*',async route=>{
+   const body=fs.readFileSync(path.join(root,'js/app/cloud/cloud-auth.js'),'utf8');
+   await route.fulfill({contentType:'text/javascript',body:body+'\n{const original=FC.cloudAuth.create;FC.cloudAuth.create=async function(...args){const session=await original(...args);window.__syntheticSharedAuth=session;return session;};}'});
+  });
+  await r.ctx.route('**/js/app/cloud/cloud-access-verifier.js*',async route=>{
+   const body=fs.readFileSync(path.join(root,'js/app/cloud/cloud-access-verifier.js'),'utf8');
+   await route.fulfill({contentType:'text/javascript',body:body+'\n{const original=window.FC.cloudAccessVerifier.create;window.FC.cloudAccessVerifier.create=function(...args){const verifier=original(...args);window.__syntheticSharedVerifier=verifier;return verifier;};}'});
+  });
+  await r.page.goto(base+'/index.html');await state(r.page,'unauthenticated');
+  assert.equal(r.requests.some(url=>url.includes('firebase-pilot-live-transport')),false,'normal login does not load LIVE adapter');
+  const uid=await syntheticLogin(r.page,'main-shared-pilot-owner');await state(r.page,'unapproved');await approve(uid);
+  await r.page.reload();await businessReady(r.page);const before=await fcBytes(r.page);
+  assert.equal(r.requests.some(url=>url.includes('firebase-pilot-live-transport')),false,'normal business startup does not load LIVE adapter');
+  // Only this isolated emulator test loads the otherwise unregistered candidate.
+  await r.page.addScriptTag({url:base+'/js/app/cloud/firebase-pilot-live-transport.js'});
+  const result=await r.page.evaluate(async()=>{
+   const session=window.__syntheticSharedAuth,who=session.identity(),ctx=session.verificationContext();
+   const f=await import('https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js');
+   const original=f.getFirestore(ctx.app);
+   const handles=await window.FC.firebasePilotLiveTransport.create({authSession:session,assertAccess:()=>window.__FC_MAIN_ACCESS__.assert()});
+   if(handles.app!==ctx.app||handles.auth!==ctx.auth||handles.db!==original)throw Error('Shared instance mismatch');
+   const pilot=window.FC.projectCloudPilot.create(handles.transport);
+   const denied=await pilot.readHead({investorId:'synthetic-investor',projectId:'synthetic-project'});
+   if(denied.code!=='CLOUD_PERMISSION_DENIED')throw Error('App approval must not authorize business pilot');
+   await pilot.close();
+   window.__FC_MAIN_ACCESS__.assert();
+   const proof=await window.__syntheticSharedVerifier.verify(who);
+   return {sameIdentity:JSON.stringify(session.identity())===JSON.stringify(who),approved:proof.ok,closed:(await pilot.readHead({investorId:'I',projectId:'P'})).ok};
+  });
+  assert.equal(result.sameIdentity,true);assert.equal(result.approved,true);assert.equal(result.closed,false);
+  assert.deepEqual(await fcBytes(r.page),before);assert.deepEqual(r.external,[]);
+  await r.page.locator('#main-signout').click();await state(r.page,'unauthenticated');
+  assert.deepEqual(await inspectBytes(r.ctx),before);
+ }finally{await r.ctx.close();}
+});
+
+// Real native IndexedDB, independent tab storage views; no Firebase or business startup.
+async function isolatedProfiles({stale=false}={}){
+ const r=await context({seed:false}),other=await r.ctx.newPage();
+ for(const page of [r.page,other]){
+  await page.goto(base+'/__synthetic_inspection');
+  await page.evaluate(stale=>{
+   for(const key of ['fc_quote_rates_v1','fc_accessories_v1','fc_projects_v1','fc_edit_session_v1','fc_data_backups_v1','fc_quote_snapshots_v1','hardwareSettings','hardwareCategories','hardwareSuppliers','hardwareTechnicalParams','hardwareTypes'])if(localStorage.getItem(key)===null)localStorage.setItem(key,'synthetic unchanged '+key);
+   sessionStorage.setItem('fc_reload_restore_v1','synthetic unchanged session');
+   if(stale){
+    const get=Storage.prototype.getItem,set=Storage.prototype.setItem,remove=Storage.prototype.removeItem,cache=new Map();
+    const protectedKey=k=>String(k).startsWith('meble_access_profile_');
+    // Force the exact original defect: each tab reads only its own access writes.
+    Storage.prototype.getItem=function(k){return this===localStorage&&protectedKey(k)?cache.get(k)??null:get.call(this,k);};
+    Storage.prototype.setItem=function(k,v){if(this===localStorage&&protectedKey(k))cache.set(k,String(v));return set.call(this,k,v);};
+    Storage.prototype.removeItem=function(k){if(this===localStorage&&protectedKey(k))cache.delete(k);return remove.call(this,k);};
+   }
+  },stale);
+  await page.addScriptTag({url:base+'/js/app/cloud/local-access-profile.js'});
+  await page.evaluate(()=>{window.__profile=window.FC.localAccessProfile.create(localStorage,sessionStorage);});
+ }
+ return {...r,other};
+}
+async function profileBusiness(page){return page.evaluate(()=>({local:Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('fc_')||k.startsWith('hardware'))),session:Object.fromEntries(Object.entries(sessionStorage))}));}
+async function ticket(page,uid){await page.evaluate(async uid=>{window.__ticket=await window.__profile.prepareAdmission(uid);},uid);}
+async function admit(page,uid){return page.evaluate(async uid=>{try{await window.__profile.admitExisting(uid,window.__ticket,{backupConfirmed:true,ownerConfirmed:true});window.__profile.assert(uid);return 'ok';}catch(e){return e.code;}},uid);}
+async function storedOwner(page){return page.evaluate(()=>new Promise((resolve,reject)=>{
+ const req=indexedDB.open('meble-access-profile-v1',1);req.onerror=()=>reject(Error('read coordinator'));
+ req.onsuccess=()=>{const db=req.result,tx=db.transaction('ownership','readonly'),get=tx.objectStore('ownership').get('owner');let value;
+ get.onsuccess=()=>{value=get.result;};tx.oncomplete=()=>{db.close();resolve(value);};tx.onabort=()=>{db.close();reject(Error('unconfirmed coordinator read'));};};
+}));}
+test('Deterministic stale localStorage after the winning admission cannot accept a second UID',async()=>{
+ const r=await isolatedProfiles({stale:true});try{
+  const a=await profileBusiness(r.page),b=await profileBusiness(r.other);
+  await ticket(r.page,'deterministic-owner');await ticket(r.other,'deterministic-other');
+  assert.equal(await admit(r.page,'deterministic-owner'),'ok');
+  assert.equal(await r.other.evaluate(()=>localStorage.getItem('meble_access_profile_v1')),null,'the losing tab still sees exactly the stale null');
+  assert.equal(await admit(r.other,'deterministic-other'),'LOCAL_ACCESS_OTHER_ACCOUNT');
+  assert.equal((await storedOwner(r.other)).uid,'deterministic-owner');
+  for(const page of [r.page,r.other]){
+   await page.reload();await page.addScriptTag({url:base+'/js/app/cloud/local-access-profile.js'});
+   const result=await page.evaluate(async()=>{const p=window.FC.localAccessProfile.create(localStorage,sessionStorage);await p.confirm('deterministic-owner');p.assert('deterministic-owner');try{await p.confirm('deterministic-other');return 'wrong';}catch(e){return e.code;}});
+   assert.equal(result,'LOCAL_ACCESS_OTHER_ACCOUNT');
+  }
+  assert.deepEqual(await profileBusiness(r.page),a);assert.deepEqual(await profileBusiness(r.other),b);
+ }finally{await r.other.close();await r.ctx.close();}
+});
+test('Native Chromium: 100 simultaneous different-UID admissions never produce two successful owners',async()=>{
+ let winners=0;
+ for(let iteration=0;iteration<100;iteration++){
+  const r=await isolatedProfiles();try{
+   const a=await profileBusiness(r.page),b=await profileBusiness(r.other),uids=['native-owner-'+iteration,'native-other-'+iteration];
+   await ticket(r.page,uids[0]);await ticket(r.other,uids[1]);
+   // Both attempts are submitted together; no sleeps, ordering preference or retry.
+   const results=await Promise.all([admit(r.page,uids[0]),admit(r.other,uids[1])]);
+   assert.equal(results.filter(x=>x==='ok').length,1,'exactly one confirmed owner at iteration '+iteration+': '+JSON.stringify(results));
+   assert.equal(results.filter(x=>x==='LOCAL_ACCESS_OTHER_ACCOUNT').length,1);
+   const winning=uids[results.indexOf('ok')],record=await storedOwner(r.page);assert.equal(record.uid,winning);assert.equal(record.state,'active');winners++;
+   assert.deepEqual(await profileBusiness(r.page),a);assert.deepEqual(await profileBusiness(r.other),b);
+  }finally{await r.other.close();await r.ctx.close();}
+ }
+ assert.equal(winners,100);
+});
+test('Native same UID in two stale views shares one owner; restart uses the committed owner',async()=>{
+ const r=await isolatedProfiles({stale:true});try{
+  await ticket(r.page,'same-owner');await ticket(r.other,'same-owner');
+  assert.deepEqual(await Promise.all([admit(r.page,'same-owner'),admit(r.other,'same-owner')]),['ok','ok']);
+  assert.equal((await storedOwner(r.page)).uid,'same-owner');
+  for(const page of [r.page,r.other]){await page.reload();await page.addScriptTag({url:base+'/js/app/cloud/local-access-profile.js'});assert.equal(await page.evaluate(async()=>{const p=window.FC.localAccessProfile.create(localStorage,sessionStorage);await p.confirm('same-owner');p.assert('same-owner');return 'ok';}),'ok');}
+ }finally{await r.other.close();await r.ctx.close();}
+});
+test('Native IndexedDB activation failure/readback failure/abort leaves a pending owner, never a trusted candidate after restart',async()=>{
+ for(const fault of ['activation-put','activation-readback','activation-abort','after-reservation']){
+  const r=await isolatedProfiles();try{
+   const before=await profileBusiness(r.page);await ticket(r.page,'fault-owner');
+   await r.page.evaluate(fault=>{
+    const put=IDBObjectStore.prototype.put,get=IDBObjectStore.prototype.get;let activated=false;
+    IDBObjectStore.prototype.put=function(value,...args){
+     if(this.name==='ownership'&&value.state==='active'){
+      if(fault==='activation-put')throw Error('synthetic activation failure');
+      activated=true;
+     }
+     const request=put.call(this,value,...args);
+     if(this.name==='ownership'&&value.state==='active'&&fault==='activation-abort')request.addEventListener('success',()=>this.transaction.abort());
+     if(this.name==='ownership'&&value.state==='pending'&&fault==='after-reservation')this.transaction.addEventListener('complete',()=>window.__profile.revoke());
+     return request;
+    };
+    IDBObjectStore.prototype.get=function(...args){const request=get.apply(this,args);if(this.name==='ownership'&&activated&&fault==='activation-readback')Object.defineProperty(request,'result',{get(){throw Error('synthetic readback failure');}});return request;};
+   },fault);
+   assert.equal(await admit(r.page,'fault-owner'),'LOCAL_ACCESS_UNCONFIRMED',fault);
+   assert.equal((await storedOwner(r.other)).state,'pending',fault+' leaves only a reservation');
+   assert.deepEqual(await profileBusiness(r.page),before);
+   await r.page.reload();await r.page.addScriptTag({url:base+'/js/app/cloud/local-access-profile.js'});
+   const denied=await r.page.evaluate(async()=>{window.__profile=window.FC.localAccessProfile.create(localStorage,sessionStorage);try{await window.__profile.confirm('fault-owner');return 'wrong';}catch(e){return e.code;}});
+   assert.equal(denied,'LOCAL_DATA_UNCLAIMED');await ticket(r.page,'fault-owner');assert.equal(await admit(r.page,'fault-owner'),'ok');
+   assert.equal((await storedOwner(r.other)).state,'active');assert.deepEqual(await profileBusiness(r.page),before);
+  }finally{await r.other.close();await r.ctx.close();}
+ }
+});
+test('Native acknowledged v2 migration preserves exact legacy bytes and survives restart; unavailable IDB never trusts it',async()=>{
+ const r=await context({seed:false});try{
+  await r.page.goto(base+'/__synthetic_inspection');
+  const raw='{ "version":2,"uid":"native-v2-owner","attemptId":"00000000-0000-4000-8000-000000000001" }';
+  await r.page.evaluate(raw=>{localStorage.setItem('fc_quote_rates_v1','preserve-native-v2-price');localStorage.setItem('meble_access_profile_v1',raw);},raw);
+  await r.page.addScriptTag({url:base+'/js/app/cloud/local-access-profile.js'});
+  const before=await profileBusiness(r.page);
+  await r.page.evaluate(async()=>{const p=window.FC.localAccessProfile.create(localStorage,sessionStorage);await p.confirm('native-v2-owner');p.assert('native-v2-owner');});
+  assert.equal(await r.page.evaluate(()=>localStorage.getItem('meble_access_profile_v1')),raw);assert.deepEqual(await profileBusiness(r.page),before);
+  await r.page.reload();await r.page.addScriptTag({url:base+'/js/app/cloud/local-access-profile.js'});
+  assert.equal(await r.page.evaluate(async()=>{const p=window.FC.localAccessProfile.create(localStorage,sessionStorage);await p.confirm('native-v2-owner');p.assert('native-v2-owner');try{await p.confirm('foreign');return 'wrong';}catch(e){return e.code;}}),'LOCAL_ACCESS_OTHER_ACCOUNT');
+  const unavailable=await r.page.evaluate(async()=>{const p=window.FC.localAccessProfile.create(localStorage,sessionStorage,{indexedDB:null});try{await p.confirm('native-v2-owner');return 'wrong';}catch(e){return e.code;}});
+  assert.equal(unavailable,'LOCAL_ACCESS_COORDINATION_UNAVAILABLE');assert.deepEqual(await profileBusiness(r.page),before);
+ }finally{await r.ctx.close();}
 });

@@ -1,3 +1,11 @@
+# CLOUD-2B.4a — techniczny dowód profilu a kopia danych
+
+Rozszerzony pakiet przechowuje rozstrzygający, techniczny rekord dostępu w IndexedDB `meble-access-profile-v1` / `ownership` / `owner`. Nie zawiera projektu ani kopii katalogów: tylko wersję, UID, stan pending/active i identyfikator próby. Standardowy eksport danych **nie obejmuje tej bazy**, tak samo jak nie przenosi sesji Firebase lub uprawnień. Nie dołączać jej do selektywnego pilota chmurowego jako źródła biznesowego.
+
+Oryginalny v2 w localStorage pozostaje niezmieniony podczas bezpiecznego potwierdzenia tego samego właściciela. Nowe odnośniki v3 wymagają aktywnego rekordu IndexedDB; nie odtwarzać ich ręcznie jako sposobu nadania dostępu. Brak/uszkodzenie koordynacji blokuje wejście zamiast resetowania danych. Cofnięcie wydania musi zachować moduł obsługujący ten dowód albo pozostawić bramkę zamkniętą — stare logowanie nie powinno omijać nierozstrzygniętej rezerwacji. Nie usuwać bazy lub znaczników jako obejścia.
+
+Nie zmieniono formatu, retencji, kolektora, restore ani żadnego istniejącego backupu. Poniższa historyczna tabela nadal opisuje rzeczywiste wykluczenia eksportu; zgoda właściciela na kopię nie jest technicznym dowodem jej kompletności. [Kontrakt i testy](tools/reports/cloud-2b4a-technical-2c.md).
+
 ## CLOUD-2B.3 — dopuszczenie profilu: rzeczywiste granice kopii (2026-10-17)
 
 Ten dopisek opisuje kod; **nie zmienia formatu eksportu, retencji ani mechanizmu backupu**. Checkbox na ekranie dopuszczenia jest oświadczeniem właściciela o kopii, nie technicznym potwierdzeniem jej zawartości, kompletności lub istnienia pliku.
