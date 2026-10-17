@@ -19,7 +19,7 @@
   for(const name of ['getItem','setItem','removeItem']){
     const original=Storage.prototype[name];
     Storage.prototype[name]=function(key,...args){
-      if(String(key)===profile.key&&name!=='getItem')throw Error('LOCAL_ACCESS_PROTECTED');
+      if(profile.isAccessKey(String(key))&&name!=='getItem')throw Error('LOCAL_ACCESS_PROTECTED');
       if(profile.businessKey(key))assert();
       return original.call(this,key,...args);
     };
@@ -149,7 +149,7 @@
     }
     if(!isValid()){event.stopImmediatePropagation();if(!shell.contains(event.target))event.preventDefault();}
   },true);
-  window.addEventListener('storage',event=>{if(event.key===profile.key&&!isValid())block();});
+  window.addEventListener('storage',event=>{if(profile.isAccessKey(event.key)&&!isValid())block();});
   window.addEventListener('beforeunload',event=>{if(blocked&&window.FC?.session?.active){event.preventDefault();event.returnValue='';}});
   window.addEventListener('pagehide',()=>{gate?.close();});
   window.addEventListener('pageshow',event=>{if(event.persisted&&auth&&!fatal)observe();});

@@ -1,3 +1,28 @@
+## CLOUD-2B.3 — dopuszczenie profilu: rzeczywiste granice kopii (2026-10-17)
+
+Ten dopisek opisuje kod; **nie zmienia formatu eksportu, retencji ani mechanizmu backupu**. Checkbox na ekranie dopuszczenia jest oświadczeniem właściciela o kopii, nie technicznym potwierdzeniem jej zawartości, kompletności lub istnienia pliku.
+
+Źródła: `dataSettingsBackupActions` → `dataBackupStore.exportCurrent()` → `dataBackupSnapshot.collectSnapshot()` → `dataBackupExport.makeExportPayload()` / `downloadJson()`. O zakresie decydują `dataStorageKeys.isAppDataKey()`, `SNAPSHOT_EXCLUDED_KEYS`, `VOLATILE_KEYS` i `isProjectSlotBackupKey()`.
+
+| Dane | Standardowe „Eksportuj wszystkie dane” | Ryzyko / zabezpieczenie przed publikacją |
+|---|---|---|
+| Zapisane `fc_*` nieobjęte wykluczeniami | Tak, wartości RAW w `snapshot.keys` | Dotyczy m.in. projektów/inwestorów, globalnych cenników/stawek, katalogów, słowników/ustawień, zamienników w katalogach, magazynu `fc_sheets_v1`, historii i draftów ofert, PCV w projekcie, legacy PCV i globalnych słojów/rotacji. Sprawdzić obecność potrzebnych kluczy i treści w pobranym pliku; nie zakładać jej na podstawie samej nazwy przycisku. |
+| `hardwareSettings`, `hardwareCategories`, `hardwareSuppliers`, `hardwareTechnicalParams`, `hardwareTypes` | **Nie** — brak prefiksu `fc_` | Mogą zawierać wartościowe historyczne globalne dane. Nie zakładać identyczności z kanonicznymi `fc_hardware_*` ani samoczynnego ich przeniesienia. Pozostają tylko w profilu, o ile nie ma osobnej zweryfikowanej kopii. |
+| `fc_data_backups_v1` | **Nie** | Historyczne backupy mogą zawierać jedyne starsze stany danych. Istniejący przycisk „Eksportuj” przy konkretnym backupie pozwala pobrać go osobno (`dataBackupStore.exportBackup`), bez „Przywróć”. Nie obiecywać pełnego RAW archiwum na podstawie takiego pojedynczego pliku. |
+| `fc_project_backup_v1`, `fc_project_backup_meta_v1`, `fc_investors_backup_v1`, `fc_investors_backup_meta_v1`, `fc_project_inv_*_backup_v1`, `fc_project_inv_*_backup_meta_v1` | **Nie** | Kopie ratunkowe i metadane — nie bieżący autorytet, lecz potencjalnie istotne do odzyskania danych. Nie kasować. Wymagają osobnej kopii, jeśli mają być zabezpieczone poza przeglądarką. |
+| `fc_edit_session_v1` | **Nie** | Trwały snapshot, oryginalny stan rollbacku i stan niezakończonej edycji. Sam eksport bieżącego projektu nie zabezpiecza sesji. Dopuszczenie zachowuje go bez zmian. |
+| Całe sessionStorage (w tym właściwy `fc_reload_restore_v1`) oraz zmiany tylko w RAM | **Nie** | Kolektor odczytuje tylko localStorage. RAM nie jest trwałą kopią; przed publikacją świadomie zakończyć edycję potwierdzonym Zapisz/Anuluj, jeśli jest to bezpieczne. Bez automatycznego Cancel lub wymuszonego odświeżenia. |
+| `fc_rozrys_plan_cache_v1`, `fc_rozrys_plan_cache_v2` | **Nie** | Legacy/odtwarzalny cache, nie źródło projektu. Nie mylić z zawierającymi decyzje `fc_rozrys_grain_state_v1` / `fc_rozrys_overrides_v1`, które nie są wykluczone. |
+| Dowód i blokada `meble_access_profile_*`, Firebase SDK persistence / tokeny | **Nie** | Celowo nie są przenoszone jako biznesowy backup lub uprawnienie. Nowe uruchomienie wymaga prawdziwej autoryzacji; nie kopiować tokenów i nie usuwać blokady, aby obejść zgodę. |
+
+**Dodatkowa luka kompletności obecnego eksportera:** `listStorageKeys()` przechwytuje błąd enumeracji, a `collectSnapshot()` przechwytuje błędy poszczególnych odczytów. Może powstać częściowy plik bez jawnej odmowy. W tej korekcie nie zmieniono kolektora; oddzielna diagnostyka poza repozytorium odtwarza pominięcie jednego katalogu przy błędzie odczytu. Nie jest to obowiązkowy PASS wymagający zachowania błędu. Poprawny JSON i checkbox nie dowodzą zgodności kopii ze źródłem.
+
+**Warunek publikacji:** prywatny plik poza pamięcią witryny, porównanie zakresu i RAW wymaganych danych ze źródłem, a dla istotnych pominięć dodatkowe zabezpieczenie. Jeżeli kompletność nie jest potwierdzona albo wartościowa pominięta domena nie ma kopii, **publikacja pozostaje wstrzymana**. Nie odczytano rzeczywistych danych właściciela i nie stwierdzono, czy takie domeny u niego występują. Pełny backup może zawierać sekret ORS w `fc_company_profile_v1.transport.apiKey` i prywatne dane — nie uploadować go do Firebase/GitHuba/czatu.
+
+**Minimalna propozycja osobno do zatwierdzenia (nie zaimplementowano):** jednorazowa prywatna kopia ratunkowa RAW `fc_*` oraz pięciu aliasów z localStorage i sessionStorage, również archiwum backupów/kopii ratunkowych i sesji. Bez normalizacji, importu, zapisów źródła, tokenów Auth lub dowodów dostępu. Ścisły odczyt z odmową przy każdym błędzie, jawny wykaz kluczy/rozmiarów, integralność pliku, końcowe sprawdzenie niezmienności i weryfikacja ponownie odczytanego pobranego pliku. To odrębny kontrakt kopii ratunkowej, nie cicha zmiana obecnego formatu backupu ani workflow chmurowy. Nie odzyska zmian istniejących wyłącznie w RAM. Nie dodano teraz nowego eksportera/kontrolki i nie uruchomiono biznesu przed zgodą.
+
+---
+
 # Dopisek CLOUD-1A — 2026-10-15, bez zmian mechanizmu
 
 Aktualna mapa wszystkich magazynów, ich właścicieli i granic migracji: [CLOUD_DATA_REGISTER.md](CLOUD_DATA_REGISTER.md). Pełny lokalny backup opisany poniżej **nie jest** selektywnym eksportem pilotażu CLOUD-1 (jeden testowy I/P).

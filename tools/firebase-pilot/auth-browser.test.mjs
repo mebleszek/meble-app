@@ -51,7 +51,7 @@ async function context({seed=true,configured=true,viewport={width:393,height:852
   else await route.continue();
  });
  await ctx.addInitScript(({blockPopup,seed})=>{
-  if(seed){localStorage.setItem('fc_price_list_v1',JSON.stringify({sentinel:'synthetic-prices'}));localStorage.setItem('fc_projects_v1',JSON.stringify({sentinel:'synthetic-projects'}));localStorage.setItem('fc_material_part_options_v1',JSON.stringify({sentinel:'synthetic-grain'}));}
+  if(seed&&localStorage.getItem('fc_price_list_v1')===null){localStorage.setItem('fc_price_list_v1',JSON.stringify({sentinel:'synthetic-prices'}));localStorage.setItem('fc_projects_v1',JSON.stringify({sentinel:'synthetic-projects'}));localStorage.setItem('fc_material_part_options_v1',JSON.stringify({sentinel:'synthetic-grain'}));}
   if(blockPopup)window.open=()=>null;
  },{blockPopup,seed});
  const page=await ctx.newPage();return {ctx,page,requests,external};
@@ -372,6 +372,11 @@ test('Existing profile requires both confirmations; cancellation, offline and a 
 test('Native existing profile: one explicit admission preserves bytes and an active room session, then real startup and Auth restore work',async()=>{
  const r=await context({seed:false});let release=()=>{};
  r.page.on('dialog',dialog=>dialog.accept()); // Deliberate reload of a persisted, clean durable session.
+ await r.ctx.addInitScript(()=>{
+  const set=Storage.prototype.setItem,get=Storage.prototype.getItem;let failedWrite=false;
+  Storage.prototype.setItem=function(k,v){if(window.__syntheticAdmissionFail&&k==='meble_access_profile_v1')failedWrite=true;return set.call(this,k,v);};
+  Storage.prototype.getItem=function(k){if(failedWrite&&k==='meble_access_profile_v1'){failedWrite=false;throw Error('synthetic one-time admission readback failure');}return get.call(this,k);};
+ });
  try{
   await r.page.goto(base+'/index.html');await state(r.page,'unauthenticated');const uid=await syntheticLogin(r.page,'admission-native-owner');await state(r.page,'unapproved');await approve(uid);
   await r.page.reload();await businessReady(r.page);
@@ -403,6 +408,10 @@ test('Native existing profile: one explicit admission preserves bytes and an act
   await inspection.evaluate(()=>localStorage.removeItem('meble_access_profile_v1'));await inspection.close();
   await r.page.reload();await state(r.page,'profile-pending');const before=await fcBytes(r.page);
   assert.equal(before.fc_edit_session_v1,saved.snapshot);
+  await r.page.evaluate(()=>{window.__syntheticAdmissionFail=true;});await consentToProfile(r.page);await state(r.page,'error');
+  assert.match(await r.page.locator('#auth-error').innerText(),/LOCAL_ACCESS_UNCONFIRMED/);assert.deepEqual(await fcBytes(r.page),before);
+  await r.page.reload();await state(r.page,'profile-pending');assert.equal(await r.page.locator('#auth-profile-confirm').isDisabled(),true);
+  assert.deepEqual(await fcBytes(r.page),before,'restart after a failed admission cannot run business startup or discard its session');
   for(const [width,height]of [[320,640],[393,360],[768,1024],[1440,900]]){
    await r.page.setViewportSize({width,height});await geometry(r.page);
    await r.page.locator('#auth-profile-cancel').scrollIntoViewIfNeeded();assert.equal(await r.page.locator('#auth-profile-cancel').isVisible(),true);
@@ -413,7 +422,9 @@ test('Native existing profile: one explicit admission preserves bytes and an act
   await consentToProfile(r.page);await held;
   assert.equal(await r.page.evaluate(()=>window.__APP_STARTED__),undefined);
   assert.deepEqual(await fcBytes(r.page),before,'admission itself changes zero fc_* bytes, before any business module executes');
-  assert.deepEqual(await r.page.evaluate(()=>JSON.parse(localStorage.getItem('meble_access_profile_v1'))),{version:1,uid});
+  const receipt=await r.page.evaluate(()=>JSON.parse(localStorage.getItem('meble_access_profile_v1')));
+  assert.equal(receipt.version,2);assert.equal(receipt.uid,uid);assert.match(receipt.attemptId,/^[0-9a-f-]{36}$/);
+  assert.equal(await r.page.evaluate(()=>localStorage.getItem('meble_access_profile_pending_v1')),null);
   release();await businessReady(r.page);await r.ctx.unroute('**/js/app/shared/constants.js*');
   const after=await fcBytes(r.page);assert.equal(after.fc_edit_session_v1,saved.snapshot,'startup must not cancel or replace the durable snapshot');
   for(const key of ['fc_investors_v1','fc_quote_rates_v1','fc_sheet_materials_v1','fc_accessories_v1','fc_quote_snapshots_v1','fc_data_backups_v1'])assert.equal(after[key],before[key],key+' unchanged after normal startup');
@@ -432,12 +443,13 @@ test('Native existing profile: one explicit admission preserves bytes and an act
 });
 
 test('Profile admission detects concurrent business changes, receipt corruption and failed/partial writes without starting business',async()=>{
- for(const kind of ['changed-data','corrupt-receipt','swallowed-write','partial-write']){
+ for(const kind of ['changed-data','corrupt-receipt','swallowed-write','partial-write','changed-during-write','commit-removal']){
   const r=await context();try{
-   if(['swallowed-write','partial-write'].includes(kind))await r.ctx.addInitScript(kind=>{
-    const set=Storage.prototype.setItem,get=Storage.prototype.getItem;let written=false;
-    Storage.prototype.setItem=function(k,v){if(k==='meble_access_profile_v1'){if(kind==='swallowed-write')return;written=true;}return set.call(this,k,v);};
-    Storage.prototype.getItem=function(k){if(k==='meble_access_profile_v1'&&written)throw Error('synthetic readback failure');return get.call(this,k);};
+   if(['swallowed-write','partial-write','changed-during-write','commit-removal'].includes(kind))await r.ctx.addInitScript(kind=>{
+    const set=Storage.prototype.setItem,get=Storage.prototype.getItem,remove=Storage.prototype.removeItem;let written=false;
+    Storage.prototype.setItem=function(k,v){if(k==='meble_access_profile_v1'){if(kind==='swallowed-write')return;written=true;}const result=set.call(this,k,v);if(kind==='changed-during-write'&&k==='meble_access_profile_v1')set.call(this,'fc_price_list_v1','{"sentinel":"concurrent-during-admission"}');return result;};
+    Storage.prototype.getItem=function(k){if(kind==='partial-write'&&k==='meble_access_profile_v1'&&written)throw Error('synthetic readback failure');return get.call(this,k);};
+    Storage.prototype.removeItem=function(k){if(kind==='commit-removal'&&k==='meble_access_profile_pending_v1')throw Error('synthetic atomic removal failure');return remove.call(this,k);};
    },kind);
    await r.page.goto(base+'/index.html');await state(r.page,'unauthenticated');const uid=await syntheticLogin(r.page,'admission-fault-'+kind);await state(r.page,'unapproved');await approve(uid);
    await r.page.reload();await state(r.page,'profile-pending');
@@ -451,11 +463,35 @@ test('Profile admission detects concurrent business changes, receipt corruption 
     await r.page.reload();await state(r.page,'error');assert.match(await r.page.locator('#auth-error').innerText(),/LOCAL_ACCESS_INVALID/);
    }else{
     await consentToProfile(r.page);await state(r.page,'error');
-    assert.match(await r.page.locator('#auth-error').innerText(),kind==='changed-data'?/LOCAL_ACCESS_DATA_CHANGED/:/LOCAL_ACCESS_UNCONFIRMED/);
+    assert.match(await r.page.locator('#auth-error').innerText(),['changed-data','changed-during-write'].includes(kind)?/LOCAL_ACCESS_DATA_CHANGED/:/LOCAL_ACCESS_UNCONFIRMED/);
    }
-   await businessAbsent(r);assert.deepEqual(await fcBytes(r.page),before);
+   const expected={...before,...(kind==='changed-during-write'?{fc_price_list_v1:'{"sentinel":"concurrent-during-admission"}'}:{})};
+   await businessAbsent(r);assert.deepEqual(await fcBytes(r.page),expected);
    const raw=await inspector.evaluate(()=>Object.fromEntries(Object.entries(localStorage)).meble_access_profile_v1??null);
-   assert.equal(raw,kind==='corrupt-receipt'?'broken':kind==='partial-write'?JSON.stringify({version:1,uid}):null);
+   if(kind==='corrupt-receipt')assert.equal(raw,'broken');
+   else if(['partial-write','changed-during-write','commit-removal'].includes(kind)){assert.equal(JSON.parse(raw).version,2);assert.equal(JSON.parse(raw).uid,uid);}
+   else assert.equal(raw,null);
+   if(kind!=='corrupt-receipt'){
+    // A NEW document forgets all in-memory fault flags. A persisted candidate
+    // must still be vetoed, not silently accepted as in a3e1bedf.
+    await r.page.reload();await state(r.page,'profile-pending');
+    assert.equal(await r.page.locator('#auth-profile-backup').isChecked(),false);assert.equal(await r.page.locator('#auth-profile-owner').isChecked(),false);
+    assert.equal(await r.page.locator('#auth-profile-confirm').isDisabled(),true);await businessAbsent(r);assert.deepEqual(await fcBytes(r.page),expected);
+    if(['partial-write','changed-during-write'].includes(kind)){
+     const barrier=await inspector.evaluate(()=>JSON.parse(localStorage.getItem('meble_access_profile_pending_v1')));assert.equal(barrier.uid,uid);assert.equal(barrier.attemptId,JSON.parse(raw).attemptId);
+     await approve(uid,false);await r.page.reload();await state(r.page,'unapproved');
+     assert.equal(await r.page.locator('#auth-profile-admission').isVisible(),false);await businessAbsent(r);
+     await approve(uid);await r.page.reload();await state(r.page,'profile-pending');assert.equal(await r.page.locator('#auth-profile-confirm').isDisabled(),true);await businessAbsent(r);
+     if(kind==='partial-write'){
+      await r.page.locator('#auth-signout').click();await state(r.page,'unauthenticated');
+      const other=await syntheticLogin(r.page,'failed-admission-other-approved');await state(r.page,'unapproved');await approve(other);
+      await r.page.reload();await state(r.page,'error');assert.match(await r.page.locator('#auth-error').innerText(),/LOCAL_ACCESS_OTHER_ACCOUNT/);
+      assert.equal(await r.page.locator('#auth-profile-admission').isVisible(),false);await businessAbsent(r);
+      assert.deepEqual(await fcBytes(r.page),expected);
+      assert.equal(await inspector.evaluate(()=>JSON.parse(localStorage.getItem('meble_access_profile_pending_v1')).uid),uid,'even an approved second UID cannot replace the pending owner');
+     }
+    }
+   }
    await inspector.close();
   }finally{await r.ctx.close();}
  }
