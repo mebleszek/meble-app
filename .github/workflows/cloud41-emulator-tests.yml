@@ -1,0 +1,170 @@
+name: CLOUD-4.1 isolated emulator tests
+
+# Branch testing only; this is not the Ready/merge/Pages release workflow.
+on:
+  push:
+    branches:
+      - cloud-4-1-private-pilot-execution
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloud41-emulator-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cloud41:
+    if: github.repository == 'mebleszek/meble-app' && github.event_name == 'push' && github.ref == 'refs/heads/cloud-4-1-private-pilot-execution'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      CI: '1'
+      AUTH_POPUP_TEST: '1'
+      GCLOUD_PROJECT: demo-meble-app
+      GOOGLE_CLOUD_PROJECT: demo-meble-app
+      XDG_CONFIG_HOME: ${{ runner.temp }}/cloud41-config
+      FIREBASE_EMULATORS_PATH: ${{ runner.temp }}/cloud41-emulators
+
+    steps:
+      - name: Checkout the exact pushed SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify checkout and immutable CLOUD-4.1 configuration
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor 0670c71bd223ab00cdb2e10fe2cca093c2bceeb8 HEAD
+          test "$(git rev-parse '0670c71bd223ab00cdb2e10fe2cca093c2bceeb8^{tree}')" = 9d648975fa1f0d9c48a7989b76e45eca8fc80f7c
+          # Only this workflow and its CI documentation may differ from the WIP.
+          git diff --exit-code 0670c71bd223ab00cdb2e10fe2cca093c2bceeb8 HEAD -- . \
+            ':(exclude).github/workflows/cloud41-emulator-tests.yml' \
+            ':(exclude)tools/reports/cloud-4-1-actions.md'
+          test -z "$(git status --porcelain)"
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const {createHash} = require('node:crypto');
+          assert.equal(process.versions.node.split('.')[0], '22');
+          const root = 'tools/firebase-pilot/';
+          const pkg = JSON.parse(fs.readFileSync(root + 'package.json'));
+          assert.equal(pkg.devDependencies['firebase-tools'], '15.34.0');
+          assert.equal(pkg.devDependencies['playwright-core'], '1.64.1');
+          for (const name of ['test', 'test:live-readiness', 'test:private-pilot', 'test:browser']) {
+            const script = pkg.scripts[name];
+            assert.ok(script.startsWith('firebase emulators:exec '), name);
+            assert.ok(script.includes('--project demo-meble-app --only auth,firestore --non-interactive'), name);
+          }
+          for (const name of ['firebase.json', 'firebase-live-pilot.json']) {
+            const config = JSON.parse(fs.readFileSync(root + name));
+            assert.deepEqual(config.emulators.auth, {host: '127.0.0.1', port: 19099});
+            assert.deepEqual(config.emulators.firestore, {host: '127.0.0.1', port: 18080});
+            assert.equal(config.emulators.singleProjectMode, true);
+            assert.equal(config.emulators.ui.enabled, false);
+            if (name === 'firebase-live-pilot.json') assert.equal(config.firestore.rules, 'firestore-live-pilot.rules');
+          }
+          const sha = createHash('sha256').update(fs.readFileSync(root + 'firestore-live-pilot.rules')).digest('hex');
+          assert.equal(sha, 'eaeb3e67417955bbd67d2881902d3827023502c2948ce0a19dc583c66b5a2e92');
+          for (const key of ['GOOGLE_APPLICATION_CREDENTIALS', 'FIREBASE_TOKEN', 'GOOGLE_OAUTH_ACCESS_TOKEN']) {
+            assert.ok(!process.env[key], 'Production credential must be absent: ' + key);
+          }
+          console.log('Verified pushed SHA:', process.env.GITHUB_SHA, 'minimal Rules SHA:', sha);
+          NODE
+          mkdir -p "$RUNNER_TEMP/cloud41-logs"
+
+      - name: Use Java 21 for official Firebase emulators
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install locked Firebase and Playwright dependencies
+        timeout-minutes: 10
+        run: npm --prefix tools/firebase-pilot ci --no-audit --no-fund
+
+      - name: Install matching official Playwright Chromium and OS dependencies
+        timeout-minutes: 10
+        working-directory: tools/firebase-pilot
+        run: |
+          set -euo pipefail
+          ./node_modules/.bin/playwright-core install --with-deps chromium
+          node -e 'console.log("CHROMIUM_PATH=" + require("playwright-core").chromium.executablePath())' >> "$GITHUB_ENV"
+
+      - name: Download the official Firestore emulator
+        timeout-minutes: 4
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM --kill-after=10s 180s tools/firebase-pilot/node_modules/.bin/firebase setup:emulators:firestore
+          test -s "$FIREBASE_EMULATORS_PATH/cloud-firestore-emulator-v1.22.0.jar"
+
+      # Separate sequential steps: every emulators:exec shuts down before the next starts.
+      # All failures stop subsequent test steps; there are no automatic retries.
+      - name: Minimal Rules and live-readiness tests
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          npm --prefix tools/firebase-pilot run test:live-readiness 2>&1 | tee "$RUNNER_TEMP/cloud41-logs/live-readiness.log"
+          grep -Eq '^# skipped 0$' "$RUNNER_TEMP/cloud41-logs/live-readiness.log"
+
+      - name: CLOUD-4.1 private pilot tests
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          npm --prefix tools/firebase-pilot run test:private-pilot 2>&1 | tee "$RUNNER_TEMP/cloud41-logs/private-pilot.log"
+          # This existing script selects CLOUD-4.1; all browser tests run below without filtering.
+
+      - name: Full Firebase SDK and Security Rules tests
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          npm --prefix tools/firebase-pilot test 2>&1 | tee "$RUNNER_TEMP/cloud41-logs/firebase-sdk.log"
+          grep -Eq '^# skipped 0$' "$RUNNER_TEMP/cloud41-logs/firebase-sdk.log"
+
+      - name: Isolated private startup browser tests
+        timeout-minutes: 5
+        env:
+          FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:19099
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:18080
+        run: |
+          set -euo pipefail
+          npm --prefix tools/firebase-pilot run test:private-startup 2>&1 | tee "$RUNNER_TEMP/cloud41-logs/private-startup.log"
+          grep -Eq '^# skipped 0$' "$RUNNER_TEMP/cloud41-logs/private-startup.log"
+
+      - name: Full Chromium tests including emulator Google popup
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          npm --prefix tools/firebase-pilot run test:browser 2>&1 | tee "$RUNNER_TEMP/cloud41-logs/browser.log"
+          grep -Eq '^# skipped 0$' "$RUNNER_TEMP/cloud41-logs/browser.log"
+
+      - name: Full Meble-App preflight
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          node tools/preflight.js 2>&1 | tee "$RUNNER_TEMP/cloud41-logs/preflight.log"
+          git diff --exit-code
+
+      - name: Preserve available synthetic test logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloud41-test-logs-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/cloud41-logs/*.log
+            tools/firebase-pilot/*debug.log
+            *debug.log
+          if-no-files-found: warn
+          retention-days: 7
