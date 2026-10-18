@@ -26,8 +26,6 @@ jobs:
       AUTH_POPUP_TEST: '1'
       GCLOUD_PROJECT: demo-meble-app
       GOOGLE_CLOUD_PROJECT: demo-meble-app
-      XDG_CONFIG_HOME: ${{ runner.temp }}/cloud41-config
-      FIREBASE_EMULATORS_PATH: ${{ runner.temp }}/cloud41-emulators
 
     steps:
       - name: Checkout the exact pushed SHA
@@ -84,6 +82,8 @@ jobs:
           console.log('Verified pushed SHA:', process.env.GITHUB_SHA, 'minimal Rules SHA:', sha);
           NODE
           mkdir -p "$RUNNER_TEMP/cloud41-logs"
+          echo "XDG_CONFIG_HOME=$RUNNER_TEMP/cloud41-config" >> "$GITHUB_ENV"
+          echo "FIREBASE_EMULATORS_PATH=$RUNNER_TEMP/cloud41-emulators" >> "$GITHUB_ENV"
 
       - name: Use Java 21 for official Firebase emulators
         uses: actions/setup-java@v4
