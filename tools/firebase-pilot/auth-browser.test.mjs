@@ -733,7 +733,13 @@ test('CLOUD-4.1 private execution through real main owner and independent browse
  const minimal=await initializeTestEnvironment({projectId:'demo-meble-app',firestore:{host:'127.0.0.1',port:18080,rules:fs.readFileSync(new URL('./firestore-live-pilot.rules',import.meta.url),'utf8')}});
  const scope={investorId:'cloud4-investor-v1',projectId:'cloud4-project-v1'};
  const approval=uid=>({version:1,ownerUid:uid,...scope,payloadSha256:'711f2fea49873bab0c4f76b5e8e0e666c4796190ed9fbfda71557d35890ba2e3',rulesSha256:'eaeb3e67417955bbd67d2881902d3827023502c2948ce0a19dc583c66b5a2e92',expiresAt:Date.now()+600000});
- const admin=fn=>minimal.withSecurityRulesDisabled(ctx=>fn(ctx.firestore()));
+ // rules-unit-testing 5.0.0 returns Promise<void>; preserve the callback value
+ // explicitly, while every read/write still runs inside the emulator context.
+ async function admin(fn){
+  let result;
+  await minimal.withSecurityRulesDisabled(async ctx=>{result=await fn(ctx.firestore());});
+  return result;
+ }
  const head=(db,uid)=>doc(db,'users',uid,'pilotProjects',scope.projectId);
  const clients=[];
  async function grant(uid,enabled=true){await admin(async db=>{
@@ -746,24 +752,24 @@ test('CLOUD-4.1 private execution through real main owner and independent browse
   r.operator=await openPrivatePilot(r.page,base+'/index.html');await state(r.page,'unauthenticated');
   r.uid=await syntheticLogin(r.page,sub);await state(r.page,'unapproved');
   if(configure){await grant(r.uid,enabled);await r.page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await businessReady(r.page);}
-  r.before=configure?await r.page.evaluate(()=>JSON.stringify({ram:window.projectData,local:Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('fc_'))),session:Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('fc_')))})):null;
+  r.before=configure?await r.page.evaluate(()=>JSON.stringify({ram:projectData,local:Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('fc_'))),session:Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('fc_')))})):null;
   return r;
  }
  async function fresh(sub,uid){
   const r=await context({seed:false});clients.push(r);r.uid=uid;
   r.operator=await openPrivatePilot(r.page,base+'/index.html');await state(r.page,'unauthenticated');
   assert.equal(await syntheticLogin(r.page,sub),uid);await businessReady(r.page);
-  r.before=await r.page.evaluate(()=>JSON.stringify({ram:window.projectData,local:Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('fc_'))),session:Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('fc_')))}));
+  r.before=await r.page.evaluate(()=>JSON.stringify({ram:projectData,local:Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('fc_'))),session:Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('fc_')))}));
   return r;
  }
  async function execute(r,role='write',patch={}){return r.operator.execute({role,approval:{...approval(r.uid),...patch}});}
- async function unchanged(r){if(r.before!==null)assert.equal(await r.page.evaluate(()=>JSON.stringify({ram:window.projectData,local:Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('fc_'))),session:Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('fc_')))})),r.before);}
+ async function unchanged(r){if(r.before!==null)assert.equal(await r.page.evaluate(()=>JSON.stringify({ram:projectData,local:Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('fc_'))),session:Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('fc_')))})),r.before);}
  try{
   await t.test('No work on login; private single publication, exact independent model/bytes, close preserves shared Auth',async()=>{
    const a=await client('private-native-owner');
    assert.equal(await admin(async db=>(await getDoc(head(db,a.uid))).exists()),false,'login/startup cannot publish');
    assert.equal(a.requests.some(url=>/cloud4-source-worker|firebase-pilot-live-transport/.test(url)),false);
-   assert.equal(await a.page.evaluate(()=>!!(window.__syntheticSharedAuth||window.__syntheticLease||FC.controlledProjectPilot||FC.firebasePilotLiveTransport)),false);
+   assert.equal(await a.page.evaluate(()=>!!(window.__syntheticSharedAuth||window.__syntheticLease||window.FC.controlledProjectPilot||window.FC.firebasePilotLiveTransport)),false);
    const written=await execute(a);assert.equal(written.ok,true,JSON.stringify(written));
    assert.equal((await execute(a)).code,'CLOUD_OPERATION_LIMIT');
    const b=await fresh('private-native-owner',a.uid);assert.notEqual(a.ctx,b.ctx);
@@ -813,30 +819,54 @@ test('CLOUD-4.1 private execution through real main owner and independent browse
     uiState=api.uiState.set({currentInvestorId:inv.id,roomType:'kuchnia',entry:'app',activeTab:'wywiad'});
     if(!await api.openRoom('kuchnia')||!api.session.active||!api.session.durable)throw Error('Durable session required');
    });
+   const sessionState=()=>a.page.evaluate(()=>{
+    const session=window.FC.session;
+    return {active:session.active,durable:session.durable,projectId:session.projectId,roomId:session.roomId,
+     startedAt:session.startedAt,snapshot:session.snapshot,inspection:session.inspectExportState(),
+     persisted:localStorage.getItem('fc_edit_session_v1'),ram:JSON.stringify(projectData)};
+   });
+   const editing=await sessionState();assert.equal(editing.active,true);assert.equal(editing.durable,true);
+   assert.equal(editing.roomId,'kuchnia');assert.ok(editing.projectId);assert.ok(editing.persisted);
+   assert.equal(editing.inspection.code,'EXPORT_ACTIVE_SESSION');
    const before=await fcBytes(a.page),out=await execute(a);assert.equal(out.code,'CLOUD_PRIVATE_SESSION_REQUIRED');
-   assert.deepEqual(await fcBytes(a.page),before);assert.equal(await a.page.evaluate(()=>FC.session.active),true);
+   assert.deepEqual(await fcBytes(a.page),before);assert.equal(await a.page.evaluate(()=>window.FC.session.active),true);
+   assert.deepEqual(await sessionState(),editing,'pilot refusal must neither save nor cancel the real durable session');
    assert.equal(a.requests.some(url=>url.includes('cloud4-source-worker')),false);
    assert.equal(await admin(async db=>(await getDoc(head(db,a.uid))).exists()),false);
   });
   await t.test('Inactive RAM with an unconfirmed durable session remainder also denies the pilot',async()=>{
    const a=await client('private-unconfirmed-session');
-   await a.page.evaluate(()=>{if(FC.session.active)throw Error('Expected inactive RAM');localStorage.setItem('fc_edit_session_v1','{"syntheticUnconfirmed":true}');});
+   await a.page.evaluate(()=>{if(window.FC.session.active)throw Error('Expected inactive RAM');localStorage.setItem('fc_edit_session_v1','{"syntheticUnconfirmed":true}');});
+   assert.equal(await a.page.evaluate(()=>window.FC.session.inspectExportState().code),'EXPORT_SESSION_UNCONFIRMED');
    const before=await fcBytes(a.page);assert.equal((await execute(a)).code,'CLOUD_PRIVATE_SESSION_REQUIRED');
    assert.deepEqual(await fcBytes(a.page),before);assert.equal(a.requests.some(url=>url.includes('cloud4-source-worker')),false);
   });
   await t.test('Lost acknowledgement after actual manifest commit stays uncertain; independent read resolves without retry',async()=>{
-   const a=await client('private-lost-ack');let dropped=0;
-   await a.page.route('**/google.firestore.v1.Firestore/Commit*',async route=>{
-    const body=route.request().postData()||'';
-    if(!dropped&&body.includes('/pilotProjects/cloud4-project-v1"')&&body.includes('currentRevisionId')){
-     dropped++;const response=await route.fetch();assert.equal(response.ok(),true);await route.abort('failed');
-    }else if(dropped)await route.abort('failed'); // No acknowledgement, including SDK transaction retries.
-    else await route.continue();
+   const a=await client('private-lost-ack');let dropped=0,committed,accepted;
+   const manifestName='projects/demo-meble-app/databases/(default)/documents/users/'+a.uid+'/pilotProjects/'+scope.projectId;
+   // Web SDK 12.19.0 transactions use unary REST documents:commit, not the
+   // google.firestore.v1.Firestore/Write WebChannel. Match parsed writes exactly.
+   await a.page.route(url=>url.origin==='http://127.0.0.1:18080',async route=>{
+    if(dropped){await route.abort('failed');return;} // Writer cannot recover the lost acknowledgement via a retry or readback.
+    const request=route.request(),url=new URL(request.url());
+    const body=request.method()==='POST'&&url.pathname.endsWith('/documents:commit')?request.postDataJSON():null;
+    const manifest=body?.writes?.find(write=>write.update?.name===manifestName&&write.update.fields?.currentRevisionId);
+    if(manifest){
+     const response=await route.fetch();assert.equal(response.ok(),true);
+     accepted=await response.json();assert.ok(accepted.commitTime);assert.ok(accepted.writeResults?.some(write=>write.updateTime));
+     committed=await admin(async db=>(await getDoc(head(db,a.uid))).data());
+     assert.ok(committed,'real server read must observe the committed manifest before dropping its response');
+     assert.equal(committed.currentRevisionId,manifest.update.fields.currentRevisionId.stringValue);assert.equal(committed.generation,1);
+     dropped++;await route.abort('failed');
+    }else await route.continue();
    });
    const out=await execute(a);assert.equal(dropped,1,'fault must follow the real Web SDK manifest commit');
    assert.equal(out.ok,false);assert.equal(out.published,'unconfirmed');assert.equal(out.requiresIndependentRead,true);
    assert.equal((await execute(a)).code,'CLOUD_OPERATION_LIMIT');await unchanged(a);
-   const b=await fresh('private-lost-ack',a.uid);const read=await execute(b,'read');assert.equal(read.ok,true,JSON.stringify(read));await unchanged(b);
+   const b=await fresh('private-lost-ack',a.uid);assert.notEqual(a.ctx,b.ctx);
+   const read=await execute(b,'read');assert.equal(read.ok,true,JSON.stringify(read));assert.equal(read.sourceMatches,true);
+   assert.equal(read.revisionId,committed.currentRevisionId);assert.equal(read.utf8Bytes,6797);
+   assert.equal(read.documentSha256,'5c9bc70f8fc1d7a15cef742150636e41ebacde404e57bd6109213f82d28d81a1');await unchanged(b);
   });
   await t.test('Corrupted SHA and missing fragment deny the independent reader, preserving local model',async()=>{
    for(const mode of ['sha','missing']){

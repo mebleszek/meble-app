@@ -8,7 +8,10 @@ Ready/auto-merge/Pages ani na jakąkolwiek operację produkcyjną Firebase.
 Sprawdza dokładny SHA zdarzenia push, pochodzenie od WIP
 `0670c71bd223ab00cdb2e10fe2cca093c2bceeb8`, jego drzewo
 `9d648975fa1f0d9c48a7989b76e45eca8fc80f7c` oraz niezmienność wszystkich
-plików poza tym workflow i niniejszym dokumentem. Minimalne Rules pozostają
+plików poza ścisłą listą: tym workflow, niniejszym dokumentem oraz
+`tools/firebase-pilot/auth-browser.test.mjs` (zatwierdzona naprawa testów).
+Kod wykonawcy i aplikacji, Rules, lockfile i workflow wydaniowy pozostają przypięte.
+Minimalne Rules pozostają
 przypięte do SHA-256
 `eaeb3e67417955bbd67d2881902d3827023502c2948ce0a19dc583c66b5a2e92`.
 
@@ -33,3 +36,19 @@ Status należy ustalać z zakończonego przebiegu i logów, nie z samego pushu.
 Uprawnienia to wyłącznie `contents: read`; checkout nie utrwala poświadczeń.
 Brak PR, dispatch, schedule, sekretów produkcyjnych, OIDC, deployu lub merge.
 Istniejące workflow wydaniowe i pliki aplikacji pozostają bez zmian.
+
+## Zatwierdzona naprawa testów po przebiegu 39151089377
+
+- Helper administracyjny zachowuje wynik callbacku w lokalnej zmiennej, ponieważ
+  `@firebase/rules-unit-testing@5.0.0` udostępnia `withSecurityRulesDisabled(): Promise<void>`.
+  Operacje nadal wykonują się na rzeczywistym emulatorze i nie omijają odczytów.
+- Sesję edycji odczytuje się przez istniejące `window.FC.session`. Globalne leksykalne
+  `FC` w `app.js` jest innym obiektem. Test porównuje stan RAM, trwały snapshot i
+  dane przed/po odmowie pilota; nie dodaje produkcyjnego API.
+- Utrata odpowiedzi obejmuje rzeczywisty REST `documents:commit` z Web SDK 12.19.0.
+  Dopiero po odpowiedzi serwera z commitTime/writeResults i potwierdzającym odczycie
+  manifestu test odcina odpowiedź oraz dalsze RPC klienta zapisującego. Odczyt
+  osobnego klienta musi potwierdzić tę samą rewizję, bajty i hash dokumentu.
+
+Nie zmienia się istniejących asercji na słabsze, danych produkcyjnych ani logiki
+wykonawcy. Wyniki tej naprawy należy odczytać z jej zakończonego CI.

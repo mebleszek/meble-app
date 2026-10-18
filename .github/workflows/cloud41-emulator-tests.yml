@@ -47,10 +47,12 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git merge-base --is-ancestor 0670c71bd223ab00cdb2e10fe2cca093c2bceeb8 HEAD
           test "$(git rev-parse '0670c71bd223ab00cdb2e10fe2cca093c2bceeb8^{tree}')" = 9d648975fa1f0d9c48a7989b76e45eca8fc80f7c
-          # Only this workflow and its CI documentation may differ from the WIP.
+          # Exact allowlist for the approved CLOUD-4.1 test repair; production
+          # code, operator implementation, Rules, lockfile and release CI stay pinned.
           git diff --exit-code 0670c71bd223ab00cdb2e10fe2cca093c2bceeb8 HEAD -- . \
             ':(exclude).github/workflows/cloud41-emulator-tests.yml' \
-            ':(exclude)tools/reports/cloud-4-1-actions.md'
+            ':(exclude)tools/reports/cloud-4-1-actions.md' \
+            ':(exclude)tools/firebase-pilot/auth-browser.test.mjs'
           test -z "$(git status --porcelain)"
           node <<'NODE'
           const assert = require('node:assert/strict');
