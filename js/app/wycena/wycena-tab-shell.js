@@ -378,12 +378,15 @@
         showQuoteValidationError(err);
       } else if(typeof d.setState === 'function'){
         d.setState({
+          previewSnapshotId:'',
+          shouldScrollToPreview:true,
           lastQuote:{
             error:String(err && err.message || err || 'Błąd wyceny'),
             totals:{ materials:0, accessories:0, project:0, services:0, quoteRates:0, transport:0, subtotal:0, discount:0, grand:0 },
             roomLabels:[],
           }
         });
+        showQuoteValidationError(err);
       }
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ ok:false, error:String(err && err.message || err || 'Błąd wyceny') }); }catch(_){ }
     }finally{

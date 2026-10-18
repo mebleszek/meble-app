@@ -1,5 +1,11 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
+## Bieżąca naprawa po PR #63 — RAM/PCV i „Wyceń”
+
+Na gałęzi `fix/pcv-ram-quote-generate-android` przygotowano spójny alias RAM, ochronę rewizji przed autosave w widokach obliczeń i widoczną odmowę generowania oferty.
+[Raport i regresje](tools/reports/pcv-ram-quote-generate-android-fix.md). Następna bramka to osobna decyzja właściciela o próbie wydania, a następnie krótki test Androida.
+Nie uruchamia to CLOUD-4.2, synchronizacji ani operacji Firebase LIVE. Dalsze plany i historyczne wpisy poniżej zachowano.
+
 ## Aktualizacja po PR #62 — CLOUD-4.1 scalone, CLOUD-4.2 w przygotowaniu
 
 GitHub potwierdził merge PR #62 do main `d517d598917e5ccd6f1460950697c9ab27f1db1c`,

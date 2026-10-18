@@ -32,8 +32,11 @@
   }
 
   function resolveDisplayedQuote(deps){
-    const history = deps.getSnapshotHistory();
     const state = deps.getState();
+    // A failed new calculation must remain visible even when a historical offer
+    // is selected or the project status normally prefers the latest final offer.
+    if(state.lastQuote && state.lastQuote.error) return state.lastQuote;
+    const history = deps.getSnapshotHistory();
     const selected = history.find((row)=> deps.isSelectedSnapshot(row)) || null;
     const firstActive = history.find((row)=> !deps.isArchivedPreliminary(row, history, getProjectStatusForHistory(history, deps))) || history[0] || null;
     const status = getProjectStatusForHistory(history, deps);
