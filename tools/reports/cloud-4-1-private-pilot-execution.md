@@ -1,5 +1,12 @@
 # CLOUD-4.1 — prywatne wykonanie syntetycznego pilota
 
+## Aktualizacja po weryfikacji i scaleniu
+
+PR #62 scalony do main `d517d598917e5ccd6f1460950697c9ab27f1db1c`; wydaniowe CI i Pages SUCCESS.
+Pełne CI CLOUD-4.1: 13/13 live-readiness, 10/10 prywatny pilot, 71/71 SDK, 3/3 startup, 38/38 Chromium i Preflight PASS.
+Poniższy opis blokad jest historią pierwotnej próby. Nie oznacza aktywacji produkcyjnej.
+[CLOUD-4.2 — przygotowanie dalszych osobnych zgód](cloud-4-2-live-pilot-preparation.md).
+
 ## Status i granice
 
 Baza: `origin/main` **62f80433c28cfd1ed0370618b58db8f4e88fad68**, gałąź `cloud-4-1-private-pilot-execution`. CLOUD-4 jest w tej bazie; nie powtarzano audytu CLOUD-1/2/3. `PROJECT_DECISIONS.md` odczytano z gałęzi PR #41, bez jej zmieniania.

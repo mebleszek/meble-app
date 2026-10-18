@@ -1,5 +1,16 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
+## Aktualizacja po PR #62 — CLOUD-4.1 scalone, CLOUD-4.2 w przygotowaniu
+
+GitHub potwierdził merge PR #62 do main `d517d598917e5ccd6f1460950697c9ab27f1db1c`,
+wydaniowe CI i Pages SUCCESS. CLOUD-4.1: 13/13 live-readiness, 10/10 prywatny pilot,
+71/71 SDK, 3/3 startup, 38/38 Chromium, Preflight PASS, bez pominięć.
+Starsze nagłówki o blokadzie poniżej są zapisem historycznym sprzed weryfikacji.
+CLOUD-4.2 przygotowuje pakiet offline i próby emulatorowe przyszłego LIVE na osobnej
+branży, bez produkcyjnych Rules, grantów, zapisów, odczytów ani zmiany UI/autorytetu.
+[Artefakty, bramki zgody, procedura i statusy](tools/reports/cloud-4-2-live-pilot-preparation.md).
+Aktualny wynik CLOUD-4.2 wymaga zakończonego CI tej gałęzi; nie jest odziedziczonym PASS.
+
 ## CLOUD-4.1 — prywatne wykonanie, przed akceptacją
 
 Gałąź `cloud-4-1-private-pilot-execution`, baza main `62f80433`: przygotowana prywatna ścieżka jednej próby zapisu i niezależnego odczytu do RAM, bez zmiany normalnego startupu/UI. **Kolejny wymagany krok: odblokować publiczny artefakt emulatora w środowisku i wykonać pełne SDK/Chromium.** Preflight PASS nie zastępuje tych testów; gałąź nie jest gotowa do Ready ani realnego pilota. [Szczegóły i testy](tools/reports/cloud-4-1-private-pilot-execution.md).

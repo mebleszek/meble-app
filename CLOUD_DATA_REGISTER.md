@@ -1,5 +1,16 @@
 # CLOUD-1A — kanoniczny rejestr danych Meble-App
 
+## Aktualizacja po PR #62 — CLOUD-4.1 scalone, CLOUD-4.2 w przygotowaniu
+
+GitHub potwierdził merge PR #62 do main `d517d598917e5ccd6f1460950697c9ab27f1db1c`,
+wydaniowe CI i Pages SUCCESS. CLOUD-4.1: 13/13 live-readiness, 10/10 prywatny pilot,
+71/71 SDK, 3/3 startup, 38/38 Chromium, Preflight PASS, bez pominięć.
+Starsze nagłówki o blokadzie poniżej są zapisem historycznym sprzed weryfikacji.
+CLOUD-4.2 przygotowuje pakiet offline i próby emulatorowe przyszłego LIVE na osobnej
+branży, bez produkcyjnych Rules, grantów, zapisów, odczytów ani zmiany UI/autorytetu.
+[Artefakty, bramki zgody, procedura i statusy](tools/reports/cloud-4-2-live-pilot-preparation.md).
+Aktualny wynik CLOUD-4.2 wymaga zakończonego CI tej gałęzi; nie jest odziedziczonym PASS.
+
 ## CLOUD-3 — model domenowy bez transferu danych właściciela
 
 Stan bazy po PR #59 (`65085d18`): CI/auto-merge/Pages PASS, Android zaakceptowany przez właściciela. Nowa gałąź CLOUD-3 nie dodaje kluczy localStorage/IndexedDB ani nie zmienia historycznych liczb inwentaryzacji CLOUD-1A. Przygotowuje niezarejestrowany kontrakt i transport 14 domen: materiały, okucia, producenci, dostawcy, kategorie, typy, parametry techniczne, ustawienia okuć, robocizna/stawki, usługi warsztatowe, magazyn, domyślne programu, profil firmy bez ORS apiKey, koszty firmy.

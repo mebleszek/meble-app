@@ -1,5 +1,16 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## Aktualizacja po PR #62 — CLOUD-4.1 scalone, CLOUD-4.2 w przygotowaniu
+
+GitHub potwierdził merge PR #62 do main `d517d598917e5ccd6f1460950697c9ab27f1db1c`,
+wydaniowe CI i Pages SUCCESS. CLOUD-4.1: 13/13 live-readiness, 10/10 prywatny pilot,
+71/71 SDK, 3/3 startup, 38/38 Chromium, Preflight PASS, bez pominięć.
+Starsze nagłówki o blokadzie poniżej są zapisem historycznym sprzed weryfikacji.
+CLOUD-4.2 przygotowuje pakiet offline i próby emulatorowe przyszłego LIVE na osobnej
+branży, bez produkcyjnych Rules, grantów, zapisów, odczytów ani zmiany UI/autorytetu.
+[Artefakty, bramki zgody, procedura i statusy](tools/reports/cloud-4-2-live-pilot-preparation.md).
+Aktualny wynik CLOUD-4.2 wymaga zakończonego CI tej gałęzi; nie jest odziedziczonym PASS.
+
 ## CLOUD-4.1 — gałąź robocza, weryfikacja emulatorowa zablokowana
 
 Baza `62f80433c28cfd1ed0370618b58db8f4e88fad68` (CLOUD-4 w main). Gałąź `cloud-4-1-private-pilot-execution` przygotowuje prywatny, jednokrotny wykonawca i niezależny odczyt syntetycznego projektu. Operatorska kopia właściciela sesji powstaje tylko w RAM, z kontrolą SHA; produkcyjne `main-login.js`, index, UI, Auth/IndexedDB, modele i Rules pozostają bez zmian. Wykonawca odmawia LIVE przed inicjalizacją Auth i nie jest częścią startupu.
