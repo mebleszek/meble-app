@@ -52,3 +52,11 @@ Istniejące workflow wydaniowe i pliki aplikacji pozostają bez zmian.
 
 Nie zmienia się istniejących asercji na słabsze, danych produkcyjnych ani logiki
 wykonawcy. Wyniki tej naprawy należy odczytać z jej zakończonego CI.
+
+Przebieg `39152479685` potwierdził 13/13 live-readiness, 10/10 prywatnego pilota
+(9 podtestów i grupa), 71/71 SDK/Rules i 3/3 startupu. Pełny Chromium ujawnił
+wyścig punktu odniesienia w teście istniejącego profilu: po celowej zmianie ceny
+przez inną kartę odczytano stary widok localStorage. Test bierze teraz dokładny
+snapshot z karty wykonującej zmianę i czeka na zgodność obu widoków przed próbą
+zgody, bez focus/reload i bez odświeżania ticketu. Asercja nadal wymaga zachowania
+najnowszych bajtów. Pozostałe przypadki uszkodzeń i częściowych zapisów pozostają.

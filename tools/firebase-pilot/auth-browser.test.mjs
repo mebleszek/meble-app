@@ -471,7 +471,17 @@ test('Profile admission detects concurrent business changes, receipt corruption 
    if(kind==='corrupt-receipt')await inspector.evaluate(()=>localStorage.setItem('meble_access_profile_v1','broken'));
    // Returning focus can legitimately start a fresh proof/confirmation; use the
    // original visible page without bringing another page to the foreground.
-   const before=await fcBytes(r.page);
+   // Chromium may still expose the old cross-tab Storage view just after the
+   // inspector writes. The writer's exact bytes are the baseline to preserve;
+   // wait for visibility without focus/reload or replacing the consent ticket.
+   const before=await fcBytes(inspector);
+   if(kind==='changed-data'){
+    assert.equal(before.fc_price_list_v1,'{"sentinel":"newer-synthetic-price"}');
+    await r.page.waitForFunction(expected=>{
+     const current=Object.fromEntries(Object.entries(localStorage).filter(([key])=>key.startsWith('fc_')));
+     return Object.keys(current).length===Object.keys(expected).length&&Object.entries(expected).every(([key,value])=>current[key]===value);
+    },before,{timeout:10000});
+   }
    if(kind==='corrupt-receipt'){
     await r.page.reload();await state(r.page,'error');assert.match(await r.page.locator('#auth-error').innerText(),/LOCAL_ACCESS_INVALID/);
    }else{
