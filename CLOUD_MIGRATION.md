@@ -1,5 +1,11 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
+## CLOUD-4.1 — techniczna gałąź prywatnego wykonania
+
+Na bazie main `62f80433` przygotowano operatorski call-site w sprawdzonej kopii main-login budowanej wyłącznie w RAM. Korzysta z tej samej prywatnej sesji/lease i istniejących CLOUD-1B/2C/4, bez publicznych getterów, startupowej rejestracji i drugiego modelu danych. Jedna próba zapisu albo odczytu na uchwyt; odczyt na osobnym kliencie SDK, wyłącznie do RAM. Zwykły program, jego pliki startowe, lokalne dane, Rules i granty pozostają nietknięte.
+
+**CLOUD-4.1 nie jest jeszcze w pełni zweryfikowane:** Preflight PASS, ale pobranie emulatora Firestore zablokowane w środowisku (403), więc nowych testów roundtrip/odmów nie uznano za PASS. [Raport i warunki wznowienia](tools/reports/cloud-4-1-private-pilot-execution.md). Wykonawca przyjmuje tylko loopback/demo; także lokalna konfiguracja live-auth jest odrzucana przed inicjalizacją. Techniczna gałąź nie daje zgody na usunięcie tej blokady, produkcyjne odczyty, zapisy, Rules lub granty. Nadal obowiązują osobne cztery zgody CLOUD-4 i jeden autorytet danych; operator nie jest docelowym ręcznym workflow synchronizacji użytkownika.
+
 ## CLOUD-4 — przygotowanie pilota, bez aktywacji LIVE
 
 Baza **`0cafb432f18bcd052672aac020d36128155388a7` po PR #60**. Właściciel potwierdził: **PR #60 scalony, CI/Pages PASS, Android zaakceptowany**, cenniki/materiały/okucia zachowane. Pojedynczy pierwszy `AUTH_STARTUP_FAILED` nie ma potwierdzonej przyczyny; nie dodano retry ani przebudowy logowania.

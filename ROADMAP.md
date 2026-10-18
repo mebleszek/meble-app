@@ -1,5 +1,11 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
+## CLOUD-4.1 — prywatne wykonanie, przed akceptacją
+
+Gałąź `cloud-4-1-private-pilot-execution`, baza main `62f80433`: przygotowana prywatna ścieżka jednej próby zapisu i niezależnego odczytu do RAM, bez zmiany normalnego startupu/UI. **Kolejny wymagany krok: odblokować publiczny artefakt emulatora w środowisku i wykonać pełne SDK/Chromium.** Preflight PASS nie zastępuje tych testów; gałąź nie jest gotowa do Ready ani realnego pilota. [Szczegóły i testy](tools/reports/cloud-4-1-private-pilot-execution.md).
+
+Po kompletnym PASS nadal oddzielnie zatwierdzane: Ready/Pages, dokładne minimalne Rules, administracyjny grant, a następnie operatorska aktywacja i pierwszy syntetyczny zapis/odczyt LIVE. Obecny wykonawca ma twardą odmowę produkcji. Żadnego automatycznego uploadu, przełączenia autorytetu ani transferu katalogów przy logowaniu.
+
 ## CLOUD-4 — przygotowanie pilota, bez aktywacji LIVE
 
 Baza **`0cafb432f18bcd052672aac020d36128155388a7` po PR #60**. Właściciel potwierdził: **PR #60 scalony, CI/Pages PASS, Android zaakceptowany**, cenniki/materiały/okucia zachowane. Pojedynczy pierwszy `AUTH_STARTUP_FAILED` nie ma potwierdzonej przyczyny; nie dodano retry ani przebudowy logowania.
