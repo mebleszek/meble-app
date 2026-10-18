@@ -119,7 +119,7 @@ function runCacheBustCheck(){
     'js/app/wycena/wycena-core.js':'20261014_c2_1b2c3a',
     'js/app/wycena/wycena-tab-selection-version.js':'20260628_drawer_systems_materials_v1',
     'js/app/wycena/wycena-diagnostics.js':'20260628_drawer_systems_materials_v1',
-    'js/app/wycena/wycena-tab-shell.js':'20261014_c2_1b2c3a',
+    'js/app/wycena/wycena-tab-shell.js':'20261018_pcv_ram_quote_fix',
   };
   const index = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
   const dev = fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8');

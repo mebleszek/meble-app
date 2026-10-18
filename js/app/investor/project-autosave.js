@@ -8,6 +8,10 @@
     try{ clearTimeout(autosaveTimer); }catch(_){ }
     autosaveTimer = setTimeout(function(){
       try{
+        // These views only calculate. A click (or a timer left by the previous
+        // view) must not change the canonical revision during an async plan.
+        // Never commit/cancel or replace a possibly unfinished RAM draft here.
+        if(typeof uiState !== 'undefined' && uiState && ['rozrys','wycena'].includes(uiState.activeTab)) return;
         if(window.FC && FC.project && typeof FC.project.save === 'function'){
           projectData = FC.project.save(projectData);
         }

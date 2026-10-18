@@ -1,5 +1,14 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## Naprawa RAM/PCV i generowania WYCENY — gałąź po PR #63
+
+Baza `4d8dd96df9f293276dee07dc0c4cedf26edac08c`, gałąź `fix/pcv-ram-quote-generate-android`.
+Istniejące `window.projectData` jest aliasem globalnego wiązania `projectData`, więc zapis nie pozostawia starszego RAM dla PCV.
+Opóźniony autosave nie zapisuje projektu w widokach obliczeń ROZRYS/WYCENA; odmowa nowej WYCENY pozostaje widoczna przy istniejącej historii.
+Kontrole PCV, sesje, kanoniczny rekord i zamrożone oferty pozostają obowiązujące. CLOUD-4.2 nadal jest nieaktywnym przygotowaniem.
+[Reprodukcje, zakres, testy i krótka akceptacja Androida](tools/reports/pcv-ram-quote-generate-android-fix.md).
+To stan gałęzi roboczej, bez PR, wydaniowego CI, merge i Pages.
+
 ## Aktualizacja po PR #62 — CLOUD-4.1 scalone, CLOUD-4.2 w przygotowaniu
 
 GitHub potwierdził merge PR #62 do main `d517d598917e5ccd6f1460950697c9ab27f1db1c`,

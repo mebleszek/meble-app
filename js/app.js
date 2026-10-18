@@ -53,6 +53,15 @@ const __initialAppState = callExtracted('appStateBootstrap', 'createInitialState
 let materials = __initialAppState.materials;
 let services = __initialAppState.services;
 let projectData = __initialAppState.projectData;
+// Classic-script `let` does not create a window property. Keep the existing
+// module-facing name as an alias, including when a confirmed save replaces RAM.
+// This never reloads storage or accepts a session: an unsaved draft stays a draft.
+Object.defineProperty(window, 'projectData', {
+  configurable:true,
+  enumerable:true,
+  get(){ return projectData; },
+  set(value){ projectData = value; },
+});
 const __uiDefaults = (__initialAppState.uiDefaults && typeof __initialAppState.uiDefaults === 'object')
   ? __initialAppState.uiDefaults
   : {};
