@@ -1,5 +1,11 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## CLOUD-4.1 — gałąź robocza, weryfikacja emulatorowa zablokowana
+
+Baza `62f80433c28cfd1ed0370618b58db8f4e88fad68` (CLOUD-4 w main). Gałąź `cloud-4-1-private-pilot-execution` przygotowuje prywatny, jednokrotny wykonawca i niezależny odczyt syntetycznego projektu. Operatorska kopia właściciela sesji powstaje tylko w RAM, z kontrolą SHA; produkcyjne `main-login.js`, index, UI, Auth/IndexedDB, modele i Rules pozostają bez zmian. Wykonawca odmawia LIVE przed inicjalizacją Auth i nie jest częścią startupu.
+
+**Nie jest to zakończona weryfikacja ani zgoda na wydanie.** Preflight 125/125 smoke, 555/555 składni, APP 110/110 PASS; emulatorowy roundtrip i pełne Chromium wymagające emulatora nie wykonały się — pobranie oficjalnego JAR jest blokowane przez sieć środowiska (403). Nie przepisujemy historycznych wyników CLOUD-4 jako aktualnych. [Raport, dowody, blokada i procedura późniejszej aktywacji](tools/reports/cloud-4-1-private-pilot-execution.md). Nie wykonywano produkcyjnych operacji Firebase ani Ready/merge/Pages.
+
 ## CLOUD-4 — przygotowanie pilota, bez aktywacji LIVE
 
 Baza **`0cafb432f18bcd052672aac020d36128155388a7` po PR #60**. Właściciel potwierdził: **PR #60 scalony, CI/Pages PASS, Android zaakceptowany**, cenniki/materiały/okucia zachowane. Pojedynczy pierwszy `AUTH_STARTUP_FAILED` nie ma potwierdzonej przyczyny; nie dodano retry ani przebudowy logowania.

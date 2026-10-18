@@ -10,7 +10,8 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {chromium} from 'playwright-core';
 import {initializeTestEnvironment} from '@firebase/rules-unit-testing';
-import {doc,setDoc,updateDoc} from 'firebase/firestore';
+import {doc,setDoc,updateDoc,getDoc,Bytes,deleteDoc} from 'firebase/firestore';
+import {openPrivatePilot} from './private-pilot-runner.mjs';
 if(process.env.FIREBASE_AUTH_EMULATOR_HOST!=='127.0.0.1:19099'||process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:18080')throw Error('Demo loopback emulators required');
 const root=path.resolve(fileURLToPath(new URL('../../',import.meta.url))),cache=path.join(os.tmpdir(),'meble-firebase-browser-sdk-12.19.0');
 const hashes={'firebase-app.js':'39a50952b5def557337b2290069c7d7371f3515ad46c44a43b9c520f734d8d14','firebase-auth.js':'59f60ce3adcb4c85a5260e963fd14134eec088de5b18ddfb9e95771c72f65264','firebase-firestore.js':'86cfce95e3b598a2c0188a06b98fa1adc0cdb378bfc0a5ea207dd7627f7e7460'};
@@ -724,4 +725,144 @@ test('Native acknowledged v2 migration preserves exact legacy bytes and survives
   const unavailable=await r.page.evaluate(async()=>{const p=window.FC.localAccessProfile.create(localStorage,sessionStorage,{indexedDB:null});try{await p.confirm('native-v2-owner');return 'wrong';}catch(e){return e.code;}});
   assert.equal(unavailable,'LOCAL_ACCESS_COORDINATION_UNAVAILABLE');assert.deepEqual(await profileBusiness(r.page),before);
  }finally{await r.ctx.close();}
+});
+
+// End-to-end operator path: no factory interception, no public Auth/lease handles.
+// Run last: this group tests the EXACT minimal prospective deployment profile.
+test('CLOUD-4.1 private execution through real main owner and independent browser SDK clients',async t=>{
+ const minimal=await initializeTestEnvironment({projectId:'demo-meble-app',firestore:{host:'127.0.0.1',port:18080,rules:fs.readFileSync(new URL('./firestore-live-pilot.rules',import.meta.url),'utf8')}});
+ const scope={investorId:'cloud4-investor-v1',projectId:'cloud4-project-v1'};
+ const approval=uid=>({version:1,ownerUid:uid,...scope,payloadSha256:'711f2fea49873bab0c4f76b5e8e0e666c4796190ed9fbfda71557d35890ba2e3',rulesSha256:'eaeb3e67417955bbd67d2881902d3827023502c2948ce0a19dc583c66b5a2e92',expiresAt:Date.now()+600000});
+ const admin=fn=>minimal.withSecurityRulesDisabled(ctx=>fn(ctx.firestore()));
+ const head=(db,uid)=>doc(db,'users',uid,'pilotProjects',scope.projectId);
+ const clients=[];
+ async function grant(uid,enabled=true){await admin(async db=>{
+  await setDoc(doc(db,'authorizedUsers',uid),{appEnabled:true,enabled,pilotProjectId:scope.projectId,pilotInvestorId:scope.investorId});
+  await setDoc(doc(db,'appAccess',uid),{schemaVersion:1});
+  await setDoc(doc(db,'pilotControl','cloud4'),{schemaVersion:1,ownerUid:uid,enabled:true,...scope});
+ });}
+ async function client(sub,{enabled=true,configure=true}={}){
+  const r=await context({seed:false});clients.push(r);
+  r.operator=await openPrivatePilot(r.page,base+'/index.html');await state(r.page,'unauthenticated');
+  r.uid=await syntheticLogin(r.page,sub);await state(r.page,'unapproved');
+  if(configure){await grant(r.uid,enabled);await r.page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await businessReady(r.page);}
+  r.before=configure?await r.page.evaluate(()=>JSON.stringify({ram:window.projectData,local:Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('fc_'))),session:Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('fc_')))})):null;
+  return r;
+ }
+ async function fresh(sub,uid){
+  const r=await context({seed:false});clients.push(r);r.uid=uid;
+  r.operator=await openPrivatePilot(r.page,base+'/index.html');await state(r.page,'unauthenticated');
+  assert.equal(await syntheticLogin(r.page,sub),uid);await businessReady(r.page);
+  r.before=await r.page.evaluate(()=>JSON.stringify({ram:window.projectData,local:Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('fc_'))),session:Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('fc_')))}));
+  return r;
+ }
+ async function execute(r,role='write',patch={}){return r.operator.execute({role,approval:{...approval(r.uid),...patch}});}
+ async function unchanged(r){if(r.before!==null)assert.equal(await r.page.evaluate(()=>JSON.stringify({ram:window.projectData,local:Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('fc_'))),session:Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('fc_')))})),r.before);}
+ try{
+  await t.test('No work on login; private single publication, exact independent model/bytes, close preserves shared Auth',async()=>{
+   const a=await client('private-native-owner');
+   assert.equal(await admin(async db=>(await getDoc(head(db,a.uid))).exists()),false,'login/startup cannot publish');
+   assert.equal(a.requests.some(url=>/cloud4-source-worker|firebase-pilot-live-transport/.test(url)),false);
+   assert.equal(await a.page.evaluate(()=>!!(window.__syntheticSharedAuth||window.__syntheticLease||FC.controlledProjectPilot||FC.firebasePilotLiveTransport)),false);
+   const written=await execute(a);assert.equal(written.ok,true,JSON.stringify(written));
+   assert.equal((await execute(a)).code,'CLOUD_OPERATION_LIMIT');
+   const b=await fresh('private-native-owner',a.uid);assert.notEqual(a.ctx,b.ctx);
+   const read=await execute(b,'read');assert.equal(read.ok,true,JSON.stringify(read));assert.equal(read.sourceMatches,true);assert.equal(read.utf8Bytes,6797);
+   assert.equal(read.revisionId,written.revisionId);assert.equal(read.documentSha256,'5c9bc70f8fc1d7a15cef742150636e41ebacde404e57bd6109213f82d28d81a1');
+   assert.equal(read.document.payload.project.projectData.kuchnia.production.partOverrides.one['body.side.left'].edges.w2,true);
+   assert.equal(read.document.payload.project.projectData.kuchnia.production.partOverrides.one['body.side.right'].edges.w2,false);
+   await unchanged(a);await unchanged(b);await a.operator.close();
+   assert.equal(await currentUid(a.page),a.uid);assert.equal(await a.page.evaluate(()=>window.__FC_MAIN_ACCESS__.isValid()),true);
+   assert.equal((await execute(a)).code,'CLOUD_CLIENT_CLOSED');
+   const original=await admin(async db=>(await getDoc(head(db,a.uid))).data());
+   const c=await fresh('private-native-owner',a.uid);assert.equal((await execute(c)).code,'CLOUD_WRITE_CONFLICT');
+   const after=await admin(async db=>(await getDoc(head(db,a.uid))).data());assert.deepEqual(after,original,'new client must not replace immutable first manifest');await unchanged(c);
+  });
+  await t.test('App authorization alone never grants pilot writes; foreign UID and approval scope denied',async()=>{
+   const a=await client('private-no-pilot',{enabled:false});assert.equal((await execute(a)).code,'CLOUD_PERMISSION_DENIED');await unchanged(a);
+   assert.equal(await admin(async db=>(await getDoc(head(db,a.uid))).exists()),false);
+   const b=await client('private-wrong-approval');assert.equal((await execute(b,'write',{ownerUid:'foreign-synthetic'})).code,'CLOUD_APPROVAL_REQUIRED');await unchanged(b);
+   const c=await client('private-unapproved',{configure:false});assert.equal((await execute(c)).ok,false);assert.equal(c.requests.some(url=>url.includes('cloud4-source-worker')),false);await businessAbsent(c);
+  });
+  await t.test('Concurrent fresh writers have one immutable winner and an explicitly refused loser',async()=>{
+   const a=await client('private-race-owner'),b=await fresh('private-race-owner',a.uid);
+   const results=await Promise.all([execute(a),execute(b)]);
+   assert.equal(results.filter(x=>x.ok).length,1,JSON.stringify(results));
+   assert.equal(results.filter(x=>x.ok===false).length,1);
+   const winner=results.find(x=>x.ok),stored=await admin(async db=>(await getDoc(head(db,a.uid))).data());
+   assert.equal(stored.currentRevisionId,winner.revisionId);assert.equal(stored.generation,1);
+   await unchanged(a);await unchanged(b);
+  });
+  await t.test('Logout while waiting for isolated source invalidates the private operation before staging',async()=>{
+   const a=await client('private-await-owner');let release,requested;
+   const held=new Promise(resolve=>{release=resolve;}),reached=new Promise(resolve=>{requested=resolve;});
+   await a.page.route('**/tools/firebase-pilot/cloud4-source-worker.js',async route=>{requested();await held;await route.continue();});
+   const operation=execute(a);
+   try{await reached;await a.page.locator('#main-signout').click();await state(a.page,'unauthenticated');}
+   finally{release();}
+   const out=await operation;assert.equal(out.ok,false);
+   assert.equal(await admin(async db=>(await getDoc(head(db,a.uid))).exists()),false);
+   assert.deepEqual(await inspectBytes(a.ctx),JSON.parse(a.before).local);
+  });
+  await t.test('Real durable room session denies the pilot without committing or cancelling the draft',async()=>{
+   const a=await client('private-editing-owner');
+   await a.page.evaluate(async()=>{
+    const api=window.FC,inv=api.investors.create({name:'Syntetyczny projekt lokalny'});
+    const record=api.projectStore.ensureForInvestor(inv.id,{projectData:{kuchnia:{settings:{legHeight:10},cabinets:[],fronts:[],sets:[]}}});
+    projectData=structuredClone(record.projectData);
+    uiState=api.uiState.set({currentInvestorId:inv.id,roomType:'kuchnia',entry:'app',activeTab:'wywiad'});
+    if(!await api.openRoom('kuchnia')||!api.session.active||!api.session.durable)throw Error('Durable session required');
+   });
+   const before=await fcBytes(a.page),out=await execute(a);assert.equal(out.code,'CLOUD_PRIVATE_SESSION_REQUIRED');
+   assert.deepEqual(await fcBytes(a.page),before);assert.equal(await a.page.evaluate(()=>FC.session.active),true);
+   assert.equal(a.requests.some(url=>url.includes('cloud4-source-worker')),false);
+   assert.equal(await admin(async db=>(await getDoc(head(db,a.uid))).exists()),false);
+  });
+  await t.test('Inactive RAM with an unconfirmed durable session remainder also denies the pilot',async()=>{
+   const a=await client('private-unconfirmed-session');
+   await a.page.evaluate(()=>{if(FC.session.active)throw Error('Expected inactive RAM');localStorage.setItem('fc_edit_session_v1','{"syntheticUnconfirmed":true}');});
+   const before=await fcBytes(a.page);assert.equal((await execute(a)).code,'CLOUD_PRIVATE_SESSION_REQUIRED');
+   assert.deepEqual(await fcBytes(a.page),before);assert.equal(a.requests.some(url=>url.includes('cloud4-source-worker')),false);
+  });
+  await t.test('Lost acknowledgement after actual manifest commit stays uncertain; independent read resolves without retry',async()=>{
+   const a=await client('private-lost-ack');let dropped=0;
+   await a.page.route('**/google.firestore.v1.Firestore/Commit*',async route=>{
+    const body=route.request().postData()||'';
+    if(!dropped&&body.includes('/pilotProjects/cloud4-project-v1"')&&body.includes('currentRevisionId')){
+     dropped++;const response=await route.fetch();assert.equal(response.ok(),true);await route.abort('failed');
+    }else if(dropped)await route.abort('failed'); // No acknowledgement, including SDK transaction retries.
+    else await route.continue();
+   });
+   const out=await execute(a);assert.equal(dropped,1,'fault must follow the real Web SDK manifest commit');
+   assert.equal(out.ok,false);assert.equal(out.published,'unconfirmed');assert.equal(out.requiresIndependentRead,true);
+   assert.equal((await execute(a)).code,'CLOUD_OPERATION_LIMIT');await unchanged(a);
+   const b=await fresh('private-lost-ack',a.uid);const read=await execute(b,'read');assert.equal(read.ok,true,JSON.stringify(read));await unchanged(b);
+  });
+  await t.test('Corrupted SHA and missing fragment deny the independent reader, preserving local model',async()=>{
+   for(const mode of ['sha','missing']){
+    const a=await client('private-corrupt-'+mode);const out=await execute(a);assert.equal(out.ok,true,JSON.stringify(out));
+    await admin(async db=>{const ref=doc(head(db,a.uid),'revisions',out.revisionId,'chunks','0');
+     if(mode==='missing')await deleteDoc(ref);else{const old=(await getDoc(ref)).data(),bytes=old.bytes.toUint8Array();bytes[0]^=1;await updateDoc(ref,{bytes:Bytes.fromUint8Array(bytes)});}
+    });
+    const b=await fresh('private-corrupt-'+mode,a.uid);const read=await execute(b,'read');assert.equal(read.ok,false);assert.match(read.code,/CLOUD_(?:INTEGRITY|REVISION|FRAGMENT|CHUNK)/);await unchanged(a);await unchanged(b);
+   }
+  });
+  await t.test('Logout, changed UID, revoked pilot grant and offline deny before publication',async()=>{
+   for(const mode of ['logout','uid','app','grant','offline']){
+    const a=await client('private-revoked-'+mode);
+    if(mode==='logout'){
+     await a.page.locator('#main-signout').click();await state(a.page,'unauthenticated');
+    }else if(mode==='uid'){
+     await syntheticLogin(a.page,'private-foreign-account');await a.page.waitForFunction(()=>!window.__FC_MAIN_ACCESS__.isValid());
+    }else if(mode==='app'||mode==='grant')await admin(db=>updateDoc(doc(db,'authorizedUsers',a.uid),mode==='app'?{appEnabled:false}:{enabled:false}));
+    else await a.ctx.setOffline(true);
+    const out=await execute(a);assert.equal(out.ok,false,mode);if(mode==='offline')await a.ctx.setOffline(false);
+    assert.equal(await admin(async db=>(await getDoc(head(db,a.uid))).exists()),false,mode+' must not publish');
+    assert.deepEqual(await inspectBytes(a.ctx),JSON.parse(a.before).local,mode+' preserves stored business data');
+   }
+  });
+ }finally{
+  for(const r of clients){await r.operator?.close().catch(()=>{});await r.ctx.close();}
+  await minimal.cleanup();
+ }
 });
