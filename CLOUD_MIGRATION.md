@@ -1,5 +1,16 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
+## Aktualizacja po PR #62 — CLOUD-4.1 scalone, CLOUD-4.2 w przygotowaniu
+
+GitHub potwierdził merge PR #62 do main `d517d598917e5ccd6f1460950697c9ab27f1db1c`,
+wydaniowe CI i Pages SUCCESS. CLOUD-4.1: 13/13 live-readiness, 10/10 prywatny pilot,
+71/71 SDK, 3/3 startup, 38/38 Chromium, Preflight PASS, bez pominięć.
+Starsze nagłówki o blokadzie poniżej są zapisem historycznym sprzed weryfikacji.
+CLOUD-4.2 przygotowuje pakiet offline i próby emulatorowe przyszłego LIVE na osobnej
+branży, bez produkcyjnych Rules, grantów, zapisów, odczytów ani zmiany UI/autorytetu.
+[Artefakty, bramki zgody, procedura i statusy](tools/reports/cloud-4-2-live-pilot-preparation.md).
+Aktualny wynik CLOUD-4.2 wymaga zakończonego CI tej gałęzi; nie jest odziedziczonym PASS.
+
 ## CLOUD-4.1 — techniczna gałąź prywatnego wykonania
 
 Na bazie main `62f80433` przygotowano operatorski call-site w sprawdzonej kopii main-login budowanej wyłącznie w RAM. Korzysta z tej samej prywatnej sesji/lease i istniejących CLOUD-1B/2C/4, bez publicznych getterów, startupowej rejestracji i drugiego modelu danych. Jedna próba zapisu albo odczytu na uchwyt; odczyt na osobnym kliencie SDK, wyłącznie do RAM. Zwykły program, jego pliki startowe, lokalne dane, Rules i granty pozostają nietknięte.

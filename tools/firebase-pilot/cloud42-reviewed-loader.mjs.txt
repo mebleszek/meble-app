@@ -1,0 +1,57 @@
+// INERT REVIEW ARTIFACT. Not imported by the app, tests, or CI as a live loader.
+// Release as a private .mjs only after explicit approval of its hash and packet.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import {createRequire} from 'node:module';
+import {createHash} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
+export async function openReviewedCandidate(page,{checkout,packet,decision}={}){
+ if(!decision||typeof decision.decisionId!=='string'||!decision.decisionId.trim())throw Error('CLOUD42_SEPARATE_OWNER_APPROVAL_REQUIRED');
+ const require=createRequire(path.resolve(checkout,'tools/firebase-pilot/package.json'));
+ const {prepare,PRODUCTION}=require('./cloud42-package.js');
+ const uid=packet?.binding?.ownerUid;
+ const expected=prepare({uid,role:packet.binding.role,expiresAt:packet.binding.expiresAt,
+  grant:packet.actions.stage.expected['authorizedUsers/'+uid],
+  appAccess:packet.actions.stage.expected['appAccess/'+uid],control:packet.actions.stage.expected['pilotControl/cloud4']});
+ assert.deepEqual(packet,expected,'Candidate package changed after preparation');
+ assert.equal(createHash('sha256').update(fs.readFileSync(fileURLToPath(import.meta.url))).digest('hex'),packet.proof.loaderSha256,'Released loader bytes changed');
+ const wanted={decisionId:decision.decisionId,baseCommit:packet.proof.baseCommit,
+  sourcePinsSha256:packet.proof.sourcePinsSha256,packageSha256:packet.proof.packageSha256,
+  loaderSha256:packet.proof.loaderSha256,candidateSha256:packet.proof.candidateSha256,
+  rulesSha256:packet.proof.rulesSha256,projectId:PRODUCTION.projectId,...packet.binding};
+ assert.deepEqual(decision,wanted,'Separate owner decision must name this exact package, UID, role and deadline');
+ // These bytes represent the operator's recorded decision, not a signature or
+ // a server grant. Firestore Rules and the owner's approved Google lease decide access.
+ if(page.url()!=='about:blank'||page.context().pages().length!==1||page.context().serviceWorkers().length)throw Error('CLOUD_OPERATOR_FRESH_CONTEXT_REQUIRED');
+ const pins=JSON.parse(fs.readFileSync(path.resolve(checkout,'tools/firebase-pilot/cloud42-source-pins.json'))).sha256;
+ const entry=PRODUCTION.origin+PRODUCTION.pathname;
+ const prefix='/meble-app/';
+ await page.route(url=>url.origin===PRODUCTION.origin&&url.pathname.startsWith(prefix),async route=>{
+  const url=new URL(route.request().url()),relative=decodeURIComponent(url.pathname.slice(prefix.length));
+  if(relative==='js/main-login.js'){await route.fulfill({contentType:'text/javascript',body:''});return;}
+  if(Object.hasOwn(pins,relative)){
+   const bytes=fs.readFileSync(path.resolve(checkout,relative));
+   assert.equal(createHash('sha256').update(bytes).digest('hex'),pins[relative]);
+   await route.fulfill({contentType:relative.endsWith('.js')?'text/javascript':relative.endsWith('.html')?'text/html':'application/octet-stream',body:bytes});
+  }else if(relative.endsWith('.js'))await route.abort('blockedbyclient');
+  else await route.continue(); // Ordinary public CSS/images; no business data.
+ });
+ await page.goto(entry,{waitUntil:'domcontentloaded'});
+ if(await page.evaluate(()=>!!window.__FC_MAIN_ACCESS__))throw Error('CLOUD_OPERATOR_ALREADY_STARTED');
+ const configured=await page.evaluate(()=>({target:window.FC_AUTH_TEST_OPTIONS?.target,options:window.FC_AUTH_TEST_OPTIONS?.firebaseConfig}));
+ if(configured.target!=='live-auth'||configured.options?.projectId!==PRODUCTION.projectId
+  ||configured.options.authDomain!==PRODUCTION.authDomain||configured.options.appId!==PRODUCTION.appId)throw Error('CLOUD_LIVE_TRANSPORT_DISABLED');
+ const handle=await page.evaluateHandle(packet.candidateSource);
+ if(await handle.evaluate(driver=>!driver||typeof driver.execute!=='function'||typeof driver.close!=='function')){
+  await handle.dispose();throw Error('CLOUD_OPERATOR_STARTUP_FAILED');
+ }
+ let closed=false;
+ return Object.freeze({
+  async execute(){
+   if(closed)return {ok:false,code:'CLOUD_CLIENT_CLOSED'};
+   return handle.evaluate((driver,request)=>driver.execute(request),{role:packet.binding.role,approval:packet.approval});
+  },
+  async close(){if(closed)return;closed=true;try{await handle.evaluate(driver=>driver.close());}finally{await handle.dispose();}}
+ });
+}

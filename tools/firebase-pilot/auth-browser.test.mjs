@@ -12,6 +12,8 @@ import {chromium} from 'playwright-core';
 import {initializeTestEnvironment} from '@firebase/rules-unit-testing';
 import {doc,setDoc,updateDoc,getDoc,Bytes,deleteDoc} from 'firebase/firestore';
 import {openPrivatePilot} from './private-pilot-runner.mjs';
+import {openCloud42Rehearsal} from './cloud42-rehearsal.mjs';
+const openOperator=process.env.CLOUD42_REHEARSAL==='1'?openCloud42Rehearsal:openPrivatePilot;
 if(process.env.FIREBASE_AUTH_EMULATOR_HOST!=='127.0.0.1:19099'||process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:18080')throw Error('Demo loopback emulators required');
 const root=path.resolve(fileURLToPath(new URL('../../',import.meta.url))),cache=path.join(os.tmpdir(),'meble-firebase-browser-sdk-12.19.0');
 const hashes={'firebase-app.js':'39a50952b5def557337b2290069c7d7371f3515ad46c44a43b9c520f734d8d14','firebase-auth.js':'59f60ce3adcb4c85a5260e963fd14134eec088de5b18ddfb9e95771c72f65264','firebase-firestore.js':'86cfce95e3b598a2c0188a06b98fa1adc0cdb378bfc0a5ea207dd7627f7e7460'};
@@ -759,7 +761,7 @@ test('CLOUD-4.1 private execution through real main owner and independent browse
  });}
  async function client(sub,{enabled=true,configure=true}={}){
   const r=await context({seed:false});clients.push(r);
-  r.operator=await openPrivatePilot(r.page,base+'/index.html');await state(r.page,'unauthenticated');
+  r.operator=await openOperator(r.page,base+'/index.html');await state(r.page,'unauthenticated');
   r.uid=await syntheticLogin(r.page,sub);await state(r.page,'unapproved');
   if(configure){await grant(r.uid,enabled);await r.page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await businessReady(r.page);}
   r.before=configure?await r.page.evaluate(()=>JSON.stringify({ram:projectData,local:Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('fc_'))),session:Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('fc_')))})):null;
@@ -767,7 +769,7 @@ test('CLOUD-4.1 private execution through real main owner and independent browse
  }
  async function fresh(sub,uid){
   const r=await context({seed:false});clients.push(r);r.uid=uid;
-  r.operator=await openPrivatePilot(r.page,base+'/index.html');await state(r.page,'unauthenticated');
+  r.operator=await openOperator(r.page,base+'/index.html');await state(r.page,'unauthenticated');
   assert.equal(await syntheticLogin(r.page,sub),uid);await businessReady(r.page);
   r.before=await r.page.evaluate(()=>JSON.stringify({ram:projectData,local:Object.fromEntries(Object.entries(localStorage).filter(([k])=>k.startsWith('fc_'))),session:Object.fromEntries(Object.entries(sessionStorage).filter(([k])=>k.startsWith('fc_')))}));
   return r;

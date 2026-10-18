@@ -11,7 +11,8 @@
     "test:live-readiness": "firebase emulators:exec --config firebase-live-pilot.json --project demo-meble-app --only auth,firestore --non-interactive \"node --test live-readiness.test.mjs\"",
     "test:browser": "firebase emulators:exec --config firebase.json --project demo-meble-app --only auth,firestore --non-interactive \"node --test auth-browser.test.mjs\"",
     "test:private-pilot": "firebase emulators:exec --config firebase-live-pilot.json --project demo-meble-app --only auth,firestore --non-interactive \"node --test --test-name-pattern=CLOUD-4.1 auth-browser.test.mjs\"",
-    "test:private-startup": "node --test private-pilot-startup.test.mjs"
+    "test:private-startup": "node --test private-pilot-startup.test.mjs",
+    "test:cloud42-plan": "firebase emulators:exec --config firebase-live-pilot.json --project demo-meble-app --only auth,firestore --non-interactive \"node --test cloud42-plan.test.mjs\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.0",
