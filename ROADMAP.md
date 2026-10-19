@@ -1,5 +1,12 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
+## Pakiet spójności kontekstu po PR #64
+
+Gałąź `fix/project-context-coherence` na main `431545d3`: jedno źródło projektu dla ROZRYS/WYCENY,
+odczytowy render, unieważnianie obliczenia przy zmianie kontekstu i zachowanie świeżego błędu.
+[Raport i regresje](tools/reports/project-context-coherence-fix.md). Następna bramka po pełnej
+weryfikacji: osobna zgoda na próbę wydania; później akceptacja Androida. Nie aktywuje CLOUD-4.2.
+
 ## Bieżąca naprawa po PR #63 — RAM/PCV i „Wyceń”
 
 Na gałęzi `fix/pcv-ram-quote-generate-android` przygotowano spójny alias RAM, ochronę rewizji przed autosave w widokach obliczeń i widoczną odmowę generowania oferty.

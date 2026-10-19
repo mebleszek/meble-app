@@ -1,5 +1,15 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
+## Lokalny kontekst kalkulacji — 2026-10-19
+
+`fc_projects_v1` pozostaje jedynym autorytetem projektu. Naprawa po PR #64 usuwa selekcję
+według liczby szafek/pokojów i automatyczną naprawę danych z renderu WYCENY. Świadek rewizji,
+właściciel i zakres unieważniają stary wynik po zmianie kontekstu; licznik istnieje tylko w RAM.
+Nie powstał nowy store, klucz storage, trwała kopia ani migracja. Legacy i zaakceptowana historia
+pozostają przy swoich ID. [Kontrakt i testy](tools/reports/project-context-coherence-fix.md).
+Aktualizacja pinów nieaktywnego pakietu CLOUD-4.2 wymaga osobnej ponownej oceny przed LIVE;
+nie zmienia transportu, Rules lub bramek zgody.
+
 ## Aktualizacja po PR #62 — CLOUD-4.1 scalone, CLOUD-4.2 w przygotowaniu
 
 GitHub potwierdził merge PR #62 do main `d517d598917e5ccd6f1460950697c9ab27f1db1c`,

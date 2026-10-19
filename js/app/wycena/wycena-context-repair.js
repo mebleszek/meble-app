@@ -353,55 +353,27 @@
     return changed;
   }
 
-  function repairActiveQuoteContext(options){
-    const opts = options && typeof options === 'object' ? options : {};
-    const repairs = [];
-    const investorId = resolveInvestorId();
-    if(!investorId){
-      return { ok:false, code:'no_investor', title:'Brak aktywnego inwestora', message:'Wybierz inwestora/projekt przed utworzeniem wyceny.', repairs };
-    }
-    const investor = findInvestor(investorId);
-    if(!investor){
-      return { ok:false, code:'missing_investor', title:'Nie znaleziono inwestora', message:'Aktywny inwestor nie istnieje już w danych programu.', repairs, investorId };
-    }
-
-    const beforeProjectId = currentProjectId();
-    let record = getProjectRecordByInvestor(investorId);
-    const currentRecord = beforeProjectId ? getProjectRecordById(beforeProjectId) : null;
-    if(currentRecord && text(currentRecord.investorId) !== investorId) repairs.push('current-project-belonged-to-other-investor');
-
-    let chosenProjectData = chooseProjectDataForInvestor(investorId, record);
-    if(!record || text(record.investorId) !== investorId){
-      record = upsertProjectRecord(investorId, chosenProjectData, null);
-      repairs.push('created-missing-project-record');
-    }
-
-    if(text(currentProjectId()) !== text(record && record.id)) repairs.push('fixed-current-project-id');
-    const activeProject = activateProjectData(investorId, record, chosenProjectData || (record && record.projectData));
-    const activeRoomIds = getActiveRoomIdsFromProject(activeProject);
-    const draftResult = sanitizeDraftSelection(activeRoomIds, record && record.id, investorId);
-    if(draftResult.changed) repairs.push('sanitized-offer-draft-selection');
-    if(cleanupWrongScopedDrafts(record && record.id, investorId, activeRoomIds)) repairs.push('cleaned-wrong-scoped-drafts');
-    const relinkedSnapshots = relinkInvestorSnapshotsToProject(investorId, record && record.id, activeRoomIds);
-    if(relinkedSnapshots && relinkedSnapshots.changed) repairs.push('relinked-investor-snapshots:' + relinkedSnapshots.count);
-    if(healQuoteSnapshotInvestorSource(investorId, activeProject)) repairs.push('healed-quote-snapshot-investor-source');
-    try{ patchUiState({ currentInvestorId:investorId }); }catch(_){ }
-
-    return {
-      ok:true,
-      investorId,
-      investor,
-      projectId:text(record && record.id),
-      project:record,
-      projectData:activeProject,
-      activeRoomIds,
-      selectedRooms:draftResult.selectedRooms || activeRoomIds.slice(),
-      draft:draftResult.draft,
-      repairs,
-      reason:text(opts.reason),
-      hadProjectContent:projectHasContent(activeProject),
-    };
+  function readActiveQuoteContext(){
+    // No activation, persistence, draft sanitization or history relinking on read.
+    const investorId=getCurrentInvestorId(),projectId=currentProjectId();
+    const record=getProjectRecordById(projectId);
+    const refusal=code=>({ok:false,code,investorId,projectId,repairs:[],
+      message:'Nie można potwierdzić aktywnego kontekstu projektu. ('+code+')'});
+    const storedInvestors=storageGetJSON('fc_investors_v1',[]);
+    if(!investorId || !Array.isArray(storedInvestors) || !storedInvestors.some(row=>text(row.id)===investorId))return refusal('INVESTOR_CONTEXT_MISMATCH');
+    if(!record || text(record.investorId)!==investorId)return refusal('PROJECT_CONTEXT_MISMATCH');
+    const policy=FC.projectPcvGuard && FC.projectPcvGuard.read();
+    if(!policy || !policy.ok)return refusal(policy && policy.code || 'PCV_POLICY_UNAVAILABLE');
+    const activeProject=window.projectData;
+    const activeRoomIds=getActiveRoomIdsFromProject(activeProject);
+    const draft=FC.quoteOfferStore && FC.quoteOfferStore.getCurrentDraft && FC.quoteOfferStore.getCurrentDraft();
+    return {ok:true,investorId,projectId,project:record,projectData:activeProject,activeRoomIds,
+      selectedRooms:normalizeRoomIds(draft && draft.selection && draft.selection.selectedRooms),
+      repairs:[],hadProjectContent:projectHasContent(activeProject)};
   }
+  // Compatibility name retained for isolated callers. Recovery belongs to the
+  // existing investor/project activation path, never quote rendering or a run.
+  function repairActiveQuoteContext(){ return readActiveQuoteContext(); }
 
 
 
@@ -423,37 +395,8 @@
     try{ return normalizeRoomIds(snap.scope && snap.scope.selectedRooms); }catch(_){ return []; }
   }
 
-  function relinkInvestorSnapshotsToProject(investorId, projectId, activeRoomIds){
-    const iid = text(investorId);
-    const pid = text(projectId);
-    const active = normalizeRoomIds(activeRoomIds);
-    const activeSet = new Set(active);
-    if(!iid || !pid || !active.length) return { changed:false, count:0 };
-    if(!(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.readAll === 'function' && typeof FC.quoteSnapshotStore.writeAll === 'function')) return { changed:false, count:0 };
-    let rows = [];
-    try{ rows = FC.quoteSnapshotStore.readAll() || []; }catch(_){ rows = []; }
-    let count = 0;
-    const next = (Array.isArray(rows) ? rows : []).map((row)=> {
-      const snap = row && typeof row === 'object' ? clone(row) : {};
-      if(snapshotInvestorId(snap) !== iid) return snap;
-      if(snapshotProjectId(snap) === pid) return snap;
-      const rooms = snapshotRoomIds(snap);
-      if(!rooms.length || !rooms.every((roomId)=> activeSet.has(roomId))) return snap;
-      snap.project = Object.assign({}, snap.project || {}, { id:pid, investorId:iid });
-      snap.investor = Object.assign({}, snap.investor || {}, { id:iid });
-      snap.meta = Object.assign({}, snap.meta || {}, {
-        relinkedProjectId:pid,
-        relinkedAt:now(),
-        relinkedFromProjectId:snapshotProjectId(row),
-      });
-      count += 1;
-      return snap;
-    });
-    if(count > 0){
-      try{ FC.quoteSnapshotStore.writeAll(next); }catch(_){ return { changed:false, count:0 }; }
-      return { changed:true, count };
-    }
-    return { changed:false, count:0 };
+  function relinkInvestorSnapshotsToProject(){
+    return {changed:false,count:0,code:'HISTORY_RELINK_REQUIRES_REVIEW'};
   }
 
   function healQuoteSnapshotInvestorSource(investorId, projectData){
@@ -500,6 +443,7 @@
   }
 
   FC.wycenaContextRepair = {
+    readActiveQuoteContext,
     repairActiveQuoteContext,
     buildErrorQuote,
     projectDataRoomIds,
