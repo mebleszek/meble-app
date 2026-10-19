@@ -1,5 +1,45 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## Diagnostyka zablokowanej sesji w aplikacji — bez wydania
+
+Kontynuacja `fix/durable-session-recovery` po `47d20b0`, baza main nadal
+`3332ac8e059a73430d3d40518caebb359a8728e8`. Właściciel zgłosił brak skutecznego
+wyniku bookmarkletów na Pixelu; nie są już zalecaną ścieżką diagnostyki.
+Przy błędach sesji dodano jawny przycisk **Diagnostyka sesji**, dostępny w tym
+samym modalu. Raport anonimowy pojawia się na ekranie, na nieprzezroczystym
+tle; kopiowanie jest opcjonalne. Istniejący gate Auth pozostaje obowiązkowy.
+Kolektor jest wspólny dla aplikacji i wcześniejszych testów, bez drugiej kopii
+reguł dowodu. Diagnostyka nie zapisuje danych, nie usuwa payloadu i nie
+odblokowuje sesji. [Zakres, testy i instrukcja](tools/reports/initial-session-retry-recovery.md#diagnostyka-sesji-w-aplikacji--kontynuacja-po-47d20b0).
+Na Pixelu funkcja będzie dostępna dopiero po osobno zatwierdzonym wydaniu.
+Weryfikacja: kolektor 15/15, nowe regresje 6/6, mobilna diagnostyka 6/6,
+dotychczasowe scenariusze mobilne 13/13 i granica logowania 36/36 PASS.
+Końcowy PRE-FLIGHT PASS: 135/135 smoke, APP 110/110, składnia 577/577.
+Bez PR, merge, Pages i Firebase LIVE.
+
+## Ponawianie pierwszego zapisu sesji — gałąź robocza po PR #67
+
+Zweryfikowany GitHub main: `3332ac8e059a73430d3d40518caebb359a8728e8`.
+`fix/durable-session-recovery` naprawia odtworzoną pętlę po przejściowej awarii
+pierwszego zabezpieczenia sesji: jawne działania ponawiają istniejący `begin()`
+wyłącznie przy zachowanym pierwotnym dowodzie RAM i niezmienionym projekcie.
+Nie potwierdzono tożsamości tego mechanizmu z incydentem Pixela; prawdziwe
+konflikty i uszkodzone snapshoty pozostają zablokowane.
+[Dowody, zakres, testy, ograniczenia Auth i plan bezstratnego odzyskiwania](tools/reports/initial-session-retry-recovery.md).
+Bez wydania, usuwania sesji na ślepo, migracji danych i Firebase LIVE.
+
+Uzupełnienie po `81d85fb`: pełny restart z istniejącym payloadem potwierdził,
+że brak flagi RAM nie blokuje poprawnego trwałego dowodu. Utrata utrwalenia
+nowej rewizji oraz rzeczywisty konflikt pozostają bezpiecznie zablokowane.
+Dodano regresje i kontrakt diagnostyki Androida bez USB w powyższym raporcie;
+bez nowej zmiany kodu produkcyjnego i bez gwarancji odblokowania Pixela.
+
+Jednorazowa diagnostyka bez USB jest teraz przygotowana w
+[tools/diagnostics](tools/diagnostics/README.md): bookmarklet z kontrolą istniejącego
+Auth, wyłącznie odczytem danych aplikacji i anonimowym wynikiem w schowku.
+Regresje 15/15, wykonanie adresu `javascript:` w mobilnym Chromium 7/7;
+fizyczny Pixel nie został przetestowany. To obserwacja, nie mechanizm odblokowania.
+
 ## Wydajność WYCENY i odnowienie dostępu — pakiet roboczy po PR #66
 
 Aktualna baza GitHub main `764d0852b7232b28e6920a36ca26d50ec5e1a3e3` zawiera PR #65 i #66;

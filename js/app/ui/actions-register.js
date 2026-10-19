@@ -255,11 +255,14 @@
           || !FC.investors || FC.investors.getCurrentId() !== roomContext.investorId
           || typeof uiState === 'undefined' || uiState.roomType !== roomContext.roomId)) return false;
         let cancelled = false;
+        // Explicit Cancel may retry securing the original baseline; no rollback
+        // is attempted unless that proof and the existing guards both succeed.
+        if(session && session.retryInitialBegin && session.retryInitialBegin() !== true) return true;
         try{ if(session && typeof session.cancel === 'function') cancelled = session.cancel() === true; }catch(_){ }
         if(!cancelled){
           const message = (session.lastError && session.lastError.message) || 'Nie udało się anulować wszystkich zmian. Sesja edycji została zachowana i nie została zakończona. Spróbuj ponownie. Nie zamykaj programu, jeżeli problem się powtarza.';
           try{
-            if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Nie udało się anulować zmian', message });
+            if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Nie udało się anulować zmian', message, sessionDiagnostic:true });
             else window.alert(message);
           }catch(_){ }
           return true;
@@ -284,7 +287,7 @@
               const element = document.getElementById(id);
               if(element) element.style.display = 'none';
             }
-            try{ FC.infoBox.open({title:'Nie udało się ponownie zabezpieczyć edytora',message:'Zmiany zostały cofnięte, ale nie potwierdzono zabezpieczenia edytora. Edycja została zablokowana. Spróbuj ponownie otworzyć to pomieszczenie.',okOnly:true}); }catch(_){ }
+            try{ FC.infoBox.open({title:'Nie udało się ponownie zabezpieczyć edytora',sessionDiagnostic:true,message:'Zmiany zostały cofnięte, ale nie potwierdzono zabezpieczenia edytora. Edycja została zablokowana. Spróbuj ponownie otworzyć to pomieszczenie.',okOnly:true}); }catch(_){ }
           }
           return true;
         }
@@ -312,6 +315,7 @@
       const investorEditing = !!(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock());
 
       if(dirty || (session && session.active)){
+        if(session && session.retryInitialBegin && session.retryInitialBegin() !== true) return true;
         if(session && session.canSaveProject && !session.canSaveProject()) return true;
         let saved = null;
         let previousWriteError = null;
@@ -327,7 +331,7 @@
             // The central store already reports a fresh storage error; avoid a second dialog.
             const storageReported = writeError && writeError !== previousWriteError && typeof FC.storage.notifyWriteFailure === 'function';
             if(!pending && !storageReported && FC.infoBox && typeof FC.infoBox.open === 'function'){
-              FC.infoBox.open({ title:'Nie udało się zapisać projektu', message:'Zmiany nie zostały zapisane. Sesja edycji pozostała aktywna. Nie zamykaj programu i spróbuj ponownie.', okOnly:true });
+              FC.infoBox.open({ title:'Nie udało się zapisać projektu', sessionDiagnostic:true, message:'Zmiany nie zostały zapisane. Sesja edycji pozostała aktywna. Nie zamykaj programu i spróbuj ponownie.', okOnly:true });
             }
           }catch(_){ }
           return true;
@@ -338,7 +342,7 @@
         if(!committed){
           const message = 'Projekt został zapisany, ale nie udało się zakończyć sesji edycji. Spróbuj ponownie.';
           try{
-            if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Sesja nadal aktywna', message });
+            if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Sesja nadal aktywna', message, sessionDiagnostic:true });
             else window.alert(message);
           }catch(_){ }
           return true;

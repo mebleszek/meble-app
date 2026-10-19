@@ -165,6 +165,8 @@ const INDEX_LOAD_GROUPS = [
       "js/app/ui/choice-box.js",
       "js/app/ui/session-navigation.js",
       "js/app/ui/info-box.js",
+      "js/app/ui/session-diagnostics-readonly.js",
+      "js/app/ui/session-diagnostics.js",
       "js/app/ui/storage-orphan-cleanup-modal.js",
       "js/app/ui/panel-box.js",
       "js/app/ui/app-icons.js",

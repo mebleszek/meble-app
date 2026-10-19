@@ -20,7 +20,7 @@
     return !!(FC.session && FC.session.active) || isDivergent();
   }
   function message(title, body){
-    try{ if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title, message:body, okOnly:true }); }catch(_){ }
+    try{ if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title, message:body, okOnly:true, sessionDiagnostic:true }); }catch(_){ }
   }
   function reloadCentral(){
     try{
@@ -73,6 +73,7 @@
         if(!(session && typeof session.begin === 'function')) return false;
         // An untracked RAM edit must receive a durable baseline before a user can discard it.
         if(!session.active && session.begin() !== true) return false;
+        if(session.retryInitialBegin && session.retryInitialBegin() !== true) return false;
         const evidence = typeof session.inspectNavigationState === 'function' ? session.inspectNavigationState() : null;
         const runtime = FC.investorProjectRuntime;
         if(!evidence || !runtime || typeof runtime.hasProjectDivergence !== 'function'
