@@ -255,6 +255,9 @@
           || !FC.investors || FC.investors.getCurrentId() !== roomContext.investorId
           || typeof uiState === 'undefined' || uiState.roomType !== roomContext.roomId)) return false;
         let cancelled = false;
+        // Explicit Cancel may retry securing the original baseline; no rollback
+        // is attempted unless that proof and the existing guards both succeed.
+        if(session && session.retryInitialBegin && session.retryInitialBegin() !== true) return true;
         try{ if(session && typeof session.cancel === 'function') cancelled = session.cancel() === true; }catch(_){ }
         if(!cancelled){
           const message = (session.lastError && session.lastError.message) || 'Nie udało się anulować wszystkich zmian. Sesja edycji została zachowana i nie została zakończona. Spróbuj ponownie. Nie zamykaj programu, jeżeli problem się powtarza.';
@@ -312,6 +315,7 @@
       const investorEditing = !!(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock());
 
       if(dirty || (session && session.active)){
+        if(session && session.retryInitialBegin && session.retryInitialBegin() !== true) return true;
         if(session && session.canSaveProject && !session.canSaveProject()) return true;
         let saved = null;
         let previousWriteError = null;

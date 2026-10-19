@@ -1,5 +1,16 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## Ponawianie pierwszego zapisu sesji — gałąź robocza po PR #67
+
+Zweryfikowany GitHub main: `3332ac8e059a73430d3d40518caebb359a8728e8`.
+`fix/durable-session-recovery` naprawia odtworzoną pętlę po przejściowej awarii
+pierwszego zabezpieczenia sesji: jawne działania ponawiają istniejący `begin()`
+wyłącznie przy zachowanym pierwotnym dowodzie RAM i niezmienionym projekcie.
+Nie potwierdzono tożsamości tego mechanizmu z incydentem Pixela; prawdziwe
+konflikty i uszkodzone snapshoty pozostają zablokowane.
+[Dowody, zakres, testy, ograniczenia Auth i plan bezstratnego odzyskiwania](tools/reports/initial-session-retry-recovery.md).
+Bez wydania, usuwania sesji na ślepo, migracji danych i Firebase LIVE.
+
 ## Wydajność WYCENY i odnowienie dostępu — pakiet roboczy po PR #66
 
 Aktualna baza GitHub main `764d0852b7232b28e6920a36ca26d50ec5e1a3e3` zawiera PR #65 i #66;

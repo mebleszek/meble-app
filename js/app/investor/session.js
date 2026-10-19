@@ -17,6 +17,9 @@
   let beginFailureNotified = false;
   let rollbackRestored = false;
   let writeUnconfirmed = false;
+  // RAM-only evidence: this document attempted the initial baseline write.
+  // A restored/contradictory payload must never acquire this retry permission.
+  let initialBeginPending = false;
 
   function canSnapshotKey(key){ return SNAPSHOT_KEYS.has(key); }
   function getKeysToSnapshot(){ return Array.from(SNAPSHOT_KEYS); }
@@ -175,6 +178,14 @@
   function markUnconfirmedProjectWrite(){
     writeUnconfirmed = true;
     return unconfirmedSession();
+  }
+
+  function retryInitialBegin(){
+    if(!session.active || session.durable) return true;
+    if(!initialBeginPending || writeUnconfirmed) return unconfirmedSession();
+    // begin verifies the original owner/context, unchanged canonical baseline
+    // and any existing payload. It does not adopt a post-write revision.
+    return session.begin();
   }
 
   function canSaveProject(openingRoom){
@@ -624,10 +635,12 @@
         session.durable = false;
         rollbackRestored = false;
         writeUnconfirmed = false;
+        initialBeginPending = false;
         invalidateDirtyCache();
       }
       if(session.durable) return true;
       session.durable = persistSession();
+      initialBeginPending = !session.durable;
       if(!session.durable) notifyBeginFailure();
       else beginFailureNotified = false;
       return session.durable;
@@ -655,6 +668,7 @@
         beginFailureNotified = false;
         rollbackRestored = false;
         writeUnconfirmed = false;
+        initialBeginPending = false;
         invalidateDirtyCache();
         return true;
       });
@@ -708,6 +722,7 @@
         beginFailureNotified = false;
         rollbackRestored = false;
         writeUnconfirmed = false;
+        initialBeginPending = false;
         invalidateDirtyCache();
         return true;
       });
@@ -716,6 +731,7 @@
     canSwitchInvestor,
     canSwitchRoom,
     canSaveProject,
+    retryInitialBegin,
     markUnconfirmedProjectWrite,
     inspectNavigationState,
     inspectExportState,

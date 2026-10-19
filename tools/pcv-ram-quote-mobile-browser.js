@@ -6,7 +6,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('n
 const path=require('node:path'),os=require('node:os'),{spawn,execFileSync}=require('node:child_process');
 const ROOT=path.resolve(__dirname,'..'),BASE='4d8dd96df9f293276dee07dc0c4cedf26edac08c';
 const baseline=process.argv.includes('--baseline');
-function bytes(file){return (baseline && ['js/app.js','js/app/investor/project-autosave.js','js/app/wycena/wycena-tab-shell.js','js/app/wycena/wycena-tab-history.js'].includes(file)
+function bytes(file){if(process.argv.includes('--session-baseline') && ['js/app/investor/session.js','js/app/ui/actions-register.js','js/app/ui/session-navigation.js'].includes(file))return execFileSync('git',['show','3332ac8e059a73430d3d40518caebb359a8728e8:'+file],{cwd:ROOT});return (baseline && ['js/app.js','js/app/investor/project-autosave.js','js/app/wycena/wycena-tab-shell.js','js/app/wycena/wycena-tab-history.js'].includes(file)
  || process.argv.includes('--baseline-autosave') && file==='js/app/investor/project-autosave.js')
  ? execFileSync('git',['show',BASE+':'+file],{cwd:ROOT}):fs.readFileSync(path.join(ROOT,file));}
 function fixtureHtml(){
@@ -163,6 +163,42 @@ async function main(){
   const records=await savedProjects();assert.deepEqual(records.find(r=>r.id==='B'),b);assert.deepEqual(records.find(r=>r.id==='A').projectData.room_test_B,other);
   const after=await evaluate('Object.fromEntries(Object.keys(localStorage).filter(k=>/catalog|materials|accessories|rates|suppliers|manufacturers|categories|types|settings|company|business|sheets|program_defaults|fc_edge|grain/.test(k)).map(k=>[k,localStorage.getItem(k)]))');
   assert.deepEqual(after,globals);assert.deepEqual(external,[]);assert.deepEqual(errors,[]);pass('other project/room and global RAW unchanged; zero external requests or uncaught JS errors');
+  if(process.argv.includes('--initial-session-retry')){
+   // Faults affect this disposable synthetic profile only. Reload still runs
+   // the actual business bootstrap and restores its ordinary persisted UI.
+   await send('Page.addScriptToEvaluateOnNewDocument',{source:`(()=>{const set=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(String(key)==='fc_edit_session_v1'&&this.getItem('__test_session_failure')==='1')throw new DOMException('Synthetic session failure','QuotaExceededError');return set.call(this,key,value);};})()`});
+   for(const action of ['save','cancel','navigation']){
+    await evaluate('window.FC.infoBox.close();window.FC.views.openRoom("room_test_A")');
+    await until('window.FC.session.active&&window.FC.session.durable','owned editor before restart');
+    await evaluate('window.FC.actions.dispatch("session-save",{});window.FC.infoBox.close();localStorage.setItem("__test_session_failure","1");');
+    const oldLoads=loads;await send('Page.reload',{});
+    await until('!!window.FC?.session&&window.__fcProjectAutosaveInstalled===true&&window.FC.session.active&&!window.FC.session.durable','failed initial baseline after restart');
+    assert.ok(loads>oldLoads);
+    assert.equal(await evaluate('window.FC.session.canSaveProject()'),false);
+    assert.equal(await evaluate('window.FC.session.lastError.code'),'SESSION_UNCONFIRMED');
+    const raw=await evaluate('localStorage.getItem("fc_projects_v1")');
+    assert.equal(await evaluate('localStorage.getItem("fc_edit_session_v1")'),null);
+    // Clean editors intentionally hide Save. Supply a synthetic unsaved RAM
+    // edit and let the existing button policy expose the actual Save control.
+    if(action==='save')await evaluate('projectData.room_test_A.cabinets[0].width=86;window.FC.views.refreshSessionButtons();');
+    await evaluate('localStorage.removeItem("__test_session_failure");window.FC.infoBox.close();');
+    const beforeTouchLoads=loads;
+    await touch(action==='navigation'?'[data-tab="wycena"]':action==='save'?'#sessionSave':'#sessionCancel');
+    if(action==='cancel'){const started=Date.now();while(loads<=beforeTouchLoads){if(Date.now()-started>30000)throw Error('Cancel restart timeout');await delay(25);}}
+    await until('!!window.FC?.session&&!window.FC.session.active','public '+action+' retries and finishes');
+    assert.equal(await evaluate('localStorage.getItem("fc_edit_session_v1")'),null);
+    assert.equal(await evaluate('window.FC.session.canSaveProject()'),true);
+    assert.equal(await evaluate('localStorage.getItem("fc_quote_snapshots_v1")'),frozen);
+    if(action==='navigation')assert.equal(await evaluate('localStorage.getItem("fc_projects_v1")'),raw);
+    if(action==='save')await evaluate('window.FC.infoBox.close()');
+    await until('window.__fcProjectAutosaveInstalled===true','full restarted business');
+    pass('real restart, initial storage failure and recovered '+action+' via mobile touch preserve saved offers');
+   }
+   const finalRows=await savedProjects();assert.deepEqual(finalRows.find(r=>r.id==='B'),b);
+   assert.deepEqual(finalRows.find(r=>r.id==='A').projectData.room_test_B,other);
+   assert.deepEqual(await evaluate('Object.fromEntries(Object.keys(localStorage).filter(k=>/catalog|materials|accessories|rates|suppliers|manufacturers|categories|types|settings|company|business|sheets|program_defaults|fc_edge|grain/.test(k)).map(k=>[k,localStorage.getItem(k)]))'),globals);
+   assert.deepEqual(external,[]);assert.deepEqual(errors,[]);
+  }
   console.log(`Chromium mobile: ${passed}/${passed} PASS, 0 FAIL, 0 SKIP`);
  }finally{
   ws?.close();browser?.kill();server.close();for(const p of pending.values())clearTimeout(p.timer);
