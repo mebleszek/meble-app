@@ -40,6 +40,14 @@
 let swallowNextClickGlobal = false;
 let swallowNextClickFromEl = null;
 
+// A new physical gesture cannot be the synthetic click from the previous
+// pointerup. Some mobile browsers suppress that click after preventDefault;
+// do not swallow the user's next modal confirmation indefinitely.
+document.addEventListener('pointerdown', () => {
+  swallowNextClickGlobal = false;
+  swallowNextClickFromEl = null;
+}, { capture:true, passive:true });
+
 const armSameEl = (el) => { swallowNextClickFromEl = el || null; };
 const armGlobal = () => { swallowNextClickGlobal = true; swallowNextClickFromEl = null; };
 

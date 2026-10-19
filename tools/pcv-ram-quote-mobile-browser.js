@@ -78,7 +78,7 @@ async function main(){
    await delay(70);await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await delay(400);
   };
   const tab=async(name,ready)=>{
-   await evaluate(`document.querySelector('[data-tab="${name}"]').click()`);
+   await touch(`[data-tab="${name}"]`);
    await until(`uiState.activeTab===${JSON.stringify(name)}&&(${ready})`,'tab '+name);
   };
   await send('Runtime.enable');await send('Page.enable');await send('Fetch.enable',{patterns:[{urlPattern:'*',requestStage:'Request'}]});
@@ -86,6 +86,7 @@ async function main(){
   await send('Emulation.setTouchEmulationEnabled',{enabled:true});
   const url='http://127.0.0.1:'+server.address().port+'/__synthetic_business';
   await send('Page.navigate',{url});await until('!!window.FC?.wycenaTabDebug&&!!window.FC?.session?.active','business startup');
+  await until('window.__fcProjectAutosaveInstalled===true','full business startup with capture autosave');
   assert.equal(await evaluate('window.__fcProjectAutosaveInstalled'),true,'Real startup installs the capture autosave listener');
   const savedProjects=()=>evaluate('JSON.parse(localStorage.getItem("fc_projects_v1"))');
   const initial=await savedProjects(),b=initial.find(r=>r.id==='B'),other=initial.find(r=>r.id==='A').projectData.room_test_B;
@@ -120,7 +121,8 @@ async function main(){
    await touch('[data-action="wycena-generate"]');
    await until('!window.FC.wycenaTabShell._generateRuntime.inFlight||!!document.querySelector(".quote-scope-entry-name__input")','generation or version name');
    if(await evaluate('!!document.querySelector(".quote-scope-entry-name__input")')){
-    await evaluate(`(()=>{const input=document.querySelector('.quote-scope-entry-name__input');input.value=${JSON.stringify(name)};input.dispatchEvent(new Event('input',{bubbles:true}));Array.from(document.querySelectorAll('.quote-scope-entry-name__footer button')).find(b=>b.textContent==='OK').click();})()`);
+    await evaluate(`(()=>{const input=document.querySelector('.quote-scope-entry-name__input');input.value=${JSON.stringify(name)};input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+    await touch('.quote-scope-entry-name__footer .btn-success');
     await until('!window.FC.wycenaTabShell._generateRuntime.inFlight','named generation');
    }
    const trace=await evaluate('window.FC.wycenaDiagnostics.buildReport({dryRun:false}).then(r=>r.lastGenerateTrace)');
@@ -154,7 +156,7 @@ async function main(){
   await delay(1600);await touch('[data-action="wycena-generate"]');
   await until('!!document.querySelector(".confirm-box")','actual duplicate offer decision');
   assert.equal(await evaluate('document.body.innerText.includes("TAKA SAMA OFERTA JUŻ ISTNIEJE")'),true);
-  await evaluate('Array.from(document.querySelectorAll(".confirm-box button")).find(b=>b.textContent==="Anuluj").click()');
+  await touch('.confirm-btn.is-danger');
   await until('!window.FC.wycenaTabShell._generateRuntime.inFlight','duplicate cancel');
   assert.equal(await evaluate('localStorage.getItem("fc_quote_snapshots_v1")'),frozen);
   pass('retry after correcting the obstruction uses the real duplicate dialog without overwriting history');

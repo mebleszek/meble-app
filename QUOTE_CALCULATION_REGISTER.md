@@ -1,3 +1,14 @@
+
+## 2026-10-19 — jedno obliczenie na niezmieniony przebieg WYCENY
+
+Bez zmiany rejestru, algorytmu pakowania, cen lub zapasu PCV 10%. Wersja nazwana po
+obliczeniu używa tej samej matematyki tylko przy niezmienionych wejściach; pierwotny builder
+ponownie buduje metadane i proof. Inna cena, rabat, zakres, geometria lub konfiguracja wymaga
+nowego obliczenia/odmowy. Współdzielenie walidacji PCV kończy się przed await i sprawdza
+niezmienność danych. 24/24 porównania zapisanych wartości i fingerprintów bazowego main
+przechodzą; historyczne snapshoty nie są przeliczane.
+[Metoda, brak ceny jednego syntetycznego dekoru i osobna pełna wycena](tools/reports/quote-performance-auth-renewal.md).
+
 ## 2026-06-28 — Szuflady a rejestr wyliczeń v1
 
 - Cutlista szafki dodaje wymagania okuć `Szuflady / prowadnice`, więc WYCENA dobiera prowadnice/system szuflady z katalogu tak jak inne okucia.

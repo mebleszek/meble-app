@@ -1,7 +1,7 @@
 {
   "baseCommit": "d517d598917e5ccd6f1460950697c9ab27f1db1c",
   "sha256": {
-    "index.html": "1803777b4ba5ded88a0726814b5522576efb4b492bd1b05d1ca6cc43ea24ad70",
+    "index.html": "4885e017cf4827819093a183b5be2e841b0b8a0ae2977226210bb6fe014a46d7",
     "js/app/bootstrap/app-core-namespace.js": "5dc8072d44f0ac450bae65ddda7e345014d5a9b0b3272c2e850a78ca73bb2346",
     "js/app/bootstrap/app-legacy-bridges.js": "9d41d5dc5dee33eea1ec776f1b384fa61ef2cfcf5c98dbf2fec137c2bf943e75",
     "js/app/bootstrap/app-state-bootstrap.js": "a839bfaef808bc7a3112a70baca235667cc66044e56bf291c213e7249a3085c5",
@@ -151,9 +151,9 @@
     "js/app/project/project-export-contract.js": "1ebc3f800817eea27bfecf7d0c7591bec17a28ada196db32244f5e80c04f463f",
     "js/app/project/project-file-recovery.js": "a866407a7f324afb087d7d3117004158484953d05c9f3ca67ace73ee65d6c4df",
     "js/app/project/project-model.js": "31428d6b6d5bdd99fbb316985df524b40d4a830ac8100cae213a2b21a5aa74b4",
-    "js/app/project/project-pcv-overrides.js": "8eaa54105d644c0cd0b04c915509a6e8aa217a14201ab3fbb0c7ba793f1595a6",
+    "js/app/project/project-pcv-overrides.js": "32f7dfeac4e5b9e9a401a5104c1fc1617347bb1686688cba29b92fc0c61e2621",
     "js/app/project/project-pcv-policy.js": "25adfcf6a7b1cbe1da4d51e2884429a6e10fe1b7b7691a5bf65be2d48aca343d",
-    "js/app/project/project-pcv-resolver.js": "930f13908c63d63d1fbbce9896ee103e4c187af587d306a8540f726755412e36",
+    "js/app/project/project-pcv-resolver.js": "a6b27b5183ceb6c4f9c7e22523cbcad7f35f8a5e97127f11fdabaa7f6e0492c3",
     "js/app/project/project-recalculate.js": "1631c737673805a01ff51ff7834113b712fa46c0cbb2d6e3f71f9e2c5d80a5a1",
     "js/app/project/project-schedule-status.js": "a67bbcd7ae84b5df13ccbb36e00456b52bfe34238b6a45ccedcae3492bac0c75",
     "js/app/project/project-selective-export.js": "7f153f3898fe6511b7a2d695c16d87d76035ab26125d196019f74286b39f3051",
@@ -278,7 +278,7 @@
     "js/app/ui/actions-register.js": "3f1a55191306b326bbb73cb155b4edb6d220786a84817a9b85a5931e56295664",
     "js/app/ui/app-icons.js": "5d069f5424d7fb921dd31996e5a27c13117cffd096fbf2767fddd8a86941f98c",
     "js/app/ui/app-view.js": "89e52d77548db0f50de5e6558f18355c424845fda257292cbd43adb995f91e3b",
-    "js/app/ui/bindings.js": "f5e15ebf4c2e0046bf469f0298302a578654eda359d16cab77462c5f17d99386",
+    "js/app/ui/bindings.js": "ff388088cc25a2ef0fd13e354e79ca4abbdf4f4d85eba353072cb4932b911b11",
     "js/app/ui/cabinets-render.js": "92ce7126a286902144d98a808ccb096dd1bd525ef0de4d826e80bec4876a525a",
     "js/app/ui/choice-box.js": "cb4f97f6cc9a5f63f1f82734cc219bec5473c2e8d49b9e5e07f0bd06b18112a2",
     "js/app/ui/confirm-box.js": "9f6c9a220d3368722de2c9bb1dd44bb67671087a3ca1605048bfdf68d1984822",
@@ -343,7 +343,7 @@
     "js/app/wycena/wycena-tab-selection-scope.js": "6be07f347bdaedecc1e2ab1532fe911fcb749cddc8e9e87aeaffb663cdd4e990",
     "js/app/wycena/wycena-tab-selection-version.js": "ac11c8529a3923844706a89f4b367d460cfc8fbfcd9420769370445bb01705d1",
     "js/app/wycena/wycena-tab-selection.js": "65dee54ff2a23d4f6765bf3b2a9ac41bbd9f269d1d3d8cd4b6e1ee240a1ffa43",
-    "js/app/wycena/wycena-tab-shell.js": "726f78dfe93d31b60f638746ab3fec2fbdab661348940d950aae8a96a599ed37",
+    "js/app/wycena/wycena-tab-shell.js": "fce6f70cbb4fc3f1d178bf545b7527d805d926d1aa4b5b22aebe9290e49cdbf2",
     "js/app/wycena/wycena-tab-state.js": "b9bc745d51335d3520cba6ca35bcd589baaf181062efd502cec83fad14832346",
     "js/app/wycena/wycena-tab-status-actions.js": "eb09c462369365d41c9610a44c985f88d45b6a477a84280bafafae67df804386",
     "js/app/wycena/wycena-tab-status-bridge.js": "eda493f84fa9fd25e0cec00b12969c72d2f15c80c60ecca7ba471368f9efca56",
@@ -354,7 +354,7 @@
     "js/boot.js": "697a9bae3a5b7ac089e53672b24cb997307bd47ea19349e71dfc5da3c73be86c",
     "js/core/actions.js": "3a35d1a882b06d396d2414cccf3f8f67fc512378838c69654f64d85138fb3b7b",
     "js/core/modals.js": "9d745903b7d9ebd49ef60741e45768a2e588b085d742a7f0f1b3f54ad53c93ce",
-    "js/main-login.js": "6b6aeb7ffb8dc10664b5ae7a0cf5af10f0b5dcf7b130ed829798f23438fff7f3",
+    "js/main-login.js": "061d9f4364625cfc53f4280dac74cfb18ae487624fa97393f40cfcb6aa12c103",
     "js/tabs/czynnosci.js": "88d596694e3958070dee560fdf9f6b05195d62e13b8afb4b22bd69fac2a9a0b5",
     "js/tabs/material.js": "fca4334f277275a80be44aba09a2e3dca1f793e221f8f7db77366749d7ff6517",
     "js/tabs/rysunek.js": "6a3ba5667c5202a87a643c849de723acabbeca23e8e792c0bb1d92e9e9adf72f",
@@ -423,6 +423,6 @@
     "tools/firebase-pilot/package-lock.json": "692d96bbfdcd0215dd32d67a58d30e616b0c8e290d87414c6885653d5b4bf463",
     "tools/firebase-pilot/private-pilot-execution.js": "7466c55773a34778cb67aa11589fd1090a2afb78d9d655b552b4acc9ffc6fec0",
     "tools/firebase-pilot/private-pilot-runner.mjs": "1dade414fe9b0019ab7ff9956da7832c8931658527d2642051fa254b15c9e01f",
-    "tools/firebase-pilot/private-pilot-source.js": "6004e53119c59e5ac1ad9a63eadb96383df4c23065f447ab8c3075bbcabd3b2b"
+    "tools/firebase-pilot/private-pilot-source.js": "716982fddae59107e8a30a9019a6ebfa24eb90403d76bc374c2044eb25197359"
   }
 }

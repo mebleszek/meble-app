@@ -100,11 +100,27 @@
   }
 
 
-  function buildUnsavedQuoteSnapshot(selection, options){
+  function calculationInputs(d){
+    const draft=JSON.parse(JSON.stringify(d.getOfferDraft() || {}));
+    delete draft.updatedAt;
+    if(draft.commercial)delete draft.commercial.versionName;
+    const excluded=new Set([FC.quoteOfferStore && FC.quoteOfferStore.DRAFT_KEY,'fc_ui_v1','fc_reload_restore_v1',
+      (FC.constants && FC.constants.STORAGE_KEYS && FC.constants.STORAGE_KEYS.quoteSnapshots) || 'fc_quote_snapshots_v1']);
+    const raw=Array.from({length:localStorage.length},(_,i)=>localStorage.key(i)).filter(key=>key && key!=='fc_rozrys_plan_cache_v2' && !(FC.dataStorageKeys && FC.dataStorageKeys.isSnapshotExcludedKey(key))).filter(key=>!excluded.has(key)).sort().map(key=>[key,localStorage.getItem(key)]);
+    const controls=['rozUnit','rozW','rozH','rozK','rozTrim','rozMinScrapW','rozMinScrapH','rozHeur','rozDir','rozEdgeSub'].map(id=>{const el=document.getElementById(id);return [id,el?el.value:null];});
+    return JSON.stringify([draft,raw,controls,typeof materials==='undefined'?null:materials,
+      typeof accessories==='undefined'?null:accessories,typeof services==='undefined'?null:services,
+      FC.materialCommon && [FC.materialCommon.FC_BOARD_THICKNESS_CM,FC.materialCommon.FC_TOP_TRAVERSE_DEPTH_CM],
+      window.FC_BOARD_THICKNESS_CM,window.FC_TOP_TRAVERSE_DEPTH_CM]);
+  }
+  function buildUnsavedQuoteSnapshot(selection, options, calculation){
     if(!(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteData === 'function')) throw new Error('Brak FC.wycenaCore.collectQuoteData');
     if(!(FC.quoteSnapshot && typeof FC.quoteSnapshot.buildSnapshot === 'function')) throw new Error('Brak FC.quoteSnapshot.buildSnapshot');
-    return Promise.resolve(FC.wycenaCore.collectQuoteData(Object.assign({},options || {},{selection}))).then((data)=> {
+    return Promise.resolve(calculation && calculation.data || FC.wycenaCore.collectQuoteData(Object.assign({},options || {},{selection}))).then(async (data)=> {
+      // Let due access refreshes and navigation run before consuming this result.
+      await new Promise(resolve=>setTimeout(resolve,0));
       if(options && options.assertCurrent)options.assertCurrent();
+      if(calculation)calculation.data=data;
       return FC.quoteSnapshot.buildSnapshot(data);
     });
   }
@@ -323,13 +339,23 @@
       const nav=FC.sessionNavigation;
       const runContext=nav && nav.calculationContext ? nav.calculationContext(selection) : null;
       if(nav && nav.calculationContext && !runContext)throw new Error('Nie można potwierdzić kontekstu obliczenia.');
+      let finalInputs=null;
       const assertCurrent=()=>{
+        if(window.__FC_MAIN_ACCESS__)window.__FC_MAIN_ACCESS__.assert();
+        if(finalInputs!==null && calculationInputs(d)!==finalInputs)throw Object.assign(new Error('Wejścia kalkulacji zmieniły się. Ponów wycenę.'),{code:'calculation_inputs_changed',quoteValidation:true});
         if(runContext)nav.assertCalculationCurrent(runContext,d.normalizeDraftSelection(d.getOfferDraft()));
       };
       calculationOptions=Object.assign({},calculationOptions,{assertCurrent});
       assertCurrent();
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('selection', selection); }catch(_){ }
-      let preflightQuote = await buildUnsavedQuoteSnapshot(selection,calculationOptions);
+      const calculation={};
+      let initialInputs=calculationInputs(d);
+      let preflightQuote = await buildUnsavedQuoteSnapshot(selection,calculationOptions,calculation);
+      if(calculationInputs(d)!==initialInputs){
+        initialInputs=calculationInputs(d);finalInputs=initialInputs;delete calculation.data;
+        preflightQuote=await buildUnsavedQuoteSnapshot(selection,calculationOptions,calculation);
+      }
+      finalInputs=initialInputs;
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('preflightQuoteBuilt', { hasQuote:!!preflightQuote, id:preflightQuote && (preflightQuote.id || preflightQuote.snapshotId), totals:preflightQuote && preflightQuote.totals, versionName:getVersionName(preflightQuote) }); }catch(_){ }
       const duplicateBeforeNaming = await handleDuplicateSnapshot(preflightQuote, selection, ctx, d, assertCurrent);
       assertCurrent();
@@ -345,11 +371,19 @@
         try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ ok:true, duplicate:true, cancelled:!!duplicateBeforeNaming.cancelled, replaced:!!duplicateBeforeNaming.replaced, id:snapId }); }catch(_){ }
         return;
       }
+      finalInputs=null; // Naming may deliberately change commercial inputs; recalculate below.
       const naming = await d.ensureVersionNameBeforeGenerate(selection);
       assertCurrent();
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('naming', naming); }catch(_){ }
       if(naming && naming.cancelled){ try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.endGenerateTrace === 'function') FC.wycenaDiagnostics.endGenerateTrace({ stopped:'version-name-cancelled' }); }catch(_){ } return; }
-      let nextQuote = await buildUnsavedQuoteSnapshot(selection,calculationOptions);
+      finalInputs=calculationInputs(d);
+      if(finalInputs!==initialInputs)delete calculation.data;
+      else if(calculation.data){
+        // Only the version name is excluded from the complete input witness.
+        // Rebuild client/model metadata through the original snapshot builder.
+        calculation.data.commercial=Object.assign({},calculation.data.commercial,{versionName:getVersionName({commercial:d.getOfferDraft().commercial})});
+      }
+      let nextQuote = await buildUnsavedQuoteSnapshot(selection,calculationOptions,calculation);
       assertCurrent();
       const duplicateAfterNaming = await handleDuplicateSnapshot(nextQuote, selection, ctx, d, assertCurrent);
       assertCurrent();

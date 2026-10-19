@@ -5,7 +5,7 @@ const {setup,quoteSetup,worker,load,seed,drawers,select,address}=require('./proj
 const {runtime}=require('./project-session-owner-rollback-smoke');
 const {group}=require('./effective-project-pcv-smoke');
 const ROOT=path.resolve(__dirname,'..'),tests=[],test=(name,fn)=>tests.push([name,fn]),clone=x=>JSON.parse(JSON.stringify(x));
-const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`),tick=async()=>{for(let i=0;i<4;i++)await new Promise(resolve=>setImmediate(resolve));};
+const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`),tick=async()=>{for(let i=0;i<4;i++)await new Promise(resolve=>setTimeout(resolve,0));};
 const edgeInput=(node,code)=>node.querySelectorAll('input').find(input=>input.getAttribute('aria-label')==='PCV '+code);
 const btn=(node,text)=>node.querySelectorAll('button').find(b=>b.textContent===text);
 function install(r){

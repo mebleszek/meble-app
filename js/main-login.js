@@ -51,6 +51,9 @@
     el('auth-error').hidden=state.status!=='error';el('auth-error').textContent=state.status==='error'?'Nie zmieniono danych. ('+(state.code||'AUTH_ACCESS_UNCONFIRMED')+')':'';
   }
   function failure(error){
+    // A delayed business script may resume after the access gate has expired.
+    // Keep that gate's refusal and retry path; this is not a second startup.
+    if(started && (error?.code||error?.message)==='AUTH_ACCESS_REVOKED' && !isValid()){block();return;}
     fatal=!started&&!String(error?.code||'').startsWith('LOCAL_');block();if(fatal)gate?.close();render({status:'error',uid:auth?.state().uid,code:error?.code||'AUTH_STARTUP_FAILED',message:error?.code==='LOCAL_ACCESS_DATA_CHANGED'
       ?'Dane profilu zmieniły się podczas potwierdzania. Nie dopuszczono dostępu. Zamknij pozostałe karty i ponownie sprawdź profil oraz kopię bezpieczeństwa.'
       :error?.code==='LOCAL_ACCESS_UNCONFIRMED'?'Nie potwierdzono lokalnego dowodu dostępu. Mógł zostać zapisany, ale praca pozostaje zablokowana. Nie zmieniono danych biznesowych ani sesji edycji.'
