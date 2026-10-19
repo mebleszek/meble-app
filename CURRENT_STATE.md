@@ -1,5 +1,17 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## Wydajność WYCENY i odnowienie dostępu — pakiet roboczy po PR #66
+
+Aktualna baza GitHub main `764d0852b7232b28e6920a36ca26d50ec5e1a3e3` zawiera PR #65 i #66;
+starsze nagłówki przygotowania tych napraw poniżej pozostają historią.
+Gałąź `fix/quote-performance-auth-renewal`: jedno obliczenie przy zmianie samej nazwy,
+współdzielenie synchronicznych odczytów PCV z kontrolą niezmienności, obsługa nowego gestu
+mobilnego oraz zachowanie odmowy gate przy wtórnym błędzie lazy loadera po wygaśnięciu.
+9 szafek: mediana rzeczywistego przebiegu Chromium 36,045 → 3,192 s; 24/24 kalkulacje identyczne.
+[Raport, ograniczenia pomiarów i blokada dwóch testów popup Auth](tools/reports/quote-performance-auth-renewal.md).
+Bez PR/merge/Pages i LIVE; pełna gotowość wymaga usunięcia blokady środowiskowej Auth.
+
+
 ## Odzyskiwanie statusu i pełny cykl ofert — gałąź robocza po PR #65
 
 GitHub potwierdził scalenie PR #65 do main `0ae7d1a24091d4a57460bacc9d30b9ea386f5b35`;

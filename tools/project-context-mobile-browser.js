@@ -99,7 +99,7 @@ async function main(){
    await delay(70);await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await delay(400);
   };
   const tab=async(name,ready)=>{
-   await evaluate(`document.querySelector('[data-tab="${name}"]').click()`);
+   await touch(`[data-tab="${name}"]`);
    await until(`uiState.activeTab===${JSON.stringify(name)}&&(${ready})`,'tab '+name);
   };
   await send('Runtime.enable');await send('Page.enable');await send('Fetch.enable',{patterns:[{urlPattern:'*',requestStage:'Request'}]});
@@ -129,7 +129,8 @@ async function main(){
    await until('window.FC.wycenaTabShell._generateRuntime.lastAcceptedAt!=='+previousAccepted,'touch accepted by real action registry',10000);
    await until('!window.FC.wycenaTabShell._generateRuntime.inFlight||!!document.querySelector(".quote-scope-entry-name__input")','calculation',120000);
    if(await evaluate('!!document.querySelector(".quote-scope-entry-name__input")')){
-    await evaluate('(()=>{const i=document.querySelector(".quote-scope-entry-name__input");i.value="Audit all rooms";i.dispatchEvent(new Event("input",{bubbles:true}));Array.from(document.querySelectorAll(".quote-scope-entry-name__footer button")).find(b=>b.textContent==="OK").click();})()');
+    await evaluate('(()=>{const i=document.querySelector(".quote-scope-entry-name__input");i.value="Audit all rooms";i.dispatchEvent(new Event("input",{bubbles:true}));})()');
+    await touch('.quote-scope-entry-name__footer .btn-success');
     await until('!window.FC.wycenaTabShell._generateRuntime.inFlight','named calculation',120000);
    }
    return evaluate('window.FC.wycenaDiagnostics.buildReport({dryRun:false}).then(r=>{if(!r.lastGenerateTrace)throw Error(JSON.stringify({policy:window.FC.projectPcvPolicy.read(),session:window.FC.session.active,ui:uiState,button:r.lastGenerateButtonEvent}));return r.lastGenerateTrace;})');

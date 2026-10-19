@@ -1,5 +1,15 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
+## Bieżący pakiet po PR #66 — wydajność WYCENY i ważność dostępu
+
+PR #65/#66 są scalone; baza `764d0852`. Gałąź `fix/quote-performance-auth-renewal`
+ogranicza powtórzenia rzeczywistych obliczeń przy zachowaniu rewizji, PCV, sesji i historii.
+[Zmiany, pomiary przed/po, testy i akceptacja Pixela](tools/reports/quote-performance-auth-renewal.md).
+Następna bramka: dokończenie dwóch testów popup Google blokowanych przez HTTP 403,
+osobna decyzja właściciela o próbie wydania, potem test fizycznego telefonu.
+Nie włącza CLOUD-4.2 ani nowego trwałego cache. Historyczne etapy poniżej zachowano.
+
+
 ## Bieżący pakiet po PR #65 — odzyskiwanie intencji i cykl WYCENY
 
 PR #65 jest scalony (`0ae7d1a24091d4a57460bacc9d30b9ea386f5b35`); stare nagłówki gałęzi zachowano.

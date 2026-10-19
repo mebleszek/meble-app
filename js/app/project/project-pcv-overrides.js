@@ -47,7 +47,35 @@
         : source.ownerType === address.ownerType && source.groupRoleId === info.roleId
           && (source.ownerType === 'set' ? source.setId : source.cabinetId) === info.ownerId);
   }
+  // A synchronous read transaction only: never crosses await, never stores a plan.
+  // Reentrant mutations are detected before any result leaves the transaction.
+  let calculationRead=null;
+  function readWitness(){
+    return JSON.stringify([FC.projectStore.getCurrentProjectId(),FC.investors.getCurrentId(),
+      localStorage.getItem(FC.projectStore.PROJECTS_KEY),window.projectData,
+      Array.from({length:localStorage.length},(_,i)=>localStorage.key(i)).filter(key=>key && key!=='fc_quote_snapshots_v1' && key!=='fc_ui_v1' && key!=='fc_rozrys_plan_cache_v2' && !(FC.dataStorageKeys && FC.dataStorageKeys.isSnapshotExcludedKey(key))).sort().map(key=>[key,localStorage.getItem(key)]),
+      typeof materials==='undefined'?null:materials,
+      FC.materialCommon && [FC.materialCommon.FC_BOARD_THICKNESS_CM,FC.materialCommon.FC_TOP_TRAVERSE_DEPTH_CM],
+      window.FC_BOARD_THICKNESS_CM,window.FC_TOP_TRAVERSE_DEPTH_CM]);
+  }
+  function withCalculationRead(callback){
+    if(calculationRead)return callback();
+    const ram=window.projectData,before=readWitness();
+    calculationRead={rooms:new Map(),cutlists:new Map()};
+    try{
+      const result=callback();
+      if(result && typeof result.then==='function')throw Error('Synchronous PCV read required');
+      if(window.projectData!==ram || readWitness()!==before)throw Object.assign(Error('PCV read changed'),{code:'PROJECT_PCV_READ_CONFLICT'});
+      return result;
+    }finally{calculationRead=null;}
+  }
   function roomContext(projectId,roomId){
+    if(!calculationRead)return readRoomContext(projectId,roomId);
+    const key=JSON.stringify([projectId,roomId]);
+    if(!calculationRead.rooms.has(key))calculationRead.rooms.set(key,readRoomContext(projectId,roomId));
+    return calculationRead.rooms.get(key);
+  }
+  function readRoomContext(projectId,roomId){
     if(!safeId(projectId) || !safeId(roomId)) return failure('INVALID_ADDRESS');
     const store=FC.projectStore, project=window.projectData;
     if(!store || !FC.project || !FC.cabinetCutlist || !FC.materialEdgeStore) return failure('DEPENDENCIES_UNAVAILABLE');
@@ -84,7 +112,12 @@
     if(!owners.length || (info.space !== 'setGroupOverrides' && owners.length !== 1)) return failure('OWNER_NOT_FOUND');
     const matches=[];
     for(const cabinet of owners){
-      const parts=FC.cabinetCutlist.getCabinetCutList(cabinet,address.roomId,{projectId:address.projectId});
+      const key=JSON.stringify([address.projectId,address.roomId,cabinet.id]);
+      let parts=calculation && calculationRead && calculationRead.cutlists.get(key);
+      if(!parts){
+        parts=FC.cabinetCutlist.getCabinetCutList(cabinet,address.roomId,{projectId:address.projectId});
+        if(calculation && calculationRead)calculationRead.cutlists.set(key,parts);
+      }
       for(const part of parts){
         const sources=info.space === 'partOverrides' ? part.sourceRefs : part.sourceGroups;
         const matching=(sources || []).filter(source=>matchingSource(source,address,info));
@@ -186,5 +219,5 @@
       return {ok:true,changed:true,edges:clone(desired)};
     }catch(error){return failure(error && error.code === 'INVALID_DRAWER_FRONT_GEOMETRY' ? error.code : 'WRITE_FAILED');}
   }
-  FC.projectPcvOverrides={inspectRoom,get:address=>get(address,false),getForCalculation:address=>get(address,true),setEdges:(address,patch)=>change(address,patch,false),clearEdges:address=>change(address,null,true)};
+  FC.projectPcvOverrides={withCalculationRead,inspectRoom,get:address=>get(address,false),getForCalculation:address=>get(address,true),setEdges:(address,patch)=>change(address,patch,false),clearEdges:address=>change(address,null,true)};
 })();

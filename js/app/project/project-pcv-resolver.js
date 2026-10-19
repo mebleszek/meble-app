@@ -14,6 +14,10 @@
     const out=clone(source);if(group)delete out.qty;return out;
   }
   function collect(rooms,options){
+    try{return FC.projectPcvOverrides.withCalculationRead(()=>collectCurrent(rooms,options));}
+    catch(reason){return {ok:false,code:reason.code||'PROJECT_PCV_READ_FAILED',details:reason.details||{}};}
+  }
+  function collectCurrent(rooms,options){
     try{
       const opts=options||{},projectId=opts.projectId,api=FC.projectPcvOverrides;
       if(!api || !FC.cabinetCutlist || !FC.materialTabData)fail('DEPENDENCIES_UNAVAILABLE');
@@ -122,6 +126,9 @@
     return row;
   }
   function validatePlanParts(parts,options){
+    return FC.projectPcvOverrides.withCalculationRead(()=>validateCurrentParts(parts,options));
+  }
+  function validateCurrentParts(parts,options){
     const memo=new Map(),used=new Map();
     const ram=window.projectData,revision=JSON.stringify(FC.projectStore.getById(options.projectId));
     if(!Array.isArray(parts)||!parts.length)fail('PART_SCOPE_REQUIRED');

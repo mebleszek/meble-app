@@ -2,7 +2,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),{createHash}=require('node:crypto');
 const root=path.resolve(__dirname,'../..');
-const MAIN_SHA256='6b6aeb7ffb8dc10664b5ae7a0cf5af10f0b5dcf7b130ed829798f23438fff7f3';
+const MAIN_SHA256='061d9f4364625cfc53f4280dac74cfb18ae487624fa97393f40cfcb6aa12c103';
 const RULES_SHA256='eaeb3e67417955bbd67d2881902d3827023502c2948ce0a19dc583c66b5a2e92';
 const sha=data=>createHash('sha256').update(data).digest('hex');
 function compile(){

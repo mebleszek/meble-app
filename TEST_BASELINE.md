@@ -1,5 +1,20 @@
 # TEST_BASELINE — punkt odniesienia testów Meble-App
 
+## 2026-10-19 — pomiary WYCENY i rzeczywiste odnowienie Auth
+
+Baza `764d0852`; nowe regresje `tools/quote-performance-smoke.js` (22/22) są objęte
+Preflightem. Jawnie uruchamiane: `node tools/quote-performance-mobile-browser.js --regressions`,
+`node tools/project-context-mobile-browser.js --offer-lifecycle`,
+`node tools/pcv-ram-quote-mobile-browser.js`. Profilowanie: SIZE=1/3/9, MULTI=1 dla 9+1+1,
+EXPECT_SINGLE=1 i PERF_OUTPUT wskazujący plik poza repo; MEBLE_ROOT pozwala wskazać dokładny main.
+Trzy świeże profile, po dwa rzeczywiste zapisy; matematyka i fingerprinty 24/24 zgodne.
+W istniejącym emulators:exec jawne AUTH_PERFORMANCE_TEST=1 oraz pattern `^PERF Auth`
+uruchamiają rzeczywiste bloki 30/45/60/90 s i mobilną ofertę przez main/login/SDK/emulatory.
+Nie są automatycznie częścią Preflight ani domyślnego szybkiego Auth; muszą być wykonane osobno.
+Dwa testy popup z AUTH_POPUP_TEST=1 uruchomiono i oznaczono FAIL przez HTTP 403 apis.google.com,
+nie SKIP/PASS. [Pełny raport, polecenia i ograniczenia](tools/reports/quote-performance-auth-renewal.md).
+
+
 Data analizy: **2026-10-04**  
 Punkt bazowy: **`site_program_defaults_apply_fix_v1.zip`**
 

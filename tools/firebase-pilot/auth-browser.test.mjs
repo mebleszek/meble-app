@@ -66,7 +66,10 @@ async function context({seed=true,configured=true,viewport={width:393,height:852
  },{blockPopup,seed});
  const page=await ctx.newPage();return {ctx,page,requests,external};
 }
-async function state(page,wanted){await page.waitForFunction(value=>document.body.dataset.authState===value,wanted,{timeout:15000});}
+async function state(page,wanted){
+ try{await page.waitForFunction(value=>document.body.dataset.authState===value,wanted,{timeout:15000});}
+ catch(error){error.message+='\nAuth wait '+JSON.stringify(await page.evaluate(()=>({state:document.body.dataset.authState,error:document.getElementById('auth-error')?.textContent})));throw error;}
+}
 async function businessAbsent(r){assert.equal(r.requests.some(x=>/\/(?:boot\.js|app\.js|project-store\.js|catalog-store\.js)(?:\?|$)/.test(x)),false);assert.deepEqual(r.external,[]);assert.equal(await r.page.evaluate(()=>window.projectData!==undefined),false);}
 async function geometry(page){const box=await page.locator('.auth-card').boundingBox();assert.ok(box.width>0);assert.ok(box.x>=0);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);const buttons=await page.locator('button:visible').all();for(const button of buttons){const b=await button.boundingBox();assert.ok(b.height>=48);}}
 test('Original supplied JPG, full proportions, stable loading and reachable controls at all target sizes',async()=>{
@@ -908,3 +911,65 @@ test('CLOUD-4.1 private execution through real main owner and independent browse
   await minimal.cleanup();
  }
 });
+
+// Explicit, slow mobile performance/lease rehearsal. These are real elapsed
+// main-thread blocks, not a mocked clock or a replacement authorization result.
+if(process.env.AUTH_PERFORMANCE_TEST==='1'){
+ for(const seconds of [30,45,60,90])test('PERF Auth real main shell: '+seconds+'s CPU starvation preserves data and expires fail-closed',async()=>{
+  const r=await context({seed:false});try{
+   await r.page.goto(base+'/index.html');await state(r.page,'unauthenticated');
+   const uid=await syntheticLogin(r.page,'performance-starvation-'+seconds);await state(r.page,'unapproved');await approve(uid);
+   await r.page.reload();await businessReady(r.page);
+   await r.page.evaluate(()=>{window.__performanceUnsaved={width:81};localStorage.setItem('fc_performance_retained','synthetic');});
+   const before=await fcBytes(r.page),start=Date.now();
+   const result=await r.page.evaluate(seconds=>{
+    const start=performance.now();while(performance.now()-start<seconds*1000){Math.sqrt(Math.random());}
+    let write=false;try{localStorage.setItem('fc_performance_forbidden','should only exist within a valid lease');write=true;}catch(_){}
+    return {duration:performance.now()-start,valid:window.__FC_MAIN_ACCESS__.isValid(),write,unsaved:window.__performanceUnsaved.width};
+   },seconds);
+   assert.ok(result.duration>=seconds*1000);assert.equal(result.unsaved,81);
+   if(seconds>=45){
+    assert.equal(result.valid,false);assert.equal(result.write,false);await state(r.page,'error');
+    assert.match(await r.page.locator('#auth-error').innerText(),/AUTH_ACCESS_EXPIRED/);
+    assert.deepEqual(await inspectBytes(r.ctx),before);
+    await r.page.evaluate(()=>dispatchEvent(new Event('online')));await businessReady(r.page);
+    assert.equal(await r.page.evaluate(()=>window.__performanceUnsaved.width),81);
+    assert.deepEqual(await fcBytes(r.page),before);
+   }else{
+    assert.equal(result.valid,true);assert.equal(result.write,true);
+    await r.page.waitForTimeout(9000);assert.equal(await r.page.evaluate(()=>window.__FC_MAIN_ACCESS__.isValid()),true,'real due refresh obtains a fresh server lease');
+   }
+   console.log(JSON.stringify({authCpuSeconds:seconds,elapsedMs:Date.now()-start,blockMs:result.duration,write:result.write,validAfterBlock:result.valid}));
+   assert.deepEqual(r.external,[]);
+  }finally{await r.ctx.close();}
+ });
+ test('PERF Auth real mobile shell: actual nine-cabinet quote, refresh, revoke, retained draft and restart',async()=>{
+  const r=await context({seed:false});try{
+   await r.page.goto(base+'/index.html');await state(r.page,'unauthenticated');
+   const uid=await syntheticLogin(r.page,'performance-quote-owner');await state(r.page,'unapproved');await approve(uid);
+   await r.page.reload();await businessReady(r.page);
+   const {createRequire}=await import('node:module');const seed=createRequire(import.meta.url)('../quote-performance-fixture').rows(9,true);
+   await r.page.evaluate(seed=>{for(const[k,v]of Object.entries(seed))localStorage.setItem(k,v);},seed);
+   await r.page.reload();await businessReady(r.page);
+   await r.page.evaluate(()=>{window.FC.actions.dispatch('session-save',{});window.FC.infoBox.close();document.querySelector('[data-tab="wycena"]').click();});
+   await r.page.waitForSelector('[data-action="wycena-generate"]');
+   await r.page.evaluate(()=>{
+    window.FC.quoteOfferStore.patchCurrentDraft({selection:{selectedRooms:['room_test_A','room_test_B','room_test_C'],materialScope:{kind:'all',includeCorpus:true,includeFronts:true}},commercial:{versionName:'Emulator authorized quote'}});renderCabinets();
+    window.__collectCalls=0;const collect=window.FC.wycenaCore.collectQuoteData;window.FC.wycenaCore.collectQuoteData=function(...args){window.__collectCalls++;return collect.apply(this,args);};
+   });
+   const started=Date.now();await r.page.locator('[data-action="wycena-generate"]').tap();
+   await r.page.waitForFunction(()=>!window.FC.wycenaTabShell._generateRuntime.inFlight&&window.FC.quoteSnapshotStore.readAll().length===1,null,{timeout:45000});
+   assert.equal(await r.page.evaluate(()=>window.__collectCalls),1);
+   const frozen=await r.page.evaluate(()=>localStorage.getItem('fc_quote_snapshots_v1'));
+   assert.ok(await r.page.locator('[data-quote-history-id]').count());
+   console.log(JSON.stringify({authActualQuoteMs:Date.now()-started,collectCalls:1}));
+   await r.page.waitForTimeout(32000);assert.equal(await r.page.evaluate(()=>window.__FC_MAIN_ACCESS__.isValid()),true,'real server-backed renewal');
+   await approve(uid,false);await r.page.waitForFunction(()=>document.body.dataset.authState==='revoked',null,{timeout:40000});
+   assert.equal(await r.page.evaluate(()=>{try{window.FC.actions.dispatch('wycena-generate',{});localStorage.setItem('fc_quote_snapshots_v1','[]');return true;}catch(_){return false;}}),false);
+   assert.equal((await inspectBytes(r.ctx)).fc_quote_snapshots_v1,frozen);
+   await approve(uid);await r.page.evaluate(()=>dispatchEvent(new Event('online')));await businessReady(r.page);
+   await r.page.reload();await businessReady(r.page);assert.equal(await r.page.evaluate(()=>localStorage.getItem('fc_quote_snapshots_v1')),frozen);
+   assert.deepEqual(r.external,[]);
+  }finally{await r.ctx.close();}
+ });
+}

@@ -1,0 +1,1583 @@
+{
+  "base": "764d0852b7232b28e6920a36ca26d50ec5e1a3e3",
+  "method": "Same synthetic native cabinets, real touch/action, original ordered business app, project PCV, default max optimizer; three fresh profiles per size, first/new variant then warm geometry with 1% discount. No CPU throttling. Poll/gesture/report overhead remains in end-to-end times.",
+  "excludedTechnicalFields": [
+    "top-level snapshot ID and identical references",
+    "generatedAt",
+    "generatedDate",
+    "clientOffer.builtAt",
+    "derived quoteFingerprint"
+  ],
+  "scenarios": [
+    {
+      "size": 1,
+      "before": {
+        "coldMsMedian": 2338.1,
+        "coldMsMax": 2414.7,
+        "longTaskMax": 1826,
+        "phases": {
+          "collect": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 1336.5,
+            "msMax": 1374.6
+          },
+          "facts": {
+            "count": [
+              8,
+              8,
+              8
+            ],
+            "msMedian": 54.3,
+            "msMax": 55.4
+          },
+          "cutlist": {
+            "count": [
+              322,
+              322,
+              322
+            ],
+            "msMedian": 47.5,
+            "msMax": 50.1
+          },
+          "pcvAddress": {
+            "count": [
+              282,
+              282,
+              282
+            ],
+            "msMedian": 781.5,
+            "msMax": 799.8
+          },
+          "materials": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 584.3,
+            "msMax": 584.6
+          },
+          "pcvAggregate": {
+            "count": [
+              4,
+              4,
+              4
+            ],
+            "msMedian": 241.0,
+            "msMax": 241.3
+          },
+          "plan": {
+            "count": [
+              4,
+              4,
+              4
+            ],
+            "msMedian": 128.4,
+            "msMax": 128.6
+          },
+          "optimizer": {
+            "count": [
+              4,
+              4,
+              4
+            ],
+            "msMedian": 127.7,
+            "msMax": 127.9
+          },
+          "snapshot": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 149.3,
+            "msMax": 166.9
+          },
+          "pcvQuote": {
+            "count": [
+              8,
+              8,
+              8
+            ],
+            "msMedian": 285.5,
+            "msMax": 304.6
+          },
+          "save": {
+            "count": [
+              1,
+              1,
+              1
+            ],
+            "msMedian": 119.5,
+            "msMax": 120.6
+          }
+        },
+        "warmMsMedian": 2438.5,
+        "warmMsMax": 2453.9,
+        "timerGapMax": 1865.5
+      },
+      "after": {
+        "coldMsMedian": 1084.2,
+        "coldMsMax": 1096.1,
+        "longTaskMax": 477,
+        "phases": {
+          "collect": {
+            "count": [
+              1,
+              1,
+              1
+            ],
+            "msMedian": 431.9,
+            "msMax": 443.7
+          },
+          "facts": {
+            "count": [
+              4,
+              4,
+              4
+            ],
+            "msMedian": 31.3,
+            "msMax": 31.5
+          },
+          "cutlist": {
+            "count": [
+              47,
+              47,
+              47
+            ],
+            "msMedian": 17.5,
+            "msMax": 18.5
+          },
+          "pcvAddress": {
+            "count": [
+              177,
+              177,
+              177
+            ],
+            "msMedian": 31.9,
+            "msMax": 32.9
+          },
+          "materials": {
+            "count": [
+              1,
+              1,
+              1
+            ],
+            "msMedian": 163.8,
+            "msMax": 169.2
+          },
+          "pcvAggregate": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 28.5,
+            "msMax": 28.7
+          },
+          "plan": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 38.6,
+            "msMax": 39.7
+          },
+          "optimizer": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 38.1,
+            "msMax": 39.2
+          },
+          "snapshot": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 47.3,
+            "msMax": 50.9
+          },
+          "pcvQuote": {
+            "count": [
+              8,
+              8,
+              8
+            ],
+            "msMedian": 83.8,
+            "msMax": 91.3
+          },
+          "save": {
+            "count": [
+              1,
+              1,
+              1
+            ],
+            "msMedian": 47.8,
+            "msMax": 47.8
+          }
+        },
+        "warmMsMedian": 2440.7,
+        "warmMsMax": 2444.1,
+        "timerGapMax": 551.5
+      },
+      "changePercent": -53.63
+    },
+    {
+      "size": 3,
+      "before": {
+        "coldMsMedian": 6968.2,
+        "coldMsMax": 7153.1,
+        "longTaskMax": 6558,
+        "phases": {
+          "collect": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 4940.7,
+            "msMax": 5102.3
+          },
+          "facts": {
+            "count": [
+              8,
+              8,
+              8
+            ],
+            "msMedian": 121.4,
+            "msMax": 131.6
+          },
+          "cutlist": {
+            "count": [
+              966,
+              966,
+              966
+            ],
+            "msMedian": 136.6,
+            "msMax": 145.3
+          },
+          "pcvAddress": {
+            "count": [
+              846,
+              846,
+              846
+            ],
+            "msMedian": 4357.3,
+            "msMax": 4449.8
+          },
+          "materials": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 2370.0,
+            "msMax": 2381.1
+          },
+          "pcvAggregate": {
+            "count": [
+              4,
+              4,
+              4
+            ],
+            "msMedian": 1186.4,
+            "msMax": 1247.1
+          },
+          "plan": {
+            "count": [
+              6,
+              6,
+              6
+            ],
+            "msMedian": 563.2,
+            "msMax": 576.7
+          },
+          "optimizer": {
+            "count": [
+              6,
+              6,
+              6
+            ],
+            "msMedian": 560.9,
+            "msMax": 575.6
+          },
+          "snapshot": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 632.1,
+            "msMax": 639.5
+          },
+          "pcvQuote": {
+            "count": [
+              8,
+              8,
+              8
+            ],
+            "msMedian": 1273.1,
+            "msMax": 1301.2
+          },
+          "save": {
+            "count": [
+              1,
+              1,
+              1
+            ],
+            "msMedian": 492.2,
+            "msMax": 515.8
+          }
+        },
+        "warmMsMedian": 6843,
+        "warmMsMax": 6919.8,
+        "timerGapMax": 6587.6
+      },
+      "after": {
+        "coldMsMedian": 1620.9,
+        "coldMsMax": 1660.8,
+        "longTaskMax": 1035,
+        "phases": {
+          "collect": {
+            "count": [
+              1,
+              1,
+              1
+            ],
+            "msMedian": 959.4,
+            "msMax": 991.8
+          },
+          "facts": {
+            "count": [
+              4,
+              4,
+              4
+            ],
+            "msMedian": 70.8,
+            "msMax": 72.4
+          },
+          "cutlist": {
+            "count": [
+              141,
+              141,
+              141
+            ],
+            "msMedian": 44.3,
+            "msMax": 46.4
+          },
+          "pcvAddress": {
+            "count": [
+              531,
+              531,
+              531
+            ],
+            "msMedian": 86.8,
+            "msMax": 90.8
+          },
+          "materials": {
+            "count": [
+              1,
+              1,
+              1
+            ],
+            "msMedian": 345.5,
+            "msMax": 382.6
+          },
+          "pcvAggregate": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 48.9,
+            "msMax": 49.0
+          },
+          "plan": {
+            "count": [
+              3,
+              3,
+              3
+            ],
+            "msMedian": 96.0,
+            "msMax": 100.5
+          },
+          "optimizer": {
+            "count": [
+              3,
+              3,
+              3
+            ],
+            "msMedian": 95.4,
+            "msMax": 99.7
+          },
+          "snapshot": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 74.3,
+            "msMax": 76.9
+          },
+          "pcvQuote": {
+            "count": [
+              8,
+              8,
+              8
+            ],
+            "msMedian": 132.8,
+            "msMax": 139.3
+          },
+          "save": {
+            "count": [
+              1,
+              1,
+              1
+            ],
+            "msMedian": 60.9,
+            "msMax": 67
+          }
+        },
+        "warmMsMedian": 2998,
+        "warmMsMax": 3035,
+        "timerGapMax": 1124
+      },
+      "changePercent": -76.74
+    },
+    {
+      "size": 9,
+      "before": {
+        "coldMsMedian": 36044.5,
+        "coldMsMax": 36125.8,
+        "longTaskMax": 35534,
+        "phases": {
+          "collect": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 26795.1,
+            "msMax": 26992.4
+          },
+          "facts": {
+            "count": [
+              8,
+              8,
+              8
+            ],
+            "msMedian": 343.6,
+            "msMax": 345.2
+          },
+          "cutlist": {
+            "count": [
+              2898,
+              2898,
+              2898
+            ],
+            "msMedian": 431.4,
+            "msMax": 431.8
+          },
+          "pcvAddress": {
+            "count": [
+              2538,
+              2538,
+              2538
+            ],
+            "msMedian": 30827.1,
+            "msMax": 30927.0
+          },
+          "materials": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 13762.7,
+            "msMax": 13860.8
+          },
+          "pcvAggregate": {
+            "count": [
+              4,
+              4,
+              4
+            ],
+            "msMedian": 7733.1,
+            "msMax": 7956.7
+          },
+          "plan": {
+            "count": [
+              6,
+              6,
+              6
+            ],
+            "msMedian": 3563.3,
+            "msMax": 3635.7
+          },
+          "optimizer": {
+            "count": [
+              6,
+              6,
+              6
+            ],
+            "msMedian": 3560.3,
+            "msMax": 3634.8
+          },
+          "snapshot": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 4154.3,
+            "msMax": 4184.9
+          },
+          "pcvQuote": {
+            "count": [
+              8,
+              8,
+              8
+            ],
+            "msMedian": 8302.3,
+            "msMax": 8418
+          },
+          "save": {
+            "count": [
+              1,
+              1,
+              1
+            ],
+            "msMedian": 3145.7,
+            "msMax": 3225.4
+          }
+        },
+        "warmMsMedian": 35696.6,
+        "warmMsMax": 35854.9,
+        "timerGapMax": 35569.8
+      },
+      "after": {
+        "coldMsMedian": 3191.9,
+        "coldMsMax": 3220.9,
+        "longTaskMax": 2394,
+        "phases": {
+          "collect": {
+            "count": [
+              1,
+              1,
+              1
+            ],
+            "msMedian": 2313.9,
+            "msMax": 2356.7
+          },
+          "facts": {
+            "count": [
+              4,
+              4,
+              4
+            ],
+            "msMedian": 186.1,
+            "msMax": 186.5
+          },
+          "cutlist": {
+            "count": [
+              423,
+              423,
+              423
+            ],
+            "msMedian": 128.5,
+            "msMax": 131.8
+          },
+          "pcvAddress": {
+            "count": [
+              1593,
+              1593,
+              1593
+            ],
+            "msMedian": 201.7,
+            "msMax": 201.8
+          },
+          "materials": {
+            "count": [
+              1,
+              1,
+              1
+            ],
+            "msMedian": 722.9,
+            "msMax": 736.9
+          },
+          "pcvAggregate": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 113.6,
+            "msMax": 114.2
+          },
+          "plan": {
+            "count": [
+              3,
+              3,
+              3
+            ],
+            "msMedian": 185.1,
+            "msMax": 189.3
+          },
+          "optimizer": {
+            "count": [
+              3,
+              3,
+              3
+            ],
+            "msMedian": 184.5,
+            "msMax": 188.6
+          },
+          "snapshot": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 178.6,
+            "msMax": 186.5
+          },
+          "pcvQuote": {
+            "count": [
+              8,
+              8,
+              8
+            ],
+            "msMedian": 321.6,
+            "msMax": 334.7
+          },
+          "save": {
+            "count": [
+              1,
+              1,
+              1
+            ],
+            "msMedian": 132.4,
+            "msMax": 142.1
+          }
+        },
+        "warmMsMedian": 4540.2,
+        "warmMsMax": 4621.2,
+        "timerGapMax": 2545.8
+      },
+      "changePercent": -91.14
+    },
+    {
+      "size": 11,
+      "before": {
+        "coldMsMedian": 53978.4,
+        "coldMsMax": 56144.5,
+        "longTaskMax": 55541,
+        "phases": {
+          "collect": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 40392.2,
+            "msMax": 42342.1
+          },
+          "facts": {
+            "count": [
+              8,
+              8,
+              8
+            ],
+            "msMedian": 435.2,
+            "msMax": 447.8
+          },
+          "cutlist": {
+            "count": [
+              3542,
+              3542,
+              3542
+            ],
+            "msMedian": 578.3,
+            "msMax": 590.5
+          },
+          "pcvAddress": {
+            "count": [
+              3102,
+              3102,
+              3102
+            ],
+            "msMedian": 46281.8,
+            "msMax": 48474.4
+          },
+          "materials": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 21153.2,
+            "msMax": 23016.8
+          },
+          "pcvAggregate": {
+            "count": [
+              4,
+              4,
+              4
+            ],
+            "msMedian": 12268.1,
+            "msMax": 13649.8
+          },
+          "plan": {
+            "count": [
+              6,
+              6,
+              6
+            ],
+            "msMedian": 5351.1,
+            "msMax": 5671.8
+          },
+          "optimizer": {
+            "count": [
+              6,
+              6,
+              6
+            ],
+            "msMedian": 5350.1,
+            "msMax": 5670.2
+          },
+          "snapshot": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 6338.8,
+            "msMax": 6354.9
+          },
+          "pcvQuote": {
+            "count": [
+              8,
+              8,
+              8
+            ],
+            "msMedian": 12678.0,
+            "msMax": 12829.9
+          },
+          "save": {
+            "count": [
+              1,
+              1,
+              1
+            ],
+            "msMedian": 4806.8,
+            "msMax": 4908.7
+          }
+        },
+        "warmMsMedian": 55064.5,
+        "warmMsMax": 55349.9,
+        "timerGapMax": 55585.1
+      },
+      "after": {
+        "coldMsMedian": 4395.2,
+        "coldMsMax": 4626,
+        "longTaskMax": 3477,
+        "phases": {
+          "collect": {
+            "count": [
+              1,
+              1,
+              1
+            ],
+            "msMedian": 3189,
+            "msMax": 3425.7
+          },
+          "facts": {
+            "count": [
+              4,
+              4,
+              4
+            ],
+            "msMedian": 224.9,
+            "msMax": 251.5
+          },
+          "cutlist": {
+            "count": [
+              517,
+              517,
+              517
+            ],
+            "msMedian": 157.7,
+            "msMax": 171.2
+          },
+          "pcvAddress": {
+            "count": [
+              1947,
+              1947,
+              1947
+            ],
+            "msMedian": 497.9,
+            "msMax": 546.2
+          },
+          "materials": {
+            "count": [
+              1,
+              1,
+              1
+            ],
+            "msMedian": 1168.5,
+            "msMax": 1242.6
+          },
+          "pcvAggregate": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 249.8,
+            "msMax": 280
+          },
+          "plan": {
+            "count": [
+              3,
+              3,
+              3
+            ],
+            "msMedian": 348.5,
+            "msMax": 348.7
+          },
+          "optimizer": {
+            "count": [
+              3,
+              3,
+              3
+            ],
+            "msMedian": 347.4,
+            "msMax": 347.5
+          },
+          "snapshot": {
+            "count": [
+              2,
+              2,
+              2
+            ],
+            "msMedian": 293.6,
+            "msMax": 293.8
+          },
+          "pcvQuote": {
+            "count": [
+              8,
+              8,
+              8
+            ],
+            "msMedian": 559.0,
+            "msMax": 570.9
+          },
+          "save": {
+            "count": [
+              1,
+              1,
+              1
+            ],
+            "msMedian": 232.4,
+            "msMax": 242.5
+          }
+        },
+        "warmMsMedian": 5970.3,
+        "warmMsMax": 6055.7,
+        "timerGapMax": 3709.2
+      },
+      "changePercent": -91.86
+    }
+  ],
+  "comparisons": [
+    {
+      "size": 1,
+      "repeat": 1,
+      "attempt": 0,
+      "equal": true,
+      "sha256": "837ffa0eba4aaffa688f5777662295938f5aaa8ef4a2006927980c31fe145b57"
+    },
+    {
+      "size": 1,
+      "repeat": 1,
+      "attempt": 1,
+      "equal": true,
+      "sha256": "c5942c08f5c16f4be59769f2d2bf8e43466dc219f413cb78d4434f856f38674b"
+    },
+    {
+      "size": 1,
+      "repeat": 2,
+      "attempt": 0,
+      "equal": true,
+      "sha256": "837ffa0eba4aaffa688f5777662295938f5aaa8ef4a2006927980c31fe145b57"
+    },
+    {
+      "size": 1,
+      "repeat": 2,
+      "attempt": 1,
+      "equal": true,
+      "sha256": "c5942c08f5c16f4be59769f2d2bf8e43466dc219f413cb78d4434f856f38674b"
+    },
+    {
+      "size": 1,
+      "repeat": 3,
+      "attempt": 0,
+      "equal": true,
+      "sha256": "837ffa0eba4aaffa688f5777662295938f5aaa8ef4a2006927980c31fe145b57"
+    },
+    {
+      "size": 1,
+      "repeat": 3,
+      "attempt": 1,
+      "equal": true,
+      "sha256": "c5942c08f5c16f4be59769f2d2bf8e43466dc219f413cb78d4434f856f38674b"
+    },
+    {
+      "size": 3,
+      "repeat": 1,
+      "attempt": 0,
+      "equal": true,
+      "sha256": "3b8a36cf6f46cd9310cab785ff31d78cbe1f42701a46e4a9ab8981654169ab3e"
+    },
+    {
+      "size": 3,
+      "repeat": 1,
+      "attempt": 1,
+      "equal": true,
+      "sha256": "2b99b05a030dbc405f4cf5907ac5d88521c37b4564f5be8f2a482ac699d2f173"
+    },
+    {
+      "size": 3,
+      "repeat": 2,
+      "attempt": 0,
+      "equal": true,
+      "sha256": "3b8a36cf6f46cd9310cab785ff31d78cbe1f42701a46e4a9ab8981654169ab3e"
+    },
+    {
+      "size": 3,
+      "repeat": 2,
+      "attempt": 1,
+      "equal": true,
+      "sha256": "2b99b05a030dbc405f4cf5907ac5d88521c37b4564f5be8f2a482ac699d2f173"
+    },
+    {
+      "size": 3,
+      "repeat": 3,
+      "attempt": 0,
+      "equal": true,
+      "sha256": "3b8a36cf6f46cd9310cab785ff31d78cbe1f42701a46e4a9ab8981654169ab3e"
+    },
+    {
+      "size": 3,
+      "repeat": 3,
+      "attempt": 1,
+      "equal": true,
+      "sha256": "2b99b05a030dbc405f4cf5907ac5d88521c37b4564f5be8f2a482ac699d2f173"
+    },
+    {
+      "size": 9,
+      "repeat": 1,
+      "attempt": 0,
+      "equal": true,
+      "sha256": "891368450e4c5cda05c03d7b597f07472f8a67ffad58d7b8cd1ceb6b5ca06908"
+    },
+    {
+      "size": 9,
+      "repeat": 1,
+      "attempt": 1,
+      "equal": true,
+      "sha256": "05bea536e16981f46dbb51850a64aec2c4635a23587f0e9b1ce19352d9b73bd2"
+    },
+    {
+      "size": 9,
+      "repeat": 2,
+      "attempt": 0,
+      "equal": true,
+      "sha256": "891368450e4c5cda05c03d7b597f07472f8a67ffad58d7b8cd1ceb6b5ca06908"
+    },
+    {
+      "size": 9,
+      "repeat": 2,
+      "attempt": 1,
+      "equal": true,
+      "sha256": "05bea536e16981f46dbb51850a64aec2c4635a23587f0e9b1ce19352d9b73bd2"
+    },
+    {
+      "size": 9,
+      "repeat": 3,
+      "attempt": 0,
+      "equal": true,
+      "sha256": "891368450e4c5cda05c03d7b597f07472f8a67ffad58d7b8cd1ceb6b5ca06908"
+    },
+    {
+      "size": 9,
+      "repeat": 3,
+      "attempt": 1,
+      "equal": true,
+      "sha256": "05bea536e16981f46dbb51850a64aec2c4635a23587f0e9b1ce19352d9b73bd2"
+    },
+    {
+      "size": 11,
+      "repeat": 1,
+      "attempt": 0,
+      "equal": true,
+      "sha256": "3aee1aa09ba8b4c20fe1d3a9f240b3bc1d95a0288f8eb46c43260a1d8f120325"
+    },
+    {
+      "size": 11,
+      "repeat": 1,
+      "attempt": 1,
+      "equal": true,
+      "sha256": "ecbe1fee886fc9b7667e4c535d36b2f60e31c4ede154ddbed0fde9a9028f86a2"
+    },
+    {
+      "size": 11,
+      "repeat": 2,
+      "attempt": 0,
+      "equal": true,
+      "sha256": "3aee1aa09ba8b4c20fe1d3a9f240b3bc1d95a0288f8eb46c43260a1d8f120325"
+    },
+    {
+      "size": 11,
+      "repeat": 2,
+      "attempt": 1,
+      "equal": true,
+      "sha256": "ecbe1fee886fc9b7667e4c535d36b2f60e31c4ede154ddbed0fde9a9028f86a2"
+    },
+    {
+      "size": 11,
+      "repeat": 3,
+      "attempt": 0,
+      "equal": true,
+      "sha256": "3aee1aa09ba8b4c20fe1d3a9f240b3bc1d95a0288f8eb46c43260a1d8f120325"
+    },
+    {
+      "size": 11,
+      "repeat": 3,
+      "attempt": 1,
+      "equal": true,
+      "sha256": "ecbe1fee886fc9b7667e4c535d36b2f60e31c4ede154ddbed0fde9a9028f86a2"
+    }
+  ],
+  "fingerprintComparisons": {
+    "equal": 24,
+    "total": 24
+  },
+  "limitations": [
+    "Chromium 151, mobile viewport 393x851/touch, desktop host CPU; not a physical Pixel measurement.",
+    "All native app cases enforce project PCV; no legacy-PCV bypass.",
+    "One synthetic Oak decor intentionally exercises the existing missing-price warning (0); separate fully priced equality regression also runs.",
+    "End-to-end cold times include touch/poll/readback/render harness overhead; warm variants change discount to create a genuine new offer.",
+    "Phase timings are nested and must not be summed."
+  ],
+  "supplementaryNineCabinetProfile": {
+    "method": "One additional isolated profile per version, two real saves; includes actual busy/result render callbacks and pure packing/labor timings. Not included in the three-profile medians.",
+    "before": [
+      {
+        "attempt": 0,
+        "operationMs": 34899,
+        "elapsed": 35605.5,
+        "savedMs": 34956.60000000149,
+        "plans": [
+          {
+            "material": "laminat White",
+            "ms": 1346
+          },
+          {
+            "material": "Oak",
+            "ms": 209.80000000074506
+          },
+          {
+            "material": "White",
+            "ms": 257.19999999925494
+          },
+          {
+            "material": "laminat White",
+            "ms": 1257.1000000014901
+          },
+          {
+            "material": "Oak",
+            "ms": 223.19999999925494
+          },
+          {
+            "material": "White",
+            "ms": 252.19999999925494
+          }
+        ],
+        "calls": {
+          "render": {
+            "count": 2,
+            "ms": 72.19999999925494,
+            "max": 58
+          },
+          "collect": {
+            "count": 2,
+            "ms": 26477.89999999851,
+            "max": 13520.300000000745
+          },
+          "facts": {
+            "count": 8,
+            "ms": 330.3999999947846,
+            "max": 134.09999999776483
+          },
+          "cutlist": {
+            "count": 2898,
+            "ms": 407.8000001385808,
+            "max": 3.600000001490116
+          },
+          "pcvAddress": {
+            "count": 2538,
+            "ms": 30478.600000012666,
+            "max": 46.69999999925494
+          },
+          "materials": {
+            "count": 2,
+            "ms": 13723.89999999851,
+            "max": 7024.099999997765
+          },
+          "pcvAggregate": {
+            "count": 4,
+            "ms": 7814.199999999255,
+            "max": 2017
+          },
+          "plan": {
+            "count": 6,
+            "ms": 3545.5,
+            "max": 1346
+          },
+          "optimizer": {
+            "count": 6,
+            "ms": 3544.60000000149,
+            "max": 1345.4000000022352
+          },
+          "items": {
+            "count": 6,
+            "ms": 0.30000000447034836,
+            "max": 0.20000000298023224
+          },
+          "packing": {
+            "count": 6,
+            "ms": 1.199999999254942,
+            "max": 0.6999999992549419
+          },
+          "projectLabor": {
+            "count": 2,
+            "ms": 85.79999999701977,
+            "max": 44.599999997764826
+          },
+          "labor": {
+            "count": 2,
+            "ms": 564.6000000014901,
+            "max": 293.70000000298023
+          },
+          "carrying": {
+            "count": 2,
+            "ms": 130.5,
+            "max": 67.90000000223517
+          },
+          "snapshot": {
+            "count": 2,
+            "ms": 4117.300000000745,
+            "max": 2087.300000000745
+          },
+          "pcvQuote": {
+            "count": 8,
+            "ms": 8247.60000000149,
+            "max": 1049.5
+          },
+          "save": {
+            "count": 1,
+            "ms": 3111.699999999255,
+            "max": 3111.699999999255
+          }
+        },
+        "longTasks": [
+          34963
+        ],
+        "gaps": [
+          34997.300000000745
+        ],
+        "status": null
+      },
+      {
+        "attempt": 1,
+        "operationMs": 36528,
+        "elapsed": 37340,
+        "savedMs": 36586.39999999851,
+        "plans": [
+          {
+            "material": "laminat White",
+            "ms": 1271
+          },
+          {
+            "material": "Oak",
+            "ms": 207
+          },
+          {
+            "material": "White",
+            "ms": 257.9000000022352
+          },
+          {
+            "material": "laminat White",
+            "ms": 1280.0999999977648
+          },
+          {
+            "material": "Oak",
+            "ms": 199.30000000074506
+          },
+          {
+            "material": "White",
+            "ms": 248.30000000074506
+          }
+        ],
+        "calls": {
+          "render": {
+            "count": 2,
+            "ms": 172.19999999552965,
+            "max": 109.89999999850988
+          },
+          "collect": {
+            "count": 2,
+            "ms": 26353.099999997765,
+            "max": 13228.699999999255
+          },
+          "facts": {
+            "count": 8,
+            "ms": 385.69999999180436,
+            "max": 145.39999999850988
+          },
+          "cutlist": {
+            "count": 2898,
+            "ms": 399.69999996200204,
+            "max": 2.2000000029802322
+          },
+          "pcvAddress": {
+            "count": 2538,
+            "ms": 30265.299999944866,
+            "max": 57
+          },
+          "materials": {
+            "count": 2,
+            "ms": 13365.199999999255,
+            "max": 6694.199999999255
+          },
+          "pcvAggregate": {
+            "count": 4,
+            "ms": 7526.29999999702,
+            "max": 1898.6000000014901
+          },
+          "plan": {
+            "count": 6,
+            "ms": 3463.60000000149,
+            "max": 1280.0999999977648
+          },
+          "optimizer": {
+            "count": 6,
+            "ms": 3462.7999999970198,
+            "max": 1280
+          },
+          "items": {
+            "count": 6,
+            "ms": 0.19999999925494194,
+            "max": 0.10000000149011612
+          },
+          "packing": {
+            "count": 6,
+            "ms": 0.6000000014901161,
+            "max": 0.19999999925494194
+          },
+          "projectLabor": {
+            "count": 2,
+            "ms": 107.5,
+            "max": 55.80000000074506
+          },
+          "labor": {
+            "count": 2,
+            "ms": 693.5,
+            "max": 361.1000000014901
+          },
+          "carrying": {
+            "count": 2,
+            "ms": 161.09999999776483,
+            "max": 81.29999999701977
+          },
+          "snapshot": {
+            "count": 2,
+            "ms": 4213.79999999702,
+            "max": 2146.89999999851
+          },
+          "pcvQuote": {
+            "count": 8,
+            "ms": 8469.199999999255,
+            "max": 1115.300000000745
+          },
+          "save": {
+            "count": 1,
+            "ms": 3258.5,
+            "max": 3258.5
+          }
+        },
+        "longTasks": [
+          15380,
+          19935
+        ],
+        "gaps": [
+          15433,
+          19954.5
+        ],
+        "status": null
+      }
+    ],
+    "after": [
+      {
+        "attempt": 0,
+        "operationMs": 2847,
+        "elapsed": 3171.60000000149,
+        "savedMs": 2903.5,
+        "plans": [
+          {
+            "material": "laminat White",
+            "ms": 68.70000000298023
+          },
+          {
+            "material": "Oak",
+            "ms": 62
+          },
+          {
+            "material": "White",
+            "ms": 57.29999999701977
+          }
+        ],
+        "calls": {
+          "render": {
+            "count": 2,
+            "ms": 71,
+            "max": 58.5
+          },
+          "collect": {
+            "count": 1,
+            "ms": 2354.89999999851,
+            "max": 2354.89999999851
+          },
+          "facts": {
+            "count": 4,
+            "ms": 184.5,
+            "max": 138.19999999925494
+          },
+          "cutlist": {
+            "count": 423,
+            "ms": 123.99999998882413,
+            "max": 3.7000000029802322
+          },
+          "pcvAddress": {
+            "count": 1593,
+            "ms": 191.3999999538064,
+            "max": 14.199999999254942
+          },
+          "materials": {
+            "count": 1,
+            "ms": 693.3000000007451,
+            "max": 693.3000000007451
+          },
+          "pcvAggregate": {
+            "count": 2,
+            "ms": 107.39999999850988,
+            "max": 53.899999998509884
+          },
+          "plan": {
+            "count": 3,
+            "ms": 188,
+            "max": 68.70000000298023
+          },
+          "optimizer": {
+            "count": 3,
+            "ms": 187.39999999850988,
+            "max": 68.19999999925494
+          },
+          "items": {
+            "count": 3,
+            "ms": 0.19999999552965164,
+            "max": 0.09999999776482582
+          },
+          "packing": {
+            "count": 3,
+            "ms": 0.8000000007450581,
+            "max": 0.6000000014901161
+          },
+          "projectLabor": {
+            "count": 1,
+            "ms": 49.900000002235174,
+            "max": 49.900000002235174
+          },
+          "labor": {
+            "count": 1,
+            "ms": 276.3999999985099,
+            "max": 276.3999999985099
+          },
+          "carrying": {
+            "count": 1,
+            "ms": 70.30000000074506,
+            "max": 70.30000000074506
+          },
+          "snapshot": {
+            "count": 2,
+            "ms": 159.09999999776483,
+            "max": 82.19999999925494
+          },
+          "pcvQuote": {
+            "count": 8,
+            "ms": 287.7000000067055,
+            "max": 40.399999998509884
+          },
+          "save": {
+            "count": 1,
+            "ms": 126,
+            "max": 126
+          }
+        },
+        "longTasks": [
+          2389,
+          123,
+          378
+        ],
+        "gaps": [
+          2542,
+          390.19999999925494
+        ],
+        "status": null
+      },
+      {
+        "attempt": 1,
+        "operationMs": 4391,
+        "elapsed": 4816.89999999851,
+        "savedMs": 4456.5,
+        "plans": [
+          {
+            "material": "laminat White",
+            "ms": 59.900000002235174
+          },
+          {
+            "material": "Oak",
+            "ms": 53.5
+          },
+          {
+            "material": "White",
+            "ms": 65.19999999925494
+          }
+        ],
+        "calls": {
+          "render": {
+            "count": 2,
+            "ms": 170.90000000223517,
+            "max": 110
+          },
+          "collect": {
+            "count": 1,
+            "ms": 2531.5,
+            "max": 2531.5
+          },
+          "facts": {
+            "count": 4,
+            "ms": 216.5000000037253,
+            "max": 162.5
+          },
+          "cutlist": {
+            "count": 423,
+            "ms": 123.39999995753169,
+            "max": 2.800000000745058
+          },
+          "pcvAddress": {
+            "count": 1593,
+            "ms": 178.899999987334,
+            "max": 14.099999997764826
+          },
+          "materials": {
+            "count": 1,
+            "ms": 723.7999999970198,
+            "max": 723.7999999970198
+          },
+          "pcvAggregate": {
+            "count": 2,
+            "ms": 90.79999999701977,
+            "max": 49.899999998509884
+          },
+          "plan": {
+            "count": 3,
+            "ms": 178.60000000149012,
+            "max": 65.19999999925494
+          },
+          "optimizer": {
+            "count": 3,
+            "ms": 178,
+            "max": 65.19999999925494
+          },
+          "items": {
+            "count": 3,
+            "ms": 0,
+            "max": 0
+          },
+          "packing": {
+            "count": 3,
+            "ms": 0.29999999701976776,
+            "max": 0.19999999925494194
+          },
+          "projectLabor": {
+            "count": 1,
+            "ms": 61,
+            "max": 61
+          },
+          "labor": {
+            "count": 1,
+            "ms": 381.29999999701977,
+            "max": 381.29999999701977
+          },
+          "carrying": {
+            "count": 1,
+            "ms": 85.60000000149012,
+            "max": 85.60000000149012
+          },
+          "snapshot": {
+            "count": 2,
+            "ms": 168,
+            "max": 85.69999999925494
+          },
+          "pcvQuote": {
+            "count": 8,
+            "ms": 301.80000000447035,
+            "max": 41.80000000074506
+          },
+          "save": {
+            "count": 1,
+            "ms": 146.5,
+            "max": 146.5
+          }
+        },
+        "longTasks": [
+          2673,
+          147,
+          488
+        ],
+        "gaps": [
+          2857.60000000149,
+          527.5,
+          107
+        ],
+        "status": null
+      }
+    ],
+    "fullPayloadComparisons": {
+      "equal": 2,
+      "total": 2,
+      "normalization": "Same technical snapshot-ID references and generatedAt/generatedDate/clientOffer.builtAt only; quoteFingerprint checked separately in the primary 24 comparisons."
+    }
+  }
+}

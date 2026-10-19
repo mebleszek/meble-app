@@ -1,5 +1,19 @@
 # DEPENDENCY_MAP — mapa zależności i wpływu zmian
 
+## 2026-10-19 — ograniczone współdzielenie odczytu PCV / wynik jednego żądania
+
+`wycena-tab-shell` → `wycenaCore.collectQuoteData` → oryginalny builder/proof/store.
+Wynik matematyki jest lokalny dla generate; świadek wejść i sessionNavigation unieważniają
+zmiany po await, rzeczywisty main-access odmawia bez ważnego dowodu. Nazwa nie jest matematyką.
+`project-pcv-resolver` collect/validatePlanParts → `project-pcv-overrides.withCalculationRead`:
+wyłącznie synchroniczny zakres, pełny świadek przed/po, pokoje i cutlisty bez przenoszenia
+między wywołaniami. Guardy PCV i projektowy bypass zwykłego cache planów pozostają.
+`bindings` rozróżnia nowy pointerdown od syntetycznego click poprzedniego gestu.
+`main-login.failure` zachowuje blokadę bramki przy wtórnej odmowie opóźnionego loadera.
+Cache-busting index/dev i piny nieaktywnego CLOUD-4.2 obejmują dokładnie zmienione źródła.
+[Dowody i testy](tools/reports/quote-performance-auth-renewal.md).
+
+
 Ten dokument służy do planowania refaktorów, splitów i optymalizacji bez strzelania. Przed cięciem pliku trzeba sprawdzić nie tylko bezpośrednie zależności, ale też wpływ drugiego poziomu: co korzysta z pliku, a potem co korzysta z tych korzystających plików.
 
 Raport źródłowy generuje narzędzie:
