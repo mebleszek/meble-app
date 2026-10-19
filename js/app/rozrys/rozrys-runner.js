@@ -28,23 +28,24 @@
     if(nav && nav.calculationContext && !context) return false;
     let assertProject=()=>{};
     const assertCurrent = ()=>{
-      assertProject();
       if(context && !nav.calculationUnchanged(context)){
         const error = new Error('Dane projektu zmieniły się podczas obliczeń. Ponów ROZRYS.');
         error.code = 'calculation_context_changed';
         throw error;
       }
+      assertProject();
     };
 
     const cfg = Object.assign({ progressCtrl:null }, deps || {});
     const projectMode=cfg.pcvMode==='project';
-    const calculationOptions={pcvMode:cfg.pcvMode,projectId:cfg.projectId};
+    const calculationOptions={pcvMode:cfg.pcvMode,projectId:cfg.projectId,assertCurrent};
     const progress = cfg.progressCtrl;
     if(!progress || typeof progress.startRun !== 'function') return;
     const runId = progress.startRun();
     if(runId == null) return;
     try{ await new Promise((resolve)=>{ try{ requestAnimationFrame(()=> resolve()); } catch(_){ setTimeout(resolve, 0); } }); }catch(_){ }
     try{
+      assertCurrent();
       {
         const policy=FC.projectPcvGuard.read();
         if(!policy.ok || policy.mode==='project' && (!projectMode || cfg.projectId!==policy.projectId))throw FC.projectPcvResolver.error(policy.code||'PCV_POLICY_MISMATCH');

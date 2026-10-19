@@ -69,9 +69,13 @@ async function main(){
   };
   const until=async(expression,label,timeout=30000)=>{const start=Date.now();while(Date.now()-start<timeout){if(await evaluate(expression))return;await delay(50);}throw Error('Timeout: '+label+' '+JSON.stringify(await evaluate('({ready:document.readyState,hasTab:!!window.FC?.wycenaTabDebug,session:window.FC?.session?.active,ui:window.uiState,body:document.body.innerText.slice(-1800),banner:document.getElementById("app-error-msg")?.textContent})'))+' '+JSON.stringify(errors));};
   const touch=async selector=>{
-   const point=await evaluate(`(()=>{const el=document.querySelector(${JSON.stringify(selector)});if(!el)throw Error('Missing touch target');el.scrollIntoView({block:'center'});const b=el.getBoundingClientRect();return{x:b.x+b.width/2,y:b.y+b.height/2};})()`);
+   // Existing quote scroll restoration schedules callbacks through 420 ms.
+   await delay(700);
+   await evaluate(`(()=>{const el=document.querySelector(${JSON.stringify(selector)});if(!el)throw Error('Missing touch target');el.scrollIntoView({block:'center',behavior:'instant'});})()`);
+   await delay(150);
+   const point=await evaluate(`(()=>{const el=document.querySelector(${JSON.stringify(selector)}),b=el.getBoundingClientRect();const x=Math.max(1,Math.min(innerWidth-1,b.x+b.width/2)),y=Math.max(1,Math.min(innerHeight-1,b.y+b.height/2));const hit=document.elementFromPoint(x,y);if(!(b.width>0&&b.height>0&&hit&&el.contains(hit)))throw Error('Touch target covered or hidden: '+JSON.stringify({selector:${JSON.stringify(selector)},x,y,hit:hit?.outerHTML.slice(0,300)}));return{x,y};})()`);
    await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...point,radiusX:4,radiusY:4,force:1,id:1}]});
-   await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await delay(100);
+   await delay(70);await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await delay(400);
   };
   const tab=async(name,ready)=>{
    await evaluate(`document.querySelector('[data-tab="${name}"]').click()`);
@@ -142,7 +146,7 @@ async function main(){
   // A malformed saved project is a real calculation refusal; no success/error stubs.
   await evaluate('(()=>{const draft=structuredClone(projectData);draft.room_test_A.cabinets[0].width=0;const saved=window.FC.project.saveConfirmed(draft);if(!saved.ok)throw Error("fixture write failed");projectData=saved.project;})()');
   await touch('[data-action="wycena-generate"]');await until('!window.FC.wycenaTabShell._generateRuntime.inFlight','real failed generation');
-  assert.equal(await evaluate('!!window.FC.wycenaTabDebug.resolveDisplayedQuote()?.error'),true);
+  assert.equal(await evaluate('!!window.FC.wycenaTabDebug.resolveDisplayedQuote()?.error'),true,JSON.stringify(await evaluate('window.FC.wycenaDiagnostics.buildReport({dryRun:false}).then(r=>({trace:r.lastGenerateTrace,shell:r.renderSources?.shellState,policy:window.FC.projectPcvPolicy.read(),closure:window.FC.sessionNavigation.needsClosure(),session:window.FC.session.active,body:document.body.innerText.slice(-1800)}))')));
   assert.equal(await evaluate('document.body.innerText.includes("Nie można utworzyć wyceny")'),true);
   assert.equal(await evaluate('localStorage.getItem("fc_quote_snapshots_v1")'),frozen);
   pass('real invalid geometry refusal stays visible despite existing history and releases the busy lock');

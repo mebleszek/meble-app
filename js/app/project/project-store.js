@@ -110,6 +110,7 @@
   function setCurrentProjectId(id){
     if(FC.session && FC.session.canSwitchProject && !FC.session.canSwitchProject(id)) return false;
     try{
+      if(getCurrentProjectId()!==String(id || '') && FC.sessionNavigation && typeof FC.sessionNavigation.invalidateCalculationContext==='function')FC.sessionNavigation.invalidateCalculationContext();
       if(storage.setRaw(CURRENT_PROJECT_ID_KEY, String(id || '')) === false) return false;
       return String(storage.getRaw(CURRENT_PROJECT_ID_KEY) || '') === String(id || '') ? (id || '') : false;
     }catch(_){ return false; }

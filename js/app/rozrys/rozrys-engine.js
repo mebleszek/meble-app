@@ -46,6 +46,7 @@
     const grainOn = !!(state && state.grain);
     const overrides = Object.assign({}, state && state.grainExceptions || {});
     const projectMode=cfg.pcvMode === 'project';
+    if(cfg.assertCurrent)cfg.assertCurrent();
     if(projectMode)FC.projectPcvResolver.validatePlanParts(parts,cfg);
     else if((parts||[]).some(p=>p.effectivePcv))throw FC.projectPcvResolver.error('PLAN_MODE_MISMATCH');
     const edgeStore = !projectMode && typeof cfg.loadEdgeStore === 'function' ? cfg.loadEdgeStore() : {};
@@ -214,7 +215,10 @@
       }catch(_){
         finish({ sheets: [], note: 'Nie udało się wystartować liczenia.', workerFailed: true, noSyncFallback: !!blockMainThreadFallback, meta: { trim, boardW: W0, boardH: H0, unit } });
       }
-    }).then(plan=>cfg.pcvMode==='project' ? FC.projectPcvResolver.attachPlanProvenance(plan,parts,cfg) : plan);
+    }).then(plan=>{
+      if(cfg.assertCurrent)cfg.assertCurrent();
+      return cfg.pcvMode==='project' ? FC.projectPcvResolver.attachPlanProvenance(plan,parts,cfg) : plan;
+    });
   }
 
   async function computePlanWithCurrentEngine(state, parts, panelOpts, deps){

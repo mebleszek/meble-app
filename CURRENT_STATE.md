@@ -1,5 +1,16 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## Spójność kontekstu po PR #64 — gałąź robocza
+
+Baza main `431545d364b47ee4d0cf8efed7d9e478d43ebe8d`, gałąź `fix/project-context-coherence`.
+Aktywny rekord i RAM zastępują heurystykę bogatszej kopii/override. Render i diagnostyka WYCENY
+nie naprawiają trwałych danych; historyczne snapshoty nie są automatycznie przepinane.
+Przebieg obliczenia jest związany z inwestorem, projektem, rewizją, zakresem i stanem sesji;
+zmiana po await odrzuca wynik. Świeży błąd pozostaje widoczny w swoim kontekście.
+[Zakres, dowody, wyniki i granice potwierdzenia incydentu](tools/reports/project-context-coherence-fix.md).
+To przygotowanie gałęzi do osobnej decyzji o wydaniu, bez PR/merge/Pages i Firebase LIVE.
+Starszy opis gałęzi PR #64 poniżej zachowano jako historię.
+
 ## Naprawa RAM/PCV i generowania WYCENY — gałąź po PR #63
 
 Baza `4d8dd96df9f293276dee07dc0c4cedf26edac08c`, gałąź `fix/pcv-ram-quote-generate-android`.

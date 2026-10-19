@@ -97,27 +97,23 @@
     }
 
     function safeGetProject(){
-      const candidates = collectProjectCandidates();
-      if(!candidates.length) return null;
-      const direct = candidates.filter((entry)=> entry.source !== 'load');
-      const preferred = direct.some((entry)=> countProjectCabinets(entry.proj) > 0 || discoverProjectRoomKeys(entry.proj).length > 0)
-        ? direct
-        : candidates;
-      let best = null;
-      let bestScore = -1;
-      preferred.forEach((entry)=>{
-        const proj = entry.proj;
-        if(!proj || typeof proj !== 'object') return;
-        const roomCount = discoverProjectRoomKeys(proj).length;
-        const cabinetCount = countProjectCabinets(proj);
-        const sourceBias = entry.source === 'load' ? 0 : 1000000;
-        const score = sourceBias + (cabinetCount * 1000) + roomCount;
-        if(score > bestScore){
-          best = proj;
-          bestScore = score;
-        }
-      });
-      return best || (preferred[0] && preferred[0].proj) || null;
+      // The activated project owns runtime. Content size and compatibility copies
+      // cannot select another investor. Detached overrides remain usable only in
+      // an isolated context with no active physical owner.
+      const store=apiFC.projectStore;
+      const id=store && store.getCurrentProjectId && store.getCurrentProjectId();
+      const investor=apiFC.investors && apiFC.investors.getCurrentId && apiFC.investors.getCurrentId();
+      let ram=host.projectData;
+      try{ if(typeof projectData!=='undefined' && host===window) ram=projectData; }catch(_){ }
+      if(id || investor){
+        if(!id || !investor || !store || typeof store.readAll!=='function') return null;
+        const rows=store.readAll().filter(row=>String(row.id)===String(id));
+        if(rows.length!==1 || String(rows[0].investorId)!==String(investor)
+          || !ram || !ram.meta || String(ram.meta.assignedInvestorId)!==String(investor)) return null;
+        return ram;
+      }
+      if(apiFC.session && apiFC.session.active) return null;
+      return apiFC.rozrys && apiFC.rozrys.__projectOverride || ram || null;
     }
 
     function getRoomsForProject(proj){

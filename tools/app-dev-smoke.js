@@ -882,6 +882,7 @@ function runWycenaNodeSmoke(sandbox){
       return files.every((file)=> {
         const html = fs.readFileSync(path.join(process.cwd(), file), 'utf8');
         return scripts.every((script)=> {
+          if(['wycena-core.js','wycena-core-material-plan.js'].includes(script)) return html.includes(`js/app/wycena/${script}?v=20261019_project_context`);
           if(script === 'wycena-core.js' || script === 'wycena-core-source.js') return html.includes(`js/app/wycena/${script}?v=20261014_c2_1b2c3a`);
           if(script === 'wycena-core-material-plan.js') return html.includes(`js/app/wycena/${script}?v=20261013_c2_1b2c2`);
           const legacyExpected = script === 'wycena-core-lines.js' ? legacyChangedExpected : legacyBaseExpected;

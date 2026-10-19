@@ -188,6 +188,7 @@
     const normalized = normalizeDraft(draft, resolved);
     const list = readAll();
     const idx = findIndex(list, normalized);
+    if(FC.sessionNavigation && typeof FC.sessionNavigation.invalidateCalculationContext==='function' && idx>=0 && JSON.stringify(list[idx].selection)!==JSON.stringify(normalized.selection))FC.sessionNavigation.invalidateCalculationContext();
     if(idx >= 0) list[idx] = normalized;
     else list.unshift(normalized);
     writeAll(list.slice(0, 50));

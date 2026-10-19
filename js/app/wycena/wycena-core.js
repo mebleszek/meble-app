@@ -93,6 +93,15 @@
     };
     const calculationOptions=options && options.pcvMode==='project' ? {pcvMode:'project',projectId:options.projectId} : {};
     const initialDraft=calculationOptions.pcvMode==='project' ? FC.projectPcvResolver.draftSelection() : null;
+    const assertCurrent=()=>{
+      if(nav && context)nav.assertCalculationCurrent(context);
+      if(options && options.assertCurrent)options.assertCurrent();
+      if(calculationOptions.pcvMode==='project' && FC.projectPcvResolver.draftSelection()!==initialDraft){
+        throw createQuoteValidationError('calculation_scope_changed','Zakres wyceny zmienił się','Ponów obliczenie dla aktualnego zakresu.');
+      }
+    };
+    calculationOptions.assertCurrent=assertCurrent;
+    assertCurrent();
     const draft = deps.offer.getOfferDraft();
     const normalizedSelection = deps.selectionApi.validateQuoteSelection(deps.selectionApi.normalizeQuoteSelection((options && options.selection) || (draft && draft.selection)));
     const selectedRooms = deps.selectionApi.decodeSelectedRooms(normalizedSelection);
@@ -119,6 +128,7 @@
     sectionStart = perfNow();
     const aggregate = deps.source.getSelectedAggregate(normalizedSelection,calculationOptions);
     const materialLines = await deps.materialPlan.collectMaterialLines(aggregate, normalizedSelection,calculationOptions);
+    assertCurrent();
     perf.timingsMs.materials = roundMs(perfNow() - sectionStart);
 
     sectionStart = perfNow();
@@ -202,6 +212,7 @@
     if(nav && !nav.calculationUnchanged(context)){
       throw createQuoteValidationError('calculation_context_changed', 'Dane projektu zmieniły się', 'Nie zapisano wyceny. Ponów kalkulację na aktualnych danych.');
     }
+    assertCurrent();
     if(calculationOptions.pcvMode==='project')FC.projectPcvResolver.registerQuoteCalculation(result,aggregate,
       Object.assign({},calculationOptions,{materialScope:normalizedSelection.materialScope}),initialDraft);
     recordQuotePerformance(perf);

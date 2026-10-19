@@ -6,6 +6,8 @@
   let pending = false;
   let applying = false;
   let finishedScope = null;
+  let calculationEpoch = 0;
+  function invalidateCalculationContext(){ calculationEpoch += 1; }
 
   function isDivergent(){
     try{
@@ -172,18 +174,32 @@
     message('Najpierw zakończ edycję', 'Zapisz lub anuluj zmiany przed obliczeniem ROZRYSU lub utworzeniem WYCENY.');
     return false;
   }
-  function calculationContext(){
+  function calculationContext(selection){
     if(!canCalculate() || !reloadCentral()) return null;
-    if(FC.rozrys && FC.rozrys.__projectOverride) FC.rozrys.__projectOverride = window.projectData;
     return {
+      epoch:calculationEpoch,
+      investorId:String(FC.investors && FC.investors.getCurrentId() || ''),
       projectId:FC.projectStore.getCurrentProjectId(),
       raw:localStorage.getItem(FC.projectStore.PROJECTS_KEY),
+      selection:selection ? JSON.stringify(selection) : null,
     };
   }
-  function calculationUnchanged(context){
-    return !!(context && !needsClosure() && FC.projectStore
+  function calculationUnchanged(context, selection){
+    return !!(context && context.epoch===calculationEpoch && !needsClosure()
+      && !(FC.session && FC.session.canSaveProject && FC.session.canSaveProject()!==true) && FC.projectStore
+      && String(FC.investors && FC.investors.getCurrentId() || '')===context.investorId
       && FC.projectStore.getCurrentProjectId() === context.projectId
-      && localStorage.getItem(FC.projectStore.PROJECTS_KEY) === context.raw);
+      && window.projectData && window.projectData.meta
+      && String(window.projectData.meta.assignedInvestorId)===context.investorId
+      && localStorage.getItem(FC.projectStore.PROJECTS_KEY) === context.raw
+      && (!context.selection || !selection || JSON.stringify(selection)===context.selection));
   }
-  FC.sessionNavigation = { requestTransition, needsClosure, canCalculate, confirmedFinish, reloadCentral, canApplyUiState, calculationContext, calculationUnchanged, prepareEditState, isEditState, sessionFinished:scope=>{ finishedScope = scope; } };
+  function assertCalculationCurrent(context, selection){
+    if(calculationUnchanged(context,selection)) return true;
+    const error=new Error('Dane lub zakres projektu zmieniły się. Nie zapisano wyceny. Ponów kalkulację na aktualnych danych.');
+    error.code='calculation_context_changed';error.quoteValidation=true;error.title='Dane projektu zmieniły się';
+    throw error;
+  }
+
+  FC.sessionNavigation = { requestTransition, needsClosure, canCalculate, confirmedFinish, reloadCentral, canApplyUiState, calculationContext, calculationUnchanged, assertCalculationCurrent, invalidateCalculationContext, prepareEditState, isEditState, sessionFinished:scope=>{ finishedScope = scope; } };
 })();

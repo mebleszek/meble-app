@@ -60,34 +60,13 @@
         assert(Array.isArray(agg.selectedRooms) && agg.selectedRooms.includes('salon'), 'ROZRYS nie rozpoznał własnego klucza pomieszczenia z projektu', agg);
         assert(Array.isArray(agg.materials) && agg.materials.includes('Dąb test'), 'ROZRYS nie zbudował materiału dla własnego klucza pomieszczenia', agg);
       }),
-      makeTest('Projekt i agregacja', 'ROZRYS wybiera bogatszy projekt z dostępnych źródeł danych', 'Sprawdza, czy gdy jeden projekt jest pusty, a drugi ma szafki, ROZRYS bierze ten bogatszy zamiast pokazać pusty stan.', ()=>{
-        const prevProject = host.projectData;
-        const prevWindowProject = host.window && host.window.projectData;
-        const prevLoad = FC.project && FC.project.load;
-        const leanProject = { schemaVersion:9, kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{} } };
-        const richProject = { schemaVersion:9, kuchnia:{ cabinets:[{ id:'cab-rich', width:60, height:72, depth:56 }], fronts:[], sets:[], settings:{} } };
-        host.projectData = leanProject;
-        if(host.window) host.window.projectData = richProject;
-        if(FC.project) FC.project.load = ()=> richProject;
-        const fixtureCutList = ()=> ([{ name:'Bok', qty:2, a:72, b:56, material:'MDF rich' }]);
-        const prevNs = FC.cabinetCutlist;
-        FC.cabinetCutlist = FC.cabinetCutlist || {};
-        const prevFn = FC.cabinetCutlist.getCabinetCutList;
-        FC.cabinetCutlist.getCabinetCutList = fixtureCutList;
-        try{
-          assert(FC.rozrys && typeof FC.rozrys.safeGetProject === 'function', 'Brak FC.rozrys.safeGetProject');
-          const resolved = FC.rozrys.safeGetProject();
-          const agg = FC.rozrys.aggregatePartsForProject(['kuchnia']);
-          assert(Array.isArray(resolved.kuchnia && resolved.kuchnia.cabinets) && resolved.kuchnia.cabinets.length === 1, 'ROZRYS nie wybrał bogatszego projektu', resolved);
-          assert(Array.isArray(agg.materials) && agg.materials.includes('MDF rich'), 'Agregacja nie skorzystała z bogatszego projektu', agg);
-        } finally {
-          host.projectData = prevProject;
-          if(host.window) host.window.projectData = prevWindowProject;
-          if(FC.project) FC.project.load = prevLoad;
-          if(prevNs && typeof prevNs === 'object') FC.cabinetCutlist.getCabinetCutList = prevFn;
-          else if(prevFn) FC.cabinetCutlist.getCabinetCutList = prevFn;
-          else delete FC.cabinetCutlist;
-        }
+      makeTest('Projekt i agregacja', 'Izolowany ROZRYS nie wybiera projektu według bogactwa danych', 'Pusty jawny override pozostaje źródłem izolowanego fixture mimo bogatszej kopii load; produkcyjny właściciel jest sprawdzany osobno.', ()=>{
+        const leanProject={schemaVersion:9,kuchnia:{cabinets:[],fronts:[],sets:[],settings:{}}};
+        const richProject={schemaVersion:9,kuchnia:{cabinets:[{id:'foreign-rich'}],fronts:[],sets:[],settings:{}}};
+        let loads=0;
+        const source=FC.rozrysProjectSource.createApi({FC:{rozrys:{__projectOverride:leanProject},project:{load(){loads++;return richProject;}}},host:{projectData:richProject}});
+        assert(source.safeGetProject()===leanProject,'Izolowany override został zastąpiony bogatszą kopią');
+        assert(loads===0,'Wybór źródła nie powinien uruchamiać konkurencyjnego odczytu load');
       }),
       makeTest('Projekt i agregacja', 'ROZRYS retryuje pełną listę pomieszczeń, gdy zapisany wybór jest pusty', 'Sprawdza, czy pusty albo stary wybór pomieszczeń nie blokuje materiałów, jeśli projekt realnie ma szafki w innym pokoju.', ()=>{
         const fixtureProject = {

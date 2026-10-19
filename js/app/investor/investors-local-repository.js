@@ -145,6 +145,7 @@
   function setCurrentId(id){
     if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor(id)) return false;
     try{
+      if(String(getCurrentId() || '')!==String(id || '') && FC.sessionNavigation && typeof FC.sessionNavigation.invalidateCalculationContext==='function')FC.sessionNavigation.invalidateCalculationContext();
       if(!id) localStorage.removeItem(KEY_CURRENT);
       else localStorage.setItem(KEY_CURRENT, String(id));
     }catch(_){ }

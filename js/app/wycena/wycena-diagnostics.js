@@ -634,8 +634,8 @@
     try{
       mark('start', { at:now() });
       let repair = null;
-      if(FC.wycenaContextRepair && typeof FC.wycenaContextRepair.repairActiveQuoteContext === 'function'){
-        repair = FC.wycenaContextRepair.repairActiveQuoteContext({ reason:'diagnostics-dry-run' });
+      if(FC.wycenaContextRepair && typeof FC.wycenaContextRepair.readActiveQuoteContext === 'function'){
+        repair = FC.wycenaContextRepair.readActiveQuoteContext({ reason:'diagnostics-dry-run' });
         mark('contextRepair', repair && { ok:repair.ok, code:repair.code, investorId:repair.investorId, projectId:repair.projectId, activeRoomIds:repair.activeRoomIds, selectedRooms:repair.selectedRooms, repairs:repair.repairs, hadProjectContent:repair.hadProjectContent });
       }else{
         mark('contextRepair', { skipped:true, reason:'missing-module' });

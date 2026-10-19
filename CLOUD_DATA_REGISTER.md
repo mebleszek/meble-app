@@ -1,5 +1,13 @@
 # CLOUD-1A — kanoniczny rejestr danych Meble-App
 
+## Dopisek lokalnej spójności kontekstu — 2026-10-19
+
+Bez nowych kluczy, domen lub zmian formatu. `__projectOverride` nie jest autorytetem aktywnego
+projektu; WYCENA renderuje/diagnozuje bez automatycznego zapisu rewizji, sanitizacji draftu
+lub relinku historii. Stary `fc_project_v1` i sloty pozostają nietkniętymi danymi legacy.
+Licznik unieważnienia obliczenia jest wyłącznie stanem RAM, nie danymi do backupu/chmury.
+[Raport, izolacja i testy](tools/reports/project-context-coherence-fix.md).
+
 ## Aktualizacja po PR #62 — CLOUD-4.1 scalone, CLOUD-4.2 w przygotowaniu
 
 GitHub potwierdził merge PR #62 do main `d517d598917e5ccd6f1460950697c9ab27f1db1c`,

@@ -54,6 +54,8 @@
   }
 
   async function computePlanForMaterial(material, parts, options){
+    const assertCurrent=options && options.assertCurrent || (()=>{});
+    assertCurrent();
     const projectMode=options && options.pcvMode === 'project';
     const engineOptions=Object.assign({},options,{isPartRotationAllowed,partSignature:FC.rozrysPrefs && FC.rozrysPrefs.partSignature});
     const unit = String(readRozrysControl('rozUnit', 'cm') || 'cm');
@@ -113,9 +115,11 @@
         computePlanPanelProAsync:projectMode ? (state,rows,progress,control,panel)=>FC.rozrysEngine.computePlanPanelProAsync(state,rows.map(FC.projectPcvResolver.withQuantity),progress,control,panel,engineOptions) : FC.rozrysEngine.computePlanPanelProAsync,
       });
     }
+    assertCurrent();
     if(FC.rozrysStock && typeof FC.rozrysStock.applySheetStockLimit === 'function'){
       plan = await FC.rozrysStock.applySheetStockLimit(material, st, parts, plan, {}, { computePlanWithCurrentEngine:(nextSt, nextParts)=> FC.rozrysEngine.computePlanWithCurrentEngine(nextSt, nextParts, {}, { computePlan:projectMode ? (state,rows)=>FC.rozrysEngine.computePlan(state,rows.map(FC.projectPcvResolver.withQuantity),engineOptions) : FC.rozrysEngine.computePlan, computePlanPanelProAsync:projectMode ? (state,rows,progress,control,panel)=>FC.rozrysEngine.computePlanPanelProAsync(state,rows.map(FC.projectPcvResolver.withQuantity),progress,control,panel,engineOptions) : FC.rozrysEngine.computePlanPanelProAsync }), partSignature:projectMode ? FC.projectPcvResolver.planKey : FC.rozrysPrefs && FC.rozrysPrefs.partSignature, isPartRotationAllowed });
     }
+    assertCurrent();
     if(projectMode)plan=FC.projectPcvResolver.attachPlanProvenance(plan,parts,Object.assign({},engineOptions,{complete:true}));
     if(cacheKey && plan && FC.rozrysCache && typeof FC.rozrysCache.savePlanCache === 'function'){
       cache[cacheKey] = { ts:Date.now(), plan:utils.clone(plan) };
@@ -306,7 +310,8 @@
   }
 
   async function collectMaterialLines(aggregate, selectionOverride, options){
-    const opts=options||{};
+    const opts=options||{},assertCurrent=opts.assertCurrent || (()=>{});
+    assertCurrent();
     if((aggregate && aggregate.pcvMode === 'project') !== (opts.pcvMode === 'project'))throw FC.projectPcvResolver.error('CALCULATION_MODE_MISMATCH');
     const scope = selectionApi.decodeMaterialScope(selectionOverride);
     const materialsOrdered = source.getScopedMaterials(aggregate, selectionOverride);
@@ -314,6 +319,7 @@
     const edgeBasis = opts.pcvMode === 'project' ? FC.projectPcvResolver.validateAggregate(aggregate,Object.assign({},opts,{materialScope:scope})) : collectEdgeMetersFromMaterialSource(aggregate && aggregate.selectedRooms, scope);
     const lines = [];
     for(const material of materialsOrdered){
+      assertCurrent();
       const group = aggregate && aggregate.groups ? aggregate.groups[material] : null;
       const selectedParts = FC.rozrysScope && typeof FC.rozrysScope.getGroupPartsForScope === 'function'
         ? FC.rozrysScope.getGroupPartsForScope(group, scope)
@@ -325,6 +331,7 @@
       if(priceUnit === 'sheet'){
         try{ planInfo = await computePlanForMaterial(material, selectedParts,opts); }catch(error){ if(opts.pcvMode === 'project')throw error; }
       }
+      assertCurrent();
       const line = buildMaterialLine(material, selectedParts, priceItem, planInfo);
       line.rooms = roomsText;
       lines.push(line);
@@ -339,6 +346,7 @@
     if(rawFrontEdgeMeters > 0){
       lines.push(buildEdgeLine({ mode:'front', rawMeters:rawFrontEdgeMeters, priceItem:findEdgePriceItem('front'), roomsText }));
     }
+    assertCurrent();
     if(opts.pcvMode === 'project'){
       const after=FC.projectPcvResolver.validateAggregate(aggregate,Object.assign({},opts,{materialScope:scope}));
       if(after.revision!==edgeBasis.revision)throw FC.projectPcvResolver.error('READ_CONFLICT');
