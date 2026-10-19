@@ -17,6 +17,12 @@ nowej rewizji oraz rzeczywisty konflikt pozostają bezpiecznie zablokowane.
 Dodano regresje i kontrakt diagnostyki Androida bez USB w powyższym raporcie;
 bez nowej zmiany kodu produkcyjnego i bez gwarancji odblokowania Pixela.
 
+Jednorazowa diagnostyka bez USB jest teraz przygotowana w
+[tools/diagnostics](tools/diagnostics/README.md): bookmarklet z kontrolą istniejącego
+Auth, wyłącznie odczytem danych aplikacji i anonimowym wynikiem w schowku.
+Regresje 15/15, wykonanie adresu `javascript:` w mobilnym Chromium 7/7;
+fizyczny Pixel nie został przetestowany. To obserwacja, nie mechanizm odblokowania.
+
 ## Wydajność WYCENY i odnowienie dostępu — pakiet roboczy po PR #66
 
 Aktualna baza GitHub main `764d0852b7232b28e6920a36ca26d50ec5e1a3e3` zawiera PR #65 i #66;

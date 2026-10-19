@@ -252,3 +252,53 @@ usuwania sesji ani automatycznego rollbacku.
 **Wniosek:** `81d85fb` nie gwarantuje odblokowania istniejącej sesji Pixela po
 restarcie. To uzupełnienie potwierdza ograniczenie, nie dodaje pozornej naprawy.
 Bez diagnozy rzeczywistego stanu nie wolno deklarować rozwiązania incydentu.
+
+### Realizacja diagnostyki bez USB — kontynuacja po `1c85b2d`
+
+Powyższy opis nieprzygotowanej zakładki pozostaje historią. Na osobne zlecenie
+właściciela przygotowano [gotowy bookmarklet i instrukcję Pixela](../diagnostics/README.md),
+źródło kolektora, deterministyczny builder i dwa runnery. Nie zmieniono kodu
+produkcyjnego ani poprzednich zabezpieczeń i testów odzyskiwania sesji.
+
+Skrypt odczytuje siedem istniejących kluczy oraz publiczne pola RAM sesji/UI.
+Nie wywołuje operacji domenowych, normalizatorów ani guardów zapisu; używa
+wyłącznie istniejącego `__FC_MAIN_ACCESS__.isValid()` do odmowy bez ważnego
+dostępu. Weryfikuje kompletność strukturalną dowodu, właściciela, kontekst,
+zgodność RAM/payloadu, C=B, C=E, `expectedOwnerKnown`, pending operation,
+zastany kod odmowy i czytelność storage. Ponowny odczyt chroni przed wydaniem
+raportu z danych zmienionych w trakcie obserwacji. Prywatnego znacznika
+`writeUnconfirmed` nie da się odczytać bez zmiany kontraktu produkcyjnego;
+nie jest wywoływana metoda, która mogłaby go pośrednio zdiagnozować i zmienić stan.
+
+Wynik to mały JSON z booleanami i zamkniętymi wartościami, bez nazw,
+identyfikatorów, treści lub hashy danych, tokenów i kluczy. Jedyny zapis to
+wynikowy JSON w schowku, zgodnie z powyższym kontraktem. Nie ma zmian DOM,
+nawigacji, żądań sieciowych, zapisu aplikacyjnego ani próby quota. Odmowa
+schowka nie uruchamia fallbacku. Zrezygnowano z modalnego okna wyniku, które
+wstrzymywałoby JavaScript i mogło opóźnić odnowienie 45-sekundowego dostępu.
+Nie zbiera się wersji skryptów z DOM ani estymaty quota: nie są potrzebne do
+rozróżnienia dowodów, a polecenie ogranicza źródła do storage, sesji i Auth.
+
+Wyniki celowane: **15/15 PASS** odczytu i anonimizacji; **7/7 PASS, 0 FAIL,
+0 SKIP** dla rzeczywistego adresu `javascript:` z gestem użytkownika, natywnego
+schowka i jego odmowy w Chromium (mobilny viewport/dotyk). Testy obejmują
+pełny restart z utratą potwierdzenia, prawidłowe C=E, brak dowodu, pending,
+obcy kontekst, nieczytelny storage, zmianę danych oraz odmowę/wygaśnięcie/
+cofnięcie dostępu. Potwierdzono niezmienność wszystkich RAW, RAM, snapshotów,
+DOM i URL oraz brak wywołań zapisujących i dodatkowej sieci. Fixture testowe
+uzyskało opcjonalny kontrolowany zegar, bez zmiany domyślnego zachowania.
+
+Browser używa rzeczywistych modułów main-login, lokalnego profilu i gate,
+z syntetycznym Auth/verifierem. Nie zastępuje produkcyjnego `isValid` stałym
+`true`, nie testuje nowego logowania Google i nie łączy się z produkcją.
+Nie wykonano testu na fizycznym Pixelu. Jeśli Chrome odmawia uruchomienia
+zakładki lub zapisu wyniku, należy zatrzymać próbę; alternatywny odczytowy
+ekran diagnostyczny wymaga osobnej zgody i nie został dodany ani opublikowany.
+
+Bookmarklet **nie odblokowuje** sesji. C≠B/E, brak lub konflikt dowodu nadal
+wymagają dalszej świadomej decyzji; nie uprawniają do usunięcia payloadu,
+rollbacku ani nadpisania projektu. Bez PR, merge, Pages i Firebase LIVE.
+
+Końcowy **PRE-FLIGHT PASS**: smoke **134/134**, APP **110/110**, składnia
+**573/573**, kolejność skryptów, zależności i storage PASS; 144080 ms.
+Nie uruchamiano ponownie benchmarków WYCENY ani operacji Firebase.

@@ -4,7 +4,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const {createSandbox,loadSmokeFiles}=require('./app-dev-smoke');
 const {APP_DEV_SMOKE_FILES}=require('./app-dev-smoke-lib/file-list');
 const clone=x=>JSON.parse(JSON.stringify(x)),P='fc_projects_v1',I='fc_investors_v1',H='fc_quote_snapshots_v1',E='fc_edit_session_v1';
-function fixture(seed){
+function fixture(seed,options){
  class Memory{
   constructor(values={}){this.rows=new Map(Object.entries(values));this.fail=new Map();this.calls=[];this.hook=null;}
   get length(){return this.rows.size;} key(i){return [...this.rows.keys()][i]||null;}
@@ -14,6 +14,7 @@ function fixture(seed){
   clear(){throw Error('clear is forbidden');}
  }
  const s=createSandbox(),storage=new Memory(seed);s.Storage=Memory;s.localStorage=storage;s.sessionStorage=new Memory();s.location={reload(){}};s.scrollTo=()=>{};
+ if(options&&options.timers){s.setTimeout=options.timers.setTimeout;s.clearTimeout=options.timers.clearTimeout;}
  loadSmokeFiles(s,APP_DEV_SMOKE_FILES);
  s.STORAGE_KEYS=s.FC.constants.STORAGE_KEYS;
  for(const file of ['js/app/shared/ui-state.js','js/app/ui/tab-navigation.js','js/app/shared/public-api.js'])vm.runInContext(fs.readFileSync(file,'utf8'),s,{filename:file});
