@@ -21,7 +21,7 @@ const P='fc_projects_v1',E='fc_edit_session_v1';
  for(const page of ['index.html','dev_tests.html']){
   const html=fs.readFileSync(page,'utf8');
   const scripts=['info-box.js','session-diagnostics-readonly.js','session-diagnostics.js'];let previous=-1;
-  for(const script of scripts){const needle='js/app/ui/'+script+'?v=20261020_session_diagnostics';const i=html.indexOf(needle);assert.ok(i>previous,page+' '+script);assert.equal(html.indexOf(needle,i+1),-1);previous=i;}
+  for(const script of scripts){const needle='js/app/ui/'+script+'?v='+(script==='session-diagnostics-readonly.js'?'20261020_session_storage_proof':'20261020_session_diagnostics');const i=html.indexOf(needle);assert.ok(i>previous,page+' '+script);assert.equal(html.indexOf(needle,i+1),-1);previous=i;}
  }
  passed++;console.log(`Session diagnostic screen: ${passed}/${passed} PASS`);
 })().catch(e=>{console.error(e.stack);process.exitCode=1;});

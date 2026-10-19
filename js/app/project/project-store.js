@@ -110,6 +110,10 @@
   function setCurrentProjectId(id){
     if(FC.session && FC.session.canSwitchProject && !FC.session.canSwitchProject(id)) return false;
     try{
+      // Reading the exact stored pointer already confirms an unchanged value.
+      // Do not poison a refused activation with a failed redundant write.
+      const observed = storage.getRaw(CURRENT_PROJECT_ID_KEY);
+      if(typeof observed === 'string' && observed === String(id || '')) return id || '';
       if(getCurrentProjectId()!==String(id || '') && FC.sessionNavigation && typeof FC.sessionNavigation.invalidateCalculationContext==='function')FC.sessionNavigation.invalidateCalculationContext();
       if(storage.setRaw(CURRENT_PROJECT_ID_KEY, String(id || '')) === false) return false;
       return String(storage.getRaw(CURRENT_PROJECT_ID_KEY) || '') === String(id || '') ? (id || '') : false;

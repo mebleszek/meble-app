@@ -18,7 +18,7 @@ function pixelSessionReadonly(w){
     const s=w.FC?.session;
     const readUi=()=>typeof uiState!=='undefined'?uiState:w.uiState;
     const ui=readUi();
-    const codes=['SESSION_UNCONFIRMED','PROJECT_WRITE_CONFLICT','SESSION_OWNER_MISMATCH','SESSION_OWNER_MISSING','SESSION_ROOM_MISSING','SESSION_READ_FAILED','SESSION_CLEANUP_FAILED','PROJECT_ROLLBACK_INVALID','PROJECT_ROLLBACK_WRITE_FAILED','PENDING_DOMAIN_OPERATION','UNSCOPED_PART_ROLLBACK_BLOCKED'];
+    const codes=['SESSION_QUOTA_EXCEEDED','SESSION_STORAGE_DENIED','SESSION_STORAGE_WRITE_FAILED','SESSION_WRITE_UNCONFIRMED','SESSION_SERIALIZATION_FAILED','SESSION_UNCONFIRMED','PROJECT_WRITE_CONFLICT','SESSION_OWNER_MISMATCH','SESSION_OWNER_MISSING','SESSION_ROOM_MISSING','SESSION_READ_FAILED','SESSION_CLEANUP_FAILED','PROJECT_ROLLBACK_INVALID','PROJECT_ROLLBACK_WRITE_FAILED','PENDING_DOMAIN_OPERATION','UNSCOPED_PART_ROLLBACK_BLOCKED'];
     const refusal=()=>s?.lastError?codes.includes(s.lastError.code)?s.lastError.code:'OTHER':'NONE';
     const runtime=()=>JSON.stringify([s?.active,s?.durable,s?.projectId,s?.roomId,s?.startedAt,s?.context,s?.expectedOwnerKnown,s?.expectedOwnerRaw,s?.snapshot,refusal(),ui?.roomType,ui?.currentInvestorId]);
     const beforeRuntime=runtime(),code=refusal();
