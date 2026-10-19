@@ -11,6 +11,12 @@ konflikty i uszkodzone snapshoty pozostają zablokowane.
 [Dowody, zakres, testy, ograniczenia Auth i plan bezstratnego odzyskiwania](tools/reports/initial-session-retry-recovery.md).
 Bez wydania, usuwania sesji na ślepo, migracji danych i Firebase LIVE.
 
+Uzupełnienie po `81d85fb`: pełny restart z istniejącym payloadem potwierdził,
+że brak flagi RAM nie blokuje poprawnego trwałego dowodu. Utrata utrwalenia
+nowej rewizji oraz rzeczywisty konflikt pozostają bezpiecznie zablokowane.
+Dodano regresje i kontrakt diagnostyki Androida bez USB w powyższym raporcie;
+bez nowej zmiany kodu produkcyjnego i bez gwarancji odblokowania Pixela.
+
 ## Wydajność WYCENY i odnowienie dostępu — pakiet roboczy po PR #66
 
 Aktualna baza GitHub main `764d0852b7232b28e6920a36ca26d50ec5e1a3e3` zawiera PR #65 i #66;

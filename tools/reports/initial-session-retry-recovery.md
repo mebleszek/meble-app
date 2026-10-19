@@ -132,3 +132,123 @@ danych, nie resetować profilu i nie powtarzać logowania jako naprawy sesji.
 Gałąź zawiera ograniczoną, odtworzoną naprawę do przeglądu. Brak pełnego dowodu
 naprawy incydentu Pixela oraz blokada trzech testów shellu Auth uniemożliwiają
 deklarację pełnej gotowości wydaniowej. Bez PR, merge, Pages i Firebase LIVE.
+
+## Uzupełnienie: istniejący snapshot i pełny restart dokumentu
+
+Baza uzupełnienia: `81d85fb895c50bf0388fb3e7968dfac07d555e4d` na tej samej
+gałęzi. `main` nadal `3332ac8e059a73430d3d40518caebb359a8728e8`.
+**Brak nowej poprawki odblokowującej produkcyjne sesje.** Poprzednia poprawka
+i wszystkie jej testy pozostają. Dodano wyłącznie dwa runnery regresyjne oraz
+to uzupełnienie dokumentacji i odnośnik w CURRENT_STATE.
+
+`initialBeginPending` rzeczywiście znika po restarcie. Jednak `restoreSession()`
+odtwarza wtedy `durable:true` dla aktywnego payloadu ze snapshotem; ta flaga
+sama nie dopuszcza zapisu. `canSaveProject()` nadal sprawdza właściciela oraz
+`inspectDurableSession()`. `retryInitialBegin()` nie interpretuje starego
+snapshotu jako nowej, nieudanej próby. Samo utrwalenie znacznika ponowienia
+nie dostarczyłoby brakującego potwierdzenia rewizji.
+
+Niech B oznacza oryginalny zakres pokoju wraz z definicją w snapshotcie,
+E ostatni trwale potwierdzony zakres w `expectedOwnerRaw`, a C zakres bieżący.
+Są to zakresy z `scopeRaw()` (`session.js`), nie timestamp całego rekordu.
+
+| Stan po restarcie | Rzeczywisty wynik |
+| --- | --- |
+| C=B, kompletny payload v4 i zgodny właściciel/kontekst | Czysta nawigacja już potrafi zakończyć sesję bez zapisu projektu; znacznik RAM nie jest potrzebny. |
+| C=E, E≠B, kompletny dowód | Kanoniczny RAM odtwarza aktualne dane; istniejący jawny Zapisz może zakończyć sesję. Dirty navigation nadal wymaga decyzji. |
+| Zapis projektu wykonany, zapis nowego E niepotwierdzony; C≠B i C≠E | W tym samym dokumencie `SESSION_UNCONFIRMED`; po restarcie `PROJECT_WRITE_CONFLICT`. Wszystkie trzy działania pozostają zablokowane, również po kolejnym restarcie. |
+| Zewnętrzny zapis zmienił właścicielski pokój poza E/B | `PROJECT_WRITE_CONFLICT`, bez zmiany któregokolwiek trwałego bajtu przez odmówione działania. |
+| Bridge zgłosił `SAVE_UNCONFIRMED`, ale E zostało utrwalone i nadal pasuje do C | Inny przypadek: po restarcie kanoniczny RAM i pełny trwały dowód pozwalają jawnie zakończyć sesję. Test obejmuje zmianę innego pokoju między zapisem i read-back. |
+| Anuluj wcześniej przywróciło B, lecz usunięcie payloadu nie powiodło się | Przy pełnym dowodzie istniejący commit po restarcie kończy sesję bez ponownego rollbacku. W testach wyłącznie dane syntetyczne. |
+| Snapshot istnieje, lecz brakuje wymaganej części dowodu | Zapisz/Anuluj: `SESSION_UNCONFIRMED`; nawigacja: ogólna odmowa potwierdzenia stanu sesji, bez nowego kodu w `lastError`. Sam snapshot nie wystarcza. |
+
+### Dlaczego nie wolno przyjąć niepotwierdzonego C jako własnej rewizji
+
+Regresja odtwarza rzeczywisty częściowy zapis przez `saveConfirmed()`, po którym
+kanoniczny projekt zawiera zmianę, ale payload sesji zachowuje stare E.
+Konstruuje też alternatywną historię zewnętrznego zapisu z **identycznymi
+trwałymi bajtami**. Uwzględnia pomocnicze `fc_project_backup_v1` i
+`fc_project_backup_meta_v1`: pierwszy zawiera stary projekt B, drugi tylko
+`savedAt`. Żaden nie wiąże nowego C z identyfikatorem transakcji tej sesji.
+To kontrprzykład dla wnioskowania o autorstwie z samych tych danych; nie dowód,
+że zewnętrzny zapis wystąpił na Pixelu ani że dopuszcza go obecne UI.
+
+Algorytm otrzymujący identyczne trwałe dowody nie może ustalić, która historia
+wystąpiła. Zgodność geometrii, nowsza data, prawidłowy model projektu ani
+istnienie oferty również nie potwierdzają transakcji edycji. Brakuje trwałego
+potwierdzenia wiążącego **tę sesję, jej B i faktycznie zapisane C**. Nie można
+dopisać takiego potwierdzenia wstecz na podstawie założenia o jego autorstwie.
+Skasowanie payloadu usuwałoby zachowany oryginał; Anuluj mogłoby nadpisać
+nowsze dane; ponowny Zapisz mógłby utrwalić niepotwierdzony RAM. Żadna z tych
+czynności nie jest automatyczną ścieżką odzyskiwania w tym pakiecie.
+
+### Nowe dowody i testy
+
+```sh
+node tools/project-session-restored-proof-smoke.js
+npm --prefix tools/firebase-pilot ci
+node tools/project-session-restored-proof-browser.js
+node tools/preflight.js
+```
+
+- Nowe regresje rzeczywistych modułów: **8/8 PASS**. Osobne dokumenty VM,
+  wyłącznie localStorage przenoszone między nimi; dwa restarty i wszystkie
+  odmówione działania zachowują wszystkie RAW. Dodatnie przypadki dowodzą
+  istniejącej możliwości zakończenia przy prawidłowym potwierdzeniu.
+- Mobilny Chromium: **4/4 PASS, 0 FAIL, 0 SKIP**. Jedna rzeczywiście obliczona,
+  zapisana i wyrenderowana oferta syntetyczna, następnie trzy warianty dowodu.
+  Każdy przechodzi zamknięcie/nową kartę oraz pełny reload tej samej karty
+  (inny nonce dokumentu, zachowane natywne sessionStorage). Zewnętrzny zapis
+  wykonuje niezależny dokument bez aplikacyjnego trackera. Dla odmów RAW
+  projektu, sesji, inwestorów, historii i globalnych danych są identyczne przed
+  i po starcie oraz każdej próbie. Przy poprawnym dowodzie istniejący bootstrap
+  może zmienić wyłącznie `updatedAt` aktywnego rekordu; test sprawdza wszystkie
+  pozostałe pola oraz dokładne bajty payloadu, historii i globalnych danych.
+- Dotychczasowa poprawka: **12/12 PASS**, niepotwierdzone zapisy **30/30 PASS**.
+- Nie wykonywano ponownie benchmarków WYCENY. Nowy browser runner jest testem
+  biznesowego bootstrapu, nie testem ponownego logowania Google. Zero żądań
+  zewnętrznych i Firebase LIVE. Poprzednia blokada shellu Auth nie jest tutaj
+  oznaczona jako nowy PASS.
+- Końcowy **PRE-FLIGHT PASS**: **133/133 smoke, APP 110/110**, składnia
+  **569/569**, kolejność ładowania, zależności i storage PASS; 142066 ms.
+
+### Diagnostyka Pixela bez USB — rekomendowany następny krok
+
+Nadal trzeba rozpoznać rzeczywisty stan telefonu. Rekomendacja: osobno
+zatwierdzona jednorazowa **zakładka diagnostyczna Chrome (bookmarklet)**,
+uruchamiana przez właściciela w tej samej karcie po poprawnym zalogowaniu.
+Nie wymaga nowego wydania aplikacji ani zmiany jej UI. Nie przygotowano ani
+nie uruchomiono jej w tej gałęzi; poniżej kontrakt do osobnej realizacji:
+
+1. Sprawdzić istniejący gate `__FC_MAIN_ACCESS__`; brak świeżego dostępu oznacza
+   odmowę, nie obejście. Wyłącznie `getItem`, obliczenia w RAM i opcjonalnie
+   odczyt `navigator.storage.estimate()`. Bez próby zapisu testowego, nowych
+   żądań sieci, SDK, normalizatorów i modyfikowania DOM.
+2. Zachować pierwotny `lastError.code`; odczytać payload i potrzebne rekordy
+   wyłącznie lokalnie. Wynik zawiera tylko kod, wersję schematu, publiczne
+   wersje faktycznie załadowanych trzech modułów sesji (bez pełnych URL), flagi
+   active/durable, obecność wymaganych pól, booleany zgodności właściciela
+   i kontekstu, C=B, C=E, expectedKnown, pendingDomainOperation oraz zgodność
+   nieskopowanych kluczy. Bez UID, identyfikatorów, nazw, treści, hashy projektu,
+   tokenów, kluczy API, eksportu lub historii ofert. Estymata quota nie jest
+   dowodem udanego/nieudanego zapisu.
+3. Przed wydaniem wyniku ponownie odczytać chronione RAW; zmiana oznacza
+   `DIAGNOSTIC_STATE_CHANGED` i odmowę raportu. Nie wołać `canSaveProject()`,
+   `begin()`, `recoverProject()`, `commit()` ani `cancel()` — mogą zmienić stan
+   lub komunikat. Nie testować `setItem/removeItem` i nie usuwać kluczy.
+4. Dopiero po weryfikacji skopiować mały, zanonimizowany JSON do schowka.
+   Odmowa schowka kończy operację, bez fallbacku zmieniającego UI czy storage.
+   Najpierw testy bookmarkletu na tych samych syntetycznych stanach i kontrola
+   niezmienności wszystkich danych, następnie osobna decyzja właściciela
+   o uruchomieniu. Nie potrzeba prywatnego eksportu ani komputera/USB.
+
+Jeśli diagnostyka pokaże C≠B/E lub niekompletny dowód, blokada pozostaje.
+Dalsze odzyskanie wymaga osobno zatwierdzonej pełnej kopii ratunkowej oraz
+świadomej decyzji o zachowaniu konkretnej wersji; obecny zwykły eksport nie
+zabezpiecza sesji. Nowa architektura przyszłych potwierdzeń transakcji nie
+odzyska brakującego dowodu dla starego payloadu. Nie proponuje się ręcznego
+usuwania sesji ani automatycznego rollbacku.
+
+**Wniosek:** `81d85fb` nie gwarantuje odblokowania istniejącej sesji Pixela po
+restarcie. To uzupełnienie potwierdza ograniczenie, nie dodaje pozornej naprawy.
+Bez diagnozy rzeczywistego stanu nie wolno deklarować rozwiązania incydentu.
