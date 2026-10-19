@@ -1,5 +1,13 @@
 # Pixel — jednorazowy bookmarklet diagnostyczny
 
+**Ścieżka historyczna.** Właściciel zgłosił ucięty skrypt/SyntaxError oraz brak
+wyniku schowka na fizycznym Pixelu. Nie zaleca się kolejnych prób bookmarkletu.
+Na gałęzi przygotowano diagnostykę w istniejącym oknie błędu sesji: raport na
+ekranie, bez obowiązku kopiowania. [Instrukcja i ograniczenia](../reports/initial-session-retry-recovery.md#diagnostyka-sesji-w-aplikacji--kontynuacja-po-47d20b0).
+Wymaga osobnej decyzji wydaniowej. Poniższe instrukcje zachowano jako historię.
+Kolektor narzędzi importuje teraz jedyne źródło z
+[session-diagnostics-readonly.js](../../js/app/ui/session-diagnostics-readonly.js).
+
 Gotowy adres: [pixel-session-bookmarklet.txt](pixel-session-bookmarklet.txt).
 To **jedna linia**, zaczynająca się od `javascript:`. Źródło do przeglądu:
 [pixel-session-readonly.js](pixel-session-readonly.js).

@@ -262,7 +262,7 @@
         if(!cancelled){
           const message = (session.lastError && session.lastError.message) || 'Nie udało się anulować wszystkich zmian. Sesja edycji została zachowana i nie została zakończona. Spróbuj ponownie. Nie zamykaj programu, jeżeli problem się powtarza.';
           try{
-            if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Nie udało się anulować zmian', message });
+            if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Nie udało się anulować zmian', message, sessionDiagnostic:true });
             else window.alert(message);
           }catch(_){ }
           return true;
@@ -287,7 +287,7 @@
               const element = document.getElementById(id);
               if(element) element.style.display = 'none';
             }
-            try{ FC.infoBox.open({title:'Nie udało się ponownie zabezpieczyć edytora',message:'Zmiany zostały cofnięte, ale nie potwierdzono zabezpieczenia edytora. Edycja została zablokowana. Spróbuj ponownie otworzyć to pomieszczenie.',okOnly:true}); }catch(_){ }
+            try{ FC.infoBox.open({title:'Nie udało się ponownie zabezpieczyć edytora',sessionDiagnostic:true,message:'Zmiany zostały cofnięte, ale nie potwierdzono zabezpieczenia edytora. Edycja została zablokowana. Spróbuj ponownie otworzyć to pomieszczenie.',okOnly:true}); }catch(_){ }
           }
           return true;
         }
@@ -331,7 +331,7 @@
             // The central store already reports a fresh storage error; avoid a second dialog.
             const storageReported = writeError && writeError !== previousWriteError && typeof FC.storage.notifyWriteFailure === 'function';
             if(!pending && !storageReported && FC.infoBox && typeof FC.infoBox.open === 'function'){
-              FC.infoBox.open({ title:'Nie udało się zapisać projektu', message:'Zmiany nie zostały zapisane. Sesja edycji pozostała aktywna. Nie zamykaj programu i spróbuj ponownie.', okOnly:true });
+              FC.infoBox.open({ title:'Nie udało się zapisać projektu', sessionDiagnostic:true, message:'Zmiany nie zostały zapisane. Sesja edycji pozostała aktywna. Nie zamykaj programu i spróbuj ponownie.', okOnly:true });
             }
           }catch(_){ }
           return true;
@@ -342,7 +342,7 @@
         if(!committed){
           const message = 'Projekt został zapisany, ale nie udało się zakończyć sesji edycji. Spróbuj ponownie.';
           try{
-            if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Sesja nadal aktywna', message });
+            if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Sesja nadal aktywna', message, sessionDiagnostic:true });
             else window.alert(message);
           }catch(_){ }
           return true;

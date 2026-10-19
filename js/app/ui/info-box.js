@@ -36,6 +36,11 @@
     const title = String(opts.title || 'Informacja');
     const message = String(opts.message || '');
     const okOnly = !!opts.okOnly;
+    // Explicit session-dialog opt-in; ordinary information boxes stay unchanged.
+    const secondary = opts.sessionDiagnostic === true && root.FC.sessionDiagnostics
+      ? { text:'Diagnostyka sesji', run:()=>root.FC.sessionDiagnostics.open() }
+      : opts.secondaryAction;
+    const hasSecondary = !!(secondary && typeof secondary.run === 'function');
     const dismissOnOverlay = Object.prototype.hasOwnProperty.call(opts, 'dismissOnOverlay') ? opts.dismissOnOverlay !== false : !okOnly;
     const dismissOnEsc = Object.prototype.hasOwnProperty.call(opts, 'dismissOnEsc') ? opts.dismissOnEsc !== false : !okOnly;
 
@@ -45,16 +50,31 @@
     const titleEl = el('div', { class:'info-box__title', text:title });
     const closeBtn = okOnly ? null : el('button', { type:'button', class:'info-box__close', 'aria-label':'Zamknij informację', text:'×' });
     const body = el('div', { class:'info-box__body', text:message });
-    const actions = okOnly ? el('div', { class:'info-box__actions info-box__actions--single' }) : null;
+    const actions = okOnly || hasSecondary ? el('div', { class:'info-box__actions' + (okOnly && !hasSecondary ? ' info-box__actions--single' : '') }) : null;
     const okBtn = okOnly ? el('button', { type:'button', class:'confirm-btn is-success info-box__action', text:'OK' }) : null;
 
     head.appendChild(titleEl);
     if(closeBtn) head.appendChild(closeBtn);
     box.appendChild(head);
     box.appendChild(body);
-    if(actions && okBtn){
-      actions.appendChild(okBtn);
+    if(actions){
+      if(hasSecondary){
+        const button = el('button', { type:'button', class:'confirm-btn info-box__action', text:String(secondary.text || '') });
+        button.addEventListener('click', ()=>{
+          try{ Promise.resolve(secondary.run({button,body})).catch(()=>{}); }catch(_){ }
+        });
+        actions.appendChild(button);
+      }
+      if(okBtn) actions.appendChild(okBtn);
       box.appendChild(actions);
+    }
+    if(opts.sessionDiagnosticReport === true){
+      // A phone screenshot must not reveal customer data behind the report.
+      overlay.style.background = '#f8fafc';
+      box.style.maxHeight = 'calc(100dvh - 32px)';
+      box.style.overflowY = 'auto';
+      body.style.fontSize = '12px';
+      body.style.lineHeight = '1.35';
     }
     overlay.appendChild(box);
     document.body.appendChild(overlay);

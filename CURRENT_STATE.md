@@ -1,5 +1,22 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## Diagnostyka zablokowanej sesji w aplikacji — bez wydania
+
+Kontynuacja `fix/durable-session-recovery` po `47d20b0`, baza main nadal
+`3332ac8e059a73430d3d40518caebb359a8728e8`. Właściciel zgłosił brak skutecznego
+wyniku bookmarkletów na Pixelu; nie są już zalecaną ścieżką diagnostyki.
+Przy błędach sesji dodano jawny przycisk **Diagnostyka sesji**, dostępny w tym
+samym modalu. Raport anonimowy pojawia się na ekranie, na nieprzezroczystym
+tle; kopiowanie jest opcjonalne. Istniejący gate Auth pozostaje obowiązkowy.
+Kolektor jest wspólny dla aplikacji i wcześniejszych testów, bez drugiej kopii
+reguł dowodu. Diagnostyka nie zapisuje danych, nie usuwa payloadu i nie
+odblokowuje sesji. [Zakres, testy i instrukcja](tools/reports/initial-session-retry-recovery.md#diagnostyka-sesji-w-aplikacji--kontynuacja-po-47d20b0).
+Na Pixelu funkcja będzie dostępna dopiero po osobno zatwierdzonym wydaniu.
+Weryfikacja: kolektor 15/15, nowe regresje 6/6, mobilna diagnostyka 6/6,
+dotychczasowe scenariusze mobilne 13/13 i granica logowania 36/36 PASS.
+Końcowy PRE-FLIGHT PASS: 135/135 smoke, APP 110/110, składnia 577/577.
+Bez PR, merge, Pages i Firebase LIVE.
+
 ## Ponawianie pierwszego zapisu sesji — gałąź robocza po PR #67
 
 Zweryfikowany GitHub main: `3332ac8e059a73430d3d40518caebb359a8728e8`.

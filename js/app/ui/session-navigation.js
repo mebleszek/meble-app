@@ -20,7 +20,7 @@
     return !!(FC.session && FC.session.active) || isDivergent();
   }
   function message(title, body){
-    try{ if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title, message:body, okOnly:true }); }catch(_){ }
+    try{ if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title, message:body, okOnly:true, sessionDiagnostic:true }); }catch(_){ }
   }
   function reloadCentral(){
     try{

@@ -302,3 +302,96 @@ rollbacku ani nadpisania projektu. Bez PR, merge, Pages i Firebase LIVE.
 Końcowy **PRE-FLIGHT PASS**: smoke **134/134**, APP **110/110**, składnia
 **573/573**, kolejność skryptów, zależności i storage PASS; 144080 ms.
 Nie uruchamiano ponownie benchmarków WYCENY ani operacji Firebase.
+
+### Diagnostyka sesji w aplikacji — kontynuacja po `47d20b0`
+
+Na osobne zlecenie właściciela dodano minimalny, tymczasowy interfejs
+diagnostyczny. Zgłoszone na Pixelu ucięcie bookmarkletu/SyntaxError i brak
+wyniku w schowku nie są dowodem stanu sesji. Nie proponuje się kolejnych
+prób bookmarkletu; jego poprzednie testy pozostają regresjami kolektora.
+
+**Zakres:**
+
+- `session.js`, `session-navigation.js`, `actions-register.js` oznaczają
+  jawnie okna odmów związanych z sesją. Nie zmieniono ich warunków ani
+  wykonania Zapisz/Anuluj/nawigacji. Obsłużono też odmowę pierwszego begin,
+  brak potwierdzenia zapisu/zakończenia i nieudane ponowne otwarcie edytora.
+- `info-box.js` dodaje akcję **Diagnostyka sesji** wyłącznie przy tym znaczniku.
+  Dotychczasowe OK/zamykanie pozostają. Zwykłe okna nie otrzymują przycisku.
+  Raport używa tego samego modalu, z nieprzezroczystym tłem chroniącym przed
+  ujawnieniem danych aplikacji na zrzucie oraz przewijaniem na małym ekranie.
+- `session-diagnostics-readonly.js` zawiera dotychczasowy kolektor, przeniesiony
+  bez zmiany funkcji do wspólnego źródła. Dawny plik w tools jest importem,
+  a nie drugą implementacją. Nie dodano nowego magazynu ani reguł odzyskiwania.
+- `session-diagnostics.js` przedstawia anonimowe flagi/kod i opcjonalne
+  **Kopiuj raport**. Brak lub odmowa schowka pozostawia pełny raport na ekranie.
+  Kopiowanie ponownie sprawdza istniejący gate. Nie ma eksportu pliku,
+  fallbacku `execCommand`, sieci ani zapisu raportu w storage.
+- Zaktualizowano wspólny cache-busting w index/dev_tests, load order, listę
+  plików smoke, dwa testy oczekiwanych wersji i dokładny rozmiar manifestu
+  biznesowego w main-login-smoke (323→325, z kontrolą pojedynczego wystąpienia
+  nowych modułów wyłącznie wewnątrz chronionego szablonu). Manifest CLOUD-4.2 aktualizuje
+  wyłącznie pięć zmienionych pinów i dodaje dwa nowe moduły; zachowuje wszystkie
+  dotychczasowe pozycje, bazę, Rules i odmowę LIVE. To integralność źródeł,
+  nie zgoda ani aktywacja pilota.
+
+Wymagane dane pozostają lokalne. Wynik zawiera ostatni kod z zamkniętej listy,
+schema/active/durable, kompletność snapshotu, właściciela i kontekst, C=B/C=E,
+expectedKnown, RAM=payload, zgodność nieskopowanych ustawień, pending i
+odczytywalność storage. Nie zawiera żadnych nazw, identyfikatorów, treści
+snapshotów, tokenów, kluczy ani hashy prywatnych danych. Nie wywołuje begin,
+commit, cancel, canSaveProject, recoverProject lub innych metod domenowych.
+Odczyt surowych danych wewnątrz kolektora służy wyłącznie lokalnym porównaniom;
+na ekran i do schowka wychodzi zanonimizowany wynik.
+
+**Dowody:**
+
+- Wcześniejsze regresje kolektora: **15/15 PASS**, w tym utrata nowego E po
+  pełnym restarcie, C=E, niepełny dowód, obcy kontekst, pending, storage-read
+  failure, zmiana danych w trakcie oraz odmowa/wygaśnięcie/cofnięcie dostępu.
+- Nowe regresje ekranowej diagnostyki: **6/6 PASS**. Rzeczywiste odmowy Zapisz,
+  Anuluj, nawigacji i pierwszego begin wystawiają znacznik diagnostyki, bez
+  zmiany danych i bez kończenia sesji. Sprawdzono jedyne źródło kolektora
+  i kolejność/cache-busting obu stron.
+- Mobilny Chromium: **6/6 PASS, 0 FAIL, 0 SKIP**. Pełny index, rzeczywisty
+  loader biznesowy, main-login, lokalny profil i gate; syntetyczne Auth/verifier.
+  Rzeczywisty częściowy zapis przez saveConfirmed, pełny reload, błąd guardu,
+  dotknięcie przycisku w aktywnym modalu, czytelny raport C≠B/E i mieszczący
+  się na 393×852 ekran. Brak schowka nie przeszkadza; opcjonalna kopia ma tylko
+  anonimowy JSON. Kolejny restart i nawigacja nadal odmawiają bez usuwania
+  sesji. Zwykłe modale zachowują kontrolki. Cofnięty rzeczywisty main gate
+  odmawia także bezpośredniemu API, bez odczytu danych biznesowych.
+- Przed/po diagnostyce porównano **wszystkie RAW localStorage i sessionStorage**
+  oraz RAM projektu/UI/sesji. Spies zabraniają zapisów, wywołań domenowych
+  i sieci. Wszystkie żądania testowej aplikacji są lokalnie obsłużone przez
+  izolowany kontekst browsera — nie łączy się z produkcją.
+- Dotychczasowa poprawka pierwszego begin: **12/12 PASS**. Mobilne regresje
+  edycji, PCV, ROZRYSU, dwóch rzeczywistych ofert i restartu z ponowieniem
+  Zapisz/Anuluj/nawigacji: **13/13 PASS, 0 FAIL, 0 SKIP**. Historia i globalne
+  RAW zachowane. Nie powtarzano benchmarków WYCENY.
+
+Pierwsza iteracja nowego runnera próbowała dotknąć zakładki pod istniejącym
+modalem rozruchowym i została prawidłowo zablokowana. Runner teraz najpierw
+potwierdza to okno istniejącym OK, zgodnie z interakcją użytkownika; nie
+wykorzystuje force-click i nie osłabia asercji ani produkcyjnej blokady.
+Pierwszy Preflight zatrzymał się na nieaktualnej liczbie 323 w teście manifestu
+main-login (134/135 smoke PASS). Zaktualizowano kontrakt o dwa jawnie dodane
+moduły, zachowując kontrolę Auth i wszystkich dotychczasowych skryptów.
+
+**Pixel po osobno zatwierdzonym wydaniu:** potwierdź dostęp Google zwykłą
+drogą aplikacji. W istniejącym oknie błędu sesji dotknij **Diagnostyka sesji**.
+Zrób zrzut całego raportu. Opcjonalnie użyj **Kopiuj raport**; przy odmowie
+wystarczy zrzut. OK zamyka tylko okno, bez zapisania/anulowania sesji. Nie
+czyść danych, nie resetuj profilu, nie zmieniaj projektu na potrzeby diagnozy.
+
+Nie testowano fizycznego Pixela ani nowego logowania Google przez SDK.
+Nie dowiedziono przyczyny rzeczywistej blokady telefonu i nie wdrożono jej
+odblokowania. Czytelność storage nie dowodzi możliwości zapisu; prywatny
+writeUnconfirmed pozostaje nieobserwowalny. C≠B/E lub niepełny dowód nadal
+oznaczają zachowanie blokady i potrzebę dalszej decyzji. Nie zmieniono WYCENY,
+ROZRYSU, PCV, cen, historii, Zapisz/Anuluj, rewizji, Auth, Rules ani LIVE.
+Bez PR, merge i Pages; gałąź zatrzymana przed decyzją o wydaniu.
+
+Końcowy **PRE-FLIGHT PASS**: smoke **135/135**, APP **110/110**, składnia
+**577/577**, load order **333** skryptów, zależności i storage PASS; **144216 ms**.
+Osobny test granicy logowania po aktualizacji manifestu: **36/36 PASS**.

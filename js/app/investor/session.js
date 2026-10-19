@@ -28,7 +28,7 @@
 
   function fail(code, message, details){ session.lastError = Object.assign({ code, message }, details || {}); invalidateDirtyCache(); return false; }
   function notifyBlocked(message){
-    try{ if(FC.infoBox && FC.infoBox.open) FC.infoBox.open({ title:'Sesja edycji wymaga zakończenia', message, okOnly:true }); }catch(_){ }
+    try{ if(FC.infoBox && FC.infoBox.open) FC.infoBox.open({ title:'Sesja edycji wymaga zakończenia', message, okOnly:true, sessionDiagnostic:true }); }catch(_){ }
   }
 
   function projectRows(raw){
@@ -514,6 +514,7 @@
       if(FC.infoBox && typeof FC.infoBox.open === 'function'){
         FC.infoBox.open({
           title:'Nie udało się zabezpieczyć sesji edycji',
+          sessionDiagnostic:true,
           message:'Nie udało się zapisać stanu potrzebnego do bezpiecznego cofnięcia zmian. Zapis zmian został wstrzymany. Nie zamykaj programu i spróbuj ponownie.',
           okOnly:true,
         });

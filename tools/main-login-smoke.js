@@ -173,7 +173,11 @@ test('Actual standard export preserves included RAW but omits aliases, sessions,
 test('Main manifest keeps every original business script inert, without a second startup list',async()=>{
  const html=fs.readFileSync('index.html','utf8'),before=html.split('<template id="business-template">')[0];
  assert.equal(/<script[^>]+src="js\/(?:boot\.js|app\.js|app\/project\/project-store)/.test(before),false);
- const manifest=html.split('<template id="business-template">')[1].split('</template>')[0];assert.equal([...manifest.matchAll(/<script\b/g)].length,323);
+ const manifest=html.split('<template id="business-template">')[1].split('</template>')[0];assert.equal([...manifest.matchAll(/<script\b/g)].length,325);
+ for(const file of ['session-diagnostics-readonly.js','session-diagnostics.js']){
+  assert.equal(before.includes('js/app/ui/'+file),false,'Diagnostics must not load before Auth');
+  assert.equal(manifest.split('src="js/app/ui/'+file+'?').length-1,1,'One protected diagnostic script');
+ }
  assert.equal(require('./check-index-load-groups').verifyIndex('index.html').errors.length,0);
 });
 test('Missing/unavailable transactional storage never falls back to localStorage trust',async()=>{
