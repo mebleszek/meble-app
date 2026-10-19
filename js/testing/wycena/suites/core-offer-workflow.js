@@ -152,10 +152,11 @@
       }),
 
     H.makeTest('Wycena', 'Brak pomieszczeń blokuje tworzenie pustej wyceny', 'Pilnuje, czy Wyceń nie tworzy zerowej oferty, gdy projekt nie ma żadnych pomieszczeń.', async ()=>{
-        await withInvestorProjectFixture({
+        await withInvestorProjectFixture({nativeCalculation:true,
           rooms:[],
           projectData:{ schemaVersion:2, meta:{ roomDefs:{}, roomOrder:[] } },
-        }, async ()=>{
+        }, async ({activateCalculation})=>{
+          activateCalculation();
           H.assert(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function', 'Brak FC.wycenaCore.buildQuoteSnapshot');
           let thrown = null;
           try{
@@ -169,7 +170,8 @@
       }),
 
     H.makeTest('Wycena', 'Nieistniejące wybrane pomieszczenie blokuje zapis wyceny', 'Pilnuje, czy Wyceń nie tworzy oferty dla scope, którego już nie ma w projekcie.', async ()=>{
-        await withInvestorProjectFixture({}, async ()=>{
+        await withInvestorProjectFixture({nativeCalculation:true,}, async ({activateCalculation})=>{
+          activateCalculation();
           H.assert(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function', 'Brak FC.wycenaCore.buildQuoteSnapshot');
           let thrown = null;
           try{
@@ -183,7 +185,7 @@
       }),
 
     H.makeTest('Wycena', 'Puste pomieszczenie bez danych nie tworzy zerowej wyceny', 'Pilnuje, czy Wyceń zatrzymuje zapis, gdy wybrane pomieszczenie nie ma żadnych elementów, materiałów ani usług do policzenia.', async ()=>{
-        await withInvestorProjectFixture({
+        await withInvestorProjectFixture({nativeCalculation:true,
           projectData:{
             schemaVersion: 2,
             meta: {
@@ -197,7 +199,8 @@
             room_salon:{ cabinets:[], fronts:[], sets:[], settings:{} },
           },
           cutListFn: ()=> [],
-        }, async ()=>{
+        }, async ({activateCalculation})=>{
+          activateCalculation();
           H.assert(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function', 'Brak FC.wycenaCore.buildQuoteSnapshot');
           let thrown = null;
           try{

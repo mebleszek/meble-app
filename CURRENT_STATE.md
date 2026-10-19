@@ -1,5 +1,16 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## Odzyskiwanie statusu i pełny cykl ofert — gałąź robocza po PR #65
+
+GitHub potwierdził scalenie PR #65 do main `0ae7d1a24091d4a57460bacc9d30b9ea386f5b35`;
+wcześniejszy opis przygotowania tej poprawki poniżej jest historyczny. Naprawy kontekstu pozostają.
+Gałąź `fix/offer-status-recovery-lifecycle` usuwa potwierdzoną blokadę starej intencji `offerStatus`
+przez zgodność dwóch opcjonalnych wartości domyślnych luster, bez usuwania zabezpieczeń.
+Nie tworzy pustych intencji; przed zakończeniem ponownie potwierdza wszystkie cele i fizyczny pokój.
+[Reprodukcje, pełny cykl ofert, wyniki i ograniczenia](tools/reports/offer-status-recovery-lifecycle.md).
+To lokalnie testowany pakiet bez PR/merge/Pages, importu eksportu właściciela i Firebase LIVE.
+
+
 ## Spójność kontekstu po PR #64 — gałąź robocza
 
 Baza main `431545d364b47ee4d0cf8efed7d9e478d43ebe8d`, gałąź `fix/project-context-coherence`.

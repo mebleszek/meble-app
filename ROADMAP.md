@@ -1,5 +1,14 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
+## Bieżący pakiet po PR #65 — odzyskiwanie intencji i cykl WYCENY
+
+PR #65 jest scalony (`0ae7d1a24091d4a57460bacc9d30b9ea386f5b35`); stare nagłówki gałęzi zachowano.
+Na `fix/offer-status-recovery-lifecycle` przygotowywana jest zgodna wstecznie naprawa odzyskiwania
+`offerStatus`, z testami całego cyklu ofert i mobilnego Chromium.
+[Raport](tools/reports/offer-status-recovery-lifecycle.md). Dalsza bramka: osobna decyzja wydaniowa,
+potem test Pixela bez ręcznego usuwania intencji, resetu lub importowania profilu.
+
+
 ## Pakiet spójności kontekstu po PR #64
 
 Gałąź `fix/project-context-coherence` na main `431545d3`: jedno źródło projektu dla ROZRYS/WYCENY,

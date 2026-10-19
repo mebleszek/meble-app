@@ -189,7 +189,7 @@
         const wycenaTab = FC.tabsRouter.get('wycena');
         H.assert(wycenaTab && typeof wycenaTab.render === 'function', 'Brak renderera zakładki Wycena', wycenaTab);
         const prevSnapshots = FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.readAll === 'function' ? FC.quoteSnapshotStore.readAll() : [];
-        withInvestorProjectFixture({}, ()=>{
+        withInvestorProjectFixture({investorId:'inv_hist_ui'}, ()=>{
           try{
             FC.quoteSnapshotStore.writeAll([]);
             FC.quoteSnapshotStore.save({ investor:{ id:'inv_hist_ui' }, project:{ id:'proj_cross', investorId:'inv_hist_ui', title:'Projekt historii' }, commercial:{ preliminary:true, versionName:'Wstępna oferta — Kuchnia góra' }, scope:{ selectedRooms:['room_kuchnia_gora'], roomLabels:['Kuchnia góra'] }, totals:{ materials:100, accessories:0, services:0, quoteRates:0, subtotal:100, discount:0, grand:100 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712800400000 });

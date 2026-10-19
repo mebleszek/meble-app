@@ -76,8 +76,13 @@
     Object.assign(intentResult,{roomIds:Array.isArray(extra.roomIds) ? extra.roomIds : targetRoomIds,snapshotId:extra.selectedSnapshot && extra.selectedSnapshot.id || '',promoted:!!extra.convertedSnapshot,
       releasedRoomIds:extra.releasedRoomIds || [],affectedRoomIds:extra.affectedRoomIds || targetRoomIds});
     const spec = {kind:'offerStatus',beforeStatus:record.status,afterStatus:masterStatus,beforeMetaStatus:record.projectData.meta && record.projectData.meta.projectStatus || '',
-      statusChanges,mirrorChanges:FC.projectDomainOperations.rowChanges(investor.rooms || [],nextInvestor.rooms),
+      statusChanges,mirrorChanges:FC.projectDomainOperations.roomMirrorChanges(investor.rooms || [],nextInvestor.rooms),
       historyChanges:FC.projectDomainOperations.rowChanges(histories,historyRows || histories),requestKey,result:intentResult};
+    if(!spec.historyChanges.length && !spec.mirrorChanges.length
+      && statusChanges.every(change=>JSON.stringify(change.before) === JSON.stringify(change.after))
+      && spec.beforeStatus === spec.afterStatus && spec.beforeMetaStatus === spec.afterStatus){
+      return Object.assign({},result,{noChange:true,investor,projectRecord:record,loadedProject:record.projectData});
+    }
     const written = FC.projectDomainOperations.start(record,spec);
     return written.ok ? Object.assign({},result,written) : written;
   }

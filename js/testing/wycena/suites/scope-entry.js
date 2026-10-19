@@ -59,13 +59,14 @@
     H.makeTest('Wycena ↔ Scope wejścia', 'Zmiana scope resetuje auto-nazwę poprzedniego exact-scope przed zapisaniem nowej wyceny', 'Pilnuje regresję z historią a / J / a+J: po przełączeniu wyboru pokoi draft nie może nieść starej nazwy wariantu z innego exact-scope i zapisać jej pod nowym zakresem.', async ()=>{
         H.assert(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.resolveVersionNameAfterRoomChange === 'function', 'Brak FC.wycenaTabSelection.resolveVersionNameAfterRoomChange');
         H.assert(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function', 'Brak FC.wycenaCore.buildQuoteSnapshot');
-        await withInvestorProjectFixture({}, async ({ investorId, projectId })=>{
+        await withInvestorProjectFixture({nativeCalculation:true,}, async ({ investorId, projectId,activateCalculation })=>{
           FC.quoteSnapshotStore.save({ id:'snap_scope_prev_variant', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt scope switch' }, scope:{ selectedRooms:['room_salon'], roomLabels:['Salon'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — Salon — wariant 2' }, totals:{ grand:114 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820445150 });
           FC.quoteOfferStore.saveCurrentDraft({ selection:{ selectedRooms:['room_salon'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — Salon — wariant 2' } });
           const draft = FC.quoteOfferStore.getCurrentDraft();
           const nextVersionName = FC.wycenaTabSelection.resolveVersionNameAfterRoomChange({ selectedRooms:['room_salon'] }, ['room_kuchnia_gora'], draft, { getCurrentProjectId:()=> projectId });
           H.assert(String(nextVersionName || '') === 'Wstępna oferta — Kuchnia góra', 'Po zmianie scope draft nie wrócił do domyślnej nazwy nowego zakresu', nextVersionName);
           FC.quoteOfferStore.patchCurrentDraft({ selection:{ selectedRooms:['room_kuchnia_gora'] }, commercial:{ versionName:nextVersionName } });
+          activateCalculation();
           const snapshot = await FC.wycenaCore.buildQuoteSnapshot({ selection:{ selectedRooms:['room_kuchnia_gora'] } });
           H.assert(snapshot && snapshot.commercial && String(snapshot.commercial.versionName || '') === 'Wstępna oferta — Kuchnia góra', 'Nowa wycena przejęła starą nazwę wariantu z innego scope zamiast nazwy nowego pokoju', snapshot);
         });
@@ -291,7 +292,7 @@
     H.makeTest('Wycena ↔ Scope wejścia', 'Zapis wyceny prostuje auto-nazwę i etykiety zakresu dla obcego scope', 'Pilnuje główną regresję z a/J/a+J: jeśli draft albo payload niosą auto-nazwę J, zapis scope a lub a+J ma wyprostować nazwę i roomLabels do kanonicznego zakresu zamiast zachować stare J.', async ()=>{
         H.assert(FC.wycenaCore && typeof FC.wycenaCore.buildQuoteSnapshot === 'function', 'Brak FC.wycenaCore.buildQuoteSnapshot');
         H.assert(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.getScopeRoomLabels === 'function', 'Brak FC.quoteSnapshotStore.getScopeRoomLabels');
-        await withInvestorProjectFixture({
+        await withInvestorProjectFixture({nativeCalculation:true,
           rooms:[
             { id:'room_a', baseType:'pokoj', name:'a', label:'a', projectStatus:'nowy' },
             { id:'room_j', baseType:'pokoj', name:'J', label:'J', projectStatus:'nowy' },
@@ -308,10 +309,11 @@
             room_a:{ cabinets:[{ id:'cab_a' }], fronts:[], sets:[], settings:{} },
             room_j:{ cabinets:[{ id:'cab_j' }], fronts:[], sets:[], settings:{} },
           },
-        }, async ({ investorId, projectId })=>{
+        }, async ({ investorId, projectId,activateCalculation })=>{
           FC.quoteSnapshotStore.save({ id:'snap_scope_seed_j', investor:{ id:investorId }, project:{ id:projectId, investorId, title:'Projekt seed J' }, scope:{ selectedRooms:['room_j'], roomLabels:['J'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — J — wariant 2' }, totals:{ grand:35 }, lines:{ materials:[], accessories:[], agdServices:[], quoteRates:[] }, generatedAt:1712820446201 });
 
           FC.quoteOfferStore.saveCurrentDraft({ selection:{ selectedRooms:['room_a'] }, commercial:{ preliminary:true, versionName:'Wstępna oferta — J — wariant 2' } });
+          activateCalculation();
           const snapA = await FC.wycenaCore.buildQuoteSnapshot({ selection:{ selectedRooms:['room_a'] } });
           H.assert(String(snapA && snapA.commercial && snapA.commercial.versionName || '') === 'Wstępna oferta — a', 'Zapis scope a nie wyprostował auto-nazwy do własnego zakresu', snapA);
           H.assert(JSON.stringify(FC.quoteSnapshotStore.getScopeRoomLabels(snapA)) === JSON.stringify(['a']), 'Zapis scope a nie wyprostował roomLabels do kanonicznego zakresu', snapA && snapA.scope);

@@ -44,44 +44,32 @@
         });
       }),
 
-    H.makeTest('Wycena ↔ Pomieszczenia ↔ ROZRYS', 'Wycena filtruje elementy dokładnie po zapisanym wyborze pomieszczeń', 'Pilnuje, czy po wyborze pokoi w Wycena agregacja bierze tylko te pokoje, a nie dorzuca formatek z innych pomieszczeń aktywnego projektu.', ()=>{
-        H.assert(FC.wycenaCore && typeof FC.wycenaCore.collectElementLines === 'function', 'Brak FC.wycenaCore.collectElementLines');
-        H.assert(FC.rozrys && typeof FC.rozrys.aggregatePartsForProject === 'function', 'Brak FC.rozrys.aggregatePartsForProject');
-        withInvestorProjectFixture({
-          cutListFn(cabinet, roomId){
-            if(String(roomId || '') === 'room_kuchnia_gora') return [{ name:'Bok kuchnia', material:'Dąb kuchnia', a:72, b:56, qty:2 }];
-            if(String(roomId || '') === 'room_salon') return [{ name:'Bok salon', material:'Jesion salon', a:60, b:40, qty:3 }];
-            return [];
-          }
-        }, ()=>{
-          const agg = FC.rozrys.aggregatePartsForProject(['room_salon']);
-          const lines = FC.wycenaCore.collectElementLines({ selectedRooms:['room_salon'], materialScope:{ includeFronts:false, includeCorpus:true } });
-          H.assert(Array.isArray(agg.materials) && agg.materials.length === 1 && String(agg.materials[0] || '') === 'Jesion salon', 'ROZRYS nie ograniczył agregacji do wybranego pokoju', agg);
-          H.assert(Array.isArray(lines) && lines.length === 1, 'Wycena nie ograniczyła listy elementów do wybranego pokoju', lines);
-          H.assert(String(lines[0].name || '') === 'Bok salon' && String(lines[0].materialLabel || '') === 'Jesion salon' && Number(lines[0].qty) === 3, 'Wycena zwróciła elementy z niewłaściwego pokoju albo złą ilość', lines[0]);
-        });
-      }),
+    H.makeTest('Wycena ↔ Pomieszczenia ↔ ROZRYS', 'Wycena filtruje elementy dokładnie po zapisanym wyborze pomieszczeń', 'Rzeczywiste natywne formatki i PCV zachowują roomId i materiał wybranego pokoju.', ()=> withInvestorProjectFixture({nativeCalculation:true,
+      projectData:{meta:{roomDefs:{room_kuchnia_gora:{id:'room_kuchnia_gora',baseType:'kuchnia',name:'Kuchnia góra'},room_salon:{id:'room_salon',baseType:'pokoj',name:'Salon'}},roomOrder:['room_kuchnia_gora','room_salon']},room_kuchnia_gora:{cabinets:[{id:'cab_k',bodyColor:'laminat Dąb kuchnia'}]},room_salon:{cabinets:[{id:'cab_s',bodyColor:'laminat Jesion salon',height:60,depth:40}]}}
+    }, ({activateCalculation})=>{
+      activateCalculation();
+      const agg=FC.rozrys.aggregatePartsForProject(['room_salon']);
+      const parts=agg.materials.flatMap(material=>agg.groups[material].allParts);
+      H.assert(parts.length>0 && parts.every(part=>part.sourceRefs.every(ref=>ref.roomId==='room_salon')), 'Agregat zawiera obce źródła',parts);
+      const lines=FC.wycenaCore.collectElementLines({selectedRooms:['room_salon'],materialScope:{includeFronts:false,includeCorpus:true}});
+      const side=lines.find(line=>line.name==='Bok' && line.materialLabel==='laminat Jesion salon');
+      H.assert(side && side.qty===2, 'Natywne boki salonu mają niewłaściwy materiał lub ilość',lines);
+      H.assert(!lines.some(line=>line.materialLabel==='laminat Dąb kuchnia'),'Wycena pobrała materiał kuchni',lines);
+    })),
 
-    H.makeTest('Wycena ↔ Pomieszczenia ↔ ROZRYS', 'Pusty wybór pokoi w Wycena wraca do wszystkich aktywnych pomieszczeń bieżącego projektu', 'Pilnuje, czy gdy zapisany wybór jest pusty, Wycena bierze komplet realnych pokoi aktywnego inwestora, a nie pusty stan albo domyślne typy bazowe.', ()=>{
-        H.assert(FC.wycenaCore && typeof FC.wycenaCore.collectElementLines === 'function', 'Brak FC.wycenaCore.collectElementLines');
-        withInvestorProjectFixture({
-          cutListFn(cabinet, roomId){
-            if(String(roomId || '') === 'room_kuchnia_gora') return [{ name:'Kuchnia bok', material:'Biały mat', a:72, b:56, qty:1 }];
-            if(String(roomId || '') === 'room_salon') return [{ name:'Salon bok', material:'Dąb artisan', a:65, b:45, qty:2 }];
-            return [];
-          }
-        }, ()=>{
-          const normalized = FC.wycenaCore.normalizeQuoteSelection({ selectedRooms:[], materialScope:{ includeFronts:false, includeCorpus:true } });
-          const lines = FC.wycenaCore.collectElementLines({ selectedRooms:[], materialScope:{ includeFronts:false, includeCorpus:true } });
-          H.assert(Array.isArray(normalized.selectedRooms) && normalized.selectedRooms.includes('room_kuchnia_gora') && normalized.selectedRooms.includes('room_salon'), 'Wycena nie wróciła do wszystkich aktywnych pokoi projektu', normalized);
-          H.assert(Array.isArray(lines) && lines.length === 2, 'Wycena nie zebrała elementów ze wszystkich aktywnych pokoi po pustym wyborze', lines);
-          H.assert(lines.some((row)=> String(row.name || '') === 'Kuchnia bok') && lines.some((row)=> String(row.name || '') === 'Salon bok'), 'Po pustym wyborze brakuje elementów z któregoś pokoju', lines);
-        });
-      }),
+    H.makeTest('Wycena ↔ Pomieszczenia ↔ ROZRYS', 'Pusty wybór pokoi w Wycena wraca do wszystkich aktywnych pomieszczeń bieżącego projektu', 'Pusty wybór jest normalizowany do dwóch pokoi; rzeczywista geometria obu pozostaje w agregacji.', ()=> withInvestorProjectFixture({nativeCalculation:true}, ({activateCalculation})=>{
+      activateCalculation();
+      const normalized=FC.wycenaCore.normalizeQuoteSelection({selectedRooms:[],materialScope:{includeFronts:false,includeCorpus:true}});
+      H.assert(JSON.stringify(normalized.selectedRooms)===JSON.stringify(['room_kuchnia_gora','room_salon']), 'Pusty wybór nie obejmuje obu aktywnych pokoi',normalized);
+      const lines=FC.wycenaCore.collectElementLines({selectedRooms:[],materialScope:{includeFronts:false,includeCorpus:true}});
+      H.assert(lines.filter(line=>line.name==='Bok').reduce((n,line)=>n+line.qty,0)===4,'Nie policzono czterech natywnych boków obu szafek',lines);
+      const agg=FC.rozrys.aggregatePartsForProject(normalized.selectedRooms),refs=agg.materials.flatMap(material=>agg.groups[material].allParts).flatMap(part=>part.sourceRefs);
+      H.assert(refs.some(ref=>ref.roomId==='room_kuchnia_gora') && refs.some(ref=>ref.roomId==='room_salon'),'Brakuje źródła któregoś pokoju',refs);
+    })),
 
     H.makeTest('Wycena ↔ Pomieszczenia ↔ ROZRYS', 'Wycena dla pustego, ale istniejącego pokoju nie pobiera danych z innego pokoju projektu', 'Pilnuje exact scope: gdy wybrany pokój istnieje, ale nie ma żadnych szafek, Wycena ma zwrócić empty_quote_scope zamiast policzyć ofertę na podstawie danych z innego pokoju.', async ()=>{
         H.assert(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteData === 'function', 'Brak FC.wycenaCore.collectQuoteData');
-        await withInvestorProjectFixture({
+        await withInvestorProjectFixture({nativeCalculation:true,
           projectData:{
             schemaVersion: 2,
             meta:{
@@ -98,7 +86,8 @@
             if(String(roomId || '') !== 'room_kuchnia_gora') return [];
             return [{ name:'Kuchnia bok', material:'Biały mat', a:72, b:56, qty:1 }];
           }
-        }, async ()=>{
+        }, async ({activateCalculation})=>{
+          activateCalculation();
           let caught = null;
           try{
             await FC.wycenaCore.collectQuoteData({ selection:{ selectedRooms:['room_salon'], materialScope:{ includeFronts:false, includeCorpus:true } } });

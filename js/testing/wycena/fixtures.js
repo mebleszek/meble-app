@@ -94,6 +94,12 @@
     const investor = FC.testDataManager && typeof FC.testDataManager.markRecord === 'function'
       ? FC.testDataManager.markRecord('wycena-fixture-investor', rawInvestor)
       : rawInvestor;
+    projectData.meta = Object.assign({},projectData.meta,{assignedInvestorId:investorId});
+    if(cfg.nativeCalculation){
+      Object.values(projectData).filter(room=>room && Array.isArray(room.cabinets)).forEach(room=>{
+        room.cabinets=room.cabinets.map(cabinet=>Object.assign({type:'stojąca',subType:'standardowa',width:60,height:80,depth:50,bodyColor:'laminat White',frontMaterial:'laminat',frontColor:'White',backMaterial:'HDF',frontCount:2,details:{shelves:2}},cabinet));
+      });
+    }
     const rawProjectRecord = Object.assign({ id:projectId, investorId, title:'Projekt testowy', status:String(cfg.status || 'nowy'), projectData:clone(projectData), meta:{} }, clone(cfg.projectRecord || {}), { id:projectId, investorId, projectData:clone(projectData) });
     const projectRecord = FC.testDataManager && typeof FC.testDataManager.markRecord === 'function'
       ? FC.testDataManager.markRecord('wycena-fixture-project', rawProjectRecord)
@@ -121,16 +127,19 @@
       FC.projectStore && FC.projectStore.writeAll && FC.projectStore.writeAll([projectRecord]);
       FC.projectStore && FC.projectStore.setCurrentProjectId && FC.projectStore.setCurrentProjectId(projectId);
       host.projectData = FC.project && FC.project.normalize ? FC.project.normalize(projectData) : clone(projectData);
-      FC.investors && FC.investors.setCurrentId && FC.investors.setCurrentId(investorId);
+      // Historical snapshot unit fixtures select their owner without running the
+      // UI activation/mode upgrade. New calculations use native PCV fixtures.
+      FC.investorsLocalRepository.setCurrentId(investorId);
       if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.writeAll === 'function') FC.quoteSnapshotStore.writeAll([]);
       if(FC.quoteOfferStore && typeof FC.quoteOfferStore.writeAll === 'function') FC.quoteOfferStore.writeAll([]);
-      host.projectData = clone(projectData);
+      host.projectData = FC.project.load();
       if(FC.rozrys) FC.rozrys.__projectOverride = host.projectData;
       invalidateRoomRegistryCache();
       if(typeof cfg.cutListFn === 'function' && FC.cabinetCutlist){
         FC.cabinetCutlist.getCabinetCutList = cfg.cutListFn;
       }
-      const result = run({ investorId, projectId, rooms:clone(rooms), projectData:host.projectData });
+      const activateCalculation=()=>{ const state=FC.projectPcvPolicy.activate(); if(!state.ok)throw new Error('Native fixture activation: '+JSON.stringify(state)); };
+      const result = run({ investorId, projectId, rooms:clone(rooms), projectData:host.projectData,activateCalculation });
       if(result && typeof result.then === 'function') return result.finally(cleanup);
       cleanup();
       return result;

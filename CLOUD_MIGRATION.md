@@ -1,5 +1,15 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
+## 2026-10-19 — lokalna intencja statusowa, bez zmiany autorytetu
+
+Naprawa `offerStatus` na gałęzi `fix/offer-status-recovery-lifecycle` zachowuje kanoniczny
+`fc_projects_v1` i stary format intencji v1. Nie dodaje magazynu, klucza, synchronizatora ani migracji.
+Lustra pozostają projekcjami z kontrolą konfliktu; historia kalkulacji nie jest przeliczana.
+Nie aktywuje CLOUD-4.2 lub Firebase LIVE. Zmienione SHA nieaktywnego pakietu operatorskiego
+są wiązaniem nowych źródeł, nie zgodą na jego produkcyjne użycie.
+[Dowody i testy](tools/reports/offer-status-recovery-lifecycle.md).
+
+
 ## Lokalny kontekst kalkulacji — 2026-10-19
 
 `fc_projects_v1` pozostaje jedynym autorytetem projektu. Naprawa po PR #64 usuwa selekcję

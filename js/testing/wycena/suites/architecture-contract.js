@@ -17,8 +17,8 @@
     const rooms = (Array.isArray(roomIds) ? roomIds : []).map((roomId)=> String(roomId || '').trim()).filter(Boolean);
     return {
       id:String(id || ''),
-      investor:{ id:'inv_wycena_arch_contract', name:'Jan Test' },
-      project:{ id:String(projectId || ''), investorId:'inv_wycena_arch_contract', status:preliminary ? 'wstepna_wycena' : 'wycena' },
+      investor:{ id:'inv_wycena_arch_scope', name:'Jan Test' },
+      project:{ id:String(projectId || ''), investorId:'inv_wycena_arch_scope', status:preliminary ? 'wstepna_wycena' : 'wycena' },
       scope:{ selectedRooms:rooms, roomLabels:rooms.map((roomId)=> roomId === 'room_a' ? 'Kuchnia A' : (roomId === 'room_b' ? 'Salon B' : roomId)) },
       commercial:{ preliminary:!!preliminary, versionName:preliminary ? 'Wstępna' : 'Oferta' },
       meta:{ preliminary:!!preliminary, versionName:preliminary ? 'Wstępna' : 'Oferta' },

@@ -1,5 +1,15 @@
 # CLOUD-2B.4a — techniczny dowód profilu a kopia danych
 
+## 2026-10-19 — odzyskiwanie istniejących intencji statusu
+
+`meta.pendingDomainOperation` pozostaje w kanonicznym rekordzie `fc_projects_v1` i nadal trafia
+do istniejącego backupu. Format v1 oraz klucze, retencja, eksport/import i restore pozostają bez zmian.
+Odzyskiwanie nie usuwa intencji bez świeżego potwierdzenia celów; brak dwóch opcjonalnych pól
+lustra jest porównywany wyłącznie z kontraktowymi wartościami domyślnymi (`''` i `false`).
+Nie jest to migracja danych ani procedura ręcznego czyszczenia blokady.
+[Zakres i dowody](tools/reports/offer-status-recovery-lifecycle.md).
+
+
 Rozszerzony pakiet przechowuje rozstrzygający, techniczny rekord dostępu w IndexedDB `meble-access-profile-v1` / `ownership` / `owner`. Nie zawiera projektu ani kopii katalogów: tylko wersję, UID, stan pending/active i identyfikator próby. Standardowy eksport danych **nie obejmuje tej bazy**, tak samo jak nie przenosi sesji Firebase lub uprawnień. Nie dołączać jej do selektywnego pilota chmurowego jako źródła biznesowego.
 
 Oryginalny v2 w localStorage pozostaje niezmieniony podczas bezpiecznego potwierdzenia tego samego właściciela. Nowe odnośniki v3 wymagają aktywnego rekordu IndexedDB; nie odtwarzać ich ręcznie jako sposobu nadania dostępu. Brak/uszkodzenie koordynacji blokuje wejście zamiast resetowania danych. Cofnięcie wydania musi zachować moduł obsługujący ten dowód albo pozostawić bramkę zamkniętą — stare logowanie nie powinno omijać nierozstrzygniętej rezerwacji. Nie usuwać bazy lub znaczników jako obejścia.
