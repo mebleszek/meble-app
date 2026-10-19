@@ -5,6 +5,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http');
 const path=require('node:path'),os=require('node:os'),{spawn}=require('node:child_process');
 const ROOT=path.resolve(__dirname,'..');
+const lifecycle=process.argv.includes('--offer-lifecycle');
 function bytes(file){return fs.readFileSync(path.join(ROOT,file));}
 function fixtureHtml(){
  const r=require(ROOT+'/tools/project-pcv-ui-activation-smoke').fixture(),rows=r.rows();
@@ -30,6 +31,18 @@ function fixtureHtml(){
  rows.fc_project_v1=JSON.stringify(stale.projectData);
  rows.fc_projects_v1=JSON.stringify(records);
  rows.fc_investors_v1=JSON.stringify(records.map(record=>({id:record.investorId,name:'Syntetyczny '+record.id,__test:true,__testRunId:'project-context-browser',rooms:record.projectData.meta.roomOrder.map(id=>({id,baseType:'kuchnia',name:id,label:id}))})));
+ if(lifecycle){
+  const investor=JSON.parse(rows.fc_investors_v1).find(x=>x.id===active.investorId),roomId='room_test_A';
+  investor.rooms.forEach(room=>room.projectStatus='nowy');
+  const before={...investor.rooms[0],lastManualProjectStatus:''};
+  active.status='nowy';active.projectData.meta.projectStatus='nowy';
+  active.projectData.meta.roomDefs[roomId]={...before,legacy:false};
+  active.meta.pendingDomainOperation={version:1,id:'synthetic-pixel-shape',kind:'offerStatus',projectId:active.id,investorId:active.investorId,
+   beforeStatus:'nowy',afterStatus:'nowy',beforeMetaStatus:'nowy',historyChanges:[],
+   mirrorChanges:[{id:roomId,before,after:{...before,legacy:false}}],statusChanges:[{id:roomId,before:{projectStatus:'nowy',lastManualProjectStatus:''},after:{projectStatus:'nowy',lastManualProjectStatus:''}}],result:{roomIds:[roomId]}};
+  const investors=JSON.parse(rows.fc_investors_v1);investors[investors.findIndex(x=>x.id===investor.id)]=investor;
+  rows.fc_investors_v1=JSON.stringify(investors);rows.fc_projects_v1=JSON.stringify(records);
+ }
  rows.fc_materials_v1=JSON.stringify(r.s.materials.map(m=>({...m,priceUnit:m.materialType==='laminat'?'sheet':m.priceUnit})));
  rows.fc_ui_v1=JSON.stringify({...r.s.uiState,roomType:'room_test_A',entry:'app',activeTab:'wywiad'});
  const index=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
@@ -94,6 +107,7 @@ async function main(){
   await send('Emulation.setTouchEmulationEnabled',{enabled:true});
   const url='http://127.0.0.1:'+server.address().port+'/__synthetic_business';
   await send('Page.navigate',{url});await until('!!window.FC?.wycenaTabDebug&&!!window.FC?.session?.active','business startup');
+  if(lifecycle){assert.equal(await evaluate('!!window.FC.projectStore.getById("A").meta.pendingDomainOperation'),false);pass('old sparse offerStatus intention recovered by actual startup before quote generation');}
   await evaluate('window.FC.actions.dispatch("session-save",{});window.FC.infoBox.close();');
   await tab('wycena','!!document.querySelector("[data-action=wycena-generate]")');
   await evaluate('window.FC.quoteOfferStore.patchCurrentDraft({selection:{selectedRooms:["room_test_A"],materialScope:{kind:"all",includeFronts:true,includeCorpus:true}},commercial:{versionName:"Audit single room"}});window.FC.rozrys.__projectOverride=window.FC.projectStore.getById("B").projectData;renderCabinets();');
@@ -120,16 +134,66 @@ async function main(){
    }
    return evaluate('window.FC.wycenaDiagnostics.buildReport({dryRun:false}).then(r=>{if(!r.lastGenerateTrace)throw Error(JSON.stringify({policy:window.FC.projectPcvPolicy.read(),session:window.FC.session.active,ui:uiState,button:r.lastGenerateButtonEvent}));return r.lastGenerateTrace;})');
   };
+  if(lifecycle)await evaluate('window.FC.quoteOfferStore.patchCurrentDraft({commercial:{preliminary:true,versionName:"Synthetic preliminary A"}});renderCabinets();');
   const firstTrace=await run();assert.equal(firstTrace.result.ok,true,JSON.stringify(firstTrace));
   const first=await evaluate('JSON.parse(localStorage.getItem("fc_quote_snapshots_v1"))');assert.equal(first.length,1);assert.deepEqual(first[0].scope.selectedRooms,['room_test_A']);assert.ok(first[0].lines.elements.length);
   assert.equal(await evaluate('document.querySelectorAll("[data-quote-history-id]").length'),1);pass('touch -> action registry -> real optimizer and calculator -> durable single-room snapshot and render');
-  await evaluate('window.FC.quoteSnapshotStore.markSelectedForProject("A",JSON.parse(localStorage.getItem("fc_quote_snapshots_v1"))[0].id,{roomIds:["room_test_A"]})');
+  if(lifecycle){
+   await touch('.quote-preview-actions button.btn-success');
+   await until('!!document.querySelector(".confirm-btn.is-success")','real acceptance confirmation');
+   await touch('.confirm-btn.is-success');
+   await until('window.FC.quoteSnapshotStore.readAll()[0].meta.selectedByClient===true','durable UI acceptance');
+   assert.equal(await evaluate('window.FC.projectStore.getById("A").projectData.meta.roomDefs.room_test_A.projectStatus'),'pomiar');
+   pass('real touch and confirmation accept preliminary A into pomiar without conversion or effects on other rooms');
+  }
+  else await evaluate('window.FC.quoteSnapshotStore.markSelectedForProject("A",JSON.parse(localStorage.getItem("fc_quote_snapshots_v1"))[0].id,{roomIds:["room_test_A"]})');
   const accepted=await evaluate('JSON.parse(localStorage.getItem("fc_quote_snapshots_v1"))[0]');assert.equal(accepted.meta.selectedByClient,true);
-  await evaluate('window.FC.quoteOfferStore.patchCurrentDraft({selection:{selectedRooms:["room_test_A","room_test_B","room_test_C"],materialScope:{kind:"all",includeFronts:true,includeCorpus:true}},commercial:{versionName:"Audit all rooms"}});renderCabinets();');
+  await evaluate('window.FC.quoteOfferStore.patchCurrentDraft({selection:{selectedRooms:["room_test_A","room_test_B","room_test_C"],materialScope:{kind:"all",includeFronts:true,includeCorpus:true}},commercial:{preliminary:false,versionName:"Audit all rooms"}});renderCabinets();');
   assert.equal(await evaluate('document.querySelector(".quote-selection-launch--rooms").textContent.includes("Wszystkie pomieszczenia")'),true);
   const allTrace=await run();assert.equal(allTrace.result.ok,true,JSON.stringify(allTrace));
   const all=await evaluate('JSON.parse(localStorage.getItem("fc_quote_snapshots_v1"))');assert.equal(all.length,2);assert.deepEqual(all.find(q=>q.id===accepted.id),accepted);
   assert.deepEqual(all.find(q=>q.id!==accepted.id).scope.selectedRooms,['room_test_A','room_test_B','room_test_C']);pass('all-room UI, draft and new 10-cabinet quote agree; accepted 8-cabinet snapshot is unchanged');
+  if(lifecycle){
+   const frozen=await evaluate('JSON.parse(localStorage.getItem("fc_quote_snapshots_v1"))');
+   const calculated=snap=>JSON.stringify({id:snap.id,lines:snap.lines,totals:snap.totals,scope:snap.scope,clientOffer:snap.clientOffer});
+   const originals=new Map(frozen.map(q=>[q.id,calculated(q)]));
+   const status=async room=>{
+    const pair=await evaluate(`({canonical:window.FC.projectStore.getById("A").projectData.meta.roomDefs[${JSON.stringify(room)}].projectStatus,mirror:window.FC.investors.getById("inv-A").rooms.find(r=>r.id===${JSON.stringify(room)}).projectStatus})`);
+    assert.equal(pair.canonical,pair.mirror,'Canonical status and investor mirror diverged');return pair.canonical;
+   };
+   const generate=async(rooms,name,materialScope={kind:'all',includeCorpus:true,includeFronts:true})=>{
+    const count=await evaluate('window.FC.quoteSnapshotStore.readAll().length');
+    await evaluate(`window.FC.quoteOfferStore.patchCurrentDraft({selection:{selectedRooms:${JSON.stringify(rooms)},materialScope:${JSON.stringify(materialScope)}},commercial:{preliminary:false,versionName:${JSON.stringify(name)}}});renderCabinets();`);
+    const trace=await run();assert.equal(trace.result.ok,true,JSON.stringify(trace));
+    const rows=await evaluate('window.FC.quoteSnapshotStore.readAll()');assert.equal(rows.length,count+1);return rows.find(q=>!originals.has(q.id)&&q.commercial.versionName===name)||rows[0];
+   };
+   const b=await generate(['room_test_B'],'Synthetic B fronts',{kind:'all',includeFronts:true,includeCorpus:false});originals.set(b.id,calculated(b));
+   const ab=await generate(['room_test_A','room_test_B'],'Synthetic A+B');originals.set(ab.id,calculated(ab));
+   const version=await generate(['room_test_A'],'Synthetic A v2 corpus',{kind:'all',includeCorpus:true,includeFronts:false});originals.set(version.id,calculated(version));
+   pass('actual touch/calculator/store create B-fronts, A+B and A-v2-corpus as separate scoped variants');
+   const accept=async id=>{const result=await evaluate(`window.FC.projectStatusSync.commitAcceptedSnapshot(window.FC.quoteSnapshotStore.getById(${JSON.stringify(id)}),"zaakceptowany",{refreshUi:false})`);assert.equal(result.ok,true,JSON.stringify(result));};
+   await accept(b.id);assert.equal(await status('room_test_B'),'zaakceptowany');assert.equal(await status('room_test_A'),'pomiar');
+   const promoted=await evaluate(`window.FC.projectStatusSync.promotePreliminarySnapshotToFinal(window.FC.quoteSnapshotStore.getById(${JSON.stringify(accepted.id)}),{refreshUi:false})`);assert.equal(promoted.ok,true,JSON.stringify(promoted));
+   assert.equal(await status('room_test_A'),'zaakceptowany');assert.equal(await status('room_test_B'),'zaakceptowany');
+   assert.equal(await evaluate(`window.FC.quoteSnapshotStore.getById(${JSON.stringify(accepted.id)}).commercial.preliminary`),false);
+   pass('explicit preliminary-to-final promotion preserves id/calculation and accepted disjoint B');
+   await accept(ab.id);await accept(version.id);
+   assert.equal(await status('room_test_A'),'zaakceptowany');assert.equal(await status('room_test_B'),'nowy');
+   assert.equal(await evaluate(`window.FC.quoteSnapshotStore.getById(${JSON.stringify(ab.id)}).meta.selectedByClient`),false);
+   assert.equal(await evaluate(`window.FC.wycenaTabDebug.canAcceptSnapshot(window.FC.quoteSnapshotStore.getById(${JSON.stringify(b.id)}))`),false,'Rejected history must not regain a UI acceptance action');
+   const b2=await generate(['room_test_B'],'Synthetic B v2 corpus',{kind:'all',includeFronts:false,includeCorpus:true});originals.set(b2.id,calculated(b2));
+   await accept(b2.id);assert.equal(await status('room_test_B'),'zaakceptowany');
+   for(const stage of ['umowa','produkcja','montaz','zakonczone']){
+    const result=await evaluate(`window.FC.projectStatusSync.setInvestorRoomStatus("inv-A","room_test_A",${JSON.stringify(stage)},{projectId:"A",refreshUi:false})`);assert.equal(result.ok,true,JSON.stringify(result));assert.equal(await status('room_test_A'),stage);assert.equal(await status('room_test_B'),'zaakceptowany');
+   }
+   pass('overlap releases only B; rejected history stays disabled, a new B variant can be accepted and later stages stay scoped');
+   const remove=await evaluate(`(()=>{const q=window.FC.quoteSnapshotStore.getById(${JSON.stringify(ab.id)});if(!window.FC.quoteSnapshotStore.remove(q.id))return false;return window.FC.projectStatusSync.reconcileStatusAfterSnapshotRemoval(q,{refreshUi:false}).ok;})()`);assert.equal(remove,true);
+   const after=await evaluate('window.FC.quoteSnapshotStore.readAll()');assert.equal(after.length,5);
+   for(const snap of after)assert.equal(calculated(snap),originals.get(snap.id),'Archived calculation/scope/model changed: '+snap.id);
+   await evaluate('renderCabinets()');
+   assert.equal(await evaluate('!!window.FC.projectStore.getById("A").meta.pendingDomainOperation'),false);
+   pass('deleting only the synthetic unselected A+B leaves all other frozen calculations and client models intact');
+  }
   const historyRaw=await evaluate('localStorage.getItem("fc_quote_snapshots_v1")');
   for(const inv of ['inv-B','inv-A']){
    await evaluate(`(()=>{const el=document.createElement('button');el.setAttribute('data-inv-id',${JSON.stringify(inv)});window.FC.actions.dispatch('open-investor',{element:el});})()`);

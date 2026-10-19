@@ -26,22 +26,36 @@
     if(!(FC.storage && FC.storage.setJSON) || FC.storage.setJSON(key,rows) === false) return false;
     return localStorage.getItem(key) === JSON.stringify(rows);
   }
-  function rowChanges(before,after){
+  // Compare only documented optional defaults. Preserve every other field,
+  // including unknown fields and explicit null/invalid values, as conflict evidence.
+  function sameRoomMirror(a,b){
+    const comparable = value=>{
+      if(!value || typeof value !== 'object' || Array.isArray(value)) return value;
+      const row = Object.assign({},value);
+      if(!own(row,'lastManualProjectStatus')) row.lastManualProjectStatus = '';
+      if(!own(row,'legacy')) row.legacy = false;
+      return Object.keys(row).sort().map(key=>[key,row[key]]);
+    };
+    return same(comparable(a),comparable(b));
+  }
+  function rowChanges(before,after,equal = same){
     const changes = [];
     for(const id of new Set([...before,...after].map(row=>String(row.id)))){
       const a = before.find(row=>String(row.id) === id) || null;
       const b = after.find(row=>String(row.id) === id) || null;
-      if(!same(a,b)) changes.push({ id, before:clone(a), after:clone(b) });
+      if(!equal(a,b)) changes.push({ id, before:clone(a), after:clone(b) });
     }
     return changes;
   }
-  function mergeRows(rows, changes){
+  function mergeRows(rows, changes, equal = same){
+    if(!Array.isArray(rows) || rows.some(row=>!row || !row.id)
+      || new Set(rows.map(row=>String(row.id))).size !== rows.length) throw Error('Invalid target rows');
     const next = clone(rows);
     for(const change of changes){
       const index = next.findIndex(row=>String(row.id) === change.id);
       const current = index < 0 ? null : next[index];
-      if(same(current,change.after)) continue;
-      if(!same(current,change.before)) throw Error('Conflicting record '+change.id);
+      if(equal(current,change.after)) continue;
+      if(!equal(current,change.before)) throw Error('Conflicting record '+change.id);
       if(change.after === null){ if(index >= 0) next.splice(index,1); }
       else if(index < 0) next.push(clone(change.after));
       else next[index] = clone(change.after);
@@ -96,7 +110,7 @@
       if(!defs[change.id]) defs[change.id] = {id:change.id};
       const current = { projectStatus:defs[change.id].projectStatus || '', lastManualProjectStatus:defs[change.id].lastManualProjectStatus || '' };
       if(!same(current,change.before) && !same(current,change.after)) throw Error('Conflicting room status');
-      Object.assign(defs[change.id],change.after);
+      if(!same(current,change.after)) Object.assign(defs[change.id],change.after);
     }
     if(next.status !== op.beforeStatus && next.status !== op.afterStatus) throw Error('Conflicting aggregate status');
     if((meta.projectStatus || '') !== op.beforeMetaStatus && (meta.projectStatus || '') !== op.afterStatus) throw Error('Conflicting aggregate metadata');
@@ -113,6 +127,12 @@
     running = true;
     try{
       validate(record,op);
+      if(op.kind === 'offerStatus'){
+        // Model normalization may recreate an empty room from roomDefs. That is
+        // not evidence that the physical room still exists for this old intent.
+        const physical = readRows(FC.projectStore.PROJECTS_KEY).rows.find(row=>String(row.id) === String(id));
+        if(!physical || op.statusChanges.some(change=>!own(physical.projectData,change.id))) throw Error('Missing physical status room');
+      }
       // Preflight all remaining targets before performing a write. No destructive compensation.
       const history = readRows('fc_quote_snapshots_v1');
       const desiredHistory = mergeRows(history.rows,op.historyChanges);
@@ -120,7 +140,7 @@
       const investorIndex = investors.rows.findIndex(row=>String(row.id) === op.investorId);
       if(investorIndex < 0) throw Error('Missing investor');
       const rooms = investors.rows[investorIndex].rooms || [];
-      mergeRows(rooms,op.mirrorChanges);
+      mergeRows(rooms,op.mirrorChanges,sameRoomMirror);
       let fresh = record;
       if(op.kind === 'offerStatus') applyStatus(fresh,op);
       else if(!same(roomShape(fresh.projectData),op.roomShape)) throw Error('Room structure changed after partial save');
@@ -138,13 +158,21 @@
       const latestInvestors = readRows('fc_investors_v1');
       const index = latestInvestors.rows.findIndex(row=>String(row.id) === op.investorId);
       if(index < 0) throw Error('Investor removed');
-      const nextRooms = mergeRows(latestInvestors.rows[index].rooms || [],op.mirrorChanges);
+      const nextRooms = mergeRows(latestInvestors.rows[index].rooms || [],op.mirrorChanges,sameRoomMirror);
       if(!same(latestInvestors.rows[index].rooms || [],nextRooms)){
         latestInvestors.rows[index].rooms = nextRooms;
         if(!writeRows('fc_investors_v1',latestInvestors.rows,latestInvestors.raw)) return problem('investor-mirror-write',true);
       }
       const latest = FC.projectStore.getById(id);
       if(!same(latest,fresh)) throw Error('Project changed before completion');
+      // Completion needs fresh proof of every target, even after another target's
+      // write. Never clear intent on evidence captured before a partial write.
+      const finalHistory = readRows('fc_quote_snapshots_v1').rows;
+      const finalInvestor = readRows('fc_investors_v1').rows.find(row=>String(row.id) === op.investorId);
+      const applied = (rows,changes,equal)=>changes.every(change=>equal(rows.find(row=>String(row.id) === change.id) || null,change.after));
+      if(!finalInvestor || !applied(finalHistory,op.historyChanges,same)
+        || !applied(finalInvestor.rooms || [],op.mirrorChanges,sameRoomMirror)
+        || (op.kind === 'offerStatus' && !same(applyStatus(latest,op),latest))) throw Error('Operation targets not confirmed');
       const completed = clone(latest); delete completed.meta[FIELD];
       const saved = FC.projectStore.updateRecordConfirmed(completed,latest);
       if(!saved) return problem('intent-cleanup-write',true);
@@ -183,6 +211,7 @@
     try{ return FC.projectStore.readAll().filter(record=>record.meta && record.meta[FIELD]).map(record=>recoverProject(record.id)); }
     catch(_){ return [problem('recovery-read',true)]; }
   }
-  FC.projectDomainOperations = { start, recoverProject, recoverAll, hasPending, rowChanges, readHistory:()=>readRows('fc_quote_snapshots_v1').rows };
+  FC.projectDomainOperations = { start, recoverProject, recoverAll, hasPending, rowChanges,
+    roomMirrorChanges:(before,after)=>rowChanges(before,after,sameRoomMirror), readHistory:()=>readRows('fc_quote_snapshots_v1').rows };
   if(typeof document !== 'undefined' && document.addEventListener) document.addEventListener('DOMContentLoaded',()=>recoverAll());
 })();
