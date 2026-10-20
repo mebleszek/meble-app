@@ -1,5 +1,17 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
+## CLOUD-4.3a — jawne role artefaktów Rules (2026-10-20)
+
+Rozdzielono historyczny produkcyjny baseline 635 B, repozytoryjny Auth-only 755 B
+i minimalne Rules pilota. Dotychczasowe pliki Rules, konfiguracja rollbacku,
+425 pinów, sesja/lease i writer/reader pozostają niezmienione.
+`verifyDeployedRules('auth-only', ...)` odmawia jako niejednoznaczne. Jawny
+`repository-auth-only-template` potwierdza tylko template; produkcyjny baseline
+wymaga pełnych metadanych i bajtów. `rollbackRulesSha256` usunięto z proof na rzecz
+oddzielnych `repositoryAuthOnlyTemplateSha256` i `productionAuthOnlyBaselineSha256`.
+Nie jest to automatyczne zatwierdzenie nowego wzorca lub zaliczenie bramki.
+[Kontrakt, konsumenty i rollback](tools/reports/cloud-4-3a-production-rules-baseline.md).
+
 ## CLOUD-4.3 — zgodność pakietu z aktualnym main (2026-10-20)
 
 Istniejący pakiet CLOUD-4.2 pozostaje nazwany `cloud42-*` dla zgodności konsumentów.

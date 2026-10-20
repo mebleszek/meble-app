@@ -1,5 +1,15 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## CLOUD-4.3a — historyczny baseline Rules, Bramka 1 nadal STOP
+
+Baza gałęzi `cloud-4-3-live-readiness-refresh`: `2f2704a3239fc58fabf375dcab43edbd78680cfe`.
+Właściciel dostarczył oryginalne źródło i metadane dwóch odczytów REST z 20.10.2026:
+produkcja Auth-only to 635 B / SHA `9260ebcd…ffa91`, odrębne od template 755 B
+`fd92cffa…10cd3` i minimalnych Rules `eaeb3e67…a2e92`. Nie pobierano produkcji ponownie.
+Nowe kontrole sprawdzają pełną tożsamość release/rulesetu i bajty; zgodność nie
+zalicza Bramki 1 ani nie zatwierdza baseline dla Bramki 2. Pełne źródło jest prywatne.
+[Raport, migracja konsumentów i plan dokładnego rollbacku](tools/reports/cloud-4-3a-production-rules-baseline.md).
+
 ## CLOUD-4.3 — aktualizacja gotowości, bez aktywacji LIVE (2026-10-20)
 
 Baza `44b5be9b1e05eded8243b9a617f976e44ad49c6f`; CLOUD-4.1/4.2 i późniejsze

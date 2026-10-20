@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "baselineId": "cloud43a-auth-only-observed-2026-10-20-v1",
+  "provenance": {
+    "report": "CLOUD-4.3_Bramka-1_2026-10-20-2-2.md",
+    "providedBy": "owner",
+    "observationDate": "2026-10-20",
+    "transport": "official Firebase Rules REST API",
+    "httpStatus": [
+      200,
+      200
+    ],
+    "independentlyFetchedInThisTask": false
+  },
+  "projectId": "mebleszek-meble-app",
+  "database": "(default)",
+  "release": {
+    "name": "projects/mebleszek-meble-app/releases/cloud.firestore",
+    "rulesetName": "projects/mebleszek-meble-app/rulesets/3e3729ee-6dae-4d91-9e7f-862e68899763",
+    "createTime": "2026-10-15T22:31:21.277596Z",
+    "updateTime": "2026-10-17T15:53:31.006324Z"
+  },
+  "ruleset": {
+    "name": "projects/mebleszek-meble-app/rulesets/3e3729ee-6dae-4d91-9e7f-862e68899763",
+    "createTime": "2026-10-17T15:53:29.583599Z"
+  },
+  "source": {
+    "fileCount": 1,
+    "name": "firestore.rules",
+    "utf8Bytes": 635,
+    "initialLF": true,
+    "terminalLF": false,
+    "sha256": "9260ebcd881e5a0cc2302e768f14e2e8152637093de071449ea90211461ffa91",
+    "storage": "private-external-artifact-only"
+  },
+  "gate1": "STOP_SHA_MISMATCH_REVIEW_REQUIRED",
+  "baselineApprovedForGate2": false,
+  "historicalOnly": true
+}

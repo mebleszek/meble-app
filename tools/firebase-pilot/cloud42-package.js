@@ -13,6 +13,10 @@ const sha=value=>createHash('sha256').update(value).digest('hex');
 const canonical=value=>JSON.stringify(value,(_key,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);
 const copy=value=>JSON.parse(JSON.stringify(value));
 function fail(code){throw Error(code);}
+const BASELINE_VERIFIER_SHA256='ea851d4bd82a578714cbda9465b9c3a0744a5c132bab945695bfeeb7565cb527';
+const baselineVerifierFile=path.join(__dirname,'cloud43a-baseline.js');
+if(sha(fs.readFileSync(baselineVerifierFile))!==BASELINE_VERIFIER_SHA256)fail('CLOUD43A_BASELINE_CHANGED');
+const rulesBaseline=require('./cloud43a-baseline.js');
 function validateSourceReview(manifest,review){
  if(review.schemaVersion!==1||review.reviewedBaseCommit!==BASE
    ||review.originalCount!==423||review.reviewedCount!==425||review.changedCount!==35
@@ -29,6 +33,8 @@ function validateSourceReview(manifest,review){
  }
 }
 function inventory(){
+ if(sha(fs.readFileSync(baselineVerifierFile))!==BASELINE_VERIFIER_SHA256
+  ||sha(fs.readFileSync(path.join(__dirname,'cloud43a-production-rollback.plan.json')))!==rulesBaseline.PLAN_SHA256)fail('CLOUD43A_BASELINE_CHANGED');
  const manifest=JSON.parse(fs.readFileSync(path.join(__dirname,'cloud42-source-pins.json')));
  if(manifest.baseCommit!==BASE)fail('CLOUD42_SOURCE_CHANGED');
  const reviewBytes=fs.readFileSync(path.join(__dirname,'cloud43-source-review.json'));
@@ -46,7 +52,12 @@ function inventory(){
  }
  if(manifest.sha256['tools/firebase-pilot/firestore-live-pilot.rules']!==RULES_SHA256)fail('CLOUD42_RULES_CHANGED');
  return {baseCommit:BASE,sourceCount:review.reviewedCount,sourceReviewSha256:REVIEW_SHA256,sourcePinsSha256:sha(canonical(manifest)),rulesSha256:RULES_SHA256,
-  rollbackRulesSha256:manifest.sha256['tools/firebase-pilot/firestore-auth-only.rules'],
+  repositoryAuthOnlyTemplateSha256:manifest.sha256['tools/firebase-pilot/firestore-auth-only.rules'],
+  productionAuthOnlyBaselineSha256:rulesBaseline.baseline().source.sha256,
+  productionBaselineApprovedForGate2:rulesBaseline.baseline().baselineApprovedForGate2,
+  rulesBaselineRecordSha256:rulesBaseline.BASELINE_SHA256,
+  rulesBaselineVerifierSha256:BASELINE_VERIFIER_SHA256,
+  productionRollbackPlanSha256:rulesBaseline.PLAN_SHA256,
   packageSha256:sha(fs.readFileSync(__filename)),loaderSha256:sha(fs.readFileSync(path.join(__dirname,'cloud42-reviewed-loader.mjs.txt'))),
   payloadSha256:PAYLOAD,documentSha256:DOCUMENT,utf8Bytes:6797};
 }
@@ -100,12 +111,22 @@ function stopAction({uid,grant,appAccess,control}){
   writes:[{path:'authorizedUsers/'+uid,method:'update',fields:{enabled:false}},
    {path:'pilotControl/cloud4',method:control===null?'create':'update',fields:{...p.control,enabled:false}}]};
 }
-function verifyDeployedRules(stage,bytes){
- const proof=inventory();
- const expected=stage==='auth-only'?proof.rollbackRulesSha256:stage==='minimal'?proof.rulesSha256:null;
- if(!expected||sha(bytes)!==expected)fail('CLOUD42_DEPLOYED_RULES_UNCONFIRMED');
- return {stage,sha256:expected,byteLength:Buffer.byteLength(bytes)};
+// Byte validation is not evidence that these bytes are currently deployed.
+function verifyDeployedRules(role,bytes,observation){
+ inventory();
+ if(role==='auth-only')fail('CLOUD43A_EXPLICIT_RULES_ROLE_REQUIRED');
+ if(role==='production-auth-only-baseline'){
+  const out=rulesBaseline.verifyProductionObservation(observation);
+  rulesBaseline.verifyArtifact(role,bytes);
+  if(!Buffer.from(observation.ruleset.source.files[0].content,'utf8').equals(Buffer.from(bytes)))fail('CLOUD43A_SOURCE_SHA_MISMATCH');
+  return out;
+ }
+ const mapped=role==='minimal'?'minimal-pilot':role;
+ if(!['repository-auth-only-template','minimal-pilot'].includes(mapped))fail('CLOUD42_DEPLOYED_RULES_UNCONFIRMED');
+ try{return {...rulesBaseline.verifyArtifact(mapped,bytes),stage:role};}
+ catch(_){fail('CLOUD42_DEPLOYED_RULES_UNCONFIRMED');}
 }
+
 function productionContext(context,location){
  const expected={projectId:'mebleszek-meble-app',origin:'https://mebleszek.github.io',pathname:'/meble-app/index.html',authDomain:'mebleszek-meble-app.firebaseapp.com',appId:'1:447820686604:web:6bc0817aa365b1b613d529'};
  return context?.target==='live-auth'&&context.app?.options?.projectId===expected.projectId

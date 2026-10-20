@@ -1,5 +1,16 @@
 # CLOUD-2B.4a — techniczny dowód profilu a kopia danych
 
+## CLOUD-4.3a — prywatny punkt odniesienia Firestore Rules
+
+Oryginalne 635 B źródła z REST dostarczonego przez właściciela są odrębnym
+prywatnym artefaktem infrastruktury, poza standardowym backupem aplikacji.
+Nie obejmuje to danych fc_*, profilu dostępu ani sesji. Repo publikuje tylko
+metadane/SHA i nieaktywny plan; nie publikuje oryginalnego produkcyjnego źródła.
+Plik `cloud42-rules-rollback.json` nadal wskazuje template 755 B i NIE jest
+bajtowo wiernym rollbackiem do produkcji 635 B. Prywatny plik należy zachować
+niezmieniony i sprawdzić ponownie przed przyszłą operacją. Brak artefaktu = STOP.
+[Źródło decyzji, tożsamość i ograniczenia](tools/reports/cloud-4-3a-production-rules-baseline.md).
+
 ## 2026-10-19 — odzyskiwanie istniejących intencji statusu
 
 `meta.pendingDomainOperation` pozostaje w kanonicznym rekordzie `fc_projects_v1` i nadal trafia

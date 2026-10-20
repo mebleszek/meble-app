@@ -1,5 +1,12 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
+## CLOUD-4.3a — uzgodnienie źródła Auth-only przed ponowną Bramką 1
+
+Potwierdzono offline różnicę 635 B produkcji i 755 B dotychczasowego template.
+Historyczny STOP pozostaje. Następna decyzja obejmuje przegląd baseline 635 B
+oraz ponowną, odczytową kontrolę Bramki 1; bez zgody na Bramkę 2 lub mutacje.
+[Metadane, ograniczenia i testy](tools/reports/cloud-4-3a-production-rules-baseline.md).
+
 ## CLOUD-4.3 — aktualizacja istniejącego pakietu, bez synchronizacji
 
 Przegląd pinów i zgodności z main `44b5be9…`, próby syntetyczne i oddzielne
