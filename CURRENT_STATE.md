@@ -1,5 +1,37 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## CLOUD-4.4 — zintegrowane przygotowanie, produkcja STOP
+
+Gałąź `cloud-4-4-gate2-technical-preparation` łączy main `a1f334df` z CLOUD-4.3/4.3a/4.3b i dokładnym §14 AGENTS. Narzędzia offline rozdzielają zgodę przygotowawczą od wykonawczej; emulatorowy operator sprawdza jedną próbę, niezależny odczyt i administracyjny STOP. Nie otwarto loadera LIVE ani żadnej bramki produkcyjnej. Prywatne 635 B nie zostały przekazane do tej próby, ochrona publikacji Rules przed innymi administratorami nadal wymaga dowodu. [Mechanizmy, wyniki i blokery](tools/reports/cloud-4-4-gate2-technical-preparation.md). To stan gałęzi, nie scalenie ani wydanie.
+
+## CLOUD-4.3b — Bramka 1 Rules PASS, baseline zatwierdzony tylko do PRZYGOTOWANIA (2026-10-20)
+
+Właściciel wykonał dwa GET Firebase Rules (oba HTTP 200) i potwierdził 635 B UTF-8 / SHA-256 9260ebcd881e5a0cc2302e768f14e2e8152637093de071449ea90211461ffa91 wraz z metadanymi. Osobnym, wyraźnym TAK zatwierdził ten baseline WYŁĄCZNIE do przygotowania Bramki 2. Historyczny przypięty rekord 4.3a jest niezmieniony; nowy rekord zgody i publiczny smoke wyraźnie oddzielają przygotowanie od wykonania. Historyczne baselineApprovedForGate2:false w nieaktywnym loaderze nadal blokuje LIVE; nie znosi to późniejszej zgody na samo przygotowanie.
+
+Baza prac: CLOUD-4.3a 965544c861d203b372d179c3a3fcf2ac3106e950. Zweryfikowany main a1f334df824c10bb54384f7c00eb77b661f9d1b0 zawiera PR #70 (dokument odczytów), ale CLOUD-4.3/4.3a nie są w main. Żadnego wdrożenia Rules, grantu, produkcyjnego IO, migracji ani PR Ready. [Raport CLOUD-4.3b](tools/reports/cloud-4-3b-gate1-closure.md). Wpisy poniżej są historyczne.
+
+
+## CLOUD-4.3a — historyczny baseline Rules, Bramka 1 nadal STOP
+
+Baza gałęzi `cloud-4-3-live-readiness-refresh`: `2f2704a3239fc58fabf375dcab43edbd78680cfe`.
+Właściciel dostarczył oryginalne źródło i metadane dwóch odczytów REST z 20.10.2026:
+produkcja Auth-only to 635 B / SHA `9260ebcd…ffa91`, odrębne od template 755 B
+`fd92cffa…10cd3` i minimalnych Rules `eaeb3e67…a2e92`. Nie pobierano produkcji ponownie.
+Nowe kontrole sprawdzają pełną tożsamość release/rulesetu i bajty; zgodność nie
+zalicza Bramki 1 ani nie zatwierdza baseline dla Bramki 2. Pełne źródło jest prywatne.
+[Raport, migracja konsumentów i plan dokładnego rollbacku](tools/reports/cloud-4-3a-production-rules-baseline.md).
+
+## CLOUD-4.3 — aktualizacja gotowości, bez aktywacji LIVE (2026-10-20)
+
+Baza `44b5be9b1e05eded8243b9a617f976e44ad49c6f`; CLOUD-4.1/4.2 i późniejsze
+naprawy są już w main. Starsze nagłówki poniżej zachowują historię, nie oznaczają
+ponownego otwarcia tych etapów. Pakiet operatora pozostaje nieaktywny.
+Przegląd 423 pierwotnych pinów: 35 zmian, 388 bez zmian, 2 nowe moduły; wszystkie
+425 hashy były już zgodne z main. Nowy rejestr wiąże pochodzenie i ocenę kontraktów
+z tą bazą, bez zmiany kodu aplikacji i Rules.
+[Dowody, testy, pięć osobnych bramek i ograniczenia](tools/reports/cloud-4-3-live-readiness-refresh.md).
+Gotowość kodu nie jest zgodą na produkcyjne odczyty, deploy, grant ani roundtrip.
+
 ## Rozmiar sesji i niepotwierdzony wskaźnik — pakiet po main `0cb7044`
 
 Zweryfikowany main: `0cb7044e5feec71d462354efc501dc9e4278cdb6`; poprzednia

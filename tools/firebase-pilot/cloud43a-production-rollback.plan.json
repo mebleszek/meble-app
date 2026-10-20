@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "baselineId": "cloud43a-auth-only-observed-2026-10-20-v1",
+  "status": "INERT_NOT_AUTHORIZED",
+  "projectId": "mebleszek-meble-app",
+  "database": "(default)",
+  "sourceRole": "production-auth-only-baseline",
+  "sourceSha256": "9260ebcd881e5a0cc2302e768f14e2e8152637093de071449ea90211461ffa91",
+  "utf8Bytes": 635,
+  "sourceFile": "PRIVATE_EXTERNAL_635_BYTE_ARTIFACT_REQUIRED",
+  "repositoryTemplateIsExactRollback": false,
+  "executionAllowed": false,
+  "requires": [
+    "verified-private-source-bytes",
+    "fresh-official-release-and-ruleset-read",
+    "explicit-owner-baseline-approval",
+    "explicit-owner-rollback-approval",
+    "known-approved-current-release-precondition",
+    "just-in-time-unchanged-state-check",
+    "post-operation-release-ruleset-and-source-readback"
+  ],
+  "automaticRetry": false,
+  "automaticBaselineUpdate": false,
+  "isFirebaseDeployConfig": false
+}

@@ -21,6 +21,9 @@ export async function openReviewedCandidate(page,{checkout,packet,decision}={}){
   loaderSha256:packet.proof.loaderSha256,candidateSha256:packet.proof.candidateSha256,
   rulesSha256:packet.proof.rulesSha256,projectId:PRODUCTION.projectId,...packet.binding};
  assert.deepEqual(decision,wanted,'Separate owner decision must name this exact package, UID, role and deadline');
+ // CLOUD-4.3a records a historical mismatch; it does not approve a new baseline.
+ // Even a correctly named operator decision cannot bypass this closed gate.
+ if(packet.proof.productionBaselineApprovedForGate2!==true)throw Error('CLOUD43A_BASELINE_REVIEW_REQUIRED');
  // These bytes represent the operator's recorded decision, not a signature or
  // a server grant. Firestore Rules and the owner's approved Google lease decide access.
  if(page.url()!=='about:blank'||page.context().pages().length!==1||page.context().serviceWorkers().length)throw Error('CLOUD_OPERATOR_FRESH_CONTEXT_REQUIRED');

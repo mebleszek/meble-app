@@ -13,6 +13,9 @@ import {initializeTestEnvironment} from '@firebase/rules-unit-testing';
 import {doc,setDoc,updateDoc,getDoc,Bytes,deleteDoc} from 'firebase/firestore';
 import {openPrivatePilot} from './private-pilot-runner.mjs';
 import {openCloud42Rehearsal} from './cloud42-rehearsal.mjs';
+import gate44 from './cloud44-gate2.js';
+import package42 from './cloud42-package.js';
+import {applyDemoAction, readDemoState, verifyDemoStop} from './cloud44-emulator-admin.mjs';
 const openOperator=process.env.CLOUD42_REHEARSAL==='1'?openCloud42Rehearsal:openPrivatePilot;
 if(process.env.FIREBASE_AUTH_EMULATOR_HOST!=='127.0.0.1:19099'||process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:18080')throw Error('Demo loopback emulators required');
 const root=path.resolve(fileURLToPath(new URL('../../',import.meta.url))),cache=path.join(os.tmpdir(),'meble-firebase-browser-sdk-12.19.0');
@@ -236,7 +239,7 @@ test('Main approved login boots the real ordered app once; reload, bfcache and d
   assert.equal(await r.page.evaluate(()=>window.__APP_STARTED__),true);assert.deepEqual(errors,[]);
   const order=await r.page.evaluate(()=>Array.from(document.scripts).map(s=>s.getAttribute('data-loaded-src')).filter(Boolean));
   const expected=fs.readFileSync(path.join(root,'index.html'),'utf8').split('<template id="business-template">')[1].match(/src="[^"]+"/g).map(x=>x.slice(5,-1));
-  assert.deepEqual(order.slice(0,323),expected,'native startup order, no duplicate evaluation');
+  assert.deepEqual(order.slice(0,expected.length),expected,'native startup order, no duplicate evaluation');
   await r.page.goto(base+'/__synthetic_inspection');await r.page.goBack();await businessReady(r.page);
   assert.equal(await r.page.locator('#homeView h2').innerText(),'Start');
   const editing=await r.page.evaluate(async()=>{
@@ -798,6 +801,47 @@ test('CLOUD-4.1 private execution through real main owner and independent browse
    const original=await admin(async db=>(await getDoc(head(db,a.uid))).data());
    const c=await fresh('private-native-owner',a.uid);assert.equal((await execute(c)).code,'CLOUD_WRITE_CONFLICT');
    const after=await admin(async db=>(await getDoc(head(db,a.uid))).data());assert.deepEqual(after,original,'new client must not replace immutable first manifest');await unchanged(c);
+  });
+  await t.test('CLOUD-4.4 operator stage/activate, one real publication, independent reader and verified STOP preserve Auth and RAW',async()=>{
+   const a=await client('cloud44-operator-owner',{enabled:false});
+   await admin(db=>updateDoc(doc(db,'pilotControl','cloud4'),{enabled:false}));
+   const original=await admin(db=>readDemoState(db,a.uid));
+   const plans=package42.grantActions({uid:a.uid,...original});
+   const operator=gate44.openDemoOperator({projectId:'demo-meble-app',origin:base,expiresAt:Date.now()+600000});
+   const apply=action=>admin(db=>applyDemoAction(db,action,a.uid));
+   const manifestAbsent=()=>admin(async db=>!(await getDoc(head(db,a.uid))).exists());
+   try{
+    assert.throws(()=>gate44.openDemoOperator({projectId:'demo-meble-app',origin:base,expiresAt:Date.now()+600000}),/OPERATOR_CONFLICT/);
+    await operator.stage(()=>apply(plans.stage));assert.equal(await manifestAbsent(),true);
+    await operator.activate(()=>apply(plans.activate));
+    const written=await operator.write(a.operator,{role:'write',approval:approval(a.uid)});
+    assert.equal(written.ok,true,JSON.stringify(written));
+    await assert.rejects(operator.write(a.operator,{role:'write',approval:approval(a.uid)}),/WRITE_ATTEMPT_CONSUMED/);
+    const b=await fresh('cloud44-operator-owner',a.uid);assert.notEqual(a.ctx,b.ctx);
+    const read=await operator.read(b.operator,{role:'read',approval:approval(b.uid)});
+    assert.equal(read.ok,true,JSON.stringify(read));assert.equal(read.sourceMatches,true);
+    assert.equal(read.revisionId,written.revisionId);assert.equal(read.utf8Bytes,6797);
+    assert.equal(package42.readDecision(written,read).status,'VERIFIED_SYNTHETIC_STATE');
+    await unchanged(a);await unchanged(b);
+    const beforeStop=await admin(async db=>(await getDoc(head(db,a.uid))).data());
+    const current=await admin(db=>readDemoState(db,a.uid));
+    await operator.stop(()=>apply(package42.stopAction({uid:a.uid,...current})));
+    // Separate emulator administrative context, then actual unprivileged read denial.
+    await operator.verifyStop(()=>admin(db=>verifyDemoStop(db,a.uid)));
+    const readerAfterStop=await fresh('cloud44-operator-owner',a.uid);
+    assert.equal((await execute(readerAfterStop,'read')).ok,false);
+    assert.equal(await currentUid(a.page),a.uid);assert.equal(await a.page.evaluate(()=>window.__FC_MAIN_ACCESS__.isValid()),true);
+    assert.deepEqual(await admin(async db=>(await getDoc(head(db,a.uid))).data()),beforeStop,'STOP does not roll back committed data');
+    const stopped=await admin(db=>readDemoState(db,a.uid));
+    assert.equal(stopped.grant.appEnabled,original.grant.appEnabled);assert.deepEqual(stopped.appAccess,original.appAccess);
+    for(const c of [a,b,readerAfterStop])await unchanged(c);
+   }finally{
+    if(operator.inspect().state!=='STOP_VERIFIED'&&!operator.inspect().stopAttempted){
+     const current=await admin(db=>readDemoState(db,a.uid));
+     await operator.stop(()=>apply(package42.stopAction({uid:a.uid,...current})));
+     await operator.verifyStop(()=>admin(db=>verifyDemoStop(db,a.uid)));
+    }
+   }
   });
   await t.test('App authorization alone never grants pilot writes; foreign UID and approval scope denied',async()=>{
    const a=await client('private-no-pilot',{enabled:false});assert.equal((await execute(a)).code,'CLOUD_PERMISSION_DENIED');await unchanged(a);
