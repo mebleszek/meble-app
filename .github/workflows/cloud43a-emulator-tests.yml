@@ -1,10 +1,11 @@
-name: CLOUD-4.3a isolated baseline regressions
+name: CLOUD-4.3a / CLOUD-4.3b isolated regressions
 
 # Branch testing only; this is not the Ready/merge/Pages release workflow.
 on:
   push:
     branches:
       - cloud-4-3a-production-rules-baseline
+      - cloud-4-3b-gate1-closure-gate2-preparation
 
 permissions:
   contents: read
@@ -15,7 +16,7 @@ concurrency:
 
 jobs:
   cloud42:
-    if: github.repository == 'mebleszek/meble-app' && github.event_name == 'push' && github.ref == 'refs/heads/cloud-4-3a-production-rules-baseline'
+    if: github.repository == 'mebleszek/meble-app' && github.event_name == 'push' && (github.ref == 'refs/heads/cloud-4-3a-production-rules-baseline' || github.ref == 'refs/heads/cloud-4-3b-gate1-closure-gate2-preparation')
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     defaults:
@@ -64,7 +65,10 @@ jobs:
             ':(exclude)tools/firebase-pilot/cloud43a-production-rollback.plan.json' \
             ':(exclude)tools/firebase-pilot/cloud43a-baseline.test.mjs' \
             ':(exclude)tools/firebase-pilot/cloud43a-auth-only.test.mjs' \
-            ':(exclude)tools/reports/cloud-4-3a-production-rules-baseline.md'
+            ':(exclude)tools/reports/cloud-4-3a-production-rules-baseline.md' \
+            ':(exclude)tools/reports/cloud-4-3b-gate1-closure.md' \
+            ':(exclude)tools/cloud43b-gate1-approval-smoke.js' \
+            ':(exclude)tools/firebase-pilot/cloud43b-preparation-approval.json'
           test -z "$(git status --porcelain)"
           node <<'NODE'
           const assert = require('node:assert/strict');
@@ -97,6 +101,9 @@ jobs:
           NODE
           node tools/cloud42-live-preparation-smoke.js
           node tools/cloud43a-production-baseline-smoke.js
+          if test -f tools/cloud43b-gate1-approval-smoke.js; then
+            node tools/cloud43b-gate1-approval-smoke.js
+          fi
           # No private production source is published, reconstructed from a template,
           # downloaded or injected through a CI secret. These two external-source
           # suites are required locally and are NOT counted as CI PASS.

@@ -1,5 +1,12 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## CLOUD-4.3b — Bramka 1 Rules PASS, baseline zatwierdzony tylko do PRZYGOTOWANIA (2026-10-20)
+
+Właściciel wykonał dwa GET Firebase Rules (oba HTTP 200) i potwierdził 635 B UTF-8 / SHA-256 9260ebcd881e5a0cc2302e768f14e2e8152637093de071449ea90211461ffa91 wraz z metadanymi. Osobnym, wyraźnym TAK zatwierdził ten baseline WYŁĄCZNIE do przygotowania Bramki 2. Historyczny przypięty rekord 4.3a jest niezmieniony; nowy rekord zgody i publiczny smoke wyraźnie oddzielają przygotowanie od wykonania. Historyczne baselineApprovedForGate2:false w nieaktywnym loaderze nadal blokuje LIVE; nie znosi to późniejszej zgody na samo przygotowanie.
+
+Baza prac: CLOUD-4.3a 965544c861d203b372d179c3a3fcf2ac3106e950. Zweryfikowany main a1f334df824c10bb54384f7c00eb77b661f9d1b0 zawiera PR #70 (dokument odczytów), ale CLOUD-4.3/4.3a nie są w main. Żadnego wdrożenia Rules, grantu, produkcyjnego IO, migracji ani PR Ready. [Raport CLOUD-4.3b](tools/reports/cloud-4-3b-gate1-closure.md). Wpisy poniżej są historyczne.
+
+
 ## CLOUD-4.3a — historyczny baseline Rules, Bramka 1 nadal STOP
 
 Baza gałęzi `cloud-4-3-live-readiness-refresh`: `2f2704a3239fc58fabf375dcab43edbd78680cfe`.

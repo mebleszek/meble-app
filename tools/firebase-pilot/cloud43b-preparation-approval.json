@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "cloud43b-owner-baseline-preparation-2026-10-20",
+  "decisionDate": "2026-10-20",
+  "decisionOrigin": "owner-explicit-yes-in-prior-chat",
+  "baselineId": "cloud43a-auth-only-observed-2026-10-20-v1",
+  "baselineRecordSha256": "4bce7b5fa37626b48f25802ce8d0f0c929a75a8eeb9240aaf9f04483b0bb5a6d",
+  "projectId": "mebleszek-meble-app",
+  "database": "(default)",
+  "releaseName": "projects/mebleszek-meble-app/releases/cloud.firestore",
+  "rulesetName": "projects/mebleszek-meble-app/rulesets/3e3729ee-6dae-4d91-9e7f-862e68899763",
+  "productionRules": {
+    "utf8Bytes": 635,
+    "sha256": "9260ebcd881e5a0cc2302e768f14e2e8152637093de071449ea90211461ffa91"
+  },
+  "evidence": {
+    "releaseGetHttpStatus": 200,
+    "rulesetGetHttpStatus": 200,
+    "observedDate": "2026-10-20",
+    "source": "owner-private-MHTML-and-verified-byte-comparison",
+    "independentlyFetchedInThisTask": false
+  },
+  "authorizations": {
+    "gate1RulesReadback": "PASS_CONFIRMED_BY_OWNER_EVIDENCE",
+    "baselineAcceptedForGate2Preparation": true,
+    "openGate2ForProductionExecution": false,
+    "deployOrRollbackProductionRules": false,
+    "productionBusinessReadOrWrite": false,
+    "grantIamOrBillingChange": false,
+    "productionDataMigrationOrSync": false,
+    "readyPrAutoMergeOrPages": false
+  },
+  "scopeNote": "This is approval of the exact historical baseline for preparation only. It is not a fresh production read, deployment authorization or an executable gate."
+}

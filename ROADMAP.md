@@ -1,5 +1,10 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
+## CLOUD-4.3b — aktualny następny etap: przygotowanie Bramki 2, nie wykonanie produkcyjne
+
+20.10.2026: właściciel zatwierdził baseline 635 B po dwóch GET HTTP 200 tylko do przygotowania Bramki 2. Formalny PASS odczytów Rules i osobna zgoda na przygotowanie są zapisane bez odblokowania LIVE. Następne zależności: dostępna i zweryfikowana prywatna kopia rollbacku 635 B (template 755 B to INNY plik), procedura wyłączności/operatora bez pozornego CAS Rules, świeża kontrola Spark/billing/limitów, konkretny operator STOP oraz odrębne decyzje na wydanie kodu, deploy Rules, grant, syntetyczny write/read i zakończenie. Pełna migracja pozostaje późniejsza. [Plan i blokery](tools/reports/cloud-4-3b-gate1-closure.md).
+
+
 ## CLOUD-4.3a — uzgodnienie źródła Auth-only przed ponowną Bramką 1
 
 Potwierdzono offline różnicę 635 B produkcji i 755 B dotychczasowego template.

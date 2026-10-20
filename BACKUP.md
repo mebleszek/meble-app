@@ -1,5 +1,10 @@
 # CLOUD-2B.4a — techniczny dowód profilu a kopia danych
 
+## CLOUD-4.3b — przyszły wierny rollback (2026-10-20)
+
+Właściciel zatwierdził historyczny 635 B baseline WYŁĄCZNIE do przygotowania następnej bramki. Dokładne prywatne źródło Rules pozostaje poza GitHubem i backupem fc_*; plik z repo o rozmiarze 755 B nie jest bajtowo wiernym rollbackiem. Przed jakimkolwiek przyszłym wdrożeniem wymagana jest dostępna, prywatna i hash-zweryfikowana kopia 635 B; brak kopii = STOP. Zgoda na przygotowanie nie zatwierdza deployu ani rollbacku. [Raport](tools/reports/cloud-4-3b-gate1-closure.md).
+
+
 ## CLOUD-4.3a — prywatny punkt odniesienia Firestore Rules
 
 Oryginalne 635 B źródła z REST dostarczonego przez właściciela są odrębnym

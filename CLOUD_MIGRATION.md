@@ -1,5 +1,10 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
+## 2026-10-20 — CLOUD-4.3b: zgoda wyłącznie na PRZYGOTOWANIE Bramki 2
+
+Dwa oficjalne GET Firebase Rules HTTP 200 właściciela i niezależny przegląd prywatnego MHTML potwierdziły produkcyjny Auth-only ruleset 635 B/SHA-256 oraz zgodne metadane. Właściciel następnie wyraźnie zatwierdził ten historyczny baseline tylko do przygotowania Bramki 2. Historyczne cloud43a-production-baseline.json i runtime baselineApprovedForGate2:false pozostały nietknięte jako nieaktywna blokada wykonania; osobny cloud43b-preparation-approval.json rejestruje najnowszą decyzję bez uprawnień LIVE. Bez zmiany UI, autorytetu danych, Firebase Rules, grantów czy sync. [Raport](tools/reports/cloud-4-3b-gate1-closure.md).
+
+
 ## CLOUD-4.3a — jawne role artefaktów Rules (2026-10-20)
 
 Rozdzielono historyczny produkcyjny baseline 635 B, repozytoryjny Auth-only 755 B
