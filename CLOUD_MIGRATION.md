@@ -1,5 +1,16 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
+## CLOUD-4.3 — zgodność pakietu z aktualnym main (2026-10-20)
+
+Istniejący pakiet CLOUD-4.2 pozostaje nazwany `cloud42-*` dla zgodności konsumentów.
+Zmieniono jego bazę i dowód przeglądu źródeł, nie transport aplikacji ani modele.
+Rejestr `cloud43-source-review.json` dokumentuje 35 zmienionych i 2 dodane źródła
+względem wydania PR #63; kontrola obejmuje 425 pinów i wszystkie skrypty aplikacji.
+Worker nadal tworzy wyłącznie syntetyczne dane w MemoryStorage; niezależny reader
+zwraca model do odizolowanego RAM, bez importu do lokalnych projektów.
+Termin zgody operatora <=15 minut nie jest serwerowym TTL grantu; niezbędny jest
+zatwierdzony administracyjny STOP. [Bramki, ograniczenia i dowody](tools/reports/cloud-4-3-live-readiness-refresh.md).
+
 ## 2026-10-19 — lokalna intencja statusowa, bez zmiany autorytetu
 
 Naprawa `offerStatus` na gałęzi `fix/offer-status-recovery-lifecycle` zachowuje kanoniczny

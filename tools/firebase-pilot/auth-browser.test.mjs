@@ -236,7 +236,7 @@ test('Main approved login boots the real ordered app once; reload, bfcache and d
   assert.equal(await r.page.evaluate(()=>window.__APP_STARTED__),true);assert.deepEqual(errors,[]);
   const order=await r.page.evaluate(()=>Array.from(document.scripts).map(s=>s.getAttribute('data-loaded-src')).filter(Boolean));
   const expected=fs.readFileSync(path.join(root,'index.html'),'utf8').split('<template id="business-template">')[1].match(/src="[^"]+"/g).map(x=>x.slice(5,-1));
-  assert.deepEqual(order.slice(0,323),expected,'native startup order, no duplicate evaluation');
+  assert.deepEqual(order.slice(0,expected.length),expected,'native startup order, no duplicate evaluation');
   await r.page.goto(base+'/__synthetic_inspection');await r.page.goBack();await businessReady(r.page);
   assert.equal(await r.page.locator('#homeView h2').innerText(),'Start');
   const editing=await r.page.evaluate(async()=>{

@@ -1,5 +1,5 @@
 {
-  "baseCommit": "d517d598917e5ccd6f1460950697c9ab27f1db1c",
+  "baseCommit": "44b5be9b1e05eded8243b9a617f976e44ad49c6f",
   "sha256": {
     "index.html": "20f3a33dd107462743acb852a7382cfb86d8082f2b9ed0ed6b29f59fd4503736",
     "js/app/bootstrap/app-core-namespace.js": "5dc8072d44f0ac450bae65ddda7e345014d5a9b0b3272c2e850a78ca73bb2346",

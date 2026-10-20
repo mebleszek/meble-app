@@ -1,5 +1,16 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## CLOUD-4.3 — aktualizacja gotowości, bez aktywacji LIVE (2026-10-20)
+
+Baza `44b5be9b1e05eded8243b9a617f976e44ad49c6f`; CLOUD-4.1/4.2 i późniejsze
+naprawy są już w main. Starsze nagłówki poniżej zachowują historię, nie oznaczają
+ponownego otwarcia tych etapów. Pakiet operatora pozostaje nieaktywny.
+Przegląd 423 pierwotnych pinów: 35 zmian, 388 bez zmian, 2 nowe moduły; wszystkie
+425 hashy były już zgodne z main. Nowy rejestr wiąże pochodzenie i ocenę kontraktów
+z tą bazą, bez zmiany kodu aplikacji i Rules.
+[Dowody, testy, pięć osobnych bramek i ograniczenia](tools/reports/cloud-4-3-live-readiness-refresh.md).
+Gotowość kodu nie jest zgodą na produkcyjne odczyty, deploy, grant ani roundtrip.
+
 ## Rozmiar sesji i niepotwierdzony wskaźnik — pakiet po main `0cb7044`
 
 Zweryfikowany main: `0cb7044e5feec71d462354efc501dc9e4278cdb6`; poprzednia

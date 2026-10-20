@@ -1,5 +1,15 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
+## CLOUD-4.3 — aktualizacja istniejącego pakietu, bez synchronizacji
+
+Przegląd pinów i zgodności z main `44b5be9…`, próby syntetyczne i oddzielne
+bramki przyszłego LIVE opisuje [raport CLOUD-4.3](tools/reports/cloud-4-3-live-readiness-refresh.md).
+Następna decyzja: wyłącznie bramka 1, odczytowa kontrola projektu/bazy, aktywnego
+Rules release, Spark i rezerwy kwot. Nie jest to zgoda na jej wykonanie.
+Po późniejszym pilocie nadal wymagane są Issue #47 (globalne słoje/rotacja),
+frozen historia/drafty, aliasy legacy, ochrona danych klientów, konflikty urządzeń
+i praca offline. Nie przełączono autorytetu danych ani nie włączono synchronizacji.
+
 ## Bieżący pakiet po PR #66 — wydajność WYCENY i ważność dostępu
 
 PR #65/#66 są scalone; baza `764d0852`. Gałąź `fix/quote-performance-auth-renewal`

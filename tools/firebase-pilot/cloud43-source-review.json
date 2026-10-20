@@ -1,0 +1,410 @@
+{
+  "schemaVersion": 1,
+  "originalReleaseCommit": "4d8dd96df9f293276dee07dc0c4cedf26edac08c",
+  "originalPackageBase": "d517d598917e5ccd6f1460950697c9ab27f1db1c",
+  "reviewedBaseCommit": "44b5be9b1e05eded8243b9a617f976e44ad49c6f",
+  "reviewedBaseTree": "404986ad84b7870ddfaa30669b263469982c0717",
+  "originalCount": 423,
+  "reviewedCount": 425,
+  "changedCount": 35,
+  "addedCount": 2,
+  "unchangedCount": 388,
+  "stalePinsAtStart": 0,
+  "reviewedManifestSha256": "c8439b32a36cb6a76927ba4f968b08b909745286d9d80888923b2fc700d2f1c0",
+  "entries": [
+    {
+      "path": "index.html",
+      "beforeSha256": "9d76f164c7379858d60953264979b27e60a5e752a16fc14bcf337b4474ffe351",
+      "reviewedSha256": "20f3a33dd107462743acb852a7382cfb86d8082f2b9ed0ed6b29f59fd4503736",
+      "category": "boot-diagnostics",
+      "compatibility": "Load order/cache or read-only UI diagnostics; no production entrypoint added and no worker access to the real profile.",
+      "sourceCommits": [
+        "58f10a01a44b9d35a063d5f9e13290ff56d8cac7",
+        "9436f47e0bea612afa7006855a3e270686bbe00f",
+        "81d85fb895c50bf0388fb3e7968dfac07d555e4d",
+        "7187f6f738954d83eb091bca99306d59d8c03b82",
+        "71603cc94e5720d021f90255a7cb18ea2de1a6d0",
+        "06f117722a2479f62a490aab473ffe0f7a62a81c",
+        "726bb8b1c02127120552be298daea4a3fd3729a4"
+      ]
+    },
+    {
+      "path": "js/app/investor/investors-local-repository.js",
+      "beforeSha256": "f1aa1f99bd6d3f9063fa052f27bdfd262904cb8a60326bdd873943da1a7c2c92",
+      "reviewedSha256": "cef1d9e1da6038f9c541908f4a39990befb06516ab94812b99fe3f074b92997a",
+      "category": "owner-session",
+      "compatibility": "Owner-scoped v4 baseline, confirmed pointer and guarded writes; export still refuses active/unconfirmed sessions. Legacy payloads remain guarded.",
+      "sourceCommits": [
+        "06f117722a2479f62a490aab473ffe0f7a62a81c"
+      ]
+    },
+    {
+      "path": "js/app/investor/project-autosave.js",
+      "beforeSha256": "64f32def23080ae1e906f5e71b2ff3dee565d82df57ca95cadb3dcba087d009f",
+      "reviewedSha256": "06d508cf917a0126308a6f1c69abc7ce0fdad84c41f390226da4e87dc4fae1e8",
+      "category": "owner-session",
+      "compatibility": "Owner-scoped v4 baseline, confirmed pointer and guarded writes; export still refuses active/unconfirmed sessions. Legacy payloads remain guarded.",
+      "sourceCommits": [
+        "726bb8b1c02127120552be298daea4a3fd3729a4"
+      ]
+    },
+    {
+      "path": "js/app/investor/session.js",
+      "beforeSha256": "aec2ee2ae180635b9c2847645e272c8af8cdc4515963ed1efe65e159d2e1d173",
+      "reviewedSha256": "3eda0fed710959d9b424277907de3b84c319c5ee4d687f6a3bc2f036cae3acc7",
+      "category": "owner-session",
+      "compatibility": "Owner-scoped v4 baseline, confirmed pointer and guarded writes; export still refuses active/unconfirmed sessions. Legacy payloads remain guarded.",
+      "sourceCommits": [
+        "58f10a01a44b9d35a063d5f9e13290ff56d8cac7",
+        "9436f47e0bea612afa7006855a3e270686bbe00f",
+        "81d85fb895c50bf0388fb3e7968dfac07d555e4d"
+      ]
+    },
+    {
+      "path": "js/app/project/project-domain-operations.js",
+      "beforeSha256": "608bffe9b0f870311c953b7aa7a396b93cde70c47078e359dc53b08bdf1ae12f",
+      "reviewedSha256": "e33a310ebdfb9253972206d1ccd65e44af5de2e0fbff823de407033e52293e9b",
+      "category": "status-history",
+      "compatibility": "Recovery/default normalization and immutable offers; pending operations still refuse export, no implicit rollback.",
+      "sourceCommits": [
+        "71603cc94e5720d021f90255a7cb18ea2de1a6d0"
+      ]
+    },
+    {
+      "path": "js/app/project/project-pcv-overrides.js",
+      "beforeSha256": "8eaa54105d644c0cd0b04c915509a6e8aa217a14201ab3fbb0c7ba793f1595a6",
+      "reviewedSha256": "32f7dfeac4e5b9e9a401a5104c1fc1617347bb1686688cba29b92fc0c61e2621",
+      "category": "project-pcv",
+      "compatibility": "Exact project/investor and confirmed RAM resolution; fixture overrides and canonical payload must remain byte-identical.",
+      "sourceCommits": [
+        "7187f6f738954d83eb091bca99306d59d8c03b82"
+      ]
+    },
+    {
+      "path": "js/app/project/project-pcv-resolver.js",
+      "beforeSha256": "930f13908c63d63d1fbbce9896ee103e4c187af587d306a8540f726755412e36",
+      "reviewedSha256": "a6b27b5183ceb6c4f9c7e22523cbcad7f35f8a5e97127f11fdabaa7f6e0492c3",
+      "category": "project-pcv",
+      "compatibility": "Exact project/investor and confirmed RAM resolution; fixture overrides and canonical payload must remain byte-identical.",
+      "sourceCommits": [
+        "7187f6f738954d83eb091bca99306d59d8c03b82"
+      ]
+    },
+    {
+      "path": "js/app/project/project-status-sync.js",
+      "beforeSha256": "0ee312481845e1c442c80657e0947a950f7f664b89981cc92523c050a5597576",
+      "reviewedSha256": "40287a14bf580bb85aaa9320c9e381e1308b97b2adaf884f8271096b687d9ecd",
+      "category": "status-history",
+      "compatibility": "Recovery/default normalization and immutable offers; pending operations still refuse export, no implicit rollback.",
+      "sourceCommits": [
+        "71603cc94e5720d021f90255a7cb18ea2de1a6d0"
+      ]
+    },
+    {
+      "path": "js/app/project/project-store.js",
+      "beforeSha256": "4154edea934c9f9bae389b50b9ae2befe3f26145281500b896132303abaf3ff5",
+      "reviewedSha256": "dc973182d81a9ea3d07e8e2b8fffbab95355b880ccc9a259ddad9839a0647c53",
+      "category": "owner-session",
+      "compatibility": "Owner-scoped v4 baseline, confirmed pointer and guarded writes; export still refuses active/unconfirmed sessions. Legacy payloads remain guarded.",
+      "sourceCommits": [
+        "58f10a01a44b9d35a063d5f9e13290ff56d8cac7",
+        "06f117722a2479f62a490aab473ffe0f7a62a81c"
+      ]
+    },
+    {
+      "path": "js/app/quote/quote-offer-store.js",
+      "beforeSha256": "9d2a06b80dfde588a0dbe97f4752727ffd1d2aa8deeb22833b06a11dab0c8020",
+      "reviewedSha256": "b472cb82b07959fefe3c9d2d8249bd3cf8b70da80ba69212cf6f3e1d0fe684af",
+      "category": "status-history",
+      "compatibility": "Recovery/default normalization and immutable offers; pending operations still refuse export, no implicit rollback.",
+      "sourceCommits": [
+        "06f117722a2479f62a490aab473ffe0f7a62a81c"
+      ]
+    },
+    {
+      "path": "js/app/rozrys/rozrys-engine.js",
+      "beforeSha256": "615f50393241738b288a92480d8e0d96a49c3a7f4c821f8abcf9ebbc6909ac84",
+      "reviewedSha256": "d027a089326f2005759a8d5c01e956a30e2b79f3b259a3c8394ca5330b5fd9e7",
+      "category": "project-source",
+      "compatibility": "Authoritative owner/project replaces richness heuristics; no cross-investor override. Synthetic source is isolated.",
+      "sourceCommits": [
+        "06f117722a2479f62a490aab473ffe0f7a62a81c"
+      ]
+    },
+    {
+      "path": "js/app/rozrys/rozrys-lazy-manifest.js",
+      "beforeSha256": "551a8d7471258ec41e096b5a7f3b106f9db4e7066aa77f6ed5f83faa88df8327",
+      "reviewedSha256": "4d3ca2d18f8787f188ae229e9199fec43b8b4e91ccf06148ea66e6b4b027d1e5",
+      "category": "project-source",
+      "compatibility": "Authoritative owner/project replaces richness heuristics; no cross-investor override. Synthetic source is isolated.",
+      "sourceCommits": [
+        "06f117722a2479f62a490aab473ffe0f7a62a81c"
+      ]
+    },
+    {
+      "path": "js/app/rozrys/rozrys-project-source.js",
+      "beforeSha256": "998eb97aa680a1dd2ee62db392dbccae12e511c0939a1a8256692d8334316920",
+      "reviewedSha256": "0e18f6826643657f1e87c9246dd3e9eb326464adfcd0f0f2ddaf4be764fe6cc4",
+      "category": "project-source",
+      "compatibility": "Authoritative owner/project replaces richness heuristics; no cross-investor override. Synthetic source is isolated.",
+      "sourceCommits": [
+        "06f117722a2479f62a490aab473ffe0f7a62a81c"
+      ]
+    },
+    {
+      "path": "js/app/rozrys/rozrys-runner.js",
+      "beforeSha256": "2e57746bd1965c5839fbe3c1acc2ae61115de8cc3c2a2684f57de052f20008bf",
+      "reviewedSha256": "c2c9c5840864da099056436a7cb5da5d9a0e8d32dbde362c419d811e38f54627",
+      "category": "project-source",
+      "compatibility": "Authoritative owner/project replaces richness heuristics; no cross-investor override. Synthetic source is isolated.",
+      "sourceCommits": [
+        "06f117722a2479f62a490aab473ffe0f7a62a81c"
+      ]
+    },
+    {
+      "path": "js/app/ui/actions-register.js",
+      "beforeSha256": "3f1a55191306b326bbb73cb155b4edb6d220786a84817a9b85a5931e56295664",
+      "reviewedSha256": "2bf591acd9929af80536f712e3b69c34b6ebde121a0a3a23ab112d63ddef41d3",
+      "category": "boot-diagnostics",
+      "compatibility": "Load order/cache or read-only UI diagnostics; no production entrypoint added and no worker access to the real profile.",
+      "sourceCommits": [
+        "9436f47e0bea612afa7006855a3e270686bbe00f",
+        "81d85fb895c50bf0388fb3e7968dfac07d555e4d"
+      ]
+    },
+    {
+      "path": "js/app/ui/bindings.js",
+      "beforeSha256": "f5e15ebf4c2e0046bf469f0298302a578654eda359d16cab77462c5f17d99386",
+      "reviewedSha256": "ff388088cc25a2ef0fd13e354e79ca4abbdf4f4d85eba353072cb4932b911b11",
+      "category": "boot-diagnostics",
+      "compatibility": "Load order/cache or read-only UI diagnostics; no production entrypoint added and no worker access to the real profile.",
+      "sourceCommits": [
+        "7187f6f738954d83eb091bca99306d59d8c03b82"
+      ]
+    },
+    {
+      "path": "js/app/ui/info-box.js",
+      "beforeSha256": "d9ee1cb1e1afc26f446e846e9803037dbf1393768ae78ddcd31f8675874f2654",
+      "reviewedSha256": "85587e4375d5160733e832258721899273430bf4e1cc17ad8966678779aa3167",
+      "category": "boot-diagnostics",
+      "compatibility": "Load order/cache or read-only UI diagnostics; no production entrypoint added and no worker access to the real profile.",
+      "sourceCommits": [
+        "9436f47e0bea612afa7006855a3e270686bbe00f"
+      ]
+    },
+    {
+      "path": "js/app/ui/session-navigation.js",
+      "beforeSha256": "dc06cfc1d8c412560a6f93059b9ae72c6e052f49ad3c9592586a9605d5c74c6b",
+      "reviewedSha256": "c40d4b4d1060ac70b83a2932a96fa4c10f47bdf407a4b0653a2547607560c384",
+      "category": "calculation-context",
+      "compatibility": "Context/revision checks across awaits and guarded recovery; worker does not invoke navigation or recover real data.",
+      "sourceCommits": [
+        "9436f47e0bea612afa7006855a3e270686bbe00f",
+        "81d85fb895c50bf0388fb3e7968dfac07d555e4d",
+        "06f117722a2479f62a490aab473ffe0f7a62a81c"
+      ]
+    },
+    {
+      "path": "js/app/wycena/wycena-context-repair.js",
+      "beforeSha256": "058eff23eff39fd5176a9ff2a5e7c1af1d481ef8f92f07ea5ecd4c3557464b5e",
+      "reviewedSha256": "62fb96e6324640b2cf3326648590bd22b2a6b6b2812fbaed7460c1aad039af05",
+      "category": "calculation-history",
+      "compatibility": "Read-only rendering, stable calculation context and request-local reuse. No quote generation in the pilot; preserve existing frozen snapshots.",
+      "sourceCommits": [
+        "06f117722a2479f62a490aab473ffe0f7a62a81c"
+      ]
+    },
+    {
+      "path": "js/app/wycena/wycena-core-material-plan.js",
+      "beforeSha256": "db3c833a396d03f9abb21d258faa5f87ea1cf3ce69326772f0333612529a4d51",
+      "reviewedSha256": "a268b99d5284324190062cd9eda95330870d3a56ae6b0172d4cf1474c3e11693",
+      "category": "calculation-history",
+      "compatibility": "Read-only rendering, stable calculation context and request-local reuse. No quote generation in the pilot; preserve existing frozen snapshots.",
+      "sourceCommits": [
+        "06f117722a2479f62a490aab473ffe0f7a62a81c"
+      ]
+    },
+    {
+      "path": "js/app/wycena/wycena-core.js",
+      "beforeSha256": "9af9bdf28e7b7b781f8f079bc8093bc4ea5cdeb01f3fec223550a89faf280e6d",
+      "reviewedSha256": "b75294fd02a5b79849f99e069a699a3b2fd92da0920da4ca14834f9db5becfa6",
+      "category": "calculation-history",
+      "compatibility": "Read-only rendering, stable calculation context and request-local reuse. No quote generation in the pilot; preserve existing frozen snapshots.",
+      "sourceCommits": [
+        "06f117722a2479f62a490aab473ffe0f7a62a81c"
+      ]
+    },
+    {
+      "path": "js/app/wycena/wycena-diagnostics.js",
+      "beforeSha256": "58623a3a3af7b7545385299381e8f324277014b4feac9fb9df114461ea518fab",
+      "reviewedSha256": "40f94a5a439b5309d11a0bc545eef018c30285916ad85e1c43d1bde475c975e7",
+      "category": "calculation-history",
+      "compatibility": "Read-only rendering, stable calculation context and request-local reuse. No quote generation in the pilot; preserve existing frozen snapshots.",
+      "sourceCommits": [
+        "06f117722a2479f62a490aab473ffe0f7a62a81c"
+      ]
+    },
+    {
+      "path": "js/app/wycena/wycena-tab-history.js",
+      "beforeSha256": "f7592f34f350a3f0647c0c63e5aaae2e1c22a471d2adb991cf5f66a2fb93246a",
+      "reviewedSha256": "0c30abb8413f1d2cb9d5cb327b123db3a30ac6b8de6472b51ca28cc396f8674a",
+      "category": "calculation-history",
+      "compatibility": "Read-only rendering, stable calculation context and request-local reuse. No quote generation in the pilot; preserve existing frozen snapshots.",
+      "sourceCommits": [
+        "726bb8b1c02127120552be298daea4a3fd3729a4"
+      ]
+    },
+    {
+      "path": "js/app/wycena/wycena-tab-shell.js",
+      "beforeSha256": "70baed34b6ae0cb2c2e04a01dd5b3ad13697fbdcef10889c57ebe044a3e049bc",
+      "reviewedSha256": "fce6f70cbb4fc3f1d178bf545b7527d805d926d1aa4b5b22aebe9290e49cdbf2",
+      "category": "calculation-history",
+      "compatibility": "Read-only rendering, stable calculation context and request-local reuse. No quote generation in the pilot; preserve existing frozen snapshots.",
+      "sourceCommits": [
+        "7187f6f738954d83eb091bca99306d59d8c03b82",
+        "06f117722a2479f62a490aab473ffe0f7a62a81c",
+        "726bb8b1c02127120552be298daea4a3fd3729a4"
+      ]
+    },
+    {
+      "path": "js/app.js",
+      "beforeSha256": "353841fa3d685cadbf644e33627141e8d71548a546e16050be94f6272ffee0d0",
+      "reviewedSha256": "b02a3ba5394b4eec520d6aa91c8dec23946e6190538a6e296ef1f949e4149fe9",
+      "category": "boot-diagnostics",
+      "compatibility": "Load order/cache or read-only UI diagnostics; no production entrypoint added and no worker access to the real profile.",
+      "sourceCommits": [
+        "726bb8b1c02127120552be298daea4a3fd3729a4"
+      ]
+    },
+    {
+      "path": "js/main-login.js",
+      "beforeSha256": "6b6aeb7ffb8dc10664b5ae7a0cf5af10f0b5dcf7b130ed829798f23438fff7f3",
+      "reviewedSha256": "061d9f4364625cfc53f4280dac74cfb18ae487624fa97393f40cfcb6aa12c103",
+      "category": "auth-compiler",
+      "compatibility": "Fresh Auth/lease stays lexical and fail-closed; compiler pin already follows main. No general LIVE transport.",
+      "sourceCommits": [
+        "7187f6f738954d83eb091bca99306d59d8c03b82"
+      ]
+    },
+    {
+      "path": "js/testing/rozrys/suites/project-stock.js",
+      "beforeSha256": "e078ddb96271d5002042ef45bbbc4d82b4749c8b478efc3f17c07a0064d5f6e0",
+      "reviewedSha256": "ce8eea9f952bf2477b4519a84f6ec4368284b62c52efc30df74e3389c55c58fd",
+      "category": "regression-only",
+      "compatibility": "Regression/fixture changes do not execute in the isolated synthetic source; preserve current references.",
+      "sourceCommits": [
+        "06f117722a2479f62a490aab473ffe0f7a62a81c"
+      ]
+    },
+    {
+      "path": "js/testing/wycena/fixtures.js",
+      "beforeSha256": "c34a5be195018bd150cca9e187744b7adf062bf89c9423a1e16024f2c23f0517",
+      "reviewedSha256": "b0678749c9ec6659b5dfecb382df67e43fdc50692f158850efcbd7db7982f4c2",
+      "category": "regression-only",
+      "compatibility": "Regression/fixture changes do not execute in the isolated synthetic source; preserve current references.",
+      "sourceCommits": [
+        "71603cc94e5720d021f90255a7cb18ea2de1a6d0"
+      ]
+    },
+    {
+      "path": "js/testing/wycena/suites/architecture-contract.js",
+      "beforeSha256": "77cb868e2639905353b4f4bd2a5fb648663acd6cfdc63b447b32e4ba8676cbb1",
+      "reviewedSha256": "a3c2e9fe06b5b432264a427f88ebb01a6621084d45107c507e4b1c42c9dc66f1",
+      "category": "regression-only",
+      "compatibility": "Regression/fixture changes do not execute in the isolated synthetic source; preserve current references.",
+      "sourceCommits": [
+        "71603cc94e5720d021f90255a7cb18ea2de1a6d0"
+      ]
+    },
+    {
+      "path": "js/testing/wycena/suites/core-offer-basics.js",
+      "beforeSha256": "099ef9883ee965d7000333ea0de6fd798dd5812fc788bc877bb63b4c96f7a678",
+      "reviewedSha256": "b4bdec2f7366bae0b6b84b71dfdca8ee940b89f236563676aa887949e12c2207",
+      "category": "regression-only",
+      "compatibility": "Regression/fixture changes do not execute in the isolated synthetic source; preserve current references.",
+      "sourceCommits": [
+        "71603cc94e5720d021f90255a7cb18ea2de1a6d0"
+      ]
+    },
+    {
+      "path": "js/testing/wycena/suites/core-offer-workflow.js",
+      "beforeSha256": "7fb83a763195c72cfcbd2bfdb8548488f9bbf874826ef7b0bbb212fe34dac656",
+      "reviewedSha256": "831ffb8f18fdd0cea05f0103344d5935436a698bc1eec5251c7be7635023835d",
+      "category": "regression-only",
+      "compatibility": "Regression/fixture changes do not execute in the isolated synthetic source; preserve current references.",
+      "sourceCommits": [
+        "71603cc94e5720d021f90255a7cb18ea2de1a6d0"
+      ]
+    },
+    {
+      "path": "js/testing/wycena/suites/cross-systems.js",
+      "beforeSha256": "30ebc8e184e413075c8d269cba041b34835512e84b79615a8d1f0bca1ae9cac9",
+      "reviewedSha256": "8c7e08606f6e83b1b927ea4b6c3d1087c8ed0622893cc03713ae6b59d1665ede",
+      "category": "regression-only",
+      "compatibility": "Regression/fixture changes do not execute in the isolated synthetic source; preserve current references.",
+      "sourceCommits": [
+        "71603cc94e5720d021f90255a7cb18ea2de1a6d0"
+      ]
+    },
+    {
+      "path": "js/testing/wycena/suites/scope-entry.js",
+      "beforeSha256": "da69c3eefad29c425179eb2a7b49a52a37f5d3bb13ef16b5471597e9d02046e7",
+      "reviewedSha256": "0dc798185ff87ec8764ed3aa12152ebe1330293cf36846c7d3fd508d12cfbc55",
+      "category": "regression-only",
+      "compatibility": "Regression/fixture changes do not execute in the isolated synthetic source; preserve current references.",
+      "sourceCommits": [
+        "71603cc94e5720d021f90255a7cb18ea2de1a6d0"
+      ]
+    },
+    {
+      "path": "js/testing/wycena/suites/snapshot-scope-contract.js",
+      "beforeSha256": "52cf2341c4a6f9b3366beea0b216e01080c5906471f7cbeda0677c89b5ba1e47",
+      "reviewedSha256": "18c5e0df4b5606684e13fc3b011df03ab09d3e6dd46939e10ca56969c2822edb",
+      "category": "regression-only",
+      "compatibility": "Regression/fixture changes do not execute in the isolated synthetic source; preserve current references.",
+      "sourceCommits": [
+        "71603cc94e5720d021f90255a7cb18ea2de1a6d0"
+      ]
+    },
+    {
+      "path": "tools/firebase-pilot/private-pilot-source.js",
+      "beforeSha256": "6004e53119c59e5ac1ad9a63eadb96383df4c23065f447ab8c3075bbcabd3b2b",
+      "reviewedSha256": "716982fddae59107e8a30a9019a6ebfa24eb90403d76bc374c2044eb25197359",
+      "category": "auth-compiler",
+      "compatibility": "Fresh Auth/lease stays lexical and fail-closed; compiler pin already follows main. No general LIVE transport.",
+      "sourceCommits": [
+        "7187f6f738954d83eb091bca99306d59d8c03b82"
+      ]
+    },
+    {
+      "path": "js/app/ui/session-diagnostics-readonly.js",
+      "beforeSha256": null,
+      "reviewedSha256": "ed3a7201e5c6ee9787ae7eef95bd4a953d8c535cd39f43730f467a2e9d16acf8",
+      "category": "boot-diagnostics",
+      "compatibility": "Load order/cache or read-only UI diagnostics; no production entrypoint added and no worker access to the real profile.",
+      "sourceCommits": [
+        "58f10a01a44b9d35a063d5f9e13290ff56d8cac7",
+        "9436f47e0bea612afa7006855a3e270686bbe00f"
+      ]
+    },
+    {
+      "path": "js/app/ui/session-diagnostics.js",
+      "beforeSha256": null,
+      "reviewedSha256": "301def42a8804d23d8a74c36c55ee8d7eb1701f62a09c2674184a212de5f559b",
+      "category": "boot-diagnostics",
+      "compatibility": "Load order/cache or read-only UI diagnostics; no production entrypoint added and no worker access to the real profile.",
+      "sourceCommits": [
+        "9436f47e0bea612afa7006855a3e270686bbe00f"
+      ]
+    }
+  ],
+  "compatibilityEvidence": [
+    "tools/cloud4-pilot-readiness-smoke.js",
+    "tools/cloud41-private-pilot-smoke.js",
+    "tools/cloud42-live-preparation-smoke.js",
+    "tools/firebase-pilot/live-readiness.test.mjs",
+    "tools/firebase-pilot/auth-browser.test.mjs",
+    "tools/firebase-pilot/cloud42-plan.test.mjs",
+    "tools/preflight.js"
+  ]
+}
