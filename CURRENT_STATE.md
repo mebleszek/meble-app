@@ -1,5 +1,21 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## Rozmiar sesji i niepotwierdzony wskaźnik — pakiet po main `0cb7044`
+
+Zweryfikowany main: `0cb7044e5feec71d462354efc501dc9e4278cdb6`; poprzednia
+diagnostyka sesji jest już w tej bazie, jej nagłówki robocze poniżej są historią.
+`fix/session-begin-storage-proof` odtwarza natywny QuotaExceededError dla
+snapshotu całego magazynu i niezależny fałszywy latch po odmowie zbędnego
+zapisu tego samego currentProjectId. Nowa sesja v4 zachowuje pełnego właściciela,
+nie cudze projekty; potwierdzony wskaźnik nie wymaga ponownego zapisu.
+Stare payloady/guardy i niepewne zapisy pozostają chronione; bez migracji,
+czyszczenia, rollbacku ani gwarancji rozpoznania konkretnej przyczyny na Pixelu.
+[Pomiary, reprodukcje i ograniczenia](tools/reports/session-storage-pressure-fix.md).
+Regresje 13/17 → 17/17, natywna quota/Chromium 6/6, mobilne scenariusze
+biznesowe 13/13 i diagnostyka 6/6 PASS. Auth 37/37 i main-login 36/36 PASS.
+Końcowy PRE-FLIGHT PASS: 136/136 smoke, APP 110/110, składnia 579/579.
+Bez PR, merge, Pages i Firebase LIVE.
+
 ## Diagnostyka zablokowanej sesji w aplikacji — bez wydania
 
 Kontynuacja `fix/durable-session-recovery` po `47d20b0`, baza main nadal

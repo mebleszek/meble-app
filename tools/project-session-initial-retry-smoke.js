@@ -116,11 +116,12 @@ test('Initial session write with a lost read-back can resume only from the ident
     assert.equal(r.FC.session.begin('room_k'),false);
     assert.equal(r.FC.session.durable,false);assert.ok(get(E));
     r.storage.hook=null;const raw=get(P),snapshot=r.FC.session.snapshot;
+    assert.deepEqual(JSON.parse(get(E)).snapshot,JSON.parse(JSON.stringify(snapshot)));
     const client=restart?fixture(r.seed()):r;
     assert.equal(await act(client,'navigation'),true);
     assert.equal(client.FC.session.active,false);assert.equal(client.storage.getItem(E),null);
     assert.equal(client.storage.getItem(P),raw);
-    assert.equal(snapshot[P],raw);
+    assert.equal(snapshot[P],JSON.stringify([JSON.parse(raw).find(row=>row.id==='P')]));
   }
 });
 test('Lost session acknowledgement of a successful project write remains blocked, including after restart',async()=>{

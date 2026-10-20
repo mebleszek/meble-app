@@ -20,6 +20,7 @@
   // RAM-only evidence: this document attempted the initial baseline write.
   // A restored/contradictory payload must never acquire this retry permission.
   let initialBeginPending = false;
+  let persistFailureCode = 'SESSION_WRITE_UNCONFIRMED';
 
   function canSnapshotKey(key){ return SNAPSHOT_KEYS.has(key); }
   function getKeysToSnapshot(){ return Array.from(SNAPSHOT_KEYS); }
@@ -278,7 +279,12 @@
       }
       if(localStorage.setItem(key, raw) === false) return false;
       return localStorage.getItem(key) === String(raw);
-    }catch(_){ return false; }
+    }catch(error){
+      if(key === SESSION_STORAGE_KEY) persistFailureCode = error && error.name === 'QuotaExceededError'
+        ? 'SESSION_QUOTA_EXCEEDED' : error && error.name === 'SecurityError'
+          ? 'SESSION_STORAGE_DENIED' : 'SESSION_STORAGE_WRITE_FAILED';
+      return false;
+    }
   }
 
   function invalidateDirtyCache(){
@@ -485,6 +491,7 @@
   }
 
   function persistSession(){
+    persistFailureCode = 'SESSION_WRITE_UNCONFIRMED';
     try{
       return withTrackingSuspended(()=> {
         const payload = {
@@ -504,7 +511,7 @@
         }
         return writeRaw(SESSION_STORAGE_KEY, JSON.stringify(payload));
       });
-    }catch(_){ return false; }
+    }catch(_){ persistFailureCode = 'SESSION_SERIALIZATION_FAILED'; return false; }
   }
 
   function notifyBeginFailure(){
@@ -612,6 +619,10 @@
           notifyBlocked(session.lastError.message);
           return false;
         }
+        // v4 restores only this owner. Preserve its full record and unknown
+        // fields in the existing JSON-array format, without unrelated investors.
+        // Restored payloads and retries keep their original snapshot bytes.
+        snap[PROJECTS_KEY] = JSON.stringify(projectRows(snap[PROJECTS_KEY]).filter(row=>String(row.id) === session.projectId));
         // Only bind room ownership when the room exists in the durable baseline.
         // Structural room creation/deletion remains outside this edit scope.
         const owner = JSON.parse(ownerRaw(snap[PROJECTS_KEY]));
@@ -642,7 +653,10 @@
       if(session.durable) return true;
       session.durable = persistSession();
       initialBeginPending = !session.durable;
-      if(!session.durable) notifyBeginFailure();
+      if(!session.durable){
+        fail(persistFailureCode, 'Nie udało się zapisać stanu potrzebnego do bezpiecznego cofnięcia zmian.');
+        notifyBeginFailure();
+      }
       else beginFailureNotified = false;
       return session.durable;
     },
