@@ -1,5 +1,94 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
+## LOCAL-FIRST
+
+**Decyzja właściciela z 21.10.2026 — wymagania przyszłej implementacji, JESZCZE NIEWDROŻONE:** LOCAL-FIRST + AUTOMATYCZNA SYNCHRONIZACJA + JEDEN AKTYWNY EDYTOR NA PROJEKT + BEZPIECZNA PRACA OFFLINE. Baza tego pakietu dokumentacyjnego: main `94145f57ff59a19d54c4f8511e527e75b3b04c08`.
+
+To kanoniczny kontrakt docelowego modelu. [ROADMAP](ROADMAP.md#local-first) określa zależności i bramki, a [CURRENT_STATE](CURRENT_STATE.md#local-first) oddziela decyzję od obecnego działania. Starsze sformułowania o chmurze jako jedynym trwałym autorytecie i bezwarunkowej aktualności każdego urządzenia są historią wcześniejszego planu; pierwszeństwo ma ten kontrakt. Rejestr własności danych pozostaje w [CLOUD_DATA_REGISTER.md](CLOUD_DATA_REGISTER.md), a istniejące ograniczenia kopii ratunkowych w [BACKUP.md](BACKUP.md). Nie tworzymy drugiego rejestru decyzji ani nie zmieniamy historycznego Draft PR #41.
+
+### Jeden model projektu i potwierdzenia zapisu
+
+- Jeden projekt ma jeden kanoniczny model, stabilnego właściciela i tożsamość inwestor → projekt → pomieszczenia. RAM, projekcje inwestora, legacy sloty i cache nie są niezależnymi autorytetami. Dziś kanoniczny zapis nadal stanowi `fc_projects_v1`; ten dokument niczego nie przełącza.
+- Docelowo każda zatwierdzona zmiana jest najpierw bezpiecznie utrwalana na urządzeniu w **IndexedDB**, wraz z trwałym obowiązkiem synchronizacji. Kontrakt transakcji musi wykluczać stan „potwierdzony projekt bez odzyskiwalnej kolejki” oraz uznanie samej kolejki za dowód zapisu projektu. Fizyczny schemat magazynów i protokół migracji wymagają osobnego projektu, testów i zgody.
+- Internet nie może być warunkiem zapisania zatwierdzonej szafki, blendy, szuflady ani innych danych projektu w uprzednio dopuszczonym do pracy środowisku. `Zapisz/Anuluj` i izolacja sesji pozostają: draft nie jest samoczynnie zatwierdzany, anulowany ani wysyłany jako zakończona edycja. Zabezpieczenie lokalnej pracy nie może zależeć od powodzenia publikacji sieciowej.
+- Po potwierdzeniu lokalnym publikacja do Firebase następuje automatycznie przy dostępnym połączeniu i ważnych uprawnieniach. Nie wymagamy ręcznego „Synchronizuj”, eksportu ani importu podczas normalnej pracy. Oczekująca zmiana pozostaje chroniona aż do wiarygodnego potwierdzenia właściwej wersji.
+- Potwierdzenie lokalne dotyczy konkretnej zatwierdzonej wersji na konkretnym urządzeniu. Potwierdzenie chmury dotyczy konkretnej wspólnej rewizji. Lokalna praca jeszcze niewysłana nie może zostać zastąpiona pobraną wersją tylko dlatego, że serwer jest dostępny. Chmura służy uzgadnianiu i udostępnianiu potwierdzonych rewizji między urządzeniami; nie jest warunkiem lokalnego zapisu ani dowodem aktualności każdej lokalnej kopii. To różne stany tego samego modelu, nie dwa konkurencyjne źródła wybierane heurystycznie.
+- Nie sygnalizować sukcesu przed rzeczywistym potwierdzeniem odpowiedniego zapisu. Niepewna publikacja wymaga ustalenia wyniku przez kontrolowany odczyt rewizji/identyfikatora operacji, nie ślepego retry, nowego ID, importu lub nadpisania. Przyszła kolejka musi rozróżniać bezpieczne wznowienie po odzyskaniu sieci od ponownego wykonania operacji o nieznanym wyniku; protokół identyfikacji i deduplikacji pozostaje do zaprojektowania.
+
+### Urządzenia i jeden aktywny edytor
+
+- Obsługujemy telefon, tablet i komputer. Projekt zapisany i potwierdzony w chmurze może być automatycznie pobrany na inne uprawnione urządzenie. Wyłączone urządzenie nie musi działać w tle; po uruchomieniu online ma uzgodnić lokalne oczekujące zmiany i pobrać aktualny stan bez ich cichego zastąpienia.
+- Ten sam projekt może być dostępny na wielu urządzeniach, ale tylko jedno jednocześnie ma prawo edycji. Pozostałe mają podgląd tylko do odczytu, jeśli posiadają wymagane dane i uprawnienia. Nie wdrażamy jednoczesnej edycji przez wielu projektantów.
+- Przekazanie prawa edycji wymaga ochrony draftów, niepotwierdzonych zapisów i lokalnie zatwierdzonych zmian oczekujących na synchronizację. Sama dostępność kopii na innym urządzeniu nie daje prawa edycji. Zakres wyłączności dotyczy całego projektu; nie znosi istniejącej pokojowej izolacji lokalnej sesji `Zapisz/Anuluj`.
+- Utrata internetu nie może pozwolić innemu urządzeniu po cichu nadpisać pracy offline. Wygaśnięcie znacznika czasu lub lease nie dowodzi zakończenia pracy poprzednika, braku lokalnych zmian ani zwolnienia edytora. Nie wolno traktować obecnego Auth lease lub operatorskiej blokady rehearsal CLOUD-4.4 jako gotowego międzyurządzeniowego protokołu edycji.
+- Awaryjne przejęcie po utracie urządzenia wymaga bezstratnego zachowania znanych konkurujących wersji i kontrolowanego rozstrzygnięcia konfliktu. Nie można obiecywać natychmiastowego odzyskania niezsynchronizowanych bajtów z niedostępnego urządzenia ani dowieść jego zatrzymania samym timeoutem. Protokół musi chronić jego wersję po powrocie i odmówić publikacji ze starym prawem edycji zamiast nadpisać nową linię zmian. Jeżeli zachowania jedynej kopii lub bezpiecznej wyłączności nie da się dowieść, przejęcie pozostaje zablokowane; szczegóły są bramką przyszłej implementacji.
+
+### Praca offline i bezpieczeństwo dostępu
+
+- Aplikacja ma uruchamiać się offline w uprzednio przygotowanym środowisku, a także pozwalać kontynuować pracę po nagłej utracie sieci, jeśli dostępne są kompletne dane i spełnione warunki dostępu oraz prawa edycji. Potrzebna jest dostępność właściwej wersji samej aplikacji, nie tylko JSON projektu; mechanizmu przygotowania runtime nie wybieramy w tym zadaniu.
+- Zatwierdzone zmiany offline trafiają do trwałego lokalnego magazynu i kolejki. Zamknięcie aplikacji lub restart nie może kasować potwierdzonych lokalnie zmian. Po odzyskaniu internetu synchronizacja rusza automatycznie, z weryfikacją wersji, uprawnień, wyłączności i wyniku wcześniejszych operacji. Konflikt lub niepewność wstrzymuje publikację, nie usuwa pracy.
+- Obecne logowanie wymaga świeżego potwierdzenia serwerowego; zapis w IndexedDB technicznego profilu dostępu nie udziela samodzielnie prawa pracy offline. Potrzebny jest osobno zatwierdzony kontrakt dopuszczenia offline, czasu i zakresu uprawnień, wznowienia oraz cofnięcia dostępu. Brak sieci uniemożliwia bieżące sprawdzenie odwołania uprawnień na serwerze — granic tej gwarancji nie wolno ukrywać. Nie wydłużamy obecnego Auth TTL, nie używamy wygasłego dowodu i nie obchodzimy Google Auth ani Rules.
+
+### Dostępność offline na konkretnym urządzeniu
+
+Docelowo przewidujemy pomocniczą opcję **„Dostępny offline”** przy projekcie. Pozwala przygotować projekt i komplet wymaganych zależności na wskazanym telefonie, tablecie lub komputerze. To przyszły zakres UX, nie obecna zmiana UI i nie obowiązkowy przycisk synchronizacji.
+
+- Gotowość offline musi wskazywać konkretne urządzenie, wersję projektu, zgodne wersje zależności oraz przygotowany runtime. Nie oznacza przekazania prawa edycji.
+- Potwierdzenie chmury **nie dowodzi**, że zamknięty lub odłączony telefon ma tę wersję offline. Brak pobrania nowej wersji nie może być przedstawiany jako aktualność. Starsza dostępna kopia i najnowsza potwierdzona rewizja muszą być rozróżniane.
+- Gdy offline brakuje projektu lub wymaganych danych, należy odmówić operacji wymagającej tych danych. Nie tworzyć pozornej „najnowszej” wersji ze starego RAM, seedów, pustych katalogów ani legacy slotu. Przygotowanie offline nie zastępuje automatycznej synchronizacji online.
+
+### IndexedDB, quota i ochrona jedynej kopii
+
+- Docelowo projektowe localStorage zastępuje IndexedDB projektów i kolejki po **bezstratnej, osobno zatwierdzonej migracji**. Nie wybieramy teraz schematu bazy, nie kopiujemy danych i nie czyścimy starych magazynów. Istniejąca baza `meble-access-profile-v1` to techniczny dowód profilu, nie biznesowy magazyn projektów, kolejka ani ich backup.
+- IndexedDB ma limity; transakcja może się nie udać, dostęp może być odmówiony, a przeglądarka może usunąć dane. Wymagane są potwierdzenia zakończenia transakcji i zgodności zapisu, obsługa quota, błędów odczytu/zapisu, utraty lokalnej bazy i procedura ratowania dostępnych danych. Restart nie jest dowodem trwałego backupu poza urządzeniem.
+- Nieudany zapis ma być jednoznacznie komunikowany. RAM z nowszą zmianą i starszy trwały rekord nie mogą dać WYCENIE pozoru aktualnego, potwierdzonego projektu. Odtworzenie z chmury wymaga sprawdzenia zakresu i nie może zastąpić jedynej lokalnej niesynchronizowanej wersji.
+- W przyszłym projekcie uwzględnić `navigator.storage.persist()` oraz oszacowanie pojemności, bez traktowania odmowy/zgody lub szacunku jako gwarancji nieutracalności i dostępnego miejsca. Bezpieczeństwo wymaga też uzgodnionej kopii ratunkowej/eksportu, z uwzględnieniem luk i prywatności opisanych w BACKUP.md.
+- Nigdy nie usuwać jedynej kopii niesynchronizowanych zmian. Nie wprowadzamy arbitralnego kasowania projektów po 7 ani 30 dniach. Przyszła polityka zwalniania miejsca musi odróżnić odtwarzalne, potwierdzone kopie od niezastępowalnych danych, draftów i operacji niepewnych. Istniejąca retencja backupów to odrębny mechanizm opisany w BACKUP.md; ten kontrakt jej nie zmienia i nie przenosi jej terminów na projekty lub kolejkę.
+
+### Kompletność danych biznesowych i zgodność wyników
+
+- Kopia na drugim urządzeniu/offline obejmuje zależności potrzebne do prawidłowego działania projektu: materiały i dekory, okucia, stawki, cenniki, katalogi, zamienniki, magazyn, ustawienia, słoje/rotację oraz właściwą wersję algorytmów. Sam transfer szafek nie dowodzi prawidłowej WYCENY. Kompletność i zgodność wersji trzeba potwierdzić przed zadeklarowaniem gotowości danego zakresu.
+- Zachować projektowe PCV i jego indywidualne nadpisania, rzeczywiste metry, dekor/kolor, **jeden zapas 10%**, referencję ROZRYSU **4/3/6**, kompatybilność starych danych, ID i relacje. Przy identycznych kompletnych wejściach, ustawieniach i algorytmach wyniki WYCENY/ROZRYSU muszą być identyczne.
+- Zamrożone oferty zachowują tożsamość, zakres, wersję, historyczne wartości i ceny; synchronizacja lub aktualizacja katalogów nie przelicza historii. Chronić również drafty i istniejące `Zapisz/Anuluj`, rewizje oraz trwałe intencje niedokończonych operacji. Nie importować ich automatycznie jako gotowej bieżącej sesji na innym urządzeniu.
+- Własność globalnych słojów/rotacji **Issue #47**, legacy PCV/overrides, aliasów katalogów i niejednoznacznych draftów nadal wymaga rozstrzygnięcia według CLOUD_DATA_REGISTER.md i raportu CLOUD-3. Nie przypisywać ich automatycznie do projektu i nie klasyfikować decyzji produkcyjnych jako usuwalnego cache. Globalne dane nie mogą mieć konkurencyjnych writerów tylko dlatego, że wyłączność ustalono dla projektu.
+- Ochrona danych klientów i firmy, sekretów i kopii ratunkowych pozostaje obowiązkowa. Nie przenosić pełnego backupu, tokenów Auth ani dowodu lokalnego profilu jako payloadu synchronizacji. Wykluczenia pilota CLOUD-4 nie ograniczają docelowej kompletności produktu, ale też nie upoważniają do transferu nowych domen.
+
+### Przyszłe statusy UX i podgląd klienta
+
+Poniższe komunikaty są **wymaganiami przyszłego UX, nie wdrożonym interfejsem**. Rozróżniają fakty, które mogą współistnieć; potwierdzony lokalny zapis nie oznacza potwierdzenia sieci ani aktualności pozostałych urządzeń.
+
+| Status | Wymagany dowód |
+|---|---|
+| „Zapisano lokalnie” | Potwierdzona lokalna wersja projektu i odzyskiwalny obowiązek synchronizacji na tym urządzeniu. |
+| „Oczekuje na synchronizację” | Trwała lokalna zmiana bez potwierdzenia jej publikacji w chmurze; nie oznacza utraty lokalnego zapisu. |
+| „Zapisano w chmurze” | Potwierdzona konkretna rewizja w Firebase; nie potwierdza pobrania przez inne urządzenia. |
+| „Gotowy offline na tym urządzeniu” | Sprawdzony lokalny komplet projektu, zależności i runtime dla wskazanej wersji; uprawnienia i prawo edycji są sprawdzane osobno. |
+| „Błąd zapisu” | Jawna awaria właściwego zapisu, bez fałszywego potwierdzenia; rozróżnić błąd lokalny od publikacji niepotwierdzonej. |
+| „Konflikt — wymagana decyzja” | Konkurujące wersje/prawa lub niezgodne podstawy rewizji; chronić wersje, wstrzymać ich zastępowanie. |
+
+W przyszłości klient może dostać **tymczasowy podgląd projektu przez przeglądarkę na żywo**, wyłącznie do odczytu, z możliwością odebrania dostępu. Bez prawa edycji i bez ujawniania wewnętrznych kosztów lub danych firmy bez świadomej zgody. Wymaga osobnego modelu uprawnień i bezpiecznej projekcji danych; cofnięcie przyszłych odczytów nie oznacza usunięcia treści już obejrzanej. Nie wdrażamy tego obecnie ani nie utożsamiamy z historycznym `clientOffer` czy rolą readera pilota.
+
+### Kryteria przyszłej akceptacji
+
+**Wszystkie scenariusze poniżej są wymaganiami przyszłych testów — NIEWYKONANE w tym pakiecie, bez statusu PASS.** Testy automatyczne przypisać odpowiedniemu CI zgodnie z AGENTS; rzeczywiste urządzenia i ergonomię sprawdzić oddzielnie.
+
+1. Komputer online → zatwierdzony zapis lokalny → potwierdzenie chmury → telefon otwiera dokładnie aktualny projekt z pełnymi zależnościami i poprawnym prawem dostępu.
+2. Przygotowany i uprawniony telefon offline → wielokrotne dodawanie szafek → potwierdzanie lokalnych zapisów → restart → wszystkie zatwierdzone zmiany i kolejka zachowane.
+3. Utrata internetu podczas zapisu → odróżnienie lokalnego potwierdzenia od niepewnej publikacji, bez duplikatów, ślepego retry ani utraty zmian.
+4. Powrót połączenia → automatyczna synchronizacja bez ręcznego przycisku → niezależna kontrola pełnej zawartości, rewizji, relacji i hashy.
+5. Telefon offline z niesynchronizowanymi zmianami → komputer próbuje przejąć projekt → brak cichego nadpisania, ochrona wersji i sprawdzalne prawo edycji.
+6. Awaryjne przejęcie po utracie urządzenia → zachowanie dostępnych wersji konfliktowych, brak pozornego odzyskania niedostępnych bajtów → powrót starego urządzenia nie nadpisuje nowej rewizji i pozwala zabezpieczyć jego pracę.
+7. Zapełnienie IndexedDB, odmowa dostępu lub błąd transakcji → czytelny błąd, brak fałszywego sukcesu, możliwość ratowania danych i odmowa kalkulacji udającej aktualność starego projektu. Osobno utrata lokalnej bazy i brak nieodtwarzalnej wersji w chmurze.
+8. Inne urządzenie było wyłączone podczas zmian → uruchomione online uzgadnia własną kolejkę i pobiera aktualny stan, bez wymagania pracy w tle podczas wyłączenia.
+9. Urządzenie offline bez przygotowanego projektu/zależności → odmowa otwarcia lub operacji wymagającej brakujących danych; nie deklaruje najnowszej wersji ani prawa edycji.
+10. Kompletne identyczne zależności i ustawienia na telefonie/tablecie/komputerze → identyczna konfiguracja i wyniki WYCENY/ROZRYSU, PCV/10% i 4/3/6; niezmienione historyczne snapshoty, dane globalne i semantyka Zapisz/Anuluj.
+
+### Bramki i kwestie do zaprojektowania
+
+Następne zakresy wymagają konkretnego protokołu transakcji IndexedDB/kolejki i odzyskiwania, bezstratnej migracji wraz z kompletną kopią, prawa edycji offline i bezpiecznego przejęcia, polityki dostępu offline, spójności wersji zależności, rozstrzygnięcia domen z rejestru oraz polityki miejsca/ratowania danych. Nie wybrano sposobu migracji nierozstrzygniętych domen, mechanizmu przygotowania aplikacji offline ani schema/TTL wyłączności.
+
+**CLOUD-4.6 pozostaje osobnym, przyszłym etapem kontroli gotowości Firebase LIVE.** Przygotowanie pilota CLOUD-4.4, pozytywne emulatory i zapisanie tego kontraktu nie uruchamiają synchronizacji ani nie otwierają Bramki 2. Zgody na wydanie kodu, produkcyjne odczyty, Rules, granty, pilota i migracje pozostają odrębne. Cel: Firebase Spark, 0 zł stałych opłat, bez zgody na billing. Ten pakiet to tylko dokumentacja; bez UI, kodu, testów, workflow, pinów, operacji LIVE i migracji danych.
+
 ## CLOUD-4.4 — techniczny kontrakt nieaktywnej Bramki 2
 
 `tools/firebase-pilot/cloud44-gate2.js` wykorzystuje dotychczasowe walidatory baseline i pakiet CLOUD-4.2. Historyczny STOP CLOUD-4.3a i późniejsza zgoda CLOUD-4.3b na przygotowanie są odrębne i niezmienione. Wykonawca produkcyjny zawsze odmawia; tylko demo/loopback dopuszcza próby operatora. Role writer/reader i termin klienta nie są serwerową separacją uprawnień ani TTL. CAS dokumentów grantu pozostaje transakcją Firestore, nie CAS publikacji Rules. [Dokładny kontrakt i bramki](tools/reports/cloud-4-4-gate2-technical-preparation.md). Bez nowych magazynów, transportu LIVE, migracji lub zmiany lokalnego autorytetu.
@@ -111,6 +200,8 @@ Stan decyzji: **2026-10-15**. Baza: `main` po **scaleniu CLOUD-1B w PR #50** (me
 - `PROJECT_DECISIONS.md` pozostaje poza main, na gałęzi `docs/collaboration-rules-20261014` (PR #41). Nie zmieniamy tej gałęzi ani nie zakładamy drugiego rejestru decyzji. Propozycja wpisu do późniejszego przeniesienia jest na końcu aktywnej części tego dokumentu.
 
 ## ZATWIERDZONE — docelowa praca w chmurze
+
+**Historyczny zapis decyzji z 15.10.2026; zachowano nagłówek i wcześniejsze ustalenia.** Sformułowania o nadrzędnym trwałym autorytecie chmury, lokalnym cache i całkowitym braku nowych kontrolek zostały doprecyzowane przez [decyzję LOCAL-FIRST z 21.10.2026](#local-first): lokalny zapis i kolejka nie wymagają sieci, statusy mają rozróżniać potwierdzenia, a pomocnicze przygotowanie offline nie jest ręczną synchronizacją. Nie zmienia to historii wykonanych etapów ani obecnego kodu.
 
 1. **Chmura jest głównym, autorytatywnym źródłem trwałych danych.** Jeden projekt ma jedno źródło prawdy; lokalny cache nie jest równorzędnym magazynem autorytatywnym.
 2. Po otwarciu Meble-App na **telefonie, tablecie lub komputerze** użytkownik automatycznie otrzymuje aktualne dane. Docelowa synchronizacja nie wymaga ręcznego otwierania każdego projektu.
