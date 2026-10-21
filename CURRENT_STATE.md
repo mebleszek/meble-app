@@ -1,5 +1,22 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## LOCAL-FIRST
+
+**Decyzja właściciela z 21.10.2026, baza main `94145f57ff59a19d54c4f8511e527e75b3b04c08`: LOCAL-FIRST + AUTOMATYCZNA SYNCHRONIZACJA + JEDEN AKTYWNY EDYTOR NA PROJEKT + BEZPIECZNA PRACA OFFLINE. To wymagania przyszłe, NIE działające funkcje.** Pełny kontrakt ma jedno źródło w [CLOUD_MIGRATION.md](CLOUD_MIGRATION.md#local-first); [ROADMAP](ROADMAP.md#local-first) określa zależności, bramki i przyszłą akceptację.
+
+| Zatwierdzony cel | Obecny stan / granica |
+|---|---|
+| Potwierdzony lokalny zapis i trwała kolejka w IndexedDB, potem automatyczna synchronizacja. | Projekty nadal zapisuje istniejący kanoniczny `fc_projects_v1` w localStorage. Nie wdrożono biznesowej bazy IndexedDB, kolejki ani migracji. Techniczny IndexedDB profilu dostępu nie jest magazynem projektów. |
+| Jeden edytor projektu na telefonie/tablecie/komputerze, inne urządzenia read-only; bezstratne przekazanie. | Lokalne sesje i Auth lease nie są blokadą między urządzeniami. Potrzebny przyszły protokół wyłączności i ochrony pracy offline; samo wygaśnięcie lease nie uzasadnia przejęcia. |
+| Offline po przygotowaniu aplikacji, projektu i zależności; zatwierdzone zmiany zachowane po restarcie. | Nie wdrożono uruchamiania biznesu offline ani polityki dostępu offline; obecny gate Google wymaga potwierdzenia serwerowego. Nie obchodzimy go i nie przedłużamy TTL. |
+| Osobne potwierdzenia lokalne, chmurowe i gotowości offline dla urządzenia/wersji; pomocnicze „Dostępny offline”. | To przyszły UX; UI pozostaje bez zmian. Chmura nie dowodzi aktualnej kopii wyłączonego telefonu. Urządzenie bez danych offline nie może udawać najnowszego projektu. |
+| Kompletne zależności WYCENY/ROZRYSU i bezpieczna pamięć. | Sam syntetyczny projekt nie przenosi katalogów/stawek. Nierozstrzygnięte Issue #47, globalne słoje, legacy i drafty pozostają chronione według rejestru. IndexedDB też może utracić dane; bez kasowania jedynej niesynchronizowanej kopii ani arbitralnej retencji projektów 7/30 dni. Istniejących backupów nie zmieniono. |
+| Tymczasowy podgląd klienta na żywo, odwoływalny i read-only. | Jeszcze niewdrożony, osobny przyszły zakres. Bez ujawniania wewnętrznych kosztów i danych firmy bez zgody. |
+
+Nie uruchomiono tu testów synchronizacji ani offline: [dziesięć scenariuszy](CLOUD_MIGRATION.md#kryteria-przyszłej-akceptacji) to **kryteria przyszłej akceptacji, NIEWYKONANE**, nie odziedziczone PASS pilota. Zachowujemy jeden model projektu, Zapisz/Anuluj, projektowe PCV z jednym zapasem 10%, ROZRYS 4/3/6, cenniki/katalogi/magazyn, kompatybilność i zamrożoną historię ofert. Nie wykonano migracji, importu ani zmiany lokalnego autorytetu.
+
+**CLOUD-4.6 pozostaje osobnym, przyszłym etapem kontroli gotowości Firebase LIVE.** Dokumentacja nie aktywuje transportu i nie otwiera Bramki 2; przygotowanie CLOUD-4.4 nie oznacza działającej synchronizacji. Status tego pakietu: **`CODE_READY / CI_PENDING / LIVE_BLOCKED`**. Bez PR, wydania, operacji produkcyjnych i zmian AGENTS, pinów, kodu, testów lub workflow. Starsze decyzje poniżej zachowują historię; w kwestiach docelowego autorytetu i offline pierwszeństwo ma kontrakt z 21.10.2026.
+
 ## WSPÓŁPRACA — ChatGPT obsługuje zatwierdzone PR Ready (2026-10-21)
 
 Właściciel ustanowił wąski wyjątek operacyjny od zakazu zmian GitHuba przez ChatGPT: po każdorazowej osobnej zgodzie na konkretną próbę wydania i ustalone HEAD/BASE SHA ChatGPT może samodzielnie utworzyć jeden PR Ready przez GitHub oraz odczytowo kontrolować CI, auto-merge i Pages. Nie programuje, nie zmienia commitów, gałęzi ani workflow i nie wykonuje ręcznego merge ani operacji Firebase. Domyślnie Codex kończy pracę na gałęzi i commicie, oszczędzając limit. Szczegóły i warunki STOP: [AGENTS.md §12 i §14](AGENTS.md). Zmiana zasad w tym pakiecie: `CODE_READY` / `CI_PENDING` do osobno zatwierdzonego wydania; Firebase: `LIVE_BLOCKED`.
@@ -229,6 +246,8 @@ Kanoniczna mapa: [CLOUD_DATA_REGISTER.md](CLOUD_DATA_REGISTER.md), zasady etapó
 - CLOUD-1A scalono w PR #48, CLOUD-1B scalono w PR #50 (pełne CI i Pages PASS). **Główne logowanie scalono i zaakceptowano w PR #57; synchronizacji NIE wdrożono. Adapter pilota z PR #52 nadal nie uruchamia transportu danych LIVE.** CLOUD-2A: użytkownik wybrał Firebase Spark oraz Google Sign-In, konfigurację konsoli potwierdzono 2026-10-16 (szczegóły poniżej). Pierwszy planowany CLOUD-2B pilot obejmuje tylko fikcyjnego inwestora i fizyczny projekt z pokojami/szafkami/PCV, bez danych globalnych i sekretów. [Projekt techniczny CLOUD-2A](tools/reports/cloud-2a-firebase-google-architecture.md).
 - CLOUD-1B działa już w `main` jako **wewnętrzny builder RAM**, bez downloadu/uploadu, UI i chmury. Stosuje RAW, zakończoną sesję, SHA-256, limit tylko pilota 800 KiB i kontrolowane syntetyczne dane. Natywne podpisy frontów są walidowane, nie poświadczane kryptograficznie. [Kontrakt](tools/reports/cloud-1b-selective-project-export.md).
 - Obecny pełny backup fc_* nie jest pilot payloadem: może zawierać ORS apiKey profilu firmy i pomija nieprefiksowane aliasy katalogów. Bez zmian mechanizmu/retencji; rozdzielenie i filtrowanie eksportu wymaga kolejnego zakresu.
+
+> **Poniższa decyzja z 15.10.2026 jest historyczna; docelowy autorytet, statusy i przygotowanie offline doprecyzowuje [LOCAL-FIRST z 21.10.2026](#local-first).** Nie oznacza to zmiany obecnego kodu ani zgody na migrację.
 
 **ZATWIERDZONE 2026-10-15, JESZCZE NIEWDROŻONE:** docelowo chmura jest autorytetem trwałych danych; urządzenia automatycznie otrzymują aktualny stan, zatwierdzone zmiany synchronizują się bez ręcznych operacji i bez zmiany UI. `Zapisz/Anuluj` i izolacja sesji pozostają. Wybrano Firebase Spark / Cloud Firestore oraz uwierzytelnianie Google; identyfikacja po Firebase UID. **Region i działający produkcyjny Auth-only potwierdzono; login/Pages i Android zaakceptowano po PR #57. Biznesowe Rules i model rewizji nadal sprawdzane są wyłącznie na emulatorach.** Przełączenie domen wymaga osobnej zgody, ochrony konfliktów i globalnych danych. Cel: 0 zł stałych opłat, bez podpinania billingu. [CLOUD-2A](tools/reports/cloud-2a-firebase-google-architecture.md).
 
