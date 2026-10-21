@@ -1,8 +1,12 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
-## CLOUD-4.5 — kontrakt współpracy i testowania, bez wydania
+## WSPÓŁPRACA — ChatGPT obsługuje zatwierdzone PR Ready (2026-10-21)
 
-Baza: main `2ba85abb0236697151882fdfd90d07ed36a8c828` po PR #71 (CLOUD-4.4), CI i Pages SUCCESS. Poniższe opisy gałęzi CLOUD-4.4 i wcześniejszych etapów zachowują historię. CLOUD-4.5 zmienia wyłącznie instrukcje i dokumentację procesu: ChatGPT prowadzi projekt i doradza biznesowo, Codex implementuje, GitHub Actions wykonuje testy CI, właściciel zatwierdza zakresy i wydania oraz testuje fizyczny telefon. Obowiązuje [AGENTS.md §3, §10 i §12–14](AGENTS.md): bez dublowania pełnych testów lokalnych. Stan pakietu: `CODE_READY` / `CI_PENDING`; operacje produkcyjne pilota: `LIVE_BLOCKED`. PASS wcześniejszego wydania nie jest PASS nowego SHA. Nie zatwierdzono PR ani wydania CLOUD-4.5.
+Właściciel ustanowił wąski wyjątek operacyjny od zakazu zmian GitHuba przez ChatGPT: po każdorazowej osobnej zgodzie na konkretną próbę wydania i ustalone HEAD/BASE SHA ChatGPT może samodzielnie utworzyć jeden PR Ready przez GitHub oraz odczytowo kontrolować CI, auto-merge i Pages. Nie programuje, nie zmienia commitów, gałęzi ani workflow i nie wykonuje ręcznego merge ani operacji Firebase. Domyślnie Codex kończy pracę na gałęzi i commicie, oszczędzając limit. Szczegóły i warunki STOP: [AGENTS.md §12 i §14](AGENTS.md). Zmiana zasad w tym pakiecie: `CODE_READY` / `CI_PENDING` do osobno zatwierdzonego wydania; Firebase: `LIVE_BLOCKED`.
+
+## CLOUD-4.5 — kontrakt współpracy i testowania, wydany (2026-10-21)
+
+PR #72 został automatycznie scalony po PASS CI (Preflight 139/139 smoke, APP 110/110; Firebase SDK/Rules 71 PASS), a GitHub Pages potwierdził dokładny merge SHA `cbc6a30122f4926e057282d88800726b715d8aec`. CLOUD-4.5 trwale rozdzielił odpowiedzialność: ChatGPT prowadzi projekt i doradza biznesowo, Codex implementuje, GitHub Actions wykonuje testy CI, właściciel zatwierdza wydania i testuje fizyczny telefon. Obowiązuje [AGENTS.md §3, §10 i §12–14](AGENTS.md): bez dublowania pełnych testów lokalnych. Poniższe raporty CLOUD-4.4 i wcześniejszych etapów są historyczne. Status: `RELEASED` / `LIVE_BLOCKED`; nie aktywowano produkcyjnego Firebase.
 
 ## CLOUD-4.4 — zintegrowane przygotowanie, produkcja STOP
 

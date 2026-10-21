@@ -174,6 +174,7 @@ Ta sekcja jest obowiązująca również **na początku nowych wątków**. W razi
 
 - **Nie twórz Draft PR jako domyślnego etapu.** Po ukończeniu i przeglądzie zmiany, jeżeli użytkownik wyraźnie zatwierdził próbę scalenia/wydania, utwórz PR od razu jako **Ready** (bez zbędnego Draft). Samo zlecenie kodowania **„do dzieła”** nie jest automatycznie zgodą na Ready, auto-merge ani publikację — sprawdź zakres zgody.
 - Jeżeli nie ma jeszcze zgody na scalenie, pozostań przy gałęzi roboczej; Draft PR dopuszczalny tylko wtedy, gdy rzeczywiście jest potrzebny do przeglądu i użytkownik go chce. Jeśli zaakceptowany PR już jest Draft, wystarczy przełączyć go na Ready; nie twórz duplikatu.
+- **Stały wyjątek operacyjny — PR Ready obsługuje ChatGPT (2026-10-21).** Po **każdorazowej, osobnej zgodzie właściciela** na konkretną próbę wydania (repozytorium, gałąź, dokładne HEAD i BASE SHA oraz zakres), ChatGPT może samodzielnie utworzyć **jeden PR bezpośrednio jako Ready** przez połączony GitHub, aby ograniczyć zużycie limitu Codexa. Przed operacją odczytowo weryfikuje wskazane SHA, diff, wymagane pokrycie CI i brak istniejącego PR; zmiana któregokolwiek warunku oznacza STOP i potrzebę nowej zgody. Po utworzeniu PR ChatGPT wyłącznie odczytowo obserwuje wyniki CI, automatyczny merge i Pages. **Nie** zmienia w tym trybie plików, commitów, gałęzi, workflow ani testów, **nie** scala ręcznie, nie ponawia prób i nie wykonuje żadnych operacji Firebase LIVE. Samo to upoważnienie **nie jest** zgodą na żadne konkretne wydanie. Jeżeli bezpośrednia obsługa PR przez ChatGPT jest niedostępna, Codex albo właściciel może wykonać tę samą operację wyłącznie po uzgodnieniu wykonawcy, nadal z osobną zgodą na wydanie.
 - **Jedno pełne uruchomienie Preflight w GitHub Actions na zatwierdzoną próbę:** zdarzenie `opened` dla niedraftowego PR lub `ready_for_review` przy przejściu Draft → Ready. Utworzenie Draft, samo wypchnięcie commita (`synchronize`), merge do `main` ani zwykły push nie uruchamiają ponownego pełnego Preflightu wydaniowego. Odrębne, izolowane workflow mogą reagować na push wyłącznie na wskazane w nich gałęzie. Codex nie dubluje lokalnie testów CI (§3); bez zatwierdzonej próby pakiet pozostaje `CODE_READY` / `CI_PENDING`.
 - Przed Ready sprawdź faktyczne pokrycie wymaganych testów dla zatwierdzonego HEAD/BASE. Jeżeli brakuje zadania wysokiego ryzyka, przygotuj właściwą kontrolę CI w uzgodnionym zakresie przed próbą wydania; nie zastępuj jej deklaracją ani PASS innej gałęzi. Ręczny `workflow_dispatch` nie stanowi obejścia zgody ani powodu do ponownego pełnego CI.
 - Workflow po zielonym Preflight **automatycznie scala** PR, wyłącznie jeśli `head SHA` i `base SHA` są identyczne ze stanem zatwierdzonej próby. Błąd testów, zmiana którejkolwiek gałęzi lub cofnięcie do Draft blokują merge. Nie wykonuj drugiego, ręcznego merge „dla pewności” i nie omijaj zabezpieczeń.
@@ -224,7 +225,7 @@ Poniższy podział doprecyzowuje §13 i obowiązuje po uzyskaniu dostępu do rep
 
 ### ChatGPT GPT-6 High — prowadzenie projektu i doradztwo biznesowe
 
-ChatGPT odpowiada za analizę, architekturę, planowanie, wybór jednego rekomendowanego rozwiązania, kompletne zlecenia dla Codexa i niezależną kontrolę wyników. Nie zmienia samodzielnie kodu, konfiguracji, dokumentacji ani GitHuba, nawet gdy ma techniczną możliwość edycji. Odstępstwo wymaga osobnej, wyraźnej zgody właściciela na przejęcie tych czynności.
+ChatGPT odpowiada za analizę, architekturę, planowanie, wybór jednego rekomendowanego rozwiązania, kompletne zlecenia dla Codexa i niezależną kontrolę wyników. Co do zasady nie zmienia samodzielnie kodu, konfiguracji, dokumentacji ani GitHuba. Jedyny **stały wyjątek** dotyczy utworzenia PR Ready na GitHubie po odrębnej, wyraźnej zgodzie właściciela na konkretny HEAD/BASE i wydanie, ściśle według §12; weryfikacja wyników jest odczytowa. Pozostałe zmiany repozytorium lub działania produkcyjne wymagają osobnej, wyraźnej zgody właściciela.
 
 Pełni również rolę niezależnej doradczyni biznesowej Meble-App i marki meblowej MebLeszek: ocenia koszty, korzyści, rentowność, priorytety i ryzyko. Ma obowiązek konstruktywnie kwestionować nietrafne, nieopłacalne lub nadmiernie skomplikowane pomysły oraz przedstawiać rekomendację zamiast bezrefleksyjnego potwierdzania. Rozwój aplikacji jest środkiem do usprawnienia pracy i budowania wartości firmy, z uwzględnieniem rozwoju marki MebLeszek. Kontrakt dotyczy prowadzenia projektu, nie osobistego stylu rozmowy.
 
@@ -238,7 +239,7 @@ Na początku nowego wątku ChatGPT po uzyskaniu dostępu do repozytorium:
 
 ### Codex Sol High — wykonanie
 
-Codex implementuje kod, konfigurację i dokumentację, przygotowuje testy, commity, gałęzie oraz wyraźnie zatwierdzone PR. Realizuje całe uzgodnione pakiety zgodnie z `AGENTS.md` i zgodą właściciela. Prowadzi diagnostykę bezpośrednio potrzebną do implementacji; wyjątkowo wykonuje bardzo trudne analizy techniczne wyraźnie zlecone przez ChatGPT. Nie dubluje testów wykonywanych przez GitHub Actions; obowiązuje §3.
+Codex implementuje kod, konfigurację i dokumentację oraz przygotowuje testy, commity i gałęzie. Operacyjną obsługę PR Ready domyślnie przejmuje ChatGPT; Codex wykonuje ją tylko awaryjnie i po uzgodnieniu zgodnie z §12. Realizuje całe uzgodnione pakiety zgodnie z `AGENTS.md` i zgodą właściciela. Prowadzi diagnostykę bezpośrednio potrzebną do implementacji; wyjątkowo wykonuje bardzo trudne analizy techniczne wyraźnie zlecone przez ChatGPT. Nie dubluje testów wykonywanych przez GitHub Actions; obowiązuje §3.
 
 ### ChatGPT Work — złożone analizy przekrojowe
 
@@ -246,7 +247,7 @@ Służy szczególnie złożonym analizom i audytom wielu plików, aplikacji lub 
 
 ### GitHub Actions — automatyczna kontrola i wydanie
 
-GitHub Actions wykonuje automatyczne testy i kontrole objęte CI: Preflight, regresje, właściwe zestawy emulatorowe Firebase i pozostałe wymagane zestawy. Realizuje zatwierdzony proces PR Ready → testy → auto-merge → weryfikacja Pages zgodnie z §12. Utworzenie/przełączenie PR przez Codexa wymaga osobnej zgody właściciela. Nie uruchamiaj zbędnie wielokrotnie tych samych testów; nie pomijaj wymaganych kontroli.
+GitHub Actions wykonuje automatyczne testy i kontrole objęte CI: Preflight, regresje, właściwe zestawy emulatorowe Firebase i pozostałe wymagane zestawy. Realizuje zatwierdzony proces PR Ready → testy → auto-merge → weryfikacja Pages zgodnie z §12. Utworzenie lub przełączenie PR Ready przez ChatGPT, Codexa lub właściciela wymaga osobnej, konkretnej zgody właściciela na daną próbę wydania (§12). Nie uruchamiaj zbędnie wielokrotnie tych samych testów; nie pomijaj wymaganych kontroli.
 
 ### ChatGPT — kontrola końcowa
 
@@ -260,4 +261,4 @@ Ten podział przypisuje odpowiedzialność za testy zgodnie z §3 i §10, bez zm
 
 ---
 
-Najważniejsza zasada w skrócie: **ChatGPT prowadzi i kontroluje, Codex implementuje po „do dzieła”, GitHub Actions testuje bez dublowania lokalnego CI, właściciel zatwierdza wydanie i osobno operacje LIVE. CODE_READY nie oznacza CI_PASS ani zgody produkcyjnej.**
+Najważniejsza zasada w skrócie: **ChatGPT prowadzi i kontroluje oraz po osobnej zgodzie tworzy PR Ready, Codex implementuje po „do dzieła”, GitHub Actions testuje bez dublowania lokalnego CI i obsługuje zatwierdzony auto-merge/Pages, właściciel zatwierdza każde wydanie i osobno operacje LIVE. CODE_READY nie oznacza CI_PASS ani zgody produkcyjnej.**
