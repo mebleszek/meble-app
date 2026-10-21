@@ -1,5 +1,9 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## CLOUD-4.5 — kontrakt współpracy i testowania, bez wydania
+
+Baza: main `2ba85abb0236697151882fdfd90d07ed36a8c828` po PR #71 (CLOUD-4.4), CI i Pages SUCCESS. Poniższe opisy gałęzi CLOUD-4.4 i wcześniejszych etapów zachowują historię. CLOUD-4.5 zmienia wyłącznie instrukcje i dokumentację procesu: ChatGPT prowadzi projekt i doradza biznesowo, Codex implementuje, GitHub Actions wykonuje testy CI, właściciel zatwierdza zakresy i wydania oraz testuje fizyczny telefon. Obowiązuje [AGENTS.md §3, §10 i §12–14](AGENTS.md): bez dublowania pełnych testów lokalnych. Stan pakietu: `CODE_READY` / `CI_PENDING`; operacje produkcyjne pilota: `LIVE_BLOCKED`. PASS wcześniejszego wydania nie jest PASS nowego SHA. Nie zatwierdzono PR ani wydania CLOUD-4.5.
+
 ## CLOUD-4.4 — zintegrowane przygotowanie, produkcja STOP
 
 Gałąź `cloud-4-4-gate2-technical-preparation` łączy main `a1f334df` z CLOUD-4.3/4.3a/4.3b i dokładnym §14 AGENTS. Narzędzia offline rozdzielają zgodę przygotowawczą od wykonawczej; emulatorowy operator sprawdza jedną próbę, niezależny odczyt i administracyjny STOP. Nie otwarto loadera LIVE ani żadnej bramki produkcyjnej. Prywatne 635 B nie zostały przekazane do tej próby, ochrona publikacji Rules przed innymi administratorami nadal wymaga dowodu. [Mechanizmy, wyniki i blokery](tools/reports/cloud-4-4-gate2-technical-preparation.md). To stan gałęzi, nie scalenie ani wydanie.
@@ -409,7 +413,19 @@ Plan późniejszy obejmuje rozpoznawanie dodatkowych operacji (`NUT`, `FREZ`, `R
 
 ## 15. GitHub / publikacja
 
-Po PR #44 `preflight-js.yml` uruchamia pełny preflight przy jawnym **Draft → Ready** (oraz na ręczne workflow_dispatch). Automatyczny merge jest ograniczony do zaakceptowanego, niezmienionego head/base po PASS; po merge jest kontrola Pages konkretnego commita. Draft sam nie uruchamia tej ścieżki scalenia. CLOUD-1A nie wykonuje Ready, merge ani publikacji. To opis konfiguracji, nie deklaracja wykonania nowego CI w tym zadaniu.
+`preflight-js.yml` uruchamia pełny Preflight i `npm test` w `tools/firebase-pilot` przy otwarciu PR Ready do main albo przejściu Draft → Ready. Wymagana jest osobna zgoda właściciela na próbę wydania. Automatyczny merge sprawdza niezmienione HEAD/BASE i stan Ready po PASS; po merge jest kontrola Pages dla dokładnego merge SHA. Draft, synchronize i zwykły push nie uruchamiają pełnego wydaniowego Preflightu. Dostępny `workflow_dispatch` nie udziela zgody na ponowienie ani nie wykonuje ścieżki auto-merge PR. Codex nie powtarza tych testów lokalnie.
+
+Przegląd pokrycia CLOUD-4.5 (odczyt workflow i skryptów, bez uruchamiania testów):
+
+| Ścieżka | Rzeczywisty zakres / ograniczenie |
+|---|---|
+| `preflight-js.yml` | Jeden Preflight: składnia, load order, wszystkie `tools/*-smoke.js` (w tym APP i publiczne kontrole CLOUD), audyty zależności/storage. Osobno SDK/Auth/Rules przez `npm test`: pilot, auth, access, global i live-readiness. Brak drugiego Preflightu po merge. |
+| `cloud41/42/43/43a-emulator-tests.yml` | Izolowane push na dokładnie wskazane historyczne gałęzie, nie dowolną nową gałąź. Dodatkowe prywatne próby i pełny Chromium; CLOUD-4.2+ także package/rehearsal. Nazwy testów live-readiness i prywatnego podzbioru Chromium nakładają się z kolejnymi zestawami; nie usuwano historycznych kontroli ani konfiguracji Rules bez dowodu równoważności. Nie są drugim automatycznym CI tego samego zdarzenia PR Ready. |
+| `cloud44-missing-verifications.yml` | Tylko dwa rzeczywiste testy popup Google na `cloud-4-4-verification-closure`; nie daje pokrycia Chromium dla nowego SHA CLOUD-4.5. |
+| Luki poza ogólnym workflow wydaniowym | Pełny Chromium, oddzielne mobilne runnery, prywatny startup/rehearsal i administracyjne CAS/STOP nie są automatycznie wykonywane przez sam Preflight + SDK. Przy zmianie tych domen trzeba przed Ready przypisać brakujące regresje właściwemu izolowanemu CI; bez wykonania wymaganej kontroli nie deklarować pełnego `CI_PASS`. |
+| Dowody poza publicznym CI | Ergonomia fizycznego Pixela: właściciel po zatwierdzonym wydaniu. Prywatne oryginalne Rules: istniejąca lokalna weryfikacja dokładnych bajtów/SHA, bez publikacji źródła. Firebase LIVE: wyłącznie po odrębnej zgodzie na konkretną operację. |
+
+Dla dokumentacyjnego CLOUD-4.5 nie zmieniono workflow, nie uruchomiono CI i nie powtórzono lokalnego Preflightu. Push gałęzi tego pakietu nie uruchamia istniejących historycznych workflow CLOUD. `unzip-site-to-root.yml` dotyczy tylko ZIP/zmiany tego workflow na main; ten pakiet nie zmienia żadnego z tych plików. Zmiana pokrycia testowego nie jest wymagana dla samej korekty kontraktu; luki domenowe pozostają jawne dla przyszłych zleceń.
 
 ---
 
@@ -421,7 +437,7 @@ Przed zmianą programu:
 2. wskazać ryzyko i testy,
 3. nie zmieniać niczego przed komendą użytkownika **„do dzieła”**,
 4. po zatwierdzeniu robić możliwie mały diff,
-5. po zmianie uruchomić testy obszaru i baseline,
-6. przygotować Draft PR/raport, a decyzję o Ready/merge/publikacji pozostawić użytkownikowi.
+5. przygotować właściwe regresje i przypisać ich wykonanie GitHub Actions; lokalnie tylko diagnostyka potrzebna do implementacji oraz kontrola diffu, bez dublowania pełnych zestawów CI,
+6. przygotować gałąź i raport `CODE_READY` / `CI_PENDING`; bez osobnej zgody nie tworzyć PR. Zatwierdzona próba wydania odbywa się bez domyślnego Draft, zgodnie z AGENTS §12.
 
-Aktualny etap to CLOUD-2B.4a + techniczne CLOUD-2C na emulatorach. Rzeczywisty transport danych Firebase i produkcyjne CLOUD-2C wymagają oddzielnej zgody; dalszy cel to ochrona domen i automatyczna synchronizacja.
+Aktualny kontrakt ról, statusów i zgód określa AGENTS §14 wraz z §3 i §10. Wcześniejsze wyniki lokalne w tym dokumencie są historycznymi dowodami, nie nakazem dublowania CI. Rzeczywisty transport danych Firebase wymaga oddzielnej zgody; dalszy cel to ochrona domen i automatyczna synchronizacja.
