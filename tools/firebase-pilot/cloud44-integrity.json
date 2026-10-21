@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "baseMain": "a1f334df824c10bb54384f7c00eb77b661f9d1b0",
+  "integratedHeads": [
+    "d8f5d3a7f407e887d1b7e16a8263a1049a24934e",
+    "e91b2b553325d16ed38ee2a8ff1cb48881672a33"
+  ],
+  "applicationSourceContractBase": "44b5be9b1e05eded8243b9a617f976e44ad49c6f",
+  "applicationSourceCount": 425,
+  "productionExecutionAllowed": false,
+  "sha256": {
+    "AGENTS.md": "8a618fb0ad2f444a0856eea3c0b448513c505606bcaf37c036f4faadb4e1a4a7",
+    "docs/firebase-rules-gate1-api-explorer.md": "607188ee0d1df587559d35ce6bdf1d1518bd2192c7babda10da00ef80b7ff8be",
+    "tools/cloud44-gate2-smoke.js": "c0711c718ac74b26b00f073b9fab0569e93e3f4cd6ba3305d2a856533a5200ab",
+    "tools/firebase-pilot/cloud44-gate2.js": "337b8d137533d15b730510afe8002f7e2162244ecb48636fb5b1ed23fc31a270",
+    "tools/firebase-pilot/cloud44-gate2.test.mjs": "7ade726a3f08587e934a8d29544c5166468020f5d655264a3ed900ab8920622e",
+    "tools/firebase-pilot/cloud44-emulator-admin.mjs": "b508eead8846eb10a919da4bc192d9611969d3c370fab6a9b1c6d2b43b1b28c5",
+    "tools/firebase-pilot/cloud44-admin.test.mjs": "f7ada53f1523aa7ee01492bc8bcfbd3dd16928a1154c7703a3dbffa45a7c0e19",
+    "tools/firebase-pilot/auth-browser.test.mjs": "441ee27bcb0c69f7e249bfc695fd15dd87305681c7649d08b3cf5a7abe2a1c80",
+    "tools/firebase-pilot/cloud42-package.js": "5b9f5d4946aebdb0ed06965b6a5625ca419f51919a0e6969919bdcbf85fb8763",
+    "tools/firebase-pilot/cloud42-reviewed-loader.mjs.txt": "776bc87a3aadde5e4c8182f2327b8da32ac2e07ac9bdcde2d4da82ae9b983a45",
+    "tools/firebase-pilot/cloud42-source-pins.json": "eb19fbccb00461cffec6559ab443d7b36c784b8e12541a35f9f2afb3d68bf175",
+    "tools/firebase-pilot/cloud43-source-review.json": "d8ed6e6336066cf0e33621838a3d98694202bf510461e21be91ce7dbeceeb2b8",
+    "tools/firebase-pilot/cloud43a-baseline.js": "ea851d4bd82a578714cbda9465b9c3a0744a5c132bab945695bfeeb7565cb527",
+    "tools/firebase-pilot/cloud43a-production-baseline.json": "4bce7b5fa37626b48f25802ce8d0f0c929a75a8eeb9240aaf9f04483b0bb5a6d",
+    "tools/firebase-pilot/cloud43a-production-rollback.plan.json": "dc6c880912ddc9433bf5cb6c9268d128fb3bcf126f5c4695748ce486b36a68fe",
+    "tools/firebase-pilot/cloud43b-preparation-approval.json": "dd6ac10928e9495ba3a45598d94a71cd04eb68ec36f9fe14cc654efc76b09795",
+    "tools/firebase-pilot/firestore-live-pilot.rules": "eaeb3e67417955bbd67d2881902d3827023502c2948ce0a19dc583c66b5a2e92",
+    "tools/firebase-pilot/firestore-auth-only.rules": "fd92cffababe500cba62ed6e592b482760ce9e66df35f01419c44edff2f10cd3"
+  }
+}

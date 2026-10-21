@@ -1,5 +1,37 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
+## CLOUD-4.4 — techniczny kontrakt nieaktywnej Bramki 2
+
+`tools/firebase-pilot/cloud44-gate2.js` wykorzystuje dotychczasowe walidatory baseline i pakiet CLOUD-4.2. Historyczny STOP CLOUD-4.3a i późniejsza zgoda CLOUD-4.3b na przygotowanie są odrębne i niezmienione. Wykonawca produkcyjny zawsze odmawia; tylko demo/loopback dopuszcza próby operatora. Role writer/reader i termin klienta nie są serwerową separacją uprawnień ani TTL. CAS dokumentów grantu pozostaje transakcją Firestore, nie CAS publikacji Rules. [Dokładny kontrakt i bramki](tools/reports/cloud-4-4-gate2-technical-preparation.md). Bez nowych magazynów, transportu LIVE, migracji lub zmiany lokalnego autorytetu.
+
+## 2026-10-20 — CLOUD-4.3b: zgoda wyłącznie na PRZYGOTOWANIE Bramki 2
+
+Dwa oficjalne GET Firebase Rules HTTP 200 właściciela i niezależny przegląd prywatnego MHTML potwierdziły produkcyjny Auth-only ruleset 635 B/SHA-256 oraz zgodne metadane. Właściciel następnie wyraźnie zatwierdził ten historyczny baseline tylko do przygotowania Bramki 2. Historyczne cloud43a-production-baseline.json i runtime baselineApprovedForGate2:false pozostały nietknięte jako nieaktywna blokada wykonania; osobny cloud43b-preparation-approval.json rejestruje najnowszą decyzję bez uprawnień LIVE. Bez zmiany UI, autorytetu danych, Firebase Rules, grantów czy sync. [Raport](tools/reports/cloud-4-3b-gate1-closure.md).
+
+
+## CLOUD-4.3a — jawne role artefaktów Rules (2026-10-20)
+
+Rozdzielono historyczny produkcyjny baseline 635 B, repozytoryjny Auth-only 755 B
+i minimalne Rules pilota. Dotychczasowe pliki Rules, konfiguracja rollbacku,
+425 pinów, sesja/lease i writer/reader pozostają niezmienione.
+`verifyDeployedRules('auth-only', ...)` odmawia jako niejednoznaczne. Jawny
+`repository-auth-only-template` potwierdza tylko template; produkcyjny baseline
+wymaga pełnych metadanych i bajtów. `rollbackRulesSha256` usunięto z proof na rzecz
+oddzielnych `repositoryAuthOnlyTemplateSha256` i `productionAuthOnlyBaselineSha256`.
+Nie jest to automatyczne zatwierdzenie nowego wzorca lub zaliczenie bramki.
+[Kontrakt, konsumenty i rollback](tools/reports/cloud-4-3a-production-rules-baseline.md).
+
+## CLOUD-4.3 — zgodność pakietu z aktualnym main (2026-10-20)
+
+Istniejący pakiet CLOUD-4.2 pozostaje nazwany `cloud42-*` dla zgodności konsumentów.
+Zmieniono jego bazę i dowód przeglądu źródeł, nie transport aplikacji ani modele.
+Rejestr `cloud43-source-review.json` dokumentuje 35 zmienionych i 2 dodane źródła
+względem wydania PR #63; kontrola obejmuje 425 pinów i wszystkie skrypty aplikacji.
+Worker nadal tworzy wyłącznie syntetyczne dane w MemoryStorage; niezależny reader
+zwraca model do odizolowanego RAM, bez importu do lokalnych projektów.
+Termin zgody operatora <=15 minut nie jest serwerowym TTL grantu; niezbędny jest
+zatwierdzony administracyjny STOP. [Bramki, ograniczenia i dowody](tools/reports/cloud-4-3-live-readiness-refresh.md).
+
 ## 2026-10-19 — lokalna intencja statusowa, bez zmiany autorytetu
 
 Naprawa `offerStatus` na gałęzi `fix/offer-status-recovery-lifecycle` zachowuje kanoniczny

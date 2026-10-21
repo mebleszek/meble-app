@@ -1,5 +1,15 @@
 # CLOUD-1A — kanoniczny rejestr danych Meble-App
 
+## CLOUD-4.3 — bez rozszerzenia zakresu danych (2026-10-20)
+
+Przegląd bieżących kontraktów nie zmienia klasyfikacji danych poniżej. Pilot to
+nadal wyłącznie stały syntetyczny inwestor/projekt, 6797 bajtów kanonicznego
+payloadu. Nieznane istotne pole jest odmową eksportu, nigdy cichym pominięciem.
+Żadne dane właściciela, sesje, techniczne dowody dostępu, backupy, sekrety profilu
+ani globalne katalogi nie są źródłem pilota. Nie mapowano globalnych słojów do
+projektu i nie ruszano aliasów legacy. Frozen oferty/drafty wymagają odrębnej
+własności i kontraktu przed migracją. [Dowody CLOUD-4.3](tools/reports/cloud-4-3-live-readiness-refresh.md).
+
 ## Dopisek lokalnej spójności kontekstu — 2026-10-19
 
 Bez nowych kluczy, domen lub zmian formatu. `__projectOverride` nie jest autorytetem aktywnego

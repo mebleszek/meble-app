@@ -1,5 +1,25 @@
 # CLOUD-2B.4a — techniczny dowód profilu a kopia danych
 
+## CLOUD-4.4 — kontrola posiadania rollbacku
+
+`rollbackReadiness()` przyjmuje rzeczywisty prywatny Buffer i wykorzystuje istniejący `productionRollbackPlan()` do kontroli 635 B i SHA; sam hash, brak pliku lub template 755 B oznacza BLOCKED. Nie przechowuje źródła ani nie wykonuje rollbacku. Źródła nie udostępniono w tej próbie; pozytywnych testów prywatnych nie uznaje się za PASS. [Stan i procedura](tools/reports/cloud-4-4-gate2-technical-preparation.md). Backupy danych aplikacji pozostają bez zmian.
+
+## CLOUD-4.3b — przyszły wierny rollback (2026-10-20)
+
+Właściciel zatwierdził historyczny 635 B baseline WYŁĄCZNIE do przygotowania następnej bramki. Dokładne prywatne źródło Rules pozostaje poza GitHubem i backupem fc_*; plik z repo o rozmiarze 755 B nie jest bajtowo wiernym rollbackiem. Przed jakimkolwiek przyszłym wdrożeniem wymagana jest dostępna, prywatna i hash-zweryfikowana kopia 635 B; brak kopii = STOP. Zgoda na przygotowanie nie zatwierdza deployu ani rollbacku. [Raport](tools/reports/cloud-4-3b-gate1-closure.md).
+
+
+## CLOUD-4.3a — prywatny punkt odniesienia Firestore Rules
+
+Oryginalne 635 B źródła z REST dostarczonego przez właściciela są odrębnym
+prywatnym artefaktem infrastruktury, poza standardowym backupem aplikacji.
+Nie obejmuje to danych fc_*, profilu dostępu ani sesji. Repo publikuje tylko
+metadane/SHA i nieaktywny plan; nie publikuje oryginalnego produkcyjnego źródła.
+Plik `cloud42-rules-rollback.json` nadal wskazuje template 755 B i NIE jest
+bajtowo wiernym rollbackiem do produkcji 635 B. Prywatny plik należy zachować
+niezmieniony i sprawdzić ponownie przed przyszłą operacją. Brak artefaktu = STOP.
+[Źródło decyzji, tożsamość i ograniczenia](tools/reports/cloud-4-3a-production-rules-baseline.md).
+
 ## 2026-10-19 — odzyskiwanie istniejących intencji statusu
 
 `meta.pendingDomainOperation` pozostaje w kanonicznym rekordzie `fc_projects_v1` i nadal trafia

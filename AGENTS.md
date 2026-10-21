@@ -205,6 +205,36 @@ Ta sekcja jest obowiązująca również **na początku nowych wątków**. W razi
 
 **Praktyczny przykład dla chmury:** przygotowanie bezpiecznego transportu, reguł na emulatorach, syntetycznego zapisu i pobrania z pełną walidacją może być jednym zakresem implementacyjnym, jeśli zależności to umożliwiają. **Opublikowanie Rules i pierwszy prawdziwy zapis Firestore pozostają osobnymi decyzjami produkcyjnymi.**
 
+## 14. Stały podział obowiązków: ChatGPT / Codex / GitHub Actions
+
+Poniższy podział doprecyzowuje §13 i obowiązuje po uzyskaniu dostępu do repozytorium, również w nowych wątkach. Nowy czat ChatGPT **nie wczytuje automatycznie** `AGENTS.md`; po uzyskaniu dostępu ma obowiązek go odczytać i stosować. Właściciel nie musi ponownie wyjaśniać podziału ról.
+
+### ChatGPT — prowadzenie projektu
+
+ChatGPT odpowiada za analizę, architekturę, planowanie, wybór jednego rekomendowanego rozwiązania, przygotowanie kompletnych zleceń dla Codexa i końcową kontrolę wyników. Nie zmienia samodzielnie kodu, konfiguracji, dokumentacji ani GitHuba, nawet gdy ma techniczną możliwość edycji. Odstępstwo wymaga osobnej, wyraźnej zgody właściciela na przejęcie tych czynności.
+
+Na początku nowego wątku ChatGPT po uzyskaniu dostępu do repozytorium:
+
+1. Odczytuje aktualne instrukcje, dokumenty i stan repozytorium.
+2. Wykorzystuje wcześniejsze aktualne ustalenia zamiast ponawiać zakończone analizy.
+3. Proponuje jeden największy sensowny, testowalny pakiet prac zgodnie z §13.
+4. Wskazuje rekomendowany tryb, model i poziom rozumowania.
+5. Przygotowuje jeden kompletny prompt dla Codexa, z zakresem, testami i bramkami zgody; nie przejmuje programowania.
+
+### Codex — wykonanie
+
+Codex odpowiada za implementację kodu, zmianę plików, dokumentację techniczną, testy lokalne, commity i przygotowanie gałęzi. Realizuje całe uzgodnione pakiety zgodnie z `AGENTS.md` i zakresem zatwierdzonym przez właściciela.
+
+### GitHub Actions — automatyczna kontrola i wydanie
+
+GitHub Actions wykonuje przewidziane testy i zatwierdzoną procedurę wydania zgodnie z §12. Nie uruchamiać zbędnych, powtarzanych pełnych testów CI poza ustalonym procesem.
+
+### ChatGPT — kontrola końcowa
+
+ChatGPT weryfikuje raport Codexa, diff, status CI i zgodność z wymaganiami. Nie powtarza testów, które Codex i GitHub Actions już poprawnie wykonały. Dodatkową weryfikację wykonuje wyłącznie dla konkretnej luki, np. testu na fizycznym Androidzie, niezależnego odczytu Firebase lub danych niedostępnych w CI, z zachowaniem wymaganej zgody.
+
+Ten podział nie zastępuje obowiązkowych testów Codexa ani GitHub Actions (§3, §10, §12–13). Zachowuje zasadę „najpierw plan, potem «do dzieła»”, osobne zgody na PR Ready, merge i Pages oraz Firebase LIVE, Rules, granty i migracje danych. Ochrona danych klientów, kompatybilności i istniejącego UI pozostaje obowiązkowa.
+
 ---
 
 Najważniejsza zasada w skrócie: **najpierw diagnoza i uzgodnienie, potem „do dzieła”, następnie minimalna zmiana i pełny preflight.**

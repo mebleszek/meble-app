@@ -1,5 +1,31 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
+## CLOUD-4.4 — następna bramka zależy od dowodów
+
+Istniejące przygotowanie CLOUD-4.3–4.3b i kontrakt współpracy są zintegrowane na jednej gałęzi CLOUD-4.4. Przed produkcyjną Bramką 2 potrzebne są dostępne oryginalne 635 B, osobno zatwierdzone świeże dowody i rozstrzygnięta wyłączność publikacji Rules. Dwa GET nie są atomowym CAS; brak dowodu oznacza STOP. [Pakiet techniczny i testy](tools/reports/cloud-4-4-gate2-technical-preparation.md). Nie zmienia to dalszych zależności Issue #47, aliasów, historii ofert i ochrony danych.
+
+## CLOUD-4.3b — aktualny następny etap: przygotowanie Bramki 2, nie wykonanie produkcyjne
+
+20.10.2026: właściciel zatwierdził baseline 635 B po dwóch GET HTTP 200 tylko do przygotowania Bramki 2. Formalny PASS odczytów Rules i osobna zgoda na przygotowanie są zapisane bez odblokowania LIVE. Następne zależności: dostępna i zweryfikowana prywatna kopia rollbacku 635 B (template 755 B to INNY plik), procedura wyłączności/operatora bez pozornego CAS Rules, świeża kontrola Spark/billing/limitów, konkretny operator STOP oraz odrębne decyzje na wydanie kodu, deploy Rules, grant, syntetyczny write/read i zakończenie. Pełna migracja pozostaje późniejsza. [Plan i blokery](tools/reports/cloud-4-3b-gate1-closure.md).
+
+
+## CLOUD-4.3a — uzgodnienie źródła Auth-only przed ponowną Bramką 1
+
+Potwierdzono offline różnicę 635 B produkcji i 755 B dotychczasowego template.
+Historyczny STOP pozostaje. Następna decyzja obejmuje przegląd baseline 635 B
+oraz ponowną, odczytową kontrolę Bramki 1; bez zgody na Bramkę 2 lub mutacje.
+[Metadane, ograniczenia i testy](tools/reports/cloud-4-3a-production-rules-baseline.md).
+
+## CLOUD-4.3 — aktualizacja istniejącego pakietu, bez synchronizacji
+
+Przegląd pinów i zgodności z main `44b5be9…`, próby syntetyczne i oddzielne
+bramki przyszłego LIVE opisuje [raport CLOUD-4.3](tools/reports/cloud-4-3-live-readiness-refresh.md).
+Następna decyzja: wyłącznie bramka 1, odczytowa kontrola projektu/bazy, aktywnego
+Rules release, Spark i rezerwy kwot. Nie jest to zgoda na jej wykonanie.
+Po późniejszym pilocie nadal wymagane są Issue #47 (globalne słoje/rotacja),
+frozen historia/drafty, aliasy legacy, ochrona danych klientów, konflikty urządzeń
+i praca offline. Nie przełączono autorytetu danych ani nie włączono synchronizacji.
+
 ## Bieżący pakiet po PR #66 — wydajność WYCENY i ważność dostępu
 
 PR #65/#66 są scalone; baza `764d0852`. Gałąź `fix/quote-performance-auth-renewal`

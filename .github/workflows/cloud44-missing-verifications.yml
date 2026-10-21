@@ -1,0 +1,97 @@
+name: CLOUD-4.4 missing Google popup verifications
+
+# Only the two blocked cases; no full CI, private Rules source or release.
+on:
+  push:
+    branches: [cloud-4-4-verification-closure]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloud44-auth-two-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  auth-two:
+    if: github.repository == 'mebleszek/meble-app' && github.ref == 'refs/heads/cloud-4-4-verification-closure'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    env:
+      AUTH_POPUP_TEST: '1'
+      GCLOUD_PROJECT: demo-meble-app
+      GOOGLE_CLOUD_PROJECT: demo-meble-app
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify the exact base, unchanged tests and demo configuration
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor 4769c9359d76763d3103a1549ca3127f9f6769b7 HEAD
+          git diff --exit-code 4769c9359d76763d3103a1549ca3127f9f6769b7 HEAD -- . ':(exclude).github/workflows/cloud44-missing-verifications.yml'
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const config = JSON.parse(fs.readFileSync('tools/firebase-pilot/firebase.json'));
+          assert.deepEqual(config.emulators.auth, {host:'127.0.0.1', port:19099});
+          assert.deepEqual(config.emulators.firestore, {host:'127.0.0.1', port:18080});
+          assert.equal(config.emulators.singleProjectMode, true);
+          assert.equal(config.emulators.ui.enabled, false);
+          assert.equal(process.env.AUTH_POPUP_TEST, '1');
+          for (const key of ['GOOGLE_APPLICATION_CREDENTIALS', 'FIREBASE_TOKEN', 'GOOGLE_OAUTH_ACCESS_TOKEN', 'CLOUD43A_PRIVATE_SOURCE']) {
+            assert.ok(!process.env[key], 'Unexpected private or production input: ' + key);
+          }
+          require('./tools/firebase-pilot/cloud42-package.js').inventory();
+          NODE
+          echo "XDG_CONFIG_HOME=$RUNNER_TEMP/cloud44-auth-config" >> "$GITHUB_ENV"
+          echo "FIREBASE_EMULATORS_PATH=$RUNNER_TEMP/cloud44-auth-emulators" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install existing locked test dependencies
+        timeout-minutes: 8
+        run: npm --prefix tools/firebase-pilot ci --no-audit --no-fund
+
+      - name: Install official Chromium and its dependencies
+        timeout-minutes: 8
+        working-directory: tools/firebase-pilot
+        run: |
+          set -euo pipefail
+          ./node_modules/.bin/playwright-core install --with-deps chromium
+          node -e 'console.log("CHROMIUM_PATH=" + require("playwright-core").chromium.executablePath())' >> "$GITHUB_ENV"
+
+      - name: Obtain the official Firestore emulator
+        timeout-minutes: 4
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM --kill-after=10s 180s tools/firebase-pilot/node_modules/.bin/firebase setup:emulators:firestore
+          test -s "$FIREBASE_EMULATORS_PATH/cloud-firestore-emulator-v1.22.0.jar"
+
+      - name: Run only the two unchanged authentic Google popup tests
+        timeout-minutes: 5
+        working-directory: tools/firebase-pilot
+        run: |
+          set -euo pipefail
+          ./node_modules/.bin/firebase emulators:exec --config firebase.json --project demo-meble-app --only auth,firestore --non-interactive \
+            "node --test --test-reporter=tap --test-name-pattern='^(Actual Google popup, independent UID, SDK persistence across reload, logout and unchanged global bytes|Closed popup and blocked popup show readable retry, without business initialization)$' auth-browser.test.mjs" \
+            2>&1 | tee "$RUNNER_TEMP/cloud44-auth-two.log"
+          grep -Eq '^# tests 2$' "$RUNNER_TEMP/cloud44-auth-two.log"
+          grep -Eq '^# pass 2$' "$RUNNER_TEMP/cloud44-auth-two.log"
+          grep -Eq '^# fail 0$' "$RUNNER_TEMP/cloud44-auth-two.log"
+          grep -Eq '^# skipped 0$' "$RUNNER_TEMP/cloud44-auth-two.log"
