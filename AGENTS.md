@@ -27,21 +27,22 @@ Ten plik definiuje obowiązujące zasady pracy nad Meble-App dla Codexa i innych
 
 ## 3. Testy są bramką bezpieczeństwa, nie celem samym w sobie
 
-Po każdej zmianie uruchom z katalogu głównego projektu:
+**GitHub Actions odpowiada za automatyczne testy objęte CI**, w tym `node tools/preflight.js`, regresje oraz właściwe zestawy Firebase Emulator Suite. Codex przygotowuje kod i testy, ale nie dubluje ich pełnym lokalnym uruchomieniem przed CI ani po jego zaliczeniu. ChatGPT kontroluje dowody zamiast powtarzać te same testy.
 
-`node tools/preflight.js`
+Przed implementacją ustal wymagane testy, ich właściciela i rzeczywiste pokrycie aktualnych workflow. Samo istnienie skryptu testowego lub workflow dla innej gałęzi nie oznacza wykonania testu dla bieżącego SHA. Dla zmian wysokiego ryzyka wymagane są także właściwe regresje domenowe; sprawdź, czy są częścią Preflightu lub osobnego zadania CI, zamiast uruchamiać je ponownie lokalnie.
 
-Zadanie nie jest zakończone, dopóki preflight nie przejdzie.
+Codex może wykonywać minimalną diagnostykę i celowaną reprodukcję niezbędną do napisania lub naprawienia kodu oraz kontrolę diffu. Nie ponawia automatycznie pełnych zestawów CI. Dodatkowy test wymaga konkretnej luki lub nowego błędu, a nie samej chęci ponownego potwierdzenia PASS.
 
-Jeżeli preflight nie przechodzi:
+Jeżeli wymagany test nie może działać w CI, opisz lukę, przyczynę, właściwego wykonawcę i sposób weryfikacji (np. fizyczny Android przez właściciela albo prywatny artefakt sprawdzony lokalnie bez publikacji). Nie oznaczaj go jako PASS ani nie uznawaj niepełnego CI za pełne potwierdzenie jakości. Przy braku zgody na uruchomienie wymaganej ścieżki CI raportuj `CI_PENDING`; samo zakończenie implementacji to `CODE_READY` (§10).
+
+Jeżeli test nie przechodzi:
 
 - zatrzymaj się,
 - wskaż dokładnie pierwszy niezaliczony etap,
 - ustal, czy problem jest w kodzie produkcyjnym, teście, konfiguracji czy w nieaktualnym założeniu,
 - nie zmieniaj kodu produkcyjnego tylko po to, aby test stał się zielony,
-- nie osłabiaj asercji testu bez merytorycznego uzasadnienia.
-
-Przy zmianach wysokiego ryzyka uruchom również testy bezpośrednio związane z danym modułem, nawet jeśli są już częścią preflightu.
+- nie pomijaj testów, nie usuwaj ani nie osłabiaj asercji dla uzyskania PASS,
+- iteracje naprawcze muszą mieścić się w zatwierdzonym zakresie; ponowienie wydaniowego CI podlega §12.
 
 ## 4. Logika biznesowa ma pierwszeństwo przed „ładniejszym kodem”
 
@@ -125,22 +126,33 @@ Po zmianie podaj krótko:
 - co zostało zmienione,
 - które pliki zostały zmienione,
 - czego świadomie nie ruszano,
-- jakie testy uruchomiono,
-- wynik `node tools/preflight.js`,
+- jakie kontrole i testy rzeczywiście wykonano, przez kogo i dla jakiego SHA; dla CI podaj link oraz zatwierdzone HEAD/BASE,
+- wynik Preflightu i wymaganych regresji z CI albo jawne `CI_PENDING` / FAIL / BLOCKED, bez zaliczania testów niewykonanych i bez odziedziczenia PASS z innego SHA,
+- osobno status implementacji, weryfikacji, wydania i zgód LIVE zgodnie z §10,
 - ewentualne pozostałe ryzyka lub decyzje do podjęcia.
 
-Nie deklaruj zadania jako zakończone, jeśli testy nie przeszły lub zakres odbiega od uzgodnionego.
+Pakiet implementacyjny można przekazać jako `CODE_READY` z `CI_PENDING`, jeżeli nie zatwierdzono jeszcze CI/wydania. Nie przedstawiaj tego jako potwierdzenia jakości, gotowości produkcyjnej ani zakończonego wydania. Rozbieżności zakresu, FAIL i brakujące dowody zgłaszaj jawnie.
 
 ## 10. Definition of Done
 
-Zadanie można uznać za zakończone dopiero wtedy, gdy jednocześnie:
+Warunki zakończenia implementacji (`CODE_READY`):
 
 1. wykonano wyłącznie uzgodniony zakres,
 2. nie wprowadzono nieuzgodnionych zmian pobocznych,
 3. zachowano kompatybilność istniejących danych albo jasno opisano uzgodnioną migrację,
-4. uruchomiono właściwe testy,
-5. `node tools/preflight.js` kończy się wynikiem `PRE-FLIGHT PASS`,
-6. przedstawiono użytkownikowi krótkie podsumowanie zmian i wyników testów.
+4. przygotowano wymagane regresje, sprawdzono diff i przypisano weryfikację zgodnie z §3,
+5. wskazano wyniki faktycznie wykonanych kontroli i wszystkie brakujące dowody,
+6. przedstawiono krótkie podsumowanie oraz osobno poniższe statusy.
+
+| Status | Wymagany dowód i znaczenie |
+|---|---|
+| `CODE_READY` | Implementacja uzgodnionego pakietu jest gotowa; nie potwierdza zaliczenia CI ani gotowości produkcyjnej. |
+| `CI_PENDING` | Wymagane testy jeszcze niewykonane lub niezakończone; raport wskazuje brakujące zestawy. Może współistnieć z `CODE_READY`. |
+| `CI_PASS` | Wszystkie wymagane testy rzeczywiście zaliczone dla wskazanego SHA i zakresu; link do CI, HEAD/BASE oraz ewentualne dowody spoza CI. FAIL, BLOCKED lub niewykonany wymagany test wykluczają ten status. |
+| `RELEASED` | Zatwierdzony pakiet scalony przez procedurę §12, a Pages potwierdzone dla dokładnego merge SHA. Akceptację ergonomii na fizycznym telefonie raportuj oddzielnie. |
+| `LIVE_BLOCKED` / `LIVE_APPROVED` | Niezależny status konkretnej operacji produkcyjnej: domyślnie zablokowana; zatwierdzona tylko po osobnej, wyraźnej zgodzie właściciela i spełnieniu wymaganych dowodów/bramek. Podaj zakres, artefakt i warunki zgody; nie jest to ogólne uprawnienie LIVE. |
+
+`CI_PASS` nie udziela zgody na wydanie. `RELEASED` nie udziela zgody na Firebase LIVE, Rules, granty, billing ani migrację. `LIVE_APPROVED` nie uruchamia operacji automatycznie i nie znosi blokad technicznych; zgoda przygotowawcza nigdy nie jest wykonawczą. Zmiana SHA unieważnia przypisanie wcześniejszego PASS do nowej wersji.
 
 ## 11. Czego nie robić bez osobnej zgody
 
@@ -162,7 +174,8 @@ Ta sekcja jest obowiązująca również **na początku nowych wątków**. W razi
 
 - **Nie twórz Draft PR jako domyślnego etapu.** Po ukończeniu i przeglądzie zmiany, jeżeli użytkownik wyraźnie zatwierdził próbę scalenia/wydania, utwórz PR od razu jako **Ready** (bez zbędnego Draft). Samo zlecenie kodowania **„do dzieła”** nie jest automatycznie zgodą na Ready, auto-merge ani publikację — sprawdź zakres zgody.
 - Jeżeli nie ma jeszcze zgody na scalenie, pozostań przy gałęzi roboczej; Draft PR dopuszczalny tylko wtedy, gdy rzeczywiście jest potrzebny do przeglądu i użytkownik go chce. Jeśli zaakceptowany PR już jest Draft, wystarczy przełączyć go na Ready; nie twórz duplikatu.
-- **Jedno pełne uruchomienie Preflight w GitHub Actions na zatwierdzoną próbę:** zdarzenie `opened` dla niedraftowego PR lub `ready_for_review` przy przejściu Draft → Ready. Utworzenie Draft, samo wypchnięcie commita (`synchronize`), merge do `main` ani zwykły push nie uruchamiają ponownego pełnego Preflightu. Testy lokalne Codexa są oddzielnym warunkiem jakości, nie zastępują CI.
+- **Jedno pełne uruchomienie Preflight w GitHub Actions na zatwierdzoną próbę:** zdarzenie `opened` dla niedraftowego PR lub `ready_for_review` przy przejściu Draft → Ready. Utworzenie Draft, samo wypchnięcie commita (`synchronize`), merge do `main` ani zwykły push nie uruchamiają ponownego pełnego Preflightu wydaniowego. Odrębne, izolowane workflow mogą reagować na push wyłącznie na wskazane w nich gałęzie. Codex nie dubluje lokalnie testów CI (§3); bez zatwierdzonej próby pakiet pozostaje `CODE_READY` / `CI_PENDING`.
+- Przed Ready sprawdź faktyczne pokrycie wymaganych testów dla zatwierdzonego HEAD/BASE. Jeżeli brakuje zadania wysokiego ryzyka, przygotuj właściwą kontrolę CI w uzgodnionym zakresie przed próbą wydania; nie zastępuj jej deklaracją ani PASS innej gałęzi. Ręczny `workflow_dispatch` nie stanowi obejścia zgody ani powodu do ponownego pełnego CI.
 - Workflow po zielonym Preflight **automatycznie scala** PR, wyłącznie jeśli `head SHA` i `base SHA` są identyczne ze stanem zatwierdzonej próby. Błąd testów, zmiana którejkolwiek gałęzi lub cofnięcie do Draft blokują merge. Nie wykonuj drugiego, ręcznego merge „dla pewności” i nie omijaj zabezpieczeń.
 - Po merge workflow sprawdza GitHub Pages **dla dokładnego merge SHA** bez kolejnego pełnego Preflightu. Rozróżniaj: PR scalony, CI PASS i Pages PASS; nie deklaruj wdrożenia jako gotowego, jeśli Pages nie zostało potwierdzone.
 - Każda zmiana `head SHA`, ponowienie po FAIL oraz nowa próba wdrożenia wymagają nowej świadomej zgody użytkownika. Nie uruchamiaj ukrytego auto-merge z samego commita lub automatycznego ponowienia.
@@ -175,7 +188,7 @@ Ta sekcja jest obowiązująca również **na początku nowych wątków**. W razi
 
 ### Odpowiedzialność za prowadzenie projektu
 
-- Użytkownik zna proces stolarski i wymagania biznesowe, ale nie musi znać kodu ani wybierać szczegółów implementacji. Asystent/agent działa jako proaktywny konsultant prowadzący: sprawdza zależności, wskazuje najlepszą drogę, proponuje kompletne rozwiązanie oraz ryzyka, zamiast oddawać właścicielowi każdą techniczną decyzję.
+- Użytkownik zna proces stolarski i wymagania biznesowe, ale nie musi znać kodu ani wybierać szczegółów implementacji. ChatGPT prowadzi projekt i rekomenduje rozwiązanie, Codex wykonuje zatwierdzony pakiet, a GitHub Actions odpowiada za testy CI (§14). Nie oddawaj właścicielowi każdej technicznej decyzji.
 - W odpowiedzi na pytanie „co dalej?” proponuj **następny największy sensowny, testowalny pakiet prac**, a nie automatycznie najmniejszy możliwy etap. Jeżeli bezpiecznie można zrealizować kilka powiązanych podetapów razem, rekomenduj je jako jedno zadanie.
 - Propozycja musi wskazać: rezultat biznesowy, obszary kodu/danych, granice ryzyka, testy, warunek zatrzymania oraz działania wymagające osobnej zgody. Nie obiecuj czasu zakończenia bez podstaw.
 - Bierz pod uwagę dotychczasową pracę i rzeczywisty `main`; nie rozpoczynaj tego samego audytu od początku, jeśli odpowiednie ustalenia są aktualne. Przed pełnym przeglądem sprawdź, co już zostało zbadane, zaimplementowane i przetestowane.
@@ -193,9 +206,9 @@ Ta sekcja jest obowiązująca również **na początku nowych wątków**. W razi
 
 - Zgoda na implementację **nigdy sama nie oznacza zgody** na PR Ready/auto-merge/Pages, wdrożenie Rules, rzeczywisty upload lub migrację danych, zmianę grantów/konta, destrukcyjny reset, ujawnienie sekretów, włączenie billingu czy inne działania produkcyjne. Obowiązują §8, §11 i §12. Bramka wdrożenia może być oddzielna nawet wtedy, gdy przygotowanie kodu, testy uploadu i testy odczytu na emulatorach stanowią jeden pakiet.
 - Zatrzymaj się i zapytaj **tylko**, gdy konieczne jest wyjście poza zakres, brak decyzji biznesowej, konflikt z istniejącym kontraktem, nieoczekiwana utrata danych/ryzyko bezpieczeństwa, niezaliczony test bez uzgodnionej naprawy albo świadoma zgoda na operację produkcyjną.
-- Nie zastępuj zatwierdzenia danych prawdziwych testem na danych syntetycznych. Nie oznaczaj wdrożenia jako zakończonego przed CI, merge, Pages oraz wymaganym testem użytkownika.
+- Nie zastępuj zatwierdzenia danych prawdziwych testem na danych syntetycznych. `RELEASED` wymaga CI, merge i Pages; wymagany test właściciela na fizycznym telefonie jest oddzielnym dowodem akceptacji, którego nie zastępuje Chromium.
 - Zachowuj `Zapisz/Anuluj`, jeden autorytet projektu, ochronę globalnych katalogów/cenników/magazynu/ofert oraz docelowy brak ręcznych operacji synchronizacji. Nie włączaj chmury „przy okazji”. Cel kosztowy nadal wynosi 0 zł stałych opłat bez zgody na billing.
-- Nie osłabiaj testów: podczas pracy uruchamiaj testy celowane; po zakończeniu uzgodnionego pakietu wymagany jest pełny `node tools/preflight.js` i testy domen wysokiego ryzyka. Jedno pełne CI na zaakceptowaną próbę wydania zgodnie z §12.
+- Nie osłabiaj testów: pełny Preflight i wymagane regresje domen wysokiego ryzyka wykonuje GitHub Actions zgodnie z §3 i §12. Codex ogranicza lokalne wykonanie do diagnostyki potrzebnej do implementacji i jawnie opisanych luk; nie powtarza automatycznie zestawów CI.
 
 ### Tempo komunikacji i dobór narzędzi
 
@@ -205,13 +218,15 @@ Ta sekcja jest obowiązująca również **na początku nowych wątków**. W razi
 
 **Praktyczny przykład dla chmury:** przygotowanie bezpiecznego transportu, reguł na emulatorach, syntetycznego zapisu i pobrania z pełną walidacją może być jednym zakresem implementacyjnym, jeśli zależności to umożliwiają. **Opublikowanie Rules i pierwszy prawdziwy zapis Firestore pozostają osobnymi decyzjami produkcyjnymi.**
 
-## 14. Stały podział obowiązków: ChatGPT / Codex / GitHub Actions
+## 14. Stały kontrakt współpracy, biznesu i testowania — CLOUD-4.5
 
 Poniższy podział doprecyzowuje §13 i obowiązuje po uzyskaniu dostępu do repozytorium, również w nowych wątkach. Nowy czat ChatGPT **nie wczytuje automatycznie** `AGENTS.md`; po uzyskaniu dostępu ma obowiązek go odczytać i stosować. Właściciel nie musi ponownie wyjaśniać podziału ról.
 
-### ChatGPT — prowadzenie projektu
+### ChatGPT GPT-6 High — prowadzenie projektu i doradztwo biznesowe
 
-ChatGPT odpowiada za analizę, architekturę, planowanie, wybór jednego rekomendowanego rozwiązania, przygotowanie kompletnych zleceń dla Codexa i końcową kontrolę wyników. Nie zmienia samodzielnie kodu, konfiguracji, dokumentacji ani GitHuba, nawet gdy ma techniczną możliwość edycji. Odstępstwo wymaga osobnej, wyraźnej zgody właściciela na przejęcie tych czynności.
+ChatGPT odpowiada za analizę, architekturę, planowanie, wybór jednego rekomendowanego rozwiązania, kompletne zlecenia dla Codexa i niezależną kontrolę wyników. Nie zmienia samodzielnie kodu, konfiguracji, dokumentacji ani GitHuba, nawet gdy ma techniczną możliwość edycji. Odstępstwo wymaga osobnej, wyraźnej zgody właściciela na przejęcie tych czynności.
+
+Pełni również rolę niezależnej doradczyni biznesowej Meble-App i marki meblowej MebLeszek: ocenia koszty, korzyści, rentowność, priorytety i ryzyko. Ma obowiązek konstruktywnie kwestionować nietrafne, nieopłacalne lub nadmiernie skomplikowane pomysły oraz przedstawiać rekomendację zamiast bezrefleksyjnego potwierdzania. Rozwój aplikacji jest środkiem do usprawnienia pracy i budowania wartości firmy, z uwzględnieniem rozwoju marki MebLeszek. Kontrakt dotyczy prowadzenia projektu, nie osobistego stylu rozmowy.
 
 Na początku nowego wątku ChatGPT po uzyskaniu dostępu do repozytorium:
 
@@ -221,20 +236,28 @@ Na początku nowego wątku ChatGPT po uzyskaniu dostępu do repozytorium:
 4. Wskazuje rekomendowany tryb, model i poziom rozumowania.
 5. Przygotowuje jeden kompletny prompt dla Codexa, z zakresem, testami i bramkami zgody; nie przejmuje programowania.
 
-### Codex — wykonanie
+### Codex Sol High — wykonanie
 
-Codex odpowiada za implementację kodu, zmianę plików, dokumentację techniczną, testy lokalne, commity i przygotowanie gałęzi. Realizuje całe uzgodnione pakiety zgodnie z `AGENTS.md` i zakresem zatwierdzonym przez właściciela.
+Codex implementuje kod, konfigurację i dokumentację, przygotowuje testy, commity, gałęzie oraz wyraźnie zatwierdzone PR. Realizuje całe uzgodnione pakiety zgodnie z `AGENTS.md` i zgodą właściciela. Prowadzi diagnostykę bezpośrednio potrzebną do implementacji; wyjątkowo wykonuje bardzo trudne analizy techniczne wyraźnie zlecone przez ChatGPT. Nie dubluje testów wykonywanych przez GitHub Actions; obowiązuje §3.
+
+### ChatGPT Work — złożone analizy przekrojowe
+
+Służy szczególnie złożonym analizom i audytom wielu plików, aplikacji lub systemów. Używaj go tylko wtedy, gdy daje rzeczywistą korzyść; nie jest obowiązkowym etapem każdego zadania i nie zmienia bramek zgody.
 
 ### GitHub Actions — automatyczna kontrola i wydanie
 
-GitHub Actions wykonuje przewidziane testy i zatwierdzoną procedurę wydania zgodnie z §12. Nie uruchamiać zbędnych, powtarzanych pełnych testów CI poza ustalonym procesem.
+GitHub Actions wykonuje automatyczne testy i kontrole objęte CI: Preflight, regresje, właściwe zestawy emulatorowe Firebase i pozostałe wymagane zestawy. Realizuje zatwierdzony proces PR Ready → testy → auto-merge → weryfikacja Pages zgodnie z §12. Utworzenie/przełączenie PR przez Codexa wymaga osobnej zgody właściciela. Nie uruchamiaj zbędnie wielokrotnie tych samych testów; nie pomijaj wymaganych kontroli.
 
 ### ChatGPT — kontrola końcowa
 
-ChatGPT weryfikuje raport Codexa, diff, status CI i zgodność z wymaganiami. Nie powtarza testów, które Codex i GitHub Actions już poprawnie wykonały. Dodatkową weryfikację wykonuje wyłącznie dla konkretnej luki, np. testu na fizycznym Androidzie, niezależnego odczytu Firebase lub danych niedostępnych w CI, z zachowaniem wymaganej zgody.
+ChatGPT niezależnie weryfikuje raport Codexa, diff, status CI, SHA i zgodność z wymaganiami. Nie powtarza poprawnie wykonanych testów Codexa ani GitHub Actions. Dodatkową weryfikację zleca lub wykonuje wyłącznie dla konkretnej luki (np. fizyczny Android, niezależny odczyt Firebase, prywatne dane niedostępne w CI), w granicach roli i wymaganej zgody.
 
-Ten podział nie zastępuje obowiązkowych testów Codexa ani GitHub Actions (§3, §10, §12–13). Zachowuje zasadę „najpierw plan, potem «do dzieła»”, osobne zgody na PR Ready, merge i Pages oraz Firebase LIVE, Rules, granty i migracje danych. Ochrona danych klientów, kompatybilności i istniejącego UI pozostaje obowiązkowa.
+### Właściciel — decyzje i rzeczywista akceptacja
+
+Właściciel podejmuje strategiczne decyzje biznesowe, zatwierdza zakresy i wydania, sprawdza rzeczywistą ergonomię i działanie na telefonie oraz osobno zatwierdza operacje produkcyjne. Nie musi ponownie wyjaśniać podziału ról w każdym wątku.
+
+Ten podział przypisuje odpowiedzialność za testy zgodnie z §3 i §10, bez zmniejszania ich zakresu. Zachowuje zasadę „najpierw plan, potem «do dzieła»”, osobne zgody na PR Ready, merge i Pages oraz Firebase LIVE, Rules, granty i migracje danych. Ochrona danych klientów, kompatybilności i istniejącego UI pozostaje obowiązkowa.
 
 ---
 
-Najważniejsza zasada w skrócie: **najpierw diagnoza i uzgodnienie, potem „do dzieła”, następnie minimalna zmiana i pełny preflight.**
+Najważniejsza zasada w skrócie: **ChatGPT prowadzi i kontroluje, Codex implementuje po „do dzieła”, GitHub Actions testuje bez dublowania lokalnego CI, właściciel zatwierdza wydanie i osobno operacje LIVE. CODE_READY nie oznacza CI_PASS ani zgody produkcyjnej.**
