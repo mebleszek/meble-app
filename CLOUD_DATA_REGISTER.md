@@ -1,5 +1,9 @@
 # CLOUD-1A — kanoniczny rejestr danych Meble-App
 
+## CLOUD-4.6E — niezmieniona granica danych
+
+Połączenie operatora dotyczy wyłącznie syntetycznych `cloud4-investor-v1` / `cloud4-project-v1` i istniejących administracyjnych dokumentów grantu/STOP. Nie otrzymuje magazynu aplikacji ani eksportera danych firmy. Cenniki, zamienniki/kompatybilność, katalogi, magazyn, ustawienia globalne, historia ofert oraz WYCENA pozostają poza testem i migracją. Prywatny journal poza repo zawiera identyfikatory/hashy/statusy, bez payloadu, tokenów i Rules; nie tworzy nowej domeny `fc_*`. Właściciel potwierdził kompletną aktualną kopię danych i brak późniejszych zmian — bez nowej przesłanki nie zleca się kolejnego backupu ani pełnego audytu. [Bramki operatora](tools/reports/cloud-4-6d-live-execution-preparation.md#cloud-46e--połączenie-operatora).
+
 ## CLOUD-4.3 — bez rozszerzenia zakresu danych (2026-10-20)
 
 Przegląd bieżących kontraktów nie zmienia klasyfikacji danych poniżej. Pilot to

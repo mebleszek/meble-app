@@ -1,8 +1,14 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
-## CLOUD-4.6D — przygotowana granica produkcyjnego kandydata
+## CLOUD-4.6E — wykonawcze wiązanie prywatnych kontekstów
 
-Nieaktywny kandydat składa istniejącą orkiestrację/CAS/transport syntetyczny z kontrolami konkretnego projektu/bazy/UID, świeżych Rules i oddzielnych zgód. Trwały dziennik zapisuje rewizję przed WRITE, a rozstrzygnięcie po restarcie nie otwiera ponownej mutacji. **CODE_READY / CI_PENDING / LIVE_BLOCKED**; bez launchera, danych klientów, migracji i synchronizacji. [Kod, wymagane CI i prywatne warunki wykonania](tools/reports/cloud-4-6d-live-execution-preparation.md).
+Nowe, izolowane API operatora ma osobną autoryzację podpisami Ed25519; wykorzystuje fabryki 4.6D, istniejące modele, CAS, Rules i STOP. Połączenie produkcyjne nie jest przełącznikiem transportu demo. Cztery konteksty techniczne, pamięciowe tokeny, zewnętrzny prywatny journal, trwałe zużycie próby i oddzielne recovery nie zmieniają źródła danych aplikacji. **CODE_READY / CI_PENDING / LIVE_BLOCKED**, bez uruchomienia/odczytów LIVE. [Dokładne API, ograniczenia i wykonanie](tools/reports/cloud-4-6d-live-execution-preparation.md#cloud-46e--połączenie-operatora).
+
+Dalsza kolejność: kontrolowany syntetyczny LIVE → bezstratne dane biznesowe i ich synchronizacja → automatyczna synchronizacja projektów między urządzeniami → pełny LOCAL-FIRST/offline. Obowiązuje istniejący kontrakt LOCAL-FIRST poniżej; nie wdrożono żadnego z trzech ostatnich etapów.
+
+## CLOUD-4.6D — wydany kandydat produkcyjny
+
+PR [#76](https://github.com/mebleszek/meble-app/pull/76) wydany do main `4b8ef922a4596372eba4a48b52de1bdff6585f4f`; właściciel potwierdził SUCCESS CI, auto-merge i Pages. CLOUD-4.6D: **RELEASED / LIVE_BLOCKED**. Historyczne CI_PENDING w raporcie opisuje stan sprzed tego wydania.
 
 ## CLOUD-4.6C — granica wykonawcy i transportu
 
