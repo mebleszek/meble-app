@@ -1,8 +1,12 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
-## CLOUD-4.6C — przygotowanie wykonawcy zakończone, weryfikacja oczekuje
+## CLOUD-4.6D — przygotowano źródło przyszłego LIVE
 
-Izolowana orkiestracja pełnego cyklu jest przygotowana wyłącznie dla emulatorów. Kolejna bramka: osobno zatwierdzony HEAD/BASE i istniejące CI z wymaganymi regresjami. Następnie przyszła aktywacja wymaga prywatnych 635 B, świeżych dowodów, efektywnego IAM/delegacji, dowiedzionej wyłączności wszystkich ścieżek publikacji, nazwanych operatorów oraz osobnej implementacji i zgód na Rules/grant/WRITE/READ/STOP. [Checklista niebędąca zgodą](tools/reports/cloud-4-6c-isolated-executor.md#checklista-przyszłej-aktywacji--nie-jest-zgodą-wykonawczą). **CODE_READY / CI_PENDING / LIVE_BLOCKED**. Nie otwarto Bramki 2 ani synchronizacji LOCAL-FIRST.
+Kandydat wykorzystuje wydany cykl 4.6C, dodając produkcyjne granice i trwałe rozstrzyganie próby. Następne bramki to osobno zatwierdzone CI/wydanie 4.6D oraz prywatne wiązanie rzeczywistych poświadczeń z kandydatem po osobnych zgodach wykonawczych. Bez kolejnego audytu historycznego IAM: przed próbą tylko świeża kontrola zmian uprawnień/publisherów i utrzymania wyłączności. **CODE_READY / CI_PENDING / LIVE_BLOCKED**. [Minimalna procedura i ograniczenia](tools/reports/cloud-4-6d-live-execution-preparation.md).
+
+## CLOUD-4.6C — wydany etap emulatorowy
+
+Izolowana orkiestracja pełnego cyklu została wydana w PR #75, main `fd36b2e6fee433c92676d7619dc672d4361d9d59`; właściciel potwierdził SUCCESS CI/merge/Pages. To zakończony etap emulatorowy. Następnie przyszła aktywacja wymaga prywatnych 635 B, świeżych dowodów, efektywnego IAM/delegacji, dowiedzionej wyłączności wszystkich ścieżek publikacji, nazwanych operatorów oraz osobnej implementacji i zgód na Rules/grant/WRITE/READ/STOP. [Checklista niebędąca zgodą](tools/reports/cloud-4-6c-isolated-executor.md#checklista-przyszłej-aktywacji--nie-jest-zgodą-wykonawczą). **RELEASED / LIVE_BLOCKED**. Nie otwarto Bramki 2 ani synchronizacji LOCAL-FIRST.
 
 ## LOCAL-FIRST
 

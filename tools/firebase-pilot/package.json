@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "firebase emulators:exec --config firebase.json --project demo-meble-app --only auth,firestore --non-interactive \"node --test --test-concurrency=1 pilot.test.mjs auth.test.mjs access.test.mjs global.test.mjs live-readiness.test.mjs cloud42-plan.test.mjs cloud44-admin.test.mjs cloud46c-executor.test.mjs\"",
+    "test": "firebase emulators:exec --config firebase.json --project demo-meble-app --only auth,firestore --non-interactive \"node --test --test-concurrency=1 pilot.test.mjs auth.test.mjs access.test.mjs global.test.mjs live-readiness.test.mjs cloud42-plan.test.mjs cloud44-admin.test.mjs cloud46c-executor.test.mjs cloud46d-emulator.test.mjs\"",
     "test:live-readiness": "firebase emulators:exec --config firebase-live-pilot.json --project demo-meble-app --only auth,firestore --non-interactive \"node --test live-readiness.test.mjs\"",
     "test:browser": "firebase emulators:exec --config firebase.json --project demo-meble-app --only auth,firestore --non-interactive \"node --test auth-browser.test.mjs\"",
     "test:private-pilot": "firebase emulators:exec --config firebase-live-pilot.json --project demo-meble-app --only auth,firestore --non-interactive \"node --test --test-name-pattern=CLOUD-4.1 auth-browser.test.mjs\"",

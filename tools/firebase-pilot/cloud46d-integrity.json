@@ -1,0 +1,15 @@
+{
+  "base": "fd36b2e6fee433c92676d7619dc672d4361d9d59",
+  "productionExecutionAllowed": false,
+  "upstream46cManifestSha256": "02262ba3e4dcb400564db3f10cb98184f388de1b7d9d92af41e4ed41953232ef",
+  "sha256": {
+    "cloud46d-contract.js": "2be5f34fd5feda2d92009d0302137919fe8bee6dc6b5fbd18257f3b531fc1005",
+    "cloud46d-journal.js": "eaba0499fc5b956983ae57acb845f245f0b51283f4f86c213b722608ec9a9b43",
+    "cloud46d-candidate.js": "b9d605d6c72c496c148d42d14dc6cdd20bc7371a4e1ba6b835d32cff3da25fea",
+    "cloud46d-rules-reader.js.txt": "334b09af76d703556c2f2cc1bf5cf43ebabcea36518463b0314f74d9d1f41644",
+    "cloud46d-rehearsal.mjs": "f0eb5cc98497fe9b39d107e95055884acf461ed8464205acbf7a9842b9f35287",
+    "cloud46d-emulator.test.mjs": "864a81e8a92d4cdf2e09a36dde60e5f067f91ac753d0de51b40b1ed8c289835d",
+    "cloud46d-preparation.test.mjs": "1465a4a7c5b5460eda63a3dfa60d813d986f8fcaf8c63e8f50344f6b21cdfa8e",
+    "../cloud46d-preparation-smoke.js": "0af974786ce7b00390e7870ec490a8f851a5cf552b9f1646f6cc7ea72c256d0c"
+  }
+}

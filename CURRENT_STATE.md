@@ -1,8 +1,12 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## CLOUD-4.6D — kandydat produkcyjny nieaktywny
+
+Przygotowano produkcyjne kontrole tożsamości/zgód/Rules, trwały dziennik rewizji i odzyskiwania oraz generator nieaktywnego kandydata oparty na orkiestracji 4.6C. Bez launchera, aktywacji i Firebase LIVE. Status nowego pakietu: **CODE_READY / CI_PENDING / LIVE_BLOCKED**. [Zakres, dowody, operator i brakujący prywatny binder](tools/reports/cloud-4-6d-live-execution-preparation.md).
+
 ## CLOUD-4.6C — izolowany wykonawca, bez aktywacji LIVE
 
-Pakiet na bazie `af75be7201f3941c639bb41e5fa0e296a5720ae8` przygotowuje pełny cykl stage/activate → jedna próba syntetycznego WRITE → niezależny READ → administracyjny STOP → niezależne potwierdzenie wyłącznie na `demo-meble-app` i emulatorach. Używa istniejących walidatorów, CAS i operatora CLOUD-4.4. Adapter/launcher produkcyjny nie powstał; `executeProduction()` nadal bezwarunkowo odmawia. Regresje dołączono do skryptu istniejącego CI, bez zmiany workflow. Status: **CODE_READY / CI_PENDING / LIVE_BLOCKED**; brak PR i wydania. [Pliki, wykonane kontrole, wymagane CI i niezamknięte bramki](tools/reports/cloud-4-6c-isolated-executor.md). LOCAL-FIRST i wszystkie dane biznesowe pozostają poza zmianą.
+Pakiet na bazie `af75be7201f3941c639bb41e5fa0e296a5720ae8` przygotowuje pełny cykl stage/activate → jedna próba syntetycznego WRITE → niezależny READ → administracyjny STOP → niezależne potwierdzenie wyłącznie na `demo-meble-app` i emulatorach. Używa istniejących walidatorów, CAS i operatora CLOUD-4.4. Adapter/launcher produkcyjny nie powstał; `executeProduction()` nadal bezwarunkowo odmawia. Regresje dołączono do skryptu istniejącego CI, bez zmiany workflow. PR [#75](https://github.com/mebleszek/meble-app/pull/75) wydany do main `fd36b2e6fee433c92676d7619dc672d4361d9d59`: według potwierdzenia właściciela pełny Preflight, SDK/Rules, auto-merge i Pages SUCCESS. Status 4.6C: **RELEASED / LIVE_BLOCKED**; ten PASS nie dotyczy nowego HEAD 4.6D. [Pliki, wykonane kontrole, wymagane CI i niezamknięte bramki](tools/reports/cloud-4-6c-isolated-executor.md). LOCAL-FIRST i wszystkie dane biznesowe pozostają poza zmianą.
 
 ## LOCAL-FIRST
 
