@@ -1,8 +1,12 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
+## CLOUD-4.6D — przygotowana granica produkcyjnego kandydata
+
+Nieaktywny kandydat składa istniejącą orkiestrację/CAS/transport syntetyczny z kontrolami konkretnego projektu/bazy/UID, świeżych Rules i oddzielnych zgód. Trwały dziennik zapisuje rewizję przed WRITE, a rozstrzygnięcie po restarcie nie otwiera ponownej mutacji. **CODE_READY / CI_PENDING / LIVE_BLOCKED**; bez launchera, danych klientów, migracji i synchronizacji. [Kod, wymagane CI i prywatne warunki wykonania](tools/reports/cloud-4-6d-live-execution-preparation.md).
+
 ## CLOUD-4.6C — granica wykonawcy i transportu
 
-Nowa orkiestracja w `tools/firebase-pilot` wykorzystuje istniejący operator CLOUD-4.4, CAS i syntetyczne źródło CLOUD-4. Dopuszcza tylko cztery oddzielne konteksty SDK na `demo-meble-app` / `(default)` / loopback. Niepewność, konflikt, zmiana Rules/tożsamości i STOP podczas await powodują odmowę bez retry; niezależna weryfikacja STOP wymaga flag false i faktycznej odmowy dostępu do pilota. `executeProduction()` oraz dotychczasowy loader pozostają zablokowane. [Kontrakt, ograniczenia dziennika demo i checklista przyszłej aktywacji](tools/reports/cloud-4-6c-isolated-executor.md). **CODE_READY / CI_PENDING / LIVE_BLOCKED**; brak migracji, UI, nowego autorytetu danych i produkcyjnego adaptera.
+Nowa orkiestracja w `tools/firebase-pilot` wykorzystuje istniejący operator CLOUD-4.4, CAS i syntetyczne źródło CLOUD-4. Dopuszcza tylko cztery oddzielne konteksty SDK na `demo-meble-app` / `(default)` / loopback. Niepewność, konflikt, zmiana Rules/tożsamości i STOP podczas await powodują odmowę bez retry; niezależna weryfikacja STOP wymaga flag false i faktycznej odmowy dostępu do pilota. `executeProduction()` oraz dotychczasowy loader pozostają zablokowane. [Kontrakt, ograniczenia dziennika demo i checklista przyszłej aktywacji](tools/reports/cloud-4-6c-isolated-executor.md). CLOUD-4.6C wydano w PR #75 (main `fd36b2e6fee433c92676d7619dc672d4361d9d59`, właściciel potwierdził CI/merge/Pages SUCCESS): **RELEASED / LIVE_BLOCKED**. Bez migracji, UI i zmiany autorytetu danych.
 
 ## LOCAL-FIRST
 

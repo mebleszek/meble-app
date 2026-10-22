@@ -1,0 +1,24 @@
+// Inert source fragment. Only the separately reviewed private candidate may bind OAuth.
+function createRulesReader(credential, request) {
+  const root = 'https://firebaserules.googleapis.com/v1/';
+  async function get(resource, token) {
+    const response = await request(root + resource, {method: 'GET', redirect: 'error',
+      headers: {authorization: 'Bearer ' + token}, signal: AbortSignal.timeout(8000)});
+    if (response.status !== 200) throw Error('CLOUD46D_RULES_READ_UNCONFIRMED');
+    return response.json();
+  }
+  return async function readRules() {
+    const access = await credential.getAccessToken();
+    const token = typeof access === 'string' ? access : access?.token || access?.access_token;
+    if (typeof token !== 'string' || !token.trim()) throw Error('CLOUD46D_OAUTH_UNCONFIRMED');
+    const releaseName = 'projects/mebleszek-meble-app/releases/cloud.firestore';
+    const release = await get(releaseName, token);
+    if (release.name !== releaseName || !/^projects\/mebleszek-meble-app\/rulesets\/[A-Za-z0-9_-]+$/.test(release.rulesetName || '')) throw Error('CLOUD46D_RULES_IDENTITY_MISMATCH');
+    const ruleset = await get(release.rulesetName, token);
+    if (ruleset.name !== release.rulesetName) throw Error('CLOUD46D_RULES_IDENTITY_MISMATCH');
+    // A concurrent release move must be a refusal, not automatic rebasing.
+    const after = await get(releaseName, token);
+    if (JSON.stringify(after) !== JSON.stringify(release)) throw Error('CLOUD46D_RULES_CHANGED_DURING_READ');
+    return {projectId: 'mebleszek-meble-app', database: '(default)', release, ruleset, observedAt: new Date().toISOString()};
+  };
+}
