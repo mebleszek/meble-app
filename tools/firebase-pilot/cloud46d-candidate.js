@@ -36,7 +36,8 @@ function demoSources() {
   inventory();
   return {cycle: cycleSource().replace(/^export /gm, ''), transport: transportSource().replace(/^export /gm, '')};
 }
-function productionSource() {
+function connectionSources() {
+  inventory();
   let adapter = transportSource();
   const dbStart = adapter.indexOf('function assertDb(db) {'), dbEnd = adapter.indexOf('export async function createDemoTransport');
   if (dbStart < 0 || dbEnd < dbStart) fail();
@@ -56,17 +57,21 @@ function productionSource() {
   admin = admin.slice(0, adminStart) + 'function assertDemo(db) { contract.assertAdmin(db); }\n' + admin.slice(adminEnd);
   // Existing transaction callback, expected-state validator and maxAttempts=1
   // stay byte-for-byte intact; only native SDK connection binding differs.
-  const bridge = 'const doc = (db, path) => db.doc(path);\nconst runTransaction = (db, operation, options) => db.runTransaction(operation, options);\nconst getDocFromServer = ref => ref.get();\n';
+  const bridge = 'const doc = (db, path) => db.doc(path);\nconst snapshot = s => ({exists: () => s.exists, data: () => s.data()});\nconst runTransaction = (db, operation, options) => db.runTransaction(tx => operation({get: async ref => snapshot(await tx.get(ref)), update: (ref, data) => tx.update(ref, data), set: (ref, data) => tx.set(ref, data)}), options);\nconst getDocFromServer = async ref => snapshot(await ref.get());\n';
   let cycle = cycleSource().replace(/^export /gm, '');
   cycle = once(cycle, 'projectId: reviewed.projectId, origin:', "projectId: 'demo-meble-app', origin:");
   // Only the existing cooperative lifecycle is reused here. Real project/binding
   // checks live in the adapter; the lifecycle is not an external exclusion lock.
+  return {adapter, admin: bridge + admin, cycle};
+}
+function productionSource() {
+  const {adapter, admin, cycle} = connectionSources();
   return `// INERT CLOUD-4.6D CANDIDATE. No exported binder, loader or activation.\n'use strict';\n` +
     `import fs from 'node:fs';\nimport {createHash} from 'node:crypto';\nimport gate from './cloud44-gate2.js';\nimport pilot from './cloud42-package.js';\nimport contract from './cloud46d-contract.js';\nimport preparation from './cloud46d-candidate.js';\nimport fixtureRuntime from '../cloud4-pilot-readiness-smoke.js';\n` +
     `function privateBindings(journal, reviewedIntent, packageSha256, rulesCredential, expectedRules, finalChecks) {\n` +
     `if (packageSha256 !== preparation.inventory().packageSha256) throw Error('CLOUD46D_PACKAGE_CHANGED');\ncontract.reviewFinalChecks(finalChecks);\ngate.executeProduction(); // Unconditional activation fence, even if privateBindings is accidentally exposed.\n` +
     `const proof = {reviewDemoEvidence: input => { const intent = contract.reviewIntent(input, packageSha256); if (contract.reviewFinalChecks(finalChecks).blockers.some(code => code !== 'PRODUCTION_BINDING_NOT_ACTIVATED')) throw Error('CLOUD46D_FINAL_CHECKS_REQUIRED'); return intent; }};\n` +
-    file('cloud46d-rules-reader.js.txt') + '\nconst readOfficialRules = createRulesReader(rulesCredential, fetch);\n' + bridge + admin + '\nconst preparedAdapter = (() => {\n' + adapter + '\nreturn {createDemoTransport, assertDemoTransport};\n})();\nconst {createDemoTransport, assertDemoTransport} = preparedAdapter;\n' + cycle +
+    file('cloud46d-rules-reader.js.txt') + '\nconst readOfficialRules = createRulesReader(rulesCredential, fetch);\n' + admin + '\nconst preparedAdapter = (() => {\n' + adapter + '\nreturn {createDemoTransport, assertDemoTransport};\n})();\nconst {createDemoTransport, assertDemoTransport} = preparedAdapter;\n' + cycle +
     '\n// Deliberately no return of the private factories or handles.\n}\nexport const executeProduction = gate.executeProduction;\n';
 }
 function inventory() {
@@ -86,4 +91,4 @@ function prepareCandidate() {
     ...proof, sourceSha256: contract.sha(source), source,
     upstreamExecutorSha256: prior.inventory().executorSha256, sourcePinsSha256: pilot.inventory().sourcePinsSha256};
 }
-module.exports = {demoSources, prepareCandidate, inventory};
+module.exports = {demoSources, prepareCandidate, connectionSources, inventory};

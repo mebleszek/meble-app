@@ -1,0 +1,16 @@
+{
+  "base": "4b8ef922a4596372eba4a48b52de1bdff6585f4f",
+  "productionExecutionAllowed": false,
+  "upstream46dManifestSha256": "bb3584c7b3a1a31b71c1e546ee036a839398af3bf5bee8bb86bd8b49c9efe3c5",
+  "sha256": {
+    "cloud46e-authority.js": "5f0df95ac1c20c125558b0e72aac0e973b413b074940d2bb997fa738707edaf2",
+    "cloud46e-connection.mjs": "8a8af38465270208226b3ae6de291a9bc5d483117836c4fc8d50c460e447a0fa",
+    "cloud46e-native.mjs": "87e965b159c84533b7414f091443030b85b25380f1c1dc4864a085f7f6d2170b",
+    "cloud46e-runtime.mjs": "83e30942800a3a16c16c1a41390aeab76d6ba1d4b8d5702f58910dfcd6056251",
+    "cloud46e-emulator.mjs": "db3d6c1bc0bca58e0701d9981214eefe37cea9487512376a4b1730d1f2ecd10b",
+    "cloud46e-emulator.test.mjs": "1644a3c8b18fe52673a4c84daeeab6f062d1961865488cb139364bb30b0e3db6",
+    "cloud46e-boundary.test.mjs": "416b29b0482c094755e738cc8640beb134468127528b65fb001fd17a88090485",
+    "../cloud46e-connection-smoke.js": "7adbd7365a2eac192fc970f37ed7daf5a50d888845b0034dcf358b86d25404e4",
+    "cloud46e-fence.js": "15d57cffebfe8f4d6ddd8994c16a1c63d63e377a9571e0cf6bbc3774766544d3"
+  }
+}

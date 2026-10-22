@@ -1,8 +1,14 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
-## CLOUD-4.6D — przygotowano źródło przyszłego LIVE
+## CLOUD-4.6E — następny wynik: kontrolowany test syntetyczny
 
-Kandydat wykorzystuje wydany cykl 4.6C, dodając produkcyjne granice i trwałe rozstrzyganie próby. Następne bramki to osobno zatwierdzone CI/wydanie 4.6D oraz prywatne wiązanie rzeczywistych poświadczeń z kandydatem po osobnych zgodach wykonawczych. Bez kolejnego audytu historycznego IAM: przed próbą tylko świeża kontrola zmian uprawnień/publisherów i utrzymania wyłączności. **CODE_READY / CI_PENDING / LIVE_BLOCKED**. [Minimalna procedura i ograniczenia](tools/reports/cloud-4-6d-live-execution-preparation.md).
+Prywatne wejście operatora wiąże wydaną orkiestrację 4.6D z konkretnymi sesjami i SDK. Wymaga osobno podpisanych decyzji, rzeczywistych 635 B rollbacku i prywatnego runtime; obecny pakiet nie wykonuje LIVE. **CODE_READY / CI_PENDING / LIVE_BLOCKED**, bez PR/wydania. [Instrukcja i pozostałe warunki](tools/reports/cloud-4-6d-live-execution-preparation.md#cloud-46e--połączenie-operatora).
+
+Kolejność: (1) osobno zatwierdzony kontrolowany syntetyczny LIVE, (2) bezstratne podłączenie kompletnych danych biznesowych i synchronizacji, (3) automatyczna synchronizacja projektów między urządzeniami, (4) pełny LOCAL-FIRST i odporność na utratę internetu. Punkty 2–4 pozostają osobnymi zakresami; sukces pilota nie dowodzi działającej synchronizacji aplikacji.
+
+## CLOUD-4.6D — wydany kandydat produkcyjny
+
+PR [#76](https://github.com/mebleszek/meble-app/pull/76) wydany do main `4b8ef922a4596372eba4a48b52de1bdff6585f4f`; właściciel potwierdził SUCCESS CI, auto-merge i Pages. CLOUD-4.6D: **RELEASED / LIVE_BLOCKED**. Historyczne CI_PENDING w raporcie opisuje stan sprzed tego wydania.
 
 ## CLOUD-4.6C — wydany etap emulatorowy
 

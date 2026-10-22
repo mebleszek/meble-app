@@ -1,5 +1,7 @@
 # CLOUD-4.6D — nieaktywny kandydat pierwszego Firebase LIVE
 
+**Aktualizacja po wydaniu:** PR #76 wydany do main `4b8ef922a4596372eba4a48b52de1bdff6585f4f`; właściciel potwierdził CI/merge/Pages SUCCESS. CLOUD-4.6D ma status **RELEASED / LIVE_BLOCKED**. Poniższy zapis przygotowania i jego CI_PENDING są historyczne. Aktualne uzupełnienie wykonawcze opisano w [sekcji CLOUD-4.6E](#cloud-46e--połączenie-operatora); PASS wydanej wersji nie obejmuje nowego HEAD.
+
 BASE: `fd36b2e6fee433c92676d7619dc672d4361d9d59` (wydany PR #75).
 Gałąź: `cloud-4-6d-live-execution-preparation`.
 Status: **CODE_READY / CI_PENDING / LIVE_BLOCKED**. Nie ma PR ani wydania tego
@@ -196,3 +198,179 @@ usunąć bezwarunkową odmowę przez osobną zatwierdzoną zmianę kodu; nie da 
 zrobić parametrem/JSON/env w tym pakiecie. Nie trzeba ponownie projektować cyklu,
 CAS, źródła, walidatorów ani dziennika. Aktualne cięcie kończy się na kompletnym
 nieaktywnym źródle i jego emulatorowym wiązaniu.
+
+## CLOUD-4.6E — połączenie operatora
+
+BASE: `4b8ef922a4596372eba4a48b52de1bdff6585f4f` (wydany PR #76).
+Gałąź: `cloud-4-6e-live-connection`. Implementacja: **CODE_READY**;
+weryfikacja: **CI_PENDING**; wydanie: **niewydane**; Firebase: **LIVE_BLOCKED**.
+Nie wykonano żadnego produkcyjnego odczytu, logowania, Rules, grantu, WRITE,
+READ, STOP, IAM ani billingu. Uzupełnienie zastępuje historyczny brak bindera
+opisany powyżej; nie zmienia historii testów/wydań 4.6C/D.
+
+### Gotowy kod i granica autoryzacji
+
+- `cloud46e-connection.mjs`: jawne API `openAuthorizedConnection(input)` oraz
+  `recoverAuthorizedConnection(input)`. Nie ma automatycznego CLI, flagi LIVE,
+  wpisu w UI/startupie ani produkcyjnego polecenia CI. Import nie inicjuje SDK
+  i nie łączy się z usługami. Wszystkie stare `executeProduction()` i stary
+  wygenerowany moduł 4.6D zachowują bezwarunkową odmowę. Nowe wejście E ma własną
+  bramkę osobnych podpisanych decyzji; nie zmienia starej odmowy.
+- `cloud46d-candidate.connectionSources()` udostępnia te same przygotowane
+  fabryki adaptera, administracji i cyklu. `cloud46e-runtime.mjs` wiąże je
+  bez nowego modelu, transakcji lub protokołu STOP. Bridge normalizuje natywne
+  serwerowe `snapshot.exists` do webowego `exists()`; callback CAS, write set,
+  walidator i `maxAttempts:1` pozostają z 4.4. Źródło nieaktywnego kandydata
+  nadal eksportuje wyłącznie blokowane `executeProduction()`.
+- `cloud46e-authority.js`: sześć osobnych podpisów Ed25519, sprawdzanych wobec
+  prywatnie ustanowionego klucza właściciela i jego odcisku SPKI SHA-256.
+  Podpis obejmuje scope/decisionId, action, UID, attemptId, projekt/bazę,
+  integralność pakietu, dokładny HEAD, bazę E, oczekiwaną tożsamość/źródło Rules,
+  cztery nazwane konteksty i świeże końcowe dowody. Zachowano walidatory 4.6D.
+  Sam poprawny podpis nie zastępuje rzeczywistych 635 B rollbacku, Spark/limitów,
+  bieżącej kontroli wyłączności ani faktycznych odpowiedzi SDK/API. Przy próbie
+  wykonania wymagane są również czysty checkout wskazanego HEAD i oryginalne
+  bajty rollbacku. Manifest E przypina nowe źródła i łańcuch manifestów C/D.
+- `cloud46e-native.mjs`: dwa osobne konteksty Firebase Auth/Web SDK, Google
+  credential → Firebase ID token → kontrola issuer/audience/provider/email/UID,
+  istniejący verifier i odwoływalny lease. Dwa osobne backendowe Firestore/OAuth
+  konteksty STOP i weryfikatora mają jawny projekt, bazę, host i SSL. Oficjalny
+  Google userinfo potwierdza nazwane konto OAuth, a faktyczne odczyty/transakcje
+  weryfikują efektywny dostęp. Nie ma ADC ani fallbacku na środowisko. Tożsamość
+  konta nie jest dowodem wyłączności publikacji lub wszystkich uprawnień IAM.
+- Tokeny przychodzą wyłącznie w pamięci, bez pliku/tokenowego magazynu w repo;
+  Auth używa `inMemoryPersistence`. Zdalne błędy są sanitowane. Journal 0600
+  w prywatnym katalogu 0700 poza repo i katalogami tymczasowymi zapisuje zakres
+  przed jakimkolwiek RPC, rewizję przed WRITE oraz wyniki/niepewność. Sidecar
+  autoryzacji zawiera hash podpisanego pakietu decyzji, HEAD, identyfikatory
+  operatorów i decyzji, bez tokenów, payloadu i oryginalnych Rules.
+- `cloud46e-fence.js`: trwały marker recovery zatrzymuje przyszłe mutacje
+  starego procesu. Atomowy plik przed RPC stage/activate zamyka lukę między
+  procesem głównym i recovery. Niepewny administracyjny RPC pozostawia fence;
+  po restarcie nie wolno wtedy poświadczyć STOP na podstawie chwilowych flag.
+  To blokada na jednym prywatnym hoście/nośniku, nie rozproszony lock/IAM.
+- Recovery nie ma WRITE/stage/activate ani wznowienia `run`. Zużywa osobny
+  trwały marker przed RPC, inicjuje administrację bez writera i bez jego lease,
+  wykonuje istniejący CAS STOP, następnie sprawdza flagi osobnym backendem i
+  rzeczywistą odmowę nowym nieuprzywilejowanym readerem. Logowanie readera
+  następuje **po STOP**. Nierozstrzygnięty wcześniejszy WRITE pozostaje oznaczony
+  `REVIEW_OR_INDEPENDENT_READ_REQUIRED`; STOP nie udaje dowodu jego cofnięcia.
+  Brak potwierdzenia, przerwany STOP lub niepewna administracja daje odmowę,
+  zachowanie dziennika i potrzebę osobnego rozstrzygnięcia, nigdy retry.
+
+### Prywatne uruchomienie — instrukcja na przyszłość, nie zgoda
+
+1. Po osobno zatwierdzonym CI/wydaniu przygotować czysty prywatny checkout
+   dokładnego HEAD oraz trwały katalog 0700 poza repo i `/tmp`. Nie kasować ani
+   przenosić istniejącego journala/fence w celu otwarcia nowej próby. Zachować
+   kopię dziennika poza tym hostem; fsync nie chroni przed utratą nośnika.
+   Potwierdzony przez właściciela aktualny backup danych firmy pozostaje ważny;
+   nie zleca się ponownego pełnego backupu/audytu bez nowej przesłanki.
+2. W prywatnym katalogu runtime zainstalować i przypiąć
+   `@google-cloud/firestore@7.11.0` i `google-auth-library@9.15.1`;
+   Web SDK pochodzi z istniejącego lockfile `tools/firebase-pilot`.
+   Nie używać profilu ADC ani domyślnych kluczy usługowych. Operator musi
+   sprawdzić ten konkretny backendowy runtime w swoim prywatnym środowisku;
+   emulatorowe facade nie potwierdza rzeczywistych uprawnień OAuth/IAM.
+3. Właściciel ustanawia prywatnie klucz decyzyjny Ed25519. Publiczny klucz
+   w pliku 0600 poza repo i jego odcisk SPKI SHA-256 zatwierdza innym zaufanym
+   kanałem; nie przyjmuje klucza dostarczonego razem z nieznaną decyzją. Klucz
+   prywatny nigdy nie trafia do repo/CI/Pages. Podpisy są bramką lokalnego
+   operatora, nie dowodem tożsamości właściciela bez tego ustanowienia zaufania.
+4. Po osobnej zgodzie na odczyty sprawdzić tylko bieżące zmiany efektywnego
+   IAM/delegacji i publisherów konsola/CLI/REST/automation/service accounts,
+   zatrzymać konkurujące zadania i utrzymać wyłączność w krótkim oknie próby.
+   Nie powtarzać pełnego historycznego audytu. Nieznany publisher/delegacja
+   lub brak kontroli oznacza STOP. Potwierdzić świeży Spark/no billing i
+   rezerwę co najmniej 500 reads/30 writes. Nazwać writer/reader/stop/verifier;
+   pola exclusion.operator/stopOperator/verifier odpowiadają ich context.id.
+5. Udostępnić uprawnionemu operatorowi rzeczywiste prywatne 635 B rollbacku
+   o SHA-256 `9260ebcd881e5a0cc2302e768f14e2e8152637093de071449ea90211461ffa91`.
+   Minimalne Rules publikuje właściciel dopiero po osobnej zgodzie, istniejącą
+   zatwierdzoną ścieżką. Oczekiwany nowy release/ruleset pochodzi z tej operacji,
+   nie z automatycznego przyjęcia dowolnych aktualnych Rules. Kod E przed
+   checkpointami pobiera oficjalny release → ruleset → release i porównuje
+   dokładną tożsamość oraz bajty. JSON receipt nie zastępuje tego odczytu.
+6. `authority.unsignedBundle({uid, attemptId, expiresAt, contexts, expectedRules,
+   finalChecks, action:'cycle'})` tworzy **niepodpisany** pakiet na najwyżej
+   15 minut. Każdą z sześciu decyzji właściciel osobno podpisuje nad
+   `authority.signingBytes(bundle, approval.scope, approval.decisionId)`;
+   podpis Base64 zapisuje w `approval.signature`. Funkcja nie podpisuje ani
+   nie udziela zgody. FinalChecks mają istniejący kontrakt account/exclusion
+   z 4.6D; oryginał rollbacku przekazuje się osobno jako Buffer `privateSource`.
+7. Po zgodzie na wykonanie dostarczyć w prywatnym procesie dwa krótkotrwałe
+   Google provider ID tokeny uzyskane Google Sign-In (`credentialFromResult`
+   zatwierdzonego prywatnego logowania; nie są to Firebase ID tokeny), dwa
+   nazwane tokeny OAuth administracji/weryfikatora i token odczytu Rules.
+   OAuth musi obejmować właściwe API i userinfo.email. Nie wypisywać ich do
+   terminala/logów ani przekazywać w argumentach procesu; użyć prywatnego
+   kanału pamięciowego. Nie włączać logowania HTTP/gRPC SDK. Brak/niezgodność
+   któregokolwiek poświadczenia oznacza odmowę, bez zastępowania innym kontem.
+8. Jawnie wywołać `openAuthorizedConnection({bundle, trustFile, ownerKeySha256,
+   privateSource, privateDirectory, runtimeDirectory, firebaseConfig,
+   credentials})`. credentials zawiera writerGoogleIdToken, readerGoogleIdToken,
+   stopAccessToken, verifierAccessToken, rulesAccessToken i expiresAt w ms.
+   Wynik udostępnia `run()`, niezależne `stop()`, `inspect()` i `close()`.
+   Wywołać `run()` **raz**; STOP jest w finally. Nie zamykać połączeń/journala
+   przy pending RPC lub niepotwierdzonym STOP. Samo open zużywa próbę trwale.
+9. Po utracie procesu nie otwierać nowej próby. Z nowymi decyzjami na
+   `action:'recover-stop'`, tę samą próbę/pakiet i świeże dowody wywołać
+   `recoverAuthorizedConnection(input)`. Ten pakiet decyzji ma tę samą
+   sześcioczęściową strukturę kontraktu, ale podpisana action pozwala wyłącznie
+   na odczyty stanu i STOP; nie udostępnia żadnego WRITE. Do samej administracji
+   nie są wymagane token writera, Rules ani rollback; awaryjny STOP nie zależy
+   też od dostępności Rules/Spark/billing. Nadal wymaga osobno podpisanej decyzji,
+   zgodnego HEAD/pakietu i oryginalnego dziennika. Reader jest potrzebny do końcowej
+   weryfikacji odmowy. Brak readera nie blokuje zastosowania STOP, lecz blokuje
+   jego pełne potwierdzenie. Marker recovery jest jednorazowy. Niepewny wynik
+   wymaga odrębnego planu rozstrzygnięcia przez uprawnionego operatora.
+
+Jedna osoba może obsługiwać cztery konteksty. Jeżeli nie da się utrzymać
+niezależnej administracji przy awarii writera/hosta albo niezależnie potwierdzić
+wyniku, potrzebny jest drugi uprawniony operator lub odrębne potwierdzenie.
+Kod nie tworzy kont, nie zmienia IAM i nie obiecuje absolutnej wyłączności.
+
+### Weryfikacja i brakujące warunki
+
+Zmienione pliki E (19): `CURRENT_STATE.md`, `ROADMAP.md`, `CLOUD_MIGRATION.md`,
+`CLOUD_DATA_REGISTER.md`, ten raport, `tools/cloud46e-connection-smoke.js` oraz
+w `tools/firebase-pilot/`: `package.json`, `cloud46c-integrity.json`,
+`cloud46d-candidate.js`, `cloud46d-integrity.json`, `cloud46e-authority.js`,
+`cloud46e-connection.mjs`, `cloud46e-native.mjs`, `cloud46e-runtime.mjs`,
+`cloud46e-fence.js`, `cloud46e-emulator.mjs`, `cloud46e-emulator.test.mjs`,
+`cloud46e-boundary.test.mjs`, `cloud46e-integrity.json`.
+
+Istniejące CI wykrywa `cloud46e-connection-smoke.js` w Preflight i wykonuje
+nowe granice offline. `npm test` dodatkowo uruchamia 15 scenariuszy E w osobnych
+Workerach przeciwko wspólnemu runtime/fabrykom 4.6D, rzeczywistym emulatorom i
+Web SDK. Wszystkie oryginalne asercje C/D i ich osobne zestawy pozostają.
+Scenariusz ochrony danych dodatkowo sprawdza sentinel katalogu, magazynu,
+ustawień i prawdziwego projektu, zarówno po cyklu, jak i przy odmowach dostępu.
+Testy nie używają prawdziwego rollbacku ani produkcyjnego połączenia.
+
+Celowane kontrole lokalne: składnia nowych modułów i łańcuch integralności — PASS.
+Pierwszy przebieg nowych granic: 6/7 PASS, błąd brakującego `pilot` w złożonym
+adapterze administracyjnym poprawiono w runtime i harnessie bez zmiany asercji.
+Kolejny celowany przebieg: 4/8 PASS, 4 FAIL z przyczyny środowiskowej
+`spawnSync git EPERM` (potwierdzone osobną minimalną diagnostyką). Testy journala
+oddzielono od niepowiązanego przygotowania podpisanej decyzji; oba scenariusze
+restartu/fence rzeczywiście wykonano i zaliczono 2/2. Łącznie potwierdzono
+6 z 8 nowych granic; dwie kontrole podpisanej decyzji pozostają lokalnie
+BLOCKED przez zakaz subprocess Git. Nie zastąpiono odczytu rewizji atrapą
+i nie osłabiono asercji. Zestaw emulatorowy E: 0/15 wykonanych — brak lokalnych
+zależności Firebase, bez ponawiania instalacji i bez deklaracji PASS.
+Ostateczne SHA są podawane w raporcie przekazania.
+Pełny Preflight oraz SDK/Rules pozostają do przyszłego, osobno zatwierdzonego CI.
+Brak lokalnych zależności emulatorowych nie jest PASS. Rzeczywistego OAuth,
+Google Sign-In, prywatnych 635 B, backendowego SDK i IAM nie sprawdzano LIVE.
+
+Pozostały warunki, nie kolejna implementacja bindera: zatwierdzone CI/wydanie;
+prywatny runtime/nośnik/ustanowienie zaufania klucza; rzeczywiste poświadczenia
+i rollback; świeże dowody/utrzymanie wyłączności; osobne zgody na produkcyjne
+odczyty, Rules, grant, WRITE, READ i STOP. Najbliższy krok to zatwierdzenie
+konkretnego HEAD/BASE do CI, następnie dopuszczenie prywatnego operatora do
+kontroli stanu i sesji. Ten pakiet nie zawiera żadnej zgody wykonawczej LIVE.
+
+Po syntetycznym LIVE następują osobno: bezstratne podłączenie danych biznesowych
+i ich synchronizacji, automatyczna synchronizacja projektów między urządzeniami,
+a następnie pełny LOCAL-FIRST/offline. Pilot nie dowodzi działania tych etapów.

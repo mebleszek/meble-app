@@ -1,12 +1,16 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
-## CLOUD-4.6D — kandydat produkcyjny nieaktywny
+## CLOUD-4.6E — prywatne połączenie operatora, bez wykonania LIVE
 
-Przygotowano produkcyjne kontrole tożsamości/zgód/Rules, trwały dziennik rewizji i odzyskiwania oraz generator nieaktywnego kandydata oparty na orkiestracji 4.6C. Bez launchera, aktywacji i Firebase LIVE. Status nowego pakietu: **CODE_READY / CI_PENDING / LIVE_BLOCKED**. [Zakres, dowody, operator i brakujący prywatny binder](tools/reports/cloud-4-6d-live-execution-preparation.md).
+Dodano odrębne wejście wymagające sześciu podpisanych decyzji właściciela, przypiętego pakietu/UID/Rules, rzeczywistych prywatnych bajtów rollbacku i świeżych końcowych dowodów. Łączy dwa konteksty Firebase Google Auth/Web SDK oraz dwa backendowe konteksty administracji/weryfikacji z istniejącą orkiestracją 4.6D. Trwały journal i ścieżka recovery nie otwierają ponownego WRITE. Import, aplikacja i CI nie aktywują produkcji; stare `executeProduction()` nadal odmawia. Bieżący pakiet: **CODE_READY / CI_PENDING / LIVE_BLOCKED**, bez PR i wydania. [Kontrakt, prywatne wejście i bramki](tools/reports/cloud-4-6d-live-execution-preparation.md#cloud-46e--połączenie-operatora).
+
+## CLOUD-4.6D — wydany kandydat produkcyjny
+
+PR [#76](https://github.com/mebleszek/meble-app/pull/76) wydany do main `4b8ef922a4596372eba4a48b52de1bdff6585f4f`; właściciel potwierdził SUCCESS CI, auto-merge i Pages. CLOUD-4.6D: **RELEASED / LIVE_BLOCKED**. Historyczne CI_PENDING w raporcie opisuje stan sprzed tego wydania.
 
 ## CLOUD-4.6C — izolowany wykonawca, bez aktywacji LIVE
 
-Pakiet na bazie `af75be7201f3941c639bb41e5fa0e296a5720ae8` przygotowuje pełny cykl stage/activate → jedna próba syntetycznego WRITE → niezależny READ → administracyjny STOP → niezależne potwierdzenie wyłącznie na `demo-meble-app` i emulatorach. Używa istniejących walidatorów, CAS i operatora CLOUD-4.4. Adapter/launcher produkcyjny nie powstał; `executeProduction()` nadal bezwarunkowo odmawia. Regresje dołączono do skryptu istniejącego CI, bez zmiany workflow. PR [#75](https://github.com/mebleszek/meble-app/pull/75) wydany do main `fd36b2e6fee433c92676d7619dc672d4361d9d59`: według potwierdzenia właściciela pełny Preflight, SDK/Rules, auto-merge i Pages SUCCESS. Status 4.6C: **RELEASED / LIVE_BLOCKED**; ten PASS nie dotyczy nowego HEAD 4.6D. [Pliki, wykonane kontrole, wymagane CI i niezamknięte bramki](tools/reports/cloud-4-6c-isolated-executor.md). LOCAL-FIRST i wszystkie dane biznesowe pozostają poza zmianą.
+Pakiet na bazie `af75be7201f3941c639bb41e5fa0e296a5720ae8` przygotowuje pełny cykl stage/activate → jedna próba syntetycznego WRITE → niezależny READ → administracyjny STOP → niezależne potwierdzenie wyłącznie na `demo-meble-app` i emulatorach. Używa istniejących walidatorów, CAS i operatora CLOUD-4.4. Adapter/launcher produkcyjny nie powstał; `executeProduction()` nadal bezwarunkowo odmawia. Regresje dołączono do skryptu istniejącego CI, bez zmiany workflow. PR [#75](https://github.com/mebleszek/meble-app/pull/75) wydany do main `fd36b2e6fee433c92676d7619dc672d4361d9d59`: według potwierdzenia właściciela pełny Preflight, SDK/Rules, auto-merge i Pages SUCCESS. Status 4.6C: **RELEASED / LIVE_BLOCKED**; ten PASS nie dotyczy nowego HEAD 4.6E. [Pliki, wykonane kontrole, wymagane CI i niezamknięte bramki](tools/reports/cloud-4-6c-isolated-executor.md). LOCAL-FIRST i wszystkie dane biznesowe pozostają poza zmianą.
 
 ## LOCAL-FIRST
 
