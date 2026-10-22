@@ -1,5 +1,9 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## CLOUD-4.6C — izolowany wykonawca, bez aktywacji LIVE
+
+Pakiet na bazie `af75be7201f3941c639bb41e5fa0e296a5720ae8` przygotowuje pełny cykl stage/activate → jedna próba syntetycznego WRITE → niezależny READ → administracyjny STOP → niezależne potwierdzenie wyłącznie na `demo-meble-app` i emulatorach. Używa istniejących walidatorów, CAS i operatora CLOUD-4.4. Adapter/launcher produkcyjny nie powstał; `executeProduction()` nadal bezwarunkowo odmawia. Regresje dołączono do skryptu istniejącego CI, bez zmiany workflow. Status: **CODE_READY / CI_PENDING / LIVE_BLOCKED**; brak PR i wydania. [Pliki, wykonane kontrole, wymagane CI i niezamknięte bramki](tools/reports/cloud-4-6c-isolated-executor.md). LOCAL-FIRST i wszystkie dane biznesowe pozostają poza zmianą.
+
 ## LOCAL-FIRST
 
 **Decyzja właściciela z 21.10.2026, baza main `94145f57ff59a19d54c4f8511e527e75b3b04c08`: LOCAL-FIRST + AUTOMATYCZNA SYNCHRONIZACJA + JEDEN AKTYWNY EDYTOR NA PROJEKT + BEZPIECZNA PRACA OFFLINE. To wymagania przyszłe, NIE działające funkcje.** Pełny kontrakt ma jedno źródło w [CLOUD_MIGRATION.md](CLOUD_MIGRATION.md#local-first); [ROADMAP](ROADMAP.md#local-first) określa zależności, bramki i przyszłą akceptację.
