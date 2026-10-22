@@ -1,5 +1,9 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
+## CLOUD-4.6C — granica wykonawcy i transportu
+
+Nowa orkiestracja w `tools/firebase-pilot` wykorzystuje istniejący operator CLOUD-4.4, CAS i syntetyczne źródło CLOUD-4. Dopuszcza tylko cztery oddzielne konteksty SDK na `demo-meble-app` / `(default)` / loopback. Niepewność, konflikt, zmiana Rules/tożsamości i STOP podczas await powodują odmowę bez retry; niezależna weryfikacja STOP wymaga flag false i faktycznej odmowy dostępu do pilota. `executeProduction()` oraz dotychczasowy loader pozostają zablokowane. [Kontrakt, ograniczenia dziennika demo i checklista przyszłej aktywacji](tools/reports/cloud-4-6c-isolated-executor.md). **CODE_READY / CI_PENDING / LIVE_BLOCKED**; brak migracji, UI, nowego autorytetu danych i produkcyjnego adaptera.
+
 ## LOCAL-FIRST
 
 **Decyzja właściciela z 21.10.2026 — wymagania przyszłej implementacji, JESZCZE NIEWDROŻONE:** LOCAL-FIRST + AUTOMATYCZNA SYNCHRONIZACJA + JEDEN AKTYWNY EDYTOR NA PROJEKT + BEZPIECZNA PRACA OFFLINE. Baza tego pakietu dokumentacyjnego: main `94145f57ff59a19d54c4f8511e527e75b3b04c08`.

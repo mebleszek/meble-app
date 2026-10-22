@@ -1,5 +1,9 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
+## CLOUD-4.6C — przygotowanie wykonawcy zakończone, weryfikacja oczekuje
+
+Izolowana orkiestracja pełnego cyklu jest przygotowana wyłącznie dla emulatorów. Kolejna bramka: osobno zatwierdzony HEAD/BASE i istniejące CI z wymaganymi regresjami. Następnie przyszła aktywacja wymaga prywatnych 635 B, świeżych dowodów, efektywnego IAM/delegacji, dowiedzionej wyłączności wszystkich ścieżek publikacji, nazwanych operatorów oraz osobnej implementacji i zgód na Rules/grant/WRITE/READ/STOP. [Checklista niebędąca zgodą](tools/reports/cloud-4-6c-isolated-executor.md#checklista-przyszłej-aktywacji--nie-jest-zgodą-wykonawczą). **CODE_READY / CI_PENDING / LIVE_BLOCKED**. Nie otwarto Bramki 2 ani synchronizacji LOCAL-FIRST.
+
 ## LOCAL-FIRST
 
 **Decyzja właściciela z 21.10.2026 — przyszła implementacja, jeszcze niewdrożona.** Obowiązuje [pełny kontrakt w CLOUD_MIGRATION.md](CLOUD_MIGRATION.md#local-first): LOCAL-FIRST, automatyczna synchronizacja, jeden aktywny edytor na projekt i bezpieczna praca offline. Ta sekcja aktualizuje kolejność dalszych prac bez ponawiania CLOUD-1/2/3/4. Starsze wpisy poniżej zachowują historię; ich sformułowania o przełączeniu autorytetu wyłącznie na chmurę należy czytać w świetle nowego kontraktu. Nie jest to zgoda na implementację, migrację ani LIVE.
