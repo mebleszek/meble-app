@@ -1,7 +1,7 @@
 {
   "base": "4b8ef922a4596372eba4a48b52de1bdff6585f4f",
   "productionExecutionAllowed": false,
-  "upstream46dManifestSha256": "bb3584c7b3a1a31b71c1e546ee036a839398af3bf5bee8bb86bd8b49c9efe3c5",
+  "upstream46dManifestSha256": "3615740442e0bec57fa5acd17cc6dc48af08b2ebe62bcef51499ce0e1342d2df",
   "sha256": {
     "cloud46e-authority.js": "5f0df95ac1c20c125558b0e72aac0e973b413b074940d2bb997fa738707edaf2",
     "cloud46e-connection.mjs": "8a8af38465270208226b3ae6de291a9bc5d483117836c4fc8d50c460e447a0fa",

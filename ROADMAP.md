@@ -1,8 +1,14 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
+## CLOUD-SYNC-1 — pierwszy przepływ produktu na emulatorach
+
+Zaimplementowano kompozycję CLOUD-3 dla kompletu 14 domen i izolowany odbiór w pamięci B. Następna bramka: wymagane CI (14 SDK + 5 granic, stare regresje zachowane), osobny przegląd HEAD/BASE i zgoda na PR Ready. **CODE_READY / CI_PENDING / LIVE_BLOCKED**, niewydany. [Kontrakt zastosowania, pokrycie i ograniczenia](tools/reports/cloud-sync-1-global-data.md).
+
+Rozwój na emulatorach jest niezależny od prywatnego operatora CLOUD-4.6F (**OPERATOR_PARTIAL**). Po weryfikacji przepływu osobnego zakresu wymagają trwałe lokalne transakcje/pending work, integracja z writerami domen i ochrona pracy offline. Nie włącza się produkcyjnej synchronizacji, migracji ani automatycznego zastępowania lokalnych danych. Docelowa kolejność pozostaje: kontrolowany syntetyczny LIVE → bezstratne dane biznesowe/synchronizacja → synchronizacja projektów → pełny LOCAL-FIRST.
+
 ## CLOUD-4.6E — następny wynik: kontrolowany test syntetyczny
 
-Prywatne wejście operatora wiąże wydaną orkiestrację 4.6D z konkretnymi sesjami i SDK. Wymaga osobno podpisanych decyzji, rzeczywistych 635 B rollbacku i prywatnego runtime; obecny pakiet nie wykonuje LIVE. **CODE_READY / CI_PENDING / LIVE_BLOCKED**, bez PR/wydania. [Instrukcja i pozostałe warunki](tools/reports/cloud-4-6d-live-execution-preparation.md#cloud-46e--połączenie-operatora).
+Prywatne wejście operatora wiąże wydaną orkiestrację 4.6D z konkretnymi sesjami i SDK. Wymaga osobno podpisanych decyzji, rzeczywistych 635 B rollbacku i prywatnego runtime; obecny pakiet nie wykonuje LIVE. PR [#77](https://github.com/mebleszek/meble-app/pull/77) wydany do main `7faf4f097b6be0a8a0edcce922561e6632d9707c`; właściciel potwierdził Preflight, SDK/Rules, auto-merge i Pages PASS. CLOUD-4.6E: **RELEASED / LIVE_BLOCKED**. [Instrukcja i pozostałe warunki](tools/reports/cloud-4-6d-live-execution-preparation.md#cloud-46e--połączenie-operatora).
 
 Kolejność: (1) osobno zatwierdzony kontrolowany syntetyczny LIVE, (2) bezstratne podłączenie kompletnych danych biznesowych i synchronizacji, (3) automatyczna synchronizacja projektów między urządzeniami, (4) pełny LOCAL-FIRST i odporność na utratę internetu. Punkty 2–4 pozostają osobnymi zakresami; sukces pilota nie dowodzi działającej synchronizacji aplikacji.
 

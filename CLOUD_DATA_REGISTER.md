@@ -1,5 +1,9 @@
 # CLOUD-1A — kanoniczny rejestr danych Meble-App
 
+## CLOUD-SYNC-1 — wykorzystanie istniejących 14 domen
+
+Nie powstają nowe źródła prawdy ani klucze `fc_*`. Koordynator `sync/global-data-sync.mjs` używa bez zmian tabeli `sources` i schematów CLOUD-3 opisanych poniżej: robocizna/quote rates, materiały/okucia i ich zależności, magazyn, domyślne, profil bez `transport.apiKey`, koszty firmy — pełne 14 domen na emulatorach. Historyczne aliasy/legacy mają kontrolę konfliktów, nie osobne kopie chmurowe. Odbiór jest wyłącznie pamięciowy; realne globalne magazyny użytkownika i dane projektowe nie są zastępowane. Issue #47, edge/material part options/rozrys grain/overrides pozostają nierozstrzygnięte i wyłączone. [Implementacja, wykluczenia i kompatybilność](tools/reports/cloud-sync-1-global-data.md). **CODE_READY / CI_PENDING / LIVE_BLOCKED**, bez migracji.
+
 ## CLOUD-4.6E — niezmieniona granica danych
 
 Połączenie operatora dotyczy wyłącznie syntetycznych `cloud4-investor-v1` / `cloud4-project-v1` i istniejących administracyjnych dokumentów grantu/STOP. Nie otrzymuje magazynu aplikacji ani eksportera danych firmy. Cenniki, zamienniki/kompatybilność, katalogi, magazyn, ustawienia globalne, historia ofert oraz WYCENA pozostają poza testem i migracją. Prywatny journal poza repo zawiera identyfikatory/hashy/statusy, bez payloadu, tokenów i Rules; nie tworzy nowej domeny `fc_*`. Właściciel potwierdził kompletną aktualną kopię danych i brak późniejszych zmian — bez nowej przesłanki nie zleca się kolejnego backupu ani pełnego audytu. [Bramki operatora](tools/reports/cloud-4-6d-live-execution-preparation.md#cloud-46e--połączenie-operatora).

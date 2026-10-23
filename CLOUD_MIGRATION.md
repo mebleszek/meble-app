@@ -1,8 +1,16 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
+## CLOUD-SYNC-1 — implementacja przepływu globalnego na emulatorach
+
+`sync/global-data-sync.mjs` składa istniejący kontrakt RAW i transport CLOUD-3, bez nowej przestrzeni Firestore ani rejestru domen. Przepływ kompletu 14 domen używa jawnego owner UID, immutable records/revisions, manifestu CAS oraz niezależnego odczytu, hashy, liczby rekordów i walidacji zależności. Jedynym odbiorcą jest odizolowana pamięć; atomowa podmiana wymaga niezmienionej czystej lokalnej wersji. Sekrety i sporne dane pozostają wyłączone. Nieznane niezatwierdzone pola blokują transfer bez utraty RAW, dozwolone dynamiczne parametry i defaults v1 pozostają bez zmian.
+
+To kontrakt przyszłego apply, nie migracja użytkownika: trwałość po restarcie procesu, transakcyjne połączenie modelu/pending work i podłączenie rzeczywistych setterów wymagają osobnej implementacji i zgody. Odczytowe `resolve` z zachowanego journala nie ponawia mutacji po niepewnym ACK. SDK ograniczono do demo/loopback; kod nie jest rejestrowany w aplikacji. [API, 14 scenariuszy CI i dokładne granice](tools/reports/cloud-sync-1-global-data.md). **CODE_READY / CI_PENDING / LIVE_BLOCKED**, niewydany.
+
+CLOUD-4.6F: prywatny operator **OPERATOR_PARTIAL / LIVE_BLOCKED**, osobny od rozwoju emulatorowego produktu. Nie wykorzystuje się go do obejścia bramek migracji/synchronizacji.
+
 ## CLOUD-4.6E — wykonawcze wiązanie prywatnych kontekstów
 
-Nowe, izolowane API operatora ma osobną autoryzację podpisami Ed25519; wykorzystuje fabryki 4.6D, istniejące modele, CAS, Rules i STOP. Połączenie produkcyjne nie jest przełącznikiem transportu demo. Cztery konteksty techniczne, pamięciowe tokeny, zewnętrzny prywatny journal, trwałe zużycie próby i oddzielne recovery nie zmieniają źródła danych aplikacji. **CODE_READY / CI_PENDING / LIVE_BLOCKED**, bez uruchomienia/odczytów LIVE. [Dokładne API, ograniczenia i wykonanie](tools/reports/cloud-4-6d-live-execution-preparation.md#cloud-46e--połączenie-operatora).
+Nowe, izolowane API operatora ma osobną autoryzację podpisami Ed25519; wykorzystuje fabryki 4.6D, istniejące modele, CAS, Rules i STOP. Połączenie produkcyjne nie jest przełącznikiem transportu demo. Cztery konteksty techniczne, pamięciowe tokeny, zewnętrzny prywatny journal, trwałe zużycie próby i oddzielne recovery nie zmieniają źródła danych aplikacji. PR [#77](https://github.com/mebleszek/meble-app/pull/77) wydany do main `7faf4f097b6be0a8a0edcce922561e6632d9707c`; właściciel potwierdził Preflight, SDK/Rules, auto-merge i Pages PASS. CLOUD-4.6E: **RELEASED / LIVE_BLOCKED**. Bez uruchomienia/odczytów LIVE. [Dokładne API, ograniczenia i wykonanie](tools/reports/cloud-4-6d-live-execution-preparation.md#cloud-46e--połączenie-operatora).
 
 Dalsza kolejność: kontrolowany syntetyczny LIVE → bezstratne dane biznesowe i ich synchronizacja → automatyczna synchronizacja projektów między urządzeniami → pełny LOCAL-FIRST/offline. Obowiązuje istniejący kontrakt LOCAL-FIRST poniżej; nie wdrożono żadnego z trzech ostatnich etapów.
 

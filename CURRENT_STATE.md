@@ -1,8 +1,14 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## CLOUD-SYNC-1 — globalne dane A → emulator → B
+
+Na gałęzi `cloud-sync-1-global-data`, BASE `7faf4f097b6be0a8a0edcce922561e6632d9707c`, powstał izolowany koordynator istniejącego CLOUD-3: RAW kompletu 14 domen → immutable/CAS → niezależny odczyt i kontrola zawartości → atomowy magazyn pamięciowy B. Brak połączenia LIVE, startupu/UI, zapisu do prawdziwego localStorage, migracji i zmian WYCENY. Chroni lokalne zmiany, duplikaty i niepewny ACK; nieznane niezatwierdzone pola odmawiają bez usuwania. 14 nowych scenariuszy rzeczywistych SDK/emulatorów podłączono do istniejącego CI, lokalnie niewykonane (brak zależności). 5 celowanych kontroli granic PASS, pełna weryfikacja **CI_PENDING**. Implementacja **CODE_READY**, wydanie niewykonane, **LIVE_BLOCKED**. [API, pokrycie i ograniczenia trwałości](tools/reports/cloud-sync-1-global-data.md).
+
+CLOUD-4.6F pozostaje osobnym przygotowaniem prywatnego operatora: **OPERATOR_PARTIAL / LIVE_BLOCKED**; nie jest zależnością wykonania testów produktu na emulatorach.
+
 ## CLOUD-4.6E — prywatne połączenie operatora, bez wykonania LIVE
 
-Dodano odrębne wejście wymagające sześciu podpisanych decyzji właściciela, przypiętego pakietu/UID/Rules, rzeczywistych prywatnych bajtów rollbacku i świeżych końcowych dowodów. Łączy dwa konteksty Firebase Google Auth/Web SDK oraz dwa backendowe konteksty administracji/weryfikacji z istniejącą orkiestracją 4.6D. Trwały journal i ścieżka recovery nie otwierają ponownego WRITE. Import, aplikacja i CI nie aktywują produkcji; stare `executeProduction()` nadal odmawia. Bieżący pakiet: **CODE_READY / CI_PENDING / LIVE_BLOCKED**, bez PR i wydania. [Kontrakt, prywatne wejście i bramki](tools/reports/cloud-4-6d-live-execution-preparation.md#cloud-46e--połączenie-operatora).
+Dodano odrębne wejście wymagające sześciu podpisanych decyzji właściciela, przypiętego pakietu/UID/Rules, rzeczywistych prywatnych bajtów rollbacku i świeżych końcowych dowodów. Łączy dwa konteksty Firebase Google Auth/Web SDK oraz dwa backendowe konteksty administracji/weryfikacji z istniejącą orkiestracją 4.6D. Trwały journal i ścieżka recovery nie otwierają ponownego WRITE. Import, aplikacja i CI nie aktywują produkcji; stare `executeProduction()` nadal odmawia. PR [#77](https://github.com/mebleszek/meble-app/pull/77) wydany do main `7faf4f097b6be0a8a0edcce922561e6632d9707c`; właściciel potwierdził Preflight, SDK/Rules, auto-merge i Pages PASS. CLOUD-4.6E: **RELEASED / LIVE_BLOCKED**. [Kontrakt, prywatne wejście i bramki](tools/reports/cloud-4-6d-live-execution-preparation.md#cloud-46e--połączenie-operatora).
 
 ## CLOUD-4.6D — wydany kandydat produkcyjny
 

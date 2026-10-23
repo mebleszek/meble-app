@@ -1,7 +1,7 @@
 {
   "base": "fd36b2e6fee433c92676d7619dc672d4361d9d59",
   "productionExecutionAllowed": false,
-  "upstream46cManifestSha256": "ef49710797f8e81f12235be3d29362f738e42083dd761bfa7c330e50d817f402",
+  "upstream46cManifestSha256": "2d7ed8bb9c6599eb7e90c57e311619d27635badeaea8f7fe4634645ad1384208",
   "sha256": {
     "cloud46d-contract.js": "2be5f34fd5feda2d92009d0302137919fe8bee6dc6b5fbd18257f3b531fc1005",
     "cloud46d-journal.js": "eaba0499fc5b956983ae57acb845f245f0b51283f4f86c213b722608ec9a9b43",
