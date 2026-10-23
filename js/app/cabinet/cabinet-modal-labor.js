@@ -8,7 +8,7 @@
   function text(value){ return String(value == null ? '' : value).trim(); }
   function qty(value){
     const n = Number(String(value == null ? '' : value).replace(',', '.'));
-    return Number.isFinite(n) && n > 0 ? n : 1;
+    return Number.isFinite(n) && n >= 0 ? n : 1;
   }
   function make(tag, className, textContent){
     const el = document.createElement(tag);
@@ -151,6 +151,34 @@
     card.appendChild(list);
   }
 
+  function renderProductionOptions(card, draft, rerender){
+    const box = make('div','cabinet-labor-appliance');
+    box.appendChild(make('div','cabinet-labor-appliance__title','Parametry robocizny i okuć'));
+    const d = draft.details || {};
+    function field(key, label, options, fallback){
+      const wrap = make('label','cabinet-extra-field');
+      wrap.appendChild(make('span','cabinet-extra-field__label',label));
+      const control = make(options ? 'select' : 'input','cabinet-extra-field__control');
+      control.setAttribute('id', 'cmLabor_' + key);
+      if(options){
+        options.forEach(([value,caption])=>{const opt=make('option','',caption);opt.value=value;control.appendChild(opt);});
+      }else{control.type='number';control.min='0';control.step='1';control.inputMode='numeric';}
+      control.value = d[key] == null ? fallback : d[key];
+      control.addEventListener('change',()=>{
+        draft.details = draft.details || {};
+        if(!options && control.value === '') delete draft.details[key];
+        else draft.details[key] = options ? control.value : Math.max(0,Math.floor(Number(control.value)||0));
+        if(typeof rerender === 'function') rerender();
+      });
+      wrap.appendChild(control);box.appendChild(wrap);
+    }
+    if(draft.type === 'stojąca') field('additionalLegs','Dodatkowe nóżki',null,'0');
+    if(draft.type === 'wisząca' && draft.subType !== 'dolna_podblatowa') field('hangerCount','Zawieszki — łącznie (puste = domyślnie)',null,'');
+    field('shelfType','Rodzaj półek',[['adjustable','Regulowane'],['fixed','Nieregulowane']],'adjustable');
+    field('hingeDrilling','Nawierty puszek',[['workshop','Własny warsztat'],['predrilled','Gotowe nawierty']],'workshop');
+    card.appendChild(box);
+  }
+
   function renderLaborSection(container, draft, rerender){
     if(!container || !draft) return null;
     const definitions = getDefinitions();
@@ -162,6 +190,7 @@
     head.appendChild(make('div', 'cabinet-labor-card__sub', 'Dodaj czynności do tej szafki. Ta sama pula czynności jest dostępna też w zakładce CZYNNOŚCI.'));
     card.appendChild(head);
     renderApplianceSection(card, draft, rerender);
+    renderProductionOptions(card, draft, rerender);
     if(!definitions.length){
       card.appendChild(make('div', 'cabinet-labor-empty', 'Brak aktywnych czynności w cenniku robocizny.'));
       container.appendChild(card);

@@ -176,11 +176,17 @@
     if(copy === value) throw new Error('Nie można sklonować draftu szafki');
     delete copy.derivedFacts;
     delete copy._derivedFacts;
+    // Read defaults are equivalent to explicitly selecting those defaults.
+    if(copy.details){
+      if(Number(copy.details.additionalLegs) === 0) delete copy.details.additionalLegs;
+      if(copy.details.shelfType === 'adjustable') delete copy.details.shelfType;
+      if(copy.details.hingeDrilling === 'workshop') delete copy.details.hingeDrilling;
+    }
     const drawerApi = ns.cabinetDrawerRequirements;
     if(drawerApi && typeof drawerApi.cleanDrawerTrash === 'function') drawerApi.cleanDrawerTrash(copy);
     const numericFields = new Set(['width','height','depth','frontCount','shelves','legHeightCm','blindPart','ovenHeight',
       'dishWasherWidth','fridgeWidth','fridgeNicheHeight','innerDrawerCount','sinkExtraCount','techShelfCount',
-      'techDividerCount','podInnerDrawerCount','gl','gp','st','sp']);
+      'techDividerCount','podInnerDrawerCount','gl','gp','st','sp','additionalLegs','hangerCount']);
     function canonical(data, key){
       if(Array.isArray(data)) return data.map(function(item){ return canonical(item, ''); });
       if(data && typeof data === 'object'){

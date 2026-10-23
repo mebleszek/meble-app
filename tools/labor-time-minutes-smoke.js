@@ -28,7 +28,7 @@ assert(index.includes('id="laborStartHours"') && index.includes('id="laborStepHo
 assert(!defs.includes('timeBlockHours:0.75'), 'Definicje startowe nadal zawierają timeBlockHours:0.75');
 assert(defs.includes("id:'dishwasher_mount'") && defs.includes("id:'fridge_mount'"), 'Brakuje automatów AGD do kontroli czasu');
 assert(formSrc.includes('formatLaborTime'), 'Podgląd reguły nie ma formattera minut');
-assert(catalogSrc.includes('normalizeLegacyFortyFiveMinutes'), 'Katalog nie ma migracji zapisanych 45 min');
+assert(catalogSrc.includes('normalizeLegacyFortyFiveMinutes'), 'Katalog nie ma kompatybilnego odczytu zapisanych minut');
 
 const FC = { utils:{ clone:(v)=> JSON.parse(JSON.stringify(v)), uid:()=> 'uid_smoke' } };
 const ctx = { window:{ FC }, FC, console, JSON, String, Number, Array, Object, Set, Map, Math, Date };
@@ -38,9 +38,9 @@ vm.runInContext(defs, ctx, { filename:'labor-catalog-definitions.js' });
 vm.runInContext(catalogSrc, ctx, { filename:'labor-catalog.js' });
 const labor = ctx.FC.laborCatalog;
 let normalized = labor.normalizeDefinition({ name:'Legacy 45', pricingMode:'time', quantityMode:'linear', timeBlockHours:0.75, startHours:0.75, stepHours:0.75 });
-assert(normalized.timeBlockHours === 1, 'timeBlockHours 45 min ma być zamienione na 60 min', normalized);
-assert(normalized.startHours === 1, 'startHours 45 min ma być zamienione na 60 min', normalized);
-assert(normalized.stepHours === 1, 'stepHours 45 min ma być zamienione na 60 min', normalized);
+assert(normalized.timeBlockHours === 0.75, 'timeBlockHours musi zachować zapisane 45 min', normalized);
+assert(normalized.startHours === 0.75, 'startHours musi zachować zapisane 45 min', normalized);
+assert(normalized.stepHours === 0.75, 'stepHours musi zachować zapisane 45 min', normalized);
 normalized = labor.normalizeDefinition({ name:'Five minutes', pricingMode:'time', quantityMode:'linear', timeBlockHours:1/12 });
 assert(Math.abs(normalized.timeBlockHours - (1/12)) < 0.000001, '5 minut ma być dozwolonym czasem bazowym', normalized);
 const calc = labor.calculateDefinition({ name:'Trzy razy 15', pricingMode:'time', quantityMode:'linear', timeBlockHours:0.25, rateType:'workshop' }, { quantity:3, hourlyRates:{ workshop:120 } });
@@ -56,6 +56,18 @@ const tiers = labor.parseTierText('1-2=15 min;3-5=30 min;6-10=60 min;11-12=0.75'
 assert(Math.abs(tiers[0].hours - 0.25) < 0.000001, 'Progi powinny czytać zapis 15 min jako 0.25 h', tiers);
 assert(Math.abs(tiers[1].hours - 0.5) < 0.000001, 'Progi powinny czytać zapis 30 min jako 0.5 h', tiers);
 assert(tiers[2].hours === 1, 'Progi powinny czytać zapis 60 min jako 1 h', tiers);
-assert(tiers[3].hours === 1, 'Stary zapis progu 0.75 h ma być zamieniony na 1 h', tiers);
+assert(tiers[3].hours === 0.75, 'Stary zapis progu 0.75 h musi pozostać 45 min', tiers);
 assert(labor.tiersToText([{min:1,max:2,hours:0.25}]).includes('15 min'), 'Progi mają pokazywać czas w minutach');
+
+assert(labor.normalizeDefinition({timeBlockHours:1}).timeBlockHours === 1, 'Zapisane 60 min pozostaje 60 min');
+const seventyFive = labor.calculateDefinition({pricingMode:'time',timeBlockHours:0.25}, {quantity:5,hourlyRates:{workshop:120}});
+assert(seventyFive.pricedHours === 1.25 && seventyFive.total === 150, '5 × 15 = 75 min bez zaokrąglania', seventyFive);
+for(const field of ['laborTimeBlockHours','laborStartHours','laborStepHours']){
+  const select = index.match(new RegExp('<select[^>]*id="'+field+'"[^>]*>([\\s\\S]*?)</select>'));
+  assert(select, 'Brak pola czasu '+field);
+  const minutes = [...select[1].matchAll(/<option value="([^"]+)"/g)].map(row=>Math.round(Number(row[1])*60));
+  assert(JSON.stringify(minutes) === '[0,1,5,15,30,60]', 'Wyłącznie standardowe bloki w '+field, minutes);
+  assert(formSrc.includes("setDurationValue('"+field+"'"), 'Odczyt formularza musi zachować zapisane 45 min w '+field);
+}
+assert(read('js/app/material/price-modal-field-help.js').includes('Dostępne bloki planowania: 1, 5, 15, 30 i 60 minut. Wyniki obliczeń nie są zaokrąglane do tych bloków — np. 3 × 15 minut daje 45 minut.'), 'Brak uzgodnionej pomocy czasu');
 console.log('OK labor-time-minutes smoke');

@@ -37,7 +37,7 @@ const FC = {
   },
   cabinetHardwareRequirements:{
     getHingeRequirementsWithQty(room, cab){
-      return [{ kind:'hinge', hardwareGroup:'hinges', qty:4, label:'110° nakładany', doorLabel:'drzwi', ruleId:'standard' }];
+      return ['left','right'].map(doorKey=>({kind:'hinge',hardwareGroup:'hinges',qty:2,label:'110° nakładany',doorKey,ruleId:'standard'}));
     }
   },
   laborApplianceRules:{ getApplianceForCabinet:()=> null }
@@ -64,14 +64,14 @@ function byId(id){ return details.find((row)=> String(row.key || '').includes(id
 function sumByName(part){ return details.filter((row)=> String(row.name || '').includes(part)).reduce((sum, row)=> sum + Number(row.quantity || 0), 0); }
 assert(details.some((row)=> row.quantitySource === 'cabinet.count' && Number(row.quantity) === 1), 'skręcenie korpusu używa cabinet.count = 1', details);
 assert(details.some((row)=> row.quantitySource === 'shelf.count' && Number(row.quantity) === 1), 'półki używają shelf.count = 1', details);
-assert(details.some((row)=> row.sourceRole === 'front-labor' && row.quantitySource === 'front.count' && Number(row.quantity) === 2), 'montaż frontu używa front.count = 2', details);
-assert(sumByName('Montaż zawiasu') === 4, 'montaż zawiasu nadal rozbija wymagania zawiasów, ale suma ilości wynosi 4', details);
-assert(details.some((row)=> row.name === 'Regulacja frontu' && row.quantitySource === 'hinge.count' && Number(row.quantity) === 4), 'regulacja frontu automatycznie używa hinge.count = 4', details);
+assert(details.some((row)=> row.sourceRole === 'front-labor' && row.quantitySource === 'hinge.door_count' && Number(row.quantity) === 2), 'pakowanie używa hinge.door_count = 2', details);
+assert(sumByName('Przykręcanie zawiasów i prowadników') === 8, 'wspólny montaż: 4 zawiasy + 4 prowadniki', details);
+assert(details.some((row)=> row.name === 'Końcowa regulacja drzwi u klienta' && row.quantitySource === 'hinge.door_cycle_count' && Number(row.quantity) === 6), 'regulacja: 2 drzwi + 4 zawiasy', details);
 assert(details.some((row)=> row.name === 'Montaż szuflady / prowadnic' && row.quantitySource === 'drawer.count' && Number(row.quantity) === 3), 'montaż szuflad używa drawer.count = 3', details);
 assert(details.every((row)=> row.total >= 0), 'wszystkie komponenty mają bezpieczne sumy', details);
 const register = FC.quoteCalculationRegister.buildRegister({ labor:laborLines }, {});
 const laborRegisterLines = register.lines.filter((row)=> row.section === 'labor');
-assert(laborRegisterLines.some((row)=> row.quantitySource === 'hinge.count' && /źródło ilości/i.test(row.note || '')), 'quoteCalculationRegister zachowuje źródło ilości i pokazuje je w nocie', laborRegisterLines);
+assert(laborRegisterLines.some((row)=> row.quantitySource === 'hinge.fitting_count' && /źródło ilości/i.test(row.note || '')), 'quoteCalculationRegister zachowuje źródło ilości i pokazuje je w nocie', laborRegisterLines);
 assert(Math.abs(register.totals.labor - laborRegisterLines.reduce((sum, row)=> sum + Number(row.total || 0), 0)) < 0.01, 'suma labor w rejestrze zgadza się z liniami', register.totals);
 
 const modal = read('js/app/cabinet/cabinet-modal.js');

@@ -62,9 +62,9 @@ function createBaseContext(){
         { kind:'hinge', hardwareGroup:'hinges', qty:2, label:'110° nakładany', doorKey:'left', doorLabel:'lewe drzwi', ruleId:'drawer_door', frontWidthCm:30, frontHeightCm:52 },
         { kind:'hinge', hardwareGroup:'hinges', qty:2, label:'110° nakładany', doorKey:'right', doorLabel:'prawe drzwi', ruleId:'drawer_door', frontWidthCm:30, frontHeightCm:52 },
       ];
-      if(cab.id === 'cab_set_lead') return [{ kind:'hinge', hardwareGroup:'hinges', qty:8, label:'110° nakładany', doorKey:'set', doorLabel:'fronty zestawu', ruleId:'set_fronts' }];
+      if(cab.id === 'cab_set_lead') return ['left','right'].map(doorKey=>({kind:'hinge',hardwareGroup:'hinges',qty:4,label:'110° nakładany',doorKey,ruleId:'set_fronts'}));
       if(cab.id === 'cab_set_follow') return [];
-      return [{ kind:'hinge', hardwareGroup:'hinges', qty:4, label:'110° nakładany', doorKey:'both', doorLabel:'drzwi', ruleId:'standard' }];
+      return ['left','right'].map(doorKey=>({kind:'hinge',hardwareGroup:'hinges',qty:2,label:'110° nakładany',doorKey,ruleId:'standard'}));
     }
   };
   FC.laborApplianceRules = {
@@ -78,7 +78,7 @@ function loadLabor(ctx){
   load(ctx, ['js/app/pricing/labor-catalog-definitions.js', 'js/app/pricing/labor-catalog.js']);
   const rates = ctx.FC.laborCatalog.DEFAULT_HOURLY_RATES.concat(ctx.FC.laborCatalog.DEFAULT_LABOR_DEFINITIONS).map(clone);
   ctx.FC.catalogSelectors = { getQuoteRates:()=> rates };
-  load(ctx, ['js/app/wycena/wycena-core-labor.js', 'js/app/quote/quote-calculation-register.js', 'js/app/quote/quote-snapshot.js']);
+  load(ctx, ['js/app/pricing/work-quantity-sources.js','js/app/pricing/work-quantity-facts.js','js/app/wycena/wycena-core-labor.js', 'js/app/quote/quote-calculation-register.js', 'js/app/quote/quote-snapshot.js']);
   return rates;
 }
 
@@ -98,19 +98,19 @@ function runLaborRegisterTests(){
   const drawerLine = laborLines.find((row)=> row.cabinetId === 'cab_drawer_door');
   assert(drawerLine, 'fixture: jest szafka szuflada_drzwi');
   const frontCmp = drawerLine.details.find((row)=> row.sourceRole === 'front-labor');
-  assert(frontCmp && Number(frontCmp.quantity) === 3, 'robocizna frontów bierze te same 3 fronty, które zwraca źródło MATERIAŁ/WYCENA', drawerLine.details);
+  assert(frontCmp && Number(frontCmp.quantity) === 2, 'pakowanie bierze 2 fronty drzwiowe, pomijając front szuflady', drawerLine.details);
   const hingeQty = drawerLine.details.filter((row)=> row.sourceRole === 'hinge-labor').reduce((sum, row)=> sum + Number(row.quantity || 0), 0);
-  near(hingeQty, 4, 0.001, 'front szuflady nie jest liczony jako front zawiasowy — zawiasy tylko z centralnych wymagań drzwi');
+  near(hingeQty, 8, 0.001, 'front szuflady nie jest liczony jako front zawiasowy — zawiasy tylko z centralnych wymagań drzwi');
 
   const setLines = laborLines.filter((row)=> /^cab_set_/.test(row.cabinetId || ''));
   const setFrontQty = setLines.flatMap((row)=> row.details || []).filter((row)=> row.sourceRole === 'front-labor').reduce((sum, row)=> sum + Number(row.quantity || 0), 0);
   const setHingeQty = setLines.flatMap((row)=> row.details || []).filter((row)=> row.sourceRole === 'hinge-labor').reduce((sum, row)=> sum + Number(row.quantity || 0), 0);
   near(setFrontQty, 2, 0.001, 'zestaw nie dubluje robocizny frontów na korpusie nieprowadzącym');
-  near(setHingeQty, 8, 0.001, 'zestaw nie dubluje robocizny zawiasów na korpusie nieprowadzącym');
+  near(setHingeQty, 16, 0.001, 'zestaw nie dubluje robocizny zawiasów na korpusie nieprowadzącym');
 
   const bodyLine = laborLines.find((row)=> row.cabinetId === 'cab_body');
   const bodyHingeQty = bodyLine.details.filter((row)=> row.sourceRole === 'hinge-labor').reduce((sum, row)=> sum + Number(row.quantity || 0), 0);
-  near(bodyHingeQty, 4, 0.001, 'robocizna zawiasów bierze ilość z centralnych wymagań, a nie z legacy getHingeCountForCabinet=99');
+  near(bodyHingeQty, 8, 0.001, 'robocizna zawiasów bierze ilość z centralnych wymagań, a nie z legacy getHingeCountForCabinet=99');
 
   const snapshot = FC.quoteSnapshot.buildSnapshot({
     selectedRooms:['kuchnia'],

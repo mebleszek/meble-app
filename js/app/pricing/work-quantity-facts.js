@@ -201,11 +201,12 @@
   }
 
   function shelfCount(cabinet){
+    if(['stojąca','moduł'].includes(text(cabinet && cabinet.type)) && text(cabinet && cabinet.subType) === 'szuflady') return 0;
     const d = details(cabinet);
     const candidates = [d.shelves, d.shelfCount, cabinet && cabinet.shelves, cabinet && cabinet.shelfCount];
     for(const value of candidates){
       const n = Math.max(0, Math.floor(number(value, 0)));
-      if(n > 0) return n;
+      if(value != null && text(value) !== '') return n;
     }
     return 0;
   }
@@ -358,8 +359,9 @@
       return makeFact('hinge.requirement', label, { hasValue:!!label, source:'wymagania zawiasów' });
     },
     'shelf.count':(roomId, cabinet)=> {
-      const qty = shelfCount(cabinet);
-      return makeFact('shelf.count', qty, { displayValue:`${qty} szt.`, source:'pole półek' });
+      const parts = getCabinetCutListParts(roomId, cabinet);
+      const qty = parts.length ? parts.filter(part=>text(part.name) === 'Półka').reduce((sum, part)=>sum + Math.max(0, number(part.qty, 0)), 0) : shelfCount(cabinet);
+      return makeFact('shelf.count', qty, { displayValue:`${qty} szt.`, source:'efektywne półki z MATERIAŁU' });
     },
     'drawer.count':(roomId, cabinet, cache)=> {
       const rows = cache.drawerRows || [];
@@ -421,6 +423,63 @@
       return makeFact('appliance.warming_drawer.count', data.qty, { displayValue:`${data.qty} szt.`, source:'podgrzewacz szufladowy + montaż AGD' });
     }
   };
+
+  function doorLaborFacts(roomId, cabinet, cache){
+    const rows = cache.hingeRows || getHingeRows(roomId, cabinet);
+    const all = hingeCount(rows);
+    // Group split spring/plain requirements back onto their original door first.
+    const doors = new Map();
+    let unknown = false;
+    rows.filter(req=>!req.auxiliaryForLift).forEach(req=>{
+      if(!(Number(req.qty) > 0)) return;
+      const key = text(req.doorKey);
+      if(!key){unknown = true;return;}
+      doors.set(key,(doors.get(key)||0)+Number(req.qty));
+    });
+    const doorHinges = [...doors.values()].reduce((a,b)=>a+b,0);
+    const own = text(details(cabinet).hingeDrilling || 'workshop') === 'workshop';
+    const isDoor = !['uchylne'].includes(text(cabinet.subType));
+    return {all,doors,doorHinges: isDoor ? doorHinges : 0,doorCount:isDoor ? doors.size : 0,
+      extra:own && isDoor ? [...doors.values()].reduce((sum,n)=>sum+Math.max(0,n-2),0) : 0,
+      drill:own ? all : 0,known:!unknown};
+  }
+  const LABOR_SOURCE_LABELS = {
+    'leg.count':'Liczba nóżek', 'hanger.count':'Liczba zawieszek',
+    'hdf.cutout_count':'Otwory HDF i podcięcia boków', 'nut.workshop_count':'Kompletne NUT-y we własnym warsztacie',
+    'shelf.adjustable_count':'Półki regulowane', 'shelf.fixed_count':'Półki nieregulowane',
+    'hinge.drill_count':'Puszki wiercone w warsztacie', 'hinge.extra_drill_count':'Trzeci i kolejne zawiasy per front',
+    'hinge.fitting_count':'Zawiasy i prowadniki — operacje', 'hinge.door_hinge_count':'Zawiasy frontów drzwiowych',
+    'hinge.door_count':'Fronty drzwiowe na zawiasach', 'hinge.door_cycle_count':'Fronty drzwiowe + ich zawiasy'
+  };
+  Object.keys(LABOR_SOURCE_LABELS).forEach(code=>{
+    FACT_CALCULATORS[code] = (roomId, cabinet, cache)=>{
+      const supports = hardwareRequirements().supportQuantities;
+      const q = typeof supports === 'function' ? supports(cabinet) : null;
+      let value = null, warning = '', source = 'centralne wymagania szafki';
+      if(code === 'leg.count') value = q ? q.legs : null;
+      else if(code === 'hanger.count') value = q ? q.hangers : null;
+      else if(code === 'hdf.cutout_count' || code === 'nut.workshop_count'){
+        const standard = q && q.hanging && q.hdf && ['standardowa','standard'].includes(text(cabinet.subType));
+        value = standard ? (code === 'hdf.cutout_count' ? 4 : 2) : 0;
+        source = 'zatwierdzony standard wiszącej szafki HDF: 2 otwory + 2 podcięcia, 2 własne NUT-y';
+      }else if(code.startsWith('shelf.')){
+        const shelf = FACT_CALCULATORS['shelf.count'](roomId,cabinet,cache);
+        const adjustable = text(details(cabinet).shelfType || 'adjustable') === 'adjustable';
+        value = (code === 'shelf.adjustable_count') === adjustable ? shelf.value : 0;
+        source = shelf.source + (adjustable ? '; 12 otworów/półkę' : '; 4 otwory/półkę');
+      }else{
+        const h = doorLaborFacts(roomId,cabinet,cache);
+        const values = {'hinge.drill_count':h.drill,'hinge.extra_drill_count':h.extra,'hinge.fitting_count':h.all*2,
+          'hinge.door_hinge_count':h.doorHinges,'hinge.door_count':h.doorCount,'hinge.door_cycle_count':h.doorHinges+h.doorCount};
+        value = values[code];
+        if(!h.known && ['hinge.extra_drill_count','hinge.door_hinge_count','hinge.door_count','hinge.door_cycle_count'].includes(code)){
+          value = null;warning = 'STOP: centralne wymagania nie identyfikują poszczególnych frontów.';
+        }
+        source = 'centralne wymagania zawiasów: ' + [...h.doors].map(([key,n])=>key+': '+n).join('; ');
+      }
+      return makeFact(code,value,{hasValue:value != null,displayValue:value == null ? 'brak danych' : value+' szt.',source,warning});
+    };
+  });
 
   function buildCache(roomId, cabinet){
     return {

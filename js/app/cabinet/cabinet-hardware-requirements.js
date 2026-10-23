@@ -523,6 +523,32 @@
     return aggregateDoorRequirements(rows, baseReq);
   }
 
+  // One quantity shared by the material cutlist and labor facts.
+  function supportQuantities(cab){
+    const d = details(cab);
+    const count = value => Math.max(0, Math.floor(number(value)));
+    let legs = 0;
+    if(typeOf(cab) === 'stojąca'){
+      const w = number(cab.width), depth = number(cab.depth);
+      if(subTypeOf(cab) === 'zmywarkowa') legs = 0;
+      else if(['lodowkowa','piekarnikowa'].includes(subTypeOf(cab))) legs = 4;
+      else if(w > 0 && depth > 0) legs = (w < 20 ? 1 : w <= 80 ? 2 : 3) * (depth < 20 ? 1 : 2);
+      legs += count(d.additionalLegs);
+    }
+    const hanging = typeOf(cab) === 'wisząca' && subTypeOf(cab) !== 'dolna_podblatowa';
+    const hdf = /hdf/i.test(text(cab && cab.backMaterial) || 'HDF');
+    const override = d.hangerCount != null && text(d.hangerCount) !== '';
+    const hangers = hanging ? (override ? count(d.hangerCount) : hdf ? 2 : 0) : 0;
+    return {legs, hangers, hanging, hdf};
+  }
+  function getSupportRequirements(room, cab){
+    const q = supportQuantities(cab);
+    return [
+      {kind:'leg',hardwareGroup:'accessories',category:'Nóżki / cokoły',typeId:'cabinet_leg',label:'Nóżka meblowa',qty:q.legs},
+      {kind:'hanger',hardwareGroup:'accessories',category:'Inne',typeId:'cabinet_hanger',label:'Zawieszka szafki',qty:q.hangers}
+    ].filter(row=>row.qty > 0);
+  }
+
   function getCabinetHardwareRequirements(room, cab){
     const out = [];
     const hinge = getHingeRequirementWithQty(room, cab);
@@ -532,6 +558,8 @@
 
   FC.cabinetHardwareRequirements = {
     HINGE_TYPES,
+    supportQuantities,
+    getSupportRequirements,
     getHingeRequirementOptions,
     getHingeRequirementPreset,
     getBaseHingeRequirement,

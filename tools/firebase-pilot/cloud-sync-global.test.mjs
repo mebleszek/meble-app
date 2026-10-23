@@ -237,3 +237,40 @@ test('CLOUD-SYNC-1 14: LIVE/wrong host/database and shared reader contexts refus
     assert.equal(fs.readFileSync(new URL('../../' + path, import.meta.url), 'utf8').includes('global-data-sync'), false);
   }
 });
+
+test('WYCENA-LABOR: editable norms, zero included units and saved 45 minutes survive actual emulator sync without repricing history', async () => {
+  const {a, b, sync} = await pair();
+  for (const r of [a.r, b.r]) {
+    r.load('js/app/pricing/labor-catalog-definitions.js');
+    r.load('js/app/pricing/labor-catalog.js');
+  }
+  const value = model(), catalog = a.r.FC.laborCatalog;
+  value.labor = clone(catalog.ensureDefaultDefinitions([]).map(row => catalog.normalizeDefinition(row)));
+  value.labor.find(row => row.id === 'labor_rate_workshop').price = 191;
+  value.labor.find(row => row.id === 'labor_rate_assembly').price = 317;
+  value.labor.push(clone(catalog.normalizeDefinition({id: 'synthetic-saved-45', name: 'Synthetic saved 45',
+    pricingMode: 'time', timeBlockHours: 0.75, startHours: 0.75, stepHours: 0.75, rateType: 'workshop'})));
+  value.workshopServices.push({id: 'synthetic-saved-service-45', name: 'Synthetic service 45', price: 0,
+    timeBlockHours: 0.75, startHours: 0.75, stepHours: 0.75});
+  seed(a.r, value);
+  for (const r of [a.r, b.r]) {
+    r.rows.set('fc_quote_snapshots_v1', '[{"id":"frozen","total":123.456789,"hours":0.75}]');
+    r.rows.set('fc_projects_v1', 'UNTOUCHED-PROJECTS');
+  }
+  const beforeA = [...a.r.rows], beforeB = [...b.r.rows];
+  assert.equal((await publish(sync, a, 'labor-norms')).ok, true);
+  const local = replica(a);
+  assert.equal((await sync.receive({replica: local, expectedLocalVersion: 0})).ok, true);
+  const restored = local.snapshot().model;
+  assert.deepEqual(restored, value);
+  const legs = restored.labor.find(row => row.id === 'labor_legs_install');
+  assert.equal(legs.startQty, 0);
+  const rates = b.r.FC.laborCatalog.buildHourlyRates(restored.labor);
+  const result = b.r.FC.laborCatalog.calculateDefinition(legs, {quantity: 4, hourlyRates: rates});
+  assert.ok(Math.abs(result.pricedHours * 60 - 9) < 1e-8);
+  assert.ok(Math.abs(result.total - 28.65) < 1e-8);
+  assert.equal(b.r.FC.laborCatalog.calculateDefinition(legs, {quantity: 0, hourlyRates: rates}).total, 0);
+  assert.equal(restored.labor.find(row => row.id === 'synthetic-saved-45').timeBlockHours, 0.75);
+  assert.deepEqual([...a.r.rows], beforeA);
+  assert.deepEqual([...b.r.rows], beforeB);
+});

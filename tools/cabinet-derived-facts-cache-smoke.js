@@ -106,7 +106,7 @@ run(context, 'js/app/pricing/work-quantity-facts.js');
 run(context, 'js/app/cabinet/cabinet-derived-facts.js');
 
 const api = context.FC.cabinetDerivedFacts;
-assert.ok(api && api.VERSION === '20261013_drawer_front_geometry_v1', 'cabinetDerivedFacts API/version exists');
+assert.ok(api && api.VERSION === '20261023_wycena_labor_v1', 'cabinetDerivedFacts API/version exists');
 const cab = project.kuchnia.cabinets[0];
 
 let first = api.ensureCabinetFacts('kuchnia', cab, { recalculate:true, persist:false });

@@ -296,7 +296,8 @@ function normalSetSave(){
   assert.equal(r.get('cabinetModal').style.display, 'none');
 }
 
-(async()=>{
+module.exports = { runtime, assertButtons };
+if(require.main === module) (async()=>{
   const scenarios = [
     ['edit opens clean with independent local baseline', openClean],
     ['60 -> 70 -> 60 updates dirty buttons and returns clean', dirtyAndRevert],

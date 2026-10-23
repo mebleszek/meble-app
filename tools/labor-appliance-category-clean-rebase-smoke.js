@@ -34,7 +34,7 @@ const cleaned = ctx.FC.laborCatalog.ensureDefaultDefinitions([
   { id:'hood_mount', category:'Montaż AGD', name:'Montaż okapu', quantitySource:'appliance.hood.count', timeBlockHours:0.5 },
   { id:'labor_rate_workshop', category:'Stawki godzinowe', rateCode:'workshop', price:150 },
 ]);
-assert(!cleaned.some((row)=> String(row.category || '') === 'AGD'), 'Normalizacja robocizny usuwa stare seedowane AGD', cleaned.filter((row)=> /AGD/.test(String(row.category || ''))));
+assert(cleaned.some((row)=> row.id === 'svc_old_oven' && row.category === 'AGD' && row.price === 111), 'Prywatne ID zachowuje kategorię i cenę; sama kategoria AGD nie dowodzi systemowego pochodzenia', cleaned);
 assert(!cleaned.some((row)=> String(row.id || '') === 'hood_mount'), 'Normalizacja usuwa stary generyczny automat hood_mount', cleaned.filter((row)=> /hood/i.test(String(row.id || row.name || ''))));
 ['dishwasher_mount','fridge_mount','oven_mount','hob_mount','hood_under_cabinet_mount','hood_chimney_mount','microwave_mount','washer_mount','dryer_mount','coffee_machine_mount','warming_drawer_mount'].forEach((id)=> assert(cleaned.some((row)=> row.id === id && row.category === 'Montaż AGD'), `brak automatu ${id} w Montaż AGD`, cleaned.map((row)=> [row.id,row.category])));
 const dishwasher = cleaned.find((row)=> row.id === 'dishwasher_mount');

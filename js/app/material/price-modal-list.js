@@ -62,6 +62,16 @@
       else price.textContent = (Number(item && item.price) || 0).toFixed(2) + ' PLN';
       const editBtn = document.createElement('button'); editBtn.className = 'btn'; editBtn.type = 'button'; editBtn.textContent = 'Edytuj';
       right.appendChild(price); right.appendChild(editBtn);
+      if(kind === 'quoteRates' && item.note){
+        const help = document.createElement('button');
+        help.className = 'btn'; help.type = 'button'; help.textContent = '?';
+        help.setAttribute('aria-label', 'Pomoc: ' + String(item.name || 'czynność'));
+        help.addEventListener('click', ()=>{
+          const FC = window.FC || {};
+          if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({title:item.name || 'Czynność',message:[item.note,FC.laborCatalog && FC.laborCatalog.describeDefinition(item)].filter(Boolean).join('\n\n')});
+        });
+        right.appendChild(help);
+      }
       row.appendChild(left); row.appendChild(right); container.appendChild(row);
       editBtn.addEventListener('click', ()=> ctx.openPriceItemModal(item.id));
     });
