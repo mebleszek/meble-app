@@ -209,7 +209,7 @@ test('CLOUD-SYNC-1 12: allowed dynamic fields and defaults v1 survive; unapprove
 test('CLOUD-SYNC-1 13: history/calculations unchanged and receiving device edits protected, including edits during await', async () => {
   const {a, b, sync} = await pair(); seed(a.r);
   a.r.load('js/app/pricing/labor-catalog-definitions.js'); a.r.load('js/app/pricing/labor-catalog.js');
-  const calculate = () => clone(a.r.FC.laborCatalog.calculateDefinition({name: 'Synthetic labor', pricingMode: 'perUnit', price: 7.125}, {quantity: 3}));
+  const calculate = () => clone(a.r.FC.laborCatalog.calculateDefinition({id: 'synthetic-sync-labor', name: 'Synthetic labor', pricingMode: 'perUnit', price: 7.125}, {quantity: 3}));
   a.r.rows.set('fc_quote_snapshots_v1', JSON.stringify([{id: 'history', total: 123.456789}]));
   a.r.rows.set('fc_quote_offer_drafts_v1', 'UNTOUCHED-DRAFTS');
   b.r.rows.set('fc_quote_snapshots_v1', 'UNTOUCHED-HISTORY'); b.r.rows.set('fc_projects_v1', 'UNTOUCHED-PROJECTS');
