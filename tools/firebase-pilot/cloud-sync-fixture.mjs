@@ -1,8 +1,18 @@
 import {createRequire} from 'node:module';
+import fs from 'node:fs';
 const require = createRequire(import.meta.url);
 const fixtures = require('../cloud-global-data-smoke.js');
 export const model = fixtures.model;
-export const runtime = fixtures.runtime;
+export function runtime() {
+  const r = fixtures.runtime();
+  // Match global.test.mjs: SDK-facing records and transaction payloads must be
+  // created in the SDK's realm. Keep each window/FC and native store isolated;
+  // native catalog writers still use r.load's vm, without changing their data.
+  for (const name of ['global-data-contract', 'firebase-global-transport']) {
+    new Function('window', fs.readFileSync(new URL('../../js/app/cloud/' + name + '.js', import.meta.url), 'utf8'))(r.s);
+  }
+  return r;
+}
 export function seed(r, value = model()) {
   const c = r.FC.globalDataContract;
   for (const [domain, data] of Object.entries(value)) {

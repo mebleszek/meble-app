@@ -4,6 +4,25 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createEmulatorSynchronizer, createMemoryReplica, createMemoryOperationJournal} from '../../sync/global-data-sync.mjs';
 import {runtime, model, seed} from './cloud-sync-fixture.mjs';
+test('SYNC fixture: CLOUD-3 staging payloads use the SDK realm; device stores stay independent', async () => {
+  const a = runtime(), b = runtime(), uid = 'synthetic-owner';
+  seed(a); seed(b);
+  const contract = a.FC.globalDataContract, captured = contract.capture(a.storage, Object.keys(contract.schemas));
+  const packed = await contract.pack(uid, captured.model);
+  for (const record of packed.records) {
+    // Firebase 12.19.0's isPlainObject compares this exact prototype. A vm
+    // Object fails before transaction serialization or Security Rules evaluation.
+    assert.equal(Object.getPrototypeOf(record), Object.prototype);
+    assert.equal(record.byteLength, Buffer.byteLength(record.json, 'utf8'));
+  }
+  assert.deepEqual((await contract.unpack(uid, packed.directory, packed.records)).model, model());
+  assert.notEqual(a.s, b.s); assert.notEqual(a.FC, b.FC);
+  assert.notEqual(a.FC.globalDataContract, b.FC.globalDataContract);
+  assert.notEqual(a.FC.firebaseGlobalTransport, b.FC.firebaseGlobalTransport);
+  const beforeB = [...b.rows];
+  a.rows.set('fc_sheets_v1', JSON.stringify({sheets: []}));
+  assert.deepEqual([...b.rows], beforeB); assert.deepEqual(a.calls, []); assert.deepEqual(b.calls, []);
+});
 function fixture() {
   const r = runtime(), c = r.FC.globalDataContract, uid = 'synthetic-owner'; seed(r);
   const connection = () => {

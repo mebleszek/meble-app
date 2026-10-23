@@ -2,6 +2,22 @@
 
 BASE: `7faf4f097b6be0a8a0edcce922561e6632d9707c`. Gałąź: `cloud-sync-1-global-data`. Pakiet implementacyjny: **CODE_READY / CI_PENDING / LIVE_BLOCKED**, niewydany, bez PR. Wcześniejsze PASS PR #77 dotyczą CLOUD-4.6E, nie tego pakietu.
 
+## Naprawa po CI PR #78
+
+PR [#78](https://github.com/mebleszek/meble-app/pull/78) istnieje, jest otwarty i niescalony. [CI 39978249405](https://github.com/mebleszek/meble-app/actions/runs/39978249405) dla `db850598043af6eacfd35f61f91a5e058953b07f`: Preflight PASS, SDK/Rules 126 PASS / 14 FAIL; auto-merge i wydanie pominięte. Wszystkie 14 nowych scenariuszy zatrzymały się przed pierwszą publikacją. Powyższe „bez PR” i niższe liczby pięciu kontroli opisują pierwotne przygotowanie, nie bieżący stan PR. Nowa poprawka pozostaje **CODE_READY / CI_PENDING / LIVE_BLOCKED**, niewydana.
+
+Przyczyna: `cloud-sync-fixture.mjs` eksportował bezpośrednio runtime testów kontraktu z `tools/cloud-global-data-smoke.js`. Kontrakt i transport CLOUD-3 działały wtedy w osobnym `node:vm`, tworząc rekordy z innym `Object.prototype` niż właściwy Firebase SDK. Podczas pierwszego `tx.set(ref, record)` walidator SDK odrzucał rekord jako `invalid-argument` / `a custom Object object`, jeszcze przed wysłaniem mutacji i oceną Rules. Istniejąca sanitacja transportu mapowała błąd na `GLOBAL_REMOTE_UNCONFIRMED`, `phase: staging`, `published: false`. Potwierdzono to offline na faktycznym transporcie CLOUD-3 z dokładnym walidatorem `isPlainObject` ze [źródła przypiętego Firebase 12.19.0](https://github.com/firebase/firebase-js-sdk/blob/firebase%4012.19.0/packages/firestore/src/util/input_validation.ts); nie jest to wykonanie całego SDK ani emulatora. Starsze testy `global.test.mjs` przechodzące w tym samym CI już stosowały ładowanie kontraktu/transportu w kontekście SDK.
+
+Poprawka obejmuje tylko:
+
+- `tools/firebase-pilot/cloud-sync-fixture.mjs`: po utworzeniu odizolowanego fixture ładuje niezmienione pliki `global-data-contract.js` i `firebase-global-transport.js` przez `new Function('window', source)(r.s)`, jak istniejące testy SDK CLOUD-3. Rekordy/payloady transakcji powstają w kontekście SDK. Każde urządzenie nadal ma odrębny window/FC, magazyn, App/Auth/Firestore i sesję; natywne writery pozostają w swoim vm. Brak normalizacji, kopiowania pól lub zmiany walidacji na granicy SDK.
+- `tools/firebase-pilot/cloud-sync-boundary.test.mjs`: dodatkowa regresja prototypu rekordów, roundtrip zawartości/bajtów i izolacji dwóch urządzeń. Wszystkie wcześniejsze asercje pozostają bez zmian.
+- ten raport: przyczyna, dowody i brakujące kontrole.
+
+Wykonane celowane kontrole: nowa regresja najpierw FAIL na pierwotnym fixture, następnie **6/6 PASS** po poprawce (Node 22.23.3, `--experimental-test-isolation=none --test tools/firebase-pilot/cloud-sync-boundary.test.mjs`); składnia obu zmienionych modułów i kontrola diffu PASS. Nową regresję uruchomi istniejący wrapper Preflight, bez zmiany workflow/package.json. Wszystkie 14 nazw/scenariuszy/asercji w `cloud-sync-global.test.mjs`, kod synchronizatora, CLOUD-3, Rules, blokady LIVE i manifesty integralności są niezmienione.
+
+**Emulatory lokalnie: 0/14 wykonanych**, brak zainstalowanych zależności SDK/emulatorów i dostępu przez proxy npm w sandboxie; próba dodatkowego dostępu sieciowego została przerwana. Nie przypisuje się PASS SDK/Rules na podstawie diagnostyki prototypu. Wymagane nadal: 14 scenariuszy SDK oraz pełne istniejące regresje w osobno zatwierdzonym CI na nowym HEAD i niezmienionym BASE. Nie uruchomiono ani nie ponowiono GitHub Actions; bez zmian PR, merge i Firebase LIVE.
+
 ## Działanie i granica produktu
 
 `sync/global-data-sync.mjs` składa działające na main komponenty CLOUD-3: `global-data-contract.js` i `firebase-global-transport.js`. Nie tworzy transportu ani alternatywnego rejestru. Pełny przepływ to RAW źródeł A → walidacja 14 domen i relacji → immutable records → atomowa publikacja istniejącego manifestu/revision CAS → odczyt przez niezależny klient SDK → ponowne pakowanie i porównanie hashy/liczby rekordów → atomowe zastosowanie całego modelu w izolowanej pamięci B.
