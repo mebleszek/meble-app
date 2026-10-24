@@ -1,4 +1,20 @@
-# Pixel — jednorazowy bookmarklet diagnostyczny
+# Pixel — narzędzia diagnostyczne tylko do odczytu
+
+## Identyfikacja największego magazynu — 24.10.2026
+
+Nowy, samodzielny [pixel-storage-sizes-readonly.js](pixel-storage-sizes-readonly.js)
+zwraca anonimowy JSON dziesięciu największych wartości localStorage. Uruchamia
+się wyłącznie w **już otwartym, autoryzowanym dokumencie** przez zdalną inspekcję
+Chrome z zaufanego komputera. Nie wymaga wydania, instalacji w aplikacji,
+odświeżenia karty, nowego startupu, ponownego logowania ani bookmarkletu.
+Nie odczytuje stanu formularzy/sesji RAM i nie zapisuje danych.
+
+[Instrukcja, dowody testów i warunki STOP](../reports/pixel-storage-key-identification.md).
+Brak ważnego istniejącego Auth, konieczność restartu/odświeżenia albo obejścia
+zabezpieczeń oznacza STOP. Nie używać starego bookmarkletu jako zastępstwa;
+nie wysyłać ogólnego raportu „Diag” WYCENY ani surowych obiektów storage.
+
+## Historyczny bookmarklet sesji
 
 **Ścieżka historyczna.** Właściciel zgłosił ucięty skrypt/SyntaxError oraz brak
 wyniku schowka na fizycznym Pixelu. Nie zaleca się kolejnych prób bookmarkletu.
