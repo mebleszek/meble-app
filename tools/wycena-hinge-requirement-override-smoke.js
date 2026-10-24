@@ -104,9 +104,12 @@ FC.wycenaCoreSource.selectedCabinets = function(){
   return [{ roomId:'kuchnia', roomLabel:'S', cabinet:cab }];
 };
 
-const defaultLines = linesApi.collectAccessories(['kuchnia']);
+const defaultAccessories = linesApi.collectAccessories(['kuchnia']);
+const defaultLines = defaultAccessories.filter(row=>row.hardwareRequirement && row.hardwareRequirement.kind === 'hinge');
 const defaultTotal = defaultLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0);
-assert(defaultLines.length === 1, 'domyślne dwa fronty o tym samym wymaganiu powinny dać jedną linię akcesoriów');
+assert(defaultLines.length === 1, 'domyślne dwa fronty o tym samym wymaganiu powinny dać jedną linię zawiasów');
+assert(defaultLines[0].qty === 4, 'jedna linia zawiera po dwa zawiasy obu frontów');
+assert(defaultAccessories.some(row=>row.hardwareRequirement && row.hardwareRequirement.kind === 'leg' && row.qty === 4), 'niezależne wymaganie nóg pozostaje widoczne');
 assert(defaultLines[0].resolvedHardwareSymbol === '71B3550+173L6100', 'domyślne wymaganie 110° nakładane ma wskazać konkretny komplet BLUM z katalogu');
 assert(defaultTotal > 0, 'domyślna linia zawiasów musi mieć cenę z katalogu');
 
@@ -133,7 +136,7 @@ const legacy110Req = {
 };
 const originalGetHingeRequirementsWithQty = FC.cabinetHardwareRequirements.getHingeRequirementsWithQty;
 FC.cabinetHardwareRequirements.getHingeRequirementsWithQty = function(){ return [legacy110Req]; };
-const legacyLines = linesApi.collectAccessories(['kuchnia']);
+const legacyLines = linesApi.collectAccessories(['kuchnia']).filter(row=>row.hardwareRequirement && row.hardwareRequirement.kind === 'hinge');
 assert(legacyLines.length === 1, 'legacy 110° bez source IDs nadal powinno dobrać jedną linię');
 assert(legacyLines[0].resolvedHardwareSymbol === '71B3550+173L6100', 'legacy 110° nakładany nie może dobrać zawiasu 170° narożnego');
 assert(!String(legacyLines[0].name || '').includes('170°'), 'nazwa pozycji dla legacy 110° nie może wskazywać 170° narożnego');
@@ -179,7 +182,7 @@ assert(!String(legacyLines[0].name || '').includes('170°'), 'nazwa pozycji dla 
     return [{ roomId:'kuchnia', roomLabel:'S', cabinet:cab }];
   };
   FCGtv.cabinetHardwareRequirements.getHingeRequirementsWithQty = function(){ return [legacy110Req]; };
-  const gtvLines = FCGtv.wycenaCoreLines.collectAccessories(['kuchnia']);
+  const gtvLines = FCGtv.wycenaCoreLines.collectAccessories(['kuchnia']).filter(row=>row.hardwareRequirement && row.hardwareRequirement.kind === 'hinge');
   assert(gtvLines.length === 1, 'GTV 107° w klasie 90–120° powinien dać jedną linię zamiennika');
   assert(gtvLines[0].resolvedHardwareSymbol === 'GTV107_RANGE', 'przy preferencji GTV wymaganie 110° ma dobrać GTV 107° w klasie 90–120°, jeśli nie ma dokładnego 110°');
   assert(!String(gtvLines[0].name || '').includes('170°'), 'zamiennik z klasy 90–120° nie może przeskoczyć na 170° narożny');
@@ -225,7 +228,7 @@ assert(!String(legacyLines[0].name || '').includes('170°'), 'nazwa pozycji dla 
   FCGtvCentral.wycenaCoreSource.selectedCabinets = function(){
     return [{ roomId:'kuchnia', roomLabel:'S', cabinet:cab }];
   };
-  const centralLines = FCGtvCentral.wycenaCoreLines.collectAccessories(['kuchnia']);
+  const centralLines = FCGtvCentral.wycenaCoreLines.collectAccessories(['kuchnia']).filter(row=>row.hardwareRequirement && row.hardwareRequirement.kind === 'hinge');
   assert(centralLines.length === 1, 'centralne domyślne wymaganie 110° powinno dać jedną linię dla dwóch frontów');
   assert(centralLines[0].resolvedHardwareSymbol === 'GTV107_SOURCE_IDS', 'sourceItemIds / bezpośrednie źródła opcji nie mogą zablokować preferowanego GTV 107° w klasie 90–120°');
 }
@@ -264,7 +267,7 @@ assert(!String(legacyLines[0].name || '').includes('170°'), 'nazwa pozycji dla 
   };
   const status = FCIncomplete.hardwareTechnicalParams.evaluateItemTechnicalStatus(baseAccessories.find((row)=> row.id === 'hw_test_gtv_incomplete_tech'), store.getHardwareTechnicalParams());
   assert(status && status.needsAttention, 'niepełny zawias musi dostać status do uzupełnienia technicznego');
-  const lines = FCIncomplete.wycenaCoreLines.collectAccessories(['kuchnia']);
+  const lines = FCIncomplete.wycenaCoreLines.collectAccessories(['kuchnia']).filter(row=>row.hardwareRequirement && row.hardwareRequirement.kind === 'hinge');
   assert(lines.length === 1, 'niepełny GTV nie powinien rozbić linii ani wejść jako dobrany produkt');
   assert(lines[0].resolvedHardwareSymbol !== 'GTV_INCOMPLETE', 'WYCENA nie może automatycznie użyć zawiasu z brakującymi parametrami technicznymi');
 }
@@ -280,7 +283,7 @@ FC.cabinetCutlist.getCabinetCutList = function(){
 };
 
 reqApi.setHingeDoorOverride(cab, 'left', { typeId:reqApi.HINGE_TYPES.PARALLEL_INSET });
-const overrideLines = linesApi.collectAccessories(['kuchnia']);
+const overrideLines = linesApi.collectAccessories(['kuchnia']).filter(row=>row.hardwareRequirement && row.hardwareRequirement.kind === 'hinge');
 const overrideTotal = overrideLines.reduce((sum, row)=> sum + (Number(row.total) || 0), 0);
 const symbols = overrideLines.map((row)=> row.resolvedHardwareSymbol).sort();
 

@@ -33,25 +33,14 @@
   }
   function isLegacyAgdDefinition(row){
     const src = row && typeof row === 'object' ? row : {};
-    const category = text(src.category).toLowerCase();
     const id = text(src.id);
-    const name = normalizeSlug(src.name);
-    if(category === 'agd') return true;
-    if(id === 'hood_mount') return true;
-    if(category === 'montaż agd' && name === 'montaz_okapu') return true;
-    return false;
+    return id === 'hood_mount'; // Known retired system ID; category/name do not prove ownership.
   }
 
 
   const DEPRECATED_BODY_LABOR_IDS = new Set(['labor_body_h072','labor_body_h225']);
-  const DEPRECATED_BODY_LABOR_NAMES = new Set([
-    'skrecenie_korpusu_do_72_cm',
-    'skrecenie_korpusu_do_225_cm',
-    'skrecenie_korpusu_powyzej_225_cm'
-  ]);
   function isDeprecatedBodyLaborRow(row){
     const id = text(row && row.id);
-    const name = normalizeSlug(row && row.name);
     if(DEPRECATED_BODY_LABOR_IDS.has(id)) return true;
     if(id === 'labor_body_h150'){
       const conds = Array.isArray(row && row.conditions) ? row.conditions : [];
@@ -61,15 +50,11 @@
       const conds = Array.isArray(row && row.conditions) ? row.conditions : [];
       return conds.some((cond)=> text(cond && cond.source) === 'cabinet.height_mm');
     }
-    return DEPRECATED_BODY_LABOR_NAMES.has(name);
+    return false; // A private ID is never a system row merely because its name matches.
   }
 
 
   const DEFAULT_LABOR_DEFINITION_IDS = new Set((Array.isArray(DEFAULT_LABOR_DEFINITIONS) ? DEFAULT_LABOR_DEFINITIONS : []).map((row)=> text(row && row.id)).filter(Boolean));
-  function definitionSignature(row){
-    const src = row && typeof row === 'object' ? row : {};
-    return [normalizeSlug(src.category), normalizeSlug(src.name), normalizeSlug(src.quantitySource)].join('|');
-  }
   function isDefaultLaborDefinitionId(id){ return DEFAULT_LABOR_DEFINITION_IDS.has(text(id)); }
   function isDefaultLaborDefinitionRow(row){ return !!(row && isDefaultLaborDefinitionId(row.id)); }
   function explicitEditRank(row){
@@ -103,12 +88,11 @@
     const replacements = new Map();
     defaults.forEach((def)=>{
       const defId = text(def && def.id);
-      const sig = definitionSignature(def);
       const candidates = [];
       rows.forEach((row, idx)=>{
         if(used.has(idx)) return;
         const rowId = text(row && row.id);
-        if((defId && rowId === defId) || (sig && definitionSignature(row) === sig)) candidates.push({ row, idx });
+        if(defId && rowId === defId) candidates.push({ row, idx });
       });
       if(!candidates.length) return;
       candidates.forEach((item)=> used.add(item.idx));
@@ -277,8 +261,7 @@
 
   function isClose(value, target){ return Math.abs((Number(value) || 0) - target) < 0.000001; }
   function normalizeLegacyFortyFiveMinutes(value){
-    const n = num(value, 0);
-    return isClose(n, 0.75) ? 1 : n;
+    return num(value, 0);
   }
   function clampTimeBlock(value){
     const n = normalizeLegacyFortyFiveMinutes(value);
@@ -286,6 +269,8 @@
     if(isClose(n, 1 / 12)) return 1 / 12;
     if(isClose(n, 0.25)) return 0.25;
     if(isClose(n, 0.5)) return 0.5;
+    // Compatibility for persisted durations; this is not a new planning option.
+    if(isClose(n, 0.75)) return 0.75;
     if(isClose(n, 1)) return 1;
     return 0;
   }
@@ -475,7 +460,7 @@
       conditions,
       quantityTiers:isHourly ? [] : normalizeTiers(src.quantityTiers),
       startHours:isHourly ? 0 : clampTimeBlock(src.startHours),
-      startQty:isHourly ? 1 : Math.max(1, Math.floor(num(src.startQty, 1))),
+      startQty:isHourly || src.startQty == null || text(src.startQty) === '' ? 1 : Math.max(0, Math.floor(num(src.startQty, 1))),
       stepEveryQty:isHourly ? 1 : Math.max(1, Math.floor(num(src.stepEveryQty, 1))),
       stepHours:isHourly ? 0 : clampTimeBlock(src.stepHours),
       volumePricePerM3:isHourly ? 0 : volumePricePerM3,
@@ -542,7 +527,7 @@
     if(def.quantityMode === 'linear') return Math.max(0, Number(def.timeBlockHours) || 0) * qty;
     if(def.quantityMode === 'tiers') return findTierValue(def.quantityTiers, qty, 'hours');
     if(def.quantityMode === 'startStep'){
-      const startQty = Math.max(1, Math.floor(Number(def.startQty) || 1));
+      const startQty = Math.max(0, Math.floor(num(def.startQty, 1)));
       const start = Math.max(0, Number(def.startHours) || 0);
       const stepEvery = Math.max(1, Math.floor(Number(def.stepEveryQty) || 1));
       const stepHours = Math.max(0, Number(def.stepHours) || 0);
@@ -563,7 +548,7 @@
   function calculateDefinition(row, ctx){
     const def = normalizeDefinition(row);
     const c = ctx && typeof ctx === 'object' ? ctx : {};
-    const quantity = Math.max(0, Number(c.quantity) || 1);
+    const quantity = Math.max(0, num(c.quantity == null ? 1 : c.quantity, 0));
     const volumeM3 = Math.max(0, Number(c.volumeM3) || 0);
     const rates = c.hourlyRates && typeof c.hourlyRates === 'object' ? c.hourlyRates : {};
     const hourlyRate = Math.max(0, Number(rates[def.rateType]) || Number(c.hourlyRate) || 0);
@@ -571,6 +556,10 @@
     const unitPrice = Math.max(0, Number(def.price) || 0);
     const startPrice = Math.max(0, Number(def.startPrice) || 0);
     const includedQty = Math.max(0, Number(def.includedQty) || 0);
+
+    if(quantity === 0){
+      return { definition:def, quantity:0, volumeM3, hourlyRate, quantityHours:0, volumeHours:0, multiplier:1, pricedHours:0, laborPrice:0, volumePrice:0, fixedPrice:0, startPrice:0, unitPrice, includedQty, billableQty:0, total:0 };
+    }
 
     if(mode === 'perUnit'){
       const total = quantity > 0 ? quantity * unitPrice : 0;
@@ -618,6 +607,8 @@
     const def = normalizeDefinition(row);
     if(def.isHourlyRate) return `${getRateLabel(def.rateKey || def.rateType)} • ${Number(def.price || 0).toFixed(2)} zł/h`;
     const parts = [];
+    const replacements = defs.LABOR_REPLACEMENTS && defs.LABOR_REPLACEMENTS[def.id];
+    if(replacements) parts.push('Starsza pozycja zachowana do ręcznych przypisań; zastępuje odpowiednie nowe automaty.');
     if(def.pricingMode) parts.push(getPricingModeLabel(def.pricingMode));
     if(def.quantitySource) parts.push(`ilość: ${def.quantitySource}`);
     if(def.conditions && def.conditions.length) parts.push(`warunki: ${conditionsToText(def.conditions)}`);
@@ -630,6 +621,7 @@
     else{
       if(def.timeBlockHours > 0) parts.push(`${formatHoursAsMinutes(def.timeBlockHours)} × ${getRateLabel(def.rateType)}`);
       if(def.quantityMode && def.quantityMode !== 'none') parts.push(getQuantityModeLabel(def.quantityMode));
+      if(def.quantityMode === 'startStep') parts.push(`${formatHoursAsMinutes(def.startHours)} za pierwsze ${def.startQty} szt. + ${formatHoursAsMinutes(def.stepHours)} / rozpoczęte ${def.stepEveryQty} kolejne szt.; zero szt. = zero czasu`);
       if(def.volumePricePerM3 > 0) parts.push(`gabaryt ${def.volumePricePerM3} PLN/m³`);
       if(def.volumeTimeMode && def.volumeTimeMode !== 'none') parts.push(`gabarytoczas: ${def.volumeTimeMode === 'tiers' ? 'progi' : 'h/m³'}`);
       if(def.fixedPrice > 0) parts.push(`kwota stała ${def.fixedPrice.toFixed(2)} PLN`);

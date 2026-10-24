@@ -34,12 +34,12 @@ const cleaned = ctx.FC.laborCatalog.ensureDefaultDefinitions([
   { id:'hood_mount', category:'Montaż AGD', name:'Montaż okapu', quantitySource:'appliance.hood.count', timeBlockHours:0.5 },
   { id:'labor_rate_workshop', category:'Stawki godzinowe', rateCode:'workshop', price:150 },
 ]);
-assert(!cleaned.some((row)=> String(row.category || '') === 'AGD'), 'Normalizacja robocizny usuwa stare seedowane AGD', cleaned.filter((row)=> /AGD/.test(String(row.category || ''))));
+assert(cleaned.some((row)=> row.id === 'svc_old_oven' && row.category === 'AGD' && row.price === 111), 'Prywatne ID zachowuje kategorię i cenę; sama kategoria AGD nie dowodzi systemowego pochodzenia', cleaned);
 assert(!cleaned.some((row)=> String(row.id || '') === 'hood_mount'), 'Normalizacja usuwa stary generyczny automat hood_mount', cleaned.filter((row)=> /hood/i.test(String(row.id || row.name || ''))));
 ['dishwasher_mount','fridge_mount','oven_mount','hob_mount','hood_under_cabinet_mount','hood_chimney_mount','microwave_mount','washer_mount','dryer_mount','coffee_machine_mount','warming_drawer_mount'].forEach((id)=> assert(cleaned.some((row)=> row.id === id && row.category === 'Montaż AGD'), `brak automatu ${id} w Montaż AGD`, cleaned.map((row)=> [row.id,row.category])));
 const dishwasher = cleaned.find((row)=> row.id === 'dishwasher_mount');
 assert(Number(dishwasher.timeBlockHours) === 1, 'Baza nie może już zawierać opcji 45 min; startowe AGD ma 60 min', dishwasher);
-assert(Number(ctx.FC.laborCatalog.normalizeDefinition({ name:'Legacy 45 min', timeBlockHours:0.75 }).timeBlockHours) === 1, 'Normalizacja ma zamieniać zapisane 45 min na 60 min', ctx.FC.laborCatalog.normalizeDefinition({ name:'Legacy 45 min', timeBlockHours:0.75 }));
+assert(Number(ctx.FC.laborCatalog.normalizeDefinition({ name:'Legacy 45 min', timeBlockHours:0.75 }).timeBlockHours) === 0.75, 'Normalizacja zachowuje zapisane 45 min', ctx.FC.laborCatalog.normalizeDefinition({ name:'Legacy 45 min', timeBlockHours:0.75 }));
 
 const services = ctx.FC.wycenaCoreCatalog.ensureServiceCatalog([{ id:'legacy', category:'AGD', name:'Piekarnik do zabudowy', price:111 }]).list;
 assert(!services.some((row)=> String(row.category || '') === 'AGD'), 'Fallback usług usuwa stare AGD', services);
@@ -56,4 +56,4 @@ assert(index.includes('20260628_drawer_systems_materials_v1') && dev.includes('2
 console.log('OK labor-appliance-category-clean-rebase smoke');
 console.log(' - stary dział AGD jest odcinany');
 console.log(' - Montaż AGD ma pełne automaty');
-console.log(' - zapisane 45 min są zamieniane na 60 min bez zaokrąglania wyników typu 3×15 min');
+console.log(' - zapisane 45 min pozostają 45 min bez zaokrąglania wyników typu 3×15 min');

@@ -129,8 +129,8 @@ assertClose(calc.volumePrice, 0, 'Dopłata zł za gabaryt ma być wyłączona, g
 assertClose(calc.total, 150, 'Zaawansowane z gabarytoczasem: (0.5 h + 0.5 h) × 150 = 150');
 
 calc = labor.calculateDefinition({ name:'Legacy 45', pricingMode:'time', quantityMode:'linear', timeBlockHours:0.75, rateType:'workshop' }, { quantity:1, hourlyRates:{ workshop:150 } });
-assertClose(calc.quantityHours, 1, 'Zapisane w cenniku 45 min ma zostać znormalizowane do 60 min');
-assertClose(calc.total, 150, 'Legacy 45 min po normalizacji ma liczyć się jak 60 min');
+assertClose(calc.quantityHours, 0.75, 'Zapisane w cenniku 45 min pozostaje 45 min');
+assertClose(calc.total, 112.5, 'Legacy 45 min zachowuje cenę 112,50 zł przy 150 zł/h');
 
 const catalogForOffer = labor.ensureDefaultDefinitions([
   { id:'transport_distance_km', category:'Transport', name:'Transport do klienta', pricingMode:'startPlusUnit', startPrice:50, includedQty:10, price:4, quantitySource:'transport.distance_km', quantityMode:'linear', active:true, internalOnly:false, priceUserEditedAt:'2026-06-12T00:00:00.000Z' },

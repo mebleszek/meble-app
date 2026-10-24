@@ -223,6 +223,9 @@
   }
   function semanticRole(def){
     const src = text(def && def.quantitySource);
+    const id = text(def && def.id);
+    if(id === 'labor_hinge_fastening') return {sourceType:'hinges',sourceRole:'hinge-labor'};
+    if(id === 'labor_door_pack') return {sourceType:'fronts',sourceRole:'front-labor'};
     const conditions = normalizedConditions(def);
     if(src === 'cabinet.part_count') return { sourceType:'cabinet', sourceRole:'project-design-parts' };
     if(src === 'cabinet.unusual_project_count') return { sourceType:'cabinet', sourceRole:'project-design-unusual' };
@@ -258,7 +261,7 @@
       key:opts.key || slug(`${def.id || def.name || 'labor'}_${opts.suffix || ''}`),
       name:text(opts.name || def.name || 'Robocizna'),
       category:text(def.category || ''),
-      quantity:Number(calc.quantity) || 1,
+      quantity:Math.max(0, num(calc.quantity, 0)),
       unit:text(opts.unit || (def.quantityMode && def.quantityMode !== 'none' ? 'szt.' : 'x')),
       rateType:text(def.rateType || ''),
       hourlyRate:Number(calc.hourlyRate) || 0,
@@ -310,7 +313,7 @@
 
   function manualFallbackComponent(item, entry, idx, opts){
     const cab = entry && entry.cabinet || {};
-    const qty = Math.max(0, num(item && item.qty, 1)) || 1;
+    const qty = Math.max(0, num(item && item.qty, 1));
     const rateId = text(item && (item.rateId || item.id));
     const options = opts && typeof opts === 'object' ? opts : {};
     const warnings = Array.isArray(options.warnings) ? options.warnings.map(text).filter(Boolean) : [];
@@ -393,7 +396,7 @@
   }
   function addFrontLabor(components, entry, defs, rates, volumeM3){
     const def = findDefById(defs, 'labor_mount_front');
-    if(!def) return;
+    if(!def || replacedLegacyDefinition(def, defs) || manualAutomationSuppression(entry, defs).has(text(def.id))) return;
     const cab = entry && entry.cabinet || {};
     const cond = evaluateConditions(def, entry);
     if(!cond.matched) return;
@@ -458,7 +461,7 @@
   }
   function addHingeLabor(components, entry, defs, rates, volumeM3){
     const def = findDefById(defs, 'labor_mount_hinge');
-    if(!def) return;
+    if(!def || replacedLegacyDefinition(def, defs) || manualAutomationSuppression(entry, defs).has(text(def.id))) return;
     const cab = entry && entry.cabinet || {};
     const cond = evaluateConditions(def, entry);
     if(!cond.matched) return;
@@ -765,13 +768,63 @@
     }
   }
 
+  // Only the approved LABOR operations define identity here. Names are never identities.
+  const laborOperationIds = new Set(['labor_legs_install','labor_hangers_install','labor_hdf_cutouts','labor_nuts_workshop','labor_shelves_adjustable','labor_shelves_fixed','labor_shelves_place','labor_hinge_drill','labor_hinge_layout','labor_hinge_fastening','labor_door_trial','labor_door_pack','labor_door_rehang','labor_door_adjust']);
+  function operationPeers(def){
+    const defaults = FC.laborCatalogDefinitions && FC.laborCatalogDefinitions.DEFAULT_LABOR_DEFINITIONS || [];
+    // Two distinct operations may share a quantity source (rehang and adjustment).
+    if(laborOperationIds.has(text(def.id))) return [text(def.id)];
+    const replacements = FC.laborCatalogDefinitions && FC.laborCatalogDefinitions.LABOR_REPLACEMENTS || {};
+    if(replacements[text(def.id)]) return []; // Exact legacy IDs retain their explicit replacement map.
+    const source = text(def.quantitySource);
+    // Workshop shelf packages can overlap drilling variants, never independent on-site placement.
+    if(source === 'shelf.count' && text(def.rateType) === 'workshop') return ['labor_shelves_adjustable','labor_shelves_fixed'];
+    const matches = defaults.filter(row=>laborOperationIds.has(text(row.id)) && text(row.quantitySource) === source);
+    return matches.map(row=>text(row.id));
+  }
+  function manualAutomationSuppression(entry, defs){
+    const cab = entry && entry.cabinet || {};
+    const local = Array.isArray(cab.laborItems) ? cab.laborItems : [];
+    let project = [];
+    try{const draft = FC.quoteOfferStore && FC.quoteOfferStore.getCurrentDraft();project = draft && Array.isArray(draft.rateSelections) ? draft.rateSelections : [];}catch(_){}
+    const replacement = FC.laborCatalogDefinitions && FC.laborCatalogDefinitions.LABOR_REPLACEMENTS || {};
+    const blocked = new Map();
+    local.concat(project).forEach(item=>{
+      const id = text(item && (item.rateId || item.id));
+      const def = findDefById(defs,id);
+      if(!def || !evaluateConditions(def,entry).matched) return;
+      blocked.set(id,id);
+      (replacement[id] || []).forEach(next=>blocked.set(next,id));
+      const peers = operationPeers(def, defs);
+      if(peers.length > 1){
+        // A private selection cannot silently choose between rehang and adjustment.
+        defs.filter(row=>operationPeers(row).some(role=>peers.includes(role))).forEach(row=>{
+          if(text(row.id)!==id) blocked.set(text(row.id),'STOP:'+id);
+        });
+      }
+      if(peers.length === 1 || (replacement[id] || []).length){
+        // Explicit manual selection resolves a unique operation without rewriting the private record.
+        const targets = (replacement[id] || []).concat(peers.length === 1 ? peers : []);
+        defs.filter(row=>{
+          const roles = operationPeers(row,defs);
+          return roles.length === 1 && targets.includes(roles[0]);
+        }).forEach(row=>blocked.set(text(row.id),id));
+      }
+    });
+    return blocked;
+  }
+  function replacedLegacyDefinition(def, defs){
+    const map = FC.laborCatalogDefinitions && FC.laborCatalogDefinitions.LABOR_REPLACEMENTS || {};
+    return (map[text(def && def.id)] || []).some(id=>(defs || []).concat(catalogRows()).some(row=>text(row && row.id) === id));
+  }
+
   function autoQuantityDefs(defs, options){
     const opts = options && typeof options === 'object' ? options : {};
     const projectOnly = opts.projectOnly === true;
     const blocked = new Set(['labor_mount_front','labor_mount_hinge','labor_carrying_cabinet','labor_carrying_disassembly']);
     return (Array.isArray(defs) ? defs : []).filter((def)=> {
       if(!(def && def.active !== false && def.isHourlyRate !== true && text(def.quantitySource))) return false;
-      if(blocked.has(text(def.id)) || isApplianceAutomation(def) || isCarryingAutomation(def)) return false;
+      if(blocked.has(text(def.id)) || replacedLegacyDefinition(def, defs) || isApplianceAutomation(def) || isCarryingAutomation(def)) return false;
       const project = isProjectAutomation(def);
       return projectOnly ? project : !project;
     });
@@ -779,25 +832,41 @@
   function addGenericQuantitySourceLabor(components, entry, defs, rates, volumeM3, options){
     const cab = entry && entry.cabinet || {};
     const opts = options && typeof options === 'object' ? options : {};
-    autoQuantityDefs(defs, opts).forEach((def)=> {
+    const automatic = autoQuantityDefs(defs, opts).filter(def=>evaluateConditions(def,entry).matched);
+    const suppression = manualAutomationSuppression(entry, defs);
+    automatic.forEach((def)=> {
       const cond = evaluateConditions(def, entry);
       if(!cond.matched) return;
       const meta = quantityFromSource(def, entry, 0);
-      if(!(meta.quantity > 0)) return;
+      if(!(meta.quantity > 0)){
+        if(meta.fact && meta.fact.warning){
+          const blocked = componentFromCalc(calculate(def,{quantity:0,hourlyRates:rates}),{allowZero:true,key:slug(`${entry.roomId}_${cab.id}_blocked_${def.id}`),sourceType:'quantity-source',sourceId:text(cab.id),sourceLabel:cabinetSourceLabel(entry),sourceKind:'automatic-blocked',quantitySource:def.quantitySource,note:meta.fact.warning,warnings:[meta.fact.warning]});
+          if(blocked) components.push(blocked);
+        }
+        return;
+      }
       const role = semanticRole(def);
+      const suppressor = suppression.get(text(def.id));
+      const peers = operationPeers(def,defs);
+      const overlaps = automatic.filter(row=>!suppression.has(text(row.id)) && operationPeers(row,defs).some(id=>peers.includes(id)));
+      const ambiguousManual = text(suppressor).startsWith('STOP:');
+      const conflict = ambiguousManual || (!suppressor && overlaps.length > 1 && overlaps.some(row=>!laborOperationIds.has(text(row.id))));
+      const conflictWarning = conflict ? 'STOP: konflikt automatycznych norm tej samej pracy: '+(ambiguousManual ? text(suppressor).slice(5)+', '+text(def.id) : overlaps.map(row=>text(row.id)).join(', '))+'. Wskaż jednoznaczną czynność; zachowano rekordy, czas, cenę i notatki. Nie naliczono konfliktujących automatów.' : '';
       const calcVolumeM3 = (role.sourceRole === 'cabinet-body-labor' || role.sourceRole === 'project-design-unusual') ? cabinetBodyVolumeM3(entry && entry.roomId, cab) : volumeM3;
-      const calc = calculate(def, { quantity:meta.quantity, volumeM3:calcVolumeM3, hourlyRates:rates });
+      const calc = calculate(def, { quantity:suppressor || conflict ? 0 : meta.quantity, volumeM3:calcVolumeM3, hourlyRates:rates });
       const cmp = componentFromCalc(calc, Object.assign({
+        key:slug(`${entry.roomId}_${cab.id}_${def.id}`),
         suffix:`source_${text(def.id) || text(def.name)}`,
         unit:'szt.',
         name:text(def.name) || 'Czynność',
-        note:[sourceNote(meta), conditionNote(cond), text(opts.note) || 'Automatycznie z wybranego źródła ilości.'].filter(Boolean).join(' • '),
+        note:[sourceNote(meta), meta.fact && meta.fact.source, conditionNote(cond), conflictWarning, suppressor ? 'Automat zastąpiony ręcznym przypisaniem '+suppressor+'; ręczne dane i ich wycena są zachowane.' : (text(def.note) || text(opts.note) || 'Automatycznie z wybranego źródła ilości.')].filter(Boolean).join(' • '),
         sourceType:role.sourceType,
         sourceLabel:cabinetSourceLabel(entry),
         sourceId:text(cab && cab.id),
         sourceRole:role.sourceRole,
-        sourceKind:'automatic',
-        warnings:(meta.warning ? [meta.warning] : []).concat(conditionWarnings(cond))
+        sourceKind:conflict ? 'automatic-blocked' : (suppressor ? 'automatic-suppressed' : 'automatic'),
+        allowZero:!!suppressor || conflict,
+        warnings:(conflict ? [conflictWarning] : []).concat(suppressor ? ['Automat zastąpiony ręcznym przypisaniem '+suppressor+'.'] : []).concat(meta.warning ? [meta.warning] : []).concat(conditionWarnings(cond))
       }, sourceOpts(meta), conditionOpts(cond)));
       if(cmp) components.push(cmp);
     });
@@ -881,7 +950,7 @@
     manual.forEach((item, idx)=>{
       const rateId = text(item && (item.rateId || item.id));
       const def = (defs || []).find((row)=> text(row && row.id) === rateId) || null;
-      const qty = Math.max(0, num(item && item.qty, 1)) || 1;
+      const qty = Math.max(0, num(item && item.qty, 1));
       if(!def){
         const cmp = manualFallbackComponent(item, entry, idx, {
           volumeM3,
@@ -893,7 +962,8 @@
         return;
       }
       const cond = evaluateConditions(def, entry);
-      const duplicateRisk = ['labor_mount_front','labor_mount_hinge'].includes(text(def && def.id));
+      const replacedIds = (FC.laborCatalogDefinitions && FC.laborCatalogDefinitions.LABOR_REPLACEMENTS || {})[text(def.id)] || [];
+      const duplicateRisk = replacedIds.length > 0;
       const condWarn = conditionWarnings(cond);
       if(!cond.matched){
         const cmp = manualFallbackComponent(item, entry, idx, {
@@ -910,8 +980,8 @@
         return;
       }
       const calc = calculate(def, { quantity:qty, volumeM3, hourlyRates:rates });
-      const manualNote = [text(item && item.note), conditionNote(cond), duplicateRisk ? 'Ręczna pozycja może dublować automat frontów/zawiasów — sprawdź audyt.' : 'Ręczna pozycja przypięta do szafki.'].filter(Boolean).join(' • ');
-      const cmp = componentFromCalc(calc, Object.assign({ suffix:`manual_${idx}`, unit:'szt.', note:manualNote, sourceType:'manual-cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'manual-cabinet-labor', sourceKind:'manual', allowZero:true, warnings:(duplicateRisk ? ['Możliwy duplikat: ta ręczna czynność ma taki sam typ jak automat frontów/zawiasów.'] : []).concat(condWarn) }, conditionOpts(cond)));
+      const manualNote = [text(item && item.note), conditionNote(cond), duplicateRisk ? 'Ręczna pozycja zachowana; zastępuje automaty: '+replacedIds.join(', ') : 'Ręczna pozycja przypięta do szafki.'].filter(Boolean).join(' • ');
+      const cmp = componentFromCalc(calc, Object.assign({ key:slug(`${entry.roomId}_${cab.id}_manual_${idx}_${rateId}`), suffix:`manual_${idx}`, unit:'szt.', note:manualNote, sourceType:'manual-cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'manual-cabinet-labor', sourceKind:'manual', allowZero:true, warnings:(duplicateRisk ? ['Odpowiadające automaty wyłączono, zachowując ręczne przypisanie.'] : []).concat(condWarn) }, conditionOpts(cond)));
       if(cmp) components.push(cmp);
     });
     const total = components.reduce((sum, row)=> sum + (Number(row.total) || 0), 0);

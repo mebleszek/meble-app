@@ -147,6 +147,8 @@
     const n = norm([item && item.name, item && item.symbol, item && item.hardwareType].filter(Boolean).join(' '));
     const typeId = norm(req && req.typeId);
     let score = 0;
+    if(req && req.kind === 'leg' && /\bnoz(?:ka|ki|ek)\b/.test(n)) score += 10;
+    if(req && req.kind === 'hanger' && /zawieszk/.test(n)) score += 10;
     if(typeId.indexOf('110') !== -1 && n.indexOf('110') !== -1) score += 4;
     if(typeId.indexOf('155') !== -1 && n.indexOf('155') !== -1) score += 6;
     if(typeId.indexOf('170') !== -1 && n.indexOf('170') !== -1) score += 6;
@@ -375,7 +377,8 @@
   function addAccessoryMapRow(rows, cfg){
     const item = cfg && cfg.item;
     if(!item) return null;
-    const qty = Math.max(0, Number(cfg.qty) || 0) || 1;
+    const qty = Math.max(0, Number(cfg.qty == null ? 1 : cfg.qty) || 0);
+    if(!(qty > 0)) return null;
     const req = cfg.req || null;
     const rl = text(cfg.roomLabel) || '—';
     const key = utils.slug([cfg.keyPrefix || 'accessory', item.id || item.symbol || item.name, text(req && req.typeId), text(req && req.doorId)].filter(Boolean).join('_'));
@@ -447,6 +450,10 @@
     }
     const allRows = getAccessoryCatalogRows().map(normalizeCandidateItem).filter((item)=>{
       if(!item || text(item.status) === 'inactive') return false;
+      if(r.kind === 'leg' || r.kind === 'hanger'){
+        const name = norm(item.name);
+        return (r.kind === 'leg' ? /\bnoz(?:ka|ki|ek)\b/.test(name) : /zawieszk/.test(name)) && ['szt.','szt'].includes(text(item.hardwareUnit));
+      }
       if(!categoryMatches(item.hardwareCategory || item.category, r.category || '')) return false;
       return true;
     });
@@ -578,14 +585,16 @@
         if(!mat) return;
         const req = part && part.hardwareRequirement && typeof part.hardwareRequirement === 'object' ? part.hardwareRequirement : null;
         const resolved = resolveHardwareRequirement(req, roomId, mat);
-        const priceItem = resolved.item || catalog.accessoryPriceLookup(mat) || catalog.accessoryPriceLookup(displayHardwareNameFromPreferences(mat, roomId));
+        const supportRequirement = req && ['leg','hanger'].includes(req.kind);
+        const priceItem = resolved.item || (supportRequirement ? null : (catalog.accessoryPriceLookup(mat) || catalog.accessoryPriceLookup(displayHardwareNameFromPreferences(mat, roomId)))) || null;
         const fallbackName = req && text(req.label)
           ? `Wymaganie: ${text(req.label)}${resolved.preferredProducer ? ' — ' + resolved.preferredProducer : ''}`
           : displayHardwareNameFromPreferences(mat, roomId);
         const name = priceItem ? hardwareItemLabel(priceItem) : fallbackName;
         const reqKey = req && (text(req.typeId) || text(req.ruleId) || text(req.label));
         const key = utils.slug(priceItem && (priceItem.id || priceItem.symbol || priceItem.name) || [resolved.preferredProducer, reqKey, name].filter(Boolean).join('_'));
-        const qty = Math.max(0, Number(part && part.qty) || 0) || 1;
+        const qty = Math.max(0, Number(part && part.qty != null ? part.qty : 1) || 0);
+        if(!(qty > 0)) return;
         const prev = rows.get(key) || {
           key,
           type:'accessory',
@@ -812,7 +821,7 @@
         ? FC.rozrysScope.getGroupPartsForScope(group, scope)
         : ((group && group.parts) || []);
       (Array.isArray(selectedParts) ? selectedParts : []).forEach((part)=>{
-        const qty = Math.max(0, Number(part && part.qty) || 0);
+        const qty = Math.max(0, Number(part && part.qty != null ? part.qty : 1) || 0);
         if(!(qty > 0)) return;
         const width = Math.max(0, Math.round(Number(part && part.w) || 0));
         const height = Math.max(0, Math.round(Number(part && part.h) || 0));

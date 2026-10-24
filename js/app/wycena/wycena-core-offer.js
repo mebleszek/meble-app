@@ -107,13 +107,29 @@
 
   function buildTransportRateLine(catalog, selections){
     const selectedIds = new Set((Array.isArray(selections) ? selections : []).map((row)=> String(row && row.rateId || '')).filter(Boolean));
-    const defRaw = (Array.isArray(catalog) ? catalog : []).find((row)=> String(row && row.id || '') === 'transport_distance_km') || null;
-    if(!defRaw || selectedIds.has('transport_distance_km')) return null;
-    const def = FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' ? FC.laborCatalog.normalizeDefinition(defRaw) : defRaw;
-    if(!def || def.active === false || def.isHourlyRate === true) return null;
+    const canonicalRow = (Array.isArray(catalog) ? catalog : []).find(row=>row && row.id === 'transport_distance_km');
+    if(canonicalRow && (canonicalRow.active === false || canonicalRow.isHourlyRate === true)) return null;
+    const rows = (Array.isArray(catalog) ? catalog : []).filter(row=>row && (row.id === 'transport_distance_km' || row.quantitySource === 'transport.distance_km') && row.active !== false && row.isHourlyRate !== true);
+    if(rows.some(row=>selectedIds.has(String(row.id)))) return null; // An explicit assignment owns this work, including its quantity and zero price.
     const ctx = FC.investorTransport && typeof FC.investorTransport.getCurrentTransportContext === 'function' ? FC.investorTransport.getCurrentTransportContext() : null;
     const qty = Math.max(0, Number(ctx && ctx.billableKm) || 0);
     if(!(qty > 0)) return null;
+    const canonical = rows.find(row=>row.id === 'transport_distance_km');
+    const untouchedStarter = row=>row.starterPrice === true && !String(row.priceUserEditedAt || '').trim() && Number(row.price) === 0 && !(Number(row.startPrice) > 0);
+    const candidates = rows.filter(row=>!untouchedStarter(row));
+    // A canonical user edit is explicit. Otherwise only one non-starter with an exact quantity-source role is unambiguous.
+    const explicitCanonical = canonical && String(canonical.priceUserEditedAt || '').trim();
+    const conflict = !explicitCanonical && (candidates.length > 1 || candidates.some(row=>row.starterPrice === true && !String(row.priceUserEditedAt || '').trim()));
+    const defRaw = explicitCanonical ? canonical : (candidates.length === 1 ? candidates[0] : canonical);
+    if(conflict){
+      const ids = candidates.map(row=>String(row.id)).join(', ');
+      const warning = 'STOP: konflikt stawek transportu ('+ids+'). Wybierz jedną pozycję w ręcznych przypisaniach lub jawnie edytuj stawkę systemową. Transport nie został wyceniony.';
+      return {key:'transport-distance-conflict',type:'quote-rate',category:'Transport',name:'Transport — konflikt stawek',qty:0,unit:'km',unitPrice:0,total:0,hours:0,
+        sourceType:'transport',sourceRole:'transport-distance',sourceKind:'automatic-blocked',sourceId:ids,quantitySource:'transport.distance_km',note:warning,calculation:warning,warnings:[warning]};
+    }
+    if(!defRaw) return null;
+    const def = FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' ? FC.laborCatalog.normalizeDefinition(defRaw) : defRaw;
+    if(!def || def.active === false || def.isHourlyRate === true) return null;
     const calc = FC.laborCatalog && typeof FC.laborCatalog.calculateDefinition === 'function' ? FC.laborCatalog.calculateDefinition(def, { quantity:qty, hourlyRates:buildHourlyRates(catalog) }) : null;
     const total = Math.max(0, Number(calc && calc.total) || (qty * (Math.max(0, Number(def.price) || 0))));
     if(!(total > 0)) return null;

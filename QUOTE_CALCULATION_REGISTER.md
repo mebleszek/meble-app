@@ -1,3 +1,67 @@
+## 2026-10-23 — zatwierdzone normy WYCENA-LABOR
+
+Ten wpis zastępuje wcześniejsze normy pokrywających się automatów. Decyzje doprecyzowane przez właściciela w tej sesji: **starsze półki są regulowane, puszki wierci własny warsztat; standardowa wisząca HDF ma 2 własne NUT-y, 2 otwory HDF i 2 podcięcia boków**. Odczyt stosuje te wartości bez przepisywania starych szafek. Zamrożone oferty nie są przeliczane.
+
+| Czynność / ID | Źródło ilości, jednostka | Norma w minutach | Stawka |
+|---|---|---|---|
+| `labor_body_h090` | `cabinet.count`, korpus; wysokość `cabinet.body_height_mm` | 60 do 900 mm samego korpusu | warsztat |
+| `labor_legs_install` | `leg.count`, nóżka | 5 przygotowania + 1 × n, dla n=0: 0 | warsztat |
+| `labor_hangers_install` | `hanger.count`, zawieszka | 5 przygotowania + 1 × n, dla n=0: 0 | warsztat |
+| `labor_hdf_cutouts` | `hdf.cutout_count`, otwór/podcięcie | 5 wspólnego przygotowania + 1 × n; standard 2+2: 9 | warsztat |
+| `labor_nuts_workshop` | `nut.workshop_count`, kompletny NUT | 5 przygotowania piły/przeniesienia + 1 × n; standard 2: 7 | warsztat |
+| `labor_shelves_adjustable` | `shelf.adjustable_count`, półka | dla n>0: 15 × (1 + ceil(max(0,n−2)/3)); 12 otworów/półkę | warsztat |
+| `labor_shelves_fixed` | `shelf.fixed_count`, półka na podpórkach | dla n>0: 15 × (1 + ceil(max(0,n−5)/7)); 4 otwory/półkę | warsztat |
+| `labor_shelves_place` | `shelf.count`, półka | 5 przygotowania + 1 × n; 4→9, 8→13, 0→0 | montaż |
+| `labor_hinge_drill` | `hinge.drill_count`, własna puszka | 5 wspólnego przygotowania + 1 × suma zawiasów | warsztat |
+| `labor_hinge_layout` | `hinge.extra_drill_count`, dodatkowy zawias konkretnego frontu | 5 × Σ max(0,hᵢ−2); bez ponownego przygotowania | warsztat |
+| `labor_hinge_fastening` | `hinge.fitting_count`, fizyczna operacja na zawiasie/prowadniku | 5 wspólnego przygotowania + 1 × n; 4 komplety = 8 operacji = 13 min | warsztat |
+| `labor_door_trial` | `hinge.door_hinge_count`, zawias drzwiowy | 1 × n, bez przygotowania/regulacji | warsztat |
+| `labor_door_pack` | `hinge.door_count`, front drzwiowy | 5 × n, ze zdjęciem, zabezpieczeniem i odłożeniem | warsztat |
+| `labor_door_rehang` | `hinge.door_cycle_count`, front + jego zawiasy | 1 × (fronty + zawiasy), bez regulacji | montaż |
+| `labor_door_adjust` | `hinge.door_cycle_count`, front + jego zawiasy | 1 × (fronty + zawiasy); 4 fronty/8 zawiasów = 12 min | montaż |
+
+Wszystkie ilości 0 dają 0 minut i 0 kwoty, również w kalkulatorze ogólnym i audycie. Przygotowanie nalicza się raz na korpus dla danej operacji. Własne wiercenie 2/3/4/5 zawiasów jednego frontu daje 7/13/19/25 min; dwa fronty po dwa zawiasy dają 9 min. Puszki gotowe (`details.hingeDrilling=predrilled`) zerują oba składniki własnego wiercenia, zachowując materiałowe komplety zawiasowe.
+
+### Jedna prawda ilości i wariant konstrukcyjny
+
+- `cabinetHardwareRequirements.supportQuantities()` jest wspólnym odczytem dla MATERIAŁU i robocizny. Stojąca: szerokość <20 / 20–80 / >80 cm daje 1/2/3 nóżki w rzędzie; głębokość <20 / ≥20 cm daje 1/2 rzędy. Domyślne zmywarkowa/lodówkowa/piekarnikowa: 0/4/4. `details.additionalLegs` dodaje nieujemną całkowitą liczbę nóżek do tego samego wyniku.
+- Wisząca z HDF ma domyślnie 2 zawieszki, z plecami 18 mm lub bez HDF — 0. `details.hangerCount` jest nadpisaniem całkowitym; brak pola oznacza automat. Szerokość >80 cm nie dodaje trzeciej zawieszki. Dolna podblatowa i moduł nie są szafką do zawieszenia.
+- Automaty obróbek dotyczą zatwierdzonego **standardowego** wiszącego korpusu (`standardowa`/`standard`) z HDF: 2 otwory + 2 podcięcia, 2 własne NUT-y. Pozostałe konstrukcje nie dostają tych obróbek przez sam typ „wisząca”. Nadpisanie liczby zawieszek nie zmienia zapisanej technologii standardu HDF; zawieszka przy plecach 18 mm nie uruchamia HDF/NUT. Przy innym zakresie obróbek pozostają jawne ręczne ilości czynności. Typowa wisząca HDF: 7+9+7=23 min.
+- `shelf.count` preferuje rzeczywiste półki z cutlisty. Stojąca/moduł szufladowy nie dostaje półek ze starych nieaktywnych pól. Jawne 0 nie jest zastępowane inną dodatnią wartością legacy. `details.shelfType` jest jednym wyborem na korpus: `adjustable` / `fixed`; domyślnie `adjustable`. Pakiety zawierają przygotowanie, rozmierzanie, szablon i wiercenie. Półki osadzane są dopiero u klienta.
+- Zawiasy pochodzą z `getHingeRequirementsWithQty()`, z zachowaniem kluczy lewych/prawych drzwiczek przed agregacją. Warianty TIP-ON ze sprężyną i bez niej są grupowane ponownie po oryginalnym `doorKey`; dopłatę za trzeci zawias liczymy dopiero z sumy dla tego frontu. Brak identyfikacji frontów tworzy jawną pozycję audytu `automatic-blocked` z ostrzeżeniem STOP, zamiast szacowania z sumy korpusu.
+- Fizyczne komplety materiałowe nie są podwajane. Źródło `hinge.fitting_count` opisuje dwie operacje na komplecie. Cykl drzwi pomija fronty szuflad i pomocnicze zawiasy podnośników.
+
+### Cennik, zastępowanie automatów i dane
+
+Nowe normy używają istniejących `time`, `timeStartStep`, `startHours`, `startQty`, `stepEveryQty`, `stepHours`, profili stawek i warunków. Minimalna zmiana modelu: **`startQty=0`** oznacza przygotowanie + krok za każdą sztukę, dopiero przy dodatniej ilości. Pozostałe normy, stawki użytkownika, dopłaty szerokości i gabarytoczasy wyższych korpusów pozostają zachowane. 150/250 zł/h to wyłącznie stawki startowe; przykład 50 zł regulacji nie jest stałą kwotą.
+
+Doprecyzowanie kompatybilności WYCENA-LABOR-REPAIR (24.10.2026): brak `startQty`, `null` i pusty zapis zachowują historyczne domyślne **1**; wyłącznie jawne zero oznacza **0**. Odczyt/obliczenie nie przepisuje źródłowego rekordu. Stara norma 15 min startu + 5 min/krok, n=1, ma 15 min / 37,50 zł przy 150 zł/h; przygotowanie 5 min z jawnym zerem + 1 min/szt., n=4, ma 9 min.
+
+`LABOR_REPLACEMENTS` zachowuje znaczenie i dane starych ID:
+
+- `labor_mount_front` → `labor_door_trial` (pierwsze założenie na warsztacie);
+- `labor_mount_hinge` → `labor_hinge_fastening`;
+- `labor_adjust_front` → `labor_door_adjust`;
+- `labor_loose_shelves` → oba wzajemnie wykluczające się pakiety wiercenia.
+
+Pakowanie i ponowne założenie drzwi oraz osadzenie półek u klienta są odrębnymi operacjami; stare ręczne pozycje warsztatowe ich nie wyłączają. Przy obecności nowych definicji stary automat nie działa równolegle, również gdy nowe definicje zostały świadomie wyłączone. Stare pozycje pozostają dostępne dla istniejących ręcznych przypisań. Aktywne ręczne przypisanie przy szafce lub w ofercie zastępuje automat tego samego ID i jego jawnie zmapowane następniki. Pozycje `automatic-suppressed` pokazują źródłową ilość, zastępujące ręczne ID i zerową naliczoną kwotę; ręczny wpis zachowuje własną ilość, normę, notatkę i kwotę. Niespełniony warunek lub nieaktywna pozycja ręczna nie blokuje nowej automatyki. Nie identyfikujemy pozycji prywatnych po podobieństwie nazwy. Deduplikacja nowych/systemowych pozycji działa po dokładnym ID, idempotentnie.
+
+Prywatna norma używająca tego samego operacyjnego źródła ilości co nowa norma systemowa wymaga jednoznacznego przypisania. Dwa konkurencyjne automaty otrzymują `automatic-blocked`, zero naliczenia i widoczny STOP z ID w centralnym audycie. Wybór ręczny normy o jednoznacznej roli zastępuje odpowiadające automaty bez zmiany prywatnych rekordów. Sam wspólny licznik nie rozstrzyga między ponownym założeniem a regulacją drzwi. Historyczny prywatny pakiet `shelf.count` o stawce `workshop` może kolidować wyłącznie z warsztatowymi wariantami wiercenia; ani konflikt, ani ręczne przypisanie tego pakietu nie wyłącza niezależnego `labor_shelves_place` o stawce montażowej. Niejednoznaczność wariantu warsztatowego pozostaje audytowana bez przenoszenia konfliktu na osadzenie u klienta. Jawne stare ID nadal korzystają wyłącznie z mapy powyżej. Nazwa i profil stawki nie służą do cichego scalania; zmiana profilu stawki nie pozwala naliczyć ponownie tej samej operacji. Niezależne czynności o innych rolach pozostają naliczane.
+
+Transport zachowuje prywatne ID i przypisania. Przy nieedytowanym systemowym zerze startowym automat może użyć jednej jednoznacznej prywatnej stawki ze źródłem `transport.distance_km` (regresja: 5 zł/km × 12 km = 60 zł). Jawnie edytowana stawka systemowa, także zero, jest decyzją użytkownika; ręczne przypisanie stawki kilometrowej zastępuje automat. Konkurujące stawki bez jednoznacznej decyzji dają widoczny STOP, bez arbitralnego wyboru i bez przepisywania cennika. Wyłączenie automatu i brak dodatnich kilometrów zachowują dotychczasowe znaczenie.
+
+Niedopasowane wymagania nóg/zawieszek pozostają w MATERIALE z ilością i ostrzeżeniami, lecz bez fikcyjnego ID lub symbolu `"false"`; prawidłowe dopasowanie nadal korzysta z katalogu i dotychczasowych preferencji.
+
+Planowanie nadal oferuje wyłącznie 1/5/15/30/60 minut. Zapisane 45 minut pozostaje 45 w polach czasu, pakietach, formularzu i zapisie; formularz pokazuje je jako nieaktywną opcję „Zapisany czas”, bez dodawania nowego bloku do wyboru. Zapisane 60 pozostaje 60, a wyniki 45/75 nie są zaokrąglane. Pomoc czasu zawiera dokładny zatwierdzony tekst.
+
+Nowe pola szafki przechodzą istniejący zapis `fc_projects_v1` i zamknięty kontrakt eksportu projektu (tylko 2 nieujemne liczby całkowite oraz 2 zamknięte enumy). Brak drugiego storage i destrukcyjnej migracji. Nowe normy nie wymagają nowych pól CLOUD-3, zmiany transportu/CAS/Rules ani automatycznego zastosowania danych. `quoteCalculationRegister` przechowuje ilość, przygotowanie, kroki, wynik, stawkę, kwotę i źródło; snapshot zamraża wynik.
+
+### Zakres i weryfikacja
+
+60 minut skręcania obejmuje dokumentację, znalezienie/przeniesienie formatek, instruktaż, standardowe wiercenia konstrukcyjne, złożenie/skręcenie i plecy. Przygotowanie piły do NUT jest osobną operacją. Nie dodajemy cen własnych usług 10 zł/puszkę ani 7/3,50 zł za metr NUT. Nie dodajemy norm szuflad, podnośników, załadunku, wieszania szafek/szyn, poziomowania, przegród i planowania nawiertów. Nie zmieniamy projektowego PCV z pojedynczym zapasem 10%, ROZRYS 4/3/6, magazynu ani historii ofert.
+
+Testy i granice dowodów, w tym CI oraz akceptacja fizycznego Androida/Windows: [raport implementacyjny](tools/reports/wycena-labor-20261023.md). Pełne CI uruchamia GitHub Actions dopiero po osobnej zgodzie właściciela. Wpis zasad nie oznacza CI_PASS, wydania ani zgody LIVE.
+
 
 ## 2026-10-19 — jedno obliczenie na niezmieniony przebieg WYCENY
 

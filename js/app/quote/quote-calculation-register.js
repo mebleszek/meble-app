@@ -58,6 +58,10 @@
       includedQty:num(src.includedQty != null ? src.includedQty : fb.includedQty),
       billableQty:num(src.billableQty != null ? src.billableQty : fb.billableQty),
       timeBlockHours:num(src.timeBlockHours != null ? src.timeBlockHours : fb.timeBlockHours),
+      startHours:num(src.startHours != null ? src.startHours : fb.startHours),
+      startQty:num(src.startQty != null ? src.startQty : fb.startQty),
+      stepHours:num(src.stepHours != null ? src.stepHours : fb.stepHours),
+      stepEveryQty:num(src.stepEveryQty != null ? src.stepEveryQty : fb.stepEveryQty),
       quantityMode:text(src.quantityMode || fb.quantityMode || ''),
       rateType:text(src.rateType || fb.rateType || ''),
       hourlyRate:num(src.hourlyRate != null ? src.hourlyRate : fb.hourlyRate),
@@ -166,7 +170,9 @@
           if(num(p.volumeHours) > 0) meta.push(`gabarytoczas ${round2(p.volumeHours)} h`);
           if(num(p.volumeM3) > 0 && (num(p.volumePrice) > 0 || num(p.volumeHours) > 0)) meta.push(`gabaryt ${round2(p.volumeM3)} m³`);
           const calcBits = [];
-          if(text(p.quantityMode) === 'linear' && num(p.quantity) > 0 && num(p.timeBlockHours) > 0 && num(p.hourlyRate) > 0){
+          if(text(p.quantityMode) === 'startStep' && num(p.quantity) > 0 && num(p.stepEveryQty) > 0){
+            calcBits.push(`${num(p.startHours)*60} min + ceil(max(0, ${num(p.quantity)} − ${num(p.startQty)}) / ${num(p.stepEveryQty)}) × ${num(p.stepHours)*60} min = ${Math.round(num(p.hours)*60*1000000)/1000000} min; stawka ${num(p.hourlyRate)} PLN/h`);
+          }else if(text(p.quantityMode) === 'linear' && num(p.quantity) > 0 && num(p.timeBlockHours) > 0 && num(p.hourlyRate) > 0){
             calcBits.push(`${round2(p.quantity)} × ${round2(p.timeBlockHours)} h × ${round2(p.hourlyRate)} PLN/h`);
             if(num(p.volumeHours) > 0) calcBits.push(`gabarytoczas ${round2(p.volumeHours)} h × ${round2(p.hourlyRate)} PLN/h`);
           }else if(num(p.hours) > 0 && num(p.hourlyRate) > 0) calcBits.push(`${round2(p.hours)} h × ${round2(p.hourlyRate)} PLN/h`);
@@ -200,9 +206,11 @@
             matchedConditions:cloneList(p.matchedConditions),
             skippedReason:text(p.skippedReason),
             timeBlockHours:num(p.timeBlockHours),
+            startHours:num(p.startHours),startQty:num(p.startQty),stepHours:num(p.stepHours),stepEveryQty:num(p.stepEveryQty),
             quantityMode:text(p.quantityMode),
+            pricingMode:text(p.pricingMode),
             name:text(p.name) || defaultName || 'Czynność',
-            quantity:num(p.quantity || 1) || 1,
+            quantity:p.quantity == null ? 1 : num(p.quantity),
             unit:text(p.unit || 'x'),
             unitPrice:num(p.unitPrice != null ? p.unitPrice : (num(p.quantity || 1) > 0 ? num(p.total) / num(p.quantity || 1) : num(p.total))),
             total:num(p.total),

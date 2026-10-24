@@ -136,6 +136,21 @@
   function readString(id){ return String((ctx.byId(id) && ctx.byId(id).value) || '').trim(); }
   function readBool(id){ return !!(ctx.byId(id) && ctx.byId(id).checked); }
   function setValue(id, value){ const el = ctx.byId(id); if(el) el.value = value == null ? '' : String(value); }
+  function setDurationValue(id, value){
+    const el = ctx.byId(id);
+    if(!el) return;
+    Array.from(el.options || []).filter((opt)=> opt.getAttribute('data-saved-duration') === 'true').forEach((opt)=> opt.remove());
+    const hours = Number(value) || 0;
+    if(hours === 0.75){
+      const opt = document.createElement('option');
+      opt.value = '0.75';
+      opt.textContent = 'Zapisany czas: 45 min';
+      opt.disabled = true;
+      opt.setAttribute('data-saved-duration', 'true');
+      el.appendChild(opt);
+    }
+    setValue(id, hours);
+  }
   function setChecked(id, value){ const el = ctx.byId(id); if(el) el.checked = !!value; }
 
   function setServicePriceLabel(label){
@@ -495,7 +510,7 @@
       includedQty:pricingMode === 'startPlusUnit' ? (Number(readNumber('laborIncludedQty')) || 0) : 0,
       quantityTiers:labor.parseTierText ? labor.parseTierText(tierText) : [],
       startHours:Number(readNumber('laborStartHours')) || 0,
-      startQty:Number(readNumber('laborStartQty')) || 1,
+      startQty:readNumber('laborStartQty') === '' ? 1 : Math.max(0, Number(readNumber('laborStartQty')) || 0),
       stepEveryQty:Number(readNumber('laborStepEveryQty')) || 1,
       stepHours:Number(readNumber('laborStepHours')) || 0,
       volumePricePerM3:volumeTimeMode === 'none' ? (Number(readNumber('laborVolumePricePerM3')) || 0) : 0,
@@ -590,7 +605,7 @@
     refreshLaborRateTypeSelect(def.rateType || def.rateKey || 'workshop');
     setValue('laborUsage', 'universal');
     setValue('laborRateType', def.rateType || def.rateKey || 'workshop');
-    setValue('laborTimeBlockHours', Number(def.timeBlockHours) || 0);
+    setDurationValue('laborTimeBlockHours', def.timeBlockHours);
     setValue('laborDefaultMultiplier', Number(def.defaultMultiplier) || 1);
     refreshLaborQuantitySourceSelect(def.quantitySource || '');
     setValue('laborQuantitySource', def.quantitySource || '');
@@ -598,10 +613,10 @@
     setValue('laborTierText', labor.tiersToText ? labor.tiersToText(def.quantityTiers || []) : '');
     setValue('laborStartPrice', Number(def.startPrice) || 0);
     setValue('laborIncludedQty', Number(def.includedQty) || 0);
-    setValue('laborStartHours', Number(def.startHours) || 0);
-    setValue('laborStartQty', Number(def.startQty) || 1);
+    setDurationValue('laborStartHours', def.startHours);
+    setValue('laborStartQty', def.startQty == null ? 1 : def.startQty);
     setValue('laborStepEveryQty', Number(def.stepEveryQty) || 1);
-    setValue('laborStepHours', Number(def.stepHours) || 0);
+    setDurationValue('laborStepHours', def.stepHours);
     setValue('laborVolumePricePerM3', Number(def.volumePricePerM3) || 0);
     setValue('laborVolumeTimeMode', def.volumeTimeMode || 'none');
     setValue('laborVolumeTimePerM3', Number(def.volumeTimePerM3) || 0);

@@ -391,6 +391,10 @@
       }
     }catch(_){ }
 
+    const supportApi = getHardwareRequirements();
+    if(supportApi && typeof supportApi.getSupportRequirements === 'function'){
+      supportApi.getSupportRequirements(room, cab).forEach(req=>parts.push({name:req.label,qty:req.qty,a:0,b:0,dims:'—',material:'Okucia: '+req.label,hardwareRequirement:req}));
+    }
     return provenance ? provenance.bind(parts,owner) : parts;
   }
 

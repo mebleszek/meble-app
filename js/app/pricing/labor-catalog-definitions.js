@@ -46,7 +46,7 @@
   ];
 
   const DEFAULT_LABOR_DEFINITIONS = [
-    { id:'labor_body_h090', category:'Korpusy', name:'Skręcenie korpusu do 90 cm', price:0, usage:'universal', rateType:'workshop', quantitySource:'cabinet.count', conditions:[{ source:'cabinet.body_height_mm', operator:'range', min:null, max:900 }], timeBlockHours:1, quantityMode:'linear', active:true, internalOnly:true, starterPrice:true, note:'Baza skręcenia niskiego korpusu. Wysokość liczona bez nóżek/cokołu.' },
+    { id:'labor_body_h090', category:'Korpusy', name:'Skręcenie korpusu do 90 cm', price:0, usage:'universal', rateType:'workshop', quantitySource:'cabinet.count', conditions:[{ source:'cabinet.body_height_mm', operator:'range', min:null, max:900 }], timeBlockHours:1, quantityMode:'linear', active:true, internalOnly:true, starterPrice:true, note:'60 min do 90 cm korpusu bez nóżek/cokołu: dokumentacja, znalezienie i przeniesienie formatek, instruktaż, standardowe nawiercenia konstrukcyjne, złożenie/skręcenie i zamontowanie pleców HDF lub 18 mm. Nie doliczać tych samych prac ponownie.' },
     { id:'labor_body_h150', category:'Korpusy', name:'Skręcenie korpusu do 150 cm', price:0, usage:'universal', rateType:'workshop', quantitySource:'cabinet.count', conditions:[{ source:'cabinet.body_height_mm', operator:'range', min:901, max:1500 }], timeBlockHours:1, quantityMode:'linear', volumeTimeMode:'perM3', volumeTimePerM3:0.25, active:true, internalOnly:true, starterPrice:true, note:'Baza 60 min + gabarytoczas 0.25 h/m³ liczony z cabinet.body_volume_m3.' },
     { id:'labor_body_h210', category:'Korpusy', name:'Skręcenie korpusu do 210 cm', price:0, usage:'universal', rateType:'workshop', quantitySource:'cabinet.count', conditions:[{ source:'cabinet.body_height_mm', operator:'range', min:1501, max:2100 }], timeBlockHours:1, quantityMode:'linear', volumeTimeMode:'perM3', volumeTimePerM3:1, active:true, internalOnly:true, starterPrice:true, note:'Baza 60 min + gabarytoczas 1.00 h/m³ liczony z cabinet.body_volume_m3.' },
     { id:'labor_body_h230', category:'Korpusy', name:'Skręcenie korpusu do 230 cm', price:0, usage:'universal', rateType:'workshop', quantitySource:'cabinet.count', conditions:[{ source:'cabinet.body_height_mm', operator:'range', min:2101, max:2300 }], timeBlockHours:1, quantityMode:'linear', volumeTimeMode:'perM3', volumeTimePerM3:1.25, active:true, internalOnly:true, starterPrice:true, note:'Baza 60 min + gabarytoczas 1.25 h/m³ liczony z cabinet.body_volume_m3.' },
@@ -88,7 +88,39 @@
   ];
 
 
+  // 2026-10-23: definitions use the existing editable time/start/step model.
+  const LABOR_REPLACEMENTS = {
+    labor_mount_front:['labor_door_trial'],
+    labor_mount_hinge:['labor_hinge_fastening'],
+    labor_adjust_front:['labor_door_adjust'],
+    labor_loose_shelves:['labor_shelves_adjustable','labor_shelves_fixed']
+  };
+  function operation(id, name, source, minutes, options){
+    return Object.assign({id,category:'Elementy szafki',name,price:0,usage:'universal',rateType:'workshop',quantitySource:source,
+      pricingMode:'time',quantityMode:'linear',timeBlockHours:minutes/60,active:true,internalOnly:true,starterPrice:true},options || {});
+  }
+  function prepared(id, name, source, options){
+    return operation(id,name,source,0,Object.assign({pricingMode:'timeStartStep',quantityMode:'startStep',startHours:5/60,startQty:0,stepEveryQty:1,stepHours:1/60},options || {}));
+  }
+  DEFAULT_LABOR_DEFINITIONS.push(
+    prepared('labor_legs_install','Montaż nóżek','leg.count',{note:'5 min przygotowania na korpus + 1 min/nóżkę. Zero nóżek = zero pracy. Poziomowanie poza zakresem.'}),
+    prepared('labor_hangers_install','Montaż zawieszek','hanger.count',{note:'5 min przygotowania na korpus + 1 min/zawieszkę. Ilość wspólna z MATERIAŁEM.'}),
+    prepared('labor_hdf_cutouts','Wycięcia HDF i podcięcia boków','hdf.cutout_count',{note:'Jedno przygotowanie 5 min + 1 min/otwór HDF + 1 min/podcięcie boku. Standard HDF: 2 + 2 = 9 min.'}),
+    prepared('labor_nuts_workshop','NUT-y we własnym warsztacie','nut.workshop_count',{note:'5 min przygotowania piły i przeniesienia elementów + 1 min/kompletny NUT. Bez równoległej usługi zewnętrznej.'}),
+    prepared('labor_shelves_adjustable','Półki regulowane — wiercenie','shelf.adjustable_count',{startHours:15/60,startQty:2,stepEveryQty:3,stepHours:15/60,note:'12 otworów/półkę (wysokość oraz ±3 cm). 15 min za pierwsze 1–2 + 15 min/rozpoczęte 3 kolejne; z przygotowaniem, rozmierzaniem i szablonem.'}),
+    prepared('labor_shelves_fixed','Półki nieregulowane — wiercenie','shelf.fixed_count',{startHours:15/60,startQty:5,stepEveryQty:7,stepHours:15/60,note:'Półka na podpórkach, jedna wysokość, 4 otwory/półkę. 15 min za pierwsze 1–5 + 15 min/rozpoczęte 7 kolejne; z przygotowaniem, rozmierzaniem i szablonem.'}),
+    prepared('labor_shelves_place','Osadzenie półek u klienta','shelf.count',{rateType:'assembly',note:'5 min przygotowania na korpus + 1 min/półkę. Oba rodzaje półek; na warsztacie półek nie wkładamy.'}),
+    prepared('labor_hinge_drill','Wiercenie puszek zawiasowych','hinge.drill_count',{note:'5 min przygotowania raz na korpus + 1 min/puszkę. Dodatkowe rozmierzanie per front w osobnej pozycji. Gotowe nawierty: 0.'}),
+    operation('labor_hinge_layout','Rozmierzanie trzeciego i kolejnych zawiasów','hinge.extra_drill_count',5,{note:'5 min za trzeci i każdy kolejny zawias konkretnego frontu. Sumowanie TIP-ON według oryginalnego frontu. Gotowe nawierty: 0.'}),
+    prepared('labor_hinge_fastening','Przykręcanie zawiasów i prowadników','hinge.fitting_count',{note:'Wspólne 5 min przygotowania + 1 min/zawias + 1 min/prowadnik. Jeden komplet materiałowy, dwie fizyczne operacje.'}),
+    operation('labor_door_trial','Pierwsze założenie drzwi na warsztacie','hinge.door_hinge_count',1,{note:'1 min/zawias drzwiowy. Bez przygotowania i regulacji; bez szuflad i podnośników.'}),
+    operation('labor_door_pack','Zdjęcie, pakowanie i odłożenie drzwi','hinge.door_count',5,{note:'5 min/front drzwiowy: wypięcie, zdjęcie, zabezpieczenie, pakowanie, przeniesienie i odłożenie. Bez dodatkowej opłaty za zdjęcie/pakowanie i bez załadunku.'}),
+    operation('labor_door_rehang','Rozpakowanie i założenie drzwi u klienta','hinge.door_cycle_count',1,{rateType:'assembly',note:'1 min/front + 1 min/zawias. Bez końcowej regulacji.'}),
+    operation('labor_door_adjust','Końcowa regulacja drzwi u klienta','hinge.door_cycle_count',1,{rateType:'assembly',note:'1 min/front + 1 min/zawias według aktualnej stawki montażowej.'})
+  );
+
   window.FC.laborCatalogDefinitions = {
+    LABOR_REPLACEMENTS,
     RATE_TYPES,
     USAGE_TYPES,
     QUANTITY_MODES,

@@ -4,6 +4,18 @@
   root.FC = root.FC || {};
 
   const SYSTEM_SOURCES = [
+    {code:'leg.count',label:'Liczba nóżek',unit:'szt.',group:'Normy robocizny',status:'system',calculation:'Odczyt centralnych wymagań szafki i efektywnego wariantu konstrukcyjnego; bez dodatkowego licznika.'},
+    {code:'hanger.count',label:'Liczba zawieszek',unit:'szt.',group:'Normy robocizny',status:'system',calculation:'Odczyt centralnych wymagań szafki i efektywnego wariantu konstrukcyjnego; bez dodatkowego licznika.'},
+    {code:'hdf.cutout_count',label:'Otwory HDF i podcięcia boków',unit:'szt.',group:'Normy robocizny',status:'system',calculation:'Odczyt centralnych wymagań szafki i efektywnego wariantu konstrukcyjnego; bez dodatkowego licznika.'},
+    {code:'nut.workshop_count',label:'Kompletne NUT-y we własnym warsztacie',unit:'szt.',group:'Normy robocizny',status:'system',calculation:'Odczyt centralnych wymagań szafki i efektywnego wariantu konstrukcyjnego; bez dodatkowego licznika.'},
+    {code:'shelf.adjustable_count',label:'Półki regulowane',unit:'szt.',group:'Normy robocizny',status:'system',calculation:'Odczyt centralnych wymagań szafki i efektywnego wariantu konstrukcyjnego; bez dodatkowego licznika.'},
+    {code:'shelf.fixed_count',label:'Półki nieregulowane',unit:'szt.',group:'Normy robocizny',status:'system',calculation:'Odczyt centralnych wymagań szafki i efektywnego wariantu konstrukcyjnego; bez dodatkowego licznika.'},
+    {code:'hinge.drill_count',label:'Puszki wiercone w warsztacie',unit:'szt.',group:'Normy robocizny',status:'system',calculation:'Odczyt centralnych wymagań szafki i efektywnego wariantu konstrukcyjnego; bez dodatkowego licznika.'},
+    {code:'hinge.extra_drill_count',label:'Trzeci i kolejne zawiasy per front',unit:'szt.',group:'Normy robocizny',status:'system',calculation:'Odczyt centralnych wymagań szafki i efektywnego wariantu konstrukcyjnego; bez dodatkowego licznika.'},
+    {code:'hinge.fitting_count',label:'Zawiasy i prowadniki — operacje',unit:'szt.',group:'Normy robocizny',status:'system',calculation:'Odczyt centralnych wymagań szafki i efektywnego wariantu konstrukcyjnego; bez dodatkowego licznika.'},
+    {code:'hinge.door_hinge_count',label:'Zawiasy frontów drzwiowych',unit:'szt.',group:'Normy robocizny',status:'system',calculation:'Odczyt centralnych wymagań szafki i efektywnego wariantu konstrukcyjnego; bez dodatkowego licznika.'},
+    {code:'hinge.door_count',label:'Fronty drzwiowe na zawiasach',unit:'szt.',group:'Normy robocizny',status:'system',calculation:'Odczyt centralnych wymagań szafki i efektywnego wariantu konstrukcyjnego; bez dodatkowego licznika.'},
+    {code:'hinge.door_cycle_count',label:'Fronty drzwiowe + ich zawiasy',unit:'szt.',group:'Normy robocizny',status:'system',calculation:'Odczyt centralnych wymagań szafki i efektywnego wariantu konstrukcyjnego; bez dodatkowego licznika.'},
     {
       code:'cabinet.count',
       label:'Liczba korpusów',
