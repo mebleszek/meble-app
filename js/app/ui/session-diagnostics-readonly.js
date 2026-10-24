@@ -1,7 +1,7 @@
 // Read-only session evidence; shared by the app and diagnostic tools.
 (function(root){
   'use strict';
-function pixelSessionReadonly(w){
+function pixelSessionReadonly(w,options){
   'use strict';
   const no=status=>({v:1,status});
   const object=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
@@ -53,6 +53,49 @@ function pixelSessionReadonly(w){
     const payloadShape=!!(object(p)&&p.schemaVersion===4&&p.active===true&&typeof p.projectId==='string'&&p.projectId.trim()&&typeof p.roomId==='string'&&Number.isFinite(p.startedAt)&&context&&context.projectId===p.projectId&&context.roomId===p.roomId&&typeof context.investorId==='string'&&requiredKeys&&p.expectedOwnerKnown===true&&E!==null&&c.valid&&b.valid);
     const ramMatch=!!(object(s)&&object(p)&&s.active===p.active&&s.projectId===p.projectId&&s.roomId===p.roomId&&s.startedAt===p.startedAt&&s.expectedOwnerKnown===p.expectedOwnerKnown&&s.expectedOwnerRaw===p.expectedOwnerRaw&&s.context?.investorId===context?.investorId&&s.context?.projectId===context?.projectId&&s.context?.roomId===context?.roomId&&requiredKeys&&snapKeys.every(k=>own(s.snapshot,k)&&s.snapshot[k]===snapshot[k]));
     const report={v:1,status:'READ_ONLY',storage:'READABLE',present:raw[0]!==null,schema,active:p?.active===true,ram:object(s),durable:s?.durable===true,requiredKeys,payloadShape,ownerMatch,uiRam:object(ui),uiStoredMatch:!!(object(ui)&&object(currentUi)&&ui.roomType===currentUi.roomType&&ui.currentInvestorId===currentUi.currentInvestorId),contextMatch:!!(context&&raw[2]===p.projectId&&raw[3]===context.investorId&&(!room||ui?.roomType===room)),ramMatch,expectedKnown:p?.expectedOwnerKnown===true,CB:C!==null&&B!==null?C===B:null,CE:C!==null&&E!==null?C===E:null,partsMatch:requiredKeys?partKeys.every((k,i)=>raw[i+5]===snapshot[k]):null,pending:!!c.row?.meta?.pendingDomainOperation,code};
+    if(options?.storageUsage===true){
+      // Text footprint only: no quota probe, capacity assertion, record names or IDs.
+      const storage=w.localStorage, groups=['session','projects','investors','catalogs','history','backups','other'];
+      const categories=Object.fromEntries(groups.map(key=>[key,{keys:0,units:0}]));
+      const catalogKeys=new Set(['fc_sheet_materials_v1','fc_materials_v1','fc_accessories_v1','fc_hardware_manufacturers_v1','fc_hardware_suppliers_v1','hardwareSuppliers','fc_hardware_categories_v1','hardwareCategories','fc_hardware_types_v1','hardwareTypes','fc_hardware_technical_params_v1','hardwareTechnicalParams','fc_hardware_settings_v1','hardwareSettings','fc_quote_rates_v1','fc_services_v1','fc_workshop_services_v1','fc_sheets_v1','fc_program_defaults_v1','fc_company_profile_v1','fc_business_costs_v1']);
+      const category=key=>key===keys[0]?'session':['fc_projects_v1','fc_project_v1'].includes(key)?'projects':key==='fc_investors_v1'?'investors':key==='fc_quote_snapshots_v1'?'history':/^fc_(?:project_backup|backup|safety_backup)/.test(key)?'backups':catalogKeys.has(key)?'catalogs':'other';
+      const names=()=>{
+        const count=storage.length;
+        if(!Number.isInteger(count)||count<0||count>2000||typeof storage.key!=='function')return null;
+        const out=Array.from({length:count},(_,i)=>storage.key(i));
+        return out.every(key=>typeof key==='string')&&new Set(out).size===count?out.sort():null;
+      };
+      const list=names();
+      if(!list)report.usage={status:'UNAVAILABLE'};
+      else{
+        let totalUnits=0,largestValueUnits=0;
+        const observed=[];
+        for(const key of list){
+          if(!authorized())return no('AUTH_DENIED');
+          const value=storage.getItem(key);
+          if(typeof value!=='string')return no('DIAGNOSTIC_STATE_CHANGED');
+          totalUnits+=key.length+value.length;largestValueUnits=Math.max(largestValueUnits,value.length);
+          const group=categories[category(key)];group.keys++;group.units+=key.length+value.length;
+          observed.push([key,value]);
+          if(totalUnits>8*1024*1024)break;
+        }
+        if(totalUnits>8*1024*1024)report.usage={status:'TOO_LARGE'};
+        else{
+          if(JSON.stringify(names())!==JSON.stringify(list)||observed.some(([key,value])=>storage.getItem(key)!==value))return no('DIAGNOSTIC_STATE_CHANGED');
+          const rows=parse(raw[1]),projects=Array.isArray(rows)?rows:null;
+          const selected=projects?.find(row=>object(row)&&String(row.id||'')===raw[2]);
+          let ramPayloadUnitsEstimate=null;
+          if(s?.active===true&&object(s.snapshot)){
+            ramPayloadUnitsEstimate=JSON.stringify({schemaVersion:4,active:true,projectId:s.projectId,roomId:s.roomId,expectedOwnerRaw:s.expectedOwnerRaw,expectedOwnerKnown:s.expectedOwnerKnown,startedAt:Number(s.startedAt||0),updatedAt:Number(s.updatedAt||0),context:s.context,snapshot:s.snapshot}).length;
+          }
+          report.usage={status:'MEASURED',unit:'UTF16_CODE_UNITS',totalUnits,categories,largestValueUnits,
+            projectCount:projects?.length??null,largestProjectUnits:projects?projects.reduce((n,row)=>Math.max(n,JSON.stringify(row).length),0):null,
+            currentProjectUnits:selected?JSON.stringify(selected).length:null,sessionPayloadUnits:raw[0]?.length??0,ramPayloadUnitsEstimate,
+            replacementNetUnitsEstimate:ramPayloadUnitsEstimate===null?null:Math.max(0,ramPayloadUnitsEstimate-(raw[0]?.length??0))+(raw[0]===null?keys[0].length:0),quotaLimitKnown:false,transientWriteCostKnown:false};
+        }
+      }
+      report.ramActive=s?.active===true;
+    }
     if(!authorized())return no('AUTH_DENIED');
     try{if(keys.some((k,i)=>w.localStorage.getItem(k)!==raw[i])||w.FC?.session!==s||readUi()!==ui||runtime()!==beforeRuntime)return no('DIAGNOSTIC_STATE_CHANGED');}catch(_){return no(authorized()?'STORAGE_UNREADABLE':'AUTH_DENIED');}
     return authorized()?report:no('AUTH_DENIED');

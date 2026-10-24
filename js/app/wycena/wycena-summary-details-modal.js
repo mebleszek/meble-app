@@ -66,8 +66,13 @@
     target.appendChild(btn);
   }
   function roundText(value){
-    const n = num(value);
-    return (Math.round(n * 100) / 100).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+    return FC.quoteCalculationRegister.exactNumber(value);
+  }
+  function displayCalculation(row){
+    const saved=text(row && row.calculation);
+    // New descriptions were checked against the source amount before saving.
+    // Older descriptions use frozen numeric operands, never today's catalog.
+    return saved.includes('(zaokrąglenie do groszy).')?saved:FC.quoteCalculationRegister.describeCalculation(row);
   }
   function laborUnit(row){ return text(row && row.unit) || 'szt.'; }
   function formatQty(row){ return `${roundText(row && row.quantity)}${laborUnit(row) ? ' ' + laborUnit(row) : ''}`; }
@@ -117,9 +122,9 @@
     const baseHours = num(row && row.baseHours);
     const multiplier = num(row && row.multiplier);
     const timeBits = [];
-    if(hours > 0) timeBits.push(`${roundText(hours)} h`);
-    if(baseHours > 0 && Math.abs(baseHours - hours) > 0.005) timeBits.push(`bazowy ${roundText(baseHours)} h`);
-    if(multiplier > 0 && Math.abs(multiplier - 1) > 0.005) timeBits.push(`mnożnik ×${roundText(multiplier)}`);
+    if(hours > 0) timeBits.push(FC.quoteCalculationRegister.timeText(hours));
+    if(baseHours > 0 && baseHours !== hours) timeBits.push('bazowy '+FC.quoteCalculationRegister.timeText(baseHours));
+    if(multiplier > 0 && multiplier !== 1) timeBits.push(`mnożnik ×${roundText(multiplier)}`);
     addFact(facts, 'Czas', timeBits.join('; '));
     if(num(row && row.hourlyRate) > 0) addFact(facts, 'Stawka', `${roundText(row.hourlyRate)} PLN/h`);
     const conditionRows = Array.isArray(row && row.matchedConditions) ? row.matchedConditions : [];
@@ -131,8 +136,7 @@
     }
     cleanLaborNoteFacts(row).forEach((fact)=> facts.push(fact));
     if(num(row && row.startPrice) > 0) addFact(facts, 'Kwota startowa', `${money(row.startPrice)}${num(row && row.includedQty) > 0 ? ' · w cenie ' + roundText(row.includedQty) + ' jedn.' : ''}`);
-    if(text(row && row.calculation)) addFact(facts, 'Wyliczenie', text(row.calculation));
-    else addFact(facts, 'Wyliczenie', `${formatQty(row)} × ${money(row && row.unitPrice)} = ${money(row && row.total)}`);
+    addFact(facts, 'Wyliczenie', displayCalculation(row));
     return facts;
   }
   function appendFactRows(parent, facts){
@@ -156,7 +160,7 @@
     const name = h('div', { class:'quote-detail-line__name' });
     name.appendChild(h('span', { text:text(row && row.name) || 'Pozycja' }));
     if(row && row.starterPrice) name.appendChild(h('span', { class:'quote-detail-chip quote-detail-chip--warning', text:'Cena startowa' }));
-    addInfoButton(name, row && row.name, row && row.calculation);
+    addInfoButton(name, row && row.name, displayCalculation(row));
     main.appendChild(name);
     appendFactRows(main, laborFacts(row));
     const price = h('div', { class:'quote-detail-line__price quote-detail-line__price--labor' });
@@ -173,12 +177,13 @@
     const name = h('div', { class:'quote-detail-line__name' });
     name.appendChild(h('span', { text:text(row && row.name) || 'Pozycja' }));
     if(row && row.starterPrice) name.appendChild(h('span', { class:'quote-detail-chip quote-detail-chip--warning', text:'Cena startowa' }));
-    addInfoButton(name, row && row.name, row && row.calculation);
+    addInfoButton(name, row && row.name, displayCalculation(row));
     main.appendChild(name);
     const meta = [text(row && row.sourceLabel), text(row && row.rooms), text(row && row.note)].filter(Boolean).join(' • ');
     if(meta) main.appendChild(h('div', { class:'quote-detail-line__meta', text:meta }));
+    appendFactRows(main,[{label:'Wyliczenie',value:displayCalculation(row)}]);
     const price = h('div', { class:'quote-detail-line__price' });
-    price.appendChild(h('div', { class:'quote-detail-line__qty', text:`${num(row && row.quantity)}${row && row.unit ? ' ' + text(row.unit) : ''} × ${money(row && row.unitPrice)}` }));
+    price.appendChild(h('div', { class:'quote-detail-line__qty', text:roundText(row && row.quantity)+(row && row.unit?' '+text(row.unit):'') }));
     price.appendChild(h('div', { class:'quote-detail-line__total', text:money(row && row.total) }));
     item.appendChild(main); item.appendChild(price);
     appendWarnings(item, row);
@@ -349,15 +354,16 @@
       renderGroup(container, group, groupRows, groupRows.reduce((sum, row)=> sum + num(row && row.total), 0), { open:index === 0 });
     });
   }
-  function renderTotal(container, register){
+  function renderTotal(container, register, commercial){
     const lines = Array.isArray(register && register.lines) ? register.lines : [];
     const totals = register && register.totals || {};
-    const grand = num(totals.grand || totals.subtotal);
+    const grand = num(totals.grand != null ? totals.grand : totals.subtotal);
     const ranking = lines.filter((row)=> num(row && row.total) > 0).sort((a,b)=> num(b.total) - num(a.total)).slice(0, 20);
     const summaryRows = [
       ['Materiały', totals.materials], ['Akcesoria', totals.accessories], ['Projekt i przygotowanie', totals.project], ['Robocizna szafek', totals.labor], ['Wnoszenie mebli', totals.carrying], ['Usługi dodatkowe', totals.quoteRates], ['Transport', totals.transport], ['Montaż AGD', totals.services], ['Rabat', -num(totals.discount)]
     ].map(([label, value])=>({ name:label, quantity:1, unit:'', unitPrice:num(value), total:num(value), calculation:'Udział działu w sumie oferty.', note:pct(Math.abs(num(value)), grand || totals.subtotal) + ' wartości oferty' }));
     renderGroup(container, 'Podział kosztów', summaryRows, grand, { open:true });
+    appendFactRows(container,[{label:'Zaokrąglenia i sumowanie',value:FC.quoteCalculationRegister.roundingExplanation(register,commercial)}]);
     renderGroup(container, 'Co kosztuje najwięcej', ranking.map((row, index)=> Object.assign({}, row, { name:`${index + 1}. ${row.name}` })), ranking.reduce((sum, row)=> sum + num(row && row.total), 0), { open:false, emptyText:'Brak dodatnich pozycji kosztowych.' });
   }
   function collectSectionWarnings(register, section){
@@ -447,7 +453,7 @@
     if(title) title.textContent = current === 'total' ? 'Analiza oferty' : 'Szczegóły: ' + sectionTitle(current);
     if(subtitle) subtitle.textContent = 'Audyt wewnętrzny — pozycje zapisane w rejestrze wyliczeń tej oferty.';
     renderWarnings(body, register, current);
-    if(current === 'total') renderTotal(body, register);
+    if(current === 'total') renderTotal(body, register, snapshot && snapshot.commercial);
     else renderRows(body, lines.filter((row)=> row.section === current), current === 'labor' ? laborCabinetGroupLabel : 'subsection');
     body.scrollTop = 0;
     overlay.style.display = 'flex';

@@ -98,10 +98,18 @@
         total: Number(calc.total) || 0,
         hours: Number(calc.pricedHours) || 0,
         note: String(def.category || '').trim(),
+        audit:{price:def.price,rateType:def.rateType,hourlyRate:calc.hourlyRate,baseHours:calc.quantityHours,multiplier:calc.multiplier,
+          quantityMode:def.quantityMode,timeBlockHours:def.timeBlockHours,startHours:def.startHours,startQty:def.startQty,stepHours:def.stepHours,stepEveryQty:def.stepEveryQty,
+          quantityTiers:def.quantityTiers,volumeHours:calc.volumeHours,volumeM3:calc.volumeM3,volumePrice:calc.volumePrice,fixedPrice:calc.fixedPrice},
       };
     }
     const unitPrice = Math.max(0, Number(rate && rate.price) || 0);
     return { unitPrice, total:qty * unitPrice, hours:0, note:String(rate && rate.category || '').trim() };
+  }
+
+  function withCalculation(line){
+    if(FC.quoteCalculationRegister && typeof FC.quoteCalculationRegister.describeCalculation==='function')line.calculation=FC.quoteCalculationRegister.describeCalculation(line);
+    return line;
   }
 
 
@@ -139,9 +147,9 @@
     const billableQty = Math.max(0, Number(calc && calc.billableQty != null ? calc.billableQty : qty) || 0);
     const inv = ctx && ctx.investor || null;
     const calcText = startPrice > 0 || includedQty > 0
-      ? `Transport = ${startPrice.toFixed(2)} PLN start${includedQty > 0 ? ' + max(0, ' + qty + ' km - ' + includedQty + ' km) × ' + unitPrice.toFixed(2) + ' PLN/km' : ' + ' + billableQty + ' km × ' + unitPrice.toFixed(2) + ' PLN/km'}.`
-      : `Transport = ${qty} km × ${unitPrice.toFixed(2)} PLN/km.`;
-    return {
+      ? `Transport = ${String(startPrice)} PLN start${includedQty > 0 ? ' + max(0, ' + qty + ' km - ' + includedQty + ' km) × ' + String(unitPrice) + ' PLN/km' : ' + ' + billableQty + ' km × ' + String(unitPrice) + ' PLN/km'}.`
+      : `Transport = ${qty} km × ${String(unitPrice)} PLN/km.`;
+    return withCalculation({
       key: utils.slug(def && def.name || def && def.id || 'transport'),
       type:'quote-rate',
       category:String(def.category || 'Transport'),
@@ -166,7 +174,7 @@
       quantitySourceValue:qty,
       quantitySourceDisplay:ctx.displayValue || (qty + ' km'),
       sourceKind:'automatic'
-    };
+    });
   }
 
   function buildTransportTravelTimeLine(catalog, selections){
@@ -184,7 +192,7 @@
     const total = durationHours * hourlyRate;
     const inv = ctx && ctx.investor || null;
     const display = ctx && ctx.durationDisplay ? String(ctx.durationDisplay) : (durationMin ? durationMin + ' min' : (Math.round(durationHours * 60) + ' min'));
-    return {
+    return withCalculation({
       key:'transport_travel_time',
       type:'quote-rate',
       category:String(def.category || 'Transport'),
@@ -202,7 +210,7 @@
       rateType:String(def.rateType || 'assembly'),
       hourlyRate,
       note:'Automatycznie z Inwestora: czas dojazdu ' + display + '. Kilometry są liczone osobno w pozycji Transport do klienta.',
-      calculation:`Czas dojazdu = ${display} × ${hourlyRate.toFixed(2)} PLN/h stawki montażowej.`,
+      calculation:`Czas dojazdu = ${display} × ${String(hourlyRate)} PLN/h stawki montażowej.`,
       internalOnly:true,
       sourceType:'transport',
       sourceLabel:'Inwestor' + (inv && (inv.name || inv.companyName) ? ': ' + String(inv.name || inv.companyName) : ''),
@@ -214,7 +222,7 @@
       quantitySourceValue:durationHours,
       quantitySourceDisplay:display,
       quantitySourceUsed:true
-    };
+    });
   }
 
 
@@ -231,7 +239,7 @@
       const qty = Math.max(0, Number(row && row.qty) || 0);
       if(!(qty > 0)) return null;
       const priced = calculateManualRateLine(def, qty, catalog);
-      return {
+      return withCalculation(Object.assign({}, priced.audit || {}, {
         key: utils.slug(def && def.name || def && def.id || ''),
         type:'quote-rate',
         category: String(def && def.category || ''),
@@ -249,7 +257,7 @@
         pricingMode:String(def && def.pricingMode || ''),
         startPrice:Number(def && def.startPrice) || 0,
         includedQty:Number(def && def.includedQty) || 0,
-      };
+      }));
     }).filter(Boolean);
     const transportLine = buildTransportRateLine(catalog, selections);
     const travelTimeLine = buildTransportTravelTimeLine(catalog, selections);

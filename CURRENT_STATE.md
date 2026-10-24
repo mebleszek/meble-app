@@ -1,5 +1,9 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## SESSION-QUOTA + EXACT-CALCULATIONS — pakiet naprawczy
+
+Na BASE `e37502125dd846ae883f65e013ecdf0489dc500f` przygotowano odczytowy, anonimowy pomiar rozmiaru tekstu localStorage oraz opisy WYCENY zgodne z zapisanymi kwotami. Nie wdrożono odzyskiwania telefonu, czyszczenia danych ani nowej migracji; wcześniejsze zabezpieczenia sesji pozostają bez zmian. Kwoty/normy i historia są zachowane. Celowana diagnostyka jest opisana w [jednym raporcie pakietu](tools/reports/session-quota-exact-calculations.md). **CODE_READY / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED** — bez nowego PR, CI wydaniowego, merge lub Pages. Potwierdzone przez właściciela wydanie PR #79 stanowi bazę, nie dowód CI dla tego nowego pakietu.
+
 ## CLOUD-SYNC-1 — globalne dane A → emulator → B
 
 Na gałęzi `cloud-sync-1-global-data`, BASE `7faf4f097b6be0a8a0edcce922561e6632d9707c`, powstał izolowany koordynator istniejącego CLOUD-3: RAW kompletu 14 domen → immutable/CAS → niezależny odczyt i kontrola zawartości → atomowy magazyn pamięciowy B. Brak połączenia LIVE, startupu/UI, zapisu do prawdziwego localStorage, migracji i zmian WYCENY. Chroni lokalne zmiany, duplikaty i niepewny ACK; nieznane niezatwierdzone pola odmawiają bez usuwania. 14 nowych scenariuszy rzeczywistych SDK/emulatorów podłączono do istniejącego CI, lokalnie niewykonane (brak zależności). 5 celowanych kontroli granic PASS, pełna weryfikacja **CI_PENDING**. Implementacja **CODE_READY**, wydanie niewykonane, **LIVE_BLOCKED**. [API, pokrycie i ograniczenia trwałości](tools/reports/cloud-sync-1-global-data.md).

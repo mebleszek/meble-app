@@ -30,6 +30,88 @@
   function isStarterPrice(row){ return !!(row && row.starterPrice === true && !text(row.priceUserEditedAt)); }
   function warning(row, message){ return { key:slug((row && row.key || row && row.name || '') + ' ' + message), section:text(row && row.section), sectionLabel:text(row && row.sectionLabel), message:text(message) }; }
 
+  // Presentation only. Never round a time or reprice a stored line.
+  function exactNumber(value){ return String(num(value)).replace('.', ','); }
+  function moneyText(value){ return round2(value).toFixed(2).replace('.', ',')+' zł'; }
+  function timeText(hours){ return exactNumber(num(hours)*60)+' min'; }
+  function describeCalculation(row, context){
+    const p=row||{},ctx=context||{},q=num(p.quantity!=null?p.quantity:p.qty),rate=num(p.hourlyRate),target=round2(p.total);
+    if(text(p.sourceKind)==='automatic-blocked')return text(p.calculation).startsWith('STOP:')?text(p.calculation):'STOP: nie naliczono konfliktującej pozycji (0,00 zł).';
+    const node=(value,unit)=>({value:num(value),text:exactNumber(value)+(unit?' '+unit:'')});
+    const sum=parts=>({value:parts.reduce((n,p)=>n+p.value,0),text:'('+parts.map(p=>p.text).join(' + ')+')'});
+    const mul=(a,b)=>({value:a.value*b.value,text:a.text+' × '+b.text});
+    const div=(a,b)=>({value:a.value/b.value,text:a.text+' ÷ '+b.text});
+    const equation=(expression,label)=>`${label||'Cena'} = ${expression.text} = ${moneyText(p.total)} (zaokrąglenie do groszy).`;
+    const matches=expression=>Number.isFinite(expression.value)&&round2(expression.value)===target;
+    let tierNote='';
+    for(const snapMinutes of [true,false]){
+      // Integer-minute norms are readable when the complete displayed formula
+      // still reproduces the existing amount to the cent. Otherwise retain all digits.
+      const minutes=hours=>{
+        const value=num(hours)*60,nearest=Math.round(value);
+        return node(snapMinutes&&Math.abs(value-nearest)<1e-7?nearest:value);
+      };
+      let base;
+      if(q===0||text(p.sourceKind)==='automatic-suppressed')base=node(0);
+      else if(text(p.sourceRole)==='transport-travel-time')base=minutes(p.baseHours!=null?p.baseHours:p.hours);
+      else if(text(p.quantityMode)==='startStep'&&num(p.stepEveryQty)>0){
+        const count=Math.ceil(Math.max(0,q-num(p.startQty))/num(p.stepEveryQty));
+        const simple=num(p.startQty)===0&&num(p.stepEveryQty)===1&&Number.isInteger(q);
+        const steps={value:count,text:simple?exactNumber(q):`ceil(max(0, ${exactNumber(q)} - ${exactNumber(p.startQty)}) ÷ ${exactNumber(p.stepEveryQty)})`};
+        base=sum([minutes(p.startHours),mul(steps,minutes(p.stepHours))]);
+      }else if(text(p.quantityMode)==='linear'&&num(p.timeBlockHours)>0){
+        let count=node(q);
+        if(text(p.quantitySource)==='hinge.door_cycle_count'&&ctx.doors+ctx.hinges===q&&ctx.doors>0&&ctx.hinges>0)count=sum([node(ctx.doors),node(ctx.hinges)]);
+        base=mul(count,minutes(p.timeBlockHours));
+      }else base=minutes(p.baseHours!=null?p.baseHours:p.timeBlockHours);
+      if(text(p.quantityMode)==='tiers'&&Array.isArray(p.quantityTiers)){
+        const tier=p.quantityTiers.find(t=>q>=num(t.min)&&(num(t.max)<=0||q<=num(t.max)))||p.quantityTiers[p.quantityTiers.length-1];
+        if(tier&&q>0){base=minutes(tier.hours);tierNote=` Próg ilości ${exactNumber(tier.min)}–${num(tier.max)>0?exactNumber(tier.max):'bez limitu'}; ilość ${exactNumber(q)}.`;}
+      }
+      if(rate>0&&(num(p.hours)>0||num(p.fixedPrice)>0)){
+        let volume=minutes(p.volumeHours);
+        if(text(p.volumeTimeMode)==='perM3'&&num(p.volumeTimePerM3)>0)volume=mul(node(p.volumeM3,'m³'),{...minutes(p.volumeTimePerM3),text:minutes(p.volumeTimePerM3).text+' min/m³'});
+        const baseTime={...base,text:base.text+' min'};
+        const timed=num(p.volumeHours)>0?sum([baseTime,{...volume,text:volume.text+(text(p.volumeTimeMode)==='perM3'?'':' min')}]):baseTime;
+        const scaled=num(p.multiplier)&&num(p.multiplier)!==1?mul(timed,node(p.multiplier)):timed;
+        let cost=div(mul(scaled,node(rate,'zł/h')),node(60));
+        const extras=[];
+        if(num(p.volumePrice)>0)extras.push(num(p.volumePricePerM3)>0?mul(node(p.volumeM3,'m³'),node(p.volumePricePerM3,'zł/m³')):node(p.volumePrice,'zł'));
+        if(num(p.fixedPrice)>0)extras.push(node(p.fixedPrice,'zł'));
+        if(extras.length)cost=sum([cost,...extras]);
+        if(matches(cost))return equation(cost)+tierNote;
+        const stored=div(mul({...minutes(p.hours),text:minutes(p.hours).text+' min'},node(rate,'zł/h')),node(60));
+        const fallback=extras.length?sum([stored,...extras]):stored;
+        if(matches(fallback))return equation(fallback)+' Czas wyceniony zapisany w pozycji.';
+      }
+    }
+    if(text(p.pricingMode)==='startPlusUnit'||text(p.sourceRole)==='transport-distance'){
+      const km=text(p.sourceRole)==='transport-distance'||text(p.quantitySource)==='transport.distance_km';
+      const suffix=km?' km':'';
+      const billable={value:Math.max(0,q-num(p.includedQty)),text:`max(0, ${exactNumber(q)}${suffix} - ${exactNumber(p.includedQty)}${suffix})`};
+      const cost=sum([node(p.startPrice,'zł'),mul(billable,node(p.price!=null?p.price:p.unitPrice,km?'zł/km':'zł/jedn.'))]);
+      if(matches(cost))return equation(cost,km?'Transport':'Cena');
+    }
+    if(text(p.pricingMode)==='fixed'&&matches(node(p.fixedPrice!=null?p.fixedPrice:p.unitPrice,'zł')))return equation(node(p.fixedPrice!=null?p.fixedPrice:p.unitPrice,'zł'));
+    const product=mul(node(q),node(p.unitPrice!=null?p.unitPrice:p.price,'zł'));
+    if(matches(product))return equation(product);
+    // Older/incomplete records retain their source amount. Do not invent operands.
+    return `Kwota źródłowa ${exactNumber(p.total)} zł; po zaokrągleniu ${moneyText(p.total)}. Brak pełnego rozbicia działań w zapisanej pozycji.`;
+  }
+  function roundingExplanation(register, commercial){
+    const r=register||{},t=r.totals||{},c=commercial||{};
+    const sections=Object.keys(SECTION_LABELS).filter(key=>!['discount','total'].includes(key));
+    const rawDiscount=num(c.discountPercent)>0?num(t.subtotal)*num(c.discountPercent)/100:num(c.discountAmount);
+    const discount=Math.min(num(t.subtotal),Math.max(0,rawDiscount));
+    const sums=sections.map(key=>`${SECTION_LABELS[key]}: ${exactNumber((r.lines||[]).filter(row=>row.section===key).reduce((n,row)=>n+num(row.total),0))} zł → ${moneyText(t[key])}`);
+    const verified=round2(discount)===num(t.discount)&&round2(num(t.subtotal)-discount)===num(t.grand);
+    const sectionSum=sections.reduce((n,key)=>n+num(t[key]),0);
+    return 'Czasy i operandy nie są zaokrąglane przed naliczeniem. Kwoty wyświetlane zaokrąglamy do najbliższego grosza; dokładną połówkę w stronę większej wartości. Dział zaokrąglamy po zsumowaniu źródłowych kwot pozycji, więc suma wyświetlonych groszy pozycji może różnić się od działu. Suma przed rabatem to suma zaokrąglonych działów.\n'+sums.join('; ')+
+      (round2(sectionSum)===num(t.subtotal)?'\nSuma działów: '+sections.map(key=>exactNumber(t[key])).join(' + ')+' = '+moneyText(t.subtotal)+'.\n':'\nSuma zapisana w ofercie: '+moneyText(t.subtotal)+'.\n')+
+      (verified?`Rabat źródłowy min(${exactNumber(t.subtotal)}, max(0, ${num(c.discountPercent)>0?exactNumber(t.subtotal)+' × '+exactNumber(c.discountPercent)+' ÷ 100':exactNumber(c.discountAmount)})) = ${exactNumber(discount)} zł; wyświetlany ${moneyText(t.discount)}. Razem: ${exactNumber(t.subtotal)} - ${exactNumber(discount)} = ${moneyText(t.grand)}.`:'Rabat i razem zachowano z zapisanej oferty; brak potwierdzonego rozbicia źródłowego rabatu.')+
+      ' Rabat i razem zaokrąglamy niezależnie od niezaokrąglonego rabatu; nie zmieniamy zapisanych kwot.';
+  }
+
   function normalizeRegisterLine(line, fallback){
     const src = line && typeof line === 'object' ? line : {};
     const fb = fallback && typeof fallback === 'object' ? fallback : {};
@@ -105,13 +187,6 @@
     const src = row || {};
     const qty = Math.max(0, num(src.qty));
     const unit = text(src.unit) || 'ark.';
-    const calc = text(src.calculation) || (unit === 'ark.'
-      ? 'Cena = liczba arkuszy z rozkroju × cena za arkusz z cennika materiałów. Materiały o tej samej realnej nazwie są liczone we wspólnej grupie rozkroju.'
-      : unit === 'm²'
-        ? 'Cena = powierzchnia elementów × cena za m² z cennika materiałów. Dla lakieru/akrylu m² oznacza gotowy front.'
-        : unit === 'mb'
-          ? 'Cena = metry obrzeża z elementów + 10% zapasu × cena za mb z cennika materiałów.'
-          : 'Cena = ilość × cena jednostkowa z cennika materiałów.');
     const out = normalizeRegisterLine(Object.assign({}, src, {
       id:src.key || `materials_${index}`,
       section:'materials',
@@ -122,7 +197,7 @@
       unit,
       unitPrice:num(src.unitPrice),
       total:num(src.total),
-      calculation:calc,
+      calculation:describeCalculation(src),
       raw:src,
     }));
     if(!(num(src.unitPrice) > 0)) out.warnings.push('Brak ceny jednostkowej w cenniku materiałów.');
@@ -144,7 +219,7 @@
       unit:text(src.unit || cfg.unit || ''),
       unitPrice:num(src.unitPrice != null ? src.unitPrice : src.price),
       total:num(src.total),
-      calculation:text(src.calculation) || cfg.calculation || 'Cena = ilość × cena jednostkowa z właściwego cennika.',
+      calculation:describeCalculation(src),
       raw:src,
     }));
     if(!(out.unitPrice > 0) && out.total <= 0) out.warnings.push(cfg.emptyWarning || 'Pozycja ma 0 zł — sprawdź, czy jest cena w cenniku.');
@@ -159,25 +234,8 @@
       if(details.length){
         details.forEach((part, partIndex)=>{
           const p = part || {};
-          const meta = [];
-          if(num(p.baseHours) > 0) meta.push(`czas bazowy ${round2(p.baseHours)} h`);
-          if(num(p.hours) > 0) meta.push(`czas wyceniony ${round2(p.hours)} h`);
-          if(num(p.hourlyRate) > 0) meta.push(`${round2(p.hourlyRate)} PLN/h`);
-          if(text(p.quantitySource)) meta.push(`źródło ilości ${text(p.quantitySourceLabel) || text(p.quantitySource)}${text(p.quantitySourceDisplay) ? ': ' + text(p.quantitySourceDisplay) : ''}`);
-          const matchedConditions = Array.isArray(p.matchedConditions) ? p.matchedConditions : [];
-          if(matchedConditions.length) meta.push('warunki: ' + matchedConditions.map((cond)=> `${text(cond.label) || text(cond.source)} = ${text(cond.displayValue) || num(cond.value)}`).join('; '));
-          if(num(p.multiplier) && num(p.multiplier) !== 1) meta.push(`mnożnik ×${round2(p.multiplier)}`);
-          if(num(p.volumeHours) > 0) meta.push(`gabarytoczas ${round2(p.volumeHours)} h`);
-          if(num(p.volumeM3) > 0 && (num(p.volumePrice) > 0 || num(p.volumeHours) > 0)) meta.push(`gabaryt ${round2(p.volumeM3)} m³`);
-          const calcBits = [];
-          if(text(p.quantityMode) === 'startStep' && num(p.quantity) > 0 && num(p.stepEveryQty) > 0){
-            calcBits.push(`${num(p.startHours)*60} min + ceil(max(0, ${num(p.quantity)} − ${num(p.startQty)}) / ${num(p.stepEveryQty)}) × ${num(p.stepHours)*60} min = ${Math.round(num(p.hours)*60*1000000)/1000000} min; stawka ${num(p.hourlyRate)} PLN/h`);
-          }else if(text(p.quantityMode) === 'linear' && num(p.quantity) > 0 && num(p.timeBlockHours) > 0 && num(p.hourlyRate) > 0){
-            calcBits.push(`${round2(p.quantity)} × ${round2(p.timeBlockHours)} h × ${round2(p.hourlyRate)} PLN/h`);
-            if(num(p.volumeHours) > 0) calcBits.push(`gabarytoczas ${round2(p.volumeHours)} h × ${round2(p.hourlyRate)} PLN/h`);
-          }else if(num(p.hours) > 0 && num(p.hourlyRate) > 0) calcBits.push(`${round2(p.hours)} h × ${round2(p.hourlyRate)} PLN/h`);
-          if(num(p.volumePrice) > 0) calcBits.push(`dopłata gabarytowa ${round2(p.volumePrice)} PLN`);
-          if(num(p.fixedPrice) > 0) calcBits.push(`kwota stała ${round2(p.fixedPrice)} PLN`);
+          const sourceValue=code=>{const found=details.find(part=>text(part.quantitySource)===code);return found?num(found.quantitySourceValue||found.quantity):0;};
+          const explanation=describeCalculation(p,{doors:sourceValue('hinge.door_count'),hinges:sourceValue('hinge.door_hinge_count')});
           const detailLine = normalizeRegisterLine({
             id:p.key || `${row.key || rowIndex}_${partIndex}`,
             section,
@@ -216,7 +274,7 @@
             total:num(p.total),
             rooms:text(row && row.rooms),
             note:text(p.note),
-            calculation:calcBits.length ? `Cena = ${calcBits.join(' + ')}.` : (defaultCalculation || 'Cena wyliczona z reguły przypisanej do szafki.'),
+            calculation:explanation,
             starterPrice:p.starterPrice === true && !text(p.priceUserEditedAt),
             priceUserEditedAt:text(p.priceUserEditedAt),
             warnings:Array.isArray(p.warnings) ? p.warnings.map(text).filter(Boolean) : [],
@@ -380,5 +438,6 @@
     buildRegister,
     normalizeRegister,
     normalizeRegisterLine,
+    describeCalculation, exactNumber, timeText, roundingExplanation,
   };
 })();

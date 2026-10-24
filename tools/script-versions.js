@@ -3,6 +3,9 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
+  "js/app/wycena/wycena-summary-details-modal.js": "20261024_session_quota_exact_v1",
+  "js/app/ui/session-diagnostics.js": "20261024_session_quota_exact_v1",
+  "js/app/ui/session-diagnostics-readonly.js": "20261024_session_quota_exact_v1",
   "js/app/pricing/labor-catalog-definitions.js": "20261023_wycena_labor_v1",
   "js/app/pricing/labor-catalog.js": "20261024_wycena_labor_repair_v1",
   "js/app/pricing/work-quantity-sources.js": "20261023_wycena_labor_v1",
@@ -16,14 +19,14 @@ const versions = Object.freeze({
   "js/app/cabinet/cabinet-derived-facts.js": "20261023_wycena_labor_v1",
   "js/app/cabinet/cabinet-modal-draft.js": "20261023_wycena_labor_v1",
   "js/app/cabinet/cabinet-modal-labor.js": "20261023_wycena_labor_v1",
-  "js/app/quote/quote-calculation-register.js": "20261023_wycena_labor_v1",
+  "js/app/quote/quote-calculation-register.js": "20261024_session_quota_exact_v1",
   "js/app/quote/quote-snapshot.js": "20261023_wycena_labor_v1",
   "js/app/wycena/wycena-core-selection.js": "20260628_drawer_systems_materials_v1",
   "js/app/wycena/wycena-core-utils.js": "20260628_drawer_systems_materials_v1",
   "js/app/wycena/wycena-core-catalog.js": "20260628_drawer_systems_materials_v1",
   "js/app/wycena/wycena-core-source.js": "20261014_c2_1b2c3a",
-  "js/app/wycena/wycena-core-material-plan.js": "20261019_project_context",
-  "js/app/wycena/wycena-core-offer.js": "20261024_wycena_labor_repair_v1",
+  "js/app/wycena/wycena-core-material-plan.js": "20261024_session_quota_exact_v1",
+  "js/app/wycena/wycena-core-offer.js": "20261024_session_quota_exact_v1",
   "js/app/wycena/wycena-core-lines.js": "20261024_wycena_labor_repair_v1",
   "js/app/wycena/wycena-core-labor.js": "20261024_wycena_labor_shelf_boundary_v1",
   "js/app/wycena/wycena-core.js": "20261019_project_context",

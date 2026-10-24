@@ -54,6 +54,14 @@ Niedopasowane wymagania nóg/zawieszek pozostają w MATERIALE z ilością i ostr
 
 Planowanie nadal oferuje wyłącznie 1/5/15/30/60 minut. Zapisane 45 minut pozostaje 45 w polach czasu, pakietach, formularzu i zapisie; formularz pokazuje je jako nieaktywną opcję „Zapisany czas”, bez dodawania nowego bloku do wyboru. Zapisane 60 pozostaje 60, a wyniki 45/75 nie są zaokrąglane. Pomoc czasu zawiera dokładny zatwierdzony tekst.
 
+### Dokładność opisów działań — 24.10.2026
+
+Opis WYCENY nie zaokrągla czasu do dwóch miejsc w godzinach przed pokazaniem działania. Preferuje minuty, zachowuje mnożnik, pełne źródłowe objętości i stawki oraz przygotowanie/kroki/progi. Całe pokazane działanie musi odtwarzać istniejącą kwotę do grosza; skrócenie śladowych błędów reprezentacji norm minutowych jest dopuszczone tylko po sprawdzeniu zgodności całego działania. Brak kompletnego rozbicia oznacza jawną informację o kwocie źródłowej, zamiast wymyślonego wzoru. Nie zmienia to kalkulatorów, norm, prywatnych stawek ani kwot.
+
+Obowiązująca, zachowana reguła rejestru: wyświetlane kwoty używają `Math.round(kwota × 100) ÷ 100`; sumę działu zaokrągla się po dodaniu źródłowych kwot jego pozycji, a sumę przed rabatem tworzą zaokrąglone działy. Dlatego suma samych wyświetlonych groszy pozycji może różnić się od działu. Rabat jest obliczany od sumy przed rabatem i ograniczany do jej wysokości; rabat oraz wynik odejmowania niezaokrąglonego rabatu są zaokrąglane niezależnie. Audyt pokazuje te źródłowe wartości. Nie wprowadzono nowej polityki finansowej ani przeliczenia historii.
+
+Przykłady: `2 × 5 min × 150 zł/h ÷ 60 = 25,00 zł`; `(2 + 4) × 1 min × 250 zł/h ÷ 60 = 25,00 zł`; `(5 + 2 × 1) min × 250 zł/h ÷ 60 = 29,17 zł`. Gabarytoczas: `(60 min + 0,20352 m³ × 15 min/m³) × 150 zł/h ÷ 60 = 157,63 zł`. Archiwalne dane pozostają zamrożone: widok może objaśnić zapisane liczby bez pobierania dzisiejszych cen i bez przepisywania zapisanej oferty. [Zakres, regresje i brakujące dowody](tools/reports/session-quota-exact-calculations.md).
+
 Nowe pola szafki przechodzą istniejący zapis `fc_projects_v1` i zamknięty kontrakt eksportu projektu (tylko 2 nieujemne liczby całkowite oraz 2 zamknięte enumy). Brak drugiego storage i destrukcyjnej migracji. Nowe normy nie wymagają nowych pól CLOUD-3, zmiany transportu/CAS/Rules ani automatycznego zastosowania danych. `quoteCalculationRegister` przechowuje ilość, przygotowanie, kroki, wynik, stawkę, kwotę i źródło; snapshot zamraża wynik.
 
 ### Zakres i weryfikacja
