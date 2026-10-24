@@ -53,6 +53,7 @@ jobs:
           echo "PREFLIGHT_DIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
 
       - name: Run full Meble-App preflight
+        id: full-preflight
         shell: bash
         run: |
           set -uo pipefail
@@ -71,13 +72,16 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+          if [ "$status" -ne 0 ]; then
+            echo 'SDK/Auth/Firestore/Rules: SKIPPED because Preflight failed — not PASS. Release BLOCKED.' >> "$GITHUB_STEP_SUMMARY"
+          fi
           exit "$status"
 
       # Same approval event, before the existing auto-merge dependency succeeds.
       # Emulator-only demo project; never login/deploy or read live Firebase.
       - name: Use Java 21 for Firebase emulators
         id: java
-        if: ${{ !cancelled() && steps.cloud-context.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.full-preflight.outcome == 'success' && steps.cloud-context.outcome == 'success' }}
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -85,7 +89,7 @@ jobs:
 
       - name: Install locked emulator dependencies in both contexts
         id: emulator-deps
-        if: ${{ !cancelled() && steps.java.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.full-preflight.outcome == 'success' && steps.java.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -93,7 +97,8 @@ jobs:
           npm --prefix "$CLOUD_CI_HISTORY_ROOT/tools/firebase-pilot" ci --no-audit --no-fund
 
       - name: Run mandatory current and historical SDK/Auth/Firestore/Rules
-        if: ${{ !cancelled() && steps.emulator-deps.outcome == 'success' }}
+        id: sdk
+        if: ${{ !cancelled() && steps.full-preflight.outcome == 'success' && steps.emulator-deps.outcome == 'success' }}
         shell: bash
         env:
           CI: '1'
@@ -102,7 +107,7 @@ jobs:
           node "$PREFLIGHT_DIR/tools/cloud-ci-emulators.js"
 
   auto-merge:
-    if: ${{ github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
+    if: ${{ needs.preflight.result == 'success' && github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
     needs: preflight
     runs-on: ubuntu-latest
     permissions:
