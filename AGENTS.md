@@ -62,6 +62,8 @@ Jeżeli reguła biznesowa nie wynika jednoznacznie z aktualnego kodu, testów lu
 
 ## 5. Obszary podwyższonego ryzyka
 
+**Stała decyzja właściciela — 24.10.2026:** diagnostyka dla właściciela ma działać bezpośrednio w Meble-App na telefonie: „Diagnostyka sesji → Kopiuj raport → wklejenie do ChatGPT”. Nie wymagać USB, Chrome DevTools, komputera do debugowania, konsoli, bookmarkletów, dodatkowych aplikacji ani ręcznego wykonywania kodu. Wyjątkowa czynność techniczna wymaga wyraźnej, osobnej zgody właściciela. Diagnostyka musi być anonimowa i tylko do odczytu; dostarczenie nowej wersji nie uzasadnia odświeżenia karty z niezabezpieczonym RAM. Ta zasada nie zmienia procedury wydania ani bramek dostępu.
+
 Szczególnej ostrożności wymagają:
 
 - WYCENA i wszystkie jej źródła danych,

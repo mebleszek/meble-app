@@ -6,6 +6,17 @@ function pixelSessionReadonly(w,options){
   const no=status=>({v:1,status});
   const object=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
   const own=(x,k)=>object(x)&&Object.prototype.hasOwnProperty.call(x,k);
+  const serializationLimit={};
+  const accessDenied={};
+  const boundedJson=value=>{
+    let units=0,nodes=0;
+    return JSON.stringify(value,(key,item)=>{
+      // Conservative escaped-JSON bound, checked before copying a large RAM string.
+      units+=key.length*6+8+(typeof item==='string'?item.length*6+2:24);
+      if(units>8*1024*1024||++nodes>100000)throw serializationLimit;
+      return item;
+    });
+  };
   const keys=['fc_edit_session_v1','fc_projects_v1','fc_current_project_id_v1','fc_current_investor_v1','fc_ui_v1','fc_edge_v1','fc_material_part_options_v1'];
   const partKeys=keys.slice(5),snapKeys=[keys[1],...partKeys];
   let gate;
@@ -20,7 +31,7 @@ function pixelSessionReadonly(w,options){
     const ui=readUi();
     const codes=['SESSION_QUOTA_EXCEEDED','SESSION_STORAGE_DENIED','SESSION_STORAGE_WRITE_FAILED','SESSION_WRITE_UNCONFIRMED','SESSION_SERIALIZATION_FAILED','SESSION_UNCONFIRMED','PROJECT_WRITE_CONFLICT','SESSION_OWNER_MISMATCH','SESSION_OWNER_MISSING','SESSION_ROOM_MISSING','SESSION_READ_FAILED','SESSION_CLEANUP_FAILED','PROJECT_ROLLBACK_INVALID','PROJECT_ROLLBACK_WRITE_FAILED','PENDING_DOMAIN_OPERATION','UNSCOPED_PART_ROLLBACK_BLOCKED'];
     const refusal=()=>s?.lastError?codes.includes(s.lastError.code)?s.lastError.code:'OTHER':'NONE';
-    const runtime=()=>JSON.stringify([s?.active,s?.durable,s?.projectId,s?.roomId,s?.startedAt,s?.context,s?.expectedOwnerKnown,s?.expectedOwnerRaw,s?.snapshot,refusal(),ui?.roomType,ui?.currentInvestorId]);
+    const runtime=()=>boundedJson([s?.active,s?.durable,s?.projectId,s?.roomId,s?.startedAt,s?.context,s?.expectedOwnerKnown,s?.expectedOwnerRaw,s?.snapshot,refusal(),ui?.roomType,ui?.currentInvestorId]);
     const beforeRuntime=runtime(),code=refusal();
     let raw;
     try{raw=keys.map(k=>w.localStorage.getItem(k));}catch(_){return no(authorized()?'STORAGE_UNREADABLE':'AUTH_DENIED');}
@@ -59,34 +70,77 @@ function pixelSessionReadonly(w,options){
       const categories=Object.fromEntries(groups.map(key=>[key,{keys:0,units:0}]));
       const catalogKeys=new Set(['fc_sheet_materials_v1','fc_materials_v1','fc_accessories_v1','fc_hardware_manufacturers_v1','fc_hardware_suppliers_v1','hardwareSuppliers','fc_hardware_categories_v1','hardwareCategories','fc_hardware_types_v1','hardwareTypes','fc_hardware_technical_params_v1','hardwareTechnicalParams','fc_hardware_settings_v1','hardwareSettings','fc_quote_rates_v1','fc_services_v1','fc_workshop_services_v1','fc_sheets_v1','fc_program_defaults_v1','fc_company_profile_v1','fc_business_costs_v1']);
       const category=key=>key===keys[0]?'session':['fc_projects_v1','fc_project_v1'].includes(key)?'projects':key==='fc_investors_v1'?'investors':key==='fc_quote_snapshots_v1'?'history':/^fc_(?:project_backup|backup|safety_backup)/.test(key)?'backups':catalogKeys.has(key)?'catalogs':'other';
+      // Reuse the reviewed 94d0a30 allowlist; only fixed known names may leave this function.
+      const storeGroups={
+        projects:['fc_projects_v1','fc_project_v1'],
+        investors:['fc_investors_v1','fc_investor_removed_ids_v1'],
+        catalogs:['fc_accessories_v1','fc_sheet_materials_v1','fc_materials_v1','fc_hardware_manufacturers_v1','fc_hardware_suppliers_v1','fc_hardware_settings_v1','fc_hardware_categories_v1','fc_hardware_types_v1','fc_hardware_technical_params_v1','hardwareSuppliers','hardwareSettings','hardwareCategories','hardwareTypes','hardwareTechnicalParams','fc_quote_rates_v1','fc_services_v1','fc_workshop_services_v1'],
+        stock:['fc_sheets_v1'],
+        settings:['fc_program_defaults_v1','fc_company_profile_v1','fc_business_costs_v1'],
+        quote_history:['fc_quote_snapshots_v1'],
+        quote_drafts:['fc_quote_offer_drafts_v1'],
+        service_orders:['fc_service_orders_v1'],
+        backups:['fc_data_backups_v1','fc_project_backup_v1','fc_project_backup_meta_v1','fc_investors_backup_v1','fc_investors_backup_meta_v1'],
+        cutting_cache:['fc_rozrys_plan_cache_v1','fc_rozrys_plan_cache_v2'],
+        production_decisions:['fc_edge_v1','fc_material_part_options_v1','fc_rozrys_grain_state_v1','fc_rozrys_overrides_v1'],
+        preferences:['fc_rozrys_panel_prefs_v1','fc_rozrys_material_accordion_v1'],
+        context:['fc_ui_v1','fc_current_project_id_v1','fc_current_investor_v1','fc_reload_restore_v1'],
+        edit_session:['fc_edit_session_v1'],
+      };
+      const known=new Map(Object.entries(storeGroups).flatMap(([category,keys])=>keys.map(key=>[key,category])));
+      const storeCategory=key=>known.get(key)||(/^fc_project_inv_.+_backup(?:_meta)?_v1$/.test(key)?'legacy_project_backup':/^fc_project_inv_.+_v1$/.test(key)?'legacy_project_slot':'unknown');
+      const sizes=status=>({v:1,kind:'meble-app-storage-sizes',status,complete:false,quotaLimitKnown:false});
+      report.storageSizes=sizes('UNAVAILABLE');
       const names=()=>{
         const count=storage.length;
         if(!Number.isInteger(count)||count<0||count>2000||typeof storage.key!=='function')return null;
-        const out=Array.from({length:count},(_,i)=>storage.key(i));
-        return out.every(key=>typeof key==='string')&&new Set(out).size===count?out.sort():null;
+        const out=[];let keyUnits=0;
+        for(let i=0;i<count;i++){
+          if(!authorized())throw accessDenied;
+          const key=storage.key(i);
+          if(typeof key!=='string'||(keyUnits+=key.length)>8*1024*1024)return null;
+          out.push(key);
+        }
+        return new Set(out).size===count?out.sort():null;
       };
       const list=names();
       if(!list)report.usage={status:'UNAVAILABLE'};
       else{
-        let totalUnits=0,largestValueUnits=0;
+        let totalUnits=0,totalKeyUnits=0,totalValueUnits=0,largestValueUnits=0;
         const observed=[];
         for(const key of list){
           if(!authorized())return no('AUTH_DENIED');
           const value=storage.getItem(key);
           if(typeof value!=='string')return no('DIAGNOSTIC_STATE_CHANGED');
-          totalUnits+=key.length+value.length;largestValueUnits=Math.max(largestValueUnits,value.length);
+          totalKeyUnits+=key.length;totalValueUnits+=value.length;totalUnits=totalKeyUnits+totalValueUnits;largestValueUnits=Math.max(largestValueUnits,value.length);
           const group=categories[category(key)];group.keys++;group.units+=key.length+value.length;
           observed.push([key,value]);
           if(totalUnits>8*1024*1024)break;
         }
-        if(totalUnits>8*1024*1024)report.usage={status:'TOO_LARGE'};
+        if(totalUnits>8*1024*1024){report.usage={status:'TOO_LARGE'};report.storageSizes=sizes('TOO_LARGE');}
         else{
-          if(JSON.stringify(names())!==JSON.stringify(list)||observed.some(([key,value])=>storage.getItem(key)!==value))return no('DIAGNOSTIC_STATE_CHANGED');
+          if(JSON.stringify(names())!==JSON.stringify(list))return no('DIAGNOSTIC_STATE_CHANGED');
+          for(const [key,value]of observed){
+            if(!authorized())return no('AUTH_DENIED');
+            if(storage.getItem(key)!==value)return no('DIAGNOSTIC_STATE_CHANGED');
+          }
+          if(JSON.stringify(names())!==JSON.stringify(list))return no('DIAGNOSTIC_STATE_CHANGED');
+          // Keep only ten metadata rows; share the existing RAW observations,
+          // never clone/parse backups or cache and never retain RAW in the report.
+          const largest=[];
+          for(const [key,value]of observed){
+            const row={key,category:storeCategory(key),recognized:known.has(key),valueUnits:value.length};
+            const index=largest.findIndex(item=>item.valueUnits<row.valueUnits);
+            if(index>=0)largest.splice(index,0,row);else if(largest.length<10)largest.push(row);
+            if(largest.length>10)largest.pop();
+          }
+          const top=largest.map((row,index)=>({rank:index+1,key:row.recognized?row.key:'ANON_'+String(index+1).padStart(2,'0'),category:row.category,recognized:row.recognized,valueUnits:row.valueUnits}));
+          report.storageSizes={v:1,kind:'meble-app-storage-sizes',status:'READ_ONLY',complete:true,consistency:'TWO_PASS_MATCH',unit:'UTF16_CODE_UNITS',keyCount:list.length,totalKeyUnits,totalValueUnits,totalUnits,largest:top[0]||null,top,quotaLimitKnown:false,transientWriteCostKnown:false};
           const rows=parse(raw[1]),projects=Array.isArray(rows)?rows:null;
           const selected=projects?.find(row=>object(row)&&String(row.id||'')===raw[2]);
           let ramPayloadUnitsEstimate=null;
           if(s?.active===true&&object(s.snapshot)){
-            ramPayloadUnitsEstimate=JSON.stringify({schemaVersion:4,active:true,projectId:s.projectId,roomId:s.roomId,expectedOwnerRaw:s.expectedOwnerRaw,expectedOwnerKnown:s.expectedOwnerKnown,startedAt:Number(s.startedAt||0),updatedAt:Number(s.updatedAt||0),context:s.context,snapshot:s.snapshot}).length;
+            ramPayloadUnitsEstimate=boundedJson({schemaVersion:4,active:true,projectId:s.projectId,roomId:s.roomId,expectedOwnerRaw:s.expectedOwnerRaw,expectedOwnerKnown:s.expectedOwnerKnown,startedAt:Number(s.startedAt||0),updatedAt:Number(s.updatedAt||0),context:s.context,snapshot:s.snapshot}).length;
           }
           report.usage={status:'MEASURED',unit:'UTF16_CODE_UNITS',totalUnits,categories,largestValueUnits,
             projectCount:projects?.length??null,largestProjectUnits:projects?projects.reduce((n,row)=>Math.max(n,JSON.stringify(row).length),0):null,
@@ -97,9 +151,9 @@ function pixelSessionReadonly(w,options){
       report.ramActive=s?.active===true;
     }
     if(!authorized())return no('AUTH_DENIED');
-    try{if(keys.some((k,i)=>w.localStorage.getItem(k)!==raw[i])||w.FC?.session!==s||readUi()!==ui||runtime()!==beforeRuntime)return no('DIAGNOSTIC_STATE_CHANGED');}catch(_){return no(authorized()?'STORAGE_UNREADABLE':'AUTH_DENIED');}
+    try{if(keys.some((k,i)=>w.localStorage.getItem(k)!==raw[i])||w.FC?.session!==s||readUi()!==ui||runtime()!==beforeRuntime)return no('DIAGNOSTIC_STATE_CHANGED');}catch(error){return no(!authorized()?'AUTH_DENIED':error===serializationLimit?'DIAGNOSTIC_TOO_LARGE':'STORAGE_UNREADABLE');}
     return authorized()?report:no('AUTH_DENIED');
-  }catch(_){return no(authorized()?'DIAGNOSTIC_FAILED':'AUTH_DENIED');}
+  }catch(error){return no(!authorized()||error===accessDenied?'AUTH_DENIED':error===serializationLimit?'DIAGNOSTIC_TOO_LARGE':'DIAGNOSTIC_FAILED');}
 }
   if(typeof module==='object' && module.exports) module.exports=pixelSessionReadonly;
   else { root.FC=root.FC||{};root.FC.sessionDiagnosticsReadonly=pixelSessionReadonly; }
