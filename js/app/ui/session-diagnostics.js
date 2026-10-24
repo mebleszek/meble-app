@@ -14,9 +14,10 @@
     return [
       'Tylko odczyt — nie odblokowuje sesji.',
       'Kod: '+r.code,
+      'Obiekt sesji RAM: '+flag(r.ram)+' | Trwała: '+flag(r.durable),
+      ...(r.storageSizes?storageLines(r.storageSizes):[]),
       'Storage: '+r.storage+' | Schemat: '+(r.schema??'?'),
       'Payload: '+flag(r.present)+' | Aktywna: '+flag(r.active),
-      'Obiekt sesji RAM: '+flag(r.ram)+' | Trwała: '+flag(r.durable),
       'Snapshot kompletny: '+flag(r.requiredKeys),
       'Struktura dowodu: '+flag(r.payloadShape),
       'Właściciel: '+flag(r.ownerMatch),
@@ -30,6 +31,14 @@
       'Niedokończona operacja: '+flag(r.pending),
       'To obserwacja, nie zgoda na zapis lub rollback.',
     ].concat(r.usage?usageLines(r):[]).join('\n');
+  }
+  function storageLines(s){
+    const lines=['','NAJWIĘKSZE MAGAZYNY PAMIĘCI'];
+    if(s.status!=='READ_ONLY'||s.complete!==true)return lines.concat('Pomiar: NIEKOMPLETNY ('+s.status+').','Tryb: TYLKO ODCZYT');
+    if(!s.top.length)lines.push('Brak kluczy.');
+    s.top.slice(0,5).forEach(row=>lines.push(row.rank+'. '+row.key+' — '+((row.valueUnits*2)/1024).toFixed(1)+' KiB'));
+    if(s.top.length>5)lines.push('Pozostałe pozycje w kopiowanym raporcie (do 10).');
+    return lines.concat('Pomiar: KOMPLETNY','Tryb: TYLKO ODCZYT','To rozmiar tekstu, nie limit quota ani zgoda na usunięcie.');
   }
   function usageLines(r){
     const u=r.usage;
