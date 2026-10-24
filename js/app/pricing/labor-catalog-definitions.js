@@ -90,10 +90,10 @@
 
   // 2026-10-23: definitions use the existing editable time/start/step model.
   const LABOR_REPLACEMENTS = {
-    labor_mount_front:['labor_door_trial','labor_door_pack','labor_door_rehang'],
+    labor_mount_front:['labor_door_trial'],
     labor_mount_hinge:['labor_hinge_fastening'],
     labor_adjust_front:['labor_door_adjust'],
-    labor_loose_shelves:['labor_shelves_adjustable','labor_shelves_fixed','labor_shelves_place']
+    labor_loose_shelves:['labor_shelves_adjustable','labor_shelves_fixed']
   };
   function operation(id, name, source, minutes, options){
     return Object.assign({id,category:'Elementy szafki',name,price:0,usage:'universal',rateType:'workshop',quantitySource:source,

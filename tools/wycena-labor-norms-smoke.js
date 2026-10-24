@@ -82,7 +82,8 @@ test('Door cycle, current rates, central register and explicit manual replacemen
   cab.laborItems=[{rateId:'labor_mount_front',qty:2,note:'keep exactly'},{rateId:'labor_mount_hinge',qty:1}];
   const saved=JSON.stringify(cab.laborItems),manual=r.details();
   assert.equal(manual.filter(d=>d.sourceKind==='manual').length,2);
-  assert.ok(manual.filter(d=>d.sourceKind==='automatic-suppressed').length>=4);
+  assert.equal(manual.filter(d=>d.sourceKind==='automatic-suppressed').length,2);
+  for(const source of ['hinge.door_count','hinge.door_cycle_count','shelf.count'])assert.ok(manual.filter(d=>d.quantitySource===source).every(d=>d.sourceKind==='automatic'&&d.total>0),'Distinct packing/site operations remain billed: '+source);
   assert.ok(manual.filter(d=>d.sourceKind==='automatic-suppressed').every(d=>d.total===0&&d.quantity===0));
   assert.equal(JSON.stringify(cab.laborItems),saved);
   const line=FC.wycenaCoreLabor.collectCabinetLabor(['kuchnia'])[0];

@@ -37,12 +37,12 @@ Nowe normy używają istniejących `time`, `timeStartStep`, `startHours`, `start
 
 `LABOR_REPLACEMENTS` zachowuje znaczenie i dane starych ID:
 
-- `labor_mount_front` → `labor_door_trial`, `labor_door_pack`, `labor_door_rehang`;
+- `labor_mount_front` → `labor_door_trial` (pierwsze założenie na warsztacie);
 - `labor_mount_hinge` → `labor_hinge_fastening`;
 - `labor_adjust_front` → `labor_door_adjust`;
-- `labor_loose_shelves` → oba wzajemnie wykluczające się pakiety wiercenia oraz `labor_shelves_place`.
+- `labor_loose_shelves` → oba wzajemnie wykluczające się pakiety wiercenia.
 
-Przy obecności nowych definicji stary automat nie działa równolegle, również gdy nowe definicje zostały świadomie wyłączone. Stare pozycje pozostają dostępne dla istniejących ręcznych przypisań. Aktywne ręczne przypisanie przy szafce lub w ofercie zastępuje automat tego samego ID i jego jawnie zmapowane następniki. Pozycje `automatic-suppressed` pokazują źródłową ilość, zastępujące ręczne ID i zerową naliczoną kwotę; ręczny wpis zachowuje własną ilość, normę, notatkę i kwotę. Niespełniony warunek lub nieaktywna pozycja ręczna nie blokuje nowej automatyki. Nie identyfikujemy pozycji prywatnych po podobieństwie nazwy. Deduplikacja nowych/systemowych pozycji działa po dokładnym ID, idempotentnie.
+Pakowanie i ponowne założenie drzwi oraz osadzenie półek u klienta są odrębnymi operacjami; stare ręczne pozycje warsztatowe ich nie wyłączają. Przy obecności nowych definicji stary automat nie działa równolegle, również gdy nowe definicje zostały świadomie wyłączone. Stare pozycje pozostają dostępne dla istniejących ręcznych przypisań. Aktywne ręczne przypisanie przy szafce lub w ofercie zastępuje automat tego samego ID i jego jawnie zmapowane następniki. Pozycje `automatic-suppressed` pokazują źródłową ilość, zastępujące ręczne ID i zerową naliczoną kwotę; ręczny wpis zachowuje własną ilość, normę, notatkę i kwotę. Niespełniony warunek lub nieaktywna pozycja ręczna nie blokuje nowej automatyki. Nie identyfikujemy pozycji prywatnych po podobieństwie nazwy. Deduplikacja nowych/systemowych pozycji działa po dokładnym ID, idempotentnie.
 
 Planowanie nadal oferuje wyłącznie 1/5/15/30/60 minut. Zapisane 45 minut pozostaje 45 w polach czasu, pakietach, formularzu i zapisie; formularz pokazuje je jako nieaktywną opcję „Zapisany czas”, bez dodawania nowego bloku do wyboru. Zapisane 60 pozostaje 60, a wyniki 45/75 nie są zaokrąglane. Pomoc czasu zawiera dokładny zatwierdzony tekst.
 
