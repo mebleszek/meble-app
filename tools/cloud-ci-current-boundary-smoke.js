@@ -3,6 +3,72 @@
 const assert=require('node:assert/strict'),path=require('node:path'),fs=require('node:fs'),os=require('node:os');
 const {pathToFileURL}=require('node:url');
 const context=require('./cloud-ci-context.js');
+const impact=require('./cloud-ci-impact.js');
+const prefix='tools/firebase-pilot/';
+const refusalCodes=new Set(['CLOUD42_SOURCE_CHANGED','CLOUD46C_DEPENDENCY_CHANGED','CLOUD46C_PACKAGE_CHANGED','CLOUD46D_REVIEWED_SOURCE_CHANGED','CLOUD46E_PACKAGE_CHANGED']);
+function exact(code){
+  assert.ok(refusalCodes.has(code),'Only named reviewed integrity refusals are allowed');
+  return error=>error instanceof Error&&error.constructor===Error&&error.message===code;
+}
+function expectations(root,reference){
+  for(const spec of reference){
+    assert.ok(fs.readFileSync(path.join(root,spec.file)).equals(spec.bytes),'Historical manifest changed: '+spec.file);
+    if(spec.file.endsWith('cloud42-source-pins.json'))continue;
+    for(const entry of spec.entries){
+      if(spec.file.endsWith('cloud44-integrity.json')&&!entry.file.startsWith(prefix))continue;
+      assert.equal(impact.actualHash(root,entry.file),entry.digest,'Reviewed operator/test dependency changed: '+entry.file);
+    }
+  }
+  const dependencyChanged=reference[1].entries.some(entry=>impact.actualHash(root,entry.file)!==entry.digest);
+  const propagated=dependencyChanged?'CLOUD46C_DEPENDENCY_CHANGED':'CLOUD42_SOURCE_CHANGED';
+  return {c42:'CLOUD42_SOURCE_CHANGED',c:propagated,d:propagated,e:propagated};
+}
+async function withoutEffects(operation){
+  const patched=[],calls=[];
+  function block(object,key,readOnly){
+    const original=object[key];if(typeof original!=='function')return;
+    object[key]=function(...args){
+      if(readOnly&&readOnly(args))return original.apply(this,args);
+      calls.push(key);throw Error('UNEXPECTED_IO_'+key);
+    };
+    patched.push(()=>object[key]=original);
+  }
+  for(const object of [require('node:http'),require('node:https')])for(const key of ['request','get'])block(object,key);
+  block(require('node:net').Socket.prototype,'connect');block(require('node:tls'),'connect');block(require('node:dgram'),'createSocket');block(globalThis,'fetch');
+  for(const key of ['setTimeout','setInterval'])block(globalThis,key);
+  for(const key of ['spawn','spawnSync','exec','execSync','execFile','execFileSync','fork'])block(require('node:child_process'),key);
+  for(const name of ['writeFile','appendFile','mkdir','rename','unlink','rm','rmdir','truncate','ftruncate','write','fsync','fdatasync','chmod','chown','symlink','link','copyFile','cp']){
+    block(fs,name);block(fs,name+'Sync');block(fs.promises,name);
+  }
+  block(fs,'createWriteStream');
+  const readOnly=args=>typeof args[1]==='number'?(args[1]&(fs.constants.O_WRONLY|fs.constants.O_RDWR|fs.constants.O_CREAT|fs.constants.O_TRUNC|fs.constants.O_APPEND))===0:['r','rs','sr'].includes(args[1]??'r');
+  block(fs,'open',readOnly);block(fs,'openSync',readOnly);block(fs.promises,'open',readOnly);
+  require('node:module').syncBuiltinESMExports();
+  let result,failure;
+  try{result=await operation();}catch(error){failure=error;}
+  finally{patched.reverse().forEach(restore=>restore());require('node:module').syncBuiltinESMExports();}
+  assert.deepEqual(calls,[],'Changed source refused before any network, write, timer or child process');
+  if(failure)throw failure;return result;
+}
+async function probe(root,codes){
+  return withoutEffects(async()=>{
+    const pilot=require(path.join(root,prefix,'cloud42-package.js'));
+    for(const [module,code]of [['cloud42-package.js',codes.c42],['cloud46c-proof.js',codes.c],['cloud46d-candidate.js',codes.d],['cloud46e-authority.js',codes.e]]){
+      if(code)assert.throws(()=>require(path.join(root,prefix,module)).inventory(),exact(code),module+': exact integrity refusal');
+    }
+    if(codes.c42){
+      assert.throws(()=>pilot.verifyDeployedRules('auth-only','synthetic'),exact(codes.c42));
+      assert.throws(()=>pilot.prepare({uid:'synthetic',role:'write',expiresAt:Date.now()+60000,grant:{},appAccess:{},control:null}),exact(codes.c42));
+    }
+    const gate=require(path.join(root,prefix,'cloud44-gate2.js'));
+    for(const flags of [{},{live:true},{target:'production',approved:true}])assert.throws(()=>gate.executeProduction(flags),/^Error: CLOUD44_PRODUCTION_EXECUTION_DISABLED$/);
+    if(codes.e){
+      const connection=await import(pathToFileURL(path.join(root,prefix,'cloud46e-connection.mjs')).href);
+      await assert.rejects(connection.openAuthorizedConnection({}),exact(codes.e));
+      await assert.rejects(connection.recoverAuthorizedConnection({}),exact(codes.e));
+    }
+  });
+}
 async function main(){
   const root=path.resolve(__dirname,'..'), history=context.verifyHistorical(root);
   context.sdkPlan(root,history); // Every package.json test is assigned exactly once.
@@ -21,29 +87,9 @@ async function main(){
     context.git(scratch,['-c','user.name=CI fixture','-c','user.email=fixture@example.invalid','commit','--quiet','--allow-empty','-m','Unapproved synthetic revision']);
     assert.throws(()=>context.verifyHistorical(root,scratch),/^Error: CLOUD_CI_HISTORY_SHA_MISMATCH$/);
   }finally{fs.rmSync(scratch,{recursive:true,force:true});}
-  const patched=[], calls=[];
-  function block(object,key){
-    const original=object[key];if(typeof original!=='function') return;
-    object[key]=()=>{calls.push(key);throw Error('UNEXPECTED_IO_'+key);};patched.push(()=>object[key]=original);
-  }
-  for(const object of [require('node:http'),require('node:https')]) for(const key of ['request','get'])block(object,key);
-  block(require('node:net').Socket.prototype,'connect');block(require('node:tls'),'connect');block(globalThis,'fetch');
-  for(const key of ['writeFileSync','appendFileSync','mkdirSync','renameSync','unlinkSync'])block(fs,key);
-  try{
-    const pilot=require('./firebase-pilot/cloud42-package.js');
-    for(const module of ['cloud42-package.js','cloud46c-proof.js','cloud46d-candidate.js','cloud46e-authority.js']){
-      assert.throws(()=>require('./firebase-pilot/'+module).inventory(),/^Error: CLOUD42_SOURCE_CHANGED$/,module+': new sources cannot inherit historical authority');
-    }
-    assert.throws(()=>pilot.verifyDeployedRules('auth-only','synthetic'),/^Error: CLOUD42_SOURCE_CHANGED$/);
-    assert.throws(()=>pilot.prepare({uid:'synthetic',role:'write',expiresAt:Date.now()+60000,grant:{},appAccess:{},control:null}),/^Error: CLOUD42_SOURCE_CHANGED$/);
-    const gate=require('./firebase-pilot/cloud44-gate2.js');
-    for(const flags of [{},{live:true},{target:'production',approved:true}])assert.throws(()=>gate.executeProduction(flags),/^Error: CLOUD44_PRODUCTION_EXECUTION_DISABLED$/);
-    const connection=await import(pathToFileURL(path.join(__dirname,'firebase-pilot/cloud46e-connection.mjs')).href);
-    await assert.rejects(connection.openAuthorizedConnection({}),/^Error: CLOUD42_SOURCE_CHANGED$/);
-    await assert.rejects(connection.recoverAuthorizedConnection({}),/^Error: CLOUD42_SOURCE_CHANGED$/);
-    assert.deepEqual(calls,[],'Changed source refused before remote IO or journal writes');
-  }finally{patched.reverse().forEach(restore=>restore());}
-  console.log('PASS current CLOUD boundary: exact SOURCE_CHANGED, no IO, production disabled; historical SHA '+context.HISTORICAL_SHA);
+  const codes=expectations(root,impact.protection(root,history));
+  await probe(root,codes);
+  console.log('PASS current CLOUD boundary: '+JSON.stringify(codes)+'; no IO, production disabled; historical SHA '+context.HISTORICAL_SHA+' grants no current authority');
 }
 if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});
-module.exports={main};
+module.exports={main,expectations,exact,withoutEffects,probe};
