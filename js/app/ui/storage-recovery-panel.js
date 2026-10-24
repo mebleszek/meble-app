@@ -5,6 +5,16 @@
   const F=()=>FC.backupArchiveFormat;
   function element(tag,text){const e=document.createElement(tag);if(text)e.textContent=text;return e;}
   function close(){if(active){active.remove();active=null;}}
+  async function writerReadiness(){
+    F().access();
+    // LockManager.query is NOT a census of tabs. A legacy tab can hold no lock.
+    // Storage events and owner declarations likewise cannot prove its absence.
+    if(root.navigator?.locks?.query){
+      const locks=await root.navigator.locks.query();F().access();
+      if(locks.held.some(lock=>lock.name===F().LOCK)||locks.pending.some(lock=>lock.name===F().LOCK))throw Error('ARCHIVE_BUSY');
+    }
+    throw Error('RECOVERY_WRITER_EXCLUSIVITY_UNPROVEN');
+  }
   async function retrySession(){
     F().access();const archive=await FC.backupArchive.inspect();
     if(archive.phase!=='ACTIVE'||archive.sourcePresent)throw Error('RECOVERY_ARCHIVE_NOT_ACTIVE');
@@ -29,6 +39,7 @@
     const status=element('p','Wybierz diagnostykę lub podgląd. Dane prywatne pozostają na urządzeniu.');status.setAttribute('role','status');status.style.overflowWrap='anywhere';box.appendChild(status);
     const actions=element('div');actions.style.cssText='display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))';box.appendChild(actions);
     let token=null,receipt=null,busy=false;
+    let displayedSource=null;
     const buttons=[];
     function action(text,run){
       const b=element('button',text);b.type='button';b.style.cssText='min-height:44px;white-space:normal';buttons.push(b);actions.appendChild(b);
@@ -68,10 +79,30 @@
     });
     action('Sprawdź przygotowanie przełączenia',async()=>{
       const s=await FC.backupArchive.inspect();
+      displayedSource=s.sourceHash;sourceHash.value=s.sourceHash||'';
       const verified=!!receipt&&FC.storageRecoveryExport.isReceipt(receipt,s.sourceHash);
       if(verified)FC.storageRecoveryExport.assertReceiptCurrent(receipt);
       status.textContent='IndexedDB: '+s.phase+'. Plik: '+(verified?'zweryfikowany dla aktualnego źródła':'BRAK AKTUALNEGO DOWODU')+'. Możliwe do zwolnienia: '+((s.valueUnits*2)/1024).toFixed(1)+' KiB tekstu. '+
-        'PRZEŁĄCZENIE BLOCKED: wymaga osobnej decyzji dla fc_data_backups_v1 i potwierdzenia zamknięcia pozostałych kart aplikacji. Ten panel nie usuwa magazynu.';
+        'PRZEŁĄCZENIE BLOCKED: brak technicznego dowodu wyłączności starszych kart. Oświadczenie ani pusty wykaz Web Locks nie są takim dowodem.';
+    });
+    const switchSection=element('fieldset');switchSection.appendChild(element('legend','Etap E — osobna decyzja właściciela'));
+    switchSection.appendChild(element('p','Operacja dotyczy wyłącznie fc_data_backups_v1. Usuwa ten klucz po potwierdzonym przełączeniu. Inne dane pozostają na miejscu. Brak dowodu wyłączności oznacza STOP.'));
+    const sourceHash=element('input');sourceHash.readOnly=true;sourceHash.setAttribute('aria-label','SHA-256 źródła do przełączenia');sourceHash.style.cssText='width:100%;box-sizing:border-box';switchSection.appendChild(sourceHash);
+    const approvalLabel=element('label'),approval=element('input');approval.type='checkbox';approvalLabel.appendChild(approval);approvalLabel.appendChild(document.createTextNode(' Mam osobną zgodę właściciela na etap E dla wskazanego klucza i SHA-256.'));switchSection.appendChild(approvalLabel);
+    const confirmationLabel=element('label','Świadome potwierdzenie usunięcia: wpisz USUŃ STARE ARCHIWUM');
+    const confirmation=element('input');confirmation.setAttribute('aria-label','Potwierdzenie usunięcia starego archiwum');confirmation.style.cssText='width:100%;min-height:44px;box-sizing:border-box';confirmationLabel.appendChild(confirmation);switchSection.appendChild(confirmationLabel);box.appendChild(switchSection);
+    action('Etap E — aktywuj IndexedDB i zwolnij stary klucz',async()=>{
+      const s=await FC.backupArchive.inspect();
+      if(!['COPIED','SWITCH_PENDING'].includes(s.phase))throw Error('ARCHIVE_NOT_COPIED');
+      if(!displayedSource||displayedSource!==s.sourceHash)throw Error('ARCHIVE_SOURCE_CHANGED');
+      if(!receipt||!FC.storageRecoveryExport.isReceipt(receipt,s.sourceHash))throw Error('ARCHIVE_FILE_NOT_VERIFIED');
+      FC.storageRecoveryExport.assertReceiptCurrent(receipt);
+      const report=FC.sessionDiagnosticsReadonly(root,{storageUsage:true});F().access();
+      if(report.status!=='READ_ONLY'||report.pending===true||report.CB===false&&report.CE===false)throw Error('RECOVERY_SESSION_UNCONFIRMED');
+      if(!approval.checked||confirmation.value!=='USUŃ STARE ARCHIWUM')throw Error('ARCHIVE_SEPARATE_DECISION_REQUIRED');
+      // Deliberate STOP: no existing mechanism can establish a census/fence for
+      // pre-protocol writers. Never substitute this checkbox for technical proof.
+      await writerReadiness();
     });
     action('Sprawdź sesję po zatwierdzonym przełączeniu',async()=>{
       await retrySession();status.textContent='Istniejący protokół sesji potwierdził trwały zapis. Nie wykonano Zapisz ani Anuluj.';
@@ -81,7 +112,8 @@
   }
   function safeError(error){
     const code=String(error?.message||'');
+    if(code==='RECOVERY_WRITER_EXCLUSIVITY_UNPROVEN')return code+' — nie potwierdzono technicznej wyłączności starszych kart. Niczego nie usunięto.';
     return /^(ARCHIVE|RECOVERY)_[A-Z_]+$/.test(code)?code:'RECOVERY_OPERATION_FAILED';
   }
-  FC.storageRecoveryPanel={open,close,retrySession};
+  FC.storageRecoveryPanel={open,close,retrySession,writerReadiness};
 })(typeof window!=='undefined'?window:globalThis);

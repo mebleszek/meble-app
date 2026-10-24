@@ -5,7 +5,9 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{spawn}=require('node:child_process');
 const ROOT=path.resolve(__dirname,'..'),ORIGIN='https://mebleszek.github.io',PREFIX='/meble-app/';
 const scripts=['shared/data-storage-keys','shared/data-backup-hash','shared/data-backup-snapshot-normalizer','shared/data-backup-snapshot-apply','shared/data-backup-export','shared/data-backup-snapshot','shared/data-backup-policy','shared/backup-archive-format','shared/backup-archive-idb','shared/storage-recovery-export','shared/data-backup-storage','shared/data-backup-records','shared/data-backup-store','ui/info-box','ui/session-diagnostics-readonly','ui/session-diagnostics','ui/storage-recovery-panel'];
-const html='<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><div id="appView"></div><script>window.__testAccess=true;Object.defineProperty(window,"__FC_MAIN_ACCESS__",{value:{isValid:()=>window.__testAccess},writable:false,configurable:false});window.FC={session:{active:true,durable:false,snapshot:null,expectedOwnerKnown:false,lastError:{code:"SESSION_QUOTA_EXCEEDED"},begin(){throw Error("No begin")},commit(){throw Error("No commit")},cancel(){throw Error("No cancel")},retryInitialBegin(){throw Error("No retry")}}};window.projectData={private:"SYNTHETIC_UNSAVED"};window.uiState={};</script>'+scripts.map(f=>'<script src="js/app/'+f+'.js"></script>').join('')+'<script src="tools/storage-recovery-browser-suite.js"></script>';
+const repairOnly=process.argv.includes('--repair-only');
+const suiteFile=repairOnly?'tools/storage-recovery-repair-browser-suite.js':'tools/storage-recovery-browser-suite.js';
+const html='<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><div id="appView"></div><script>window.__testAccess=true;Object.defineProperty(window,"__FC_MAIN_ACCESS__",{value:{isValid:()=>window.__testAccess},writable:false,configurable:false});window.FC={session:{active:true,durable:false,snapshot:null,expectedOwnerKnown:false,lastError:{code:"SESSION_QUOTA_EXCEEDED"},begin(){throw Error("No begin")},commit(){throw Error("No commit")},cancel(){throw Error("No cancel")},retryInitialBegin(){throw Error("No retry")}}};window.projectData={private:"SYNTHETIC_UNSAVED"};window.uiState={};</script>'+scripts.map(f=>'<script src="js/app/'+f+'.js"></script>').join('')+'<script src="'+suiteFile+'"></script>';
 async function main(){
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'meble-storage-recovery-'));let browser;const clients=[];const errors=[],external=[];
   try{
@@ -28,7 +30,7 @@ async function main(){
           assert.ok(u.pathname.startsWith(PREFIX));
           const name=u.pathname.slice(PREFIX.length);
           if(name==='index.html'){body=html;type='text/html';}
-          else{assert.ok(scripts.map(f=>'js/app/'+f+'.js').concat('tools/storage-recovery-browser-suite.js').includes(name));body=fs.readFileSync(path.join(ROOT,name));}
+          else{assert.ok(scripts.map(f=>'js/app/'+f+'.js').concat(suiteFile).includes(name));body=fs.readFileSync(path.join(ROOT,name));}
           void send('Fetch.fulfillRequest',{requestId:m.params.requestId,responseCode:200,responseHeaders:[{name:'Content-Type',value:type}],body:Buffer.from(body).toString('base64')}).catch(e=>errors.push(e.message));
         }catch(_){external.push('BLOCKED_REQUEST');void send('Fetch.failRequest',{requestId:m.params.requestId,errorReason:'BlockedByClient'}).catch(()=>{});}
       }
@@ -41,9 +43,9 @@ async function main(){
     await send('Runtime.enable');await send('Page.enable');await send('Emulation.setDeviceMetricsOverride',{width:393,height:852,deviceScaleFactor:1,mobile:true});await send('Fetch.enable',{patterns:[{urlPattern:'*'}]});
     async function ready(evaluatePage=evaluate){for(let n=0;n<100;n++){if(await evaluatePage('typeof runStorageRecoveryBrowserSuite === "function"'))return;await new Promise(r=>setTimeout(r,50));}throw Error('Fixture load timeout');}
     await send('Page.navigate',{url:ORIGIN+PREFIX+'index.html'});await ready();let passed=0;
-    for(let stage=1;stage<=5;stage++){
+    for(let stage=1;stage<=(repairOnly?2:5);stage++){
       const result=await evaluate('runStorageRecoveryBrowserSuite('+stage+')');for(const name of result.passed){console.log('PASS real Chromium/IndexedDB: '+name);passed++;}
-      if(stage===1){
+      if(stage===1&&!repairOnly){
         await evaluate('FC.storageRecoveryExport.download(window.__downloadToken);true');
         const file=path.join(dir,'downloads','meble-app-private-recovery.encrypted.json');
         for(let n=0;n<100&&!fs.existsSync(file);n++)await new Promise(r=>setTimeout(r,50));
@@ -65,7 +67,7 @@ async function main(){
       }
       if(result.restart){await send('Page.reload',{ignoreCache:true});await ready();}
     }
-    assert.deepEqual(errors,[]);assert.deepEqual(external,[]);console.log('Storage recovery real Chromium: '+passed+' groups PASS; five document lifetimes, mobile 393×852, zero LIVE requests');
+    assert.deepEqual(errors,[]);assert.deepEqual(external,[]);console.log('Storage recovery real Chromium: '+passed+' groups PASS; '+(repairOnly?'repair-only, two document lifetimes':'five document lifetimes')+', mobile 393×852, zero LIVE requests');
   }finally{for(const c of clients)c.close();browser?.kill('SIGKILL');await new Promise(r=>setTimeout(r,200));fs.rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:100});}
 }
 if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});

@@ -41,7 +41,7 @@
       ? { text:'Diagnostyka sesji', run:()=>root.FC.sessionDiagnostics.open() }
       : opts.secondaryAction;
     const hasSecondary = !!(secondary && typeof secondary.run === 'function');
-    const recovery = opts.sessionDiagnostic === true && root.FC.storageRecoveryPanel
+    const recovery = (opts.sessionDiagnostic === true || opts.sessionRecovery === true) && root.FC.storageRecoveryPanel
       ? { text:'Tryb ratunkowy', run:()=>root.FC.storageRecoveryPanel.open() } : null;
     const dismissOnOverlay = Object.prototype.hasOwnProperty.call(opts, 'dismissOnOverlay') ? opts.dismissOnOverlay !== false : !okOnly;
     const dismissOnEsc = Object.prototype.hasOwnProperty.call(opts, 'dismissOnEsc') ? opts.dismissOnEsc !== false : !okOnly;

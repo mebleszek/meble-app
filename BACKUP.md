@@ -1,5 +1,8 @@
 # ANDROID STORAGE RECOVERY — IndexedDB v1
 
+
+**Korekta 25.10.2026:** eksport po ACTIVE obejmuje aktualne rekordy IDB (SHA/metadane oraz porównanie rewizji podczas weryfikacji). Diagnostyka zachowuje Kopiuj raport i ma przejście do Trybu ratunkowego. Panel ma teraz sekcję przygotowania E z dokładnym kluczem/hash, dowodem pliku i świadomym potwierdzeniem, ale **wykonanie E pozostaje BLOCKED** z powodu nieudowodnionej wyłączności starych writerów. Brak locków nie jest dowodem braku kart. UI nie wywołuje `activate` po samym checkboxie. W obecnej architekturze nie ma technicznego spisu/fence dla niekooperujących kart; cały cel nie uzyskał CODE_READY. Szczegóły w [raporcie korekty](tools/reports/android-storage-recovery-indexeddb-v1.md#korekta-przed-wydaniem--25102026).
+
 **25.10.2026 — zatwierdzona implementacja, osobne zgody na wydanie i rzeczywiste dane telefonu. STORAGE RECOVERY / INDEXEDDB — PRIORYTET 1; CLOUD / FIREBASE LIVE / rozwój SYNCHRONIZACJI — WSTRZYMANE.** Starsze opisy poniżej zachowują historię; bieżące różnice określa ten kontrakt.
 
 ## Magazyn i jeden autorytet
@@ -24,7 +27,7 @@ C. Kopiowanie wszystkich rekordów i dokładnego RAW źródła w jednej transakc
 
 D. Panel pokazuje stan IDB, źródła, niezależnego pliku, możliwy rozmiar tekstu do zwolnienia i blokady. Samo COPIED nie zwalnia localStorage. Rozmiary nie są dowodem limitu quota.
 
-E. **Osobna późniejsza zgoda** dla `fc_data_backups_v1`, konkretnego SHA-256, przy aktualnym właścicielu, zgodnym źródle, zweryfikowanej IDB i niezależnym pliku, Web Lock i rozstrzygnięciu innych kart/starych wersji. Handler `backupArchive.activate(decision, receipt)` przygotowano i sprawdzamy syntetycznie, ale **panel bieżącego pakietu nie udostępnia usuwania/przełączenia**. Wymaga przyszłego, osobno zatwierdzonego działania właściciela; nie wykonywać poleceń w konsoli. Stare karty sprzed nowego protokołu nie respektują Locks: jeśli nie można potwierdzić ich zamknięcia i zabezpieczenia pracy, E pozostaje BLOCKED.
+E. **Osobna późniejsza zgoda** dla `fc_data_backups_v1`, konkretnego SHA-256, przy aktualnym właścicielu, zgodnym źródle, zweryfikowanej IDB i niezależnym pliku, Web Lock i rozstrzygnięciu innych kart/starych wersji. Handler `backupArchive.activate(decision, receipt)` przygotowano i sprawdzamy syntetycznie, ale **panel pokazuje przygotowanie przełączenia, lecz odmawia wykonania bez technicznego dowodu wyłączności**. Wymaga przyszłego, osobno zatwierdzonego działania właściciela; nie wykonywać poleceń w konsoli. Stare karty sprzed nowego protokołu nie respektują Locks: jeśli nie można potwierdzić ich zamknięcia i zabezpieczenia pracy, E pozostaje BLOCKED.
 
 Przerwanie E przed usunięciem: SWITCH_PENDING + stary RAW, writery odmawiają. Przerwanie po usunięciu, przed ACTIVE: SWITCH_PENDING + oryginał RAW w IDB + marker; nie tworzyć pustego legacy ani nie kończyć automatycznie. Świeży pełny plik może zabezpieczyć oryginał z IDB i bieżące pozostałe dane, a nowa decyzja/receipt pozwala wznowić E. Utrata lub korupcja IDB/źródła, niedostępny niezależny plik albo nierozstrzygnięty writer = STOP. Nie ma automatycznego rollbacku/migracji na starcie.
 

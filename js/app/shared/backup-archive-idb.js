@@ -150,8 +150,11 @@
       // Small, read-back checked routing fence MUST fit before removing anything.
       // It detects later loss/eviction of business IndexedDB; never fall back silently.
       const marker='{"v":1,"backend":"indexeddb"}';
-      root.localStorage.setItem(F.ROUTE,marker);
-      if(root.localStorage.getItem(F.ROUTE)!==marker)fail('ARCHIVE_ROUTE_UNCONFIRMED');
+      try{root.localStorage.setItem(F.ROUTE,marker);}
+      catch(error){fail(error?.name==='QuotaExceededError'?'ARCHIVE_ROUTE_QUOTA':'ARCHIVE_ROUTE_WRITE_FAILED');}
+      let markerConfirmed=false;
+      try{markerConfirmed=root.localStorage.getItem(F.ROUTE)===marker;}catch(_){fail('ARCHIVE_ROUTE_UNCONFIRMED');}
+      if(!markerConfirmed)fail('ARCHIVE_ROUTE_UNCONFIRMED');
       access();if(root.localStorage.getItem(F.KEY)!==raw)fail('ARCHIVE_SOURCE_CHANGED');
       if(raw!==null)root.localStorage.removeItem(F.KEY); // ONLY explicit separately approved stage E.
       if(root.localStorage.getItem(F.KEY)!==null)fail('ARCHIVE_LEGACY_REMOVE_FAILED');

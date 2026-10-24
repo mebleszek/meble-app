@@ -1,5 +1,16 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## STORAGE RECOVERY v1 — korekta przed wydaniem (25.10.2026)
+
+Gałąź pozostaje `fix/android-storage-recovery-indexeddb-v1`; wejściowy HEAD `80ade3639c62b9c5c7f6c187432b58d0ece0bc8b`, potwierdzony BASE/main `9c6ad2263850868e37c0cdb9098dfe6047a39260`. Bez nowej gałęzi, PR lub wydania.
+
+Naprawiono pełny prywatny eksport po ACTIVE: obejmuje wszystkie aktualne rekordy IndexedDB, sprawdza ich SHA/metadane i odmawia weryfikacji pliku zastąpionego nowszą rewizją. Nie odtwarza starego klucza. Diagnostyka sesji zachowuje Kopiuj raport i dodaje autoryzowane przejście do panelu. Zapis znacznika ma jawne odmowy quota/niepotwierdzonego read-back przed usunięciem archiwum; nie dodano czyszczenia cache.
+
+**BLOCKER: etap E w interfejsie NIE JEST gotową ścieżką wykonawczą.** Panel pokazuje dokładny klucz/hash, stan pliku, osobną zgodę i świadome potwierdzenie, kontroluje sesję oraz świeży Auth, ale kończy `RECOVERY_WRITER_EXCLUSIVITY_UNPROVEN`. Pusty `navigator.locks.query()` nie jest spisem wszystkich kart; stara karta może nie używać locka. Storage events ani checkbox nie dowodzą jej nieobecności i nie blokują jej późniejszych zapisów. W obecnej architekturze brak technicznego spisu/fence dla takich kontekstów. Nie dodano fikcyjnego dowodu, nie zmieniono Auth ani nie wdrożono nowego koordynatora przeglądarki. Niskopoziomowe `activate(decision, receipt)` nadal ma zewnętrzny warunek rozstrzygnięcia writerów, a jego testy kontrolowanego profilu nie dowodzą spełnienia go na telefonie. Nie jest zalecane wywoływanie tego API przez właściciela.
+
+Zgodnie z warunkiem STOP właściciela **nie deklarujemy CODE_READY dla kompletnej naprawy telefonu**: `CODE_BLOCKED_WRITER_EXCLUSIVITY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED`. Wcześniejsze CODE_READY poniżej jest statusem historycznego przekazania, skorygowanym przez tę kontrolę. Pozostałe poprawki można ocenić niezależnie. Dokończenie całego celu wymaga uzgodnionego mechanizmu koordynacji wszystkich writerów, również starych kontekstów; nie można zastąpić go deklaracją użytkownika ani samym wydaniem strony. Wstrzymanie CLOUD/Firebase LIVE/synchronizacji i ochrona obecnego RAM nadal obowiązują.
+
+
 ## STORAGE RECOVERY / INDEXEDDB — PRIORYTET 1 (25.10.2026)
 
 **Nowa decyzja właściciela: CLOUD / CLOUD-4.6F / FIREBASE LIVE / rozwój SYNCHRONIZACJI — WSTRZYMANE do osobnej decyzji.** Zachowujemy dotychczasowy kod, wyniki i plany chmury. Bieżący pakiet implementuje wyłącznie lokalne ratowanie pamięci i archiwum backupów, przed dalszym CLOUD. Historyczne harmonogramy poniżej nie wyznaczają teraz priorytetu.

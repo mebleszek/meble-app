@@ -1,5 +1,44 @@
 # ANDROID STORAGE RECOVERY + IndexedDB v1 — 25.10.2026
 
+
+## Korekta przed wydaniem — 25.10.2026
+
+Wejściowy HEAD `80ade3639c62b9c5c7f6c187432b58d0ece0bc8b`, BASE/main `9c6ad2263850868e37c0cdb9098dfe6047a39260`, ta sama gałąź/worktree. Poniższa korekta aktualizuje historyczne CODE_READY i opis braku przycisku; nie nadaje zgody na wydanie lub dane telefonu.
+
+1. **E — ścieżka przygotowania w panelu, wykonanie BLOCKED.** Dodano wyświetlenie dokładnego SHA-256/klucza, osobną zgodę i potwierdzenie USUŃ STARE ARCHIWUM; przed próbą sprawdzane są faza, źródło, autentyczny dowód pliku, niezmienność sesji/danych i świeży Auth. `writerReadiness()` nie uznaje checkboxa ani pustego wykazu Web Locks za dowód. Obecny LockManager nie enumeruje kart, stary dokument może nie trzymać locka; storage event nie dowodzi braku zapisu/ABA i nie wyklucza przyszłego writera. Brak istniejącego mechanizmu wyliczania i zatrzymania niekooperujących kontekstów oznacza `RECOVERY_WRITER_EXCLUSIVITY_UNPROVEN` **przed jakąkolwiek mutacją etapu E**. W UI nie ma wywołania `activate` na podstawie samego oświadczenia. Nie implementowano nieuzgodnionej zmiany Auth ani nowej infrastruktury przeglądarki dla pozornego PASS. To nie jest ukończenie wykonawczej ścieżki E. Przycisk istniejącego retryInitialBegin pozostaje dostępny tylko po ACTIVE i potwierdzonym zwolnieniu źródła; nie zastępuje wymaganego dowodu sesji.
+2. **ACTIVE — naprawione.** Przy braku legacy `sourceHash` może pochodzić z zachowanego źródła migracji także w ACTIVE. To identyfikator pochodzenia, a nie skrót wszystkich aktualnych kopii. Manifest obejmuje pełny bieżący `archive.records`, revision/control/source i ich hash; każdy rekord jest sprawdzany przez decode/SHA/metadane przed eksportem. Weryfikacja pliku ponownie sprawdza aktualny IDB; nowa rewizja albo uszkodzony rekord odmawia. Jedyny dopuszczony między eksportem a weryfikacją przyrost to dokładna COPIED kopia RAW już zabezpieczonego w pliku; nie nowszy ACTIVE. Nigdy nie odtwarza się legacy klucza.
+3. **Diagnostyka — naprawione.** Osobny opt-in sessionRecovery zachowuje Kopiuj raport oraz dodaje Tryb ratunkowy wyłącznie dla autoryzowanego READ_ONLY. Otwieranie panelu nadal ponownie sprawdza niemodyfikowalny owner gate. Odmowa nie daje przycisków odczytu danych.
+4. **Pełna quota — potwierdzone STOP.** Natywny QuotaExceededError znacznika daje ARCHIVE_ROUTE_QUOTA; no-op/nieudany read-back daje ARCHIVE_ROUTE_UNCONFIRMED. Źródło, projekty, historia i sesja pozostają, removeItem nie jest wywołane. Journal SWITCH_PENDING zachowuje barierę. Nie dodano czyszczenia cache: nie wykazano, że jest konieczne na Pixelu, i brak zatwierdzonego dowodu odtwarzalności. Odmowa nie wyzwala cleanupu.
+
+### Pliki korekty
+
+- `BACKUP.md`
+- `CURRENT_STATE.md`
+- `dev_tests.html`
+- `index.html`
+- `js/app/shared/backup-archive-idb.js`
+- `js/app/shared/storage-recovery-export.js`
+- `js/app/ui/info-box.js`
+- `js/app/ui/session-diagnostics.js`
+- `js/app/ui/storage-recovery-panel.js`
+- `tools/reports/android-storage-recovery-indexeddb-v1.md`
+- `tools/script-versions.js`
+- `tools/session-diagnostics-screen-smoke.js`
+- `tools/storage-recovery-browser-smoke.js`
+- `tools/storage-recovery-repair-browser-suite.js`
+- `tools/storage-recovery-repair-smoke.js`
+
+### Celowane regresje korekty i CI
+
+Nowy `tools/storage-recovery-repair-smoke.js` uruchamia **wyłącznie sześć nowych grup** przez tryb --repair-only istniejącego runnera Chromium. Stare 18 grup i wcześniejsze smoke pozostają w CI; nie uruchamiano ich ponownie lokalnie. Nowe przypadki: diagnostyka→Copy/Recovery i odmowa Auth; pełne zgody E przy braku technicznej wyłączności i niezmienność RAW/RAM/IDB; quota/no-op/błąd odczytu znacznika; ACTIVE z nowymi kopiami i kontrolą faktycznego payloadu po odszyfrowaniu; korupcja SHA i stara rewizja pliku; eksport ACTIVE po restarcie. Niskopoziomowe testy `activate` zakładają kontrolowany jednorazowy profil, nie certyfikują wyłączności starej karty Pixela.
+
+Nowy smoke jest automatycznie wymagany w bieżącym Preflight przez istniejące wykrywanie *-smoke.js. Dwa życia dokumentu, realny Chromium/IndexedDB, viewport393×852; całość HTTP aplikacji spełniana lokalnie, bez LIVE. Testy nie tworzą warunku pomijania przeglądarki. Zachowano oryginalny tryb/stare zestawy runnera i workflow. Wersje pięciu zmienionych skryptów są ścisłe i zgodne w obu HTML; centralny script-versions obejmuje również nowe zależności. Usunięto dawny twardy token info-box w kontroli ekranu na rzecz tej samej ścisłej mapy — nie luźnej obecności tekstu. Skorygowano rzeczywistą zależność CI ujawnioną przy zmianie wersji. Pełnego Preflightu ani emulatorów nie wykonywano.
+
+**Faktycznie wykonane dla korekty:** nowy repair-only Chromium/IndexedDB **6/6 grup PASS** (dwa życia dokumentu, viewport393×852); składnia wszystkich **10** zmienionych/nowych JS PASS; ścisłe wersje obu HTML i kontrola kolejności PASS; diff --check PASS. Bieżący test graniczny CLOUD PASS z oczekiwanymi odmowami C42_SOURCE_CHANGED/C46C_DEPENDENCY_CHANGED oraz bez IO; cloud-ci-impact zgłosił wpływ bez aktualizacji manifestów. Pusty diff potwierdza brak zmian Auth, sesji, projektu, CLOUD/Firebase, historycznych manifestów i workflow. Poprzednich 18 grup, APP110, pełnego Preflightu ani emulatorów nie ponawiano lokalnie. Brak operacji na Pixelu.
+
+**Wynik korekty:** `CODE_BLOCKED_WRITER_EXCLUSIVITY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED`. Nie wolno traktować tej gałęzi jako gotowego kompletnego pakietu odblokowania telefonu. Pozostałe trzy luki naprawione; domknięcie E wymaga uzgodnienia bezpiecznego mechanizmu koordynacji wszystkich kontekstów albo zmiany zakresu. Nie rekomendujemy USB/konsoli, odświeżenia niezabezpieczonej karty, resetu ani wywoływania API ręcznie. Nie uzyskano zgody na operacje danych lub LIVE.
+
+
 ## Zakres i stan
 
 BASE/main potwierdzony przez GitHub: `9c6ad2263850868e37c0cdb9098dfe6047a39260`; drzewo identyczne z zakończonym PR #82 (`85a11e00e37e32a5111a0f1f2470f3732c8559ae`). Nowa gałąź `fix/android-storage-recovery-indexeddb-v1`, worktree `/workspace/android-storage-recovery`. Nie było rozpoczętej gałęzi poprzedniego ANDROID EMERGENCY RECOVERY v1; nie duplikowano jej implementacji. Pozostałe istniejące worktree zachowano bez zmian.

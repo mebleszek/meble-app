@@ -50,7 +50,22 @@
     const auth=new Set(['meble-access-profile-v1','firebaseLocalStorageDb','firebase-heartbeat-database','firebase-installations-database']);
     if(dbs.some(d=>d.name!==F.DB&&!auth.has(d.name)))fail('RECOVERY_UNKNOWN_DATABASE');
     const archive=dbs.some(d=>d.name===F.DB)?await FC.backupArchive.read():null;
+    if(archive?.state)await F.decode(archive.records);
     return {archive,excluded:dbs.filter(d=>auth.has(d.name)).map(d=>({name:d.name,reason:'ACCESS_NOT_BUSINESS_BACKUP'}))};
+  }
+  async function databasesUnchanged(expected,before){
+    const current=await idb();
+    if(JSON.stringify(current)===JSON.stringify(expected))return;
+    // The only allowed preparation transition is a verified copy of the exact
+    // legacy RAW already contained in this file. Never accept a newer ACTIVE revision.
+    const source=before.local.rows.find(row=>row.key===F.KEY)?.raw;
+    if(expected.archive===null&&current.archive?.state?.phase==='COPIED'
+      &&current.archive.source.raw===source&&current.archive.state.sourceHash===await hash(source)
+      &&JSON.stringify(current.excluded)===JSON.stringify(expected.excluded)){
+      const parts=F.rawRecords(source),byId=new Map(current.archive.records.map(r=>[r.id,r.raw]));
+      if(F.parse(source).length===current.archive.records.length&&F.parse(source).every((r,i)=>byId.get(r.id)===parts[i]))return;
+    }
+    fail('RECOVERY_SOURCE_CHANGED');
   }
   const base64=bytes=>{
     let text='';for(let i=0;i<bytes.length;i+=16384)text+=String.fromCharCode(...bytes.subarray(i,i+16384));return root.btoa(text);
@@ -84,7 +99,7 @@
     const envelope={kind:'meble-app-encrypted-recovery',version:1,cipher:'AES-256-GCM',kdf:'PBKDF2-SHA256',iterations:310000,
       salt:base64(salt),iv:base64(iv),encoding:'UTF-16LE-code-units',ciphertext:base64(new Uint8Array(encrypted))};
     const text=JSON.stringify(envelope),digest=await fileHash(text),sourceRaw=before.local.rows.find(r=>r.key===F.KEY)?.raw
-      ??(databases.archive?.state?.phase==='SWITCH_PENDING'?databases.archive.source.raw:undefined);
+      ??(['SWITCH_PENDING','ACTIVE'].includes(databases.archive?.state?.phase)?databases.archive.source.raw:undefined);
     if(sourceRaw===undefined)fail('RECOVERY_ARCHIVE_SOURCE_MISSING');
     const token=Object.freeze({text,fileHash:digest,sourceHash:await hash(sourceRaw),complete:true});
     access();prepared.set(token,{before,databases});return token;
@@ -103,6 +118,7 @@
       ||JSON.stringify({local:body.data.local,session:body.data.session,runtime:body.data.runtime})!==JSON.stringify(expected.before)
       ||JSON.stringify(body.data.idb)!==JSON.stringify(expected.databases))fail('RECOVERY_FILE_INCOMPLETE');
     unchanged(expected.before);
+    await databasesUnchanged(expected.databases,expected.before);unchanged(expected.before);
     // Copying to IDB is allowed between export and verification, never activation/writes.
     const receipt=Object.freeze({fileHash:token.fileHash,sourceHash:token.sourceHash,verified:true});
     access();receipts.set(receipt,expected.before);return receipt;
