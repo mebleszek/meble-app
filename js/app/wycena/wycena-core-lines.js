@@ -586,7 +586,7 @@
         const req = part && part.hardwareRequirement && typeof part.hardwareRequirement === 'object' ? part.hardwareRequirement : null;
         const resolved = resolveHardwareRequirement(req, roomId, mat);
         const supportRequirement = req && ['leg','hanger'].includes(req.kind);
-        const priceItem = resolved.item || (!supportRequirement && (catalog.accessoryPriceLookup(mat) || catalog.accessoryPriceLookup(displayHardwareNameFromPreferences(mat, roomId))));
+        const priceItem = resolved.item || (supportRequirement ? null : (catalog.accessoryPriceLookup(mat) || catalog.accessoryPriceLookup(displayHardwareNameFromPreferences(mat, roomId)))) || null;
         const fallbackName = req && text(req.label)
           ? `Wymaganie: ${text(req.label)}${resolved.preferredProducer ? ' — ' + resolved.preferredProducer : ''}`
           : displayHardwareNameFromPreferences(mat, roomId);

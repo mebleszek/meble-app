@@ -46,9 +46,35 @@ const distanceRows = consolidated.filter((row)=> row.id === 'transport_distance_
 const travelRows = consolidated.filter((row)=> row.id === 'transport_travel_time');
 assert(distanceRows.length === 1, `Transport km powinien zostać skonsolidowany do jednej pozycji, jest: ${distanceRows.length}`);
 assert(travelRows.length === 1, 'Domyślna pozycja Czas dojazdu ma istnieć osobno w Transporcie');
-assert(distanceRows[0].id === 'transport_distance_km', 'Cena użytkownika musi przejść na kanoniczny transport_distance_km');
-assert(Number(distanceRows[0].price) === 5, 'Cena transportu po konsolidacji powinna zostać 5 PLN/km');
-assert(distanceRows[0].starterPrice === false, 'Po edycji transport km nie może zostać oznaczony jako Cena startowa');
+assert(Number(distanceRows[0].price) === 0, 'Systemowe zero startowe nie jest przepisywane');
+assert(consolidated.some(row=>row.id==='uid_manual_transport' && row.price===5), 'Prywatna stawka zachowuje ID i cenę');
+const FC=sandbox.FC;
+let rates=consolidated, selections=[];
+FC.catalogSelectors={getQuoteRates:()=>rates};
+FC.quoteOfferStore={getCurrentDraft:()=>({rateSelections:selections})};
+FC.investorTransport={getCurrentTransportContext:()=>({billableKm:12})};
+vm.runInContext(read('js/app/wycena/wycena-core-offer.js'),sandbox);
+function automatic(){return FC.wycenaCoreOffer.collectQuoteRateLines();}
+let actual=automatic();
+assert(actual.length===1 && actual[0].unitPrice===5 && actual[0].total===60 && actual[0].sourceId==='uid_manual_transport','Automat: prywatne 5 zł/km × 12 km = 60 zł');
+const before=JSON.stringify(rates);
+selections=[{rateId:'uid_manual_transport',qty:3,note:'keep'}];
+actual=automatic();assert(actual.length===1 && actual[0].sourceId==='uid_manual_transport' && actual[0].total===15,'Ręczne przypisanie zachowuje ilość i nie dubluje automatu');
+assert(JSON.stringify(rates)===before,'Wycena nie modyfikuje cennika');
+selections=[];
+rates=JSON.parse(before);Object.assign(rates.find(row=>row.id==='transport_distance_km'),{price:0,starterPrice:false,priceUserEditedAt:'2026-10-24'});
+assert(automatic().length===0,'Jawnie edytowane zero systemowe wygrywa z domyślnym wyborem');
+rates=JSON.parse(before);Object.assign(rates.find(row=>row.id==='uid_manual_transport'),{price:0,starterPrice:true});
+assert(automatic().length===0,'Prywatne edytowane zero pozostaje poprawne także przy historycznej fladze starterPrice');
+rates=JSON.parse(before);rates.push({...rates.find(row=>row.id==='uid_manual_transport'),id:'private-second',price:7});
+actual=automatic();assert(actual.length===1 && actual[0].sourceKind==='automatic-blocked' && actual[0].total===0 && actual[0].warnings.some(w=>w.includes('STOP:') && w.includes('private-second')),'Wieloznaczne stawki: audyt STOP, bez arbitralnej ceny');
+FC.investorTransport.getCurrentTransportContext=()=>({billableKm:0});
+assert(automatic().length===0,'Brak trasy nie uruchamia rozwiązywania ceny');
+FC.investorTransport.getCurrentTransportContext=()=>({billableKm:12});
+rates=JSON.parse(before);rates.find(row=>row.id==='transport_distance_km').active=false;
+assert(automatic().length===0,'Wyłączenie systemowego automatu nie uruchamia go ponownie przez prywatną stawkę');
+rates=JSON.parse(before).filter(row=>row.id!=='uid_manual_transport');
+assert(automatic().length===0,'Samo zero startowe nie tworzy płatnego transportu');
 
 vm.runInContext(registerSrc, sandbox, { filename:'quote-calculation-register.js' });
 const reg = sandbox.FC.quoteCalculationRegister.buildRegister({ quoteRates:[

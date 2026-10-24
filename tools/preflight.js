@@ -8,6 +8,7 @@ const { spawnSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '..');
 const TOOLS = path.join(ROOT, 'tools');
 const STARTED = Date.now();
+const cloudContext = require('./cloud-ci-context.js');
 
 function rel(file){
   return path.relative(ROOT, file).replace(/\\/g, '/');
@@ -31,9 +32,10 @@ function walkFiles(dir, predicate){
   return out.sort();
 }
 
-function runNode(file, args = []){
+function runNode(file, args = [], cwd = ROOT){
   return spawnSync(process.execPath, [file, ...args], {
-    cwd: ROOT,
+    cwd,
+    env:cloudContext.cleanEnvironment(),
     encoding: 'utf8',
     maxBuffer: 32 * 1024 * 1024,
   });
@@ -81,23 +83,32 @@ function phaseLoadOrder(){
 }
 
 function phaseSmoke(){
+  const history = cloudContext.verifyHistorical(ROOT);
+  cloudContext.sdkPlan(ROOT,history);
   const files = fs.readdirSync(TOOLS)
     .filter((name)=> /-smoke\.js$/i.test(name))
     .sort();
   const failed = [];
   let appInternal = '';
+  const counts = {current:{pass:0,total:0},historical:{pass:0,total:0}};
 
   for(const name of files){
-    const result = runNode(path.join(TOOLS, name));
+    const historical = cloudContext.historicalSmoke.includes(name);
+    const cwd = historical ? history : ROOT;
+    const kind = historical ? 'historical' : 'current';
+    counts[kind].total++;
+    const result = runNode(path.join(cwd,'tools',name), [], cwd);
     const output = outputFor(result);
     if(name === 'app-dev-smoke.js'){
       const match = output.match(/APP smoke testy:\s*(\d+)\/(\d+)\s+OK/i);
       if(match) appInternal = `${match[1]}/${match[2]}`;
     }
     if(result.status !== 0){
-      failed.push({ name, output });
-    }
+      failed.push({ name:`${name} [${kind}]`, output });
+    }else counts[kind].pass++;
   }
+  cloudContext.verifyHistorical(ROOT,history);
+  for(const [kind,count] of Object.entries(counts)) cloudContext.report(`Smoke **${count.pass}/${count.total}** | ${kind} | SHA \`${cloudContext.git(kind==='historical'?history:ROOT,['rev-parse','HEAD'])}\``);
 
   if(failed.length){
     failed.forEach((row)=> printFailure(`Smoke: ${row.name}`, row.output));

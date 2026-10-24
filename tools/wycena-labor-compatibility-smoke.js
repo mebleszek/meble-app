@@ -24,6 +24,32 @@ async function main(){
   assert.equal(labor.calculateDefinition(timed,{}).quantity,1,'Omitted quantity keeps legacy default');
   console.log('PASS quantity=0 in all seven pricing modes; positive and omitted quantities unchanged');
 
+  const legacyStep={id:'private-old-step',name:'Old step',pricingMode:'timeStartStep',rateType:'workshop',startHours:0.25,stepEveryQty:1,stepHours:1/12,note:'keep'};
+  for(const value of [undefined,null,'',0]){
+    const raw={...legacyStep};if(value!==undefined)raw.startQty=value;
+    const before=JSON.stringify(raw),normalized=labor.normalizeDefinition(JSON.parse(before));
+    assert.equal(normalized.startQty,value===0?0:1);
+    const result=labor.calculateDefinition(raw,{quantity:1,hourlyRates:{workshop:150}});
+    assert.equal(result.pricedHours,value===0?1/3:0.25);
+    assert.equal(result.total,value===0?50:37.5);
+    assert.equal(JSON.stringify(raw),before,'No destructive legacy migration');
+    assert.equal(labor.normalizeDefinition(JSON.parse(JSON.stringify(normalized))).startQty,normalized.startQty);
+  }
+  const explicitStep={...legacyStep,startQty:0,startHours:5/60,stepHours:1/60};
+  assert.ok(Math.abs(labor.calculateDefinition(explicitStep,{quantity:4,hourlyRates:{workshop:150}}).pricedHours*60-9)<1e-8);
+  const versions=require('./script-versions'),fs=require('node:fs');
+  const index=fs.readFileSync('index.html','utf8'),dev=fs.readFileSync('dev_tests.html','utf8');
+  versions.assertVersions(process.cwd());
+  const file='js/app/pricing/labor-catalog.js',version=versions.versions[file];
+  for(const replacement of [file,file+'?v=old']){
+    assert.throws(()=>versions.assertHtmlVersions(index.replace(file+'?v='+version,replacement),dev));
+    assert.throws(()=>versions.assertHtmlVersions(index,dev.replace(file+'?v='+version,replacement)));
+    assert.throws(()=>versions.assertHtmlVersions(index.replace(file+'?v='+version,replacement),dev.replace(file+'?v='+version,replacement)));
+  }
+  assert.throws(()=>versions.assertHtmlVersions(index+'<script src="'+file+'?v='+version+'"></script>',dev),'Duplicate fresh and stale dependencies cannot hide behind includes');
+  assert.throws(()=>versions.assertVersions(process.cwd(),'old'),'API and loader cache version must agree');
+  console.log('PASS omitted/null/empty startQty=1; explicit zero; exact dependency versions reject stale/missing/mixed entry points');
+
   // Exercise the public modal entry/read/cancel path using select semantics, including disabled selected values.
   class Element {
     constructor(tag='input'){this.tagName=tag.toUpperCase();this.children=[];this.attrs={};this.style={};this._value='';this.parentElement={style:{}};this.checked=false;}
@@ -66,6 +92,7 @@ async function main(){
 
   const m=model();
   m.labor=labor.ensureDefaultDefinitions([]).map(row=>labor.normalizeDefinition(row));
+  m.labor.push(labor.normalizeDefinition(legacyStep),labor.normalizeDefinition({...legacyStep,id:'private-null-step',startQty:null}),labor.normalizeDefinition({...explicitStep,id:'private-zero-step'}));
   m.labor.push(labor.normalizeDefinition({...original,quantityTiers:[{min:1,max:2,hours:0.75}]}));
   m.workshopServices.push({id:'synthetic-service-45',name:'Synthetic service',price:0,timeBlockHours:0.75,startHours:0.75,stepHours:0.75});
   const c=r.FC.globalDataContract,before=JSON.stringify(m),packed=await c.pack('synthetic-owner',m);

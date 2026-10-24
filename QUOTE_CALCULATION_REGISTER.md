@@ -35,6 +35,8 @@ Wszystkie ilości 0 dają 0 minut i 0 kwoty, również w kalkulatorze ogólnym i
 
 Nowe normy używają istniejących `time`, `timeStartStep`, `startHours`, `startQty`, `stepEveryQty`, `stepHours`, profili stawek i warunków. Minimalna zmiana modelu: **`startQty=0`** oznacza przygotowanie + krok za każdą sztukę, dopiero przy dodatniej ilości. Pozostałe normy, stawki użytkownika, dopłaty szerokości i gabarytoczasy wyższych korpusów pozostają zachowane. 150/250 zł/h to wyłącznie stawki startowe; przykład 50 zł regulacji nie jest stałą kwotą.
 
+Doprecyzowanie kompatybilności WYCENA-LABOR-REPAIR (24.10.2026): brak `startQty`, `null` i pusty zapis zachowują historyczne domyślne **1**; wyłącznie jawne zero oznacza **0**. Odczyt/obliczenie nie przepisuje źródłowego rekordu. Stara norma 15 min startu + 5 min/krok, n=1, ma 15 min / 37,50 zł przy 150 zł/h; przygotowanie 5 min z jawnym zerem + 1 min/szt., n=4, ma 9 min.
+
 `LABOR_REPLACEMENTS` zachowuje znaczenie i dane starych ID:
 
 - `labor_mount_front` → `labor_door_trial` (pierwsze założenie na warsztacie);
@@ -43,6 +45,12 @@ Nowe normy używają istniejących `time`, `timeStartStep`, `startHours`, `start
 - `labor_loose_shelves` → oba wzajemnie wykluczające się pakiety wiercenia.
 
 Pakowanie i ponowne założenie drzwi oraz osadzenie półek u klienta są odrębnymi operacjami; stare ręczne pozycje warsztatowe ich nie wyłączają. Przy obecności nowych definicji stary automat nie działa równolegle, również gdy nowe definicje zostały świadomie wyłączone. Stare pozycje pozostają dostępne dla istniejących ręcznych przypisań. Aktywne ręczne przypisanie przy szafce lub w ofercie zastępuje automat tego samego ID i jego jawnie zmapowane następniki. Pozycje `automatic-suppressed` pokazują źródłową ilość, zastępujące ręczne ID i zerową naliczoną kwotę; ręczny wpis zachowuje własną ilość, normę, notatkę i kwotę. Niespełniony warunek lub nieaktywna pozycja ręczna nie blokuje nowej automatyki. Nie identyfikujemy pozycji prywatnych po podobieństwie nazwy. Deduplikacja nowych/systemowych pozycji działa po dokładnym ID, idempotentnie.
+
+Prywatna norma używająca tego samego operacyjnego źródła ilości co nowa norma systemowa wymaga jednoznacznego przypisania. Dwa konkurencyjne automaty otrzymują `automatic-blocked`, zero naliczenia i widoczny STOP z ID w centralnym audycie. Wybór ręczny normy o jednoznacznej roli zastępuje odpowiadające automaty bez zmiany prywatnych rekordów. Sam wspólny licznik nie rozstrzyga między ponownym założeniem a regulacją drzwi; nieznany historyczny warsztatowy pakiet `shelf.count` również nie dowodzi, czy obejmuje wiercenie, czy osadzenie. Takie przypadki zachowują konflikt do doprecyzowania tożsamości czynności. Jawne stare ID nadal korzystają wyłącznie z mapy powyżej. Nazwa i profil stawki nie służą do cichego scalania; zmiana profilu stawki nie pozwala naliczyć ponownie tej samej operacji. Niezależne czynności o innych rolach pozostają naliczane.
+
+Transport zachowuje prywatne ID i przypisania. Przy nieedytowanym systemowym zerze startowym automat może użyć jednej jednoznacznej prywatnej stawki ze źródłem `transport.distance_km` (regresja: 5 zł/km × 12 km = 60 zł). Jawnie edytowana stawka systemowa, także zero, jest decyzją użytkownika; ręczne przypisanie stawki kilometrowej zastępuje automat. Konkurujące stawki bez jednoznacznej decyzji dają widoczny STOP, bez arbitralnego wyboru i bez przepisywania cennika. Wyłączenie automatu i brak dodatnich kilometrów zachowują dotychczasowe znaczenie.
+
+Niedopasowane wymagania nóg/zawieszek pozostają w MATERIALE z ilością i ostrzeżeniami, lecz bez fikcyjnego ID lub symbolu `"false"`; prawidłowe dopasowanie nadal korzysta z katalogu i dotychczasowych preferencji.
 
 Planowanie nadal oferuje wyłącznie 1/5/15/30/60 minut. Zapisane 45 minut pozostaje 45 w polach czasu, pakietach, formularzu i zapisie; formularz pokazuje je jako nieaktywną opcję „Zapisany czas”, bez dodawania nowego bloku do wyboru. Zapisane 60 pozostaje 60, a wyniki 45/75 nie są zaokrąglane. Pomoc czasu zawiera dokładny zatwierdzony tekst.
 

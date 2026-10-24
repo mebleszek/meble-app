@@ -865,30 +865,8 @@ function runWycenaNodeSmoke(sandbox){
     { name:'Publiczne API Wyceny jest dostępne', explain:'Szybki kontrakt dla app-dev-smoke bez uruchamiania ciężkich regresji statusów w Node.', check:()=> !!(FC.wycenaCore && FC.wycenaCoreSelection && FC.quoteSnapshotScope && FC.quoteSnapshotStore && FC.projectStatusSync && FC.wycenaTabDebug) },
     { name:'Wycena core ma rozdzielone platformowe warstwy', explain:'Pilnuje splitu wycena-core.js na utils/catalog/source/material-plan/offer/lines/labor/orchestrator.', check:()=> !!(FC.wycenaCoreUtils && FC.wycenaCoreCatalog && FC.wycenaCoreSource && FC.wycenaCoreMaterialPlan && FC.wycenaCoreOffer && FC.wycenaCoreLines && FC.wycenaCoreLabor && typeof FC.wycenaCore.collectQuoteData === 'function') },
     { name:'Wycena core ma spójny świeży cache-busting', explain:'Chroni pierwsze odświeżenie po wdrożeniu przed mieszaniem starych i nowych modułów wycena-core*.', check:()=> {
-      const legacyBaseExpected = '20260510_wycena_core_cache_fix_v1';
-      const legacyChangedExpected = '20260524_hardware_producer_preferences_v1';
-      const newerExpected = '20260529_wycena_context_richer_source_fix_v1';
-      const currentExpected = '20260628_drawer_systems_materials_v1';
-      const registerExpected = '20260628_drawer_systems_materials_v1';
-      const detailsModalExpected = '20260601_quote_details_modal_ui_hardware_match_fix_v1';
-      const detailAccordionScrollExpected = '20260607_quote_details_rozrys_accordion_sync_v1';
-      const auditMaterialsExpected = '20260628_drawer_systems_materials_v1';
-      const pcvTruthExpected = '20260601_pcv_single_source_truth_v1';
-      const hingeCatalogExpected = '20260628_drawer_systems_materials_v1';
-      const singleTruthPreLaborExpected = '20260628_drawer_systems_materials_v1';
-      const laborSingleTruthExpected = '20260628_drawer_systems_materials_v1';
-      const files = ['index.html','dev_tests.html'];
-      const scripts = ['wycena-core-selection.js','wycena-core-utils.js','wycena-core-catalog.js','wycena-core-source.js','wycena-core-material-plan.js','wycena-core-offer.js','wycena-core-lines.js','wycena-core-labor.js','wycena-core.js'];
-      return files.every((file)=> {
-        const html = fs.readFileSync(path.join(process.cwd(), file), 'utf8');
-        return scripts.every((script)=> {
-          if(['wycena-core.js','wycena-core-material-plan.js'].includes(script)) return html.includes(`js/app/wycena/${script}?v=20261019_project_context`);
-          if(script === 'wycena-core.js' || script === 'wycena-core-source.js') return html.includes(`js/app/wycena/${script}?v=20261014_c2_1b2c3a`);
-          if(script === 'wycena-core-material-plan.js') return html.includes(`js/app/wycena/${script}?v=20261013_c2_1b2c2`);
-          const legacyExpected = script === 'wycena-core-lines.js' ? legacyChangedExpected : legacyBaseExpected;
-          return html.includes(`js/app/wycena/${script}?v=${legacyExpected}`) || html.includes(`js/app/wycena/${script}?v=${newerExpected}`) || html.includes(`js/app/wycena/${script}?v=${currentExpected}`) || html.includes(`js/app/wycena/${script}?v=${registerExpected}`) || html.includes(`js/app/wycena/${script}?v=${detailsModalExpected}`) || html.includes(`js/app/wycena/${script}?v=${auditMaterialsExpected}`) || html.includes(`js/app/wycena/${script}?v=${pcvTruthExpected}`) || html.includes(`js/app/wycena/${script}?v=${hingeCatalogExpected}`) || html.includes(`js/app/wycena/${script}?v=${singleTruthPreLaborExpected}`) || html.includes(`js/app/wycena/${script}?v=${laborSingleTruthExpected}`) || html.includes(`js/app/wycena/${script}?v=${detailAccordionScrollExpected}`);
-        });
-      });
+      require('./script-versions.js').assertVersions(process.cwd());
+      return true;
     } },
     { name:'Wycena czyta preferencję producenta okuć z WYWIADU', explain:'Pierwszy most WYWIAD → WYCENA: uproszczone linie okuć używają producenta ustawionego w preferencjach pomieszczenia, bez zapisu zamian do projektu.', check:()=> {
       if(!(FC.wycenaCoreLines && typeof FC.wycenaCoreLines.collectAccessories === 'function' && FC.cabinetCutlist && typeof FC.cabinetCutlist.getCabinetCutList === 'function')) return false;

@@ -22,51 +22,35 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Use Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: "22"
 
-      - name: Select site to test
+      - name: Prepare exact isolated historical CLOUD source
+        id: cloud-context
         shell: bash
         run: |
           set -euo pipefail
-
-          ZIP="$(ls -1t site*.zip 2>/dev/null | head -n 1 || true)"
-
-          if [ -z "$ZIP" ]; then
-            echo "No site*.zip found — testing current repository root."
-            echo "PREFLIGHT_DIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
-            exit 0
-          fi
-
-          echo "Using ZIP: $ZIP"
-          rm -rf _preflight_raw _preflight_site
-          mkdir -p _preflight_raw _preflight_site
-          unzip -q "$ZIP" -d _preflight_raw
-
-          if [ -f _preflight_raw/index.html ]; then
-            cp -a _preflight_raw/. _preflight_site/
-          else
-            topdir="$(find _preflight_raw -mindepth 1 -maxdepth 1 -type d | head -n 1 || true)"
-            if [ -n "$topdir" ] && [ -f "$topdir/index.html" ]; then
-              echo "Flattening top folder: $topdir"
-              cp -a "$topdir"/. _preflight_site/
-            fi
-          fi
-
-          if [ ! -f _preflight_site/index.html ]; then
-            echo "ERROR: index.html not found after unzip/flatten."
-            exit 1
-          fi
-
-          if [ ! -f _preflight_site/tools/preflight.js ]; then
-            echo "ERROR: tools/preflight.js not found in tested package."
-            exit 1
-          fi
-
-          echo "PREFLIGHT_DIR=$GITHUB_WORKSPACE/_preflight_site" >> "$GITHUB_ENV"
+          history="$RUNNER_TEMP/meble-cloud-history"
+          test ! -e "$history"
+          sha="$(node -p "require('./tools/cloud-ci-context.js').HISTORICAL_SHA")"
+          git clone --quiet --no-hardlinks --no-checkout --local "$GITHUB_WORKSPACE" "$history"
+          git -C "$history" checkout --quiet --detach "$sha"
+          CLOUD_CI_HISTORY_ROOT="$history" node <<'NODE'
+          const c = require('./tools/cloud-ci-context.js');
+          c.verifyHistorical(process.cwd());
+          c.sdkPlan(process.cwd());
+          const event = JSON.parse(require('node:fs').readFileSync(process.env.GITHUB_EVENT_PATH,'utf8'));
+          if (event.pull_request) c.report(`Requested PR HEAD: \`${event.pull_request.head.sha}\`; BASE: \`${event.pull_request.base.sha}\`.`);
+          c.report(`Current source SHA: \`${c.git(process.cwd(),['rev-parse','HEAD'])}\`; historical CLOUD evidence SHA: \`${c.HISTORICAL_SHA}\` (425 source pins verified). Historical PASS grants no authority to current source. Firebase LIVE_BLOCKED.`);
+          NODE
+          echo "CLOUD_CI_HISTORY_ROOT=$history" >> "$GITHUB_ENV"
+          echo "PREFLIGHT_DIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
 
       - name: Run full Meble-App preflight
         shell: bash
@@ -92,20 +76,30 @@ jobs:
       # Same approval event, before the existing auto-merge dependency succeeds.
       # Emulator-only demo project; never login/deploy or read live Firebase.
       - name: Use Java 21 for Firebase emulators
+        id: java
+        if: ${{ !cancelled() && steps.cloud-context.outcome == 'success' }}
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
 
-      - name: Run Firebase SDK and Security Rules emulator regressions
+      - name: Install locked emulator dependencies in both contexts
+        id: emulator-deps
+        if: ${{ !cancelled() && steps.java.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix "$PREFLIGHT_DIR/tools/firebase-pilot" ci --no-audit --no-fund
+          npm --prefix "$CLOUD_CI_HISTORY_ROOT/tools/firebase-pilot" ci --no-audit --no-fund
+
+      - name: Run mandatory current and historical SDK/Auth/Firestore/Rules
+        if: ${{ !cancelled() && steps.emulator-deps.outcome == 'success' }}
         shell: bash
         env:
           CI: '1'
         run: |
           set -euo pipefail
-          cd "$PREFLIGHT_DIR/tools/firebase-pilot"
-          npm ci --no-audit
-          npm test
+          node "$PREFLIGHT_DIR/tools/cloud-ci-emulators.js"
 
   auto-merge:
     if: ${{ github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}

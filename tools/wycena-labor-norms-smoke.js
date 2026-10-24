@@ -59,15 +59,23 @@ test('Hinge drilling and layout are per original door, including split TIP-ON an
     const d=r.details();near(d.filter(row=>['hinge.drill_count','hinge.extra_drill_count'].includes(row.quantitySource)).reduce((s,row)=>s+row.hours*60,0),t);
   }
   r.setPanels([{w:30,h:200},{w:30,h:200}]);near(r.details().filter(d=>['hinge.drill_count','hinge.extra_drill_count'].includes(d.quantitySource)).reduce((s,d)=>s+d.hours*60,0),9);
-  FC.cabinetHardwareRequirements.setHingeDoorOverride(cab,'left',{typeId:'hinge_170_overlay'});
+  FC.cabinetHardwareRequirements.setHingeDoorOverride(cab,'left',{typeId:FC.cabinetHardwareRequirements.HINGE_TYPES.CORNER_170});
+  r.setPanels([{w:30,h:400},{w:30,h:200}]);
+  const ordinary=FC.cabinetHardwareRequirements.getHingeRequirementsWithQty('kuchnia',clone(cab));
+  assert.ok(ordinary.some(row=>row.doorKey==='left' && row.typeId===FC.cabinetHardwareRequirements.HINGE_TYPES.CORNER_170));
+  assert.ok(ordinary.some(row=>row.doorKey==='right' && row.typeId===FC.cabinetHardwareRequirements.HINGE_TYPES.OVERLAY_110));
   const before=JSON.stringify(cab);
   cab.openingSystem='TIP-ON';
   const rows=FC.cabinetHardwareRequirements.getHingeRequirementsWithQty('kuchnia',clone(cab));
-  assert.equal(rows.length,4);assert.equal(rows.filter(r=>r.doorKey==='left').reduce((s,r)=>s+r.qty,0),2);assert.equal(rows.filter(r=>r.doorKey==='right').reduce((s,r)=>s+r.qty,0),2);
-  assert.equal(r.fact('hinge.extra_drill_count').value,0);assert.equal(r.fact('hinge.door_count').value,2);assert.equal(r.fact('hinge.door_hinge_count').value,4);
-  cab.details.hingeDrilling='predrilled';assert.equal(r.fact('hinge.drill_count').value,0);assert.equal(r.fact('hinge.extra_drill_count').value,0);assert.equal(r.fact('hinge.count').value,4);
-  assert.equal(FC.cabinetCutlist.getCabinetCutList(cab,'kuchnia').filter(p=>p.hardwareRequirement?.kind==='hinge').reduce((s,p)=>s+p.qty,0),4);
+  assert.equal(rows.length,4);assert.equal(rows.filter(r=>r.doorKey==='left').reduce((s,r)=>s+r.qty,0),4);assert.equal(rows.filter(r=>r.doorKey==='right').reduce((s,r)=>s+r.qty,0),2);
+  assert.equal(r.fact('hinge.extra_drill_count').value,2);assert.equal(r.fact('hinge.door_count').value,2);assert.equal(r.fact('hinge.door_hinge_count').value,6);
+  near(r.details().filter(d=>['hinge.drill_count','hinge.extra_drill_count'].includes(d.quantitySource)).reduce((sum,d)=>sum+d.hours*60,0),21);
+  cab.details.hingeDrilling='predrilled';assert.equal(r.fact('hinge.drill_count').value,0);assert.equal(r.fact('hinge.extra_drill_count').value,0);assert.equal(r.fact('hinge.count').value,6);
+  assert.equal(FC.cabinetCutlist.getCabinetCutList(cab,'kuchnia').filter(p=>p.hardwareRequirement?.kind==='hinge').reduce((s,p)=>s+p.qty,0),6);
   assert.ok(before.includes('hardwareRequirementOverrides'));
+  r.setPanels([]);
+  for(const code of ['hinge.count','hinge.drill_count','hinge.extra_drill_count','hinge.door_count'])assert.equal(r.fact(code).value,0);
+  assert.equal(FC.cabinetHardwareRequirements.getHingeRequirementsWithQty('kuchnia',cab).length,0);
 });
 test('Door cycle, current rates, central register and explicit manual replacement have no duplicate automats',()=>{
   const r=fixture(),{cab,FC}=r;
@@ -83,7 +91,7 @@ test('Door cycle, current rates, central register and explicit manual replacemen
   const saved=JSON.stringify(cab.laborItems),manual=r.details();
   assert.equal(manual.filter(d=>d.sourceKind==='manual').length,2);
   assert.equal(manual.filter(d=>d.sourceKind==='automatic-suppressed').length,2);
-  for(const source of ['hinge.door_count','hinge.door_cycle_count','shelf.count'])assert.ok(manual.filter(d=>d.quantitySource===source).every(d=>d.sourceKind==='automatic'&&d.total>0),'Distinct packing/site operations remain billed: '+source);
+  for(const source of ['hinge.door_count','hinge.door_cycle_count','shelf.count']){const found=manual.filter(d=>d.quantitySource===source);assert.ok(found.length>0,'Required independent operation '+source);assert.ok(found.every(d=>d.sourceKind==='automatic'&&d.total>0),'Distinct packing/site operations remain billed: '+source);}
   assert.ok(manual.filter(d=>d.sourceKind==='automatic-suppressed').every(d=>d.total===0&&d.quantity===0));
   assert.equal(JSON.stringify(cab.laborItems),saved);
   const line=FC.wycenaCoreLabor.collectCabinetLabor(['kuchnia'])[0];
@@ -111,6 +119,61 @@ test('Unchanged areas retain their existing definitions and cutlist geometry',()
   const carrying=r.rates().find(d=>d.id==='labor_carrying_cabinet');near(carrying.startHours,0.25);near(carrying.stepHours,1/12);assert.equal(carrying.rateType,'helper');
   const parts=FC.cabinetCutlist.getCabinetCutList(cab,'kuchnia');assert.equal(parts.find(p=>p.name==='Bok').a,70.2);assert.equal(parts.find(p=>p.name==='Półka').qty,2);
 });
+test('repair: private operation collision, explicit replacement, independent work and historical catalog',()=>{
+  const r=fixture(),{FC,cab}=r;
+  const base=r.rates().find(d=>d.id==='labor_shelves_adjustable');
+  const own={...clone(base),id:'private-shelf',name:'Private drilling',startHours:0.5,note:'private note',price:123};
+  r.rates().push(own);
+  const saved=JSON.stringify(r.rates()),oldItems=JSON.stringify(cab.laborItems||[]);
+  let rows=r.details().filter(d=>d.quantitySource==='shelf.adjustable_count');
+  assert.equal(rows.length,2);assert.ok(rows.every(d=>d.total===0&&d.hours===0&&d.sourceKind==='automatic-blocked'&&d.warnings.some(w=>w.includes('STOP:')&&w.includes('private-shelf'))));
+  const register=FC.quoteCalculationRegister.buildRegister({labor:FC.wycenaCoreLabor.collectCabinetLabor(['kuchnia'])},{});
+  assert.ok(register.warnings.some(w=>w.message.includes('private-shelf')),'Conflict is visible in central audit');
+  assert.equal(JSON.stringify(cab.laborItems||[]),oldItems);
+  cab.laborItems=[{rateId:own.id,qty:3,note:'chosen exact norm'}];
+  rows=r.details();const manual=rows.filter(d=>d.sourceKind==='manual');assert.equal(manual.length,1);assert.equal(manual[0].quantity,3);assert.ok(manual[0].note.includes('chosen exact norm'));
+  near(manual[0].total,FC.laborCatalog.calculateDefinition(own,{quantity:3,hourlyRates:{workshop:150}}).total);
+  const suppressed=rows.filter(d=>d.quantitySource==='shelf.adjustable_count'&&d.sourceKind!=='manual');assert.equal(suppressed.length,2);assert.ok(suppressed.every(d=>d.sourceKind==='automatic-suppressed'&&d.total===0));
+  for(const source of ['shelf.count','hinge.door_count','hinge.door_cycle_count'])assert.ok(rows.some(d=>d.quantitySource===source&&d.total>0&&d.sourceKind==='automatic'));
+  assert.equal(JSON.stringify(r.rates()),saved,'Private catalog is never rewritten by conflict handling');
+  own.rateType='assembly';cab.laborItems=[];
+  rows=r.details().filter(d=>d.quantitySource==='shelf.adjustable_count');assert.equal(rows.length,2);assert.ok(rows.every(d=>d.sourceKind==='automatic-blocked'&&d.total===0),'Changing the hourly profile does not make duplicate drilling independent');
+  own.rateType='workshop';
+  cab.laborItems=[{rateId:'labor_loose_shelves',qty:2,note:'historic manual package'}];
+  rows=r.details();assert.ok(rows.some(d=>d.sourceKind==='manual'&&d.note.includes('historic manual package')));
+  assert.ok(rows.filter(d=>d.quantitySource==='shelf.adjustable_count').every(d=>d.total===0));
+  cab.laborItems=[{rateId:'labor_adjust_front',qty:2,note:'old adjustment'}];
+  rows=r.details();
+  assert.ok(rows.some(d=>d.name===r.rates().find(d=>d.id==='labor_door_adjust').name&&d.sourceKind==='automatic-suppressed'&&d.total===0));
+  assert.ok(rows.some(d=>d.name===r.rates().find(d=>d.id==='labor_door_rehang').name&&d.sourceKind==='automatic'&&d.total>0),'Legacy adjustment does not suppress independent rehang');
+  const historical={id:'old-private-unrelated',name:base.name,quantitySource:'cabinet.count',timeBlockHours:0.75,pricingMode:'time',rateType:'specialist',price:99,note:'legacy'};
+  r.rates().push(historical);cab.laborItems=[];
+  assert.ok(r.details().some(d=>d.name===historical.name&&d.rateType==='specialist'&&d.total>0),'Same name does not replace a different role');
+  r.rates().splice(r.rates().findIndex(d=>d.id===own.id),1);
+  rows=r.details().filter(d=>d.quantitySource==='shelf.adjustable_count');assert.equal(rows.length,1);assert.equal(rows[0].sourceKind,'automatic');near(rows[0].hours*60,15);
+  const ambiguous={...clone(r.rates().find(d=>d.id==='labor_door_rehang')),id:'private-ambiguous-door'};
+  r.rates().push(ambiguous);cab.laborItems=[{rateId:ambiguous.id,qty:2,note:'ambiguous choice'}];
+  rows=r.details().filter(d=>d.quantitySource==='hinge.door_cycle_count'&&d.sourceKind!=='manual');
+  assert.equal(rows.length,3);assert.ok(rows.every(d=>d.total===0));assert.ok(rows.some(d=>d.warnings.some(w=>w.includes('STOP:'))),'Manual selection cannot silently resolve two different operations with one source');
+  const oldPrivate={...clone(r.rates().find(d=>d.id==='labor_loose_shelves')),id:'private-old-shelf-package',note:'historic private 45',timeBlockHours:0.75};
+  r.rates().push(oldPrivate);cab.laborItems=[];
+  const oldBytes=JSON.stringify(oldPrivate);
+  rows=r.details();assert.ok(rows.some(d=>d.note.includes(oldPrivate.note)&&d.sourceKind==='automatic-blocked'&&d.total===0));
+  assert.equal(JSON.stringify(oldPrivate),oldBytes,'Unknown historical private operation remains intact and requires explicit identity');
+});
+test('repair: missing and resolved leg/hanger products preserve requirements and real symbols',()=>{
+  const r=fixture(),{FC,cab}=r;
+  for(const kind of ['leg','hanger']){
+    cab.type=kind==='leg'?'stojąca':'wisząca';
+    FC.catalogStore={getAccessories:()=>[]};
+    let rows=FC.wycenaCoreLines.collectAccessories(['kuchnia']).filter(d=>d.hardwareRequirement?.kind===kind);
+    assert.equal(rows.length,1);assert.ok(rows[0].qty>0);assert.equal(rows[0].resolvedHardwareSymbol,'');assert.equal(rows[0].resolvedHardwareItemId,'');assert.ok(rows[0].warnings.length>0);assert.equal(rows[0].total,0);
+    const product={id:'private-'+kind,name:kind==='leg'?'Nóżka regulowana':'Zawieszka szafki',symbol:'REAL-'+kind,hardwareCategory:'Akcesoria',hardwareUnit:'szt.',price:7,status:'active'};
+    FC.catalogStore={getAccessories:()=>[product]};
+    rows=FC.wycenaCoreLines.collectAccessories(['kuchnia']).filter(d=>d.hardwareRequirement?.kind===kind);
+    assert.equal(rows.length,1);assert.equal(rows[0].resolvedHardwareSymbol,product.symbol);assert.equal(rows[0].resolvedHardwareItemId,product.id);near(rows[0].total,rows[0].qty*7);assert.equal(rows[0].warnings.length,0);
+  }
+});
 function main(){for(const[name,fn]of tests){fn();console.log('PASS '+name);}console.log(`WYCENA-LABOR norms: ${tests.length}/${tests.length} PASS`);}
 if(require.main===module)main();
-module.exports={fixture,main};
+module.exports={fixture,main,tests};

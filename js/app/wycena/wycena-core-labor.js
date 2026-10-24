@@ -768,6 +768,20 @@
     }
   }
 
+  // Only the approved LABOR operations define identity here. Names are never identities.
+  const laborOperationIds = new Set(['labor_legs_install','labor_hangers_install','labor_hdf_cutouts','labor_nuts_workshop','labor_shelves_adjustable','labor_shelves_fixed','labor_shelves_place','labor_hinge_drill','labor_hinge_layout','labor_hinge_fastening','labor_door_trial','labor_door_pack','labor_door_rehang','labor_door_adjust']);
+  function operationPeers(def){
+    const defaults = FC.laborCatalogDefinitions && FC.laborCatalogDefinitions.DEFAULT_LABOR_DEFINITIONS || [];
+    // Two distinct operations may share a quantity source (rehang and adjustment).
+    if(laborOperationIds.has(text(def.id))) return [text(def.id)];
+    const replacements = FC.laborCatalogDefinitions && FC.laborCatalogDefinitions.LABOR_REPLACEMENTS || {};
+    if(replacements[text(def.id)]) return []; // Exact legacy IDs retain their explicit replacement map.
+    const source = text(def.quantitySource);
+    // A historical private shelf package has no identity proving drilling vs placement.
+    if(source === 'shelf.count' && text(def.rateType) === 'workshop') return ['labor_shelves_adjustable','labor_shelves_fixed','labor_shelves_place'];
+    const matches = defaults.filter(row=>laborOperationIds.has(text(row.id)) && text(row.quantitySource) === source);
+    return matches.map(row=>text(row.id));
+  }
   function manualAutomationSuppression(entry, defs){
     const cab = entry && entry.cabinet || {};
     const local = Array.isArray(cab.laborItems) ? cab.laborItems : [];
@@ -781,6 +795,21 @@
       if(!def || !evaluateConditions(def,entry).matched) return;
       blocked.set(id,id);
       (replacement[id] || []).forEach(next=>blocked.set(next,id));
+      const peers = operationPeers(def, defs);
+      if(peers.length > 1){
+        // A private selection cannot silently choose between rehang and adjustment.
+        defs.filter(row=>operationPeers(row).some(role=>peers.includes(role))).forEach(row=>{
+          if(text(row.id)!==id) blocked.set(text(row.id),'STOP:'+id);
+        });
+      }
+      if(peers.length === 1 || (replacement[id] || []).length){
+        // Explicit manual selection resolves a unique operation without rewriting the private record.
+        const targets = (replacement[id] || []).concat(peers.length === 1 ? peers : []);
+        defs.filter(row=>{
+          const roles = operationPeers(row,defs);
+          return roles.length === 1 && targets.includes(roles[0]);
+        }).forEach(row=>blocked.set(text(row.id),id));
+      }
     });
     return blocked;
   }
@@ -803,7 +832,9 @@
   function addGenericQuantitySourceLabor(components, entry, defs, rates, volumeM3, options){
     const cab = entry && entry.cabinet || {};
     const opts = options && typeof options === 'object' ? options : {};
-    autoQuantityDefs(defs, opts).forEach((def)=> {
+    const automatic = autoQuantityDefs(defs, opts).filter(def=>evaluateConditions(def,entry).matched);
+    const suppression = manualAutomationSuppression(entry, defs);
+    automatic.forEach((def)=> {
       const cond = evaluateConditions(def, entry);
       if(!cond.matched) return;
       const meta = quantityFromSource(def, entry, 0);
@@ -815,22 +846,27 @@
         return;
       }
       const role = semanticRole(def);
-      const suppressor = manualAutomationSuppression(entry, defs).get(text(def.id));
+      const suppressor = suppression.get(text(def.id));
+      const peers = operationPeers(def,defs);
+      const overlaps = automatic.filter(row=>!suppression.has(text(row.id)) && operationPeers(row,defs).some(id=>peers.includes(id)));
+      const ambiguousManual = text(suppressor).startsWith('STOP:');
+      const conflict = ambiguousManual || (!suppressor && overlaps.length > 1 && overlaps.some(row=>!laborOperationIds.has(text(row.id))));
+      const conflictWarning = conflict ? 'STOP: konflikt automatycznych norm tej samej pracy: '+(ambiguousManual ? text(suppressor).slice(5)+', '+text(def.id) : overlaps.map(row=>text(row.id)).join(', '))+'. Wskaż jednoznaczną czynność; zachowano rekordy, czas, cenę i notatki. Nie naliczono konfliktujących automatów.' : '';
       const calcVolumeM3 = (role.sourceRole === 'cabinet-body-labor' || role.sourceRole === 'project-design-unusual') ? cabinetBodyVolumeM3(entry && entry.roomId, cab) : volumeM3;
-      const calc = calculate(def, { quantity:suppressor ? 0 : meta.quantity, volumeM3:calcVolumeM3, hourlyRates:rates });
+      const calc = calculate(def, { quantity:suppressor || conflict ? 0 : meta.quantity, volumeM3:calcVolumeM3, hourlyRates:rates });
       const cmp = componentFromCalc(calc, Object.assign({
         key:slug(`${entry.roomId}_${cab.id}_${def.id}`),
         suffix:`source_${text(def.id) || text(def.name)}`,
         unit:'szt.',
         name:text(def.name) || 'Czynność',
-        note:[sourceNote(meta), meta.fact && meta.fact.source, conditionNote(cond), suppressor ? 'Automat zastąpiony ręcznym przypisaniem '+suppressor+'; ręczne dane i ich wycena są zachowane.' : (text(def.note) || text(opts.note) || 'Automatycznie z wybranego źródła ilości.')].filter(Boolean).join(' • '),
+        note:[sourceNote(meta), meta.fact && meta.fact.source, conditionNote(cond), conflictWarning, suppressor ? 'Automat zastąpiony ręcznym przypisaniem '+suppressor+'; ręczne dane i ich wycena są zachowane.' : (text(def.note) || text(opts.note) || 'Automatycznie z wybranego źródła ilości.')].filter(Boolean).join(' • '),
         sourceType:role.sourceType,
         sourceLabel:cabinetSourceLabel(entry),
         sourceId:text(cab && cab.id),
         sourceRole:role.sourceRole,
-        sourceKind:suppressor ? 'automatic-suppressed' : 'automatic',
-        allowZero:!!suppressor,
-        warnings:(suppressor ? ['Automat zastąpiony ręcznym przypisaniem '+suppressor+'.'] : []).concat(meta.warning ? [meta.warning] : []).concat(conditionWarnings(cond))
+        sourceKind:conflict ? 'automatic-blocked' : (suppressor ? 'automatic-suppressed' : 'automatic'),
+        allowZero:!!suppressor || conflict,
+        warnings:(conflict ? [conflictWarning] : []).concat(suppressor ? ['Automat zastąpiony ręcznym przypisaniem '+suppressor+'.'] : []).concat(meta.warning ? [meta.warning] : []).concat(conditionWarnings(cond))
       }, sourceOpts(meta), conditionOpts(cond)));
       if(cmp) components.push(cmp);
     });

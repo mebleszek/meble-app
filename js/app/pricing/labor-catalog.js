@@ -460,7 +460,7 @@
       conditions,
       quantityTiers:isHourly ? [] : normalizeTiers(src.quantityTiers),
       startHours:isHourly ? 0 : clampTimeBlock(src.startHours),
-      startQty:isHourly ? 1 : Math.max(0, Math.floor(num(src.startQty, 1))),
+      startQty:isHourly || src.startQty == null || text(src.startQty) === '' ? 1 : Math.max(0, Math.floor(num(src.startQty, 1))),
       stepEveryQty:isHourly ? 1 : Math.max(1, Math.floor(num(src.stepEveryQty, 1))),
       stepHours:isHourly ? 0 : clampTimeBlock(src.stepHours),
       volumePricePerM3:isHourly ? 0 : volumePricePerM3,

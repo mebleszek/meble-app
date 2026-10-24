@@ -250,6 +250,8 @@ test('WYCENA-LABOR: editable norms, zero included units and saved 45 minutes sur
   value.labor.find(row => row.id === 'labor_rate_assembly').price = 317;
   value.labor.push(clone(catalog.normalizeDefinition({id: 'synthetic-saved-45', name: 'Synthetic saved 45',
     pricingMode: 'time', timeBlockHours: 0.75, startHours: 0.75, stepHours: 0.75, rateType: 'workshop'})));
+  value.labor.push(clone(catalog.normalizeDefinition({id:'synthetic-old-step',name:'Old private step',pricingMode:'timeStartStep',
+    rateType:'workshop',startHours:0.25,stepEveryQty:1,stepHours:1/12,note:'keep private'})));
   value.workshopServices.push({id: 'synthetic-saved-service-45', name: 'Synthetic service 45', price: 0,
     timeBlockHours: 0.75, startHours: 0.75, stepHours: 0.75});
   seed(a.r, value);
@@ -271,6 +273,11 @@ test('WYCENA-LABOR: editable norms, zero included units and saved 45 minutes sur
   assert.ok(Math.abs(result.total - 28.65) < 1e-8);
   assert.equal(b.r.FC.laborCatalog.calculateDefinition(legs, {quantity: 0, hourlyRates: rates}).total, 0);
   assert.equal(restored.labor.find(row => row.id === 'synthetic-saved-45').timeBlockHours, 0.75);
+  const oldStep=restored.labor.find(row=>row.id==='synthetic-old-step');
+  assert.equal(oldStep.startQty,1);
+  const oldResult=b.r.FC.laborCatalog.calculateDefinition(oldStep,{quantity:1,hourlyRates:{workshop:150}});
+  assert.equal(oldResult.pricedHours,0.25);assert.equal(oldResult.total,37.5);
+
   assert.deepEqual([...a.r.rows], beforeA);
   assert.deepEqual([...b.r.rows], beforeB);
 });

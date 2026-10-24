@@ -26,7 +26,7 @@ assert(defs.includes("id:'project_design_parts'") && defs.includes("id:'project_
 assert(laborCore.includes('collectProjectPreparationLines') && laborCore.includes('project-design-parts') && laborCore.includes('project-design-unusual'), 'WYCENA ma osobny kolektor Projekt i przygotowanie');
 assert(!laborCore.includes('project-design-parts-labor') && !laborCore.includes('project-design-unusual-labor'), 'Pozycje projektu nie mogą już mieć roli robocizny szafek');
 assert(read('js/app/quote/quote-calculation-register.js').includes("project:'Projekt i przygotowanie'"), 'Rejestr wyliczeń musi mieć dział Projekt i przygotowanie');
-assert(derived.includes("const VERSION = '20261013_drawer_front_geometry_v1'"), 'derivedFacts musi mieć nową wersję cache');
+require('./script-versions.js').assertVersions(process.cwd());
 
 const sandbox = {
   console,
