@@ -777,8 +777,8 @@
     const replacements = FC.laborCatalogDefinitions && FC.laborCatalogDefinitions.LABOR_REPLACEMENTS || {};
     if(replacements[text(def.id)]) return []; // Exact legacy IDs retain their explicit replacement map.
     const source = text(def.quantitySource);
-    // A historical private shelf package has no identity proving drilling vs placement.
-    if(source === 'shelf.count' && text(def.rateType) === 'workshop') return ['labor_shelves_adjustable','labor_shelves_fixed','labor_shelves_place'];
+    // Workshop shelf packages can overlap drilling variants, never independent on-site placement.
+    if(source === 'shelf.count' && text(def.rateType) === 'workshop') return ['labor_shelves_adjustable','labor_shelves_fixed'];
     const matches = defaults.filter(row=>laborOperationIds.has(text(row.id)) && text(row.quantitySource) === source);
     return matches.map(row=>text(row.id));
   }

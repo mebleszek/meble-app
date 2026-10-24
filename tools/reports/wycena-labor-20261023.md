@@ -1,5 +1,14 @@
 # WYCENA-LABOR — raport implementacji 23.10.2026
 
+## Domknięcie audytu półek — 24.10.2026
+
+Na wejściowym HEAD `9eb360085284d5a27e472a32202ee7c97f9f5c67` potwierdzono błąd: prywatny warsztatowy pakiet `shelf.count` blokował niezależne `labor_shelves_place`, bez przypisania i z ręcznym przypisaniem. Dla 2 półek zamiast 7 min / 29,17 zł (250 zł/h) powstawała pozycja `automatic-blocked` z zerową kwotą. Nowa regresja nie przechodziła przed poprawką.
+
+Minimalna naprawa usuwa osadzenie u klienta z grupy kolizji warsztatowego pakietu. Konflikt obu wariantów wiercenia pozostaje audytowany; prywatna norma i ręczna ilość/notatka nie są przepisywane. Regresja sprawdza 6 przypadków: półki regulowane/nieregulowane × brak przypisania/przypisanie przy szafce/przypisanie ofertowe. We wszystkich osadzenie zachowuje automatyczne naliczenie, ilość 2, 7 min i stawkę montażową 250 zł/h; prywatny wpis ręczny przy szafce zachowuje 3 × 45 min / 337,50 zł stawki warsztatowej.
+
+Celowana diagnostyka: nowa grupa (6 przypadków) PASS oraz istniejąca grupa prywatnych konfliktów/zastąpień PASS. Składnia trzech zmienionych JS: 3/3 PASS; dokładne wersje obu loaderów i kontrola diffu PASS. Zmieniono tylko runtime robocizny, jego regresję, niezbędny cache-busting w obu HTML/walidatorze oraz powiązany rejestr i ten raport. Bez zmian chmury, workflow i pozostałych reguł. Pełne CI pozostaje **CI_PENDING**, wydanie **RELEASE_BLOCKED**, Firebase **LIVE_BLOCKED**. Końcowe HEAD jest w raporcie przekazania.
+
+
 ## Aktualizacja 24.10.2026 — WYCENA-LABOR-REPAIR + CLOUD-CI
 
 Zatwierdzono implementację całego pakietu i push istniejącej gałęzi, bez nowej próby wydania. Wejściowy HEAD `6870158361e926551305bedb6a7c348d952a27b5`; BASE/main `306f90a4cfd8bcb4277aa8b4d140e911493ddd60`. Worktree `/workspace/wycena-labor`, gałąź `feat/wycena-labor-20261023`, istniejący PR #79. Końcowe SHA/push/clean są w raporcie przekazania, aby plik nie zapisywał własnego SHA.

@@ -161,6 +161,38 @@ test('repair: private operation collision, explicit replacement, independent wor
   rows=r.details();assert.ok(rows.some(d=>d.note.includes(oldPrivate.note)&&d.sourceKind==='automatic-blocked'&&d.total===0));
   assert.equal(JSON.stringify(oldPrivate),oldBytes,'Unknown historical private operation remains intact and requires explicit identity');
 });
+test('repair: legacy workshop shelf norms never suppress independent on-site placement',()=>{
+  for(const shelfType of ['adjustable','fixed'])for(const assignment of ['none','cabinet','offer']){
+    const r=fixture(),{FC,cab}=r;
+    cab.details.shelfType=shelfType;
+    const placement=r.rates().find(row=>row.id==='labor_shelves_place');
+    const findPlacement=()=>r.details().filter(row=>row.name===placement.name);
+    const baseline=findPlacement();assert.equal(baseline.length,1);
+    const pick=row=>({sourceKind:row.sourceKind,quantity:row.quantity,hours:row.hours,total:row.total,rateType:row.rateType,hourlyRate:row.hourlyRate});
+    assert.equal(baseline[0].sourceKind,'automatic');assert.equal(baseline[0].quantity,2);
+    near(baseline[0].hours*60,7);assert.equal(baseline[0].hourlyRate,250);near(baseline[0].total,7/60*250);
+    const legacy={id:'private-legacy-workshop-shelf',name:'Private workshop package',quantitySource:'shelf.count',rateType:'workshop',pricingMode:'time',quantityMode:'linear',timeBlockHours:0.75,price:123,note:'Keep private 45-minute norm',active:true};
+    r.rates().push(legacy);
+    const manual={rateId:legacy.id,qty:3,note:'Keep manual quantity and note'};
+    if(assignment==='cabinet')cab.laborItems=[manual];
+    if(assignment==='offer')FC.quoteOfferStore={getCurrentDraft:()=>({rateSelections:[manual]})};
+    const catalogBytes=JSON.stringify(r.rates()),assignmentBytes=JSON.stringify(manual),cabinetBytes=JSON.stringify(cab);
+    const actual=findPlacement();assert.equal(actual.length,1);
+    assert.deepEqual(pick(actual[0]),pick(baseline[0]),shelfType+'/'+assignment+': workshop conflict must not affect on-site quantity, time or assembly rate');
+    assert.ok(!actual[0].warnings.some(warning=>warning.includes('STOP:')||warning.includes(legacy.id)));
+    const drilling=r.details().filter(row=>row.quantitySource===('shelf.'+shelfType+'_count'));
+    assert.equal(drilling.length,1);assert.equal(drilling[0].total,0);
+    assert.equal(drilling[0].sourceKind,'automatic-blocked');assert.ok(drilling[0].warnings.some(warning=>warning.includes(legacy.id)),'Workshop ambiguity remains audited');
+    const privateRows=r.details().filter(row=>row.name===legacy.name);
+    assert.equal(privateRows.length,assignment==='cabinet'?2:1);
+    if(assignment==='none')assert.ok(privateRows.every(row=>row.total===0&&row.sourceKind==='automatic-blocked'));
+    if(assignment==='cabinet'){
+      const chosen=privateRows.filter(row=>row.sourceKind==='manual');assert.equal(chosen.length,1);
+      assert.equal(chosen[0].quantity,3);near(chosen[0].hours*60,135);near(chosen[0].total,337.5);assert.ok(chosen[0].note.includes(manual.note));
+    }
+    assert.equal(JSON.stringify(r.rates()),catalogBytes);assert.equal(JSON.stringify(manual),assignmentBytes);assert.equal(JSON.stringify(cab),cabinetBytes);
+  }
+});
 test('repair: missing and resolved leg/hanger products preserve requirements and real symbols',()=>{
   const r=fixture(),{FC,cab}=r;
   for(const kind of ['leg','hanger']){

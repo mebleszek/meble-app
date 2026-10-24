@@ -25,7 +25,7 @@ const versions = Object.freeze({
   "js/app/wycena/wycena-core-material-plan.js": "20261019_project_context",
   "js/app/wycena/wycena-core-offer.js": "20261024_wycena_labor_repair_v1",
   "js/app/wycena/wycena-core-lines.js": "20261024_wycena_labor_repair_v1",
-  "js/app/wycena/wycena-core-labor.js": "20261024_wycena_labor_repair_v1",
+  "js/app/wycena/wycena-core-labor.js": "20261024_wycena_labor_shelf_boundary_v1",
   "js/app/wycena/wycena-core.js": "20261019_project_context",
   "js/app/quote/quote-snapshot-store.js":"20261014_c2_1b2c3b",
   "js/app/wycena/wycena-tab-selection-version.js":"20260628_drawer_systems_materials_v1",
