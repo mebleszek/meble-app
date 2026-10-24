@@ -82,6 +82,8 @@ assert(projectRows.some((row)=> row.id === 'project_design_unusual' && row.secti
 assert(!laborRows.some((row)=> /Projekt techniczny/.test(row.name) || row.id === 'project_design_parts' || row.id === 'project_design_unusual'), 'Robocizna szafek nie może zawierać pozycji projektu', laborRows);
 assert(projectRows.some((row)=> row.quantitySource === 'cabinet.part_count' && row.quantitySourceDisplay === '10 szt.' && row.hours > 0 && row.hourlyRate === 300 && row.calculation.includes('10')), 'Szczegóły formatek mają pokazać źródło ilości, czas, stawkę i wyliczenie', projectRows);
 assert(projectRows.some((row)=> row.quantitySource === 'cabinet.unusual_project_count' && row.quantitySourceDisplay === 'tak' && row.hours > 0 && row.hourlyRate === 300 && row.calculation.includes('gabarytoczas')), 'Szczegóły nietypowego projektu mają pokazać informację o nietypowości, czas, stawkę i gabarytoczas', projectRows);
+const unusual = projectRows.find((row)=> row.id === 'project_design_unusual');
+assert(unusual.calculation === 'Cena = (1 × 15 min + 3 min) × 300 zł/h ÷ 60 = 90,00 zł (zaokrąglenie do groszy). Czas bazowy: 1 × 15 min; gabarytoczas: 3 min.', 'Opis ma identyfikować oba rzeczywiste składniki czasu, stawkę i niezmienione 90 zł', unusual);
 
 const snapshot = sandbox.FC.quoteSnapshot.buildSnapshot({ lines:{ project:projectLines, labor:laborLines }, commercial:{} });
 close(snapshot.totals.project, 140, 'Snapshot ma osobny total projektu');

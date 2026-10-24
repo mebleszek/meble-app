@@ -240,7 +240,7 @@
       edgeWastePercent:10,
       edgeWasteMeters:wasteMeters,
       edgeQuotedMeters:quotedMeters,
-      note:`Z elementów: ${rawMeters} mb • zapas 10% • do wyceny: ${quotedMeters} mb po zaokrągleniu metrów zgodnie z regułą PCV`,
+      note:`Z elementów: ${rawMeters} mb • zapas +10% • do wyceny: ${quotedMeters} mb po zaokrągleniu metrów zgodnie z regułą PCV`,
       calculation: mode === 'front'
         ? 'Cena = realne metry oklein z szafek ustawionych jako PCV pod kolor frontów, tylko dla formatek laminowanych, + 10% zapasu × cena PCV pod kolor frontów za mb z cennika materiałów.'
         : 'Cena = realne metry oklein z szafek ustawionych jako PCV pod kolor płyty, tylko dla formatek laminowanych, + 10% zapasu × cena PCV standard za mb z cennika materiałów.',

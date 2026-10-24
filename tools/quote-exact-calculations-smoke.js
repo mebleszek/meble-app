@@ -83,7 +83,18 @@ for(const pricingMode of ['fixed','perUnit','startPlusUnit','time','timeTiers','
   assert.equal(evaluate(get('labor_shelves_place').calculation),29.17);
   const body={...details.find(row=>row.volumeHours>0),quantity:1,quantityMode:'linear',timeBlockHours:1,baseHours:1,volumeM3:0.05088,volumeHours:0.05088,volumeTimeMode:'perM3',volumeTimePerM3:1,multiplier:1,hourlyRate:150,hours:1.05088,total:157.632,fixedPrice:0,volumePrice:0};
   const equation=FC.quoteCalculationRegister.describeCalculation(body);assert.equal(evaluate(equation),157.63);assert.ok(equation.includes('0,05088 m³ × 60 min/m³'));
+  assert.ok(equation.endsWith('Czas bazowy: 1 × 60 min; gabarytoczas: 0,05088 m³ × 60 min/m³.'),'Label actual base and volume source operands without truncation');
   console.log('PASS physical operations: pack 25.00, trial 10.00, rehang 25.00, placement 29.17, body 157.63');checks++;
+}
+{
+  const r=fixture(),FC=r.FC;
+  const detail={key:'project_design_unusual',name:'Projekt techniczny — nietypowa szafka',quantity:1,quantityMode:'linear',timeBlockHours:0.25,baseHours:0.25,volumeHours:0.05,hours:0.3,hourlyRate:300,total:90};
+  const register=unchangedTotals(FC,{project:[{name:detail.name,details:[detail]}]});
+  const equation=register.lines[0].calculation;
+  assert.equal(evaluate(equation),90);
+  assert.ok(equation.endsWith('Czas bazowy: 1 × 15 min; gabarytoczas: 3 min.'));
+  assert.equal((detail.baseHours+detail.volumeHours)*detail.hourlyRate,90);
+  console.log('PASS unusual project: base 15 min + volume 3 min at 300/h = 90.00, labeled from source data');checks++;
 }
 for(const [type,height,depth,shelves,expected]of [['moduł',82,50,1,352.5],['wisząca',106,32,2,421.8]]){
   const r=fixture();Object.assign(r.cab,{type,height,depth,width:60});r.cab.details.shelves=shelves;

@@ -79,10 +79,11 @@
         if(num(p.volumePrice)>0)extras.push(num(p.volumePricePerM3)>0?mul(node(p.volumeM3,'m³'),node(p.volumePricePerM3,'zł/m³')):node(p.volumePrice,'zł'));
         if(num(p.fixedPrice)>0)extras.push(node(p.fixedPrice,'zł'));
         if(extras.length)cost=sum([cost,...extras]);
-        if(matches(cost))return equation(cost)+tierNote;
+        const volumeNote=num(p.volumeHours)>0?` Czas bazowy: ${baseTime.text}; gabarytoczas: ${volume.text}${text(p.volumeTimeMode)==='perM3'?'':' min'}.`:'';
+        if(matches(cost))return equation(cost)+tierNote+volumeNote;
         const stored=div(mul({...minutes(p.hours),text:minutes(p.hours).text+' min'},node(rate,'zł/h')),node(60));
         const fallback=extras.length?sum([stored,...extras]):stored;
-        if(matches(fallback))return equation(fallback)+' Czas wyceniony zapisany w pozycji.';
+        if(matches(fallback))return equation(fallback)+' Czas wyceniony zapisany w pozycji.'+(num(p.volumeHours)>0?` Zapisany gabarytoczas: ${timeText(p.volumeHours)} (składnik zapisanego czasu).`:'');
       }
     }
     if(text(p.pricingMode)==='startPlusUnit'||text(p.sourceRole)==='transport-distance'){

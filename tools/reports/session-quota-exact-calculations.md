@@ -2,7 +2,23 @@
 
 Gałąź `fix/session-quota-exact-calculations-20261024`, worktree `/workspace/session-quota-exact`. BASE/main zweryfikowany na GitHubie: `e37502125dd846ae883f65e013ecdf0489dc500f`, tree `09a4e6b76d2b9a029b5aeea1162b476cac365bc8`. Potwierdzono przodka `58f10a01a44b9d35a063d5f9e13290ff56d8cac7`, istniejące gałęzie i odrębne worktree; nie nadpisywano równoległych prac. PR #79 został wydany według potwierdzenia właściciela. Końcowe HEAD i push są podane w raporcie przekazania, bez próby zapisania własnego SHA w tym pliku.
 
-**CODE_READY / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Nie uruchomiono pełnego Preflightu, Chromium, SDK/Rules, nowego PR, Ready, merge, Pages ani Firebase LIVE.
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Poniższa korekta dotyczy istniejącego PR #80; wcześniejsze sekcje zachowują dowody przygotowania pierwotnego pakietu.
+
+## PR #80 — korekta trzech błędów CI #1241
+
+Przed zmianami potwierdzono czysty worktree na `4fa0bf40ff064605328aa3903bed67c522ce6952`, niezmieniony BASE/main `e37502125dd846ae883f65e013ecdf0489dc500f` i otwarty PR #80 bez zmiany Ready/Draft. Według przekazanego wyniku [run 40097814921](https://github.com/mebleszek/meble-app/actions/runs/40097814921) dla starego HEAD: smoke 147/150, SDK/Auth/Firestore/Rules PASS; auto-merge i Pages SKIPPED. Te wyniki nie potwierdzają nowego HEAD.
+
+1. PCV: brak znaku `+` w nowym opisie łamał kontrakt audytu. Przywrócono `zapas +10%`, pozostawiając pełne źródłowe wartości metrów, obliczenia zapasu, zaokrąglenia i ceny.
+2. Cache-busting: test akordeonu przypisywał modalowi JS niezmieniony token CSS z czerwca. Oba HTML miały prawidłowy token modalu `20261024_session_quota_exact_v1`. Test używa teraz wspólnego ścisłego `assertHtmlVersions()`; dodatkowe negatywne kontrole odrzucają brak parametru, stary token, dodatkowy parametr, mieszanie wersji między HTML, duplikat i starą zależność. Modal i CSS nie zostały zmienione. Dwa zmienione produkcyjne pliki JS otrzymały token `20261024_session_quota_exact_ci_repair_v1` w obu HTML i mapie wersji.
+3. Projekt nietypowy: dokładne równanie nie nazywało dodatkowych 3 minut gabarytoczasem. Wspólny formatter dopisuje bazowy czas i gabarytoczas z tych samych operandów, z których buduje zweryfikowane równanie. Dla braku pełnego rozbicia zachowuje równanie zapisanego czasu i jawnie nazywa zapisany składnik gabarytoczasu. Analogiczny opis korpusu z objętością zachowuje rzeczywiste m³ i min/m³. Nie zmieniono kalkulatorów.
+
+Przykład: `Cena = (1 × 15 min + 3 min) × 300 zł/h ÷ 60 = 90,00 zł (zaokrąglenie do groszy). Czas bazowy: 1 × 15 min; gabarytoczas: 3 min.`
+
+Lokalnie wykonano wyłącznie cztery uzgodnione testy: `quote-audit-material-quantities-fix-smoke.js` PASS, `quote-details-accordion-scroll-smoke.js` PASS, `quote-project-preparation-section-smoke.js` PASS, `quote-exact-calculations-smoke.js` **83 przypadki PASS**. Ostatni nadal niezależnie oblicza widoczne działania i porównuje istniejące pola rejestru z niezmiennymi źródłami BASE; lokalnie użyto wcześniej przygotowanych bajtów BASE z kontrolą Git blob SHA. Potwierdza niezmienione **90,00 zł / 352,50 zł / 421,80 zł**, normy, ręczne stawki, transport i archiwum. Składnia sześciu zmienionych JS, ścisły kontrakt wersji i `git diff --check`: PASS.
+
+Zakres tej korekty (9 plików): `index.html`, `dev_tests.html`, `js/app/quote/quote-calculation-register.js`, `js/app/wycena/wycena-core-material-plan.js`, `tools/script-versions.js`, `tools/quote-details-accordion-scroll-smoke.js`, `tools/quote-project-preparation-section-smoke.js`, `tools/quote-exact-calculations-smoke.js` oraz ten raport. Regresje pozostają podłączone do istniejącego wykrywania `tools/*-smoke.js` przez Preflight. Bez zmian workflow, CLOUD, sesji, diagnostyki storage, danych, schematów lub historii ofert.
+
+Pełny Preflight, Chromium i SDK/Auth/Firestore/Rules dla nowego HEAD: **CI_PENDING**. Nie uruchomiono ich ponownie lokalnie ani na GitHubie. Commit i publikacja tej samej gałęzi nie uruchamiają wydaniowego Preflightu (`pull_request.types: opened, ready_for_review`). PR #80 pozostaje otwarty; bez nowego PR, przełączania Ready/Draft, merge, Pages lub Firebase LIVE. Nowa próba wymaga osobnej zgody na dokładne nowe HEAD i BASE według AGENTS.md §12.
 
 ## A. Quota — co wiadomo
 
