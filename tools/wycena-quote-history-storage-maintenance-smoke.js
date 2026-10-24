@@ -5,7 +5,7 @@ const { APP_DEV_SMOKE_FILES } = require('./app-dev-smoke-lib/file-list');
 const { SmokeStorage, makeStorage } = require('./app-dev-smoke-lib/smoke-storage');
 const { makeMiniDocument } = require('./app-dev-smoke-lib/mini-document');
 
-const VERSION = '20260628_drawer_systems_materials_v1';
+const VERSION = '20261025_storage_recovery_idb_v1';
 
 function assert(condition, message, details){
   if(!condition){
@@ -105,13 +105,23 @@ function runMaintenanceWriteAfterQuota(){
   const sandbox = loadSmokeFiles(createSandbox(storage));
   const FC = sandbox.FC;
   assert(FC.quoteSnapshotStorageMaintenance && typeof FC.quoteSnapshotStorageMaintenance.prepareForSnapshotWrite === 'function', 'Brak modułu maintenance dla snapshotów');
+  const backupRaw = storage.getItem('fc_data_backups_v1');
+  const skipped = FC.quoteSnapshotStorageMaintenance.compactBackupStore(true);
+  assert(skipped.changed === false && skipped.reason === 'archive-managed-async', 'Synchroniczny kompaktor musi odmówić zapisu zarządzanego archiwum', skipped);
+  let failure = null;
+  try{ FC.quoteSnapshotStore.save(makeSnapshot('snap_after_cleanup', 'proj_storage', 1500)); }
+  catch(error){ failure = error; }
+  assert(failure && failure.code === 'quote_snapshot_storage_write_failed', 'Pełny magazyn ma jawnie odmówić bez skracania archiwum', failure);
+  assert(storage.getItem('fc_data_backups_v1') === backupRaw, 'Quota nie może przepisać ani skrócić oryginalnego archiwum');
+  assert(FC.quoteSnapshotStore.listForProject('proj_storage').length === 0, 'Niepotwierdzony snapshot nie może udawać zapisanego');
+  assert(!storage.getItem('fc_rozrys_plan_cache_v2'), 'Istniejąca obsługa odtwarzalnego cache pozostaje bez zmian');
+  // Independent synthetic relief: no archive deletion or migration in this test.
+  storage.limit = Infinity;
   const saved = FC.quoteSnapshotStore.save(makeSnapshot('snap_after_cleanup', 'proj_storage', 1500));
-  assert(saved && saved.id === 'snap_after_cleanup', 'Snapshot nie zapisał się po awaryjnym odchudzeniu storage', saved);
+  assert(saved && saved.id === 'snap_after_cleanup', 'Po ustąpieniu quota zwykły zapis nadal działa', saved);
   const rows = FC.quoteSnapshotStore.listForProject('proj_storage');
-  assert(rows.length === 1 && rows[0].id === 'snap_after_cleanup', 'Historia nie widzi snapshotu po zapisie', rows);
-  const backups = JSON.parse(storage.getItem('fc_data_backups_v1') || '[]');
-  assert(backups.length < 8, 'Awaryjne odchudzanie nie skróciło starych backupów', { count:backups.length });
-  assert(!storage.getItem('fc_rozrys_plan_cache_v2'), 'Cache ROZRYS nie został usunięty przy pełnym storage');
+  assert(rows.length === 1 && rows[0].id === 'snap_after_cleanup', 'Historia widzi wyłącznie potwierdzony zapis', rows);
+  assert(storage.getItem('fc_data_backups_v1') === backupRaw, 'Zapis historii nie zmienia chronionych RAW archiwum');
 }
 
 function runThirtyOffersPerProjectLimit(){

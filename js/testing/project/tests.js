@@ -63,7 +63,7 @@
         H.assert(String(resolved.fallbackReason || '') === 'preserve-explicit', 'Resolver nie oznaczył zachowanego exact scope jako preserve-explicit', resolved);
       }),
 
-      H.makeTest('Projekt', 'Backup danych obejmuje pełny storage aplikacji i potrafi przywrócić stan', 'Pilnuje fundamentu bezpieczeństwa danych: backup ma obejmować wszystkie klucze aplikacji, nie tylko inwestorów, i ma umieć wrócić do poprzedniego stanu.', ()=>{
+      H.makeTest('Projekt', 'Backup danych obejmuje pełny storage aplikacji i potrafi przywrócić stan', 'Pilnuje fundamentu bezpieczeństwa danych: backup ma obejmować wszystkie klucze aplikacji, nie tylko inwestorów, i ma umieć wrócić do poprzedniego stanu.', async ()=>{
         H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.createBackup === 'function', 'Brak FC.dataBackupStore.createBackup');
         H.assert(FC.dataBackupSnapshot && typeof FC.dataBackupSnapshot.applySnapshot === 'function', 'Brak FC.dataBackupSnapshot.applySnapshot');
         const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
@@ -74,11 +74,11 @@
           localStorage.setItem(backupKey, '[]');
           localStorage.setItem('fc_investors_v1', JSON.stringify([{ id:'backup_test_inv', name:'Backup Test' }]));
           localStorage.setItem('fc_projects_v1', JSON.stringify([{ id:'backup_test_project', investorId:'backup_test_inv' }]));
-          const made = FC.dataBackupStore.createBackup({ reason:'manual', label:'Test backup', dedupe:false });
+          const made = await FC.dataBackupStore.createBackup({ reason:'manual', label:'Test backup', dedupe:false });
           H.assert(made && made.created && made.backup && made.backup.snapshot, 'Backup nie został utworzony', made);
           H.assert(made.backup.snapshot.keys.fc_investors_v1 && made.backup.snapshot.keys.fc_projects_v1, 'Backup nie objął inwestorów i projektów', made.backup.snapshot.keys);
           localStorage.setItem('fc_investors_v1', JSON.stringify([]));
-          FC.dataBackupStore.restoreBackup(made.backup.id);
+          await FC.dataBackupStore.restoreBackup(made.backup.id);
           const restored = JSON.parse(localStorage.getItem('fc_investors_v1') || '[]');
           H.assert(Array.isArray(restored) && restored.some((row)=> row && row.id === 'backup_test_inv'), 'Przywrócenie backupu nie odtworzyło inwestora', restored);
         } finally {
@@ -88,7 +88,7 @@
         }
       }),
 
-      H.makeTest('Projekt', 'Backup danych pomija techniczne stany sesji i cache przy restore', 'Pilnuje, czy backup nie puchnie od tymczasowych danych pracy oraz czy restore nie przywraca starej aktywnej sesji edycji ani cache ROZRYS.', ()=>{
+      H.makeTest('Projekt', 'Backup danych pomija techniczne stany sesji i cache przy restore', 'Pilnuje, czy backup nie puchnie od tymczasowych danych pracy oraz czy restore nie przywraca starej aktywnej sesji edycji ani cache ROZRYS.', async ()=>{
         H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.createBackup === 'function', 'Brak FC.dataBackupStore.createBackup');
         H.assert(FC.dataBackupSnapshot && typeof FC.dataBackupSnapshot.applySnapshot === 'function', 'Brak FC.dataBackupSnapshot.applySnapshot');
         const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
@@ -101,11 +101,11 @@
           localStorage.setItem('fc_edit_session_v1', JSON.stringify({ active:true, snapshot:{ fc_investors_v1:'[]' } }));
           localStorage.setItem('fc_reload_restore_v1', JSON.stringify({ activeTab:'wycena' }));
           localStorage.setItem('fc_rozrys_plan_cache_v2', JSON.stringify({ huge:'x'.repeat(4096) }));
-          const made = FC.dataBackupStore.createBackup({ reason:'manual', label:'Volatile test backup', dedupe:false });
+          const made = await FC.dataBackupStore.createBackup({ reason:'manual', label:'Volatile test backup', dedupe:false });
           const keys = made && made.backup && made.backup.snapshot && made.backup.snapshot.keys || {};
           volatileKeys.forEach((key)=> H.assert(!Object.prototype.hasOwnProperty.call(keys, key), 'Backup nie powinien zawierać technicznego klucza ' + key, keys));
           volatileKeys.forEach((key)=> localStorage.setItem(key, 'stary-stan-techniczny'));
-          FC.dataBackupStore.restoreBackup(made.backup.id);
+          await FC.dataBackupStore.restoreBackup(made.backup.id);
           volatileKeys.forEach((key)=> H.assert(localStorage.getItem(key) === null, 'Restore powinien wyczyścić techniczny klucz ' + key));
         } finally {
           Object.keys(saved).forEach((key)=>{
@@ -115,7 +115,7 @@
         }
       }),
 
-      H.makeTest('Projekt', 'Przywracanie nie tworzy zbędnego backupu, gdy obecny stan już jest zapisany', 'Pilnuje naprawy restore: jeśli aktualne dane są już w istniejącym backupie, przywracanie nie dokłada drugiego identycznego before-restore i nie ryzykuje błędu zapisu.', ()=>{
+      H.makeTest('Projekt', 'Przywracanie nie tworzy zbędnego backupu, gdy obecny stan już jest zapisany', 'Pilnuje naprawy restore: jeśli aktualne dane są już w istniejącym backupie, przywracanie nie dokłada drugiego identycznego before-restore i nie ryzykuje błędu zapisu.', async ()=>{
         H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.createBackup === 'function', 'Brak FC.dataBackupStore.createBackup');
         const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
         const prevBackupsRaw = localStorage.getItem(backupKey);
@@ -123,10 +123,10 @@
         try{
           localStorage.setItem(backupKey, '[]');
           localStorage.setItem('fc_investors_v1', JSON.stringify([{ id:'restore_same_state_inv', name:'Same State' }]));
-          const made = FC.dataBackupStore.createBackup({ reason:'manual', label:'Same state backup', dedupe:false });
-          H.assert(FC.dataBackupStore.listBackups().length === 1, 'Test powinien startować z jednym backupem');
-          FC.dataBackupStore.restoreBackup(made.backup.id);
-          const rows = FC.dataBackupStore.listBackups();
+          const made = await FC.dataBackupStore.createBackup({ reason:'manual', label:'Same state backup', dedupe:false });
+          H.assert((await FC.dataBackupStore.listBackups()).length === 1, 'Test powinien startować z jednym backupem');
+          await FC.dataBackupStore.restoreBackup(made.backup.id);
+          const rows = (await FC.dataBackupStore.listBackups());
           H.assert(rows.length === 1, 'Restore identycznego obecnego stanu nie powinien dopisać duplikatu before-restore', rows);
         } finally {
           if(prevBackupsRaw == null) localStorage.removeItem(backupKey); else localStorage.setItem(backupKey, prevBackupsRaw);
@@ -135,7 +135,7 @@
       }),
 
 
-      H.makeTest('Projekt', 'Retencja backupów działa osobno dla programu i testów', 'Pilnuje, czy automatyczne sprzątanie zostawia dotychczasową retencję programu, a backupy testowe tnie do maksymalnie 10 najnowszych sztuk.', ()=>{
+      H.makeTest('Projekt', 'Retencja backupów działa osobno dla programu i testów', 'Pilnuje, czy automatyczne sprzątanie zostawia dotychczasową retencję programu, a backupy testowe tnie do maksymalnie 10 najnowszych sztuk.', async ()=>{
         H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.pruneNow === 'function', 'Brak FC.dataBackupStore.pruneNow');
         const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
         const prevBackupsRaw = localStorage.getItem(backupKey);
@@ -157,7 +157,7 @@
           for(let i=0;i<13;i += 1) seed.push(fakeBackup('app_' + i, 'manual', i, i === 12));
           for(let i=0;i<13;i += 1) seed.push(fakeBackup('test_' + i, 'before-tests', i, false));
           localStorage.setItem(backupKey, JSON.stringify(seed));
-          const pruned = FC.dataBackupStore.pruneNow();
+          const pruned = await FC.dataBackupStore.pruneNow();
           const ids = new Set(pruned.map((item)=> item.id));
           for(let i=0;i<10;i += 1){
             H.assert(ids.has('app_' + i), 'Sprzątanie usunęło jeden z 10 najnowszych backupów programu', pruned);
@@ -166,14 +166,14 @@
           H.assert(!ids.has('app_10') && !ids.has('app_11'), 'Sprzątanie nie usunęło starego nadmiaru programu poza ostatnią dziesiątką', pruned);
           H.assert(!ids.has('test_10') && !ids.has('test_11') && !ids.has('test_12'), 'Sprzątanie testów powinno usunąć najstarsze backupy ponad limit 10', pruned);
           H.assert(ids.has('app_12'), 'Sprzątanie usunęło przypięty stary backup programu', pruned);
-          const groups = FC.dataBackupStore.listBackupGroups();
+          const groups = await FC.dataBackupStore.listBackupGroups();
           H.assert(groups.app.length === 11 && groups.test.length === 10, 'Grupy backupów nie trzymają osobnej retencji programu i testów', groups);
         } finally {
           if(prevBackupsRaw == null) localStorage.removeItem(backupKey); else localStorage.setItem(backupKey, prevBackupsRaw);
         }
       }),
 
-      H.makeTest('Projekt', 'Trzy najnowsze backupy w każdej grupie są chronione przed ręcznym usunięciem', 'Pilnuje, czy blokada usuwania działa osobno dla backupów programu i testowych: 3 najnowsze są chronione, a 4. backup można usunąć ręcznie.', ()=>{
+      H.makeTest('Projekt', 'Trzy najnowsze backupy w każdej grupie są chronione przed ręcznym usunięciem', 'Pilnuje, czy blokada usuwania działa osobno dla backupów programu i testowych: 3 najnowsze są chronione, a 4. backup można usunąć ręcznie.', async ()=>{
         H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.getBackupProtection === 'function', 'Brak FC.dataBackupStore.getBackupProtection');
         const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
         const prevBackupsRaw = localStorage.getItem(backupKey);
@@ -194,17 +194,17 @@
           for(let i=0;i<5;i += 1) seed.push(fakeBackup('app_del_' + i, 'manual', i));
           for(let i=0;i<5;i += 1) seed.push(fakeBackup('test_del_' + i, 'before-tests', i));
           localStorage.setItem(backupKey, JSON.stringify(seed));
-          const all = FC.dataBackupStore.listBackups();
+          const all = (await FC.dataBackupStore.listBackups());
           H.assert(FC.dataBackupStore.getBackupProtection(all.find((item)=> item.id === 'app_del_2'), all).latestProtected === true, 'Trzeci backup programu powinien być automatycznie chroniony', all);
           H.assert(FC.dataBackupStore.getBackupProtection(all.find((item)=> item.id === 'test_del_2'), all).latestProtected === true, 'Trzeci backup testowy powinien być automatycznie chroniony', all);
           let appBlocked = false;
           let testBlocked = false;
-          try{ FC.dataBackupStore.deleteBackup('app_del_2'); }catch(_){ appBlocked = true; }
-          try{ FC.dataBackupStore.deleteBackup('test_del_2'); }catch(_){ testBlocked = true; }
+          try{ await FC.dataBackupStore.deleteBackup('app_del_2'); }catch(_){ appBlocked = true; }
+          try{ await FC.dataBackupStore.deleteBackup('test_del_2'); }catch(_){ testBlocked = true; }
           H.assert(appBlocked && testBlocked, 'Trzy najnowsze backupy nie zostały zablokowane przed usunięciem');
-          FC.dataBackupStore.deleteBackup('app_del_3');
-          FC.dataBackupStore.deleteBackup('test_del_3');
-          const ids = new Set(FC.dataBackupStore.listBackups().map((item)=> item.id));
+          await FC.dataBackupStore.deleteBackup('app_del_3');
+          await FC.dataBackupStore.deleteBackup('test_del_3');
+          const ids = new Set((await FC.dataBackupStore.listBackups()).map((item)=> item.id));
           H.assert(!ids.has('app_del_3') && !ids.has('test_del_3'), 'Czwarty backup w grupie powinien dać się usunąć ręcznie', Array.from(ids));
         } finally {
           if(prevBackupsRaw == null) localStorage.removeItem(backupKey); else localStorage.setItem(backupKey, prevBackupsRaw);
@@ -237,7 +237,7 @@
         }
       }),
 
-      H.makeTest('Projekt', 'Eksport pojedynczego backupu zwraca payload konkretnego backupu', 'Pilnuje, czy przycisk Eksportuj przy backupie ma testowalny kontrakt i eksportuje wskazany backup, a nie cały bieżący stan.', ()=>{
+      H.makeTest('Projekt', 'Eksport pojedynczego backupu zwraca payload konkretnego backupu', 'Pilnuje, czy przycisk Eksportuj przy backupie ma testowalny kontrakt i eksportuje wskazany backup, a nie cały bieżący stan.', async ()=>{
         H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.exportBackupPayload === 'function', 'Brak exportBackupPayload');
         const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
         const prevBackupsRaw = localStorage.getItem(backupKey);
@@ -245,8 +245,8 @@
         try{
           localStorage.setItem(backupKey, '[]');
           localStorage.setItem('fc_investors_v1', JSON.stringify([{ id:'export_one_inv', name:'Eksport jeden' }]));
-          const made = FC.dataBackupStore.createBackup({ reason:'manual', label:'Eksport jednostkowy', dedupe:false });
-          const pack = FC.dataBackupStore.exportBackupPayload(made.backup.id);
+          const made = await FC.dataBackupStore.createBackup({ reason:'manual', label:'Eksport jednostkowy', dedupe:false });
+          const pack = await FC.dataBackupStore.exportBackupPayload(made.backup.id);
           H.assert(pack && /meble-app-backup-/.test(pack.filename || ''), 'Eksport nie zwrócił nazwy pliku', pack);
           H.assert(pack.payload && pack.payload.kind === FC.dataBackupSnapshot.BACKUP_KIND, 'Eksport nie zwrócił payloadu backupu', pack.payload);
           H.assert(pack.payload.backup && pack.payload.backup.id === made.backup.id, 'Eksport zwrócił inny backup niż wskazany', pack.payload);

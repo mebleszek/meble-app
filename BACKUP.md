@@ -1,3 +1,47 @@
+# ANDROID STORAGE RECOVERY — IndexedDB v1
+
+**25.10.2026 — zatwierdzona implementacja, osobne zgody na wydanie i rzeczywiste dane telefonu. STORAGE RECOVERY / INDEXEDDB — PRIORYTET 1; CLOUD / FIREBASE LIVE / rozwój SYNCHRONIZACJI — WSTRZYMANE.** Starsze opisy poniżej zachowują historię; bieżące różnice określa ten kontrakt.
+
+## Magazyn i jeden autorytet
+
+Dedykowana biznesowa IndexedDB `meble-business-backups-v1`, version1: `records` (keyPath `id`), `sources` (keyPath `sha256`) i `control` (keyPath `key`, singleton `archive`). Nie jest bazą Auth/profilu. `records` zawiera oryginalny RAW pojedynczego elementu, SHA-256, ID i weryfikowane metadane grupy, przypięcia/safe-state i daty; `sources` zachowuje dokładny cały RAW wraz z białymi znakami i jednostkami UTF-16; `control` zawiera schema, phase, sourceHash, count, revision i po E hash zweryfikowanego pliku. Historyczna kopia źródłowa jest stała i nie rośnie z każdym nowym backupem. Nowe rekordy nie przepisują całego archiwum.
+
+Fazy: LEGACY (brak journalu) → COPIED (kopia potwierdzona, źródło zachowane, zwykłe writery zamrożone) → SWITCH_PENDING (trwała bariera etapu E) → ACTIVE (jedyny aktywny magazyn IDB). Każda mutacja używa Web Lock `meble-business-backups-v1`, strict transaction complete i read-back z nowego połączenia. Brak Locks/IDB/inwentaryzacji, quota, utrata Auth lub niezgodność = odmowa. Gdy brak rozpoznanej biznesowej bazy, odczyt nie tworzy jej ukradkiem. `onversionchange` zamyka połączenie; blocked upgrade = STOP.
+
+Po E mały marker `meble_backup_archive_backend_v1` pozwala wykryć utratę bazy. Jest zapisywany i sprawdzany **przed** usunięciem starego klucza; quota markera nie uruchamia kasowania. ACTIVE + utracona IDB lub pojawiający się dawny klucz = STOP, bez fallbacku. Całkowite usunięcie obu magazynów przez przeglądarkę wymaga niezależnej kopii; IndexedDB nie daje gwarancji nieutracalności.
+
+## Migracja A–E i awarie
+
+A. Ścisły odczyt tablicy starego archiwum, unikalnych ID i rozpoznanych snapshotów (v1 lub znany legacy bez pola kind/version), typów metadanych i RAW string/null. Nieznany format/duplikat/uszkodzenie blokuje kopiowanie; RAW nadal może trafić do szyfrowanego eksportu bez normalizacji.
+
+B. Prywatny plik ratunkowy bez tworzenia nowego backupu. Obejmuje wszystkie `fc_*` i pięć aliasów hardware z localStorage i sessionStorage, w tym archiwum, kopie techniczne, sesję, cache, historię/drafty, ustawienia i legacy; rozpoznaną biznesową IDB, znany RAM projektu/UI/dowodów sesji i kontrolki biznesowe bieżącego dokumentu. Nie obejmuje tokenów, baz Auth ani prawa dostępu, niedostępnego RAM innych kart lub niepotwierdzonych kopii w chmurze. Nieznana domena/klucz/baza, niepełny odczyt, zmiana danych lub utrata Auth = BLOCKED. Zakres manifestu jest `CURRENT_DOCUMENT_BUSINESS_RAW`, nie obietnica skopiowania całej sterty JS i innych kart. Dwa odczyty nie są transakcją między domenami i nie dowodzą braku ABA; na czas operacji potrzebna jest wyłączność innych writerów.
+
+Plik szyfruje Web Crypto **AES-256-GCM**, losowy IV12 i salt16, **PBKDF2-SHA256 / 310000** iteracji; hasło minimum12 znaków, osobno bezpiecznie zachowane. Nie stosować krótkiego/ponownie używanego hasła. Zawartość kodowana UTF-16LE (także samotne surrogaty); SHA-256 UTF-16LE per RAW oraz manifestu zakresu i RAM/IDB; SHA-256 całego pobranego kontenera z dokładnych bajtów UTF-8/ASCII (ArrayBuffer, bez normalizacji BOM). Dane prywatne/ORS mogą być w środku: nie wysyłać do GitHuba/czatu/usługi. UI nie loguje wartości/wyjątków; raporty diagnostyczne nadal anonimowe. Utrata hasła uniemożliwia odszyfrowanie.
+
+Właściciel ponownie wskazuje faktycznie pobrany plik w tej samej karcie. Aplikacja sprawdza dokładny hash pliku, odszyfrowanie, tag GCM, manifest, RAW i aktualne źródło, **bez importu**. Dowód pliku jest nietrwałą capability bieżącego dokumentu; po restarcie nie ufa się flagom/checkboxom. Przygotowuje się nowy kompletny plik i sprawdza go ponownie. Świadome zamknięcie innych kart i rozstrzygnięcie ich RAM nie jest zastępowane eksportem z 17.10.
+
+C. Kopiowanie wszystkich rekordów i dokładnego RAW źródła w jednej transakcji IDB. Read-back po zamknięciu/otwarciu bazy potwierdza liczbę, metadane, SHA i oryginalne fragmenty RAW. Nie działa retencja ani sanitizer. Błąd/przerwanie transakcji pozostawia stary klucz; COPIED po restarcie nadal niczego nie usuwa.
+
+D. Panel pokazuje stan IDB, źródła, niezależnego pliku, możliwy rozmiar tekstu do zwolnienia i blokady. Samo COPIED nie zwalnia localStorage. Rozmiary nie są dowodem limitu quota.
+
+E. **Osobna późniejsza zgoda** dla `fc_data_backups_v1`, konkretnego SHA-256, przy aktualnym właścicielu, zgodnym źródle, zweryfikowanej IDB i niezależnym pliku, Web Lock i rozstrzygnięciu innych kart/starych wersji. Handler `backupArchive.activate(decision, receipt)` przygotowano i sprawdzamy syntetycznie, ale **panel bieżącego pakietu nie udostępnia usuwania/przełączenia**. Wymaga przyszłego, osobno zatwierdzonego działania właściciela; nie wykonywać poleceń w konsoli. Stare karty sprzed nowego protokołu nie respektują Locks: jeśli nie można potwierdzić ich zamknięcia i zabezpieczenia pracy, E pozostaje BLOCKED.
+
+Przerwanie E przed usunięciem: SWITCH_PENDING + stary RAW, writery odmawiają. Przerwanie po usunięciu, przed ACTIVE: SWITCH_PENDING + oryginał RAW w IDB + marker; nie tworzyć pustego legacy ani nie kończyć automatycznie. Świeży pełny plik może zabezpieczyć oryginał z IDB i bieżące pozostałe dane, a nowa decyzja/receipt pozwala wznowić E. Utrata lub korupcja IDB/źródła, niedostępny niezależny plik albo nierozstrzygnięty writer = STOP. Nie ma automatycznego rollbacku/migracji na starcie.
+
+## API backupów, retencja i sesja
+
+Metody archiwum `createBackup`, `ensureCurrentStateBackup`, listy/grupy/find/update/delete, restore/import, export pojedynczej kopii, stats i prune są asynchroniczne. Ich użytkownicy w Ustawieniach i ochronie przed testami czekają na Promise; sukces/odświeżenie nie poprzedza potwierdzenia transakcji. Stare `dataBackupStorage.writeStore()` odmawia. Synchroniczny kompaktor quota historii nie może pisać archiwum zarządzanego tym modułem; inne reguły historii/cache nie zmieniają się w tym pakiecie.
+
+Retencja: aplikacja 7 dni / minimum10, testowe10, ochrona najnowszych3 w grupie oraz kopii przypiętych/safe-state. Pinned/safe-state chronione także w grupie testowej. Żadnej retencji podczas migracji; zwykłe przyszłe operacje zachowują zatwierdzoną politykę. Stare snapshoty i ich nieznane pola/techniczne RAW pozostają zachowane; nie uruchamia się dotychczasowego sanitizera na historycznych kopiach. Standardowy format eksportu/importu nie zmienia się. Plik ratunkowy ma osobny jawny format i **nie jest automatycznym importerem ani uprawnieniem rollbacku**.
+
+Po osobno zatwierdzonym E przycisk kontroli sesji mierzy pamięć, wymaga ACTIVE i wywołuje wyłącznie istniejący `retryInitialBegin`. Nie ma commit/cancel ani adopcji RAM. Brak pierwotnego dowodu po pełnym restarcie/nowsza rewizja/niepewny zapis pozostawia blokadę. W bieżącym COPIED przycisk odmawia przed wywołaniem metod sesji.
+
+Limity robocze eksportu (16 Mi jednostek/magazyn i konserwatywny budżet RAM, 64 MiB plaintext/90 MiB plik) chronią przed nieograniczoną alokacją, ale nie gwarantują wolnej sterty/quota; przekroczenie daje BLOCKED. Pomiar `estimate()` nie jest dowodem wolnego localStorage. Nie włączamy chmury, persist(), migracji historii/projektów ani czyszczenia danych telefonu.
+
+Wymagane testy i ich rzeczywiste wyniki: [raport pakietu](tools/reports/android-storage-recovery-indexeddb-v1.md). Dwa nowe `*-smoke.js` są obowiązkowo wykrywane przez bieżący Preflight, w tym rzeczywisty Chromium/IndexedDB; brak przeglądarki nie daje SKIP/PASS. Fizyczny Pixel pozostaje osobnym PHONE_PENDING po zatwierdzonym wydaniu i decyzji o RAM.
+
+---
+
 # CLOUD-2B.4a — techniczny dowód profilu a kopia danych
 
 ## CLOUD-4.4 — kontrola posiadania rollbacku

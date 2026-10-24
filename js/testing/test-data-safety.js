@@ -35,10 +35,10 @@
     return { action:'skip', analysis };
   }
 
-  function createStoredBackup(mode){
+  async function createStoredBackup(mode){
     if(!(FC.dataBackupStore && typeof FC.dataBackupStore.createBackup === 'function')) return null;
-    const backup = FC.dataBackupStore.createBackup({ reason:'before-tests', label:'Przed testami: ' + mode, dedupe:true });
-    try{ FC.dataBackupStore.pruneNow && FC.dataBackupStore.pruneNow(); }catch(_){ }
+    const backup = await FC.dataBackupStore.createBackup({ reason:'before-tests', label:'Przed testami: ' + mode, dedupe:true });
+    try{ FC.dataBackupStore.pruneNow && await FC.dataBackupStore.pruneNow(); }catch(_){ }
     return backup;
   }
 
@@ -55,7 +55,7 @@
         ? FC.dataStorageOrphanCleanup.cleanupCurrent()
         : null;
       try{
-        const retryBackup = createStoredBackup(mode);
+        const retryBackup = await createStoredBackup(mode);
         return { backup:retryBackup, orphanCleanup:cleanup, retriedAfterCleanup:true };
       }catch(retryError){
         return { cancelled:true, orphanCleanup:cleanup, backupError:String(retryError && retryError.message || retryError) };
@@ -75,7 +75,7 @@
       return { mode, runId:run && run.runId || '', preCleanup, orphanGuard, cancelled:true };
     }
     try{
-      const backup = createStoredBackup(mode);
+      const backup = await createStoredBackup(mode);
       return { mode, runId:run && run.runId || '', preCleanup, orphanGuard, backup };
     }catch(error){
       const fallback = await handleBackupFailure(error, mode);

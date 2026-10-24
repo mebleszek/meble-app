@@ -1,5 +1,22 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## STORAGE RECOVERY / INDEXEDDB — PRIORYTET 1 (25.10.2026)
+
+**Nowa decyzja właściciela: CLOUD / CLOUD-4.6F / FIREBASE LIVE / rozwój SYNCHRONIZACJI — WSTRZYMANE do osobnej decyzji.** Zachowujemy dotychczasowy kod, wyniki i plany chmury. Bieżący pakiet implementuje wyłącznie lokalne ratowanie pamięci i archiwum backupów, przed dalszym CLOUD. Historyczne harmonogramy poniżej nie wyznaczają teraz priorytetu.
+
+Zweryfikowany BASE/main: `9c6ad2263850868e37c0cdb9098dfe6047a39260` (scalony PR #82). Odrębny worktree i gałąź `fix/android-storage-recovery-indexeddb-v1`; nie znaleziono rozpoczętej gałęzi ANDROID EMERGENCY RECOVERY v1 do kontynuacji. Innych worktree nie zmieniano.
+
+**Nowy fakt od właściciela, zastępujący wcześniejszą nieustaloną tożsamość klucza:** Pixel: 43 klucze / 6 projektów / 5 217 379 jednostek UTF-16; `fc_data_backups_v1` **3 317 250** (około 63,6%), `fc_quote_snapshots_v1` 1 328 058, `fc_rozrys_plan_cache_v2` 221 062, `fc_projects_v1` 63 244. To pomiar długości tekstu, nie limitu quota. `ram:true`, `durable:false`, `present:false`, `expectedKnown:false` nie dowodzą niezapisanej edycji ani utraty projektu. Edycja telefonu pozostaje zablokowana.
+
+Przygotowano „Tryb ratunkowy” w istniejącym komunikacie sesji: diagnostyka, podgląd archiwum, prywatny szyfrowany plik z ponownym wyborem i weryfikacją, kopiowanie do osobnej biznesowej IndexedDB oraz kontrola przygotowania. Nie uruchamia nawigacji projektu, begin/commit/cancel, backupu localStorage, czyszczenia cache ani przeładowania. Baza `meble-business-backups-v1` nie jest bazą profilu/Auth. Migracja A–D zachowuje klucz źródłowy; zwykłe writery archiwum są po skopiowaniu wstrzymane do rozstrzygnięcia przełączenia. Etap E ma odrębny, testowany handler z dowodem pliku, świeżą kontrolą RAW/Auth, blokadą między kartami oraz jawną decyzją dla dokładnego klucza i SHA-256; **panel tego wydania nie oferuje usuwania ani aktywacji**. Mały marker routingu powstaje dopiero w osobno zatwierdzanym E, przed usunięciem; jeśli się nie mieści, pozostaje STOP i stary klucz.
+
+Szczegóły modelu, awarii, testów i ograniczeń: [raport pakietu](tools/reports/android-storage-recovery-indexeddb-v1.md), kontrakt w [BACKUP.md](BACKUP.md#android-storage-recovery--indexeddb-v1). Nie migrujemy projektów, historii ani cenników. IndexedDB nie jest chmurą, niezależną kopią ani gwarancją offline. Retencja 7 dni / min10 / testowe10 / ochrona najnowszych3 pozostaje; doprecyzowano zachowanie przypiętych i bezpiecznych testowych kopii. Usunięto dotychczasowe automatyczne przepisywanie technicznych RAW wewnątrz starych backupów i dostęp synchronicznego kompaktora do archiwum — migracja i późniejsze zapisy zachowują historyczną treść.
+
+**PHONE_PENDING / użycie obecnej karty BLOCKED:** nowy kod wymaga dostarczenia nowej wersji dokumentu. Nie wykazano zabezpieczenia RAM obecnej karty; nie zalecamy jej odświeżania. Eksport z 17.10 zabezpiecza wskazane zapisane dane, nie wszystkie dzisiejsze RAW ani RAM. Sam commit lub wydanie nie upoważnia do migracji/zwalniania miejsca na Pixelu. Najpierw osobna zgoda wydaniowa dla HEAD/BASE, potem rozstrzygnięcie zachowania RAM i osobna zgoda na działania A–D na telefonie; E nadal wymaga niezależnej decyzji. Brak USB/DevTools/konsoli/bookmarkletów pozostaje obowiązującą ergonomią.
+
+Statusy przed wydaniem: **CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED** — wyniki faktycznie wykonanych kontroli oraz ewentualne blokery wskazuje raport pakietu. Poniższe opisy wcześniejszej diagnostyki zachowano jako historię.
+
+
 ## ANDROID QUOTA — incydent z 24.10.2026
 
 Zweryfikowany na GitHubie main: `cd4a5b3b8c0560d7b8630892b47eb18970a91072`. PR [#80](https://github.com/mebleszek/meble-app/pull/80) jest scalony; właściciel potwierdził CI, auto-merge i Pages PASS. SESSION-QUOTA + EXACT-CALCULATIONS jest **wydanym pakietem diagnostycznym i naprawą opisów WYCENY, nie naprawą przyczyny quota**. [Raport przygotowania i trzech korekt CI](tools/reports/session-quota-exact-calculations.md) zachowuje historyczne statusy sprzed wydania. Kwoty/normy i historia nie były przeliczane.

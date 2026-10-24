@@ -1,5 +1,17 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
+## STORAGE RECOVERY / INDEXEDDB — PRIORYTET 1 (25.10.2026)
+
+**Decyzja właściciela: najpierw ratowanie pamięci Androida i lokalne archiwum backupów. CLOUD / CLOUD-4.6F / FIREBASE LIVE / rozwój SYNCHRONIZACJI — WSTRZYMANE do osobnej decyzji.** Nie usuwamy planów ani wyników poniżej; ten wpis aktualizuje ich bieżącą kolejność.
+
+1. Zatwierdzony pakiet lokalny: Tryb ratunkowy w tej samej karcie, prywatny szyfrowany eksport z kontrolą pobranego pliku, kopia `fc_data_backups_v1` do dedykowanej biznesowej IndexedDB i weryfikacja bez usuwania źródła. [Kontrakt i bramki](BACKUP.md#android-storage-recovery--indexeddb-v1).
+2. Osobna zgoda wydaniowa i akceptacja fizycznego telefonu, z uprzednim rozstrzygnięciem niezabezpieczonego RAM; bez wymuszonego restartu. Osobna świadoma decyzja E dla dokładnego archiwum dopiero po komplecie dowodów. Samo kopiowanie nie zwalnia miejsca ani nie odblokowuje sesji.
+3. Dopiero po potwierdzonym przełączeniu i zwolnieniu miejsca: pomiar i istniejący bezpieczny protokół ponowienia pierwszego begin. Brak dowodu baseline pozostawia edycję zablokowaną.
+4. Później, niezależnie i za osobną zgodą: historia ofert, projekty lub inne domeny. Obecny v1 ich nie migruje i nie zmienia modelu danych/synchronizacji.
+
+To wcześniejsze, ograniczone wykonanie części etapu LOCAL-FIRST „Trwały zapis lokalny / Pamięć i ratowanie danych”, **nie** wykonanie pełnego LOCAL-FIRST ani zastąpienie jego warunków. Obowiązkowy POST-CLOUD-STORAGE-RESILIENCE nadal obejmuje wieloletni wzrost wszystkich domen, retencję i recovery; archiwum backupów nie zamyka tego wymagania. Dalsze zależności chmurowe zachowujemy na czas późniejszego wznowienia. [Raport implementacji](tools/reports/android-storage-recovery-indexeddb-v1.md).
+
+
 ## CLOUD-SYNC-1 — pierwszy przepływ produktu na emulatorach
 
 Zaimplementowano kompozycję CLOUD-3 dla kompletu 14 domen i izolowany odbiór w pamięci B. Następna bramka: wymagane CI (14 SDK + 5 granic, stare regresje zachowane), osobny przegląd HEAD/BASE i zgoda na PR Ready. **CODE_READY / CI_PENDING / LIVE_BLOCKED**, niewydany. [Kontrakt zastosowania, pokrycie i ograniczenia](tools/reports/cloud-sync-1-global-data.md).

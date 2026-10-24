@@ -64,7 +64,8 @@
 
   function pruneTestBackups(groupList, opts){
     const maxKeep = Math.max(1, Number(opts.testMaxKeep || TEST_MAX_KEEP));
-    return sortNewest(groupList).slice(0, maxKeep);
+    const newest = sortNewest(groupList).slice(0, maxKeep);
+    return sortNewest(groupList).filter(item=> newest.includes(item) || isPinnedProtected(item));
   }
 
   function pruneBackups(list, options){

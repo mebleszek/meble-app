@@ -38,8 +38,8 @@
     const pinBtn = h('button', { type:'button', class:'btn', text: ctx.backup.pinned ? 'Odepnij' : 'Przypnij' });
     const deleteBtn = h('button', { type:'button', class:'btn btn-danger' + (protection.protected ? ' data-settings-delete-btn--protected' : ''), text:'Usuń' });
     restoreBtn.addEventListener('click', ()=> restoreBackup(ctx));
-    exportOneBtn.addEventListener('click', ()=> ctx.store.exportBackup(ctx.backup.id));
-    pinBtn.addEventListener('click', ()=>{ ctx.store.updateBackup(ctx.backup.id, { pinned:!ctx.backup.pinned }); ctx.render(); });
+    exportOneBtn.addEventListener('click', async ()=>{ try{ await ctx.store.exportBackup(ctx.backup.id); }catch(error){ dom.info('Błąd eksportu', String(error.message)); } });
+    pinBtn.addEventListener('click', async ()=>{ try{ await ctx.store.updateBackup(ctx.backup.id, { pinned:!ctx.backup.pinned }); await ctx.render(); }catch(error){ dom.info('Błąd backupu', String(error.message)); } });
     configureDeleteButton(ctx, deleteBtn, protection);
     [restoreBtn, exportOneBtn, pinBtn, deleteBtn].forEach((btn)=> rowActions.appendChild(btn));
     return rowActions;
@@ -57,7 +57,7 @@
     });
     if(!ok) return;
     try{
-      const result = ctx.store.restoreBackup(ctx.backup.id);
+      const result = await ctx.store.restoreBackup(ctx.backup.id);
       dom.info('Backup przywrócony', `Przywrócono ${result.restoredKeys || 0} kluczy danych. Strona zostanie odświeżona.`);
       setTimeout(()=>{ try{ location.reload(); }catch(_){ } }, 700);
     }catch(err){ dom.info('Błąd przywracania', String(err && err.message || err || 'Nie udało się przywrócić backupu.')); }
@@ -73,7 +73,7 @@
     deleteBtn.addEventListener('click', async ()=>{
       const ok = await dom.ask({ title:'USUNĄĆ BACKUP?', message:'Tej operacji nie cofniemy.', confirmText:'Usuń', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' });
       if(!ok) return;
-      try{ ctx.store.deleteBackup(ctx.backup.id); ctx.render(); }
+      try{ await ctx.store.deleteBackup(ctx.backup.id); await ctx.render(); }
       catch(err){ dom.info('Nie można usunąć backupu', String(err && err.message || err)); }
     });
   }

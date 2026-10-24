@@ -1,5 +1,16 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
+## Zmiana priorytetu — STORAGE RECOVERY / INDEXEDDB v1 (25.10.2026)
+
+**STORAGE RECOVERY / INDEXEDDB — PRIORYTET 1. CLOUD / CLOUD-4.6F / FIREBASE LIVE / rozwój SYNCHRONIZACJI — WSTRZYMANE do osobnej decyzji właściciela.** Dotychczasowe dowody, kod, kontrakt LOCAL-FIRST, automatycznej synchronizacji i jednego aktywnego edytora pozostają zachowane. Obecny pakiet nie prowadzi dalszych prac chmurowych ani nie aktywuje transportu biznesowego.
+
+Wcześniej niż pełny LOCAL-FIRST realizujemy wyłącznie osobny biznesowy magazyn **archiwum backupów** `meble-business-backups-v1` (schema1). Nie używamy `meble-access-profile-v1` ani baz Firebase. Wersjonowany journal i transakcje chronią kopię/świadome przełączenie jednego klucza `fc_data_backups_v1`; projekty, kolejka synchronizacji, historia i cenniki pozostają w dotychczasowych magazynach. Nie zmienia się autorytet projektu, rewizje, CAS, Auth ani Zapisz/Anuluj. [Dokładny kontrakt, retencja i warunki STOP](BACKUP.md#android-storage-recovery--indexeddb-v1).
+
+Po etapie COPIED localStorage pozostaje źródłem historycznej kopii, nie wolno go usuwać ani przepisywać; writery archiwum są wstrzymane. Dopiero osobno zatwierdzony E przełącza jedyny aktywny magazyn na IndexedDB. Mały marker routingu wykrywa utratę bazy i blokuje cichy fallback. Odtworzenie oryginalnego RAW w IndexedDB jest dowodem lokalnej zgodności, nie chmurowego backupu. IndexedDB także ma quota i podlega utracie/ewikcji; potrzebna jest niezależna, zweryfikowana prywatna kopia. Synchronizacja Firebase sama nie zwalnia pamięci urządzenia.
+
+Starsze zdania „nie wdrażamy teraz IndexedDB” poniżej dotyczą historycznych pakietów i przyszłej migracji projektów/kolejki. Nie unieważniają tego osobno zatwierdzonego, ograniczonego v1. Pełny model LOCAL-FIRST oraz obowiązkowa wieloletnia odporność POST-CLOUD-STORAGE-RESILIENCE nadal wymagają dalszych etapów i oddzielnych zgód.
+
+
 ## CLOUD-SYNC-1 — implementacja przepływu globalnego na emulatorach
 
 `sync/global-data-sync.mjs` składa istniejący kontrakt RAW i transport CLOUD-3, bez nowej przestrzeni Firestore ani rejestru domen. Przepływ kompletu 14 domen używa jawnego owner UID, immutable records/revisions, manifestu CAS oraz niezależnego odczytu, hashy, liczby rekordów i walidacji zależności. Jedynym odbiorcą jest odizolowana pamięć; atomowa podmiana wymaga niezmienionej czystej lokalnej wersji. Sekrety i sporne dane pozostają wyłączone. Nieznane niezatwierdzone pola blokują transfer bez utraty RAW, dozwolone dynamiczne parametry i defaults v1 pozostają bez zmian.

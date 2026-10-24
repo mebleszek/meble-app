@@ -23,12 +23,13 @@
     try{ requestAnimationFrame(()=>{ scroll.scrollTop = value; }); }catch(_){ }
   }
 
-  function render(ctx){
+  async function render(ctx){
     const store = ctx.store;
     const scrollTop = Number(ctx.scroll && ctx.scroll.scrollTop || 0);
     captureOpenState(ctx.scroll);
-    const allBackups = store.listBackups();
-    const grouped = store.listBackupGroups ? store.listBackupGroups() : {
+    const allBackups = await store.listBackups();
+    if(ctx.isCurrent && !ctx.isCurrent()) return;
+    const grouped = {
       app:allBackups.filter((backup)=> !(store.isTestBackup && store.isTestBackup(backup))),
       test:allBackups.filter((backup)=> store.isTestBackup && store.isTestBackup(backup)),
     };
