@@ -6,7 +6,7 @@ const root=path.resolve(__dirname,'..');
 const browser=process.env.CHROMIUM_PATH||['/usr/bin/google-chrome','/usr/bin/chromium','/usr/bin/chromium-browser'].find(p=>fs.existsSync(p));
 assert.ok(browser,'Chromium/Chrome is required for the WYCENA-LABOR UI regression');
 const css=fs.readdirSync(path.join(root,'css')).filter(name=>name.endsWith('.css')).map(name=>fs.readFileSync(path.join(root,'css',name),'utf8')).join('\n');
-const js=['pricing/labor-catalog-definitions','pricing/labor-catalog','cabinet/cabinet-modal-labor','material/price-modal-list'].map(name=>fs.readFileSync(path.join(root,'js/app',name+'.js'),'utf8')).join('\n');
+const js=['pricing/labor-catalog-definitions','pricing/labor-catalog','cabinet/cabinet-modal-labor','material/price-modal-list','quote/quote-calculation-register','wycena/wycena-summary-details-modal','ui/session-diagnostics-readonly','ui/session-diagnostics'].map(name=>fs.readFileSync(path.join(root,'js/app',name+'.js'),'utf8')).join('\n');
 function check(){
   const assert=(yes,message)=>{if(!yes)throw Error(message);};
   const FC=window.FC,draft={id:'synthetic',type:'stojąca',subType:'standardowa',details:{shelves:4}};
@@ -29,9 +29,49 @@ function check(){
   assert(!document.querySelector('#priceListItems input'),'No arbitrary new duration input');
   document.getElementById('result').textContent='PASS';
 }
+function checkQuotaAndEquations(infoBoxSource){
+  const assert=(yes,message)=>{if(!yes)throw Error(message);};
+  const FC=window.FC;
+  (0,eval)(infoBoxSource);
+  const storage=window.localStorage;
+  storage.setItem('fc_projects_v1',JSON.stringify([{id:'PRIVATE_SENTINEL',investorId:'PRIVATE_SENTINEL_OWNER',projectData:{}}]));
+  storage.setItem('fc_current_project_id_v1','PRIVATE_SENTINEL');storage.setItem('fc_current_investor_v1','PRIVATE_SENTINEL_OWNER');
+  window.uiState={roomType:null,currentInvestorId:'PRIVATE_SENTINEL_OWNER'};storage.setItem('fc_ui_v1',JSON.stringify(window.uiState));
+  storage.setItem('fc_quote_snapshots_v1','PRIVATE_SENTINEL_HISTORY');storage.setItem('fc_project_backup_v1','PRIVATE_SENTINEL_BACKUP');
+  FC.session={active:false,durable:false,snapshot:null,lastError:{code:'SESSION_QUOTA_EXCEEDED'}};
+  let valid=true,reads=0,writes=0;
+  const gate=Object.freeze({isValid:()=>valid});
+  Object.defineProperty(window,'__FC_MAIN_ACCESS__',{value:gate,writable:false,configurable:false});
+  // File-based component fixture: provide the collector's authorized-page
+  // interface. This is not a production-origin or Google Auth integration test.
+  const facade={location:{origin:'https://mebleszek.github.io',pathname:'/meble-app/index.html'},localStorage:storage,FC,uiState:window.uiState};
+  Object.defineProperty(facade,'__FC_MAIN_ACCESS__',{value:gate,writable:false,configurable:false});
+  const collect=FC.sessionDiagnosticsReadonly;FC.sessionDiagnosticsReadonly=(_window,options)=>collect(facade,options);
+  const raw=()=>JSON.stringify(Object.keys(storage).sort().map(key=>[key,storage.getItem(key)])),before=raw();
+  const get=Storage.prototype.getItem;Storage.prototype.getItem=function(key){reads++;return get.call(this,key);};
+  for(const method of ['setItem','removeItem','clear'])Storage.prototype[method]=()=>{writes++;throw Error('Diagnostic write forbidden');};
+  FC.sessionDiagnostics.open();
+  const report=document.querySelector('.info-box__body').textContent;
+  assert(report.includes('SESSION_QUOTA_EXCEEDED')&&report.includes('Rozmiar tekstu UTF-16')&&report.includes('Historia ofert'),'Actual quota report renders footprint categories');
+  assert(!report.includes('PRIVATE_SENTINEL')&&writes===0&&raw()===before,'Anonymous report must not expose or mutate native storage');
+  const box=document.querySelector('.info-box').getBoundingClientRect();assert(box.left>=0&&box.right<=innerWidth+1&&box.top>=0&&box.bottom<=innerHeight+1,'Quota dialog fits viewport');
+  FC.infoBox.close();reads=0;valid=false;FC.sessionDiagnostics.open();assert(reads===0&&document.querySelector('.info-box__body').textContent.includes('AUTH_DENIED'),'Revoked gate refuses before storage access');FC.infoBox.close();
+  const component={name:'Synthetic packing',quantity:2,quantityMode:'linear',timeBlockHours:5/60,baseHours:10/60,hours:10/60,hourlyRate:150,multiplier:1,total:25,unitPrice:12.5};
+  const register=FC.quoteCalculationRegister.buildRegister({labor:[{name:'Synthetic cabinet',details:[component]}],materials:[{qty:1.23456,unit:'m²',unitPrice:173.125,total:1.23456*173.125}]},{});
+  const frozen=JSON.stringify(register);
+  for(const section of ['labor','materials']){
+    FC.wycenaSummaryDetailsModal.open({calculationRegister:register},section);
+    const body=document.getElementById('quoteSummaryDetailsBody');
+    assert(body.textContent.includes(section==='labor'?'2 × 5 min × 150 zł/h ÷ 60 = 25,00 zł':'1,23456 × 173,125 zł'),'Exact visible operands survive actual DOM rendering');
+    for(const node of body.querySelectorAll('.quote-detail-line__fact-value')){const rect=node.getBoundingClientRect();assert(rect.left>=0&&rect.right<=innerWidth+1,'Equation wraps within viewport');}
+    FC.wycenaSummaryDetailsModal.close();
+  }
+  assert(JSON.stringify(register)===frozen&&raw()===before&&writes===0,'Rendering preserves frozen amounts and all native RAW');
+}
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'meble-labor-ui-'));
 try{
-  const html='<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>'+css+'</style><div id="component"></div><div id="priceListItems"></div><pre id="result"></pre><script>window.FC={infoBox:{open:value=>window.helpPayload=value},priceModalContext:{byId:id=>document.getElementById(id),currentListKind:()=>"quoteRates",filteredPriceList:()=>[{id:"synthetic-help",name:"Synthetic norm",price:0,note:"5 min przygotowania"}],openPriceItemModal:()=>{}}};\n'+js+'\ntry{('+check.toString()+')();}catch(error){document.getElementById("result").textContent="FAIL: "+error.stack;}</script>';
+  const infoBoxSource=fs.readFileSync(path.join(root,'js/app/ui/info-box.js'),'utf8');
+  const html='<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>'+css+'</style><div id="component"></div><div id="priceListItems"></div><pre id="result"></pre><script>window.FC={infoBox:{open:value=>window.helpPayload=value},priceModalContext:{byId:id=>document.getElementById(id),currentListKind:()=>"quoteRates",filteredPriceList:()=>[{id:"synthetic-help",name:"Synthetic norm",price:0,note:"5 min przygotowania"}],openPriceItemModal:()=>{}}};\n'+js+'\ntry{('+check.toString()+')();('+checkQuotaAndEquations.toString()+')('+JSON.stringify(infoBoxSource)+');}catch(error){document.getElementById("result").textContent="FAIL: "+error.stack;}</script>';
   const file=path.join(dir,'fixture.html');fs.writeFileSync(file,html);
   for(const[profile,width,height,ua]of [['Android-size',393,851,'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36'],['Windows-size',1280,900,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0 Safari/537.36']]){
     if(process.argv.includes('--mobile-only')&&width>400)continue;

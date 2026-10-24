@@ -240,7 +240,7 @@
       edgeWastePercent:10,
       edgeWasteMeters:wasteMeters,
       edgeQuotedMeters:quotedMeters,
-      note:`Z elementów: ${rawMeters.toFixed(3)} mb • zapas +10% (${wasteMeters.toFixed(3)} mb) = ${quotedMeters.toFixed(3)} mb`,
+      note:`Z elementów: ${rawMeters} mb • zapas +10% • do wyceny: ${quotedMeters} mb po zaokrągleniu metrów zgodnie z regułą PCV`,
       calculation: mode === 'front'
         ? 'Cena = realne metry oklein z szafek ustawionych jako PCV pod kolor frontów, tylko dla formatek laminowanych, + 10% zapasu × cena PCV pod kolor frontów za mb z cennika materiałów.'
         : 'Cena = realne metry oklein z szafek ustawionych jako PCV pod kolor płyty, tylko dla formatek laminowanych, + 10% zapasu × cena PCV standard za mb z cennika materiałów.',
@@ -281,7 +281,7 @@
       note = sourceLabel(planInfo && planInfo.source);
     }else if(priceUnit === 'm2'){
       qty = round(partAreaM2(selectedParts), 3);
-      note = `${partCount(selectedParts)} elem. • powierzchnia ${qty.toFixed(3)} m²`;
+      note = `${partCount(selectedParts)} elem. • powierzchnia ${qty} m²`;
     }else if(priceUnit === 'piece'){
       qty = Math.max(1, Math.ceil(partCount(selectedParts) / Math.max(1, partCount(selectedParts))));
       note = 'Zakup całej sztuki według cennika; blaty startowo liczone jako pełna sztuka 4,1 m.';

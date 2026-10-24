@@ -2,6 +2,8 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
+const assert = require('node:assert/strict');
+const {versions, assertHtmlVersions} = require('./script-versions');
 
 const root = process.cwd();
 function read(file){ return fs.readFileSync(path.join(root, file), 'utf8'); }
@@ -126,9 +128,22 @@ if(!/#quoteSummaryDetailsModal \.quote-detail-modal__body\{[^}]*padding:12px 12p
 
 [
   ['index wycena.css', index, `css/wycena.css?v=${token}`],
-  ['index modal js', index, `js/app/wycena/wycena-summary-details-modal.js?v=${token}`],
-  ['dev_tests modal js', devTests, `js/app/wycena/wycena-summary-details-modal.js?v=${token}`],
 ].forEach(([label, src, needle])=> { if(!has(src, needle)) fail(`Cache-busting nieaktualny: ${label}`); });
+
+// JS versions are independent of the unchanged CSS token. Require the exact,
+// unique dependency versions in both entry points, including the modal.
+try{
+  assertHtmlVersions(index, devTests);
+  const file='js/app/wycena/wycena-summary-details-modal.js';
+  const current=file+'?v='+versions[file];
+  for(const invalid of [file, file+'?v='+token, current+'&stale=1']){
+    assert.throws(()=>assertHtmlVersions(index.replace(current,invalid),devTests));
+    assert.throws(()=>assertHtmlVersions(index,devTests.replace(current,invalid)));
+  }
+  assert.throws(()=>assertHtmlVersions(index.replace(current,current+'\"></script><script src=\"'+current),devTests));
+  const dependency='js/app/quote/quote-calculation-register.js';
+  assert.throws(()=>assertHtmlVersions(index.replace(dependency+'?v='+versions[dependency],dependency+'?v='+token),devTests));
+}catch(error){ fail('Cache-busting JS: '+error.message); }
 
 if(failures.length){
   console.error('Quote details accordion scroll smoke FAILED');
