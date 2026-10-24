@@ -38,6 +38,24 @@ Izolowana orkiestracja pełnego cyklu została wydana w PR #75, main `fd36b2e6fe
 
 Projektowanie zależnych obszarów może być jednym uzgodnionym pakietem, lecz żadna kolejność nie pozwala włączyć offline lub synchronizacji przed udowodnieniem warunków bezpieczeństwa. Nie ustalamy teraz algorytmu przejęcia, schematu IndexedDB, sposobu migracji nierozstrzygniętych danych ani polityki dostępu offline. Cel kosztowy pozostaje Spark i 0 zł stałych opłat bez włączania billingu. Ten pakiet dokumentacyjny ma status `CODE_READY / CI_PENDING / LIVE_BLOCKED`, bez PR i wydania.
 
+### POST-CLOUD-STORAGE-RESILIENCE — trwała odporność pamięci urządzeń
+
+**Decyzja właściciela z 24.10.2026: obowiązkowy, osobny, priorytetowy pakiet po wymaganych etapach CLOUD i pełnym bezpiecznym LOCAL-FIRST, nie luźna propozycja.** Dotyczy telefonu, tabletu i komputera. Wdrożenie wymaga osobnej zgody; obecna zgoda obejmuje analizę i dokumentację. Nie zmienia kolejności etapów powyżej ani zgód LIVE.
+
+Pakiet rozwija istniejący etap **6. Pamięć i ratowanie danych**. Jego wymagania należy uwzględniać już przy projektowaniu **2. Trwałego zapisu lokalnego**, aby nie przenieść niekontrolowanego wzrostu z localStorage do IndexedDB. Zależności: bezstratne domeny i rewizje, działająca synchronizacja z niezależnym odczytem, trwały zapis wraz z kolejką, pojedynczy aktywny edytor, ochrona pracy offline i sprawdzalne odzyskiwanie. Kanoniczny kontrakt, rekomendowaną architekturę i przyszłe testy doprecyzowuje [istniejąca sekcja quota w CLOUD_MIGRATION](CLOUD_MIGRATION.md#post-cloud-storage-resilience--wymaganie-z-24102026); rejestr własności pozostaje w CLOUD_DATA_REGISTER.md.
+
+Wymagany rezultat:
+
+- Wieloletni przyrost projektów, ofert, katalogów, backupów i rozkrojów nie prowadzi do cyklicznej blokady edycji przez niekontrolowany rozrost lokalnych danych. Nie obiecujemy nieskończonej pojemności urządzenia; rzeczywisty brak miejsca ma być obsłużony bez utraty informacji i fałszywego potwierdzenia zapisu.
+- Odrębne polityki dla bieżących danych biznesowych, zamrożonej historii ofert, niezależnych kopii bezpieczeństwa i danych odtwarzalnych/cache. Sam limit liczby rekordów lub zwiększenie liczby wpisów cache nie wystarcza; potrzebne są budżety rozmiaru i kontrola wzrostu.
+- Docelowy podział: mały localStorage na minimalny stan techniczny, transakcyjny trwały magazyn biznesowy i kolejka lokalna, chmura na potwierdzone wersje/archiwum oraz limitowane dane odtwarzalne. Jeden model danych, bez konkurencyjnych autorytetów i obowiązkowych ręcznych eksportów podczas normalnej pracy.
+- Ochrona kompletnego zestawu offline, draftów, decyzji PCV/słojów, intencji i niesynchronizowanych zmian. Lokalnej kopii nie wolno zwalniać na podstawie samego uploadu; wymagane są dowody kompletności i odtworzenia właściwej rewizji oraz zachowanie obiecanej dostępności offline.
+- Monitoring rozmiarów magazynów, rezerwy na transakcje/zastępowanie danych, ostrzeganie i bezpieczna odmowa przed nieodwracalnymi skutkami. Rzeczywiste limity odróżnić od estymat; progi uzasadnić pomiarami na urządzeniach, bez przyjęcia arbitralnej liczby MB.
+- Bezstratna, wznawialna i weryfikowalna migracja: pełna prywatna kopia również pomijanych dziś RAW, kontrola integralności, rewizji i zależności, test awarii w połowie oraz sprawdzone recovery. Bez resetu, usunięcia jedynej kopii i zmiany obecnej retencji przy okazji.
+- Akceptacja na fizycznym telefonie Android, tablecie i komputerze: wieloletni wzrost historii/backupów/cache/katalogów, pełna pamięć, utrata ACK/sieci, restarty, migracja i przywrócenie. Kryteria są przyszłe i NIEWYKONANE; nie są PASS z PR #80.
+
+**Osobny tor pilny — obecny Pixel:** [incydent i plan zabezpieczenia](CURRENT_STATE.md#android-quota--incydent-z-24102026). Identyfikacja największego klucza i prywatna kopia ratunkowa nie mogą czekać na zakończenie CLOUD. Dopiero po ich weryfikacji osobna decyzja o odzyskaniu miejsca; niniejszy zapis nie uruchamia eksportera, kasowania, migracji, resetu ani Firebase LIVE.
+
 ## CLOUD-4.4 — następna bramka zależy od dowodów
 
 Istniejące przygotowanie CLOUD-4.3–4.3b i kontrakt współpracy są zintegrowane na jednej gałęzi CLOUD-4.4. Przed produkcyjną Bramką 2 potrzebne są dostępne oryginalne 635 B, osobno zatwierdzone świeże dowody i rozstrzygnięta wyłączność publikacji Rules. Dwa GET nie są atomowym CAS; brak dowodu oznacza STOP. [Pakiet techniczny i testy](tools/reports/cloud-4-4-gate2-technical-preparation.md). Nie zmienia to dalszych zależności Issue #47, aliasów, historii ofert i ochrony danych.
