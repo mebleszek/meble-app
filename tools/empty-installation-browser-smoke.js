@@ -13,7 +13,7 @@ async function main(){
     for(const name of ['profile','cache','config','downloads'])fs.mkdirSync(path.join(dir,name));
     const executable=process.env.CHROMIUM_PATH||['/usr/bin/chromium','/usr/bin/google-chrome'].find(f=>fs.existsSync(f));assert.ok(executable,'Real Chromium is required');
     browser=spawn(executable,['--headless','--no-sandbox','--disable-dev-shm-usage','--disable-background-networking','--disable-component-update','--no-first-run','--remote-debugging-port=0','--user-data-dir='+path.join(dir,'profile'),'about:blank'],{stdio:['ignore','ignore','pipe'],env:{...process.env,XDG_CACHE_HOME:path.join(dir,'cache'),XDG_CONFIG_HOME:path.join(dir,'config')}});
-    const endpoint=await new Promise((resolve,reject)=>{let output='';const timer=setTimeout(()=>reject(Error('Chromium startup timeout')),15000);browser.on('error',e=>{clearTimeout(timer);reject(e);});browser.once('exit',code=>{clearTimeout(timer);reject(Error('Chromium failed ('+code+'): '+output.slice(-1200)));});browser.stderr.on('data',data=>{output+=data;const m=output.match(/DevTools listening on (ws:\/\/\S+)/);if(m){clearTimeout(timer);resolve(m[1]);}});});
+    const endpoint=await require('./helpers/chromium-startup').waitForEndpoint(browser,{profileDir:path.join(dir,'profile')});
     const targets=await(await fetch('http://127.0.0.1:'+new URL(endpoint).port+'/json/list')).json();
     async function client(url){
       const pending=new Map();let nextId=0;
