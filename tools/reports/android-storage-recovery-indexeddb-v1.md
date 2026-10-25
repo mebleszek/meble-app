@@ -170,3 +170,29 @@ Wieloletnia odporność innych domen i pełny LOCAL-FIRST pozostają dalszymi za
 - `tools/storage-recovery-browser-suite.js`
 - `tools/storage-recovery-smoke.js`
 - `tools/wycena-quote-history-storage-maintenance-smoke.js`
+
+
+## Pilna korekta pustej instalacji — 25.10.2026
+
+Zakres: istniejąca gałąź `fix/android-storage-recovery-indexeddb-v1`; wejściowy HEAD `75930632cec1cc30039e8bc43bf425e6624dda64`, BASE/main `9c6ad2263850868e37c0cdb9098dfe6047a39260`. Najnowszy pomiar właściciela dotyczy pustego Pixela (0 inwestorów/projektów, 15 kluczy, 183,9 KiB, ramActive:false/durable:false), a nie wcześniejszego zapełnionego magazynu. Nie wykonywano resetu ani operacji na telefonie.
+
+### Reprodukcja i naprawa
+
+Rzeczywisty Chromium z pełnym index i syntetycznym uwierzytelnionym weryfikatorem: zero rekordów, nieaktywna sesja, lecz hasProjectDivergence i needsClosure zwracały true. Jedyna różnica względem normalize(null) to lazienka.settings.counterThickness: 1,8 zamiast 2. Bridge przy braku centralnego projektu ładuje aktualny DEFAULT, a migracje null mają historyczny default. Kliknięcie Projekty meblowe wywoływało begin bez rzeczywistego właściciela i poprawnie kończyło się SESSION_OWNER_MISSING. Starszy mini-fixture bez produkcyjnych migracji nie ujawniał tej rozbieżności; nowa regresja ładuje rzeczywiste migrate.js.
+
+`hasProjectDivergence()` porównuje aktualny DEFAULT z RAM tylko po ścisłym potwierdzeniu pustego, nieprzypisanego kontekstu. Brak odczytu, malformed store, rekord inwestora/projektu, wskaźnik właściciela, legacy projekt lub trwały/RAM dowód sesji nie są traktowane jako pusta instalacja. Rzeczywista zmiana domyślnego RAM nadal wymaga właściciela i zatrzymuje nawigację; nie ma begin ani zapisu do pustej sesji podczas wejścia do menu/katalogu.
+
+Pełny przebieg ujawnił też odmowę aktywacji pierwszego rzeczywiście utworzonego projektu: dotychczasowy guard odrzucał nieprzypisany RAM różniący się od nowego projektu metadanymi właściciela. Wrapper jawnego create pozyskuje teraz jednorazowy token tylko przed przejściem z pustego magazynu. Aktywacja wymaga niezmienionego domyślnego RAM, braku dowodów sesji, dokładnie jednego zapisanego inwestora i jego projektu oraz zgodności nowego projektu z przygotowanym źródłem. W formularzu dopuszcza wyłącznie ID dokładnego transient draft znanego UI, nigdy dowolny zapisany/stary ID. Istniejąca ogólna kontrola przełączania i aktywnej sesji pozostaje. Nie fabrykuje się właściciela: otrzymuje go wyłącznie rekord utworzony po świadomym Zapisz inwestora.
+
+### Nowe dowody celowane
+
+- `node tools/empty-installation-smoke.js`: **5/5 grup PASS**. Puste null i [] (bez begin/writes), realna niezapisana zmiana RAM i odmowa owner-missing, evidence sesji/stare wskazania/legacy/niepoprawny lub nieodczytywalny magazyn, prawdziwa aktywna sesja i konflikt właściciela bez utraty RAM/RAW, pierwsza aktywacja i odmowa użycia checkpointu po zmianie RAM/sesji/pojawieniu się drugiego właściciela.
+- `node tools/empty-installation-browser-smoke.js`: **PASS**, rzeczywisty Chromium, jednorazowy pusty profil, realny pełny shell aplikacji i gate, lokalne syntetyczne odpowiedzi Auth/verifier, viewport 393×852. Dotykowe przejście do menu i katalogu bez tworzenia rekordów/sesji; pełny restart dokumentu; rzeczywisty formularz pierwszego inwestora z potwierdzeniem; rzeczywisty projekt i pomieszczenie; trwała sesja z prawidłowym właścicielem; zmiana wysokości pomieszczenia do 275 cm i Zapisz; potwierdzona wartość centralna i usunięty dowód zamkniętej sesji. Przechwycone wszystkie requesty aplikacji, brak zdalnego IO lub nieobsłużonych błędów. Nie jest to test produkcyjnego Google/telefonu.
+- Nowe pliki kończą się `-smoke.js`, więc istniejąca enumeracja tools w Preflight uruchamia je w bieżącym kontekście. Rzeczywisty Chromium jest wymagany — brak binarki powoduje FAIL, nie SKIP. Workflow bez zmian.
+- Wersje obu zmienionych modułów produkcyjnych ustawiono zgodnie na `20261025_empty_installation_v1` w index/dev_tests i dodano ścisłą kontrolę w istniejącym tools/script-versions.js. Nie zmieniono kolejności ani listy produkcyjnych modułów.
+
+Pełny Preflight, emulatory i GitHub Actions nieuruchomione; pozostają **CI_PENDING**. Fizyczny Pixel **PHONE_PENDING**. Ta pilna korekta: **CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**. Nie rozwiązuje wcześniejszego **CODE_BLOCKED_WRITER_EXCLUSIVITY** etapu E archiwum. Brak PR, merge, Pages, operacji na telefonie, nowych migracji lub Firebase LIVE. CLOUD i synchronizacja pozostają wstrzymane; historycznych pinów nie aktualizowano.
+
+Końcowa kontrola tej korekty: składnia pięciu zmienionych/dodanych JS PASS, git diff --check PASS, ścisłe wersje skryptów PASS, check-index-load-groups PASS. cloud-ci-impact --base 9c6ad2263850868e37c0cdb9098dfe6047a39260 wskazał nowe chronione zmiany index/runtime/patches; aktualny boundary smoke z odizolowanym, zweryfikowanym drzewem historycznym 306f90a4cfd8bcb4277aa8b4d140e911493ddd60 PASS przez dokładne odmowy CLOUD42_SOURCE_CHANGED i CLOUD46C_DEPENDENCY_CHANGED (C/D/E), bez IO. Nie modyfikowano manifestów, podpisów, Rules, workflow ani kodu chmury. GitHub ponownie potwierdził powyższy BASE i wejściowy HEAD gałęzi przed publikacją commita. Wyniki dotyczą tej celowanej korekty roboczej; nie są pełnym CI ani potwierdzeniem dla telefonu.
+
+Pliki tej korekty (9): CURRENT_STATE.md; index.html; dev_tests.html; js/app/investor/investor-project-runtime.js; js/app/investor/investor-project-patches.js; tools/empty-installation-smoke.js; tools/empty-installation-browser-smoke.js; tools/script-versions.js; niniejszy raport. Poprzednia lista 30 plików opisuje wcześniejszy zakres pakietu.

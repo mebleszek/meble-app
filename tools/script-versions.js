@@ -3,6 +3,8 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
+  "js/app/investor/investor-project-runtime.js": "20261025_empty_installation_v1",
+  "js/app/investor/investor-project-patches.js": "20261025_empty_installation_v1",
   "js/app/shared/backup-archive-idb.js": "20261025_storage_recovery_repair_v1",
   "js/app/shared/storage-recovery-export.js": "20261025_storage_recovery_repair_v1",
   "js/app/ui/storage-recovery-panel.js": "20261025_storage_recovery_repair_v1",

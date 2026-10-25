@@ -1,5 +1,18 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## Pusta instalacja — SESSION_OWNER_MISSING (25.10.2026)
+
+Nowy stan zgłoszony przez właściciela po usunięciu danych testowych: Pixel ma 0 projektów, 0 inwestorów, 15 kluczy katalogów/startu, około 183,9 KiB, brak aktywnej i trwałej sesji. To odrębny przypadek od wcześniejszej blokady quota z sześcioma projektami; nie wykonano żadnych operacji na telefonie.
+
+Na tej samej gałęzi `fix/android-storage-recovery-indexeddb-v1`, od wejściowego HEAD `75930632cec1cc30039e8bc43bf425e6624dda64`, odtworzono błąd w pełnym shellu Chromium. `project-bridge.load()` bierze aktualny DEFAULT (blat łazienki 2 cm), natomiast porównanie z nieistniejącym centralnym projektem normalizowało null przez migracje legacy (1,8 cm). Powstawała pozorna edycja, nawigacja próbowała `session.begin()`, a poprawna kontrola właściciela odmawiała `SESSION_OWNER_MISSING`.
+
+Poprawka używa tego samego DEFAULT jako baseline wyłącznie dla sprawdzonej pustej instalacji bez rekordów, wskazań właściciela, legacy projektu i dowodów sesji. Nie tworzy właściciela ani sesji do menu/katalogów. Jawne utworzenie pierwszego inwestora może aktywować jego rzeczywisty nowy projekt przez jednorazowe świadectwo niezmienionego pustego RAM; nie otwiera tej ścieżki dla istniejących projektów. Blokady rzeczywistej edycji i konfliktów pozostają. Normy/ceny, schematy, sesja, Auth i CLOUD bez zmian.
+
+Celowane testy: `empty-installation-smoke.js` 5/5 grup PASS; `empty-installation-browser-smoke.js` PASS w rzeczywistym Chromium, mobilne 393×852, pusty profil → startup i Auth gate → Projekty meblowe/katalog → restart → nowy inwestor/projekt/pomieszczenie → edycja i trwały zapis. Dane i odpowiedź weryfikatora dostępu są syntetyczne; nie testowano Google ani fizycznego Pixela. Oba testy są automatycznie wykrywane przez istniejący Preflight. Szczegóły w raporcie pakietu.
+
+**Ta pilna poprawka: CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Wcześniejszy blocker wyłączności writerów etapu E archiwum nadal obowiązuje — ta poprawka go nie rozwiązuje i nie zmienia statusu całego STORAGE RECOVERY. Bez PR, wydania ani działań na danych właściciela.
+
+
 ## STORAGE RECOVERY v1 — korekta przed wydaniem (25.10.2026)
 
 Gałąź pozostaje `fix/android-storage-recovery-indexeddb-v1`; wejściowy HEAD `80ade3639c62b9c5c7f6c187432b58d0ece0bc8b`, potwierdzony BASE/main `9c6ad2263850868e37c0cdb9098dfe6047a39260`. Bez nowej gałęzi, PR lub wydania.
