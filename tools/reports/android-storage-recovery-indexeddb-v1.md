@@ -196,3 +196,41 @@ Pełny Preflight, emulatory i GitHub Actions nieuruchomione; pozostają **CI_PEN
 Końcowa kontrola tej korekty: składnia pięciu zmienionych/dodanych JS PASS, git diff --check PASS, ścisłe wersje skryptów PASS, check-index-load-groups PASS. cloud-ci-impact --base 9c6ad2263850868e37c0cdb9098dfe6047a39260 wskazał nowe chronione zmiany index/runtime/patches; aktualny boundary smoke z odizolowanym, zweryfikowanym drzewem historycznym 306f90a4cfd8bcb4277aa8b4d140e911493ddd60 PASS przez dokładne odmowy CLOUD42_SOURCE_CHANGED i CLOUD46C_DEPENDENCY_CHANGED (C/D/E), bez IO. Nie modyfikowano manifestów, podpisów, Rules, workflow ani kodu chmury. GitHub ponownie potwierdził powyższy BASE i wejściowy HEAD gałęzi przed publikacją commita. Wyniki dotyczą tej celowanej korekty roboczej; nie są pełnym CI ani potwierdzeniem dla telefonu.
 
 Pliki tej korekty (9): CURRENT_STATE.md; index.html; dev_tests.html; js/app/investor/investor-project-runtime.js; js/app/investor/investor-project-patches.js; tools/empty-installation-smoke.js; tools/empty-installation-browser-smoke.js; tools/script-versions.js; niniejszy raport. Poprzednia lista 30 plików opisuje wcześniejszy zakres pakietu.
+
+
+## Domknięcie nowych backupów i anulowania COPIED — 25.10.2026
+
+Wejściowy HEAD `263a75b30c160952eb3bb72221bc014d6139d190`; niezmieniona gałąź `fix/android-storage-recovery-indexeddb-v1`, BASE/main `9c6ad2263850868e37c0cdb9098dfe6047a39260`, potwierdzone przez GitHub. Zakres obejmuje wyłącznie dwa nowe wymagania właściciela, ich wersjonowanie/regresje i dokumentację. Nie ponawiano diagnozy SESSION_OWNER_MISSING ani zaliczonych regresji.
+
+### Nowe archiwum — bez legacy fallbacku
+
+Pierwszy zapis przy nieobecnym fc_data_backups_v1, journalu i markerze tworzy INITIALIZING (`origin:fresh`, source `[]`, count0, revision0) w atomowej strict transakcji sources/control. Odczyt po zamknięciu bazy, zapis i read-back małego routingu, CAS do ACTIVE, ponowny odczyt, dopiero potem transakcja pierwszego backupu. Bez automatycznych operacji przy samym odczycie lub starcie. Awaria pozostawia albo pustą bazę, albo pusty INITIALIZING do wznowienia przy jawnym zapisie, albo ACTIVE bez niepotwierdzonego rekordu. Potwierdzony marker nie jest ponownie zapisywany przy wznowieniu. Późniejsze rekordy zapisuje dotychczasowa metoda atomowa mutate; stare RAW nie są ponownie serializowane. Brak IDB przy markerze lub obcy legacy writer odmawiają bez odtwarzania starego klucza. Quota/odmowa Auth nigdy nie zaliczają backupu. INIT nie jest wznowieniem SWITCH_PENDING i nie usuwa danych historycznych.
+
+### COPIED — wybrana ścieżka bezstratnego anulowania
+
+API cancelCopy(decision) oraz przycisk „Anuluj przygotowanie migracji — zachowaj obie kopie”. Decyzja zawiera dokładny hash i revision journalu, jest chroniona istniejącym Auth oraz wspólnym Web Lock. Sprawdzenie kopii odwołuje się do zachowanego oryginalnego RAW IDB, a źródło aktualne musi być poprawne i niezmienne w trakcie operacji. COPIED → CANCELLED zapisuje atomowo wyłącznie metadane sterujące. Nie usuwa ani nie przepisuje sources/records/localStorage/RAM. Obsługuje też poprawne źródło zmienione wcześniej przez stary writer: aktualne dane pozostają autorytetem, a oryginalny dowód zostaje w IDB. Rutynowe backupy znów używają starego aktywnego archiwum i mogą uczciwie odmówić przy realnej quota. Po restarcie CANCELLED nie wraca do zamrożenia. Snapshot historyczny jest dostępny w pełnym prywatnym eksporcie wraz z bieżącym źródłem. Nie nadpisujemy go ponownym copy zmienionego źródła — SOURCE_CHANGED pozostaje. To realizuje wymaganie anulowania; nie dodano wymiany historycznych dowodów. SWITCH_PENDING/ACTIVE nie mogą skorzystać z anulowania.
+
+Etap E w panelu zachowano z niezmienionym jawnym STOP RECOVERY_WRITER_EXCLUSIVITY_UNPROVEN. Lock serialize'uje kooperujące nowe karty, ale nie dowodzi nieobecności starych writerów; nie udajemy tego dowodu. Nie uruchomiono E, migracji ani usuwania danych właściciela.
+
+### Celowana weryfikacja nowych luk
+
+`node tools/storage-recovery-lifecycle-smoke.js`: **11 grup PASS** w rzeczywistym Chromium/IndexedDB, pięć żyć dokumentu, dwie rzeczywiste karty, mobilne 393×852, syntetyczne dane i access fixture. Nowy tryb --lifecycle-only istniejącego runnera nie uruchamia wcześniejszych zestawów. Pokrywa:
+
+- atomowy abort inicjalizacji na IDB quota, odmowę Auth, pełny localStorage/no-op/read-back markera, prywatny eksport częściowej inicjalizacji;
+- restart INITIALIZING, quota pierwszego rekordu bez fałszywego sukcesu, pierwszy i kolejny backup bez choćby próby zapisu legacy lub usunięcia klucza, zachowanie wcześniejszego RAW i zapis wyłącznie nowego rekordu;
+- quota/cofnięcie Auth przy mutacji bez zmiany wcześniejszej rewizji, restart ACTIVE, obcy legacy writer i utraconą IDB bez fallbacku;
+- zamrożony COPIED, nieaktualną decyzję, brak/nieznane źródło, abort quota/cofnięcie Auth podczas anulowania, zmianę legacy między odczytem i CAS bez nadpisania nowszej wartości;
+- jawny przycisk anulowania po restarcie COPIED ze zmienionym wcześniej źródłem, brak usunięcia i brak zmian sesji/RAM/pozostałych RAW, oryginalne metadane i RAW, pełny prywatny eksport obu stanów;
+- restart CANCELLED i nadal działające zwykłe backupy, brak niejawnej aktywacji/destrukcyjnego E, busy w innej rzeczywistej karcie dla inicjalizacji i anulowania.
+
+Jedyną adaptacją wcześniejszego zestawu jest jawny seed `fc_data_backups_v1:[]` w teście historycznego API LEGACY: test ma rzeczywiście badać legacy, skoro brak klucza ma teraz nowy kontrakt IDB. Nie usunięto asercji. Poprawiono także barierę przeładowania runnera, żeby potwierdzał nowe życie dokumentu zamiast dawnego już gotowego callbacku.
+
+Nowy *-smoke.js jest automatycznie wykonywany w bieżącym kontekście tools/preflight.js, z wymaganym rzeczywistym Chromium (brak binarki FAIL, nie SKIP). Dotychczasowe zestawy pozostają podłączone; workflow bez zmian. Pełnego Preflightu, poprzednich regresji i emulatorów nie uruchamiano. GitHub Actions i fizyczny telefon pozostają CI_PENDING / PHONE_PENDING.
+
+**Gotowy zakres tych dwóch luk: CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED. Destrukcyjna migracja historyczna E: BLOCKED_WRITER_EXCLUSIVITY.** Brak PR, merge, Pages, Firebase LIVE oraz operacji na danych właściciela. Nie deklarujemy pełnego odblokowania historycznej instalacji ani testu Pixela.
+
+Końcowa korekta tej samej ścieżki: odczyt INITIALIZING zwraca uczciwą pustą listę wyłącznie dla ściśle zwalidowanego journalu count0/records0/source[]; nie uruchamia żadnej mutacji. Dzięki temu także istniejące ensureCurrentStateBackup, które najpierw sprawdza listę, dochodzi do jawnego retry zapisu po restarcie. Test pierwszego rekordu/quota wykonuje rzeczywiste ensureCurrentStateBackup; nowa regresja sprawdza brak automatycznego wznowienia podczas listowania.
+
+Kontrole końcowe tej korekty: składnia 8 zmienionych/dodanych JS PASS, ścisły wspólny cache-busting trzech modułów w index/dev_tests PASS, git diff --check PASS. tools/cloud-ci-impact.js --base 9c6ad2263850868e37c0cdb9098dfe6047a39260 potwierdził wpływ index/backup-archive-idb/storage-recovery-export/storage-recovery-panel na historyczne CLOUD42_SOURCE_CHANGED; historycznych pinów, manifestów, Rules, Auth, sesji ani workflow nie zmieniono. Nie ponawiano uprzednio zaliczonych testów granicznych CLOUD — wymagany przebieg dla nowego HEAD pozostaje CI_PENDING. Przegląd bieżącego Preflight potwierdził automatyczne podłączenie nowego smoke, nie jest to wykonanie GitHub Actions.
+
+Pliki korekty (13): BACKUP.md; CURRENT_STATE.md; index.html; dev_tests.html; js/app/shared/backup-archive-idb.js; js/app/shared/storage-recovery-export.js; js/app/ui/storage-recovery-panel.js; tools/script-versions.js; tools/storage-recovery-browser-smoke.js; tools/storage-recovery-browser-suite.js; tools/storage-recovery-lifecycle-browser-suite.js; tools/storage-recovery-lifecycle-smoke.js; niniejszy raport. Inne obszary istniejącego pakietu zachowano.

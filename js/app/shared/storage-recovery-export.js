@@ -99,7 +99,7 @@
     const envelope={kind:'meble-app-encrypted-recovery',version:1,cipher:'AES-256-GCM',kdf:'PBKDF2-SHA256',iterations:310000,
       salt:base64(salt),iv:base64(iv),encoding:'UTF-16LE-code-units',ciphertext:base64(new Uint8Array(encrypted))};
     const text=JSON.stringify(envelope),digest=await fileHash(text),sourceRaw=before.local.rows.find(r=>r.key===F.KEY)?.raw
-      ??(['SWITCH_PENDING','ACTIVE'].includes(databases.archive?.state?.phase)?databases.archive.source.raw:undefined);
+      ??(['INITIALIZING','SWITCH_PENDING','ACTIVE'].includes(databases.archive?.state?.phase)?databases.archive.source.raw:undefined);
     if(sourceRaw===undefined)fail('RECOVERY_ARCHIVE_SOURCE_MISSING');
     const token=Object.freeze({text,fileHash:digest,sourceHash:await hash(sourceRaw),complete:true});
     access();prepared.set(token,{before,databases});return token;

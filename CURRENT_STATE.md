@@ -1,5 +1,18 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## STORAGE RECOVERY — nowe archiwum IDB i anulowanie COPIED (25.10.2026)
+
+Na istniejącej gałęzi `fix/android-storage-recovery-indexeddb-v1`, wejściowy HEAD `263a75b30c160952eb3bb72221bc014d6139d190`, BASE/main `9c6ad2263850868e37c0cdb9098dfe6047a39260`, domknięto dwa zatwierdzone wymagania. Nie ponawiano diagnostyki SESSION_OWNER_MISSING ani jej zaliczonych regresji.
+
+**Nowe archiwum:** przy braku starego klucza, wcześniejszego journalu i markera pierwszy zapis backupu inicjalizuje biznesową IndexedDB. INITIALIZING (atomowo pusty journal/źródło) → potwierdzony mały marker → ACTIVE → potwierdzona transakcja pierwszego rekordu. Przerwanie/pełny localStorage/IDB lub utrata Auth nigdy nie tworzą fallbacku fc_data_backups_v1 ani fałszywego potwierdzenia backupu. Ponowny jawny zapis może wznowić wyłącznie pustą inicjalizację fresh, również po restarcie. Utracona baza przy istniejącym markerze albo pojawienie się starego writera oznaczają STOP.
+
+**COPIED:** w Trybie ratunkowym dodano „Anuluj przygotowanie migracji — zachowaj obie kopie”. Jawne anulowanie sprawdza Auth, Web Lock, dokładny hash/rewizję journalu, integralność oryginalnej kopii i obecne poprawne źródło. Trwały CANCELLED zachowuje cały wcześniejszy RAW i rekordy IDB jako dowód, zaś aktualny klucz localStorage pozostaje jedynym aktywnym archiwum; zwykłe backupy nie są już zamrożone. To nie jest Anuluj sesję, odblokowanie edycji ani zwolnienie quota. Wybrano bezstratne anulowanie, nie nadpisywanie historycznej kopii nowym źródłem. Zmienione źródło nadal blokuje ponowne copy, ale nie jawne anulowanie przy poprawnym aktualnym archiwum. SWITCH_PENDING nie może skorzystać z tej ścieżki.
+
+Nowe celowane regresje Chromium/IndexedDB: `storage-recovery-lifecycle-smoke.js` — 11 grup PASS, pięć żyć dokumentu, dwie karty, mobilne 393×852, syntetyczne dane i gate. Obejmują inicjalizację, quota obu magazynów, transakcję pierwszego rekordu, read-back, restarty, brak fallbacku, historyczne RAW, cofnięcie dostępu, starego writera, CAS, jawny przycisk i odblokowane tworzenie backupów. Fizycznego telefonu nie testowano, nie uruchamiano pełnego CI/emulatorów. Nowy smoke wykrywa istniejący Preflight; workflow nie zmieniono.
+
+**Gotowy zakres dwóch luk: CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED. Destrukcyjna migracja historyczna E: BLOCKED_WRITER_EXCLUSIVITY.** E w panelu nadal kończy jawnym STOP; nie symulowano wyłączności starych writerów, nie usunięto żadnego archiwum użytkownika ani nie uruchomiono CLOUD/Firebase LIVE. Pełny pakiet nie jest deklarowany jako gotowa destrukcyjna naprawa historycznej instalacji.
+
+
 ## Pusta instalacja — SESSION_OWNER_MISSING (25.10.2026)
 
 Nowy stan zgłoszony przez właściciela po usunięciu danych testowych: Pixel ma 0 projektów, 0 inwestorów, 15 kluczy katalogów/startu, około 183,9 KiB, brak aktywnej i trwałej sesji. To odrębny przypadek od wcześniejszej blokady quota z sześcioma projektami; nie wykonano żadnych operacji na telefonie.

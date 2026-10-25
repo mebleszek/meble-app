@@ -17,6 +17,7 @@
     async function fileReceipt(){const token=await X.prepare(password);return X.verify(token.text,password,token);}
     if(stage===1){
       await test('Legacy asynchronous backup/export/restore/import retain their historical payload contracts',async()=>{
+        localStorage.setItem(F.KEY,'[]'); // Explicit legacy archive; an absent archive now initializes IDB.
         localStorage.setItem('fc_investors_v1','[{"id":"synthetic-original"}]');localStorage.setItem('fc_projects_v1','[]');
         const made=await FC.dataBackupStore.createBackup({dedupe:false});A(made.created,'Legacy async create acknowledged');
         const pack=await FC.dataBackupStore.exportBackupPayload(made.backup.id);A(pack.payload.kind==='meble-app-data-backup','Historical single backup export');

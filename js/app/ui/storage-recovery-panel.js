@@ -77,6 +77,12 @@
       const result=await FC.backupArchive.copy();
       status.textContent='COPIED: '+result.count+' kopii. Transakcja i ponowny odczyt po otwarciu bazy potwierdzone. Stary klucz zachowany. Nie zwolniono jeszcze miejsca.';
     });
+    action('Anuluj przygotowanie migracji — zachowaj obie kopie',async()=>{
+      const current=await FC.backupArchive.read();
+      await FC.backupArchive.cancelCopy({sourceHash:current.state?.sourceHash,revision:current.state?.revision});
+      token=null;receipt=null;displayedSource=null;sourceHash.value='';
+      status.textContent='CANCELLED: przygotowanie anulowane. Stare archiwum pozostaje aktywne; zwykłe backupy są odblokowane. Dokładne RAW przygotowanej kopii zachowano w IndexedDB. Niczego nie usunięto ani nie przełączono.';
+    });
     action('Sprawdź przygotowanie przełączenia',async()=>{
       const s=await FC.backupArchive.inspect();
       displayedSource=s.sourceHash;sourceHash.value=s.sourceHash||'';

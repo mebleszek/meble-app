@@ -5,8 +5,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{spawn}=require('node:child_process');
 const ROOT=path.resolve(__dirname,'..'),ORIGIN='https://mebleszek.github.io',PREFIX='/meble-app/';
 const scripts=['shared/data-storage-keys','shared/data-backup-hash','shared/data-backup-snapshot-normalizer','shared/data-backup-snapshot-apply','shared/data-backup-export','shared/data-backup-snapshot','shared/data-backup-policy','shared/backup-archive-format','shared/backup-archive-idb','shared/storage-recovery-export','shared/data-backup-storage','shared/data-backup-records','shared/data-backup-store','ui/info-box','ui/session-diagnostics-readonly','ui/session-diagnostics','ui/storage-recovery-panel'];
-const repairOnly=process.argv.includes('--repair-only');
-const suiteFile=repairOnly?'tools/storage-recovery-repair-browser-suite.js':'tools/storage-recovery-browser-suite.js';
+const repairOnly=process.argv.includes('--repair-only'),lifecycleOnly=process.argv.includes('--lifecycle-only');
+const suiteFile=lifecycleOnly?'tools/storage-recovery-lifecycle-browser-suite.js':repairOnly?'tools/storage-recovery-repair-browser-suite.js':'tools/storage-recovery-browser-suite.js';
 const html='<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><div id="appView"></div><script>window.__testAccess=true;Object.defineProperty(window,"__FC_MAIN_ACCESS__",{value:{isValid:()=>window.__testAccess},writable:false,configurable:false});window.FC={session:{active:true,durable:false,snapshot:null,expectedOwnerKnown:false,lastError:{code:"SESSION_QUOTA_EXCEEDED"},begin(){throw Error("No begin")},commit(){throw Error("No commit")},cancel(){throw Error("No cancel")},retryInitialBegin(){throw Error("No retry")}}};window.projectData={private:"SYNTHETIC_UNSAVED"};window.uiState={};</script>'+scripts.map(f=>'<script src="js/app/'+f+'.js"></script>').join('')+'<script src="'+suiteFile+'"></script>';
 async function main(){
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'meble-storage-recovery-'));let browser;const clients=[];const errors=[],external=[];
@@ -43,9 +43,9 @@ async function main(){
     await send('Runtime.enable');await send('Page.enable');await send('Emulation.setDeviceMetricsOverride',{width:393,height:852,deviceScaleFactor:1,mobile:true});await send('Fetch.enable',{patterns:[{urlPattern:'*'}]});
     async function ready(evaluatePage=evaluate){for(let n=0;n<100;n++){if(await evaluatePage('typeof runStorageRecoveryBrowserSuite === "function"'))return;await new Promise(r=>setTimeout(r,50));}throw Error('Fixture load timeout');}
     await send('Page.navigate',{url:ORIGIN+PREFIX+'index.html'});await ready();let passed=0;
-    for(let stage=1;stage<=(repairOnly?2:5);stage++){
+    for(let stage=1;stage<=(lifecycleOnly?5:repairOnly?2:5);stage++){
       const result=await evaluate('runStorageRecoveryBrowserSuite('+stage+')');for(const name of result.passed){console.log('PASS real Chromium/IndexedDB: '+name);passed++;}
-      if(stage===1&&!repairOnly){
+      if(stage===1&&!repairOnly&&!lifecycleOnly){
         await evaluate('FC.storageRecoveryExport.download(window.__downloadToken);true');
         const file=path.join(dir,'downloads','meble-app-private-recovery.encrypted.json');
         for(let n=0;n<100&&!fs.existsSync(file);n++)await new Promise(r=>setTimeout(r,50));
@@ -65,9 +65,22 @@ async function main(){
         await evaluate('window.__releaseArchiveLock();true');await send('Target.closeTarget',{targetId:created.targetId});second.close();
         console.log('PASS real Chromium/IndexedDB: two real tabs cannot migrate concurrently');passed++;
       }
-      if(result.restart){await send('Page.reload',{ignoreCache:true});await ready();}
+      if(lifecycleOnly&&[1,3].includes(stage)){
+        const created=await send('Target.createTarget',{url:'about:blank'});
+        const list=await(await fetch('http://127.0.0.1:'+new URL(endpoint).port+'/json/list')).json();
+        const second=await client(list.find(t=>t.id===created.targetId).webSocketDebuggerUrl);
+        await second.send('Runtime.enable');await second.send('Page.enable');await second.send('Fetch.enable',{patterns:[{urlPattern:'*'}]});
+        await second.send('Page.navigate',{url:ORIGIN+PREFIX+'index.html'});await ready(second.evaluate);
+        await evaluate('new Promise(resolve=>{navigator.locks.request(FC.backupArchiveFormat.LOCK,async()=>{resolve(true);await new Promise(release=>window.__releaseArchiveLock=release);});})');
+        const expression=stage===1?'FC.dataBackupStore.createBackup()':'FC.backupArchive.cancelCopy({})';
+        assert.equal(await second.evaluate(expression+'.then(()=>"WRONG_SUCCESS",e=>e.message)'),'ARCHIVE_BUSY');
+        await evaluate('window.__releaseArchiveLock();true');await send('Target.closeTarget',{targetId:created.targetId});second.close();
+        console.log('PASS real Chromium/IndexedDB: other tab cannot '+(stage===1?'initialize':'cancel migration')+' while the archive lock is held');passed++;
+      }
+      if(result.restart){const token=await evaluate('window.__testDocumentToken=crypto.randomUUID()');await send('Page.reload',{ignoreCache:true});
+        for(let n=0;n<100;n++){if(await evaluate('window.__testDocumentToken!=='+JSON.stringify(token)))break;await new Promise(r=>setTimeout(r,50));}await ready();}
     }
-    assert.deepEqual(errors,[]);assert.deepEqual(external,[]);console.log('Storage recovery real Chromium: '+passed+' groups PASS; '+(repairOnly?'repair-only, two document lifetimes':'five document lifetimes')+', mobile 393×852, zero LIVE requests');
+    assert.deepEqual(errors,[]);assert.deepEqual(external,[]);console.log('Storage recovery real Chromium: '+passed+' groups PASS; '+(lifecycleOnly?'lifecycle-only, five document lifetimes':repairOnly?'repair-only, two document lifetimes':'five document lifetimes')+', mobile 393×852, zero LIVE requests');
   }finally{for(const c of clients)c.close();browser?.kill('SIGKILL');await new Promise(r=>setTimeout(r,200));fs.rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:100});}
 }
 if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});
