@@ -14,7 +14,7 @@
       return false;
     }
 
-    let view = 'menu';
+    let view = 'menu', renderVersion = 0;
     const body = h('div', { class:'panel-box-form data-settings-modal' });
     const scroll = h('div', { class:'panel-box-form__scroll data-settings-scroll' });
     const footer = h('div', { class:'panel-box-form__footer rozrys-panel-footer' });
@@ -29,8 +29,9 @@
     function renderFooter(){ backBtn.style.display = view === 'menu' ? 'none' : ''; footer.style.display = view === 'menu' ? 'none' : ''; }
     function setView(next){ view = (next === 'backup' || next === 'defaults' || next === 'workSources' || next === 'company' || next === 'businessCosts' || next === 'hourlyRates') ? next : 'menu'; render(); }
     function render(){
+      const version = ++renderVersion;
       renderFooter();
-      if(view === 'backup') FC.dataSettingsBackupView.render({ scroll, store, snapshot, render });
+      if(view === 'backup') FC.dataSettingsBackupView.render({ scroll, store, snapshot, render, isCurrent:()=>view === 'backup' && renderVersion === version }).catch(error=>{if(view === 'backup' && renderVersion === version)dom.info('Backup niedostępny', String(error.message));});
       else if(view === 'defaults' && FC.dataSettingsDefaultsView) FC.dataSettingsDefaultsView.render(scroll);
       else if(view === 'workSources' && FC.dataSettingsWorkSourcesView) FC.dataSettingsWorkSourcesView.render(scroll);
       else if(view === 'company' && FC.dataSettingsCompanyView) FC.dataSettingsCompanyView.render(scroll);

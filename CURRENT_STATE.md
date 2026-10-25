@@ -1,5 +1,59 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## STORAGE RECOVERY — nowe archiwum IDB i anulowanie COPIED (25.10.2026)
+
+Na istniejącej gałęzi `fix/android-storage-recovery-indexeddb-v1`, wejściowy HEAD `263a75b30c160952eb3bb72221bc014d6139d190`, BASE/main `9c6ad2263850868e37c0cdb9098dfe6047a39260`, domknięto dwa zatwierdzone wymagania. Nie ponawiano diagnostyki SESSION_OWNER_MISSING ani jej zaliczonych regresji.
+
+**Nowe archiwum:** przy braku starego klucza, wcześniejszego journalu i markera pierwszy zapis backupu inicjalizuje biznesową IndexedDB. INITIALIZING (atomowo pusty journal/źródło) → potwierdzony mały marker → ACTIVE → potwierdzona transakcja pierwszego rekordu. Przerwanie/pełny localStorage/IDB lub utrata Auth nigdy nie tworzą fallbacku fc_data_backups_v1 ani fałszywego potwierdzenia backupu. Ponowny jawny zapis może wznowić wyłącznie pustą inicjalizację fresh, również po restarcie. Utracona baza przy istniejącym markerze albo pojawienie się starego writera oznaczają STOP.
+
+**COPIED:** w Trybie ratunkowym dodano „Anuluj przygotowanie migracji — zachowaj obie kopie”. Jawne anulowanie sprawdza Auth, Web Lock, dokładny hash/rewizję journalu, integralność oryginalnej kopii i obecne poprawne źródło. Trwały CANCELLED zachowuje cały wcześniejszy RAW i rekordy IDB jako dowód, zaś aktualny klucz localStorage pozostaje jedynym aktywnym archiwum; zwykłe backupy nie są już zamrożone. To nie jest Anuluj sesję, odblokowanie edycji ani zwolnienie quota. Wybrano bezstratne anulowanie, nie nadpisywanie historycznej kopii nowym źródłem. Zmienione źródło nadal blokuje ponowne copy, ale nie jawne anulowanie przy poprawnym aktualnym archiwum. SWITCH_PENDING nie może skorzystać z tej ścieżki.
+
+Nowe celowane regresje Chromium/IndexedDB: `storage-recovery-lifecycle-smoke.js` — 11 grup PASS, pięć żyć dokumentu, dwie karty, mobilne 393×852, syntetyczne dane i gate. Obejmują inicjalizację, quota obu magazynów, transakcję pierwszego rekordu, read-back, restarty, brak fallbacku, historyczne RAW, cofnięcie dostępu, starego writera, CAS, jawny przycisk i odblokowane tworzenie backupów. Fizycznego telefonu nie testowano, nie uruchamiano pełnego CI/emulatorów. Nowy smoke wykrywa istniejący Preflight; workflow nie zmieniono.
+
+**Gotowy zakres dwóch luk: CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED. Destrukcyjna migracja historyczna E: BLOCKED_WRITER_EXCLUSIVITY.** E w panelu nadal kończy jawnym STOP; nie symulowano wyłączności starych writerów, nie usunięto żadnego archiwum użytkownika ani nie uruchomiono CLOUD/Firebase LIVE. Pełny pakiet nie jest deklarowany jako gotowa destrukcyjna naprawa historycznej instalacji.
+
+
+## Pusta instalacja — SESSION_OWNER_MISSING (25.10.2026)
+
+Nowy stan zgłoszony przez właściciela po usunięciu danych testowych: Pixel ma 0 projektów, 0 inwestorów, 15 kluczy katalogów/startu, około 183,9 KiB, brak aktywnej i trwałej sesji. To odrębny przypadek od wcześniejszej blokady quota z sześcioma projektami; nie wykonano żadnych operacji na telefonie.
+
+Na tej samej gałęzi `fix/android-storage-recovery-indexeddb-v1`, od wejściowego HEAD `75930632cec1cc30039e8bc43bf425e6624dda64`, odtworzono błąd w pełnym shellu Chromium. `project-bridge.load()` bierze aktualny DEFAULT (blat łazienki 2 cm), natomiast porównanie z nieistniejącym centralnym projektem normalizowało null przez migracje legacy (1,8 cm). Powstawała pozorna edycja, nawigacja próbowała `session.begin()`, a poprawna kontrola właściciela odmawiała `SESSION_OWNER_MISSING`.
+
+Poprawka używa tego samego DEFAULT jako baseline wyłącznie dla sprawdzonej pustej instalacji bez rekordów, wskazań właściciela, legacy projektu i dowodów sesji. Nie tworzy właściciela ani sesji do menu/katalogów. Jawne utworzenie pierwszego inwestora może aktywować jego rzeczywisty nowy projekt przez jednorazowe świadectwo niezmienionego pustego RAM; nie otwiera tej ścieżki dla istniejących projektów. Blokady rzeczywistej edycji i konfliktów pozostają. Normy/ceny, schematy, sesja, Auth i CLOUD bez zmian.
+
+Celowane testy: `empty-installation-smoke.js` 5/5 grup PASS; `empty-installation-browser-smoke.js` PASS w rzeczywistym Chromium, mobilne 393×852, pusty profil → startup i Auth gate → Projekty meblowe/katalog → restart → nowy inwestor/projekt/pomieszczenie → edycja i trwały zapis. Dane i odpowiedź weryfikatora dostępu są syntetyczne; nie testowano Google ani fizycznego Pixela. Oba testy są automatycznie wykrywane przez istniejący Preflight. Szczegóły w raporcie pakietu.
+
+**Ta pilna poprawka: CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Wcześniejszy blocker wyłączności writerów etapu E archiwum nadal obowiązuje — ta poprawka go nie rozwiązuje i nie zmienia statusu całego STORAGE RECOVERY. Bez PR, wydania ani działań na danych właściciela.
+
+
+## STORAGE RECOVERY v1 — korekta przed wydaniem (25.10.2026)
+
+Gałąź pozostaje `fix/android-storage-recovery-indexeddb-v1`; wejściowy HEAD `80ade3639c62b9c5c7f6c187432b58d0ece0bc8b`, potwierdzony BASE/main `9c6ad2263850868e37c0cdb9098dfe6047a39260`. Bez nowej gałęzi, PR lub wydania.
+
+Naprawiono pełny prywatny eksport po ACTIVE: obejmuje wszystkie aktualne rekordy IndexedDB, sprawdza ich SHA/metadane i odmawia weryfikacji pliku zastąpionego nowszą rewizją. Nie odtwarza starego klucza. Diagnostyka sesji zachowuje Kopiuj raport i dodaje autoryzowane przejście do panelu. Zapis znacznika ma jawne odmowy quota/niepotwierdzonego read-back przed usunięciem archiwum; nie dodano czyszczenia cache.
+
+**BLOCKER: etap E w interfejsie NIE JEST gotową ścieżką wykonawczą.** Panel pokazuje dokładny klucz/hash, stan pliku, osobną zgodę i świadome potwierdzenie, kontroluje sesję oraz świeży Auth, ale kończy `RECOVERY_WRITER_EXCLUSIVITY_UNPROVEN`. Pusty `navigator.locks.query()` nie jest spisem wszystkich kart; stara karta może nie używać locka. Storage events ani checkbox nie dowodzą jej nieobecności i nie blokują jej późniejszych zapisów. W obecnej architekturze brak technicznego spisu/fence dla takich kontekstów. Nie dodano fikcyjnego dowodu, nie zmieniono Auth ani nie wdrożono nowego koordynatora przeglądarki. Niskopoziomowe `activate(decision, receipt)` nadal ma zewnętrzny warunek rozstrzygnięcia writerów, a jego testy kontrolowanego profilu nie dowodzą spełnienia go na telefonie. Nie jest zalecane wywoływanie tego API przez właściciela.
+
+Zgodnie z warunkiem STOP właściciela **nie deklarujemy CODE_READY dla kompletnej naprawy telefonu**: `CODE_BLOCKED_WRITER_EXCLUSIVITY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED`. Wcześniejsze CODE_READY poniżej jest statusem historycznego przekazania, skorygowanym przez tę kontrolę. Pozostałe poprawki można ocenić niezależnie. Dokończenie całego celu wymaga uzgodnionego mechanizmu koordynacji wszystkich writerów, również starych kontekstów; nie można zastąpić go deklaracją użytkownika ani samym wydaniem strony. Wstrzymanie CLOUD/Firebase LIVE/synchronizacji i ochrona obecnego RAM nadal obowiązują.
+
+
+## STORAGE RECOVERY / INDEXEDDB — PRIORYTET 1 (25.10.2026)
+
+**Nowa decyzja właściciela: CLOUD / CLOUD-4.6F / FIREBASE LIVE / rozwój SYNCHRONIZACJI — WSTRZYMANE do osobnej decyzji.** Zachowujemy dotychczasowy kod, wyniki i plany chmury. Bieżący pakiet implementuje wyłącznie lokalne ratowanie pamięci i archiwum backupów, przed dalszym CLOUD. Historyczne harmonogramy poniżej nie wyznaczają teraz priorytetu.
+
+Zweryfikowany BASE/main: `9c6ad2263850868e37c0cdb9098dfe6047a39260` (scalony PR #82). Odrębny worktree i gałąź `fix/android-storage-recovery-indexeddb-v1`; nie znaleziono rozpoczętej gałęzi ANDROID EMERGENCY RECOVERY v1 do kontynuacji. Innych worktree nie zmieniano.
+
+**Nowy fakt od właściciela, zastępujący wcześniejszą nieustaloną tożsamość klucza:** Pixel: 43 klucze / 6 projektów / 5 217 379 jednostek UTF-16; `fc_data_backups_v1` **3 317 250** (około 63,6%), `fc_quote_snapshots_v1` 1 328 058, `fc_rozrys_plan_cache_v2` 221 062, `fc_projects_v1` 63 244. To pomiar długości tekstu, nie limitu quota. `ram:true`, `durable:false`, `present:false`, `expectedKnown:false` nie dowodzą niezapisanej edycji ani utraty projektu. Edycja telefonu pozostaje zablokowana.
+
+Przygotowano „Tryb ratunkowy” w istniejącym komunikacie sesji: diagnostyka, podgląd archiwum, prywatny szyfrowany plik z ponownym wyborem i weryfikacją, kopiowanie do osobnej biznesowej IndexedDB oraz kontrola przygotowania. Nie uruchamia nawigacji projektu, begin/commit/cancel, backupu localStorage, czyszczenia cache ani przeładowania. Baza `meble-business-backups-v1` nie jest bazą profilu/Auth. Migracja A–D zachowuje klucz źródłowy; zwykłe writery archiwum są po skopiowaniu wstrzymane do rozstrzygnięcia przełączenia. Etap E ma odrębny, testowany handler z dowodem pliku, świeżą kontrolą RAW/Auth, blokadą między kartami oraz jawną decyzją dla dokładnego klucza i SHA-256; **panel tego wydania nie oferuje usuwania ani aktywacji**. Mały marker routingu powstaje dopiero w osobno zatwierdzanym E, przed usunięciem; jeśli się nie mieści, pozostaje STOP i stary klucz.
+
+Szczegóły modelu, awarii, testów i ograniczeń: [raport pakietu](tools/reports/android-storage-recovery-indexeddb-v1.md), kontrakt w [BACKUP.md](BACKUP.md#android-storage-recovery--indexeddb-v1). Nie migrujemy projektów, historii ani cenników. IndexedDB nie jest chmurą, niezależną kopią ani gwarancją offline. Retencja 7 dni / min10 / testowe10 / ochrona najnowszych3 pozostaje; doprecyzowano zachowanie przypiętych i bezpiecznych testowych kopii. Usunięto dotychczasowe automatyczne przepisywanie technicznych RAW wewnątrz starych backupów i dostęp synchronicznego kompaktora do archiwum — migracja i późniejsze zapisy zachowują historyczną treść.
+
+**PHONE_PENDING / użycie obecnej karty BLOCKED:** nowy kod wymaga dostarczenia nowej wersji dokumentu. Nie wykazano zabezpieczenia RAM obecnej karty; nie zalecamy jej odświeżania. Eksport z 17.10 zabezpiecza wskazane zapisane dane, nie wszystkie dzisiejsze RAW ani RAM. Sam commit lub wydanie nie upoważnia do migracji/zwalniania miejsca na Pixelu. Najpierw osobna zgoda wydaniowa dla HEAD/BASE, potem rozstrzygnięcie zachowania RAM i osobna zgoda na działania A–D na telefonie; E nadal wymaga niezależnej decyzji. Brak USB/DevTools/konsoli/bookmarkletów pozostaje obowiązującą ergonomią.
+
+Statusy przed wydaniem: **CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED** — wyniki faktycznie wykonanych kontroli oraz ewentualne blokery wskazuje raport pakietu. Poniższe opisy wcześniejszej diagnostyki zachowano jako historię.
+
+
 ## ANDROID QUOTA — incydent z 24.10.2026
 
 Zweryfikowany na GitHubie main: `cd4a5b3b8c0560d7b8630892b47eb18970a91072`. PR [#80](https://github.com/mebleszek/meble-app/pull/80) jest scalony; właściciel potwierdził CI, auto-merge i Pages PASS. SESSION-QUOTA + EXACT-CALCULATIONS jest **wydanym pakietem diagnostycznym i naprawą opisów WYCENY, nie naprawą przyczyny quota**. [Raport przygotowania i trzech korekt CI](tools/reports/session-quota-exact-calculations.md) zachowuje historyczne statusy sprzed wydania. Kwoty/normy i historia nie były przeliczane.

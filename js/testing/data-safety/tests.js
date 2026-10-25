@@ -195,7 +195,7 @@
         H.assert(groups.app.length === 12, 'Test limitu before-tests nie może przycinać ręcznych backupów programu', groups.app);
       }),
 
-      H.makeTest('Data safety', 'Zapis backup store odchudza stare backupy bez zmiany retencji', 'Pilnuje naprawy quota: stare zapisane backupy są przepisywane bez technicznych kluczy, ale bez zmiany liczby backupów i zasad ochrony.', ()=>{
+      H.makeTest('Data safety', 'Zapis backup store zachowuje historyczne RAW bez zmiany retencji', 'Migracja nie kompaktuje historycznych kopii; oryginalne pola pozostają zachowane.', async ()=>{
         H.assert(FC.dataBackupStore && typeof FC.dataBackupStore.createBackup === 'function', 'Brak FC.dataBackupStore.createBackup');
         const backupKey = FC.dataBackupStore.STORE_KEY || 'fc_data_backups_v1';
         const saved = {
@@ -219,14 +219,14 @@
           localStorage.setItem(backupKey, JSON.stringify([oldBackup]));
           localStorage.setItem('fc_investors_v1', JSON.stringify([{ id:'inv_now' }]));
           localStorage.setItem('fc_project_backup_v1', JSON.stringify({ stale:true }));
-          FC.dataBackupStore.createBackup({ reason:'manual', label:'Quota compaction test', dedupe:false });
+          await FC.dataBackupStore.createBackup({ reason:'manual', label:'Quota compaction test', dedupe:false });
           const rows = JSON.parse(localStorage.getItem(backupKey) || '[]');
-          H.assert(Array.isArray(rows) && rows.length === 2, 'Kompakcja nie może zmienić liczby backupów poza dodaniem nowego', rows);
+          H.assert(Array.isArray(rows) && rows.length === 2, 'Zapis nie może zmienić liczby backupów poza dodaniem nowego', rows);
           const compacted = rows.find((row)=> String(row && row.id || '') === 'old_fat_backup');
           H.assert(compacted && compacted.snapshot && compacted.snapshot.keys, 'Stary backup nie został zachowany', rows);
-          H.assert(!Object.prototype.hasOwnProperty.call(compacted.snapshot.keys, 'fc_project_backup_v1'), 'Stary backup nadal zawiera fc_project_backup_v1', compacted);
-          H.assert(!Object.prototype.hasOwnProperty.call(compacted.snapshot.keys, 'fc_rozrys_plan_cache_v1'), 'Stary backup nadal zawiera cache ROZRYS', compacted);
-          H.assert(Object.prototype.hasOwnProperty.call(compacted.snapshot.keys, 'fc_investors_v1'), 'Kompakcja nie może usuwać danych użytkownika', compacted);
+          H.assert(Object.prototype.hasOwnProperty.call(compacted.snapshot.keys, 'fc_project_backup_v1'), 'Zapis usunął oryginalny RAW fc_project_backup_v1', compacted);
+          H.assert(Object.prototype.hasOwnProperty.call(compacted.snapshot.keys, 'fc_rozrys_plan_cache_v1'), 'Zapis usunął oryginalny RAW cache ROZRYS', compacted);
+          H.assert(Object.prototype.hasOwnProperty.call(compacted.snapshot.keys, 'fc_investors_v1'), 'Zapis nie może usuwać danych użytkownika', compacted);
         } finally {
           if(saved.store == null) localStorage.removeItem(backupKey); else localStorage.setItem(backupKey, saved.store);
           if(saved.investors == null) localStorage.removeItem('fc_investors_v1'); else localStorage.setItem('fc_investors_v1', saved.investors);

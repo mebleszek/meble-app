@@ -3,8 +3,15 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
+  "js/app/investor/investor-project-runtime.js": "20261025_empty_installation_v1",
+  "js/app/investor/investor-project-patches.js": "20261025_empty_installation_v1",
+  "js/app/shared/backup-archive-idb.js": "20261025_archive_lifecycle_v1",
+  "js/app/shared/storage-recovery-export.js": "20261025_archive_lifecycle_v1",
+  "js/app/ui/storage-recovery-panel.js": "20261025_archive_lifecycle_v1",
+  "js/app/ui/info-box.js": "20261025_storage_recovery_repair_v1",
+
   "js/app/wycena/wycena-summary-details-modal.js": "20261024_session_quota_exact_v1",
-  "js/app/ui/session-diagnostics.js": "20261024_session_storage_ranking_v1",
+  "js/app/ui/session-diagnostics.js": "20261025_storage_recovery_repair_v1",
   "js/app/ui/session-diagnostics-readonly.js": "20261024_session_storage_ranking_v1",
   "js/app/pricing/labor-catalog-definitions.js": "20261023_wycena_labor_v1",
   "js/app/pricing/labor-catalog.js": "20261024_wycena_labor_repair_v1",

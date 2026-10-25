@@ -173,7 +173,24 @@ test('Actual standard export preserves included RAW but omits aliases, sessions,
 test('Main manifest keeps every original business script inert, without a second startup list',async()=>{
  const html=fs.readFileSync('index.html','utf8'),before=html.split('<template id="business-template">')[0];
  assert.equal(/<script[^>]+src="js\/(?:boot\.js|app\.js|app\/project\/project-store)/.test(before),false);
- const manifest=html.split('<template id="business-template">')[1].split('</template>')[0];assert.equal([...manifest.matchAll(/<script\b/g)].length,325);
+ const {INDEX_LOAD_GROUPS}=require('./index-load-groups');
+ const expected=INDEX_LOAD_GROUPS.filter(group=>group.id!=='auth-shell').flatMap(group=>group.scripts);
+ assert.equal(new Set(expected).size,expected.length,'Canonical business manifest must be unique');
+ function checkManifest(document){
+  const sections=document.split('<template id="business-template">');assert.equal(sections.length,2,'Exactly one inert business template');
+  const manifest=sections[1].split('</template>')[0];
+  const actual=[...manifest.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*><\/script>/gi)].map(match=>match[1].split('?')[0]);
+  assert.equal([...manifest.matchAll(/<script\b/gi)].length,expected.length,'Every canonical business script is inert, no extra inline scripts');
+  assert.equal(new Set(actual).size,actual.length,'Business scripts must be unique');
+  assert.deepEqual(actual,expected,'Exact canonical completeness and order inside the template');
+ }
+ checkManifest(html);
+ const first=html.match(/<script[^>]+src="js\/boot\.js[^>]*><\/script>/)[0];
+ const second=html.match(/<script[^>]+src="js\/core\/actions\.js[^>]*><\/script>/)[0];
+ for(const mutated of [html.replace(first,''),html.replace(first,second),html.replace(first,'<!--SWAP-->').replace(second,first).replace('<!--SWAP-->',second),html.replace(first,'<script></script>')]){
+  assert.throws(()=>checkManifest(mutated),assert.AssertionError,'Missing, duplicated, reordered or inline replacement must fail');
+ }
+ const manifest=html.split('<template id="business-template">')[1].split('</template>')[0];
  for(const file of ['session-diagnostics-readonly.js','session-diagnostics.js']){
   assert.equal(before.includes('js/app/ui/'+file),false,'Diagnostics must not load before Auth');
   assert.equal(manifest.split('src="js/app/ui/'+file+'?').length-1,1,'One protected diagnostic script');

@@ -6,6 +6,7 @@
   const FC = window.FC;
   const repo = FC.investorProjectRepository || {};
   let bootLoaded = false;
+  const firstActivations = new WeakMap();
 
   function clone(obj){
     try{ return FC.utils && typeof FC.utils.clone === 'function' ? FC.utils.clone(obj) : JSON.parse(JSON.stringify(obj)); }
@@ -82,7 +83,7 @@
     try{ if(FC.sections && typeof FC.sections.update === 'function') FC.sections.update(); }catch(_){ }
   }
 
-  function activateProjectFromInvestor(id, initialRead){
+  function activateProjectFromInvestor(id, initialRead, options){
     if(!id) return;
     if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor(id)) return;
     // Re-entering the same investor must not replace an active local draft.
@@ -95,7 +96,8 @@
       if(!initialRead && typeof projectData !== 'undefined' && projectData){
         const ram = JSON.stringify(comparableProjectData(projectData));
         if(ram !== JSON.stringify(comparableProjectData(current && current.projectData))
-          && ram !== JSON.stringify(comparableProjectData(target.projectData))) return false;
+          && ram !== JSON.stringify(comparableProjectData(target.projectData))
+          && !consumeFirstActivation(options, id, target, ram)) return false;
       }
       const previousProject = typeof projectData !== 'undefined' ? projectData : window.projectData;
       const proj = loadProjectFor(id);
@@ -122,7 +124,7 @@
     }catch(_){ return false; }
   }
 
-  function setActiveProjectFromInvestor(id){ return activateProjectFromInvestor(id, false); }
+  function setActiveProjectFromInvestor(id, options){ return activateProjectFromInvestor(id, false, options); }
 
   function ensureInvestorProjectLoadedOnBoot(){
     if(bootLoaded) return;
@@ -186,13 +188,87 @@
   }
 
   function hasProjectDivergence(nextData){
-    const before = comparableProjectData(currentCentralProjectForSessionCompare());
+    const central = currentCentralProjectForSessionCompare();
+    // project-bridge.load() uses DEFAULT_PROJECT when there is no owner. Passing
+    // null through the legacy migrations produces different defaults (e.g. a
+    // 1.8 cm bathroom worktop instead of 2 cm) and invents an unsaved edit.
+    // Only a strictly empty, unowned installation may use that default baseline.
+    if(!central && !isEmptyUnownedContext()) return true;
+    const before = comparableProjectData(central || freshProject());
     const next = comparableProjectData(nextData);
     let beforeRaw = null;
     let nextRaw = null;
     try{ beforeRaw = JSON.stringify(before); }catch(_){ beforeRaw = null; }
     try{ nextRaw = JSON.stringify(next); }catch(_){ nextRaw = null; }
     return beforeRaw !== nextRaw;
+  }
+
+  function isEmptyUnownedContext(transientId){
+    try{
+      const s = FC.session;
+      if(!s || s.active || s.durable || s.snapshot || s.context || s.projectId || s.roomId
+        || s.expectedOwnerKnown || s.expectedOwnerRaw !== null
+        || s.startedAt || s.updatedAt || s.comparableKeys
+        || (s.lastError && s.lastError.code !== 'SESSION_OWNER_MISSING')) return false;
+      if(localStorage.getItem('fc_edit_session_v1') !== null) return false;
+      for(const key of ['fc_projects_v1','fc_investors_v1']){
+        const raw = localStorage.getItem(key);
+        const rows = raw === null ? [] : JSON.parse(raw);
+        if(!Array.isArray(rows) || rows.length !== 0) return false;
+      }
+      if(String(localStorage.getItem('fc_current_project_id_v1') || '').trim()
+        || String(localStorage.getItem('fc_current_investor_v1') || '').trim()) return false;
+      const uiRaw = localStorage.getItem('fc_ui_v1');
+      const ui = uiRaw === null ? null : JSON.parse(uiRaw);
+      if(uiRaw !== null && (!ui || typeof ui !== 'object' || Array.isArray(ui))) return false;
+      if(ui && ui.currentInvestorId && ui.currentInvestorId !== transientId) return false;
+      if(typeof uiState !== 'undefined' && uiState && uiState.currentInvestorId && uiState.currentInvestorId !== transientId) return false;
+      // Legacy project evidence must not acquire a new default baseline.
+      for(let i=0;i<localStorage.length;i++){
+        const key = localStorage.key(i);
+        if(key === 'fc_project_v1' || key === 'fc_project_backup_v1' || /^fc_project_inv_.+_v1$/.test(key || '')) return false;
+      }
+      return true;
+    }catch(_){ return false; }
+  }
+
+  function prepareFirstProjectActivation(){
+    try{
+      const data = typeof projectData !== 'undefined' ? projectData : window.projectData;
+      // The investor form may point at its own unsaved draft. It is not a
+      // project owner; accept only the exact live transient form at this explicit
+      // create checkpoint, never a stale or arbitrary UI owner ID.
+      const ui = FC.investorUI;
+      const draft = ui && ui.getTransientInvestor && ui.getTransientInvestor();
+      const transientId = draft && ui.state && ui.state.selectedId === draft.id
+        && ui.state.newlyCreatedId === draft.id ? draft.id : undefined;
+      if(!isEmptyUnownedContext(transientId)
+        || JSON.stringify(comparableProjectData(data)) !== JSON.stringify(comparableProjectData(freshProject()))) return null;
+      const token = Object.freeze({});
+      firstActivations.set(token, JSON.stringify(comparableProjectData(data)));
+      return token;
+    }catch(_){ return null; }
+  }
+
+  function consumeFirstActivation(options, id, target, ram){
+    const token = options && options.firstActivation;
+    const baseline = token && firstActivations.get(token);
+    if(token) firstActivations.delete(token);
+    if(!baseline || ram !== baseline || !options.expectedProject) return false;
+    try{
+      const s = FC.session;
+      if(!s || s.active || s.durable || s.snapshot || s.context || s.projectId || s.roomId
+        || s.expectedOwnerKnown || s.expectedOwnerRaw !== null || s.startedAt || s.updatedAt || s.comparableKeys
+        || localStorage.getItem('fc_edit_session_v1') !== null) return false;
+      const investors = JSON.parse(localStorage.getItem('fc_investors_v1'));
+      const projects = JSON.parse(localStorage.getItem('fc_projects_v1'));
+      if(!Array.isArray(investors) || investors.length !== 1 || String(investors[0].id) !== String(id)
+        || !Array.isArray(projects) || projects.length !== 1 || String(projects[0].id) !== String(target.id)
+        || String(projects[0].investorId) !== String(id)) return false;
+      const expected = comparableProjectData(options.expectedProject);
+      expected.meta = Object.assign({}, expected.meta, {productionPcvMode:'project'});
+      return JSON.stringify(comparableProjectData(target.projectData)) === JSON.stringify(expected);
+    }catch(_){ return false; }
   }
 
   function shouldTrackProjectSession(nextData){
@@ -217,6 +293,7 @@
     ensureInvestorProjectLoadedOnBoot,
     refreshSessionButtons,
     hasProjectDivergence,
+    prepareFirstProjectActivation,
     shouldTrackProjectSession,
   };
 })();

@@ -41,6 +41,8 @@
       ? { text:'Diagnostyka sesji', run:()=>root.FC.sessionDiagnostics.open() }
       : opts.secondaryAction;
     const hasSecondary = !!(secondary && typeof secondary.run === 'function');
+    const recovery = (opts.sessionDiagnostic === true || opts.sessionRecovery === true) && root.FC.storageRecoveryPanel
+      ? { text:'Tryb ratunkowy', run:()=>root.FC.storageRecoveryPanel.open() } : null;
     const dismissOnOverlay = Object.prototype.hasOwnProperty.call(opts, 'dismissOnOverlay') ? opts.dismissOnOverlay !== false : !okOnly;
     const dismissOnEsc = Object.prototype.hasOwnProperty.call(opts, 'dismissOnEsc') ? opts.dismissOnEsc !== false : !okOnly;
 
@@ -63,6 +65,12 @@
         button.addEventListener('click', ()=>{
           try{ Promise.resolve(secondary.run({button,body})).catch(()=>{}); }catch(_){ }
         });
+        actions.appendChild(button);
+      }
+      if(recovery){
+        const button = el('button', {type:'button',class:'confirm-btn info-box__action',text:recovery.text});
+        button.addEventListener('click', recovery.run);
+        actions.style.flexWrap = 'wrap';
         actions.appendChild(button);
       }
       if(okBtn) actions.appendChild(okBtn);

@@ -101,6 +101,9 @@
   }
 
   function compactBackupStore(aggressive){
+    // Archive writes now require an asynchronous cross-tab transaction. This
+    // synchronous quota helper must never modify either migration evidence or IDB.
+    if(FC.backupArchive) return {key:BACKUP_KEY,changed:false,reason:'archive-managed-async'};
     const key = (FC.dataBackupStorage && FC.dataBackupStorage.STORE_KEY) || (FC.dataStorageKeys && FC.dataStorageKeys.BACKUP_STORE_KEY) || BACKUP_KEY;
     const beforeRaw = raw(key);
     const beforeBytes = bytes(beforeRaw);

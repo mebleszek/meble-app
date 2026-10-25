@@ -63,6 +63,7 @@
     const report=FC.sessionDiagnosticsReadonly(window,{storageUsage:true});
     const text=format(report);
     FC.infoBox.open({title:'Diagnostyka sesji',message:text,okOnly:true,sessionDiagnosticReport:true,
+      sessionRecovery:report.status==='READ_ONLY'&&authorized(),
       secondaryAction:report.status==='READ_ONLY'?{text:'Kopiuj raport',async run({button,body}){
         if(!authorized()){body.textContent=format({status:'AUTH_DENIED'});button.disabled=true;return;}
         try{

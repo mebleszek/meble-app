@@ -22,7 +22,7 @@
       const ready = await prepareBackupWithOrphanGuard();
       if(!ready) return;
       try{
-        const result = store.createBackup({ reason:'manual', label:'Ręczny backup' });
+        const result = await store.createBackup({ reason:'manual', label:'Ręczny backup' });
         dom.info(result.duplicate ? 'Backup już istnieje' : 'Backup utworzony', result.duplicate ? 'Dane są identyczne jak w ostatnim backupie, więc program nie utworzył duplikatu.' : 'Aktualny stan programu został zapisany w backupie.');
         render();
       }catch(error){
@@ -34,7 +34,7 @@
       const ready = await prepareBackupWithOrphanGuard();
       if(!ready) return;
       try{
-        store.createBackup({ reason:'safe-state', label:'Ostatni dobry stan', safeState:true, pinned:true, dedupe:false });
+        await store.createBackup({ reason:'safe-state', label:'Ostatni dobry stan', safeState:true, pinned:true, dedupe:false });
         dom.info('Bezpieczny stan zapisany', 'Ten backup jest przypięty i automatyczne sprzątanie go nie usunie.');
         render();
       }catch(error){
@@ -86,7 +86,7 @@
     });
     if(!ok) return;
     try{
-      const result = ctx.store.importSnapshot(snap);
+      const result = await ctx.store.importSnapshot(snap);
       dom.info('Dane zaimportowane', `Przywrócono ${result.restoredKeys || 0} kluczy danych. Strona zostanie odświeżona.`);
       setTimeout(()=>{ try{ location.reload(); }catch(_){ } }, 700);
     }catch(err){ dom.info('Błąd importu', String(err && err.message || err || 'Nie udało się zaimportować danych.')); }

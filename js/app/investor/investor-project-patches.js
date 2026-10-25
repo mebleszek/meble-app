@@ -34,6 +34,7 @@
       FC.investors.create = function(initial){
         if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor('')) return null;
         const prev = repo().getCurrentInvestorId && repo().getCurrentInvestorId();
+        const firstActivation = runtime().prepareFirstProjectActivation ? runtime().prepareFirstProjectActivation() : null;
         if(prev && runtime().saveActiveProjectToInvestor) runtime().saveActiveProjectToInvestor(prev);
         const inv = origCreate(initial);
         if(inv && inv.id){
@@ -41,7 +42,7 @@
           try{ proj.meta = proj.meta || {}; proj.meta.assignedInvestorId = inv.id; }catch(_){ }
           if(runtime().writeProjectFor) runtime().writeProjectFor(inv.id, proj);
           try{ if(repo().ensureCentralProjectForInvestor) repo().ensureCentralProjectForInvestor(inv.id, { projectData:proj, title:'' }); }catch(_){ }
-          if(runtime().setActiveProjectFromInvestor) runtime().setActiveProjectFromInvestor(inv.id);
+          if(runtime().setActiveProjectFromInvestor) runtime().setActiveProjectFromInvestor(inv.id, {firstActivation, expectedProject:proj});
         }
         return inv;
       };

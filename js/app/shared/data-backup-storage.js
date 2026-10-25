@@ -20,9 +20,8 @@
     return 'Nie udało się zapisać backupu w pamięci programu.' + (message ? ' Szczegóły: ' + message : '');
   }
 
-  function writeStore(list){
-    try{ localStorage.setItem(STORE_KEY, JSON.stringify(Array.isArray(list) ? list : [])); }
-    catch(err){ throw new Error(describeWriteError(err)); }
+  function writeStore(){
+    throw new Error('ARCHIVE_ASYNC_API_REQUIRED');
   }
 
   root.FC.dataBackupStorage = { STORE_KEY, readStore, writeStore, describeWriteError };

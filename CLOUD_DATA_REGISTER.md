@@ -1,5 +1,18 @@
 # CLOUD-1A — kanoniczny rejestr danych Meble-App
 
+## Lokalny magazyn archiwum backupów — IndexedDB v1 (25.10.2026)
+
+**STORAGE RECOVERY / INDEXEDDB — PRIORYTET 1; CLOUD / FIREBASE LIVE / rozwój SYNCHRONIZACJI — WSTRZYMANE.** Nie zmieniamy dotychczasowych domen i dowodów chmury.
+
+| Magazyn | Właściciel i rola | Zakres / ochrona |
+|---|---|---|
+| IndexedDB `meble-business-backups-v1`, schema1, `records` / `sources` / `control` | Lokalny profil biznesowy właściciela po istniejącym dopuszczeniu Auth. Archiwum kopii, nie autorytet projektów i nie uprawnienie dostępu. | Rekord per backup, zachowane ID, oryginalne RAW elementu i całego źródła UTF-16LE/SHA-256; journal COPIED/SWITCH_PENDING/ACTIVE, revision i potwierdzone transakcje. LOKALNIE, bez Firestore/synchronizacji. |
+| `fc_data_backups_v1` | Istniejący magazyn legacy; do etapu E nadal zachowane źródło. | Kopiowanie nie usuwa ani nie normalizuje RAW. COPIED zamraża zwykłe writery, E wymaga osobnej decyzji i niezależnego pliku; później brak fallbacku do tego klucza. |
+| `meble_backup_archive_backend_v1` | Mały techniczny marker routingu po osobno zatwierdzonym E, bez danych i poświadczeń. | Stały JSON `{"v":1,"backend":"indexeddb"}`, zapis i read-back przed jakimkolwiek usunięciem źródła. Po utracie IDB blokuje fallback. Nie wchodzi do standardowego biznesowego restore, nie jest prawem dostępu. Brak miejsca na marker = STOP. |
+
+Baza profilu `meble-access-profile-v1`, Firebase persistence, tokeny i dowody dostępu nie są kopiowane. Prywatny plik ratunkowy nie przywraca autoryzacji. [BACKUP](BACKUP.md#android-storage-recovery--indexeddb-v1) i [raport](tools/reports/android-storage-recovery-indexeddb-v1.md) opisują dokładną migrację, ograniczenia i testy; historyczna inwentaryzacja poniżej pozostaje punktem odniesienia.
+
+
 ## CLOUD-SYNC-1 — wykorzystanie istniejących 14 domen
 
 Nie powstają nowe źródła prawdy ani klucze `fc_*`. Koordynator `sync/global-data-sync.mjs` używa bez zmian tabeli `sources` i schematów CLOUD-3 opisanych poniżej: robocizna/quote rates, materiały/okucia i ich zależności, magazyn, domyślne, profil bez `transport.apiKey`, koszty firmy — pełne 14 domen na emulatorach. Historyczne aliasy/legacy mają kontrolę konfliktów, nie osobne kopie chmurowe. Odbiór jest wyłącznie pamięciowy; realne globalne magazyny użytkownika i dane projektowe nie są zastępowane. Issue #47, edge/material part options/rozrys grain/overrides pozostają nierozstrzygnięte i wyłączone. [Implementacja, wykluczenia i kompatybilność](tools/reports/cloud-sync-1-global-data.md). **CODE_READY / CI_PENDING / LIVE_BLOCKED**, bez migracji.
