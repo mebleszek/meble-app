@@ -161,7 +161,7 @@ console.log('Meble-App — lokalny preflight');
 console.log(`Katalog: ${ROOT}`);
 console.log('');
 
-let failed = false;
+let failed = 0;
 for(const [name, fn] of phases){
   const started = Date.now();
   process.stdout.write(`[RUN ] ${name} ... `);
@@ -170,16 +170,15 @@ for(const [name, fn] of phases){
     console.log(`OK (${Date.now() - started} ms)`);
     console.log(`       ${message}`);
   }catch(error){
-    failed = true;
+    failed++;
     console.log(`FAIL (${Date.now() - started} ms)`);
     console.error(`       ${error && error.message ? error.message : String(error)}`);
-    break;
   }
 }
 
 console.log('');
 if(failed){
-  console.error(`PRE-FLIGHT FAIL — zatrzymano po ${Date.now() - STARTED} ms`);
+  console.error(`PRE-FLIGHT FAIL — ${failed}/${phases.length} faz FAIL; wykonano wszystkie niezależne fazy (${Date.now() - STARTED} ms)`);
   process.exit(1);
 }
 console.log(`PRE-FLIGHT PASS — wszystkie kontrole zakończone poprawnie (${Date.now() - STARTED} ms)`);
