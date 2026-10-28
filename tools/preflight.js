@@ -88,6 +88,7 @@ function phaseSmoke(){
   cloudContext.sdkPlan(ROOT,history);
   const files = fs.readdirSync(TOOLS)
     .filter((name)=> /-smoke\.js$/i.test(name))
+    .filter(name=>!process.argv.includes('--current-only')||!cloudContext.historicalSmoke.includes(name))
     .sort();
   const failed = [];
   let appInternal = '';
@@ -111,7 +112,10 @@ function phaseSmoke(){
     }else counts[kind].pass++;
   }
   cloudContext.verifyHistorical(ROOT,history);
-  for(const [kind,count] of Object.entries(counts)) cloudContext.report(`Smoke **${count.pass}/${count.total}** | ${kind} | SHA \`${cloudContext.git(kind==='historical'?history:ROOT,['rev-parse','HEAD'])}\``);
+  for(const [kind,count] of Object.entries(counts)){
+    if(kind==='historical'&&process.argv.includes('--current-only'))cloudContext.report('Historical smoke: assigned to the separate mandatory cloud-historical job; no historical PASS claimed here.');
+    else cloudContext.report(`Smoke **${count.pass}/${count.total}** | ${kind} | SHA \`${cloudContext.git(kind==='historical'?history:ROOT,['rev-parse','HEAD'])}\``);
+  }
 
   if(failed.length){
     failed.forEach((row)=> printFailure(`Smoke: ${row.name}`, row.output));
