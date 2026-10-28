@@ -146,7 +146,7 @@ export async function runLocalFirstSuite(t){
       const result=await f.runTransaction(db,tx=>fn(new Proxy(tx,{get(target,key){
         if(key==='set')return(ref,data)=>{if(ref.path.endsWith('/globalData/current'))publication=true;return target.set(ref,data);};
         const value=target[key];return typeof value==='function'?value.bind(target):value;}})),options);
-      if(publication){publications++;if(drop){drop=false;await doomed.browser.close();throw Object.assign(Error('synthetic lost ACK'),{code:'unavailable'});}}return result;}};
+      if(publication){publications++;if(drop){drop=false;await doomed.browser.crash();throw Object.assign(Error('synthetic lost ACK'),{code:'unavailable'});}}return result;}};
     doomed=await device('restart',sdk);
     // Match the verified latest server baseline before making a new local edit.
     assert.equal((await reconnect(doomed)).ok,true);doomed.online=false;

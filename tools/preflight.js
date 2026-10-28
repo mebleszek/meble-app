@@ -9,6 +9,7 @@ const ROOT = path.resolve(__dirname, '..');
 const TOOLS = path.join(ROOT, 'tools');
 const STARTED = Date.now();
 const cloudContext = require('./cloud-ci-context.js');
+const {resources} = require('./helpers/chromium-runtime');
 
 function rel(file){
   return path.relative(ROOT, file).replace(/\\/g, '/');
@@ -97,14 +98,16 @@ function phaseSmoke(){
     const cwd = historical ? history : ROOT;
     const kind = historical ? 'historical' : 'current';
     counts[kind].total++;
+    const started=Date.now();console.log(`\n[SMOKE START] ${name} [${kind}]`);
     const result = runNode(path.join(cwd,'tools',name), [], cwd);
+    console.log(`[SMOKE END] ${name} [${kind}] status=${result.status} elapsedMs=${Date.now()-started}`);
     const output = outputFor(result);
     if(name === 'app-dev-smoke.js'){
       const match = output.match(/APP smoke testy:\s*(\d+)\/(\d+)\s+OK/i);
       if(match) appInternal = `${match[1]}/${match[2]}`;
     }
     if(result.status !== 0){
-      failed.push({ name:`${name} [${kind}]`, output });
+      failed.push({ name:`${name} [${kind}]`, output:output+'\nRunner resources: '+JSON.stringify(resources()) });
     }else counts[kind].pass++;
   }
   cloudContext.verifyHistorical(ROOT,history);

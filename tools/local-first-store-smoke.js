@@ -41,7 +41,7 @@ async function main(){
         const pump=()=>{control.get('binding').onsuccess=pump;};pump();});}return q;};true`);
   const interrupted=store.commit({scope:'globals',operationId:'interrupted',value:{exact:123},expectedVersion:1}).then(()=>({confirmed:true}),()=>({confirmed:false}));
   for(let i=0;i<100;i++){if(await browser.evaluate('window.__crashReady===true'))break;if(i===99)throw Error('Crash fixture did not reach IDB write');await new Promise(resolve=>setTimeout(resolve,10));}
-  await browser.close();assert.equal((await interrupted).confirmed,false);
+  await browser.crash();assert.equal((await interrupted).confirmed,false);
   browser=await openBrowserDevice(server,path.join(directory,'phone'));store=await browser.open({...binding,initialize:false});
   snapshot=await store.snapshot('globals');assert.equal(snapshot.replica.version,1);assert.equal(snapshot.operations.length,1);assert.equal(JSON.parse(snapshot.replica.json).exact,7.125);
   console.log('PASS real browser crash during IDB transaction: no partial record or false local ACK');

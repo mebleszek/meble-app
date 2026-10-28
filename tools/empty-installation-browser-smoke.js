@@ -2,7 +2,8 @@
 'use strict';
 // Real Chromium + real IndexedDB, mobile viewport, disposable profile. Every
 // application-origin request is intercepted locally before navigation, no LIVE.
-const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{spawn}=require('node:child_process');
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
+const {startBrowser}=require('./helpers/chromium-runtime');
 const ROOT=path.resolve(__dirname,'..'),ORIGIN='https://mebleszek.github.io',PREFIX='/meble-app/';
 const auth=`(()=>{const identity={uid:'synthetic-empty-owner',epoch:1};window.FC=window.FC||{};window.FC.cloudAuth={create:async()=>({identity:()=>identity,state:()=>({status:'authenticated',...identity}),subscribe(fn){queueMicrotask(()=>fn({status:'authenticated',...identity}));return()=>{};},signOut(){throw Error('No test logout');}})};})();`;
 const verifier=`(()=>{window.FC.cloudAccessVerifier={create:()=>({verify:async()=>({ok:true,uid:'synthetic-empty-owner',validUntil:Date.now()+45000}),watch(){return()=>{};}})};})();`;
@@ -11,9 +12,8 @@ async function main(){
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'meble-empty-installation-'));let browser;const clients=[];const errors=[],external=[];
   try{
     for(const name of ['profile','cache','config','downloads'])fs.mkdirSync(path.join(dir,name));
-    const executable=process.env.CHROMIUM_PATH||['/usr/bin/chromium','/usr/bin/google-chrome'].find(f=>fs.existsSync(f));assert.ok(executable,'Real Chromium is required');
-    browser=spawn(executable,['--headless','--no-sandbox','--disable-dev-shm-usage','--disable-background-networking','--disable-component-update','--no-first-run','--remote-debugging-port=0','--user-data-dir='+path.join(dir,'profile'),'about:blank'],{stdio:['ignore','ignore','pipe'],env:{...process.env,XDG_CACHE_HOME:path.join(dir,'cache'),XDG_CONFIG_HOME:path.join(dir,'config')}});
-    const endpoint=await require('./helpers/chromium-startup').waitForEndpoint(browser,{profileDir:path.join(dir,'profile')});
+    browser=await startBrowser({profileDir:path.join(dir,'profile'),timeoutMs:60000});
+    const endpoint=browser.endpoint;
     const targets=await(await fetch('http://127.0.0.1:'+new URL(endpoint).port+'/json/list')).json();
     async function client(url){
       const pending=new Map(),fulfilling=new Set(),requests=new Set();let nextId=0,lastActivity=Date.now();
@@ -97,7 +97,7 @@ async function main(){
     console.log('PASS first investor/project -> room editor -> actual parameter change -> durable save without fake ownership');
     await settle();assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
 
-  }finally{for(const c of clients)c.close();browser?.kill('SIGKILL');await new Promise(r=>setTimeout(r,200));fs.rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:100});}
+  }finally{try{for(const c of clients)c.close();}finally{await browser?.close();}fs.rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:100});}
 }
 if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});
 module.exports={main};
