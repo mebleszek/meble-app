@@ -16,16 +16,23 @@ async function main(){
     const endpoint=await require('./helpers/chromium-startup').waitForEndpoint(browser,{profileDir:path.join(dir,'profile')});
     const targets=await(await fetch('http://127.0.0.1:'+new URL(endpoint).port+'/json/list')).json();
     async function client(url){
-      const pending=new Map();let nextId=0;
+      const pending=new Map(),fulfilling=new Set(),requests=new Set();let nextId=0,lastActivity=Date.now();
       const ws=new WebSocket(url);await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});
       const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++nextId,timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP timeout: '+method));},120000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params}));});
+      const respond=(method,params)=>{
+        const task=send(method,params).catch(e=>errors.push(e.message)).finally(()=>{fulfilling.delete(task);lastActivity=Date.now();});
+        fulfilling.add(task);
+      };
       ws.onmessage=({data})=>{const m=JSON.parse(data);if(m.id){const p=pending.get(m.id);if(p){pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(Error(JSON.stringify(m.error))):p.resolve(m.result);}}
       else if(m.method==='Runtime.exceptionThrown')errors.push(m.params.exceptionDetails.text);
+      else if(m.method==='Network.requestWillBeSent'){requests.add(m.params.requestId);lastActivity=Date.now();}
+      else if(m.method==='Network.loadingFinished'||m.method==='Network.loadingFailed'){requests.delete(m.params.requestId);lastActivity=Date.now();}
       else if(m.method==='Fetch.requestPaused'){
+        lastActivity=Date.now();
         const u=new URL(m.params.request.url);let body,type='text/javascript';
         try{
           assert.equal(u.origin,ORIGIN);
-          if(u.pathname==='/favicon.ico'){void send('Fetch.fulfillRequest',{requestId:m.params.requestId,responseCode:204});return;}
+          if(u.pathname==='/favicon.ico'){respond('Fetch.fulfillRequest',{requestId:m.params.requestId,responseCode:204});return;}
           assert.ok(u.pathname.startsWith(PREFIX));
           const name=u.pathname.slice(PREFIX.length);
           if(name==='index.html'){body=html;type='text/html';}
@@ -34,16 +41,24 @@ async function main(){
             type=name.endsWith('.css')?'text/css':'text/javascript';
             body=name==='js/app/cloud/cloud-auth.js'?auth:name==='js/app/cloud/cloud-access-verifier.js'?verifier:fs.readFileSync(file,'utf8');
           }
-          void send('Fetch.fulfillRequest',{requestId:m.params.requestId,responseCode:200,responseHeaders:[{name:'Content-Type',value:type}],body:Buffer.from(body).toString('base64')}).catch(e=>errors.push(e.message));
-        }catch(_){external.push('BLOCKED_REQUEST');void send('Fetch.failRequest',{requestId:m.params.requestId,errorReason:'BlockedByClient'}).catch(()=>{});}
+          respond('Fetch.fulfillRequest',{requestId:m.params.requestId,responseCode:200,responseHeaders:[{name:'Content-Type',value:type}],body:Buffer.from(body).toString('base64')});
+        }catch(_){external.push('BLOCKED_REQUEST');respond('Fetch.failRequest',{requestId:m.params.requestId,errorReason:'BlockedByClient'});}
       }
     };
       const evaluate=async expression=>{const result=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(result.exceptionDetails)throw Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text);return result.result.value;};
-      const c={send,evaluate,close(){for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('Browser closed'));}ws.close();}};clients.push(c);return c;
+      // Reload invalidates paused Fetch IDs. Wait for both acknowledgements and
+      // request completion; never discard Invalid InterceptionId or app errors.
+      const settle=async()=>{const deadline=Date.now()+10000;
+        while(fulfilling.size||requests.size||Date.now()-lastActivity<250){
+          if(Date.now()>=deadline)throw Error('Requests did not settle before navigation/assertions');
+          await new Promise(resolve=>setTimeout(resolve,25));
+        }
+      };
+      const c={send,evaluate,settle,close(){for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('Browser closed'));}ws.close();}};clients.push(c);return c;
     }
-    const {send,evaluate}=await client(targets.find(t=>t.type==='page').webSocketDebuggerUrl);
+    const {send,evaluate,settle}=await client(targets.find(t=>t.type==='page').webSocketDebuggerUrl);
     await send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:path.join(dir,'downloads')});
-    await send('Runtime.enable');await send('Page.enable');await send('Emulation.setDeviceMetricsOverride',{width:393,height:852,deviceScaleFactor:1,mobile:true});await send('Fetch.enable',{patterns:[{urlPattern:'*'}]});
+    await send('Runtime.enable');await send('Page.enable');await send('Network.enable');await send('Emulation.setDeviceMetricsOverride',{width:393,height:852,deviceScaleFactor:1,mobile:true});await send('Fetch.enable',{patterns:[{urlPattern:'*'}]});
     const until=async(expression,label)=>{for(let n=0;n<400;n++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,50));}throw Error('Timeout '+label+' '+JSON.stringify(await evaluate('({auth:document.body.dataset.authState,business:document.body.dataset.businessState,text:document.body.innerText.slice(-2200)})')));};
     await send('Page.navigate',{url:ORIGIN+PREFIX+'index.html'});
     await until('document.body?.dataset.businessState==="ready"','fresh full app startup');
@@ -61,7 +76,7 @@ async function main(){
     await tap('#modeHubRoot [data-action="open-sheet-materials"]');await until('getComputedStyle(document.getElementById("priceModal")).display!=="none"','material catalog');
     await tap('#closePriceModal');
     assert.equal(await evaluate('JSON.stringify([localStorage.getItem("fc_projects_v1"),localStorage.getItem("fc_investors_v1"),localStorage.getItem("fc_edit_session_v1")])'),emptyRaw,'Empty menu/catalog do not create owners or sessions');
-    await tap('[data-action="close-mode-hub"]');const oldDocument=await evaluate('window.__emptyDocumentToken=crypto.randomUUID()');await send('Page.reload',{ignoreCache:true});await until(`window.__emptyDocumentToken!==${JSON.stringify(oldDocument)}&&document.body?.dataset.businessState==="ready"&&!!window.FC?.sessionNavigation`,'empty restart');
+    await tap('[data-action="close-mode-hub"]');await settle();const oldDocument=await evaluate('window.__emptyDocumentToken=crypto.randomUUID()');await send('Page.reload',{ignoreCache:true});await until(`window.__emptyDocumentToken!==${JSON.stringify(oldDocument)}&&document.body?.dataset.businessState==="ready"&&!!window.FC?.sessionNavigation`,'empty restart');
     assert.equal(await evaluate('window.FC.sessionNavigation.needsClosure()'),false);await tap('#openFurnitureProjectsBtn');await until('uiState.entry==="modeHub"','furniture hub after restart');
     console.log('PASS empty profile -> real Auth gate/business startup -> furniture hub/catalog -> restart, no fictitious owner');
     await tap('#modeHubRoot [data-action="new-investor"]');await until('!!document.getElementById("invName")','first investor draft');
@@ -80,7 +95,7 @@ async function main(){
     await tap('#sessionSave');await until('!window.FC.session.active','confirmed save closes session');
     assert.equal(await evaluate('window.FC.projectStore.getCurrentRecord().projectData[uiState.roomType].settings.roomHeight'),275);assert.equal(await evaluate('localStorage.getItem("fc_edit_session_v1")'),null);
     console.log('PASS first investor/project -> room editor -> actual parameter change -> durable save without fake ownership');
-    assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
+    await settle();assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
 
   }finally{for(const c of clients)c.close();browser?.kill('SIGKILL');await new Promise(r=>setTimeout(r,200));fs.rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:100});}
 }

@@ -20,6 +20,9 @@ export async function openBrowserDevice(server,profileDirectory){
   fs.mkdirSync(profileDirectory,{recursive:true});
   const executable=process.env.CHROMIUM_PATH||['/usr/bin/chromium','/usr/bin/google-chrome'].find(p=>fs.existsSync(p));
   if(!executable)throw Error('Real Chromium is required');
+  // SIGKILL preserves this discovery file. It belongs to the old process, not
+  // to IndexedDB; accepting it would select a closed port before the new start.
+  fs.rmSync(path.join(profileDirectory,'DevToolsActivePort'),{force:true});
   const child=spawn(executable,['--headless','--no-sandbox','--disable-dev-shm-usage','--disable-background-networking',
     '--disable-component-update','--no-first-run','--remote-debugging-port=0','--user-data-dir='+profileDirectory,'about:blank'],{stdio:['ignore','ignore','pipe']});
   const endpoint=await waitForEndpoint(child,{profileDir:profileDirectory});
@@ -32,7 +35,7 @@ export async function openBrowserDevice(server,profileDirectory){
   await send('Page.enable');await send('Page.navigate',{url:server.base});
   for(let i=0;i<100;i++){if(await evaluate('window.lfReady===true'))break;if(i===99)throw Error('LF_FIXTURE_NOT_READY');await new Promise(resolve=>setTimeout(resolve,20));}
   let closed=false;
-  return {evaluate,
+  return {endpoint,evaluate,
     async open(binding){await evaluate('window.openLF('+JSON.stringify(binding)+')');return proxyStore(evaluate,binding);},
     async close(){if(closed)return;closed=true;for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('LF_BROWSER_CLOSED'));}pending.clear();ws.close();
       if(child.exitCode===null&&child.signalCode===null){const ended=new Promise(resolve=>child.once('exit',resolve));child.kill('SIGKILL');await ended;}},

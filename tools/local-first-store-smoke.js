@@ -14,7 +14,12 @@ async function main(){
   await assert.rejects(store.commit({scope:'globals',operationId:'one',value:{exact:8},expectedVersion:1}),/LF_OPERATION_REUSED/);
   await assert.rejects(store.commit({scope:'globals',operationId:'old',value:{exact:8},expectedVersion:0}),/LF_LOCAL_CONFLICT/);
   console.log('PASS real IndexedDB: atomic model+outbox, exact values, durable ID and local CAS');
-  await browser.close();browser=await openBrowserDevice(server,path.join(directory,'phone'));store=await browser.open({...binding,initialize:false});
+  const previousEndpoint=new URL(browser.endpoint);await browser.close();
+  // Deterministically retain an actual previous process announcement. Reopen
+  // must wait for the new process while preserving the same business profile.
+  fs.writeFileSync(path.join(directory,'phone','DevToolsActivePort'),previousEndpoint.port+'\n'+previousEndpoint.pathname+'\n');
+  browser=await openBrowserDevice(server,path.join(directory,'phone'));assert.notEqual(browser.endpoint,previousEndpoint.href);
+  store=await browser.open({...binding,initialize:false});
   snapshot=await store.snapshot('globals');assert.equal(snapshot.operations[0].key,'one');assert.equal(snapshot.replica.dirty,true);
   await store.transition('one','queued','inflight',{expected:{generation:1,revisionId:'synthetic'}});
   await browser.close();browser=await openBrowserDevice(server,path.join(directory,'phone'));store=await browser.open({...binding,initialize:false});
