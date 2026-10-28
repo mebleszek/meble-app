@@ -9,7 +9,7 @@ import * as app from 'firebase/app';
 import * as auth from 'firebase/auth';
 import * as f from 'firebase/firestore';
 import {initializeTestEnvironment,assertFails} from '@firebase/rules-unit-testing';
-import {runtime,model,seed} from './cloud-sync-fixture.mjs';
+import {runtime,model,seed,selectProjectFixture} from './cloud-sync-fixture.mjs';
 import {startLocalFirstServer,openBrowserDevice} from '../helpers/local-first-browser.mjs';
 import {createGlobalChannel,createDurableSynchronizer} from '../../sync/local-first-sync.mjs';
 import {createProjectChannel,validateProjectDependencies} from '../../sync/local-first-project.mjs';
@@ -43,7 +43,7 @@ export async function runLocalFirstSuite(t){
     const binding={name:'meble-lf-test-'+label,ownerUid:writer.uid,deviceId:label,instanceId:'instance-'+label,initialize:true};
     const store=await browser.open(binding),g=createGlobalChannel({writer:writer.connection,reader:reader.connection,ownerUid:writer.uid,
       contract:writer.r.FC.globalDataContract,factory:writer.r.FC.firebaseGlobalTransport});
-    const pf=fixture();
+    const pf=selectProjectFixture(fixture(),projectId);
     // Domain/export scripts run in the same realm as the real SDK payloads.
     for(const n of ['cloud-pilot-contract','firebase-pilot-transport'])new Function('window',fs.readFileSync(new URL('js/app/cloud/'+n+'.js',root),'utf8'))(pf.s);
     const p=createProjectChannel({writer:writer.connection,reader:reader.connection,ownerUid:writer.uid,deviceId:label,projectId,investorId:'inv-'+projectId,

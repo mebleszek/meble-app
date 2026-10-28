@@ -7,7 +7,7 @@ import * as auth from 'firebase/auth';
 import * as firestore from 'firebase/firestore';
 import {initializeTestEnvironment, assertFails} from '@firebase/rules-unit-testing';
 import {createEmulatorSynchronizer, createMemoryReplica, createMemoryOperationJournal} from '../../sync/global-data-sync.mjs';
-import {runtime, model, seed, addCompatibleFields} from './cloud-sync-fixture.mjs';
+import {runtime, model, seed, addCompatibleFields, topLevelFixture} from './cloud-sync-fixture.mjs';
 for (const [key, port] of [['FIRESTORE_EMULATOR_HOST', 18080], ['FIREBASE_AUTH_EMULATOR_HOST', 19099]]) {
   if (process.env[key] !== `127.0.0.1:${port}`) throw Error('Loopback emulator required');
 }
@@ -55,11 +55,11 @@ before(async () => {
   env = await initializeTestEnvironment({projectId, firestore: {host: '127.0.0.1', port: 18080,
     rules: fs.readFileSync(new URL('./firestore.rules', import.meta.url), 'utf8')}});
 });
-beforeEach(async () => env.clearFirestore());
-afterEach(async () => {
+beforeEach(topLevelFixture(async () => env.clearFirestore()));
+afterEach(topLevelFixture(async () => {
   await Promise.all(synchronizers.map(s => s.close())); synchronizers = [];
   await Promise.all(clients.map(c => c.close())); clients = [];
-});
+}));
 after(async () => env?.cleanup());
 
 test('CLOUD-SYNC-1 01: native RAW stores A -> immutable Firestore -> independent B, all 14 domains', async () => {
