@@ -1,4 +1,4 @@
-# Trusted phone / desktop session / offline Auth
+# Trusted device / temporary session / offline Auth
 
 BASE/main: `951005296780f2b4887ab39b3c065a0beb247c48` (released PR #84).
 Branch: `trusted-phone-desktop-offline-auth-20261028`.
@@ -16,16 +16,17 @@ for the wrong purpose: continuing already-approved local work.
 Three independent authorities are now retained:
 
 - **Local access**: an in-memory desktop session or explicitly enrolled local
-  phone proof, plus the existing immutable profile-owner admission.
+  device proof, plus the existing immutable profile-owner admission.
 - **Google identity**: the SDK instance; main uses only in-memory persistence and
   requires a real Google-button interaction in each new untrusted document.
 - **Firebase authorization**: the unchanged short, server-verified lease and
   Rules. Local trust never extends this lease or grants a Google identity/RPC.
 
-### Phone
+### Trusted device — phone, tablet or laptop
 
 After Google login, fresh authorized proof and existing-profile admission, the
-top-bar checkbox may enroll this installation. It is not preselected by UA,
+top-bar checkbox **Zaufaj temu urządzeniu — dostęp offline do wylogowania**
+may enroll this installation on a phone, tablet or laptop. It is not preselected by UA,
 viewport, a legacy receipt or Firebase's remembered user. Enrollment first
 prepares and verifies the complete public offline shell, then checks the live
 lease/UID/epoch/profile again. The local proof lives in **meble-device-trust-v1**,
@@ -43,16 +44,18 @@ Manual logout/unchecking blocks immediately, writes a synchronous revocation
 fence and an IDB tombstone, and closes cloud access. Other cooperating tabs honor
 the fence. Enrollment interrupted by another tab's logout cannot reactivate it.
 Future startup requires deliberate online Google login and new owner consent;
-neither inherited SDK state nor the old profile receipt restores phone trust.
+neither inherited SDK state nor the old profile receipt restores device trust.
 
 Confirmed server denial revokes local trust too. An unknown network result only
 invalidates cloud rights. A wholly offline phone cannot learn of a remote
 revocation; no immediate remote-stop guarantee is made. It must obtain fresh
 authorization before any future cloud operation. No production sync is started.
 
-### Desktop
+### Temporary session — unchecked option on any device
 
-Default mode has no durable login/admission for this document. Every new load,
+With the checkbox unchecked, any device uses a temporary session with the same
+five-minute inactivity limit. Default mode has no durable login/admission for this
+document. Every new load,
 browser restart or restored tab needs a new Google action and server proof, even
 when the immutable data-owner receipt already exists. No `sessionStorage`
 browser-lifetime flag is used. bfcache restoration locks the memory session.
