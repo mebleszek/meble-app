@@ -5,7 +5,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const {startBrowser}=require('./helpers/chromium-runtime');
 const ROOT=path.resolve(__dirname,'..'),ORIGIN='https://mebleszek.github.io',PREFIX='/meble-app/';
-const auth=`(()=>{const identity={uid:'synthetic-empty-owner',epoch:1};window.FC=window.FC||{};window.FC.cloudAuth={create:async()=>({identity:()=>identity,state:()=>({status:'authenticated',...identity}),subscribe(fn){queueMicrotask(()=>fn({status:'authenticated',...identity}));return()=>{};},signOut(){throw Error('No test logout');}})};})();`;
+const auth=`(()=>{const identity={uid:'synthetic-empty-owner',epoch:1};window.FC=window.FC||{};window.FC.cloudAuth={create:async()=>({identity:()=>identity,state:()=>({status:'authenticated',...identity}),subscribe(fn){queueMicrotask(()=>fn({status:'authenticated',...identity}));return()=>{};},signInGoogle:async()=>({ok:true}),signOut(){throw Error('No test logout');}})};})();`;
 const verifier=`(()=>{window.FC.cloudAccessVerifier={create:()=>({verify:async()=>({ok:true,uid:'synthetic-empty-owner',validUntil:Date.now()+45000}),watch(){return()=>{};}})};})();`;
 const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
 async function main(){
@@ -60,7 +60,14 @@ async function main(){
     await send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:path.join(dir,'downloads')});
     await send('Runtime.enable');await send('Page.enable');await send('Network.enable');await send('Emulation.setDeviceMetricsOverride',{width:393,height:852,deviceScaleFactor:1,mobile:true});await send('Fetch.enable',{patterns:[{urlPattern:'*'}]});
     const until=async(expression,label)=>{for(let n=0;n<400;n++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,50));}throw Error('Timeout '+label+' '+JSON.stringify(await evaluate('({auth:document.body.dataset.authState,business:document.body.dataset.businessState,text:document.body.innerText.slice(-2200)})')));};
+    const login=async()=>{
+      const p=await evaluate('(()=>{const b=document.getElementById("auth-google").getBoundingClientRect();return{x:b.x+b.width/2,y:b.y+b.height/2};})()');
+      await send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...p});
+      await send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...p});
+    };
     await send('Page.navigate',{url:ORIGIN+PREFIX+'index.html'});
+    await until('document.body?.dataset.authState==="unauthenticated"','desktop requires conscious login');
+    await login();
     await until('document.body?.dataset.businessState==="ready"','fresh full app startup');
     const tap=async selector=>{
       await until(`!!document.querySelector(${JSON.stringify(selector)})`,'target '+selector);
@@ -76,7 +83,7 @@ async function main(){
     await tap('#modeHubRoot [data-action="open-sheet-materials"]');await until('getComputedStyle(document.getElementById("priceModal")).display!=="none"','material catalog');
     await tap('#closePriceModal');
     assert.equal(await evaluate('JSON.stringify([localStorage.getItem("fc_projects_v1"),localStorage.getItem("fc_investors_v1"),localStorage.getItem("fc_edit_session_v1")])'),emptyRaw,'Empty menu/catalog do not create owners or sessions');
-    await tap('[data-action="close-mode-hub"]');await settle();const oldDocument=await evaluate('window.__emptyDocumentToken=crypto.randomUUID()');await send('Page.reload',{ignoreCache:true});await until(`window.__emptyDocumentToken!==${JSON.stringify(oldDocument)}&&document.body?.dataset.businessState==="ready"&&!!window.FC?.sessionNavigation`,'empty restart');
+    await tap('[data-action="close-mode-hub"]');await settle();const oldDocument=await evaluate('window.__emptyDocumentToken=crypto.randomUUID()');await send('Page.reload',{ignoreCache:true});await until('document.body?.dataset.authState==="unauthenticated"','desktop restart needs fresh login');await login();await until(`window.__emptyDocumentToken!==${JSON.stringify(oldDocument)}&&document.body?.dataset.businessState==="ready"&&!!window.FC?.sessionNavigation`,'empty restart');
     assert.equal(await evaluate('window.FC.sessionNavigation.needsClosure()'),false);await tap('#openFurnitureProjectsBtn');await until('uiState.entry==="modeHub"','furniture hub after restart');
     console.log('PASS empty profile -> real Auth gate/business startup -> furniture hub/catalog -> restart, no fictitious owner');
     await tap('#modeHubRoot [data-action="new-investor"]');await until('!!document.getElementById("invName")','first investor draft');

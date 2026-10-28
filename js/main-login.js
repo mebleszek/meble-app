@@ -4,16 +4,31 @@
   const FC=window.FC=window.FC||{},el=id=>document.getElementById(id),shell=el('main-login');
   let profile;
   try{profile=FC.localAccessProfile.create(localStorage,sessionStorage,{authorize(uid){
-    if(!lease||lease.uid!==uid)throw Error('AUTH_ACCESS_REVOKED');lease.assert();
-    const identity=auth.identity();if(identity.uid!==uid)throw Error('AUTH_ACCESS_REVOKED');return identity.epoch;
+    localSession.assert(uid);return localSession.identity().epoch;
   }});}
   catch(_){el('auth-status').textContent='Pamięć przeglądarki jest niedostępna. Nie uruchomiono aplikacji.';el('auth-error').hidden=false;el('auth-error').textContent='LOCAL_ACCESS_UNCONFIRMED';document.body.dataset.authState='error';return;}
   let auth=null,access=null,gate=null,lease=null,blocked=true,started=false,starting=false,fatal=false,loader=null;
   let displayed={status:'checking'},initializing=false,admission=null;
+  let interaction=null;
+  const trust=FC.localDeviceAccess.createTrust();
+  const localSession=FC.localDeviceAccess.createSession({onLock(code){
+    gate?.close();gate=null;interaction=null;block();render({status:'unauthenticated',code});
+  }});
   const businessNodes=new Set(),styles=[];
+  function trustControls(){
+    el('main-trust-phone').checked=localSession.mode()==='trusted';
+    el('main-trust-phone').disabled=localSession.mode()!=='trusted'&&!lease?.isValid();
+  }
+  async function logout(){
+    gate?.close();gate=null;interaction=null;localSession.lock('LOCAL_MANUAL_LOGOUT');
+    const revoked=trust.revoke();
+    void auth?.signOut();
+    try{await revoked;}catch(_){render({status:'error',code:'DEVICE_TRUST_LOGOUT_UNCONFIRMED',message:'Praca zablokowana. Nie potwierdzono trwałego wylogowania w pamięci przeglądarki. Nie zamykaj tej karty.'});}
+  }
+
   function isValid(){
-    if(blocked||!lease?.isValid())return false;
-    try{profile.assert(lease.uid);return true;}catch(_){return false;}
+    if(blocked||!localSession.isValid())return false;
+    try{profile.assert(localSession.identity().uid);return true;}catch(_){return false;}
   }
   function assert(){if(!isValid())throw Error('AUTH_ACCESS_REVOKED');}
   Object.defineProperty(window,'__FC_MAIN_ACCESS__',{value:Object.freeze({assert,isValid,isLoading:()=>starting&&!started}),writable:false,configurable:false});
@@ -22,7 +37,7 @@
   for(const name of ['getItem','setItem','removeItem']){
     const original=Storage.prototype[name];
     Storage.prototype[name]=function(key,...args){
-      if(profile.isAccessKey(String(key))&&name!=='getItem')throw Error('LOCAL_ACCESS_PROTECTED');
+      if((profile.isAccessKey(String(key))||String(key)===trust.key)&&name!=='getItem')throw Error('LOCAL_ACCESS_PROTECTED');
       if(profile.businessKey(key))assert();
       return original.call(this,key,...args);
     };
@@ -31,7 +46,7 @@
   function showBusiness(visible){
     document.body.classList.toggle('app-authorized',visible);
     document.documentElement.classList.toggle('auth-blocked',!visible);
-    shell.hidden=visible;el('main-auth-bar').hidden=!visible;
+    shell.hidden=visible;el('main-auth-bar').hidden=!visible;trustControls();
     el('auth-theme').disabled=visible;
     for(const style of styles)style.disabled=!visible;
     for(const node of businessNodes)node.inert=!visible;
@@ -44,7 +59,7 @@
   }
   function render(state){
     displayed=state;document.body.dataset.authState=state.status;
-    const signed=!!state.uid;el('auth-google').disabled=state.status==='checking';el('auth-google').hidden=signed;
+    const signed=!!state.uid;trustControls();el('auth-google').disabled=state.status==='checking';el('auth-google').hidden=signed;
     el('auth-account').hidden=!signed;
     const texts={checking:'Sprawdzanie sesji…',unauthenticated:'Zaloguj się, aby rozpocząć.',authenticated:'Zalogowano. Sprawdzanie uprawnień…',unapproved:'Dostęp do aplikacji nie został zatwierdzony.',authorized:'Uruchamianie Meble-App…','profile-pending':'Konto zostało zatwierdzone. Potwierdź dostęp do istniejącego profilu przeglądarki.',revoked:'Uprawnienia zostały cofnięte. Praca została wstrzymana. Niezakończonej edycji nie zapisano ani nie anulowano.',error:'Nie potwierdzono dostępu. Praca pozostała zablokowana.'};
     el('auth-status').textContent=state.message||texts[state.status]||texts.error;
@@ -60,9 +75,14 @@
       :error?.code==='LOCAL_ACCESS_OTHER_ACCOUNT'?'Dane tej przeglądarki są dostępne dla innego konta. Użyj właściwego konta lub osobnego profilu przeglądarki.'
       :'Nie udało się bezpiecznie uruchomić aplikacji. Zachowano dane i niezakończoną edycję. Nie odświeżaj strony z niezapisanym formularzem.'});
   }
-  async function loadBusiness(grant,intent){
+  async function loadBusiness(grant,intent,restoring=false){
     if(fatal)throw Object.assign(Error(),{code:'AUTH_RELOAD_REQUIRED'});
-    lease=grant;blocked=false;
+    if(!restoring){
+      const identity=auth.identity();
+      if(!interaction||interaction.uid!==identity.uid||interaction.epoch!==identity.epoch||grant.uid!==identity.uid)throw Error('AUTH_INTERACTION_REQUIRED');
+      if(!localSession.isValid())localSession.desktop(grant.uid);
+    }
+    blocked=false;
     try{
       // Serialize first-use receipts across cooperating tabs. localStorage alone
       // is not compare-and-swap; never let two first logins claim an empty origin.
@@ -70,21 +90,22 @@
       const pending=new AbortController(),timer=setTimeout(()=>pending.abort(),8000);
       try{await navigator.locks.request('meble-main-access-profile-v1',{signal:pending.signal},async()=>{
         grant.assert();
-        if(lease!==grant)throw Object.assign(Error(),{code:'LOCAL_ACCESS_UNCONFIRMED'});
+        localSession.assert(grant.uid);
         if(intent){
           const identity=auth.identity();
           if(identity.uid!==intent.uid||identity.epoch!==intent.epoch)throw Object.assign(Error(),{code:'LOCAL_ACCESS_UNCONFIRMED'});
           await profile.admitExisting(grant.uid,intent.ticket,intent);
-        }else await profile.confirm(grant.uid);
+        }else if(restoring)await profile.resume(grant.uid,grant.profileAttemptId);
+        else await profile.confirm(grant.uid);
       });}
       finally{clearTimeout(timer);}
-      if(lease!==grant)return;assert();
+      localSession.assert(grant.uid);assert();
     }catch(error){
-      if(lease!==grant)return;blocked=true;
-      if(error.code==='LOCAL_DATA_UNCLAIMED'&&!intent){
+      if(!localSession.isValid())return;blocked=true;
+      if(error.code==='LOCAL_DATA_UNCLAIMED'&&!intent&&!restoring){
         grant.assert();const identity=auth.identity();
         const ticket=await profile.prepareAdmission(grant.uid);
-        grant.assert();if(lease!==grant)return;
+        grant.assert();localSession.assert(grant.uid);
         admission={...identity,ticket};
         render({status:'profile-pending',uid:grant.uid});el('auth-profile-admission').hidden=false;return;
       }
@@ -114,8 +135,12 @@
   }
   function observe(intent=null){
     gate?.close();
-    gate=FC.authAccessGate.create(auth,{verifyAccess:access.verify,watchAccess:access.watch,onBlocked:block,
-      onState:state=>{if(!fatal)render(state);},onAuthorized:async grant=>{
+    gate=FC.authAccessGate.create(auth,{verifyAccess:access.verify,watchAccess:access.watch,onBlocked:()=>{lease=null;trustControls();},
+      onState:state=>{
+        if(state.status==='revoked'||state.denied===true){localSession.lock('AUTH_ACCESS_REVOKED');void trust.revoke().catch(()=>{});}
+        if(!fatal&&!isValid())render(state);else trustControls();
+      },onAuthorized:async grant=>{
+        lease=grant;trustControls();
         // A consent is single-use and bound to the exact Auth identity/epoch.
         // This new gate obtains a fresh server proof through the common verifier.
         const once=intent;intent=null;
@@ -123,8 +148,15 @@
       }});
   }
   async function initialize(){
-    if(initializing||auth)return;initializing=true;render({status:'checking'});
-    try{auth=await FC.cloudAuth.create(window.FC_AUTH_TEST_OPTIONS);access=FC.cloudAccessVerifier.create(auth);observe();}
+    if(initializing||auth)return;if(navigator.onLine===false){render({status:'unauthenticated'});return;}initializing=true;render({status:'checking'});
+    try{
+      auth=await FC.cloudAuth.create({...window.FC_AUTH_TEST_OPTIONS,sessionOnly:true});
+      access=FC.cloudAccessVerifier.create(auth,{sdk:window.FC_AUTH_TEST_OPTIONS?.sdk?.firestore});
+      auth.subscribe(value=>{if(value.status==='authenticated'&&localSession.isValid()&&value.uid!==localSession.identity().uid){
+        localSession.lock('AUTH_ACCOUNT_CHANGED');void trust.revoke().catch(()=>{});
+      }});
+      render({status:'unauthenticated'});
+    }
     catch(error){render(FC.cloudAuth?.errorState(error)||{status:'error',code:'AUTH_SDK_UNAVAILABLE'});}finally{initializing=false;}
   }
   // Capture precedes business listeners; locked UI cannot dispatch business actions.
@@ -142,8 +174,12 @@
       else if(action==='auth-profile-cancel'){
         block();render({status:'error',uid:auth?.state().uid,code:'LOCAL_ACCESS_CANCELLED',message:'Nie dopuszczono profilu. Dane pozostały bez zmian. Wróć po wykonaniu i zachowaniu kopii bezpieczeństwa.'});
       }
-      else if(action==='auth-google'){if(auth)auth.signInGoogle();else initialize();}
-      else if(action==='auth-signout'||action==='main-signout')auth?.signOut();
+      else if(action==='auth-google'){
+        if(!event.isTrusted)return;
+        if(auth)void auth.signInGoogle().then(result=>{if(result.ok){interaction=auth.identity();observe();}});
+        else initialize();
+      }
+      else if(action==='auth-signout'||action==='main-signout')void logout();
       return;
     }
     if(admission&&el('auth-profile-admission').contains(event.target))return;
@@ -155,11 +191,36 @@
     }
     if(!isValid()){event.stopImmediatePropagation();if(!shell.contains(event.target))event.preventDefault();}
   },true);
-  window.addEventListener('storage',event=>{if(profile.isAccessKey(event.key)&&!isValid())block();});
+  el('main-trust-phone').addEventListener('change',async event=>{
+    if(!event.isTrusted){trustControls();return;}
+    if(!event.target.checked){await logout();return;}
+    event.target.disabled=true;
+    try{
+      if(!isValid()||!lease?.isValid()||!interaction)throw Error('DEVICE_TRUST_ONLINE_APPROVAL_REQUIRED');
+      const bound=profile.binding(),identity=auth.identity(),proof=lease;
+      const check=()=>{proof.assert();localSession.assert(bound.uid);const current=auth.identity();
+        if(current.uid!==bound.uid||current.uid!==identity.uid||current.epoch!==identity.epoch||interaction?.epoch!==identity.epoch)throw Error('DEVICE_TRUST_AUTH_CHANGED');profile.assert(bound.uid);};
+      await FC.offlineShell.prepare();check();
+      const capability=await navigator.locks.request('meble-device-trust-v1',()=>trust.enroll({uid:bound.uid,profileAttemptId:bound.attemptId,check,consent:true}));
+      check();localSession.trusted(capability);await profile.resume(capability.uid,capability.profileAttemptId);
+      el('main-trust-status').textContent='Zaufano tej instalacji. Dostęp lokalny działa offline do wylogowania.';
+    }catch(_){el('main-trust-status').textContent='Nie potwierdzono zaufania lub kompletnej wersji offline. Zaloguj się ponownie online i spróbuj jeszcze raz.';}
+    trustControls();
+  });
+  window.addEventListener('storage',event=>{if(event.key===trust.key&&event.newValue==='revoked')localSession.lock('LOCAL_MANUAL_LOGOUT');
+    else if(event.key===null||event.key===trust.key||profile.isAccessKey(event.key)){if(!isValid())localSession.lock('LOCAL_ACCESS_CHANGED');}});
   window.addEventListener('beforeunload',event=>{if(blocked&&window.FC?.session?.active){event.preventDefault();event.returnValue='';}});
-  window.addEventListener('pagehide',()=>{gate?.close();});
-  window.addEventListener('pageshow',event=>{if(event.persisted&&auth&&!fatal)observe();});
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&auth&&!fatal&&displayed.status!=='authorized')observe();});
-  window.addEventListener('online',()=>{if(auth&&!fatal&&displayed.status!=='authorized')observe();});
-  initialize();
+  // Backgrounding is not logout. In-memory desktop sessions fail closed when
+  // restored from bfcache; all ordinary activity first checks the 5-minute bound.
+  window.addEventListener('pageshow',event=>{if(event.persisted&&localSession.mode()==='desktop')localSession.lock('LOCAL_SESSION_RESTORED');else localSession.isValid();});
+  document.addEventListener('visibilitychange',()=>localSession.isValid());
+  window.addEventListener('online',()=>{if(!localSession.isValid()&&!auth&&!fatal)void initialize();});
+  for(const type of ['pointerdown','pointermove','keydown','input','wheel','touchstart'])window.addEventListener(type,event=>localSession.activity(event),{capture:true,passive:true});
+  (async()=>{
+    try{
+      const capability=await trust.restore();
+      if(capability){localSession.trusted(capability);await loadBusiness(capability,null,true);return;}
+    }catch(_){localSession.lock('DEVICE_TRUST_UNCONFIRMED');}
+    await initialize();
+  })();
 })();

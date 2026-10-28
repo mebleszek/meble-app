@@ -152,6 +152,12 @@
       check();accept(active,check());
     }
     return {
+      binding(){if(!verified)fail('LOCAL_ACCESS_UNCONFIRMED');authorize(verified.uid);return {uid:verified.uid,attemptId:verified.attemptId};},
+      async resume(uid,attemptId){
+        verified=null;const check=operation(uid),current=await transact(uid,check,'readonly',()=>{});check();
+        validateActive(uid,current);
+        if(current.attemptId!==attemptId)fail('LOCAL_ACCESS_UNCONFIRMED');accept(current,check());
+      },
       async confirm(uid){
         verified=null;
         const check=operation(uid),legacy=receipt(uid),current=await transact(uid,check,'readonly',()=>{});check();

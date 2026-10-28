@@ -39,7 +39,7 @@
         // A server-backed verifier is REQUIRED. Google login alone never opens UI.
         const result=await verifyAccess(identity);
         if(!current())return;
-        if(!renew(result)){emit({status:'unapproved',uid:identity.uid,code:'AUTH_ACCESS_DENIED'});return;}
+        if(!renew(result)){emit({status:'unapproved',uid:identity.uid,code:'AUTH_ACCESS_DENIED',denied:result?.denied===true});return;}
         granted=true;
         emit({status:'authorized',uid:identity.uid});
         if(typeof watchAccess==='function'){

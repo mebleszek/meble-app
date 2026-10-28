@@ -1,5 +1,11 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
+## Zaufany telefon / sesja komputera — pakiet 28.10.2026
+
+Na bazie `951005296780f2b4887ab39b3c065a0beb247c48` przygotowano oddzielny lokalny dostęp, Google Auth i krótkie uprawnienie Firebase. Właściciel zatwierdził checkbox po logowaniu w górnym pasku obok Wyloguj. Telefon wymaga jawnego ustanowienia dowodu WebCrypto/IDB i kompletnej powłoki offline; komputer ma sesję tylko w pamięci dokumentu z blokadą po 5 minutach. Zmiana nie włącza synchronizacji, nie migruje danych ani nie zmienia PR #84. PR #84 jest scalony w powyższym main; wcześniejsze opisy jego CI_PENDING poniżej są historyczne.
+
+**CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Nowa macierz Chromium/IDB/offline i SDK/Rules wymaga CI, lokalnie natywny browser jest BLOCKED (`listen EPERM`). [Model, ograniczenia, rzeczywiste kontrole i wymagane dowody](tools/reports/trusted-phone-desktop-offline-auth.md). Nie odświeżać aktywnej karty z niezabezpieczonym RAM.
+
 ## LOCAL-FIRST SYNC — bieżący pakiet 28.10.2026
 
 Właściciel wznowił implementację produktu. Wcześniejsze wstrzymanie z 25.10 jest historyczne; Firebase LIVE, migracja i wydanie nadal mają osobne bramki. PR #77/#78/#83 są wydane (dla #83 właściciel potwierdził Pixel). Nie powtarzamy ich CI ani operatora CLOUD-4.6F.
