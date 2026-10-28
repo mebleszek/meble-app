@@ -6,6 +6,20 @@ Na bazie `951005296780f2b4887ab39b3c065a0beb247c48` przygotowano oddzielny lokal
 
 **CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Nowa macierz Chromium/IDB/offline i SDK/Rules wymaga CI, lokalnie natywny browser jest BLOCKED (`listen EPERM`). [Model, ograniczenia, rzeczywiste kontrole i wymagane dowody](tools/reports/trusted-phone-desktop-offline-auth.md). Nie odświeżać aktywnej karty z niezabezpieczonym RAM.
 
+## WSPÓLNY PIN MEBLE-APP — ODROCZONY DO DZIAŁAJĄCEJ CHMURY (decyzja 28.10.2026)
+
+**Decyzja właściciela:** PIN bezpieczeństwa wprowadzamy dopiero po uruchomieniu bezpiecznej, wspólnej usługi chmurowej pozwalającej weryfikować go na różnych urządzeniach. Nie należy dodawać PIN-u ani blokować obecnego pakietu zaufanych urządzeń z powodu jego braku. Do tego czasu checkbox „Zaufaj temu urządzeniu” pozostaje świadomą, dobrowolną decyzją zalogowanego i zatwierdzonego właściciela; może on zaznaczyć go również na własnym laptopie lub tablecie. Niezaufana sesja komputera nadal ma limit 5 minut bezczynności i wymaga nowego logowania po zamknięciu przeglądarki.
+
+**Docelowy UX i kontrakt:**
+- Jeden wspólny PIN dla konta właściciela, obowiązujący na wszystkich jego urządzeniach; bez osobnych PIN-ów na telefon/laptop/tablet.
+- Własny PIN ustalany i potwierdzany przy pierwszej konfiguracji funkcji po jej udostępnieniu; bez domyślnego `123456` ani innego fabrycznego PIN-u.
+- Po zalogowaniu Google i świeżym sprawdzeniu uprawnień zaznaczenie „Zaufaj temu urządzeniu” wymaga poprawnego PIN-u przed zapisaniem lokalnego zaufania.
+- Trybik → Ustawienia → Bezpieczeństwo → Zmień PIN: stary PIN, nowy PIN i potwierdzenie nowego. Zaplanować też bezpieczne odzyskiwanie/reset po silnym ponownym uwierzytelnieniu właściciela.
+- Wspólna weryfikacja PIN-u musi opierać się na zatwierdzonym mechanizmie serwerowym, z ograniczaniem prób i ochroną przed zgadywaniem. Nie zapisywać PIN-u jawnie w aplikacji, lokalnych magazynach, dokumentach ani repozytorium. PIN stanowi dodatkowe potwierdzenie nadania zaufania, nie zastępuje Google Auth, uprawnień Firebase ani kontroli dostępu do danych.
+- Szczegółowy model bezpieczeństwa, UI, migrację i testy uzgodnić w osobnym pakiecie przed implementacją. Dostępność chmury nie jest automatyczną zgodą na Firebase LIVE, Rules, granty, migrację ani wydanie.
+
+**Status: PLANNED / DEFERRED / NOT_IMPLEMENTED / LIVE_BLOCKED.** Obecne wydanie zaufanego telefonu i sesji komputera zachowuje własne, odrębne bramki CI, wydania i testu fizycznego Androida.
+
 ## LOCAL-FIRST SYNC — bieżący pakiet 28.10.2026
 
 Właściciel wznowił implementację produktu. Wcześniejsze wstrzymanie z 25.10 jest historyczne; Firebase LIVE, migracja i wydanie nadal mają osobne bramki. PR #77/#78/#83 są wydane (dla #83 właściciel potwierdził Pixel). Nie powtarzamy ich CI ani operatora CLOUD-4.6F.
