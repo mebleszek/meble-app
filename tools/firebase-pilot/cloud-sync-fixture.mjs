@@ -20,6 +20,9 @@ export function selectProjectFixture(fixture, projectId) {
   fixture.FC.investors.setCurrentId(record.investorId);
   fixture.s.uiState.currentInvestorId = record.investorId;
   fixture.s.projectData = fixture.FC.project.load();
+  // The native export fixture provides TextEncoder; independent CLOUD-2B reads
+  // also require the browser's decoder. Do not relax unpack's API/integrity gate.
+  fixture.s.TextDecoder = TextDecoder;
   return fixture;
 }
 export function runtime() {

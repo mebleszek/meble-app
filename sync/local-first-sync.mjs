@@ -52,7 +52,15 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
           }
           let base=op.base;
           if(op.previousOperation){const previous=(await store.snapshot(op.scope)).operations.find(p=>p.key===op.previousOperation);
-            if(previous?.phase!=='verified')return {ok:false,code:'LF_PREDECESSOR_PENDING'};base=previous.receipt;}
+            if(previous?.phase!=='verified')return {ok:false,code:'LF_PREDECESSOR_PENDING'};
+            const receipt=previous.receipt;
+            if(!receipt||!Number.isSafeInteger(receipt.generation)||receipt.generation<1
+              ||base&&(!Number.isSafeInteger(base.generation)||base.generation<1
+                ||base.generation===receipt.generation&&!equal(base,receipt)))return {ok:false,code:'LF_PREDECESSOR_BASE_CONFLICT'};
+            // A queued successor may need its predecessor's newer receipt.
+            // Conversely, a verified incoming revision can already be newer
+            // than our last own publication: never roll that durable base back.
+            if(!base||receipt.generation>base.generation)base=receipt;}
           let prepared;
           try{prepared=await channel.prepare(JSON.parse(op.json),base,op.editor);}
           catch(e){if(/CONFLICT|STALE|DEPENDENCY|EDITOR/.test(e.code||''))await store.transition(op.key,'queued','conflict',{code:e.code});return safeError(e);}

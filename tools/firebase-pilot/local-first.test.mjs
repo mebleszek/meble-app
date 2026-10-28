@@ -54,6 +54,25 @@ export async function runLocalFirstSuite(t){
     d.connect();return d;
   }
   async function reconnect(d){d.online=true;d.events.dispatchEvent(new Event('online'));await new Promise(resolve=>setTimeout(resolve,0));return d.sync.flush();}
+  async function expectFlush(d,attempt,label){
+    const result=await attempt;
+    if(result.ok===true){assert.equal(result.ok,true);return;}
+    // Only structural emulator evidence, never document JSON, chunks or RAW.
+    const head=h=>h&&Object.fromEntries(['generation','revisionId','currentRevisionId','directoryHash'].filter(k=>k in h).map(k=>[k,h[k]]));
+    const evidence={label,result,local:{},remote:{}};
+    for(const scope of ['globals',d.projectId]){
+      try{const s=await d.store.snapshot(scope);evidence.local[scope]={version:s.replica?.version,dirty:s.replica?.dirty,
+        base:head(s.replica?.base),editor:s.replica?.editor,operations:s.operations.map(o=>({id:o.key,phase:o.phase,code:o.code,
+          base:head(o.base),expected:head(o.expected),receipt:head(o.receipt)}))};}
+      catch(_){evidence.local[scope]={code:'LOCAL_EVIDENCE_UNAVAILABLE'};}
+    }
+    for(const [name,segments]of [['globals',['globalData','current']],['project',['localFirstProjects',d.projectId]],['editor',['localFirstEditors',d.projectId]]]){
+      try{const s=await f.getDocFromServer(f.doc(d.reader.db,'users',d.reader.uid,...segments)),data=s.exists()?s.data():null;
+        evidence.remote[name]=name==='editor'?data:head(data);}
+      catch(e){evidence.remote[name]={code:e.code||'REMOTE_EVIDENCE_UNAVAILABLE'};}
+    }
+    assert.equal(result.ok,true,JSON.stringify(evidence));
+  }
   async function waitUntil(check){for(let i=0;i<200;i++){if(await check())return;await new Promise(resolve=>setTimeout(resolve,25));}assert.fail('Automatic synchronization did not complete');}
   async function submitGlobal(d,value,operationId){seed(d.writer.r,value);const snap=await d.store.snapshot('globals');
     return d.sync.submitGlobals({source:d.writer.r.storage,operationId,expectedVersion:snap.replica?.version||0});}
@@ -95,8 +114,9 @@ export async function runLocalFirstSuite(t){
     validateProjectDependencies(phone.pf.FC.projectExportContract,phone.writer.r.FC.globalDataContract,bundle.document,bundle.globals.model);
     await phone.store.apply({scope:'A',value:clone(bundle),head:null,expectedVersion:0});
     await phone.sync.acquireEditor('A');firstEditor=(await phone.store.snapshot('A')).replica.editor;
-    assert.equal((await submitProject(phone,'project-first')).localConfirmed,true);assert.equal((await phone.sync.flush()).ok,true);
-    assert.equal((await computer.sync.flush()).ok,true);await assert.rejects(computer.sync.acquireEditor('A'),/LF_EDITOR_BUSY_OR_HEAD_CHANGED/);
+    const first=await submitProject(phone,'project-first');assert.equal(first.localConfirmed,true,JSON.stringify(first));
+    await expectFlush(phone,phone.sync.flush(),'03 first project publication/independent resolution');
+    await expectFlush(computer,computer.sync.flush(),'03 receive first project');await assert.rejects(computer.sync.acquireEditor('A'),/LF_EDITOR_BUSY_OR_HEAD_CHANGED/);
     phone.online=false;await Promise.all([f.disableNetwork(phone.writer.db),f.disableNetwork(phone.reader.db)]);
     phone.pf.mutate(p=>{p.projectData.kuchnia.cabinets[0].width=81.125;});
     assert.equal((await submitProject(phone,'project-offline')).localConfirmed,true);
@@ -104,7 +124,7 @@ export async function runLocalFirstSuite(t){
     await assert.rejects(computer.sync.acquireEditor('A'),/LF_EDITOR_BUSY_OR_HEAD_CHANGED/);
     await assert.rejects(phone.sync.releaseEditor('A'),/LF_HANDOVER_PENDING_LOCAL_WORK/);
     await Promise.all([f.enableNetwork(phone.writer.db),f.enableNetwork(phone.reader.db)]);
-    assert.equal((await reconnect(phone)).ok,true);assert.equal((await computer.sync.flush()).ok,true);
+    await expectFlush(phone,reconnect(phone),'03 offline project reconnect');await expectFlush(computer,computer.sync.flush(),'03 receive offline work');
     const a=await phone.store.snapshot('A'),b=await computer.store.snapshot('A');assert.equal(a.replica.dirty,false);assert.equal(a.replica.json,b.replica.json);
     assert.equal(JSON.parse(b.replica.json).document.payload.project.projectData.kuchnia.cabinets[0].width,81.125);
   });
@@ -117,8 +137,8 @@ export async function runLocalFirstSuite(t){
     const current=JSON.parse((await computer.store.snapshot('A')).replica.json);
     // Rebuild from actual native stores rather than editing a serialized hash.
     computer.pf.mutate(p=>{p.projectData.kuchnia.cabinets[0].width=92.5;});const editedSourceB=computer.pf.rows();
-    assert.equal((await submitProject(computer,'computer-project')).localConfirmed,true);assert.equal((await computer.sync.flush()).ok,true);
-    assert.equal((await phone.sync.flush()).ok,true);
+    assert.equal((await submitProject(computer,'computer-project')).localConfirmed,true);await expectFlush(computer,computer.sync.flush(),'04 new editor publication');
+    await expectFlush(phone,phone.sync.flush(),'04 receive after handover');
     assert.equal(JSON.parse((await phone.store.snapshot('A')).replica.json).document.payload.project.projectData.kuchnia.cabinets[0].width,92.5);
     const receivedBundle=JSON.parse((await phone.store.snapshot('A')).replica.json),received=receivedBundle.document.payload.project.projectData;
     const restored=fixture();restored.mutate(p=>{p.projectData=clone(received);});
@@ -136,7 +156,7 @@ export async function runLocalFirstSuite(t){
     phone.online=false;computer.online=false;
     const a=JSON.parse((await phone.store.snapshot('globals')).replica.json),b=clone(a);a.stock[0].qty=99;b.stock[0].qty=77;
     await submitGlobal(phone,a,'concurrent-phone');await submitGlobal(computer,b,'concurrent-computer');
-    assert.equal((await reconnect(phone)).ok,true);assert.equal((await reconnect(computer)).ok,false);
+    await expectFlush(phone,reconnect(phone),'05 winning global CAS');assert.equal((await reconnect(computer)).ok,false);
     const losing=await computer.store.snapshot('globals');assert.equal(losing.replica.dirty,true);
     assert.equal(JSON.parse(losing.replica.json).stock[0].qty,77);assert.equal(losing.operations.at(-1).phase,'conflict');
   });
@@ -149,13 +169,13 @@ export async function runLocalFirstSuite(t){
       if(publication){publications++;if(drop){drop=false;await doomed.browser.crash();throw Object.assign(Error('synthetic lost ACK'),{code:'unavailable'});}}return result;}};
     doomed=await device('restart',sdk);
     // Match the verified latest server baseline before making a new local edit.
-    assert.equal((await reconnect(doomed)).ok,true);doomed.online=false;
+    await expectFlush(doomed,reconnect(doomed),'06 baseline before crash injection');doomed.online=false;
     const changed=JSON.parse((await doomed.store.snapshot('globals')).replica.json);changed.materials[0].price=399.875;
     await submitGlobal(doomed,changed,'restart-operation');doomed.online=true;assert.equal((await doomed.sync.flush()).ok,false);doomed.sync.close();
     doomed.browser=await openBrowserDevice(server,path.join(directory,'restart'));
     doomed.store=await doomed.browser.open({...doomed.binding,initialize:false});
     const pending=await doomed.store.snapshot('globals');assert.equal(pending.operations.at(-1).phase,'inflight');
-    doomed.connect();assert.equal((await doomed.sync.flush()).ok,true);
+    doomed.connect();await expectFlush(doomed,doomed.sync.flush(),'06 independent recovery after SIGKILL');
     assert.equal((await doomed.store.snapshot('globals')).operations.at(-1).phase,'verified');assert.equal(publications,1);
     assert.deepEqual(JSON.parse((await doomed.store.snapshot('globals')).replica.json),changed);
   });
