@@ -20,7 +20,7 @@ export async function runLocalFirstSuite(t){
   const original=fs.readFileSync(new URL('./firestore.rules',import.meta.url),'utf8');
   const marker='    match /{document=**}';assert.equal(original.split(marker).length,2);
   const fragment=fs.readFileSync(new URL('../../sync/local-first-project.rules',import.meta.url),'utf8');
-  const rules=original.replace(marker,fragment+'\n'+marker);
+  const rules=original.replace(marker,()=>fragment+'\n'+marker);
   const env=await initializeTestEnvironment({projectId:'demo-meble-app',firestore:{host:'127.0.0.1',port:18080,rules}});
   const server=await startLocalFirstServer(),directory=fs.mkdtempSync(path.join(os.tmpdir(),'meble-lf-sdk-'));
   const lifetimes=[],devices=[];let serial=0;
