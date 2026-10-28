@@ -13,102 +13,457 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  preflight:
-    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+  safety:
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == false }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
-
+      pull-requests: read
+    outputs:
+      head_sha: ${{ steps.revision.outputs.head_sha }}
+      base_sha: ${{ steps.revision.outputs.base_sha }}
+      status: ${{ steps.report.outputs.status }}
+      reason: ${{ steps.report.outputs.reason }}
     steps:
-      - name: Checkout
+      - name: Verify approved PR revision and state
+        id: revision
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const refuse = reason => { core.setOutput('reason', reason); core.setFailed(reason); };
+            if (!pr || !['opened','ready_for_review'].includes(context.payload.action) || pr.draft) return refuse('NO_APPROVED_READY_EVENT');
+            if (pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}`) return refuse('FOREIGN_HEAD_REPOSITORY');
+            try {
+              const {data: current} = await github.rest.pulls.get({owner:context.repo.owner,repo:context.repo.repo,pull_number:pr.number});
+              if (current.state !== 'open' || current.draft || current.merged) return refuse('PR_NOT_OPEN_READY');
+              if (current.head.sha !== pr.head.sha) return refuse('APPROVED_HEAD_CHANGED');
+              if (current.base.sha !== pr.base.sha || current.base.ref !== 'main' || pr.base.ref !== 'main') return refuse('APPROVED_BASE_CHANGED');
+              const {data: main} = await github.rest.git.getRef({owner:context.repo.owner,repo:context.repo.repo,ref:'heads/main'});
+              if (main.object.sha !== pr.base.sha) return refuse('MAIN_CHANGED');
+              core.setOutput('head_sha', pr.head.sha);
+              core.setOutput('base_sha', pr.base.sha);
+            } catch (_) { return refuse('APPROVED_REVISION_READ_UNCONFIRMED'); }
+      - name: Checkout exact approved head
+        id: checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ steps.revision.outputs.head_sha }}
           fetch-depth: 0
           persist-credentials: false
-
       - name: Use Node.js 22
+        id: node
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: '22'
+      - name: Verify isolated source and 425 pins
+        id: source
+        env:
+          APPROVED_HEAD: ${{ steps.revision.outputs.head_sha }}
+          APPROVED_BASE: ${{ steps.revision.outputs.base_sha }}
+        run: node tools/cloud-ci-prepare.js "$APPROVED_HEAD"
+      - name: Report group result
+        id: report
+        if: ${{ always() }}
+        uses: actions/github-script@v7
+        env:
+          GROUP_STEPS: ${{ toJSON(steps) }}
+          REQUIRED_STEPS: revision,checkout,node,source
+        with:
+          script: |
+            const steps = JSON.parse(process.env.GROUP_STEPS);
+            const required = process.env.REQUIRED_STEPS.split(',');
+            const failed = Object.entries(steps).filter(([,s]) => ['failure','cancelled'].includes(s.outcome));
+            const missing = required.filter(id => steps[id]?.outcome !== 'success');
+            const status = failed.length ? 'FAIL' : missing.length ? 'SKIPPED' : 'PASS';
+            const reason = failed.length
+              ? failed.map(([id,s]) => `${id}:${s.outcome}:${s.outputs?.reason || 'see step log'}`).join('; ')
+              : missing.length ? `Required steps not executed: ${missing.join(', ')}` : 'All required steps passed';
+            core.setOutput('status', status);
+            core.setOutput('reason', reason);
+            await core.summary.addHeading('Group diagnostics').addTable([
+              [{data:'Step/group',header:true},{data:'Status',header:true},{data:'Reason',header:true}], ['Group',status,reason],
+              ...required.map(id => [id,steps[id]?.outcome === 'success' ? 'PASS' : steps[id]?.outcome === 'failure' ? 'FAIL' : 'SKIPPED',steps[id]?.outputs?.reason || steps[id]?.outcome || 'No confirmed step result'])
+            ]).write();
 
-      - name: Prepare exact isolated historical CLOUD source
-        id: cloud-context
+  preflight:
+    needs: safety
+    if: ${{ !cancelled() && needs.safety.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      status: ${{ steps.report.outputs.status }}
+      reason: ${{ steps.report.outputs.reason }}
+    steps:
+      - name: Checkout exact approved head
+        id: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.safety.outputs.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Use Node.js 22
+        id: node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify isolated source and 425 pins
+        id: source
+        env:
+          APPROVED_HEAD: ${{ needs.safety.outputs.head_sha }}
+          APPROVED_BASE: ${{ needs.safety.outputs.base_sha }}
+        run: node tools/cloud-ci-prepare.js "$APPROVED_HEAD"
+      - name: Inspect and select isolated browser runtime
+        id: browser
         shell: bash
         run: |
           set -euo pipefail
-          history="$RUNNER_TEMP/meble-cloud-history"
-          test ! -e "$history"
-          sha="$(node -p "require('./tools/cloud-ci-context.js').HISTORICAL_SHA")"
-          git clone --quiet --no-hardlinks --no-checkout --local "$GITHUB_WORKSPACE" "$history"
-          git -C "$history" checkout --quiet --detach "$sha"
-          CLOUD_CI_HISTORY_ROOT="$history" node <<'NODE'
-          const c = require('./tools/cloud-ci-context.js');
-          c.verifyHistorical(process.cwd());
-          c.sdkPlan(process.cwd());
-          const event = JSON.parse(require('node:fs').readFileSync(process.env.GITHUB_EVENT_PATH,'utf8'));
-          if (event.pull_request) c.report(`Requested PR HEAD: \`${event.pull_request.head.sha}\`; BASE: \`${event.pull_request.base.sha}\`.`);
-          c.report(`Current source SHA: \`${c.git(process.cwd(),['rev-parse','HEAD'])}\`; historical CLOUD evidence SHA: \`${c.HISTORICAL_SHA}\` (425 source pins verified). Historical PASS grants no authority to current source. Firebase LIVE_BLOCKED.`);
-          NODE
-          echo "CLOUD_CI_HISTORY_ROOT=$history" >> "$GITHUB_ENV"
-          echo "PREFLIGHT_DIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+          test -x /usr/bin/dbus-run-session
+          test -x /usr/bin/python3
+          browser_path="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          test -x "$browser_path"
+          "$browser_path" --version
+          echo "CHROMIUM_PATH=$browser_path" >> "$GITHUB_ENV"
+          node -e 'console.log(JSON.stringify(require("./tools/helpers/chromium-runtime").resources()))'
 
-      - name: Run full Meble-App preflight
-        id: full-preflight
+      - name: Run current Meble-App preflight
+        id: tests
+        if: ${{ !cancelled() && steps.source.outcome == 'success' }}
         shell: bash
         run: |
           set -uo pipefail
-
-          echo "Testing: $PREFLIGHT_DIR"
+          mkdir -p "$RUNNER_TEMP/ci-logs"
           set +e
-          node "$PREFLIGHT_DIR/tools/preflight.js" 2>&1 | tee preflight-output.txt
-          status=${PIPESTATUS[0]}
-          set -e
-
-          {
-            echo "## Meble-App preflight"
-            echo
-            echo '```text'
-            tail -n 120 preflight-output.txt
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          if [ "$status" -ne 0 ]; then
-            echo 'SDK/Auth/Firestore/Rules: SKIPPED because Preflight failed — not PASS. Release BLOCKED.' >> "$GITHUB_STEP_SUMMARY"
+          node "$PREFLIGHT_DIR/tools/preflight.js" --current-only 2>&1 | tee "$RUNNER_TEMP/ci-logs/preflight.txt"
+          statuses=("${PIPESTATUS[@]}")
+          status=${statuses[0]}
+          if [ "${statuses[1]}" -ne 0 ]; then
+            echo 'DIAGNOSTIC_LOG_WRITE_FAILED' >&2
+            echo 'reason=DIAGNOSTIC_LOG_WRITE_FAILED' >> "$GITHUB_OUTPUT"
+            if [ "$status" -eq 0 ]; then status=${statuses[1]}; fi
+          elif [ "$status" -ne 0 ]; then
+            echo "reason=TEST_PROCESS_EXIT_${status}" >> "$GITHUB_OUTPUT"
           fi
           exit "$status"
+      - name: Upload preflight diagnostic log
+        id: artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-preflight
+          path: ${{ runner.temp }}/ci-logs/*.txt
+          if-no-files-found: ignore
+      - name: Report group result
+        id: report
+        if: ${{ always() }}
+        uses: actions/github-script@v7
+        env:
+          GROUP_STEPS: ${{ toJSON(steps) }}
+          REQUIRED_STEPS: checkout,node,source,browser,tests
+        with:
+          script: |
+            const steps = JSON.parse(process.env.GROUP_STEPS);
+            const required = process.env.REQUIRED_STEPS.split(',');
+            const failed = Object.entries(steps).filter(([,s]) => ['failure','cancelled'].includes(s.outcome));
+            const missing = required.filter(id => steps[id]?.outcome !== 'success');
+            const status = failed.length ? 'FAIL' : missing.length ? 'SKIPPED' : 'PASS';
+            const reason = failed.length
+              ? failed.map(([id,s]) => `${id}:${s.outcome}:${s.outputs?.reason || 'see step log'}`).join('; ')
+              : missing.length ? `Required steps not executed: ${missing.join(', ')}` : 'All required steps passed';
+            core.setOutput('status', status);
+            core.setOutput('reason', reason);
+            await core.summary.addHeading('Group diagnostics').addTable([
+              [{data:'Step/group',header:true},{data:'Status',header:true},{data:'Reason',header:true}], ['Group',status,reason],
+              ...required.map(id => [id,steps[id]?.outcome === 'success' ? 'PASS' : steps[id]?.outcome === 'failure' ? 'FAIL' : 'SKIPPED',steps[id]?.outputs?.reason || steps[id]?.outcome || 'No confirmed step result'])
+            ]).write();
 
-      # Same approval event, before the existing auto-merge dependency succeeds.
-      # Emulator-only demo project; never login/deploy or read live Firebase.
+  firebase-current:
+    needs: safety
+    if: ${{ !cancelled() && needs.safety.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      status: ${{ steps.report.outputs.status }}
+      reason: ${{ steps.report.outputs.reason }}
+    steps:
+      - name: Checkout exact approved head
+        id: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.safety.outputs.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Use Node.js 22
+        id: node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify isolated source and 425 pins
+        id: source
+        env:
+          APPROVED_HEAD: ${{ needs.safety.outputs.head_sha }}
+          APPROVED_BASE: ${{ needs.safety.outputs.base_sha }}
+        run: node tools/cloud-ci-prepare.js "$APPROVED_HEAD"
+      - name: Inspect and select isolated browser runtime
+        id: browser
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x /usr/bin/dbus-run-session
+          test -x /usr/bin/python3
+          browser_path="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          test -x "$browser_path"
+          "$browser_path" --version
+          echo "CHROMIUM_PATH=$browser_path" >> "$GITHUB_ENV"
+          node -e 'console.log(JSON.stringify(require("./tools/helpers/chromium-runtime").resources()))'
+
       - name: Use Java 21 for Firebase emulators
         id: java
-        if: ${{ !cancelled() && steps.full-preflight.outcome == 'success' && steps.cloud-context.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.source.outcome == 'success' }}
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
-
-      - name: Install locked emulator dependencies in both contexts
+      - name: Install locked emulator dependencies for this context
         id: emulator-deps
-        if: ${{ !cancelled() && steps.full-preflight.outcome == 'success' && steps.java.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.java.outcome == 'success' }}
         shell: bash
-        run: |
-          set -euo pipefail
-          npm --prefix "$PREFLIGHT_DIR/tools/firebase-pilot" ci --no-audit --no-fund
-          npm --prefix "$CLOUD_CI_HISTORY_ROOT/tools/firebase-pilot" ci --no-audit --no-fund
-
-      - name: Run mandatory current and historical SDK/Auth/Firestore/Rules
-        id: sdk
-        if: ${{ !cancelled() && steps.full-preflight.outcome == 'success' && steps.emulator-deps.outcome == 'success' }}
-        shell: bash
+        run: npm --prefix "$PREFLIGHT_DIR/tools/firebase-pilot" ci --no-audit --no-fund
+      - name: Verify SDK source, pins and demo emulator boundaries
+        id: sdk-safety
+        if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.java.outcome == 'success' && steps.emulator-deps.outcome == 'success' }}
         env:
-          CI: '1'
+          APPROVED_HEAD: ${{ needs.safety.outputs.head_sha }}
+          APPROVED_BASE: ${{ needs.safety.outputs.base_sha }}
+        run: node tools/cloud-ci-prepare.js --verify-sdk current
+      - name: Run current SDK Auth Firestore Rules
+        id: sdk
+        if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.java.outcome == 'success' && steps.emulator-deps.outcome == 'success' && steps.sdk-safety.outcome == 'success' }}
+        shell: bash
         run: |
-          set -euo pipefail
-          node "$PREFLIGHT_DIR/tools/cloud-ci-emulators.js"
+          set -uo pipefail
+          mkdir -p "$RUNNER_TEMP/ci-logs"
+          set +e
+          node "$PREFLIGHT_DIR/tools/cloud-ci-emulators.js" --context=current 2>&1 | tee "$RUNNER_TEMP/ci-logs/current-sdk.txt"
+          statuses=("${PIPESTATUS[@]}")
+          status=${statuses[0]}
+          if [ "${statuses[1]}" -ne 0 ]; then
+            echo 'DIAGNOSTIC_LOG_WRITE_FAILED' >&2
+            echo 'reason=DIAGNOSTIC_LOG_WRITE_FAILED' >> "$GITHUB_OUTPUT"
+            if [ "$status" -eq 0 ]; then status=${statuses[1]}; fi
+          elif [ "$status" -ne 0 ]; then
+            echo "reason=TEST_PROCESS_EXIT_${status}" >> "$GITHUB_OUTPUT"
+          fi
+          exit "$status"
+      - name: Upload firebase-current diagnostic log
+        id: artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-firebase-current
+          path: ${{ runner.temp }}/ci-logs/*.txt
+          if-no-files-found: ignore
+      - name: Report group result
+        id: report
+        if: ${{ always() }}
+        uses: actions/github-script@v7
+        env:
+          GROUP_STEPS: ${{ toJSON(steps) }}
+          REQUIRED_STEPS: checkout,node,source,browser,java,emulator-deps,sdk-safety,sdk
+        with:
+          script: |
+            const steps = JSON.parse(process.env.GROUP_STEPS);
+            const required = process.env.REQUIRED_STEPS.split(',');
+            const failed = Object.entries(steps).filter(([,s]) => ['failure','cancelled'].includes(s.outcome));
+            const missing = required.filter(id => steps[id]?.outcome !== 'success');
+            const status = failed.length ? 'FAIL' : missing.length ? 'SKIPPED' : 'PASS';
+            const reason = failed.length
+              ? failed.map(([id,s]) => `${id}:${s.outcome}:${s.outputs?.reason || 'see step log'}`).join('; ')
+              : missing.length ? `Required steps not executed: ${missing.join(', ')}` : 'All required steps passed';
+            core.setOutput('status', status);
+            core.setOutput('reason', reason);
+            await core.summary.addHeading('Group diagnostics').addTable([
+              [{data:'Step/group',header:true},{data:'Status',header:true},{data:'Reason',header:true}], ['Group',status,reason],
+              ...required.map(id => [id,steps[id]?.outcome === 'success' ? 'PASS' : steps[id]?.outcome === 'failure' ? 'FAIL' : 'SKIPPED',steps[id]?.outputs?.reason || steps[id]?.outcome || 'No confirmed step result'])
+            ]).write();
+
+  cloud-historical:
+    needs: safety
+    if: ${{ !cancelled() && needs.safety.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      status: ${{ steps.report.outputs.status }}
+      reason: ${{ steps.report.outputs.reason }}
+    steps:
+      - name: Checkout exact approved head
+        id: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.safety.outputs.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Use Node.js 22
+        id: node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify isolated source and 425 pins
+        id: source
+        env:
+          APPROVED_HEAD: ${{ needs.safety.outputs.head_sha }}
+          APPROVED_BASE: ${{ needs.safety.outputs.base_sha }}
+        run: node tools/cloud-ci-prepare.js "$APPROVED_HEAD"
+      - name: Use Java 21 for Firebase emulators
+        id: java
+        if: ${{ !cancelled() && steps.source.outcome == 'success' }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install locked emulator dependencies for this context
+        id: emulator-deps
+        if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.java.outcome == 'success' }}
+        shell: bash
+        run: npm --prefix "$CLOUD_CI_HISTORY_ROOT/tools/firebase-pilot" ci --no-audit --no-fund
+      - name: Run immutable historical smoke
+        id: smoke
+        if: ${{ !cancelled() && steps.source.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p "$RUNNER_TEMP/ci-logs"
+          set +e
+          node "$PREFLIGHT_DIR/tools/cloud-ci-historical.js" 2>&1 | tee "$RUNNER_TEMP/ci-logs/historical-smoke.txt"
+          statuses=("${PIPESTATUS[@]}")
+          status=${statuses[0]}
+          if [ "${statuses[1]}" -ne 0 ]; then
+            echo 'DIAGNOSTIC_LOG_WRITE_FAILED' >&2
+            echo 'reason=DIAGNOSTIC_LOG_WRITE_FAILED' >> "$GITHUB_OUTPUT"
+            if [ "$status" -eq 0 ]; then status=${statuses[1]}; fi
+          elif [ "$status" -ne 0 ]; then
+            echo "reason=TEST_PROCESS_EXIT_${status}" >> "$GITHUB_OUTPUT"
+          fi
+          exit "$status"
+      - name: Verify SDK source, pins and demo emulator boundaries
+        id: sdk-safety
+        if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.java.outcome == 'success' && steps.emulator-deps.outcome == 'success' }}
+        env:
+          APPROVED_HEAD: ${{ needs.safety.outputs.head_sha }}
+          APPROVED_BASE: ${{ needs.safety.outputs.base_sha }}
+        run: node tools/cloud-ci-prepare.js --verify-sdk historical
+      - name: Run historical SDK Auth Firestore Rules
+        id: sdk
+        if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.java.outcome == 'success' && steps.emulator-deps.outcome == 'success' && steps.sdk-safety.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p "$RUNNER_TEMP/ci-logs"
+          set +e
+          node "$PREFLIGHT_DIR/tools/cloud-ci-emulators.js" --context=historical 2>&1 | tee "$RUNNER_TEMP/ci-logs/historical-sdk.txt"
+          statuses=("${PIPESTATUS[@]}")
+          status=${statuses[0]}
+          if [ "${statuses[1]}" -ne 0 ]; then
+            echo 'DIAGNOSTIC_LOG_WRITE_FAILED' >&2
+            echo 'reason=DIAGNOSTIC_LOG_WRITE_FAILED' >> "$GITHUB_OUTPUT"
+            if [ "$status" -eq 0 ]; then status=${statuses[1]}; fi
+          elif [ "$status" -ne 0 ]; then
+            echo "reason=TEST_PROCESS_EXIT_${status}" >> "$GITHUB_OUTPUT"
+          fi
+          exit "$status"
+      - name: Upload cloud-historical diagnostic log
+        id: artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-cloud-historical
+          path: ${{ runner.temp }}/ci-logs/*.txt
+          if-no-files-found: ignore
+      - name: Report group result
+        id: report
+        if: ${{ always() }}
+        uses: actions/github-script@v7
+        env:
+          GROUP_STEPS: ${{ toJSON(steps) }}
+          REQUIRED_STEPS: checkout,node,source,java,emulator-deps,smoke,sdk-safety,sdk
+        with:
+          script: |
+            const steps = JSON.parse(process.env.GROUP_STEPS);
+            const required = process.env.REQUIRED_STEPS.split(',');
+            const failed = Object.entries(steps).filter(([,s]) => ['failure','cancelled'].includes(s.outcome));
+            const missing = required.filter(id => steps[id]?.outcome !== 'success');
+            const status = failed.length ? 'FAIL' : missing.length ? 'SKIPPED' : 'PASS';
+            const reason = failed.length
+              ? failed.map(([id,s]) => `${id}:${s.outcome}:${s.outputs?.reason || 'see step log'}`).join('; ')
+              : missing.length ? `Required steps not executed: ${missing.join(', ')}` : 'All required steps passed';
+            core.setOutput('status', status);
+            core.setOutput('reason', reason);
+            await core.summary.addHeading('Group diagnostics').addTable([
+              [{data:'Step/group',header:true},{data:'Status',header:true},{data:'Reason',header:true}], ['Group',status,reason],
+              ...required.map(id => [id,steps[id]?.outcome === 'success' ? 'PASS' : steps[id]?.outcome === 'failure' ? 'FAIL' : 'SKIPPED',steps[id]?.outputs?.reason || steps[id]?.outcome || 'No confirmed step result'])
+            ]).write();
+
+  ci-summary:
+    if: ${{ always() }}
+    needs: [safety, preflight, firebase-current, cloud-historical]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      status: ${{ steps.summary.outputs.status }}
+      reason: ${{ steps.summary.outputs.reason }}
+    steps:
+      - name: Aggregate all mandatory diagnostics
+        id: summary
+        uses: actions/github-script@v7
+        env:
+          GROUPS: ${{ toJSON(needs) }}
+        with:
+          script: |
+            const groups = JSON.parse(process.env.GROUPS);
+            const keys = ['safety','preflight','firebase-current','cloud-historical'];
+            const rows = keys.map(key => {
+              const job = groups[key] || {};
+              const status = job.result === 'success' && job.outputs?.status === 'PASS' ? 'PASS'
+                : ['skipped','cancelled'].includes(job.result) ? 'SKIPPED' : 'FAIL';
+              const reason = status === 'PASS' ? 'All required steps passed'
+                : job.outputs?.reason || (job.result === 'skipped'
+                  ? `Safety prerequisites not satisfied: ${groups.safety?.outputs?.reason || groups.safety?.result || 'unknown'}`
+                  : `Job/report ${job.result || 'unconfirmed'}; see job steps`);
+              return [key,status,reason];
+            });
+            const pr = context.payload.pull_request;
+            let identity = 'NO_APPROVED_READY_EVENT';
+            if (pr && ['opened','ready_for_review'].includes(context.payload.action) && !pr.draft) {
+              try {
+                const {data: current} = await github.rest.pulls.get({owner:context.repo.owner,repo:context.repo.repo,pull_number:pr.number});
+                const {data: main} = await github.rest.git.getRef({owner:context.repo.owner,repo:context.repo.repo,ref:'heads/main'});
+                identity = current.state === 'open' && !current.draft && !current.merged
+                  && current.head.sha === pr.head.sha && current.base.sha === pr.base.sha
+                  && current.base.ref === 'main' && pr.base.ref === 'main'
+                  && main.object.sha === pr.base.sha && pr.head.repo.full_name === `${context.repo.owner}/${context.repo.repo}`
+                  ? 'PASS' : 'APPROVED_HEAD_BASE_OR_STATE_CHANGED';
+              } catch (_) { identity = 'PR_IDENTITY_RECHECK_UNCONFIRMED'; }
+            }
+            const ready = rows.every(row => row[1] === 'PASS') && identity === 'PASS';
+            const status = ready ? 'RELEASE_READY' : 'RELEASE_BLOCKED';
+            const reason = ready ? 'All mandatory groups and exact revision passed'
+              : rows.filter(row=>row[1]!=='PASS').map(row=>`${row[0]}: ${row[2]}`).concat(identity==='PASS'?[]:[identity]).join('; ');
+            core.setOutput('status',status);
+            core.setOutput('reason',reason);
+            await core.summary.addHeading(status).addTable([
+              [{data:'Group',header:true},{data:'Status',header:true},{data:'Reason',header:true}],...rows,
+              ['Exact HEAD/BASE and PR state',identity==='PASS'?'PASS':'FAIL',identity]
+            ]).addRaw(`\nHEAD: ${pr?.head?.sha || 'unconfirmed'}; BASE: ${pr?.base?.sha || 'unconfirmed'}; Firebase LIVE_BLOCKED.\n`).write();
+            if (!ready) core.setFailed('RELEASE_BLOCKED: '+reason);
 
   auto-merge:
-    if: ${{ needs.preflight.result == 'success' && github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
-    needs: preflight
+    if: ${{ needs.safety.result == 'success' && needs.preflight.result == 'success' && needs.firebase-current.result == 'success' && needs.cloud-historical.result == 'success' && needs.ci-summary.result == 'success' && needs.ci-summary.outputs.status == 'RELEASE_READY' && github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
+    needs: [safety, preflight, firebase-current, cloud-historical, ci-summary]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -142,7 +497,7 @@ jobs:
             }
 
             // Do not merge if main moved after the tested event.
-            if (current.data.base.sha !== pr.base.sha) {
+            if (current.data.base.sha !== pr.base.sha || current.data.base.ref !== pr.base.ref || current.data.base.ref !== 'main') {
               core.setFailed(`PR base changed from ${pr.base.sha} to ${current.data.base.sha}; refusing untested merge.`);
               return '';
             }
@@ -220,7 +575,7 @@ jobs:
 
   final-status:
     if: ${{ always() && github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
-    needs: [preflight, auto-merge, post-merge-verify]
+    needs: [safety, preflight, firebase-current, cloud-historical, ci-summary, auto-merge, post-merge-verify]
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -231,6 +586,15 @@ jobs:
         uses: actions/github-script@v7
         env:
           PREFLIGHT_RESULT: ${{ needs.preflight.result }}
+          PREFLIGHT_STATUS: ${{ needs.preflight.outputs.status }}
+          FIREBASE_RESULT: ${{ needs.firebase-current.result }}
+          FIREBASE_STATUS: ${{ needs.firebase-current.outputs.status }}
+          HISTORICAL_RESULT: ${{ needs.cloud-historical.result }}
+          HISTORICAL_STATUS: ${{ needs.cloud-historical.outputs.status }}
+          SAFETY_RESULT: ${{ needs.safety.result }}
+          SAFETY_STATUS: ${{ needs.safety.outputs.status }}
+          DIAGNOSTIC_STATUS: ${{ needs.ci-summary.outputs.status }}
+          DIAGNOSTIC_REASON: ${{ needs.ci-summary.outputs.reason }}
           MERGE_RESULT: ${{ needs.auto-merge.result }}
           VERIFY_RESULT: ${{ needs.post-merge-verify.result }}
           MERGE_SHA: ${{ needs.auto-merge.outputs.merge_sha }}
@@ -244,6 +608,8 @@ jobs:
             });
 
             if (!current.data.merged && current.data.head.sha !== pr.head.sha) {
+              await core.summary.addHeading('RELEASE_BLOCKED').addRaw('Stale HEAD: this run cannot confirm the current PR.').write();
+              core.setFailed('RELEASE_BLOCKED: stale HEAD');
               core.notice('Stale workflow run detected; skipping final notification.');
               return;
             }
@@ -253,20 +619,33 @@ jobs:
             const verify = process.env.VERIFY_RESULT;
             const mergeSha = process.env.MERGE_SHA || '';
 
-            const ready = preflight === 'success' && merge === 'success' && verify === 'success';
+            const ready = preflight === 'success' && process.env.FIREBASE_RESULT === 'success' && process.env.HISTORICAL_RESULT === 'success' && process.env.SAFETY_RESULT === 'success' && process.env.DIAGNOSTIC_STATUS === 'RELEASE_READY' && ['PREFLIGHT_STATUS','FIREBASE_STATUS','HISTORICAL_STATUS','SAFETY_STATUS'].every(key=>process.env[key]==='PASS') && merge === 'success' && verify === 'success';
+            const display = result => result === 'success' ? 'PASS' : ['skipped','cancelled'].includes(result) ? 'SKIPPED' : 'FAIL';
+            const displayGroup = (result,status) => result === 'success' && status === 'PASS' ? 'PASS' : status === 'SKIPPED' || ['skipped','cancelled'].includes(result) ? 'SKIPPED' : 'FAIL';
+            await core.summary.addHeading(ready ? 'RELEASE_READY' : 'RELEASE_BLOCKED').addTable([
+              [{data:'Group',header:true},{data:'Status',header:true}],
+              ['Source/425 pins',displayGroup(process.env.SAFETY_RESULT,process.env.SAFETY_STATUS)],
+              ['Preflight',displayGroup(preflight,process.env.PREFLIGHT_STATUS)],['Current Firebase',displayGroup(process.env.FIREBASE_RESULT,process.env.FIREBASE_STATUS)],
+              ['Historical CLOUD',displayGroup(process.env.HISTORICAL_RESULT,process.env.HISTORICAL_STATUS)],
+              ['Auto-merge',display(merge)],['Pages for exact merge SHA',display(verify)]
+            ]).addRaw(`\n${process.env.DIAGNOSTIC_REASON || 'No confirmed diagnostic report'}\nFirebase LIVE_BLOCKED.\n`).write();
             const body = ready
               ? [
-                  '✅ **READY — można przejść do następnego etapu.**',
+                  '✅ **RELEASE_READY — wszystkie wymagane grupy, merge i Pages PASS.**',
                   '',
-                  'Preflight PR: **OK**',
+                  'Preflight / aktualne Firebase / historyczne CLOUD: **PASS**',
                   'Auto-merge: **OK**',
                   'Pages: **OK**',
                   mergeSha ? `Merge commit: \`${mergeSha}\`` : ''
                 ].filter(Boolean).join('\n')
               : [
-                  '❌ **BLOCKED — nie przechodź jeszcze do następnego etapu.**',
+                  '❌ **RELEASE_BLOCKED — nie przechodź jeszcze do następnego etapu.**',
                   '',
-                  `Preflight PR: **${preflight}**`,
+                  `Preflight PR: **${displayGroup(preflight,process.env.PREFLIGHT_STATUS)}**`,
+                  `Aktualne Firebase: **${displayGroup(process.env.FIREBASE_RESULT,process.env.FIREBASE_STATUS)}**`,
+                  `Historyczne CLOUD: **${displayGroup(process.env.HISTORICAL_RESULT,process.env.HISTORICAL_STATUS)}**`,
+                  `Bramka źródeł: **${displayGroup(process.env.SAFETY_RESULT,process.env.SAFETY_STATUS)}**`,
+                  `Diagnostyka: **${process.env.DIAGNOSTIC_STATUS || 'RELEASE_BLOCKED'}** — ${process.env.DIAGNOSTIC_REASON || 'brak potwierdzonego raportu'}`,
                   `Auto-merge: **${merge}**`,
                   `Pages dla scalonego commita: **${verify}**`,
                   '',
@@ -281,3 +660,4 @@ jobs:
             });
 
             core.notice(ready ? 'READY notification posted.' : 'BLOCKED notification posted.');
+            if (!ready) core.setFailed('RELEASE_BLOCKED');

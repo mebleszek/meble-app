@@ -1,5 +1,15 @@
 # CLOUD-1A — kanoniczny rejestr danych Meble-App
 
+## LOCAL-FIRST SYNC — dopisek magazynowy, 28.10.2026
+
+Wznowienie implementacji zatwierdzone przez właściciela; wcześniejsze wstrzymanie jest historyczne. Bez nowego rejestru domen: `sources`/schematy CLOUD-3 pozostają jedynym kontraktem 14 domen. Dozwolone pola są zachowane, nieznane niezatwierdzone pola odmawiają publikacji bez kasowania RAW; pięć aliasów i legacy nadal kontrolują oryginalne walidatory. `transport.apiKey`, sesje, tokeny, cache i backupy nie wchodzą do payloadu globalnego.
+
+Dodatkowy, odizolowany magazyn `meble-local-first-v1` (schema1): `control` — UID/device/instance; `replicas` — pełny model, SHA, lokalna wersja, potwierdzony head i fence edytora; `outbox` — ID operacji, zależność poprzednika, queued/inflight/uncertain/verified/blocked/conflict, oczekiwana rewizja i receipt; `protected` — nieusuwane wersje RAW per operacja, tylko lokalnie. Nie jest backupem ani bazą Auth. Odbiornik nie zastępuje rzeczywistego localStorage.
+
+Projektowy payload jest istniejącym profilem native-project-v1 CLOUD-1B/2B i pełną przypiętą rewizją 14 domen. Kandydat emulatorowy `users/{uid}/localFirstProjects/{pid}` i `localFirstEditors/{pid}` nie jest wdrożony. Kopie źródłowych `fc_projects_v1`/`fc_investors_v1` zachowujemy lokalnie; nie są zbiorczym payloadem chmurowym. Obecność `fc_edge_v1`, `fc_material_part_options_v1`, `fc_rozrys_grain_state_v1`, `fc_rozrys_overrides_v1`, `fc_quote_snapshots_v1` lub `fc_quote_offer_drafts_v1` pozostawia dane lokalnie i blokuje publikację projektu kodem `LF_PROJECT_OWNERSHIP_PENDING`. Brak mapowania nie oznacza zgody na ich pominięcie w migracji. Pozostałe domeny poza profilem, np. tombstones/zlecenia, nadal wymagają osobnej kwalifikacji.
+
+Bez zmiany historycznych 46 kluczy/3 rodzin, danych właściciela i polityki archiwum. [Pełny raport](tools/reports/local-first-sync-20261028.md). **CODE_READY / CI_PENDING / LIVE_BLOCKED.**
+
 ## Lokalny magazyn archiwum backupów — IndexedDB v1 (25.10.2026)
 
 **STORAGE RECOVERY / INDEXEDDB — PRIORYTET 1; CLOUD / FIREBASE LIVE / rozwój SYNCHRONIZACJI — WSTRZYMANE.** Nie zmieniamy dotychczasowych domen i dowodów chmury.
@@ -15,7 +25,7 @@ Baza profilu `meble-access-profile-v1`, Firebase persistence, tokeny i dowody do
 
 ## CLOUD-SYNC-1 — wykorzystanie istniejących 14 domen
 
-Nie powstają nowe źródła prawdy ani klucze `fc_*`. Koordynator `sync/global-data-sync.mjs` używa bez zmian tabeli `sources` i schematów CLOUD-3 opisanych poniżej: robocizna/quote rates, materiały/okucia i ich zależności, magazyn, domyślne, profil bez `transport.apiKey`, koszty firmy — pełne 14 domen na emulatorach. Historyczne aliasy/legacy mają kontrolę konfliktów, nie osobne kopie chmurowe. Odbiór jest wyłącznie pamięciowy; realne globalne magazyny użytkownika i dane projektowe nie są zastępowane. Issue #47, edge/material part options/rozrys grain/overrides pozostają nierozstrzygnięte i wyłączone. [Implementacja, wykluczenia i kompatybilność](tools/reports/cloud-sync-1-global-data.md). **CODE_READY / CI_PENDING / LIVE_BLOCKED**, bez migracji.
+Nie powstają nowe źródła prawdy ani klucze `fc_*`. Koordynator `sync/global-data-sync.mjs` używa bez zmian tabeli `sources` i schematów CLOUD-3 opisanych poniżej: robocizna/quote rates, materiały/okucia i ich zależności, magazyn, domyślne, profil bez `transport.apiKey`, koszty firmy — pełne 14 domen na emulatorach. Historyczne aliasy/legacy mają kontrolę konfliktów, nie osobne kopie chmurowe. Odbiór jest wyłącznie pamięciowy; realne globalne magazyny użytkownika i dane projektowe nie są zastępowane. Issue #47, edge/material part options/rozrys grain/overrides pozostają nierozstrzygnięte i wyłączone. [Implementacja, wykluczenia i kompatybilność](tools/reports/cloud-sync-1-global-data.md). **RELEASED / LIVE_BLOCKED** (PR #78), bez migracji; nowe LOCAL-FIRST ma własne CI_PENDING.
 
 ## CLOUD-4.6E — niezmieniona granica danych
 

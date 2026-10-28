@@ -9,6 +9,7 @@ const ROOT = path.resolve(__dirname, '..');
 const TOOLS = path.join(ROOT, 'tools');
 const STARTED = Date.now();
 const cloudContext = require('./cloud-ci-context.js');
+const {resources} = require('./helpers/chromium-runtime');
 
 function rel(file){
   return path.relative(ROOT, file).replace(/\\/g, '/');
@@ -87,6 +88,7 @@ function phaseSmoke(){
   cloudContext.sdkPlan(ROOT,history);
   const files = fs.readdirSync(TOOLS)
     .filter((name)=> /-smoke\.js$/i.test(name))
+    .filter(name=>!process.argv.includes('--current-only')||!cloudContext.historicalSmoke.includes(name))
     .sort();
   const failed = [];
   let appInternal = '';
@@ -97,18 +99,23 @@ function phaseSmoke(){
     const cwd = historical ? history : ROOT;
     const kind = historical ? 'historical' : 'current';
     counts[kind].total++;
+    const started=Date.now();console.log(`\n[SMOKE START] ${name} [${kind}]`);
     const result = runNode(path.join(cwd,'tools',name), [], cwd);
+    console.log(`[SMOKE END] ${name} [${kind}] status=${result.status} elapsedMs=${Date.now()-started}`);
     const output = outputFor(result);
     if(name === 'app-dev-smoke.js'){
       const match = output.match(/APP smoke testy:\s*(\d+)\/(\d+)\s+OK/i);
       if(match) appInternal = `${match[1]}/${match[2]}`;
     }
     if(result.status !== 0){
-      failed.push({ name:`${name} [${kind}]`, output });
+      failed.push({ name:`${name} [${kind}]`, output:output+'\nRunner resources: '+JSON.stringify(resources()) });
     }else counts[kind].pass++;
   }
   cloudContext.verifyHistorical(ROOT,history);
-  for(const [kind,count] of Object.entries(counts)) cloudContext.report(`Smoke **${count.pass}/${count.total}** | ${kind} | SHA \`${cloudContext.git(kind==='historical'?history:ROOT,['rev-parse','HEAD'])}\``);
+  for(const [kind,count] of Object.entries(counts)){
+    if(kind==='historical'&&process.argv.includes('--current-only'))cloudContext.report('Historical smoke: assigned to the separate mandatory cloud-historical job; no historical PASS claimed here.');
+    else cloudContext.report(`Smoke **${count.pass}/${count.total}** | ${kind} | SHA \`${cloudContext.git(kind==='historical'?history:ROOT,['rev-parse','HEAD'])}\``);
+  }
 
   if(failed.length){
     failed.forEach((row)=> printFailure(`Smoke: ${row.name}`, row.output));
@@ -154,7 +161,7 @@ console.log('Meble-App — lokalny preflight');
 console.log(`Katalog: ${ROOT}`);
 console.log('');
 
-let failed = false;
+let failed = 0;
 for(const [name, fn] of phases){
   const started = Date.now();
   process.stdout.write(`[RUN ] ${name} ... `);
@@ -163,16 +170,15 @@ for(const [name, fn] of phases){
     console.log(`OK (${Date.now() - started} ms)`);
     console.log(`       ${message}`);
   }catch(error){
-    failed = true;
+    failed++;
     console.log(`FAIL (${Date.now() - started} ms)`);
     console.error(`       ${error && error.message ? error.message : String(error)}`);
-    break;
   }
 }
 
 console.log('');
 if(failed){
-  console.error(`PRE-FLIGHT FAIL — zatrzymano po ${Date.now() - STARTED} ms`);
+  console.error(`PRE-FLIGHT FAIL — ${failed}/${phases.length} faz FAIL; wykonano wszystkie niezależne fazy (${Date.now() - STARTED} ms)`);
   process.exit(1);
 }
 console.log(`PRE-FLIGHT PASS — wszystkie kontrole zakończone poprawnie (${Date.now() - STARTED} ms)`);

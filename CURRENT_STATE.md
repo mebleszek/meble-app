@@ -1,5 +1,17 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## LOCAL-FIRST SYNC — implementacja izolowana (28.10.2026)
+
+Zgoda właściciela z 28.10 wznawia rozwój synchronizacji produktu; zastępuje wcześniejsze wstrzymanie wyłącznie w tym zakresie. BASE/main `149f9a126a85f9972f5fc1cd19afdc264be98cc7`, gałąź `local-first-sync-durable-20261028`. PR #77 i #78 wydane; PR #83 wydany, CI/Pages i akceptacja Pixela potwierdzone przez właściciela. Starsze wpisy CI_PENDING poniżej opisują poprzednie przekazania, nie dzisiejszy stan tych PR.
+
+Nowy `sync/local-first-idb.mjs` oddziela model, trwały outbox i zachowane RAW od archiwum backupów. Transakcja IndexedDB potwierdza dane i obowiązek publikacji razem. Koordynator wykorzystuje CLOUD-3 (pełne 14 domen) i CLOUD-2B (niezmienne chunki projektów), niezależny odczyt, CAS, automatyczne sygnały online/server-head i odczytowe rozstrzyganie niepewnego ACK po restarcie. Edytor projektu ma trwałą epokę i wymaga potwierdzonego przekazania; nie ma przejęcia po timeout. Projekt zachowuje przypiętą, zweryfikowaną rewizję katalogów.
+
+`sync/firebase-activation.mjs` przygotowuje rzeczywiste połączenia Web SDK dla globalnych danych: podpis Ed25519, osobna zgoda na migrację/Rules, tożsamość, baseline i świeży Rules read-back. Import i startup niczego nie aktywują. Transport projektów pozostaje emulatorowy: obecny profil CLOUD-1B dopuszcza tylko syntetyczne projekty. Nie dorobiono fikcyjnej zgody na realne projekty ani mapowania historii/Issue #47. Pełne podłączenie `Zapisz/Anuluj`, migracja i startup nadal wymagają osobnego bezstratnego wdrożenia.
+
+Celowane kontrole: 6 grup kontraktów offline PASS, składnia 10 plików PASS. Nowe regresje prawdziwej IndexedDB/Chromium i Auth/Firestore są podłączone do istniejącego CI; lokalne wykonanie blokuje `listen EPERM`, a zależności SDK/emulatorów są niedostępne. Nie zaliczono tych scenariuszy. Historyczne 425 pinów oraz izolowany checkout `306f90a4cfd8bcb4277aa8b4d140e911493ddd60` bez zmian. [Raport, API, zakres i blokery](tools/reports/local-first-sync-20261028.md).
+
+**Implementacja CODE_READY (izolowany pakiet) / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Bez PR, wydania, produkcyjnych odczytów/zapisów i zmian danych użytkownika. To nie jest jeszcze działająca synchronizacja na urządzeniach właściciela.
+
 ## STORAGE RECOVERY — nowe archiwum IDB i anulowanie COPIED (25.10.2026)
 
 Na istniejącej gałęzi `fix/android-storage-recovery-indexeddb-v1`, wejściowy HEAD `263a75b30c160952eb3bb72221bc014d6139d190`, BASE/main `9c6ad2263850868e37c0cdb9098dfe6047a39260`, domknięto dwa zatwierdzone wymagania. Nie ponawiano diagnostyki SESSION_OWNER_MISSING ani jej zaliczonych regresji.

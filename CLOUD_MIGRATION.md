@@ -1,5 +1,21 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
+## LOCAL-FIRST SYNC — wykonany izolowany zakres, 28.10.2026
+
+Decyzja właściciela wznawia implementację synchronizacji; wcześniejsze wstrzymanie STORAGE RECOVERY jest historyczne. CLOUD-SYNC-1 (PR #78) oraz CLOUD-4.6E (PR #77) są wydane; STORAGE RECOVERY (PR #83) ma potwierdzenie CI/Pages i Pixela. Nie przenosimy tych PASS na nowy pakiet.
+
+Nowe moduły `sync/local-first-*.mjs` składają istniejące kontrakty i transporty. Oddzielna IndexedDB `meble-local-first-v1` (w testach `meble-lf-test-*`) ma `control`, `replicas`, `outbox`, `protected`. Atomowy model + lokalna rewizja + operacja, strict durability i transaction complete, zewnętrznie zachowany instanceId, lokalny CAS, zachowane kopie RAW per operacja, brak czyszczenia/fallbacku. Utrata bazy lub bindingu oznacza odmowę. Archiwum `meble-business-backups-v1` nie jest kolejką.
+
+Publikacja używa pełnego bundle 14 domen, oryginalnych immutable records/revisions i manifestu CAS CLOUD-3. Projekt używa oryginalnego formatu CLOUD-2B w odrębnej przestrzeni `localFirstProjects`, przypina kompletną zweryfikowaną rewizję katalogów, chroni epokę edytora przez CAS i kandydujące Rules. Brak dzielenia własności po pokojach, timeout takeover lub automatycznego rozstrzygnięcia konfliktu. Lokalna wersja dirty i wszystkie nierozstrzygnięte operacje blokują odbiór/przekazanie. Po inflight/uncertain działa wyłącznie niezależny odczyt; brak potwierdzenia nie zwalnia operacji do ponownego WRITE.
+
+Koordynator reaguje na online i powiadomienie Firestore; samo powiadomienie nie potwierdza danych. Odbiór zawsze waliduje pełne dane/hash/referencje i lokalny CAS. Po inicjalizacji izolowanego środowiska działa automatycznie bez przycisku; nie ma importu w aplikacji, produkcyjnego startu, migracji localStorage ani zmiany Zapisz/Anuluj.
+
+`sync/firebase-activation.mjs` może związać istniejące, niezależne produkcyjne sesje Web SDK wyłącznie po weryfikacji podpisanej decyzji dla artefaktu, UID, profilu, baseline i zgód migracja/Rules oraz odczytowym sprawdzeniu oficjalnego release/source/release. Nie loguje się, nie pobiera tokenów i nie korzysta z ADC. W tym zadaniu nie wywołano tej ścieżki rzeczywiście. Prywatna decyzja ma krótki termin, nie stanowi wdrożenia stałej automatyki aplikacji.
+
+**Granica realnych projektów:** CLOUD-1B ma obecnie zamknięty profil syntetyczny. Nie dodajemy flag testData do firmowych danych. Historia/drafty, edge, material part options, globalne słoje/rotacja i rozrys overrides pozostają jawnie blokowane oraz zachowane lokalnie. Przygotowany protokół projektu można testować na rzeczywistych emulatorach, ale jego produkcyjne połączenie wymaga zatwierdzonego profilu realnych danych, rozstrzygnięcia własności i dowodu migracji. Przynależność deviceId w obecnym kandydacie jest kooperacyjna pod wspólnym UID, nie sprzętowym poświadczeniem urządzenia.
+
+[Raport API, wszystkie kontrole i warunki aktywacji](tools/reports/local-first-sync-20261028.md). **CODE_READY / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Pozostałe historyczne sekcje nie upoważniają do uruchomienia migracji/LIVE.
+
 ## Zmiana priorytetu — STORAGE RECOVERY / INDEXEDDB v1 (25.10.2026)
 
 **STORAGE RECOVERY / INDEXEDDB — PRIORYTET 1. CLOUD / CLOUD-4.6F / FIREBASE LIVE / rozwój SYNCHRONIZACJI — WSTRZYMANE do osobnej decyzji właściciela.** Dotychczasowe dowody, kod, kontrakt LOCAL-FIRST, automatycznej synchronizacji i jednego aktywnego edytora pozostają zachowane. Obecny pakiet nie prowadzi dalszych prac chmurowych ani nie aktywuje transportu biznesowego.
@@ -15,7 +31,7 @@ Starsze zdania „nie wdrażamy teraz IndexedDB” poniżej dotyczą historyczny
 
 `sync/global-data-sync.mjs` składa istniejący kontrakt RAW i transport CLOUD-3, bez nowej przestrzeni Firestore ani rejestru domen. Przepływ kompletu 14 domen używa jawnego owner UID, immutable records/revisions, manifestu CAS oraz niezależnego odczytu, hashy, liczby rekordów i walidacji zależności. Jedynym odbiorcą jest odizolowana pamięć; atomowa podmiana wymaga niezmienionej czystej lokalnej wersji. Sekrety i sporne dane pozostają wyłączone. Nieznane niezatwierdzone pola blokują transfer bez utraty RAW, dozwolone dynamiczne parametry i defaults v1 pozostają bez zmian.
 
-To kontrakt przyszłego apply, nie migracja użytkownika: trwałość po restarcie procesu, transakcyjne połączenie modelu/pending work i podłączenie rzeczywistych setterów wymagają osobnej implementacji i zgody. Odczytowe `resolve` z zachowanego journala nie ponawia mutacji po niepewnym ACK. SDK ograniczono do demo/loopback; kod nie jest rejestrowany w aplikacji. [API, 14 scenariuszy CI i dokładne granice](tools/reports/cloud-sync-1-global-data.md). **CODE_READY / CI_PENDING / LIVE_BLOCKED**, niewydany.
+To kontrakt przyszłego apply, nie migracja użytkownika: trwałość po restarcie procesu, transakcyjne połączenie modelu/pending work i podłączenie rzeczywistych setterów wymagają osobnej implementacji i zgody. Odczytowe `resolve` z zachowanego journala nie ponawia mutacji po niepewnym ACK. SDK ograniczono do demo/loopback; kod nie jest rejestrowany w aplikacji. [API, 14 scenariuszy CI i dokładne granice](tools/reports/cloud-sync-1-global-data.md). **RELEASED / LIVE_BLOCKED** dla PR #78; nowe rozszerzenia LOCAL-FIRST powyżej pozostają CI_PENDING.
 
 CLOUD-4.6F: prywatny operator **OPERATOR_PARTIAL / LIVE_BLOCKED**, osobny od rozwoju emulatorowego produktu. Nie wykorzystuje się go do obejścia bramek migracji/synchronizacji.
 

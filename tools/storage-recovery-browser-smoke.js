@@ -2,7 +2,8 @@
 'use strict';
 // Real Chromium + real IndexedDB, mobile viewport, disposable profile. Every
 // application-origin request is intercepted locally before navigation, no LIVE.
-const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{spawn}=require('node:child_process');
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
+const {startBrowser}=require('./helpers/chromium-runtime');
 const ROOT=path.resolve(__dirname,'..'),ORIGIN='https://mebleszek.github.io',PREFIX='/meble-app/';
 const scripts=['shared/data-storage-keys','shared/data-backup-hash','shared/data-backup-snapshot-normalizer','shared/data-backup-snapshot-apply','shared/data-backup-export','shared/data-backup-snapshot','shared/data-backup-policy','shared/backup-archive-format','shared/backup-archive-idb','shared/storage-recovery-export','shared/data-backup-storage','shared/data-backup-records','shared/data-backup-store','ui/info-box','ui/session-diagnostics-readonly','ui/session-diagnostics','ui/storage-recovery-panel'];
 const repairOnly=process.argv.includes('--repair-only'),lifecycleOnly=process.argv.includes('--lifecycle-only');
@@ -12,9 +13,8 @@ async function main(){
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'meble-storage-recovery-'));let browser;const clients=[];const errors=[],external=[];
   try{
     for(const name of ['profile','cache','config','downloads'])fs.mkdirSync(path.join(dir,name));
-    const executable=process.env.CHROMIUM_PATH||['/usr/bin/chromium','/usr/bin/google-chrome'].find(f=>fs.existsSync(f));assert.ok(executable,'Real Chromium is required');
-    browser=spawn(executable,['--headless','--no-sandbox','--disable-dev-shm-usage','--disable-background-networking','--disable-component-update','--no-first-run','--remote-debugging-port=0','--user-data-dir='+path.join(dir,'profile'),'about:blank'],{stdio:['ignore','ignore','pipe'],env:{...process.env,XDG_CACHE_HOME:path.join(dir,'cache'),XDG_CONFIG_HOME:path.join(dir,'config')}});
-    const endpoint=await new Promise((resolve,reject)=>{let output='';const timer=setTimeout(()=>reject(Error('Chromium startup timeout')),15000);browser.on('error',e=>{clearTimeout(timer);reject(e);});browser.once('exit',code=>{clearTimeout(timer);reject(Error('Chromium failed ('+code+'): '+output.slice(-1200)));});browser.stderr.on('data',data=>{output+=data;const m=output.match(/DevTools listening on (ws:\/\/\S+)/);if(m){clearTimeout(timer);resolve(m[1]);}});});
+    browser=await startBrowser({profileDir:path.join(dir,'profile'),timeoutMs:15000});
+    const endpoint=browser.endpoint;
     const targets=await(await fetch('http://127.0.0.1:'+new URL(endpoint).port+'/json/list')).json();
     async function client(url){
       const pending=new Map();let nextId=0;
@@ -81,7 +81,7 @@ async function main(){
         for(let n=0;n<100;n++){if(await evaluate('window.__testDocumentToken!=='+JSON.stringify(token)))break;await new Promise(r=>setTimeout(r,50));}await ready();}
     }
     assert.deepEqual(errors,[]);assert.deepEqual(external,[]);console.log('Storage recovery real Chromium: '+passed+' groups PASS; '+(lifecycleOnly?'lifecycle-only, five document lifetimes':repairOnly?'repair-only, two document lifetimes':'five document lifetimes')+', mobile 393×852, zero LIVE requests');
-  }finally{for(const c of clients)c.close();browser?.kill('SIGKILL');await new Promise(r=>setTimeout(r,200));fs.rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:100});}
+  }finally{try{for(const c of clients)c.close();}finally{await browser?.close();}fs.rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:100});}
 }
 if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});
 module.exports={main};

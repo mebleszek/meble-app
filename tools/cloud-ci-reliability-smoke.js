@@ -17,33 +17,7 @@ function permitted(block,outcomes,cancelled=false){
     return outcomes[match[1]]==='success';
   });
 }
-function workflowChecks(workflow){
-  const pre=step(workflow,'Run full Meble-App preflight'),java=step(workflow,'Use Java 21 for Firebase emulators');
-  const deps=step(workflow,'Install locked emulator dependencies in both contexts'),sdk=step(workflow,'Run mandatory current and historical SDK/Auth/Firestore/Rules');
-  assert.match(pre,/^        id: full-preflight$/m);assert.match(pre,/status=\$\{PIPESTATUS\[0\]\}/);assert.match(pre,/exit "\$status"/);
-  assert.match(pre,/SDK\/Auth\/Firestore\/Rules: SKIPPED because Preflight failed — not PASS/);
-  for(const block of [java,deps,sdk])assert.match(block,/steps\.full-preflight\.outcome == 'success'/);
-  assert.match(java,/^        id: java$/m);assert.match(deps,/^        id: emulator-deps$/m);assert.match(sdk,/^        id: sdk$/m);
-  for(const target of ['PREFLIGHT_DIR','CLOUD_CI_HISTORY_ROOT'])assert.ok(deps.includes('npm --prefix "$'+target+'/tools/firebase-pilot" ci --no-audit --no-fund'));
-  assert.ok(sdk.includes('node "$PREFLIGHT_DIR/tools/cloud-ci-emulators.js"'));
-  const merge=workflow.split('\n  auto-merge:\n')[1].split('\n  post-merge-verify:')[0];
-  assert.match(merge,/needs: preflight/);assert.match(merge,/needs\.preflight\.result == 'success'/);
-  for(const check of ['current.data.head.sha !== pr.head.sha','current.data.base.sha !== pr.base.sha','current.data.draft','sha: pr.head.sha'])assert.ok(merge.includes(check));
-  const trigger=workflow.split('\njobs:')[0];assert.match(trigger,/types: \[opened, ready_for_review\]/);assert.doesNotMatch(trigger,/^  push:|types:.*synchronize/m);
-  const cases=[['failure',null],['skipped',null],['cancelled',null],['success','java'],['success','emulator-deps'],['success','sdk'],['success',null]];
-  for(const [preflight,failAt]of cases){
-    const cancelled=preflight==='cancelled',outcomes={'cloud-context':'success','full-preflight':preflight};
-    for(const [id,block]of [['java',java],['emulator-deps',deps],['sdk',sdk]])outcomes[id]=permitted(block,outcomes,cancelled)?(failAt===id?'failure':'success'):'skipped';
-    if(preflight!=='success')for(const id of ['java','emulator-deps','sdk'])assert.equal(outcomes[id],'skipped');
-    const fullPass=['full-preflight','java','emulator-deps','sdk'].every(id=>outcomes[id]==='success');
-    assert.equal(fullPass,preflight==='success'&&failAt===null,'Only full PASS can satisfy the merge job dependency');
-  }
-  // Mutations of the actual condition must be detected by this structural/model check.
-  assert.throws(()=>workflowChecksWithoutMutationProbe(workflow.replaceAll("steps.full-preflight.outcome == 'success' && ",'')));
-}
-function workflowChecksWithoutMutationProbe(workflow){
-  for(const name of ['Use Java 21 for Firebase emulators','Install locked emulator dependencies in both contexts','Run mandatory current and historical SDK/Auth/Firestore/Rules'])assert.match(step(workflow,name),/steps\.full-preflight\.outcome == 'success'/);
-}
+const {workflowChecks,diagnosticChecks}=require('./cloud-ci-workflow-checks');
 async function main(){
   const history=context.verifyHistorical(root),reference=impact.protection(root,history);
   let count=0;const pass=name=>{count++;console.log('PASS '+name);};
@@ -105,9 +79,10 @@ async function main(){
     }
   }finally{fs.rmSync(fixture,{recursive:true,force:true});}
   workflowChecks(fs.readFileSync(path.join(root,'.github/workflows/preflight-js.yml'),'utf8'));
-  pass('static workflow structure and outcome model: stop after FAIL, mandatory both-context SDK after PASS, full-PASS-only merge');
+  await diagnosticChecks(fs.readFileSync(path.join(root,'.github/workflows/preflight-js.yml'),'utf8'));
+  pass('independent complete diagnostics after Preflight FAIL; exact safety gates and all-groups-PASS-only merge');
   context.verifyHistorical(root);
   console.log('CLOUD/CI reliability: '+count+' targeted groups PASS; no Actions/emulators run; historical source unchanged');
 }
 if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});
-module.exports={main,workflowChecks,permitted};
+module.exports={main,workflowChecks,diagnosticChecks,permitted};

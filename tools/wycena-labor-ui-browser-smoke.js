@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 'use strict';
 // Actual component DOM/CSS in disposable Chromium profiles. No login, Firebase or owner storage.
-const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{execFileSync}=require('node:child_process');
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const root=path.resolve(__dirname,'..');
-const browser=process.env.CHROMIUM_PATH||['/usr/bin/google-chrome','/usr/bin/chromium','/usr/bin/chromium-browser'].find(p=>fs.existsSync(p));
-assert.ok(browser,'Chromium/Chrome is required for the WYCENA-LABOR UI regression');
+const {dumpDom}=require('./helpers/chromium-runtime');
 const css=fs.readdirSync(path.join(root,'css')).filter(name=>name.endsWith('.css')).map(name=>fs.readFileSync(path.join(root,'css',name),'utf8')).join('\n');
 const js=['pricing/labor-catalog-definitions','pricing/labor-catalog','cabinet/cabinet-modal-labor','material/price-modal-list','quote/quote-calculation-register','wycena/wycena-summary-details-modal','ui/session-diagnostics-readonly','ui/session-diagnostics'].map(name=>fs.readFileSync(path.join(root,'js/app',name+'.js'),'utf8')).join('\n');
 function check(){
@@ -79,6 +78,7 @@ function checkQuotaAndEquations(infoBoxSource,diagnosticsOnly){
   }
   assert(JSON.stringify(register)===frozen&&raw()===before&&writes===0,'Rendering preserves frozen amounts and all native RAW');
 }
+async function main(){
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'meble-labor-ui-'));
 try{
   const infoBoxSource=fs.readFileSync(path.join(root,'js/app/ui/info-box.js'),'utf8');
@@ -90,8 +90,12 @@ try{
     for(const name of [profile,'cache','config'])fs.mkdirSync(path.join(dir,name),{recursive:true});
     let output;
     const localFlags=process.env.MEBLE_CHROMIUM_SINGLE_PROCESS==='1'?['--no-zygote','--single-process']:[];
-    try{output=execFileSync(browser,['--headless','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-background-networking','--disable-breakpad','--no-first-run',...localFlags,'--user-data-dir='+path.join(dir,profile),'--window-size='+width+','+height,'--user-agent='+ua,'--dump-dom','--virtual-time-budget=2000','file://'+file],{encoding:'utf8',timeout:30000,maxBuffer:8*1024*1024,stdio:['ignore','pipe','pipe'],env:{...process.env,XDG_CACHE_HOME:path.join(dir,'cache'),XDG_CONFIG_HOME:path.join(dir,'config')}});}
-    catch(error){throw Error('Chromium '+(error.code||error.status)+': '+String(error.stderr||'').slice(-1000));}
+    output=await dumpDom({profileDir:path.join(dir,profile),args:['--disable-gpu','--disable-breakpad',...localFlags,
+      '--window-size='+width+','+height,'--user-agent='+ua,'--dump-dom','--virtual-time-budget=2000','file://'+file],timeoutMs:30000,maxBuffer:8*1024*1024});
     const result=output.match(/<pre id="result">([\s\S]*?)<\/pre>/)?.[1];assert.equal(result,'PASS',profile+': '+result);console.log('PASS real Chromium components: '+profile);
   }
 }finally{fs.rmSync(dir,{recursive:true,force:true,maxRetries:3,retryDelay:100});}
+
+}
+if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});
+module.exports={main};

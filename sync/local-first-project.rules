@@ -1,0 +1,83 @@
+    // Emulator candidate fragment, assembled with the unchanged CLOUD-3 Rules.
+    // Never deployed or loaded by the production application.
+    function lfEditor(uid, pid) {
+      return get(/databases/$(database)/documents/users/$(uid)/localFirstEditors/$(pid)).data;
+    }
+    function lfHead(uid, pid) {
+      return get(/databases/$(database)/documents/users/$(uid)/localFirstProjects/$(pid)).data;
+    }
+    function lfEditorShape(d,uid,pid) {
+      return d.keys().hasOnly(['ownerUid','projectId','deviceId','epoch','active','headRevision'])
+        && d.ownerUid == uid && d.projectId == pid && d.deviceId is string
+        && d.deviceId.matches('^[A-Za-z0-9_-]{1,128}$') && d.epoch is int && d.epoch > 0 && d.active is bool
+        && (d.headRevision == '' || revisionId(d.headRevision));
+    }
+    match /users/{uid}/localFirstEditors/{pid} {
+      allow get: if globalApproved(uid);
+      allow create: if globalApproved(uid) && lfEditorShape(request.resource.data,uid,pid)
+        && request.resource.data.epoch == 1 && request.resource.data.active == true && request.resource.data.headRevision == ''
+        && !exists(/databases/$(database)/documents/users/$(uid)/localFirstProjects/$(pid));
+      allow update: if globalApproved(uid) && lfEditorShape(request.resource.data,uid,pid)
+        && ((resource.data.active == true && request.resource.data.active == false
+          && request.resource.data.deviceId == resource.data.deviceId && request.resource.data.epoch == resource.data.epoch
+          && request.resource.data.headRevision == lfHead(uid,pid).currentRevisionId)
+        || (resource.data.active == false && request.resource.data.active == true
+          && request.resource.data.epoch == resource.data.epoch + 1
+          && request.resource.data.headRevision == resource.data.headRevision
+          && resource.data.headRevision == lfHead(uid,pid).currentRevisionId));
+      allow list,delete: if false;
+    }
+    function lfPublished(d,uid,pid) {
+      let r = getAfter(/databases/$(database)/documents/users/$(uid)/localFirstProjects/$(pid)/revisions/$(d.currentRevisionId)).data;
+      let e = lfEditor(uid,pid);
+      let g = get(/databases/$(database)/documents/users/$(uid)/globalRevisions/$(d.globalRevisionId)).data;
+      return d.keys().hasOnly(['ownerUid','investorId','projectId','generation','currentRevisionId','fileSha256',
+        'documentSha256','payloadSha256','formatVersion','chunkCount','byteLength','updatedAt',
+        'editorEpoch','deviceId','globalRevisionId','globalDirectoryHash'])
+        && d.ownerUid == uid && d.projectId == pid && d.investorId is string && d.formatVersion == 1
+        && d.generation is int && d.generation > 0 && revisionId(d.currentRevisionId)
+        && hash(d.fileSha256) && hash(d.documentSha256) && hash(d.payloadSha256) && bounded(d)
+        && d.updatedAt == request.time && e.active == true && d.deviceId == e.deviceId && d.editorEpoch == e.epoch
+        && d.globalRevisionId == g.revisionId && d.globalDirectoryHash == g.directoryHash
+        && r.ownerUid == uid && r.projectId == pid && r.investorId == d.investorId
+        && r.generationCandidate == d.generation && r.fileSha256 == d.fileSha256
+        && r.documentSha256 == d.documentSha256 && r.payloadSha256 == d.payloadSha256
+        && r.chunkCount == d.chunkCount && r.byteLength == d.byteLength;
+    }
+    function lfRevision(d,uid,pid,rid) {
+      return d.keys().hasOnly(['ownerUid','investorId','projectId','revisionId','formatVersion','generationCandidate',
+        'baseGeneration','baseRevisionId','baseFileSha256','baseDocumentSha256','basePayloadSha256',
+        'chunkCount','byteLength','chunkSha256','fileSha256','documentSha256','payloadSha256','createdAt'])
+        && d.ownerUid == uid && d.projectId == pid && d.investorId is string && d.formatVersion == 1
+        && d.revisionId == rid && revisionId(rid) && d.baseGeneration is int && d.baseGeneration >= 0
+        && d.generationCandidate == d.baseGeneration + 1 && bounded(d)
+        && hash(d.fileSha256) && hash(d.documentSha256) && hash(d.payloadSha256)
+        && d.chunkSha256 is list && d.chunkSha256.size() == d.chunkCount
+        && hashAt(d,0) && hashAt(d,1) && hashAt(d,2) && hashAt(d,3) && hashAt(d,4) && hashAt(d,5) && hashAt(d,6)
+        && ((d.baseGeneration == 0 && d.baseRevisionId == '' && d.baseFileSha256 == '' && d.baseDocumentSha256 == '' && d.basePayloadSha256 == '')
+          || (d.baseGeneration > 0 && revisionId(d.baseRevisionId) && hash(d.baseFileSha256) && hash(d.baseDocumentSha256) && hash(d.basePayloadSha256)))
+        && lfEditor(uid,pid).active == true && d.createdAt == request.time;
+    }
+    match /users/{uid}/localFirstProjects/{pid} {
+      allow get: if globalApproved(uid);
+      allow create: if globalApproved(uid) && lfPublished(request.resource.data,uid,pid)
+        && request.resource.data.generation == 1;
+      allow update: if globalApproved(uid) && lfPublished(request.resource.data,uid,pid)
+        && request.resource.data.generation == resource.data.generation + 1
+        && getAfter(/databases/$(database)/documents/users/$(uid)/localFirstProjects/$(pid)/revisions/$(request.resource.data.currentRevisionId)).data.baseRevisionId == resource.data.currentRevisionId
+        && getAfter(/databases/$(database)/documents/users/$(uid)/localFirstProjects/$(pid)/revisions/$(request.resource.data.currentRevisionId)).data.baseFileSha256 == resource.data.fileSha256
+        && getAfter(/databases/$(database)/documents/users/$(uid)/localFirstProjects/$(pid)/revisions/$(request.resource.data.currentRevisionId)).data.baseDocumentSha256 == resource.data.documentSha256
+        && getAfter(/databases/$(database)/documents/users/$(uid)/localFirstProjects/$(pid)/revisions/$(request.resource.data.currentRevisionId)).data.basePayloadSha256 == resource.data.payloadSha256;
+      allow list,delete: if false;
+      match /revisions/{rid} {
+        allow get: if globalApproved(uid);
+        allow create: if globalApproved(uid) && lfRevision(request.resource.data,uid,pid,rid);
+        allow update,delete,list: if false;
+        match /chunks/{chunkId} {
+          allow get: if globalApproved(uid);
+          allow create: if globalApproved(uid) && lfEditor(uid,pid).active == true
+            && validChunk(request.resource.data,getAfter(/databases/$(database)/documents/users/$(uid)/localFirstProjects/$(pid)/revisions/$(rid)).data,chunkId);
+          allow update,delete,list: if false;
+        }
+      }
+    }
