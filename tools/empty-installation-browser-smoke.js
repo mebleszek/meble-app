@@ -4,6 +4,7 @@
 // application-origin request is intercepted locally before navigation, no LIVE.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const {startBrowser}=require('./helpers/chromium-runtime');
+const {waitForGesturePoint}=require('./helpers/browser-test-readiness');
 const ROOT=path.resolve(__dirname,'..'),ORIGIN='https://mebleszek.github.io',PREFIX='/meble-app/';
 const auth=`(()=>{const identity={uid:'synthetic-empty-owner',epoch:1};window.FC=window.FC||{};window.FC.cloudAuth={create:async()=>({identity:()=>identity,state:()=>({status:'authenticated',...identity}),subscribe(fn){queueMicrotask(()=>fn({status:'authenticated',...identity}));return()=>{};},signInGoogle:async()=>({ok:true}),signOut(){throw Error('No test logout');}})};})();`;
 const verifier=`(()=>{window.FC.cloudAccessVerifier={create:()=>({verify:async()=>({ok:true,uid:'synthetic-empty-owner',validUntil:Date.now()+45000}),watch(){return()=>{};}})};})();`;
@@ -71,7 +72,7 @@ async function main(){
     await until('document.body?.dataset.businessState==="ready"','fresh full app startup');
     const tap=async selector=>{
       await until(`!!document.querySelector(${JSON.stringify(selector)})`,'target '+selector);
-      const point=await evaluate(`(()=>{const el=[...document.querySelectorAll(${JSON.stringify(selector)})].find(e=>e.getClientRects().length&&!e.disabled);if(!el)throw Error('No visible target '+${JSON.stringify(selector)});el.scrollIntoView({block:'center',behavior:'instant'});const b=el.getBoundingClientRect();return{x:b.x+b.width/2,y:b.y+b.height/2};})()`);
+      const point=await waitForGesturePoint(evaluate,selector);
       await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...point,radiusX:3,radiusY:3,id:1}]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await new Promise(r=>setTimeout(r,160));
     };
     await send('Emulation.setTouchEmulationEnabled',{enabled:true});
@@ -81,7 +82,8 @@ async function main(){
     const emptyRaw=await evaluate('JSON.stringify([localStorage.getItem("fc_projects_v1"),localStorage.getItem("fc_investors_v1"),localStorage.getItem("fc_edit_session_v1")])');
     await tap('#openFurnitureProjectsBtn');await until('uiState.entry==="modeHub"','furniture hub');
     await tap('#modeHubRoot [data-action="open-sheet-materials"]');await until('getComputedStyle(document.getElementById("priceModal")).display!=="none"','material catalog');
-    await tap('#closePriceModal');
+    await tap('#closePriceModal');await until('getComputedStyle(document.getElementById("priceModal")).display==="none"','catalog actually closed');
+    assert.equal(await evaluate('__FC_MAIN_ACCESS__.isValid()'),true,'Catalog gesture must not log out the local session');
     assert.equal(await evaluate('JSON.stringify([localStorage.getItem("fc_projects_v1"),localStorage.getItem("fc_investors_v1"),localStorage.getItem("fc_edit_session_v1")])'),emptyRaw,'Empty menu/catalog do not create owners or sessions');
     await tap('[data-action="close-mode-hub"]');await settle();const oldDocument=await evaluate('window.__emptyDocumentToken=crypto.randomUUID()');await send('Page.reload',{ignoreCache:true});await until('document.body?.dataset.authState==="unauthenticated"','desktop restart needs fresh login');await login();await until(`window.__emptyDocumentToken!==${JSON.stringify(oldDocument)}&&document.body?.dataset.businessState==="ready"&&!!window.FC?.sessionNavigation`,'empty restart');
     assert.equal(await evaluate('window.FC.sessionNavigation.needsClosure()'),false);await tap('#openFurnitureProjectsBtn');await until('uiState.entry==="modeHub"','furniture hub after restart');

@@ -3,6 +3,7 @@
 // read-only authorization RPC are explicit injected SDK fixtures, never LIVE.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http=require('node:http');
 const {startBrowser}=require('./helpers/chromium-runtime');
+const {documentNavigation,waitForGesturePoint}=require('./helpers/browser-test-readiness');
 const root=path.resolve(__dirname,'..');
 const injection=`(()=>{
  const RealDate=Date;let offset=0;window.Date=class extends RealDate{static now(){return RealDate.now()+offset;}};window.advanceClock=n=>offset+=n;
@@ -14,7 +15,7 @@ const injection=`(()=>{
  GoogleAuthProvider:class{setCustomParameters(p){if(p.prompt!=='select_account')throw Error('Account choice required');}},
  signInWithPopup:async a=>{window.popupCalls++;a.currentUser={uid:window.testAccount||'synthetic-phone-owner',providerData:[{providerId:'google.com'}]};for(const fn of a.listeners)fn(a.currentUser);return {user:a.currentUser};},
  signOut:async a=>{a.currentUser=null;for(const fn of a.listeners)fn(null);}},
- firestore:{initializeFirestore:app=>({app}),connectFirestoreEmulator(){},doc:(_db,_c,id)=>({id}),
+ firestore:{memoryLocalCache:()=>({kind:'memory'}),initializeFirestore:(app,settings)=>{if(settings.localCache.kind!=='memory')throw Error('Memory-only Firestore required');return {app};},connectFirestoreEmulator(){},doc:(_db,_c,id)=>({id}),
  getDocFromServer:async ref=>({id:ref.id,metadata:{fromCache:false,hasPendingWrites:false},exists:()=>window.grant,data:()=>({schemaVersion:1})}),
  runTransaction:async(db,fn)=>fn({get:async ref=>({id:ref.id,metadata:{fromCache:false,hasPendingWrites:false},exists:()=>window.grant,data:()=>({schemaVersion:1})})}),terminate:async()=>{}}
  }};}});
@@ -23,15 +24,17 @@ async function browser(profile,url,{offline=false,inject=false}={}){
  const owner=await startBrowser({profileDir:profile}),targets=await(await fetch('http://127.0.0.1:'+new URL(owner.endpoint).port+'/json/list')).json();
  const ws=new WebSocket(targets.find(t=>t.type==='page').webSocketDebuggerUrl);await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});
  const pending=new Map();let serial=0;
- ws.onmessage=({data})=>{const m=JSON.parse(data),p=pending.get(m.id);if(p){pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(Error(JSON.stringify(m.error))):p.resolve(m.result);}};
+ let navigation;
+ ws.onmessage=({data})=>{const m=JSON.parse(data),p=pending.get(m.id);if(p){pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(Error(JSON.stringify(m.error))):p.resolve(m.result);}else navigation?.event(m);};
  const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++serial,timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP '+method));},30000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params}));});
  const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||'Browser assertion failed');return r.result.value;};
- const until=async expression=>{for(let i=0;i<600;i++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,50));}throw Error('Browser timeout '+expression+' '+await evaluate('document.body.innerText.slice(-800)'));};
+ const until=async expression=>{for(let i=0;i<600;i++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,50));}throw Error('Browser timeout '+expression+' '+await evaluate('document.body?.innerText.slice(-800)'));};
  try{
   await send('Page.enable');await send('Network.enable');if(inject)await send('Page.addScriptToEvaluateOnNewDocument',{source:injection});
   if(offline)await send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
-  await send('Page.navigate',{url});
-  return {evaluate,until,send,async tap(id){const p=await evaluate(`(()=>{const e=document.getElementById(${JSON.stringify(id)});e.scrollIntoView();const b=e.getBoundingClientRect();return{x:b.x+b.width/2,y:b.y+b.height/2};})()`);
+  navigation=documentNavigation(send);await navigation.navigate(url);
+  assert.equal(await evaluate('location.href'),url);assert.equal(await evaluate('!!document.body&&!!document.getElementById("main-login")'),true,'Requested application document parsed');
+  return {evaluate,until,send,async tap(id){const p=await waitForGesturePoint(evaluate,'#'+id);
     await send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...p});await send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...p});},
     async close(){ws.close();for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('Closed'));}pending.clear();await owner.close();}};
  }catch(e){ws.close();await owner.close();throw e;}
@@ -71,4 +74,4 @@ async function main(){
   console.log('PASS real Chromium/IDB/CryptoKey/SW: desktop idle retains RAM, explicit trust, background/offline, cold restart with origin stopped, offline logout and no inherited readmission');
  }finally{await device?.close();if(!closed)await new Promise(resolve=>server.close(resolve));fs.rmSync(directory,{recursive:true,force:true});}
 }
-if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});module.exports={main};
+if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});module.exports={main,injection};

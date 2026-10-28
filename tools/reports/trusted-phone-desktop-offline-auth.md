@@ -160,3 +160,92 @@ the owner's current tab to acquire this version.
 Implementation **CODE_READY**; CI **CI_PENDING**; **PHONE_PENDING**;
 **RELEASE_BLOCKED / LIVE_BLOCKED**. No PR, merge, Pages, production reads/writes,
 Rules/IAM/billing change, migration, backup rewrite or synchronization activation.
+
+## PR #85 — targeted CI repair
+
+Input HEAD: `d80b9d8c175d77c3f517ed3c669771347f9bbd69`.
+Unchanged BASE/main: `951005296780f2b4887ab39b3c065a0beb247c48`.
+Evidence: [run 40783957859](https://github.com/mebleszek/meble-app/actions/runs/40783957859),
+current Firebase 104/105 and current Preflight smoke 161/164. These are results
+for the input revision, not a PASS for this repair.
+
+Four causes and corrections:
+
+1. **Signed-out SDK client:** its verifier rejects a fabricated identity before
+   connecting Firestore. The new direct Rules assertion nevertheless called
+   `getFirestore()` on that app, which defaults to the remote service rather than
+   the loopback emulator. `unavailable` was therefore not evidence of a Rules
+   denial. The fixture now explicitly initializes memory-only Firestore and
+   connects every signed-out client to `127.0.0.1:18080`, before a direct RPC.
+   `assertFails` still requires `permission-denied`; no allowance for network
+   errors was added. Auth, verifier and Rules implementations are unchanged.
+2. **Private CLOUD-4.1 source pin:** the current `main-login.js` differs from its
+   historical SHA-256 `061d9f4364625cfc53f4280dac74cfb18ae487624fa97393f40cfcb6aa12c103`.
+   The compiler correctly refuses. The unchanged original positive smoke now
+   joins the existing historical routing at exact commit
+   `306f90a4cfd8bcb4277aa8b4d140e911493ddd60` (eight historical smoke files).
+   Existing routing verifies byte equality of the test against that checkout.
+   The current boundary separately checks the three private operator files
+   against their original pins and requires the exact compiler refusal, before
+   effects. No operator, historical source, manifest, pin or workflow changed.
+3. **Empty-installation native gesture:** the test waited 160ms after opening a
+   catalog, but the real modal keeps `modal-open-guard`/`pointer-events:none` for
+   a requestAnimationFrame plus 260ms. Its former rectangle-only tap could hit
+   the underlying page, including Auth controls, instead of the close button.
+   The shared test helper now waits for enabled/non-inert/non-guarded state and
+   actual `elementFromPoint` hit testing. The test also requires the modal to
+   close and local access to remain valid before its unchanged RAW assertions.
+   The original CI log did not record the unintended native event's target;
+   that exact target is not claimed as locally reproduced. The unsafe sequence
+   is reproduced against the actual modal guard in the offline regression.
+   No storage gate, session, application gesture handler or local data changed.
+4. **Trusted-session navigation:** `Page.navigate` acknowledges navigation
+   before the requested document is parsed, leaving `body` null at the first
+   poll. The helper now waits for `DOMContentLoaded` from the exact returned
+   frame/loader, including events arriving before the navigate response. It
+   rejects failed/no-document navigation and missing events; then the test
+   verifies the requested URL and actual application shell before startup polls.
+   Native taps use the same hit-test barrier. A second fixture defect found on
+   this startup path was its missing `memoryLocalCache` SDK method; the injected
+   fixture now implements and checks the existing memory-only verifier contract.
+   Browser errors still fail the test; readiness timeouts were not increased.
+
+Repair files: `tools/firebase-pilot/access.test.mjs`, `tools/cloud-ci-context.js`,
+`tools/cloud-ci-current-boundary-smoke.js`,
+`tools/empty-installation-browser-smoke.js`,
+`tools/trusted-session-browser-smoke.js`,
+`tools/helpers/browser-test-readiness.js`,
+`tools/trusted-ci-readiness-smoke.js`, and this report.
+
+Actually executed targeted checks on the repair working tree, Node 22.23.3:
+
+- `trusted-ci-readiness-smoke.js`: **3 groups PASS**. Exact CDP frame/loader and
+  event-order barrier, negative navigation cases; real modal guard and hit-test
+  refusal for disabled/inert/occluded targets; actual Auth/verifier code with
+  the injected browser SDK, successful proof and confirmed denial. These are
+  offline helper/fixture checks, not native Chromium or emulator evidence.
+- Current CLOUD boundary: **PASS**, including exact private compiler refusal,
+  original reviewed operator bytes, C/D/E refusals and no effects/LIVE.
+  Historical checkout identity, cleanliness and all **425 pins** verified.
+- Original CLOUD-4.1 smoke in that exact isolated historical tree: **PASS**;
+  no other historical suite rerun.
+- Changed JS/MJS syntax, offline manifest actual-byte integrity (**450 files**),
+  diff/scope checks: **PASS**. No public assets changed; no manifest rewrite.
+- Empty-installation native browser: **BLOCKED**, before any scenario, by DBus
+  socket `Operation not permitted`. Trusted-session native browser: **BLOCKED**,
+  before any scenario, by loopback server `listen EPERM`.
+- Targeted real `Desktop in-memory Auth` test: **BLOCKED**, zero scenarios
+  executed, because the local `firebase` package is unavailable. No installation,
+  fake emulator success or relaxed error expectation was substituted.
+
+The new offline helper regression is discovered by existing mandatory Preflight
+`*-smoke.js` discovery. Both native browser suites remain mandatory current
+smoke; `access.test.mjs` remains in the current SDK group. The original private
+smoke is now mandatory in the independent historical job, with the current
+refusal mandatory in the current boundary smoke. Full Preflight/current SDK/
+historical results for the new HEAD require a separately approved CI attempt.
+Physical Android remains **PHONE_PENDING**. Explicit opt-in trust on any owner
+device, five-minute temporary sessions, local-data protection and deferred
+shared PIN are unchanged. No CI rerun, PR mutation, merge, Pages or Firebase LIVE.
+
+**CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**.

@@ -30,6 +30,13 @@ async function client({login=true,anonymous=false,sessionOnly=false}={}){
  const instance=app.getApp('access-'+n),auth=a.getAuth(instance);
  if(anonymous)await a.signInAnonymously(auth);
  else if(login){const part=Buffer.from(JSON.stringify({sub:'synthetic-access-'+n,email:'synthetic-'+n+'@example.invalid',email_verified:true})).toString('base64url');await a.signInWithCredential(auth,a.GoogleAuthProvider.credential('e30.'+part+'.'));}
+ // A signed-out verifier refuses before connecting. Its direct Rules probe
+ // still needs an explicit emulator binding: getFirestore alone uses LIVE.
+ if(!auth.currentUser){
+  const db=f.initializeFirestore(instance,{localCache:f.memoryLocalCache()});
+  f.connectFirestoreEmulator(db,'127.0.0.1',18080);
+  assert.equal(db.app.options.projectId,'demo-meble-app');
+ }
  const verifier=s.FC.cloudAccessVerifier.create(controller,{sdk:f});
  const r={s,controller,auth,verifier,uid:auth.currentUser?.uid,gate:null,db:()=>f.getFirestore(instance)};clients.push(r);return r;
 }
