@@ -1,3 +1,11 @@
+# LOCAL-FIRST SYNC — rozdzielenie od archiwum, 28.10.2026
+
+Rozwój synchronizacji został wznowiony osobną zgodą właściciela. PR #83 STORAGE RECOVERY wydany; CI/Pages i działanie na Pixelu potwierdzone przez właściciela. Poniższe wpisy z 25.10 zachowują historyczne ograniczenia rzeczywistych migracji.
+
+`meble-local-first-v1` jest oddzielną bazą modelu i outboxu. Nie czyta, nie zmienia i nie wykorzystuje `meble-business-backups-v1` ani `fc_data_backups_v1` jako kolejki. Nowa baza nie ma automatycznej retencji, resetu, usuwania jedynej kopii ani fallbacku do localStorage; quota/utrata bazy oznacza odmowę, a nie sukces. Zachowane RAW per operacja nie są niezależnym backupem. Czyszczenie danych przeglądarki może utracić dane IndexedDB; instanceId musi mieć zewnętrznego świadka przed produkcyjną migracją. Nie obiecujemy odzyskania bajtów z usuniętej jedynej bazy lub niedostępnego telefonu.
+
+Właściciel potwierdził aktualną kompletną kopię danych; brak nowej przesłanki do powtarzania backupu/audytu. W tym pakiecie nie odczytywano danych firmy, nie wykonywano migracji ani nie zmieniano istniejących kopii. [Kontrole i granice](tools/reports/local-first-sync-20261028.md).
+
 # ANDROID STORAGE RECOVERY — IndexedDB v1
 
 

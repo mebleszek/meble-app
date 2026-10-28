@@ -281,3 +281,8 @@ test('WYCENA-LABOR: editable norms, zero included units and saved 45 minutes sur
   assert.deepEqual([...a.r.rows], beforeA);
   assert.deepEqual([...b.r.rows], beforeB);
 });
+
+test('LOCAL-FIRST: durable browser stores and real Auth/Firestore integration', async t => {
+  const {runLocalFirstSuite} = await import('./local-first.test.mjs');
+  await runLocalFirstSuite(t);
+});

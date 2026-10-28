@@ -1,5 +1,15 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
+## LOCAL-FIRST SYNC — bieżący pakiet 28.10.2026
+
+Właściciel wznowił implementację produktu. Wcześniejsze wstrzymanie z 25.10 jest historyczne; Firebase LIVE, migracja i wydanie nadal mają osobne bramki. PR #77/#78/#83 są wydane (dla #83 właściciel potwierdził Pixel). Nie powtarzamy ich CI ani operatora CLOUD-4.6F.
+
+Zaimplementowano oddzielną transakcyjną IndexedDB danych/outbox/RAW, koordynator automatyczny, przepływ 14 domen CLOUD-3, projektowe chunki CLOUD-2B, trwały fence edytora, przekazanie bez timeout oraz rozstrzyganie ACK bez ponowienia mutacji. Przygotowano rzeczywisty binder globalnego Firebase wymagający podpisanej, odrębnej aktywacji i dowodu migracji. Startup/UX i wszystkie dotychczasowe magazyny pozostają niepodłączone.
+
+Najbliższy pakiet dowodowy: osobno zatwierdzone CI dla HEAD/BASE tej gałęzi (nowe regresje rzeczywistej IDB i Auth/Firestore + zachowane stare testy). Następnie rozstrzygnięcie profilu realnych projektów i nierozstrzygniętych domen, ochrony starych writerów oraz bezstratne podłączenie zatwierdzania sesji. Dopiero z tymi dowodami: zgody na Rules/granty/migrację, kontrolowane LIVE i uruchomienie na telefonie/tablecie/komputerze. Sukces syntetycznego pilota nie oznacza synchronizacji aplikacji. Bez wymogu obsługi Windowsa.
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** [Dokładny zakres i pozostałe warunki](tools/reports/local-first-sync-20261028.md). Poniższa kolejność architektoniczna pozostaje aktualna; jej opisy „przyszła implementacja” należy czytać z powyższym zakresem już przygotowanego kodu.
+
 ## STORAGE RECOVERY / INDEXEDDB — PRIORYTET 1 (25.10.2026)
 
 **Decyzja właściciela: najpierw ratowanie pamięci Androida i lokalne archiwum backupów. CLOUD / CLOUD-4.6F / FIREBASE LIVE / rozwój SYNCHRONIZACJI — WSTRZYMANE do osobnej decyzji.** Nie usuwamy planów ani wyników poniżej; ten wpis aktualizuje ich bieżącą kolejność.
@@ -14,7 +24,7 @@ To wcześniejsze, ograniczone wykonanie części etapu LOCAL-FIRST „Trwały za
 
 ## CLOUD-SYNC-1 — pierwszy przepływ produktu na emulatorach
 
-Zaimplementowano kompozycję CLOUD-3 dla kompletu 14 domen i izolowany odbiór w pamięci B. Następna bramka: wymagane CI (14 SDK + 5 granic, stare regresje zachowane), osobny przegląd HEAD/BASE i zgoda na PR Ready. **CODE_READY / CI_PENDING / LIVE_BLOCKED**, niewydany. [Kontrakt zastosowania, pokrycie i ograniczenia](tools/reports/cloud-sync-1-global-data.md).
+Zaimplementowano kompozycję CLOUD-3 dla kompletu 14 domen i izolowany odbiór w pamięci B. PR #78 scalony; wymagane CI zakończone, stan wydania potwierdzony przez właściciela. **RELEASED / LIVE_BLOCKED**. Nowe rozszerzenia LOCAL-FIRST powyżej mają odrębne CI_PENDING. [Kontrakt zastosowania, pokrycie i ograniczenia](tools/reports/cloud-sync-1-global-data.md).
 
 Rozwój na emulatorach jest niezależny od prywatnego operatora CLOUD-4.6F (**OPERATOR_PARTIAL**). Po weryfikacji przepływu osobnego zakresu wymagają trwałe lokalne transakcje/pending work, integracja z writerami domen i ochrona pracy offline. Nie włącza się produkcyjnej synchronizacji, migracji ani automatycznego zastępowania lokalnych danych. Docelowa kolejność pozostaje: kontrolowany syntetyczny LIVE → bezstratne dane biznesowe/synchronizacja → synchronizacja projektów → pełny LOCAL-FIRST.
 
