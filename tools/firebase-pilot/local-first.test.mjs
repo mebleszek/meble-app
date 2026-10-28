@@ -161,17 +161,26 @@ export async function runLocalFirstSuite(t){
     assert.equal(JSON.parse(losing.replica.json).stock[0].qty,77);assert.equal(losing.operations.at(-1).phase,'conflict');
   });
   await t.test('LOCAL-FIRST 06: real commit loses ACK and browser process; restart resolves by independent READ without another WRITE',async()=>{
-    let drop=true,publications=0,doomed;
+    let drop=true,publications=0,doomed,crashAttempt,crashCompleted=false;
     const sdk={...f,runTransaction:async(db,fn,options)=>{let publication=false;
       const result=await f.runTransaction(db,tx=>fn(new Proxy(tx,{get(target,key){
         if(key==='set')return(ref,data)=>{if(ref.path.endsWith('/globalData/current'))publication=true;return target.set(ref,data);};
         const value=target[key];return typeof value==='function'?value.bind(target):value;}})),options);
-      if(publication){publications++;if(drop){drop=false;await doomed.browser.crash();throw Object.assign(Error('synthetic lost ACK'),{code:'unavailable'});}}return result;}};
+      if(publication){publications++;if(drop){drop=false;crashAttempt=doomed.browser.crash();await crashAttempt;crashCompleted=true;
+        throw Object.assign(Error('synthetic lost ACK'),{code:'unavailable'});}}return result;}};
     doomed=await device('restart',sdk);
     // Match the verified latest server baseline before making a new local edit.
     await expectFlush(doomed,reconnect(doomed),'06 baseline before crash injection');doomed.online=false;
     const changed=JSON.parse((await doomed.store.snapshot('globals')).replica.json);changed.materials[0].price=399.875;
-    await submitGlobal(doomed,changed,'restart-operation');doomed.online=true;assert.equal((await doomed.sync.flush()).ok,false);doomed.sync.close();
+    await submitGlobal(doomed,changed,'restart-operation');
+    // An immediate flush can still join the automatic offline cycle started by
+    // submitGlobals. Use the real online signal; LF_OFFLINE is not lost ACK.
+    const failed=await reconnect(doomed);assert.equal(failed.ok,false,JSON.stringify(failed));
+    assert.notEqual(failed.code,'LF_OFFLINE','An offline scheduling result is not the injected ACK loss');
+    assert.equal(publications,1,'A confirmed server WRITE must precede the injected crash');
+    assert.ok(crashAttempt,'The false result must come after entering the crash injection');
+    await crashAttempt;assert.equal(crashCompleted,true,'Owned process cleanup must finish before reusing its profile');
+    doomed.sync.close();
     doomed.browser=await openBrowserDevice(server,path.join(directory,'restart'));
     doomed.store=await doomed.browser.open({...doomed.binding,initialize:false});
     const pending=await doomed.store.snapshot('globals');assert.equal(pending.operations.at(-1).phase,'inflight');
