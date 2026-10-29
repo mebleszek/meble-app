@@ -97,6 +97,9 @@ const shouldSwallowGlobalAfterAction = (action, actEl) => {
   // Exit can move the persistent top button before its compatibility click.
   // Consume that one click even if Chromium retargets it onto main-signout.
   if (action === 'session-cancel') return true;
+  // Switching tabs can change header geometry/scroll before Chromium emits
+  // its compatibility click. It must not activate another tab or logout.
+  if (action === 'tab') return true;
   // View transitions can also suffer from "tap-through" on mobile (the synthetic click lands on
   // a newly shown element under the finger, e.g. a room tile after clicking "Nowy inwestor").
   if (action === 'new-investor' || action === 'create-investor' || action === 'new-service-order' || action === 'open-furniture-hub' || action === 'open-workshop-hub' || action === 'open-service-orders-list' || action === 'close-service-orders-list' || action === 'back-rooms' || action === 'open-room' || action === 'open-investor' || action === 'back-investors' || action === 'open-investors-list' || action === 'open-investors') return true;

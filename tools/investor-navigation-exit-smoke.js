@@ -46,6 +46,21 @@ test('Selected Kitchen stays owned across all four tabs and ordinary INWESTOR vi
  const r=setup();assert.equal(await r.open(),true);const snapshot=r.FC.session.snapshot;
  for(const tab of ['wywiad','material','rysunek','czynnosci','inwestor','wywiad']){await r.FC.tabNavigation.setActiveTab(tab);assert.equal(r.s.uiState.roomType,'room_k');assert.equal(r.FC.session.snapshot,snapshot);assert.equal(r.FC.session.roomId,'room_k');}
 });
+test('Drawing layout fixture must be complete before the clean session baseline',async()=>{
+ const r=setup();r.load('js/app/ui/layout-state.js');
+ const before=JSON.parse(JSON.stringify(r.s.projectData.room_k));
+ r.FC.layoutState.ensureLayout('room_k');
+ assert.deepEqual(Object.keys(r.s.projectData.room_k).filter(key=>!Object.hasOwn(before,key)).sort(),['finishes','layout']);
+ assert.equal(r.FC.investorProjectRuntime.hasProjectDivergence(r.s.projectData),true,'Incomplete fixture is real RAM divergence');
+ const row=r.FC.projectStore.getCurrentRecord();row.projectData=r.s.projectData;assert.ok(r.FC.projectStore.upsert(row));
+ r.s.projectData=r.FC.project.load();assert.equal(r.FC.session.active,false);
+ assert.equal(await r.open(),true);const raw=r.storage.getItem('fc_projects_v1'),snapshot=r.FC.session.snapshot;
+ r.FC.layoutState.ensureLayout('room_k');
+ assert.equal(r.FC.session.isDirty(),false);assert.equal(r.FC.investorProjectRuntime.hasProjectDivergence(r.s.projectData),false);
+ assert.equal(r.FC.session.snapshot,snapshot);assert.equal(r.storage.getItem('fc_projects_v1'),raw);
+ r.s.projectData.room_k.layout.segments[0].offsets.base=12;
+ assert.equal(r.FC.investorProjectRuntime.hasProjectDivergence(r.s.projectData),true,'Actual drawing edits must remain protected');
+});
 test('Clean Exit from every project tab durably commits before list; no rollback, project write or reload',async()=>{
  for(const tab of ['wywiad','material','rysunek','czynnosci','inwestor','wycena','rozrys','magazyn']){
   const r=setup();r.FC.investorProjectPatches.patchInvestorsAPI();await r.open();await r.FC.tabNavigation.setActiveTab(tab);

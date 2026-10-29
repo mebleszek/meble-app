@@ -139,3 +139,85 @@ production Rules/IAM, synchronization activation, PR, Actions launch/rerun,
 merge or Pages. One branch/commit/push with clean tree, then stop for review.
 
 **CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**.
+
+## PR #86 — repair of CI 40928905654 and drawing fixture
+
+Input HEAD `ab93268dadcec9f7053d28260c3b7485131afb5f`; BASE unchanged
+`0a9522cf9277ef3de03d328a84dd9569a1958e46`. PR remains open/Ready.
+No workflow rerun, PR mutation, merge, Pages or Firebase LIVE.
+
+### Confirmed causes
+
+1. Restored-proof smoke expected `session.cancel()` semantics from the clean
+   session-cancel button. This button now performs Exit via requestTransition.
+   `inspectNavigationState()` correctly returns null for an incomplete snapshot;
+   navigation refuses with the existing generic message without assigning a new
+   lastError. The test now verifies false, unchanged view/context, active session,
+   identical snapshot and ALL persisted RAW, zero writes and refusal on a second
+   restart. Direct Cancel AND dirty Cancel still require SESSION_UNCONFIRMED.
+   No session/proof implementation was changed and no missing proof is repaired.
+2. Real Chromium trace reproduced pointerdown/up on CZYNNOŚCI followed by a
+   compatibility click on MAGAZYN after header/scroll layout changed. Valid owner,
+   durable proof, no modal and no Auth lock ruled out a session refusal. The CI
+   failure was at MATERIAŁ; its old log did not identify the retargeted button.
+   The reproduced shared cause is the missing global one-click guard for `tab`.
+   Existing guard now covers tabs as well as Exit/open-room. Fresh pointerdown
+   still resets it and deliberate logout works. Deterministic regression failed
+   before the fix (two actions) and passes after for eight tabs and logout target.
+3. Structural native diagnostics: alias `projectData===window.projectData` was
+   true throughout. After fixture creation, room opening/session begin, WYWIAD
+   and MATERIAŁ, RAM/central/snapshot were equal. First RYSUNEK render added only
+   `.room_mobile.layout` and `.room_mobile.finishes` in RAM through existing
+   layoutState.ensureLayout. Layout is Segment A/segA, left anchor, zero offsets
+   and empty base/module/wall rows, activeSegmentId segA, zOrderRows
+   base/module/wall; finishes is []. Central and snapshot lacked both fields.
+   No persistent write occurred, hence isDirty false while divergence correctly
+   became true. The synthetic clean-exit fixture was incomplete for drawing.
+   It now invokes the existing initializer BEFORE persisting the synthetic
+   fixture and BEFORE beginning a session. No active RAM is auto-saved or
+   accepted, no normalization/migration/calculation or divergence guard changed.
+   The model regression also proves a subsequent real offset edit is divergent.
+
+### Regression coverage
+
+- Restored proof: all original eight groups retained, plus direct/dirty Cancel
+  code and no-write/unchanged view assertions.
+- Investor navigation: 13 groups including layout baseline preparation and
+  retained protection of actual drawing changes.
+- main-login/bindings: eight retargeted tab gestures, one action each, tab→logout
+  veto, fresh deliberate logout; original Auth/idle/trust/RAM checks retained.
+- Mandatory native helper: structural checks compare RAM/window alias, central
+  record and snapshot before session, after room open, each of four tabs and
+  before each of eight Exits. Existing gesture helper now records bounded
+  read-only target/trusted/cancel evidence. No UID, tokens or business values.
+- All above are mandatory current Preflight via `*-smoke.js` discovery; native
+  helper is awaited by trusted-session-browser-smoke, not an optional script.
+- Offline manifest regenerated from actual bytes: 450 paths unchanged; only
+  bindings.js entry plus package version changed. No worker behavior change.
+
+### Executed evidence for the repair
+
+Node 22.23.3: restored proof 8/8; investor navigation 13/13; room refresh 17/17;
+Cancel failure safety 10/10; main-login 4 groups; offline shell 2 groups PASS.
+Syntax, manifest actual-byte integrity and diff checks PASS.
+The retarget regression was observed FAIL before the production fix, then PASS.
+
+Native Chromium 151.0.7922.173 was available with an approved sandbox escalation.
+The unmodified offline emulation reported navigator.onLine=true after navigation
+although the origin HTTP server was stopped; original smoke failed its existing
+networkOffline assertion. A disposable diagnostic copy explicitly sent CDP
+Network.overrideNetworkState after navigation (no fabricated trust or app state).
+With ALL navigation/RAW/trust assertions intact it passed the four tabs, all
+EIGHT native Exits, 393/320px layout, zero Auth initialization during navigation,
+manual logout and durable revoked fence/tombstone. It then failed the final cold
+restart expectation `authState===unauthenticated`: document startup saw online
+before the post-navigation CDP override and attempted Auth, ending at error;
+access stayed locked. This is NOT a full native smoke PASS. No such assertion
+was removed or relaxed in committed code; the diagnostic copy is deleted.
+The main-login model separately passes offline logout and cold refusal.
+Required unmodified native test and full mandatory CI remain CI_PENDING;
+physical Android remains PHONE_PENDING. No claim of CI_PASS or release readiness.
+
+Only bindings.js is changed in production. Session/proof, drawing, normalization,
+Auth, LOCAL-FIRST, Rules, 425 pins and workflow sources are unchanged.
+**CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**.

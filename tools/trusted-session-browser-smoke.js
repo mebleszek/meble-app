@@ -3,7 +3,7 @@
 // read-only authorization RPC are explicit injected SDK fixtures, never LIVE.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http=require('node:http');
 const {startBrowser}=require('./helpers/chromium-runtime');
-const {documentNavigation,waitForGesturePoint}=require('./helpers/browser-test-readiness');
+const {documentNavigation,waitForGesturePoint,observeGesture}=require('./helpers/browser-test-readiness');
 const {installAuthInputDiagnostics,authModuleType}=require('./helpers/auth-input-diagnostics');
 const {inspectTrustStorage,closeBrowserForRestart}=require('./helpers/trusted-cold-start');
 const root=path.resolve(__dirname,'..');
@@ -40,7 +40,15 @@ async function browser(profile,url,{offline=false,inject=false}={}){
   assert.equal(await evaluate('location.href'),url);assert.equal(await evaluate('!!document.body&&!!document.getElementById("main-login")'),true,'Requested application document parsed');
   return {evaluate,until,send,async touch(selector){
     await send('Emulation.setTouchEmulationEnabled',{enabled:true});const p=await waitForGesturePoint(evaluate,selector,{stable:true});
-    await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...p,radiusX:3,radiusY:3,id:1}]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    await evaluate('window.__navigationGesture=('+observeGesture.toString()+')('+JSON.stringify(selector)+')');
+    try{
+      await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...p,radiusX:3,radiusY:3,id:1}]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+      const trace=await evaluate('__navigationGesture.snapshot()');
+      for(const type of ['pointerdown','pointerup'])assert.equal(trace.events.filter(e=>e.type===type&&e.trusted&&e.onTarget).length,1,'Native '+type+' target '+selector+' '+JSON.stringify(trace));
+      assert.equal(trace.events.some(e=>e.type.endsWith('cancel')),false,'Native gesture cancelled '+JSON.stringify(trace));
+      // A compatibility click may target the new layout. The subsequent
+      // navigation assertions must prove that it cannot execute a second action.
+    }finally{await evaluate('__navigationGesture.close();delete window.__navigationGesture');}
   },async tap(id){const p=await waitForGesturePoint(evaluate,'#'+id);
     await send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...p});await send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...p});},
     close(){return closing||=closeBrowserForRestart({send,owner,ws,pending});}};

@@ -5,6 +5,7 @@ const assert=require('node:assert/strict');
 const {inspectTrustStorage}=require('./trusted-cold-start');
 async function exerciseInvestorNavigation(device){
  const {evaluate,until,send}=device;
+ const verifyClean=async stage=>{const state=await evaluate(`(()=>{const fc=window.FC,ram=projectData,row=fc.projectStore.getCurrentRecord(),snapshot=fc.session.snapshot&&JSON.parse(fc.session.snapshot.fc_projects_v1)[0],paths=(a,b,p='')=>{if(JSON.stringify(a)===JSON.stringify(b))return [];if(!a||!b||typeof a!=='object'||typeof b!=='object')return [p];return [...new Set([...Object.keys(a),...Object.keys(b)])].flatMap(k=>paths(a[k],b[k],p+'.'+k));};return {alias:ram===window.projectData,central:paths(ram,row.projectData),snapshot:snapshot?paths(ram,snapshot.projectData):[],divergent:fc.investorProjectRuntime.hasProjectDivergence(ram)};})()`);assert.deepEqual(state,{alias:true,central:[],snapshot:[],divergent:false},stage+' '+JSON.stringify(state));};
  const before=await evaluate('('+inspectTrustStorage.toString()+')()');
  for(const width of [393,320]){
   await send('Emulation.setDeviceMetricsOverride',{width,height:852,deviceScaleFactor:1,mobile:true});
@@ -22,11 +23,14 @@ async function exerciseInvestorNavigation(device){
  assert.equal(await evaluate('document.getElementById("roomsView").style.display'),'none');
  // Test-only fixture construction through the real central store. No company
  // profile or real data is used, and no active edit is bypassed.
- await evaluate(`(()=>{const fc=window.FC;if(fc.session.active)throw Error('Unexpected edit during fixture setup');const row=fc.projectStore.getCurrentRecord();row.projectData.room_mobile={cabinets:[],fronts:[],sets:[],settings:{roomHeight:260}};row.projectData.meta.roomDefs={room_mobile:{id:'room_mobile',baseType:'kuchnia',name:'Kuchnia',label:'Kuchnia',projectStatus:'nowy'}};row.projectData.meta.roomOrder=['room_mobile'];if(!fc.projectStore.upsert(row))throw Error('Room fixture refused');projectData=fc.project.load();fc.investorUI.render();})()`);
+ await evaluate(`(()=>{const fc=window.FC;if(fc.session.active)throw Error('Unexpected edit during fixture setup');const row=fc.projectStore.getCurrentRecord();row.projectData.room_mobile={cabinets:[],fronts:[],sets:[],settings:{roomHeight:260}};row.projectData.meta.roomDefs={room_mobile:{id:'room_mobile',baseType:'kuchnia',name:'Kuchnia',label:'Kuchnia',projectStatus:'nowy'}};row.projectData.meta.roomOrder=['room_mobile'];projectData=row.projectData;fc.layoutState.ensureLayout('room_mobile');row.projectData=projectData;if(!fc.projectStore.upsert(row))throw Error('Room fixture refused');projectData=fc.project.load();fc.investorUI.render();})()`);
+ await verifyClean('fixture before session');
  await device.touch('.tab-btn[data-tab="material"]');await until('!!document.querySelector(".investor-room-quick-btn.investor-room-cue")');
  await device.touch('.investor-room-quick-btn[data-room="room_mobile"]');await until('uiState.roomType==="room_mobile"&&window.FC.session.active');
+ await verifyClean('room opened / session begun');
  for(const tab of ['wywiad','material','rysunek','czynnosci']){
   await device.touch('.tab-btn[data-tab="'+tab+'"]');await until('uiState.activeTab==='+JSON.stringify(tab));
+  await verifyClean('render '+tab);
   assert.equal(await evaluate('uiState.roomType'),'room_mobile');assert.equal(await evaluate('window.FC.session.roomId'),'room_mobile');
  }
  for(const tab of ['wywiad','material','rysunek','czynnosci','inwestor','wycena','rozrys','magazyn']){
@@ -36,6 +40,7 @@ async function exerciseInvestorNavigation(device){
    await device.touch('.investor-room-quick-btn[data-room="room_mobile"]');await until('window.FC.session.active');
   }
   await device.touch('.tab-btn[data-tab="'+tab+'"]');await until('uiState.activeTab==='+JSON.stringify(tab));
+  await verifyClean('before Exit '+tab);
   await until('document.getElementById("sessionCancel").textContent==="Wyjdź"');
   const raw=await evaluate('localStorage.getItem("fc_projects_v1")');
   // One native touch only. No direct action dispatch or DOM click for Exit.

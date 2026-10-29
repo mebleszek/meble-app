@@ -100,6 +100,19 @@ async function main(){
   assert.equal(exits,1);assert.equal(input.ready(),true,'Exit compatibility click must not log out');assert.equal(input.shared.rows.get('meble_device_trust_fence_v1'),fence);
   input.input('pointerdown','sessionCancel');input.input('pointerup','main-signout');input.input('click','main-signout');
   assert.equal(exits,1,'Changed gesture target must not dispatch Exit');assert.equal(input.ready(),true,'Changed gesture target must not dispatch logout');
+  const tabs=[];
+  input.w.FC.actions.register({tab:({element})=>{tabs.push(element.getAttribute('data-tab'));return true;}});
+  for(const tab of ['wywiad','material','rysunek','czynnosci','inwestor','wycena','rozrys','magazyn']){
+    input.nodes['tab-'+tab]={id:'tab-'+tab,closest(selector){return ['button','button,input','[data-action]'].includes(selector)?this:null;},getAttribute:key=>key==='data-tab'?tab:'tab'};
+  }
+  for(const tab of ['wywiad','material','rysunek','czynnosci','inwestor','wycena','rozrys','magazyn']){
+    const count=tabs.length;
+    input.input('pointerdown','tab-'+tab);input.input('pointerup','tab-'+tab);
+    input.input('click','tab-'+(tab==='magazyn'?'wywiad':'magazyn'));
+    assert.deepEqual(tabs.slice(count),[tab],'Retargeted compatibility click must not switch tabs twice');
+  }
+  input.input('pointerdown','tab-material');input.input('pointerup','tab-material');input.input('click','main-signout');
+  assert.equal(input.ready(),true,'Tab compatibility click must not log out');assert.equal(input.shared.rows.get('meble_device_trust_fence_v1'),fence);
   input.input('pointerdown','main-signout');input.input('pointerup','main-signout');
   await input.logout();assert.equal(input.ready(),false,'A genuine logout still blocks immediately');
   assert.equal(input.shared.rows.get('meble_device_trust_fence_v1'),'revoked');
