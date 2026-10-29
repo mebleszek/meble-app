@@ -360,3 +360,100 @@ Rules, the 425 historical pins and deferred shared PIN remain unchanged.
 **CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**.
 One repair commit on the existing branch; no CI rerun, PR transition, merge,
 Pages or Firebase LIVE.
+
+## PR #85 — cold offline restart / final Chromium blocker (29.10.2026)
+
+Input HEAD `c7168d2a3e3a22d557d76cac811e700a7f8a46fd`; unchanged BASE/main
+`951005296780f2b4887ab39b3c065a0beb247c48`.
+[Run 40824073397](https://github.com/mebleszek/meble-app/actions/runs/40824073397)
+confirmed Safety, current Firebase and historical CLOUD PASS, current smoke
+163/164, including empty-installation and main-login PASS for that input SHA.
+The remaining failure is cold offline browser startup. No previous PASS is
+assigned to this repair, and no CI attempt was launched.
+
+### Cause established and evidence limit
+
+The test's `device.close()` called supervisor cleanup directly. The existing
+supervisor requests termination and signals descendants; it confirms process
+reaping/profile ownership, but does not request Chromium's ordinary profile
+shutdown. In particular, a completed localStorage API call/read-back does not
+prove that Chromium flushed that renderer/browser's buffered profile state to
+disk before those signals. The test thus used emergency process termination
+at a boundary intended to test an ordinary browser close and restart.
+
+This lifecycle defect is confirmed by the actual caller/supervisor code. The
+old CI log has no fence, key or restore evidence and cannot establish whether a
+specific fence, CryptoKey, profile receipt or startup step failed. `input:null`
+only identifies the missing diagnostic injection. Local Chromium remains
+blocked, so **loss of any particular stored value in that CI run is not claimed
+as reproduced**. The repair fixes the confirmed shutdown defect and adds the
+missing evidence; native confirmation of the full cold path remains CI_PENDING.
+
+### Minimal correction and stronger evidence
+
+The browser test now sends `Browser.close`, requires its ACK and natural zero
+exit, and only then invokes the unchanged supervisor cleanup/reaping check.
+Close is idempotent per launch. Lost ACK, nonzero/signalled exit, missing exit
+confirmation or failed cleanup still FAIL; cleanup on failure provides no
+successful restart result. There is no startup retry, profile repair, lock-file
+removal or timeout extension. The added 30-second orderly-exit bound uses the
+existing CDP request bound; application-readiness deadlines are unchanged.
+
+Before closing, read-only diagnostics inspect only the two known trust/ownership
+databases. The diagnostic enumerates databases first, never creates a missing
+store, aborts an upgrade race, and uses readonly transactions. It returns only
+fixed state labels/booleans: fence class, record/key types, non-exportability,
+signature presence, origin match and profile/receipt/fence binding matches.
+It exports no UID, nonce, key, signature, receipt, token or business data.
+
+The same profile is reopened with CDP network offline after the HTTP server has
+stopped. Its sanitized persistent metadata must match the pre-close snapshot.
+The original `businessState === ready`, valid-session and trusted-checkbox
+assertions are retained. Actual application restore must report a valid crypto
+proof and confirmed profile resume; Service Worker must control the page from
+the expected script; network must remain offline and Auth factory calls zero.
+No SDK/Google fixture is injected into cold documents. Read-only instrumentation
+records actual restore outcome/error class, profile phase/error, local mode and
+worker state, replacing the uninformative null diagnostics. Metadata alone
+never authorizes access; the unchanged application still verifies the signature,
+private-key challenge, fence and ownership binding.
+
+No production access, WebCrypto proof, IndexedDB schema, startup, offline worker,
+public asset manifest, session deadline, UI, PIN, LOCAL-FIRST or business code
+was changed. A genuinely missing/corrupt/revoked proof still requires deliberate
+online approval; no recovery fallback creates or reactivates trust. This change
+does not promise survival of power loss, eviction or OS killing the browser.
+
+Changed files:
+
+- `tools/trusted-session-browser-smoke.js` — orderly close, unchanged cold
+  offline scenario, metadata comparisons and actual restore/worker assertions.
+- `tools/helpers/trusted-cold-start.js` — orderly-close handshake and readonly
+  metadata inspection for the disposable test profile.
+- `tools/helpers/auth-input-diagnostics.js` — safe cold restore/profile/worker
+  evidence, preserving original API promises and requiring no SDK injection.
+- `tools/trusted-cold-start-smoke.js` — mandatory targeted regression through
+  existing Preflight `*-smoke.js` discovery.
+- This report.
+
+Actually executed, Node 22.23.3:
+
+- New cold-start smoke: **2 groups PASS**. Orderly ACK → natural exit → reaping,
+  and refusal on lost ACK/nonzero exit/signal/timeout/failed cleanup without
+  retry; real WebCrypto keys/signature restore through the transactional IDB
+  model, valid/absent/refused diagnostics, readonly metadata, missing DB without
+  creation, corrupt/revoked proof without repair, and no private values exported.
+- Existing targeted readiness smoke: **3 groups PASS**, including the changed
+  injected instrumentation with actual Auth/verifier and the SDK fixture.
+- Changed JS syntax, exact five-file diff/scope, unchanged public manifest and
+  protected application/operator/PIN files: **PASS**.
+- Native trusted-session browser smoke: **BLOCKED** at loopback `listen EPERM`,
+  zero native cases completed locally. No new installation, extra-permission
+  request, full Preflight, emulator suite or completed historical audit rerun.
+
+GitHub Actions must still confirm real Chromium profile persistence, stored
+CryptoKey restore and Service Worker startup with the origin stopped, alongside
+the mandatory existing current/historical groups, for the new HEAD. Physical
+Android remains separate. No PR operation, CI rerun, merge, Pages or Firebase LIVE.
+
+**CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**.

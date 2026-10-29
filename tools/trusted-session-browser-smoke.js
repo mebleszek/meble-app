@@ -5,6 +5,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {startBrowser}=require('./helpers/chromium-runtime');
 const {documentNavigation,waitForGesturePoint}=require('./helpers/browser-test-readiness');
 const {installAuthInputDiagnostics}=require('./helpers/auth-input-diagnostics');
+const {inspectTrustStorage,closeBrowserForRestart}=require('./helpers/trusted-cold-start');
 const root=path.resolve(__dirname,'..');
 const injection='('+installAuthInputDiagnostics.toString()+')();\n'+`(()=>{
  const RealDate=Date;let offset=0;window.Date=class extends RealDate{static now(){return RealDate.now()+offset;}};window.advanceClock=n=>offset+=n;
@@ -24,20 +25,22 @@ const injection='('+installAuthInputDiagnostics.toString()+')();\n'+`(()=>{
 async function browser(profile,url,{offline=false,inject=false}={}){
  const owner=await startBrowser({profileDir:profile}),targets=await(await fetch('http://127.0.0.1:'+new URL(owner.endpoint).port+'/json/list')).json();
  const ws=new WebSocket(targets.find(t=>t.type==='page').webSocketDebuggerUrl);await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});
- const pending=new Map();let serial=0;
+ const pending=new Map();let serial=0,closing;
  let navigation;
  ws.onmessage=({data})=>{const m=JSON.parse(data),p=pending.get(m.id);if(p){pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(Error(JSON.stringify(m.error))):p.resolve(m.result);}else navigation?.event(m);};
  const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++serial,timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP '+method));},30000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params}));});
  const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||'Browser assertion failed');return r.result.value;};
  const until=async expression=>{for(let i=0;i<600;i++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,50));}throw Error('Browser timeout '+expression+' '+JSON.stringify(await evaluate('({auth:document.body?.dataset.authState,business:document.body?.dataset.businessState,input:typeof __AUTH_INPUT_DIAGNOSTICS__==="function"?__AUTH_INPUT_DIAGNOSTICS__():null})')));};
  try{
-  await send('Page.enable');await send('Network.enable');if(inject)await send('Page.addScriptToEvaluateOnNewDocument',{source:injection});
+  await send('Page.enable');await send('Network.enable');
+  // Cold startup gets read-only instrumentation, never the SDK/Google fixture.
+  await send('Page.addScriptToEvaluateOnNewDocument',{source:inject?injection:'('+installAuthInputDiagnostics.toString()+')();'});
   if(offline)await send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
   navigation=documentNavigation(send);await navigation.navigate(url);
   assert.equal(await evaluate('location.href'),url);assert.equal(await evaluate('!!document.body&&!!document.getElementById("main-login")'),true,'Requested application document parsed');
   return {evaluate,until,send,async tap(id){const p=await waitForGesturePoint(evaluate,'#'+id);
     await send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...p});await send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...p});},
-    async close(){ws.close();for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('Closed'));}pending.clear();await owner.close();}};
+    close(){return closing||=closeBrowserForRestart({send,owner,ws,pending});}};
  }catch(e){ws.close();await owner.close();throw e;}
 }
 async function main(){
@@ -71,9 +74,18 @@ async function main(){
   await device.tap('main-trust-phone');await device.until('document.getElementById("main-trust-phone").checked&&!document.getElementById("main-trust-phone").disabled');
   assert.match(await device.evaluate('document.getElementById("main-trust-status").textContent'),/Zaufano/);
   await device.evaluate('dispatchEvent(new Event("offline"));document.dispatchEvent(new Event("visibilitychange"));dispatchEvent(new PageTransitionEvent("pagehide"));advanceClock(86400000);true');
-  assert.equal(await device.evaluate('__FC_MAIN_ACCESS__.isValid()'),true);await device.close();device=null;
+  assert.equal(await device.evaluate('__FC_MAIN_ACCESS__.isValid()'),true);
+  const before=await device.evaluate('('+inspectTrustStorage.toString()+')()');
+  assert.equal(before.fence,'active');for(const key of ['proofPresent','proofVersionValid','privateKeyPresent','privateKeyNonExportable','publicKeyPresent','signaturePresent','originMatches','fenceMatches','profileActive','bindingMatches','receiptMatches'])assert.equal(before[key],true,'Before shutdown: '+key+' '+JSON.stringify(before));
+  await device.close();device=null;
   await new Promise(resolve=>server.close(resolve));closed=true; // No HTTP origin remains for cold startup.
-  device=await browser(profile,url,{offline:true});await device.until('document.body.dataset.businessState==="ready"');
+  device=await browser(profile,url,{offline:true});
+  const cold=await device.evaluate('('+inspectTrustStorage.toString()+')()');
+  assert.deepEqual(cold,before,'Cold-start persistent trust/profile changed: '+JSON.stringify(cold));
+  await device.until('document.body.dataset.businessState==="ready"');
+  const restored=await device.evaluate('__AUTH_INPUT_DIAGNOSTICS__()');
+  assert.equal(restored.trustRestore,'valid');assert.equal(restored.mode,'trusted');assert.equal(restored.profilePhase,'resume:confirmed');assert.equal(restored.authStatus,undefined,'Cold trust must not initialize Google');assert.equal(restored.authCreations,0);
+  assert.equal(restored.offline.networkOffline,true);assert.equal(restored.offline.controlled,true);assert.equal(restored.offline.workerExpected,true);
   assert.equal(await device.evaluate('__FC_MAIN_ACCESS__.isValid()'),true);
   assert.equal(await device.evaluate('FC.cloudAuth && typeof FC.cloudAuth.create'), 'function');
   assert.equal(await device.evaluate('document.getElementById("main-trust-phone").checked'),true);
