@@ -3,6 +3,7 @@
 // claimed here; those remain mandatory in their original CI groups.
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const {documentNavigation,gesturePoint,waitForGesturePoint}=require('./helpers/browser-test-readiness');
+const {authModuleType}=require('./helpers/auth-input-diagnostics');
 async function main(){
  const event=(loaderId,frameId='main')=>({method:'Page.lifecycleEvent',params:{name:'DOMContentLoaded',loaderId,frameId}});
  let nav,complete=false;
@@ -45,12 +46,34 @@ async function main(){
 
  const {runtime}=require('./cloud-auth-smoke');
  const s=runtime();s.Storage=class {};s.window=s;s.Date=Date;s.queueMicrotask=queueMicrotask;s.addEventListener=()=>{};
- vm.runInNewContext(require('./trusted-session-browser-smoke').injection,s);
+ const context=vm.createContext(s);vm.runInContext(require('./trusted-session-browser-smoke').injection,context);
+ let sdkLoads=0;s.FC.firebasePilotTransport.loadAuthSdk=()=>{sdkLoads++;throw Error('UNEXPECTED_SDK_LOAD');};
+ // Execute the actual namespace factory and app.js lexical declaration rather
+ // than pretending that the browser's bare FC always means window.FC.
+ vm.runInContext(fs.readFileSync('js/app/bootstrap/app-core-namespace.js','utf8'),context);
+ const declaration=fs.readFileSync('js/app.js','utf8').match(/const FC = [\s\S]*?;\n/);
+ assert.ok(declaration,'Actual business namespace declaration required');
+ vm.runInContext('const STORAGE_KEYS={};\n'+declaration[0],context);
+ assert.equal(vm.runInContext('FC===window.FC',context),false);
+ assert.equal(vm.runInContext('FC.cloudAuth && typeof FC.cloudAuth.create',context),undefined,'Reproduce original CI assertion against the business core');
+ const moduleType=()=>vm.runInContext('('+authModuleType.toString()+')()',context);
+ const api=s.FC.cloudAuth,originalCreate=api.create;
+ assert.equal(moduleType(),'function');assert.equal(s.__AUTH_INPUT_DIAGNOSTICS__().authCreations,0);assert.equal(sdkLoads,0);
+ // Public bootstrap currently merges its namespace into itself. Instrumentation
+ // must not wrap an already instrumented API again or multiply its counters.
+ Object.assign(s.FC,s.FC);Object.assign(s.FC,s.FC);
+ assert.equal(s.FC.cloudAuth,api);assert.equal(s.FC.cloudAuth.create,originalCreate);
+ assert.equal(moduleType(),'function');assert.equal(s.__AUTH_INPUT_DIAGNOSTICS__().authCreations,0);
+ const missing={window:{FC:{}},addEventListener(){}};missing.window.addEventListener=missing.addEventListener;
+ vm.runInNewContext('('+require('./helpers/auth-input-diagnostics').installAuthInputDiagnostics.toString()+')();',missing);
+ assert.equal(vm.runInNewContext('('+authModuleType.toString()+')()',missing),'undefined','Missing API must not be fabricated by diagnostics');
+ console.log('PASS Auth registration: actual lexical business namespace differs from public API; module inspection is inert and missing API is refused');
  s.FC_AUTH_TEST_OPTIONS={};
  const auth=await s.FC.cloudAuth.create({...s.FC_AUTH_TEST_OPTIONS,sessionOnly:true});
  const verifier=s.FC.cloudAccessVerifier.create(auth,{sdk:s.FC_AUTH_TEST_OPTIONS.sdk.firestore});
  try{
-  assert.equal(auth.state().status,'unauthenticated');assert.equal((await auth.signInGoogle()).ok,true);
+  assert.equal(auth.state().status,'unauthenticated');assert.equal(s.__AUTH_INPUT_DIAGNOSTICS__().authCreations,1);assert.equal(s.authCalls,1);assert.equal(sdkLoads,0);
+  assert.equal((await auth.signInGoogle()).ok,true);
   const proof=await verifier.verify(auth.identity());assert.equal(proof.ok,true);assert.equal(proof.uid,'synthetic-phone-owner');
   s.grant=false;assert.equal((await verifier.verify(auth.identity())).denied,true);
  }finally{await verifier.close();await auth.close();}

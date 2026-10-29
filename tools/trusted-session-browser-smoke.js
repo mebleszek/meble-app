@@ -4,7 +4,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http=require('node:http');
 const {startBrowser}=require('./helpers/chromium-runtime');
 const {documentNavigation,waitForGesturePoint}=require('./helpers/browser-test-readiness');
-const {installAuthInputDiagnostics}=require('./helpers/auth-input-diagnostics');
+const {installAuthInputDiagnostics,authModuleType}=require('./helpers/auth-input-diagnostics');
 const {inspectTrustStorage,closeBrowserForRestart}=require('./helpers/trusted-cold-start');
 const root=path.resolve(__dirname,'..');
 const injection='('+installAuthInputDiagnostics.toString()+')();\n'+`(()=>{
@@ -87,7 +87,7 @@ async function main(){
   assert.equal(restored.trustRestore,'valid');assert.equal(restored.mode,'trusted');assert.equal(restored.profilePhase,'resume:confirmed');assert.equal(restored.authStatus,undefined,'Cold trust must not initialize Google');assert.equal(restored.authCreations,0);
   assert.equal(restored.offline.networkOffline,true);assert.equal(restored.offline.controlled,true);assert.equal(restored.offline.workerExpected,true);
   assert.equal(await device.evaluate('__FC_MAIN_ACCESS__.isValid()'),true);
-  assert.equal(await device.evaluate('FC.cloudAuth && typeof FC.cloudAuth.create'), 'function');
+  assert.equal(await device.evaluate('('+authModuleType.toString()+')()'),'function','Public Auth module stays registered without creating an Auth session');
   assert.equal(await device.evaluate('document.getElementById("main-trust-phone").checked'),true);
   await device.tap('main-signout');await device.until('!__FC_MAIN_ACCESS__.isValid()');await device.close();device=null;
   device=await browser(profile,url,{offline:true});await device.until('document.body.dataset.authState==="unauthenticated"');

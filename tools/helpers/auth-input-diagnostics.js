@@ -9,7 +9,7 @@ function installAuthInputDiagnostics(){
   events.push({type,trusted:event.isTrusted,id:owned.has(id)?id:'business',detail:event.detail});if(events.length>24)events.shift();
  },true);
  function factory(key,methods){
-  let api;const wrap=value=>{api={...value};for(const [method,invoke]of Object.entries(methods))api[method]=(...args)=>invoke(value[method],args);};
+  let api;const wrap=value=>{if(value===api)return;api={...value};for(const [method,invoke]of Object.entries(methods))api[method]=(...args)=>invoke(value[method],args);};
   const previous=fc[key];Object.defineProperty(fc,key,{configurable:true,get:()=>api,set:wrap});if(previous)wrap(previous);
  }
  factory('cloudAuth',{create:(create,args)=>{authCreations++;const result=create(...args);result.then(value=>{auth=value;},()=>{});return result;}});
@@ -41,4 +41,8 @@ function installAuthInputDiagnostics(){
   offline:{networkOffline:window.navigator?.onLine===false,controlled:!!window.navigator?.serviceWorker?.controller,
    workerExpected:!!window.navigator?.serviceWorker?.controller&&window.navigator.serviceWorker.controller.scriptURL===new URL('offline-worker.js',window.document.baseURI).href}});
 }
-module.exports={installAuthInputDiagnostics};
+// Serialized into the document. app.js has a separate global lexical `FC`
+// for the business core; public Auth registration belongs to window.FC.
+// Reading its type must never initialize Google or load an SDK.
+function authModuleType(){return typeof window.FC?.cloudAuth?.create;}
+module.exports={installAuthInputDiagnostics,authModuleType};

@@ -457,3 +457,106 @@ the mandatory existing current/historical groups, for the new HEAD. Physical
 Android remains separate. No PR operation, CI rerun, merge, Pages or Firebase LIVE.
 
 **CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**.
+
+## PR #85 — combined Auth/offline test audit (29.10.2026)
+
+Input HEAD `45b1dc6b08ebc38c5865bd6356aed65c0286bb29`; GitHub branch and main
+verified read-only; BASE remains `951005296780f2b4887ab39b3c065a0beb247c48`.
+Read AGENTS, this package's documentation and the actual Preflight job logs for
+the three preceding failed attempts:
+
+| Run | Evidence for that input revision only |
+| --- | --- |
+| [40789226065](https://github.com/mebleszek/meble-app/actions/runs/40789226065) | 162/164 current smoke; catalog gesture invalidated access and idle reauthentication timed out. Subsequent production event-order corrections are retained. |
+| [40824073397](https://github.com/mebleszek/meble-app/actions/runs/40824073397) | 163/164; cold restart did not reach ready; no diagnostic injection in that cold document. Subsequent orderly browser-close and cold evidence checks are retained. |
+| [40827260333](https://github.com/mebleszek/meble-app/actions/runs/40827260333) | 164/165; safety/current Firebase/historical CLOUD PASS. Cold proof/profile/worker/ready/no-Auth assertions passed; the remaining assertion read the wrong namespace at line 90. |
+
+### Dependency map and contract review
+
+| Layer / test | Actual dependency and boundary |
+| --- | --- |
+| Workflow → safety → independent Preflight/current Firebase/historical CLOUD | Exact approved HEAD/BASE, isolated historical checkout and 425 pins precede execution. Current Preflight failure does not suppress the other two groups. All mandatory groups and fresh revisions gate automatic merge; Pages follows that merge. No workflow change is needed. |
+| `preflight.js` → sorted `tools/*-smoke.js` | Separate Node child per smoke; collects failures and continues independent phases. All six audited smoke files are automatically mandatory in the current group, not the frozen historical group. Requiring a fixture module does not invoke its guarded `main()`. |
+| `trusted-session-browser-smoke.js` | Real Chromium, durable profile, IndexedDB/CryptoKey and SW. Online phase explicitly injects SDK-shaped fixtures; cold phase has only bounded diagnostics, stopped HTTP origin and CDP offline. Actual `main-login` must restore validated trust and ownership before business startup; Auth factory count must remain zero. |
+| `trusted-cold-start-smoke.js` | Tests the same Browser.close ACK → natural exit → reaping helper; real WebCrypto with transactional IDB model for readonly diagnostics, absent/corrupt/revoked proof refusal. Does not establish native disk persistence. |
+| `trusted-main-login-smoke.js` | Actual main/local modules with modeled DOM/IDB; actual Auth/verifier/business bindings in its event-order group. Requires consent, idle lock, fresh proof on reauthentication, offline trust restoration without Auth and exact retained RAM. |
+| `trusted-ci-readiness-smoke.js` | Same CDP frame/loader readiness and physical hit-test helpers; actual modal guard; actual Auth/verifier with the browser SDK fixture. Now also executes the real namespace factory and extracted, unchanged app.js `const FC` declaration to reproduce the lexical shadow. |
+| `empty-installation-browser-smoke.js` | Real mobile Chromium gestures and business startup, intercepted static resources and explicit Auth/verifier fixture; shared safe diagnostics/hit testing. Public business APIs already use `window.FC`; lexical business state such as `uiState` is intentionally read directly. No equivalent incorrect Auth lookup found. |
+| `offline-shell-smoke.js` | Actual-byte public manifest and worker logic in a controlled cache/fetch model; checks corruption, completeness, expected worker/scope, exclusion of private/Firebase responses and no page takeover. Actual cold SW behavior is covered separately by the native session test. |
+
+Runtime chain: deferred auth-shell scripts in `index.html` register inert public
+APIs in `window.FC`, then `main-login.js` attempts `trust.restore()` first.
+`local-device-access.js` validates the signed origin/project/owner statement,
+non-exportable private-key challenge and local fence; `local-access-profile.js`
+checks the owner/receipt/attempt binding before a readonly resume. The capability
+authorizes local work only. The business loader fetches/evaluates the ordered
+template manifest, including `app-core-namespace.js` → `app.js` → `public-api.js`.
+The latter core bootstrap does not turn local trust into Firebase authority.
+Without valid local proof, online deliberate admission and fresh server proof
+remain required; offline logout retains the veto. SW supplies only the complete,
+hash-checked static shell; it supplies no Google session or private response.
+
+### Confirmed causes and corrections
+
+`app.js` declares a global lexical `const FC` from `createAppCore()`, whose
+result contains the business `utils/storage/project` core. It is distinct from
+the public `window.FC` object holding `cloudAuth`. CDP Runtime.evaluate resolves
+bare `FC` to that lexical binding. A local reproduction with the actual factory
+and actual declaration confirmed: bare `FC.cloudAuth` is undefined, while
+`window.FC.cloudAuth.create` is a function. Therefore the final CI assertion did
+not demonstrate missing offline Auth resources or a failed local session.
+
+The native test now uses shared, inert `authModuleType()` to inspect explicitly
+`window.FC.cloudAuth.create`. It still requires a function, so a missing module
+fails. All existing cold persistence, crypto restore, profile admission, SW,
+session, consent, zero Auth creation, logout and no inherited readmission
+assertions remain. Module registration and Google initialization are separate:
+the former is required offline, the latter must not occur during trusted boot.
+
+Audit also reproduced a diagnostic defect: public bootstrap can assign a
+namespace into itself (`Object.assign(window.FC, window.FC)`), and the helper's
+setter wrapped its already wrapped API again. One actual Auth create then
+reported two. The setter now preserves the identical current wrapper on that
+self-assignment. The new regression checks stable API/function identity after
+two merges, zero create/SDK loads during inspection, exactly one actual create
+and one diagnostic count during explicit initialization, and missing-module
+refusal. The helper still returns original promises, observes outcomes and does
+not authorize access, write storage or dispatch input. Existing profile/trust
+instrumentation, event delivery and fail-closed paths are retained.
+
+No other contradictory requirement was found in the audited paths. Model-only
+tests and native tests deliberately prove different boundaries; their PASS
+counts are not interchangeable. No duplicate smoke was removed. No reason to
+change application code, access policy, SW/cache contents, public manifest,
+IndexedDB schema, UI, LOCAL-FIRST, Rules or historical sources was established.
+
+Changed files: `tools/helpers/auth-input-diagnostics.js`,
+`tools/trusted-ci-readiness-smoke.js`, `tools/trusted-session-browser-smoke.js`
+and this report. The test-only helper is outside the public offline allowlist;
+`offline-assets.js` therefore remains byte-identical and current.
+
+### Actually executed for this repair
+
+- Input-source reproductions: wrong lexical lookup **REPRODUCED**; repeated
+  diagnostic wrapping **REPRODUCED** (one real call, two reported calls).
+- `trusted-ci-readiness-smoke.js`: **4 groups PASS**, including namespace,
+  inert registration, idempotent instrumentation and strict actual Auth/proof.
+- `trusted-main-login-smoke.js`: **4 groups PASS**, checking the changed shared
+  instrumentation against actual main/event/proof paths and retained RAM.
+- `trusted-cold-start-smoke.js`: **2 groups PASS**, checking changed diagnostics
+  against readonly trust evidence, real crypto/model-IDB and fail-closed restore.
+- Three changed JS syntax checks, actual-byte offline manifest verification,
+  exact four-file scope and diff whitespace checks: **PASS**.
+- Native session command: **BLOCKED** at `listen EPERM 127.0.0.1`, **zero native
+  scenarios completed locally**. No timeout extension or environment exception
+  accepted as PASS. No full local Preflight, emulator suite or CI attempt run.
+
+All mandatory CI groups need a separately approved run for the new HEAD. In
+particular the complete native flow must reach offline logout and its following
+cold refusal; the prior run stopped before those final assertions. Physical
+Android notification/sleep/offline restart and real browser storage behavior
+remain PHONE_PENDING. Earlier run successes are evidence for their own SHA only.
+
+**CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**.
+One logical commit/push on the existing branch; no PR modification, Actions
+launch/rerun, merge, Pages or Firebase LIVE.
