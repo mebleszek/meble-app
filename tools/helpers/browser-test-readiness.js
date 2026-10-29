@@ -23,17 +23,36 @@ function documentNavigation(send,{timeoutMs=30000}={}){
  };
 }
 // Serialized into the page; no production handler is invoked synthetically.
-function gesturePoint(selector){
+function gesturePoint(selector,{scroll=true}={}){
  const e=[...document.querySelectorAll(selector)].find(node=>node.getClientRects().length&&!node.disabled);
  if(!e||e.closest('[inert],.modal-open-guard'))return null;
- e.scrollIntoView({block:'center',behavior:'instant'});
+ if(scroll)e.scrollIntoView({block:'center',behavior:'instant'});
  const b=e.getBoundingClientRect(),x=b.x+b.width/2,y=b.y+b.height/2;
  const hit=document.elementFromPoint(x,y);
  return hit&&(hit===e||e.contains(hit))?{x,y}:null;
 }
-async function waitForGesturePoint(evaluate,selector,{timeoutMs=20000,pause=ms=>new Promise(r=>setTimeout(r,ms))}={}){
- const expression='('+gesturePoint.toString()+')('+JSON.stringify(selector)+')',end=Date.now()+timeoutMs;
+// CDP input is handled after this JS task. A same-task hit test following
+// scrollIntoView is insufficient: require a rendered frame and stable geometry.
+async function stableGesturePoint(selector,sample){
+ const before=sample(selector);if(!before)return null;
+ const hit=document.elementFromPoint(before.x,before.y);
+ await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+ const after=sample(selector,{scroll:false});
+ return after&&Math.abs(after.x-before.x)<=0.5&&Math.abs(after.y-before.y)<=0.5&&document.elementFromPoint(after.x,after.y)===hit?after:null;
+}
+// Read-only per-gesture evidence in a disposable test document. No text/values,
+// UID or storage inspection; no event cancellation, synthesis or retry.
+function observeGesture(selector){
+ const target=document.querySelector(selector),events=[];
+ const types=['pointerdown','pointerup','pointercancel','touchstart','touchend','touchcancel','click'];
+ const record=event=>{events.push({type:event.type,trusted:event.isTrusted,onTarget:!!target&&(event.target===target||target.contains(event.target))});if(events.length>16)events.shift();};
+ for(const type of types)window.addEventListener(type,record,true);
+ return {snapshot:()=>({events:[...events],connected:!!target?.isConnected}),close(){for(const type of types)window.removeEventListener(type,record,true);}};
+}
+async function waitForGesturePoint(evaluate,selector,{timeoutMs=20000,pause=ms=>new Promise(r=>setTimeout(r,ms)),stable=false}={}){
+ const argument=JSON.stringify(selector),sample='('+gesturePoint.toString()+')';
+ const expression=stable?'('+stableGesturePoint.toString()+')('+argument+','+sample+')':sample+'('+argument+')',end=Date.now()+timeoutMs;
  do{const point=await evaluate(expression);if(point)return point;await pause(50);}while(Date.now()<end);
  throw Error('Native gesture target not ready: '+selector);
 }
-module.exports={documentNavigation,gesturePoint,waitForGesturePoint};
+module.exports={documentNavigation,gesturePoint,stableGesturePoint,observeGesture,waitForGesturePoint};

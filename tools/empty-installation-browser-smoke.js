@@ -4,7 +4,7 @@
 // application-origin request is intercepted locally before navigation, no LIVE.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const {startBrowser}=require('./helpers/chromium-runtime');
-const {waitForGesturePoint}=require('./helpers/browser-test-readiness');
+const {waitForGesturePoint,observeGesture}=require('./helpers/browser-test-readiness');
 const {installAuthInputDiagnostics}=require('./helpers/auth-input-diagnostics');
 const ROOT=path.resolve(__dirname,'..'),ORIGIN='https://mebleszek.github.io',PREFIX='/meble-app/';
 const auth=`(()=>{const identity={uid:'synthetic-empty-owner',epoch:1};window.FC=window.FC||{};window.FC.cloudAuth={create:async()=>({identity:()=>identity,state:()=>({status:'authenticated',...identity}),subscribe(fn){queueMicrotask(()=>fn({status:'authenticated',...identity}));return()=>{};},signInGoogle:async()=>({ok:true}),signOut(){throw Error('No test logout');}})};})();`;
@@ -62,7 +62,7 @@ async function main(){
     await send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:path.join(dir,'downloads')});
     await send('Runtime.enable');await send('Page.enable');await send('Network.enable');await send('Emulation.setDeviceMetricsOverride',{width:393,height:852,deviceScaleFactor:1,mobile:true});await send('Fetch.enable',{patterns:[{urlPattern:'*'}]});
     await send('Page.addScriptToEvaluateOnNewDocument',{source:'('+installAuthInputDiagnostics.toString()+')();'});
-    const until=async(expression,label)=>{for(let n=0;n<400;n++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,50));}throw Error('Timeout '+label+' '+JSON.stringify(await evaluate('({auth:document.body.dataset.authState,business:document.body.dataset.businessState,text:document.body.innerText.slice(-2200)})')));};
+    const until=async(expression,label)=>{for(let n=0;n<400;n++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,50));}throw Error('Timeout '+label+' '+JSON.stringify(await evaluate('({auth:document.body?.dataset.authState,business:document.body?.dataset.businessState,input:window.__AUTH_INPUT_DIAGNOSTICS__?.(),gesture:window.__EMPTY_TAP__?.snapshot(),investor:(()=>{const fc=window.FC,s=fc?.investorEditorState?.state;return {editing:s?.isEditing,dirty:s?.dirty,missingFields:s?.draft?fc?.investorActions?._debug.requiredFieldErrors(s.draft).length:null,confirmation:!!document.querySelector(".confirm-box"),validationNotice:!!document.querySelector(".info-box")};})()})')));};
     const login=async()=>{
       const p=await evaluate('(()=>{const b=document.getElementById("auth-google").getBoundingClientRect();return{x:b.x+b.width/2,y:b.y+b.height/2};})()');
       await send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...p});
@@ -74,7 +74,8 @@ async function main(){
     await until('document.body?.dataset.businessState==="ready"','fresh full app startup');
     const tap=async selector=>{
       await until(`!!document.querySelector(${JSON.stringify(selector)})`,'target '+selector);
-      const point=await waitForGesturePoint(evaluate,selector);
+      const point=await waitForGesturePoint(evaluate,selector,{stable:true});
+      await evaluate('window.__EMPTY_TAP__?.close();window.__EMPTY_TAP__=('+observeGesture.toString()+')('+JSON.stringify(selector)+');true');
       await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...point,radiusX:3,radiusY:3,id:1}]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await new Promise(r=>setTimeout(r,160));
     };
     await send('Emulation.setTouchEmulationEnabled',{enabled:true});
@@ -93,7 +94,14 @@ async function main(){
     await tap('#modeHubRoot [data-action="new-investor"]');await until('!!document.getElementById("invName")','first investor draft');
     for(const[id,value]of Object.entries({invName:'Synthetic First Owner',invPhone:'123456789',invCity:'Test City',invEmail:'first@example.invalid',invAddress:'Synthetic address 1',invNotes:'Synthetic browser fixture'}))await fill('#'+id,value);
     await evaluate(`(()=>{const el=document.getElementById('invSource');el.value=[...el.options].find(o=>o.value)?.value;el.dispatchEvent(new Event('change',{bubbles:true}));})()`);
-    await tap('[data-investor-action="save"]');await until('!!document.querySelector(".confirm-box")','investor save confirmation');await tap('.confirm-box .is-success');
+    assert.deepEqual(await evaluate('(()=>{const fc=window.FC,s=fc.investorEditorState.state;return {editing:s.isEditing,dirty:s.dirty,missing:fc.investorActions._debug.requiredFieldErrors(s.draft).length};})()'),{editing:true,dirty:true,missing:0},'Complete real editor draft required before native save');
+    await tap('#investorActionBar [data-investor-action="save"]');await until('!!document.querySelector(".confirm-box")','investor save confirmation');
+    const saveGesture=await evaluate('window.__EMPTY_TAP__.snapshot()');
+    for(const type of ['pointerdown','pointerup','click'])assert.equal(saveGesture.events.filter(e=>e.type===type&&e.trusted&&e.onTarget).length,1,'One native investor save '+type+': '+JSON.stringify(saveGesture));
+    assert.equal(saveGesture.events.some(e=>e.type==='pointercancel'||e.type==='touchcancel'),false);
+    assert.equal(await evaluate('window.FC.investors.readAll().length'),0,'Save confirmation must precede investor persistence');
+    assert.equal(await evaluate('window.FC.projectStore.readAll().length'),0,'Save confirmation must precede project creation');
+    await tap('.confirm-box .is-success');
     await until('window.FC.investors.readAll().length===1&&window.FC.projectStore.readAll().length===1','first investor and real project');
     assert.equal(await evaluate('projectData.meta.assignedInvestorId===window.FC.investors.getCurrentId()'),true,'Only the real saved investor owns the first project');
     await tap('[data-investor-action="add-room"]');await until('!!document.querySelector(".panel-box input[placeholder]")','new room form');

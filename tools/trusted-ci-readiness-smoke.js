@@ -2,7 +2,7 @@
 // Bounded offline checks of the actual test helpers. No native/emulator PASS is
 // claimed here; those remain mandatory in their original CI groups.
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const {documentNavigation,gesturePoint,waitForGesturePoint}=require('./helpers/browser-test-readiness');
+const {documentNavigation,gesturePoint,observeGesture,waitForGesturePoint}=require('./helpers/browser-test-readiness');
 const {authModuleType}=require('./helpers/auth-input-diagnostics');
 async function main(){
  const event=(loaderId,frameId='main')=>({method:'Page.lifecycleEvent',params:{name:'DOMContentLoaded',loaderId,frameId}});
@@ -43,6 +43,41 @@ async function main(){
  }
  await assert.rejects(waitForGesturePoint(async()=>{throw Error('APPLICATION_ERROR');},'#target'),/^Error: APPLICATION_ERROR$/);
  console.log('PASS gesture: actual modal guard, disabled/inert/occluded targets refused; no click through to logout, no swallowed application exception');
+
+ // Reproduce the old same-task readiness hole: a scroll/layout frame changes
+ // the target after it passed elementFromPoint, before CDP can send the input.
+ let y=20,frame=0,moving=true,scrolls=0,replaced=false;
+ const button={disabled:false,isConnected:true,getClientRects:()=>[{}],closest:()=>null,scrollIntoView(){scrolls++;},getBoundingClientRect:()=>({x:10,y,width:40,height:40}),contains:()=>false};
+ const gestureDocument={querySelectorAll:()=>[button],querySelector:()=>button,elementFromPoint:()=>replaced?{}:button};
+ const gestureContext=vm.createContext({document:gestureDocument,requestAnimationFrame:fn=>setImmediate(()=>{frame++;if(moving)y+=40;fn();})});
+ const sample=async expression=>vm.runInContext(expression,gestureContext);
+ const oldPoint=await sample('('+gesturePoint.toString()+')("#save")');assert.equal(oldPoint.y,40);assert.equal(frame,0);
+ await assert.rejects(waitForGesturePoint(sample,'#save',{stable:true,timeoutMs:0,pause:async()=>{}}),/Native gesture target not ready/);
+ assert.notEqual(y+20,oldPoint.y,'Original single-task coordinates became stale');assert.equal(scrolls,2,'One scroll per readiness sample, never on the second frame check');
+ moving=false;const settled=await waitForGesturePoint(sample,'#save',{stable:true});assert.equal(settled.y,y+20);
+ replaced=true;await assert.rejects(waitForGesturePoint(sample,'#save',{stable:true,timeoutMs:0,pause:async()=>{}}),/Native gesture target not ready/);replaced=false;
+ const eventListeners=new Map(),observerWindow={addEventListener(type,fn,capture){assert.equal(capture,true);eventListeners.set(type,fn);},removeEventListener(type,fn,capture){assert.equal(capture,true);assert.equal(eventListeners.get(type),fn);eventListeners.delete(type);}};
+ const observer=vm.runInNewContext('('+observeGesture.toString()+')("#save")',{document:gestureDocument,window:observerWindow});
+ for(const type of ['pointerdown','pointerup','click'])eventListeners.get(type)({type,isTrusted:true,target:button,preventDefault(){throw Error('Observer must not cancel');},stopPropagation(){throw Error('Observer must not suppress');}});
+ assert.equal(observer.snapshot().events.length,3);assert.ok(observer.snapshot().events.every(e=>e.trusted&&e.onTarget));
+ assert.equal(JSON.stringify(observer.snapshot()).includes('Synthetic First Owner'),false);observer.close();assert.equal(eventListeners.size,0);
+ console.log('PASS stable touch readiness: stale same-task coordinates reproduced, moving/replaced hit targets refused, rendered stable target accepted; bounded observer never cancels input');
+
+ const investorWindow={FC:{}},fc=investorWindow.FC;
+ for(const name of ['investor-editor-state','investor-actions','investor-modals'])vm.runInNewContext(fs.readFileSync('js/app/investor/'+name+'.js','utf8'),{window:investorWindow});
+ const investor={id:'synthetic-draft',kind:'person',addedDate:'2026-10-29'};let notices=0,confirms=0,commits=0,decide;
+ fc.investorUI={state:{newlyCreatedId:investor.id,transientInvestor:investor},getTransientInvestor:()=>investor,clearTransientInvestor(){}};
+ fc.investorPersistence={searchInvestors:()=>[],createInvestor:patch=>{commits++;return {...patch,id:'synthetic-saved'};},setCurrentInvestorId(){}};
+ fc.infoBox={open(){notices++;}};fc.confirmBox={ask(options){assert.equal(options.title,'ZAPISAĆ ZMIANY?');confirms++;return new Promise(resolve=>{decide=resolve;});}};
+ fc.investorEditorState.enter(investor);let save;
+ const saveButton={getAttribute:key=>{assert.equal(key,'data-investor-action');return 'save';},addEventListener(type,fn){assert.equal(type,'click');save=fn;}};
+ fc.investorActions.bindTopActions({querySelectorAll:()=>[saveButton]},{getCurrentInvestor:()=>investor});
+ await save();assert.equal(notices,1);assert.equal(confirms,0);assert.equal(commits,0,'Incomplete draft must not persist');
+ for(const [key,value]of Object.entries({name:'Synthetic First Owner',phone:'123456789',city:'Test City',email:'first@example.invalid',address:'Synthetic address 1',source:'Ulotka',notes:'Synthetic browser fixture'}))fc.investorEditorState.setField(key,value);
+ assert.equal(fc.investorActions._debug.requiredFieldErrors(fc.investorEditorState.state.draft).length,0);
+ const refused=save();await new Promise(resolve=>setImmediate(resolve));assert.equal(confirms,1);assert.equal(commits,0);decide(false);await refused;assert.equal(commits,0);assert.equal(fc.investorEditorState.state.isEditing,true);
+ const accepted=save();await new Promise(resolve=>setImmediate(resolve));assert.equal(confirms,2);assert.equal(commits,0);decide(true);await accepted;assert.equal(commits,1);
+ console.log('PASS actual investor action binding/editor/validation/modals: incomplete draft refused, complete draft awaits explicit decision, cancel retains edit, accept commits exactly once');
 
  const {runtime}=require('./cloud-auth-smoke');
  const s=runtime();s.Storage=class {};s.window=s;s.Date=Date;s.queueMicrotask=queueMicrotask;s.addEventListener=()=>{};

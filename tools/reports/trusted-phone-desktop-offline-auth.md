@@ -560,3 +560,100 @@ remain PHONE_PENDING. Earlier run successes are evidence for their own SHA only.
 **CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**.
 One logical commit/push on the existing branch; no PR modification, Actions
 launch/rerun, merge, Pages or Firebase LIVE.
+
+## PR #85 — investor save gesture readiness (29.10.2026)
+
+Input HEAD `21becc4f0b0f4de8cc3e816c5e20f221a9a97cab`; GitHub branch and main
+verified read-only; BASE `951005296780f2b4887ab39b3c065a0beb247c48` unchanged.
+Read AGENTS, this report and the actual Preflight logs for
+[40830924581](https://github.com/mebleszek/meble-app/actions/runs/40830924581)
+and the preceding [40827260333](https://github.com/mebleszek/meble-app/actions/runs/40827260333).
+
+The newer run completed native trusted cold startup, offline logout and cold
+readmission refusal. Its sole failing smoke was empty-installation, timing out
+after the first investor save gesture. Its failure snapshot still had
+`auth: authorized`, `business: ready`, the editing form and Save action; no save
+confirmation or validation notice was present. The earlier run completed the
+same empty-installation scenario in 6866 ms. This does not establish a runner
+resource failure, a revoked session or an invalid investor fixture.
+
+### Confirmed defect and evidence boundary
+
+The test helper called scrollIntoView and returned the hit-tested coordinates
+in the same JS task. It did not await a rendering frame or revalidate the hit
+target before separate CDP touch messages. The save button is below the long
+investor form, so that gesture requires scrolling. Controlled reproduction
+confirmed the old helper can return a valid point which becomes stale on the
+next frame. This is a test readiness race, not evidence that production save
+validation should be relaxed.
+
+The old CI log contains no actual pointer/touch/click targets, draft validation
+result or cancellation trace. Consequently the exact event sequence in that
+failed Chromium run is **not proved**, and the repair does not claim a local
+native reproduction. The change removes the demonstrated readiness defect and
+adds the evidence needed to distinguish a remaining application failure from
+misdirected/cancelled input in the next authorized run. No environment failure
+is accepted as a successful application test.
+
+### Correction and retained requirements
+
+- Empty-installation opts into a stable physical-input target: scroll once,
+  wait across two requestAnimationFrame callbacks, then recheck coordinates
+  without scrolling and require the identical hit node. Motion, replacement,
+  an overlay or lost availability refuses readiness within the original bound.
+  Other callers retain their existing default behavior. There is still exactly
+  one touchStart/touchEnd pair per tap, no click retry, synthetic DOM click,
+  larger timeout, forced focus or application-style/animation change.
+- Save uses the explicit investorActionBar button. The actual editor must be
+  editing, dirty and complete under the unchanged production required-field
+  validator before dispatch. A complete draft still does not authorize saving.
+- Before accepting the real confirmation, the test requires exactly one trusted
+  pointerdown, pointerup and click on that Save control, no touch/pointer cancel,
+  and zero persisted investors/projects. Existing confirmation, real owner,
+  project/room creation and durable-save assertions remain unchanged.
+- A disposable, read-only observer captures at most 16 input event kinds,
+  isTrusted/on-target booleans and target connection state. Timeout diagnostics
+  add editing/dirty/missing-field-count/notice/confirmation state and existing
+  sanitized Auth diagnostics. No field values, UID or body text are exported;
+  the observer neither cancels nor synthesizes events and is replaced/removed
+  between gestures.
+
+Production investigation: investor-actions binds Save to click, validates the
+actual editor draft, then awaits investor-modals/confirmBox before commit.
+The navigation guard does not disable this Save button. Main's access guard
+allows business input while local access is valid; the CI snapshot confirms it
+remained authorized. The preceding Auth diagnostic change only makes API
+self-assignment idempotent and adds an inert namespace reader; it does not wrap
+investor actions/validation/modals, dispatch input or change scroll. No evidence
+justifies changing those production modules.
+
+Changed files: `tools/helpers/browser-test-readiness.js`,
+`tools/empty-installation-browser-smoke.js`, `tools/trusted-ci-readiness-smoke.js`
+and this report. Existing mandatory Preflight smoke discovery covers the added
+regressions; no workflow, pinned source, public manifest or application change.
+
+### Actually executed
+
+- `trusted-ci-readiness-smoke.js`: **6 groups PASS**. New groups reproduce stale
+  same-task coordinates, refuse moving/replaced targets, accept rendered stable
+  coordinates and verify non-cancelling observer cleanup. Actual investor action
+  binding/editor/validator/modals refuse incomplete data, wait for an explicit
+  decision, preserve edit after cancellation and commit once after acceptance.
+  Existing navigation, modal-guard, namespace and actual Auth/verifier checks
+  remain present. This is controlled DOM/SDK testing, not native touch PASS.
+- Syntax of three changed JS files, exact four-file scope, whitespace diff and
+  actual-byte offline manifest verification: **PASS**. Public/application,
+  Auth diagnostics, Chromium supervision, Rules, LOCAL-FIRST and PIN sources
+  remain unchanged.
+- Native empty-installation command: **BLOCKED**, zero native scenarios
+  completed. The sandbox denied the private DBus socket (`Operation not
+  permitted`) before Chromium readiness; no application failure was converted
+  into PASS. No full local Preflight, emulator suite, installation or CI rerun.
+
+CI must confirm actual compositor/touch delivery and the full investor save
+flow for the new HEAD, alongside all existing mandatory groups. The old failure
+remains an incomplete event-level diagnosis until that native evidence exists.
+Physical Android remains separate. One logical commit/push, clean tree; no PR
+operations, Actions launch/rerun, merge, Pages or Firebase LIVE.
+
+**CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**.
