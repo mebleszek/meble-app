@@ -44,7 +44,7 @@ async function main(){
  console.log('PASS gesture: actual modal guard, disabled/inert/occluded targets refused; no click through to logout, no swallowed application exception');
 
  const {runtime}=require('./cloud-auth-smoke');
- const s=runtime();s.Storage=class {};s.window=s;s.Date=Date;s.queueMicrotask=queueMicrotask;
+ const s=runtime();s.Storage=class {};s.window=s;s.Date=Date;s.queueMicrotask=queueMicrotask;s.addEventListener=()=>{};
  vm.runInNewContext(require('./trusted-session-browser-smoke').injection,s);
  s.FC_AUTH_TEST_OPTIONS={};
  const auth=await s.FC.cloudAuth.create({...s.FC_AUTH_TEST_OPTIONS,sessionOnly:true});

@@ -4,10 +4,11 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http=require('node:http');
 const {startBrowser}=require('./helpers/chromium-runtime');
 const {documentNavigation,waitForGesturePoint}=require('./helpers/browser-test-readiness');
+const {installAuthInputDiagnostics}=require('./helpers/auth-input-diagnostics');
 const root=path.resolve(__dirname,'..');
-const injection=`(()=>{
+const injection='('+installAuthInputDiagnostics.toString()+')();\n'+`(()=>{
  const RealDate=Date;let offset=0;window.Date=class extends RealDate{static now(){return RealDate.now()+offset;}};window.advanceClock=n=>offset+=n;
- window.authCalls=0;window.popupCalls=0;window.grant=true;window.rawGet=Storage.prototype.getItem;
+ window.authCalls=0;window.popupCalls=0;window.probeReads=0;window.probeTransactions=0;window.grant=true;window.rawGet=Storage.prototype.getItem;
  let options;Object.defineProperty(window,'FC_AUTH_TEST_OPTIONS',{get:()=>options,set:v=>{options={...v,target:'emulator',firebaseConfig:{apiKey:'demo',projectId:'demo-meble-app',appId:'demo',authDomain:'demo.invalid'},emulator:{host:'127.0.0.1',port:19099,firestorePort:18080},sdk:{
  app:{initializeApp:config=>{window.authCalls++;return {options:config};},deleteApp:async()=>{}},
  auth:{inMemoryPersistence:class Memory{},initializeAuth:app=>({app,currentUser:null,listeners:new Set()}),setPersistence:async()=>{},connectAuthEmulator(){},
@@ -16,8 +17,8 @@ const injection=`(()=>{
  signInWithPopup:async a=>{window.popupCalls++;a.currentUser={uid:window.testAccount||'synthetic-phone-owner',providerData:[{providerId:'google.com'}]};for(const fn of a.listeners)fn(a.currentUser);return {user:a.currentUser};},
  signOut:async a=>{a.currentUser=null;for(const fn of a.listeners)fn(null);}},
  firestore:{memoryLocalCache:()=>({kind:'memory'}),initializeFirestore:(app,settings)=>{if(settings.localCache.kind!=='memory')throw Error('Memory-only Firestore required');return {app};},connectFirestoreEmulator(){},doc:(_db,_c,id)=>({id}),
- getDocFromServer:async ref=>({id:ref.id,metadata:{fromCache:false,hasPendingWrites:false},exists:()=>window.grant,data:()=>({schemaVersion:1})}),
- runTransaction:async(db,fn)=>fn({get:async ref=>({id:ref.id,metadata:{fromCache:false,hasPendingWrites:false},exists:()=>window.grant,data:()=>({schemaVersion:1})})}),terminate:async()=>{}}
+ getDocFromServer:async ref=>{window.probeReads++;return {id:ref.id,metadata:{fromCache:false,hasPendingWrites:false},exists:()=>window.grant,data:()=>({schemaVersion:1})};},
+ runTransaction:async(db,fn)=>{window.probeTransactions++;return fn({get:async ref=>({id:ref.id,metadata:{fromCache:false,hasPendingWrites:false},exists:()=>window.grant,data:()=>({schemaVersion:1})})});},terminate:async()=>{}}
  }};}});
 })();`;
 async function browser(profile,url,{offline=false,inject=false}={}){
@@ -28,7 +29,7 @@ async function browser(profile,url,{offline=false,inject=false}={}){
  ws.onmessage=({data})=>{const m=JSON.parse(data),p=pending.get(m.id);if(p){pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(Error(JSON.stringify(m.error))):p.resolve(m.result);}else navigation?.event(m);};
  const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++serial,timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP '+method));},30000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params}));});
  const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||'Browser assertion failed');return r.result.value;};
- const until=async expression=>{for(let i=0;i<600;i++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,50));}throw Error('Browser timeout '+expression+' '+await evaluate('document.body?.innerText.slice(-800)'));};
+ const until=async expression=>{for(let i=0;i<600;i++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,50));}throw Error('Browser timeout '+expression+' '+JSON.stringify(await evaluate('({auth:document.body?.dataset.authState,business:document.body?.dataset.businessState,input:typeof __AUTH_INPUT_DIAGNOSTICS__==="function"?__AUTH_INPUT_DIAGNOSTICS__():null})')));};
  try{
   await send('Page.enable');await send('Network.enable');if(inject)await send('Page.addScriptToEvaluateOnNewDocument',{source:injection});
   if(offline)await send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
@@ -53,7 +54,15 @@ async function main(){
   assert.equal(await device.evaluate('!!window.__APP_STARTED__'),false);await device.tap('auth-google');await device.until('document.body.dataset.businessState==="ready"');
   await device.evaluate('window.unsaved=document.createElement("input");unsaved.value="EXACT-UNSAVED";document.body.appendChild(unsaved);advanceClock(300000);true');
   assert.equal(await device.evaluate('__FC_MAIN_ACCESS__.isValid()'),false);assert.equal(await device.evaluate('unsaved.value'),'EXACT-UNSAVED');
-  await device.tap('auth-google');await device.until('__FC_MAIN_ACCESS__.isValid()');assert.equal(await device.evaluate('popupCalls'),2);
+  const locked=await device.evaluate('__AUTH_INPUT_DIAGNOSTICS__()');assert.equal(locked.mode,'locked');assert.equal(locked.popups,1);
+  await device.tap('auth-google');
+  assert.equal(await device.evaluate('popupCalls'),2,'Conscious native Google click must invoke exactly the second popup: '+JSON.stringify(await device.evaluate('__AUTH_INPUT_DIAGNOSTICS__()')));
+  await device.until('__FC_MAIN_ACCESS__.isValid()');assert.equal(await device.evaluate('popupCalls'),2);
+  const resumed=await device.evaluate('__AUTH_INPUT_DIAGNOSTICS__()');
+  assert.equal(resumed.authStatus,'authenticated');assert.equal(resumed.mode,'desktop');assert.equal(resumed.profilePhase,'confirm:confirmed');
+  assert.ok(resumed.reads>locked.reads&&resumed.transactions>locked.transactions,'Reauthentication requires new independent server proof');
+  assert.equal(resumed.events.filter(e=>e.type==='click'&&e.id==='auth-google'&&e.trusted).length,2);
+  assert.equal(await device.evaluate('unsaved.value'),'EXACT-UNSAVED');
   await device.close();device=await browser(profile,url,{inject:true});
   await device.until('document.body.dataset.authState==="unauthenticated"');assert.equal(await device.evaluate('!!window.__APP_STARTED__'),false);
   await device.evaluate('window.testAccount="foreign-owner"');await device.tap('auth-google');await device.until('document.body.dataset.authState==="error"');

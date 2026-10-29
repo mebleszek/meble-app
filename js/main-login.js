@@ -138,7 +138,14 @@
     gate=FC.authAccessGate.create(auth,{verifyAccess:access.verify,watchAccess:access.watch,onBlocked:()=>{lease=null;trustControls();},
       onState:state=>{
         if(state.status==='revoked'||state.denied===true){localSession.lock('AUTH_ACCESS_REVOKED');void trust.revoke().catch(()=>{});}
-        if(!fatal&&!isValid())render(state);else trustControls();
+        const previousMode=localSession.mode();
+        if(!fatal&&!isValid()){
+          // isValid can expire the desktop session synchronously. onLock has
+          // already rendered the login screen; this older cloud callback must
+          // not overwrite it with a signed-in state that hides Google login.
+          if(previousMode!=='locked'&&localSession.mode()==='locked')return;
+          render(state);
+        }else trustControls();
       },onAuthorized:async grant=>{
         lease=grant;trustControls();
         // A consent is single-use and bound to the exact Auth identity/epoch.
@@ -160,6 +167,14 @@
     catch(error){render(FC.cloudAuth?.errorState(error)||{status:'error',code:'AUTH_SDK_UNAVAILABLE'});}finally{initializing=false;}
   }
   // Capture precedes business listeners; locked UI cannot dispatch business actions.
+  // Auth actions run in bubbling, AFTER the business pointerup/click guard can
+  // consume a compatibility click retargeted under a closed modal.
+  window.addEventListener('click',event=>{
+    const action=event.target.closest?.('button')?.id;
+    if(['auth-google','auth-signout','main-signout','auth-profile-confirm','auth-profile-cancel'].includes(action))return;
+    if(admission&&el('auth-profile-admission').contains(event.target))return;
+    if(!isValid()){event.stopImmediatePropagation();event.preventDefault();block();}
+  },true);
   window.addEventListener('click',event=>{
     const button=event.target.closest?.('button');
     const action=button?.id;
@@ -182,14 +197,17 @@
       else if(action==='auth-signout'||action==='main-signout')void logout();
       return;
     }
-    if(admission&&el('auth-profile-admission').contains(event.target))return;
-    if(!isValid()){event.stopImmediatePropagation();event.preventDefault();block();}
-  },true);
+  });
   for(const type of ['keydown','input','change','submit','pointerdown'])window.addEventListener(type,event=>{
     if(type==='change'&&admission&&['auth-profile-backup','auth-profile-owner'].includes(event.target.id)){
       el('auth-profile-confirm').disabled=!(el('auth-profile-backup').checked&&el('auth-profile-owner').checked);
     }
-    if(!isValid()){event.stopImmediatePropagation();if(!shell.contains(event.target))event.preventDefault();}
+    if(!isValid()){
+      // A fresh physical gesture on the login shell must reach the document's
+      // click-guard reset. This does not authorize any business event or data.
+      if(type==='pointerdown'&&shell.contains(event.target))return;
+      event.stopImmediatePropagation();if(!shell.contains(event.target))event.preventDefault();
+    }
   },true);
   el('main-trust-phone').addEventListener('change',async event=>{
     if(!event.isTrusted){trustControls();return;}

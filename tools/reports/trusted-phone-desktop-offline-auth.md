@@ -249,3 +249,114 @@ device, five-minute temporary sessions, local-data protection and deferred
 shared PIN are unchanged. No CI rerun, PR mutation, merge, Pages or Firebase LIVE.
 
 **CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**.
+
+## PR #85 — remaining Chromium regressions (29.10.2026)
+
+Input HEAD `804c32574179d21846330a2e1c16f3c322570f41`; unchanged BASE/main
+`951005296780f2b4887ab39b3c065a0beb247c48`.
+[Run 40789226065](https://github.com/mebleszek/meble-app/actions/runs/40789226065)
+confirmed Safety, current Firebase and historical CLOUD PASS for that input
+revision, and current smoke 162/164. It did not release the branch. None of
+those PASS results is assigned to this repair.
+
+### Confirmed production defects
+
+- The actual business delegation in `js/app/ui/bindings.js` closes the catalog
+  on `pointerup` and consumes the following compatibility `click` in document
+  capture. The main Auth listener previously handled logout in **window capture**,
+  ahead of that protection. A click retargeted under the closed modal could
+  therefore log out before the existing guard saw it. This was reproduced with
+  the input revision's real main entry and actual business bindings: one close,
+  then a retargeted click on `main-signout`, and local access became false.
+  Rectangle/hit-test waiting alone could not fix this production event ordering;
+  the preceding repair's early-gesture hypothesis was insufficient.
+- The locked-state pointer guard also stopped a genuine login-shell
+  `pointerdown` before the document's physical-gesture reset. Reproduction
+  confirmed zero document deliveries on the input revision. The new Auth click
+  handling runs in bubbling, after the existing compatibility-click protection;
+  a fresh login-shell pointerdown is allowed to reach the shared reset. Business
+  input remains blocked in capture and the existing DOM remains inert/hidden.
+- A cloud callback's `onState` called `isValid()`, which could synchronously
+  expire the desktop session and render the login screen in `onLock`. The same
+  older callback then rendered its signed-in cloud state over that screen,
+  hiding Google login. This was independently reproduced against the exact
+  input main source with actual Auth/verifier/profile modules: access false,
+  Google hidden, popup count still one. Main now preserves the synchronous
+  local-lock screen when that nested expiry occurs. No local/cloud permission
+  is renewed by this check; a second deliberate Google action and new server
+  proof are still required.
+
+The real CI log did not contain click targets, popup counts, Auth/profile state
+or lock reasons for the failed reauthentication. The local reproductions prove
+the above implementation defects with modeled DOM/IndexedDB/event delivery;
+they do **not** prove which precise ordering occurred inside that Chromium run.
+Native verification of the complete failing flows remains required in CI.
+
+### Regression evidence and scope
+
+`trusted-main-login-smoke.js` now models window capture → document capture →
+window bubble, multiple Auth subscriptions, listener removal and cancelled
+timers. Its added group executes actual main, Auth, verifier, profile and
+business bindings with the existing explicitly injected SDK and transactional
+IDB model. It verifies a modal compatibility click cannot log out; a genuine
+logout still blocks; exact idle expiry cannot open a popup; the login screen
+survives the cloud callback; the next physical gesture reaches document reset;
+exactly the second popup, fresh read/transaction and completed profile admission
+restore access; unsaved RAM stays byte-for-byte unchanged. Existing three groups
+still cover trusted offline restart, manual logout, real denial and RAM safety.
+
+The native tests retain their original session-validity assertions, actual
+mouse/touch gestures, native IndexedDB, full offline restart and RAW assertions.
+The reauthentication test additionally requires exactly two trusted native
+Google clicks and popups, fresh probe read and transaction, authenticated Auth,
+desktop mode, confirmed profile and unchanged unsaved input. Test-only bounded
+diagnostics capture event kinds/known control IDs, lock reason, mode, profile
+phase, Auth status/epoch and counts; no UID, token, receipt or business value.
+Diagnostics are not imported by the application or added to its offline shell.
+Cold offline documents without this injection retain safe status-only failure
+diagnostics. No timeout was increased and no exception is accepted as PASS.
+
+Changed files:
+
+- `js/main-login.js` — production event ordering and nested-expiry rendering.
+- `offline-assets.js` — actual-byte regeneration; only `js/main-login.js` entry
+  and the manifest version change, with all 450 paths retained.
+- `tools/trusted-main-login-smoke.js` — accurate event/Auth fixture and regression.
+- `tools/trusted-session-browser-smoke.js`,
+  `tools/empty-installation-browser-smoke.js` — stronger native assertions and
+  diagnostic evidence, with original business/security assertions retained.
+- `tools/helpers/auth-input-diagnostics.js` — isolated test instrumentation.
+- `tools/trusted-ci-readiness-smoke.js` — event-registration stub required by
+  that instrumentation in the existing SDK-fixture unit check.
+- This report.
+
+Actually executed on the repair working tree using Node 22.23.3:
+
+- Controlled input-revision reproductions: modal click-through logout,
+  synchronous idle lock overwritten by a cloud callback, and suppressed login
+  pointerdown **REPRODUCED**. No production source was swapped on disk.
+- `trusted-main-login-smoke.js`: **4 groups PASS**, including the new actual-module
+  event/proof/profile regression. This is not a native-browser or Rules PASS.
+- `trusted-ci-readiness-smoke.js`: **3 groups PASS** for navigation, hit testing,
+  and the actual Auth/verifier with the injected browser SDK.
+- Syntax of changed JS, actual-byte offline manifest integrity (450 assets),
+  exact manifest delta, diff and unchanged protected-source/PIN scope: **PASS**.
+- Current CLOUD boundary: **PASS**, exact fail-closed refusals without effects;
+  isolated historical checkout identity/cleanliness and **425 pins** verified.
+- Both native smoke commands were attempted: **BLOCKED, zero native scenarios
+  completed**. Empty-installation cannot bind its private DBus socket; trusted
+  session cannot bind its loopback server (`EPERM`). A further isolated pipe-only
+  Chromium diagnostic also failed on sandbox-denied socket operations. The
+  additional-network execution request was cancelled, so it provided no test
+  evidence. No Chromium runtime/CI configuration was changed to hide this.
+
+Full mandatory current Preflight (including both native flows), current Firebase
+and historical CLOUD require a separately approved Actions attempt for the new
+HEAD. Existing CI discovery and release gates are unchanged. Physical Android
+remains PHONE_PENDING. Five-minute expiry, explicit device trust, fresh cloud
+authorization, local-data protection, Save/Cancel, LOCAL-FIRST, business data,
+Rules, the 425 historical pins and deferred shared PIN remain unchanged.
+
+**CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**.
+One repair commit on the existing branch; no CI rerun, PR transition, merge,
+Pages or Firebase LIVE.
