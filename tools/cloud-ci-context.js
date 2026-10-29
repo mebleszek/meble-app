@@ -4,6 +4,7 @@ const fs = require('node:fs'), path = require('node:path');
 const {spawnSync} = require('node:child_process');
 const HISTORICAL_SHA = '306f90a4cfd8bcb4277aa8b4d140e911493ddd60';
 const historicalSmoke = Object.freeze([
+  'cloud41-private-pilot-smoke.js',
   'cloud42-live-preparation-smoke.js','cloud43a-production-baseline-smoke.js',
   'cloud43b-gate1-approval-smoke.js','cloud44-gate2-smoke.js',
   'cloud46c-proof-smoke.js','cloud46d-preparation-smoke.js','cloud46e-connection-smoke.js'

@@ -21,15 +21,22 @@ async function admin(uid,enabled=true,{pilot=false,document={schemaVersion:1}}={
   if(document!==null)await f.setDoc(probe(db,uid),document);
  });
 }
-async function client({login=true,anonymous=false}={}){
+async function client({login=true,anonymous=false,sessionOnly=false}={}){
  const s=runtime(),n=++serial;
- const controller=await s.FC.cloudAuth.create({target:'emulator',appName:'access-'+n,
+ const controller=await s.FC.cloudAuth.create({target:'emulator',appName:'access-'+n,sessionOnly,
   firebaseConfig:{apiKey:'demo-only',projectId:'demo-meble-app',appId:'demo-only',authDomain:'demo-meble-app.firebaseapp.com'},
   emulator:{host:'127.0.0.1',port:19099,firestorePort:18080},
   sdk:{app,auth:{...a,indexedDBLocalPersistence:a.inMemoryPersistence}}});
  const instance=app.getApp('access-'+n),auth=a.getAuth(instance);
  if(anonymous)await a.signInAnonymously(auth);
  else if(login){const part=Buffer.from(JSON.stringify({sub:'synthetic-access-'+n,email:'synthetic-'+n+'@example.invalid',email_verified:true})).toString('base64url');await a.signInWithCredential(auth,a.GoogleAuthProvider.credential('e30.'+part+'.'));}
+ // A signed-out verifier refuses before connecting. Its direct Rules probe
+ // still needs an explicit emulator binding: getFirestore alone uses LIVE.
+ if(!auth.currentUser){
+  const db=f.initializeFirestore(instance,{localCache:f.memoryLocalCache()});
+  f.connectFirestoreEmulator(db,'127.0.0.1',18080);
+  assert.equal(db.app.options.projectId,'demo-meble-app');
+ }
  const verifier=s.FC.cloudAccessVerifier.create(controller,{sdk:f});
  const r={s,controller,auth,verifier,uid:auth.currentUser?.uid,gate:null,db:()=>f.getFirestore(instance)};clients.push(r);return r;
 }
@@ -45,6 +52,17 @@ test('Approved real Google UID obtains server-only proof; app approval alone gra
  await assertSucceeds(f.getDocFromServer(probe(r.db(),r.uid)));
  await assertFails(f.getDocFromServer(f.doc(r.db(),'users',r.uid,'pilotProjects','synthetic-project')));
  const g=gate(r);await until(()=>r.gate.state().status==='authorized');assert.equal(g.lease().isValid(),true);
+});
+test('Desktop in-memory Auth never inherits another app session; local-only trust is not a server lease',async()=>{
+ const first=await client({sessionOnly:true});await admin(first.uid);const result=await first.verifier.verify(first.controller.identity());
+ assert.equal(result.ok,true);const fresh=await client({sessionOnly:true,login:false});
+ assert.equal(fresh.auth.currentUser,null);assert.equal(fresh.controller.state().status,'unauthenticated');
+ await assertFails(f.getDocFromServer(probe(fresh.db(),first.uid)));
+ // A fabricated local identity cannot satisfy Auth, Rules or server-only proof.
+ await assert.rejects(fresh.verifier.verify({uid:first.uid,epoch:1}));
+ const own=gate(first);await until(()=>first.gate.state().status==='authorized');
+ await admin(first.uid,false);const denied=await first.verifier.verify(first.controller.identity());
+ assert.equal(denied.denied,true);assert.equal(denied.ok,false);assert.equal(typeof own.lease().assert,'function');
 });
 test('Second Google, signed-out, anonymous and direct UI-bypass reads are denied',async()=>{
  const owner=await client(),other=await client();await admin(owner.uid,true,{pilot:true});

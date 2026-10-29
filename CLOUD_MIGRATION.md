@@ -1,5 +1,11 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
+## Zaufane urządzenia / sesja tymczasowa — pakiet 28.10.2026
+
+Na bazie `951005296780f2b4887ab39b3c065a0beb247c48` przygotowano oddzielny lokalny dostęp, Google Auth i krótkie uprawnienie Firebase. Właściciel zatwierdził checkbox po logowaniu w górnym pasku obok Wyloguj. Zaufanie można świadomie ustanowić na telefonie, tablecie lub laptopie; wymaga ono dowodu WebCrypto/IDB i kompletnej powłoki offline. Niezaznaczona opcja oznacza na każdym urządzeniu sesję tymczasową tylko w pamięci dokumentu, z blokadą po 5 minutach bezczynności. Zmiana nie włącza synchronizacji, nie migruje danych ani nie zmienia PR #84. PR #84 jest scalony w powyższym main; wcześniejsze opisy jego CI_PENDING poniżej są historyczne.
+
+**CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Nowa macierz Chromium/IDB/offline i SDK/Rules wymaga CI, lokalnie natywny browser jest BLOCKED (`listen EPERM`). [Model, ograniczenia, rzeczywiste kontrole i wymagane dowody](tools/reports/trusted-phone-desktop-offline-auth.md). Nie odświeżać aktywnej karty z niezabezpieczonym RAM.
+
 ## LOCAL-FIRST SYNC — wykonany izolowany zakres, 28.10.2026
 
 Decyzja właściciela wznawia implementację synchronizacji; wcześniejsze wstrzymanie STORAGE RECOVERY jest historyczne. CLOUD-SYNC-1 (PR #78) oraz CLOUD-4.6E (PR #77) są wydane; STORAGE RECOVERY (PR #83) ma potwierdzenie CI/Pages i Pixela. Nie przenosimy tych PASS na nowy pakiet.

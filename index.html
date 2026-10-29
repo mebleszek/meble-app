@@ -11,7 +11,7 @@ html.auth-blocked>:not(head):not(body){display:none!important}
 body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style){display:none!important}
 #main-login[hidden],#main-auth-bar[hidden]{display:none!important}
 #main-login{width:100%;display:grid;place-items:center}
-#main-auth-bar{display:flex;justify-content:flex-end;padding:4px 12px;background:#111;color:#e6c5a5}
+#main-auth-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;justify-content:flex-end;padding:4px 12px;background:#111;color:#e6c5a5}
 #main-signout{font:inherit;border:0;background:transparent;color:inherit;min-height:40px;cursor:pointer}
 </style>
 <script data-load-group="auth-shell" defer src="js/auth-test-config.js?v=20261017_main_login"></script>
@@ -21,7 +21,9 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="auth-shell" defer src="js/app/cloud/cloud-access-verifier.js?v=20261017_main_login"></script>
 <script data-load-group="auth-shell" defer src="js/app/cloud/local-access-profile.js?v=20261017_atomic_profile"></script>
 <script data-load-group="auth-shell" defer src="js/app/cloud/main-business-loader.js?v=20261017_main_login"></script>
-<script data-load-group="auth-shell" defer src="js/main-login.js?v=20261019_quote_performance"></script>
+<script data-load-group="auth-shell" defer src="js/app/cloud/local-device-access.js?v=20261028_trusted_session"></script>
+<script data-load-group="auth-shell" defer src="js/app/cloud/offline-shell.js?v=20261028_trusted_session"></script>
+<script data-load-group="auth-shell" defer src="js/main-login.js?v=20261028_trusted_session"></script>
 </head>
 <body>
 <div id="main-login"><main class="auth-card" aria-labelledby="auth-title">
@@ -48,7 +50,11 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <p class="auth-test-note">Dostęp wymaga zatwierdzenia konta. Dane pozostają w tej przeglądarce.</p>
 </div>
 </main><noscript>Włącz JavaScript, aby bezpiecznie zalogować się do Meble-App.</noscript></div>
-<div id="main-auth-bar" hidden><button id="main-signout" type="button">Wyloguj</button></div>
+<div id="main-auth-bar" hidden>
+<label title="Każda osoba mająca dostęp do tego profilu przeglądarki będzie mogła otworzyć lokalne dane. Wylogowanie cofa zaufanie."><input id="main-trust-phone" type="checkbox" aria-describedby="main-trust-note" disabled> Zaufaj temu urządzeniu — dostęp offline do wylogowania</label>
+<small id="main-trust-note">Każda osoba korzystająca z tego profilu uzyska dostęp do lokalnych danych.</small>
+<span id="main-trust-status" role="status" aria-live="polite"></span>
+<button id="main-signout" type="button">Wyloguj</button></div>
 <template id="business-styles">
 <link href="css/base-ui.css?v=20260628_drawer_systems_materials_v1" rel="stylesheet"/>
 <link href="css/app-runtime.css?v=20260628_drawer_systems_materials_v1" rel="stylesheet"/>

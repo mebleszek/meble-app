@@ -10,6 +10,8 @@ const INDEX_LOAD_GROUPS = [
     "js/app/cloud/cloud-access-verifier.js",
     "js/app/cloud/local-access-profile.js",
     "js/app/cloud/main-business-loader.js",
+    "js/app/cloud/local-device-access.js",
+    "js/app/cloud/offline-shell.js",
     "js/main-login.js"
   ]
 },

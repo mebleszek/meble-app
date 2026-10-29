@@ -39,11 +39,12 @@
     const app=sdk.app.initializeApp(config,options.appName||'meble-auth-test');
     let auth;
     try{
-      auth=a.initializeAuth(app,{persistence:[a.indexedDBLocalPersistence,a.browserLocalPersistence].filter(value=>typeof value==='function'),...(typeof a.browserPopupRedirectResolver==='function'?{popupRedirectResolver:a.browserPopupRedirectResolver}:{})});
+      const persistences=options.sessionOnly===true?[a.inMemoryPersistence]:[a.indexedDBLocalPersistence,a.browserLocalPersistence];
+      auth=a.initializeAuth(app,{persistence:persistences.filter(value=>typeof value==='function'),...(typeof a.browserPopupRedirectResolver==='function'?{popupRedirectResolver:a.browserPopupRedirectResolver}:{})});
       if(options.target==='emulator')a.connectAuthEmulator(auth,'http://'+options.emulator.host+':'+options.emulator.port,{disableWarnings:true});
       // SDK owns all tokens. No application token/localStorage implementation.
       let persistent=false;
-      for(const persistence of [a.indexedDBLocalPersistence,a.browserLocalPersistence]){
+      for(const persistence of persistences){
         if(typeof persistence!=='function')continue;
         try{await a.setPersistence(auth,persistence);persistent=true;break;}catch(_){ }
       }

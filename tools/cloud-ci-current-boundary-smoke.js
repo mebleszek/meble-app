@@ -5,12 +5,17 @@ const {pathToFileURL}=require('node:url');
 const context=require('./cloud-ci-context.js');
 const impact=require('./cloud-ci-impact.js');
 const prefix='tools/firebase-pilot/';
-const refusalCodes=new Set(['CLOUD42_SOURCE_CHANGED','CLOUD46C_DEPENDENCY_CHANGED','CLOUD46C_PACKAGE_CHANGED','CLOUD46D_REVIEWED_SOURCE_CHANGED','CLOUD46E_PACKAGE_CHANGED']);
+const refusalCodes=new Set(['CLOUD_OPERATOR_SOURCE_CHANGED','CLOUD42_SOURCE_CHANGED','CLOUD46C_DEPENDENCY_CHANGED','CLOUD46C_PACKAGE_CHANGED','CLOUD46D_REVIEWED_SOURCE_CHANGED','CLOUD46E_PACKAGE_CHANGED']);
 function exact(code){
   assert.ok(refusalCodes.has(code),'Only named reviewed integrity refusals are allowed');
   return error=>error instanceof Error&&error.constructor===Error&&error.message===code;
 }
 function expectations(root,reference){
+  for(const file of ['private-pilot-source.js','private-pilot-runner.mjs','private-pilot-execution.js']){
+    const entry=reference[0].entries.find(e=>e.file===prefix+file);
+    assert.ok(entry,'Historical operator pin missing');
+    assert.equal(impact.actualHash(root,entry.file),entry.digest,'Reviewed private operator changed: '+file);
+  }
   for(const spec of reference){
     assert.ok(fs.readFileSync(path.join(root,spec.file)).equals(spec.bytes),'Historical manifest changed: '+spec.file);
     if(spec.file.endsWith('cloud42-source-pins.json'))continue;
@@ -21,7 +26,9 @@ function expectations(root,reference){
   }
   const dependencyChanged=reference[1].entries.some(entry=>impact.actualHash(root,entry.file)!==entry.digest);
   const propagated=dependencyChanged?'CLOUD46C_DEPENDENCY_CHANGED':'CLOUD42_SOURCE_CHANGED';
-  return {c42:'CLOUD42_SOURCE_CHANGED',c:propagated,d:propagated,e:propagated};
+  const operator=require(path.join(root,prefix,'private-pilot-source.js'));
+  const changed=impact.actualHash(root,'js/main-login.js')!==operator.MAIN_SHA256||impact.actualHash(root,prefix+'firestore-live-pilot.rules')!==operator.RULES_SHA256;
+  return {operator:changed?'CLOUD_OPERATOR_SOURCE_CHANGED':null,c42:'CLOUD42_SOURCE_CHANGED',c:propagated,d:propagated,e:propagated};
 }
 async function withoutEffects(operation){
   const patched=[],calls=[];
@@ -52,6 +59,7 @@ async function withoutEffects(operation){
 }
 async function probe(root,codes){
   return withoutEffects(async()=>{
+    if(codes.operator)assert.throws(()=>require(path.join(root,prefix,'private-pilot-source.js')).compile(),exact(codes.operator));
     const pilot=require(path.join(root,prefix,'cloud42-package.js'));
     for(const [module,code]of [['cloud42-package.js',codes.c42],['cloud46c-proof.js',codes.c],['cloud46d-candidate.js',codes.d],['cloud46e-authority.js',codes.e]]){
       if(code)assert.throws(()=>require(path.join(root,prefix,module)).inventory(),exact(code),module+': exact integrity refusal');
