@@ -39,14 +39,17 @@
 // 2) Additionally, when we detect a modal OPEN or a modal CLOSE/CANCEL, swallow exactly ONE next click globally.
 let swallowNextClickGlobal = false;
 let swallowNextClickFromEl = null;
+let pressedAction = null;
 
 // A new physical gesture cannot be the synthetic click from the previous
 // pointerup. Some mobile browsers suppress that click after preventDefault;
 // do not swallow the user's next modal confirmation indefinitely.
-document.addEventListener('pointerdown', () => {
+document.addEventListener('pointerdown', (event) => {
   swallowNextClickGlobal = false;
   swallowNextClickFromEl = null;
+  pressedAction = event.target && event.target.closest ? event.target.closest('[data-action]') : null;
 }, { capture:true, passive:true });
+document.addEventListener('pointercancel', () => { pressedAction = null; }, { capture:true, passive:true });
 
 const armSameEl = (el) => { swallowNextClickFromEl = el || null; };
 const armGlobal = () => { swallowNextClickGlobal = true; swallowNextClickFromEl = null; };
@@ -91,6 +94,12 @@ const shouldSwallowGlobalAfterAction = (action, actEl) => {
   // może trafić w nowy element i ominąć blokadę 'same element'. Po pointerup połykamy
   // dokładnie jeden kolejny click globalnie, żeby nie generować tej samej oferty dwa razy.
   if (action === 'wycena-generate') return true;
+  // Exit can move the persistent top button before its compatibility click.
+  // Consume that one click even if Chromium retargets it onto main-signout.
+  if (action === 'session-cancel') return true;
+  // Switching tabs can change header geometry/scroll before Chromium emits
+  // its compatibility click. It must not activate another tab or logout.
+  if (action === 'tab') return true;
   // View transitions can also suffer from "tap-through" on mobile (the synthetic click lands on
   // a newly shown element under the finger, e.g. a room tile after clicking "Nowy inwestor").
   if (action === 'new-investor' || action === 'create-investor' || action === 'new-service-order' || action === 'open-furniture-hub' || action === 'open-workshop-hub' || action === 'open-service-orders-list' || action === 'close-service-orders-list' || action === 'back-rooms' || action === 'open-room' || action === 'open-investor' || action === 'back-investors' || action === 'open-investors-list' || action === 'open-investors') return true;
@@ -99,6 +108,13 @@ const shouldSwallowGlobalAfterAction = (action, actEl) => {
 document.addEventListener(
   'pointerup',
   (e) => {
+    const releasedAction = e.target && e.target.closest ? e.target.closest('[data-action]') : null;
+    if(pressedAction && pressedAction !== releasedAction){
+      pressedAction = null;
+      armGlobal(); // A changed gesture target is not a deliberate new command.
+      return;
+    }
+    pressedAction = null;
     const beforeTop = getModalTop();
 
     const res = dispatchActionFromEvent(e);

@@ -3,7 +3,7 @@
 // read-only authorization RPC are explicit injected SDK fixtures, never LIVE.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http=require('node:http');
 const {startBrowser}=require('./helpers/chromium-runtime');
-const {documentNavigation,waitForGesturePoint}=require('./helpers/browser-test-readiness');
+const {documentNavigation,waitForGesturePoint,observeGesture}=require('./helpers/browser-test-readiness');
 const {installAuthInputDiagnostics,authModuleType}=require('./helpers/auth-input-diagnostics');
 const {inspectTrustStorage,closeBrowserForRestart}=require('./helpers/trusted-cold-start');
 const root=path.resolve(__dirname,'..');
@@ -38,7 +38,18 @@ async function browser(profile,url,{offline=false,inject=false}={}){
   if(offline)await send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
   navigation=documentNavigation(send);await navigation.navigate(url);
   assert.equal(await evaluate('location.href'),url);assert.equal(await evaluate('!!document.body&&!!document.getElementById("main-login")'),true,'Requested application document parsed');
-  return {evaluate,until,send,async tap(id){const p=await waitForGesturePoint(evaluate,'#'+id);
+  return {evaluate,until,send,async touch(selector){
+    await send('Emulation.setTouchEmulationEnabled',{enabled:true});const p=await waitForGesturePoint(evaluate,selector,{stable:true});
+    await evaluate('window.__navigationGesture=('+observeGesture.toString()+')('+JSON.stringify(selector)+')');
+    try{
+      await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...p,radiusX:3,radiusY:3,id:1}]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+      const trace=await evaluate('__navigationGesture.snapshot()');
+      for(const type of ['pointerdown','pointerup'])assert.equal(trace.events.filter(e=>e.type===type&&e.trusted&&e.onTarget).length,1,'Native '+type+' target '+selector+' '+JSON.stringify(trace));
+      assert.equal(trace.events.some(e=>e.type.endsWith('cancel')),false,'Native gesture cancelled '+JSON.stringify(trace));
+      // A compatibility click may target the new layout. The subsequent
+      // navigation assertions must prove that it cannot execute a second action.
+    }finally{await evaluate('__navigationGesture.close();delete window.__navigationGesture');}
+  },async tap(id){const p=await waitForGesturePoint(evaluate,'#'+id);
     await send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...p});await send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...p});},
     close(){return closing||=closeBrowserForRestart({send,owner,ws,pending});}};
  }catch(e){ws.close();await owner.close();throw e;}
@@ -89,7 +100,10 @@ async function main(){
   assert.equal(await device.evaluate('__FC_MAIN_ACCESS__.isValid()'),true);
   assert.equal(await device.evaluate('('+authModuleType.toString()+')()'),'function','Public Auth module stays registered without creating an Auth session');
   assert.equal(await device.evaluate('document.getElementById("main-trust-phone").checked'),true);
-  await device.tap('main-signout');await device.until('!__FC_MAIN_ACCESS__.isValid()');await device.close();device=null;
+  await require('./helpers/investor-navigation-browser').exerciseInvestorNavigation(device);
+  await device.tap('main-signout');await device.until('!__FC_MAIN_ACCESS__.isValid()');
+  const revoked=await device.evaluate('('+inspectTrustStorage.toString()+')()');assert.equal(revoked.fence,'revoked');assert.equal(revoked.revoked,true,'Explicit logout must durably revoke the trust proof');
+  await device.close();device=null;
   device=await browser(profile,url,{offline:true});await device.until('document.body.dataset.authState==="unauthenticated"');
   assert.equal(await device.evaluate('!!window.__APP_STARTED__'),false);assert.equal(await device.evaluate('__FC_MAIN_ACCESS__.isValid()'),false);
   console.log('PASS real Chromium/IDB/CryptoKey/SW: desktop idle retains RAM, explicit trust, background/offline, cold restart with origin stopped, offline logout and no inherited readmission');

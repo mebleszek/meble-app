@@ -1,5 +1,15 @@
 # TEST_BASELINE — punkt odniesienia testów Meble-App
 
+## 2026-10-29 — nawigacja inwestora i bezpieczne Wyjdź
+
+BASE `0a9522cf9277ef3de03d328a84dd9569a1958e46`, gałąź `fix/investor-navigation-exit-mobile-20261029`. Nowy UX zastępuje planszę pomieszczeń istniejącą kartą INWESTORA; czyste Wyjdź z projektu kończy sesję trwale i otwiera listę inwestorów. Anuluj zmian nadal chroni/reotwiera to samo pomieszczenie. Nie przenosić dawnych oczekiwań `homeView`/`roomsView` na ten kontrakt.
+
+Obowiązkowy Preflight automatycznie wykrywa `investor-navigation-exit-smoke.js` (12 grup) oraz dotychczasowe smoke nawigacji, awarii sesji i Auth. `trusted-session-browser-smoke.js` jawnie **await** wykonuje `helpers/investor-navigation-browser.js`: prawdziwe gesty Chromium, zaufana sesja offline, osiem zakładek, trwałe zakończenie, brak reload/wylogowania, prawdziwe Wyloguj i pasek 393/320 px. Nie jest to opcjonalny samodzielny plik browser.
+
+`project-context-mobile-browser.js` ma dostosowaną trasę INWESTOR → pomieszczenie, ale pozostaje dodatkowym, ręcznie wskazywanym zestawem; tak samo `project-session-restored-proof-browser.js`. Nie są uruchamiane automatycznie od samego istnienia pliku. Obowiązkowe dowody tej zmiany są w powyższym native smoke i modelowych smoke bezpieczeństwa. Bez zmian workflow, emulatorów ani 425 pinów.
+
+Celowane wyniki i dokładna tabela audytu: [raport pakietu](tools/reports/investor-navigation-exit-mobile-20261029.md). Natywne Chromium lokalnie **BLOCKED** (`listen EPERM`), zero scenariuszy wykonanych; pełna weryfikacja nowego HEAD pozostaje **CI_PENDING**, fizyczny Android **PHONE_PENDING**.
+
 ## 2026-10-19 — pomiary WYCENY i rzeczywiste odnowienie Auth
 
 Baza `764d0852`; nowe regresje `tools/quote-performance-smoke.js` (22/22) są objęte

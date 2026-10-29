@@ -19,16 +19,16 @@ function reboot(rows){
 }
 async function refused(rows,code){
   for(const action of ['save','cancel','navigation']){
-    const r=reboot(rows),before=r.seed(),snapshot=r.FC.session.snapshot;
+    const r=reboot(rows),before=r.seed(),snapshot=r.FC.session.snapshot,ui=JSON.stringify(r.s.uiState);
     if(action==='navigation')assert.equal(await r.FC.tabNavigation.setActiveTab('wycena'),false);
-    else await r.handlers['session-'+action]({});
-    if(action==='navigation'&&code==='SESSION_UNCONFIRMED'){
+    else {const result=await r.handlers['session-'+action]({});if(action==='cancel'&&code==='SESSION_UNCONFIRMED')assert.equal(result,false,'Clean Exit must refuse departure');}
+    if((action==='navigation'||action==='cancel')&&code==='SESSION_UNCONFIRMED'){
       assert.equal(r.FC.session.lastError,null); // navigation shows a generic proof refusal
       assert.ok(r.messages.some(row=>row.title==='Nie można potwierdzić stanu sesji'));
     }else assert.equal(r.FC.session.lastError.code,code,action);
     assert.equal(r.FC.session.active,true);assert.equal(r.FC.session.snapshot,snapshot);
     assert.deepEqual(r.seed(),before,action+' must preserve ALL persisted bytes');
-    assert.deepEqual(r.storage.calls,[]);
+    assert.deepEqual(r.storage.calls,[]);assert.equal(JSON.stringify(r.s.uiState),ui,action+' must preserve view/context');
     // No in-memory failure flag survives: the second restart must refuse too.
     const again=reboot(r.seed());assert.equal(again.FC.session.canSaveProject(),false);
     assert.equal(again.FC.session.lastError.code,code);assert.deepEqual(again.seed(),before);
@@ -120,5 +120,16 @@ test('A stored snapshot lacking required proof is not repaired from existence or
   const r=await opened(),rows=r.seed(),payload=JSON.parse(rows[E]);
   delete payload.snapshot.fc_edge_v1;rows[E]=JSON.stringify(payload);
   await refused(rows,'SESSION_UNCONFIRMED');
+  // The apparently clean button is Exit now. Direct Cancel still must refuse
+  // rollback with the original code, and dirty Cancel must take that path too.
+  for(const dirty of [false,true]){
+    const fresh=reboot(rows),before=fresh.seed(),snapshot=fresh.FC.session.snapshot;
+    if(dirty){fresh.s.projectData.room_k.cabinets[0].width=65;await fresh.handlers['session-cancel']({});}
+    else assert.equal(fresh.FC.session.cancel(),false);
+    assert.equal(fresh.FC.session.lastError.code,'SESSION_UNCONFIRMED');
+    assert.equal(fresh.FC.session.active,true);assert.equal(fresh.FC.session.snapshot,snapshot);
+    assert.deepEqual(fresh.seed(),before);assert.deepEqual(fresh.storage.calls,[]);
+    assert.equal(fresh.s.projectData.room_k.cabinets[0].width,dirty?65:60);
+  }
 });
 (async()=>{let failed=0;for(const [name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(e){failed++;console.error('FAIL '+name+'\n'+e.stack);}}console.log(`${tests.length-failed}/${tests.length} PASS`);process.exitCode=failed?1:0;})();

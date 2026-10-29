@@ -203,7 +203,7 @@ async function main(){
    assert.equal(await evaluate('window.FC.session.active'),false,'Investor navigation must not start or silently finish an edit');
   }
   assert.equal(await evaluate('localStorage.getItem("fc_quote_snapshots_v1")'),historyRaw);pass('actual A -> B -> A actions retain RAM/source identity and frozen history');
-  await tab('wycena','document.getElementById("roomsView").style.display==="block"');
+  await tab('inwestor','document.getElementById("investorView").style.display==="block"');
   await touch('[data-action="open-room"][data-room="room_test_A"]');
   await until('uiState.entry==="app"&&window.FC.session.active','actual room opening');
   await tab('wycena','!!document.querySelector("[data-action=wycena-generate]")&&uiState.entry==="app"&&!window.FC.session.active');

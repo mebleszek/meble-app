@@ -228,6 +228,21 @@
       const inInvestorTab = !!(typeof uiState !== 'undefined' && uiState && uiState.activeTab === 'inwestor');
       const investorEditing = !!(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock());
 
+      if(!dirty){
+        if(investorEditing) return true;
+        const investor = (typeof uiState !== 'undefined' && uiState && uiState.currentInvestorId)
+          || (session && session.context && session.context.investorId)
+          || (FC.investors && FC.investors.getCurrentId && FC.investors.getCurrentId());
+        if(investor){
+          const nav = FC.sessionNavigation;
+          if(!nav || typeof nav.requestTransition !== 'function') return false;
+          return nav.requestTransition('listy inwestorów',()=>{
+            if(!FC.views || !FC.views.openInvestorsList) return false;
+            return FC.views.openInvestorsList();
+          });
+        }
+      }
+
       // A failed durable cleanup leaves an active session even after data is clean.
       if(dirty || (session && session.active)){
         const roomContext = dirty && session && session.roomId ? {
@@ -293,7 +308,6 @@
         }
         try{ if(FC.uiState && typeof uiState !== 'undefined') uiState = FC.uiState.set({entry:'rooms',activeTab:'pokoje',roomType:null,lastRoomType:null,selectedCabinetId:null}); }catch(_){ }
         try{ restoreProjectUiAfterSessionChange(); }catch(_){ }
-        try{ window.location.reload(); }catch(_){ }
         return true;
       }
 
@@ -386,6 +400,9 @@
             uiState.currentInvestorId = id;
             uiState.entry = 'rooms';
             uiState.activeTab = 'inwestor';
+            uiState.roomType = null;
+            uiState.lastRoomType = null;
+            uiState.selectedCabinetId = null;
             FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
             if(FC.views && FC.views.applyFromState) FC.views.applyFromState(uiState);
           }

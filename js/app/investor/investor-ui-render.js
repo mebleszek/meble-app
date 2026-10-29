@@ -181,6 +181,17 @@
           <h3 style="margin:0">Inwestor</h3>
         </div>
 
+        <div class="investor-rooms-head">
+          <h4 style="margin:0">Pomieszczenia</h4>
+          <div class="investor-room-head-actions">
+            <button class="btn-primary investor-add-room-btn${isEditing ? ' is-disabled' : ''}" type="button" data-investor-action="add-room" ${isEditing ? 'disabled' : ''}>Dodaj</button>
+            <button class="btn investor-manage-rooms-btn${isEditing ? ' is-disabled' : ''}" type="button" data-investor-action="manage-rooms" ${isEditing ? 'disabled' : ''}>Edytuj</button>
+          </div>
+        </div>
+        <div class="muted xs" style="margin-bottom:10px">Wyświetlam tylko pomieszczenia dodane do tego inwestora.</div>
+        <div class="investor-room-quick-list">${projectCards}</div>
+        <p id="investor-room-hint" role="status" aria-live="polite" hidden></p>
+
         <div class="investor-choice-grid">
           ${fields.buildChoiceField('invKind', 'Typ', TYPE_OPTIONS, draft.kind || 'person', 'investor-choice-field--kind', { readonlyPreview:!isEditing })}
           ${fields.buildInputField('invAddedDate', fields.buildStaticLabel('Data dodania'), normalizeDateInput(draft.addedDate || inv.addedDate || inv.createdAt), { readonly:!isEditing, compact:true, inputType:'date', displayValue:formatDateDisplay(draft.addedDate || inv.addedDate || inv.createdAt) })}
@@ -196,15 +207,6 @@
         <div class="investor-bottom-actions" id="investorActionBar">${bottomButtons}</div>
         <div class="investor-action-divider" aria-hidden="true"></div>
 
-        <div class="investor-rooms-head">
-          <h4 style="margin:0">Pomieszczenia</h4>
-          <div class="investor-room-head-actions">
-            <button class="btn-primary investor-add-room-btn${isEditing ? ' is-disabled' : ''}" type="button" data-investor-action="add-room" ${isEditing ? 'disabled' : ''}>Dodaj</button>
-            <button class="btn investor-manage-rooms-btn${isEditing ? ' is-disabled' : ''}" type="button" data-investor-action="manage-rooms" ${isEditing ? 'disabled' : ''}>Edytuj</button>
-          </div>
-        </div>
-        <div class="muted xs" style="margin-bottom:10px">Wyświetlam tylko pomieszczenia dodane do tego inwestora.</div>
-        <div class="investor-room-quick-list">${projectCards}</div>
         ${isEditing ? '<div class="investor-disabled-note">W trybie edycji pomieszczenia, statusy projektów i górna nawigacja są zablokowane.</div>' : ''}
       </div>
     `;

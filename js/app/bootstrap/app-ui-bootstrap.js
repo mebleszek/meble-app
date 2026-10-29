@@ -108,9 +108,9 @@
     if(entry === 'serviceOrdersList') return fallbackShowView(ctx, 'serviceOrdersListView', { tabs:false, session:false, floating:false });
     if(tab === 'rozrys') return fallbackShowView(ctx, 'rozrysView', { tabs:true, session:true, floating:false });
     if(tab === 'magazyn') return fallbackShowView(ctx, 'magazynView', { tabs:true, session:true, floating:false });
-    if(tab === 'pokoje') return fallbackShowView(ctx, 'roomsView', { tabs:true, session:true, floating:false });
+    if(tab === 'pokoje') return fallbackShowView(ctx, currentInvestorId ? 'investorView' : 'investorsListView', { tabs:!!currentInvestorId, session:!!currentInvestorId, floating:false });
     if(entry === 'app' && st.roomType) return fallbackShowView(ctx, 'appView', { tabs:true, session:true, floating:true });
-    if(entry === 'rooms' || currentInvestorId) return fallbackShowView(ctx, 'roomsView', { tabs:true, session:true, floating:false });
+    if(entry === 'rooms' || currentInvestorId) return fallbackShowView(ctx, currentInvestorId ? 'investorView' : 'investorsListView', { tabs:!!currentInvestorId, session:!!currentInvestorId, floating:false });
     return fallbackShowView(ctx, 'homeView', { tabs:false, session:false, floating:false });
   }
 

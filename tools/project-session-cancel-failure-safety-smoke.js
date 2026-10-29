@@ -204,7 +204,7 @@ async function uiCleanupFailureAndRetry(){
   await r.cancelUi();
   assert.deepEqual(results, [false, false, true]);
   assertSuccess(r, snapshot);
-  assert.equal(r.ui.reloads, 1);
+  assert.equal(r.ui.reloads, 0, 'Successful cancellation must not reload the document');
   assert.equal(r.ui.restores, 1);
   assert.equal(r.ui.messages.length, 2);
 }
@@ -232,7 +232,7 @@ async function uiFailureAndRetry(){
   assert.equal(r.session.isDirty(), true);
   r.storage.failures.clear();
   await r.cancelUi();
-  assert.equal(r.ui.reloads, 1);
+  assert.equal(r.ui.reloads, 0, 'Successful cancellation must not reload the document');
   assert.equal(r.ui.restores, 1);
   assert.equal(r.ui.messages.length, 1, 'Successful retry must not show another failure');
   assert.equal(r.storage.getItem(PROJECTS), project('P1'));
@@ -262,7 +262,7 @@ async function uiNormalAndDeclined(){
   assert.equal(r.storage.calls.length, 0);
   r.ui.confirmed = true;
   await r.cancelUi();
-  assert.equal(r.ui.reloads, 1);
+  assert.equal(r.ui.reloads, 0, 'Successful cancellation must not reload the document');
   assert.equal(r.ui.restores, 1);
   assert.equal(r.ui.messages.length, 0);
   assert.equal(r.storage.getItem(PROJECTS), project('P1'));
