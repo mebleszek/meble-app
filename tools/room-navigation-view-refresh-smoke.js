@@ -175,7 +175,7 @@ test('Next edit saves inside the new session, and clean Exit still leaves the ed
   assert.equal(r.row('A').projectData.room.cabinets[0].width,66);assert.equal(r.FC.session.active,false);
   assert.equal(r.element('appView').style.display,'block');assert.equal(r.element('roomTitle').textContent,'Kuchnia');assert.match(r.element('cab-cab-A').textContent,/66 ×/);
   assert.equal(r.element('sessionCancel').textContent,'Wyjdź');assert.equal(r.element('sessionSave').style.display,'none');
-  await r.handlers['session-cancel']({});assert.equal(r.element('appView').style.display,'none');assert.equal(r.element('homeView').style.display,'block');assert.equal(r.s.location.reloads,0);
+  await r.handlers['session-cancel']({});assert.equal(r.element('appView').style.display,'none');assert.equal(r.element('investorsListView').style.display,'block');assert.equal(r.s.location.reloads,0);
 });
 test('Declined Cancel keeps edited DOM, RAM and the original durable snapshot',async()=>{
   const r=await changedKitchen(),snapshot=r.FC.session.snapshot,payload=r.storage.getItem('fc_edit_session_v1'),raw=r.storage.getItem('fc_projects_v1');
@@ -210,6 +210,6 @@ test('Clean Exit after local Cancel still leaves the room rather than cancelling
   const r=await changedKitchen();await r.handlers['session-cancel']({});r.visible('room',60);
   let confirmations=0;r.FC.confirmBox.ask=async()=>{confirmations++;return true;};
   await r.handlers['session-cancel']({});assert.equal(confirmations,0);assert.equal(r.FC.session.active,false);
-  assert.equal(r.s.uiState.entry,'rooms');assert.equal(r.element('appView').style.display,'none');assert.equal(r.element('roomsView').style.display,'block');
+  assert.equal(r.s.uiState.entry,'investorsList');assert.equal(r.element('appView').style.display,'none');assert.equal(r.element('investorsListView').style.display,'block');
 });
 (async()=>{let failed=0;for(const [name,fn] of tests){try{await fn();console.log('PASS '+name);}catch(e){failed++;console.error('FAIL '+name+'\n'+e.stack);}}console.log(`${tests.length-failed}/${tests.length} PASS`);process.exitCode=failed?1:0;})();

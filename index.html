@@ -11,7 +11,10 @@ html.auth-blocked>:not(head):not(body){display:none!important}
 body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style){display:none!important}
 #main-login[hidden],#main-auth-bar[hidden]{display:none!important}
 #main-login{width:100%;display:grid;place-items:center}
-#main-auth-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;justify-content:flex-end;padding:4px 12px;background:#111;color:#e6c5a5}
+#main-auth-bar{display:flex;align-items:center;flex-wrap:nowrap;gap:16px;justify-content:flex-end;padding:4px 12px;background:#111;color:#e6c5a5;white-space:nowrap}
+#main-auth-bar label{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+#main-trust-note{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#main-trust-status:not(:empty){display:block;padding:6px 12px;font-size:13px}
 #main-signout{font:inherit;border:0;background:transparent;color:inherit;min-height:40px;cursor:pointer}
 </style>
 <script data-load-group="auth-shell" defer src="js/auth-test-config.js?v=20261017_main_login"></script>
@@ -51,10 +54,10 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 </div>
 </main><noscript>Włącz JavaScript, aby bezpiecznie zalogować się do Meble-App.</noscript></div>
 <div id="main-auth-bar" hidden>
-<label title="Każda osoba mająca dostęp do tego profilu przeglądarki będzie mogła otworzyć lokalne dane. Wylogowanie cofa zaufanie."><input id="main-trust-phone" type="checkbox" aria-describedby="main-trust-note" disabled> Zaufaj temu urządzeniu — dostęp offline do wylogowania</label>
-<small id="main-trust-note">Każda osoba korzystająca z tego profilu uzyska dostęp do lokalnych danych.</small>
-<span id="main-trust-status" role="status" aria-live="polite"></span>
+<label title="Każda osoba mająca dostęp do tego profilu przeglądarki będzie mogła otworzyć lokalne dane. Wylogowanie cofa zaufanie."><input id="main-trust-phone" type="checkbox" aria-describedby="main-trust-note" disabled> Zaufany</label>
 <button id="main-signout" type="button">Wyloguj</button></div>
+<small id="main-trust-note">Zaufanie wymaga potwierdzenia online i pozwala pracować offline do wylogowania. Każda osoba korzystająca z tego profilu uzyska dostęp do lokalnych danych. Wylogowanie cofa zaufanie.</small>
+<span id="main-trust-status" role="status" aria-live="polite"></span>
 <template id="business-styles">
 <link href="css/base-ui.css?v=20260628_drawer_systems_materials_v1" rel="stylesheet"/>
 <link href="css/app-runtime.css?v=20260628_drawer_systems_materials_v1" rel="stylesheet"/>

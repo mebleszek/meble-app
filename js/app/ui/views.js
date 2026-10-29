@@ -94,11 +94,11 @@
   }
 
   function showRooms(){
-    showOnly(['roomsView']);
-    setTabsVisible(true);
-    setSessionButtonsVisible(true);
-    setFloatingVisible(false);
-    try{ if(FC.roomRegistry && typeof FC.roomRegistry.renderRoomsView === 'function') FC.roomRegistry.renderRoomsView(); }catch(_){ }
+    // Compatibility API only: room selection now lives inside INWESTOR.
+    const state = typeof uiState !== 'undefined' ? uiState : {};
+    if(!readCurrentInvestorId(state)) return showInvestorsList();
+    showInvestor();
+    if(FC.investorUI && FC.investorUI.render) FC.investorUI.render();
   }
 
   function showApp(){ showOnly(['appView']); setTabsVisible(true); setSessionButtonsVisible(true); setFloatingVisible(true); }
@@ -137,9 +137,19 @@
     return syncGlobalUiState(Object.assign({}, nextPatch));
   }
 
-  function clearProjectContext(){
-    try{ if(FC.investorPersistence && typeof FC.investorPersistence.setCurrentInvestorId === 'function') FC.investorPersistence.setCurrentInvestorId(null); }catch(_){ }
-    try{ if(FC.reloadRestore && typeof FC.reloadRestore.clear === 'function') FC.reloadRestore.clear(); }catch(_){ }
+  function clearProjectContext(pointerOnly=false){
+    try{
+      // After confirmed closure, clear only the navigation pointer through the
+      // existing guarded repository. The high-level investor switch wrapper
+      // would save the old project again, even for a clean Exit.
+      if(pointerOnly && FC.investorsLocalRepository && FC.investorsLocalRepository.setCurrentId){
+        if(FC.investorsLocalRepository.setCurrentId(null) === false) return false;
+      }else if(FC.investorPersistence && FC.investorPersistence.setCurrentInvestorId) FC.investorPersistence.setCurrentInvestorId(null);
+      if(pointerOnly && FC.investorPersistence && FC.investorPersistence.getCurrentInvestorId
+        && FC.investorPersistence.getCurrentInvestorId()) return false;
+      if(FC.reloadRestore && FC.reloadRestore.clear) FC.reloadRestore.clear();
+      return true;
+    }catch(_){ return false; }
   }
 
   function shouldOpenRoomlessWycena(state){
@@ -198,7 +208,10 @@
   }
 
   function openInvestorsList(){
-    try{ if(FC.investorPersistence && typeof FC.investorPersistence.setCurrentInvestorId === 'function') FC.investorPersistence.setCurrentInvestorId(null); }catch(_){ }
+    if(!clearProjectContext(true)){
+      if(FC.infoBox && FC.infoBox.open) FC.infoBox.open({title:'Nie udało się opuścić projektu',message:'Nie potwierdzono zamknięcia kontekstu. Zachowano bieżący widok i dane. Spróbuj ponownie.',okOnly:true,sessionDiagnostic:true});
+      return false;
+    }
     const nextState = setUiStatePatch({ entry:'investorsList', activeTab:null, roomType:null, lastRoomType:null, currentInvestorId:null, selectedCabinetId:null, workMode:'furnitureProjects' });
     applyFromState(nextState || { entry:'investorsList', activeTab:null, currentInvestorId:null, workMode:'furnitureProjects' });
   }
@@ -210,8 +223,10 @@
   }
 
   function openRooms(){
-    const nextState = setUiStatePatch({ entry:'rooms', activeTab:'pokoje', roomType:null, selectedCabinetId:null });
-    applyFromState(nextState || { entry:'rooms', activeTab:'pokoje' });
+    const nextState = setUiStatePatch({ entry:'rooms', activeTab:'inwestor', roomType:null, lastRoomType:null, selectedCabinetId:null });
+    if(!readCurrentInvestorId(nextState)) return openInvestorsList();
+    applyFromState(nextState);
+    if(FC.investorUI && FC.investorUI.render) FC.investorUI.render();
   }
 
   function openRoom(room){
@@ -230,16 +245,14 @@
 
   function back(){
     const st = (FC.uiState && FC.uiState.get) ? FC.uiState.get() : {};
-    if(st && st.entry === 'app'){
-      const nextState = setUiStatePatch({ entry:'rooms', roomType:null, activeTab:'pokoje', selectedCabinetId:null });
-      return applyFromState(nextState || { entry:'rooms', roomType:null, activeTab:'pokoje' });
-    }
+    if(readCurrentInvestorId(st)) return openInvestorsList();
     if(st && st.entry === 'investorsList') return openModeHub('furnitureProjects');
     if(st && st.entry === 'serviceOrdersList') return openModeHub('workshopServices');
     return openHome();
   }
 
   function guardedView(destination, action, options){
+    if(FC.investorEditorState && FC.investorEditorState.hasUiLock && FC.investorEditorState.hasUiLock()) return false;
     const nav = FC.sessionNavigation;
     if(nav && typeof nav.requestTransition === 'function') return nav.requestTransition(destination, action, options);
     if(FC.session && FC.session.active) return false;

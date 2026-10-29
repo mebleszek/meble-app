@@ -13,11 +13,18 @@
 
   function applyTab(tabName){
     if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock() && tabName !== 'inwestor') return;
+    const requiresRoom = ['wywiad','material','rysunek','czynnosci'].includes(tabName);
+    if(requiresRoom && !uiState.roomType){
+      const investor = uiState.currentInvestorId || (window.FC.investorPersistence && window.FC.investorPersistence.getCurrentInvestorId());
+      if(!investor) return window.FC.views.openInvestorsList();
+      const result = applyTab('inwestor');
+      if(result === false) return false;
+      if(window.FC.investorUI && window.FC.investorUI.render) window.FC.investorUI.render();
+      if(window.FC.investorUI && window.FC.investorUI.promptRoomSelection) window.FC.investorUI.promptRoomSelection();
+      return true;
+    }
     const proposed = Object.assign({}, uiState, { activeTab:tabName });
     if(FC.sessionNavigation && !FC.sessionNavigation.prepareEditState(proposed)) return false;
-    if(tabName === 'wywiad' && !uiState.roomType){
-      uiState.entry = 'rooms';
-    }
     if(tabName === 'wycena' && !uiState.roomType && (uiState.entry === 'rooms' || uiState.currentInvestorId)) uiState.entry = 'app';
     uiState.activeTab = tabName;
     FC.storage.setJSON(STORAGE_KEYS.ui, uiState);

@@ -1,5 +1,13 @@
 # ROADMAP — kolejność dalszego rozwoju Meble-App
 
+## Nawigacja INWESTORA / Wyjdź / pasek zaufania — 29.10.2026
+
+PR #85 został wydany do main `0a9522cf9277ef3de03d328a84dd9569a1958e46` (potwierdzenie właściciela). Dawne CI_PENDING pakietu Auth poniżej jest historyczne. Test fizycznego Androida pozostaje oddzielną kontrolą.
+
+Na gałęzi `fix/investor-navigation-exit-mobile-20261029` przygotowano przeniesienie istniejących Pomieszczeń pod nagłówek INWESTORA, przekierowanie czterech zakładek bez pomieszczenia do tej karty, dyskretną wskazówkę oraz jednolite Wyjdź do listy inwestorów. Czysta sesja wymaga potwierdzonego trwałego zamknięcia; Anuluj/Zapisz i blokady danych pozostają. Pasek ma jeden rząd „Zaufany / Wyloguj”, z zachowaniem ostrzeżenia, opisu checkboxa i komunikatów aria-live poza stałym rzędem. Bez zmian danych, obliczeń, LOCAL-FIRST i Firebase LIVE.
+
+**CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Następny krok: niezależny przegląd HEAD/BASE i dopiero osobno zatwierdzone CI/wydanie. Nowe i dostosowane regresje, pokrycie obowiązkowego CI i lokalne ograniczenia są w [raporcie](tools/reports/investor-navigation-exit-mobile-20261029.md). Nie odświeżać otwartej karty z niezapisanym RAM.
+
 ## Zaufane urządzenia / sesja tymczasowa — pakiet 28.10.2026
 
 Na bazie `951005296780f2b4887ab39b3c065a0beb247c48` przygotowano oddzielny lokalny dostęp, Google Auth i krótkie uprawnienie Firebase. Właściciel zatwierdził checkbox po logowaniu w górnym pasku obok Wyloguj. Zaufanie można świadomie ustanowić na telefonie, tablecie lub laptopie; wymaga ono dowodu WebCrypto/IDB i kompletnej powłoki offline. Niezaznaczona opcja oznacza na każdym urządzeniu sesję tymczasową tylko w pamięci dokumentu, z blokadą po 5 minutach bezczynności. Zmiana nie włącza synchronizacji, nie migruje danych ani nie zmienia PR #84. PR #84 jest scalony w powyższym main; wcześniejsze opisy jego CI_PENDING poniżej są historyczne.

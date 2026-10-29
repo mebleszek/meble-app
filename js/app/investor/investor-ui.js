@@ -357,7 +357,23 @@
     refreshActionBar();
   }
 
+  let roomCueTimer;
+  function promptRoomSelection(){
+    if(editor() && editor().hasUiLock && editor().hasUiLock()) return false;
+    const root = getRoot(), hint = document.getElementById('investor-room-hint');
+    if(!root || !hint) return false;
+    const rooms = Array.from(root.querySelectorAll('.investor-room-quick-btn')).filter(node=>!node.disabled);
+    const targets = rooms.length ? rooms : Array.from(root.querySelectorAll('.investor-add-room-btn')).filter(node=>!node.disabled);
+    clearTimeout(roomCueTimer);
+    root.querySelectorAll('.investor-room-cue').forEach(node=>node.classList.remove('investor-room-cue'));
+    hint.hidden = false;hint.textContent = 'Wybierz pomieszczenie lub dodaj nowe.';
+    targets.forEach(node=>{ void node.offsetWidth;node.classList.add('investor-room-cue'); });
+    roomCueTimer = setTimeout(()=>{ targets.forEach(node=>node.classList.remove('investor-room-cue'));hint.hidden=true; }, 4000);
+    return true;
+  }
+
   FC.investorUI = {
+    promptRoomSelection,
     render,
     renderListOnly,
     state,
