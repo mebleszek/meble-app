@@ -261,6 +261,19 @@ Właściciel podejmuje strategiczne decyzje biznesowe, zatwierdza zakresy i wyda
 
 Ten podział przypisuje odpowiedzialność za testy zgodnie z §3 i §10, bez zmniejszania ich zakresu. Zachowuje zasadę „najpierw plan, potem «do dzieła»”, osobne zgody na PR Ready, merge i Pages oraz Firebase LIVE, Rules, granty i migracje danych. Ochrona danych klientów, kompatybilności i istniejącego UI pozostaje obowiązkowa.
 
+## 15. Kanoniczny dziennik postępów — obowiązek od 30.10.2026
+
+**`CURRENT_STATE.md` jest jedynym kanonicznym, aktualizowanym rejestrem wykonania Meble-App.** Nie tworzyć równoległych plików typu `STATUS_*.md`, `PROGRESS.md`, osobnych dzienników ani duplikatów aktualnego stanu w `ROADMAP.md`. Historycznych raportów i dowodów nie usuwać ani nie nadpisywać domysłem.
+
+1. **Start nowej rozmowy/etapu:** ChatGPT i Codex czytają najpierw **sekcje 1–5 `CURRENT_STATE.md`** oraz obowiązujące `AGENTS.md`; porównują stan z aktualnym `main`, otwartymi PR, HEAD/BASE, Actions i Pages. `ROADMAP.md` służy do wyboru przyszłego zakresu, a stare wpisy w nim nie są aktualnym statusem. Nie wolno powtarzać zakończonego audytu tylko dlatego, że nie ma go w bieżącej rozmowie.
+2. **Po każdym faktycznie wykonanym, zatwierdzonym kroku:** Codex w **tym samym uzgodnionym pakiecie** aktualizuje aktywną część `CURRENT_STATE.md`: data, cel/zakres, nazwa gałęzi, BASE SHA, HEAD SHA gdy dostępny, wynik weryfikacji, dokładne źródła dowodów (PR/run/Pages/raport), pozostałe blokery, **jeden następny ruch**. Nie podnosi statusów z `CI_PENDING` do `CI_PASS` ani do `RELEASED` bez rzeczywistych dowodów dla właściwego SHA.
+3. **Historia bez utraty:** aktualizować istniejącą tabelę i sekcje aktywne; przy zastąpieniu stanu przenieść stary fakt do części archiwalnej lub wskazać historyczny raport. Nie doklejać kolejnego długiego „aktualnego stanu” na samej górze i nie kopiować identycznych bloków między `CURRENT_STATE.md` i `ROADMAP.md`. Nigdy nie usuwać decyzji biznesowych, norm, historycznych ofert ani źródeł dowodów przez „porządki”.
+4. **Bramki zgody:** aktualizacja dokumentacji w repo jest zmianą plików i wymaga objęcia jej wyraźnie zatwierdzonym zakresem. Nie modyfikować GitHuba w fazie odczytowej, nie dopisywać commitów podczas obserwacji PR/CI i nie robić pushy do `main` tylko po to, aby dogonić status. **Wyniki CI/merge/Pages** wolno wpisać do repo dopiero po odrębnej zgodzie na następną zmianę dokumentacji lub w następnym dozwolonym pakiecie.
+5. **STOP i rozbieżności:** jeżeli rejestr mówi `CI_PENDING`, a GitHub potwierdza `RELEASED`, najpierw zweryfikować konkretny PR i SHA, a następnie zgłosić korektę do wykonania po uzyskaniu zgody; nie przedstawiać starego statusu jako obecnego. Jeśli brakuje poświadczenia lub operacja jest zablokowana, wpisać `BLOCKED` i wskazać dowód/lukę, nie ponawiać automatycznie testów i nie zgadywać wyniku.
+6. **Krótki raport właścicielowi:** „zrobione / zweryfikowane / blokery / następny ruch” i linki. Nie żądać ponownego tłumaczenia zakończonych etapów ani przepisywania wielostronicowych historii.
+
+Dziennik dokumentuje stan prac; **nie jest upoważnieniem do PR Ready, merge, wdrożenia Rules, Firebase LIVE, migracji ani wykonania innych działań produkcyjnych**. Obowiązują nadal §1–14 i wymóg osobnej zgody właściciela.
+
 ---
 
 Najważniejsza zasada w skrócie: **ChatGPT prowadzi i kontroluje oraz po osobnej zgodzie tworzy PR Ready, Codex implementuje po „do dzieła”, GitHub Actions testuje bez dublowania lokalnego CI i obsługuje zatwierdzony auto-merge/Pages, właściciel zatwierdza każde wydanie i osobno operacje LIVE. CODE_READY nie oznacza CI_PASS ani zgody produkcyjnej.**
