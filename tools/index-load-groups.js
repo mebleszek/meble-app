@@ -207,6 +207,7 @@ const INDEX_LOAD_GROUPS = [
   "js/app/project/project-pcv-resolver.js",
       "js/app/project/project-pcv-policy.js",
       "js/app/project/project-export-contract.js",
+      "js/app/project/business-project-contract.js",
       "js/app/project/project-selective-export.js",
       "js/app/cloud/cloud-pilot-contract.js",
       "js/app/cloud/firebase-pilot-transport.js",

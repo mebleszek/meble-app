@@ -60,6 +60,8 @@
     }
     match /users/{uid}/localFirstProjects/{pid} {
       allow get: if globalApproved(uid);
+      // Owner-only bounded head discovery; no listing revisions/chunks/editors.
+      allow list: if globalApproved(uid) && request.query.limit != null && request.query.limit <= 100;
       allow create: if globalApproved(uid) && lfPublished(request.resource.data,uid,pid)
         && request.resource.data.generation == 1;
       allow update: if globalApproved(uid) && lfPublished(request.resource.data,uid,pid)
@@ -68,7 +70,7 @@
         && getAfter(/databases/$(database)/documents/users/$(uid)/localFirstProjects/$(pid)/revisions/$(request.resource.data.currentRevisionId)).data.baseFileSha256 == resource.data.fileSha256
         && getAfter(/databases/$(database)/documents/users/$(uid)/localFirstProjects/$(pid)/revisions/$(request.resource.data.currentRevisionId)).data.baseDocumentSha256 == resource.data.documentSha256
         && getAfter(/databases/$(database)/documents/users/$(uid)/localFirstProjects/$(pid)/revisions/$(request.resource.data.currentRevisionId)).data.basePayloadSha256 == resource.data.payloadSha256;
-      allow list,delete: if false;
+      allow delete: if false;
       match /revisions/{rid} {
         allow get: if globalApproved(uid);
         allow create: if globalApproved(uid) && lfRevision(request.resource.data,uid,pid,rid);

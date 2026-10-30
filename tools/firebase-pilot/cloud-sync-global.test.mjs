@@ -286,3 +286,9 @@ test('LOCAL-FIRST: durable browser stores and real Auth/Firestore integration', 
   const {runLocalFirstSuite} = await import('./local-first.test.mjs');
   await runLocalFirstSuite(t);
 });
+
+// Separate top-level lifetime releases the earlier Chromium stores first.
+test('LOCAL-FIRST actual application: automatic two-device round trip and crash recovery',async t=>{
+ const {runApplicationE2E}=await import('./application-e2e.test.mjs');
+ await runApplicationE2E(t);
+});

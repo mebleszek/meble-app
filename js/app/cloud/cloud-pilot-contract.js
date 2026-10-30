@@ -38,18 +38,22 @@
     if(!['ownerUid','investorId','projectId'].every(key=>id(scope[key]))||!revisionId(newRevisionId))reject('CLOUD_SCOPE_INVALID');
     validHead(base,scope);
     const doc=JSON.parse(canonical(result.document)); // Detach all aliases before asynchronous hashing.
+    const business=doc.profile==='business-project-v1';
     if(!exact(doc,['kind','version','profile','projectSchemaVersion','metadata','payload','integrity'])
-      ||doc.kind!=='meble-app-project-export'||doc.version!==1||doc.profile!=='native-project-v1'||doc.projectSchemaVersion!==12
-      ||!exact(doc.metadata,['exportedAt','purpose'])||doc.metadata.purpose!=='pilot'
+      ||doc.kind!=='meble-app-project-export'||doc.version!==1||(!business&&doc.profile!=='native-project-v1')||doc.projectSchemaVersion!==12
+      ||!exact(doc.metadata,['exportedAt','purpose'])||doc.metadata.purpose!==(business?'business-sync':'pilot')
       ||typeof doc.metadata.exportedAt!=='string'||new Date(doc.metadata.exportedAt).toISOString()!==doc.metadata.exportedAt
-      ||!exact(doc.payload,['investor','project'])||doc.payload.investor.id!==scope.investorId
+      ||!exact(doc.payload,business?['investor','project','offers']:['investor','project'])||doc.payload.investor.id!==scope.investorId
       ||doc.payload.project.id!==scope.projectId||doc.payload.project.investorId!==scope.investorId
       ||!exact(doc.integrity,['algorithm','canonicalization','payloadSha256','documentSha256'])
       ||doc.integrity.algorithm!=='SHA-256'||doc.integrity.canonicalization!=='sorted-json-v1')reject('CLOUD_EXPORT_INVALID');
     // Reuse the closed CLOUD-1B validator; the real builder, not these temporary
     // validation flags or a hash, must establish synthetic eligibility/context.
+    if(business){if(!FC.businessProjectContract || FC.businessProjectContract.validate(doc.payload)!==true)reject('CLOUD_EXPORT_INVALID');}
+    else{
     const projected=FC.projectExportContract.validate({...doc.payload.investor,meta:{testData:true}}, {...doc.payload.project,meta:{testData:true}});
     if(!projected.ok||!equal(projected.payload,doc.payload))reject('CLOUD_EXPORT_INVALID');
+    }
     const withoutIntegrity={...doc};delete withoutIntegrity.integrity;
     if(await sha(encode(doc.payload))!==doc.integrity.payloadSha256||await sha(encode(withoutIntegrity))!==doc.integrity.documentSha256)reject('CLOUD_INTEGRITY_INVALID');
     const bytes=encode(doc);

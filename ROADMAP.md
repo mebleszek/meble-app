@@ -4,9 +4,9 @@
 
 ## Najbliższa kolejność — weryfikacja 30.10.2026
 
-1. **Dokończyć proces wydania niniejszego porządku dokumentacji** — tylko po odrębnej zgodzie właściciela na dokładny HEAD/BASE; bez uruchamiania Firebase LIVE.
-2. **Naprawa zgłoszonych błędów Androida po PR #86:** nieotwierający się inwestor, chwilowo cudze pomieszczenia przy tworzeniu nowego oraz separator i wygląd Zaufany/Wyloguj. Dopiero po naprawie i nowej zgodzie wydaniowej powtórzyć test telefonu.
-3. **Następny logiczny pakiet produktu** wybrać po wyniku testu Androida i analizie aktualnego `main`. Trwały LOCAL-FIRST istnieje jako izolowana implementacja w wydanym PR #84, ale realna synchronizacja i bezstratna migracja pozostają niewdrożone. Obowiązują wszystkie bramki bezpieczeństwa opisane niżej.
+1. **Niezależnie ocenić obecny pakiet integracji Android / LOCAL-FIRST**, potem osobno zatwierdzić CI dla dokładnego HEAD/BASE. PR #87 porządku dokumentacji jest wydany; dowody wyłącznie w CURRENT_STATE.
+2. **Po wydaniu poprawki Androida** zweryfikować izolację inwestorów i pracę na fizycznym telefonie, bez resetu danych.
+3. **Domknąć bramki aktywacji autorytetu:** wyłączność starych writerów, pozostałe asynchroniczne writery UI i dowody migracji. Kontrolowany przepływ emulatorowy wykorzystuje ten sam LOCAL-FIRST; nie stanowi automatycznej zgody na produkcyjną migrację, Rules ani LIVE. Issue #47 pozostaje odłożone.
 
 > **Dalsze sekcje:** decyzje nadal obowiązujące są wiążące; opisy dawnych stanów i etykiety `CI_PENDING`/`priorytet 1` są migawkami historycznymi. Najnowsze statusy czytaj w `CURRENT_STATE.md`.
 
@@ -28,7 +28,7 @@
 
 Właściciel wznowił implementację produktu. Wcześniejsze wstrzymanie z 25.10 jest historyczne; Firebase LIVE, migracja i wydanie nadal mają osobne bramki. PR #77/#78/#83 są wydane (dla #83 właściciel potwierdził Pixel). Nie powtarzamy ich CI ani operatora CLOUD-4.6F.
 
-Zaimplementowano oddzielną transakcyjną IndexedDB danych/outbox/RAW, koordynator automatyczny, przepływ 14 domen CLOUD-3, projektowe chunki CLOUD-2B, trwały fence edytora, przekazanie bez timeout oraz rozstrzyganie ACK bez ponowienia mutacji. Przygotowano rzeczywisty binder globalnego Firebase wymagający podpisanej, odrębnej aktywacji i dowodu migracji. Startup/UX i wszystkie dotychczasowe magazyny pozostają niepodłączone.
+Zaimplementowano oddzielną transakcyjną IndexedDB danych/outbox/RAW, koordynator automatyczny, przepływ 14 domen CLOUD-3, projektowe chunki CLOUD-2B, trwały fence edytora, przekazanie bez timeout oraz rozstrzyganie ACK bez ponowienia mutacji. Przygotowano rzeczywisty binder globalnego Firebase wymagający podpisanej, odrębnej aktywacji i dowodu migracji. Nowe kontrolowane podłączenie obrazu aplikacji, Zapisz i apply opisuje [raport E2E](tools/reports/local-first-application-e2e-20261030.md). Produkcyjny startup i migracja pozostają nieaktywne; niezintegrowane writery odmawiają zamiast udawać transakcję IDB.
 
 Najbliższy pakiet dowodowy: osobno zatwierdzone CI dla HEAD/BASE tej gałęzi (nowe regresje rzeczywistej IDB i Auth/Firestore + zachowane stare testy). Następnie rozstrzygnięcie profilu realnych projektów i nierozstrzygniętych domen, ochrony starych writerów oraz bezstratne podłączenie zatwierdzania sesji. Dopiero z tymi dowodami: zgody na Rules/granty/migrację, kontrolowane LIVE i uruchomienie na telefonie/tablecie/komputerze. Sukces syntetycznego pilota nie oznacza synchronizacji aplikacji. Bez wymogu obsługi Windowsa.
 

@@ -35,6 +35,14 @@ Po etapie COPIED localStorage pozostaje źródłem historycznej kopii, nie wolno
 Starsze zdania „nie wdrażamy teraz IndexedDB” poniżej dotyczą historycznych pakietów i przyszłej migracji projektów/kolejki. Nie unieważniają tego osobno zatwierdzonego, ograniczonego v1. Pełny model LOCAL-FIRST oraz obowiązkowa wieloletnia odporność POST-CLOUD-STORAGE-RESILIENCE nadal wymagają dalszych etapów i oddzielnych zgód.
 
 
+## Kontrolowane zastosowanie LOCAL-FIRST w aplikacji — 30.10.2026
+
+`sync/application-authority.mjs` oraz `sync/application-replication.mjs` łączą istniejące repozytoria z obrazem aplikacji w tej samej bazie IDB/outbox. Import jest nieaktywny; instalacja wymaga demo/loopback, odseparowanej bazy testowej, zgodnego właściciela i istniejącej bramki lokalnego dostępu. Oryginalny RAW pozostaje źródłem recovery bez usuwania/przepisywania. Zapis danych i obowiązku synchronizacji oraz odebranej rewizji i jej projekcji są atomowe z CAS. Widok jest odświeżany dopiero po transakcji i sprawdzeniu niezmienionego RAM. `transport.apiKey` pozostaje wyłącznie lokalny.
+
+Profil `business-project-v1` zachowuje pełne właścicielskie rekordy I/P oraz jednoznacznie przypisane zamrożone oferty. Korzysta z dotychczasowych chunków/hashy/CAS/edytora i walidatorów geometrii, relacji i PCV. Nie nadaje rzeczywistym danym fikcyjnego statusu syntetycznego pilota. Nieobsługiwane konstrukcje oraz nierozstrzygnięte globalne RAW blokują zależny projekt bez częściowego uploadu; Issue #47 pozostaje odłożone. Ten profil nie znosi zamkniętego kontraktu historycznego pilota.
+
+Produkcja nadal odmawia inicjalizacji obrazu bez dowodu wyłączności starych writerów. W kontrolowanej instancji zapis objętego klucza poza transakcją jest odmową; nie jest drugim autorytetem localStorage. Nie deklarujemy przełączenia wszystkich synchronicznych callbacków UI: pozostałe writery są konkretną granicą przed aktywacją produkcyjną. Wznowienie draftu wykorzystuje istniejący walidator i rzeczywiste bajty dowodu sesji; brakujący/uszkodzony dowód powoduje odmowę, bez tworzenia nowego snapshotu. Nie zmieniono archiwum backupów, źródeł właściciela ani operatora C/D/E. [Testy i zakres](tools/reports/local-first-application-e2e-20261030.md); bieżące wyniki wyłącznie CURRENT_STATE.
+
 ## CLOUD-SYNC-1 — implementacja przepływu globalnego na emulatorach
 
 `sync/global-data-sync.mjs` składa istniejący kontrakt RAW i transport CLOUD-3, bez nowej przestrzeni Firestore ani rejestru domen. Przepływ kompletu 14 domen używa jawnego owner UID, immutable records/revisions, manifestu CAS oraz niezależnego odczytu, hashy, liczby rekordów i walidacji zależności. Jedynym odbiorcą jest odizolowana pamięć; atomowa podmiana wymaga niezmienionej czystej lokalnej wersji. Sekrety i sporne dane pozostają wyłączone. Nieznane niezatwierdzone pola blokują transfer bez utraty RAW, dozwolone dynamiczne parametry i defaults v1 pozostają bez zmian.

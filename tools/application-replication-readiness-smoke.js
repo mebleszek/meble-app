@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const read=p=>fs.readFileSync(p,'utf8');
+const workflow=read('.github/workflows/preflight-js.yml'),plan=require('./cloud-ci-context');
+assert.ok(workflow.includes('--context=current'));assert.ok(plan.currentSdk.includes('cloud-sync-global.test.mjs'));
+assert.match(read('tools/firebase-pilot/cloud-sync-global.test.mjs'),/await runApplicationE2E\(t\)/);
+const test=read('tools/firebase-pilot/application-e2e.test.mjs');
+for(const required of ['initializeTestEnvironment','chromium.connectOverCDP','createApplicationReplication',"page.click('#sessionSave')",'owner.crash()',"phase==='verified'",'beforeCrash+1','fc_quote_snapshots_v1','second.investorId'])assert.ok(test.includes(required),required);
+const preflight=read('tools/preflight.js');assert.ok(preflight.includes('fs.readdirSync(TOOLS)'));for(const name of ['application-authority-store-smoke.js','business-project-contract-smoke.js','application-replication-readiness-smoke.js'])assert.match(name,/-smoke\.js$/);
+const source=read('sync/application-authority.mjs');assert.ok(source.includes('assertEmulator(connection)'));assert.ok(source.includes('LF_ASYNC_TRANSACTION_REQUIRED'));assert.ok(source.includes('LF_OLD_WRITER_DETECTED'));
+assert.ok(!read('index.html').includes('application-authority.mjs'),'No automatic activation at normal startup');
+console.log('PASS mandatory current SDK -> actual application E2E routing, real Save/SIGKILL/14-domain boundary and inert production startup');

@@ -563,5 +563,7 @@
         && localStorage.getItem('fc_edit_session_v1')===null};
     });
   };
+  const cancelAction=actions['session-cancel'];
+  actions['session-cancel']=args=>FC.applicationSyncActions?.installed()?FC.applicationSyncActions.cancel(()=>cancelAction(args)):cancelAction(args);
   FC.actions.register(actions);
 })();

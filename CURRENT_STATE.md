@@ -1,6 +1,6 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
-> **Weryfikacja GitHuba: 30.10.2026.** Odczytany `main`: `f8e452813faaf6cd343704b3952d9501652222d3` (merge PR #86). Ta migawka jest dowodem z podanej daty, **nie automatycznie aktualizowanym statusem**. Przed następną decyzją sprawdź HEAD `main`, otwarte PR-y, Actions i Pages, a dopiero później poniższe wpisy.
+> **Weryfikacja GitHuba: 30.10.2026.** Odczytany `main`: `6588cac972fc1ebbfe57f80ad55b4d22620a7647` (merge PR #87). Ta migawka jest dowodem z podanej daty, **nie automatycznie aktualizowanym statusem**. Przed następną decyzją sprawdź HEAD `main`, otwarte PR-y, Actions i Pages, a dopiero później poniższe wpisy.
 >
 > **Jedno źródło prawdy o wykonaniu:** niniejszy rejestr. `ROADMAP.md` opisuje **plany i zależności**, `AGENTS.md` — **procedurę i odpowiedzialność**, `tools/reports/*` — **szczegółowe dowody**. Dawne stany i pełną kronikę przeniesiono do [docs/archive/CURRENT_STATE_history_to_20261030.md](docs/archive/CURRENT_STATE_history_to_20261030.md); nie są aktualnym zleceniem.
 
@@ -8,6 +8,7 @@
 
 | Pakiet | Stan potwierdzony / dowód | Co to znaczy dzisiaj |
 | --- | --- | --- |
+| Porządek dokumentacji, [PR #87](https://github.com/mebleszek/meble-app/pull/87) | **RELEASED**: HEAD `c220ac506ca345077f13eec26a695d8e6d6f42ca`, merge `6588cac972fc1ebbfe57f80ad55b4d22620a7647`; [CI / auto-merge / Pages PASS](https://github.com/mebleszek/meble-app/actions/runs/41038339355), odczytano zadania GitHuba 30.10 | Odchudzone dokumenty i pełne archiwa zachowane; nie otwierać ponownie dokumentacyjnego PR. |
 | Nawigacja inwestora i bezpieczne „Wyjdź”, [PR #86](https://github.com/mebleszek/meble-app/pull/86) | **RELEASED**: HEAD `d3cd7ef15afdca1313400d27209d7b8d185b0700`, merge `f8e452813faaf6cd343704b3952d9501652222d3`; [CI PASS](https://github.com/mebleszek/meble-app/actions/runs/40971823833), [Pages PASS](https://github.com/mebleszek/meble-app/actions/runs/40972484916) | Kod jest na `main`. **PHONE_FAIL_REPORTED / FIX_PENDING**: fizyczny Android ujawnił nowe błędy; szczegóły w sekcjach 2–4. |
 | Zaufane urządzenia i sesje tymczasowe, [PR #85](https://github.com/mebleszek/meble-app/pull/85) | **MERGED / CI PASS**: HEAD `d5a599a6775e9ea2bcaf64a046073be0dbdb6e2b`, merge `0a9522cf9277ef3de03d328a84dd9569a1958e46`, [CI](https://github.com/mebleszek/meble-app/actions/runs/40836513934) | Ukończony pakiet Auth; test urządzenia jest osobnym dowodem, nie częścią automatycznego CI. |
 | Izolowany LOCAL-FIRST / IndexedDB / protokół jednego edytora, [PR #84](https://github.com/mebleszek/meble-app/pull/84) | **MERGED / CI PASS**: HEAD `60f597258f747351c640030ef2ce42482bc19c2b`, [CI](https://github.com/mebleszek/meble-app/actions/runs/40767553198) | **Ukończony kod bazowy, NIE działająca synchronizacja aplikacji**: startup, realne projekty, migracja i przełączenie danych nie są tym potwierdzone. |
@@ -15,9 +16,15 @@
 | Normy robocizny i ilości okuć, [PR #79](https://github.com/mebleszek/meble-app/pull/79) | **MERGED** — status PR zweryfikowany na GitHubie; szczegółowy kontrakt norm obowiązuje w bieżącej wycenie | Nie rozpoczynać ponownie prac już ujętych w tym PR bez wykazanej luki. |
 | CLOUD-4.6C–E oraz CLOUD-SYNC-1, [PR #75](https://github.com/mebleszek/meble-app/pull/75)–[#78](https://github.com/mebleszek/meble-app/pull/78) | **MERGED** — etapy przygotowania, emulatorów i nieaktywnej integracji | Nie są dowodem dopuszczenia produkcyjnego Firebase ani migracji danych. **LIVE_BLOCKED**. |
 
-### Pakiet produktu w toku — 30.10.2026
+### Pakiet produktu do niezależnej kontroli — 30.10.2026
 
-Gałąź `integration/android-local-first-20261030`, poprzedni HEAD `f3ae3374dfa581ea93d4bffa80f6d338070ff898`, nowa baza `6588cac972fc1ebbfe57f80ad55b4d22620a7647`. Zachowano przygotowane poprawki Androida i regresje z raportu `android-local-first-integration-20261030.md`; nie są jeszcze wydane. PR #87 został scalony (merge SHA powyżej), porządek dokumentów i archiwum zachowane. W toku zatwierdzona integracja end-to-end na emulatorach; bez aktywacji produkcyjnej.
+Gałąź `integration/android-local-first-20261030`, wejście `f3ae3374dfa581ea93d4bffa80f6d338070ff898`, BASE `6588cac972fc1ebbfe57f80ad55b4d22620a7647`. Uzgodniono historię przez lokalny merge main, bez force-push. Poprawki Androida z poprzedniego commita pozostają; dodatkowo render/normalizacja nie wykonuje niejawnego Save ani zmiany timestampu projektu.
+
+Nowa kontrolowana integracja używa pełnej aplikacji, Chromium, rzeczywistej IndexedDB i emulatorów Auth/Firestore: autorytatywny obraz aplikacji + outbox w jednej transakcji, bezpieczne apply z CAS, wznowienie poprawnego dowodu draftu po restarcie bez naprawiania brakujących dowodów, istniejące 14 domen i transport chunków, wersjonowany profil właścicielskich projektów i zamrożonych ofert oraz niezależnie walidowane automatyczne wykrywanie projektów. Nie kopiuje źródła z powrotem do localStorage. Nie jest domyślnym startupem ani migracją urządzeń właściciela. [Zakres, testy i konkretne granice](tools/reports/local-first-application-e2e-20261030.md).
+
+Kontrolowany zakres implementacji: **CODE_READY**; pełne przełączenie produkcyjne pozostaje **INTEGRATION_PARTIAL**. Weryfikacja lokalna jest celowana; pełne CI dla nowego HEAD i fizyczny Android pozostają **CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**. Nie dziedziczymy PASS PR #87 dla kodu produktu. Wciąż zablokowane: produkcyjne przełączenie autorytetu bez wyłączności starych writerów, nieobjęte asynchroniczną transakcją writery UI, tworzenie nowego serwerowo nieznanego projektu offline oraz sporne RAW. Nie deklarujemy całej produkcyjnej synchronizacji jako ukończonej.
+
+**Dowody tego pakietu:** celowany E2E w Node 22.23.3 i natywnym Chromium, rzeczywiste Auth/Firestore demo: **1/1 PASS**, 0 pominięć (końcowy przebieg 74,06 s). Świeży odbiorca miał tylko kanał globalny; oba projekty wykrył po publikacji. Sprawdzono oba kierunki, 14 domen, oryginalny Zapisz/Anuluj/Wyjdź, aktywny RAM, offline, przekazanie edytora, restart draftu, SIGKILL/utracony ACK z jednym WRITE, obcy UID oraz ograniczone zapytania do nagłówków. Celowane kontrole IDB/quota/CAS/duplikatu, 8/8 dowodów sesji, nowe regresje kontraktu i wznowienia, Chromium pustej instalacji/dwóch inwestorów, integralność offline, kolejność i składnia 21 zmienionych/nowych JS/MJS: PASS. Pełnych zestawów lokalnie nie uruchamiano, GitHub Actions nie uruchamiano.
 
 ## 2. SPRAWDZONE — NIE POWTARZAĆ bez zmiany dowodów
 
@@ -30,7 +37,7 @@ Gałąź `integration/android-local-first-20261030`, poprzedni HEAD `f3ae3374dfa
 
 ### Zdarzenia po wydaniu PR #86 — zgłoszenia z fizycznego Androida
 
-**PHONE_FAIL_REPORTED / FIX_PENDING:** po wylogowaniu nie można otworzyć jednego istniejącego inwestora; po utworzeniu nowego chwilowo widać pomieszczenia najstarszego inwestora, a po zapisaniu i ponownym wejściu nowy projekt jest pusty. Wymagana naprawa izolacji danych/aktywnego kontekstu, nie usunięcie rekordu. Do poprawy także poziomy separator pod statusami pomieszczeń oraz jednakowa czcionka i styl checkboxa Zaufany / Wyloguj. Zlecenie Codexowi przygotowano, lecz **brak potwierdzonego commita i wydania poprawki**. CI/Pages PASS #86 dotyczy poprzedniego kodu, nie naprawy zgłoszeń.
+**PHONE_FAIL_REPORTED / FIX_PENDING:** po wylogowaniu nie można otworzyć jednego istniejącego inwestora; po utworzeniu nowego chwilowo widać pomieszczenia najstarszego inwestora, a po zapisaniu i ponownym wejściu nowy projekt jest pusty. Wymagana naprawa izolacji danych/aktywnego kontekstu, nie usunięcie rekordu. Do poprawy także poziomy separator pod statusami pomieszczeń oraz jednakowa czcionka i styl checkboxa Zaufany / Wyloguj. Poprawki przygotowano na gałęzi produktu (wejściowy commit `f3ae3374dfa581ea93d4bffa80f6d338070ff898`) i rozszerzono w obecnym pakiecie; **brak nowego wydania i akceptacji telefonu**. CI/Pages PASS #86 dotyczy poprzedniego kodu, nie naprawy zgłoszeń.
 
 ### CLOUD-4.6F — potwierdzenie właściciela 30.10
 
@@ -40,16 +47,16 @@ Google APIs Explorer: jednokrotny produkcyjny GET projects.getBillingInfo -> HTT
 
 ## 3. BLOKERY / otwarte warunki (stan na 30.10.2026)
 
-- **PHONE_FAIL_REPORTED / FIX_PENDING:** test fizycznego Androida wykazał błędy inwestorów i pomieszczeń oraz dwie kwestie wyglądu; brak dowodu wdrożenia naprawy. Szczegóły powyżej.
-- **SYNC_NOT_ACTIVE:** moduły LOCAL-FIRST #84 istnieją, ale brak zatwierdzonego, bezstratnego podłączenia realnych projektów, globalnych zależności, `Zapisz/Anuluj` i startupu. Nierozstrzygnięte domeny, stare writery, wyłączność i migracja pozostają bramkami.
+- **PHONE_FAIL_REPORTED / FIX_PENDING:** test fizycznego Androida wykazał błędy inwestorów i pomieszczeń oraz dwie kwestie wyglądu; poprawki na gałęzi produktu, brak ich wydania i akceptacji telefonu. Szczegóły powyżej.
+- **SYNC_NOT_ACTIVE_PRODUCTION:** kontrolowany przepływ pełnej aplikacji jest implementowany i testowany na emulatorach zgodnie z raportem powyżej. Produkcyjny startup/migracja, pełne pokrycie writerów UI i sporne RAW pozostają zablokowane; nie utożsamiać ich z gotowym zakresem emulatorowym.
 - **CLOUD-4.6F / Firebase LIVE:** `OPERATOR_PARTIAL / LIVE_BLOCKED`; brak ogólnej zgody na Rules, grant, produkcyjny READ/WRITE, billing, migrację i aktywację synchronizacji. Starsze raporty `LIVE_BLOCKED` nadal obowiązują, a historyczne zgody na samo przygotowanie niczego nie wykonują.
 - **Etap E archiwum:** historyczny bloker dowodu wyłączności starych writerów nie został rozwiązany samym wydaniem PR #83. Nie zakładać możliwości destrukcyjnego przełączenia ani czyszczenia pamięci telefonu.
 
 ## 4. NASTĘPNY RUCH — jedno zadanie naraz
 
-1. **Pakiet dokumentacyjny PR #87 wydany** na gałęzi [`docs/current-state-ledger-20261030`](https://github.com/mebleszek/meble-app/tree/docs/current-state-ledger-20261030): uporządkowanie głównej dokumentacji i zachowanie oryginalnych kronik w archiwum; **CODE_READY / CI_PENDING / RELEASE_BLOCKED**. Następny ruch: osobna decyzja właściciela o wydaniu dla dokładnie zweryfikowanego HEAD i BASE. **Bez PR Ready, CI, auto-merge i Pages przed tą zgodą.**
-2. Naprawa Androida po PR #86: izolacja projektów i odzyskanie dostępu do istniejącego inwestora, potem poprawki wizualne. Dopiero po nowym zatwierdzonym wydaniu przeprowadzić ponowny test telefonu; nie kasować testowego rekordu.
-3. Oddzielnie: CLOUD-4.6F — zapewnienie niezależnego STOP i prywatnego hosta operatora. Bez ponawiania zakończonych etapów C/D/E lub produkcyjnych LIVE bez zgód.
+1. Niezależna kontrola gałęzi produktu i dokładnych HEAD/BASE, następnie osobno zatwierdzona próba obowiązkowego CI. PR #87 już wydany — nie ponawiać jego prac.
+2. Po nowym zatwierdzonym wydaniu: test izolacji inwestorów, ponownego otwierania i paska na fizycznym Androidzie. Bez kasowania rekordów. Przełączenie produkcyjnego autorytetu wymaga dowodu wyłączności, kompletnej ścieżki writerów; zwykły startup pozostaje nieaktywny.
+3. CLOUD-4.6F: prywatny host, niezależny STOP po utracie całego hosta, świeże dowody w momencie operacji i osobne zgody. Bez ponownego audytu zakończonych etapów C/D/E ani niezatwierdzonych GET produkcyjnych.
 
 ## 5. OBOWIĄZKOWY ZAPIS KOLEJNYCH KROKÓW
 

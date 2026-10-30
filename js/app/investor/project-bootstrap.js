@@ -45,7 +45,9 @@
             if(!c.details) c.details = {};
           });
         });
-        const out = FC.project && typeof FC.project.save === 'function' ? FC.project.save(pd) : pd;
+        // Rendering/activation may fill RAM defaults, but must never approve a
+        // business revision or update timestamps. The explicit Save owns persistence.
+        const out = pd;
         try{ if(typeof window.projectData !== 'undefined' && (window.projectData === projectData || typeof projectData === 'undefined')) window.projectData = out; }catch(_){}
         return out;
       };

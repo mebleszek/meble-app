@@ -742,6 +742,17 @@
         return true;
       });
     },
+    // Explicit store-adapter handoff after loading the same durable bytes.
+    // It never creates missing proof, starts a session or retries a mutation.
+    resumeFromStorage(){
+      if(session.active || session.snapshot || session.durable) return false;
+      let parsed;
+      try{parsed=JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY));}catch(_){return unconfirmedSession();}
+      if(!parsed || parsed.schemaVersion!==SESSION_SCHEMA_VERSION || parsed.active!==true
+        || !parsed.snapshot || parsed.expectedOwnerKnown!==true)return unconfirmedSession();
+      restoreSession();
+      return session.active===true && session.durable===true && canSaveProject(session.roomId)===true;
+    },
     canSwitchProject,
     canSwitchInvestor,
     canSwitchRoom,

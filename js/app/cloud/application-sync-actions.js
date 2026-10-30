@@ -14,6 +14,13 @@
     return {ok:false,code:/^LF_[A-Z_]+$/.test(error?.code||'')?error.code:'LF_APPLICATION_UNCONFIRMED'};
    });
   },
+  cancel(cancelLocal){
+   if(!binding?.cancel)return cancelLocal();
+   return binding.cancel({cancelLocal}).catch(()=>{
+    FC.infoBox?.open({title:'Anulowanie niepotwierdzone',message:'Zachowano lokalne dane i sesję. Nie potwierdzono trwałego zakończenia anulowania.',okOnly:true});
+    return false;
+   });
+  },
   close(){const old=binding;binding=null;old?.close();}
  };
 })();
