@@ -1,25 +1,7 @@
-# Lokalny preflight Meble-App
+# PREFLIGHT — zakres i procedura testów
 
-Jedno polecenie uruchamia podstawowy pakiet kontroli przed publikacją nowej wersji:
+**Źródłem wydaniowego CI jest GitHub Actions**, zgodnie z [AGENTS.md](AGENTS.md) §3 i §12 oraz faktycznym plikiem `.github/workflows/preflight-js.yml`.
 
-```text
-node tools/preflight.js
-```
+Skrypt `node tools/preflight.js` sprawdza m.in. składnię JS, load-order, auto-odkrywane `tools/*-smoke.js`, zależności i storage. Samo istnienie skryptu nie oznacza PASS dla konkretnego SHA. Codex wykonuje tylko celowaną diagnostykę konieczną do implementacji, a nie ponawia pełnego CI lokalnie.
 
-Skrypt kolejno sprawdza:
-
-1. składnię wszystkich plików JavaScript,
-2. zgodność kolejności skryptów w `index.html` z konfiguracją load-groups,
-3. wszystkie pliki `tools/*-smoke.js` (lista jest wykrywana automatycznie),
-4. audyt zależności i brakujących plików wskazanych przez HTML,
-5. audyt użycia `localStorage` / `sessionStorage`.
-
-Poprawny koniec kontroli:
-
-```text
-PRE-FLIGHT PASS — wszystkie kontrole zakończone poprawnie
-```
-
-Jeżeli którykolwiek etap nie przejdzie, preflight kończy się kodem błędu `1`, pokazuje problem i nie uruchamia kolejnych etapów. Dzięki temu ten sam skrypt będzie można później podpiąć do GitHub Actions.
-
-Preflight nie zmienia logiki programu i nie zapisuje raportów audytowych do repozytorium.
+[CURRENT_STATE.md](CURRENT_STATE.md) — aktualne dowody, PR i blokery. [TEST_BASELINE.md](TEST_BASELINE.md) — pokrycie testów. `CODE_READY` nie jest `CI_PASS`; `CI_PASS` nie jest automatycznie `RELEASED` ani zgodą na Firebase LIVE i nie zastępuje testu fizycznego Androida.
