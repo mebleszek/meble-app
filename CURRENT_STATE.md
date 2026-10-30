@@ -33,7 +33,7 @@
 
 ## 4. NASTĘPNY RUCH — jedno zadanie naraz
 
-1. **Ten pakiet porządkowy:** przygotować na osobnej gałęzi tylko `CURRENT_STATE.md`, `ROADMAP.md` i `AGENTS.md` oraz zweryfikować diff. **Bez PR Ready, CI, auto-merge i Pages do osobnej zgody na konkretny HEAD/BASE.**
+1. **Pakiet dokumentacyjny przygotowany** na gałęzi [`docs/current-state-ledger-20261030`](https://github.com/mebleszek/meble-app/tree/docs/current-state-ledger-20261030): zmienione wyłącznie `CURRENT_STATE.md`, `ROADMAP.md` i `AGENTS.md`; **CODE_READY / CI_PENDING / RELEASE_BLOCKED**. Następny ruch: osobna decyzja właściciela o wydaniu dla dokładnie zweryfikowanego HEAD i BASE. **Bez PR Ready, CI, auto-merge i Pages przed tą zgodą.**
 2. Po zatwierdzonym wydaniu dokumentacji: **krótka fizyczna akceptacja PR #86 na Androidzie**, w zakresie nawigacji przez cztery zakładki, „Wyjdź”, świadomego Wyloguj i zachowania danych. Nie resetować magazynów i nie przeładowywać otwartej karty z niezapisanym RAM.
 3. Dopiero po tej kontroli wybrać **jeden kolejny pakiet produktu** według faktycznych braków i `ROADMAP.md`; nie wznawiać na ślepo zakończonych audytów CLOUD ani testów PR #83–86.
 

@@ -8,7 +8,7 @@
 2. **Akceptacja fizycznego Androida dla wydanego PR #86**: wybór pomieszczenia, cztery zakładki, „Wyjdź”, celowe Wyloguj, zachowanie trwałych danych i sesji. Automatyczne testy już przeszły PASS; nie dublować ich bez nowej przyczyny.
 3. **Następny logiczny pakiet produktu** wybrać po wyniku testu Androida i analizie aktualnego `main`. Trwały LOCAL-FIRST istnieje jako izolowana implementacja w wydanym PR #84, ale realna synchronizacja i bezstratna migracja pozostają niewdrożone. Obowiązują wszystkie bramki bezpieczeństwa opisane niżej.
 
-## Dawne plany i nadal obowiązujące decyzje
+> **Dalsze sekcje:** decyzje nadal obowiązujące są wiążące; opisy dawnych stanów i etykiety `CI_PENDING`/`priorytet 1` są migawkami historycznymi. Najnowsze statusy czytaj w `CURRENT_STATE.md`.
 
 ## WSPÓLNY PIN MEBLE-APP — ODROCZONY DO DZIAŁAJĄCEJ CHMURY (decyzja 28.10.2026)
 
