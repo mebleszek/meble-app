@@ -17,3 +17,7 @@ Aplikacja do obsługi inwestorów, projektów mebli na wymiar, pomieszczeń, wyw
 Wydaniowy CI należy do GitHub Actions. Akceptacja fizycznego Androida jest osobna. Firebase LIVE, publikacja Rules, granty, billing, migracje i realne zapisy wymagają oddzielnych decyzji; sama obecność modułów LOCAL-FIRST nie uruchamia synchronizacji.
 
 **Pełny dawny README zachowano w [docs/archive/README_history_to_20261030.md](docs/archive/README_history_to_20261030.md).**
+
+## Regresje cennika
+
+Pakiet `site_pricing_modes_auto_tests_v1.zip` opisuje testy trybów naliczania cen: kwoty startowe, jednostki, czas i progi. Obowiązkowy Preflight uruchamia `tools/pricing-modes-calculation-coverage-smoke.js`; zasady obliczeń pozostają w QUOTE_CALCULATION_REGISTER.md, pełna historia w archiwum README.
