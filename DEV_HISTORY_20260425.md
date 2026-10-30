@@ -1,3 +1,7 @@
+# DEV_HISTORY — historyczny dziennik kwietnia 2026
+
+> **ARCHIWUM, NIE AKTUALNE ZADANIA.** Bieżący stan jest w [CURRENT_STATE.md](CURRENT_STATE.md), a zasady w [AGENTS.md](AGENTS.md). Pełną treść pozostawiono poniżej.
+
 ## 2026-04-25 — settings tests entry + stable SVG icon patterns
 - `js/app/ui/app-icons.js` jest małym wspólnym źródłem stabilnych ikon SVG (`backup`, `settings`, `tests`) dla UI. Nie wracać do emoji w kaflach ustawień ani przy wejściu do testów, bo wygląd emoji zależy od urządzenia.
 - Menu `Ustawienia` ma teraz kafel `Testy aplikacji` pod `Backup i dane`; prowadzi do `dev_tests.html`. Opisy pomocnicze przy kaflach i nagłówku backupu mają siedzieć pod `?`, a nie jako luźny akapit pod tytułem.

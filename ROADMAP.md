@@ -1,18 +1,14 @@
-# ROADMAP — kolejność dalszego rozwoju Meble-App
+# ROADMAP — plan rozwoju Meble-App
 
-## Nawigacja INWESTORA / Wyjdź / pasek zaufania — 29.10.2026
+> **Jak czytać:** `ROADMAP.md` przechowuje plan, zależności i decyzje przyszłe. **Aktualny stan wykonania, zaliczone CI/Pages, blokery i jeden następny ruch są wyłącznie w [CURRENT_STATE.md](CURRENT_STATE.md)**. Nie aktualizować obu plików równoległymi kopiami statusów. Starsze sekcje poniżej są historią planowania i nie anulują późniejszych wydań.
 
-PR #85 został wydany do main `0a9522cf9277ef3de03d328a84dd9569a1958e46` (potwierdzenie właściciela). Dawne CI_PENDING pakietu Auth poniżej jest historyczne. Test fizycznego Androida pozostaje oddzielną kontrolą.
+## Najbliższa kolejność — weryfikacja 30.10.2026
 
-Na gałęzi `fix/investor-navigation-exit-mobile-20261029` przygotowano przeniesienie istniejących Pomieszczeń pod nagłówek INWESTORA, przekierowanie czterech zakładek bez pomieszczenia do tej karty, dyskretną wskazówkę oraz jednolite Wyjdź do listy inwestorów. Czysta sesja wymaga potwierdzonego trwałego zamknięcia; Anuluj/Zapisz i blokady danych pozostają. Pasek ma jeden rząd „Zaufany / Wyloguj”, z zachowaniem ostrzeżenia, opisu checkboxa i komunikatów aria-live poza stałym rzędem. Bez zmian danych, obliczeń, LOCAL-FIRST i Firebase LIVE.
+1. **Dokończyć proces wydania niniejszego porządku dokumentacji** — tylko po odrębnej zgodzie właściciela na dokładny HEAD/BASE; bez uruchamiania Firebase LIVE.
+2. **Naprawa zgłoszonych błędów Androida po PR #86:** nieotwierający się inwestor, chwilowo cudze pomieszczenia przy tworzeniu nowego oraz separator i wygląd Zaufany/Wyloguj. Dopiero po naprawie i nowej zgodzie wydaniowej powtórzyć test telefonu.
+3. **Następny logiczny pakiet produktu** wybrać po wyniku testu Androida i analizie aktualnego `main`. Trwały LOCAL-FIRST istnieje jako izolowana implementacja w wydanym PR #84, ale realna synchronizacja i bezstratna migracja pozostają niewdrożone. Obowiązują wszystkie bramki bezpieczeństwa opisane niżej.
 
-**CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Następny krok: niezależny przegląd HEAD/BASE i dopiero osobno zatwierdzone CI/wydanie. Nowe i dostosowane regresje, pokrycie obowiązkowego CI i lokalne ograniczenia są w [raporcie](tools/reports/investor-navigation-exit-mobile-20261029.md). Nie odświeżać otwartej karty z niezapisanym RAM.
-
-## Zaufane urządzenia / sesja tymczasowa — pakiet 28.10.2026
-
-Na bazie `951005296780f2b4887ab39b3c065a0beb247c48` przygotowano oddzielny lokalny dostęp, Google Auth i krótkie uprawnienie Firebase. Właściciel zatwierdził checkbox po logowaniu w górnym pasku obok Wyloguj. Zaufanie można świadomie ustanowić na telefonie, tablecie lub laptopie; wymaga ono dowodu WebCrypto/IDB i kompletnej powłoki offline. Niezaznaczona opcja oznacza na każdym urządzeniu sesję tymczasową tylko w pamięci dokumentu, z blokadą po 5 minutach bezczynności. Zmiana nie włącza synchronizacji, nie migruje danych ani nie zmienia PR #84. PR #84 jest scalony w powyższym main; wcześniejsze opisy jego CI_PENDING poniżej są historyczne.
-
-**CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Nowa macierz Chromium/IDB/offline i SDK/Rules wymaga CI, lokalnie natywny browser jest BLOCKED (`listen EPERM`). [Model, ograniczenia, rzeczywiste kontrole i wymagane dowody](tools/reports/trusted-phone-desktop-offline-auth.md). Nie odświeżać aktywnej karty z niezabezpieczonym RAM.
+> **Dalsze sekcje:** decyzje nadal obowiązujące są wiążące; opisy dawnych stanów i etykiety `CI_PENDING`/`priorytet 1` są migawkami historycznymi. Najnowsze statusy czytaj w `CURRENT_STATE.md`.
 
 ## WSPÓLNY PIN MEBLE-APP — ODROCZONY DO DZIAŁAJĄCEJ CHMURY (decyzja 28.10.2026)
 

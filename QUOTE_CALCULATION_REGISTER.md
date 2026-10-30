@@ -1,5 +1,7 @@
 ## 2026-10-23 — zatwierdzone normy WYCENA-LABOR
 
+> **Kanoniczny kontrakt norm i źródeł kalkulacji WYCENY, nie lista zadań.** Nie przeliczać zamrożonych ofert podczas porządków. Stan wykonania: [CURRENT_STATE.md](CURRENT_STATE.md).
+
 Ten wpis zastępuje wcześniejsze normy pokrywających się automatów. Decyzje doprecyzowane przez właściciela w tej sesji: **starsze półki są regulowane, puszki wierci własny warsztat; standardowa wisząca HDF ma 2 własne NUT-y, 2 otwory HDF i 2 podcięcia boków**. Odczyt stosuje te wartości bez przepisywania starych szafek. Zamrożone oferty nie są przeliczane.
 
 | Czynność / ID | Źródło ilości, jednostka | Norma w minutach | Stawka |
