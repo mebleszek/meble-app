@@ -5,7 +5,7 @@
 ## Najbliższa kolejność — weryfikacja 30.10.2026
 
 1. **Dokończyć proces wydania niniejszego porządku dokumentacji** — tylko po odrębnej zgodzie właściciela na dokładny HEAD/BASE; bez uruchamiania Firebase LIVE.
-2. **Akceptacja fizycznego Androida dla wydanego PR #86**: wybór pomieszczenia, cztery zakładki, „Wyjdź”, celowe Wyloguj, zachowanie trwałych danych i sesji. Automatyczne testy już przeszły PASS; nie dublować ich bez nowej przyczyny.
+2. **Naprawa zgłoszonych błędów Androida po PR #86:** nieotwierający się inwestor, chwilowo cudze pomieszczenia przy tworzeniu nowego oraz separator i wygląd Zaufany/Wyloguj. Dopiero po naprawie i nowej zgodzie wydaniowej powtórzyć test telefonu.
 3. **Następny logiczny pakiet produktu** wybrać po wyniku testu Androida i analizie aktualnego `main`. Trwały LOCAL-FIRST istnieje jako izolowana implementacja w wydanym PR #84, ale realna synchronizacja i bezstratna migracja pozostają niewdrożone. Obowiązują wszystkie bramki bezpieczeństwa opisane niżej.
 
 > **Dalsze sekcje:** decyzje nadal obowiązujące są wiążące; opisy dawnych stanów i etykiety `CI_PENDING`/`priorytet 1` są migawkami historycznymi. Najnowsze statusy czytaj w `CURRENT_STATE.md`.

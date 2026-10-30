@@ -272,6 +272,8 @@ Ten podział przypisuje odpowiedzialność za testy zgodnie z §3 i §10, bez zm
 5. **STOP i rozbieżności:** jeżeli rejestr mówi `CI_PENDING`, a GitHub potwierdza `RELEASED`, najpierw zweryfikować konkretny PR i SHA, a następnie zgłosić korektę do wykonania po uzyskaniu zgody; nie przedstawiać starego statusu jako obecnego. Jeśli brakuje poświadczenia lub operacja jest zablokowana, wpisać `BLOCKED` i wskazać dowód/lukę, nie ponawiać automatycznie testów i nie zgadywać wyniku.
 6. **Krótki raport właścicielowi:** „zrobione / zweryfikowane / blokery / następny ruch” i linki. Nie żądać ponownego tłumaczenia zakończonych etapów ani przepisywania wielostronicowych historii.
 
+**Mapa dokumentów:** README = wejście, DEV = workflow, CURRENT_STATE = bieżący stan, ROADMAP = przyszły plan, CLOUD_MIGRATION/CLOUD_DATA_REGISTER/BACKUP/QUOTE_CALCULATION_REGISTER = kontrakty, TEST_BASELINE/DEPENDENCY_MAP/PREFLIGHT = testy i zależności, tools/reports oraz docs/archive = historia. Plików nie usuwa się bez odrębnej zgody; kandydatów opisuje MD_CLEANUP_AUDIT.md.
+
 Dziennik dokumentuje stan prac; **nie jest upoważnieniem do PR Ready, merge, wdrożenia Rules, Firebase LIVE, migracji ani wykonania innych działań produkcyjnych**. Obowiązują nadal §1–14 i wymóg osobnej zgody właściciela.
 
 ---
