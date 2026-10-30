@@ -1,5 +1,7 @@
 # DEPENDENCY_MAP — mapa zależności i wpływu zmian
 
+> **Mapa zależności do weryfikacji z aktualnym kodem i testami, nie dziennik wydań.** Aktualny stan prac: [CURRENT_STATE.md](CURRENT_STATE.md).
+
 ## 2026-10-19 — ograniczone współdzielenie odczytu PCV / wynik jednego żądania
 
 `wycena-tab-shell` → `wycenaCore.collectQuoteData` → oryginalny builder/proof/store.

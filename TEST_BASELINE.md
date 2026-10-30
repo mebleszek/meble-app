@@ -1,5 +1,7 @@
 # TEST_BASELINE — punkt odniesienia testów Meble-App
 
+> **Referencja zakresu testów, nie bieżący CI_PASS.** Faktyczne wyniki dla danego SHA potwierdza GitHub Actions, zgodnie z [AGENTS.md](AGENTS.md); statusy i linki: [CURRENT_STATE.md](CURRENT_STATE.md).
+
 ## 2026-10-29 — nawigacja inwestora i bezpieczne Wyjdź
 
 BASE `0a9522cf9277ef3de03d328a84dd9569a1958e46`, gałąź `fix/investor-navigation-exit-mobile-20261029`. Nowy UX zastępuje planszę pomieszczeń istniejącą kartą INWESTORA; czyste Wyjdź z projektu kończy sesję trwale i otwiera listę inwestorów. Anuluj zmian nadal chroni/reotwiera to samo pomieszczenie. Nie przenosić dawnych oczekiwań `homeView`/`roomsView` na ten kontrakt.

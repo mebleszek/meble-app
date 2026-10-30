@@ -1,3 +1,7 @@
+# OPTIMIZATION_PLAN — dawne i przyszłe propozycje optymalizacji
+
+> **PLAN / HISTORIA, NIE STATUS WYKONANIA.** Przed ponowną implementacją porównaj ten plan z [CURRENT_STATE.md](CURRENT_STATE.md), [ROADMAP.md](ROADMAP.md) i [QUOTE_CALCULATION_REGISTER.md](QUOTE_CALCULATION_REGISTER.md). Część pomysłów jest już wydana.
+
 ## 2026-06-28 — Plan: brakujące zjadacze czasu w wycenie
 
 Status: **analiza, bez wdrożenia matematyki**. Raport `tools/reports/time-eaters-quote-analysis-v1.md` wskazuje potencjalne braki w czasie pracy: pomiar i ryzyko wnęk, kontakt z klientem i poprawki koncepcji, zamawianie materiałów/okuć, kontrola dostaw, oklejanie/czyszczenie, montaż frontów i regulacja, wycięcia, pakowanie, sprzątanie oraz bufor ryzyka.

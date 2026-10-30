@@ -1,5 +1,7 @@
 # Plan: kreator nietypowych korpusów i dane szafki
 
+> **Plan przyszłego kreatora, nie dowód jego wdrożenia.** Aktualny stan sprawdź w [CURRENT_STATE.md](CURRENT_STATE.md) i [ROADMAP.md](ROADMAP.md); nie traktuj historycznej listy jako nowego zlecenia.
+
 Status: plan architektoniczny, bez implementacji kreatora w tej paczce.
 
 ## Decyzje
