@@ -1,5 +1,7 @@
 # CLOUD-1 — zatwierdzony cel chmury i granice pilotażu
 
+> **Obowiązujący kontrakt CLOUD, LOCAL-FIRST i offline.** Dawne CODE_READY / CI_PENDING były migawkami; aktualne PR, bramki i dowody są w [CURRENT_STATE.md](CURRENT_STATE.md). Wydanie kodu nie uruchamia synchronizacji ani LIVE.
+
 ## Zaufane urządzenia / sesja tymczasowa — pakiet 28.10.2026
 
 Na bazie `951005296780f2b4887ab39b3c065a0beb247c48` przygotowano oddzielny lokalny dostęp, Google Auth i krótkie uprawnienie Firebase. Właściciel zatwierdził checkbox po logowaniu w górnym pasku obok Wyloguj. Zaufanie można świadomie ustanowić na telefonie, tablecie lub laptopie; wymaga ono dowodu WebCrypto/IDB i kompletnej powłoki offline. Niezaznaczona opcja oznacza na każdym urządzeniu sesję tymczasową tylko w pamięci dokumentu, z blokadą po 5 minutach bezczynności. Zmiana nie włącza synchronizacji, nie migruje danych ani nie zmienia PR #84. PR #84 jest scalony w powyższym main; wcześniejsze opisy jego CI_PENDING poniżej są historyczne.

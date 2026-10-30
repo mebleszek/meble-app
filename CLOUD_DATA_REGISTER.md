@@ -1,5 +1,7 @@
 # CLOUD-1A — kanoniczny rejestr danych Meble-App
 
+> **Jedyny kanoniczny rejestr własności domen danych.** Historyczne wdrożenia nie stanowią zgody na Firebase LIVE. Aktualne etapy i blokery: [CURRENT_STATE.md](CURRENT_STATE.md).
+
 ## LOCAL-FIRST SYNC — dopisek magazynowy, 28.10.2026
 
 Wznowienie implementacji zatwierdzone przez właściciela; wcześniejsze wstrzymanie jest historyczne. Bez nowego rejestru domen: `sources`/schematy CLOUD-3 pozostają jedynym kontraktem 14 domen. Dozwolone pola są zachowane, nieznane niezatwierdzone pola odmawiają publikacji bez kasowania RAW; pięć aliasów i legacy nadal kontrolują oryginalne walidatory. `transport.apiKey`, sesje, tokeny, cache i backupy nie wchodzą do payloadu globalnego.
