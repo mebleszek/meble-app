@@ -393,7 +393,8 @@
           persistence.setCurrentInvestorId(id);
           const actualId = typeof persistence.getCurrentInvestorId === 'function' ? persistence.getCurrentInvestorId() : '';
           if(String(actualId || '') !== String(id)) return false;
-          if(FC.investorProjectRuntime && typeof FC.investorProjectRuntime.setActiveProjectFromInvestor === 'function') FC.investorProjectRuntime.setActiveProjectFromInvestor(id);
+          if(FC.investorProjectRuntime && typeof FC.investorProjectRuntime.setActiveProjectFromInvestor === 'function'
+            && FC.investorProjectRuntime.setActiveProjectFromInvestor(id) !== true) return false;
           const selected = FC.projectStore && FC.projectStore.getCurrentRecord ? FC.projectStore.getCurrentRecord() : null;
           if(!selected || String(selected.investorId || '') !== String(id)) return false;
           if(typeof uiState !== 'undefined' && uiState){
@@ -552,5 +553,17 @@
       return action(args);
     };
   });
+  const saveAction=actions['session-save'];
+  actions['session-save']=args=>{
+    const integration=FC.applicationSyncActions;
+    if(!integration || !integration.installed())return saveAction(args);
+    return integration.save(()=>{
+      const result=saveAction(args),s=FC.session;
+      return {ok:result!==false && !s?.active && !s?.snapshot && !s?.durable
+        && localStorage.getItem('fc_edit_session_v1')===null};
+    });
+  };
+  const cancelAction=actions['session-cancel'];
+  actions['session-cancel']=args=>FC.applicationSyncActions?.installed()?FC.applicationSyncActions.cancel(()=>cancelAction(args)):cancelAction(args);
   FC.actions.register(actions);
 })();

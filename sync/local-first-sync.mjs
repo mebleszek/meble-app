@@ -23,7 +23,8 @@ export function createGlobalChannel({writer,reader,ownerUid,contract,factory}) {
   });
 }
 
-export function createDurableSynchronizer({store,channels,eventTarget,online=()=>true,onState=()=>{}}) {
+export function createDurableSynchronizer({store,channels,eventTarget,online=()=>true,onState=()=>{},projectRemote=async()=>null,onApplied=async()=>{}}) {
+  channels=[...channels];
   const byScope=new Map(channels.map(c=>[c.scope,c]));
   if(byScope.size!==channels.length||!eventTarget?.addEventListener||!store?.exclusive)fail('LF_DEPENDENCY_REQUIRED');
   let closed=false,scheduled=false,running=null,wake=false;
@@ -73,8 +74,9 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
         }
         snap=await store.snapshot(channel.scope);
         if(!snap.replica?.dirty && !snap.operations.some(op=>op.phase!=='verified')){
-          try{const remote=await channel.read();if(!closed)await store.apply({scope:channel.scope,value:remote.value,head:remote.head,
-            expectedVersion:snap.replica?.version||0,editor:snap.replica?.editor||null});}
+          try{const remote=await channel.read();if(!closed&&!equal(snap.replica?.base,remote.head)){const application=await projectRemote(channel,remote,snap);
+            await store.apply({scope:channel.scope,value:remote.value,head:remote.head,application,expectedVersion:snap.replica?.version||0,editor:snap.replica?.editor||null});
+            await onApplied(channel,remote);}}
           catch(e){if(!['GLOBAL_NOT_FOUND','CLOUD_PROJECT_NOT_FOUND'].includes(e.code))return safeError(e);}
         }
       }
@@ -82,7 +84,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
     });
   }
   function schedule(){if(closed)return;if(running){wake=true;return;}if(scheduled)return;scheduled=true;queueMicrotask(()=>{scheduled=false;void flush();});}
-  async function flush(){if(closed)return {ok:false,code:'LF_CLOSED'};if(running)return running;
+  async function flush(){if(closed)return {ok:false,code:'LF_CLOSED'};if(running){wake=true;return running;}
     running=(async()=>{let result;do{wake=false;result=await cycle().catch(safeError);state(result);}while(wake&&!closed);return result;})()
       .finally(()=>{running=null;});return running;}
   // Listeners are wake-up signals only; every receive still uses a fresh,
@@ -91,7 +93,10 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
   try{for(const channel of channels)if(typeof channel.watch==='function')unsubscribe.push(channel.watch(schedule));}
   catch(e){closed=true;for(const stop of unsubscribe)stop();throw e;}
   eventTarget.addEventListener('online',schedule);schedule();
-  return Object.freeze({flush,
+  return Object.freeze({notify:schedule,flush,channel:scope=>byScope.get(scope),
+    register(channel){assertOpen();if(!channel||byScope.has(channel.scope)||channel.kind!=='project')fail('LF_CHANNEL_CONFLICT');channel.guard();
+      const stop=typeof channel.watch==='function'?channel.watch(schedule):()=>{};
+      byScope.set(channel.scope,channel);channels.push(channel);unsubscribe.push(stop);schedule();},
     async submitGlobals({source,operationId,expectedVersion}){
       assertOpen();
       const c=byScope.get('globals')?.contract;if(!c)fail('LF_GLOBAL_CHANNEL_REQUIRED');

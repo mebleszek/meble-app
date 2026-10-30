@@ -7,7 +7,7 @@ const {startBrowser}=require('./helpers/chromium-runtime');
 const {waitForGesturePoint,observeGesture}=require('./helpers/browser-test-readiness');
 const {installAuthInputDiagnostics}=require('./helpers/auth-input-diagnostics');
 const ROOT=path.resolve(__dirname,'..'),ORIGIN='https://mebleszek.github.io',PREFIX='/meble-app/';
-const auth=`(()=>{const identity={uid:'synthetic-empty-owner',epoch:1};window.FC=window.FC||{};window.FC.cloudAuth={create:async()=>({identity:()=>identity,state:()=>({status:'authenticated',...identity}),subscribe(fn){queueMicrotask(()=>fn({status:'authenticated',...identity}));return()=>{};},signInGoogle:async()=>({ok:true}),signOut(){throw Error('No test logout');}})};})();`;
+const auth=`(()=>{const identity={uid:'synthetic-empty-owner',epoch:1};window.FC=window.FC||{};window.FC.cloudAuth={create:async()=>({identity:()=>identity,state:()=>({status:'authenticated',...identity}),subscribe(fn){queueMicrotask(()=>fn({status:'authenticated',...identity}));return()=>{};},signInGoogle:async()=>({ok:true}),signOut:async()=>{window.__testLogoutCalls=(window.__testLogoutCalls||0)+1;return {ok:true};}})};})();`;
 const verifier=`(()=>{window.FC.cloudAccessVerifier={create:()=>({verify:async()=>({ok:true,uid:'synthetic-empty-owner',validUntil:Date.now()+45000}),watch(){return()=>{};}})};})();`;
 const html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
 async function main(){
@@ -74,7 +74,7 @@ async function main(){
     await until('document.body?.dataset.businessState==="ready"','fresh full app startup');
     const tap=async selector=>{
       await until(`!!document.querySelector(${JSON.stringify(selector)})`,'target '+selector);
-      const point=await waitForGesturePoint(evaluate,selector,{stable:true});
+      let point;try{point=await waitForGesturePoint(evaluate,selector,{stable:true});}catch(error){throw Error(error.message+' '+JSON.stringify(await evaluate('({access:__FC_MAIN_ACCESS__.isValid(),view:uiState.entry,tab:uiState.activeTab,editing:window.FC.investorEditorState.state.isEditing,button:{disabled:document.getElementById("sessionCancel").disabled,visible:!!document.getElementById("sessionCancel").getClientRects().length},confirmation:!!document.querySelector(".confirm-box"),notice:!!document.querySelector(".info-box"),hit:(()=>{const b=document.getElementById("sessionCancel"),r=b.getBoundingClientRect(),e=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return {rect:{x:r.x,y:r.y,w:r.width,h:r.height},id:e?.id,tag:e?.tagName,guard:!!b.closest("[inert],.modal-open-guard"),scale:visualViewport.scale};})()})')));}
       await evaluate('window.__EMPTY_TAP__?.close();window.__EMPTY_TAP__=('+observeGesture.toString()+')('+JSON.stringify(selector)+');true');
       await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...point,radiusX:3,radiusY:3,id:1}]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await new Promise(r=>setTimeout(r,160));
     };
@@ -114,6 +114,28 @@ async function main(){
     await tap('#sessionSave');await until('!window.FC.session.active','confirmed save closes session');
     assert.equal(await evaluate('window.FC.projectStore.getCurrentRecord().projectData[uiState.roomType].settings.roomHeight'),275);assert.equal(await evaluate('localStorage.getItem("fc_edit_session_v1")'),null);
     console.log('PASS first investor/project -> room editor -> actual parameter change -> durable save without fake ownership');
+    await evaluate('window.__firstInvestor=window.FC.investors.getCurrentId();window.__firstProject=JSON.stringify(window.FC.projectStore.getCurrentRecord());window.FC.infoBox.close()');
+    await tap('#sessionCancel');await until('uiState.entry==="investorsList"','exit first investor');
+    await tap('[data-action="create-investor"]');await until('!!document.getElementById("invName")','second investor draft');
+    assert.equal(await evaluate('document.querySelectorAll("#investorRoot .investor-room-quick-btn").length'),0,'New form must not display first investor rooms');
+    for(const[id,value]of Object.entries({invName:'Synthetic Second Owner',invPhone:'987654321',invCity:'Second City',invEmail:'second@example.invalid',invAddress:'Synthetic address 2',invNotes:'Second synthetic fixture'}))await fill('#'+id,value);
+    await evaluate(`(()=>{const el=document.getElementById('invSource');el.value=[...el.options].find(o=>o.value)?.value;el.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+    await tap('#investorActionBar [data-investor-action="save"]');await until('!!document.querySelector(".confirm-box")','second save confirmation');await tap('.confirm-box .is-success');
+    await until('window.FC.investors.readAll().length===2&&projectData.meta.assignedInvestorId===window.FC.investors.getCurrentId()','second project RAM owner');
+    assert.equal(await evaluate('JSON.stringify(window.FC.projectStore.getByInvestorId(window.__firstInvestor))===window.__firstProject'),true,'Creating second investor must preserve first project');
+    const ownerIds=await evaluate('window.FC.investors.readAll().map(x=>x.id)');
+    await tap('#main-signout');await until('!__FC_MAIN_ACCESS__.isValid()','manual logout');assert.equal(await evaluate('window.__testLogoutCalls'),1,'Exactly one deliberate logout');await login();await until('__FC_MAIN_ACCESS__.isValid()','same document reauthentication');
+    await evaluate('window.FC.views.openInvestorsList()');
+    for(const id of ownerIds){
+      await tap('[data-action="open-investor"][data-inv-id="'+id+'"]');
+      await until('document.getElementById("investorView").style.display==="block"&&uiState.currentInvestorId==='+JSON.stringify(id)+'&&projectData.meta.assignedInvestorId==='+JSON.stringify(id),'reopen actual investor after logout');
+      assert.equal(await evaluate('window.FC.projectStore.getCurrentRecord().investorId'),id);
+      await tap('#sessionCancel');await until('uiState.entry==="investorsList"','exit actual investor');
+    }
+    await settle();await send('Page.reload',{ignoreCache:true});await until('document.body?.dataset.authState==="unauthenticated"','two-investor restart login');await login();await until('document.body?.dataset.businessState==="ready"','two-investor restart ready');
+    await evaluate('window.FC.views.openInvestorsList()');
+    for(const id of ownerIds){await tap('[data-action="open-investor"][data-inv-id="'+id+'"]');await until('document.getElementById("investorView").style.display==="block"&&uiState.currentInvestorId==='+JSON.stringify(id)+'&&projectData.meta.assignedInvestorId==='+JSON.stringify(id),'restart investor owner');await tap('#sessionCancel');await until('uiState.entry==="investorsList"','restart exit');}
+    console.log('PASS native two-investor room/data isolation, logout/reauthentication and full document restart');
     await settle();assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
 
   }finally{try{for(const c of clients)c.close();}finally{await browser?.close();}fs.rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:100});}

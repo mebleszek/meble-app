@@ -12,6 +12,7 @@ import {initializeTestEnvironment,assertFails} from '@firebase/rules-unit-testin
 import {runtime,model,seed,selectProjectFixture} from './cloud-sync-fixture.mjs';
 import {startLocalFirstServer,openBrowserDevice} from '../helpers/local-first-browser.mjs';
 import {createGlobalChannel,createDurableSynchronizer} from '../../sync/local-first-sync.mjs';
+import {createApplicationSession} from '../../sync/application-session.mjs';
 import {createProjectChannel,validateProjectDependencies} from '../../sync/local-first-project.mjs';
 const require=createRequire(import.meta.url),{fixture}=require('../project-selective-export-smoke.js');
 const root=new URL('../../',import.meta.url),clone=v=>JSON.parse(JSON.stringify(v));
@@ -209,4 +210,28 @@ export async function runLocalFirstSuite(t){
     assert.deepEqual(local.pf.rows(),before);
     assert.equal(local.pf.storage.getItem('fc_quote_snapshots_v1'),'SYNTHETIC-PROTECTED-HISTORY');
   });
+  await t.test('LOCAL-FIRST 08: application session uses real IDB/global SDK coordinator, local Save refusal and logout',async()=>{
+    const a=await device('application-phone'),b=await device('application-tablet');
+    await expectFlush(a,reconnect(a),'application initial receive');a.online=false;
+    const globals=model();seed(a.writer.r,globals);
+    let allowed=true,applied=null;
+    const adapter=createApplicationSession({synchronizer:a.sync,store:a.store,source:a.writer.r.storage,
+      session:{active:false,snapshot:null,durable:false},eventTarget:a.events,
+      access:{assertLocal(uid){assert.equal(uid,a.writer.uid);if(!allowed)throw Error('LF_APPLICATION_CLOSED');},assertCloud(){}},
+      globalContract:a.writer.r.FC.globalDataContract,onRemote:async receipt=>{await receipt.assertCurrent();applied=receipt.value;return true;}});
+    await assert.rejects(adapter.save({operationId:'refused-save',kind:'globals',saveLocal:async()=>({ok:false})}),/LF_APPLICATION_SAVE_UNCONFIRMED/);
+    assert.equal((await a.store.snapshot('globals')).operations.length,0);
+    const saved=await adapter.save({operationId:'application-save',kind:'globals',saveLocal:async()=>({ok:true})});
+    assert.equal(saved.localConfirmed,true);assert.equal(saved.cloudConfirmed,false);
+    assert.equal((await a.store.snapshot('globals')).operations[0].phase,'queued');
+    await expectFlush(a,reconnect(a),'application save');await expectFlush(b,reconnect(b),'application receive');
+    assert.deepEqual(JSON.parse((await b.store.snapshot('globals')).replica.json),globals);
+    assert.equal(await adapter.receive('globals'),true);assert.deepEqual(applied,globals);
+    allowed=false;await assert.rejects(adapter.globals('wrong-account'),/LF_APPLICATION_CLOSED/);
+    const before=await a.store.snapshot('globals');await adapter.close();
+    await assert.rejects(adapter.globals('after-logout'),/LF_APPLICATION_CLOSED/);
+    const reopened=await a.browser.open({...a.binding,initialize:false});
+    assert.deepEqual(await reopened.snapshot('globals'),before,'Logout must preserve durable data/outbox');
+  });
+
 }

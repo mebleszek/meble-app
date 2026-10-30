@@ -60,7 +60,30 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
     for (const row of value.protected) if(await digest(row.json)!==row.hash)fail('LF_LOCAL_INTEGRITY');
     return value;
   }
-  async function commit({scope, operationId, value, expectedVersion, base = null, editor = null, blockers = [], protectedRows = {}}) {
+  async function readApplication(){const value=await transaction('readonly',(s,done)=>{const q=s.control.get('application');q.onsuccess=()=>done(q.result||null);});if(value && await digest(json(value.rows))!==value.hash)fail('LF_APPLICATION_INTEGRITY');return value;}
+  async function prepareApplication(application){if(!application)return null;application=copy(application);if(!Number.isSafeInteger(application.expectedVersion)||application.expectedVersion<1||!application.rows||Object.values(application.rows).some(v=>v!==null&&typeof v!=='string'))fail('LF_APPLICATION_INVALID');application.hash=await digest(json(application.rows));return application;}
+  async function checkpointApplication(application){
+    application=await prepareApplication(application);
+    return transaction('readwrite',(s,done,abort)=>applicationChange(s,application,()=>done(true),abort));
+  }
+  async function initializeApplication(rows){
+    if(!/^meble-lf-test-/.test(name))fail('LF_OLD_WRITER_EXCLUSIVITY_UNPROVEN');
+    rows=copy(rows);const hash=await digest(json(rows));
+    return transaction('readwrite',(s,done,abort)=>{const q=s.control.get('application');q.onsuccess=()=>{
+      if(q.result){abort(Error('LF_APPLICATION_ALREADY_INITIALIZED'));return;}
+      const next={key:'application',version:1,rows,hash};s.control.add(next);done(next);
+    };});
+  }
+  function applicationChange(s,application,continueWrite,abort){
+    if(!application){continueWrite();return;}
+    const q=s.control.get('application');q.onsuccess=()=>{
+      const old=q.result;if(!old||old.version!==application.expectedVersion){abort(Error('LF_APPLICATION_CONFLICT'));return;}
+      const next={key:'application',version:old.version+1,rows:copy(application.rows),hash:application.hash};
+      try{s.control.put(next);continueWrite();}catch(e){abort(e);}
+    };
+  }
+  async function commit({scope, operationId, value, expectedVersion, base = null, editor = null, blockers = [], protectedRows = {}, application = null}) {
+    application=await prepareApplication(application);
     id(scope); id(operationId); editor=copy(editor);base=copy(base);blockers=copy(blockers);
     const encoded = json(value), protection = json(protectedRows), hash = await digest(encoded), protectedHash=await digest(protection);
     if (!Array.isArray(blockers) || blockers.some(v => !/^LF_[A-Z_]+$/.test(v))) fail('LF_BLOCKER_INVALID');
@@ -69,7 +92,7 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       const finish = () => { if (--pending) return;
         try {
           if (b.result) {
-            if (b.result.scope !== scope || b.result.hash !== hash || !equal(b.result.editor, editor)) fail('LF_OPERATION_REUSED');
+            if (b.result.scope !== scope || b.result.hash !== hash || !equal(b.result.editor, editor)|| (b.result.applicationHash||null)!==(application?.hash||null)) fail('LF_OPERATION_REUSED');
             done({ok: true, duplicate: true, version: b.result.localVersion, operationId}); return;
           }
           const old = a.result, version = old?.version || 0;
@@ -78,12 +101,14 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
             || editor.deviceId !== deviceId)) fail('LF_EDITOR_REQUIRED');
           const previous = all.result.filter(row => row.scope === scope).sort((x,y) => y.localVersion - x.localVersion)[0];
           const nextVersion = version + 1;
+          applicationChange(s,application,()=>{
           s.replicas.put({key: scope, version: nextVersion, json: encoded, hash, base: old?.base || base, editor: copy(editor), dirty: true});
           s.outbox.add({key: operationId, scope, localVersion: nextVersion, json: encoded, hash, base: old?.base || base,
-            previousOperation: previous?.key || null, editor: copy(editor), phase: blockers.length ? 'blocked' : 'queued', blockers: copy(blockers), expected: null});
+            previousOperation: previous?.key || null, applicationHash:application?.hash||null, editor: copy(editor), phase: blockers.length ? 'blocked' : 'queued', blockers: copy(blockers), expected: null});
           // Retain every protected RAW version; later edits cannot erase its only copy.
           s.protected.add({key: operationId, scope, json: protection,hash:protectedHash});
           done({ok: true, operationId, version: nextVersion, localConfirmed: true, cloudConfirmed: false});
+          },abort);
         } catch(e) { abort(e); }
       }; a.onsuccess = b.onsuccess = all.onsuccess = finish;
     });
@@ -111,7 +136,8 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       } catch(e) { abort(e); } };
     });
   }
-  async function apply({scope, value, head, expectedVersion, editor = null}) {
+  async function apply({scope, value, head, expectedVersion, editor = null, application = null}) {
+    application=await prepareApplication(application);
     id(scope);head=copy(head);editor=copy(editor);const encoded = json(value), hash = await digest(encoded);
     return transaction('readwrite', (s, done, abort) => {
       const r = s.replicas.get(scope), q = s.outbox.getAll(); let pending = 2;
@@ -119,9 +145,9 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
         const old = r.result;
         if ((old?.version || 0) !== expectedVersion || old?.dirty || q.result.some(op => op.scope === scope && op.phase !== 'verified')) fail('LF_LOCAL_CONFLICT');
         if (old?.base && (head.generation < old.base.generation || head.generation === old.base.generation && !equal(head,old.base))) fail('LF_STALE_REMOTE');
-        if (old && equal(old.base, head)) { done(old); return; }
+        if (old && equal(old.base, head)) { if(old.hash!==hash)fail('LF_REMOTE_CONTENT_MISMATCH');done(old); return; }
         const next = {key: scope, version: (old?.version || 0) + 1, json: encoded, hash, base: copy(head), editor: copy(editor), dirty: false};
-        s.replicas.put(next); done(next);
+        applicationChange(s,application,()=>{s.replicas.put(next); done(next);},abort);
       } catch(e) { abort(e); } }; r.onsuccess = q.onsuccess = finish;
     });
   }
@@ -140,7 +166,7 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       } catch(e) { abort(e); } }; q.onsuccess = ops.onsuccess = finish;
     });
   }
-  return Object.freeze({ownerUid, deviceId, instanceId, name, snapshot, commit, transition, apply, setEditor,
+  return Object.freeze({ownerUid, deviceId, instanceId, name, snapshot, readApplication, initializeApplication, checkpointApplication, commit, transition, apply, setEditor,
     exclusive: callback => locks.request(name + ':' + instanceId, {mode: 'exclusive'}, () => {if(closed)fail('LF_STORE_CLOSED');return callback();}),
     close() { closed = true; }});
 }

@@ -290,5 +290,14 @@
     }
     return out.sort((a,b)=>(a.domain+'|'+a.reference)<(b.domain+'|'+b.reference)?-1:1);
   }
-  FC.projectExportContract={validate,canonical,dependencies,isId:id,MAX_BYTES:819200};
+  // Reuse the same geometry, PCV and relationship validators for an owned
+  // application record without projecting away future fields or claiming pilot eligibility.
+  function validateOwnedRoom(value,p='project.projectData.room'){
+    if(!obj(value)||!Array.isArray(value.cabinets)||!Array.isArray(value.fronts)||!Array.isArray(value.sets))bad(p);
+    for(const c of value.cabinets){ident(c.id,p+'.cabinets[].id');for(const k of ['width','height','depth'])positive(c[k],p+'.cabinets[].'+k);if(!obj(c.details))bad(p+'.cabinets[].details');}
+    for(const f of value.fronts){ident(f.id,p+'.fronts[].id');for(const k of ['width','height'])positive(f[k],p+'.fronts[].'+k);}
+    for(const set of value.sets)ident(set.id,p+'.sets[].id');
+    validateRoom(value,p);return true;
+  }
+  FC.projectExportContract={validate,validateOwnedRoom,canonical,dependencies,isId:id,MAX_BYTES:819200};
 })();
