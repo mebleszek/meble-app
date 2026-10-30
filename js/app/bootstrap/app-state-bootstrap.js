@@ -50,9 +50,8 @@
             projectData = validator.validateProject ? validator.validateProject(projectData) : projectData;
             uiState = validator.validateUIState ? validator.validateUIState(uiState) : uiState;
 
-            if(FC.project && typeof FC.project.save === 'function'){
-              projectData = FC.project.save(projectData) || projectData;
-            }
+            // Startup validation prepares RAM only. Opening/restarting must not
+            // approve historical defaults or write a project without explicit Save.
             if(validator.persistIfPossible){
               validator.persistIfPossible(storageKeys.materials, materials);
               validator.persistIfPossible(storageKeys.services, services);
