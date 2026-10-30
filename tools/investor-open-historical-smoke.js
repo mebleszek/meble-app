@@ -14,9 +14,14 @@ async function main(){
   const r=historical(),raw=r.storage.getItem(P),rows=r.FC.projectStore.readAll();
   const normalized=rows.find(row=>row.id==='Q').projectData;
   assert.equal(normalized.kuchnia.cabinets[0].frontCount,2);assert.deepEqual(JSON.parse(JSON.stringify(normalized.kuchnia.cabinets[0].details)),{});
-  assert.equal(normalized.kuchnia.cabinets[0].setNumber,1);assert.equal(normalized.kuchnia.sets[0].number,1);
-  const before=JSON.stringify(normalized);r.FC.projectBootstrap.normalizeProjectData(normalized,r.FC.project.DEFAULT_PROJECT);
-  assert.equal(JSON.stringify(normalized),before,'Reading and rendering use the same legacy defaults');assert.equal(r.storage.getItem(P),raw);
+  assert.equal(Object.hasOwn(normalized.kuchnia.cabinets[0],'setNumber'),false,'Central/export model must preserve absent display numbering');
+  assert.equal(Object.hasOwn(normalized.kuchnia.sets[0],'number'),false);
+  const before=JSON.stringify(normalized),view=JSON.parse(before);
+  r.FC.projectBootstrap.normalizeProjectData(view,r.FC.project.DEFAULT_PROJECT);
+  assert.equal(view.kuchnia.cabinets[0].setNumber,1);assert.equal(view.kuchnia.sets[0].number,1);
+  assert.equal(JSON.stringify(normalized),before,'Rendering a copy must not add fields to the central/export model');
+  const rendered=JSON.stringify(view);r.FC.projectBootstrap.normalizeProjectData(view,r.FC.project.DEFAULT_PROJECT);
+  assert.equal(JSON.stringify(view),rendered,'View normalization is idempotent');assert.equal(r.storage.getItem(P),raw);
   let activations=0;const activate=r.FC.investorProjectRuntime.setActiveProjectFromInvestor;
   r.FC.investorProjectRuntime.setActiveProjectFromInvestor=(...args)=>{activations++;return activate(...args);};
   assert.equal(await r.handlers['open-investor']({element:{getAttribute:()=> 'N'}}),true);
@@ -32,6 +37,16 @@ async function main(){
   assert.equal(r.FC.investorProjectRuntime.hasProjectDivergence(r.s.projectData),true,'A real front-count change must not be hidden by legacy defaults');
   r.s.projectData.kuchnia.cabinets[0].frontCount=2;
   assert.equal(r.FC.investorProjectRuntime.hasProjectDivergence(r.s.projectData),false);
+  const viewRam=JSON.stringify(r.s.projectData);
+  for(const field of ['set','cabinet']){
+    if(field==='set')r.s.projectData.kuchnia.sets[0].number=2;
+    else r.s.projectData.kuchnia.cabinets[0].setNumber=2;
+    assert.equal(r.FC.investorProjectRuntime.hasProjectDivergence(r.s.projectData),true,'Explicit set numbering changes remain real edits: '+field);
+    assert.equal(r.FC.projectPcvPolicy.read().code,'RAM_DIVERGENCE','PCV must refuse an actual numbering mismatch');
+    r.s.projectData=JSON.parse(viewRam);
+  }
+  assert.equal(r.FC.projectPcvPolicy.read().ok,true,'View-only defaults compare equally without rewriting the source');
+  assert.equal(r.storage.getItem(P),raw);
   assert.equal(await r.FC.views.openRoom('room_n'),true);
   r.s.projectData.room_n.cabinets[0].width=91;
   assert.equal(r.FC.investorProjectRuntime.hasProjectDivergence(r.s.projectData),true,'Actual edits cannot be erased as defaults');

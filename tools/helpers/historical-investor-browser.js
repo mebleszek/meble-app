@@ -46,7 +46,7 @@ async function exerciseHistoricalInvestors({evaluate,tap,until,settle,send,login
       assert.equal(await evaluate('window.FC.investorProjectRuntime.hasProjectDivergence(projectData)'),false);
       assert.equal(await evaluate('window.FC.session.active'),false);
       const expected=JSON.parse(raw).find(row=>row.investorId===id);
-      assert.deepEqual(await evaluate('projectData'),await evaluate('window.FC.project.normalize('+JSON.stringify(expected.projectData)+')'),phase+' RAM must contain exactly this investor project, including saved rooms and unknown fields');
+      assert.deepEqual(await evaluate('projectData'),await evaluate('window.FC.projectBootstrap.normalizeProjectData(window.FC.project.normalize('+JSON.stringify(expected.projectData)+'),window.FC.project.DEFAULT_PROJECT)'),phase+' RAM must contain exactly this investor project, including saved rooms and unknown fields');
       const actual=await evaluate('localStorage.getItem("fc_projects_v1")');
       const paths=(a,b,p='')=>JSON.stringify(a)===JSON.stringify(b)?[]:!a||!b||typeof a!=='object'||typeof b!=='object'?[p]:[...new Set([...Object.keys(a),...Object.keys(b)])].flatMap(k=>paths(a[k],b[k],p+'.'+k));
       assert.equal(actual===raw,true,phase+' must preserve all original historical/project bytes; differences: '+JSON.stringify(paths(JSON.parse(actual),JSON.parse(raw))));

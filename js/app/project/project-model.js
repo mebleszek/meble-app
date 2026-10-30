@@ -40,16 +40,11 @@
       });
       // Match the existing bootstrap's read-only defaults BEFORE comparing RAM
       // with a central record. Rendering must not invent an untracked edit for
-      // an older cabinet/set. Work on cloned data only; never rewrite stored RAW.
+      // an older cabinet. Set numbering stays in the view bootstrap,
+      // outside the stored/exported model and its reviewed payload contract.
+      // Work on cloned data only; never rewrite stored RAW.
       if(Array.isArray(baseRoom.cabinets)){
-        let number = 1;
-        room.sets.forEach(set=>{
-          if(typeof set.number !== 'number') set.number = number;
-          number = Math.max(number, set.number + 1);
-        });
-        const numbers = new Map(room.sets.map(set=>[set.id, set.number]));
         room.cabinets.forEach(cabinet=>{
-          if(cabinet.setId && typeof cabinet.setNumber !== 'number' && typeof numbers.get(cabinet.setId) === 'number') cabinet.setNumber = numbers.get(cabinet.setId);
           if(typeof cabinet.frontCount !== 'number') cabinet.frontCount = 2;
           if(!cabinet.details) cabinet.details = {};
         });

@@ -174,6 +174,11 @@
     try{
       if(FC.project && typeof FC.project.normalize === 'function') normalized = FC.project.normalize(value);
     }catch(_){ }
+    // Compare detached view representations, without adding display-only set
+    // numbers to the central model, export source or actual RAM.
+    if(FC.projectBootstrap && typeof FC.projectBootstrap.normalizeProjectData === 'function'){
+      normalized = FC.projectBootstrap.normalizeProjectData(JSON.parse(JSON.stringify(normalized)), FC.project.DEFAULT_PROJECT);
+    }
     try{
       if(FC.projectStore && typeof FC.projectStore.prepareProjectDataForPersistence === 'function') {
         normalized = FC.projectStore.prepareProjectDataForPersistence(normalized);
