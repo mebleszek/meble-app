@@ -29,8 +29,16 @@
     return options;
   }
 
+  function ownedRooms(inv){
+    const persisted=inv && FC.investors && FC.investors.getById(inv.id);
+    if(!persisted)return [];
+    const current=FC.projectStore && FC.projectStore.getCurrentRecord();
+    if(!current || String(current.investorId)!==String(inv.id))return [];
+    return FC.roomRegistry && FC.roomRegistry.getActiveRoomDefs ? FC.roomRegistry.getActiveRoomDefs() : [];
+  }
+
   function buildProjectCards(inv, disabled, statusOptions){
-    const rooms = (FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function') ? FC.roomRegistry.getActiveRoomDefs() : [];
+    const rooms = ownedRooms(inv);
     if(!rooms.length) return '<div class="muted">Brak dodanych pomieszczeń.</div>';
     return rooms.map((room)=> {
       const status = getRoomStatus(inv, room.id);
@@ -58,7 +66,7 @@
 
   function mountProjectStatusChoices(inv, statusOptions, opts){
     const cfg = Object.assign({ disabled:false, onChange:null }, opts || {});
-    const rooms = (FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomDefs === 'function') ? FC.roomRegistry.getActiveRoomDefs() : [];
+    const rooms = ownedRooms(inv);
     const choiceApi = FC.investorChoice;
     if(!(choiceApi && typeof choiceApi.mountChoice === 'function')) return;
     rooms.forEach((room)=> {

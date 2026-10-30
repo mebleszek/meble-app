@@ -12,6 +12,7 @@
   let interaction=null;
   const trust=FC.localDeviceAccess.createTrust();
   const localSession=FC.localDeviceAccess.createSession({onLock(code){
+    FC.applicationSyncActions?.close();
     gate?.close();gate=null;interaction=null;block();render({status:'unauthenticated',code});
   }});
   const businessNodes=new Set(),styles=[];

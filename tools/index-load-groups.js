@@ -142,6 +142,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/ui/work-mode-hub.js",
       "js/app/shared/validate.js",
       "js/app/ui/bindings.js",
+      "js/app/cloud/application-sync-actions.js",
       "js/app/ui/actions-register.js",
       "js/app/material/material-common.js",
       "js/app/material/material-registry.js",

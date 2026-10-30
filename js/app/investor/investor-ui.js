@@ -183,7 +183,7 @@
     const actionsApi = actions();
     if(!(root && editorApi && persistenceApi)) return;
 
-    persistUIInvestorId(inv.id);
+    persistUIInvestorId(persistenceApi.getInvestorById(inv.id) ? inv.id : null);
     try{ guard() && guard().apply(!!editorApi.state.isEditing); }catch(_){ }
 
     const topActions = document.getElementById('investorActionBar');

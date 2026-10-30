@@ -1,5 +1,16 @@
 # CURRENT_STATE — aktualny stan Meble-App
 
+## Android + LOCAL-FIRST — wykonany zakres i granica, 30.10.2026
+
+BASE/main `f8e452813faaf6cd343704b3952d9501652222d3` (PR #86 wydany, CI/Pages PASS według właściciela). Gałąź `integration/android-local-first-20261030`. Naprawiono izolację nowego/istniejącego inwestora, aktywację RAM i sprawdzanie odmowy, brak niejawnego zapisu przy przełączeniu, zachowanie formularza przy błędzie zapisu, separator statusów i spójność paska. Nowy natywny Chromium potwierdził dwóch inwestorów, logout/reauth i restart; fizyczny Android PENDING.
+
+Przygotowano kompozycję istniejącego store/koordynatora i asynchroniczną granicę Zapisz; po instalacji kontrolera Auth lock zamyka synchronizację bez usuwania danych. Import/startup nie aktywuje LIVE. Test rzeczywistej IDB potwierdził 14 domen/outbox/restart, osobny nowy test SDK jest podłączony do obecnego CI. Produkcyjne projekty/historia nadal nie mają kompletnego profilu; Issue #47 nie daje bezstratnego mapowania historycznych globalnych słojów. Nie przypisano ich arbitralnie, nie zmigrowano localStorage i nie uruchomiono automatycznej synchronizacji urządzeń.
+
+PR #87 pozostaje oddzielny: README/DEV poprawione w `c220ac506ca345077f13eec26a695d8e6d6f42ca`, oba wskazane testy PASS, bez nowej próby CI. Archiwum zachowane. Billing 30.10: właściciel potwierdził `billingEnabled:false`, brak konta; bez ponownego GET. Historyczny checkout/425 pinów C/D/E nienaruszony. Niezależny STOP po utracie hosta pozostaje BLOCKED do zapewnienia hosta/journala/fence/uprawnień, nie LIVE_PASS.
+
+**IMPLEMENTATION_PARTIAL / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED** dla całego dużego pakietu. [Zakres kodu, dowody, rzeczywiste bramki i następny ruch](tools/reports/android-local-first-integration-20261030.md). Nie wykonywano PR Ready, Actions, merge, Pages ani Firebase LIVE. Dalsze wcześniejsze wpisy CI_PENDING opisują historyczne przekazania, nie unieważniają potwierdzonych wydań.
+
+
 ## Nawigacja INWESTORA / Wyjdź / pasek zaufania — 29.10.2026
 
 PR #85 został wydany do main `0a9522cf9277ef3de03d328a84dd9569a1958e46` (potwierdzenie właściciela). Dawne CI_PENDING pakietu Auth poniżej jest historyczne. Test fizycznego Androida pozostaje oddzielną kontrolą.

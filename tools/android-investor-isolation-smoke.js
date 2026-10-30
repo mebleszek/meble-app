@@ -1,0 +1,28 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {setup}=require('./investor-navigation-exit-smoke');
+(async()=>{
+ const r=setup();r.FC.investorProjectPatches.patchInvestorsAPI();
+ const before=r.storage.getItem('fc_projects_v1');
+ const draft={id:'draft-test',rooms:[]};
+ assert.match(r.FC.investorRooms.buildProjectCards(draft,true,[]),/Brak dodanych/,'Transient form must not show active investor rooms');
+ const inv=r.FC.investors.create({name:'Second synthetic investor',rooms:[]});assert.ok(inv);
+ assert.equal(r.s.projectData.meta.assignedInvestorId,inv.id,'New investor must own RAM immediately');
+ assert.equal(r.FC.projectStore.getCurrentRecord().investorId,inv.id);
+ assert.equal(r.FC.investorProjectRuntime.hasProjectDivergence(r.s.projectData),false);
+ const rows=JSON.parse(before);for(const row of rows)assert.deepEqual(JSON.parse(r.storage.getItem('fc_projects_v1')).find(x=>x.id===row.id),row,'Create must not rewrite existing projects');
+ assert.equal(await r.handlers['open-investor']({element:{getAttribute:()=> 'K'}}),true);
+ assert.equal(r.s.projectData.room_k.cabinets[0].width,60);
+ assert.equal(await r.handlers['open-investor']({element:{getAttribute:()=> inv.id}}),true);
+ assert.equal(r.s.projectData.meta.assignedInvestorId,inv.id);assert.equal(r.s.projectData.room_k,undefined);
+ const durable=r.storage.getItem('fc_projects_v1');
+ r.s.projectData.meta.assignedInvestorId='foreign';assert.equal(r.FC.investorProjectRuntime.saveActiveProjectToInvestor(inv.id),null);
+ assert.equal(r.storage.getItem('fc_projects_v1'),durable);
+ const f=setup();f.load('js/app/investor/investor-modals.js');f.load('js/app/investor/investor-actions.js');f.FC.investorEditorState.enter(f.inv());
+ for(const [key,value]of Object.entries({name:'Synthetic',phone:'123',city:'City',email:'test@example.invalid',address:'Address',source:'Ulotka',notes:'Keep draft'}))f.FC.investorEditorState.setField(key,value);
+ f.FC.investorModals.confirmSaveInvestorChanges=async()=>true;f.FC.investorPersistence.saveInvestorPatch=()=>null;
+ const retainedDraft=JSON.stringify(f.FC.investorEditorState.getDraft(f.inv()));
+ await f.FC.investorActions.handleTopAction('save',()=>f.inv(),{});
+ assert.equal(f.FC.investorEditorState.state.isEditing,true);assert.equal(JSON.stringify(f.FC.investorEditorState.getDraft(f.inv())),retainedDraft);
+ console.log('PASS two-investor create/switch/foreign RAM protection and transient room isolation');
+})().catch(e=>{console.error(e);process.exitCode=1;});

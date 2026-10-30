@@ -195,14 +195,14 @@
       if(!canContinue) return;
       const ok = !(modals() && modals().confirmSaveInvestorChanges) || await modals().confirmSaveInvestorChanges();
       if(!ok) return;
-      const patch = editorApi ? editorApi.commit(investor) : null;
+      const patch = editorApi ? editorApi.buildPatchFromDraft(editorApi.getDraft(investor)) : null;
       let savedInvestor = null;
       if(patch && persistence()){
         if(isTransientInvestor(investor) && typeof persistence().createInvestor === 'function'){
           savedInvestor = persistence().createInvestor(patch || {});
-          try{ ui() && typeof ui().clearTransientInvestor === 'function' && ui().clearTransientInvestor(investor.id); }catch(_){ }
+          try{ if(savedInvestor) ui() && typeof ui().clearTransientInvestor === 'function' && ui().clearTransientInvestor(investor.id); }catch(_){ }
           try{
-            if(ui() && ui().state){
+            if(savedInvestor && ui() && ui().state){
               ui().state.selectedId = savedInvestor && savedInvestor.id ? savedInvestor.id : null;
               ui().state.mode = 'detail';
               ui().state.allowListAccess = false;
@@ -212,6 +212,11 @@
           savedInvestor = persistence().saveInvestorPatch(investor.id, patch);
         }
       }
+      if(!savedInvestor){
+        infoBox()?.open({title:'Nie zapisano inwestora',message:'Zachowano formularz. Nie potwierdzono trwałego zapisu inwestora.',okOnly:true});
+        return;
+      }
+      if(editorApi)editorApi.commit(savedInvestor);
       clearNewInvestorFlag(investor.id);
       if(savedInvestor && persistence() && typeof persistence().setCurrentInvestorId === 'function') persistence().setCurrentInvestorId(savedInvestor.id);
       cfg.onRender && cfg.onRender();

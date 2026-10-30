@@ -7,6 +7,7 @@
   const repo = FC.investorProjectRepository || {};
   let bootLoaded = false;
   const firstActivations = new WeakMap();
+  const creationActivations = new WeakMap();
 
   function clone(obj){
     try{ return FC.utils && typeof FC.utils.clone === 'function' ? FC.utils.clone(obj) : JSON.parse(JSON.stringify(obj)); }
@@ -56,6 +57,8 @@
     if(!id) return;
     try{
       if(typeof projectData !== 'undefined' && projectData){
+        const row=FC.projectStore && FC.projectStore.getCurrentRecord();
+        if(!row || String(row.investorId)!==String(id) || String(projectData.meta?.assignedInvestorId)!==String(id))return null;
         return writeProjectFor(id, normalizeProject(projectData));
       }
     }catch(_){ }
@@ -97,7 +100,7 @@
         const ram = JSON.stringify(comparableProjectData(projectData));
         if(ram !== JSON.stringify(comparableProjectData(current && current.projectData))
           && ram !== JSON.stringify(comparableProjectData(target.projectData))
-          && !consumeFirstActivation(options, id, target, ram)) return false;
+          && !consumeCreation(options,id,target,ram) && !consumeFirstActivation(options, id, target, ram)) return false;
       }
       const previousProject = typeof projectData !== 'undefined' ? projectData : window.projectData;
       const proj = loadProjectFor(id);
@@ -232,6 +235,25 @@
     }catch(_){ return false; }
   }
 
+  function prepareCreation(){
+    try{
+      if(FC.session?.active || localStorage.getItem('fc_edit_session_v1')!==null)return null;
+      const data=typeof projectData!=='undefined'?projectData:window.projectData;
+      if(hasProjectDivergence(data))return null;
+      const token=Object.freeze({});
+      creationActivations.set(token,{ram:JSON.stringify(comparableProjectData(data)),rows:FC.projectStore.readAll()});
+      return token;
+    }catch(_){return null;}
+  }
+  function consumeCreation(options,id,target,ram){
+    const token=options?.creationActivation,proof=token && creationActivations.get(token);
+    if(token)creationActivations.delete(token);
+    if(!proof || proof.ram!==ram || FC.session?.active || localStorage.getItem('fc_edit_session_v1')!==null)return false;
+    const rows=FC.projectStore.readAll();
+    return rows.length===proof.rows.length+1 && proof.rows.every(old=>JSON.stringify(rows.find(r=>r.id===old.id))===JSON.stringify(old))
+      && String(target.investorId)===String(id) && JSON.stringify(comparableProjectData(target.projectData))===JSON.stringify(comparableProjectData(options.expectedProject));
+  }
+
   function prepareFirstProjectActivation(){
     try{
       const data = typeof projectData !== 'undefined' ? projectData : window.projectData;
@@ -294,6 +316,7 @@
     refreshSessionButtons,
     hasProjectDivergence,
     prepareFirstProjectActivation,
+    prepareCreation,
     shouldTrackProjectSession,
   };
 })();

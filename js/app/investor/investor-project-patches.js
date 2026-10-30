@@ -16,7 +16,8 @@
       FC.investors.setCurrentId = function(id){
         const prev = repo().getCurrentInvestorId && repo().getCurrentInvestorId();
         if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor(id)) return prev || null;
-        if(prev && prev !== id && runtime().saveActiveProjectToInvestor) runtime().saveActiveProjectToInvestor(prev);
+        // Switching context never implicitly saves RAM. The navigation gate owns Save/Cancel.
+        if(prev !== id && runtime().hasProjectDivergence && runtime().hasProjectDivergence(window.projectData)) return prev || null;
         try{ origSetCurrent(id); }catch(_){ return prev || null; }
         if(String(FC.investors.getCurrentId() || '') !== String(id || '')) return prev || null;
         if(id && prev !== id && runtime().setActiveProjectFromInvestor
@@ -35,14 +36,15 @@
         if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor('')) return null;
         const prev = repo().getCurrentInvestorId && repo().getCurrentInvestorId();
         const firstActivation = runtime().prepareFirstProjectActivation ? runtime().prepareFirstProjectActivation() : null;
-        if(prev && runtime().saveActiveProjectToInvestor) runtime().saveActiveProjectToInvestor(prev);
+        const creationActivation=runtime().prepareCreation && runtime().prepareCreation();
+        if(!creationActivation && !firstActivation)return null;
         const inv = origCreate(initial);
         if(inv && inv.id){
           const proj = runtime().freshProject ? runtime().normalizeProject(runtime().freshProject()) : { schemaVersion:1 };
-          try{ proj.meta = proj.meta || {}; proj.meta.assignedInvestorId = inv.id; }catch(_){ }
+          try{ proj.meta = proj.meta || {}; proj.meta.assignedInvestorId = inv.id; proj.meta.productionPcvMode = 'project'; }catch(_){ }
           if(runtime().writeProjectFor) runtime().writeProjectFor(inv.id, proj);
           try{ if(repo().ensureCentralProjectForInvestor) repo().ensureCentralProjectForInvestor(inv.id, { projectData:proj, title:'' }); }catch(_){ }
-          if(runtime().setActiveProjectFromInvestor) runtime().setActiveProjectFromInvestor(inv.id, {firstActivation, expectedProject:proj});
+          if(runtime().setActiveProjectFromInvestor) runtime().setActiveProjectFromInvestor(inv.id, {firstActivation, creationActivation, expectedProject:proj});
         }
         return inv;
       };
