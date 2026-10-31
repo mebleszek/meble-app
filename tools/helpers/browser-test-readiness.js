@@ -50,6 +50,17 @@ async function stableGesturePoint(selector,sample){
  }
  return before;
 }
+// Read-only test evidence at the exact sampled coordinate and at trusted
+// pointerdown. Geometry and tab labels only: no business data or storage.
+function nativeTouchProbe(selector,x,y){
+ const wanted=document.querySelector(selector),header=document.querySelector('header'),tabs=document.getElementById('topTabs');
+ const rect=node=>{if(!node)return null;const b=node.getBoundingClientRect();return {x:b.x,y:b.y,width:b.width,height:b.height};};
+ const hit=document.elementFromPoint(x,y),viewport=window.visualViewport;
+ return {point:{x,y},scroll:{x:window.scrollX,y:window.scrollY,documentY:document.documentElement?.scrollTop,bodyY:document.body?.scrollTop},
+  viewport:{width:window.innerWidth,height:window.innerHeight,offsetTop:viewport?.offsetTop,pageTop:viewport?.pageTop,scale:viewport?.scale},
+  header:rect(header),tabs:rect(tabs),wanted:rect(wanted),
+  hit:{tag:hit?.tagName||null,tab:hit?.dataset?.tab||null,onTarget:!!wanted&&!!hit&&(hit===wanted||wanted.contains(hit))}};
+}
 // Read-only per-gesture evidence in a disposable test document. No text/values,
 // UID or storage inspection; no event cancellation, synthesis or retry.
 function observeGesture(selector){
@@ -65,4 +76,4 @@ async function waitForGesturePoint(evaluate,selector,{timeoutMs=20000,pause=ms=>
  do{const point=await evaluate(expression);if(point)return point;await pause(50);}while(Date.now()<end);
  throw Error('Native gesture target not ready: '+selector);
 }
-module.exports={documentNavigation,gesturePoint,stableGesturePoint,observeGesture,waitForGesturePoint};
+module.exports={documentNavigation,gesturePoint,stableGesturePoint,nativeTouchProbe,observeGesture,waitForGesturePoint};

@@ -2,7 +2,7 @@
 // Bounded offline checks of the actual test helpers. No native/emulator PASS is
 // claimed here; those remain mandatory in their original CI groups.
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const {documentNavigation,gesturePoint,stableGesturePoint,observeGesture,waitForGesturePoint}=require('./helpers/browser-test-readiness');
+const {documentNavigation,gesturePoint,stableGesturePoint,nativeTouchProbe,observeGesture,waitForGesturePoint}=require('./helpers/browser-test-readiness');
 const {authModuleType}=require('./helpers/auth-input-diagnostics');
 async function main(){
  const event=(loaderId,frameId='main')=>({method:'Page.lifecycleEvent',params:{name:'DOMContentLoaded',loaderId,frameId}});
@@ -76,6 +76,26 @@ async function main(){
   assert.ok(start>=0&&end>start&&scope.indexOf('window.__navigationGesture=')<scope.indexOf('const p=await waitForGesturePoint'),'Recorders must precede final coordinate sample');
   assert.match(scope,/stable:true/);assert.match(scope,/Input\.dispatchTouchEvent/);assert.match(scope,/trace\.events\.filter\(e=>e\.type===type&&e\.trusted&&e\.onTarget\)/);
   console.log('PASS PR #91 sticky-layout drift: old 108,78 misses after layout moves; armed-then-sampled 108,58 hits and preserves native touch assertions');}
+ // Native touch evidence must distinguish scroll from geometry changes,
+ // without inspecting business data or changing the target of the gesture.
+ {let top=62,yScroll=0;
+  const target={getBoundingClientRect:()=>({x:229,y:top,width:70,height:32}),contains:()=>false};
+  const header={getBoundingClientRect:()=>({x:0,y:0,width:393,height:112})};
+  const tabs={getBoundingClientRect:()=>({x:73,y:top,width:300,height:72})};
+  const doc={querySelector:s=>s==='header'?header:target,getElementById:()=>tabs,
+   elementFromPoint:(x,y)=>x>=229&&x<299&&y>=top&&y<top+32?target:{tagName:'BUTTON',dataset:{tab:'rozrys'}},
+   documentElement:{get scrollTop(){return yScroll;}},body:{get scrollTop(){return yScroll;}}};
+  const window={get scrollY(){return yScroll;},scrollX:0,innerWidth:393,innerHeight:852,visualViewport:{offsetTop:0,pageTop:0,scale:1}};
+  const ctx=vm.createContext({document:doc,window}),sample=(x,y)=>vm.runInContext('('+nativeTouchProbe.toString()+')(".tab-btn[data-tab=\\\"rysunek\\\"]",'+x+','+y+')',ctx);
+  const initial=sample(264,78);assert.equal(initial.hit.onTarget,true);assert.equal(initial.wanted.y,62);assert.equal(initial.scroll.y,0);
+  top=42;const shifted=sample(264,78);assert.equal(shifted.hit.onTarget,false);assert.equal(shifted.hit.tab,'rozrys');assert.equal(shifted.wanted.y,42);
+  assert.equal(shifted.scroll.y,initial.scroll.y,'Layout shift without scroll must be observable');
+  yScroll=20;const scrolling=sample(264,78);assert.equal(scrolling.scroll.y,20);assert.equal(scrolling.wanted.y,42);
+  const source=fs.readFileSync('tools/trusted-session-browser-smoke.js','utf8'),start=source.indexOf('async touch(selector){'),end=source.indexOf('},async tap(id)',start),scope=source.slice(start,end);
+  assert.ok(start>=0&&end>start&&scope.indexOf('const beforeStart=await evaluate(')<scope.indexOf("Input.dispatchTouchEvent',{type:'touchStart'"),'Before-start sample must precede native gesture');
+  assert.match(scope,/window\.__touchProbe/);assert.match(scope,/__touchCoordinates\.push\(/);assert.match(scope,/layout:info/);assert.match(scope,/trace\.beforeStart=beforeStart/);
+  assert.match(scope,/e\.trusted&&e\.onTarget/);assert.match(scope,/Input\.dispatchTouchEvent/);
+  console.log('PASS read-only touch timing evidence: beforeStart and pointerdown hit/geometry, scroll independent of layout, native assertions intact');}
  console.log('PASS stable touch readiness: stale same-task coordinates reproduced, moving/replaced hit targets refused, rendered stable target accepted; bounded observer never cancels input');
 
  const investorWindow={FC:{}},fc=investorWindow.FC;

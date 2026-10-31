@@ -3,7 +3,7 @@
 // read-only authorization RPC are explicit injected SDK fixtures, never LIVE.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http=require('node:http');
 const {startBrowser}=require('./helpers/chromium-runtime');
-const {documentNavigation,waitForGesturePoint,observeGesture}=require('./helpers/browser-test-readiness');
+const {documentNavigation,waitForGesturePoint,nativeTouchProbe,observeGesture}=require('./helpers/browser-test-readiness');
 const {installAuthInputDiagnostics,authModuleType}=require('./helpers/auth-input-diagnostics');
 const {inspectTrustStorage,closeBrowserForRestart}=require('./helpers/trusted-cold-start');
 const root=path.resolve(__dirname,'..');
@@ -60,16 +60,19 @@ async function browser(profile,url,{offline=false,inject=false}={}){
     await settleTargets();await send('Emulation.setTouchEmulationEnabled',{enabled:true});
     // Arm passive native-event evidence BEFORE the final six-frame layout sample;
     // CDP round trips after measuring a sticky tab can leave stale coordinates.
-    await evaluate('window.__navigationGesture=('+observeGesture.toString()+')('+JSON.stringify(selector)+');window.__touchSelector='+JSON.stringify(selector)+';window.__touchCoordinates=[];window.__touchRecorder=e=>{const b=document.querySelector(__touchSelector)?.getBoundingClientRect();__touchCoordinates.push({x:e.clientX,y:e.clientY,tag:e.target.tagName,tab:e.target.dataset?.tab,hit:document.elementFromPoint(e.clientX,e.clientY)?.dataset?.tab,wanted:b&&{x:b.x,y:b.y,width:b.width,height:b.height}});};window.addEventListener("pointerdown",__touchRecorder,true)');
+    await evaluate('window.__navigationGesture=('+observeGesture.toString()+')('+JSON.stringify(selector)+');window.__touchSelector='+JSON.stringify(selector)+';window.__touchProbe=('+nativeTouchProbe.toString()+');window.__touchCoordinates=[];window.__touchMotion=[];window.__touchRecorder=e=>{const info=window.__touchProbe(__touchSelector,e.clientX,e.clientY);__touchCoordinates.push({x:e.clientX,y:e.clientY,tag:e.target.tagName,tab:e.target.dataset?.tab,hit:info.hit.tab,wanted:info.wanted,layout:info});};window.__touchMotionRecorder=e=>{if(__touchMotion.length<24)__touchMotion.push({type:e.type,scrollY:scrollY,headerY:document.querySelector("header")?.getBoundingClientRect().y??null});};window.addEventListener("pointerdown",__touchRecorder,true);window.addEventListener("scroll",__touchMotionRecorder,true);window.visualViewport?.addEventListener("scroll",__touchMotionRecorder,true)');
     try{
       const p=await waitForGesturePoint(evaluate,selector,{stable:true});
+      // Independent read-only snapshot immediately before native CDP input.
+      // Never use this snapshot to retarget, retry or synthesize the action.
+      const beforeStart=await evaluate('window.__touchProbe('+JSON.stringify(selector)+','+p.x+','+p.y+')');
       await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...p,radiusX:3,radiusY:3,id:1}]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-      const trace=await evaluate('({...__navigationGesture.snapshot(),coordinates:__touchCoordinates,scale:visualViewport.scale,offset:visualViewport.offsetTop,scrollY,viewport:innerWidth})');trace.requested=p;
+      const trace=await evaluate('({...__navigationGesture.snapshot(),coordinates:__touchCoordinates,motion:__touchMotion,scale:visualViewport.scale,offset:visualViewport.offsetTop,scrollY,viewport:innerWidth})');trace.requested=p;trace.beforeStart=beforeStart;
       for(const type of ['pointerdown','pointerup'])assert.equal(trace.events.filter(e=>e.type===type&&e.trusted&&e.onTarget).length,1,'Native '+type+' target '+selector+' '+JSON.stringify(trace));
       assert.equal(trace.events.some(e=>e.type.endsWith('cancel')),false,'Native gesture cancelled '+JSON.stringify(trace));
       // A compatibility click may target the new layout. The subsequent
       // navigation assertions must prove that it cannot execute a second action.
-    }finally{await evaluate('__navigationGesture.close();delete window.__navigationGesture;window.removeEventListener("pointerdown",__touchRecorder,true);delete window.__touchRecorder;delete window.__touchCoordinates');}
+    }finally{await evaluate('__navigationGesture.close();delete window.__navigationGesture;window.removeEventListener("pointerdown",__touchRecorder,true);window.removeEventListener("scroll",__touchMotionRecorder,true);window.visualViewport?.removeEventListener("scroll",__touchMotionRecorder,true);delete window.__touchRecorder;delete window.__touchMotionRecorder;delete window.__touchCoordinates;delete window.__touchMotion;delete window.__touchProbe');}
   },async tap(id){await settleTargets();const p=await waitForGesturePoint(evaluate,'#'+id);
     await send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...p});await send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...p});},
     close(){return closing||=closeBrowserForRestart({send,owner,ws,pending});}};
