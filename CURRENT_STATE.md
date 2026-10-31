@@ -1,6 +1,6 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
-> **Weryfikacja GitHuba: 31.10.2026.** Odczytany `main`: `571c8ae1975ea18237172ce8eb747306c83e9234` (merge PR #90). Ta migawka jest dowodem z podanej daty, **nie automatycznie aktualizowanym statusem**. Przed następną decyzją sprawdź HEAD `main`, otwarte PR-y, Actions i Pages, a dopiero później poniższe wpisy.
+> **Weryfikacja GitHuba: 31.10.2026.** Odczytany `main`: `ec1a913d6851b129c09f6a906ca82eda2b69ef39` (merge PR #91). Ta migawka jest dowodem z podanej daty, **nie automatycznie aktualizowanym statusem**. Przed następną decyzją sprawdź HEAD `main`, otwarte PR-y, Actions i Pages, a dopiero później poniższe wpisy.
 >
 > **Jedno źródło prawdy o wykonaniu:** niniejszy rejestr. `ROADMAP.md` opisuje **plany i zależności**, `AGENTS.md` — **procedurę i odpowiedzialność**, `tools/reports/*` — **szczegółowe dowody**. Dawne stany i pełną kronikę przeniesiono do [docs/archive/CURRENT_STATE_history_to_20261030.md](docs/archive/CURRENT_STATE_history_to_20261030.md); nie są aktualnym zleceniem.
 
@@ -8,6 +8,7 @@
 
 | Pakiet | Stan potwierdzony / dowód | Co to znaczy dzisiaj |
 | --- | --- | --- |
+| Zbiorcze usuwanie inwestorów, [PR #91](https://github.com/mebleszek/meble-app/pull/91) | **RELEASED / CI_PASS / PAGES_PASS**: HEAD `bff1bb39246d055845f7cad7d948a83c6679cef8`, merge `ec1a913d6851b129c09f6a906ca82eda2b69ef39`; [CI 41234546750](https://github.com/mebleszek/meble-app/actions/runs/41234546750) Preflight 178/178 i Firebase CURRENT 107/107; [Pages 41235106412](https://github.com/mebleszek/meble-app/actions/runs/41235106412) exact merge SHA | **PHONE_VERSION_BLOCKER**: Chrome ze starym SW pokazuje stary interfejs bez „Usuń” przy istniejących inwestorach, Brave z nowym UI nie dzieli lokalnych danych Chrome. Nie czyścić żadnych danych; konieczny bezpieczny kontrakt aktualizacji starego klienta na nowy. |
 | Historyczni inwestorzy i diagnostyka, [PR #90](https://github.com/mebleszek/meble-app/pull/90) | **RELEASED / CI_PASS / PAGES_PASS**: HEAD `aab9c8d505b83262f588fafda5e0840968ee81eb`, merge `571c8ae1975ea18237172ce8eb747306c83e9234`; [41190850451](https://github.com/mebleszek/meble-app/actions/runs/41190850451), [Pages 41191198632](https://github.com/mebleszek/meble-app/actions/runs/41191198632), zweryfikowano zadania i exact merge SHA | **PHONE_FAIL** dla starego wpisu: nowy raport potwierdza PROJECT_OWNER_CONFLICT, jeden kandydat i istniejącą metadaną; wszystkie pięć wersji 20261031_historical_owner_v1. Konflikt nadal celowo blokuje otwarcie. Nowy pakiet poniżej pozwala usunąć taki wpis z listy bez usuwania spornych RAW. |
 | Otwieranie inwestora / kontrakt CLOUD-4, [PR #89](https://github.com/mebleszek/meble-app/pull/89) | **RELEASED / CI_PASS / PAGES_PASS**: HEAD `72a63ab70e41de42eab2673f8b9f0704e34e0d80`, merge `2930e0d769d9576d387764af439eab7df9fd5636`; [41148657445](https://github.com/mebleszek/meble-app/actions/runs/41148657445), zweryfikowano wszystkie zadania i Pages dla merge SHA | **PHONE_FAIL**: nowy inwestor działa, dwóch historycznych nie; raporty READ_ONLY/code:NONE, brak aktywnej sesji, projectCount:5. Nowa poprawka poniżej; nie zakładamy uszkodzenia danych. |
 | Android + aplikacyjne LOCAL-FIRST, [PR #88](https://github.com/mebleszek/meble-app/pull/88) | **RELEASED**: HEAD `9d45b4a050a930d577a6931a82d00005d0f74fab`, merge `988763876770655b47f1aadd9285d8dad1538d10`; [CI / auto-merge / Pages PASS](https://github.com/mebleszek/meble-app/actions/runs/41139176509), zweryfikowano zadania GitHuba 30.10 | Kontrolowana integracja wydana, produkcyjna synchronizacja nadal nieaktywna. **PHONE_FAIL_REPORTED**: nie można otworzyć istniejącego/nowego inwestora; naprawa poniżej. |
@@ -113,9 +114,9 @@ Google APIs Explorer: jednokrotny produkcyjny GET projects.getBillingInfo -> HTT
 
 ## 4. NASTĘPNY RUCH — jedno zadanie naraz
 
-1. Zweryfikować wynikowy HEAD i diff PR #91 po naprawach zaległego smooth-scroll i podziału emulatorów Current [5+3]. Uzyskać osobną zgodę właściciela na jedno wymagane CI dla dokładnych HEAD/BASE; ostatni przebieg miał dwa niezależne FAIL, bez merge/Pages.
-2. Po nowym zatwierdzonym wydaniu: test listy i izolacji na fizycznym Androidzie; wyłącznie świadomie zaznaczone testowe wpisy mogą być skasowane po nowym zbiorczym potwierdzeniu. Przełączenie produkcyjnego autorytetu wymaga dowodu wyłączności, kompletnej ścieżki writerów; zwykły startup pozostaje nieaktywny.
-3. CLOUD-4.6F: prywatny host, niezależny STOP po utracie całego hosta, świeże dowody w momencie operacji i osobne zgody. Bez ponownego audytu zakończonych etapów C/D/E ani niezatwierdzonych GET produkcyjnych.
+1. **Zatwierdzony 31.10 pakiet CI + AGENTS:** osobna gałąź `ci/parallel-preflight-sdk-20261031` od `ec1a913d6851b129c09f6a906ca82eda2b69ef39`; równoległy Preflight 7 grup + kontrole statyczne, Firebase Current 3 osobne DEMO emulatory, historyczne smoke/SDK osobno. Ostrzeżenia 75 i 90 s bez automatycznego FAIL, pełna bramka PASS dla każdej grupy. `CODE_READY` dopiero po jednym commicie i kontroli diff; **CI_PENDING / RELEASE_BLOCKED**, nie tworzyć PR ani uruchamiać GitHub Actions bez osobnej zgody właściciela na wynikowy HEAD/BASE.
+2. **Android / aktualizacja offline:** wydać w osobno zatwierdzonym pakiecie bezpieczne wykrywanie nowej wersji Chrome, komunikat i przejście starego SW na nowy bez resetu danych, po kontraktowych testach na starym profilu. Obecne CI/Pages PASS PR #91 nie potwierdzają tego zachowania. Nie usuwać danych Chrome.
+3. **CLOUD-4.6F:** nadal `LIVE_BLOCKED`. Bez uruchamiania Rules, migracji, Firebase LIVE ani produkcyjnej synchronizacji.
 
 ## 5. OBOWIĄZKOWY ZAPIS KOLEJNYCH KROKÓW
 

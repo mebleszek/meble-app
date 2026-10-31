@@ -86,10 +86,18 @@ function phaseLoadOrder(){
 function phaseSmoke(){
   const history = cloudContext.verifyHistorical(ROOT);
   cloudContext.sdkPlan(ROOT,history);
-  const files = fs.readdirSync(TOOLS)
-    .filter((name)=> /-smoke\.js$/i.test(name))
-    .filter(name=>!process.argv.includes('--current-only')||!cloudContext.historicalSmoke.includes(name))
+  const cli=process.argv||[];
+  const shardFlag=cli.find(arg=>arg.startsWith('--smoke-shard='));
+  const shard=shardFlag?Number(shardFlag.slice('--smoke-shard='.length)):null;
+  if(shardFlag && !cli.includes('--current-only'))throw Error('CI_SMOKE_SHARD_CURRENT_ONLY_REQUIRED');
+  const allFiles=fs.readdirSync(TOOLS)
+    .filter(name=>/-smoke\.js$/i.test(name))
+    .filter(name=>!cli.includes('--current-only')||!cloudContext.historicalSmoke.includes(name))
     .sort();
+  const files=shardFlag
+    ? require('./ci-smoke-shards.js').assigned(TOOLS,cloudContext.historicalSmoke,shard)
+    : allFiles;
+  if(shardFlag && files.some(name=>!allFiles.includes(name)))throw Error('CI_SMOKE_SHARD_UNCLASSIFIED');
   const failed = [];
   let appInternal = '';
   const counts = {current:{pass:0,total:0},historical:{pass:0,total:0}};
@@ -161,8 +169,14 @@ console.log('Meble-App — lokalny preflight');
 console.log(`Katalog: ${ROOT}`);
 console.log('');
 
+const cliArgs=process.argv||[];
+const staticOnly=cliArgs.includes('--static-only');
+const smokeOnly=cliArgs.some(arg=>arg.startsWith('--smoke-shard='));
+if(staticOnly&&smokeOnly)throw Error('CI_PREFLIGHT_MODE_CONFLICT');
 let failed = 0;
 for(const [name, fn] of phases){
+  if(staticOnly&&name==='Smoke testy')continue;
+  if(smokeOnly&&name!=='Smoke testy')continue;
   const started = Date.now();
   process.stdout.write(`[RUN ] ${name} ... `);
   try{
