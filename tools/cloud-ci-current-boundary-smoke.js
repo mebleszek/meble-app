@@ -80,7 +80,15 @@ async function probe(root,codes){
 async function main(){
   const root=path.resolve(__dirname,'..'), history=context.verifyHistorical(root);
   context.sdkPlan(root,history); // Every package.json test is assigned exactly once.
-  const {completeTap}=require('./cloud-ci-emulators.js');
+  const {completeTap,batchesForGroup}=require('./cloud-ci-emulators.js');
+  const currentFiles=context.sdkPlan(root,history).find(group=>group.context==='current').files;
+  const batches=batchesForGroup({context:'current',files:currentFiles});
+  assert.deepEqual(batches.flat(),currentFiles,'Current SDK tests must all run exactly once');
+  assert.deepEqual(batches.map(files=>files.length),[5,1,2],'Cloud42 must start in a fresh demo emulator');
+  assert.deepEqual(batches[1],['cloud42-plan.test.mjs'],'Cloud42 cannot share server watch state with synchronization suites');
+  assert.deepEqual(batchesForGroup({context:'historical',files:['a','b']}),[['a','b']]);
+  assert.throws(()=>batchesForGroup({context:'current',files:['cloud42-plan.test.mjs']}),/CLOUD_CI_BATCH_PLAN_CHANGED/);
+  console.log('PASS isolated current emulator batches [5,1,2]: full test inventory once, historical unchanged');
   const tap='# tests 1\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n';
   assert.equal(completeTap(tap),true);
   for(const name of ['fail','cancelled','skipped','todo'])assert.equal(completeTap(tap.replace('# '+name+' 0','# '+name+' 1')),false);

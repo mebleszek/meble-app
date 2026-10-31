@@ -15,6 +15,7 @@ function fixture(seed,options){
  }
  const s=createSandbox(),storage=new Memory(seed);s.Storage=Memory;s.localStorage=storage;s.sessionStorage=new Memory();s.location={reload(){}};s.scrollTo=()=>{};
  if(options&&options.timers){s.setTimeout=options.timers.setTimeout;s.clearTimeout=options.timers.clearTimeout;}
+ if(options&&options.configureSandbox)options.configureSandbox(s);
  loadSmokeFiles(s,APP_DEV_SMOKE_FILES);
  s.STORAGE_KEYS=s.FC.constants.STORAGE_KEYS;
  for(const file of ['js/app/shared/ui-state.js','js/app/ui/tab-navigation.js','js/app/shared/public-api.js'])vm.runInContext(fs.readFileSync(file,'utf8'),s,{filename:file});

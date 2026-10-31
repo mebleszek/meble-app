@@ -84,7 +84,8 @@
     const recovered = typeof recovery.recoverMissingInvestors === 'function' ? recovery.recoverMissingInvestors(stored) : stored;
     const visible = typeof recovery.stripSnapshotOnlyPhantomInvestors === 'function' ? recovery.stripSnapshotOnlyPhantomInvestors(recovered) : recovered;
     cleanupSnapshotOnlyCurrentIfNeeded(visible, recovered);
-    return visible;
+    const removed=typeof repo.readRemovedIds==='function'?repo.readRemovedIds():new Set();
+    return visible.filter(inv=>!removed.has(String(inv.id)));
   }
 
   function getCurrentId(){
@@ -156,6 +157,16 @@
     if(cur === id) setCurrentId(null);
   }
 
+  function listRemovalAllowed(){
+    return window.__FC_MAIN_ACCESS__?.isValid()===true && FC.session && !FC.session.active
+      && typeof FC.session.canSaveProject==='function' && FC.session.canSaveProject()===true
+      && localStorage.getItem('fc_edit_session_v1')===null
+      && typeof uiState!=='undefined' && uiState.entry==='investorsList'
+      && !uiState.currentInvestorId && !uiState.roomType && !getCurrentId()
+      && !FC.investorEditorState?.hasUiLock?.()
+      && !FC.applicationSyncActions?.installed?.();
+  }
+
   function search(q){
     const query = String(q || '').trim().toLowerCase();
     const list = readAll();
@@ -175,6 +186,7 @@
   }
 
   FC.investors = {
+    canRemoveFromList:listRemovalAllowed,
     readAll,
     writeAll,
     search,

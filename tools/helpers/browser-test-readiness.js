@@ -26,19 +26,49 @@ function documentNavigation(send,{timeoutMs=30000}={}){
 function gesturePoint(selector,{scroll=true}={}){
  const e=[...document.querySelectorAll(selector)].find(node=>node.getClientRects().length&&!node.disabled);
  if(!e||e.closest('[inert],.modal-open-guard'))return null;
- if(scroll)e.scrollIntoView({block:'center',behavior:'instant'});
- const b=e.getBoundingClientRect(),x=b.x+b.width/2,y=b.y+b.height/2;
- const hit=document.elementFromPoint(x,y);
- return hit&&(hit===e||e.contains(hit))?{x,y}:null;
+ const point=()=>{const b=e.getBoundingClientRect(),x=b.x+b.width/2,y=b.y+b.height/2;
+  const hit=document.elementFromPoint(x,y),width=typeof innerWidth==='number'?innerWidth:Infinity,height=typeof innerHeight==='number'?innerHeight:Infinity;
+  return x>=0&&y>=0&&x<width&&y<height&&hit&&(hit===e||e.contains(hit))?{x,y}:null;};
+ // Do not scroll an already hittable sticky header. Unnecessary centering can
+ // move its hitbox after the DOM sample but before native pointerdown.
+ let ready=point();if(ready||!scroll)return ready;
+ e.scrollIntoView({block:'center',behavior:'instant'});return point();
 }
 // CDP input is handled after this JS task. A same-task hit test following
 // scrollIntoView is insufficient: require a rendered frame and stable geometry.
 async function stableGesturePoint(selector,sample){
  const before=sample(selector);if(!before)return null;
  const hit=document.elementFromPoint(before.x,before.y);
- await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
- const after=sample(selector,{scroll:false});
- return after&&Math.abs(after.x-before.x)<=0.5&&Math.abs(after.y-before.y)<=0.5&&document.elementFromPoint(after.x,after.y)===hit?after:null;
+ // Smooth project scrolling and the mobile header can move a ready target
+ // after two frames. Require a continuous rendered interval with unchanged
+ // coordinates, hit target and scroll position before sending a single input.
+ const y=window.scrollY,x=window.scrollX;
+ for(let frame=0;frame<6;frame++){
+  await new Promise(resolve=>requestAnimationFrame(resolve));
+  const next=sample(selector,{scroll:false});
+  if(!next||Math.abs(next.x-before.x)>0.5||Math.abs(next.y-before.y)>0.5||window.scrollY!==y||window.scrollX!==x||document.elementFromPoint(next.x,next.y)!==hit)return null;
+ }
+ return before;
+}
+// A preceding tab may leave a compositor-driven smooth scroll pending even
+// when the renderer reports a stable rectangle for six frames. Before a NEW
+// trusted test gesture, end that animation without moving the viewport.
+// No synthetic input, event suppression, retries or production UI changes.
+function finishPendingTouchScroll(){
+ const x=window.scrollX,y=window.scrollY;
+ window.scrollTo({left:x,top:y,behavior:'instant'});
+ return {x:window.scrollX,y:window.scrollY};
+}
+// Read-only test evidence at the exact sampled coordinate and at trusted
+// pointerdown. Geometry and tab labels only: no business data or storage.
+function nativeTouchProbe(selector,x,y){
+ const wanted=document.querySelector(selector),header=document.querySelector('header'),tabs=document.getElementById('topTabs');
+ const rect=node=>{if(!node)return null;const b=node.getBoundingClientRect();return {x:b.x,y:b.y,width:b.width,height:b.height};};
+ const hit=document.elementFromPoint(x,y),viewport=window.visualViewport;
+ return {point:{x,y},scroll:{x:window.scrollX,y:window.scrollY,documentY:document.documentElement?.scrollTop,bodyY:document.body?.scrollTop},
+  viewport:{width:window.innerWidth,height:window.innerHeight,offsetTop:viewport?.offsetTop,pageTop:viewport?.pageTop,scale:viewport?.scale},
+  header:rect(header),tabs:rect(tabs),wanted:rect(wanted),
+  hit:{tag:hit?.tagName||null,tab:hit?.dataset?.tab||null,onTarget:!!wanted&&!!hit&&(hit===wanted||wanted.contains(hit))}};
 }
 // Read-only per-gesture evidence in a disposable test document. No text/values,
 // UID or storage inspection; no event cancellation, synthesis or retry.
@@ -55,4 +85,4 @@ async function waitForGesturePoint(evaluate,selector,{timeoutMs=20000,pause=ms=>
  do{const point=await evaluate(expression);if(point)return point;await pause(50);}while(Date.now()<end);
  throw Error('Native gesture target not ready: '+selector);
 }
-module.exports={documentNavigation,gesturePoint,stableGesturePoint,observeGesture,waitForGesturePoint};
+module.exports={documentNavigation,gesturePoint,stableGesturePoint,finishPendingTouchScroll,nativeTouchProbe,observeGesture,waitForGesturePoint};

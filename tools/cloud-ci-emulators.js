@@ -25,28 +25,48 @@ function verifyGroup(group){
   }catch(error){throw Error('CLOUD_CI_EMULATOR_CONFIG_UNSAFE',{cause:error});}
   return{cwd,cli};
 }
+// Firestore emulator v1.22.0 returned HTTP 500 on clearData when a
+// completed watch stream was notified (its originating client is unconfirmed).
+// Cloud42 has its own DEMO emulator lifetime, with no earlier suite sharing it. Full test
+// coverage and strict per-batch TAP remain mandatory; historical is intact.
+function batchesForGroup(group){
+ if(group.context==='historical')return [group.files];
+ if(group.context!=='current')throw Error('CLOUD_CI_CONTEXT_INVALID');
+ const boundary=group.files.indexOf('cloud42-plan.test.mjs');
+ if(boundary!==5||group.files.length!==8)throw Error('CLOUD_CI_BATCH_PLAN_CHANGED');
+ const batches=[group.files.slice(0,boundary),[group.files[boundary]],group.files.slice(boundary+1)];
+ if(batches.some(files=>!files.length)||batches.flat().join('|')!==group.files.join('|'))throw Error('CLOUD_CI_BATCH_INCOMPLETE');
+ return batches;
+}
 function main(){
   const plan=selectPlan(context.sdkPlan(root),process.argv.slice(2));
   let failed=false;
   for(const group of plan){
     const {cwd,cli}=verifyGroup(group);
-    // The allowlisted files have no shell metacharacters. Two separate demo emulator lifetimes.
-    const command='node --test --test-reporter=tap --test-concurrency=1 '+group.files.join(' ');
-    const settings=fs.mkdtempSync(path.join(os.tmpdir(),'meble-demo-cli-'));
-    let result;
-    try{
-      result=spawnSync(process.execPath,[cli,'emulators:exec','--config','firebase.json','--project','demo-meble-app','--only','auth,firestore','--non-interactive',command],
-        {cwd,env:{...context.cleanEnvironment(),XDG_CONFIG_HOME:settings},encoding:'utf8',maxBuffer:64*1024*1024});
-    }finally{fs.rmSync(settings,{recursive:true,force:true});}
-    process.stdout.write(result.stdout||'');process.stderr.write(result.stderr||'');
-    if(result.error)console.error(result.error);
-    const output=(result.stdout||'')+'\n'+(result.stderr||'');
-    const complete=completeTap(output);
-    const status=result.status===0&&complete?'PASS':'FAIL';failed ||= status==='FAIL';
+    let groupFailed=false;
+    for(const [index,files] of batchesForGroup(group).entries()){
+      // Isolated loopback DEMO emulator for every required batch. No skipped
+      // files, blind retries or incomplete TAP accepted as successful CI.
+      const command='node --test --test-reporter=tap --test-concurrency=1 '+files.join(' ');
+      const settings=fs.mkdtempSync(path.join(os.tmpdir(),'meble-demo-cli-'));
+      let result;
+      try{
+        result=spawnSync(process.execPath,[cli,'emulators:exec','--config','firebase.json','--project','demo-meble-app','--only','auth,firestore','--non-interactive',command],
+          {cwd,env:{...context.cleanEnvironment(),XDG_CONFIG_HOME:settings},encoding:'utf8',maxBuffer:64*1024*1024});
+      }finally{fs.rmSync(settings,{recursive:true,force:true});}
+      process.stdout.write(result.stdout||'');process.stderr.write(result.stderr||'');
+      if(result.error)console.error(result.error);
+      const output=(result.stdout||'')+'\n'+(result.stderr||'');
+      const status=result.status===0&&completeTap(output)?'PASS':'FAIL';
+      groupFailed ||= status==='FAIL';
+      console.log('CLOUD_CI_BATCH '+group.context+' '+(index+1)+' '+status+' | '+files.join(', '));
+    }
+    failed ||= groupFailed;
+    const status=groupFailed?'FAIL':'PASS';
     context.report(`SDK/Auth/Firestore/Rules **${status}** | ${group.context} | SHA \`${context.git(group.root,['rev-parse','HEAD'])}\` | ${group.files.join(', ')}`);
     context.verifyHistorical(root);
   }
   if(failed) throw Error('CLOUD_CI_SDK_FAILED');
 }
 if(require.main===module){try{main();}catch(error){console.error(error);process.exitCode=1;}}
-module.exports={main,completeTap,selectPlan,verifyGroup};
+module.exports={main,completeTap,selectPlan,verifyGroup,batchesForGroup};
