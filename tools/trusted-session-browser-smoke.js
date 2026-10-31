@@ -128,8 +128,29 @@ async function main(){
   assert.equal(await device.evaluate('__FC_MAIN_ACCESS__.isValid()'),true);
   assert.equal(await device.evaluate('('+authModuleType.toString()+')()'),'function','Public Auth module stays registered without creating an Auth session');
   assert.equal(await device.evaluate('document.getElementById("main-trust-phone").checked'),true);
+  // Targeted A/B differential for PR #91: identical mandatory native
+  // navigation assertions on one trusted offline browser, BEFORE and AFTER
+  // the new delete/recovery scenario. No skips, synthetic clicks or retries.
+  // A fails => deletion is not necessary to reproduce the navigation failure.
+  // A passes / B fails => deletion or prior shared-session history is implicated;
+  // additional isolation is still required to distinguish those two causes.
+  const exerciseNavigation=require('./helpers/investor-navigation-browser').exerciseInvestorNavigation;
+  const navigationBoundary=()=>device.evaluate('({scrollY,scrollX,activeTab:uiState.activeTab,entry:uiState.entry,sessionActive:!!window.FC.session.active,topTabsY:document.getElementById("topTabs")?.getBoundingClientRect().y??null})');
+  const compareNavigation=async phase=>{
+    const start=await navigationBoundary();
+    console.log('NAVIGATION_AB '+phase+' START '+JSON.stringify(start));
+    try{
+      await exerciseNavigation(device);
+    }catch(error){
+      const end=await navigationBoundary().catch(()=>({boundary:'unavailable'}));
+      console.error('NAVIGATION_AB '+phase+' FAIL '+JSON.stringify(end));
+      throw error; // Keep every original native/UI/data assertion fatal.
+    }
+    console.log('NAVIGATION_AB '+phase+' PASS '+JSON.stringify(await navigationBoundary()));
+  };
+  await compareNavigation('A_BEFORE_DELETE');
   await require('./helpers/investor-delete-sw-browser').exerciseFullDeletion(device);
-  await require('./helpers/investor-navigation-browser').exerciseInvestorNavigation(device);
+  await compareNavigation('B_AFTER_DELETE');
   await device.tap('main-signout');await device.until('!__FC_MAIN_ACCESS__.isValid()');
   const revoked=await device.evaluate('('+inspectTrustStorage.toString()+')()');assert.equal(revoked.fence,'revoked');assert.equal(revoked.revoked,true,'Explicit logout must durably revoke the trust proof');
   await device.close();device=null;
