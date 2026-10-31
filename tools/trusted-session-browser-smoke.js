@@ -3,7 +3,7 @@
 // read-only authorization RPC are explicit injected SDK fixtures, never LIVE.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http=require('node:http');
 const {startBrowser}=require('./helpers/chromium-runtime');
-const {documentNavigation,waitForGesturePoint,nativeTouchProbe,observeGesture}=require('./helpers/browser-test-readiness');
+const {documentNavigation,waitForGesturePoint,finishPendingTouchScroll,nativeTouchProbe,observeGesture}=require('./helpers/browser-test-readiness');
 const {installAuthInputDiagnostics,authModuleType}=require('./helpers/auth-input-diagnostics');
 const {inspectTrustStorage,closeBrowserForRestart}=require('./helpers/trusted-cold-start');
 const root=path.resolve(__dirname,'..');
@@ -58,6 +58,10 @@ async function browser(profile,url,{offline=false,inject=false}={}){
   assert.equal(await evaluate('location.href'),url);assert.equal(await evaluate('!!document.body&&!!document.getElementById("main-login")'),true,'Requested application document parsed');
   return {evaluate,until,send,reload:()=>navigation.navigate(url),async touch(selector){
     await settleTargets();await send('Emulation.setTouchEmulationEnabled',{enabled:true});
+    // The preceding tab's smooth scroll can resume after coordinate sampling
+    // (CI #41222338211 proved scrollY 0 -> 20 during trusted pointerdown).
+    // End the outstanding animation once, before sampling a new native touch.
+    await evaluate('('+finishPendingTouchScroll.toString()+')()');
     // Arm passive native-event evidence BEFORE the final six-frame layout sample;
     // CDP round trips after measuring a sticky tab can leave stale coordinates.
     await evaluate('window.__navigationGesture=('+observeGesture.toString()+')('+JSON.stringify(selector)+');window.__touchSelector='+JSON.stringify(selector)+';window.__touchProbe=('+nativeTouchProbe.toString()+');window.__touchCoordinates=[];window.__touchMotion=[];window.__touchRecorder=e=>{const info=window.__touchProbe(__touchSelector,e.clientX,e.clientY);__touchCoordinates.push({x:e.clientX,y:e.clientY,tag:e.target.tagName,tab:e.target.dataset?.tab,hit:info.hit.tab,wanted:info.wanted,layout:info});};window.__touchMotionRecorder=e=>{if(__touchMotion.length<24)__touchMotion.push({type:e.type,scrollY:scrollY,headerY:document.querySelector("header")?.getBoundingClientRect().y??null});};window.addEventListener("pointerdown",__touchRecorder,true);window.addEventListener("scroll",__touchMotionRecorder,true);window.visualViewport?.addEventListener("scroll",__touchMotionRecorder,true)');

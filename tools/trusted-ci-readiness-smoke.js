@@ -2,7 +2,7 @@
 // Bounded offline checks of the actual test helpers. No native/emulator PASS is
 // claimed here; those remain mandatory in their original CI groups.
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const {documentNavigation,gesturePoint,stableGesturePoint,nativeTouchProbe,observeGesture,waitForGesturePoint}=require('./helpers/browser-test-readiness');
+const {documentNavigation,gesturePoint,stableGesturePoint,finishPendingTouchScroll,nativeTouchProbe,observeGesture,waitForGesturePoint}=require('./helpers/browser-test-readiness');
 const {authModuleType}=require('./helpers/auth-input-diagnostics');
 async function main(){
  const event=(loaderId,frameId='main')=>({method:'Page.lifecycleEvent',params:{name:'DOMContentLoaded',loaderId,frameId}});
@@ -76,6 +76,19 @@ async function main(){
   assert.ok(start>=0&&end>start&&scope.indexOf('window.__navigationGesture=')<scope.indexOf('const p=await waitForGesturePoint'),'Recorders must precede final coordinate sample');
   assert.match(scope,/stable:true/);assert.match(scope,/Input\.dispatchTouchEvent/);assert.match(scope,/trace\.events\.filter\(e=>e\.type===type&&e\.trusted&&e\.onTarget\)/);
   console.log('PASS PR #91 sticky-layout drift: old 108,78 misses after layout moves; armed-then-sampled 108,58 hits and preserves native touch assertions');}
+ // A delayed compositor scroll may move a sticky tab AFTER six stable
+ // renderer frames. Complete it once without changing current scrollY.
+ {let x=0,y=20,calls=0,activeAnimation=true;
+  const win={get scrollX(){return x;},get scrollY(){return y;},
+   scrollTo(options){calls++;assert.deepEqual(JSON.parse(JSON.stringify(options)),{left:0,top:20,behavior:'instant'});activeAnimation=false;}};
+  const result=vm.runInNewContext('('+finishPendingTouchScroll.toString()+')()',{window:win});
+  assert.deepEqual(JSON.parse(JSON.stringify(result)),{x:0,y:20});
+  assert.equal(calls,1);assert.equal(activeAnimation,false);
+  const src=fs.readFileSync('tools/trusted-session-browser-smoke.js','utf8'),start=src.indexOf('async touch(selector){'),end=src.indexOf('},async tap(id)',start),scope=src.slice(start,end);
+  assert.ok(scope.indexOf('finishPendingTouchScroll.toString()')<scope.indexOf('waitForGesturePoint(evaluate,selector,{stable:true})'));
+  assert.ok(scope.includes("Input.dispatchTouchEvent',{type:'touchStart'"));
+  assert.ok(scope.includes('e.trusted&&e.onTarget'));
+  console.log('PASS one instant scroll completion at unchanged offset precedes native touch; strict assertions intact');}
  // Native touch evidence must distinguish scroll from geometry changes,
  // without inspecting business data or changing the target of the gesture.
  {let top=62,yScroll=0;

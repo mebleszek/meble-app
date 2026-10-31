@@ -50,6 +50,15 @@ async function stableGesturePoint(selector,sample){
  }
  return before;
 }
+// A preceding tab may leave a compositor-driven smooth scroll pending even
+// when the renderer reports a stable rectangle for six frames. Before a NEW
+// trusted test gesture, end that animation without moving the viewport.
+// No synthetic input, event suppression, retries or production UI changes.
+function finishPendingTouchScroll(){
+ const x=window.scrollX,y=window.scrollY;
+ window.scrollTo({left:x,top:y,behavior:'instant'});
+ return {x:window.scrollX,y:window.scrollY};
+}
 // Read-only test evidence at the exact sampled coordinate and at trusted
 // pointerdown. Geometry and tab labels only: no business data or storage.
 function nativeTouchProbe(selector,x,y){
@@ -76,4 +85,4 @@ async function waitForGesturePoint(evaluate,selector,{timeoutMs=20000,pause=ms=>
  do{const point=await evaluate(expression);if(point)return point;await pause(50);}while(Date.now()<end);
  throw Error('Native gesture target not ready: '+selector);
 }
-module.exports={documentNavigation,gesturePoint,stableGesturePoint,nativeTouchProbe,observeGesture,waitForGesturePoint};
+module.exports={documentNavigation,gesturePoint,stableGesturePoint,finishPendingTouchScroll,nativeTouchProbe,observeGesture,waitForGesturePoint};
