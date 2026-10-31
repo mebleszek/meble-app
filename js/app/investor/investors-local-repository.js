@@ -107,6 +107,19 @@
     writeRemovedIds(ids);
   }
 
+  // One atomic localStorage key: logical removal never deletes project/history
+  // RAW, including conflicting historical ownership evidence.
+  function markRemovedIdConfirmed(id, expectedRaw){
+    const key=String(id || '').trim();
+    if(!key || localStorage.getItem(KEY_REMOVED)!==expectedRaw)return false;
+    const ids=expectedRaw===null?[]:JSON.parse(expectedRaw);
+    if(!Array.isArray(ids) || ids.some(value=>typeof value!=='string' || !value.trim())
+      || new Set(ids).size!==ids.length || ids.includes(key))return false;
+    const next=JSON.stringify(ids.concat(key));
+    if(!FC.storage?.setJSON || FC.storage.setJSON(KEY_REMOVED,ids.concat(key))===false)return false;
+    return localStorage.getItem(KEY_REMOVED)===next;
+  }
+
   function unmarkRemovedId(id){
     const key = String(id || '').trim();
     if(!key) return;
@@ -159,6 +172,7 @@
     readRemovedIds,
     writeRemovedIds,
     markRemovedId,
+    markRemovedIdConfirmed,
     unmarkRemovedId,
     readStorageArray,
     readRawProjectRecords,

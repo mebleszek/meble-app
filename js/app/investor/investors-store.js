@@ -84,7 +84,8 @@
     const recovered = typeof recovery.recoverMissingInvestors === 'function' ? recovery.recoverMissingInvestors(stored) : stored;
     const visible = typeof recovery.stripSnapshotOnlyPhantomInvestors === 'function' ? recovery.stripSnapshotOnlyPhantomInvestors(recovered) : recovered;
     cleanupSnapshotOnlyCurrentIfNeeded(visible, recovered);
-    return visible;
+    const removed=typeof repo.readRemovedIds==='function'?repo.readRemovedIds():new Set();
+    return visible.filter(inv=>!removed.has(String(inv.id)));
   }
 
   function getCurrentId(){
@@ -156,6 +157,36 @@
     if(cur === id) setCurrentId(null);
   }
 
+  const listRemovals=new WeakMap();
+  function listRemovalAllowed(){
+    return window.__FC_MAIN_ACCESS__?.isValid()===true && FC.session && !FC.session.active
+      && typeof FC.session.canSaveProject==='function' && FC.session.canSaveProject()===true
+      && localStorage.getItem('fc_edit_session_v1')===null
+      && typeof uiState!=='undefined' && uiState.entry==='investorsList'
+      && !uiState.currentInvestorId && !uiState.roomType && !getCurrentId()
+      && !FC.investorEditorState?.hasUiLock?.()
+      && !FC.applicationSyncActions?.installed?.();
+  }
+  function prepareListRemoval(id){
+    if(!listRemovalAllowed())return null;
+    const key=String(id || ''),investor=getById(key);
+    if(!key || !investor)return null;
+    const rawInvestors=localStorage.getItem(KEY_INVESTORS),rawProjects=localStorage.getItem(model.KEY_PROJECTS || 'fc_projects_v1');
+    const investors=rawInvestors===null?[]:JSON.parse(rawInvestors),projects=rawProjects===null?[]:JSON.parse(rawProjects);
+    if(!Array.isArray(investors) || investors.some(row=>!row || typeof row.id!=='string')
+      || new Set(investors.map(row=>row.id)).size!==investors.length || !Array.isArray(projects))return null;
+    if(projects.some(row=>String(row.investorId)===key && row.meta?.pendingDomainOperation))return null;
+    const token=Object.freeze({name:String(investor.companyName || investor.name || '(Bez nazwy)')});
+    listRemovals.set(token,{id:key,raws:[KEY_INVESTORS,model.KEY_PROJECTS || 'fc_projects_v1',KEY_REMOVED]
+      .map(name=>[name,localStorage.getItem(name)])});
+    return token;
+  }
+  function confirmListRemoval(token){
+    const proof=listRemovals.get(token);listRemovals.delete(token);
+    if(!proof || !listRemovalAllowed() || proof.raws.some(([key,raw])=>localStorage.getItem(key)!==raw))return false;
+    return repo.markRemovedIdConfirmed(proof.id,proof.raws[2][1])===true;
+  }
+
   function search(q){
     const query = String(q || '').trim().toLowerCase();
     const list = readAll();
@@ -175,6 +206,9 @@
   }
 
   FC.investors = {
+    canRemoveFromList:listRemovalAllowed,
+    prepareListRemoval,
+    confirmListRemoval,
     readAll,
     writeAll,
     search,

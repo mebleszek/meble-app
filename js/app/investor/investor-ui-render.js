@@ -93,9 +93,12 @@
     return `
       <div class="card">
         <h3>Lista inwestorów</h3>
-        <div style="display:flex;gap:10px;align-items:center;margin-top:10px">
+        <div class="investor-list-toolbar">
           <input id="invSearch" placeholder="Szukaj po nazwie/telefonie..." value="${escapeAttr(query)}" />
-          <button class="btn-primary" data-action="create-investor">+ Dodaj</button>
+          <div class="investor-list-toolbar__actions">
+            <button type="button" class="btn-primary" data-action="create-investor">+ Dodaj</button>
+            <button type="button" class="btn-danger" data-action="remove-investor-from-list" aria-label="Usuń wybranego inwestora z listy" ${list && list.length ? '' : 'disabled'}>− Usuń</button>
+          </div>
         </div>
         <div id="invItems" style="margin-top:12px">${items || '<div class="muted">Brak inwestorów.</div>'}</div>
       </div>

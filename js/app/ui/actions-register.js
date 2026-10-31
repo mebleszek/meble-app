@@ -8,6 +8,7 @@
   const FC = window.FC;
   if (!FC.actions || typeof FC.actions.register !== 'function') return;
   const OPEN_VERSION='20261031_historical_owner_v1';
+  let listRemovalPending=false;
   let openSequence=0,openObservation=Object.freeze({stage:'idle',code:'NONE',outcome:'idle'});
   FC.investorOpenDiagnostics=Object.freeze({version:OPEN_VERSION,get state(){return openObservation;}});
 
@@ -489,6 +490,31 @@
         try{ if(window.FC && window.FC.infoBox && typeof window.FC.infoBox.open === 'function') window.FC.infoBox.open({ title:'Przypisano inwestora', message:'Przypisano inwestora do bieżącego projektu (lokalnie).' }); }catch(_){ }
       }catch(_){ }
       return true;
+    },
+    'remove-investor-from-list': async () => {
+      if(listRemovalPending)return false;
+      listRemovalPending=true;
+      const refused=()=>{FC.infoBox?.open({title:'Nie usunięto inwestora',message:'Nie potwierdzono bezpiecznego usunięcia z listy. Zakończ edycję lub zaloguj się ponownie i sprawdź listę. Dane projektów, ofert i kopii pozostają zachowane.',okOnly:true});return false;};
+      try{
+        if(FC.investors?.canRemoveFromList?.()!==true || !FC.investors?.prepareListRemoval || !FC.investors?.confirmListRemoval
+          || !FC.choiceBox?.ask || !FC.confirmBox?.ask)return refused();
+        const list=FC.investors.search(FC.investorUI?.state?.query || '');
+        if(!list.length)return refused();
+        const selected=await FC.choiceBox.ask({title:'USUŃ INWESTORA Z LISTY',message:'Wybierz jeden wpis. Projekty, zapisane oferty i kopie pozostaną zachowane.',
+          actions:list.map((inv,index)=>({value:String(index),text:[inv.companyName || inv.name || '(Bez nazwy)',inv.city,inv.phone].filter(Boolean).join(' • '),tone:'danger'})).concat({value:'back',text:'Wróć',tone:'neutral'}),dismissValue:'back'});
+        if(selected==='back' || selected===null)return true;
+        const index=list.findIndex((_,i)=>String(i)===selected);
+        if(index<0)return refused();
+        const token=FC.investors.prepareListRemoval(list[index].id);
+        if(!token)return refused();
+        const agreed=await FC.confirmBox.ask({title:'Usunąć inwestora z listy?',message:'Wybrany inwestor: '+token.name+'.\nUsunąć ten wpis z listy? Zapisane projekty, oferty i kopie pozostaną zachowane.',confirmText:'Usuń',cancelText:'Wróć',confirmTone:'danger',cancelTone:'neutral'});
+        if(agreed!==true)return true;
+        if(FC.investors.confirmListRemoval(token)!==true)return refused();
+        FC.investorUI?.renderListOnly(document.getElementById('investorsListRoot'));
+        FC.infoBox?.open({title:'Usunięto z listy',message:'Inwestor został usunięty z listy. Archiwalne dane projektów, ofert i kopii pozostały zachowane.',okOnly:true});
+        return true;
+      }catch(_){return refused();}
+      finally{listRemovalPending=false;}
     },
     'delete-investor': async ({event, element}) => {
       const id = element?.getAttribute ? element.getAttribute('data-inv-id') : null;
