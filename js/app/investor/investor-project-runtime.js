@@ -5,8 +5,10 @@
   window.FC = window.FC || {};
   const FC = window.FC;
   const repo = FC.investorProjectRepository || {};
+  const VERSION='20261031_historical_owner_v1';
   let bootLoaded = false;
   let activationFailure = null;
+  let activationEvidence=Object.freeze({candidateProjects:null,legacyOwnerAbsent:null});
   function refuseActivation(code){
     activationFailure = /^[A-Z_]{1,64}$/.test(code || '') ? code : 'PROJECT_ACTIVATION_UNCONFIRMED';
     return false;
@@ -93,6 +95,7 @@
 
   function activateProjectFromInvestor(id, initialRead, options){
     activationFailure = null;
+    activationEvidence=Object.freeze({candidateProjects:null,legacyOwnerAbsent:null});
     if(!id) return refuseActivation('INVESTOR_ID_REQUIRED');
     if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor(id)) return refuseActivation('SESSION_OWNER_MISMATCH');
     // Re-entering the same investor must not replace an active local draft.
@@ -101,23 +104,35 @@
       const store = FC.projectStore;
       const current = store && store.getCurrentRecord ? store.getCurrentRecord() : null;
       const target = store && store.getByInvestorId ? store.getByInvestorId(id) : null;
+      activationEvidence=Object.freeze({candidateProjects:store.readAll().filter(row=>String(row.investorId)===String(id)).length,
+        legacyOwnerAbsent:target?!(target.projectData.meta && Object.hasOwn(target.projectData.meta,'assignedInvestorId')):null});
       if(!target) return refuseActivation('PROJECT_OWNER_UNCONFIRMED');
+      if(target.projectData.meta && Object.hasOwn(target.projectData.meta,'assignedInvestorId')
+        && target.projectData.meta.assignedInvestorId!==String(id))return refuseActivation('PROJECT_OWNER_CONFLICT');
+      const historicalOwner=!(target.projectData.meta && Object.hasOwn(target.projectData.meta,'assignedInvestorId'));
       if(!initialRead && typeof projectData !== 'undefined' && projectData){
         const ram = JSON.stringify(comparableProjectData(projectData));
         if(ram !== JSON.stringify(comparableProjectData(current && current.projectData))
-          && ram !== JSON.stringify(comparableProjectData(target.projectData))
+          && ram !== JSON.stringify(comparableProjectData(target.projectData,target))
           && !consumeCreation(options,id,target,ram) && !consumeFirstActivation(options, id, target, ram)) return refuseActivation('PROJECT_RAM_DIVERGENCE');
       }
       const previousProject = typeof projectData !== 'undefined' ? projectData : window.projectData;
-      const proj = loadProjectFor(id);
+      let proj = loadProjectFor(id);
       if(store.getCurrentProjectId() !== String(target.id)) return refuseActivation('PROJECT_POINTER_UNCONFIRMED');
-      try{ proj.meta = proj.meta || {}; proj.meta.assignedInvestorId = id; }catch(_){ }
+      if(FC.projectPcvPolicy && FC.projectPcvPolicy.ownerView) proj=FC.projectPcvPolicy.ownerView(proj,target);
+      else {proj.meta=proj.meta || {};proj.meta.assignedInvestorId=id;}
       try{
         if(typeof projectData !== 'undefined') projectData = proj;
       }catch(_){ }
       window.projectData = proj;
       let policyResult;
-      try{ policyResult = FC.projectPcvPolicy && FC.projectPcvPolicy.ensureProjectMode(); }catch(_){ }
+      try{
+        // A historical card is a read-only admission, not permission to stamp
+        // missing metadata or activate a PCV migration in stored RAW.
+        policyResult = historicalOwner && FC.projectPcvPolicy && FC.projectPcvPolicy.read
+          ? FC.projectPcvPolicy.read({strict:true,allowLegacy:true})
+          : FC.projectPcvPolicy && FC.projectPcvPolicy.ensureProjectMode();
+      }catch(_){ }
       if(!policyResult || policyResult.ok !== true){
         // The investor wrapper restores its previous investor on refusal. Restore
         // the matching RAM/pointer too, so a retry cannot save target data as it.
@@ -169,10 +184,14 @@
     }catch(_){ }
   }
 
-  function comparableProjectData(value){
+  function comparableProjectData(value,record){
     let normalized = value;
+    const ownerRecord=record || FC.projectStore && FC.projectStore.getCurrentRecord();
+    if(ownerRecord && FC.projectPcvPolicy && FC.projectPcvPolicy.ownerView){
+      normalized=FC.projectPcvPolicy.ownerView(value,ownerRecord,true);
+    }
     try{
-      if(FC.project && typeof FC.project.normalize === 'function') normalized = FC.project.normalize(value);
+      if(FC.project && typeof FC.project.normalize === 'function') normalized = FC.project.normalize(normalized);
     }catch(_){ }
     // Compare detached view representations, without adding display-only set
     // numbers to the central model, export source or actual RAM.
@@ -262,7 +281,7 @@
     if(!proof || proof.ram!==ram || FC.session?.active || localStorage.getItem('fc_edit_session_v1')!==null)return false;
     const rows=FC.projectStore.readAll();
     return rows.length===proof.rows.length+1 && proof.rows.every(old=>JSON.stringify(rows.find(r=>r.id===old.id))===JSON.stringify(old))
-      && String(target.investorId)===String(id) && JSON.stringify(comparableProjectData(target.projectData))===JSON.stringify(comparableProjectData(options.expectedProject));
+      && String(target.investorId)===String(id) && JSON.stringify(comparableProjectData(target.projectData,target))===JSON.stringify(comparableProjectData(options.expectedProject));
   }
 
   function prepareFirstProjectActivation(){
@@ -300,7 +319,7 @@
         || String(projects[0].investorId) !== String(id)) return false;
       const expected = comparableProjectData(options.expectedProject);
       expected.meta = Object.assign({}, expected.meta, {productionPcvMode:'project'});
-      return JSON.stringify(comparableProjectData(target.projectData)) === JSON.stringify(expected);
+      return JSON.stringify(comparableProjectData(target.projectData,target)) === JSON.stringify(expected);
     }catch(_){ return false; }
   }
 
@@ -315,6 +334,8 @@
   }
 
   FC.investorProjectRuntime = {
+    version:VERSION,
+    get activationEvidence(){return activationEvidence;},
     normalizeProject,
     freshProject,
     loadProjectFor,

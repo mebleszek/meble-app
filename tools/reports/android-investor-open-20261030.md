@@ -78,3 +78,43 @@ Pokrycie CI pozostaje obowiązkowe: smoke przez `tools/preflight.js`, plik SDK p
 PR #88 został scalony: HEAD `9d45b4a050a930d577a6931a82d00005d0f74fab`, merge/BASE powyżej; [41139176509](https://github.com/mebleszek/meble-app/actions/runs/41139176509) potwierdza Safety, Preflight, Firebase Current, CLOUD Historical, auto-merge i sprawdzenie Pages dla dokładnego merge SHA. To dowód poprzedniego wydania, nie nowej poprawki.
 
 Nowa poprawka: **CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**. Pełne CI i fizyczny Android oczekują na osobne zatwierdzenie wydania. Reprezentatywne historyczne dane testowe nie dowodzą zgodności z każdym uszkodzonym rekordem urządzenia; zasadna odmowa nadal zachowuje dane i pokazuje przyczynę w aplikacji. Żadnych operacji produkcyjnych ani obsługi PR/wydania w tym zadaniu.
+
+
+## Historyczni inwestorzy — 31.10.2026
+
+Nowa gałąź `fix/historical-investor-owner-20261031`, BASE `2930e0d769d9576d387764af439eab7df9fd5636`. PR #89 wydano: HEAD `72a63ab70e41de42eab2673f8b9f0704e34e0d80`, [CI/auto-merge/Pages 41148657445](https://github.com/mebleszek/meble-app/actions/runs/41148657445) PASS dla merge BASE. Fizyczny Android: nowy inwestor działa, dwóch starszych nie; raporty READ_ONLY/code:NONE, brak aktywnej sesji, projectCount:5. Dane testowe, cenniki fabryczne. Poprzednie lokalne/CI PASS nie są dowodem tej naprawy ani akceptacji Androida.
+
+### Przyczyna i granice
+
+Reprodukcja sprzed implementacji: prawidłowy `record.investorId`, brak historycznego `projectData.meta.assignedInvestorId`; jedyna różnica przed PCV to metadana właściciela dopisana przez runtime w RAM. PCV odmawia RAM_DIVERGENCE. Dwa takie rekordy odmawiały, trzeci nowy otwierał się. To nie dowód uszkodzenia danych. Niezależnie zajęte przejście zwracało false, które handler mylił z Back i nie pokazywał komunikatu. Sam odczyt code:NONE z sesji nie ujawniał odmowy aktywacji.
+
+`project-pcv-policy.ownerView` potwierdza jednoznaczny autorytatywny rekord po ID i właścicielu. Wyprowadza brakującego właściciela na kopii; jawnie sprzeczna, pusta/null metadana nie staje się brakiem i nadal blokuje. Kopia porównawcza nie przypisuje świeżemu RAM właściciela nowo utworzonego projektu, gdy źródło już ma metadaną: zachowano istniejące dowody jednorazowej kreacji. W źródle, modelu eksportowym i snapshotach sesji niczego nie dopisujemy.
+
+- `investor-project-runtime.js`: potwierdzony widok właściciela, read-only otwarcie starszej karty (także bez znacznika PCV), anonimowe metadane odmowy/liczby kandydatów i wersja uruchomionego modułu.
+- `project-pcv-policy.js`: ścisła kontrola konfliktu właściciela, porównanie tych samych zweryfikowanych kopii, bez nowych uprawnień i bez zmiany algorytmów PCV.
+- `project-bridge.js`: load i wynik jawnego Save mają właściciela w kopii RAM. Porównanie scoped Save rozumie historyczny snapshot, bez dopisywania właściciela do RAW, rozszerzania zakresu pokoju lub naprawiania dowodu sesji. Ta poprawka była konieczna: po samym otwarciu jawny Save starego pokoju wcześniej odmawiał przez tę samą różnicę metadanej.
+- `session-navigation.js`: istniejące boolean API pozostaje, opcjonalny wynik per żądanie odróżnia NAVIGATION_CANCELLED, BUSY, niepotwierdzoną decyzję, błąd, niepewny zapis/odczyt i odmowę aktywacji. Nie wyłączono żadnego warunku sesji.
+- `actions-register.js`: Back potwierdzone przez dane żądanie nie pokazuje błędu; pozostałe odmowy pokazują istniejący komunikat. Równoległa wcześniejsza próba nie nadpisuje dowodu późniejszej odmowy.
+- `session-diagnostics-readonly.js`, `session-diagnostics.js`: anonimowy etap/kod/wynik, liczba kandydatów i brak historycznej metadanej, identyfikatory faktycznie wykonujących się modułów `20261031_historical_owner_v1`; starsze/nieznane komponenty są LEGACY_OR_UNKNOWN. To wersja komponentów, nie deklaracja SHA całego wydania. Kolektor nadal odczytowy, autoryzowany, z kontrolą spójności i allowlistą kodów; bez UID, nazw, identyfikatorów projektów, tokenów i treści rekordów.
+- `index.html`, `dev_tests.html`, `tools/script-versions.js`, `offline-assets.js`: zgodne wersje zależności i rzeczywiste bajty statycznego shella. Nie zmieniono mechanizmu Service Worker: bez skipWaiting, przejęcia otwartej karty i wymuszonego odświeżenia.
+- `tools/diagnostics/pixel-session-bookmarklet.txt`: tylko regeneracja istniejącego artefaktu z jednego kolektora wymagana przez dotychczasowy test; nie jest nową instrukcją diagnostyki właściciela. Właściciel nadal używa wyłącznie aplikacji i istniejącego Kopiuj raport.
+- `project-session-storage-pressure-smoke.js`: fixture nieudanego rollbacku ma teraz jawnego właściciela, aby nadal uruchamiać zapis znacznika PCV i wymuszoną awarię cofania wskaźnika. Historyczne otwarcie bez metadanej jest odczytowe, więc nie może zastępować tego scenariusza. Zachowano wszystkie asercje odmowy i ochrony danych; dodano potwierdzenie, że próba rollbacku rzeczywiście wystąpiła.
+
+### Regresje i rzeczywiste kontrole tego pakietu
+
+Node 22.23.3; natywny Chromium 151, odseparowane profile. Bez Google/Firebase LIVE; jak wcześniej fixture Auth/admission jest jawnie podstawiony, gesty, dokument, lokalne magazyny i aplikacja są rzeczywiste.
+
+| Kontrola | Rzeczywisty wynik |
+| --- | --- |
+| Nowy `historical-investor-owner-smoke.js` | 5 grup PASS: dwóch historycznych + trzeci nowy, cold-list create, brak automatycznej zmiany RAW/PCV, odmowy obcego/pustego/null właściciela i niejednoznaczności, rozdzielenie busy/Back/niepewnej decyzji, jawny Save pokoju, anonimowa odczytowa diagnostyka wersji i odmowy. |
+| Rozszerzony `helpers/historical-investor-browser.js`, wywoływany z obowiązkowego `empty-installation-browser-smoke.js` | PASS: istniejące wszystkie asercje oraz realnie utworzony trzeci inwestor; dwóch starszych bez metadanej, jeden także bez znacznika PCV; Open/Exit/logout/restart, pełny RAM właściciela, dokładnie niezmieniony RAW przy otwarciu. Konflikt właściciela i pięć rekordów z dwoma kandydatami na starszego inwestora dają widoczny komunikat, realny gest otwiera istniejącą diagnostykę i pokazuje kod/wersję. Trzeci pozostaje dostępny. Przy odmowie/diagnostyce identyczne RAW, RAM i payload sesji. |
+| `investor-open-historical-smoke.js`, `project-pcv-auto-open-smoke.js` | PASS wcześniejszych dwóch grup i **12/12 PASS** PCV; bez osłabienia asercji. |
+| `investor-navigation-exit-smoke.js`, `project-session-restored-proof-smoke.js` | **13/13 PASS**, **8/8 PASS**; dirty Back, Exit z ośmiu zakładek, Save/Cancel i brak naprawy niekompletnego dowodu. |
+| `project-session-storage-pressure-smoke.js` | **17/17 PASS**; quota, niepewna trwałość, zachowanie innych projektów i rzeczywiście wymuszony nieudany rollback nadal blokują niebezpieczne operacje. |
+| `pixel-session-bookmarklet-smoke.js`, `session-diagnostics-screen-smoke.js` | **15/15 PASS**, **6/6 PASS**; read-only, ograniczenie rozmiaru, autoryzacja i brak ujawnienia danych nadal obowiązują. |
+| `cloud4-pilot-readiness-smoke.js` | PASS; niezmienione **6797 B**, SHA-256 `711f2fea49873bab0c4f76b5e8e0e666c4796190ed9fbfda71557d35890ba2e3`. Bez zmian pinów, kontraktu, operatorów i Rules. |
+| Składnia, integralność i zakres | PASS składni 13 zmienionych/nowych plików JS, obu zestawów wersji skryptów, dokładnych bajtów manifestu offline, dwóch grup `offline-shell-smoke.js` i `git diff --check`. Chronione katalogi CLOUD/LOCAL-FIRST, workflow, AGENTS, Rules i piny pozostają bez zmian względem BASE. |
+
+Nowy smoke i wszystkie rozszerzone regresje mają obowiązkowe pokrycie przez istniejący Preflight `*-smoke.js`; helper mobilny jest wywoływany, a nie tylko obecny na dysku. Pełne CI pozostaje po stronie GitHub Actions po osobnej zgodzie. Nie uruchomiono Actions, PR Ready/Draft, merge, Pages ani operacji produkcyjnych.
+
+**Blokery:** CI_PENDING oraz fizyczna akceptacja PHONE_PENDING. Pięć rzeczywistych rekordów może oznaczać kilka projektów na inwestora: nie wybieramy ich heurystycznie, nowy anonimowy raport pokaże liczbę kandydatów. Cache na telefonie nie jest automatycznie odświeżany; raport starszej karty może nie mieć nowych pól. Brak nowego raportu nie jest potwierdzeniem wykonania nowej wersji. CODE_READY nie oznacza wydania ani LIVE_APPROVED.

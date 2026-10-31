@@ -31,8 +31,29 @@ function pixelSessionReadonly(w,options){
     const ui=readUi();
     const codes=['SESSION_QUOTA_EXCEEDED','SESSION_STORAGE_DENIED','SESSION_STORAGE_WRITE_FAILED','SESSION_WRITE_UNCONFIRMED','SESSION_SERIALIZATION_FAILED','SESSION_UNCONFIRMED','PROJECT_WRITE_CONFLICT','SESSION_OWNER_MISMATCH','SESSION_OWNER_MISSING','SESSION_ROOM_MISSING','SESSION_READ_FAILED','SESSION_CLEANUP_FAILED','PROJECT_ROLLBACK_INVALID','PROJECT_ROLLBACK_WRITE_FAILED','PENDING_DOMAIN_OPERATION','UNSCOPED_PART_ROLLBACK_BLOCKED'];
     const refusal=()=>s?.lastError?codes.includes(s.lastError.code)?s.lastError.code:'OTHER':'NONE';
-    const runtime=()=>boundedJson([s?.active,s?.durable,s?.projectId,s?.roomId,s?.startedAt,s?.context,s?.expectedOwnerKnown,s?.expectedOwnerRaw,s?.snapshot,refusal(),ui?.roomType,ui?.currentInvestorId]);
-    const beforeRuntime=runtime(),code=refusal();
+    const diagnosticVersion='20261031_historical_owner_v1';
+    const openCodes=new Set(['NONE','PROJECT_OWNER_CONFLICT','PROJECT_OWNER_UNCONFIRMED','PROJECT_RAM_DIVERGENCE','PROJECT_POINTER_UNCONFIRMED','PROJECT_ACTIVATION_UNCONFIRMED','PROJECT_ACTIVATION_FAILED','RAM_DIVERGENCE','PCV_POLICY_MISMATCH','PCV_POLICY_INVALID','PCV_POLICY_REQUIRED','POLICY_READ_FAILED','ACTIVE_EDIT','INVESTOR_ID_REQUIRED','INVESTOR_CONTEXT_UNCONFIRMED','INVESTOR_PERSISTENCE_UNAVAILABLE','PROJECT_RUNTIME_UNAVAILABLE','INVESTOR_ACTIVATION_FAILED','INVESTOR_VIEW_UNCONFIRMED','INVESTOR_NAVIGATION_UNCONFIRMED','NAVIGATION_APPROVED','NAVIGATION_CANCELLED','NAVIGATION_BUSY','NAVIGATION_SESSION_UNAVAILABLE','NAVIGATION_SESSION_UNCONFIRMED','NAVIGATION_SOURCE_CHANGED','NAVIGATION_CLOSE_UNCONFIRMED','NAVIGATION_DECISION_UNAVAILABLE','NAVIGATION_DECISION_UNCONFIRMED','NAVIGATION_READ_UNCONFIRMED','NAVIGATION_APPLY_REFUSED','NAVIGATION_FAILED',...codes]);
+    // These identifiers come from the executing modules, never from a latest-
+    // release HTTP request. Missing/older modules are explicitly unknown.
+    const version=value=>value===diagnosticVersion?value:'LEGACY_OR_UNKNOWN';
+    const opening=()=>{
+      const state=w.FC?.investorOpenDiagnostics?.state;
+      const hasTarget=['activation','render','complete'].includes(state?.stage);
+      return {stage:['idle','navigation','activation','render','complete'].includes(state?.stage)?state.stage:'unknown',
+        code:openCodes.has(state?.code)?state.code:state?'OTHER':'NONE',
+        outcome:['idle','pending','approved','cancelled','refused'].includes(state?.outcome)?state.outcome:'unknown',
+        candidateProjects:hasTarget && Number.isSafeInteger(w.FC?.investorProjectRuntime?.activationEvidence?.candidateProjects)
+          && w.FC.investorProjectRuntime.activationEvidence.candidateProjects>=0 && w.FC.investorProjectRuntime.activationEvidence.candidateProjects<=10000
+          ?w.FC.investorProjectRuntime.activationEvidence.candidateProjects:null,
+        legacyOwnerAbsent:hasTarget && typeof w.FC?.investorProjectRuntime?.activationEvidence?.legacyOwnerAbsent==='boolean'
+          ?w.FC.investorProjectRuntime.activationEvidence.legacyOwnerAbsent:null};
+    };
+    const running=()=>({collector:diagnosticVersion,activation:version(w.FC?.investorProjectRuntime?.version),
+      policy:version(w.FC?.projectPcvPolicy?.version),navigation:version(w.FC?.sessionNavigation?.version),handler:version(w.FC?.investorOpenDiagnostics?.version)});
+
+    const runtime=()=>boundedJson([s?.active,s?.durable,s?.projectId,s?.roomId,s?.startedAt,s?.context,s?.expectedOwnerKnown,s?.expectedOwnerRaw,s?.snapshot,refusal(),opening(),running(),ui?.roomType,ui?.currentInvestorId]);
+    const beforeRuntime=runtime(),investorOpen=opening(),runningCode=running();
+    const code=refusal()==='NONE' && investorOpen.outcome==='refused'?investorOpen.code:refusal();
     let raw;
     try{raw=keys.map(k=>w.localStorage.getItem(k));}catch(_){return no(authorized()?'STORAGE_UNREADABLE':'AUTH_DENIED');}
     if(raw.reduce((n,x)=>n+(typeof x==='string'?x.length:0),0)>8*1024*1024)return no('DIAGNOSTIC_TOO_LARGE');
@@ -63,7 +84,7 @@ function pixelSessionReadonly(w,options){
     const ownerMatch=!!(c.row&&b.row&&context&&String(c.row.investorId||'')===String(context.investorId||'')&&String(b.row.investorId||'')===String(context.investorId||'')&&(!room||(own(c.row.projectData,room)&&own(b.row.projectData,room))));
     const payloadShape=!!(object(p)&&p.schemaVersion===4&&p.active===true&&typeof p.projectId==='string'&&p.projectId.trim()&&typeof p.roomId==='string'&&Number.isFinite(p.startedAt)&&context&&context.projectId===p.projectId&&context.roomId===p.roomId&&typeof context.investorId==='string'&&requiredKeys&&p.expectedOwnerKnown===true&&E!==null&&c.valid&&b.valid);
     const ramMatch=!!(object(s)&&object(p)&&s.active===p.active&&s.projectId===p.projectId&&s.roomId===p.roomId&&s.startedAt===p.startedAt&&s.expectedOwnerKnown===p.expectedOwnerKnown&&s.expectedOwnerRaw===p.expectedOwnerRaw&&s.context?.investorId===context?.investorId&&s.context?.projectId===context?.projectId&&s.context?.roomId===context?.roomId&&requiredKeys&&snapKeys.every(k=>own(s.snapshot,k)&&s.snapshot[k]===snapshot[k]));
-    const report={v:1,status:'READ_ONLY',storage:'READABLE',present:raw[0]!==null,schema,active:p?.active===true,ram:object(s),durable:s?.durable===true,requiredKeys,payloadShape,ownerMatch,uiRam:object(ui),uiStoredMatch:!!(object(ui)&&object(currentUi)&&ui.roomType===currentUi.roomType&&ui.currentInvestorId===currentUi.currentInvestorId),contextMatch:!!(context&&raw[2]===p.projectId&&raw[3]===context.investorId&&(!room||ui?.roomType===room)),ramMatch,expectedKnown:p?.expectedOwnerKnown===true,CB:C!==null&&B!==null?C===B:null,CE:C!==null&&E!==null?C===E:null,partsMatch:requiredKeys?partKeys.every((k,i)=>raw[i+5]===snapshot[k]):null,pending:!!c.row?.meta?.pendingDomainOperation,code};
+    const report={v:1,status:'READ_ONLY',investorOpen,runningCode,storage:'READABLE',present:raw[0]!==null,schema,active:p?.active===true,ram:object(s),durable:s?.durable===true,requiredKeys,payloadShape,ownerMatch,uiRam:object(ui),uiStoredMatch:!!(object(ui)&&object(currentUi)&&ui.roomType===currentUi.roomType&&ui.currentInvestorId===currentUi.currentInvestorId),contextMatch:!!(context&&raw[2]===p.projectId&&raw[3]===context.investorId&&(!room||ui?.roomType===room)),ramMatch,expectedKnown:p?.expectedOwnerKnown===true,CB:C!==null&&B!==null?C===B:null,CE:C!==null&&E!==null?C===E:null,partsMatch:requiredKeys?partKeys.every((k,i)=>raw[i+5]===snapshot[k]):null,pending:!!c.row?.meta?.pendingDomainOperation,code};
     if(options?.storageUsage===true){
       // Text footprint only: no quota probe, capacity assertion, record names or IDs.
       const storage=w.localStorage, groups=['session','projects','investors','catalogs','history','backups','other'];

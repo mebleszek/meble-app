@@ -69,9 +69,12 @@
     // 2B.3a: normalny odczyt projektu ma jedno źródło prawdy — projectStore.
     // fc_project_v1 i fc_project_backup_v1 pozostają jeszcze zapisami pomocniczymi,
     // ale nie mogą już automatycznie decydować o projekcie widocznym w aplikacji.
-    const central = getCentralProjectForActiveContext();
+    const record=centralRecordForContext();
+    const central = record && record.projectData;
     const chosen = central || (model && model.DEFAULT_PROJECT_DATA) || { schemaVersion:1 };
-    return normalizeProject(chosen);
+    const normalized=normalizeProject(chosen);
+    return central && FC.projectPcvPolicy && FC.projectPcvPolicy.ownerView
+      ? FC.projectPcvPolicy.ownerView(normalized,record) : normalized;
   }
 
   function currentCentralRecord(){
@@ -104,7 +107,12 @@
       || !Object.prototype.hasOwnProperty.call(current,roomId)) return null;
 
     const withoutOwnedRoom = (value)=>{
-      const cloned = JSON.parse(JSON.stringify(value));
+      // Compare the verified owner's read-only view, not a migration of the
+      // historical snapshot. The merged stored source remains unchanged outside
+      // the owned room, including an absent assignedInvestorId metadata field.
+      const view=FC.projectPcvPolicy && FC.projectPcvPolicy.ownerView
+        ? FC.projectPcvPolicy.ownerView(value,currentRecord) : value;
+      const cloned = JSON.parse(JSON.stringify(view));
       delete cloned[roomId];
       if(cloned.meta && cloned.meta.roomDefs && typeof cloned.meta.roomDefs === 'object'){
         delete cloned.meta.roomDefs[roomId];
@@ -194,7 +202,15 @@
     if(saved && session && session.active && session.canSaveProject && !session.canSaveProject()){
       return Object.assign({ok:false, project:normalized, projectSaved:true}, session.lastError || {code:'SESSION_UNCONFIRMED'});
     }
-    return { ok:!!saved, project:saved ? normalizeProject(projectToWrite) : normalized };
+    let resultProject=saved ? normalizeProject(projectToWrite) : normalized;
+    if(saved && FC.projectPcvPolicy && FC.projectPcvPolicy.ownerView){
+      try{resultProject=FC.projectPcvPolicy.ownerView(resultProject,saved);}
+      catch(_){
+        if(session && session.markUnconfirmedProjectWrite)session.markUnconfirmedProjectWrite();
+        return {ok:false,project:normalized,code:'PROJECT_OWNER_UNCONFIRMED',projectSaved:true};
+      }
+    }
+    return { ok:!!saved, project:resultProject };
   }
 
   function save(data){
