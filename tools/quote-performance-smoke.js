@@ -89,18 +89,20 @@ test('Scope cannot survive await; a later read sees fresh geometry and refuses d
 });
 
 test('Delegation consumes a delayed synthetic click but accepts a new modal gesture',()=>{
- const handlers={},document={addEventListener:(type,fn)=>(handlers[type]||(handlers[type]=[])).push(fn),getElementById:()=>null};
- let calls=0;const host={FC:{actions:{has:()=>true,dispatch:()=>{calls++;return true;}}}};
+ const windowHandlers={},handlers={},document={addEventListener:(type,fn)=>(handlers[type]||(handlers[type]=[])).push(fn),getElementById:()=>null};
+ let calls=0,documentClicks=0;document.addEventListener('click',()=>documentClicks++,{capture:true});const host={addEventListener:(type,fn)=>(windowHandlers[type]||(windowHandlers[type]=[])).push(fn),FC:{actions:{has:()=>true,dispatch:()=>{calls++;return true;}}}};
  const fs=require('node:fs');new Function('window','document',fs.readFileSync('js/app/ui/bindings.js','utf8'))(host,document);host.FC.bindings.install();
  const action={getAttribute:()=> 'wycena-generate',closest:selector=>selector==='[data-action]'?action:null};
  const modal={closest:()=>null};
- const fire=(type,target)=>{const e={target,prevented:false,preventDefault(){this.prevented=true;},stopPropagation(){},stopImmediatePropagation(){}};for(const fn of handlers[type]||[])fn(e);return e;};
- fire('pointerup',action);assert.equal(calls,1);
+ const fire=(type,target,detail=1)=>{const e={target,detail,prevented:false,preventDefault(){this.prevented=true;},stopPropagation(){this.stopped=true;},stopImmediatePropagation(){this.stopped=true;this.immediate=true;}};for(const scope of [windowHandlers,handlers]){for(const fn of scope[type]||[]){fn(e);if(e.immediate)break;}if(e.stopped)break;}return e;};
+ fire('pointerdown',action);fire('pointerup',action);assert.equal(calls,1);
  assert.equal(fire('click',modal).prevented,true,'same-gesture delayed click must not reach a modal/underlying element');
+ assert.equal(documentClicks,0,'window capture consumes before earlier document listeners');
  fire('pointerup',action);assert.equal(calls,2); // browser suppresses its synthetic click entirely
  fire('pointerdown',modal);fire('pointerup',modal);
  assert.equal(fire('click',modal).prevented,false,'first new physical modal gesture must be accepted');
  fire('pointerdown',action);fire('pointerup',action);fire('click',action);assert.equal(calls,3,'native pointerup/click dispatches once');
+ fire('click',action,0);assert.equal(calls,4,'keyboard click remains a single ordinary document dispatch');
 });
 
 (async()=>{let fail=0;for(const[name,fn]of tests)try{await fn();console.log('PASS '+name);}catch(e){fail++;console.error('FAIL '+name+'\n'+e.stack);}console.log(`Quote performance: ${tests.length-fail}/${tests.length} PASS, ${fail} FAIL`);process.exitCode=fail?1:0;})();

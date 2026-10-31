@@ -25,16 +25,16 @@ function verifyGroup(group){
   }catch(error){throw Error('CLOUD_CI_EMULATOR_CONFIG_UNSAFE',{cause:error});}
   return{cwd,cli};
 }
-// Firestore emulator v1.22.0 returned HTTP 500 on clearData when an
-// earlier SDK suite left a completed watch stream. Split CURRENT at the
-// Cloud42 boundary into two independent DEMO emulator lifetimes. Full test
+// Firestore emulator v1.22.0 returned HTTP 500 on clearData when a
+// completed watch stream was notified (its originating client is unconfirmed).
+// Cloud42 has its own DEMO emulator lifetime, with no earlier suite sharing it. Full test
 // coverage and strict per-batch TAP remain mandatory; historical is intact.
 function batchesForGroup(group){
  if(group.context==='historical')return [group.files];
  if(group.context!=='current')throw Error('CLOUD_CI_CONTEXT_INVALID');
  const boundary=group.files.indexOf('cloud42-plan.test.mjs');
  if(boundary!==5||group.files.length!==8)throw Error('CLOUD_CI_BATCH_PLAN_CHANGED');
- const batches=[group.files.slice(0,boundary),group.files.slice(boundary)];
+ const batches=[group.files.slice(0,boundary),[group.files[boundary]],group.files.slice(boundary+1)];
  if(batches.some(files=>!files.length)||batches.flat().join('|')!==group.files.join('|'))throw Error('CLOUD_CI_BATCH_INCOMPLETE');
  return batches;
 }

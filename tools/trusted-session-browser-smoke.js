@@ -27,8 +27,8 @@ async function browser(profile,url,{offline=false,inject=false}={}){
  const pages=targets.filter(t=>t.type==='page'),target=pages.find(t=>t.url==='about:blank')||pages[0];
  const ws=new WebSocket(target.webSocketDebuggerUrl);await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});
  const pending=new Map();let serial=0,closing;
- let navigation,startup=true,unexpectedTarget=false;const startupCloses=[];
- ws.onmessage=({data})=>{const m=JSON.parse(data),p=pending.get(m.id);if(p){pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(Error(JSON.stringify(m.error))):p.resolve(m.result);}else{navigation?.event(m);if(m.method==='Target.targetCreated'&&m.params.targetInfo.type==='page'&&m.params.targetInfo.targetId!==target.id){if(startup){const closing=send('Target.closeTarget',{targetId:m.params.targetInfo.targetId}).then(r=>assert.equal(r.success,true));startupCloses.push(closing);closing.catch(()=>{});}else unexpectedTarget=true;}}};
+ let navigation,startup=true,unexpectedTarget=false,offlineSetupError=null,offlinePauses=0;const startupCloses=[];
+ ws.onmessage=({data})=>{const m=JSON.parse(data),p=pending.get(m.id);if(p){pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(Error(JSON.stringify(m.error))):p.resolve(m.result);}else{navigation?.event(m);if(m.method==='Debugger.paused'&&offline){offlinePauses++;void (async()=>{try{await send('Network.overrideNetworkState',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});}catch(error){offlineSetupError=error;}finally{await send('Debugger.resume');}})().catch(error=>{offlineSetupError=error;});}if(m.method==='Target.targetCreated'&&m.params.targetInfo.type==='page'&&m.params.targetInfo.targetId!==target.id){if(startup){const closing=send('Target.closeTarget',{targetId:m.params.targetInfo.targetId}).then(r=>assert.equal(r.success,true));startupCloses.push(closing);closing.catch(()=>{});}else unexpectedTarget=true;}}};
  const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++serial,timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP '+method));},30000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params}));});
  const settleTargets=async()=>{if(startup){startup=false;await Promise.all(startupCloses);assert.equal((await send('Target.getTargets')).targetInfos.filter(t=>t.type==='page').length,1);}assert.equal(unexpectedTarget,false,'Unexpected page after disposable-browser startup');};
  const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||'Browser assertion failed');return r.result.value;};
@@ -42,7 +42,11 @@ async function browser(profile,url,{offline=false,inject=false}={}){
   await Promise.all(startupCloses);
   await send('Page.enable');await send('Page.bringToFront');await send('Network.enable');
   // Cold startup gets read-only instrumentation, never the SDK/Google fixture.
-  await send('Page.addScriptToEvaluateOnNewDocument',{source:inject?injection:'('+installAuthInputDiagnostics.toString()+')();'});
+  // Network emulation can reset on a new renderer. Pause this test-only
+  // first script so CDP establishes real offline state BEFORE any app code,
+  // rather than racing initialize() after DOMContentLoaded. No navigator shim.
+  if(offline)await send('Debugger.enable');
+  await send('Page.addScriptToEvaluateOnNewDocument',{source:(offline?'debugger;window.__OFFLINE_BOOT_ONLINE__=navigator.onLine;\n':'')+(inject?injection:'('+installAuthInputDiagnostics.toString()+')();')});
   if(offline){
     const state={offline:true,latency:0,downloadThroughput:0,uploadThroughput:0};
     await send('Network.emulateNetworkConditions',state);
@@ -51,6 +55,7 @@ async function browser(profile,url,{offline=false,inject=false}={}){
     await send('Network.overrideNetworkState',state);
   }
   navigation=documentNavigation(send);await navigation.navigate(url);
+  if(offline){if(offlineSetupError)throw offlineSetupError;assert.ok(offlinePauses>0);assert.equal(await evaluate('__OFFLINE_BOOT_ONLINE__'),false,'Offline must be established before the first application script');}
   // A cross-document renderer can reset navigator state (also reproduced on
   // chrome-error without application code). Reassert the CDP state on the
   // navigated renderer; network blocking was enabled before navigation.
@@ -155,13 +160,13 @@ async function main(){
   const revoked=await device.evaluate('('+inspectTrustStorage.toString()+')()');assert.equal(revoked.fence,'revoked');assert.equal(revoked.revoked,true,'Explicit logout must durably revoke the trust proof');
   await device.close();device=null;
   device=await browser(profile,url,{offline:true});
-  // This fresh foreground renderer has neither a trust proof nor injected or
-  // previously downloaded Firebase SDK. The closed origin/offline network
-  // must yield this exact SDK refusal, not an inherited Auth instance from a
-  // restored tab. Both local admission and business reads remain forbidden.
-  await device.until('document.body.dataset.authState==="error"');
-  assert.match(await device.evaluate('document.getElementById("auth-error").textContent'),/\(AUTH_SDK_UNAVAILABLE\)/);
+  // Offline initialize() intentionally leaves Auth uncreated. No inherited
+  // SDK/session, trust proof or business admission may survive manual logout.
+  await device.until('document.body.dataset.authState==="unauthenticated"');
+  assert.equal(await device.evaluate('navigator.onLine'),false);
   const denied=await device.evaluate('__AUTH_INPUT_DIAGNOSTICS__()');assert.equal(denied.trustRestore,'absent');assert.equal(denied.mode,'locked');
+  assert.equal(denied.authCreations,0);assert.equal(denied.authStatus,undefined);
+  const coldRevoked=await device.evaluate('('+inspectTrustStorage.toString()+')()');assert.equal(coldRevoked.fence,'revoked');assert.equal(coldRevoked.revoked,true);
   assert.equal(await device.evaluate('(()=>{try{localStorage.getItem("fc_projects_v1");return "READ_ALLOWED";}catch(e){return e.message;}})()'),'AUTH_ACCESS_REVOKED');
   assert.equal(await device.evaluate('!!window.__APP_STARTED__'),false);assert.equal(await device.evaluate('__FC_MAIN_ACCESS__.isValid()'),false);
   console.log('PASS real Chromium/IDB/CryptoKey/SW: desktop idle retains RAM, explicit trust, background/offline, cold restart with origin stopped, offline logout and no inherited readmission');
