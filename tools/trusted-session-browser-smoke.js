@@ -24,32 +24,50 @@ const injection='('+installAuthInputDiagnostics.toString()+')();\n'+`(()=>{
 })();`;
 async function browser(profile,url,{offline=false,inject=false}={}){
  const owner=await startBrowser({profileDir:profile}),targets=await(await fetch('http://127.0.0.1:'+new URL(owner.endpoint).port+'/json/list')).json();
- const ws=new WebSocket(targets.find(t=>t.type==='page').webSocketDebuggerUrl);await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});
+ const pages=targets.filter(t=>t.type==='page'),target=pages.find(t=>t.url==='about:blank')||pages[0];
+ const ws=new WebSocket(target.webSocketDebuggerUrl);await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});
  const pending=new Map();let serial=0,closing;
- let navigation;
- ws.onmessage=({data})=>{const m=JSON.parse(data),p=pending.get(m.id);if(p){pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(Error(JSON.stringify(m.error))):p.resolve(m.result);}else navigation?.event(m);};
+ let navigation,startup=true,unexpectedTarget=false;const startupCloses=[];
+ ws.onmessage=({data})=>{const m=JSON.parse(data),p=pending.get(m.id);if(p){pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(Error(JSON.stringify(m.error))):p.resolve(m.result);}else{navigation?.event(m);if(m.method==='Target.targetCreated'&&m.params.targetInfo.type==='page'&&m.params.targetInfo.targetId!==target.id){if(startup){const closing=send('Target.closeTarget',{targetId:m.params.targetInfo.targetId}).then(r=>assert.equal(r.success,true));startupCloses.push(closing);closing.catch(()=>{});}else unexpectedTarget=true;}}};
  const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++serial,timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP '+method));},30000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params}));});
+ const settleTargets=async()=>{if(startup){startup=false;await Promise.all(startupCloses);assert.equal((await send('Target.getTargets')).targetInfos.filter(t=>t.type==='page').length,1);}assert.equal(unexpectedTarget,false,'Unexpected page after disposable-browser startup');};
  const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||'Browser assertion failed');return r.result.value;};
  const until=async expression=>{for(let i=0;i<600;i++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,50));}throw Error('Browser timeout '+expression+' '+JSON.stringify(await evaluate('({auth:document.body?.dataset.authState,business:document.body?.dataset.businessState,input:typeof __AUTH_INPUT_DIAGNOSTICS__==="function"?__AUTH_INPUT_DIAGNOSTICS__():null})')));};
  try{
-  await send('Page.enable');await send('Network.enable');
+  // Chromium can restore old tabs alongside the explicit about:blank after
+  // a profile restart. Own exactly one foreground test tab; never run native
+  // input in an arbitrary restored/background target. Only this disposable
+  // subprocess/profile is touched, before any navigation or business setup.
+  await send('Target.setDiscoverTargets',{discover:true});
+  await Promise.all(startupCloses);
+  await send('Page.enable');await send('Page.bringToFront');await send('Network.enable');
   // Cold startup gets read-only instrumentation, never the SDK/Google fixture.
   await send('Page.addScriptToEvaluateOnNewDocument',{source:inject?injection:'('+installAuthInputDiagnostics.toString()+')();'});
-  if(offline)await send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
+  if(offline){
+    const state={offline:true,latency:0,downloadThroughput:0,uploadThroughput:0};
+    await send('Network.emulateNetworkConditions',state);
+    // Explicit navigator state is a separate CDP contract; keep real network
+    // blocking and the closed HTTP origin, never override a JS property.
+    await send('Network.overrideNetworkState',state);
+  }
   navigation=documentNavigation(send);await navigation.navigate(url);
+  // A cross-document renderer can reset navigator state (also reproduced on
+  // chrome-error without application code). Reassert the CDP state on the
+  // navigated renderer; network blocking was enabled before navigation.
+  if(offline)await send('Network.overrideNetworkState',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
   assert.equal(await evaluate('location.href'),url);assert.equal(await evaluate('!!document.body&&!!document.getElementById("main-login")'),true,'Requested application document parsed');
-  return {evaluate,until,send,async touch(selector){
-    await send('Emulation.setTouchEmulationEnabled',{enabled:true});const p=await waitForGesturePoint(evaluate,selector,{stable:true});
-    await evaluate('window.__navigationGesture=('+observeGesture.toString()+')('+JSON.stringify(selector)+')');
+  return {evaluate,until,send,reload:()=>navigation.navigate(url),async touch(selector){
+    await settleTargets();await send('Emulation.setTouchEmulationEnabled',{enabled:true});const p=await waitForGesturePoint(evaluate,selector,{stable:true});
+    await evaluate('window.__navigationGesture=('+observeGesture.toString()+')('+JSON.stringify(selector)+');window.__touchSelector='+JSON.stringify(selector)+';window.__touchCoordinates=[];window.__touchRecorder=e=>{const b=document.querySelector(__touchSelector)?.getBoundingClientRect();__touchCoordinates.push({x:e.clientX,y:e.clientY,tag:e.target.tagName,tab:e.target.dataset?.tab,hit:document.elementFromPoint(e.clientX,e.clientY)?.dataset?.tab,wanted:b&&{x:b.x,y:b.y,width:b.width,height:b.height}});};window.addEventListener("pointerdown",__touchRecorder,true)');
     try{
       await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...p,radiusX:3,radiusY:3,id:1}]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-      const trace=await evaluate('__navigationGesture.snapshot()');
+      const trace=await evaluate('({...__navigationGesture.snapshot(),coordinates:__touchCoordinates,scale:visualViewport.scale,offset:visualViewport.offsetTop,scrollY,viewport:innerWidth})');trace.requested=p;
       for(const type of ['pointerdown','pointerup'])assert.equal(trace.events.filter(e=>e.type===type&&e.trusted&&e.onTarget).length,1,'Native '+type+' target '+selector+' '+JSON.stringify(trace));
       assert.equal(trace.events.some(e=>e.type.endsWith('cancel')),false,'Native gesture cancelled '+JSON.stringify(trace));
       // A compatibility click may target the new layout. The subsequent
       // navigation assertions must prove that it cannot execute a second action.
-    }finally{await evaluate('__navigationGesture.close();delete window.__navigationGesture');}
-  },async tap(id){const p=await waitForGesturePoint(evaluate,'#'+id);
+    }finally{await evaluate('__navigationGesture.close();delete window.__navigationGesture;window.removeEventListener("pointerdown",__touchRecorder,true);delete window.__touchRecorder;delete window.__touchCoordinates');}
+  },async tap(id){await settleTargets();const p=await waitForGesturePoint(evaluate,'#'+id);
     await send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...p});await send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...p});},
     close(){return closing||=closeBrowserForRestart({send,owner,ws,pending});}};
  }catch(e){ws.close();await owner.close();throw e;}
@@ -96,15 +114,24 @@ async function main(){
   await device.until('document.body.dataset.businessState==="ready"');
   const restored=await device.evaluate('__AUTH_INPUT_DIAGNOSTICS__()');
   assert.equal(restored.trustRestore,'valid');assert.equal(restored.mode,'trusted');assert.equal(restored.profilePhase,'resume:confirmed');assert.equal(restored.authStatus,undefined,'Cold trust must not initialize Google');assert.equal(restored.authCreations,0);
-  assert.equal(restored.offline.networkOffline,true);assert.equal(restored.offline.controlled,true);assert.equal(restored.offline.workerExpected,true);
+  assert.equal(restored.offline.networkOffline,true,JSON.stringify(restored.offline));assert.equal(restored.offline.controlled,true,JSON.stringify(restored.offline));assert.equal(restored.offline.workerExpected,true,JSON.stringify(restored.offline));
   assert.equal(await device.evaluate('__FC_MAIN_ACCESS__.isValid()'),true);
   assert.equal(await device.evaluate('('+authModuleType.toString()+')()'),'function','Public Auth module stays registered without creating an Auth session');
   assert.equal(await device.evaluate('document.getElementById("main-trust-phone").checked'),true);
+  await require('./helpers/investor-delete-sw-browser').exerciseFullDeletion(device);
   await require('./helpers/investor-navigation-browser').exerciseInvestorNavigation(device);
   await device.tap('main-signout');await device.until('!__FC_MAIN_ACCESS__.isValid()');
   const revoked=await device.evaluate('('+inspectTrustStorage.toString()+')()');assert.equal(revoked.fence,'revoked');assert.equal(revoked.revoked,true,'Explicit logout must durably revoke the trust proof');
   await device.close();device=null;
-  device=await browser(profile,url,{offline:true});await device.until('document.body.dataset.authState==="unauthenticated"');
+  device=await browser(profile,url,{offline:true});
+  // This fresh foreground renderer has neither a trust proof nor injected or
+  // previously downloaded Firebase SDK. The closed origin/offline network
+  // must yield this exact SDK refusal, not an inherited Auth instance from a
+  // restored tab. Both local admission and business reads remain forbidden.
+  await device.until('document.body.dataset.authState==="error"');
+  assert.match(await device.evaluate('document.getElementById("auth-error").textContent'),/\(AUTH_SDK_UNAVAILABLE\)/);
+  const denied=await device.evaluate('__AUTH_INPUT_DIAGNOSTICS__()');assert.equal(denied.trustRestore,'absent');assert.equal(denied.mode,'locked');
+  assert.equal(await device.evaluate('(()=>{try{localStorage.getItem("fc_projects_v1");return "READ_ALLOWED";}catch(e){return e.message;}})()'),'AUTH_ACCESS_REVOKED');
   assert.equal(await device.evaluate('!!window.__APP_STARTED__'),false);assert.equal(await device.evaluate('__FC_MAIN_ACCESS__.isValid()'),false);
   console.log('PASS real Chromium/IDB/CryptoKey/SW: desktop idle retains RAM, explicit trust, background/offline, cold restart with origin stopped, offline logout and no inherited readmission');
  }finally{await device?.close();if(!closed)await new Promise(resolve=>server.close(resolve));fs.rmSync(directory,{recursive:true,force:true});}

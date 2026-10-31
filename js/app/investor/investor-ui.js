@@ -12,6 +12,8 @@
     allowListAccess: true,
     newlyCreatedId: null,
     transientInvestor: null,
+    deleteMode:false,
+    deleteIds:[],
   };
 
   function $(id){ return document.getElementById(id); }
@@ -109,6 +111,7 @@
     const transient = getTransientInvestor();
     const detailId = currentId || (transient && transient.id) || null;
     if(ui && String(ui.activeTab || '') === 'inwestor' && detailId){
+      state.deleteMode=false;state.deleteIds=[];
       state.selectedId = detailId;
       state.mode = 'detail';
       state.allowListAccess = false;
@@ -173,6 +176,11 @@
     if(input){
       input.addEventListener('input', ()=>{ state.query = input.value || ''; renderListOnly(targetEl || getRoot()); });
     }
+    root.querySelectorAll('[data-investor-delete-id]').forEach(box=>box.addEventListener('change',()=>{
+      if(!state.deleteMode)return;
+      const ids=new Set(state.deleteIds),id=box.getAttribute('data-investor-delete-id');
+      if(box.checked)ids.add(id);else ids.delete(id);state.deleteIds=[...ids];
+    }));
   }
 
   function bindDetail(inv){

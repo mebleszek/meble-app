@@ -19,6 +19,8 @@ Ten plik definiuje obowiązujące zasady pracy nad Meble-App dla Codexa i innych
 
 ## 2. Minimalny zakres zmian
 
+**Jedna pełna analiza rzeczywistego łańcucha zależności:** ChatGPT analizuje zależności od UI przez wywołania, logikę biznesową, modele, identyfikatory, odczyt, zapis, recovery, backupy, wyceny, oferty, synchronizację i skutki uboczne oraz przygotowuje zakres zadania. Codex wykorzystuje te ustalenia i weryfikuje kod niezbędny do implementacji, bez powtarzania całego audytu. Dodatkowa pogłębiona analiza jest potrzebna wyłącznie po wykryciu konkretnej sprzeczności lub ryzyka. Ustalaj, co aplikacja rzeczywiście robi, i rozróżniaj obowiązujący model biznesowy od historycznych wyjątków. Najpierw analiza i dowody, potem rekomendacja — bez propozycji opartych na przypuszczeniach.
+
 - Preferuj małe, odwracalne i łatwe do zweryfikowania zmiany.
 - Nie wykonuj szerokich refaktorów „przy okazji”.
 - Nie przepisuj dużego pliku tylko dlatego, że jest duży.

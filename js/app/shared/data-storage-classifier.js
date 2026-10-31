@@ -193,6 +193,10 @@
   }
 
   FC.dataStorageClassifier = {
+    isRegisteredKey:key=>Object.hasOwn(KEY_INFO,String(key))
+      || key===(FC.dataStorageKeys?.BACKUP_STORE_KEY||'fc_data_backups_v1')
+      || Object.values(FC.constants?.STORAGE_KEYS||{}).includes(key)
+      || /^fc_project_inv_.+_v1$/.test(String(key)),
     TEST_OWNER,
     parseJson,
     isPlainObject,

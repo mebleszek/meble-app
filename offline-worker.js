@@ -27,6 +27,19 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
   // No skipWaiting/clients.claim: never replace the runtime of an open draft.
 })()));
 self.addEventListener('message',event=>{
+  if(event.data?.type==='VERIFY_INVESTOR_DELETE_CLIENTS'&&event.ports[0]){
+    event.waitUntil((async()=>{
+      const version='20261031_investor_delete_v2',operationId=event.data.operationId;
+      const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+      const ready=await Promise.all(windows.map(client=>new Promise(resolve=>{
+        const channel=new MessageChannel(),timer=setTimeout(()=>{channel.port1.close();resolve({ready:false,reason:'NO_ACK'});},1500);
+        channel.port1.onmessage=e=>{clearTimeout(timer);channel.port1.close();resolve({ready:e.data?.version===version&&e.data.operationId===operationId&&e.data.ready===true,reason:/^(?:AUTH|SESSION|VIEW|MODAL|JOURNAL|INITIALIZING|FENCE)$/.test(e.data?.reason||'')?e.data.reason:'UNKNOWN'});};
+        client.postMessage({type:'PREPARE_INVESTOR_DELETE',version,operationId},[channel.port2]);
+      })));
+      event.ports[0].postMessage({version,operationId,clients:windows.length,ok:event.data.version===version&&windows.length>0&&ready.every(result=>result.ready),reasons:ready.filter(result=>!result.ready).map(result=>result.reason)});
+      event.ports[0].close();
+    })());return;
+  }
   if(event.data?.type==='VERIFY_STATIC_SHELL'&&event.ports[0])event.waitUntil(complete().then(()=>event.ports[0].postMessage({complete:true,version:MANIFEST.version}),()=>event.ports[0].postMessage({complete:false})));
 });
 self.addEventListener('fetch',event=>{

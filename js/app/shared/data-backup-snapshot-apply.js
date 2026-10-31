@@ -8,6 +8,8 @@
   function applySnapshot(snapshot, options){
     const snap = normalizer.normalizeSnapshot ? normalizer.normalizeSnapshot(snapshot) : null;
     if(!(snap && snap.keys && typeof snap.keys === 'object')) throw new Error('Nieprawidłowy format backupu danych.');
+    // Reject resurrection before the first mutation, including clearMissing.
+    root.FC.investorDeletion?.assertRestoreSafe(snap);
     const opts = Object.assign({ clearMissing:true }, options || {});
     const isAppDataKey = keysApi.isAppDataKey || (()=> false);
     const incoming = Object.keys(snap.keys).filter(isAppDataKey).sort();

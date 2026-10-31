@@ -4,8 +4,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const {fixture}=require('./project-navigation-blockers-smoke');
 const {makeMiniDocument}=require('./app-dev-smoke-lib/mini-document');
-function setup(){
- const r=fixture(),s=r.s,fc=r.FC;s.document=makeMiniDocument();s.scrollTo=()=>{};
+function setup(options){
+ const r=fixture(undefined,options),s=r.s,fc=r.FC;s.document=makeMiniDocument();s.scrollTo=()=>{};
  // The older non-UI fixture leaves Q's owner/policy metadata unspecified.
  // Use a complete persisted project; do not ask activation to migrate it.
  const q=fc.projectStore.getById('Q');q.projectData.meta={...q.projectData.meta,assignedInvestorId:'N',productionPcvMode:'project',roomDefs:{},roomOrder:[]};fc.projectStore.upsert(q);

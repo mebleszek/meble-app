@@ -26,19 +26,29 @@ function documentNavigation(send,{timeoutMs=30000}={}){
 function gesturePoint(selector,{scroll=true}={}){
  const e=[...document.querySelectorAll(selector)].find(node=>node.getClientRects().length&&!node.disabled);
  if(!e||e.closest('[inert],.modal-open-guard'))return null;
- if(scroll)e.scrollIntoView({block:'center',behavior:'instant'});
- const b=e.getBoundingClientRect(),x=b.x+b.width/2,y=b.y+b.height/2;
- const hit=document.elementFromPoint(x,y);
- return hit&&(hit===e||e.contains(hit))?{x,y}:null;
+ const point=()=>{const b=e.getBoundingClientRect(),x=b.x+b.width/2,y=b.y+b.height/2;
+  const hit=document.elementFromPoint(x,y),width=typeof innerWidth==='number'?innerWidth:Infinity,height=typeof innerHeight==='number'?innerHeight:Infinity;
+  return x>=0&&y>=0&&x<width&&y<height&&hit&&(hit===e||e.contains(hit))?{x,y}:null;};
+ // Do not scroll an already hittable sticky header. Unnecessary centering can
+ // move its hitbox after the DOM sample but before native pointerdown.
+ let ready=point();if(ready||!scroll)return ready;
+ e.scrollIntoView({block:'center',behavior:'instant'});return point();
 }
 // CDP input is handled after this JS task. A same-task hit test following
 // scrollIntoView is insufficient: require a rendered frame and stable geometry.
 async function stableGesturePoint(selector,sample){
  const before=sample(selector);if(!before)return null;
  const hit=document.elementFromPoint(before.x,before.y);
- await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
- const after=sample(selector,{scroll:false});
- return after&&Math.abs(after.x-before.x)<=0.5&&Math.abs(after.y-before.y)<=0.5&&document.elementFromPoint(after.x,after.y)===hit?after:null;
+ // Smooth project scrolling and the mobile header can move a ready target
+ // after two frames. Require a continuous rendered interval with unchanged
+ // coordinates, hit target and scroll position before sending a single input.
+ const y=window.scrollY,x=window.scrollX;
+ for(let frame=0;frame<6;frame++){
+  await new Promise(resolve=>requestAnimationFrame(resolve));
+  const next=sample(selector,{scroll:false});
+  if(!next||Math.abs(next.x-before.x)>0.5||Math.abs(next.y-before.y)>0.5||window.scrollY!==y||window.scrollX!==x||document.elementFromPoint(next.x,next.y)!==hit)return null;
+ }
+ return before;
 }
 // Read-only per-gesture evidence in a disposable test document. No text/values,
 // UID or storage inspection; no event cancellation, synthesis or retry.

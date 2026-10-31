@@ -494,48 +494,32 @@
     'remove-investor-from-list': async () => {
       if(listRemovalPending)return false;
       listRemovalPending=true;
-      const refused=()=>{FC.infoBox?.open({title:'Nie usunięto inwestora',message:'Nie potwierdzono bezpiecznego usunięcia z listy. Zakończ edycję lub zaloguj się ponownie i sprawdź listę. Dane projektów, ofert i kopii pozostają zachowane.',okOnly:true});return false;};
+      const state=FC.investorUI?.state,service=FC.investorDeletion;
+      const refresh=()=>FC.investorUI.renderListOnly(document.getElementById('investorsListRoot'));
+      const finish=()=>{state.deleteMode=false;state.deleteIds=[];refresh();};
       try{
-        if(FC.investors?.canRemoveFromList?.()!==true || !FC.investors?.prepareListRemoval || !FC.investors?.confirmListRemoval
-          || !FC.choiceBox?.ask || !FC.confirmBox?.ask)return refused();
-        const list=FC.investors.search(FC.investorUI?.state?.query || '');
-        if(!list.length)return refused();
-        const selected=await FC.choiceBox.ask({title:'USUŃ INWESTORA Z LISTY',message:'Wybierz jeden wpis. Projekty, zapisane oferty i kopie pozostaną zachowane.',
-          actions:list.map((inv,index)=>({value:String(index),text:[inv.companyName || inv.name || '(Bez nazwy)',inv.city,inv.phone].filter(Boolean).join(' • '),tone:'danger'})).concat({value:'back',text:'Wróć',tone:'neutral'}),dismissValue:'back'});
-        if(selected==='back' || selected===null)return true;
-        const index=list.findIndex((_,i)=>String(i)===selected);
-        if(index<0)return refused();
-        const token=FC.investors.prepareListRemoval(list[index].id);
-        if(!token)return refused();
-        const agreed=await FC.confirmBox.ask({title:'Usunąć inwestora z listy?',message:'Wybrany inwestor: '+token.name+'.\nUsunąć ten wpis z listy? Zapisane projekty, oferty i kopie pozostaną zachowane.',confirmText:'Usuń',cancelText:'Wróć',confirmTone:'danger',cancelTone:'neutral'});
-        if(agreed!==true)return true;
-        if(FC.investors.confirmListRemoval(token)!==true)return refused();
-        FC.investorUI?.renderListOnly(document.getElementById('investorsListRoot'));
-        FC.infoBox?.open({title:'Usunięto z listy',message:'Inwestor został usunięty z listy. Archiwalne dane projektów, ofert i kopii pozostały zachowane.',okOnly:true});
+        if(!state || !service || !FC.confirmBox?.ask)throw Object.assign(Error(),{code:'DELETE_DEPENDENCY_UNAVAILABLE'});
+        if(service.pending()){await service.resumePending();finish();return true;}
+        if(FC.investors.canRemoveFromList?.()!==true)throw Object.assign(Error(),{code:'DELETE_CONTEXT_PROTECTED'});
+        if(!state.deleteMode){state.deleteMode=true;state.deleteIds=[];refresh();return true;}
+        if(!state.deleteIds.length){finish();return true;}
+        const token=await service.prepare(state.deleteIds);
+        const message=['Inwestorzy: '+token.investors+' — '+token.names.join(', '),
+          'Projekty: '+token.projects,'Pomieszczenia: '+token.rooms,'Pozostałe puste szablony pomieszczeń: '+token.roomTemplates,
+          'Zapisane oferty / wyceny: '+token.offers,'Robocze oferty: '+token.drafts,
+          'Dodatkowe własne zapisy legacy: '+token.legacy,
+          'Usunięte zostaną wskazane rekordy i ich jednoznacznie powiązane dane. Globalne cenniki, ustawienia i wspólne RAW pozostaną bez zmian.',
+          'Zachowane magazyny kopii lokalnych: '+token.backups+'; rekordy archiwum IndexedDB: '+token.archiveRecords+'. Kopie mogą nadal zawierać usuwane dane. Prywatne dowody usunięcia w IndexedDB: '+token.deletionReceipts+'; ta operacja pozostawi kolejny dowód z kopią przed/po do odzyskiwania po awarii.'].join('\n');
+        if(await FC.confirmBox.ask({title:'Usunąć zaznaczonych inwestorów?',message,confirmText:'Usuń',cancelText:'Anuluj',confirmTone:'danger',cancelTone:'neutral'})!==true)return true;
+        await service.commit(token);finish();
+        FC.infoBox?.open({title:'Usunięto inwestorów',message:'Potwierdzono usunięcie wskazanych aktywnych rekordów i ich powiązanych danych. Archiwalne kopie bezpieczeństwa pozostawiono bez zmian.',okOnly:true});
         return true;
-      }catch(_){return refused();}
-      finally{listRemovalPending=false;}
+      }catch(error){
+        const code=/^DELETE_[A-Z_]+$/.test(error.code||'')?error.code:'DELETE_UNCONFIRMED';
+        FC.infoBox?.open({title:'Usuwanie wstrzymane',message:code+' — nie potwierdzono pełnego zakończenia. '+(service?.pending()?'Trwała intencja pozostała. Zamknij inne karty Meble-App po zabezpieczeniu ich pracy; ten sam przycisk ponowi wyłącznie dokończenie zatwierdzonej operacji.':'Nie rozpoczęto kasowania. Sprawdź wskazane powiązania lub stan sesji.'),okOnly:true});return false;
+      }finally{listRemovalPending=false;}
     },
-    'delete-investor': async ({event, element}) => {
-      const id = element?.getAttribute ? element.getAttribute('data-inv-id') : null;
-      if(!id) return true;
-      try{
-        let ok = true;
-        if(window.FC && window.FC.confirmBox && typeof window.FC.confirmBox.ask === 'function'){
-          ok = await window.FC.confirmBox.ask({ title:'Usunąć inwestora?', message:'Tej operacji nie cofnisz.', confirmText:'Usuń', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' });
-        }
-        if(!ok) return true;
-        const persistence = (window.FC && window.FC.investorPersistence) ? window.FC.investorPersistence : null;
-        if(persistence && typeof persistence.removeInvestor === 'function') persistence.removeInvestor(id);
-        if(typeof uiState !== 'undefined' && uiState && uiState.currentInvestorId === id) uiState.currentInvestorId = null;
-        if(window.FC && window.FC.investorUI && window.FC.investorUI.state){
-          window.FC.investorUI.state.selectedId = null;
-          window.FC.investorUI.state.mode = 'list';
-        }
-        try{ window.FC.investorUI && window.FC.investorUI.render && window.FC.investorUI.render(); }catch(_){ }
-      }catch(_){ }
-      return true;
-    },
+
 
 
     'add-cabinet': ({event}) => {
@@ -604,7 +588,7 @@
     },
   };
   // Guard destructive/context-changing actions before their first RAM or UI mutation.
-  ['new-investor','create-investor','back-investors','assign-investor','delete-investor','new-project'].forEach(name=> {
+  ['new-investor','create-investor','back-investors','assign-investor','new-project'].forEach(name=> {
     const action = actions[name];
     actions[name] = args=> {
       const nav = FC.sessionNavigation;

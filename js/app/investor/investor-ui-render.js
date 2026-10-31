@@ -85,7 +85,10 @@
             <div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(title)}</div>
             <div class="muted xs" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(sub || '')}</div>
           </div>
-          <button class="btn" data-action="open-investor" data-inv-id="${inv.id}">Otwórz</button>
+          <div class="investor-list-row-actions">
+            <button type="button" class="btn" data-action="open-investor" data-inv-id="${escapeAttr(inv.id)}">Otwórz</button>
+            ${state && state.deleteMode ? `<label class="investor-delete-choice"><input type="checkbox" data-investor-delete-id="${escapeAttr(inv.id)}" aria-label="Zaznacz do usunięcia: ${escapeAttr(title)}" ${(state.deleteIds||[]).includes(inv.id)?'checked':''}></label>` : ''}
+          </div>
         </div>
       `;
     }).join('');
@@ -97,7 +100,7 @@
           <input id="invSearch" placeholder="Szukaj po nazwie/telefonie..." value="${escapeAttr(query)}" />
           <div class="investor-list-toolbar__actions">
             <button type="button" class="btn-primary" data-action="create-investor">+ Dodaj</button>
-            <button type="button" class="btn-danger" data-action="remove-investor-from-list" aria-label="Usuń wybranego inwestora z listy" ${list && list.length ? '' : 'disabled'}>− Usuń</button>
+            <button type="button" class="btn-danger" data-action="remove-investor-from-list" aria-label="Zaznacz lub usuń wybranych inwestorów" aria-pressed="${!!(state && state.deleteMode)}" ${list && list.length || state && state.deleteMode ? '' : 'disabled'}>− Usuń</button>
           </div>
         </div>
         <div id="invItems" style="margin-top:12px">${items || '<div class="muted">Brak inwestorów.</div>'}</div>

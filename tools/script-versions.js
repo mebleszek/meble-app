@@ -3,10 +3,15 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
-  "js/app/investor/investor-ui-render.js": "20261031_investor_list_delete_v1",
-  "js/app/investor/investors-store.js": "20261031_investor_list_delete_v1",
-  "js/app/investor/investors-local-repository.js": "20261031_investor_list_delete_v1",
-  "js/app/ui/actions-register.js": "20261031_investor_list_delete_v1",
+  "js/app/shared/data-backup-snapshot-apply.js":"20261031_investor_delete_v2",
+  "js/app/investor/investor-actions.js": "20261031_investor_delete_v2",
+  "js/app/investor/investor-ui.js": "20261031_investor_delete_v2",
+  "js/app/investor/investor-deletion.js": "20261031_investor_delete_v2",
+  "js/app/shared/data-storage-classifier.js": "20261031_investor_delete_v2",
+  "js/app/investor/investor-ui-render.js": "20261031_investor_delete_v2",
+  "js/app/investor/investors-store.js": "20261031_investor_delete_v2",
+  "js/app/investor/investors-local-repository.js": "20261031_investor_delete_v2",
+  "js/app/ui/actions-register.js": "20261031_investor_delete_v2",
   "js/app/ui/session-navigation.js": "20261031_historical_owner_v1",
   "js/app/project/project-bridge.js": "20261031_historical_owner_v1",
   "js/app/project/project-pcv-policy.js": "20261031_historical_owner_v1",

@@ -55,7 +55,7 @@
       const pdfIndex = String(actionBar || '').indexOf('data-investor-action="pdf"');
       assert(editIndex !== -1 && pdfIndex !== -1 && editIndex < pdfIndex, 'Przycisk PDF nie jest dołożony jako ostatni po prawej stronie', actionBar);
       const editModeBar = FC.investorActions.buildActionBarHtml({ isEditing:true, dirty:false });
-      assert(/data-investor-action="delete"/.test(String(editModeBar || '')), 'Usuń inwestora powinno być dostępne po wejściu w edycję', editModeBar);
+      assert(!/data-investor-action="delete"/.test(String(editModeBar || '')), 'Usuwanie inwestora jest dostępne wyłącznie na liście, także podczas edycji karty', editModeBar);
     }),
 
         makeTest('Inwestor', 'Dodawanie inwestora otwiera formularz bez pustego wpisu w bazie', 'Pilnuje, czy nowy inwestor startuje jako szkic w UI, a nie jako pusty rekord zapisany od razu do storage.', ()=>{

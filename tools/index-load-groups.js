@@ -34,6 +34,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/settings/company-profile-store.js",
       "js/app/settings/business-costs-store.js",
       "js/app/shared/data-storage-classifier.js",
+      "js/app/investor/investor-deletion.js",
       "js/app/shared/data-storage-keys.js",
       "js/app/shared/data-storage-audit.js",
       "js/app/shared/data-storage-orphan-cleanup.js",

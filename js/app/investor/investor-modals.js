@@ -35,9 +35,6 @@
     return ask({ title:'ZAPISAĆ ZMIANY?', message:'Zapisać zmiany w danych inwestora?', confirmText:'Zapisz', cancelText:'Wróć', confirmTone:'success', cancelTone:'neutral' });
   }
 
-  function confirmDeleteInvestor(){
-    return ask({ title:'Usunąć inwestora?', message:'Tej operacji nie cofnisz.', confirmText:'Usuń', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' });
-  }
 
   function confirmStatusChange(prevLabel, nextLabel){
     return ask({ title:'ZMIENIĆ STATUS?', message:`Status zmieni się z "${prevLabel}" na "${nextLabel}".`, confirmText:'Zmień', cancelText:'Wróć', confirmTone:'success', cancelTone:'neutral' });
@@ -89,7 +86,6 @@
     info,
     confirmDiscardInvestorChanges,
     confirmSaveInvestorChanges,
-    confirmDeleteInvestor,
     confirmStatusChange,
     resolveDuplicateInvestor,
   };

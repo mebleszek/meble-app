@@ -2,7 +2,7 @@
 // Bounded offline checks of the actual test helpers. No native/emulator PASS is
 // claimed here; those remain mandatory in their original CI groups.
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const {documentNavigation,gesturePoint,observeGesture,waitForGesturePoint}=require('./helpers/browser-test-readiness');
+const {documentNavigation,gesturePoint,stableGesturePoint,observeGesture,waitForGesturePoint}=require('./helpers/browser-test-readiness');
 const {authModuleType}=require('./helpers/auth-input-diagnostics');
 async function main(){
  const event=(loaderId,frameId='main')=>({method:'Page.lifecycleEvent',params:{name:'DOMContentLoaded',loaderId,frameId}});
@@ -49,11 +49,11 @@ async function main(){
  let y=20,frame=0,moving=true,scrolls=0,replaced=false;
  const button={disabled:false,isConnected:true,getClientRects:()=>[{}],closest:()=>null,scrollIntoView(){scrolls++;},getBoundingClientRect:()=>({x:10,y,width:40,height:40}),contains:()=>false};
  const gestureDocument={querySelectorAll:()=>[button],querySelector:()=>button,elementFromPoint:()=>replaced?{}:button};
- const gestureContext=vm.createContext({document:gestureDocument,requestAnimationFrame:fn=>setImmediate(()=>{frame++;if(moving)y+=40;fn();})});
+ const gestureContext=vm.createContext({window:{scrollX:0,scrollY:0},document:gestureDocument,requestAnimationFrame:fn=>setImmediate(()=>{frame++;if(moving)y+=40;fn();})});
  const sample=async expression=>vm.runInContext(expression,gestureContext);
  const oldPoint=await sample('('+gesturePoint.toString()+')("#save")');assert.equal(oldPoint.y,40);assert.equal(frame,0);
  await assert.rejects(waitForGesturePoint(sample,'#save',{stable:true,timeoutMs:0,pause:async()=>{}}),/Native gesture target not ready/);
- assert.notEqual(y+20,oldPoint.y,'Original single-task coordinates became stale');assert.equal(scrolls,2,'One scroll per readiness sample, never on the second frame check');
+ assert.notEqual(y+20,oldPoint.y,'Original single-task coordinates became stale');assert.equal(scrolls,0,'Already hittable sticky targets must not be scrolled by readiness checks');
  moving=false;const settled=await waitForGesturePoint(sample,'#save',{stable:true});assert.equal(settled.y,y+20);
  replaced=true;await assert.rejects(waitForGesturePoint(sample,'#save',{stable:true,timeoutMs:0,pause:async()=>{}}),/Native gesture target not ready/);replaced=false;
  const eventListeners=new Map(),observerWindow={addEventListener(type,fn,capture){assert.equal(capture,true);eventListeners.set(type,fn);},removeEventListener(type,fn,capture){assert.equal(capture,true);assert.equal(eventListeners.get(type),fn);eventListeners.delete(type);}};
@@ -102,6 +102,12 @@ async function main(){
  const missing={window:{FC:{}},addEventListener(){}};missing.window.addEventListener=missing.addEventListener;
  vm.runInNewContext('('+require('./helpers/auth-input-diagnostics').installAuthInputDiagnostics.toString()+')();',missing);
  assert.equal(vm.runInNewContext('('+authModuleType.toString()+')()',missing),'undefined','Missing API must not be fabricated by diagnostics');
+ {let frame=0;const target={},scroll={scrollX:0,scrollY:0},sample=()=>({x:10,y:frame<3?20:40});
+ const stableContext={window:scroll,document:{elementFromPoint:()=>target},requestAnimationFrame:fn=>{frame++;if(frame===3)scroll.scrollY=20;queueMicrotask(fn);}};
+ const stable=vm.runInNewContext('('+stableGesturePoint.toString()+')',stableContext);
+ assert.equal(await stable('#synthetic',sample),null,'Movement after two rendered frames must refuse an early input point');
+ assert.deepEqual(JSON.parse(JSON.stringify(await stable('#synthetic',sample))),{x:10,y:40});assert.equal(frame,9);
+ console.log('PASS native gesture readiness: late smooth-scroll movement refused before input, continuous stable rendered position required');}
  console.log('PASS Auth registration: actual lexical business namespace differs from public API; module inspection is inert and missing API is refused');
  s.FC_AUTH_TEST_OPTIONS={};
  const auth=await s.FC.cloudAuth.create({...s.FC_AUTH_TEST_OPTIONS,sessionOnly:true});

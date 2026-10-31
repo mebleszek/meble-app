@@ -155,9 +155,9 @@
       return '<button class="btn" type="button" data-investor-action="edit">Edytuj</button><button class="btn-primary" type="button" data-investor-action="pdf">PDF</button>';
     }
     if(state.dirty){
-      return '<button class="btn-danger" type="button" data-investor-action="delete">Usuń</button><button class="btn-danger" type="button" data-investor-action="cancel">Anuluj</button><button class="btn-success" type="button" data-investor-action="save">Zapisz</button>';
+      return '<button class="btn-danger" type="button" data-investor-action="cancel">Anuluj</button><button class="btn-success" type="button" data-investor-action="save">Zapisz</button>';
     }
-    return '<button class="btn-danger" type="button" data-investor-action="delete">Usuń</button><button class="btn-primary" type="button" data-investor-action="exit">Wyjdź</button>';
+    return '<button class="btn-primary" type="button" data-investor-action="exit">Wyjdź</button>';
   }
 
   async function handleTopAction(action, currentInvestor, deps){
@@ -222,13 +222,7 @@
       cfg.onRender && cfg.onRender();
       return;
     }
-    if(action === 'delete'){
-      const ok = !(modals() && modals().confirmDeleteInvestor) || await modals().confirmDeleteInvestor();
-      if(!ok) return;
-      persistence() && persistence().removeInvestor(investor.id);
-      cfg.onDeleted && cfg.onDeleted(investor.id);
-      return;
-    }
+
   }
 
   function bindTopActions(container, deps){

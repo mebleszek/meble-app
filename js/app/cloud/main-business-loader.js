@@ -55,6 +55,9 @@
         for(const entry of manifest){
           assertAccess();const script=document.createElement('script');script.src=entry.src;script.async=false;
           script.setAttribute('data-load-group',entry.group);document.head.appendChild(script);await tasks.get(script);
+          // Finish an authorized interrupted local deletion before any project,
+          // recovery or default initializer can observe a partial multi-key state.
+          if(entry.src.split('?')[0]==='js/app/investor/investor-deletion.js')await FC.investorDeletion.resumePending();
         }
       },
       abort(){aborted=true;controller.abort();}

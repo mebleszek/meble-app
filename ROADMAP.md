@@ -18,6 +18,7 @@
 - Jeden wspólny PIN dla konta właściciela, obowiązujący na wszystkich jego urządzeniach; bez osobnych PIN-ów na telefon/laptop/tablet.
 - Własny PIN ustalany i potwierdzany przy pierwszej konfiguracji funkcji po jej udostępnieniu; bez domyślnego `123456` ani innego fabrycznego PIN-u.
 - Po zalogowaniu Google i świeżym sprawdzeniu uprawnień zaznaczenie „Zaufaj temu urządzeniu” wymaga poprawnego PIN-u przed zapisaniem lokalnego zaufania.
+- Zatwierdzenie trwałego usuwania inwestorów będzie wymagało tego samego PIN-u aplikacji, który potwierdza nadanie zaufania urządzeniu. Wymaganie odroczone do wspólnego mechanizmu PIN; obecnie bez implementacji PIN-u ani dodatkowego okna autoryzacji.
 - Trybik → Ustawienia → Bezpieczeństwo → Zmień PIN: stary PIN, nowy PIN i potwierdzenie nowego. Zaplanować też bezpieczne odzyskiwanie/reset po silnym ponownym uwierzytelnieniu właściciela.
 - Wspólna weryfikacja PIN-u musi opierać się na zatwierdzonym mechanizmie serwerowym, z ograniczaniem prób i ochroną przed zgadywaniem. Nie zapisywać PIN-u jawnie w aplikacji, lokalnych magazynach, dokumentach ani repozytorium. PIN stanowi dodatkowe potwierdzenie nadania zaufania, nie zastępuje Google Auth, uprawnień Firebase ani kontroli dostępu do danych.
 - Szczegółowy model bezpieczeństwa, UI, migrację i testy uzgodnić w osobnym pakiecie przed implementacją. Dostępność chmury nie jest automatyczną zgodą na Firebase LIVE, Rules, granty, migrację ani wydanie.
