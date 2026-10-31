@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const {versions, assertHtmlVersions} = require('./script-versions');
 
 function assert(condition, message){
   if(!condition){
@@ -16,7 +17,6 @@ function main(){
   const shell = read('js/app/wycena/wycena-tab-shell.js');
   const index = read('index.html');
   const devTests = read('dev_tests.html');
-  const version = '20260628_drawer_systems_materials_v1';
 
   assert(actions.includes("'wycena-generate'"), 'Actions registry nie rejestruje akcji wycena-generate');
   assert(actions.includes('FC.wycenaGenerateAction') && actions.includes('.run'), 'Akcja wycena-generate nie woła runtime handlera WYCENY');
@@ -25,10 +25,9 @@ function main(){
   assert(!shell.includes("runBtn.addEventListener('pointerup'") && !shell.includes('runBtn.addEventListener("pointerup"'), 'Przycisk Wyceń ma nadal bezpośredni pointerup zamiast jednego źródła prawdy');
   assert(!shell.includes("runBtn.addEventListener('click'") && !shell.includes('runBtn.addEventListener("click"'), 'Przycisk Wyceń ma nadal bezpośredni click zamiast jednego źródła prawdy');
   ['js/app/ui/actions-register.js','js/app/wycena/wycena-diagnostics.js','js/app/wycena/wycena-tab-shell.js'].forEach((script)=>{
-    const expectedVersion = script === 'js/app/ui/actions-register.js' ? '20261020_session_diagnostics' : script === 'js/app/wycena/wycena-tab-shell.js' ? '20261019_quote_performance' : ['js/app/wycena/wycena-tab-shell.js','js/app/wycena/wycena-diagnostics.js'].includes(script) ? '20261019_project_context' : script === 'js/app/wycena/wycena-tab-shell.js' ? '20261018_pcv_ram_quote_fix' : script === 'js/app/quote/quote-snapshot-store.js' ? '20261014_c2_1b2c3b' : ['js/app/wycena/wycena-tab-shell.js','js/app/quote/quote-snapshot-store.js'].includes(script) ? '20261014_c2_1b2c3a' : script === 'js/app/ui/actions-register.js' ? '20261013_c2_1b2c1' : ['js/app/ui/actions-register.js','js/app/wycena/wycena-tab-shell.js'].includes(script) ? '20261012_c2_0b' : version;
-    assert(index.includes(`${script}?v=${expectedVersion}`), `index.html nie ma cache-bustingu ${expectedVersion} dla ${script}`);
-    assert(devTests.includes(`${script}?v=${expectedVersion}`), `dev_tests.html nie ma cache-bustingu ${expectedVersion} dla ${script}`);
+    assert(typeof versions[script] === 'string' && versions[script].length > 0, `Brak kanonicznej wersji dla ${script}`);
   });
+  assertHtmlVersions(index, devTests);
   console.log('[wycena-generate-action-registry-smoke] OK');
 }
 

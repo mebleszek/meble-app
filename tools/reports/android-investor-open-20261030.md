@@ -118,3 +118,33 @@ Node 22.23.3; natywny Chromium 151, odseparowane profile. Bez Google/Firebase LI
 Nowy smoke i wszystkie rozszerzone regresje mają obowiązkowe pokrycie przez istniejący Preflight `*-smoke.js`; helper mobilny jest wywoływany, a nie tylko obecny na dysku. Pełne CI pozostaje po stronie GitHub Actions po osobnej zgodzie. Nie uruchomiono Actions, PR Ready/Draft, merge, Pages ani operacji produkcyjnych.
 
 **Blokery:** CI_PENDING oraz fizyczna akceptacja PHONE_PENDING. Pięć rzeczywistych rekordów może oznaczać kilka projektów na inwestora: nie wybieramy ich heurystycznie, nowy anonimowy raport pokaże liczbę kandydatów. Cache na telefonie nie jest automatycznie odświeżany; raport starszej karty może nie mieć nowych pól. Brak nowego raportu nie jest potwierdzeniem wykonania nowej wersji. CODE_READY nie oznacza wydania ani LIVE_APPROVED.
+
+
+## Korekta CI PR #90 — 31.10.2026
+
+Wejście `d7c9a27f9a1bd601f37d04e0f5ce7f6ca9a7cf45`, gałąź `fix/historical-investor-owner-20261031`, BASE `2930e0d769d9576d387764af439eab7df9fd5636`. Odczytano PR #90: open, Ready, niescalony, dokładne SHA zgodne. [Run 41189725394](https://github.com/mebleszek/meble-app/actions/runs/41189725394): Safety i CLOUD Historical PASS; Preflight 175/176 i Firebase Current 106/107 oznaczają FAIL obu bramek; merge i Pages pominięte. To dowód dla wejściowego HEAD, nie wynik CI poprawki.
+
+### Zmiany i ustalenia
+
+1. `tools/wycena-generate-action-registry-smoke.js` miał własny, nieaktualny łańcuch wersji, w tym `20261020_session_diagnostics`. Faktyczny kanoniczny rejestr i obie strony wskazują `20261031_historical_owner_v1`. Test wymaga obecności wszystkich trzech kontrolowanych modułów w rejestrze i używa wspólnego `assertHtmlVersions`: dokładnie jedno odwołanie z właściwą wersją w index oraz dev_tests. Zachowano asercje rejestracji akcji, runtime WYCENY i braku podwójnych handlerów gestów. Kontrola cache-bustingu nie została usunięta.
+2. `tools/firebase-pilot/cloud42-plan.test.mjs`: CI nie wykonało ciała pierwszego testu — HTTP 500 UNKNOWN pochodzi z REST DELETE emulatora wywołanego przez `clearFirestore` w beforeEach. Następne trzy scenariusze tego pliku przeszły. Grupa jest sekwencyjna (`--test-concurrency=1`); faktycznie poprzedza ją alfabetycznie `cloud-sync-global.test.mjs`. W opublikowanym artefakcie `diagnostics-firebase-current` jest stdout testów, brak serwerowego `firestore-debug.log`, więc log CI nie dowodzi wewnętrznej przyczyny HTTP 500. Nie ma dowodu wady historycznej aktywacji inwestora, Rules ani kontraktu CLOUD-4.
+3. Celowane reprodukcje nie odtworzyły 500. Nie dodano retry, opóźnień, osobnego projektu/bazy, zmiany Rules ani obejścia czyszczenia. Jedyna zmiana hooka: po awarii wypisuje marker etapu i maksymalnie końcowe 16 KiB / 80 linii istniejącego serwerowego logu z tego izolowanego emulatora; brak pliku jest jawny, błąd zamknięcia logu nie maskuje pierwotnej odmowy. Następnie rzuca dokładnie oryginalny błąd, bez seedowania bazy i bez wykonania scenariusza. Log pochodzi wyłącznie z tego testowego środowiska `demo-meble-app` na loopback; nie odczytuje poświadczeń ani produkcji. **To diagnostyka, nie potwierdzona naprawa wewnętrznej awarii emulatora.**
+4. `CURRENT_STATE.md` oraz niniejszy raport zawierają rzeczywisty wynik PR #90 i nadal otwarty bloker. Nie zmieniono produkcyjnego JS, napraw historycznych inwestorów, PCV, RAW, 14 domen, sesji, Rules, workflow, SDK/lockfile, pinów ani manifestu offline. Oryginalny kontrakt CLOUD-4 6797 B / SHA `711f2fea49873bab0c4f76b5e8e0e666c4796190ed9fbfda71557d35890ba2e3` pozostaje bez zmian; nie zaliczamy ponownie wcześniejszego PASS jako nowego testu tego commita.
+
+### Rzeczywiste kontrole
+
+Node 22.23.3, Java 21, przypięty Firestore Emulator 1.22.0 i obecne zależności z lockfile; bez reinstalacji. Wszystkie uruchomienia emulatorów wyłącznie Auth/Firestore dla `demo-meble-app`, 127.0.0.1:19099/18080, bez odziedziczonych tokenów i poświadczeń.
+
+| Kontrola celowana | Wynik / znaczenie |
+| --- | --- |
+| Smoke rejestru akcji WYCENY po zmianie | PASS. Cztery kontrolowane mutacje: stara wersja i duplikat w każdym z dwóch HTML-ów są odrzucane, 4/4. Bez modyfikacji rzeczywistych HTML-ów. |
+| CLOUD-4.2 przed zmianą hooka | 4/4 PASS; izolowany emulator. |
+| Ostatni poprzedzający CLOUD-SYNC-1 14 + Stage | 2/2 PASS; wspólne życie emulatora, bez pominiętych wybranych testów. |
+| Cały bezpośrednio poprzedzający plik CLOUD-SYNC-1 (14 przypadków) + Stage | 15/15 PASS; konieczna reprodukcja stanu poprzednika, nie pełny zestaw Firebase ani Preflight. |
+| CLOUD-4.2 po dodaniu diagnostyki | 4/4 PASS na rzeczywistym emulatorze, 0 skip/cancel/todo. |
+| Kontrolowane awarie samego hooka diagnostycznego | 4/4 PASS: log dostępny, niedostępny, błąd close oraz sukces; w błędzie dokładnie jeden clear, zero seedowania, ten sam obiekt wyjątku; limit odczytu 16384 B. To kontrola testowego helpera, nie reprodukcja wewnętrznego HTTP 500. |
+| Składnia obu zmienionych testów, manifest offline, diff | PASS; chronione źródła aplikacji, Rules i piny bez zmian względem wejścia. |
+
+Oba testy pozostają w dotychczasowych obowiązkowych grupach: smoke przez Preflight `*-smoke.js`, CLOUD-4.2 w `firebase-current` przez istniejący plan SDK. Pełnego Preflightu ani całego zestawu SDK nie uruchamiano lokalnie. Nie ponawiano GitHub Actions, nie zmieniano PR, nie wykonywano merge, Pages ani Firebase LIVE.
+
+**FIX_PARTIAL / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Korekta cache-bustingu gotowa. Brak potwierdzonej przyczyny i dowodu usunięcia HTTP 500; do domknięcia potrzebny serwerowy stacktrace z awarii lub inna powtarzalna reprodukcja. Nowa diagnostyka zachowa ten dowód w logu obowiązkowej grupy przy ewentualnej ponownej awarii. Nowa próba CI/wydania wymaga osobnej zgody na dokładny wynikowy HEAD/BASE, bez dziedziczenia wcześniejszej zgody.
