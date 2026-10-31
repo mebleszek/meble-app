@@ -61,6 +61,21 @@ async function main(){
  for(const type of ['pointerdown','pointerup','click'])eventListeners.get(type)({type,isTrusted:true,target:button,preventDefault(){throw Error('Observer must not cancel');},stopPropagation(){throw Error('Observer must not suppress');}});
  assert.equal(observer.snapshot().events.length,3);assert.ok(observer.snapshot().events.every(e=>e.trusted&&e.onTarget));
  assert.equal(JSON.stringify(observer.snapshot()).includes('Synthetic First Owner'),false);observer.close();assert.equal(eventListeners.size,0);
+ // Cross-command race reproduced from PR #91: sampling, then a separate
+ // instrumentation CDP command, can put a sticky tab above the old point.
+ {let top=62;const sticky={disabled:false,getClientRects:()=>[{}],closest:()=>null,scrollIntoView(){throw Error('Visible sticky tab must not scroll');},getBoundingClientRect:()=>({x:73,y:top,width:70,height:32}),contains:()=>false};
+  const doc={querySelectorAll:()=>[sticky],elementFromPoint:(x,y)=>x>=73&&x<143&&y>=top&&y<top+32?sticky:{dataset:{tab:'inwestor'}}};
+  const context=vm.createContext({document:doc,window:{scrollX:0,scrollY:94},innerWidth:393,innerHeight:852,requestAnimationFrame:fn=>queueMicrotask(fn)});
+  const evalPage=async expression=>vm.runInContext(expression,context);
+  const premature=await waitForGesturePoint(evalPage,'.tab-btn[data-tab="wywiad"]',{stable:true});
+  assert.deepEqual(JSON.parse(JSON.stringify(premature)),{x:108,y:78});
+  top=42;assert.notEqual(doc.elementFromPoint(premature.x,premature.y),sticky,'Stale point now hits the wrong tab');
+  const afterArming=await waitForGesturePoint(evalPage,'.tab-btn[data-tab="wywiad"]',{stable:true});
+  assert.deepEqual(JSON.parse(JSON.stringify(afterArming)),{x:108,y:58});assert.equal(doc.elementFromPoint(afterArming.x,afterArming.y),sticky);
+  const touch=fs.readFileSync('tools/trusted-session-browser-smoke.js','utf8');const start=touch.indexOf('async touch(selector){'),end=touch.indexOf('},async tap(id)',start),scope=touch.slice(start,end);
+  assert.ok(start>=0&&end>start&&scope.indexOf('window.__navigationGesture=')<scope.indexOf('const p=await waitForGesturePoint'),'Recorders must precede final coordinate sample');
+  assert.match(scope,/stable:true/);assert.match(scope,/Input\.dispatchTouchEvent/);assert.match(scope,/trace\.events\.filter\(e=>e\.type===type&&e\.trusted&&e\.onTarget\)/);
+  console.log('PASS PR #91 sticky-layout drift: old 108,78 misses after layout moves; armed-then-sampled 108,58 hits and preserves native touch assertions');}
  console.log('PASS stable touch readiness: stale same-task coordinates reproduced, moving/replaced hit targets refused, rendered stable target accepted; bounded observer never cancels input');
 
  const investorWindow={FC:{}},fc=investorWindow.FC;

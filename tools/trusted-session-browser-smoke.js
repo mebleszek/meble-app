@@ -57,9 +57,12 @@ async function browser(profile,url,{offline=false,inject=false}={}){
   if(offline)await send('Network.overrideNetworkState',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
   assert.equal(await evaluate('location.href'),url);assert.equal(await evaluate('!!document.body&&!!document.getElementById("main-login")'),true,'Requested application document parsed');
   return {evaluate,until,send,reload:()=>navigation.navigate(url),async touch(selector){
-    await settleTargets();await send('Emulation.setTouchEmulationEnabled',{enabled:true});const p=await waitForGesturePoint(evaluate,selector,{stable:true});
+    await settleTargets();await send('Emulation.setTouchEmulationEnabled',{enabled:true});
+    // Arm passive native-event evidence BEFORE the final six-frame layout sample;
+    // CDP round trips after measuring a sticky tab can leave stale coordinates.
     await evaluate('window.__navigationGesture=('+observeGesture.toString()+')('+JSON.stringify(selector)+');window.__touchSelector='+JSON.stringify(selector)+';window.__touchCoordinates=[];window.__touchRecorder=e=>{const b=document.querySelector(__touchSelector)?.getBoundingClientRect();__touchCoordinates.push({x:e.clientX,y:e.clientY,tag:e.target.tagName,tab:e.target.dataset?.tab,hit:document.elementFromPoint(e.clientX,e.clientY)?.dataset?.tab,wanted:b&&{x:b.x,y:b.y,width:b.width,height:b.height}});};window.addEventListener("pointerdown",__touchRecorder,true)');
     try{
+      const p=await waitForGesturePoint(evaluate,selector,{stable:true});
       await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...p,radiusX:3,radiusY:3,id:1}]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
       const trace=await evaluate('({...__navigationGesture.snapshot(),coordinates:__touchCoordinates,scale:visualViewport.scale,offset:visualViewport.offsetTop,scrollY,viewport:innerWidth})');trace.requested=p;
       for(const type of ['pointerdown','pointerup'])assert.equal(trace.events.filter(e=>e.type===type&&e.trusted&&e.onTarget).length,1,'Native '+type+' target '+selector+' '+JSON.stringify(trace));

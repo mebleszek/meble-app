@@ -27,9 +27,15 @@ Ten plik definiuje obowiązujące zasady pracy nad Meble-App dla Codexa i innych
 - Nie zmieniaj stylu, nazw, formatowania ani architektury modułów niezwiązanych bezpośrednio z zadaniem.
 - Nie usuwaj zgodności wstecznej ze starymi projektami, ofertami lub ustawieniami bez osobnej zgody.
 
+**Pakiety bez limitu liczbowego:** wybieraj największy spójny, bezpieczny i testowalny zakres; siedem drobnych poprawek może stanowić jeden pakiet, a trzy duże wymagać rozdzielenia. Liczą się zależności, ryzyko i odrębne bramki zgody, nie sztywna liczba punktów. Ogranicz liczbę zbędnych pytań i mikroetapów.
+
+**Błędy odkryte podczas implementacji:** powiązany błąd niezbędny do wykonania zatwierdzonego zadania naprawiaj w tym samym zakresie, usuwając przyczynę, a nie maskując objaw. Niezwiązany błąd zgłoś i nie zmieniaj go przy okazji; realizuj niezależne, bezpieczne części zadania. Przy ryzyku utraty danych lub bezpieczeństwa wstrzymaj zagrożone operacje i zgłoś STOP. Nie rozszerzaj w ten sposób zgody na UI, migracje, produkcję ani ryzykowny refaktor.
+
 ## 3. Testy są bramką bezpieczeństwa, nie celem samym w sobie
 
 **GitHub Actions odpowiada za automatyczne testy objęte CI**, w tym `node tools/preflight.js`, regresje oraz właściwe zestawy Firebase Emulator Suite. Codex przygotowuje kod i testy, ale nie dubluje ich pełnym lokalnym uruchomieniem przed CI ani po jego zaliczeniu. ChatGPT kontroluje dowody zamiast powtarzać te same testy.
+
+**Aktualność testów w ramach zmiany:** ChatGPT przed zleceniem identyfikuje regresje i oczekiwania zależne od zmienianego zachowania; Codex w zatwierdzonym pakiecie weryfikuje odpowiednie testy, aktualizuje wyłącznie nieaktualne asercje wynikające z jawnie zaakceptowanego kontraktu, dodaje przypadki nowego zachowania i sprawdza ich rzeczywiste włączenie do CI. Zachowuje wszystkie nadal obowiązujące zabezpieczenia, asercje negatywne i przypadki brzegowe. Nie wolno osłabiać testu dla uzyskania PASS ani zmieniać kontraktu biznesowego pod test. Aktualizacja powiązanego testu mieści się w zgodzie na implementację; pełne CI wciąż należy do GitHub Actions.
 
 Przed implementacją ustal wymagane testy, ich właściciela i rzeczywiste pokrycie aktualnych workflow. Samo istnienie skryptu testowego lub workflow dla innej gałęzi nie oznacza wykonania testu dla bieżącego SHA. Dla zmian wysokiego ryzyka wymagane są także właściwe regresje domenowe; sprawdź, czy są częścią Preflightu lub osobnego zadania CI, zamiast uruchamiać je ponownie lokalnie.
 
@@ -123,6 +129,10 @@ Przy zmianie schematu danych lub sposobu zapisu:
 - unikaj migracji destrukcyjnych,
 - jeżeli potrzebna jest migracja, przygotuj ją jako osobne zadanie z planem cofnięcia.
 
+**Rozróżnienie danych (decyzja właściciela 31.10.2026):** obecni inwestorzy i projekty są testowe; nie buduj rozległej kompatybilności historycznych schematów wyłącznie dla nich, ale nigdy nie kasuj ich, ofert, draftów ani powiązanych magazynów automatycznie bez zgody na dokładny zakres. Cenniki, stawki, katalogi materiałów/okuć/dostawców, zamienniki, słowniki, ustawienia, konfiguracje i magazyn to dane globalne chronione bezwzględnie — ich kompatybilność i nienaruszalność są obowiązkowe.
+
+**Przed destrukcyjną migracją** wymagaj domyślnie niezależnie zweryfikowanej kopii i planu cofnięcia. Właściciel może osobno, świadomie dopuścić utratę dokładnie wskazanych danych testowych bez tworzenia kopii. Wyjątek nie dotyczy danych globalnych, cudzych rekordów ani innych nieobjętych zgodą danych. Sama etykieta „testowe” nie jest zgodą na reset. Przejście na prawdziwe dane klientów wymaga pełniejszej ochrony przed kolejnymi zmianami.
+
 ## 9. Raport po wykonaniu zadania
 
 Po zmianie podaj krótko:
@@ -190,6 +200,12 @@ Ta sekcja jest obowiązująca również **na początku nowych wątków**. W razi
 ## 13. Sprawna współpraca, pakietowanie etapów i inicjatywa prowadzącego — 2026-10-17
 
 **Decyzja właściciela:** preferujemy szybsze wykonanie całych, logicznie powiązanych zakresów zamiast mnożenia mikropodetapów, osobnych analiz, promptów i pytań. Bez skracania testów, ochrony danych ani bramek świadomej zgody.
+
+### Nietykalność UI/UX — świadomy wyjątek naprawczy B (31.10.2026)
+
+Bez wcześniejszej konkretnej zgody właściciela nie dodawaj, nie usuwaj, nie ukrywaj, nie przenoś ani nie przemianowuj przycisków, pól, etykiet, modali, akordeonów, układu, wyglądu, nawigacji ani zachowania interakcji. Zgoda na jeden element nie obejmuje całej zakładki; zmiana logiki nie upoważnia do ulepszania interfejsu.
+
+**Jedyny wyjątek w zatwierdzonej naprawie:** wolno przywrócić jednoznacznie wcześniej zaakceptowane zachowanie UI/UX, jeśli jest to niezbędne do uzgodnionego celu. Nie wolno tworzyć nowych funkcji, dodatkowych kroków, zmieniać wyglądu ani poprawiać ergonomii według własnego uznania. Przy niejasności obowiązującego zachowania — STOP i decyzja właściciela. Pozostałe UI/UX zachowaj bez zmian.
 
 ### Odpowiedzialność za prowadzenie projektu
 
@@ -272,7 +288,8 @@ Ten podział przypisuje odpowiedzialność za testy zgodnie z §3 i §10, bez zm
 3. **Historia bez utraty:** aktualizować istniejącą tabelę i sekcje aktywne; przy zastąpieniu stanu przenieść stary fakt do części archiwalnej lub wskazać historyczny raport. Nie doklejać kolejnego długiego „aktualnego stanu” na samej górze i nie kopiować identycznych bloków między `CURRENT_STATE.md` i `ROADMAP.md`. Nigdy nie usuwać decyzji biznesowych, norm, historycznych ofert ani źródeł dowodów przez „porządki”.
 4. **Bramki zgody:** aktualizacja dokumentacji w repo jest zmianą plików i wymaga objęcia jej wyraźnie zatwierdzonym zakresem. Nie modyfikować GitHuba w fazie odczytowej, nie dopisywać commitów podczas obserwacji PR/CI i nie robić pushy do `main` tylko po to, aby dogonić status. **Wyniki CI/merge/Pages** wolno wpisać do repo dopiero po odrębnej zgodzie na następną zmianę dokumentacji lub w następnym dozwolonym pakiecie.
 5. **STOP i rozbieżności:** jeżeli rejestr mówi `CI_PENDING`, a GitHub potwierdza `RELEASED`, najpierw zweryfikować konkretny PR i SHA, a następnie zgłosić korektę do wykonania po uzyskaniu zgody; nie przedstawiać starego statusu jako obecnego. Jeśli brakuje poświadczenia lub operacja jest zablokowana, wpisać `BLOCKED` i wskazać dowód/lukę, nie ponawiać automatycznie testów i nie zgadywać wyniku.
-6. **Krótki raport właścicielowi:** „zrobione / zweryfikowane / blokery / następny ruch” i linki. Nie żądać ponownego tłumaczenia zakończonych etapów ani przepisywania wielostronicowych historii.
+6. **Krótki raport właścicielowi:** „zrobione / zweryfikowane / blokery / następny ruch” i linki.
+7. **Trwałe decyzje:** każdą istotną decyzję biznesową/techniczną (zaakceptowaną, odłożoną, odrzuconą; osobno stan wdrożenia) zapisz w najbliższym zatwierdzonym pakiecie w odpowiednim istniejącym pliku `.md`, z datą i granicami zgody. ChatGPT pilnuje zgodności, Codex aktualizuje dokumentację w uzgodnionym zakresie. Nie twórz nowego konkurencyjnego rejestru ani oddzielnego PR dla każdej decyzji; samo uzgodnienie w rozmowie nie zezwala na niezatwierdzony zapis do GitHuba. Nie żądać ponownego tłumaczenia zakończonych etapów ani przepisywania wielostronicowych historii.
 
 **Mapa dokumentów:** README = wejście, DEV = workflow, CURRENT_STATE = bieżący stan, ROADMAP = przyszły plan, CLOUD_MIGRATION/CLOUD_DATA_REGISTER/BACKUP/QUOTE_CALCULATION_REGISTER = kontrakty, TEST_BASELINE/DEPENDENCY_MAP/PREFLIGHT = testy i zależności, tools/reports oraz docs/archive = historia. Plików nie usuwa się bez odrębnej zgody; kandydatów opisuje MD_CLEANUP_AUDIT.md.
 
