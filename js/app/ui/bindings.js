@@ -141,7 +141,7 @@ document.addEventListener(
   { capture: true, passive: false }
 );
 
-document.addEventListener(
+window.addEventListener(
   'click',
   (e) => {
     if (swallowNextClickGlobal) {
@@ -166,6 +166,15 @@ document.addEventListener(
       swallowNextClickFromEl = null;
     }
 
+  },
+  { capture: true, passive: false }
+);
+
+// Business dispatch stays on document; only compatibility-click consumption
+// runs on window, before document capture consumers such as accordions.
+document.addEventListener(
+  'click',
+  (e) => {
     // Desktop/fallback path: allow normal click handling
     dispatchActionFromEvent(e);
   },

@@ -26,7 +26,27 @@ async function exerciseInvestorNavigation(device){
  await evaluate(`(()=>{const fc=window.FC;if(fc.session.active)throw Error('Unexpected edit during fixture setup');const row=fc.projectStore.getCurrentRecord();row.projectData.room_mobile={cabinets:[],fronts:[],sets:[],settings:{roomHeight:260}};row.projectData.meta.roomDefs={room_mobile:{id:'room_mobile',baseType:'kuchnia',name:'Kuchnia',label:'Kuchnia',projectStatus:'nowy'}};row.projectData.meta.roomOrder=['room_mobile'];projectData=row.projectData;fc.layoutState.ensureLayout('room_mobile');row.projectData=projectData;if(!fc.projectStore.upsert(row))throw Error('Room fixture refused');projectData=fc.project.load();fc.investorUI.render();})()`);
  await verifyClean('fixture before session');
  await device.touch('.tab-btn[data-tab="material"]');await until('!!document.querySelector(".investor-room-quick-btn.investor-room-cue")');
+ // Observe actual dispatch and accordion scrolling without cancelling events.
+ await evaluate(`(()=>{const fc=window.FC,dispatch=fc.actions.dispatch,scroll=window.scrollTo;
+ window.__roomClickProof={opens:0,summaryClicks:0,accordionScrolls:0};
+ fc.actions.dispatch=function(name,...args){if(name==='open-room')__roomClickProof.opens++;return Reflect.apply(dispatch,this,[name,...args]);};
+ window.scrollTo=function(...args){if(new Error().stack.includes('accordion-behavior.js'))__roomClickProof.accordionScrolls++;return Reflect.apply(scroll,this,args);};
+ document.addEventListener('click',e=>{if(e.target.closest?.('summary'))__roomClickProof.summaryClicks++;},true);
+ })()`);
  await device.touch('.investor-room-quick-btn[data-room="room_mobile"]');await until('uiState.roomType==="room_mobile"&&window.FC.session.active');
+ await new Promise(resolve=>setTimeout(resolve,720)); // Observe all 70/510/680ms accordion passes, not a navigation retry.
+ assert.deepEqual(await evaluate('({...__roomClickProof})'),{opens:1,summaryClicks:0,accordionScrolls:0},'One room touch must not activate a retargeted summary or schedule accordion scroll');
+ await device.touch('#roomParametersAccordion > summary');
+ await until('document.getElementById("roomParametersAccordion").open');
+ await new Promise(resolve=>setTimeout(resolve,720)); // A deliberate accordion open must complete its allowed scroll passes.
+ assert.ok(await evaluate('__roomClickProof.accordionScrolls>0'),'Conscious SUMMARY still scrolls');
+ await evaluate('document.querySelector("#roomParametersAccordion > summary").focus()');
+ await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+ await send('Input.dispatchKeyEvent',{type:'char',text:'\r',unmodifiedText:'\r'});
+ await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+ await until('!document.getElementById("roomParametersAccordion").open');
+ console.log('PASS native room touch: one dispatch, no SUMMARY/scroll side effect; deliberate SUMMARY touch and keyboard Enter preserved');
+
  await verifyClean('room opened / session begun');
  for(const tab of ['wywiad','material','rysunek','czynnosci']){
   await device.touch('.tab-btn[data-tab="'+tab+'"]');await until('uiState.activeTab==='+JSON.stringify(tab));
