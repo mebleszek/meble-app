@@ -89,9 +89,8 @@ try{
     projectData = V.validateProject ? V.validateProject(projectData) : projectData;
     uiState   = V.validateUIState ? V.validateUIState(uiState) : uiState;
 
-    if (FC.project && typeof FC.project.save === 'function'){
-      projectData = FC.project.save(projectData) || projectData;
-    }
+    // Startup validation prepares RAM only. Opening/restarting must not
+    // approve historical defaults or write a project without explicit Save.
     if (V.persistIfPossible){
       V.persistIfPossible(STORAGE_KEYS.materials, materials);
       V.persistIfPossible(STORAGE_KEYS.services, services);
@@ -116,7 +115,7 @@ function normalizeProjectData(data, defaults){
   return callExtracted('projectBootstrap','normalizeProjectData',[pd, defs], function(localPd){
     if(!localPd) return localPd;
     const normalized = (FC.project && typeof FC.project.normalize === 'function') ? FC.project.normalize(localPd) : localPd;
-    const out = (FC.project && typeof FC.project.save === 'function') ? FC.project.save(normalized) : normalized;
+    const out = normalized; // The fallback is read-only too.
     try{ if(localPd === projectData) projectData = out; }catch(_){ }
     return out;
   });

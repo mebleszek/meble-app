@@ -10,7 +10,15 @@
     return value;
   }
   const equal=(a,b)=>JSON.stringify(comparable(a))===JSON.stringify(comparable(b));
-  const persisted=value=>FC.projectStore.prepareProjectDataForPersistence(FC.project.normalize(clone(value)));
+  const persisted=value=>{
+    let normalized=FC.project.normalize(clone(value));
+    // Match the existing read-only view defaults on detached comparison copies.
+    // Never stamp display numbering into the stored/signed export model.
+    if(FC.projectBootstrap && typeof FC.projectBootstrap.normalizeProjectData==='function'){
+      normalized=FC.projectBootstrap.normalizeProjectData(normalized,FC.project.DEFAULT_PROJECT);
+    }
+    return FC.projectStore.prepareProjectDataForPersistence(normalized);
+  };
   const marker=value=>value && value.meta && value.meta.productionPcvMode;
   function read(config){
     let projectModeRequired=!!marker(window.projectData);

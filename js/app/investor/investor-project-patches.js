@@ -21,7 +21,7 @@
         try{ origSetCurrent(id); }catch(_){ return prev || null; }
         if(String(FC.investors.getCurrentId() || '') !== String(id || '')) return prev || null;
         if(id && prev !== id && runtime().setActiveProjectFromInvestor
-          && runtime().setActiveProjectFromInvestor(id) === false){
+          && runtime().setActiveProjectFromInvestor(id) !== true){
           try{ origSetCurrent(prev || null); }catch(_){ }
           return prev || null;
         }

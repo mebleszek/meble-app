@@ -6,6 +6,11 @@
   const FC = window.FC;
   const repo = FC.investorProjectRepository || {};
   let bootLoaded = false;
+  let activationFailure = null;
+  function refuseActivation(code){
+    activationFailure = /^[A-Z_]{1,64}$/.test(code || '') ? code : 'PROJECT_ACTIVATION_UNCONFIRMED';
+    return false;
+  }
   const firstActivations = new WeakMap();
   const creationActivations = new WeakMap();
 
@@ -87,24 +92,25 @@
   }
 
   function activateProjectFromInvestor(id, initialRead, options){
-    if(!id) return;
-    if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor(id)) return;
+    activationFailure = null;
+    if(!id) return refuseActivation('INVESTOR_ID_REQUIRED');
+    if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor(id)) return refuseActivation('SESSION_OWNER_MISMATCH');
     // Re-entering the same investor must not replace an active local draft.
-    if(FC.session && FC.session.active) return false;
+    if(FC.session && FC.session.active) return refuseActivation('ACTIVE_EDIT');
     try{
       const store = FC.projectStore;
       const current = store && store.getCurrentRecord ? store.getCurrentRecord() : null;
       const target = store && store.getByInvestorId ? store.getByInvestorId(id) : null;
-      if(!target) return false;
+      if(!target) return refuseActivation('PROJECT_OWNER_UNCONFIRMED');
       if(!initialRead && typeof projectData !== 'undefined' && projectData){
         const ram = JSON.stringify(comparableProjectData(projectData));
         if(ram !== JSON.stringify(comparableProjectData(current && current.projectData))
           && ram !== JSON.stringify(comparableProjectData(target.projectData))
-          && !consumeCreation(options,id,target,ram) && !consumeFirstActivation(options, id, target, ram)) return false;
+          && !consumeCreation(options,id,target,ram) && !consumeFirstActivation(options, id, target, ram)) return refuseActivation('PROJECT_RAM_DIVERGENCE');
       }
       const previousProject = typeof projectData !== 'undefined' ? projectData : window.projectData;
       const proj = loadProjectFor(id);
-      if(store.getCurrentProjectId() !== String(target.id)) return false;
+      if(store.getCurrentProjectId() !== String(target.id)) return refuseActivation('PROJECT_POINTER_UNCONFIRMED');
       try{ proj.meta = proj.meta || {}; proj.meta.assignedInvestorId = id; }catch(_){ }
       try{
         if(typeof projectData !== 'undefined') projectData = proj;
@@ -119,12 +125,12 @@
           && FC.session && FC.session.markUnconfirmedProjectWrite) FC.session.markUnconfirmedProjectWrite();
         if(typeof projectData !== 'undefined') projectData = previousProject;
         window.projectData = previousProject;
-        return false;
+        return refuseActivation(policyResult && policyResult.code);
       }
       persistAsActiveProject(proj);
       refreshProjectUi();
       return true;
-    }catch(_){ return false; }
+    }catch(_){ return refuseActivation('PROJECT_ACTIVATION_FAILED'); }
   }
 
   function setActiveProjectFromInvestor(id, options){ return activateProjectFromInvestor(id, false, options); }
@@ -168,6 +174,11 @@
     try{
       if(FC.project && typeof FC.project.normalize === 'function') normalized = FC.project.normalize(value);
     }catch(_){ }
+    // Compare detached view representations, without adding display-only set
+    // numbers to the central model, export source or actual RAM.
+    if(FC.projectBootstrap && typeof FC.projectBootstrap.normalizeProjectData === 'function'){
+      normalized = FC.projectBootstrap.normalizeProjectData(JSON.parse(JSON.stringify(normalized)), FC.project.DEFAULT_PROJECT);
+    }
     try{
       if(FC.projectStore && typeof FC.projectStore.prepareProjectDataForPersistence === 'function') {
         normalized = FC.projectStore.prepareProjectDataForPersistence(normalized);
@@ -312,6 +323,7 @@
     persistAsActiveProject,
     refreshProjectUi,
     setActiveProjectFromInvestor,
+    getActivationFailure:()=>activationFailure,
     ensureInvestorProjectLoadedOnBoot,
     refreshSessionButtons,
     hasProjectDivergence,

@@ -136,6 +136,7 @@ async function main(){
     await evaluate('window.FC.views.openInvestorsList()');
     for(const id of ownerIds){await tap('[data-action="open-investor"][data-inv-id="'+id+'"]');await until('document.getElementById("investorView").style.display==="block"&&uiState.currentInvestorId==='+JSON.stringify(id)+'&&projectData.meta.assignedInvestorId==='+JSON.stringify(id),'restart investor owner');await tap('#sessionCancel');await until('uiState.entry==="investorsList"','restart exit');}
     console.log('PASS native two-investor room/data isolation, logout/reauthentication and full document restart');
+    await require('./helpers/historical-investor-browser').exerciseHistoricalInvestors({evaluate,tap,until,settle,send,login});
     await settle();assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
 
   }finally{try{for(const c of clients)c.close();}finally{await browser?.close();}fs.rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:100});}

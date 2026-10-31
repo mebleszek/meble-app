@@ -29,7 +29,7 @@
       const baseRoom = roomBase && typeof roomBase === 'object' ? roomBase : {};
       const outRoom = roomOut && typeof roomOut === 'object' ? roomOut : {};
       const srcRoom = roomSrc && typeof roomSrc === 'object' ? roomSrc : {};
-      return Object.assign({}, baseRoom, outRoom, srcRoom, {
+      const room = Object.assign({}, baseRoom, outRoom, srcRoom, {
         cabinets: Array.isArray(srcRoom.cabinets) ? clone(srcRoom.cabinets) : (Array.isArray(outRoom.cabinets) ? clone(outRoom.cabinets) : clone(baseRoom.cabinets || [])),
         fronts: Array.isArray(srcRoom.fronts) ? clone(srcRoom.fronts) : (Array.isArray(outRoom.fronts) ? clone(outRoom.fronts) : clone(baseRoom.fronts || [])),
         sets: Array.isArray(srcRoom.sets) ? clone(srcRoom.sets) : (Array.isArray(outRoom.sets) ? clone(outRoom.sets) : clone(baseRoom.sets || [])),
@@ -38,6 +38,18 @@
           ? FC.roomPreferences.normalizeRoomPreferences(Object.assign({}, baseRoom.preferences || {}, outRoom.preferences || {}, srcRoom.preferences || {}))
           : Object.assign({}, baseRoom.preferences || {}, outRoom.preferences || {}, srcRoom.preferences || {}),
       });
+      // Match the existing bootstrap's read-only defaults BEFORE comparing RAM
+      // with a central record. Rendering must not invent an untracked edit for
+      // an older cabinet. Set numbering stays in the view bootstrap,
+      // outside the stored/exported model and its reviewed payload contract.
+      // Work on cloned data only; never rewrite stored RAW.
+      if(Array.isArray(baseRoom.cabinets)){
+        room.cabinets.forEach(cabinet=>{
+          if(typeof cabinet.frontCount !== 'number') cabinet.frontCount = 2;
+          if(!cabinet.details) cabinet.details = {};
+        });
+      }
+      return room;
     }
     Object.keys(base || {}).forEach((key)=>{
       if(key === 'schemaVersion' || key === 'meta') return;
