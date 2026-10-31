@@ -1,4 +1,5 @@
 const APP_DEV_SMOKE_FILES = [
+  'js/app/cloud/offline-update.js',
   'js/app/shared/utils.js',
   'js/app/shared/constants.js',
   'js/app/shared/storage.js',

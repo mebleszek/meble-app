@@ -3,6 +3,7 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
+ "js/app/cloud/offline-update.js":"20261031_safe_sw_v1",
   "js/app/shared/data-backup-snapshot-apply.js":"20261031_investor_delete_v2",
   "js/app/investor/investor-actions.js": "20261031_investor_delete_v2",
   "js/app/investor/investor-ui.js": "20261031_investor_delete_v2",

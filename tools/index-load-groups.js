@@ -25,6 +25,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/shared/core-failsafe.js",
       "js/app/shared/dom-guard.js",
       "js/app/shared/constants.js",
+      "js/app/cloud/offline-update.js",
       "js/app/shared/utils.js",
       "js/app/shared/help-registry.js",
       "js/app/shared/migrate.js",
