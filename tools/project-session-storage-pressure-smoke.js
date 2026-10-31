@@ -56,6 +56,12 @@ test('A failed project write with an established session does not become a parti
  const r=make();await r.open();const before=r.storage.getItem(P),payload=r.storage.getItem(E);r.storage.fail.set(P,true);r.s.projectData.room_k.cabinets[0].width=66;const result=r.FC.project.saveConfirmed(r.s.projectData);assert.equal(result.ok,false);assert.notEqual(result.projectSaved,true);assert.equal(r.storage.getItem(P),before);assert.equal(r.storage.getItem(E),payload);assert.equal(r.FC.session.canSaveProject(),true);
 });
 test('A genuinely failed rollback of a changed pointer remains blocked without a session',()=>{
- const r=make();r.storage.rows.set('fc_current_investor_v1','N');r.storage.fail.set(P,true);const set=r.storage.setItem.bind(r.storage);r.storage.setItem=(k,v)=>{if(k===I&&v==='P')throw Error('failed pointer rollback');return set(k,v);};const before=r.storage.getItem(P);assert.equal(r.FC.investorProjectRuntime.setActiveProjectFromInvestor('N'),false);assert.equal(r.storage.getItem(I),'Q');assert.equal(r.storage.getItem(P),before);assert.equal(r.FC.session.active,false);assert.equal(r.storage.getItem(E),null);assert.equal(r.FC.session.canSaveProject(),false);assert.equal(r.FC.session.lastError.code,'SESSION_UNCONFIRMED');
+ const r=make();
+ // A pre-metadata card is now deliberately read-only and cannot exercise a
+ // failed PCV write/rollback. Use an explicitly owned legacy-PCV target so the
+ // original failure path is genuinely reached; all safety assertions remain.
+ const target=r.FC.projectStore.getById('Q');target.projectData.meta={...target.projectData.meta,assignedInvestorId:'N'};assert.ok(r.FC.projectStore.upsert(target));
+ r.storage.rows.set('fc_current_investor_v1','N');r.storage.fail.set(P,true);let rollbackAttempted=false;
+ const set=r.storage.setItem.bind(r.storage);r.storage.setItem=(k,v)=>{if(k===I&&v==='P'){rollbackAttempted=true;throw Error('failed pointer rollback');}return set(k,v);};const before=r.storage.getItem(P);assert.equal(r.FC.investorProjectRuntime.setActiveProjectFromInvestor('N'),false);assert.equal(r.storage.getItem(I),'Q');assert.equal(r.storage.getItem(P),before);assert.equal(r.FC.session.active,false);assert.equal(r.storage.getItem(E),null);assert.equal(r.FC.session.canSaveProject(),false);assert.equal(r.FC.session.lastError.code,'SESSION_UNCONFIRMED');assert.equal(rollbackAttempted,true,'The controlled pointer rollback failure must actually execute');
 });
 (async()=>{let failed=0;for(const[n,fn]of tests){try{await fn();console.log('PASS '+n);}catch(e){failed++;console.error('FAIL '+n+'\n'+e.stack);}}console.log(`Storage pressure: ${tests.length-failed}/${tests.length} PASS, ${failed} FAIL`);process.exitCode=failed?1:0;})();

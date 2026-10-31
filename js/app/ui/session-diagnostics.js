@@ -14,6 +14,9 @@
     return [
       'Tylko odczyt — nie odblokowuje sesji.',
       'Kod: '+r.code,
+      'Otwarcie inwestora: '+r.investorOpen.stage+' / '+r.investorOpen.outcome+' / '+r.investorOpen.code,
+      'Pasujące projekty: '+(r.investorOpen.candidateProjects??'?')+' | Brak historycznej metadanej: '+flag(r.investorOpen.legacyOwnerAbsent),
+      'Kod uruchomiony (identyfikatory modułów, nie SHA wydania): '+Object.entries(r.runningCode).map(([key,value])=>key+'='+value).join(', '),
       'Obiekt sesji RAM: '+flag(r.ram)+' | Trwała: '+flag(r.durable),
       ...(r.storageSizes?storageLines(r.storageSizes):[]),
       'Storage: '+r.storage+' | Schemat: '+(r.schema??'?'),

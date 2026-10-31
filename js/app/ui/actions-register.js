@@ -7,6 +7,10 @@
   window.FC = window.FC || {};
   const FC = window.FC;
   if (!FC.actions || typeof FC.actions.register !== 'function') return;
+  const OPEN_VERSION='20261031_historical_owner_v1';
+  let openSequence=0,openObservation=Object.freeze({stage:'idle',code:'NONE',outcome:'idle'});
+  FC.investorOpenDiagnostics=Object.freeze({version:OPEN_VERSION,get state(){return openObservation;}});
+
 
   function buildTransientInvestorDraft(kind){
     const store = window.FC && window.FC.investors;
@@ -385,11 +389,14 @@
     },
     'open-investor': async ({event, element}) => {
       const id = element && element.getAttribute ? element.getAttribute('data-inv-id') : null;
-      let refusal = 'INVESTOR_NAVIGATION_UNCONFIRMED', enteredActivation = false;
+      const attempt=++openSequence;
+      let refusal = 'INVESTOR_NAVIGATION_UNCONFIRMED', enteredActivation = false,phase='navigation',navigationOutcome;
+      const observe=(code,outcome)=>{if(attempt===openSequence)openObservation=Object.freeze({stage:phase,code,outcome});};
+      observe('NONE','pending');
       const refused = code=>{ refusal = code; return false; };
       const activationFailure = ()=>FC.investorProjectRuntime && FC.investorProjectRuntime.getActivationFailure && FC.investorProjectRuntime.getActivationFailure();
       const activate = ()=>{
-        enteredActivation = true;
+        enteredActivation = true;phase='activation';observe('NONE','pending');
         try{
           const persistence = FC.investorPersistence;
           if(!id) return refused('INVESTOR_ID_REQUIRED');
@@ -406,6 +413,7 @@
             && FC.investorProjectRuntime.setActiveProjectFromInvestor(id) !== true) return refused(activationFailure() || 'PROJECT_ACTIVATION_UNCONFIRMED');
           const selected = FC.projectStore && FC.projectStore.getCurrentRecord ? FC.projectStore.getCurrentRecord() : null;
           if(!selected || String(selected.investorId || '') !== String(id)) return refused('PROJECT_OWNER_UNCONFIRMED');
+          phase='render';observe('NONE','pending');
           if(typeof uiState !== 'undefined' && uiState){
             uiState.currentInvestorId = id;
             uiState.entry = 'rooms';
@@ -428,20 +436,26 @@
         }catch(_){ return refused('INVESTOR_ACTIVATION_FAILED'); }
       };
       const nav = FC.sessionNavigation;
-      const result = nav && typeof nav.requestTransition === 'function'
-        ? await nav.requestTransition('projektu inwestora', activate)
-        : FC.session && FC.session.active ? false : activate();
-      // Back from the existing dirty-session confirmation is a cancellation,
-      // not an activation failure. Invalid proof still reaches the error path.
-      if(result === false && !enteredActivation && FC.session && FC.session.active
-        && FC.session.inspectNavigationState && FC.session.inspectNavigationState()) return false;
-      if(result === false){
-        const sessionCode = FC.session && FC.session.lastError && FC.session.lastError.code;
-        const code = refusal === 'INVESTOR_NAVIGATION_UNCONFIRMED' && /^[A-Z_]{1,64}$/.test(sessionCode || '') ? sessionCode : refusal;
-        try{ if(FC.infoBox && FC.infoBox.open) FC.infoBox.open({title:'Nie można otworzyć inwestora',
-          message:'Nie potwierdzono bezpiecznego otwarcia projektu. Zachowano dane i bieżącą pracę. ('+code+')',okOnly:true,sessionDiagnostic:true}); }catch(_){ }
+      let result;
+      try{
+        result = nav && typeof nav.requestTransition === 'function'
+          ? await nav.requestTransition('projektu inwestora', activate,{onOutcome:value=>{navigationOutcome=value;}})
+          : FC.session && FC.session.active ? false : activate();
+      }catch(_){refusal='NAVIGATION_FAILED';result=false;}
+      if(result===false && navigationOutcome && navigationOutcome.code==='NAVIGATION_CANCELLED'){
+        phase='navigation';observe('NAVIGATION_CANCELLED','cancelled');return false;
       }
-      return result;
+      if(result!==true || !enteredActivation){
+        const sessionCode = FC.session && FC.session.lastError && FC.session.lastError.code;
+        const code = refusal !== 'INVESTOR_NAVIGATION_UNCONFIRMED' ? refusal
+          : navigationOutcome && navigationOutcome.code || (/^[A-Z_]{1,64}$/.test(sessionCode || '')?sessionCode:refusal);
+        observe(code,'refused');
+        try{ if(FC.infoBox && FC.infoBox.open) FC.infoBox.open({title:'Nie można otworzyć inwestora',
+          message:(code==='NAVIGATION_BUSY'?'Inne przejście jest w toku. Zachowano bieżący widok i pracę. '
+            :'Nie potwierdzono bezpiecznego otwarcia projektu. Zachowano dane i bieżącą pracę. ')+'('+code+')',okOnly:true,sessionDiagnostic:true}); }catch(_){ }
+        return false;
+      }
+      phase='complete';observe('NONE','approved');return true;
     },
     'back-investors': ({event}) => {
       try{

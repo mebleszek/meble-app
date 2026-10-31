@@ -3,6 +3,7 @@
   'use strict';
   window.FC = window.FC || {};
   const FC = window.FC;
+  const VERSION='20261031_historical_owner_v1';
   let pending = false;
   let applying = false;
   let finishedScope = null;
@@ -33,7 +34,9 @@
         if(!id || matches.length !== 1 || !matches[0].projectData
           || (investorId && String(matches[0].investorId || '') !== String(investorId))) return false;
       }
-      const loaded = FC.project.load();
+      let loaded = FC.project.load();
+      const record=FC.projectStore && FC.projectStore.getCurrentRecord();
+      if(record && FC.projectPcvPolicy && FC.projectPcvPolicy.ownerView) loaded=FC.projectPcvPolicy.ownerView(loaded,record);
       if(!(loaded && typeof loaded === 'object')) return false;
       if(typeof projectData !== 'undefined') projectData = loaded;
       window.projectData = loaded;
@@ -58,41 +61,42 @@
     return reloadCentral();
   }
   async function requestTransition(destination, onApproved, options){
+    const cfg = options || {};
+    const finish=(ok,code)=>{try{if(typeof cfg.onOutcome==='function')cfg.onOutcome(Object.freeze({ok,code}));}catch(_){}return ok;};
     if(pending){
-      if(applying && !needsClosure()) return typeof onApproved === 'function' ? (await onApproved()) !== false : true;
-      return false;
+      if(applying && !needsClosure()){const ok=typeof onApproved === 'function' ? (await onApproved()) !== false : true;return finish(ok,ok?'NAVIGATION_APPROVED':'NAVIGATION_APPLY_REFUSED');}
+      return finish(false,'NAVIGATION_BUSY');
     }
     pending = true;
     try{
-      const cfg = options || {};
       const session = FC.session;
       const sameRoom = cfg.roomId && session && session.active && String(cfg.roomId) === session.roomId
         && FC.projectStore && FC.projectStore.getCurrentProjectId() === session.projectId;
       if(needsClosure() && !sameRoom){
         const session = FC.session;
-        if(!(session && typeof session.begin === 'function')) return false;
+        if(!(session && typeof session.begin === 'function')) return finish(false,'NAVIGATION_SESSION_UNAVAILABLE');
         // An untracked RAM edit must receive a durable baseline before a user can discard it.
-        if(!session.active && session.begin() !== true) return false;
-        if(session.retryInitialBegin && session.retryInitialBegin() !== true) return false;
+        if(!session.active && session.begin() !== true) return finish(false,'NAVIGATION_SESSION_UNCONFIRMED');
+        if(session.retryInitialBegin && session.retryInitialBegin() !== true) return finish(false,'NAVIGATION_SESSION_UNCONFIRMED');
         const evidence = typeof session.inspectNavigationState === 'function' ? session.inspectNavigationState() : null;
         const runtime = FC.investorProjectRuntime;
         if(!evidence || !runtime || typeof runtime.hasProjectDivergence !== 'function'
           || typeof projectData === 'undefined' || !projectData || typeof projectData !== 'object'
           || !Object.prototype.hasOwnProperty.call(projectData,session.roomId)){
           message('Nie można potwierdzić stanu sesji', 'Zachowano sesję i bieżący widok. Sprawdź dane i spróbuj ponownie.');
-          return false;
+          return finish(false,'NAVIGATION_SESSION_UNCONFIRMED');
         }
         const ramDirty = runtime.hasProjectDivergence(projectData);
-        if(typeof ramDirty !== 'boolean' || Object.keys(evidence.raws).some(key=>localStorage.getItem(key) !== evidence.raws[key])) return false;
+        if(typeof ramDirty !== 'boolean' || Object.keys(evidence.raws).some(key=>localStorage.getItem(key) !== evidence.raws[key])) return finish(false,'NAVIGATION_SOURCE_CHANGED');
         if(!evidence.dirty && !ramDirty){
           // A clean session needs durable cleanup only, never another project save.
           if(session.commit() !== true || session.active || localStorage.getItem('fc_edit_session_v1') !== null || !reloadCentral()){
             message('Nie udało się zakończyć edycji', 'Nie potwierdzono zakończenia czystej sesji. Nie przełączono widoku.');
-            return false;
+            return finish(false,'NAVIGATION_CLOSE_UNCONFIRMED');
           }
         }else{
           const picker = FC.choiceBox;
-          if(!(picker && typeof picker.ask === 'function')) return false;
+          if(!(picker && typeof picker.ask === 'function')) return finish(false,'NAVIGATION_DECISION_UNAVAILABLE');
           const label = String(destination || 'wybranego miejsca');
           const action = await picker.ask({
             title:'ZAKOŃCZ EDYCJĘ PROJEKTU',
@@ -105,26 +109,28 @@
               { value:'back', text:'Wróć do edycji', tone:'neutral' },
             ],
           });
-          if(action !== 'save' && action !== 'discard') return false;
+          if(action === 'back') return finish(false,'NAVIGATION_CANCELLED');
+          if(action !== 'save' && action !== 'discard') return finish(false,'NAVIGATION_DECISION_UNCONFIRMED');
           if(confirmedFinish(action) !== true){
             message('Nie udało się zakończyć edycji',
               (session.lastError && session.lastError.message) ||
               'Nie potwierdzono bezpiecznego zapisu lub anulowania. Nie przełączono widoku.');
-            return false;
+            return finish(false,'NAVIGATION_CLOSE_UNCONFIRMED');
           }
         }
       }else if(cfg.refreshCentral === true && !reloadCentral()){
         message('Nie udało się odczytać projektu', 'Nie potwierdzono aktualnych danych projektu. Nie przełączono widoku.');
-        return false;
+        return finish(false,'NAVIGATION_READ_UNCONFIRMED');
       }
       applying = true;
       let result;
       try{ result = typeof onApproved === 'function' ? onApproved() : true; }
       finally{ applying = false; }
-      return (await result) !== false;
+      const approved=(await result) !== false;
+      return finish(approved,approved?'NAVIGATION_APPROVED':'NAVIGATION_APPLY_REFUSED');
     }catch(_){
       message('Nie można przełączyć widoku', 'Operacja została wstrzymana. Sprawdź sesję i spróbuj ponownie.');
-      return false;
+      return finish(false,'NAVIGATION_FAILED');
     }finally{ applying = false; pending = false; }
   }
   function isEditState(state){
@@ -202,5 +208,5 @@
     throw error;
   }
 
-  FC.sessionNavigation = { requestTransition, needsClosure, canCalculate, confirmedFinish, reloadCentral, canApplyUiState, calculationContext, calculationUnchanged, assertCalculationCurrent, invalidateCalculationContext, prepareEditState, isEditState, sessionFinished:scope=>{ finishedScope = scope; } };
+  FC.sessionNavigation = { version:VERSION, requestTransition, needsClosure, canCalculate, confirmedFinish, reloadCentral, canApplyUiState, calculationContext, calculationUnchanged, assertCalculationCurrent, invalidateCalculationContext, prepareEditState, isEditState, sessionFinished:scope=>{ finishedScope = scope; } };
 })();

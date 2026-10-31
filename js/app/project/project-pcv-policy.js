@@ -10,8 +10,23 @@
     return value;
   }
   const equal=(a,b)=>JSON.stringify(comparable(a))===JSON.stringify(comparable(b));
-  const persisted=value=>{
-    let normalized=FC.project.normalize(clone(value));
+  const VERSION='20261031_historical_owner_v1';
+  function ownerView(value,record,comparisonOnly=false){
+    const reject=code=>{throw Object.assign(Error(code),{code});};
+    const rows=FC.projectStore.readAll().filter(row=>record && String(row.id)===String(record.id));
+    if(rows.length!==1 || !rows[0].investorId || String(rows[0].investorId)!==String(record.investorId))reject('PROJECT_OWNER_UNCONFIRMED');
+    const owner=String(rows[0].investorId),meta=rows[0].projectData && rows[0].projectData.meta;
+    if(meta && Object.hasOwn(meta,'assignedInvestorId') && meta.assignedInvestorId!==owner)reject('PROJECT_OWNER_CONFLICT');
+    const out=clone(value);
+    if(out.meta && Object.hasOwn(out.meta,'assignedInvestorId')){
+      if(out.meta.assignedInvestorId!==owner && !comparisonOnly)reject('PROJECT_OWNER_CONFLICT');
+    }else if(!comparisonOnly || !(meta && Object.hasOwn(meta,'assignedInvestorId'))){
+      out.meta=Object.assign({},out.meta || {},{assignedInvestorId:owner});
+    }
+    return out;
+  }
+  const persisted=(value,record)=>{
+    let normalized=FC.project.normalize(record?ownerView(value,record):clone(value));
     // Match the existing read-only view defaults on detached comparison copies.
     // Never stamp display numbering into the stored/signed export model.
     if(FC.projectBootstrap && typeof FC.projectBootstrap.normalizeProjectData==='function'){
@@ -32,6 +47,8 @@
       const record=rows[0],investorId=FC.investors && FC.investors.getCurrentId();
       if(!investorId || String(record.investorId)!==String(investorId)
         || !ram || !ram.meta || String(ram.meta.assignedInvestorId)!==String(investorId))return refusal('INVESTOR_CONTEXT_MISMATCH');
+      if(record.projectData.meta && Object.hasOwn(record.projectData.meta,'assignedInvestorId')
+        && record.projectData.meta.assignedInvestorId!==String(investorId))return refusal('PROJECT_OWNER_CONFLICT');
       const mode=marker(record.projectData),ramMode=marker(ram);
       if(mode!==ramMode)return refusal('PCV_POLICY_MISMATCH');
       if(mode!==undefined && mode!=='' && mode!=='project')return refusal('PCV_POLICY_INVALID');
@@ -39,13 +56,13 @@
       const session=FC.session;
       if(session && session.canSaveProject && session.canSaveProject()!==true)return Object.assign(refusal('SESSION_UNCONFIRMED'),session.lastError||{});
       if(session && session.active && (session.projectId!==id || !session.durable))return refusal('EDIT_CONTEXT_MISMATCH');
-      if((mode==='project' || cfg.strict) && !equal(persisted(ram),persisted(record.projectData)))return refusal('RAM_DIVERGENCE');
+      if((mode==='project' || cfg.strict) && !equal(persisted(ram,record),persisted(record.projectData,record)))return refusal('RAM_DIVERGENCE');
       if(cfg.roomId && (!record.projectData[cfg.roomId] || !ram[cfg.roomId]))return refusal('ROOM_NOT_FOUND');
       if(cfg.edit && (String(window.uiState && window.uiState.roomType)!==String(cfg.roomId)
         || session && session.active && session.roomId!==cfg.roomId))return refusal('EDIT_CONTEXT_MISMATCH');
       return {ok:true,mode:mode==='project'?'project':'legacy',projectId:id,investorId:String(investorId),record,
         options:mode==='project'?{pcvMode:'project',projectId:id}:{}};
-    }catch(_){return refusal('POLICY_READ_FAILED');}
+    }catch(error){return refusal(['PROJECT_OWNER_UNCONFIRMED','PROJECT_OWNER_CONFLICT'].includes(error.code)?error.code:'POLICY_READ_FAILED');}
   }
   function calculationOptions(requested){
     const state=read({allowLegacy:requested && requested.pcvMode==='project'});
@@ -81,8 +98,9 @@
         if(FC.session && FC.session.markUnconfirmedProjectWrite)FC.session.markUnconfirmedProjectWrite();
         return {ok:false,code:'PROJECT_CONTEXT_MISMATCH',projectSaved:true};
       }
-      window.projectData=result.project;
-      try{if(typeof projectData!=='undefined')projectData=result.project;}catch(_){ }
+      const view=ownerView(result.project,after);
+      window.projectData=view;
+      try{if(typeof projectData!=='undefined')projectData=view;}catch(_){ }
       return {ok:true,changed:true};
     }catch(_){
       // Read-back is uncertain; never permit a later stale-RAM write to undo it.
@@ -95,6 +113,8 @@
     if(session && session.active){
       try{
         const id=FC.projectStore.getCurrentProjectId(),record=FC.projectStore.getById(id),investor=FC.investors.getCurrentId();
+        if(record && record.projectData.meta && Object.hasOwn(record.projectData.meta,'assignedInvestorId')
+          && record.projectData.meta.assignedInvestorId!==String(investor))return fail('PROJECT_OWNER_CONFLICT');
         // This no-write check precedes session.begin(openingRoom), which validates
         // the durable proof and permits retry of an initial failed begin.
         if(session.projectId!==id || openingRoom && session.roomId!==String(openingRoom)
@@ -106,5 +126,5 @@
     }
     return activate();
   }
-  FC.projectPcvPolicy={read,calculationOptions,activate,ensureProjectMode,notify};
+  FC.projectPcvPolicy={version:VERSION,ownerView,read,calculationOptions,activate,ensureProjectMode,notify};
 })();

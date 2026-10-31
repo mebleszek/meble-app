@@ -17,7 +17,24 @@ async function apply(action){return admin(db=>runTransaction(db,async tx=>{
 }));}
 const own=()=>env.authenticatedContext(uid,{firebase:{sign_in_provider:'google.com'}}).firestore();
 before(async()=>{env=await initializeTestEnvironment({projectId:'demo-meble-app',firestore:{host:'127.0.0.1',port:18080,rules:fs.readFileSync(new URL('./firestore-live-pilot.rules',import.meta.url),'utf8')}});});
-beforeEach(async()=>{await env.clearFirestore();await admin(async db=>{await setDoc(doc(db,'authorizedUsers',uid),grant);await setDoc(doc(db,'appAccess',uid),access);});});
+beforeEach(async()=>{
+ try{await env.clearFirestore();}
+ catch(error){
+  // Keep the original hook failure, without retrying or seeding an uncertain
+  // database. The CLI's stdout omits the server-side reason for HTTP 500.
+  console.error('CLOUD42_CLEAR_FIRESTORE_FAILED: demo-meble-app / loopback emulator');
+  let fd;
+  try{
+   fd=fs.openSync(new URL('./firestore-debug.log',import.meta.url),'r');
+   const size=fs.fstatSync(fd).size,tail=Buffer.alloc(Math.min(size,16384));
+   fs.readSync(fd,tail,0,tail.length,size-tail.length);
+   console.error(tail.toString('utf8').split('\n').slice(-80).join('\n'));
+  }catch(_){console.error('CLOUD42_EMULATOR_LOG_UNAVAILABLE');}
+  finally{if(fd!==undefined)try{fs.closeSync(fd);}catch(_){}}
+  throw error;
+ }
+ await admin(async db=>{await setDoc(doc(db,'authorizedUsers',uid),grant);await setDoc(doc(db,'appAccess',uid),access);});
+});
 after(async()=>env?.cleanup());
 test('Stage remains denied; activation permits only the synthetic scope; stop preserves Auth-only and global grant fields',async()=>{
  const db=own(),head=doc(db,'users',uid,'pilotProjects','cloud4-project-v1');
