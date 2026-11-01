@@ -49,12 +49,20 @@ export function createApplicationReplication({store,channels,globalContract,proj
  const discover=()=>{if(closed||!discovery||online&&!online())return;if(listing){again=true;return;}
   listing=(async()=>{do{again=false;const candidates=await discovery.list(scope=>!!sync.channel(scope));
    for(const channel of candidates){if(closed)return;if(!sync.channel(channel.scope)){await channel.read();if(!closed)sync.register(channel);}}
-  }while(again&&!closed);})().catch(e=>{if(!closed)onState?.(safeError(e));}).finally(()=>{listing=null;});};
+  }while(again&&!closed);})().catch(e=>{if(!closed)onState?.(safeError(e));}).finally(()=>{listing=null;if(again&&!closed)discover();});};
  const stopDiscovery=discovery?.watch(discover)||(()=>{});eventTarget.addEventListener('online',discover);discover();
  return Object.freeze({...sync,
+  notify(){sync.notify();discover();},
   close(){closed=true;stopDiscovery();eventTarget.removeEventListener('online',discover);sync.close();},
   async acquireEditor(scope){await assertIdle();return sync.acquireEditor(scope);},
   async releaseEditor(scope){await assertIdle();return sync.releaseEditor(scope);},
+  ...createApplicationCommitter({store,globalContract,projectContract,channel:scope=>sync.channel(scope)})
+ });
+}
+
+// Same atomic business/image/outbox boundary for online and already-approved offline editors.
+export function createApplicationCommitter({store,globalContract,projectContract,channel}){
+ return Object.freeze({
   async commit(kind,application,projectId){
    const source={getItem:key=>application.rows[key]??null},old=await store.readApplication();
    if(!old||old.version!==application.expectedVersion)fail('LF_APPLICATION_CONFLICT');
@@ -70,7 +78,7 @@ export function createApplicationReplication({store,channels,globalContract,proj
    if(kind==='globals'){
     scope='globals';const captured=globalContract.capture(source,Object.keys(globalContract.schemas));globalContract.validateBundle(captured.model);captured.assertUnchanged();value=captured.model;
    }else if(kind==='project'){
-    scope=projectId;if(sync.channel(scope)?.kind!=='project')fail('LF_PROJECT_CHANNEL_REQUIRED');
+    scope=projectId;if(channel(scope)?.kind!=='project')fail('LF_PROJECT_CHANNEL_REQUIRED');
     const local=await store.snapshot(scope),pinned=local.replica?JSON.parse(local.replica.json).globals:null,g=await store.snapshot('globals');
     if(!pinned&&(!g.replica?.base||g.replica.dirty))fail('LF_GLOBAL_DEPENDENCIES_UNCONFIRMED');
     const built=await projectContract.build(source,projectId);
@@ -112,7 +120,7 @@ export function createEmulatorProjectDiscovery(options){
  const {writer,reader,ownerUid}=options,a=assertEmulator(writer),b=assertEmulator(reader);
  if(a.uid!==ownerUid||b.uid!==ownerUid||writer.db.app===reader.db.app)fail('LF_INDEPENDENT_OWNER_REQUIRED');
  const f=reader.firestore,ref=f.collection(reader.db,'users',ownerUid,'localFirstProjects');
- const guard=()=>{if(!equal(assertEmulator(writer),a)||!equal(assertEmulator(reader),b))fail('LF_AUTH_CHANGED');};
+ const guard=()=>{writer.assertAccess?.();reader.assertAccess?.();if(!equal(assertEmulator(writer),a)||!equal(assertEmulator(reader),b))fail('LF_AUTH_CHANGED');};
  return Object.freeze({
   watch(notify){guard();return f.onSnapshot(f.query(ref,f.orderBy('updatedAt','desc'),f.limit(100)),notify,notify);},
   async list(known){guard();const found=[];let last=null;

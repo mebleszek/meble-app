@@ -230,7 +230,8 @@
     container.querySelectorAll('[data-investor-action]').forEach((btn)=>{
       btn.addEventListener('click', async ()=>{
         const action = btn.getAttribute('data-investor-action');
-        await handleTopAction(action, deps && deps.getCurrentInvestor, deps);
+        const perform=()=>handleTopAction(action, deps && deps.getCurrentInvestor, deps);
+        if(FC.applicationWrite&&['save','cancel','exit'].includes(action))await FC.applicationWrite.auto(perform);else await perform();
         try{ guard() && guard().apply(!!(editor() && editor().state.isEditing)); }catch(_){ }
       });
     });

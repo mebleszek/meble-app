@@ -5,7 +5,7 @@ const {fixture}=require('./project-selective-export-smoke.js');
 const root=path.resolve(__dirname,'..'),clone=v=>JSON.parse(JSON.stringify(v));
 async function main(){
  const {json,digest,canonical}=await import('../sync/local-first-values.mjs');
- const {authorizeGlobalFirebase,assertGlobalConnection}=await import('../sync/firebase-activation.mjs');
+ const {authorizeGlobalFirebase,assertGlobalConnection,authorizeApplicationFirebase,assertApplicationConnection}=await import('../sync/firebase-activation.mjs');
  const {validateProjectDependencies,protectProjectRows}=await import('../sync/local-first-project.mjs');
  const {runtime,model,seed}=await import('./firebase-pilot/cloud-sync-fixture.mjs');
  const r=runtime(),c=r.FC.globalDataContract,value=model();
@@ -68,7 +68,26 @@ async function main(){
  const foreign=connection();foreign.auth.currentUser.uid='foreign';await assert.rejects(authorizeGlobalFirebase({...options,writer:foreign}),/LF_LIVE_IDENTITY_INVALID/);assert.equal(requests,0);
  await assert.rejects(authorizeGlobalFirebase({...options,request:async url=>({status:200,json:async()=>url.endsWith('/releases/cloud.firestore')?release:{...ruleset,source:{files:[]}}})}),/LF_RULES_CHANGED/);
  const permit=await authorizeGlobalFirebase(options);assert.equal(requests,3);assert.equal(assertGlobalConnection(options.writer).uid,decision.ownerUid);
+ assert.throws(()=>assertApplicationConnection(options.writer),/LF_APPLICATION_ACTIVATION_REQUIRED/);
  permit.revoke();assert.throws(()=>assertGlobalConnection(options.writer),/LF_PRODUCTION_ACTIVATION_REQUIRED/);
+
+ // A distinct signed application scope binds the whole migrated image. A
+ // global-only grant, changed image, absent exclusivity or bad signature cannot
+ // authorize project channels. All RPCs below are injected synthetic responses.
+ const applicationDecision={...decision,scope:'application-data-sync',projectProfile:'business-project-v1',globalDomains:14,
+  oldWritersExcluded:true,applicationImageHash:'c'.repeat(64)};
+ const sign=async value=>new Uint8Array(await crypto.subtle.sign('Ed25519',keys.privateKey,new TextEncoder().encode(canonical(value))));
+ const applicationOptions={...options,decision:applicationDecision,signature:await sign(applicationDecision),
+  store:{...options.store,readApplication:async()=>({hash:'c'.repeat(64)})}};
+ requests=0;
+ await assert.rejects(authorizeApplicationFirebase({...applicationOptions,decision:{...applicationDecision,oldWritersExcluded:false}}),/LF_APPLICATION_CUTOVER_NOT_PROVEN/);
+ await assert.rejects(authorizeApplicationFirebase({...applicationOptions,signature:new Uint8Array(64)}),/LF_OWNER_SIGNATURE_INVALID/);
+ await assert.rejects(authorizeApplicationFirebase({...applicationOptions,store:{...applicationOptions.store,readApplication:async()=>({hash:'d'.repeat(64)})}}),/LF_APPLICATION_CUTOVER_NOT_PROVEN/);
+ assert.equal(requests,0);
+ const applicationPermit=await authorizeApplicationFirebase(applicationOptions);assert.equal(requests,3);
+ assert.equal(assertApplicationConnection(options.writer).uid,decision.ownerUid);
+ applicationPermit.revoke();assert.throws(()=>assertApplicationConnection(options.writer),/LF_APPLICATION_ACTIVATION_REQUIRED/);
+ console.log('PASS application activation: separate signature, image, owner, Rules, exclusivity statement and revocation');
  console.log('PASS LOCAL-FIRST activation contract: signature, artifact, UID, Rules source and revocation (offline synthetic inputs)');
 }
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});module.exports={main};

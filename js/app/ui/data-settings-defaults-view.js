@@ -227,7 +227,7 @@
       refreshAll();
     });
     cancelBtn.addEventListener('click', ()=> render(scroll));
-    saveBtn.addEventListener('click', ()=>{
+    saveBtn.addEventListener('click', (FC.applicationWrite?.handler||((fn)=>fn))(()=>{
       if(!api.ZONE_KEYS.every(key=> !api.requiresCustomPcv(draft.zones[key].bodyPcvMode, draft.zones[key].frontMaterial || 'laminat') || text(draft.zones[key].bodyPcvCustomColor))){
         api.showCustomPcvRequired(); return;
       }
@@ -236,7 +236,7 @@
       syncDraftObject(draft, saved);
       refreshAll();
       if(dom.info) dom.info('Zapisano', 'Domyślne materiały i okucia programu zostały zapisane.');
-    });
+    }));
     actions.appendChild(resetBtn);
     actions.appendChild(cancelBtn);
     actions.appendChild(saveBtn);

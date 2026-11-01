@@ -3,16 +3,24 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
+  "js/app/material/price-modal-hardware-dictionaries.js":"20261101_one_app_v1",
+  "js/app/material/price-modal-hardware-manufacturers.js":"20261101_one_app_v1",
+  "js/app/material/price-modal-hardware-suppliers.js":"20261101_one_app_v1",
+  "js/app/shared/room-registry-modals-add-edit.js":"20261101_one_app_v1",
+  "js/app/ui/data-settings-business-costs-view.js":"20261101_one_app_v1",
+  "js/app/ui/data-settings-company-view.js":"20261101_one_app_v1",
+  "js/app/ui/data-settings-defaults-view.js":"20261101_one_app_v1",
+  "js/core/actions.js":"20261101_one_app_v1",
  "js/app/cloud/offline-update.js":"20261031_safe_sw_v1",
   "js/app/shared/data-backup-snapshot-apply.js":"20261031_investor_delete_v2",
-  "js/app/investor/investor-actions.js": "20261031_investor_delete_v2",
+  "js/app/investor/investor-actions.js": "20261101_one_app_v1",
   "js/app/investor/investor-ui.js": "20261031_investor_delete_v2",
   "js/app/investor/investor-deletion.js": "20261031_investor_delete_v2",
   "js/app/shared/data-storage-classifier.js": "20261031_investor_delete_v2",
   "js/app/investor/investor-ui-render.js": "20261101_compact_list",
   "js/app/investor/investors-store.js": "20261031_investor_delete_v2",
   "js/app/investor/investors-local-repository.js": "20261031_investor_delete_v2",
-  "js/app/ui/actions-register.js": "20261031_investor_delete_v2",
+  "js/app/ui/actions-register.js": "20261101_one_app_v1",
   "js/app/ui/session-navigation.js": "20261031_historical_owner_v1",
   "js/app/project/project-bridge.js": "20261031_historical_owner_v1",
   "js/app/project/project-pcv-policy.js": "20261031_historical_owner_v1",
@@ -53,7 +61,7 @@ const versions = Object.freeze({
   "js/app/quote/quote-snapshot-store.js":"20261014_c2_1b2c3b",
   "js/app/wycena/wycena-tab-selection-version.js":"20260628_drawer_systems_materials_v1",
   "js/app/wycena/wycena-diagnostics.js":"20261019_project_context",
-  "js/app/wycena/wycena-tab-shell.js":"20261019_quote_performance"
+  "js/app/wycena/wycena-tab-shell.js":"20261101_one_app_v1"
 });
 function assertHtmlVersions(index, dev){
   for(const [file, expected] of Object.entries(versions)){

@@ -462,7 +462,8 @@
       try{ if(event && typeof event.preventDefault === 'function') event.preventDefault(); }catch(_){ }
       try{ if(event && typeof event.stopPropagation === 'function') event.stopPropagation(); }catch(_){ }
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordGenerateButtonEvent === 'function') FC.wycenaDiagnostics.recordGenerateButtonEvent(source || 'generate-button'); }catch(_){ }
-      void generateQuote(ctx, d, { source:source || 'generate-button' });
+      const generate=()=>generateQuote(ctx,d,{source:source||'generate-button'});
+      if(FC.applicationWrite)void FC.applicationWrite.project(generate).catch(showQuoteValidationError);else void generate();
     };
     FC.wycenaGenerateAction = {
       run(event, source){

@@ -74,11 +74,11 @@
     addBtn.addEventListener('click', addCurrent);
     input.addEventListener('keydown', (event)=>{ if(event && event.key === 'Enter'){ event.preventDefault(); addCurrent(); } });
     backBtn.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
-    saveBtn.addEventListener('click', ()=>{
+    saveBtn.addEventListener('click', (FC.applicationWrite?.handler||((fn)=>fn))(()=>{
       try{ saveSuppliers(list); }catch(error){ if(ctx.info) ctx.info(error && error.partial ? 'Zapis częściowy' : (error && error.code === 'CATALOG_RECOVERY_REQUIRED' ? 'Wymagane odzyskanie katalogu' : 'Nie zapisano danych'), String(error && error.message || error)); return; }
       try{ ctx.syncFilterSelects && ctx.syncFilterSelects(); ctx.mountFilterChoices && ctx.mountFilterChoices(); ctx.renderPriceList && ctx.renderPriceList(); }catch(_){ }
       try{ FC.panelBox.close(); }catch(_){ }
-    });
+    }));
     body.appendChild(h('div', { class:'hardware-manufacturer-add' }, [input, addBtn]));
     body.appendChild(listBox);
     footer.appendChild(backBtn); footer.appendChild(saveBtn); body.appendChild(footer);
@@ -123,10 +123,10 @@
     body.appendChild(h('div', { style:'margin-top:10px' }, [h('label', { text:'Domyślny narzut %' }), markup]));
     body.appendChild(h('div', { class:'muted', style:'margin-top:10px;line-height:1.35', text:'VAT jest globalny dla całego katalogu okuć. Rabat zostaje przy dostawcy.' }));
     backBtn.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
-    saveBtn.addEventListener('click', ()=>{
+    saveBtn.addEventListener('click', (FC.applicationWrite?.handler||((fn)=>fn))(()=>{
       try{ saveSettings({ defaultSupplierId:supplierSelect.value, defaultVatRate:number(vat.value) || 23, defaultMarkupPercent:number(markup.value), defaultQuoteBase:quoteBase.value || 'catalogGross', defaultPricingMode:pricingMode.value || 'markup' }); }catch(error){ if(ctx.info) ctx.info(error && error.partial ? 'Zapis częściowy' : (error && error.code === 'CATALOG_RECOVERY_REQUIRED' ? 'Wymagane odzyskanie katalogu' : 'Nie zapisano danych'), String(error && error.message || error)); return; }
       try{ FC.panelBox.close(); }catch(_){ }
-    });
+    }));
     footer.appendChild(backBtn); footer.appendChild(saveBtn); body.appendChild(footer);
     FC.panelBox.open({ title:'Ustawienia cen okuć', contentNode:body, width:'620px', boxClass:'panel-box--rozrys hardware-settings-panel', dismissOnOverlay:false, dismissOnEsc:true });
     try{
