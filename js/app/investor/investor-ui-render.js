@@ -81,13 +81,13 @@
       const sub = [inv.phone, inv.city, formatDateDisplay(inv.addedDate || inv.createdAt)].filter(Boolean).join(' • ');
       return `
         <div class="item" data-inv-id="${inv.id}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;border:1px solid rgba(0,0,0,.08);border-radius:12px;margin:8px 0;">
-          <div style="min-width:0">
+          <div class="investor-list-row-text">
             <div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(title)}</div>
             <div class="muted xs" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(sub || '')}</div>
           </div>
           <div class="investor-list-row-actions">
-            <button type="button" class="btn" data-action="open-investor" data-inv-id="${escapeAttr(inv.id)}">Otwórz</button>
             ${state && state.deleteMode ? `<label class="investor-delete-choice"><input type="checkbox" data-investor-delete-id="${escapeAttr(inv.id)}" aria-label="Zaznacz do usunięcia: ${escapeAttr(title)}" ${(state.deleteIds||[]).includes(inv.id)?'checked':''}></label>` : ''}
+            <button type="button" class="btn" data-action="open-investor" data-inv-id="${escapeAttr(inv.id)}">Otwórz</button>
           </div>
         </div>
       `;

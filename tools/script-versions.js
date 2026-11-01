@@ -9,7 +9,7 @@ const versions = Object.freeze({
   "js/app/investor/investor-ui.js": "20261031_investor_delete_v2",
   "js/app/investor/investor-deletion.js": "20261031_investor_delete_v2",
   "js/app/shared/data-storage-classifier.js": "20261031_investor_delete_v2",
-  "js/app/investor/investor-ui-render.js": "20261031_investor_delete_v2",
+  "js/app/investor/investor-ui-render.js": "20261101_compact_list",
   "js/app/investor/investors-store.js": "20261031_investor_delete_v2",
   "js/app/investor/investors-local-repository.js": "20261031_investor_delete_v2",
   "js/app/ui/actions-register.js": "20261031_investor_delete_v2",
