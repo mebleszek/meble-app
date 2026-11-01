@@ -6,7 +6,7 @@
 
 1. **Niezależnie ocenić obecny pakiet integracji Android / LOCAL-FIRST**, potem osobno zatwierdzić CI dla dokładnego HEAD/BASE. PR #87 porządku dokumentacji jest wydany; dowody wyłącznie w CURRENT_STATE.
 2. **Po wydaniu poprawki Androida** zweryfikować izolację inwestorów i pracę na fizycznym telefonie, bez resetu danych.
-3. **Domknąć bramki aktywacji autorytetu:** wyłączność starych writerów, pozostałe asynchroniczne writery UI i dowody migracji. Kontrolowany przepływ emulatorowy wykorzystuje ten sam LOCAL-FIRST; nie stanowi automatycznej zgody na produkcyjną migrację, Rules ani LIVE. Issue #47 pozostaje odłożone.
+3. **Domknąć produkcyjne bramki aktywacji autorytetu:** normalny startup, formularze i odbiór są połączone w kontrolowanej instalacji emulatorowej (01.11); produkcyjny inicjalizator/cutover wymaga zatwierdzonego wiązania, dowodu wyłączności starych writerów oraz bezstratnej migracji. Usuwanie/import archiwów i nowy projekt offline pozostają jawnymi granicami. Kontrolowany przepływ emulatorowy wykorzystuje ten sam LOCAL-FIRST; nie stanowi automatycznej zgody na produkcyjną migrację, Rules ani LIVE. Issue #47 pozostaje odłożone.
 
 > **Dalsze sekcje:** decyzje nadal obowiązujące są wiążące; opisy dawnych stanów i etykiety `CI_PENDING`/`priorytet 1` są migawkami historycznymi. Najnowsze statusy czytaj w `CURRENT_STATE.md`.
 

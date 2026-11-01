@@ -1,4 +1,5 @@
 import {copy, fail, equal, id, assertEmulator} from './local-first-values.mjs';
+import {assertApplicationConnection} from './firebase-activation.mjs';
 const EXTRA = ['editorEpoch', 'deviceId', 'globalRevisionId', 'globalDirectoryHash'];
 const bare = value => value === null ? null : Object.fromEntries(Object.entries(value).filter(([key]) => !EXTRA.includes(key)));
 export const unresolvedProjectKeys = Object.freeze(['fc_edge_v1', 'fc_material_part_options_v1', 'fc_rozrys_grain_state_v1',
@@ -32,9 +33,9 @@ export function validateProjectDependencies(projectContract, globalContract, doc
 export function createProjectChannel({writer, reader, ownerUid, deviceId, projectId, investorId,
   pilotContract: c, pilotFactory, globalContract, projectContract, globals}) {
   id(ownerUid); id(deviceId); id(projectId); id(investorId);
-  const wi = assertEmulator(writer), ri = assertEmulator(reader);
+  const wi = assertApplicationConnection(writer), ri = assertApplicationConnection(reader);
   if (wi.uid !== ownerUid || ri.uid !== ownerUid || writer.db.app === reader.db.app) fail('LF_INDEPENDENT_OWNER_REQUIRED');
-  const guard = () => { if (!equal(assertEmulator(writer),wi) || !equal(assertEmulator(reader),ri)) fail('LF_AUTH_CHANGED'); };
+  const guard = () => { if (!equal(assertApplicationConnection(writer),wi) || !equal(assertApplicationConnection(reader),ri)) fail('LF_AUTH_CHANGED'); };
   const scope = {ownerUid,projectId,investorId}, f = writer.firestore;
   const editorRef = db => f.doc(db,'users',ownerUid,'localFirstEditors',projectId);
   const projectRef = db => f.doc(db,'users',ownerUid,'localFirstProjects',projectId);

@@ -27,6 +27,14 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
   // No skipWaiting/clients.claim: never replace the runtime of an open draft.
 })()));
 self.addEventListener('message',event=>{
+  if(event.data?.type==='VERIFY_APPLICATION_AUTHORITY'&&event.ports[0]){
+    event.waitUntil((async()=>{
+      const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+      event.ports[0].postMessage({protocol:1,nonce:event.data.nonce,
+        exclusive:event.data.protocol===1&&clients.length===1&&clients[0].id===event.source?.id});
+      event.ports[0].close();
+    })());return;
+  }
   if(event.data?.type==='VERIFY_INVESTOR_DELETE_CLIENTS'&&event.ports[0]){
     event.waitUntil((async()=>{
       const version='20261031_investor_delete_v2',operationId=event.data.operationId;

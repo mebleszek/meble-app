@@ -292,3 +292,8 @@ test('LOCAL-FIRST actual application: automatic two-device round trip and crash 
  const {runApplicationE2E}=await import('./application-e2e.test.mjs');
  await runApplicationE2E(t);
 });
+
+test('LOCAL-FIRST normal application startup on two independent browser profiles',async t=>{
+ const {runNormalApplication}=await import('./normal-application.cases.mjs');
+ await runNormalApplication(t);
+});

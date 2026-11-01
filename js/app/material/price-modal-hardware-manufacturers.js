@@ -74,11 +74,11 @@
     addBtn.addEventListener('click', addCurrent);
     input.addEventListener('keydown', (event)=>{ if(event && event.key === 'Enter'){ event.preventDefault(); addCurrent(); } });
     backBtn.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
-    saveBtn.addEventListener('click', ()=>{
+    saveBtn.addEventListener('click', (FC.applicationWrite?.handler||((fn)=>fn))(()=>{
       try{ saveManufacturers(list); }catch(error){ if(ctx.info) ctx.info(error && error.partial ? 'Zapis częściowy' : (error && error.code === 'CATALOG_RECOVERY_REQUIRED' ? 'Wymagane odzyskanie katalogu' : 'Nie zapisano danych'), String(error && error.message || error)); return; }
       try{ ctx.syncFilterSelects && ctx.syncFilterSelects(); ctx.mountFilterChoices && ctx.mountFilterChoices(); ctx.renderPriceList && ctx.renderPriceList(); }catch(_){ }
       try{ FC.panelBox.close(); }catch(_){ }
-    });
+    }));
 
     body.appendChild(h('div', { class:'hardware-manufacturer-add' }, [input, addBtn]));
     body.appendChild(listBox);

@@ -181,10 +181,9 @@
       if(!mat.trim()) return (FC.infoBox && FC.infoBox.open ? FC.infoBox.open({ title:'Brak materiału', message:'Wpisz materiał (klucz).' }) : alert('Wpisz materiał (klucz)'));
       if(!(Number(w)>0 && Number(hh)>0)) return (FC.infoBox && FC.infoBox.open ? FC.infoBox.open({ title:'Brak formatu', message:'Podaj format płyty.' }) : alert('Podaj format płyty'));
       const delta = Math.max(1, Math.round(Number(qty || 1) || 1));
-      addSheetStock(mat.trim(), Number(w), Number(hh), delta);
-      const qtyEl = document.getElementById('magQty');
-      if(qtyEl) qtyEl.value = '1';
-      render();
+      const perform=()=>{addSheetStock(mat.trim(), Number(w), Number(hh), delta);
+       const done=()=>{const qtyEl=document.getElementById('magQty');if(qtyEl)qtyEl.value='1';render();};if(FC.applicationWrite)FC.applicationWrite.afterCommit(done);else done();};
+      if(FC.applicationWrite)void FC.applicationWrite.globals(perform).catch(()=>{render();FC.infoBox?.open({title:'Nie zapisano magazynu',message:'Zachowano poprzednie dane. Nie potwierdzono trwałego zapisu.',okOnly:true});});else perform();
     });
     btnRow.appendChild(addBtn);
     bottomRow.appendChild(btnRow);
@@ -225,8 +224,8 @@
           ok = confirm('Usunąć z magazynu?');
         }
         if(!ok) return;
-        removeSheet(s.id);
-        render();
+        const perform=()=>{removeSheet(s.id);render();};
+        if(FC.applicationWrite)await FC.applicationWrite.globals(perform);else perform();
       });
       actions.appendChild(del);
       row.appendChild(actions);

@@ -601,7 +601,7 @@
     addCat.addEventListener('click', ()=>{ userTouched = true; categories.push(''); render(); });
     exit.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
     cancel.addEventListener('click', ()=>{ try{ FC.panelBox.close(); }catch(_){ } });
-    save.addEventListener('click', ()=>{
+    save.addEventListener('click', (FC.applicationWrite?.handler||((fn)=>fn))(()=>{
       const cleanCategories = normalizeCategories(categories);
       let cleanParams;
       const confirmedKeys = [];
@@ -628,7 +628,7 @@
       userTouched = false;
       try{ if(ctx.renderPriceModal) ctx.renderPriceModal(); }catch(_){ }
       try{ FC.panelBox.close(); }catch(_){ }
-    });
+    }));
     categoriesBody.appendChild(catList);
     categoriesBody.appendChild(addCat);
     categoriesSection.appendChild(categoriesSummary);

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
+const { versions } = require('./script-versions.js');
 
 function read(file){ return fs.readFileSync(path.join(process.cwd(), file), 'utf8'); }
 function assert(condition, message){ if(!condition){ throw new Error(message); } }
@@ -31,8 +32,9 @@ const version = '20260628_drawer_systems_materials_v1';
   'js/app/ui/data-settings-company-view.js',
   'js/app/ui/data-settings-business-costs-view.js'
 ].forEach((script)=>{
-  assert(index.includes(`${script}?v=${version}`), `Brak ${script} w index.html albo zły cache-busting`);
-  assert(dev.includes(`${script}?v=${version}`), `Brak ${script} w dev_tests.html albo zły cache-busting`);
+  const expectedVersion = versions[script] || version;
+  assert(index.includes(`${script}?v=${expectedVersion}`), `Brak ${script} w index.html albo zły cache-busting`);
+  assert(dev.includes(`${script}?v=${expectedVersion}`), `Brak ${script} w dev_tests.html albo zły cache-busting`);
 });
 
 assert(constants.includes("companyProfile: 'fc_company_profile_v1'"), 'Brak klucza companyProfile w constants');

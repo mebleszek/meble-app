@@ -12,7 +12,7 @@
   let interaction=null;
   const trust=FC.localDeviceAccess.createTrust();
   const localSession=FC.localDeviceAccess.createSession({onLock(code){
-    FC.applicationSyncActions?.close();
+    FC.applicationSyncActions?.close();FC.applicationStartup?.revokeCloud();
     gate?.close();gate=null;interaction=null;block();render({status:'unauthenticated',code});
   }});
   const businessNodes=new Set(),styles=[];
@@ -76,6 +76,14 @@
       :error?.code==='LOCAL_ACCESS_OTHER_ACCOUNT'?'Dane tej przeglądarki są dostępne dla innego konta. Użyj właściwego konta lub osobnego profilu przeglądarki.'
       :'Nie udało się bezpiecznie uruchomić aplikacji. Zachowano dane i niezakończoną edycję. Nie odświeżaj strony z niezapisanym formularzem.'});
   }
+  function syncContext(){
+    const ownerUid=localSession.identity().uid;
+    return {ownerUid,authSession:auth,lease,localAccess:{ownerUid,mode:localSession.mode(),
+      firebaseConfig:window.FC_AUTH_TEST_OPTIONS?.firebaseConfig,target:window.FC_AUTH_TEST_OPTIONS?.target,
+      emulator:window.FC_AUTH_TEST_OPTIONS?.emulator,
+      deny(){void trust.revoke();localSession.lock('AUTH_ACCESS_REVOKED');},
+      assert(){localSession.assert(ownerUid);profile.assert(ownerUid);assert();}}};
+  }
   async function loadBusiness(grant,intent,restoring=false){
     if(fatal)throw Object.assign(Error(),{code:'AUTH_RELOAD_REQUIRED'});
     if(!restoring){
@@ -112,7 +120,8 @@
       }
       throw error;
     }
-    if(started){showBusiness(true);return;}
+    await FC.applicationStartup?.beforeBusiness({ownerUid:localSession.identity().uid});
+    if(started){await FC.applicationStartup?.start(syncContext());showBusiness(true);return;}
     if(starting)return;starting=true;
     try{
       const template=el('business-template'),fragment=template.content.cloneNode(true);
@@ -131,7 +140,8 @@
       el('auth-theme').disabled=true;for(const style of styles)style.disabled=false;
       document.dispatchEvent(new Event('DOMContentLoaded'));
       assert();if(window.__APP_STARTED__!==true)throw Error('AUTH_STARTUP_UNCONFIRMED');
-      started=true;starting=false;document.body.dataset.businessState='ready';showBusiness(true);
+      await FC.applicationStartup?.start(syncContext());
+      assert();started=true;starting=false;document.body.dataset.businessState='ready';showBusiness(true);
     }catch(error){starting=false;throw error;}
   }
   function observe(intent=null){
@@ -222,6 +232,7 @@
       await FC.offlineShell.prepare();check();
       const capability=await navigator.locks.request('meble-device-trust-v1',()=>trust.enroll({uid:bound.uid,profileAttemptId:bound.attemptId,check,consent:true}));
       check();localSession.trusted(capability);await profile.resume(capability.uid,capability.profileAttemptId);
+      void FC.applicationStartup?.refresh(syncContext()).catch(()=>{});
       el('main-trust-status').textContent='Zaufano tej instalacji. Dostęp lokalny działa offline do wylogowania.';
     }catch(_){el('main-trust-status').textContent='Nie potwierdzono zaufania lub kompletnej wersji offline. Zaloguj się ponownie online i spróbuj jeszcze raz.';}
     trustControls();
