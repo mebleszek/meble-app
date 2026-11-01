@@ -173,3 +173,12 @@ test('Independent reader refuses missing/corrupt fragments, bad manifest and cha
  await admin(db=>f.updateDoc(ref(db),{ownerUid:UID}));
  const revoked=await client({hook:t=>{const read=t.readProject;t.readProject=async(...args)=>{const out=await read(...args);await admin(db=>f.updateDoc(grant(db),{enabled:false}));revoked.gate.close();return out;};}}),reader=await revoked.borrow();assert.equal((await reader.readVerify()).ok,false);
 });
+
+// New recovery boundaries use this mandatory CURRENT emulator lifetime; old tests unchanged.
+import {registerRecoveryCases} from './cloud46f-recovery.cases.mjs';
+registerRecoveryCases({environment: () => env, client, uid: UID, async retire(c) {
+  // Use the same teardown AND byte-preservation assertion before retiring a primary.
+  for(const p of c.controllers)await p.close();c.gate.close();await c.verifier.close();await c.session.close();
+  assert.equal(c.snapshot(),c.before,'business RAM and every synthetic stored byte must remain identical');
+  const index=clients.indexOf(c);assert.notEqual(index,-1);clients.splice(index,1);
+}});

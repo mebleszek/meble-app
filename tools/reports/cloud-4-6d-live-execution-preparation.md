@@ -374,3 +374,142 @@ kontroli stanu i sesji. Ten pakiet nie zawiera żadnej zgody wykonawczej LIVE.
 Po syntetycznym LIVE następują osobno: bezstratne podłączenie danych biznesowych
 i ich synchronizacji, automatyczna synchronizacja projektów między urządzeniami,
 a następnie pełny LOCAL-FIRST/offline. Pilot nie dowodzi działania tych etapów.
+
+## CLOUD-4.6F FAST TRACK — 01.11.2026
+
+Gałąź `cloud-4-6f-fast-track-20261101`, BASE/main
+`5545a6df9a5e4ebc3551893414da0fde87a9d335`. Ten pakiet uzupełnia przygotowanie
+operatora, bez aktywacji produkcji. Historycznych wyników C/D/E nie ponawiano.
+PR #94 jest scalony do tego main; CI #41260577730 (w tym post-merge-verify Pages)
+PASS, a właściciel potwierdził fizyczny Android. To dowody UI, nie Firebase LIVE.
+
+### Kod i granice
+
+- `cloud46f-history.js` korzysta z istniejącego `verifyHistorical`: odrębny,
+  czysty checkout **306f90a4cfd8bcb4277aa8b4d140e911493ddd60**, wszystkie **425 pinów**.
+  Nie wolno uruchamiać inwentarza C/D/E na zmienionym kodzie UI ani przepinać
+  jego sum. `operatorRoot` wskazuje ten checkout; w CI pochodzi z istniejącego
+  `CLOUD_CI_HISTORY_ROOT`. Nie jest przełącznikiem LIVE.
+- `cloud46f-operator.mjs`: prywatny launcher **przygotowania**, manifest własnych
+  źródeł i kontrola łańcucha E. `preparePrivateLaunch(input)` weryfikuje istniejące
+  sześć podpisów, cztery konteksty, artefakty i podpis recenzenta oraz przypisanie
+  do dokładnej próby/UID/HEAD/pakietu. Dla cyklu używa rzeczywistych bajtów
+  rollbacku i istniejącego `reviewAuthorization`; dla recovery nie wymaga
+  Rules/Spark/rollbacku, ale wymaga też readera do późniejszego dowodu odmowy.
+  Nie otwiera SDK, nie zużywa próby, nie tworzy journala/fence. CLI bez argumentów
+  wypisuje wyłącznie pin i LIVE_BLOCKED; każdy argument oznacza odmowę.
+  **executeProduction/recoverProduction bezwarunkowo odmawiają**, także przy
+  poprawnych podpisach. Nie ma importu produkcyjnego connection ani nowej drogi LIVE.
+- `cloud46f-evidence.js`: oddzielnie przypięty publiczny klucz recenzenta
+  Ed25519, rzeczywiste bajty prywatnych artefaktów i ich hashe; zamknięcie listy
+  publisherów/delegacji, sześć kategorii efektywnego IAM, cztery ścieżki publikacji,
+  monitorowanie wyłączności w oknie, spójność dwóch obserwacji Rules i stanu IAM,
+  tożsamość projektu/bazy, czterech kontekstów i różnych domen awarii hostów.
+  Brak/zmiana/nieznany publisher oznacza odmowę. Format znajduje się w czysto
+  syntetycznej `cloud46f-fixture.mjs`; **nie jest ona dowodem ani szablonem do
+  mechanicznego zatwierdzenia produkcji**. Dowód operacyjny musi zawierać rzeczywiste
+  artefakty i niezależny przegląd ich autentyczności/kompletności. Podpis/JSON,
+  porównanie hashy i dwa GET same nie dowodzą wyłączności. Wynik walidatora to
+  wyłącznie `SUPPLIED_EVIDENCE_COMPLETE_ONLY`, nigdy potwierdzenie stanu Google.
+- `cloud46f-recovery.js`: podpisany checkpoint oryginalnego journala, sidecaru
+  autoryzacji i obu fence. Osobno przypięty fingerprint podpisującego i hash
+  najnowszego checkpointu muszą być wcześniej dostępne na drugim hoście.
+  Import sprawdza oryginalny hash-chain, binding, HEAD i pełność plików w staging;
+  fsync + rename publikuje podkatalog `restored`. Uszkodzony import pozostaje
+  zachowany/zablokowany, nie staje się aktywnym journalem. Nie nadpisuje istniejącej
+  próby ani markerów; nie zawiera wznowienia WRITE. Same hashe nie dowodzą,
+  że kopia jest najnowsza — konieczny jest niezależnie utrzymany receipt repliki.
+- `cloud46f-replica.js`: dekorator **istniejącego** journala. Potwierdzenie trwałej
+  repliki poprzedza mutację; `recordRevision` wymaga potwierdzonej kopii przed
+  pierwszym WRITE. ACK wiąże dokładny checkpoint/hash-chain/host/domenę awarii.
+  Niepotwierdzona lub asynchroniczna kopia odmawia, pozostawiając zużytą próbę.
+  STOP nie czeka na kopię przed samą administracją; brak późniejszego ACK nie
+  uprawnia do ogłoszenia potwierdzonego wyniku. Nie ma retry. **Nie dostarczono
+  transportu do rzeczywistego drugiego hosta** ani aktywnego wpięcia dekoratora
+  w produkcyjne `openAuthorizedConnection`. Obecne E nie przyjmuje takiego
+  journala na swoim wejściu. Do przyszłego aktywnego złożenia należy użyć jego
+  istniejącego `bindAuthorizedRuntime` i tych samych fabryk; nie przepisywać cyklu.
+- `cloud46f-demo-recovery.mjs`: wyłącznie literalne demo/loopback, niezależne
+  administracja/weryfikator/reader i rzeczywisty UID/Auth readera. Wykorzystuje
+  istniejący `stopAction`, CAS i admin adapter, potwierdza flagi oraz odmowę READ
+  i WRITE w Rules. Zachowany `admin-inflight` blokuje poświadczenie bezpieczeństwa.
+  Niepewny STOP pozostawia marker i blokadę powtórzenia.
+
+Nie zmieniono operatora C/D/E, historycznych testów ani pinów, produkcyjnych
+Rules, UI, LOCAL-FIRST lub danych. Brak zmian publicznych zasobów: manifest
+offline jest sprawdzany, nie regenerowany. Nowy manifest F nie zastępuje C/D/E.
+
+### Kontrakt przyszłego prywatnego złożenia — nadal nieaktywne
+
+1. Właściciel ustanawia zaufanie do publicznego klucza recenzenta i klucza
+   receiptów/checkpointów niezależnym kanałem. Prywatny klucz decyzji właściciela
+   pozostaje osobny i nigdy nie jest przekazywany Codexowi. Kod produkcyjny F nie
+   podpisuje decyzji; klucze generowane w testach są wyłącznie syntetyczne.
+2. Drugi host utrzymuje samodzielne, odnawialne poświadczenia STOP/verifier/reader,
+   zatwierdzony checkout i runtime (backend 7.11.0, OAuth 9.15.1, Web SDK z lockfile),
+   najnowszy trwały checkpoint i receipt poza pierwotną domeną awarii.
+3. Transport replikacji musi mieć ograniczony czas, potwierdzać fsync/read-back
+   na niezależnym nośniku i podpisywać dokładny receipt dopiero po nim. Żadnego
+   async fire-and-forget; ACK utracony oznacza STOP, bez ponowienia WRITE.
+   Kod callbacka `replicate` i jego dostępność wymagają prywatnego środowiska;
+   lokalna kopia w testach **nie** potwierdza tego warunku.
+4. Przed certyfikacją STOP po utracie hosta: potwierdzić zewnętrzne odcięcie starej
+   administracji, w tym rozstrzygnięcie wysłanego `stage/activate`. Sama śmierć
+   procesu, token expiry, timeout, kopia fence lub chwilowe `enabled:false` nie
+   wykluczają spóźnionego RPC. Nie kasować `admin-inflight`. Jeżeli tego dowodu
+   brak, utrzymać STOP/niepewność i eskalować do uprawnionego operatora.
+5. Po osobnym przeglądzie/zgodzie na aktywację złożyć istniejący runtime E z
+   replikowanym journalem, zachować claim przed IO, authority sidecar przed pierwszą
+   fazą i jedno WRITE. Oryginalne `executeProduction()` nadal pozostaje odmową.
+   Kod przygotowania nie jest aktywatorem i nie wykonuje tego kroku.
+6. Dopiero w zatwierdzonym oknie uzyskać świeże Rules/read-back, efektywne IAM,
+   delegacje/publisherów/wyłączność oraz Spark/billing/limity (500 reads/30 writes).
+   Historyczne `billingEnabled:false` z 30.10 zachowano bez powtórnego audytu.
+   Potrzebne sześć osobnych podpisanych decyzji: zakresy z `gate.FUTURE_SCOPES`,
+   związane także z `bundle.finalChecks.fastTrack`: sourceManifestSha256 F,
+   evidenceSha256, reviewerFingerprint i checkpointSha256. Dla recovery — nowa
+   podpisana action recover-stop tej samej próby, bez WRITE/stage/activate.
+   Rzeczywiste 635 B rollbacku sprawdza istniejący walidator; template 755 B odpada.
+
+### Rzeczywiste kontrole i CI
+
+- Node 22.23.3, `CLOUD_CI_HISTORY_ROOT=/workspace/cloud-history-306f90a4`:
+  `node tools/cloud46f-fast-track-smoke.js` — **10/10 PASS**, 0 skip/todo.
+  Obejmuje odmowy, 25 mutacji dostarczonych dowodów, utracony ACK repliki,
+  import uszkodzony/stary/obcy, zachowanie admin/recovery fence, rzeczywisty
+  SIGKILL kontrolowanego procesu, brak nowej próby i brak IO przygotowania nawet
+  z sześcioma poprawnymi syntetycznymi podpisami.
+- Rzeczywiste Auth/Firestore demo: `emulators:exec --project demo-meble-app
+  --config firebase-live-pilot.json --only auth,firestore` i
+  `node --test --test-name-pattern=CLOUD-4.6F live-readiness.test.mjs`:
+  **5/5 PASS**, 0 skip/todo, 8,30 s części testowej. Publikacja prawdziwego
+  syntetycznego payloadu, utrata ACK po commit, drugi klient/readVerify, trwała
+  replika przed WRITE, utrata katalogu źródła, STOP z nowych kontekstów,
+  niezmienny nagłówek rewizji i odmowa kolejnego READ/WRITE. Przerwana weryfikacja,
+  reader offline, admin-inflight, obcy UID i produkcyjny host dają odmowy.
+  Po dodaniu jawnego porównania hash-integrity odczytanego dokumentu wykonano
+  tylko ten zmieniony przypadek ponownie: **1/1 PASS**. Hash dokumentu to istniejące
+  zweryfikowane pole integrity, a nie SHA całej serializacji zawierającej to pole.
+- Podczas diagnostyki poprawiono własną fixture podwójnego zamykania Auth;
+  istniejące teardown/asercje nienaruszalności RAM/storage są wykonywane także
+  przed celowym wyłączeniem pierwotnego klienta. Nie maskowano błędu aplikacji.
+- `ci-sharding-smoke`: **182 current smoke**, każda kontrola dokładnie raz;
+  nowy smoke jest automatycznie obowiązkowy. Pięć nowych przypadków rejestruje
+  istniejący CURRENT `live-readiness.test.mjs`, partia 1 z istniejącego planu
+  [5,1,2]. Całe stare suite i historyczne C/D/E pozostają w obowiązkowym CI.
+  Nie zmieniano workflow/package.json ani planu plików; nie dodano skip/retry.
+- Składnia **11 JS/MJS**, diff, 425 pinów, integralność F/offline oraz
+  `cloud-ci-current-boundary-smoke.js` — **PASS**. Brak zmian publicznych plików
+  lub historycznych źródeł/pinów; manifest offline pozostał identyczny.
+  Pełny Preflight/SDK/historical dla tego HEAD: **CI_PENDING**, nie uruchamiano.
+
+**CODE_READY** dotyczy przygotowania offline i regresji; **OPERATOR_PARTIAL /
+CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED** dla przyszłego wykonania.
+Rzeczywiste IAM/Rules/uprawnienia, oryginał rollbacku i całkowita awaria dwóch
+niezależnych hostów pozostają **PENDING / NO_ACCESS**. Dostępny był tylko jeden
+host Codexa. Nie przeprowadzono prywatnego rehearsal ani Firebase LIVE.
+
+Najbliższy krok: niezależna kontrola dokładnego HEAD/BASE tej gałęzi i jedna
+osobno zatwierdzona próba CI; równolegle wskazać prywatny drugi host i operatora
+STOP, aby wykonać powyższy rehearsal bez produkcji. Dopiero jego dowody pozwolą
+zatwierdzić minimalne aktywne złożenie oraz odrębne operacje LIVE.
