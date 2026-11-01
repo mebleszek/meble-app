@@ -1,0 +1,16 @@
+{
+  "productionExecutionAllowed": false,
+  "upstream46eManifestSha256": "bec19c9c4585cd3cbbce2c151cbce0bc8a4288f0c26c8f22cd1b0b79b6bf0086",
+  "sha256": {
+    "cloud46f-operator.mjs": "bd2bd85e4f7f0cc73516c702f725825e7eb02fc01f50f9db1daad864ab0ad5e4",
+    "cloud46f-evidence.js": "cee13e2a9d665ccc825dc41c81eed30c54a6cfa557597f9cbeee0a865ba2cdc9",
+    "cloud46f-recovery.js": "7910de08622a8597bd59f18b86210f1d404eeee8951e94fbcf5d1f86d40b6ccc",
+    "cloud46f-demo-recovery.mjs": "e5df2c6479afe333eb990fa6cd94b36d5054b97c43dbfa21ad11939a65cc90c4",
+    "cloud46f-fixture.mjs": "e49fa705c5d2d7954bd416ac43d5d482578777f5a86025fae7c21c1ba41eca86",
+    "cloud46f-offline.test.mjs": "a4ea85cdfddde3cbd84c7191d03d29de4a7db1dea69f080c5715e0f4d540de20",
+    "cloud46f-recovery.cases.mjs": "647b9af75c9a9a6a86a5a41cc6ac160a540725c7750d857624bcd332bf741daf",
+    "../cloud46f-fast-track-smoke.js": "6aaa6c3d27e4a4f0700506b779b35037b05cb6cd447727aaed6fd37dea8adb17",
+    "cloud46f-history.js": "aa18331c26cd7a99c6f64d0a65e118401d47d0bf081482091b77d076195b493c",
+    "cloud46f-replica.js": "766612878d541ecf4c8cbf84b1ec64cac2c1953d772af9e7d67b0f8996ae7c70"
+  }
+}
