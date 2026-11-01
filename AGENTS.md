@@ -308,6 +308,17 @@ Dziennik dokumentuje stan prac; **nie jest upoważnieniem do PR Ready, merge, wd
 
 **Rozdział wykonania i zgód:** te zasady są trwałe we wszystkich kolejnych wątkach; ChatGPT kontroluje ich przestrzeganie niezależnie od pamięci konwersacji. Standardowo programuje Codex, ale po **odrębnej, wyraźnej zgodzie na określony zakres** ChatGPT może wyjątkowo implementować kod i zapisać osobną gałąź/commit; nie daje to domyślnej zgody na PR Ready, CI, merge, Pages, migrację lub Firebase LIVE.
 
+## 17. Budżet 0 zł i priorytet działającej synchronizacji — decyzja właściciela 01.11.2026
+
+**Koszt jest twardym wymaganiem: 0 zł obowiązkowych opłat.** Nie planować płatnego VPS, płatnego hostingu, abonamentu, komercyjnego monitoringu ani przejścia z Firebase Spark na płatny billing jako domyślnego rozwiązania. Preferować już używane GitHub Pages, IndexedDB, Google Sign-In i bezpłatne limity Firebase. Jeżeli limit lub funkcja wymusza opłatę, wskazać bezpłatny wariant i przedstawić właścicielowi decyzję; żadnych kosztów bez osobnej, wyraźnej zgody. Nie obiecywać nieograniczonych darmowych zasobów.
+
+**Pierwszy mierzalny rezultat:** po zmianie projektu na telefonie i potwierdzeniu zapisu, ten sam projekt staje się dostępny na komputerze; zmiana z komputera wraca na telefon bez ręcznego eksportu. Cel jest ważniejszy niż kolejne etapy samego przygotowania operatora. Wykorzystać wydane komponenty LOCAL-FIRST, IndexedDB, Auth i Firestore oraz istniejące testy; nie przebudowywać ich bez udokumentowanej konieczności.
+
+**Wstrzymane / do ponownej oceny:** CLOUD-4.6G, płatny VPS, rozproszony STOP i dalsze wieloetapowe rozbudowy syntetycznego pilota. STOP dotyczył tymczasowego dostępu podczas eksperymentu, nie zwykłej pracy aplikacji. W następnym pakiecie rozważyć minimalny, bezpłatny, mniej uprzywilejowany pilot i wyjaśnić, które istniejące bramki bezpieczeństwa są nadal naprawdę konieczne. Nie usuwać istniejących zabezpieczeń w ciemno i nie przedstawiać modelu administracyjnego jako bezpiecznego bez dowodu.
+
+**Niezbywalne minima:** wyłączny dostęp właściciela, brak utraty cenników/zamienników, brak nadpisywania zmian offline, bezstratna zmiana autorytetu i brak przypadkowego ujawnienia danych. Żadne ustalenie priorytetu nie stanowi zgody na produkcyjny Firestore READ/WRITE, publikację Rules, IAM, billing, migrację, PR, CI czy wdrożenie. Obowiązują osobne bramki zgody. Jeden największy spójny i testowalny pakiet implementacyjny, raport krótki i zrozumiały dla właściciela; nie wymagać od niego wiedzy administracyjnej ani wykonywania ręcznych komend technicznych.
+
+
 ---
 
 Najważniejsza zasada w skrócie: **ChatGPT prowadzi i kontroluje oraz po osobnej zgodzie tworzy PR Ready, Codex implementuje po „do dzieła”, GitHub Actions testuje bez dublowania lokalnego CI i obsługuje zatwierdzony auto-merge/Pages, właściciel zatwierdza każde wydanie i osobno operacje LIVE. CODE_READY nie oznacza CI_PASS ani zgody produkcyjnej.**
