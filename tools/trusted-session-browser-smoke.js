@@ -61,7 +61,7 @@ async function browser(profile,url,{offline=false,inject=false}={}){
   // navigated renderer; network blocking was enabled before navigation.
   if(offline)await send('Network.overrideNetworkState',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
   assert.equal(await evaluate('location.href'),url);assert.equal(await evaluate('!!document.body&&!!document.getElementById("main-login")'),true,'Requested application document parsed');
-  return {evaluate,until,send,reload:()=>navigation.navigate(url),async touch(selector){
+  return {endpoint:owner.endpoint,evaluate,until,send,reload:()=>navigation.navigate(url),async touch(selector){
     await settleTargets();await send('Emulation.setTouchEmulationEnabled',{enabled:true});
     // The preceding tab's smooth scroll can resume after coordinate sampling
     // (CI #41222338211 proved scrollY 0 -> 20 during trusted pointerdown).
@@ -172,4 +172,4 @@ async function main(){
   console.log('PASS real Chromium/IDB/CryptoKey/SW: desktop idle retains RAM, explicit trust, background/offline, cold restart with origin stopped, offline logout and no inherited readmission');
  }finally{await device?.close();if(!closed)await new Promise(resolve=>server.close(resolve));fs.rmSync(directory,{recursive:true,force:true});}
 }
-if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});module.exports={main,injection};
+if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});module.exports={main,injection,browser};
