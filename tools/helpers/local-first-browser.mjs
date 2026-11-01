@@ -9,7 +9,7 @@ export async function startLocalFirstServer(){
   const server=http.createServer((req,res)=>{
     const url=new URL(req.url,'http://127.0.0.1');
     if(url.pathname==='/'){res.writeHead(200,{'content-type':'text/html'});res.end('<!doctype html><title>Isolated LOCAL-FIRST fixture</title><script type="module">import {openLocalFirstStore} from "/sync/local-first-idb.mjs";window.openLF=(binding)=>openLocalFirstStore({...binding,indexedDB,locks:navigator.locks}).then(s=>{window.lf=s;return true;});window.lfReady=true;</script>');return;}
-    if(!/^\/sync\/local-first-[a-z-]+\.mjs$/.test(url.pathname)){res.writeHead(404);res.end();return;}
+    if(!/^\/sync\/(?:local-first-[a-z-]+|application-release|application-writer-fence)\.mjs$/.test(url.pathname)){res.writeHead(404);res.end();return;}
     try{res.writeHead(200,{'content-type':'text/javascript'});res.end(fs.readFileSync(path.join(root,url.pathname)));}catch(_){res.writeHead(404);res.end();}
   });
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});

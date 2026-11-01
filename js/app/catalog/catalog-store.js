@@ -713,7 +713,15 @@
     return clone((PRICE_LIST_CONFIG && PRICE_LIST_CONFIG[key]) || (domain && domain.getCatalogConfig ? domain.getCatalogConfig(key) : PRICE_LIST_CONFIG.materials));
   }
 
+  // Verified LOCAL-FIRST image, no normalization, storage writes or ID changes.
+  function adoptVerified(model){
+    FC.globalDataContract.validateBundle(model);
+    const fields={sheetMaterials:'materials',accessories:'hardware',quoteRates:'labor',workshopServices:'workshopServices',hardwareManufacturers:'manufacturers',hardwareSuppliers:'suppliers',hardwareSettings:'hardwareSettings',hardwareCategories:'categories',hardwareTypes:'types',hardwareTechnicalParams:'technicalParams'};
+    for(const [key,domain]of Object.entries(fields))cache[key]=clone(model[domain]);syncRuntimeGlobals();
+  }
+
   FC.catalogStore = {
+    adoptVerified,
     markPartialWrite,
     notifyRecoveryRequired,
     getPriceList,

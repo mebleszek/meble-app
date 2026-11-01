@@ -12,6 +12,7 @@ const INDEX_LOAD_GROUPS = [
     "js/app/cloud/main-business-loader.js",
     "js/app/cloud/local-device-access.js",
     "js/app/cloud/offline-shell.js",
+    "js/app/cloud/application-release.js",
     "js/app/cloud/application-bootstrap.js",
     "js/main-login.js"
   ]

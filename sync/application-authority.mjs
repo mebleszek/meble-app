@@ -1,8 +1,9 @@
-// Controlled emulator application authority; production migration remains refused.
+// Shared authority; production cutover requires a verified owner deployment.
+import {assertApplicationRelease} from './application-release.mjs';
 import {assertEmulator,fail,equal} from './local-first-values.mjs';
 const installations=new WeakSet();
 export function applicationKeys(fc){return [...Object.values(fc.globalDataContract.sources).flat(),'fc_projects_v1','fc_investors_v1','fc_current_project_id_v1','fc_current_investor_v1','fc_edit_session_v1','fc_ui_v1','fc_quote_snapshots_v1',
-  'fc_project_v1','fc_investor_removed_ids_v1','fc_edge_v1','fc_material_part_options_v1','fc_rozrys_grain_state_v1','fc_rozrys_overrides_v1','fc_quote_offer_drafts_v1','fc_project_backup_v1','fc_project_backup_meta_v1'];}
+  'fc_project_v1','fc_materials_v1','fc_investor_removed_ids_v1','fc_edge_v1','fc_material_part_options_v1','fc_rozrys_grain_state_v1','fc_rozrys_overrides_v1','fc_quote_offer_drafts_v1','fc_project_backup_v1','fc_project_backup_meta_v1'];}
 
 // An intentional edit updates the declared aliases as one value. Conflicting
 // pre-existing RAW or competing writes are refusals, never automatic repair.
@@ -29,8 +30,10 @@ export async function installOfflineEmulatorApplicationAuthority(options){
  options.window.__FC_MAIN_ACCESS__.assert();
  return installAuthority(options);
 }
-async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCommitted=()=>{},authorize,beforeTransaction=async()=>{},sourceRead,initialRows}){
- if(ownerUid!==store.ownerUid||!/^meble-lf-test-/.test(store.name)||!['127.0.0.1','localhost'].includes(w.location.hostname))fail('LF_APPLICATION_MIGRATION_NOT_APPROVED');
+export function installAuthorizedApplicationAuthority(options){assertApplicationRelease(options.release,{ownerUid:options.ownerUid,name:options.store.name,window:options.window});return installAuthority(options);}
+async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCommitted=()=>{},authorize,beforeTransaction=async()=>{},sourceRead,initialRows,release:deployment}){
+ if(deployment)assertApplicationRelease(deployment,{ownerUid,name:store.name,window:w});
+ if(ownerUid!==store.ownerUid||!deployment&&(!/^meble-lf-test-/.test(store.name)||!['127.0.0.1','localhost'].includes(w.location.hostname)))fail('LF_APPLICATION_MIGRATION_NOT_APPROVED');
  if(installations.has(w))fail('LF_APPLICATION_ALREADY_INSTALLED');
  const fc=w.FC,ls=w.localStorage,proto=w.Storage.prototype;
  const keys=new Set(applicationKeys(fc));
@@ -52,6 +55,7 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
  if(open)fc.infoBox.open=options=>{if(inTransaction&&(options?.title==='Projekt zapisany'||/^Zapisano/.test(options?.title||''))){pendingNotices.push(options);return;}return open(options);};
  const listener=event=>{if(event.key===null||keys.has(event.key)){external=true;}};w.addEventListener('storage',listener);
  function idle({allowForm=false}={}){access();if(!allowForm&&(fc.priceModal?.isItemDirty?.()||w.document.querySelector('.panel-box-backdrop')))fail('LF_ACTIVE_FORM_PROTECTED');if(inTransaction||fc.session.active||fc.session.snapshot||fc.session.durable||rows.fc_edit_session_v1!==null||fc.investorEditorState?.hasUiLock()||fc.investorProjectRuntime.hasProjectDivergence(w.projectData))fail('LF_ACTIVE_RAM_PROTECTED');}
+ async function hydrateCatalogs(){if(!(await store.snapshot?.('globals'))?.replica)return;const c=fc.globalDataContract,model=c.capture({getItem:k=>k==='fc_edit_session_v1'?null:rows[k]??null},Object.keys(c.schemas)).model;fc.catalogStore?.adoptVerified?.(model);}
  function snapshotSession(){return Object.fromEntries(Object.entries(fc.session).filter(([,v])=>typeof v!=='function').map(([k,v])=>[k,structuredClone(v)]));}
  async function transaction(kind,operation){
   access();assertSource();lastCode=null;if(inTransaction)fail('LF_APPLICATION_BUSY');
@@ -65,7 +69,7 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
    mutating=true;const result=await operation();rows=reconcileGlobalAliases(old,rows,fc.globalDataContract);mutating=false;access();assertSource();if(result===false||result?.ok===false)fail('LF_APPLICATION_SAVE_UNCONFIRMED');
    if(kind==='auto'){
     const changed=[...keys].filter(k=>rows[k]!==old[k]);
-    const globals=new Set(Object.values(fc.globalDataContract.sources).flat());
+    const globals=new Set([...Object.values(fc.globalDataContract.sources).flat(),'fc_materials_v1']);
     const business=changed.filter(k=>!['fc_edit_session_v1','fc_ui_v1','fc_current_project_id_v1','fc_current_investor_v1','fc_project_backup_v1','fc_project_backup_meta_v1'].includes(k));
     if(business.every(k=>globals.has(k))&&business.length)kind='globals';
     else if(business.length)kind='project';
@@ -78,11 +82,11 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
     for(const k of keys)if(kind==='checkpoint'&&!['fc_edit_session_v1','fc_ui_v1','fc_current_project_id_v1','fc_current_investor_v1'].includes(k)&&rows[k]!==old[k])throw Object.assign(Error('LF_CHECKPOINT_DATA_CHANGED: '+k),{code:'LF_CHECKPOINT_DATA_CHANGED'});
     await checkpoint(application,kind);
    }else await commit(kind,application);
-   image=await store.readApplication();rows=structuredClone(image.rows);inTransaction=false;
+   image=await store.readApplication();rows=structuredClone(image.rows);await hydrateCatalogs();inTransaction=false;
    for(const close of pendingClosures.splice(0))close();
    for(const notice of pendingNotices.splice(0))open?.(notice);
    queueMicrotask(onCommitted);return result;
-  }catch(e){lastCode=/^(LF_|GLOBAL_|CLOUD_)[A-Z_]+$/.test(e?.code||e?.message||'')?(e.code||e.message):'LF_APPLICATION_UNCONFIRMED';rows=old;Object.assign(fc.session,session);w.projectData=ram;w.uiState=ui;if(editorState)Object.assign(fc.investorEditorState.state,editorState);if(investorUi)Object.assign(fc.investorUI.state,investorUi);if(priceState)Object.assign(fc.priceModalContext.runtimeState,priceState);pendingClosures.length=0;for(const [el,style]of views)el.style.cssText=style;pendingNotices.length=0;inTransaction=false;mutating=false;throw e;}
+  }catch(e){lastCode=/^(LF_|GLOBAL_|CLOUD_)[A-Z_]+$/.test(e?.code||e?.message||'')?(e.code||e.message):'LF_APPLICATION_UNCONFIRMED';rows=old;Object.assign(fc.session,session);w.projectData=ram;w.uiState=ui;if(editorState)Object.assign(fc.investorEditorState.state,editorState);if(investorUi)Object.assign(fc.investorUI.state,investorUi);if(priceState)Object.assign(fc.priceModalContext.runtimeState,priceState);pendingClosures.length=0;for(const [el,style]of views)el.style.cssText=style;pendingNotices.length=0;inTransaction=false;mutating=false;await hydrateCatalogs();throw e;}
  }
  // Reopening an approved image never copies it back over the preserved source.
  // A durable draft requires the existing session recovery path, not a clean boot.
@@ -100,7 +104,7 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
  }
  return Object.freeze({transaction,afterCommit(fn){if(inTransaction)pendingClosures.push(fn);else fn();},assertIdle:idle,rows:()=>structuredClone(rows),
   async incoming(next){idle();assertSource();if(Object.keys(next).some(k=>!keys.has(k)))fail('LF_APPLICATION_SCOPE_REFUSED');incomingWitness=JSON.stringify(w.projectData);return {expectedVersion:image.version,rows:next};},
-  async refresh(){access();assertSource();if(inTransaction||fc.session.active||incomingWitness!==JSON.stringify(w.projectData))fail('LF_ACTIVE_RAM_PROTECTED');incomingWitness=null;image=await store.readApplication();rows=structuredClone(image.rows);w.projectData=fc.project.load();w.uiState=fc.uiState.get();fc.views.applyFromState(w.uiState);fc.sections.update();},
+  async refresh(){access();assertSource();if(inTransaction||fc.session.active||incomingWitness!==JSON.stringify(w.projectData))fail('LF_ACTIVE_RAM_PROTECTED');image=await store.readApplication();rows=structuredClone(image.rows);await hydrateCatalogs();w.projectData=fc.project.load();w.uiState=fc.uiState.get();fc.views.applyFromState(w.uiState);fc.sections.update();incomingWitness=null;},
   // Logout seals writes; the local data/outbox is never removed.
   close(){closed=true;},
   resume(uid){if(uid!==ownerUid||external)fail('LF_APPLICATION_OWNER_CHANGED');w.__FC_MAIN_ACCESS__.assert();assertSource();closed=false;},

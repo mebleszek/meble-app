@@ -1,5 +1,6 @@
 // Production integration boundary. Import performs no auth, network or writes.
 // Receives existing authenticated Firebase sessions; it never logs in or uses ADC.
+import {assertApplicationRelease} from './application-release.mjs';
 import {assertEmulator,canonical,digest,equal,fail,id} from './local-first-values.mjs';
 const active = new WeakMap(), PROJECT='mebleszek-meble-app';
 export function assertGlobalConnection(connection) {
@@ -10,6 +11,17 @@ export function assertGlobalConnection(connection) {
 export function assertApplicationConnection(connection){
  if(connection?.db?.app?.options?.projectId==='demo-meble-app'){connection.assertAccess?.();return assertEmulator(connection);}
  const permit=active.get(connection);if(!permit?.application)fail('LF_APPLICATION_ACTIVATION_REQUIRED');return permit.assert();
+}
+// Daily operation: a verified deployment and fresh Google/Rules lease, no
+// administrative token, short-lived owner signature or Rules API request.
+export function authorizeApplicationSession({release,writer,reader}){
+ const d=assertApplicationRelease(release);
+ const who=connection=>{connection.assertAccess();return d.projectId==='demo-meble-app'?assertEmulator(connection):liveIdentity(connection,d.ownerUid);};
+ const a=who(writer),b=who(reader);
+ if(a.uid!==d.ownerUid||b.uid!==d.ownerUid||writer.db.app===reader.db.app||writer.auth===reader.auth)fail('LF_INDEPENDENT_OWNER_REQUIRED');
+ const check=()=>{if(!equal(who(writer),a)||!equal(who(reader),b))fail('LF_AUTH_CHANGED');};
+ check();active.set(writer,{assert:()=>{check();return a;},application:true});active.set(reader,{assert:()=>{check();return b;},application:true});
+ return {revoke(){active.delete(writer);active.delete(reader);}};
 }
 export async function authorizeApplicationFirebase(input={}){
  const d=input.decision;

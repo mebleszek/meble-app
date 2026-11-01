@@ -2,11 +2,11 @@
 
 > **Jak czytać:** `ROADMAP.md` przechowuje plan, zależności i decyzje przyszłe. **Aktualny stan wykonania, zaliczone CI/Pages, blokery i jeden następny ruch są wyłącznie w [CURRENT_STATE.md](CURRENT_STATE.md)**. Nie aktualizować obu plików równoległymi kopiami statusów. Starsze sekcje poniżej są historią planowania i nie anulują późniejszych wydań.
 
-## Najbliższa kolejność — weryfikacja 30.10.2026
+## Najbliższa kolejność — decyzja 01.11.2026
 
-1. **Niezależnie ocenić obecny pakiet integracji Android / LOCAL-FIRST**, potem osobno zatwierdzić CI dla dokładnego HEAD/BASE. PR #87 porządku dokumentacji jest wydany; dowody wyłącznie w CURRENT_STATE.
-2. **Po wydaniu poprawki Androida** zweryfikować izolację inwestorów i pracę na fizycznym telefonie, bez resetu danych.
-3. **Domknąć produkcyjne bramki aktywacji autorytetu:** normalny startup, formularze i odbiór są połączone w kontrolowanej instalacji emulatorowej (01.11); produkcyjny inicjalizator/cutover wymaga zatwierdzonego wiązania, dowodu wyłączności starych writerów oraz bezstratnej migracji. Usuwanie/import archiwów i nowy projekt offline pozostają jawnymi granicami. Kontrolowany przepływ emulatorowy wykorzystuje ten sam LOCAL-FIRST; nie stanowi automatycznej zgody na produkcyjną migrację, Rules ani LIVE. Issue #47 pozostaje odłożone.
+1. Niezależnie ocenić pakiet produkcyjnego startupu/cutover, następnie osobno zatwierdzić CI dla dokładnych HEAD/BASE. Wydanie PR #97 i bieżące dowody są w CURRENT_STATE.
+2. Po PASS i wydaniu zatwierdzić konkretny publiczny pakiet aktywacji, właścicielskie Rules/granty i bezstratne przełączenie urządzeń. Jednorazowa decyzja wdrożeniowa ma być oddzielona od codziennej pracy opartej na Google/Rules, bez 15-minutowych podpisów administracyjnych, VPS i obowiązkowych opłat.
+3. Potwierdzić fizyczny telefon → komputer → telefon i pracę offline, bez resetu danych. Usuwanie/import pełnych archiwów, nowy nieznany serwerowi projekt offline i nierozstrzygnięte RAW pozostają jawnymi granicami; Issue #47 odłożone. Sukces emulatora nie uruchamia LIVE.
 
 > **Dalsze sekcje:** decyzje nadal obowiązujące są wiążące; opisy dawnych stanów i etykiety `CI_PENDING`/`priorytet 1` są migawkami historycznymi. Najnowsze statusy czytaj w `CURRENT_STATE.md`.
 

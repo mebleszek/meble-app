@@ -4,6 +4,8 @@ async function exerciseFullDeletion(device){
  const evaluate=x=>device.evaluate(x),until=x=>device.until(x),touch=x=>device.touch(x);
  await device.send('Emulation.setDeviceMetricsOverride',{width:393,height:852,deviceScaleFactor:1,mobile:true});
  await evaluate(`(()=>{const fc=window.FC;if(!fc.investors.readAll().length){const inv=fc.investors.create({kind:'person',name:'Synthetic retained owner',rooms:[]});if(!inv||!fc.projectStore.ensureForInvestor(inv.id))throw Error('Retained fixture refused');projectData=fc.project.load();window.projectData=projectData;}fc.views.openInvestorsList();})()`);
+ assert.equal(await evaluate('window.FC.applicationSyncActions?.installed?.()===true'),false);
+ assert.equal(await evaluate('(async()=> (await indexedDB.databases()).some(d=>d.name==="meble-application-writer-fence-v1"))()'),false,'Offline shell reads must not create a sync fence database');
  const ids=await evaluate(`(()=>{
  const fc=window.FC,all=fc.investors.readAll(),owner=all[0],project=fc.projectStore.getByInvestorId(owner.id);
  if(fc.session.active||uiState.entry!=='investorsList'||!project)throw Error('Deletion fixture requires idle native list');
@@ -20,7 +22,7 @@ async function exerciseFullDeletion(device){
  await touch('[data-action="open-investor"][data-inv-id="'+ids[0]+'"]');await until('document.querySelector(".info-box")?.textContent.includes("PROJECT_OWNER_CONFLICT")');await touch('.info-box .is-success');
  await touch('[data-action="remove-investor-from-list"]');
  for(const id of ids)await touch('[data-investor-delete-id="'+id+'"]');
- await touch('[data-action="remove-investor-from-list"]');await until('!!document.querySelector(".confirm-box")');
+ await touch('[data-action="remove-investor-from-list"]');try{await until('!!document.querySelector(".confirm-box")');}catch(error){throw Error(error.message+' DELETE_DIAGNOSTIC '+await evaluate('(async()=>JSON.stringify({message:document.querySelector(".info-box")?.textContent,databases:(await indexedDB.databases()).map(d=>d.name)}))()'));}
  const preview=await evaluate('document.querySelector(".confirm-message").textContent');
  for(const text of ['Inwestorzy: 2','Projekty: 2','Zapisane oferty / wyceny: 2','Robocze oferty: 2'])assert.ok(preview.includes(text),preview);
  await touch('.confirm-box .is-danger');
