@@ -54,7 +54,7 @@ export function createApplicationReplication({store,channels,globalContract,proj
  const stopDiscovery=discovery?.watch(discover)||(()=>{});eventTarget.addEventListener('online',discover);discover();
  return Object.freeze({...sync,
   notify(){sync.notify();discover();},
-  close(){closed=true;stopDiscovery();eventTarget.removeEventListener('online',discover);sync.close();},
+  close(){closed=true;stopDiscovery();eventTarget.removeEventListener('online',discover);return Promise.all([sync.close(),listing]);},
   async acquireEditor(scope){await assertIdle();return sync.acquireEditor(scope);},
   async releaseEditor(scope){await assertIdle();return sync.releaseEditor(scope);},
   ...createApplicationCommitter({store,globalContract,projectContract,channel:scope=>sync.channel(scope)})

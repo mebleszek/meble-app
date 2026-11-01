@@ -93,3 +93,21 @@ test('whole-store restore refuses before legacy callbacks or journals can mutate
  for(const [api,names]of [[w.FC.dataBackupStore,['restoreBackup','importSnapshot']],[w.FC.dataBackupSnapshot,['applySnapshot']],[w.FC.dataBackupSnapshotApply,['applySnapshot']]])for(const n of names)assert.throws(()=>api[n]({}),/LF_ARCHIVE_RESTORE_PROTOCOL_REQUIRED/);
  assert.equal(writes,0);b.close();
 });
+
+test('connection handoff drains the old read before a replacement publishes; stale lease never consumes the queued write',async()=>{
+ let release,entered,stopped=false,writes=0,remote={head:{generation:1},value:{exact:1}},operation=null;
+ const readEntered=new Promise(r=>entered=r),held=new Promise(r=>release=r),events=new EventTarget();
+ const store={exclusive:async fn=>fn(),snapshot:async()=>({replica:{base:{generation:1},dirty:!!operation},operations:operation?[operation]:[]}),
+  transition:async(_key,_phase,next,patch={})=>{operation={...operation,phase:next,...patch};return operation;}};
+ const old=createApplicationReplication({store,channels:[{scope:'globals',kind:'globals',watch:()=>()=>{},async read(){entered();await held;throw Error('AUTH_ACCESS_REVOKED');}}],eventTarget:events,
+  incoming(){throw Error('no old apply');},refresh(){},assertIdle(){}});
+ await readEntered;
+ operation={key:'one-offline-write',scope:'globals',phase:'queued',localVersion:1,base:{generation:1},json:JSON.stringify({exact:7.125})};
+ const closing=Promise.resolve(old.close()).then(()=>{stopped=true;});
+ await new Promise(r=>setImmediate(r));assert.equal(stopped,false,'close must not announce completion while its old SDK read holds the cycle');
+ release();await closing;assert.equal(operation.phase,'queued');assert.equal(writes,0);
+ const fresh=createApplicationReplication({store,channels:[{scope:'globals',kind:'globals',watch:()=>()=>{},read:async()=>remote,
+  prepare:async()=>({expected:{generation:2},async publish(){writes++;remote={head:{generation:2},value:{exact:7.125}};}})}],eventTarget:events,
+  incoming(){throw Error('no fresh apply');},refresh(){},assertIdle(){}});
+ try{assert.equal((await fresh.flush()).ok,true);assert.equal(operation.phase,'verified');assert.equal(writes,1);assert.deepEqual(remote.value,{exact:7.125});}finally{await fresh.close();}
+});

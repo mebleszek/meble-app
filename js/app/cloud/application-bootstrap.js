@@ -38,7 +38,7 @@
    if(!configuration||!runtime||!context)return;if(refreshing)return refreshing;
    refreshing=(async()=>{try{
     window.__FC_MAIN_ACCESS__.assert();
-    stage='reconnect-auth';const next=await connect(context);window.__FC_MAIN_ACCESS__.assert();stage='reconnect-runtime';await runtime.resume(next);const old=connectionsActive;connectionsActive=next;await old?.retire?.();lastError=null;stage='ready';
+    stage='reconnect-auth';const next=await connect(context);window.__FC_MAIN_ACCESS__.assert();stage='reconnect-runtime';const old=connectionsActive;try{await runtime.resume(next);}finally{connectionsActive=next;await old?.retire?.();}lastError=null;stage='ready';
    }catch(error){note(error);throw error;}})().finally(()=>{refreshing=null;});return refreshing;
   },
   close(){runtime?.close();void connectionsActive?.logout?.();}

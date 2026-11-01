@@ -145,6 +145,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
       else if(e.headRevision!=='')fail('LF_EDITOR_RECOVERY_BLOCKED');
       return store.setEditor(projectId,r.version,r.editor,e);
     });},
-    close(){closed=true;eventTarget.removeEventListener('online',schedule);for(const stop of unsubscribe)stop();}
+    // Listener removal is not completion of an in-flight SDK/IDB cycle.
+    close(){closed=true;eventTarget.removeEventListener('online',schedule);for(const stop of unsubscribe)stop();return running||Promise.resolve();}
   });
 }

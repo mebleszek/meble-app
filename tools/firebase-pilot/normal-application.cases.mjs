@@ -29,7 +29,7 @@ export async function runNormalApplication(t,{deployment=false}={}){
  const catalogs=model();for(const ref of ['laminat TEST','laminat','TEST','HDF'])if(!catalogs.materials.some(r=>[r.id,r.name,r.materialType].includes(ref)))catalogs.materials.push({id:'normal-material-'+catalogs.materials.length,name:ref,materialType:'synthetic',price:12.375,priceUnit:'sheet'});
  const sources=runtime().FC.globalDataContract.sources;
  let releaseSlot=null;if(deployment){const keys=await crypto.subtle.generateKey('Ed25519',true,['sign','verify']),publicKeySpki=new Uint8Array(await crypto.subtle.exportKey('spki',keys.publicKey));const {canonical,digest}=await import('../../sync/local-first-values.mjs');const decision={domain:'MEBLE_APPLICATION_DEPLOYMENT_V1',protocol:2,projectId:'demo-meble-app',database:'(default)',profile:'business-project-v1',globalDomains:14,ownerUid:uid,activationId:'synthetic-deployment',origin:origin+'/',migrationApproved:true,sourcePreserved:true,rulesApproved:true,rulesSha256:await digest(rules)};releaseSlot={envelope:{decision,publicKeySpki:[...publicKeySpki],signature:[...new Uint8Array(await crypto.subtle.sign('Ed25519',keys.privateKey,new TextEncoder().encode(canonical(decision))))]},trustedKeySha256:Buffer.from(await crypto.subtle.digest('SHA-256',publicKeySpki)).toString('hex')};}
- async function login(d){await d.page.evaluate(()=>window.normalReleaseReady);await d.page.click('#auth-google');try{await d.page.waitForFunction(()=>['ready'].includes(document.body.dataset.businessState)||['profile-pending','error'].includes(document.body.dataset.authState));}catch(error){throw Error('Login phase '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,phase:window.FC.applicationStartup?.inspect(),connectionError:window.normalConnectionError}))));}
+ async function login(d){await d.page.evaluate(()=>window.normalReleaseReady);await d.page.click('#auth-google');try{await d.page.waitForFunction(()=>['ready'].includes(document.body.dataset.businessState)||['profile-pending','error'].includes(document.body.dataset.authState));}catch(error){throw Error('Login phase '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,phase:window.FC.applicationStartup?.inspect(),connectionError:window.normalConnectionError,rpc:window.normalRpcTimeline,pendingRpc:window.normalPendingRpc}))));}
   if(await d.page.evaluate(()=>document.body.dataset.authState==='error'))throw Error('Normal startup refused '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,error:document.getElementById('auth-error')?.textContent}))));
   if(await d.page.locator('#auth-profile-admission').isVisible()){await d.page.check('#auth-profile-backup');await d.page.check('#auth-profile-owner');await d.page.click('#auth-profile-confirm');}
   try{await d.page.waitForFunction(()=>document.body.dataset.businessState==='ready');}catch(error){throw Error(error.message+' '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,error:document.getElementById('auth-error')?.textContent,app:document.getElementById('app-error-msg')?.textContent}))));}}
@@ -73,7 +73,7 @@ export async function runNormalApplication(t,{deployment=false}={}){
   await d.page.addInitScript(({uid,name,releaseSlot})=>{const raw=Storage.prototype.getItem;window.readNormalSource=key=>raw.call(localStorage,key);const prepare=()=>{
    const config={name:'meble-lf-test-normal-'+name,async connections(input){
     try{const [app,auth,f]=await Promise.all([import('/__sdk/firebase-app.js'),import('/__sdk/firebase-auth.js'),import('/__sdk/firebase-firestore.js')]);
-    const errors=window.normalSdkErrors=[];const observed={...f};for(const key of ['runTransaction','getDocFromServer','getDocsFromServer'])observed[key]=(...args)=>{const result=f[key](...args);result.catch(error=>{errors.push({method:key,code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();});return result;};
+    const errors=window.normalSdkErrors=[];const observed={...f};for(const key of ['runTransaction','getDocFromServer','getDocsFromServer'])observed[key]=(...args)=>{const began=performance.now(),pending=window.normalPendingRpc||(window.normalPendingRpc=[]),rpc={method:key};pending.push(rpc);let result;try{result=f[key](...args);}catch(error){pending.splice(pending.indexOf(rpc),1);throw error;}const completed=()=>{pending.splice(pending.indexOf(rpc),1);const log=window.normalRpcTimeline||(window.normalRpcTimeline=[]);log.push({method:key,ms:Math.round(performance.now()-began)});if(log.length>12)log.shift();};result.then(completed,completed);result.catch(error=>{errors.push({method:key,code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();});if(key==='runTransaction'&&window.holdOldReader===args[0]?.app?.name&&!window.normalReadArmed){window.normalReadArmed=true;return result.then(value=>{window.normalHeldRead=true;return new Promise(resolve=>window.releaseOldRead=()=>resolve(value));});}return result;};
     const config={projectId:'demo-meble-app',apiKey:'demo-only',authDomain:'demo-meble-app.firebaseapp.com',appId:'demo-only'};
     let session=null,lease=null;
     if(input.authSession){
@@ -97,7 +97,7 @@ export async function runNormalApplication(t,{deployment=false}={}){
   };if(releaseSlot){const fc=window.FC=window.FC||{};Object.defineProperty(fc,'applicationStartup',{configurable:true,set(value){Object.defineProperty(fc,'applicationStartup',{configurable:true,writable:true,value});prepare();}});}else document.addEventListener('DOMContentLoaded',prepare,{once:true});},{uid,name:d.name,releaseSlot});
  }
  async function enable(d){await configure(d);await d.page.reload();await login(d);}
- await enable(phone);const ownerClient=deployment?env.authenticatedContext(uid,{email_verified:true,firebase:{sign_in_provider:'google.com'}}).firestore():null;
+ await enable(phone);const ownerClient=env.authenticatedContext(uid,{email_verified:true,firebase:{sign_in_provider:'google.com'}}).firestore();
  const beforeReceiver=deployment?(await getDoc(doc(ownerClient,'users',uid,'globalData','current'))).data():null;
  if(deployment)computer=await device('computer');else await enable(computer);
  if(deployment)assert.equal((await getDoc(doc(ownerClient,'users',uid,'globalData','current'))).data().revisionId,beforeReceiver.revisionId,'Empty device must never publish defaults over the server');
@@ -111,6 +111,7 @@ export async function runNormalApplication(t,{deployment=false}={}){
  await extra.close();
  await assert.rejects(phone.page.evaluate(()=>localStorage.setItem('fc_projects_v1','[]')),/LF_ASYNC_TRANSACTION_REQUIRED/);
  await assert.rejects(phone.page.evaluate(()=>window.FC.dataBackupStore.importSnapshot({})),/LF_ARCHIVE_RESTORE_PROTOCOL_REQUIRED/);
+ await assert.rejects(phone.page.evaluate(id=>window.FC.investorDeletion.prepare([id]),ids[0]),/DELETE_LOCAL_FIRST_ACTIVE/);
  // No injection of authority transactions: existing registry/navigation is wrapped.
  await phone.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list'));
  await touch(phone,'[data-action="open-investor"][data-inv-id="'+ids[0]+'"]');
@@ -184,12 +185,16 @@ export async function runNormalApplication(t,{deployment=false}={}){
  await computer.page.waitForFunction(()=>window.normalConnections?.[0]?.db.app.name==='meble-sync-trusted-writer-v1'&&window.FC.applicationStartup.inspect().stage==='ready');
  await computer.page.evaluate(pid=>window.FC.applicationWrite.project(()=>{const row=window.FC.projectStore.getById(pid);row.title='Online approved';if(!window.FC.projectStore.upsert(row))throw Error('Editor reservation refused');}),pid);
  await until(async()=>await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid)?.title,pid)==='Online approved');
+ const beforeOfflineHead=(await getDoc(doc(ownerClient,'users',uid,'localFirstProjects',pid))).data();
+ if(deployment){await computer.page.evaluate(()=>{window.holdOldReader=window.normalConnections[1].db.app.name;dispatchEvent(new Event('meble-sync-authorized'));});await computer.page.waitForFunction(()=>window.normalHeldRead===true);}
  await computer.page.context().setOffline(true);await computer.page.waitForFunction(()=>navigator.onLine===false);
  await computer.page.evaluate(pid=>window.FC.applicationWrite.project(()=>{const r=window.FC.projectStore.getById(pid);r.title='Same-window offline';if(!window.FC.projectStore.upsert(r))throw Error('Offline refused');}),pid);
  const previousConnection=await computer.page.evaluate(()=>window.normalConnectionEpoch);
  await computer.page.context().setOffline(false);
+ if(deployment){await computer.page.waitForFunction(previous=>window.normalConnectionEpoch>previous,previousConnection);assert.equal(await computer.page.evaluate(()=>window.FC.applicationStartup.inspect().stage),'reconnect-runtime','A new SDK must not report ready while the old read is still in flight');await computer.page.evaluate(()=>window.releaseOldRead());}
  await computer.page.waitForFunction(previous=>window.normalConnectionEpoch>previous&&window.FC.applicationStartup.inspect().stage==='ready',previousConnection);
  await until(async()=>await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid)?.title,pid)==='Same-window offline');
+ assert.equal((await getDoc(doc(ownerClient,'users',uid,'localFirstProjects',pid))).data().generation,beforeOfflineHead.generation+1,'Exactly one committed project WRITE across reconnect');
  await computer.page.context().setOffline(true);
  await computer.page.waitForFunction(()=>navigator.onLine===false);
  await computer.page.evaluate(pid=>window.FC.applicationWrite.project(()=>{const row=window.FC.projectStore.getById(pid);row.title='Offline durable revision';if(!window.FC.projectStore.upsert(row))throw Error('Offline write refused');}),pid);

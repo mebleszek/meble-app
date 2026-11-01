@@ -134,16 +134,19 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    status:()=>({state:closed?'locked':sync?'active':'offline',sourcePreserved:true,projectRecords:JSON.parse(authority.rows().fc_projects_v1||'[]').length,projectChannels:JSON.parse(authority.rows().fc_projects_v1||'[]').filter(p=>!!sync?.channel(p.id)).length,transactionPending:authority.status().transactionPending||boundary?.busy()===true,states:copy(states)}),
    async resume(next){
     if(assertApplicationConnection(next.writer).uid!==ownerUid||assertApplicationConnection(next.reader).uid!==ownerUid)fail('LF_APPLICATION_OWNER_CHANGED');
-    const wasClosed=closed;sync?.close();writer=next.writer;reader=next.reader;authority.resume(ownerUid);closed=false;if(authority.status().incomingPending)await authority.refresh();
+    const wasClosed=closed;await sync?.close();writer=next.writer;reader=next.reader;authority.resume(ownerUid);closed=false;if(authority.status().incomingPending)await authority.refresh();
     globals=createGlobalChannel({writer,reader,ownerUid,contract:c,factory:fc.firebaseGlobalTransport});
     const channels=[globals,...JSON.parse(authority.rows().fc_projects_v1||'[]').map(channel)];
     sync=createApplicationReplication({store,channels,globalContract:c,projectContract:p,eventTarget:w,online:()=>!closed&&w.navigator.onLine!==false,onState:state,
      discovery:createEmulatorProjectDiscovery({writer,reader,ownerUid,deviceId:store.deviceId,pilotContract:fc.cloudPilotContract,pilotFactory:fc.firebasePilotTransport,globalContract:c,projectContract:p,globals}),
      incoming:next=>authority.incoming(next),refresh:()=>authority.refresh(),assertIdle:idle});
     if(wasClosed)bind();sync.notify();
-    void sync.flush().then(async result=>{if(result.ok&&!fc.session.active&&w.uiState.entry==='investorsList')for(const p of JSON.parse(authority.rows().fc_projects_v1||'[]')){if(fc.session.active||w.uiState.entry!=='investorsList')return;await handover(p.id);}}).catch(error=>state(safeError(error)));
+    // Do not report a rebound runtime ready while the durable queue is still
+    // resolving its previous generation's uncertain operation. Never retry WRITE.
+    const result=await sync.flush();if(!result.ok){state(result);fail(result.code);}
+    if(!fc.session.active&&w.uiState.entry==='investorsList')for(const p of JSON.parse(authority.rows().fc_projects_v1||'[]')){if(fc.session.active||w.uiState.entry!=='investorsList')return;await handover(p.id);}
    },
    close(){closed=true;sync?.close();boundary.close();authority.close();w.removeEventListener('online',notify);w.removeEventListener('meble-sync-authorized',notify);w.removeEventListener('click',wakeReceive,true);},
-   async dispose(){closed=true;sync?.close();boundary?.close();authority?.close();store.close();await installation.release();}});
+   async dispose(){closed=true;await sync?.close();boundary?.close();authority?.close();store.close();await installation.release();}});
  }catch(error){closed=true;sync?.close();boundary?.close();authority?.close();store?.close();await installation.release();throw error;}
 }
