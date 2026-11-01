@@ -1,7 +1,8 @@
+import {assertApplicationMigration} from './application-release.mjs';
 import {copy, fail, equal, id, json, digest} from './local-first-values.mjs';
 const TABLES = ['control', 'replicas', 'outbox', 'protected'];
 // Explicit separate database. No localStorage, backup archive or startup.
-export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, deviceId, instanceId, initialize = false} = {}) {
+export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, deviceId, instanceId, initialize = false, migration} = {}) {
   id(ownerUid); id(deviceId); id(instanceId);
   if (!(name === 'meble-local-first-v1' || /^meble-lf-test-[a-zA-Z0-9_-]{1,100}$/.test(name || '')) || !indexedDB || typeof locks?.request !== 'function') fail('LF_ISOLATED_STORAGE_REQUIRED');
   let closed = false;
@@ -61,17 +62,18 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
     return value;
   }
   async function readApplication(){const value=await transaction('readonly',(s,done)=>{const q=s.control.get('application');q.onsuccess=()=>done(q.result||null);});if(value && await digest(json(value.rows))!==value.hash)fail('LF_APPLICATION_INTEGRITY');return value;}
+  async function readPreservedSource(){const value=await transaction('readonly',(s,done)=>{const q=s.control.get('source');q.onsuccess=()=>done(q.result||null);});if(value&&await digest(value.rows)!==value.hash)fail('LF_SOURCE_INTEGRITY');return value;}
   async function prepareApplication(application){if(!application)return null;application=copy(application);if(!Number.isSafeInteger(application.expectedVersion)||application.expectedVersion<1||!application.rows||Object.values(application.rows).some(v=>v!==null&&typeof v!=='string'))fail('LF_APPLICATION_INVALID');application.hash=await digest(json(application.rows));return application;}
   async function checkpointApplication(application){
     application=await prepareApplication(application);
     return transaction('readwrite',(s,done,abort)=>applicationChange(s,application,()=>done(true),abort));
   }
   async function initializeApplication(rows){
-    if(!/^meble-lf-test-/.test(name))fail('LF_OLD_WRITER_EXCLUSIVITY_UNPROVEN');
+    let preserved=null;if(migration||!/^meble-lf-test-/.test(name))preserved=await assertApplicationMigration(migration,{name,ownerUid,rows});
     rows=copy(rows);const hash=await digest(json(rows));
     return transaction('readwrite',(s,done,abort)=>{const q=s.control.get('application');q.onsuccess=()=>{
       if(q.result){abort(Error('LF_APPLICATION_ALREADY_INITIALIZED'));return;}
-      const next={key:'application',version:1,rows,hash};s.control.add(next);done(next);
+      const next={key:'application',version:1,rows,hash};s.control.add(next);if(preserved)s.control.add(preserved);done(next);
     };});
   }
   function applicationChange(s,application,continueWrite,abort){
@@ -166,7 +168,7 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       } catch(e) { abort(e); } }; q.onsuccess = ops.onsuccess = finish;
     });
   }
-  return Object.freeze({ownerUid, deviceId, instanceId, name, snapshot, readApplication, initializeApplication, checkpointApplication, commit, transition, apply, setEditor,
+  return Object.freeze({ownerUid, deviceId, instanceId, name, snapshot, readApplication,readPreservedSource, initializeApplication, checkpointApplication, commit, transition, apply, setEditor,
     exclusive: callback => locks.request(name + ':' + instanceId, {mode: 'exclusive'}, () => {if(closed)fail('LF_STORE_CLOSED');return callback();}),
     close() { closed = true; }});
 }

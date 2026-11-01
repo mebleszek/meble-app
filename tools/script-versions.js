@@ -3,6 +3,7 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
+  "js/app/catalog/catalog-store.js":"20261101_production_sync_v1",
   "js/app/material/price-modal-hardware-dictionaries.js":"20261101_one_app_v1",
   "js/app/material/price-modal-hardware-manufacturers.js":"20261101_one_app_v1",
   "js/app/material/price-modal-hardware-suppliers.js":"20261101_one_app_v1",

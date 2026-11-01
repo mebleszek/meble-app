@@ -1,5 +1,6 @@
 // Application projection around the existing LOCAL-FIRST channels. Import is inert.
 import {copy,equal,fail,safeError,assertEmulator} from './local-first-values.mjs';
+import {assertApplicationConnection} from './firebase-activation.mjs';
 import {createDurableSynchronizer} from './local-first-sync.mjs';
 import {validateProjectDependencies,createProjectChannel} from './local-first-project.mjs';
 
@@ -66,7 +67,7 @@ export function createApplicationCommitter({store,globalContract,projectContract
   async commit(kind,application,projectId){
    const source={getItem:key=>application.rows[key]??null},old=await store.readApplication();
    if(!old||old.version!==application.expectedVersion)fail('LF_APPLICATION_CONFLICT');
-   const globalKeys=new Set(Object.values(globalContract.sources).flat());
+   const globalKeys=new Set([...Object.values(globalContract.sources).flat(),'fc_materials_v1']);
    const technical=new Set(['fc_edit_session_v1','fc_ui_v1','fc_current_project_id_v1','fc_current_investor_v1','fc_project_backup_v1','fc_project_backup_meta_v1']);
    for(const key of new Set([...Object.keys(old.rows),...Object.keys(application.rows)])){
     if(old.rows[key]===application.rows[key]||technical.has(key))continue;
@@ -76,6 +77,7 @@ export function createApplicationCommitter({store,globalContract,projectContract
    }
    let scope,value,editor=null;
    if(kind==='globals'){
+    if(old.rows.fc_materials_v1!==application.rows.fc_materials_v1&&!equal(JSON.parse(application.rows.fc_materials_v1),JSON.parse(application.rows[globalContract.sources.materials[0]])))fail('LF_LEGACY_MATERIAL_COPY_CONFLICT');
     scope='globals';const captured=globalContract.capture(source,Object.keys(globalContract.schemas));globalContract.validateBundle(captured.model);captured.assertUnchanged();value=captured.model;
    }else if(kind==='project'){
     scope=projectId;if(channel(scope)?.kind!=='project')fail('LF_PROJECT_CHANNEL_REQUIRED');
@@ -88,7 +90,11 @@ export function createApplicationCommitter({store,globalContract,projectContract
     }
     const others=rows=>JSON.parse(rows.fc_quote_snapshots_v1||'[]').filter(o=>o.project?.id!==projectId);
     if(!equal(others(old.rows),others(application.rows)))fail('LF_APPLICATION_SCOPE_REFUSED');
-    const catalogs=pinned||{head:g.replica.base,model:JSON.parse(g.replica.json)};
+    // Only this explicit new Save may pin a newer fully confirmed catalog.
+    // Uncertain/offline global changes cannot silently rebase a saved revision.
+    const confirmed=g.replica?.base&&!g.replica.dirty&&g.operations.every(op=>op.phase==='verified');
+    const catalogs=confirmed?{head:g.replica.base,model:JSON.parse(g.replica.json)}:pinned;
+    if(!catalogs)fail('LF_GLOBAL_DEPENDENCIES_UNCONFIRMED');
     const requirements=validateProjectDependencies(projectContract,globalContract,built.document,catalogs.model);
     value={document:built.document,globals:catalogs,requirements};editor=(await store.snapshot(scope)).replica?.editor;
    }else fail('LF_APPLICATION_SCOPE_REFUSED');
@@ -117,10 +123,10 @@ export function createApplicationCommitter({store,globalContract,projectContract
 // Head queries only discover candidates. Each candidate still passes the same
 // independent chunk/Rules/dependency read before registration or local apply.
 export function createEmulatorProjectDiscovery(options){
- const {writer,reader,ownerUid}=options,a=assertEmulator(writer),b=assertEmulator(reader);
+ const {writer,reader,ownerUid}=options,a=assertApplicationConnection(writer),b=assertApplicationConnection(reader);
  if(a.uid!==ownerUid||b.uid!==ownerUid||writer.db.app===reader.db.app)fail('LF_INDEPENDENT_OWNER_REQUIRED');
  const f=reader.firestore,ref=f.collection(reader.db,'users',ownerUid,'localFirstProjects');
- const guard=()=>{writer.assertAccess?.();reader.assertAccess?.();if(!equal(assertEmulator(writer),a)||!equal(assertEmulator(reader),b))fail('LF_AUTH_CHANGED');};
+ const guard=()=>{writer.assertAccess?.();reader.assertAccess?.();if(!equal(assertApplicationConnection(writer),a)||!equal(assertApplicationConnection(reader),b))fail('LF_AUTH_CHANGED');};
  return Object.freeze({
   watch(notify){guard();return f.onSnapshot(f.query(ref,f.orderBy('updatedAt','desc'),f.limit(100)),notify,notify);},
   async list(known){guard();const found=[];let last=null;

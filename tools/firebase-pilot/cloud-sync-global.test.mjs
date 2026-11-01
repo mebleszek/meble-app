@@ -297,3 +297,9 @@ test('LOCAL-FIRST normal application startup on two independent browser profiles
  const {runNormalApplication}=await import('./normal-application.cases.mjs');
  await runNormalApplication(t);
 });
+
+
+test('LOCAL-FIRST approved deployment: normal startup, fenced migration and empty-device receive',async t=>{
+ const {runNormalApplication}=await import('./normal-application.cases.mjs');
+ await runNormalApplication(t,{deployment:true});
+});

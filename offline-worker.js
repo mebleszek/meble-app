@@ -1,5 +1,5 @@
 'use strict';
-importScripts('./offline-assets.js');
+importScripts('./offline-assets.js','./js/app/cloud/offline-writer-fence.js');
 const MANIFEST=self.MEBLE_OFFLINE_ASSETS,CACHE='meble-static-'+MANIFEST.version;
 const root=new URL('./',self.location.href),assets=new Map(MANIFEST.files.map(f=>[new URL(f.path,root).pathname,f]));
 const digest=async buffer=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',buffer)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -56,8 +56,9 @@ self.addEventListener('fetch',event=>{
   const pathname=url.pathname===root.pathname?new URL('index.html',root).pathname:url.pathname,file=assets.get(pathname);
   // Explicit allowlist excludes Firebase, tokens, private responses, tools and
   // all unknown routes. The immutable shell version stays coherent per worker.
-  if(!file)return;
+  if(!file){if(request.mode==='navigate'||request.destination==='script')event.respondWith((async()=>await self.MEBLE_WRITER_ALLOWED(event)?fetch(request):new Response('APPLICATION_WRITE_LOCKED',{status:423}))());return;}
   event.respondWith((async()=>{
+    if(self.MEBLE_WRITER_ALLOWED&&!await self.MEBLE_WRITER_ALLOWED(event))return new Response('APPLICATION_WRITE_LOCKED',{status:423});
     const cache=await caches.open(CACHE),stored=await cache.match(new URL(file.path,root).href);
     return checked(stored,file); // Missing/corrupt resources never become PASS.
   })());

@@ -1,29 +1,32 @@
-// Normal-startup composition of the released LOCAL-FIRST components, demo only.
+// Normal-startup composition of the released LOCAL-FIRST components; inert import.
+import {completeMissingApplicationGlobals,emptyInstallationRows} from './application-initial-state.mjs';
 import {openLocalFirstStore} from './local-first-idb.mjs';
 import {createGlobalChannel} from './local-first-sync.mjs';
 import {createProjectChannel} from './local-first-project.mjs';
-import {createApplicationReplication,createEmulatorProjectDiscovery,createApplicationCommitter} from './application-replication.mjs';
-import {installEmulatorApplicationAuthority,createApplicationActionBinding,applicationKeys,installOfflineEmulatorApplicationAuthority} from './application-authority.mjs';
+import {createApplicationReplication,createEmulatorProjectDiscovery,createApplicationCommitter,projectApplicationRows} from './application-replication.mjs';
+import {installEmulatorApplicationAuthority,createApplicationActionBinding,applicationKeys,installOfflineEmulatorApplicationAuthority,installAuthorizedApplicationAuthority} from './application-authority.mjs';
 import {installApplicationWriteBoundary} from './application-write-boundary.mjs';
 import {applicationInstallation,verifyExclusiveClient} from './application-installation.mjs';
+import {assertApplicationConnection} from './firebase-activation.mjs';
 import {copy,equal,assertEmulator,fail,safeError} from './local-first-values.mjs';
-export async function startNormalEmulatorApplication({window:w,writer,reader,name,ownerUid,boot}){
+export function startNormalEmulatorApplication(options){return startApplicationRuntime(options);}
+export async function startApplicationRuntime({window:w,writer,reader,name,ownerUid,boot,release:deployment,onStage=()=>{}}){
  const fc=w.FC;
- if(writer){const a=assertEmulator(writer),b=assertEmulator(reader);if(a.uid!==ownerUid||b.uid!==ownerUid||writer.db.app===reader.db.app)fail('LF_INDEPENDENT_OWNER_REQUIRED');}
+ if(writer){const a=assertApplicationConnection(writer),b=assertApplicationConnection(reader);if(a.uid!==ownerUid||b.uid!==ownerUid||writer.db.app===reader.db.app)fail('LF_INDEPENDENT_OWNER_REQUIRED');}
  else if(!boot?.restored)fail('LF_ONLINE_INSTALLATION_REQUIRED');
  w.__FC_MAIN_ACCESS__.assert();
  const keys=applicationKeys(fc);
- const installation=await applicationInstallation({window:w,ownerUid,name,keys,sourceRead:boot?.readNative,heldRelease:boot?.release});
+ onStage('checking-installation');const installation=await applicationInstallation({window:w,ownerUid,name,keys,sourceRead:boot?.readNative,heldRelease:boot?.release,release:deployment,migration:boot?.migration});
  let store,sync,authority,boundary,closed=false,authorityReady=false,incomingBlocked=false;const states=[];
  const state=value=>{if(['LF_ACTIVE_FORM_PROTECTED','LF_ACTIVE_RAM_PROTECTED'].includes(value.code))incomingBlocked=true;states.push(copy(value));if(states.length>12)states.shift();};
  try{
-  store=await openLocalFirstStore({...installation.binding,indexedDB:w.indexedDB,locks:w.navigator.locks});
+  onStage('opening-idb');store=await openLocalFirstStore({...installation.binding,indexedDB:w.indexedDB,locks:w.navigator.locks});
   const c=fc.globalDataContract,p=fc.businessProjectContract;
   let globals=writer?createGlobalChannel({writer,reader,ownerUid,contract:c,factory:fc.firebaseGlobalTransport}):null;
   const channel=record=>createProjectChannel({writer,reader,ownerUid,deviceId:store.deviceId,projectId:record.id,investorId:record.investorId,
    pilotContract:fc.cloudPilotContract,pilotFactory:fc.firebasePilotTransport,globalContract:c,projectContract:p,globals});
   const channels=[globals];
-  const image=await store.readApplication(),rows=image?.rows||installation.rows;
+  const image=await store.readApplication(),initialRows=deployment&&boot?.fresh&&!boot.restored?emptyInstallationRows(boot.rows()):boot?.rows(),rows=image?.rows||initialRows||installation.rows;
   if(writer)for(const record of JSON.parse(rows.fc_projects_v1||'[]'))channels.push(channel(record));
   const idle=()=>authority.assertIdle({allowForm:true});
   const discovery=writer?createEmulatorProjectDiscovery({writer,reader,ownerUid,deviceId:store.deviceId,
@@ -39,8 +42,8 @@ export async function startNormalEmulatorApplication({window:w,writer,reader,nam
    if(!sync||w.navigator.onLine===false)fail('LF_OFFLINE_EDITOR_REQUIRED');
    await sync.acquireEditor(scope);
   }
-  authority=await (writer?installEmulatorApplicationAuthority:installOfflineEmulatorApplicationAuthority)({window:w,store,ownerUid,connection:writer,sourceRead:boot?.readNative,initialRows:boot?.rows(),
-   beforeTransaction:()=>verifyExclusiveClient(w),onCommitted:()=>sync?.notify(),authorize:ensureEditor,
+  onStage('installing-authority');authority=await (deployment?installAuthorizedApplicationAuthority:writer?installEmulatorApplicationAuthority:installOfflineEmulatorApplicationAuthority)({window:w,store,ownerUid,connection:writer,sourceRead:boot?.readNative,initialRows,release:deployment,
+   beforeTransaction:()=>boot?.verifyFence?boot.verifyFence():verifyExclusiveClient(w),onCommitted:()=>sync?.notify(),authorize:ensureEditor,
    checkpoint:(application,kind)=>(sync||local).checkpoint(application,kind),
    commit:async(kind,application)=>{
     let scope=application.rows.fc_current_project_id_v1;
@@ -63,19 +66,29 @@ export async function startNormalEmulatorApplication({window:w,writer,reader,nam
     }
     return (sync||local).commit(kind,application,scope);
    }});
-  installation.confirm();authorityReady=true;
+  installation.confirm();onStage('initial-global-revision');
   // A local image exists before any network operation; source remains unchanged.
   // Only seed a remote-empty global scope. A competing revision is a CAS refusal.
   if(writer){await store.exclusive(async()=>{
    const snap=await store.snapshot('globals');
    if(!snap.replica){
     let remote=null;try{remote=await globals.read();}catch(e){if(e.code!=='GLOBAL_NOT_FOUND')throw e;}
-    const captured=c.capture({getItem:k=>authority.rows()[k]??null},Object.keys(c.schemas));c.validateBundle(captured.model);
-    if(remote){if(!equal(remote.value,captured.model))fail('LF_INITIAL_GLOBAL_CONFLICT');
-     await store.apply({scope:'globals',value:remote.value,head:remote.head,expectedVersion:0});
-    }else await store.commit({scope:'globals',operationId:crypto.randomUUID(),value:captured.model,expectedVersion:0});
+    if(remote){
+     if(!(deployment&&boot.fresh)){
+      const captured=c.capture({getItem:k=>authority.rows()[k]??null},Object.keys(c.schemas));c.validateBundle(captured.model);
+      if(!equal(remote.value,captured.model))fail('LF_INITIAL_GLOBAL_CONFLICT');
+     }
+     const image=await store.readApplication(),application=await authority.incoming(projectApplicationRows(image.rows,globals,remote,c,p));
+     await store.apply({scope:'globals',value:remote.value,head:remote.head,expectedVersion:0,application});await authority.refresh();
+    }else{
+     const completed=deployment?completeMissingApplicationGlobals(authority.rows(),fc,c):authority.rows();
+     const captured=c.capture({getItem:k=>completed[k]??null},Object.keys(c.schemas));c.validateBundle(captured.model);
+     const application=await authority.incoming(completed);
+     await store.commit({scope:'globals',operationId:crypto.randomUUID(),value:captured.model,expectedVersion:0,application});await authority.refresh();
+    }
    }
-  });const result=await sync.flush();if(!result.ok)fail(result.code);}
+  });authorityReady=true;const result=await sync.flush();if(!result.ok)fail(result.code);}else authorityReady=true;
+  onStage('initial-project-revisions');
   // Existing owned source projects become real channels without synthetic flags.
   if(writer)for(const record of JSON.parse(authority.rows().fc_projects_v1||'[]')){
    await store.exclusive(async()=>{
@@ -109,7 +122,7 @@ export async function startNormalEmulatorApplication({window:w,writer,reader,nam
   if(writer){const result=await sync.flush();if(!result.ok)state(result);
    if(!fc.session.active)for(const record of JSON.parse(authority.rows().fc_projects_v1||'[]'))await handover(record.id);
   }
-  const notify=()=>sync?.notify();w.addEventListener('online',notify);
+  const notify=()=>sync?.notify();w.addEventListener('online',notify);w.addEventListener('meble-sync-authorized',notify);
   const wakeReceive=()=>queueMicrotask(()=>{if(!incomingBlocked||closed)return;try{authority.assertIdle();incomingBlocked=false;sync?.notify();}catch(_){}});
   w.addEventListener('click',wakeReceive,{capture:true,passive:true});
   const bind=()=>{
@@ -120,7 +133,7 @@ export async function startNormalEmulatorApplication({window:w,writer,reader,nam
   return Object.freeze({store,authority,get sync(){return sync;},write:boundary.run,
    status:()=>({state:closed?'locked':sync?'active':'offline',sourcePreserved:true,projectRecords:JSON.parse(authority.rows().fc_projects_v1||'[]').length,projectChannels:JSON.parse(authority.rows().fc_projects_v1||'[]').filter(p=>!!sync?.channel(p.id)).length,transactionPending:authority.status().transactionPending||boundary?.busy()===true,states:copy(states)}),
    async resume(next){
-    if(assertEmulator(next.writer).uid!==ownerUid||assertEmulator(next.reader).uid!==ownerUid)fail('LF_APPLICATION_OWNER_CHANGED');
+    if(assertApplicationConnection(next.writer).uid!==ownerUid||assertApplicationConnection(next.reader).uid!==ownerUid)fail('LF_APPLICATION_OWNER_CHANGED');
     const wasClosed=closed;sync?.close();writer=next.writer;reader=next.reader;authority.resume(ownerUid);closed=false;if(authority.status().incomingPending)await authority.refresh();
     globals=createGlobalChannel({writer,reader,ownerUid,contract:c,factory:fc.firebaseGlobalTransport});
     const channels=[globals,...JSON.parse(authority.rows().fc_projects_v1||'[]').map(channel)];
@@ -130,7 +143,7 @@ export async function startNormalEmulatorApplication({window:w,writer,reader,nam
     if(wasClosed)bind();sync.notify();
     void sync.flush().then(async result=>{if(result.ok&&!fc.session.active&&w.uiState.entry==='investorsList')for(const p of JSON.parse(authority.rows().fc_projects_v1||'[]')){if(fc.session.active||w.uiState.entry!=='investorsList')return;await handover(p.id);}}).catch(error=>state(safeError(error)));
    },
-   close(){closed=true;sync?.close();boundary.close();authority.close();w.removeEventListener('online',notify);w.removeEventListener('click',wakeReceive,true);},
+   close(){closed=true;sync?.close();boundary.close();authority.close();w.removeEventListener('online',notify);w.removeEventListener('meble-sync-authorized',notify);w.removeEventListener('click',wakeReceive,true);},
    async dispose(){closed=true;sync?.close();boundary?.close();authority?.close();store.close();await installation.release();}});
  }catch(error){closed=true;sync?.close();boundary?.close();authority?.close();store?.close();await installation.release();throw error;}
 }

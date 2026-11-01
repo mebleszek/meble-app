@@ -1,10 +1,12 @@
 // Reuse Google SDK sessions, never extract or store provider tokens ourselves.
+import {createApplicationSyncGrant} from './application-sync-grant.mjs';
+import {authorizeApplicationSession} from './firebase-activation.mjs';
 import {fail} from './local-first-values.mjs';
 const trustedSessions=new WeakMap();
-export async function createApplicationConnections({window:w,authSession,lease,sdk,localAccess}){
+export async function createApplicationConnections({window:w,authSession,lease,sdk,localAccess,release}){
  const fc=w.FC;w.__FC_MAIN_ACCESS__.assert();
  sdk=sdk||await fc.firebasePilotTransport.loadSdk();
- let session=authSession,ownWriter=false,currentLease=lease,verifier,gate,secondary,trustedContext;
+ let session=authSession,ownWriter=false,currentLease=lease,verifier,gate,secondary,trustedContext,syncGrant,permit;
  try{
  const trusted=localAccess?.mode==='trusted';
  if(trusted){
@@ -38,15 +40,17 @@ export async function createApplicationConnections({window:w,authSession,lease,s
   const readerCtx=secondary.verificationContext();
   if(readerCtx.auth.currentUser?.uid!==identity.uid)fail('LF_APPLICATION_OWNER_CHANGED');
   const readerDb=dbFor(readerApp);
-  const guard=()=>{w.__FC_MAIN_ACCESS__.assert();localAccess?.assert();currentLease.assert();
+  if(release)syncGrant=await createApplicationSyncGrant({release,window:w,session,db:readerDb,firestore:f,onRenew:()=>w.dispatchEvent(new w.Event('meble-sync-authorized'))});
+  const guard=()=>{syncGrant?.assert();w.__FC_MAIN_ACCESS__.assert();localAccess?.assert();currentLease.assert();
    if(session.identity().uid!==identity.uid||session.identity().epoch!==identity.epoch)fail('LF_AUTH_CHANGED');};
   const leaseView={uid:identity.uid,assert:()=>currentLease.assert(),isValid:()=>currentLease.isValid()};
-  return {writer:{db:writerDb,auth:ctx.auth,session,lease:leaseView,firestore:f,assertAccess:guard},
+  const result={writer:{db:writerDb,auth:ctx.auth,session,lease:leaseView,firestore:f,assertAccess:guard},
    reader:{db:readerDb,auth:readerAuth,session:secondary,lease:leaseView,firestore:f,assertAccess:guard},
    // On logout revoke the independent persisted SDK login too. Local IDB/outbox
    // is retained; an already-submitted RPC can still have an uncertain outcome.
-   async logout(){gate?.close();if(ownWriter)await session.signOut();await secondary.signOut();},
-   async retire(){await f.terminate(readerDb);await secondary.close();},
-   async close(){gate?.close();await verifier?.close();await f.terminate(readerDb);await secondary.close();if(ownWriter){await f.terminate(writerDb);await session.close();}}};
- }catch(error){gate?.close();await secondary?.close();throw error;}
+   async logout(){permit?.revoke();syncGrant?.close();gate?.close();if(ownWriter)await session.signOut();await secondary.signOut();},
+   async retire(){permit?.revoke();syncGrant?.close();await f.terminate(readerDb);await secondary.close();},
+   async close(){permit?.revoke();syncGrant?.close();gate?.close();await verifier?.close();await f.terminate(readerDb);await secondary.close();if(ownWriter){await f.terminate(writerDb);await session.close();}}};
+  if(release)permit=authorizeApplicationSession({release,...result});return result;
+ }catch(error){syncGrant?.close();gate?.close();await secondary?.close();throw error;}
 }

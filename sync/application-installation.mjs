@@ -1,4 +1,7 @@
-// Lossless emulator cutover receipt. Source keys are never deleted or rewritten.
+// Verified cutover receipt. Source keys are never deleted or rewritten.
+import {recoverApplicationBinding} from './application-migration-recovery.mjs';
+import {assertApplicationRelease} from './application-release.mjs';
+import {applicationWriterFence} from './application-writer-fence.mjs';
 import {digest,equal,fail} from './local-first-values.mjs';
 export const INSTALL_KEY='meble_application_authority_v1';
 export async function exclusiveApplication(w){
@@ -21,26 +24,31 @@ export async function verifyExclusiveClient(w){
  });
  if(result?.protocol!==1||result.nonce!==nonce||result.exclusive!==true)fail('LF_OLD_WRITER_EXCLUSIVITY_UNPROVEN');
 }
-export async function applicationInstallation({window:w,ownerUid,name,keys,sourceRead,heldRelease}){
- if(!['127.0.0.1','localhost'].includes(w.location.hostname)||!/^meble-lf-test-/.test(name))fail('LF_PRODUCTION_MIGRATION_NOT_APPROVED');
+export async function applicationInstallation({window:w,ownerUid,name,keys,sourceRead,heldRelease,release:deployment,migration}){
+ if(deployment)assertApplicationRelease(deployment,{ownerUid,name,window:w});
+ else if(!['127.0.0.1','localhost'].includes(w.location.hostname)||!/^meble-lf-test-/.test(name))fail('LF_PRODUCTION_MIGRATION_NOT_APPROVED');
  const release=heldRelease||await exclusiveApplication(w);
  try{
-  await verifyExclusiveClient(w);
+  await (deployment?applicationWriterFence(w):verifyExclusiveClient(w));
   const rows=Object.fromEntries(keys.map(k=>[k,sourceRead?sourceRead(k):w.localStorage.getItem(k)]));
   const sourceHash=await digest(rows),raw=w.localStorage.getItem(INSTALL_KEY);
   let binding;
   if(raw){try{binding=JSON.parse(raw);}catch(_){fail('LF_INSTALLATION_RECEIPT_INVALID');}
+   if(deployment&&binding.activationId!==assertApplicationRelease(deployment).activationId)fail('LF_ACTIVATION_RECEIPT_CHANGED');
    if(binding.version!==1||binding.ownerUid!==ownerUid||binding.name!==name||binding.sourceHash!==sourceHash)fail('LF_OLD_WRITER_OR_OWNER_CONFLICT');
    binding={...binding,initialize:false};
   }else{
    // A missing marker cannot recreate an existing authority. IDB open without
    // initialize remains the only route after a receipt has been established.
    const names=await w.indexedDB.databases();
-   if(names.some(db=>db.name===name))fail('LF_INSTALLATION_RECEIPT_LOST');
-   binding={version:1,name,ownerUid,deviceId:crypto.randomUUID(),instanceId:crypto.randomUUID(),sourceHash,initialize:true};
+   const recovered=deployment?await recoverApplicationBinding({window:w,name,release:deployment,sourceHash}):null;
+   if(names.some(db=>db.name===name)&&!recovered)fail('LF_INSTALLATION_RECEIPT_LOST');
+   binding=recovered?.binding||{version:1,name,ownerUid,deviceId:crypto.randomUUID(),instanceId:crypto.randomUUID(),sourceHash,initialize:true};
   }
+  if(deployment)binding.activationId=assertApplicationRelease(deployment).activationId;
+  binding.migration=migration;
   return {binding,rows,release,
-   confirm(){const receipt={...binding};delete receipt.initialize;w.localStorage.setItem(INSTALL_KEY,JSON.stringify(receipt));
+   confirm(){const receipt={...binding};delete receipt.initialize;delete receipt.migration;w.localStorage.setItem(INSTALL_KEY,JSON.stringify(receipt));
     if(!equal(JSON.parse(w.localStorage.getItem(INSTALL_KEY)),receipt))fail('LF_INSTALLATION_RECEIPT_UNCONFIRMED');}
   };
  }catch(error){await release();throw error;}
