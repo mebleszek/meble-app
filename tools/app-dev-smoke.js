@@ -174,7 +174,7 @@ function runDataNodeSmoke(sandbox){
         && src.includes('rozrys-choice-launch--options-clean')
         && src.includes('function syncDraftObject(target, next)')
         && !src.includes('draft = FC.programDefaults.write(draft)')
-        && html.includes('20260908_program_defaults_apply_fix_v1');
+        && html.includes(`js/app/ui/data-settings-defaults-view.js?v=${require('./script-versions.js').versions['js/app/ui/data-settings-defaults-view.js']}`);
     } },
     { name:'Backup store jest dostępny', check:()=> !!(FC.dataBackupStore && typeof FC.dataBackupStore.listBackups === 'function') },
     { name:'BACKUP.md opisuje zakres backupu i jest podpięty do dokumentacji', explain:'Pilnuje decyzji: przed zmianami storage/backup trzeba czytać osobny dokument BACKUP.md, a nie zgadywać zakres snapshotu.', check:()=> {
