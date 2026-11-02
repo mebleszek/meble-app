@@ -156,13 +156,13 @@ test('existing session collector and copy/format UI expose safe transfer metadat
  assert.deepEqual(Object.keys(out.localFirst).sort(),['aliasConflict','code','firstError','projectTransferBlocked','stage','status','transferStatus']);
  let modal,copied;w.FC.infoBox={open:options=>{modal=options;}};
  new Function('window','navigator',read('js/app/ui/session-diagnostics.js'))(w,{clipboard:{writeText:async text=>{copied=text;}}});
- w.FC.sessionDiagnostics.open();assert.match(modal.message,/LOCAL-FIRST:/);
+ await w.FC.sessionDiagnostics.open();assert.match(modal.message,/LOCAL-FIRST:/);
  assert.match(modal.message,/project-transfer-blocked: initial-project-revisions \/ LF_PROJECT_SCHEMA_BLOCKED/);
  assert.match(modal.message,/Konflikt aliasów: labor \| klucze: fc_quote_rates_v1 \/ fc_services_v1/);
  await modal.secondaryAction.run({button:{},body:{}});assert.deepEqual(JSON.parse(copied).localFirst,clone(api.diagnostics()));
  assert.deepEqual(r.seed(),before);assert.equal(JSON.stringify(r.FC.session),ram);assert.deepEqual(writes,[]);
  const diagnostic=api.diagnostics;api.diagnostics=()=>{throw Error('PRIVATE_DIAGNOSTIC_FAILURE');};
- assert.deepEqual(collect(w).localFirst,{status:'UNAVAILABLE'});w.FC.sessionDiagnostics.open();assert.match(modal.message,/LOCAL-FIRST: UNAVAILABLE/);
+ assert.deepEqual(collect(w).localFirst,{status:'UNAVAILABLE'});await w.FC.sessionDiagnostics.open();assert.match(modal.message,/LOCAL-FIRST: UNAVAILABLE/);
  api.diagnostics=diagnostic;
  valid=false;assert.deepEqual(collect(w),{v:1,status:'AUTH_DENIED'});
 });
@@ -198,6 +198,6 @@ test('new smoke belongs to exactly one mandatory current CI shard and every chan
  assert.equal(plan.plan(plan.inventory('tools',historical)).flat().filter(x=>x==='first-sync-error-diagnostics-smoke.js').length,1);
  assert.match(read('.github/workflows/preflight-js.yml'),/node tools\/preflight\.js --current-only --smoke-shard=/);
  require('./script-versions').assertVersions(process.cwd());
- for(const file of ['js/main-login.js','js/app/cloud/application-bootstrap.js'])assert.ok(read('index.html').includes(file+'?v=20261102_alias_update_v1'));
+ for(const file of ['js/main-login.js','js/app/cloud/application-bootstrap.js'])assert.ok(read('index.html').includes(file+'?v=20261102_global_diagnostics_v1'));
 });
 (async()=>{for(const {name,run}of tests){await run();console.log('PASS '+name);}console.log(`First-sync diagnostics: ${tests.length}/${tests.length} PASS`);})().catch(error=>{console.error(error.stack);process.exitCode=1;});

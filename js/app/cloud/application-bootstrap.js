@@ -70,7 +70,30 @@
   AbortError QuotaExceededError SecurityError UNRECOGNIZED_ERROR aborted auth/invalid-user-token auth/network-request-failed auth/operation-not-allowed auth/requires-recent-login auth/user-disabled auth/user-token-expired cancelled deadline-exceeded failed-precondition internal permission-denied resource-exhausted unauthenticated unavailable unknown
  `.trim().split(/\s+/));
  const diagnosticStages=new Set(('idle preparing-source source-ready opening-runtime authorizing-cloud binding-runtime checking-installation opening-idb installing-authority initial-global-revision initial-project-revisions ready reconnect-auth reconnect-runtime login-startup checking-local-access loading-business-styles loading-business-scripts starting-business starting-local-first').split(' '));
- let firstError=null,projectTransferBlocked=null,aliasConflict=null,transferStatus='not-started';
+ let firstError=null,projectTransferBlocked=null,aliasConflict=null,transferStatus='not-started',globalConsistency=null,diagnosing=null;
+ async function inspectGlobalConsistency(){
+  if(diagnosing)return diagnosing;
+  const context=lastContext,source=boot;let expired=false,timer;
+  const work=(async()=>{
+   if(!fc.globalDataContract)return {status:'BLOCKED',code:'DIAG_CONTEXT_BLOCKED'};
+   await import('./global-data-diagnostics.js');
+   if(expired)return {status:'BLOCKED',code:'DIAG_TIMEOUT'};
+   const {collectGlobalDiagnostics}=await import('../../../sync/local-first-global-diagnostics.mjs');
+   if(expired)return {status:'BLOCKED',code:'DIAG_TIMEOUT'};
+   return collectGlobalDiagnostics({window,ownerUid:context?.ownerUid,name:configuration?.name,readNative:source?.readNative,release,
+    authorize(){
+     if(expired||!context||lastContext!==context||boot!==source||context.localAccess?.ownerUid!==context.ownerUid||typeof context.localAccess?.assert!=='function')throw Error();
+     context.localAccess.assert();
+    }});
+  })();
+  // Include module loading in a finite observation budget. A late import/result
+  // cannot resume data reads or overwrite the report after startup was refused.
+  diagnosing=Promise.race([work,new Promise(resolve=>{timer=setTimeout(()=>{expired=true;resolve({status:'BLOCKED',code:'DIAG_TIMEOUT'});},12000);})]).then(value=>{
+   globalConsistency=value;
+   return JSON.parse(JSON.stringify(globalConsistency));
+  }).catch(()=>{globalConsistency={status:'BLOCKED',code:'DIAG_READ_BLOCKED'};return {...globalConsistency};}).finally(()=>{expired=true;clearTimeout(timer);diagnosing=null;});
+  return diagnosing;
+ }
  const diagnosticStage=value=>diagnosticStages.has(value)?value:'unknown';
  function errorCode(error){
   try{const code=typeof error==='string'?error:error?.code||error?.message||error?.name;return diagnosticCodes.has(code)?code:'UNRECOGNIZED_ERROR';}catch(_){return 'UNRECOGNIZED_ERROR';}
@@ -122,12 +145,19 @@
     const {startApplicationRuntime}=await import('../../../sync/application-runtime.mjs');
     runtime=await startApplicationRuntime({window,ownerUid,name:configuration.name,boot,release,onStage:setStage,onDiagnostic:diagnosticState,...connections});
     return runtime;
-   })().then(value=>{stage='ready';return value;}).catch(error=>{note(error);throw error;}).finally(()=>{starting=null;});return starting;
+   })().then(value=>{stage='ready';return value;}).catch(async error=>{
+    note(error);
+    // Observe before main-login revokes access. A diagnostic refusal cannot
+    // replace the original startup failure or retry any part of startup.
+    if(stage==='initial-global-revision'||errorCode(error).startsWith('GLOBAL_'))await inspectGlobalConsistency();
+    throw error;
+   }).finally(()=>{starting=null;});return starting;
   },
   revokeCloud(){void connectionsActive?.logout?.();},
   errorCode,
   recordFailure(error,at){recordFailure(error,at==='starting-local-first'?stage:at);},
-  diagnostics:()=>Object.freeze({status:'READ_ONLY',stage:diagnosticStage(stage),code:lastError?errorCode(lastError):null,firstError:firstError&&{...firstError},transferStatus,projectTransferBlocked:projectTransferBlocked&&{...projectTransferBlocked},aliasConflict:aliasConflict&&{...aliasConflict,keys:[...aliasConflict.keys]}}),
+  inspectGlobalConsistency,
+  diagnostics:()=>Object.freeze({status:'READ_ONLY',stage:diagnosticStage(stage),code:lastError?errorCode(lastError):null,firstError:firstError&&{...firstError},transferStatus,projectTransferBlocked:projectTransferBlocked&&{...projectTransferBlocked},aliasConflict:aliasConflict&&{...aliasConflict,keys:[...aliasConflict.keys]},...(globalConsistency?{globalConsistency:JSON.parse(JSON.stringify(globalConsistency))}:{})}),
   inspect:()=>({...runtime?.status(),state:runtime?.status().state||'not-activated',stage,code:lastError,location:lastLocation}),
   async refresh(context=lastContext){
    if(!configuration||!runtime||!context)return;if(refreshing)return refreshing;
