@@ -1,3 +1,83 @@
 <!doctype html>
-<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aktualizacja Meble-App</title><link rel="stylesheet" href="css/base-ui.css"></head>
-<body><main class="card" style="margin:16px;padding:16px"><h1>Aktualizacja Meble-App</h1><p>Ta strona sprawdza nową wersję online. Nie odczytuje ani nie zmienia projektów, ofert, cenników lub kopii.</p><p>Po pojawieniu się komunikatu zapisz pracę w pozostałych kartach. Następnie zamknij wszystkie karty Meble-App, także tę stronę, i otwórz aplikację ponownie. Jeśli zapis jest niepewny, nie zamykaj edycji. Nie czyść danych Chrome. Bez sieci sprawdzenie nowego wydania nie jest możliwe.</p></main><script src="js/app/cloud/offline-update.js?v=20261031_safe_sw_v1"></script></body></html>
+<html lang="pl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aktualizacja Meble-App</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#171923;font:16px/1.5 system-ui,sans-serif}main{max-width:42rem;margin:16px auto;padding:20px;background:white;border:1px solid #ddd;border-radius:16px}h1{font-size:1.4rem;margin-top:0}button{min-height:44px;padding:8px 16px;border:1px solid #1586ae;border-radius:10px;background:#21bcea;color:#101820;font:inherit;font-weight:600}button:disabled{opacity:.6}p,dd{overflow-wrap:anywhere}dt{font-weight:600}dd{margin:0 0 12px;font:13px/1.5 ui-monospace,monospace}#sw-update-status{font-weight:600}#sw-update-help{padding:12px;border-left:4px solid #159447;background:#effbf4}[hidden]{display:none!important}@media(max-width:440px){main{margin:10px;padding:16px}}
+</style>
+</head>
+<body><main>
+<h1>Aktualizacja Meble-App</h1>
+<p>Otwórz tę stronę w tej samej przeglądarce i profilu, w których używasz Meble-App. Chrome, Brave i tryb incognito mają oddzielne instalacje. Ten raport dotyczy wyłącznie bieżącej przeglądarki i profilu.</p>
+<p id="sw-update-status" role="status" aria-live="polite" data-state="checking">Sprawdzanie aktualizacji…</p>
+<button id="sw-update-check" type="button">Sprawdź ponownie</button>
+<dl><dt>Aktywny Service Worker — hash manifestu</dt><dd id="sw-update-active-version">Niepotwierdzony</dd>
+<dt>Oczekujący Service Worker — hash manifestu</dt><dd id="sw-update-waiting-version">Niepotwierdzony</dd></dl>
+<p>To hashe manifestów potwierdzonych przez Workery, nie SHA GitHuba ani wersja kodu otwartej karty. Brak oczekującego Workera nie dowodzi, że wdrożenie jest najnowsze.</p>
+<p id="sw-update-help" hidden>Zapisz pracę lub świadomie anuluj edycję. Jeśli zapis jest niepewny, zachowaj otwartą kartę. Po bezpiecznym zakończeniu pracy zamknij wszystkie karty Meble-App w tym samym profilu Chrome, także tę stronę, i otwórz aplikację ponownie.</p>
+<p>Sprawdzanie nie odczytuje ani nie zmienia projektów, ofert, cenników lub kolejki offline. Nie czyść danych przeglądarki. Jeśli inna karta blokuje wejście, najpierw bezpiecznie zakończ pracę — ta strona nie omija blokady zapisu.</p>
+</main>
+<!-- Network-only entry: no script or style dependency from an older worker's cache. -->
+<script id="sw-update-bootstrap">
+(function(){
+ 'use strict';
+ const status=document.getElementById('sw-update-status'),button=document.getElementById('sw-update-check'),help=document.getElementById('sw-update-help');
+ const activeVersion=document.getElementById('sw-update-active-version'),waitingVersion=document.getElementById('sw-update-waiting-version');
+ const root=new URL('./',window.location.href),script=new URL('offline-worker.js',root);let busy=false;
+ function show(state,text){status.dataset.state=state;status.textContent=text;help.hidden=state!=='ready';}
+ async function check(){
+  if(busy)return;busy=true;button.disabled=true;
+  activeVersion.textContent=waitingVersion.textContent='Niepotwierdzony';show('checking','Sprawdzanie aktualizacji…');
+  const deadline=Date.now()+30000;
+  function bounded(promise){
+   const ms=deadline-Date.now();if(ms<=0)return Promise.reject(Error('UNCONFIRMED'));
+   let timer;return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('UNCONFIRMED')),ms);})]).then(value=>{if(Date.now()>=deadline)throw Error('UNCONFIRMED');return value;}).finally(()=>clearTimeout(timer));
+  }
+  function compatible(reg){
+   return reg?.scope===root.href&&reg.active?.scriptURL===script.href
+    &&[reg.waiting,reg.installing].every(worker=>!worker||worker.scriptURL===script.href)
+    &&(!navigator.serviceWorker.controller||navigator.serviceWorker.controller.scriptURL===script.href);
+  }
+  async function verify(worker){
+   const channel=new MessageChannel();
+   try{
+    const result=await bounded(new Promise((resolve,reject)=>{
+     channel.port1.onmessage=event=>resolve(event.data);channel.port1.onmessageerror=()=>reject(Error('UNCONFIRMED'));
+     worker.postMessage({type:'VERIFY_STATIC_SHELL'},[channel.port2]);
+    }));
+    if(result?.complete!==true||typeof result.version!=='string'||!/^[a-f0-9]{64}$/.test(result.version))throw Error('UNCONFIRMED');
+    return result.version;
+   }finally{channel.port1.close();channel.port2.close();}
+  }
+  async function installed(worker){
+   let listener;
+   try{await bounded(new Promise((resolve,reject)=>{
+    listener=()=>{if(['installed','activated'].includes(worker.state))resolve();else if(worker.state==='redundant')reject(Error('UNCONFIRMED'));};
+    worker.addEventListener('statechange',listener);listener();
+   }));}finally{worker.removeEventListener('statechange',listener);}
+  }
+  try{
+   if(!window.isSecureContext||!navigator.serviceWorker?.getRegistration){show('unsupported','Service Worker jest nieobsługiwany lub strona nie ma bezpiecznego połączenia.');return;}
+   if(navigator.onLine===false){show('offline','Brak internetu. Nie potwierdzono nowego wydania.');return;}
+   const reg=await bounded(navigator.serviceWorker.getRegistration(root.href));
+   if(!compatible(reg)){show('incompatible','Nie potwierdzono zgodnej instalacji Meble-App w tej przeglądarce i profilu. Nie zmieniono innych instalacji.');return;}
+   await bounded(reg.update());
+   const installing=reg.installing;if(installing)await installed(installing);
+   if(!compatible(reg))throw Error('UNCONFIRMED');
+   const active=reg.active,waiting=reg.waiting;
+   const [a,b]=await Promise.allSettled([verify(active),waiting?verify(waiting):Promise.resolve(null)]);
+   if(reg.active!==active||reg.waiting!==waiting||!compatible(reg))throw Error('UNCONFIRMED');
+   if(a.status==='fulfilled')activeVersion.textContent=a.value;
+   if(b.status==='fulfilled'&&b.value)waitingVersion.textContent=b.value;
+   if(navigator.onLine===false){show('offline','Brak internetu. Nie potwierdzono nowego wydania.');return;}
+   if(a.status!=='fulfilled'||b.status!=='fulfilled')throw Error('UNCONFIRMED');
+   if(installing&&installing.state!=='activated'&&waiting!==installing)throw Error('UNCONFIRMED');
+   if(waiting)show('ready','Nowa wersja pobrana i gotowa do naturalnej aktywacji.');
+   else{waitingVersion.textContent='Brak oczekującego Workera';show('no-waiting','Nie wykryto oczekującej aktualizacji. To nie jest potwierdzenie najnowszej wersji na serwerze.');}
+  }catch(_){show(navigator.onLine===false?'offline':'unconfirmed',navigator.onLine===false?'Brak internetu. Nie potwierdzono nowego wydania.':'Błąd sprawdzania lub brak potwierdzenia. Zachowaj otwarte karty z niezapisaną pracą i spróbuj sprawdzić ponownie.');}
+  finally{busy=false;button.disabled=false;}
+ }
+ button.addEventListener('click',()=>check());void check();
+})();
+</script></body></html>

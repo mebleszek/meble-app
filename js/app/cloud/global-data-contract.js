@@ -59,6 +59,15 @@
   const single=new Set(['hardwareSettings','programDefaults','company','businessCosts']);
   const dictionary=new Set(['manufacturers','categories']);
   const sources={materials:['fc_sheet_materials_v1','fc_materials_v1'],hardware:['fc_accessories_v1'],manufacturers:['fc_hardware_manufacturers_v1'],suppliers:['fc_hardware_suppliers_v1','hardwareSuppliers'],categories:['fc_hardware_categories_v1','hardwareCategories'],types:['fc_hardware_types_v1','hardwareTypes'],technicalParams:['fc_hardware_technical_params_v1','hardwareTechnicalParams'],hardwareSettings:['fc_hardware_settings_v1','hardwareSettings'],labor:['fc_quote_rates_v1','fc_services_v1'],workshopServices:['fc_workshop_services_v1'],stock:['fc_sheets_v1'],programDefaults:['fc_program_defaults_v1'],company:['fc_company_profile_v1'],businessCosts:['fc_business_costs_v1']};
+  // Schema metadata only: keep diagnostic names tied to this static contract.
+  Object.values(sources).forEach(Object.freeze);Object.freeze(sources);
+  function aliasConflictMetadata(error){
+    try{
+      const domain=error?.code==='GLOBAL_ALIAS_CONFLICT'&&typeof error.path==='string'?error.path:null;
+      if(domain&&Object.hasOwn(sources,domain)&&sources[domain].length===2)return {domain,keys:[...sources[domain]]};
+    }catch(_){}
+    return {domain:'UNKNOWN',keys:[]};
+  }
   const validateBundle=model=>{if(!object(model)||Object.keys(schemas).some(d=>!Object.hasOwn(model,d)))fail('GLOBAL_BUNDLE_INCOMPLETE');return validate(model);};
   const canonical=v=>{if(!FC.projectExportContract?.canonical)fail('GLOBAL_DEPENDENCY_UNAVAILABLE');return FC.projectExportContract.canonical(v);};
   const clone=v=>JSON.parse(canonical(v));
@@ -169,5 +178,5 @@
     const packed=await pack(ownerUid,model);if(packed.directoryJson!==canonical(directory))fail('GLOBAL_DIRECTORY_INVALID');return {model:clone(model),...diagnostic};
   }
   function hashValue(v,p){if(typeof v!=='string'||! /^[a-f0-9]{64}$/.test(v))fail('GLOBAL_HASH_INVALID',p);}
-  FC.globalDataContract={validate,validateBundle,capture,pack,unpack,canonical,sha,encode,fail,clone,id,hashValue,shape,integer,schemas,sources,single,dictionary,MAX_RECORD_BYTES,MAX_DIRECTORY_BYTES,MAX_RECORDS,MAX_TOTAL_BYTES};
+  FC.globalDataContract={validate,validateBundle,capture,pack,unpack,canonical,sha,encode,fail,clone,id,hashValue,shape,integer,schemas,sources,aliasConflictMetadata,single,dictionary,MAX_RECORD_BYTES,MAX_DIRECTORY_BYTES,MAX_RECORDS,MAX_TOTAL_BYTES};
 })();
