@@ -383,3 +383,28 @@ Koszt obowiązkowy 0 zł, Spark w granicach darmowych limitów; brak gwarancji n
 Nie zmieniono gałęzi PR #98, historycznych 425 pinów, podpisanego eksportu CLOUD-4, publicznego slotu `null/null`, stawek, UI, źródeł danych ani archiwów. Nie wykonano Firebase LIVE, produkcyjnego GET/WRITE, migracji, Rules, IAM, billingu, PR, Actions, merge lub Pages. Obowiązkowy koszt pozostaje 0 zł. Po push STOP do niezależnej kontroli i osobnej zgody wydaniowej.
 
 **Wynik pakietu naprawczego:** CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED. Pierwotne scenariusze mają celowane PASS, a deterministyczny przypadek starego SDK read jest dodatkową regresją. Nie deklarujemy końcowej stabilności wydaniowej ani potwierdzenia fizycznego telefonu na podstawie tych kontroli. Następny ruch: niezależna kontrola SHA/diffu nowej gałęzi i osobna decyzja właściciela o dalszej próbie wydania; bez ingerencji Codexa w PR #98.
+
+
+## Diagnostyka pierwszego błędu synchronizacji — 02.11.2026
+
+Gałąź `fix/first-sync-error-diagnostics-20261102`, BASE `96392838d20e36907a8229db6cff0ee469299164` (zweryfikowany merge PR #101). CI/Pages tego wydania potwierdził właściciel; nowa zmiana ma osobne CI_PENDING. Pakiet wyłącznie ujawnia brakujący dowód, nie deklaruje naprawy niepotwierdzonej przyczyny transferu.
+
+- `application-bootstrap.js` zachowuje **pierwszy** kod/etap i osobno pierwszą odmowę transferu. Późniejszy błąd, ograniczony bufor runtime, disposal i AUTH_RELOAD_REQUIRED nie nadpisują dowodu. Wyłącznie RAM karty: nic nie zapisuje się do storage, IDB lub sieci. Nowy dokument zaczyna pustą diagnostykę. Zamknięta lista znanych kodów i etapów, bez UID, identyfikatorów projektu, tokenów, treści danych, komunikatów wyjątków lub stosów. Nieznane wartości = unknown/UNRECOGNIZED_ERROR.
+- Opcjonalny obserwator runtime dostaje oryginalny kod z catch `project-transfer-blocked` przed safeError. Dotychczasowy stan, błędy, zapisy, flush, CAS, brak retry i cleanup pozostają bez zmian. Wyjątek obserwatora również nie wpływa na wykonanie. Oczekiwany LF_OFFLINE z harmonogramu przed gotowością nie jest błędem startu.
+- Istniejący auth-error pokazuje „Pierwszy błąd: stage / code”; AUTH_RELOAD_REQUIRED pozostaje dopiskiem. Bez nowych przycisków, DOM lub układu. Istniejący raport ma `localFirst`: stage, code, firstError, transferStatus, projectTransferBlocked. `cycle-confirmed` oznacza wyłącznie zaobserwowany udany cykl kolejki, **nie dowód wysłania projektu**. Odmowa pozostaje blocked mimo późniejszych udanych cykli. Bramka autoryzacji raportu bez zmian.
+- Cache-busting obu HTML/rejestru, wygenerowany dotychczasowy bookmarklet kolektora oraz manifest offline odpowiadają nowym bajtom. Bookmarklet nie jest instrukcją obsługi dla właściciela.
+
+| Celowana kontrola — Node 24.19.0 | Rzeczywisty wynik |
+| --- | --- |
+| `node tools/first-sync-error-diagnostics-smoke.js` | **7/7 PASS**: pierwszy błąd/transfer/disposal/reload, rzeczywisty main-login i zachowana fatal odmowa bez ponownego startu, prywatność, bezpieczny collector/copy/format, identyczny ślad runtime z obserwatorem i bez (także rzucającym wyjątek), routing do jednej obowiązkowej grupy. SDK zastąpione na granicy ładowania; nie jest to Firebase E2E. |
+| `node tools/trusted-main-login-smoke.js` | **PASS**, cztery dotychczasowe grupy main/Auth: desktop idle/bfcache/reauth, trust/offline/restart/logout, revocation i bindings/ochrona RAM. Stare asercje zachowane, tylko opcjonalny hook fixture przed main. |
+| `node tools/pixel-session-bookmarklet-smoke.js` | **15/15 PASS**, prywatność, bramki dostępu, spójność, brak zapisów/recovery. |
+| `node tools/session-diagnostics-screen-smoke.js` | **6/6 PASS**, dotychczasowe odmowy i ekran raportu. |
+| `node tools/offline-shell-smoke.js` | **PASS**, dwie grupy: bieżący manifest, offline/corruption/kompletność, brak przejęcia karty i cache prywatnych odpowiedzi. |
+| Składnia / wersje / `git diff --check` | **PASS**. Nowy `*-smoke.js` należy do dokładnie jednego obowiązkowego sharda `preflight.js --current-only --smoke-shard=…`; workflow bez zmian. |
+
+Pełnego Preflightu, emulatorów, natywnego Chromium, fizycznego telefonu i GitHub Actions nie uruchamiano dla tej zmiany. Nie wykonano Firebase LIVE, podpisywania, grantów, Rules, migracji, resetu, kasowania danych, PR, merge lub Pages.
+
+Po **osobno zatwierdzonym wydaniu** właściciel odczytuje istniejący komunikat logowania „Pierwszy błąd: …”, także przy AUTH_RELOAD_REQUIRED. Jeśli aplikacja jest dostępna: jeden odczyt **Diagnostyka sesji → Kopiuj raport**, pole localFirst. Na zablokowanym ekranie logowania raport biznesowy nadal jest niedostępny — wystarczy zrzut istniejącego błędu, bez obejścia bramki. Nie odświeżać karty z niezapisanym RAM. Nie odtworzymy błędów poprzedniego dokumentu; obserwacja dotyczy nowej wersji i żyje do zamknięcia/załadowania dokumentu.
+
+**CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED.** Następny ruch: niezależny przegląd HEAD/BASE i osobna decyzja właściciela o CI/wydaniu; dopiero anonimowy pierwotny kod uzasadni naprawę transferu.

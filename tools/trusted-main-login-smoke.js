@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{webcrypto}=req
 const idb=require('./helpers/profile-indexeddb-fixture');
 const tick=()=>new Promise(r=>setImmediate(r));
 async function until(fn){const end=Date.now()+3000;while(Date.now()<end){if(fn())return;await new Promise(r=>setTimeout(r,1));}assert.fail('main-login did not reach expected state');}
-function world(shared={},inherited=null,{realAuth=false}={}){
+function world(shared={},inherited=null,{realAuth=false,beforeMain=()=>{}}={}){
  class Storage{constructor(rows){this.rows=rows||new Map();}get length(){return this.rows.size;}key(i){return [...this.rows.keys()][i]??null;}getItem(k){return this.rows.get(k)??null;}setItem(k,v){this.rows.set(k,String(v));}removeItem(k){this.rows.delete(k);}}
  const local=new Storage(shared.rows),session=new Storage(),databases=shared.databases||new Map(),listeners={},nodes={};
  const node=id=>nodes[id]||=( {id,hidden:true,disabled:id==='auth-google',checked:false,dataset:{},classList:{toggle(){}},addEventListener(type,fn){this[type]=fn;},contains(target){return this===target||(this.id==='main-login'&&target.id.startsWith('auth-'));},
@@ -33,6 +33,7 @@ function world(shared={},inherited=null,{realAuth=false}={}){
   w.FC.cloudAuth.create=async options=>{authCreates++;actualAuth=await create(options);return actualAuth;};
   w.FC.cloudAccessVerifier.create=(...args)=>actualVerifier=verify(...args);
  }
+ beforeMain(w);
  load('js/main-login.js');
  const event=target=>({target,isTrusted:true,preventDefault(){},stopImmediatePropagation(){}});
  return {w,nodes,shared:{rows:local.rows,databases},get authCreates(){return authCreates;},get logins(){return logins;},

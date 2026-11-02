@@ -10,7 +10,7 @@ import {applicationInstallation,verifyExclusiveClient} from './application-insta
 import {assertApplicationConnection} from './firebase-activation.mjs';
 import {copy,equal,assertEmulator,fail,safeError} from './local-first-values.mjs';
 export function startNormalEmulatorApplication(options){return startApplicationRuntime(options);}
-export async function startApplicationRuntime({window:w,writer,reader,name,ownerUid,boot,release:deployment,onStage=()=>{}}){
+export async function startApplicationRuntime({window:w,writer,reader,name,ownerUid,boot,release:deployment,onStage=()=>{},onDiagnostic=()=>{}}){
  const fc=w.FC;
  if(writer){const a=assertApplicationConnection(writer),b=assertApplicationConnection(reader);if(a.uid!==ownerUid||b.uid!==ownerUid||writer.db.app===reader.db.app)fail('LF_INDEPENDENT_OWNER_REQUIRED');}
  else if(!boot?.restored)fail('LF_ONLINE_INSTALLATION_REQUIRED');
@@ -18,7 +18,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
  const keys=applicationKeys(fc);
  onStage('checking-installation');const installation=await applicationInstallation({window:w,ownerUid,name,keys,sourceRead:boot?.readNative,heldRelease:boot?.release,release:deployment,migration:boot?.migration});
  let store,sync,authority,boundary,closed=false,authorityReady=false,incomingBlocked=false;const states=[];
- const state=value=>{if(['LF_ACTIVE_FORM_PROTECTED','LF_ACTIVE_RAM_PROTECTED'].includes(value.code))incomingBlocked=true;states.push(copy(value));if(states.length>12)states.shift();};
+ const state=(value,error)=>{try{onDiagnostic({ok:value.ok===true,code:error?.code||error?.message||value.code,projectTransferBlocked:value.scope==='project-transfer-blocked'});}catch(_){}if(['LF_ACTIVE_FORM_PROTECTED','LF_ACTIVE_RAM_PROTECTED'].includes(value.code))incomingBlocked=true;states.push(copy(value));if(states.length>12)states.shift();};
  try{
   onStage('opening-idb');store=await openLocalFirstStore({...installation.binding,indexedDB:w.indexedDB,locks:w.navigator.locks});
   const c=fc.globalDataContract,p=fc.businessProjectContract;
@@ -106,7 +106,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
      const base=await store.snapshot(record.id);
      await store.commit({scope:record.id,operationId:crypto.randomUUID(),value,expectedVersion:base.replica.version,editor});
     }
-   }catch(error){state({...safeError(error),scope:'project-transfer-blocked'});}
+   }catch(error){state({...safeError(error),scope:'project-transfer-blocked'},error);}
    });
   }
   async function handover(scope){
