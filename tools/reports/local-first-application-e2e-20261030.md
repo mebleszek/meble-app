@@ -383,3 +383,53 @@ Koszt obowiązkowy 0 zł, Spark w granicach darmowych limitów; brak gwarancji n
 Nie zmieniono gałęzi PR #98, historycznych 425 pinów, podpisanego eksportu CLOUD-4, publicznego slotu `null/null`, stawek, UI, źródeł danych ani archiwów. Nie wykonano Firebase LIVE, produkcyjnego GET/WRITE, migracji, Rules, IAM, billingu, PR, Actions, merge lub Pages. Obowiązkowy koszt pozostaje 0 zł. Po push STOP do niezależnej kontroli i osobnej zgody wydaniowej.
 
 **Wynik pakietu naprawczego:** CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED. Pierwotne scenariusze mają celowane PASS, a deterministyczny przypadek starego SDK read jest dodatkową regresją. Nie deklarujemy końcowej stabilności wydaniowej ani potwierdzenia fizycznego telefonu na podstawie tych kontroli. Następny ruch: niezależna kontrola SHA/diffu nowej gałęzi i osobna decyzja właściciela o dalszej próbie wydania; bez ingerencji Codexa w PR #98.
+
+
+## Diagnostyka pierwszego błędu synchronizacji — 02.11.2026
+
+Gałąź `fix/first-sync-error-diagnostics-20261102`, BASE `96392838d20e36907a8229db6cff0ee469299164` (zweryfikowany merge PR #101). CI/Pages tego wydania potwierdził właściciel; nowa zmiana ma osobne CI_PENDING. Pakiet wyłącznie ujawnia brakujący dowód, nie deklaruje naprawy niepotwierdzonej przyczyny transferu.
+
+- `application-bootstrap.js` zachowuje **pierwszy** kod/etap i osobno pierwszą odmowę transferu. Późniejszy błąd, ograniczony bufor runtime, disposal i AUTH_RELOAD_REQUIRED nie nadpisują dowodu. Wyłącznie RAM karty: nic nie zapisuje się do storage, IDB lub sieci. Nowy dokument zaczyna pustą diagnostykę. Zamknięta lista znanych kodów i etapów, bez UID, identyfikatorów projektu, tokenów, treści danych, komunikatów wyjątków lub stosów. Nieznane wartości = unknown/UNRECOGNIZED_ERROR.
+- Opcjonalny obserwator runtime dostaje oryginalny kod z catch `project-transfer-blocked` przed safeError. Dotychczasowy stan, błędy, zapisy, flush, CAS, brak retry i cleanup pozostają bez zmian. Wyjątek obserwatora również nie wpływa na wykonanie. Oczekiwany LF_OFFLINE z harmonogramu przed gotowością nie jest błędem startu.
+- Istniejący auth-error pokazuje „Pierwszy błąd: stage / code”; AUTH_RELOAD_REQUIRED pozostaje dopiskiem. Bez nowych przycisków, DOM lub układu. Istniejący raport ma `localFirst`: stage, code, firstError, transferStatus, projectTransferBlocked. `cycle-confirmed` oznacza wyłącznie zaobserwowany udany cykl kolejki, **nie dowód wysłania projektu**. Odmowa pozostaje blocked mimo późniejszych udanych cykli. Bramka autoryzacji raportu bez zmian.
+- Cache-busting obu HTML/rejestru, wygenerowany dotychczasowy bookmarklet kolektora oraz manifest offline odpowiadają nowym bajtom. Bookmarklet nie jest instrukcją obsługi dla właściciela.
+
+| Celowana kontrola — Node 24.19.0 | Rzeczywisty wynik |
+| --- | --- |
+| `node tools/first-sync-error-diagnostics-smoke.js` | **7/7 PASS**: pierwszy błąd/transfer/disposal/reload, rzeczywisty main-login i zachowana fatal odmowa bez ponownego startu, prywatność, bezpieczny collector/copy/format, identyczny ślad runtime z obserwatorem i bez (także rzucającym wyjątek), routing do jednej obowiązkowej grupy. SDK zastąpione na granicy ładowania; nie jest to Firebase E2E. |
+| `node tools/trusted-main-login-smoke.js` | **PASS**, cztery dotychczasowe grupy main/Auth: desktop idle/bfcache/reauth, trust/offline/restart/logout, revocation i bindings/ochrona RAM. Stare asercje zachowane, tylko opcjonalny hook fixture przed main. |
+| `node tools/pixel-session-bookmarklet-smoke.js` | **15/15 PASS**, prywatność, bramki dostępu, spójność, brak zapisów/recovery. |
+| `node tools/session-diagnostics-screen-smoke.js` | **6/6 PASS**, dotychczasowe odmowy i ekran raportu. |
+| `node tools/offline-shell-smoke.js` | **PASS**, dwie grupy: bieżący manifest, offline/corruption/kompletność, brak przejęcia karty i cache prywatnych odpowiedzi. |
+| Składnia / wersje / `git diff --check` | **PASS**. Nowy `*-smoke.js` należy do dokładnie jednego obowiązkowego sharda `preflight.js --current-only --smoke-shard=…`; workflow bez zmian. |
+
+Pełnego Preflightu, emulatorów, natywnego Chromium, fizycznego telefonu i GitHub Actions nie uruchamiano dla tej zmiany. Nie wykonano Firebase LIVE, podpisywania, grantów, Rules, migracji, resetu, kasowania danych, PR, merge lub Pages.
+
+Po **osobno zatwierdzonym wydaniu** właściciel odczytuje istniejący komunikat logowania „Pierwszy błąd: …”, także przy AUTH_RELOAD_REQUIRED. Jeśli aplikacja jest dostępna: jeden odczyt **Diagnostyka sesji → Kopiuj raport**, pole localFirst. Na zablokowanym ekranie logowania raport biznesowy nadal jest niedostępny — wystarczy zrzut istniejącego błędu, bez obejścia bramki. Nie odświeżać karty z niezapisanym RAM. Nie odtworzymy błędów poprzedniego dokumentu; obserwacja dotyczy nowej wersji i żyje do zamknięcia/załadowania dokumentu.
+
+**CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED.** Następny ruch: niezależny przegląd HEAD/BASE i osobna decyzja właściciela o CI/wydaniu; dopiero anonimowy pierwotny kod uzasadni naprawę transferu.
+
+
+## PR #102 — korekta dwóch bramek Preflight, 02.11.2026
+
+Nowa gałąź `fix/pr102-preflight-chromium-20261102`, BASE roboczy `1c54a659c53d87f542950f9ae9f7f059d8b1c885` (wadliwy HEAD PR #102); BASE/main tego PR pozostaje `96392838d20e36907a8229db6cff0ee469299164`. Nie zmieniono istniejącego PR ani jego gałęzi.
+
+**Źródła:** [CI #41470013557](https://github.com/mebleszek/meble-app/actions/runs/41470013557), logi `preflight-shards (5)` job 125360991024 oraz `preflight-shards (7)` job 125360990833. Safety/static/Firebase CURRENT/historyczne CLOUD PASS; Preflight FAIL, automatyczny merge i Pages SKIPPED. Logi sprawdzono odczytowo, nie ponawiano GitHub Actions.
+
+1. **CONFIRMED — błędny kontrakt statyczny:** `local-first-contract-smoke.js:47` odrzucał dowolny tekst `local-first` w main-login, w tym zatwierdzoną, wyłącznie diagnostyczną instrukcję `startupStage='starting-local-first';`. Lokalnie odtworzono ten sam FAIL. Dopuszczamy tylko tę jedną dokładną instrukcję (wymagane jedno wystąpienie); każde pozostałe wystąpienie w main-login i każde w index/load-groups nadal jest odrzucane. Wszystkie rzeczywiste kontrole podpisu, właściciela, Rules, odwołania i odmowy przed siecią pozostają.
+2. **CONFIRMED — dwie fazy startu mają niespójne limity:** pierwszy recovery przerwany po 15000 ms, brak DevTools/stderr; drugi miał prawdziwy endpoint, ale HTTP `/json/version` przekroczyło osobny limit 5000 ms (łącznie ok. 20 s). Są to odmowy przed testami danych. Wspólny helper miał już standard 60000 ms, lecz storage nadpisywał go 15000 ms, a kontrola HTTP nie korzystała z pozostałego budżetu. Teraz jeden nieodnawialny budżet obejmuje launch, announcement i potwierdzenie HTTP/tożsamości. Standard pozostaje 60 s; storage korzysta ze standardu. Po wyczerpaniu czasu, błędzie HTTP, obcej tożsamości lub spóźnionym body nadal FAIL i potwierdzony cleanup. Jeden launch i jeden GET, zero retry/relaunch. Komunikat awarii podaje fazę, czas i budżet. Nie zmieniono flag Chrome, profili, subreapera, SingletonLock ani kodu aplikacji.
+3. **UNCONFIRMED — źródło opóźnienia Chrome na GitHub runnerze:** Ubuntu 26.04 / Google Chrome 156.0.8078.47. Logi nie wykazują OOM, braku miejsca lub niepotwierdzonego cleanup; odczytano je bez przypisywania awarii automatycznie środowisku. Lokalnie Chromium 151.0.7922.173 / Node 24.19.0: pierwotny storage miał 18 grup PASS jeszcze przed zmianą, więc nie odtworzono tego samego spowolnienia hosta. Nie deklarujemy, że 60 s usunie każdy możliwy problem runnera. Deterministyczny model rzeczywistego helpera wykazał jednak konkretny defekt podziału czasu: announcement 17 s + HTTP 8 s mieści się w standardowym budżecie, ale stary helper odmawia przez osobny limit 5 s. Ten sam przypadek przechodzi nowy helper. To model protokołu, nie odziedziczony PASS rzeczywistego CI.
+
+| Faktycznie wykonana kontrola | Wynik |
+| --- | --- |
+| `node tools/local-first-contract-smoke.js` | **PASS**, wszystkie 7 dotychczasowych grup i rzeczywiste odmowy aktywacji zachowane; wcześniej odtworzono wskazany FAIL. |
+| `node tools/chromium-runtime-smoke.js` | **9 grup PASS**: także rzeczywiste procesy Linux/subreaper, bezpieczne profile, deadline, błędna tożsamość, brak retry i ślad domenu FAIL. Nowa grupa wirtualnego czasu: 17+8 s, pozostały budżet 43 s, wyczerpanie przy 59+1.001 s, brak GET po wyczerpaniu announcement i odmowa spóźnionego body. |
+| `node tools/chromium-startup-smoke.js` | **4/4 grupy PASS**, gotowość i cleanup listenerów/timerów, błędy nadal FAIL. |
+| `node tools/storage-recovery-browser-smoke.js` | **18 grup PASS** po poprawce, natywne Chromium i rzeczywista IndexedDB, 393×852, pięć dokumentów, dwa taby, bezstratne RAW/quota/restart/recovery i zero LIVE requests. |
+| `node tools/storage-recovery-repair-smoke.js` | **6 grup PASS**, natywne Chromium/IndexedDB, dwa dokumenty, eksport i odmowy właściciela oraz wyłączności bez zmian. |
+| `node tools/first-sync-error-diagnostics-smoke.js` | **7/7 PASS**, pierwszy błąd, brak maskowania, fatal, prywatność i read-only raport zachowane. |
+| Składnia / manifest / diff | **PASS**; publiczne pliki js/sync/HTML/offline-assets i Firebase Rules/integrity bez zmian. Zmodyfikowane smoke należą do obowiązkowego Preflightu przez dotychczasowy inventory/sharding; workflow bez zmian. |
+
+Pełny lokalny Preflight, Firebase SDK/Rules i GitHub Actions nie były uruchamiane. Testy zmieniały wyłącznie syntetyczne dane w jednorazowych profilach testowych. Nie dotknięto danych właściciela, Firebase LIVE, aktywacji, Rules, IAM, billingu, fatal, LOCAL-FIRST, indeksów lub kolejki. Nie zmieniono pinów ani manifestu offline (brak zmian publicznych zasobów). Bez nowego PR, Ready/Draft, merge i Pages.
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED.** Następny jeden ruch: niezależnie skontrolować nową gałąź i BASE roboczy; dotychczasowa próba PR #102 pozostaje zakończona FAIL, nowa zgoda wydaniowa nie jest domyślna. Zachowane ograniczenie: zachowanie Google Chrome 156 na runnerze wymaga przyszłego, osobno zatwierdzonego CI.

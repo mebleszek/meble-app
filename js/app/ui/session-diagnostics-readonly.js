@@ -85,6 +85,13 @@ function pixelSessionReadonly(w,options){
     const payloadShape=!!(object(p)&&p.schemaVersion===4&&p.active===true&&typeof p.projectId==='string'&&p.projectId.trim()&&typeof p.roomId==='string'&&Number.isFinite(p.startedAt)&&context&&context.projectId===p.projectId&&context.roomId===p.roomId&&typeof context.investorId==='string'&&requiredKeys&&p.expectedOwnerKnown===true&&E!==null&&c.valid&&b.valid);
     const ramMatch=!!(object(s)&&object(p)&&s.active===p.active&&s.projectId===p.projectId&&s.roomId===p.roomId&&s.startedAt===p.startedAt&&s.expectedOwnerKnown===p.expectedOwnerKnown&&s.expectedOwnerRaw===p.expectedOwnerRaw&&s.context?.investorId===context?.investorId&&s.context?.projectId===context?.projectId&&s.context?.roomId===context?.roomId&&requiredKeys&&snapKeys.every(k=>own(s.snapshot,k)&&s.snapshot[k]===snapshot[k]));
     const report={v:1,status:'READ_ONLY',investorOpen,runningCode,storage:'READABLE',present:raw[0]!==null,schema,active:p?.active===true,ram:object(s),durable:s?.durable===true,requiredKeys,payloadShape,ownerMatch,uiRam:object(ui),uiStoredMatch:!!(object(ui)&&object(currentUi)&&ui.roomType===currentUi.roomType&&ui.currentInvestorId===currentUi.currentInvestorId),contextMatch:!!(context&&raw[2]===p.projectId&&raw[3]===context.investorId&&(!room||ui?.roomType===room)),ramMatch,expectedKnown:p?.expectedOwnerKnown===true,CB:C!==null&&B!==null?C===B:null,CE:C!==null&&E!==null?C===E:null,partsMatch:requiredKeys?partKeys.every((k,i)=>raw[i+5]===snapshot[k]):null,pending:!!c.row?.meta?.pendingDomainOperation,code};
+    // This snapshot is memory-only, closed-vocabulary metadata; no network or IDB access.
+    try{
+      const diagnostic=w.FC?.applicationStartup?.diagnostics?.();
+      const fault=value=>value?{stage:value.stage,code:value.code}:null;
+      if(diagnostic)report.localFirst={status:diagnostic.status,stage:diagnostic.stage,code:diagnostic.code,
+        firstError:fault(diagnostic.firstError),transferStatus:diagnostic.transferStatus,projectTransferBlocked:fault(diagnostic.projectTransferBlocked)};
+    }catch(_){report.localFirst={status:'UNAVAILABLE'};}
     if(options?.storageUsage===true){
       // Text footprint only: no quota probe, capacity assertion, record names or IDs.
       const storage=w.localStorage, groups=['session','projects','investors','catalogs','history','backups','other'];

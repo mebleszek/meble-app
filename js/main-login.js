@@ -9,7 +9,7 @@
   catch(_){el('auth-status').textContent='Pamięć przeglądarki jest niedostępna. Nie uruchomiono aplikacji.';el('auth-error').hidden=false;el('auth-error').textContent='LOCAL_ACCESS_UNCONFIRMED';document.body.dataset.authState='error';return;}
   let auth=null,access=null,gate=null,lease=null,blocked=true,started=false,starting=false,fatal=false,loader=null;
   let displayed={status:'checking'},initializing=false,admission=null;
-  let interaction=null;
+  let interaction=null,startupStage='login-startup';
   const trust=FC.localDeviceAccess.createTrust();
   const localSession=FC.localDeviceAccess.createSession({onLock(code){
     FC.applicationSyncActions?.close();FC.applicationStartup?.revokeCloud();
@@ -64,12 +64,17 @@
     el('auth-account').hidden=!signed;
     const texts={checking:'Sprawdzanie sesji…',unauthenticated:'Zaloguj się, aby rozpocząć.',authenticated:'Zalogowano. Sprawdzanie uprawnień…',unapproved:'Dostęp do aplikacji nie został zatwierdzony.',authorized:'Uruchamianie Meble-App…','profile-pending':'Konto zostało zatwierdzone. Potwierdź dostęp do istniejącego profilu przeglądarki.',revoked:'Uprawnienia zostały cofnięte. Praca została wstrzymana. Niezakończonej edycji nie zapisano ani nie anulowano.',error:'Nie potwierdzono dostępu. Praca pozostała zablokowana.'};
     el('auth-status').textContent=state.message||texts[state.status]||texts.error;
-    el('auth-error').hidden=state.status!=='error';el('auth-error').textContent=state.status==='error'?'Nie zmieniono danych. ('+(state.code||'AUTH_ACCESS_UNCONFIRMED')+')':'';
+    if(state.status==='error')FC.applicationStartup?.recordFailure?.({code:state.code||'AUTH_ACCESS_UNCONFIRMED'},startupStage);
+    const first=FC.applicationStartup?.diagnostics?.().firstError;
+    const code=FC.applicationStartup?.errorCode?.(state.code||'AUTH_ACCESS_UNCONFIRMED')||state.code||'AUTH_ACCESS_UNCONFIRMED';
+    const detail=first?'Pierwszy błąd: '+first.stage+' / '+first.code+(code!==first.code?'; '+code:''):code;
+    el('auth-error').hidden=state.status!=='error';el('auth-error').textContent=state.status==='error'?'Nie zmieniono danych. ('+detail+')':'';
   }
   function failure(error){
     // A delayed business script may resume after the access gate has expired.
     // Keep that gate's refusal and retry path; this is not a second startup.
     if(started && (error?.code||error?.message)==='AUTH_ACCESS_REVOKED' && !isValid()){block();return;}
+    FC.applicationStartup?.recordFailure?.(error,startupStage);
     fatal=!started&&!String(error?.code||'').startsWith('LOCAL_');block();if(fatal)gate?.close();render({status:'error',uid:auth?.state().uid,code:error?.code||'AUTH_STARTUP_FAILED',message:error?.code==='LOCAL_ACCESS_DATA_CHANGED'
       ?'Dane profilu zmieniły się podczas potwierdzania. Nie dopuszczono dostępu. Zamknij pozostałe karty i ponownie sprawdź profil oraz kopię bezpieczeństwa.'
       :error?.code==='LOCAL_ACCESS_UNCONFIRMED'?'Nie potwierdzono lokalnego dowodu dostępu. Mógł zostać zapisany, ale praca pozostaje zablokowana. Nie zmieniono danych biznesowych ani sesji edycji.'
@@ -86,6 +91,7 @@
   }
   async function loadBusiness(grant,intent,restoring=false){
     if(fatal)throw Object.assign(Error(),{code:'AUTH_RELOAD_REQUIRED'});
+    startupStage='checking-local-access';
     if(!restoring){
       const identity=auth.identity();
       if(!interaction||interaction.uid!==identity.uid||interaction.epoch!==identity.epoch||grant.uid!==identity.uid)throw Error('AUTH_INTERACTION_REQUIRED');
@@ -120,6 +126,7 @@
       }
       throw error;
     }
+    startupStage='preparing-source';
     await FC.applicationStartup?.beforeBusiness({ownerUid:localSession.identity().uid});
     if(started){await FC.applicationStartup?.start(syncContext());showBusiness(true);return;}
     if(starting)return;starting=true;
@@ -128,18 +135,22 @@
       const manifest=Array.from(fragment.querySelectorAll('script[src]'),node=>({src:node.getAttribute('src'),group:node.getAttribute('data-load-group')}));
       fragment.querySelectorAll('script').forEach(node=>node.remove());
       const links=Array.from(el('business-styles').content.cloneNode(true).querySelectorAll('link'));
+      startupStage='loading-business-styles';
       await Promise.all(links.map(link=>new Promise((resolve,reject)=>{
         styles.push(link);link.onload=resolve;link.onerror=()=>reject(Error('AUTH_STYLE_NETWORK'));document.head.appendChild(link);
       })));
       assert();
       for(const node of [...fragment.children]){businessNodes.add(node);node.inert=true;}
       document.body.appendChild(fragment);
+      startupStage='loading-business-scripts';
       loader=FC.mainBusinessLoader.create(assert,failure);await loader.start(manifest);assert();
       // All former deferred scripts are now registered. Replay their startup
       // barrier once; no script was present for the browser's initial DOM event.
       el('auth-theme').disabled=true;for(const style of styles)style.disabled=false;
+      startupStage='starting-business';
       document.dispatchEvent(new Event('DOMContentLoaded'));
       assert();if(window.__APP_STARTED__!==true)throw Error('AUTH_STARTUP_UNCONFIRMED');
+      startupStage='starting-local-first';
       await FC.applicationStartup?.start(syncContext());
       assert();started=true;starting=false;document.body.dataset.businessState='ready';showBusiness(true);
     }catch(error){starting=false;throw error;}
