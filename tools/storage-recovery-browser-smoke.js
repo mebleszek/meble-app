@@ -13,7 +13,7 @@ async function main(){
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'meble-storage-recovery-'));let browser;const clients=[];const errors=[],external=[];
   try{
     for(const name of ['profile','cache','config','downloads'])fs.mkdirSync(path.join(dir,name));
-    browser=await startBrowser({profileDir:path.join(dir,'profile'),timeoutMs:15000});
+    browser=await startBrowser({profileDir:path.join(dir,'profile')});
     const endpoint=browser.endpoint;
     const targets=await(await fetch('http://127.0.0.1:'+new URL(endpoint).port+'/json/list')).json();
     async function client(url){

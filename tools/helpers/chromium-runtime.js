@@ -74,17 +74,24 @@ function launch({profileDir,args,env={},capture=false}){
   return {...owned,close:()=>stop(false),crash:()=>stop(true),describe:()=>JSON.stringify({binary,pid:owned.child.pid,resources:resources(),stderr:tail})};
 }
 async function startBrowser({profileDir,timeoutMs=60000,env={}}){
+  // One existing startup budget covers both announcement and HTTP identity.
+  // An announcement alone is not readiness; do not start a new 5s sub-deadline.
+  const started=Date.now(),deadline=started+timeoutMs;
+  const remaining=()=>{const ms=deadline-Date.now();if(ms<=0)throw Error('Chromium startup deadline exceeded after '+timeoutMs+' ms');return ms;};
+  let phase='endpoint-announcement';
   const browser=launch({profileDir,env,args:['--remote-debugging-port=0','about:blank']});
   try{
-    const endpoint=await waitForEndpoint(browser.child,{profileDir,timeoutMs});
+    const endpoint=await waitForEndpoint(browser.child,{profileDir,timeoutMs:remaining()});
     const url=new URL(endpoint);
     if(!['127.0.0.1','localhost'].includes(url.hostname)||url.protocol!=='ws:')throw Error('Non-loopback DevTools endpoint');
-    const response=await fetch('http://127.0.0.1:'+url.port+'/json/version',{redirect:'error',signal:AbortSignal.timeout(5000)});
+    phase='devtools-http-identity';
+    const response=await fetch('http://127.0.0.1:'+url.port+'/json/version',{redirect:'error',signal:AbortSignal.timeout(remaining())});
     if(response.status!==200)throw Error('DevTools version endpoint unavailable');
     const version=await response.json(),actual=new URL(version.webSocketDebuggerUrl);
+    remaining(); // Never accept a late response, even from a non-aborting client.
     if(actual.pathname!==url.pathname||actual.port!==url.port||!['127.0.0.1','localhost'].includes(actual.hostname)||actual.protocol!=='ws:')throw Error('DevTools process identity mismatch');
     return {...browser,endpoint};
-  }catch(error){const details=browser.describe();await browser.crash();throw Error(error.message+'; '+details,{cause:error});}
+  }catch(error){const details=browser.describe();await browser.crash();throw Error(error.message+'; phase='+phase+' elapsedMs='+(Date.now()-started)+' budgetMs='+timeoutMs+'; '+details,{cause:error});}
 }
 async function dumpDom({profileDir,args,timeoutMs=30000,maxBuffer=8*1024*1024,env={}}){
   const browser=launch({profileDir,args,env,capture:true});let output='',failure;

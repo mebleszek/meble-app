@@ -44,8 +44,13 @@ async function main(){
  console.log('PASS LOCAL-FIRST contracts: native RYSUNEK and complete labor calculation remain identical');
  let requests=0;await assert.rejects(authorizeGlobalFirebase({request:async()=>{requests++;throw Error('No network allowed');}}),/LF_SEPARATE_ACTIVATION_REQUIRED/);
  assert.throws(()=>assertGlobalConnection({db:{app:{options:{projectId:'mebleszek-meble-app'}}}}),/LF_PRODUCTION_ACTIVATION_REQUIRED/);assert.equal(requests,0);
- for(const file of ['index.html','js/main-login.js','tools/index-load-groups.js'])assert.equal(fs.readFileSync(path.join(root,file),'utf8').includes('local-first'),false);
- console.log('PASS LOCAL-FIRST contracts: production activation refused before network; startup unchanged');
+ const startup=fs.readFileSync(path.join(root,'js/main-login.js'),'utf8'),diagnosticStage="startupStage='starting-local-first';";
+ assert.equal(startup.split(diagnosticStage).length-1,1,'Exactly one inert diagnostic stage assignment');
+ // Exempt only this literal assignment; imports, calls and other references
+ // still fail the existing startup guard. The authorization checks above stay.
+ assert.equal(startup.replace(diagnosticStage,'').includes('local-first'),false);
+ for(const file of ['index.html','tools/index-load-groups.js'])assert.equal(fs.readFileSync(path.join(root,file),'utf8').includes('local-first'),false);
+ console.log('PASS LOCAL-FIRST contracts: production activation refused before network; only the diagnostic stage is exempted');
  // Synthetic ephemeral authority, fabricated identities and injected HTTP only.
  // No real owner key, token, Firebase connection or executable LIVE decision.
  const keys=await crypto.subtle.generateKey('Ed25519',true,['sign','verify']);

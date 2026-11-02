@@ -14,7 +14,8 @@ async function ready(owner){
 function isolatedRuntime(profile){
   // Execute the actual runtime with synthetic OS/CDP boundaries. Business/DOM
   // suites still run real Chromium in CI, with no injection parameter added.
-  const state={mode:'ready',active:false,fetches:0,signals:[],child:null,launches:0};
+  const state={mode:'ready',active:false,fetches:0,signals:[],child:null,launches:0,clock:1000,announcementMs:0,httpMs:0,jsonMs:0,httpBudgets:[]};
+  const clock=class extends Date{static now(){return state.clock;}};
   const fakeFs={...fs,readdirSync:dir=>dir==='/proc'?(state.active?['400000']:[]):fs.readdirSync(dir),
     readFileSync:(file,...args)=>file==='/proc/400000/stat'?'400000 (fixture) S 1 400000 400000 0':fs.readFileSync(file,...args)};
   const fakeProcess={platform:'linux',env:{...process.env,DBUS_SESSION_BUS_ADDRESS:'invalid-inherited-address',DBUS_SYSTEM_BUS_ADDRESS:'invalid-system-address'},
@@ -31,16 +32,19 @@ function isolatedRuntime(profile){
       if(state.mode==='timeout'||state.mode==='dom-timeout')return;
       if(state.mode==='exit'){state.active=false;fs.writeFileSync(state.receipt,'reaped\n');c.exitCode=2;c.stdout.end();c.emit('exit',2,null);return;}
       if(state.mode.startsWith('dom-')){fs.writeFileSync(state.receipt,'reaped\n');c.stdout.end(state.mode==='dom-fail'?'<pre>FAIL real assertion</pre>':'<pre>PASS</pre>');state.active=false;c.exitCode=0;c.emit('exit',0,null);return;}
+      state.clock+=state.announcementMs;
       fs.writeFileSync(path.join(profile,'DevToolsActivePort'),'23456\n/devtools/browser/fresh\n');
       c.stderr.write('DevTools listening on ws://127.0.0.1:23456/devtools/browser/fresh\n');
     },5);return c;
   };
-  const fetch=async url=>{state.fetches++;assert.equal(url,'http://127.0.0.1:23456/json/version');
+  const fetch=async(url,{signal})=>{state.fetches++;assert.equal(url,'http://127.0.0.1:23456/json/version');
+    state.httpBudgets.push(signal.budgetMs);state.clock+=state.httpMs;
+    if(state.httpMs>=signal.budgetMs)throw Error('synthetic HTTP readiness timeout');
     if(state.mode==='http-error')throw Error('synthetic CDP connection failure');
-    return{status:200,json:async()=>({webSocketDebuggerUrl:'ws://127.0.0.1:23456/devtools/browser/'+(state.mode==='wrong-process'?'foreign':'fresh')})};};
+    return{status:200,json:async()=>{state.clock+=state.jsonMs;return{webSocketDebuggerUrl:'ws://127.0.0.1:23456/devtools/browser/'+(state.mode==='wrong-process'?'foreign':'fresh')};}};};
   const module={exports:{}};
   const dependency=name=>name==='node:fs'?fakeFs:name==='node:child_process'?{spawn}:name==='./chromium-startup'?require('./helpers/chromium-startup'):require(name);
-  new Function('require','module','process','fetch','__dirname',fs.readFileSync(path.join(__dirname,'helpers/chromium-runtime.js'),'utf8'))(dependency,module,fakeProcess,fetch,path.join(__dirname,'helpers'));
+  new Function('require','module','process','fetch','__dirname','Date','AbortSignal',fs.readFileSync(path.join(__dirname,'helpers/chromium-runtime.js'),'utf8'))(dependency,module,fakeProcess,fetch,path.join(__dirname,'helpers'),clock,{timeout:budgetMs=>({budgetMs})});
   return {state,runtime:module.exports};
 }
 async function main(){
@@ -83,6 +87,26 @@ async function main(){
     }
     assert.equal(fs.readFileSync(path.join(profile,'IndexedDB-SENTINEL'),'utf8'),'SYNTHETIC-KEEP');
     console.log('PASS supervision protocol: timeout/crash/HTTP/foreign endpoint fail, clean up and preserve profile bytes');
+    // Virtual elapsed time exercises the real deadline calculation, not a slow
+    // retry or relaxed business assertion. The production default stays 60s.
+    state.announcementMs=17000;state.httpMs=8000;
+    let launches=state.launches,fetches=state.fetches;
+    const cold=await runtime.startBrowser({profileDir:profile});
+    assert.equal(state.httpBudgets.at(-1),43000,'HTTP receives only the remaining original startup budget');
+    assert.equal(state.launches,launches+1);assert.equal(state.fetches,fetches+1);await cold.close();
+    state.announcementMs=59000;state.httpMs=1001;launches=state.launches;fetches=state.fetches;
+    await assert.rejects(runtime.startBrowser({profileDir:profile}),/HTTP readiness timeout.*phase=devtools-http-identity.*budgetMs=60000/);
+    assert.equal(state.httpBudgets.at(-1),1000);assert.equal(state.launches,launches+1);assert.equal(state.fetches,fetches+1);
+    assert.equal(state.active,false,'Exhausting the shared budget still requires confirmed cleanup');
+    state.announcementMs=60000;state.httpMs=0;fetches=state.fetches;
+    await assert.rejects(runtime.startBrowser({profileDir:profile}),/startup deadline exceeded/);
+    assert.equal(state.fetches,fetches,'An exhausted announcement budget cannot initiate another HTTP phase');
+    state.announcementMs=55000;state.httpMs=1000;state.jsonMs=4001;
+    await assert.rejects(runtime.startBrowser({profileDir:profile}),/startup deadline exceeded/);
+    assert.equal(state.active,false,'A late identity body cannot turn an expired attempt into PASS');
+    state.announcementMs=state.httpMs=state.jsonMs=0;
+    assert.equal(fs.readFileSync(path.join(profile,'IndexedDB-SENTINEL'),'utf8'),'SYNTHETIC-KEEP');
+    console.log('PASS shared startup deadline: slow announcement/HTTP, remaining budget, late response refusal, one launch/request and confirmed cleanup');
     state.mode='dom-pass';assert.equal(await runtime.dumpDom({profileDir:profile,args:[]}),'<pre>PASS</pre>');
     state.mode='dom-fail';assert.equal(await runtime.dumpDom({profileDir:profile,args:[]}),'<pre>FAIL real assertion</pre>');
     state.mode='dom-timeout';await assert.rejects(runtime.dumpDom({profileDir:profile,args:[],timeoutMs:30}),/deadline exceeded/);assert.equal(state.active,false);
