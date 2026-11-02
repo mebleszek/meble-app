@@ -18,13 +18,69 @@ function bootstrap(w,modules={}){
  });
  return {api:w.FC.applicationStartup,imports};
 }
-function normalStart(startApplicationRuntime){
- const w={navigator:{onLine:true},localStorage:{getItem:()=>null}};
+function normalStart(startApplicationRuntime,w={navigator:{onLine:true},localStorage:{getItem:()=>null}}){
+ w.location||={};w.location.hostname='localhost';
  const f=bootstrap(w,{'./global-data-contract.js':{},'./cloud-pilot-contract.js':{},'./firebase-global-transport.js':{},
   '../../../sync/application-boot.mjs':{prepareApplicationBoot:async()=>({})},
   '../../../sync/application-runtime.mjs':{startApplicationRuntime}});
- f.api.configureEmulator({name:'meble-lf-test-diagnostic',connections:async()=>({})});return f;
+ f.api.configureEmulator({name:'meble-lf-test-diagnostic',connections:async()=>({})});return {...f,w};
 }
+function catalogConflict(domain){
+ const {runtime,model}=require('./cloud-global-data-smoke'),r=runtime(),contract=r.FC.globalDataContract;
+ const keys=[...contract.sources[domain]],value=model()[domain],alias=clone(value);alias[0].price+=12.125;
+ r.rows.set(keys[0],JSON.stringify(value));r.rows.set(keys[1],JSON.stringify(alias));
+ const before=[...r.rows],reads=[],get=r.storage.getItem;r.storage.getItem=key=>{reads.push(key);return get(key);};
+ let error;try{contract.capture(r.storage,[domain]);}catch(e){error=e;}
+ assert.equal(error?.code,'GLOBAL_ALIAS_CONFLICT');assert.equal(error.path,domain);
+ assert.deepEqual(reads,['fc_edit_session_v1',...keys]);assert.deepEqual([...r.rows],before);assert.deepEqual(r.calls,[]);
+ return {contract,error,keys,checkUntouched(){assert.deepEqual(reads,['fc_edit_session_v1',...keys]);assert.deepEqual([...r.rows],before);assert.deepEqual(r.calls,[]);}};
+}
+test('real materials/labor alias refusal supplies only the first trusted domain/keys to main-login and survives fatal reload refusal',async()=>{
+ for(const domain of ['materials','labor']){
+  const {contract,error,keys,checkUntouched}=catalogConflict(domain);let api,calls=0;
+  const d=world({},null,{beforeMain(w){w.FC.globalDataContract=contract;
+   api=normalStart(async({onStage})=>{calls++;onStage('initial-global-revision');throw error;},w).api;
+  }});
+  try{
+   await until(()=>d.nodes['auth-google']?.disabled===false);d.input('click','auth-google');
+   await until(()=>d.nodes['auth-error']?.textContent?.includes('GLOBAL_ALIAS_CONFLICT'));
+   assert.deepEqual(api.diagnostics().aliasConflict,{stage:'initial-global-revision',code:'GLOBAL_ALIAS_CONFLICT',domain,keys});
+   assert.match(d.nodes['auth-error'].textContent,/initial-global-revision \/ GLOBAL_ALIAS_CONFLICT/);
+   assert.ok(d.nodes['auth-error'].textContent.includes('domena konfliktu: '+domain));for(const key of keys)assert.ok(d.nodes['auth-error'].textContent.includes(key));
+   const first=clone(api.diagnostics());d.input('click','auth-google');await until(()=>d.nodes['auth-error']?.textContent?.includes('AUTH_RELOAD_REQUIRED'));
+   assert.equal(d.ready(),false);assert.equal(calls,1);assert.deepEqual(api.diagnostics().aliasConflict,first.aliasConflict);
+   api.recordFailure({code:'GLOBAL_ALIAS_CONFLICT',path:domain==='materials'?'labor':'materials'},'reconnect-runtime');
+   assert.deepEqual(api.diagnostics().aliasConflict,first.aliasConflict);assert.deepEqual(api.diagnostics().firstError,first.firstError);
+   const returned=api.diagnostics();returned.aliasConflict.keys[0]='PRIVATE_UID';assert.deepEqual(api.diagnostics().aliasConflict.keys,keys);
+   checkUntouched();
+  }finally{d.close();}
+ }
+});
+test('foreign, missing and ambiguous alias paths stay UNKNOWN; no raw path, exception, UID, stack or forged key escapes',async()=>{
+ const {contract}=catalogConflict('materials'),secret='PRIVATE_UID_TOKEN_PRICE_RAW_STACK';
+ assert.ok(Object.isFrozen(contract.sources));assert.ok(Object.isFrozen(contract.sources.materials));
+ assert.throws(()=>contract.sources.materials.push(secret),error=>error.name==='TypeError');
+ for(const path of [secret,'materials.'+secret,'__proto__','hardware',null,['labor'],{toString(){throw Error(secret);}}]){
+  const w={FC:{globalDataContract:contract}},api=bootstrap(w).api;
+  api.recordFailure({code:'GLOBAL_ALIAS_CONFLICT',path,message:secret,stack:secret,uid:secret,keys:[secret],raw:{price:secret}},'initial-global-revision');
+  const diagnostic=api.diagnostics();assert.deepEqual(diagnostic.aliasConflict,{stage:'initial-global-revision',code:'GLOBAL_ALIAS_CONFLICT',domain:'UNKNOWN',keys:[]});
+  assert.equal(JSON.stringify(diagnostic).includes(secret),false);
+ }
+ assert.deepEqual(clone(contract.aliasConflictMetadata({code:'OTHER',path:'materials'})),{domain:'UNKNOWN',keys:[]});
+ let api;
+ const bad=Object.assign(Error(secret),{code:'GLOBAL_ALIAS_CONFLICT',path:secret,stack:secret,uid:secret,raw:secret});
+ const d=world({},null,{beforeMain(w){w.FC.globalDataContract=contract;api=normalStart(async({onStage})=>{onStage('initial-global-revision');throw bad;},w).api;}});
+ try{
+  await until(()=>d.nodes['auth-google']?.disabled===false);d.input('click','auth-google');await until(()=>d.nodes['auth-error']?.textContent?.includes('GLOBAL_ALIAS_CONFLICT'));
+  assert.match(d.nodes['auth-error'].textContent,/domena konfliktu: UNKNOWN; klucze: UNKNOWN/);assert.equal(d.nodes['auth-error'].textContent.includes(secret),false);
+  const r=fixture(undefined,{timers:{setTimeout:()=>0,clearTimeout:()=>{}}});assert.equal(await r.open(),true);
+  r.s.location={origin:'https://mebleszek.github.io',pathname:'/meble-app/index.html'};
+  Object.defineProperty(r.s,'__FC_MAIN_ACCESS__',{value:Object.freeze({isValid:()=>true}),writable:false,configurable:false});
+  r.s.FC.applicationStartup=api;const before=r.seed(),report=collect(r.s);
+  assert.equal(report.status,'READ_ONLY');assert.equal(report.localFirst.aliasConflict.domain,'UNKNOWN');assert.deepEqual(report.localFirst.aliasConflict.keys,[]);
+  assert.equal(JSON.stringify(report).includes(secret),false);assert.deepEqual(r.seed(),before);
+ }finally{d.close();}
+});
 test('first transfer failure survives runtime disposal, later errors, reload requirement and returned-snapshot mutation',async()=>{
  let starts=0;
  const {api}=normalStart(async({onStage,onDiagnostic})=>{
@@ -85,20 +141,24 @@ test('existing session collector and copy/format UI expose safe transfer metadat
  const r=fixture(undefined,{timers:{setTimeout:()=>0,clearTimeout:()=>{}}});assert.equal(await r.open(),true);
  const w=r.s;w.location={hostname:'localhost',origin:'https://mebleszek.github.io',pathname:'/meble-app/index.html'};
  let valid=true;Object.defineProperty(w,'__FC_MAIN_ACCESS__',{value:Object.freeze({isValid:()=>valid}),writable:false,configurable:false});
- const {api}=normalStart(async({onStage,onDiagnostic})=>{
+ const {api,w:diagnosticWindow}=normalStart(async({onStage,onDiagnostic})=>{
   onStage('initial-project-revisions');onDiagnostic({ok:false,code:'LF_PROJECT_SCHEMA_BLOCKED',projectTransferBlocked:true});
   return {status:()=>({state:'active'})};
  });
  await api.beforeBusiness({ownerUid:'PRIVATE_UID'});await api.start({ownerUid:'PRIVATE_UID'});w.FC.applicationStartup=api;
+ const conflict=catalogConflict('labor');diagnosticWindow.FC.globalDataContract=conflict.contract;api.recordFailure(conflict.error,'initial-global-revision');
+ // The existing primary project refusal still takes precedence over a later alias error.
+ assert.equal(api.diagnostics().firstError.code,'LF_PROJECT_SCHEMA_BLOCKED');
  const before=r.seed(),ram=JSON.stringify(r.FC.session),writes=[];
  for(const key of ['setItem','removeItem','clear'])r.storage[key]=()=>{writes.push(key);throw Error('Forbidden write');};
  w.fetch=()=>{throw Error('Forbidden network');};w.indexedDB={open(){throw Error('Forbidden IDB open');}};
  const out=collect(w);assert.equal(out.status,'READ_ONLY');assert.deepEqual(out.localFirst,api.diagnostics());
- assert.deepEqual(Object.keys(out.localFirst).sort(),['code','firstError','projectTransferBlocked','stage','status','transferStatus']);
+ assert.deepEqual(Object.keys(out.localFirst).sort(),['aliasConflict','code','firstError','projectTransferBlocked','stage','status','transferStatus']);
  let modal,copied;w.FC.infoBox={open:options=>{modal=options;}};
  new Function('window','navigator',read('js/app/ui/session-diagnostics.js'))(w,{clipboard:{writeText:async text=>{copied=text;}}});
  w.FC.sessionDiagnostics.open();assert.match(modal.message,/LOCAL-FIRST:/);
  assert.match(modal.message,/project-transfer-blocked: initial-project-revisions \/ LF_PROJECT_SCHEMA_BLOCKED/);
+ assert.match(modal.message,/Konflikt aliasów: labor \| klucze: fc_quote_rates_v1 \/ fc_services_v1/);
  await modal.secondaryAction.run({button:{},body:{}});assert.deepEqual(JSON.parse(copied).localFirst,clone(api.diagnostics()));
  assert.deepEqual(r.seed(),before);assert.equal(JSON.stringify(r.FC.session),ram);assert.deepEqual(writes,[]);
  const diagnostic=api.diagnostics;api.diagnostics=()=>{throw Error('PRIVATE_DIAGNOSTIC_FAILURE');};
@@ -138,6 +198,6 @@ test('new smoke belongs to exactly one mandatory current CI shard and every chan
  assert.equal(plan.plan(plan.inventory('tools',historical)).flat().filter(x=>x==='first-sync-error-diagnostics-smoke.js').length,1);
  assert.match(read('.github/workflows/preflight-js.yml'),/node tools\/preflight\.js --current-only --smoke-shard=/);
  require('./script-versions').assertVersions(process.cwd());
- for(const file of ['js/main-login.js','js/app/cloud/application-bootstrap.js'])assert.ok(read('index.html').includes(file+'?v=20261102_first_sync_error_v1'));
+ for(const file of ['js/main-login.js','js/app/cloud/application-bootstrap.js'])assert.ok(read('index.html').includes(file+'?v=20261102_alias_update_v1'));
 });
 (async()=>{for(const {name,run}of tests){await run();console.log('PASS '+name);}console.log(`First-sync diagnostics: ${tests.length}/${tests.length} PASS`);})().catch(error=>{console.error(error.stack);process.exitCode=1;});

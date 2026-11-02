@@ -70,13 +70,17 @@
   AbortError QuotaExceededError SecurityError UNRECOGNIZED_ERROR aborted auth/invalid-user-token auth/network-request-failed auth/operation-not-allowed auth/requires-recent-login auth/user-disabled auth/user-token-expired cancelled deadline-exceeded failed-precondition internal permission-denied resource-exhausted unauthenticated unavailable unknown
  `.trim().split(/\s+/));
  const diagnosticStages=new Set(('idle preparing-source source-ready opening-runtime authorizing-cloud binding-runtime checking-installation opening-idb installing-authority initial-global-revision initial-project-revisions ready reconnect-auth reconnect-runtime login-startup checking-local-access loading-business-styles loading-business-scripts starting-business starting-local-first').split(' '));
- let firstError=null,projectTransferBlocked=null,transferStatus='not-started';
+ let firstError=null,projectTransferBlocked=null,aliasConflict=null,transferStatus='not-started';
  const diagnosticStage=value=>diagnosticStages.has(value)?value:'unknown';
  function errorCode(error){
   try{const code=typeof error==='string'?error:error?.code||error?.message||error?.name;return diagnosticCodes.has(code)?code:'UNRECOGNIZED_ERROR';}catch(_){return 'UNRECOGNIZED_ERROR';}
  }
  function recordFailure(error,at=stage){
   const code=errorCode(error);
+  if(!aliasConflict&&code==='GLOBAL_ALIAS_CONFLICT'){
+   const metadata=fc.globalDataContract?.aliasConflictMetadata?.(error)||{domain:'UNKNOWN',keys:[]};
+   aliasConflict=Object.freeze({stage:diagnosticStage(at),code,domain:metadata.domain,keys:Object.freeze([...metadata.keys])});
+  }
   // A reload requirement is a consequence, never evidence of the first fault.
   if(!firstError&&code!=='AUTH_RELOAD_REQUIRED')firstError=Object.freeze({stage:diagnosticStage(at),code});
  }
@@ -123,7 +127,7 @@
   revokeCloud(){void connectionsActive?.logout?.();},
   errorCode,
   recordFailure(error,at){recordFailure(error,at==='starting-local-first'?stage:at);},
-  diagnostics:()=>Object.freeze({status:'READ_ONLY',stage:diagnosticStage(stage),code:lastError?errorCode(lastError):null,firstError:firstError&&{...firstError},transferStatus,projectTransferBlocked:projectTransferBlocked&&{...projectTransferBlocked}}),
+  diagnostics:()=>Object.freeze({status:'READ_ONLY',stage:diagnosticStage(stage),code:lastError?errorCode(lastError):null,firstError:firstError&&{...firstError},transferStatus,projectTransferBlocked:projectTransferBlocked&&{...projectTransferBlocked},aliasConflict:aliasConflict&&{...aliasConflict,keys:[...aliasConflict.keys]}}),
   inspect:()=>({...runtime?.status(),state:runtime?.status().state||'not-activated',stage,code:lastError,location:lastLocation}),
   async refresh(context=lastContext){
    if(!configuration||!runtime||!context)return;if(refreshing)return refreshing;

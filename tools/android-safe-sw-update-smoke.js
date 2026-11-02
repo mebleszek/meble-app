@@ -25,21 +25,45 @@ async function main(){
  const endpoint=await one.evaluate('location.origin');assert.equal(endpoint,base);
  // Public recovery URL is not in the old worker cache allowlist. Same browser
  // process via CDP Target: the old dirty page stays open throughout detection.
- const target=await one.send('Target.createTarget',{url:base+'/sw-update.html'});
- await one.until('navigator.serviceWorker.getRegistration().then(r=>!!r.waiting)');
- assert.equal(await one.evaluate('window.FC.investorEditorState.state.draft.name'),'EXACT UNSAVED RAM');assert.equal(await raw(),before);
- assert.equal(await one.evaluate('window.FC.offlineShell.prepare().then(r=>r.version)'),cache);
+ const target=await one.send('Target.createTarget',{url:'about:blank'});
  // Inspect the new bootstrap target in the same owned process.
  const targets=await(await fetch('http://127.0.0.1:'+new URL(one.endpoint).port+'/json/list')).json();
- const ws=new WebSocket(targets.find(t=>t.id===target.targetId).webSocketDebuggerUrl);await new Promise(r=>ws.onopen=r);let serial=0;const pending=new Map();
- ws.onmessage=({data})=>{const m=JSON.parse(data),p=pending.get(m.id);if(p){pending.delete(m.id);m.error?p.reject(Error(m.error.message)):p.resolve(m.result);}};
+ const ws=new WebSocket(targets.find(t=>t.id===target.targetId).webSocketDebuggerUrl);await new Promise(r=>ws.onopen=r);let serial=0;const pending=new Map(),resources=[];
+ ws.onmessage=({data})=>{const m=JSON.parse(data),p=pending.get(m.id);if(p){pending.delete(m.id);m.error?p.reject(Error(m.error.message)):p.resolve(m.result);}else if(m.method==='Network.requestWillBeSent')resources.push({type:m.params.type,initiator:m.params.initiator.type});};
  const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++serial;pending.set(id,{resolve,reject});ws.send(JSON.stringify({id,method,params}));});
  const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.text);return r.result.value;};
- for(let i=0;i<200&&!(await evaluate('!!document.querySelector("#offline-update-notice:not([hidden])")'));i++)await new Promise(r=>setTimeout(r,50));
- assert.equal(await evaluate('document.querySelector("#offline-update-notice").hidden'),false);
- await send('Page.bringToFront');await send('Emulation.setDeviceMetricsOverride',{width:393,height:852,deviceScaleFactor:1,mobile:true});await send('Emulation.setTouchEmulationEnabled',{enabled:true});const point=await evaluate('(()=>{const r=document.querySelector("#offline-update-notice button").getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()');
+ await send('Page.enable');await send('Network.enable');await send('Page.navigate',{url:base+'/sw-update.html'});
+ for(let i=0;i<200&&!(await evaluate('document.getElementById("sw-update-status")?.dataset.state==="ready"'));i++)await new Promise(r=>setTimeout(r,50));
+ assert.equal(await evaluate('document.getElementById("sw-update-status").dataset.state'),'ready');
+ assert.equal(await evaluate('document.getElementById("sw-update-active-version").textContent'),cache);
+ assert.equal(await evaluate('document.getElementById("sw-update-waiting-version").textContent'),require('./offline-assets').manifest().version);
+ assert.equal(await evaluate('document.getElementById("sw-update-help").hidden'),false);
+ assert.equal(resources.filter(r=>r.type==='Stylesheet'||r.type==='Script'&&r.initiator==='parser').length,0,'Network page must not depend on a script or style from the old cache');
+ assert.equal(await one.evaluate('window.FC.investorEditorState.state.draft.name'),'EXACT UNSAVED RAM');assert.equal(await raw(),before);
+ assert.equal(await one.evaluate('window.FC.offlineShell.prepare().then(r=>r.version)'),cache);
+ await send('Page.bringToFront');await send('Emulation.setTouchEmulationEnabled',{enabled:true});
+ for(const width of [320,360,412]){
+  await send('Emulation.setDeviceMetricsOverride',{width,height:852,deviceScaleFactor:1,mobile:true});
+  assert.equal(await evaluate('document.documentElement.scrollWidth<=window.innerWidth'),true,'No update-page overflow at '+width);
+  assert.equal(await evaluate('document.getElementById("sw-update-check").getBoundingClientRect().height>=44'),true);
+ }
+ const point=await evaluate('(()=>{const r=document.getElementById("sw-update-check").getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()');
  await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...point,id:1}]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
- assert.equal(await evaluate('document.querySelector("#offline-update-notice p").hidden'),false);ws.close();
+ for(let i=0;i<200&&!(await evaluate('!document.getElementById("sw-update-check").disabled'));i++)await new Promise(r=>setTimeout(r,50));
+ assert.equal(await evaluate('document.getElementById("sw-update-status").dataset.state'),'ready');
+ assert.equal(await evaluate('document.getElementById("sw-update-help").hidden'),false);
+ // A loaded network page also gives a truthful result after actual loss of
+ // connectivity. Rechecks are explicit native gestures, never a browser retry.
+ async function recheck(){
+  const p=await evaluate('(()=>{const r=document.getElementById("sw-update-check").getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()');
+  await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...p,id:1}]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  for(let i=0;i<200&&!(await evaluate('!document.getElementById("sw-update-check").disabled'));i++)await new Promise(r=>setTimeout(r,50));
+ }
+ await send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await send('Network.overrideNetworkState',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
+ assert.equal(await evaluate('navigator.onLine'),false);await recheck();assert.equal(await evaluate('document.getElementById("sw-update-status").dataset.state'),'offline');
+ await send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});await send('Network.overrideNetworkState',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
+ await recheck();assert.equal(await evaluate('document.getElementById("sw-update-status").dataset.state'),'ready');
+ ws.close();
  await one.send('Target.closeTarget',{targetId:target.targetId});
  await one.evaluate('navigator.serviceWorker.getRegistration().then(r=>r.update())');
  assert.equal(await one.evaluate('window.FC.investorEditorState.state.draft.name'),'EXACT UNSAVED RAM');
@@ -53,7 +77,7 @@ async function main(){
  assert.notEqual(await one.evaluate('window.FC.offlineShell.prepare().then(r=>r.version)'),cache);
  assert.equal(await one.evaluate(`new Promise((resolve,reject)=>{const r=indexedDB.open('synthetic-safe-sw-data',1);r.onerror=reject;r.onsuccess=()=>{const db=r.result,tx=db.transaction('rows'),q=tx.objectStore('rows').get('saved');tx.oncomplete=()=>{db.close();resolve(q.result);};tx.onabort=reject;};})`),'EXACT-IDB-12.125');
 
- console.log('PASS real old-SW → deploy → multiple clients/dirty RAM protected → all clients closed → new offline shell, visible Delete and exact business RAW');
+ console.log('PASS real old-SW → independent network page/active+waiting hashes/native retry/320,360,412px → dirty RAM/multiple clients protected → natural activation/new offline shell/Delete/exact RAW+IDB');
  }finally{await one?.close();if(!stopped)await new Promise(r=>server.close(r));fs.rmSync(dir,{recursive:true,force:true});}
 }
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});module.exports={main};

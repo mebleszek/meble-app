@@ -65,9 +65,10 @@
     const texts={checking:'Sprawdzanie sesji…',unauthenticated:'Zaloguj się, aby rozpocząć.',authenticated:'Zalogowano. Sprawdzanie uprawnień…',unapproved:'Dostęp do aplikacji nie został zatwierdzony.',authorized:'Uruchamianie Meble-App…','profile-pending':'Konto zostało zatwierdzone. Potwierdź dostęp do istniejącego profilu przeglądarki.',revoked:'Uprawnienia zostały cofnięte. Praca została wstrzymana. Niezakończonej edycji nie zapisano ani nie anulowano.',error:'Nie potwierdzono dostępu. Praca pozostała zablokowana.'};
     el('auth-status').textContent=state.message||texts[state.status]||texts.error;
     if(state.status==='error')FC.applicationStartup?.recordFailure?.({code:state.code||'AUTH_ACCESS_UNCONFIRMED'},startupStage);
-    const first=FC.applicationStartup?.diagnostics?.().firstError;
+    const diagnostic=FC.applicationStartup?.diagnostics?.(),first=diagnostic?.firstError,conflict=diagnostic?.aliasConflict;
     const code=FC.applicationStartup?.errorCode?.(state.code||'AUTH_ACCESS_UNCONFIRMED')||state.code||'AUTH_ACCESS_UNCONFIRMED';
-    const detail=first?'Pierwszy błąd: '+first.stage+' / '+first.code+(code!==first.code?'; '+code:''):code;
+    const aliasDetail=conflict?'; domena konfliktu: '+conflict.domain+'; klucze: '+(conflict.keys.length===2?conflict.keys.join(' / '):'UNKNOWN'):'';
+    const detail=(first?'Pierwszy błąd: '+first.stage+' / '+first.code+(code!==first.code?'; '+code:''):code)+aliasDetail;
     el('auth-error').hidden=state.status!=='error';el('auth-error').textContent=state.status==='error'?'Nie zmieniono danych. ('+detail+')':'';
   }
   function failure(error){
