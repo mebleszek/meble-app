@@ -204,3 +204,91 @@ Pierwsze niezaliczone próby dotyczyły fixture: test rozbieżności dopisywał 
 Test właściciela po zatwierdzonym wydaniu: bezpiecznie zakończyć pracę, zaktualizować aplikację dotychczasową procedurą i zamknąć również kartę aktualizatora. W tej samej przeglądarce/profilu odczytać pełny komunikat błędu startu albo **Diagnostyka sesji → Kopiuj raport → localFirst.globalConsistency**. Przekazać tylko anonimowy wynik; bez DevTools/USB, ręcznego kodu, resetu lub zmiany katalogów. Brak kompletnego raportu/BLOCKED trzeba zachować jako wynik, nie obchodzić bramki właściciela.
 
 **CODE_READY / CI_PENDING / RELEASE_BLOCKED / REPAIR_BLOCKED / PHONE_PENDING.** Jeden commit/push diagnostyki, bez PR, pełnego CI, merge i Firebase LIVE. Kanoniczny bieżący stan i następny ruch wyłącznie w CURRENT_STATE.md.
+
+## Odbudowa 14 domen z kodu — 02.11.2026
+
+Gałąź `feat/code-global-catalogs-20261102`, BASE/main **`317cfce2d43ac5ae4c9ed92c306d5c04d73b3f74`**, potwierdzony git fetch. HEAD to jeden końcowy commit zawierający wpis, pełny SHA w przekazaniu. **CODE_READY / CI_PENDING / REPAIR_BLOCKED / BACKUP_PENDING**. Zakres: generator, walidacja, prywatne porównanie i plan, bez wykonania odbudowy, podłączenia do loginu lub nowego UI. Dane właściciela nie były odczytywane ani zapisywane.
+
+### Właściwe źródła i izolacja
+
+`tools/helpers/code-global-catalogs.js` / `tools/code-global-catalogs.js` tworzą nowy izolowany VM na każde wywołanie. Czytają wyłącznie zahardkodowane źródła programu w repozytorium. Storage, cache/catalogStore, catalogMigration, catalogStoragePolicy, sieć, bieżący zegar i losowe ID są niedostępne. `catalog-store.js` nigdy nie jest wykonywany — jego dwa zamknięte literały DEFAULT_SHEET_MATERIALS i DEFAULT_WORKSHOP_SERVICES są odczytywane osobno; zmiana układu deklaracji oznacza CODE_FACTORY_DECLARATION_CHANGED. Nie ma wywołania migrateLegacy(), completeMissingApplicationGlobals() ani jego getterów cache. Nie budujemy defaultów ze sprzecznych katalogów.
+
+Pozostałe źródła: hardware-catalog-seed-data/hardware-catalog/hardware-technical-params, labor-catalog-definitions/labor-catalog/work-quantity-sources, program-defaults-store, business-costs-store. Firma korzysta jedynie ze zbioru znanych nazw pól ustawionych na pusty string oraz operacyjnej konfiguracji transportu z kodu, bez danych osoby/firmy i apiKey. Hashowany manifest 15 źródeł obejmuje też kontrakty/diagnostykę, silnik zamienników i sam generator. Provenance zawiera SHA źródeł, modelu i reguł zamienników oraz wersję Node/ICU. CLI drukuje wyłącznie zamknięty status/liczności/hashe kodowego artefaktu, bez RAW lub danych właściciela; nie posiada trybu zapisu/importu/restore.
+
+Normalizatory są wywoływane **tylko na definicjach z kodu**. W szczególności historyczne/potencjalnie edytowane katalogi nie są normalizowane do kandydata. Istniejące techniczne ID parametrów powstają według obecnego deterministycznego normalizatora; nie ma nowych losowych ID. ID i kolejność materiałów, okuć i labor zachowują źródła. Fabryczne kwoty katalogowe/zakupowe pozostają dokładne; obliczane ceny ofertowe i czasy korzystają z aktualnych reguł WYCENY, w tym istniejących konwersji jednostek/czasów i narzutu, bez nowej polityki zaokrąglania.
+
+### Kompletność 14 domen
+
+| Domena | Zestaw kodowy i źródło |
+| --- | --- |
+| materials | **7** pozycji DEFAULT_SHEET_MATERIALS, wszystkie ID/ceny/jednostki/PCV |
+| hardware | **16** pozycji hardware-catalog-seed-data, istniejące normalizatory cen i techniki |
+| manufacturers | **9** producentów z kodu, bez źródeł właściciela |
+| suppliers | **4** dostawców z hardware-catalog |
+| categories | **15** kategorii: 12 podstawowych + Systemy narożne, Pantografy, Ociekarki z istniejących definicji parametrów |
+| types | **15** typów z kodu, zachowane allowedCategories |
+| technicalParams | **46** definicji po istniejącym normalizeDefinitions, z ID/opcjami/regułami zamienności |
+| hardwareSettings | Jeden kodowy profil VAT/narzutu/źródła ceny, poprawny dostawca |
+| labor | **57** rekordów, w tym **4** stawki i wszystkie bieżące czynności/normy/ilości/warunki/progi |
+| workshopServices | Jedna istniejąca definicja ws1, bez losowych ID |
+| stock | Neutralne `[]`, w źródle `{sheets:[]}`; bez wymyślonych stanów magazynowych |
+| programDefaults | Neutralne v2 z właściwego kodowego defaultu i czystego normalizatora; brak ustawionych materiałów/systemów |
+| company | Jawnie puste pola firmy, neutralne metadane, operacyjne ustawienia transportu bez klucza; brak cudzej tożsamości/adresu |
+| businessCosts | **16** istniejących szablonów, kwoty/daty/uwagi puste, suma 0; brak wymyślonych kosztów |
+
+Prawidłowe 14 źródeł kanonicznych nie wymaga tworzenia siedmiu aliasów. Przy planowaniu istniejący alias pozostaje zgodny z kanonicznym źródłem; nieobecny historyczny alias pozostaje nieobecny. Na wzorcu Androida aktualizowana propozycja ma 14 kluczy kanonicznych i dwie już istniejące kopie materials/labor; pozostałych pięciu nie inicjalizuje. Fizyczne oryginały nie są modyfikowane.
+
+### Wykryte luki i ich rozstrzygnięcie
+
+1. DEFAULT_COMPANY_PROFILE zawiera dane konkretnej firmy. Obecny normalizeCompany używał `source.field || default`, więc nawet kompletny neutralny profil z jawnymi pustymi polami odzyskiwał cudze dane podczas runtime read. Zmieniono wyłącznie te fallbacki na nullish: jawny pusty string pozostaje pusty, prawidłowe istniejące wartości są zachowane, brak/null nadal ma dotychczasowy fallback. Nie zmieniono historycznych defaultów, read/write, Auth, UI ani automatycznie żadnej wartości. Test wykazuje brak cudzych danych również po read/normalize/companyAddress.
+2. Część parametrów technicznych ma kategorie nieobecne w podstawowym DEFAULT_CATEGORIES. Generator uzupełnia słownik wyłącznie trzema istniejącymi nazwami z tych definicji. Znikają wszystkie unusedParameterCategory; nie osłabiono validateBundle ani nie odrzucono definicji.
+3. Surowe definicje techniczne nie mają wszystkich ID, a niektóre progi labor nie mają jawnego price. Stosowane są obecne czyste normalizatory programu: stabilne techniczne ID oraz istniejące wartości obliczeniowe, bez wymyślania nowego cennika. Testy porównują każdą definicję przed/po przez rzeczywisty kalkulator oraz konkretne normy minutowe.
+4. **Niepełna oferta kodowa pozostaje jawna:** kod ma starter prices i nie obejmuje każdego możliwego produktu/ceny (np. nóżek i zawieszek). WYCENA zachowuje aktualne wymagane ilości oraz ostrzeżenia przy braku produktu; generator nie tworzy cen ani pozornego kompletnego kosztorysu. Ta luka nie uniemożliwia poprawnego zestawu 14 domen/startu globals, ale wyklucza obietnicę pełnej wyceny każdego rzeczywistego projektu. Brakujące dane w rzeczywistym projekcie nadal wymagają decyzji, nie zmiany reguł pod test.
+
+### Wynik walidacji i znaczenie dla startu
+
+Pełne validateBundle, roundtrip pack/unpack wszystkich domen, schematy/ID/ref, dostawcy/typy/kategorie/parametry/cykle, stawki godzinowe, kody źródeł ilości i warunków oraz stabilność normalizacji runtime: **PASS**. Jedyny zwracany znacznik zależności to ogólne programDefaults; runtime potwierdza, że ten konkretny neutralny zestaw nie wskazuje żadnego materiału ani drawer system. Stock jest pusty i nie ma nierozwiązanej referencji materiałowej. Nie pominięto tego znacznika ani nie rozszerzono kontraktu.
+
+Syntetyczny snapshot ma dokładnie raportowany układ: materials INVALID_SCHEMA/GLOBAL_REQUIRED_FIELD, labor DIFFERENT/GLOBAL_ALIAS_CONFLICT, pięć ONE_MISSING i cztery SOURCE_MISSING, identyczne RAW native/source/application. Zachowano kolejność pierwotnego capture: konflikt aliasu labor jest odrzucany przed walidacją całego modelu, podczas gdy pełny raport pokazuje też błąd materials. Propozycja rozwiązuje wszystkie 14 domen, nie tylko pierwszą odmowę. Prawidłowy pojedynczy alias nadal jest dopuszczalny. Aktywna sesja edycji nadal daje GLOBAL_EDIT_SESSION_ACTIVE.
+
+Test wykonuje również rzeczywisty catalog-store/migrację **wyłącznie nad syntetycznym chronionym obrazem**, po zbudowaniu kandydata z niezależnych źródeł. Sprawdza zachowanie dokładnych RAW i przyjęcie zweryfikowanego modelu przez adoptVerified. To test zachowania istniejącego bootu, nie źródło fabrycznych wartości. Nie zmieniono odmów legacy boot ani ich warunków.
+
+Dowód umożliwia przejście **etapu globals** na tym syntetycznym obrazie. Nie jest dowodem uruchomienia telefonu, aktualnego Auth/gate/release ani zgodności nieodczytanych projektów z odbudowanymi referencjami. Nie uruchamiano produkcyjnego SDK, Firestore ani fizycznego Androida. Synchronizacja telefon–komputer pozostaje oddzielnym testem po przyszłej kontrolowanej naprawie.
+
+### Prywatne porównanie i plan bez WRITE
+
+`sync/global-code-rebuild-plan.mjs` działa tylko na przekazanym prywatnym snapshotcie i zatwierdzonym kodowym kandydacie. Sprawdza integralność istniejącej authority oraz SHA modelu/reguł; nie otwiera baz, nie odczytuje lokalnego profilu, nie rejestruje się w startupie i nie ma wykonawcy WRITE. Porównuje **każde źródło osobno w obu warstwach**, bez wyboru aliasu. Wykazuje rekordy wyłączne w historii/kodzie, zmiany wszystkich pól, cen/stawek/norm, duplikaty, rekordy bez ID, niekanoniczne lub uszkodzone JSON i RAW-only. Nie odrzuca nieznanych pól. Niekanoniczny zapis pozostaje prywatnym RAW wymagającym osobnego przeglądu.
+
+Pełny preimage (native, control/source/application, protected/replicas/outbox, session/RAM) pozostaje w prywatnej propozycji. Wszystkie pola poza 14 domenami, w tym reguły zamienników i dane projektów/historii, zachowują dokładne wartości w proponowanym obrazie. Reguły LABOR_REPLACEMENTS i technicznej zamienności z kodu mają odrębny SHA. **Zachowanie preimage w RAM nie jest niezależnym backupem ani dowodem bezstratnego wykonania.** Właścicielskie ceny/rekordy mogą różnić się od kodu mimo braku nowego cennika; każde takie odstępstwo wymaga prywatnego rozstrzygnięcia przed przyszłym zapisem.
+
+Plan zawiera expectedVersion/hash oraz dowody wszystkich czterech store i oryginałów. assertCodeRebuildBaseline odmawia po każdej zmianie snapshotu/propozycji; podrobiony obiekt i plan ze starego życia modułu nie dają dowodu. Wynik matched zawsze ma writeApproved:false. Anonimowy summary opiera się na prywatnej WeakMap, nie edytowalnych polach raportu. Wszystkie stany mają REPAIR_BLOCKED/executeAvailable:false, także przy poprawnej walidacji i pustej kolejce. Nie ma automatycznego merge ani naprawy podczas logowania.
+
+Minimalna bezpieczna procedura przyszłego osobno zatwierdzonego wykonania:
+
+1. Zatwierdzić dokładny artefakt kodowy i jego SHA, HEAD/BASE, źródła i zakres 14 domen. Najpierw bezpieczny odczyt właściciela: bieżący Auth/gate/release, receipt, binding/source/application. Obecny fatal cofa gate — nie obchodzimy go; dostęp i ewentualna integracja wymagają odrębnego pakietu. Nie odświeżać karty z niezabezpieczonym RAM.
+2. Faktycznie pobrać i niezależnie zweryfikować pełny zaszyfrowany plik obu warstw, czterech store i znanego RAM. Zachować preimage poza aplikacją; obecny wynik code-only nie daje BACKUP_PASS właściciela. Prywatnie rozstrzygnąć wszystkie zmienione ceny/ID/pola/zamienniki/nieznane rekordy i dopiero zatwierdzić konkretny finalny kandydat. Odbudowa z kodu nie jest zgodą na utratę tych informacji ani danych testowych.
+3. Zachować istniejący writer-fence/jednego edytora, zatrzymać aktywną edycję i scheduler w kontrolowanym punkcie bez utraty RAM; wykluczyć pozostałych writerów. Niezależnie ustalić rezultat inflight/uncertain oraz sens queued/blocked/conflict. Nie retry'ować, nie czyścić ani nie cofać ACK. Nierozstrzygnięta operacja = STOP, nie reset outboxu.
+4. Wykonawca musi świeżo sprawdzić pełny baseline: image version/hash, source/receipt/binding/release, replicas/protected/outbox i wszystkie dane poza zakresem. Zatwierdzić atomowo spójny application+globals replica+protected+outbox z CAS i monotonicznymi wersjami/ID operacji. Samo podmienienie application przy starej kolejce/replice może odtworzyć dawny model lub wysłać stare wartości — niedopuszczalne. Nie zmieniamy teraz polityki synchronizacji; jeśli nie da się bezpiecznie rozstrzygnąć starej kolejki istniejącymi zasadami, wykonanie pozostaje STOP do osobnej decyzji.
+5. Fizyczne oryginały i control.source/receipt pozostają nietknięte. localStorage oraz IDB nie tworzą wspólnej transakcji, więc nie proponujemy podwójnego nadpisania aliasów w obu magazynach. Zmiana artefaktu/gate/źródła lub CAS w trakcie oznacza abort przed mutacją, a nie częściowy sukces.
+6. Przed rzeczywistym WRITE osobno wykazać odporność wykonawcy na quota/cofnięcie Auth/przerwanie w każdej granicy, atomowy abort i read-back po restarcie/offline. Po zatwierdzeniu obowiązkowe pełne capture/validateBundle, runtime/adopt, zależności istniejących projektów oraz kontrolna WYCENA; dopiero wtedy wznowienie. Brak tych dowodów oznacza brak gotowości wykonawczej.
+7. Rollback musi być CAS do chronionego spójnego preimage przy wstrzymanej synchronizacji i znanym stanie wszystkich ACK. Po potwierdzonym nowym zdalnym zapisie nie wolno odtwarzać starej kolejki/ACK; potrzebna zatwierdzona korekta do przodu. Nie resetować bazy, receipt, oryginałów ani wersji. Ten pakiet nie implementuje rollbacku ani nie udaje jego testu wykonawczego.
+
+### Testy celowane i obowiązkowe CI
+
+Wszystkie dane testów są syntetyczne; lokalnie Node **24.19.0**, bez pełnego CI/Actions/emulatorów i nowego testu Androida/Chromium. Nie dziedziczymy PASS wcześniejszego backupu dla tego HEAD.
+
+| Zestaw | Wykonany wynik | Obowiązkowy Preflight |
+| --- | --- | --- |
+| code-global-catalogs-smoke.js | **7/7 PASS**: deterministyczność/zakaz IO/cache/migracji/random, 14 domen i roundtrip, neutralna firma po read/runtime, wszystkie 57 definicji przez kalkulator dla 12 kombinacji ilości/gabarytu, konkretne normy/4 stawki, realne fakty/cutlist/manual suppression, wszystkie pary okuć przez istniejący silnik, chroniony boot/adopt | shard **4/7** |
+| code-global-rebuild-plan-smoke.js | **6/6 grup PASS**: dokładny Android, wszystkie 14 rozwiązań, brak inicjalizacji pięciu aliasów, edycje cen/norm/unknown/JSON/reguł zachowane prywatnie, pełny CAS/proposal hash, restart/forgery/uncertain/aktywna edycja i niezmienność snapshotu | shard **5/7** |
+| wycena-labor-norms-smoke.js | **9/9 PASS**, obecne normy, ilości, manual replacement i jawne braki produktów | shard **5/7** |
+| global-data-write-safety-smoke.js | **31/31 PASS**, w tym odczyt/zapis profilu firmy, quota/no-op/partial, zachowanie RAW i historycznych kopii | shard **5/7** |
+| company-transport-business-costs-smoke.js | **PASS**, istniejące kontrakty/wersje/transport/koszty | shard **6/7** |
+| local-first-contract-smoke.js | **7 grup PASS**, odmowy, podpis/owner/fence/Rules/revocation i zachowanie WYCENY | shard **4/7** |
+| ci-sharding / składnia / wersje / load groups / manifest / diff | **PASS**, **194 smoke / 7 rozłącznych grup**, każdy nowy test dokładnie raz | obowiązkowy Preflight |
+
+Istniejące quote-exact-calculations-smoke.js (**shard 7/7**) oraz wycena-hinge-quote-replacement-flow-smoke.js (**shard 6/7**) nadal obowiązkowe w CI; oznaczenia w nawiasie to numery shardów, nie wyniki. Nie powtarzano lokalnie wszystkich regresji wyceny. Advisory cloud-ci-impact wykazał index.html/company-profile-store.js jako zmienione zależności historycznych pinów; oczekiwane odmowy CLOUD42_SOURCE_CHANGED i zależne bramki pozostają w wymaganym current boundary/historycznych zestawach CI. Pinów, workflow, Rules i synchronizacji nie zmieniono.
+
+Pierwsze uruchomienia nowych testów ujawniły brak TextEncoder w testowym VM oraz błędne założenia testu o kolejności capture i pierwszeństwie rateCode nad rateKey. Uzupełniono kontekst i właściwe asercje; produkcyjne walidatory/odmowy bez zmian. Kontrola starego smoke firmy odmówiła przy nieuzupełnionej mapie wersji; dodano dokładny cache-busting i końcowy PASS. Pierwotne CODE_FACTORY_COMPANY_NOT_NEUTRAL było rzeczywistą przeszkodą w normalizatorze, naprawioną przez zachowanie jawnych pustych pól, bez zmiany danych.
+
+**Możliwość przywrócenia globals: wykazana syntetycznie dla kompletnego zestawu. Start właściciela i telefon–komputer: nadal niepotwierdzone.** Brak rzeczywistego WRITE, restore, resetu, kasowania danych, migracji urządzenia, automatycznej naprawy loginu, zmian UI/Auth/fatal/writer-fence/SW/replication, Firebase LIVE/Rules/IAM/billingu, PR, merge i uruchomienia Actions. Następny ruch wykonawczy wymaga osobnej konkretnej zgody i powyższych dowodów.

@@ -29,6 +29,7 @@ const versions = Object.freeze({
   "js/app/investor/investor-project-patches.js": "20261025_empty_installation_v1",
   "js/app/shared/backup-archive-idb.js": "20261025_archive_lifecycle_v1",
   "js/app/shared/storage-recovery-export.js": "20261102_local_first_rescue_v1",
+  "js/app/settings/company-profile-store.js": "20261102_neutral_code_rebuild_v1",
   "js/app/ui/storage-recovery-panel.js": "20261025_archive_lifecycle_v1",
   "js/app/ui/info-box.js": "20261025_storage_recovery_repair_v1",
 
