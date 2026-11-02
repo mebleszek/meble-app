@@ -14,8 +14,18 @@ async function fixture(overrides={}){const keys=await crypto.subtle.generateKey(
  const signature=new Uint8Array(await crypto.subtle.sign('Ed25519',keys.privateKey,new TextEncoder().encode(canonical(decision))));
  return {origin,trustedKeySha256:Buffer.from(await crypto.subtle.digest('SHA-256',spki)).toString('hex'),envelope:{decision,signature,publicKeySpki:spki}};
 }
-test('inactive deployment ships no executable owner decision; unsigned or altered activation refuses',async()=>{
- const slot=fs.readFileSync(new URL('../../js/app/cloud/application-release.js',import.meta.url),'utf8');assert.match(slot,/trustedKeySha256:null,envelope:null/);
+test('owner-authorized deployment verifies pinned key and Rules; unsigned or altered activation refuses',async()=>{
+ const slot=fs.readFileSync(new URL('../../js/app/cloud/application-release.js',import.meta.url),'utf8');
+ const {runInNewContext}=await import('node:vm'),{createHash}=await import('node:crypto'),sandbox={window:{},Uint8Array,Object};
+ runInNewContext(slot,sandbox,{timeout:1000});
+ const deployed=sandbox.window.FC_APPLICATION_RELEASE;
+ const trustedKeySha256='e3a45a1ef604058306955a6598ac7fd6d8d2bfb2682de53726895e4295a20284';
+ assert.equal(deployed.trustedKeySha256,trustedKeySha256);
+ const approved=assertApplicationRelease(await verifyApplicationRelease({...deployed,trustedKeySha256,origin}));
+ assert.equal(approved.ownerUid,'ByBPVVNXx3fUDUmTg5yTSNVveH23');assert.equal(approved.activationId,'meble-app-20261102-01');
+ assert.equal(approved.rulesSha256,createHash('sha256').update(require('./application-rules.js').applicationRules()).digest('hex'));
+ const altered=new Uint8Array(deployed.envelope.signature);altered[0]^=1;
+ await assert.rejects(verifyApplicationRelease({...deployed,trustedKeySha256,origin,envelope:{...deployed.envelope,signature:altered}}),/SIGNATURE_INVALID/);
  await assert.rejects(verifyApplicationRelease({origin}),/APPROVAL_REQUIRED/);
  const f=await fixture();await assert.rejects(verifyApplicationRelease({...f,envelope:{...f.envelope,decision:{...f.envelope.decision,ownerUid:'foreign'}}}),/SIGNATURE_INVALID/);
  await assert.rejects(verifyApplicationRelease({...f,trustedKeySha256:'b'.repeat(64)}),/OWNER_TRUST_REQUIRED/);

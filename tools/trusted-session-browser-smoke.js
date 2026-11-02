@@ -7,7 +7,9 @@ const {documentNavigation,waitForGesturePoint,finishPendingTouchScroll,nativeTou
 const {installAuthInputDiagnostics,authModuleType}=require('./helpers/auth-input-diagnostics');
 const {inspectTrustStorage,closeBrowserForRestart}=require('./helpers/trusted-cold-start');
 const root=path.resolve(__dirname,'..');
-const injection='('+installAuthInputDiagnostics.toString()+')();\n'+`(()=>{
+// Isolate synthetic owners on every document, including SDK-free offline boots.
+const deploymentIsolation="Object.defineProperty(window,'FC_APPLICATION_RELEASE',{configurable:true,get:()=>({trustedKeySha256:null,envelope:null}),set(){}});\n";
+const injection='('+installAuthInputDiagnostics.toString()+')();\n'+deploymentIsolation+`(()=>{
  const RealDate=Date;let offset=0;window.Date=class extends RealDate{static now(){return RealDate.now()+offset;}};window.advanceClock=n=>offset+=n;
  window.authCalls=0;window.popupCalls=0;window.probeReads=0;window.probeTransactions=0;window.grant=true;window.rawGet=Storage.prototype.getItem;
  let options;Object.defineProperty(window,'FC_AUTH_TEST_OPTIONS',{get:()=>options,set:v=>{options={...v,target:'emulator',firebaseConfig:{apiKey:'demo',projectId:'demo-meble-app',appId:'demo',authDomain:'demo.invalid'},emulator:{host:'127.0.0.1',port:19099,firestorePort:18080},sdk:{
@@ -41,12 +43,13 @@ async function browser(profile,url,{offline=false,inject=false}={}){
   await send('Target.setDiscoverTargets',{discover:true});
   await Promise.all(startupCloses);
   await send('Page.enable');await send('Page.bringToFront');await send('Network.enable');
-  // Cold startup gets read-only instrumentation, never the SDK/Google fixture.
+  // Cold startup gets deployment isolation and read-only instrumentation,
+  // never the SDK/Google fixture.
   // Network emulation can reset on a new renderer. Pause this test-only
   // first script so CDP establishes real offline state BEFORE any app code,
   // rather than racing initialize() after DOMContentLoaded. No navigator shim.
   if(offline)await send('Debugger.enable');
-  await send('Page.addScriptToEvaluateOnNewDocument',{source:(offline?'debugger;window.__OFFLINE_BOOT_ONLINE__=navigator.onLine;\n':'')+(inject?injection:'('+installAuthInputDiagnostics.toString()+')();')});
+  await send('Page.addScriptToEvaluateOnNewDocument',{source:(offline?'debugger;window.__OFFLINE_BOOT_ONLINE__=navigator.onLine;\n':'')+(inject?injection:deploymentIsolation+'('+installAuthInputDiagnostics.toString()+')();')});
   if(offline){
     const state={offline:true,latency:0,downloadThroughput:0,uploadThroughput:0};
     await send('Network.emulateNetworkConditions',state);

@@ -41,7 +41,7 @@ async function main(){
           else{
             const file=path.resolve(ROOT,name);assert.ok(file.startsWith(ROOT+path.sep)&&/^(js|css|assets|img)\//.test(name),'Only local app assets');
             type=name.endsWith('.css')?'text/css':'text/javascript';
-            body=name==='js/app/cloud/cloud-auth.js'?auth:name==='js/app/cloud/cloud-access-verifier.js'?verifier:fs.readFileSync(file,'utf8');
+            body=name==='js/app/cloud/application-release.js'?'window.FC_APPLICATION_RELEASE=Object.freeze({trustedKeySha256:null,envelope:null});':name==='js/app/cloud/cloud-auth.js'?auth:name==='js/app/cloud/cloud-access-verifier.js'?verifier:fs.readFileSync(file,'utf8');
           }
           respond('Fetch.fulfillRequest',{requestId:m.params.requestId,responseCode:200,responseHeaders:[{name:'Content-Type',value:type}],body:Buffer.from(body).toString('base64')});
         }catch(_){external.push('BLOCKED_REQUEST');respond('Fetch.failRequest',{requestId:m.params.requestId,errorReason:'BlockedByClient'});}
