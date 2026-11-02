@@ -15,6 +15,7 @@
 <dl><dt>Aktywny Service Worker — hash manifestu</dt><dd id="sw-update-active-version">Niepotwierdzony</dd>
 <dt>Oczekujący Service Worker — hash manifestu</dt><dd id="sw-update-waiting-version">Niepotwierdzony</dd></dl>
 <p>To hashe manifestów potwierdzonych przez Workery, nie SHA GitHuba ani wersja kodu otwartej karty. Brak oczekującego Workera nie dowodzi, że wdrożenie jest najnowsze.</p>
+<p>Instalacja może potrwać do 3 minut, a weryfikacja całego manifestu do 90 sekund. Jedna próba ma limit 5 minut 30 sekund. Po przekroczeniu limitu wynik pozostaje niepotwierdzony; nie oznacza to uszkodzenia instalacji.</p>
 <p id="sw-update-help" hidden>Zapisz pracę lub świadomie anuluj edycję. Jeśli zapis jest niepewny, zachowaj otwartą kartę. Po bezpiecznym zakończeniu pracy zamknij wszystkie karty Meble-App w tym samym profilu Chrome, także tę stronę, i otwórz aplikację ponownie.</p>
 <p>Sprawdzanie nie odczytuje ani nie zmienia projektów, ofert, cenników lub kolejki offline. Nie czyść danych przeglądarki. Jeśli inna karta blokuje wejście, najpierw bezpiecznie zakończ pracę — ta strona nie omija blokady zapisu.</p>
 </main>
@@ -25,58 +26,105 @@
  const status=document.getElementById('sw-update-status'),button=document.getElementById('sw-update-check'),help=document.getElementById('sw-update-help');
  const activeVersion=document.getElementById('sw-update-active-version'),waitingVersion=document.getElementById('sw-update-waiting-version');
  const root=new URL('./',window.location.href),script=new URL('offline-worker.js',root);let busy=false;
- function show(state,text){status.dataset.state=state;status.textContent=text;help.hidden=state!=='ready';}
+ const labels={registration:'Odczyt rejestracji',compatibility:'Sprawdzenie zgodności',update:'registration.update()',installation:'Instalowanie',verification:'Weryfikacja active/waiting','verify-active':'Weryfikacja active','verify-waiting':'Weryfikacja waiting',complete:'Zakończono'};
+ function show(state,text,stage,reason='NONE',timeout=false){
+  status.dataset.state=state;status.dataset.stage=stage;status.dataset.reason=reason;status.dataset.timeout=String(timeout);
+  status.textContent=text;help.hidden=state!=='ready';
+ }
  async function check(){
   if(busy)return;busy=true;button.disabled=true;
-  activeVersion.textContent=waitingVersion.textContent='Niepotwierdzony';show('checking','Sprawdzanie aktualizacji…');
-  const deadline=Date.now()+30000;
-  function bounded(promise){
-   const ms=deadline-Date.now();if(ms<=0)return Promise.reject(Error('UNCONFIRMED'));
-   let timer;return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('UNCONFIRMED')),ms);})]).then(value=>{if(Date.now()>=deadline)throw Error('UNCONFIRMED');return value;}).finally(()=>clearTimeout(timer));
+  activeVersion.textContent=waitingVersion.textContent='Niepotwierdzony';
+  // 477 sequential downloads (~5.6 MB at this revision), then complete(),
+  // followed by two independent complete() ACKs cannot share a 30s budget.
+  // Stage budgets never renew; the whole attempt also has a hard deadline.
+  const deadline=Date.now()+330000;let stage='registration',firstFailure,clearWatch=()=>{},snapshot;
+  class Failure{constructor(at,code,timeout,state){this.stage=at;this.code=code;this.timeout=timeout;this.state=state;}}
+  function fail(at,code,timeout=false,state='unconfirmed'){
+   const error=new Failure(at,code,timeout,state);firstFailure||=error;return error;
+  }
+  function progress(at){stage=at;show('checking','Sprawdzanie aktualizacji — '+labels[at]+'…',at);}
+  async function bounded(task,ms,at,timeoutCode,errorCode){
+   const end=Math.min(deadline,Date.now()+ms),timeout=()=>fail(at,end===deadline?'CHECK_TIMEOUT':timeoutCode,true);let timer;
+   try{
+    if(Date.now()>=end)throw timeout();
+    const result=await Promise.race([Promise.resolve().then(task),new Promise((_,reject)=>{timer=setTimeout(()=>reject(timeout()),end-Date.now());})]);
+    if(Date.now()>=end)throw timeout();return result;
+   }catch(error){throw error instanceof Failure?error:fail(at,errorCode);}
+   finally{clearTimeout(timer);}
   }
   function compatible(reg){
-   return reg?.scope===root.href&&reg.active?.scriptURL===script.href
-    &&[reg.waiting,reg.installing].every(worker=>!worker||worker.scriptURL===script.href)
-    &&(!navigator.serviceWorker.controller||navigator.serviceWorker.controller.scriptURL===script.href);
+   if(!reg)throw fail('registration','REGISTRATION_MISSING',false,'incompatible');
+   if(reg.scope!==root.href)throw fail('compatibility','SCOPE_MISMATCH',false,'incompatible');
+   if(!reg.active)throw fail('compatibility','ACTIVE_MISSING',false,'incompatible');
+   for(const [slot,code]of [['active','ACTIVE_SCRIPT_MISMATCH'],['waiting','WAITING_SCRIPT_MISMATCH'],['installing','INSTALLING_SCRIPT_MISMATCH']]){
+    if(reg[slot]&&reg[slot].scriptURL!==script.href)throw fail('compatibility',code,false,'incompatible');
+   }
+   if(navigator.serviceWorker.controller&&navigator.serviceWorker.controller.scriptURL!==script.href)throw fail('compatibility','CONTROLLER_SCRIPT_MISMATCH',false,'incompatible');
   }
-  async function verify(worker){
+  function stable(){
+   if(snapshot&&!snapshot.stable()){
+    activeVersion.textContent=waitingVersion.textContent='Niepotwierdzony';
+    throw fail('verification','WORKER_CHANGED');
+   }
+  }
+  async function verify(worker,slot,node){
+   const at='verify-'+slot,prefix=slot==='active'?'ACTIVE':'WAITING';
    const channel=new MessageChannel();
    try{
-    const result=await bounded(new Promise((resolve,reject)=>{
-     channel.port1.onmessage=event=>resolve(event.data);channel.port1.onmessageerror=()=>reject(Error('UNCONFIRMED'));
+    const result=await bounded(()=>new Promise((resolve,reject)=>{
+     channel.port1.onmessage=event=>resolve(event.data);channel.port1.onmessageerror=()=>reject(fail(at,prefix+'_ACK_MESSAGE_ERROR'));
      worker.postMessage({type:'VERIFY_STATIC_SHELL'},[channel.port2]);
-    }));
-    if(result?.complete!==true||typeof result.version!=='string'||!/^[a-f0-9]{64}$/.test(result.version))throw Error('UNCONFIRMED');
+    }),90000,at,prefix+'_ACK_TIMEOUT',prefix+'_ACK_SEND_FAILED');
+    stable();
+    if(result?.complete!==true)throw fail(at,prefix+'_ACK_INCOMPLETE');
+    if(typeof result.version!=='string'||!/^[a-f0-9]{64}$/.test(result.version))throw fail(at,prefix+'_ACK_INVALID_HASH');
+    node.textContent=result.version;
     return result.version;
    }finally{channel.port1.close();channel.port2.close();}
   }
   async function installed(worker){
    let listener;
-   try{await bounded(new Promise((resolve,reject)=>{
-    listener=()=>{if(['installed','activated'].includes(worker.state))resolve();else if(worker.state==='redundant')reject(Error('UNCONFIRMED'));};
+   try{await bounded(()=>new Promise((resolve,reject)=>{
+    listener=()=>{if(['installed','activated'].includes(worker.state))resolve();else if(worker.state==='redundant')reject(fail('installation','INSTALL_REDUNDANT'));};
     worker.addEventListener('statechange',listener);listener();
-   }));}finally{worker.removeEventListener('statechange',listener);}
+   }),180000,'installation','INSTALL_TIMEOUT','INSTALL_OBSERVATION_FAILED');}finally{if(listener)worker.removeEventListener('statechange',listener);}
   }
   try{
-   if(!window.isSecureContext||!navigator.serviceWorker?.getRegistration){show('unsupported','Service Worker jest nieobsługiwany lub strona nie ma bezpiecznego połączenia.');return;}
-   if(navigator.onLine===false){show('offline','Brak internetu. Nie potwierdzono nowego wydania.');return;}
-   const reg=await bounded(navigator.serviceWorker.getRegistration(root.href));
-   if(!compatible(reg)){show('incompatible','Nie potwierdzono zgodnej instalacji Meble-App w tej przeglądarce i profilu. Nie zmieniono innych instalacji.');return;}
-   await bounded(reg.update());
+   progress('registration');
+   if(!window.isSecureContext)throw fail(stage,'INSECURE_CONTEXT',false,'unsupported');
+   if(!navigator.serviceWorker?.getRegistration)throw fail(stage,'SW_UNSUPPORTED',false,'unsupported');
+   if(navigator.onLine===false)throw fail(stage,'OFFLINE',false,'offline');
+   const reg=await bounded(()=>navigator.serviceWorker.getRegistration(root.href),10000,stage,'REGISTRATION_TIMEOUT','REGISTRATION_READ_FAILED');
+   progress('compatibility');compatible(reg);
+   progress('update');await bounded(()=>reg.update(),30000,stage,'UPDATE_TIMEOUT','UPDATE_FAILED');
+   progress('installation');
    const installing=reg.installing;if(installing)await installed(installing);
-   if(!compatible(reg))throw Error('UNCONFIRMED');
-   const active=reg.active,waiting=reg.waiting;
-   const [a,b]=await Promise.allSettled([verify(active),waiting?verify(waiting):Promise.resolve(null)]);
-   if(reg.active!==active||reg.waiting!==waiting||!compatible(reg))throw Error('UNCONFIRMED');
-   if(a.status==='fulfilled')activeVersion.textContent=a.value;
-   if(b.status==='fulfilled'&&b.value)waitingVersion.textContent=b.value;
-   if(navigator.onLine===false){show('offline','Brak internetu. Nie potwierdzono nowego wydania.');return;}
-   if(a.status!=='fulfilled'||b.status!=='fulfilled')throw Error('UNCONFIRMED');
-   if(installing&&installing.state!=='activated'&&waiting!==installing)throw Error('UNCONFIRMED');
-   if(waiting)show('ready','Nowa wersja pobrana i gotowa do naturalnej aktywacji.');
-   else{waitingVersion.textContent='Brak oczekującego Workera';show('no-waiting','Nie wykryto oczekującej aktualizacji. To nie jest potwierdzenie najnowszej wersji na serwerze.');}
-  }catch(_){show(navigator.onLine===false?'offline':'unconfirmed',navigator.onLine===false?'Brak internetu. Nie potwierdzono nowego wydania.':'Błąd sprawdzania lub brak potwierdzenia. Zachowaj otwarte karty z niezapisaną pracą i spróbuj sprawdzić ponownie.');}
-  finally{busy=false;button.disabled=false;}
+   compatible(reg);
+   if(reg.installing||installing&&reg.waiting!==installing&&reg.active!==installing)throw fail(stage,'WORKER_CHANGED');
+   const active=reg.active,waiting=reg.waiting,controller=navigator.serviceWorker.controller;let changed=false;
+   const invalidate=()=>{changed=true;fail('verification','WORKER_CHANGED');activeVersion.textContent=waitingVersion.textContent='Niepotwierdzony';};
+   reg.addEventListener('updatefound',invalidate);navigator.serviceWorker.addEventListener('controllerchange',invalidate);
+   clearWatch=()=>{reg.removeEventListener('updatefound',invalidate);navigator.serviceWorker.removeEventListener('controllerchange',invalidate);};
+   snapshot={stable:()=>!changed&&reg.scope===root.href&&reg.active===active&&reg.waiting===waiting&&!reg.installing
+    &&navigator.serviceWorker.controller===controller&&(!controller||controller.scriptURL===script.href)
+    &&active.scriptURL===script.href&&active.state==='activated'&&(!waiting||waiting.scriptURL===script.href&&waiting.state==='installed')};
+   progress('verification');stable();
+   const [a,b]=await Promise.allSettled([verify(active,'active',activeVersion),waiting?verify(waiting,'waiting',waitingVersion):Promise.resolve(null)]);
+   stable();compatible(reg);
+   if(a.status!=='fulfilled'||b.status!=='fulfilled')throw firstFailure;
+   // getRegistration can resolve a different registration after unregister.
+   const current=await bounded(()=>navigator.serviceWorker.getRegistration(root.href),10000,'verification','REGISTRATION_TIMEOUT','REGISTRATION_READ_FAILED');
+   if(current!==reg){activeVersion.textContent=waitingVersion.textContent='Niepotwierdzony';throw fail('verification','REGISTRATION_CHANGED');}
+   stable();compatible(reg);
+   if(navigator.onLine===false)throw fail('verification','OFFLINE',false,'offline');
+   if(waiting)show('ready','Nowa wersja pobrana i gotowa do naturalnej aktywacji.','complete');
+   else{waitingVersion.textContent='Brak oczekującego Workera';show('no-waiting','Nie wykryto oczekującej aktualizacji. To nie jest potwierdzenie najnowszej wersji na serwerze.','complete');}
+  }catch(error){
+   const failure=firstFailure||(error instanceof Failure?error:fail(stage,'CHECK_FAILED'));
+   try{stable();}catch(_){/* Changed identities must not retain displayed ACKs. */}
+   const text=(failure.timeout?'Limit oczekiwania. ':'Nie potwierdzono aktualizacji. ')+'Pierwszy nieudany etap: '+labels[failure.stage]+'; kod: '+failure.code+'. Zachowaj karty z niezapisaną pracą. Możesz wybrać „Sprawdź ponownie”.';
+   show(failure.state,text,failure.stage,failure.code,failure.timeout);
+  }finally{clearWatch();busy=false;button.disabled=false;}
  }
  button.addEventListener('click',()=>check());void check();
 })();
