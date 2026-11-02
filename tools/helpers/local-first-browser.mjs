@@ -17,7 +17,7 @@ export async function startLocalFirstServer(){
 }
 export async function openBrowserDevice(server,profileDirectory){
   const browser=await startBrowser({profileDir:profileDirectory,timeoutMs:60000}),endpoint=browser.endpoint;
-  let ws,stopping;const pending=new Map();let counter=0;
+  let ws,stopping;const pending=new Map(),observers=new Set();let counter=0;
   const stop=crash=>stopping||=(async()=>{
     try{for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('LF_BROWSER_CLOSED'));}pending.clear();ws?.close();}
     finally{await (crash?browser.crash():browser.close());}
@@ -27,12 +27,16 @@ export async function openBrowserDevice(server,profileDirectory){
   ws=new WebSocket(targets.find(t=>t.type==='page').webSocketDebuggerUrl);
   await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});
   const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++counter,timer=setTimeout(()=>{pending.delete(id);reject(Error('LF_CDP_TIMEOUT'));},20000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params}));});
-  ws.onmessage=({data})=>{const m=JSON.parse(data);if(m.id){const p=pending.get(m.id);if(!p)return;pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(Error('LF_CDP_FAILED')):p.resolve(m.result);}};
+  ws.onmessage=({data})=>{const m=JSON.parse(data);if(m.id){const p=pending.get(m.id);if(!p)return;pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(Error('LF_CDP_FAILED')):p.resolve(m.result);}else for(const observe of observers)observe(m);};
   const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||'LF_BROWSER_EXCEPTION');return r.result.value;};
   await send('Page.enable');await send('Page.navigate',{url:server.base});
   for(let i=0;i<100;i++){if(await evaluate('window.lfReady===true'))break;if(i===99)throw Error('LF_FIXTURE_NOT_READY');await new Promise(resolve=>setTimeout(resolve,20));}
-  return {endpoint,evaluate,
+  return {endpoint,evaluate,send,targetId:targets.find(t=>t.type==='page').id,onEvent(fn){observers.add(fn);return()=>observers.delete(fn);},
     async open(binding){await evaluate('window.openLF('+JSON.stringify(binding)+')');return proxyStore(evaluate,binding);},
+    async gracefulClose(){
+      let timer;try{await send('Browser.close');await Promise.race([browser.exited,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('LF_GRACEFUL_CLOSE_TIMEOUT')),20000);})]);}
+      finally{clearTimeout(timer);await stop(false);}
+    },
     close:()=>stop(false),crash:()=>stop(true),kill:()=>stop(true)
   };
   }catch(error){await stop(true);throw error;}
