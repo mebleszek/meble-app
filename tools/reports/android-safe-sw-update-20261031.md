@@ -60,3 +60,41 @@ Ograniczenia: pierwsze pobranie network-only strony wymaga internetu; offline wy
 Instrukcja **po zatwierdzonym wydaniu**: otwórz https://mebleszek.github.io/meble-app/sw-update.html w tym samym profilu Chrome co aplikacja; odczytaj wynik lub wybierz Sprawdź ponownie. Przy potwierdzonej aktualizacji zapisz pracę (nie zamykaj niepewnego zapisu), zamknij wszystkie karty Meble-App w tym profilu i uruchom aplikację ponownie. Nie czyść danych. Następnie odczytaj domenę/klucze GLOBAL_ALIAS_CONFLICT z istniejącego błędu lub raportu; nie poprawiaj aliasów na podstawie przypuszczeń.
 
 **CODE_READY / CI_PENDING / RELEASE_BLOCKED.** Fizyczny Android i wydaniowe CI wymagają osobnej zgody/weryfikacji. Bez PR, Actions, merge, Pages, Firebase LIVE, Rules, IAM, billingu i danych właściciela. Natywne profile testowe zawierały wyłącznie odizolowane syntetyczne rekordy; nie jest to wynik testu na telefonie właściciela.
+
+## Diagnostyka etapów i osobne budżety — 02.11.2026
+
+Gałąź `fix/sw-update-diagnostics-20261102`, BASE `d48815095f7a90a60378847eaed410710d307376` (aktualny main, merge PR #104). HEAD to jedyny końcowy commit tego pakietu, SHA w przekazaniu. Poprzednie dowody Chromium/CI dotyczą poprzednich SHA. Właściciel zgłosił ogólny błąd sw-update.html, oba hashe niepotwierdzone i brak domeny/kluczy konfliktu w aplikacji. Zamknięcie dodatkowej karty usuwało LF_OTHER_APPLICATION_CLIENT. Nie znamy pierwszego nieudanego etapu tamtego sprawdzania ani wersji kodu otwartej karty.
+
+W niezmienionym offline-worker.js instalacja pobiera **kolejno 477 plików / 5 596 217 B**, sprawdzając rozmiar/SHA każdego pliku, następnie ponownie wywołuje complete(). Każdy VERIFY_STATIC_SHELL także kolejno sprawdza cały manifest swojego Workera. Stary wspólny limit 30 s mógł skończyć się podczas poprawnej instalacji albo pozostawić za mało czasu na ACK. Celowana reprodukcja na dokładnym inline z BASE potwierdziła stan unconfirmed po 31 s nadal trwającej instalacji. To dowód luki budżetu, **nie ustalenie przyczyny konkretnego błędu fizycznego Androida**.
+
+| Etap | Limit jednej próby | Przykładowy zamknięty kod |
+| --- | --- | --- |
+| Odczyt rejestracji | 10 s | REGISTRATION_READ_FAILED / REGISTRATION_MISSING / REGISTRATION_TIMEOUT |
+| Zgodność | synchronicznie | SCOPE_MISMATCH / ACTIVE_SCRIPT_MISMATCH / CONTROLLER_SCRIPT_MISMATCH |
+| registration.update() | 30 s | UPDATE_FAILED / UPDATE_TIMEOUT |
+| Instalowanie | 180 s, bez odnawiania na zdarzeniach | INSTALL_REDUNDANT / INSTALL_TIMEOUT |
+| ACK active i waiting | równolegle, osobne 90 s | ACTIVE_ACK_TIMEOUT / WAITING_ACK_TIMEOUT / *_ACK_INCOMPLETE / *_ACK_INVALID_HASH |
+| Końcowy odczyt rejestracji | 10 s | REGISTRATION_CHANGED / REGISTRATION_READ_FAILED / REGISTRATION_TIMEOUT |
+| Cała próba | maks. 330 s | CHECK_TIMEOUT, z zachowaniem etapu |
+
+Ekran pokazuje bieżący etap oraz pierwszy nieudany etap/kod; timeout ma osobny komunikat i znacznik. Słownik powstaje wyłącznie w kodzie strony, bez przepisywania message/code/path/stack z wyjątku lub ACK. Pierwszy błąd nie jest nadpisywany późniejszym timeoutem drugiego ACK. Poprawny ACK może pokazać swój hash, mimo braku ACK drugiego Workera; **ready wymaga obu kompletnych ACK, lowercase SHA-256, poprawnych stanów active/waiting, zgodności scope/scriptURL oraz tej samej rejestracji, workerów i kontrolera do końca próby**. Brak waiting pozostaje jedynie no-waiting, bez deklaracji najnowszej wersji. Zmiana tożsamości/stanu, updatefound lub controllerchange podczas weryfikacji unieważnia stare hashe; ponowna próba wyłącznie przyciskiem. Porty, timery i obserwatory są sprzątane. Spóźniony wynik nie zmienia zakończonej/nowej próby.
+
+Strona i style nadal są inline, network-only i poza manifestem. Manifest oraz publiczne skrypty aplikacji pozostają bajtowo identyczne z BASE: nowy hash nie jest potrzebny do pobrania tej strony. Nie zmieniono offline-worker.js, offline-update.js, offline-shell.js, offline-writer-fence.js, Auth, LOCAL-FIRST, jednego edytora, danych biznesowych, oryginalnych cenników, RAW/IDB lub kolejki. Strona nie rejestruje nowego SW, nie wymusza aktywacji, nie przeładowuje i nie zamyka kart.
+
+Rzeczywiste kontrole wykonane przez Codexa w workspace, Node 24.19.0, na końcowych plikach pakietu (SHA końcowego commita w przekazaniu):
+
+- **PASS 19/19 grup sw-update-page-smoke.js**: zachowane stare odmowy bezpieczeństwa; instalacja 179 s po update 29 s i oba ACK po kolejnych 89 s; wiszące update/instalacja/odczyty rejestracji; brak active lub waiting ACK; zachowany pierwszy błąd; podmiana active/waiting/installing/rejestracji/kontrolera, scope/scriptURL, redundant; timeout i późny wynik także po manualnym retry; wybudzenie po 330 s; brak równoległych prób, wycieków portów/timerów/listenerów i prywatnych danych.
+- **PASS offline-shell-smoke.js i offline-update-smoke.js**: nadal obowiązują integralność, odmowa niepełnego cache/ACK/obcej instalacji, brak przejęcia strony, prywatnych odpowiedzi i nieuprawnionego storage.
+- **PASS** reprodukcja luki BASE, składnia inline i obu testów, dokładny niezmieniony manifest, diff i routing: sw-update-page → shard 7, android-safe-sw-update → shard 4, po jednym wystąpieniu; workflow i pozostały routing bez zmian. Pełny Preflight i Firebase SDK/emulatory należą do przyszłego CI i nie były tu uruchamiane.
+- **BLOCKED real Chromium**: rozszerzono istniejący test dwóch rzeczywistych deployów w tym samym profilu o zatrzymanie jednego pobrania manifestu na 32 s i asercję checking/installation po 30 s, następnie wymagane ready/oba hashe. Zachowano starą kartę z niezapisanym RAM, dotyk retry, 320/360/412 px, offline/online, naturalną aktywację po zamknięciu kart i dokładną zgodność RAW/IDB. Pierwsza lokalna próba zatrzymała się na spawnSync EPERM (także dla true/git --version); testowe archiwum przeniesiono na async execFile z limitem 30 s. Następny etap to **listen EPERM na 127.0.0.1**, przed uruchomieniem Chromium. Żądania dostępu sieciowego pozostawały bez wyniku i zostały przerwane przez użytkownika. To blokada infrastruktury, nie wynik działania przeglądarki. Test pozostaje obowiązkowy w shardzie 4; nie usunięto żadnej asercji. Wykonawca brakującego dowodu: zatwierdzone GitHub Actions lub środowisko Codexa z działającym localhost. Fizyczny Android: właściciel po wydaniu.
+
+Pozostałe ryzyko: na bardzo wolnej sieci/telefonie także nowe limity mogą zostać przekroczone; wynik mówi wtedy o braku potwierdzenia, nie o uszkodzeniu danych lub nieudanej instalacji SW. Browser API update() nie ma anulowania: po timeout przeglądarka może dokończyć pracę w tle, ale zakończony raport nie przyjmuje jej wyniku. Zawieszona karta Androida wykonuje obsługę timeout dopiero po wznowieniu; odrzuca przeterminowane ACK. Hash manifestu nie dowodzi wersji kodu już otwartej starej karty ani najnowszego SHA serwera. Brak real Chromium i telefonu blokuje potwierdzenie wydania.
+
+Test Androida **dopiero po osobno zatwierdzonym wydaniu**:
+
+1. Zapisz lub świadomie anuluj pracę. Przy niepewnym zapisie zachowaj kartę. Bezpiecznie zamknij pozostałe karty Meble-App w tym samym profilu Chrome; nie czyść pamięci przeglądarki i nie używaj incognito/Brave jako zastępstwa.
+2. Otwórz https://mebleszek.github.io/meble-app/sw-update.html w tym profilu. Obserwuj etapy, ewentualny pierwszy etap/kod i oba hashe. Pozostaw stronę na pierwszym planie, maks. 5 min 30 s; retry tylko przez „Sprawdź ponownie”. Przy błędzie przekaż dokładny anonimowy komunikat i stan/hash active oraz waiting, bez danych projektu.
+3. Przy ready wykonaj instrukcję i zamknij **także kartę aktualizatora** przed uruchomieniem aplikacji. Przy no-waiting zachowaj wynik jako brak wykrytej aktualizacji, bez wniosku o najnowszym wydaniu. Nie omijaj writer-fence ani nie otwieraj aplikacji obok aktualizatora w celu obejścia LF_OTHER_APPLICATION_CLIENT.
+4. Ponownie otwórz aplikację, odczytaj GLOBAL_ALIAS_CONFLICT z domeną/kluczami lub UNKNOWN (jeśli dostępna: Diagnostyka sesji → Kopiuj raport). Sprawdź, że cenniki/zamienniki/projekty pozostały; nie naprawiaj aliasów automatycznie. Nadal brak domeny wymaga przekazania tego faktu razem z wynikami aktualizatora.
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Bez PR, pełnego CI, merge, Pages i Firebase LIVE. Kanoniczny stan i następny krok: CURRENT_STATE.md, sekcje 4–5.

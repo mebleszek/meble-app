@@ -1,13 +1,25 @@
 'use strict';
 // Two real public deployments, one private Chromium profile; no Firebase RPC.
-const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http=require('node:http'),assert=require('node:assert/strict'),{execFileSync}=require('node:child_process');
+const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http=require('node:http'),assert=require('node:assert/strict');
+const execFile=require('node:util').promisify(require('node:child_process').execFile);
 const {browser}=require('./trusted-session-browser-smoke');
 async function main(){
  const root=path.resolve(__dirname,'..'),dir=fs.mkdtempSync(path.join(os.tmpdir(),'meble-sw-upgrade-')),old=path.join(dir,'old'),profile=path.join(dir,'profile');fs.mkdirSync(old);
- execFileSync('tar',['-x','-C',old],{input:execFileSync('git',['archive','2930e0d769d9576d387764af439eab7df9fd5636'],{cwd:root,maxBuffer:64*1024*1024})});
- let deployment=old,one,stopped=false;const server=http.createServer((req,res)=>{try{const pathname=new URL(req.url,'http://127.0.0.1').pathname,file=path.resolve(deployment,'.'+pathname);if(!file.startsWith(deployment+path.sep))throw Error();const data=fs.readFileSync(file);res.writeHead(200,{'content-type':file.endsWith('.js')?'text/javascript':file.endsWith('.html')?'text/html':file.endsWith('.css')?'text/css':'image/jpeg','cache-control':'no-store'});res.end(data);}catch(_){res.writeHead(404);res.end();}});
+ const archive=path.join(dir,'old.tar');
+ await execFile('git',['archive','-o',archive,'2930e0d769d9576d387764af439eab7df9fd5636'],{cwd:root,timeout:30000});
+ await execFile('tar',['-xf',archive,'-C',old],{timeout:30000});
+ let deployment=old,one,stopped=false,heldAsset=false,releasedAsset=false,delayTimer;
+ const server=http.createServer((req,res)=>{try{const pathname=new URL(req.url,'http://127.0.0.1').pathname,file=path.resolve(deployment,'.'+pathname);if(!file.startsWith(deployment+path.sep))throw Error();const data=fs.readFileSync(file);
+  const respond=()=>{res.writeHead(200,{'content-type':file.endsWith('.js')?'text/javascript':file.endsWith('.html')?'text/html':file.endsWith('.css')?'text/css':'image/jpeg','cache-control':'no-store'});res.end(data);};
+  // Real SW install fetch, not a page timer or mocked registration. Exceed the
+  // former shared deadline while the same old dirty application stays open.
+  if(deployment===root&&!heldAsset&&pathname==='/assets/branding/MebLeszek_logo_oryginal.jpg'){
+   heldAsset=true;console.log('START real Chromium: hold one manifest download for 32s');
+   delayTimer=setTimeout(()=>{releasedAsset=true;respond();},32000);
+  }else respond();
+ }catch(_){res.writeHead(404);res.end();}});
  try{
- await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+server.address().port;
+ await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});const base='http://127.0.0.1:'+server.address().port;
  one=await browser(profile,base+'/index.html',{inject:true});await one.until('document.body.dataset.authState==="unauthenticated"');await one.tap('auth-google');await one.until('document.body.dataset.businessState==="ready"');
  await one.tap('main-trust-phone');await one.until('document.getElementById("main-trust-phone").checked&&!document.getElementById("main-trust-phone").disabled');await one.until('__AUTH_INPUT_DIAGNOSTICS__().mode==="trusted"&&__FC_MAIN_ACCESS__.isValid()');
  const fixtures=require('./project-navigation-blockers-smoke'),fixture=fixtures.fixture();fixtures.offers(fixture);const source=fixture.seed();
@@ -30,11 +42,22 @@ async function main(){
  const targets=await(await fetch('http://127.0.0.1:'+new URL(one.endpoint).port+'/json/list')).json();
  const ws=new WebSocket(targets.find(t=>t.id===target.targetId).webSocketDebuggerUrl);await new Promise(r=>ws.onopen=r);let serial=0;const pending=new Map(),resources=[];
  ws.onmessage=({data})=>{const m=JSON.parse(data),p=pending.get(m.id);if(p){pending.delete(m.id);m.error?p.reject(Error(m.error.message)):p.resolve(m.result);}else if(m.method==='Network.requestWillBeSent')resources.push({type:m.params.type,initiator:m.params.initiator.type});};
- const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++serial;pending.set(id,{resolve,reject});ws.send(JSON.stringify({id,method,params}));});
+ const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++serial,timer=setTimeout(()=>{pending.delete(id);reject(Error('Update test CDP timeout: '+method));},30000);pending.set(id,{resolve:r=>{clearTimeout(timer);resolve(r);},reject:e=>{clearTimeout(timer);reject(e);}});ws.send(JSON.stringify({id,method,params}));});
  const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.text);return r.result.value;};
  await send('Page.enable');await send('Network.enable');await send('Page.navigate',{url:base+'/sw-update.html'});
- for(let i=0;i<200&&!(await evaluate('document.getElementById("sw-update-status")?.dataset.state==="ready"'));i++)await new Promise(r=>setTimeout(r,50));
+ const started=Date.now();let longInstallSeen=false;
+ while(Date.now()-started<90000){
+  const status=await evaluate('(()=>{const s=document.getElementById("sw-update-status");return s?{...s.dataset}:null;})()');
+  if(status&&status.state!=='checking'){assert.equal(status.state,'ready',JSON.stringify(status));break;}
+  if(Date.now()-started>30000&&heldAsset&&!releasedAsset){
+   assert.equal(status.state,'checking');assert.equal(status.stage,'installation');longInstallSeen=true;
+  }
+  await new Promise(r=>setTimeout(r,50));
+ }
+ assert.equal(longInstallSeen,true,'Real installation >30s must remain checking, without false FAIL');assert.equal(releasedAsset,true);
  assert.equal(await evaluate('document.getElementById("sw-update-status").dataset.state'),'ready');
+ assert.equal(await evaluate('document.getElementById("sw-update-status").dataset.reason'),'NONE');
+ console.log('PASS real Chromium: delayed installation >30s then complete active/waiting ACK');
  assert.equal(await evaluate('document.getElementById("sw-update-active-version").textContent'),cache);
  assert.equal(await evaluate('document.getElementById("sw-update-waiting-version").textContent'),require('./offline-assets').manifest().version);
  assert.equal(await evaluate('document.getElementById("sw-update-help").hidden'),false);
@@ -61,6 +84,7 @@ async function main(){
  }
  await send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await send('Network.overrideNetworkState',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
  assert.equal(await evaluate('navigator.onLine'),false);await recheck();assert.equal(await evaluate('document.getElementById("sw-update-status").dataset.state'),'offline');
+ assert.equal(await evaluate('document.getElementById("sw-update-status").dataset.reason'),'OFFLINE');
  await send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});await send('Network.overrideNetworkState',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
  await recheck();assert.equal(await evaluate('document.getElementById("sw-update-status").dataset.state'),'ready');
  ws.close();
@@ -78,6 +102,6 @@ async function main(){
  assert.equal(await one.evaluate(`new Promise((resolve,reject)=>{const r=indexedDB.open('synthetic-safe-sw-data',1);r.onerror=reject;r.onsuccess=()=>{const db=r.result,tx=db.transaction('rows'),q=tx.objectStore('rows').get('saved');tx.oncomplete=()=>{db.close();resolve(q.result);};tx.onabort=reject;};})`),'EXACT-IDB-12.125');
 
  console.log('PASS real old-SW → independent network page/active+waiting hashes/native retry/320,360,412px → dirty RAM/multiple clients protected → natural activation/new offline shell/Delete/exact RAW+IDB');
- }finally{await one?.close();if(!stopped)await new Promise(r=>server.close(r));fs.rmSync(dir,{recursive:true,force:true});}
+ }finally{clearTimeout(delayTimer);await one?.close();if(!stopped){server.closeAllConnections();await new Promise(r=>server.close(r));}fs.rmSync(dir,{recursive:true,force:true});}
 }
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});module.exports={main};
