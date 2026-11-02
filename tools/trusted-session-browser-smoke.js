@@ -8,6 +8,8 @@ const {installAuthInputDiagnostics,authModuleType}=require('./helpers/auth-input
 const {inspectTrustStorage,closeBrowserForRestart}=require('./helpers/trusted-cold-start');
 const root=path.resolve(__dirname,'..');
 const injection='('+installAuthInputDiagnostics.toString()+')();\n'+`(()=>{
+ // Synthetic Auth fixtures must not inherit a production owner deployment.
+ Object.defineProperty(window,'FC_APPLICATION_RELEASE',{configurable:true,get:()=>({trustedKeySha256:null,envelope:null}),set(){}});
  const RealDate=Date;let offset=0;window.Date=class extends RealDate{static now(){return RealDate.now()+offset;}};window.advanceClock=n=>offset+=n;
  window.authCalls=0;window.popupCalls=0;window.probeReads=0;window.probeTransactions=0;window.grant=true;window.rawGet=Storage.prototype.getItem;
  let options;Object.defineProperty(window,'FC_AUTH_TEST_OPTIONS',{get:()=>options,set:v=>{options={...v,target:'emulator',firebaseConfig:{apiKey:'demo',projectId:'demo-meble-app',appId:'demo',authDomain:'demo.invalid'},emulator:{host:'127.0.0.1',port:19099,firestorePort:18080},sdk:{
