@@ -131,5 +131,29 @@
     const blob=new Blob([token.text],{type:'application/json'}),url=URL.createObjectURL(blob),a=root.document.createElement('a');
     a.href=url;a.download='meble-app-private-recovery.encrypted.json';access();a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
   }
-  FC.storageRecoveryExport={prepare,verify,download,isReceipt,assertReceiptCurrent,readFile};
+  // Separate file protocol for the read-only LOCAL-FIRST rescue. The legacy
+  // inventory/prepare/verify/download paths above deliberately stay unchanged.
+  const rescueAad='meble-app-local-first-rescue-v1';
+  async function sealPrivate(body,password){
+    access();const salt=root.crypto.getRandomValues(new Uint8Array(16)),iv=root.crypto.getRandomValues(new Uint8Array(12));
+    const plain=F.utf16(JSON.stringify(body));if(plain.length>64*1024*1024)fail('RECOVERY_EXPORT_TOO_LARGE');
+    try{
+      const encrypted=await root.crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:F.utf16(rescueAad),tagLength:128},await key(password,salt),plain);access();
+      return JSON.stringify({kind:'meble-app-encrypted-local-first-rescue',version:1,cipher:'AES-256-GCM',kdf:'PBKDF2-SHA256',iterations:310000,
+        salt:base64(salt),iv:base64(iv),encoding:'UTF-16LE-code-units',ciphertext:base64(new Uint8Array(encrypted))});
+    }finally{plain.fill(0);}
+  }
+  async function openPrivate(text,password){
+    access();if(typeof text!=='string'||text.length>90*1024*1024)fail('RECOVERY_EXPORT_TOO_LARGE');
+    let e;try{e=JSON.parse(text);}catch(_){fail('RECOVERY_ENVELOPE_INVALID');}
+    if(!e||Object.keys(e).sort().join(',')!=='cipher,ciphertext,encoding,iterations,iv,kdf,kind,salt,version'||e.kind!=='meble-app-encrypted-local-first-rescue'||e.version!==1
+      ||e.cipher!=='AES-256-GCM'||e.kdf!=='PBKDF2-SHA256'||e.iterations!==310000||e.encoding!=='UTF-16LE-code-units')fail('RECOVERY_ENVELOPE_INVALID');
+    const decode=value=>{if(typeof value!=='string'||!/^[A-Za-z0-9+/]*={0,2}$/.test(value))fail('RECOVERY_ENVELOPE_INVALID');const bytes=unbase64(value);if(base64(bytes)!==value)fail('RECOVERY_ENVELOPE_INVALID');return bytes;};
+    const salt=decode(e.salt),iv=decode(e.iv),cipher=decode(e.ciphertext);if(salt.length!==16||iv.length!==12||cipher.length<16)fail('RECOVERY_ENVELOPE_INVALID');
+    let bytes;try{bytes=new Uint8Array(await root.crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:F.utf16(rescueAad),tagLength:128},await key(password,salt),cipher));}
+    catch(_){fail('RECOVERY_DECRYPT_FAILED');}
+    try{access();return JSON.parse(fromUtf16(bytes));}catch(_){fail('RECOVERY_FILE_INCOMPLETE');}finally{bytes.fill(0);}
+  }
+  FC.storageRecoveryExport={prepare,verify,download,isReceipt,assertReceiptCurrent,readFile,
+    privateCodec:Object.freeze({seal:sealPrivate,open:openPrivate,readFile,fileHash})};
 })(typeof window!=='undefined'?window:globalThis);
