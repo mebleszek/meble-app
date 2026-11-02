@@ -18,6 +18,7 @@
        'Pierwszy błąd startu: '+(r.localFirst.firstError?r.localFirst.firstError.stage+' / '+r.localFirst.firstError.code:'NONE'),
        'Konflikt aliasów: '+(r.localFirst.aliasConflict?r.localFirst.aliasConflict.domain+' | klucze: '+(r.localFirst.aliasConflict.keys.length===2?r.localFirst.aliasConflict.keys.join(' / '):'UNKNOWN'):'NONE'),
        'project-transfer-blocked: '+(r.localFirst.projectTransferBlocked?r.localFirst.projectTransferBlocked.stage+' / '+r.localFirst.projectTransferBlocked.code:'NONE')]:r.localFirst?['LOCAL-FIRST: UNAVAILABLE']:[]),
+      ...(r.localFirst?.globalConsistency?[FC.globalDataDiagnostics?.format(r.localFirst.globalConsistency)||'DANE GLOBALNE: BLOCKED']:[]),
       'Otwarcie inwestora: '+r.investorOpen.stage+' / '+r.investorOpen.outcome+' / '+r.investorOpen.code,
       'Pasujące projekty: '+(r.investorOpen.candidateProjects??'?')+' | Brak historycznej metadanej: '+flag(r.investorOpen.legacyOwnerAbsent),
       'Kod uruchomiony (identyfikatory modułów, nie SHA wydania): '+Object.entries(r.runningCode).map(([key,value])=>key+'='+value).join(', '),
@@ -66,7 +67,7 @@
       'Obiekt RAM nie dowodzi niezapisanej edycji. Brak payloadu nie dowodzi utraty projektu.',
     ];
   }
-  function open(){
+  function present(){
     const report=FC.sessionDiagnosticsReadonly(window,{storageUsage:true});
     const text=format(report);
     FC.infoBox.open({title:'Diagnostyka sesji',message:text,okOnly:true,sessionDiagnosticReport:true,
@@ -79,6 +80,11 @@
           body.textContent=text+'\nSkopiowano raport.';
         }catch(_){body.textContent=text+'\nSchowek niedostępny — zrób zrzut ekranu.';}
       }}:null});
+  }
+  function open(){
+    const inspect=FC.applicationStartup?.inspectGlobalConsistency;
+    if(typeof inspect==='function'&&authorized())return Promise.resolve(inspect()).then(present,present);
+    return present();
   }
   FC.sessionDiagnostics={open};
 })();

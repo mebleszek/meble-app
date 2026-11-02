@@ -91,7 +91,8 @@ function pixelSessionReadonly(w,options){
       const fault=value=>value?{stage:value.stage,code:value.code}:null;
       if(diagnostic)report.localFirst={status:diagnostic.status,stage:diagnostic.stage,code:diagnostic.code,
         firstError:fault(diagnostic.firstError),transferStatus:diagnostic.transferStatus,projectTransferBlocked:fault(diagnostic.projectTransferBlocked),
-        aliasConflict:diagnostic.aliasConflict?{...fault(diagnostic.aliasConflict),domain:diagnostic.aliasConflict.domain,keys:[...diagnostic.aliasConflict.keys]}:null};
+        aliasConflict:diagnostic.aliasConflict?{...fault(diagnostic.aliasConflict),domain:diagnostic.aliasConflict.domain,keys:[...diagnostic.aliasConflict.keys]}:null,
+        ...(diagnostic.globalConsistency?{globalConsistency:w.FC.globalDataDiagnostics?.sanitize(diagnostic.globalConsistency)||{status:'BLOCKED',code:'DIAG_READ_BLOCKED'}}:{})};
     }catch(_){report.localFirst={status:'UNAVAILABLE'};}
     if(options?.storageUsage===true){
       // Text footprint only: no quota probe, capacity assertion, record names or IDs.

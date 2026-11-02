@@ -69,7 +69,8 @@
     const code=FC.applicationStartup?.errorCode?.(state.code||'AUTH_ACCESS_UNCONFIRMED')||state.code||'AUTH_ACCESS_UNCONFIRMED';
     const aliasDetail=conflict?'; domena konfliktu: '+conflict.domain+'; klucze: '+(conflict.keys.length===2?conflict.keys.join(' / '):'UNKNOWN'):'';
     const detail=(first?'Pierwszy błąd: '+first.stage+' / '+first.code+(code!==first.code?'; '+code:''):code)+aliasDetail;
-    el('auth-error').hidden=state.status!=='error';el('auth-error').textContent=state.status==='error'?'Nie zmieniono danych. ('+detail+')':'';
+    const globals=FC.globalDataDiagnostics?.format?.(diagnostic?.globalConsistency)||(diagnostic?.globalConsistency?'DANE GLOBALNE: BLOCKED / DIAG_READ_BLOCKED':'');
+    el('auth-error').hidden=state.status!=='error';el('auth-error').textContent=state.status==='error'?'Nie zmieniono danych. ('+detail+')'+(globals?'\n'+globals:''):'';
   }
   function failure(error){
     // A delayed business script may resume after the access gate has expired.

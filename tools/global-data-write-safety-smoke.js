@@ -342,4 +342,14 @@ test('Import and dictionary batches report earlier confirmed writes when a later
   d.panel().contentNode.querySelector('.btn-success').click();assert.equal(d.closes(),0);
   assert.equal(d.messages.at(-1).title,'Zapis częściowy');assert.match(d.messages.at(-1).message,/została już zapisana/);
 });
+test('Read-only global diagnostic detects a real primary-confirmed / compatibility-copy write failure without retry or repair',()=>{
+  const r=runtime();
+  for(const file of ['js/app/project/project-export-contract.js','js/app/cloud/global-data-contract.js','js/app/cloud/global-data-diagnostics.js'])r.load(file);
+  const next=r.FC.catalogStore.getSheetMaterials();next[0].price+=12.125;r.fail('fc_materials_v1','false');
+  assert.throws(()=>r.FC.catalogStore.savePriceList('materials',next),error=>error.partial===true&&error.confirmedKeys.includes('fc_sheet_materials_v1'));
+  const before=[...r.rows],ops=r.ops.length;
+  const report=r.FC.globalDataDiagnostics.inspect(key=>r.s.localStorage.getItem(key)),materials=report.domains.find(row=>row.domain==='materials');
+  assert.equal(materials.status,'DIFFERENT');assert.equal(materials.semantic,'DIFFERENT');assert.equal(report.domains.length,14);
+  assert.deepEqual([...r.rows],before);assert.equal(r.ops.length,ops,'Diagnostic must not retry the failed compatibility WRITE');
+});
 (async()=>{for(const [name,fn] of tests){await fn();console.log('PASS '+name);}console.log('Global data write safety: '+tests.length+'/'+tests.length+' PASS');})().catch(error=>{console.error(error);process.exitCode=1;});
