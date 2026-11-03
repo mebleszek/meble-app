@@ -3,7 +3,7 @@ import {createApplicationSyncGrant} from './application-sync-grant.mjs';
 import {authorizeApplicationSession} from './firebase-activation.mjs';
 import {fail} from './local-first-values.mjs';
 const trustedSessions=new WeakMap();
-export async function createApplicationConnections({window:w,authSession,lease,sdk,localAccess,release}){
+export async function createApplicationConnections({window:w,authSession,lease,renewLease,sdk,localAccess,release}){
  const fc=w.FC;w.__FC_MAIN_ACCESS__.assert();
  sdk=sdk||await fc.firebasePilotTransport.loadSdk();
  let session=authSession,ownWriter=false,currentLease=lease,verifier,gate,secondary,trustedContext,syncGrant,permit;
@@ -29,6 +29,9 @@ export async function createApplicationConnections({window:w,authSession,lease,s
     onAuthorized:value=>{currentLease=value;resolve();},onState:state=>{if(state.denied===true||state.status==='revoked')localAccess.deny?.();if(['error','revoked','unapproved','unauthenticated'].includes(state.status))reject(Error('LF_APPLICATION_ACCESS_UNCONFIRMED'));}});trustedContext.gate=gate;
   });
  }
+ // The initial UI/SDK may outlive its first proof. Renew on the same admitted
+ // session at this boundary, never through another login or parallel startup.
+ if(!trusted&&renewLease)currentLease=await renewLease();
  const ctx=session?.verificationContext(),identity=session?.identity();
  if(!ctx||!identity?.uid||currentLease?.uid!==identity.uid)fail('LF_APPLICATION_AUTH_REQUIRED');
  currentLease.assert();const f=sdk.firestore;

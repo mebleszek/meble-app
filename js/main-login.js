@@ -9,7 +9,7 @@
   catch(_){el('auth-status').textContent='Pamięć przeglądarki jest niedostępna. Nie uruchomiono aplikacji.';el('auth-error').hidden=false;el('auth-error').textContent='LOCAL_ACCESS_UNCONFIRMED';document.body.dataset.authState='error';return;}
   let auth=null,access=null,gate=null,lease=null,blocked=true,started=false,starting=false,fatal=false,loader=null;
   let displayed={status:'checking'},initializing=false,admission=null;
-  let interaction=null,startupStage='login-startup';
+  let interaction=null,startupStage='login-startup',startupCloudReady=false;
   const nativeGet=Storage.prototype.getItem;
   let recoveryBinding=null,recoveryGate=null,recoveryGrant=null,recoverySurface=null;
   function closeRecovery(){recoveryGate?.close();recoveryGate=null;recoveryGrant=null;recoveryBinding=null;recoverySurface?.dispatchEvent(new Event('meble-rescue-revoke'));recoverySurface?.remove();recoverySurface=null;}
@@ -127,16 +127,22 @@
       :error?.code==='LOCAL_ACCESS_OTHER_ACCOUNT'?'Dane tej przeglądarki są dostępne dla innego konta. Użyj właściwego konta lub osobnego profilu przeglądarki.'
       :'Nie udało się bezpiecznie uruchomić aplikacji. Zachowano dane i niezakończoną edycję. Nie odświeżaj strony z niezapisanym formularzem.'});
   }
-  function syncContext(){
+  function syncContext(renewLease){
     const ownerUid=localSession.identity().uid;
-    return {ownerUid,authSession:auth,lease,localAccess:{ownerUid,mode:localSession.mode(),
+    const context={ownerUid,authSession:auth,lease,localAccess:{ownerUid,mode:localSession.mode(),
       firebaseConfig:window.FC_AUTH_TEST_OPTIONS?.firebaseConfig,target:window.FC_AUTH_TEST_OPTIONS?.target,
       emulator:window.FC_AUTH_TEST_OPTIONS?.emulator,
       deny(){void trust.revoke();localSession.lock('AUTH_ACCESS_REVOKED');},
       assert(){localSession.assert(ownerUid);profile.assert(ownerUid);assert();}}};
+    if(renewLease){let pending;context.renewLease=()=>pending||=(async()=>{
+      const grant=await renewLease();context.lease=grant;delete context.renewLease;return grant;
+    })();}
+    return context;
   }
   async function loadBusiness(grant,intent,restoring=false){
     if(fatal)throw Object.assign(Error(),{code:'AUTH_RELOAD_REQUIRED'});
+    if(starting)return;
+    const initialIdentity=restoring?null:auth.identity();
     startupStage='checking-local-access';
     if(!restoring){
       const identity=auth.identity();
@@ -172,11 +178,13 @@
       }
       throw error;
     }
-    startupStage='preparing-source';
-    await FC.applicationStartup?.beforeBusiness({ownerUid:localSession.identity().uid});
-    if(started){await FC.applicationStartup?.start(syncContext());showBusiness(true);return;}
-    if(starting)return;starting=true;
+    if(starting)return;
+    const localEpoch=localSession.identity().epoch;
+    if(!started){starting=true;startupCloudReady=false;}
     try{
+      startupStage='preparing-source';
+      await FC.applicationStartup?.beforeBusiness({ownerUid:localSession.identity().uid});
+      if(started){await FC.applicationStartup?.start(syncContext());showBusiness(true);return;}
       const template=el('business-template'),fragment=template.content.cloneNode(true);
       const manifest=Array.from(fragment.querySelectorAll('script[src]'),node=>({src:node.getAttribute('src'),group:node.getAttribute('data-load-group')}));
       fragment.querySelectorAll('script').forEach(node=>node.remove());
@@ -197,18 +205,17 @@
       document.dispatchEvent(new Event('DOMContentLoaded'));
       assert();if(window.__APP_STARTED__!==true)throw Error('AUTH_STARTUP_UNCONFIRMED');
       startupStage='starting-local-first';
-      await FC.applicationStartup?.start(syncContext());
+      await FC.applicationStartup?.start(syncContext(initialIdentity?()=>renewStartupLease(initialIdentity,localEpoch):null));
       assert();started=true;starting=false;document.body.dataset.businessState='ready';showBusiness(true);
     }catch(error){starting=false;throw error;}
   }
-  function observe(intent=null){
-    gate?.close();
-    gate=FC.authAccessGate.create(auth,{verifyAccess:access.verify,watchAccess:access.watch,onBlocked:()=>{lease=null;trustControls();},
-      onState:state=>{
+  function cloudBlocked(){lease=null;trustControls();}
+  function cloudState(state){
         if(state.status==='revoked'||state.denied===true){localSession.lock('AUTH_ACCESS_REVOKED');void trust.revoke().catch(()=>{});}
-        // Local desktop admission outlives the cloud lease. A failed renewal
-        // during initial loading must stop before syncContext loses that lease.
         if(!started&&localSession.mode()==='desktop'&&isValid()&&state.status==='error'){
+          // An expired initial proof is refreshed after all SDK imports. A
+          // failed proof, or expiry after that boundary, still stops startup.
+          if(starting&&!startupCloudReady&&state.code==='AUTH_ACCESS_EXPIRED'){trustControls();return;}
           failure(Object.assign(Error(),{code:state.code||'AUTH_ACCESS_UNCONFIRMED'}));return;
         }
         const previousMode=localSession.mode();
@@ -219,7 +226,32 @@
           if(previousMode!=='locked'&&localSession.mode()==='locked')return;
           render(state);
         }else trustControls();
-      },onAuthorized:async grant=>{
+  }
+  async function renewStartupLease(identity,localEpoch){
+    const check=()=>{assert();const current=auth.identity(),local=localSession.identity();
+      if(fatal||!starting||started||localSession.mode()!=='desktop'||current.uid!==identity.uid||current.epoch!==identity.epoch||local.uid!==identity.uid||local.epoch!==localEpoch)throw Object.assign(Error(),{code:'AUTH_ACCOUNT_CHANGED'});};
+    check();gate?.close();
+    return new Promise((resolve,reject)=>{
+      let next,settled=false,creating=true;
+      const finish=(error,grant)=>{if(settled)return;settled=true;clearTimeout(timer);if(error){next?.close();reject(error);}else resolve(grant);};
+      const timer=setTimeout(()=>finish(Object.assign(Error(),{code:'AUTH_ACCESS_TIMEOUT'})),10000);
+      try{
+        next=FC.authAccessGate.create(auth,{verifyAccess:access.verify,watchAccess:access.watch,
+          onBlocked(){cloudBlocked();if(!creating&&!settled)finish(Object.assign(Error(),{code:'AUTH_ACCESS_REVOKED'}));},
+          onState(state){
+            if(['error','revoked','unapproved','unauthenticated'].includes(state.status))finish(Object.assign(Error(),{code:state.code||'AUTH_ACCESS_UNCONFIRMED'}));
+            cloudState(state);
+          },
+          onAuthorized(grant){if(settled)return;try{check();grant.assert();lease=grant;startupCloudReady=true;trustControls();finish(null,grant);}catch(error){finish(error);}}
+        });
+        creating=false;if(settled&&!lease?.isValid())next.close();else gate=next;
+      }catch(error){creating=false;finish(error);}
+    });
+  }
+  function observe(intent=null){
+    gate?.close();
+    gate=FC.authAccessGate.create(auth,{verifyAccess:access.verify,watchAccess:access.watch,onBlocked:cloudBlocked,
+      onState:cloudState,onAuthorized:async grant=>{
         lease=grant;trustControls();
         // A consent is single-use and bound to the exact Auth identity/epoch.
         // This new gate obtains a fresh server proof through the common verifier.

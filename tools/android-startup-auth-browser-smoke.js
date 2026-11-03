@@ -11,7 +11,7 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  const baseMain=execFileSync('git',['show','653d72d0d344fa3e87407ee5ebbee1a867022957:js/main-login.js'],{encoding:'utf8'});
  async function until(expression){for(let i=0;i<300;i++){if(await device.evaluate(expression))return;await pause(20);}throw Error('NATIVE_STARTUP_AUTH_TIMEOUT');}
  async function click(selector){const point=await waitForGesturePoint(device.evaluate,selector,{stable:true});await device.send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...point});await device.send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...point});}
- async function configure(main,seed){
+ async function configure(main,seed,mode='ok'){
   await device.evaluate(`(async()=>{
    const data=${JSON.stringify(server.data)},owner=${JSON.stringify(server.uid)},attempt='12345678-1234-4123-8123-123456789abc';
    if(${seed}){
@@ -29,13 +29,13 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
    };
    window.projectData={unsaved:'SYNTHETIC_NATIVE_RAM',price:12.125};window.uiState={entry:'investorsList'};
    const input=document.createElement('input');input.id='startup-unsaved';input.value='SYNTHETIC_NATIVE_FORM';document.getElementById('main-login').append(input);
-   window.startupCalls={connections:0,runtime:0,aborts:0,context:null};return true;
+   window.startupCalls={connections:0,runtime:0,aborts:0,context:null};window.startupMode=${JSON.stringify(mode)};window.startupVerifyAttempts=0;return true;
   })()`);
   for(const name of ['firebase-pilot-transport','cloud-auth','auth-access-gate','cloud-access-verifier','local-access-profile','local-device-access'])await device.evaluate(fs.readFileSync('js/app/cloud/'+name+'.js','utf8')+'\ntrue');
   await device.evaluate(injection+'\nFC_AUTH_TEST_OPTIONS={};window.testAccount='+JSON.stringify(server.uid)+';true');
   await device.evaluate(`(()=>{
-   window.startupSdk=(${connectionSdk.toString()})(window,${JSON.stringify(server.uid)});
-   const create=FC.cloudAccessVerifier.create;FC.cloudAccessVerifier.create=(...args)=>{const verifier=create(...args),verify=async id=>({...await verifier.verify(id),validUntil:Date.now()+4000});
+   const createAuth=FC.cloudAuth.create;FC.cloudAuth.create=async options=>{const session=await createAuth(options);if(!options.appName)window.startupAuth=session;return session;};window.startupSdk=(${connectionSdk.toString()})(window,${JSON.stringify(server.uid)});
+   const create=FC.cloudAccessVerifier.create;FC.cloudAccessVerifier.create=(...args)=>{const verifier=create(...args),verify=async id=>{const proof={...await verifier.verify(id),validUntil:Date.now()+4000};if(++startupVerifyAttempts>1){if(startupMode==='unavailable')throw Error('AUTH_ACCESS_UNCONFIRMED');if(startupMode==='denied')return {ok:false,denied:true};if(startupMode==='account')return new Promise(resolve=>window.startupLate=()=>resolve(proof));}return proof;};
     return {...verifier,verify,watch(id,reply){window.startupRenew=()=>verify(id).then(reply);return()=>{};}};};
    const gate=FC.authAccessGate.create;FC.authAccessGate.create=(auth,options)=>gate(auth,{...options,onState(state){window.startupCloudState=state;options.onState?.(state);}});
    FC.mainBusinessLoader={create:()=>({start:()=>new Promise(resolve=>{window.startupRelease=resolve;}),abort(){startupCalls.aborts++;}})};
@@ -64,16 +64,21 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   assert.deepEqual(await device.evaluate('startupCalls.context'),{context:true,identity:true,lease:false,mode:'desktop'});assert.deepEqual(await device.evaluate('startupSnapshot()'),before);
   console.log('PASS BASE Chromium reproduction: real lease timer clears lease while local access remains valid; context/UID present, lease absent, authorizing-cloud/LF_APPLICATION_AUTH_REQUIRED; RAW/all four stores/uncertain outbox unchanged');
   await device.send('Page.navigate',{url:server.base});await until('window.lfReady===true&&typeof startupCalls==="undefined"');await configure(fs.readFileSync('js/main-login.js','utf8'),false);
-  await until('FC.applicationStartup.diagnostics().firstError?.code==="AUTH_ACCESS_EXPIRED"');
-  assert.equal(await device.evaluate('__FC_MAIN_ACCESS__.isValid()'),false);assert.deepEqual(await device.evaluate('startupCalls'),{connections:0,runtime:0,aborts:1,context:null});
-  await device.evaluate('startupRelease();true');await pause(50);
-  assert.equal(await device.evaluate('document.body.dataset.businessState==="ready"'),false);assert.deepEqual(await device.evaluate('startupSnapshot()'),before);
+  await until('startupCloudState?.code==="AUTH_ACCESS_EXPIRED"');assert.equal(await device.evaluate('__FC_MAIN_ACCESS__.isValid()'),true);
+  await device.evaluate('startupRelease();true');await until('document.body.dataset.businessState==="ready"');
+  assert.equal(await device.evaluate('startupVerifyAttempts'),2);assert.equal(await device.evaluate('startupCalls.runtime'),1);assert.equal(await device.evaluate('startupCalls.aborts'),0);assert.deepEqual(await device.evaluate('startupSnapshot()'),before);
   assert.deepEqual(await device.evaluate('({ram:projectData,input:document.getElementById("startup-unsaved").value})'),{ram:{unsaved:'SYNTHETIC_NATIVE_RAM',price:12.125},input:'SYNTHETIC_NATIVE_FORM'});
-  assert.match(await device.evaluate('document.getElementById("auth-error").textContent'),/AUTH_ACCESS_EXPIRED/);
-  console.log('PASS patched Chromium: actual expiry aborts delayed initial startup before connection/runtime, first AUTH_ACCESS_EXPIRED stays visible after late completion; exact RAM/form/RAW/IDB/outbox retained');
-  await device.send('Page.navigate',{url:server.base});await until('window.lfReady===true&&typeof startupCalls==="undefined"');await configure(fs.readFileSync('js/main-login.js','utf8'),false);
-  await pause(2000);await device.evaluate('startupRenew().then(()=>true)');await pause(2100);await device.evaluate('startupRelease();true');await until('document.body.dataset.businessState==="ready"');
-  assert.deepEqual(await device.evaluate('startupCalls'),{connections:1,runtime:1,aborts:0,context:{context:true,identity:true,lease:true,mode:'desktop'}});assert.equal(await device.evaluate('popupCalls'),1);assert.deepEqual(await device.evaluate('startupSnapshot()'),before);
-  console.log('PASS patched Chromium: current same-owner renewal allows delayed startup across the original deadline exactly once, no extra popup or persistent business changes');
+  assert.equal(await device.evaluate('popupCalls'),1);
+  console.log('PASS Chromium authorization boundary: expired first proof freshly verified on the same Auth, one connection/runtime/popup, exact RAM/form/RAW/IDB/outbox preserved');
+  for(const mode of ['unavailable','denied','account','offline']){
+   await device.send('Page.navigate',{url:server.base});await until('window.lfReady===true&&typeof startupCalls==="undefined"');await configure(fs.readFileSync('js/main-login.js','utf8'),false,mode);await device.evaluate('startupSnapshot()');
+   if(mode==='offline'){await device.send('Network.enable');await device.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});assert.equal(await device.evaluate('navigator.onLine'),false);}
+   await device.evaluate('startupRelease();true');
+   if(mode==='account'){await until('typeof startupLate==="function"');await device.evaluate(`const a=startupAuth.verificationContext().auth;a.currentUser={uid:'foreign-owner',providerData:[{providerId:'google.com'}]};for(const fn of a.listeners)fn(a.currentUser);startupLate();true`);}
+   await until('document.body.dataset.authState==="error"');assert.equal(await device.evaluate('__FC_MAIN_ACCESS__.isValid()'),false);assert.equal(await device.evaluate('startupCalls.runtime'),0);assert.equal(await device.evaluate('document.body.dataset.businessState==="ready"'),false);assert.deepEqual(await device.evaluate('startupSnapshot()'),before);assert.equal(await device.evaluate('document.getElementById("startup-unsaved").value'),'SYNTHETIC_NATIVE_FORM');assert.deepEqual(await device.evaluate('projectData'),{unsaved:'SYNTHETIC_NATIVE_RAM',price:12.125});
+   if(mode==='offline')await device.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
+  }
+  console.log('PASS Chromium unavailable/denied fresh server verification and changed account with late old proof: no runtime/access, RAM/form/RAW/four stores/outbox retained');
  }finally{try{await device?.close();}finally{await server.close();fs.rmSync(dir,{recursive:true,force:true});}}
+ if(!process.argv.includes('--authorization-only'))await require('./helpers/android-startup-full-browser').main();
 })().catch(error=>{console.error(error.stack);process.exitCode=1;});

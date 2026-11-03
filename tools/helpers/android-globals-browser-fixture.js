@@ -9,12 +9,12 @@ async function androidGlobalsFixture({deployment}={}){
  const worker=`self.addEventListener('install',e=>e.waitUntil(self.skipWaiting()));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('message',e=>{if(e.data?.type==='VERIFY_APPLICATION_AUTHORITY')e.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(clients=>e.ports[0].postMessage({protocol:1,nonce:e.data.nonce,exclusive:clients.length===1})));});self.addEventListener('fetch',e=>{if(new URL(e.request.url).origin===self.location.origin)e.respondWith(fetch(e.request).then(async r=>{if(r.ok)(await caches.open('synthetic-static')).put(e.request,r.clone());return r;}).catch(async()=>{const r=await caches.match(e.request);return r||Response.error();}));});`;
  const server=http.createServer((req,res)=>{const file=new URL(req.url,'http://localhost').pathname;
   if(file==='/fixture-host.html'){res.setHeader('content-type','text/html');res.end('<!doctype html><script>window.lfReady=true;</script>');return;}
+  if(file==='/fixture-worker.js'){res.setHeader('content-type','text/javascript');res.end(worker);return;}
   if(deployment){
    const dir=deployment(),target=path.resolve(dir,'.'+(file==='/'?'/index.html':file));
    try{if(!target.startsWith(dir+path.sep))throw Error();const bytes=fs.readFileSync(target);res.writeHead(200,{'content-type':/\.(?:m?js)$/.test(target)?'text/javascript':target.endsWith('.html')?'text/html':target.endsWith('.css')?'text/css':'application/octet-stream','cache-control':'no-store'});res.end(bytes);}catch(_){res.writeHead(404);res.end();}return;
   }
   if(file==='/'){res.setHeader('content-type','text/html');res.end(html);return;}
-  if(file==='/fixture-worker.js'){res.setHeader('content-type','text/javascript');res.end(worker);return;}
   if(!/^\/sync\/[a-z-]+(?:\.generated)?\.mjs$/.test(file)&&file!=='/tools/helpers/synthetic-global-rebuild.mjs'){res.writeHead(404);res.end();return;}
   try{res.setHeader('content-type','text/javascript');res.end(fs.readFileSync(path.join(root,file)));}catch(_){res.writeHead(404);res.end();}
  });await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
