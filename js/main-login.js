@@ -206,6 +206,11 @@
     gate=FC.authAccessGate.create(auth,{verifyAccess:access.verify,watchAccess:access.watch,onBlocked:()=>{lease=null;trustControls();},
       onState:state=>{
         if(state.status==='revoked'||state.denied===true){localSession.lock('AUTH_ACCESS_REVOKED');void trust.revoke().catch(()=>{});}
+        // Local desktop admission outlives the cloud lease. A failed renewal
+        // during initial loading must stop before syncContext loses that lease.
+        if(!started&&localSession.mode()==='desktop'&&isValid()&&state.status==='error'){
+          failure(Object.assign(Error(),{code:state.code||'AUTH_ACCESS_UNCONFIRMED'}));return;
+        }
         const previousMode=localSession.mode();
         if(!fatal&&!isValid()){
           // isValid can expire the desktop session synchronously. onLock has

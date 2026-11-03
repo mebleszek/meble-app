@@ -657,3 +657,43 @@ Physical Android remains separate. One logical commit/push, clean tree; no PR
 operations, Actions launch/rerun, merge, Pages or Firebase LIVE.
 
 **CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**.
+
+## Android: expiry during initial startup — 03.11.2026
+
+Branch `fix/android-startup-auth-20261103`, verified main/BASE **653d72d0d344fa3e87407ee5ebbee1a867022957**. Separate repair branch, one commit/push; resulting SHA is in the handoff. Scope follows AGENTS §19: only the reported startup/authorization fault, no general audit or additional security policy. PR #108 was read-only verified as merged into this BASE; previous CURRENT_STATE CI/PR notes were historical, not a current open-PR blocker. No new CI/Pages PASS is inferred from that metadata.
+
+### Cause established on synthetic data
+
+The Pixel report is `authorizing-cloud / LF_APPLICATION_AUTH_REQUIRED / AUTH_STARTUP_FAILED`. The combined refusal in application-connections.mjs:33 can mean missing verification context, missing UID, or a missing/mismatched lease UID. These terms were exercised separately; an expired **present** same-UID lease instead reaches lease.assert and raises AUTH_ACCESS_REVOKED.
+
+Both the real main/Auth/gate sequence under a controlled 46-second clock and real Chromium reproduced the reported refusal with **verification context present, UID present, lease absent, mode desktop**. The gate's expiry callback first sets main's lease to null. Local owner/profile admission remains valid for its separate desktop lifetime. The existing onState path only rendered an authorization error when local access was invalid, so it ignored failed cloud renewal while the initial interface was loading. Subsequent local assert passed, syncContext passed null, and the **third term** currentLease.uid !== identity.uid refused the cloud connection. No server/SDK exception payload or business data is necessary to reproduce this mechanism.
+
+This confirms a concrete causal path matching the report, not a private observation of Pixel memory. The physical report alone does not distinguish all terms of line 33. Real device reproduction and successful startup after release remain PHONE_PENDING; no claim that every possible LF_APPLICATION_AUTH_REQUIRED has this one cause.
+
+### Minimal correction and retained policy
+
+Five lines in main-login's existing gate onState route an error through the existing failure/abort path when the initial desktop business startup has not completed and local owner admission is still valid. The first cause is now AUTH_ACCESS_EXPIRED or the actual closed authorization error. Existing loader.abort stops pending work, owner admission is revoked in memory, late completion cannot connect or report business ready, and first-error diagnostics retain the cause. There is no hidden login/popup, automatic startup retry, extension of the 45-second lease, or access without owner/profile proof. Existing error UI/text is reused; the UI is not redesigned.
+
+A current same-owner renewal still allows the delayed start once. Already-started local desktop work and trusted offline/local policy are unchanged. A trusted cold phone intentionally has no main Auth/lease: application-connections obtains its own persisted SDK session and fresh cloud authorization. Its existing owner check still refuses LF_SYNC_AUTH_OWNER_MISMATCH for a foreign SDK owner. The production connection guard, Auth/gate/verifier, trust/profile, sync/runtime, SW/fence and business logic were not modified.
+
+This package chooses the user-authorized **clear stop** on genuinely expired authorization. It does not restore an expired grant or promise automatic recovery of partially loaded code. A new initial attempt requires accounting for unsaved RAM and a safe new document; no forced refresh or data repair is performed. Globals or project dependency blockers after authorization, if present, remain separate and were not audited or repaired here.
+
+### Targeted evidence and CI routing
+
+Only synthetic data; Node **24.19.0**, Chromium **151.0.7922.173**. Results refer to the working tree of the final commit, not to CI for an older SHA.
+
+| Test | Actual result | Mandatory current CI |
+| --- | --- | --- |
+| android-startup-auth-smoke.js | **4 groups PASS**: all original guard terms; expired present vs null lease; delayed desktop expiry/failed renewal/denial, exactly one abort/no connection, unchanged RAM/business data; actual renewed same-owner connection; cold trusted phone without main Auth/lease and foreign-owner refusal | shard **7/7** |
+| android-startup-auth-browser-smoke.js | **3 groups PASS**: BASE reproduces the exact authorizing-cloud refusal; patch stops on actual timer expiry with original error visible; fresh renewal permits delayed start once/no extra popup. Full hashes of business RAW and control/replicas/protected/outbox match before/after, uncertain ACK preserved; unsaved RAM/price/input exact | shard **5/7** |
+| main-login-smoke.js / trusted-main-login-smoke.js | **36/36 + 4 groups PASS**, existing ownership, consent, transaction failure, trusted/offline/revocation and RAM protections unchanged | shard **5/7** |
+| first-sync-error-diagnostics-smoke.js | **9/9 PASS**, retained original error/fatal, exact current versions and negative version/duplicate mutations | shard **5/7** |
+| android-globals-recovery-smoke.js | **7/7 PASS**, fatal read scope/lease expiry/owner proof and cleanup preserved | shard **4/7** |
+
+Both new tests are discovered exactly once by the existing mandatory Preflight partition: **199 current smoke tests / 7 disjoint groups**. Existing tests were reviewed against the changed callback and current versions; their scenarios/assertions required no removal or relaxation. Central authVersions and index now use **20261103_startup_auth_stop_v1** for main-login; manifest regenerated from exact public bytes, still **488** resources. No new product module, UI, workflow, pin or SW policy change. Source syntax, version equality, manifest and diff checked; no full local CI, Firebase emulator suites or Actions execution.
+
+Chromium executes the real main, Auth, gate, profile, bootstrap and connection guards. The synthetic server supplies a valid **4-second proof** (within the unchanged 45-second maximum), with renewal held, so native timer expiration is tested without a 45-second test sleep. The test waits for the actual expiry state before releasing loading. A separate controlled-clock test covers 46 seconds. The renewal scenario crosses the original proof deadline with a fresh valid proof. SDK responses and final runtime are explicit test boundaries; no Firebase network/RPC or production startup claim. The existing synthetic image contains catalogs/aliases, exact prices, four stores and uncertain outbox; none are reset, normalized or synchronized by the test or patch.
+
+New-fixture corrections: the first uncertainty/denial attempt invoked a watch callback superseded by the test wrapper; those cases now invoke the actual active callback. A foreign-owner fixture's iteration-only wait could end before asynchronous CryptoKey proof completed; it now uses the same bounded 3-second asynchronous wait style as the existing main fixture. Neither changed production deadlines, guards or old assertions. Final targeted results above.
+
+Files in this package: js/main-login.js, index.html, tools/script-versions.js, offline-assets.js, tools/android-startup-auth-smoke.js, tools/android-startup-auth-browser-smoke.js, CURRENT_STATE.md and this report. **CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED**. No PR/Actions/merge, real repair/recovery/reset of data, new UI, Firebase LIVE/Rules/IAM/billing. Next release attempt needs separate owner approval for exact HEAD/BASE, then the owner verifies the Pixel result; do not refresh a document with unprotected RAM merely to obtain the new code.
