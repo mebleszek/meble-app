@@ -197,7 +197,14 @@ test('new smoke belongs to exactly one mandatory current CI shard and every chan
  const plan=require('./ci-smoke-shards'),historical=require('./cloud-ci-context').historicalSmoke;
  assert.equal(plan.plan(plan.inventory('tools',historical)).flat().filter(x=>x==='first-sync-error-diagnostics-smoke.js').length,1);
  assert.match(read('.github/workflows/preflight-js.yml'),/node tools\/preflight\.js --current-only --smoke-shard=/);
- require('./script-versions').assertVersions(process.cwd());
- for(const file of ['js/main-login.js','js/app/cloud/application-bootstrap.js'])assert.ok(read('index.html').includes(file+'?v=20261102_global_diagnostics_v1'));
+ const {authVersions,assertVersions,assertHtmlVersions}=require('./script-versions'),index=read('index.html'),dev=read('dev_tests.html');
+ assertVersions(process.cwd());
+ for(const file of ['js/main-login.js','js/app/cloud/application-bootstrap.js']){
+  assert.ok(Object.hasOwn(authVersions,file),'Required diagnostic entry must have a canonical version');
+  const src=file+'?v='+authVersions[file],sources=Array.from(index.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi),m=>m[1]);
+  assert.deepEqual(sources.filter(value=>value.split('?')[0]===file),[src],'Exactly one current diagnostic entry');
+  assert.throws(()=>assertHtmlVersions(index.replace(src,file+'?v=20261102_global_diagnostics_v1'),dev),{code:'ERR_ASSERTION'});
+  assert.throws(()=>assertHtmlVersions(index+'<script src="'+src+'"></script>',dev),{code:'ERR_ASSERTION'});
+ }
 });
 (async()=>{for(const {name,run}of tests){await run();console.log('PASS '+name);}console.log(`First-sync diagnostics: ${tests.length}/${tests.length} PASS`);})().catch(error=>{console.error(error.stack);process.exitCode=1;});

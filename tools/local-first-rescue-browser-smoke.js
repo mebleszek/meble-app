@@ -12,7 +12,7 @@ let phase='START';
   const file=new URL(req.url,'http://localhost').pathname;
   if(file==='/'){res.setHeader('content-type','text/html');res.end('<!doctype html><title>Synthetic rescue fixture</title><input id="rescue-file" type="file"><script type="module">import {openLocalFirstStore} from "/sync/local-first-idb.mjs";window.openLF=b=>openLocalFirstStore({...b,indexedDB,locks:navigator.locks}).then(s=>{window.lf=s;return true;});window.lfReady=true;</script>');return;}
   if(file==='/rescue-worker.js'){res.setHeader('content-type','text/javascript');res.end(worker);return;}
-  if(!/^\/sync\/(?:local-first-[a-z-]+|application-(?:release|writer-fence|authority|installation|migration-recovery))\.mjs$/.test(file)){res.writeHead(404);res.end();return;}
+  if(!/^\/sync\/(?:local-first-[a-z-]+|global-code-rebuild-plan|application-(?:release|writer-fence|authority|installation|migration-recovery))\.mjs$/.test(file)){res.writeHead(404);res.end();return;}
   try{res.setHeader('content-type','text/javascript');res.end(fs.readFileSync(path.join(process.cwd(),file)));}catch(_){res.writeHead(404);res.end();}
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const service={base:'http://127.0.0.1:'+server.address().port};let browser;

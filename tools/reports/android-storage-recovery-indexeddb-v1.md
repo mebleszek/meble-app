@@ -417,3 +417,27 @@ Granice dowodu: rzeczywiste są worker, pełna instalacja i integralność obu s
 Pierwsza próba zatrzymała się przed Chromium podczas przygotowania fixture na istniejącym limicie VM 2 s w generatorze. Osobna minimalna kontrola przygotowania przeszła i nie odtworzyła timeoutu; przyczyna opóźnienia pozostaje niepotwierdzona. Limit/generator/asercje bez zmian i bez automatycznego retry. Końcowy scenariusz Chromium zaliczony. Nie zaliczamy tej pierwotnej odmowy jako PASS ani jako błędu produktu.
 
 **CODE_READY / CI_PENDING / BACKUP_PENDING / REPAIR_BLOCKED.** Domknięto brakujący syntetyczny dowód dostarczenia recovery przez bezpieczną aktualizację. Nie oznacza wydania, BACKUP_PASS danych właściciela, zgody na realny WRITE ani naprawy telefonu. Bez PR, pełnego CI/Actions, merge/Pages, Firebase LIVE i operacji na rzeczywistych danych.
+
+## PR #108 — poprawka dwóch FAIL CI i zasady współpracy — 03.11.2026
+
+Gałąź feat/code-global-catalogs-20261102, wejściowy HEAD **7f64413a8e9c6580a2486c538b9430421c52fe03**, main/BASE **317cfce2d43ac5ae4c9ed92c306d5c04d73b3f74**. Sprawdzono git lokalny/remote i metadane istniejącego [PR #108](https://github.com/mebleszek/meble-app/pull/108): otwarty Ready, niescalony, zgodne HEAD/BASE. Odczytano [CI #41591404186](https://github.com/mebleszek/meble-app/actions/runs/41591404186) oraz [log sharda 7/7](https://github.com/mebleszek/meble-app/actions/runs/41591404186/job/125768797629). Shard **46/48 FAIL**, dokładnie first-sync-error-diagnostics-smoke i local-first-rescue-browser-smoke. Safety, Static, pozostałe shardy oraz Firebase CURRENT/Historical PASS dla wejściowego SHA; agregatory Preflight/ci-summary/final-status FAIL, auto-merge i Pages SKIPPED. Tych historycznych PASS nie przypisujemy nowemu HEAD.
+
+Przyczyny i ograniczone poprawki:
+
+- Test diagnostyki miał historyczny literal 20261102_global_diagnostics_v1 dla main-login/bootstrap, mimo obowiązującego centralnego rejestru authVersions i nowych wersji recovery. Test pobiera teraz wymagane wersje z tego rejestru, wymaga obecności obu wpisów oraz **dokładnie jednego** zgodnego script src. Dotychczasowe assertVersions i wszystkie pozostałe scenariusze pozostają. Cztery negatywne mutacje — stara wersja i duplikat dla każdego z dwóch skryptów — muszą zgłosić ERR_ASSERTION; nie zastąpiono kontroli luźnym includes ani samą obecnością pliku.
+- Rescue-file importuje global-code-rebuild-plan.mjs, którego zamknięta lista serwera natywnego testu nie dopuszczała. Chromium zgłaszało Failed to fetch dynamically imported module dla rescue-file, choć przyczyną był odrzucony import zależny. Dopisano **wyłącznie tę nazwę** do istniejącej listy. Sprawdzono jej dalsze importy local-first-values i local-first-rescue-state, już obsługiwane przez serwer. Nie zmieniono aplikacji, ścieżki importu produktu, odmów backupu ani scenariuszy/asercji natywnego testu.
+- AGENTS §3 doprecyzowuje obowiązek przeglądu i dostosowania istniejących testów do bieżącego kontraktu, nazw, zależności/list serwera i wersjonowania przy każdej modyfikacji aplikacji. Zakaz osłabiania asercji, usuwania wymaganych scenariuszy i maskowania błędów jest jawny. Nowy §19 utrwala decyzje właściciela o nowych zadaniach/zakresie/zabezpieczeniach po konsultacji; wykryta luka nie wymusza natychmiastowej naprawy, trzeba oddzielić bloker od odraczalnego ryzyka. Priorytet: działająca aplikacja, synchronizacja telefon–komputer, WYCENA i RYSUNKI; bez mnożenia pakietów/modułów/zabezpieczeń bez potrzeby i zgody. Nie wymusza ponownej zgody na ten już zlecony zakres.
+
+Zmiany wyłącznie pięciu plików: AGENTS.md, CURRENT_STATE.md, tools/first-sync-error-diagnostics-smoke.js, tools/local-first-rescue-browser-smoke.js i niniejszy raport. Kod produktu, HTML/wersje, manifest, worker/fence, Auth, reguły domenowe i workflow bez zmian. Jeden nowy commit i push na istniejącą gałąź; wynikowy SHA w przekazaniu.
+
+Celowane wykonania dla drzewa nowego commita, wyłącznie dane syntetyczne, Node **24.19.0** / Chromium **151.0.7922.173**:
+
+| Komenda / kontrola | Faktyczny wynik | Routing obowiązkowego CI |
+| --- | --- | --- |
+| node tools/first-sync-error-diagnostics-smoke.js | **9/9 PASS**, w tym aktualne dokładne wersje i odrzucenie czterech mutacji; fatal/anonimowość/niezmienność i wszystkie stare scenariusze zachowane | Preflight shard **7/7**, dokładnie raz |
+| node tools/local-first-rescue-browser-smoke.js | **2 grupy PASS**, import grafu w natywnym Chromium, faktyczny download na dysk, natywny FileList/odczyt/GCM/SHA, złe hasło/ucięcie, readonly, druga karta, utrata Auth, SIGKILL/restart i jawny brak RAM; identyczne RAW/cztery store/niepewny ACK | Preflight shard **7/7**, dokładnie raz |
+| Plan podziału / składnia obu plików / git diff --check | **PASS**, inventory nadal **197**, bez zmiany workflow/trasowania | Siedem istniejących obowiązkowych grup |
+
+Nie uruchamiano innych zaliczonych zestawów, pełnego Preflightu, emulatorów ani GitHub Actions. Wykazano poprawki dwóch przyczyn testowych; nie ogłaszamy CI_PASS dla nowego SHA. Syntetyczny plik nie jest BACKUP_PASS właściciela; Android i rzeczywista naprawa bez zmian.
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED / BACKUP_PENDING / REPAIR_BLOCKED.** Kolejna próba wydania wymaga osobnej zgody właściciela na dokładny nowy HEAD i aktualny BASE. Istniejący PR nie został zmieniony operacją API; push aktualizuje jego gałąź bez retry Actions. Bez nowego PR, ręcznego merge, Pages i Firebase LIVE.
