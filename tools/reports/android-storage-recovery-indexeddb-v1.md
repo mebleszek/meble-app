@@ -4,6 +4,8 @@
 
 Gałąź `fix/android-reset-unknown-idb-20261104`, BASE/main **`b033f76facc409fce7ef03bf15f70a74f34b3321`**, zweryfikowany przez git/remote. Jeden commit/push zawierający ten wpis; wynikowy HEAD w przekazaniu. **CODE_READY / CI_PENDING / PHONE_PENDING / SYNC_BLOCKED**. Ten rozdział aktualizuje wcześniejsze stwierdzenie, że nieznana baza blokuje także świadomy reset; kontrakt pełnych kopii pozostaje bez zmian.
 
+**Uzupełnienie dokumentacyjne na polecenie właściciela:** po commicie implementacji `b9e2285bec7e1c8b3825b38e61b0c5343efc668b` zapisano stały protokół w `AGENTS.md` §20 i dzienniku. Kod, testy i manifest bez zmian; wcześniejsze wyniki poniżej dotyczą tego SHA implementacji, bez ponawiania testów. Osobny commit dokumentacyjny zmienia HEAD przekazania i wymaga osobnej zgody wydaniowej na aktualne HEAD/BASE. Codex przekazuje pakiet; ChatGPT obsługuje kontrolę i zatwierdzoną próbę wydania. Kontrola diffu i zgodności szablonu; bez operacji wydaniowych lub LIVE.
+
 ### Przyczyna i minimalna zmiana
 
 Pixel potwierdził `STOP / RESCUE_UNKNOWN_DATABASE` po świadomym potwierdzeniu resetu, przed usunięciem danych. Na dokładnym BASE odtworzono odmowę `readRescueSnapshot()` przy dodatkowej bazie v7; nie wykonano nawet `indexedDB.open()`. Reset korzystał z zamkniętej inwentaryzacji przeznaczonej dla pełnej kopii, choć nie obejmuje wszystkich baz originu.

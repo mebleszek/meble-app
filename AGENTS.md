@@ -340,6 +340,48 @@ Wykryta luka nie oznacza automatycznej konieczności natychmiastowej naprawy. Ro
 Priorytetem jest działająca aplikacja, synchronizacja telefon–komputer oraz rozwój **WYCENY i RYSUNKÓW**. Nie mnożyć pakietów, modułów i zabezpieczeń bez wykazanej potrzeby oraz zgody właściciela. Obowiązek dostosowania istniejących testów i zakaz osłabiania asercji/scenariuszy lub maskowania błędów dla PASS obowiązują przy każdej modyfikacji aplikacji (§3).
 
 
+## 20. Stały protokół przekazania do wydania — decyzja właściciela 03.11.2026
+
+Po zakończeniu każdego zatwierdzonego zadania Codex:
+
+1. Kończy implementację, wykonuje wymagane testy celowane i aktualizuje `CURRENT_STATE.md` oraz właściwy istniejący raport. Nie dubluje pełnego CI (§3).
+2. Wykonuje commit i push na gałąź roboczą oraz potwierdza czyste drzewo.
+3. Bezpośrednio przed przekazaniem sprawdza aktualny GitHub: dokładny HEAD gałęzi roboczej oraz BASE docelowego `main`. Podaje pełne SHA 40 znaków potwierdzone zdalnie; nie używa nieaktualnych SHA z pamięci lub dokumentacji.
+4. Przekazuje krótki raport gotowy do skopiowania do ChatGPT, według wzoru poniżej. Wyniki dotyczą faktycznie wykonanych kontroli; wcześniejszy PASS oznacza wraz z jego SHA i nie przypisuje go automatycznie do nowego HEAD (§10). Dla zmian wyłącznie dokumentacyjnych wystarcza właściwa kontrola diffu; nie ponawia testów aplikacji bez nowej przyczyny.
+5. Nie tworzy PR, nie uruchamia GitHub Actions, nie scala ani nie publikuje samodzielnie i nie wykonuje Firebase LIVE. Wydanie obsługuje ChatGPT: niezależnie kontroluje pakiet, po osobnej zgodzie właściciela na dokładny HEAD/BASE tworzy jeden PR Ready i odczytowo obserwuje CI, auto-merge oraz GitHub Pages (§12). Awaryjne zastępstwo wykonawcy wymaga osobnego uzgodnienia; nie jest domyślną częścią implementacji.
+
+Jeżeli zadanie jest niedokończone albo wymagane testy nie przeszły, raportuj **BLOCKED**, wskaż konkretną przyczynę i nie przedstawiaj pakietu jako gotowego do wydania. `CODE_READY / CI_PENDING / RELEASE_BLOCKED` oznacza gotowość do kontroli pakietu; nie jest zgodą ani dowodem wydania. Każda późniejsza zmiana HEAD/BASE wymaga nowego przekazania i osobnej zgody wydaniowej.
+
+Obowiązkowy format przekazania (pola w nawiasach zastąpić faktami):
+
+```text
+MEBLE-APP — PAKIET DO WYDANIA
+
+Repo: mebleszek/meble-app
+Gałąź: [nazwa]
+HEAD: [pełny SHA 40 znaków]
+BASE/main: [pełny SHA 40 znaków]
+
+Status: CODE_READY / CI_PENDING / RELEASE_BLOCKED
+
+Zmiany:
+[2–4 zdania, co faktycznie zrobiono]
+
+Testy:
+[nazwy i rzeczywiste wyniki PASS/FAIL; BLOCKED, jeśli wymaganej kontroli celowanej nie wykonano]
+
+Ograniczenia:
+[co nadal nie działa, co jest zablokowane]
+
+Drzewo robocze: CLEAN
+Commit i push: POTWIERDZONE
+
+Przekazanie: Pakiet gotowy do kontroli wydania przez ChatGPT. Wymagana osobna zgoda właściciela na dokładny HEAD/BASE.
+```
+
+Dla pakietu zablokowanego zastąp status i zdanie „Przekazanie” jednoznacznym **BLOCKED** z przyczyną; nie deklaruj CLEAN/push, jeżeli nie zostały faktycznie potwierdzone.
+
+
 
 ---
 
