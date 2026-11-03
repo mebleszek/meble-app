@@ -1,0 +1,114 @@
+'use strict';
+// Genuine business manifest, boot, runtime, authority, forms and native IndexedDB.
+// Synthetic owner enrollment only; no Firebase SDK/backend or production data.
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
+const {androidGlobalsFixture}=require('./helpers/android-globals-browser-fixture');
+const crypto=require('node:crypto').webcrypto;
+const {documentNavigation,waitForGesturePoint}=require('./helpers/browser-test-readiness');
+const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms)),root=path.resolve(__dirname,'..');
+async function main(){
+ const {openBrowserDevice}=await import('./helpers/local-first-browser.mjs');
+ let networkAvailable=true;const server=await androidGlobalsFixture({deployment:()=>root,unavailable:()=>!networkAvailable}),dir=fs.mkdtempSync(path.join(os.tmpdir(),'meble-local-start-'));let browser,phase='setup';const external=[];
+ try{
+  browser=await openBrowserDevice({base:server.base+'/fixture-host.html'},path.join(dir,'profile'));
+  let navigation=documentNavigation(browser.send);let dialog,offline=false,offlineError=null;
+  const onEvent=event=>{navigation.event(event);if(event.method==='Debugger.paused')void(async()=>{try{if(offline)await browser.send('Network.overrideNetworkState',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});}catch(error){offlineError=error;}finally{await browser.send('Debugger.resume');}})();if(event.method==='Page.javascriptDialogOpening')dialog=event.params;
+   if(event.method==='Network.requestWillBeSent'&&!event.params.request.url.startsWith(server.base)&&!event.params.request.url.startsWith('data:'))external.push('EXTERNAL_REQUEST');};browser.onEvent(onEvent);
+  await browser.send('Network.enable');await browser.send('Emulation.setDeviceMetricsOverride',{width:393,height:852,deviceScaleFactor:1,mobile:true});
+  async function until(expression,ms=25000){const end=Date.now()+ms;while(Date.now()<end){if(await browser.evaluate(expression))return;if(expression.includes('RESET_COMPLETE')&&await browser.evaluate('document.querySelector("[data-rescue-status]")?.dataset.rescueStatus==="BLOCKED"'))break;await pause(40);}throw Error('LOCAL_START_TIMEOUT '+expression+' '+JSON.stringify(await browser.evaluate('({auth:document.body?.dataset.authState,business:document.body?.dataset.businessState,error:document.getElementById("auth-error")?.textContent?.slice(0,220),info:document.querySelector(".info-box")?.textContent,confirm:document.querySelector(".confirm-box")?.textContent,writeCode:window.FC.applicationStartup?.inspect().writeCode,rescue:document.querySelector("[data-rescue-status]")?.textContent,diag:window.FC.applicationStartup?.diagnostics()?.firstError})')));}
+  async function tap(selector){let p;try{p=await waitForGesturePoint(browser.evaluate,selector,{stable:true});}catch(error){throw Error(error.message+' '+JSON.stringify(await browser.evaluate('({auth:document.body?.dataset.authState,info:document.querySelector(".info-box")?.textContent,confirm:document.querySelector(".confirm-box")?.textContent,writeCode:window.FC.applicationStartup?.inspect().writeCode})')));}await browser.send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...p});await browser.send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...p});}
+  async function confirmReset(accept){const clicking=tap('[data-local-first-rescue] button:last-child');const end=Date.now()+5000;while(!dialog&&Date.now()<end)await pause(20);assert.ok(dialog,'Conscious native confirmation required');await browser.send('Page.handleJavaScriptDialog',{accept});dialog=null;await clicking;}
+  async function fill(selector,value){await browser.evaluate(`(()=>{const el=document.querySelector(${JSON.stringify(selector)});el.value=${JSON.stringify(value)};el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));})()`);}
+  async function script(file){await browser.evaluate(`new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=${JSON.stringify('/'+file)};s.onload=()=>resolve(true);s.onerror=reject;document.head.append(s);})`);}
+  await browser.evaluate('navigator.serviceWorker.register("/offline-worker.js").then(()=>navigator.serviceWorker.ready).then(()=>true)');
+  const data=server.data,{digest,json,canonical}=await import('../sync/local-first-values.mjs');
+  const keys=await crypto.subtle.generateKey('Ed25519',true,['sign','verify']),publicKeySpki=new Uint8Array(await crypto.subtle.exportKey('spki',keys.publicKey));
+  const decision={activationId:'synthetic-activation',database:'(default)',domain:'MEBLE_APPLICATION_DEPLOYMENT_V1',globalDomains:14,migrationApproved:true,origin:server.base+'/',ownerUid:server.uid,profile:'business-project-v1',projectId:'demo-meble-app',protocol:2,rulesApproved:true,rulesSha256:'a'.repeat(64),sourcePreserved:true};
+  const signature=new Uint8Array(await crypto.subtle.sign('Ed25519',keys.privateKey,new TextEncoder().encode(canonical(decision))));
+  const release={name:server.name,localOnly:true,trustedKeySha256:Buffer.from(await crypto.subtle.digest('SHA-256',publicKeySpki)).toString('hex'),envelope:{decision,publicKeySpki:[...publicKeySpki],signature:[...signature]}};
+  data.identity.receipt.activationId=decision.activationId;
+  // The rescue fixture deliberately carries opaque non-project records; use
+  // valid empty project stores so this test isolates the reported globals fault.
+  const source=data.databases.authority.control.find(r=>r.key==='source'),image=data.databases.authority.control.find(r=>r.key==='application');
+  for(const key of ['fc_projects_v1','fc_investors_v1','fc_quote_offer_drafts_v1']){source.rows[key]='[]';const row=data.local.rows.find(r=>r.key===key);if(row)row.raw='[]';else data.local.rows.push({key,raw:'[]'});}
+  image.rows=structuredClone(source.rows);source.hash=await digest(source.rows);image.hash=await digest(json(image.rows));data.identity.receipt.sourceHash=source.hash;data.local.rows.find(r=>r.key==='meble_application_authority_v1').raw=JSON.stringify(data.identity.receipt);
+  await browser.evaluate(`(async()=>{
+   const data=${JSON.stringify(data)};for(const r of data.local.rows)localStorage.setItem(r.key,r.raw);
+   localStorage.setItem('meble_access_profile_v1',JSON.stringify({version:3,uid:${JSON.stringify(server.uid)},attemptId:'12345678-1234-4123-8123-123456789abc'}));
+   const create=(name,stores,write)=>new Promise((resolve,reject)=>{const q=indexedDB.open(name,1);q.onupgradeneeded=()=>{for(const [n,k]of stores)q.result.createObjectStore(n,k?{keyPath:k}:undefined);};q.onerror=reject;q.onsuccess=()=>{const db=q.result,tx=db.transaction(stores.map(s=>s[0]),'readwrite');write(tx);tx.oncomplete=()=>{db.close();resolve();};tx.onabort=reject;};});
+   await create(${JSON.stringify(server.name)},['control','replicas','protected','outbox'].map(n=>[n,'key']),tx=>{for(const [name,rows]of Object.entries(data.databases.authority))for(const r of rows)tx.objectStore(name).put(r);});
+   await create('meble-access-profile-v1',[['ownership',null]],tx=>tx.objectStore('ownership').put({version:1,state:'active',uid:${JSON.stringify(server.uid)},attemptId:'12345678-1234-4123-8123-123456789abc'},'owner'));
+   sessionStorage.setItem('fc_reload_restore_v1','SYNTHETIC_OLD_SESSION');return true;
+  })()`);
+  await script('js/app/cloud/local-device-access.js');await browser.evaluate(`FC.localDeviceAccess.createTrust().enroll({uid:${JSON.stringify(server.uid)},profileAttemptId:'12345678-1234-4123-8123-123456789abc',consent:true,check(){}}).then(()=>true)`);
+  await browser.send('Debugger.enable');
+  const preload=`debugger;window.__LOCAL_BOOT_ONLINE__=navigator.onLine;(()=>{
+   const fc=window.FC=window.FC||{};let startup;Object.defineProperty(fc,'applicationStartup',{configurable:true,get:()=>startup,set:value=>{startup=value;const release=${JSON.stringify(release)};release.envelope.publicKeySpki=new Uint8Array(release.envelope.publicKeySpki);release.envelope.signature=new Uint8Array(release.envelope.signature);void value.configureReleaseEmulator(release);}});
+   const get=Storage.prototype.getItem;window.localProof=async()=>{const raw=Object.keys(localStorage).sort().map(k=>[k,get.call(localStorage,k)]);const db=await new Promise((resolve,reject)=>{const q=indexedDB.open(${JSON.stringify(server.name)},1);q.onupgradeneeded=()=>q.transaction.abort();q.onerror=reject;q.onsuccess=()=>resolve(q.result);});try{return await new Promise(resolve=>{const tables={},tx=db.transaction(['control','replicas','protected','outbox'],'readonly');for(const n of ['control','replicas','protected','outbox']){const q=tx.objectStore(n).getAll();q.onsuccess=()=>tables[n]=q.result;}tx.oncomplete=()=>resolve({raw,tables});});}finally{db.close();}};
+  })();`;await browser.send('Page.addScriptToEvaluateOnNewDocument',{source:preload});
+  await navigation.navigate(server.base+'/index.html');
+  await until('document.body?.dataset.authState==="error"&&!document.getElementById("auth-recovery").hidden');
+  phase='fatal/recovery';const before=await browser.evaluate('localProof()');await tap('#auth-recovery');
+  await until('!!document.querySelector("[data-local-first-rescue]")');
+  phase='refuse reset';await confirmReset(false);
+  await until('document.querySelector("[data-rescue-status]").dataset.rescueStatus==="RESET_CANCELLED"');assert.deepEqual(await browser.evaluate('localProof()'),before);
+  console.log('PASS genuine Android globals failure → rescue; refused reset preserves every native RAW and all four stores');
+  phase='second client';const second=await browser.send('Target.createTarget',{url:server.base+'/fixture-host.html'});await pause(100);await browser.send('Page.bringToFront');await confirmReset(true);
+  await until('document.querySelector("[data-rescue-status]").dataset.rescueStatus==="BLOCKED"&&!document.querySelector("[data-local-first-rescue] button:last-child").disabled');assert.deepEqual(await browser.evaluate('localProof()'),before);assert.equal(await browser.evaluate('localStorage.getItem("meble_local_reset_v1")'),null);await browser.send('Target.closeTarget',{targetId:second.targetId});await pause(100);
+  console.log('PASS second application client refuses reset before a journal or data mutation');
+  phase='interrupt reset';await browser.evaluate(`(()=>{const original=IDBDatabase.prototype.transaction;IDBDatabase.prototype.transaction=function(stores,mode,...rest){const tx=original.call(this,stores,mode,...rest);if(mode==='readwrite'&&Array.from(stores).includes('outbox')){IDBDatabase.prototype.transaction=original;window.resetAbortObserved=true;queueMicrotask(()=>tx.abort());}return tx;};return true;})()`);await confirmReset(true);
+  await until('document.querySelector("[data-rescue-status]").dataset.rescueStatus==="BLOCKED"&&!document.querySelector("[data-local-first-rescue] button:last-child").disabled');
+  assert.equal(await browser.evaluate('window.resetAbortObserved===true'),true,await browser.evaluate('document.querySelector("[data-rescue-status]").textContent'));assert.equal(await browser.evaluate('JSON.parse(localStorage.getItem("meble_local_reset_v1")).state'),'pending');
+  const interrupted=await browser.evaluate('localProof()');assert.deepEqual(interrupted.tables,before.tables);assert.deepEqual(interrupted.raw.filter(([k])=>k!=='meble_local_reset_v1'),before.raw);
+  await navigation.navigate(server.base+'/index.html');await until('document.body?.dataset.authState==="error"&&!document.getElementById("auth-recovery").hidden');
+  assert.equal(await browser.evaluate('window.FC.applicationStartup.diagnostics().firstError.code'),'LF_LOCAL_RESET_INTERRUPTED');assert.deepEqual((await browser.evaluate('localProof()')).tables,before.tables);
+  await tap('#auth-recovery');await until('!!document.querySelector("[data-local-first-rescue]")');
+  console.log('PASS interrupted native transaction aborts; restart refuses normal startup and preserves original uncertain queue until another conscious confirmation');
+  phase='accept reset';await confirmReset(true);
+  await until('document.querySelector("[data-rescue-status]").dataset.rescueStatus==="RESET_COMPLETE"');
+  const cleared=await browser.evaluate('localProof()');for(const n of ['replicas','protected','outbox'])assert.deepEqual(cleared.tables[n],[]);assert.equal(cleared.tables.control.length,1);
+  assert.equal(cleared.raw.some(([k])=>k.startsWith('fc_')||k.startsWith('hardware')),false);
+  phase='restart after reset';await tap('[data-local-first-rescue] button:nth-of-type(2)');
+  await until('document.body?.dataset.businessState==="ready"');assert.equal(await browser.evaluate('window.FC.applicationStartup.inspect().state'),'local-only');
+  const model=await browser.evaluate('window.FC.globalDataContract.capture(localStorage,Object.keys(window.FC.globalDataContract.schemas)).model');
+  const factory=server.candidate;assert.deepEqual(model,factory.model);
+  phase='offline reload';networkAvailable=false;offline=true;await browser.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
+  await browser.send('Network.overrideNetworkState',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await navigation.navigate(server.base+'/index.html');await until('document.body?.dataset.businessState==="ready"');if(offlineError)throw offlineError;assert.equal(await browser.evaluate('__LOCAL_BOOT_ONLINE__'),false);await browser.send('Network.overrideNetworkState',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});assert.equal(await browser.evaluate('navigator.onLine'),false);
+  phase='offline investor/project';await tap('#openFurnitureProjectsBtn');await until('uiState.entry==="modeHub"');await tap('#modeHubRoot [data-action="new-investor"]');await until('!!document.getElementById("invName")');
+  for(const [id,value]of Object.entries({invName:'Synthetic Local Owner',invPhone:'123456789',invCity:'Test City',invEmail:'local@example.invalid',invAddress:'Synthetic address',invNotes:'Synthetic offline'}))await fill('#'+id,value);
+  await browser.evaluate(`(()=>{const el=document.getElementById('invSource');el.value=[...el.options].find(o=>o.value)?.value;el.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+  await tap('#investorActionBar [data-investor-action="save"]');await until('!!document.querySelector(".confirm-box")');await tap('.confirm-box .is-success');
+  await until('window.FC.investors.readAll().length===1&&window.FC.projectStore.readAll().length===1');
+  await tap('[data-investor-action="add-room"]');await until('!!document.querySelector(".panel-box input[placeholder]")');await fill('.panel-box input[placeholder]','Synthetic Kitchen');await tap('.panel-box .btn-success');
+  await until('window.FC.investors.readAll()[0].rooms.length===1');await tap('[data-action="open-room"][data-room^="room_"]');await until('window.FC.session.active&&window.FC.session.durable');
+  await browser.evaluate('document.getElementById("roomParametersAccordion").open=true');await fill('#roomSettingInline_roomHeight','275');await tap('#roomSettingsSummary .wywiad-room-inline-form__save');await until('projectData[uiState.roomType].settings.roomHeight===275');await until('!window.FC.applicationStartup.inspect().transactionPending');assert.equal(await browser.evaluate('window.FC.projectStore.getCurrentRecord().projectData[uiState.roomType].settings.roomHeight'),275);assert.equal(await browser.evaluate('!!document.querySelector(".confirm-box")'),false);
+  phase='synthetic cabinet in real unsaved RAM';if(await browser.evaluate('!!document.querySelector(".info-box button")'))await tap('.info-box button');
+  await browser.evaluate(`projectData[uiState.roomType].cabinets.push({id:'synthetic-local-cabinet',type:'stojąca',subType:'standardowa',width:60,height:82,depth:50,frontCount:2,backMaterial:'HDF',details:{shelves:2}});window.unsavedLocalRam=JSON.stringify(projectData);window.unsavedLocalDocument=crypto.randomUUID();window.FC.views.refreshSessionButtons();true`);
+  const documentToken=await browser.evaluate('unsavedLocalDocument');
+  await browser.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});await browser.send('Network.overrideNetworkState',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});await pause(100);
+  await browser.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await browser.send('Network.overrideNetworkState',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
+  assert.equal(await browser.evaluate('unsavedLocalDocument'),documentToken);assert.equal(await browser.evaluate('JSON.stringify(projectData)===unsavedLocalRam&&window.FC.session.active'),true);
+  phase='local save';await pause(220);await until('!window.FC.applicationStartup.inspect().transactionPending');await browser.evaluate('projectData[uiState.roomType].cabinets[0].width=61;window.FC.views.refreshSessionButtons();true');await tap('#sessionSave');await until('!window.FC.session.active');assert.equal(await browser.evaluate('window.FC.projectStore.getCurrentRecord().projectData[uiState.roomType].settings.roomHeight'),275);
+  phase='basic WYCENA';const quote=await browser.evaluate(`(async()=>{const room=window.FC.investors.readAll()[0].rooms[0].id;const labor=window.FC.wycenaCore.collectCabinetLabor([room]);const quote=await window.FC.wycenaCore.collectQuoteData({selection:{selectedRooms:[room]}});return {labor:!!labor[0]?.details?.some(r=>r.total>0),totals:quote.totals};})()`);assert.equal(quote.labor,true);assert.ok(Object.values(quote.totals).some(n=>typeof n==='number'&&Number.isFinite(n)&&n>0));
+  const saved=await browser.evaluate('localProof()');assert.deepEqual(saved.tables.outbox,[]);assert.deepEqual(saved.tables.replicas,[]);assert.equal(await browser.evaluate('window.FC.applicationStartup.inspect().cloudConfirmed'),false);
+  async function reopenOffline(expectedWidth=61,staleJournal=false){assert.equal(await browser.evaluate('JSON.parse(localStorage.getItem("meble_local_reset_v1")).state'),'used','Ready runtime must consume the reset before closing');await browser.gracefulClose();browser=null;networkAvailable=true;
+  browser=await openBrowserDevice({base:server.base+'/fixture-host.html'},path.join(dir,'profile'));const targets=await browser.send('Target.getTargets');for(const t of targets.targetInfos)if(t.type==='page'&&t.targetId!==browser.targetId){assert.ok(t.url==='about:blank'||t.url.startsWith(server.base));await browser.send('Target.closeTarget',{targetId:t.targetId});}assert.equal(await browser.evaluate('JSON.parse(localStorage.getItem("meble_local_reset_v1")).state'),'used','A new renderer must see the completed journal before app startup');navigation=documentNavigation(browser.send);browser.onEvent(onEvent);await browser.send('Network.enable');await browser.send('Debugger.enable');await browser.send('Page.addScriptToEvaluateOnNewDocument',{source:preload});
+  if(staleJournal)await browser.evaluate('(()=>{const key="meble_local_reset_v1",value=JSON.parse(localStorage.getItem(key));localStorage.setItem(key,JSON.stringify({...value,state:"pending"}));})()');networkAvailable=false;await browser.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await browser.send('Network.overrideNetworkState',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
+  await navigation.navigate(server.base+'/index.html');await until('document.body?.dataset.businessState==="ready"');assert.equal(await browser.evaluate('__LOCAL_BOOT_ONLINE__'),false);
+  assert.equal(await browser.evaluate('window.FC.projectStore.readAll()[0].projectData[window.FC.investors.readAll()[0].rooms[0].id].cabinets[0].width'),expectedWidth);
+  }
+  phase='close and offline reopen';await reopenOffline(61,true);assert.equal(await browser.evaluate('JSON.parse(localStorage.getItem("meble_local_reset_v1")).state'),'used');console.log('PASS stale pending journal reconciles only verified receipt/binding/source/image; existing saved local data are preserved');
+  assert.equal(await browser.evaluate('window.FC.investors.readAll().length'),1);assert.equal(await browser.evaluate('window.FC.projectStore.readAll().length'),1);
+  phase='durable local draft';await tap('[data-action="open-room"][data-room^="room_"]');await until('window.FC.session.active&&window.FC.session.durable');
+  await browser.evaluate('projectData[uiState.roomType].cabinets[0].width=62;window.FC.projectAutosave.scheduleProjectAutosave();true');
+  await until(`(async()=>{const p=await localProof(),a=p.tables.control.find(r=>r.key==='application');return JSON.parse(a.rows.fc_projects_v1)[0].projectData[window.FC.investors.readAll()[0].rooms[0].id].cabinets[0].width===62&&!window.FC.applicationStartup.inspect().transactionPending;})()`);
+  assert.equal(await browser.evaluate('window.FC.session.active'),true);await reopenOffline(62);
+  assert.equal(await browser.evaluate('window.FC.session.active&&window.FC.session.durable'),true);assert.equal(await browser.evaluate('projectData[window.FC.investors.readAll()[0].rooms[0].id].cabinets[0].width'),62);
+  phase='local rollback';await tap('#sessionCancel');await until('!!document.querySelector(".confirm-box")');await tap('.confirm-box .is-danger');await until('projectData[window.FC.investors.readAll()[0].rooms[0].id].cabinets[0].width===61');
+  const finalProof=await browser.evaluate('localProof()');assert.deepEqual(finalProof.tables.outbox,[]);const finalRows=finalProof.tables.control.find(r=>r.key==='application').rows;for(const keys of Object.values(factory.context.FC.globalDataContract.sources))for(const alias of keys.slice(1))assert.equal(finalRows[alias]??null,null,'Historical alias must not be initialized by Cancel');
+  console.log('PASS unsaved local edit is journaled by existing autosave/IDB, survives a second offline Chromium restart, and Cancel restores the saved baseline without cloud ACK');
+  assert.deepEqual(external,[]);console.log('PASS confirmed reset → code catalogs / 14 domains → full offline startup → first investor/project/room → durable save → offline reopen; zero cloud requests and no fabricated ACK');
+ }catch(error){console.error('FAIL local browser '+phase+': '+error.message);throw Error(phase+': '+error.message);}finally{try{await browser?.close();}finally{networkAvailable=true;await server.close();fs.rmSync(dir,{recursive:true,force:true});}}
+}
+if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});
+module.exports={main};

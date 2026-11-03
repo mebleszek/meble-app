@@ -30,5 +30,13 @@ async function main(){
  registration.scope=root+'foreign/';await assert.rejects(win.FC.offlineShell.prepare(),/UNCONFIRMED/);registration.scope=root;
  worker.postMessage=(_message,ports)=>{ports[0].postMessage({complete:false});ports[0].close();};await assert.rejects(win.FC.offlineShell.prepare(),/INCOMPLETE/);
  console.log('PASS offline enrollment: exact worker/script/scope identity and explicit complete-version acknowledgement required');
+ navigator.onLine=false;let registrations=0;navigator.serviceWorker.register=async()=>{registrations++;throw Error('No offline registration request');};navigator.serviceWorker.getRegistration=async()=>registration;
+ worker.postMessage=(_message,ports)=>{ports[0].postMessage({complete:true,version:'b'.repeat(64)});ports[0].close();};
+ assert.equal((await win.FC.offlineShell.prepare()).complete,true);assert.equal(registrations,0);
+ worker.scriptURL=root+'foreign-worker.js';await assert.rejects(win.FC.offlineShell.prepare(),/UNCONFIRMED/);worker.scriptURL=root+'offline-worker.js';
+ registration.scope=root+'foreign/';await assert.rejects(win.FC.offlineShell.prepare(),/UNCONFIRMED/);registration.scope=root;
+ navigator.serviceWorker.getRegistration=async()=>undefined;await assert.rejects(win.FC.offlineShell.prepare(),/UNCONFIRMED/);navigator.serviceWorker.getRegistration=async()=>registration;
+ worker.postMessage=(_message,ports)=>{ports[0].postMessage({complete:false});ports[0].close();};await assert.rejects(win.FC.offlineShell.prepare(),/INCOMPLETE/);assert.equal(registrations,0);
+ console.log('PASS cold offline shell: existing registration without network, exact script/scope, absent registration and incomplete ACK still refuse');
 }
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});module.exports={main};

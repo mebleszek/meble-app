@@ -12,6 +12,11 @@
         // view) must not change the canonical revision during an async plan.
         // Never commit/cancel or replace a possibly unfinished RAM draft here.
         if(typeof uiState !== 'undefined' && uiState && ['rozrys','wycena'].includes(uiState.activeTab)) return;
+        const live=window.FC;
+        if(live?.applicationWrite?.localOnly){
+          if(live.applicationStartup?.inspect().transactionPending||!live.session?.active||!live.investorProjectRuntime.hasProjectDivergence(projectData))return;
+          void live.applicationWrite.handler(()=>{const result=live.project.saveConfirmed(projectData);if(result?.ok!==true)return false;projectData=result.project;return true;},'auto')();return;
+        }
         if(window.FC && FC.project && typeof FC.project.save === 'function'){
           projectData = FC.project.save(projectData);
         }

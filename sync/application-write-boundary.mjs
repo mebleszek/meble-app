@@ -1,6 +1,6 @@
 // Integrates existing action callbacks; no synthetic clicks or implicit Save.
 import {fail} from './local-first-values.mjs';
-export function installApplicationWriteBoundary({window:w,authority,ensureEditor,onExit=async()=>{}}){
+export function installApplicationWriteBoundary({window:w,authority,ensureEditor,localOnly=false,onExit=async()=>{}}){
  const fc=w.FC,pass=new Set(['session-save','session-cancel']);
  // Navigation writes its technical state, room-open also creates a durable draft.
  const globalActions=new Set(['price-item-save','price-item-delete','save-material','save-service']);
@@ -35,6 +35,6 @@ export function installApplicationWriteBoundary({window:w,authority,ensureEditor
  fc.applicationLifecycle=lifecycle;
  // Explicit application API for existing nondelegated form handlers.
  const handler=(fn,kind='globals')=>function(...args){return run(()=>fn.apply(this,args),kind).catch(()=>{fc.infoBox?.open({title:'Zapis niepotwierdzony',message:'Zachowano poprzednie dane i formularz. Nie potwierdzono trwałego zapisu.',okOnly:true});return false;});};
- fc.applicationWrite={handler,afterCommit:fn=>{if(running)completions.push(fn);else fn();},projectHandler:fn=>handler(fn,'project'),globals:fn=>run(fn,'globals'),project:fn=>run(fn,'project'),auto:fn=>run(fn,'auto'),checkpoint:fn=>run(fn,'checkpoint')};
+ fc.applicationWrite={localOnly,handler,afterCommit:fn=>{if(running)completions.push(fn);else fn();},projectHandler:fn=>handler(fn,'project'),globals:fn=>run(fn,'globals'),project:fn=>run(fn,'project'),auto:fn=>run(fn,'auto'),checkpoint:fn=>run(fn,'checkpoint')};
  return {run,busy:()=>running,close(){if(fc.applicationLifecycle===lifecycle)delete fc.applicationLifecycle;delete fc.applicationWrite;}};
 }

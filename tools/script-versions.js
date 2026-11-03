@@ -3,6 +3,9 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
+  "js/app/ui/wywiad-room-settings.js":"20261103_local_first_start_v1",
+  "js/app/investor/project-autosave.js":"20261103_local_first_start_v1",
+  "js/app/investor/investor-room-actions.js":"20261103_local_first_start_v1",
   "js/app/catalog/catalog-store.js":"20261101_production_sync_v1",
   "js/app/material/price-modal-hardware-dictionaries.js":"20261101_one_app_v1",
   "js/app/material/price-modal-hardware-manufacturers.js":"20261101_one_app_v1",
@@ -66,9 +69,10 @@ const versions = Object.freeze({
   "js/app/wycena/wycena-tab-shell.js":"20261101_one_app_v1"
 });
 const authVersions=Object.freeze({
+  "js/app/cloud/offline-shell.js": "20261103_local_first_start_v1",
   "js/app/cloud/local-access-profile.js": "20261103_android_globals_recovery_v1",
-  "js/app/cloud/application-bootstrap.js": "20261103_startup_auth_renew_v1",
-  "js/main-login.js": "20261103_startup_auth_renew_v1"
+  "js/app/cloud/application-bootstrap.js": "20261103_local_first_start_v1",
+  "js/main-login.js": "20261103_local_first_start_v1"
 });
 function assertHtmlVersions(index, dev){
   const sources=Array.from(index.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi),m=>m[1]);

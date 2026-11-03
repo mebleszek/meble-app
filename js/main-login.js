@@ -10,7 +10,7 @@
   let auth=null,access=null,gate=null,lease=null,blocked=true,started=false,starting=false,fatal=false,loader=null;
   let displayed={status:'checking'},initializing=false,admission=null;
   let interaction=null,startupStage='login-startup',startupCloudReady=false;
-  const nativeGet=Storage.prototype.getItem;
+  const nativeGet=Storage.prototype.getItem,nativeSet=Storage.prototype.setItem,nativeRemove=Storage.prototype.removeItem;
   let recoveryBinding=null,recoveryGate=null,recoveryGrant=null,recoverySurface=null;
   function closeRecovery(){recoveryGate?.close();recoveryGate=null;recoveryGrant=null;recoveryBinding=null;recoverySurface?.dispatchEvent(new Event('meble-rescue-revoke'));recoverySurface?.remove();recoverySurface=null;}
   const trust=FC.localDeviceAccess.createTrust();
@@ -50,7 +50,7 @@
   const recoveryAccess=Object.freeze({scope:'LOCAL_FIRST_RESCUE_READ_ONLY_V1',assert:recoveryAssert,
     isValid(){try{recoveryAssert();return true;}catch(_){return false;}},
     async verify(){recoveryAssert();const b=recoveryBinding;await profile.verifyExistingReadOnly(b.uid,b.attemptId);recoveryAssert();},
-    readNative(key){recoveryAssert();if(!profile.businessKey(key)&&!['meble_application_authority_v1','meble_backup_archive_backend_v1'].includes(key))throw Error('RESCUE_READ_SCOPE');return nativeGet.call(localStorage,key);},
+    readNative(key){recoveryAssert();if(!profile.businessKey(key)&&!['meble_application_authority_v1','meble_backup_archive_backend_v1','meble_local_reset_v1'].includes(key))throw Error('RESCUE_READ_SCOPE');return nativeGet.call(localStorage,key);},
     readSession(key){recoveryAssert();if(!profile.businessKey(key))throw Error('RESCUE_READ_SCOPE');return nativeGet.call(sessionStorage,key);}
   });
   Object.defineProperty(window,'__FC_RECOVERY_ACCESS__',{value:recoveryAccess,writable:false,configurable:false});
@@ -69,7 +69,7 @@
       });
     }
     await recoveryAccess.verify();
-    recoverySurface=await FC.applicationStartup.openLocalFirstRecovery({parent:shell,onClose(){recoverySurface=null;}});
+    recoverySurface=await FC.applicationStartup.openLocalFirstRecovery({parent:shell,resetStorage:{read:(storage,key)=>nativeGet.call(storage,key),get:key=>nativeGet.call(localStorage,key),set:(key,value)=>nativeSet.call(localStorage,key,value),remove:(storage,key)=>nativeRemove.call(storage,key)},onClose(){recoverySurface=null;}});
   }
   // Covers actual application storage calls, including direct stores and the
   // existing session prototype tracker. Auth's own persistence is independent.
@@ -183,7 +183,7 @@
     if(!started){starting=true;startupCloudReady=false;}
     try{
       startupStage='preparing-source';
-      await FC.applicationStartup?.beforeBusiness({ownerUid:localSession.identity().uid});
+      await FC.applicationStartup?.beforeBusiness(syncContext());
       if(started){await FC.applicationStartup?.start(syncContext());showBusiness(true);return;}
       const template=el('business-template'),fragment=template.content.cloneNode(true);
       const manifest=Array.from(fragment.querySelectorAll('script[src]'),node=>({src:node.getAttribute('src'),group:node.getAttribute('data-load-group')}));

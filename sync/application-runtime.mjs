@@ -10,10 +10,11 @@ import {applicationInstallation,verifyExclusiveClient} from './application-insta
 import {assertApplicationConnection} from './firebase-activation.mjs';
 import {copy,equal,assertEmulator,fail,safeError} from './local-first-values.mjs';
 export function startNormalEmulatorApplication(options){return startApplicationRuntime(options);}
-export async function startApplicationRuntime({window:w,writer,reader,name,ownerUid,boot,release:deployment,onStage=()=>{},onDiagnostic=()=>{},onFailureQuiescent=()=>{}}){
+export async function startApplicationRuntime({window:w,writer,reader,name,ownerUid,boot,release:deployment,localOnly=false,onStage=()=>{},onDiagnostic=()=>{},onFailureQuiescent=()=>{}}){
  const fc=w.FC;
+ if(localOnly&&(writer||reader||!boot?.localOnly))fail('LF_LOCAL_MODE_REQUIRED');
  if(writer){const a=assertApplicationConnection(writer),b=assertApplicationConnection(reader);if(a.uid!==ownerUid||b.uid!==ownerUid||writer.db.app===reader.db.app)fail('LF_INDEPENDENT_OWNER_REQUIRED');}
- else if(!boot?.restored)fail('LF_ONLINE_INSTALLATION_REQUIRED');
+ else if(!boot?.restored&&!(localOnly&&boot?.localOnly))fail('LF_ONLINE_INSTALLATION_REQUIRED');
  w.__FC_MAIN_ACCESS__.assert();
  const keys=applicationKeys(fc);
  onStage('checking-installation');const installation=await applicationInstallation({window:w,ownerUid,name,keys,sourceRead:boot?.readNative,heldRelease:boot?.release,release:deployment,migration:boot?.migration});
@@ -34,19 +35,22 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   sync=writer?createApplicationReplication({store,channels,globalContract:c,projectContract:p,eventTarget:w,
    online:()=>authorityReady&&!closed&&w.navigator.onLine!==false,onState:state,discovery,
    incoming:next=>authority.incoming(next),refresh:()=>authority.refresh(),assertIdle:idle}):null;
-  const local=createApplicationCommitter({store,globalContract:c,projectContract:p,channel:scope=>JSON.parse(rows.fc_projects_v1||'[]').some(p=>p.id===scope)?{kind:'project'}:null});
+  const local=createApplicationCommitter({store,globalContract:c,projectContract:p,localOnly,summarizeLocal:fc.projectModel?.summarizeProjectData,channel:scope=>JSON.parse(rows.fc_projects_v1||'[]').some(p=>p.id===scope)?{kind:'project'}:null});
   async function ensureEditor(scope=w.localStorage.getItem('fc_current_project_id_v1')){
    if(!scope)fail('LF_PROJECT_CHANNEL_REQUIRED');
+   if(localOnly){const localRows=authority?authority.rows():(await store.readApplication()).rows;if(!JSON.parse(localRows.fc_projects_v1||'[]').some(p=>p.id===scope))fail('LF_PROJECT_CHANNEL_REQUIRED');return;}
    const snap=await store.snapshot(scope);
    if(snap.replica?.editor?.active&&snap.replica.editor.deviceId===store.deviceId)return;
    if(!sync||w.navigator.onLine===false)fail('LF_OFFLINE_EDITOR_REQUIRED');
    await sync.acquireEditor(scope);
   }
-  onStage('installing-authority');authority=await (deployment?installAuthorizedApplicationAuthority:writer?installEmulatorApplicationAuthority:installOfflineEmulatorApplicationAuthority)({window:w,store,ownerUid,connection:writer,sourceRead:boot?.readNative,initialRows,release:deployment,
+  if(localOnly){onStage('initial-global-revision');const captured=c.capture({getItem:k=>k==='fc_edit_session_v1'?null:rows[k]??null},Object.keys(c.schemas));c.validateBundle(captured.model);}
+  onStage('installing-authority');authority=await (deployment?installAuthorizedApplicationAuthority:writer?installEmulatorApplicationAuthority:installOfflineEmulatorApplicationAuthority)({window:w,store,ownerUid,connection:writer,sourceRead:boot?.readNative,initialRows,release:deployment,localOnly,
    beforeTransaction:()=>{if(recoveryReading)fail('LF_APPLICATION_BUSY');return boot?.verifyFence?boot.verifyFence():verifyExclusiveClient(w);},onCommitted:()=>sync?.notify(),authorize:ensureEditor,
    checkpoint:(application,kind)=>(sync||local).checkpoint(application,kind),
    commit:async(kind,application)=>{
     let scope=application.rows.fc_current_project_id_v1;
+    if(localOnly)return local.commit(kind,application,scope);
     if(kind==='project'){
      const before=await store.readApplication(),old=JSON.parse(before.rows.fc_projects_v1||'[]'),next=JSON.parse(application.rows.fc_projects_v1||'[]');
      const changed=next.filter(row=>!equal(row,old.find(x=>x.id===row.id)));
@@ -67,6 +71,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     return (sync||local).commit(kind,application,scope);
    }});
   installation.confirm();onStage('initial-global-revision');
+  if(localOnly){const captured=c.capture({getItem:k=>k==='fc_edit_session_v1'?null:authority.rows()[k]??null},Object.keys(c.schemas));c.validateBundle(captured.model);}
   // A local image exists before any network operation; source remains unchanged.
   // Only seed a remote-empty global scope. A competing revision is a CAS refusal.
   if(writer){await store.exclusive(async()=>{
@@ -88,7 +93,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     }
    }
   });authorityReady=true;const result=await sync.flush();if(!result.ok)fail(result.code);}else authorityReady=true;
-  onStage('initial-project-revisions');
+  if(!localOnly)onStage('initial-project-revisions');
   // Existing owned source projects become real channels without synthetic flags.
   if(writer)for(const record of JSON.parse(authority.rows().fc_projects_v1||'[]')){
    await store.exclusive(async()=>{
@@ -126,17 +131,19 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   const wakeReceive=()=>queueMicrotask(()=>{if(!incomingBlocked||closed)return;try{authority.assertIdle();incomingBlocked=false;sync?.notify();}catch(_){}});
   w.addEventListener('click',wakeReceive,{capture:true,passive:true});
   const bind=()=>{
-   boundary=installApplicationWriteBoundary({window:w,authority,ensureEditor,onExit:handover});
+   boundary=installApplicationWriteBoundary({window:w,authority,ensureEditor,localOnly,onExit:handover});
    fc.applicationSyncActions.install(createApplicationActionBinding({window:w,authority,onExit:handover,onClose:()=>{closed=true;sync?.close();boundary.close();}}));
   };bind();
+  if(localOnly)boot?.confirmLocalReset?.();
   sync?.notify();
   return Object.freeze({store,authority,get sync(){return sync;},write:boundary.run,
    async withRescueRead(operation){
     if(closed||recoveryReading||authority.status().transactionPending||authority.status().incomingPending)fail('LF_APPLICATION_BUSY');
     recoveryReading=true;try{return await operation();}finally{recoveryReading=false;}
    },
-   status:()=>({state:closed?'locked':sync?'active':'offline',sourcePreserved:true,projectRecords:JSON.parse(authority.rows().fc_projects_v1||'[]').length,projectChannels:JSON.parse(authority.rows().fc_projects_v1||'[]').filter(p=>!!sync?.channel(p.id)).length,transactionPending:authority.status().transactionPending||boundary?.busy()===true,states:copy(states)}),
+   status:()=>({state:closed?'locked':localOnly?'local-only':sync?'active':'offline',...(localOnly?{cloudConfirmed:false,writeCode:authority.status().lastCode}:{}),sourcePreserved:true,projectRecords:JSON.parse(authority.rows().fc_projects_v1||'[]').length,projectChannels:JSON.parse(authority.rows().fc_projects_v1||'[]').filter(p=>!!sync?.channel(p.id)).length,transactionPending:authority.status().transactionPending||boundary?.busy()===true,states:copy(states)}),
    async resume(next){
+    if(localOnly){if(next?.localOwnerUid!==ownerUid||next.writer||next.reader)fail('LF_LOCAL_SYNC_NOT_AUTHORIZED');w.__FC_MAIN_ACCESS__.assert();const wasClosed=closed;authority.resume(ownerUid);closed=false;if(wasClosed)bind();return;}
     if(assertApplicationConnection(next.writer).uid!==ownerUid||assertApplicationConnection(next.reader).uid!==ownerUid)fail('LF_APPLICATION_OWNER_CHANGED');
     const wasClosed=closed;await sync?.close();writer=next.writer;reader=next.reader;authority.resume(ownerUid);closed=false;if(authority.status().incomingPending)await authority.refresh();
     globals=createGlobalChannel({writer,reader,ownerUid,contract:c,factory:fc.firebaseGlobalTransport});
