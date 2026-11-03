@@ -2,7 +2,7 @@
 import {applicationKeys} from './application-authority.mjs';
 import {INSTALL_KEY} from './application-installation.mjs';
 import {assertApplicationRelease} from './application-release.mjs';
-import {readRescueSnapshot} from './local-first-rescue-snapshot.mjs';
+import {readLocalResetSnapshot} from './local-first-rescue-snapshot.mjs';
 import {assertRescueReadAccess} from './local-first-rescue-access.mjs';
 import {readCurrentBusinessRam} from './local-first-rescue-ram.mjs';
 import {digest,equal,fail,id} from './local-first-values.mjs';
@@ -28,7 +28,7 @@ export async function resetLocalTestData(context,native,consent){
  if(!state){
   // Reuse the owner/receipt/binding/integrity/inventory proof. A backup is not
   // required: the owner explicitly accepted loss of all these local test data.
-  const snapshot=await readRescueSnapshot({...context,readRam:()=>readCurrentBusinessRam(w),allowMissingRam:true});guard();
+  const snapshot=await readLocalResetSnapshot({...context,readRam:()=>readCurrentBusinessRam(w),allowMissingRam:true});guard();
   const previous=snapshot.databases.authority.control.find(r=>r.key==='binding');
   state={version:1,ownerUid,name,state:'pending',previous,next:{key:'binding',version:1,ownerUid,deviceId:w.crypto.randomUUID(),instanceId:w.crypto.randomUUID()},archive:!!snapshot.databases.archive};
   write(state); // Durable veto precedes the first destructive transaction.

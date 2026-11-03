@@ -1,5 +1,36 @@
 # ANDROID STORAGE RECOVERY + IndexedDB v1 — 25.10.2026
 
+## Reset Androida — RESCUE_UNKNOWN_DATABASE — 03.11.2026
+
+Gałąź `fix/android-reset-unknown-idb-20261104`, BASE/main **`b033f76facc409fce7ef03bf15f70a74f34b3321`**, zweryfikowany przez git/remote. Jeden commit/push zawierający ten wpis; wynikowy HEAD w przekazaniu. **CODE_READY / CI_PENDING / PHONE_PENDING / SYNC_BLOCKED**. Ten rozdział aktualizuje wcześniejsze stwierdzenie, że nieznana baza blokuje także świadomy reset; kontrakt pełnych kopii pozostaje bez zmian.
+
+### Przyczyna i minimalna zmiana
+
+Pixel potwierdził `STOP / RESCUE_UNKNOWN_DATABASE` po świadomym potwierdzeniu resetu, przed usunięciem danych. Na dokładnym BASE odtworzono odmowę `readRescueSnapshot()` przy dodatkowej bazie v7; nie wykonano nawet `indexedDB.open()`. Reset korzystał z zamkniętej inwentaryzacji przeznaczonej dla pełnej kopii, choć nie obejmuje wszystkich baz originu.
+
+`sync/local-first-rescue-snapshot.mjs` ma dwa jawne wejścia do tej samej walidacji: dotychczasowy `readRescueSnapshot()` zawsze wymaga zamkniętego inventory; nowe `readLocalResetSnapshot()` porównuje inventory wyłącznie wskazanego obrazu LOCAL-FIRST i znanego archiwum. `sync/application-local-reset.mjs` używa drugiego wejścia po dotychczasowej kontroli natywnego potwierdzenia, owner/gate/release i wyłączności. Dodatkowe bazy nie są otwierane, odczytywane, kopiowane, normalizowane ani usuwane. Nie wnioskowano własności po prefiksie nazwy i nie rozszerzono listy celów kasowania.
+
+Właściciel/receipt/binding, integralność source/application/outbox/ACK, schemat/wersja obu celów, podwójny odczyt danych i docelowego inventory, brak drugiej karty, aktualność dostępu oraz journal przerwania pozostają obowiązkowe. Kod wykonujący czyszczenie/transakcje/readback nie zmienił się. Pełny eksport `local-first-rescue-file.mjs` wciąż wywołuje rygorystyczne wejście; obce pole `resetOnly` w kontekście nie może go przełączyć. Stary `storage-recovery-export.js` pozostał bez zmian.
+
+### Pochodzenie baz — dowody i granice
+
+Bazy tworzone przez kod programu: obraz `meble-local-first-v1` (`sync/local-first-idb.mjs`, receipt/release/binding), archiwum `meble-business-backups-v1` (`backup-archive-format.js` + `backup-archive-idb.js`), profil `meble-access-profile-v1`, zaufanie `meble-device-trust-v1` i koordynacja `meble-application-writer-fence-v1` (odpowiednie moduły `js/app/cloud`). Profil, zaufanie i fence pozostają zachowane.
+
+Dodatkowy historyczny twórca jest potwierdzony **kodem i historią**, nie samą nazwą: `js/app/investor/investor-deletion.js:5,95` tworzy `meble-investor-delete-v1` / `operations` jako trwały ledger usuwania inwestorów; kod występuje już w commicie `a28240c8` z 31.10. Pełny rescue nie ma tej bazy na liście. Znane nazwy Firebase w istniejącej liście auth nie są dowodem zawartości lub właściciela konkretnej bazy; nie dodano do nich nowych wyjątków.
+
+Nie odczytywano telefonu, dlatego **nie ustalono nazwy ani pochodzenia dodatkowej bazy Pixela**. Historyczny ledger również pozostaje poza resetem; nie ruszano jego odrębnych mechanizmów wznowienia ani nie zapewniamy, że każdy możliwy uszkodzony/historyczny stan uruchomi się. Obecność bazy nie jest już sama w sobie blokerem tego resetu; inne rzeczywiste odmowy pozostają jawne.
+
+### Faktyczna weryfikacja i CI
+
+Wyłącznie syntetyczne dane. Node **24.19.0**, rzeczywisty Chromium **151.0.7922.173**:
+
+- `android-local-first-browser-smoke.js`: **7 grup PASS / exit 0**. Pełny dotychczasowy scenariusz rozszerzony o dodatkową obcą bazę v7, dwa store, indeks, klucze i nieznane pola. Konflikt Androida → natywna odmowa bez mutacji; druga karta bez zapisu journal; przerwany reset/abort zachowuje cztery store i niepewną kolejkę, restart wymaga ponownej zgody; świadome wznowienie → RESET_COMPLETE → fabryczne 14 domen → pełny start offline → inwestor/projekt/pokój/podstawowa WYCENA → zapis → dwa zamknięcia procesu/wznowienia offline, draft i Anuluj. Asercje obcej bazy sprawdzają dokładnie wersję, schema, indeksy, klucze i rekordy po odmowie, drugiej karcie, abort, reset, restartach oraz końcowym rollbacku. Instrumentacja odróżnia odczyt dowodowy testu od prób otwarcia przez aplikację; aplikacja nie otworzyła obcej bazy. Zero żądań chmury, brak fikcyjnych ACK/outboxu. Dotychczasowe asercje zachowane.
+- `local-first-rescue-smoke.js`: **9/9 PASS**. Nowy przypadek obejmuje obcą bazę v7 i nazwę historycznego ledgeru: reset odczytuje wyłącznie zweryfikowany cel readonly, pełna kopia i API prepare nadal odmawiają przed pierwszym IDB open. Osobno zachowane odmowy owner/binding/hash/schema/drugiego klienta/Auth/zmiany źródeł/braku obrazu i złej wersji celu. Wszystkie wcześniejsze osiem grup kopii, archiwum, szyfrowania, niezależnego pliku i utraty dostępu nadal PASS.
+- Routing: **201 current smoke / 7 rozłącznych obowiązkowych grup**, browser dokładnie raz w **5/7**, rescue w **4/7**. Oba testy są wykrywane przez istniejący Preflight; bez zmian workflow. Pełnego lokalnego CI, emulatorów i GitHub Actions nie uruchomiono.
+- Odświeżono wyłącznie hashe dwóch zmienionych modułów w `offline-assets.js` (**489 zasobów**). Nie zmieniono klasycznych skryptów/HTML, wersji Auth ani Service Workera. Kontrola składni, wersji, świeżości manifestu i diffu w końcowym przekazaniu.
+
+Zmienione pliki: dwa moduły powyżej, `offline-assets.js`, dwa istniejące smoke, `CURRENT_STATE.md` i ten raport. Bez zmian Firebase/Auth/synchronizacji/cenników/norm/UI/Service Workera. Fizyczny Pixel pozostaje **PHONE_PENDING**; po osobno zatwierdzonym wydaniu właściciel powtarza istniejącą czynność resetu w jednej karcie i tym samym zatwierdzonym profilu. Nie czyści Chrome ani nie usuwa dodatkowych baz. Narzędziami nie resetowano telefonu i nie wykonywano Firebase LIVE.
+
 ## LOCAL-FIRST — czysty start i praca offline — 03.11.2026
 
 Gałąź `fix/android-local-clean-start-20261103`, wejściowy HEAD **`66d59cd6452c5790178fd6fe8b61dd84b785fd4f`**, BASE main **`93ae98dcd7412a837090a677455abbc173719efb`**. Jeden nowy commit/push zawierający ten wpis; wynikowy SHA w przekazaniu. **CODE_READY / CI_PENDING / PHONE_PENDING / SYNC_BLOCKED**. Poprzedni STOP poniżej opisuje stan wejściowy, zakończony nową decyzją właściciela.

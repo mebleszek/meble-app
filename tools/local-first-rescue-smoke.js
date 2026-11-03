@@ -4,7 +4,7 @@ const tests=[],test=(name,fn)=>tests.push([name,fn]),password='synthetic private
 const code=value=>e=>e.code===value;
 const immutable=r=>JSON.stringify({local:[...r.rows],session:[...r.session],tables:r.tables});
 (async()=>{
- const {createLocalFirstRescue}=await import('../sync/local-first-rescue-file.mjs'),{readRescueSnapshot}=await import('../sync/local-first-rescue-snapshot.mjs');
+ const {createLocalFirstRescue}=await import('../sync/local-first-rescue-file.mjs'),{readRescueSnapshot,readLocalResetSnapshot}=await import('../sync/local-first-rescue-snapshot.mjs');
  test('full native originals/aliases/known RAM/all four stores and uncertain ACK are captured with no WRITE',async()=>{
   const r=await rescueFixture(),before=immutable(r),data=await readRescueSnapshot(r.context);
   assert.equal(data.local.rows.find(r=>r.key==='fc_quote_offer_drafts_v1').raw,'PRIVATE_DRAFT');assert.equal(data.local.rows.find(r=>r.key==='fc_hardware_replacement_rules_v1').raw,'PRIVATE_REPLACEMENT');
@@ -15,6 +15,23 @@ const immutable=r=>JSON.stringify({local:[...r.rows],session:[...r.session],tabl
   const {readCurrentBusinessRam}=await import('../sync/local-first-rescue-ram.mjs');assert.equal(readCurrentBusinessRam(r.w).available,false);
   r.w.projectData={unsaved:'PRIVATE_PROJECT_RAM'};r.w.uiState={activeRoom:'synthetic-room'};r.w.document.querySelectorAll=()=>[{tagName:'INPUT',id:'synthetic',name:'synthetic',value:'PRIVATE_CONTROL_RAM',checked:false,closest:()=>null}];
   const ram=readCurrentBusinessRam(r.w);assert.equal(ram.data.project.unsaved,'PRIVATE_PROJECT_RAM');assert.equal(ram.data.controls[0].value,'PRIVATE_CONTROL_RAM');
+ });
+ test('only reset inventory ignores unrelated databases, never opens them, and retains target proofs',async()=>{
+  const r=await rescueFixture(),before=immutable(r);
+  r.options.inventory=[{name:r.context.name,version:1},{name:'meble-investor-delete-v1',version:1},{name:'foreign-synthetic',version:7}];
+  await assert.rejects(readRescueSnapshot({...r.context,resetOnly:true}),code('RESCUE_UNKNOWN_DATABASE'));
+  await assert.rejects(createLocalFirstRescue(r.context).prepare(password),code('RESCUE_UNKNOWN_DATABASE'));
+  assert.equal(r.trace.some(t=>t.startsWith('open:')),false);
+  const result=await readLocalResetSnapshot(r.context);assert.deepEqual(result.databases.authority,r.tables);assert.equal(immutable(r),before);
+  assert.ok(r.trace.filter(t=>t.startsWith('open:')).every(t=>t==='open:'+r.context.name));
+  for(const mode of ['owner','binding','hash','schema','second','auth','changed','missing','version']){
+   const x=await rescueFixture();x.options.inventory=[{name:x.context.name,version:1},{name:'foreign-synthetic',version:7}];
+   if(mode==='owner')x.context.ownerUid='other';if(mode==='binding')x.tables.control[0].ownerUid='other';if(mode==='hash')x.tables.outbox[0].hash='b'.repeat(64);if(mode==='schema')x.options.badSchema=true;
+   if(mode==='second')x.options.otherClient=true;if(mode==='auth')x.deny();if(mode==='changed')x.options.onComplete=()=>x.rows.set('fc_data_backups_v1','changed');
+   if(mode==='missing')x.options.inventory.shift();if(mode==='version')x.options.inventory[0].version=2;
+   await assert.rejects(readLocalResetSnapshot(x.context),e=>/^RESCUE_/.test(e.code));assert.equal(x.trace.includes('tx:readwrite'),false);
+   assert.ok(x.trace.filter(t=>t.startsWith('open:')).every(t=>t==='open:'+x.context.name));
+  }
  });
  test('prepare and download stay pending; only independent selected file/decryption/full verification creates a capability',async()=>{
   const r=await rescueFixture(),x=createLocalFirstRescue(r.context),before=immutable(r),token=await x.prepare(password);assert.equal(token.status,'BACKUP_PENDING');assert.equal('text' in token,false);
