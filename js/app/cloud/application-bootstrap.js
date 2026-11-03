@@ -117,7 +117,7 @@
  }
  function setStage(value){stage=value;if(value==='initial-project-revisions'&&transferStatus==='not-started')transferStatus='checking';}
  const note=error=>{recordFailure(error);lastLocation=String(error?.stack||'').match(/\/(?:sync|js\/app\/cloud)\/[a-z0-9/-]+\.(?:mjs|js):[0-9]+/)?.[0]||null;lastError=/^(?:(?:LF_|GLOBAL_|AUTH_|LOCAL_)[A-Z_]+|auth\/[a-z-]+)$/.test(error?.code||error?.message||'')?(error.code||error.message):'LF_STARTUP_UNCONFIRMED';};
- let release=null,configuring=null;
+ let release=null,configuring=null,recoveryQuiescent=false;
  async function deployment(){if(release||configuration)return;const slot=window.FC_APPLICATION_RELEASE;if(!slot?.envelope&&!slot?.trustedKeySha256)return;const {verifyApplicationRelease}=await import('../../../sync/application-release.mjs');release=await verifyApplicationRelease({...slot,origin:new URL('./',document.baseURI).href});configuration={name:'meble-local-first-v1'};}
  function connect(input){return configuration.connections?configuration.connections({...input,release}):import('../../../sync/application-connections.mjs').then(m=>m.createApplicationConnections({window,...input,release,sdk:configuration.sdk}));}
  function demo(){if(!['127.0.0.1','localhost'].includes(location.hostname))throw Error('LF_PRODUCTION_ACTIVATION_REQUIRED');}
@@ -137,13 +137,13 @@
    const {ownerUid,authSession,lease}=context;lastContext=context;
    if(!configuration){if(localStorage.getItem('meble_application_authority_v1'))throw Error('LF_APPLICATION_RUNTIME_REQUIRED');return {status:'LIVE_BLOCKED'};}
    if(!release)demo();if(runtime?.status().state==='active')return runtime;if(starting)return starting;
-   stage='opening-runtime';starting=(async()=>{
+   recoveryQuiescent=false;stage='opening-runtime';starting=(async()=>{
     for(const file of ['global-data-contract','cloud-pilot-contract','firebase-global-transport'])await import('./'+file+'.js');
     stage='authorizing-cloud';const connections=navigator.onLine===false?{}:await connect(context);stage='binding-runtime';
     connectionsActive=connections;
     if(runtime){if(navigator.onLine!==false)await runtime.resume(connections);return runtime;}
     const {startApplicationRuntime}=await import('../../../sync/application-runtime.mjs');
-    runtime=await startApplicationRuntime({window,ownerUid,name:configuration.name,boot,release,onStage:setStage,onDiagnostic:diagnosticState,...connections});
+    runtime=await startApplicationRuntime({window,ownerUid,name:configuration.name,boot,release,onStage:setStage,onDiagnostic:diagnosticState,onFailureQuiescent(){recoveryQuiescent=true;},...connections});
     return runtime;
    })().then(value=>{stage='ready';return value;}).catch(async error=>{
     note(error);
@@ -154,6 +154,30 @@
    }).finally(()=>{starting=null;});return starting;
   },
   revokeCloud(){void connectionsActive?.logout?.();},
+  canRecoverGlobals(){return recoveryQuiescent&&!runtime&&!starting&&!!boot&&stage==='initial-global-revision'&&firstError?.code?.startsWith('GLOBAL_');},
+  async openLocalFirstRecovery(options={}){
+   const context=lastContext,source=boot,name=configuration?.name,ownerUid=context?.ownerUid;
+   const fatalRead=window.__FC_MAIN_ACCESS__?.isValid()!==true,gate=fatalRead?window.__FC_RECOVERY_ACCESS__:null;
+   const authorize=()=>{if(!context||lastContext!==context||source!==boot||!ownerUid)throw Error('RESCUE_AUTH_OR_BUSY');
+    if(fatalRead)gate.assert(ownerUid);else context.localAccess.assert();};
+   const assertQuiescent=()=>{if(starting||refreshing||fatalRead&&(!recoveryQuiescent||runtime))throw Error('RESCUE_AUTH_OR_BUSY');
+    if(!fatalRead){const status=runtime?.authority?.status();if(!status||status.closed||status.external||status.transactionPending||status.incomingPending)throw Error('RESCUE_AUTH_OR_BUSY');}};
+   authorize();assertQuiescent();
+   const [{createLocalFirstRescue},{openLocalFirstRecovery},{applicationWriterFence}]=await Promise.all([
+    import('../../../sync/local-first-rescue-file.mjs'),import('../../../sync/local-first-recovery-ui.mjs'),import('../../../sync/application-writer-fence.mjs')]);
+   const readNative=fatalRead?key=>gate.readNative(key):source.readNative;
+   const api=createLocalFirstRescue({window,name,ownerUid,release,readNative,readSession:fatalRead?key=>gate.readSession(key):undefined,
+    authorize,assertQuiescent,verifyOwner:fatalRead?()=>gate.verify():undefined});
+   const exclusive=async operation=>{
+    authorize();assertQuiescent();if(release)await applicationWriterFence(window);authorize();
+    let receipt;try{receipt=JSON.parse(readNative('meble_application_authority_v1'));}catch(_){throw Error('RESCUE_RECEIPT_INVALID');}
+    if(receipt?.name!==name||receipt.ownerUid!==ownerUid||!/^[-A-Za-z0-9_]{1,128}$/.test(receipt.instanceId||''))throw Error('RESCUE_RECEIPT_INVALID');
+    const held=()=>navigator.locks.request(name+':'+receipt.instanceId,{ifAvailable:true},async lock=>{if(!lock)throw Error('RESCUE_APPLICATION_BUSY');authorize();const value=await operation();authorize();return value;});
+    return fatalRead?navigator.locks.request('meble-application-authority-v1',{ifAvailable:true},lock=>{if(!lock)throw Error('RESCUE_APPLICATION_BUSY');return held();}):runtime.withRescueRead(held);
+   };
+   return openLocalFirstRecovery({window,api,exclusive,authorize,parent:options.parent||document.body,onClose:options.onClose});
+  },
+  hasLocalFirst(){return !!configuration&&!!boot;},
   errorCode,
   recordFailure(error,at){recordFailure(error,at==='starting-local-first'?stage:at);},
   inspectGlobalConsistency,

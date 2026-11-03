@@ -1,0 +1,38 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
+const {androidGlobalsFixture}=require('./helpers/android-globals-browser-fixture');
+const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));let phase='SETUP';
+(async()=>{
+ const {openBrowserDevice}=await import('./helpers/local-first-browser.mjs'),dir=fs.mkdtempSync(path.join(os.tmpdir(),'meble-android-recovery-')),profile=path.join(dir,'profile'),downloads=path.join(dir,'downloads');fs.mkdirSync(downloads);
+ const server=await androidGlobalsFixture();let browser;
+ async function extraPages(){const {targetInfos}=await browser.send('Target.getTargets');for(const t of targetInfos)if(t.type==='page'&&t.targetId!==browser.targetId)await browser.send('Target.closeTarget',{targetId:t.targetId});}
+ async function click(selector){const point=await browser.evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});e.scrollIntoView();const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()`);await browser.send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...point});await browser.send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...point});}
+ async function status(expected){for(let i=0;i<500;i++){const state=await browser.evaluate('document.querySelector("[data-rescue-status]")?.dataset.rescueStatus');if(expected.includes(state))return state;await pause(20);}throw Error('ANDROID_STATUS_TIMEOUT');}
+ async function panel(){await click('#auth-recovery');for(let i=0;i<200;i++){if(await browser.evaluate('!!document.querySelector("[data-local-first-rescue]")'))return;await pause(20);}throw Error('ANDROID_PANEL_NOT_READY');}
+ async function choose(file){const doc=await browser.send('DOM.getDocument'),node=await browser.send('DOM.querySelector',{nodeId:doc.root.nodeId,selector:'[data-local-first-rescue] input[type=file]'});await browser.send('DOM.setFileInputFiles',{nodeId:node.nodeId,files:[file]});}
+ const password='synthetic android recovery passphrase';
+ try{
+  browser=await openBrowserDevice(server,profile);await server.setup(browser,{seed:true});await browser.gracefulClose();browser=await openBrowserDevice(server,profile);await extraPages();await server.setup(browser);
+  phase='FATAL_BACKUP';await browser.send('Emulation.setDeviceMetricsOverride',{width:393,height:852,deviceScaleFactor:1,mobile:true});
+  const before=await browser.evaluate('fixtureSnapshot()');assert.equal(await browser.evaluate('__FC_MAIN_ACCESS__.isValid()'),false);
+  await panel();assert.equal(await browser.evaluate('__FC_RECOVERY_ACCESS__.isValid()'),true);assert.equal(await browser.evaluate('(()=>{try{localStorage.setItem("fc_synthetic_forbidden","x");return false;}catch(_){return true;}})()'),true);
+  await browser.evaluate(`document.querySelector('[data-local-first-rescue] input[type=password]').value=${JSON.stringify(password)};true`);
+  let completed=false;browser.onEvent(e=>{if(e.method==='Browser.downloadProgress'&&e.params.state==='completed')completed=true;});await browser.send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:downloads,eventsEnabled:true});
+  await click('[data-local-first-rescue] button');await status(['BACKUP_PENDING','BLOCKED']);
+  const file=path.join(downloads,'meble-app-local-first-rescue.encrypted.json');for(let i=0;i<500&&!completed;i++)await pause(20);if(!completed)throw Error('ANDROID_DOWNLOAD_NOT_COMPLETED');assert.ok(fs.existsSync(file));assert.equal(fs.readFileSync(file).includes('PRIVATE_'),false);
+  await choose(file);const verified=await status(['BACKUP_PASS','BLOCKED','FILE_VERIFIED_STALE']);if(verified!=='BACKUP_PASS')throw Error(await browser.evaluate('document.querySelector("[data-rescue-status]").textContent'));assert.equal(await browser.evaluate('__FC_MAIN_ACCESS__.isValid()'),false);assert.deepEqual(await browser.evaluate('fixtureSnapshot()'),before);
+  assert.match(await browser.evaluate('document.querySelector("[data-rescue-status]").textContent'),/14 domen/);console.log('PASS Android Chromium: actual main fatal/owner profile/trusted read scope, native completed encrypted download and independent FileList/GCM/SHA verification; no business access or RAW/IDB/outbox mutations');
+  phase='SECOND_CLIENT';await click('[data-local-first-rescue] button:last-child');
+  const second=await browser.send('Target.createTarget',{url:server.base});await pause(100);await panel();await browser.evaluate(`document.querySelector('input[type=password]').value=${JSON.stringify(password)};true`);await click('[data-local-first-rescue] button');assert.equal(await status(['BLOCKED']),'BLOCKED');await browser.send('Target.closeTarget',{targetId:second.targetId});
+  await click('[data-local-first-rescue] button:last-child');phase='OFFLINE';await browser.send('Network.enable');await browser.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});assert.equal(await browser.evaluate('navigator.onLine'),false);
+  await panel();await browser.evaluate(`document.querySelector('input[type=password]').value=${JSON.stringify(password)};true`);await choose(file);assert.equal(await status(['BACKUP_PASS','BLOCKED','FILE_VERIFIED_STALE']),'BACKUP_PASS');assert.deepEqual(await browser.evaluate('fixtureSnapshot()'),before);
+  phase='AUTH_LOSS';await browser.evaluate(`fixtureNativeSet('meble_device_trust_fence_v1','revoked');window.dispatchEvent(new StorageEvent('storage',{key:'meble_device_trust_fence_v1',newValue:'revoked'}));true`);assert.equal(await browser.evaluate('__FC_RECOVERY_ACCESS__.isValid()'),false);assert.equal(await browser.evaluate('!!document.querySelector("[data-local-first-rescue]")'),false);assert.deepEqual(await browser.evaluate('fixtureSnapshot()'),before);
+  console.log('PASS Android Chromium: actual second tab refuses export, trusted offline verification succeeds, revocation clears read capability/password/panel while business storage remains unchanged');
+  // Restore only the synthetic Auth fence, never business values, before crash.
+  // The signed trust record supplies its original synthetic installation fence.
+  await browser.evaluate(`new Promise(resolve=>{const q=indexedDB.open('meble-device-trust-v1',1);q.onsuccess=()=>{const db=q.result,tx=db.transaction('proof','readonly'),r=tx.objectStore('proof').get('active');r.onsuccess=()=>{fixtureNativeSet('meble_device_trust_fence_v1','active:'+r.result.statement.installationId);};tx.oncomplete=()=>{db.close();resolve(true);};};})`);
+  await browser.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
+  phase='RESTART_LOST_RAM';await browser.gracefulClose();browser=await openBrowserDevice(server,profile);await extraPages();await server.setup(browser,{ram:false});await panel();await browser.evaluate(`document.querySelector('input[type=password]').value=${JSON.stringify(password)};true`);await choose(file);assert.equal(await status(['FILE_VERIFIED_STALE','BACKUP_PASS','BLOCKED']),'FILE_VERIFIED_STALE');assert.deepEqual(await browser.evaluate('fixtureSnapshot()'),before);
+  console.log('PASS Android Chromium: restart independently reads the saved disk file, lost RAM yields FILE_VERIFIED_STALE and cannot create a repair plan; native RAW/all four IDB stores/uncertain ACK unchanged');
+ }finally{try{await browser?.close();}finally{await server.close();fs.rmSync(dir,{recursive:true,force:true});}}
+})().catch(error=>{console.error(phase+': '+(error.code==='ERR_ASSERTION'?error.message:error.code||error.message||'ANDROID_RECOVERY_TEST_FAILED'));process.exitCode=1;});

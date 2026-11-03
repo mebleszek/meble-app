@@ -10,14 +10,14 @@ import {applicationInstallation,verifyExclusiveClient} from './application-insta
 import {assertApplicationConnection} from './firebase-activation.mjs';
 import {copy,equal,assertEmulator,fail,safeError} from './local-first-values.mjs';
 export function startNormalEmulatorApplication(options){return startApplicationRuntime(options);}
-export async function startApplicationRuntime({window:w,writer,reader,name,ownerUid,boot,release:deployment,onStage=()=>{},onDiagnostic=()=>{}}){
+export async function startApplicationRuntime({window:w,writer,reader,name,ownerUid,boot,release:deployment,onStage=()=>{},onDiagnostic=()=>{},onFailureQuiescent=()=>{}}){
  const fc=w.FC;
  if(writer){const a=assertApplicationConnection(writer),b=assertApplicationConnection(reader);if(a.uid!==ownerUid||b.uid!==ownerUid||writer.db.app===reader.db.app)fail('LF_INDEPENDENT_OWNER_REQUIRED');}
  else if(!boot?.restored)fail('LF_ONLINE_INSTALLATION_REQUIRED');
  w.__FC_MAIN_ACCESS__.assert();
  const keys=applicationKeys(fc);
  onStage('checking-installation');const installation=await applicationInstallation({window:w,ownerUid,name,keys,sourceRead:boot?.readNative,heldRelease:boot?.release,release:deployment,migration:boot?.migration});
- let store,sync,authority,boundary,closed=false,authorityReady=false,incomingBlocked=false;const states=[];
+ let store,sync,authority,boundary,closed=false,authorityReady=false,incomingBlocked=false,recoveryReading=false;const states=[];
  const state=(value,error)=>{try{onDiagnostic({ok:value.ok===true,code:error?.code||error?.message||value.code,projectTransferBlocked:value.scope==='project-transfer-blocked'});}catch(_){}if(['LF_ACTIVE_FORM_PROTECTED','LF_ACTIVE_RAM_PROTECTED'].includes(value.code))incomingBlocked=true;states.push(copy(value));if(states.length>12)states.shift();};
  try{
   onStage('opening-idb');store=await openLocalFirstStore({...installation.binding,indexedDB:w.indexedDB,locks:w.navigator.locks});
@@ -43,7 +43,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    await sync.acquireEditor(scope);
   }
   onStage('installing-authority');authority=await (deployment?installAuthorizedApplicationAuthority:writer?installEmulatorApplicationAuthority:installOfflineEmulatorApplicationAuthority)({window:w,store,ownerUid,connection:writer,sourceRead:boot?.readNative,initialRows,release:deployment,
-   beforeTransaction:()=>boot?.verifyFence?boot.verifyFence():verifyExclusiveClient(w),onCommitted:()=>sync?.notify(),authorize:ensureEditor,
+   beforeTransaction:()=>{if(recoveryReading)fail('LF_APPLICATION_BUSY');return boot?.verifyFence?boot.verifyFence():verifyExclusiveClient(w);},onCommitted:()=>sync?.notify(),authorize:ensureEditor,
    checkpoint:(application,kind)=>(sync||local).checkpoint(application,kind),
    commit:async(kind,application)=>{
     let scope=application.rows.fc_current_project_id_v1;
@@ -131,6 +131,10 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   };bind();
   sync?.notify();
   return Object.freeze({store,authority,get sync(){return sync;},write:boundary.run,
+   async withRescueRead(operation){
+    if(closed||recoveryReading||authority.status().transactionPending||authority.status().incomingPending)fail('LF_APPLICATION_BUSY');
+    recoveryReading=true;try{return await operation();}finally{recoveryReading=false;}
+   },
    status:()=>({state:closed?'locked':sync?'active':'offline',sourcePreserved:true,projectRecords:JSON.parse(authority.rows().fc_projects_v1||'[]').length,projectChannels:JSON.parse(authority.rows().fc_projects_v1||'[]').filter(p=>!!sync?.channel(p.id)).length,transactionPending:authority.status().transactionPending||boundary?.busy()===true,states:copy(states)}),
    async resume(next){
     if(assertApplicationConnection(next.writer).uid!==ownerUid||assertApplicationConnection(next.reader).uid!==ownerUid)fail('LF_APPLICATION_OWNER_CHANGED');
@@ -148,5 +152,9 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    },
    close(){closed=true;sync?.close();boundary.close();authority.close();w.removeEventListener('online',notify);w.removeEventListener('meble-sync-authorized',notify);w.removeEventListener('click',wakeReceive,true);},
    async dispose(){closed=true;await sync?.close();boundary?.close();authority?.close();store.close();await installation.release();}});
- }catch(error){closed=true;sync?.close();boundary?.close();authority?.close();store?.close();await installation.release();throw error;}
+ }catch(error){
+  closed=true;let quiet=true;try{await sync?.close();}catch(_){quiet=false;}
+  for(const stop of [()=>boundary?.close(),()=>authority?.close(),()=>store?.close(),()=>installation.release()])try{await stop();}catch(_){quiet=false;}
+  if(quiet)onFailureQuiescent();throw error;
+ }
 }
