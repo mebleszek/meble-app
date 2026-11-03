@@ -1,5 +1,5 @@
 'use strict';
-// Evidence for RESET_BLOCKED, not a reset implementation or a production probe.
+// Historical cloud preconditions and explicit local-only CAS; no production probe.
 // Actual Chromium/IDB and shipped modules; all data and cloud values are synthetic.
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 const {androidGlobalsFixture}=require('./helpers/android-globals-browser-fixture');
@@ -17,6 +17,7 @@ async function main(){
   assert.equal(await browser.evaluate('document.body.dataset.authState'),'error');
   assert.equal(await browser.evaluate('document.getElementById("auth-recovery").hidden'),false);
   const refused=await browser.evaluate(`(async()=>{
+   const {resetLocalTestData}=await import('/sync/application-local-reset.mjs');let consent='UNEXPECTED_ACCEPT';try{await resetLocalTestData({window},{});}catch(error){consent=error.code;}if(consent!=='LF_LOCAL_RESET_CONFIRMATION_REQUIRED')throw Error('RESET_CONSENT_GATE');
    const {startApplicationRuntime}=await import('/sync/application-runtime.mjs');
    try{await startApplicationRuntime({window,ownerUid:${JSON.stringify(server.uid)},name:${JSON.stringify(server.name)},boot:{restored:false}});return 'UNEXPECTED_START';}
    catch(error){return error.code||error.message;}
@@ -47,12 +48,16 @@ async function main(){
     const c=FC.globalDataContract,local=createApplicationCommitter({store,globalContract:c,projectContract:{},channel:()=>null});
     const result=await local.commit('globals',{expectedVersion:1,rows}),snapshot=await store.snapshot('globals');
     let project='UNEXPECTED_ACCEPT';try{await local.commit('project',{expectedVersion:2,rows},'synthetic-project');}catch(error){project=error.code||error.message;}
-    return {localConfirmed:result.localConfirmed,cloudConfirmed:result.cloudConfirmed,phase:snapshot.operations[0].phase,base:snapshot.replica.base,dirty:snapshot.replica.dirty,project};
+    const localOnly=createApplicationCommitter({store,globalContract:c,projectContract:{},channel:()=>null,localOnly:true});
+    const next=structuredClone(rows),rates=JSON.parse(next.fc_quote_rates_v1);rates[0].price+=12.125;next.fc_quote_rates_v1=JSON.stringify(rates);
+    const localResult=await localOnly.commit('globals',{expectedVersion:2,rows:next});let stale='UNEXPECTED_ACCEPT';try{await localOnly.commit('globals',{expectedVersion:2,rows:next});}catch(error){stale=error.code||error.message;}
+    const after=await store.snapshot('globals');
+    return {localConfirmed:result.localConfirmed,cloudConfirmed:result.cloudConfirmed,phase:snapshot.operations[0].phase,base:snapshot.replica.base,dirty:snapshot.replica.dirty,project,localResult,stale,queuePreserved:JSON.stringify(after)===JSON.stringify(snapshot),applicationVersion:(await store.readApplication()).version};
    }finally{store.close();}
   })()`);
-  assert.deepEqual(queued,{localConfirmed:true,cloudConfirmed:false,phase:'queued',base:null,dirty:true,project:'LF_PROJECT_CHANNEL_REQUIRED'});
+  assert.deepEqual(queued,{localConfirmed:true,cloudConfirmed:false,phase:'queued',base:null,dirty:true,project:'LF_PROJECT_CHANNEL_REQUIRED',localResult:{localConfirmed:true,cloudConfirmed:false},stale:'LF_APPLICATION_CONFLICT',queuePreserved:true,applicationVersion:3});
   assert.deepEqual(await browser.evaluate('fixtureSnapshot()'),before);
-  console.log('PASS real Chromium: actual empty-scope commit creates a queued factory revision, no confirmed cloud base; no offline first-project channel; original uncertain queue unchanged');
+  console.log('PASS real Chromium: actual empty-scope commit creates a queued factory revision, no confirmed cloud base; no offline first-project channel; original uncertain queue unchanged; explicit local-only commit confirms only local CAS and retains the old queue without replay; stale version refuses');
  }finally{try{await browser?.close();}finally{await server.close();fs.rmSync(dir,{recursive:true,force:true});}}
 }
 if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});

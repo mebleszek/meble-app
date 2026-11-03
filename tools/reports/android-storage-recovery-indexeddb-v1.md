@@ -1,5 +1,69 @@
 # ANDROID STORAGE RECOVERY + IndexedDB v1 — 25.10.2026
 
+## LOCAL-FIRST — czysty start i praca offline — 03.11.2026
+
+Gałąź `fix/android-local-clean-start-20261103`, wejściowy HEAD **`66d59cd6452c5790178fd6fe8b61dd84b785fd4f`**, BASE main **`93ae98dcd7412a837090a677455abbc173719efb`**. Jeden nowy commit/push zawierający ten wpis; wynikowy SHA w przekazaniu. **CODE_READY / CI_PENDING / PHONE_PENDING / SYNC_BLOCKED**. Poprzedni STOP poniżej opisuje stan wejściowy, zakończony nową decyzją właściciela.
+
+### Zatwierdzony model i zakres
+
+Właściciel zatwierdził start/pracę lokalną oraz utratę wszystkich lokalnych danych testowych Pixela, również katalogów, aliasów, backupów i kolejki. Osobno potwierdził: **zachować istniejące zatwierdzenie właściciela**; nowy, nigdy niezatwierdzony profil nadal wymaga pierwszego dopuszczenia online. Nie tworzymy anonimowego dostępu, nowego konta ani uprawnienia Firebase. Backup nie jest warunkiem tego konkretnego, świadomie destrukcyjnego resetu. Danych telefonu nie odczytywano ani nie resetowano narzędziami.
+
+- Produkcyjny bootstrap zweryfikowanego wydania uruchamia istniejący runtime w trybie `local-only`. Nie tworzy połączeń, kanałów, discovery ani synchronizatora Firebase; reconnect także nie wznawia starej kolejki. Próba dołączenia cloud writera do tego runtime odmawia. Dotychczasowe transporty, serwerowy edytor, ACK i ich asercje pozostają w osobnej ścieżce. Nie udajemy synchronizacji: status ma `cloudConfirmed:false`, transfer nie jest zgłaszany jako potwierdzony.
+- Pusty obraz jest zasilany istniejącym `codeCandidate` i `codeGlobalRows()`, pełne **14 domen / validateBundle()**. Nie używa cache po migracji do odtworzenia cenników. Cena/ID/norma/zamiennik pochodzą z dotychczasowego generatora; firma i brakujące ustawienia są neutralne. Odczyt brakującego aliasu podczas starego bootstrapu korzysta z głównego zatwierdzonego źródła, bez zapisania historycznego klucza. Obecny alias nigdy nie jest w ten sposób pomijany ani scalany.
+- Lokalny commit używa dotychczasowego `application`/wersji/CAS i tej samej transakcji IndexedDB. Nie tworzy fikcyjnego head, repliki, edytora serwerowego ani outboxu. Zachowuje walidację struktury/właściciela projektu i 14 domen. Natywne referencje, np. `HDF`, rozstrzyga istniejąca WYCENA; ścisłe przypisanie referencji transportu pozostaje warunkiem przyszłej synchronizacji. Nie zmieniono walidatora zależności kanału chmurowego ani zasad cenowych.
+- Istniejący autosave i zapis parametrów pokoju w lokalnym trybie przechodzą przez istniejącą granicę transakcji. Nie ma drugiego silnika danych. Potwierdzony draft zawiera dowód pierwotnej sesji; zimny start odtwarza go z obrazu. Widok bez aktywnego draftu nie rozpoczyna nowej sesji tylko dlatego, że poprzednio był otwarty pokój. Anuluj odtwarza wyłącznie pokój zapisany w dowodzie sesji, z zachowaniem pozostałej zawartości rekordu i innych projektów. Ceny globalne nie są cofane przy tej operacji.
+
+### Reset i przerwania
+
+Jedyna zmiana wyglądu to konieczny element istniejącego panelu ratunkowego i natywne potwierdzenie utraty danych. Backend wymaga zaufanego zdarzenia/potwierdzenia, aktualnego owner/access, potwierdzonego zatrzymania, receipt/binding/release, wyłączności, istniejących baz i integralności. Wykorzystuje dotychczasowy bezpieczny snapshot do weryfikacji, bez wymogu pobrania kopii. Nie osłabiono inwentarza starego eksportu.
+
+Przed pierwszą mutacją powstaje znacznik `PENDING`. Cztery store `control/replicas/protected/outbox` są czyszczone w jednej transakcji z nowym bindingiem. Obracane są oba identyfikatory instalacji. Następnie czyszczone są rozpoznane backupy w trzech store archiwum (jeśli istnieją), znane RAW `fc_*`, pięć historycznych kluczy bez prefiksu, application receipt/route i dane sessionStorage. Każde usunięcie RAW ma readback. Odtwarzany jest receipt dla pustego źródła; zatwierdzenie właściciela i zaufanie urządzenia pozostają. Nie ma `Storage.clear()`, kasowania profilu Chrome ani zmian danych Firebase. Koordynacyjna baza istniejącego writer-fence jest jawnie rozpoznana i **zachowana**; nie jest danymi biznesowymi ani celem resetu. Inne nieznane bazy nadal odmawiają.
+
+Przerwanie przed zakończeniem utrzymuje odmowę startu do kolejnego świadomego potwierdzenia. Nowe bindingi uniemożliwiają użycie odrzuconej kolejki przez stare obiekty store. Jeżeli stary `PENDING` pojawi się przy istniejącym już nowym obrazie, bootstrap wymaga niezależnego dowodu receipt/binding/activation/source/hash/image i kończy wyłącznie znacznik, **bez ponownego czyszczenia danych**. Kontrolowana regresja odtwarza taki stary znacznik przy zapisanym nowym projekcie. Dokładna przyczyna pojedynczego przestarzałego odczytu podczas pośredniej próby zimnego startu nie została potwierdzona; obecna ścieżka nie opiera decyzji o ponownym resecie na samym znaczniku.
+
+Zimny start używa istniejącej rejestracji offline i nadal wymaga właściwego scriptURL/scope oraz kompletnego ACK manifestu. Nie próbuje `register()` bez sieci. Nie zmieniono offline-worker, jego aktywacji, writer-fence ani cache polityki. Wczytanie własnego obrazu jest dozwolone wyłącznie przed udostępnieniem pierwszego lokalnego UI; działający dokument nadal chroni RAM. Aktywny draft wymaga istniejącego obrazu i dokładnego dowodu zapisanej sesji, nie tymczasowej sesji utworzonej przez stary bootstrap.
+
+### Faktyczne testy i CI
+
+Node **24.19.0**, Chromium **151.0.7922.173**; wyłącznie syntetyczne dane, własne jednorazowe profile, brak Firebase SDK/backend i produkcyjnych READ/WRITE.
+
+| Celowana kontrola | Faktyczny wynik |
+| --- | --- |
+| `android-local-first-browser-smoke.js` | **6 grup PASS**, exit 0: rzeczywisty pełny manifest aplikacji/FC.init/boot/runtime/authority/IndexedDB, rzeczywisty offline-worker i wszystkie zasoby, kryptograficznie podpisana decyzja DEMO; dokładne błędy Androida → fatal/rescue; odmowa resetu i druga karta bez mutacji; abort transakcji i restart do ponownej zgody; reset i fabryczne 14 domen; inwestor/projekt/pokój i podstawowa rzeczywista WYCENA; zapis; dwa zamknięcia całego procesu i wznowienia offline; potwierdzony draft 62 → Anuluj 61; stary PENDING nie usuwa zapisanego projektu; brak inicjalizacji dawnych aliasów/outboxu/ACK i zero żądań chmury. |
+| `android-clean-start-preconditions-smoke.js` | **3 grupy PASS**, Chromium: stare warunki ścieżki cloud zachowane; backend odmawia bez potwierdzenia; jawny lokalny CAS potwierdza tylko zapis lokalny, odmawia starej wersji i nie odtwarza istniejącego outboxu. |
+| `offline-shell-smoke.js` | **3 grupy PASS**: dotychczasowe SHA/cache/prywatne odpowiedzi/brak takeover; dokładna tożsamość workera i kompletny ACK; istniejąca rejestracja offline bez sieci, brak/błędna rejestracja i niepełny ACK nadal odmawiają. |
+| `code-global-catalogs-smoke.js` / asset freshness | **7/7 PASS / PASS**: generator, wszystkie 14 domen, runtime, oryginalne stawki/ID/ceny/jednostki/normy/zamienniki i neutralna firma. |
+| `wycena-labor-norms-smoke.js` / `wywiad-room-durable-save-smoke.js` | **9/9 + 18/18 PASS**, normy i dotychczasowe odmowy/durable baseline bez osłabienia. |
+| `main-login-smoke.js` / `trusted-main-login-smoke.js` / `android-startup-auth-smoke.js` | **36/36 + 4 grupy + 6 grup PASS**, właściciel, odmowy, receipt, Auth/lease, zachowanie RAM i zaufania offline. |
+| `android-globals-recovery-smoke.js` / `local-first-rescue-smoke.js` / `local-first-contract-smoke.js` | **7 + 8 + 7 grup PASS**, readonly scope, błędy/obcy właściciel/binding/brak ACK, nieznane bazy, zabezpieczenia eksportu i chmury, RYSUNEK/WYCENA. |
+| `first-sync-error-diagnostics-smoke.js` / `global-consistency-startup-smoke.js` | **9/9 + 6/6 PASS**, pierwszy błąd, anonimowość, granice dostępu i wersjonowanie. |
+| `application-authority-store-smoke.js` / `business-project-contract-smoke.js` / `application-replication-readiness-smoke.js` | **PASS**, istniejące natywne CAS/quota/SIGKILL oraz kontrakty/routing pozostają. |
+
+W pełnym teście inwestor, projekt, pokój i zapis obsługują rzeczywiste formularze/akcje; szafka jest syntetycznym fixture w rzeczywistym RAM, a WYCENA używa rzeczywistych kalkulatorów. Sieć blokuje natywny CDP przed pierwszym skryptem; serwer dodatkowo zrywa połączenia, więc worker musi użyć kompletnego cache. Nie podmieniono navigatora ani silnika aplikacji. Odtworzone przez Chromium dodatkowe karty wyłącznie tego własnego syntetycznego profilu są zamykane przed przypadkiem jednej karty; osobny przypadek dowodzi odmowy przy drugim kliencie.
+
+Routing automatycznego wykrywania: **201 current smoke / 7 rozłącznych obowiązkowych grup**. Oba Android local smoke oraz normy/room durable należą dokładnie raz do shard **5/7**, offline shell do **7/7**. Nie zmieniono workflow, nie uruchomiono Actions ani pełnego lokalnego Preflightu/emulatorów. Pełne CI pozostaje **CI_PENDING**. Wersje sześciu zmienionych klasycznych skryptów są spójne z HTML; manifest ma **489** publicznych zasobów. Kontrola wersji, składni, manifestu i diffu należy do końcowego przekazania.
+
+W iteracjach były niezaliczone próby fixture (brak oczekiwania na koniec poprzedniej akcji/potwierdzenie dialogu, dodatkowe dokumenty po restarcie), pojedynczy timeout generatora VM 2 s oraz pojedynczy niepotwierdzony cleanup Chromium. Nie uznano ich za PASS, nie zwiększono limitu VM ani nie osłabiono supervisora. Końcowa pełna próba ma exit 0 i potwierdzony cleanup. Wykryte rzeczywiste usterki zimnego startu, granic lokalnego zapisu i journal/sesji naprawiono w opisanej ścieżce.
+
+### Ograniczenia i Pixel po osobno zatwierdzonym wydaniu
+
+- Fizycznego Pixela nie testowano i nie resetowano. Google/owner enrollment w teście jest syntetyczne; zachowujemy istniejącą politykę wcześniejszego zatwierdzenia właściciela. Nowy profil wymaga pierwszego zatwierdzenia online i przygotowanej kompletnej powłoki offline.
+- Wznowienie obejmuje draft **potwierdzony w IndexedDB**. Nie obiecujemy zachowania całego heapu, RAM innych kart ani ostatnich jeszcze niepotwierdzonych zdarzeń przed awarią procesu. Zmiana sieci nie wymusza reload i zachowuje bieżący RAM; istniejący autosave nie kończy sesji użytkownika.
+- Fabryczne ceny startowe/ostrzeżenia pozostają dokładnie takie jak w kodzie. Test podstawowej WYCENY nie potwierdza kompletności cen wszystkich możliwych produktów ani gotowości realnej oferty.
+- Lokalny obraz z nowymi projektami nie ma zdalnego ACK. Zdalne globals, istniejące serwerowe projekty i stare operacje wymagają odrębnego planu/autoryzacji przed synchronizacją; nie wolno automatycznie połączyć lub wysłać tych obrazów. Niczego z Firebase nie odczytano, nie nadpisano ani nie usunięto.
+
+Po wydaniu właściciel wykonuje wyłącznie w istniejącym profilu Pixela:
+
+1. Pobrać nowe wydanie zwykłą bezpieczną ścieżką aktualizacji. Pozostawić jedną kartę Meble-App, zamknąć też kartę aktualizatora. Nie czyścić danych Chrome/witryny i nie korzystać z incognito.
+2. Na ekranie błędu globals otworzyć **„Tryb ratunkowy — kopia LOCAL-FIRST”**, następnie **„Usuń lokalne dane testowe i zacznij od katalogów z kodu”**. Przeczytać i zaakceptować natywne potwierdzenie utraty wszystkich lokalnych testów. Anulowanie niczego nie usuwa.
+3. Zaczekać na **RESET_COMPLETE** i nacisnąć **„Uruchom ponownie”**. Zachowany dowód zaufania pozwala uruchomić kodowe katalogi offline bez nowego logowania/Firebase.
+4. Włączyć tryb samolotowy, utworzyć testowego inwestora/projekt/wycenę, potwierdzić zapis, zamknąć aplikację i otworzyć ponownie w tym samym profilu. Sprawdzić projekt i cenniki. Stan lokalny nie oznacza synchronizacji z komputerem.
+5. Jeśli świadomy reset został rzeczywiście przerwany przed RESET_COMPLETE, panel po kolejnym starcie wymaga ponownego potwierdzenia wznowienia. Inny STOP/Auth/niepełna powłoka wymaga przekazania anonimowego kodu; nie czyścić przeglądarki i nie obchodzić gate.
+
+### Zmienione obszary
+
+Start/store: `js/main-login.js`, `js/app/cloud/application-bootstrap.js`, `sync/application-boot.mjs`, `sync/application-runtime.mjs`, `sync/application-authority.mjs`, `sync/application-replication.mjs`, `sync/application-write-boundary.mjs`. Reset: nowy `sync/application-local-reset.mjs`, istniejące `sync/local-first-recovery-ui.mjs` i `sync/local-first-rescue-snapshot.mjs`. Callbacki: `js/app/investor/investor-room-actions.js`, `js/app/investor/project-autosave.js`, `js/app/ui/wywiad-room-settings.js`; zimny shell: `js/app/cloud/offline-shell.js`. Wersje/manifest: `index.html`, `dev_tests.html`, `tools/script-versions.js`, `offline-assets.js`. Regresje: nowy `tools/android-local-first-browser-smoke.js`, istniejące `tools/android-clean-start-preconditions-smoke.js`, `tools/offline-shell-smoke.js`, `tools/helpers/android-globals-browser-fixture.js`. Dokumentacja: `CURRENT_STATE.md` i ten raport. Bez zmian definicji cen/norm, Service Workera/writer-fence, Rules, IAM, billingu, Firebase LIVE, PR, merge lub Pages.
+
 ## Czysty start Androida — STOP przed resetem — 03.11.2026
 
 Gałąź `fix/android-local-clean-start-20261103`, HEAD wejściowy = zweryfikowany lokalnie i przez `git ls-remote` main/BASE **`93ae98dcd7412a837090a677455abbc173719efb`**. Wynikowy HEAD: jedyny commit zawierający ten wpis, SHA w przekazaniu. **IMPLEMENTATION_STOPPED / RESET_BLOCKED / CI_PENDING / LIVE_BLOCKED**; nie deklarujemy CODE_READY resetu.

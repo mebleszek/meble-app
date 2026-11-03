@@ -6,7 +6,8 @@ import {boundedJson,validateAuthority,validateArchive,refuse,RescueFailure} from
 import {assertRescueReadAccess} from './local-first-rescue-access.mjs';
 const RECEIPT='meble_application_authority_v1',ARCHIVE='meble-business-backups-v1',ROUTE='meble_backup_archive_backend_v1';
 const aliases=new Set(['hardwareSuppliers','hardwareSettings','hardwareCategories','hardwareTypes','hardwareTechnicalParams']);
-const authNames=new Set(['meble-access-profile-v1','meble-device-trust-v1','firebaseLocalStorageDb','firebase-heartbeat-database','firebase-installations-database']);
+// Existing writer-fence coordination is retained, like owner/Auth metadata.
+const authNames=new Set(['meble-application-writer-fence-v1','meble-access-profile-v1','meble-device-trust-v1','firebaseLocalStorageDb','firebase-heartbeat-database','firebase-installations-database']);
 const authKey=k=>/^firebase[:_]/.test(k)||/^meble_access_profile_(?:v1|pending_v1)$/.test(k)||k==='meble_device_trust_fence_v1';
 export async function readRescueSnapshot({window:w,name,ownerUid,readNative,readSession,authorize,verifyOwner,release,readRam,assertQuiescent,allowMissingRam=false}={}){
  let expired=false,timer;const opened=new Set(),transactions=new Set();
@@ -18,7 +19,7 @@ export async function readRescueSnapshot({window:w,name,ownerUid,readNative,read
   access();const names=[];for(let i=0;i<storage.length;i++){const key=storage.key(i);if(typeof key!=='string'||names.includes(key))refuse('RESCUE_STORAGE_INCOMPLETE');names.push(key);}names.sort();
   const rows=[],omitted=[];let units=0;
   for(const key of names){access();if(authKey(key)){omitted.push('AUTH_LOCAL_ONLY');continue;}
-   if(!key.startsWith('fc_')&&!aliases.has(key)&&![RECEIPT,ROUTE].includes(key))refuse('RESCUE_UNKNOWN_STORAGE');
+   if(!key.startsWith('fc_')&&!aliases.has(key)&&![RECEIPT,ROUTE,'meble_local_reset_v1'].includes(key))refuse('RESCUE_UNKNOWN_STORAGE');
    let raw;try{raw=get(key);}catch(_){refuse('RESCUE_STORAGE_UNAVAILABLE');}if(typeof raw!=='string')refuse('RESCUE_STORAGE_INCOMPLETE');units+=raw.length;
    if(units>8*1024*1024)refuse('RESCUE_SIZE_LIMIT');rows.push({key,raw});
   }

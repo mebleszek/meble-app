@@ -84,9 +84,10 @@
 
 
   function createSaveFooter(sectionTitle, onSave){
+    const save=event=>ns.applicationWrite?.localOnly?ns.applicationWrite.handler(()=>onSave(event),'auto')():onSave(event);
     const api = ns.wywiadRoomAccordionActions;
     if(api && typeof api.createSaveFooter === 'function'){
-      return api.createSaveFooter({ sectionTitle, buttonText:'Zapisz zmiany', onSave }).footer;
+      return api.createSaveFooter({ sectionTitle, buttonText:'Zapisz zmiany', onSave:save }).footer;
     }
     const footer = document.createElement('div');
     footer.className = 'wywiad-room-inline-form__footer';
@@ -95,7 +96,7 @@
     saveBtn.className = 'btn btn-success wywiad-room-inline-form__save';
     saveBtn.textContent = 'Zapisz zmiany';
     saveBtn.setAttribute('aria-label', 'Zapisz zmiany — ' + sectionTitle);
-    saveBtn.addEventListener('click', onSave);
+    saveBtn.addEventListener('click', save);
     footer.appendChild(saveBtn);
     return footer;
   }
@@ -162,7 +163,8 @@
 
     box.appendChild(createSaveFooter('Parametry pomieszczenia', ()=>{
       const result = applySettingsValues(room, buildPreviewSettings(inputs));
-      if(result.ok === true) renderSummary(room);
+      if(result.ok === true){if(ns.applicationWrite?.localOnly)ns.applicationWrite.afterCommit(()=>renderSummary(room));else renderSummary(room);}
+      return result;
     }));
 
     refreshPreview();

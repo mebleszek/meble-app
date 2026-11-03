@@ -1,13 +1,13 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),{codeRebuildFixture}=require('./code-rebuild-fixture');
 const root=path.resolve(__dirname,'../..');
-async function androidGlobalsFixture({deployment}={}){
+async function androidGlobalsFixture({deployment,unavailable=()=>false}={}){
  const r=await codeRebuildFixture(),data=r.snapshot,name='meble-lf-test-rebuild-android',uid='synthetic-owner',attempt='12345678-1234-4123-8123-123456789abc';
  data.identity.receipt.name=name;data.local.rows.find(r=>r.key==='meble_application_authority_v1').raw=JSON.stringify(data.identity.receipt);
  data.databases.authority.outbox[0].localVersion=1;
  const html=`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><style>button,input{min-height:44px} [hidden]{display:none!important}</style><div id="main-login"><button id="auth-google">Google</button><p id="auth-status"></p><p id="auth-error" hidden></p><button id="auth-recovery" hidden>Tryb ratunkowy — kopia LOCAL-FIRST</button><section id="auth-profile-admission" hidden><input id="auth-profile-backup" type="checkbox"><input id="auth-profile-owner" type="checkbox"><button id="auth-profile-confirm">Confirm</button><button id="auth-profile-cancel">Cancel</button></section><div id="auth-account" hidden><button id="auth-signout">Logout</button></div></div><div id="main-auth-bar" hidden><input id="main-trust-phone" type="checkbox"><span id="main-trust-status"></span><button id="main-signout">Logout</button></div><button id="auth-theme"></button><template id="business-template"></template><template id="business-styles"></template><script>window.lfReady=true;</script>`;
  const worker=`self.addEventListener('install',e=>e.waitUntil(self.skipWaiting()));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('message',e=>{if(e.data?.type==='VERIFY_APPLICATION_AUTHORITY')e.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(clients=>e.ports[0].postMessage({protocol:1,nonce:e.data.nonce,exclusive:clients.length===1})));});self.addEventListener('fetch',e=>{if(new URL(e.request.url).origin===self.location.origin)e.respondWith(fetch(e.request).then(async r=>{if(r.ok)(await caches.open('synthetic-static')).put(e.request,r.clone());return r;}).catch(async()=>{const r=await caches.match(e.request);return r||Response.error();}));});`;
- const server=http.createServer((req,res)=>{const file=new URL(req.url,'http://localhost').pathname;
+ const server=http.createServer((req,res)=>{if(unavailable()){req.socket.destroy();return;}const file=new URL(req.url,'http://localhost').pathname;
   if(file==='/fixture-host.html'){res.setHeader('content-type','text/html');res.end('<!doctype html><script>window.lfReady=true;</script>');return;}
   if(file==='/fixture-worker.js'){res.setHeader('content-type','text/javascript');res.end(worker);return;}
   if(deployment){
@@ -66,6 +66,6 @@ async function androidGlobalsFixture({deployment}={}){
   await evaluate(await source('js/main-login.js')+'\ntrue');
   for(let i=0;i<200;i++){if(await evaluate(fatal?'document.body.dataset.authState==="error"&&!document.querySelector("#auth-recovery").hidden':'document.body.dataset.businessState==="ready"'))return;if(i===199)throw Error('ANDROID_FATAL_NOT_READY');await new Promise(resolve=>setTimeout(resolve,20));}
  }
- return {base,name,uid,data,setup,close:()=>new Promise(resolve=>server.close(resolve))};
+ return {base,name,uid,data,candidate:r.candidate,setup,close:()=>new Promise(resolve=>server.close(resolve))};
 }
 module.exports={androidGlobalsFixture};

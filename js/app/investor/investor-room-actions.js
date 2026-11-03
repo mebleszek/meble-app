@@ -29,8 +29,8 @@
             const wasDirtyBefore = isSessionDirty();
             const room = await FC.roomRegistry.openAddRoomModal();
             if(room){
-              closeCommittedRoomModalSession(wasDirtyBefore);
-              refresh();
+              const finish=()=>{closeCommittedRoomModalSession(wasDirtyBefore);refresh();return true;};
+              if(FC.applicationWrite?.localOnly)await FC.applicationWrite.auto(finish);else finish();
             }
           }
         }catch(_){ }
