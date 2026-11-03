@@ -139,6 +139,7 @@
    if(!release)demo();if(runtime?.status().state==='active')return runtime;if(starting)return starting;
    recoveryQuiescent=false;stage='opening-runtime';starting=(async()=>{
     for(const file of ['global-data-contract','cloud-pilot-contract','firebase-global-transport'])await import('./'+file+'.js');
+    if(navigator.onLine===false&&context.renewLease)throw Error('AUTH_ACCESS_UNCONFIRMED');
     stage='authorizing-cloud';const connections=navigator.onLine===false?{}:await connect(context);stage='binding-runtime';
     connectionsActive=connections;
     if(runtime){if(navigator.onLine!==false)await runtime.resume(connections);return runtime;}

@@ -67,8 +67,8 @@ const versions = Object.freeze({
 });
 const authVersions=Object.freeze({
   "js/app/cloud/local-access-profile.js": "20261103_android_globals_recovery_v1",
-  "js/app/cloud/application-bootstrap.js": "20261103_android_globals_recovery_v1",
-  "js/main-login.js": "20261103_android_globals_recovery_v1"
+  "js/app/cloud/application-bootstrap.js": "20261103_startup_auth_renew_v1",
+  "js/main-login.js": "20261103_startup_auth_renew_v1"
 });
 function assertHtmlVersions(index, dev){
   const sources=Array.from(index.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi),m=>m[1]);
