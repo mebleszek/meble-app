@@ -1,5 +1,36 @@
 # ANDROID STORAGE RECOVERY + IndexedDB v1 — 25.10.2026
 
+## Czysty start Androida — STOP przed resetem — 03.11.2026
+
+Gałąź `fix/android-local-clean-start-20261103`, HEAD wejściowy = zweryfikowany lokalnie i przez `git ls-remote` main/BASE **`93ae98dcd7412a837090a677455abbc173719efb`**. Wynikowy HEAD: jedyny commit zawierający ten wpis, SHA w przekazaniu. **IMPLEMENTATION_STOPPED / RESET_BLOCKED / CI_PENDING / LIVE_BLOCKED**; nie deklarujemy CODE_READY resetu.
+
+Nowa wyraźna zgoda właściciela obejmuje utratę **wszystkich lokalnych danych testowych Meble-App na Pixelu**, w tym katalogów/aliasów, projektów, inwestorów, backupów i kolejki offline. Dla tego konkretnego resetu brak BACKUP_PASS nie jest blokerem. Zgoda nie obejmuje danych Firebase, innych witryn ani całego profilu Chrome. Nie zmienia historycznej polityki bezstratnej naprawy dla pozostałych danych/urządzeń.
+
+### Konkretny bloker obecnego startu
+
+1. `sync/application-runtime.mjs:17`: bez writera i bez odtworzonego istniejącego obrazu startup odmawia `LF_ONLINE_INSTALLATION_REQUIRED`. Po usunięciu obrazu/receipt nie wystarczy przejście offline.
+2. `sync/application-runtime.mjs:72` i nast.: przy braku lokalnej repliki globals runtime odczytuje zdalny kanał. Przy świeżej produkcyjnej instalacji przyjmuje zdalny zestaw; w pozostałych przypadkach porównuje go z lokalnym i może odmówić `LF_INITIAL_GLOBAL_CONFLICT`. `projectApplicationRows()` waliduje, lecz nie wymaga tożsamości przyjmowanego zestawu z definicjami fabrycznymi. Poprawna strukturalnie inna cena może więc zastąpić cenę z kodu. Niepoprawny schemat nadal odmawia startu.
+3. Gdy serwer odpowie `GLOBAL_NOT_FOUND`, ten sam runtime wykonuje `store.commit()` i potem `sync.flush()`. To tworzy queued globals do publikacji; zgoda na lokalne kasowanie nie upoważnia do tej zmiany Firebase. Nie twierdzimy, że rzeczywisty serwer jest pusty lub uszkodzony — jego stan pozostaje **NIEZNANY**, bez LIVE READ/WRITE.
+4. Samo zatrzymanie połączenia nie daje działającej pustej aplikacji z pierwszym projektem: `ensureEditor()` wymaga kanału/edytora, a `createApplicationCommitter()` wymaga kanału projektu i potwierdzonych globalnych zależności. Nie wolno wymyślić serwerowego head/ACK ani oznaczyć danych jako zsynchronizowane. Zmiana tych zasad w nowy tryb lokalny wykracza poza zlecony minimalny reset bez przebudowy synchronizacji.
+
+**STOP następuje przed skasowaniem danych.** Nie dodano częściowego/destrukcyjnego resetu ani przycisku, nie zmieniono produktu, Auth, SW, writer-fence, runtime ani synchronizacji. Nie wykonano żadnej operacji na Pixelu/Firebase. Obecna odczytowa capability recovery nadal nie daje prawa WRITE. Nie przedstawiamy istniejącej odmowy offline jako nowego zabezpieczenia działającego online — połączenie online zachowuje dotychczasową politykę. Zablokowana jest realizacja nowego resetu, nie istniejąca aplikacja.
+
+### Celowane dowody i granice
+
+Node **24.19.0**, rzeczywisty Chromium **151.0.7922.173**, wyłącznie syntetyczne dane w jednorazowym profilu:
+
+- `node tools/android-clean-start-preconditions-smoke.js` — **3 grupy PASS**. Istniejący fixture Androida zawiera dokładnie materials INVALID_SCHEMA, labor DIFFERENT, pięć ONE_MISSING, cztery SOURCE_MISSING oraz niepewny outbox. Fatal i wejście rescue pochodzą z wydanego main/profile/boot i istniejącej syntetycznej granicy błędu loader/runtime. Następnie **rzeczywisty** `startApplicationRuntime()` odmawia pustego startu bez writera. Native RAW i wszystkie cztery store pierwotnej bazy pozostają identyczne. Rzeczywisty `projectApplicationRows()` przyjmuje poprawną inną cenę labor (różnica 12.125 bez zaokrąglania), odmawia materials bez priceUnit. Rzeczywisty committer i transakcje IDB w **oddzielnej syntetycznej bazie** tworzą queued globals bez potwierdzonego head i odmawiają pierwszego kanału projektu. Nie wykonywano flush/SDK/serwera; dowód skutków publikacji wynika z jawnego wywołania flush w istniejącym runtime, nie z próby LIVE.
+- `node tools/code-global-catalogs-smoke.js` — **7/7 PASS**: deterministyczny generator, pełne 14 domen, validateBundle, kontrakty runtime, neutralna firma/defaults, dokładne ceny/ID/normy/zamienniki, kalkulatory oraz podstawowa WYCENA istniejących szafek. Nie oznacza wykonania resetu ani pełnego startu czystej instalacji.
+- Oba testy są automatycznie wykrywane dokładnie raz w obowiązkowym Preflight shard **5/7**; plan **200 smoke / 7 rozłącznych grup**, bez zmian workflow. Sprawdzono routing, składnię nowego testu i diff. Manifest/wersje nie wymagają zmiany — nie zmieniono zasobów aplikacji.
+
+Nie wykonano i **nie zaliczono**: reset → pełny startup → WYCENA w nowej sesji, świadoma odmowa resetu, przerwanie/restart resetu, test fizycznego telefonu, pełne CI/Actions. Nie istnieje wykonawca resetu, więc testy te nie miały bezpiecznej ścieżki produktu. Nie powtarzano audytu ani wcześniejszych zestawów CI.
+
+### Jeden następny ruch i instrukcja Pixela
+
+Wymagana decyzja właściciela o polityce startu wobec zdalnego stanu: albo osobno zatwierdzony lokalny start z zasadami pierwszego projektu bez synchronizacji, albo użycie istniejących zdalnych globals po zatwierdzonej weryfikacji zgodności. Żaden wariant nie oznacza zgody na usuwanie/nadpisanie Firebase. Nie implementowano żadnego z nich w zastępstwie resetu.
+
+**Czynność na Pixelu po tym pakiecie: żadna operacja resetu nie jest dostępna. Nie czyścić danych witryny ani Chrome ręcznie.** Wydanie samego dowodu STOP nie przywróci startu; najpierw należy rozstrzygnąć powyższy konkretny warunek. Właściciel nie musi ponownie udzielać zgody na utratę wskazanych lokalnych danych testowych.
+
 
 ## Korekta przed wydaniem — 25.10.2026
 
