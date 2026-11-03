@@ -3,15 +3,15 @@ import {assertApplicationRelease} from './application-release.mjs';
 import {verifyExclusiveClient} from './application-installation.mjs';
 import {id,equal} from './local-first-values.mjs';
 import {boundedJson,validateAuthority,validateArchive,refuse,RescueFailure} from './local-first-rescue-state.mjs';
+import {assertRescueReadAccess} from './local-first-rescue-access.mjs';
 const RECEIPT='meble_application_authority_v1',ARCHIVE='meble-business-backups-v1',ROUTE='meble_backup_archive_backend_v1';
 const aliases=new Set(['hardwareSuppliers','hardwareSettings','hardwareCategories','hardwareTypes','hardwareTechnicalParams']);
 const authNames=new Set(['meble-access-profile-v1','meble-device-trust-v1','firebaseLocalStorageDb','firebase-heartbeat-database','firebase-installations-database']);
 const authKey=k=>/^firebase[:_]/.test(k)||/^meble_access_profile_(?:v1|pending_v1)$/.test(k)||k==='meble_device_trust_fence_v1';
-export async function readRescueSnapshot({window:w,name,ownerUid,readNative,authorize,release,readRam,assertQuiescent,allowMissingRam=false}={}){
+export async function readRescueSnapshot({window:w,name,ownerUid,readNative,readSession,authorize,verifyOwner,release,readRam,assertQuiescent,allowMissingRam=false}={}){
  let expired=false,timer;const opened=new Set(),transactions=new Set();
  const access=()=>{if(expired)refuse('RESCUE_TIMEOUT');try{
-  const d=Object.getOwnPropertyDescriptor(w,'__FC_MAIN_ACCESS__');if(!d||d.writable!==false||d.configurable!==false||d.value.isValid()!==true)throw Error();
-  d.value.assert();authorize();assertQuiescent();
+  assertRescueReadAccess(w);authorize();assertQuiescent();
  }catch(_){refuse('RESCUE_AUTH_OR_BUSY');}};
  const close=()=>{for(const tx of transactions)try{tx.abort();}catch(_){}for(const db of opened)db.close();};
  function storage(storage,get){
@@ -25,7 +25,7 @@ export async function readRescueSnapshot({window:w,name,ownerUid,readNative,auth
   if(storage.length!==names.length)refuse('RESCUE_SOURCE_CHANGED');return {rows,omitted};
  }
  function current(){
-  const local=storage(w.localStorage,readNative),session=storage(w.sessionStorage,k=>w.sessionStorage.getItem(k));
+  const local=storage(w.localStorage,readNative),session=storage(w.sessionStorage,readSession||(k=>w.sessionStorage.getItem(k)));
   let ram;try{ram=readRam();}catch(_){if(!allowMissingRam)refuse('RESCUE_RAM_UNAVAILABLE');}
   if(ram?.available!==true||ram.scope!=='CURRENT_DOCUMENT_KNOWN_BUSINESS_RAM'||!ram.data||typeof ram.data!=='object'){
    if(!allowMissingRam)refuse('RESCUE_RAM_UNAVAILABLE');ram={available:false,scope:'CURRENT_DOCUMENT_KNOWN_BUSINESS_RAM',data:null};
@@ -51,6 +51,7 @@ export async function readRescueSnapshot({window:w,name,ownerUid,readNative,auth
  }
  async function work(){
   if([readNative,authorize,readRam,assertQuiescent].some(f=>typeof f!=='function'))refuse('RESCUE_CONTEXT_REQUIRED');access();
+  if(verifyOwner)await verifyOwner();access();
   if(release){try{assertApplicationRelease(release,{ownerUid,name,window:w});}catch(_){refuse('RESCUE_RELEASE_INVALID');}}
   else if(!['localhost','127.0.0.1'].includes(w.location.hostname)||!/^meble-lf-test-[A-Za-z0-9_-]{1,100}$/.test(name||''))refuse('RESCUE_RELEASE_INVALID');
   try{await verifyExclusiveClient(w);}catch(_){refuse('RESCUE_OTHER_CLIENT');}access();
@@ -74,6 +75,7 @@ export async function readRescueSnapshot({window:w,name,ownerUid,readNative,auth
   const databases=await capture();boundedJson(databases);const second=await capture();
   if(!equal(databases,second)||!equal(names,await inventory())||!equal(first,current()))refuse('RESCUE_SOURCE_CHANGED');
   try{await verifyExclusiveClient(w);}catch(_){refuse('RESCUE_OTHER_CLIENT');}access();
+  if(verifyOwner)await verifyOwner();access();
   return {version:1,local:first.local,session:first.session,ram:first.ram,databases,identity:{receipt,activationId:activation},
    limitations:{otherTabsRam:false,entireHeap:false,cloudBackupConfirmed:false,authorizationRestorable:false,scope:'CURRENT_DOCUMENT_NATIVE_AND_LOCAL_FIRST'}};
  }

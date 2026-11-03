@@ -28,6 +28,9 @@
     return {durable:true};
   }
   function open(){
+    if(FC.applicationStartup?.hasLocalFirst?.()){
+      void FC.applicationStartup.openLocalFirstRecovery().catch(()=>FC.infoBox?.open({title:'Tryb ratunkowy',message:'STOP — nie potwierdzono bezczynności aplikacji lub dostępu właściciela. Dane nie zostały zmienione.'}));return true;
+    }
     try{F().access();}catch(_){return false;}
     close();FC.infoBox.close();
     const overlay=element('div');overlay.setAttribute('data-storage-recovery','');

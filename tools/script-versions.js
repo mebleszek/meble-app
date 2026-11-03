@@ -28,8 +28,9 @@ const versions = Object.freeze({
   "js/app/investor/investor-project-runtime.js": "20261031_historical_owner_v1",
   "js/app/investor/investor-project-patches.js": "20261025_empty_installation_v1",
   "js/app/shared/backup-archive-idb.js": "20261025_archive_lifecycle_v1",
-  "js/app/shared/storage-recovery-export.js": "20261102_local_first_rescue_v1",
-  "js/app/ui/storage-recovery-panel.js": "20261025_archive_lifecycle_v1",
+  "js/app/shared/storage-recovery-export.js": "20261103_android_globals_recovery_v1",
+  "js/app/settings/company-profile-store.js": "20261102_neutral_code_rebuild_v1",
+  "js/app/ui/storage-recovery-panel.js": "20261103_android_globals_recovery_v1",
   "js/app/ui/info-box.js": "20261025_storage_recovery_repair_v1",
 
   "js/app/wycena/wycena-summary-details-modal.js": "20261024_session_quota_exact_v1",
@@ -64,7 +65,14 @@ const versions = Object.freeze({
   "js/app/wycena/wycena-diagnostics.js":"20261019_project_context",
   "js/app/wycena/wycena-tab-shell.js":"20261101_one_app_v1"
 });
+const authVersions=Object.freeze({
+  "js/app/cloud/local-access-profile.js": "20261103_android_globals_recovery_v1",
+  "js/app/cloud/application-bootstrap.js": "20261103_android_globals_recovery_v1",
+  "js/main-login.js": "20261103_android_globals_recovery_v1"
+});
 function assertHtmlVersions(index, dev){
+  const sources=Array.from(index.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi),m=>m[1]);
+  for(const [file,version]of Object.entries(authVersions))assert.deepEqual(sources.filter(src=>src.split("?")[0]===file),[file+"?v="+version],"Exact Auth entry version");
   for(const [file, expected] of Object.entries(versions)){
     for(const [label, html] of [['index.html',index],['dev_tests.html',dev]]){
       const sources = Array.from(html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi), m=>m[1]);
@@ -79,4 +87,4 @@ function assertVersions(root, apiVersion){
   assert.equal(source.match(/const VERSION = '([^']+)'/)?.[1],DERIVED_VERSION,'derivedFacts source version');
   if(apiVersion !== undefined) assert.equal(apiVersion,DERIVED_VERSION,'derivedFacts API version');
 }
-module.exports={versions,DERIVED_VERSION,assertVersions,assertHtmlVersions};
+module.exports={authVersions,versions,DERIVED_VERSION,assertVersions,assertHtmlVersions};

@@ -4,13 +4,20 @@ import {boundedJson,rescueManifest,refuse,RescueFailure} from './local-first-res
 import {analyzeRescue,simulateRescueCandidate} from './local-first-rescue-analysis.mjs';
 import {equal} from './local-first-values.mjs';
 import {readCurrentBusinessRam} from './local-first-rescue-ram.mjs';
+import {assertRescueReadAccess} from './local-first-rescue-access.mjs';
+import {planCodeGlobalRebuild,assertCodeRebuildBaseline} from './global-code-rebuild-plan.mjs';
+const backupPlans=new WeakMap();
+export async function assertRescueBackupPlan(plan,w){
+ const p=backupPlans.get(plan);if(!p||p.w!==w)refuse('RESCUE_VERIFIED_FILE_REQUIRED');p.guard();
+ await assertCodeRebuildBaseline(plan,await p.snapshot());p.guard();return {verified:true,fileHash:p.receipt.fileHash};
+}
 export function createLocalFirstRescue(context){
  context={...context,readRam:context.readRam||(()=>readCurrentBusinessRam(context.window))};
  const w=context.window,codec=w.FC.storageRecoveryExport?.privateCodec,F=w.FC.backupArchiveFormat;
  if(!codec||!F)refuse('RESCUE_CODEC_REQUIRED');
  const prepared=new WeakMap(),verified=new WeakMap();
  const snapshot=(allowMissingRam=false)=>readRescueSnapshot({...context,allowMissingRam});
- const guard=()=>{try{const d=Object.getOwnPropertyDescriptor(w,'__FC_MAIN_ACCESS__');if(!d||d.writable!==false||d.configurable!==false||d.value.isValid()!==true)throw Error();d.value.assert();context.authorize();context.assertQuiescent();}catch(_){refuse('RESCUE_AUTH_OR_BUSY');}};
+ const guard=()=>{try{assertRescueReadAccess(w);context.authorize();context.assertQuiescent();}catch(_){refuse('RESCUE_AUTH_OR_BUSY');}};
  async function safe(operation){try{return await operation();}catch(error){throw error instanceof RescueFailure?error:new RescueFailure('RESCUE_OPERATION_FAILED');}}
  function selected(input,event){
   guard();const getter=Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype,'files')?.get;
@@ -54,6 +61,12 @@ export function createLocalFirstRescue(context){
   });},
   analyzePrivate(receipt){guard();const data=verified.get(receipt);if(!data)refuse('RESCUE_VERIFIED_FILE_REQUIRED');return analyzeRescue(data,w.FC.globalDataContract,w.FC.globalDataDiagnostics);},
   simulate(receipt,explicitCandidate){guard();if(!verified.has(receipt))refuse('RESCUE_VERIFIED_FILE_REQUIRED');return simulateRescueCandidate(explicitCandidate,w.FC.globalDataContract);},
+  async planRebuild(receipt,candidate){return safe(async()=>{
+   guard();const data=verified.get(receipt);if(!data||receipt.status!=='BACKUP_PASS')refuse('RESCUE_VERIFIED_FILE_REQUIRED');
+   if(!equal(data,await snapshot()))refuse('RESCUE_SOURCE_CHANGED');
+   const plan=await planCodeGlobalRebuild({candidate,snapshot:data,contract:w.FC.globalDataContract,diagnostics:w.FC.globalDataDiagnostics});guard();
+   backupPlans.set(plan,{w,guard,snapshot,receipt});return plan;
+  });},
   summary(receipt){guard();if(!verified.has(receipt))refuse('RESCUE_VERIFIED_FILE_REQUIRED');return {status:receipt.status,repair:'REPAIR_BLOCKED',completeWithinScope:receipt.completeWithinScope,otherTabsRam:false,entireHeap:false,cloudBackupConfirmed:false};}
  });
 }

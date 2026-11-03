@@ -50,18 +50,19 @@
     const source = src && typeof src === 'object' ? src : {};
     const def = DEFAULT_COMPANY_PROFILE.company;
     return {
-      displayName:text(source.displayName || def.displayName),
-      legalName:text(source.legalName || def.legalName),
-      ownerName:text(source.ownerName || def.ownerName),
-      nip:text(source.nip || def.nip),
-      regon:text(source.regon || def.regon),
-      addressLine:text(source.addressLine || def.addressLine),
-      postalCode:text(source.postalCode || def.postalCode),
-      city:text(source.city || def.city),
-      country:text(source.country || def.country),
-      phone:text(source.phone || def.phone),
-      email:text(source.email || def.email),
-      website:text(source.website || def.website),
+      // Explicit empty fields are a neutral profile, never another firm's data.
+      displayName:text(source.displayName ?? def.displayName),
+      legalName:text(source.legalName ?? def.legalName),
+      ownerName:text(source.ownerName ?? def.ownerName),
+      nip:text(source.nip ?? def.nip),
+      regon:text(source.regon ?? def.regon),
+      addressLine:text(source.addressLine ?? def.addressLine),
+      postalCode:text(source.postalCode ?? def.postalCode),
+      city:text(source.city ?? def.city),
+      country:text(source.country ?? def.country),
+      phone:text(source.phone ?? def.phone),
+      email:text(source.email ?? def.email),
+      website:text(source.website ?? def.website),
       notes:text(source.notes || '')
     };
   }

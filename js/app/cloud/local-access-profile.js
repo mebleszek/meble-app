@@ -153,6 +153,14 @@
     }
     return {
       binding(){if(!verified)fail('LOCAL_ACCESS_UNCONFIRMED');authorize(verified.uid);return {uid:verified.uid,attemptId:verified.attemptId};},
+      async verifyExistingReadOnly(uid,attemptId){
+        // Recovery never creates a DB, activates a reservation or restores the
+        // revoked business admission. Only the already-open owner DB is read.
+        if(!database)fail('LOCAL_ACCESS_UNCONFIRMED');
+        const check=operation(uid),current=await transact(uid,check,'readonly',()=>{});check();
+        validateActive(uid,current);if(current.attemptId!==attemptId)fail('LOCAL_ACCESS_UNCONFIRMED');
+        return true;
+      },
       async resume(uid,attemptId){
         verified=null;const check=operation(uid),current=await transact(uid,check,'readonly',()=>{});check();
         validateActive(uid,current);
