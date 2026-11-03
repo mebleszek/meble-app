@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const {androidGlobalsFixture}=require('./helpers/android-globals-browser-fixture');
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));let phase='SETUP';
-(async()=>{
+async function recoveryBrowser(){
  const {openBrowserDevice}=await import('./helpers/local-first-browser.mjs'),dir=fs.mkdtempSync(path.join(os.tmpdir(),'meble-android-recovery-')),profile=path.join(dir,'profile'),downloads=path.join(dir,'downloads');fs.mkdirSync(downloads);
  const server=await androidGlobalsFixture();let browser;
  async function extraPages(){const {targetInfos}=await browser.send('Target.getTargets');for(const t of targetInfos)if(t.type==='page'&&t.targetId!==browser.targetId)await browser.send('Target.closeTarget',{targetId:t.targetId});}
@@ -35,4 +35,8 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));let phase='SETUP';
   phase='RESTART_LOST_RAM';await browser.gracefulClose();browser=await openBrowserDevice(server,profile);await extraPages();await server.setup(browser,{ram:false});await panel();await browser.evaluate(`document.querySelector('input[type=password]').value=${JSON.stringify(password)};true`);await choose(file);assert.equal(await status(['FILE_VERIFIED_STALE','BACKUP_PASS','BLOCKED']),'FILE_VERIFIED_STALE');assert.deepEqual(await browser.evaluate('fixtureSnapshot()'),before);
   console.log('PASS Android Chromium: restart independently reads the saved disk file, lost RAM yields FILE_VERIFIED_STALE and cannot create a repair plan; native RAW/all four IDB stores/uncertain ACK unchanged');
  }finally{try{await browser?.close();}finally{await server.close();fs.rmSync(dir,{recursive:true,force:true});}}
+}
+(async()=>{
+ if(!process.argv.includes('--update-only'))await recoveryBrowser();
+ await require('./helpers/android-globals-update-browser').main();
 })().catch(error=>{console.error(phase+': '+(error.code==='ERR_ASSERTION'?error.message:error.code||error.message||'ANDROID_RECOVERY_TEST_FAILED'));process.exitCode=1;});
