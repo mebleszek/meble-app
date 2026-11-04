@@ -3,6 +3,7 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
+  "js/app/cabinet/cabinet-modal-finalize.js":"20261104_cabinet_transaction_v1",
   "js/app/ui/wywiad-room-settings.js":"20261103_local_first_start_v1",
   "js/app/investor/project-autosave.js":"20261103_local_first_start_v1",
   "js/app/investor/investor-room-actions.js":"20261103_local_first_start_v1",

@@ -138,7 +138,10 @@
       else finalizeEditedCabinet(room, draft, cabinetModalState && cabinetModalState.editingId);
 
       persistProjectAndUi();
-      if(typeof renderCabinetsFn === 'function') renderCabinetsFn();
+      if(typeof renderCabinetsFn === 'function'){
+        if(ns.applicationWrite?.localOnly) ns.applicationWrite.afterCommit(renderCabinetsFn);
+        else renderCabinetsFn();
+      }
 
       const afterCount = (projectData[room].cabinets || []).length;
       if(isAddMode() && afterCount <= beforeCount){
@@ -146,7 +149,10 @@
         return false;
       }
 
-      if(typeof closeFn === 'function') closeFn();
+      if(typeof closeFn === 'function'){
+        if(ns.applicationWrite?.localOnly) ns.applicationWrite.afterCommit(closeFn);
+        else closeFn();
+      }
       return true;
     }catch(err){
       try{ console.error('Błąd zapisu szafki:', err); }catch(_){ }
@@ -177,7 +183,8 @@
   function bindTopSaveButton(ctx){
     const btn = document.getElementById('cabinetModalSave');
     if(!btn) return null;
-    btn.onclick = function(e){ return handleTopSaveClick(e, ctx || {}); };
+    const save = function(e){ return handleTopSaveClick(e, ctx || {}); };
+    btn.onclick = ns.applicationWrite?.localOnly ? ns.applicationWrite.projectHandler(save) : save;
     return btn;
   }
 

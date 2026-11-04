@@ -1,5 +1,42 @@
 # ANDROID STORAGE RECOVERY + IndexedDB v1 — 25.10.2026
 
+## Kolejne szafki — sesja LOCAL-FIRST — 04.11.2026
+
+Gałąź `fix/android-cabinet-session-20261104`, BASE/main **`8952d97f4b8bff28a1207c31abbcfd47dba934fa`**, sprawdzony git/remote. Jeden commit/push zawierający wpis, wynikowy HEAD w przekazaniu. **Poprawka lokalna CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING; pełny cel synchronizacji LIVE nadal SYNC_BLOCKED.** Nie przedstawiamy całego nowego zlecenia jako zakończonego.
+
+### Błąd i dowód naprawy lokalnej
+
+Właściciel po wydaniu PR #111 potwierdził działający start, fabryczne cenniki i brak usuniętych testowych inwestorów. Następnie: inwestor/pomieszczenie/pierwsza szafka, odmowa następnej; restart pozwala na kolejną, potem problem wraca. Anonimowy raport: `SESSION_STORAGE_WRITE_FAILED`, brak payloadu sesji i durable=false, RAM istnieje, runtime ready. Brak fizycznych RAW katalogów po świadomym resecie jest oczekiwany, aktywne katalogi są w obrazie IndexedDB; pojedyncze aliasy są dopuszczone. Nie zdiagnozowano quota ani konieczności nowego resetu. Pełnego raportu właściciela, jego RAW i danych nie zapisano w repo ani testach.
+
+Rzeczywisty `cabinet-modal-finalize.bindTopSaveButton()` przypisywał zwykły synchroniczny onclick. `session.begin()` i `project.save()` trafiały poza `application-authority.transaction()`, gdzie guard wymaga mutacji wewnątrz transakcji. Sesja mapuje ten wyjątek na zamknięty kod `SESSION_STORAGE_WRITE_FAILED`; legacy project.save może otworzyć okno niepotwierdzonego zapisu. Potwierdzono mechanizm na rzeczywistych session/authority z syntetycznym checkpointem w pamięci; to nie test IDB. Osobno rozszerzony rzeczywisty Chromium na BASE odtworzył okno „Nie udało się zapisać projektu” i zablokowanie następnego dodawania.
+
+Jedyny zmieniony moduł produkcyjny: `js/app/cabinet/cabinet-modal-finalize.js`. W localOnly istniejący przycisk jest podłączony do istniejącego `applicationWrite.projectHandler`, z tymi samymi owner/editor/fence/CAS i walidatorami. Odświeżenie listy i zamknięcie formularza są odroczone przez istniejące afterCommit. Nie ma nowego silnika, API przechowywania, osłabienia guardu ani zmiany logiki cen, geometrii/frontów lub widoku. Ścieżka bez localOnly zachowuje poprzedni kontrakt.
+
+### Faktyczne testy
+
+Node **24.19.0**, Chromium **151.0.7922.173**, wyłącznie syntetyczne profile/dane:
+
+- `android-local-first-browser-smoke.js`: **9 grup PASS, exit 0**. Zachowane wcześniejsze scenariusze resetu, drugiej karty, przerwania, obcej bazy i starego PENDING. Syntetyczne wstawianie szafki do RAM zastąpiono **trzema szafkami przez rzeczywiste kontrolki formularza bez zamykania aplikacji**; odrębne ID pozostają po dwóch restartach offline. Realna edycja 61/62 zachowuje zgodną geometrię frontów. Wymuszony abort czwartej operacji zachowuje formularz/wartość/RAM/native RAW/wszystkie cztery store; nie ma przedwczesnego zamknięcia lub potwierdzenia. Potem rzeczywisty Zapisz, brak rozbieżności RAM/obrazu, WYCENA, zimne wznowienie, draft i Anuluj. Katalogi z kodu/14 domen, obca baza i brak starych aliasów zachowane. Zero żądań chmury, brak fikcyjnych ACK/replik/outboxu.
+- `pcv-ram-quote-save-regression-smoke.js`: **12/12 PASS**, powtarzane dodawanie/edycja, ceny i frozen historia, RAM, odmowy zapisu/readback, obcy projekt i wycena niepotwierdzonego modelu.
+- `drawer-front-geometry-smoke.js`: **18/18 PASS**, WYCENA/MATERIAŁ/ROZRYS, jednostki i ceny, prawdziwa geometria frontów, odmowy przed mutacją, trwały Save i scoped Cancel.
+- Składnia, kanoniczne wersje, manifest **489 zasobów** i routing **201 smoke / 7 rozłącznych obowiązkowych grup** PASS. Native browser **5/7**, PCV/RAM **6/7**, geometria **4/7**, każdy dokładnie raz. Workflow bez zmian; pełnego CI, emulatorów ani Actions nie uruchomiono.
+
+Pierwszy przebieg BASE miał oczekiwany FAIL na formularzu. Po poprawce test ujawnił dwie własne luki: zbyt szybki kolejny gest przed końcem istniejącej blokady anty-powtórzeniowej 800 ms oraz bezpośrednią zmianę szerokości w RAM bez regeneracji frontów. Teraz test oczekuje rzeczywistego odblokowania akcji, używa formularza również do edycji oraz czeka na pełne potwierdzenie zapisu. Nie zwiększono timeoutów ani nie osłabiono walidatora/ujemnych asercji. Tylko końcowe pełne wykonanie ma PASS powyżej.
+
+### Konkretny STOP dla pełnego celu synchronizacji LIVE
+
+To nie ogólny audyt ani powrót do operatora CLOUD-4.6. Istnieją trzy bezpośrednie blokery aktualnej ścieżki:
+
+1. `application-bootstrap.js` konfiguruje produkcję jako localOnly, pomija connect oraz refresh. `application-runtime.mjs` odmawia writer/reader w takim trybie (`LF_LOCAL_MODE_REQUIRED`) i dołączenia synchronizacji przez lokalne resume (`LF_LOCAL_SYNC_NOT_AUTHORIZED`). Potrzebne jest kontrolowane przejście **tego samego** obrazu/store do istniejącej replikacji po autoryzacji; samo przestawienie flagi nie zachowuje lokalnego startu niezależnego od chmury.
+2. `application-replication.mjs` potwierdza lokalny commit bez replik/outboxu i z cloudConfirmed=false. Nowe dane Pixela nie mają przez to bazowej zdalnej rewizji, pinów globals ani edytora serwerowego. Start cloud może przyjąć remote globals dla świeżej instalacji, zasiać puste remote lub odmówić `LF_INITIAL_GLOBAL_CONFLICT` / `LF_INITIAL_PROJECT_CONFLICT`. Podłączenie musi najpierw porównać lokalny snapshot/CAS z niezależnie potwierdzonymi headami, zachować różnice i nie powtarzać niepewnych ACK. Nie wolno automatycznie wybrać fabrycznego albo zdalnego cennika.
+3. `application-sync-grant.mjs` wymaga tej samej tożsamości i serwerowego `syncAccess/{owner}` zgodnego z podpisanym activationId. Nie sprawdzano obecnego grantu, Rules ani danych Firebase LIVE. Brak świeżego dowodu nie jest stwierdzeniem odmowy serwera; nieznanego stanu nie zastępujemy fikcyjnym ACK. Do odczytu/publikacji danych produkcyjnych potrzebna jest osobna, konkretna zgoda właściciela.
+
+**Następny wymagany dowód:** w aktualnym kontekście właściciela potwierdzić read-only admission i nagłówki/rejestr rewizji zdalnych globals/projektów, bez udostępniania RAW lub cen. Następnie wykonać kontrolowane podłączenie istniejącego obrazu i test dwóch urządzeń na syntetycznym backendzie, z lokalnym startem niezależnym od sieci, porównaniem konfliktów, trwałym outboxem i niezależnym ACK. Istniejący gotowy transport i testy należy wykorzystać; nie wdrażać nowego silnika. Zlecenie naprawy kodu nie jest w tym pakiecie zgodą na produkcyjne READ/WRITE, Rules, kasowanie starej chmury ani wysłanie nowych danych Pixela. Nie implementowano pozornej automatycznej aktywacji LIVE.
+
+### Przekazanie i granice
+
+Zmienione pliki: jeden moduł formularza, jego wersja `20261104_cabinet_transaction_v1` w `index.html`, `dev_tests.html`, `tools/script-versions.js`, `offline-assets.js`, rozszerzony istniejący browser smoke oraz `CURRENT_STATE.md` i ten raport. Gałęzi wydawanego PR #111 nie ruszano. Bez zmian Auth, writer-fence, Service Workera, synchronizatora, Rules, cenników i norm. Bez PR/Actions/merge/Pages, Firebase LIVE i operacji na telefonie. Poprawka nie daje dowodu zabezpieczenia RAM w już otwartym starym dokumencie; aktualizacja dopiero po świadomym rozstrzygnięciu niepotwierdzonej pracy. Fizyczny test nowego formularza i pełna synchronizacja pozostają niewykonane.
+
 ## Reset Androida — RESCUE_UNKNOWN_DATABASE — 03.11.2026
 
 Gałąź `fix/android-reset-unknown-idb-20261104`, BASE/main **`b033f76facc409fce7ef03bf15f70a74f34b3321`**, zweryfikowany przez git/remote. Jeden commit/push zawierający ten wpis; wynikowy HEAD w przekazaniu. **CODE_READY / CI_PENDING / PHONE_PENDING / SYNC_BLOCKED**. Ten rozdział aktualizuje wcześniejsze stwierdzenie, że nieznana baza blokuje także świadomy reset; kontrakt pełnych kopii pozostaje bez zmian.
