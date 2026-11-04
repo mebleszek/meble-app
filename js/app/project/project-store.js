@@ -61,6 +61,14 @@
     try{
       const current = JSON.parse(localStorage.getItem(PROJECTS_KEY) || '[]');
       if(!Array.isArray(current)) return null;
+      if(FC.applicationWrite?.localOnly && options?.projectRecord){
+        // A single-record upsert must not rewrite normalized views of other RAW.
+        for(let i=0;i<persisted.length;i++){
+          const row=persisted[i],before=current.find(item=>item && item.id===row.id);
+          if(before && row.id!==options.projectRecord.id
+            && JSON.stringify(normalizeRecord(before))===JSON.stringify(normalizeRecord(row)))persisted[i]=before;
+        }
+      }
       const session = FC.session;
       if(session && session.canSaveProject){
         const before = current.find(row=>row && String(row.id) === session.projectId);
