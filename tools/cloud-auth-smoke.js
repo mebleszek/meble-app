@@ -157,6 +157,15 @@ test('A previously server-marked snapshot cannot replace a new transactional Rul
  assert.equal((await verifier.verify(auth.identity())).ok,true);revoked=true;
  assert.equal((await verifier.verify(auth.identity())).ok,false);assert.equal(transactions,2);await verifier.close();await auth.close();
 });
+test('A background verifier closes its watches without terminating the shared Auth application database',async()=>{
+ for(const retainConnection of [false,true]){
+  const {s,fake,auth}=await instance();fake.emit('synthetic-shared-db');let terminated=0;
+  auth.verificationContext=()=>({app:{options:{projectId:'mebleszek-meble-app'}},auth:{currentUser:{uid:'synthetic-shared-db'}},target:'live-auth'});
+  const snapshot={metadata:{fromCache:false,hasPendingWrites:false},exists:()=>true,id:'synthetic-shared-db',data:()=>({schemaVersion:1})};
+  const verifier=s.FC.cloudAccessVerifier.create(auth,{retainConnection,sdk:{initializeFirestore:()=>({}),memoryLocalCache:()=>({}),doc:()=>({}),getDocFromServer:async()=>snapshot,runTransaction:async(_,fn)=>fn({get:async()=>snapshot}),terminate:async()=>{terminated++;}}});
+  assert.equal((await verifier.verify(auth.identity())).ok,true);await verifier.close();assert.equal(terminated,retainConnection?0:1);await assert.rejects(verifier.verify(auth.identity()));await auth.close();
+ }
+});
 async function main(){for(const [name,fn]of tests){await fn();console.log('PASS '+name);}console.log('Auth opt-in and prepared gate: '+tests.length+'/'+tests.length+' PASS');}
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});
 module.exports={runtime};

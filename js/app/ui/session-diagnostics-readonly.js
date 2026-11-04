@@ -92,6 +92,7 @@ function pixelSessionReadonly(w,options){
       if(diagnostic)report.localFirst={status:diagnostic.status,stage:diagnostic.stage,code:diagnostic.code,
         firstError:fault(diagnostic.firstError),transferStatus:diagnostic.transferStatus,projectTransferBlocked:fault(diagnostic.projectTransferBlocked),
         aliasConflict:diagnostic.aliasConflict?{...fault(diagnostic.aliasConflict),domain:diagnostic.aliasConflict.domain,keys:[...diagnostic.aliasConflict.keys]}:null,
+        ...(diagnostic.backgroundSync?{backgroundSync:{state:['local-pending','pending','confirmed'].includes(diagnostic.backgroundSync.state)?diagnostic.backgroundSync.state:'pending',cloudConfirmed:diagnostic.backgroundSync.cloudConfirmed===true,code:diagnostic.backgroundSync.code}}:{}),
         ...(diagnostic.globalConsistency?{globalConsistency:w.FC.globalDataDiagnostics?.sanitize(diagnostic.globalConsistency)||{status:'BLOCKED',code:'DIAG_READ_BLOCKED'}}:{})};
     }catch(_){report.localFirst={status:'UNAVAILABLE'};}
     if(options?.storageUsage===true){

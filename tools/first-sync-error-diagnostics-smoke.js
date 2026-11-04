@@ -207,4 +207,12 @@ test('new smoke belongs to exactly one mandatory current CI shard and every chan
   assert.throws(()=>assertHtmlVersions(index+'<script src="'+src+'"></script>',dev),{code:'ERR_ASSERTION'});
  }
 });
+test('background confirmation is separately reported without owner, values, IO or a false cloud ACK',async()=>{
+ const r=fixture(undefined,{timers:{setTimeout:()=>0,clearTimeout:()=>{}}});assert.equal(await r.open(),true);const w=r.s;
+ w.location={hostname:'localhost',origin:'https://mebleszek.github.io',pathname:'/meble-app/index.html'};
+ Object.defineProperty(w,'__FC_MAIN_ACCESS__',{value:Object.freeze({isValid:()=>true}),writable:false,configurable:false});
+ w.FC.applicationStartup={diagnostics:()=>({status:'READ_ONLY',stage:'ready',code:null,firstError:null,transferStatus:'unconfirmed',projectTransferBlocked:null,aliasConflict:null,backgroundSync:{state:'pending',cloudConfirmed:false,code:'LF_INITIAL_GLOBAL_CONFLICT',uid:'PRIVATE_OWNER_MUST_NOT_LEAK',raw:'PRIVATE_RAW_MUST_NOT_LEAK'}})};
+ const before=r.seed(),report=collect(w);assert.deepEqual(report.localFirst.backgroundSync,{state:'pending',cloudConfirmed:false,code:'LF_INITIAL_GLOBAL_CONFLICT'});assert.equal(JSON.stringify(report).includes('MUST_NOT_LEAK'),false);assert.deepEqual(r.seed(),before);
+ let modal;w.FC.infoBox={open:options=>{modal=options;}};new Function('window','navigator',read('js/app/ui/session-diagnostics.js'))(w,{clipboard:{writeText:async()=>{}}});await w.FC.sessionDiagnostics.open();assert.match(modal.message,/niepotwierdzona — dane lokalne/);
+});
 (async()=>{for(const {name,run}of tests){await run();console.log('PASS '+name);}console.log(`First-sync diagnostics: ${tests.length}/${tests.length} PASS`);})().catch(error=>{console.error(error.stack);process.exitCode=1;});

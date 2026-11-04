@@ -8,7 +8,7 @@ import {doc,setDoc,getDoc,getDocs,collection,query,limit,updateDoc,deleteDoc} fr
 import {model,runtime} from './cloud-sync-fixture.mjs';
 const require=createRequire(import.meta.url),{waitForGesturePoint,finishPendingTouchScroll,observeGesture}=require('../helpers/browser-test-readiness.js'),{startBrowser}=require('../helpers/chromium-runtime.js'),{injection}=require('../trusted-session-browser-smoke.js');
 const root=path.resolve(new URL('../..',import.meta.url).pathname),uid='synthetic-phone-owner';
-export async function runNormalApplication(t,{deployment=false}={}){
+export async function runNormalApplication(t,{deployment=false,background=false}={}){
  assert.equal(process.env.FIRESTORE_EMULATOR_HOST,'127.0.0.1:18080');assert.equal(process.env.FIREBASE_AUTH_EMULATOR_HOST,'127.0.0.1:19099');
  const original=fs.readFileSync(path.join(root,'tools/firebase-pilot/firestore.rules'),'utf8'),fragment=fs.readFileSync(path.join(root,'sync/local-first-project.rules'),'utf8');
  const rules=deployment?require('./application-rules.js').applicationRules():original.replace('    match /{document=**}',()=>fragment+'\n    match /{document=**}');
@@ -26,7 +26,7 @@ export async function runNormalApplication(t,{deployment=false}={}){
  });await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const origin='http://127.0.0.1:'+server.address().port,dir=fs.mkdtempSync(path.join(os.tmpdir(),'normal-local-first-')),devices=[];
  t.after(async()=>{for(const d of devices){await d.browser?.close();await d.owner?.close();}await env.cleanup();await new Promise(r=>server.close(r));fs.rmSync(dir,{recursive:true,force:true});});
- const catalogs=model();for(const ref of ['laminat TEST','laminat','TEST','HDF'])if(!catalogs.materials.some(r=>[r.id,r.name,r.materialType].includes(ref)))catalogs.materials.push({id:'normal-material-'+catalogs.materials.length,name:ref,materialType:'synthetic',price:12.375,priceUnit:'sheet'});
+ const catalogs=background?require('../helpers/code-global-catalogs').buildCodeCatalogs().model:model();if(!background)for(const ref of ['laminat TEST','laminat','TEST','HDF'])if(!catalogs.materials.some(r=>[r.id,r.name,r.materialType].includes(ref)))catalogs.materials.push({id:'normal-material-'+catalogs.materials.length,name:ref,materialType:'synthetic',price:12.375,priceUnit:'sheet'});
  const sources=runtime().FC.globalDataContract.sources;
  let releaseSlot=null;if(deployment){const keys=await crypto.subtle.generateKey('Ed25519',true,['sign','verify']),publicKeySpki=new Uint8Array(await crypto.subtle.exportKey('spki',keys.publicKey));const {canonical,digest}=await import('../../sync/local-first-values.mjs');const decision={domain:'MEBLE_APPLICATION_DEPLOYMENT_V1',protocol:2,projectId:'demo-meble-app',database:'(default)',profile:'business-project-v1',globalDomains:14,ownerUid:uid,activationId:'synthetic-deployment',origin:origin+'/',migrationApproved:true,sourcePreserved:true,rulesApproved:true,rulesSha256:await digest(rules)};releaseSlot={envelope:{decision,publicKeySpki:[...publicKeySpki],signature:[...new Uint8Array(await crypto.subtle.sign('Ed25519',keys.privateKey,new TextEncoder().encode(canonical(decision))))]},trustedKeySha256:Buffer.from(await crypto.subtle.digest('SHA-256',publicKeySpki)).toString('hex')};}
  async function login(d){await d.page.evaluate(()=>window.normalReleaseReady);await d.page.click('#auth-google');try{await d.page.waitForFunction(()=>['ready'].includes(document.body.dataset.businessState)||['profile-pending','error'].includes(document.body.dataset.authState));}catch(error){throw Error('Login phase '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,phase:window.FC.applicationStartup?.inspect(),connectionError:window.normalConnectionError,rpc:window.normalRpcTimeline,pendingRpc:window.normalPendingRpc}))));}
@@ -35,7 +35,7 @@ export async function runNormalApplication(t,{deployment=false}={}){
   try{await d.page.waitForFunction(()=>document.body.dataset.businessState==='ready');}catch(error){throw Error(error.message+' '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,error:document.getElementById('auth-error')?.textContent,app:document.getElementById('app-error-msg')?.textContent}))));}}
  async function device(name){
   const owner=await startBrowser({profileDir:path.join(dir,name)}),browser=await chromium.connectOverCDP(owner.endpoint),page=browser.contexts()[0].pages()[0];
-  const d={owner,browser,page,name};devices.push(d);await page.addInitScript({content:injection});if(deployment&&name==='computer'){await configure(d);await page.goto(origin+'/index.html');await login(d);return d;}await page.goto(origin+'/index.html');await login(d);
+  const d={owner,browser,page,name};devices.push(d);await page.addInitScript({content:injection});if(deployment&&!background&&name==='computer'){await configure(d);await page.goto(origin+'/index.html');await login(d);return d;}await page.goto(origin+'/index.html');await login(d);
   await page.evaluate(({catalogs,sources})=>{for(const [domain,value]of Object.entries(catalogs))for(const key of sources[domain])localStorage.setItem(key,JSON.stringify(domain==='stock'?{sheets:value}:value));},{catalogs,sources});
   await page.evaluate(()=>window.FC.offlineShell.prepare());return d;
  }
@@ -56,37 +56,38 @@ export async function runNormalApplication(t,{deployment=false}={}){
  });
  const first=await phone.page.evaluate(()=>JSON.parse(localStorage.getItem('fc_projects_v1')));
  const pid=first.find(p=>p.investorId===ids[0]).id;
- const room=await phone.page.evaluate(async({pid,iid})=>{
+ const room=await phone.page.evaluate(async({pid,iid,selection})=>{
   const fc=window.FC;if(await fc.actions.dispatch('open-investor',{element:{getAttribute:()=>iid}})!==true)throw Error('Fixture activation refused');
   const made=fc.roomRegistry._debug.createRoomRecord(fc.investors.getById(iid),{baseType:'kuchnia',name:'Normal kitchen'});if(!made.ok)throw Error('Fixture room refused');
   const row=fc.projectStore.getById(pid);row.projectData.meta.futureOwnedField={exact:7.125};
-  row.projectData[made.room.id].cabinets=[{id:'normal-cabinet',type:'stojąca',subType:'standardowa',width:60.125,height:82,depth:51,frontCount:2,bodyColor:'laminat TEST',frontMaterial:'laminat',frontColor:'TEST',backMaterial:'HDF',bodyPcvMode:'body',details:{shelves:3}}];
+  row.projectData[made.room.id].cabinets=[{id:'normal-cabinet',type:'stojąca',subType:'standardowa',width:60.125,height:82,depth:51,frontCount:2,...selection,bodyPcvMode:'body',details:{shelves:3}}];
   window.projectData=row.projectData;fc.layoutState.ensureLayout(made.room.id);row.projectData=window.projectData;
   if(!fc.projectStore.upsert(row))throw Error('Fixture cabinet refused');window.projectData=fc.project.load();
   if(!fc.storage.setJSON('fc_quote_snapshots_v1',[{id:'normal-offer',project:{id:pid},investor:{id:iid},frozen:{total:21.375,pcv:0.8125}}]))throw Error('Fixture history refused');
   return made.room.id;
- },{pid,iid:ids[0]});
+ },{pid,iid:ids[0],selection:background?{bodyColor:catalogs.materials[0].name,frontMaterial:catalogs.materials[0].materialType,frontColor:catalogs.materials[0].name,backMaterial:catalogs.materials.find(r=>r.materialType==='hdf').name}:{bodyColor:'laminat TEST',frontMaterial:'laminat',frontColor:'TEST',backMaterial:'HDF'}});
  const source=await phone.page.evaluate(()=>({projects:localStorage.getItem('fc_projects_v1'),investors:localStorage.getItem('fc_investors_v1')}));
  assert.equal(JSON.parse(source.projects).length,2);
  let computer;if(!deployment)computer=await device('computer');
  async function configure(d){
-  await d.page.addInitScript(({uid,name,releaseSlot})=>{const raw=Storage.prototype.getItem;window.readNormalSource=key=>raw.call(localStorage,key);const prepare=()=>{
-   const config={name:'meble-lf-test-normal-'+name,async connections(input){
+  await d.page.addInitScript(({uid,name,releaseSlot,background})=>{const raw=Storage.prototype.getItem;window.readNormalSource=key=>raw.call(localStorage,key);const prepare=()=>{
+   const config={name:'meble-lf-test-normal-'+name,...(background?{localOnly:true,backgroundSync:true}:{}),async connections(input){
     try{const [app,auth,f]=await Promise.all([import('/__sdk/firebase-app.js'),import('/__sdk/firebase-auth.js'),import('/__sdk/firebase-firestore.js')]);
-    const errors=window.normalSdkErrors=[];const observed={...f};for(const key of ['runTransaction','getDocFromServer','getDocsFromServer'])observed[key]=(...args)=>{const began=performance.now(),pending=window.normalPendingRpc||(window.normalPendingRpc=[]),rpc={method:key};pending.push(rpc);let result;try{result=f[key](...args);}catch(error){pending.splice(pending.indexOf(rpc),1);throw error;}const completed=()=>{pending.splice(pending.indexOf(rpc),1);const log=window.normalRpcTimeline||(window.normalRpcTimeline=[]);log.push({method:key,ms:Math.round(performance.now()-began)});if(log.length>12)log.shift();};result.then(completed,completed);result.catch(error=>{errors.push({method:key,code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();});if(key==='runTransaction'&&window.holdOldReader===args[0]?.app?.name&&!window.normalReadArmed){window.normalReadArmed=true;return result.then(value=>{window.normalHeldRead=true;return new Promise(resolve=>window.releaseOldRead=()=>resolve(value));});}return result;};
+    const errors=window.normalSdkErrors=[];const observed={...f};for(const key of ['runTransaction','getDocFromServer','getDocsFromServer'])observed[key]=(...args)=>{const began=performance.now(),pending=window.normalPendingRpc||(window.normalPendingRpc=[]),rpc={method:key};pending.push(rpc);let result;try{if(background&&key==='runTransaction'){let published=false;const callback=args[1];result=f[key](args[0],tx=>callback(new Proxy(tx,{get(target,key){if(key==='set')return(ref,data)=>{if(ref.path.split('/').length===4&&ref.path.includes('/localFirstProjects/'))published=true;return target.set(ref,data);};const v=target[key];return typeof v==='function'?v.bind(target):v;}})),...args.slice(2)).then(async value=>{if(published){window.backgroundPublications=(window.backgroundPublications||0)+1;if(window.backgroundLoseAck){window.backgroundLoseAck=false;await window.backgroundCutNetwork();window.backgroundDroppedAck=true;throw Object.assign(Error('Synthetic lost ACK'),{code:'unavailable'});}}return value;});}else result=f[key](...args);}catch(error){pending.splice(pending.indexOf(rpc),1);throw error;}const completed=()=>{pending.splice(pending.indexOf(rpc),1);const log=window.normalRpcTimeline||(window.normalRpcTimeline=[]);log.push({method:key,ms:Math.round(performance.now()-began)});if(log.length>12)log.shift();};result.then(completed,completed);result.catch(error=>{errors.push({method:key,code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();});if(key==='runTransaction'&&window.holdOldReader===args[0]?.app?.name&&!window.normalReadArmed){window.normalReadArmed=true;return result.then(value=>{window.normalHeldRead=true;return new Promise(resolve=>window.releaseOldRead=()=>resolve(value));});}return result;};
     const config={projectId:'demo-meble-app',apiKey:'demo-only',authDomain:'demo-meble-app.firebaseapp.com',appId:'demo-only'};
     let session=null,lease=null;
     if(input.authSession){
-     const name='normal-auth-'+crypto.randomUUID();
+     session=background?window.backgroundGoogleSession:null;
+     if(!session){const name='normal-auth-'+crypto.randomUUID();
      session=await window.FC.cloudAuth.create({target:'emulator',appName:name,firebaseConfig:config,
        emulator:{host:'127.0.0.1',port:19099,firestorePort:18080},sessionOnly:true,sdk:{app,auth,firestore:f}});
      const token='e30.'+btoa(JSON.stringify({sub:uid,email:uid+'@example.invalid',email_verified:true})).replaceAll('=','')+'.';
      await auth.signInWithCredential(auth.getAuth(app.getApp(name)),auth.GoogleAuthProvider.credential(token));
-     window.normalGoogleLogins=(window.normalGoogleLogins||0)+1;
+     window.normalGoogleLogins=(window.normalGoogleLogins||0)+1;if(background)window.backgroundGoogleSession=session;}
      lease={uid,assert(){if(session.identity().uid!==uid)throw Error('LF_AUTH_CHANGED');},isValid:()=>true};
     }
     const {createApplicationConnections}=await import('/sync/application-connections.mjs');
-    const connections=await createApplicationConnections({window,authSession:session,lease,release:input.release,sdk:{app,auth,firestore:observed},
+    const connections=await createApplicationConnections({window,authSession:session,lease,release:input.release,refreshAccess:input.refreshAccess,sdk:{app,auth,firestore:observed},
       localAccess:{...input.localAccess,firebaseConfig:config,target:'emulator',emulator:{host:'127.0.0.1',port:19099,firestorePort:18080}}});
     for(const conn of [connections.writer,connections.reader]){const assert=conn.assertAccess;conn.assertAccess=()=>{try{return assert();}catch(error){errors.push({method:'assertAccess',code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();throw error;}};}
     window.normalConnections=[connections.writer,connections.reader];window.normalConnectionEpoch=(window.normalConnectionEpoch||0)+1;
@@ -94,10 +95,20 @@ export async function runNormalApplication(t,{deployment=false}={}){
    }catch(error){window.normalConnectionError={name:error.name,code:error.code,message:error.message,stack:error.stack};throw error;}
    }};
    if(releaseSlot){config.envelope={...releaseSlot.envelope,publicKeySpki:new Uint8Array(releaseSlot.envelope.publicKeySpki),signature:new Uint8Array(releaseSlot.envelope.signature)};config.trustedKeySha256=releaseSlot.trustedKeySha256;window.normalReleaseReady=window.FC.applicationStartup.configureReleaseEmulator(config);}else window.FC.applicationStartup.configureEmulator(config);
-  };if(releaseSlot){const fc=window.FC=window.FC||{};Object.defineProperty(fc,'applicationStartup',{configurable:true,set(value){Object.defineProperty(fc,'applicationStartup',{configurable:true,writable:true,value});prepare();}});}else document.addEventListener('DOMContentLoaded',prepare,{once:true});},{uid,name:d.name,releaseSlot});
+  };if(releaseSlot){const fc=window.FC=window.FC||{};Object.defineProperty(fc,'applicationStartup',{configurable:true,set(value){Object.defineProperty(fc,'applicationStartup',{configurable:true,writable:true,value});prepare();}});}else document.addEventListener('DOMContentLoaded',prepare,{once:true});},{uid,name:d.name,releaseSlot,background});
  }
  async function enable(d){await configure(d);await d.page.reload();await login(d);}
- await enable(phone);const ownerClient=env.authenticatedContext(uid,{email_verified:true,firebase:{sign_in_provider:'google.com'}}).firestore();
+ async function restart(d,{offline=false,crash=false}={}){
+  if(crash){await d.owner.crash();await d.browser.close().catch(()=>{});}else{await d.browser.close();await d.owner.close();}
+  d.owner=await startBrowser({profileDir:path.join(dir,d.name)});d.browser=await chromium.connectOverCDP(d.owner.endpoint);d.page=d.browser.contexts()[0].pages()[0];
+  for(const page of d.browser.contexts()[0].pages())if(page!==d.page)await page.close();
+  await d.page.addInitScript({content:injection});await configure(d);await d.page.context().setOffline(offline);await d.page.goto(origin+'/index.html');
+  if(!offline)await login(d);else await d.page.waitForFunction(()=>document.body.dataset.businessState==='ready');
+ }
+
+ await enable(phone);
+ if(background){const {runBackgroundRoundTrip}=await import('./background-application.cases.mjs');await runBackgroundRoundTrip(t,{phone,device,enable,restart,touch,env,uid,pid,iid:ids[0],room,catalogs});return;}
+ const ownerClient=env.authenticatedContext(uid,{email_verified:true,firebase:{sign_in_provider:'google.com'}}).firestore();
  const beforeReceiver=deployment?(await getDoc(doc(ownerClient,'users',uid,'globalData','current'))).data():null;
  if(deployment)computer=await device('computer');else await enable(computer);
  if(deployment)assert.equal((await getDoc(doc(ownerClient,'users',uid,'globalData','current'))).data().revisionId,beforeReceiver.revisionId,'Empty device must never publish defaults over the server');

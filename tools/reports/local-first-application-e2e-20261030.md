@@ -1,5 +1,50 @@
 # LOCAL-FIRST application end-to-end — 30.10.2026
 
+
+## LOCAL-FIRST + synchronizacja w tle — 04.11.2026
+
+Gałąź `feat/local-first-background-sync-20261104`, BASE/main **`afee03d2b408dd78b85ec3efcb575fffb568457b`**, potwierdzony git/remote. Właściciel potwierdził działające kolejne szafki po wydaniu PR #112 i zatwierdził podłączenie bieżącego LOCAL-FIRST do synchronizacji w tle. **BLOCKED / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**; **nie CODE_READY**. Prototyp rozwiązuje podłączenie silnika w testach, lecz nie cały start synchronizacji zwykłych szafek. Produkcyjne podłączanie pozostawiono wyłączone jak w BASE. Pełny bieżący scenariusz ma FAIL, zgodnie z dowodami poniżej.
+
+### Implementacja w istniejącym silniku
+
+- Bootstrap pozostaje localOnly: lokalny obraz i 14 domen są gotowe przed dopuszczeniem chmury. Jawna konfiguracja testowa `backgroundSync:true` po starcie, zakończeniu operacji, powrocie sieci lub widoczności może podłączyć istniejącą replikację. Produkcyjne `deployment()` nadal ustawia wyłącznie `localOnly:true` — brak automatycznej aktywacji nieukończonej ścieżki. Jedna obietnica odnowienia, rzeczywista sesja Google tego samego właściciela, świeży gate/admission i istniejący podpisany sync grant; bez drugiego logowania, wydłużenia TTL czy nowego Auth/UI. Przy zmianie trybu na zaufany zachowuje przyjęty kontekst dla następnego reconnect. Wycofany verifier zamyka własne nasłuchy, zachowując współdzieloną instancję SDK używaną przez bieżące połączenie.
+- `application-background-sync.mjs` jedynie składa istniejące kanały, committer, discovery, synchronizator i cztery store. Nie dodaje magazynu, nowej bazy ani schematu. Dotychczasowy trwały obraz jest źródłem jeszcze nieopublikowanej pracy. Pierwsze podłączenie porównuje obraz/CAS z niezależnym odczytem zdalnych zakresów; odmienny cennik/projekt pozostaje konfliktem. Nie przyjmuje automatycznie zdalnych globals nad definicjami z kodu.
+- Po uzyskaniu własnego edytora zatwierdzony Save przechodzi przez istniejący atomowy zapis application/replica/protected/outbox. Aktywna sesja zachowuje lokalny draft i RAM. Istniejący edytor offline musi być własny; nowy lokalny projekt nie potrzebuje fikcyjnej serwerowej rewizji, powstaje offline i jest dopuszczany do kolejki dopiero po autoryzacji. Jawne Wyjdź przekazuje czysty zakres; drugi edytor odmawia. Oryginały/receipt/binding/fence i walidatory pozostają obowiązkowe.
+- Przy podłączeniu wykorzystywana jest istniejąca bariera transakcji/odczytu rescue. Kandydat połączenia nie zamyka starego synchronizatora, zanim uzyska barierę i potwierdzi idle. Spóźnione generacje nie raportują potwierdzenia. Otwarty formularz szafki oraz istniejące blokady formularzy/RAM zatrzymują incoming; zamknięcie istniejącym gestem wybudza właściwy synchronizator. Brak reload/resetu i automatycznego Save formularza.
+- Istniejąca diagnostyka sesji odróżnia `local-pending`, `pending` i `confirmed`. Potwierdzenie wymaga zgodności aktualnego obrazu i wszystkich jego projektów/katalogów z czystymi replikami oraz wyłącznie verified ACK, bieżących guardów i niezmienionej wersji. Aktywny formularz/draft nie jest potwierdzeniem chmury. Kod przyczyny przechodzi przez istniejący zamknięty słownik; brak RAW/UID/cen/wyjątków. Zmienione skrypty mają wersję `20261104_background_sync_v1`, manifest obejmuje 490 zasobów; protokół i polityka SW bez zmian.
+
+### Celowane dowody i routing
+
+Wyłącznie syntetyczne profile/rekordy, loopback `demo-meble-app`, rzeczywisty Chromium 151.0.7922.173 i SDK Auth/Firestore, emulator Firestore 1.22.0, Java 21, Node 24.19.0. Google/UI admission ma dotychczasowy syntetyczny bodziec; transport, serwerowa weryfikacja appAccess/syncAccess, Rules, IDB i ACK są rzeczywiste w emulatorze. Nie jest to dowód Google/Firebase LIVE ani telefonu właściciela.
+
+| Kontrola | Wynik bieżącego pakietu | Obowiązkowy routing |
+| --- | --- | --- |
+| `cloud-sync-global.test.mjs`, filtr `LOCAL-FIRST background sync` | **FAIL (1/1, 512,88 s)**: pełne fabryczne 14 domen/dwa projekty, oba kierunki, drugi edytor i ochrona formularza potwierdzone; lost ACK został odzyskany przed restartem, asercja trwałego uncertain nie przeszła. Poprawiony bodziec rzeczywistego odcięcia sieci po commit **NIEWYKONANY** po odkryciu niezależnego blokera materiałów | Istniejący Firebase CURRENT batch 3, plik dokładnie raz; helper nie jest osobnym pomijanym testem |
+| `android-local-first-browser-smoke.js` | **FAIL**: 6 wcześniejszych grup do abortu formularza PASS, dodatkowe istniejące `validateProjectDependencies` na rzeczywistej szafce odmawia `LF_PROJECT_DEPENDENCY_MISSING`; dalsze etapy niezaliczone. Pierwszy dodatkowy przebieg miał setup/CDP timeout, bez asercji; osobny sekwencyjny odtworzył konkretny błąd kontraktu | Preflight 5/7 |
+| `android-startup-auth-smoke.js` | **6 grup PASS**, te same odmowy/TTL/same-owner | Preflight 5/7 |
+| `cloud-auth-smoke.js` | **38/38 PASS**, w tym domyślne terminate oraz zamknięcie współdzielonego verifiera | Preflight 7/7 |
+| `first-sync-error-diagnostics-smoke.js` | **10/10 PASS**, dotychczasowe odmowy/wersje i anonimowe potwierdzenie | Preflight 7/7 |
+| `production-application-smoke.js` | **8/8 PASS**, istniejące granty/podpis/Rules/fabryki/piny | Istniejący obowiązkowy Preflight |
+| `pixel-session-bookmarklet-smoke.js` | **15/15 PASS**, zgodność wygenerowanego kolektora | Preflight 4/7 |
+
+Nowy scenariusz ma przygotowane asercje obejmujące istniejące lokalne projekty, rzeczywiste fabryczne 14 domen, transfer w obie strony, odmowę drugiego edytora, niezapisany formularz, pracę offline, utratę ACK po faktycznym zatwierdzeniu serwera, SIGKILL i zimne offline wznowienie tej samej instalacji, brak ponownej publikacji, nowy projekt/szafkę offline, konflikty obu źródeł i rzeczywistą odmowę appAccess. **Nie deklarujemy PASS restartu/recovery nowego tła ani zwykłej szafki w chmurze:** po odtworzeniu kontraktowego blokera dalsze próby zatrzymano. Asercje wcześniejszych scenariuszy zachowane. Przy pełnych fabrycznych katalogach zakończenie transferu ma jawny limit 120 s (UI 45 s); wcześniejszy limit 45 s skończył się przy trwającym cyklu, mimo już verified zapisów. Nie zmieniono TTL, timeoutów transportu ani warunków PASS. Czas scenariusza przekracza miękki budżet 90 s — do oceny kosztu w osobno zatwierdzonym CI, bez ukrytego retry lub pomijania przypadku.
+
+### Konkretny STOP: opcja pleców a rekord cennika
+
+Rozszerzony istniejący `android-local-first-browser-smoke.js` po rzeczywistym formularzu trzech szafek i trwałym Save wywołuje **niezmienione** `businessProjectContract.build()` i `validateProjectDependencies()`. Raport syntetycznych zależności wskazał `backMaterial = HDF 3mm biała`; pozostałe odwołania materiałowe (nazwa laminatu i jego typ) są rozpoznawane. Fabryczny rekord ma id `m4`, symbol `HDF-3-BIALY`, nazwę `HDF biały 3 mm`, jednostkę m². Żadne id/name/materialType nie równa się opcji formularza, więc transport prawidłowo odmawia. Oryginalne definicje, ceny, normy i payload szafki zachowano.
+
+Odrębna odczytowa kontrola rzeczywistego `catalog-selectors.js` z istniejącym generatorem kodowym potwierdziła: `findSheetMaterial('HDF 3mm biała') === null`, kanoniczna nazwa rozwiązuje się do `m4`; **CONFIRMED**, bez mutacji danych/cen. `wycena-core-catalog.materialPriceLookup()` korzysta z tego resolvera i analogicznego dokładnego fallbacku. To nie brak grantu ani problem kolejki: konieczne jest ustalenie wspólnego znaczenia opcji UI i rekordu cennika.
+
+AGENTS §4: **„Jeżeli reguła biznesowa nie wynika jednoznacznie z aktualnego kodu, testów lub dokumentacji, zatrzymaj się i zapytaj użytkownika zamiast przyjmować własne założenie.”** Automatyczne dopisanie aliasu albo powiązanie po fragmencie nazwy przypisałoby znaczenie materiałowe/cenowe bez takiego kontraktu. Nie zmieniono walidatora, nie dopisano sztucznego rekordu do fabrycznych katalogów, nie przestawiono wyboru formularza w teście ani na urządzeniu. Dodana regresja ma pozostać czerwona do rzeczywistej poprawki uzgodnionego kontraktu, zamiast maskować problem.
+
+**Minimalna decyzja do kontynuacji:** zatwierdzić (albo wskazać inne) powiązanie kodowej opcji „HDF 3mm biała” z istniejącym `m4`, a następnie spójny resolver WYCENY/transportu z zachowaniem oryginalnej ceny, jednostki, ID i wszystkich RAW. Po decyzji kontynuować ten sam pakiet: potwierdzić zwykłą szafkę i WYCENĘ na obu urządzeniach oraz dokończyć przygotowane ACK/restart/offline/conflict/denial testy. Bez nowego ogólnego audytu, resetu lub LIVE. Obecna gałąź jest wyłącznie przeglądalnym zapisem niedokończonej pracy; nie jest pakietem do wydania.
+
+### Granice przekazania
+
+Pełny Preflight, pozostałe pliki Firebase CURRENT i historyczne zestawy należą do osobno zatwierdzonego CI. Plan nadal ma 201 smoke / 7 rozłącznych grup, CURRENT8, bez zmian workflow, Rules i 425 historycznych pinów. Testy celowane nie zastępują CI_PASS.
+
+Nie odczytywano ani nie zmieniano Firebase LIVE, Rules/IAM/grantów/billingu i danych Pixela; brak resetu, PR, Actions, merge i publikacji. Obecny kod produkcyjny nie włącza podłączania. Przyszłe włączenie po dokończeniu pakietu może wykonywać rzeczywiste READ/WRITE: **wymaga osobnej zgody właściciela na ten zakres produkcyjny oraz dokładny HEAD/BASE**. Faktyczny stan Rules/grantu i zgodność zdalnych globals/projektów są nieznane. Konflikt nie uprawnia do merge, kasowania chmury, wyboru cen ani ponownego resetu. Po dopuszczeniu wydania/operacji właściciel sprawdza na Pixelu/komputerze jeden projekt w obie strony, następnie offline Save/restart/reconnect oraz rozróżnienie lokalnego i serwerowego potwierdzenia; dopiero to daje DEVICE_SYNC_PASS.
+
 ## Revision and scope
 
 Product branch: `integration/android-local-first-20261030`. Continued input

@@ -3,7 +3,7 @@ import {createApplicationSyncGrant} from './application-sync-grant.mjs';
 import {authorizeApplicationSession} from './firebase-activation.mjs';
 import {fail} from './local-first-values.mjs';
 const trustedSessions=new WeakMap();
-export async function createApplicationConnections({window:w,authSession,lease,renewLease,sdk,localAccess,release}){
+export async function createApplicationConnections({window:w,authSession,lease,renewLease,sdk,localAccess,release,refreshAccess=false}){
  const fc=w.FC;w.__FC_MAIN_ACCESS__.assert();
  sdk=sdk||await fc.firebasePilotTransport.loadSdk();
  let session=authSession,ownWriter=false,currentLease=lease,verifier,gate,secondary,trustedContext,syncGrant,permit;
@@ -31,7 +31,16 @@ export async function createApplicationConnections({window:w,authSession,lease,r
  }
  // The initial UI/SDK may outlive its first proof. Renew on the same admitted
  // session at this boundary, never through another login or parallel startup.
- if(!trusted&&renewLease)currentLease=await renewLease();
+ if(!trusted&&refreshAccess){
+  const identity=session?.identity();if(!identity?.uid||identity.uid!==localAccess?.ownerUid)fail('LF_APPLICATION_AUTH_REQUIRED');
+  verifier=fc.cloudAccessVerifier.create(session,{sdk:sdk.firestore,retainConnection:true});
+  await new Promise((resolve,reject)=>{
+   const timer=setTimeout(()=>{gate?.close();reject(Error('LF_APPLICATION_ACCESS_UNCONFIRMED'));},10000);
+   gate=fc.authAccessGate.create(session,{verifyAccess:verifier.verify,watchAccess:verifier.watch,
+    onAuthorized:value=>{try{const now=session.identity();if(now.uid!==identity.uid||now.epoch!==identity.epoch)fail('LF_AUTH_CHANGED');currentLease=value;clearTimeout(timer);resolve();}catch(e){clearTimeout(timer);reject(e);}},
+    onState:state=>{if(state.denied===true||state.status==='revoked')localAccess.deny?.();if(['error','revoked','unapproved','unauthenticated'].includes(state.status)){clearTimeout(timer);reject(Error('LF_APPLICATION_ACCESS_UNCONFIRMED'));}}});
+  });
+ }else if(!trusted&&renewLease)currentLease=await renewLease();
  const ctx=session?.verificationContext(),identity=session?.identity();
  if(!ctx||!identity?.uid||currentLease?.uid!==identity.uid)fail('LF_APPLICATION_AUTH_REQUIRED');
  currentLease.assert();const f=sdk.firestore;
@@ -52,7 +61,7 @@ export async function createApplicationConnections({window:w,authSession,lease,r
    // On logout revoke the independent persisted SDK login too. Local IDB/outbox
    // is retained; an already-submitted RPC can still have an uncertain outcome.
    async logout(){permit?.revoke();syncGrant?.close();gate?.close();if(ownWriter)await session.signOut();await secondary.signOut();},
-   async retire(){permit?.revoke();syncGrant?.close();await f.terminate(readerDb);await secondary.close();},
+   async retire(){permit?.revoke();syncGrant?.close();if(!trusted&&refreshAccess){gate?.close();await verifier?.close();}await f.terminate(readerDb);await secondary.close();},
    async close(){permit?.revoke();syncGrant?.close();gate?.close();await verifier?.close();await f.terminate(readerDb);await secondary.close();if(ownWriter){await f.terminate(writerDb);await session.close();}}};
   if(release)permit=authorizeApplicationSession({release,...result});return result;
  }catch(error){syncGrant?.close();gate?.close();await secondary?.close();throw error;}

@@ -3,7 +3,7 @@
   'use strict';
   const FC=window.FC=window.FC||{};
   const TTL_MS=45000,REFRESH_MS=30000,TIMEOUT_MS=8000;
-  function create(auth,{sdk}={}){
+  function create(auth,{sdk,retainConnection=false}={}){
     let connection=null,closed=false;
     const watches=new Set();
     const fail=()=>{throw Error('AUTH_ACCESS_UNCONFIRMED');};
@@ -65,7 +65,7 @@
       watches.add(stop);
       return stop;
     }
-    return {verify,watch,async close(){closed=true;for(const stop of [...watches])stop();if(connection){try{const {f,db}=await connection;await f.terminate(db);}catch(_){}}}};
+    return {verify,watch,async close(){closed=true;for(const stop of [...watches])stop();if(connection&&!retainConnection){try{const {f,db}=await connection;await f.terminate(db);}catch(_){}}}};
   }
   FC.cloudAccessVerifier={create};
 })();

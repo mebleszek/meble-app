@@ -18,6 +18,7 @@
        'Pierwszy błąd startu: '+(r.localFirst.firstError?r.localFirst.firstError.stage+' / '+r.localFirst.firstError.code:'NONE'),
        'Konflikt aliasów: '+(r.localFirst.aliasConflict?r.localFirst.aliasConflict.domain+' | klucze: '+(r.localFirst.aliasConflict.keys.length===2?r.localFirst.aliasConflict.keys.join(' / '):'UNKNOWN'):'NONE'),
        'project-transfer-blocked: '+(r.localFirst.projectTransferBlocked?r.localFirst.projectTransferBlocked.stage+' / '+r.localFirst.projectTransferBlocked.code:'NONE')]:r.localFirst?['LOCAL-FIRST: UNAVAILABLE']:[]),
+      ...(r.localFirst?.backgroundSync?['Synchronizacja: '+(r.localFirst.backgroundSync.cloudConfirmed?'potwierdzona przez serwer':'niepotwierdzona — dane lokalne')+(r.localFirst.backgroundSync.code?' / '+r.localFirst.backgroundSync.code:'')]:[]),
       ...(r.localFirst?.globalConsistency?[FC.globalDataDiagnostics?.format(r.localFirst.globalConsistency)||'DANE GLOBALNE: BLOCKED']:[]),
       'Otwarcie inwestora: '+r.investorOpen.stage+' / '+r.investorOpen.outcome+' / '+r.investorOpen.code,
       'Pasujące projekty: '+(r.investorOpen.candidateProjects??'?')+' | Brak historycznej metadanej: '+flag(r.investorOpen.legacyOwnerAbsent),

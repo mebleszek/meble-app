@@ -303,3 +303,9 @@ test('LOCAL-FIRST approved deployment: normal startup, fenced migration and empt
  const {runNormalApplication}=await import('./normal-application.cases.mjs');
  await runNormalApplication(t,{deployment:true});
 });
+
+// The production local-first entry stays usable before network admission.
+test('LOCAL-FIRST background sync: local startup, two-device offline round trip and immutable source',async t=>{
+ const {runNormalApplication}=await import('./normal-application.cases.mjs');
+ await runNormalApplication(t,{deployment:true,background:true});
+});

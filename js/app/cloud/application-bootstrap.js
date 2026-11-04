@@ -109,6 +109,7 @@
   if(!firstError&&code!=='AUTH_RELOAD_REQUIRED')firstError=Object.freeze({stage:diagnosticStage(at),code});
  }
  function diagnosticState(value){
+  if(value.scope==='background-sync'){transferStatus=value.ok===true?'cycle-confirmed':'unconfirmed';return;}
   if(value.projectTransferBlocked===true){
    if(!projectTransferBlocked)projectTransferBlocked=Object.freeze({stage:diagnosticStage(stage),code:errorCode(value)});
    transferStatus='blocked';recordFailure(value);
@@ -147,9 +148,9 @@
     connectionsActive=connections;
     if(runtime){if(boot?.localOnly)await runtime.resume({localOwnerUid:ownerUid});else if(navigator.onLine!==false)await runtime.resume(connections);return runtime;}
     const {startApplicationRuntime}=await import('../../../sync/application-runtime.mjs');
-    runtime=await startApplicationRuntime({window,ownerUid,name:configuration.name,boot,release,localOnly:boot?.localOnly===true,onStage:setStage,onDiagnostic:diagnosticState,onFailureQuiescent(){recoveryQuiescent=true;},...connections});
+    runtime=await startApplicationRuntime({window,ownerUid,name:configuration.name,boot,release,localOnly:boot?.localOnly===true,backgroundSync:configuration.backgroundSync===true,onStage:setStage,onDiagnostic:diagnosticState,onFailureQuiescent(){recoveryQuiescent=true;},...connections});
     return runtime;
-   })().then(value=>{stage='ready';return value;}).catch(async error=>{
+   })().then(value=>{stage='ready';if(configuration.backgroundSync===true)setTimeout(()=>void fc.applicationStartup.refresh().catch(()=>{}),0);return value;}).catch(async error=>{
     note(error);
     // Observe before main-login revokes access. A diagnostic refusal cannot
     // replace the original startup failure or retry any part of startup.
@@ -189,10 +190,14 @@
   errorCode,
   recordFailure(error,at){recordFailure(error,at==='starting-local-first'?stage:at);},
   inspectGlobalConsistency,
-  diagnostics:()=>Object.freeze({status:'READ_ONLY',stage:diagnosticStage(stage),code:lastError?errorCode(lastError):null,firstError:firstError&&{...firstError},transferStatus,projectTransferBlocked:projectTransferBlocked&&{...projectTransferBlocked},aliasConflict:aliasConflict&&{...aliasConflict,keys:[...aliasConflict.keys]},...(globalConsistency?{globalConsistency:JSON.parse(JSON.stringify(globalConsistency))}:{})}),
+  diagnostics:()=>Object.freeze({status:'READ_ONLY',stage:diagnosticStage(stage),code:lastError?errorCode(lastError):null,firstError:firstError&&{...firstError},transferStatus,projectTransferBlocked:projectTransferBlocked&&{...projectTransferBlocked},aliasConflict:aliasConflict&&{...aliasConflict,keys:[...aliasConflict.keys]},...(globalConsistency?{globalConsistency:JSON.parse(JSON.stringify(globalConsistency))}:{}),...(runtime?.status().backgroundSync?{backgroundSync:{...runtime.status().backgroundSync,code:runtime.status().backgroundSync.code?errorCode(runtime.status().backgroundSync.code):null}}:{})}),
   inspect:()=>({...runtime?.status(),state:runtime?.status().state||'not-activated',stage,code:lastError,location:lastLocation}),
   async refresh(context=lastContext){
-   if(!configuration||!runtime||!context||boot?.localOnly)return;if(refreshing)return refreshing;
+   if(!configuration||!runtime||!context||boot?.localOnly&&!configuration.backgroundSync)return;if(refreshing)return refreshing;
+   if(boot?.localOnly){
+    if(navigator.onLine===false||!runtime.canAttachSync())return;
+    refreshing=(async()=>{let next;try{window.__FC_MAIN_ACCESS__.assert();next=await connect({...context,renewLease:undefined,refreshAccess:true});window.__FC_MAIN_ACCESS__.assert();const attached=await runtime.attachSync(next);if(attached?.attached===false){await next.retire?.();return;}const old=connectionsActive;connectionsActive=next;lastContext=context;await old?.retire?.();lastError=null;}catch(error){if(next!==connectionsActive)await next?.retire?.();lastError=errorCode(error);throw error;}})().finally(()=>{refreshing=null;});return refreshing;
+   }
    refreshing=(async()=>{try{
     window.__FC_MAIN_ACCESS__.assert();
     stage='reconnect-auth';const next=await connect(context);window.__FC_MAIN_ACCESS__.assert();stage='reconnect-runtime';const old=connectionsActive;try{await runtime.resume(next);}finally{connectionsActive=next;await old?.retire?.();}lastError=null;stage='ready';
@@ -201,5 +206,6 @@
   close(){runtime?.close();void connectionsActive?.logout?.();}
  };
  const reconnect=()=>{if(runtime&&runtime.status().state!=='locked'&&navigator.onLine!==false&&window.__FC_MAIN_ACCESS__?.isValid())void fc.applicationStartup.refresh().catch(()=>{});};
+ window.addEventListener('meble-background-sync-idle',()=>{try{connectionsActive?.writer?.assertAccess();if(connectionsActive?.writer)return;}catch(_){}reconnect();});
  window.addEventListener('online',reconnect);document.addEventListener('visibilitychange',()=>{if(!document.hidden)reconnect();});
 })();
