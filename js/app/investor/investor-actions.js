@@ -197,17 +197,10 @@
       if(!ok) return;
       const patch = editorApi ? editorApi.buildPatchFromDraft(editorApi.getDraft(investor)) : null;
       let savedInvestor = null;
+      const transient = isTransientInvestor(investor);
       if(patch && persistence()){
-        if(isTransientInvestor(investor) && typeof persistence().createInvestor === 'function'){
+        if(transient && typeof persistence().createInvestor === 'function'){
           savedInvestor = persistence().createInvestor(patch || {});
-          try{ if(savedInvestor) ui() && typeof ui().clearTransientInvestor === 'function' && ui().clearTransientInvestor(investor.id); }catch(_){ }
-          try{
-            if(savedInvestor && ui() && ui().state){
-              ui().state.selectedId = savedInvestor && savedInvestor.id ? savedInvestor.id : null;
-              ui().state.mode = 'detail';
-              ui().state.allowListAccess = false;
-            }
-          }catch(_){ }
         }else{
           savedInvestor = persistence().saveInvestorPatch(investor.id, patch);
         }
@@ -216,10 +209,17 @@
         infoBox()?.open({title:'Nie zapisano inwestora',message:'Zachowano formularz. Nie potwierdzono trwałego zapisu inwestora.',okOnly:true});
         return;
       }
-      if(editorApi)editorApi.commit(savedInvestor);
-      clearNewInvestorFlag(investor.id);
       if(savedInvestor && persistence() && typeof persistence().setCurrentInvestorId === 'function') persistence().setCurrentInvestorId(savedInvestor.id);
-      cfg.onRender && cfg.onRender();
+      const finish=()=>{
+        if(transient){
+          ui()?.clearTransientInvestor?.(investor.id);
+          if(ui()?.state){ui().state.selectedId=savedInvestor.id;ui().state.mode='detail';ui().state.allowListAccess=false;}
+        }
+        if(editorApi)editorApi.commit(savedInvestor);
+        clearNewInvestorFlag(investor.id);
+        cfg.onRender && cfg.onRender();
+      };
+      if(FC.applicationWrite?.localOnly)FC.applicationWrite.afterCommit(finish);else finish();
       return;
     }
 
@@ -231,7 +231,11 @@
       btn.addEventListener('click', async ()=>{
         const action = btn.getAttribute('data-investor-action');
         const perform=()=>handleTopAction(action, deps && deps.getCurrentInvestor, deps);
-        if(FC.applicationWrite&&['save','cancel','exit'].includes(action))await FC.applicationWrite.auto(perform);else await perform();
+        try{
+          if(FC.applicationWrite&&['save','cancel','exit'].includes(action))await FC.applicationWrite.auto(perform);else await perform();
+        }catch(_){
+          infoBox()?.open({title:'Nie zapisano inwestora',message:'Zachowano formularz. Nie potwierdzono trwałego zapisu inwestora.',okOnly:true});
+        }
         try{ guard() && guard().apply(!!(editor() && editor().state.isEditing)); }catch(_){ }
       });
     });

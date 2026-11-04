@@ -1,5 +1,27 @@
 # ANDROID STORAGE RECOVERY + IndexedDB v1 — 25.10.2026
 
+## Nowy inwestor — LF_APPLICATION_SCOPE_REFUSED — 04.11.2026
+
+Gałąź `fix/investor-save-scope-20261104`, BASE/main `afee03d2b408dd78b85ec3efcb575fffb568457b`. Zakres właściciela: zapis nowego inwestora, obsługa błędu i zachowanie wcześniejszych projektów. Bez CI, PR, wydania, Firebase, Rules i synchronizacji. Wynikowy HEAD w przekazaniu po commit/push. **CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING**.
+
+### Przyczyna i zmiana
+
+Zgłoszony stos prowadzi do zachowanej kontroli obcych rekordów w application-replication.mjs:86. Odtworzono dokładną odmowę na rzeczywistych modułach formularza/authority/committera z syntetycznym wcześniejszym rekordem zawierającym dodatkowe pole: normalizacja całej kolekcji przy scoped create usuwała pole z innego projektu. Nie odczytywano danych telefonu, więc nie ustalono konkretnego pola jego RAW. Guard słusznie odmawiał takiej mutacji i nadal ją blokuje.
+
+W localOnly zapis pojedynczego inwestora/projektu zachowuje oryginalny rekord innego ID tylko wtedy, gdy oba znormalizowane widoki są równe. Rzeczywiście różne dane nie są zamaskowane i nadal trafiają do kontroli zakresu. Zmiana w project-store, investors-store i investors-local-repository. Nie modyfikowano committera, guardów ani ścieżki synchronizacji. investor-actions przechwytuje odrzuconą obietnicę i odkłada finalizację formularza do afterCommit; abort zachowuje draft i nie daje fałszywego potwierdzenia.
+
+### Weryfikacja rzeczywiście wykonana
+
+- android-investor-isolation-smoke.js: PASS na Windows/Node 22.23.4 — rzeczywisty callback przycisku i moduły authority/committera, modele globalne i walidator biznesowy; drugi inwestor zachowuje wcześniejsze projekty, nieznane pola, zamrożoną ofertę i wszystkie katalogi; celowa zmiana obcego projektu odrzucona; przerwany commit zachowuje formularz; jawne ponowienie tworzy jeden projekt. Kontrolowany DOM i magazyn pamięciowy są opisane, nie przedstawiane jako test telefonu.
+- Ten sam smoke w Linux/Chromium 157.0.8103.38 z natywnym IndexedDB: PASS — abort prawdziwej transakcji oraz dwa renderer-loss/reopen bez backendu. W CI Linux native IDB jest obowiązkową częścią istniejącego smoke, bez nowego workflow.
+- android-local-first-browser-smoke.js: końcowe **9 grup PASS**, pełny istniejący scenariusz resetu syntetycznego/14 domen, rzeczywisty formularz trzech szafek, abort, WYCENA i dwa wznowienia offline; zero cloud requests. Pierwsze lokalne próby miały timeout CDP na dysku Windows albo LF_APPLICATION_BUSY w przygotowaniu/nawigacji (także kod BASE). Przeniesiono izolowany profil/źródła na natywny katalog tymczasowy WSL i dodano wyłącznie testowe oczekiwanie na faktyczne zakończenie transakcji. Nie zwiększano timeoutów ani nie osłabiano asercji.
+- investor-navigation-exit-smoke.js **13/13 PASS**; pcv-ram-quote-save-regression-smoke.js **12/12 PASS**.
+- Składnia czterech modułów, kanoniczne wersje zasobów, aktualny manifest i git diff --check PASS. Oba istniejące smoke są odkrywane dokładnie raz: investor-isolation w shardzie 4/7, android-local-first-browser w 5/7. Workflow niezmieniony. Pełnego Preflightu ani Actions nie uruchamiano.
+
+### Granice przekazania
+
+Dostarczona poprawka nie potwierdza naprawy na fizycznym Pixelu ani zabezpieczenia jego aktualnego niezapisanego formularza. Nie resetowano profilu/danych, nie zmieniano Firebase, Rules, Auth, aktywacji, synchronizacji ani cenników. PR #112 jest już wydany; jego dawne CI_PENDING w tym raporcie jest historyczne. Nowy pakiet wymaga osobnej zgody na dokładny HEAD/BASE przed CI/wydaniem.
+
 ## Kolejne szafki — sesja LOCAL-FIRST — 04.11.2026
 
 Gałąź `fix/android-cabinet-session-20261104`, BASE/main **`8952d97f4b8bff28a1207c31abbcfd47dba934fa`**, sprawdzony git/remote. Jeden commit/push zawierający wpis, wynikowy HEAD w przekazaniu. **Poprawka lokalna CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING; pełny cel synchronizacji LIVE nadal SYNC_BLOCKED.** Nie przedstawiamy całego nowego zlecenia jako zakończonego.

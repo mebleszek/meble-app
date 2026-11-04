@@ -63,9 +63,18 @@
     }catch(_){ return []; }
   }
 
-  function writeAll(list){
+  function writeAll(list, options){
     const normalized = (list || []).map(normalizeInvestor);
     try{
+      if(FC.applicationWrite?.localOnly && options?.recordId){
+        const current=JSON.parse(localStorage.getItem(KEY_INVESTORS)||'[]');
+        if(!Array.isArray(current))return false;
+        for(let i=0;i<normalized.length;i++){
+          const row=normalized[i],before=current.find(item=>item && item.id===row.id);
+          if(before && row.id!==options.recordId
+            && JSON.stringify(normalizeInvestor(before))===JSON.stringify(row))normalized[i]=before;
+        }
+      }
       if(FC.storage && typeof FC.storage.setJSON === 'function'){
         const ok = FC.storage.setJSON(KEY_INVESTORS, normalized);
         if(ok === false){
