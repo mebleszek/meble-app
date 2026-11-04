@@ -9,7 +9,11 @@ const aliases=new Set(['hardwareSuppliers','hardwareSettings','hardwareCategorie
 // Existing writer-fence coordination is retained, like owner/Auth metadata.
 const authNames=new Set(['meble-application-writer-fence-v1','meble-access-profile-v1','meble-device-trust-v1','firebaseLocalStorageDb','firebase-heartbeat-database','firebase-installations-database']);
 const authKey=k=>/^firebase[:_]/.test(k)||/^meble_access_profile_(?:v1|pending_v1)$/.test(k)||k==='meble_device_trust_fence_v1';
-export async function readRescueSnapshot({window:w,name,ownerUid,readNative,readSession,authorize,verifyOwner,release,readRam,assertQuiescent,allowMissingRam=false}={}){
+// Full backups always require the closed origin inventory. Only the confirmed
+// reset caller may inspect its two verified targets while leaving every other DB unopened.
+export function readRescueSnapshot(context){return readSnapshot(context,false);}
+export function readLocalResetSnapshot(context){return readSnapshot(context,true);}
+async function readSnapshot({window:w,name,ownerUid,readNative,readSession,authorize,verifyOwner,release,readRam,assertQuiescent,allowMissingRam=false}={},resetOnly=false){
  let expired=false,timer;const opened=new Set(),transactions=new Set();
  const access=()=>{if(expired)refuse('RESCUE_TIMEOUT');try{
   assertRescueReadAccess(w);authorize();assertQuiescent();
@@ -61,7 +65,7 @@ export async function readRescueSnapshot({window:w,name,ownerUid,readNative,read
   if(receipt.version!==1||receipt.name!==name||receipt.ownerUid!==ownerUid||!/^[a-f0-9]{64}$/.test(receipt.sourceHash||''))refuse('RESCUE_RECEIPT_INVALID');
   const activation=release?assertApplicationRelease(release).activationId:null;if(activation&&receipt.activationId!==activation)refuse('RESCUE_RELEASE_INVALID');
   if(typeof w.indexedDB?.databases!=='function')refuse('RESCUE_IDB_INVENTORY');
-  const inventory=async()=>{const rows=await w.indexedDB.databases();access();if(rows.some(d=>!authNames.has(d.name)&&![name,ARCHIVE].includes(d.name)))refuse('RESCUE_UNKNOWN_DATABASE');return rows.filter(d=>!authNames.has(d.name)).sort((a,b)=>a.name.localeCompare(b.name));};
+  const inventory=async()=>{const rows=await w.indexedDB.databases();access();if(!resetOnly&&rows.some(d=>!authNames.has(d.name)&&![name,ARCHIVE].includes(d.name)))refuse('RESCUE_UNKNOWN_DATABASE');return rows.filter(d=>resetOnly?[name,ARCHIVE].includes(d.name):!authNames.has(d.name)).sort((a,b)=>a.name.localeCompare(b.name));};
   const names=await inventory();if(!names.some(d=>d.name===name)||names.some(d=>d.version!==1))refuse('RESCUE_IDB_MISSING_OR_SCHEMA');
   const binding={key:'binding',version:1,ownerUid,deviceId:receipt.deviceId,instanceId:receipt.instanceId};
   const capture=async()=>{
