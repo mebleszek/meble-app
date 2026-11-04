@@ -20,7 +20,7 @@
     { id:'m1', materialType:'laminat', manufacturer:'Egger', symbol:'W1100', name:'Egger W1100 ST9 Biały Alpejski', price:280, priceUnit:'sheet', hasGrain:false, starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.' },
     { id:'m2', materialType:'akryl', manufacturer:'Rehau', symbol:'A01', name:'Akryl Biały', price:380, priceUnit:'m2', hasGrain:false, starterPrice:true, note:'Cena startowa za m² gotowego frontu.' },
     { id:'m3', materialType:'lakier', manufacturer:'Start', symbol:'LAK-MAT', name:'Front lakierowany standard', price:450, priceUnit:'m2', hasGrain:false, starterPrice:true, note:'Cena startowa za m² gotowego frontu.' },
-    { id:'m4', materialType:'hdf', manufacturer:'Start', symbol:'HDF-3-BIALY', name:'HDF biały 3 mm', price:18, priceUnit:'m2', hasGrain:false, starterPrice:true, note:'Cena startowa za m² pleców.' },
+    { id:'m4', materialType:'hdf', manufacturer:'Start', symbol:'HDF-3-BIALY', name:'HDF 3mm biała', price:18, priceUnit:'m2', hasGrain:false, starterPrice:true, note:'Cena startowa za m² pleców.' },
     { id:'m5', materialType:'obrzeże', manufacturer:'Start', symbol:'PCV-STD', name:'Obrzeże PCV standard', price:3, priceUnit:'mb', hasGrain:false, starterPrice:true, note:'Cena startowa za mb; w wycenie doliczane jest +10% zapasu.' },
     { id:'m7', materialType:'obrzeże', manufacturer:'Start', symbol:'PCV-FRONT', name:'PCV pod kolor frontów', price:5, priceUnit:'mb', hasGrain:false, starterPrice:true, note:'Cena startowa za mb PCV liczonego jako pod kolor frontów; w wycenie doliczane jest +10% zapasu.' },
     { id:'m6', materialType:'blat', manufacturer:'Start', symbol:'BLAT-4100', name:'Blat roboczy 4100 mm', price:420, priceUnit:'piece', hasGrain:true, starterPrice:true, note:'Cena startowa za całą sztukę blatu 4,1 m.' },
@@ -552,7 +552,12 @@
   function getPriceList(kind){
     notifyRecoveryRequired();
     const key = String(kind || 'materials');
-    if(key === 'materials') return clone(cache.sheetMaterials);
+    if(key === 'materials'){
+      const rows = clone(cache.sheetMaterials);
+      const hdf = FC.catalogSelectors?.resolveMaterialNameAlias?.(rows, 'HDF 3mm biała');
+      if(hdf) hdf.name = 'HDF 3mm biała';
+      return rows;
+    }
     if(key === 'accessories') return clone(cache.accessories);
     if(key === 'quoteRates') return clone(cache.quoteRates);
     if(key === 'workshopServices') return clone(cache.workshopServices);

@@ -178,5 +178,5 @@
     const packed=await pack(ownerUid,model);if(packed.directoryJson!==canonical(directory))fail('GLOBAL_DIRECTORY_INVALID');return {model:clone(model),...diagnostic};
   }
   function hashValue(v,p){if(typeof v!=='string'||! /^[a-f0-9]{64}$/.test(v))fail('GLOBAL_HASH_INVALID',p);}
-  FC.globalDataContract={validate,validateBundle,capture,pack,unpack,canonical,sha,encode,fail,clone,id,hashValue,shape,integer,schemas,sources,aliasConflictMetadata,single,dictionary,MAX_RECORD_BYTES,MAX_DIRECTORY_BYTES,MAX_RECORDS,MAX_TOTAL_BYTES};
+  FC.globalDataContract={resolveMaterialNameAlias:(rows,reference)=>FC.catalogSelectors?.resolveMaterialNameAlias?.(rows,reference),validate,validateBundle,capture,pack,unpack,canonical,sha,encode,fail,clone,id,hashValue,shape,integer,schemas,sources,aliasConflictMetadata,single,dictionary,MAX_RECORD_BYTES,MAX_DIRECTORY_BYTES,MAX_RECORDS,MAX_TOTAL_BYTES};
 })();

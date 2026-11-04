@@ -3,6 +3,7 @@
   'use strict';
   const FC=window.FC=window.FC||{};
   const TTL_MS=45000,REFRESH_MS=30000,TIMEOUT_MS=8000;
+  const memoryOptions=new WeakMap();
   function create(auth,{sdk,retainConnection=false}={}){
     let connection=null,closed=false;
     const watches=new Set();
@@ -20,8 +21,11 @@
           if(!/^demo-/.test(ctx.app.options.projectId)||!['localhost','127.0.0.1'].includes(ctx.emulator?.host)||!Number.isInteger(ctx.emulator?.firestorePort)||ctx.emulator.firestorePort<1||ctx.emulator.firestorePort>65535)fail();
         }else if(ctx.target!=='live-auth'||ctx.app.options.projectId!=='mebleszek-meble-app')fail();
         const f=sdk||await import('https://www.gstatic.com/firebasejs/'+FC.firebasePilotTransport.SDK_VERSION+'/firebase-firestore.js');
-        const db=f.initializeFirestore(ctx.app,{localCache:f.memoryLocalCache()});
-        if(ctx.target==='emulator')f.connectFirestoreEmulator(db,ctx.emulator.host,ctx.emulator.firestorePort);
+        // SDK options include a cache instance. Fresh verifiers on this same
+        // Auth app must reuse that exact memory-only setting, never its proof.
+        if(!memoryOptions.has(ctx.app))memoryOptions.set(ctx.app,{localCache:f.memoryLocalCache()});
+        const db=f.initializeFirestore(ctx.app,memoryOptions.get(ctx.app));
+        if(ctx.target==='emulator'&&db._settings?.host!==ctx.emulator.host+':'+ctx.emulator.firestorePort)f.connectFirestoreEmulator(db,ctx.emulator.host,ctx.emulator.firestorePort);
         return {f,db};
       })().catch(error=>{connection=null;throw error;});
       const result=await connection;same(identity);return result;

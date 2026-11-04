@@ -50,6 +50,21 @@ async function fatal(stall=false){let failed=false,opened=0,releaseReadonly;cons
   await assert.rejects(runtime.withRescueRead(async()=>{throw Error('synthetic read failure');}));await beforeTransaction();assert.equal(checks,2);
  }
  console.log('PASS normal runtime recovery read reserves the existing write boundary and releases it after success/failure without changing synchronization policy');
+ {
+  const rows={fc_projects_v1:'[]'},instances=[],listeners=new Map();let finish,binds=0,peer=false,fences=0;
+  const closing=new Promise(resolve=>{finish=resolve;}),authority={rows:()=>rows,status:()=>({transactionPending:false,incomingPending:false}),assertIdle(){},close(){},resume(){}};
+  const deps={fail:code=>{throw Object.assign(Error(code),{code});},copy:structuredClone,applicationKeys:()=>[],applicationInstallation:async()=>({binding:{},confirm(){},release(){}}),
+   openLocalFirstStore:async()=>({readApplication:async()=>({rows}),close(){}}),createApplicationCommitter:()=>({}),installOfflineEmulatorApplicationAuthority:async()=>authority,
+   createApplicationBackgroundSync(options){const instance={closed:false,close(){this.closed=true;return instances.indexOf(this)===0?closing:Promise.resolve();},attach(){assert.equal(this.closed,false);return options.barrier(()=>({attached:true}));},status:()=>({state:'confirmed',cloudConfirmed:true})};instances.push(instance);return instance;},
+   installApplicationWriteBoundary:()=>{binds++;return {run(){},busy:()=>false,close(){}};},createApplicationActionBinding:()=>({})};
+  const w={FC:{session:{active:false},globalDataContract:{schemas:{},capture:()=>({model:{}}),validateBundle(){}},applicationSyncActions:{install(){}}},__FC_MAIN_ACCESS__:{assert(){}},navigator:{onLine:false},addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:name=>listeners.delete(name)};
+  const run=new Function('deps','with(deps){'+runtimeSource+';return startApplicationRuntime;}')(deps),runtime=await run({window:w,ownerUid:'synthetic-owner',localOnly:true,backgroundSync:true,boot:{localOnly:true,restored:true,rows:()=>rows,verifyFence(){fences++;if(peer)deps.fail('LF_OTHER_APPLICATION_CLIENT');}}});
+  assert.equal(runtime.status().cloudConfirmed,true);runtime.close();assert.equal(runtime.status().cloudConfirmed,false);assert.equal(runtime.status().backgroundSync.cloudConfirmed,false);await assert.rejects(runtime.resume({localOwnerUid:'foreign-owner'}),e=>e.code==='LF_LOCAL_SYNC_NOT_AUTHORIZED');
+  let resumed=false;const pending=runtime.resume({localOwnerUid:'synthetic-owner'}).then(()=>{resumed=true;});await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(resumed,false,'A new admission waits for the old transport to close');assert.equal(instances.length,1);finish();await pending;
+  assert.equal(instances.length,2);assert.equal(binds,2);assert.equal(listeners.size,3);assert.equal((await runtime.attachSync({})).attached,true);assert.equal(fences,1);peer=true;await assert.rejects(runtime.attachSync({}),e=>e.code==='LF_OTHER_APPLICATION_CLIENT');runtime.close();assert.equal(listeners.size,0);
+ }
+ console.log('PASS same-owner readmission waits for old background close and rebinds one controller/listeners; foreign owner still refuses');
  const {source}=require('./code-global-catalogs-asset');assert.equal(fs.readFileSync('sync/code-global-catalogs.generated.mjs','utf8'),source());
  const executor=fs.readFileSync('tools/helpers/synthetic-global-rebuild.mjs','utf8');assert.ok(executor.includes('w!==globalThis.window'));assert.ok(executor.includes('meble-lf-test-rebuild-'));assert.ok(executor.includes('SYNTHETIC_REBUILD_ONLY'));
  for(const file of ['index.html','tools/index-load-groups.js','js/app/cloud/application-bootstrap.js','sync/local-first-recovery-ui.mjs'])assert.equal(fs.readFileSync(file,'utf8').includes('synthetic-global-rebuild'),false);

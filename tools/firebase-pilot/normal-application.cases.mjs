@@ -17,6 +17,7 @@ export async function runNormalApplication(t,{deployment=false,background=false}
  await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'authorizedUsers',uid),{appEnabled:true,enabled:false,globalDataEnabled:true,globalSchemaVersion:1});await setDoc(doc(c.firestore(),'appAccess',uid),{schemaVersion:1});if(deployment){await setDoc(doc(c.firestore(),'syncConfig','owner'),{ownerUid:uid,activationId:'synthetic-deployment',schemaVersion:1});await setDoc(doc(c.firestore(),'syncAccess',uid),{activationId:'synthetic-deployment',schemaVersion:1});}});
  const server=http.createServer((req,res)=>{
   const url=new URL(req.url,'http://127.0.0.1');let file;
+  if(url.pathname==='/__existing-client.html'){if(req.method!=='POST'){res.writeHead(405);res.end();return;}res.setHeader('content-type','text/html');res.end('<!doctype html><title>Synthetic existing client</title><p id=existing-client>Synthetic existing client</p>');return;}
   if(/^\/__sdk\/firebase-(app|auth|firestore)\.js$/.test(url.pathname))file=path.join(root,'tools/firebase-pilot/node_modules/firebase',path.basename(url.pathname));
   else file=path.resolve(root,'.'+url.pathname);
   if(!file.startsWith(root+path.sep)){res.writeHead(403);res.end();return;}
@@ -29,13 +30,13 @@ export async function runNormalApplication(t,{deployment=false,background=false}
  const catalogs=background?require('../helpers/code-global-catalogs').buildCodeCatalogs().model:model();if(!background)for(const ref of ['laminat TEST','laminat','TEST','HDF'])if(!catalogs.materials.some(r=>[r.id,r.name,r.materialType].includes(ref)))catalogs.materials.push({id:'normal-material-'+catalogs.materials.length,name:ref,materialType:'synthetic',price:12.375,priceUnit:'sheet'});
  const sources=runtime().FC.globalDataContract.sources;
  let releaseSlot=null;if(deployment){const keys=await crypto.subtle.generateKey('Ed25519',true,['sign','verify']),publicKeySpki=new Uint8Array(await crypto.subtle.exportKey('spki',keys.publicKey));const {canonical,digest}=await import('../../sync/local-first-values.mjs');const decision={domain:'MEBLE_APPLICATION_DEPLOYMENT_V1',protocol:2,projectId:'demo-meble-app',database:'(default)',profile:'business-project-v1',globalDomains:14,ownerUid:uid,activationId:'synthetic-deployment',origin:origin+'/',migrationApproved:true,sourcePreserved:true,rulesApproved:true,rulesSha256:await digest(rules)};releaseSlot={envelope:{decision,publicKeySpki:[...publicKeySpki],signature:[...new Uint8Array(await crypto.subtle.sign('Ed25519',keys.privateKey,new TextEncoder().encode(canonical(decision))))]},trustedKeySha256:Buffer.from(await crypto.subtle.digest('SHA-256',publicKeySpki)).toString('hex')};}
- async function login(d){await d.page.evaluate(()=>window.normalReleaseReady);await d.page.click('#auth-google');try{await d.page.waitForFunction(()=>['ready'].includes(document.body.dataset.businessState)||['profile-pending','error'].includes(document.body.dataset.authState));}catch(error){throw Error('Login phase '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,phase:window.FC.applicationStartup?.inspect(),connectionError:window.normalConnectionError,rpc:window.normalRpcTimeline,pendingRpc:window.normalPendingRpc}))));}
+ async function login(d){await d.page.evaluate(()=>window.normalReleaseReady);await d.page.click('#auth-google');try{await d.page.waitForFunction(()=>['ready'].includes(document.body.dataset.businessState)||['profile-pending','error'].includes(document.body.dataset.authState),null,{timeout:45000});}catch(error){throw Error('Login phase '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,phase:window.FC.applicationStartup?.inspect(),connectionError:window.normalConnectionError,rpc:window.normalRpcTimeline,pendingRpc:window.normalPendingRpc,input:window.__AUTH_INPUT_DIAGNOSTICS__?.(),resources:window.normalResourceFailures}))));}
   if(await d.page.evaluate(()=>document.body.dataset.authState==='error'))throw Error('Normal startup refused '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,error:document.getElementById('auth-error')?.textContent}))));
   if(await d.page.locator('#auth-profile-admission').isVisible()){await d.page.check('#auth-profile-backup');await d.page.check('#auth-profile-owner');await d.page.click('#auth-profile-confirm');}
-  try{await d.page.waitForFunction(()=>document.body.dataset.businessState==='ready');}catch(error){throw Error(error.message+' '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,error:document.getElementById('auth-error')?.textContent,app:document.getElementById('app-error-msg')?.textContent}))));}}
+  try{await d.page.waitForFunction(()=>document.body.dataset.businessState==='ready',null,{timeout:45000});}catch(error){throw Error(error.message+' '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,error:document.getElementById('auth-error')?.textContent,app:document.getElementById('app-error-msg')?.textContent}))));}}
  async function device(name){
   const owner=await startBrowser({profileDir:path.join(dir,name)}),browser=await chromium.connectOverCDP(owner.endpoint),page=browser.contexts()[0].pages()[0];
-  const d={owner,browser,page,name};devices.push(d);await page.addInitScript({content:injection});if(deployment&&!background&&name==='computer'){await configure(d);await page.goto(origin+'/index.html');await login(d);return d;}await page.goto(origin+'/index.html');await login(d);
+  const d={owner,browser,page,name};devices.push(d);page.on('requestfailed',request=>{void page.evaluate(value=>{(window.normalResourceFailures||=[]).push(value);}, {url:request.url(),error:request.failure()?.errorText}).catch(()=>{});});await page.addInitScript({content:injection});if(deployment&&!background&&name==='computer'){await configure(d);await page.goto(origin+'/index.html');await login(d);return d;}await page.goto(origin+'/index.html');await login(d);
   await page.evaluate(({catalogs,sources})=>{for(const [domain,value]of Object.entries(catalogs))for(const key of sources[domain])localStorage.setItem(key,JSON.stringify(domain==='stock'?{sheets:value}:value));},{catalogs,sources});
   await page.evaluate(()=>window.FC.offlineShell.prepare());return d;
  }
@@ -46,7 +47,7 @@ export async function runNormalApplication(t,{deployment=false,background=false}
   await evaluate('('+finishPendingTouchScroll.toString()+')()');
   await evaluate('window.normalGesture=('+observeGesture.toString()+')('+JSON.stringify(selector)+')');
   try{const p=await waitForGesturePoint(evaluate,selector,{stable:true});await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...p,radiusX:3,radiusY:3,id:1}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-   const trace=await evaluate('window.normalGesture.snapshot()');for(const type of ['pointerdown','pointerup'])assert.equal(trace.events.filter(e=>e.type===type&&e.trusted&&e.onTarget).length,1);
+   const trace=await evaluate('window.normalGesture.snapshot()');for(const type of ['pointerdown','pointerup'])assert.equal(trace.events.filter(e=>e.type===type&&e.trusted&&e.onTarget).length,1,selector+' '+JSON.stringify(trace));
   }finally{await evaluate('window.normalGesture.close();delete window.normalGesture');await cdp.detach();}
  }
  const phone=await device('phone');
@@ -98,16 +99,39 @@ export async function runNormalApplication(t,{deployment=false,background=false}
   };if(releaseSlot){const fc=window.FC=window.FC||{};Object.defineProperty(fc,'applicationStartup',{configurable:true,set(value){Object.defineProperty(fc,'applicationStartup',{configurable:true,writable:true,value});prepare();}});}else document.addEventListener('DOMContentLoaded',prepare,{once:true});},{uid,name:d.name,releaseSlot,background});
  }
  async function enable(d){await configure(d);await d.page.reload();await login(d);}
+ async function extraClient(d){
+  const cdp=await d.browser.newBrowserCDPSession();
+  const open=async()=>{const opened=d.page.context().waitForEvent('page');await cdp.send('Target.createTarget',{url:'about:blank',background:true});return opened;};
+  let page=await open();assert.equal(await d.page.evaluate(()=>document.hidden),false);
+  if(deployment){assert.equal((await page.goto(origin+'/index.html')).status(),423,'Current shell refuses another writer');await page.close();page=await open();}
+  // A 423 may become an error document rather than an origin client. Represent
+  // an old existing document using a synthetic POST navigation: the released
+  // worker handles GET only. This local fixture loads no app/Auth and writes no
+  // data. No worker bypass, origin override or policy change is used.
+  const loaded=page.waitForNavigation();await page.evaluate(origin=>{const form=document.createElement('form');form.method='POST';form.action=origin+'/__existing-client.html';document.body.append(form);form.submit();},origin);
+  assert.equal((await loaded).status(),200);assert.equal(new URL(page.url()).origin,origin);assert.equal(await page.locator('#existing-client').count(),1);
+  return {async close(){await page.close();await cdp.detach();}};
+ }
+ async function network(d,offline){
+  d.network=d.network||await d.page.context().newCDPSession(d.page);
+  const state={offline,latency:0,downloadThroughput:offline?0:-1,uploadThroughput:offline?0:-1};
+  // One CDP session controls both transport and navigator. Mixing a context
+  // override with another session can emit online while its transport is offline.
+  await d.network.send('Network.enable');await d.network.send('Network.emulateNetworkConditions',state);await d.network.send('Network.overrideNetworkState',state);
+ }
  async function restart(d,{offline=false,crash=false}={}){
   if(crash){await d.owner.crash();await d.browser.close().catch(()=>{});}else{await d.browser.close();await d.owner.close();}
   d.owner=await startBrowser({profileDir:path.join(dir,d.name)});d.browser=await chromium.connectOverCDP(d.owner.endpoint);d.page=d.browser.contexts()[0].pages()[0];
   for(const page of d.browser.contexts()[0].pages())if(page!==d.page)await page.close();
-  await d.page.addInitScript({content:injection});await configure(d);await d.page.context().setOffline(offline);await d.page.goto(origin+'/index.html');
-  if(!offline)await login(d);else await d.page.waitForFunction(()=>document.body.dataset.businessState==='ready');
+  d.network=null;await d.page.addInitScript({content:injection});await configure(d);await network(d,offline);
+  let offlineError,pauses=0;
+  if(offline){await d.network.send('Debugger.enable');d.network.on('Debugger.paused',()=>{pauses++;void(async()=>{try{const state={offline:true,latency:0,downloadThroughput:0,uploadThroughput:0};await d.network.send('Network.emulateNetworkConditions',state);await d.network.send('Network.overrideNetworkState',state);}catch(error){offlineError=error;}finally{await d.network.send('Debugger.resume');}})();});await d.page.addInitScript('debugger;window.normalOfflineBootOnline=navigator.onLine;');}
+  await d.page.goto(origin+'/index.html');
+  if(!offline)await login(d);else {await d.page.waitForFunction(()=>document.body.dataset.businessState==='ready');if(offlineError)throw offlineError;assert.ok(pauses>0);assert.equal(await d.page.evaluate(()=>window.normalOfflineBootOnline),false,'Real offline state precedes every application script');await network(d,true);await d.network.send('Debugger.disable');}
  }
 
  await enable(phone);
- if(background){const {runBackgroundRoundTrip}=await import('./background-application.cases.mjs');await runBackgroundRoundTrip(t,{phone,device,enable,restart,touch,env,uid,pid,iid:ids[0],room,catalogs});return;}
+ if(background){const {runBackgroundRoundTrip}=await import('./background-application.cases.mjs');await runBackgroundRoundTrip(t,{phone,device,enable,login,restart,network,extraClient,touch,env,uid,pid,iid:ids[0],room,catalogs});return;}
  const ownerClient=env.authenticatedContext(uid,{email_verified:true,firebase:{sign_in_provider:'google.com'}}).firestore();
  const beforeReceiver=deployment?(await getDoc(doc(ownerClient,'users',uid,'globalData','current'))).data():null;
  if(deployment)computer=await device('computer');else await enable(computer);
@@ -117,7 +141,7 @@ export async function runNormalApplication(t,{deployment=false,background=false}
  assert.equal(await computer.page.evaluate(()=>window.FC.investors.readAll().length),2);
  assert.equal(await phone.page.evaluate(()=>window.FC.applicationStartup.inspect().state),'active');
  // An incompatible second document cannot write concurrently; source is retained.
- const extra=await phone.page.context().newPage();const extraResponse=await extra.goto(origin+'/index.html');if(deployment)assert.equal(extraResponse.status(),423);
+ const extra=await extraClient(phone);
  await assert.rejects(phone.page.evaluate(()=>window.FC.applicationWrite.globals(()=>true)),/LF_OLD_WRITER_EXCLUSIVITY_UNPROVEN|LF_OTHER_APPLICATION_CLIENT/);
  await extra.close();
  await assert.rejects(phone.page.evaluate(()=>localStorage.setItem('fc_projects_v1','[]')),/LF_ASYNC_TRANSACTION_REQUIRED/);

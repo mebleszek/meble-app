@@ -166,6 +166,19 @@ test('A background verifier closes its watches without terminating the shared Au
   assert.equal((await verifier.verify(auth.identity())).ok,true);await verifier.close();assert.equal(terminated,retainConnection?0:1);await assert.rejects(verifier.verify(auth.identity()));await auth.close();
  }
 });
+test('Fresh verifiers reuse only the pinned memory settings while every grant requires a new server transaction',async()=>{
+ for(const target of ['live-auth','emulator']){
+  const {s,fake,auth}=await instance();fake.emit('synthetic-shared-settings');let settings=null,caches=0,emulators=0,transactions=0,denied=false,terminated=0;
+  const app={options:{projectId:target==='emulator'?'demo-synthetic':'mebleszek-meble-app'}},db={_settings:{host:'firestore.googleapis.com'}};
+  auth.verificationContext=()=>({app,auth:{currentUser:{uid:'synthetic-shared-settings'}},target,emulator:{host:'127.0.0.1',firestorePort:18080}});
+  const snapshot={metadata:{fromCache:false,hasPendingWrites:false},exists:()=>true,id:'synthetic-shared-settings',data:()=>({schemaVersion:1})};
+  const sdk={memoryLocalCache(){caches++;return {};},initializeFirestore(_,options){if(settings&&settings!==options)throw Error('different SDK options');settings=options;return db;},connectFirestoreEmulator(_,host,port){assert.equal(emulators++,0);db._settings.host=host+':'+port;},doc:()=>({}),getDocFromServer:async()=>snapshot,runTransaction:async(_,fn)=>{transactions++;if(denied)throw {code:'permission-denied'};return fn({get:async()=>snapshot});},terminate:async()=>{terminated++;}};
+  const first=s.FC.cloudAccessVerifier.create(auth,{sdk,retainConnection:true});assert.equal((await first.verify(auth.identity())).ok,true);
+  const next=s.FC.cloudAccessVerifier.create(auth,{sdk,retainConnection:true});assert.equal((await next.verify(auth.identity())).ok,true);await first.close();assert.equal((await next.verify(auth.identity())).ok,true);
+  assert.equal(caches,1);assert.equal(emulators,target==='emulator'?1:0);assert.equal(transactions,3);assert.equal(terminated,0);
+  denied=true;assert.equal((await next.verify(auth.identity())).denied,true);assert.equal(transactions,4);await next.close();await auth.close();
+ }
+});
 async function main(){for(const [name,fn]of tests){await fn();console.log('PASS '+name);}console.log('Auth opt-in and prepared gate: '+tests.length+'/'+tests.length+' PASS');}
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});
 module.exports={runtime};

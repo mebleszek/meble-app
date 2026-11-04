@@ -19,7 +19,10 @@ export function validateProjectDependencies(projectContract, globalContract, doc
   for (const {domain, reference} of requirements) {
     if (domain === 'inherited-defaults') continue; // Entire validated defaults domain is pinned, never merged here.
     let found = false;
-    if (domain === 'material') found = globals.materials.some(r => [r.id,r.name,r.materialType].includes(reference));
+    if (domain === 'material') {
+      const alias = globalContract.resolveMaterialNameAlias?.(globals.materials, reference);
+      found = alias === undefined ? globals.materials.some(r => [r.id,r.name,r.materialType].includes(reference)) : !!alias;
+    }
     if (domain === 'rate') found = [...globals.labor,...globals.workshopServices].some(r => r.id === reference);
     if (domain === 'hardware') found = globals.manufacturers.includes(reference) || globals.hardware.some(r =>
       ['id','name','manufacturer','hardwareType','hardwareSystem','series','drawerProfile'].some(k => r[k] === reference));

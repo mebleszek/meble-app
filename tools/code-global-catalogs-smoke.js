@@ -66,6 +66,24 @@ const tests=[],test=(name,fn)=>tests.push([name,fn]);
   const contract=scope.FC.globalDataContract;assert.doesNotThrow(()=>contract.validateBundle(contract.capture(scope.localStorage,Object.keys(contract.sources)).model));
   scope.FC.catalogStore.adoptVerified(m);assert.deepEqual(clone(scope.FC.catalogStore.getSheetMaterials()),m.materials);assert.deepEqual(clone(scope.FC.catalogStore.getQuoteRates()),m.labor);assert.deepEqual(clone(scope.FC.catalogStore.getAccessories()),m.hardware);
   assert.equal(Object.values(scope.FC.companyProfile.read().company).some(Boolean),false);assert.equal(JSON.stringify(rows),before);
+  load('catalog/catalog-selectors');const legacy=clone(m);legacy.materials.find(r=>r.id==='m4').name='HDF biały 3 mm';const legacyBefore=JSON.stringify(legacy);
+  scope.FC.catalogStore.adoptVerified(legacy);assert.deepEqual(clone(scope.FC.catalogStore.getSheetMaterials()),m.materials,'Historical catalog displays the approved name without changing its source');assert.equal(JSON.stringify(legacy),legacyBefore);assert.equal(JSON.stringify(rows),before);
+ });
+ test('approved HDF spelling resolves historical/current names identically in pricing and sync without choosing conflicting records',async()=>{
+  let rows=clone(m.materials);const w={FC:{catalogStore:{getSheetMaterials:()=>rows},wycenaCoreUtils:{normalizeText:v=>String(v||'').trim()},projectExportContract:s.FC.projectExportContract},TextEncoder};w.window=w;
+  vm.createContext(w);for(const file of ['catalog/catalog-selectors','cloud/global-data-contract','wycena/wycena-core-catalog'])vm.runInContext(fs.readFileSync('js/app/'+file+'.js','utf8'),w);
+  const names=['HDF 3mm biała','HDF biały 3 mm'],{validateProjectDependencies}=await import('../sync/local-first-project.mjs');
+  const check=(bundle,name)=>validateProjectDependencies({dependencies:()=>[{domain:'material',reference:name}]},w.FC.globalDataContract,{payload:{}},bundle);
+  const original=m.materials.find(r=>r.id==='m4');assert.equal(original.name,names[0]);assert.equal(original.price,18);assert.equal(original.priceUnit,'m2');assert.equal(original.symbol,'HDF-3-BIALY');
+  for(const storedName of names){
+   const bundle=clone(m),item=bundle.materials.find(r=>r.id==='m4');item.name=storedName;item.price=123.456789;rows=bundle.materials;w.materials=rows;const before=JSON.stringify(bundle);
+   for(const name of names){assert.equal(w.FC.catalogSelectors.findSheetMaterial(name).id,'m4');assert.equal(w.FC.wycenaCoreCatalog.materialPriceLookup(name).price,123.456789);assert.doesNotThrow(()=>check(bundle,name));}
+   assert.equal(JSON.stringify(bundle),before,'Read resolution preserves prices, IDs, records and source names');
+  }
+  const ambiguous=clone(m);ambiguous.materials.push({...original,id:'synthetic-second-hdf',name:names[1],price:91.125});rows=ambiguous.materials;w.materials=rows;const before=JSON.stringify(ambiguous);
+  for(const name of names){assert.equal(w.FC.catalogSelectors.findSheetMaterial(name),null);assert.equal(w.FC.wycenaCoreCatalog.materialPriceLookup(name),null);assert.throws(()=>check(ambiguous,name),e=>e.code==='LF_PROJECT_DEPENDENCY_MISSING');}
+  assert.equal(JSON.stringify(ambiguous),before);assert.doesNotThrow(()=>check(ambiguous,'m4'));
+  rows=clone(m.materials);w.materials=rows;for(const name of ['HDF 5mm biała','HDF 3mm czarna','synthetic unknown material'])assert.throws(()=>check(m,name),e=>e.code==='LF_PROJECT_DEPENDENCY_MISSING');
  });
  for(const [name,fn]of tests){await fn();console.log('PASS '+name);}console.log(`CODE GLOBAL CATALOGS: ${tests.length}/${tests.length} PASS`);
 })().catch(error=>{console.error(error.code||error.message||'CODE_FACTORY_TEST_FAILED');process.exitCode=1;});

@@ -39,7 +39,19 @@
     }) || null;
   }
 
-  function findSheetMaterial(query){ return matchByNameOrSymbol(getSheetMaterials(), query); }
+  // Owner-approved spelling, including the previous code catalog name. Read
+  // only: never rename a stored record or choose between competing prices.
+  function resolveMaterialNameAlias(rows, query){
+    const names = ['HDF 3mm biała', 'HDF biały 3 mm'].map(normalizeKey);
+    if(!names.includes(normalizeKey(query))) return undefined;
+    const matches = (Array.isArray(rows) ? rows : []).filter(row=>
+      normalizeKey(row && row.materialType) === 'hdf' && names.includes(normalizeKey(row && row.name)));
+    return matches.length === 1 ? matches[0] : null;
+  }
+  function findSheetMaterial(query){
+    const rows = getSheetMaterials(), alias = resolveMaterialNameAlias(rows, query);
+    return alias === undefined ? matchByNameOrSymbol(rows, query) : alias;
+  }
   function findAccessory(query){ return matchByNameOrSymbol(getAccessories(), query); }
   function findQuoteRate(query){ return matchByNameOrSymbol(getQuoteRates(), query); }
   function findWorkshopService(query){ return matchByNameOrSymbol(getWorkshopServices(), query); }
@@ -65,6 +77,7 @@
     getQuoteRates,
     getWorkshopServices,
     findSheetMaterial,
+    resolveMaterialNameAlias,
     findAccessory,
     findQuoteRate,
     findWorkshopService,

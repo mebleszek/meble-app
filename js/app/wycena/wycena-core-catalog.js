@@ -97,6 +97,11 @@
   function materialPriceLookup(materialName){
     const key = utils.normalizeText(materialName);
     try{
+      const alias = FC.catalogSelectors && FC.catalogSelectors.resolveMaterialNameAlias;
+      if(typeof alias === 'function'){
+        const resolved = alias(FC.catalogSelectors.getSheetMaterials(), key);
+        if(resolved !== undefined) return resolved;
+      }
       if(FC.catalogSelectors && typeof FC.catalogSelectors.findSheetMaterial === 'function'){
         const found = FC.catalogSelectors.findSheetMaterial(key);
         if(found) return found;

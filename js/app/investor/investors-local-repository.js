@@ -63,9 +63,18 @@
     }catch(_){ return []; }
   }
 
-  function writeAll(list){
-    const normalized = (list || []).map(normalizeInvestor);
+  function writeAll(list,{recordId,insertOnly=false}={}){
+    let normalized = (recordId ? (list || []).filter(row=>row && row.id === recordId) : (list || [])).map(normalizeInvestor);
     try{
+      if(recordId){
+        // Saving one owner must not persist normalized/recovered views of
+        // other investors (including their original room fields).
+        const previous = JSON.parse(localStorage.getItem(KEY_INVESTORS) || '[]');
+        if(!Array.isArray(previous) || normalized.length !== 1) return false;
+        const matches = previous.filter(row=>row && row.id === recordId);
+        if(matches.length > 1 || insertOnly && matches.length) return false;
+        normalized = matches.length ? previous.map(row=>row && row.id === recordId ? normalized[0] : row) : [normalized[0], ...previous];
+      }
       if(FC.storage && typeof FC.storage.setJSON === 'function'){
         const ok = FC.storage.setJSON(KEY_INVESTORS, normalized);
         if(ok === false){

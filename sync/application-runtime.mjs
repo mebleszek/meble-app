@@ -129,14 +129,15 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   if(writer){const result=await sync.flush();if(!result.ok)state(result);
    if(!fc.session.active)for(const record of JSON.parse(authority.rows().fc_projects_v1||'[]'))await handover(record.id);
   }
-  if(localOnly&&backgroundSync)background=createApplicationBackgroundSync({window:w,store,authority,ownerUid,onState:state,barrier:async operation=>{
+  const createBackground=()=>createApplicationBackgroundSync({window:w,store,authority,ownerUid,onState:state,barrier:async operation=>{
    if(closed||recoveryReading||authority.status().transactionPending||boundary?.busy())fail('LF_APPLICATION_BUSY');
-   recoveryReading=true;try{return await operation();}finally{recoveryReading=false;}
+   recoveryReading=true;try{await (boot?.verifyFence?boot.verifyFence():verifyExclusiveClient(w));return await operation();}finally{recoveryReading=false;}
   }});
-  const notify=()=>background?background.notify():sync?.notify();w.addEventListener('online',notify);w.addEventListener('meble-sync-authorized',notify);
+  if(localOnly&&backgroundSync)background=createBackground();
+  const notify=()=>background?background.notify():sync?.notify();
   const wakeReceive=()=>queueMicrotask(()=>{if(!incomingBlocked||closed)return;try{authority.assertIdle();incomingBlocked=false;notify();}catch(_){}});
-  w.addEventListener('click',wakeReceive,{capture:true,passive:true});
   const bind=()=>{
+   w.addEventListener('online',notify);w.addEventListener('meble-sync-authorized',notify);w.addEventListener('click',wakeReceive,{capture:true,passive:true});
    boundary=installApplicationWriteBoundary({window:w,authority,ensureEditor,localOnly,onExit:handover});
    fc.applicationSyncActions.install(createApplicationActionBinding({window:w,authority,onExit:handover,onClose:()=>{closed=true;void background?.close();sync?.close();boundary.close();}}));
   };bind();
@@ -149,9 +150,9 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     if(closed||recoveryReading||authority.status().transactionPending||authority.status().incomingPending)fail('LF_APPLICATION_BUSY');
     recoveryReading=true;try{return await operation();}finally{recoveryReading=false;}
    },
-   status:()=>({state:closed?'locked':localOnly?'local-only':sync?'active':'offline',...(localOnly?{cloudConfirmed:background?.status().cloudConfirmed===true,writeCode:authority.status().lastCode,...(background?{backgroundSync:background.status()}:{} )}:{}),sourcePreserved:true,projectRecords:JSON.parse(authority.rows().fc_projects_v1||'[]').length,projectChannels:JSON.parse(authority.rows().fc_projects_v1||'[]').filter(p=>!!(background?.sync||sync)?.channel(p.id)).length,transactionPending:recoveryReading||authority.status().transactionPending||boundary?.busy()===true,states:copy(states)}),
+   status:()=>({state:closed?'locked':localOnly?'local-only':sync?'active':'offline',...(localOnly?{cloudConfirmed:!closed&&background?.status().cloudConfirmed===true,writeCode:authority.status().lastCode,...(background?{backgroundSync:closed?{state:'pending',code:'LF_CLOSED',cloudConfirmed:false}:background.status()}:{} )}:{}),sourcePreserved:true,projectRecords:JSON.parse(authority.rows().fc_projects_v1||'[]').length,projectChannels:JSON.parse(authority.rows().fc_projects_v1||'[]').filter(p=>!!(background?.sync||sync)?.channel(p.id)).length,transactionPending:recoveryReading||authority.status().transactionPending||boundary?.busy()===true,states:copy(states)}),
    async resume(next){
-    if(localOnly){if(next?.localOwnerUid!==ownerUid||next.writer||next.reader)fail('LF_LOCAL_SYNC_NOT_AUTHORIZED');w.__FC_MAIN_ACCESS__.assert();const wasClosed=closed;authority.resume(ownerUid);closed=false;if(wasClosed)bind();return;}
+    if(localOnly){if(next?.localOwnerUid!==ownerUid||next.writer||next.reader)fail('LF_LOCAL_SYNC_NOT_AUTHORIZED');w.__FC_MAIN_ACCESS__.assert();const wasClosed=closed;if(wasClosed)await background?.close();authority.resume(ownerUid);closed=false;if(wasClosed){if(backgroundSync)background=createBackground();bind();}return;}
     if(assertApplicationConnection(next.writer).uid!==ownerUid||assertApplicationConnection(next.reader).uid!==ownerUid)fail('LF_APPLICATION_OWNER_CHANGED');
     const wasClosed=closed;await sync?.close();writer=next.writer;reader=next.reader;authority.resume(ownerUid);closed=false;if(authority.status().incomingPending)await authority.refresh();
     globals=createGlobalChannel({writer,reader,ownerUid,contract:c,factory:fc.firebaseGlobalTransport});
