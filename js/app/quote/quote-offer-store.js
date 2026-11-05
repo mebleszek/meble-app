@@ -151,7 +151,7 @@
 
   function writeAll(list){
     const rows = Array.isArray(list) ? list.map((row)=> normalizeDraft(row)) : [];
-    storage.setJSON(DRAFT_KEY, rows);
+    if(storage.setJSON(DRAFT_KEY, rows) === false) return null;
     return rows;
   }
 
@@ -175,23 +175,49 @@
     return findIndexByInvestor(list, investorId);
   }
 
+  function findLocalIndex(list, {projectId, investorId}){
+    if(!projectId || !investorId) return -1;
+    const byProject = findIndexByProject(list, projectId);
+    if(byProject >= 0) return list[byProject].investorId === investorId ? byProject : -1;
+    return list.findIndex(row=>row && !row.projectId && row.investorId === investorId);
+  }
+
   function getDraft(scope){
     const resolved = makeScope(scope && scope.projectId, scope && scope.investorId);
-    const list = readAll();
-    const idx = findIndex(list, resolved);
+    const localOnly = FC.applicationWrite?.localOnly;
+    const list = localOnly ? readLocalDraftRows() : readAll();
+    const idx = localOnly ? findLocalIndex(list, resolved) : findIndex(list, resolved);
     if(idx >= 0) return normalizeDraft(list[idx], resolved);
     return normalizeDraft({}, resolved);
+  }
+
+  function readLocalDraftRows(){
+    const rows = JSON.parse(storage.getRaw(DRAFT_KEY) ?? '[]');
+    if(!Array.isArray(rows)) throw Error('Invalid offer drafts');
+    return rows;
   }
 
   function saveDraft(draft, scope){
     const resolved = makeScope(scope && scope.projectId, scope && scope.investorId);
     const normalized = normalizeDraft(draft, resolved);
-    const list = readAll();
-    const idx = findIndex(list, normalized);
+    const localOnly = FC.applicationWrite?.localOnly;
+    const list = localOnly ? readLocalDraftRows() : readAll();
+    const idx = localOnly ? findLocalIndex(list, normalized) : findIndex(list, normalized);
+    if(localOnly){
+      if(!resolved.projectId || !resolved.investorId || (idx < 0 && findIndexByProject(list, resolved.projectId) >= 0)) return null;
+      const previous = list[idx];
+      if(previous) list[idx] = Object.assign({}, previous, normalized);
+      else list.unshift(normalized);
+      if(storage.setJSON(DRAFT_KEY, list) !== true) return null;
+      if(previous && JSON.stringify(previous.selection) !== JSON.stringify(normalized.selection)){
+        FC.applicationWrite.afterCommit(()=> FC.sessionNavigation?.invalidateCalculationContext?.());
+      }
+      return normalized;
+    }
     if(FC.sessionNavigation && typeof FC.sessionNavigation.invalidateCalculationContext==='function' && idx>=0 && JSON.stringify(list[idx].selection)!==JSON.stringify(normalized.selection))FC.sessionNavigation.invalidateCalculationContext();
     if(idx >= 0) list[idx] = normalized;
     else list.unshift(normalized);
-    writeAll(list.slice(0, 50));
+    if(writeAll(list.slice(0, 50)) === null) return null;
     return normalized;
   }
 

@@ -149,3 +149,16 @@ Status: IMPLEMENTATION_PARTIAL / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED /
 LIVE_BLOCKED. Next: independent review of both branch HEADs and exact BASE; only
 then a separately approved CI attempt. Remaining product authority and host
 failover work must use these existing seams, not another transport or fake grant.
+## Usuwanie szafki i wybór pomieszczeń WYCENY w LOCAL-FIRST (06.11.2026)
+
+Na Pixelu otwarcie nowego inwestora było zatwierdzone, a usuwanie szafki zatrzymywało się z `SESSION_STORAGE_WRITE_FAILED`. Karta WYWIAD wywoływała starszą funkcję bez transakcji, a funkcja kończyła pracę po odmowie trwałego rozpoczęcia sesji. WYCENA zapisywała wybór pomieszczeń z bezpośredniego listenera, adapter przechwytywał błąd, a współdzielony picker zamykał się mimo braku potwierdzenia.
+
+- Usuwanie używa dotychczasowej transakcji projektu po potwierdzeniu użytkownika. Ponownie sprawdza projekt, pomieszczenie i szafkę. Potwierdza zapis projektu wraz z frontami i odświeża listę oraz przyciski sesji dopiero po zatwierdzeniu IndexedDB. Zachowano istniejący mechanizm Zapisz/Anuluj.
+- Wybór pomieszczeń WYCENY jest zapisywany w transakcji projektu i sprawdza kontekst otwartego pickera. Picker czeka na wynik, a po odmowie zachowuje zaznaczenia. Zapis draftu w LOCAL-FIRST zachowuje surowe rekordy pozostałych projektów i dotychczasowe oferty.
+- Wersje zmienionych skryptów przypięto w obu punktach wejścia i odtworzono manifest offline. Bez zmiany wyglądu, norm wyceny, Firebase ani workflow.
+
+Regresje przypisane do istniejącego Preflightu. Grupa 5/7 obejmuje natywny `android-local-first-browser-smoke.js` i celowany `project-session-begin-durability-smoke.js`, a grupa 7/7 obejmuje kontrakty WYCENY. Scenariusz przeglądarkowy obejmuje przerwanie zapisu obu akcji, ponowienie, kontrolę faktycznego zakresu zapisanej wyceny i ponowne uruchomienie bez sieci.
+
+Wykonano celowaną weryfikację na Chromium 153.0.8010.0 z natywną IndexedDB i syntetycznym profilem. Środowisko wykonawcze blokuje gniazdo D-Bus, dlatego lokalne uruchomienie użyło pojedynczego procesu bez D-Bus i akceleracji graficznej. Launcher repozytorium i asercje CI zachowano. Udane wykonanie objęło wszystkie 11 grup scenariuszy, w tym trwałe usunięcie i wycenę tylko jednego z dwóch pomieszczeń, potwierdzone po restarcie offline. Celowane testy Node 12/12, kontrakty WYCENY 113/113, rejestr akcji, routing 203/7, wersje skryptów, manifest, składnia i kontrola diffu przeszły.
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Pełne CI i sprawdzenie na fizycznym Pixelu pozostają do wykonania.
