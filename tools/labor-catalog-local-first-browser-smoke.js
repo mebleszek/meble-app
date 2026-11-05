@@ -23,8 +23,10 @@ async function main(){
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+server.address().port;
   const {openBrowserDevice}=await import('./helpers/local-first-browser.mjs');
-  async function open(initialize){
-   browser=await openBrowserDevice({base},path.join(dir,'profile'));
+  let profile='profile',sourceRows=raw,phase='setup';
+  async function open(initialize,fault=''){
+   phase=profile+':open:'+initialize+':'+fault;
+   browser=await openBrowserDevice({base},path.join(dir,profile));
    browser.onEvent(event=>{if(event.method==='Network.requestWillBeSent'&&!event.params.request.url.startsWith(base+'/'))external.push(event.params.request.url);});
    await browser.send('Network.enable');
    await browser.evaluate(`(async()=>{
@@ -33,7 +35,7 @@ async function main(){
     const {openLocalFirstStore}=await import('/sync/local-first-idb.mjs');
     window.store=await openLocalFirstStore({...${JSON.stringify(binding)},initialize:${initialize},indexedDB,locks:navigator.locks});
     if(${initialize}){
-     const rows=${JSON.stringify(raw)};for(const [key,value]of Object.entries(rows))if(value!==null)localStorage.setItem(key,value);
+     const rows=${JSON.stringify(sourceRows)};for(const [key,value]of Object.entries(rows))if(value!==null)localStorage.setItem(key,value);
      await store.initializeApplication(rows);
      const editor={deviceId:'phone',active:true,token:'synthetic-editor'};
      await store.apply({scope:'synthetic-pending',value:{exact:7.125},head:null,expectedVersion:0,editor});
@@ -42,36 +44,64 @@ async function main(){
      await store.transition('uncertain-before-save','inflight','uncertain');
     }
     window.nativeRows=()=>Object.fromEntries(Object.keys(localStorage).sort().map(key=>[key,nativeGet.call(localStorage,key)]));
+    window.tables=async()=>new Promise((resolve,reject)=>{const q=indexedDB.open(${JSON.stringify(binding.name)});q.onerror=reject;q.onsuccess=()=>{const db=q.result,out={},tx=db.transaction(['control','replicas','protected','outbox'],'readonly');for(const name of tx.objectStoreNames){const get=tx.objectStore(name).getAll();get.onsuccess=()=>out[name]=get.result;}tx.oncomplete=()=>{db.close();resolve(out);};tx.onabort=reject;};});
     const image=await store.readApplication();
     // Legacy startup sees the verified image, while physical originals stay read-only.
     Storage.prototype.getItem=function(k){return this===localStorage&&Object.hasOwn(image.rows,k)?image.rows[k]:nativeGet.call(this,k);};
     Storage.prototype.setItem=function(k,v){if(this===localStorage&&Object.hasOwn(image.rows,k)){if(image.rows[k]!==String(v))throw Error('LF_LEGACY_BOOT_WRITE_REFUSED');return;}return nativeSet.call(this,k,v);};
     return true;
    })()`);
+   phase=profile+':classic-modules';
    for(const file of ['shared/utils','shared/constants','shared/storage','project/project-export-contract','cloud/global-data-contract','catalog/hardware-technical-params','catalog/hardware-catalog','catalog/hardware-catalog-seed-data','catalog/hardware-catalog-seeds','catalog/catalog-domain','catalog/catalog-migration','catalog/catalog-storage-policy','pricing/labor-catalog-definitions','pricing/labor-catalog','catalog/catalog-store'])await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
+   phase=profile+':install:'+fault;
    await browser.evaluate(`(async()=>{
     Storage.prototype.getItem=nativeGet;Storage.prototype.setItem=nativeSet;
     const fc=FC,image=await store.readApplication(),contract=fc.globalDataContract;
     fc.catalogStore.adoptVerified(contract.capture({getItem:k=>k==='fc_edit_session_v1'?null:image.rows[k]??null},Object.keys(contract.schemas)).model);
     window.projectData={unsaved:'KEEP_RAM',form:{width:62}};window.uiState=JSON.parse(image.rows.fc_ui_v1);
-    fc.session={active:false,durable:false,snapshot:null,trackKeyMutation(){}};fc.project={load:()=>structuredClone(projectData)};fc.uiState={get:()=>JSON.parse(localStorage.getItem('fc_ui_v1'))};
+    fc.session={active:false,durable:false,snapshot:null,trackKeyMutation(){},resumeFromStorage(){this.active=true;this.durable=true;this.snapshot={};return true;}};fc.project={load:()=>structuredClone(projectData)};fc.uiState={get:()=>JSON.parse(localStorage.getItem('fc_ui_v1'))};
     fc.investorEditorState={hasUiLock:()=>false};fc.investorProjectRuntime={hasProjectDivergence:()=>false};fc.views={applyFromState(){}};fc.sections={update(){}};fc.infoBox={open(value){(window.notices ||= []).push(value);window.lastNotice=value;}};
     const {createApplicationCommitter}=await import('/sync/application-replication.mjs');
     const committer=createApplicationCommitter({store,globalContract:contract,localOnly:true});
     const {installOfflineEmulatorApplicationAuthority}=await import('/sync/application-authority.mjs');
-    window.authority=await installOfflineEmulatorApplicationAuthority({window,store,ownerUid:${JSON.stringify(binding.ownerUid)},localOnly:true,beforeTransaction(){window.fenceChecks=(window.fenceChecks||0)+1;},commit:(kind,app)=>committer.commit(kind,app),checkpoint:(app,kind)=>committer.checkpoint(app,kind)});
+    window.startupBaseline={tables:await tables(),native:nativeRows()};
+    if(${JSON.stringify(fault)}==='abort'){
+     const native=IDBDatabase.prototype.transaction;IDBDatabase.prototype.transaction=function(names,mode,...args){const tx=native.call(this,names,mode,...args);if(mode==='readwrite'){window.startupFaultObserved=true;IDBDatabase.prototype.transaction=native;queueMicrotask(()=>tx.abort());}return tx;};
+    }
+    if(${JSON.stringify(fault)}==='quota'){
+     const native=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(value,...args){if(this.name==='control'&&value?.key==='application'){window.startupFaultObserved=true;IDBObjectStore.prototype.put=native;throw new DOMException('synthetic quota','QuotaExceededError');}return native.call(this,value,...args);};
+    }
+    window.authority=await installOfflineEmulatorApplicationAuthority({window,store,ownerUid:${JSON.stringify(binding.ownerUid)},localOnly:true,authorize:async()=>{},async beforeTransaction(){if(${JSON.stringify(fault)}==='cas'){window.startupFaultObserved=true;const current=await store.readApplication();await store.checkpointApplication({expectedVersion:current.version,rows:current.rows});}window.fenceChecks=(window.fenceChecks||0)+1;if(${JSON.stringify(fault)}==='auth'){window.startupFaultObserved=true;window.authorized=false;}},commit:(kind,app)=>committer.commit(kind,app),checkpoint:(app,kind)=>committer.checkpoint(app,kind)});
     const {installApplicationWriteBoundary}=await import('/sync/application-write-boundary.mjs');
     installApplicationWriteBoundary({window,authority,localOnly:true});
-    window.tables=async()=>new Promise((resolve,reject)=>{const q=indexedDB.open(${JSON.stringify(binding.name)});q.onerror=reject;q.onsuccess=()=>{const db=q.result,out={},tx=db.transaction(['control','replicas','protected','outbox'],'readonly');for(const name of tx.objectStoreNames){const get=tx.objectStore(name).getAll();get.onsuccess=()=>out[name]=get.result;}tx.oncomplete=()=>{db.close();resolve(out);};tx.onabort=reject;};});
     return true;
    })()`);
    for(const file of ['material/price-modal-context','material/price-modal-item-form','material/price-modal-persistence'])await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
-   await browser.evaluate(`(()=>{const ctx=FC.priceModalContext;ctx.renderPriceModal=()=>{};ctx.confirmSave=async()=>window.acceptSave;ctx.isItemDirty=()=>window.dirty;ctx.getCurrentServiceDraft=()=>({...FC.catalogStore.getQuoteRates().find(r=>r.id==='labor_body_h090'),name:window.formName});window.openForm=async()=>{await authority.transaction('checkpoint',()=>{uiState.editingId='labor_body_h090';ctx.persistUi();ctx.runtimeState.itemModalOpen=true;return true;});};window.saveForm=()=>FC.applicationLifecycle.dispatch('price-item-save',()=>ctx.saveActivePriceItem());return true;})()`);
+   await browser.evaluate(`(()=>{const ctx=FC.priceModalContext;window.actualFormDraft=ctx.getCurrentServiceDraft;ctx.renderPriceModal=()=>{};ctx.confirmSave=async()=>window.acceptSave;ctx.isItemDirty=()=>window.dirty;ctx.getCurrentServiceDraft=()=>({...FC.catalogStore.getQuoteRates().find(r=>r.id==='labor_body_h090'),name:window.formName});window.openForm=async()=>{await authority.transaction('checkpoint',()=>{uiState.editingId='labor_body_h090';ctx.persistUi();ctx.runtimeState.itemModalOpen=true;return true;});};window.saveForm=()=>FC.applicationLifecycle.dispatch('price-item-save',()=>ctx.saveActivePriceItem());return true;})()`);
   }
   const proof=()=>browser.evaluate('(async()=>({tables:await tables(),native:nativeRows(),ram:projectData,catalog:FC.catalogStore.getQuoteRates(),rows:authority.rows(),form:FC.priceModalContext.runtimeState.itemModalOpen}))()');
-  await open(true);await browser.gracefulClose();await open(false);let before=await proof();assert.equal(before.catalog.length,57);assert.equal(before.tables.outbox[0].phase,'uncertain');
-  await browser.evaluate('window.dirty=false;window.acceptSave=true;saveForm()');let same=await proof();assert.equal(same.catalog.length,57);assert.equal(same.rows.fc_quote_rates_v1,before.rows.fc_quote_rates_v1);
-  console.log('PASS unchanged Save only closes the form and does not activate missing PDF definitions');
+  await open(true);
+  let bootProof=await proof(),baseline=await browser.evaluate('startupBaseline');
+  assert.equal(baseline.tables.control.find(r=>r.key==='application').version,1);
+  assert.equal(bootProof.tables.control.find(r=>r.key==='application').version,2);
+  for(const name of ['replicas','protected','outbox'])assert.deepEqual(bootProof.tables[name],baseline.tables[name]);
+  assert.equal(JSON.parse(baseline.native.fc_quote_rates_v1).length,57);
+  assert.equal(bootProof.catalog.length,120);
+  for(const row of old.labor)assert.deepEqual(bootProof.catalog.find(r=>r.id===row.id),row,'startup preserves every original field');
+  console.log('PASS old 57-row profile automatically becomes 120 before use, without changing any existing record or pending store');
+  await browser.evaluate(`(()=>{const cab={id:'quote-test',type:'wisząca',subType:'okap',width:60,height:82,depth:50,frontCount:0,backMaterial:'HDF',details:{}};
+   FC.wycenaCoreUtils={clone:structuredClone,slug:v=>String(v).replace(/[^a-zA-Z0-9]/g,'_')};FC.wycenaCoreSource={project:()=>({kuchnia:{settings:{},cabinets:[cab]}}),selectedCabinets:()=>[{roomId:'kuchnia',roomLabel:'Synthetic Kitchen',cabinet:cab}],roomLabel:()=> 'Synthetic Kitchen'};
+   FC.wycenaCoreOffer={};FC.wycenaCoreSelection={};FC.wycenaCoreCatalog={};FC.catalogSelectors={getQuoteRates:()=>FC.catalogStore.getQuoteRates()};FC.frontHardware={getCabinetFrontCutListForMaterials:()=>[],getDoorFrontPanelsForHinges:()=>[]};return true;})()`);
+  for(const file of ['cabinet/cabinet-hardware-requirements','cabinet/cabinet-cutlist','pricing/work-quantity-sources','pricing/work-quantity-facts','wycena/wycena-core-labor'])await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
+  assert.equal(await browser.evaluate(`FC.wycenaCoreLabor.collectCabinetLabor(['kuchnia']).flatMap(r=>r.details).filter(r=>['Skręcenie korpusu do 90 cm','Dostosowanie korpusu do okapu','Przygotowanie zabudowy okapu'].includes(r.name)).reduce((s,r)=>s+r.hours*60,0)`),150);
+  console.log('PASS actual WYCENA reads the same persisted startup catalog: hood workshop 150 minutes before any Save');
+  assert.equal(await browser.evaluate(`(()=>{for(const id of ['priceItemSaveBtn','priceItemExitBtn','priceItemCancelBtn','priceItemFooter']){const el=document.createElement('button');el.id=id;document.body.append(el);}const ctx=FC.priceModalContext;ctx.runtimeState.itemModalOpen=true;ctx.runtimeState.itemInitialSignature=JSON.stringify(actualFormDraft());ctx.updateItemActionState();return document.getElementById('priceItemSaveBtn').style.display==='none'&&document.getElementById('priceItemExitBtn').style.display!== 'none';})()`),true);
+  console.log('PASS real form action-state keeps Save hidden when no item is edited');
+
+
+  await browser.gracefulClose();await open(false);let before=await proof();assert.equal(before.catalog.length,120);assert.equal(before.tables.outbox[0].phase,'uncertain');
+  await browser.evaluate('window.dirty=false;window.acceptSave=true;saveForm()');let same=await proof();assert.equal(same.catalog.length,120);assert.equal(same.rows.fc_quote_rates_v1,before.rows.fc_quote_rates_v1);
+  console.log('PASS unchanged Save only closes the form and does not change the automatically completed catalog');
   await browser.evaluate('openForm()');before=await proof();
   await browser.evaluate('window.dirty=true;window.acceptSave=false;window.formName="Synthetic edited corpus";saveForm()');same=await proof();assert.deepEqual(same,before);
   console.log('PASS refused confirmation preserves native RAW, all four stores, RAM, catalog and open form');
@@ -98,7 +128,39 @@ async function main(){
   await browser.crash();await open(false);const restored=await proof();assert.deepEqual(restored.catalog,after.catalog);assert.equal(restored.rows.fc_quote_rates_v1,after.rows.fc_quote_rates_v1);assert.deepEqual(restored.native,after.native);
   for(const name of ['replicas','protected','outbox'])assert.deepEqual(restored.tables[name],after.tables[name]);assert.deepEqual(external,[]);
   console.log('PASS restart reopens the verified catalog and leaves the uncertain queue unchanged; zero external network requests');
- }finally{await browser?.close();if(server.listening)await new Promise(resolve=>server.close(resolve));fs.rmSync(dir,{recursive:true,force:true});}
+  await browser.close();
+  for(const fault of ['abort','quota','auth','cas']){
+   profile='startup-'+fault;sourceRows=raw;
+   await assert.rejects(open(true,fault),/LF_IDB|QuotaExceededError|AUTH_ACCESS_REVOKED|LF_APPLICATION_CONFLICT/);
+   const failed=await browser.evaluate('(async()=>({seen:window.startupFaultObserved,tables:await tables(),native:nativeRows(),baseline:startupBaseline,catalog:FC.catalogStore.getQuoteRates()}))()');
+   assert.equal(failed.seen,true);if(fault==='cas'){const expected=structuredClone(failed.baseline.tables);expected.control.find(row=>row.key==='application').version++;assert.deepEqual(failed.tables,expected);}else assert.deepEqual(failed.tables,failed.baseline.tables);assert.equal(failed.catalog.length,57);
+   assert.deepEqual(failed.native,failed.baseline.native);
+   phase=profile+':graceful';await browser.gracefulClose();await open(false);assert.equal((await proof()).catalog.length,120);await browser.close();
+   console.log('PASS startup '+fault+' leaves the old image/queue/cache intact; next independent start completes defaults');
+  }
+  profile='private-records';sourceRows=structuredClone(raw);
+  const privateRows=JSON.parse(sourceRows.fc_quote_rates_v1);
+  privateRows.find(row=>row.id==='labor_rate_assembly').price=237.12345;
+  privateRows.find(row=>row.id==='labor_body_h090').active=false;
+  privateRows.push({...model.labor.find(row=>row.id==='pdf_door_adjust'),active:false});
+  privateRows.push({...privateRows.find(row=>row.id==='labor_body_h090'),id:'synthetic-custom-norm',name:'Synthetic custom norm',timeBlockHours:0.75});
+  sourceRows.fc_quote_rates_v1=JSON.stringify(privateRows);
+  await open(true);let personal=await proof();assert.equal(personal.catalog.length,121);
+  for(const row of privateRows)assert.deepEqual(personal.catalog.find(r=>r.id===row.id),row);
+  const stored=personal.rows.fc_quote_rates_v1;await browser.gracefulClose();await open(false);
+  personal=await proof();assert.equal(personal.rows.fc_quote_rates_v1,stored);assert.equal(new Set(personal.catalog.map(r=>r.id)).size,121);await browser.close();
+  console.log('PASS private fractional rate, inactive defaults, private norm and 45-minute history remain exact and idempotent');
+  profile='durable-draft';sourceRows=structuredClone(raw);
+  sourceRows.fc_edit_session_v1=JSON.stringify({schemaVersion:4,active:true,projectId:'synthetic-project',expectedOwnerKnown:true,snapshot:{fc_projects_v1:sourceRows.fc_projects_v1}});
+  await open(true);const draft=await proof();assert.equal(draft.catalog.length,57);assert.equal(draft.rows.fc_edit_session_v1,sourceRows.fc_edit_session_v1);assert.deepEqual(draft.ram,{unsaved:'KEEP_RAM',form:{width:62}});
+  console.log('PASS durable draft is resumed without changing its catalog baseline or forcing reload');
+  await browser.close();profile='alias-conflict';sourceRows=structuredClone(raw);
+  const conflicting=JSON.parse(sourceRows.fc_quote_rates_v1);conflicting[0].price+=1;sourceRows.fc_services_v1=JSON.stringify(conflicting);
+  await assert.rejects(open(true),/GLOBAL_ALIAS_CONFLICT/);
+  assert.deepEqual(await browser.evaluate('store.readApplication().then(value=>value.rows)'),sourceRows);
+  console.log('PASS inconsistent existing labor aliases refuse startup without repair or partial default insertion');
+  assert.deepEqual(external,[]);
+ }catch(error){error.message+=' ['+phase+']';throw error;}finally{await browser?.close();if(server.listening)await new Promise(resolve=>server.close(resolve));fs.rmSync(dir,{recursive:true,force:true});}
 }
 if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});
 module.exports={main};

@@ -62,6 +62,20 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
  const listener=event=>{if(event.key===null||keys.has(event.key)){external=true;}};w.addEventListener('storage',listener);
  function idle({allowForm=false}={}){access();if(!allowForm&&(fc.priceModal?.isItemDirty?.()||w.document.querySelector('.panel-box-backdrop')))fail('LF_ACTIVE_FORM_PROTECTED');if(inTransaction||fc.session.active||fc.session.snapshot||fc.session.durable||rows.fc_edit_session_v1!==null||fc.investorEditorState?.hasUiLock()||fc.investorProjectRuntime.hasProjectDivergence(w.projectData))fail('LF_ACTIVE_RAM_PROTECTED');}
  async function hydrateCatalogs(){if(!localOnly&&!(await store.snapshot?.('globals'))?.replica)return;const c=fc.globalDataContract,model=c.capture({getItem:k=>k==='fc_edit_session_v1'?null:rows[k]??null},Object.keys(c.schemas)).model;fc.catalogStore?.adoptVerified?.(model);}
+ // Same factory definitions as ensureDefaultDefinitions, but append-only:
+ // a verified LOCAL-FIRST record must never be deduped, repriced or normalized.
+ function missingFactoryLabor(){
+  const definitions=fc.laborCatalogDefinitions,labor=fc.laborCatalog,c=fc.globalDataContract;
+  if(!definitions||!labor)return null;
+  const keys=c.sources.labor.filter(key=>rows[key]!=null);if(!keys.length)return null;
+  const existing=JSON.parse(rows[keys[0]]),seen=new Set(existing.map(row=>row.id));
+  const missing=[...definitions.DEFAULT_HOURLY_RATES,...definitions.DEFAULT_LABOR_DEFINITIONS].filter(row=>!seen.has(row.id));
+  if(!missing.length)return null;
+  const value=existing.concat(missing.map(row=>labor.normalizeDefinition(row)));
+  const next={...rows};for(const key of keys)next[key]=JSON.stringify(value);
+  c.validateBundle(c.capture({getItem:key=>key==='fc_edit_session_v1'?null:next[key]??null},Object.keys(c.schemas)).model);
+  return {keys,raw:JSON.stringify(value)};
+ }
  function snapshotSession(){return Object.fromEntries(Object.entries(fc.session).filter(([,v])=>typeof v!=='function').map(([k,v])=>[k,structuredClone(v)]));}
  async function transaction(kind,operation){
   access();assertSource();lastCode=null;if(inTransaction)fail('LF_APPLICATION_BUSY');
@@ -103,7 +117,9 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
  }else{
   // A fresh document has no implicit editing permission. Display its verified
   // investor without starting a new room session merely from restored UI state.
-  await transaction('checkpoint',()=>{
+  const factoryLabor=localOnly?missingFactoryLabor():null;
+  await transaction(factoryLabor?'globals':'checkpoint',()=>{
+   if(factoryLabor)for(const key of factoryLabor.keys)ls.setItem(key,factoryLabor.raw);
    if(rows.fc_current_investor_v1)w.uiState=fc.uiState.set({entry:'rooms',activeTab:'inwestor',roomType:null,lastRoomType:null,selectedCabinetId:null});
    fc.views.applyFromState(w.uiState);fc.sections.update();return true;
   });
