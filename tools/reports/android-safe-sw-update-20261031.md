@@ -98,3 +98,10 @@ Test Androida **dopiero po osobno zatwierdzonym wydaniu**:
 4. Ponownie otwórz aplikację, odczytaj GLOBAL_ALIAS_CONFLICT z domeną/kluczami lub UNKNOWN (jeśli dostępna: Diagnostyka sesji → Kopiuj raport). Sprawdź, że cenniki/zamienniki/projekty pozostały; nie naprawiaj aliasów automatycznie. Nadal brak domeny wymaga przekazania tego faktu razem z wynikami aktualizatora.
 
 **CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Bez PR, pełnego CI, merge, Pages i Firebase LIVE. Kanoniczny stan i następny krok: CURRENT_STATE.md, sekcje 4–5.
+
+
+## 05.11.2026 — PR #114: dokładny kontrakt RAW po dopisaniu norm
+
+CI42114160062/shard7, wejście f69d75e3618bb883dd83e908014a8c4519fc35b5. Zdiagnozowane w Chromium57→120 wyłącznie obu aliasów labor, bez zmian starych rekordów. Instalacja/waiting/dirty dokument nadal wymaga pełnej niezmienności wszystkich dotychczas porównywanych RAW i RAM. Dopiero nowy startup legacy dopisuje63 normy. Test wymaga dokładnego dopisania pełnych definicji w `fc_quote_rates_v1`, czteropolowych w historycznym `fc_services_v1` (validateServices), zgodności projekcji całego katalogu oraz pełnej zgodności cache norm WYCENY; pozostałe magazyny i IndexedDB pozostają identyczne. Nie ma ogólnego wykluczenia kluczy cennika. Przed browserem uruchamiane są negatywne mutacje ceny/normy/ID/projektu/kluczy/aliasów/cache, każda musi zostać odrzucona. Nie zmieniono polityki SW, wymuszeń przeładowania ani ochrony niezapisanej karty. Pełna diagnoza i wyniki w [raporcie robocizny](wycena-labor-20261023.md#05112026--pr-114-dwa-fail-w-obowiązkowej-grupie77); finalny HEAD/BASE w przekazaniu, CI_PENDING do osobno zatwierdzonej próby.
+
+Celowany `node tools/android-safe-sw-update-smoke.js` — **PASS** w rzeczywistym Chromium 05.11.2026, wraz z mutacjami asercji, opóźnioną instalacją >30 s, RAM starej karty, offline i restartem tego samego profilu. `labor-quantity-values-link-smoke.js` — PASS; routing 203/7 (oba w grupie 7), składnia, manifest i diff — PASS. Wyłącznie testy/dokumentacja; poprzedni CI pozostaje FAIL dla f69, nowy wynik CI wymaga osobnej zgody. **CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING**.

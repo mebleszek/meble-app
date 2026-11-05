@@ -3,7 +3,48 @@
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http=require('node:http'),assert=require('node:assert/strict');
 const execFile=require('node:util').promisify(require('node:child_process').execFile);
 const {browser}=require('./trusted-session-browser-smoke');
+// Only the application startup may append exact approved starter rows. During
+// worker installation the existing full byte comparison still applies.
+const legacyService=({id,category,name,price})=>({id,category,name,price});
+function assertStarterAppend(before,after,templates){
+ const a=Object.fromEntries(JSON.parse(before)),b=Object.fromEntries(JSON.parse(after));
+ assert.deepEqual(Object.keys(b).sort(),Object.keys(a).sort(),'No RAW key may appear/disappear through upgrade');
+ const aliases=['fc_quote_rates_v1','fc_services_v1'];
+ for(const key of Object.keys(a)){
+  if(!aliases.includes(key)){assert.equal(b[key],a[key],'Unchanged RAW: '+key);continue;}
+  const old=JSON.parse(a[key]),next=JSON.parse(b[key]),ids=new Set(old.map(row=>row.id));
+  assert.equal(ids.size,old.length,'Original IDs remain unambiguous');
+  const expected=key==='fc_services_v1'?templates.map(legacyService):templates;
+  const missing=expected.filter(row=>!ids.has(row.id));
+  assert.equal(next.length,old.length+missing.length,'Exactly the missing factory rows, no extra or removed records');
+  for(let i=0;i<old.length;i++)assert.equal(JSON.stringify(next[i]),JSON.stringify(old[i]),'Existing record fields/order remain byte-exact: '+key+'/'+i);
+  assert.deepEqual(next.slice(old.length),missing,'Every appended field must match the approved code definitions');
+  assert.equal(new Set(next.map(row=>row.id)).size,next.length,'No duplicated IDs');
+  assert.equal(b[key],JSON.stringify(next),'Exact compact RAW encoding: '+key);
+ }
+ assert.deepEqual(JSON.parse(b.fc_services_v1),JSON.parse(b.fc_quote_rates_v1).map(legacyService),'Legacy service projection must match every canonical record');
+}
+function assertFullStarters(catalog,templates,ids){
+ const wanted=new Set(ids);
+ assert.deepEqual(catalog.filter(row=>wanted.has(row.id)),templates.filter(row=>wanted.has(row.id)),'WYCENA catalog must retain every complete starter definition, not the legacy RAW projection');
+}
+function verifyUpgradeAssertions(){
+ const original=[{id:'old',category:'Synthetic',name:'Old',price:12.125,minutes:45}],templates=original.concat({id:'new',category:'Synthetic',name:'New',price:0,minutes:5});
+ const pack=rows=>JSON.stringify(Object.entries({fc_quote_rates_v1:JSON.stringify(rows),fc_services_v1:JSON.stringify(rows.map(legacyService)),fc_projects_v1:'EXACT_PROJECT'}));
+ const before=pack(original),after=pack(templates);assertStarterAppend(before,after,templates);
+ for(const mutate of [
+  rows=>{rows[0].price++;},rows=>{rows[1].minutes++;},rows=>{rows.shift();},rows=>{rows.push({id:'unexpected'});}
+ ]){const rows=structuredClone(templates);mutate(rows);assert.throws(()=>assertStarterAppend(before,pack(rows),templates),{code:'ERR_ASSERTION'});}
+ for(const change of [map=>{map.fc_projects_v1='LOST';},map=>{delete map.fc_projects_v1;},map=>{map.fc_unknown='EXTRA';},map=>{map.fc_services_v1=JSON.stringify(original);},map=>{map.fc_services_v1+=' ';}]){
+  const map=Object.fromEntries(JSON.parse(after));change(map);assert.throws(()=>assertStarterAppend(before,JSON.stringify(Object.entries(map)),templates),{code:'ERR_ASSERTION'});
+ }
+ assertFullStarters(templates,templates,['new']);
+ const damaged=structuredClone(templates);damaged[1].minutes=99;assert.throws(()=>assertFullStarters(damaged,templates,['new']),{code:'ERR_ASSERTION'});
+ console.log('PASS upgrade assertions reject old-price/new-norm mutations, missing/extra rows or keys, changed projects and divergent aliases');
+}
 async function main(){
+ verifyUpgradeAssertions();
+ const {codeCandidate}=await import('../sync/code-global-catalogs.generated.mjs');
  const root=path.resolve(__dirname,'..'),dir=fs.mkdtempSync(path.join(os.tmpdir(),'meble-sw-upgrade-')),old=path.join(dir,'old'),profile=path.join(dir,'profile');fs.mkdirSync(old);
  const archive=path.join(dir,'old.tar');
  await execFile('git',['archive','-o',archive,'2930e0d769d9576d387764af439eab7df9fd5636'],{cwd:root,timeout:30000});
@@ -94,14 +135,22 @@ async function main(){
  // Explicit safe user decision: the synthetic draft is accounted for; close
  // all app tabs. No product code reloads, closes or writes this draft.
  assert.equal(await one.evaluate('window.FC.investorEditorState.hasUiLock()'),true);
- await one.evaluate('window.FC.investorEditorState.exit(window.FC.investors.readAll()[0]);window.FC.views.openInvestorsList();true');await one.close();one=null;await new Promise(r=>server.close(r));stopped=true;
- one=await browser(profile,base+'/index.html',{offline:true});await one.until('document.body.dataset.businessState==="ready"');
+ await one.evaluate('window.FC.investorEditorState.exit(window.FC.investors.readAll()[0]);window.FC.views.openInvestorsList();true');
+ await one.close();one=null;await new Promise(r=>server.close(r));stopped=true;
+ one=await browser(profile,base+'/index.html',{offline:true});try{await one.until('document.body.dataset.businessState==="ready"');}catch(error){console.log('DIAG cold trust '+JSON.stringify(await one.evaluate('('+require('./helpers/trusted-cold-start').inspectTrustStorage.toString()+')()')));throw error;}
  await one.evaluate('window.FC.views.openInvestorsList();true');assert.equal(await one.evaluate('!!document.querySelector("[data-action=remove-investor-from-list]")'),true);
- assert.equal(await raw(),before,'Same profile must retain business RAW through upgrade');
+ const missing=codeCandidate.model.labor.filter(row=>!JSON.parse(Object.fromEntries(JSON.parse(before)).fc_quote_rates_v1).some(old=>old.id===row.id));
+ assert.equal(missing.length,63,'This approved release adds exactly63 factory norms');
+ // This fixture deliberately exercises the legacy validator (LOCAL-FIRST
+ // deployment is isolated by trusted-session-browser). Its persisted service
+ // compatibility alias has four fields; the canonical catalog and its cache
+ // must retain the full norms. These two persisted formats are not interchangeable.
+ assertStarterAppend(before,await raw(),codeCandidate.model.labor);
+ assertFullStarters(await one.evaluate('window.FC.catalogStore.getQuoteRates()'),codeCandidate.model.labor,missing.map(row=>row.id));
  assert.notEqual(await one.evaluate('window.FC.offlineShell.prepare().then(r=>r.version)'),cache);
  assert.equal(await one.evaluate(`new Promise((resolve,reject)=>{const r=indexedDB.open('synthetic-safe-sw-data',1);r.onerror=reject;r.onsuccess=()=>{const db=r.result,tx=db.transaction('rows'),q=tx.objectStore('rows').get('saved');tx.oncomplete=()=>{db.close();resolve(q.result);};tx.onabort=reject;};})`),'EXACT-IDB-12.125');
 
- console.log('PASS real old-SW → independent network page/active+waiting hashes/native retry/320,360,412px → dirty RAM/multiple clients protected → natural activation/new offline shell/Delete/exact RAW+IDB');
+ console.log('PASS real old-SW → independent network page/active+waiting hashes/native retry/320,360,412px → dirty RAM/multiple clients protected → natural activation/new offline shell/Delete/exact original RAW+IDB and precisely verified new factory norms');
  }finally{clearTimeout(delayTimer);await one?.close();if(!stopped){server.closeAllConnections();await new Promise(r=>server.close(r));}fs.rmSync(dir,{recursive:true,force:true});}
 }
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});module.exports={main};
