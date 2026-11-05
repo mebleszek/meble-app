@@ -498,7 +498,7 @@
     const id = text(def && def.id);
     const sourceCode = text(def && def.quantitySource);
     return ['dishwasher_mount','fridge_mount','oven_mount','hob_mount','hood_under_cabinet_mount','hood_chimney_mount','microwave_mount','washer_mount','dryer_mount','coffee_machine_mount','warming_drawer_mount'].includes(id)
-      || sourceCode.indexOf('appliance.') === 0;
+      || sourceCode.indexOf('appliance.') === 0 || sourceCode.startsWith('labor.agd.');
   }
 
   function isCarryingAutomation(def){
@@ -769,7 +769,7 @@
   }
 
   // Only the approved LABOR operations define identity here. Names are never identities.
-  const laborOperationIds = new Set(['labor_legs_install','labor_hangers_install','labor_hdf_cutouts','labor_nuts_workshop','labor_shelves_adjustable','labor_shelves_fixed','labor_shelves_place','labor_hinge_drill','labor_hinge_layout','labor_hinge_fastening','labor_door_trial','labor_door_pack','labor_door_rehang','labor_door_adjust']);
+  const laborOperationIds = new Set(['labor_legs_install','labor_hangers_install','labor_hdf_cutouts','labor_nuts_workshop','labor_shelves_adjustable','labor_shelves_fixed','labor_shelves_place','labor_hinge_drill','labor_hinge_layout','labor_hinge_fastening','labor_door_trial','labor_door_pack','labor_door_rehang','labor_door_adjust',...(FC.laborCatalogDefinitions?.PDF_OPERATION_IDS || [])]);
   function operationPeers(def){
     const defaults = FC.laborCatalogDefinitions && FC.laborCatalogDefinitions.DEFAULT_LABOR_DEFINITIONS || [];
     // Two distinct operations may share a quantity source (rehang and adjustment).
@@ -824,7 +824,8 @@
     const blocked = new Set(['labor_mount_front','labor_mount_hinge','labor_carrying_cabinet','labor_carrying_disassembly']);
     return (Array.isArray(defs) ? defs : []).filter((def)=> {
       if(!(def && def.active !== false && def.isHourlyRate !== true && text(def.quantitySource))) return false;
-      if(blocked.has(text(def.id)) || replacedLegacyDefinition(def, defs) || isApplianceAutomation(def) || isCarryingAutomation(def)) return false;
+      if(blocked.has(text(def.id)) || replacedLegacyDefinition(def, defs) || (!opts.applianceOnly && isApplianceAutomation(def)) || isCarryingAutomation(def)) return false;
+      if(opts.applianceOnly) return text(def.quantitySource).startsWith('labor.agd.');
       const project = isProjectAutomation(def);
       return projectOnly ? project : !project;
     });
@@ -868,7 +869,7 @@
         allowZero:!!suppressor || conflict,
         warnings:(conflict ? [conflictWarning] : []).concat(suppressor ? ['Automat zastąpiony ręcznym przypisaniem '+suppressor+'.'] : []).concat(meta.warning ? [meta.warning] : []).concat(conditionWarnings(cond))
       }, sourceOpts(meta), conditionOpts(cond)));
-      if(cmp) components.push(cmp);
+      if(cmp){if(opts.applianceOnly)cmp.laborCode=text(def.id);components.push(cmp);}
     });
   }
 
@@ -1040,7 +1041,14 @@
     return enumerateSelectedCabinets(selectedRooms).map((entry)=> buildCabinetCarryingLine(entry, defs, rates)).filter(Boolean);
   }
 
+  function collectApplianceLabor(entry){
+    const defs=laborDefs(),components=[];
+    addGenericQuantitySourceLabor(components,entry,defs,hourlyRates(defs),0,{applianceOnly:true});
+    return components.map(row=>Object.assign({},row,{qty:row.quantity,category:'Montaż AGD',sourceType:'appliance',sourceRole:'appliance-labor',note:'Automat AGD: '+row.laborCode+' • '+row.note}));
+  }
+
   FC.wycenaCoreLabor = {
+    collectApplianceLabor,
     enumerateSelectedCabinets,
     cabinetVolumeM3,
     cabinetBodyHeightCm,

@@ -430,15 +430,16 @@
     // Group split spring/plain requirements back onto their original door first.
     const doors = new Map();
     let unknown = false;
-    rows.filter(req=>!req.auxiliaryForLift).forEach(req=>{
+    const det=details(cabinet),hingedLift=text(cabinet.subType)==='uchylne'&&text(det.flapVendor || 'blum')==='blum'&&text(det.flapKind)==='HK-XS';
+    rows.filter(req=>!req.auxiliaryForLift||hingedLift).forEach(req=>{
       if(!(Number(req.qty) > 0)) return;
-      const key = text(req.doorKey);
+      const key = req.auxiliaryForLift&&hingedLift&&frontCountFromParts(cache.frontParts || [])===1?'lift-front':text(req.doorKey);
       if(!key){unknown = true;return;}
       doors.set(key,(doors.get(key)||0)+Number(req.qty));
     });
     const doorHinges = [...doors.values()].reduce((a,b)=>a+b,0);
     const own = text(details(cabinet).hingeDrilling || 'workshop') === 'workshop';
-    const isDoor = !['uchylne'].includes(text(cabinet.subType));
+    const isDoor = text(cabinet.subType)!=='uchylne'||hingedLift;
     return {all,doors,doorHinges: isDoor ? doorHinges : 0,doorCount:isDoor ? doors.size : 0,
       extra:own && isDoor ? [...doors.values()].reduce((sum,n)=>sum+Math.max(0,n-2),0) : 0,
       drill:own ? all : 0,known:!unknown};
@@ -478,6 +479,41 @@
         source = 'centralne wymagania zawiasów: ' + [...h.doors].map(([key,n])=>key+': '+n).join('; ');
       }
       return makeFact(code,value,{hasValue:value != null,displayValue:value == null ? 'brak danych' : value+' szt.',source,warning});
+    };
+  });
+
+  // New operation quantities reuse the same typed requirement rows as MATERIAL.
+  (FC.laborCatalogDefinitions?.PDF_QUANTITY_SOURCES || []).forEach(({code})=>{
+    FACT_CALCULATORS[code]=(roomId,cabinet,cache)=>{
+      const q=hardwareRequirements().supportQuantities?.(cabinet),standing=text(cabinet.type)==='stojąca';
+      const rows=cache.drawerRows || [],n={system_external:0,system_inner:0,box_ball_external:0,box_under_external:0,box_inner:0,box:0,inner:0,runners:0,front_catches:0,box_runners:0,under_catches:0,under_holes:0};
+      let unknown=false;
+      for(const row of rows){
+        if(!(Number(row.qty)>0))continue;
+        const derivedUsage=row.explicit?'':({front_drawers:'frontowa',sink_front_drawer:'frontowa',oven_drawer:'frontowa',under_counter_front_drawers:'frontowa',inner_drawers:'wewnętrzna',sink_inner_drawers:'zlewowa',under_counter_inner_drawers:'wewnętrzna'})[row.source];
+        const t=row.technical || {},usage=text(t.usage || t.sourceUsage || derivedUsage),inner=['wewnętrzna','zlewowa'].includes(usage),external=usage==='frontowa',count=Number(row.qty);
+        const system=t.drawerKind==='system',box=t.drawerKind==='box',under=t.runnerType==='undermount',ball=['ball','roller'].includes(t.runnerType);
+        if((!inner&&!external)||(!system&&!box)||(box&&!under&&!ball)){unknown=true;continue;}
+        n.runners+=2*count;
+        if(system){n[inner?'system_inner':'system_external']+=count;if(external)n.front_catches+=2*count;}
+        if(box){n.box+=count;if(inner)n.box_inner+=count;else n[under?'box_under_external':'box_ball_external']+=count;
+          if(under){n.under_catches+=2*count;n.under_holes+=2*count;}else n.box_runners+=2*count;}
+        if(inner)n.inner+=count;
+      }
+      n.batch=rows.some(r=>Number(r.qty)>0)?1:0;n.external_batch=n.system_external+n.box_ball_external+n.box_under_external>0?1:0;
+      n.system_batch=n.system_external+n.system_inner>0?1:0;n.under_batch=n.under_holes>0?1:0;n.inner_system_batch=n.system_inner>0?1:0;
+      const site={cabinet:1,standing:standing?1:0,hanging_hdf:q?.hanging&&q.hdf?1:0,hanging_18:q?.hanging&&!q.hdf&&/18/.test(text(cabinet.backMaterial))?1:0,hangers:q?.hanging?q.hangers:0};
+      site.rail_anchors=site.hanging_hdf*2;site.wall_points=site.hanging_18*2;
+      site.standing_level=standing&&q?.legs>0?1:0;site.legs=site.standing_level?q.legs:0;site.hanging_level=q?.hanging&&q.hangers>0?1:0;
+      const agd={};
+      for(const key of ['dishwasher','oven','microwave'])agd[key]=FACT_CALCULATORS['appliance.'+key+'.count'](roomId,cabinet,cache).value;
+      agd.dishwasher_fronts=agd.dishwasher?frontCountFromParts(cache.frontParts || []) || frontCountFallback(cabinet):0;
+      const workshop={hood:['okap','okap_podszafkowy','okap_teleskopowy'].includes(text(cabinet.subType))?1:0};
+      const kind=text(details(cabinet).flapKind),supported=text(cabinet.subType)==='uchylne'&&text(details(cabinet).flapVendor || 'blum')==='blum'&&['HK-XS','HK-S','HK_top'].includes(kind);
+      const info=supported?frontHardware().getBlumAventosInfo?.(cabinet,roomId):null,known=info&&info.kind===kind&&info.status==='ok'&&info.liftQty>0&&frontCountFromParts(cache.frontParts || [])===1;
+      const lift={hkxs:supported?(known?(kind==='HK-XS'?info.liftQty:0):null):0,hk_set:supported?(known?(kind==='HK-XS'?0:1):null):0,mechanisms:supported?(known?(kind==='HK-XS'?0:info.liftQty):null):0,fronts:supported?(known?(kind==='HK-XS'?0:1):null):0,force:supported?(known?1:null):0};
+      const drawer=code.startsWith('labor.drawer.'),value=drawer?(unknown?null:n[code.slice(13)]):code.startsWith('labor.agd.')?agd[code.slice(10)]:code.startsWith('labor.workshop.')?workshop[code.slice(15)]:code.startsWith('labor.lift.')?lift[code.slice(11)]:site[code.slice(11)];
+      return makeFact(code,value,{hasValue:value!=null,source:'centralne wymagania szafki i szuflad',warning:code.startsWith('labor.lift.')&&value==null?'STOP: brak potwierdzonego kompletu podnośników i jednego frontu.':drawer&&unknown?'STOP: brak jednoznacznego rodzaju szuflady, prowadnic lub frontu; zachowano dane bez zgadywania normy.':''});
     };
   });
 

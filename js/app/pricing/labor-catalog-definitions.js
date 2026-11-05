@@ -119,7 +119,94 @@
     operation('labor_door_adjust','Końcowa regulacja drzwi u klienta','hinge.door_cycle_count',1,{rateType:'assembly',note:'1 min/front + 1 min/zawias według aktualnej stawki montażowej.'})
   );
 
+  // 27.10 PDF, with the owner's later corpus-level connection/adjustment rules.
+  // Separate IDs preserve historical/manual norms; the replacement map only
+  // suppresses old automation when its new definitions are present.
+  const PDF_OPERATION_IDS = [];
+  function pdf(id,name,source,minutes,rate='workshop',options={}){
+    const row=operation('pdf_'+id,name,source,minutes,Object.assign({rateType:rate,category:source.startsWith('labor.agd.')?'Montaż AGD':'Elementy szafki'},options));
+    DEFAULT_LABOR_DEFINITIONS.push(row);PDF_OPERATION_IDS.push(row.id);return row.id;
+  }
+  function pdfStart(id,name,source,start,step,rate='workshop'){
+    return pdf(id,name,source,0,rate,{pricingMode:'timeStartStep',quantityMode:'startStep',startHours:start/60,startQty:0,stepEveryQty:1,stepHours:step/60});
+  }
+  pdfStart('door_adjust','Końcowa regulacja drzwi u klienta','hinge.door_hinge_count',1,1,'assembly');
+  LABOR_REPLACEMENTS.labor_door_adjust=['pdf_door_adjust'];
+  LABOR_REPLACEMENTS.labor_adjust_front=['pdf_door_adjust'];
+  pdf('site_join','Łączenie korpusów u klienta','labor.site.cabinet',5,'assembly',{note:'Raz na każdą szafkę, także stojącą osobno. Bez ustalania sąsiedztwa z RYSUNKU.'});
+  pdf('standing_place','Rozfoliowanie i wstawienie stojącej szafki','labor.site.standing',5,'assembly');
+  pdf('standing_level_initial','Wstępne poziomowanie stojącej na nóżkach','labor.site.standing_level',15,'assembly');
+  pdfStart('standing_level_final','Końcowe poziomowanie stojącej na nóżkach','labor.site.legs',5,1,'assembly');
+  pdf('hanging_rail_prepare','Przygotowanie i wyznaczenie szyny','labor.site.hanging_hdf',5,'assembly');
+  pdf('hanging_rail_fix','Mocowanie szyny — kołek','labor.site.rail_anchors',1,'assembly');
+  pdf('hanging_place','Rozfoliowanie i zawieszenie szafki HDF','labor.site.hanging_hdf',5,'assembly');
+  pdf('hanging_level_start','Poziomowanie wiszącej na zawieszkach — przygotowanie','labor.site.hanging_level',5,'assembly');
+  pdf('hanging_adjust','Regulacja zawieszek','labor.site.hangers',1,'assembly');
+  pdf('solid_back_place','Rozfoliowanie i ustawienie wiszącej z plecami 18 mm','labor.site.hanging_18',5,'assembly');
+  pdf('solid_back_prepare','Rozmierzenie punktów mocowania pleców 18 mm','labor.site.hanging_18',5,'assembly');
+  pdf('solid_back_fix','Mocowanie wiszącej z plecami 18 mm','labor.site.wall_points',5,'assembly');
+  const drawerIds=[];
+  const drawer=(...args)=>drawerIds.push(pdf(...args));
+  drawer('drawer_prepare','Przygotowanie elementów szuflad','labor.drawer.batch',15);
+  drawer('drawer_front_prepare','Znalezienie i rozłożenie frontów meblowych','labor.drawer.external_batch',15);
+  drawer('drawer_wrap','Foliowanie gotowej szafki z szufladami','labor.drawer.batch',5);
+  drawer('drawer_template','Przymiar i dokumentacja szuflad systemowych','labor.drawer.system_batch',5);
+  drawer('drawer_system_assemble','Złożenie szuflady systemowej','labor.drawer.system_external',5);
+  drawer('drawer_corpus_runners','Przykręcenie prowadnic do korpusu','labor.drawer.runners',5);
+  drawer('drawer_front_catches','Odbicie i przykręcenie zaczepów frontu','labor.drawer.front_catches',1);
+  drawer('drawer_system_fit','Wpięcie i regulacja szuflady systemowej z frontem','labor.drawer.system_external',5);
+  drawer('drawer_box_assemble','Złożenie skrzynki szuflady z gotowych formatek','labor.drawer.box',15);
+  drawer('drawer_box_front_ball','Rozmierzanie frontu szuflady kulkowej lub rolkowej','labor.drawer.box_ball_external',15);
+  drawer('drawer_box_front_ball_fix','Przykręcenie frontu szuflady kulkowej lub rolkowej','labor.drawer.box_ball_external',5);
+  drawer('drawer_box_front_under','Front meblowy szuflady dolnego montażu','labor.drawer.box_under_external',15);
+  drawer('drawer_box_runners','Przykręcenie prowadnic na skrzynce','labor.drawer.box_runners',5);
+  drawer('drawer_under_catches','Montaż sprzęgieł dolnego montażu','labor.drawer.under_catches',1);
+  drawer('drawer_under_holes','Tylne nawierty pod bolce','labor.drawer.under_holes',1);
+  drawer('drawer_under_prepare','Przygotowanie szablonu i wiertła tylnych nawiertów','labor.drawer.under_batch',5);
+  drawer('drawer_inner_cut_prepare','Przygotowanie cięcia frontów wewnętrznych producenta','labor.drawer.inner_system_batch',5);
+  drawer('drawer_inner_cut','Docięcie frontu wewnętrznego producenta','labor.drawer.system_inner',1);
+  drawer('drawer_inner_assemble','Złożenie szuflady systemowej z frontem wewnętrznym','labor.drawer.system_inner',15);
+  drawer('drawer_inner_box_front','Montaż wewnętrznego frontu skrzynkowego','labor.drawer.box_inner',5);
+  drawer('drawer_inner_fit','Wpięcie i sprawdzenie szuflady wewnętrznej','labor.drawer.inner',1);
+  pdf('drawer_site_adjust','Doregulowanie szuflady u klienta','drawer.count',5,'assembly');
+  LABOR_REPLACEMENTS.labor_mount_drawer=drawerIds;
+  // No automatic work from planned drawing sources, uncertain profiles or
+  // provisional norms. Confirmed manual work uses the current quantity editor.
+  pdf('wall_fix','Dodatkowe mocowanie stojącej do ściany','',15,'assembly',{note:'Ilość = liczba faktycznych punktów. Bez dodatkowego startu.'});
+  const dishwasher=[
+    pdf('dishwasher_place','Wstawienie zmywarki','labor.agd.dishwasher',30,'assembly'),
+    pdf('dishwasher_front_prepare','Przygotowanie montażu frontu zmywarki','labor.agd.dishwasher_fronts',15,'assembly'),
+    pdf('dishwasher_front_mount','Montaż frontu zmywarki','labor.agd.dishwasher_fronts',30,'assembly')
+  ];
+  LABOR_REPLACEMENTS.dishwasher_mount=dishwasher;
+  LABOR_REPLACEMENTS.oven_mount=[pdf('oven_prepare','Przygotowanie montażu piekarnika','labor.agd.oven',15,'assembly'),pdf('oven_mount','Montaż piekarnika','labor.agd.oven',15,'assembly')];
+  LABOR_REPLACEMENTS.microwave_mount=[pdf('microwave_prepare','Przygotowanie montażu mikrofali','labor.agd.microwave',5,'assembly'),pdf('microwave_mount','Montaż mikrofali','labor.agd.microwave',30,'assembly')];
+  pdf('handle_agreement','Ustalenia uchwytów z klientem — raz na zlecenie','',30,'assembly',{note:'Ręcznie raz dla całego zlecenia z uchwytami, nie na pomieszczenie ani szafkę.'});
+  pdf('handle_drill','Rozmierzanie i nawierty uchwytu','',5,'assembly',{note:'Ilość oznacza uchwyty, nie otwory. Bez zgadywania liczby z RYSUNKU.'});
+  pdf('handle_screw','Przykręcenie śruby uchwytu','',1,'assembly',{note:'Ilość oznacza rzeczywistą liczbę śrub. 20 uchwytów dwuśrubowych: 30 + 20×5 + 40×1 = 170 min.'});
+  pdf('hood_corpus_adapt','Dostosowanie korpusu do okapu','labor.workshop.hood',60,'workshop',{note:'Dodatkowe 60 min ponad zwykły korpus. Przygotowanie 30 min jest oddzielne: standardowy korpus 60 + 60 + 30 = 150 min.'});
+  pdf('hood_prepare','Przygotowanie zabudowy okapu','labor.workshop.hood',30,'workshop');
+  // Cargo quantities without central technical requirements stay manual.
+  // Lift counts below come from the existing AVENTOS selector, never a fixed pair.
+  pdf('cargo_runner','Montaż prowadnicy wąskiego cargo','',5,'workshop');
+  pdf('cargo_catch','Montaż zaczepu frontu cargo','',1,'workshop');
+  pdf('cargo_fit','Wpięcie i regulacja wąskiego cargo z frontem','',5,'workshop',{note:'Przykład dwóch prowadnic i dwóch zaczepów: 2×5 + 2×1 + 5 = 17 min. Przygotowania według faktycznie wykonywanych operacji, bez ich podwajania.'});
+  for(const [id,name]of [['corner','Magic Corner'],['kidney','Nerka'],['carousel','Karuzela']])pdf('cargo_'+id,'Kompletny montaż — '+name,'',60,'workshop',{note:'Komplet z przygotowaniem, rozmierzeniem i regulacją; nie doliczać ich drugi raz.'});
+  pdf('cargo_tall_prepare','Przygotowanie wysokiego cargo','',30,'workshop');
+  pdf('cargo_tall_mount','Montaż wysokiego cargo z frontem i regulacją','',60,'workshop');
+  pdf('lift_hkxs_mount','Montaż podnośnika HK-XS','labor.lift.hkxs',15,'workshop',{note:'Ilość = faktyczna liczba podnośników, nie kompletów. Cykl frontu i regulacja siły są oddzielne.'});
+  pdf('lift_hk_prepare','Przygotowanie kompletu HK-S / HK top','labor.lift.hk_set',5,'workshop');
+  pdf('lift_hk_mount','Montaż kompletu HK-S / HK top z frontem','labor.lift.hk_set',15,'workshop',{note:'Komplet jednej klapy. Końcowa regulacja i siła podnoszenia u klienta oddzielnie.'});
+  pdfStart('lift_gap_adjust','Regulacja szczelin frontu na podnośnikach','labor.lift.mechanisms',1,1,'assembly');
+  pdf('lift_force_adjust','Regulacja siły podnoszenia frontu','labor.lift.force',5,'assembly',{note:'Raz na front podnoszony, także HK-XS, nie na podnośnik. Dla frontu łamanego jednostka pozostaje do doprecyzowania; bez automatycznego mnożenia przez dwa.'});
+  pdf('lift_pack','Zdjęcie, pakowanie i odłożenie frontu HK-S / HK top','labor.lift.fronts',5,'workshop');
+  pdfStart('lift_rehang','Rozpakowanie i założenie frontu HK-S / HK top u klienta','labor.lift.mechanisms',1,1,'assembly');
+  LABOR_REPLACEMENTS.labor_mount_lift=['pdf_lift_hkxs_mount','pdf_lift_hk_prepare','pdf_lift_hk_mount'];
+  const PDF_QUANTITY_SOURCES = [...new Map(DEFAULT_LABOR_DEFINITIONS.filter(row=>String(row.quantitySource || '').startsWith('labor.')).map(row=>[row.quantitySource,{code:row.quantitySource,label:row.name+' — ilość techniczna',unit:'szt.',group:'Normy robocizny',status:'system',calculation:'Odczyt wymagań technicznych szafki; bez zapisywania drugiego licznika.'}])).values()];
+
   window.FC.laborCatalogDefinitions = {
+    PDF_OPERATION_IDS,
+    PDF_QUANTITY_SOURCES,
     LABOR_REPLACEMENTS,
     RATE_TYPES,
     USAGE_TYPES,

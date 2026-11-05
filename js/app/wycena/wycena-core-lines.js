@@ -782,6 +782,12 @@
       });
     };
     const addAppliance = (appliance, roomLabel, roomId, cabinet, number)=>{
+      const replacements=FC.laborCatalogDefinitions?.LABOR_REPLACEMENTS?.[appliance?.laborCode] || [];
+      const all=FC.catalogSelectors?.getQuoteRates?.() || [];
+      if(replacements.some(id=>all.some(row=>text(row?.id)===id))){
+        const stages=FC.wycenaCoreLabor.collectApplianceLabor({roomId,roomLabel,cabinet,number});
+        rows.push(...stages);return;
+      }
       const def = findLaborDefinitionById(defs, appliance && appliance.laborCode);
       if(def){
         const line = applianceLineFromLaborDefinition(def, appliance, roomLabel, roomId, cabinet, number, rates);

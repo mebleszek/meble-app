@@ -383,7 +383,7 @@
   }
 
   function list(){
-    return SYSTEM_SOURCES.map(normalizeSource).filter((row)=> row.code && row.label);
+    return SYSTEM_SOURCES.concat(root.FC.laborCatalogDefinitions?.PDF_QUANTITY_SOURCES || []).map(normalizeSource).filter((row)=> row.code && row.label);
   }
 
   function find(code){

@@ -1,3 +1,32 @@
+## 2026-11-05 — PDF robocizny z 27.10, implementacja części jednoznacznej
+
+Źródło: `Meble-App_podsumowanie_ustalen_2026-10-27.pdf` (21 stron), SHA-256 `b621e9601d5ba7c3ae502d99b4fe8d90f1cd6ff674c6bde783a4202de016fe49`. Użytkownik zatwierdził implementację przy zachowaniu istniejącego UI cennika. Poniższe reguły zastępują pokrywające się normy z 23.10 **wyłącznie przy obecności nowych definicji w aktywnym katalogu**. Bez migracji istniejącego LOCAL-FIRST i bez przeliczenia zamrożonych ofert.
+
+| Nowa czynność / rodzina ID | Ilość i norma | Profil |
+|---|---|---|
+| `pdf_door_adjust` | dla dodatniej liczby regulowanych zawiasów drzwiowych: 1 min/korpus + 1 min/zawias; 4 drzwi/8 zawiasów → 9 min | montaż |
+| `pdf_site_join` | 5 min na każdą szafkę, również stojącą osobno; nie n−1 | montaż |
+| `pdf_standing_place` | 5 min rozfoliowania/wstawienia na stojącą | montaż |
+| `pdf_hanging_*` | HDF: 5 przygotowania szyny + 2 kołki × 1 + 5 zawieszenia + 5 poziomu + liczba zawieszek × 1; z łączeniem: 24 min przy 2 zawieszkach | montaż |
+| `pdf_solid_back_*` | wisząca 18 mm: 5 ustawienia + 5 przygotowania + 2 mocowania × 5; z łączeniem: 25 min, bez wariantu HDF | montaż |
+| `pdf_drawer_*` warsztat | wspólne przygotowania raz/korpus; trzy systemowe zewnętrzne: 40+22×3=106 min; skrzynkowe kulkowe/rolkowe: 35+55×3=200; dolny montaż: 40+44×3=172 | warsztat |
+| `pdf_drawer_inner_*` | systemowe: start cięcia 5/korpus + 1/cięcie + 15/złożenie; skrzynkowe: złożenie 15 + front 5; wewnętrzne wpięcie 1; prowadnice i przygotowania według wspólnych operacji | warsztat |
+| `pdf_drawer_site_adjust` | 5 min na każdą szufladę, także wewnętrzną; niezależnie od warsztatowego przypisania ręcznego | montaż |
+| `pdf_dishwasher_*` | wstawienie 30/urządzenie + przygotowanie 15/front + montaż 30/front; jeden front: 75, dwa: 120; bez hydrauliki | montaż |
+| `pdf_oven_*`, `pdf_microwave_*` | piekarnik 15+15=30; mikrofala 5+30=35; istniejące wyłączenie montażu nadal zeruje pracę | montaż |
+| `pdf_wall_fix` (ręcznie) | 15 min/rzeczywisty dodatkowy punkt stojącej, bez startu | montaż |
+| `pdf_handle_*` (ręcznie) | ustalenia 30 raz/zlecenie + 5/uchwyt + 1/śruba; 20 uchwytów po 2 śruby → 170 min | montaż |
+
+Normy korzystają wyłącznie z dotychczasowych bloków 1/5/15/30/60 min, `time`, `timeStartStep`, aktualnej stawki i centralnych wymagań. 20 min frontu kulkowego to oddzielne 15+5; mocowania liczą rzeczywiste operacje 2×1/2×5, bez dodawania bloków do selektora. Wymagania szuflad określają system, prowadnice i użycie frontu; brak jednoznacznego technicznego opisu daje STOP, bez dopasowania po nazwie. Role centralnych generowanych wierszy określa ich zamknięty kod źródłowy, ponieważ obecny generator nie zachowuje pola `usage`; jawny rekord prywatny musi podać własne dane techniczne.
+
+Stare ID/normy i ręczne przypisania pozostają niezmienione. Mapa zastępuje wyłącznie automat: stare regulacje → `pdf_door_adjust`, ogólny montaż szuflady → nowe warsztatowe etapy, zmywarka/piekarnik/mikrofala → ich nowe etapy. Stara ręczna praca nie wyłącza niezależnej regulacji szuflad u klienta. Prywatne konkurencyjne normy nadal wymagają jawnej decyzji i są audytowane.
+
+**Doprecyzowanie właściciela 05.11:** okap ma 60 korpusu + dodatkowe60 + osobne przygotowanie30 = **150 min warsztatowych**; wyłączenie montażu AGD u klienta nie usuwa dostosowania korpusu. Poziomowanie tylko na nóżkach lub zawieszkach, bez podkładania pod inne korpusy: stojące z4/6 nóżkami mają34/36 min montażu, przy0 nie dostają początkowego15 ani końcowego5. Wisząca z0 zawieszek nie dostaje przygotowania poziomowania ani regulacji. Przygotowanie punktów mocowania pleców18 pozostaje pracą mocowania, nie regulacją wysokości. Cargo i instalacja podnośników są warsztatowe. HK-XS korzysta z pełnego cyklu zwykłego frontu; HK-S/HK top mają przygotowanie5, montaż15 z frontem, pakowanie5 i u klienta ponowne założenie1+mechanizmy, regulację1+mechanizmy oraz siłę5/front. Liczba podnośników pochodzi z bieżącego doboru AVENTOS; obsługujemy automatycznie tylko jednoznaczny jeden front i HK-XS/HK-S/HK top, bez zgadywania frontu łamanego. Cargo ma ręczne rzeczywiste ilości w dotychczasowym edytorze, bez zgadywania dwóch prowadnic z samej nazwy.
+
+**Wstrzymane:** LED (wyraźnie odłożone do RYSUNKU; profile i plan zapisano w ROADMAP); nieustalone i robocze normy PDF; RYSUNEK i zależne od niego ilości. Przed automatyzacją lodówek trzeba rozstrzygnąć jednostkę regulacji własnych zawiasów, a przed płytą rozróżnić indukcję od gazu w istniejącym modelu. Nie zgadujemy typu z ogólnej nazwy. Cokoły, blendy, blaty i odcinki LED pozostają odłożone; można po potwierdzeniu dodać ręczne operacje z faktyczną ilością w istniejącym edytorze, bez nowego UI.
+
+**Katalog urządzenia:** właściciel potwierdził, że cennik jest fabryczny, bez własnych edycji. `catalogStore.adoptVerified()` przyjmuje dokładny zapisany katalog LOCAL-FIRST. Dopisanie definicji fabrycznych nie aktualizuje istniejącego obrazu. Nie dodano migracji przy logowaniu. Dotychczasowy `catalogStore.savePriceList("quoteRates", list)` wywołuje istniejące `ensureDefaultDefinitions()`: zapis w obecnym edytorze cennika dopisuje brakujące definicje i zachowuje oryginalne pozycje. Test przypina idempotencję i zachowanie57 cen/norm/ID; stary normalizator dodaje wyłącznie istniejące znaczniki czasu czterech usług, co opisano i sprawdzono dokładnie w raporcie. Zastosowanie do rzeczywistego urządzenia wymaga wydania i świadomego zapisu cennika w istniejącym UI; nie wykonano go narzędziami. **Pełne wdrożenie PDF: BLOCKED / CI_PENDING / PHONE_PENDING.** Szczegóły i testy: [istniejący raport](tools/reports/wycena-labor-20261023.md).
+
 ## 2026-10-23 — zatwierdzone normy WYCENA-LABOR
 
 > **Kanoniczny kontrakt norm i źródeł kalkulacji WYCENY, nie lista zadań.** Nie przeliczać zamrożonych ofert podczas porządków. Stan wykonania: [CURRENT_STATE.md](CURRENT_STATE.md).

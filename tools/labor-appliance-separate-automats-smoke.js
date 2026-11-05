@@ -18,7 +18,7 @@ function slug(value){ return String(value || '').toLowerCase().normalize('NFD').
 
 const projectData = {
   kuchnia:{ cabinets:[
-    { id:'cab_dishwasher', type:'stojąca', subType:'zmywarkowa', width:60, height:82, depth:56, details:{ applianceMountingMode:'mount' } },
+    { id:'cab_dishwasher', type:'stojąca', subType:'zmywarkowa', frontCount:1, width:60, height:82, depth:56, details:{ applianceMountingMode:'mount' } },
     { id:'cab_oven', type:'stojąca', subType:'piekarnikowa', width:60, height:82, depth:56, details:{ applianceMountingMode:'mount' } },
     { id:'cab_fridge_no_mount', type:'stojąca', subType:'lodowkowa', width:60, height:220, depth:58, details:{ fridgeOption:'zabudowa', applianceMountingMode:'none' } },
     { id:'cab_hood', type:'wisząca', subType:'okap', width:60, height:72, depth:35, details:{ applianceMountingMode:'mount' } },
@@ -60,10 +60,10 @@ const sourceCodes = FC.workQuantitySources.list().map((row)=> row.code);
 ['appliance.dishwasher.count','appliance.fridge.count','appliance.oven.count','appliance.hob.count','appliance.hood_under_cabinet.count','appliance.hood_chimney.count','appliance.microwave.count','appliance.washer.count','appliance.dryer.count','appliance.coffee_machine.count','appliance.warming_drawer.count'].forEach((code)=> assert(sourceCodes.includes(code), `brak źródła ilości ${code}`, sourceCodes));
 
 const agd = FC.wycenaCoreLines.collectBuiltInAppliances(['kuchnia']);
-assert(agd.length === 3, 'AGD z włączonym montażem ma dać trzy linie, lodówka bez montażu ma być pominięta', agd);
-['dishwasher_mount','oven_mount','hood_under_cabinet_mount'].forEach((id)=> assert(agd.some((row)=> row.laborCode === id && row.sourceRole === 'appliance-labor' && Number(row.total) > 0), `brak wyceny z automatu ${id}`, agd));
+assert(agd.length === 6, 'AGD z włączonym montażem ma dać sześć etapów, lodówka bez montażu ma być pominięta', agd);
+['pdf_dishwasher_place','pdf_dishwasher_front_prepare','pdf_dishwasher_front_mount','pdf_oven_prepare','pdf_oven_mount','hood_under_cabinet_mount'].forEach((id)=> assert(agd.some((row)=> row.laborCode === id && row.sourceRole === 'appliance-labor' && Number(row.total) > 0), `brak wyceny z automatu ${id}`, agd));
 assert(!agd.some((row)=> /fridge_mount/.test(String(row.laborCode || ''))), 'lodówka z Bez montażu nie może tworzyć automatu AGD', agd);
-assert(agd.every((row)=> /^appliance\.[a-z_]+\.count$/.test(String(row.quantitySource || ''))), 'każda linia AGD musi mieć osobne źródło ilości', agd);
+assert(agd.every((row)=> /^(appliance\.[a-z_]+\.count|labor\.agd\.[a-z_]+)$/.test(String(row.quantitySource || ''))), 'każda linia AGD musi mieć osobne źródło ilości', agd);
 assert(agd.every((row)=> /Automat AGD:/.test(String(row.note || ''))), 'linie AGD mają pokazywać kod techniczny automatu w audycie', agd);
 
 const factDishwasher = FC.workQuantityFacts.getCabinetFact('kuchnia', projectData.kuchnia.cabinets[0], 'appliance.dishwasher.count');
@@ -75,7 +75,7 @@ assert(Number(factFridgeNoMount.value) === 0, 'lodówka bez montażu daje applia
 
 const labor = FC.wycenaCoreLabor.collectCabinetLabor(['kuchnia']);
 const laborDetails = labor.flatMap((row)=> row.details || []);
-assert(!laborDetails.some((row)=> ['dishwasher_mount','fridge_mount','oven_mount','hob_mount','hood_under_cabinet_mount','hood_chimney_mount','microwave_mount','washer_mount','dryer_mount','coffee_machine_mount','warming_drawer_mount'].includes(String(row.key || row.name || '')) || String(row.quantitySource || '').indexOf('appliance.') === 0), 'osobne automaty AGD nie mogą dublować się w Robocizna szafek', laborDetails);
+assert(!laborDetails.some((row)=> ['dishwasher_mount','fridge_mount','oven_mount','hob_mount','hood_under_cabinet_mount','hood_chimney_mount','microwave_mount','washer_mount','dryer_mount','coffee_machine_mount','warming_drawer_mount'].includes(String(row.key || row.name || '')) || /^(appliance\.|labor\.agd\.)/.test(String(row.quantitySource || ''))), 'osobne automaty AGD nie mogą dublować się w Robocizna szafek', laborDetails);
 
 console.log('OK labor-appliance-separate-automats smoke');
 console.log(' - AGD ma osobne techniczne automaty i źródła ilości');

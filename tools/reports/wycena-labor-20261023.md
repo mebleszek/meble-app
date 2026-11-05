@@ -162,3 +162,61 @@ Nie utworzono PR Ready/Draft, nie uruchomiono GitHub Actions, nie scalono do mai
 - `tools/wycena-labor-norms-smoke.js`
 - `tools/wycena-labor-persistence-smoke.js`
 - `tools/wycena-labor-ui-browser-smoke.js`
+
+
+## 05.11.2026 — PDF 27.10: rozszerzenie istniejącego cennika, etap niezamknięty
+
+Gałąź `feat/labor-pdf-rules-20261105`, BASE/main `8d24f81e14e248f5496e2f450169bfea1000592d`. Zlecenie obejmuje implementację reguł PDF w dotychczasowym modelu cen/czasu, bez zmian UI cennika i RYSUNKU. Identyfikacja PDF i szczegółowy kontrakt: nowy wpis w `QUOTE_CALCULATION_REGISTER.md` (stare ustalenia pozostawiono jako historię).
+
+### Zależności i faktyczne zmiany
+
+- `labor-catalog-definitions.js`: 63 nowe stabilne ID `pdf_*`; zachowano wszystkie 57 dotychczasowych pozycji wraz ze stawkami, starymi normami i ręcznymi przypisaniami. 120 pozycji łącznie, bez nowego trybu kalkulatora albo bloku czasu.
+- `work-quantity-sources.js` i `work-quantity-facts.js`: źródła ilości pochodzą z istniejących wymagań podpór, szuflad i AGD. Brak drugiego licznika, bez DOM i nowych zapisów. Generowane wiersze szuflad mają role wyprowadzone z zamkniętego kodu `source`, ponieważ obecny centralny generator pomija `usage`; prywatne jawne wymagania bez danych technicznych odmawiają wyceny etapów z STOP.
+- `wycena-core-labor.js` i `wycena-core-lines.js`: AGD korzysta z nowego zestawu etapów wyłącznie w dotychczasowym osobnym dziale, bez równoległego automatu historycznego i bez duplikatu w robociźnie szafki. Ręczne przypisania korzystają z istniejącej kontroli zastępowania. Silnik rozpoznaje odrębne tożsamości nowych operacji w istniejącej kontroli duplikatów. Mapa zastępuje stare automaty dopiero przy obecności następców; stara wybrana ręcznie norma nadal obowiązuje. Nowe łączenie ma własny licznik operacyjny, żeby nie blokować niezależnej prywatnej pracy używającej ogólnego `cabinet.count`.
+- Wersje pięciu zmienionych skryptów w obu HTML i rejestrze: `20261105_pdf_labor_v1`. Artefakt fabrycznych 14 domen i manifest offline odtworzono ze źródeł. Nie zmieniono Service Workera, Auth, synchronizacji, cennika materiałów, geometrii, ofert ani zapisu danych właściciela.
+
+### PDF — kompletna mapa zakresu
+
+| Sekcje PDF | Wynik |
+|---|---|
+| 01–04: model czasu, korpus, podpory, półki, zawiasy | Dotychczasowe normy są zgodne; zachowano 60 min korpusu, pakiety półek, wspólne ilości okuć, HDF/NUT 23 min i stare 45 min. Nie wymuszono przykładowej stawki 240/250. |
+| Cykl drzwi | Nowa regulacja 1 min/korpus + 1/zawias (doprecyzowanie właściciela), nie 1/front; ponowne założenie pozostaje niezależne. |
+| 05–06: szuflady | Nowe rozbite etapy dla systemowych, skrzynkowych kulkowych/rolkowych i dolnego montażu, zewnętrznych i wewnętrznych. Nie implementowano wyjmowania/wkładania przy rozładunku bez informacji o faktycznym wykonaniu i profilu stawki. |
+| 07: klient | Łączenie 5/każdą szafkę także samotną; postawienie 5; warianty wiszące HDF/18; ręczne dodatkowe mocowania i uchwyty. Poziomowanie tylko przy nóżkach lub zawieszkach; stojąca4/6 nóżek daje34/36 min, przy0 poziomowania nie ma. |
+| 08–12: cokoły, blendy, blaty, otwory, łączenia | Odłożono automaty zależne od RYSUNKU, partii, odcinków i niewprowadzonych ilości. Robocze osadzanie/szablony nie są zgadywane. Metoda do zatwierdzenia: jawne ręczne ilości operacji w obecnym cenniku, bez nowego UI. |
+| 13–15: cargo, mechanizmy, podnośniki | Właściciel określił warsztatowy profil cargo i instalacji podnośników. Cargo: zamknięte normy17/60/90 przez ręczne ilości obecnego edytora, bez zgadywania wyposażenia. HK-XS/HK-S/HK top korzystają z bieżącego doboru AVENTOS i pełnego cyklu jednoznacznego frontu; HF/HSiHL robocze jednostki pozostają odłożone, bez wymyślania norm. |
+| 16–17: AGD | Zmywarka 30 + 45/front, piekarnik 15+15, mikrofala 5+30. Lodówka wymaga zamknięcia jednostki regulacji; model płyty nie rozróżnia potwierdzonego gazu/indukcji. Okap zatwierdzony150 min warsztatowych: korpus60 + dodatkowe60 + osobne przygotowanie30. Bez hydrauliki i podłączeń elektrycznych. |
+| LED / końcowe otwarte ustalenia | W/M ustalone przez właściciela; implementację LED wyraźnie odłożono do RYSUNKU i zapisano w ROADMAP. Pomocnik/ekipa i równoległe sprzątanie bez zmian. |
+
+### Doprecyzowania właściciela i aktywacja istniejącego cennika
+
+Właściciel potwierdził: okap150 min (oddzielne30 przygotowania), bez poziomowania korpusów bez nóżek/zawieszek i bez podkładania; cargo montuje na warsztacie, podnośniki również, a cykl frontu dzieli na warsztat/klienta. Frezowanie/lutowanie/profil/wklejanie LED jest warsztatowe; dopasowanie panelu i podłączenia u klienta montażowe. LED nie implementować teraz, plan wraz z przyszłymi małymi regulatorami meblowymi zapisano w ROADMAP.
+
+Obecny cennik jest fabryczny, bez edycji właściciela. Nie wdrożono ukrytej migracji przy logowaniu, zapisu przy renderowaniu ani drugiego cennika. Istniejący `catalogStore.savePriceList('quoteRates', list)` już wywołuje `ensureDefaultDefinitions()`, zatem świadomy zapis w obecnym edytorze dopisuje brakujące ID. Po osobnym wydaniu: otworzyć istniejącą czynność w CENNIKU CZYNNOŚCI i zapisać bez zmiany ceny; następnie sprawdzić nowe pozycje i WYCENĘ. Jest to propozycja użycia istniejącego mechanizmu, nie wykonany zapis na Pixelu. Test przypina idempotencję, zachowanie57 cen/norm/ID i pozostałych pól (wynik finalnego wykonania odnotowano poniżej). Dotychczasowy normalizator nadaje znacznik `priceUserEditedAt` czterem starym ręcznym usługom z `starterPrice:false`; test przypina dokładną datę i dokładnie te4 ID, zamiast udawać pełną identyczność RAW. Kwoty i normy pozostają niezmienione. Rzeczywistego zapisu w LOCAL-FIRST ani tej czynności właściciela nie oznaczamy jako zweryfikowanych testem samego normalizatora.
+
+HK-XS: centralna liczba jego zawiasów jest przypisana do jednego potwierdzonego frontu (wymagania pomocnicze nie mają `doorKey`); w tym jedynym jednoznacznym przypadku obowiązuje zwykły cykl puszek, zawiasów, próby, pakowania, ponownego założenia i regulacji. Dwa fronty lub brak potwierdzonego doboru podnośnika nie są rozstrzygane automatycznie. HK-S/HK top: faktyczna liczba mechanizmów z AVENTOS, komplet przygotowanie5+montaż15, osobne pakowanie5, założenie1+mechanizmy, szczeliny1+mechanizmy i siła5 na jeden front. Ręczny stary montaż podnośnika zastępuje instalację, nie niezależne prace u klienta. Nie włączono HKi ani nie zamknięto roboczych HF/HS/HL i jednostki frontu łamanego bez decyzji.
+
+### Faktycznie wykonane kontrole celowane
+
+Dane wyłącznie syntetyczne, stan roboczy tej gałęzi (nie PASS CI dla finalnego SHA):
+
+- `wycena-labor-pdf-smoke.js`: 13 grup PASS. Cztery fronty/8 zawiasów → regulacja9 i niezależne założenie12; brak drzwi0; samotna szafka łączenie5; wiszące24/25; trzy szuflady106/200/172; mieszane wewnętrzne i przygotowania; STOP nieznanych wymagań; ręczne zastępowanie; AGD75/120/30/35 i jego wyłączenie; uchwyty170; zera, bloki i prywatna stawka237.12345.
+- `wycena-labor-norms-smoke.js`: 9/9 PASS. Zachowano negatywne asercje konfliktów prywatnych norm; zaktualizowano dokładne oczekiwania nowej regulacji i odrębność jej źródła.
+- `wycena-labor-compatibility-smoke.js`: PASS — siedem trybów, zero, historyczne45, formularz/Anuluj, pack/unpack bez zapisu.
+- `wycena-labor-persistence-smoke.js`: PASS — zapis parametrów, backup/export/import, historyczne projekty i zamrożone oferty.
+- `code-global-catalogs-smoke.js`: 7/7 PASS — pełne validateBundle14 domen, referencje, runtime, generowany katalog, dokładne ID i ceny, RAW bez zmian. Poprawiono oczekiwanie liczby pozycji57→120, zachowując porównanie wszystkich ID ze źródłami.
+- `ci-sharding-smoke.js`: PASS — 202 testy, dokładnie7 rozłącznych obowiązkowych grup. Nowa regresja wykrywana przez istniejący Preflight w `.github/workflows/preflight-js.yml`; nie uruchamiano workflow.
+- Integralność artefaktu i manifestu, dokładne wersje obu entrypointów, składnia zmienionych JS/MJS i diff: PASS.
+- `wycena-labor-ui-browser-smoke.js`: **BLOCKED/FAIL wykonania** — Chromium nie zwrócił DOM w30s. Odczytowy eksperyment CDP potwierdził `chrome-error://chromewebdata/` z komunikatem „Your organization doesn’t allow you to view this site”: polityka zarządzanej przeglądarki blokuje `file://` używany przez istniejący test. Odczyt konfiguracji potwierdził URLBlocklist `*` z ograniczoną allowlistą; polityki nie zmieniono i nie próbowano jej obchodzić. Nie jest to FAIL asercji aplikacji. Pierwsze uruchomienie i diagnostyczny wariant istniejącego `MEBLE_CHROMIUM_SINGLE_PROCESS=1` zakończyły się tym samym deadline. Nie podniesiono timeoutu, nie zmieniono asercji ani UI; nie zadeklarowano PASS Chromium. To nie dowodzi przyczyny biznesowej ani nie potwierdza fizycznego telefonu.
+- `quote-exact-calculations-smoke.js`: 83 przypadki PASS. Zachowano porównanie niezmienionych mechanizmów prezentacji/zaokrągleń z BASE; referencje modułu i wiszącej zaktualizowano o jawne nowe minuty łączenia, montażu i korektę regulacji (369.17 / 517.63).
+- `labor-appliance-separate-automats-smoke.js` i `labor-appliance-category-clean-rebase-smoke.js`: PASS — osobny dział AGD, sześć etapów zamiast trzech zbiorczych linii, brak duplikatów, wyłączony montaż pominięty i stare normy nadal zachowane. Fixture jawnie zawiera jeden front zmywarki, zamiast zgadywania jego ilości.
+
+**BLOCKED / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Nie jest to kompletny pakiet całego PDF ani dowód aktualizacji katalogu na obecnym Pixelu. Bez Firebase LIVE, PR, Actions, merge i publikacji. Następny ruch: rozstrzygnięcie braku dowodu Chromium i weryfikacja świadomego uzupełnienia cennika przed osobną zgodą wydaniową.
+
+Nie deklarujemy CODE_READY ani wydania przy niezaliczonym teście Chromium. Stan commit/push i dokładny HEAD/BASE podaje raport przekazania; samo zapisanie gałęzi nie jest zgodą na PR ani Actions.
+
+Dodatkowa granica poziomowania: przy jawnym nadpisaniu liczby zawieszek na3 także korpus18 mm dostaje należne5+3 min regulacji, bez uruchamiania szyny HDF; standardowe18 mm bez zawieszek pozostaje25 min. Nie wyłączamy rzeczywistych zawieszek przez sam materiał pleców.
+
+**Zakres dowodu83 przypadków dokładnych obliczeń:** zaliczono we wcześniejszym stanie tego samego pakietu, przed ostatnim dodaniem okapu/poziomowania/podnośników. Nie przypisujemy automatycznie tego PASS końcowemu HEAD; regresja pozostaje obowiązkowo w CI. Końcowe nowe reguły obejmuje `wycena-labor-pdf-smoke.js`, a osobno bieżące normy i generator14 domen.
+
+Końcowy stan roboczy po doprecyzowaniach: `wycena-labor-pdf-smoke.js` **13/13 PASS**, `wycena-labor-norms-smoke.js` **9/9 PASS**, `code-global-catalogs-smoke.js` **7/7 PASS**. Ponowione po ostatnich zmianach powiązane AGD/kompatybilność/persistence PASS. Routing202/7, składnia, manifest, artefakt definicji i wersje PASS. Chromium pozostaje BLOCKED polityką sesji; pełnego CI nie uruchamiano.

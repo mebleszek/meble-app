@@ -96,10 +96,11 @@ for(const pricingMode of ['fixed','perUnit','startPlusUnit','time','timeTiers','
   assert.equal((detail.baseHours+detail.volumeHours)*detail.hourlyRate,90);
   console.log('PASS unusual project: base 15 min + volume 3 min at 300/h = 90.00, labeled from source data');checks++;
 }
-for(const [type,height,depth,shelves,expected]of [['moduł',82,50,1,352.5],['wisząca',106,32,2,421.8]]){
+// PDF norms: module +5 min joining -1 min adjustment; HDF +24 min site work -1 min adjustment (250/h).
+for(const [type,height,depth,shelves,expected]of [['moduł',82,50,1,369.17],['wisząca',106,32,2,517.63]]){
   const r=fixture();Object.assign(r.cab,{type,height,depth,width:60});r.cab.details.shelves=shelves;
   const register=unchangedTotals(r.FC,{labor:r.FC.wycenaCoreLabor.collectCabinetLabor(['kuchnia'])});
-  assert.equal(register.totals.labor,expected);console.log('PASS explicit synthetic '+type+' reference '+expected.toFixed(2)+' unchanged against BASE');checks++;
+  assert.equal(register.totals.labor,expected);console.log('PASS explicit synthetic '+type+' reference '+expected.toFixed(2)+' under approved PDF norms; presentation unchanged against BASE');checks++;
 }
 {
   const r=fixture(),FC=r.FC;
