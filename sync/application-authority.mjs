@@ -61,7 +61,7 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
  if(open)fc.infoBox.open=options=>{if(inTransaction&&(options?.title==='Projekt zapisany'||/^Zapisano/.test(options?.title||''))){pendingNotices.push(options);return;}return open(options);};
  const listener=event=>{if(event.key===null||keys.has(event.key)){external=true;}};w.addEventListener('storage',listener);
  function idle({allowForm=false}={}){access();if(!allowForm&&(fc.priceModal?.isItemDirty?.()||w.document.querySelector('.panel-box-backdrop')))fail('LF_ACTIVE_FORM_PROTECTED');if(inTransaction||fc.session.active||fc.session.snapshot||fc.session.durable||rows.fc_edit_session_v1!==null||fc.investorEditorState?.hasUiLock()||fc.investorProjectRuntime.hasProjectDivergence(w.projectData))fail('LF_ACTIVE_RAM_PROTECTED');}
- async function hydrateCatalogs(){if(!(await store.snapshot?.('globals'))?.replica)return;const c=fc.globalDataContract,model=c.capture({getItem:k=>k==='fc_edit_session_v1'?null:rows[k]??null},Object.keys(c.schemas)).model;fc.catalogStore?.adoptVerified?.(model);}
+ async function hydrateCatalogs(){if(!localOnly&&!(await store.snapshot?.('globals'))?.replica)return;const c=fc.globalDataContract,model=c.capture({getItem:k=>k==='fc_edit_session_v1'?null:rows[k]??null},Object.keys(c.schemas)).model;fc.catalogStore?.adoptVerified?.(model);}
  function snapshotSession(){return Object.fromEntries(Object.entries(fc.session).filter(([,v])=>typeof v!=='function').map(([k,v])=>[k,structuredClone(v)]));}
  async function transaction(kind,operation){
   access();assertSource();lastCode=null;if(inTransaction)fail('LF_APPLICATION_BUSY');

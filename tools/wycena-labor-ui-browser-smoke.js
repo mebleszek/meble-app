@@ -3,7 +3,7 @@
 // Actual component DOM/CSS in disposable Chromium profiles. No login, Firebase or owner storage.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const root=path.resolve(__dirname,'..');
-const {dumpDom}=require('./helpers/chromium-runtime');
+const http=require('node:http');
 const css=fs.readdirSync(path.join(root,'css')).filter(name=>name.endsWith('.css')).map(name=>fs.readFileSync(path.join(root,'css',name),'utf8')).join('\n');
 const js=['pricing/labor-catalog-definitions','pricing/labor-catalog','cabinet/cabinet-modal-labor','material/price-modal-list','quote/quote-calculation-register','wycena/wycena-summary-details-modal','ui/session-diagnostics-readonly','ui/session-diagnostics'].map(name=>fs.readFileSync(path.join(root,'js/app',name+'.js'),'utf8')).join('\n');
 function check(){
@@ -79,22 +79,29 @@ function checkQuotaAndEquations(infoBoxSource,diagnosticsOnly){
   assert(JSON.stringify(register)===frozen&&raw()===before&&writes===0,'Rendering preserves frozen amounts and all native RAW');
 }
 async function main(){
-const dir=fs.mkdtempSync(path.join(os.tmpdir(),'meble-labor-ui-'));
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'meble-labor-ui-'));let server;
 try{
+  const {openBrowserDevice}=await import('./helpers/local-first-browser.mjs');
   const infoBoxSource=fs.readFileSync(path.join(root,'js/app/ui/info-box.js'),'utf8');
   const diagnosticsOnly=process.argv.includes('--diagnostics-only');
-  const html='<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>'+css+'</style><div id="component"></div><div id="priceListItems"></div><pre id="result"></pre><script>window.FC={infoBox:{open:value=>window.helpPayload=value},priceModalContext:{byId:id=>document.getElementById(id),currentListKind:()=>"quoteRates",filteredPriceList:()=>[{id:"synthetic-help",name:"Synthetic norm",price:0,note:"5 min przygotowania"}],openPriceItemModal:()=>{}}};\n'+js+'\ntry{'+(diagnosticsOnly?'':'('+check.toString()+')();')+'('+checkQuotaAndEquations.toString()+')('+JSON.stringify(infoBoxSource)+','+diagnosticsOnly+');document.getElementById("result").textContent="PASS";}catch(error){document.getElementById("result").textContent="FAIL: "+error.stack;}</script>';
-  const file=path.join(dir,'fixture.html');fs.writeFileSync(file,html);
+  const html='<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>'+css+'</style><div id="component"></div><div id="priceListItems"></div><pre id="result"></pre><script>window.FC={infoBox:{open:value=>window.helpPayload=value},priceModalContext:{byId:id=>document.getElementById(id),currentListKind:()=>"quoteRates",filteredPriceList:()=>[{id:"synthetic-help",name:"Synthetic norm",price:0,note:"5 min przygotowania"}],openPriceItemModal:()=>{}}};\n'+js+'\nwindow.lfReady=true;window.runLaborFixture=()=>{try{'+(diagnosticsOnly?'':'('+check.toString()+')();')+'('+checkQuotaAndEquations.toString()+')('+JSON.stringify(infoBoxSource)+','+diagnosticsOnly+');document.getElementById("result").textContent="PASS";}catch(error){document.getElementById("result").textContent="FAIL: "+error.stack;}};</script>';
+  // HTTP is a genuine origin for native storage and works in managed browsers
+  // which deliberately disallow file://. No policy or browser security changes.
+  server=http.createServer((req,res)=>{if(req.url!=='/fixture.html'){res.writeHead(404);res.end();return;}res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});res.end(html);});
+  await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
+  const url='http://127.0.0.1:'+server.address().port+'/fixture.html';
   for(const[profile,width,height,ua]of [['Android-size',393,851,'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36'],['Windows-size',1280,900,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0 Safari/537.36']]){
     if(process.argv.includes('--mobile-only')&&width>400)continue;
     for(const name of [profile,'cache','config'])fs.mkdirSync(path.join(dir,name),{recursive:true});
-    let output;
-    const localFlags=process.env.MEBLE_CHROMIUM_SINGLE_PROCESS==='1'?['--no-zygote','--single-process']:[];
-    output=await dumpDom({profileDir:path.join(dir,profile),args:['--disable-gpu','--disable-breakpad',...localFlags,
-      '--window-size='+width+','+height,'--user-agent='+ua,'--dump-dom','--virtual-time-budget=2000','file://'+file],timeoutMs:30000,maxBuffer:8*1024*1024});
-    const result=output.match(/<pre id="result">([\s\S]*?)<\/pre>/)?.[1];assert.equal(result,'PASS',profile+': '+result);console.log('PASS real Chromium components: '+profile);
+    const browser=await openBrowserDevice({base:url},path.join(dir,profile));
+    try{
+      await browser.send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<400});
+      await browser.send('Emulation.setUserAgentOverride',{userAgent:ua});
+      const result=await browser.evaluate('runLaborFixture();document.getElementById("result").textContent');
+      assert.equal(result,'PASS',profile+': '+result);console.log('PASS real Chromium components: '+profile);
+    }finally{await browser.close();}
   }
-}finally{fs.rmSync(dir,{recursive:true,force:true,maxRetries:3,retryDelay:100});}
+}finally{if(server?.listening)await new Promise(resolve=>server.close(resolve));fs.rmSync(dir,{recursive:true,force:true,maxRetries:3,retryDelay:100});}
 
 }
 if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});
