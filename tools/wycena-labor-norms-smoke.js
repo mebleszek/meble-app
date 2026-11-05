@@ -82,10 +82,10 @@ test('Door cycle, current rates, central register and explicit manual replacemen
   r.setPanels(Array.from({length:4},()=>({w:30,h:200})));
   const details=r.details();
   for(const[code,t]of [['hinge.fitting_count',21],['hinge.door_hinge_count',8],['hinge.door_count',20],['hinge.door_cycle_count',12]]){
-    const matching=details.filter(d=>d.quantitySource===code);assert.ok(matching.length);matching.forEach(d=>near(d.hours*60,t));
+    const matching=details.filter(d=>d.quantitySource===code && d.name!=='Końcowa regulacja drzwi u klienta');assert.ok(matching.length);matching.forEach(d=>near(d.hours*60,t));
   }
-  const adjust=details.find(d=>d.name==='Końcowa regulacja drzwi u klienta');near(adjust.total,50);
-  r.rates().find(row=>row.id==='labor_rate_assembly').price=300;near(r.details().find(d=>d.name===adjust.name).total,60);
+  const adjust=details.find(d=>d.name==='Końcowa regulacja drzwi u klienta');near(adjust.hours*60,9);near(adjust.total,37.5);
+  r.rates().find(row=>row.id==='labor_rate_assembly').price=300;near(r.details().find(d=>d.name===adjust.name).total,45);
   for(const old of Object.keys(FC.laborCatalogDefinitions.LABOR_REPLACEMENTS))assert.ok(!details.some(d=>d.key.includes(old)),'Old auto '+old);
   cab.laborItems=[{rateId:'labor_mount_front',qty:2,note:'keep exactly'},{rateId:'labor_mount_hinge',qty:1}];
   const saved=JSON.stringify(cab.laborItems),manual=r.details();
@@ -154,7 +154,8 @@ test('repair: private operation collision, explicit replacement, independent wor
   const ambiguous={...clone(r.rates().find(d=>d.id==='labor_door_rehang')),id:'private-ambiguous-door'};
   r.rates().push(ambiguous);cab.laborItems=[{rateId:ambiguous.id,qty:2,note:'ambiguous choice'}];
   rows=r.details().filter(d=>d.quantitySource==='hinge.door_cycle_count'&&d.sourceKind!=='manual');
-  assert.equal(rows.length,3);assert.ok(rows.every(d=>d.total===0));assert.ok(rows.some(d=>d.warnings.some(w=>w.includes('STOP:'))),'Manual selection cannot silently resolve two different operations with one source');
+  assert.equal(rows.length,2);assert.ok(rows.every(d=>d.total===0));assert.ok(rows.some(d=>d.warnings.some(w=>w.includes('STOP:'))),'Manual selection cannot silently resolve ambiguous historical copies');
+  assert.ok(r.details().some(d=>d.name==='Końcowa regulacja drzwi u klienta'&&d.quantitySource==='hinge.door_hinge_count'&&d.total>0),'The new corpus-level adjustment is a distinct role');
   const oldPrivate={...clone(r.rates().find(d=>d.id==='labor_loose_shelves')),id:'private-old-shelf-package',note:'historic private 45',timeBlockHours:0.75};
   r.rates().push(oldPrivate);cab.laborItems=[];
   const oldBytes=JSON.stringify(oldPrivate);

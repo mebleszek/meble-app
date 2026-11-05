@@ -2,6 +2,12 @@
 
 > **Jak czytać:** `ROADMAP.md` przechowuje plan, zależności i decyzje przyszłe. **Aktualny stan wykonania, zaliczone CI/Pages, blokery i jeden następny ruch są wyłącznie w [CURRENT_STATE.md](CURRENT_STATE.md)**. Nie aktualizować obu plików równoległymi kopiami statusów. Starsze sekcje poniżej są historią planowania i nie anulują późniejszych wydań.
 
+## LED i poziomowanie — decyzje właściciela 05.11.2026
+
+**LED odłożone do RYSUNKU — bez implementacji w bieżącym pakiecie norm.** Prace warsztatowe: frezowanie, lutowanie, montaż profilu aluminiowego i wklejanie LED, przygotowanie paneli LED i oświetlenia wnętrza szafek. Prace montażowe: dopasowanie/montaż paneli u klienta, podłączenie przewodów do zasilacza i zasilacza do gniazdka. RYSUNEK ma dostarczyć rzeczywiste odcinki, profile, panele i punkty podłączeń; nie wyprowadzać ich z nazw szafek ani zgadywanych długości. Normy z PDF pozostają źródłem przyszłego zakresu, bez nowych liczników lub zmian UI teraz.
+
+Poziomowanie obecnie dotyczy wyłącznie szafek na nóżkach lub zawieszkach. Nie planować podkładania pod inne szafki. Małe regulatory meblowe mogą zostać dodane w przyszłości, po osobnej decyzji o ich modelu i ilościach.
+
 ## Najbliższa kolejność — decyzja 01.11.2026
 
 1. Niezależnie ocenić pakiet produkcyjnego startupu/cutover, następnie osobno zatwierdzić CI dla dokładnych HEAD/BASE. Wydanie PR #97 i bieżące dowody są w CURRENT_STATE.

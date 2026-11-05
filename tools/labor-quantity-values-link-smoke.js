@@ -66,8 +66,14 @@ assert(details.some((row)=> row.quantitySource === 'cabinet.count' && Number(row
 assert(details.some((row)=> row.quantitySource === 'shelf.count' && Number(row.quantity) === 1), 'półki używają shelf.count = 1', details);
 assert(details.some((row)=> row.sourceRole === 'front-labor' && row.quantitySource === 'hinge.door_count' && Number(row.quantity) === 2), 'pakowanie używa hinge.door_count = 2', details);
 assert(sumByName('Przykręcanie zawiasów i prowadników') === 8, 'wspólny montaż: 4 zawiasy + 4 prowadniki', details);
-assert(details.some((row)=> row.name === 'Końcowa regulacja drzwi u klienta' && row.quantitySource === 'hinge.door_cycle_count' && Number(row.quantity) === 6), 'regulacja: 2 drzwi + 4 zawiasy', details);
-assert(details.some((row)=> row.name === 'Montaż szuflady / prowadnic' && row.quantitySource === 'drawer.count' && Number(row.quantity) === 3), 'montaż szuflad używa drawer.count = 3', details);
+const adjustment=details.filter(row=>row.name==='Końcowa regulacja drzwi u klienta');
+assert(adjustment.length===1&&adjustment[0].quantitySource==='hinge.door_hinge_count'&&Number(adjustment[0].quantity)===4,'regulacja używa czterech zawiasów, bez mnożenia startu przez drzwi',adjustment);
+assert(Math.abs(adjustment[0].hours*60-5)<1e-8&&Math.abs(adjustment[0].total-5/60*250)<1e-8,'regulacja: 1 min/korpus + 4 min/zawiasy przy rzeczywistej stawce250',adjustment);
+assert(details.some(row=>row.name==='Rozpakowanie i założenie drzwi u klienta'&&row.quantitySource==='hinge.door_cycle_count'&&Number(row.quantity)===6),'niezależne ponowne założenie nadal obejmuje2 drzwi i4 zawiasy',details);
+assert(details.some(row=>row.name==='Doregulowanie szuflady u klienta'&&row.quantitySource==='drawer.count'&&Number(row.quantity)===3&&Math.abs(row.hours*60-15)<1e-8),'regulacja szuflad używa rzeczywistej liczby3',details);
+const unknownDrawers=details.filter(row=>String(row.quantitySource).startsWith('labor.drawer.'));
+assert(unknownDrawers.length>0&&unknownDrawers.every(row=>row.sourceKind==='automatic-blocked'&&row.total===0&&row.warnings.some(w=>w.includes('STOP:'))),'wymagania bez rodzaju/prowadnic nie mogą zgadywać płatnego montażu warsztatowego',unknownDrawers);
+assert(!details.some(row=>row.name==='Montaż szuflady / prowadnic'&&row.sourceKind==='automatic'),'stary zbiorczy automat nie dubluje nowego cyklu',details);
 assert(details.every((row)=> row.total >= 0), 'wszystkie komponenty mają bezpieczne sumy', details);
 const register = FC.quoteCalculationRegister.buildRegister({ labor:laborLines }, {});
 const laborRegisterLines = register.lines.filter((row)=> row.section === 'labor');
