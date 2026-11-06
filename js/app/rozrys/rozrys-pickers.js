@@ -104,6 +104,7 @@
     const exitBtn = h('button', { type:'button', class:'btn-primary', text:'Wyjdź' }, null, cfg.doc);
     const cancelBtn = h('button', { type:'button', class:'btn-danger', text:'Anuluj' }, null, cfg.doc);
     const saveBtn = h('button', { type:'button', class:'btn-success', text:'Zatwierdź' }, null, cfg.doc);
+    let saving = false;
 
     function renderFooterActions(){
       actionWrap.innerHTML = '';
@@ -132,6 +133,7 @@
     });
     exitBtn.addEventListener('click', ()=> FC.panelBox.close());
     cancelBtn.addEventListener('click', async ()=>{
+      if(saving) return;
       const ok = typeof cfg.askConfirm === 'function' ? await cfg.askConfirm({
         title:'ANULOWAĆ ZMIANY?',
         message:'Niezapisane zmiany w wyborze pomieszczeń zostaną utracone.',
@@ -143,10 +145,28 @@
       if(!ok) return;
       FC.panelBox.close();
     });
-    saveBtn.addEventListener('click', ()=>{
+    saveBtn.addEventListener('click', async ()=>{
       const pickedRooms = nextRooms();
-      if(!pickedRooms.length || !isDirty()) return;
-      if(typeof cfg.setSelectedRooms === 'function') cfg.setSelectedRooms(pickedRooms);
+      if(saving || !pickedRooms.length || !isDirty()) return;
+      saving = true;
+      saveBtn.disabled = true;
+      cancelBtn.disabled = true;
+      allBtn.disabled = true;
+      checkboxes.forEach(({cb})=>{ cb.disabled = true; });
+      let result;
+      try{
+        result = cfg.setSelectedRooms?.(pickedRooms);
+        if(result && typeof result.then === 'function') result = await result;
+      }catch(_){
+        result = false;
+      }finally{
+        saving = false;
+        cancelBtn.disabled = false;
+        allBtn.disabled = selectableRooms.length === 0;
+        checkboxes.forEach(({cb, disabledRoom})=>{ cb.disabled = disabledRoom; });
+        updateFooterState();
+      }
+      if(result === false || body.isConnected === false) return;
       FC.panelBox.close();
       if(typeof cfg.refreshSelectionState === 'function') cfg.refreshSelectionState();
     });
@@ -160,7 +180,7 @@
       width:'820px',
       boxClass:'panel-box--rozrys',
       dismissOnOverlay:false,
-      beforeClose: ()=> isDirty() ? (typeof cfg.askConfirm === 'function' ? cfg.askConfirm({
+      beforeClose: ()=> saving ? false : isDirty() ? (typeof cfg.askConfirm === 'function' ? cfg.askConfirm({
         title:'ANULOWAĆ ZMIANY?',
         message:'Niezapisane zmiany w wyborze pomieszczeń zostaną utracone.',
         confirmText:'✕ ANULUJ ZMIANY',

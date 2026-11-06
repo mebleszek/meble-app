@@ -118,11 +118,11 @@ async function main(){
   assert.equal(await browser.evaluate('window.FC.investorProjectRuntime.hasProjectDivergence(projectData)'),false,'Confirmed Save must leave RAM consistent with its durable project');
   phase='basic WYCENA';const quote=await browser.evaluate(`(async()=>{const room=window.FC.investors.readAll()[0].rooms[0].id;const labor=window.FC.wycenaCore.collectCabinetLabor([room]);const quote=await window.FC.wycenaCore.collectQuoteData({selection:{selectedRooms:[room]}});return {labor:!!labor[0]?.details?.some(r=>r.total>0),totals:quote.totals};})()`);assert.equal(quote.labor,true);assert.ok(Object.values(quote.totals).some(n=>typeof n==='number'&&Number.isFinite(n)&&n>0));
   const saved=await browser.evaluate('localProof()');assert.deepEqual(saved.tables.outbox,[]);assert.deepEqual(saved.tables.replicas,[]);assert.equal(await browser.evaluate('window.FC.applicationStartup.inspect().cloudConfirmed'),false);
-  async function reopenOffline(expectedWidth=61,staleJournal=false){assert.equal(await browser.evaluate('JSON.parse(localStorage.getItem("meble_local_reset_v1")).state'),'used','Ready runtime must consume the reset before closing');await browser.gracefulClose();browser=null;networkAvailable=true;
+  async function reopenOffline(expectedWidth=61,staleJournal=false,expectedIds=cabinetIds){assert.equal(await browser.evaluate('JSON.parse(localStorage.getItem("meble_local_reset_v1")).state'),'used','Ready runtime must consume the reset before closing');await browser.gracefulClose();browser=null;networkAvailable=true;
   browser=await openBrowserDevice({base:server.base+'/fixture-host.html'},path.join(dir,'profile'));const targets=await browser.send('Target.getTargets');for(const t of targets.targetInfos)if(t.type==='page'&&t.targetId!==browser.targetId){assert.ok(t.url==='about:blank'||t.url.startsWith(server.base));await browser.send('Target.closeTarget',{targetId:t.targetId});}assert.equal(await browser.evaluate('JSON.parse(localStorage.getItem("meble_local_reset_v1")).state'),'used','A new renderer must see the completed journal before app startup');navigation=documentNavigation(browser.send);browser.onEvent(onEvent);await browser.send('Network.enable');await browser.send('Debugger.enable');await browser.send('Page.addScriptToEvaluateOnNewDocument',{source:preload});
   if(staleJournal)await browser.evaluate('(()=>{const key="meble_local_reset_v1",value=JSON.parse(localStorage.getItem(key));localStorage.setItem(key,JSON.stringify({...value,state:"pending"}));})()');networkAvailable=false;await browser.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await browser.send('Network.overrideNetworkState',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
   await navigation.navigate(server.base+'/index.html');await until('document.body?.dataset.businessState==="ready"');assert.equal(await browser.evaluate('__LOCAL_BOOT_ONLINE__'),false);await assertForeign();
-  assert.equal(await browser.evaluate('window.FC.projectStore.readAll()[0].projectData[window.FC.investors.readAll()[0].rooms[0].id].cabinets[0].width'),expectedWidth);assert.deepEqual(await browser.evaluate('window.FC.projectStore.readAll()[0].projectData[window.FC.investors.readAll()[0].rooms[0].id].cabinets.map(c=>c.id)'),cabinetIds);
+  assert.equal(await browser.evaluate('window.FC.projectStore.readAll()[0].projectData[window.FC.investors.readAll()[0].rooms[0].id].cabinets[0].width'),expectedWidth);assert.deepEqual(await browser.evaluate('window.FC.projectStore.readAll()[0].projectData[window.FC.investors.readAll()[0].rooms[0].id].cabinets.map(c=>c.id)'),expectedIds);
   }
   phase='close and offline reopen';await reopenOffline(61,true);assert.equal(await browser.evaluate('JSON.parse(localStorage.getItem("meble_local_reset_v1")).state'),'used');console.log('PASS stale pending journal reconciles only verified receipt/binding/source/image; existing saved local data are preserved');
   assert.equal(await browser.evaluate('window.FC.investors.readAll().length'),1);assert.equal(await browser.evaluate('window.FC.projectStore.readAll().length'),1);
@@ -134,6 +134,64 @@ async function main(){
   phase='local rollback';await tap('#sessionCancel');await until('!!document.querySelector(".confirm-box")');await tap('.confirm-box .is-danger');await until('projectData[window.FC.investors.readAll()[0].rooms[0].id].cabinets[0].width===61');
   const finalProof=await browser.evaluate('localProof()');assert.deepEqual(finalProof.tables.outbox,[]);const finalRows=finalProof.tables.control.find(r=>r.key==='application').rows;for(const keys of Object.values(factory.context.FC.globalDataContract.sources))for(const alias of keys.slice(1))assert.equal(finalRows[alias]??null,null,'Historical alias must not be initialized by Cancel');
   console.log('PASS unsaved local edit is journaled by existing autosave/IDB, survives a second offline Chromium restart, and Cancel restores the saved baseline without cloud ACK');
+  async function abortNextProjectWrite(){
+    await browser.evaluate(`(()=>{const original=IDBDatabase.prototype.transaction;window.actionAbortObserved=false;IDBDatabase.prototype.transaction=function(stores,mode,...rest){const tx=original.call(this,stores,mode,...rest);if(this.name===${JSON.stringify(server.name)}&&mode==='readwrite'){IDBDatabase.prototype.transaction=original;window.actionAbortObserved=true;queueMicrotask(()=>tx.abort());}return tx;};return true;})()`);
+  }
+  async function expectAbortedAction(before){
+    await until('window.actionAbortObserved&&!!document.querySelector(".info-box")&&!window.FC.applicationStartup.inspect().transactionPending');
+    assert.deepEqual(await browser.evaluate('localProof()'),before);
+    await tap('.info-box button');
+  }
+  phase='cabinet delete';const retained=cabinetIds.slice(0,2),deleteButton='#cab-'+cabinetIds[2]+' [data-act="del"]';
+  if(!await browser.evaluate('uiState.roomType'))await tap('[data-action="open-room"][data-room^="room_"]');
+  await until('uiState.activeTab==="wywiad"&&!window.FC.applicationStartup.inspect().transactionPending');
+  const beforeDelete=await browser.evaluate('localProof()');
+  const cabinetBeforeDelete=await browser.evaluate('JSON.stringify(projectData[uiState.roomType])');
+  await tap(deleteButton);await until('!!document.querySelector(".confirm-box")');
+  await abortNextProjectWrite();await tap('.confirm-box .is-danger');await expectAbortedAction(beforeDelete);
+  assert.equal(await browser.evaluate('JSON.stringify(projectData[uiState.roomType])'),cabinetBeforeDelete);
+  await tap(deleteButton);await until('!!document.querySelector(".confirm-box")');await tap('.confirm-box .is-danger');
+  await until(`!document.getElementById(${JSON.stringify('cab-'+cabinetIds[2])})&&!window.FC.applicationStartup.inspect().transactionPending`);
+  assert.deepEqual(await browser.evaluate('projectData[uiState.roomType].cabinets.map(c=>c.id)'),retained);
+  assert.equal(await browser.evaluate(`projectData[uiState.roomType].fronts.some(f=>f.cabId===${JSON.stringify(cabinetIds[2])})`),false);
+  const deleteState=await browser.evaluate('({active:window.FC.session.active,dirty:window.FC.session.isDirty(),button:getComputedStyle(document.querySelector("#sessionSave")).display,toolbar:getComputedStyle(document.querySelector("#sessionButtons")).display,tab:uiState.activeTab,entry:uiState.entry})');
+  assert.equal(deleteState.dirty,true,JSON.stringify(deleteState));
+  assert.notEqual(deleteState.button,"none",JSON.stringify(deleteState));
+  assert.notEqual(deleteState.toolbar,"none",JSON.stringify(deleteState));
+  await tap('#sessionSave');await until('!window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending');
+  await until('!!document.querySelector(".info-box")');await tap('.info-box button');
+  console.log('PASS cabinet delete waits for IDB commit and preserves the cabinet and room on abort');
+  phase='second quoteable room';await tap('[data-action="tab"][data-tab="inwestor"]');await until('!window.FC.applicationStartup.inspect().transactionPending');
+  await tap('[data-investor-action="add-room"]');await until('!!document.querySelector(".panel-box input[placeholder]")');
+  await fill('.panel-box input[placeholder]','Synthetic J');await tap('.panel-box .btn-success');
+  await until('window.FC.investors.readAll()[0].rooms.length===2&&!window.FC.applicationStartup.inspect().transactionPending');
+  const roomIds=await browser.evaluate('window.FC.investors.readAll()[0].rooms.map(room=>room.id)');
+  await tap(`[data-action="open-room"][data-room="${roomIds[1]}"]`);await until('window.FC.session.durable&&!window.FC.applicationStartup.inspect().transactionPending');
+  await tap('#floatingAdd');await until('document.getElementById("cabinetModal").style.display==="flex"');
+  await tap('#cabinetTypeChoices .choice-tile:first-child');await fill('#cmWidth','91');await fill('#cmHeight','82');await fill('#cmDepth','50');
+  await tap('#cabinetModalSave');await until('document.getElementById("cabinetModal").style.display==="none"&&!window.FC.applicationStartup.inspect().transactionPending');
+  await tap('#sessionSave');await until('!window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending');
+  await until('!!document.querySelector(".info-box")');await tap('.info-box button');
+  phase='quote room picker';await tap('[data-action="tab"][data-tab="wycena"]');
+  await until('!!document.querySelector(".quote-selection-launch--rooms")&&!window.FC.applicationStartup.inspect().transactionPending');
+  const roomPicker='.panel-box .rozrys-scope-chip--room-option';
+  await tap('.quote-selection-launch--rooms');
+  await until(`document.querySelectorAll('${roomPicker} input:checked').length===2`);
+  await tap(roomPicker+':nth-child(2) .rozrys-room-chip__label');
+  const beforeSelection=await browser.evaluate('localProof()');
+  await abortNextProjectWrite();await tap('.panel-box .rozrys-picker-footer .btn-success');await expectAbortedAction(beforeSelection);
+  assert.deepEqual(await browser.evaluate(`[...document.querySelectorAll('${roomPicker} input')].map(input=>input.checked)`),[true,false]);
+  await tap('.panel-box .rozrys-picker-footer .btn-success');
+  await until('!document.querySelector(".panel-box-backdrop")&&!window.FC.applicationStartup.inspect().transactionPending');
+  assert.deepEqual(await browser.evaluate('window.FC.quoteOfferStore.getCurrentDraft().selection.selectedRooms'),[roomIds[0]]);
+  assert.doesNotMatch(await browser.evaluate('document.querySelector(".quote-selection-launch--rooms").textContent'),/Synthetic J/);
+  await tap('[data-action="wycena-generate"]');
+  await until('window.FC.quoteSnapshotStore.listForProject(window.FC.projectStore.getCurrentProjectId()).length===1&&!window.FC.applicationStartup.inspect().transactionPending');
+  assert.deepEqual(await browser.evaluate('window.FC.quoteSnapshotStore.listForProject(window.FC.projectStore.getCurrentProjectId())[0].scope.selectedRooms'),[roomIds[0]]);
+  phase='offline reopen with delete and room selection';await reopenOffline(61,false,retained);
+  assert.deepEqual(await browser.evaluate('window.FC.quoteOfferStore.getCurrentDraft().selection.selectedRooms'),[roomIds[0]]);
+  assert.equal(await browser.evaluate(`window.FC.projectStore.getCurrentRecord().projectData[${JSON.stringify(roomIds[1])}].cabinets.length`),1);
+  console.log('PASS a rejected room selection retains the picker and checkboxes; retry prices only Kitchen and survives offline reopen');
   await assertForeign();assert.deepEqual(external,[]);console.log('PASS confirmed reset → code catalogs / 14 domains → full offline startup → first investor/project/room → durable save → offline reopen; zero cloud requests and no fabricated ACK');
  }catch(error){console.error('FAIL local browser '+phase+': '+error.message);throw Error(phase+': '+error.message);}finally{try{await browser?.close();}finally{networkAvailable=true;await server.close();fs.rmSync(dir,{recursive:true,force:true});}}
 }

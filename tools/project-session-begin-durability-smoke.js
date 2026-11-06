@@ -202,6 +202,59 @@ async function cabinetDeleteBlocked(){
   assert.equal(r.sandbox.uiState.selectedCabinetId, 'cabinet');
 }
 
+async function localCabinetDelete(){
+  const r = runtime();
+  const completions = [];
+  r.FC.applicationWrite = {
+    localOnly:true,
+    projectHandler:fn=>()=>fn(),
+    afterCommit:fn=>completions.push(fn),
+  };
+  assert.equal(await r.FC.cabinetActions.deleteCabinetById('cabinet'), true);
+  assert.equal(r.session.durable, true);
+  assert.equal(r.FC.projectStore.getById('A').projectData.room.cabinets.length, 0);
+  assert.equal(r.ui.frontRemovals, 1);
+  assert.equal(r.ui.refreshes, 0);
+  completions[0]();
+  assert.equal(r.ui.refreshes, 1);
+}
+
+async function localQuoteRooms(){
+  const r = runtime();
+  r.FC.investors = { getCurrentId:()=> 'investor-A' };
+  r.FC.roomRegistry = { getActiveRoomIds:()=> ['room', 'other'] };
+  r.FC.wycenaCore = { normalizeQuoteSelection:selection=> selection };
+  r.FC.applicationWrite = {
+    localOnly:true,
+    projectHandler:fn=>async(...args)=>fn(...args),
+    afterCommit:fn=>fn(),
+  };
+  for(const file of [
+    'js/app/quote/quote-offer-store.js', 'js/app/rozrys/rozrys-pickers.js',
+    'js/app/wycena/wycena-tab-selection-scope.js', 'js/app/wycena/wycena-tab-selection-model.js',
+    'js/app/wycena/wycena-tab-selection-pickers.js',
+  ]) vm.runInContext(fs.readFileSync(path.join(ROOT,file),'utf8'),r.sandbox,{filename:file});
+  const {DRAFT_KEY, getCurrentDraft, patchCurrentDraft} = r.FC.quoteOfferStore;
+  const foreign = {projectId:'B',investorId:'investor-A',selection:{selectedRooms:['foreign']},unknown:'KEEP'};
+  const before = JSON.stringify([foreign,{projectId:'A',investorId:'investor-A',selection:{selectedRooms:['room','other']}}]);
+  r.storage.setItem(DRAFT_KEY,before);
+  r.FC.wycenaTabSelectionPickers.openQuoteRoomsPicker({}, {getOfferDraft:getCurrentDraft,patchOfferDraft:patchCurrentDraft});
+  const checkbox = r.nodes.filter(node=>node.tag==='input')[1];
+  checkbox.checked = false;
+  checkbox.listeners.change();
+  const save = r.nodes.find(node=>node.textContent==='Zatwierdź');
+  r.storage.failures.add('setItem:'+DRAFT_KEY);
+  await save.click();
+  assert.equal(r.ui.closes,0);
+  assert.equal(checkbox.checked,false);
+  assert.equal(r.storage.getItem(DRAFT_KEY),before);
+  r.storage.failures.clear();
+  await save.click();
+  assert.equal(r.ui.closes,1);
+  assert.deepEqual(clone(getCurrentDraft().selection.selectedRooms),['room']);
+  assert.deepEqual(JSON.parse(r.storage.getItem(DRAFT_KEY))[0],foreign);
+}
+
 function partOptionsBlocked(){
   const r = runtime();
   r.storage.setItem(OPTIONS, '{"part":"horizontal"}');
@@ -308,6 +361,8 @@ function restoreAndEndDurability(){
     ['retry persists the original snapshot', retryBegin],
     ['autosave blocked until original snapshot is durable', autosaveBlockedAndRetry],
     ['cabinet delete blocked before any mutation', cabinetDeleteBlocked],
+    ['local cabinet delete confirms save before refreshing', localCabinetDelete],
+    ['local room picker preserves selection and foreign draft on failed save, then retries', localQuoteRooms],
     ['material part options cannot bypass failed begin', partOptionsBlocked],
     ['options modal preserves draft and allows retry', modalKeepsDraftAndRetries],
     ['edge store restores RAM and skips success callbacks on failed begin', edgeStoreBlockedAndRetries],

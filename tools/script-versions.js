@@ -3,6 +3,10 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
+  "js/app/cabinet/cabinet-actions.js":"20261106_local_first_room_actions_v1",
+  "js/app/quote/quote-offer-store.js":"20261106_local_first_room_actions_v1",
+  "js/app/rozrys/rozrys-pickers.js":"20261106_local_first_room_actions_v1",
+  "js/app/wycena/wycena-tab-selection-pickers.js":"20261106_local_first_room_actions_v1",
   "js/app/project/project-store.js":"20261104_investor_scope_v1",
   "js/app/cabinet/cabinet-modal-finalize.js":"20261104_cabinet_transaction_v1",
   "js/app/ui/wywiad-room-settings.js":"20261103_local_first_start_v1",

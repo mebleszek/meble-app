@@ -18,6 +18,7 @@
     if(!cabId){ try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title:'Brak szafki', message:'Wybierz szafkę do usunięcia.' }); }catch(_){} return; }
 
     const cab = (projectData[room] && projectData[room].cabinets || []).find(c => c.id === cabId);
+    const projectId = FC.projectStore?.getCurrentProjectId?.();
     const label = cab ? `${cab.type || 'szafka'} ${cab.subType ? '('+cab.subType+')' : ''} ${cab.width}×${cab.height}×${cab.depth}` : 'szafkę';
     let ok = false;
     try{
@@ -48,16 +49,26 @@
     }
     if(!ok) return;
 
+    const writer = FC.applicationWrite;
+    if(writer?.localOnly){
+      return writer.projectHandler(()=>{
+        if(!cab || !projectId || FC.projectStore.getCurrentProjectId() !== projectId || uiState.roomType !== room
+          || !projectData[room]?.cabinets?.includes(cab)) return false;
+        if(FC.session?.begin() !== true) return false;
+        removeCabinet(room, cabId);
+        const saved = FC.project.saveConfirmed(projectData);
+        if(!saved.ok || FC.storage.setJSON(STORAGE_KEYS.ui, uiState) !== true) return false;
+        projectData = saved.project;
+        writer.afterCommit(refreshCabinets);
+        return true;
+      })();
+    }
+
     try{
       if(!(FC.session && typeof FC.session.begin === 'function' && FC.session.begin() === true)) return;
     }catch(_){ return; }
 
-    if(typeof removeFrontsForCab === 'function') removeFrontsForCab(room, cabId);
-
-    projectData[room].cabinets = (projectData[room].cabinets || []).filter(c => c.id !== cabId);
-
-    if(uiState.selectedCabinetId === cabId) uiState.selectedCabinetId = null;
-
+    removeCabinet(room, cabId);
     try{
       if(FC.project && typeof FC.project.save === 'function') FC.project.save(projectData);
       else if(FC.storage && typeof FC.storage.setJSON === 'function'){
@@ -68,6 +79,17 @@
       }
     }catch(_){ }
     try{ FC.storage && typeof FC.storage.setJSON === 'function' && FC.storage.setJSON(STORAGE_KEYS.ui, uiState); }catch(_){ }
+    refreshCabinets();
+  }
+
+  function removeCabinet(room, cabId){
+    if(typeof removeFrontsForCab === 'function') removeFrontsForCab(room, cabId);
+    projectData[room].cabinets = (projectData[room].cabinets || []).filter(c => c.id !== cabId);
+    if(uiState.selectedCabinetId === cabId) uiState.selectedCabinetId = null;
+  }
+
+  function refreshCabinets(){
+    const FC = window.FC || {};
     try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
     if(typeof renderCabinets === 'function') renderCabinets();
   }

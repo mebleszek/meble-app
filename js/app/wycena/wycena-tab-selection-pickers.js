@@ -36,23 +36,26 @@
     const patchOfferDraft = deps && typeof deps.patchOfferDraft === 'function' ? deps.patchOfferDraft : ()=>{};
     const render = deps && typeof deps.render === 'function' ? deps.render : ()=>{};
     const askConfirm = deps && typeof deps.askConfirm === 'function' ? deps.askConfirm : null;
-    const selection = normalizeDraftSelection(getOfferDraft());
+    const initialDraft = getOfferDraft();
+    const selection = normalizeDraftSelection(initialDraft);
+    const writer = FC.applicationWrite;
+    function saveRooms(rooms){
+      const nextRooms = filterQuoteableRoomIds(rooms);
+      const draft = getOfferDraft();
+      if(!nextRooms.length || (writer?.localOnly && (!initialDraft.projectId
+        || draft.projectId !== initialDraft.projectId || draft.investorId !== initialDraft.investorId))) return false;
+      const nextVersionName = resolveVersionNameAfterRoomChange(selection, nextRooms, draft, deps);
+      const patch = { selection:{ selectedRooms:nextRooms } };
+      if(String(nextVersionName || '').trim()){
+        patch.commercial = Object.assign({}, draft.commercial, { versionName:String(nextVersionName).trim() });
+      }
+      return !!patchOfferDraft(patch);
+    }
     try{
       if(!(FC.rozrysPickers && typeof FC.rozrysPickers.openRoomsPicker === 'function')) return;
       FC.rozrysPickers.openRoomsPicker({
         getSelectedRooms: ()=> selection.selectedRooms,
-        setSelectedRooms: (rooms)=>{
-          const nextRooms = filterQuoteableRoomIds(Array.isArray(rooms) ? rooms.slice() : []);
-          const draft = getOfferDraft();
-          const commercial = draft && draft.commercial || {};
-          const nextVersionName = resolveVersionNameAfterRoomChange(selection, nextRooms, draft, deps);
-          const patch = { selection:{ selectedRooms:nextRooms } };
-          if(String(nextVersionName || '').trim()){
-            patch.commercial = Object.assign({}, commercial, { versionName:String(nextVersionName || '').trim() });
-          }
-          patchOfferDraft(patch);
-          render(ctx);
-        },
+        setSelectedRooms: writer?.localOnly ? writer.projectHandler(saveRooms) : saveRooms,
         getRooms: getActiveRoomIds,
         normalizeRoomSelection: (rooms)=>{
           let normalized = [];
