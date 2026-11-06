@@ -327,6 +327,7 @@
     setValue('laborPricingMode', code);
   }
   function syncLaborPricingModeUi(){
+    const daily=ctx.byId('laborDailyStagesWrap');if(daily)daily.style.display=readString('laborBillingScope')==='day'?'':'none';
     if(ctx.currentListKind && ctx.currentListKind() !== 'quoteRates') return;
     const mode = readString('laborPricingMode') || 'fixed';
     const isFixed = mode === 'fixed';
@@ -498,6 +499,7 @@
     const quantityMode = pricingMode === 'timeTiers' ? 'tiers' : (pricingMode === 'timeStartStep' ? 'startStep' : (pricingMode === 'advanced' ? (readString('laborQuantityMode') || 'none') : (['perUnit','startPlusUnit','time'].includes(pricingMode) ? 'linear' : 'none')));
     return {
       usage:'universal',
+      billingScope:readString('laborBillingScope') || 'standard', dailyStages:readString('laborDailyStages') || 'both',
       pricingMode,
       rateType:rateType || 'workshop',
       rateKey:'',
@@ -562,18 +564,20 @@
       'formSymbol','formName','formPrice','formMaterialPriceUnit','formServiceName','formServicePrice','formHasGrain','formMaterialType','formManufacturer','formCategory',
       'laborPricingMode','laborRateType','laborTimeBlockHours','laborDefaultMultiplier','laborQuantitySource','laborQuantityMode','laborTierText',
       'laborStartPrice','laborIncludedQty','laborStartHours','laborStartQty','laborStepEveryQty','laborStepHours','laborVolumePricePerM3','laborVolumeTimeMode','laborVolumeTimePerM3',
-      'laborVolumeTimeTierText','laborActive','laborInternalOnly'
+      'laborVolumeTimeTierText','laborActive','laborInternalOnly','laborBillingScope','laborDailyStages'
     ].concat((ctx.priceModalHardwareForm && Array.isArray(ctx.priceModalHardwareForm.FIELD_IDS)) ? ctx.priceModalHardwareForm.FIELD_IDS : []).forEach((id)=>{
       const el = ctx.byId(id);
       if(!el) return;
       el.oninput = function(event){
         try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.handleHardwareFieldInput === 'function') ctx.priceModalHardwareForm.handleHardwareFieldInput(event); }catch(_){ }
         if(id === 'laborRateCode' || id === 'formServicePrice') syncLaborRateProfileUi();
+        if(id==='laborBillingScope') syncLaborPricingModeUi();
         updateItemActionState();
       };
       el.onchange = function(event){
         try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.handleHardwareFieldInput === 'function') ctx.priceModalHardwareForm.handleHardwareFieldInput(event); }catch(_){ }
         if(id === 'laborRateCode' || id === 'formServicePrice') syncLaborRateProfileUi();
+        if(id==='laborBillingScope') syncLaborPricingModeUi();
         updateItemActionState();
       };
     });
@@ -603,6 +607,8 @@
     refreshLaborPricingModeSelect(def.pricingMode || 'fixed');
     setValue('laborPricingMode', def.pricingMode || 'fixed');
     refreshLaborRateTypeSelect(def.rateType || def.rateKey || 'workshop');
+    setValue('laborBillingScope', def.billingScope || 'standard');
+    setValue('laborDailyStages', def.dailyStages || 'both');
     setValue('laborUsage', 'universal');
     setValue('laborRateType', def.rateType || def.rateKey || 'workshop');
     setDurationValue('laborTimeBlockHours', def.timeBlockHours);

@@ -261,6 +261,7 @@
       key:opts.key || slug(`${def.id || def.name || 'labor'}_${opts.suffix || ''}`),
       name:text(opts.name || def.name || 'Robocizna'),
       category:text(def.category || ''),
+      laborDefinitionId:text(def.id), billingScope:def.billingScope || 'standard', dailyStages:def.dailyStages || 'both',
       quantity:Math.max(0, num(calc.quantity, 0)),
       unit:text(opts.unit || (def.quantityMode && def.quantityMode !== 'none' ? 'szt.' : 'x')),
       rateType:text(def.rateType || ''),
@@ -547,7 +548,7 @@
       lift,
       orient,
       `Poziomy do naliczenia: ${Number(ev.floorUnits) || 0}`,
-      `Liczba pomocników: ${Number(ev.peopleCount) || 1}`
+      `Liczba osób technicznie potrzebnych: ${Number(ev.peopleCount) || 1}`
     ];
     if(ev.requiresDisassembly){
       const dis = ev.disassembled || {};
@@ -562,7 +563,7 @@
       const hf = ev.highFronts || {};
       lines.push(`Wysokie fronty >${Number(hf.thresholdCm) || 200} cm: ${Number(hf.itemCount) || 0} szt. • windą: ${Number(hf.elevatorItemCount) || 0} szt. • po schodach: ${Number(hf.stairsItemCount) || 0} szt.`);
     }
-    lines.push(ev.formula);
+    lines.push('Czas standardowej ekipy: '+(Number(ev.baseMinutes)||0)+' min × '+(Number(ev.carryingItemCount)||0)+' element(y). Stawka montażowa obejmuje dwie osoby.');
     return lines.filter(Boolean).join(' • ');
   }
   function highFrontGroupNote(ev, group, modeLabel){
@@ -574,7 +575,7 @@
     const lines = [
       `Wysokie fronty powyżej ${Number(hf.thresholdCm) || 200} cm — ${location}: ${rows.length} szt.`,
       `Poziomy do naliczenia: ${floorUnits}`,
-      `Pomocnicy łącznie: ${people}`,
+      `Osoby technicznie potrzebne: ${people}`,
       `${ev.startMinutes || 15} min + ${floorUnits} poziom(y) × ${ev.minutesPerFloorUnit || 5} min = ${Math.round(((ev.startMinutes || 15) + floorUnits * (ev.minutesPerFloorUnit || 5)) * 10) / 10} min na front/pakiet`
     ];
     if(rows.length){
@@ -613,15 +614,15 @@
     }
     groups.forEach((group)=> {
       if(!(group.count > 0 && group.floorUnits > 0)) return;
-      const hourlyRate = Math.max(0, Number(rates && rates[carryingDef.rateType]) || 0);
+      const hourlyRate = Math.max(0, Number(rates && rates.assembly) || 0);
       const startHours = Math.max(0, Number(carryingDef.startHours) || 0.25);
       const stepHours = Math.max(0, Number(carryingDef.stepHours) || 0.0833333333);
       const quantityHours = startHours + (group.floorUnits * stepHours);
-      const multiplier = Math.max(1, Number(group.peopleCount) || group.count || 1);
+      const multiplier = Math.max(1, Number(group.count) || 1); // Crew time, never person-hours.
       const pricedHours = quantityHours * multiplier;
       const total = pricedHours * hourlyRate;
       const calc = {
-        definition:carryingDef,
+        definition:{...carryingDef,rateType:'assembly'},
         quantity:group.floorUnits,
         volumeM3,
         hourlyRate,
@@ -681,16 +682,16 @@
       const itemFact = factFor(entry, 'carrying.stairs_item_count') || {};
       const itemCount = Math.max(0, Number(ev.carryingItemCount) || (ev.requiresDisassembly ? 0 : 1));
       if(itemCount > 0){
-        const hourlyRate = Math.max(0, Number(rates && rates[carryingDef.rateType]) || 0);
+        const hourlyRate = Math.max(0, Number(rates && rates.assembly) || 0);
         const startHours = Math.max(0, Number(carryingDef.startHours) || 0.25);
         const stepHours = Math.max(0, Number(carryingDef.stepHours) || 0.0833333333);
         const quantityHours = startHours + ((Number(ev.floorUnits) || 0) * stepHours);
-        const helperMultiplier = Math.max(1, Number(ev.peopleCount) || 1);
+        const helperMultiplier = 1; // Two-person assembly crew is already included in its hourly rate.
         const multiplier = helperMultiplier * itemCount;
         const pricedHours = quantityHours * multiplier;
         const total = pricedHours * hourlyRate;
         const calc = {
-          definition:carryingDef,
+          definition:{...carryingDef,rateType:'assembly'},
           quantity:Number(ev.floorUnits) || 0,
           volumeM3,
           hourlyRate,
@@ -1048,6 +1049,7 @@
   }
 
   FC.wycenaCoreLabor = {
+    evaluateConditions,
     collectApplianceLabor,
     enumerateSelectedCabinets,
     cabinetVolumeM3,

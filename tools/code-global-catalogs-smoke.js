@@ -14,7 +14,7 @@ const tests=[],test=(name,fn)=>tests.push([name,fn]);
  test('full validateBundle and runtime contracts, exact record IDs, dictionary closure, rates and quantity source references',async()=>{
   assert.doesNotThrow(()=>c.validateBundle(m));assert.equal(first.runtime.status,'VALIDATED');assert.equal(first.runtime.domains,14);assert.equal(first.runtime.hourlyRates,4);
   assert.deepEqual(first.validation.dependencies.map(d=>d.kind),['programDefaults']);
-  assert.equal(m.materials.length,7);assert.equal(m.hardware.length,16);assert.equal(m.labor.length,120);assert.equal(m.categories.length,15);assert.equal(m.technicalParams.length,46);
+  assert.equal(m.materials.length,7);assert.equal(m.hardware.length,16);assert.equal(m.labor.length,121);assert.equal(m.categories.length,15);assert.equal(m.technicalParams.length,46);
   for(const domain of ['materials','hardware','labor','workshopServices'])assert.deepEqual(m[domain].map(r=>r.id),raw[domain].map(r=>r.id));
   const packed=await c.pack('synthetic-owner',m),decoded=await c.unpack('synthetic-owner',packed.directory,packed.records);assert.deepEqual(clone(decoded.model),m);
   const invalid=clone(m);for(const row of invalid.labor.slice(0,2)){row.rateKey='duplicate';row.rateCode='duplicate';}assert.throws(()=>c.validateBundle(invalid),e=>e.code==='GLOBAL_REFERENCE_CONFLICT');

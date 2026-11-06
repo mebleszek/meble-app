@@ -56,7 +56,7 @@ function quoteSetup(r){
  r.FC.wycenaCoreOffer={getOfferDraft:()=>r.draft,collectQuoteRateLines:()=>[],collectCommercialDraft:()=>({versionName:'Test'})};
  r.FC.wycenaCoreLines={collectElementLines:()=>[],collectAccessories:()=>[],collectBuiltInAppliances:()=>[]};r.FC.wycenaCoreLabor={collectCabinetLabor:()=>[]};
  let seq=0;r.FC.utils.uid=()=>`candidate-${++seq}`;
- for(const file of ['js/app/wycena/wycena-core.js','js/app/quote/quote-snapshot.js','js/app/quote/quote-snapshot-scope.js','js/app/quote/quote-snapshot-selection.js','js/app/quote/quote-snapshot-store.js','js/app/wycena/wycena-tab-shell.js'])load(r,file);
+ for(const file of ['js/app/pricing/labor-catalog-definitions.js','js/app/pricing/labor-catalog.js','js/app/pricing/labor-work-plan.js','js/app/wycena/wycena-core.js','js/app/quote/quote-snapshot.js','js/app/quote/quote-snapshot-scope.js','js/app/quote/quote-snapshot-selection.js','js/app/quote/quote-snapshot-store.js','js/app/wycena/wycena-tab-shell.js'])load(r,file);
  r.calculate=selection=>r.FC.wycenaCore.collectQuoteData({...options,selection:selection||r.draft.selection});r.candidate=async()=>r.FC.quoteSnapshot.buildSnapshot(await r.calculate());
  return r;
 }

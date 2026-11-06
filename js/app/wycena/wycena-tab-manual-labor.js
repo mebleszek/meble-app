@@ -59,7 +59,7 @@
     const money = getFn(deps, 'money', (value)=> `${(Number(value)||0).toFixed(2)} PLN`);
     const hideMoney = !!(deps && deps.hideMoney);
     const map = buildSelectionMap(draft, deps);
-    const rows = (Array.isArray(catalog) ? catalog : []).filter((rate)=> parse(map[String(rate && rate.id || '')], 0) > 0);
+    const rows = (Array.isArray(catalog) ? catalog : []).filter((rate)=> parse(map[String(rate && rate.id || '')], 0) > 0 && (!FC.laborWorkPlan || FC.laborWorkPlan.scope(rate)==='standard'));
     const qtyTotal = rows.reduce((sum, rate)=> sum + parse(map[String(rate && rate.id || '')], 0), 0);
     if(!rows.length) return 'Brak ręcznie dodanych czynności. Automatyczne czynności szafek są poniżej.';
     let total = 0;
@@ -83,7 +83,7 @@
     const parse = getFn(deps, 'num', num);
     const render = getFn(deps, 'render', ()=> {});
     if(typeof h !== 'function') return;
-    const selectedRows = (Array.isArray(catalog) ? catalog : []).filter((rate)=> parse(selectionMap[String(rate && rate.id || '')], 0) > 0);
+    const selectedRows = (Array.isArray(catalog) ? catalog : []).filter((rate)=> parse(selectionMap[String(rate && rate.id || '')], 0) > 0 && (!FC.laborWorkPlan || FC.laborWorkPlan.scope(rate)==='standard'));
     if(!selectedRows.length){
       wrap.appendChild(h('div', { class:'muted', text:'Brak ręcznie dodanych czynności. Automatyczne czynności szafek są poniżej.' }));
       return;

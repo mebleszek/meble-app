@@ -550,6 +550,7 @@
     d.renderPreliminaryToggle(card, ctx);
     d.renderQuoteSelectionSection(card, ctx);
     d.renderOfferEditor(card, ctx);
+    FC.wycenaWorkPlanView?.schedule(card, currentQuote);
     d.renderQuotePreview(card, currentQuote, ctx);
     d.renderHistory(card, ctx, currentQuote);
     list.appendChild(card);

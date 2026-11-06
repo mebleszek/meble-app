@@ -245,6 +245,13 @@
   }
   function assignWarnings(out, value){ const warnings = compactWarnings(value); if(warnings.length) out.warnings = warnings; }
 
+  function workPlanMeta(src){
+    const out={};
+    for(const key of ['laborDefinitionId','billingScope','dailyStages','workStage'])if(src[key] && !(key==='billingScope'&&src[key]==='standard'))out[key]=compactText(src[key]);
+    for(const key of ['occurrences','trips','helperHours'])if(Number(src[key])>0)out[key]=Number(src[key]);
+    if(Array.isArray(src.contributingRooms)&&src.contributingRooms.length)out.contributingRooms=src.contributingRooms.map(compactText);
+    return out;
+  }
   function compactQuoteLine(row, opts){
     const src = row && typeof row === 'object' ? row : {};
     const cfg = opts && typeof opts === 'object' ? opts : {};
@@ -279,6 +286,7 @@
     addNumber(out, 'width', src.width);
     addNumber(out, 'height', src.height);
     addText(out, 'materialLabel', src.materialLabel);
+    Object.assign(out,workPlanMeta(src));
     assignWarnings(out, src.warnings);
     return out;
   }
@@ -296,6 +304,7 @@
     addNumber(out, 'width', src.width);
     addNumber(out, 'height', src.height);
     addText(out, 'materialLabel', src.materialLabel);
+    Object.assign(out,workPlanMeta(src));
     assignWarnings(out, src.warnings);
     return out;
   }
@@ -362,6 +371,7 @@
     addText(out, 'calculation', src.calculation || src.calculationNote);
     addBool(out, 'starterPrice', src.starterPrice === true && !compactText(src.priceUserEditedAt || src.userEditedAt));
     addText(out, 'priceUserEditedAt', src.priceUserEditedAt || src.userEditedAt);
+    Object.assign(out,workPlanMeta(src));
     assignWarnings(out, src.warnings);
     const matched = compactConditionList(src.matchedConditions);
     if(matched.length) out.matchedConditions = matched;
@@ -414,6 +424,7 @@
     addText(out, 'calculation', src.calculation || src.calculationNote);
     addBool(out, 'starterPrice', src.starterPrice === true);
     addText(out, 'priceUserEditedAt', src.priceUserEditedAt || src.userEditedAt);
+    Object.assign(out,workPlanMeta(src));
     assignWarnings(out, src.warnings);
     return out;
   }
@@ -505,6 +516,7 @@
       height:roundFingerprintNumber(src.height),
       materialLabel:compactText(src.materialLabel || ''),
     };
+    Object.assign(out,workPlanMeta(src));
     if(src.cabinetNumber != null) out.cabinetNumber = roundFingerprintNumber(src.cabinetNumber);
     if(src.cabinetId != null) out.cabinetId = compactText(src.cabinetId || '');
     if(src.roomId != null) out.roomId = compactText(src.roomId || '');
@@ -540,6 +552,7 @@
     const totals = snap.totals && typeof snap.totals === 'object' ? snap.totals : {};
     const lines = snap.lines && typeof snap.lines === 'object' ? snap.lines : {};
     return {
+      ...(snap.schedule ? {schedule:stableCanonical(snap.schedule)} : {}),
       projectId: compactText(snap.project && snap.project.id || ''),
       investorId: compactText(snap.investor && snap.investor.id || snap.project && snap.project.investorId || ''),
       preliminary: isPreliminarySnapshot(snap),
@@ -625,6 +638,7 @@
     const calculationRegister = compactCalculationRegister(src.calculationRegister || rawLines.calculationRegister, rawLines, commercial);
     const out = {
       version: SNAPSHOT_STORAGE_VERSION,
+      ...(src.schedule ? {schedule:clone(src.schedule)} : {}),
       id: String(src.id || uid()),
       generatedAt: Number(src.generatedAt) > 0 ? Number(src.generatedAt) : Date.now(),
       investor: src.investor ? clone(src.investor) : null,

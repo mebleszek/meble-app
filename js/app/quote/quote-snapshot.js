@@ -67,6 +67,10 @@
       sourceId: String(row.sourceId || '').trim(),
       sourceRole: String(row.sourceRole || '').trim(),
       sourceKind: String(row.sourceKind || '').trim(),
+      billingScope:String(row.billingScope || 'standard'), dailyStages:String(row.dailyStages || 'both'),
+      laborDefinitionId:String(row.laborDefinitionId || ''), occurrences:num(row.occurrences,1),workStage:String(row.workStage || ''),
+      contributingRooms:Array.isArray(row.contributingRooms)?row.contributingRooms.map(String):[],
+      trips:num(row.trips,0),helperHours:num(row.helperHours,0),
       quantitySource: String(row.quantitySource || '').trim(),
       quantitySourceValue: Math.max(0, num(row.quantitySourceValue, 0)),
       quantitySourceDisplay: String(row.quantitySourceDisplay || '').trim(),
@@ -322,6 +326,7 @@
     const snapshot = {
       version: SNAPSHOT_STORAGE_VERSION,
       generatedAt,
+      ...(src.schedule ? {schedule:clone(src.schedule)} : {}),
       generatedDate: (()=>{ try{ return new Date(generatedAt).toISOString(); }catch(_){ return ''; } })(),
       investor: investor ? {
         id: String(investor.id || ''),

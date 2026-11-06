@@ -213,6 +213,8 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/wycena/wycena-core-offer.js',
   'js/app/wycena/wycena-core-lines.js',
   'js/app/wycena/wycena-core-labor.js',
+  'js/app/pricing/labor-work-plan.js',
+  'js/app/wycena/wycena-work-plan-view.js',
   'js/app/wycena/wycena-core.js',
   'js/app/wycena/wycena-context-repair.js',
   'js/app/wycena/wycena-tab-helpers.js',

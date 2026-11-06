@@ -27,7 +27,7 @@ for(const file of ['js/app/quote/quote-snapshot.js','js/app/quote/quote-snapshot
 FC.wycenaCoreOffer={ getOfferDraft:()=>({selection:{selectedRooms:['kuchnia','salon']}}),collectQuoteRateLines:()=>[],collectCommercialDraft:()=>({}) };
 FC.wycenaCoreLines={collectElementLines:()=>[],collectAccessories:()=>[],collectBuiltInAppliances:()=>[]};
 FC.wycenaCoreLabor={collectCabinetLabor:()=>[]};
-load('js/app/wycena/wycena-core.js');
+for(const file of ['js/app/pricing/labor-catalog-definitions.js','js/app/pricing/labor-catalog.js','js/app/pricing/labor-work-plan.js','js/app/wycena/wycena-core.js'])load(file);
 const owner=r.session.projectId,baseline=r.session.snapshot,central=r.storage.getItem('fc_projects_v1');
 (async()=>{
  const results=[];

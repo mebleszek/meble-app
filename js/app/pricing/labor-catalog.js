@@ -446,6 +446,8 @@
       pricingMode,
       startPrice:isHourly ? 0 : Math.max(0, num(src.startPrice != null ? src.startPrice : src.basePrice, 0)),
       includedQty:isHourly ? 0 : Math.max(0, num(src.includedQty != null ? src.includedQty : src.startIncludedQty, 0)),
+      ...(Object.hasOwn(src,'billingScope')?{billingScope:['room','quote','day'].includes(src.billingScope)?src.billingScope:'standard'}:{}),
+      ...(Object.hasOwn(src,'dailyStages')?{dailyStages:['workshop','assembly','both'].includes(src.dailyStages)?src.dailyStages:'both'}:{}),
       usage:normalizeMode(src.usage, USAGE_TYPES, 'universal'),
       rateKey:isHourly ? (rateKey || rateType) : rateKey,
       rateCode:isHourly ? (rateKey || rateType) : rateKey,

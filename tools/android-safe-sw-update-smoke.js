@@ -136,11 +136,14 @@ async function main(){
  // all app tabs. No product code reloads, closes or writes this draft.
  assert.equal(await one.evaluate('window.FC.investorEditorState.hasUiLock()'),true);
  await one.evaluate('window.FC.investorEditorState.exit(window.FC.investors.readAll()[0]);window.FC.views.openInvestorsList();true');
+ const trustBeforeClose=await one.evaluate('('+require('./helpers/trusted-cold-start').inspectTrustStorage.toString()+')()');
+ assert.equal(trustBeforeClose.fence,'active','Old synthetic trusted profile must still have its fence before orderly close');
+ assert.equal(trustBeforeClose.fenceMatches,true,'Signed trust must match its fence before closing the old document');
  await one.close();one=null;await new Promise(r=>server.close(r));stopped=true;
  one=await browser(profile,base+'/index.html',{offline:true});try{await one.until('document.body.dataset.businessState==="ready"');}catch(error){console.log('DIAG cold trust '+JSON.stringify(await one.evaluate('('+require('./helpers/trusted-cold-start').inspectTrustStorage.toString()+')()')));throw error;}
  await one.evaluate('window.FC.views.openInvestorsList();true');assert.equal(await one.evaluate('!!document.querySelector("[data-action=remove-investor-from-list]")'),true);
  const missing=codeCandidate.model.labor.filter(row=>!JSON.parse(Object.fromEntries(JSON.parse(before)).fc_quote_rates_v1).some(old=>old.id===row.id));
- assert.equal(missing.length,63,'This approved release adds exactly63 factory norms');
+ assert.equal(missing.length,64,'This approved release adds exactly64 factory norms including the daily break');
  // This fixture deliberately exercises the legacy validator (LOCAL-FIRST
  // deployment is isolated by trusted-session-browser). Its persisted service
  // compatibility alias has four fields; the canonical catalog and its cache

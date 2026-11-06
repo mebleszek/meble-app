@@ -202,6 +202,7 @@
   pdf('lift_pack','Zdjęcie, pakowanie i odłożenie frontu HK-S / HK top','labor.lift.fronts',5,'workshop');
   pdfStart('lift_rehang','Rozpakowanie i założenie frontu HK-S / HK top u klienta','labor.lift.mechanisms',1,1,'assembly');
   LABOR_REPLACEMENTS.labor_mount_lift=['pdf_lift_hkxs_mount','pdf_lift_hk_prepare','pdf_lift_hk_mount'];
+  DEFAULT_LABOR_DEFINITIONS.push({id:'labor_daily_break',category:'Organizacja pracy',name:'Przerwa',price:0,usage:'universal',rateType:'workshop',billingScope:'day',dailyStages:'both',quantitySource:'',pricingMode:'time',quantityMode:'linear',timeBlockHours:0.5,active:true,internalOnly:true,starterPrice:true,note:'30 minut raz na dzień pracy, także montażowy, według aktualnej stawki warsztatowej. Czas wchodzi do dostępności dnia przez zwykłą regułę codzienną.'});
   const PDF_QUANTITY_SOURCES = [...new Map(DEFAULT_LABOR_DEFINITIONS.filter(row=>String(row.quantitySource || '').startsWith('labor.')).map(row=>[row.quantitySource,{code:row.quantitySource,label:row.name+' — ilość techniczna',unit:'szt.',group:'Normy robocizny',status:'system',calculation:'Odczyt wymagań technicznych szafki; bez zapisywania drugiego licznika.'}])).values()];
 
   window.FC.laborCatalogDefinitions = {
