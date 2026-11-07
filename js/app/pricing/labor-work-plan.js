@@ -114,7 +114,7 @@
     const perDay=kind=>daily.filter(r=>applicable(r,kind)).reduce((s,r)=>s+n(r.hours)*60,0);
     const schedule={version:2,status:'READY',services,order:['workshop','assembly'],dayMinutes:480,helperHours:n(helperHours),rates:clone(rates),dailyRules:daily.map(r=>({id:r.id,dailyStages:r.dailyStages,quantity:r.quantity,minutes:r.hours*60,cost:r.total,hourlyRate:r.hourlyRate,rateType:r.rateType,quantitySource:r.quantitySource,contributingRooms:r.contributingRooms})),warnings:[]};
     schedule.workshop=solve(minutes('workshop'),perDay('workshop'),0);
-    const travel=transport?.transport,known=travel&&travel.durationMin!==''&&travel.durationMin!=null&&!transport.isStale;
+    const travel=transport?.transport,known=travel&&(transport.durationKnown ?? (travel.durationMin!==''&&travel.durationMin!=null))&&!transport.isStale;
     const travelMinutes=known?2*n(transport.durationMin):0;
     if(minutes('assembly')>0&&!known){schedule.status='BLOCKED';schedule.warnings.push('SCHEDULE_ROUTE_REQUIRED');schedule.assembly=null;}
     else schedule.assembly=solve(minutes('assembly'),perDay('assembly'),travelMinutes);

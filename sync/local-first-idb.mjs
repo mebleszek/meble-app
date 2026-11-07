@@ -68,6 +68,21 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
     application=await prepareApplication(application);
     return transaction('readwrite',(s,done,abort)=>applicationChange(s,application,()=>done(true),abort));
   }
+  async function checkpointDeletion({application,before,scopes,investorIds,assertAccess}){
+    application=await prepareApplication(application);
+    const beforeHash=await digest(json(before)),encoded=json({version:1,kind:'local-investor-deletion',before,after:application.rows}),hash=await digest(encoded),key='deletion-'+crypto.randomUUID();
+    return transaction('readwrite',(s,done,abort)=>{
+      const a=s.control.get('application'),r=s.replicas.getAll(),q=s.outbox.getAll();let pending=3;
+      const finish=()=>{if(--pending)return;try{
+        assertAccess();
+        if(a.result?.hash!==beforeHash||!equal(a.result?.rows,before)||a.result?.version!==application.expectedVersion)fail('DELETE_SOURCE_CHANGED');
+        const belongs=row=>{if(scopes.includes(row.scope||row.key))return true;const value=JSON.parse(row.json),payload=value?.document?.payload;return investorIds.includes(payload?.investor?.id)||investorIds.includes(payload?.project?.investorId);};
+        if(r.result.some(belongs)||q.result.some(belongs))fail('DELETE_SYNCED_PROJECT_PROTECTED');
+        applicationChange(s,application,()=>{assertAccess();s.protected.add({key,scope:'investor-deletions',json:encoded,hash});done(true);},abort);
+      }catch(e){abort(e);}};
+      a.onsuccess=r.onsuccess=q.onsuccess=finish;
+    });
+  }
   async function initializeApplication(rows){
     let preserved=null;if(migration||!/^meble-lf-test-/.test(name))preserved=await assertApplicationMigration(migration,{name,ownerUid,rows});
     rows=copy(rows);const hash=await digest(json(rows));
@@ -168,7 +183,7 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       } catch(e) { abort(e); } }; q.onsuccess = ops.onsuccess = finish;
     });
   }
-  return Object.freeze({ownerUid, deviceId, instanceId, name, snapshot, readApplication,readPreservedSource, initializeApplication, checkpointApplication, commit, transition, apply, setEditor,
+  return Object.freeze({ownerUid, deviceId, instanceId, name, snapshot, readApplication,readPreservedSource, initializeApplication, checkpointApplication, checkpointDeletion, commit, transition, apply, setEditor,
     exclusive: callback => locks.request(name + ':' + instanceId, {mode: 'exclusive'}, () => {if(closed)fail('LF_STORE_CLOSED');return callback();}),
     close() { closed = true; }});
 }

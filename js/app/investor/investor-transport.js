@@ -27,8 +27,8 @@
     return formatKm(n / 1000);
   }
   function formatMin(value){
-    const n = Math.round(num(value, 0));
-    return n > 0 ? n + ' min' : '—';
+    const n = num(value, 0);
+    return n > 0 ? n.toLocaleString('pl-PL', { maximumFractionDigits:3 }) + ' min' : '—';
   }
   function normalizeGeocode(input){
     const src = input && typeof input === 'object' ? input : {};
@@ -112,21 +112,14 @@
     const oneWay = Math.max(0, num(distanceKm, 0));
     const isRoundTrip = text(transport.billingMode || 'round_trip') !== 'one_way';
     const multiplier = isRoundTrip ? 2 : 1;
-    const multiplied = Math.round(oneWay * multiplier * 100) / 100;
     const step = Math.max(0, num(transport.roundingKm, 0));
-    const rounded = step > 0 ? Math.ceil((multiplied - 1e-9) / step) * step : multiplied;
     const minimum = Math.max(0, num(transport.minimumBillableKm, 0));
-    const finalKm = minimum > 0 ? Math.max(rounded, minimum) : rounded;
-    const rounded2 = Math.round(rounded * 100) / 100;
-    const final2 = Math.round(finalKm * 100) / 100;
-    const pieces = [];
-    if(oneWay > 0){
-      pieces.push(`${formatKm(oneWay)}${isRoundTrip ? ' × 2' : ''} = ${formatKm(multiplied)}`);
-      if(step > 0 && Math.abs(rounded2 - multiplied) > 1e-9) pieces.push(`zaokrąglenie do ${formatKm(step)} → ${formatKm(rounded2)}`);
-      else if(step > 0) pieces.push(`zaokrąglenie do ${formatKm(step)} bez zmiany`);
-      if(minimum > 0 && final2 > rounded2) pieces.push(`minimum ${formatKm(minimum)} podniosło wynik → ${formatKm(final2)}`);
-      else if(minimum > 0) pieces.push(`minimum ${formatKm(minimum)} nie zadziałało`);
-    }
+    const rounded = step > 0 ? Math.ceil((Math.max(oneWay, minimum) - 1e-9) / step) * step : Math.max(oneWay, minimum);
+    const multiplied = oneWay * multiplier;
+    const rounded2 = rounded;
+    const final2 = billableKm(oneWay);
+    const pieces = oneWay > 0 ? [`${formatKm(oneWay)} w jedną stronę → minimum ${formatKm(minimum)}, zaokrąglenie ${formatKm(step)} → ${formatKm(rounded)} × ${multiplier} = ${formatKm(final2)}`] : [];
+
     return {
       oneWayKm:oneWay,
       multiplier,
@@ -137,6 +130,12 @@
       finalKm:final2,
       label:pieces.join(' • ')
     };
+  }
+  function travelTiming(transport){
+    const rawMinutes = transport.routeDurationSeconds !== '' ? num(transport.routeDurationSeconds, 0) / 60 : num(transport.durationMin, 0);
+    const durationKnown = transport.routeDurationSeconds !== '' || transport.durationMin !== '';
+    const durationMin = durationKnown ? (FC.companyProfile?.billableTravelMin?.(rawMinutes, companyProfile()) ?? Math.ceil(rawMinutes)) : 0;
+    return {rawMinutes, durationKnown, durationMin};
   }
   function dateLabel(value){
     if(!value) return '—';
@@ -188,27 +187,30 @@
     try{ console.info(title + ': ' + message); }catch(_){ }
     return null;
   }
-  function saveTransport(investor, transport){
+  async function saveTransport(investor, transport, assertCurrent = ()=>{}){
     const patch = { transport:normalizeTransport(transport) };
-    try{
-      if(FC.investorPersistence && typeof FC.investorPersistence.saveInvestorPatch === 'function') return FC.investorPersistence.saveInvestorPatch(investor.id, patch);
-    }catch(_){ }
-    return false;
-  }
-  function updateTransportError(investor, status, message){
-    const prev = normalizeTransport(investor && investor.transport);
-    const next = normalizeTransport(Object.assign({}, prev, { status:text(status || 'error') || 'error', lastError:text(message) }));
-    saveTransport(investor, next);
-    return next;
+    const save = ()=>{
+      assertCurrent();
+      const result = FC.investorPersistence?.saveInvestorPatch?.(investor.id, patch);
+      if(!result) throw Error('TRANSPORT_SAVE_UNCONFIRMED');
+      const saved = FC.investorPersistence?.getInvestorById?.(investor.id);
+      if(!saved || JSON.stringify(normalizeTransport(saved.transport)) !== JSON.stringify(patch.transport)) throw Error('TRANSPORT_SAVE_UNCONFIRMED');
+      return true;
+    };
+    if(FC.applicationWrite) await FC.applicationWrite.project(save);
+    else save();
+    return true;
   }
 
   function renderPanel(inv, draft, isEditing){
     const source = isEditing ? (draft || {}) : (inv || {});
     const t = normalizeTransport((isEditing ? source.transport : (inv && inv.transport)) || {});
     const company = companyProfile();
-    const distance = num(t.distanceKm, 0);
+    const distance = t.routeDistanceMeters !== '' ? num(t.routeDistanceMeters, 0) / 1000 : num(t.distanceKm, 0);
+    const distanceKnown = t.routeDistanceMeters !== '' || t.distanceKm !== '';
+    const timing = travelTiming(t);
     const breakdown = billableBreakdown(distance);
-    const billable = distance > 0 ? breakdown.finalKm : 0;
+    const billable = distanceKnown ? breakdown.finalKm : 0;
     const companyAddr = companyAddress();
     const clientAddr = investorAddress(source);
     const stale = isStale(t, companyAddr, clientAddr);
@@ -235,7 +237,7 @@
           <div class="investor-transport-grid">
             <div><span>Trasa z ORS w jedną stronę</span><strong>${esc(formatKm(distance))}</strong><small>${rawDistance > 0 ? esc(formatMeters(rawDistance)) + ' surowo z API' : 'bez minimum cennika'}</small></div>
             <div><span>Kilometry do wyceny</span><strong>${esc(formatKm(billable))}</strong><small>${esc(modeLabel)}</small></div>
-            <div><span>Czas dojazdu</span><strong>${esc(formatMin(t.durationMin))}</strong></div>
+            <div><span>Czas dojazdu w jedną stronę do wyceny</span><strong>${esc(formatMin(timing.durationMin))}</strong>${t.routeDurationSeconds !== '' ? `<small>${esc(t.routeDurationSeconds)} s surowo z API</small>` : ''}</div>
             <div><span>Źródło</span><strong>${esc(t.source || 'ręcznie')}</strong><small>${esc(t.provider || '')}</small></div>
             <div><span>Status</span><strong>${esc(status)}</strong><small>${esc(t.routeProfile || '')}</small></div>
           </div>
@@ -321,11 +323,18 @@
         }
         const validation = typeof service.validateRouteInput === 'function' ? service.validateRouteInput({ apiKey, origin, destination }) : { ok:true };
         if(!validation.ok){
-          updateTransportError(investor, validation.status, validation.message);
           showInfo('Nie udało się przeliczyć trasy', validation.message);
           if(typeof ctx.render === 'function') ctx.render();
           return;
         }
+        const projectId = root.localStorage?.getItem('fc_current_project_id_v1');
+        const sessionRaw = root.localStorage?.getItem('fc_edit_session_v1');
+        const writeBoundary = FC.applicationWrite;
+        const assertCurrent = ()=>{
+          root.__FC_MAIN_ACCESS__?.assert();
+          const current = ctx.getCurrentInvestor?.();
+          if(FC.applicationWrite !== writeBoundary || companyProfile()?.transport?.profile !== profile?.transport?.profile || FC.session?.active || FC.session?.snapshot || FC.session?.durable || root.localStorage?.getItem('fc_edit_session_v1') !== sessionRaw || !current || current.id !== investor.id || investorAddress(current) !== destination || companyAddress() !== origin || root.localStorage?.getItem('fc_current_project_id_v1') !== projectId || editorApi?.state?.isEditing) throw Error('TRANSPORT_CONTEXT_CHANGED');
+        };
         const oldText = btn.textContent;
         btn.disabled = true;
         btn.textContent = 'Liczenie...';
@@ -339,16 +348,15 @@
           const next = normalizeTransport(Object.assign({}, investor.transport || {}, clone(result), {
             distanceKm:String(result.distanceKm),
             durationMin:String(result.durationMin),
-            routeDistanceMeters:String(result.routeDistanceMeters || ''),
-            routeDurationSeconds:String(result.routeDurationSeconds || '')
+            routeDistanceMeters:String(result.routeDistanceMeters ?? ''),
+            routeDurationSeconds:String(result.routeDurationSeconds ?? '')
           }));
-          saveTransport(investor, next);
+          await saveTransport(investor, next, assertCurrent);
           const saved = geocodeLabel(next.destinationGeocode).title;
-          showInfo('Trasa przeliczona', 'Zapisano ' + formatKm(result.distanceKm) + ' w jedną stronę. Do wyceny trafi ' + formatKm(billableKm(result.distanceKm)) + '. ORS rozpoznał cel jako: ' + saved + '.');
+          showInfo('Trasa przeliczona', 'Zapisano ' + formatKm(result.distanceKm) + ' w jedną stronę. Do wyceny trafi ' + formatKm(billableKm(next.routeDistanceMeters !== '' ? num(next.routeDistanceMeters, 0) / 1000 : next.distanceKm)) + '. ORS rozpoznał cel jako: ' + saved + '.');
           if(typeof ctx.render === 'function') ctx.render();
         }catch(err){
-          const message = text(err && err.message || err) || 'Nieznany błąd OpenRouteService.';
-          updateTransportError(investor, text(err && err.status) || 'error', message);
+          const message = err?.status ? text(err.message) : 'Nie potwierdzono zapisu trasy. Zachowano poprzedni wynik. Sprawdź bieżącego inwestora i ponów przeliczenie.';
           showInfo('Nie udało się przeliczyć trasy', message);
           if(typeof ctx.render === 'function') ctx.render();
         }finally{
@@ -369,10 +377,10 @@
       }catch(_){ }
     }
     const t = normalizeTransport(investor && investor.transport);
-    const oneWay = num(t.distanceKm, 0);
+    const oneWay = t.routeDistanceMeters !== '' ? num(t.routeDistanceMeters, 0) / 1000 : num(t.distanceKm, 0);
     const breakdown = billableBreakdown(oneWay);
-    const billable = oneWay > 0 ? breakdown.finalKm : 0;
-    const durationMin = Math.max(0, Math.round(num(t.durationMin, 0)));
+    const billable = t.routeDistanceMeters !== '' || t.distanceKm !== '' ? breakdown.finalKm : 0;
+    const {rawMinutes, durationKnown, durationMin} = travelTiming(t);
     const durationHours = durationMin > 0 ? durationMin / 60 : 0;
     const companyAddr = companyAddress();
     const clientAddr = investorAddress(investor || {});
@@ -383,6 +391,9 @@
       billableKm:billable,
       billableBreakdown:breakdown,
       durationMin,
+      durationKnown,
+      rawDurationMin:rawMinutes,
+      fuelPricePerKm:FC.companyProfile?.fuelPricePerKm?.(companyProfile()),
       durationHours,
       durationDisplay:formatMin(durationMin),
       isStale:isStale(t, companyAddr, clientAddr),

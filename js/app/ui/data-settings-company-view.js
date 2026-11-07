@@ -116,8 +116,18 @@
       { value:'driving-car', label:'Samochód osobowy / dostawczy lekki' },
       { value:'driving-hgv', label:'Ciężarowy / większy transport' }
     ], draft.transport.profile, (val)=>{ draft.transport.profile = val; refreshSummary(); }));
-    transportGrid.appendChild(makeInputField('Zaokrąglaj km do', draft.transport.roundingKm, (val)=>{ draft.transport.roundingKm = val; refreshSummary(); }, { inputmode:'decimal', hint:'0 = bez zaokrąglania, 1 = do pełnego kilometra.' }));
-    transportGrid.appendChild(makeInputField('Minimalna liczba km do wyceny', draft.transport.minimumBillableKm, (val)=>{ draft.transport.minimumBillableKm = val; refreshSummary(); }, { inputmode:'decimal' }));
+    transportGrid.appendChild(makeInputField('Zaokrąglaj km w jedną stronę do', draft.transport.roundingKm, (val)=>{ draft.transport.roundingKm = val; refreshSummary(); }, { inputmode:'decimal', hint:'0 = bez zaokrąglania, 1 = do pełnego kilometra.' }));
+    transportGrid.appendChild(makeInputField('Minimalna liczba km w jedną stronę', draft.transport.minimumBillableKm, (val)=>{ draft.transport.minimumBillableKm = val; refreshSummary(); }, { inputmode:'decimal' }));
+    const priceSummary = h('div', { class:'data-settings-defaults-summary muted' });
+    const refreshPrice = ()=>{ priceSummary.textContent = 'Koszt 1 km: ' + FC.companyProfile.fuelPricePerKm(draft).toLocaleString('pl-PL', {minimumFractionDigits:2, maximumFractionDigits:4}) + ' zł/km (paliwo × mnożnik, łącznie z amortyzacją). Dla nieedytowanej pozycji startowej; ręczna stawka cennika ma pierwszeństwo.'; };
+    for(const [key,label] of [
+      ['minimumTravelMin','Minimalny czas w jedną stronę (min)'],
+      ['roundingTravelMin','Zaokrąglaj czas w górę do (min)'],
+      ['fuelLitersPer100Km','Zużycie paliwa (l/100 km)'],
+      ['fuelPricePerLiter','Cena paliwa (zł/l)'],
+      ['vehicleCostMultiplier','Mnożnik kosztu paliwa i amortyzacji']
+    ]) transportGrid.appendChild(makeInputField(label, draft.transport[key], val=>{ draft.transport[key]=val; refreshPrice(); refreshSummary(); }, {inputmode:'decimal'}));
+    refreshPrice(); transportGrid.appendChild(priceSummary);
     transportGrid.appendChild(makeInputField('Klucz API OpenRouteService', draft.transport.apiKey, (val)=>{ draft.transport.apiKey = text(val); refreshSummary(); }, { type:'password', autocomplete:'off', hint:'Własny darmowy klucz użytkownika OpenRouteService. Darmowy plan ma limity zapytań; bez klucza zostaje ręczne wpisywanie km i przycisk otwierania map.' }));
     transportGrid.appendChild(makeInputField('Atrybucja map', draft.transport.attribution, (val)=>{ draft.transport.attribution = text(val); refreshSummary(); }, { multiline:true }));
 
@@ -132,7 +142,7 @@
     cancelBtn.addEventListener('click', ()=> render(scroll));
     saveBtn.addEventListener('click', (FC.applicationWrite?.handler||((fn)=>fn))(()=>{
       const saved = FC.companyProfile.write(draft);
-      if(!saved){ if(dom.info) dom.info('Nie zapisano danych', 'Zmiany pozostały w formularzu. Spróbuj ponownie.'); return; }
+      if(!saved){ if(dom.info) dom.info('Nie zapisano danych', 'Zmiany pozostały w formularzu. Spróbuj ponownie.'); return false; }
       draft = saved;
       refreshSummary();
       if(dom.info) dom.info('Zapisano', 'Dane firmy i ustawienia transportu zostały zapisane.');
