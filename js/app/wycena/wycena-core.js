@@ -12,6 +12,7 @@
       offer: FC.wycenaCoreOffer,
       lines: FC.wycenaCoreLines,
       labor: FC.wycenaCoreLabor,
+      workPlan: FC.laborWorkPlan,
     };
   }
 
@@ -24,6 +25,7 @@
     if(!deps.offer) out.push('FC.wycenaCoreOffer');
     if(!deps.lines) out.push('FC.wycenaCoreLines');
     if(!deps.labor) out.push('FC.wycenaCoreLabor');
+    if(!deps.workPlan) out.push('FC.laborWorkPlan');
     return out;
   }
 
@@ -147,6 +149,9 @@
     const carryingLines = deps.labor && typeof deps.labor.collectCarryingLines === 'function' ? deps.labor.collectCarryingLines(selectedRooms) : [];
     perf.timingsMs.labor = roundMs(perfNow() - sectionStart);
 
+    const workPlan = deps.workPlan.build({selectedRooms,
+      collections:{labor:laborLines,project:projectLines,carrying:carryingLines,agdServices:agdLines,quoteRates:quoteRateLines},
+      catalog:FC.catalogSelectors?.getQuoteRates?.() || [],transport:FC.investorTransport?.getCurrentTransportContext?.(),helperHours:draft.helperHours});
     const commercial = deps.offer.collectCommercialDraft(draft);
     const calculationRegister = FC.quoteCalculationRegister && typeof FC.quoteCalculationRegister.buildRegister === 'function'
       ? FC.quoteCalculationRegister.buildRegister({
@@ -206,6 +211,7 @@
       calculationRegister,
       totals,
       diagnostics:{ performance:perf, cabinetFacts:cabinetFactsSummary },
+      schedule:workPlan.schedule,
       generatedAt: Date.now(),
     };
     deps.selectionApi.validateQuoteContent(result);

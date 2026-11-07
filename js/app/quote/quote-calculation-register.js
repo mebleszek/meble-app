@@ -157,6 +157,8 @@
       fixedPrice:num(src.fixedPrice != null ? src.fixedPrice : fb.fixedPrice),
       sourceRole:text(src.sourceRole || fb.sourceRole || ''),
       sourceKind:text(src.sourceKind || fb.sourceKind || ''),
+      ...(src.billingScope && src.billingScope!=='standard'?{laborDefinitionId:text(src.laborDefinitionId),billingScope:text(src.billingScope),dailyStages:text(src.dailyStages),workStage:text(src.workStage),occurrences:num(src.occurrences||1),contributingRooms:cloneList(src.contributingRooms)}:{}),
+      ...(num(src.trips)>0?{trips:num(src.trips)}:{}),...(num(src.helperHours)>0?{helperHours:num(src.helperHours)}:{}),
       name:text(src.name || fb.name || 'Pozycja'),
       quantity,
       unit:text(src.unit || fb.unit || ''),

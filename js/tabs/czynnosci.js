@@ -71,6 +71,7 @@
         ? FC.wycenaCoreLabor.collectCabinetLabor([roomId])
         : [];
     }catch(_){ laborLines = []; }
+    if(FC.laborWorkPlan)for(const row of laborLines){row.details=row.details.filter(p=>FC.laborWorkPlan.scope(p)==='standard');row.total=row.details.reduce((s,p)=>s+(Number(p.total)||0),0);row.hours=row.details.reduce((s,p)=>s+(Number(p.hours)||0),0);}
     const laborByIndex = new Map();
     (Array.isArray(laborLines) ? laborLines : []).forEach((row)=> laborByIndex.set(Number(row && row.cabinetNumber) || 0, row));
     const cabinets = getCabinets(roomId);
@@ -140,7 +141,7 @@
     const out = [];
     (Array.isArray(lines) ? lines : []).forEach((line)=> {
       const details = Array.isArray(line && line.details) ? line.details : [];
-      details.forEach((part)=> {
+      details.filter(part=>!FC.laborWorkPlan || FC.laborWorkPlan.scope(part)==='standard').forEach((part)=> {
         const sourceLabel = String(part && part.sourceLabel || line && line.name || '').trim();
         const note = [
           String(part && part.note || '').trim(),
@@ -169,7 +170,7 @@
       if(FC.wycenaCoreOffer && typeof FC.wycenaCoreOffer.collectQuoteRateLines === 'function') rows = FC.wycenaCoreOffer.collectQuoteRateLines() || [];
       else if(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteRateLines === 'function') rows = FC.wycenaCore.collectQuoteRateLines() || [];
     }catch(_){ rows = []; }
-    rows = (Array.isArray(rows) ? rows : []).concat(buildProjectPreparationActionRows(roomId));
+    rows = (Array.isArray(rows) ? rows : []).filter(r=>!FC.laborWorkPlan || FC.laborWorkPlan.scope(r)==='standard').concat(buildProjectPreparationActionRows(roomId));
     return rows.filter(isOtherActionLine).map((row)=> {
       const hours = Math.max(0, Number(row && row.hours) || Number(row && row.baseHours) || 0);
       return Object.assign({}, row, { hours, baseHours:Math.max(0, Number(row && row.baseHours) || hours) });
@@ -513,6 +514,7 @@
     list.appendChild(intro);
 
     renderManualLabor(list, ctx || {});
+    FC.wycenaWorkPlanView?.activities(list, roomId);
     renderOtherActions(list, roomId);
     if(roomId) renderCabinetLabor(list, roomId);
     else list.appendChild(h('div', { class:'card quote-section', style:'margin-top:12px;padding:14px;', text:'Wybierz pomieszczenie, żeby zobaczyć czynności szafek.' }));

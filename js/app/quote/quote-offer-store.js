@@ -131,6 +131,7 @@
     const out = {
       projectId: resolved.projectId,
       investorId: resolved.investorId,
+      helperHours: Math.max(0,num(src.helperHours,0)),
       rateSelections: normalizeRateSelections(src.rateSelections),
       selection,
       commercial: normalizeCommercial(src.commercial, { selection }),
@@ -209,12 +210,12 @@
       if(previous) list[idx] = Object.assign({}, previous, normalized);
       else list.unshift(normalized);
       if(storage.setJSON(DRAFT_KEY, list) !== true) return null;
-      if(previous && JSON.stringify(previous.selection) !== JSON.stringify(normalized.selection)){
+      if((previous && JSON.stringify(previous.selection) !== JSON.stringify(normalized.selection)) || num(previous?.helperHours,0) !== normalized.helperHours){
         FC.applicationWrite.afterCommit(()=> FC.sessionNavigation?.invalidateCalculationContext?.());
       }
       return normalized;
     }
-    if(FC.sessionNavigation && typeof FC.sessionNavigation.invalidateCalculationContext==='function' && idx>=0 && JSON.stringify(list[idx].selection)!==JSON.stringify(normalized.selection))FC.sessionNavigation.invalidateCalculationContext();
+    if(FC.sessionNavigation && typeof FC.sessionNavigation.invalidateCalculationContext==='function' && ((idx>=0 && JSON.stringify(list[idx].selection)!==JSON.stringify(normalized.selection))||num(list[idx]?.helperHours,0)!==normalized.helperHours))FC.sessionNavigation.invalidateCalculationContext();
     if(idx >= 0) list[idx] = normalized;
     else list.unshift(normalized);
     if(writeAll(list.slice(0, 50)) === null) return null;
@@ -224,6 +225,7 @@
   function patchDraft(patch, scope){
     const current = getDraft(scope);
     const next = normalizeDraft({
+      helperHours: patch && patch.helperHours != null ? patch.helperHours : current.helperHours,
       projectId: current.projectId,
       investorId: current.investorId,
       rateSelections: Array.isArray(patch && patch.rateSelections) ? patch.rateSelections : current.rateSelections,

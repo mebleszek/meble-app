@@ -152,6 +152,7 @@
     return withCalculation({
       key: utils.slug(def && def.name || def && def.id || 'transport'),
       type:'quote-rate',
+      laborDefinitionId:String(def.id), billingScope:def.billingScope || 'standard', dailyStages:def.dailyStages || 'both',
       category:String(def.category || 'Transport'),
       name:String(def.name || 'Transport do klienta'),
       qty,
@@ -195,6 +196,7 @@
     return withCalculation({
       key:'transport_travel_time',
       type:'quote-rate',
+      laborDefinitionId:String(def.id), billingScope:def.billingScope || 'standard', dailyStages:def.dailyStages || 'both',
       category:String(def.category || 'Transport'),
       name:String(def.name || 'Czas dojazdu'),
       qty:durationHours,
@@ -243,6 +245,8 @@
         key: utils.slug(def && def.name || def && def.id || ''),
         type:'quote-rate',
         category: String(def && def.category || ''),
+        laborDefinitionId:String(def.id), billingScope:def.billingScope || 'standard', dailyStages:def.dailyStages || 'both',
+        rateType:String(def.rateType || ''), hourlyRate:Number(priced.audit && priced.audit.hourlyRate) || 0,
         name: String(def && def.name || 'Czynność'),
         qty,
         unit:String(def && def.id || '') === 'transport_distance_km' ? 'km' : 'x',
