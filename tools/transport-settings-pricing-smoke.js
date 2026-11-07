@@ -1,0 +1,36 @@
+'use strict';
+const assert=require('node:assert/strict'),{fixture}=require('./wycena-labor-norms-smoke'),{buildCodeCatalogs}=require('./helpers/code-global-catalogs');
+const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`),clone=v=>JSON.parse(JSON.stringify(v));
+const r=fixture();r.load('js/app/settings/company-profile-store.js');r.load('js/app/investor/investor-transport.js');r.load('js/app/wycena/wycena-core-offer.js');r.load('js/app/pricing/labor-work-plan.js');
+const profile=r.FC.companyProfile.normalizeProfile({company:{displayName:'Synthetic'},transport:{}});r.FC.companyProfile.read=()=>clone(profile);
+assert.deepEqual([profile.transport.minimumTravelMin,profile.transport.minimumBillableKm,profile.transport.roundingTravelMin,profile.transport.fuelLitersPer100Km,profile.transport.fuelPricePerLiter,profile.transport.vehicleCostMultiplier],[5,2,1,10,7,2]);
+near(r.FC.companyProfile.fuelPricePerKm(profile),1.4);
+assert.equal(r.FC.companyProfile.billableDistanceKm(.3,profile),4);assert.equal(r.FC.companyProfile.billableTravelMin(20/60,profile),5);
+assert.equal(r.FC.companyProfile.billableTravelMin(5.001,profile),6);assert.equal(r.FC.companyProfile.billableTravelMin(5,profile),5);
+profile.transport.roundingTravelMin=5;assert.equal(r.FC.companyProfile.billableTravelMin(5.001,profile),10);profile.transport.roundingTravelMin=1;
+profile.transport.minimumBillableKm=2.5;assert.equal(r.FC.companyProfile.billableDistanceKm(.3,profile),6);profile.transport.minimumBillableKm=2;
+profile.transport.billingMode='one_way';assert.equal(r.FC.companyProfile.billableDistanceKm(.3,profile),2);profile.transport.billingMode='round_trip';
+const saved={transport:{minimumBillableKm:0,roundingKm:0,minimumTravelMin:0,roundingTravelMin:0,fuelPricePerLiter:8.125,fuelLitersPer100Km:12.125,vehicleCostMultiplier:1.625}};const exact=JSON.stringify(saved),normalized=r.FC.companyProfile.normalizeProfile(saved);near(r.FC.companyProfile.fuelPricePerKm(normalized),12.125/100*8.125*1.625);assert.equal(r.FC.companyProfile.billableDistanceKm(.375,normalized),.75);assert.equal(r.FC.companyProfile.billableTravelMin(.125,normalized),.125);assert.equal(JSON.stringify(saved),exact);
+console.log('PASS defaults, one-way min/ceiling BEFORE return, editable zero/steps, decimal precision; reading never changes saved settings');
+let investor={id:'synthetic',transport:{distanceKm:'0.3',durationMin:'0',routeDistanceMeters:'300',routeDurationSeconds:'20'}};
+r.FC.investorPersistence={getCurrentInvestor:()=>investor};r.FC.openRouteServiceTransport={isResultStale:()=>false};r.FC.quoteOfferStore={getCurrentDraft:()=>({rateSelections:[]})};
+const catalog=r.rates(),before=JSON.stringify(catalog);r.FC.catalogSelectors={getQuoteRates:()=>catalog};
+let context=r.FC.investorTransport.getCurrentTransportContext();near(context.rawDurationMin,1/3);assert.equal(context.durationKnown,true);assert.equal(context.durationMin,5);assert.equal(context.billableKm,4);assert.ok(r.FC.investorTransport.renderPanel(investor).includes('20 s surowo z API'));assert.ok(r.FC.investorTransport.renderPanel(investor).includes('5 min'));
+function calculate(assemblyHours){const c={labor:[{roomId:'kuchnia',hours:assemblyHours,total:assemblyHours*250,rateType:'assembly'}],quoteRates:r.FC.wycenaCoreOffer.collectQuoteRateLines()};const p=r.FC.laborWorkPlan.build({selectedRooms:['kuchnia'],collections:c,catalog,transport:r.FC.investorTransport.getCurrentTransportContext()});return {c,p};}
+let {c,p}=calculate(1);assert.equal(p.schedule.trips,1);assert.equal(p.schedule.assembly.travelMinutes,10);assert.equal(p.schedule.assembly.availableMinutes,440);
+const distance=c.quoteRates.find(l=>l.sourceRole==='transport-distance'),time=c.quoteRates.find(l=>l.sourceRole==='transport-travel-time');near(distance.total,5.6);near(time.total,10/60*250);assert.equal(Number((distance.total+time.total).toFixed(2)),47.27);near(time.hours,10/60);assert.equal(distance.qty,4);
+assert.equal(JSON.stringify(catalog),before);const frozen=clone(c);
+profile.transport.fuelPricePerLiter=8;profile.transport.minimumTravelMin=10;({c,p}=calculate(1));assert.equal(p.schedule.assembly.travelMinutes,20);near(c.quoteRates.find(l=>l.sourceRole==='transport-distance').unitPrice,1.6);assert.notDeepEqual(clone(c),frozen);near(frozen.quoteRates.find(l=>l.sourceRole==='transport-distance').total,5.6);
+profile.transport.fuelPricePerLiter=7;profile.transport.minimumTravelMin=5;
+({c,p}=calculate(440/60));assert.equal(p.schedule.trips,1);({c,p}=calculate(440.01/60));assert.equal(p.schedule.trips,2);near(c.quoteRates.find(l=>l.sourceRole==='transport-distance').total,11.2);near(c.quoteRates.find(l=>l.sourceRole==='transport-travel-time').total,20/60*250);
+({c,p}=calculate(0));assert.equal(p.schedule.trips,0);assert.equal(c.quoteRates.some(l=>l.sourceRole==='transport-distance'||l.sourceRole==='transport-travel-time'),false);
+const priorTransport=clone(investor.transport);investor.transport.routeDurationSeconds='75';profile.transport.minimumTravelMin=0;profile.transport.roundingTravelMin=0;
+({c,p}=calculate(1));near(p.schedule.assembly.travelMinutes,2.5);near(c.quoteRates.find(l=>l.sourceRole==='transport-travel-time').hours,2.5/60);near(c.quoteRates.find(l=>l.sourceRole==='transport-travel-time').total,2.5/60*250);assert.ok(r.FC.investorTransport.getCurrentTransportContext().durationDisplay.includes('1,25'));
+investor.transport=priorTransport;profile.transport.minimumTravelMin=5;profile.transport.roundingTravelMin=1;
+console.log('PASS actual WYCENA + shared schedule: minimum reserves capacity, one trip 10 min/4 km/47.27 PLN, exact day boundary, multiple days and zero days, no catalog write or old-snapshot mutation');
+const row=catalog.find(d=>d.id==='transport_distance_km');row.price=7.125;row.priceUserEditedAt='2026-11-07T00:00:00Z';({c,p}=calculate(1));near(c.quoteRates.find(l=>l.sourceRole==='transport-distance').total,28.5);row.price=0;({c,p}=calculate(1));assert.equal(c.quoteRates.some(l=>l.sourceRole==='transport-distance'),false);
+console.log('PASS explicitly edited km rates, including zero, remain authoritative; fuel price only supplies untouched factory zero');
+const {model,context:factory}=buildCodeCatalogs();factory.FC.globalDataContract.validateBundle(model);assert.equal(Object.keys(model).length,14);const old=clone(model);for(const key of ['minimumTravelMin','roundingTravelMin','fuelLitersPer100Km','fuelPricePerLiter','vehicleCostMultiplier'])delete old.company.transport[key];factory.FC.globalDataContract.validateBundle(old);
+for(const key of ['minimumTravelMin','roundingTravelMin','fuelLitersPer100Km','fuelPricePerLiter','vehicleCostMultiplier']){const invalid=clone(model);invalid.company.transport[key]=-1;assert.throws(()=>factory.FC.globalDataContract.validateBundle(invalid));}
+assert.equal('apiKey' in model.company.transport,false);
+console.log('PASS all 14 factory domains validate, legacy company schema remains accepted, negative settings and secrets remain refused/excluded');

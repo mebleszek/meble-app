@@ -108,3 +108,78 @@ Wykonano:
 - `node tools/company-transport-business-costs-smoke.js`.
 
 Wynik: OK.
+
+
+## Transport LOCAL-FIRST — 07.11.2026
+
+Gałąź `fix/local-first-transport-delete-20261107`, BASE/main
+`26dd3c2581e8dbaad64f0fa643c58153789ac845`; jeden commit, wynikowy HEAD w przekazaniu.
+
+### Potwierdzona przyczyna i poprawka
+
+`calculate-ors` ignorowało wynik `saveTransport()`. Repozytorium odmawiało zapisu
+poza asynchroniczną transakcją obrazu, lecz handler wyświetlał „Zapisano”. Teraz
+sieć pozostaje poza transakcją, natomiast aktualizacja inwestora przechodzi przez
+istniejące `applicationWrite.project`, sprawdzenie repozytorium i ACK IDB.
+Spóźniony wynik po zmianie inwestora/projektu/adresu/profilu trasy, instancji boundary,
+Auth albo rozpoczęciu edycji odmawia zapisu. Błąd nie nadpisuje ostatniej poprawnej
+trasy; komunikat sukcesu następuje dopiero po commit. Zachowano dokładne metry
+oraz sekundy, również zero, zamiast bazować na zaokrąglonych minutach ORS.
+
+### Zatwierdzone liczenie
+
+- Ustawienia w jednej stronie: minimum 5 min i 2 km, krok 1 min i 1 km.
+  Najpierw minimum/zaokrąglenie w górę jednej strony, następnie powrót.
+  Zachowano istniejący wybór one_way/round_trip dla kilometrów; przejazd ekipy
+  pozostaje tam i z powrotem w harmonogramie i koszcie czasu.
+- Paliwo 10 l/100 km, 7 zł/l, mnożnik 2: 1,40 zł/km. Mnożnik obejmuje już paliwo
+  i amortyzację; nie dodaje drugiego kosztu paliwa. Edytowalne pola i pochodna
+  cena używają istniejących komponentów ustawień, bez nowej formuły cennika.
+- Ten sam minimalny/zaokrąglony czas ogranicza dostępność dnia i jest płatny.
+  Domyślny najkrótszy kurs: 10 min × 250 zł/h / 60 + 4 km × 1,40 = 47,27 zł.
+  Zmiana liczby dni mnoży kursy dopiero po obliczeniu dostępności; nie tworzy pętli.
+  Zera prac niecodziennych nadal dają zero dni/przejazdów.
+- Pochodna cena zasila tylko nieedytowaną fabryczną pozycję zerową.
+  Ręcznie zapisane stawki (w tym zero), start/includedQty, konflikty i przypisania
+  zachowują pierwszeństwo oraz dotychczasowe odmowy. Żaden katalog nie jest
+  przepisywany podczas wyliczenia. Stare oferty i rejestry pozostają zamrożone.
+- Nowe pola schematu firmy są opcjonalne: stary model nadal waliduje się.
+  Zapisane wcześniej minima/zaokrąglenia, również 0, pozostają; wartości domyślne
+  nie są migracją. Brakujące nowe pola są dostępne przy odczycie, a zapis następuje
+  dopiero przy „Zapisz”. Klucz ORS nadal wykluczony z kontraktu chmurowego.
+
+### Celowane dowody
+
+Node 24.19.0: `transport-settings-pricing-smoke` 4 grupy PASS,
+`openrouteservice-distance-smoke`, `company-transport-business-costs-smoke`,
+`transport-catalog-quote-fix-smoke` PASS; `labor-work-plan-smoke` 23 grupy,
+`quote-exact-calculations-smoke` 83 przypadki, `code-global-catalogs-smoke` 7/7
+(14 domen), `main-login-smoke` 36/36 PASS. Stary test ORS oczekiwał zaokrąglenia
+całego powrotnego dystansu: 12,4 × 2 → 25 km. Zgodnie z nowym kontraktem oczekuje
+12,4 → 15 km × 2 = 30 km i 130 zł; nadal niezależnie sprawdza niezmienioną
+formułę 50 + (25 − 10) × 4 = 110 zł. Nie osłabiono pozostałych asercji.
+
+Rzeczywisty Chromium: `local-first-transport-delete-browser-smoke` 9 grup PASS,
+actual forms/Cancel/Save/quota/retry, real client-fence, Auth i zmiana kontekstu,
+RAW/RAM/4 store/uncertain ACK/stare oferty, zimny restart; pełny
+`android-local-first-browser-smoke` 13 grup PASS z rzeczywistym panelem,
+WYCENĄ i restartem offline. Dane i odpowiedzi ORS wyłącznie syntetyczne;
+zero zewnętrznych żądań. Fixture ma jawne trwałe createdAt/updatedAt, tak jak nowe
+rekordy aplikacji: brak tych dat generował Date.now() przy normalizacji obcego
+rekordu i prawidłową odmowę scope; asercje ochrony innych rekordów pozostawiono.
+
+Obowiązkowy routing: 207 smoke / 7 rozłącznych grup; nowy test przeglądarkowy 6/7,
+obliczenia 5/7, pełny Android 5/7, ORS 6/7. Skrypty obu HTML wersjonowane,
+kanoniczna lista nadal 347 wpisów; generator katalogów i manifest odtworzone.
+Pełnego CI ani GitHub Actions nie uruchamiano.
+
+### Po osobnym wydaniu
+
+Sprawdzić zapisane minima w trybik → Dane firmy i transport (starsze własne wartości
+nie są nadpisywane). Przeliczyć trasę u inwestora, sprawdzić tabelę i utworzyć
+nową wersję WYCENY; porównać czas przejazdu z HARMONOGRAMEM. Dawna oferta nie zmieni
+się sama. Rzeczywisty ORS nadal wymaga własnego klucza i prawidłowych adresów.
+Nie czyścić danych i nie przeładowywać niezapisanego formularza.
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING / LIVE_BLOCKED.**
+Nie jest to dowód z fizycznego Pixela, wydanie ani zgoda Firebase LIVE.

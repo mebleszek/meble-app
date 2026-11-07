@@ -164,7 +164,7 @@
       && typeof uiState!=='undefined' && uiState.entry==='investorsList'
       && !uiState.currentInvestorId && !uiState.roomType && !getCurrentId()
       && !FC.investorEditorState?.hasUiLock?.()
-      && !FC.applicationSyncActions?.installed?.();
+      && (!FC.applicationSyncActions?.installed?.() || FC.localInvestorDeletion?.canPrepare()===true);
   }
 
   function search(q){

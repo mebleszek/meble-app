@@ -136,7 +136,8 @@
         sourceType:'transport',sourceRole:'transport-distance',sourceKind:'automatic-blocked',sourceId:ids,quantitySource:'transport.distance_km',note:warning,calculation:warning,warnings:[warning]};
     }
     if(!defRaw) return null;
-    const def = FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' ? FC.laborCatalog.normalizeDefinition(defRaw) : defRaw;
+    const resolved = untouchedStarter(defRaw) && Number.isFinite(ctx?.fuelPricePerKm) ? {...defRaw, price:ctx.fuelPricePerKm} : defRaw;
+    const def = FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' ? FC.laborCatalog.normalizeDefinition(resolved) : resolved;
     if(!def || def.active === false || def.isHourlyRate === true) return null;
     const calc = FC.laborCatalog && typeof FC.laborCatalog.calculateDefinition === 'function' ? FC.laborCatalog.calculateDefinition(def, { quantity:qty, hourlyRates:buildHourlyRates(catalog) }) : null;
     const total = Math.max(0, Number(calc && calc.total) || (qty * (Math.max(0, Number(def.price) || 0))));
@@ -174,7 +175,8 @@
       quantitySource:'transport.distance_km',
       quantitySourceValue:qty,
       quantitySourceDisplay:ctx.displayValue || (qty + ' km'),
-      sourceKind:'automatic'
+      sourceKind:'automatic',
+      ...(resolved !== defRaw ? {transportPricing:{version:1,source:'fuel-settings',pricePerKm:unitPrice}} : {})
     });
   }
 
@@ -185,7 +187,7 @@
     const def = FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' ? FC.laborCatalog.normalizeDefinition(defRaw) : defRaw;
     if(!def || def.active === false || def.isHourlyRate === true) return null;
     const ctx = FC.investorTransport && typeof FC.investorTransport.getCurrentTransportContext === 'function' ? FC.investorTransport.getCurrentTransportContext() : null;
-    const durationMin = Math.max(0, Math.round(Number(ctx && ctx.durationMin) || 0));
+    const durationMin = Math.max(0, Number(ctx && ctx.durationMin) || 0);
     const durationHours = durationMin > 0 ? durationMin / 60 : Math.max(0, Number(ctx && ctx.durationHours) || 0);
     if(!(durationHours > 0)) return null;
     const rates = buildHourlyRates(catalog);

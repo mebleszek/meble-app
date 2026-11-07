@@ -122,6 +122,7 @@ async function main(){
   browser=await openBrowserDevice({base:server.base+'/fixture-host.html'},path.join(dir,'profile'));const targets=await browser.send('Target.getTargets');for(const t of targets.targetInfos)if(t.type==='page'&&t.targetId!==browser.targetId){assert.ok(t.url==='about:blank'||t.url.startsWith(server.base));await browser.send('Target.closeTarget',{targetId:t.targetId});}assert.equal(await browser.evaluate('JSON.parse(localStorage.getItem("meble_local_reset_v1")).state'),'used','A new renderer must see the completed journal before app startup');navigation=documentNavigation(browser.send);browser.onEvent(onEvent);await browser.send('Network.enable');await browser.send('Debugger.enable');await browser.send('Page.addScriptToEvaluateOnNewDocument',{source:preload});
   if(staleJournal)await browser.evaluate('(()=>{const key="meble_local_reset_v1",value=JSON.parse(localStorage.getItem(key));localStorage.setItem(key,JSON.stringify({...value,state:"pending"}));})()');networkAvailable=false;await browser.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await browser.send('Network.overrideNetworkState',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
   await navigation.navigate(server.base+'/index.html');await until('document.body?.dataset.businessState==="ready"');assert.equal(await browser.evaluate('__LOCAL_BOOT_ONLINE__'),false);await assertForeign();
+  if(expectedIds===null)return;
   assert.equal(await browser.evaluate('window.FC.projectStore.readAll()[0].projectData[window.FC.investors.readAll()[0].rooms[0].id].cabinets[0].width'),expectedWidth);assert.deepEqual(await browser.evaluate('window.FC.projectStore.readAll()[0].projectData[window.FC.investors.readAll()[0].rooms[0].id].cabinets.map(c=>c.id)'),expectedIds);
   }
   phase='close and offline reopen';await reopenOffline(61,true);assert.equal(await browser.evaluate('JSON.parse(localStorage.getItem("meble_local_reset_v1")).state'),'used');console.log('PASS stale pending journal reconciles only verified receipt/binding/source/image; existing saved local data are preserved');
@@ -192,6 +193,32 @@ async function main(){
   assert.deepEqual(await browser.evaluate('window.FC.quoteOfferStore.getCurrentDraft().selection.selectedRooms'),[roomIds[0]]);
   assert.equal(await browser.evaluate(`window.FC.projectStore.getCurrentRecord().projectData[${JSON.stringify(roomIds[1])}].cabinets.length`),1);
   console.log('PASS a rejected room selection retains the picker and checkboxes; retry prices only Kitchen and survives offline reopen');
+  phase='route through real investor panel';
+  await browser.evaluate(`(()=>{const api=window.FC.openRouteServiceTransport;api.validateRouteInput=()=>({ok:true});api.calculateRoute=async()=>({distanceKm:0.3,durationMin:0,routeDistanceMeters:300,routeDurationSeconds:20,status:'success',source:'openrouteservice',destinationGeocode:{label:'Synthetic route'}});return true;})()`);
+  const beforeRoute=await browser.evaluate('localProof()');
+  await tap('[data-investor-transport-action="calculate-ors"]');await until('!!document.querySelector(".info-box")&&!window.FC.applicationStartup.inspect().transactionPending');
+  assert.match(await browser.evaluate('document.querySelector(".info-box").textContent'),/Trasa przeliczona/);
+  await tap('.info-box button');
+  const afterRoute=await browser.evaluate('localProof()'),routeRows=afterRoute.tables.control.find(r=>r.key==='application').rows;
+  assert.equal(JSON.parse(routeRows.fc_investors_v1)[0].transport.routeDurationSeconds,'20');assert.deepEqual(afterRoute.raw,beforeRoute.raw);
+  assert.equal(routeRows.fc_quote_snapshots_v1,beforeRoute.tables.control.find(r=>r.key==='application').rows.fc_quote_snapshots_v1);
+  const routedQuote=await browser.evaluate(`window.FC.wycenaCore.collectQuoteData({selection:{selectedRooms:[${JSON.stringify(roomIds[0])}]}}).then(q=>({schedule:q.schedule,lines:q.quoteRateLines}))`);
+  assert.equal(routedQuote.schedule.status,'READY');assert.equal(routedQuote.schedule.assembly.travelMinutes,10);
+  assert.equal(routedQuote.lines.find(l=>l.sourceRole==='transport-distance').qty,4);
+  assert.ok(Math.abs(routedQuote.lines.find(l=>l.sourceRole==='transport-distance').unitPrice-1.4)<1e-10);
+  console.log('PASS full production runtime/panel persists synthetic ORS result, fills table and prices the next WYCENA with identical reserved commute time; saved offer and physical originals unchanged');
+  phase='delete through actual list and confirmation';await browser.evaluate('window.FC.actions.dispatch("open-investors-list",{})');
+  await until('uiState.entry==="investorsList"&&!window.FC.applicationStartup.inspect().transactionPending');
+  await tap('[data-action="remove-investor-from-list"]');await until('!!document.querySelector("[data-investor-delete-id]")');
+  await tap('.investor-delete-choice');await tap('[data-action="remove-investor-from-list"]');await until('!!document.querySelector(".confirm-box")');
+  const beforeCancel=await browser.evaluate('localProof()');await tap('.confirm-box .is-neutral');await until('!document.querySelector(".confirm-box")');assert.deepEqual(await browser.evaluate('localProof()'),beforeCancel);
+  await tap('[data-action="remove-investor-from-list"]');await until('!!document.querySelector(".confirm-box")');await tap('.confirm-box .is-danger');
+  await until('window.FC.investors.readAll().length===0&&!window.FC.applicationStartup.inspect().transactionPending');
+  assert.equal(await browser.evaluate('window.FC.projectStore.readAll().length'),0);await until('!!document.querySelector(".info-box")');await tap('.info-box button');
+  const erased=await browser.evaluate('localProof()');assert.deepEqual(erased.raw,afterRoute.raw);assert.deepEqual(erased.tables.outbox,afterRoute.tables.outbox);assert.deepEqual(erased.tables.replicas,afterRoute.tables.replicas);assert.equal(erased.tables.protected.filter(r=>r.scope==='investor-deletions').length,1);
+  phase='offline restart after actual list deletion';await reopenOffline(61,false,null);assert.equal(await browser.evaluate('window.FC.investors.readAll().length'),0);assert.equal(await browser.evaluate('window.FC.projectStore.readAll().length'),0);
+  const erasedRestart=await browser.evaluate('localProof()');assert.deepEqual(erasedRestart.raw,erased.raw);assert.deepEqual(erasedRestart.tables.protected,erased.tables.protected);assert.deepEqual(erasedRestart.tables.outbox,erased.tables.outbox);
+  console.log('PASS full runtime/list/confirm: cancel changes nothing, conscious local investor+project+offer deletion survives offline Chromium restart; unrelated database, originals, globals, backups and queue preserved');
   await assertForeign();assert.deepEqual(external,[]);console.log('PASS confirmed reset → code catalogs / 14 domains → full offline startup → first investor/project/room → durable save → offline reopen; zero cloud requests and no fabricated ACK');
  }catch(error){console.error('FAIL local browser '+phase+': '+error.message);throw Error(phase+': '+error.message);}finally{try{await browser?.close();}finally{networkAvailable=true;await server.close();fs.rmSync(dir,{recursive:true,force:true});}}
 }

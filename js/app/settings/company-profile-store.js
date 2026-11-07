@@ -30,7 +30,12 @@
       profile:'driving-car',
       billingMode:'round_trip',
       roundingKm:1,
-      minimumBillableKm:0,
+      minimumBillableKm:2,
+      minimumTravelMin:5,
+      roundingTravelMin:1,
+      fuelLitersPer100Km:10,
+      fuelPricePerLiter:7,
+      vehicleCostMultiplier:2,
       attribution:'© openrouteservice.org by HeiGIT | Map data © OpenStreetMap contributors'
     },
     meta:{ updatedAt:'' }
@@ -38,7 +43,8 @@
 
   function text(value){ return String(value == null ? '' : value).trim(); }
   function number(value, fallback){
-    const n = Number(String(value == null ? '' : value).replace(',', '.'));
+    if(value == null || value === '') return fallback ?? 0;
+    const n = Number(String(value).replace(',', '.'));
     return Number.isFinite(n) ? n : (Number.isFinite(fallback) ? fallback : 0);
   }
   function deepClone(value){
@@ -79,6 +85,11 @@
       billingMode:['one_way','round_trip'].includes(billing) ? billing : 'round_trip',
       roundingKm:Math.max(0, number(source.roundingKm, def.roundingKm)),
       minimumBillableKm:Math.max(0, number(source.minimumBillableKm, def.minimumBillableKm)),
+      minimumTravelMin:Math.max(0, number(source.minimumTravelMin, def.minimumTravelMin)),
+      roundingTravelMin:Math.max(0, number(source.roundingTravelMin, def.roundingTravelMin)),
+      fuelLitersPer100Km:Math.max(0, number(source.fuelLitersPer100Km, def.fuelLitersPer100Km)),
+      fuelPricePerLiter:Math.max(0, number(source.fuelPricePerLiter, def.fuelPricePerLiter)),
+      vehicleCostMultiplier:Math.max(0, number(source.vehicleCostMultiplier, def.vehicleCostMultiplier)),
       attribution:text(source.attribution || def.attribution)
     };
   }
@@ -128,12 +139,22 @@
   function billableDistanceKm(distanceKm, profile){
     const p = normalizeProfile(profile || read());
     const oneWay = Math.max(0, number(distanceKm, 0));
-    let billable = p.transport.billingMode === 'one_way' ? oneWay : oneWay * 2;
-    const step = Math.max(0, number(p.transport.roundingKm, 0));
-    if(step > 0) billable = Math.ceil((billable - 1e-9) / step) * step;
-    const min = Math.max(0, number(p.transport.minimumBillableKm, 0));
-    if(min > 0) billable = Math.max(billable, min);
-    return Math.round(billable * 100) / 100;
+    const adjusted = adjustedOneWay(oneWay, p.transport.minimumBillableKm, p.transport.roundingKm);
+    return adjusted * (p.transport.billingMode === 'one_way' ? 1 : 2);
+  }
+
+  function adjustedOneWay(value, minimum, step){
+    let result = Math.max(0, number(value, 0), number(minimum, 0));
+    if(step > 0) result = Math.ceil((result - 1e-9) / step) * step;
+    return result;
+  }
+  function billableTravelMin(minutes, profile){
+    const t = normalizeProfile(profile || read()).transport;
+    return adjustedOneWay(minutes, t.minimumTravelMin, t.roundingTravelMin);
+  }
+  function fuelPricePerKm(profile){
+    const t = normalizeProfile(profile || read()).transport;
+    return t.fuelLitersPer100Km / 100 * t.fuelPricePerLiter * t.vehicleCostMultiplier;
   }
 
   function buildSummary(profile){
@@ -154,6 +175,8 @@
     companyAddress,
     billingModeLabel,
     billableDistanceKm,
+    billableTravelMin,
+    fuelPricePerKm,
     buildSummary
   };
 })();

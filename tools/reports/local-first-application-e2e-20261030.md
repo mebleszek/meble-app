@@ -448,3 +448,80 @@ Rzeczywiście wykonane celowane kontrole: first-sync-error-diagnostics **9/9 PAS
 Po osobno zatwierdzonym wydaniu pierwszy błąd na telefonie zawiera „domena konfliktu: …; klucze: … / …”. Jeśli aplikacja jest dostępna: Diagnostyka sesji → Kopiuj raport → localFirst.aliasConflict. Gdy logowanie jest zablokowane, wystarczy zrzut istniejącego komunikatu; nie obchodzimy bramki raportu. UNKNOWN wymaga zachowania tego wyniku, nie zgadywania domeny. Informacje żyją tylko w nowym dokumencie/karcie, nie odzyskamy błędu poprzedniej wersji wstecznie. Dopiero odczyt uzasadni osobną decyzję dotyczącą właściwych danych.
 
 **CODE_READY / CI_PENDING / RELEASE_BLOCKED.** Bez pełnego lokalnego Preflightu/SDK, GitHub Actions, PR, merge, Pages, Firebase LIVE, Rules, IAM, billingu, migracji lub naprawy wartości aliasów. Część aktualizacji i natywne dowody: istniejący raport android-safe-sw-update-20261031.
+
+
+## Lokalne usuwanie inwestora i transport — 07.11.2026
+
+Gałąź `fix/local-first-transport-delete-20261107`, BASE/main
+`26dd3c2581e8dbaad64f0fa643c58153789ac845`; dokładny HEAD po jednym commit/push
+w przekazaniu. Poprzedni pakiet PR #118 zawiera już ten main; nie powtarzano
+jego kontroli wydaniowej. Zakres transportu i wyliczeń opisano w istniejącym
+[raporcie](company-transport-business-costs-v1.md#transport-local-first--07112026).
+
+### Przyczyna i lokalna granica
+
+`investors.canRemoveFromList()` oraz historyczny deleter odmawiały instalacji
+`applicationSyncActions`. Ten marker istnieje również bez chmury, w localOnly.
+Nie usunięto strażnika legacy. Nowy niewielki adapter `application-investor-delete`
+instaluje się wyłącznie w istniejącym lokalnym runtime i deleguje do starego,
+niezmienionego planera własności/powiązań/retained RAW. Ten sam przycisk,
+podgląd liczby inwestorów/projektów/pomieszczeń/ofert/draftów i potwierdzenie.
+Nie dodano nowego ekranu, silnika danych, migracji ani protokołu kasowania serwera.
+
+- Przygotowanie tylko w bezczynnej, zatwierdzonej liście, bez sesji/RAM divergence,
+  edycji inwestora ani starego journal. Jednorazowy token przypina obraz i wersję.
+  Bez aktywnego potwierdzonego wywołania nie działa nawet commit boundary tego typu.
+- Wykonanie przechodzi przez istniejący write boundary i owner/writer-fence.
+  Ponowny planer musi odtworzyć dokładnie cały proponowany obraz; 14 domen nadal
+  przechodzi validateBundle. Żadne inne dane nie mogą wejść do zakresu usunięcia.
+- Jedna transakcja strict wszystkich czterech store sprawdza binding, wersję CAS,
+  dokładny obraz/hash i Auth przed zapisami. Aktualizuje control/application oraz
+  dodaje do protected haszowany prywatny dowód zawierający pełne before/after.
+  Abort/quota/Auth/CAS dają całość albo brak usunięcia; dowód ma format zgodny
+  z dotychczasowym, nieosłabionym walidatorem pełnej kopii ratunkowej.
+- Replicas i outbox pozostają niezmienione. Jakikolwiek rekord/operacja dotycząca
+  usuwanego projektu lub właściciela, nawet pod osieroconym scope, odmawia.
+  Nie usuwa ani nie replayuje ACK. Lokalne removed IDs blokują przyszłą projekcję
+  zdalną przez LF_LOCAL_DELETION_SYNC_REQUIRED, zamiast odtwarzać usunięty wpis.
+- Fizyczne oryginały i archiwalne kopie pozostają; aktywnym stanem jest IDB.
+  Powiązany fizyczny per-investor slot poza obrazem daje DELETE_LEGACY_SLOT_PROTECTED,
+  powiązana replika/kolejka DELETE_SYNCED_PROJECT_PROTECTED. To celowe ograniczenia,
+  nie zgoda na rozszerzenie zakresu lub na usuwanie danych chmury.
+
+### Dowody i granice
+
+`local-first-transport-delete-browser-smoke` **9 grup PASS**: rzeczywisty Chromium,
+IDB, repozytoria, planner, authority, committer i akcja „− Usuń”; Cancel, brak
+potwierdzenia, zmiana wersji i konta/Auth, aktywny RAM/sesja, rzeczywista druga
+karta i istniejący protokół VERIFY_APPLICATION_AUTHORITY, natywny abort oraz quota.
+Sukces usuwa wyłącznie własne dane, zachowuje obcy RAW z liczbą 9007199254740993,
+nieznane pola, cenniki i kopie. Prywatny dowód atomowy, uncertain outbox bez zmian,
+zimny restart, odmowa odtwarzania tombstone i osieroconej operacji właściciela.
+Test formy ustawień potwierdza Cancel, quota, zachowanie formularza, retry/Save
+oraz trwałość parametrów bez naruszenia zamrożonych ofert/RAM/kolejki.
+
+`android-local-first-browser-smoke` **13 grup PASS** obejmuje pełny produkcyjny
+bootstrap/runtime/writer-fence z syntetycznym zatwierdzeniem, naprawiony panel
+ORS, nową WYCENĘ, prawdziwe kontrolki listy/potwierdzenia, usunięcie i ponowny
+zimny start offline. Nie usunięto wcześniejszych scenariuszy resetu, drugiej karty,
+przerwania, szafek, lokalnego draftu i rollbacku. Obca baza nie jest otwierana
+przez aplikację i pozostaje bitowo/strukturalnie niezmieniona. Fizyczne RAW,
+cztery store i zachowana kolejka mają osobne asercje przed/po.
+Legacy `investor-list-delete-smoke` **PASS**, wszystkie istniejące odmowy,
+recovery, brak replay i jednorazowa zgoda pozostają. Brak rzeczywistych danych
+w testach i brak zewnętrznych żądań.
+
+Routing bez zmian workflow: inventory **207 smoke / 7 grup**, nowe native **6/7**,
+pełny Android i legacy delete **5/7**, nowe obliczenia **5/7**; każde dokładnie raz.
+Wersje obu HTML, generator 14 domen i manifest offline aktualne. Pełnego CI,
+Firebase Emulator Suite ani Actions nie uruchamiano.
+
+Po osobnym wydaniu właściciel może na liście wskazać świadomie testowego inwestora,
+sprawdzić podgląd, potwierdzić „Usuń”, zamknąć aplikację i otworzyć offline.
+Bez resetu telefonu, kasowania oryginałów/kopii lub danych Firebase. Operacje
+chmurowe i dane mające już replikę/kolejkę wymagają odrębnego protokołu/decyzji.
+Przy braku miejsca nic nie jest usuwane; prywatny dowód zajmuje lokalne miejsce,
+a jego kasowania/restore nie dodano w tym pakiecie.
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING / LIVE_BLOCKED.**
+Fizyczny Pixel, CI dla nowego HEAD i publikacja nie zostały wykonane.

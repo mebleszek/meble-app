@@ -23,7 +23,7 @@ function assertClose(actual, expected, message){
   assert(index.indexOf('js/app/investor/openrouteservice-transport.js') < index.indexOf('js/app/investor/investor-transport.js'), 'Moduł ORS musi ładować się przed panelem inwestora');
   assert(dev.includes(`js/app/investor/openrouteservice-transport.js?v=${version}`), 'dev_tests.html nie ładuje modułu ORS');
   assert(companyView.includes('własny darmowy klucz użytkownika') && companyView.includes('Google Maps API nie jest używane'), 'Trybik nie opisuje darmowego klucza ORS i braku Google Maps API');
-  assert(investorTransportSrc.includes('saveTransport(investor, next)') && investorTransportSrc.includes('statusLabel') && investorTransportSrc.includes('Wynik liczony dla'), 'Panel inwestora nie zapisuje/nie pokazuje statusu i adresów ostatniego przeliczenia');
+  assert(investorTransportSrc.includes('await saveTransport(investor, next, assertCurrent)') && investorTransportSrc.includes('await FC.applicationWrite.project(save)') && investorTransportSrc.includes('TRANSPORT_SAVE_UNCONFIRMED') && investorTransportSrc.includes('statusLabel') && investorTransportSrc.includes('Wynik liczony dla'), 'Panel inwestora nie zapisuje/nie pokazuje statusu i adresów ostatniego przeliczenia');
   assert(investorTransportSrc.includes('Diagnostyka ORS') && investorTransportSrc.includes('Sprawdź w ORS') && investorTransportSrc.includes('Jak liczono km do wyceny'), 'Panel inwestora musi pokazywać diagnostykę ORS, link ORS i wzór km do wyceny');
   assert(serviceSrc.includes('prepareGeocodeQuery') && serviceSrc.includes('originGeocode') && serviceSrc.includes('destinationGeocode') && serviceSrc.includes('mapsClientUrl'), 'Moduł ORS musi zapisywać diagnostykę geokodowania i link do map ORS');
   assert(!serviceSrc.includes('apiKey:\'') && !serviceSrc.includes('apiKey:"'), 'Nie wolno zaszywać realnego klucza API w kodzie');
@@ -121,7 +121,7 @@ function assertClose(actual, expected, message){
   profile.transport.roundingKm = 5;
   profile.transport.apiKey = 'fake-key';
   sandbox.FC.companyProfile.write(profile);
-  assertClose(sandbox.FC.companyProfile.billableDistanceKm(12.4), 25, 'Tryb tam i z powrotem + zaokrąglenie do 5 km ma dać 25 km');
+  assertClose(sandbox.FC.companyProfile.billableDistanceKm(12.4), 30, 'Zaokrąglenie 12,4 do 15 km w jedną stronę, następnie powrót: 30 km');
 
   assert(ors.isResultStale(result, result.origin, result.destination) === false, 'Nie zmienione adresy nie mogą oznaczać wyniku jako nieaktualny');
   assert(ors.isResultStale(result, result.origin, 'Inny adres klienta') === true, 'Zmiana adresu klienta musi oznaczać wynik jako potencjalnie nieaktualny');
@@ -152,8 +152,9 @@ function assertClose(actual, expected, message){
   const lines = sandbox.FC.wycenaCoreOffer.collectQuoteRateLines();
   const transportLine = lines.find((row)=> row && row.sourceRole === 'transport-distance');
   assert(transportLine, 'WYCENA musi dostać automatyczną linię transport.distance_km');
-  assertClose(transportLine.qty, 25, 'WYCENA musi używać km po trybie tam i z powrotem oraz zaokrągleniu');
-  assertClose(transportLine.total, 110, 'Transport ma liczyć start + płatne km');
+  assertClose(transportLine.qty, 30, 'WYCENA zaokrągla każdą stronę przed naliczeniem powrotu');
+  assertClose(transportLine.total, 130, 'Transport zachowuje 50 zł start + (30 - 10) × 4 zł/km');
+  assertClose(sandbox.FC.laborCatalog.calculateDefinition(sandbox.FC.catalogSelectors.getQuoteRates()[0], {quantity:25}).total, 110, 'Dotychczasowa formuła start + płatne km jest niezmieniona dla tej samej ilości');
   assert(transportLine.quantitySource === 'transport.distance_km' && transportLine.sourceType === 'transport', 'Linia transportu musi zachować źródło transport.distance_km');
 
   assert(sources.includes("code:'transport.distance_km'") && offerSrc.includes('getCurrentTransportContext'), 'Źródło transport.distance_km musi pozostać jednym źródłem dla WYCENY');
