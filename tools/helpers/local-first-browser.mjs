@@ -5,6 +5,22 @@ import http from 'node:http';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),{startBrowser}=require('./chromium-runtime.js');
 const root=path.resolve(new URL('../..',import.meta.url).pathname);
+export async function waitForOrderlyBrowserExit({send,exited,cleanup},{timeoutMs=20000}={}){
+  let timer;
+  try{
+    const deadline=new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('LF_GRACEFUL_CLOSE_TIMEOUT')),timeoutMs);});
+    // Dispatch once. A page transport may disappear before the ACK, so ACK
+    // success alone neither proves nor gates a clean process exit. An explicit
+    // CDP error still refuses; a missing response cannot outlive this deadline.
+    const command=send('Browser.close');
+    const acknowledged=Promise.resolve(command).then(()=>new Promise(()=>{}));
+    const result=await Promise.race([exited,acknowledged,deadline]);
+    if(result?.error||result?.code!==0||result?.signal)throw Error('LF_GRACEFUL_CLOSE_FAILED');
+  }finally{
+    clearTimeout(timer);
+    await cleanup(); // Reap owned descendants/receipt only AFTER the exit proof, or on failure.
+  }
+}
 export async function startLocalFirstServer(){
   const server=http.createServer((req,res)=>{
     const url=new URL(req.url,'http://127.0.0.1');
@@ -17,7 +33,7 @@ export async function startLocalFirstServer(){
 }
 export async function openBrowserDevice(server,profileDirectory){
   const browser=await startBrowser({profileDir:profileDirectory,timeoutMs:60000}),endpoint=browser.endpoint;
-  let ws,stopping;const pending=new Map(),observers=new Set();let counter=0;
+  let ws,stopping,graceful;const pending=new Map(),observers=new Set();let counter=0;
   const stop=crash=>stopping||=(async()=>{
     try{for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('LF_BROWSER_CLOSED'));}pending.clear();ws?.close();}
     finally{await (crash?browser.crash():browser.close());}
@@ -33,10 +49,7 @@ export async function openBrowserDevice(server,profileDirectory){
   for(let i=0;i<100;i++){if(await evaluate('window.lfReady===true'))break;if(i===99)throw Error('LF_FIXTURE_NOT_READY');await new Promise(resolve=>setTimeout(resolve,20));}
   return {endpoint,evaluate,send,targetId:targets.find(t=>t.type==='page').id,onEvent(fn){observers.add(fn);return()=>observers.delete(fn);},
     async open(binding){await evaluate('window.openLF('+JSON.stringify(binding)+')');return proxyStore(evaluate,binding);},
-    async gracefulClose(){
-      let timer;try{await send('Browser.close');await Promise.race([browser.exited,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('LF_GRACEFUL_CLOSE_TIMEOUT')),20000);})]);}
-      finally{clearTimeout(timer);await stop(false);}
-    },
+    gracefulClose(){return graceful||=waitForOrderlyBrowserExit({send,exited:browser.exited,cleanup:()=>stop(false)});},
     close:()=>stop(false),crash:()=>stop(true),kill:()=>stop(true)
   };
   }catch(error){await stop(true);throw error;}
