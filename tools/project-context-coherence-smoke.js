@@ -17,13 +17,25 @@ test('A -> B -> A keeps the exact activated object regardless of old override',(
 test('Wrong RAM owner and missing physical context never fall back to an override',()=>{const r=runtime();r.FC.rozrys.__projectOverride=clone(r.s.projectData);r.s.projectData.meta.assignedInvestorId='inv-B';assert.equal(r.source.safeGetProject(),null);});
 test('Explicit detached override remains available to a genuinely isolated factory',()=>{const project={room:{cabinets:[{id:'isolated'}]}};const r=runtime();const api=r.FC.rozrysProjectSource.createApi({FC:{rozrys:{__projectOverride:project}},host:{}});assert.equal(api.safeGetProject(),project);});
 test('Actual selection renderer does not label an empty filtered scope as all rooms',()=>{
- const r=runtime();for(const f of ['js/app/wycena/wycena-room-availability.js','js/app/wycena/wycena-tab-selection-scope.js','js/app/wycena/wycena-tab-selection-model.js','js/app/wycena/wycena-tab-selection-render.js'])load(r,f);
+ const r=runtime();for(const f of ['js/app/quote/quote-offer-store.js','js/app/wycena/wycena-work-plan-view.js','js/app/wycena/wycena-room-availability.js','js/app/wycena/wycena-tab-selection-scope.js','js/app/wycena/wycena-tab-selection-model.js','js/app/wycena/wycena-tab-selection-render.js'])load(r,f);
+ // The real view/store are required: an empty launcher stub would hide this regression.
+ assert.equal(typeof r.FC.wycenaWorkPlanView.servicesLauncher,'function');
+ for(const file of ['index.html','dev_tests.html']){
+  const scripts=[...fs.readFileSync(path.join(ROOT,file),'utf8').matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/g)].map(match=>match[1].split('?')[0]);
+  const required=['js/app/quote/quote-offer-store.js','js/app/pricing/labor-work-plan.js','js/app/wycena/wycena-work-plan-view.js','js/app/wycena/wycena-tab-selection-render.js'];
+  for(const name of required)assert.equal(scripts.filter(src=>src===name).length,1,file+': '+name);
+  assert.ok(required.every((name,index)=>index===0||scripts.indexOf(required[index-1])<scripts.indexOf(name)),file+': service dependencies precede selection render');
+ }
  const wrong=clone(r.row('B').projectData);wrong.room_foreign=wrong.room;delete wrong.room;wrong.room_foreign.cabinets=Array.from({length:8},(_,i)=>({...wrong.room_foreign.cabinets[0],id:'foreign-'+i}));r.FC.rozrys.__projectOverride=wrong;
  const card=r.s.document.createElement('div'),h=(tag,a)=>{const el=r.s.document.createElement(tag);for(const[k,v]of Object.entries(a||{})){if(k==='text')el.textContent=v;else el.setAttribute(k,v);}return el;};
+ const before=r.rows(),ram=clone(r.s.projectData),draft=clone(r.draft);
  r.FC.wycenaTabSelectionRender.renderQuoteSelectionSection(card,{}, {h,labelWithInfo:()=>h('label',{text:'Rooms'}),getOfferDraft:()=>r.draft,getMaterialScopeLabel:()=> 'all'});
+ const launcher=card.querySelector('[data-service-scope]');assert.ok(launcher,'Actual services launcher must render');
+ for(const label of ['Dostawa','Wnoszenie','Montaż'])assert.ok(launcher.textContent.includes(label));
  assert.ok(!card.querySelector('.quote-selection-launch--rooms').textContent.includes('Wszystkie pomieszczenia'));
  assert.deepEqual(clone(r.FC.wycenaTabSelectionModel.normalizeDraftSelection(r.draft).selectedRooms),['room']);
  assert.deepEqual(clone(r.FC.wycenaCoreSelection.normalizeQuoteSelection(r.draft.selection).selectedRooms),['room']);
+ assert.deepEqual(r.rows(),before);assert.deepEqual(clone(r.s.projectData),ram);assert.deepEqual(clone(r.draft),draft);
 });
 test('Native right front is resolved using the active physical owner',()=>{const r=runtime();assert.equal(r.api.getForCalculation({projectId:'A',roomId:'room',cabinetId:'one',partRoleId:'front.door.right'}).ok,true);});
 test('Status reconciliation retains a fresh error; explicit history selection can replace it',()=>{const r=runtime(),state={lastQuote:{error:'Synthetic refusal'},lastKnownProjectStatus:'nowy',previewSnapshotId:''};r.FC.wycenaTabShell.reconcileStatusPreviewState({getState:()=>state,setState:p=>Object.assign(state,p),getSnapshotHistory:()=>[],getProjectStatusForHistory:()=>''});assert.equal(state.lastQuote.error,'Synthetic refusal');});

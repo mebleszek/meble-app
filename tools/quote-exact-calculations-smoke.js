@@ -96,11 +96,28 @@ for(const pricingMode of ['fixed','perUnit','startPlusUnit','time','timeTiers','
   assert.equal((detail.baseHours+detail.volumeHours)*detail.hourlyRate,90);
   console.log('PASS unusual project: base 15 min + volume 3 min at 300/h = 90.00, labeled from source data');checks++;
 }
-// PDF norms: module +5 min joining -1 min adjustment; HDF +24 min site work -1 min adjustment (250/h).
-for(const [type,height,depth,shelves,expected]of [['moduł',82,50,1,369.17],['wisząca',106,32,2,517.63]]){
+// Keep the PDF references independent of the subsequently approved loading/unloading norm.
+for(const [type,height,depth,shelves,expected,withLoading]of [['moduł',82,50,1,369.17,390],['wisząca',106,32,2,517.63,538.47]]){
   const r=fixture();Object.assign(r.cab,{type,height,depth,width:60});r.cab.details.shelves=shelves;
-  const register=unchangedTotals(r.FC,{labor:r.FC.wycenaCoreLabor.collectCabinetLabor(['kuchnia'])});
-  assert.equal(register.totals.labor,expected);console.log('PASS explicit synthetic '+type+' reference '+expected.toFixed(2)+' under approved PDF norms; presentation unchanged against BASE');checks++;
+  const catalog=copy(r.rates()),rows=r.FC.wycenaCoreLabor.collectCabinetLabor(['kuchnia']);
+  const loading=rows.flatMap(row=>row.details).filter(part=>part.laborDefinitionId==='labor_delivery_loading');
+  assert.equal(loading.length,1,'One combined loading/unloading operation per corpus');
+  const part=loading[0];assert.equal(part.quantity,1);assert.equal(part.quantitySource,'cabinet.count');
+  assert.equal(part.rateType,'assembly');assert.equal(part.hourlyRate,250);assert.equal(part.hours,5/60);
+  const loadingAmount=5/60*250;assert.equal(part.total,loadingAmount);
+  assert.equal(evaluate(r.FC.quoteCalculationRegister.describeCalculation(part)),20.83);
+  // Recollect with only the new definition absent; preserve and compare every older operation.
+  const getRates=r.FC.catalogSelectors.getQuoteRates;let legacy;
+  try{r.FC.catalogSelectors.getQuoteRates=()=>r.rates().filter(def=>def.id!=='labor_delivery_loading');legacy=r.FC.wycenaCoreLabor.collectCabinetLabor(['kuchnia']);}
+  finally{r.FC.catalogSelectors.getQuoteRates=getRates;}
+  assert.deepEqual(copy(rows.map(row=>row.details.filter(part=>part.laborDefinitionId!=='labor_delivery_loading'))),copy(legacy.map(row=>row.details)),'Adding loading cannot change or suppress any previous quantity, norm, rate, ID or field');
+  const previous=unchangedTotals(r.FC,{labor:legacy});assert.equal(previous.totals.labor,expected);
+  const fee=unchangedTotals(r.FC,{labor:[{details:loading}]});assert.equal(fee.totals.labor,20.83);
+  const register=unchangedTotals(r.FC,{labor:rows});assert.equal(register.totals.labor,withLoading);
+  const rawLegacy=legacy.flatMap(row=>row.details).reduce((sum,row)=>sum+row.total,0);
+  assert.equal(register.totals.labor,cents(rawLegacy+loadingAmount),'Round the combined source amounts, not two already rounded subtotals');
+  assert.equal(register.lines.length,previous.lines.length+1);assert.deepEqual(copy(r.rates()),catalog,'Reference checks must not edit the catalog');
+  console.log('PASS explicit synthetic '+type+': previous PDF '+expected.toFixed(2)+' unchanged, combined loading 5 min / 20.83, full total '+withLoading.toFixed(2)+'; exact source rounding and BASE presentation preserved');checks++;
 }
 {
   const r=fixture(),FC=r.FC;
