@@ -64,6 +64,10 @@
     };
   }
 
+  function stageTimes(rows){
+    const hours=FC.laborWorkPlan.hoursByStage(rows);
+    return `Warsztat: ${fmtHours(hours.workshop)} • Montaż: ${fmtHours(hours.assembly)}`;
+  }
   function buildCabinetRows(roomId){
     let laborLines = [];
     try{
@@ -71,7 +75,7 @@
         ? FC.wycenaCoreLabor.collectCabinetLabor([roomId])
         : [];
     }catch(_){ laborLines = []; }
-    if(FC.laborWorkPlan)for(const row of laborLines){row.details=row.details.filter(p=>FC.laborWorkPlan.scope(p)==='standard');row.total=row.details.reduce((s,p)=>s+(Number(p.total)||0),0);row.hours=row.details.reduce((s,p)=>s+(Number(p.hours)||0),0);}
+    if(FC.laborWorkPlan)for(const row of laborLines){row.details=row.details.filter(p=>FC.laborWorkPlan.scope(p)==='standard'&&FC.laborWorkPlan.included(p,FC.laborWorkPlan.normalizeServices(getOfferDraft().services)));row.total=row.details.reduce((s,p)=>s+(Number(p.total)||0),0);row.hours=row.details.reduce((s,p)=>s+(Number(p.hours)||0),0);}
     const laborByIndex = new Map();
     (Array.isArray(laborLines) ? laborLines : []).forEach((row)=> laborByIndex.set(Number(row && row.cabinetNumber) || 0, row));
     const cabinets = getCabinets(roomId);
@@ -141,7 +145,7 @@
     const out = [];
     (Array.isArray(lines) ? lines : []).forEach((line)=> {
       const details = Array.isArray(line && line.details) ? line.details : [];
-      details.filter(part=>!FC.laborWorkPlan || FC.laborWorkPlan.scope(part)==='standard').forEach((part)=> {
+      details.filter(part=>!FC.laborWorkPlan || FC.laborWorkPlan.scope(part)==='standard'&&FC.laborWorkPlan.included(part,FC.laborWorkPlan.normalizeServices(getOfferDraft().services))).forEach((part)=> {
         const sourceLabel = String(part && part.sourceLabel || line && line.name || '').trim();
         const note = [
           String(part && part.note || '').trim(),
@@ -167,7 +171,8 @@
   function buildOtherActionRows(roomId){
     let rows = [];
     try{
-      if(FC.wycenaCoreOffer && typeof FC.wycenaCoreOffer.collectQuoteRateLines === 'function') rows = FC.wycenaCoreOffer.collectQuoteRateLines() || [];
+      if(FC.laborWorkPlan) rows=FC.laborWorkPlan.collect(selectedProjectRooms(roomId),getOfferDraft().helperHours,getOfferDraft().services).collections.quoteRates;
+      else if(FC.wycenaCoreOffer && typeof FC.wycenaCoreOffer.collectQuoteRateLines === 'function') rows = FC.wycenaCoreOffer.collectQuoteRateLines() || [];
       else if(FC.wycenaCore && typeof FC.wycenaCore.collectQuoteRateLines === 'function') rows = FC.wycenaCore.collectQuoteRateLines() || [];
     }catch(_){ rows = []; }
     rows = (Array.isArray(rows) ? rows : []).filter(r=>!FC.laborWorkPlan || FC.laborWorkPlan.scope(r)==='standard').concat(buildProjectPreparationActionRows(roomId));
@@ -197,7 +202,7 @@
     const hours = rows.reduce((sum, row)=> sum + (Number(row.hours) || 0), 0);
     title.appendChild(h('div', { class:'quote-labor-cabinet__name', text:'Inne czynności' }));
     title.appendChild(h('div', { class:'quote-labor-cabinet__meta', text:rows.length ? `${rows.length} pozycji ogólnych mebli` : 'Transport, projekt, pomiar i inne ogólne czynności mebli' }));
-    title.appendChild(h('div', { class:'quote-labor-cabinet__meta quote-labor-cabinet__meta--time', text:`Normoczas: ${fmtHours(hours)}` }));
+    title.appendChild(h('div', { class:'quote-labor-cabinet__meta quote-labor-cabinet__meta--time', text:stageTimes(rows) }));
     summary.appendChild(title);
     summary.appendChild(h('span', { class:'wywiad-room-accordion__chevron', 'aria-hidden':'true' }));
     details.appendChild(summary);
@@ -438,7 +443,7 @@
       return;
     }
     const hours = rows.reduce((sum, row)=> sum + (Number(row.hours) || 0), 0);
-    container.appendChild(h('div', { class:'czynnosci-summary-pill', text:`Czynności szafek: ${rows.length} • normoczas: ${fmtHours(hours)}` }));
+    container.appendChild(h('div', { class:'czynnosci-summary-pill', text:`Czynności szafek: ${rows.length} • ${stageTimes(rows)}` }));
     const list = h('div', { class:'quote-labor-list czynnosci-cabinet-list' });
     rows.forEach((row)=> {
       const details = h('details', { class:'quote-labor-cabinet czynnosci-cabinet wywiad-room-accordion', 'data-cabinet-id': String(row && row.cabinet && row.cabinet.id || '') });
@@ -451,7 +456,7 @@
       title.appendChild(h('div', { class:'quote-labor-cabinet__name', text:row.label }));
       title.appendChild(h('div', { class:'quote-labor-cabinet__meta', text:row.meta || '—' }));
       const timeText = fmtHours(row.hours);
-      const timeMeta = h('div', { class:'quote-labor-cabinet__meta quote-labor-cabinet__meta--time', text:`Normoczas: ${timeText}` });
+      const timeMeta = h('div', { class:'quote-labor-cabinet__meta quote-labor-cabinet__meta--time', text:stageTimes(row.details) });
       title.appendChild(timeMeta);
       summary.appendChild(title);
       summary.appendChild(h('span', { class:'wywiad-room-accordion__chevron', 'aria-hidden':'true' }));

@@ -162,6 +162,30 @@ const cases = [
     }
     assert.doesNotMatch(html, /ui-green-button|special-ok|modal-save-button-v2/);
   }],
+  ['approved checkbox gallery reuses the production quote-scope pattern without local styling', ()=>{
+    const html=read('dev_ui_patterns.html');
+    const sample=html.match(/<article[^>]*data-ui-pattern="checkbox-chips"[^>]*>([\s\S]*?)<\/article>/)?.[1];
+    assert.ok(sample,'Approved checkboxes must stay in the gallery');
+    assert.equal((sample.match(/<input type="checkbox" checked>/g)||[]).length,3);
+    for(const label of ['Dostawa','Wnoszenie','Montaż'])assert.ok(sample.includes('<span>'+label+'</span>'));
+    for(const token of ['rozrys-scope-chips','quote-scope-picker-chips','rozrys-scope-chip--room-match']){
+      assert.ok(sample.includes(token));
+      assert.ok(read('js/app/wycena/wycena-tab-selection-pickers.js').includes(token));
+      assert.ok(read('js/app/wycena/wycena-work-plan-view.js').includes(token));
+    }
+    assert.match(html,/css\/rozrys-checkbox-chip-pattern\.css\?v=20260628_drawer_systems_materials_v1/);
+    assert.match(html,/input\.closest\('label'\)\.classList\.toggle\('is-checked', input\.checked\)/);
+    assert.doesNotMatch(sample,/<style|style=/);
+    const states=[true,true,true],handlers=[];
+    const inputs=states.map((_,index)=>({checked:true,
+      closest(tag){assert.equal(tag,'label');return {classList:{toggle(name,value){assert.equal(name,'is-checked');states[index]=value;}}};},
+      addEventListener(type,handler){assert.equal(type,'change');handlers[index]=handler;}
+    }));
+    const script=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
+    vm.runInNewContext(script,{window:{},document:{querySelectorAll(selector){return selector==='[data-ui-pattern-checkboxes] input[type="checkbox"]'?inputs:[];}}},{filename:'dev_ui_patterns.html:inline'});
+    inputs[0].checked=false;handlers[0]();assert.deepEqual(states,[false,true,true]);
+    inputs[0].checked=true;handlers[0]();assert.deepEqual(states,[true,true,true]);
+  }],
   ['UI modules introduce no storage, session or project writes', ()=>{
     for(const file of [INFO_FILE, MENU_FILE, 'dev_ui_patterns.html']){
       assert.doesNotMatch(read(file), /localStorage\s*\.\s*(?:setItem|removeItem|clear)\s*\(|session\s*\.\s*begin\s*\(|project\s*\.\s*save\s*\(/);

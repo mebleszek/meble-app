@@ -5,7 +5,34 @@
   const clone=v=>JSON.parse(JSON.stringify(v));
   const n=v=>Math.max(0,Number(v)||0);
   const scope=d=>['room','quote','day'].includes(d?.billingScope)?d.billingScope:'standard';
-  const stage=d=>d.rateType==='assembly'?'assembly':'workshop';
+  const stage=d=>['workshop','assembly'].includes(d.workStage)?d.workStage:(d.rateType==='assembly'?'assembly':'workshop');
+  const normalizeServices=value=>Object.fromEntries(['delivery','carrying','assembly'].map(key=>[key,value?.[key]!==false]));
+  function serviceFor(row){
+    if((row.laborDefinitionId||row.laborCode||row.id)==='labor_delivery_loading'||row.sourceRole==='delivery-loading')return 'delivery';
+    if(String(row.quantitySource).startsWith('carrying.')||String(row.sourceRole).startsWith('carrying-'))return 'carrying';
+    if(String(row.sourceType).startsWith('transport')||String(row.sourceRole).startsWith('transport-')||String(row.quantitySource).startsWith('transport.'))return 'travel';
+    if(row.sourceRole==='appliance-service-fallback')return 'assembly';
+    return stage(row)==='assembly'?'assembly':'workshop';
+  }
+  function included(row,services,materialScope){const kind=serviceFor(row);if(kind==='delivery'&&row.quantitySource==='cabinet.count'&&materialScope?.includeCorpus===false)return false;return kind==='workshop'||(kind==='travel'?Object.values(services).some(Boolean):services[kind]);}
+  function filterServices(collections,services,materialScope){
+    for(const rows of Object.values(collections))for(let i=rows.length-1;i>=0;i--){
+      const parent=rows[i];
+      if(Array.isArray(parent.details)){
+        parent.details=parent.details.filter(row=>included(row,services,materialScope));
+        parent.total=parent.details.reduce((sum,row)=>sum+n(row.total),0);parent.unitPrice=parent.total;
+        parent.hours=parent.details.reduce((sum,row)=>sum+n(row.hours),0);
+        if(!parent.details.length)rows.splice(i,1);
+      }else if(!included(parent,services,materialScope))rows.splice(i,1);
+    }
+  }
+  function hoursByStage(rows){
+    const result={workshop:0,assembly:0};
+    for(const row of rows||[])for(const part of Array.isArray(row.details)?row.details:[row]){
+      if(part.rateType!=='helper')result[stage(part)]+=n(part.hours);
+    }
+    return result;
+  }
   function fail(code){const e=Error(code);e.code=code;throw e;}
   function rowFor(def,quantity,volumeM3,rates,rooms,key){
     const calc=FC.laborCatalog.calculateDefinition(def,{quantity,volumeM3,hourlyRates:rates});
@@ -70,11 +97,13 @@
     if(!Number.isSafeInteger(days))fail('SCHEDULE_INVALID_TIME');
     return {minutes:time,dailyMinutes:daily,travelMinutes:travel,availableMinutes:available,days,totalMinutes:time+days*(daily+travel)};
   }
-  function build({selectedRooms,collections,catalog,transport,helperHours=0}){
+  function build({selectedRooms,collections,catalog,transport,helperHours=0,services:serviceSelection,materialScope}){
+    const services=normalizeServices(serviceSelection);
+    filterServices(collections,services,materialScope);
     const rooms=[...new Set(selectedRooms||[])].sort(),defs=new Map((catalog||[]).map(d=>[d.id,FC.laborCatalog.normalizeDefinition(d)]));
     const rates=FC.laborCatalog.buildHourlyRates([...defs.values()]),leaves=flatten(collections);
     for(const d of defs.values())if(scope(d)==='day'&&d.active!==false&&[d.quantitySource,...(d.conditions||[]).map(c=>c.source)].some(code=>/^(schedule|workday|work_plan|harmonogram)\./.test(code||'')))fail('SCHEDULE_CIRCULAR_SOURCE');
-    const grouped=groupsFor(rooms,leaves,defs,rates),once=grouped.filter(r=>scope(r)!=='day'),daily=grouped.filter(r=>scope(r)==='day');
+    const grouped=groupsFor(rooms,leaves,defs,rates).filter(row=>(scope(row)==='day'&&!['delivery','carrying'].includes(serviceFor(row)))||included(row,services,materialScope)),once=grouped.filter(r=>scope(r)!=='day'),daily=grouped.filter(r=>scope(r)==='day');
     if(daily.some(r=>r.quantitySource==='transport.duration_hours'))fail('SCHEDULE_TRAVEL_SCOPE_CONFLICT');
     // No day-dependent source may participate in the daily denominator.
     for(const row of daily)if([row.quantitySource,...(row.conditions||[]).map(c=>c.source)].some(code=>/^(schedule|workday|work_plan|harmonogram)\./.test(code||'')))fail('SCHEDULE_CIRCULAR_SOURCE');
@@ -83,7 +112,7 @@
     const minutes=kind=>base.filter(r=>stage(r)===kind).reduce((s,r)=>s+n(r.hours)*60,0);
     const applicable=(row,kind)=>row.dailyStages==='both'||row.dailyStages===kind;
     const perDay=kind=>daily.filter(r=>applicable(r,kind)).reduce((s,r)=>s+n(r.hours)*60,0);
-    const schedule={version:1,status:'READY',order:['workshop','assembly'],dayMinutes:480,helperHours:n(helperHours),rates:clone(rates),dailyRules:daily.map(r=>({id:r.id,dailyStages:r.dailyStages,quantity:r.quantity,minutes:r.hours*60,cost:r.total,hourlyRate:r.hourlyRate,rateType:r.rateType,quantitySource:r.quantitySource,contributingRooms:r.contributingRooms})),warnings:[]};
+    const schedule={version:2,status:'READY',services,order:['workshop','assembly'],dayMinutes:480,helperHours:n(helperHours),rates:clone(rates),dailyRules:daily.map(r=>({id:r.id,dailyStages:r.dailyStages,quantity:r.quantity,minutes:r.hours*60,cost:r.total,hourlyRate:r.hourlyRate,rateType:r.rateType,quantitySource:r.quantitySource,contributingRooms:r.contributingRooms})),warnings:[]};
     schedule.workshop=solve(minutes('workshop'),perDay('workshop'),0);
     const travel=transport?.transport,known=travel&&travel.durationMin!==''&&travel.durationMin!=null&&!transport.isStale;
     const travelMinutes=known?2*n(transport.durationMin):0;
@@ -117,10 +146,10 @@
     quoteRates.push(...extras);
     return {schedule,scoped:grouped};
   }
-  function collect(selectedRooms,helperHours=0){
+  function collect(selectedRooms,helperHours=0,services=FC.quoteOfferStore?.getCurrentDraft?.()?.services){
     const core=FC.wycenaCoreLabor,offer=FC.wycenaCoreOffer;
     const collections={labor:core.collectCabinetLabor(selectedRooms),project:core.collectProjectPreparationLines(selectedRooms),carrying:core.collectCarryingLines(selectedRooms),agdServices:FC.wycenaCoreLines?.collectBuiltInAppliances?.(selectedRooms)||[],quoteRates:offer.collectQuoteRateLines()};
-    return {...build({selectedRooms,collections,catalog:FC.catalogSelectors.getQuoteRates(),transport:FC.investorTransport?.getCurrentTransportContext?.(),helperHours}),collections};
+    return {...build({selectedRooms,collections,catalog:FC.catalogSelectors.getQuoteRates(),transport:FC.investorTransport?.getCurrentTransportContext?.(),helperHours,services,materialScope:FC.quoteOfferStore?.getCurrentDraft?.()?.selection?.materialScope}),collections};
   }
-  FC.laborWorkPlan={build,collect,solve,scope};
+  FC.laborWorkPlan={build,collect,solve,scope,normalizeServices,serviceFor,included,hoursByStage};
 })();

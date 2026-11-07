@@ -143,7 +143,7 @@ function main(){
     r.s.Date=class extends Date{constructor(...args){super(...(args.length?args:['2026-11-05T00:00:00.000Z']));}};
     const before=JSON.stringify(original),updated=r.FC.laborCatalog.ensureDefaultDefinitions(original);
     assert.equal(JSON.stringify(original),before);
-    assert.equal(updated.length,121);
+    assert.equal(updated.length,122);
     for(const row of original){
       const expected=JSON.parse(JSON.stringify(row));
       if(['labor_hole_fi60','labor_pipe_cutout','labor_pipe_boxing','labor_vertical_partition_long'].includes(row.id))expected.priceUserEditedAt='2026-11-05T00:00:00.000Z';

@@ -4,7 +4,7 @@
 
 ## Dostawa i pojemność pojazdu — decyzja właściciela 07.11.2026
 
-**Przyszły zakres, bez implementacji estymatora teraz:** szacowanie liczby kursów na podstawie pojemności ładunkowej pojazdu i kubatury mebli. Obecne uzgodnienie przewiduje dodatkową opłatę za dostawę raz na pomieszczenie oraz osobną opłatę za wyjazd ekipy z dostawą lub bez. Ekipa dwóch monterów jedzie z meblami tym samym autem; czas ekipy jest odpłatny także przy samej dostawie. Nie utożsamiać liczby opłat za dostawę z liczbą fizycznych wyjazdów i nie liczyć dwukrotnie wspólnego przejazdu. Nowy estymator wymaga osobnego zatwierdzenia modelu, danych pojazdu i testów.
+**Przyszły zakres, bez implementacji estymatora teraz:** szacowanie liczby kursów na podstawie pojemności ładunkowej pojazdu i kubatury mebli. Właściciel doprecyzował: ekipa dwóch monterów jedzie z meblami i montuje tego samego dnia; dostawa, wnoszenie i montaż współdzielą przejazd. Załadunek i rozładunek to **łącznie 5 minut na korpus**, jednorazowo według aktualnej stawki montażowej obejmującej dwie osoby. To zastępuje proponowane wcześniej stałe 30 minut/opłatę na pomieszczenie — nie naliczać obu. Przejazdy wyznacza wspólny harmonogram montażu, nie liczba checkboxów lub pomieszczeń; czas jazdy i ewentualne km mają istniejące pozycje. Nowy estymator wymaga osobnego zatwierdzenia modelu, danych pojazdu i testów.
 
 ## LED i poziomowanie — decyzje właściciela 05.11.2026
 

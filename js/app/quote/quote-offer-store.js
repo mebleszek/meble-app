@@ -137,6 +137,7 @@
       commercial: normalizeCommercial(src.commercial, { selection }),
       updatedAt: Math.max(0, num(src.updatedAt, Date.now())),
     };
+    if(src.services && typeof src.services === 'object')out.services=Object.fromEntries(['delivery','carrying','assembly'].map(key=>[key,src.services[key]!==false]));
     if(src.__test === true || srcMeta.__test === true || srcMeta.testData){
       out.__test = true;
       out.__testRunId = String(src.__testRunId || srcMeta.__testRunId || srcMeta.testRunId || '');
@@ -204,18 +205,19 @@
     const localOnly = FC.applicationWrite?.localOnly;
     const list = localOnly ? readLocalDraftRows() : readAll();
     const idx = localOnly ? findLocalIndex(list, normalized) : findIndex(list, normalized);
+    const servicesChanged=JSON.stringify(list[idx]?.services)!==JSON.stringify(normalized.services);
     if(localOnly){
       if(!resolved.projectId || !resolved.investorId || (idx < 0 && findIndexByProject(list, resolved.projectId) >= 0)) return null;
       const previous = list[idx];
       if(previous) list[idx] = Object.assign({}, previous, normalized);
       else list.unshift(normalized);
       if(storage.setJSON(DRAFT_KEY, list) !== true) return null;
-      if((previous && JSON.stringify(previous.selection) !== JSON.stringify(normalized.selection)) || num(previous?.helperHours,0) !== normalized.helperHours){
+      if(servicesChanged || (previous && JSON.stringify(previous.selection) !== JSON.stringify(normalized.selection)) || num(previous?.helperHours,0) !== normalized.helperHours){
         FC.applicationWrite.afterCommit(()=> FC.sessionNavigation?.invalidateCalculationContext?.());
       }
       return normalized;
     }
-    if(FC.sessionNavigation && typeof FC.sessionNavigation.invalidateCalculationContext==='function' && ((idx>=0 && JSON.stringify(list[idx].selection)!==JSON.stringify(normalized.selection))||num(list[idx]?.helperHours,0)!==normalized.helperHours))FC.sessionNavigation.invalidateCalculationContext();
+    if(FC.sessionNavigation && typeof FC.sessionNavigation.invalidateCalculationContext==='function' && (servicesChanged||(idx>=0 && JSON.stringify(list[idx].selection)!==JSON.stringify(normalized.selection))||num(list[idx]?.helperHours,0)!==normalized.helperHours))FC.sessionNavigation.invalidateCalculationContext();
     if(idx >= 0) list[idx] = normalized;
     else list.unshift(normalized);
     if(writeAll(list.slice(0, 50)) === null) return null;
@@ -226,6 +228,7 @@
     const current = getDraft(scope);
     const next = normalizeDraft({
       helperHours: patch && patch.helperHours != null ? patch.helperHours : current.helperHours,
+      services: patch && patch.services ? clone(patch.services) : current.services,
       projectId: current.projectId,
       investorId: current.investorId,
       rateSelections: Array.isArray(patch && patch.rateSelections) ? patch.rateSelections : current.rateSelections,

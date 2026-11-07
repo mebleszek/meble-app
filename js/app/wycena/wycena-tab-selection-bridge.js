@@ -133,6 +133,8 @@
     if(FC.wycenaTabSelection && typeof FC.wycenaTabSelection.renderQuoteSelectionSection === 'function'){
       try{
         return FC.wycenaTabSelection.renderQuoteSelectionSection(card, ctx, {
+          render:getFn(deps,'render',()=>{}),
+          askConfirm:getFn(deps,'askConfirm',async()=>false),
           h:getFn(deps, 'h'),
           labelWithInfo:getFn(deps, 'labelWithInfo'),
           openQuoteRoomsPicker:getFn(deps, 'openQuoteRoomsPicker', (nextCtx)=> openQuoteRoomsPicker(nextCtx, deps)),

@@ -222,6 +222,7 @@
     };
   }
   function semanticRole(def){
+    if(text(def && def.id)==='labor_delivery_loading')return {sourceType:'delivery',sourceRole:'delivery-loading'};
     const src = text(def && def.quantitySource);
     const id = text(def && def.id);
     if(id === 'labor_hinge_fastening') return {sourceType:'hinges',sourceRole:'hinge-labor'};

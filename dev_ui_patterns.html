@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="css/investor-form.css?v=20260418_ui_patterns_v1">
   <link rel="stylesheet" href="css/rozrys-reference-sync.css?v=20260418_ui_patterns_v1">
   <link rel="stylesheet" href="css/rozrys-picker-exact-sync.css?v=20260418_ui_patterns_v1">
+  <link rel="stylesheet" href="css/rozrys-checkbox-chip-pattern.css?v=20260628_drawer_systems_materials_v1">
   <style>
     body{margin:0;padding:20px;background:#f6f7fb;color:#162033;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
     .patterns{display:grid;gap:18px;max-width:1180px;margin:0 auto;}
@@ -258,6 +259,18 @@
         </div>
       </article>
 
+      <article class="pattern-card" data-ui-pattern="checkbox-chips">
+        <h2>Checkboxy wyboru zakresu</h2>
+        <p>Zatwierdzony wzorzec z wyboru Fronty / Korpusy w WYCENIE. Używany również przez zakres usług: Dostawa / Wnoszenie / Montaż. Kopiować natywny checkbox, etykietę, klasy chipa i synchronizację stanu <code>is-checked</code>, bez lokalnego CSS.</p>
+        <div class="pattern-preview">
+          <div class="rozrys-scope-chips quote-scope-picker-chips" data-ui-pattern-checkboxes>
+            <label class="rozrys-scope-chip rozrys-scope-chip--room-match is-checked"><input type="checkbox" checked><span>Dostawa</span></label>
+            <label class="rozrys-scope-chip rozrys-scope-chip--room-match is-checked"><input type="checkbox" checked><span>Wnoszenie</span></label>
+            <label class="rozrys-scope-chip rozrys-scope-chip--room-match is-checked"><input type="checkbox" checked><span>Montaż</span></label>
+          </div>
+        </div>
+      </article>
+
       <article class="pattern-card" data-ui-pattern="rozrys-accordion">
         <h2>Accordion ROZRYS + ruch</h2>
         <p>Wzór dla rozwijanych sekcji: wygląd 1:1 z ROZRYSU, stały chevron po prawej, klik w cały nagłówek, natychmiastowe zamykanie starej sekcji i płynne rozwijanie nowej.</p>
@@ -369,6 +382,9 @@
           setOpen(box, true);
         }, EXPAND_MS + 30);
       }
+      document.querySelectorAll('[data-ui-pattern-checkboxes] input[type="checkbox"]').forEach(function(input){
+        input.addEventListener('change', function(){ input.closest('label').classList.toggle('is-checked', input.checked); });
+      });
       document.querySelectorAll('[data-ui-pattern-accordion-group]').forEach(function(group){
         group.querySelectorAll('[data-ui-pattern-accordion]').forEach(function(box){
           var trigger = triggerOf(box);
