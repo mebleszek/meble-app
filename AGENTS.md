@@ -203,6 +203,8 @@ Ta sekcja jest obowiązująca również **na początku nowych wątków**. W razi
 
 ### Nietykalność UI/UX — świadomy wyjątek naprawczy B (31.10.2026)
 
+**Wzorce UI — decyzja właściciela 07.11.2026:** przy dodawaniu lub zmianie elementu interfejsu korzystaj z odpowiedniego wzorca w **trybik → Wzorce UI** (`dev_ui_patterns.html`). Kopiuj cały wzorzec: wygląd, strukturę, klasy, stany i zachowanie; nie twórz lokalnych wariantów istniejących akordeonów, modali, pól ani przycisków. Jeśli potrzebnego elementu nie ma we wzorcach, najpierw zapytaj właściciela, jak go wykonać. Po zatwierdzeniu nowy element dodaj równocześnie do galerii wzorców. Wykorzystanie wzorca nie rozszerza zgody na zmianę UI.
+
 Bez wcześniejszej konkretnej zgody właściciela nie dodawaj, nie usuwaj, nie ukrywaj, nie przenoś ani nie przemianowuj przycisków, pól, etykiet, modali, akordeonów, układu, wyglądu, nawigacji ani zachowania interakcji. Zgoda na jeden element nie obejmuje całej zakładki; zmiana logiki nie upoważnia do ulepszania interfejsu.
 
 **Jedyny wyjątek w zatwierdzonej naprawie:** wolno przywrócić jednoznacznie wcześniej zaakceptowane zachowanie UI/UX, jeśli jest to niezbędne do uzgodnionego celu. Nie wolno tworzyć nowych funkcji, dodatkowych kroków, zmieniać wyglądu ani poprawiać ergonomii według własnego uznania. Przy niejasności obowiązującego zachowania — STOP i decyzja właściciela. Pozostałe UI/UX zachowaj bez zmian.

@@ -2,6 +2,10 @@
 
 > **Jak czytać:** `ROADMAP.md` przechowuje plan, zależności i decyzje przyszłe. **Aktualny stan wykonania, zaliczone CI/Pages, blokery i jeden następny ruch są wyłącznie w [CURRENT_STATE.md](CURRENT_STATE.md)**. Nie aktualizować obu plików równoległymi kopiami statusów. Starsze sekcje poniżej są historią planowania i nie anulują późniejszych wydań.
 
+## Dostawa i pojemność pojazdu — decyzja właściciela 07.11.2026
+
+**Przyszły zakres, bez implementacji estymatora teraz:** szacowanie liczby kursów na podstawie pojemności ładunkowej pojazdu i kubatury mebli. Obecne uzgodnienie przewiduje dodatkową opłatę za dostawę raz na pomieszczenie oraz osobną opłatę za wyjazd ekipy z dostawą lub bez. Ekipa dwóch monterów jedzie z meblami tym samym autem; czas ekipy jest odpłatny także przy samej dostawie. Nie utożsamiać liczby opłat za dostawę z liczbą fizycznych wyjazdów i nie liczyć dwukrotnie wspólnego przejazdu. Nowy estymator wymaga osobnego zatwierdzenia modelu, danych pojazdu i testów.
+
 ## LED i poziomowanie — decyzje właściciela 05.11.2026
 
 **LED odłożone do RYSUNKU — bez implementacji w bieżącym pakiecie norm.** Prace warsztatowe: frezowanie, lutowanie, montaż profilu aluminiowego i wklejanie LED, przygotowanie paneli LED i oświetlenia wnętrza szafek. Prace montażowe: dopasowanie/montaż paneli u klienta, podłączenie przewodów do zasilacza i zasilacza do gniazdka. RYSUNEK ma dostarczyć rzeczywiste odcinki, profile, panele i punkty podłączeń; nie wyprowadzać ich z nazw szafek ani zgadywanych długości. Normy z PDF pozostają źródłem przyszłego zakresu, bez nowych liczników lub zmian UI teraz.

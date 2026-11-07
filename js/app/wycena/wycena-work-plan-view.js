@@ -4,7 +4,25 @@
   const FC=window.FC=window.FC||{};
   const labels={room:'Raz na pomieszczenie',quote:'Raz na wycenę',day:'Raz na dzień pracy'};
   function el(tag,text,cls){const node=document.createElement(tag);if(text!=null)node.textContent=text;if(cls)node.className=cls;return node;}
-  function accordion(card,title){const d=el('details',null,'quote-offer-accordion wywiad-room-accordion');d.appendChild(el('summary',title,'quote-offer-accordion__head'));const b=el('div',null,'quote-offer-accordion__body');d.appendChild(b);card.appendChild(d);return b;}
+  function accordion(card,title){
+    // Copy the complete ROZRYS pattern, including its shared animation/group behavior.
+    const box=el('div',null,'rozrys-material-accordion');
+    const head=el('div',null,'rozrys-material-accordion__head');
+    const trigger=el('button',null,'rozrys-material-accordion__trigger');
+    trigger.type='button';trigger.setAttribute('aria-expanded','false');
+    const caption=el('div',null,'rozrys-material-accordion__title');
+    caption.appendChild(el('div',title,'rozrys-material-accordion__title-line1'));
+    trigger.appendChild(caption);
+    const arrow=el('span',null,'rozrys-material-accordion__chevron');arrow.setAttribute('aria-hidden','true');
+    trigger.appendChild(arrow);head.appendChild(trigger);box.appendChild(head);
+    const body=el('div',null,'rozrys-material-accordion__body');body.hidden=true;box.appendChild(body);
+    trigger.addEventListener('click',()=>{
+      const behavior=FC.accordionBehavior;
+      if(box.classList.contains('is-open'))behavior.animateClose(box);
+      else{behavior.closeInGroup(box);behavior.animateOpen(box);}
+    });
+    card.appendChild(box);return body;
+  }
   function activities(card,room){
     if(!room)return;
     let plan,error;try{plan=FC.laborWorkPlan.collect([room]);}catch(e){error=e.code||'WORK_PLAN_UNAVAILABLE';}
@@ -36,7 +54,7 @@
     if(!draft)return;
     const label=el('label','Dodatkowa trzecia osoba — godziny do nowej wyceny');
     const input=el('input');input.type='number';input.min='0';input.step='any';input.value=String(draft.helperHours||0);input.dataset.helperHours='true';label.appendChild(input);body.appendChild(label);
-    const button=el('button','Zapisz godziny pomocnika','btn btn-primary');button.type='button';button.hidden=true;body.appendChild(button);
+    const button=el('button','Zapisz godziny pomocnika','btn btn-primary');button.type='button';button.dataset.helperSave='true';button.hidden=true;body.appendChild(button);
     let storedHours=Number(draft.helperHours)||0;
     input.addEventListener('input',()=>{button.hidden=Number(input.value)===storedHours;});
     const notice=el('p');body.appendChild(notice);

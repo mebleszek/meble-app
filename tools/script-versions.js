@@ -4,7 +4,7 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), path = re
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
   "js/app/wycena/wycena-tab-manual-labor.js":"20261106_work_plan_v1",
-  "js/app/wycena/wycena-work-plan-view.js":"20261106_work_plan_v1",
+  "js/app/wycena/wycena-work-plan-view.js":"20261107_pattern_accordions_v1",
   "js/app/pricing/labor-work-plan.js":"20261106_work_plan_v1",
   "js/tabs/czynnosci.js":"20261106_work_plan_v1",
   "js/app/cabinet/cabinet-actions.js":"20261106_local_first_room_actions_v1",
