@@ -46,6 +46,7 @@
     scopeField.appendChild(scopeBtn);
     grid.appendChild(scopeField);
     section.appendChild(grid);
+    FC.wycenaWorkPlanView.servicesLauncher(section,ctx,{render:deps.render,askConfirm:deps.askConfirm});
 
     const info = h('div', { class:'quote-scope-info' });
     info.appendChild(h('div', { class:'quote-scope-info__title', text:'Zakres bieżącej wyceny' }));

@@ -143,7 +143,7 @@ async function main(){
  one=await browser(profile,base+'/index.html',{offline:true});try{await one.until('document.body.dataset.businessState==="ready"');}catch(error){console.log('DIAG cold trust '+JSON.stringify(await one.evaluate('('+require('./helpers/trusted-cold-start').inspectTrustStorage.toString()+')()')));throw error;}
  await one.evaluate('window.FC.views.openInvestorsList();true');assert.equal(await one.evaluate('!!document.querySelector("[data-action=remove-investor-from-list]")'),true);
  const missing=codeCandidate.model.labor.filter(row=>!JSON.parse(Object.fromEntries(JSON.parse(before)).fc_quote_rates_v1).some(old=>old.id===row.id));
- assert.equal(missing.length,64,'This approved release adds exactly64 factory norms including the daily break');
+ assert.equal(missing.length,65,'This approved release adds exactly65 factory norms including the daily break and combined loading/unloading');
  // This fixture deliberately exercises the legacy validator (LOCAL-FIRST
  // deployment is isolated by trusted-session-browser). Its persisted service
  // compatibility alias has four fields; the canonical catalog and its cache

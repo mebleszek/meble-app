@@ -72,8 +72,49 @@ test('manual/automatic suppression stays suppressed; no creation from blocked au
 test('actual carrying uses the two-person assembly rate, NEVER helper rate/person-hours',()=>{
  const r=setup();r.load('js/app/pricing/carrying-logistics.js');r.FC.investorPersistence={getCurrentInvestorId:()=> 'synthetic',getInvestorById:()=>({carrying:{floorNumber:3,elevatorStatus:'no'}})};const c=r.FC.wycenaCoreLabor.collectCarryingLines(['kuchnia']);const rows=c.flatMap(r=>r.details);assert.ok(rows.length);for(const row of rows){assert.equal(row.rateType,'assembly');near(row.hourlyRate,250);near(row.total,row.hours*250);}
 });
+test('approved loading/unloading counts five combined minutes per corpus across rooms and pays the CURRENT two-person rate once',()=>{
+ const r=setup(),loading=r.rates().find(row=>row.id==='labor_delivery_loading');r.catalog.push(clone(loading));
+ r.FC.catalogSelectors={getQuoteRates:()=>r.catalog};
+ const cabinet=clone(r.project.kuchnia.cabinets[0]);
+ r.project.kuchnia.cabinets=Array.from({length:4},(_,i)=>({...clone(cabinet),id:'load-'+i}));
+ r.project.other={...clone(r.project.kuchnia),cabinets:Array.from({length:2},(_,i)=>({...clone(cabinet),id:'other-'+i}))};
+ const c=r.collections();c.labor=r.FC.wycenaCoreLabor.collectCabinetLabor(['kuchnia','other']);
+ const p=r.run(c,['other','kuchnia','kuchnia']);const rows=p.scoped.filter(row=>row.id===loading.id);
+ assert.equal(rows.length,2);assert.equal(rows.reduce((sum,row)=>sum+row.quantity,0),6);
+ near(rows.reduce((sum,row)=>sum+row.hours,0),0.5);near(rows.reduce((sum,row)=>sum+row.total,0),125);
+ near(p.schedule.assembly.minutes,30);assert.equal(p.schedule.trips,1);
+ for(const row of rows){assert.equal(row.quantitySource,'cabinet.count');assert.equal(row.hourlyRate,250);assert.equal(row.rateType,'assembly');}
+ const rate=r.catalog.find(row=>row.id==='labor_rate_assembly');rate.price=312.125;
+ const more=r.collections();more.labor=r.FC.wycenaCoreLabor.collectCabinetLabor(['kuchnia','other']);
+ const changed=r.run(more,['kuchnia','other']);near(changed.scoped.filter(row=>row.id===loading.id).reduce((sum,row)=>sum+row.total,0),156.0625);
+ // Three workdays do not repeat loading. The original row retains all private edits.
+ const privateDefinition=r.catalog.find(row=>row.id===loading.id);privateDefinition.timeBlockHours=1/60;privateDefinition.note='SYNTHETIC_PRIVATE_NOTE';
+ const baseline=clone(privateDefinition),multi=r.collections();multi.labor=r.FC.wycenaCoreLabor.collectCabinetLabor(['kuchnia','other']);multi.labor.push({hours:13,rateType:'assembly',total:13*rate.price});
+ const trip=r.run(multi,['kuchnia','other']);assert.equal(trip.schedule.trips,3);near(trip.scoped.filter(row=>row.id===loading.id).reduce((sum,row)=>sum+row.hours*60,0),6);assert.deepEqual(privateDefinition,baseline);
+});
+test('service selection removes only its own work; workshop-only creates no site days, travel, carrying or loading',()=>{
+ const r=setup(),make=()=>{const c=r.collections();c.labor=[{hours:1,total:150,rateType:'workshop'},{hours:1,total:250,rateType:'assembly'},{laborDefinitionId:'labor_delivery_loading',hours:5/60,total:125/6,rateType:'assembly'}];c.carrying=[{hours:0.25,total:62.5,rateType:'assembly',sourceRole:'carrying-labor'}];c.quoteRates=[{sourceType:'transport',sourceRole:'transport-travel-time',hours:0.5,total:125}];c.agdServices=[{sourceRole:'appliance-service-fallback',hours:0,total:100}];return c;};
+ const off=make(),plan=r.run(off,['A'],{services:{delivery:false,carrying:false,assembly:false}});
+ assert.equal(plan.schedule.workshop.days,1);assert.equal(plan.schedule.assembly.days,0);assert.equal(plan.schedule.trips,0);assert.equal(off.labor.length,1);assert.equal(off.carrying.length,0);assert.equal(off.quoteRates.some(row=>row.sourceType==='transport'),false);assert.equal(off.quoteRates.filter(row=>row.id==='labor_daily_break').length,1);assert.equal(off.quoteRates.find(row=>row.id==='labor_daily_break').workStage,'workshop');
+ for(const key of ['delivery','carrying','assembly']){const c=make(),services={delivery:true,carrying:true,assembly:true,[key]:false};r.run(c,['A'],{services});const rows=Object.values(c).flat().filter(row=>row.id!=='labor_daily_break');assert.equal(rows.some(row=>r.FC.laborWorkPlan.serviceFor(row)===key),false);assert.ok(rows.some(row=>row.rateType==='workshop'));}
+ const legacy=make(),explicit=make();const a=r.run(legacy,['A']),b=r.run(explicit,['A'],{services:{delivery:true,carrying:true,assembly:true}});assert.deepEqual(clone(a.schedule),clone(b.schedule));assert.deepEqual(legacy,explicit);
+});
+test('service flags and scoped loading agree with actual room-activities rows without modifying the project',()=>{
+ const r=fixture();r.load('js/app/pricing/labor-work-plan.js');r.load('js/tabs/czynnosci.js');
+ const before=clone(r.project);r.FC.quoteOfferStore={getCurrentDraft:()=>({services:{delivery:false,carrying:false,assembly:false}})};
+ const rows=r.FC.tabsCzynnosci.buildCabinetRows('kuchnia');assert.equal(rows.length,1);assert.ok(rows[0].details.length);
+ assert.ok(rows[0].details.every(row=>row.rateType!=='assembly'));assert.equal(rows[0].details.some(row=>row.laborDefinitionId==='labor_delivery_loading'),false);
+ const times=r.FC.laborWorkPlan.hoursByStage(rows);assert.ok(times.workshop>0);assert.equal(times.assembly,0);assert.deepEqual(clone(r.project),before);
+});
+test('shared delivery/carrying/assembly trip is never multiplied by rooms or number of enabled services',()=>{
+ const r=setup(),c=r.collections();c.labor=[{hours:6,rateType:'assembly',total:1500},{hours:0.5,rateType:'assembly',total:125,laborDefinitionId:'labor_delivery_loading'}];c.carrying=[{hours:0.5,total:125,rateType:'assembly',sourceRole:'carrying-labor'}];c.quoteRates=[{sourceType:'transport',sourceRole:'transport-travel-time',hours:0.5,total:125}];
+ const p=r.run(c,['A','B']);assert.equal(p.schedule.assembly.days,2);assert.equal(p.schedule.trips,2);near(c.quoteRates.find(row=>row.sourceRole==='transport-travel-time').total,500);near(p.schedule.assembly.minutes,420);near(p.schedule.assembly.totalMinutes,600);
+ assert.deepEqual(clone(p.schedule.services),{delivery:true,carrying:true,assembly:true});
+ const noBody=r.collections();noBody.labor=[{laborDefinitionId:'labor_delivery_loading',quantitySource:'cabinet.count',hours:5/60,rateType:'assembly',total:125/6}];const frontOnly=r.run(noBody,['A'],{materialScope:{includeCorpus:false,includeFronts:true}});assert.equal(frontOnly.schedule.assembly.days,0);assert.equal(noBody.labor.length,0);
+ const amounts=r.FC.laborWorkPlan.hoursByStage([{details:[{hours:1,rateType:'workshop'},{hours:2,rateType:'assembly'},{hours:3,rateType:'helper'},{hours:0.5,rateType:'workshop',workStage:'assembly'}]}]);assert.deepEqual(clone(amounts),{workshop:1,assembly:2.5});
+});
 test('scope and day metadata survive closed 14-domain validation and cannot accept an unknown scope',()=>{
- const {model,context}=require('./helpers/code-global-catalogs').buildCodeCatalogs();assert.equal(model.labor.length,121);context.FC.globalDataContract.validateBundle(model);const bad=clone(model);bad.labor[0].billingScope='guess';assert.throws(()=>context.FC.globalDataContract.validateBundle(bad),e=>e.code==='GLOBAL_VALUE_INVALID');
+ const {model,context}=require('./helpers/code-global-catalogs').buildCodeCatalogs();assert.equal(model.labor.length,122);context.FC.globalDataContract.validateBundle(model);const bad=clone(model);bad.labor[0].billingScope='guess';assert.throws(()=>context.FC.globalDataContract.validateBundle(bad),e=>e.code==='GLOBAL_VALUE_INVALID');
 });
 test('snapshot normalizers preserve frozen schedule, provenance and third-person cost; old offers gain NO schedule',()=>{
  const r=setup(),c=r.collections();c.labor=[{hours:6,total:1500,rateType:'assembly'}];const plan=r.run(c,['A'],{helperHours:2.5});
@@ -85,6 +126,7 @@ test('snapshot normalizers preserve frozen schedule, provenance and third-person
  r.catalog.find(d=>d.id==='labor_rate_workshop').price=999;
  assert.deepEqual(clone(r.FC.quoteSnapshotStore.normalizeSnapshot(stored).schedule),clone(plan.schedule));
  const historical=clone(built);delete historical.schedule;assert.equal(Object.hasOwn(r.FC.quoteSnapshotStore.normalizeSnapshot(historical),'schedule'),false);
+ const previous=clone(built);previous.schedule.version=1;delete previous.schedule.services;assert.deepEqual(clone(r.FC.quoteSnapshotStore.normalizeSnapshot(previous).schedule),previous.schedule);
 });
 test('business project export, integrity pack and application projection preserve schedule without network or original writes',async()=>{
  const r=require('./project-selective-export-smoke').fixture();
@@ -95,6 +137,7 @@ test('business project export, integrity pack and application projection preserv
  const result=await r.FC.businessProjectContract.build(source,payload.project.id),pack=await r.FC.cloudPilotContract.pack(result,{ownerUid:'synthetic-owner',projectId:payload.project.id,investorId:payload.investor.id},null,'a'.repeat(32));assert.ok(pack.chunks.length);assert.deepEqual(clone(result.document.payload.offers[0].schedule),clone(schedule));assert.deepEqual([...rows],before);
  const {projectApplicationRows}=await import('../sync/application-replication.mjs');const applied=projectApplicationRows(Object.fromEntries(rows),{scope:payload.project.id},{value:{document:result.document}},null,r.FC.businessProjectContract);
  assert.deepEqual(JSON.parse(applied.fc_quote_snapshots_v1)[0].schedule,clone(schedule));
+ rows.set('fc_quote_offer_drafts_v1',JSON.stringify([{projectId:payload.project.id,investorId:payload.investor.id,services:{delivery:false,carrying:false,assembly:false}}]));const guarded=[...rows];await assert.rejects(r.FC.businessProjectContract.build(source,payload.project.id),e=>e.code==='LF_PROJECT_OWNERSHIP_PENDING');assert.deepEqual([...rows],guarded);
 });
 test('WYCENA orchestration uses one shared plan BEFORE register/totals and exposes the identical frozen schedule',async()=>{
  const r=setup(),f=r.FC,selection={selectedRooms:['kuchnia']};
@@ -104,10 +147,10 @@ test('WYCENA orchestration uses one shared plan BEFORE register/totals and expos
  f.wycenaCoreLines={collectElementLines:()=>[],collectAccessories:()=>[],collectBuiltInAppliances:()=>[]};
  f.investorTransport={getCurrentTransportContext:()=>({durationMin:30,transport:{durationMin:30},isStale:false})};
  r.load('js/app/quote/quote-snapshot.js');r.load('js/app/wycena/wycena-core.js');const result=await f.wycenaCore.collectQuoteData({selection});
- assert.equal(result.schedule.version,1);assert.equal(result.schedule.helperHours,2);assert.equal(result.quoteRateLines.filter(x=>x.sourceRole==='additional-helper').length,1);
+ assert.equal(result.schedule.version,2);assert.equal(result.schedule.helperHours,2);assert.equal(result.quoteRateLines.filter(x=>x.sourceRole==='additional-helper').length,1);
  assert.ok(result.quoteRateLines.some(x=>x.laborDefinitionId==='labor_daily_break'));near(result.totals.grand,result.calculationRegister.totals.grand);
  for(const row of result.quoteRateLines)assert.equal(result.calculationRegister.lines.filter(x=>x.id===row.key).length,1);
  delete f.laborWorkPlan;await assert.rejects(f.wycenaCore.collectQuoteData({selection}),/FC.laborWorkPlan/);
 });
-async function main(){for(const [name,fn]of tests){await fn();console.log('PASS '+name);}console.log('PASS work-plan '+tests.length+' targeted groups');}
+async function main(){const selected=process.argv.includes('--services-only')?tests.filter(([name])=>/^(approved loading|service selection|service flags|shared delivery)/.test(name)):tests;for(const [name,fn]of selected){await fn();console.log('PASS '+name);}console.log('PASS work-plan '+selected.length+' targeted groups');}
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});module.exports={main,setup};

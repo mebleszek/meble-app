@@ -6,7 +6,7 @@ const root=path.resolve(__dirname,'..');
 const {buildCodeCatalogs}=require('./helpers/code-global-catalogs');
 async function main(){
  const {model,context}=buildCodeCatalogs(),ids=context.FC.laborCatalogDefinitions.PDF_OPERATION_IDS;
- const old=structuredClone(model);old.labor=old.labor.filter(row=>!ids.includes(row.id)&&row.id!=='labor_daily_break');
+ const old=structuredClone(model);old.labor=old.labor.filter(row=>!ids.includes(row.id)&&row.id!=='labor_daily_break'&&row.id!=='labor_delivery_loading');
  const {codeGlobalRows}=await import('../sync/global-code-rebuild-plan.mjs');
  const raw=codeGlobalRows(old,context.FC.globalDataContract);
  Object.assign(raw,{fc_projects_v1:'[{"id":"synthetic-project","investorId":"synthetic-investor","opaque":"KEEP_PROJECT"}]',fc_investors_v1:'[{"id":"synthetic-investor","opaque":"KEEP_INVESTOR"}]',fc_quote_snapshots_v1:'[{"opaque":"KEEP_FROZEN_OFFER","total":123.4567}]',fc_ui_v1:JSON.stringify({showPriceList:'quoteRates',editingId:'labor_body_h090'}),fc_edit_session_v1:null});
@@ -87,9 +87,9 @@ async function main(){
   assert.equal(bootProof.tables.control.find(r=>r.key==='application').version,2);
   for(const name of ['replicas','protected','outbox'])assert.deepEqual(bootProof.tables[name],baseline.tables[name]);
   assert.equal(JSON.parse(baseline.native.fc_quote_rates_v1).length,57);
-  assert.equal(bootProof.catalog.length,121);
+  assert.equal(bootProof.catalog.length,122);
   for(const row of old.labor)assert.deepEqual(bootProof.catalog.find(r=>r.id===row.id),row,'startup preserves every original field');
-  console.log('PASS old 57-row profile automatically becomes 121 before use, without changing any existing record or pending store');
+  console.log('PASS old 57-row profile automatically becomes 122 before use, without changing any existing record or pending store');
   await browser.evaluate(`(()=>{const cab={id:'quote-test',type:'wisząca',subType:'okap',width:60,height:82,depth:50,frontCount:0,backMaterial:'HDF',details:{}};
    FC.wycenaCoreUtils={clone:structuredClone,slug:v=>String(v).replace(/[^a-zA-Z0-9]/g,'_')};FC.wycenaCoreSource={project:()=>({kuchnia:{settings:{},cabinets:[cab]}}),selectedCabinets:()=>[{roomId:'kuchnia',roomLabel:'Synthetic Kitchen',cabinet:cab}],roomLabel:()=> 'Synthetic Kitchen'};
    FC.wycenaCoreOffer={};FC.wycenaCoreSelection={};FC.wycenaCoreCatalog={};FC.catalogSelectors={getQuoteRates:()=>FC.catalogStore.getQuoteRates()};FC.frontHardware={getCabinetFrontCutListForMaterials:()=>[],getDoorFrontPanelsForHinges:()=>[]};return true;})()`);
@@ -100,8 +100,8 @@ async function main(){
   console.log('PASS real form action-state keeps Save hidden when no item is edited');
 
 
-  await browser.gracefulClose();await open(false);let before=await proof();assert.equal(before.catalog.length,121);assert.equal(before.tables.outbox[0].phase,'uncertain');
-  await browser.evaluate('window.dirty=false;window.acceptSave=true;saveForm()');let same=await proof();assert.equal(same.catalog.length,121);assert.equal(same.rows.fc_quote_rates_v1,before.rows.fc_quote_rates_v1);
+  await browser.gracefulClose();await open(false);let before=await proof();assert.equal(before.catalog.length,122);assert.equal(before.tables.outbox[0].phase,'uncertain');
+  await browser.evaluate('window.dirty=false;window.acceptSave=true;saveForm()');let same=await proof();assert.equal(same.catalog.length,122);assert.equal(same.rows.fc_quote_rates_v1,before.rows.fc_quote_rates_v1);
   console.log('PASS unchanged Save only closes the form and does not change the automatically completed catalog');
   await browser.evaluate('openForm()');before=await proof();
   await browser.evaluate('window.dirty=true;window.acceptSave=false;window.formName="Synthetic edited corpus";saveForm()');same=await proof();assert.deepEqual(same,before);
@@ -114,7 +114,7 @@ async function main(){
   console.log('PASS observed native quota failure rolls back the image/cache and preserves the form for retry');
   await browser.evaluate('window.authorized=false;saveForm()');await browser.evaluate('window.authorized=true;true');same=await proof();assert.deepEqual(same.tables,before.tables);assert.deepEqual(same.catalog,before.catalog);
   console.log('PASS revoked access prevents the catalog write');
-  assert.equal(await browser.evaluate('saveForm()'),true,JSON.stringify(await browser.evaluate('({notices:window.notices,status:authority.status()})')));const after=await proof();assert.equal(after.catalog.length,121);assert.equal(after.form,false);assert.deepEqual(after.native,before.native);assert.deepEqual(after.ram,before.ram);
+  assert.equal(await browser.evaluate('saveForm()'),true,JSON.stringify(await browser.evaluate('({notices:window.notices,status:authority.status()})')));const after=await proof();assert.equal(after.catalog.length,122);assert.equal(after.form,false);assert.deepEqual(after.native,before.native);assert.deepEqual(after.ram,before.ram);
   for(const name of ['replicas','protected','outbox'])assert.deepEqual(after.tables[name],before.tables[name]);
   assert.deepEqual(after.tables.control.filter(row=>row.key!=='application'),before.tables.control.filter(row=>row.key!=='application'));
   assert.equal(after.tables.control.find(row=>row.key==='application').version,before.tables.control.find(row=>row.key==='application').version+1);
@@ -125,7 +125,7 @@ async function main(){
   assert.equal(await browser.evaluate('(()=>{const c=FC.globalDataContract;c.validateBundle(c.capture(localStorage,Object.keys(c.schemas)).model);return Object.keys(c.schemas).length;})()'),14);
   assert.equal(await browser.evaluate('FC.catalogStore.getQuoteRates().find(r=>r.id==="pdf_hood_corpus_adapt").timeBlockHours'),1);
   assert.equal(await browser.evaluate('(()=>{const rows=FC.catalogStore.getQuoteRates(),l=FC.laborCatalog;return ["labor_body_h090","pdf_hood_corpus_adapt","pdf_hood_prepare"].reduce((sum,id)=>sum+l.calculateDefinition(rows.find(r=>r.id===id),{quantity:1,hourlyRates:l.buildHourlyRates(rows)}).pricedHours*60,0);})()'),150);
-  console.log('PASS confirmed existing Save persists 121 norms atomically; 14 domains validate; original RAW/projects/offers/three other stores remain exact');
+  console.log('PASS confirmed existing Save persists 122 norms atomically; 14 domains validate; original RAW/projects/offers/three other stores remain exact');
   await browser.crash();await open(false);const restored=await proof();assert.deepEqual(restored.catalog,after.catalog);assert.equal(restored.rows.fc_quote_rates_v1,after.rows.fc_quote_rates_v1);assert.deepEqual(restored.native,after.native);
   for(const name of ['replicas','protected','outbox'])assert.deepEqual(restored.tables[name],after.tables[name]);assert.deepEqual(external,[]);
   console.log('PASS restart reopens the verified catalog and leaves the uncertain queue unchanged; zero external network requests');
@@ -136,7 +136,7 @@ async function main(){
    const failed=await browser.evaluate('(async()=>({seen:window.startupFaultObserved,tables:await tables(),native:nativeRows(),baseline:startupBaseline,catalog:FC.catalogStore.getQuoteRates()}))()');
    assert.equal(failed.seen,true);if(fault==='cas'){const expected=structuredClone(failed.baseline.tables);expected.control.find(row=>row.key==='application').version++;assert.deepEqual(failed.tables,expected);}else assert.deepEqual(failed.tables,failed.baseline.tables);assert.equal(failed.catalog.length,57);
    assert.deepEqual(failed.native,failed.baseline.native);
-   phase=profile+':graceful';await browser.gracefulClose();await open(false);assert.equal((await proof()).catalog.length,121);await browser.close();
+   phase=profile+':graceful';await browser.gracefulClose();await open(false);assert.equal((await proof()).catalog.length,122);await browser.close();
    console.log('PASS startup '+fault+' leaves the old image/queue/cache intact; next independent start completes defaults');
   }
   profile='private-records';sourceRows=structuredClone(raw);
@@ -146,12 +146,23 @@ async function main(){
   privateRows.push({...model.labor.find(row=>row.id==='pdf_door_adjust'),active:false});
   privateRows.push({...privateRows.find(row=>row.id==='labor_body_h090'),id:'synthetic-custom-norm',name:'Synthetic custom norm',timeBlockHours:0.75});
   sourceRows.fc_quote_rates_v1=JSON.stringify(privateRows);
-  await open(true);let personal=await proof();assert.equal(personal.catalog.length,122);
+  await open(true);let personal=await proof();assert.equal(personal.catalog.length,123);
   for(const row of privateRows)assert.deepEqual(personal.catalog.find(r=>r.id===row.id),row);
   const stored=personal.rows.fc_quote_rates_v1;await browser.gracefulClose();await open(false);
-  personal=await proof();assert.equal(personal.rows.fc_quote_rates_v1,stored);assert.equal(new Set(personal.catalog.map(r=>r.id)).size,122);await browser.close();
+  personal=await proof();assert.equal(personal.rows.fc_quote_rates_v1,stored);assert.equal(new Set(personal.catalog.map(r=>r.id)).size,123);await browser.close();
   console.log('PASS private fractional rate, inactive defaults, private norm and 45-minute history remain exact and idempotent');
   }
+  // A deployed 121-row catalog gains only the new combined loading/unloading rule.
+  profile='existing-loading-catalog';sourceRows={...raw,fc_quote_rates_v1:JSON.stringify(model.labor.filter(row=>row.id!=='labor_delivery_loading')),fc_services_v1:null};
+  await open(true);const loadingUpgrade=await proof(),loadingBaseline=await browser.evaluate('startupBaseline');
+  const oldLoadingRows=JSON.parse(loadingBaseline.native.fc_quote_rates_v1),newLoadingRows=JSON.parse(loadingUpgrade.rows.fc_quote_rates_v1);
+  assert.equal(oldLoadingRows.length,121);assert.equal(newLoadingRows.length,122);
+  assert.deepEqual(newLoadingRows.slice(0,121),oldLoadingRows);
+  assert.deepEqual(newLoadingRows[121],model.labor.find(row=>row.id==='labor_delivery_loading'));
+  for(const table of ['outbox','replicas','protected'])assert.deepEqual(loadingUpgrade.tables[table],loadingBaseline.tables[table]);
+  assert.deepEqual(loadingUpgrade.native,loadingBaseline.native);assert.deepEqual(loadingUpgrade.ram,{unsaved:'KEEP_RAM',form:{width:62}});
+  const upgradedRaw=loadingUpgrade.rows.fc_quote_rates_v1;await browser.gracefulClose();await open(false);assert.equal((await proof()).rows.fc_quote_rates_v1,upgradedRaw);await browser.close();
+  console.log('PASS existing 121-row catalog appends exactly one approved loading rule before use; prices, norms, native RAW/RAM and pending stores exact across cold restart');
   // New scope metadata follows the actual form -> catalog -> native IDB transaction.
   profile='scope-metadata';sourceRows=structuredClone(raw);await open(true);
   assert.equal(await browser.evaluate(`(()=>{for(const [id,value]of [['laborBillingScope','room'],['laborDailyStages','assembly']]){const select=document.createElement('select');select.id=id;const option=document.createElement('option');option.value=value;select.append(option);select.value=value;document.body.append(select);}const draft=actualFormDraft();return draft.billingScope==='room'&&draft.dailyStages==='assembly';})()`),true);
@@ -162,34 +173,99 @@ async function main(){
   assert.deepEqual(scoped.native,scopeBefore.native);assert.deepEqual(scoped.tables.outbox,scopeBefore.tables.outbox);assert.deepEqual(scoped.tables.replicas,scopeBefore.tables.replicas);assert.deepEqual(scoped.tables.protected,scopeBefore.tables.protected);assert.deepEqual(scoped.ram,scopeBefore.ram);
   await browser.gracefulClose();await open(false);assert.deepEqual((await proof()).catalog.find(r=>r.id==='labor_body_h090'),savedScope);
   // Render actual new views in this offline-capable browser, with synthetic calculation inputs.
-  for(const file of ['pricing/labor-work-plan','wycena/wycena-work-plan-view','quote/quote-offer-store'])await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
+  for(const file of ['ui/accordion-behavior','pricing/labor-work-plan','wycena/wycena-work-plan-view','quote/quote-offer-store'])await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
   assert.equal(await browser.evaluate(`(()=>{const root=document.createElement('div');document.body.append(root);FC.wycenaWorkPlanView.schedule(root,{schedule:{version:1,status:'READY',workshop:{minutes:480,totalMinutes:540,days:2},assembly:{minutes:360,totalMinutes:450,days:1},trips:1}});return root.textContent.includes('Warsztat: 8.00')&&root.textContent.includes('dni: 2')&&root.textContent.includes('Wyjazdy montażowe: 1');})()`),true);
   await browser.evaluate(`(()=>{const cab={id:'activity-cab',type:'wisząca',subType:'okap',width:60,height:82,depth:50,frontCount:0,backMaterial:'HDF',details:{}};FC.wycenaCoreUtils={clone:structuredClone,slug:v=>String(v).replace(/[^a-zA-Z0-9]/g,'_')};FC.wycenaCoreSource={project:()=>({kuchnia:{settings:{},cabinets:[cab]}}),selectedCabinets:()=>[{roomId:'kuchnia',roomLabel:'Kuchnia',cabinet:cab}],roomLabel:id=>id};FC.catalogSelectors={getQuoteRates:()=>FC.catalogStore.getQuoteRates()};FC.frontHardware={getCabinetFrontCutListForMaterials:()=>[],getDoorFrontPanelsForHinges:()=>[]};return true;})()`);
   for(const file of ['cabinet/cabinet-hardware-requirements','cabinet/cabinet-cutlist','pricing/work-quantity-sources','pricing/work-quantity-facts','wycena/wycena-core-offer','wycena/wycena-core-labor'])await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
   const readBefore=await proof();
   assert.deepEqual(await browser.evaluate(`(()=>{const root=document.createElement('div');document.body.append(root);FC.wycenaWorkPlanView.activities(root,'kuchnia');return {count:root.querySelectorAll('[data-billing-scope]').length,room:root.querySelector('[data-billing-scope="room"]').textContent.includes('Scoped body'),day:root.querySelector('[data-billing-scope="day"]').textContent.includes('Przerwa'),blocked:root.textContent.includes('Nie można obliczyć zakresu')};})()`),{count:3,room:true,day:true,blocked:false});
+  // The production gallery's complete ROZRYS accordion, not a native summary triangle.
+  await browser.evaluate(`(()=>{window.patternRoot=document.createElement('div');patternRoot.dataset.accordionGroup='true';document.body.append(patternRoot);FC.wycenaWorkPlanView.activities(patternRoot,'kuchnia');FC.wycenaWorkPlanView.schedule(patternRoot,{schedule:{status:'READY',workshop:{minutes:60,totalMinutes:90,days:1},assembly:{minutes:0,totalMinutes:0,days:0},trips:0}});return true;})()`);
+  for(const css of ['rozrys-main','wywiad','quote-labor-picker'])await browser.evaluate(`(()=>{const style=document.createElement('style');style.textContent=${JSON.stringify(fs.readFileSync(path.join(root,'css/'+css+'.css'),'utf8'))};document.head.append(style);return true;})()`);
+  assert.deepEqual(await browser.evaluate(`(()=>{const boxes=[...patternRoot.querySelectorAll('.rozrys-material-accordion')];return {count:boxes.length,native:patternRoot.querySelectorAll('summary').length,valid:boxes.every(box=>{const button=box.querySelector(':scope > .rozrys-material-accordion__head > button.rozrys-material-accordion__trigger'),body=box.querySelector(':scope > .rozrys-material-accordion__body'),arrow=button?.querySelector('.rozrys-material-accordion__chevron');return !!button&&button.type==='button'&&button.getAttribute('aria-expanded')==='false'&&body.hidden&&arrow.getAttribute('aria-hidden')==='true'&&getComputedStyle(arrow).minWidth==='40px'&&getComputedStyle(arrow,'::before').borderRightColor==='rgb(22, 101, 52)'&&!!button.querySelector('.rozrys-material-accordion__title-line1');})};})()`),{count:4,native:0,valid:true});
+  await browser.evaluate(`(()=>{patternRoot.querySelector('button.rozrys-material-accordion__trigger').click();return true;})()`);
+  assert.equal(await browser.evaluate(`patternRoot.querySelector('.rozrys-material-accordion').classList.contains('is-open')&&patternRoot.querySelector('button').getAttribute('aria-expanded')==='true'&&!patternRoot.querySelector('.rozrys-material-accordion__body').hidden`),true);
+  await browser.evaluate(`(()=>{patternRoot.querySelectorAll('button.rozrys-material-accordion__trigger')[1].click();return true;})()`);
+  // Wait for the existing 420 ms close animation, without changing its duration.
+  await browser.evaluate(`new Promise(resolve=>setTimeout(resolve,550))`);
+  assert.deepEqual(await browser.evaluate(`(()=>{const boxes=[...patternRoot.querySelectorAll('.rozrys-material-accordion')];return boxes.map(box=>({open:box.classList.contains('is-open'),expanded:box.querySelector('button').getAttribute('aria-expanded'),hidden:box.querySelector(':scope > .rozrys-material-accordion__body').hidden}));})()`),[{open:false,expanded:'false',hidden:true},{open:true,expanded:'true',hidden:false},{open:false,expanded:'false',hidden:true},{open:false,expanded:'false',hidden:true}]);
+  await browser.evaluate(`(()=>{patternRoot.querySelectorAll('button.rozrys-material-accordion__trigger')[1].click();return true;})()`);
+  await browser.evaluate(`new Promise(resolve=>setTimeout(resolve,550))`);
+  assert.equal(await browser.evaluate(`patternRoot.querySelectorAll('.rozrys-material-accordion.is-open').length`),0);
+  await browser.evaluate(`(()=>{patternRoot.querySelector('button.rozrys-material-accordion__trigger').focus();return true;})()`);
+  for(const type of ['keyDown','keyUp'])await browser.send('Input.dispatchKeyEvent',{type,key:'Enter',code:'Enter',windowsVirtualKeyCode:13,...(type==='keyDown'?{text:'\r'}:{})});
+  assert.equal(await browser.evaluate(`patternRoot.querySelector('button').getAttribute('aria-expanded')==='true'&&!patternRoot.querySelector('.rozrys-material-accordion__body').hidden`),true);
+
+  await browser.evaluate(fs.readFileSync(path.join(root,'js/tabs/czynnosci.js'),'utf8')+'\ntrue');
+  assert.equal(await browser.evaluate(`(()=>{const node=document.createElement('div');document.body.append(node);FC.tabsCzynnosci.render({listEl:node,room:'kuchnia'});return node.textContent.includes('Warsztat:')&&node.textContent.includes('Montaż:')&&!node.textContent.includes('NaN');})()`),true);
   const readAfter=await proof();assert.deepEqual(readAfter.tables,readBefore.tables);assert.deepEqual(readAfter.native,readBefore.native);assert.deepEqual(readAfter.ram,readBefore.ram);
-  console.log('PASS three actual room-scope accordions read the persisted catalog/shared calculator and never write RAW, native IDB or RAM');
+  console.log('PASS gallery appearance, animation/group close and four actual accordions; three room-scope accordions read the persisted catalog/shared calculator and never write RAW, native IDB or RAM');
   await browser.close();console.log('PASS scope/stage metadata persists through actual LOCAL-FIRST form commit and cold restart; native RAW, RAM, replicas/protected/outbox remain exact; actual schedule view renders');
   // Manual third-person hours use the existing owned-project path, including abort/retry.
   const synthetic=require('./project-selective-export-smoke').fixture(),document=await synthetic.build(),payload=document.document.payload;
   profile='helper-hours';sourceRows=structuredClone(raw);
   Object.assign(sourceRows,{fc_projects_v1:JSON.stringify([payload.project]),fc_investors_v1:JSON.stringify([payload.investor]),fc_quote_snapshots_v1:JSON.stringify([{id:'original-offer',project:{id:payload.project.id},investor:{id:payload.investor.id},frozen:123.4567}]),fc_current_project_id_v1:payload.project.id,fc_current_investor_v1:payload.investor.id});
   await open(true);
-  for(const file of ['quote/quote-offer-store','pricing/labor-work-plan','wycena/wycena-work-plan-view'])await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
-  await browser.evaluate(`(()=>{FC.projectStore={getCurrentProjectId:()=>localStorage.getItem('fc_current_project_id_v1')};FC.investors={getCurrentId:()=>localStorage.getItem('fc_current_investor_v1')};window.helperInvalidations=0;FC.sessionNavigation={invalidateCalculationContext(){window.helperInvalidations++;}};window.helperRoot=document.createElement('div');document.body.append(helperRoot);FC.wycenaWorkPlanView.schedule(helperRoot,{schedule:{status:'READY',workshop:{minutes:60,totalMinutes:90,days:1},assembly:{minutes:0,totalMinutes:0,days:0},trips:0}});window.saveHelper=async()=>{helperRoot.querySelector('input[data-helper-hours]').value='2.5';helperRoot.querySelector('input').dispatchEvent(new Event('input',{bubbles:true}));const button=helperRoot.querySelector('button');button.click();const deadline=Date.now()+5000;while(button.disabled&&Date.now()<deadline)await new Promise(r=>setTimeout(r,10));if(button.disabled)throw Error('HELPER_TIMEOUT');return helperRoot.textContent;};})()`);
-  assert.equal(await browser.evaluate("helperRoot.querySelector('button').hidden"),true);
+  for(const file of ['ui/accordion-behavior','quote/quote-offer-store','pricing/labor-work-plan','wycena/wycena-work-plan-view'])await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
+  await browser.evaluate(`(()=>{FC.projectStore={getCurrentProjectId:()=>localStorage.getItem('fc_current_project_id_v1')};FC.investors={getCurrentId:()=>localStorage.getItem('fc_current_investor_v1')};window.helperInvalidations=0;FC.sessionNavigation={invalidateCalculationContext(){window.helperInvalidations++;}};window.helperRoot=document.createElement('div');document.body.append(helperRoot);FC.wycenaWorkPlanView.schedule(helperRoot,{schedule:{status:'READY',workshop:{minutes:60,totalMinutes:90,days:1},assembly:{minutes:0,totalMinutes:0,days:0},trips:0}});helperRoot.querySelector('.rozrys-material-accordion__trigger').click();window.saveHelper=async()=>{helperRoot.querySelector('input[data-helper-hours]').value='2.5';helperRoot.querySelector('input').dispatchEvent(new Event('input',{bubbles:true}));const button=helperRoot.querySelector('[data-helper-save]');button.click();const deadline=Date.now()+5000;while(button.disabled&&Date.now()<deadline)await new Promise(r=>setTimeout(r,10));if(button.disabled)throw Error('HELPER_TIMEOUT');return helperRoot.textContent;};})()`);
+  assert.equal(await browser.evaluate("helperRoot.querySelector('[data-helper-save]').hidden"),true);
   const helperBefore=await proof();
   assert.match(await browser.evaluate(`(()=>{const native=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(value,...args){if(this.name==='control'&&value?.key==='application'){IDBObjectStore.prototype.put=native;throw new DOMException('synthetic quota','QuotaExceededError');}return native.call(this,value,...args);};return saveHelper();})()`),/Nie potwierdzono zapisu/);
   assert.equal(await browser.evaluate('window.helperInvalidations'),0);
   assert.deepEqual((await proof()).tables,helperBefore.tables);assert.equal(await browser.evaluate("helperRoot.querySelector('input').value"),'2.5');
   assert.match(await browser.evaluate('saveHelper()'),/Zapisano do nowej wyceny/);
-  assert.equal(await browser.evaluate("helperRoot.querySelector('button').hidden"),true);
+  assert.equal(await browser.evaluate("helperRoot.querySelector('[data-helper-save]').hidden"),true);
   assert.equal(await browser.evaluate('window.helperInvalidations'),1);
   const helperSaved=await proof();assert.equal(JSON.parse(helperSaved.rows.fc_quote_offer_drafts_v1)[0].helperHours,2.5);
   assert.deepEqual(helperSaved.native,helperBefore.native);assert.deepEqual(helperSaved.ram,helperBefore.ram);assert.equal(helperSaved.rows.fc_quote_snapshots_v1,helperBefore.rows.fc_quote_snapshots_v1);
   for(const table of ['outbox','replicas','protected'])assert.deepEqual(helperSaved.tables[table],helperBefore.tables[table]);
-  await browser.gracefulClose();await open(false);assert.equal(JSON.parse((await proof()).rows.fc_quote_offer_drafts_v1)[0].helperHours,2.5);await browser.close();
+  await browser.gracefulClose();await open(false);assert.equal(JSON.parse((await proof()).rows.fc_quote_offer_drafts_v1)[0].helperHours,2.5);
+  for(const file of ['ui/accordion-behavior','ui/panel-box','quote/quote-offer-store','pricing/labor-work-plan','wycena/wycena-work-plan-view','wycena/wycena-tab-selection-render'])await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
+  await browser.evaluate(`(()=>{FC.projectStore={getCurrentProjectId:()=>localStorage.getItem('fc_current_project_id_v1')};FC.investors={getCurrentId:()=>localStorage.getItem('fc_current_investor_v1')};window.serviceInvalidations=0;window.serviceRenders=0;window.acceptDiscard=false;FC.sessionNavigation={invalidateCalculationContext(){serviceInvalidations++;}};
+  const h=(tag,attrs={})=>{const node=document.createElement(tag);for(const [key,value]of Object.entries(attrs)){if(key==='class')node.className=value;else if(key==='text')node.textContent=value;else node.setAttribute(key,value);}return node;};
+  window.serviceRoot=document.createElement('div');document.body.append(serviceRoot);window.renderServices=()=>{serviceRoot.replaceChildren();FC.wycenaTabSelectionRender.renderQuoteSelectionSection(serviceRoot,{}, {h,labelWithInfo:title=>h('label',{text:title}),getOfferDraft:()=>FC.quoteOfferStore.getCurrentDraft(),askConfirm:async()=>acceptDiscard,render(){serviceRenders++;renderServices();}});};renderServices();
+  window.openServices=()=>serviceRoot.querySelector('[data-service-scope]').click();
+  window.selectServices=value=>{for(const input of document.querySelectorAll('.panel-box input[data-service]')){input.checked=value;input.dispatchEvent(new Event('change',{bubbles:true}));}};
+  window.saveServices=async()=>{const button=document.querySelector('.panel-box .btn-success');button.click();const deadline=Date.now()+5000;while(button.disabled&&Date.now()<deadline)await new Promise(r=>setTimeout(r,10));if(button.disabled)throw Error('SERVICE_SAVE_TIMEOUT');return document.querySelector('.panel-box')?.textContent||'CLOSED';};return true;})()`);
+  phase='service-scope';await browser.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:-1,uploadThroughput:-1});
+  const serviceBefore=await proof();await browser.evaluate('openServices();true');
+  if(process.env.MEBLE_UI_PREVIEW){
+    await browser.evaluate(`(()=>{const meta=document.createElement('meta');meta.name='viewport';meta.content='width=device-width,initial-scale=1';document.head.append(meta);return true;})()`);
+    await browser.send('Emulation.setDeviceMetricsOverride',{width:412,height:915,deviceScaleFactor:1,mobile:true});
+    const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+    for(const match of html.matchAll(/<link[^>]*href=["'](css\/[^"'?]+\.css)[^"']*["']/g))await browser.evaluate(`(()=>{const style=document.createElement('style');style.textContent=${JSON.stringify(fs.readFileSync(path.join(root,match[1]),'utf8'))};document.head.append(style);return true;})()`);
+    const shot=await browser.send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(process.env.MEBLE_UI_PREVIEW,Buffer.from(shot.data,'base64'));
+  }
+
+  assert.equal(await browser.evaluate(`document.querySelectorAll('.panel-box input[data-service]:checked').length===3&&!document.querySelector('.panel-box .btn-success')`),true);
+  await browser.evaluate('selectServices(false);true');
+  assert.equal(await browser.evaluate(`!!document.querySelector('.panel-box .btn-success')&&!document.querySelector('.panel-box .btn-primary')`),true);
+  await browser.evaluate(`document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));true`);
+  assert.equal(await browser.evaluate(`!!document.querySelector('.panel-box')`),true);assert.deepEqual((await proof()).tables,serviceBefore.tables);
+  await browser.evaluate(`(async()=>{acceptDiscard=true;document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));await new Promise(r=>setTimeout(r,0));return true;})()`);
+  assert.equal(await browser.evaluate(`!!document.querySelector('.panel-box')`),false);assert.deepEqual((await proof()).tables,serviceBefore.tables);
+  await browser.evaluate('openServices();selectServices(false);true');
+  assert.match(await browser.evaluate(`(()=>{const native=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(value,...args){if(this.name==='control'&&value?.key==='application'){IDBObjectStore.prototype.put=native;throw new DOMException('synthetic quota','QuotaExceededError');}return native.call(this,value,...args);};return saveServices();})()`),/Nie potwierdzono zapisu/);
+  assert.deepEqual((await proof()).tables,serviceBefore.tables);assert.equal(await browser.evaluate('serviceInvalidations'),0);
+  assert.equal(await browser.evaluate(`document.querySelectorAll('.panel-box input[data-service]:checked').length`),0);
+  assert.equal(await browser.evaluate('saveServices()'),'CLOSED');assert.equal(await browser.evaluate('serviceInvalidations'),1);assert.equal(await browser.evaluate('serviceRenders'),1);
+  const serviceSaved=await proof(),services={delivery:false,carrying:false,assembly:false};assert.deepEqual(JSON.parse(serviceSaved.rows.fc_quote_offer_drafts_v1)[0].services,services);
+  assert.equal(JSON.parse(serviceSaved.rows.fc_quote_offer_drafts_v1)[0].helperHours,2.5);assert.equal(serviceSaved.rows.fc_quote_snapshots_v1,serviceBefore.rows.fc_quote_snapshots_v1);
+  assert.deepEqual(serviceSaved.native,serviceBefore.native);assert.deepEqual(serviceSaved.ram,serviceBefore.ram);for(const table of ['outbox','replicas','protected'])assert.deepEqual(serviceSaved.tables[table],serviceBefore.tables[table]);
+  // Revocation cannot reach the native application commit or clear the unsaved choices.
+  await browser.evaluate('openServices();selectServices(true);window.authorized=false;true');
+  assert.match(await browser.evaluate('saveServices()'),/Nie potwierdzono zapisu/);assert.deepEqual((await proof()).tables,serviceSaved.tables);assert.equal(await browser.evaluate(`document.querySelectorAll('.panel-box input[data-service]:checked').length`),3);
+  await browser.gracefulClose();await open(false);
+  // Existing startup performs exactly one no-data-change application checkpoint.
+  const serviceAuthorized=await proof(),afterAuthRestart=structuredClone(serviceSaved.tables);afterAuthRestart.control.find(row=>row.key==='application').version++;
+  assert.deepEqual(serviceAuthorized.tables,afterAuthRestart);assert.deepEqual(serviceAuthorized.native,serviceSaved.native);assert.deepEqual(serviceAuthorized.ram,serviceSaved.ram);
+  for(const file of ['ui/panel-box','quote/quote-offer-store','pricing/labor-work-plan','wycena/wycena-work-plan-view'])await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
+  await browser.evaluate(`(()=>{FC.projectStore={getCurrentProjectId:()=>localStorage.getItem('fc_current_project_id_v1')};FC.investors={getCurrentId:()=>localStorage.getItem('fc_current_investor_v1')};const root=document.createElement('div');document.body.append(root);FC.wycenaWorkPlanView.servicesLauncher(root,{}, {askConfirm:async()=>true});window.openServices=()=>root.querySelector('[data-service-scope]').click();window.selectServices=value=>{for(const input of document.querySelectorAll('.panel-box input[data-service]')){input.checked=value;input.dispatchEvent(new Event('change',{bubbles:true}));}};window.saveServices=async()=>{const button=document.querySelector('.panel-box .btn-success');button.click();const deadline=Date.now()+5000;while(button.disabled&&Date.now()<deadline)await new Promise(r=>setTimeout(r,10));if(button.disabled)throw Error('SERVICE_SAVE_TIMEOUT');return document.querySelector('.panel-box')?.textContent||'CLOSED';};return true;})()`);
+  // A dialog opened for an earlier project cannot save to a newly selected project.
+  await browser.evaluate(`openServices();selectServices(true);FC.projectStore.getCurrentProjectId=()=> 'synthetic-other-project';true`);
+  assert.match(await browser.evaluate('saveServices()'),/Nie potwierdzono zapisu/);assert.deepEqual((await proof()).tables,serviceAuthorized.tables);
+  await browser.gracefulClose();await open(false);const serviceRestart=await proof();const afterProjectRestart=structuredClone(serviceAuthorized.tables);afterProjectRestart.control.find(row=>row.key==='application').version++;assert.deepEqual(serviceRestart.tables,afterProjectRestart);assert.deepEqual(JSON.parse(serviceRestart.rows.fc_quote_offer_drafts_v1)[0].services,services);assert.equal(serviceRestart.rows.fc_quote_snapshots_v1,serviceBefore.rows.fc_quote_snapshots_v1);assert.deepEqual(serviceRestart.native,serviceBefore.native);assert.deepEqual(serviceRestart.ram,serviceBefore.ram);for(const table of ['outbox','replicas','protected'])assert.deepEqual(serviceRestart.tables[table],serviceBefore.tables[table]);await browser.close();
+  console.log('PASS real quote-scope launcher/pattern panel: dirty-only Save, cancellation/Escape, native quota abort/retry, Auth revocation, owner-project change refusal and offline cold restart preserve RAW/RAM, frozen offers and all pending stores');
   console.log('PASS actual third-person input/project transaction abort retains form; retry and cold restart persist hours with unchanged RAM, physical RAW, frozen offers, replicas/protected/uncertain outbox');
   if(!process.argv.includes('--scope-only')){
   profile='durable-draft';sourceRows=structuredClone(raw);

@@ -4,7 +4,70 @@
   const FC=window.FC=window.FC||{};
   const labels={room:'Raz na pomieszczenie',quote:'Raz na wycenę',day:'Raz na dzień pracy'};
   function el(tag,text,cls){const node=document.createElement(tag);if(text!=null)node.textContent=text;if(cls)node.className=cls;return node;}
-  function accordion(card,title){const d=el('details',null,'quote-offer-accordion wywiad-room-accordion');d.appendChild(el('summary',title,'quote-offer-accordion__head'));const b=el('div',null,'quote-offer-accordion__body');d.appendChild(b);card.appendChild(d);return b;}
+  const serviceLabels={delivery:'Dostawa',carrying:'Wnoszenie',assembly:'Montaż'};
+  function servicesLauncher(card,ctx,deps={}){
+    const draft=FC.quoteOfferStore?.getCurrentDraft?.();if(!draft)return;
+    const current=FC.laborWorkPlan.normalizeServices(draft.services);
+    const label=Object.keys(serviceLabels).filter(key=>current[key]).map(key=>serviceLabels[key]).join(' · ')||'Wykonanie warsztatowe';
+    const launch=el('button',null,'btn rozrys-picker-launch rozrys-picker-launch--material');launch.type='button';launch.dataset.serviceScope='true';
+    const value=el('div',null,'rozrys-picker-launch__value');
+    value.appendChild(el('div','Zakres usług','rozrys-picker-launch__title'));
+    value.appendChild(el('div',label,'rozrys-picker-launch__subtitle'));launch.appendChild(value);card.appendChild(launch);
+    launch.addEventListener('click',()=>{
+      const next={...current},body=el('div',null,'rozrys-picker-modal'),list=el('div',null,'rozrys-picker-list');
+      const option=el('div',null,'rozrys-picker-option rozrys-picker-card is-selected');
+      option.appendChild(el('div','Usługi do nowej wyceny','rozrys-picker-option__title'));
+      option.appendChild(el('div','Dostawa obejmuje załadunek i rozładunek. Przejazd ekipy jest wspólny dla wybranych usług.','rozrys-picker-option__subtitle'));
+      const chips=el('div',null,'rozrys-scope-chips quote-scope-picker-chips');
+      let pending=false;
+      const dirty=()=>JSON.stringify(next)!==JSON.stringify(current);
+      const notice=el('p',null,'muted');notice.setAttribute('role','status');
+      const footer=el('div',null,'rozrys-picker-footer rozrys-picker-footer--material'),actions=el('div',null,'rozrys-picker-footer-actions');
+      const exit=el('button','Wyjdź','btn-primary'),cancel=el('button','Anuluj','btn-danger'),save=el('button','Zatwierdź','btn-success');
+      for(const button of [exit,cancel,save])button.type='button';
+      const update=()=>{actions.replaceChildren(...(dirty()?[cancel,save]:[exit]));save.disabled=pending;cancel.disabled=pending;};
+      for(const [key,title]of Object.entries(serviceLabels)){
+        const chip=el('label',null,'rozrys-scope-chip rozrys-scope-chip--room-match'+(next[key]?' is-checked':''));
+        const input=el('input');input.type='checkbox';input.checked=next[key];input.dataset.service=key;
+        input.addEventListener('change',()=>{next[key]=input.checked;chip.classList.toggle('is-checked',input.checked);update();});
+        chip.append(input,el('span',title));chips.appendChild(chip);
+      }
+      const discard=()=>!pending&&(!dirty()||deps.askConfirm?.({title:'ANULOWAĆ ZMIANY?',message:'Niezapisane zmiany zakresu usług zostaną utracone.',confirmText:'✕ ANULUJ ZMIANY',cancelText:'WRÓĆ',confirmTone:'danger',cancelTone:'neutral'})||false);
+      exit.addEventListener('click',()=>FC.panelBox.close());
+      cancel.addEventListener('click',async()=>{if(await discard())FC.panelBox.close();});
+      save.addEventListener('click',async()=>{
+        if(pending||!dirty())return;
+        pending=true;for(const input of chips.querySelectorAll('input'))input.disabled=true;update();
+        const persist=()=>{const active=FC.quoteOfferStore.getCurrentDraft();
+          if(active.projectId!==draft.projectId||active.investorId!==draft.investorId||JSON.stringify(FC.laborWorkPlan.normalizeServices(active.services))!==JSON.stringify(current))return false;
+          return !!FC.quoteOfferStore.patchCurrentDraft({services:next});};
+        try{const writer=FC.applicationWrite;const result=await(writer?.localOnly?writer.projectHandler(persist)():persist());if(!result)throw Error();Object.assign(current,next);FC.panelBox.close();deps.render?.(ctx);}
+        catch(_){notice.textContent='Nie potwierdzono zapisu. Zachowano wybrany zakres usług.';}
+        finally{pending=false;for(const input of chips.querySelectorAll('input'))input.disabled=false;update();}
+      });
+      option.appendChild(chips);list.appendChild(option);body.append(list,notice);footer.appendChild(actions);body.appendChild(footer);update();
+      FC.panelBox.open({title:'Zakres usług',contentNode:body,width:'820px',boxClass:'panel-box--rozrys',dismissOnOverlay:false,beforeClose:discard});
+    });
+  }
+  function accordion(card,title){
+    // Copy the complete ROZRYS pattern, including its shared animation/group behavior.
+    const box=el('div',null,'rozrys-material-accordion');
+    const head=el('div',null,'rozrys-material-accordion__head');
+    const trigger=el('button',null,'rozrys-material-accordion__trigger');
+    trigger.type='button';trigger.setAttribute('aria-expanded','false');
+    const caption=el('div',null,'rozrys-material-accordion__title');
+    caption.appendChild(el('div',title,'rozrys-material-accordion__title-line1'));
+    trigger.appendChild(caption);
+    const arrow=el('span',null,'rozrys-material-accordion__chevron');arrow.setAttribute('aria-hidden','true');
+    trigger.appendChild(arrow);head.appendChild(trigger);box.appendChild(head);
+    const body=el('div',null,'rozrys-material-accordion__body');body.hidden=true;box.appendChild(body);
+    trigger.addEventListener('click',()=>{
+      const behavior=FC.accordionBehavior;
+      if(box.classList.contains('is-open'))behavior.animateClose(box);
+      else{behavior.closeInGroup(box);behavior.animateOpen(box);}
+    });
+    card.appendChild(box);return body;
+  }
   function activities(card,room){
     if(!room)return;
     let plan,error;try{plan=FC.laborWorkPlan.collect([room]);}catch(e){error=e.code||'WORK_PLAN_UNAVAILABLE';}
@@ -30,13 +93,14 @@
       for(const [kind,label]of [['workshop','Warsztat'],['assembly','Montaż']]){
         const s=value[kind];body.appendChild(el('p',label+': '+(s?((s.minutes/60).toFixed(2)+' h prac + '+((s.totalMinutes-s.minutes)/60).toFixed(2)+' h czynności codziennych i przejazdów; dni: '+s.days):'brak aktualnego czasu trasy')));
       }
-      body.appendChild(el('p','Wyjazdy montażowe: '+value.trips+'. Etapy następują po sobie; dzień firmy: 8 h.'));
+      body.appendChild(el('p','Wyjazdy montażowe: '+value.trips+'. Wspólny przejazd dla dostawy, wnoszenia i montażu. Etapy następują po sobie; dzień firmy: 8 h.'));
+      if(value.services)body.appendChild(el('p','Zakres zapisany w harmonogramie: '+(Object.keys(serviceLabels).filter(key=>value.services[key]).map(key=>serviceLabels[key]).join(', ')||'wykonanie warsztatowe')+'.'));
       if(value.status!=='READY')body.appendChild(el('p','Harmonogram i koszty codzienne montażu są niekompletne. Uzupełnij aktualny czas trasy.'));
     }
     if(!draft)return;
     const label=el('label','Dodatkowa trzecia osoba — godziny do nowej wyceny');
     const input=el('input');input.type='number';input.min='0';input.step='any';input.value=String(draft.helperHours||0);input.dataset.helperHours='true';label.appendChild(input);body.appendChild(label);
-    const button=el('button','Zapisz godziny pomocnika','btn btn-primary');button.type='button';button.hidden=true;body.appendChild(button);
+    const button=el('button','Zapisz godziny pomocnika','btn btn-primary');button.type='button';button.dataset.helperSave='true';button.hidden=true;body.appendChild(button);
     let storedHours=Number(draft.helperHours)||0;
     input.addEventListener('input',()=>{button.hidden=Number(input.value)===storedHours;});
     const notice=el('p');body.appendChild(notice);
@@ -49,5 +113,5 @@
       finally{button.disabled=false;}
     });
   }
-  FC.wycenaWorkPlanView={activities,schedule};
+  FC.wycenaWorkPlanView={activities,schedule,servicesLauncher};
 })();
