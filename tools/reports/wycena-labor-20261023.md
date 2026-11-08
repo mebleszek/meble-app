@@ -431,3 +431,102 @@ Właściciel zastąpił pomysł stałych 30 min/opłaty na pomieszczenie normą 
 - `node --check` obu testów oraz `git diff --check` — **PASS**. Lokalny Node **24.19.0**; nieudany CI używał Node **22.23.4**. Nie powtarzano pełnego lokalnego Preflightu, zaliczonych wcześniej zestawów Chromium/SDK ani Firebase.
 
 **Zakres plików:** wyłącznie `tools/project-context-coherence-smoke.js`, `tools/quote-exact-calculations-smoke.js`, `CURRENT_STATE.md` i ten raport. Bez zmian produkcyjnych, cenników, norm, UI, Auth, SW, storage/synchronizacji, manifestu/wersji zasobów i workflow. PR #118 nie przełączano, nie tworzono PR, nie ponawiano Actions, nie scalano, nie publikowano i nie wykonano Firebase LIVE. Następny ruch: niezależna kontrola wynikowego zdalnego HEAD/BASE i osobna zgoda właściciela na kolejną próbę istniejącego PR #118. Brak dodatkowego blokera samej poprawki; wymagane nowe CI i akceptacja fizycznego telefonu pozostają PENDING.
+
+
+## Kontrola źródeł reguł i propozycja przerwy — 08.11.2026
+
+**Wyłącznie analiza i utrwalenie decyzji w AGENTS.md. Nie jest to naprawa WYCENY.**
+Gałąź `docs/pricing-rule-authority-review-20261108`, BASE/main
+`f29e8d3797108068130cfb73c3393a066e050c43`. Odczytano bieżące repo i uzgodnienia;
+bez ogólnego audytu Auth/SW/Firebase. Zakres: aktywne kolektory robocizny, wnoszenia,
+transportu, AGD, materiałów/PCV i wspólny plan; normalizacja reguł i ich źródła.
+Nie jest to zapewnienie, że zbadano każdą kombinację prywatnych danych lub każdy
+historyczny wariant. Żadnych RAW właściciela nie użyto w próbach.
+
+### Potwierdzone odstępstwa do decyzji naprawczej
+
+1. **Wnoszenie korpusu** — `wycena-core-labor.js:675` i dalsze: zamiast
+   calculateDefinition kod liczy startHours + floorUnits × stepHours i narzuca
+   rates.assembly / rateType assembly. Definicja `labor_carrying_cabinet` w
+   labor-catalog-definitions.js nadal wskazuje helper, startQty 1; opis notatki
+   historycznie mówi 15 + 5/poziom, a opis formularza 15 za pierwszy. Ignorowane
+   są m.in. startQty, stepEveryQty, defaultMultiplier, formuła i warunki.
+   Aktywność jest filtrowana przez laborDefs — nie stwierdzono ignorowania active.
+   Syntetycznie jeden poziom: wspólny kalkulator 15 min/20 zł (helper80), automat
+   20 min/83,33 zł (assembly250). Wpisanie obu czasów zero, mnożnika3 i niespełnionego
+   warunku nadal daje około20 min/83,33 zł, mimo evaluateConditions=false.
+   `|| 0.25` i `|| 0.0833333333` zamieniają prawidłowe zera na stare normy.
+2. **Wysokie fronty** — `wycena-core-labor.js:591–673`: analogiczna osobna
+   formuła i narzucenie assembly dla tej samej reguły, osobno dla windy/schodów.
+   Ten sam problem startu/kroków/zera/warunków; nie jest to poprawione przez
+   prawidłowe korzystanie z reguł przez pozostałe automaty szafek.
+3. **Niespójna informacja o czasie wnoszenia** — carrying-logistics.js DEFAULTS
+   15 min + 5 min/poziom wylicza ev.baseMinutes niezależnie od cennika;
+   carryingLineNote używa tej liczby jako czasu ekipy. Edycja startHours/stepHours
+   może więc zmienić koszt, a nie tekst źródła. Stałe logistyczne obejmują też
+   progi20/45 kg, windę2 poziomy i gęstości materiałów. To osobne luki jawności;
+   nie należy ich dowolnie zastępować stawkami lub wymyślać nowych wartości.
+4. **Czas dojazdu** — `wycena-core-offer.js:183–229`: stawkę odczytuje z def.rateType,
+   lecz cenę liczy bezpośrednio durationHours × hourlyRate. Pomija wspólną formułę,
+   blok czasu, mnożnik i warunki; jawne przypisanie ręczne zatrzymuje automat.
+   Poprawna syntetyczna definicja: duration1h, timeBlock0.5h, multiplier3,
+   assembly250; kalkulator reguły375 zł, automat250 zł. Nie wykorzystano
+   niedozwolonego bloku2h (normalizer go zeruje); to nie byłby poprawny dowód.
+5. **AGD — precyzja i opis** — `wycena-core-lines.js:695–748`: normalny kolektor
+   używa wspólnego kalkulatora, ale stara gałąź zaokrągla hours do0.01h przed
+   harmonogramem oraz total przed dalszą agregacją;1 minuta staje się0.02h.
+   Tekst wyliczenia zakłada qty × timeBlockHours × stawka również przy innej
+   formule. Osiągalność tej gałęzi zależy od obecności nowszych zamienników.
+   Historyczny addFallback bierze svc.price zamiast całej reguły; zwykła ścieżka
+   nowych norm ma pierwszeństwo. Nie przedstawiać tego jako potwierdzonego błędu
+   każdej aktualnej oferty AGD lub dowodu podwójnego naliczenia.
+6. **Cena kilometra a widok reguły** — `wycena-core-offer.js:139`: uzgodniona
+   cena paliwowa jest podstawiana do lokalnej kopii nieedytowanej reguły fabrycznej
+   zero; cennik zachowuje zero, ustawienia pokazują cenę pochodną. Jest to jawny,
+   wcześniej zatwierdzony wyjątek źródła ceny, lecz nie spełnia nowego wymagania
+   jednego widocznego powiązania reguły z jej parametrami. Ręczne stawki zachowane;
+   nie zmieniać uzgodnionej formuły paliwa ani nie nadpisywać katalogów w audycie.
+7. **Stałe biznesowe poza ustawieniami** — PCV ma rawMeters ×1.1 w
+   wycena-core-material-plan.js:220. Zapas10% był uzgodniony, więc nie jest dowodem
+   błędnej kwoty; według nowej zasady jawności należy ustalić jego edytowalne
+   miejsce. Dzień480 min jest wcześniejszym jawnym ustaleniem, lecz stałą kodu.
+   Prosta suma ilości/kosztów lub przelicznik minut na godziny nie są odstępstwami.
+
+Pozostałe sprawdzone typowe kolektory szafek/przygotowania/nowych norm AGD i zakresów
+korzystają z calculateDefinition. Dodatkowy trzeci pomocnik używa ręcznych godzin
+oraz aktualnej stawki helper, zgodnie z wcześniejszą decyzją; nie jest drugą opłatą
+za standardową ekipę. Nie dowiedziono braku innych błędów we wszystkich wariantach.
+
+### Przerwa — obecne działanie i propozycja, bez implementacji
+
+Definicja `labor_daily_break` ma0.5h, stawkę workshop, zakres day i oba etapy.
+Work-plan stosuje wszystkie właściwe reguły codzienne do każdego rozpoczętego dnia:
+nie ma progu przepracowanych godzin ani osobnego wyboru, czy klient płaci przerwę.
+To odpowiada poprzedniemu zatwierdzeniu „raz na dzień”, ale wymaga zmiany zgodnie
+z nową propozycją właściciela. Syntetycznie5 min prac montażowych i5 min trasy
+w jedną stronę tworzy1 dzień oraz0.5h/75 zł przerwy przy150 zł/h warsztatowej.
+Sam przejazd przy zerze prac niecodziennych daje0 dni i nie tworzy przerwy;
+nie potwierdzono literalnego przypadku „tylko transport” bez innych czynności.
+Załadunek/wnoszenie mogą jednak stworzyć krótki dzień i tę opłatę.
+
+Rekomendacja do zatwierdzenia:
+- Czas przerwy pozostaje w istniejącej regule Przerwa; ewentualne pole ustawień
+  edytuje ten sam parametr, nie tworzy drugiej niezależnej wartości.
+- Dodać do tej reguły jawny próg godzinowy uprawniający do przerwy oraz wybór
+  naliczania jej kosztu klientowi. Nie implementować sztywnego progu w harmonogramie.
+- Zasadność i czas przerwy liczyć raz wspólnie dla harmonogramu i kosztu.
+  Przy wyłączonej opłacie klienta należna przerwa nadal zajmuje czas dnia.
+- Próg liczyć bez czasu samej przerwy; sprawdzać każdy dzień, także krótki ostatni.
+  Algorytm musi uwzględnić warunkową przerwę bez dodawania jej drugi raz i bez
+  uzależniania progu od czasu, który sama wygenerowała. Zachować limit dnia,
+  inne reguły codzienne, dojazdy, zero dni i ochronę przed zależnością kołową.
+- Potrzebne decyzje właściciela: czas/prog (30 min nadal jest dotychczasowym czasem,
+  nowego progu nie podano), czy do progu liczy się dojazd, zakres wyboru opłaty
+  w ofercie czy domyślnej regule. Umiejscowienie nowych kontrolek UI do potwierdzenia.
+
+Nie zmieniono norm, cen, ustawień użytkownika, reguł aktywnego profilu, snapshotów,
+LOCAL-FIRST, synchronizacji, UI ani algorytmu przerw. Zmieniono AGENTS §4,
+ten raport i CURRENT_STATE. Wykonano wyłącznie odczyt kodu i syntetyczne próby
+w pamięci; nie uruchamiano pełnego CI/Actions ani Firebase. Dalsze naprawy wymagają
+wyboru zakresu i zatwierdzenia właściciela. To pakiet dokumentacyjny, nie poprawka
+cennika/WYCENY; nie przedstawiać wykrytych rozbieżności jako zaliczonych testów.
