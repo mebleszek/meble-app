@@ -64,7 +64,8 @@
   function findForMaterial(material){
     const m = String(material||'').trim();
     const data = getAll();
-    return data.sheets.filter(s=>String(s.material||'').trim()===m);
+    const catalog=FC.catalogSelectors,owner=catalog?.findSheetMaterial(m);
+    return data.sheets.filter(s=>owner?catalog.findSheetMaterial(s.material)?.id===owner.id:String(s.material||'').trim()===m);
   }
 
   function addSheetStock(material, width, height, qtyDelta){

@@ -34,7 +34,7 @@
         try{
           const fallback = (typeof root !== 'undefined' && Array.isArray(root.materials)) ? root.materials : ((typeof window !== 'undefined' && Array.isArray(window.materials)) ? window.materials : []);
           const list = Array.isArray(materials) ? materials : fallback;
-          const it = list.find((m)=> String(m && m.name || '').trim() === name);
+          const it = window.FC.catalogSelectors?.findSheetMaterial ? window.FC.catalogSelectors.findSheetMaterial(name,list) : list.find((m)=> String(m && m.name || '').trim() === name);
           return !!(it && it.hasGrain);
         }catch(_){
           return false;

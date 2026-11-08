@@ -332,7 +332,7 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <label class="muted-tag xs" for="formHasGrain" style="margin:0">Ma słoje (ROZRYS: pilnuj kierunku)</label>
 </div>
 <div style="margin-top:10px">
-<label>Cena do wyceny (PLN)</label>
+<label>Cena dla klienta (PLN / jednostka ceny)</label>
 <input class="investor-form-input" id="formPrice" step="0.01" type="number"/>
 </div>
 <div style="margin-top:10px">
@@ -340,6 +340,20 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <select hidden="" id="formMaterialPriceUnit"></select>
 <div id="formMaterialPriceUnitLaunch"></div>
 </div>
+<div id="formMaterialPricingWrap" style="margin-top:10px">
+<div class="ui-pattern-field"><label class="label-help" for="formMaterialPurchasePrice">Cena zakupu (PLN / jednostka ceny)</label><input class="input" id="formMaterialPurchasePrice" type="number" min="0" step="0.01"/></div>
+<div class="ui-pattern-field"><label class="label-help">Cena dla klienta</label><select hidden="" id="formMaterialPricingMode"><option value="manual">Ręczna cena klienta</option><option value="markup">Zakup + narzut</option></select><div id="formMaterialPricingModeLaunch"></div></div>
+<div class="ui-pattern-field"><label class="label-help" for="formMaterialMarkup">Narzut (%)</label><input class="input" id="formMaterialMarkup" type="number" min="0" step="0.01" value="0"/></div>
+<div class="hardware-technical-name-preview" aria-live="polite"><div class="hardware-technical-name-preview__label">Cena klienta / różnica względem zakupu</div><div class="hardware-technical-name-preview__value" id="formMaterialPricePreview">—</div></div>
+<div id="formMaterialSheetWrap">
+<div class="ui-pattern-field"><label class="label-help">Zaokrąglenie materiału do wyceny</label><select hidden="" id="formMaterialBillingIncrement"><option value="sheet">Pełny arkusz</option><option value="half-sheet">Pół arkusza (według rozkroju)</option><option value="m2">Pełne m² w górę</option></select><div id="formMaterialBillingIncrementLaunch"></div></div>
+<div class="grid-3">
+<div class="ui-pattern-field"><label class="label-help" for="formMaterialSheetWidth">Szerokość arkusza (mm)</label><input class="input" id="formMaterialSheetWidth" type="number" min="1" step="1"/></div>
+<div class="ui-pattern-field"><label class="label-help" for="formMaterialSheetHeight">Długość arkusza (mm)</label><input class="input" id="formMaterialSheetHeight" type="number" min="1" step="1"/></div>
+<div class="ui-pattern-field"><label class="label-help" for="formMaterialThickness">Grubość materiału (mm)</label><input class="input" id="formMaterialThickness" type="number" min="0.1" step="0.1"/></div>
+</div>
+<div class="muted-tag xs">Format i kierunek słojów wspólne dla ROZRYSU i WYCENY. Grubość opisuje materiał; nie zmienia automatycznie konstrukcji korpusu.</div>
+</div></div>
 <div id="formEdgeWasteWrap" style="margin-top:10px;display:none"><label for="formEdgeWastePercent">Zapas do wyceny (%)</label><input class="investor-form-input" id="formEdgeWastePercent" type="number" min="0" step="any" value="10"/></div>
 <div id="hardwareFormFields" style="display:none;margin-top:14px;border-top:1px solid rgba(226,232,240,.95);padding-top:14px">
 <div class="quote-subsection-title">Dane okucia</div>
@@ -1107,7 +1121,7 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-import-parser.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-import-plan.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-import-export.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20261108_material_catalog_authority_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-migration.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-storage-policy.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog-definitions.js?v=20261108_catalog_rule_authority_v1"></script>
@@ -1116,9 +1130,9 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="business-domains" defer="" src="js/app/pricing/carrying-logistics.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/pricing/labor-appliance-rules.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/service-order-store.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20261108_catalog_rule_authority_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20261108_material_catalog_authority_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/settings/hourly-rates-store.js?v=20261108_catalog_rule_authority_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-selectors.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-selectors.js?v=20261108_material_catalog_authority_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-cutting-common.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-pro100-parser.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-pro100-import-ui.js?v=20260628_drawer_systems_materials_v1"></script>
@@ -1153,7 +1167,7 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="ui-shell" defer="" src="js/app/cloud/application-sync-actions.js"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/actions-register.js?v=20261101_one_app_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/material-common.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/material-registry.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/material-registry.js?v=20261108_material_catalog_authority_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-context.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-options.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-filters.js?v=20260628_drawer_systems_materials_v1"></script>
@@ -1169,11 +1183,11 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-supplier-prices.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-replacements.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-form.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-field-help.js?v=20261023_wycena_labor_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-field-help.js?v=20261108_material_catalog_authority_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-labor-conditions.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20261108_catalog_rule_authority_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20261108_catalog_rule_authority_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-persistence.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20261108_material_catalog_authority_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20261108_material_catalog_authority_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-persistence.js?v=20261108_material_catalog_authority_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/confirm-box.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/choice-box.js?v=20260628_drawer_systems_materials_v1"></script>
@@ -1315,9 +1329,9 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-room-availability.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-selection.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-utils.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-catalog.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-catalog.js?v=20261108_material_catalog_authority_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-source.js?v=20261014_c2_1b2c3a"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-material-plan.js?v=20261108_catalog_rule_authority_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-material-plan.js?v=20261108_material_catalog_authority_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-offer.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-lines.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-labor.js?v=20261108_catalog_rule_authority_v1"></script>
@@ -1364,20 +1378,20 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="optimizer-and-stock" defer="" src="js/app/optimizer/speed-max-sheet-plan.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="optimizer-and-stock" defer="" src="js/app/optimizer/speed-max-half-sheet.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="optimizer-and-stock" defer="" src="js/app/optimizer/speed-max.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="optimizer-and-stock" defer="" src="js/app/material/magazyn.js?v=20261101_one_app_v1"></script>
+<script data-load-group="optimizer-and-stock" defer="" src="js/app/material/magazyn.js?v=20261108_material_catalog_authority_v1"></script>
 
 <!-- load-group: rozrys-shared | ROZRYS shared APIs kept on startup -->
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-choice.js?v=20261011_drawer_picker_back_style_v2"></script>
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-prefs.js?v=20261012_c2_1a"></script>
-<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-scope.js?v=20261013_c2_1b2b"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-scope.js?v=20261108_material_catalog_authority_v1"></script>
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-pickers.js?v=20261106_local_first_room_actions_v1"></script>
-<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-sheet-model.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-sheet-model.js?v=20261108_material_catalog_authority_v1"></script>
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-sheet-helpers.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-sheet-draw.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-print.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-print-layout.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-engine.js?v=20261019_project_context"></script>
-<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-stock.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-stock.js?v=20261108_material_catalog_authority_v1"></script>
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-cache.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-lists.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="rozrys-shared" defer="" src="js/app/rozrys/rozrys-render.js?v=20261013_c2_1b2c2"></script>

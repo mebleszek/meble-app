@@ -76,6 +76,9 @@ function createContext(){
 
 async function runMaterialAndQuoteSingleTruthCheck(){
   const { ctx, FC, egger } = createContext();
+  const real=require('./project-navigation-blockers-smoke').fixture();
+  FC.rozrysEngine=real.FC.rozrysEngine;
+  FC.wycenaCoreSelection.createQuoteValidationError=real.FC.wycenaCoreSelection.createQuoteValidationError;
   ['js/app/project/project-bridge.js', 'js/app/material/material-edge-store.js', 'js/app/material/material-tab-data.js', 'js/app/wycena/wycena-core-material-plan.js']
     .forEach((file)=> vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), ctx, { filename:file }));
 

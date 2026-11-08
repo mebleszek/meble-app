@@ -77,6 +77,16 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
   c.validateBundle(c.capture({getItem:key=>key==='fc_edit_session_v1'?null:next[key]??null},Object.keys(c.schemas)).model);
   return {keys,raw:JSON.stringify(value)};
  }
+ function missingFactoryMaterials(){
+  const c=fc.globalDataContract,correct=fc.catalogStore?.applyApprovedMaterialRules;
+  if(!correct)return null;
+  const keys=c.sources.materials.filter(key=>rows[key]!=null);if(!keys.length)return null;
+  const existing=JSON.parse(rows[keys[0]]),value=correct(existing);
+  if(JSON.stringify(value)===JSON.stringify(existing))return null;
+  const next={...rows};for(const key of keys)next[key]=JSON.stringify(value);
+  c.validateBundle(c.capture({getItem:key=>key==='fc_edit_session_v1'?null:next[key]??null},Object.keys(c.schemas)).model);
+  return {keys,raw:JSON.stringify(value)};
+ }
  function snapshotSession(){return Object.fromEntries(Object.entries(fc.session).filter(([,v])=>typeof v!=='function').map(([k,v])=>[k,structuredClone(v)]));}
  async function transaction(kind,operation){
   access();assertSource();lastCode=null;if(inTransaction)fail('LF_APPLICATION_BUSY');
@@ -118,8 +128,9 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
  }else{
   // A fresh document has no implicit editing permission. Display its verified
   // investor without starting a new room session merely from restored UI state.
-  const factoryLabor=localOnly?missingFactoryLabor():null;
-  await transaction(factoryLabor?'globals':'checkpoint',()=>{
+  const factoryLabor=localOnly?missingFactoryLabor():null,factoryMaterials=localOnly?missingFactoryMaterials():null;
+  await transaction(factoryLabor||factoryMaterials?'globals':'checkpoint',()=>{
+   if(factoryMaterials)for(const key of factoryMaterials.keys)ls.setItem(key,factoryMaterials.raw);
    if(factoryLabor)for(const key of factoryLabor.keys)ls.setItem(key,factoryLabor.raw);
    if(rows.fc_current_investor_v1)w.uiState=fc.uiState.set({entry:'rooms',activeTab:'inwestor',roomType:null,lastRoomType:null,selectedCabinetId:null});
    fc.views.applyFromState(w.uiState);fc.sections.update();return true;

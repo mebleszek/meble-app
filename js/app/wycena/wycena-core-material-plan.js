@@ -166,25 +166,25 @@
   function partDimToMm(part, keyA, keyB){
     const src = part || {};
     const primary = Number(src[keyA]) || 0;
-    if(primary > 0) return primary;
+    if(primary > 0) return Math.round(primary);
     const fallback = Number(src[keyB]) || 0;
     if(!(fallback > 0)) return 0;
     // Agregat ROZRYS przekazuje `w/h` w mm. Surowe części MATERIAŁU używają `a/b` w cm.
     // Nie wolno zgadywać po progu 300, bo front 30 cm w agregacie ma dokładnie 300 mm.
-    return fallback * 10;
+    return Math.round(fallback * 10);
   }
 
   function partAreaM2(parts){
     return (Array.isArray(parts) ? parts : []).reduce((sum, part)=>{
       const wMm = partDimToMm(part, 'w', 'a');
       const hMm = partDimToMm(part, 'h', 'b');
-      const qty = Number(part && part.qty) || 1;
-      return sum + (wMm * hMm * qty) / 1000000;
-    }, 0);
+      const qty = part?.qty==null?1:Math.max(0,Number(part.qty)||0);
+      return sum + wMm * hMm * qty;
+    }, 0) / 1000000;
   }
 
   function partCount(parts){
-    return (Array.isArray(parts) ? parts : []).reduce((sum, part)=> sum + (Number(part && part.qty) || 1), 0);
+    return (Array.isArray(parts) ? parts : []).reduce((sum, part)=> sum + (part?.qty==null?1:Math.max(0,Number(part.qty)||0)), 0);
   }
 
   function getAllMaterialItems(){
@@ -278,19 +278,31 @@
     const sourceLabel = (aggregateSource)=> aggregateSource === 'generated' ? 'arkusze z rozkroju wygenerowane do wyceny' : aggregateSource === 'cache' ? 'arkusze z ostatniego rozkroju' : 'brak rozkroju';
     let qty = 0;
     let note = '';
-    if(priceUnit === 'sheet'){
-      const sheets = Array.isArray(planInfo && planInfo.plan && planInfo.plan.sheets) ? planInfo.plan.sheets : [];
-      qty = sheets.length;
-      note = sourceLabel(planInfo && planInfo.source);
-    }else if(priceUnit === 'm2'){
-      qty = round(partAreaM2(selectedParts), 3);
-      note = `${partCount(selectedParts)} elem. • powierzchnia ${qty} m²`;
-    }else if(priceUnit === 'piece'){
-      qty = Math.max(1, Math.ceil(partCount(selectedParts) / Math.max(1, partCount(selectedParts))));
-      note = 'Zakup całej sztuki według cennika; blaty startowo liczone jako pełna sztuka 4,1 m.';
-    }else{
-      qty = partCount(selectedParts);
-    }
+    const sheetMaterial=priceItem&&['laminat','hdf'].includes(String(priceItem.materialType).toLowerCase());
+    const billingIncrement=sheetMaterial?(priceItem.billingIncrement||(priceItem.materialType==='hdf'?'m2':'sheet')):'exact';
+    let billedAreaM2=0,equivalentSheets=0;
+    if(partCount(selectedParts)===0){qty=0;note='Brak elementów do rozliczenia.';}else if(sheetMaterial?billingIncrement!=='m2':priceUnit==='sheet'){
+      const sheets=(Array.isArray(planInfo?.plan?.sheets)?planInfo.plan.sheets:[]).filter(sheet=>sheet?.placements?.length);
+      const placed=sheets.reduce((sum,sheet)=>sum+sheet.placements.length,0);
+      if(!planInfo?.plan||planInfo.plan.workerFailed||planInfo.plan.unsorted?.length||planInfo.plan.unplaced?.length||placed!==partCount(selectedParts))throw selectionApi.createQuoteValidationError('material_layout_incomplete','Niekompletny rozkrój','Nie potwierdzono kompletnego rozkroju materiału: '+material);
+      // Fractions are assigned only by the real layout/half-format solver.
+      const physicalFormat=FC.rozrysStock?.getLargestSheetFormatForMaterial(material,2800,2070)||FC.catalogSelectors?.materialFormat(material)||{width:2800,height:2070};
+      equivalentSheets=sheets.reduce((sum,sheet)=>sum+(FC.rozrysSheetModel?.billableSheetFraction(sheet,physicalFormat,planInfo?.plan?.meta?.trim)|| (sheet.virtualFraction===0.5?0.5:1)),0);
+      const billedSheets=billingIncrement==='half-sheet'?Math.ceil(equivalentSheets*2)/2:Math.ceil(equivalentSheets);
+      const format=FC.rozrysStock?.getLargestSheetFormatForMaterial(material,2800,2070)||FC.catalogSelectors?.materialFormat(material)||{width:2800,height:2070};
+      billedAreaM2=billedSheets*format.width*format.height/1000000;
+      qty=priceUnit==='m2'?billedAreaM2:billedSheets;
+      note=sourceLabel(planInfo?.source)+' • '+billedSheets+' ark. • '+({sheet:'pełny arkusz','half-sheet':'pół arkusza',m2:'pełne m² w górę'}[billingIncrement]||'pełny arkusz');
+    }else if(priceUnit==='m2'||sheetMaterial){
+      const area=partAreaM2(selectedParts);
+      billedAreaM2=sheetMaterial?Math.ceil(area):round(area,3);
+      const format=FC.rozrysStock?.getLargestSheetFormatForMaterial(material,2800,2070)||FC.catalogSelectors?.materialFormat(material)||{width:2800,height:2070};
+      qty=priceUnit==='sheet'?billedAreaM2/(format.width*format.height/1000000):billedAreaM2;
+      note=`${partCount(selectedParts)} elem. • powierzchnia ${round(area,3)} m² • do wyceny ${round(billedAreaM2,3)} m²`;
+    }else if(priceUnit==='piece'){
+      qty=partCount(selectedParts)>0?1:0;
+      note='Zakup całej sztuki według cennika.';
+    }else qty=partCount(selectedParts);
     return {
       key:utils.slug(material),
       type:'material',
@@ -299,15 +311,15 @@
       unit:unitLabel(priceUnit),
       unitPrice,
       total:round(qty * unitPrice, 2),
-      priceUnit,
+      priceUnit,billingIncrement,materialId:String(priceItem?.id||''),billedAreaM2,equivalentSheets,
       pricingMode:priceUnit,
       starterPrice:!!(priceItem && priceItem.starterPrice === true && !String(priceItem.priceUserEditedAt || '').trim()),
       priceUserEditedAt:String(priceItem && priceItem.priceUserEditedAt || ''),
       subsection:priceUnit === 'sheet' ? 'Arkusze / rozkrój' : (priceUnit === 'm2' ? (String(material).toLowerCase().includes('hdf') ? 'Plecy / HDF' : 'm² / gotowe fronty') : 'Sztuki / blaty'),
       rooms:'',
       source:planInfo && planInfo.source,
-      note,
-      calculation:materialCalculationText(priceUnit, planInfo && planInfo.source),
+      note:note+' • cena klienta z cennika: '+(priceItem?.pricingMode==='markup'?'zakup + narzut '+(Number(priceItem.markupPercent)||0)+'%':'ręczna'),
+      calculation:(sheetMaterial?('Ilość po zaokrągleniu '+({sheet:'do pełnego arkusza','half-sheet':'do pół arkusza według rzeczywistego rozkroju',m2:'do pełnych m² w górę'}[billingIncrement])+': '+qty+' '+unitLabel(priceUnit)+'. Cena klienta z cennika ('+(priceItem.pricingMode==='markup'?'zakup + narzut':'ręczna')+'). Cena = ilość po przeliczeniu jednostki × cena klienta.'):materialCalculationText(priceUnit, planInfo && planInfo.source)),
       warnings:priceItem ? [] : ['Brak pozycji materiału w cenniku — koszt może być zaniżony.'],
     };
   }
@@ -329,9 +341,10 @@
         : ((group && group.parts) || group && group.allParts || []);
       if(!selectedParts || !selectedParts.length) continue;
       const priceItem = catalog.materialPriceLookup(material);
+      if(!priceItem)throw selectionApi.createQuoteValidationError('material_catalog_unresolved','Sprawdź cennik materiałów','Brak jednoznacznej pozycji materiału w cenniku: '+material);
       const priceUnit = normalizeUnit(priceItem && priceItem.priceUnit, material);
       let planInfo = { plan:null, source:'missing' };
-      if(priceUnit === 'sheet'){
+      if(['laminat','hdf'].includes(String(priceItem.materialType).toLowerCase())?(priceItem.billingIncrement||(priceItem.materialType==='hdf'?'m2':'sheet'))!=='m2':priceUnit==='sheet'){
         try{ planInfo = await computePlanForMaterial(material, selectedParts,opts); }catch(error){ if(opts.pcvMode === 'project')throw error; }
       }
       assertCurrent();
@@ -358,6 +371,7 @@
   }
 
   FC.wycenaCoreMaterialPlan = {
+    buildMaterialLine,partAreaM2,
     isPartRotationAllowed,
     computePlanForMaterial,
     collectMaterialLines,

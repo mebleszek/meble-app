@@ -20,7 +20,7 @@
   }
 
   function itemMeta(kind, item){
-    if(kind === 'materials') return ((item.materialType || '—') + ' • ' + (item.manufacturer || '—') + (item.symbol ? ' • SYM: ' + item.symbol : '') + (item.priceUnit ? ' • cena za: ' + unitLabel(item.priceUnit) : '') + (item.hasGrain ? ' • 🌾 słoje' : ''));
+    if(kind === 'materials') return ((item.materialType || '—') + ' • ' + (item.manufacturer || '—') + (item.symbol ? ' • SYM: ' + item.symbol : '') + (item.priceUnit ? ' • cena za: ' + unitLabel(item.priceUnit) : '') + (item.hasGrain ? ' • 🌾 słoje' : '') + (item.billingIncrement?' • ilość: '+({sheet:'pełny arkusz','half-sheet':'pół arkusza',m2:'pełne m² w górę'}[item.billingIncrement]||item.billingIncrement):'') + (item.purchasePrice!=null?' • zakup: '+Number(item.purchasePrice).toFixed(2)+' PLN • różnica: '+(Number(item.price)-Number(item.purchasePrice)).toFixed(2)+' PLN':''));
     if(kind === 'accessories') {
       const hw = window.FC && window.FC.hardwareCatalog || {};
       const status = hw && typeof hw.statusLabel === 'function' ? hw.statusLabel(item && item.status) : (item.status || 'Aktywne');

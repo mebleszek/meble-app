@@ -165,7 +165,22 @@
     }).filter(Boolean);
   }
 
+  function billableSheetFraction(sheet,format,trim){
+    if(sheet?.virtualFraction===0.5)return 0.5;
+    const placements=sheet?.placements||[],width=Number(format?.width)||0,height=Number(format?.height)||0;
+    if(!placements.length||!(width>0&&height>0))return 1;
+    const realW=Number(sheet?.realHalfBoardW),realH=Number(sheet?.realHalfBoardH),margin=2*Math.max(0,Number(trim)||0);
+    if(realW>0&&realH>0&&realW<=width&&realH<=height&&Math.abs(realW*realH-width*height/2)<1&&placements.every(p=>Number(p.x)>=0&&Number(p.y)>=0&&Number(p.w)>0&&Number(p.h)>0&&Number(p.x)+Number(p.w)<=realW-margin&&Number(p.y)+Number(p.h)<=realH-margin))return 0.5;
+    const half=FC.speedMaxHalfSheet?.getVirtualHalfDims(width,height);
+    if(!half)return 1;
+    const w=half.w-margin,h=half.h-margin;
+    // Engine placements/trim are mm, including when input meta.unit is cm.
+    // Proof from the actual layout, with its current orientations and kerf gaps.
+    return placements.every(p=>Number(p.x)>=0&&Number(p.y)>=0&&Number(p.w)>0&&Number(p.h)>0&&Number(p.x)+Number(p.w)<=w&&Number(p.y)+Number(p.h)<=h)?0.5:1;
+  }
+
   FC.rozrysSheetModel = {
+    billableSheetFraction,
     sameSheetFormat,
     buildStockSignatureForRows,
     canPartFitSheet,

@@ -92,6 +92,7 @@
       }
       if(!materialType || isSheetMaterialType(materialType)){
         out.sheetMaterials.push({
+          ...normalized,
           id: normalizeText(normalized.id),
           materialType: materialType || 'laminat',
           manufacturer: normalizeText(normalized.manufacturer),
