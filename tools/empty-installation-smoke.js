@@ -72,7 +72,51 @@ async function main(){
       assert.equal(JSON.stringify(r.s.projectData),ram);assert.deepEqual(r.seed(),before);
     }
   });
-  console.log('Empty installation targeted: '+passed+'/5 groups PASS');
+  await test('LOCAL-FIRST unowned list with a remaining investor is clean only for exact default RAM and matching idle context',async()=>{
+    function list(){
+      const r=empty();r.FC.applicationWrite={localOnly:true};
+      const data=JSON.parse(JSON.stringify(r.s.projectData));data.meta={...data.meta,assignedInvestorId:'remaining',productionPcvMode:'project'};
+      r.storage.rows.set('fc_projects_v1',JSON.stringify([{id:'remaining-project',investorId:'remaining',projectData:data}]));
+      r.storage.rows.set('fc_investors_v1','[{"id":"remaining","name":"Synthetic remaining","rooms":[]}]');
+      r.s.uiState=r.FC.uiState.set({entry:'investorsList',currentInvestorId:null,roomType:null,activeTab:null});return r;
+    }
+    const r=list();r.FC.session.lastError={code:'SESSION_OWNER_MISSING'};
+    const before=r.seed(),ram=JSON.stringify(r.s.projectData),error=r.FC.session.lastError;let calls=0,begins=0;
+    const begin=r.FC.session.begin;r.FC.session.begin=function(...args){begins++;return begin.apply(this,args);};
+    assert.equal(r.FC.investorProjectRuntime.hasProjectDivergence(r.s.projectData),false);
+    assert.equal(await r.FC.sessionNavigation.requestTransition('remaining investor',()=>{calls++;return true;}),true);
+    assert.equal(calls,1);assert.equal(begins,0);assert.equal(r.FC.session.active,false);assert.equal(r.FC.session.lastError,error);
+    assert.equal(JSON.stringify(r.s.projectData),ram);assert.deepEqual(r.seed(),before);
+    assert.equal(r.FC.investorProjectRuntime.prepareFirstProjectActivation(),null,'Existing records never acquire first-installation authority');
+    const opened=list(),saved=opened.seed();opened.FC.investors.setCurrentId('remaining');
+    assert.equal(opened.FC.investors.getCurrentId(),'remaining',opened.FC.investorProjectRuntime.getActivationFailure());
+    assert.equal(opened.FC.projectStore.getCurrentProjectId(),'remaining-project');
+    assert.equal(opened.FC.investorProjectRuntime.hasProjectDivergence(opened.s.projectData),false);
+    for(const key of ['fc_projects_v1','fc_investors_v1'])assert.equal(opened.storage.getItem(key),saved[key]);
+    const noSelection=list(),unselected=noSelection.seed();assert.equal(noSelection.FC.investorProjectRuntime.setActiveProjectFromInvestor('remaining'),false);assert.deepEqual(noSelection.seed(),unselected);
+    const dirty=list();dirty.s.projectData.lazienka.settings.counterThickness=2.5;
+    dirty.FC.investorsLocalRepository.setCurrentId('remaining');const refused=dirty.seed(),dirtyRam=JSON.stringify(dirty.s.projectData);
+    assert.equal(dirty.FC.investorProjectRuntime.setActiveProjectFromInvestor('remaining'),false);
+    assert.equal(JSON.stringify(dirty.s.projectData),dirtyRam);assert.deepEqual(dirty.seed(),refused);
+
+    for(const alter of [
+      t=>{t.s.projectData.lazienka.settings.counterThickness=1.8;},
+      t=>{t.s.projectData.meta={...t.s.projectData.meta,assignedInvestorId:'lost-owner'};},
+      t=>{t.FC.applicationWrite.localOnly=false;},
+      t=>{t.s.uiState.entry='home';},
+      t=>{t.s.uiState.roomType='room';},
+      t=>{t.storage.rows.set('fc_ui_v1',JSON.stringify({entry:'home'}));},
+      t=>{t.storage.rows.set('fc_current_project_id_v1','missing');},
+      t=>{t.storage.rows.set('fc_projects_v1','broken');},
+      t=>{t.storage.rows.set('fc_investors_v1','[{"id":"same"},{"id":"same"}]');},
+      t=>{t.storage.rows.set('fc_edit_session_v1','{}');},
+      t=>{t.storage.rows.set('fc_project_v1','{"opaque":"legacy"}');},
+      t=>{t.FC.session.snapshot={};},
+      t=>{t.FC.session.durable=true;},
+      t=>{t.FC.session.lastError={code:'PROJECT_WRITE_CONFLICT'};}
+    ]){const t=list();alter(t);const source=t.seed(),data=JSON.stringify(t.s.projectData);assert.equal(t.FC.investorProjectRuntime.hasProjectDivergence(t.s.projectData),true);assert.deepEqual(t.seed(),source);assert.equal(JSON.stringify(t.s.projectData),data);}
+  });
+  console.log('Empty installation targeted: '+passed+'/6 groups PASS');
 }
 if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});
 module.exports={main};
