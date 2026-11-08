@@ -62,16 +62,17 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
  const listener=event=>{if(event.key===null||keys.has(event.key)){external=true;}};w.addEventListener('storage',listener);
  function idle({allowForm=false}={}){access();if(!allowForm&&(fc.priceModal?.isItemDirty?.()||w.document.querySelector('.panel-box-backdrop')))fail('LF_ACTIVE_FORM_PROTECTED');if(inTransaction||fc.session.active||fc.session.snapshot||fc.session.durable||rows.fc_edit_session_v1!==null||fc.investorEditorState?.hasUiLock()||fc.investorProjectRuntime.hasProjectDivergence(w.projectData))fail('LF_ACTIVE_RAM_PROTECTED');}
  async function hydrateCatalogs(){if(!localOnly&&!(await store.snapshot?.('globals'))?.replica)return;const c=fc.globalDataContract,model=c.capture({getItem:k=>k==='fc_edit_session_v1'?null:rows[k]??null},Object.keys(c.schemas)).model;fc.catalogStore?.adoptVerified?.(model);}
- // Same factory definitions as ensureDefaultDefinitions, but append-only:
- // a verified LOCAL-FIRST record must never be deduped, repriced or normalized.
+ // Append missing factories and apply only the owner's exact, untouched factory corrections.
+ // Individually edited/unknown records and frozen offers remain byte-for-byte unchanged.
  function missingFactoryLabor(){
   const definitions=fc.laborCatalogDefinitions,labor=fc.laborCatalog,c=fc.globalDataContract;
   if(!definitions||!labor)return null;
   const keys=c.sources.labor.filter(key=>rows[key]!=null);if(!keys.length)return null;
   const existing=JSON.parse(rows[keys[0]]),seen=new Set(existing.map(row=>row.id));
   const missing=[...definitions.DEFAULT_HOURLY_RATES,...definitions.DEFAULT_LABOR_DEFINITIONS].filter(row=>!seen.has(row.id));
-  if(!missing.length)return null;
-  const value=existing.concat(missing.map(row=>labor.normalizeDefinition(row)));
+  const corrected=labor.applyApprovedFactoryRules(existing);
+  if(!missing.length&&JSON.stringify(corrected)===JSON.stringify(existing))return null;
+  const value=corrected.concat(missing.map(row=>labor.normalizeDefinition(row)));
   const next={...rows};for(const key of keys)next[key]=JSON.stringify(value);
   c.validateBundle(c.capture({getItem:key=>key==='fc_edit_session_v1'?null:next[key]??null},Object.keys(c.schemas)).model);
   return {keys,raw:JSON.stringify(value)};

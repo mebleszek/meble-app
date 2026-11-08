@@ -92,8 +92,10 @@
       body.appendChild(el('p',quote?'Harmonogram zapisany w ofercie.':'Podgląd nowej wyceny.'));
       for(const [kind,label]of [['workshop','Warsztat'],['assembly','Montaż']]){
         const s=value[kind];body.appendChild(el('p',label+': '+(s?((s.minutes/60).toFixed(2)+' h prac + '+((s.totalMinutes-s.minutes)/60).toFixed(2)+' h czynności codziennych i przejazdów; dni: '+s.days):'brak aktualnego czasu trasy')));
+        if(s?.conditionalOccurrences){const count=s.conditionalOccurrences.labor_daily_break||0;body.appendChild(el('p','Przerwy: '+count+'. '+(value.billBreaks===false?'Koszt pokrywa firma; czas pozostaje w harmonogramie.':'Koszt według reguły cennika.')));}
+        if(s?.dayGroups?.length>1){const last=s.dayGroups[s.dayGroups.length-1];body.appendChild(el('p','Ostatni dzień: '+(last.totalMinutes/60).toFixed(2)+' h łącznie.'));}
       }
-      body.appendChild(el('p','Wyjazdy montażowe: '+value.trips+'. Wspólny przejazd dla dostawy, wnoszenia i montażu. Etapy następują po sobie; dzień firmy: 8 h.'));
+      body.appendChild(el('p','Wyjazdy montażowe: '+value.trips+'. Wspólny przejazd dla dostawy, wnoszenia i montażu. Etapy następują po sobie; dzień firmy: '+(Number.isFinite(value.dayMinutes)?(value.dayMinutes/60)+' h':'brak zapisanej długości')+'.'));
       if(value.services)body.appendChild(el('p','Zakres zapisany w harmonogramie: '+(Object.keys(serviceLabels).filter(key=>value.services[key]).map(key=>serviceLabels[key]).join(', ')||'wykonanie warsztatowe')+'.'));
       if(value.status!=='READY')body.appendChild(el('p','Harmonogram i koszty codzienne montażu są niekompletne. Uzupełnij aktualny czas trasy.'));
     }

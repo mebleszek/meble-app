@@ -83,7 +83,7 @@
       notes: normalizeText(investor.notes),
       addedDate: normalizeDate(investor.addedDate),
       transport: normalizeTransport(investor.transport),
-      carrying: normalizeCarrying(investor.carrying),
+      carrying: normalizeCarrying(investor.carrying || (!investor.id?{floorNumber:'0'}:{})),
     };
   }
 

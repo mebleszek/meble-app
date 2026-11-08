@@ -52,6 +52,7 @@
     return {
       versionName,
       preliminary,
+      billBreaks:commercial.billBreaks!==false,
       discountPercent,
       discountAmount,
       offerValidity: String(commercial && commercial.offerValidity || '').trim(),
@@ -113,6 +114,12 @@
   }
 
 
+  function transportMatches(def){
+    if(!def.conditions?.length)return true;
+    const draft=getOfferDraft(),rooms=draft.selection?.selectedRooms||[];
+    const entries=FC.wycenaCoreLabor?.enumerateSelectedCabinets?.(rooms)||[];
+    return entries.some(entry=>FC.wycenaCoreLabor.evaluateConditions(def,entry).matched);
+  }
   function buildTransportRateLine(catalog, selections){
     const selectedIds = new Set((Array.isArray(selections) ? selections : []).map((row)=> String(row && row.rateId || '')).filter(Boolean));
     const canonicalRow = (Array.isArray(catalog) ? catalog : []).find(row=>row && row.id === 'transport_distance_km');
@@ -136,13 +143,13 @@
         sourceType:'transport',sourceRole:'transport-distance',sourceKind:'automatic-blocked',sourceId:ids,quantitySource:'transport.distance_km',note:warning,calculation:warning,warnings:[warning]};
     }
     if(!defRaw) return null;
-    const resolved = untouchedStarter(defRaw) && Number.isFinite(ctx?.fuelPricePerKm) ? {...defRaw, price:ctx.fuelPricePerKm} : defRaw;
+    const resolved = defRaw;
     const def = FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' ? FC.laborCatalog.normalizeDefinition(resolved) : resolved;
-    if(!def || def.active === false || def.isHourlyRate === true) return null;
+    if(!def || def.active === false || def.isHourlyRate === true || !transportMatches(def)) return null;
     const calc = FC.laborCatalog && typeof FC.laborCatalog.calculateDefinition === 'function' ? FC.laborCatalog.calculateDefinition(def, { quantity:qty, hourlyRates:buildHourlyRates(catalog) }) : null;
-    const total = Math.max(0, Number(calc && calc.total) || (qty * (Math.max(0, Number(def.price) || 0))));
+    const total = Math.max(0, Number(calc && calc.total) || 0);
     if(!(total > 0)) return null;
-    const unitPrice = Math.max(0, Number(def.price) || 0);
+    const unitPrice = Math.max(0, Number(calc?.unitPrice) || 0);
     const startPrice = Math.max(0, Number(calc && calc.startPrice != null ? calc.startPrice : def.startPrice) || 0);
     const includedQty = Math.max(0, Number(calc && calc.includedQty != null ? calc.includedQty : def.includedQty) || 0);
     const billableQty = Math.max(0, Number(calc && calc.billableQty != null ? calc.billableQty : qty) || 0);
@@ -176,7 +183,7 @@
       quantitySourceValue:qty,
       quantitySourceDisplay:ctx.displayValue || (qty + ' km'),
       sourceKind:'automatic',
-      ...(resolved !== defRaw ? {transportPricing:{version:1,source:'fuel-settings',pricePerKm:unitPrice}} : {})
+      ...(def.unitPriceSource==='fuel' ? {transportPricing:{version:1,source:'fuel-settings',pricePerKm:unitPrice}} : {})
     });
   }
 
@@ -185,17 +192,19 @@
     const defRaw = (Array.isArray(catalog) ? catalog : []).find((row)=> String(row && row.id || '') === 'transport_travel_time') || null;
     if(!defRaw || selectedIds.has('transport_travel_time')) return null;
     const def = FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' ? FC.laborCatalog.normalizeDefinition(defRaw) : defRaw;
-    if(!def || def.active === false || def.isHourlyRate === true) return null;
+    if(!def || def.active === false || def.isHourlyRate === true || !transportMatches(def)) return null;
     const ctx = FC.investorTransport && typeof FC.investorTransport.getCurrentTransportContext === 'function' ? FC.investorTransport.getCurrentTransportContext() : null;
     const durationMin = Math.max(0, Number(ctx && ctx.durationMin) || 0);
     const durationHours = durationMin > 0 ? durationMin / 60 : Math.max(0, Number(ctx && ctx.durationHours) || 0);
     if(!(durationHours > 0)) return null;
     const rates = buildHourlyRates(catalog);
-    const hourlyRate = Math.max(0, Number(rates[def.rateType || 'assembly']) || 0);
-    const total = durationHours * hourlyRate;
+    const calc=FC.laborCatalog.calculateDefinition(def,{quantity:durationHours,hourlyRates:rates});
+    const hourlyRate=calc.hourlyRate;
+    const total=calc.total;
     const inv = ctx && ctx.investor || null;
     const display = ctx && ctx.durationDisplay ? String(ctx.durationDisplay) : (durationMin ? durationMin + ' min' : (Math.round(durationHours * 60) + ' min'));
     return withCalculation({
+      ...def,
       key:'transport_travel_time',
       type:'quote-rate',
       laborDefinitionId:String(def.id), billingScope:def.billingScope || 'standard', dailyStages:def.dailyStages || 'both',
@@ -203,14 +212,16 @@
       name:String(def.name || 'Czas dojazdu'),
       qty:durationHours,
       unit:'h',
-      unitPrice:hourlyRate,
+      unitPrice:['perUnit','startPlusUnit'].includes(def.pricingMode)?calc.unitPrice:hourlyRate,
+      fixedPrice:calc.fixedPrice,startPrice:calc.startPrice,includedQty:calc.includedQty,billableQty:calc.billableQty,
       total,
-      hours:durationHours,
-      baseHours:durationHours,
-      timeBlockHours:1,
+      hours:calc.pricedHours,
+      baseHours:calc.quantityHours,
+      timeBlockHours:def.timeBlockHours,
+      multiplier:calc.multiplier,startHours:def.startHours,startQty:def.startQty,stepHours:def.stepHours,stepEveryQty:def.stepEveryQty,quantityTiers:def.quantityTiers,
       quantity:durationHours,
-      quantityMode:'linear',
-      pricingMode:'time',
+      quantityMode:def.quantityMode,
+      pricingMode:def.pricingMode,
       rateType:String(def.rateType || 'assembly'),
       hourlyRate,
       note:'Automatycznie z Inwestora: czas dojazdu ' + display + '. Kilometry są liczone osobno w pozycji Transport do klienta.',

@@ -114,6 +114,7 @@
     return {
       versionName,
       preliminary,
+      billBreaks:value.billBreaks!==false,
       discountPercent,
       discountAmount,
       offerValidity: String(value.offerValidity || '').trim(),
@@ -206,18 +207,19 @@
     const list = localOnly ? readLocalDraftRows() : readAll();
     const idx = localOnly ? findLocalIndex(list, normalized) : findIndex(list, normalized);
     const servicesChanged=JSON.stringify(list[idx]?.services)!==JSON.stringify(normalized.services);
+    const breaksChanged=(list[idx]?.commercial?.billBreaks!==false)!==(normalized.commercial.billBreaks!==false);
     if(localOnly){
       if(!resolved.projectId || !resolved.investorId || (idx < 0 && findIndexByProject(list, resolved.projectId) >= 0)) return null;
       const previous = list[idx];
       if(previous) list[idx] = Object.assign({}, previous, normalized);
       else list.unshift(normalized);
       if(storage.setJSON(DRAFT_KEY, list) !== true) return null;
-      if(servicesChanged || (previous && JSON.stringify(previous.selection) !== JSON.stringify(normalized.selection)) || num(previous?.helperHours,0) !== normalized.helperHours){
+      if(breaksChanged || servicesChanged || (previous && JSON.stringify(previous.selection) !== JSON.stringify(normalized.selection)) || num(previous?.helperHours,0) !== normalized.helperHours){
         FC.applicationWrite.afterCommit(()=> FC.sessionNavigation?.invalidateCalculationContext?.());
       }
       return normalized;
     }
-    if(FC.sessionNavigation && typeof FC.sessionNavigation.invalidateCalculationContext==='function' && (servicesChanged||(idx>=0 && JSON.stringify(list[idx].selection)!==JSON.stringify(normalized.selection))||num(list[idx]?.helperHours,0)!==normalized.helperHours))FC.sessionNavigation.invalidateCalculationContext();
+    if(FC.sessionNavigation && typeof FC.sessionNavigation.invalidateCalculationContext==='function' && (breaksChanged||servicesChanged||(idx>=0 && JSON.stringify(list[idx].selection)!==JSON.stringify(normalized.selection))||num(list[idx]?.helperHours,0)!==normalized.helperHours))FC.sessionNavigation.invalidateCalculationContext();
     if(idx >= 0) list[idx] = normalized;
     else list.unshift(normalized);
     if(writeAll(list.slice(0, 50)) === null) return null;

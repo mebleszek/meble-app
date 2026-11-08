@@ -21,8 +21,8 @@
     { id:'m2', materialType:'akryl', manufacturer:'Rehau', symbol:'A01', name:'Akryl Biały', price:380, priceUnit:'m2', hasGrain:false, starterPrice:true, note:'Cena startowa za m² gotowego frontu.' },
     { id:'m3', materialType:'lakier', manufacturer:'Start', symbol:'LAK-MAT', name:'Front lakierowany standard', price:450, priceUnit:'m2', hasGrain:false, starterPrice:true, note:'Cena startowa za m² gotowego frontu.' },
     { id:'m4', materialType:'hdf', manufacturer:'Start', symbol:'HDF-3-BIALY', name:'HDF biały 3 mm', price:18, priceUnit:'m2', hasGrain:false, starterPrice:true, note:'Cena startowa za m² pleców.' },
-    { id:'m5', materialType:'obrzeże', manufacturer:'Start', symbol:'PCV-STD', name:'Obrzeże PCV standard', price:3, priceUnit:'mb', hasGrain:false, starterPrice:true, note:'Cena startowa za mb; w wycenie doliczane jest +10% zapasu.' },
-    { id:'m7', materialType:'obrzeże', manufacturer:'Start', symbol:'PCV-FRONT', name:'PCV pod kolor frontów', price:5, priceUnit:'mb', hasGrain:false, starterPrice:true, note:'Cena startowa za mb PCV liczonego jako pod kolor frontów; w wycenie doliczane jest +10% zapasu.' },
+    { id:'m5', materialType:'obrzeże', manufacturer:'Start', symbol:'PCV-STD', edgeWastePercent:10, name:'Obrzeże PCV standard', price:3, priceUnit:'mb', hasGrain:false, starterPrice:true, note:'Cena startowa za mb; zapas według pola Zapas do wyceny (%) tej pozycji.' },
+    { id:'m7', materialType:'obrzeże', manufacturer:'Start', symbol:'PCV-FRONT', edgeWastePercent:10, name:'PCV pod kolor frontów', price:5, priceUnit:'mb', hasGrain:false, starterPrice:true, note:'Cena startowa za mb PCV pod kolor frontów; zapas według pola Zapas do wyceny (%) tej pozycji.' },
     { id:'m6', materialType:'blat', manufacturer:'Start', symbol:'BLAT-4100', name:'Blat roboczy 4100 mm', price:420, priceUnit:'piece', hasGrain:true, starterPrice:true, note:'Cena startowa za całą sztukę blatu 4,1 m.' },
   ];
   const DEFAULT_ACCESSORIES = hardwareSeeds && typeof hardwareSeeds.mergeAccessorySeeds === 'function'
@@ -222,6 +222,7 @@
       price: Number(src.price) || 0,
       priceUnit: normalizeMaterialPriceUnit(src.priceUnit || src.unitPriceMode || src.unit, materialType),
       hasGrain: !!src.hasGrain,
+      ...(src.edgeWastePercent==null?{}:{edgeWastePercent:Math.max(0,Number(src.edgeWastePercent)||0)}),
       starterPrice: src.starterPrice === true,
       priceUserEditedAt: normalizeText(src.priceUserEditedAt || src.userEditedAt),
       note: normalizeText(src.note),

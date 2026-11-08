@@ -14,7 +14,7 @@
     const src = input && typeof input === 'object' ? input : {};
     const elevator = src.elevator && typeof src.elevator === 'object' ? src.elevator : {};
     return {
-      floorNumber:text(src.floorNumber || ''),
+      floorNumber:text(src.floorNumber == null ? '' : src.floorNumber),
       elevatorStatus:['yes','no'].includes(text(src.elevatorStatus)) ? text(src.elevatorStatus) : '',
       elevator:{
         doorWidthCm:text(elevator.doorWidthCm || ''), doorHeightCm:text(elevator.doorHeightCm || ''), cabinDepthCm:text(elevator.cabinDepthCm || ''), cabinHeightCm:text(elevator.cabinHeightCm || '')
@@ -32,7 +32,7 @@
     const e = carrying.elevator || {};
     const hasElevator = carrying.elevatorStatus === 'yes';
     const disabled = !isEditing || !hasElevator;
-    const floorLabel = carrying.floorNumber === '' ? '—' : `${Math.max(0, Math.floor(num(carrying.floorNumber, 0)))} piętro`;
+    const floorLabel = carrying.floorNumber === '' ? '—' : (Number(carrying.floorNumber)===0?'Parter (0)':`${Math.max(0, Math.floor(num(carrying.floorNumber, 0)))} piętro`);
     return `
       <details class="investor-carrying-accordion" open>
         <summary class="investor-carrying-accordion__summary">
@@ -47,7 +47,7 @@
           </div>
           ${isEditing ? `
             <div class="investor-carrying-edit-grid">
-              <label><span>Piętro / kondygnacja</span><input id="invCarryingFloorNumber" inputmode="numeric" value="${esc(carrying.floorNumber)}" /></label>
+              <label><span>Piętro / kondygnacja (parter = 0)</span><input id="invCarryingFloorNumber" inputmode="numeric" value="${esc(carrying.floorNumber)}" /></label>
               <div class="investor-carrying-elevator-choice" role="group" aria-label="Winda">
                 <span>Winda</span>
                 <div class="investor-carrying-choice-buttons">

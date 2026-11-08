@@ -9,10 +9,6 @@
 
   const DEFAULTS = {
     lightMaxKg:20,
-    disassemblyMinKg:45,
-    stairsMinutesStart:15,
-    stairsMinutesPerFloorUnit:5,
-    liftFloorUnits:2,
     boardWeightKgM2:13,
     hdfWeightKgM2:3.2,
     mdfWeightKgM2:14.44,
@@ -205,7 +201,7 @@
       stairsItems:stairs,
       elevatorPeopleCount:sumPeople(elevator),
       stairsPeopleCount:sumPeople(stairs),
-      elevatorFloorUnits:elevator.length ? DEFAULTS.liftFloorUnits : 0,
+      elevatorFloorUnits:elevator.length ? floorUnits(carrying, true) : 0,
       stairsFloorUnits:stairs.length ? stairsFloorUnits(carrying) : 0
     };
   }
@@ -278,17 +274,21 @@
     return { fits:false, reason:`element przechodzi przez drzwi, ale nie mieści się w głębokości ani po przekątnej windy`, method:'cabin_blocked', longCm:round(long,1), shortCm:round(short,1), cabinDiagonalCm:round(cabinDiag,1) };
   }
 
+  function ruleParameters(id){
+    const rows=FC.catalogSelectors?.getQuoteRates?.() || FC.catalogStore?.getPriceList?.('quoteRates') || [];
+    return FC.laborCatalog.ruleParameters(rows.find(row=>row.id===id)||{id});
+  }
   function floorUnits(carrying, liftFits){
     const c = normalizeCarrying(carrying);
-    if(liftFits) return DEFAULTS.liftFloorUnits;
+    const params=ruleParameters('labor_carrying_cabinet');
     const floor = Math.max(0, Math.floor(num(c.floorNumber, 0)));
-    return floor + 1;
+    return Math.max(params.minimumLevels, liftFits && floor>0 ? params.liftLevels : floor+1);
   }
 
   function stairsFloorUnits(carrying){
     const c = normalizeCarrying(carrying);
     const floor = Math.max(0, Math.floor(num(c.floorNumber, 0)));
-    return floor + 1;
+    return Math.max(ruleParameters('labor_carrying_cabinet').minimumLevels, floor+1);
   }
 
   function peopleForWeight(weightKg){
@@ -352,19 +352,22 @@
     const dims = getCabinetDimensions(cabinet);
     const lift = orientationFits(dims, carrying);
     const weight = estimateBodyWeight(roomId, cabinet);
-    const overDisassembly = weight.weightKg > DEFAULTS.disassemblyMinKg;
+    const threshold=ruleParameters('labor_carrying_disassembly').disassemblyWeightKg;
+    const overDisassembly = weight.weightKg > threshold;
     const requiresDisassembly = !!(overDisassembly && !lift.fits);
     const disassembled = requiresDisassembly ? evaluateDisassembledItems(weight.parts, carrying) : { items:[], itemCount:0, elevatorItemCount:0, stairsItemCount:0, stairsItems:[], elevatorItems:[] };
     const highFronts = evaluateHighFronts(roomId, cabinet, carrying);
     const units = requiresDisassembly
-      ? (disassembled.stairsItemCount > 0 ? stairsFloorUnits(carrying) : 0)
+      ? floorUnits(carrying, disassembled.itemCount>0 && disassembled.stairsItemCount===0)
       : floorUnits(carrying, lift.fits);
     const people = requiresDisassembly ? 1 : peopleForWeight(weight.weightKg);
-    const carryingItemCount = requiresDisassembly ? disassembled.stairsItemCount : 1;
-    const startMin = DEFAULTS.stairsMinutesStart;
-    const floorMin = DEFAULTS.stairsMinutesPerFloorUnit;
-    const baseMinutes = units > 0 ? startMin + (units * floorMin) : 0;
-    const helperMinutes = baseMinutes * people * Math.max(0, carryingItemCount);
+    const carryingItemCount = 1; // A cabinet is one carrying unit, assembled or disassembled.
+    const rows=FC.catalogSelectors?.getQuoteRates?.()||[];
+    const carryingRule=rows.find(row=>row.id==='labor_carrying_cabinet');
+    const calc=carryingRule?FC.laborCatalog.calculateDefinition(carryingRule,{quantity:units,hourlyRates:FC.laborCatalog.buildHourlyRates(rows)}):null;
+    const startMin=Number(carryingRule?.startHours||0)*60, floorMin=Number(carryingRule?.stepHours||0)*60;
+    const baseMinutes=Number(calc?.pricedHours||0)*60;
+    const helperMinutes=baseMinutes; // Technical headcount is not an extra charge.
     const warnings = [];
     if(!lift.fits && carrying.elevatorStatus === 'yes') warnings.push(lift.reason);
     if(highFronts.itemCount > 0){
@@ -374,9 +377,9 @@
       warnings.push(`wysokie fronty powyżej ${DEFAULTS.highFrontMinLongCm} cm liczone osobno (${parts.join(', ') || 'brak'})`);
     }
     if(requiresDisassembly){
-      warnings.push(`waga korpusu ${round(weight.weightKg, 1)} kg przekracza próg ${DEFAULTS.disassemblyMinKg} kg dla wnoszenia po schodach w całości`);
-      if(disassembled.stairsItemCount > 0) warnings.push(`po rozkręceniu po schodach liczono tylko elementy niewchodzące do windy: ${disassembled.stairsItemCount} szt.`);
-      if(disassembled.stairsItemCount === 0 && disassembled.itemCount > 0) warnings.push('po rozkręceniu wszystkie duże elementy mieszczą się do windy — nie doliczono wnoszenia po schodach dla elementów');
+      warnings.push(`waga korpusu ${round(weight.weightKg, 1)} kg przekracza próg ${threshold} kg dla wnoszenia po schodach w całości`);
+      if(disassembled.stairsItemCount > 0) warnings.push(`elementy niewchodzące do windy (jedna jednostka wnoszenia szafki): ${disassembled.stairsItemCount} szt.`);
+      if(disassembled.stairsItemCount === 0 && disassembled.itemCount > 0) warnings.push('po rozkręceniu wszystkie duże elementy mieszczą się do windy — wnoszenie jednej szafki windą');
     }
     return {
       roomId:text(roomId),
@@ -400,19 +403,17 @@
       helperMinutes,
       startMinutes:startMin,
       minutesPerFloorUnit:floorMin,
-      disassemblyThresholdKg:DEFAULTS.disassemblyMinKg,
+      disassemblyThresholdKg:threshold,
       lightThresholdKg:DEFAULTS.lightMaxKg,
       warnings,
-      formula:requiresDisassembly
-        ? (carryingItemCount > 0 ? `${startMin} min + ${units} poziom(y) × ${floorMin} min = ${baseMinutes} min × ${carryingItemCount} element(y)` : 'wszystkie duże elementy po rozkręceniu weszły do windy — bez wnoszenia po schodach')
-        : `${startMin} min + ${units} poziom(y) × ${floorMin} min = ${baseMinutes} min${people > 1 ? ` × ${people} osoby` : ''}`
+      formula:baseMinutes+' min według reguły cennika; jedna szafka, ekipa dwóch osób'
     };
   }
 
   function labelForEvaluation(ev){
     const e = ev || {};
     const lift = e.liftFits ? 'winda: mieści się' : 'winda/schody';
-    const dis = e.requiresDisassembly ? ` • rozkręcenie • po schodach: ${e.carryingItemCount || 0} elem.` : '';
+    const dis = e.requiresDisassembly ? ` • rozkręcenie • po schodach: ${e.disassembled?.stairsItemCount || 0} elem. (jedna szafka)` : '';
     const hf = e.highFronts && e.highFronts.itemCount ? ` • fronty >2 m: ${e.highFronts.itemCount} szt.` : '';
     return `${round(e.bodyWeightKg || 0, 1)} kg • ${e.floorUnits || 0} poziom(y) • ${e.peopleCount || 1} os. • ${lift}${dis}${hf}`;
   }

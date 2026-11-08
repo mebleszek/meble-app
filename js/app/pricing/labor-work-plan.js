@@ -38,7 +38,7 @@
     const calc=FC.laborCatalog.calculateDefinition(def,{quantity,volumeM3,hourlyRates:rates});
     return {...clone(def),key,laborDefinitionId:def.id,billingScope:scope(def),dailyStages:def.dailyStages||'both',qty:quantity,quantity,volumeM3,
       hours:n(calc.pricedHours),baseHours:n(calc.quantityHours),volumeHours:n(calc.volumeHours),
-      multiplier:n(calc.multiplier)||1,hourlyRate:n(calc.hourlyRate),total:n(calc.total),
+      multiplier:n(calc.multiplier),hourlyRate:n(calc.hourlyRate),total:n(calc.total),
       unit:'x',unitPrice:quantity>0?n(calc.total)/quantity:0,rooms:rooms.join(', '),contributingRooms:rooms,
       sourceId:def.id,sourceType:'scoped-labor',sourceKind:'automatic',sourceRole:'scoped-labor',
       quantitySourceValue:quantity,quantitySourceUsed:!!def.quantitySource,
@@ -71,7 +71,7 @@
       if(!def||scope(def)==='standard'||['automatic-suppressed','automatic-blocked'].includes(row.sourceKind))continue;
       // Shared offer-level selections are already scoped to the selected quote, not an arbitrary first room.
       const targets=roomId?[roomId]:rooms.filter(room=>!def.conditions?.length||entries.some(e=>e.roomId===room&&FC.wycenaCoreLabor.evaluateConditions(def,e).matched));
-      for(const room of targets)add(def,room,n(row.quantity??row.qty)/(roomId?1:Math.max(1,targets.length)),n(row.volumeM3)/(roomId?1:Math.max(1,targets.length)),row.matchedConditions||[]);
+      for(const room of targets)add(def,room,(row.carrying?.highFronts?n(row.carrying.quantityPerItem)*n(row.carrying.itemCount):n(row.quantity??row.qty))/(roomId?1:Math.max(1,targets.length)),n(row.volumeM3)/(roomId?1:Math.max(1,targets.length)),row.matchedConditions||[]);
     }
     // Fixed/elapsed definitions without a quantity source are one event per scope.
     for(const def of definitions.values())if(scope(def)!=='standard'&&!def.quantitySource&&def.active!==false&&!def.isHourlyRate){
@@ -88,16 +88,32 @@
       row.matchedConditions=clone(g.conditions);return row;
     });
   }
-  function solve(time,daily,travel){
-    if(![time,daily,travel].every(v=>Number.isFinite(v)&&v>=0))fail('SCHEDULE_INVALID_TIME');
-    if(!(time>0))return {minutes:0,dailyMinutes:daily,travelMinutes:travel,availableMinutes:Math.max(0,480-daily-travel),days:0,totalMinutes:0};
-    const available=480-daily-travel;
+  function solve(time,daily,travel,{dayMinutes=480,conditional=[]}={}){
+    if(![time,daily,travel,dayMinutes,...conditional.flatMap(r=>[r.minutes,r.afterMinutes])].every(v=>Number.isFinite(v)&&v>=0))fail('SCHEDULE_INVALID_TIME');
+    const overhead=daily+travel;
+    if(!(time>0))return {minutes:0,dailyMinutes:daily,travelMinutes:travel,availableMinutes:Math.max(0,dayMinutes-overhead),days:0,totalMinutes:0,dayGroups:[],conditionalOccurrences:{}};
+    const eligible=(work,rule)=>work+overhead>rule.afterMinutes+1e-9;
+    const used=work=>work+overhead+conditional.filter(r=>eligible(work,r)).reduce((sum,r)=>sum+r.minutes,0);
+    // The capacity function is monotone with jumps at visible daily-rule thresholds.
+    // Evaluate exact boundaries and capacities of each interval, never iterate on day count.
+    const cuts=[0,...conditional.map(r=>Math.max(0,r.afterMinutes-overhead)),Math.max(0,dayMinutes-overhead)].sort((a,b)=>a-b);
+    const candidates=[...cuts];
+    for(const point of cuts){
+      const cost=conditional.filter(r=>eligible(point+1e-7,r)).reduce((sum,r)=>sum+r.minutes,0);
+      candidates.push(dayMinutes-overhead-cost);
+    }
+    const available=Math.max(0,...candidates.filter(x=>x>=0&&used(x)<=dayMinutes+1e-8));
     if(!(available>0))fail('SCHEDULE_NONPOSITIVE_CAPACITY');
     const quotient=time/available,days=Math.ceil(quotient-Math.min(1e-10,quotient/2));
     if(!Number.isSafeInteger(days))fail('SCHEDULE_INVALID_TIME');
-    return {minutes:time,dailyMinutes:daily,travelMinutes:travel,availableMinutes:available,days,totalMinutes:time+days*(daily+travel)};
+    const last=Math.max(0,time-(days-1)*available);
+    const dayGroups=[...(days>1?[{days:days-1,workMinutes:available}]:[]),{days:1,workMinutes:last}];
+    const conditionalOccurrences=Object.fromEntries(conditional.map(rule=>[rule.id,dayGroups.reduce((sum,g)=>sum+(eligible(g.workMinutes,rule)?g.days:0),0)]));
+    for(const group of dayGroups)group.totalMinutes=used(group.workMinutes);
+    const conditionalMinutes=conditional.reduce((sum,r)=>sum+r.minutes*conditionalOccurrences[r.id],0);
+    return {minutes:time,dailyMinutes:daily,travelMinutes:travel,availableMinutes:available,days,totalMinutes:time+days*overhead+conditionalMinutes,dayGroups,conditionalOccurrences};
   }
-  function build({selectedRooms,collections,catalog,transport,helperHours=0,services:serviceSelection,materialScope}){
+  function build({selectedRooms,collections,catalog,transport,helperHours=0,services:serviceSelection,materialScope,billBreaks=true}){
     const services=normalizeServices(serviceSelection);
     filterServices(collections,services,materialScope);
     const rooms=[...new Set(selectedRooms||[])].sort(),defs=new Map((catalog||[]).map(d=>[d.id,FC.laborCatalog.normalizeDefinition(d)]));
@@ -111,19 +127,26 @@
     const base=flatten(collections).map(x=>x.row).concat(once).filter(row=>!String(row.sourceType).startsWith('transport')&&!String(row.sourceRole).startsWith('transport-')&&!String(row.quantitySource).startsWith('transport.')&&row.rateType!=='helper');
     const minutes=kind=>base.filter(r=>stage(r)===kind).reduce((s,r)=>s+n(r.hours)*60,0);
     const applicable=(row,kind)=>row.dailyStages==='both'||row.dailyStages===kind;
-    const perDay=kind=>daily.filter(r=>applicable(r,kind)).reduce((s,r)=>s+n(r.hours)*60,0);
-    const schedule={version:2,status:'READY',services,order:['workshop','assembly'],dayMinutes:480,helperHours:n(helperHours),rates:clone(rates),dailyRules:daily.map(r=>({id:r.id,dailyStages:r.dailyStages,quantity:r.quantity,minutes:r.hours*60,cost:r.total,hourlyRate:r.hourlyRate,rateType:r.rateType,quantitySource:r.quantitySource,contributingRooms:r.contributingRooms})),warnings:[]};
-    schedule.workshop=solve(minutes('workshop'),perDay('workshop'),0);
+    const breakRule=defs.get('labor_daily_break');
+    const breakParams=FC.laborCatalog.ruleParameters(breakRule||{id:'labor_daily_break'});
+    const dayMinutes=breakParams.workdayHours*60;
+    const conditional=kind=>daily.filter(r=>applicable(r,kind)&&r.id==='labor_daily_break').map(row=>({id:row.id,minutes:row.hours*60,afterMinutes:breakParams.breakAfterHours*60}));
+    const perDay=kind=>daily.filter(r=>applicable(r,kind)&&r.id!=='labor_daily_break').reduce((s,r)=>s+n(r.hours)*60,0);
+    const schedule={version:3,status:'READY',services,order:['workshop','assembly'],dayMinutes,billBreaks:billBreaks!==false,breakAfterHours:breakParams.breakAfterHours,helperHours:n(helperHours),rates:clone(rates),dailyRules:daily.map(r=>({id:r.id,dailyStages:r.dailyStages,quantity:r.quantity,minutes:r.hours*60,cost:r.total,hourlyRate:r.hourlyRate,rateType:r.rateType,quantitySource:r.quantitySource,contributingRooms:r.contributingRooms})),warnings:[]};
+    schedule.workshop=solve(minutes('workshop'),perDay('workshop'),0,{dayMinutes,conditional:conditional('workshop')});
     const travel=transport?.transport,known=travel&&(transport.durationKnown ?? (travel.durationMin!==''&&travel.durationMin!=null))&&!transport.isStale;
     const travelMinutes=known?2*n(transport.durationMin):0;
     if(minutes('assembly')>0&&!known){schedule.status='BLOCKED';schedule.warnings.push('SCHEDULE_ROUTE_REQUIRED');schedule.assembly=null;}
-    else schedule.assembly=solve(minutes('assembly'),perDay('assembly'),travelMinutes);
+    else schedule.assembly=solve(minutes('assembly'),perDay('assembly'),travelMinutes,{dayMinutes,conditional:conditional('assembly')});
     const extras=once.slice();
     for(const kind of schedule.order){
       const days=schedule[kind]?.days||0;
       if(!days)continue;
       for(const row of daily.filter(r=>applicable(r,kind))){
-        extras.push({...row,key:row.key+':'+kind,workStage:kind,occurrences:days,hours:row.hours*days,baseHours:row.baseHours*days,multiplier:row.multiplier*days,total:row.total*days,unitPrice:row.unitPrice*days,note:row.note+' • dni: '+days});
+        const occurrences=row.id==='labor_daily_break'?(schedule[kind].conditionalOccurrences[row.id]||0):days;
+        if(!occurrences)continue;
+        const billed=row.id!=='labor_daily_break'||billBreaks!==false;
+        extras.push({...row,key:row.key+':'+kind,workStage:kind,occurrences,hours:row.hours*occurrences,baseHours:row.baseHours*occurrences,multiplier:row.multiplier*occurrences,total:billed?row.total*occurrences:0,unitPrice:billed?row.unitPrice*occurrences:0,billed,note:row.note+' • wystąpienia: '+occurrences+(billed?'':' • koszt przerwy pokrywa firma; czas pozostaje w harmonogramie')});
       }
     }
     const trips=schedule.assembly?.days||0;schedule.trips=trips;
@@ -149,7 +172,7 @@
   function collect(selectedRooms,helperHours=0,services=FC.quoteOfferStore?.getCurrentDraft?.()?.services){
     const core=FC.wycenaCoreLabor,offer=FC.wycenaCoreOffer;
     const collections={labor:core.collectCabinetLabor(selectedRooms),project:core.collectProjectPreparationLines(selectedRooms),carrying:core.collectCarryingLines(selectedRooms),agdServices:FC.wycenaCoreLines?.collectBuiltInAppliances?.(selectedRooms)||[],quoteRates:offer.collectQuoteRateLines()};
-    return {...build({selectedRooms,collections,catalog:FC.catalogSelectors.getQuoteRates(),transport:FC.investorTransport?.getCurrentTransportContext?.(),helperHours,services,materialScope:FC.quoteOfferStore?.getCurrentDraft?.()?.selection?.materialScope}),collections};
+    return {...build({selectedRooms,collections,catalog:FC.catalogSelectors.getQuoteRates(),transport:FC.investorTransport?.getCurrentTransportContext?.(),helperHours,services,billBreaks:FC.quoteOfferStore?.getCurrentDraft?.()?.commercial?.billBreaks!==false,materialScope:FC.quoteOfferStore?.getCurrentDraft?.()?.selection?.materialScope}),collections};
   }
   FC.laborWorkPlan={build,collect,solve,scope,normalizeServices,serviceFor,included,hoursByStage};
 })();

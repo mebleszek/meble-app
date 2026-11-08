@@ -322,7 +322,7 @@
     },
     'carrying.stairs_item_count':(roomId, cabinet)=> {
       const ev = carryingEvaluation(roomId, cabinet);
-      const value = ev ? Number(ev.carryingItemCount) || 0 : 0;
+      const value = ev ? Number(ev.requiresDisassembly ? ev.disassembled?.stairsItemCount : ev.carryingItemCount) || 0 : 0;
       return makeFact('carrying.stairs_item_count', value, { hasValue:value > 0, displayValue:`${value} szt.`, source:ev && ev.requiresDisassembly ? 'rozkręcony korpus: elementy niewchodzące do windy' : 'korpus w całości' });
     },
     'carrying.requires_disassembly':(roomId, cabinet)=> {

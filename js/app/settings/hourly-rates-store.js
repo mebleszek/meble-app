@@ -90,12 +90,26 @@
     return { ok:true };
   }
 
-  function write(rows){
+  function readBreak(){
+    const row=rawQuoteRates().find(row=>row.id==='labor_daily_break')||labor().DEFAULT_LABOR_DEFINITIONS?.find(row=>row.id==='labor_daily_break')||FC.laborCatalogDefinitions.DEFAULT_LABOR_DEFINITIONS.find(row=>row.id==='labor_daily_break');
+    return {...clone(row),...labor().ruleParameters(row)};
+  }
+  function write(rows,breakRule){
     const validation = validateRows(rows);
     if(!validation.ok) return validation;
     const current = rawQuoteRates();
     const oldByCode = new Map(current.filter(isHourly).map((row)=> [codeOf(row), row]));
     const nonHourly = current.filter((row)=> !isHourly(row));
+    if(breakRule){
+      for(const value of [breakRule.timeBlockHours,breakRule.breakAfterHours,breakRule.workdayHours])if(!Number.isFinite(Number(value))||Number(value)<0)return {ok:false,message:'Czas przerwy, próg i długość dnia muszą być nieujemnymi liczbami.'};
+      if(!(Number(breakRule.workdayHours)>0))return {ok:false,message:'Dzień pracy musi trwać więcej niż zero godzin.'};
+      const index=nonHourly.findIndex(row=>row.id==='labor_daily_break');
+      const old=index>=0?nonHourly[index]:readBreak();
+      const patch={timeBlockHours:Number(breakRule.timeBlockHours),breakAfterHours:Number(breakRule.breakAfterHours),workdayHours:Number(breakRule.workdayHours)};
+      const changed=Object.keys(patch).some(key=>Number((key==='timeBlockHours'?old:labor().ruleParameters(old))[key])!==patch[key]);
+      const next={...old,...patch,...(changed?{starterPrice:false,priceUserEditedAt:nowIso()}:{} )};
+      if(index>=0)nonHourly[index]=next;else nonHourly.push(next);
+    }
     const normalizedRates = (Array.isArray(rows) ? rows : []).map((row)=>{
       const code = codeOf(row) || (labor().normalizeRateCode ? labor().normalizeRateCode(row && row.rateCode) : text(row && row.rateCode));
       const normalized = normalizeRate(Object.assign({}, row, { rateKey:code, rateCode:code, rateType:code }), oldByCode.get(code));
@@ -118,5 +132,5 @@
     return `${active} aktywne ${active === 1 ? 'stawka' : 'stawki'} godzinowe${inactive ? ' • wyłączone: ' + inactive : ''}. Czynności czasowe wybierają jedną z tych stawek po kodzie technicznym.`;
   }
 
-  FC.hourlyRatesSettings = { read, write, createBlankRate, validateRows, buildSummary, normalizeRate, isHourlyRateDefinition:isHourly };
+  FC.hourlyRatesSettings = { read, readBreak, write, createBlankRate, validateRows, buildSummary, normalizeRate, isHourlyRateDefinition:isHourly };
 })();

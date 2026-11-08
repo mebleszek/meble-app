@@ -207,6 +207,9 @@ async function main(){
   assert.equal(routedQuote.lines.find(l=>l.sourceRole==='transport-distance').qty,4);
   assert.ok(Math.abs(routedQuote.lines.find(l=>l.sourceRole==='transport-distance').unitPrice-1.4)<1e-10);
   console.log('PASS full production runtime/panel persists synthetic ORS result, fills table and prices the next WYCENA with identical reserved commute time; saved offer and physical originals unchanged');
+  phase='catalog rule authority through actual UI';
+  await require('./helpers/catalog-pricing-browser')({browser,tap,until,fill,roomId:roomIds[0]});
+  const beforeSecondInvestor=(await browser.evaluate('localProof()')).tables.control.find(row=>row.key==='application').rows;
   phase='second investor through actual form';
   const retainedInvestor=await browser.evaluate('window.FC.investors.getCurrentId()');
   await browser.evaluate('window.FC.actions.dispatch("open-investors-list",{})');await until('uiState.entry==="investorsList"&&!window.FC.applicationStartup.inspect().transactionPending');
@@ -225,7 +228,7 @@ async function main(){
   await until('window.FC.investors.readAll().length===1&&!window.FC.applicationStartup.inspect().transactionPending');
   await until('!!document.querySelector(".info-box")');await tap('.info-box button');
   const afterFirst=await browser.evaluate('localProof()'),afterFirstRows=afterFirst.tables.control.find(r=>r.key==='application').rows;
-  for(const key of ['fc_investors_v1','fc_projects_v1','fc_quote_snapshots_v1','fc_quote_offer_drafts_v1'])assert.equal(afterFirstRows[key]??null,routeRows[key]??null,'Remaining original data must stay exact: '+key);
+  for(const key of ['fc_investors_v1','fc_projects_v1','fc_quote_snapshots_v1','fc_quote_offer_drafts_v1'])assert.equal(afterFirstRows[key]??null,beforeSecondInvestor[key]??null,'Remaining original data must stay exact: '+key);
   assert.equal(afterFirstRows.fc_current_project_id_v1,null);assert.equal(afterFirstRows.fc_current_investor_v1,null);
   assert.equal(await browser.evaluate('window.FC.investors.canRemoveFromList()'),true);
   await browser.evaluate(`window.FC.investorDeletion.prepare([${JSON.stringify(retainedInvestor)}]).then(()=>true)`);assert.deepEqual(await browser.evaluate('localProof()'),afterFirst,'Preparing another delete must remain read-only');

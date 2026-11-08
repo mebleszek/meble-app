@@ -116,7 +116,7 @@ test('Unchanged areas retain their existing definitions and cutlist geometry',()
   const r=fixture(),{FC,cab}=r;
   const expected={labor_body_h150:[1,0.25],labor_body_width_090:[1/12,0],labor_body_width_110:[0.25,0],labor_mount_drawer:[0.25,0],labor_mount_lift:[0.5,0],dishwasher_mount:[1,0],project_design_parts:[1/60,0]};
   for(const[id,[hours,volume]]of Object.entries(expected)){const def=r.rates().find(d=>d.id===id);near(def.timeBlockHours,hours);near(def.volumeTimePerM3||0,volume);}
-  const carrying=r.rates().find(d=>d.id==='labor_carrying_cabinet');near(carrying.startHours,0.25);near(carrying.stepHours,1/12);assert.equal(carrying.rateType,'helper');
+  const carrying=r.rates().find(d=>d.id==='labor_carrying_cabinet');near(carrying.startHours,0.25);near(carrying.stepHours,1/12);assert.equal(carrying.rateType,'assembly');
   const parts=FC.cabinetCutlist.getCabinetCutList(cab,'kuchnia');assert.equal(parts.find(p=>p.name==='Bok').a,70.2);assert.equal(parts.find(p=>p.name==='Półka').qty,2);
 });
 test('repair: private operation collision, explicit replacement, independent work and historical catalog',()=>{

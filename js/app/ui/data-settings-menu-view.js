@@ -118,8 +118,8 @@
     }));
     grid.appendChild(buildTile({
       icon:'settings',
-      title:'Stawki godzinowe firmy',
-      sub:'Warsztatowa, montażowa, specjalistyczna, pomocnik i własne profile PLN/h.',
+      title:'Stawki i przerwy',
+      sub:'Stawki godzinowe, czas i próg przerwy oraz długość dnia pracy.',
       section:'hourlyRates',
       infoKey:'hourlyRates',
       onClick:()=> setView('hourlyRates'),

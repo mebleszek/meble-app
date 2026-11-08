@@ -7,6 +7,10 @@ const {buildCodeCatalogs}=require('./helpers/code-global-catalogs');
 async function main(){
  const {model,context}=buildCodeCatalogs(),ids=context.FC.laborCatalogDefinitions.PDF_OPERATION_IDS;
  const old=structuredClone(model);old.labor=old.labor.filter(row=>!ids.includes(row.id)&&row.id!=='labor_daily_break'&&row.id!=='labor_delivery_loading');
+ const legacy={};legacy.window=legacy;require('node:vm').createContext(legacy);
+ require('node:vm').runInContext(require('node:child_process').execFileSync('git',['show','f29e8d3797108068130cfb73c3393a066e050c43:js/app/pricing/labor-catalog-definitions.js'],{encoding:'utf8'}),legacy);
+ const correctedIds=['labor_carrying_cabinet','labor_carrying_disassembly','transport_distance_km'];
+ for(const id of correctedIds){const i=old.labor.findIndex(row=>row.id===id);old.labor[i]=structuredClone(context.FC.laborCatalog.normalizeDefinition(legacy.FC.laborCatalogDefinitions.DEFAULT_LABOR_DEFINITIONS.find(row=>row.id===id)));}
  const {codeGlobalRows}=await import('../sync/global-code-rebuild-plan.mjs');
  const raw=codeGlobalRows(old,context.FC.globalDataContract);
  Object.assign(raw,{fc_projects_v1:'[{"id":"synthetic-project","investorId":"synthetic-investor","opaque":"KEEP_PROJECT"}]',fc_investors_v1:'[{"id":"synthetic-investor","opaque":"KEEP_INVESTOR"}]',fc_quote_snapshots_v1:'[{"opaque":"KEEP_FROZEN_OFFER","total":123.4567}]',fc_ui_v1:JSON.stringify({showPriceList:'quoteRates',editingId:'labor_body_h090'}),fc_edit_session_v1:null});
@@ -88,8 +92,17 @@ async function main(){
   for(const name of ['replicas','protected','outbox'])assert.deepEqual(bootProof.tables[name],baseline.tables[name]);
   assert.equal(JSON.parse(baseline.native.fc_quote_rates_v1).length,57);
   assert.equal(bootProof.catalog.length,122);
-  for(const row of old.labor)assert.deepEqual(bootProof.catalog.find(r=>r.id===row.id),row,'startup preserves every original field');
-  console.log('PASS old 57-row profile automatically becomes 122 before use, without changing any existing record or pending store');
+  for(const row of old.labor){const actual=bootProof.catalog.find(r=>r.id===row.id);
+   if(!correctedIds.includes(row.id)){assert.deepEqual(actual,row,'startup preserves every unrelated original field');continue;}
+   const allowed=new Set(['rateType','note','minimumLevels','liftLevels','disassemblyWeightKg','unitPriceSource']);
+   for(const key of Object.keys(row))if(!allowed.has(key))assert.deepEqual(actual[key],row[key],'factory correction preserves '+key);
+   for(const key of Object.keys(actual))assert.ok(Object.hasOwn(row,key)||allowed.has(key),'no unapproved factory fields');
+  }
+  assert.equal(bootProof.catalog.find(r=>r.id==='labor_carrying_cabinet').rateType,'assembly');
+  assert.equal(bootProof.catalog.find(r=>r.id==='transport_distance_km').unitPriceSource,'fuel');
+  assert.equal(bootProof.rows.fc_quote_snapshots_v1,raw.fc_quote_snapshots_v1);
+
+  console.log('PASS old 57-row profile automatically becomes 122 before use, with only approved exact factory corrections; private fields/offers/pending stores unchanged');
   await browser.evaluate(`(()=>{const cab={id:'quote-test',type:'wisząca',subType:'okap',width:60,height:82,depth:50,frontCount:0,backMaterial:'HDF',details:{}};
    FC.wycenaCoreUtils={clone:structuredClone,slug:v=>String(v).replace(/[^a-zA-Z0-9]/g,'_')};FC.wycenaCoreSource={project:()=>({kuchnia:{settings:{},cabinets:[cab]}}),selectedCabinets:()=>[{roomId:'kuchnia',roomLabel:'Synthetic Kitchen',cabinet:cab}],roomLabel:()=> 'Synthetic Kitchen'};
    FC.wycenaCoreOffer={};FC.wycenaCoreSelection={};FC.wycenaCoreCatalog={};FC.catalogSelectors={getQuoteRates:()=>FC.catalogStore.getQuoteRates()};FC.frontHardware={getCabinetFrontCutListForMaterials:()=>[],getDoorFrontPanelsForHinges:()=>[]};return true;})()`);
@@ -119,7 +132,7 @@ async function main(){
   assert.deepEqual(after.tables.control.filter(row=>row.key!=='application'),before.tables.control.filter(row=>row.key!=='application'));
   assert.equal(after.tables.control.find(row=>row.key==='application').version,before.tables.control.find(row=>row.key==='application').version+1);
   for(const key of new Set([...Object.keys(before.rows),...Object.keys(after.rows)]))if(!['fc_quote_rates_v1','fc_services_v1','fc_ui_v1'].includes(key))assert.equal(after.rows[key],before.rows[key],key+' remains exact');
-  for(const row of old.labor){const found=after.catalog.find(next=>next.id===row.id);for(const key of ['price','rateType','timeBlockHours','startHours','stepHours','startQty','quantitySource','quantityMode','pricingMode'])assert.equal(found[key],row[key],row.id+'/'+key);}
+  for(const row of before.catalog){const found=after.catalog.find(next=>next.id===row.id);for(const key of ['price','rateType','timeBlockHours','startHours','stepHours','startQty','quantitySource','quantityMode','pricingMode'])assert.equal(found[key],row[key],row.id+'/'+key);}
   for(const key of ['fc_projects_v1','fc_investors_v1','fc_quote_snapshots_v1'])assert.equal(after.rows[key],before.rows[key]);
   assert.equal(after.rows.fc_quote_rates_v1,after.rows.fc_services_v1);
   assert.equal(await browser.evaluate('(()=>{const c=FC.globalDataContract;c.validateBundle(c.capture(localStorage,Object.keys(c.schemas)).model);return Object.keys(c.schemas).length;})()'),14);
@@ -141,6 +154,7 @@ async function main(){
   }
   profile='private-records';sourceRows=structuredClone(raw);
   const privateRows=JSON.parse(sourceRows.fc_quote_rates_v1);
+  for(const id of correctedIds)privateRows.find(row=>row.id===id).priceUserEditedAt='2026-11-08T00:00:00Z';
   privateRows.find(row=>row.id==='labor_rate_assembly').price=237.12345;
   privateRows.find(row=>row.id==='labor_body_h090').active=false;
   privateRows.push({...model.labor.find(row=>row.id==='pdf_door_adjust'),active:false});

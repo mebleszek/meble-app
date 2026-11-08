@@ -562,6 +562,7 @@
         materialScopeMode: compactText(scope.materialScopeMode || materialScopeMode(scope.materialScope)),
       },
       commercial: {
+        ...(Object.hasOwn(commercial,'billBreaks')?{billBreaks:commercial.billBreaks!==false}:{}),
         discountPercent: roundFingerprintNumber(commercial.discountPercent),
         discountAmount: roundFingerprintNumber(commercial.discountAmount),
         offerValidity: compactText(commercial.offerValidity || ''),

@@ -161,6 +161,22 @@
       if(versionField) body.appendChild(versionField);
 
 
+      const breakChip=h('label',{class:'rozrys-scope-chip rozrys-scope-chip--room-match'+(commercial.billBreaks!==false?' is-checked':'')});
+      const breakInput=h('input',{type:'checkbox'});breakInput.checked=commercial.billBreaks!==false;breakInput.dataset.billBreaks='true';
+      breakChip.appendChild(breakInput);breakChip.appendChild(h('span',{text:'Naliczaj klientowi koszt przerw'}));
+      let storedBreakChoice=commercial.billBreaks!==false;
+      breakInput.addEventListener('change',async()=>{
+        const choice=breakInput.checked;breakInput.disabled=true;
+        const persist=()=>{const active=getOfferDraft();
+          if(active.projectId!==draft.projectId||active.investorId!==draft.investorId||(active.commercial?.billBreaks!==false)!==storedBreakChoice)return false;
+          return !!patchOfferDraft({commercial:{billBreaks:choice}});
+        };
+        try{const writer=FC.applicationWrite,result=await(writer?.localOnly?writer.project(persist):persist());if(!result)throw Error('SAVE_UNCONFIRMED');storedBreakChoice=choice;breakChip.classList.toggle('is-checked',choice);render(ctx);}
+        catch(_){FC.infoBox?.open({title:'Zapis niepotwierdzony',message:'Nie potwierdzono zmiany kosztu przerw. Zachowano wybór w formularzu; spróbuj ponownie.',okOnly:true});}
+        finally{breakInput.disabled=false;}
+      });
+      body.appendChild(breakChip);
+      body.appendChild(h('p',{class:'muted',text:'Przerwy wynikają z reguły cennika i długości każdego dnia. Wyłączenie kosztu nie skraca harmonogramu.'}));
       const grid = h('div', { class:'grid-2 quote-offer-grid', style:'margin-top:14px' });
       const discountPercentInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'0.01', value:String(num(commercial.discountPercent, 0) || '') });
       const discountAmountInput = h('input', { class:'investor-form-input', type:'number', min:'0', step:'0.01', value:String(num(commercial.discountAmount, 0) || '') });
@@ -177,6 +193,7 @@
         const nextCommercial = {
           versionName:String(versionInput.value || '').trim(),
           preliminary: !!latestCommercial.preliminary,
+          billBreaks:latestCommercial.billBreaks!==false,
           discountPercent: Math.max(0, num(discountPercentInput.value, 0)),
           discountAmount: Math.max(0, num(discountAmountInput.value, 0)),
           offerValidity: String(validityInput.value || '').trim(),
