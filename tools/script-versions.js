@@ -41,7 +41,7 @@ const versions = Object.freeze({
   "js/app/ui/session-navigation.js": "20261031_historical_owner_v1",
   "js/app/project/project-bridge.js": "20261031_historical_owner_v1",
   "js/app/project/project-pcv-policy.js": "20261031_historical_owner_v1",
-  "js/app/investor/investor-project-runtime.js": "20261031_historical_owner_v1",
+  "js/app/investor/investor-project-runtime.js": "20261108_unowned_local_list_v1",
   "js/app/investor/investor-project-patches.js": "20261025_empty_installation_v1",
   "js/app/shared/backup-archive-idb.js": "20261025_archive_lifecycle_v1",
   "js/app/shared/storage-recovery-export.js": "20261103_android_globals_recovery_v1",

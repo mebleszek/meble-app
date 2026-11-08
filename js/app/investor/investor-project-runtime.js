@@ -114,6 +114,8 @@
         const ram = JSON.stringify(comparableProjectData(projectData));
         if(ram !== JSON.stringify(comparableProjectData(current && current.projectData))
           && ram !== JSON.stringify(comparableProjectData(target.projectData,target))
+          && !(!current && isUnownedNavigationContext(undefined,true,id)
+            && ram===JSON.stringify(comparableProjectData(freshProject())))
           && !consumeCreation(options,id,target,ram) && !consumeFirstActivation(options, id, target, ram)) return refuseActivation('PROJECT_RAM_DIVERGENCE');
       }
       const previousProject = typeof projectData !== 'undefined' ? projectData : window.projectData;
@@ -225,8 +227,9 @@
     // project-bridge.load() uses DEFAULT_PROJECT when there is no owner. Passing
     // null through the legacy migrations produces different defaults (e.g. a
     // 1.8 cm bathroom worktop instead of 2 cm) and invents an unsaved edit.
-    // Only a strictly empty, unowned installation may use that default baseline.
-    if(!central && !isEmptyUnownedContext()) return true;
+    // A verified idle LOCAL-FIRST list also has default RAM after its selected
+    // owner is deleted; other persisted projects do not make that RAM dirty.
+    if(!central && !isUnownedNavigationContext(undefined,true)) return true;
     const before = comparableProjectData(central || freshProject());
     const next = comparableProjectData(nextData);
     let beforeRaw = null;
@@ -236,7 +239,7 @@
     return beforeRaw !== nextRaw;
   }
 
-  function isEmptyUnownedContext(transientId){
+  function isUnownedNavigationContext(transientId,allowLocalList=false,incomingInvestorId){
     try{
       const s = FC.session;
       if(!s || s.active || s.durable || s.snapshot || s.context || s.projectId || s.roomId
@@ -244,18 +247,24 @@
         || s.startedAt || s.updatedAt || s.comparableKeys
         || (s.lastError && s.lastError.code !== 'SESSION_OWNER_MISSING')) return false;
       if(localStorage.getItem('fc_edit_session_v1') !== null) return false;
-      for(const key of ['fc_projects_v1','fc_investors_v1']){
-        const raw = localStorage.getItem(key);
-        const rows = raw === null ? [] : JSON.parse(raw);
-        if(!Array.isArray(rows) || rows.length !== 0) return false;
-      }
+      const investorPointer=String(localStorage.getItem('fc_current_investor_v1') || '').trim();
       if(String(localStorage.getItem('fc_current_project_id_v1') || '').trim()
-        || String(localStorage.getItem('fc_current_investor_v1') || '').trim()) return false;
+        || (incomingInvestorId===undefined ? !!investorPointer : !allowLocalList || incomingInvestorId!==investorPointer)) return false;
       const uiRaw = localStorage.getItem('fc_ui_v1');
       const ui = uiRaw === null ? null : JSON.parse(uiRaw);
       if(uiRaw !== null && (!ui || typeof ui !== 'object' || Array.isArray(ui))) return false;
       if(ui && ui.currentInvestorId && ui.currentInvestorId !== transientId) return false;
       if(typeof uiState !== 'undefined' && uiState && uiState.currentInvestorId && uiState.currentInvestorId !== transientId) return false;
+      const localList=allowLocalList && FC.applicationWrite?.localOnly===true
+        && ui?.entry==='investorsList' && !ui.currentInvestorId && !ui.roomType
+        && typeof uiState!=='undefined' && uiState?.entry==='investorsList'
+        && !uiState.currentInvestorId && !uiState.roomType;
+      for(const key of ['fc_projects_v1','fc_investors_v1']){
+        const raw=localStorage.getItem(key),rows=raw===null?[]:JSON.parse(raw);
+        if(!Array.isArray(rows) || (!localList && rows.length!==0))return false;
+        if(localList && (rows.some(row=>!row || typeof row!=='object' || typeof row.id!=='string' || !row.id.trim())
+          || new Set(rows.map(row=>row.id)).size!==rows.length))return false;
+      }
       // Legacy project evidence must not acquire a new default baseline.
       for(let i=0;i<localStorage.length;i++){
         const key = localStorage.key(i);
@@ -294,7 +303,7 @@
       const draft = ui && ui.getTransientInvestor && ui.getTransientInvestor();
       const transientId = draft && ui.state && ui.state.selectedId === draft.id
         && ui.state.newlyCreatedId === draft.id ? draft.id : undefined;
-      if(!isEmptyUnownedContext(transientId)
+      if(!isUnownedNavigationContext(transientId)
         || JSON.stringify(comparableProjectData(data)) !== JSON.stringify(comparableProjectData(freshProject()))) return null;
       const token = Object.freeze({});
       firstActivations.set(token, JSON.stringify(comparableProjectData(data)));

@@ -525,3 +525,81 @@ a jego kasowania/restore nie dodano w tym pakiecie.
 
 **CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING / LIVE_BLOCKED.**
 Fizyczny Pixel, CI dla nowego HEAD i publikacja nie zostały wykonane.
+
+
+## Następny inwestor po lokalnym usunięciu — 08.11.2026
+
+Gałąź `fix/investor-delete-session-context-20261108`, BASE/main
+`76ec0bc098dac7a3180028c5891c9083c8983ffa`; wynikowy HEAD po jednym commit/push
+w przekazaniu. Odczyt origin potwierdził poprzedni kod `86f21680…` w main.
+Nie ponawiano kontroli jego wydania, Actions ani operacji Firebase.
+
+### Przyczyna PHONE_FAIL i zakres korekty
+
+Po skasowaniu wskazanego projektu jego wskaźnik jest poprawnie zerowany, a RAM
+ładowany jako domyślny projekt. Jeśli pozostaje drugi inwestor/projekt,
+`hasProjectDivergence()` uważało ten stan za niezapisaną pracę: stara gałąź bez
+centralnego właściciela dopuszczała wyłącznie całkowicie pustą instalację.
+Router próbował `session.begin()` bez właściciela, co dawało
+`SESSION_OWNER_MISSING / NAVIGATION_SESSION_UNCONFIRMED`; boundary odrzucało
+zakończenie jako `LF_APPLICATION_SAVE_UNCONFIRMED`. Ten sam pozornie brudny RAM
+powodował `DELETE_CONTEXT_PROTECTED` przy kolejnej próbie usuwania.
+
+Pierwsza korekta klasyfikacji ujawniła w Chromium drugi etap: aktywator nie
+przyjmował pustego RAM po ustawieniu nowego inwestora, bo RAM nie odpowiadał
+ani nieistniejącemu poprzedniemu rekordowi, ani otwieranemu projektowi.
+Obie odmowy naprawiono w jednym istniejącym `investor-project-runtime.js`.
+Nie zmieniono session.js, writer-fence, UI, Auth, kontraktu kasowania lub chmury.
+
+Nowa gałąź dopuszcza bazę domyślną tylko dla bezczynnej listy LOCAL-FIRST:
+zgodne zapisane i RAM entry/room/owner, brak wskaźnika projektu i sesji,
+jednoznaczne tablice zapisanych rekordów, brak dotychczasowych dowodów legacy.
+Przy aktywacji wskaźnik inwestora musi być dokładnie wskazanym celem;
+RAM musi nadal być identyczny z domyślnym. Własność celu, unikalność projektu,
+PCV/polityka, Auth i transakcja pozostają sprawdzane istniejącymi ścieżkami.
+Nie wywołuje się begin/commit/cancel dla pozornie brudnej listy, nie nadaje nowej
+sesji ani prawa pierwszej aktywacji istniejącym rekordom. Zastany błąd
+SESSION_OWNER_MISSING może pozostać w diagnostyce; nie jest czyszczony dla PASS.
+Zmieniony RAM, rzeczywista sesja, obce/stare wskaźniki, nieczytelne dane lub
+nieznane konflikty nadal odmawiają. Brak migracji/restore/resetu lub zapisów
+na urządzeniu właściciela; oryginały, projekty i cenniki nie są naprawiane danymi
+fabrycznymi ani normalizowane w tle.
+
+### Dowody i luka wcześniejszego testu
+
+- Reprodukcja na BASE: nowy szósty przypadek `empty-installation-smoke.js`
+  zwracał true zamiast false dla czystego RAM bez właściciela, z pozostałym
+  inwestorem; wcześniejsze pięć grup nadal PASS. Nie usunięto tych asercji.
+- Końcowy Node: `empty-installation-smoke.js` **6/6 PASS** — zastany błąd właściciela,
+  brak nowego begin i zero zmian źródeł/RAM przy kwalifikacji; rzeczywisty patched
+  setter i aktywacja pozostałego projektu. Czternaście przypadków odmowy obejmuje
+  zmieniony RAM/owner, zły widok, obcy wskaźnik, niepoprawny JSON, duplikaty,
+  journal, legacy, snapshot, durable i konflikt właściciela. Osobno dirty RAM
+  pozostaje odmową także po wskazaniu poprawnego celu.
+- Rzeczywisty Chromium: `android-local-first-browser-smoke.js` **14 grup PASS**.
+  Formularz tworzy drugiego inwestora; usunięcie bieżącego zachowuje dokładne RAW
+  pozostałego inwestora/projektu/ofert/draftu. Bez restartu przygotowanie kolejnego
+  usunięcia pozostaje readonly, „Otwórz” aktywuje właściwy projekt i jego szafki,
+  potem potwierdzone usunięcie drugiego i restart offline pozostawiają pustą listę.
+  Zachowano wszystkie wcześniejsze scenariusze i asercje RAW, cenników, obcej bazy,
+  backupów, protected/outbox, abortu i niezapisanego formularza.
+- Poprzedni pełny test usuwał jedynego inwestora, po czym następował restart;
+  nie obejmował pozostałego rekordu. Native test protokołu miał kontrolowaną
+  fasadę divergence. To była luka pokrycia — usunięto ją rzeczywistą sekwencją
+  dwóch właścicieli, bez zastępowania warunków mockiem lub wyłączenia ochrony.
+- `local-first-transport-delete-browser-smoke.js` **9 grup PASS**,
+  `investor-navigation-exit-smoke.js` **13/13**, `historical-investor-owner-smoke.js`
+  **5 grup PASS**, `investor-list-delete-smoke.js` **PASS**. Dane wyłącznie
+  syntetyczne, brak zewnętrznych żądań w regresjach Chromium.
+- Routing bez zmian workflow: **207 smoke / 7 rozłącznych grup**, rozszerzone
+  empty-installation i pełny Android w **5/7**, native protokół w **6/7**,
+  nawigacja w **6/7**, historical-owner w **7/7**, każdy dokładnie raz.
+  Cache wersji runtime w obu HTML `20261108_unowned_local_list_v1`, kanoniczna
+  lista 347 skryptów, manifest offline aktualny. Bez pełnego lokalnego CI.
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING / LIVE_BLOCKED.**
+Pozostają osobne wydanie/CI i test fizycznego Pixela. Po wydaniu sprawdzić
+pozostałego inwestora oraz następne świadome usunięcie testowego wpisu bez
+restartu pomiędzy operacjami. Nie resetować danych ani nie odświeżać formularza
+z niezabezpieczonym RAM. Zakazy/odmowy usuwania danych powiązanych z chmurą lub
+kolejką nie zostały zmienione.
