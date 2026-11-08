@@ -3,6 +3,7 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
+  "js/app/wycena/wycena-tab-history.js":"20261108_local_first_quote_delete_v1",
   "js/app/wycena/wycena-tab-editor.js":"20261108_catalog_rule_authority_v1",
   "js/app/ui/data-settings-menu-view.js":"20261108_catalog_rule_authority_v1",
   "js/app/ui/data-settings-hourly-rates-view.js":"20261108_catalog_rule_authority_v1",
