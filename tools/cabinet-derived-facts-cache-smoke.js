@@ -99,6 +99,10 @@ context.FC = {
 context.STORAGE_KEYS = { projectData:'project' };
 vm.createContext(context);
 
+run(context, 'js/app/pricing/labor-catalog-definitions.js');
+run(context, 'js/app/pricing/labor-catalog.js');
+const logisticsCatalog=context.FC.laborCatalog.ensureDefaultDefinitions([]);
+context.FC.catalogSelectors={getQuoteRates:()=>logisticsCatalog};
 run(context, 'js/app/pricing/work-quantity-sources.js');
 run(context, 'js/app/pricing/carrying-logistics.js');
 run(context, 'js/app/cabinet/cabinet-drawer-requirements.js');
@@ -145,6 +149,19 @@ investor.carrying.floorNumber = '5';
 let carryingStale = api.ensureCabinetFacts('kuchnia', cab, { recalculate:true, persist:false });
 assert.equal(carryingStale.status, 'stale', 'zmiana danych wnoszenia unieważnia logistykę/fakty');
 assert.notEqual(cab.derivedFacts.inputHash, hashBeforeCarrying, 'zmiana wnoszenia zmienia hash');
+
+// Production readers use this cache after catalog edits, not just after cabinet edits.
+const carryingRule=logisticsCatalog.find(row=>row.id==='labor_carrying_cabinet');
+const ruleHash=cab.derivedFacts.inputHash;carryingRule.liftLevels=3;
+const ruleChanged=api.ensureCabinetFacts('kuchnia',cab,{recalculate:true,persist:false});
+assert.equal(ruleChanged.status,'stale','an edited logistics rule invalidates the production cache');
+assert.notEqual(cab.derivedFacts.inputHash,ruleHash);
+assert.equal(ruleChanged.cache.logistics.floorUnits,3);
+const callsAfterRuleChange=cutlistCalls;
+assert.equal(api.ensureCabinetFacts('kuchnia',cab,{recalculate:true,persist:false}).status,'hit');
+assert.equal(cutlistCalls,callsAfterRuleChange,'unchanged rule keeps the cache hit');
+carryingRule.liftLevels=2;
+api.ensureCabinetFacts('kuchnia',cab,{recalculate:true,persist:false});
 
 const beforeRebuild = JSON.parse(JSON.stringify(cab.derivedFacts));
 delete cab.derivedFacts;

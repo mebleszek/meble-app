@@ -34,6 +34,7 @@
 
 
   const LABOR_CHOICE_FIELDS = [
+    { id:'laborUnitPriceSource', title:'Cena kilometra', placeholder:'Źródło ceny kilometra' },
     { id:'laborPricingMode', title:'Wybierz sposób naliczania ceny', placeholder:'Sposób naliczania ceny' },
     { id:'laborRateType', title:'Wybierz stawkę godzinową', placeholder:'Stawka godzinowa' },
     { id:'laborTimeBlockHours', title:'Wybierz czas bazowy', placeholder:'Czas bazowy' },
@@ -79,7 +80,7 @@
         title:field.title,
         buttonClass:'investor-choice-launch price-labor-choice-launch',
         placeholder:field.placeholder,
-        onChange:()=>{ if(field.id === 'laborRateType') syncLaborRateProfileUi(); if(field.id === 'laborPricingMode') syncLaborPricingModeUi(); updateItemActionState(); },
+        onChange:()=>{ if(field.id === 'laborRateType') syncLaborRateProfileUi(); if(field.id === 'laborPricingMode') syncLaborPricingModeUi(); if(field.id==='laborUnitPriceSource')syncRulePrice(); updateItemActionState(); },
       });
     });
   }
@@ -141,11 +142,12 @@
     if(!el) return;
     Array.from(el.options || []).filter((opt)=> opt.getAttribute('data-saved-duration') === 'true').forEach((opt)=> opt.remove());
     const hours = Number(value) || 0;
-    if(hours === 0.75){
+    const customBreak=id==='laborTimeBlockHours'&&currentEditedItem()?.id==='labor_daily_break'&&!Array.from(el.options||[]).some(opt=>Number(opt.value)===hours);
+    if(hours === 0.75 || customBreak){
       const opt = document.createElement('option');
-      opt.value = '0.75';
-      opt.textContent = 'Zapisany czas: 45 min';
-      opt.disabled = true;
+      opt.value = String(hours);
+      opt.textContent = 'Zapisany czas: '+(hours*60)+' min';
+      opt.disabled = !customBreak;
       opt.setAttribute('data-saved-duration', 'true');
       el.appendChild(opt);
     }
@@ -302,7 +304,7 @@
     if(mode === 'startPlusUnit') addPreviewRow(rows, 'Start', `${Number(readNumber('laborStartPrice')) || 0} PLN · w cenie ${Number(readNumber('laborIncludedQty')) || 0} jedn.`);
     if(isTimePricingMode(mode)){
       addPreviewRow(rows, 'Tryb czasu', mode === 'advanced' ? quantityModeLabel(readString('laborQuantityMode')) : pricingModeLabel(mode));
-      addPreviewRow(rows, 'Czas', `${formatLaborTime(readNumber('laborTimeBlockHours'))} bazowo · mnożnik x${Number(readNumber('laborDefaultMultiplier')) || 1}`);
+      addPreviewRow(rows, 'Czas', `${formatLaborTime(readNumber('laborTimeBlockHours'))} bazowo · mnożnik x${readNumber('laborDefaultMultiplier') === '' ? 1 : Math.max(0,Number(readNumber('laborDefaultMultiplier')) || 0)}`);
       addPreviewRow(rows, 'Stawka', laborRateLabel(readString('laborRateType')));
     }
     addPreviewRow(rows, 'Warunki', conditionsHumanText());
@@ -445,6 +447,22 @@
     }
   }
 
+  const ruleFieldIds={minimumLevels:'laborMinimumLevels',liftLevels:'laborLiftLevels',disassemblyWeightKg:'laborDisassemblyWeightKg',breakAfterHours:'laborBreakAfterHours',workdayHours:'laborWorkdayHours'};
+  function getRuleParametersDraft(){
+    const id=String(ctx.appUiState().editingId||'');
+    const defaults=FC.laborCatalog?.ruleParameters?.({id})||{};
+    const result=Object.fromEntries(Object.keys(defaults).map(key=>[key,Math.max(0,Number(readNumber(ruleFieldIds[key]))||0)]));
+    if(id==='transport_distance_km')result.unitPriceSource=readString('laborUnitPriceSource')==='fuel'?'fuel':'manual';
+    return result;
+  }
+  function syncRulePrice(){
+    const fuel=String(ctx.appUiState().editingId||'')==='transport_distance_km'&&readString('laborUnitPriceSource')==='fuel';
+    const input=ctx.byId('formServicePrice');if(input){input.readOnly=fuel;if(fuel)input.value=String(FC.laborCatalog.effectiveUnitPrice({unitPriceSource:'fuel'}));}
+    const preview=ctx.byId('laborFuelPricePreview');if(preview)preview.textContent=fuel?'Aktualnie '+FC.laborCatalog.effectiveUnitPrice({unitPriceSource:'fuel'}).toFixed(2)+' zł/km. Źródło: Ustawienia → Transport i trasy (spalanie, cena paliwa, mnożnik).':'Cena ręczna — także 0 zł — pochodzi z pola ceny tej reguły.';
+  }
+  function syncEdgeWaste(){
+    setBlockVisible('formEdgeWasteWrap',ctx.currentConfig().formKind==='material'&&String(ctx.byId('formMaterialPriceUnit')?.value)==='mb');
+  }
   function getCurrentMaterialDraft(){
     const materialType = String((ctx.byId('formMaterialType') && ctx.byId('formMaterialType').value) || '');
     const priceUnit = String((ctx.byId('formMaterialPriceUnit') && ctx.byId('formMaterialPriceUnit').value) || defaultMaterialPriceUnit(materialType));
@@ -455,6 +473,7 @@
       name:String((ctx.byId('formName') && ctx.byId('formName').value) || '').trim(),
       price:normalizePriceValue(ctx.byId('formPrice') && ctx.byId('formPrice').value),
       priceUnit,
+      ...(priceUnit==='mb'?{edgeWastePercent:Math.max(0,Number(readNumber('formEdgeWastePercent'))||0)}:{}),
       hasGrain:!!(ctx.byId('formHasGrain') && ctx.byId('formHasGrain').checked)
     };
   }
@@ -499,13 +518,14 @@
     const quantityMode = pricingMode === 'timeTiers' ? 'tiers' : (pricingMode === 'timeStartStep' ? 'startStep' : (pricingMode === 'advanced' ? (readString('laborQuantityMode') || 'none') : (['perUnit','startPlusUnit','time'].includes(pricingMode) ? 'linear' : 'none')));
     return {
       usage:'universal',
+      ...getRuleParametersDraft(),
       billingScope:readString('laborBillingScope') || 'standard', dailyStages:readString('laborDailyStages') || 'both',
       pricingMode,
       rateType:rateType || 'workshop',
       rateKey:'',
       rateCode:'',
       timeBlockHours:Number(readNumber('laborTimeBlockHours')) || 0,
-      defaultMultiplier:Number(readNumber('laborDefaultMultiplier')) || 1,
+      defaultMultiplier:readNumber('laborDefaultMultiplier')===''?1:Math.max(0,Number(readNumber('laborDefaultMultiplier'))||0),
       quantityMode,
       quantitySource:usesQuantity ? readString('laborQuantitySource') : '',
       startPrice:pricingMode === 'startPlusUnit' ? (Number(readNumber('laborStartPrice')) || 0) : 0,
@@ -526,7 +546,9 @@
   }
   function getCurrentServiceDraft(){
     const base = { category:String((ctx.byId('formCategory') && ctx.byId('formCategory').value) || '').trim(), name:String((ctx.byId('formServiceName') && ctx.byId('formServiceName').value) || '').trim(), price:normalizePriceValue(ctx.byId('formServicePrice') && ctx.byId('formServicePrice').value) };
-    return Object.assign(base, getCurrentLaborDraft(base));
+    const laborDraft=getCurrentLaborDraft(base);
+    if(laborDraft.unitPriceSource==='fuel')base.price=Number(currentEditedItem()?.price)||0;
+    return Object.assign(base, laborDraft);
   }
   function currentItemSignature(){ const kind = ctx.currentConfig().formKind; const data = kind === 'material' ? getCurrentMaterialDraft() : (kind === 'accessory' ? getCurrentAccessoryDraft({ passive:true }) : getCurrentServiceDraft()); return JSON.stringify(data); }
   function isItemDirty(){ return ctx.runtimeState.itemModalOpen && currentItemSignature() !== String(ctx.runtimeState.itemInitialSignature || ''); }
@@ -564,7 +586,7 @@
       'formSymbol','formName','formPrice','formMaterialPriceUnit','formServiceName','formServicePrice','formHasGrain','formMaterialType','formManufacturer','formCategory',
       'laborPricingMode','laborRateType','laborTimeBlockHours','laborDefaultMultiplier','laborQuantitySource','laborQuantityMode','laborTierText',
       'laborStartPrice','laborIncludedQty','laborStartHours','laborStartQty','laborStepEveryQty','laborStepHours','laborVolumePricePerM3','laborVolumeTimeMode','laborVolumeTimePerM3',
-      'laborVolumeTimeTierText','laborActive','laborInternalOnly','laborBillingScope','laborDailyStages'
+      'laborVolumeTimeTierText','laborActive','laborInternalOnly','laborBillingScope','laborDailyStages','formEdgeWastePercent','laborMinimumLevels','laborLiftLevels','laborDisassemblyWeightKg','laborBreakAfterHours','laborWorkdayHours','laborUnitPriceSource'
     ].concat((ctx.priceModalHardwareForm && Array.isArray(ctx.priceModalHardwareForm.FIELD_IDS)) ? ctx.priceModalHardwareForm.FIELD_IDS : []).forEach((id)=>{
       const el = ctx.byId(id);
       if(!el) return;
@@ -572,12 +594,16 @@
         try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.handleHardwareFieldInput === 'function') ctx.priceModalHardwareForm.handleHardwareFieldInput(event); }catch(_){ }
         if(id === 'laborRateCode' || id === 'formServicePrice') syncLaborRateProfileUi();
         if(id==='laborBillingScope') syncLaborPricingModeUi();
+        if(id==='laborUnitPriceSource')syncRulePrice();
+        if(id==='formMaterialPriceUnit')syncEdgeWaste();
         updateItemActionState();
       };
       el.onchange = function(event){
         try{ if(ctx.currentListKind && ctx.currentListKind() === 'accessories' && ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.handleHardwareFieldInput === 'function') ctx.priceModalHardwareForm.handleHardwareFieldInput(event); }catch(_){ }
         if(id === 'laborRateCode' || id === 'formServicePrice') syncLaborRateProfileUi();
         if(id==='laborBillingScope') syncLaborPricingModeUi();
+        if(id==='laborUnitPriceSource')syncRulePrice();
+        if(id==='formMaterialPriceUnit')syncEdgeWaste();
         updateItemActionState();
       };
     });
@@ -592,6 +618,7 @@
     if(ctx.byId('formPrice')) ctx.byId('formPrice').value = item && item.price != null ? item.price : '';
     const unit = String(item && item.priceUnit || defaultMaterialPriceUnit(materialType));
     if(ctx.byId('formMaterialPriceUnit')) ctx.setSelectOptions(ctx.byId('formMaterialPriceUnit'), ctx.buildMaterialPriceUnitOptions ? ctx.buildMaterialPriceUnitOptions(unit) : [{ value:'sheet', label:'Arkusz' }, { value:'m2', label:'m²' }, { value:'mb', label:'mb' }, { value:'piece', label:'szt.' }], unit, unit);
+    setValue('formEdgeWastePercent',item?.edgeWastePercent??10);syncEdgeWaste();
     if(ctx.byId('formHasGrain')) ctx.byId('formHasGrain').checked = !!(item && item.hasGrain);
   }
   function applyAccessoryFormState(item){
@@ -609,10 +636,14 @@
     refreshLaborRateTypeSelect(def.rateType || def.rateKey || 'workshop');
     setValue('laborBillingScope', def.billingScope || 'standard');
     setValue('laborDailyStages', def.dailyStages || 'both');
+    const params=labor.ruleParameters(def);
+    for(const [key,id] of Object.entries(ruleFieldIds)){setWrapperVisible(id,Object.hasOwn(params,key));setValue(id,params[key]??'');}
+    setWrapperVisible('laborUnitPriceSource',def.id==='transport_distance_km');setValue('laborUnitPriceSource',def.unitPriceSource||'manual');
+    syncRulePrice();
     setValue('laborUsage', 'universal');
     setValue('laborRateType', def.rateType || def.rateKey || 'workshop');
     setDurationValue('laborTimeBlockHours', def.timeBlockHours);
-    setValue('laborDefaultMultiplier', Number(def.defaultMultiplier) || 1);
+    setValue('laborDefaultMultiplier', def.defaultMultiplier == null ? 1 : def.defaultMultiplier);
     refreshLaborQuantitySourceSelect(def.quantitySource || '');
     setValue('laborQuantitySource', def.quantitySource || '');
     setValue('laborQuantityMode', def.quantityMode || 'none');
@@ -689,6 +720,7 @@
     if(kind === 'quoteRates') { setChecked('laborIsHourlyRate', false); hideLaborUsageField(); refreshLaborPricingModeSelect(readString('laborPricingMode') || 'fixed'); refreshLaborRateTypeSelect(readString('laborRateType') || 'workshop'); refreshLaborQuantitySourceSelect(readString('laborQuantitySource') || ''); mountLaborChoiceLaunchers(); syncLaborPricingModeUi(); syncLaborRateProfileUi(); }
     if(ctx.decorateFieldHelpLabels) ctx.decorateFieldHelpLabels();
     try{ if(ctx.priceModalHardwareReplacements && typeof ctx.priceModalHardwareReplacements.setSourceItem === 'function') ctx.priceModalHardwareReplacements.setSourceItem(item || null); }catch(_){ }
+    syncEdgeWaste();
     wireItemDirtyEvents();
     ctx.runtimeState.itemInitialSignature = currentItemSignature();
     updateItemActionState();

@@ -95,9 +95,8 @@ run(context, 'js/app/pricing/labor-catalog.js');
 run(context, 'js/app/pricing/work-quantity-sources.js');
 run(context, 'js/app/pricing/carrying-logistics.js');
 run(context, 'js/app/pricing/work-quantity-facts.js');
-context.FC.catalogSelectors = {
-  getQuoteRates(){ return context.FC.laborCatalog.ensureDefaultDefinitions([]); }
-};
+const editableCatalog=context.FC.laborCatalog.ensureDefaultDefinitions([]);
+context.FC.catalogSelectors = {getQuoteRates(){return editableCatalog;}};
 run(context, 'js/app/wycena/wycena-core-labor.js');
 
 const carrying = context.FC.carryingLogistics;
@@ -129,7 +128,7 @@ assert.equal(evHeavy.liftFits, false, 'no lift means stairs');
 assert.equal(evHeavy.floorUnits, 4, 'third floor without lift counts as 4 levels');
 assert.equal(evHeavy.peopleCount, 1, 'disassembled heavy cabinet uses one helper per flat element');
 assert.equal(evHeavy.requiresDisassembly, true, 'over-threshold stairs cabinet requires disassembly');
-assert.equal(evHeavy.carryingItemCount, 3, 'after disassembly only large flat items are counted for stairs');
+assert.equal(evHeavy.carryingItemCount, 1, 'disassembled cabinet remains one carrying unit');
 assert.equal(evHeavy.disassembled.stairsItemCount, 3, 'without lift all large flat items go by stairs');
 assert.ok(evHeavy.bodyWeightKg > 45, `heavy body should exceed threshold, got ${evHeavy.bodyWeightKg}`);
 assert.equal(evHeavy.highFronts.itemCount, 2, 'two high fronts over 2m should be detected');
@@ -141,7 +140,8 @@ const diagonalLift = { floorNumber:'5', elevatorStatus:'yes', elevator:{ doorWid
 let evDiag = carrying.evaluateCabinet('room_a', project.room_a.cabinets[1], { id:'inv2', carrying:diagonalLift });
 assert.equal(evDiag.requiresDisassembly, true, 'heavy cabinet not fitting whole requires disassembly');
 assert.equal(evDiag.disassembled.stairsItemCount, 0, 'side panels fitting through door and cabin diagonal are not counted for stairs');
-assert.equal(evDiag.carryingItemCount, 0, 'no stair carrying line when all large disassembled items fit lift');
+assert.equal(evDiag.carryingItemCount, 1, 'disassembled cabinet is one elevator carrying unit');
+assert.equal(evDiag.floorUnits,2,'fitting parts use the configured elevator levels');
 assert.equal(evDiag.highFronts.elevatorItemCount, 2, 'high fronts fitting through door/cabin diagonals are counted as elevator items');
 assert.equal(evDiag.highFronts.stairsItemCount, 0, 'high fronts fitting elevator are not counted for stairs');
 assert.equal(evDiag.highFronts.elevatorItems[0].lift.method, 'cabin_diagonal', 'high front uses cabin diagonal when needed');
@@ -177,9 +177,9 @@ assert.equal(carryingPart.hourlyRate,250,'current factory assembly rate, no auto
 approx(carryingPart.total,carryingPart.hours*250,1e-7,'carrying price uses crew time only');
 assert.equal(carryingPart.quantitySource, 'carrying.floor_units', 'carrying quantity source is floor units');
 assert.equal(carryingPart.quantity, 4, 'carrying quantity is floor units');
-assert.equal(carryingPart.multiplier, 3, 'carrying multiplier is three stair elements, not the crew size');
-approx(carryingPart.baseHours, 0.25 + 4 * 0.0833333333, 0.0002, 'base hours = 15 min + 4*5 min');
-approx(carryingPart.hours, (0.25 + 4 * 0.0833333333) * 3, 0.0002, 'priced hours multiplied by disassembled stair elements');
+assert.equal(carryingPart.multiplier, 1, 'one cabinet, no parts or crew multiplier');
+approx(carryingPart.baseHours, 0.25 + 3 * (1/12), 0.0002, 'base hours = 15 min + (4-1)*5 min');
+approx(carryingPart.hours, (0.25 + 3 * (1/12)), 0.0002, 'one carrying pass, regardless of disassembled element count');
 assert.ok(carryingPart.note.includes('po schodach: 3 szt.'), 'audit note includes stair element count');
 const highFrontPart = heavyLine.details.find((row)=>row.sourceRole === 'carrying-high-front-labor');
 assert.ok(highFrontPart, 'high front carrying component exists');
@@ -189,19 +189,30 @@ approx(highFrontPart.total,highFrontPart.hours*250,1e-7,'front carrying price us
 assert.equal(highFrontPart.name, 'Wnoszenie wysokich frontów — po schodach', 'high front carrying line is explicit');
 assert.equal(highFrontPart.quantity, 4, 'high front stairs quantity is floor units');
 assert.equal(highFrontPart.multiplier, 2, 'two high fronts require two crew passes, not extra helpers');
-approx(highFrontPart.hours, (0.25 + 4 * 0.0833333333) * 2, 0.0002, 'high front hours = base stairs hours times front count');
+approx(highFrontPart.hours, (0.25 + 3 * (1/12)) * 2, 0.0002, 'high front hours = base stairs hours times front count');
 assert.ok(highFrontPart.note.includes('Wysokie fronty powyżej 200 cm'), 'high front audit mentions threshold');
 const disassemblyPart = heavyLine.details.find((row)=>row.sourceRole === 'carrying-disassembly-labor');
 assert.ok(disassemblyPart, 'disassembly component exists');
 assert.equal(disassemblyPart.rateType, 'assembly', 'disassembly uses assembly rate');
 approx(disassemblyPart.hours, 1, 0.0001, 'disassembly is 1 hour');
 
+// Money-only rules must repeat for separate fronts just like the time rule.
+const editableCarrying=editableCatalog.find(row=>row.id==='labor_carrying_cabinet'),originalCarrying=JSON.parse(JSON.stringify(editableCarrying));
+for(const [pricingMode,price,startPrice,includedQty,expected]of [['perUnit',10,0,0,80],['startPlusUnit',4,10,1,44],['fixed',40,0,0,80]]){
+ Object.assign(editableCarrying,{pricingMode,price,startPrice,includedQty,fixedPrice:pricingMode==='fixed'?price:0});
+ const row=context.FC.wycenaCoreLabor.collectCarryingLines(['room_a']).find(line=>line.cabinetId==='cab_heavy').details.find(line=>line.sourceRole==='carrying-high-front-labor');
+ approx(row.total,expected,1e-8,pricingMode+' uses the actual rule twice, not crew hours');
+ if(pricingMode==='perUnit'){assert.equal(row.quantity,8);assert.equal(row.unitPrice,10);}
+ if(pricingMode==='startPlusUnit'){assert.equal(row.quantity,8);assert.equal(row.startPrice,20);assert.equal(row.includedQty,2);assert.equal(row.billableQty,6);assert.equal(row.price,4);}
+}
+Object.assign(editableCarrying,originalCarrying);
+
 const index = read('index.html');
 const devTests = read('dev_tests.html');
-assert.ok(index.includes('js/app/pricing/carrying-logistics.js?v=20260628_drawer_systems_materials_v1'), 'index loads carrying-logistics');
-assert.ok(index.includes('js/app/investor/investor-carrying.js?v=20260628_drawer_systems_materials_v1'), 'index loads investor-carrying');
-assert.ok(devTests.includes('js/app/pricing/carrying-logistics.js?v=20260628_drawer_systems_materials_v1'), 'dev_tests loads carrying-logistics');
-assert.ok(devTests.includes('js/app/investor/investor-carrying.js?v=20260628_drawer_systems_materials_v1'), 'dev_tests loads investor-carrying');
+assert.ok(index.includes('js/app/pricing/carrying-logistics.js?v=20261108_catalog_rule_authority_v1'), 'index loads carrying-logistics');
+assert.ok(index.includes('js/app/investor/investor-carrying.js?v=20261108_catalog_rule_authority_v1'), 'index loads investor-carrying');
+assert.ok(devTests.includes('js/app/pricing/carrying-logistics.js?v=20261108_catalog_rule_authority_v1'), 'dev_tests loads carrying-logistics');
+assert.ok(devTests.includes('js/app/investor/investor-carrying.js?v=20261108_catalog_rule_authority_v1'), 'dev_tests loads investor-carrying');
 
 const group = require(path.join(ROOT, 'tools/index-load-groups.js'));
 const business = group.INDEX_LOAD_GROUPS.find((row)=>row.id === 'business-domains');

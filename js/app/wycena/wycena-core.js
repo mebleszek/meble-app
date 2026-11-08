@@ -151,7 +151,7 @@
 
     const workPlan = deps.workPlan.build({selectedRooms,
       collections:{labor:laborLines,project:projectLines,carrying:carryingLines,agdServices:agdLines,quoteRates:quoteRateLines},
-      catalog:FC.catalogSelectors?.getQuoteRates?.() || [],transport:FC.investorTransport?.getCurrentTransportContext?.(),helperHours:draft.helperHours,services:draft.services,materialScope:normalizedSelection.materialScope});
+      catalog:FC.catalogSelectors?.getQuoteRates?.() || [],transport:FC.investorTransport?.getCurrentTransportContext?.(),helperHours:draft.helperHours,services:draft.services,billBreaks:draft.commercial?.billBreaks!==false,materialScope:normalizedSelection.materialScope});
     const commercial = deps.offer.collectCommercialDraft(draft);
     const calculationRegister = FC.quoteCalculationRegister && typeof FC.quoteCalculationRegister.buildRegister === 'function'
       ? FC.quoteCalculationRegister.buildRegister({

@@ -262,6 +262,7 @@
       key:opts.key || slug(`${def.id || def.name || 'labor'}_${opts.suffix || ''}`),
       name:text(opts.name || def.name || 'Robocizna'),
       category:text(def.category || ''),
+      price:Number(def.price)||0,
       laborDefinitionId:text(def.id), billingScope:def.billingScope || 'standard', dailyStages:def.dailyStages || 'both',
       quantity:Math.max(0, num(calc.quantity, 0)),
       unit:text(opts.unit || (def.quantityMode && def.quantityMode !== 'none' ? 'szt.' : 'x')),
@@ -281,7 +282,7 @@
       includedQty:Number(calc.includedQty != null ? calc.includedQty : def.includedQty) || 0,
       billableQty:Number(calc.billableQty != null ? calc.billableQty : calc.quantity) || 0,
       volumeHours:Number(calc.volumeHours) || 0,
-      multiplier:Number(calc.multiplier) || 1,
+      multiplier:calc.multiplier == null ? 1 : Number(calc.multiplier),
       volumeM3:Number(calc.volumeM3) || 0,
       volumePrice:Number(calc.volumePrice) || 0,
       volumePricePerM3:Number(def.volumePricePerM3) || 0,
@@ -539,7 +540,7 @@
   function carryingLineNote(ev){
     if(!ev) return '';
     const dims = ev.dimensionsCm || {};
-    const lift = ev.liftFits ? 'winda: korpus mieści się — liczony jako 2 poziomy' : ('schody/brak dopasowania windy: ' + text(ev.liftReason));
+    const lift = ev.liftFits ? 'winda: korpus mieści się — poziomy według reguły cennika' : ('schody/brak dopasowania windy: ' + text(ev.liftReason));
     const orient = ev.liftOrientation && Array.isArray(ev.liftOrientation.doorPair)
       ? `orientacja windy: ${ev.liftOrientation.doorPair.join(' × ')} cm przez drzwi, ${ev.liftOrientation.cabinDepth} cm w głąb windy`
       : '';
@@ -564,7 +565,7 @@
       const hf = ev.highFronts || {};
       lines.push(`Wysokie fronty >${Number(hf.thresholdCm) || 200} cm: ${Number(hf.itemCount) || 0} szt. • windą: ${Number(hf.elevatorItemCount) || 0} szt. • po schodach: ${Number(hf.stairsItemCount) || 0} szt.`);
     }
-    lines.push('Czas standardowej ekipy: '+(Number(ev.baseMinutes)||0)+' min × '+(Number(ev.carryingItemCount)||0)+' element(y). Stawka montażowa obejmuje dwie osoby.');
+    lines.push('Jedna szafka, również po rozkręceniu. Czas i stawka według reguły cennika; standardowa ekipa obejmuje dwie osoby.');
     return lines.filter(Boolean).join(' • ');
   }
   function highFrontGroupNote(ev, group, modeLabel){
@@ -577,7 +578,7 @@
       `Wysokie fronty powyżej ${Number(hf.thresholdCm) || 200} cm — ${location}: ${rows.length} szt.`,
       `Poziomy do naliczenia: ${floorUnits}`,
       `Osoby technicznie potrzebne: ${people}`,
-      `${ev.startMinutes || 15} min + ${floorUnits} poziom(y) × ${ev.minutesPerFloorUnit || 5} min = ${Math.round(((ev.startMinutes || 15) + floorUnits * (ev.minutesPerFloorUnit || 5)) * 10) / 10} min na front/pakiet`
+      'Każdy duży front wymagający osobnego transportu jest jedną jednostką reguły cennika.'
     ];
     if(rows.length){
       lines.push('Fronty: ' + rows.slice(0, 8).map((it)=> {
@@ -588,6 +589,20 @@
     return lines.filter(Boolean).join(' • ');
   }
 
+  function carryingCalc(def,entry,levels,rates,volumeM3,count=1){
+    if(!evaluateConditions(def,entry).matched)return null;
+    const source=text(def.quantitySource);
+    const fact=source&&source!=='carrying.floor_units'?factFor(entry,source):null;
+    if(source&&source!=='carrying.floor_units'&&(!fact||fact.available===false))return null;
+    const quantity=!source?1:source==='carrying.floor_units'?levels:Math.max(0,Number(fact.value)||0);
+    const calc=calculate(def,{quantity,volumeM3,hourlyRates:rates});
+    if(!calc)return null;
+    // Repeat the SAME rule for separate large fronts, never override its formula or rate.
+    if(count!==1)for(const key of ['pricedHours','laborPrice','volumePrice','fixedPrice','startPrice','total'])calc[key]*=count;
+    if(count!==1&&['perUnit','startPlusUnit'].includes(calc.definition.pricingMode))for(const key of ['quantity','includedQty','billableQty'])calc[key]*=count;
+    calc.multiplier*=count;
+    return calc;
+  }
   function addHighFrontCarryingLabor(components, entry, carryingDef, rates, volumeM3, ev){
     const cab = entry && entry.cabinet || {};
     const hf = ev && ev.highFronts || {};
@@ -599,7 +614,7 @@
         label:'windą',
         items:Array.isArray(hf.elevatorItems) ? hf.elevatorItems : [],
         count:Number(hf.elevatorItemCount) || 0,
-        floorUnits:Number(hf.elevatorFloorUnits) || 2,
+        floorUnits:Number(hf.elevatorFloorUnits) || 0,
         peopleCount:Number(hf.elevatorPeopleCount) || Number(hf.elevatorItemCount) || 0
       });
     }
@@ -615,31 +630,8 @@
     }
     groups.forEach((group)=> {
       if(!(group.count > 0 && group.floorUnits > 0)) return;
-      const hourlyRate = Math.max(0, Number(rates && rates.assembly) || 0);
-      const startHours = Math.max(0, Number(carryingDef.startHours) || 0.25);
-      const stepHours = Math.max(0, Number(carryingDef.stepHours) || 0.0833333333);
-      const quantityHours = startHours + (group.floorUnits * stepHours);
-      const multiplier = Math.max(1, Number(group.count) || 1); // Crew time, never person-hours.
-      const pricedHours = quantityHours * multiplier;
-      const total = pricedHours * hourlyRate;
-      const calc = {
-        definition:{...carryingDef,rateType:'assembly'},
-        quantity:group.floorUnits,
-        volumeM3,
-        hourlyRate,
-        quantityHours,
-        volumeHours:0,
-        multiplier,
-        pricedHours,
-        laborPrice:total,
-        volumePrice:0,
-        fixedPrice:0,
-        startPrice:0,
-        unitPrice:0,
-        includedQty:0,
-        billableQty:group.floorUnits,
-        total
-      };
+      const calc=carryingCalc(carryingDef,entry,group.floorUnits,rates,volumeM3,group.count);
+      if(!calc)return;
       const warnings = Array.isArray(ev.warnings) ? ev.warnings.slice() : [];
       const cmp = componentFromCalc(calc, {
         suffix:`carrying_high_fronts_${group.key}`,
@@ -651,10 +643,10 @@
         sourceId:text(cab && cab.id),
         sourceRole:'carrying-high-front-labor',
         sourceKind:'automatic',
-        quantitySource:'carrying.floor_units',
+        quantitySource:carryingDef.quantitySource,
         quantitySourceLabel:group.key === 'lift' ? 'Poziomy wnoszenia frontów windą' : 'Poziomy wnoszenia frontów po schodach',
-        quantitySourceValue:group.floorUnits,
-        quantitySourceDisplay:`${group.floorUnits} poziom(y)`,
+        quantitySourceValue:calc.quantity,
+        quantitySourceDisplay:`${calc.quantity} poziom(y); liczba frontów: ${group.count}`,
         quantitySourceUsed:true,
         warnings
       });
@@ -663,6 +655,7 @@
           highFronts:true,
           mode:group.key,
           itemCount:group.count,
+          quantityPerItem:group.floorUnits,
           peopleCount:group.peopleCount,
           floorUnits:group.floorUnits,
           items:group.items.map((it)=> ({ aCm:it.aCm, bCm:it.bCm, weightKg:it.weightKg, lift:it.lift }))
@@ -683,32 +676,8 @@
       const itemFact = factFor(entry, 'carrying.stairs_item_count') || {};
       const itemCount = Math.max(0, Number(ev.carryingItemCount) || (ev.requiresDisassembly ? 0 : 1));
       if(itemCount > 0){
-        const hourlyRate = Math.max(0, Number(rates && rates.assembly) || 0);
-        const startHours = Math.max(0, Number(carryingDef.startHours) || 0.25);
-        const stepHours = Math.max(0, Number(carryingDef.stepHours) || 0.0833333333);
-        const quantityHours = startHours + ((Number(ev.floorUnits) || 0) * stepHours);
-        const helperMultiplier = 1; // Two-person assembly crew is already included in its hourly rate.
-        const multiplier = helperMultiplier * itemCount;
-        const pricedHours = quantityHours * multiplier;
-        const total = pricedHours * hourlyRate;
-        const calc = {
-          definition:{...carryingDef,rateType:'assembly'},
-          quantity:Number(ev.floorUnits) || 0,
-          volumeM3,
-          hourlyRate,
-          quantityHours,
-          volumeHours:0,
-          multiplier,
-          pricedHours,
-          laborPrice:total,
-          volumePrice:0,
-          fixedPrice:0,
-          startPrice:0,
-          unitPrice:0,
-          includedQty:0,
-          billableQty:Number(ev.floorUnits) || 0,
-          total
-        };
+        const calc=carryingCalc(carryingDef,entry,Number(ev.floorUnits),rates,volumeM3);
+        if(calc){
         const warnings = Array.isArray(ev.warnings) ? ev.warnings.slice() : [];
         const cmp = componentFromCalc(calc, {
           suffix:'carrying_cabinet',
@@ -720,9 +689,9 @@
           sourceId:text(cab && cab.id),
           sourceRole:'carrying-labor',
           sourceKind:'automatic',
-          quantitySource:'carrying.floor_units',
+          quantitySource:carryingDef.quantitySource,
           quantitySourceLabel:text(floorFact.label) || 'Poziomy wnoszenia',
-          quantitySourceValue:Number(ev.floorUnits) || 0,
+          quantitySourceValue:calc.quantity,
           quantitySourceDisplay:text(floorFact.displayValue) || `${Number(ev.floorUnits) || 0} poziom(y)`,
           quantitySourceUsed:true,
           warnings
@@ -742,11 +711,14 @@
         }
       }
     }
+    }
     addHighFrontCarryingLabor(components, entry, carryingDef, rates, volumeM3, ev);
     if(ev.requiresDisassembly){
       const disassemblyDef = findDefById(defs, 'labor_carrying_disassembly');
-      if(disassemblyDef){
-        const calc = calculate(disassemblyDef, { quantity:1, volumeM3, hourlyRates:rates });
+      if(disassemblyDef && evaluateConditions(disassemblyDef,entry).matched){
+        const source=disassemblyDef.quantitySource;
+        const sourceFact=source?factFor(entry,source):null;
+        const calc = calculate(disassemblyDef, { quantity:source?Math.max(0,Number(sourceFact?.value)||0):1, volumeM3, hourlyRates:rates });
         const fact = factFor(entry, 'carrying.requires_disassembly') || {};
         const cmp = componentFromCalc(calc, {
           suffix:'carrying_disassembly',

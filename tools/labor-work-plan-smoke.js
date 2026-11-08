@@ -36,7 +36,7 @@ test('generic break is paid with CURRENT workshop rate on BOTH sequential stages
  const r=setup(),c=r.collections();r.catalog.find(d=>d.id==='labor_rate_workshop').price=180;
  c.labor=[{roomId:'A',hours:3,total:750,rateType:'assembly'},{roomId:'B',hours:3,total:750,rateType:'assembly'},{roomId:'A',hours:8,total:1440,rateType:'workshop'}];
  const p=r.run(c);assert.equal(p.schedule.assembly.days,1);assert.equal(p.schedule.workshop.days,2);assert.equal(p.schedule.trips,1);
- const breaks=c.quoteRates.filter(x=>x.id==='labor_daily_break');assert.equal(breaks.length,2);near(breaks.reduce((s,x)=>s+x.total,0),270);assert.equal(p.schedule.assembly.availableMinutes,390);assert.equal(p.schedule.workshop.availableMinutes,450);
+ const breaks=c.quoteRates.filter(x=>x.id==='labor_daily_break');assert.equal(breaks.length,2);near(breaks.reduce((s,x)=>s+x.total,0),180);assert.equal(breaks.find(r=>r.workStage==='workshop').occurrences,1);assert.equal(p.schedule.workshop.dayGroups[1].workMinutes,30);assert.equal(p.schedule.assembly.availableMinutes,390);assert.equal(p.schedule.workshop.availableMinutes,450);
 });
 test('adding a NEW daily rule changes capacity and costs without changing algorithm; daily hours never re-enter numerator',()=>{
  const r=setup();r.definition('daily',{billingScope:'day',dailyStages:'assembly',quantitySource:'',pricingMode:'time',timeBlockHours:1,rateType:'workshop'});
@@ -95,7 +95,7 @@ test('approved loading/unloading counts five combined minutes per corpus across 
 test('service selection removes only its own work; workshop-only creates no site days, travel, carrying or loading',()=>{
  const r=setup(),make=()=>{const c=r.collections();c.labor=[{hours:1,total:150,rateType:'workshop'},{hours:1,total:250,rateType:'assembly'},{laborDefinitionId:'labor_delivery_loading',hours:5/60,total:125/6,rateType:'assembly'}];c.carrying=[{hours:0.25,total:62.5,rateType:'assembly',sourceRole:'carrying-labor'}];c.quoteRates=[{sourceType:'transport',sourceRole:'transport-travel-time',hours:0.5,total:125}];c.agdServices=[{sourceRole:'appliance-service-fallback',hours:0,total:100}];return c;};
  const off=make(),plan=r.run(off,['A'],{services:{delivery:false,carrying:false,assembly:false}});
- assert.equal(plan.schedule.workshop.days,1);assert.equal(plan.schedule.assembly.days,0);assert.equal(plan.schedule.trips,0);assert.equal(off.labor.length,1);assert.equal(off.carrying.length,0);assert.equal(off.quoteRates.some(row=>row.sourceType==='transport'),false);assert.equal(off.quoteRates.filter(row=>row.id==='labor_daily_break').length,1);assert.equal(off.quoteRates.find(row=>row.id==='labor_daily_break').workStage,'workshop');
+ assert.equal(plan.schedule.workshop.days,1);assert.equal(plan.schedule.assembly.days,0);assert.equal(plan.schedule.trips,0);assert.equal(off.labor.length,1);assert.equal(off.carrying.length,0);assert.equal(off.quoteRates.some(row=>row.sourceType==='transport'),false);assert.equal(off.quoteRates.filter(row=>row.id==='labor_daily_break').length,0,'one workshop hour never generates a break');
  for(const key of ['delivery','carrying','assembly']){const c=make(),services={delivery:true,carrying:true,assembly:true,[key]:false};r.run(c,['A'],{services});const rows=Object.values(c).flat().filter(row=>row.id!=='labor_daily_break');assert.equal(rows.some(row=>r.FC.laborWorkPlan.serviceFor(row)===key),false);assert.ok(rows.some(row=>row.rateType==='workshop'));}
  const legacy=make(),explicit=make();const a=r.run(legacy,['A']),b=r.run(explicit,['A'],{services:{delivery:true,carrying:true,assembly:true}});assert.deepEqual(clone(a.schedule),clone(b.schedule));assert.deepEqual(legacy,explicit);
 });
@@ -108,7 +108,7 @@ test('service flags and scoped loading agree with actual room-activities rows wi
 });
 test('shared delivery/carrying/assembly trip is never multiplied by rooms or number of enabled services',()=>{
  const r=setup(),c=r.collections();c.labor=[{hours:6,rateType:'assembly',total:1500},{hours:0.5,rateType:'assembly',total:125,laborDefinitionId:'labor_delivery_loading'}];c.carrying=[{hours:0.5,total:125,rateType:'assembly',sourceRole:'carrying-labor'}];c.quoteRates=[{sourceType:'transport',sourceRole:'transport-travel-time',hours:0.5,total:125}];
- const p=r.run(c,['A','B']);assert.equal(p.schedule.assembly.days,2);assert.equal(p.schedule.trips,2);near(c.quoteRates.find(row=>row.sourceRole==='transport-travel-time').total,500);near(p.schedule.assembly.minutes,420);near(p.schedule.assembly.totalMinutes,600);
+ const p=r.run(c,['A','B']);assert.equal(p.schedule.assembly.days,2);assert.equal(p.schedule.trips,2);near(c.quoteRates.find(row=>row.sourceRole==='transport-travel-time').total,500);near(p.schedule.assembly.minutes,420);near(p.schedule.assembly.totalMinutes,570);
  assert.deepEqual(clone(p.schedule.services),{delivery:true,carrying:true,assembly:true});
  const noBody=r.collections();noBody.labor=[{laborDefinitionId:'labor_delivery_loading',quantitySource:'cabinet.count',hours:5/60,rateType:'assembly',total:125/6}];const frontOnly=r.run(noBody,['A'],{materialScope:{includeCorpus:false,includeFronts:true}});assert.equal(frontOnly.schedule.assembly.days,0);assert.equal(noBody.labor.length,0);
  const amounts=r.FC.laborWorkPlan.hoursByStage([{details:[{hours:1,rateType:'workshop'},{hours:2,rateType:'assembly'},{hours:3,rateType:'helper'},{hours:0.5,rateType:'workshop',workStage:'assembly'}]}]);assert.deepEqual(clone(amounts),{workshop:1,assembly:2.5});
@@ -147,8 +147,8 @@ test('WYCENA orchestration uses one shared plan BEFORE register/totals and expos
  f.wycenaCoreLines={collectElementLines:()=>[],collectAccessories:()=>[],collectBuiltInAppliances:()=>[]};
  f.investorTransport={getCurrentTransportContext:()=>({durationMin:30,transport:{durationMin:30},isStale:false})};
  r.load('js/app/quote/quote-snapshot.js');r.load('js/app/wycena/wycena-core.js');const result=await f.wycenaCore.collectQuoteData({selection});
- assert.equal(result.schedule.version,2);assert.equal(result.schedule.helperHours,2);assert.equal(result.quoteRateLines.filter(x=>x.sourceRole==='additional-helper').length,1);
- assert.ok(result.quoteRateLines.some(x=>x.laborDefinitionId==='labor_daily_break'));near(result.totals.grand,result.calculationRegister.totals.grand);
+ assert.equal(result.schedule.version,3);assert.equal(result.schedule.helperHours,2);assert.equal(result.quoteRateLines.filter(x=>x.sourceRole==='additional-helper').length,1);
+ assert.equal(result.quoteRateLines.some(x=>x.laborDefinitionId==='labor_daily_break'),false,'short genuine cabinet workload has no break');near(result.totals.grand,result.calculationRegister.totals.grand);
  for(const row of result.quoteRateLines)assert.equal(result.calculationRegister.lines.filter(x=>x.id===row.key).length,1);
  delete f.laborWorkPlan;await assert.rejects(f.wycenaCore.collectQuoteData({selection}),/FC.laborWorkPlan/);
 });

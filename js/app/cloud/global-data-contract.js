@@ -24,7 +24,7 @@
   };}
   const fields=(names,fn)=>Object.fromEntries(names.split(' ').filter(Boolean).map(k=>[k,fn]));
   const common={...fields('id',id),...fields('name note',string),price:nonnegative,starterPrice:boolean,priceUserEditedAt:date};
-  const material=shape({...common,...fields('materialType manufacturer symbol',string),priceUnit:choice('sheet','m2','mb','piece'),hasGrain:boolean},['id','name','materialType','price','priceUnit']);
+  const material=shape({...common,...fields('materialType manufacturer symbol',string),priceUnit:choice('sheet','m2','mb','piece'),hasGrain:boolean,edgeWastePercent:nonnegative},['id','name','materialType','price','priceUnit']);
   const supplierPrice=shape({supplierId:id,...fields('catalogPriceNet catalogPriceGross',nonnegative),enteredPriceType:choice('net','gross',''),priceDate:date,priceStatus:string,useForQuote:boolean},['supplierId']);
   const paramValue=shape({value:(v,p)=>{if(typeof v==='boolean')return;string(v,p);},from:(v,p)=>{if(v!=='')number(v,p);},to:(v,p)=>{if(v!=='')number(v,p);}});
   const hardware=shape({...common,...fields('manufacturer symbol hardwareCategory hardwareType hardwareUnit hardwareSystem series drawerProfile hardwareColor hardwareUsage technicalNote supplierId priceSource quoteBase pricingMode priceStatus status bundleCostMode',string),
@@ -34,9 +34,9 @@
     technicalParams:(v,p)=>{if(!object(v))fail('GLOBAL_VALUE_INVALID',p);Object.values(v).forEach(x=>paramValue(x,p));}
   },['id','name','hardwareCategory','hardwareUnit','price']);
   const tier=shape({min:nullable(number),max:nullable(number),hours:nonnegative,price:nonnegative},['min','max','hours','price']);
-  const labor=shape({...common,billingScope:choice('standard','room','quote','day'),dailyStages:choice('workshop','assembly','both'),...fields('category label usage rateKey rateCode rateType pricingMode quantityMode quantitySource volumeTimeMode',string),
+  const labor=shape({...common,billingScope:choice('standard','room','quote','day'),dailyStages:choice('workshop','assembly','both'),unitPriceSource:choice('fuel','manual'),...fields('category label usage rateKey rateCode rateType pricingMode quantityMode quantitySource volumeTimeMode',string),
     ...fields('isHourlyRate systemRate nonDeletable active internalOnly',boolean),
-    ...fields('startPrice includedQty timeBlockHours defaultMultiplier startHours startQty stepEveryQty stepHours volumePricePerM3 volumeTimePerM3 fixedPrice',nonnegative),
+    ...fields('minimumLevels liftLevels disassemblyWeightKg breakAfterHours workdayHours startPrice includedQty timeBlockHours defaultMultiplier startHours startQty stepEveryQty stepHours volumePricePerM3 volumeTimePerM3 fixedPrice',nonnegative),
     conditions:list(shape({source:string,operator:choice('range'),min:nullable(number),max:nullable(number)},['source','operator','min','max'])),quantityTiers:list(tier),volumeTimeTiers:list(tier)
   },['id','name','price']);
   const definition=shape({...fields('id',id),...fields('category key label unit legacyField',string),fieldType:choice('text','boolean','numberRange'),options:list(string),...fields('keyFeature typePart active',boolean),compareMode:string,order:number},['id','category','key','fieldType']);

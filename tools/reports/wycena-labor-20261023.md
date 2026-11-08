@@ -431,3 +431,334 @@ Właściciel zastąpił pomysł stałych 30 min/opłaty na pomieszczenie normą 
 - `node --check` obu testów oraz `git diff --check` — **PASS**. Lokalny Node **24.19.0**; nieudany CI używał Node **22.23.4**. Nie powtarzano pełnego lokalnego Preflightu, zaliczonych wcześniej zestawów Chromium/SDK ani Firebase.
 
 **Zakres plików:** wyłącznie `tools/project-context-coherence-smoke.js`, `tools/quote-exact-calculations-smoke.js`, `CURRENT_STATE.md` i ten raport. Bez zmian produkcyjnych, cenników, norm, UI, Auth, SW, storage/synchronizacji, manifestu/wersji zasobów i workflow. PR #118 nie przełączano, nie tworzono PR, nie ponawiano Actions, nie scalano, nie publikowano i nie wykonano Firebase LIVE. Następny ruch: niezależna kontrola wynikowego zdalnego HEAD/BASE i osobna zgoda właściciela na kolejną próbę istniejącego PR #118. Brak dodatkowego blokera samej poprawki; wymagane nowe CI i akceptacja fizycznego telefonu pozostają PENDING.
+
+
+## Kontrola źródeł reguł i propozycja przerwy — 08.11.2026
+
+**Wyłącznie analiza i utrwalenie decyzji w AGENTS.md. Nie jest to naprawa WYCENY.**
+Gałąź `docs/pricing-rule-authority-review-20261108`, BASE/main
+`f29e8d3797108068130cfb73c3393a066e050c43`. Odczytano bieżące repo i uzgodnienia;
+bez ogólnego audytu Auth/SW/Firebase. Zakres: aktywne kolektory robocizny, wnoszenia,
+transportu, AGD, materiałów/PCV i wspólny plan; normalizacja reguł i ich źródła.
+Nie jest to zapewnienie, że zbadano każdą kombinację prywatnych danych lub każdy
+historyczny wariant. Żadnych RAW właściciela nie użyto w próbach.
+
+### Potwierdzone odstępstwa do decyzji naprawczej
+
+1. **Wnoszenie korpusu** — `wycena-core-labor.js:675` i dalsze: zamiast
+   calculateDefinition kod liczy startHours + floorUnits × stepHours i narzuca
+   rates.assembly / rateType assembly. Definicja `labor_carrying_cabinet` w
+   labor-catalog-definitions.js nadal wskazuje helper, startQty 1; opis notatki
+   historycznie mówi 15 + 5/poziom, a opis formularza 15 za pierwszy. Ignorowane
+   są m.in. startQty, stepEveryQty, defaultMultiplier, formuła i warunki.
+   Aktywność jest filtrowana przez laborDefs — nie stwierdzono ignorowania active.
+   Syntetycznie jeden poziom: wspólny kalkulator 15 min/20 zł (helper80), automat
+   20 min/83,33 zł (assembly250). Wpisanie obu czasów zero, mnożnika3 i niespełnionego
+   warunku nadal daje około20 min/83,33 zł, mimo evaluateConditions=false.
+   `|| 0.25` i `|| 0.0833333333` zamieniają prawidłowe zera na stare normy.
+2. **Wysokie fronty** — `wycena-core-labor.js:591–673`: analogiczna osobna
+   formuła i narzucenie assembly dla tej samej reguły, osobno dla windy/schodów.
+   Ten sam problem startu/kroków/zera/warunków; nie jest to poprawione przez
+   prawidłowe korzystanie z reguł przez pozostałe automaty szafek.
+3. **Niespójna informacja o czasie wnoszenia** — carrying-logistics.js DEFAULTS
+   15 min + 5 min/poziom wylicza ev.baseMinutes niezależnie od cennika;
+   carryingLineNote używa tej liczby jako czasu ekipy. Edycja startHours/stepHours
+   może więc zmienić koszt, a nie tekst źródła. Stałe logistyczne obejmują też
+   progi20/45 kg, windę2 poziomy i gęstości materiałów. To osobne luki jawności;
+   nie należy ich dowolnie zastępować stawkami lub wymyślać nowych wartości.
+4. **Czas dojazdu** — `wycena-core-offer.js:183–229`: stawkę odczytuje z def.rateType,
+   lecz cenę liczy bezpośrednio durationHours × hourlyRate. Pomija wspólną formułę,
+   blok czasu, mnożnik i warunki; jawne przypisanie ręczne zatrzymuje automat.
+   Poprawna syntetyczna definicja: duration1h, timeBlock0.5h, multiplier3,
+   assembly250; kalkulator reguły375 zł, automat250 zł. Nie wykorzystano
+   niedozwolonego bloku2h (normalizer go zeruje); to nie byłby poprawny dowód.
+5. **AGD — precyzja i opis** — `wycena-core-lines.js:695–748`: normalny kolektor
+   używa wspólnego kalkulatora, ale stara gałąź zaokrągla hours do0.01h przed
+   harmonogramem oraz total przed dalszą agregacją;1 minuta staje się0.02h.
+   Tekst wyliczenia zakłada qty × timeBlockHours × stawka również przy innej
+   formule. Osiągalność tej gałęzi zależy od obecności nowszych zamienników.
+   Historyczny addFallback bierze svc.price zamiast całej reguły; zwykła ścieżka
+   nowych norm ma pierwszeństwo. Nie przedstawiać tego jako potwierdzonego błędu
+   każdej aktualnej oferty AGD lub dowodu podwójnego naliczenia.
+6. **Cena kilometra a widok reguły** — `wycena-core-offer.js:139`: uzgodniona
+   cena paliwowa jest podstawiana do lokalnej kopii nieedytowanej reguły fabrycznej
+   zero; cennik zachowuje zero, ustawienia pokazują cenę pochodną. Jest to jawny,
+   wcześniej zatwierdzony wyjątek źródła ceny, lecz nie spełnia nowego wymagania
+   jednego widocznego powiązania reguły z jej parametrami. Ręczne stawki zachowane;
+   nie zmieniać uzgodnionej formuły paliwa ani nie nadpisywać katalogów w audycie.
+7. **Stałe biznesowe poza ustawieniami** — PCV ma rawMeters ×1.1 w
+   wycena-core-material-plan.js:220. Zapas10% był uzgodniony, więc nie jest dowodem
+   błędnej kwoty; według nowej zasady jawności należy ustalić jego edytowalne
+   miejsce. Dzień480 min jest wcześniejszym jawnym ustaleniem, lecz stałą kodu.
+   Prosta suma ilości/kosztów lub przelicznik minut na godziny nie są odstępstwami.
+
+Pozostałe sprawdzone typowe kolektory szafek/przygotowania/nowych norm AGD i zakresów
+korzystają z calculateDefinition. Dodatkowy trzeci pomocnik używa ręcznych godzin
+oraz aktualnej stawki helper, zgodnie z wcześniejszą decyzją; nie jest drugą opłatą
+za standardową ekipę. Nie dowiedziono braku innych błędów we wszystkich wariantach.
+
+### Przerwa — obecne działanie i propozycja, bez implementacji
+
+Definicja `labor_daily_break` ma0.5h, stawkę workshop, zakres day i oba etapy.
+Work-plan stosuje wszystkie właściwe reguły codzienne do każdego rozpoczętego dnia:
+nie ma progu przepracowanych godzin ani osobnego wyboru, czy klient płaci przerwę.
+To odpowiada poprzedniemu zatwierdzeniu „raz na dzień”, ale wymaga zmiany zgodnie
+z nową propozycją właściciela. Syntetycznie5 min prac montażowych i5 min trasy
+w jedną stronę tworzy1 dzień oraz0.5h/75 zł przerwy przy150 zł/h warsztatowej.
+Sam przejazd przy zerze prac niecodziennych daje0 dni i nie tworzy przerwy;
+nie potwierdzono literalnego przypadku „tylko transport” bez innych czynności.
+Załadunek/wnoszenie mogą jednak stworzyć krótki dzień i tę opłatę.
+
+Rekomendacja do zatwierdzenia:
+- Czas przerwy pozostaje w istniejącej regule Przerwa; ewentualne pole ustawień
+  edytuje ten sam parametr, nie tworzy drugiej niezależnej wartości.
+- Dodać do tej reguły jawny próg godzinowy uprawniający do przerwy oraz wybór
+  naliczania jej kosztu klientowi. Nie implementować sztywnego progu w harmonogramie.
+- Zasadność i czas przerwy liczyć raz wspólnie dla harmonogramu i kosztu.
+  Przy wyłączonej opłacie klienta należna przerwa nadal zajmuje czas dnia.
+- Próg liczyć bez czasu samej przerwy; sprawdzać każdy dzień, także krótki ostatni.
+  Algorytm musi uwzględnić warunkową przerwę bez dodawania jej drugi raz i bez
+  uzależniania progu od czasu, który sama wygenerowała. Zachować limit dnia,
+  inne reguły codzienne, dojazdy, zero dni i ochronę przed zależnością kołową.
+- Potrzebne decyzje właściciela: czas/prog (30 min nadal jest dotychczasowym czasem,
+  nowego progu nie podano), czy do progu liczy się dojazd, zakres wyboru opłaty
+  w ofercie czy domyślnej regule. Umiejscowienie nowych kontrolek UI do potwierdzenia.
+
+Nie zmieniono norm, cen, ustawień użytkownika, reguł aktywnego profilu, snapshotów,
+LOCAL-FIRST, synchronizacji, UI ani algorytmu przerw. Zmieniono AGENTS §4,
+ten raport i CURRENT_STATE. Wykonano wyłącznie odczyt kodu i syntetyczne próby
+w pamięci; nie uruchamiano pełnego CI/Actions ani Firebase. Dalsze naprawy wymagają
+wyboru zakresu i zatwierdzenia właściciela. To pakiet dokumentacyjny, nie poprawka
+cennika/WYCENY; nie przedstawiać wykrytych rozbieżności jako zaliczonych testów.
+
+
+## Wdrożenie jawnych reguł i przerw — 08.11.2026
+
+Właściciel zatwierdził kompletny pakiet po analizie powyżej. Poniższe decyzje
+zastępują otwarte rekomendacje z poprzedniego wpisu. Implementacja na
+`feat/catalog-driven-pricing-20261108`, BASE/main
+`f29e8d3797108068130cfb73c3393a066e050c43`; wynikowy HEAD w końcowym przekazaniu.
+Jeden commit obejmuje także wcześniejszą dokumentacyjną zasadę AGENTS §4.
+
+### Zatwierdzony kontrakt i implementacja
+
+- Wnoszenie: istniejąca fabryczna reguła otrzymuje stawkę montażową; przy obecnym
+  250 zł/h jest to koszt standardowej ekipy dwóch osób. Automat nie podmienia
+  stawki, formuły, startQty, stepEveryQty, mnożnika, źródła ani warunków.
+  Zero czasu/mnożnika jest rzeczywistym zerem. Domyślnie 15 min za pierwszy
+  poziom + 5 min za każdy następny; parametry minimum 1 i winda 2 są widoczne
+  w edycji reguły. Winda nie podwaja parteru.
+- Rozkręcona szafka: jedna jednostka wnoszenia, niezależnie od liczby paneli.
+  Rozkręcenie i ponowne skręcenie: osobna reguła, łącznie 60 min; próg masy
+  45 kg edytowany w tej regule. Bez rozkręcenia przy dopasowaniu korpusu do windy.
+  Fakty nadal udostępniają rzeczywistą liczbę elementów niewchodzących do windy.
+- Fronty małe: pakiet w ramach szafki. Duże, wymagające osobnego transportu:
+  osobne jednostki tej samej reguły, rzeczywiste dopasowanie do drzwi i kabiny,
+  także po przekątnej. Tryby kwotowy, za ilość i start + ilość również korzystają
+  z reguły, bez przeliczania ich na ukryte roboczogodziny.
+- Nowy inwestor: domyślny parter 0 i etykieta „Parter (0)”. Istniejący pusty/
+  nieznany poziom nie jest przepisywany przy odczycie. Liczbowe zero nie znika.
+- „Stawki i przerwy”: czas 30 min, próg po przekroczeniu 4 h, dzień 8 h —
+  wszystkie wartości edytowalne. Kontrolki ustawień modyfikują istniejącą regułę
+  `labor_daily_break`, a nie drugi zestaw danych. Reguła pozostaje codzienna,
+  oba etapy, stawka warsztatowa. Własny czas, np. 20 min, zachowuje się również
+  po otwarciu formularza reguły; nie wypada z listy standardowych czasów.
+- Próg obejmuje pracę, załadunek, wnoszenie i przejazdy w obie strony. Nie
+  obejmuje czasu samej przerwy. Do progu włącznie nie ma przerwy; powyżej jest
+  jedna. Dla każdego etapu osobno, każdego dnia, także krótkiego ostatniego.
+- Nowa oferta ma zaznaczone „Naliczaj klientowi koszt przerw”. Wyłączenie
+  zachowuje czas, dni i wyjazdy, lecz zeruje kwotę przerwy. Wybór zapisuje się
+  w szkicu i snapshotach przez istniejącą granicę projektu LOCAL-FIRST,
+  z odmową zmiany właściciela/starego kontekstu. Nie przelicza archiwalnych ofert.
+- Dodatkowa trzecia osoba nadal wyłącznie z ręcznych godzin; bez wydłużania
+  harmonogramu standardowej ekipy i bez mnożenia kosztu dwóch monterów.
+- Kilometr: istniejąca reguła `transport_distance_km` ma jawny wybór źródła:
+  paliwo / cena ręczna. W trybie paliwowym kalkulator, lista i formularz używają
+  jednego resolvera opartego na ustawieniach firmy; pochodna cena nie jest
+  zapisywana jako niezależna kopia. Domyślnie 10 l/100 km × 7 zł/l × 2 = 1,40 zł/km.
+  Cena ręczna, także 0 zł, pozostaje wiążąca. Start i kilometry wliczone zostają.
+  Czas przejazdu również przechodzi przez calculateDefinition, ze źródłem trasy
+  i kompletnymi parametrami użytej formuły w audycie.
+- PCV: „Zapas do wyceny (%)” jest polem rzeczywistego obrzeża w cenniku
+  materiałów, osobno dla korpusu/frontów. Domyślnie 10%, także dla starych
+  rekordów bez pola; odczyt nie dopisuje wartości do profilu. Zero oznacza
+  rzeczywiste metry. WYCENA czyta aktualny LOCAL-FIRST przez selektor katalogu.
+- Historyczne AGD: pełna znaleziona reguła zamiast samej price, warunki i źródło
+  ilości, dokładne godziny i kwoty przed końcowym zaokrągleniem. Nieudany warunek
+  znalezionej reguły nie uruchamia zastępczej opłaty. Istniejące normy PDF i ceny
+  usług stałych nie zostały zmienione.
+
+### Algorytm i ochrona danych
+
+Prace niecodzienne są agregowane przed ustaleniem dni, zgodnie z zakresem reguł.
+Stałe czynności codzienne i przejazdy zmniejszają dostępność. Dla przerwy badane
+są granice jawnego progu i pojemności przed/po nim, bez iterowania liczby dni
+z powrotem do licznika. Pełne dni i ostatni dzień są reprezentowane najwyżej
+przez dwie grupy, z osobną liczbą wystąpień przerwy. Koszty codzienne i wyjazdy
+naliczane są po ustaleniu dni; nie zwiększają drugi raz licznika. Zerowe prace
+niecodzienne nie tworzą dni. Niedodatnia pojemność dla dodatniej pracy, źródło
+zależne od harmonogramu i podwójna codzienna reguła przejazdu nadal blokują.
+
+Przykłady kontrolne: parter/minimum 1 → 15 min → 62,50 zł przy 250 zł/h;
+4 poziomy → 30 min, a nie 35 min. Dwie osobne duże sztuki to dwa przejścia.
+230 min prac + 10 min przejazdu = 4 h: bez przerwy. 450 min prac przy takim
+przejeździe: dzień 440+10+30=480 min i ostatni 10+10=20 min; jedna przerwa,
+dwa wyjazdy. Wyłączenie opłaty nie zmienia tych dni. Domyślna krótka trasa:
+4 km × 1,40 + 10 min × 250/60 = 47,27 zł, bez automatycznej przerwy.
+
+Korekta istniejącego cennika dotyczy wyłącznie czterech dokładnych, nieedytowanych
+fabrycznych definicji: wnoszenie, rozkręcenie, km i przerwa. Porównanie całej
+poprzedniej znormalizowanej definicji, brak znacznika edycji i obcych pól;
+prywatne zmiany oraz ich oryginalne wartości zostają. Uzgodnione nowe parametry
+trafiają do fabrycznych rekordów przy czystym starcie LOCAL-FIRST, tą samą
+atomową ścieżką co brakujące normy. Brudny/trwały draft jest wznawiany bez
+zmiany jego katalogu. Aktualizacja jest idempotentna; źródłowy RAW, stare
+snapshoty i niepewne outbox/replicas/protected nie są przepisywane.
+
+Kontrola starego SW wykryła, że stosowanie parteru 0 podczas normalizacji
+historycznych inwestorów naruszało zachowanie starego profilu. Potwierdzono,
+że baza main zaliczała ten test. Poprawiono przyczynę: domyślne 0 wyłącznie
+przy tworzeniu nowego inwestora/szkicu. Pełny test aktualizacji ponownie PASS,
+z zachowaniem kompletu kluczy, dokładnych pól historycznych i natywnego IDB.
+Asercje nadal odrzucają utratę/dopisanie kluczy, zmianę prywatnej ceny lub normy,
+zmianę projektów, rozbieżne aliasy i nadmiarowe rekordy. Jedyny wyjątek to
+jawnie wymienione pola zatwierdzonych, dokładnych fabrycznych korekt.
+
+### Pliki i faktyczne kontrole
+
+Reguły i silnik: `labor-catalog-definitions.js`, `labor-catalog.js`,
+`carrying-logistics.js`, `work-quantity-facts.js`, `labor-work-plan.js`.
+Integracja: `wycena-core-{labor,lines,material-plan,offer}.js`, `wycena-core.js`.
+Formularze: `price-modal-{item-form,list}.js`, `data-settings-*-view.js`,
+`hourly-rates-store.js`, `wycena-tab-editor.js`, `wycena-work-plan-view.js`,
+`investor-{carrying,editor-state}.js`, `investors-store.js`.
+Kontrakty: `global-data-contract.js`, `catalog-store.js`,
+`quote-{offer,snapshot}-store.js`, `sync/application-authority.mjs`.
+Wersje obu wejść, `tools/script-versions.js`, fabryczny artefakt i manifest
+odświeżone; produkcyjna kolejność ładowania i workflow bez zmiany.
+`dev_tests.html` uzupełniono o pominięte wcześniej dwa istniejące moduły
+stawek (store i widok), w kolejności zgodnej z produkcyjnym wejściem. UI kopiuje istniejące
+pola, wybór z modala, chip checkbox i akordeon; bez nowego wzorca wizualnego.
+
+Celowane kontrole Codexa na danych syntetycznych, w roboczym drzewie tej gałęzi:
+
+| Kontrola | Wynik |
+| --- | --- |
+| `catalog-rule-authority-smoke.js` | 11 grup PASS: zgłoszone obejścia, zero, warunki, źródła, progi, ceny, prywatne korekty, oferty, parter |
+| `labor-work-plan-smoke.js` | 23 grupy PASS |
+| `wycena-labor-norms-smoke.js` | 9/9 PASS |
+| `quote-exact-calculations-smoke.js` | 83 przypadki PASS; stare 369,17/517,63 i osobny załadunek zachowane |
+| `effective-project-pcv-smoke.js` | 30/30 PASS |
+| `transport-settings-pricing-smoke.js` | 4 grupy PASS |
+| `code-global-catalogs-smoke.js` | 7/7 PASS; 14 domen |
+| `carrying-lift-logistics-smoke.js` | PASS; wymiary, przekątna, rozkręcona szafka, duże fronty i trzy tryby kwotowe |
+| `labor-catalog-local-first-browser-smoke.js` | Chromium/native 22 grupy PASS, także CAS/abort/quota/odmowa/prywatne zmiany/draft/restart |
+| `android-local-first-browser-smoke.js` | Pełna aplikacja Chromium/offline 15 grup PASS, nowe rzeczywiste formularze i wybór opłaty, zachowanie ofert/RAW/kolejek |
+| `android-safe-sw-update-smoke.js` | Rzeczywista aktualizacja starej aplikacji/SW, 320/360/412 px, aktywny/brudny profil, opóźnienie >30 s i późniejszy offline PASS |
+| `main-login-smoke.js` | 36/36 PASS; zależności i granica startu |
+| Wersje, składnia zmienionych modułów, kolejność ładowania, generatory, diff | PASS |
+
+Aktualizowano wyłącznie oczekiwania wynikające z zatwierdzonej zmiany:
+krótki dzień bez przerwy, nowa fabryczna stawka, jedna szafka po rozkręceniu,
+fabryczne metadane i wersje zależności. Test zachowania danych po usunięciu
+porównuje stan po celowo zapisanym nowym wyborze przerw; nie uznaje tego wyboru
+za nieautoryzowaną zmianę starej oferty. Wszystkie pozostałe asercje zachowane.
+
+Rzeczywisty routing z `cloud-ci-context.historicalSmoke`: 208 bieżących smoke
+w 7 rozłącznych grupach, bez 8 historycznych (odrębne zadanie). Nowe regresje
+w shardzie 7, natywny cennik/harmonogram w 4, pełny Android/PCV w 5,
+aktualizacja SW i dokładne kwoty w 7. Nie wykonano pełnego Preflightu ani
+Firebase SDK/emulatorów; należą do GitHub Actions dla przyszłego zatwierdzonego SHA.
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING / LIVE_BLOCKED.**
+Bez PR, Actions, merge, wydania i Firebase LIVE. Żadnego dostępu do danych
+telefonu ani resetowania profilu właściciela. Następny ruch: niezależna kontrola
+wypchniętego HEAD/BASE, następnie osobna zgoda na jedną próbę wydania.
+
+
+## Naprawa CI PR #121 — 08.11.2026
+
+Właściciel zlecił weryfikację raportu GPT i naprawę po potwierdzeniu diagnozy.
+Wejście: `feat/catalog-driven-pricing-20261108`, HEAD
+`41925f7eddaa6c966563db6c4d7116e7cdac23a9`, BASE/main
+`f29e8d3797108068130cfb73c3393a066e050c43` (potwierdzone odczytowo z GitHuba).
+Jeden commit naprawczy na tej samej gałęzi; wynikowy HEAD w przekazaniu po push.
+
+Odczytano rzeczywiste logi [CI #42489316792](https://github.com/mebleszek/meble-app/actions/runs/42489316792):
+- [Shard 5, job 128758042102](https://github.com/mebleszek/meble-app/actions/runs/42489316792/job/128758042102):
+  49/52; global-data-write-safety (Nie zapisano/Zapisano, linia 228),
+  labor-rate-profiles-restore-clean (stary tytuł, linia 31), pricing-modes-calculation-coverage
+  (transport 50 zamiast 154 zł).
+- [Shard 7, job 128758042063](https://github.com/mebleszek/meble-app/actions/runs/42489316792/job/128758042063):
+  50/51; cabinet-derived-facts-cache, logistics=null, linia 120.
+- Safety/static, inne shardy, Firebase CURRENT i CLOUD Historical = PASS dla
+  wskazanego starego HEAD. Auto-merge i Pages = SKIPPED, PR otwarty Ready.
+  Te PASS nie są dowodem dla nowego commita. Nie ponawiano Actions.
+
+### Przyczyny i korekta
+
+1. `mergeDefaultDefinitionGroup()` łączył domyślną definicję transportu z ręcznym
+   rekordem bez `unitPriceSource`. W ten sposób pole paliwowe z fabryki wygrywało
+   z ręczną ceną 4 zł/km. W izolowanym runtime bez profilu paliwa zostawał sam
+   start 50 zł zamiast 50 + (36−10)×4 = 154 zł. Przy rzeczywistym profilu też
+   byłaby to inna, nieuprawniona stawka. Korekta nie dopisuje paliwowego źródła,
+   jeśli wybrany historyczny rekord go nie ma. Ręczne zero pozostaje zerem.
+   Dokładna, zatwierdzona korekta starej reguły fabrycznej nadal jawnie dodaje
+   powiązanie paliwowe PRZED scalaniem definicji. Jawny wybór `fuel` lub `manual`
+   na edytowanym rekordzie nadal obowiązuje. Nie zmieniono oczekiwanych 154 zł.
+2. Instrumentowana reprodukcja zapisu stawek potwierdziła: po odmowie formularz
+   i błąd zostają; przy retry bezpośrednio po click handler ma disabled=true,
+   a po jego kontynuacji jest „Zapisano”, disabled=false i cena 432 w magazynie.
+   Produkcyjnego handlera nie zmieniono. Mini DOM nie przekazuje Promise z
+   listenera; regresja czeka na konkretną mikro-kontynuację istniejącego await,
+   bez sleep/retry. Zachowano wszystkie odmowy i asercje; dodano sprawdzenie
+   tego samego pola po błędzie, braku przedwczesnego sukcesu oraz odświeżenia
+   formularza dopiero po zakończeniu udanego zapisu.
+3. Poprzedni tytuł widoku zastąpiono w regresji zatwierdzonym „Stawki i przerwy”.
+   Zachowano kontrole kodów, stawek, deduplikacji, nieusuwalności i wyboru profili;
+   dodatkowo sprawdzane są pola czasu/progu przerwy i długości dnia.
+4. Izolowany test cache nie ładował nowej rzeczywistej zależności logistyki:
+   labor-catalog-definitions, labor-catalog i selektora bieżących reguł. Uzupełniono
+   runtime pełnymi definicjami, bez stubowania/nullowania logistyki lub asercji.
+   Przy kontroli produkcyjnego czytelnika `wycenaCoreLabor.carryingEvaluation`
+   wykryto powiązany błąd: cache zależał od szafki i inwestora, lecz nie od
+   edytowanych reguł logistycznych. Dodana regresja po uzupełnieniu runtime
+   odtworzyła FAIL (`hit` zamiast `stale` po zmianie liftLevels). Hash bierze
+   teraz pod uwagę istniejące definicje wnoszenia i rozkręcenia. Po zmianie
+   reguły cache daje nową liczbę poziomów, kolejny niezmieniony odczyt pozostaje
+   hitem bez ponownego generowania formatek. Definicje są tylko wejściem hasha,
+   nie drugą kopią zapisywaną w projekcie. Stary cache sam staje się stale;
+   nie ma migracji danych ani nowego formatu ofert.
+
+### Kontrole celowane, faktycznie wykonane przez Codexa
+
+| Kontrola | Wynik |
+| --- | --- |
+| pricing-modes-calculation-coverage-smoke | PASS; zachowane niezależne 154 zł oraz całe rozbicie rejestru |
+| global-data-write-safety-smoke | 31/31 PASS, wszystkie negatywne scenariusze i retry zachowane |
+| labor-rate-profiles-restore-clean-smoke | PASS; profile 150/250/300/80 oraz prywatny profil działają |
+| cabinet-derived-facts-cache-smoke | PASS; prawdziwa logistyka, cache hit/stale/version, edycja reguły i brak zapisu projektu |
+| catalog-rule-authority-smoke | 12 grup PASS; uzupełnianie/scalanie historycznych cen 4/0, powtarzany zapis/normalizacja, nienaruszony input, fabryczne paliwo i jawny wybór fuel |
+| labor-catalog-local-first-browser-smoke --transport-only | Chromium/native 3 scenariusze PASS: ręczne 4 zł/km bez nowego pola = 154 zł, ręczne zero = 0 zł, fabryczne paliwo = 50,40 zł za 36 km; start, zapis, zimny restart |
+| transport-settings-pricing-smoke | 4 grupy PASS; minima, czas, paliwo, ręczne stawki/zero, historia i 14 domen |
+| code-global-catalogs-smoke | 7/7 PASS; 14 domen, normy i deterministyczne źródła |
+| quote-performance-smoke | 22/22 PASS; ponowne użycie obliczeń, unieważnianie i pozostałe zabezpieczenia |
+| Wersje/składnia/generatory/routing/diff | PASS |
+
+Natywne scenariusze transportu sprawdzają rzeczywisty zapis przez authority i
+strict IndexedDB, zgodność obu aliasów, oryginalny RAW/RAM, zamrożone oferty,
+niezmienione replicas/protected/outbox i brak zewnętrznych żądań. To kontrola
+syntetyczna w Chromium; nie wykonano żadnej operacji na telefonie ani Firebase.
+
+Nie powtarzano pełnego CI ani całych zestawów przeglądarkowych. Pozostałe
+scenariusze są nadal w obowiązkowym Preflight. Rozłączny aktualny routing:
+208 bieżących testów / 7 shardów, 8 historycznych w oddzielnym zadaniu.
+Pierwotne cztery FAIL: odpowiednio 5/5/5/7; reguły w 7, natywny transport w 4,
+performance w 1. Workflow i normy biznesowe bez zmiany. Odświeżono wersje
+labor-catalog i cabinet-derived-facts w obu HTML/mapie, provenance katalogu
+fabrycznego i manifest offline.
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING / LIVE_BLOCKED.**
+Wymagana osobna kontrola i zgoda na nowy HEAD/BASE przed kolejną próbą wydania.
+Jeden commit/push; nie tworzono ani nie przełączano PR #121, nie uruchamiano
+Actions, merge, Pages, Firebase LIVE, Auth, synchronizacji ani resetu urządzenia.

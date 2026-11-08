@@ -21,7 +21,9 @@
     const wrap = h('label', { class:'data-settings-form-field' });
     wrap.appendChild(h('span', { class:'data-settings-form-label', text:label }));
     const input = h(options.multiline ? 'textarea' : 'input', { class:'data-settings-form-control' });
+    if(options.id)input.id=options.id;
     if(options.type) input.setAttribute('type', options.type);
+    if(options.type==='number'){input.setAttribute('min','0');input.setAttribute('step','any');}
     if(options.inputmode) input.setAttribute('inputmode', options.inputmode);
     if(options.readonly){ input.setAttribute('readonly', 'readonly'); input.setAttribute('aria-readonly', 'true'); }
     if(options.placeholder) input.setAttribute('placeholder', options.placeholder);
@@ -86,16 +88,18 @@
 
   function render(scroll){
     if(!(scroll && h && FC.hourlyRatesSettings)) return;
-    let draft = { rows:FC.hourlyRatesSettings.read() };
+    const readDraft=()=>({rows:FC.hourlyRatesSettings.read(),breakRule:FC.hourlyRatesSettings.readBreak()});
+    const signature=()=>JSON.stringify(FC.catalogStore.getPriceList('quoteRates'));
+    let draft=readDraft(),baseline=JSON.stringify(draft),source=signature();
 
     function draw(){
       const currentScroll = scroll.scrollTop;
       scroll.innerHTML = '';
 
       const card = h('section', { class:'data-settings-card data-settings-costs-card data-settings-hourly-rates-card' });
-      const titleRow = h('div', { class:'data-settings-card-title-row' }, [h('h3', { text:'Stawki godzinowe firmy' })]);
+      const titleRow = h('div', { class:'data-settings-card-title-row' }, [h('h3', { text:'Stawki i przerwy' })]);
       const msg = 'Tu ustawiasz profile stawek godzinowych firmy. Czynność w cenniku nadal wybiera konkretną stawkę, np. warsztatową, montażową, specjalistyczną albo pomocnika. Kod techniczny po zapisaniu jest stały.';
-      if(FC.helpRegistry && typeof FC.helpRegistry.createTrigger === 'function') titleRow.appendChild(FC.helpRegistry.createTrigger({ key:'dataSettings.hourlyRates.card', title:'Stawki godzinowe firmy', message:msg, scope:'dataSettings', className:'info-trigger data-settings-card-info', stop:false }));
+      if(FC.helpRegistry && typeof FC.helpRegistry.createTrigger === 'function') titleRow.appendChild(FC.helpRegistry.createTrigger({ key:'dataSettings.hourlyRates.card', title:'Stawki i przerwy', message:msg, scope:'dataSettings', className:'info-trigger data-settings-card-info', stop:false }));
       card.appendChild(titleRow);
 
       const summary = h('div', { class:'data-settings-defaults-summary muted', text:FC.hourlyRatesSettings.buildSummary(draft.rows) });
@@ -119,17 +123,36 @@
       if(!groups.own.length) ownBody.appendChild(h('div', { class:'muted', text:'Brak własnych stawek. Dodaj własną, jeśli potrzebujesz np. lakiernika albo programisty CNC.' }));
       card.appendChild(dom.makeAccordion ? dom.makeAccordion('Własne stawki', [ownBody], { open:!!groups.own.length, sub:String(groups.own.length), infoMessage:'Własna stawka po zapisie dostaje stały kod techniczny. Żeby przestała pojawiać się przy nowych czynnościach, ustaw ją jako wyłączoną.' }) : ownBody);
 
+      const breakBody=h('div',{class:'data-settings-cost-grid'});
+      breakBody.appendChild(makeInput('Czas przerwy (min)',Number(draft.breakRule.timeBlockHours)*60,value=>{draft.breakRule.timeBlockHours=Number(value)/60;},{type:'number',inputmode:'decimal',id:'breakMinutes'}));
+      breakBody.appendChild(makeInput('Przerwa po przekroczeniu czasu pracy (h)',draft.breakRule.breakAfterHours,value=>{draft.breakRule.breakAfterHours=Number(value);},{type:'number',inputmode:'decimal',id:'breakAfterHours',hint:'Do tego czasu włącznie — bez przerwy. Próg obejmuje przejazdy, ale nie samą przerwę.'}));
+      breakBody.appendChild(makeInput('Długość dnia pracy (h)',draft.breakRule.workdayHours,value=>{draft.breakRule.workdayHours=Number(value);},{type:'number',inputmode:'decimal',id:'workdayHours'}));
+      breakBody.appendChild(h('p',{class:'muted',text:'To ustawienia istniejącej reguły „Przerwa” w cenniku. Jej stawka, aktywność i etapy pozostają w tej samej regule. Ostatni krótki dzień może nie wymagać przerwy.'}));
+      card.appendChild(dom.makeAccordion?dom.makeAccordion('Przerwy i dzień pracy',[breakBody],{open:true}):breakBody);
       const bottomActions = h('div', { class:'data-settings-actions data-settings-defaults-actions' });
       const cancelBtn = h('button', { type:'button', class:'btn btn-danger', text:'Anuluj zmiany' });
       const saveBtn = h('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
-      cancelBtn.addEventListener('click', ()=>{ draft = { rows:FC.hourlyRatesSettings.read() }; draw(); });
-      saveBtn.addEventListener('click', ()=>{
-        const result = FC.hourlyRatesSettings.write(draft.rows);
-        if(!result || !result.ok){ if(dom.info) dom.info('Nie można zapisać stawek', String((result && result.message) || 'Sprawdź dane stawek godzinowych.')); return; }
-        draft.rows = result.rows || FC.hourlyRatesSettings.read();
-        if(dom.info) dom.info('Zapisano', 'Stawki godzinowe firmy zostały zapisane. Czynności czasowe w cenniku korzystają z tych profili.');
-        draw();
+      const dirty=()=>JSON.stringify(draft)!==baseline;
+      const updateActions=()=>{saveBtn.hidden=!dirty();cancelBtn.hidden=!dirty();};
+      card.addEventListener('input',updateActions);card.addEventListener('change',updateActions);card.addEventListener('click',()=>queueMicrotask(updateActions));
+      cancelBtn.addEventListener('click',()=>{draft=readDraft();baseline=JSON.stringify(draft);source=signature();draw();});
+      saveBtn.addEventListener('click',async()=>{
+        saveBtn.disabled=true;
+        try{
+          const persist=()=>{
+            if(signature()!==source)throw Error('Cennik zmienił się podczas edycji. Anuluj i otwórz ustawienia ponownie.');
+            const result=FC.hourlyRatesSettings.write(draft.rows,draft.breakRule);
+            if(!result?.ok)throw Error(result?.message||'Nie potwierdzono zapisu.');
+            return result;
+          };
+          const writer=FC.applicationWrite;
+          await(writer?.localOnly?writer.globals(persist):persist());
+          draft=readDraft();baseline=JSON.stringify(draft);source=signature();draw();
+          dom.info?.('Zapisano','Stawki i reguła przerwy zostały zapisane. Istniejące oferty pozostają bez zmian.');
+        }catch(error){dom.info?.('Nie zapisano',String(error.message||error));}
+        finally{saveBtn.disabled=false;updateActions();}
       });
+      updateActions();
       bottomActions.appendChild(cancelBtn);
       bottomActions.appendChild(saveBtn);
       card.appendChild(bottomActions);

@@ -3,10 +3,10 @@
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http=require('node:http'),assert=require('node:assert/strict');
 const execFile=require('node:util').promisify(require('node:child_process').execFile);
 const {browser}=require('./trusted-session-browser-smoke');
-// Only the application startup may append exact approved starter rows. During
-// worker installation the existing full byte comparison still applies.
+// Only startup may append factories or correct exact approved factory records.
+// Worker installation, private records and every unrelated RAW remain exact.
 const legacyService=({id,category,name,price})=>({id,category,name,price});
-function assertStarterAppend(before,after,templates){
+function assertStarterAppend(before,after,templates,corrections={}){
  const a=Object.fromEntries(JSON.parse(before)),b=Object.fromEntries(JSON.parse(after));
  assert.deepEqual(Object.keys(b).sort(),Object.keys(a).sort(),'No RAW key may appear/disappear through upgrade');
  const aliases=['fc_quote_rates_v1','fc_services_v1'];
@@ -17,7 +17,7 @@ function assertStarterAppend(before,after,templates){
   const expected=key==='fc_services_v1'?templates.map(legacyService):templates;
   const missing=expected.filter(row=>!ids.has(row.id));
   assert.equal(next.length,old.length+missing.length,'Exactly the missing factory rows, no extra or removed records');
-  for(let i=0;i<old.length;i++)assert.equal(JSON.stringify(next[i]),JSON.stringify(old[i]),'Existing record fields/order remain byte-exact: '+key+'/'+i);
+  for(let i=0;i<old.length;i++){const approved=corrections[old[i].id];const expectedRow=approved?(key==='fc_services_v1'?legacyService(approved):approved):old[i];assert.equal(JSON.stringify(next[i]),JSON.stringify(expectedRow),'Exact original or explicitly approved factory correction: '+key+'/'+i);}
   assert.deepEqual(next.slice(old.length),missing,'Every appended field must match the approved code definitions');
   assert.equal(new Set(next.map(row=>row.id)).size,next.length,'No duplicated IDs');
   assert.equal(b[key],JSON.stringify(next),'Exact compact RAW encoding: '+key);
@@ -148,7 +148,14 @@ async function main(){
  // deployment is isolated by trusted-session-browser). Its persisted service
  // compatibility alias has four fields; the canonical catalog and its cache
  // must retain the full norms. These two persisted formats are not interchangeable.
- assertStarterAppend(before,await raw(),codeCandidate.model.labor);
+ const originalCatalog=JSON.parse(Object.fromEntries(JSON.parse(before)).fc_quote_rates_v1);
+ const factoryLabor=require('./helpers/code-global-catalogs').buildCodeCatalogs().context.FC.laborCatalog;
+ const corrected=factoryLabor.applyApprovedFactoryRules(originalCatalog);
+ const corrections=Object.fromEntries(corrected.filter((row,i)=>JSON.stringify(row)!==JSON.stringify(originalCatalog[i])).map(row=>[row.id,structuredClone(factoryLabor.normalizeDefinition(row))]));
+ assert.ok(Object.keys(corrections).every(id=>['labor_carrying_cabinet','labor_carrying_disassembly','transport_distance_km','labor_daily_break'].includes(id)));
+ const permittedFields=new Set(['rateType','note','minimumLevels','liftLevels','disassemblyWeightKg','breakAfterHours','workdayHours','unitPriceSource']);
+ for(const old of originalCatalog){const next=corrections[old.id];if(next)for(const key of Object.keys(old))if(!permittedFields.has(key))assert.deepEqual(next[key],old[key],'Factory upgrade must preserve '+old.id+'/'+key);}
+ assertStarterAppend(before,await raw(),codeCandidate.model.labor,corrections);
  assertFullStarters(await one.evaluate('window.FC.catalogStore.getQuoteRates()'),codeCandidate.model.labor,missing.map(row=>row.id));
  assert.notEqual(await one.evaluate('window.FC.offlineShell.prepare().then(r=>r.version)'),cache);
  assert.equal(await one.evaluate(`new Promise((resolve,reject)=>{const r=indexedDB.open('synthetic-safe-sw-data',1);r.onerror=reject;r.onsuccess=()=>{const db=r.result,tx=db.transaction('rows'),q=tx.objectStore('rows').get('saved');tx.oncomplete=()=>{db.close();resolve(q.result);};tx.onabort=reject;};})`),'EXACT-IDB-12.125');

@@ -693,17 +693,20 @@
     catch(_){ return text(rateType); }
   }
   function applianceLineFromLaborDefinition(def, appliance, roomLabel, roomId, cabinet, number, rates){
-    const calc = calculateLaborDefinition(def, 1, rates);
-    if(!calc) return null;
+    if(!FC.wycenaCoreLabor.evaluateConditions(def,{roomId,cabinet}).matched)return null;
+    const fact=def.quantitySource?FC.workQuantityFacts?.getCabinetFact?.(roomId,cabinet,def.quantitySource):null;
+    if(def.quantitySource&&(!fact||fact.available===false))return null;
+    const calc = calculateLaborDefinition(def, def.quantitySource?Math.max(0,Number(fact.value)||0):1, rates);
+    if(!calc || !(Number(calc.quantity)>0)) return null;
     const cab = cabinet || {};
     const cabType = [text(cab.type), text(cab.subType)].filter(Boolean).join(' / ');
     const sourceLabel = [`Szafka #${number || '?'}`, text(roomLabel), cabType].filter(Boolean).join(' — ');
-    const total = Math.round((Number(calc.total) || 0) * 100) / 100;
+    const total = (Number(calc.total) || 0);
     const key = utils.slug([text(def.id), roomId, cab.id || number].filter(Boolean).join('_'));
     const qty = Math.max(0, Number(calc.quantity) || 1);
-    const hours = Math.round((Number(calc.pricedHours) || 0) * 100) / 100;
-    const hourlyRate = Math.round((Number(calc.hourlyRate) || 0) * 100) / 100;
-    const unitPrice = Math.round((total / (qty || 1)) * 100) / 100;
+    const hours = (Number(calc.pricedHours) || 0);
+    const hourlyRate = (Number(calc.hourlyRate) || 0);
+    const unitPrice = (total / (qty || 1));
     return {
       key,
       type:'service',
@@ -729,17 +732,18 @@
       hours,
       baseHours:Number(calc.quantityHours) || 0,
       timeBlockHours:Number(def.timeBlockHours) || 0,
+      startHours:def.startHours,startQty:def.startQty,stepHours:def.stepHours,stepEveryQty:def.stepEveryQty,quantityTiers:def.quantityTiers,
       pricingMode:text(def.pricingMode || ''),
       quantityMode:text(def.quantityMode),
       startPrice:Number(calc.startPrice != null ? calc.startPrice : def.startPrice) || 0,
       includedQty:Number(calc.includedQty != null ? calc.includedQty : def.includedQty) || 0,
       billableQty:Number(calc.billableQty != null ? calc.billableQty : calc.quantity) || 0,
-      multiplier:Number(calc.multiplier) || 1,
+      multiplier:calc.multiplier == null ? 1 : Number(calc.multiplier),
       starterPrice:!!(def.starterPrice === true && !text(def.priceUserEditedAt)),
       priceUserEditedAt:text(def.priceUserEditedAt),
       note:[`Automat AGD: ${text(def.id)}`, text(appliance && appliance.label), hours > 0 && hourlyRate > 0 ? `${hours} h × ${hourlyRate} PLN/h (${rateLabel(def.rateType)})` : ''].filter(Boolean).join(' • '),
       calculation:hours > 0 && hourlyRate > 0
-        ? `Cena = osobny automat AGD ${text(def.id)}: ${qty || 1} szt. × ${Number(def.timeBlockHours || 0)} h × ${hourlyRate} PLN/h.`
+        ? `Cena = osobny automat AGD ${text(def.id)}: ${hours} h według formuły cennika × ${hourlyRate} PLN/h.`
         : 'Cena = osobny automat AGD z cennika robocizny/stawki wyceny.',
       warnings:total > 0 ? [] : ['Automat AGD ma 0 zł — sprawdź czas i stawkę w cenniku robocizny.']
     };
@@ -757,6 +761,12 @@
     };
     const addFallback = (name, roomLabel, roomId, cabinet, number)=>{
       const svc = catalog.servicePriceLookup(name);
+      if(svc && defs.some(row=>row.id===svc.id)){
+        const def=defs.find(row=>row.id===svc.id);
+        if(!FC.wycenaCoreLabor?.evaluateConditions?.(def,{roomId,cabinet}).matched)return;
+        const line=applianceLineFromLaborDefinition(def,{serviceName:name},roomLabel,roomId,cabinet,number,rates);
+        if(line)rows.push(line);return;
+      }
       const cab = cabinet || {};
       const cabType = [text(cab.type), text(cab.subType)].filter(Boolean).join(' / ');
       const sourceLabel = [`Szafka #${number || '?'}`, text(roomLabel), cabType].filter(Boolean).join(' — ');
@@ -788,10 +798,12 @@
         const stages=FC.wycenaCoreLabor.collectApplianceLabor({roomId,roomLabel,cabinet,number});
         rows.push(...stages);return;
       }
+      if(all.some(row=>text(row?.id)===text(appliance?.laborCode)&&row.active===false))return;
       const def = findLaborDefinitionById(defs, appliance && appliance.laborCode);
       if(def){
         const line = applianceLineFromLaborDefinition(def, appliance, roomLabel, roomId, cabinet, number, rates);
-        if(line){ rows.push(line); return; }
+        if(line)rows.push(line);
+        return; // A matched rule (including failed conditions/zero) owns this operation.
       }
       if(appliance && appliance.serviceName) addFallback(appliance.serviceName, roomLabel, roomId, cabinet, number);
     };

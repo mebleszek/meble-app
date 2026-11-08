@@ -74,11 +74,15 @@
     })[0] || canonical || def || {};
     const userEdited = rows.some((row)=> hasExplicitPriceEdit(row) || Number(row && row.price) > 0 || row && row.active === false);
     const editedAt = rows.map((row)=> text(row && (row.priceUserEditedAt || row.userEditedAt))).filter(Boolean).sort().pop() || text(preferred && preferred.priceUserEditedAt || preferred && preferred.userEditedAt);
-    return Object.assign({}, def || {}, canonical || {}, preferred || {}, {
+    const merged = Object.assign({}, def || {}, canonical || {}, preferred || {}, {
       id:text(def && def.id) || text(preferred && preferred.id),
       starterPrice:userEdited ? false : ((preferred && preferred.starterPrice === true) || (canonical && canonical.starterPrice === true) || (def && def.starterPrice === true)),
       priceUserEditedAt:userEdited ? (editedAt || text(preferred && preferred.priceUserEditedAt || preferred && preferred.userEditedAt) || new Date().toISOString()) : '',
     });
+    // Only the exact approved factory upgrade may add the fuel binding to an old row.
+    // An absent field on the chosen historical record means manual pricing, including zero.
+    if(text(def && def.id)==='transport_distance_km'&&!Object.hasOwn(preferred,'unitPriceSource'))delete merged.unitPriceSource;
+    return merged;
   }
   function consolidateDefaultDefinitionDuplicates(list){
     const rows = Array.isArray(list) ? list.slice() : [];
@@ -448,6 +452,8 @@
       includedQty:isHourly ? 0 : Math.max(0, num(src.includedQty != null ? src.includedQty : src.startIncludedQty, 0)),
       ...(Object.hasOwn(src,'billingScope')?{billingScope:['room','quote','day'].includes(src.billingScope)?src.billingScope:'standard'}:{}),
       ...(Object.hasOwn(src,'dailyStages')?{dailyStages:['workshop','assembly','both'].includes(src.dailyStages)?src.dailyStages:'both'}:{}),
+      ...Object.fromEntries(['minimumLevels','liftLevels','disassemblyWeightKg','breakAfterHours','workdayHours'].filter(key=>Object.hasOwn(src,key)).map(key=>[key,Math.max(0,num(src[key],0))])),
+      ...(Object.hasOwn(src,'unitPriceSource')?{unitPriceSource:src.unitPriceSource==='fuel'?'fuel':'manual'}:{}),
       usage:normalizeMode(src.usage, USAGE_TYPES, 'universal'),
       rateKey:isHourly ? (rateKey || rateType) : rateKey,
       rateCode:isHourly ? (rateKey || rateType) : rateKey,
@@ -455,8 +461,8 @@
       systemRate:src.systemRate === true,
       nonDeletable:src.nonDeletable === true,
       rateType,
-      timeBlockHours:isHourly ? 0 : clampTimeBlock(src.timeBlockHours),
-      defaultMultiplier:isHourly ? 1 : (Math.max(0, num(src.defaultMultiplier, 1)) || 1),
+      timeBlockHours:isHourly ? 0 : (text(src.id)==='labor_daily_break' ? Math.max(0,num(src.timeBlockHours,0)) : clampTimeBlock(src.timeBlockHours)),
+      defaultMultiplier:isHourly || src.defaultMultiplier == null || text(src.defaultMultiplier) === '' ? 1 : Math.max(0, num(src.defaultMultiplier, 1)),
       quantityMode:isHourly ? 'none' : quantityMode,
       quantitySource:isHourly ? '' : inferQuantitySource(src),
       conditions,
@@ -477,8 +483,27 @@
       priceUserEditedAt:text(src.priceUserEditedAt || src.userEditedAt),
     };
   }
+  // Approved factory corrections. Equality includes every normalized field and editing marker.
+  // Unknown fields also refuse an upgrade; existing offers are never read or rewritten here.
+  function applyApprovedFactoryRules(rows){
+    const previous=[{ id:'labor_carrying_cabinet', category:'Transport i logistyka', name:'Wnoszenie korpusu / elementów', price:0, usage:'universal', rateType:'helper', quantitySource:'carrying.floor_units', pricingMode:'timeStartStep', quantityMode:'startStep', startHours:0.25, startQty:1, stepEveryQty:1, stepHours:0.0833333333, active:true, internalOnly:true, starterPrice:true, note:'Automat wnoszenia. Program liczy: 15 min startu + 5 min za każdy poziom; dla całego korpusu mnoży przez liczbę pomocników, a po rozkręceniu przez liczbę dużych elementów niewchodzących do windy.' },
+{ id:'labor_carrying_disassembly', category:'Transport i logistyka', name:'Rozkręcenie i ponowne skręcenie korpusu', price:0, usage:'universal', rateType:'assembly', quantitySource:'carrying.requires_disassembly', timeBlockHours:1, quantityMode:'linear', active:true, internalOnly:true, starterPrice:true, note:'Osobny automat uruchamiany tylko gdy korpus jest za ciężki do wnoszenia po schodach w całości. Po rozkręceniu program sprawdza duże elementy i dolicza po schodach tylko te, które nie weszły do windy. Czas startowy: 1 h stawki montażowej.' },
+{ id:'transport_distance_km', category:'Transport', name:'Transport do klienta', price:0, usage:'project', rateType:'assembly', quantitySource:'transport.distance_km', quantityMode:'linear', pricingMode:'startPlusUnit', startPrice:0, includedQty:0, active:true, internalOnly:false, starterPrice:true, note:'Kwota startowa + cena za 1 km. Ilość kilometrów wynika z Inwestora i ustawień firmy w trybiku.' },
+{id:'labor_daily_break',category:'Organizacja pracy',name:'Przerwa',price:0,usage:'universal',rateType:'workshop',billingScope:'day',dailyStages:'both',quantitySource:'',pricingMode:'time',quantityMode:'linear',timeBlockHours:0.5,active:true,internalOnly:true,starterPrice:true,note:'30 minut raz na dzień pracy, także montażowy, według aktualnej stawki warsztatowej. Czas wchodzi do dostępności dnia przez zwykłą regułę codzienną.'}];
+    const stable=value=>JSON.stringify(Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b))));
+    return rows.map(row=>{
+      if(row.starterPrice!==true||row.priceUserEditedAt||row.userEditedAt)return row;
+      const old=previous.find(value=>value.id===row.id);
+      if(!old)return row;
+      const normalized=normalizeDefinition(row),before=normalizeDefinition(old);
+      if(Object.keys(row).some(key=>!Object.hasOwn(before,key))||stable(normalized)!==stable(before))return row;
+      const current=DEFAULT_LABOR_DEFINITIONS.find(value=>value.id===row.id);
+      const keys=['rateType','note','minimumLevels','liftLevels','disassemblyWeightKg','breakAfterHours','workdayHours','unitPriceSource'];
+      return {...row,...Object.fromEntries(keys.filter(key=>Object.hasOwn(current,key)).map(key=>[key,current[key]]))};
+    });
+  }
   function ensureDefaultDefinitions(list){
-    const input = (Array.isArray(list) ? list.slice() : []).filter((row)=> !isLegacyAgdDefinition(row) && !isDeprecatedBodyLaborRow(row));
+    const input = applyApprovedFactoryRules(Array.isArray(list) ? list.slice() : []).filter((row)=> !isLegacyAgdDefinition(row) && !isDeprecatedBodyLaborRow(row));
     const rows = dedupeHourlyRateDefinitions(consolidateDefaultDefinitionDuplicates(input));
     const seen = new Set(rows.map((row)=> text(row && row.id)).filter(Boolean));
     DEFAULT_HOURLY_RATES.concat(DEFAULT_LABOR_DEFINITIONS).forEach((row)=>{
@@ -511,7 +536,7 @@
       const key = normalizeRateCode(profile.code);
       if(!key) return;
       const price = Math.max(0, num(profile.price, 0));
-      if(price > 0) rates[key] = price;
+      rates[key] = price;
     });
     return rates;
   }
@@ -553,9 +578,9 @@
     const quantity = Math.max(0, num(c.quantity == null ? 1 : c.quantity, 0));
     const volumeM3 = Math.max(0, Number(c.volumeM3) || 0);
     const rates = c.hourlyRates && typeof c.hourlyRates === 'object' ? c.hourlyRates : {};
-    const hourlyRate = Math.max(0, Number(rates[def.rateType]) || Number(c.hourlyRate) || 0);
+    const hourlyRate = Math.max(0, num(rates[def.rateType] == null ? c.hourlyRate : rates[def.rateType], 0));
     const mode = text(def.pricingMode) || 'fixed';
-    const unitPrice = Math.max(0, Number(def.price) || 0);
+    const unitPrice = effectiveUnitPrice(def);
     const startPrice = Math.max(0, Number(def.startPrice) || 0);
     const includedQty = Math.max(0, Number(def.includedQty) || 0);
 
@@ -579,7 +604,7 @@
 
     const quantityHours = computeQuantityHours(def, quantity);
     const volumeHours = computeVolumeTime(def, volumeM3);
-    const multiplier = Math.max(0, Number(c.multiplier) || Number(def.defaultMultiplier) || 1);
+    const multiplier = Math.max(0, num(c.multiplier == null ? def.defaultMultiplier : c.multiplier, 1));
     const pricedHours = (quantityHours + volumeHours) * multiplier;
     const laborPrice = pricedHours * hourlyRate;
     const volumePrice = volumeHours > 0 ? 0 : (volumeM3 * Math.max(0, Number(def.volumePricePerM3) || 0));
@@ -605,20 +630,32 @@
     };
   }
 
+  function effectiveUnitPrice(row){
+    if(row.unitPriceSource !== 'fuel') return Math.max(0,num(row.price,0));
+    const company=FC.companyProfile;
+    // One visible binding; neither the quote nor the catalog keeps a derived copy.
+    return company?.fuelPricePerKm ? Math.max(0,num(company.fuelPricePerKm(company.read()),0)) : 0;
+  }
+  function ruleParameters(row){
+    const defaults={labor_carrying_cabinet:{minimumLevels:1,liftLevels:2},labor_carrying_disassembly:{disassemblyWeightKg:45},labor_daily_break:{breakAfterHours:4,workdayHours:8}};
+    return Object.fromEntries(Object.entries(defaults[row?.id]||{}).map(([key,value])=>[key,row[key]==null?value:Math.max(0,num(row[key],value))]));
+  }
   function describeDefinition(row){
     const def = normalizeDefinition(row);
     if(def.isHourlyRate) return `${getRateLabel(def.rateKey || def.rateType)} • ${Number(def.price || 0).toFixed(2)} zł/h`;
     const parts = [];
+    if(def.unitPriceSource==='fuel') parts.push('Cena z paliwa i mnożnika auta (Ustawienia → Transport i trasy)');
+    const displayedPrice=effectiveUnitPrice(def);
     const replacements = defs.LABOR_REPLACEMENTS && defs.LABOR_REPLACEMENTS[def.id];
     if(replacements) parts.push('Starsza pozycja zachowana do ręcznych przypisań; zastępuje odpowiednie nowe automaty.');
     if(def.pricingMode) parts.push(getPricingModeLabel(def.pricingMode));
     if(def.quantitySource) parts.push(`ilość: ${def.quantitySource}`);
     if(def.conditions && def.conditions.length) parts.push(`warunki: ${conditionsToText(def.conditions)}`);
-    if(def.pricingMode === 'perUnit') parts.push(`${Number(def.price || 0).toFixed(2)} PLN/jedn.`);
+    if(def.pricingMode === 'perUnit') parts.push(`${displayedPrice.toFixed(2)} PLN/jedn.`);
     else if(def.pricingMode === 'startPlusUnit'){
       parts.push(`start ${Number(def.startPrice || 0).toFixed(2)} PLN`);
       if(Number(def.includedQty) > 0) parts.push(`w cenie ${Number(def.includedQty)} jedn.`);
-      parts.push(`${Number(def.price || 0).toFixed(2)} PLN/jedn.`);
+      parts.push(`${displayedPrice.toFixed(2)} PLN/jedn.`);
     }else if(def.pricingMode === 'fixed') parts.push(`kwota ${(def.fixedPrice || def.price || 0).toFixed(2)} PLN`);
     else{
       if(def.timeBlockHours > 0) parts.push(`${formatHoursAsMinutes(def.timeBlockHours)} × ${getRateLabel(def.rateType)}`);
@@ -639,9 +676,9 @@
     DEFAULT_HOURLY_RATES,
     DEFAULT_LABOR_DEFINITIONS,
     normalizeDefinition,
-    ensureDefaultDefinitions,
+    ensureDefaultDefinitions, applyApprovedFactoryRules,
     buildHourlyRates,
-    calculateDefinition,
+    calculateDefinition, effectiveUnitPrice, ruleParameters,
     describeDefinition,
     parseTierText,
     tiersToText,

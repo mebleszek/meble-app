@@ -340,6 +340,7 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <select hidden="" id="formMaterialPriceUnit"></select>
 <div id="formMaterialPriceUnitLaunch"></div>
 </div>
+<div id="formEdgeWasteWrap" style="margin-top:10px;display:none"><label for="formEdgeWastePercent">Zapas do wyceny (%)</label><input class="investor-form-input" id="formEdgeWastePercent" type="number" min="0" step="any" value="10"/></div>
 <div id="hardwareFormFields" style="display:none;margin-top:14px;border-top:1px solid rgba(226,232,240,.95);padding-top:14px">
 <div class="quote-subsection-title">Dane okucia</div>
 <div class="grid-3" style="margin-top:10px">
@@ -512,6 +513,14 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <option value="standard">Standardowo</option><option value="room">Raz na pomieszczenie</option><option value="quote">Raz na wycenę</option><option value="day">Raz na dzień pracy</option>
 </select></div><div id="laborDailyStagesWrap"><label for="laborDailyStages">Dni etapu</label><select class="investor-form-input" id="laborDailyStages"><option value="workshop">Warsztat</option><option value="assembly">Montaż</option><option value="both">Oba etapy</option></select></div></div>
 
+<div class="grid-2" id="laborRuleParameters" style="margin-top:10px">
+<div id="laborMinimumLevelsWrap"><label for="laborMinimumLevels">Minimalna liczba poziomów wnoszenia</label><input class="investor-form-input" id="laborMinimumLevels" type="number" min="0" step="1"/></div>
+<div id="laborLiftLevelsWrap"><label for="laborLiftLevels">Poziomy przy wnoszeniu windą (powyżej parteru)</label><input class="investor-form-input" id="laborLiftLevels" type="number" min="0" step="1"/></div>
+<div id="laborDisassemblyWeightKgWrap"><label for="laborDisassemblyWeightKg">Próg rozkręcenia korpusu (kg)</label><input class="investor-form-input" id="laborDisassemblyWeightKg" type="number" min="0" step="any"/></div>
+<div id="laborBreakAfterHoursWrap"><label for="laborBreakAfterHours">Przerwa po przekroczeniu czasu pracy (h)</label><input class="investor-form-input" id="laborBreakAfterHours" type="number" min="0" step="any"/></div>
+<div id="laborWorkdayHoursWrap"><label for="laborWorkdayHours">Długość dnia pracy firmy (h)</label><input class="investor-form-input" id="laborWorkdayHours" type="number" min="0" step="any"/></div>
+<div id="laborUnitPriceSourceWrap"><label for="laborUnitPriceSource">Cena kilometra</label><select class="investor-form-input" id="laborUnitPriceSource"><option value="manual">Cena ręczna</option><option value="fuel">Obliczaj z paliwa</option></select><p class="muted" id="laborFuelPricePreview"></p></div>
+</div>
 <div class="grid-2" style="margin-top:10px">
 <div id="laborPricingModeWrap">
 <label>Sposób naliczania ceny</label>
@@ -1068,10 +1077,10 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/ui-state.js?v=20261012_c2_0b"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/investor/session.js?v=20261020_session_storage_proof"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/project/project-domain-operations.js?v=20261019_offer_status_recovery"></script>
-<script data-load-group="startup-foundation" defer="" src="js/app/investor/investors-model.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/investor/investors-model.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/investor/investors-local-repository.js?v=20261104_investor_scope_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/investor/investors-recovery.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="startup-foundation" defer="" src="js/app/investor/investors-store.js?v=20261107_transport_local_delete_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/investor/investors-store.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry-foundation.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry-utils.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry-definitions.js?v=20261012_c2_0b"></script>
@@ -1101,14 +1110,14 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-migration.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-storage-policy.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog-definitions.js?v=20261107_delivery_services_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog.js?v=20261106_work_plan_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog-definitions.js?v=20261108_catalog_rule_authority_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog.js?v=20261108_ci121_catalog_cache_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/pricing/work-quantity-sources.js?v=20261105_pdf_labor_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/pricing/carrying-logistics.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/pricing/carrying-logistics.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/pricing/labor-appliance-rules.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/service-order-store.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20261101_production_sync_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/settings/hourly-rates-store.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20261108_catalog_rule_authority_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/settings/hourly-rates-store.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-selectors.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-cutting-common.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-pro100-parser.js?v=20260628_drawer_systems_materials_v1"></script>
@@ -1116,7 +1125,7 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-cutting-rozrys.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-order-detail.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/service-orders.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/investor/investor-editor-state.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/investor/investor-editor-state.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-persistence.js?v=20261012_c2_0b"></script>
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-navigation-guard.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-choice.js?v=20260628_drawer_systems_materials_v1"></script>
@@ -1129,7 +1138,7 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-rooms.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/investor/openrouteservice-transport.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-transport.js?v=20261107_transport_local_delete_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/investor/investor-carrying.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/investor/investor-carrying.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-ui-render.js?v=20261101_compact_list"></script>
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-ui-status-flow.js?v=20261012_c2_0b"></script>
 <script data-load-group="business-domains" defer="" src="js/app/investor/investor-ui.js?v=20261031_investor_delete_v2"></script>
@@ -1162,8 +1171,8 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-hardware-form.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-field-help.js?v=20261023_wycena_labor_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-labor-conditions.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20261106_work_plan_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20261023_wycena_labor_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-item-form.js?v=20261108_catalog_rule_authority_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-list.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal-persistence.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/material/price-modal.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/confirm-box.js?v=20260628_drawer_systems_materials_v1"></script>
@@ -1181,8 +1190,8 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="ui-shell" defer="" src="js/app/ui/data-settings-defaults-view.js?v=20261101_one_app_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/data-settings-company-view.js?v=20261107_transport_local_delete_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/data-settings-business-costs-view.js?v=20261101_one_app_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/ui/data-settings-hourly-rates-view.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="ui-shell" defer="" src="js/app/ui/data-settings-menu-view.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/ui/data-settings-hourly-rates-view.js?v=20261108_catalog_rule_authority_v1"></script>
+<script data-load-group="ui-shell" defer="" src="js/app/ui/data-settings-menu-view.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/data-settings-work-sources-view.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/data-settings-backup-actions.js?v=20261025_storage_recovery_idb_v1"></script>
 <script data-load-group="ui-shell" defer="" src="js/app/ui/data-settings-backup-list.js?v=20261025_storage_recovery_idb_v1"></script>
@@ -1223,8 +1232,8 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-hardware-requirement-options.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-hardware-requirements.js?v=20261023_wycena_labor_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-drawer-requirements.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/pricing/work-quantity-facts.js?v=20261105_pdf_labor_v1"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-derived-facts.js?v=20261023_wycena_labor_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/pricing/work-quantity-facts.js?v=20261108_catalog_rule_authority_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-derived-facts.js?v=20261108_ci121_catalog_cache_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/project/project-recalculate.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/shared/calc.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/investor/project-bootstrap.js?v=20260628_drawer_systems_materials_v1"></script>
@@ -1281,11 +1290,11 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/rysunek.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/material.js?v=20261014_pcv_save_conflict"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/czynnosci.js?v=20261107_delivery_services_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-offer-store.js?v=20261107_delivery_services_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-offer-store.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-scope.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-selection.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-storage-maintenance.js?v=20261025_storage_recovery_idb_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-store.js?v=20261106_work_plan_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-store.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-calculation-register.js?v=20261106_work_plan_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-scope-entry-utils.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-scope-entry-scope.js?v=20260628_drawer_systems_materials_v1"></script>
@@ -1308,13 +1317,13 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-utils.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-catalog.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-source.js?v=20261014_c2_1b2c3a"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-material-plan.js?v=20261024_session_quota_exact_ci_repair_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-offer.js?v=20261107_transport_local_delete_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-lines.js?v=20261105_pdf_labor_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-labor.js?v=20261107_delivery_services_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/pricing/labor-work-plan.js?v=20261107_transport_local_delete_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-work-plan-view.js?v=20261107_delivery_services_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core.js?v=20261107_delivery_services_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-material-plan.js?v=20261108_catalog_rule_authority_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-offer.js?v=20261108_catalog_rule_authority_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-lines.js?v=20261108_catalog_rule_authority_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-labor.js?v=20261108_catalog_rule_authority_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/pricing/labor-work-plan.js?v=20261108_catalog_rule_authority_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-work-plan-view.js?v=20261108_catalog_rule_authority_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-context-repair.js?v=20261019_project_context"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-helpers.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-dom.js?v=20260628_drawer_systems_materials_v1"></script>
@@ -1332,7 +1341,7 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-selection.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-labor-picker.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-manual-labor.js?v=20261106_work_plan_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-editor.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-editor.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-scroll.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-history.js?v=20261018_pcv_ram_quote_fix"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-status-bridge.js?v=20261012_c2_0b"></script>

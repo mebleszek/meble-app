@@ -218,14 +218,21 @@ test('Price-item save and deletion retain the modal/cache on failure; retry succ
   assert.equal(r.FC.catalogStore.getSheetMaterials()[0].price,999);
   r.retry();assert.equal(ctx.saveMaterialFromForm(),true);assert.equal(closed,1);assert.equal(r.FC.catalogStore.getSheetMaterials()[0].price,555);
 });
-test('Hourly-rate UI does not announce success or replace the form after a rejected write',()=>{
+test('Hourly-rate UI does not announce success or replace the form after a rejected write',async()=>{
   const r=runtime(),form=r.s.document.createElement('div');r.FC.dataSettingsHourlyRatesView.render(form);
   const input=Array.from(form.querySelectorAll('input')).find(x=>x.getAttribute('inputmode')==='decimal');
   input.value='432';input.dispatchEvent({type:'input'});r.fail('fc_quote_rates_v1','false');
   form.querySelector('.data-settings-actions .btn-success').click();
   assert.ok(!r.messages.some(x=>x.title==='Zapisano'));assert.ok(r.messages.length);assert.equal(input.value,'432');
-  r.retry();form.querySelector('.data-settings-actions .btn-success').click();
+  const failedButton=form.querySelector('.data-settings-actions .btn-success');
+  assert.equal(failedButton.disabled,false);assert.ok(Array.from(form.querySelectorAll('input')).includes(input),'failed write keeps the same edited input');
+  r.retry();failedButton.click();
+  assert.equal(failedButton.disabled,true,'retry stays pending until the asynchronous handler completes');
+  assert.ok(!r.messages.some(x=>x.title==='Zapisano'),'no premature success before completion');
+  await Promise.resolve(); // Mini DOM discards returned listener promises; this legacy write awaits one resolved result.
+  assert.equal(failedButton.disabled,false);
   assert.equal(r.messages.at(-1).title,'Zapisano');assert.ok(r.FC.hourlyRatesSettings.read().some(x=>x.price===432));
+  assert.ok(!Array.from(form.querySelectorAll('input')).includes(input),'successful retry refreshes the confirmed form');
 });
 test('Dictionary modal does not close or declare a clean draft after a failed persistence',()=>{
   const r=runtime();r.FC.priceModalContext.openHardwareDictionariesModal();const body=r.panel().contentNode;

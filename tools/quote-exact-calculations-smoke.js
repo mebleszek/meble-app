@@ -124,16 +124,16 @@ for(const [type,height,depth,shelves,expected,withLoading]of [['moduł',82,50,1,
   const project=FC.wycenaCoreLabor.collectProjectPreparationLines(['kuchnia']);
   assert.ok(project.length>0);const projectRegister=unchangedTotals(FC,{project});assert.ok(projectRegister.lines.some(row=>row.section==='project'&&row.total>0));
   const def=r.rates().find(row=>row.id==='labor_carrying_cabinet');
-  const calc=FC.laborCatalog.calculateDefinition(def,{quantity:3,multiplier:2,hourlyRates:{helper:150}});
+  const calc=FC.laborCatalog.calculateDefinition(def,{quantity:3,multiplier:2,hourlyRates:{assembly:150}});
   const detail={...def,quantity:3,hourlyRate:calc.hourlyRate,baseHours:calc.quantityHours,hours:calc.pricedHours,multiplier:calc.multiplier,total:calc.total,volumeHours:0,fixedPrice:0};
   const carrying=unchangedTotals(FC,{carrying:[{name:'Synthetic carrying',details:[detail]}]});
-  assert.equal(evaluate(carrying.lines[0].calculation),125);console.log('PASS actual project preparation and carrying start/step with two helpers');checks++;
+  assert.equal(evaluate(carrying.lines[0].calculation),125);console.log('PASS actual project preparation and carrying start/step with two explicit passes');checks++;
 }
 {
   const r=fixture(),FC=r.FC;let selections=[];
   FC.quoteOfferStore={getCurrentDraft:()=>({rateSelections:selections})};
   FC.investorTransport={getCurrentTransportContext:()=>({billableKm:36,durationMin:7})};
-  Object.assign(r.rates().find(row=>row.id==='transport_distance_km'),{price:5.125,startPrice:50,includedQty:10,starterPrice:false,priceUserEditedAt:'synthetic'});
+  Object.assign(r.rates().find(row=>row.id==='transport_distance_km'),{unitPriceSource:'manual',price:5.125,startPrice:50,includedQty:10,starterPrice:false,priceUserEditedAt:'synthetic'});
   r.rates().push({id:'private-manual',name:'Private manual',rateType:'workshop',pricingMode:'timeStartStep',startQty:0,startHours:5/60,stepEveryQty:1,stepHours:1/60});
   const original=baseline('js/app/wycena/wycena-core-offer.js');vm.runInContext(original,r.s);
   const numeric=rows=>copy(rows.map(row=>({qty:row.qty,unitPrice:row.unitPrice,total:row.total,hours:row.hours,sourceId:row.sourceId})));

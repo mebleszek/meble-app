@@ -188,6 +188,8 @@
   }
 
   function getAllMaterialItems(){
+    if(FC.catalogSelectors?.getSheetMaterials)return FC.catalogSelectors.getSheetMaterials();
+    if(FC.catalogStore?.getSheetMaterials)return FC.catalogStore.getSheetMaterials();
     try{
       if(FC.catalogStore && typeof FC.catalogStore === 'function'){
         const store = FC.catalogStore();
@@ -217,7 +219,8 @@
     const roomsText = String(cfg && cfg.roomsText || '');
     const missingName = mode === 'front' ? 'PCV pod kolor frontów — brak pozycji w cenniku' : 'Obrzeże PCV standard — brak pozycji w cenniku';
     const fallbackName = mode === 'front' ? 'PCV pod kolor frontów' : 'Obrzeże PCV standard';
-    const quotedMeters = round(rawMeters * 1.1, 3);
+    const wastePercent=edgeItem?.edgeWastePercent==null?10:Math.max(0,Number(edgeItem.edgeWastePercent)||0);
+    const quotedMeters = round(rawMeters * (1+wastePercent/100), 3);
     const wasteMeters = round(quotedMeters - rawMeters, 3);
     const unitPrice = Number(edgeItem && edgeItem.price) || 0;
     return {
@@ -237,13 +240,13 @@
       rooms:roomsText,
       source:'material-edge-policy',
       edgeRawMeters:rawMeters,
-      edgeWastePercent:10,
+      edgeWastePercent:wastePercent,
       edgeWasteMeters:wasteMeters,
       edgeQuotedMeters:quotedMeters,
-      note:`Z elementów: ${rawMeters} mb • zapas +10% • do wyceny: ${quotedMeters} mb po zaokrągleniu metrów zgodnie z regułą PCV`,
+      note:`Z elementów: ${rawMeters} mb • zapas +${wastePercent}% • do wyceny: ${quotedMeters} mb po zaokrągleniu metrów zgodnie z regułą PCV`,
       calculation: mode === 'front'
-        ? 'Cena = realne metry oklein z szafek ustawionych jako PCV pod kolor frontów, tylko dla formatek laminowanych, + 10% zapasu × cena PCV pod kolor frontów za mb z cennika materiałów.'
-        : 'Cena = realne metry oklein z szafek ustawionych jako PCV pod kolor płyty, tylko dla formatek laminowanych, + 10% zapasu × cena PCV standard za mb z cennika materiałów.',
+        ? `Cena = realne metry oklein z szafek ustawionych jako PCV pod kolor frontów, tylko dla formatek laminowanych, + ${wastePercent}% zapasu × cena PCV pod kolor frontów za mb z cennika materiałów.`
+        : `Cena = realne metry oklein z szafek ustawionych jako PCV pod kolor płyty, tylko dla formatek laminowanych, + ${wastePercent}% zapasu × cena PCV standard za mb z cennika materiałów.`,
       warnings: edgeItem ? [] : ['Brak właściwej pozycji obrzeża w cenniku materiałów.'],
     };
   }
