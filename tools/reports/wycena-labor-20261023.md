@@ -674,3 +674,91 @@ Firebase SDK/emulatorów; należą do GitHub Actions dla przyszłego zatwierdzon
 Bez PR, Actions, merge, wydania i Firebase LIVE. Żadnego dostępu do danych
 telefonu ani resetowania profilu właściciela. Następny ruch: niezależna kontrola
 wypchniętego HEAD/BASE, następnie osobna zgoda na jedną próbę wydania.
+
+
+## Naprawa CI PR #121 — 08.11.2026
+
+Właściciel zlecił weryfikację raportu GPT i naprawę po potwierdzeniu diagnozy.
+Wejście: `feat/catalog-driven-pricing-20261108`, HEAD
+`41925f7eddaa6c966563db6c4d7116e7cdac23a9`, BASE/main
+`f29e8d3797108068130cfb73c3393a066e050c43` (potwierdzone odczytowo z GitHuba).
+Jeden commit naprawczy na tej samej gałęzi; wynikowy HEAD w przekazaniu po push.
+
+Odczytano rzeczywiste logi [CI #42489316792](https://github.com/mebleszek/meble-app/actions/runs/42489316792):
+- [Shard 5, job 128758042102](https://github.com/mebleszek/meble-app/actions/runs/42489316792/job/128758042102):
+  49/52; global-data-write-safety (Nie zapisano/Zapisano, linia 228),
+  labor-rate-profiles-restore-clean (stary tytuł, linia 31), pricing-modes-calculation-coverage
+  (transport 50 zamiast 154 zł).
+- [Shard 7, job 128758042063](https://github.com/mebleszek/meble-app/actions/runs/42489316792/job/128758042063):
+  50/51; cabinet-derived-facts-cache, logistics=null, linia 120.
+- Safety/static, inne shardy, Firebase CURRENT i CLOUD Historical = PASS dla
+  wskazanego starego HEAD. Auto-merge i Pages = SKIPPED, PR otwarty Ready.
+  Te PASS nie są dowodem dla nowego commita. Nie ponawiano Actions.
+
+### Przyczyny i korekta
+
+1. `mergeDefaultDefinitionGroup()` łączył domyślną definicję transportu z ręcznym
+   rekordem bez `unitPriceSource`. W ten sposób pole paliwowe z fabryki wygrywało
+   z ręczną ceną 4 zł/km. W izolowanym runtime bez profilu paliwa zostawał sam
+   start 50 zł zamiast 50 + (36−10)×4 = 154 zł. Przy rzeczywistym profilu też
+   byłaby to inna, nieuprawniona stawka. Korekta nie dopisuje paliwowego źródła,
+   jeśli wybrany historyczny rekord go nie ma. Ręczne zero pozostaje zerem.
+   Dokładna, zatwierdzona korekta starej reguły fabrycznej nadal jawnie dodaje
+   powiązanie paliwowe PRZED scalaniem definicji. Jawny wybór `fuel` lub `manual`
+   na edytowanym rekordzie nadal obowiązuje. Nie zmieniono oczekiwanych 154 zł.
+2. Instrumentowana reprodukcja zapisu stawek potwierdziła: po odmowie formularz
+   i błąd zostają; przy retry bezpośrednio po click handler ma disabled=true,
+   a po jego kontynuacji jest „Zapisano”, disabled=false i cena 432 w magazynie.
+   Produkcyjnego handlera nie zmieniono. Mini DOM nie przekazuje Promise z
+   listenera; regresja czeka na konkretną mikro-kontynuację istniejącego await,
+   bez sleep/retry. Zachowano wszystkie odmowy i asercje; dodano sprawdzenie
+   tego samego pola po błędzie, braku przedwczesnego sukcesu oraz odświeżenia
+   formularza dopiero po zakończeniu udanego zapisu.
+3. Poprzedni tytuł widoku zastąpiono w regresji zatwierdzonym „Stawki i przerwy”.
+   Zachowano kontrole kodów, stawek, deduplikacji, nieusuwalności i wyboru profili;
+   dodatkowo sprawdzane są pola czasu/progu przerwy i długości dnia.
+4. Izolowany test cache nie ładował nowej rzeczywistej zależności logistyki:
+   labor-catalog-definitions, labor-catalog i selektora bieżących reguł. Uzupełniono
+   runtime pełnymi definicjami, bez stubowania/nullowania logistyki lub asercji.
+   Przy kontroli produkcyjnego czytelnika `wycenaCoreLabor.carryingEvaluation`
+   wykryto powiązany błąd: cache zależał od szafki i inwestora, lecz nie od
+   edytowanych reguł logistycznych. Dodana regresja po uzupełnieniu runtime
+   odtworzyła FAIL (`hit` zamiast `stale` po zmianie liftLevels). Hash bierze
+   teraz pod uwagę istniejące definicje wnoszenia i rozkręcenia. Po zmianie
+   reguły cache daje nową liczbę poziomów, kolejny niezmieniony odczyt pozostaje
+   hitem bez ponownego generowania formatek. Definicje są tylko wejściem hasha,
+   nie drugą kopią zapisywaną w projekcie. Stary cache sam staje się stale;
+   nie ma migracji danych ani nowego formatu ofert.
+
+### Kontrole celowane, faktycznie wykonane przez Codexa
+
+| Kontrola | Wynik |
+| --- | --- |
+| pricing-modes-calculation-coverage-smoke | PASS; zachowane niezależne 154 zł oraz całe rozbicie rejestru |
+| global-data-write-safety-smoke | 31/31 PASS, wszystkie negatywne scenariusze i retry zachowane |
+| labor-rate-profiles-restore-clean-smoke | PASS; profile 150/250/300/80 oraz prywatny profil działają |
+| cabinet-derived-facts-cache-smoke | PASS; prawdziwa logistyka, cache hit/stale/version, edycja reguły i brak zapisu projektu |
+| catalog-rule-authority-smoke | 12 grup PASS; uzupełnianie/scalanie historycznych cen 4/0, powtarzany zapis/normalizacja, nienaruszony input, fabryczne paliwo i jawny wybór fuel |
+| labor-catalog-local-first-browser-smoke --transport-only | Chromium/native 3 scenariusze PASS: ręczne 4 zł/km bez nowego pola = 154 zł, ręczne zero = 0 zł, fabryczne paliwo = 50,40 zł za 36 km; start, zapis, zimny restart |
+| transport-settings-pricing-smoke | 4 grupy PASS; minima, czas, paliwo, ręczne stawki/zero, historia i 14 domen |
+| code-global-catalogs-smoke | 7/7 PASS; 14 domen, normy i deterministyczne źródła |
+| quote-performance-smoke | 22/22 PASS; ponowne użycie obliczeń, unieważnianie i pozostałe zabezpieczenia |
+| Wersje/składnia/generatory/routing/diff | PASS |
+
+Natywne scenariusze transportu sprawdzają rzeczywisty zapis przez authority i
+strict IndexedDB, zgodność obu aliasów, oryginalny RAW/RAM, zamrożone oferty,
+niezmienione replicas/protected/outbox i brak zewnętrznych żądań. To kontrola
+syntetyczna w Chromium; nie wykonano żadnej operacji na telefonie ani Firebase.
+
+Nie powtarzano pełnego CI ani całych zestawów przeglądarkowych. Pozostałe
+scenariusze są nadal w obowiązkowym Preflight. Rozłączny aktualny routing:
+208 bieżących testów / 7 shardów, 8 historycznych w oddzielnym zadaniu.
+Pierwotne cztery FAIL: odpowiednio 5/5/5/7; reguły w 7, natywny transport w 4,
+performance w 1. Workflow i normy biznesowe bez zmiany. Odświeżono wersje
+labor-catalog i cabinet-derived-facts w obu HTML/mapie, provenance katalogu
+fabrycznego i manifest offline.
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING / LIVE_BLOCKED.**
+Wymagana osobna kontrola i zgoda na nowy HEAD/BASE przed kolejną próbą wydania.
+Jeden commit/push; nie tworzono ani nie przełączano PR #121, nie uruchamiano
+Actions, merge, Pages, Firebase LIVE, Auth, synchronizacji ani resetu urządzenia.

@@ -68,6 +68,22 @@ test('fuel binding is identical in catalog description and calculation; explicit
  assert.match(r.FC.laborCatalog.describeDefinition(def),/1.40 PLN/);profile.transport.vehicleCostMultiplier=3;near(r.FC.laborCatalog.calculateDefinition(def,{quantity:4}).total,8.4);assert.match(r.FC.laborCatalog.describeDefinition(def),/2.10 PLN/);
  Object.assign(def,{unitPriceSource:'manual',price:0});near(r.FC.laborCatalog.calculateDefinition(def,{quantity:4}).total,0);Object.assign(def,{price:7.125,startPrice:20,includedQty:2});near(r.FC.laborCatalog.calculateDefinition(def,{quantity:4}).total,34.25);
 });
+test('factory completion never lends its fuel binding to historical manual km rates, including zero and repeated saves',()=>{
+ const r=fixture();r.load('js/app/settings/company-profile-store.js');const l=r.FC.laborCatalog,template=clone(r.rates().find(row=>row.id==='transport_distance_km'));
+ for(const patch of [{price:4,startPrice:50,includedQty:10,priceUserEditedAt:'2026-06-12T00:00:00Z'},{price:4,starterPrice:false},{price:0,priceUserEditedAt:'2026-06-12T00:00:00Z'},{price:0,starterPrice:false}]){
+  const original={...clone(template),...patch};delete original.unitPriceSource;const before=JSON.stringify(original);
+  let rows=l.ensureDefaultDefinitions([original]);
+  for(let iteration=0;iteration<2;iteration++){
+   const chosen=rows.find(row=>row.id===original.id);assert.notEqual(chosen.unitPriceSource,'fuel');near(l.effectiveUnitPrice(chosen),patch.price);
+   near(l.calculateDefinition(chosen,{quantity:36}).total,patch.startPrice===50?154:36*patch.price);rows=l.ensureDefaultDefinitions(rows.map(row=>l.normalizeDefinition(row)));
+  }
+  assert.equal(JSON.stringify(original),before);
+ }
+ const oldFactory=clone(template);delete oldFactory.unitPriceSource;
+ const upgraded=l.ensureDefaultDefinitions([oldFactory]).find(row=>row.id===oldFactory.id);assert.equal(upgraded.unitPriceSource,'fuel');near(l.effectiveUnitPrice(upgraded),1.4);
+ const explicit={...clone(template),price:4,priceUserEditedAt:'2026-06-12T00:00:00Z',unitPriceSource:'fuel'};
+ assert.equal(l.ensureDefaultDefinitions([explicit]).find(row=>row.id===explicit.id).unitPriceSource,'fuel','an explicitly selected fuel mode is respected even on an edited rule');
+});
 test('body and front PCV each use their own visible waste percentage, including zero, with exact material prices',async()=>{
  const r=fixture(),items=[{id:'body-edge',name:'Obrzeże PCV standard',symbol:'PCV-STD',priceUnit:'mb',price:3.125,edgeWastePercent:0},{id:'front-edge',name:'PCV pod kolor frontów',symbol:'PCV-FRONT',priceUnit:'mb',price:5.125,edgeWastePercent:25}];
  r.FC.catalogSelectors.getSheetMaterials=()=>items;r.FC.wycenaCoreSource.getScopedMaterials=()=>[];r.FC.wycenaCoreSelection.decodeMaterialScope=()=>({});

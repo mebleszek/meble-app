@@ -28,7 +28,8 @@ assert(catalog.includes('dedupeHourlyRateDefinitions'), 'Brak deduplikacji stawe
 assert(catalog.includes('validateRateProfile'), 'Brak walidacji profilu stawki godzinowej.');
 assert(catalog.includes('buildRateProfiles'), 'Brak budowania profili stawek godzinowych.');
 assert(hourlyStoreSrc.includes('FC.hourlyRatesSettings'), 'Brak API FC.hourlyRatesSettings.');
-assert(hourlyViewSrc.includes('Stawki godzinowe firmy'), 'Brak widoku trybika dla stawek godzinowych firmy.');
+assert(hourlyViewSrc.includes('Stawki i przerwy'), 'Brak zatwierdzonego widoku Stawki i przerwy.');
+for(const field of ['Kwota PLN/h','Kod techniczny','Czas przerwy (min)','Przerwa po przekroczeniu czasu pracy (h)','Długość dnia pracy (h)'])assert(hourlyViewSrc.includes(field),'Brak rzeczywistego pola: '+field);
 
 const ctx = vm.createContext({
   window: {},

@@ -84,7 +84,10 @@
       ...(cabinet && cabinet.subType==='szuflady' && FC.cabinetCutlist && FC.cabinetCutlist.resolveDrawerFrontGeometry
         ? {drawerFrontGeometry:FC.cabinetCutlist.resolveDrawerFrontGeometry(cabinet,roomId)} : {}),
       ...(setId?{setContext}:{}),
-      carrying:currentInvestorCarrying()
+      carrying:currentInvestorCarrying(),
+      // Quantities and logistics times depend on the actual editable catalog too.
+      // Keep definitions in the hash input only; no catalog copy is persisted in the project.
+      carryingRules:(FC.catalogSelectors?.getQuoteRates?.()||[]).filter(row=>['labor_carrying_cabinet','labor_carrying_disassembly'].includes(row.id)).map(clone)
     };
   }
   function inputHash(roomId, cabinet){ return hashString(stableStringify(inputPayload(roomId, cabinet))); }

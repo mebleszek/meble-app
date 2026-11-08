@@ -56,7 +56,7 @@ async function main(){
     return true;
    })()`);
    phase=profile+':classic-modules';
-   for(const file of ['shared/utils','shared/constants','shared/storage','project/project-export-contract','project/business-project-contract','cloud/global-data-contract','catalog/hardware-technical-params','catalog/hardware-catalog','catalog/hardware-catalog-seed-data','catalog/hardware-catalog-seeds','catalog/catalog-domain','catalog/catalog-migration','catalog/catalog-storage-policy','pricing/labor-catalog-definitions','pricing/labor-catalog','catalog/catalog-store'])await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
+   for(const file of ['shared/utils','shared/constants','shared/storage','settings/company-profile-store','project/project-export-contract','project/business-project-contract','cloud/global-data-contract','catalog/hardware-technical-params','catalog/hardware-catalog','catalog/hardware-catalog-seed-data','catalog/hardware-catalog-seeds','catalog/catalog-domain','catalog/catalog-migration','catalog/catalog-storage-policy','pricing/labor-catalog-definitions','pricing/labor-catalog','catalog/catalog-store'])await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
    phase=profile+':install:'+fault;
    await browser.evaluate(`(async()=>{
     Storage.prototype.getItem=nativeGet;Storage.prototype.setItem=nativeSet;
@@ -84,6 +84,26 @@ async function main(){
    await browser.evaluate(`(()=>{const ctx=FC.priceModalContext;window.actualFormDraft=ctx.getCurrentServiceDraft;ctx.renderPriceModal=()=>{};ctx.confirmSave=async()=>window.acceptSave;ctx.isItemDirty=()=>window.dirty;ctx.getCurrentServiceDraft=()=>({...FC.catalogStore.getQuoteRates().find(r=>r.id==='labor_body_h090'),name:window.formName,...(window.formScope?{billingScope:window.formScope,dailyStages:window.formStages}:{})});window.openForm=async()=>{await authority.transaction('checkpoint',()=>{uiState.editingId='labor_body_h090';ctx.persistUi();ctx.runtimeState.itemModalOpen=true;return true;});};window.saveForm=()=>FC.applicationLifecycle.dispatch('price-item-save',()=>ctx.saveActivePriceItem());return true;})()`);
   }
   const proof=()=>browser.evaluate('(async()=>({tables:await tables(),native:nativeRows(),ram:projectData,catalog:FC.catalogStore.getQuoteRates(),rows:authority.rows(),form:FC.priceModalContext.runtimeState.itemModalOpen}))()');
+  async function legacyTransport(){
+   for(const price of [4,0,'factory']){
+    profile='historical-manual-km-'+price;sourceRows=structuredClone(raw);
+    const rows=JSON.parse(sourceRows.fc_quote_rates_v1),row=rows.find(row=>row.id==='transport_distance_km');
+    if(price!=='factory')Object.assign(row,{price,startPrice:price?50:0,includedQty:price?10:0,starterPrice:false,priceUserEditedAt:'2026-06-12T00:00:00Z'});delete row.unitPriceSource;
+    sourceRows.fc_quote_rates_v1=JSON.stringify(rows);await open(true);
+    const before=await proof(),expected=price==='factory'?50.4:price?154:0;
+    async function assertManual(){const result=await browser.evaluate(`(()=>{const row=FC.catalogStore.getQuoteRates().find(r=>r.id==='transport_distance_km');return {row,calc:FC.laborCatalog.calculateDefinition(row,{quantity:36}),fuel:FC.laborCatalog.effectiveUnitPrice({unitPriceSource:'fuel'})};})()`);if(price==='factory'){assert.equal(result.row.unitPriceSource,'fuel');assert.equal(result.row.price,0);}else{assert.notEqual(result.row.unitPriceSource,'fuel');assert.equal(result.row.price,price);}assert.ok(Math.abs(result.calc.total-expected)<1e-8);assert.ok(Math.abs(result.fuel-1.4)<1e-8);}
+    await assertManual();
+    await browser.evaluate(`authority.transaction('globals',()=>FC.catalogStore.savePriceList('quoteRates',FC.catalogStore.getQuoteRates())).then(()=>true)`);
+    await assertManual();const after=await proof();assert.equal(after.rows.fc_quote_rates_v1,after.rows.fc_services_v1);
+    assert.deepEqual(after.native,before.native);assert.deepEqual(after.ram,before.ram);assert.equal(after.rows.fc_quote_snapshots_v1,before.rows.fc_quote_snapshots_v1);
+    for(const name of ['replicas','protected','outbox'])assert.deepEqual(after.tables[name],before.tables[name]);
+    await browser.gracefulClose();await open(false);await assertManual();assert.equal((await proof()).rows.fc_quote_rates_v1,after.rows.fc_quote_rates_v1);await browser.close();
+    console.log('PASS '+(price==='factory'?'untouched factory fuel binding':'historical manual km '+price+' without unitPriceSource')+': native LOCAL-FIRST startup/save/cold restart keeps '+expected+' PLN, exact RAW/RAM/offers/pending stores and independent fuel binding');
+   }
+  }
+  if(!process.argv.includes('--scope-only'))await legacyTransport();
+  if(process.argv.includes('--transport-only')){assert.deepEqual(external,[]);return;}
+  profile='profile';sourceRows=raw;
   if(!process.argv.includes('--scope-only')){
   await open(true);
   let bootProof=await proof(),baseline=await browser.evaluate('startupBaseline');

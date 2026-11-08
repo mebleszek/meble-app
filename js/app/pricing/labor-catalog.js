@@ -74,11 +74,15 @@
     })[0] || canonical || def || {};
     const userEdited = rows.some((row)=> hasExplicitPriceEdit(row) || Number(row && row.price) > 0 || row && row.active === false);
     const editedAt = rows.map((row)=> text(row && (row.priceUserEditedAt || row.userEditedAt))).filter(Boolean).sort().pop() || text(preferred && preferred.priceUserEditedAt || preferred && preferred.userEditedAt);
-    return Object.assign({}, def || {}, canonical || {}, preferred || {}, {
+    const merged = Object.assign({}, def || {}, canonical || {}, preferred || {}, {
       id:text(def && def.id) || text(preferred && preferred.id),
       starterPrice:userEdited ? false : ((preferred && preferred.starterPrice === true) || (canonical && canonical.starterPrice === true) || (def && def.starterPrice === true)),
       priceUserEditedAt:userEdited ? (editedAt || text(preferred && preferred.priceUserEditedAt || preferred && preferred.userEditedAt) || new Date().toISOString()) : '',
     });
+    // Only the exact approved factory upgrade may add the fuel binding to an old row.
+    // An absent field on the chosen historical record means manual pricing, including zero.
+    if(text(def && def.id)==='transport_distance_km'&&!Object.hasOwn(preferred,'unitPriceSource'))delete merged.unitPriceSource;
+    return merged;
   }
   function consolidateDefaultDefinitionDuplicates(list){
     const rows = Array.isArray(list) ? list.slice() : [];
