@@ -4,6 +4,40 @@
   const FC = window.FC;
 
 
+  function deleteError(code){throw Object.assign(Error(code),{code});}
+  function captureDeletion(snapshot){
+    const projectId=String(FC.projectStore?.getCurrentProjectId?.()||''),investorId=String(FC.investors?.getCurrentId?.()||'');
+    const record=FC.projectStore?.getById?.(projectId),stored=FC.quoteSnapshotStore?.getById?.(snapshot.id||snapshot.snapshotId);
+    if(!record||!stored||JSON.stringify(stored)!==JSON.stringify(snapshot)||record.investorId!==investorId||stored.project?.id!==projectId
+      ||String(stored.investor?.id||stored.project?.investorId||'')!==investorId)deleteError('LF_QUOTE_DELETE_OWNER_CHANGED');
+    return {writer:FC.applicationWrite?.project,localOnly:FC.applicationWrite?.localOnly,projectId,investorId,record:JSON.stringify(record),snapshot:JSON.stringify(stored),id:String(stored.id||stored.snapshotId)};
+  }
+  function validateDeletion(snapshot,expected){
+    if(typeof FC.applicationWrite?.project!=='function'||!expected)deleteError('LF_QUOTE_DELETE_CONTEXT_CHANGED');
+    const current=captureDeletion(snapshot);
+    if(current.writer!==expected.writer||JSON.stringify(current)!==JSON.stringify(expected))deleteError('LF_QUOTE_DELETE_CONTEXT_CHANGED');
+    if(FC.session?.active||FC.session?.snapshot||FC.session?.durable||FC.sessionNavigation?.needsClosure?.())deleteError('LF_QUOTE_DELETE_EDIT_PROTECTED');
+    return true;
+  }
+  async function removeConfirmed(snapshot,expected,reconcile){
+    const id=String(snapshot.id||snapshot.snapshotId||'');
+    const remove=()=>{
+      if(expected)validateDeletion(snapshot,expected);
+      if(!FC.quoteSnapshotStore?.remove?.(id))deleteError('QUOTE_DELETE_UNCONFIRMED');
+      const status=reconcile(snapshot,{refreshUi:false,fallbackStatus:'nowy'});
+      if(expected&&status?.ok!==true)deleteError('LF_QUOTE_DELETE_STATUS_UNCONFIRMED');
+      return true;
+    };
+    if(expected){
+      validateDeletion(snapshot,expected);
+      const committed=await FC.applicationWrite.project(remove);
+      if(committed!==true)deleteError('LF_QUOTE_DELETE_COMMIT_UNCONFIRMED');
+      return true;
+    }
+    if(typeof FC.applicationWrite?.project==='function')deleteError('LF_QUOTE_DELETE_CONTEXT_CHANGED');
+    return remove();
+  }
+
   function diagRender(label, value){
     try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordRenderEvent === 'function') FC.wycenaDiagnostics.recordRenderEvent(label, value); }catch(_){ }
   }
@@ -173,6 +207,11 @@
       actions.appendChild(pdfBtn);
       const deleteBtn = deps.h('button', { class:'btn-danger', type:'button', text:'Usuń' });
       deleteBtn.addEventListener('click', async ()=>{
+        if(deleteBtn.disabled)return;
+        deleteBtn.disabled=true;
+        let deletionConfirmed=false;
+        try{
+        const expected=typeof FC.applicationWrite?.project==='function'?captureDeletion(snap):null;
         deps.rememberQuoteScroll(deps.getQuoteHistoryItemDomId(snapId), deps.getQuoteHistoryNeighborDomId(snapId));
         const confirmed = await deps.askConfirm({
           title:'USUNĄĆ OFERTĘ?',
@@ -188,13 +227,8 @@
         }
         const beforeHistory = deps.getSnapshotHistory();
         diagDelete('history-delete:before-remove', { id:snapId, snapshot:snapSummary(snap, deps), historyCount:Array.isArray(beforeHistory) ? beforeHistory.length : 0, historyRows:(Array.isArray(beforeHistory) ? beforeHistory : []).slice(0, 8).map((row)=> snapSummary(row, deps)) });
-        let removed = false;
-        try{
-          if(FC.quoteSnapshotStore && typeof FC.quoteSnapshotStore.remove === 'function') removed = !!FC.quoteSnapshotStore.remove(snapId);
-        }catch(err){ diagDelete('history-delete:remove-error', { id:snapId, message:String(err && err.message || err || 'błąd') }); }
-        try{
-          deps.reconcileAfterSnapshotRemoval(snap, { refreshUi:false, fallbackStatus:'nowy' });
-        }catch(err){ diagDelete('history-delete:reconcile-error', { id:snapId, message:String(err && err.message || err || 'błąd') }); }
+        const removed=await removeConfirmed(snap,expected,deps.reconcileAfterSnapshotRemoval);
+        deletionConfirmed=true;
         const nextHistory = deps.getSnapshotHistory();
         diagDelete('history-delete:after-remove', { id:snapId, removed, historyCount:Array.isArray(nextHistory) ? nextHistory.length : 0, stillInHistory:(Array.isArray(nextHistory) ? nextHistory : []).some((row)=> String(deps.getSnapshotId(row) || '') === String(snapId || '')), historyRows:(Array.isArray(nextHistory) ? nextHistory : []).slice(0, 8).map((row)=> snapSummary(row, deps)) });
         if(state.previewSnapshotId === snapId) deps.setState({ previewSnapshotId:'' });
@@ -202,6 +236,11 @@
           deps.setState({ lastQuote: nextHistory.find((row)=> !deps.isArchivedPreliminary(row, nextHistory, getProjectStatusForHistory(nextHistory, deps))) || nextHistory[0] || null });
         }
         deps.render(ctx);
+        }catch(error){
+          diagDelete('history-delete:refused',{id:snapId,code:String(error.code||error.message||'QUOTE_DELETE_UNCONFIRMED')});
+          const editing=error.code==='LF_QUOTE_DELETE_EDIT_PROTECTED';
+          FC.infoBox?.open({title:deletionConfirmed?'Oferta usunięta':'Usuwanie wstrzymane',message:deletionConfirmed?'Usunięcie zapisano, ale nie udało się odświeżyć widoku. Otwórz ponownie zakładkę WYCENA.':editing?'Najpierw zapisz lub świadomie anuluj bieżącą edycję. Oferta i edycja zostały zachowane.':'Nie potwierdzono usunięcia oferty. Zachowano widok; sprawdź stan projektu i spróbuj ponownie.',okOnly:true});
+        }finally{deleteBtn.disabled=false;}
       });
       actions.appendChild(deleteBtn);
       if(isPreliminary && isSelected && !isArchived){
@@ -228,7 +267,7 @@
   FC.wycenaTabHistory = Object.assign({}, FC.wycenaTabHistory || {}, {
     getProjectStatusForHistory,
     resolveDisplayedQuote,
-    renderHistory,
+    renderHistory, captureDeletion, removeConfirmed,
     showSnapshotPreview,
   });
 })();

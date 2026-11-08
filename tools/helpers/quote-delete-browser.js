@@ -1,0 +1,23 @@
+'use strict';
+const assert=require('node:assert/strict');
+module.exports=async({browser,tap,until,abortNextProjectWrite,reopenOffline})=>{
+ if(await browser.evaluate('!!document.querySelector(".info-box")'))await tap('.info-box button');
+ await browser.evaluate(`(async()=>{const f=window.FC,room=f.investors.readAll()[0].rooms[0].id;const data=await f.wycenaCore.collectQuoteData({selection:{selectedRooms:[room]}});const snap=f.quoteSnapshot.buildSnapshot(data);snap.id='delete-native';snap.meta={...snap.meta,selectedByClient:true,acceptedAt:123};snap.commercial={...snap.commercial,versionName:'Delete native'};await f.applicationWrite.project(()=>{f.quoteSnapshotStore.save(snap);const result=f.projectStatusSync.reconcileStatusAfterSnapshotRemoval(snap,{refreshUi:false});if(!result?.ok)throw Error('SETUP_STATUS');return true;});await f.tabNavigation.setActiveTab('wycena');return true;})()`);
+ const selector='[data-quote-history-id="delete-native"] .btn-danger';
+ await until('!!document.querySelector('+JSON.stringify(selector)+')');
+ const before=await browser.evaluate('localProof()'),beforeUi=await browser.evaluate('window.FC.wycenaTabDebug.getHistoryPreviewState()');
+ assert.equal(await browser.evaluate('window.FC.projectStore.getCurrentRecord().status'),'zaakceptowany');
+ await tap(selector);await until('!!document.querySelector(".confirm-box")');await tap('.confirm-actions button:first-child');assert.deepEqual(await browser.evaluate('localProof()'),before);
+ console.log('PASS quote deletion cancel preserves native RAW and all stores');
+ await abortNextProjectWrite();await tap(selector);await until('!!document.querySelector(".confirm-box")');await tap('.confirm-actions button:last-child');
+ await until('window.actionAbortObserved&&!!document.querySelector(".info-box")&&!window.FC.applicationStartup.inspect().transactionPending');
+ assert.deepEqual(await browser.evaluate('localProof()'),before);assert.deepEqual(await browser.evaluate('window.FC.wycenaTabDebug.getHistoryPreviewState()'),beforeUi);assert.equal(await browser.evaluate('!!document.querySelector("[data-quote-history-id=delete-native]")'),true);await tap('.info-box button');
+ console.log('PASS quote deletion native abort preserves history, statuses, references and visible selection');
+ await tap(selector);await until('!!document.querySelector(".confirm-box")');await tap('.confirm-actions button:last-child');
+ await until('!window.FC.applicationStartup.inspect().transactionPending&&!document.querySelector("[data-quote-history-id=delete-native]")');
+ assert.equal(await browser.evaluate('window.FC.quoteSnapshotStore.getById("delete-native")'),null);
+ assert.equal(await browser.evaluate('window.FC.projectStore.getCurrentRecord().status'),'nowy');
+ const after=await browser.evaluate('localProof()');assert.deepEqual(after.raw,before.raw);assert.deepEqual(after.tables.outbox,before.tables.outbox);assert.deepEqual(after.tables.protected,before.tables.protected);assert.deepEqual(after.tables.replicas,before.tables.replicas);
+ browser=await reopenOffline();assert.equal(await browser.evaluate('window.FC.quoteSnapshotStore.getById("delete-native")'),null);assert.equal(await browser.evaluate('window.FC.projectStore.readAll()[0].status'),'nowy');
+ console.log('PASS actual quote delete click commits history+status together and survives cold offline Chromium restart');
+};
