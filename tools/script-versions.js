@@ -36,7 +36,7 @@ const versions = Object.freeze({
   "js/app/ui/wywiad-room-settings.js":"20261103_local_first_start_v1",
   "js/app/investor/project-autosave.js":"20261103_local_first_start_v1",
   "js/app/investor/investor-room-actions.js":"20261103_local_first_start_v1",
-  "js/app/catalog/catalog-store.js":"20261108_material_catalog_authority_v1",
+  "js/app/catalog/catalog-store.js":"20261108_material_ci_fix_v1",
   "js/app/material/price-modal-hardware-dictionaries.js":"20261101_one_app_v1",
   "js/app/material/price-modal-hardware-manufacturers.js":"20261101_one_app_v1",
   "js/app/material/price-modal-hardware-suppliers.js":"20261101_one_app_v1",

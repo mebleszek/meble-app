@@ -136,6 +136,8 @@ async function runMaterialQuoteParity(){
   FC.wycenaCoreSelection = {
     decodeMaterialScope(selection){ return (selection && selection.materialScope) || { kind:'all', material:'', includeFronts:true, includeCorpus:true }; },
   };
+  const real=require('./project-navigation-blockers-smoke').fixture();
+  FC.rozrysEngine=real.FC.rozrysEngine;FC.wycenaCoreSelection.createQuoteValidationError=real.FC.wycenaCoreSelection.createQuoteValidationError;
   vm.createContext(ctx);
   load(ctx, [
     'js/app/project/project-bridge.js',
@@ -164,7 +166,9 @@ async function runMaterialQuoteParity(){
     const hdf = lines.find((row)=> row.name === 'HDF 3mm biała');
     const materialHdf = sumMaterialTotalsForRooms(FC, rooms, 'HDF 3mm biała');
     assert(hdf, `${label}: WYCENA musi mieć linię HDF`, lines);
-    near(hdf.qty, materialHdf, 0.001, `${label}: HDF MATERIAŁ ↔ WYCENA`);
+    near(hdf.billedAreaM2, Math.ceil(materialHdf), 0.001, `${label}: HDF surface summed before full-m² billing`);
+    near(hdf.qty,Math.ceil(materialHdf),0.001,`${label}: billed HDF quantity uses the same aggregate`);
+    near(hdf.total,Math.ceil(materialHdf)*18,0.001,`${label}: HDF price18 is unchanged`);
   }
   await assertHdfParity(['room_one'], 'jedna szafka');
   await assertHdfParity(['room_multi'], 'kilka szafek');

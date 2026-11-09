@@ -6,12 +6,43 @@ const {browser}=require('./trusted-session-browser-smoke');
 // Only startup may append factories or correct exact approved factory records.
 // Worker installation, private records and every unrelated RAW remain exact.
 const legacyService=({id,category,name,price})=>({id,category,name,price});
-function assertStarterAppend(before,after,templates,corrections={}){
+// Independent expected image, not the production normalizer/correction function.
+// Historical 2930e0d7 split projected away note/edgeWaste; normalization supplied empty note.
+function expectedMaterialUpgrade(before){
+ const image=Object.fromEntries(JSON.parse(before)),expected={};
+ const factories=[
+  {id:'m5',materialType:'obrzeże',manufacturer:'Start',symbol:'PCV-STD',name:'Obrzeże PCV standard',price:3,priceUnit:'mb',hasGrain:false,starterPrice:true,priceUserEditedAt:'',note:''},
+  {id:'m7',materialType:'obrzeże',manufacturer:'Start',symbol:'PCV-FRONT',name:'PCV pod kolor frontów',price:5,priceUnit:'mb',hasGrain:false,starterPrice:true,priceUserEditedAt:'',note:''},
+ ];
+ for(const key of ['fc_sheet_materials_v1','fc_materials_v1']){
+  if(!Object.hasOwn(image,key))continue;
+  const old=JSON.parse(image[key]);
+  expected[key]=JSON.stringify(old.map(row=>{
+   const exactFactory=value=>factories.find(known=>Object.keys(value).length===Object.keys(known).length&&Object.keys(known).every(field=>value[field]===known[field]));
+   let factory=exactFactory(row);
+   // The legacy app persists this separate seven-field material compatibility projection.
+   // It may follow a price correction only with the complete primary-row proof, never by ID alone.
+   const compactKeys=['id','materialType','manufacturer','symbol','name','price','hasGrain'];
+   if(!factory&&key==='fc_materials_v1'&&Object.keys(row).length===compactKeys.length&&compactKeys.every(field=>Object.hasOwn(row,field))){
+    const primary=JSON.parse(image.fc_sheet_materials_v1||'[]').find(candidate=>candidate.id===row.id);
+    if(primary&&compactKeys.every(field=>row[field]===primary[field]))factory=exactFactory(primary);
+   }
+   const billing=!Object.hasOwn(row,'billingIncrement')?({laminat:'sheet',hdf:'m2'}[row.materialType]):null;
+   const next={};for(const [field,value]of Object.entries(row)){
+    next[field]=factory&&field==='price'?(row.id==='m5'?10:20):value;
+    if(field==='priceUnit'&&billing)next.billingIncrement=billing;
+   }
+   return next;
+  }));
+ }
+ return expected;
+}
+function assertStarterAppend(before,after,templates,corrections={},materialExpected={}){
  const a=Object.fromEntries(JSON.parse(before)),b=Object.fromEntries(JSON.parse(after));
  assert.deepEqual(Object.keys(b).sort(),Object.keys(a).sort(),'No RAW key may appear/disappear through upgrade');
  const aliases=['fc_quote_rates_v1','fc_services_v1'];
  for(const key of Object.keys(a)){
-  if(!aliases.includes(key)){assert.equal(b[key],a[key],'Unchanged RAW: '+key);continue;}
+  if(!aliases.includes(key)){assert.equal(b[key],Object.hasOwn(materialExpected,key)?materialExpected[key]:a[key],'Exact original or independently approved material RAW: '+key);continue;}
   const old=JSON.parse(a[key]),next=JSON.parse(b[key]),ids=new Set(old.map(row=>row.id));
   assert.equal(ids.size,old.length,'Original IDs remain unambiguous');
   const expected=key==='fc_services_v1'?templates.map(legacyService):templates;
@@ -38,6 +69,17 @@ function verifyUpgradeAssertions(){
  for(const change of [map=>{map.fc_projects_v1='LOST';},map=>{delete map.fc_projects_v1;},map=>{map.fc_unknown='EXTRA';},map=>{map.fc_services_v1=JSON.stringify(original);},map=>{map.fc_services_v1+=' ';}]){
   const map=Object.fromEntries(JSON.parse(after));change(map);assert.throws(()=>assertStarterAppend(before,JSON.stringify(Object.entries(map)),templates),{code:'ERR_ASSERTION'});
  }
+ const pcv={id:'m5',materialType:'obrzeże',manufacturer:'Start',symbol:'PCV-STD',name:'Obrzeże PCV standard',price:3,priceUnit:'mb',hasGrain:false,starterPrice:true,priceUserEditedAt:'',note:''};
+ const custom=[{...pcv,id:'own',price:0,starterPrice:false},{...pcv,id:'edited',priceUserEditedAt:'2026-11-01'},{...pcv,id:'alias',aliases:['own name']},{...pcv,id:'format',sheetWidthMm:2500,sheetHeightMm:1250}];
+ const materials=[{id:'board',materialType:'laminat',price:0,priceUnit:'sheet'},pcv,...custom];
+ const materialBefore=JSON.stringify(Object.entries({...Object.fromEntries(JSON.parse(before)),fc_sheet_materials_v1:JSON.stringify(materials),fc_materials_v1:JSON.stringify(materials),fc_quote_snapshots_v1:'EXACT_FROZEN',fc_private:'EXACT_PRIVATE'}));
+ const approved=expectedMaterialUpgrade(materialBefore),image={...Object.fromEntries(JSON.parse(after)),fc_sheet_materials_v1:approved.fc_sheet_materials_v1,fc_materials_v1:approved.fc_materials_v1,fc_quote_snapshots_v1:'EXACT_FROZEN',fc_private:'EXACT_PRIVATE'},materialAfter=JSON.stringify(Object.entries(image));
+ assertStarterAppend(materialBefore,materialAfter,templates,{},approved);
+ assert.equal(JSON.parse(approved.fc_sheet_materials_v1)[1].price,10);assert.deepEqual(JSON.parse(approved.fc_sheet_materials_v1).slice(2),custom);
+ for(const mutate of [rows=>{rows[0].price=1;},rows=>{rows[0].billingIncrement='m2';},rows=>{rows[1].price=11;},rows=>{rows[2].price=10;},rows=>{rows[3].priceUserEditedAt='';},rows=>{delete rows[4].aliases;},rows=>{rows[5].sheetWidthMm=2800;},rows=>{rows.push({id:'extra'});}]){
+  const changed=structuredClone(image),rows=JSON.parse(changed.fc_sheet_materials_v1);mutate(rows);changed.fc_sheet_materials_v1=JSON.stringify(rows);assert.throws(()=>assertStarterAppend(materialBefore,JSON.stringify(Object.entries(changed)),templates,{},approved),{code:'ERR_ASSERTION'});
+ }
+ for(const key of ['fc_quote_snapshots_v1','fc_private']){const changed={...image,[key]:'CHANGED'};assert.throws(()=>assertStarterAppend(materialBefore,JSON.stringify(Object.entries(changed)),templates,{},approved),{code:'ERR_ASSERTION'});}
  assertFullStarters(templates,templates,['new']);
  const damaged=structuredClone(templates);damaged[1].minutes=99;assert.throws(()=>assertFullStarters(damaged,templates,['new']),{code:'ERR_ASSERTION'});
  console.log('PASS upgrade assertions reject old-price/new-norm mutations, missing/extra rows or keys, changed projects and divergent aliases');
@@ -63,6 +105,14 @@ async function main(){
  await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});const base='http://127.0.0.1:'+server.address().port;
  one=await browser(profile,base+'/index.html',{inject:true});await one.until('document.body.dataset.authState==="unauthenticated"');await one.tap('auth-google');await one.until('document.body.dataset.businessState==="ready"');
  await one.tap('main-trust-phone');await one.until('document.getElementById("main-trust-phone").checked&&!document.getElementById("main-trust-phone").disabled');await one.until('__AUTH_INPUT_DIAGNOSTICS__().mode==="trusted"&&__FC_MAIN_ACCESS__.isValid()');
+ // Real private legacy material belongs to the protected preimage, including legal zero.
+ await one.evaluate(`(()=>{const fc=window.FC,rows=fc.catalogStore.getSheetMaterials();rows.push({id:'synthetic-private-pcv',materialType:'obrzeże',manufacturer:'Synthetic owner',symbol:'OWN-PCV',name:'Private PCV zero',price:0,priceUnit:'mb',hasGrain:false,starterPrice:false,priceUserEditedAt:'2026-11-01T00:00:00.000Z',note:'PRIVATE LEGACY MUST REMAIN EXACT'});fc.catalogStore.savePriceList('materials',rows);return true;})()`);
+ // Complete the old deployment's ordinary startup validators before recording RAW.
+ await one.reload();await one.until('document.body.dataset.businessState==="ready"');
+
+ const privateBefore=await one.evaluate('JSON.parse(localStorage.getItem("fc_sheet_materials_v1")).find(row=>row.id==="synthetic-private-pcv")');
+ assert.deepEqual(await one.evaluate('Object.keys(JSON.parse(localStorage.getItem("fc_materials_v1")).find(row=>row.id==="synthetic-private-pcv"))'),['id','materialType','manufacturer','symbol','name','price','hasGrain']);
+ assert.equal(privateBefore.price,0);assert.equal(privateBefore.priceUserEditedAt,'2026-11-01T00:00:00.000Z');assert.equal(privateBefore.note,'PRIVATE LEGACY MUST REMAIN EXACT');
  const fixtures=require('./project-navigation-blockers-smoke'),fixture=fixtures.fixture();fixtures.offers(fixture);const source=fixture.seed();
  const seed=Object.fromEntries(['fc_investors_v1','fc_projects_v1','fc_quote_snapshots_v1'].map(key=>[key,source[key]]));seed.fc_quote_offer_drafts_v1=JSON.stringify([{projectId:'P',investorId:'K',syntheticPrice:12.125}]);
  await one.evaluate(`(()=>{for(const [k,v]of Object.entries(${JSON.stringify(seed)}))localStorage.setItem(k,v);const fc=window.FC;fc.projectStore.setCurrentProjectId('P');projectData=fc.project.load();window.projectData=projectData;fc.views.openInvestorsList();})()`);
@@ -155,11 +205,12 @@ async function main(){
  assert.ok(Object.keys(corrections).every(id=>['labor_carrying_cabinet','labor_carrying_disassembly','transport_distance_km','labor_daily_break'].includes(id)));
  const permittedFields=new Set(['rateType','note','minimumLevels','liftLevels','disassemblyWeightKg','breakAfterHours','workdayHours','unitPriceSource']);
  for(const old of originalCatalog){const next=corrections[old.id];if(next)for(const key of Object.keys(old))if(!permittedFields.has(key))assert.deepEqual(next[key],old[key],'Factory upgrade must preserve '+old.id+'/'+key);}
- assertStarterAppend(before,await raw(),codeCandidate.model.labor,corrections);
+ assertStarterAppend(before,await raw(),codeCandidate.model.labor,corrections,expectedMaterialUpgrade(before));
  assertFullStarters(await one.evaluate('window.FC.catalogStore.getQuoteRates()'),codeCandidate.model.labor,missing.map(row=>row.id));
  assert.notEqual(await one.evaluate('window.FC.offlineShell.prepare().then(r=>r.version)'),cache);
  assert.equal(await one.evaluate(`new Promise((resolve,reject)=>{const r=indexedDB.open('synthetic-safe-sw-data',1);r.onerror=reject;r.onsuccess=()=>{const db=r.result,tx=db.transaction('rows'),q=tx.objectStore('rows').get('saved');tx.oncomplete=()=>{db.close();resolve(q.result);};tx.onabort=reject;};})`),'EXACT-IDB-12.125');
 
+ await one.reload();await one.until('document.body.dataset.businessState==="ready"');assertStarterAppend(before,await raw(),codeCandidate.model.labor,corrections,expectedMaterialUpgrade(before));
  console.log('PASS real old-SW → independent network page/active+waiting hashes/native retry/320,360,412px → dirty RAM/multiple clients protected → natural activation/new offline shell/Delete/exact original RAW+IDB and precisely verified new factory norms');
  }finally{clearTimeout(delayTimer);await one?.close();if(!stopped){server.closeAllConnections();await new Promise(r=>server.close(r));}fs.rmSync(dir,{recursive:true,force:true});}
 }

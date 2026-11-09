@@ -214,9 +214,15 @@
     return (Array.isArray(rows)?rows:[]).map(source=>{
       const src=Object.assign({},source);
       const seed=DEFAULT_SHEET_MATERIALS.find(x=>['PCV-STD','PCV-FRONT'].includes(x.symbol)&&x.id===src.id);
-      if(seed&&src.starterPrice===true&&!normalizeText(src.priceUserEditedAt||src.userEditedAt)&&src.pricingMode==null&&src.purchasePrice==null&&src.markupPercent==null
+      if(seed&&Object.keys(src).every(key=>Object.hasOwn(seed,key)||['priceUserEditedAt','userEditedAt'].includes(key))&&src.starterPrice===true&&!normalizeText(src.priceUserEditedAt||src.userEditedAt)&&src.pricingMode==null&&src.purchasePrice==null&&src.markupPercent==null
         &&['materialType','manufacturer','symbol','name','priceUnit','hasGrain','note','edgeWastePercent'].every(k=>src[k]===seed[k])
         &&src.price===(seed.symbol==='PCV-STD'?3:5))src.price=seed.price;
+      // Exact historical splitLegacyMaterials projection (2930e0d7): no note/edgeWaste survived,
+      // then the old normalizer supplied note:'' and priceUserEditedAt:''. No private fields allowed.
+      const projectionKeys=['id','materialType','manufacturer','symbol','name','price','priceUnit','hasGrain','starterPrice','priceUserEditedAt','note'];
+      if(seed&&Object.keys(src).length===projectionKeys.length&&projectionKeys.every(key=>Object.hasOwn(src,key))
+        &&['id','materialType','manufacturer','symbol','name','priceUnit','hasGrain','starterPrice'].every(key=>src[key]===seed[key])
+        &&src.note===''&&src.priceUserEditedAt===''&&src.price===(seed.symbol==='PCV-STD'?3:5))src.price=seed.price;
       if(['laminat','hdf'].includes(String(src.materialType).toLowerCase())&&src.billingIncrement==null)src.billingIncrement=String(src.materialType).toLowerCase()==='hdf'?'m2':'sheet';
       return src;
     });
@@ -238,9 +244,9 @@
       manufacturer: normalizeText(src.manufacturer),
       symbol: normalizeText(src.symbol),
       name: normalizeText(src.name),
-      price,...(src.purchasePrice==null?{}:{purchasePrice}),pricingMode,markupPercent,
+      price,...(src.purchasePrice==null?{}:{purchasePrice}),...(src.pricingMode==null?{}:{pricingMode}),...(src.markupPercent==null?{}:{markupPercent}),
       priceUnit:unit,
-      aliases:Array.from(new Set((Array.isArray(src.aliases)?src.aliases:[]).map(normalizeText).filter(Boolean))),
+      ...(src.aliases==null?{}:{aliases:Array.from(new Set((Array.isArray(src.aliases)?src.aliases:[]).map(normalizeText).filter(Boolean)))}),
       ...(sheet?{
         billingIncrement:['m2','half-sheet','sheet'].includes(src.billingIncrement)?src.billingIncrement:(materialType.toLowerCase()==='hdf'?'m2':'sheet'),
         ...(src.sheetWidthMm!=null?{sheetWidthMm:Math.max(1,Math.round(Number(src.sheetWidthMm)||1))}:{}),...(src.sheetHeightMm!=null?{sheetHeightMm:Math.max(1,Math.round(Number(src.sheetHeightMm)||1))}:{}),

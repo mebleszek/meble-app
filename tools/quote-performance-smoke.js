@@ -56,7 +56,7 @@ test('Synchronous PCV sharing returns identical complete real calculation',async
  assert.equal(math(scoped),math(unshared));
 });
 test('Fully priced second decor retains identical complete math and exactly one PCV allowance',async()=>{
- const r=runtime();r.s.materials.push({name:'Oak',materialType:'laminat',price:135,priceUnit:'sheet'});
+ const r=runtime();const oak=r.s.materials.filter(row=>row.name==='Oak');assert.equal(oak.length,1,'Fixture must resolve one real second decor');oak[0].price=135;
  r.s.localStorage.setItem('fc_materials_v1',JSON.stringify(r.s.materials));
  const options={pcvMode:'project',projectId:'A',selection:r.deps.getOfferDraft().selection};
  const current=await r.FC.wycenaCore.collectQuoteData(options);
