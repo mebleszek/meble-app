@@ -187,7 +187,8 @@
           const qty = resolved.qty;
           if(!(qty > 0)) continue;
           const isFront = (String(resolved.name || '').trim() === 'Front') || !!(typeof cfg.isFrontMaterialKey === 'function' && cfg.isFrontMaterialKey(sourceMaterial));
-          const materialKey = resolved.materialKey;
+          const catalogMaterial=FC.catalogSelectors?.findSheetMaterial(resolved.materialKey);
+          const materialKey = catalogMaterial?catalogMaterial.name:resolved.materialKey;
           const name = resolved.name;
           const key = `${resolved.sourceSig}||${resolved.direction}||${w}||${h}`+(projectCalculation?'||pcv:'+p.effectivePcv.key:'');
           const group = ensureGroup(materialKey);
@@ -204,7 +205,8 @@
               w,
               h,
               qty,
-              material: materialKey,
+              material: resolved.materialKey,
+              ...(catalogMaterial?{materialId:catalogMaterial.id,thicknessMm:catalogMaterial.thicknessMm}:{}),
               sourceSig: resolved.sourceSig,
               grainMode: resolved.direction,
               ignoreGrain: !!resolved.ignoreGrain,

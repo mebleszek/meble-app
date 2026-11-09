@@ -10,6 +10,8 @@
     if(!String(data && data.name || '').trim()){ ctx.info('Brak nazwy', 'Wprowadź nazwę materiału, zanim go zapiszesz.'); return false; }
     if(!String(data && data.materialType || '').trim()){ ctx.info('Brak typu', 'Wybierz typ materiału.'); return false; }
     if(!String(data && data.manufacturer || '').trim()){ ctx.info('Brak producenta', 'Wybierz producenta dla materiału.'); return false; }
+    if(data.pricingMode==='markup'&&data.purchasePrice==null){ctx.info('Brak ceny zakupu','Wpisz cenę zakupu dla trybu zakup + narzut. Świadome 0 jest dozwolone.');return false;}
+    if(['laminat','hdf'].includes(data.materialType)&&!['sheetWidthMm','sheetHeightMm','thicknessMm'].every(key=>Number.isFinite(data[key])&&data[key]>0)){ctx.info('Brak formatu','Wpisz dodatni format arkusza i grubość materiału.');return false;}
     return true;
   }
   function validateAccessoryForm(data){
@@ -65,7 +67,7 @@
     const editingId = ctx.appUiState().editingId;
     if(editingId){
       const idx = next.findIndex((item)=> String(item && item.id) === String(editingId));
-      if(idx >= 0) next[idx] = Object.assign({}, next[idx], payload, { id:next[idx].id });
+      if(idx >= 0){next[idx] = Object.assign({}, next[idx], payload, { id:next[idx].id });if(ctx.currentListKind()==='materials'&&!Object.hasOwn(payload,'purchasePrice'))delete next[idx].purchasePrice;}
       else next.push(Object.assign({ id:editingId }, payload));
     }else next.push(Object.assign({ id:FC.utils.uid() }, payload));
     return ctx.saveCurrentList(next) === true;
@@ -73,8 +75,13 @@
 
   function saveMaterialFromForm(){
     const data = ctx.getCurrentMaterialDraft(); if(!validateMaterialForm(data)) return false;
+    const old=ctx.currentEditedItem?.();
+    data.aliases=Array.from(new Set([...(old?.aliases||[]),...(old&&old.name!==data.name?[old.name]:[])])).filter(Boolean);
     if(!upsertCurrentList(markPriceAsUserEdited(Object.assign({}, data, { price:Number(data.price) || 0, hasGrain:!!data.hasGrain })))) return false;
-    ctx.doClosePriceItemModal(); ctx.renderPriceModal(); try{ renderCabinetModal(); }catch(_){ } return true;
+    const completed=()=>{try{ctx.doClosePriceItemModal({persist:false});ctx.renderPriceModal();try{renderCabinetModal();}catch(_){}}catch(_){try{ctx.info('Zapisano materiał','Zmiany zapisano, ale odświeżenie widoku nie powiodło się. Otwórz ponownie cennik.');}catch(_){}}};
+    if(FC.applicationWrite?.afterCommit){ctx.appUiState().editingId=null;ctx.persistUi();FC.applicationWrite.afterCommit(completed);}
+    else{ctx.doClosePriceItemModal();ctx.renderPriceModal();try{renderCabinetModal();}catch(_){}}
+    return true;
   }
   function saveAccessoryFromForm(){
     const data = ctx.getCurrentAccessoryDraft(); if(!validateAccessoryForm(data)) return false;

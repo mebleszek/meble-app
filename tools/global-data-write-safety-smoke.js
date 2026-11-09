@@ -210,7 +210,7 @@ test('Company and costs UI keep the edited input on failure and report success o
 });
 test('Price-item save and deletion retain the modal/cache on failure; retry succeeds',async()=>{
   const r=runtime();saves[0][2](r);const ctx=r.FC.priceModalContext;let closed=0,rendered=0;
-  r.s.uiState.editingId='user_material';ctx.getCurrentMaterialDraft=()=>({id:'user_material',name:'NEW board',manufacturer:'USER',materialType:'laminat',price:555});
+  r.s.uiState.editingId='user_material';ctx.getCurrentMaterialDraft=()=>({id:'user_material',name:'NEW board',manufacturer:'USER',materialType:'laminat',price:555,priceUnit:'sheet',sheetWidthMm:2800,sheetHeightMm:2070,thicknessMm:18});
   ctx.doClosePriceItemModal=()=>closed++;ctx.renderPriceModal=()=>rendered++;
   ctx.confirmDelete=()=>Promise.resolve(true);r.fail('fc_sheet_materials_v1','false');
   assert.equal(ctx.saveMaterialFromForm(),false);assert.equal(closed,0);assert.equal(rendered,0);

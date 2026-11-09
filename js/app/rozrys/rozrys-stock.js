@@ -129,6 +129,8 @@
   }
 
   function getLargestSheetFormatForMaterial(material, fallbackWmm, fallbackHmm){
+    const format=FC.catalogSelectors?.materialFormat(material);
+    if(format)return {width:format.width,height:format.height,qty:0,materialId:format.materialId,thickness:format.thickness};
     const rows = getSheetRowsForMaterial(material, { includeZero:true });
     if(FC.rozrysSheetModel && typeof FC.rozrysSheetModel.getLargestSheetFormatForRows === 'function'){
       return FC.rozrysSheetModel.getLargestSheetFormatForRows(rows, fallbackWmm, fallbackHmm);

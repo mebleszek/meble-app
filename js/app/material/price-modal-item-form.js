@@ -463,6 +463,18 @@
   function syncEdgeWaste(){
     setBlockVisible('formEdgeWasteWrap',ctx.currentConfig().formKind==='material'&&String(ctx.byId('formMaterialPriceUnit')?.value)==='mb');
   }
+  function syncMaterialPricing(){
+    const material=ctx.currentConfig().formKind==='material';
+    setBlockVisible('formMaterialPricingWrap',material);
+    if(!material)return;
+    const sheet=['laminat','hdf'].includes(readString('formMaterialType').toLowerCase());
+    setBlockVisible('formMaterialSheetWrap',sheet);
+    const markup=readString('formMaterialPricingMode')==='markup',price=ctx.byId('formPrice');
+    const purchase=Math.max(0,Number(readNumber('formMaterialPurchasePrice'))||0),percent=Math.max(0,Number(readNumber('formMaterialMarkup'))||0);
+    if(price){price.readOnly=markup;if(markup&&readString('formMaterialPurchasePrice')!=='')price.value=String(Math.round(purchase*(1+percent/100)*100)/100);}
+    const preview=ctx.byId('formMaterialPricePreview'),value=Math.max(0,Number(price?.value)||0);
+    if(preview)preview.textContent=value.toFixed(2)+' PLN'+(readString('formMaterialPurchasePrice')===''?' • cena zakupu niepodana':' • różnica '+(value-purchase).toFixed(2)+' PLN');
+  }
   function getCurrentMaterialDraft(){
     const materialType = String((ctx.byId('formMaterialType') && ctx.byId('formMaterialType').value) || '');
     const priceUnit = String((ctx.byId('formMaterialPriceUnit') && ctx.byId('formMaterialPriceUnit').value) || defaultMaterialPriceUnit(materialType));
@@ -473,6 +485,8 @@
       name:String((ctx.byId('formName') && ctx.byId('formName').value) || '').trim(),
       price:normalizePriceValue(ctx.byId('formPrice') && ctx.byId('formPrice').value),
       priceUnit,
+      ...(readString('formMaterialPurchasePrice')===''?{}:{purchasePrice:Math.max(0,Number(readNumber('formMaterialPurchasePrice'))||0)}),pricingMode:readString('formMaterialPricingMode')==='markup'?'markup':'manual',markupPercent:Math.max(0,Number(readNumber('formMaterialMarkup'))||0),
+      ...(['laminat','hdf'].includes(materialType.toLowerCase())?{billingIncrement:readString('formMaterialBillingIncrement')||(materialType==='hdf'?'m2':'sheet'),sheetWidthMm:Number(readNumber('formMaterialSheetWidth')),sheetHeightMm:Number(readNumber('formMaterialSheetHeight')),thicknessMm:Number(readNumber('formMaterialThickness'))}:{}),
       ...(priceUnit==='mb'?{edgeWastePercent:Math.max(0,Number(readNumber('formEdgeWastePercent'))||0)}:{}),
       hasGrain:!!(ctx.byId('formHasGrain') && ctx.byId('formHasGrain').checked)
     };
@@ -583,7 +597,7 @@
 
   function wireItemDirtyEvents(){
     [
-      'formSymbol','formName','formPrice','formMaterialPriceUnit','formServiceName','formServicePrice','formHasGrain','formMaterialType','formManufacturer','formCategory',
+      'formMaterialPurchasePrice','formMaterialPricingMode','formMaterialMarkup','formMaterialBillingIncrement','formMaterialSheetWidth','formMaterialSheetHeight','formMaterialThickness','formSymbol','formName','formPrice','formMaterialPriceUnit','formServiceName','formServicePrice','formHasGrain','formMaterialType','formManufacturer','formCategory',
       'laborPricingMode','laborRateType','laborTimeBlockHours','laborDefaultMultiplier','laborQuantitySource','laborQuantityMode','laborTierText',
       'laborStartPrice','laborIncludedQty','laborStartHours','laborStartQty','laborStepEveryQty','laborStepHours','laborVolumePricePerM3','laborVolumeTimeMode','laborVolumeTimePerM3',
       'laborVolumeTimeTierText','laborActive','laborInternalOnly','laborBillingScope','laborDailyStages','formEdgeWastePercent','laborMinimumLevels','laborLiftLevels','laborDisassemblyWeightKg','laborBreakAfterHours','laborWorkdayHours','laborUnitPriceSource'
@@ -596,6 +610,7 @@
         if(id==='laborBillingScope') syncLaborPricingModeUi();
         if(id==='laborUnitPriceSource')syncRulePrice();
         if(id==='formMaterialPriceUnit')syncEdgeWaste();
+        if(ctx.currentConfig().formKind==='material')syncMaterialPricing();
         updateItemActionState();
       };
       el.onchange = function(event){
@@ -604,6 +619,7 @@
         if(id==='laborBillingScope') syncLaborPricingModeUi();
         if(id==='laborUnitPriceSource')syncRulePrice();
         if(id==='formMaterialPriceUnit')syncEdgeWaste();
+        if(ctx.currentConfig().formKind==='material')syncMaterialPricing();
         updateItemActionState();
       };
     });
@@ -620,6 +636,10 @@
     if(ctx.byId('formMaterialPriceUnit')) ctx.setSelectOptions(ctx.byId('formMaterialPriceUnit'), ctx.buildMaterialPriceUnitOptions ? ctx.buildMaterialPriceUnitOptions(unit) : [{ value:'sheet', label:'Arkusz' }, { value:'m2', label:'m²' }, { value:'mb', label:'mb' }, { value:'piece', label:'szt.' }], unit, unit);
     setValue('formEdgeWastePercent',item?.edgeWastePercent??10);syncEdgeWaste();
     if(ctx.byId('formHasGrain')) ctx.byId('formHasGrain').checked = !!(item && item.hasGrain);
+    setValue('formMaterialPurchasePrice',item?.purchasePrice??'');setValue('formMaterialPricingMode',item?.pricingMode==='markup'?'markup':'manual');setValue('formMaterialMarkup',item?.markupPercent??0);
+    setValue('formMaterialBillingIncrement',item?.billingIncrement||(materialType==='hdf'?'m2':'sheet'));
+    const format=FC.rozrysStock?.getLargestSheetFormatForMaterial(item?.name||'',2800,2070)||{width:2800,height:2070};
+    setValue('formMaterialSheetWidth',item?.sheetWidthMm??format.width);setValue('formMaterialSheetHeight',item?.sheetHeightMm??format.height);setValue('formMaterialThickness',item?.thicknessMm??(materialType==='hdf'?3:18));syncMaterialPricing();
   }
   function applyAccessoryFormState(item){
     if(ctx.priceModalHardwareForm && typeof ctx.priceModalHardwareForm.applyAccessoryFormState === 'function') ctx.priceModalHardwareForm.applyAccessoryFormState(item);
@@ -705,6 +725,7 @@
     if(priceWrap) priceWrap.style.display = cfg.formKind === 'accessory' ? 'none' : '';
     if(priceUnitWrap) priceUnitWrap.style.display = cfg.formKind === 'material' ? '' : 'none';
     if(seriesWrap) seriesWrap.style.display = cfg.formKind === 'accessory' ? '' : 'none';
+    setBlockVisible('formMaterialPricingWrap',cfg.formKind==='material');
     setFormNameLabel(cfg.formKind === 'accessory' ? 'Nazwa katalogowa' : 'Nazwa');
     toggleHardwareTechnicalNamePreview(cfg.formKind === 'accessory');
     if(cfg.formKind === 'material') applyMaterialFormState(item || defaultMaterialDraft());
@@ -737,11 +758,11 @@
     ctx.setModalShellOpen(modal, wasOpen);
     renderItemModal();
   }
-  function doClosePriceItemModal(){
+  function doClosePriceItemModal(options){
     ctx.runtimeState.itemModalOpen = false;
     ctx.runtimeState.itemInitialSignature = '';
     ctx.appUiState().editingId = null;
-    ctx.persistUi();
+    if(options?.persist!==false)ctx.persistUi();
     const modal = ctx.byId('priceItemModal');
     if(modal) modal.style.display = 'none';
     return true;

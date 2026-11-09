@@ -39,7 +39,28 @@
     }) || null;
   }
 
-  function findSheetMaterial(query){ return matchByNameOrSymbol(getSheetMaterials(), query); }
+  function materialAlias(value){
+    const key=normalizeKey(value).replace(/ł/g,'l');
+    // Deliberately narrow legacy spelling: same HDF thickness and white colour.
+    const match=key.match(/^hdf\s+(?:(bialy|biala|biale)\s+)?(\d+(?:[.,]\d+)?)\s*mm(?:\s+(bialy|biala|biale))?$/);
+    return match&&(match[1]||match[3])?'hdf:'+Number(match[2].replace(',','.'))+':white':key;
+  }
+  function findSheetMaterial(query,rows){
+    const list=Array.isArray(rows)?rows:getSheetMaterials();
+    const id=typeof query==='object'?String(query?.materialId||query?.id||''):String(query||'');
+    const byId=list.filter(row=>String(row.id)===id);
+    if(byId.length)return byId.length===1?byId[0]:null;
+    const key=materialAlias(typeof query==='object'?query?.name:query);
+    const matches=list.filter(row=>[row.name,row.symbol,...(Array.isArray(row.aliases)?row.aliases:[])].some(value=>value&&materialAlias(value)===key));
+    return matches.length===1?matches[0]:null;
+  }
+  function materialFormat(query){
+    const row=findSheetMaterial(query);
+    return row&&Number(row.sheetWidthMm)>0&&Number(row.sheetHeightMm)>0&&['laminat','hdf'].includes(String(row.materialType).toLowerCase())?{
+      width:Number(row.sheetWidthMm)||2800,height:Number(row.sheetHeightMm)||2070,
+      thickness:Number(row.thicknessMm)||(String(row.materialType).toLowerCase()==='hdf'?3:18),hasGrain:!!row.hasGrain,materialId:row.id,
+    }:null;
+  }
   function findAccessory(query){ return matchByNameOrSymbol(getAccessories(), query); }
   function findQuoteRate(query){ return matchByNameOrSymbol(getQuoteRates(), query); }
   function findWorkshopService(query){ return matchByNameOrSymbol(getWorkshopServices(), query); }
@@ -64,7 +85,7 @@
     getAccessories,
     getQuoteRates,
     getWorkshopServices,
-    findSheetMaterial,
+    findSheetMaterial, materialFormat, materialAlias,
     findAccessory,
     findQuoteRate,
     findWorkshopService,

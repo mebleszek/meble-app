@@ -98,8 +98,7 @@
     const key = utils.normalizeText(materialName);
     try{
       if(FC.catalogSelectors && typeof FC.catalogSelectors.findSheetMaterial === 'function'){
-        const found = FC.catalogSelectors.findSheetMaterial(key);
-        if(found) return found;
+        return FC.catalogSelectors.findSheetMaterial(key);
       }
     }catch(_){ }
     const list = Array.isArray(typeof materials !== 'undefined' ? materials : []) ? materials : [];

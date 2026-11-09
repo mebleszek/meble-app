@@ -17,12 +17,12 @@
   const storagePolicy = FC.catalogStoragePolicy || null;
 
   const DEFAULT_SHEET_MATERIALS = [
-    { id:'m1', materialType:'laminat', manufacturer:'Egger', symbol:'W1100', name:'Egger W1100 ST9 Biały Alpejski', price:280, priceUnit:'sheet', hasGrain:false, starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.' },
+    { id:'m1', materialType:'laminat', manufacturer:'Egger', symbol:'W1100', name:'Egger W1100 ST9 Biały Alpejski', sheetWidthMm:2800,sheetHeightMm:2070,thicknessMm:18,billingIncrement:'sheet',price:280, priceUnit:'sheet', hasGrain:false, starterPrice:true, note:'Cena startowa — sprawdzić przed realną ofertą.' },
     { id:'m2', materialType:'akryl', manufacturer:'Rehau', symbol:'A01', name:'Akryl Biały', price:380, priceUnit:'m2', hasGrain:false, starterPrice:true, note:'Cena startowa za m² gotowego frontu.' },
     { id:'m3', materialType:'lakier', manufacturer:'Start', symbol:'LAK-MAT', name:'Front lakierowany standard', price:450, priceUnit:'m2', hasGrain:false, starterPrice:true, note:'Cena startowa za m² gotowego frontu.' },
-    { id:'m4', materialType:'hdf', manufacturer:'Start', symbol:'HDF-3-BIALY', name:'HDF biały 3 mm', price:18, priceUnit:'m2', hasGrain:false, starterPrice:true, note:'Cena startowa za m² pleców.' },
-    { id:'m5', materialType:'obrzeże', manufacturer:'Start', symbol:'PCV-STD', edgeWastePercent:10, name:'Obrzeże PCV standard', price:3, priceUnit:'mb', hasGrain:false, starterPrice:true, note:'Cena startowa za mb; zapas według pola Zapas do wyceny (%) tej pozycji.' },
-    { id:'m7', materialType:'obrzeże', manufacturer:'Start', symbol:'PCV-FRONT', edgeWastePercent:10, name:'PCV pod kolor frontów', price:5, priceUnit:'mb', hasGrain:false, starterPrice:true, note:'Cena startowa za mb PCV pod kolor frontów; zapas według pola Zapas do wyceny (%) tej pozycji.' },
+    { id:'m4', materialType:'hdf', manufacturer:'Start', symbol:'HDF-3-BIALY', name:'HDF 3mm biała',sheetWidthMm:2800,sheetHeightMm:2070,thicknessMm:3,billingIncrement:'m2',price:18, priceUnit:'m2', hasGrain:false, starterPrice:true, note:'Cena startowa za m² pleców.' },
+    { id:'m5', materialType:'obrzeże', manufacturer:'Start', symbol:'PCV-STD', edgeWastePercent:10, name:'Obrzeże PCV standard', price:10, priceUnit:'mb', hasGrain:false, starterPrice:true, note:'Cena startowa za mb; zapas według pola Zapas do wyceny (%) tej pozycji.' },
+    { id:'m7', materialType:'obrzeże', manufacturer:'Start', symbol:'PCV-FRONT', edgeWastePercent:10, name:'PCV pod kolor frontów', price:20, priceUnit:'mb', hasGrain:false, starterPrice:true, note:'Cena startowa za mb PCV pod kolor frontów; zapas według pola Zapas do wyceny (%) tej pozycji.' },
     { id:'m6', materialType:'blat', manufacturer:'Start', symbol:'BLAT-4100', name:'Blat roboczy 4100 mm', price:420, priceUnit:'piece', hasGrain:true, starterPrice:true, note:'Cena startowa za całą sztukę blatu 4,1 m.' },
   ];
   const DEFAULT_ACCESSORIES = hardwareSeeds && typeof hardwareSeeds.mergeAccessorySeeds === 'function'
@@ -210,17 +210,48 @@
     return 'sheet';
   }
 
+  function applyApprovedMaterialRules(rows){
+    return (Array.isArray(rows)?rows:[]).map(source=>{
+      const src=Object.assign({},source);
+      const seed=DEFAULT_SHEET_MATERIALS.find(x=>['PCV-STD','PCV-FRONT'].includes(x.symbol)&&x.id===src.id);
+      if(seed&&Object.keys(src).every(key=>Object.hasOwn(seed,key)||['priceUserEditedAt','userEditedAt'].includes(key))&&src.starterPrice===true&&!normalizeText(src.priceUserEditedAt||src.userEditedAt)&&src.pricingMode==null&&src.purchasePrice==null&&src.markupPercent==null
+        &&['materialType','manufacturer','symbol','name','priceUnit','hasGrain','note','edgeWastePercent'].every(k=>src[k]===seed[k])
+        &&src.price===(seed.symbol==='PCV-STD'?3:5))src.price=seed.price;
+      // Exact historical splitLegacyMaterials projection (2930e0d7): no note/edgeWaste survived,
+      // then the old normalizer supplied note:'' and priceUserEditedAt:''. No private fields allowed.
+      const projectionKeys=['id','materialType','manufacturer','symbol','name','price','priceUnit','hasGrain','starterPrice','priceUserEditedAt','note'];
+      if(seed&&Object.keys(src).length===projectionKeys.length&&projectionKeys.every(key=>Object.hasOwn(src,key))
+        &&['id','materialType','manufacturer','symbol','name','priceUnit','hasGrain','starterPrice'].every(key=>src[key]===seed[key])
+        &&src.note===''&&src.priceUserEditedAt===''&&src.price===(seed.symbol==='PCV-STD'?3:5))src.price=seed.price;
+      if(['laminat','hdf'].includes(String(src.materialType).toLowerCase())&&src.billingIncrement==null)src.billingIncrement=String(src.materialType).toLowerCase()==='hdf'?'m2':'sheet';
+      return src;
+    });
+  }
+
   function normalizeMaterialRow(row){
-    const src = row && typeof row === 'object' ? row : {};
+    const src = applyApprovedMaterialRules([row && typeof row === 'object' ? row : {}])[0];
     const materialType = normalizeText(src.materialType) || 'laminat';
+    const unit=normalizeMaterialPriceUnit(src.priceUnit || src.unitPriceMode || src.unit,materialType);
+    const sheet=['laminat','hdf'].includes(materialType.toLowerCase());
+    const pricingMode=materialType.toLowerCase()!=='akcesoria'&&src.pricingMode==='markup'?'markup':'manual';
+    if(pricingMode==='markup'&&(src.purchasePrice==null||src.purchasePrice===''||!Number.isFinite(Number(src.purchasePrice))||Number(src.purchasePrice)<0))throw Object.assign(Error('MATERIAL_PURCHASE_PRICE_REQUIRED'),{code:'MATERIAL_PURCHASE_PRICE_REQUIRED'});
+    const purchasePrice=Math.max(0,Number(src.purchasePrice)||0),markupPercent=Math.max(0,Number(src.markupPercent)||0);
+    let price=Math.max(0,Number(src.price)||0);
+    if(pricingMode==='markup')price=Math.round(purchasePrice*(1+markupPercent/100)*100)/100;
     return {
       id: normalizeText(src.id) || uid('m'),
       materialType,
       manufacturer: normalizeText(src.manufacturer),
       symbol: normalizeText(src.symbol),
       name: normalizeText(src.name),
-      price: Number(src.price) || 0,
-      priceUnit: normalizeMaterialPriceUnit(src.priceUnit || src.unitPriceMode || src.unit, materialType),
+      price,...(src.purchasePrice==null?{}:{purchasePrice}),...(src.pricingMode==null?{}:{pricingMode}),...(src.markupPercent==null?{}:{markupPercent}),
+      priceUnit:unit,
+      ...(src.aliases==null?{}:{aliases:Array.from(new Set((Array.isArray(src.aliases)?src.aliases:[]).map(normalizeText).filter(Boolean)))}),
+      ...(sheet?{
+        billingIncrement:['m2','half-sheet','sheet'].includes(src.billingIncrement)?src.billingIncrement:(materialType.toLowerCase()==='hdf'?'m2':'sheet'),
+        ...(src.sheetWidthMm!=null?{sheetWidthMm:Math.max(1,Math.round(Number(src.sheetWidthMm)||1))}:{}),...(src.sheetHeightMm!=null?{sheetHeightMm:Math.max(1,Math.round(Number(src.sheetHeightMm)||1))}:{}),
+        ...(src.thicknessMm!=null?{thicknessMm:Math.max(0.1,Number(src.thicknessMm)||0.1)}:{}),
+      }:{}),
       hasGrain: !!src.hasGrain,
       ...(src.edgeWastePercent==null?{}:{edgeWastePercent:Math.max(0,Number(src.edgeWastePercent)||0)}),
       starterPrice: src.starterPrice === true,
@@ -728,6 +759,7 @@
     getPriceList,
     savePriceList,
     getPriceConfig,
+    normalizeMaterialRow,applyApprovedMaterialRules,
     getSheetMaterials,
     getAccessories,
     getQuoteRates,
