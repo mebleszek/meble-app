@@ -106,7 +106,8 @@
     const diagnostic=FC.applicationStartup?.diagnostics?.(),first=diagnostic?.firstError,conflict=diagnostic?.aliasConflict;
     const code=FC.applicationStartup?.errorCode?.(state.code||'AUTH_ACCESS_UNCONFIRMED')||state.code||'AUTH_ACCESS_UNCONFIRMED';
     const aliasDetail=conflict?'; domena konfliktu: '+conflict.domain+'; klucze: '+(conflict.keys.length===2?conflict.keys.join(' / '):'UNKNOWN'):'';
-    const detail=(first?'Pierwszy błąd: '+first.stage+' / '+first.code+(code!==first.code?'; '+code:''):code)+aliasDetail;
+    const scriptDetail=first?.script?'; skrypt #'+first.script.index+' / '+first.script.group+' / '+first.script.phase+' / HTTP '+first.script.status+' / '+first.script.name+' / wiersz '+first.script.line:'';
+    const detail=(first?'Pierwszy błąd: '+first.stage+' / '+first.code+(code!==first.code?'; '+code:''):code)+aliasDetail+scriptDetail;
     const globals=FC.globalDataDiagnostics?.format?.(diagnostic?.globalConsistency)||(diagnostic?.globalConsistency?'DANE GLOBALNE: BLOCKED / DIAG_READ_BLOCKED':'');
     el('auth-error').hidden=state.status!=='error';el('auth-error').textContent=state.status==='error'?'Nie zmieniono danych. ('+detail+')'+(globals?'\n'+globals:''):'';
     if(el('auth-recovery'))el('auth-recovery').hidden=!recoveryBinding||state.status!=='error';

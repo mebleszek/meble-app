@@ -117,6 +117,15 @@ test('only a closed vocabulary leaves the diagnostic, including SDK error codes 
  assert.equal(api.errorCode({get code(){throw Error(privateText);}}),'UNRECOGNIZED_ERROR');
  const fresh=bootstrap({}).api;fresh.recordFailure({code:'AUTH_RELOAD_REQUIRED'},'login-startup');assert.equal(fresh.diagnostics().firstError,null);
 });
+test('script failures expose only closed phase/index/type/status metadata, with no message or private path',()=>{
+ const api=bootstrap({}).api,secret='PRIVATE_UID_TOKEN_RAW';
+ api.recordFailure({code:'AUTH_SCRIPT_LOCKED',message:secret,script:{index:3,group:'startup-foundation',phase:'fetch',status:423,name:secret,line:17,url:secret,stack:secret}},'loading-business-scripts');
+ assert.deepEqual(api.diagnostics().firstError,{stage:'loading-business-scripts',code:'AUTH_SCRIPT_LOCKED',script:{index:3,group:'startup-foundation',phase:'fetch',status:423,name:'Error',line:17}});
+ assert.equal(JSON.stringify(api.diagnostics()).includes(secret),false);
+ api.recordFailure({code:'AUTH_SCRIPT_EXECUTION',script:{index:4,phase:'execution'}},'loading-business-scripts');assert.equal(api.diagnostics().firstError.script.index,3);
+ assert.equal(api.scriptDiagnostic({get index(){throw Error(secret);}}),null);
+ const fresh=bootstrap({}).api;fresh.recordFailure({get script(){throw Error(secret);}},'loading-business-scripts');assert.equal(fresh.diagnostics().firstError.code,'UNRECOGNIZED_ERROR');
+});
 test('real main-login keeps fatal refusal and shows first stage/code on the second Google login without re-running startup',async()=>{
  let calls=0;let api;
  const d=world({},null,{beforeMain(w){
@@ -135,6 +144,19 @@ test('real main-login keeps fatal refusal and shows first stage/code on the seco
   assert.deepEqual(d.w.projectData,{unsaved:'PRIVATE_RAM'});
   assert.equal(d.shared.rows.get('fc_projects_v1'),new Map(rows).get('fc_projects_v1'));
   assert.equal(d.nodes['auth-error'].textContent.includes('PRIVATE'),false);
+ }finally{d.close();}
+});
+test('real main-login renders closed script diagnostics at the actual loader boundary without exposing the exception',async()=>{
+ const d=world({},null,{beforeMain(w){
+  bootstrap(w);
+  w.FC.mainBusinessLoader={create:()=>({abort(){},async start(){throw Object.assign(Error('PRIVATE_EXCEPTION_UID_PRICE'),{code:'AUTH_SCRIPT_EXECUTION',script:{index:3,group:'app-runtime',phase:'execution',status:0,name:'ReferenceError',line:17}});}})};
+ }});
+ try{
+  const before=[...d.shared.rows];d.w.projectData={unsaved:'KEEP_RAM'};await until(()=>d.nodes['auth-google']?.disabled===false);d.input('click','auth-google');
+  await until(()=>d.nodes['auth-error']?.textContent?.includes('AUTH_SCRIPT_EXECUTION'));
+  assert.match(d.nodes['auth-error'].textContent,/loading-business-scripts/);assert.match(d.nodes['auth-error'].textContent,/skrypt #3.*ReferenceError.*17/);
+  assert.equal(d.nodes['auth-error'].textContent.includes('PRIVATE_EXCEPTION_UID_PRICE'),false);assert.equal(d.ready(),false);assert.deepEqual(d.w.projectData,{unsaved:'KEEP_RAM'});
+  assert.equal(d.shared.rows.get('fc_projects_v1'),new Map(before).get('fc_projects_v1'));
  }finally{d.close();}
 });
 test('existing session collector and copy/format UI expose safe transfer metadata without writing or weakening access',async()=>{
@@ -160,7 +182,11 @@ test('existing session collector and copy/format UI expose safe transfer metadat
  assert.match(modal.message,/project-transfer-blocked: initial-project-revisions \/ LF_PROJECT_SCHEMA_BLOCKED/);
  assert.match(modal.message,/Konflikt aliasów: labor \| klucze: fc_quote_rates_v1 \/ fc_services_v1/);
  await modal.secondaryAction.run({button:{},body:{}});assert.deepEqual(JSON.parse(copied).localFirst,clone(api.diagnostics()));
+ const scriptApi=bootstrap({}).api;scriptApi.recordFailure({code:'AUTH_SCRIPT_EXECUTION',script:{index:2,group:'app-runtime',phase:'execution',status:0,name:'TypeError',line:9,url:'PRIVATE_URL'}},'loading-business-scripts');w.FC.applicationStartup=scriptApi;
+ const scriptOut=collect(w);assert.deepEqual(scriptOut.localFirst.firstError,scriptApi.diagnostics().firstError);assert.equal(JSON.stringify(scriptOut.localFirst).includes('PRIVATE_URL'),false);
+ await w.FC.sessionDiagnostics.open();await modal.secondaryAction.run({button:{},body:{}});assert.deepEqual(JSON.parse(copied).localFirst.firstError,clone(scriptApi.diagnostics().firstError));
  assert.deepEqual(r.seed(),before);assert.equal(JSON.stringify(r.FC.session),ram);assert.deepEqual(writes,[]);
+ w.FC.applicationStartup=api;
  const diagnostic=api.diagnostics;api.diagnostics=()=>{throw Error('PRIVATE_DIAGNOSTIC_FAILURE');};
  assert.deepEqual(collect(w).localFirst,{status:'UNAVAILABLE'});await w.FC.sessionDiagnostics.open();assert.match(modal.message,/LOCAL-FIRST: UNAVAILABLE/);
  api.diagnostics=diagnostic;

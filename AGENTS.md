@@ -22,11 +22,11 @@ Obowiązuje także w nowych wątkach. AGENTS i procedury tworzą jeden kontrakt 
 
 ## 2. Minimalny, spójny zakres
 
-ChatGPT raz analizuje rzeczywisty łańcuch UI → wywołania → domena/modele/ID → odczyt/zapis/recovery/backupy → wyceny/oferty/sync/skutki uboczne. Codex korzysta z ustaleń i czyta kod potrzebny implementacji; pogłębia analizę tylko dla konkretnej sprzeczności/ryzyka. Rozróżniaj aktualny model od historycznych wyjątków; rekomenduj na podstawie faktów.
+Przed każdym zleceniem implementacji ChatGPT niezależnie analizuje rzeczywisty kod dwukierunkowo: co wpływa na zmieniany element i na co ten element wpływa. Stosownie do zakresu obejmuje UI, zależności, modele/ID, dane, trwały zapis, odczyt, recovery/backupy, LOCAL-FIRST, wyceny/oferty, synchronizację, bezpieczeństwo i regresje. Przekazuje Codexowi potwierdzone ustalenia, ryzyka, zakres i testy, a nierozstrzygnięte wątpliwości techniczne wskazuje wraz z obszarami do sprawdzenia. Codex samodzielnie kończy wyłącznie tę niezbędną analizę, bez ponawiania całego audytu. Sprzeczność, ryzyko utraty danych lub naruszenia bezpieczeństwa albo konieczność rozszerzenia zakresu = dowody i STOP zagrożonej operacji zamiast zgadywania. Żaden wykonawca nie przedstawia hipotezy jako potwierdzonej przyczyny. Rozróżniaj aktualny model od historycznych wyjątków.
 
 Preferuj odwracalne zmiany, bez pobocznego refaktoru, przepisywania za rozmiar, zmiany stylu/nazw/formatowania/architektury niezwiązanych modułów lub utraty zgodności starych projektów/ofert/ustawień bez zgody. Wybieraj największy spójny, bezpieczny i testowalny pakiet według zależności/ryzyka/bramek, bez limitu liczby punktów i zbędnych mikroetapów.
 
-Niezbędny powiązany błąd naprawiaj przyczynowo w zakresie zgody. Niezwiązany zgłoś, kontynuuj niezależne bezpieczne części. Ryzyko danych/bezpieczeństwa = STOP zagrożonej operacji. Nie rozszerzaj zgody na UI, migrację, produkcję czy ryzykowny refaktor.
+Niezbędny powiązany błąd naprawiaj przyczynowo w zakresie zgody. Niezwiązany zgłoś, kontynuuj niezależne bezpieczne części. Nie rozszerzaj zgody na UI, migrację, produkcję czy ryzykowny refaktor.
 
 ## 3. Testy są bramką bezpieczeństwa
 
@@ -141,8 +141,8 @@ Zachowuj `Zapisz/Anuluj`, jeden autorytet projektu, LOCAL-FIRST, globalne katalo
 
 ## 14. Podział odpowiedzialności — CLOUD-4.5
 
-- **ChatGPT GPT-6 High:** prowadzenie, analiza/architektura, jedna rekomendacja i doradztwo biznesowe Meble-App/MebLeszek, kompletne zlecenie, niezależna kontrola raportu/diffu/SHA/CI. Standardowo bez zmian repo/GitHuba/programowania; wyjątek Ready (§12), inne zmiany tylko po odrębnej wyraźnej zgodzie (§16).
-- **Codex Sol High:** implementacja kodu/konfiguracji/dokumentacji/testów, potrzebna diagnostyka, gałąź/commit/push; trudna analiza tylko wyraźnie zlecona, PR jako uzgodnione zastępstwo. Bez dublowania CI.
+- **ChatGPT GPT-6 High:** prowadzenie, niezależna analiza rzeczywistego kodu przed zleceniem według §2, architektura, jedna rekomendacja i doradztwo biznesowe Meble-App/MebLeszek, kompletne zlecenie, niezależna kontrola raportu/diffu/SHA/CI. Standardowo bez zmian repo/GitHuba/programowania; wyjątek Ready (§12), inne zmiany tylko po odrębnej wyraźnej zgodzie (§16).
+- **Codex Sol High:** implementacja kodu/konfiguracji/dokumentacji/testów, niezbędna analiza wskazanych wątpliwości i diagnostyka według §2, gałąź/commit/push; trudna analiza tylko wyraźnie zlecona, PR jako uzgodnione zastępstwo. Bez dublowania CI.
 - **ChatGPT Work:** szczególnie złożone analizy przekrojowe przy rzeczywistej korzyści, bez zmiany zgód.
 - **GitHub Actions:** wymagane testy, zatwierdzony auto-merge i exact Pages.
 - **Właściciel:** strategia/biznes, zakres, każde wydanie, osobne operacje produkcyjne, akceptacja telefonu; bez wyboru każdej technicznej nazwy.

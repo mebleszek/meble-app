@@ -4,18 +4,26 @@
   const FC=window.FC=window.FC||{};
   function create(assertAccess,onFailure){
     const append=Node.prototype.appendChild,insert=Node.prototype.insertBefore;
-    const tasks=new WeakMap(),cache=new Map();let aborted=false;
+    const tasks=new WeakMap(),cache=new Map(),entries=new Map();let aborted=false;
     const controller=new AbortController();
     function source(src){
       const url=new URL(src,document.baseURI);
       if(url.origin!==location.origin||!url.pathname.startsWith(new URL('js/',document.baseURI).pathname))throw Error('AUTH_SCRIPT_SOURCE');
       return url.href;
     }
+    function fault(src,phase,status=0,event){
+      const entry=entries.get(source(src));
+      const error=Object.assign(Error(status===423?'AUTH_SCRIPT_LOCKED':phase==='fetch'?'AUTH_SCRIPT_NETWORK':'AUTH_SCRIPT_EXECUTION'),{
+        code:status===423?'AUTH_SCRIPT_LOCKED':phase==='fetch'?'AUTH_SCRIPT_NETWORK':'AUTH_SCRIPT_EXECUTION',
+        script:{index:entry?.index||0,group:entry?.group||'unknown',phase,status,name:event?.error?.name||'Error',line:event?.lineno||0}
+      });
+      return error;
+    }
     function code(src){
       const url=source(src);assertAccess();
       if(!cache.has(url))cache.set(url,fetch(url,{signal:controller.signal,credentials:'same-origin'}).then(r=>{
-        if(!r.ok)throw Error('AUTH_SCRIPT_NETWORK');return r.text();
-      }).catch(error=>{cache.delete(url);throw error;}));
+        if(!r.ok)throw fault(src,'fetch',r.status);return r.text();
+      }).catch(error=>{cache.delete(url);if(error?.script||error?.name==='AbortError')throw error;throw fault(src,'fetch');}));
       return cache.get(url);
     }
     function execute(parent,node,before,src){
@@ -28,7 +36,7 @@
         Object.defineProperty(node,'src',{get:()=>source(src)});
         node.textContent=text+'\n//# sourceURL='+source(src);
         let scriptError=null;
-        const capture=event=>{scriptError=event.error||Error('AUTH_SCRIPT_EXECUTION');};
+        const capture=event=>{try{const original=event.error,known=FC.applicationStartup?.errorCode?.(original);scriptError=known&&known!=='UNRECOGNIZED_ERROR'?original:fault(src,'execution',0,event);}catch(_){scriptError=Object.assign(Error('AUTH_SCRIPT_EXECUTION'),{code:'AUTH_SCRIPT_EXECUTION'});}};
         window.addEventListener('error',capture);
         try{if(before)insert.call(parent,node,before);else append.call(parent,node);}
         finally{window.removeEventListener('error',capture);}
@@ -50,6 +58,7 @@
     return {
       async start(manifest){
         // Bounded parallel fetch; evaluation stays in the exact manifest order.
+        manifest.forEach((entry,index)=>entries.set(source(entry.src),{index:index+1,group:entry.group}));
         let cursor=0;
         await Promise.all(Array.from({length:8},async()=>{while(cursor<manifest.length){const entry=manifest[cursor++];await code(entry.src);}}));
         for(const entry of manifest){

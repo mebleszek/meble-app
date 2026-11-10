@@ -88,7 +88,7 @@ function pixelSessionReadonly(w,options){
     // This snapshot is memory-only, closed-vocabulary metadata; no network or IDB access.
     try{
       const diagnostic=w.FC?.applicationStartup?.diagnostics?.();
-      const fault=value=>value?{stage:value.stage,code:value.code}:null;
+      const fault=value=>value?{stage:value.stage,code:value.code,...(value.script&&w.FC.applicationStartup.scriptDiagnostic?.(value.script)?{script:w.FC.applicationStartup.scriptDiagnostic(value.script)}:{})}:null;
       if(diagnostic)report.localFirst={status:diagnostic.status,stage:diagnostic.stage,code:diagnostic.code,
         firstError:fault(diagnostic.firstError),transferStatus:diagnostic.transferStatus,projectTransferBlocked:fault(diagnostic.projectTransferBlocked),
         aliasConflict:diagnostic.aliasConflict?{...fault(diagnostic.aliasConflict),domain:diagnostic.aliasConflict.domain,keys:[...diagnostic.aliasConflict.keys]}:null,

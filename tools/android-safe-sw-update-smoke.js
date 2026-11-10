@@ -94,9 +94,10 @@ async function main(){
  let deployment=old,one,stopped=false,heldAsset=false,releasedAsset=false,delayTimer;
  const server=http.createServer((req,res)=>{try{const pathname=new URL(req.url,'http://127.0.0.1').pathname,file=path.resolve(deployment,'.'+pathname);if(!file.startsWith(deployment+path.sep))throw Error();const data=fs.readFileSync(file);
   const respond=()=>{res.writeHead(200,{'content-type':file.endsWith('.js')?'text/javascript':file.endsWith('.html')?'text/html':file.endsWith('.css')?'text/css':'image/jpeg','cache-control':'no-store'});res.end(data);};
+  // Hold a CHANGED asset: unchanged artwork is now safely reused from cache.
   // Real SW install fetch, not a page timer or mocked registration. Exceed the
   // former shared deadline while the same old dirty application stays open.
-  if(deployment===root&&!heldAsset&&pathname==='/assets/branding/MebLeszek_logo_oryginal.jpg'){
+  if(deployment===root&&!heldAsset&&pathname==='/index.html'){
    heldAsset=true;console.log('START real Chromium: hold one manifest download for 32s');
    delayTimer=setTimeout(()=>{releasedAsset=true;respond();},32000);
   }else respond();
@@ -186,11 +187,17 @@ async function main(){
  // all app tabs. No product code reloads, closes or writes this draft.
  assert.equal(await one.evaluate('window.FC.investorEditorState.hasUiLock()'),true);
  await one.evaluate('window.FC.investorEditorState.exit(window.FC.investors.readAll()[0]);window.FC.views.openInvestorsList();true');
+ assert.equal(await raw(),before,'Explicit fixture discard/navigation must preserve all business RAW before retiring the old document');
  const trustBeforeClose=await one.evaluate('('+require('./helpers/trusted-cold-start').inspectTrustStorage.toString()+')()');
  assert.equal(trustBeforeClose.fence,'active','Old synthetic trusted profile must still have its fence before orderly close');
  assert.equal(trustBeforeClose.fenceMatches,true,'Signed trust must match its fence before closing the old document');
+ // Retire the explicitly finished document before stopping Chromium. A process
+ // shutdown is not the page-unload boundary under test; preserve the real cold
+ // restart as a separate assertion after this natural SW client retirement.
+ await one.send('Page.navigate',{url:'about:blank'});await one.until('location.href==="about:blank"');
  await one.close();one=null;await new Promise(r=>server.close(r));stopped=true;
  one=await browser(profile,base+'/index.html',{offline:true});try{await one.until('document.body.dataset.businessState==="ready"');}catch(error){console.log('DIAG cold trust '+JSON.stringify(await one.evaluate('('+require('./helpers/trusted-cold-start').inspectTrustStorage.toString()+')()')));throw error;}
+ assert.deepEqual(JSON.parse(await raw()).map(x=>x[0]),JSON.parse(before).map(x=>x[0]),'Cold start must retain the complete original business key set before UI navigation');
  await one.evaluate('window.FC.views.openInvestorsList();true');assert.equal(await one.evaluate('!!document.querySelector("[data-action=remove-investor-from-list]")'),true);
  const missing=codeCandidate.model.labor.filter(row=>!JSON.parse(Object.fromEntries(JSON.parse(before)).fc_quote_rates_v1).some(old=>old.id===row.id));
  assert.equal(missing.length,65,'This approved release adds exactly65 factory norms including the daily break and combined loading/unloading');

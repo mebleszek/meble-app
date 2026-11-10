@@ -13,4 +13,4 @@ async function check({complete=true,foreign=false,scope=false,offline=false}={})
  if(!nodes[0].hidden){nodes[0].children[0].click();assert.equal(nodes[0].children[1].hidden,false);}
  assert.equal(registered,offline?0:1);
 }
-(async()=>{for(const x of [{},{complete:false},{foreign:true},{scope:true},{offline:true}])await check(x);console.log('PASS offline update: verified waiting shell only, foreign/incomplete/offline refusal, explicit close-tab guidance, no storage/reload/activation');})().catch(e=>{console.error(e);process.exitCode=1;});
+(async()=>{for(const x of [{},{complete:false},{foreign:true},{scope:true},{offline:true}])await check(x);console.log('PASS offline update: verified waiting shell only, foreign/incomplete/offline refusal, same-window guidance with conservative guard, no implicit storage/reload/activation');})().catch(e=>{console.error(e);process.exitCode=1;});

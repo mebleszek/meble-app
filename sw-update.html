@@ -12,11 +12,13 @@
 <p>Otwórz tę stronę w tej samej przeglądarce i profilu, w których używasz Meble-App. Chrome, Brave i tryb incognito mają oddzielne instalacje. Ten raport dotyczy wyłącznie bieżącej przeglądarki i profilu.</p>
 <p id="sw-update-status" role="status" aria-live="polite" data-state="checking">Sprawdzanie aktualizacji…</p>
 <button id="sw-update-check" type="button">Sprawdź ponownie</button>
+<button id="sw-update-apply" type="button" hidden>Zastosuj w tym oknie</button>
+<button id="sw-update-return" type="button" hidden>Wróć do aplikacji</button>
 <dl><dt>Aktywny Service Worker — hash manifestu</dt><dd id="sw-update-active-version">Niepotwierdzony</dd>
 <dt>Oczekujący Service Worker — hash manifestu</dt><dd id="sw-update-waiting-version">Niepotwierdzony</dd></dl>
 <p>To hashe manifestów potwierdzonych przez Workery, nie SHA GitHuba ani wersja kodu otwartej karty. Brak oczekującego Workera nie dowodzi, że wdrożenie jest najnowsze.</p>
 <p>Instalacja może potrwać do 3 minut, a weryfikacja całego manifestu do 90 sekund. Jedna próba ma limit 5 minut 30 sekund. Po przekroczeniu limitu wynik pozostaje niepotwierdzony; nie oznacza to uszkodzenia instalacji.</p>
-<p id="sw-update-help" hidden>Zapisz pracę lub świadomie anuluj edycję. Jeśli zapis jest niepewny, zachowaj otwartą kartę. Po bezpiecznym zakończeniu pracy zamknij wszystkie karty Meble-App w tym samym profilu Chrome, także tę stronę, i otwórz aplikację ponownie.</p>
+<p id="sw-update-help" hidden>Zapisz pracę lub świadomie anuluj edycję. Jeśli zapis jest niepewny, zachowaj otwartą kartę. Po bezpiecznym zakończeniu pracy użyj „Zastosuj w tym oknie”. Tymczasowa strona bez aplikacji zwolni starego Workera; następnie sprawdzisz naturalną aktywację i wrócisz do aplikacji w tym samym oknie. Pozostałe karty nadal blokują operację.</p>
 <p>Sprawdzanie nie odczytuje ani nie zmienia projektów, ofert, cenników lub kolejki offline. Nie czyść danych przeglądarki. Jeśli inna karta blokuje wejście, najpierw bezpiecznie zakończ pracę — ta strona nie omija blokady zapisu.</p>
 </main>
 <!-- Network-only entry: no script or style dependency from an older worker's cache. -->
@@ -25,16 +27,18 @@
  'use strict';
  const status=document.getElementById('sw-update-status'),button=document.getElementById('sw-update-check'),help=document.getElementById('sw-update-help');
  const activeVersion=document.getElementById('sw-update-active-version'),waitingVersion=document.getElementById('sw-update-waiting-version');
- const root=new URL('./',window.location.href),script=new URL('offline-worker.js',root);let busy=false;
+ const root=new URL('./',window.location.href),script=new URL('offline-worker.js',root);let busy=false,activation=null;
+ const apply=document.getElementById('sw-update-apply'),back=document.getElementById('sw-update-return');apply.hidden=back.hidden=true;
+ const requested=new URL(window.location.href).searchParams.get('expected'),expected=/^[a-f0-9]{64}$/.test(requested||'')?requested:null;
  const labels={registration:'Odczyt rejestracji',compatibility:'Sprawdzenie zgodności',update:'registration.update()',installation:'Instalowanie',verification:'Weryfikacja active/waiting','verify-active':'Weryfikacja active','verify-waiting':'Weryfikacja waiting',complete:'Zakończono'};
  function show(state,text,stage,reason='NONE',timeout=false){
   status.dataset.state=state;status.dataset.stage=stage;status.dataset.reason=reason;status.dataset.timeout=String(timeout);
-  status.textContent=text;help.hidden=state!=='ready';
+  status.textContent=text;help.hidden=state!=='ready';apply.hidden=state!=='ready';back.hidden=!['activated','no-waiting'].includes(state);
  }
  async function check(){
-  if(busy)return;busy=true;button.disabled=true;
+  if(busy)return;busy=true;activation=null;button.disabled=true;
   activeVersion.textContent=waitingVersion.textContent='Niepotwierdzony';
-  // 477 sequential downloads (~5.6 MB at this revision), then complete(),
+  // Installation and independent complete() ACKs keep separate hard budgets;
   // followed by two independent complete() ACKs cannot share a 30s budget.
   // Stage budgets never renew; the whole attempt also has a hard deadline.
   const deadline=Date.now()+330000;let stage='registration',firstFailure,clearWatch=()=>{},snapshot;
@@ -117,7 +121,25 @@
    if(current!==reg){activeVersion.textContent=waitingVersion.textContent='Niepotwierdzony';throw fail('verification','REGISTRATION_CHANGED');}
    stable();compatible(reg);
    if(navigator.onLine===false)throw fail('verification','OFFLINE',false,'offline');
-   if(waiting)show('ready','Nowa wersja pobrana i gotowa do naturalnej aktywacji.','complete');
+   if(expected&&a.value===expected)show('activated','Potwierdzono naturalną aktywację pobranej wersji. Możesz wrócić do aplikacji.','complete');
+   else if(expected&&!waiting)throw fail('verification','ACTIVATION_UNCONFIRMED');
+   else if(waiting){
+    show('ready','Nowa wersja pobrana i gotowa do naturalnej aktywacji.','complete');
+    activation=async()=>{
+     stable();compatible(reg);
+     const nonce=crypto.randomUUID(),channel=new MessageChannel();let timer;
+     try{
+      const proof=await new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(Error('EXCLUSIVE_TIMEOUT')),5000);channel.port1.onmessage=e=>resolve(e.data);active.postMessage({type:'VERIFY_APPLICATION_AUTHORITY',protocol:1,nonce},[channel.port2]);});
+      stable();if(proof?.protocol!==1||proof.nonce!==nonce||proof.exclusive!==true)throw Error('OTHER_CLIENT');
+      const resume=new URL('sw-update.html',root);resume.searchParams.set('expected',b.value);
+      // A neutral blob document has no SW controller. Leaving this updater
+      // releases its client naturally; no claim, unregister or forced activation.
+      const css=document.querySelector('style').textContent.replace('button{','button,a{display:inline-block;');
+      const html='<!doctype html><html lang="pl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aktywacja Meble-App</title><style>'+css+'</style><main><h1>Aktualizacja w tym oknie</h1><p>Aplikacja została bezpiecznie opuszczona. Przeglądarka może teraz naturalnie aktywować pobraną wersję.</p><a href="'+resume.href+'">Sprawdź aktywację i wróć do Meble-App</a><p>Nie usuwaj danych przeglądarki.</p></main></html>';
+      window.location.replace(URL.createObjectURL(new Blob([html],{type:'text/html'})));
+     }finally{clearTimeout(timer);channel.port1.close();channel.port2.close();}
+    };
+   }
    else{waitingVersion.textContent='Brak oczekującego Workera';show('no-waiting','Nie wykryto oczekującej aktualizacji. To nie jest potwierdzenie najnowszej wersji na serwerze.','complete');}
   }catch(error){
    const failure=firstFailure||(error instanceof Failure?error:fail(stage,'CHECK_FAILED'));
@@ -126,6 +148,8 @@
    show(failure.state,text,failure.stage,failure.code,failure.timeout);
   }finally{clearWatch();busy=false;button.disabled=false;}
  }
+ apply.addEventListener('click',async()=>{if(busy||!activation)return;busy=true;apply.disabled=true;try{await activation();}catch(_){show('unconfirmed','Nie potwierdzono wyłączności lub stabilnej wersji. Zachowaj pozostałe karty; sprawdź ponownie po bezpiecznym zakończeniu pracy.','verification','ACTIVATION_BLOCKED');}finally{busy=false;apply.disabled=false;}});
+ back.addEventListener('click',()=>{if(!busy&&['activated','no-waiting'].includes(status.dataset.state))window.location.replace(new URL('index.html',root).href);});
  button.addEventListener('click',()=>check());void check();
 })();
 </script></body></html>

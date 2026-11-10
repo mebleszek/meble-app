@@ -9,21 +9,34 @@ async function checked(response,file){
   if(bytes.byteLength!==file.bytes||await digest(bytes)!==file.sha256)throw Error('OFFLINE_RESOURCE_CHANGED');
   return response;
 }
+// Bounded work drains before cleanup: no late put may recreate a failed install.
+async function eachFile(operation){
+  let cursor=0,failure=null;
+  await Promise.all(Array.from({length:4},async()=>{
+    while(!failure&&cursor<MANIFEST.files.length){const file=MANIFEST.files[cursor++];try{await operation(file);}catch(error){failure||=error;}}
+  }));
+  if(failure)throw failure;
+}
 async function complete(){
   const cache=await caches.open(CACHE);
-  for(const file of MANIFEST.files)await checked(await cache.match(new URL(file.path,root).href),file);
-  return true;
+  await eachFile(file=>checkedCache(cache,file));return true;
 }
+async function checkedCache(cache,file){return checked(await cache.match(new URL(file.path,root).href),file);}
 self.addEventListener('install',event=>event.waitUntil((async()=>{
+  const existed=(await caches.keys()).includes(CACHE);
   try{await complete();return;}catch(_){} // Preserve an already complete active version.
   const cache=await caches.open(CACHE);
+  const names=await caches.keys(),previous=await Promise.all(names.filter(name=>name!==CACHE&&/^meble-static-[a-f0-9]{64}$/.test(name)).reverse().map(name=>caches.open(name)));
   try{
-    for(const file of MANIFEST.files){const url=new URL(file.path,root);
-      const response=await checked(await fetch(url,{cache:'no-store',credentials:'omit',redirect:'error'}),file);
+    await eachFile(async file=>{
+      const url=new URL(file.path,root);let response;
+      // An old cache is only a source candidate. Validate against NEW bytes/hash.
+      for(const candidate of [cache,...previous]){try{response=await checkedCache(candidate,file);break;}catch(_){}}
+      if(!response)response=await checked(await fetch(url,{cache:'no-store',credentials:'omit',redirect:'error'}),file);
       await cache.put(url.href,response);
-    }
+    });
     await complete();
-  }catch(error){await caches.delete(CACHE);throw error;}
+  }catch(error){if(!existed)await caches.delete(CACHE);throw error;}
   // No skipWaiting/clients.claim: never replace the runtime of an open draft.
 })()));
 self.addEventListener('message',event=>{
