@@ -3,6 +3,11 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
+  "js/app/project/project-local-room-contract.js":"20261110_native_local_cabinets_v1",
+  "js/app/project/business-project-contract.js":"20261110_native_local_cabinets_v1",
+  "js/app/cabinet/front-material-source.js":"20261110_native_local_cabinets_v1",
+  "js/app/cabinet/front-hardware-fronts.js":"20261110_native_local_cabinets_v1",
+  "js/app/cabinet/cabinet-fronts.js":"20261110_native_local_cabinets_v1",
   "js/app/service/service-order-store.js":"20261110_service_order_integrity_v1",
   "js/app/service/service-orders.js":"20261110_service_order_inflight_v1",
   "js/app/service/cutting/service-order-detail.js":"20261110_service_order_inflight_v1",
@@ -79,7 +84,7 @@ const versions = Object.freeze({
   "js/app/material/price-modal-item-form.js":"20261108_material_catalog_authority_v1",
   "js/app/material/price-modal-list.js":"20261108_material_catalog_authority_v1",
   "js/app/cabinet/cabinet-cutlist.js": "20261023_wycena_labor_v1",
-  "js/app/project/project-export-contract.js": "20261023_wycena_labor_v1",
+  "js/app/project/project-export-contract.js":"20261110_native_local_cabinets_v1",
   "js/app/cabinet/cabinet-hardware-requirements.js": "20261023_wycena_labor_v1",
   "js/app/pricing/work-quantity-facts.js": "20261108_catalog_rule_authority_v1",
   "js/app/cabinet/cabinet-derived-facts.js": "20261108_ci121_catalog_cache_v1",

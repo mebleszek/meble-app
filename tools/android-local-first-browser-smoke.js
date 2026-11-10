@@ -116,6 +116,10 @@ async function main(){
   assert.equal(await browser.evaluate('unsavedLocalDocument'),documentToken);assert.equal(await browser.evaluate('JSON.stringify(projectData)===unsavedLocalRam&&window.FC.session.active'),true);
   phase='local save';await pause(220);await until('!window.FC.applicationStartup.inspect().transactionPending');await editFirstCabinet(61);await tap('#sessionSave');await until('!window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending');assert.equal(await browser.evaluate('window.FC.projectStore.getCurrentRecord().projectData[uiState.roomType].settings.roomHeight'),275);
   assert.equal(await browser.evaluate('window.FC.investorProjectRuntime.hasProjectDivergence(projectData)'),false,'Confirmed Save must leave RAM consistent with its durable project');
+  if(process.argv.includes('--cabinet-variants-only')||process.argv.includes('--cabinet-base-probe')){
+   phase='native cabinet variants';await require('./helpers/local-cabinet-native-cases')({getBrowser:()=>browser,tap,fill,until,reopen:()=>reopenOffline(61,false,null),baseProbe:process.argv.includes('--cabinet-base-probe')});
+   await assertForeign();assert.deepEqual(external,[]);return;
+  }
   phase='basic WYCENA';const quote=await browser.evaluate(`(async()=>{const room=window.FC.investors.readAll()[0].rooms[0].id;const labor=window.FC.wycenaCore.collectCabinetLabor([room]);const quote=await window.FC.wycenaCore.collectQuoteData({selection:{selectedRooms:[room]}});return {labor:!!labor[0]?.details?.some(r=>r.total>0),totals:quote.totals};})()`);assert.equal(quote.labor,true);assert.ok(Object.values(quote.totals).some(n=>typeof n==='number'&&Number.isFinite(n)&&n>0));
   phase='quote deletion';await require('./helpers/quote-delete-browser')({browser,tap,until,abortNextProjectWrite,reopenOffline:async()=>{await reopenOffline();return browser;}});
   if(process.argv.includes('--quote-delete-only')){await assertForeign();assert.deepEqual(external,[]);return;}

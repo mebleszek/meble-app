@@ -255,6 +255,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/project/project-pcv-policy.js',
   'js/app/cabinet/front-material-source.js',
   'js/app/cabinet/cabinet-fronts.js',
+  'js/app/project/project-local-room-contract.js',
   'js/app/cabinet/cabinet-modal-validation.js',
   'js/app/cabinet/cabinet-modal-draft.js',
   'js/app/cabinet/cabinet-modal-fields.js',

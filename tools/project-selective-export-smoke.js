@@ -17,6 +17,7 @@ const files=['js/app/shared/constants.js','js/app/shared/storage.js','js/app/sha
  'js/app/project/project-model.js','js/app/project/project-store.js','js/app/project/project-bridge.js','js/app/investor/session.js',
  'js/app/cabinet/part-provenance.js','js/app/material/material-common.js','js/app/cabinet/front-hardware-fronts.js','js/app/cabinet/cabinet-cutlist.js','js/app/material/material-edge-store.js',
  'js/app/project/project-pcv-overrides.js','js/app/project/project-domain-operations.js',
+ 'js/app/cabinet/cabinet-fronts.js','js/app/project/project-local-room-contract.js',
  'js/app/project/project-export-contract.js','js/app/project/project-selective-export.js'];
 function fixture(seed){
  const Storage=class extends MemoryStorage{}; // Session tracking patches prototypes per isolated runtime.

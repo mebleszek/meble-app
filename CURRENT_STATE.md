@@ -1,6 +1,6 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
-Stan pakietu P0 zaktualizowany **10.11.2026**; jego BASE/main `3ebf20c81601ae854f62fcdeba2ada25c54a074c` potwierdzony zdalnie. Starsze dowody wydań zachowują własne daty i SHA. To jedyne źródło aktualnego wykonania; ROADMAP = plan, AGENTS = zasady, istniejące raporty = szczegółowe dowody. Pełna poprzednia treść z datami/SHA/wynikami jest w [archiwum do 09.11](docs/archive/CURRENT_STATE_history_to_20261109.md); starsza w [archiwum do 30.10](docs/archive/CURRENT_STATE_history_to_20261030.md). Dawne FAIL, „otwarte PR” i CI_PENDING nie są automatycznie bieżącym statusem.
+Stan pakietu P0 zapisu szafek zaktualizowany **10.11.2026**; jego BASE/main `eb861142cc08842ef3773e1ea3d3a14847d8ff63` potwierdzony zdalnie. Starsze pakiety mają poniżej własne datowane statusy. Starsze dowody wydań zachowują własne daty i SHA. To jedyne źródło aktualnego wykonania; ROADMAP = plan, AGENTS = zasady, istniejące raporty = szczegółowe dowody. Pełna poprzednia treść z datami/SHA/wynikami jest w [archiwum do 09.11](docs/archive/CURRENT_STATE_history_to_20261109.md); starsza w [archiwum do 30.10](docs/archive/CURRENT_STATE_history_to_20261030.md). Dawne FAIL, „otwarte PR” i CI_PENDING nie są automatycznie bieżącym statusem.
 
 ## 1. ZROBIONE — potwierdzony stan
 
@@ -10,6 +10,8 @@ Stan pakietu P0 zaktualizowany **10.11.2026**; jego BASE/main `3ebf20c81601ae854
 - **Poprzedni pakiet dokumentacyjny 09.11 (historyczny zapis na jego gałęzi):** jeden wykonawca; skrócenie AGENTS, procedury tematyczne, oddzielenie pełnej historii, protokół oszczędnej pracy. Gałąź `docs/codex-context-optimization`, BASE `e1e8d6c9825120434a06b7b75aabd601f02c574c`. **CODE_READY / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED** dotyczy tego nowego pakietu. Wynikowy HEAD (commit zawierający ten wpis), push i CLEAN są potwierdzane w końcowym przekazaniu; nie wpisuje się samoodnoszącego SHA. Dowód zakresu i kontroli: [raport optymalizacji](tools/reports/codex-context-optimization-20261109.md).
 
 - **P0: integralność zleceń usługowych — 10.11.2026:** gałąź `fix/service-order-integrity-20261109`, BASE `3ebf20c81601ae854f62fcdeba2ada25c54a074c`. Potwierdzenia fail-closed; częściowa edycja zachowuje pełne zlecenie/formatki/plan/metadane; zapis i usunięcie wymagają potwierdzenia storage, a błąd zachowuje edytor/dirty. Szczegóły chronią także ×/Escape. **CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING / LIVE_BLOCKED**. Celowane Node **12/12**, Chromium **6/6**, istniejące usługi/PRO100 **18/18 PASS**; na BASE **11 odtworzonych FAIL i 1 PASS**. Routing **212 smoke / 7 grup**, nowe testy w **6/7 i 5/7**. Wersje/manifest/load groups/składnia/diff PASS. [Przyczyny, testy i ograniczenia](tools/reports/pro100-service-import-v1.md#p0--integralność-zleceń-usługowych--10112026). Jeden końcowy commit/push; wynikowy HEAD/CLEAN w przekazaniu po potwierdzeniu zdalnym. Bez PR, uruchamiania CI, wydania, Firebase LIVE, migracji i zmian danych telefonu.
+
+- **P0: zapis wszystkich wariantów szafek — 10.11.2026:** gałąź `fix/local-cabinet-validation-20261110`, BASE/main `eb861142cc08842ef3773e1ea3d3a14847d8ff63`. Odtworzono odmowę piekarnikowej na BASE. Lokalna walidacja używa natywnych generatorów; pilot eksportu i sync pozostają ograniczone. Testy kontraktu 17 wariantów/szczególnych frontów/PCV/zestawów i negatywy PASS, rzeczywisty modal + LOCAL-FIRST + zimny restart offline 17 wariantów i A/C/D PASS, abort IndexedDB zachowuje formularz/RAM/RAW/magazyny, istniejący eksport **62/62 PASS**, kontrakt biznesowy PASS. **CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**. Nie dotykano aktualizatora, Auth, writer-fence, cenników/norm/materiałów, ofert ani danych telefonu. Poprzednie gałęzie zachowane. [Raport i granice przyszłego modelu](tools/reports/local-cabinet-validation-20261110.md). Wynikowy HEAD/push/CLEAN w końcowym przekazaniu po kontroli zdalnej.
 
 ## 2. SPRAWDZONE — nie powtarzać bez nowego powodu
 
@@ -37,7 +39,7 @@ Incydent quota z 24.10 i jego ówczesne polecenia są [historycznym zapisem](doc
 
 ## 4. NASTĘPNY RUCH
 
-**Dla pakietu P0 zleceń usługowych:** niezależna kontrola diffu i świeżego zdalnego HEAD/BASE przez ChatGPT. Ewentualna próba wydania wyłącznie po osobnej zgodzie właściciela na dokładne SHA; teraz bez PR/CI/merge/Pages. Przed aktualizacją statusu sprawdzić, czy main się nie zmienił.
+**Dla bieżącego P0 zapisu szafek:** niezależna kontrola diffu i świeżego zdalnego HEAD/BASE przez ChatGPT. Ewentualna próba wydania wyłącznie po osobnej zgodzie właściciela na dokładne SHA; teraz bez PR/CI/merge/Pages. Przed aktualizacją statusu sprawdzić, czy main się nie zmienił.
 
 **Cel produktu pozostaje:** FREE-FIRST / PRODUCT-FIRST, 0 zł obowiązkowych opłat, działająca synchronizacja telefon–komputer i rozwój WYCENY/RYSUNKÓW. Nie wracać do ogólnego audytu ani CLOUD-4.6G/VPS/rozbudowy STOP dla nich samych. Kolejny zakres wybiera właściciel po rekomendacji ChatGPT. Minimum: tylko właściciel, cenniki/zamienniki bez strat, offline bez nadpisania i bezpieczne przejęcie jednego edytora. Bez samodzielnego uruchomienia LIVE.
 

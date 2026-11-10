@@ -81,7 +81,7 @@ export function createApplicationCommitter({store,globalContract,projectContract
     if(kind==='project'){
      const projects=JSON.parse(source.getItem('fc_projects_v1')||'[]').filter(p=>p.id===projectId);if(projects.length!==1)fail('LF_PROJECT_CHANNEL_REQUIRED');
      const investors=JSON.parse(source.getItem('fc_investors_v1')||'[]').filter(i=>i.id===projects[0].investorId);if(investors.length!==1)fail('LF_APPLICATION_OWNER_CHANGED');
-     const payload={project:projects[0],investor:investors[0],offers:JSON.parse(source.getItem('fc_quote_snapshots_v1')||'[]').filter(o=>o.project?.id===projectId)};projectContract.validate(payload);
+     const payload={project:projects[0],investor:investors[0],offers:JSON.parse(source.getItem('fc_quote_snapshots_v1')||'[]').filter(o=>o.project?.id===projectId)};projectContract.validate(payload,{local:true});
      // Native selections (e.g. HDF) are resolved by the pricing runtime. Exact
      // transport reference binding is a later sync requirement, never a fake ACK.
      for(const [key,id]of [['fc_projects_v1',projectId],['fc_investors_v1',payload.investor.id]])if(!equal(JSON.parse(old.rows[key]||'[]').filter(r=>r.id!==id),JSON.parse(application.rows[key]||'[]').filter(r=>r.id!==id)))fail('LF_APPLICATION_SCOPE_REFUSED');

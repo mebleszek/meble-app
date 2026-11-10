@@ -15,6 +15,7 @@
   }
 
   function getProjectRoomData(room){
+    if(room && typeof room==='object') return room;
     const rid = String(room || '');
     try{
       if(window.projectData && window.projectData[rid] && typeof window.projectData[rid] === 'object') return window.projectData[rid];
@@ -28,7 +29,7 @@
 function getRoomSetRecord(room, setId){
   const rid = String(room || '');
   const sid = String(setId || '');
-  const roomData = getProjectRoomData(rid) || null;
+  const roomData = getProjectRoomData(room) || null;
   const sets = Array.isArray(roomData && roomData.sets) ? roomData.sets : [];
   return sets.find((set)=> String(set && set.id || '') === sid) || null;
 }
@@ -109,18 +110,18 @@ function deriveSetFrontsFromRecord(room, setId){
 function getRoomSetFronts(room, setId){
   const rid = String(room || '');
   const sid = String(setId || '');
-  const roomData = getProjectRoomData(rid) || null;
+  const roomData = getProjectRoomData(room) || null;
   const fronts = Array.isArray(roomData && roomData.fronts) ? roomData.fronts : [];
   const stored = fronts.filter((front)=> String(front && front.setId || '') === sid);
   if(stored.length) return stored;
-  return deriveSetFrontsFromRecord(rid, sid);
+  return deriveSetFrontsFromRecord(room, sid);
 }
 
 function isLeadSetCabinet(room, cab){
   if(!cab || !cab.setId) return false;
   const rid = String(room || '');
   const sid = String(cab.setId || '');
-  const roomData = getProjectRoomData(rid) || null;
+  const roomData = getProjectRoomData(room) || null;
   const cabinets = Array.isArray(roomData && roomData.cabinets) ? roomData.cabinets : [];
   const first = cabinets.find((entry)=> String(entry && entry.setId || '') === sid) || null;
   return !!(first && String(first.id || '') === String(cab.id || ''));
