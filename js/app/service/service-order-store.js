@@ -5,7 +5,7 @@
   const keys = (FC.constants && FC.constants.STORAGE_KEYS) || {};
   const storage = FC.storage || {
     getJSON(_key, fallback){ return JSON.parse(JSON.stringify(fallback)); },
-    setJSON(){}
+    setJSON(){ return false; }
   };
 
   const ORDER_KEY = keys.serviceOrders || 'fc_service_orders_v1';
@@ -31,6 +31,7 @@
   function normalizeMeta(meta){
     const src = meta && typeof meta === 'object' ? meta : {};
     return {
+      ...clone(src),
       testData: !!src.testData,
       testOwner: normalizeText(src.testOwner),
       testRunId: normalizeText(src.testRunId),
@@ -48,6 +49,7 @@
     const edgesAlong = Math.max(0, Math.min(2, Number(src.edgesAlong) || 0));
     const edgesAcross = Math.max(0, Math.min(2, Number(src.edgesAcross) || 0));
     const out = {
+      ...clone(src),
       id: normalizeText(src.id) || uid(),
       name,
       qty,
@@ -68,6 +70,7 @@
   function normalizeCutting(cutting){
     const src = cutting && typeof cutting === 'object' ? cutting : {};
     return {
+      ...clone(src),
       enabled: src.enabled !== false,
       materialMode: normalizeText(src.materialMode || 'catalog') === 'client' ? 'client' : 'catalog',
       materialId: normalizeText(src.materialId),
@@ -92,12 +95,14 @@
     const title = normalizeText(src.title) || normalizeText(src.name) || 'Nowe zlecenie';
     const clientName = normalizeText(src.clientName || src.customerName);
     const items = Array.isArray(src.items) ? src.items.map((item)=> item && typeof item === 'object' ? {
+      ...clone(item),
       name: normalizeText(item.name),
       qty: Number(item.qty) || 0,
       unitPrice: Number(item.unitPrice) || 0,
       total: Number(item.total) || ((Number(item.qty) || 0) * (Number(item.unitPrice) || 0)),
     } : null).filter(Boolean) : [];
     const out = {
+      ...clone(src),
       id: normalizeText(src.id) || uid(),
       title,
       clientName,
@@ -132,7 +137,7 @@
 
   function writeAll(list){
     const rows = Array.isArray(list) ? list.map(normalizeOrder) : [];
-    storage.setJSON(ORDER_KEY, rows);
+    if(storage.setJSON(ORDER_KEY, rows) !== true) throw new Error('SERVICE_ORDER_WRITE_FAILED');
     return rows;
   }
 
@@ -143,9 +148,9 @@
   }
 
   function upsert(order){
-    const normalized = normalizeOrder(order);
     const list = readAll();
-    const idx = list.findIndex((row)=> String(row.id || '') === String(normalized.id || ''));
+    const idx = list.findIndex((row)=> String(row.id || '') === normalizeText(order && order.id));
+    const normalized = normalizeOrder(Object.assign({}, idx >= 0 ? list[idx] : {}, order || {}));
     if(idx >= 0) list[idx] = normalized;
     else list.unshift(normalized);
     writeAll(list);
@@ -154,8 +159,9 @@
 
   function remove(id){
     const key = normalizeText(id);
-    if(!key) return;
+    if(!key) return false;
     writeAll(readAll().filter((row)=> String(row.id || '') !== key));
+    return true;
   }
 
   function createDraft(initial){

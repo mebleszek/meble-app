@@ -3,6 +3,9 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
+  "js/app/service/service-order-store.js":"20261110_service_order_integrity_v1",
+  "js/app/service/service-orders.js":"20261110_service_order_integrity_v1",
+  "js/app/service/cutting/service-order-detail.js":"20261110_service_order_integrity_v1",
   "js/app/rozrys/rozrys-stock.js":"20261108_material_catalog_authority_v1",
   "js/app/rozrys/rozrys-sheet-model.js":"20261108_material_catalog_authority_v1",
   "js/app/rozrys/rozrys-scope.js":"20261108_material_catalog_authority_v1",
