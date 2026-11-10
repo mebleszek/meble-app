@@ -45,6 +45,35 @@ let sequence=0;r.FC.utils.uid=()=> 'generated-'+(++sequence);const c=r.FC.busine
   delete room.production;delete room.layout;delete room.futurePlacement;
   const modes=opt.v==='lodowkowa'?[{fridgeFrontCount:'1'},{fridgeOption:'wolnostojaca'}]:opt.v==='dolna_podblatowa'?[{podFrontMode:'brak'},{podFrontMode:'szuflady'}]:opt.v==='uchylne'?[{flapVendor:'blum',flapKind:'HF_top'}]:[];
   for(const mode of modes){cab.details={...cab.details,...mode};fronts.generateFrontsForCabinet('kuchnia',cab);assert.equal(c.validate(payload,{local:true}),true,'Native special front mode '+JSON.stringify(mode));if(mode.flapKind==='HF_top')assert.equal(room.fronts.length,2);}
+  if(opt.v==='uchylne'){
+   // PCV must be attached to flap panels, not ordinary door fronts.
+   const edges={w1:true,w2:false,h1:false,h2:true};
+   for(const kind of ['HKI','HF_top']){
+    cab.details={...cab.details,flapVendor:'blum',flapKind:kind};
+    fronts.ensureFrontCountRules(cab);fronts.generateFrontsForCabinet('kuchnia',cab);
+    const actual=r.FC.frontHardware.getCabinetFrontPartsForLocalDraft(room,clone(cab));
+    const actualRoles=actual.flatMap(part=>part.partRoleIds||[]).sort();
+    const expectedRoles=kind==='HF_top'?['front.flap.left','front.flap.right']:['front.flap.single'];
+    assert.deepEqual(actualRoles,expectedRoles,'Only native flap PCV roles '+type+'/'+kind);
+    const geom=actual.filter(part=>part.sourceFamily==='front')
+      .flatMap(part=>Array.from({length:part.qty},()=>[Number(part.a),Number(part.b)]))
+      .sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+    const stored=room.fronts.map(f=>[Number(f.width),Number(f.height)])
+      .sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+    assert.deepEqual(geom,stored,'Flap material geometry must match stored native fronts');
+    assert.equal(stored.length,kind==='HF_top'?2:1,'One flap vs two stacked HF top fronts');
+    room.production={partOverrides:{native:Object.fromEntries(actualRoles.map(role=>[role,{edges:clone(edges)}]))}};
+    const unchanged=clone(room);assert.equal(c.validate(payload,{local:true}),true,'Flap PCV accepted '+type+'/'+kind);
+    assert.deepEqual(clone(room),unchanged,'Flap validation must not mutate persisted data');
+    const wrong=clone(payload);
+    wrong.project.projectData.kuchnia.production.partOverrides.native['front.door.single']={edges:clone(edges)};
+    assert.throws(()=>c.validate(wrong,{local:true}),e=>e.code==='LF_PROJECT_SCHEMA_BLOCKED'&&e.reason==='EXPORT_PCV_ROLE_INVALID','Door PCV cannot masquerade as flap');
+    const wrongFlap=clone(payload);
+    wrongFlap.project.projectData.kuchnia.production.partOverrides.native[kind==='HF_top'?'front.flap.single':'front.flap.left']={edges:clone(edges)};
+    assert.throws(()=>c.validate(wrongFlap,{local:true}),e=>e.code==='LF_PROJECT_SCHEMA_BLOCKED'&&e.reason==='EXPORT_PCV_ROLE_INVALID','Wrong flap count role refused');
+    delete room.production;
+   }
+  }
   console.log('PASS local/native '+type+'/'+opt.v);n++;
  }
  for(const presetId of ['A','C','D'])for(const frontCount of [1,2]){

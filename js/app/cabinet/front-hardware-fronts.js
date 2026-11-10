@@ -355,12 +355,18 @@ function getCabinetFrontPartsForLocalDraft(room, cab){
     return finalize();
   }
 
-  // Uchylna (wisząca / moduł): 1 lub 2 fronty wg HF
-  if((cab.type === 'wisząca' || cab.type === 'moduł') && cab.subType === 'uchylna'){
-    const fc = Math.max(1, Number(cab.frontCount||1));
+  // Klapy są układane pionowo: HF top ma dwa fronty jeden nad drugim.
+  // Ta sama reguła liczby frontów co w kreatorze; bez zmiany identyfikatorów ról PCV.
+  if((cab.type === 'wisząca' || cab.type === 'moduł') && cab.subType === 'uchylne'){
+    const fc = ns.cabinetFronts?.getFlapFrontCount?.(cab)
+      ?? ((String(cab.details?.flapVendor || 'blum') === 'blum' && String(cab.details?.flapKind || 'HKI') === 'HF_top') ? 2 : 1);
     const fh = getFrontHeightForCab();
-    const wEach = fc ? (effectiveW / fc) : 0;
-    for(let i=0;i<fc;i++) addFront(wEach, fh,pairRole('front.flap',fc,i));
+    if(fc === 2){
+      const h1 = Math.round((fh/2)*10)/10;
+      const h2 = Math.max(0, Math.round((fh-h1)*10)/10);
+      addFront(effectiveW, h1, pairRole('front.flap',2,0));
+      addFront(effectiveW, h2, pairRole('front.flap',2,1));
+    }else addFront(effectiveW, fh, pairRole('front.flap',1,0));
     cab.frontCount = fc;
     return finalize();
   }

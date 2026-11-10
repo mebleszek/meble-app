@@ -6,7 +6,7 @@ const versions = Object.freeze({
   "js/app/project/project-local-room-contract.js":"20261110_native_local_cabinets_v1",
   "js/app/project/business-project-contract.js":"20261110_native_local_cabinets_v1",
   "js/app/cabinet/front-material-source.js":"20261110_native_local_cabinets_v1",
-  "js/app/cabinet/front-hardware-fronts.js":"20261110_native_local_cabinets_v1",
+  "js/app/cabinet/front-hardware-fronts.js":"20261111_flap_hf_top_v1",
   "js/app/cabinet/cabinet-fronts.js":"20261110_native_local_cabinets_v1",
   "js/app/service/service-order-store.js":"20261110_service_order_integrity_v1",
   "js/app/service/service-orders.js":"20261110_service_order_inflight_v1",
