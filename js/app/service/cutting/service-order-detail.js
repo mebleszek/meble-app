@@ -20,7 +20,7 @@
   function clone(value){ try{ return JSON.parse(JSON.stringify(value)); }catch(_){ return null; } }
   function store(){ return FC.serviceOrderStore || FC.catalogStore || null; }
   function info(title, message){ try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title, message }); }catch(_){ } }
-  async function ask(cfg){ try{ return !!(await (FC.confirmBox && FC.confirmBox.ask ? FC.confirmBox.ask(cfg) : true)); }catch(_){ return true; } }
+  async function ask(cfg){ try{ return !!(FC.confirmBox && typeof FC.confirmBox.ask === 'function') && await FC.confirmBox.ask(cfg) === true; }catch(_){ return false; } }
 
   function getOrder(id){
     const s = store();
@@ -31,11 +31,8 @@
   }
 
   function saveOrder(order){
-    const s = store();
-    if(!s) return null;
-    if(typeof s.upsert === 'function') return s.upsert(order);
-    if(typeof s.upsertServiceOrder === 'function') return s.upsertServiceOrder(order);
-    return order;
+    const s = FC.serviceOrderStore;
+    return s && typeof s.upsert === 'function' ? s.upsert(order) : null;
   }
 
   function materialOptions(){
@@ -52,6 +49,8 @@
 
     let draft = common.normalizeDraft(order.cutting || {});
     let dirty = false;
+    let savePending = false;
+    let editRevision = 0;
     let lastGenerated = draft.plan ? { ok:true, state:clone(draft.state || {}), materialMeta: common.resolveMaterialMeta(draft), parts: common.buildPlanParts(draft.parts, draft.materialName), plan: clone(draft.plan) } : null;
 
     const body = h('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock' });
@@ -101,7 +100,7 @@
       return wrap;
     }
 
-    function markDirty(){ dirty = true; }
+    function markDirty(){ dirty = true; editRevision += 1; }
 
     function syncDraftFromInputs(){
       draft.materialMode = materialMode.value === 'client' ? 'client' : 'catalog';
@@ -275,21 +274,26 @@
 
     generateBtn.addEventListener('click', ()=>{ generate(); });
     saveBtn.addEventListener('click', async ()=>{
+      if(savePending) return;
+      savePending = true;
+      try{
       syncDraftFromInputs();
-      const next = Object.assign({}, order, { cutting:Object.assign({}, draft, { plan: clone(draft.plan), generatedAt: Number(draft.generatedAt) || 0 }), updatedAt:Date.now() });
-      saveOrder(next);
-      dirty = false;
+      const revisionAtSave = editRevision;
+      const next = { id:order.id, cutting:Object.assign({}, order.cutting, draft, { plan: clone(draft.plan), generatedAt: Number(draft.generatedAt) || 0 }), updatedAt:Date.now() };
+      try{
+        if(!await saveOrder(next)) throw new Error('SERVICE_ORDER_WRITE_FAILED');
+      }catch(_){ info('Nie zapisano', 'Nie udało się zapisać zlecenia. Zmiany pozostały w edytorze.'); return; }
+      dirty = revisionAtSave !== editRevision;
       info('Zapisano', 'Zlecenie usługowe zostało zapisane.');
+      }finally{ savePending = false; }
     });
+    const askDiscard = async ()=> !savePending && (!dirty || await ask({ title:'Zamknąć bez zapisu?', message:'Masz niezapisane zmiany w zleceniu usługowym.', confirmText:'Wyjdź', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' }));
     closeBtn.addEventListener('click', async ()=>{
-      if(dirty){
-        const ok = await ask({ title:'Zamknąć bez zapisu?', message:'Masz niezapisane zmiany w zleceniu usługowym.', confirmText:'Wyjdź', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' });
-        if(!ok) return;
-      }
+      if(!await askDiscard()) return;
       try{ FC.panelBox.close && FC.panelBox.close(); }catch(_){ }
     });
 
-    FC.panelBox.open({ title:`Zlecenie usługowe — ${order.title || 'Nowe zlecenie'}`, contentNode:body, width:'1120px', boxClass:'panel-box--rozrys', dismissOnOverlay:false, dismissOnEsc:true });
+    FC.panelBox.open({ title:`Zlecenie usługowe — ${order.title || 'Nowe zlecenie'}`, contentNode:body, width:'1120px', boxClass:'panel-box--rozrys', dismissOnOverlay:false, dismissOnEsc:true, beforeClose:askDiscard });
     if(draft.plan){
       lastGenerated = draft.plan && draft.plan.multi && Array.isArray(draft.plan.groups)
         ? { ok:true, multi:true, groups:draft.plan.groups.map((group)=> Object.assign({ ok:true }, group, { plan:clone(group.plan), state:clone(group.state || {}), materialMeta:clone(group.materialMeta || {}), parts:clone(group.parts || []) })) }

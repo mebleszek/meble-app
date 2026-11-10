@@ -13,7 +13,7 @@
   function escapeHtml(value){ return String(value == null ? '' : value).replace(/[&<>"']/g, (ch)=> ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch] || ch)); }
   function store(){ return FC.serviceOrderStore || FC.catalogStore || null; }
   function info(title, message){ try{ FC.infoBox && FC.infoBox.open && FC.infoBox.open({ title, message }); }catch(_){ } }
-  async function ask(cfg){ try{ return !!(await (FC.confirmBox && FC.confirmBox.ask ? FC.confirmBox.ask(cfg) : true)); }catch(_){ return true; } }
+  async function ask(cfg){ try{ return !!(FC.confirmBox && typeof FC.confirmBox.ask === 'function') && await FC.confirmBox.ask(cfg) === true; }catch(_){ return false; } }
 
   function getOrders(){
     if(store() && typeof store().readAll === 'function') return store().readAll();
@@ -83,6 +83,12 @@
     const current = id ? (getOrders().find((row)=> String(row.id) === String(id)) || null) : null;
     const draft = Object.assign({ id:'', title:'', customerName:'', phone:'', city:'', description:'', status:'nowe' }, current || {});
     let dirty = false;
+    let operationPending = false;
+    const runExclusive = (task)=> async ()=>{
+      if(operationPending) return;
+      operationPending = true;
+      try{ return await task(); }finally{ operationPending = false; }
+    };
     const body = document.createElement('div');
     body.className = 'panel-box-form rozrys-panel-form rozrys-panel-form--stock';
     const scroll = document.createElement('div');
@@ -121,10 +127,10 @@
     [titleInput, customerInput, phoneInput, cityInput, statusSelect, description].forEach((field)=>{ field.addEventListener('input', refresh); field.addEventListener('change', refresh); });
 
     const close = ()=>{ try{ FC.panelBox.close(); }catch(_){ } };
-    const askDiscard = async ()=> !dirty || ask({ title:'ANULOWAĆ ZMIANY?', message:'Niezapisane zmiany w zleceniu zostaną utracone.', confirmText:'✕ ANULUJ ZMIANY', cancelText:'WRÓĆ', confirmTone:'danger', cancelTone:'neutral' });
-    exitBtn.addEventListener('click', ()=> close());
-    cancelBtn.addEventListener('click', async ()=>{ if(await askDiscard()) close(); });
-    saveBtn.addEventListener('click', async ()=>{
+    const askDiscard = async (insideAction = false)=> (insideAction || !operationPending) && (!dirty || await ask({ title:'ANULOWAĆ ZMIANY?', message:'Niezapisane zmiany w zleceniu zostaną utracone.', confirmText:'✕ ANULUJ ZMIANY', cancelText:'WRÓĆ', confirmTone:'danger', cancelTone:'neutral' }));
+    exitBtn.addEventListener('click', ()=>{ if(!operationPending) close(); });
+    cancelBtn.addEventListener('click', runExclusive(async ()=>{ if(await askDiscard(true)) close(); }));
+    saveBtn.addEventListener('click', runExclusive(async ()=>{
       if(!String(titleInput.value || '').trim()){
         info('Brak nazwy', 'Wprowadź nazwę zlecenia, zanim je zapiszesz.');
         try{ titleInput.focus(); }catch(_){ }
@@ -135,25 +141,32 @@
       const payload = {
         id: current ? current.id : undefined,
         title:titleInput.value,
+        clientName:customerInput.value,
         customerName:customerInput.value,
         phone:phoneInput.value,
         city:cityInput.value,
         status:statusSelect.value,
         description:description.value,
       };
-      if(store() && typeof store().upsert === 'function') store().upsert(payload);
-      else store() && store().upsertServiceOrder && store().upsertServiceOrder(payload);
+      try{
+        const s = FC.serviceOrderStore;
+        if(!s || typeof s.upsert !== 'function' || !await s.upsert(payload)) throw new Error('SERVICE_ORDER_WRITE_FAILED');
+      }catch(_){ info('Nie zapisano', 'Nie udało się zapisać zlecenia. Zmiany pozostały w edytorze.'); return; }
+      dirty = false;
       close();
       renderList();
-    });
-    deleteBtn.addEventListener('click', async ()=>{
+    }));
+    deleteBtn.addEventListener('click', runExclusive(async ()=>{
       const ok = await ask({ title:'Usunąć zlecenie?', message:'Tej operacji nie cofnisz.', confirmText:'Usuń', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' });
       if(!ok) return;
-      if(store() && typeof store().remove === 'function') store().remove(current.id);
-      else store() && store().removeServiceOrder && store().removeServiceOrder(current.id);
+      try{
+        const s = FC.serviceOrderStore;
+        if(!s || typeof s.remove !== 'function' || await s.remove(current.id) !== true) throw new Error('SERVICE_ORDER_WRITE_FAILED');
+      }catch(_){ info('Nie usunięto', 'Nie udało się usunąć zlecenia. Spróbuj ponownie.'); return; }
+      dirty = false;
       close();
       renderList();
-    });
+    }));
 
     FC.panelBox.open({ title: current ? 'Edytuj zlecenie usługowe' : 'Nowe zlecenie usługowe', contentNode: body, width:'780px', boxClass:'panel-box--rozrys', dismissOnOverlay:false, dismissOnEsc:true, beforeClose: async ()=> await askDiscard() });
     setTimeout(()=>{ try{ titleInput.focus(); }catch(_){ } }, 20);
