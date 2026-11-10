@@ -236,7 +236,18 @@ async function main(){
   console.log('PASS gallery appearance, animation/group close and four actual accordions; three room-scope accordions read the persisted catalog/shared calculator and never write RAW, native IDB or RAM');
   await browser.close();console.log('PASS scope/stage metadata persists through actual LOCAL-FIRST form commit and cold restart; native RAW, RAM, replicas/protected/outbox remain exact; actual schedule view renders');
   // Manual third-person hours use the existing owned-project path, including abort/retry.
-  const synthetic=require('./project-selective-export-smoke').fixture(),document=await synthetic.build(),payload=document.document.payload;
+  // The selective-export fixture intentionally omits persisted fronts. An owned LOCAL-FIRST
+  // edit needs the complete native representation, even when only helper hours change.
+  // Construct it with the existing production creator, not hand-written test geometry.
+  const synthetic=require('./project-selective-export-smoke').fixture();
+  synthetic.mutate(project=>{
+    for(const [roomId,room] of Object.entries(project.projectData)){
+      if(!Array.isArray(room?.cabinets))continue;
+      room.fronts=room.cabinets.flatMap(cab=>synthetic.FC.cabinetFronts.previewFrontsForCabinet(room,cab)
+        .map((front,index)=>({...front,id:`helper-fixture-${roomId}-${cab.id}-${index}`})));
+    }
+  });
+  const document=await synthetic.build(),payload=document.document.payload;
   profile='helper-hours';sourceRows=structuredClone(raw);
   Object.assign(sourceRows,{fc_projects_v1:JSON.stringify([payload.project]),fc_investors_v1:JSON.stringify([payload.investor]),fc_quote_snapshots_v1:JSON.stringify([{id:'original-offer',project:{id:payload.project.id},investor:{id:payload.investor.id},frozen:123.4567}]),fc_current_project_id_v1:payload.project.id,fc_current_investor_v1:payload.investor.id});
   await open(true);

@@ -52,7 +52,7 @@ let sequence=0;r.FC.utils.uid=()=> 'generated-'+(++sequence);const c=r.FC.busine
     cab.details={...cab.details,flapVendor:'blum',flapKind:kind};
     fronts.ensureFrontCountRules(cab);fronts.generateFrontsForCabinet('kuchnia',cab);
     const actual=r.FC.frontHardware.getCabinetFrontPartsForLocalDraft(room,clone(cab));
-    const actualRoles=actual.flatMap(part=>part.partRoleIds||[]).sort();
+    const actualRoles=Array.from(actual.flatMap(part=>part.partRoleIds||[])).sort();
     const expectedRoles=kind==='HF_top'?['front.flap.left','front.flap.right']:['front.flap.single'];
     assert.deepEqual(actualRoles,expectedRoles,'Only native flap PCV roles '+type+'/'+kind);
     const geom=actual.filter(part=>part.sourceFamily==='front')
