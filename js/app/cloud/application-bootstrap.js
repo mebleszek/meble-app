@@ -46,7 +46,7 @@
   AUTH_ACCESS_DENIED AUTH_ACCESS_EXPIRED AUTH_ACCESS_PENDING AUTH_ACCESS_REVOKED AUTH_ACCESS_TIMEOUT
   AUTH_ACCESS_UNCONFIRMED AUTH_ACCOUNT_CHANGED AUTH_AUTHORIZATION_NOT_CONFIGURED AUTH_CONFIG_INVALID AUTH_CONFIG_REQUIRED
   AUTH_GOOGLE_REQUIRED AUTH_INTERACTION_REQUIRED AUTH_PERSISTENCE_UNAVAILABLE AUTH_RELOAD_REQUIRED AUTH_SCRIPT_ABORTED
-  AUTH_SCRIPT_EXECUTION AUTH_SCRIPT_NETWORK AUTH_SCRIPT_SOURCE AUTH_SDK_UNAVAILABLE AUTH_SESSION_UNCONFIRMED
+  AUTH_SCRIPT_LOCKED AUTH_SCRIPT_EXECUTION AUTH_SCRIPT_NETWORK AUTH_SCRIPT_SOURCE AUTH_SDK_UNAVAILABLE AUTH_SESSION_UNCONFIRMED
   AUTH_STARTUP_FAILED AUTH_STARTUP_UNCONFIRMED AUTH_STYLE_NETWORK
   LOCAL_ACCESS_CANCELLED LOCAL_ACCESS_CHANGED LOCAL_ACCESS_CONSENT_REQUIRED LOCAL_ACCESS_COORDINATION_INVALID LOCAL_ACCESS_COORDINATION_UNAVAILABLE
   LOCAL_ACCESS_DATA_CHANGED LOCAL_ACCESS_INVALID LOCAL_ACCESS_LOCK_REQUIRED LOCAL_ACCESS_OTHER_ACCOUNT LOCAL_ACCESS_PROTECTED
@@ -99,6 +99,16 @@
  function errorCode(error){
   try{const code=typeof error==='string'?error:error?.code||error?.message||error?.name;return diagnosticCodes.has(code)?code:'UNRECOGNIZED_ERROR';}catch(_){return 'UNRECOGNIZED_ERROR';}
  }
+ function scriptDiagnostic(value){
+  try{
+  if(!value||!Number.isSafeInteger(value.index)||value.index<0||value.index>4096||!['fetch','execution'].includes(value.phase))return null;
+  const groups=['auth-shell','startup-foundation','business-domains','ui-shell','app-runtime','cabinet-wywiad','tabs-quote-wycena','optimizer-and-stock','rozrys-shared'];
+  return Object.freeze({index:value.index,group:groups.includes(value.group)?value.group:'unknown',phase:value.phase,
+   status:Number.isSafeInteger(value.status)&&value.status>=0&&value.status<=599?value.status:0,
+   name:['Error','SyntaxError','ReferenceError','TypeError','RangeError','SecurityError','AbortError'].includes(value.name)?value.name:'Error',
+   line:Number.isSafeInteger(value.line)&&value.line>=0&&value.line<1000000?value.line:0});
+  }catch(_){return null;}
+ }
  function recordFailure(error,at=stage){
   const code=errorCode(error);
   if(!aliasConflict&&code==='GLOBAL_ALIAS_CONFLICT'){
@@ -106,7 +116,10 @@
    aliasConflict=Object.freeze({stage:diagnosticStage(at),code,domain:metadata.domain,keys:Object.freeze([...metadata.keys])});
   }
   // A reload requirement is a consequence, never evidence of the first fault.
-  if(!firstError&&code!=='AUTH_RELOAD_REQUIRED')firstError=Object.freeze({stage:diagnosticStage(at),code});
+  if(!firstError&&code!=='AUTH_RELOAD_REQUIRED'){
+   let script=null;try{script=scriptDiagnostic(error?.script);}catch(_){}
+   firstError=Object.freeze({stage:diagnosticStage(at),code,...(script?{script}:{})});
+  }
  }
  function diagnosticState(value){
   if(value.projectTransferBlocked===true){
@@ -186,7 +199,7 @@
    return openLocalFirstRecovery({window,api,exclusive,authorize,reset,parent:options.parent||document.body,onClose:options.onClose});
   },
   hasLocalFirst(){return !!configuration&&!!boot;},
-  errorCode,
+  errorCode,scriptDiagnostic,
   recordFailure(error,at){recordFailure(error,at==='starting-local-first'?stage:at);},
   inspectGlobalConsistency,
   diagnostics:()=>Object.freeze({status:'READ_ONLY',stage:diagnosticStage(stage),code:lastError?errorCode(lastError):null,firstError:firstError&&{...firstError},transferStatus,projectTransferBlocked:projectTransferBlocked&&{...projectTransferBlocked},aliasConflict:aliasConflict&&{...aliasConflict,keys:[...aliasConflict.keys]},...(globalConsistency?{globalConsistency:JSON.parse(JSON.stringify(globalConsistency))}:{})}),

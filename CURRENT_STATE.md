@@ -11,6 +11,8 @@ Stan pakietu P0 zaktualizowany **10.11.2026**; jego BASE/main `3ebf20c81601ae854
 
 - **P0: integralność zleceń usługowych — 10.11.2026:** gałąź `fix/service-order-integrity-20261109`, BASE `3ebf20c81601ae854f62fcdeba2ada25c54a074c`. Potwierdzenia fail-closed; częściowa edycja zachowuje pełne zlecenie/formatki/plan/metadane; zapis i usunięcie wymagają potwierdzenia storage, a błąd zachowuje edytor/dirty. Szczegóły chronią także ×/Escape. **CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING / LIVE_BLOCKED**. Celowane Node **12/12**, Chromium **6/6**, istniejące usługi/PRO100 **18/18 PASS**; na BASE **11 odtworzonych FAIL i 1 PASS**. Routing **212 smoke / 7 grup**, nowe testy w **6/7 i 5/7**. Wersje/manifest/load groups/składnia/diff PASS. [Przyczyny, testy i ograniczenia](tools/reports/pro100-service-import-v1.md#p0--integralność-zleceń-usługowych--10112026). Jeden końcowy commit/push; wynikowy HEAD/CLEAN w przekazaniu po potwierdzeniu zdalnym. Bez PR, uruchamiania CI, wydania, Firebase LIVE, migracji i zmian danych telefonu.
 
+- **P0 — minimalna diagnostyka Pixela, 10.11.2026:** `fix/pixel-startup-diagnostics-20261110`, BASE/main `eb861142cc08842ef3773e1ea3d3a14847d8ff63` potwierdzony zdalnie. **CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING / LIVE_BLOCKED; CAUSE_UNCONFIRMED.** Wyłącznie anonimowa diagnostyka pierwszego błędu loadera (numer/grupa/faza/HTTP/typ/wiersz), istniejący komunikat i raport, uzgodniony AGENTS §8, potrzebne wersje/manifest/testy. Bez nowego aktualizatora i zmian SW/writer-fence/Auth/LOCAL-FIRST/cenników. Źródłowa gałąź `fix/safe-startup-single-window-update-20261110` na `3ea553dcc48fda146a1db217144a19aa9d6329ca` pozostaje nietknięta; jej bloker RAW nie jest przenoszony ani uznawany za rozwiązany. Celowane: diagnostyka **11/11**, Chromium **4/4**, main **36/36**, trusted **4 grupy PASS**; statyczne PASS. [Zakres i dowody](tools/reports/pixel-startup-diagnostics-20261110.md). Jeden commit/push, wynikowy HEAD/CLEAN w przekazaniu; bez PR/CI/wydania/LIVE i bez zmian danych telefonu.
+
 ## 2. SPRAWDZONE — nie powtarzać bez nowego powodu
 
 - Kontrola 09.11 była odczytowa: main/PR #121/#123, wyniki istniejącego CI #42539813337 i krok exact Pages. Nie uruchamiano Preflightu, Actions, testów aplikacji ani emulatorów.
@@ -37,7 +39,7 @@ Incydent quota z 24.10 i jego ówczesne polecenia są [historycznym zapisem](doc
 
 ## 4. NASTĘPNY RUCH
 
-**Dla pakietu P0 zleceń usługowych:** niezależna kontrola diffu i świeżego zdalnego HEAD/BASE przez ChatGPT. Ewentualna próba wydania wyłącznie po osobnej zgodzie właściciela na dokładne SHA; teraz bez PR/CI/merge/Pages. Przed aktualizacją statusu sprawdzić, czy main się nie zmienił.
+**Dla minimalnej diagnostyki Pixela:** niezależna kontrola diffu i świeżego zdalnego HEAD/BASE przez ChatGPT. Ewentualna próba wydania wyłącznie po osobnej zgodzie właściciela na dokładne SHA; teraz bez PR/CI/merge/Pages. Przed aktualizacją statusu sprawdzić, czy main się nie zmienił.
 
 **Cel produktu pozostaje:** FREE-FIRST / PRODUCT-FIRST, 0 zł obowiązkowych opłat, działająca synchronizacja telefon–komputer i rozwój WYCENY/RYSUNKÓW. Nie wracać do ogólnego audytu ani CLOUD-4.6G/VPS/rozbudowy STOP dla nich samych. Kolejny zakres wybiera właściciel po rekomendacji ChatGPT. Minimum: tylko właściciel, cenniki/zamienniki bez strat, offline bez nadpisania i bezpieczne przejęcie jednego edytora. Bez samodzielnego uruchomienia LIVE.
 

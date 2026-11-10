@@ -71,7 +71,7 @@ const versions = Object.freeze({
 
   "js/app/wycena/wycena-summary-details-modal.js": "20261024_session_quota_exact_v1",
   "js/app/ui/session-diagnostics.js": "20261102_global_diagnostics_v1",
-  "js/app/ui/session-diagnostics-readonly.js": "20261102_global_diagnostics_v1",
+  "js/app/ui/session-diagnostics-readonly.js":"20261110_pixel_startup_diagnostics_v1",
   "js/app/pricing/labor-catalog-definitions.js": "20261108_catalog_rule_authority_v1",
   "js/app/pricing/labor-catalog.js": "20261108_ci121_catalog_cache_v1",
   "js/app/pricing/work-quantity-sources.js": "20261105_pdf_labor_v1",
@@ -102,10 +102,11 @@ const versions = Object.freeze({
   "js/app/wycena/wycena-tab-shell.js":"20261106_work_plan_v1"
 });
 const authVersions=Object.freeze({
+  "js/app/cloud/main-business-loader.js":"20261110_pixel_startup_diagnostics_v1",
   "js/app/cloud/offline-shell.js": "20261103_local_first_start_v1",
   "js/app/cloud/local-access-profile.js": "20261103_android_globals_recovery_v1",
-  "js/app/cloud/application-bootstrap.js": "20261103_local_first_start_v1",
-  "js/main-login.js": "20261103_local_first_start_v1"
+  "js/app/cloud/application-bootstrap.js":"20261110_pixel_startup_diagnostics_v1",
+  "js/main-login.js":"20261110_pixel_startup_diagnostics_v1"
 });
 function assertHtmlVersions(index, dev){
   const sources=Array.from(index.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi),m=>m[1]);

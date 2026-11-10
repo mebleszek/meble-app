@@ -86,7 +86,11 @@ Przy zmianie schematu danych lub sposobu zapisu:
 - unikaj migracji destrukcyjnych,
 - jeżeli potrzebna jest migracja, przygotuj ją jako osobne zadanie z planem cofnięcia.
 
-**Rozróżnienie danych (decyzja właściciela 31.10.2026):** obecni inwestorzy i projekty są testowe; nie buduj rozległej kompatybilności historycznych schematów wyłącznie dla nich, ale nigdy nie kasuj ich, ofert, draftów ani powiązanych magazynów automatycznie bez zgody na dokładny zakres. Cenniki, stawki, katalogi materiałów/okuć/dostawców, zamienniki, słowniki, ustawienia, konfiguracje i magazyn to dane globalne chronione bezwzględnie — ich kompatybilność i nienaruszalność są obowiązkowe.
+**Rozróżnienie danych — decyzja 31.10.2026, doprecyzowana przez właściciela 10.11.2026:** aktualni inwestorzy, projekty, wyceny/oferty i zlecenia są danymi testowymi. Właściciel nie dodawał własnych cenników ani norm; obowiązujące definicje znajdują się w kodzie aplikacji. Priorytetem jest działająca aplikacja: nie buduj dodatkowego recovery ani historycznej kompatybilności wyłącznie dla tych testowych rekordów. Nie kasuj ich, draftów ani powiązanych magazynów automatycznie bez zgody na dokładny zakres i nie wykonuj samodzielnego resetu telefonu.
+
+Rozróżniaj utratę zbędnych historycznych rekordów testowych od rzeczywistego błędu trwałego zapisu. Brak rekordu testowego sam w sobie nie potwierdza przyczyny; nie przedstawiaj hipotezy jako diagnozy. Niepowodzenie utrwalenia danych lub brak danych po nowym potwierdzonym zapisie nadal wymaga ustalenia przyczyny i naprawy — etykieta „testowe” nie zamienia FAIL w PASS ani nie osłabia kontraktu zapisu.
+
+Nie zmieniaj definicji cenników, norm ani materiałów w ramach naprawy startu/aktualizatora. Cenniki, stawki, katalogi materiałów/okuć/dostawców, zamienniki, słowniki, ustawienia, konfiguracje i magazyn pozostają chronionymi danymi globalnymi; doprecyzowanie o braku własnych cenników/norm nie upoważnia do ich kasowania lub nadpisywania.
 
 **Przed destrukcyjną migracją** wymagaj domyślnie niezależnie zweryfikowanej kopii i planu cofnięcia. Właściciel może osobno, świadomie dopuścić utratę dokładnie wskazanych danych testowych bez tworzenia kopii. Wyjątek nie dotyczy danych globalnych, cudzych rekordów ani innych nieobjętych zgodą danych. Sama etykieta „testowe” nie jest zgodą na reset. Przejście na prawdziwe dane klientów wymaga pełniejszej ochrony przed kolejnymi zmianami.
 
