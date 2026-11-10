@@ -49,6 +49,8 @@
 
     let draft = common.normalizeDraft(order.cutting || {});
     let dirty = false;
+    let savePending = false;
+    let editRevision = 0;
     let lastGenerated = draft.plan ? { ok:true, state:clone(draft.state || {}), materialMeta: common.resolveMaterialMeta(draft), parts: common.buildPlanParts(draft.parts, draft.materialName), plan: clone(draft.plan) } : null;
 
     const body = h('div', { class:'panel-box-form rozrys-panel-form rozrys-panel-form--stock' });
@@ -98,7 +100,7 @@
       return wrap;
     }
 
-    function markDirty(){ dirty = true; }
+    function markDirty(){ dirty = true; editRevision += 1; }
 
     function syncDraftFromInputs(){
       draft.materialMode = materialMode.value === 'client' ? 'client' : 'catalog';
@@ -272,15 +274,20 @@
 
     generateBtn.addEventListener('click', ()=>{ generate(); });
     saveBtn.addEventListener('click', async ()=>{
+      if(savePending) return;
+      savePending = true;
+      try{
       syncDraftFromInputs();
+      const revisionAtSave = editRevision;
       const next = { id:order.id, cutting:Object.assign({}, order.cutting, draft, { plan: clone(draft.plan), generatedAt: Number(draft.generatedAt) || 0 }), updatedAt:Date.now() };
       try{
         if(!await saveOrder(next)) throw new Error('SERVICE_ORDER_WRITE_FAILED');
       }catch(_){ info('Nie zapisano', 'Nie udało się zapisać zlecenia. Zmiany pozostały w edytorze.'); return; }
-      dirty = false;
+      dirty = revisionAtSave !== editRevision;
       info('Zapisano', 'Zlecenie usługowe zostało zapisane.');
+      }finally{ savePending = false; }
     });
-    const askDiscard = async ()=> !dirty || ask({ title:'Zamknąć bez zapisu?', message:'Masz niezapisane zmiany w zleceniu usługowym.', confirmText:'Wyjdź', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' });
+    const askDiscard = async ()=> !savePending && (!dirty || await ask({ title:'Zamknąć bez zapisu?', message:'Masz niezapisane zmiany w zleceniu usługowym.', confirmText:'Wyjdź', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' }));
     closeBtn.addEventListener('click', async ()=>{
       if(!await askDiscard()) return;
       try{ FC.panelBox.close && FC.panelBox.close(); }catch(_){ }

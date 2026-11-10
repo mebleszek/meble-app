@@ -83,6 +83,12 @@
     const current = id ? (getOrders().find((row)=> String(row.id) === String(id)) || null) : null;
     const draft = Object.assign({ id:'', title:'', customerName:'', phone:'', city:'', description:'', status:'nowe' }, current || {});
     let dirty = false;
+    let operationPending = false;
+    const runExclusive = (task)=> async ()=>{
+      if(operationPending) return;
+      operationPending = true;
+      try{ return await task(); }finally{ operationPending = false; }
+    };
     const body = document.createElement('div');
     body.className = 'panel-box-form rozrys-panel-form rozrys-panel-form--stock';
     const scroll = document.createElement('div');
@@ -121,10 +127,10 @@
     [titleInput, customerInput, phoneInput, cityInput, statusSelect, description].forEach((field)=>{ field.addEventListener('input', refresh); field.addEventListener('change', refresh); });
 
     const close = ()=>{ try{ FC.panelBox.close(); }catch(_){ } };
-    const askDiscard = async ()=> !dirty || ask({ title:'ANULOWAĆ ZMIANY?', message:'Niezapisane zmiany w zleceniu zostaną utracone.', confirmText:'✕ ANULUJ ZMIANY', cancelText:'WRÓĆ', confirmTone:'danger', cancelTone:'neutral' });
-    exitBtn.addEventListener('click', ()=> close());
-    cancelBtn.addEventListener('click', async ()=>{ if(await askDiscard()) close(); });
-    saveBtn.addEventListener('click', async ()=>{
+    const askDiscard = async (insideAction = false)=> (insideAction || !operationPending) && (!dirty || await ask({ title:'ANULOWAĆ ZMIANY?', message:'Niezapisane zmiany w zleceniu zostaną utracone.', confirmText:'✕ ANULUJ ZMIANY', cancelText:'WRÓĆ', confirmTone:'danger', cancelTone:'neutral' }));
+    exitBtn.addEventListener('click', ()=>{ if(!operationPending) close(); });
+    cancelBtn.addEventListener('click', runExclusive(async ()=>{ if(await askDiscard(true)) close(); }));
+    saveBtn.addEventListener('click', runExclusive(async ()=>{
       if(!String(titleInput.value || '').trim()){
         info('Brak nazwy', 'Wprowadź nazwę zlecenia, zanim je zapiszesz.');
         try{ titleInput.focus(); }catch(_){ }
@@ -149,8 +155,8 @@
       dirty = false;
       close();
       renderList();
-    });
-    deleteBtn.addEventListener('click', async ()=>{
+    }));
+    deleteBtn.addEventListener('click', runExclusive(async ()=>{
       const ok = await ask({ title:'Usunąć zlecenie?', message:'Tej operacji nie cofnisz.', confirmText:'Usuń', cancelText:'Wróć', confirmTone:'danger', cancelTone:'neutral' });
       if(!ok) return;
       try{
@@ -160,7 +166,7 @@
       dirty = false;
       close();
       renderList();
-    });
+    }));
 
     FC.panelBox.open({ title: current ? 'Edytuj zlecenie usługowe' : 'Nowe zlecenie usługowe', contentNode: body, width:'780px', boxClass:'panel-box--rozrys', dismissOnOverlay:false, dismissOnEsc:true, beforeClose: async ()=> await askDiscard() });
     setTimeout(()=>{ try{ titleInput.focus(); }catch(_){ } }, 20);

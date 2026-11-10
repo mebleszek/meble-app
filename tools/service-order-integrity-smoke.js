@@ -113,6 +113,53 @@ test('both editors retain dirty state until the write acknowledgement resolves',
   if(detail){assert.equal(r.messages.at(-1).title,'Zapisano');assert.equal(await r.config.beforeClose(),true);}else assert.equal(r.closed,1);
  }
 });
+
+test('rapid double save executes one confirmation and one write across both pending phases',async()=>{
+ const r=fixture();seed(r);edit(r);
+ let allowConfirm, allowWrite, confirms=0,writes=0;
+ const confirmGate=new Promise(resolve=>{allowConfirm=resolve;});
+ const writeGate=new Promise(resolve=>{allowWrite=resolve;});
+ const original=r.FC.serviceOrderStore.upsert;
+ r.FC.confirmBox.ask=()=>{confirms++;return confirmGate;};
+ r.FC.serviceOrderStore.upsert=async payload=>{writes++;await writeGate;return original(payload);};
+ const first=click(button(r,'Zapisz')),second=click(button(r,'Zapisz'));
+ await new Promise(setImmediate);
+ assert.equal(confirms,1);assert.equal(writes,0);assert.equal(await r.config.beforeClose(),false);
+ allowConfirm(true);await new Promise(setImmediate);
+ assert.equal(writes,1);await click(button(r,'Zapisz'));assert.equal(writes,1);assert.equal(r.closed,0);
+ allowWrite();await Promise.all([first,second]);
+ assert.equal(r.closed,1);assert.equal(r.reread().find(row=>row.id==='service-1').title,'After');
+});
+test('rapid double delete executes one confirmation and one remove',async()=>{
+ const r=fixture();seed(r);edit(r);
+ let allowConfirm, allowWrite,confirms=0,writes=0;
+ const confirmGate=new Promise(resolve=>{allowConfirm=resolve;});
+ const writeGate=new Promise(resolve=>{allowWrite=resolve;});
+ const original=r.FC.serviceOrderStore.remove;
+ r.FC.confirmBox.ask=()=>{confirms++;return confirmGate;};
+ r.FC.serviceOrderStore.remove=async id=>{writes++;await writeGate;return original(id);};
+ const first=click(button(r,'Usuń')),second=click(button(r,'Usuń'));
+ await new Promise(setImmediate);assert.equal(confirms,1);assert.equal(writes,0);
+ allowConfirm(true);await new Promise(setImmediate);assert.equal(writes,1);
+ await click(button(r,'Usuń'));assert.equal(writes,1);assert.equal(await r.config.beforeClose(),false);
+ allowWrite();await Promise.all([first,second]);assert.equal(r.closed,1);
+ assert.equal(r.reread().some(row=>row.id==='service-1'),false);
+ assert.equal(r.reread().some(row=>row.id==='other'),true);
+});
+test('detail double save is single-flight; failed ACK retains dirty and permits retry',async()=>{
+ const r=fixture();seed(r);const input=editDetail(r),original=r.FC.serviceOrderStore.upsert,before=r.snapshot();
+ let release,writes=0;const gate=new Promise(resolve=>{release=resolve;});
+ r.FC.serviceOrderStore.upsert=async payload=>{writes++;await gate;return false;};
+ const first=click(button(r,'Zapisz')),second=click(button(r,'Zapisz'));
+ await new Promise(setImmediate);assert.equal(writes,1);assert.equal(await r.config.beforeClose(),false);
+ await click(button(r,'Zapisz'));assert.equal(writes,1);assert.equal(r.closed,0);
+ release();await Promise.all([first,second]);assert.deepEqual(r.snapshot(),before);
+ assert.equal(input.value,'Changed front');assert.equal(r.messages.at(-1).title,'Nie zapisano');
+ r.FC.confirmBox.ask=async()=>false;assert.equal(await r.config.beforeClose(),false);
+ r.FC.serviceOrderStore.upsert=original;await click(button(r,'Zapisz'));
+ assert.equal(r.messages.at(-1).title,'Zapisano');
+ assert.equal(r.reread().find(row=>row.id==='service-1').cutting.parts[0].name,'Changed front');
+});
 async function main(){let failed=0;for(const [name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name+'\n'+error.stack);}}console.log(`service-order-integrity: ${tests.length-failed}/${tests.length} PASS`);if(failed)throw Error('SERVICE_ORDER_INTEGRITY_FAILED');}
 if(require.main===module)main().catch(()=>{process.exitCode=1;});
 module.exports={main,files,source};
