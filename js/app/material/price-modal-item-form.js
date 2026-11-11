@@ -299,8 +299,10 @@
     const rows = document.createElement('div');
     rows.className = 'price-labor-rule-preview__rows';
     const mode = readString('laborPricingMode') || 'fixed';
+    const automation=syncLaborAutomationModeUi();
+    addPreviewRow(rows, 'Dodawanie', automation==='factory'?'AUTOMAT FABRYCZNY':automation==='automatic'?'AUTOMAT':'RĘCZNA');
     addPreviewRow(rows, 'Sposób naliczania', pricingModeLabel(mode));
-    if(['perUnit','startPlusUnit','time','timeTiers','timeStartStep','advanced'].includes(mode)) addPreviewRow(rows, 'Ilość', laborSourceLabel(readString('laborQuantitySource')));
+    if(automation!=='manual') addPreviewRow(rows, 'Źródło automatu', laborSourceLabel(readString('laborQuantitySource')));
     if(mode === 'startPlusUnit') addPreviewRow(rows, 'Start', `${Number(readNumber('laborStartPrice')) || 0} PLN · w cenie ${Number(readNumber('laborIncludedQty')) || 0} jedn.`);
     if(isTimePricingMode(mode)){
       addPreviewRow(rows, 'Tryb czasu', mode === 'advanced' ? quantityModeLabel(readString('laborQuantityMode')) : pricingModeLabel(mode));
@@ -328,10 +330,26 @@
     ctx.setSelectOptions(ctx.byId('laborPricingMode'), defs.map((row)=> ({ value:row.key, label:row.label })), code, code);
     setValue('laborPricingMode', code);
   }
+  function syncLaborAutomationModeUi(){
+    const select=ctx.byId('laborAutomationMode');
+    if(!select || ctx.currentListKind?.()!=='quoteRates')return 'manual';
+    const factory=FC.laborCatalog?.isFactoryAutomaticDefinition(currentEditedItem())===true;
+    if(factory){select.value='factory';select.disabled=true;}
+    else{select.disabled=false;if(select.value==='factory')select.value='manual';}
+    const kind=factory?'factory':(select.value==='automatic'?'automatic':'manual');
+    const hint=ctx.byId('laborAutomationModeHint');
+    if(hint)hint.textContent=kind==='factory'
+      ? 'AUTOMAT FABRYCZNY: można edytować cenę, czas, formułę i pozostałe parametry, ale nie sposób uruchamiania.'
+      : kind==='automatic'
+        ? 'Automat wymaga aktywnego, policzalnego źródła ilości. Nie jest dodawany ręcznie.'
+        : 'Czynność jest dodatkiem ręcznym. Zakres naliczania wybierasz osobno.';
+    return kind;
+  }
   function syncLaborPricingModeUi(){
     const daily=ctx.byId('laborDailyStagesWrap');if(daily)daily.style.display=readString('laborBillingScope')==='day'?'':'none';
     if(ctx.currentListKind && ctx.currentListKind() !== 'quoteRates') return;
     const mode = readString('laborPricingMode') || 'fixed';
+    const autoMode=syncLaborAutomationModeUi()!=='manual';
     const isFixed = mode === 'fixed';
     const isPerUnit = mode === 'perUnit';
     const isStartPlusUnit = mode === 'startPlusUnit';
@@ -350,7 +368,7 @@
     setWrapperVisible('laborRateType', timeMode);
     setWrapperVisible('laborTimeBlockHours', isTime || isAdvanced);
     setWrapperVisible('laborDefaultMultiplier', timeMode);
-    setWrapperVisible('laborQuantitySource', isPerUnit || isStartPlusUnit || timeMode);
+    setWrapperVisible('laborQuantitySource', autoMode);
     setWrapperVisible('laborQuantityMode', isAdvanced);
     setWrapperVisible('laborStartPrice', isStartPlusUnit);
     setWrapperVisible('laborIncludedQty', isStartPlusUnit);
@@ -363,7 +381,7 @@
     setWrapperVisible('laborVolumeTimeMode', isAdvanced);
     setWrapperVisible('laborVolumeTimePerM3', isAdvanced);
     setWrapperVisible('laborVolumeTimeTierText', isAdvanced);
-    setBlockVisible('laborConditionsWrap', isPerUnit || isStartPlusUnit || timeMode);
+    setBlockVisible('laborConditionsWrap', isPerUnit || isStartPlusUnit || timeMode || autoMode);
     if(!isAdvanced){
       if(isTiers) setValue('laborQuantityMode', 'tiers');
       else if(isStartStep) setValue('laborQuantityMode', 'startStep');
@@ -528,6 +546,7 @@
     const tierText = readString('laborTierText');
     const volumeTierText = readString('laborVolumeTimeTierText');
     const pricingMode = readString('laborPricingMode') || 'fixed';
+    const automationMode=FC.laborCatalog?.isFactoryAutomaticDefinition(currentEditedItem())===true || readString('laborAutomationMode')==='factory' ? 'automatic' : (readString('laborAutomationMode')==='automatic'?'automatic':'manual');
     const volumeTimeMode = pricingMode === 'advanced' ? (readString('laborVolumeTimeMode') || 'none') : 'none';
     const rateType = labor.normalizeRateCode ? labor.normalizeRateCode(readString('laborRateType')) : (readString('laborRateType') || 'workshop');
     const usesQuantity = ['perUnit','startPlusUnit','time','timeTiers','timeStartStep','advanced'].includes(pricingMode);
@@ -536,14 +555,14 @@
       usage:'universal',
       ...getRuleParametersDraft(),
       billingScope:readString('laborBillingScope') || 'standard', dailyStages:readString('laborDailyStages') || 'both',
-      pricingMode,
+      automationMode, pricingMode,
       rateType:rateType || 'workshop',
       rateKey:'',
       rateCode:'',
       timeBlockHours:Number(readNumber('laborTimeBlockHours')) || 0,
       defaultMultiplier:readNumber('laborDefaultMultiplier')===''?1:Math.max(0,Number(readNumber('laborDefaultMultiplier'))||0),
       quantityMode,
-      quantitySource:usesQuantity ? readString('laborQuantitySource') : '',
+      quantitySource:automationMode==='automatic' ? readString('laborQuantitySource') : '',
       startPrice:pricingMode === 'startPlusUnit' ? (Number(readNumber('laborStartPrice')) || 0) : 0,
       includedQty:pricingMode === 'startPlusUnit' ? (Number(readNumber('laborIncludedQty')) || 0) : 0,
       quantityTiers:labor.parseTierText ? labor.parseTierText(tierText) : [],
@@ -555,7 +574,7 @@
       volumeTimeMode,
       volumeTimePerM3:Number(readNumber('laborVolumeTimePerM3')) || 0,
       volumeTimeTiers:labor.parseVolumeTierText ? labor.parseVolumeTierText(volumeTierText) : [],
-      conditions:usesQuantity ? getCurrentLaborConditions() : [],
+      conditions:(usesQuantity || automationMode==='automatic') ? getCurrentLaborConditions() : [],
       active:readBool('laborActive'),
       internalOnly:readBool('laborInternalOnly'),
     };
@@ -601,7 +620,7 @@
   function wireItemDirtyEvents(){
     [
       'formMaterialPurchasePrice','formMaterialPricingMode','formMaterialMarkup','formMaterialBillingIncrement','formMaterialSheetWidth','formMaterialSheetHeight','formMaterialThickness','formSymbol','formName','formPrice','formMaterialPriceUnit','formServiceName','formServicePrice','formHasGrain','formMaterialType','formManufacturer','formCategory',
-      'laborPricingMode','laborRateType','laborTimeBlockHours','laborDefaultMultiplier','laborQuantitySource','laborQuantityMode','laborTierText',
+      'laborAutomationMode','laborPricingMode','laborRateType','laborTimeBlockHours','laborDefaultMultiplier','laborQuantitySource','laborQuantityMode','laborTierText',
       'laborStartPrice','laborIncludedQty','laborStartHours','laborStartQty','laborStepEveryQty','laborStepHours','laborVolumePricePerM3','laborVolumeTimeMode','laborVolumeTimePerM3',
       'laborVolumeTimeTierText','laborActive','laborInternalOnly','laborBillingScope','laborDailyStages','formEdgeWastePercent','laborMinimumLevels','laborLiftLevels','laborDisassemblyWeightKg','laborBreakAfterHours','laborWorkdayHours','laborUnitPriceSource'
     ].concat((ctx.priceModalHardwareForm && Array.isArray(ctx.priceModalHardwareForm.FIELD_IDS)) ? ctx.priceModalHardwareForm.FIELD_IDS : []).forEach((id)=>{
@@ -654,6 +673,8 @@
     const hourly = def.isHourlyRate === true || isHourlyRateItem(raw);
     setChecked('laborIsHourlyRate', hourly);
     setValue('laborRateCode', hourly ? (def.rateKey || def.rateCode || def.rateType || '') : '');
+    setValue('laborAutomationMode',labor.automationMode?.(raw)||'manual');
+    syncLaborAutomationModeUi();
     refreshLaborPricingModeSelect(def.pricingMode || 'fixed');
     setValue('laborPricingMode', def.pricingMode || 'fixed');
     refreshLaborRateTypeSelect(def.rateType || def.rateKey || 'workshop');

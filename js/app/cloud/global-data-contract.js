@@ -35,7 +35,7 @@
     technicalParams:(v,p)=>{if(!object(v))fail('GLOBAL_VALUE_INVALID',p);Object.values(v).forEach(x=>paramValue(x,p));}
   },['id','name','hardwareCategory','hardwareUnit','price']);
   const tier=shape({min:nullable(number),max:nullable(number),hours:nonnegative,price:nonnegative},['min','max','hours','price']);
-  const labor=shape({...common,billingScope:choice('standard','room','quote','day'),dailyStages:choice('workshop','assembly','both'),unitPriceSource:choice('fuel','manual'),...fields('category label usage rateKey rateCode rateType pricingMode quantityMode quantitySource volumeTimeMode',string),
+  const labor=shape({...common,billingScope:choice('standard','room','quote','day'),dailyStages:choice('workshop','assembly','both'),automationMode:choice('manual','automatic'),unitPriceSource:choice('fuel','manual'),...fields('category label usage rateKey rateCode rateType pricingMode quantityMode quantitySource volumeTimeMode',string),
     ...fields('isHourlyRate systemRate nonDeletable active internalOnly',boolean),
     ...fields('minimumLevels liftLevels disassemblyWeightKg breakAfterHours workdayHours startPrice includedQty timeBlockHours defaultMultiplier startHours startQty stepEveryQty stepHours volumePricePerM3 volumeTimePerM3 fixedPrice',nonnegative),
     conditions:list(shape({source:string,operator:choice('range'),min:nullable(number),max:nullable(number)},['source','operator','min','max'])),quantityTiers:list(tier),volumeTimeTiers:list(tier)

@@ -775,7 +775,7 @@
     const projectOnly = opts.projectOnly === true;
     const blocked = new Set(['labor_mount_front','labor_mount_hinge','labor_carrying_cabinet','labor_carrying_disassembly']);
     return (Array.isArray(defs) ? defs : []).filter((def)=> {
-      if(!(def && def.active !== false && def.isHourlyRate !== true && text(def.quantitySource))) return false;
+      if(!(def && def.active !== false && def.isHourlyRate !== true && text(def.quantitySource) && FC.laborCatalog?.isAutomaticDefinition(def))) return false;
       if(text(def.quantitySource).startsWith('transport.') || blocked.has(text(def.id)) || replacedLegacyDefinition(def, defs) || (!opts.applianceOnly && isApplianceAutomation(def)) || isCarryingAutomation(def)) return false;
       if(opts.applianceOnly) return text(def.quantitySource).startsWith('labor.agd.');
       const project = isProjectAutomation(def);

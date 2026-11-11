@@ -448,6 +448,7 @@
       name:text(src.name),
       price,
       pricingMode,
+      ...(Object.hasOwn(src,'automationMode') ? {automationMode:isFactoryAutomaticDefinition(src)?'automatic':src.automationMode==='automatic'?'automatic':'manual'} : {}),
       startPrice:isHourly ? 0 : Math.max(0, num(src.startPrice != null ? src.startPrice : src.basePrice, 0)),
       includedQty:isHourly ? 0 : Math.max(0, num(src.includedQty != null ? src.includedQty : src.startIncludedQty, 0)),
       ...(Object.hasOwn(src,'billingScope')?{billingScope:['room','quote','day'].includes(src.billingScope)?src.billingScope:'standard'}:{}),
@@ -640,15 +641,23 @@
     const defaults={labor_carrying_cabinet:{minimumLevels:1,liftLevels:2},labor_carrying_disassembly:{disassemblyWeightKg:45},labor_daily_break:{breakAfterHours:4,workdayHours:8}};
     return Object.fromEntries(Object.entries(defaults[row?.id]||{}).map(([key,value])=>[key,row[key]==null?value:Math.max(0,num(row[key],value))]));
   }
-  // Bindings/scopes and operation identity determine automation, never internalOnly.
-  function isAutomaticDefinition(row){
+  // Factory automation is anchored to approved program IDs, never to editable fields.
+  function isFactoryAutomaticDefinition(row){
     const id=text(row && row.id),known=(defs.DEFAULT_LABOR_DEFINITIONS || []).find(d=>text(d.id)===id);
+    if(!known)return false;
     const replacements=defs.LABOR_REPLACEMENTS || {};
-    return !!text(row && row.quantitySource) || !!text(known && known.quantitySource)
-      || ['room','quote','day'].includes(known && known.billingScope)
+    return !!text(known.quantitySource)
+      || ['room','quote','day'].includes(known.billingScope)
       || Object.prototype.hasOwnProperty.call(replacements,id)
-      || Object.values(replacements).some(ids=>ids.includes(id));
+      || Object.values(replacements).some(ids=>Array.isArray(ids)&&ids.includes(id));
   }
+  function automationMode(row){
+    if(isFactoryAutomaticDefinition(row))return 'factory';
+    const mode=text(row && row.automationMode);
+    if(mode==='manual'||mode==='automatic')return mode;
+    return text(row && row.quantitySource)?'automatic':'manual'; // only legacy unmarked rows
+  }
+  function isAutomaticDefinition(row){return !!row && automationMode(row)!=='manual';}
   function isManualDefinition(row){return !!row && row.active!==false && row.isHourlyRate!==true && !isAutomaticDefinition(row);}
   function describeDefinition(row){
     const def = normalizeDefinition(row);
@@ -691,6 +700,7 @@
     calculateDefinition, effectiveUnitPrice, ruleParameters,
     describeDefinition,
     isAutomaticDefinition,
+    isFactoryAutomaticDefinition, automationMode,
     isManualDefinition,
     parseTierText,
     tiersToText,

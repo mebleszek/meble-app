@@ -21,6 +21,9 @@ Stan pakietu P0 ostatnich poprawek WYCENY zaktualizowany **11.11.2026**; BASE/ma
 
 - **Doprecyzowanie QA 11.11.2026 wykonane bez Codexa:** ręczne czynności z zakresem room/quote/day pozostają ręczne, a zatwierdzone systemowe automaty (w tym przerwa i transport) są nadal automatyczne. W fixed/advanced pole ceny pokazuje faktyczną dopłatę; zapis 0 i późniejsza edycja są spójne. Celowane sprawdzenia rzeczywistych modułów PASS; CI_PENDING / RELEASE_BLOCKED. Bez zmian norm, danych telefonu, Firebase i synchronizacji.
 
+- **Jawny tryb czynności — 11.11.2026:** na gałęzi `fix/quote-final-corrections-20261111` wprowadzono AUTOMAT/RĘCZNA oraz zablokowany AUTOMAT FABRYCZNY. Faktyczny tryb trafia do katalogu, kalkulatora, selektorów i schematu synchronizacji; własny automat bez obsługiwanego źródła nie zapisuje się. Fabryczne normy i ceny bez zmian. Celowane kontrole modułów PASS, pełne CI/PR/wydanie wstrzymane; patrz `tools/reports/labor-automation-mode-20261111.md`.
+
+
 ## 2. SPRAWDZONE — nie powtarzać bez nowego powodu
 
 - Kontrola 09.11 była odczytowa: main/PR #121/#123, wyniki istniejącego CI #42539813337 i krok exact Pages. Nie uruchamiano Preflightu, Actions, testów aplikacji ani emulatorów.
