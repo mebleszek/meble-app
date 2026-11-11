@@ -48,6 +48,32 @@ function executionUnits(group,batch,files){
   }
   return [files];
 }
+
+// The full set of 19 top-level sync tests remains mandatory. Separate DEMO
+// emulator lifetimes isolate the normal browser startups from earlier E2E watches.
+function executionSegments(group,batch,unit,cwd){
+ if(group.context!=='current'||batch!==3||unit.join('|')!=='cloud-sync-global.test.mjs')
+  return [{id:'complete',pattern:null,names:null}];
+ const source=fs.readFileSync(path.join(cwd,unit[0]),'utf8');
+ const names=Array.from(source.matchAll(/^test\('([^']+)'/gm),m=>m[1]);
+ if(names.length!==19||new Set(names).size!==19)throw Error('CLOUD_CI_SYNC_TEST_INVENTORY_CHANGED');
+ const normal='LOCAL-FIRST normal application startup on two independent browser profiles';
+ const deployment='LOCAL-FIRST approved deployment: normal startup, fenced migration and empty-device receive';
+ const parts=[
+  {id:'sync-core',pattern:'^(?:CLOUD-SYNC-1|WYCENA-LABOR|LOCAL-FIRST: durable browser stores|LOCAL-FIRST actual application)',names:names.filter(n=>n!==normal&&n!==deployment)},
+  {id:'normal-startup',pattern:'^LOCAL-FIRST normal application startup on two independent browser profiles$',names:[normal]},
+  {id:'deployment-startup',pattern:'^LOCAL-FIRST approved deployment: normal startup, fenced migration and empty-device receive$',names:[deployment]}
+ ];
+ if(parts.map(p=>p.names.length).join(',')!=='17,1,1')throw Error('CLOUD_CI_SYNC_TEST_INVENTORY_CHANGED');
+ for(const p of parts){const rx=new RegExp(p.pattern);if(names.some(n=>rx.test(n)!==p.names.includes(n)))throw Error('CLOUD_CI_SYNC_SEGMENT_MISMATCH');}
+ if(new Set(parts.flatMap(p=>p.names)).size!==names.length)throw Error('CLOUD_CI_SYNC_COVERAGE_INCOMPLETE');
+ return parts;
+}
+function completeSelectedTap(output,names){
+ if(!completeTap(output))return false;
+ const roots=Array.from(output.matchAll(/^ok \d+ - (.+)$/gm),m=>m[1].trim());
+ return roots.length===names.length&&roots.every((n,i)=>n===names[i]);
+}
 function emulatorLogTail(cwd,startedAt){
   const file=path.join(cwd,'firestore-debug.log');let fd;
   try{
@@ -79,24 +105,30 @@ function main(){
       let batchFailed=false;
       // Run every file exactly once, even if an earlier unit fails (not retry).
       for(const unit of units){
-        const command='node --test --test-reporter=tap --test-concurrency=1 '+unit.join(' ');
-        const settings=fs.mkdtempSync(path.join(os.tmpdir(),'meble-demo-cli-'));
-        const startedAt=Date.now();let result;
-        try{
-          result=spawnSync(process.execPath,[cli,'emulators:exec','--config','firebase.json','--project','demo-meble-app','--only','auth,firestore','--non-interactive',command],
-            {cwd,env:{...context.cleanEnvironment(),XDG_CONFIG_HOME:settings},encoding:'utf8',maxBuffer:64*1024*1024});
-        }finally{fs.rmSync(settings,{recursive:true,force:true});}
-        process.stdout.write(result.stdout||'');process.stderr.write(result.stderr||'');
-        if(result.error)console.error(result.error);
-        const output=(result.stdout||'')+'\n'+(result.stderr||'');
-        const status=result.status===0&&completeTap(output)?'PASS':'FAIL';
-        batchFailed ||= status==='FAIL';
-        console.log('CLOUD_CI_UNIT '+group.context+' '+(index+1)+' '+status+' | '+unit.join(', '));
-        if(status==='FAIL'){
-          console.error('CLOUD_CI_EMULATOR_DIAGNOSTIC_BEGIN '+unit.join(', '));
-          console.error(emulatorLogTail(cwd,startedAt));
-          console.error('CLOUD_CI_EMULATOR_DIAGNOSTIC_END');
+        const segments=executionSegments(group,index+1,unit,cwd);let unitFailed=false;
+        for(const segment of segments){
+          const filter=segment.pattern?'--test-name-pattern='+JSON.stringify(segment.pattern)+' ':'';
+          const command='node --test --test-reporter=tap --test-concurrency=1 '+filter+unit.join(' ');
+          const settings=fs.mkdtempSync(path.join(os.tmpdir(),'meble-demo-cli-'));
+          const startedAt=Date.now();let result;
+          try{
+            result=spawnSync(process.execPath,[cli,'emulators:exec','--config','firebase.json','--project','demo-meble-app','--only','auth,firestore','--non-interactive',command],
+              {cwd,env:{...context.cleanEnvironment(),XDG_CONFIG_HOME:settings},encoding:'utf8',maxBuffer:64*1024*1024});
+          }finally{fs.rmSync(settings,{recursive:true,force:true});}
+          process.stdout.write(result.stdout||'');process.stderr.write(result.stderr||'');
+          if(result.error)console.error(result.error);
+          const output=(result.stdout||'')+'\n'+(result.stderr||'');
+          const status=result.status===0&&(segment.names?completeSelectedTap(output,segment.names):completeTap(output))?'PASS':'FAIL';
+          unitFailed ||= status==='FAIL';
+          console.log('CLOUD_CI_UNIT_SEGMENT '+group.context+' '+(index+1)+' '+segment.id+' '+status+' | '+unit.join(', '));
+          if(status==='FAIL'){
+            console.error('CLOUD_CI_EMULATOR_DIAGNOSTIC_BEGIN '+unit.join(', ')+' '+segment.id);
+            console.error(emulatorLogTail(cwd,startedAt));
+            console.error('CLOUD_CI_EMULATOR_DIAGNOSTIC_END');
+          }
         }
+        batchFailed ||= unitFailed;
+        console.log('CLOUD_CI_UNIT '+group.context+' '+(index+1)+' '+(unitFailed?'FAIL':'PASS')+' | '+unit.join(', '));
       }
       groupFailed ||= batchFailed;
       console.log('CLOUD_CI_BATCH '+group.context+' '+(index+1)+' '+(batchFailed?'FAIL':'PASS')+' | '+files.join(', '));
@@ -110,4 +142,4 @@ function main(){
   if(failed) throw Error('CLOUD_CI_SDK_FAILED');
 }
 if(require.main===module){try{main();}catch(error){console.error(error);process.exitCode=1;}}
-module.exports={main,completeTap,selectPlan,verifyGroup,batchesForGroup,executionUnits,emulatorLogTail};
+module.exports={main,completeTap,completeSelectedTap,selectPlan,verifyGroup,batchesForGroup,executionUnits,executionSegments,emulatorLogTail};

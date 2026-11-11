@@ -251,6 +251,13 @@ async function main(){
   profile='helper-hours';sourceRows=structuredClone(raw);
   Object.assign(sourceRows,{fc_projects_v1:JSON.stringify([payload.project]),fc_investors_v1:JSON.stringify([payload.investor]),fc_quote_snapshots_v1:JSON.stringify([{id:'original-offer',project:{id:payload.project.id},investor:{id:payload.investor.id},frozen:123.4567}]),fc_current_project_id_v1:payload.project.id,fc_current_investor_v1:payload.investor.id});
   await open(true);
+  // A LOCAL-FIRST project checkpoint must run the native cabinet/PCV validator.
+  // Load its real dependencies, not merely the pilot export contract.
+  for(const file of ['cabinet/part-provenance','material/material-common','cabinet/front-hardware-fronts',
+    'cabinet/cabinet-cutlist','cabinet/cabinet-fronts','project/project-local-room-contract']){
+    await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
+  }
+  assert.equal(await browser.evaluate("typeof FC.projectLocalRoomContract?.validate==='function' && typeof FC.cabinetFronts?.previewFrontsForCabinet==='function'"),true);
   for(const file of ['ui/accordion-behavior','quote/quote-offer-store','pricing/labor-work-plan','wycena/wycena-work-plan-view'])await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
   await browser.evaluate(`(()=>{FC.projectStore={getCurrentProjectId:()=>localStorage.getItem('fc_current_project_id_v1')};FC.investors={getCurrentId:()=>localStorage.getItem('fc_current_investor_v1')};window.helperInvalidations=0;FC.sessionNavigation={invalidateCalculationContext(){window.helperInvalidations++;}};window.helperRoot=document.createElement('div');document.body.append(helperRoot);FC.wycenaWorkPlanView.schedule(helperRoot,{schedule:{status:'READY',workshop:{minutes:60,totalMinutes:90,days:1},assembly:{minutes:0,totalMinutes:0,days:0},trips:0}});helperRoot.querySelector('.rozrys-material-accordion__trigger').click();window.saveHelper=async()=>{helperRoot.querySelector('input[data-helper-hours]').value='2.5';helperRoot.querySelector('input').dispatchEvent(new Event('input',{bubbles:true}));const button=helperRoot.querySelector('[data-helper-save]');button.click();const deadline=Date.now()+5000;while(button.disabled&&Date.now()<deadline)await new Promise(r=>setTimeout(r,10));if(button.disabled)throw Error('HELPER_TIMEOUT');return helperRoot.textContent;};})()`);
   assert.equal(await browser.evaluate("helperRoot.querySelector('[data-helper-save]').hidden"),true);

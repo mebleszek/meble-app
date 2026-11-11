@@ -55,11 +55,13 @@ let sequence=0;r.FC.utils.uid=()=> 'generated-'+(++sequence);const c=r.FC.busine
     const actualRoles=Array.from(actual.flatMap(part=>part.partRoleIds||[])).sort();
     const expectedRoles=kind==='HF_top'?['front.flap.left','front.flap.right']:['front.flap.single'];
     assert.deepEqual(actualRoles,expectedRoles,'Only native flap PCV roles '+type+'/'+kind);
-    const geom=actual.filter(part=>part.sourceFamily==='front')
-      .flatMap(part=>Array.from({length:part.qty},()=>[Number(part.a),Number(part.b)]))
-      .sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
-    const stored=room.fronts.map(f=>[Number(f.width),Number(f.height)])
-      .sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+    // Convert both VM-owned arrays and tuples into Node's assertion realm.
+    // Every dimension and the strict equality assertion are unchanged.
+    const geom=Array.from(actual.filter(part=>part.sourceFamily==='front')
+      .flatMap(part=>Array.from({length:part.qty},()=>[Number(part.a),Number(part.b)])),
+      pair=>Array.from(pair)).sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+    const stored=Array.from(room.fronts.map(f=>[Number(f.width),Number(f.height)]),
+      pair=>Array.from(pair)).sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
     assert.deepEqual(geom,stored,'Flap material geometry must match stored native fronts');
     assert.equal(stored.length,kind==='HF_top'?2:1,'One flap vs two stacked HF top fronts');
     room.production={partOverrides:{native:Object.fromEntries(actualRoles.map(role=>[role,{edges:clone(edges)}]))}};
