@@ -120,6 +120,9 @@ async function main(){
    phase='native cabinet variants';await require('./helpers/local-cabinet-native-cases')({getBrowser:()=>browser,tap,fill,until,reopen:()=>reopenOffline(61,false,null),baseProbe:process.argv.includes('--cabinet-base-probe')});
    await assertForeign();assert.deepEqual(external,[]);return;
   }
+  if(process.argv.includes('--quote-final-only')){
+   phase='quote final material modes';await require('./helpers/quote-final-material-browser')({browser,tap,fill,until});await assertForeign();assert.deepEqual(external,[]);return;
+  }
   phase='basic WYCENA';const quote=await browser.evaluate(`(async()=>{const room=window.FC.investors.readAll()[0].rooms[0].id;const labor=window.FC.wycenaCore.collectCabinetLabor([room]);const quote=await window.FC.wycenaCore.collectQuoteData({selection:{selectedRooms:[room]}});return {labor:!!labor[0]?.details?.some(r=>r.total>0),totals:quote.totals};})()`);assert.equal(quote.labor,true);assert.ok(Object.values(quote.totals).some(n=>typeof n==='number'&&Number.isFinite(n)&&n>0));
   phase='quote deletion';await require('./helpers/quote-delete-browser')({browser,tap,until,abortNextProjectWrite,reopenOffline:async()=>{await reopenOffline();return browser;}});
   if(process.argv.includes('--quote-delete-only')){await assertForeign();assert.deepEqual(external,[]);return;}

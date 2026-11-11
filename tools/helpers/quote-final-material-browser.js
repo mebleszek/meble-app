@@ -1,0 +1,31 @@
+'use strict';
+const assert=require('node:assert/strict');
+module.exports=async({browser,tap,fill,until})=>{
+ const evaluate=s=>browser.evaluate(s);
+ if(await evaluate('!!document.querySelector(".info-box button")'))await tap('.info-box button');
+ const before=await evaluate('JSON.stringify(window.FC.catalogStore.getSheetMaterials())');
+ await evaluate('window.FC.actions.dispatch("open-sheet-materials",{})');await until('document.getElementById("priceModal").style.display==="flex"');await tap('#clearPriceFiltersBtn');await fill('#priceSearch','HDF');await until('document.querySelectorAll("#priceModal .price-modal-list-row").length===1');await tap('#priceModal .price-modal-list-actions button');await until('document.getElementById("priceItemModal").style.display==="flex"');
+ const markupVisible=()=>evaluate('getComputedStyle(document.getElementById("formMaterialMarkup").parentElement).display!=="none"');
+ assert.equal(await markupVisible(),false,'Manual price must hide markup');
+ await fill('#formPrice','500');await fill('#formMaterialPurchasePrice','299');
+ async function mode(last){await tap('#formMaterialPricingModeLaunch button');await until('document.querySelectorAll(".rozrys-choice-option").length===2');await tap('.rozrys-choice-option:'+(last?'last':'first')+'-child');}
+ await mode(true);assert.equal(await markupVisible(),true);await fill('#formMaterialMarkup','50');
+ assert.equal(await evaluate('document.getElementById("formPrice").value'),'500','Do not overwrite entered manual price');
+ assert.match(await evaluate('document.getElementById("formMaterialPricePreview").textContent'),/448.50 PLN.*149.50 PLN/);
+ await mode(false);assert.equal(await markupVisible(),false);assert.equal(await evaluate('document.getElementById("formMaterialMarkup").value'),'50');assert.equal(await evaluate('document.getElementById("formPrice").value'),'500');
+ await mode(true);assert.equal(await markupVisible(),true);assert.equal(await evaluate('document.getElementById("formMaterialMarkup").value'),'50');
+ assert.equal(await evaluate('JSON.stringify(window.FC.catalogStore.getSheetMaterials())'),before,'Switch/input cannot save catalog');
+ await tap('#priceItemCancelBtn');await until('!!document.querySelector(".confirm-box")');await tap('.confirm-box .is-danger');await until('document.getElementById("priceItemModal").style.display!=="flex"');
+ assert.equal(await evaluate('JSON.stringify(window.FC.catalogStore.getSheetMaterials())'),before);
+ await tap('#priceModal .price-modal-list-actions button');await until('document.getElementById("priceItemModal").style.display==="flex"');
+ await fill('#formMaterialPurchasePrice','299');await mode(true);await fill('#formMaterialMarkup','50');
+ assert.equal(await evaluate('JSON.stringify(window.FC.catalogStore.getSheetMaterials())'),before);
+ await tap('#priceItemSaveBtn');await until('!!document.querySelector(".confirm-box")');await tap('.confirm-box .is-success');await until('document.getElementById("priceItemModal").style.display!=="flex"&&!window.FC.applicationStartup.inspect().transactionPending');
+ assert.equal(await evaluate('window.FC.catalogSelectors.findSheetMaterial("HDF 3mm biała").price'),448.5,'Only explicit Save commits the derived price');
+ await tap('#priceModal [data-action="close-price"]');await until('document.getElementById("priceModal").style.display!=="flex"');
+ const history=await evaluate('JSON.stringify(window.FC.quoteSnapshotStore.readAll())');
+ const blocked=await evaluate(`(async()=>{const f=window.FC,read=f.workQuantityFacts.getCabinetFact;f.workQuantityFacts.getCabinetFact=(room,cab,code)=>code==='leg.count'?null:read(room,cab,code);try{const data=await f.wycenaCore.collectQuoteData({selection:{selectedRooms:[f.investors.readAll()[0].rooms[0].id]}});await f.applicationWrite.project(()=>f.quoteSnapshotStore.save(f.quoteSnapshot.buildSnapshot(data)));return {saved:true};}catch(error){return {code:error.code,message:error.message};}finally{f.workQuantityFacts.getCabinetFact=read;}})()`);
+ assert.equal(blocked.code,'labor_automation_incomplete');assert.match(blocked.message,/nóż/i);assert.equal(await evaluate('JSON.stringify(window.FC.quoteSnapshotStore.readAll())'),history);
+ console.log('PASS genuine LOCAL-FIRST: derived material price saved only after confirmation; unavailable automatic source refuses new snapshot and preserves native history');
+ console.log('PASS native material modes: visibility, retained markup/manual price, 299 + 50% = 448.50 (+149.50), switch/cancel without catalog save');
+};

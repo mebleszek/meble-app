@@ -83,13 +83,13 @@
     }catch(_){ }
     try{
       if(FC.cabinetCutlist && typeof FC.cabinetCutlist.getCabinetCutList === 'function'){
-        return FC.cabinetCutlist.getCabinetCutList(cabinet || {}, roomId) || [];
+        return FC.cabinetCutlist.getCabinetCutList(cabinet || {}, roomId);
       }
     }catch(_){ }
     try{
-      if(typeof root.getCabinetCutList === 'function') return root.getCabinetCutList(cabinet || {}, roomId) || [];
+      if(typeof root.getCabinetCutList === 'function') return root.getCabinetCutList(cabinet || {}, roomId);
     }catch(_){ }
-    return [];
+    return null;
   }
   function isMaterialPart(part){
     return (Number(part && part.a) || 0) > 0 && (Number(part && part.b) || 0) > 0;
@@ -143,11 +143,11 @@
       const hw = frontHardware();
       if(hw && typeof hw.getCabinetFrontCutListForMaterials === 'function'){
         const safeCabinet = clone(cabinet || {});
-        return (hw.getCabinetFrontCutListForMaterials(roomId, safeCabinet) || [])
+        return (hw.getCabinetFrontCutListForMaterials(roomId, safeCabinet))
           .filter((part)=> text(part && part.name).toLowerCase() === 'front');
       }
     }catch(_){ }
-    return [];
+    return null;
   }
   function frontQty(part){ return Math.max(0, Math.round(number(part && part.qty, 0))); }
   function frontCountFromParts(parts){
@@ -181,11 +181,11 @@
       const api = hardwareRequirements();
       if(api && typeof api.getHingeRequirementsWithQty === 'function'){
         const safeCabinet = clone(cabinet || {});
-        return (api.getHingeRequirementsWithQty(roomId, safeCabinet) || [])
+        return (api.getHingeRequirementsWithQty(roomId, safeCabinet))
           .filter((req)=> req && req.kind === 'hinge');
       }
     }catch(_){ }
-    return [];
+    return null;
   }
   function hingeCount(rows){
     return (Array.isArray(rows) ? rows : []).reduce((sum, req)=> sum + Math.max(0, Math.round(number(req && req.qty, 0))), 0);
@@ -215,16 +215,16 @@
       const api = drawerRequirements();
       if(api && typeof api.getDrawerRequirementsWithQty === 'function'){
         const safeCabinet = clone(cabinet || {});
-        return (api.getDrawerRequirementsWithQty(roomId, safeCabinet) || [])
+        return (api.getDrawerRequirementsWithQty(roomId, safeCabinet))
           .filter((req)=> req && req.kind === 'drawer');
       }
       if(api && typeof api.getDrawerRequirements === 'function'){
         const safeCabinet = clone(cabinet || {});
-        return (api.getDrawerRequirements(roomId, safeCabinet) || [])
+        return (api.getDrawerRequirements(roomId, safeCabinet))
           .filter((req)=> req && req.kind === 'drawer');
       }
     }catch(_){ }
-    return [];
+    return null;
   }
   function drawerCount(rows){
     return (Array.isArray(rows) ? rows : []).reduce((sum, req)=> sum + Math.max(0, Math.round(number(req && req.qty, 0))), 0);
@@ -298,8 +298,8 @@
     'cabinet.volume_m3':(roomId, cabinet)=> makeFact('cabinet.volume_m3', volumeM3(cabinet), { displayValue:`${volumeM3(cabinet).toFixed(4)} m³`, source:'wymiary całkowite szafki' }),
     'cabinet.body_volume_m3':(roomId, cabinet)=> makeFact('cabinet.body_volume_m3', bodyVolumeM3(roomId, cabinet), { displayValue:`${bodyVolumeM3(roomId, cabinet).toFixed(4)} m³`, source:isStandingCabinet(cabinet) ? 'szer. × wysokość bez nóg × głęb.' : 'szer. × wys. × głęb.' }),
     'cabinet.part_count':(roomId, cabinet)=> {
-      const qty = materialPartCountFromParts(getCabinetCutListParts(roomId, cabinet));
-      return makeFact('cabinet.part_count', qty, { displayValue:`${qty} szt.`, source:'formatki korpusu + fronty + HDF' });
+      const parts=getCabinetCutListParts(roomId,cabinet),qty=materialPartCountFromParts(parts);
+      return makeFact('cabinet.part_count', qty, { hasValue:Array.isArray(parts), displayValue:`${qty} szt.`, source:'formatki korpusu + fronty + HDF' });
     },
     'cabinet.unusual_project_count':(roomId, cabinet)=> {
       const qty = isUnusualProject(cabinet) ? 1 : 0;
@@ -338,9 +338,9 @@
     'cabinet.zone':(roomId, cabinet)=> makeFact('cabinet.zone', cabinetZone(cabinet), { source:'typ szafki' }),
     'cabinet.kind':(roomId, cabinet)=> makeFact('cabinet.kind', cabinetKind(cabinet), { source:'typ i wariant szafki' }),
     'front.count':(roomId, cabinet, cache)=> {
-      const parts = cache.frontParts || [];
-      const qty = frontCountFromParts(parts) || frontCountFallback(cabinet);
-      return makeFact('front.count', qty, { displayValue:`${qty} szt.`, source:'fronty z materiałów/wyceny' });
+      const parts = cache.frontParts;
+      const qty = frontCountFromParts(parts);
+      return makeFact('front.count', qty, { hasValue:Array.isArray(parts), displayValue:`${qty} szt.`, source:'fronty z materiałów/wyceny' });
     },
     'front.dimensions':(roomId, cabinet, cache)=> {
       const label = frontDimensionsFromParts(cache.frontParts || []);
@@ -352,7 +352,7 @@
     },
     'hinge.count':(roomId, cabinet, cache)=> {
       const qty = hingeCount(cache.hingeRows || []);
-      return makeFact('hinge.count', qty, { displayValue:`${qty} szt.`, source:'wymagania zawiasów' });
+      return makeFact('hinge.count', qty, { hasValue:Array.isArray(cache.hingeRows), displayValue:`${qty} szt.`, source:'wymagania zawiasów' });
     },
     'hinge.requirement':(roomId, cabinet, cache)=> {
       const label = hingeRequirementLabel(cache.hingeRows || []);
@@ -360,14 +360,14 @@
     },
     'shelf.count':(roomId, cabinet)=> {
       const parts = getCabinetCutListParts(roomId, cabinet);
-      const qty = parts.length ? parts.filter(part=>text(part.name) === 'Półka').reduce((sum, part)=>sum + Math.max(0, number(part.qty, 0)), 0) : shelfCount(cabinet);
+      const qty = Array.isArray(parts)&&parts.length ? parts.filter(part=>text(part.name) === 'Półka').reduce((sum, part)=>sum + Math.max(0, number(part.qty, 0)), 0) : shelfCount(cabinet);
       return makeFact('shelf.count', qty, { displayValue:`${qty} szt.`, source:'efektywne półki z MATERIAŁU' });
     },
     'drawer.count':(roomId, cabinet, cache)=> {
       const rows = cache.drawerRows || [];
       const qty = drawerCount(rows);
       const label = drawerRequirementLabel(rows);
-      return makeFact('drawer.count', qty, { displayValue:`${qty} szt.`, source:label ? `wymagania szuflad/prowadnic: ${label}` : 'wymagania szuflad/prowadnic' });
+      return makeFact('drawer.count', qty, { hasValue:Array.isArray(cache.drawerRows), displayValue:`${qty} szt.`, source:label ? `wymagania szuflad/prowadnic: ${label}` : 'wymagania szuflad/prowadnic' });
     },
     'appliance.count':(roomId, cabinet)=> {
       const appliance = mountedApplianceInfo(cabinet);
@@ -427,6 +427,7 @@
   function doorLaborFacts(roomId, cabinet, cache){
     const rows = cache.hingeRows || getHingeRows(roomId, cabinet);
     const all = hingeCount(rows);
+    if(!Array.isArray(rows))return {available:false,known:false};
     // Group split spring/plain requirements back onto their original door first.
     const doors = new Map();
     let unknown = false;
@@ -440,7 +441,7 @@
     const doorHinges = [...doors.values()].reduce((a,b)=>a+b,0);
     const own = text(details(cabinet).hingeDrilling || 'workshop') === 'workshop';
     const isDoor = text(cabinet.subType)!=='uchylne'||hingedLift;
-    return {all,doors,doorHinges: isDoor ? doorHinges : 0,doorCount:isDoor ? doors.size : 0,
+    return {available:true,all,doors,doorHinges: isDoor ? doorHinges : 0,doorCount:isDoor ? doors.size : 0,
       extra:own && isDoor ? [...doors.values()].reduce((sum,n)=>sum+Math.max(0,n-2),0) : 0,
       drill:own ? all : 0,known:!unknown};
   }
@@ -461,7 +462,7 @@
       else if(code === 'hanger.count') value = q ? q.hangers : null;
       else if(code === 'hdf.cutout_count' || code === 'nut.workshop_count'){
         const standard = q && q.hanging && q.hdf && ['standardowa','standard'].includes(text(cabinet.subType));
-        value = standard ? (code === 'hdf.cutout_count' ? 4 : 2) : 0;
+        value = !q?null:standard ? (code === 'hdf.cutout_count' ? 4 : 2) : 0;
         source = 'zatwierdzony standard wiszącej szafki HDF: 2 otwory + 2 podcięcia, 2 własne NUT-y';
       }else if(code.startsWith('shelf.')){
         const shelf = FACT_CALCULATORS['shelf.count'](roomId,cabinet,cache);
@@ -472,7 +473,7 @@
         const h = doorLaborFacts(roomId,cabinet,cache);
         const values = {'hinge.drill_count':h.drill,'hinge.extra_drill_count':h.extra,'hinge.fitting_count':h.all*2,
           'hinge.door_hinge_count':h.doorHinges,'hinge.door_count':h.doorCount,'hinge.door_cycle_count':h.doorHinges+h.doorCount};
-        value = values[code];
+        value = h.available===false?null:values[code];
         if(!h.known && ['hinge.extra_drill_count','hinge.door_hinge_count','hinge.door_count','hinge.door_cycle_count'].includes(code)){
           value = null;warning = 'STOP: centralne wymagania nie identyfikują poszczególnych frontów.';
         }
@@ -487,7 +488,7 @@
     FACT_CALCULATORS[code]=(roomId,cabinet,cache)=>{
       const q=hardwareRequirements().supportQuantities?.(cabinet),standing=text(cabinet.type)==='stojąca';
       const rows=cache.drawerRows || [],n={system_external:0,system_inner:0,box_ball_external:0,box_under_external:0,box_inner:0,box:0,inner:0,runners:0,front_catches:0,box_runners:0,under_catches:0,under_holes:0};
-      let unknown=false;
+      let unknown=!Array.isArray(cache.drawerRows);
       for(const row of rows){
         if(!(Number(row.qty)>0))continue;
         const derivedUsage=row.explicit?'':({front_drawers:'frontowa',sink_front_drawer:'frontowa',oven_drawer:'frontowa',under_counter_front_drawers:'frontowa',inner_drawers:'wewnętrzna',sink_inner_drawers:'zlewowa',under_counter_inner_drawers:'wewnętrzna'})[row.source];

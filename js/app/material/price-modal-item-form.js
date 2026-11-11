@@ -471,8 +471,9 @@
     setBlockVisible('formMaterialSheetWrap',sheet);
     const markup=readString('formMaterialPricingMode')==='markup',price=ctx.byId('formPrice');
     const purchase=Math.max(0,Number(readNumber('formMaterialPurchasePrice'))||0),percent=Math.max(0,Number(readNumber('formMaterialMarkup'))||0);
-    if(price){price.readOnly=markup;if(markup&&readString('formMaterialPurchasePrice')!=='')price.value=String(Math.round(purchase*(1+percent/100)*100)/100);}
-    const preview=ctx.byId('formMaterialPricePreview'),value=Math.max(0,Number(price?.value)||0);
+    setWrapperVisible('formMaterialMarkup',markup);
+    if(price)price.readOnly=markup;
+    const preview=ctx.byId('formMaterialPricePreview'),value=markup?Math.round(purchase*(1+percent/100)*100)/100:Math.max(0,Number(price?.value)||0);
     if(preview)preview.textContent=value.toFixed(2)+' PLN'+(readString('formMaterialPurchasePrice')===''?' • cena zakupu niepodana':' • różnica '+(value-purchase).toFixed(2)+' PLN');
   }
   function getCurrentMaterialDraft(){

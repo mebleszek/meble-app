@@ -1,6 +1,6 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
-Stan pakietu P0 zapisu szafek zaktualizowany **10.11.2026**; jego BASE/main `eb861142cc08842ef3773e1ea3d3a14847d8ff63` potwierdzony zdalnie. Starsze pakiety mają poniżej własne datowane statusy. Starsze dowody wydań zachowują własne daty i SHA. To jedyne źródło aktualnego wykonania; ROADMAP = plan, AGENTS = zasady, istniejące raporty = szczegółowe dowody. Pełna poprzednia treść z datami/SHA/wynikami jest w [archiwum do 09.11](docs/archive/CURRENT_STATE_history_to_20261109.md); starsza w [archiwum do 30.10](docs/archive/CURRENT_STATE_history_to_20261030.md). Dawne FAIL, „otwarte PR” i CI_PENDING nie są automatycznie bieżącym statusem.
+Stan pakietu P0 ostatnich poprawek WYCENY zaktualizowany **11.11.2026**; BASE/main `2968f7b952ed5a6b533aceede65cd0e2e2b6760a` potwierdzony zdalnie. Starsze pakiety mają własne datowane statusy. Starsze dowody wydań zachowują własne daty i SHA. To jedyne źródło aktualnego wykonania; ROADMAP = plan, AGENTS = zasady, istniejące raporty = szczegółowe dowody. Pełna poprzednia treść z datami/SHA/wynikami jest w [archiwum do 09.11](docs/archive/CURRENT_STATE_history_to_20261109.md); starsza w [archiwum do 30.10](docs/archive/CURRENT_STATE_history_to_20261030.md). Dawne FAIL, „otwarte PR” i CI_PENDING nie są automatycznie bieżącym statusem.
 
 ## 1. ZROBIONE — potwierdzony stan
 
@@ -14,6 +14,8 @@ Stan pakietu P0 zapisu szafek zaktualizowany **10.11.2026**; jego BASE/main `eb8
 - **PR #126 — jedna próba wydania, CI FAIL (11.11.2026):** safety/static/Firebase/history PASS, smoke shardy 4/5/6 FAIL (syntetyczna fixture frontów, nieaktualny wygenerowany artefakt katalogów i tablice z różnych realmów). Auto-merge niewykonany, Pages nieweryfikowane, main bez zmian. Korekta na gałęzi szafek w osobnym commicie; nowy HEAD **nie jest zatwierdzony do wydania**. Brak ponowienia CI; wymagana nowa zgoda na dokładne SHA.
 
 - **P0: zapis wszystkich wariantów szafek — 10.11.2026:** gałąź `fix/local-cabinet-validation-20261110`, BASE/main `eb861142cc08842ef3773e1ea3d3a14847d8ff63`. Odtworzono odmowę piekarnikowej na BASE. Lokalna walidacja używa natywnych generatorów; pilot eksportu i sync pozostają ograniczone. Testy kontraktu 17 wariantów/szczególnych frontów/PCV/zestawów i negatywy PASS, rzeczywisty modal + LOCAL-FIRST + zimny restart offline 17 wariantów i A/C/D PASS, abort IndexedDB zachowuje formularz/RAM/RAW/magazyny, istniejący eksport **62/62 PASS**, kontrakt biznesowy PASS. **CODE_READY / CI_PENDING / PHONE_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED**. Nie dotykano aktualizatora, Auth, writer-fence, cenników/norm/materiałów, ofert ani danych telefonu. Poprzednie gałęzie zachowane. [Raport i granice przyszłego modelu](tools/reports/local-cabinet-validation-20261110.md). Wynikowy HEAD/push/CLEAN w końcowym przekazaniu po kontroli zdalnej.
+
+- **P0: ostatnie poprawki WYCENY — 11.11.2026:** gałąź `fix/quote-final-corrections-20261111`, BASE/main `2968f7b952ed5a6b533aceede65cd0e2e2b6760a`. Rozdzielono wybór automatów i dodatków; ręczne historyczne przypisania nie wyłączają ani nie dublują automatów. Jawne fixedPrice 0 pozostaje zerem. Brak potwierdzonego źródła/warunku i konflikty w wybranym zakresie blokują nową wycenę, a poprawne zero i niespełniony warunek pozostają poprawne. Narzut materiału widoczny tylko w trybie zakup + narzut; wartości zachowane, zapis wyłącznie jawny. FAIL→PASS: sześć scenariuszy Node i widoczność w Chromium; rozszerzone kontrole oraz ograniczenia w [raporcie](tools/reports/quote-final-corrections-20261111.md). **CODE_READY / CI_PENDING / RELEASE_BLOCKED** dotyczy tego pakietu po kontrolach celowanych; pełnego CI/PR/merge/wydania/LIVE nie uruchamiano. Normy/ceny, zakresy, zamrożone oferty i dane telefonu zachowane. HEAD/push/CLEAN potwierdzane w przekazaniu po commicie.
 
 ## 2. SPRAWDZONE — nie powtarzać bez nowego powodu
 
@@ -41,7 +43,7 @@ Incydent quota z 24.10 i jego ówczesne polecenia są [historycznym zapisem](doc
 
 ## 4. NASTĘPNY RUCH
 
-**Dla bieżącego P0 zapisu szafek:** niezależna kontrola diffu i świeżego zdalnego HEAD/BASE przez ChatGPT. Ewentualna próba wydania wyłącznie po osobnej zgodzie właściciela na dokładne SHA; teraz bez PR/CI/merge/Pages. Przed aktualizacją statusu sprawdzić, czy main się nie zmienił.
+**Dla bieżącego P0 ostatnich poprawek WYCENY:** niezależna kontrola diffu i świeżego zdalnego HEAD/BASE przez ChatGPT. Ewentualna próba wydania wyłącznie po osobnej zgodzie właściciela na dokładne SHA; teraz bez PR/CI/merge/Pages. Przed aktualizacją statusu sprawdzić, czy main się nie zmienił.
 
 **Cel produktu pozostaje:** FREE-FIRST / PRODUCT-FIRST, 0 zł obowiązkowych opłat, działająca synchronizacja telefon–komputer i rozwój WYCENY/RYSUNKÓW. Nie wracać do ogólnego audytu ani CLOUD-4.6G/VPS/rozbudowy STOP dla nich samych. Kolejny zakres wybiera właściciel po rekomendacji ChatGPT. Minimum: tylko właściciel, cenniki/zamienniki bez strat, offline bez nadpisania i bezpieczne przejęcie jednego edytora. Bez samodzielnego uruchomienia LIVE.
 

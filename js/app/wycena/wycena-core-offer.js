@@ -81,6 +81,7 @@
       ? FC.laborCatalog.normalizeDefinition(rate)
       : rate;
     const hasLaborRule = !!(def && (
+      ['fixed','advanced'].includes(def.pricingMode) ||
       Number(def.timeBlockHours) > 0 ||
       String(def.quantityMode || 'none') !== 'none' ||
       Number(def.volumePricePerM3) > 0 ||
@@ -243,9 +244,10 @@
 
   function collectQuoteRateLines(){
     const draft = getOfferDraft();
-    const selections = Array.isArray(draft && draft.rateSelections) ? draft.rateSelections : [];
+    const rawSelections = Array.isArray(draft && draft.rateSelections) ? draft.rateSelections : [];
     const catalogRows = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
     const catalog = Array.isArray(catalogRows) ? catalogRows : [];
+    const selections=rawSelections.filter(row=>FC.laborCatalog?.isManualDefinition(catalog.find(rate=>String(rate.id)===String(row.rateId)))===true);
     const manualLines = selections.map((row)=>{
       const rate = catalog.find((item)=> String(item && item.id || '') === String(row && row.rateId || '')) || null;
       if(!rate) return null;

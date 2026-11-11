@@ -77,7 +77,7 @@ test('Hinge drilling and layout are per original door, including split TIP-ON an
   for(const code of ['hinge.count','hinge.drill_count','hinge.extra_drill_count','hinge.door_count'])assert.equal(r.fact(code).value,0);
   assert.equal(FC.cabinetHardwareRequirements.getHingeRequirementsWithQty('kuchnia',cab).length,0);
 });
-test('Door cycle, current rates, central register and explicit manual replacement have no duplicate automats',()=>{
+test('Door cycle, current rates, central register and manual extras cannot replace or duplicate automats',()=>{
   const r=fixture(),{cab,FC}=r;
   r.setPanels(Array.from({length:4},()=>({w:30,h:200})));
   const details=r.details();
@@ -87,10 +87,12 @@ test('Door cycle, current rates, central register and explicit manual replacemen
   const adjust=details.find(d=>d.name==='Końcowa regulacja drzwi u klienta');near(adjust.hours*60,9);near(adjust.total,37.5);
   r.rates().find(row=>row.id==='labor_rate_assembly').price=300;near(r.details().find(d=>d.name===adjust.name).total,45);
   for(const old of Object.keys(FC.laborCatalogDefinitions.LABOR_REPLACEMENTS))assert.ok(!details.some(d=>d.key.includes(old)),'Old auto '+old);
+  const automatedBefore=clone(r.details());
   cab.laborItems=[{rateId:'labor_mount_front',qty:2,note:'keep exactly'},{rateId:'labor_mount_hinge',qty:1}];
   const saved=JSON.stringify(cab.laborItems),manual=r.details();
-  assert.equal(manual.filter(d=>d.sourceKind==='manual').length,2);
-  assert.equal(manual.filter(d=>d.sourceKind==='automatic-suppressed').length,2);
+  assert.equal(manual.filter(d=>d.sourceKind==='manual').length,0);
+  assert.deepEqual(clone(manual),automatedBefore,'Historical assignments cannot alter automatic quantity/time/cost');
+  assert.equal(manual.filter(d=>d.sourceKind==='automatic-suppressed').length,0);
   for(const source of ['hinge.door_count','hinge.door_cycle_count','shelf.count']){const found=manual.filter(d=>d.quantitySource===source);assert.ok(found.length>0,'Required independent operation '+source);assert.ok(found.every(d=>d.sourceKind==='automatic'&&d.total>0),'Distinct packing/site operations remain billed: '+source);}
   assert.ok(manual.filter(d=>d.sourceKind==='automatic-suppressed').every(d=>d.total===0&&d.quantity===0));
   assert.equal(JSON.stringify(cab.laborItems),saved);
@@ -107,7 +109,7 @@ test('Door cycle, current rates, central register and explicit manual replacemen
   assert.equal(new Set(ids).size,ids.length,'Cabinet identity retained in every audit ID');
   cab.laborItems=[];
   FC.quoteOfferStore={getCurrentDraft:()=>({rateSelections:[{rateId:'labor_mount_hinge',qty:1}]})};
-  assert.equal(r.details().find(d=>d.quantitySource==='hinge.fitting_count').sourceKind,'automatic-suppressed');
+  assert.equal(r.details().find(d=>d.quantitySource==='hinge.fitting_count').sourceKind,'automatic');
   delete FC.quoteOfferStore;
   r.rates().find(row=>row.id==='labor_hinge_fastening').active=false;
   assert.ok(!r.details().some(d=>d.name==='Montaż zawiasu'),'Disabled new norm never revives old automation');
@@ -119,7 +121,7 @@ test('Unchanged areas retain their existing definitions and cutlist geometry',()
   const carrying=r.rates().find(d=>d.id==='labor_carrying_cabinet');near(carrying.startHours,0.25);near(carrying.stepHours,1/12);assert.equal(carrying.rateType,'assembly');
   const parts=FC.cabinetCutlist.getCabinetCutList(cab,'kuchnia');assert.equal(parts.find(p=>p.name==='Bok').a,70.2);assert.equal(parts.find(p=>p.name==='Półka').qty,2);
 });
-test('repair: private operation collision, explicit replacement, independent work and historical catalog',()=>{
+test('repair: private operation collision cannot be resolved by manual assignment; independent work and history survive',()=>{
   const r=fixture(),{FC,cab}=r;
   const base=r.rates().find(d=>d.id==='labor_shelves_adjustable');
   const own={...clone(base),id:'private-shelf',name:'Private drilling',startHours:0.5,note:'private note',price:123};
@@ -131,20 +133,19 @@ test('repair: private operation collision, explicit replacement, independent wor
   assert.ok(register.warnings.some(w=>w.message.includes('private-shelf')),'Conflict is visible in central audit');
   assert.equal(JSON.stringify(cab.laborItems||[]),oldItems);
   cab.laborItems=[{rateId:own.id,qty:3,note:'chosen exact norm'}];
-  rows=r.details();const manual=rows.filter(d=>d.sourceKind==='manual');assert.equal(manual.length,1);assert.equal(manual[0].quantity,3);assert.ok(manual[0].note.includes('chosen exact norm'));
-  near(manual[0].total,FC.laborCatalog.calculateDefinition(own,{quantity:3,hourlyRates:{workshop:150}}).total);
-  const suppressed=rows.filter(d=>d.quantitySource==='shelf.adjustable_count'&&d.sourceKind!=='manual');assert.equal(suppressed.length,2);assert.ok(suppressed.every(d=>d.sourceKind==='automatic-suppressed'&&d.total===0));
+  rows=r.details();const manual=rows.filter(d=>d.sourceKind==='manual');assert.equal(manual.length,0);assert.equal(cab.laborItems[0].note,'chosen exact norm');
+  const blocked=rows.filter(d=>d.quantitySource==='shelf.adjustable_count');assert.equal(blocked.length,2);assert.ok(blocked.every(d=>d.sourceKind==='automatic-blocked'&&d.total===0));
   for(const source of ['shelf.count','hinge.door_count','hinge.door_cycle_count'])assert.ok(rows.some(d=>d.quantitySource===source&&d.total>0&&d.sourceKind==='automatic'));
   assert.equal(JSON.stringify(r.rates()),saved,'Private catalog is never rewritten by conflict handling');
   own.rateType='assembly';cab.laborItems=[];
   rows=r.details().filter(d=>d.quantitySource==='shelf.adjustable_count');assert.equal(rows.length,2);assert.ok(rows.every(d=>d.sourceKind==='automatic-blocked'&&d.total===0),'Changing the hourly profile does not make duplicate drilling independent');
   own.rateType='workshop';
   cab.laborItems=[{rateId:'labor_loose_shelves',qty:2,note:'historic manual package'}];
-  rows=r.details();assert.ok(rows.some(d=>d.sourceKind==='manual'&&d.note.includes('historic manual package')));
+  rows=r.details();assert.ok(!rows.some(d=>d.sourceKind==='manual'));assert.equal(cab.laborItems[0].note,'historic manual package');
   assert.ok(rows.filter(d=>d.quantitySource==='shelf.adjustable_count').every(d=>d.total===0));
   cab.laborItems=[{rateId:'labor_adjust_front',qty:2,note:'old adjustment'}];
   rows=r.details();
-  assert.ok(rows.some(d=>d.name===r.rates().find(d=>d.id==='labor_door_adjust').name&&d.sourceKind==='automatic-suppressed'&&d.total===0));
+  assert.ok(rows.some(d=>d.name===r.rates().find(d=>d.id==='labor_door_adjust').name&&d.sourceKind==='automatic'&&d.total>0));
   assert.ok(rows.some(d=>d.name===r.rates().find(d=>d.id==='labor_door_rehang').name&&d.sourceKind==='automatic'&&d.total>0),'Legacy adjustment does not suppress independent rehang');
   const historical={id:'old-private-unrelated',name:base.name,quantitySource:'cabinet.count',timeBlockHours:0.75,pricingMode:'time',rateType:'specialist',price:99,note:'legacy'};
   r.rates().push(historical);cab.laborItems=[];
@@ -185,12 +186,8 @@ test('repair: legacy workshop shelf norms never suppress independent on-site pla
     assert.equal(drilling.length,1);assert.equal(drilling[0].total,0);
     assert.equal(drilling[0].sourceKind,'automatic-blocked');assert.ok(drilling[0].warnings.some(warning=>warning.includes(legacy.id)),'Workshop ambiguity remains audited');
     const privateRows=r.details().filter(row=>row.name===legacy.name);
-    assert.equal(privateRows.length,assignment==='cabinet'?2:1);
+    assert.equal(privateRows.length,1);assert.ok(privateRows.every(row=>row.total===0&&row.sourceKind==='automatic-blocked'));
     if(assignment==='none')assert.ok(privateRows.every(row=>row.total===0&&row.sourceKind==='automatic-blocked'));
-    if(assignment==='cabinet'){
-      const chosen=privateRows.filter(row=>row.sourceKind==='manual');assert.equal(chosen.length,1);
-      assert.equal(chosen[0].quantity,3);near(chosen[0].hours*60,135);near(chosen[0].total,337.5);assert.ok(chosen[0].note.includes(manual.note));
-    }
     assert.equal(JSON.stringify(r.rates()),catalogBytes);assert.equal(JSON.stringify(manual),assignmentBytes);assert.equal(JSON.stringify(cab),cabinetBytes);
   }
 });

@@ -134,16 +134,26 @@
     }catch(_){ }
     return null;
   }
+  function factNumber(fact){
+    return fact && fact.available!==false && fact.value!=null && ['number','string'].includes(typeof fact.value) && text(fact.value)!=='' && Number.isFinite(Number(fact.value)) ? Number(fact.value) : null;
+  }
+  function blockAutomation(components,def,entry,message){
+    const warning='STOP: '+message;
+    const cmp=componentFromCalc({definition:def,quantity:0,total:0},{allowZero:true,key:slug(`${entry.roomId}_${entry.cabinet.id}_${def.id}_incomplete`),
+      sourceId:text(entry.cabinet.id),sourceLabel:cabinetSourceLabel(entry),sourceKind:'automatic-blocked',sourceType:semanticRole(def).sourceType,
+      sourceRole:semanticRole(def).sourceRole,quantitySource:def.quantitySource,note:warning,warnings:[warning]});
+    components.push(cmp);
+  }
   function quantityFromSource(def, entry, fallbackQuantity){
     const code = text(def && def.quantitySource);
     const fallback = Math.max(0, num(fallbackQuantity, 0));
     if(!code) return { quantity:fallback, sourceCode:'', usedSource:false, fact:null, warning:'' };
     const fact = factFor(entry, code);
     if(fact && fact.available !== false){
-      const n = Number(fact.value);
-      if(Number.isFinite(n)) return { quantity:Math.max(0, n), sourceCode:code, usedSource:true, fact, warning:'' };
+      const n = factNumber(fact);
+      if(n!==null && n>=0) return { quantity:Math.max(0, n), sourceCode:code, usedSource:true, fact, warning:'' };
     }
-    return { quantity:fallback, sourceCode:code, usedSource:false, fact, warning:`Nie udało się odczytać źródła ilości ${code}; użyto dotychczasowej ilości.` };
+    return { quantity:0, sourceCode:code, usedSource:false, fact, warning:`Nie potwierdzono źródła ilości ${code}.` };
   }
   function normalizedConditions(def){
     if(!def || !Array.isArray(def.conditions)) return [];
@@ -168,17 +178,12 @@
   function evaluateConditions(def, entry){
     const conditions = normalizedConditions(def);
     if(!conditions.length) return { matched:true, conditions:[], matchedConditions:[], skippedReason:'' };
-    const matched = [];
+    const matched = [];let missing='';
     for(const condition of conditions){
       const sourceCode = text(condition && condition.source);
       const fact = factFor(entry, sourceCode);
-      if(!fact || fact.available === false){
-        return { matched:false, conditions, matchedConditions:matched, skippedReason:`pominięto — brak danych warunku ${sourceCode}` };
-      }
-      const value = Number(fact.value);
-      if(!Number.isFinite(value)){
-        return { matched:false, conditions, matchedConditions:matched, skippedReason:`pominięto — brak liczbowej wartości warunku ${sourceCode}` };
-      }
+      const value=factNumber(fact);
+      if(value===null){missing=missing || sourceCode;continue;}
       const min = condition.min == null ? null : Number(condition.min);
       const max = condition.max == null ? null : Number(condition.max);
       const row = {
@@ -198,6 +203,7 @@
       }
       matched.push(row);
     }
+    if(missing)return {matched:false,incomplete:true,conditions,matchedConditions:matched,skippedReason:`brak danych warunku ${missing}`};
     return { matched:true, conditions, matchedConditions:matched, skippedReason:'' };
   }
   function conditionNote(meta){
@@ -399,14 +405,16 @@
   }
   function addFrontLabor(components, entry, defs, rates, volumeM3){
     const def = findDefById(defs, 'labor_mount_front');
-    if(!def || replacedLegacyDefinition(def, defs) || manualAutomationSuppression(entry, defs).has(text(def.id))) return;
+    if(!def || replacedLegacyDefinition(def, defs)) return;
     const cab = entry && entry.cabinet || {};
     const cond = evaluateConditions(def, entry);
-    if(!cond.matched) return;
+    if(!cond.matched){if(cond.incomplete)blockAutomation(components,def,entry,cond.skippedReason);return;}
     const parts = frontPartsForCabinet(entry && entry.roomId, cab);
     const meta = quantityFromSource(def, entry, frontPartsQty(parts));
+    if(meta.sourceCode&&!meta.usedSource){blockAutomation(components,def,entry,meta.warning);return;}
     if(!(meta.quantity > 0)) return;
     const calc = calculate(def, { quantity:meta.quantity, volumeM3, hourlyRates:rates });
+    if(!calc){blockAutomation(components,def,entry,'Brak wyniku kalkulatora');return;}
     const notes = [frontPartsNote(parts) || 'Automatycznie z frontów używanych przez MATERIAŁ/WYCENĘ.', sourceNote(meta), conditionNote(cond)].filter(Boolean);
     const cmp = componentFromCalc(calc, Object.assign({
       suffix:'fronts',
@@ -464,10 +472,10 @@
   }
   function addHingeLabor(components, entry, defs, rates, volumeM3){
     const def = findDefById(defs, 'labor_mount_hinge');
-    if(!def || replacedLegacyDefinition(def, defs) || manualAutomationSuppression(entry, defs).has(text(def.id))) return;
+    if(!def || replacedLegacyDefinition(def, defs)) return;
     const cab = entry && entry.cabinet || {};
     const cond = evaluateConditions(def, entry);
-    if(!cond.matched) return;
+    if(!cond.matched){if(cond.incomplete)blockAutomation(components,def,entry,cond.skippedReason);return;}
     const reqs = hingeRequirementsForCabinet(entry && entry.roomId, cab);
     const sourceCode = text(def.quantitySource) || 'hinge.count';
     const totalReq = hingeRequirementsQty(reqs);
@@ -589,11 +597,12 @@
     return lines.filter(Boolean).join(' • ');
   }
 
-  function carryingCalc(def,entry,levels,rates,volumeM3,count=1){
-    if(!evaluateConditions(def,entry).matched)return null;
+  function carryingCalc(def,entry,levels,rates,volumeM3,count=1,components=[]){
+    const condition=evaluateConditions(def,entry);
+    if(!condition.matched){if(condition.incomplete)blockAutomation(components,def,entry,condition.skippedReason);return null;}
     const source=text(def.quantitySource);
     const fact=source&&source!=='carrying.floor_units'?factFor(entry,source):null;
-    if(source&&source!=='carrying.floor_units'&&(!fact||fact.available===false))return null;
+    if(source&&source!=='carrying.floor_units'&&(factNumber(fact)===null||factNumber(fact)<0)){blockAutomation(components,def,entry,'Nie potwierdzono źródła ilości '+source);return null;}
     const quantity=!source?1:source==='carrying.floor_units'?levels:Math.max(0,Number(fact.value)||0);
     const calc=calculate(def,{quantity,volumeM3,hourlyRates:rates});
     if(!calc)return null;
@@ -630,7 +639,7 @@
     }
     groups.forEach((group)=> {
       if(!(group.count > 0 && group.floorUnits > 0)) return;
-      const calc=carryingCalc(carryingDef,entry,group.floorUnits,rates,volumeM3,group.count);
+      const calc=carryingCalc(carryingDef,entry,group.floorUnits,rates,volumeM3,group.count,components);
       if(!calc)return;
       const warnings = Array.isArray(ev.warnings) ? ev.warnings.slice() : [];
       const cmp = componentFromCalc(calc, {
@@ -668,7 +677,7 @@
   function addCarryingLabor(components, entry, defs, rates, volumeM3){
     const cab = entry && entry.cabinet || {};
     const ev = carryingEvaluation(entry);
-    if(!ev) return;
+    if(!ev){for(const def of defs.filter(isCarryingAutomation)){const cond=evaluateConditions(def,entry);if(cond.matched||cond.incomplete)blockAutomation(components,def,entry,'Brak danych wnoszenia');}return;}
     const carryingDef = findDefById(defs, 'labor_carrying_cabinet');
     if(carryingDef && Number(ev.floorUnits) > 0){
       const floorFact = factFor(entry, 'carrying.floor_units') || {};
@@ -676,7 +685,7 @@
       const itemFact = factFor(entry, 'carrying.stairs_item_count') || {};
       const itemCount = Math.max(0, Number(ev.carryingItemCount) || (ev.requiresDisassembly ? 0 : 1));
       if(itemCount > 0){
-        const calc=carryingCalc(carryingDef,entry,Number(ev.floorUnits),rates,volumeM3);
+        const calc=carryingCalc(carryingDef,entry,Number(ev.floorUnits),rates,volumeM3,1,components);
         if(calc){
         const warnings = Array.isArray(ev.warnings) ? ev.warnings.slice() : [];
         const cmp = componentFromCalc(calc, {
@@ -756,37 +765,6 @@
     const matches = defaults.filter(row=>laborOperationIds.has(text(row.id)) && text(row.quantitySource) === source);
     return matches.map(row=>text(row.id));
   }
-  function manualAutomationSuppression(entry, defs){
-    const cab = entry && entry.cabinet || {};
-    const local = Array.isArray(cab.laborItems) ? cab.laborItems : [];
-    let project = [];
-    try{const draft = FC.quoteOfferStore && FC.quoteOfferStore.getCurrentDraft();project = draft && Array.isArray(draft.rateSelections) ? draft.rateSelections : [];}catch(_){}
-    const replacement = FC.laborCatalogDefinitions && FC.laborCatalogDefinitions.LABOR_REPLACEMENTS || {};
-    const blocked = new Map();
-    local.concat(project).forEach(item=>{
-      const id = text(item && (item.rateId || item.id));
-      const def = findDefById(defs,id);
-      if(!def || !evaluateConditions(def,entry).matched) return;
-      blocked.set(id,id);
-      (replacement[id] || []).forEach(next=>blocked.set(next,id));
-      const peers = operationPeers(def, defs);
-      if(peers.length > 1){
-        // A private selection cannot silently choose between rehang and adjustment.
-        defs.filter(row=>operationPeers(row).some(role=>peers.includes(role))).forEach(row=>{
-          if(text(row.id)!==id) blocked.set(text(row.id),'STOP:'+id);
-        });
-      }
-      if(peers.length === 1 || (replacement[id] || []).length){
-        // Explicit manual selection resolves a unique operation without rewriting the private record.
-        const targets = (replacement[id] || []).concat(peers.length === 1 ? peers : []);
-        defs.filter(row=>{
-          const roles = operationPeers(row,defs);
-          return roles.length === 1 && targets.includes(roles[0]);
-        }).forEach(row=>blocked.set(text(row.id),id));
-      }
-    });
-    return blocked;
-  }
   function replacedLegacyDefinition(def, defs){
     const map = FC.laborCatalogDefinitions && FC.laborCatalogDefinitions.LABOR_REPLACEMENTS || {};
     return (map[text(def && def.id)] || []).some(id=>(defs || []).concat(catalogRows()).some(row=>text(row && row.id) === id));
@@ -798,7 +776,7 @@
     const blocked = new Set(['labor_mount_front','labor_mount_hinge','labor_carrying_cabinet','labor_carrying_disassembly']);
     return (Array.isArray(defs) ? defs : []).filter((def)=> {
       if(!(def && def.active !== false && def.isHourlyRate !== true && text(def.quantitySource))) return false;
-      if(blocked.has(text(def.id)) || replacedLegacyDefinition(def, defs) || (!opts.applianceOnly && isApplianceAutomation(def)) || isCarryingAutomation(def)) return false;
+      if(text(def.quantitySource).startsWith('transport.') || blocked.has(text(def.id)) || replacedLegacyDefinition(def, defs) || (!opts.applianceOnly && isApplianceAutomation(def)) || isCarryingAutomation(def)) return false;
       if(opts.applianceOnly) return text(def.quantitySource).startsWith('labor.agd.');
       const project = isProjectAutomation(def);
       return projectOnly ? project : !project;
@@ -807,41 +785,34 @@
   function addGenericQuantitySourceLabor(components, entry, defs, rates, volumeM3, options){
     const cab = entry && entry.cabinet || {};
     const opts = options && typeof options === 'object' ? options : {};
-    const automatic = autoQuantityDefs(defs, opts).filter(def=>evaluateConditions(def,entry).matched);
-    const suppression = manualAutomationSuppression(entry, defs);
+    const automatic = autoQuantityDefs(defs, opts);
     automatic.forEach((def)=> {
       const cond = evaluateConditions(def, entry);
-      if(!cond.matched) return;
+      if(!cond.matched){if(cond.incomplete)blockAutomation(components,def,entry,cond.skippedReason);return;}
       const meta = quantityFromSource(def, entry, 0);
-      if(!(meta.quantity > 0)){
-        if(meta.fact && meta.fact.warning){
-          const blocked = componentFromCalc(calculate(def,{quantity:0,hourlyRates:rates}),{allowZero:true,key:slug(`${entry.roomId}_${cab.id}_blocked_${def.id}`),sourceType:'quantity-source',sourceId:text(cab.id),sourceLabel:cabinetSourceLabel(entry),sourceKind:'automatic-blocked',quantitySource:def.quantitySource,note:meta.fact.warning,warnings:[meta.fact.warning]});
-          if(blocked) components.push(blocked);
-        }
-        return;
-      }
+      if(!meta.usedSource){blockAutomation(components,def,entry,meta.warning);return;}
+      if(!(meta.quantity>0))return;
       const role = semanticRole(def);
-      const suppressor = suppression.get(text(def.id));
       const peers = operationPeers(def,defs);
-      const overlaps = automatic.filter(row=>!suppression.has(text(row.id)) && operationPeers(row,defs).some(id=>peers.includes(id)));
-      const ambiguousManual = text(suppressor).startsWith('STOP:');
-      const conflict = ambiguousManual || (!suppressor && overlaps.length > 1 && overlaps.some(row=>!laborOperationIds.has(text(row.id))));
-      const conflictWarning = conflict ? 'STOP: konflikt automatycznych norm tej samej pracy: '+(ambiguousManual ? text(suppressor).slice(5)+', '+text(def.id) : overlaps.map(row=>text(row.id)).join(', '))+'. Wskaż jednoznaczną czynność; zachowano rekordy, czas, cenę i notatki. Nie naliczono konfliktujących automatów.' : '';
+      const overlaps = automatic.filter(row=>evaluateConditions(row,entry).matched && operationPeers(row,defs).some(id=>peers.includes(id)));
+      const conflict = overlaps.length>1 && overlaps.some(row=>!laborOperationIds.has(text(row.id)));
+      const conflictWarning=conflict?'STOP: konflikt automatycznych norm tej samej pracy: '+overlaps.map(row=>text(row.id)).join(', ')+'. Zachowano definicje; nie naliczono konfliktujących automatów.':'';
       const calcVolumeM3 = (role.sourceRole === 'cabinet-body-labor' || role.sourceRole === 'project-design-unusual') ? cabinetBodyVolumeM3(entry && entry.roomId, cab) : volumeM3;
-      const calc = calculate(def, { quantity:suppressor || conflict ? 0 : meta.quantity, volumeM3:calcVolumeM3, hourlyRates:rates });
+      const calc = calculate(def, { quantity:conflict ? 0 : meta.quantity, volumeM3:calcVolumeM3, hourlyRates:rates });
+      if(!calc){blockAutomation(components,def,entry,'Brak wyniku kalkulatora');return;}
       const cmp = componentFromCalc(calc, Object.assign({
         key:slug(`${entry.roomId}_${cab.id}_${def.id}`),
         suffix:`source_${text(def.id) || text(def.name)}`,
         unit:'szt.',
         name:text(def.name) || 'Czynność',
-        note:[sourceNote(meta), meta.fact && meta.fact.source, conditionNote(cond), conflictWarning, suppressor ? 'Automat zastąpiony ręcznym przypisaniem '+suppressor+'; ręczne dane i ich wycena są zachowane.' : (text(def.note) || text(opts.note) || 'Automatycznie z wybranego źródła ilości.')].filter(Boolean).join(' • '),
+        note:[sourceNote(meta), meta.fact && meta.fact.source, conditionNote(cond), conflictWarning, text(def.note) || text(opts.note) || 'Automatycznie z wybranego źródła ilości.'].filter(Boolean).join(' • '),
         sourceType:role.sourceType,
         sourceLabel:cabinetSourceLabel(entry),
         sourceId:text(cab && cab.id),
         sourceRole:role.sourceRole,
-        sourceKind:conflict ? 'automatic-blocked' : (suppressor ? 'automatic-suppressed' : 'automatic'),
-        allowZero:!!suppressor || conflict,
-        warnings:(conflict ? [conflictWarning] : []).concat(suppressor ? ['Automat zastąpiony ręcznym przypisaniem '+suppressor+'.'] : []).concat(meta.warning ? [meta.warning] : []).concat(conditionWarnings(cond))
+        sourceKind:conflict ? 'automatic-blocked' : 'automatic',
+        allowZero:conflict,
+        warnings:(conflict ? [conflictWarning] : []).concat(meta.warning ? [meta.warning] : []).concat(conditionWarnings(cond))
       }, sourceOpts(meta), conditionOpts(cond)));
       if(cmp){if(opts.applianceOnly)cmp.laborCode=text(def.id);components.push(cmp);}
     });
@@ -926,6 +897,7 @@
       const rateId = text(item && (item.rateId || item.id));
       const def = (defs || []).find((row)=> text(row && row.id) === rateId) || null;
       const qty = Math.max(0, num(item && item.qty, 1));
+      if(def && FC.laborCatalog.isAutomaticDefinition(def))return;
       if(!def){
         const cmp = manualFallbackComponent(item, entry, idx, {
           volumeM3,
@@ -937,8 +909,6 @@
         return;
       }
       const cond = evaluateConditions(def, entry);
-      const replacedIds = (FC.laborCatalogDefinitions && FC.laborCatalogDefinitions.LABOR_REPLACEMENTS || {})[text(def.id)] || [];
-      const duplicateRisk = replacedIds.length > 0;
       const condWarn = conditionWarnings(cond);
       if(!cond.matched){
         const cmp = manualFallbackComponent(item, entry, idx, {
@@ -955,8 +925,8 @@
         return;
       }
       const calc = calculate(def, { quantity:qty, volumeM3, hourlyRates:rates });
-      const manualNote = [text(item && item.note), conditionNote(cond), duplicateRisk ? 'Ręczna pozycja zachowana; zastępuje automaty: '+replacedIds.join(', ') : 'Ręczna pozycja przypięta do szafki.'].filter(Boolean).join(' • ');
-      const cmp = componentFromCalc(calc, Object.assign({ key:slug(`${entry.roomId}_${cab.id}_manual_${idx}_${rateId}`), suffix:`manual_${idx}`, unit:'szt.', note:manualNote, sourceType:'manual-cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'manual-cabinet-labor', sourceKind:'manual', allowZero:true, warnings:(duplicateRisk ? ['Odpowiadające automaty wyłączono, zachowując ręczne przypisanie.'] : []).concat(condWarn) }, conditionOpts(cond)));
+      const manualNote = [text(item && item.note), conditionNote(cond), 'Ręczna pozycja przypięta do szafki.'].filter(Boolean).join(' • ');
+      const cmp = componentFromCalc(calc, Object.assign({ key:slug(`${entry.roomId}_${cab.id}_manual_${idx}_${rateId}`), suffix:`manual_${idx}`, unit:'szt.', note:manualNote, sourceType:'manual-cabinet', sourceLabel:cabinetSourceLabel(entry), sourceId:text(cab && cab.id), sourceRole:'manual-cabinet-labor', sourceKind:'manual', allowZero:true, warnings:condWarn }, conditionOpts(cond)));
       if(cmp) components.push(cmp);
     });
     const total = components.reduce((sum, row)=> sum + (Number(row.total) || 0), 0);
