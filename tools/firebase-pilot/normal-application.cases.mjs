@@ -102,6 +102,32 @@ export async function runNormalApplication(t,{deployment=false}={}){
  if(deployment)computer=await device('computer');else await enable(computer);
  if(deployment)assert.equal((await getDoc(doc(ownerClient,'users',uid,'globalData','current'))).data().revisionId,beforeReceiver.revisionId,'Empty device must never publish defaults over the server');
  async function until(check){for(let i=0;i<200;i++){if(await check())return;await new Promise(r=>setTimeout(r,25));}throw Error('Normal replication timeout '+JSON.stringify(await Promise.all(devices.map(d=>d.page.evaluate(()=>({...window.FC.applicationStartup.inspect(),connectionError:window.normalConnectionError,sdkErrors:window.normalSdkErrors}))))));}
+ // The receiving device may display a remote project revision before its
+ // application transaction becomes idle. Wait for that boundary, invoke the
+ // real navigation exactly once and require its actual list to contain the ID.
+ async function openConfirmedInvestorList(d,id){
+  await until(async()=>await d.page.evaluate(()=>!window.FC.applicationStartup.inspect().transactionPending));
+  const observed=await d.page.evaluate(async id=>{
+   const navigation=await window.FC.actions.dispatch('open-investors-list');
+   const root=document.getElementById('investorsListRoot');
+   const buttons=Array.from(root?.querySelectorAll('[data-action="open-investor"]')||[]);
+   const status=window.FC.applicationStartup.inspect();
+   return {
+    refused:navigation===false,
+    entry:window.uiState?.entry,
+    visible:document.getElementById('investorsListView')?.style.display==='block',
+    buttonPresent:buttons.some(button=>button.getAttribute('data-inv-id')===id),
+    renderedInvestorIds:buttons.map(button=>button.getAttribute('data-inv-id')),
+    investorKnown:!!window.FC.investors.getById(id),
+    transactionPending:status.transactionPending,
+    currentInvestorId:window.FC.investors.getCurrentId(),
+    status
+   };
+  },id);
+  assert.ok(!observed.refused && observed.entry==='investorsList' &&
+   observed.visible && observed.buttonPresent && observed.investorKnown && !observed.transactionPending,
+   'Real two-device investor-list navigation/renderer invariant: '+JSON.stringify(observed));
+ }
  await until(async()=>await computer.page.evaluate(ids=>ids.every(id=>!!window.FC.investors.getById(id)),ids));
  assert.equal(await computer.page.evaluate(()=>window.FC.investors.readAll().length),2);
  assert.equal(await phone.page.evaluate(()=>window.FC.applicationStartup.inspect().state),'active');
@@ -119,12 +145,12 @@ export async function runNormalApplication(t,{deployment=false}={}){
  // Native repositories now use the normal application transaction entry.
  await phone.page.evaluate(pid=>window.FC.applicationWrite.project(()=>{const row=window.FC.projectStore.getById(pid);row.title='Phone revision';if(!window.FC.projectStore.upsert(row))throw Error('Project write refused');}),pid);
  await until(async()=>await computer.page.evaluate(pid=>window.FC.projectStore.getById(pid)?.title,pid)==='Phone revision');
- await computer.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list'));
+ await openConfirmedInvestorList(computer,ids[0]);
  await computer.page.locator('[data-action="open-investor"][data-inv-id="'+ids[0]+'"]').click();
  await computer.page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
  await assert.rejects(computer.page.evaluate(()=>window.FC.applicationWrite.project(()=>true)),/LF_EDITOR_BUSY_OR_HEAD_CHANGED/);
  await phone.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list'));
- await computer.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list'));
+ await openConfirmedInvestorList(computer,ids[0]);
  await computer.page.locator('[data-action="open-investor"][data-inv-id="'+ids[0]+'"]').click();
  await computer.page.waitForFunction(id=>window.FC.investors.getCurrentId()===id&&!window.FC.applicationStartup.inspect().transactionPending,ids[0]);
  await computer.page.evaluate(pid=>window.FC.applicationWrite.project(()=>{const row=window.FC.projectStore.getById(pid);row.title='Computer revision';if(!window.FC.projectStore.upsert(row))throw Error('Project write refused');}),pid);
