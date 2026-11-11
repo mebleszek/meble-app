@@ -645,7 +645,7 @@
     const id=text(row && row.id),known=(defs.DEFAULT_LABOR_DEFINITIONS || []).find(d=>text(d.id)===id);
     const replacements=defs.LABOR_REPLACEMENTS || {};
     return !!text(row && row.quantitySource) || !!text(known && known.quantitySource)
-      || ['room','quote','day'].includes(row && row.billingScope)
+      || ['room','quote','day'].includes(known && known.billingScope)
       || Object.prototype.hasOwnProperty.call(replacements,id)
       || Object.values(replacements).some(ids=>ids.includes(id));
   }

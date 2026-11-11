@@ -5,7 +5,7 @@ function fixture(original){
  const s={console};s.window=s;s.FC={utils:{uid:()=> 'synthetic-new'}};vm.createContext(s);
  const load=file=>vm.runInContext(fs.readFileSync('js/app/'+file+'.js','utf8'),s,{filename:file});
  load('pricing/labor-catalog-definitions');load('pricing/labor-catalog');
- let rows=original?[clone(original)]:[];const ui={editingId:original?.id||null},fields=Object.fromEntries(Object.entries({formCategory:'Synthetic',formServiceName:'QA',formServicePrice:'100',laborPricingMode:'advanced',laborQuantityMode:'none',laborDefaultMultiplier:'1',laborRateType:'workshop',laborBillingScope:'standard',laborDailyStages:'both'}).map(([id,value])=>[id,{value}]));fields.laborActive={checked:true};
+ let rows=original?[clone(original)]:[];const ui={editingId:original?.id||null},fields=Object.fromEntries(Object.entries({formCategory:'Synthetic',formServiceName:'QA',formServicePrice:String(original && ['fixed','advanced'].includes(original.pricingMode||'fixed') && original.fixedPrice!=null ? original.fixedPrice : (original?.price??100)),laborPricingMode:original?.pricingMode||'advanced',laborQuantityMode:'none',laborDefaultMultiplier:'1',laborRateType:'workshop',laborBillingScope:'standard',laborDailyStages:'both'}).map(([id,value])=>[id,{value}]));fields.laborActive={checked:true};
  const ctx=s.FC.priceModalContext={byId:id=>fields[id]||null,appUiState:()=>ui,currentList:()=>clone(rows),currentListKind:()=> 'quoteRates',currentConfig:()=>({formKind:'service'}),runtimeState:{},persistUi(){},renderPriceModal(){},info(title,message){throw Error(title+': '+message);},saveCurrentList(next){rows=clone(next);return true;}};
  load('material/price-modal-item-form');load('material/price-modal-persistence');
  return {labor:s.FC.laborCatalog,ctx,rows:()=>rows};
@@ -24,8 +24,35 @@ test('advanced explicit fixedPrice zero remains zero with a nonzero price',()=>{
 for(const [name,original,expected]of [
  ['new advanced form',null,100],['legacy advanced form without fixedPrice',{id:'qa',price:100,pricingMode:'advanced'},100],['advanced form with explicit zero',{id:'qa',price:100,pricingMode:'advanced',fixedPrice:0},0]
 ])test(name+' saves the intended fixed component',()=>{
- const r=fixture(original);assert.equal(r.ctx.saveServiceFromForm(),true);const saved=r.rows()[0];assert.equal(saved.price,100);assert.equal(saved.fixedPrice,expected);assert.equal(r.labor.calculateDefinition(saved,{quantity:1}).total,expected);
+ const r=fixture(original);assert.equal(r.ctx.saveServiceFromForm(),true);const saved=r.rows()[0];assert.equal(saved.price,expected);assert.equal(saved.fixedPrice,expected);assert.equal(r.labor.calculateDefinition(saved,{quantity:1}).total,expected);
  if(original)assert.equal(saved.id,original.id);
+});
+test('manual once-scoped extras stay selectable while day break and transport stay automatic',()=>{
+ const {labor}=fixture();
+ for(const scope of ['standard','room','quote','day']){
+  for(const id of ['labor_hole_fi60','pdf_wall_fix','custom-extra']){
+   const def=labor.normalizeDefinition({id,name:'Extra',pricingMode:'time',quantitySource:'',billingScope:scope,active:true});
+   assert.equal(labor.isManualDefinition(def),true,id+' '+scope);
+   assert.equal(labor.isAutomaticDefinition(def),false,id+' '+scope);
+  }
+ }
+ for(const id of ['labor_daily_break','labor_delivery_loading','labor_mount_front','pdf_door_adjust','transport_distance_km','transport_travel_time']){
+  const def=labor.DEFAULT_LABOR_DEFINITIONS.find(row=>row.id===id);
+  assert.ok(def && labor.isAutomaticDefinition(def),id+' stays automatic');
+ }
+});
+test('fixed and advanced zero survive save; editing visible price changes actual charge',()=>{
+ for(const mode of ['fixed','advanced']){
+  const r=fixture({id:'qa',name:'QA',price:100,fixedPrice:0,pricingMode:mode});
+  assert.equal(r.ctx.byId('formServicePrice').value,'0',mode+' actual zero');
+  assert.equal(r.ctx.saveServiceFromForm(),true);
+  assert.equal(r.rows()[0].price,0);assert.equal(r.rows()[0].fixedPrice,0);
+  assert.equal(r.labor.calculateDefinition(r.rows()[0],{quantity:1}).total,0);
+  r.ctx.appUiState().editingId='qa';r.ctx.byId('formServicePrice').value='75';
+  assert.equal(r.ctx.saveServiceFromForm(),true);
+  assert.equal(r.rows()[0].price,75);assert.equal(r.rows()[0].fixedPrice,75);
+  assert.equal(r.labor.calculateDefinition(r.rows()[0],{quantity:1}).total,75);
+ }
 });
 test('other modes retain their existing formulas and zero quantity',()=>{
  const {labor}=fixture();for(const [d,q,expected]of [

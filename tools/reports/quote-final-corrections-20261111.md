@@ -124,3 +124,11 @@ Wersje zmieniono tylko dla dwóch skryptów. Manifest i kodowy artefakt katalog�
 Zakres plików tej korekty: dwa powyższe moduły; `index.html`, `dev_tests.html`, `tools/script-versions.js`, `offline-assets.js`, hash/proweniencja `sync/code-global-catalogs.generated.mjs`; nowy `tools/quote-qa-p0-smoke.js`, rozszerzony `tools/helpers/quote-final-material-browser.js`; CURRENT_STATE i ten raport. Nowy smoke jest automatycznie odkrywany przez istniejący Preflight. Workflow bez zmian.
 
 **CODE_READY / CI_PENDING / RELEASE_BLOCKED.** Bez pełnego CI, PR, merge i wydania. Następny krok: niezależna kontrola nowego HEAD i diffu QA przez ChatGPT.
+
+## Dodatkowa korekta QA — 11.11.2026, wykonana przez ChatGPT
+
+BASE/main `2968f7b952ed5a6b533aceede65cd0e2e2b6760a`, wejściowy HEAD `fbaf5f3ea50b6377a93ad6241716d8062d73f5d6`. Odtworzono gubienie jawnej zerowej kwoty w trybie fixed przy ponownym zapisie oraz błędne uznawanie ręcznych zakresów room/quote/day za automaty.
+
+Minimalne zmiany: kwalifikacja auto przez rzeczywiste powiązania i fabryczną definicję (zachowano systemową przerwę, transport i montaż); w fixed i advanced formularz pokazuje faktyczny fixedPrice, jeśli istnieje, a zapis traktuje aktualnie edytowane pole jako wartość źródłową. Wykaz testów regresyjnych rozszerzono o scope, zero i zmianę ceny 0→75 zł.
+
+Weryfikacja izolowanych rzeczywistych modułów JavaScript i sprawdzenie spójności SHA256 wygenerowanych plików wykonane poza Codexem. Pełny Node/Chromium/CI nieuruchomiony. Żadnego PR, wydania, migracji ani Firebase LIVE.

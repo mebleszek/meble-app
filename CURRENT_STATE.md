@@ -19,6 +19,8 @@ Stan pakietu P0 ostatnich poprawek WYCENY zaktualizowany **11.11.2026**; BASE/ma
 
 - **Korekta QA P0 WYCENY — 11.11.2026:** ta sama gałąź `fix/quote-final-corrections-20261111`, wejściowy HEAD `f174cfa748fa62e799c24369d71e246da775f55f`, BASE/main `2968f7b952ed5a6b533aceede65cd0e2e2b6760a`. Odtworzono brak fallbacku advanced oraz widoczne nieaktywne pole ręcznej ceny. Minimalna korekta normalizera/formularza: brak fixedPrice dziedziczy price, jawne zero pozostaje zerem także po zapisie; cena ręczna ukryta w narzucie i przywracana bez utraty wartości. Node **6/6 PASS**, Chromium i dwie regresje czasu/persistence PASS; pełnego CI nie ponawiano. **CODE_READY / CI_PENDING / RELEASE_BLOCKED**. [Dowody QA](tools/reports/quote-final-corrections-20261111.md#korekta-qa-p0--11112026). Jeden dodatkowy commit/push; wynikowy HEAD/CLEAN w przekazaniu. Pozostałe automaty, normy, ceny, model katalogów i dane bez zmian.
 
+- **Doprecyzowanie QA 11.11.2026 wykonane bez Codexa:** ręczne czynności z zakresem room/quote/day pozostają ręczne, a zatwierdzone systemowe automaty (w tym przerwa i transport) są nadal automatyczne. W fixed/advanced pole ceny pokazuje faktyczną dopłatę; zapis 0 i późniejsza edycja są spójne. Celowane sprawdzenia rzeczywistych modułów PASS; CI_PENDING / RELEASE_BLOCKED. Bez zmian norm, danych telefonu, Firebase i synchronizacji.
+
 ## 2. SPRAWDZONE — nie powtarzać bez nowego powodu
 
 - Kontrola 09.11 była odczytowa: main/PR #121/#123, wyniki istniejącego CI #42539813337 i krok exact Pages. Nie uruchamiano Preflightu, Actions, testów aplikacji ani emulatorów.

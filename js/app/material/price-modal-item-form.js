@@ -563,8 +563,7 @@
   function getCurrentServiceDraft(){
     const base = { category:String((ctx.byId('formCategory') && ctx.byId('formCategory').value) || '').trim(), name:String((ctx.byId('formServiceName') && ctx.byId('formServiceName').value) || '').trim(), price:normalizePriceValue(ctx.byId('formServicePrice') && ctx.byId('formServicePrice').value) };
     const laborDraft=getCurrentLaborDraft(base);
-    const existing=currentEditedItem();
-    if(laborDraft.pricingMode==='advanced' && existing?.fixedPrice!=null)laborDraft.fixedPrice=existing.fixedPrice;
+    if(ctx.currentListKind()==='quoteRates' && ['fixed','advanced'].includes(laborDraft.pricingMode))laborDraft.fixedPrice=Math.max(0,Number(base.price)||0);
     if(laborDraft.unitPriceSource==='fuel')base.price=Number(currentEditedItem()?.price)||0;
     return Object.assign(base, laborDraft);
   }
@@ -696,7 +695,9 @@
     const category = String(item && item.category || (kind === 'workshopServices' ? 'Cięcie' : 'Korpusy'));
     ctx.setSelectOptions(ctx.byId('formCategory'), ctx.buildCategoryOptions(kind, category), category, category);
     if(ctx.byId('formServiceName')) ctx.byId('formServiceName').value = String(item && item.name || '');
-    if(ctx.byId('formServicePrice')) ctx.byId('formServicePrice').value = item && item.price != null ? item.price : '';
+    const fixedMode=['fixed','advanced'].includes(item?.pricingMode||'fixed') && !isHourlyRateItem(item);
+    const shownPrice=kind==='quoteRates' && fixedMode && item?.fixedPrice!=null ? item.fixedPrice : (item?.price??'');
+    if(ctx.byId('formServicePrice')) ctx.byId('formServicePrice').value=shownPrice;
     if(kind === 'quoteRates') applyLaborFormState(item || defaultServiceDraft(kind));
   }
 
