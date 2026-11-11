@@ -16,7 +16,12 @@ module.exports=async function({browser,tap,until,fill,roomId}){
   await tap('[data-test-rule="true"]');await until('document.getElementById("priceItemModal").style.display==="flex"');await settled();
  }
  async function saveItem(){await tap('#priceItemSaveBtn');await until('!!document.querySelector(".confirm-box")');await tap('.confirm-box .is-success');await until('document.getElementById("priceItemModal").style.display!=="flex"&&!window.FC.applicationStartup.inspect().transactionPending');}
- async function closeCatalog(){await tap('#priceModal [data-action="close-price"]');await settled();}
+ async function closeCatalog(){
+  await tap('#priceModal [data-action="close-price"]');
+  // A native click is not an ACK for the asynchronous LOCAL-FIRST navigation.
+  // Require the actual close and the completed transaction, never a retry.
+  await until('document.getElementById("priceModal").style.display!=="flex"&&!window.FC.applicationStartup.inspect().transactionPending');
+ }
  await openRule('Wnoszenie korpusu / elementów');
  assert.equal(await evaluate('document.getElementById("laborRateType").value'),'assembly');
  assert.equal(await evaluate('getComputedStyle(document.getElementById("priceItemSaveBtn")).display'),'none','unchanged rule has no Save');
@@ -32,9 +37,17 @@ module.exports=async function({browser,tap,until,fill,roomId}){
  const br=await evaluate('window.FC.catalogStore.getQuoteRates().find(row=>row.id==="labor_daily_break")');near(br.timeBlockHours,1/3);near(br.breakAfterHours,2);near(br.workdayHours,6);
  await evaluate('window.FC.panelBox.close()');
  await openRule('Przerwa');near(Number(await evaluate('document.getElementById("laborTimeBlockHours").value')),1/3);assert.equal(await evaluate('document.getElementById("laborBreakAfterHours").value'),'2');assert.equal(await evaluate('getComputedStyle(document.getElementById("priceItemSaveBtn")).display'),'none');
- await tap('#priceItemModal [data-action="price-item-exit"]');await closeCatalog();
+ await tap('#priceItemModal [data-action="price-item-exit"]');
+ // Closing a price item is a covered, asynchronous navigation write. The
+ // next click must not overlap it (LF_APPLICATION_BUSY must remain a refusal).
+ await until('document.getElementById("priceItemModal").style.display!=="flex"&&!window.FC.applicationStartup.inspect().transactionPending');
+ await closeCatalog();
  phase='PCV';
- await evaluate('window.FC.actions.dispatch("open-sheet-materials",{})');await until('document.getElementById("priceModal").style.display==="flex"');await tap('#clearPriceFiltersBtn');await fill('#priceSearch','Obrzeże PCV standard');await until('document.querySelectorAll("#priceModal .price-modal-list-row").length===1');await tap('#priceModal .price-modal-list-actions button');await until('document.getElementById("priceItemModal").style.display==="flex"');
+ await evaluate('window.FC.actions.dispatch("open-sheet-materials",{})');
+ await until('document.getElementById("priceModal").style.display==="flex"&&uiState.showPriceList==="materials"&&!window.FC.applicationStartup.inspect().transactionPending');
+ assert.equal(await evaluate('document.querySelector(".info-box")?.textContent?.includes("LF_APPLICATION_BUSY")||false'),false,
+  'Switching catalogs must never be accepted with a busy-transaction refusal');
+ await tap('#clearPriceFiltersBtn');await fill('#priceSearch','Obrzeże PCV standard');await until('document.querySelectorAll("#priceModal .price-modal-list-row").length===1');await tap('#priceModal .price-modal-list-actions button');await until('document.getElementById("priceItemModal").style.display==="flex"');
  assert.equal(await evaluate('document.getElementById("formEdgeWastePercent").value'),'10');await fill('#formEdgeWastePercent','0');await saveItem();await closeCatalog();
  const edges=await evaluate(`window.FC.wycenaCore.collectQuoteData({selection:{selectedRooms:[${JSON.stringify(roomId)}]}}).then(q=>q.materialLines.filter(row=>row.pricingMode==='edge'))`);
  const edge=edges.find(row=>row.edgePricingMode==='body');assert.ok(edge);near(edge.edgeWastePercent,0);near(edge.qty,edge.edgeRawMeters);
