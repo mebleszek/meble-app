@@ -65,8 +65,22 @@ test('existing session modal/copy includes a closed anonymous snapshot; loss of 
  w.FC.globalDataDiagnostics=r.data;w.FC.applicationStartup={async inspectGlobalConsistency(){calls++;assert.ok(valid);return snapshot;},diagnostics:()=>({status:'READ_ONLY',stage:'ready',code:null,transferStatus:'cycle-confirmed',globalConsistency:snapshot})};
  w.FC.infoBox={open:value=>{modal=value;}};w.FC.sessionDiagnosticsReadonly=require('../js/app/ui/session-diagnostics-readonly');
  new Function('window','navigator',fs.readFileSync('js/app/ui/session-diagnostics.js','utf8'))(w,{clipboard:{writeText:async text=>{copied=text;}}});
- const before=p.seed();await w.FC.sessionDiagnostics.open();assert.equal(calls,1);assert.match(modal.message,/Istniejący obraz LOCAL-FIRST/);
- await modal.secondaryAction.run({button:{},body:{}});assert.equal(JSON.parse(copied).localFirst.globalConsistency.originals.domains.length,14);assert.doesNotMatch(copied,/Synthetic|private-owner|private-device|private-instance/);assert.deepEqual(p.seed(),before);
+ const tiles=new Map();
+ const h=(_tag,attrs={},children=[])=>{
+  const node={children:[...children],events:{},setAttribute(){},appendChild(child){this.children.push(child);},addEventListener(type,fn){this.events[type]=fn;}};
+  if(attrs['data-settings-section'])tiles.set(attrs['data-settings-section'],node);
+  return node;
+ };
+ let settingsClosed=false;
+ w.FC.dataSettingsDom={h};w.FC.panelBox={close(){settingsClosed=true;}};
+ new Function('window','FC',fs.readFileSync('js/app/ui/data-settings-menu-view.js','utf8'))(w,w.FC);
+ w.FC.dataSettingsMenuView.render(h('div'),()=>assert.fail('The diagnostic should open the report directly'));
+ const before=p.seed();await tiles.get('sessionDiagnostics').events.click();
+ assert.equal(settingsClosed,true);assert.equal(calls,1);assert.match(modal.message,/Istniejący obraz LOCAL-FIRST/);
+ await modal.secondaryAction.run({button:{},body:{}});assert.equal(JSON.parse(copied).localFirst.globalConsistency.originals.domains.length,14);
+ assert.match(snapshot.catalogDirectoryHash,/^[a-f0-9]{64}$/);
+ assert.equal(JSON.parse(copied).localFirst.globalConsistency.catalogDirectoryHash,snapshot.catalogDirectoryHash);
+ assert.doesNotMatch(copied,/Synthetic|private-owner|private-device|private-instance/);assert.deepEqual(p.seed(),before);
  valid=false;const body={},button={};await modal.secondaryAction.run({button,body});assert.equal(button.disabled,true);assert.match(body.textContent,/AUTH_DENIED/);
  await w.FC.sessionDiagnostics.open();assert.equal(calls,1,'No diagnostic collection after access was revoked');assert.deepEqual(p.seed(),before);
 });

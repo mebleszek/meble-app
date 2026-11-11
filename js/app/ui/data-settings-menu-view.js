@@ -84,6 +84,18 @@
       infoKey:'backup',
       onClick:()=> setView('backup'),
     }));
+    if(typeof root.FC.sessionDiagnostics?.open === 'function'){
+      grid.appendChild(buildTile({
+        icon:'tests',
+        title:'Diagnostyka sesji',
+        sub:'Raport o sesji i zgodności katalogów.',
+        section:'sessionDiagnostics',
+        onClick:()=>{
+          root.FC.panelBox.close();
+          return root.FC.sessionDiagnostics.open();
+        },
+      }));
+    }
     grid.appendChild(buildTile({
       icon:'settings',
       title:'Domyślne materiały i okucia',

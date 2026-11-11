@@ -22,7 +22,7 @@ const versions = Object.freeze({
   "js/app/catalog/catalog-domain.js":"20261108_material_catalog_authority_v1",
   "js/app/wycena/wycena-tab-history.js":"20261108_local_first_quote_delete_v1",
   "js/app/wycena/wycena-tab-editor.js":"20261108_catalog_rule_authority_v1",
-  "js/app/ui/data-settings-menu-view.js":"20261108_catalog_rule_authority_v1",
+  "js/app/ui/data-settings-menu-view.js":"20261112_catalog_diagnostics_v1",
   "js/app/ui/data-settings-hourly-rates-view.js":"20261108_catalog_rule_authority_v1",
   "js/app/settings/hourly-rates-store.js":"20261108_catalog_rule_authority_v1",
   "js/app/pricing/carrying-logistics.js":"20261108_catalog_rule_authority_v1",

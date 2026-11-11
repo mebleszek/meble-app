@@ -85,13 +85,23 @@ export async function collectGlobalDiagnostics({window:w,ownerUid,name,readNativ
   if(image.key!=='application'||!Number.isSafeInteger(image.version)||image.version<1||!rowsValid(image.rows)||await digest(json(image.rows))!==image.hash)refuse('DIAG_IMAGE_INTEGRITY');gate();
   const imageRead=key=>image.rows[key]??null;
   const localFirst=d.inspect(imageRead),comparison=d.compare(read,imageRead);
+  let catalogDirectoryHash=null;
+  try{
+   const contract=w.FC.globalDataContract;
+   const {model}=contract.capture({getItem:imageRead},Object.keys(contract.schemas));
+   const {directoryHash}=await contract.pack(ownerUid,model);
+   catalogDirectoryHash=directoryHash;
+  }catch(_){
+   // Keep the per-domain observations when the complete catalog cannot be packed.
+  }
+  gate();
   // These are observations, not a cross-store transaction or an ABA proof.
   // Reject a witnessed change; no attempt to lock, reconcile or restart writers.
   const second=await state();gate();
   if(!equal(first,second))refuse('DIAG_IMAGE_CHANGED');
   for(const key of keys){gate();let raw;try{raw=readNative(key);}catch(_){refuse('GLOBAL_STORAGE_UNAVAILABLE');}if(raw!==read(key))refuse('GLOBAL_SOURCE_CHANGED');}
   if(readNative(RECEIPT)!==receiptRaw)refuse('DIAG_RECEIPT_INVALID');gate();
-  return d.sanitize({status:'READ_ONLY',code:'NONE',originals,localFirst,comparison});
+  return d.sanitize({status:'READ_ONLY',code:'NONE',originals,localFirst,comparison,catalogDirectoryHash});
  }
  try{
   return await Promise.race([work(),new Promise((_,reject)=>{timer=setTimeout(()=>{expired=true;close();reject(new Refusal('DIAG_TIMEOUT'));},10000);})]);
