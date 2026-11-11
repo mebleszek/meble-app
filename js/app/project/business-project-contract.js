@@ -11,7 +11,8 @@
   if(!value||typeof value!=='object')fail();
   for(const [k,v]of Object.entries(value)){if(['__proto__','prototype','constructor','apiKey','accessToken','refreshToken','password','privateKey'].includes(k))fail();safe(v,seen);}seen.delete(value);
  }
- function validate(payload){
+ // Local is an in-process validation choice, never a transmitted sync profile.
+ function validate(payload,options={}){
   safe(payload);const {investor,project,offers}=payload||{};
   if(project?.meta?.pendingDomainOperation)fail();
   if(Object.keys(payload).sort().join(',')!=='investor,offers,project'||!id(investor?.id)||!id(project?.id)
@@ -20,7 +21,7 @@
   const listed=(investor.rooms||[]).map(r=>r.id),defs=project.projectData.meta.roomDefs||{},order=project.projectData.meta.roomOrder||[];
   if(!defs||!Array.isArray(order)||new Set(listed).size!==listed.length||listed.some(x=>!id(x)))fail();
   const rooms=Object.keys(defs);if(rooms.some(x=>!id(x)||defs[x]?.id!==x)||new Set(order).size!==order.length||order.length!==rooms.length||order.some(x=>!rooms.includes(x))||listed.some(x=>!rooms.includes(x)))fail();
-  for(const r of rooms){const value=project.projectData[r];try{FC.projectExportContract.validateOwnedRoom(value);}catch(e){throw Object.assign(Error('LF_PROJECT_SCHEMA_BLOCKED'),{code:'LF_PROJECT_SCHEMA_BLOCKED',reason:/^EXPORT_[A-Z_]+$/.test(e?.code||'')?e.code:'EXPORT_INVALID_FIELD'});}}
+  for(const r of rooms){const value=project.projectData[r];try{FC.projectExportContract[options.local===true?'validateLocalOwnedRoom':'validateOwnedRoom'](value);}catch(e){throw Object.assign(Error('LF_PROJECT_SCHEMA_BLOCKED'),{code:'LF_PROJECT_SCHEMA_BLOCKED',reason:/^EXPORT_[A-Z_]+$/.test(e?.code||'')?e.code:'EXPORT_INVALID_FIELD'});}}
   for(const o of offers)if(!id(o.id)||o.project?.id!==project.id||o.investor?.id!==investor.id)fail();
   const names=Object.keys(project.projectData).filter(k=>!['meta','schemaVersion'].includes(k));
   for(const k of names)if(!rooms.includes(k)){

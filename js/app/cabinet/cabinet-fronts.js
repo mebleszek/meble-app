@@ -661,7 +661,10 @@ function syncDraftFromCabinetModalForm(d){
 }
 
 
-function generateFrontsForCabinet(room, cab){
+function generateFrontsForCabinet(room, cab, preview){
+  const roomData = preview ? room : projectData[room];
+  const emit = preview ? front=>preview.push(front) : front=>addFront(room,front);
+  const nextId = preview ? ()=>undefined : ()=>FC.utils.uid();
   let drawerGeometry=null;
   if((cab.type==='stojąca'||cab.type==='moduł') && cab.subType==='szuflady'){
     drawerGeometry=ns.cabinetCutlist.resolveDrawerFrontGeometry(cab,room);
@@ -670,7 +673,7 @@ function generateFrontsForCabinet(room, cab){
     }
   }
   // czyścimy stare
-  removeFrontsForCab(room, cab.id);
+  if(!preview) removeFrontsForCab(room, cab.id);
 
   // tylko jeśli ma sens
   if(!(cab.type === 'stojąca' || cab.type === 'wisząca' || cab.type === 'moduł')) return;
@@ -679,7 +682,7 @@ function generateFrontsForCabinet(room, cab){
   function getFrontHeightForCab(){
     let h = Number(cab.height) || 0;
     if(cab.type === 'stojąca'){
-      const s = (projectData[room] && projectData[room].settings) ? projectData[room].settings : {};
+      const s = (roomData && roomData.settings) ? roomData.settings : {};
       const leg = Number(s.legHeight) || 0;
       if(leg > 0) h = Math.max(0, h - leg);
     }
@@ -691,7 +694,7 @@ function generateFrontsForCabinet(room, cab){
     // zapisujemy też poprawną ilość frontów dla podsumowania
     cab.frontCount = drawerGeometry.panels.length;
     drawerGeometry.panels.forEach((panel,index)=>{
-      addFront(room, { id: FC.utils.uid(), cabId: cab.id, setId: cab.setId||null, setNumber: cab.setNumber||null, material: mat, color: col, width:panel.widthMm/10, height:panel.heightMm/10, note: `Szuflada ${index+1}` });
+      emit({ id: nextId(), cabId: cab.id, setId: cab.setId||null, setNumber: cab.setNumber||null, material: mat, color: col, width:panel.widthMm/10, height:panel.heightMm/10, note: `Szuflada ${index+1}` });
     });
     return true;
   }
@@ -724,7 +727,7 @@ function generateFrontsForCabinet(room, cab){
       const hEach = n ? Math.round((cabH / n) * 10) / 10 : 0;
 
       for(let i=0;i<n;i++){
-        addFront(room, { id: FC.utils.uid(), cabId: cab.id, setId: cab.setId||null, setNumber: cab.setNumber||null, material: mat, color: col, width: cabW, height: hEach, note: `Szuflada ${i+1}/${n}` });
+        emit({ id: nextId(), cabId: cab.id, setId: cab.setId||null, setNumber: cab.setNumber||null, material: mat, color: col, width: cabW, height: hEach, note: `Szuflada ${i+1}/${n}` });
       }
       return;
     }
@@ -738,12 +741,12 @@ if((cab.type === 'wisząca' || cab.type === 'moduł') && cab.subType === 'uchyln
   const fhFull = getFrontHeightForCab();
   const noteBase = (cab.details && cab.details.flapVendor) ? `Klapa (${cab.details.flapVendor})` : 'Klapa';
   if(fcFlap === 1){
-    addFront(room, { cabId: cab.id, material: mat, color: col, width: effectiveW, height: fhFull, note: noteBase });
+    emit({ cabId: cab.id, material: mat, color: col, width: effectiveW, height: fhFull, note: noteBase });
   } else {
     const h1 = Math.round((fhFull/2)*10)/10;
     const h2 = Math.max(0, Math.round((fhFull - h1)*10)/10);
-    addFront(room, { cabId: cab.id, material: mat, color: col, width: effectiveW, height: h1, note: `${noteBase} – front 1/2` });
-    addFront(room, { cabId: cab.id, material: mat, color: col, width: effectiveW, height: h2, note: `${noteBase} – front 2/2` });
+    emit({ cabId: cab.id, material: mat, color: col, width: effectiveW, height: h1, note: `${noteBase} – front 1/2` });
+    emit({ cabId: cab.id, material: mat, color: col, width: effectiveW, height: h2, note: `${noteBase} – front 2/2` });
   }
   return;
 }
@@ -769,19 +772,19 @@ if((cab.type === 'wisząca' || cab.type === 'moduł') && cab.subType === 'uchyln
     };
 
     if(opt === 'zabudowa'){
-      const s = projectData[room].settings;
+      const s = roomData.settings;
       const legH = (Number(s.legHeight)||0);
       const bottomFront = Math.max(0, (Number(s.bottomHeight)||0) - legH); // dolny front bez nóg
       const totalFrontH = Math.max(0, (Number(cab.height)||0) - legH); // suma wysokości frontów (bez nóg)
       if(fc === '1'){
         const r = resolveFridge('single');
-        addFront(room, { cabId: cab.id, material: r.material, color: r.color, width: Number(cab.width)||0, height: getFrontHeightForCab(), note: `Lodówkowa (1 front)`, frontMaterialSource: frontSourcePayload(r, 'single') });
+        emit({ cabId: cab.id, material: r.material, color: r.color, width: Number(cab.width)||0, height: getFrontHeightForCab(), note: `Lodówkowa (1 front)`, frontMaterialSource: frontSourcePayload(r, 'single') });
       } else {
         const topFront = Math.max(0, totalFrontH - bottomFront);
         const lower = resolveFridge('lower');
         const upper = resolveFridge('upper');
-        addFront(room, { cabId: cab.id, material: lower.material, color: lower.color, width: Number(cab.width)||0, height: bottomFront, note: `Lodówkowa (dolny front)`, frontMaterialSource: frontSourcePayload(lower, 'lower') });
-        addFront(room, { cabId: cab.id, material: upper.material, color: upper.color, width: Number(cab.width)||0, height: topFront, note: `Lodówkowa (górny front)`, frontMaterialSource: frontSourcePayload(upper, 'upper') });
+        emit({ cabId: cab.id, material: lower.material, color: lower.color, width: Number(cab.width)||0, height: bottomFront, note: `Lodówkowa (dolny front)`, frontMaterialSource: frontSourcePayload(lower, 'lower') });
+        emit({ cabId: cab.id, material: upper.material, color: upper.color, width: Number(cab.width)||0, height: topFront, note: `Lodówkowa (górny front)`, frontMaterialSource: frontSourcePayload(upper, 'upper') });
       }
       return;
     }
@@ -791,7 +794,7 @@ if((cab.type === 'wisząca' || cab.type === 'moduł') && cab.subType === 'uchyln
 
   // zmywarkowa: 1 front
   if(cab.type === 'stojąca' && cab.subType === 'zmywarkowa'){
-    addFront(room, { cabId: cab.id, material: mat, color: col, width: Number(cab.width)||0, height: getFrontHeightForCab(), note: `zmywarkowa (1 front)` });
+    emit({ cabId: cab.id, material: mat, color: col, width: Number(cab.width)||0, height: getFrontHeightForCab(), note: `zmywarkowa (1 front)` });
     return;
   }
 
@@ -799,7 +802,7 @@ if((cab.type === 'wisząca' || cab.type === 'moduł') && cab.subType === 'uchyln
   if(cab.type === 'stojąca' && cab.subType === 'piekarnikowa'){
     const ovenH = Number(cab.details?.ovenHeight) || 60;
     const h = Math.max(0, getFrontHeightForCab() - ovenH);
-    addFront(room, { cabId: cab.id, material: mat, color: col, width: Number(cab.width)||0, height: h, note: `piekarnikowa (front bez piekarnika)` });
+    emit({ cabId: cab.id, material: mat, color: col, width: Number(cab.width)||0, height: h, note: `piekarnikowa (front bez piekarnika)` });
     return;
   }
 
@@ -819,8 +822,8 @@ if((cab.type === 'wisząca' || cab.type === 'moduł') && cab.subType === 'uchyln
     const FP = Math.abs(ST - SP - t);
 
     const fh = getFrontHeightForCab();
-    addFront(room, { cabId: cab.id, material: mat, color: col, width: FL, height: fh, note: `Narożna L (front A)` });
-    addFront(room, { cabId: cab.id, material: mat, color: col, width: FP, height: fh, note: `Narożna L (front B)` });
+    emit({ cabId: cab.id, material: mat, color: col, width: FL, height: fh, note: `Narożna L (front A)` });
+    emit({ cabId: cab.id, material: mat, color: col, width: FP, height: fh, note: `Narożna L (front B)` });
     // wymuszamy 2 dla spójności podsumowania
     cab.frontCount = 2;
     return;
@@ -828,13 +831,13 @@ if((cab.type === 'wisząca' || cab.type === 'moduł') && cab.subType === 'uchyln
 
   const fc = Math.max(1, Number(cab.frontCount||2));
   if(fc === 1){
-    addFront(room, { cabId: cab.id, material: mat, color: col, width: effectiveW, height: getFrontHeightForCab(), note: `1 front` });
+    emit({ cabId: cab.id, material: mat, color: col, width: effectiveW, height: getFrontHeightForCab(), note: `1 front` });
   } else {
     const w = effectiveW;
     const left = Math.round((w/2)*10)/10;
     const right = Math.max(0, w - left);
-    addFront(room, { cabId: cab.id, material: mat, color: col, width: left, height: getFrontHeightForCab(), note: `Front 1/2` });
-    addFront(room, { cabId: cab.id, material: mat, color: col, width: right, height: getFrontHeightForCab(), note: `Front 2/2` });
+    emit({ cabId: cab.id, material: mat, color: col, width: left, height: getFrontHeightForCab(), note: `Front 1/2` });
+    emit({ cabId: cab.id, material: mat, color: col, width: right, height: getFrontHeightForCab(), note: `Front 2/2` });
   }
 }
 
@@ -857,6 +860,9 @@ if((cab.type === 'wisząca' || cab.type === 'moduł') && cab.subType === 'uchyln
     validateAventosForDraft,
     applyAventosValidationUI,
     syncDraftFromCabinetModalForm,
-    generateFrontsForCabinet
+    generateFrontsForCabinet,
+    previewFrontsForCabinet(roomData,cabinet){
+      const out=[];generateFrontsForCabinet(roomData,JSON.parse(JSON.stringify(cabinet)),out);return out;
+    }
   };
 })();

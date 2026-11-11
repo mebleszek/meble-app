@@ -9,14 +9,30 @@ async function main(){
  const closing=closeBrowserForRestart({send:async method=>{events.push(method);},owner,ws:{close(){events.push('socket closed');}},pending:new Map()}).then(()=>{finished=true;});
  await new Promise(resolve=>setImmediate(resolve));assert.equal(finished,false);assert.deepEqual(events,['Browser.close']);
  exit({code:0,signal:null});await closing;assert.deepEqual(events,['Browser.close','socket closed','reaped']);
- for(const kind of ['ack','exit','signal','timeout','cleanup']){
+ // Chromium may exit cleanly before its CDP transport responds.
+ let lostAckCalls=0,lostAckCleanup=0,lostAckSocket=0;
+ await closeBrowserForRestart({send:async method=>{assert.equal(method,'Browser.close');lostAckCalls++;throw Error('ACK_LOST');},
+  owner:{exited:Promise.resolve({code:0,signal:null}),async close(){lostAckCleanup++;}},
+  ws:{close(){lostAckSocket++;}},pending:new Map()});
+ assert.equal(lostAckCalls,1);assert.equal(lostAckCleanup,1);assert.equal(lostAckSocket,1);
+ let silentAckCalls=0,silentAckCleanup=0,timeout;
+ try{
+  await Promise.race([
+   closeBrowserForRestart({send:method=>{assert.equal(method,'Browser.close');silentAckCalls++;return new Promise(()=>{});},
+    owner:{exited:Promise.resolve({code:0,signal:null}),async close(){silentAckCleanup++;}},
+    ws:{close(){}},pending:new Map()}),
+   new Promise((_,reject)=>{timeout=setTimeout(()=>reject(Error('MISSING_ACK_BLOCKED_REAL_EXIT')),1000);})
+  ]);
+ }finally{clearTimeout(timeout);}
+ assert.equal(silentAckCalls,1);assert.equal(silentAckCleanup,1);
+ for(const kind of ['send','exit','signal','timeout','cleanup']){
   let attempts=0,cleaned=0,socketClosed=false;
   const result=kind==='exit'?{code:1}:kind==='signal'?{code:null,signal:'SIGTERM'}:{code:0,signal:null};
   const owned={exited:kind==='timeout'?new Promise(()=>{}):Promise.resolve(result),async close(){cleaned++;if(kind==='cleanup')throw Error('CLEANUP_UNCONFIRMED');}};
-  await assert.rejects(closeBrowserForRestart({send:async method=>{assert.equal(method,'Browser.close');attempts++;if(kind==='ack')throw Error('ACK_LOST');},owner:owned,ws:{close(){socketClosed=true;}},pending:new Map()},{timeoutMs:1}),/ACK_LOST|BROWSER_ORDERLY_EXIT|CLEANUP_UNCONFIRMED/);
+  await assert.rejects(closeBrowserForRestart({send:method=>{assert.equal(method,'Browser.close');attempts++;if(kind==='send')throw Error('CLOSE_TRANSPORT_UNAVAILABLE');if(kind==='timeout')return Promise.reject(Error('ACK_LOST'));return Promise.resolve();},owner:owned,ws:{close(){socketClosed=true;}},pending:new Map()},{timeoutMs:1}),/CLOSE_TRANSPORT_UNAVAILABLE|BROWSER_ORDERLY_EXIT|CLEANUP_UNCONFIRMED/);
   assert.equal(attempts,1);assert.equal(cleaned,1);assert.equal(socketClosed,true);
  }
- console.log('PASS orderly close: Browser.close ACK and natural zero exit precede reaping; lost ACK, signal, timeout, nonzero exit or failed cleanup refuse without retry');
+ console.log('PASS orderly close: one Browser.close and clean supervised exit with reaping; early/missing ACK accepted only with verified exit; unsent command, nonzero/signal, no-exit timeout and failed cleanup refuse without retry');
 
  const d=world({},null,{realAuth:true});try{
   await d.login();await d.trust();

@@ -41,7 +41,11 @@ async function closeBrowserForRestart({send,owner,ws,pending},{timeoutMs=30000}=
  try{
   // OS signals are emergency process cleanup, not Chromium's profile shutdown.
   // Require its close command and natural exit BEFORE supervisor cleanup.
-  await send('Browser.close');
+  // Browser.close may destroy the CDP websocket before replying.
+  // The independently supervised clean exit, not the socket ACK, proves
+  // orderly shutdown. Issue the command once; never retry it.
+  const closeCommand=send('Browser.close');
+  void Promise.resolve(closeCommand).catch(()=>{});
   const result=await Promise.race([owner.exited,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('BROWSER_ORDERLY_EXIT_UNCONFIRMED')),timeoutMs);})]);
   if(result.error||result.code!==0||result.signal)throw Error('BROWSER_ORDERLY_EXIT_FAILED');
  }finally{

@@ -70,6 +70,10 @@
   }
 
   function getZoneMaterial(room, zoneKey){
+    if(room && typeof room==='object'){
+      const api=ns.roomPreferences,prefs=api.normalizeRoomPreferences(room.preferences),z=api.getZonePreferences(prefs,zoneKey);
+      return {material:text(z.frontMaterial),color:text(z.frontColor)};
+    }
     const zone = normalizeSourceKey(zoneKey, 'lower');
     try{
       if(ns.roomPreferences && typeof ns.roomPreferences.resolveZoneFrontMaterial === 'function'){

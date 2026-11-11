@@ -23,6 +23,17 @@ async function main(){
  });
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'meble-labor-native-'));let browser,phase='setup';const external=[];
  const binding={name:'meble-lf-test-labor-catalog',ownerUid:'synthetic-owner',deviceId:'phone',instanceId:'one',initialize:true};
+ // Every cold reboot recreates the test browser; re-install native validation.
+ // No bypasses: the real business project contract still rejects bad cabinets.
+ async function loadNativeProjectRuntime(){
+  for(const file of ['cabinet/part-provenance','material/material-common','cabinet/front-hardware-fronts',
+    'cabinet/cabinet-cutlist','cabinet/cabinet-fronts','project/project-local-room-contract']){
+   await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
+  }
+  assert.equal(await browser.evaluate("typeof FC.projectLocalRoomContract?.validate==='function' && typeof FC.cabinetFronts?.previewFrontsForCabinet==='function'"),true,
+    'Native cabinet validator must exist after each browser boot');
+ }
+
  try{
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+server.address().port;
@@ -236,10 +247,22 @@ async function main(){
   console.log('PASS gallery appearance, animation/group close and four actual accordions; three room-scope accordions read the persisted catalog/shared calculator and never write RAW, native IDB or RAM');
   await browser.close();console.log('PASS scope/stage metadata persists through actual LOCAL-FIRST form commit and cold restart; native RAW, RAM, replicas/protected/outbox remain exact; actual schedule view renders');
   // Manual third-person hours use the existing owned-project path, including abort/retry.
-  const synthetic=require('./project-selective-export-smoke').fixture(),document=await synthetic.build(),payload=document.document.payload;
+  // The selective-export fixture intentionally omits persisted fronts. An owned LOCAL-FIRST
+  // edit needs the complete native representation, even when only helper hours change.
+  // Construct it with the existing production creator, not hand-written test geometry.
+  const synthetic=require('./project-selective-export-smoke').fixture();
+  synthetic.mutate(project=>{
+    for(const [roomId,room] of Object.entries(project.projectData)){
+      if(!Array.isArray(room?.cabinets))continue;
+      room.fronts=room.cabinets.flatMap(cab=>synthetic.FC.cabinetFronts.previewFrontsForCabinet(room,cab)
+        .map((front,index)=>({...front,id:`helper-fixture-${roomId}-${cab.id}-${index}`})));
+    }
+  });
+  const document=await synthetic.build(),payload=document.document.payload;
   profile='helper-hours';sourceRows=structuredClone(raw);
   Object.assign(sourceRows,{fc_projects_v1:JSON.stringify([payload.project]),fc_investors_v1:JSON.stringify([payload.investor]),fc_quote_snapshots_v1:JSON.stringify([{id:'original-offer',project:{id:payload.project.id},investor:{id:payload.investor.id},frozen:123.4567}]),fc_current_project_id_v1:payload.project.id,fc_current_investor_v1:payload.investor.id});
   await open(true);
+  await loadNativeProjectRuntime();
   for(const file of ['ui/accordion-behavior','quote/quote-offer-store','pricing/labor-work-plan','wycena/wycena-work-plan-view'])await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
   await browser.evaluate(`(()=>{FC.projectStore={getCurrentProjectId:()=>localStorage.getItem('fc_current_project_id_v1')};FC.investors={getCurrentId:()=>localStorage.getItem('fc_current_investor_v1')};window.helperInvalidations=0;FC.sessionNavigation={invalidateCalculationContext(){window.helperInvalidations++;}};window.helperRoot=document.createElement('div');document.body.append(helperRoot);FC.wycenaWorkPlanView.schedule(helperRoot,{schedule:{status:'READY',workshop:{minutes:60,totalMinutes:90,days:1},assembly:{minutes:0,totalMinutes:0,days:0},trips:0}});helperRoot.querySelector('.rozrys-material-accordion__trigger').click();window.saveHelper=async()=>{helperRoot.querySelector('input[data-helper-hours]').value='2.5';helperRoot.querySelector('input').dispatchEvent(new Event('input',{bubbles:true}));const button=helperRoot.querySelector('[data-helper-save]');button.click();const deadline=Date.now()+5000;while(button.disabled&&Date.now()<deadline)await new Promise(r=>setTimeout(r,10));if(button.disabled)throw Error('HELPER_TIMEOUT');return helperRoot.textContent;};})()`);
   assert.equal(await browser.evaluate("helperRoot.querySelector('[data-helper-save]').hidden"),true);
@@ -253,7 +276,7 @@ async function main(){
   const helperSaved=await proof();assert.equal(JSON.parse(helperSaved.rows.fc_quote_offer_drafts_v1)[0].helperHours,2.5);
   assert.deepEqual(helperSaved.native,helperBefore.native);assert.deepEqual(helperSaved.ram,helperBefore.ram);assert.equal(helperSaved.rows.fc_quote_snapshots_v1,helperBefore.rows.fc_quote_snapshots_v1);
   for(const table of ['outbox','replicas','protected'])assert.deepEqual(helperSaved.tables[table],helperBefore.tables[table]);
-  await browser.gracefulClose();await open(false);assert.equal(JSON.parse((await proof()).rows.fc_quote_offer_drafts_v1)[0].helperHours,2.5);
+  await browser.gracefulClose();await open(false);await loadNativeProjectRuntime();assert.equal(JSON.parse((await proof()).rows.fc_quote_offer_drafts_v1)[0].helperHours,2.5);
   for(const file of ['ui/accordion-behavior','ui/panel-box','quote/quote-offer-store','pricing/labor-work-plan','wycena/wycena-work-plan-view','wycena/wycena-tab-selection-render'])await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
   await browser.evaluate(`(()=>{FC.projectStore={getCurrentProjectId:()=>localStorage.getItem('fc_current_project_id_v1')};FC.investors={getCurrentId:()=>localStorage.getItem('fc_current_investor_v1')};window.serviceInvalidations=0;window.serviceRenders=0;window.acceptDiscard=false;FC.sessionNavigation={invalidateCalculationContext(){serviceInvalidations++;}};
   const h=(tag,attrs={})=>{const node=document.createElement(tag);for(const [key,value]of Object.entries(attrs)){if(key==='class')node.className=value;else if(key==='text')node.textContent=value;else node.setAttribute(key,value);}return node;};
@@ -282,14 +305,23 @@ async function main(){
   assert.match(await browser.evaluate(`(()=>{const native=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(value,...args){if(this.name==='control'&&value?.key==='application'){IDBObjectStore.prototype.put=native;throw new DOMException('synthetic quota','QuotaExceededError');}return native.call(this,value,...args);};return saveServices();})()`),/Nie potwierdzono zapisu/);
   assert.deepEqual((await proof()).tables,serviceBefore.tables);assert.equal(await browser.evaluate('serviceInvalidations'),0);
   assert.equal(await browser.evaluate(`document.querySelectorAll('.panel-box input[data-service]:checked').length`),0);
-  assert.equal(await browser.evaluate('saveServices()'),'CLOSED');assert.equal(await browser.evaluate('serviceInvalidations'),1);assert.equal(await browser.evaluate('serviceRenders'),1);
+  const scopeRetry=await browser.evaluate('saveServices()');
+  if(scopeRetry!=='CLOSED'){
+   const diagnostic=await browser.evaluate(()=>({
+    authority:window.authority.status(),
+    currentDraftServices:FC.quoteOfferStore.getCurrentDraft()?.services,
+    nativeValidatorLoaded:!!FC.projectLocalRoomContract?.validate
+   }));
+   assert.fail('Scope retry not confirmed after quota abort: '+JSON.stringify(diagnostic));
+  }
+  assert.equal(await browser.evaluate('serviceInvalidations'),1);assert.equal(await browser.evaluate('serviceRenders'),1);
   const serviceSaved=await proof(),services={delivery:false,carrying:false,assembly:false};assert.deepEqual(JSON.parse(serviceSaved.rows.fc_quote_offer_drafts_v1)[0].services,services);
   assert.equal(JSON.parse(serviceSaved.rows.fc_quote_offer_drafts_v1)[0].helperHours,2.5);assert.equal(serviceSaved.rows.fc_quote_snapshots_v1,serviceBefore.rows.fc_quote_snapshots_v1);
   assert.deepEqual(serviceSaved.native,serviceBefore.native);assert.deepEqual(serviceSaved.ram,serviceBefore.ram);for(const table of ['outbox','replicas','protected'])assert.deepEqual(serviceSaved.tables[table],serviceBefore.tables[table]);
   // Revocation cannot reach the native application commit or clear the unsaved choices.
   await browser.evaluate('openServices();selectServices(true);window.authorized=false;true');
   assert.match(await browser.evaluate('saveServices()'),/Nie potwierdzono zapisu/);assert.deepEqual((await proof()).tables,serviceSaved.tables);assert.equal(await browser.evaluate(`document.querySelectorAll('.panel-box input[data-service]:checked').length`),3);
-  await browser.gracefulClose();await open(false);
+  await browser.gracefulClose();await open(false);await loadNativeProjectRuntime();
   // Existing startup performs exactly one no-data-change application checkpoint.
   const serviceAuthorized=await proof(),afterAuthRestart=structuredClone(serviceSaved.tables);afterAuthRestart.control.find(row=>row.key==='application').version++;
   assert.deepEqual(serviceAuthorized.tables,afterAuthRestart);assert.deepEqual(serviceAuthorized.native,serviceSaved.native);assert.deepEqual(serviceAuthorized.ram,serviceSaved.ram);

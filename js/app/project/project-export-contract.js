@@ -1,4 +1,5 @@
-// CLOUD-1B: closed, read-only pilot projection. No normalization or storage access.
+// Closed pilot projection and shared owned-room integrity. Native geometry is
+// delegated explicitly to the existing creator; no normalization or storage access.
 (function(){
   'use strict';
   const FC = window.FC = window.FC || {};
@@ -174,13 +175,13 @@
     }
     return false;
   }
-  function validateRoom(value,p){
+  function validateRoom(value,p,local=false){
     unique(value.cabinets.map(c=>c.id),p+'.cabinets');unique(value.sets.map(s=>s.id),p+'.sets');unique(value.fronts.map(f=>f.id),p+'.fronts');
     const cabinets=new Map(value.cabinets.map(c=>[c.id,c])),sets=new Map(value.sets.map(s=>[s.id,s]));
     for(const cab of value.cabinets){
-      if(!['standardowa','szuflady'].includes(cab.subType))fail('EXPORT_UNSUPPORTED_STRUCTURE',p+'.cabinets[].subType');
-      if(cab.subType==='szuflady'&&cab.type==='wisząca')fail('EXPORT_UNSUPPORTED_STRUCTURE',p+'.cabinets[]');
-      if(cab.subType==='standardowa'&&Number(cab.frontCount||0)>2)fail('EXPORT_UNSUPPORTED_STRUCTURE',p+'.cabinets[].frontCount');
+      if(!local&&!['standardowa','szuflady'].includes(cab.subType))fail('EXPORT_UNSUPPORTED_STRUCTURE',p+'.cabinets[].subType');
+      if(!local&&cab.subType==='szuflady'&&cab.type==='wisząca')fail('EXPORT_UNSUPPORTED_STRUCTURE',p+'.cabinets[]');
+      if(!local&&cab.subType==='standardowa'&&Number(cab.frontCount||0)>2)fail('EXPORT_UNSUPPORTED_STRUCTURE',p+'.cabinets[].frontCount');
       if(cab.setId&&!sets.has(cab.setId))fail('EXPORT_INVALID_REFERENCE',p+'.cabinets[].setId');
       if(cab.setId){
         const parent=sets.get(cab.setId);
@@ -215,15 +216,16 @@
         const parent=sets.get(f.setId);
         if(f.cabId || f.material!==parent.frontMaterial||f.color!==parent.frontColor
           || canonical(f.frontMaterialSource||null)!==canonical(parent.frontSource||null))fail('EXPORT_INVALID_REFERENCE',p+'.fronts[]');
-      }else if(f.frontMaterialSource && (f.frontMaterialSource.part
+      }else if(f.frontMaterialSource && ((!local&&f.frontMaterialSource.part)
         || (own(f.frontMaterialSource,'material')&&f.frontMaterialSource.material!==f.material)
         || (own(f.frontMaterialSource,'color')&&f.frontMaterialSource.color!==f.color)))fail('EXPORT_INVALID_REFERENCE',p+'.fronts[].frontMaterialSource');
     }
-    validateFrontCaptions(value,cabinets,sets,p);
+    const native=local?FC.projectLocalRoomContract.validate(value,p):null;
+    if(!local)validateFrontCaptions(value,cabinets,sets,p);
     for(const space of Object.keys(value.production||{}))for(const ownerId of Object.keys(value.production[space])){
       const owner=(space==='setGroupOverrides'?sets:cabinets).get(ownerId);
       if(!owner)fail('EXPORT_PCV_OWNER_INVALID',p+'.production.'+space);
-      for(const role of Object.keys(value.production[space][ownerId]))if(!roleAllowed(space,role,owner,value))fail('EXPORT_PCV_ROLE_INVALID',p+'.production.'+space+'[][]');
+      for(const role of Object.keys(value.production[space][ownerId]))if(!(local?native.roleAllowed(space,role,owner):roleAllowed(space,role,owner,value)))fail('EXPORT_PCV_ROLE_INVALID',p+'.production.'+space+'[][]');
     }
     if(value.layout){
       unique(value.layout.segments.map(s=>s.id),p+'.layout.segments');const used=[];
@@ -290,14 +292,14 @@
     }
     return out.sort((a,b)=>(a.domain+'|'+a.reference)<(b.domain+'|'+b.reference)?-1:1);
   }
-  // Reuse the same geometry, PCV and relationship validators for an owned
-  // application record without projecting away future fields or claiming pilot eligibility.
-  function validateOwnedRoom(value,p='project.projectData.room'){
+  // Shared owned-record checks retain native fields. Default remains the pilot;
+  // only the local commit boundary explicitly selects native geometry and PCV.
+  function validateOwnedRoom(value,p='project.projectData.room',local=false){
     if(!obj(value)||!Array.isArray(value.cabinets)||!Array.isArray(value.fronts)||!Array.isArray(value.sets))bad(p);
     for(const c of value.cabinets){ident(c.id,p+'.cabinets[].id');for(const k of ['width','height','depth'])positive(c[k],p+'.cabinets[].'+k);if(!obj(c.details))bad(p+'.cabinets[].details');}
     for(const f of value.fronts){ident(f.id,p+'.fronts[].id');for(const k of ['width','height'])positive(f[k],p+'.fronts[].'+k);}
     for(const set of value.sets)ident(set.id,p+'.sets[].id');
-    validateRoom(value,p);return true;
+    validateRoom(value,p,local);return true;
   }
-  FC.projectExportContract={validate,validateOwnedRoom,canonical,dependencies,isId:id,MAX_BYTES:819200};
+  FC.projectExportContract={validate,validateOwnedRoom,validateLocalOwnedRoom:(value,p)=>validateOwnedRoom(value,p,true),canonical,dependencies,isId:id,MAX_BYTES:819200};
 })();
