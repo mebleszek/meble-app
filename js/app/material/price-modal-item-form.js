@@ -472,6 +472,7 @@
     const markup=readString('formMaterialPricingMode')==='markup',price=ctx.byId('formPrice');
     const purchase=Math.max(0,Number(readNumber('formMaterialPurchasePrice'))||0),percent=Math.max(0,Number(readNumber('formMaterialMarkup'))||0);
     setWrapperVisible('formMaterialMarkup',markup);
+    setWrapperVisible('formPrice',!markup);
     if(price)price.readOnly=markup;
     const preview=ctx.byId('formMaterialPricePreview'),value=markup?Math.round(purchase*(1+percent/100)*100)/100:Math.max(0,Number(price?.value)||0);
     if(preview)preview.textContent=value.toFixed(2)+' PLN'+(readString('formMaterialPurchasePrice')===''?' • cena zakupu niepodana':' • różnica '+(value-purchase).toFixed(2)+' PLN');
@@ -562,6 +563,8 @@
   function getCurrentServiceDraft(){
     const base = { category:String((ctx.byId('formCategory') && ctx.byId('formCategory').value) || '').trim(), name:String((ctx.byId('formServiceName') && ctx.byId('formServiceName').value) || '').trim(), price:normalizePriceValue(ctx.byId('formServicePrice') && ctx.byId('formServicePrice').value) };
     const laborDraft=getCurrentLaborDraft(base);
+    const existing=currentEditedItem();
+    if(laborDraft.pricingMode==='advanced' && existing?.fixedPrice!=null)laborDraft.fixedPrice=existing.fixedPrice;
     if(laborDraft.unitPriceSource==='fuel')base.price=Number(currentEditedItem()?.price)||0;
     return Object.assign(base, laborDraft);
   }

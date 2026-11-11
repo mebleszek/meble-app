@@ -5,14 +5,16 @@ module.exports=async({browser,tap,fill,until})=>{
  if(await evaluate('!!document.querySelector(".info-box button")'))await tap('.info-box button');
  const before=await evaluate('JSON.stringify(window.FC.catalogStore.getSheetMaterials())');
  await evaluate('window.FC.actions.dispatch("open-sheet-materials",{})');await until('document.getElementById("priceModal").style.display==="flex"');await tap('#clearPriceFiltersBtn');await fill('#priceSearch','HDF');await until('document.querySelectorAll("#priceModal .price-modal-list-row").length===1');await tap('#priceModal .price-modal-list-actions button');await until('document.getElementById("priceItemModal").style.display==="flex"');
+ const priceVisible=()=>evaluate('getComputedStyle(document.getElementById("formPrice").parentElement).display!=="none"');
+ assert.equal(await priceVisible(),true,'Manual price field is visible in manual mode');
  const markupVisible=()=>evaluate('getComputedStyle(document.getElementById("formMaterialMarkup").parentElement).display!=="none"');
  assert.equal(await markupVisible(),false,'Manual price must hide markup');
  await fill('#formPrice','500');await fill('#formMaterialPurchasePrice','299');
  async function mode(last){await tap('#formMaterialPricingModeLaunch button');await until('document.querySelectorAll(".rozrys-choice-option").length===2');await tap('.rozrys-choice-option:'+(last?'last':'first')+'-child');}
- await mode(true);assert.equal(await markupVisible(),true);await fill('#formMaterialMarkup','50');
+ await mode(true);assert.equal(await markupVisible(),true);assert.equal(await priceVisible(),false,'Inactive manual price must be hidden in markup mode');assert.equal(await evaluate('document.getElementById("formMaterialPricePreview").getClientRects().length>0'),true);await fill('#formMaterialMarkup','50');
  assert.equal(await evaluate('document.getElementById("formPrice").value'),'500','Do not overwrite entered manual price');
  assert.match(await evaluate('document.getElementById("formMaterialPricePreview").textContent'),/448.50 PLN.*149.50 PLN/);
- await mode(false);assert.equal(await markupVisible(),false);assert.equal(await evaluate('document.getElementById("formMaterialMarkup").value'),'50');assert.equal(await evaluate('document.getElementById("formPrice").value'),'500');
+ await mode(false);assert.equal(await markupVisible(),false);assert.equal(await priceVisible(),true);assert.equal(await evaluate('document.getElementById("formMaterialMarkup").value'),'50');assert.equal(await evaluate('document.getElementById("formPrice").value'),'500');
  await mode(true);assert.equal(await markupVisible(),true);assert.equal(await evaluate('document.getElementById("formMaterialMarkup").value'),'50');
  assert.equal(await evaluate('JSON.stringify(window.FC.catalogStore.getSheetMaterials())'),before,'Switch/input cannot save catalog');
  await tap('#priceItemCancelBtn');await until('!!document.querySelector(".confirm-box")');await tap('.confirm-box .is-danger');await until('document.getElementById("priceItemModal").style.display!=="flex"');

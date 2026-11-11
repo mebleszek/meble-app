@@ -475,7 +475,7 @@
       volumeTimeMode:isHourly ? 'none' : volumeTimeMode,
       volumeTimePerM3:isHourly ? 0 : Math.max(0, num(src.volumeTimePerM3, 0)),
       volumeTimeTiers:isHourly ? [] : normalizeTiers(src.volumeTimeTiers),
-      fixedPrice:isHourly ? 0 : Math.max(0, num(src.fixedPrice != null ? src.fixedPrice : (pricingMode === 'fixed' ? price : 0), 0)),
+      fixedPrice:isHourly ? 0 : Math.max(0, num(src.fixedPrice != null ? src.fixedPrice : (['fixed','advanced'].includes(pricingMode) ? price : 0), 0)),
       active:src.active !== false,
       internalOnly:isHourly ? false : src.internalOnly === true,
       note:text(src.note),

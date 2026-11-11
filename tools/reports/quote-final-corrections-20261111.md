@@ -97,3 +97,30 @@ Statycznie: składnia zmienionych JS/MJS, dokładne wersje obu wejść, load gro
 - `tools/quote-final-corrections-smoke.js`
 - `tools/quote-final-material-browser-smoke.js`
 - `tools/reports/quote-final-corrections-20261111.md`
+
+## Korekta QA P0 — 11.11.2026
+
+Kontynuacja wyłącznie na `fix/quote-final-corrections-20261111`. Zweryfikowany wejściowy HEAD: `f174cfa748fa62e799c24369d71e246da775f55f`; BASE/main nadal `2968f7b952ed5a6b533aceede65cd0e2e2b6760a`. Jeden dodatkowy commit; jego SHA/push/CLEAN w końcowym przekazaniu. Wcześniejsze wyniki powyżej dotyczą poprzedniego pakietu i nie oznaczają ponownego wykonania pełnych zestawów.
+
+**FAIL przed zmianą produkcji:** `node tools/quote-qa-p0-smoke.js` dał **3/6 PASS**: advanced bez fixedPrice z price 100 dawał 0 zamiast 100, również przy tworzeniu/zapisie definicji przez formularz. Jawne zero i pozostałe sprawdzane tryby już przechodziły. Rozszerzony `quote-final-material-browser-smoke` dał **FAIL `Inactive manual price must be hidden in markup mode`**. Oba pliki produkcyjne były wówczas identyczne z wejściowym HEAD.
+
+**Minimalny diff produkcji:**
+
+- `labor-catalog.js`: jeden warunek normalizera rozszerzony o advanced; brak/null fixedPrice dziedziczy price. Jawne fixedPrice 0 zachowuje pierwszeństwo. Bez zmian pozostałych formuł/norm.
+- `price-modal-item-form.js`: istniejący wrapper ręcznej ceny jest ukrywany w narzucie i pokazywany po powrocie; wartość inputu i podgląd nie są zmieniane. Getter zapisu advanced zachowuje istniejące jawne fixedPrice, w tym zero, zamiast gubić je w payloadzie formularza. Bez nowego pola ani automatycznego zapisu.
+
+**Po poprawce:**
+
+| Kontrola | Wynik |
+|---|---|
+| `node tools/quote-qa-p0-smoke.js` | **6/6 PASS**: brak/null i idempotencja normalizacji; jawne zero; rzeczywiste getCurrentServiceDraft → saveServiceFromForm dla nowej/legacy/zerowej definicji; stałe, jednostkowe, start+jednostka i czasowe formuły oraz ilość 0 |
+| `node tools/quote-final-material-browser-smoke.js` | **PASS**: ręczna cena widoczna w manual, ukryta w markup, podgląd nadal widoczny; 448,50 i dodatnia różnica 149,50; powrót przywraca 500 oraz narzut 50; przełączanie/Anuluj bez zapisu. Istniejąca kontrola jawnego Save i odmowy nowej wyceny także PASS |
+| `node tools/labor-time-minutes-smoke.js` | PASS |
+| `node tools/wycena-labor-persistence-smoke.js` | PASS: formularz, Save/Cancel, odczyt, backup i zamrożona historia |
+| Składnia, wersje obu wejść, manifest, load groups, spójność artefaktu, odnośnik i diff | PASS |
+
+Wersje zmieniono tylko dla dwóch skryptów. Manifest i kodowy artefakt katalogów odświeżono z powodu hasha źródła normalizera; porównanie pełnego JSON **model/rules identyczne z wejściowym HEAD**. Nie zmieniono definicji katalogów, działania synchronizacji, Firebase, innych automatów ani danych użytkownika. Nie migrowano utrwalonych zer: obecne jawne zero pozostaje zerem; poprawka nie zgaduje jego pochodzenia.
+
+Zakres plików tej korekty: dwa powyższe moduły; `index.html`, `dev_tests.html`, `tools/script-versions.js`, `offline-assets.js`, hash/proweniencja `sync/code-global-catalogs.generated.mjs`; nowy `tools/quote-qa-p0-smoke.js`, rozszerzony `tools/helpers/quote-final-material-browser.js`; CURRENT_STATE i ten raport. Nowy smoke jest automatycznie odkrywany przez istniejący Preflight. Workflow bez zmian.
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED.** Bez pełnego CI, PR, merge i wydania. Następny krok: niezależna kontrola nowego HEAD i diffu QA przez ChatGPT.
