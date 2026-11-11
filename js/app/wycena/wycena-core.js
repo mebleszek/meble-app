@@ -152,6 +152,8 @@
     const workPlan = deps.workPlan.build({selectedRooms,
       collections:{labor:laborLines,project:projectLines,carrying:carryingLines,agdServices:agdLines,quoteRates:quoteRateLines},
       catalog:FC.catalogSelectors?.getQuoteRates?.() || [],transport:FC.investorTransport?.getCurrentTransportContext?.(),helperHours:draft.helperHours,services:draft.services,billBreaks:draft.commercial?.billBreaks!==false,materialScope:normalizedSelection.materialScope});
+    const incomplete=[laborLines,projectLines,carryingLines,agdLines,quoteRateLines].flat().flatMap(row=>Array.isArray(row.details)?row.details:[row]).filter(row=>row.sourceKind==='automatic-blocked');
+    if(incomplete.length)throw createQuoteValidationError('labor_automation_incomplete','Niekompletna automatyka','Nie zapisano nowej wyceny. Uzupełnij dane lub rozstrzygnij konflikt: '+incomplete.map(row=>row.name).join(', '));
     const commercial = deps.offer.collectCommercialDraft(draft);
     const calculationRegister = FC.quoteCalculationRegister && typeof FC.quoteCalculationRegister.buildRegister === 'function'
       ? FC.quoteCalculationRegister.buildRegister({

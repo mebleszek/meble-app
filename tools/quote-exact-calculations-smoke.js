@@ -167,6 +167,7 @@ for(const [type,height,depth,shelves,expected,withLoading]of [['moduł',82,50,1,
 assert.ok(fixture().FC.quoteCalculationRegister.describeCalculation({quantity:2,unitPrice:10,total:99}).includes('Brak pełnego rozbicia'),'Do not fabricate an equation for incomplete source data');
 {
   const r=fixture(),ids=new Map();
+  r.load('js/app/cabinet/cabinet-drawer-requirements.js'); // Verified zero drawers, not an unavailable generator.
   class Element{
     constructor(){this.children=[];this.style={};this.className='';this._text='';}
     appendChild(child){child.parentNode=this;this.children.push(child);return child;}

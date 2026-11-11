@@ -90,7 +90,12 @@
       room_kuchnia_gora: { cabinets:[{ id:'cab_k' }], fronts:[], sets:[], settings:{} },
       room_salon: { cabinets:[{ id:'cab_s' }], fronts:[], sets:[], settings:{} },
     });
-    const rawInvestor = Object.assign({ id:investorId, kind:'person', name:'Jan Test', rooms:clone(rooms), meta:{} }, clone(cfg.investor || {}), { id:investorId, rooms:clone(rooms) });
+    // Native calculations have confirmed synthetic logistics; missing real routes
+    // continue to block production scheduling rather than being guessed.
+    const nativeLogistics=cfg.nativeCalculation
+      ? {transport:{distanceKm:'12',durationMin:'30',source:'manual',status:'manual'},carrying:{floorNumber:'0',elevatorStatus:'no'}}
+      : {};
+    const rawInvestor = Object.assign({ id:investorId, kind:'person', name:'Jan Test', rooms:clone(rooms), meta:{}, ...nativeLogistics }, clone(cfg.investor || {}), { id:investorId, rooms:clone(rooms) });
     const investor = FC.testDataManager && typeof FC.testDataManager.markRecord === 'function'
       ? FC.testDataManager.markRecord('wycena-fixture-investor', rawInvestor)
       : rawInvestor;

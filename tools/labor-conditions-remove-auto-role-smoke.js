@@ -108,7 +108,7 @@ function findName(name){ return details.find((row)=> row.name === name); }
 assert(findName('Smoke korpus ogólny') && findName('Smoke korpus ogólny').quantitySource === 'cabinet.count', 'korpus bez warunku liczy się przez cabinet.count', details);
 assert(findName('Smoke korpus wysokość OK') && findName('Smoke korpus wysokość OK').matchedConditions.length === 1, 'korpus z warunkiem wysokości liczy się, gdy zakres pasuje', details);
 assert(!findName('Smoke korpus wysokość NIE'), 'reguła z niespełnionym warunkiem nie liczy się', details);
-assert(!findName('Smoke brak danych warunku'), 'reguła z niedostępnym warunkiem nie liczy się i nie jest traktowana jak bezwarunkowa', details);
+assert(findName('Smoke brak danych warunku')?.sourceKind === 'automatic-blocked' && findName('Smoke brak danych warunku').total === 0, 'reguła z niedostępnym warunkiem nie liczy się i nie jest traktowana jak bezwarunkowa', details);
 assert(findName('Smoke półki') && Number(findName('Smoke półki').quantity) === 2 && findName('Smoke półki').quantitySource === 'shelf.count', 'półki liczą się przez shelf.count', details);
 assert(findName('Smoke szuflady') && Number(findName('Smoke szuflady').quantity) === 3 && findName('Smoke szuflady').quantitySource === 'drawer.count', 'szuflady liczą się przez drawer.count', details);
 assert(details.some((row)=> row.sourceRole === 'front-labor' && row.quantitySource === 'front.count' && Number(row.quantity) === 2), 'montaż frontów dalej liczy się przez front.count', details);
@@ -117,7 +117,7 @@ assert(details.some((row)=> row.name === 'Regulacja frontu' && row.quantitySourc
 const register = FC.quoteCalculationRegister.buildRegister({ labor:laborRows }, {});
 const laborRegisterLines = register.lines.filter((row)=> row.section === 'labor');
 assert(laborRegisterLines.some((row)=> row.name === 'Smoke korpus wysokość OK' && row.conditions.length === 1 && row.matchedConditions.length === 1), 'quoteCalculationRegister zapisuje warunki użyte przy policzeniu', laborRegisterLines);
-assert(laborRegisterLines.every((row)=> row.name !== 'Smoke brak danych warunku'), 'quoteCalculationRegister nie dostaje pozycji pominiętej przez brak danych warunku', laborRegisterLines);
+assert(laborRegisterLines.some((row)=> row.name === 'Smoke brak danych warunku' && row.sourceKind === 'automatic-blocked' && row.total === 0), 'quoteCalculationRegister nie dostaje pozycji pominiętej przez brak danych warunku', laborRegisterLines);
 assert(Math.abs(register.totals.labor - laborRegisterLines.reduce((sum, row)=> sum + Number(row.total || 0), 0)) < 0.01, 'WYCENA i quoteCalculationRegister mają zgodne sumy', register.totals);
 
 console.log('OK labor-conditions-clean-model smoke');

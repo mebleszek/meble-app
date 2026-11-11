@@ -44,7 +44,10 @@ const tests=[],test=(name,fn)=>tests.push([name,fn]);
   const r=require('./wycena-labor-norms-smoke').fixture(),baseline=clone(r.details()),parts=clone(r.FC.cabinetCutlist.getCabinetCutList(r.cab,'kuchnia'));
   r.FC.catalogSelectors.getQuoteRates=()=>clone(m.labor);
   assert.deepEqual(clone(r.details()),baseline);assert.deepEqual(clone(r.FC.cabinetCutlist.getCabinetCutList(r.cab,'kuchnia')),parts);
-  r.cab.laborItems=[{rateId:'labor_mount_hinge',qty:1}];const selected=clone(r.details());assert.ok(selected.some(row=>row.sourceKind==='automatic-suppressed'&&row.quantity===0));
+  r.cab.laborItems=[{rateId:'labor_mount_hinge',qty:1}];
+  const selected=clone(r.details());
+  assert.deepEqual(selected,baseline,'Factory assignment cannot change quantity or duplicate the automatic work');
+  assert.ok(!selected.some(row=>row.sourceKind==='automatic-suppressed'), 'Factory automatic remains active');
  });
  test('material units/prices and hardware commercial values/quantities/technical replacement behavior come from current code',()=>{
   assert.deepEqual(m.materials,raw.materials);const h=s.FC.hardwareCatalog,tech=s.FC.hardwareTechnicalParams;

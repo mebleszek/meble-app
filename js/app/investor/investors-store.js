@@ -130,6 +130,7 @@
       nip: (initial && initial.nip) || '',
       notes: (initial && Object.prototype.hasOwnProperty.call(initial, 'notes')) ? (initial.notes || '') : 'BRAK',
       rooms: Array.isArray(initial && initial.rooms) ? initial.rooms : [],
+      transport: initial?.transport,
       carrying: initial?.carrying || {floorNumber:'0'},
       addedDate: (initial && (initial.addedDate || initial.createdDate)) || toDateInput(ts, ts),
       createdAt: ts,

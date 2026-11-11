@@ -141,7 +141,8 @@ test('business project export, integrity pack and application projection preserv
 });
 test('WYCENA orchestration uses one shared plan BEFORE register/totals and exposes the identical frozen schedule',async()=>{
  const r=setup(),f=r.FC,selection={selectedRooms:['kuchnia']};
- f.projectPcvGuard={calculationOptions:o=>o};f.wycenaCoreSelection={normalizeQuoteSelection:x=>x,validateQuoteSelection:x=>x,decodeSelectedRooms:x=>x.selectedRooms,validateQuoteContent(){}};
+ r.load('js/app/cabinet/cabinet-drawer-requirements.js');r.load('js/app/pricing/carrying-logistics.js');
+ f.projectPcvGuard={calculationOptions:o=>o};f.wycenaCoreSelection={normalizeQuoteSelection:x=>x,validateQuoteSelection:x=>x,decodeSelectedRooms:x=>x.selectedRooms,validateQuoteContent(){},createQuoteValidationError:(code,title,message)=>Object.assign(Error(message),{code,title})};
  f.wycenaCoreSource.getSelectedAggregate=()=>({});f.wycenaCoreMaterialPlan={collectMaterialLines:async()=>[]};
  f.wycenaCoreOffer={getOfferDraft:()=>({selection,helperHours:2}),collectQuoteRateLines:()=>[],collectCommercialDraft:()=>({})};
  f.wycenaCoreLines={collectElementLines:()=>[],collectAccessories:()=>[],collectBuiltInAppliances:()=>[]};

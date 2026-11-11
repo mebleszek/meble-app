@@ -20,12 +20,12 @@
     try{ return FC.laborCatalog && typeof FC.laborCatalog.normalizeDefinition === 'function' ? FC.laborCatalog.normalizeDefinition(row) : row; }
     catch(_){ return row; }
   }
-  function getDefinitions(){
+  function getDefinitions(includeAutomatic=false){
     try{
       const rows = FC.catalogStore && typeof FC.catalogStore.getPriceList === 'function' ? FC.catalogStore.getPriceList('quoteRates') : [];
       return (Array.isArray(rows) ? rows : []).map(normalize).filter((row)=> {
         if(!row || row.active === false) return false;
-        return row.isHourlyRate !== true;
+        return includeAutomatic ? row.isHourlyRate!==true : FC.laborCatalog?.isManualDefinition(row)===true;
       }).sort((a,b)=> String(a.category || '').localeCompare(String(b.category || ''), 'pl') || String(a.name || '').localeCompare(String(b.name || ''), 'pl'));
     }catch(_){ return []; }
   }
@@ -128,6 +128,7 @@
     } else {
       items.forEach((item, index)=> {
         const def = map.get(String(item.rateId));
+        if(FC.laborCatalog?.isAutomaticDefinition(def || {id:item.rateId}))return;
         const row = make('div', 'cabinet-labor-item');
         const info = make('div', 'cabinet-labor-item__info');
         info.appendChild(make('div', 'cabinet-labor-item__name', def ? def.name : item.rateId));
@@ -181,7 +182,8 @@
 
   function renderLaborSection(container, draft, rerender){
     if(!container || !draft) return null;
-    const definitions = getDefinitions();
+    const storedDefinitions=getDefinitions(true);
+    const definitions=storedDefinitions.filter(row=>FC.laborCatalog?.isManualDefinition(row)===true);
     ensureItems(draft);
     container.innerHTML = '';
     const card = make('div', 'cabinet-labor-card');
@@ -197,7 +199,7 @@
       return card;
     }
     renderAddRow(card, draft, definitions, rerender);
-    renderSelectedList(card, draft, definitions, rerender);
+    renderSelectedList(card, draft, storedDefinitions, rerender);
     container.appendChild(card);
     mountLaunchers(container);
     return card;

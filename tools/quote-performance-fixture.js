@@ -22,7 +22,7 @@ function rows(size=9,multi=false){
  stale.projectData.meta.roomOrder=['room_stale'];stale.projectData.meta.roomDefs={room_stale:{id:'room_stale',baseType:'kuchnia',name:'Stale',label:'Stale'}};
  rows.fc_project_v1=JSON.stringify(stale.projectData);
  rows.fc_projects_v1=JSON.stringify(records);
- rows.fc_investors_v1=JSON.stringify(records.map(record=>({id:record.investorId,name:'Syntetyczny '+record.id,__test:true,__testRunId:'project-context-browser',rooms:record.projectData.meta.roomOrder.map(id=>({id,baseType:'kuchnia',name:id,label:id}))})));
+ rows.fc_investors_v1=JSON.stringify(records.map(record=>({id:record.investorId,name:'Syntetyczny '+record.id,__test:true,__testRunId:'project-context-browser',transport:{distanceKm:'12',durationMin:'30',source:'manual',status:'manual'},carrying:{floorNumber:'0',elevatorStatus:'no'},rooms:record.projectData.meta.roomOrder.map(id=>({id,baseType:'kuchnia',name:id,label:id}))})));
  r.s.materials.push({name:'Oak',materialType:'laminat',price:135,priceUnit:'sheet'});
  rows.fc_materials_v1=JSON.stringify(r.s.materials.map(m=>({...m,priceUnit:m.materialType==='laminat'?'sheet':m.priceUnit})));
  rows.fc_ui_v1=JSON.stringify({...r.s.uiState,roomType:'room_test_A',entry:'app',activeTab:'wywiad'});

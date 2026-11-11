@@ -43,9 +43,9 @@ function main(){
     assert.ok(!r.details().some(row=>row.name===named(r,'labor_mount_drawer')&&row.sourceKind==='automatic'));
     assert.equal(JSON.stringify(r.cab),saved);assert.equal(JSON.stringify(r.rates()),catalog);
     r.cab.laborItems=[{rateId:'labor_mount_drawer',qty:3,note:'Preserve historical choice'}];
-    near(minutes(r,row=>row.quantitySource.startsWith('labor.drawer.')),0);
+    near(minutes(r,row=>row.quantitySource.startsWith('labor.drawer.')),expected);
     near(minutes(r,operation(r,'pdf_drawer_site_adjust')),15);
-    assert.ok(r.details().some(row=>row.sourceKind==='manual'&&row.note.includes('Preserve historical choice')));
+    assert.ok(!r.details().some(row=>row.sourceKind==='manual'));assert.equal(r.cab.laborItems[0].note,'Preserve historical choice');
     console.log('PASS three '+system+'/'+runner+' drawers: '+expected+' workshop minutes; no duplicate/manual loss');
   }
   {
@@ -75,9 +75,9 @@ function main(){
     r.cab.subType='zmywarkowa';r.setPanels([{w:30,h:70},{w:30,h:70}]);near(agdMinutes(),120);
     assert.ok(!r.details().some(agd),'AGD must not appear again in cabinet labor');
     assert.ok(!r.FC.wycenaCoreLines.collectBuiltInAppliances(['kuchnia']).some(row=>row.laborCode==='dishwasher_mount'),'No legacy AGD duplicate');
-    r.cab.laborItems=[{rateId:'dishwasher_mount',qty:1,note:'legacy AGD'}];near(agdMinutes(),0);
-    assert.ok(r.details().some(row=>row.sourceKind==='manual'&&row.note.includes('legacy AGD')));
-    console.log('PASS dishwasher 75/120, oven 30, microwave 35 minutes; disabled mounting and manual replacement');
+    r.cab.laborItems=[{rateId:'dishwasher_mount',qty:1,note:'legacy AGD'}];near(agdMinutes(),120);
+    assert.ok(!r.details().some(row=>row.sourceKind==='manual'));assert.equal(r.cab.laborItems[0].note,'legacy AGD');
+    console.log('PASS dishwasher 75/120, oven 30, microwave 35 minutes; disabled mounting and manual assignments cannot replace automats');
   }
   {
     const r=setup(),calc=(id,q)=>r.calc('pdf_'+id,q).pricedHours*60;
@@ -131,11 +131,11 @@ function main(){
     near(minutes(r,operation(r,'pdf_lift_gap_adjust')),3);near(minutes(r,operation(r,'pdf_lift_force_adjust')),5);
     near(minutes(r,operation(r,'pdf_door_adjust')),0);
     r.cab.laborItems=[{rateId:'labor_mount_lift',qty:1,note:'Private manual lift'}];
-    near(minutes(r,operation(r,'pdf_lift_hk_mount')),0);near(minutes(r,operation(r,'pdf_lift_gap_adjust')),3);
+    near(minutes(r,operation(r,'pdf_lift_hk_mount')),15);near(minutes(r,operation(r,'pdf_lift_gap_adjust')),3);
     r.cab.laborItems=[];r.setPanels([{w:30,h:70},{w:30,h:70}]);
     assert.equal(r.fact('labor.lift.force').available,false);
     assert.ok(r.details().some(row=>row.quantitySource==='labor.lift.force'&&row.sourceKind==='automatic-blocked'&&row.total===0));
-    console.log('PASS HK-XS complete hinged-front cycle, actual lift count, HK top stages, manual replacement and ambiguous front refusal');
+    console.log('PASS HK-XS complete hinged-front cycle, actual lift count, HK top stages, manual assignments cannot replace automats and ambiguous front refusal');
   }
   {
     const r=setup(),pdf=new Set(r.FC.laborCatalogDefinitions.PDF_OPERATION_IDS);

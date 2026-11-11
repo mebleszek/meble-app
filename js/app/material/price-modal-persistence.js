@@ -33,6 +33,31 @@
       const labor = FC.laborCatalog || {};
       const isHourly = data && (data.isHourlyRate === true || (labor.isHourlyRateDefinition && labor.isHourlyRateDefinition(data)));
       if(!isHourly){
+        const factory=labor.isFactoryAutomaticDefinition?.(ctx.currentEditedItem?.())===true;
+        const source=String(data.quantitySource||'').trim();
+        if(factory && data.automationMode==='manual'){
+          ctx.info('Automat fabryczny', 'Nie można zmienić trybu automatu fabrycznego.');
+          return false;
+        }
+        if(factory){
+          const id=String(ctx.currentEditedItem?.()?.id||'');
+          const canonical=(labor.DEFAULT_LABOR_DEFINITIONS||[]).find(row=>row.id===id);
+          if(String(canonical?.quantitySource||'') && !source){
+            ctx.info('Brak źródła automatu', 'Automat fabryczny wymaga źródła ilości, również po zmianie formuły.');
+            return false;
+          }
+          if(!String(canonical?.quantitySource||'') && source){
+            ctx.info('Niewspierane źródło', 'Ten fabryczny automat ma własny mechanizm naliczania; nie można mu dodać źródła ilości.');
+            return false;
+          }
+        }else if(data.automationMode==='automatic'){
+          const api=FC.workQuantitySources;
+          const resolved=api?.find?.(source);
+          if(!source || !resolved || !api?.canUseAsQuantitySource?.(resolved) || source.startsWith('transport.') || source.startsWith('carrying.')){
+            ctx.info('Brak obsługiwanego źródła automatu', 'Wybierz aktywne, liczbowe źródło ilości obsługiwane dla czynności szafki. Źródła transportu i wnoszenia mają własny automat.');
+            return false;
+          }
+        }
         const conditionsApi = ctx.priceModalLaborConditions || null;
         if(conditionsApi && typeof conditionsApi.validate === 'function'){
           const result = conditionsApi.validate();

@@ -448,6 +448,7 @@
       name:text(src.name),
       price,
       pricingMode,
+      ...(Object.hasOwn(src,'automationMode') ? {automationMode:isFactoryAutomaticDefinition(src)?'automatic':src.automationMode==='automatic'?'automatic':'manual'} : {}),
       startPrice:isHourly ? 0 : Math.max(0, num(src.startPrice != null ? src.startPrice : src.basePrice, 0)),
       includedQty:isHourly ? 0 : Math.max(0, num(src.includedQty != null ? src.includedQty : src.startIncludedQty, 0)),
       ...(Object.hasOwn(src,'billingScope')?{billingScope:['room','quote','day'].includes(src.billingScope)?src.billingScope:'standard'}:{}),
@@ -475,7 +476,7 @@
       volumeTimeMode:isHourly ? 'none' : volumeTimeMode,
       volumeTimePerM3:isHourly ? 0 : Math.max(0, num(src.volumeTimePerM3, 0)),
       volumeTimeTiers:isHourly ? [] : normalizeTiers(src.volumeTimeTiers),
-      fixedPrice:isHourly ? 0 : Math.max(0, num(src.fixedPrice != null ? src.fixedPrice : (pricingMode === 'fixed' ? price : 0), 0)),
+      fixedPrice:isHourly ? 0 : Math.max(0, num(src.fixedPrice != null ? src.fixedPrice : (['fixed','advanced'].includes(pricingMode) ? price : 0), 0)),
       active:src.active !== false,
       internalOnly:isHourly ? false : src.internalOnly === true,
       note:text(src.note),
@@ -598,7 +599,7 @@
       return { definition:def, quantity, volumeM3, hourlyRate:0, quantityHours:0, volumeHours:0, multiplier:1, pricedHours:0, laborPrice:0, volumePrice:0, fixedPrice:startPrice, startPrice, unitPrice, includedQty, billableQty, total };
     }
     if(mode === 'fixed'){
-      const fixedPrice = Math.max(0, Number(def.fixedPrice || def.price) || 0);
+      const fixedPrice = Math.max(0, Number(def.fixedPrice ?? def.price) || 0);
       return { definition:def, quantity, volumeM3, hourlyRate:0, quantityHours:0, volumeHours:0, multiplier:1, pricedHours:0, laborPrice:0, volumePrice:0, fixedPrice, startPrice:0, unitPrice:fixedPrice, includedQty:0, billableQty:quantity, total:fixedPrice };
     }
 
@@ -608,7 +609,7 @@
     const pricedHours = (quantityHours + volumeHours) * multiplier;
     const laborPrice = pricedHours * hourlyRate;
     const volumePrice = volumeHours > 0 ? 0 : (volumeM3 * Math.max(0, Number(def.volumePricePerM3) || 0));
-    const fixedPrice = mode === 'advanced' ? Math.max(0, Number(def.fixedPrice || def.price) || 0) : Math.max(0, Number(def.fixedPrice) || 0);
+    const fixedPrice = mode === 'advanced' ? Math.max(0, Number(def.fixedPrice ?? def.price) || 0) : Math.max(0, Number(def.fixedPrice) || 0);
     const total = laborPrice + volumePrice + fixedPrice;
     return {
       definition: def,
@@ -640,6 +641,24 @@
     const defaults={labor_carrying_cabinet:{minimumLevels:1,liftLevels:2},labor_carrying_disassembly:{disassemblyWeightKg:45},labor_daily_break:{breakAfterHours:4,workdayHours:8}};
     return Object.fromEntries(Object.entries(defaults[row?.id]||{}).map(([key,value])=>[key,row[key]==null?value:Math.max(0,num(row[key],value))]));
   }
+  // Factory automation is anchored to approved program IDs, never to editable fields.
+  function isFactoryAutomaticDefinition(row){
+    const id=text(row && row.id),known=(defs.DEFAULT_LABOR_DEFINITIONS || []).find(d=>text(d.id)===id);
+    if(!known)return false;
+    const replacements=defs.LABOR_REPLACEMENTS || {};
+    return !!text(known.quantitySource)
+      || ['room','quote','day'].includes(known.billingScope)
+      || Object.prototype.hasOwnProperty.call(replacements,id)
+      || Object.values(replacements).some(ids=>Array.isArray(ids)&&ids.includes(id));
+  }
+  function automationMode(row){
+    if(isFactoryAutomaticDefinition(row))return 'factory';
+    const mode=text(row && row.automationMode);
+    if(mode==='manual'||mode==='automatic')return mode;
+    return text(row && row.quantitySource)?'automatic':'manual'; // only legacy unmarked rows
+  }
+  function isAutomaticDefinition(row){return !!row && automationMode(row)!=='manual';}
+  function isManualDefinition(row){return !!row && row.active!==false && row.isHourlyRate!==true && !isAutomaticDefinition(row);}
   function describeDefinition(row){
     const def = normalizeDefinition(row);
     if(def.isHourlyRate) return `${getRateLabel(def.rateKey || def.rateType)} • ${Number(def.price || 0).toFixed(2)} zł/h`;
@@ -647,7 +666,7 @@
     if(def.unitPriceSource==='fuel') parts.push('Cena z paliwa i mnożnika auta (Ustawienia → Transport i trasy)');
     const displayedPrice=effectiveUnitPrice(def);
     const replacements = defs.LABOR_REPLACEMENTS && defs.LABOR_REPLACEMENTS[def.id];
-    if(replacements) parts.push('Starsza pozycja zachowana do ręcznych przypisań; zastępuje odpowiednie nowe automaty.');
+    if(replacements) parts.push('Starsza definicja operacji; bieżące naliczanie korzysta z odpowiednich automatów.');
     if(def.pricingMode) parts.push(getPricingModeLabel(def.pricingMode));
     if(def.quantitySource) parts.push(`ilość: ${def.quantitySource}`);
     if(def.conditions && def.conditions.length) parts.push(`warunki: ${conditionsToText(def.conditions)}`);
@@ -656,7 +675,7 @@
       parts.push(`start ${Number(def.startPrice || 0).toFixed(2)} PLN`);
       if(Number(def.includedQty) > 0) parts.push(`w cenie ${Number(def.includedQty)} jedn.`);
       parts.push(`${displayedPrice.toFixed(2)} PLN/jedn.`);
-    }else if(def.pricingMode === 'fixed') parts.push(`kwota ${(def.fixedPrice || def.price || 0).toFixed(2)} PLN`);
+    }else if(def.pricingMode === 'fixed') parts.push(`kwota ${(def.fixedPrice ?? def.price ?? 0).toFixed(2)} PLN`);
     else{
       if(def.timeBlockHours > 0) parts.push(`${formatHoursAsMinutes(def.timeBlockHours)} × ${getRateLabel(def.rateType)}`);
       if(def.quantityMode && def.quantityMode !== 'none') parts.push(getQuantityModeLabel(def.quantityMode));
@@ -680,6 +699,9 @@
     buildHourlyRates,
     calculateDefinition, effectiveUnitPrice, ruleParameters,
     describeDefinition,
+    isAutomaticDefinition,
+    isFactoryAutomaticDefinition, automationMode,
+    isManualDefinition,
     parseTierText,
     tiersToText,
     parseVolumeTierText,

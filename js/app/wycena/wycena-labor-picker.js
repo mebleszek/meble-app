@@ -31,7 +31,7 @@
   function normalizeCatalog(rows){
     return (Array.isArray(rows) ? rows : []).map(normalize).filter((row)=> {
       if(!row || row.active === false) return false;
-      return row.isHourlyRate !== true;
+      return FC.laborCatalog?.isManualDefinition(row) === true;
     }).sort((a,b)=> String(a.category || '').localeCompare(String(b.category || ''), 'pl') || String(a.name || '').localeCompare(String(b.name || ''), 'pl'));
   }
 
