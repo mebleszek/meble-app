@@ -24,6 +24,8 @@ Stan pakietu P0 ostatnich poprawek WYCENY zaktualizowany **11.11.2026**; BASE/ma
 - **Jawny tryb czynności — 11.11.2026:** na gałęzi `fix/quote-final-corrections-20261111` wprowadzono AUTOMAT/RĘCZNA oraz zablokowany AUTOMAT FABRYCZNY. Faktyczny tryb trafia do katalogu, kalkulatora, selektorów i schematu synchronizacji; własny automat bez obsługiwanego źródła nie zapisuje się. Fabryczne normy i ceny bez zmian. Celowane kontrole modułów PASS, pełne CI/PR/wydanie wstrzymane; patrz `tools/reports/labor-automation-mode-20261111.md`.
 
 
+- **P0: zapis transportu nowego inwestora — 11.11.2026:** [PR #128](https://github.com/mebleszek/meble-app/pull/128), [CI #43099765270](https://github.com/mebleszek/meble-app/actions/runs/43099765270) **FAIL**, shardy 5/6: nowy inwestor gubił ręcznie wpisane 12 km/30 minut; shardy 1–4 i 7 PASS. Potwierdzono na main i PR #128: `investors-store.create(initial)` pomijał `initial.transport`, mimo że model i edycja `update()` potrafią go zachować. Minimalna poprawka na odrębnej gałęzi od HEAD PR #128: jedno przekazanie `transport` do istniejącego normalizatora, bez zmian UI i WYCENY; nowy test create/read/cold-restart/no-route/update PASS; wersje HTML i manifest offline odświeżone. **CODE_READY / CI_PENDING / RELEASE_BLOCKED**. Nowy HEAD po commicie, nie jest opublikowany; przed próbą wydania wymagane osobne zatwierdzenie dokładnego SHA. Bez zmian kodu PR #128, CI, LIVE i danych użytkownika.
+
 ## 2. SPRAWDZONE — nie powtarzać bez nowego powodu
 
 - Kontrola 09.11 była odczytowa: main/PR #121/#123, wyniki istniejącego CI #42539813337 i krok exact Pages. Nie uruchamiano Preflightu, Actions, testów aplikacji ani emulatorów.

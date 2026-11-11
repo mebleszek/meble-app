@@ -26,3 +26,11 @@ Original rejected PR head: `ef499c3d558fe609c21826cc110a77f933cb10ee`. Main at d
 This corrective work belongs on a **separate branch**, not the open Ready PR #127 head. No new PR, no GitHub Actions re-run, no merge, no publication, no Firebase LIVE, no reset/migration of user data. A later release attempt requires the owner's narrow approval and valid SHA checks.
 
 **CODE_READY / CI_PENDING / RELEASE_BLOCKED.**
+
+## Korekta: tworzenie inwestora i ręczne dane trasy — 11.11.2026
+
+Przebieg CI [#43099765270](https://github.com/mebleszek/meble-app/actions/runs/43099765270) PR #128: safety, Firebase, cloud-historical, preflight-static i shardy 1–4,7 PASS; shardy 5,6 FAIL na identycznej asercji `Persisted synthetic investor must have manual travel time` (`'' !== '30'`). Auto-merge i post-merge-verify SKIPPED. Błąd był w main przed pakietem automatyki: `investors-store.create(initial)` nie podawał `initial.transport` do `normalizeInvestor`, a `update()` zachowywał trasę. Izolowane odtworzenie na prawdziwym modelu: normalizer 30 min, create pusty, update 30 min.
+
+Minimalna korekta tylko `create()`: `transport: initial?.transport`. Test `investor-create-transport-smoke.js` sprawdza drogę create → zapisany RAW → readAll → nowy runtime, brak danych trasy bez zgadywania, izolację innych inwestorów, brak mutacji danych wejściowych i niezmienioną edycję. Uruchomiono celowany test: PASS. Wersje obu entrypointów i manifest offline aktualizowane spójnie. Brak zmian w UI, cennikach, regułach WYCENY, Firebase LIVE, danych telefonu; bez pełnego GitHub CI i bez publikacji.
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED** — osobna gałąź od `e22ee9092342becea9a518d4a29912c2ca53bd73`, nowy HEAD potwierdzany po commicie.
