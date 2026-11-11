@@ -120,11 +120,14 @@
     ...(Array.isArray(r?.sources)?{sources:keys.map(key=>{const src=r.sources.find(s=>s?.key===key);return {key,status:state(src?.status),code:code(src?.code)};})}:{}),
     ...(r?.validation?{validation:{status:state(r.validation.status),code:code(r.validation.code)}}:{})};
   })});
-  return {status:value.status==='READ_ONLY'?'READ_ONLY':'BLOCKED',code:code(value.code),originals:section(value.originals),localFirst:section(value.localFirst),comparison:section(value.comparison)};
+  const status=value.status==='READ_ONLY'?'READ_ONLY':'BLOCKED';
+  const catalogDirectoryHash=status==='READ_ONLY'&&typeof value.catalogDirectoryHash==='string'&&/^[a-f0-9]{64}$/.test(value.catalogDirectoryHash)?value.catalogDirectoryHash:null;
+  return {status,code:code(value.code),originals:section(value.originals),localFirst:section(value.localFirst),comparison:section(value.comparison),catalogDirectoryHash};
  }
  function format(value){
   const r=sanitize(value);if(!r)return '';
   const lines=['DANE GLOBALNE — tylko odczyt: '+r.status+' / '+r.code];
+  lines.push('SHA-256 indeksu katalogów LOCAL-FIRST: '+(r.catalogDirectoryHash||'NIEPOTWIERDZONY'));
   for(const [key,label]of [['originals','Oryginały localStorage'],['localFirst','Istniejący obraz LOCAL-FIRST'],['comparison','Oryginały ↔ obraz']]){
    const s=r[key];lines.push(label+': '+s.status+' / '+s.code);
    for(const d of s.domains)lines.push(d.domain+' ['+d.keys.join(' / ')+']: '+d.status+'; RAW='+d.raw+'; semantyka='+d.semantic+'; typ='+d.discrepancy+'; kod='+d.code+(d.validation?'; kontrakt='+d.validation.status+'/'+d.validation.code:''));

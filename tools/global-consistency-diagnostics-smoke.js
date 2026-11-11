@@ -75,6 +75,12 @@ test('read-only IDB uses exact owner/binding/source/integrity, distinguishes ori
  for(const k of r.c.sources.materials)r.control.application.rows[k]=JSON.stringify(v);await r.rehash();
  const before={source:[...r.rows],control:clone(r.control),queue:clone(r.queue)};
  const report=await collectGlobalDiagnostics(r.args);assert.equal(report.status,'READ_ONLY');assert.equal(r.row(report.originals,'materials').status,'EQUAL');assert.equal(r.row(report.localFirst,'materials').status,'EQUAL');assert.equal(r.row(report.comparison,'materials').status,'DIFFERENT');
+ const pack=rows=>r.c.pack(r.args.ownerUid,r.c.capture({getItem:key=>rows[key]??null},Object.keys(r.c.schemas)).model);
+ assert.equal(report.catalogDirectoryHash,(await pack(r.control.application.rows)).directoryHash);
+ assert.notEqual(report.catalogDirectoryHash,(await pack(r.control.source.rows)).directoryHash);
+ assert.ok(r.data.format(report).includes(report.catalogDirectoryHash));
+ assert.equal(r.data.sanitize({...report,catalogDirectoryHash:secret}).catalogDirectoryHash,null);
+ assert.equal(r.data.sanitize({...report,status:'BLOCKED'}).catalogDirectoryHash,null);
  assert.deepEqual([...r.rows],before.source);assert.deepEqual(r.control,before.control);assert.deepEqual(r.queue,before.queue);assert.ok(r.trace.filter(x=>x.startsWith('transaction:')).every(x=>x==='transaction:readonly'));assert.ok(r.connections.every(c=>c.closed));assert.deepEqual(r.calls,[]);anonymous(report);
 });
 test('missing receipt/DB, wrong owner/binding/version, corrupt image/source and unavailable IDB fail closed without initialization',async()=>{
