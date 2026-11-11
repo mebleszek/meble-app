@@ -247,7 +247,19 @@
     const rawSelections = Array.isArray(draft && draft.rateSelections) ? draft.rateSelections : [];
     const catalogRows = FC.catalogSelectors && typeof FC.catalogSelectors.getQuoteRates === 'function' ? FC.catalogSelectors.getQuoteRates() : [];
     const catalog = Array.isArray(catalogRows) ? catalogRows : [];
-    const selections=rawSelections.filter(row=>FC.laborCatalog?.isManualDefinition(catalog.find(rate=>String(rate.id)===String(row.rateId)))===true);
+    // Older private transport tariffs had a quantity source but could be assigned
+    // explicitly before automationMode existed. Keep that manual assignment only
+    // for this legacy transport case: the dedicated transport auto below suppresses
+    // its own line when an explicit assignment owns the quantity.
+    const selections=rawSelections.filter(row=>{
+      const rate=catalog.find(item=>String(item && item.id||'')===String(row && row.rateId||''));
+      if(FC.laborCatalog?.isManualDefinition(rate)===true)return true;
+      return !!rate && rate.active!==false && rate.isHourlyRate!==true
+        && rate.id!=='transport_distance_km'
+        && String(rate.quantitySource||'')==='transport.distance_km'
+        && !Object.hasOwn(rate,'automationMode')
+        && FC.laborCatalog?.isFactoryAutomaticDefinition(rate)!==true;
+    });
     const manualLines = selections.map((row)=>{
       const rate = catalog.find((item)=> String(item && item.id || '') === String(row && row.rateId || '')) || null;
       if(!rate) return null;

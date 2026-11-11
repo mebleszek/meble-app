@@ -303,6 +303,7 @@
     addPreviewRow(rows, 'Dodawanie', automation==='factory'?'AUTOMAT FABRYCZNY':automation==='automatic'?'AUTOMAT':'RĘCZNA');
     addPreviewRow(rows, 'Sposób naliczania', pricingModeLabel(mode));
     if(automation!=='manual') addPreviewRow(rows, 'Źródło automatu', laborSourceLabel(readString('laborQuantitySource')));
+    else if(['perUnit','startPlusUnit','time','timeTiers','timeStartStep','advanced'].includes(mode) && readString('laborQuantitySource')) addPreviewRow(rows, 'Źródło formuły ręcznej', laborSourceLabel(readString('laborQuantitySource')));
     if(mode === 'startPlusUnit') addPreviewRow(rows, 'Start', `${Number(readNumber('laborStartPrice')) || 0} PLN · w cenie ${Number(readNumber('laborIncludedQty')) || 0} jedn.`);
     if(isTimePricingMode(mode)){
       addPreviewRow(rows, 'Tryb czasu', mode === 'advanced' ? quantityModeLabel(readString('laborQuantityMode')) : pricingModeLabel(mode));
@@ -342,7 +343,7 @@
       ? 'AUTOMAT FABRYCZNY: można edytować cenę, czas, formułę i pozostałe parametry, ale nie sposób uruchamiania.'
       : kind==='automatic'
         ? 'Automat wymaga aktywnego, policzalnego źródła ilości. Nie jest dodawany ręcznie.'
-        : 'Czynność jest dodatkiem ręcznym. Zakres naliczania wybierasz osobno.';
+        : 'Czynność jest dodatkiem ręcznym. Źródło ilości może być zapisane w formule, ale nie uruchamia automatu; zakres naliczania wybierasz osobno.';
     return kind;
   }
   function syncLaborPricingModeUi(){
@@ -368,7 +369,7 @@
     setWrapperVisible('laborRateType', timeMode);
     setWrapperVisible('laborTimeBlockHours', isTime || isAdvanced);
     setWrapperVisible('laborDefaultMultiplier', timeMode);
-    setWrapperVisible('laborQuantitySource', autoMode);
+    setWrapperVisible('laborQuantitySource', autoMode || isPerUnit || isStartPlusUnit || timeMode);
     setWrapperVisible('laborQuantityMode', isAdvanced);
     setWrapperVisible('laborStartPrice', isStartPlusUnit);
     setWrapperVisible('laborIncludedQty', isStartPlusUnit);
@@ -562,7 +563,7 @@
       timeBlockHours:Number(readNumber('laborTimeBlockHours')) || 0,
       defaultMultiplier:readNumber('laborDefaultMultiplier')===''?1:Math.max(0,Number(readNumber('laborDefaultMultiplier'))||0),
       quantityMode,
-      quantitySource:automationMode==='automatic' ? readString('laborQuantitySource') : '',
+      quantitySource:(automationMode==='automatic' || usesQuantity) ? readString('laborQuantitySource') : '',
       startPrice:pricingMode === 'startPlusUnit' ? (Number(readNumber('laborStartPrice')) || 0) : 0,
       includedQty:pricingMode === 'startPlusUnit' ? (Number(readNumber('laborIncludedQty')) || 0) : 0,
       quantityTiers:labor.parseTierText ? labor.parseTierText(tierText) : [],

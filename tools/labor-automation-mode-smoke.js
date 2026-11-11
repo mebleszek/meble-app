@@ -58,6 +58,15 @@ test('manual new record stays manual; auto fixed with source saves and does not 
  assert.equal(f.rows()[0].automationMode,'automatic');assert.equal(f.rows()[0].quantitySource,'cabinet.count');
  assert.equal(f.rows()[0].fixedPrice,12);assert.equal(f.labor.isManualDefinition(f.rows()[0]),false);
 });
+test('manual quantity formula keeps chosen source but is never auto-eligible',()=>{
+ const f=fixture(null,'manual','cabinet.count','12','perUnit');
+ assert.equal(f.ctx.getCurrentServiceDraft().quantitySource,'cabinet.count');
+ assert.equal(f.ctx.saveServiceFromForm(),true);
+ const row=f.rows()[0];
+ assert.equal(row.automationMode,'manual');assert.equal(row.quantitySource,'cabinet.count');
+ assert.equal(f.labor.isAutomaticDefinition(row),false);
+ assert.equal(f.labor.calculateDefinition(row,{quantity:3}).total,36);
+});
 test('invalid automatic sources fail closed without persisting anything',()=>{
  for(const source of ['', 'transport.distance_km','carrying.floor_units','not.active.source']){
   const f=fixture(null,'automatic',source);

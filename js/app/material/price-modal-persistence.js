@@ -35,7 +35,7 @@
       if(!isHourly){
         const factory=labor.isFactoryAutomaticDefinition?.(ctx.currentEditedItem?.())===true;
         const source=String(data.quantitySource||'').trim();
-        if(factory && data.automationMode!=='automatic'){
+        if(factory && data.automationMode==='manual'){
           ctx.info('Automat fabryczny', 'Nie można zmienić trybu automatu fabrycznego.');
           return false;
         }
