@@ -8,6 +8,8 @@ import * as firestore from 'firebase/firestore';
 import {initializeTestEnvironment, assertFails} from '@firebase/rules-unit-testing';
 import {createEmulatorSynchronizer, createMemoryReplica, createMemoryOperationJournal} from '../../sync/global-data-sync.mjs';
 import {runtime, model, seed, addCompatibleFields, topLevelFixture} from './cloud-sync-fixture.mjs';
+import {createGlobalChannel} from '../../sync/local-first-sync.mjs';
+import {planFirstCatalogSync} from '../../sync/application-first-catalog-sync.mjs';
 for (const [key, port] of [['FIRESTORE_EMULATOR_HOST', 18080], ['FIREBASE_AUTH_EMULATOR_HOST', 19099]]) {
   if (process.env[key] !== `127.0.0.1:${port}`) throw Error('Loopback emulator required');
 }
@@ -61,6 +63,49 @@ afterEach(topLevelFixture(async () => {
   await Promise.all(clients.map(c => c.close())); clients = [];
 }));
 after(async () => env?.cleanup());
+
+test('Pixel catalog cutover: two fresh devices receive all 14 domains and the parent revision survives', async () => {
+  const {a: pixel, b: computer, sync} = await pair();
+  const tablet = await client();
+  const ownerUid = pixel.uid, contract = pixel.r.FC.globalDataContract;
+  const previous = model();
+  seed(pixel.r, previous);
+  const original = await publish(sync, pixel);
+  assert.equal(original.ok, true, JSON.stringify(original));
+  const before = (await rows(ownerUid, 'globalRevisions'))[0];
+  const selected = clone(previous);
+  selected.materials[0].price += 1;
+  seed(pixel.r, selected);
+  const packed = await contract.pack(ownerUid, selected);
+  const witness = {pixelHash: packed.directoryHash, pixelCount: packed.records.length,
+    previousRevision: original.head.revisionId, previousHash: original.head.directoryHash,
+    previousCount: original.head.recordCount};
+  const channel = device => createGlobalChannel({writer: pixel.connection, reader: device.connection,
+    ownerUid, contract: device.r.FC.globalDataContract, factory: device.r.FC.firebaseGlobalTransport});
+  const first = channel(computer), second = channel(tablet);
+  try {
+    const remote = await first.read();
+    const input = {ownerUid, contract, remote, boot: {fresh: true, restored: false}, image: null};
+    await assert.rejects(planFirstCatalogSync(input, witness), /LF_FIRST_CATALOG_PIXEL_REQUIRED/);
+    const image = {rows: Object.fromEntries(pixel.r.rows)};
+    const plan = await planFirstCatalogSync({...input, image, boot: {restored: true}}, witness);
+    assert.equal(plan.action, 'publish');
+    const operation = await first.prepare(plan.model, remote.head);
+    await operation.publish();
+    for (const receiver of [first, second]) {
+      const current = await receiver.read();
+      assert.deepEqual(current.head, operation.expected);
+      assert.equal((await planFirstCatalogSync({...input, remote: current}, witness)).action, 'receive');
+      assert.equal(Object.keys(current.value).length, 14);
+      assert.deepEqual(clone(current.value), selected);
+    }
+    const history = await rows(ownerUid, 'globalRevisions');
+    assert.equal(history.length, 2);
+    assert.deepEqual(history.find(r => r.id === before.id), before);
+  } finally {
+    await Promise.all([first.close(), second.close()]);
+  }
+});
 
 test('CLOUD-SYNC-1 01: native RAW stores A -> immutable Firestore -> independent B, all 14 domains', async () => {
   const {a, b, sync} = await pair(), r = a.r;
