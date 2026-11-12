@@ -76,8 +76,19 @@ test('read-only IDB uses exact owner/binding/source/integrity, distinguishes ori
  const before={source:[...r.rows],control:clone(r.control),queue:clone(r.queue)};
  const report=await collectGlobalDiagnostics(r.args);assert.equal(report.status,'READ_ONLY');assert.equal(r.row(report.originals,'materials').status,'EQUAL');assert.equal(r.row(report.localFirst,'materials').status,'EQUAL');assert.equal(r.row(report.comparison,'materials').status,'DIFFERENT');
  const pack=rows=>r.c.pack(r.args.ownerUid,r.c.capture({getItem:key=>rows[key]??null},Object.keys(r.c.schemas)).model);
- assert.equal(report.catalogDirectoryHash,(await pack(r.control.application.rows)).directoryHash);
- assert.notEqual(report.catalogDirectoryHash,(await pack(r.control.source.rows)).directoryHash);
+ const current=await pack(r.control.application.rows),original=await pack(r.control.source.rows);
+ assert.equal(report.catalogDirectoryHash,current.directoryHash);
+ assert.notEqual(report.catalogDirectoryHash,original.directoryHash);
+ const {createHash}=require('node:crypto');
+ const hash=entries=>createHash('sha256').update(r.c.canonical(entries)).digest('hex');
+ assert.equal(Object.keys(report.catalogDomains).length,14);
+ for(const [domain,entries]of Object.entries(current.directory)){
+  assert.equal(report.catalogDomains[domain].recordCount,entries.length);
+  assert.equal(report.catalogDomains[domain].directoryHash,hash(entries));
+  assert.equal(report.catalogDomains[domain].directoryHash===hash(original.directory[domain]),domain!=='materials');
+ }
+ assert.equal(r.data.sanitize({...report,catalogDomains:{materials:{recordCount:1,directoryHash:secret}}}).catalogDomains,null);
+ assert.equal(r.data.sanitize({...report,status:'BLOCKED'}).catalogDomains,null);
  assert.ok(r.data.format(report).includes(report.catalogDirectoryHash));
  assert.equal(r.data.sanitize({...report,catalogDirectoryHash:secret}).catalogDirectoryHash,null);
  assert.equal(r.data.sanitize({...report,status:'BLOCKED'}).catalogDirectoryHash,null);

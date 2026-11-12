@@ -86,10 +86,15 @@ export async function collectGlobalDiagnostics({window:w,ownerUid,name,readNativ
   const imageRead=key=>image.rows[key]??null;
   const localFirst=d.inspect(imageRead),comparison=d.compare(read,imageRead);
   let catalogDirectoryHash=null;
+  let catalogDomains=null;
   try{
    const contract=w.FC.globalDataContract;
    const {model}=contract.capture({getItem:imageRead},Object.keys(contract.schemas));
-   const {directoryHash}=await contract.pack(ownerUid,model);
+   const {directoryHash,directory}=await contract.pack(ownerUid,model);
+   const entries=await Promise.all(Object.entries(directory).map(async ([domain,records])=>[
+    domain,{recordCount:records.length,directoryHash:await contract.sha(contract.encode(records))}
+   ]));
+   catalogDomains=Object.fromEntries(entries);
    catalogDirectoryHash=directoryHash;
   }catch(_){
    // Keep the per-domain observations when the complete catalog cannot be packed.
@@ -101,7 +106,7 @@ export async function collectGlobalDiagnostics({window:w,ownerUid,name,readNativ
   if(!equal(first,second))refuse('DIAG_IMAGE_CHANGED');
   for(const key of keys){gate();let raw;try{raw=readNative(key);}catch(_){refuse('GLOBAL_STORAGE_UNAVAILABLE');}if(raw!==read(key))refuse('GLOBAL_SOURCE_CHANGED');}
   if(readNative(RECEIPT)!==receiptRaw)refuse('DIAG_RECEIPT_INVALID');gate();
-  return d.sanitize({status:'READ_ONLY',code:'NONE',originals,localFirst,comparison,catalogDirectoryHash});
+  return d.sanitize({status:'READ_ONLY',code:'NONE',originals,localFirst,comparison,catalogDirectoryHash,catalogDomains});
  }
  try{
   return await Promise.race([work(),new Promise((_,reject)=>{timer=setTimeout(()=>{expired=true;close();reject(new Refusal('DIAG_TIMEOUT'));},10000);})]);
