@@ -121,13 +121,26 @@
     ...(r?.validation?{validation:{status:state(r.validation.status),code:code(r.validation.code)}}:{})};
   })});
   const status=value.status==='READ_ONLY'?'READ_ONLY':'BLOCKED';
-  const catalogDirectoryHash=status==='READ_ONLY'&&typeof value.catalogDirectoryHash==='string'&&/^[a-f0-9]{64}$/.test(value.catalogDirectoryHash)?value.catalogDirectoryHash:null;
-  return {status,code:code(value.code),originals:section(value.originals),localFirst:section(value.localFirst),comparison:section(value.comparison),catalogDirectoryHash};
+  const validHash=hash=>typeof hash==='string'&&/^[a-f0-9]{64}$/.test(hash);
+  const catalogDirectoryHash=status==='READ_ONLY'&&validHash(value.catalogDirectoryHash)?value.catalogDirectoryHash:null;
+  let catalogDomains=null;
+  if(catalogDirectoryHash&&value.catalogDomains){
+   const entries=domains().map(domain=>[domain,value.catalogDomains[domain]]);
+   if(entries.every(([,row])=>Number.isInteger(row?.recordCount)&&row.recordCount>=0&&row.recordCount<=contract().MAX_RECORDS&&validHash(row.directoryHash))){
+    catalogDomains=Object.fromEntries(entries.map(([domain,{recordCount,directoryHash}])=>[domain,{recordCount,directoryHash}]));
+   }
+  }
+  return {status,code:code(value.code),originals:section(value.originals),localFirst:section(value.localFirst),comparison:section(value.comparison),catalogDirectoryHash,catalogDomains};
  }
  function format(value){
   const r=sanitize(value);if(!r)return '';
   const lines=['DANE GLOBALNE — tylko odczyt: '+r.status+' / '+r.code];
   lines.push('SHA-256 indeksu katalogów LOCAL-FIRST: '+(r.catalogDirectoryHash||'NIEPOTWIERDZONY'));
+  if(r.catalogDomains){
+   for(const [domain,{recordCount,directoryHash}]of Object.entries(r.catalogDomains)){
+    lines.push(domain+' — rekordy: '+recordCount+' | SHA-256 indeksu: '+directoryHash);
+   }
+  }
   for(const [key,label]of [['originals','Oryginały localStorage'],['localFirst','Istniejący obraz LOCAL-FIRST'],['comparison','Oryginały ↔ obraz']]){
    const s=r[key];lines.push(label+': '+s.status+' / '+s.code);
    for(const d of s.domains)lines.push(d.domain+' ['+d.keys.join(' / ')+']: '+d.status+'; RAW='+d.raw+'; semantyka='+d.semantic+'; typ='+d.discrepancy+'; kod='+d.code+(d.validation?'; kontrakt='+d.validation.status+'/'+d.validation.code:''));

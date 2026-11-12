@@ -80,6 +80,7 @@ test('existing session modal/copy includes a closed anonymous snapshot; loss of 
  await modal.secondaryAction.run({button:{},body:{}});assert.equal(JSON.parse(copied).localFirst.globalConsistency.originals.domains.length,14);
  assert.match(snapshot.catalogDirectoryHash,/^[a-f0-9]{64}$/);
  assert.equal(JSON.parse(copied).localFirst.globalConsistency.catalogDirectoryHash,snapshot.catalogDirectoryHash);
+ assert.deepEqual(JSON.parse(copied).localFirst.globalConsistency.catalogDomains,JSON.parse(JSON.stringify(snapshot.catalogDomains)));
  assert.doesNotMatch(copied,/Synthetic|private-owner|private-device|private-instance/);assert.deepEqual(p.seed(),before);
  valid=false;const body={},button={};await modal.secondaryAction.run({button,body});assert.equal(button.disabled,true);assert.match(body.textContent,/AUTH_DENIED/);
  await w.FC.sessionDiagnostics.open();assert.equal(calls,1,'No diagnostic collection after access was revoked');assert.deepEqual(p.seed(),before);
