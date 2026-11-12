@@ -4,11 +4,11 @@ import fs from 'node:fs';import os from 'node:os';import path from 'node:path';i
 import {createRequire} from 'node:module';
 import {chromium} from 'playwright-core';
 import {initializeTestEnvironment,assertFails} from '@firebase/rules-unit-testing';
-import {doc,setDoc,getDoc,getDocs,collection,query,limit,updateDoc,deleteDoc} from 'firebase/firestore';
+import {doc,setDoc,getDoc,getDocs,collection,query,limit,updateDoc,deleteDoc,serverTimestamp,writeBatch} from 'firebase/firestore';
 import {model,runtime} from './cloud-sync-fixture.mjs';
 const require=createRequire(import.meta.url),{waitForGesturePoint,finishPendingTouchScroll,observeGesture}=require('../helpers/browser-test-readiness.js'),{startBrowser}=require('../helpers/chromium-runtime.js'),{injection}=require('../trusted-session-browser-smoke.js');
 const root=path.resolve(new URL('../..',import.meta.url).pathname),uid='synthetic-phone-owner';
-export async function runNormalApplication(t,{deployment=false}={}){
+export async function runNormalApplication(t,{deployment=false,catalogCutover=false}={}){
  assert.equal(process.env.FIRESTORE_EMULATOR_HOST,'127.0.0.1:18080');assert.equal(process.env.FIREBASE_AUTH_EMULATOR_HOST,'127.0.0.1:19099');
  const original=fs.readFileSync(path.join(root,'tools/firebase-pilot/firestore.rules'),'utf8'),fragment=fs.readFileSync(path.join(root,'sync/local-first-project.rules'),'utf8');
  const rules=deployment?require('./application-rules.js').applicationRules():original.replace('    match /{document=**}',()=>fragment+'\n    match /{document=**}');
@@ -49,6 +49,54 @@ export async function runNormalApplication(t,{deployment=false}={}){
    const trace=await evaluate('window.normalGesture.snapshot()');for(const type of ['pointerdown','pointerup'])assert.equal(trace.events.filter(e=>e.type===type&&e.trusted&&e.onTarget).length,1);
   }finally{await evaluate('window.normalGesture.close();delete window.normalGesture');await cdp.detach();}
  }
+ if(catalogCutover){
+  const pixel=await device('computer');
+  const selected=await pixel.page.evaluate(()=>{
+   const c=window.FC.globalDataContract;
+   return c.capture(localStorage,Object.keys(c.schemas)).model;
+  });
+  const previous=structuredClone(selected);
+  previous.materials[0].price+=1;
+  const contract=runtime().FC.globalDataContract;
+  const base=await contract.pack(uid,previous),next=await contract.pack(uid,selected);
+  const head={ownerUid:uid,version:1,generation:1,revisionId:'1'.repeat(32),directoryHash:base.directoryHash,recordCount:base.records.length};
+  await env.withSecurityRulesDisabled(async ctx=>{
+   const db=ctx.firestore(),batch=writeBatch(db);
+   for(const record of base.records)batch.set(doc(db,'users',uid,'globalRecords',record.hash),record);
+   batch.set(doc(db,'users',uid,'globalRevisions',head.revisionId),{...head,directory:base.directoryJson,baseGeneration:0,baseRevisionId:'',baseDirectoryHash:'',createdAt:serverTimestamp()});
+   batch.set(doc(db,'users',uid,'globalData','current'),{...head,updatedAt:serverTimestamp()});
+   await batch.commit();
+  });
+  const owner=env.authenticatedContext(uid,{email_verified:true,firebase:{sign_in_provider:'google.com'}}).firestore();
+  const parent=doc(owner,'users',uid,'globalRevisions',head.revisionId);
+  const saved=(await getDoc(parent)).data();
+  const witness={previousRevision:head.revisionId,previousHash:head.directoryHash,previousCount:head.recordCount,
+   pixelHash:next.directoryHash,pixelCount:next.records.length};
+  await pixel.page.evaluate(witness=>sessionStorage.setItem('synthetic-catalog-cutover',JSON.stringify(witness)),witness);
+  await pixel.page.reload();
+  await login(pixel);
+  const active=(await getDoc(doc(owner,'users',uid,'globalData','current'))).data();
+  assert.equal(active.generation,2);
+  assert.equal(active.directoryHash,next.directoryHash);
+  for(const name of ['desktop-receiver','tablet-receiver']){
+   const handle=await startBrowser({profileDir:path.join(dir,name)});
+   const browser=await chromium.connectOverCDP(handle.endpoint),page=browser.contexts()[0].pages()[0];
+   const receiver={owner:handle,browser,page,name};devices.push(receiver);
+   await page.addInitScript({content:injection});
+   await configure(receiver,witness);
+   await page.goto(origin+'/index.html');await login(receiver);
+   const view=await page.evaluate(()=>{
+    const c=window.FC.globalDataContract;
+    return {model:c.capture(localStorage,Object.keys(c.schemas)).model,state:window.FC.applicationStartup.inspect().state};
+   });
+   assert.equal(view.state,'active');
+   assert.equal(Object.keys(view.model).length,14);
+   assert.deepEqual(view.model,selected);
+  }
+  assert.deepEqual((await getDoc(parent)).data(),saved);
+  assert.equal((await getDoc(doc(owner,'users',uid,'globalData','current'))).data().revisionId,active.revisionId);
+  return;
+ }
  const phone=await device('phone');
  const ids=await phone.page.evaluate(()=>{
   const a=window.FC.investors.create({name:'Normal A'}),b=window.FC.investors.create({name:'Normal B'});
@@ -69,8 +117,9 @@ export async function runNormalApplication(t,{deployment=false}={}){
  const source=await phone.page.evaluate(()=>({projects:localStorage.getItem('fc_projects_v1'),investors:localStorage.getItem('fc_investors_v1')}));
  assert.equal(JSON.parse(source.projects).length,2);
  let computer;if(!deployment)computer=await device('computer');
- async function configure(d){
-  await d.page.addInitScript(({uid,name,releaseSlot})=>{const raw=Storage.prototype.getItem;window.readNormalSource=key=>raw.call(localStorage,key);const prepare=()=>{
+ async function configure(d,receiverWitness){
+  await d.page.addInitScript(({uid,name,releaseSlot,catalogCutover,receiverWitness})=>{const raw=Storage.prototype.getItem;window.readNormalSource=key=>raw.call(localStorage,key);const prepare=()=>{
+   const emulatorCatalogWitness=receiverWitness||JSON.parse(sessionStorage.getItem('synthetic-catalog-cutover')||'null');
    const config={name:'meble-lf-test-normal-'+name,async connections(input){
     try{const [app,auth,f]=await Promise.all([import('/__sdk/firebase-app.js'),import('/__sdk/firebase-auth.js'),import('/__sdk/firebase-firestore.js')]);
     const errors=window.normalSdkErrors=[];const observed={...f};for(const key of ['runTransaction','getDocFromServer','getDocsFromServer'])observed[key]=(...args)=>{const began=performance.now(),pending=window.normalPendingRpc||(window.normalPendingRpc=[]),rpc={method:key};pending.push(rpc);let result;try{result=f[key](...args);}catch(error){pending.splice(pending.indexOf(rpc),1);throw error;}const completed=()=>{pending.splice(pending.indexOf(rpc),1);const log=window.normalRpcTimeline||(window.normalRpcTimeline=[]);log.push({method:key,ms:Math.round(performance.now()-began)});if(log.length>12)log.shift();};result.then(completed,completed);result.catch(error=>{errors.push({method:key,code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();});if(key==='runTransaction'&&window.holdOldReader===args[0]?.app?.name&&!window.normalReadArmed){window.normalReadArmed=true;return result.then(value=>{window.normalHeldRead=true;return new Promise(resolve=>window.releaseOldRead=()=>resolve(value));});}return result;};
@@ -93,8 +142,9 @@ export async function runNormalApplication(t,{deployment=false}={}){
     return connections;
    }catch(error){window.normalConnectionError={name:error.name,code:error.code,message:error.message,stack:error.stack};throw error;}
    }};
+   if(catalogCutover)Object.assign(config,{localOnly:!emulatorCatalogWitness,firstCatalogSync:!!emulatorCatalogWitness,emulatorCatalogWitness});
    if(releaseSlot){config.envelope={...releaseSlot.envelope,publicKeySpki:new Uint8Array(releaseSlot.envelope.publicKeySpki),signature:new Uint8Array(releaseSlot.envelope.signature)};config.trustedKeySha256=releaseSlot.trustedKeySha256;window.normalReleaseReady=window.FC.applicationStartup.configureReleaseEmulator(config);}else window.FC.applicationStartup.configureEmulator(config);
-  };if(releaseSlot){const fc=window.FC=window.FC||{};Object.defineProperty(fc,'applicationStartup',{configurable:true,set(value){Object.defineProperty(fc,'applicationStartup',{configurable:true,writable:true,value});prepare();}});}else document.addEventListener('DOMContentLoaded',prepare,{once:true});},{uid,name:d.name,releaseSlot});
+  };if(releaseSlot){const fc=window.FC=window.FC||{};Object.defineProperty(fc,'applicationStartup',{configurable:true,set(value){Object.defineProperty(fc,'applicationStartup',{configurable:true,writable:true,value});prepare();}});}else document.addEventListener('DOMContentLoaded',prepare,{once:true});},{uid,name:d.name,releaseSlot,catalogCutover,receiverWitness});
  }
  async function enable(d){await configure(d);await d.page.reload();await login(d);}
  await enable(phone);const ownerClient=env.authenticatedContext(uid,{email_verified:true,firebase:{sign_in_provider:'google.com'}}).firestore();

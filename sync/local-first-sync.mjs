@@ -16,7 +16,7 @@ export function createGlobalChannel({writer,reader,ownerUid,contract,factory}) {
     async read(){guard();const r=await inbound.read();if(!r.ok)fail(r.code);
       const packed=await contract.pack(ownerUid,r.model);guard();
       if(packed.directoryHash!==r.head.directoryHash||packed.records.length!==r.head.recordCount)fail('LF_REMOTE_INTEGRITY');
-      return {head:r.head,value:r.model};},
+      return {head:r.head,value:r.model,parent:r.parent};},
     watch(notify){guard();return reader.firestore.onSnapshot(reader.firestore.doc(reader.db,'users',ownerUid,'globalData','current'),
       ()=>notify(),()=>notify());},
     async close(){await Promise.all([outbound.close(),inbound.close()]);}

@@ -63,7 +63,8 @@
         // Validate/bound directory before using it to allocate or issue reads.
         validateDirectory(directory,head.recordCount);
         const records=await fetchRecords(directory),result=await c.unpack(bound.uid,directory,records);c.validateBundle(result.model);check();
-        if(!equal(await remoteHead(),head))c.fail('GLOBAL_READ_CONFLICT');return {ok:true,head,...result};
+        if(!equal(await remoteHead(),head))c.fail('GLOBAL_READ_CONFLICT');
+        return {ok:true,head,...result,parent:{generation:rev.baseGeneration,revisionId:rev.baseRevisionId,directoryHash:rev.baseDirectoryHash}};
       }catch(e){return error(e);}
     }
     function validateDirectory(directory,count){
