@@ -23,6 +23,13 @@ export function projectApplicationRows(rows,channel,remote,globalContract,projec
  }else{
   const p=remote.value.document.payload;projectContract.validate(p);
   if(p.project.id!==channel.scope)fail('LF_PROJECT_OWNER_CHANGED');
+  if(remote.value.document.metadata?.purpose==='business-delete'){
+   const projects=JSON.parse(rows.fc_projects_v1||'[]');
+   if(projects.some(r=>r.id===p.project.id&&r.investorId!==p.investor.id))fail('LF_PROJECT_OWNER_CHANGED');
+   if(projects.some(r=>r.investorId===p.investor.id&&r.id!==p.project.id))fail('LF_LOCAL_DELETION_SYNC_REQUIRED');
+   if(!JSON.parse(rows.fc_investors_v1||'[]').some(r=>r.id===p.investor.id))return next;
+   return projectContract.planInvestorDeletion(rows,[p.investor.id]).after;
+  }
   if(JSON.parse(rows.fc_investor_removed_ids_v1||'[]').includes(p.investor.id))fail('LF_LOCAL_DELETION_SYNC_REQUIRED');
   for(const [key,row]of [['fc_projects_v1',p.project],['fc_investors_v1',p.investor]]){
    const all=JSON.parse(next[key]||'[]'),matches=all.filter(x=>x.id===row.id);

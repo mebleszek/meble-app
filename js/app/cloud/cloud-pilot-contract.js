@@ -41,7 +41,7 @@
     const business=doc.profile==='business-project-v1';
     if(!exact(doc,['kind','version','profile','projectSchemaVersion','metadata','payload','integrity'])
       ||doc.kind!=='meble-app-project-export'||doc.version!==1||(!business&&doc.profile!=='native-project-v1')||doc.projectSchemaVersion!==12
-      ||!exact(doc.metadata,['exportedAt','purpose'])||doc.metadata.purpose!==(business?'business-sync':'pilot')
+      ||!exact(doc.metadata,['exportedAt','purpose'])||!(business?['business-sync','business-delete'].includes(doc.metadata.purpose):doc.metadata.purpose==='pilot')
       ||typeof doc.metadata.exportedAt!=='string'||new Date(doc.metadata.exportedAt).toISOString()!==doc.metadata.exportedAt
       ||!exact(doc.payload,business?['investor','project','offers']:['investor','project'])||doc.payload.investor.id!==scope.investorId
       ||doc.payload.project.id!==scope.projectId||doc.payload.project.investorId!==scope.investorId

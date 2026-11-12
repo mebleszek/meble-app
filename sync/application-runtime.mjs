@@ -54,6 +54,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   async function ensureEditor(scope=w.localStorage.getItem('fc_current_project_id_v1')){
    if(!scope)fail('LF_PROJECT_CHANNEL_REQUIRED');
    if(localOnly){const localRows=authority?authority.rows():(await store.readApplication()).rows;if(!JSON.parse(localRows.fc_projects_v1||'[]').some(p=>p.id===scope))fail('LF_PROJECT_CHANNEL_REQUIRED');return;}
+   if(w.navigator.onLine!==false)await writer?.confirmAccess?.();
    const snap=await store.snapshot(scope);
    if(snap.replica?.editor?.active&&snap.replica.editor.deviceId===store.deviceId)return;
    if(!sync||w.navigator.onLine===false)fail('LF_OFFLINE_EDITOR_REQUIRED');
@@ -65,7 +66,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    checkpoint:(application,kind)=>(sync||local).checkpoint(application,kind),
    commit:async(kind,application)=>{
     let scope=application.rows.fc_current_project_id_v1;
-    if(localOnly&&kind==='delete-investors'){if(!deletion)fail('DELETE_CONFIRMATION_REQUIRED');return deletion.commitApplication(application);}
+    if(kind==='delete-investors'){if(!deletion)fail('DELETE_CONFIRMATION_REQUIRED');return deletion.commitApplication(application);}
     if(localOnly)return local.commit(kind,application,scope);
     if(kind==='project'){
      const before=await store.readApplication(),old=JSON.parse(before.rows.fc_projects_v1||'[]'),next=JSON.parse(application.rows.fc_projects_v1||'[]');
@@ -150,8 +151,15 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    if(!scope)return;
    const local=await store.snapshot(scope);
    if(!local.replica?.editor?.active||local.replica.editor.deviceId!==store.deviceId)return;
-   const result=await sync.flush();if(!result.ok)fail(result.code);
-   await sync.releaseEditor(scope);
+   try{
+    const result=await sync.flush();if(!result.ok)fail(result.code);
+    await sync.releaseEditor(scope);
+   }catch(error){
+    // Local exit is already durable. Keep the editor until a verified
+    // reconnect can hand it over from the clean list.
+    if((error.code||error.message)==='LF_SYNC_ACCESS_UNCONFIRMED')return {pending:true};
+    throw error;
+   }
   }
   if(writer){const result=await sync.flush();if(!result.ok)state(result);
    if(!fc.session.active)for(const record of JSON.parse(authority.rows().fc_projects_v1||'[]'))await handover(record.id);
@@ -161,7 +169,8 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   w.addEventListener('click',wakeReceive,{capture:true,passive:true});
   const bind=()=>{
    boundary=installApplicationWriteBoundary({window:w,authority,ensureEditor,localOnly,onExit:handover});
-   if(localOnly)deletion=installLocalInvestorDeletion({window:w,store,authority,boundary});
+   if(localOnly||sync)deletion=installLocalInvestorDeletion({window:w,store,authority,boundary,
+    sync:localOnly?null:()=>sync,confirmAccess:async()=>{if(w.navigator.onLine===false)fail('DELETE_SYNC_ONLINE_REQUIRED');await writer?.confirmAccess?.();}});
    fc.applicationSyncActions.install(createApplicationActionBinding({window:w,authority,onExit:handover,onClose:()=>{closed=true;sync?.close();deletion?.close();boundary.close();}}));
   };bind();
   if(localOnly)boot?.confirmLocalReset?.();

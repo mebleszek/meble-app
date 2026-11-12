@@ -218,6 +218,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  await computer.page.waitForFunction(()=>window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending);
  const approved=await computer.page.evaluate(()=>localStorage.getItem('fc_projects_v1'));
  await computer.page.evaluate(room=>{window.projectData[room].settings.roomHeight=299.25;window.FC.views.refreshSessionButtons();},room);
+ if(deployment)await computer.page.evaluate(()=>{dispatchEvent(new Event('pagehide'));dispatchEvent(new Event('pageshow'));});
  await computer.page.click('#sessionCancel');await computer.page.locator('.confirm-box .is-danger').click();
  await computer.page.waitForFunction(room=>window.FC.session.active&&window.projectData[room].settings.roomHeight===287.125&&!window.FC.applicationStartup.inspect().transactionPending,room);
  assert.equal(await computer.page.evaluate(()=>localStorage.getItem('fc_projects_v1')),approved);
@@ -300,6 +301,23 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  await until(async()=>await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid)?.title,pid)==='Offline durable revision');
  assert.equal(await computer.page.evaluate(()=>window.normalGoogleLogins||0),0,'Reconnect restores the approved SDK session, without a Google popup');
  if(deployment){
+  const deletedProject=first.find(p=>p.investorId===ids[1]).id;
+  const deletedHead=doc(ownerClient,'users',uid,'localFirstProjects',deletedProject);
+  const beforeDelete=(await getDoc(deletedHead)).data();
+  const oldRevision=doc(ownerClient,'users',uid,'localFirstProjects',deletedProject,'revisions',beforeDelete.currentRevisionId);
+  const historyBefore=(await getDoc(oldRevision)).data();
+  await phone.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list'));
+  await openConfirmedInvestorList(phone,ids[1]);
+  const remove=phone.page.locator('[data-action="remove-investor-from-list"]');
+  await remove.click();
+  await phone.page.locator('[data-investor-delete-id="'+ids[1]+'"]').check();
+  await remove.click();
+  await phone.page.locator('.confirm-box .is-danger').click();
+  await phone.page.waitForFunction(id=>!window.FC.investors.getById(id),ids[1]);
+  await computer.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list'));
+  await computer.page.waitForFunction(id=>!window.FC.investors.getById(id),ids[1]);
+  assert.equal((await getDoc(deletedHead)).data().generation,beforeDelete.generation+1);
+  assert.deepEqual((await getDoc(oldRevision)).data(),historyBefore);
   const foreign=env.authenticatedContext('synthetic-foreign',{email_verified:true,firebase:{sign_in_provider:'google.com'}}).firestore(),guest=env.unauthenticatedContext().firestore();
   for(const db of [foreign,guest]){
    await assertFails(getDoc(doc(db,'users',uid,'globalData','current')));
