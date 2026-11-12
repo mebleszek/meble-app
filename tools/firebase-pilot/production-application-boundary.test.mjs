@@ -3,12 +3,33 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import {completeMissingApplicationGlobals} from '../../sync/application-initial-state.mjs';
+import {planFirstCatalogSync} from '../../sync/application-first-catalog-sync.mjs';
 const require=createRequire(import.meta.url);
 import {canonical} from '../../sync/local-first-values.mjs';
 import {verifyApplicationRelease,assertApplicationRelease,assertApplicationMigration} from '../../sync/application-release.mjs';
 import {authorizeApplicationSession,assertApplicationConnection} from '../../sync/firebase-activation.mjs';
 import {createApplicationSyncGrant} from '../../sync/application-sync-grant.mjs';
 const owner='synthetic-owner',origin='https://mebleszek.github.io/meble-app/';
+test('first catalog sync publishes only the witnessed Pixel image over the preserved base',async()=>{
+ const pixelHash='c73af3f12d2a81fa6007f067079f8f1f808fe1088d9929de24c421fdc90b1429';
+ const head={ownerUid:owner,generation:1,revisionId:'584e3db3f8d04eb48445526b6d4f8043',
+  directoryHash:'2fee1752e2db9cb497b0ed4c5ce4a7799f15ea82a7f464e351eb91e292601714',recordCount:171};
+ const model={};
+ const contract={schemas:{},capture:()=>({model}),validateBundle:value=>assert.equal(value,model),
+  pack:async()=>({directoryHash:pixelHash,records:Array(239)})};
+ const input={remote:{head},image:{rows:{}},boot:{fresh:true,restored:true},contract,ownerUid:owner};
+ assert.deepEqual(await planFirstCatalogSync(input),{action:'publish',model});
+ const fresh={...input,boot:{fresh:true,restored:false},image:null};
+ await assert.rejects(planFirstCatalogSync(fresh),/LF_FIRST_CATALOG_PIXEL_REQUIRED/);
+ await assert.rejects(planFirstCatalogSync({...input,remote:{head:{...head,revisionId:'changed'}}}),/LF_FIRST_CATALOG_BASE_CHANGED/);
+ await assert.rejects(planFirstCatalogSync({...input,image:{rows:{fc_projects_v1:'[{}]'}}}),/LF_FIRST_CATALOG_LOCAL_BUSINESS_DATA/);
+ await assert.rejects(planFirstCatalogSync({...input,image:{rows:{fc_edit_session_v1:'{}'}}}),/LF_FIRST_CATALOG_ACTIVE_SESSION/);
+ await assert.rejects(planFirstCatalogSync({...input,contract:{...contract,pack:async()=>({directoryHash:head.directoryHash,records:Array(239)})}}),/LF_FIRST_CATALOG_SOURCE_CHANGED/);
+ const published={head:{...head,generation:2,directoryHash:pixelHash,recordCount:239},parent:head};
+ await assert.rejects(planFirstCatalogSync({...fresh,remote:{...published,parent:{...head,revisionId:'unrelated'}}}),/LF_FIRST_CATALOG_PIXEL_REQUIRED/);
+ assert.deepEqual(await planFirstCatalogSync({...fresh,remote:published}),{action:'receive'});
+ assert.deepEqual(await planFirstCatalogSync({...input,remote:published}),{action:'bind'});
+});
 async function fixture(overrides={}){const keys=await crypto.subtle.generateKey('Ed25519',true,['sign','verify']),spki=new Uint8Array(await crypto.subtle.exportKey('spki',keys.publicKey));
  const decision={domain:'MEBLE_APPLICATION_DEPLOYMENT_V1',protocol:2,database:'(default)',projectId:'mebleszek-meble-app',ownerUid:owner,origin,activationId:'synthetic-release',profile:'business-project-v1',globalDomains:14,migrationApproved:true,sourcePreserved:true,rulesApproved:true,rulesSha256:'a'.repeat(64),...overrides};
  const signature=new Uint8Array(await crypto.subtle.sign('Ed25519',keys.privateKey,new TextEncoder().encode(canonical(decision))));

@@ -8,10 +8,11 @@ import {installEmulatorApplicationAuthority,createApplicationActionBinding,appli
 import {installApplicationWriteBoundary} from './application-write-boundary.mjs';
 import {applicationInstallation,verifyExclusiveClient} from './application-installation.mjs';
 import {assertApplicationConnection} from './firebase-activation.mjs';
+import {planFirstCatalogSync} from './application-first-catalog-sync.mjs';
 import {installLocalInvestorDeletion} from './application-investor-delete.mjs';
 import {copy,equal,assertEmulator,fail,safeError} from './local-first-values.mjs';
 export function startNormalEmulatorApplication(options){return startApplicationRuntime(options);}
-export async function startApplicationRuntime({window:w,writer,reader,name,ownerUid,boot,release:deployment,localOnly=false,onStage=()=>{},onDiagnostic=()=>{},onFailureQuiescent=()=>{}}){
+export async function startApplicationRuntime({window:w,writer,reader,name,ownerUid,boot,release:deployment,localOnly=false,firstCatalogSync=false,onStage=()=>{},onDiagnostic=()=>{},onFailureQuiescent=()=>{}}){
  const fc=w.FC;
  if(localOnly&&(writer||reader||!boot?.localOnly))fail('LF_LOCAL_MODE_REQUIRED');
  if(writer){const a=assertApplicationConnection(writer),b=assertApplicationConnection(reader);if(a.uid!==ownerUid||b.uid!==ownerUid||writer.db.app===reader.db.app)fail('LF_INDEPENDENT_OWNER_REQUIRED');}
@@ -28,7 +29,18 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   const channel=record=>createProjectChannel({writer,reader,ownerUid,deviceId:store.deviceId,projectId:record.id,investorId:record.investorId,
    pilotContract:fc.cloudPilotContract,pilotFactory:fc.firebasePilotTransport,globalContract:c,projectContract:p,globals});
   const channels=[globals];
-  const image=await store.readApplication(),initialRows=deployment&&boot?.fresh&&!boot.restored?emptyInstallationRows(boot.rows()):boot?.rows(),rows=image?.rows||initialRows||installation.rows;
+  const image=await store.readApplication();
+  let initialRows=deployment&&boot?.fresh&&!boot.restored?emptyInstallationRows(boot.rows()):boot?.rows();
+  let firstCatalog;
+  if(firstCatalogSync&&!(await store.snapshot('globals')).replica){
+   onStage('initial-global-revision');
+   if(!globals)fail('LF_FIRST_CATALOG_ONLINE_REQUIRED');
+   const remote=await globals.read();
+   const plan=await planFirstCatalogSync({remote,image,boot,contract:c,ownerUid});
+   firstCatalog={remote,plan};
+   if(plan.action==='receive')initialRows=projectApplicationRows(initialRows,globals,remote,c,p);
+  }
+  const rows=image?.rows||initialRows||installation.rows;
   if(writer)for(const record of JSON.parse(rows.fc_projects_v1||'[]'))channels.push(channel(record));
   const idle=()=>authority.assertIdle({allowForm:true});
   const discovery=writer?createEmulatorProjectDiscovery({writer,reader,ownerUid,deviceId:store.deviceId,
@@ -80,6 +92,19 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    const snap=await store.snapshot('globals');
    if(!snap.replica){
     let remote=null;try{remote=await globals.read();}catch(e){if(e.code!=='GLOBAL_NOT_FOUND')throw e;}
+    if(firstCatalog){
+     if(!remote||!equal(remote.head,firstCatalog.remote.head))fail('LF_FIRST_CATALOG_BASE_CHANGED');
+     const {plan}=firstCatalog;
+     if(plan.action==='publish'){
+      if((await store.readApplication())?.hash!==image.hash)fail('LF_FIRST_CATALOG_SOURCE_CHANGED');
+      await boot.verifyFence();
+      await store.commit({scope:'globals',operationId:crypto.randomUUID(),value:plan.model,
+       expectedVersion:0,base:remote.head,protectedRows:image.rows});
+     }else{
+      await store.apply({scope:'globals',value:remote.value,head:remote.head,expectedVersion:0});
+     }
+     return;
+    }
     if(remote){
      if(!(deployment&&boot.fresh)){
       const captured=c.capture({getItem:k=>authority.rows()[k]??null},Object.keys(c.schemas));c.validateBundle(captured.model);

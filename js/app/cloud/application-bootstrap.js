@@ -119,7 +119,7 @@
  function setStage(value){stage=value;if(value==='initial-project-revisions'&&transferStatus==='not-started')transferStatus='checking';}
  const note=error=>{recordFailure(error);lastLocation=String(error?.stack||'').match(/\/(?:sync|js\/app\/cloud)\/[a-z0-9/-]+\.(?:mjs|js):[0-9]+/)?.[0]||null;lastError=/^(?:(?:LF_|GLOBAL_|AUTH_|LOCAL_)[A-Z_]+|auth\/[a-z-]+)$/.test(error?.code||error?.message||'')?(error.code||error.message):'LF_STARTUP_UNCONFIRMED';};
  let release=null,configuring=null,recoveryQuiescent=false,resetPending=false;
- async function deployment(){if(release||configuration)return;const slot=window.FC_APPLICATION_RELEASE;if(!slot?.envelope&&!slot?.trustedKeySha256)return;const {verifyApplicationRelease}=await import('../../../sync/application-release.mjs');release=await verifyApplicationRelease({...slot,origin:new URL('./',document.baseURI).href});configuration={name:'meble-local-first-v1',localOnly:true};}
+ async function deployment(){if(release||configuration)return;const slot=window.FC_APPLICATION_RELEASE;if(!slot?.envelope&&!slot?.trustedKeySha256)return;const {verifyApplicationRelease}=await import('../../../sync/application-release.mjs');release=await verifyApplicationRelease({...slot,origin:new URL('./',document.baseURI).href});const firstCatalogSync=slot.firstCatalogSync===true;configuration={name:'meble-local-first-v1',localOnly:!firstCatalogSync,firstCatalogSync};}
  function connect(input){return configuration.connections?configuration.connections({...input,release}):import('../../../sync/application-connections.mjs').then(m=>m.createApplicationConnections({window,...input,release,sdk:configuration.sdk}));}
  function demo(){if(!['127.0.0.1','localhost'].includes(location.hostname))throw Error('LF_PRODUCTION_ACTIVATION_REQUIRED');}
  fc.applicationStartup={
@@ -134,7 +134,7 @@
    if(configuration.localOnly===true)await import('../project/project-export-contract.js');
    await import('./global-data-contract.js');
    const {prepareApplicationBoot}=await import('../../../sync/application-boot.mjs');
-   try{boot=await prepareApplicationBoot({window,ownerUid,name:configuration.name,release,localOnly:configuration.localOnly===true});stage='source-ready';}catch(error){if((error.code||error.message)==='LF_LOCAL_RESET_INTERRUPTED'){resetPending=true;recoveryQuiescent=true;}note(error);throw error;}
+   try{boot=await prepareApplicationBoot({window,ownerUid,name:configuration.name,release,localOnly:configuration.localOnly===true,firstCatalogSync:configuration.firstCatalogSync===true});stage='source-ready';}catch(error){if((error.code||error.message)==='LF_LOCAL_RESET_INTERRUPTED'){resetPending=true;recoveryQuiescent=true;}note(error);throw error;}
   },
   async start(context){
    const {ownerUid,authSession,lease}=context;lastContext=context;
@@ -147,7 +147,7 @@
     connectionsActive=connections;
     if(runtime){if(boot?.localOnly)await runtime.resume({localOwnerUid:ownerUid});else if(navigator.onLine!==false)await runtime.resume(connections);return runtime;}
     const {startApplicationRuntime}=await import('../../../sync/application-runtime.mjs');
-    runtime=await startApplicationRuntime({window,ownerUid,name:configuration.name,boot,release,localOnly:boot?.localOnly===true,onStage:setStage,onDiagnostic:diagnosticState,onFailureQuiescent(){recoveryQuiescent=true;},...connections});
+    runtime=await startApplicationRuntime({window,ownerUid,name:configuration.name,boot,release,localOnly:boot?.localOnly===true,firstCatalogSync:configuration.firstCatalogSync===true,onStage:setStage,onDiagnostic:diagnosticState,onFailureQuiescent(){recoveryQuiescent=true;},...connections});
     return runtime;
    })().then(value=>{stage='ready';return value;}).catch(async error=>{
     note(error);

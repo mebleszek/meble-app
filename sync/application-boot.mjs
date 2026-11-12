@@ -9,7 +9,7 @@ import {assertApplicationRelease,prepareApplicationMigration} from './applicatio
 import {applicationWriterFence} from './application-writer-fence.mjs';
 import {digest,equal,fail} from './local-first-values.mjs';
 export function prepareEmulatorApplicationBoot(options){return prepareApplicationBoot(options);}
-export async function prepareApplicationBoot({window:w,name,ownerUid,release:deployment,localOnly=false}){
+export async function prepareApplicationBoot({window:w,name,ownerUid,release:deployment,localOnly=false,firstCatalogSync=false}){
  if(deployment)assertApplicationRelease(deployment,{ownerUid,name,window:w});
  else if(!['127.0.0.1','localhost'].includes(w.location.hostname)||!/^meble-lf-test-/.test(name))fail('LF_PRODUCTION_MIGRATION_NOT_APPROVED');
  const release=await exclusiveApplication(w);let store;
@@ -20,7 +20,8 @@ export async function prepareApplicationBoot({window:w,name,ownerUid,release:dep
   const original={get:proto.getItem,set:proto.setItem,remove:proto.removeItem};
   const readNative=key=>original.get.call(ls,key),source=Object.fromEntries(keys.map(k=>[k,readNative(k)]));
   const migration=deployment?await prepareApplicationMigration({release:deployment,window:w,name,source,readNative,verifyFence}):null;
-  let reset=localOnly?localResetState(w,ownerUid,name):null;
+  let reset=localOnly||firstCatalogSync?localResetState(w,ownerUid,name):null;
+  if(firstCatalogSync&&reset&&reset.state!=='used')fail('LF_LOCAL_RESET_INTERRUPTED');
   const fresh=Object.values(source).every(v=>v===null),receipt=readNative(INSTALL_KEY);let rows=structuredClone(source),restored=!!receipt;
   if(reset?.state==='pending'&&!receipt)fail('LF_LOCAL_RESET_INTERRUPTED');
   if(!receipt&&deployment){const recovered=await recoverApplicationBinding({window:w,name,release:deployment,sourceHash:await digest(source)});if(recovered?.image){rows=structuredClone(recovered.image.rows);restored=true;}}
