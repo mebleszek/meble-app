@@ -9,11 +9,13 @@ import {installApplicationWriteBoundary} from './application-write-boundary.mjs'
 import {applicationInstallation,verifyExclusiveClient} from './application-installation.mjs';
 import {assertApplicationConnection} from './firebase-activation.mjs';
 import {planFirstCatalogSync} from './application-first-catalog-sync.mjs';
+import {assertApplicationRelease} from './application-release.mjs';
 import {installLocalInvestorDeletion} from './application-investor-delete.mjs';
 import {copy,equal,assertEmulator,fail,safeError} from './local-first-values.mjs';
 export function startNormalEmulatorApplication(options){return startApplicationRuntime(options);}
-export async function startApplicationRuntime({window:w,writer,reader,name,ownerUid,boot,release:deployment,localOnly=false,firstCatalogSync=false,onStage=()=>{},onDiagnostic=()=>{},onFailureQuiescent=()=>{}}){
+export async function startApplicationRuntime({window:w,writer,reader,name,ownerUid,boot,release:deployment,localOnly=false,firstCatalogSync=false,emulatorCatalogWitness,onStage=()=>{},onDiagnostic=()=>{},onFailureQuiescent=()=>{}}){
  const fc=w.FC;
+ if(emulatorCatalogWitness&&(assertApplicationRelease(deployment).projectId!=='demo-meble-app'||writer?.db.app.options.projectId!=='demo-meble-app'))fail('LF_EMULATOR_REQUIRED');
  if(localOnly&&(writer||reader||!boot?.localOnly))fail('LF_LOCAL_MODE_REQUIRED');
  if(writer){const a=assertApplicationConnection(writer),b=assertApplicationConnection(reader);if(a.uid!==ownerUid||b.uid!==ownerUid||writer.db.app===reader.db.app)fail('LF_INDEPENDENT_OWNER_REQUIRED');}
  else if(!boot?.restored&&!(localOnly&&boot?.localOnly))fail('LF_ONLINE_INSTALLATION_REQUIRED');
@@ -36,7 +38,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    onStage('initial-global-revision');
    if(!globals)fail('LF_FIRST_CATALOG_ONLINE_REQUIRED');
    const remote=await globals.read();
-   const plan=await planFirstCatalogSync({remote,image,boot,contract:c,ownerUid});
+   const plan=await planFirstCatalogSync({remote,image,boot,contract:c,ownerUid},emulatorCatalogWitness);
    firstCatalog={remote,plan};
    if(plan.action==='receive')initialRows=projectApplicationRows(initialRows,globals,remote,c,p);
   }

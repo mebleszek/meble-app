@@ -96,8 +96,8 @@ async function main(){
   assert.throws(()=>executionUnits({context:'current'},3,['cloud-sync-global.test.mjs','cloud44-admin.test.mjs']),/CLOUD_CI_BATCH3_PLAN_CHANGED/);
   assert.throws(()=>executionUnits({context:'current'},3,['cloud44-admin.test.mjs']),/CLOUD_CI_BATCH3_PLAN_CHANGED/);
   const parts=executionSegments({context:'current'},3,['cloud-sync-global.test.mjs'],path.join(root,'tools/firebase-pilot'));
-  assert.deepEqual(parts.map(p=>[p.id,p.names.length]),[['sync-core',17],['normal-startup',1],['deployment-startup',1]]);
-  assert.equal(new Set(parts.flatMap(p=>p.names)).size,19,'All current sync scenarios run once');
+  assert.deepEqual(parts.map(p=>[p.id,p.names.length]),[['sync-core',18],['normal-startup',1],['deployment-startup',1],['pixel-catalog-cutover',1]]);
+  assert.equal(new Set(parts.flatMap(p=>p.names)).size,21,'All current sync scenarios run once');
   for(const part of parts){
    const passing='TAP version 13\n'+part.names.map((name,i)=>'# Subtest: '+name+'\nok '+(i+1)+' - '+name+'\n').join('')+
     '1..'+part.names.length+'\n# tests '+part.names.length+'\n# pass '+part.names.length+
@@ -106,7 +106,7 @@ async function main(){
    assert.equal(completeSelectedTap(passing,part.names.slice(1)),false);
    assert.equal(completeSelectedTap(passing.replace('# fail 0','# fail 1'),part.names),false);
   }
-  console.log('PASS complete 19 top-level sync cases across three independent DEMO emulator lifetimes');
+  console.log('PASS complete 21 top-level sync cases across four independent DEMO emulator lifetimes');
 
   const tap='# tests 1\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n';
   assert.equal(completeTap(tap),true);

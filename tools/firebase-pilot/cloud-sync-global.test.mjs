@@ -348,3 +348,8 @@ test('LOCAL-FIRST approved deployment: normal startup, fenced migration and empt
  const {runNormalApplication}=await import('./normal-application.cases.mjs');
  await runNormalApplication(t,{deployment:true});
 });
+
+test('LOCAL-FIRST approved deployment: Pixel catalog cutover in three full browser profiles',async t=>{
+ const {runNormalApplication}=await import('./normal-application.cases.mjs');
+ await runNormalApplication(t,{deployment:true,catalogCutover:true});
+});

@@ -49,22 +49,24 @@ function executionUnits(group,batch,files){
   return [files];
 }
 
-// The full set of 19 top-level sync tests remains mandatory. Separate DEMO
+// All top-level sync tests remain mandatory. Separate DEMO
 // emulator lifetimes isolate the normal browser startups from earlier E2E watches.
 function executionSegments(group,batch,unit,cwd){
  if(group.context!=='current'||batch!==3||unit.join('|')!=='cloud-sync-global.test.mjs')
   return [{id:'complete',pattern:null,names:null}];
  const source=fs.readFileSync(path.join(cwd,unit[0]),'utf8');
  const names=Array.from(source.matchAll(/^test\('([^']+)'/gm),m=>m[1]);
- if(names.length!==19||new Set(names).size!==19)throw Error('CLOUD_CI_SYNC_TEST_INVENTORY_CHANGED');
+ if(names.length!==21||new Set(names).size!==21)throw Error('CLOUD_CI_SYNC_TEST_INVENTORY_CHANGED');
  const normal='LOCAL-FIRST normal application startup on two independent browser profiles';
  const deployment='LOCAL-FIRST approved deployment: normal startup, fenced migration and empty-device receive';
+ const cutover='LOCAL-FIRST approved deployment: Pixel catalog cutover in three full browser profiles';
  const parts=[
-  {id:'sync-core',pattern:'^(?:CLOUD-SYNC-1|WYCENA-LABOR|LOCAL-FIRST: durable browser stores|LOCAL-FIRST actual application)',names:names.filter(n=>n!==normal&&n!==deployment)},
+  {id:'sync-core',pattern:'^(?:CLOUD-SYNC-1|WYCENA-LABOR|LOCAL-FIRST: durable browser stores|LOCAL-FIRST actual application|Pixel catalog cutover:)',names:names.filter(n=>n!==normal&&n!==deployment&&n!==cutover)},
   {id:'normal-startup',pattern:'^LOCAL-FIRST normal application startup on two independent browser profiles$',names:[normal]},
-  {id:'deployment-startup',pattern:'^LOCAL-FIRST approved deployment: normal startup, fenced migration and empty-device receive$',names:[deployment]}
+  {id:'deployment-startup',pattern:'^LOCAL-FIRST approved deployment: normal startup, fenced migration and empty-device receive$',names:[deployment]},
+  {id:'pixel-catalog-cutover',pattern:'^LOCAL-FIRST approved deployment: Pixel catalog cutover in three full browser profiles$',names:[cutover]}
  ];
- if(parts.map(p=>p.names.length).join(',')!=='17,1,1')throw Error('CLOUD_CI_SYNC_TEST_INVENTORY_CHANGED');
+ if(parts.map(p=>p.names.length).join(',')!=='18,1,1,1')throw Error('CLOUD_CI_SYNC_TEST_INVENTORY_CHANGED');
  for(const p of parts){const rx=new RegExp(p.pattern);if(names.some(n=>rx.test(n)!==p.names.includes(n)))throw Error('CLOUD_CI_SYNC_SEGMENT_MISMATCH');}
  if(new Set(parts.flatMap(p=>p.names)).size!==names.length)throw Error('CLOUD_CI_SYNC_COVERAGE_INCOMPLETE');
  return parts;
