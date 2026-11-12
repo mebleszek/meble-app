@@ -178,6 +178,7 @@ test('real runtime emits raw refusal code only for observation; same writes, rea
    createEmulatorProjectDiscovery:()=>({}),createApplicationCommitter:()=>({}),projectApplicationRows(){assert.fail('Unexpected apply');},
    installEmulatorApplicationAuthority:async()=>authority,installOfflineEmulatorApplicationAuthority:async()=>authority,installAuthorizedApplicationAuthority:async()=>authority,
    createApplicationActionBinding:()=>({}),applicationKeys:()=>[],installApplicationWriteBoundary:()=>({busy:()=>false}),
+   installLocalInvestorDeletion:()=>({close(){}}),
    applicationInstallation:async()=>({binding:{},rows,confirm(){trace.push('confirm');},release(){trace.push('release');}}),
    verifyExclusiveClient(){},assertApplicationConnection:()=>({uid:'private-owner'}),copy:structuredClone,equal:(a,b)=>JSON.stringify(a)===JSON.stringify(b),
    assertEmulator(){},fail:code=>{throw Object.assign(Error(code),{code});},safeError:()=>({ok:false,code:'LF_REMOTE_UNCONFIRMED'})};

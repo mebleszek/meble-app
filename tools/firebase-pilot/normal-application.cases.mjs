@@ -187,7 +187,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  await extra.close();
  await assert.rejects(phone.page.evaluate(()=>localStorage.setItem('fc_projects_v1','[]')),/LF_ASYNC_TRANSACTION_REQUIRED/);
  await assert.rejects(phone.page.evaluate(()=>window.FC.dataBackupStore.importSnapshot({})),/LF_ARCHIVE_RESTORE_PROTOCOL_REQUIRED/);
- await assert.rejects(phone.page.evaluate(id=>window.FC.investorDeletion.prepare([id]),ids[0]),/DELETE_LOCAL_FIRST_ACTIVE/);
+ await assert.rejects(phone.page.evaluate(id=>window.FC.investorDeletion.prepare([id]),ids[0]),/DELETE_CONTEXT_PROTECTED/);
  // No injection of authority transactions: existing registry/navigation is wrapped.
  await phone.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list'));
  await touch(phone,'[data-action="open-investor"][data-inv-id="'+ids[0]+'"]');
