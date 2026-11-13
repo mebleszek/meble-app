@@ -13,7 +13,7 @@
         // Never commit/cancel or replace a possibly unfinished RAM draft here.
         if(typeof uiState !== 'undefined' && uiState && ['rozrys','wycena'].includes(uiState.activeTab)) return;
         const live=window.FC;
-        if(live?.applicationWrite?.localOnly){
+        if(live?.applicationWrite){
           if(live.applicationStartup?.inspect().transactionPending||!live.session?.active||!live.investorProjectRuntime.hasProjectDivergence(projectData))return;
           void live.applicationWrite.handler(()=>{const result=live.project.saveConfirmed(projectData);if(result?.ok!==true)return false;projectData=result.project;return true;},'auto')();return;
         }

@@ -39,11 +39,12 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
  const keys=new Set(applicationKeys(fc));
  w.__FC_MAIN_ACCESS__.assert();let image=await store.readApplication();
  const loadingLocal=localOnly&&w.__FC_MAIN_ACCESS__.isLoading?.()===true;
- const localDraft=loadingLocal&&image?.rows.fc_edit_session_v1!=null&&w.localStorage.getItem('fc_edit_session_v1')===image.rows.fc_edit_session_v1&&fc.session.active&&fc.session.durable===true&&fc.session.canSaveProject?.()===true;
+ const bootDraft=w.__FC_MAIN_ACCESS__.isLoading?.()===true&&image?.rows.fc_edit_session_v1!=null&&w.localStorage.getItem('fc_edit_session_v1')===image.rows.fc_edit_session_v1&&fc.session.active&&fc.session.durable===true&&fc.session.canSaveProject?.()===true;
  // Before the first local UI is released, RAM comes from the verified boot
- // image; legacy initialization may have normalized it. Existing documents
+ // image; legacy initialization may have normalized it. Proven drafts use
+ // the same exact-byte recovery proof in local and synchronized mode. Existing documents
  // and unproven drafts retain the original active-RAM refusal.
- if(fc.session.active&&!localDraft||fc.investorEditorState?.hasUiLock()||!loadingLocal&&fc.investorProjectRuntime.hasProjectDivergence(w.projectData))fail('LF_ACTIVE_RAM_PROTECTED');
+ if(fc.session.active&&!bootDraft||fc.investorEditorState?.hasUiLock()||!loadingLocal&&!bootDraft&&fc.investorProjectRuntime.hasProjectDivergence(w.projectData))fail('LF_ACTIVE_RAM_PROTECTED');
  const original={get:sourceRead||proto.getItem,set:proto.setItem,remove:proto.removeItem};
  const source=Object.fromEntries([...keys].map(k=>[k,original.get.call(ls,k)]));
  if(!image)image=await store.initializeApplication(initialRows||source);
@@ -123,7 +124,7 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
  // A durable draft requires the existing session recovery path, not a clean boot.
  w.projectData=fc.project.load();w.uiState=fc.uiState.get();
  if(rows.fc_edit_session_v1!==null){
-  if(!localDraft&&fc.session.resumeFromStorage?.()!==true){closed=true;fail('LF_APPLICATION_DRAFT_RECOVERY_REQUIRED');}
+  if(!bootDraft&&fc.session.resumeFromStorage?.()!==true){closed=true;fail('LF_APPLICATION_DRAFT_RECOVERY_REQUIRED');}
   await transaction('draft',()=>{fc.views.applyFromState(w.uiState);fc.sections.update();return true;});
  }else{
   // A fresh document has no implicit editing permission. Display its verified
@@ -152,6 +153,9 @@ export function createApplicationActionBinding({window:w,authority,onClose=()=>{
  return Object.freeze({
   save:({saveLocal})=>authority.transaction('project',saveLocal),
   async cancel({cancelLocal}){
+   // Retry only the session's original failed begin inside the durable boundary.
+   // A failed checkpoint keeps its RAM/snapshot and cannot authorize an Exit.
+   if(fc.session.active&&fc.session.durable!==true)await authority.transaction('draft',()=>fc.session.retryInitialBegin?.()===true);
    const divergent=()=>fc.investorProjectRuntime.hasProjectDivergence(w.projectData);
    if(fc.session.active&&(fc.session.isDirty()||divergent()))return authority.transaction('rollback',cancelLocal);
    if(divergent())fail('LF_ACTIVE_RAM_PROTECTED');

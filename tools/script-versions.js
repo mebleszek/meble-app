@@ -3,6 +3,7 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
+  "js/app/investor/session.js":"20261113_project_exit_v1",
   "js/app/wycena/wycena-labor-picker.js":"20261111_quote_final_corrections_v1",
   "js/app/project/project-local-room-contract.js":"20261110_native_local_cabinets_v1",
   "js/app/project/business-project-contract.js":"20261110_native_local_cabinets_v1",
@@ -43,7 +44,7 @@ const versions = Object.freeze({
   "js/app/project/project-store.js":"20261104_investor_scope_v1",
   "js/app/cabinet/cabinet-modal-finalize.js":"20261104_cabinet_transaction_v1",
   "js/app/ui/wywiad-room-settings.js":"20261103_local_first_start_v1",
-  "js/app/investor/project-autosave.js":"20261103_local_first_start_v1",
+  "js/app/investor/project-autosave.js":"20261113_project_exit_v1",
   "js/app/investor/investor-room-actions.js":"20261103_local_first_start_v1",
   "js/app/catalog/catalog-store.js":"20261108_material_ci_fix_v1",
   "js/app/material/price-modal-hardware-dictionaries.js":"20261101_one_app_v1",
