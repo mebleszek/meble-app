@@ -17,7 +17,7 @@
   let beginFailureNotified = false;
   let rollbackRestored = false;
   let writeUnconfirmed = false;
-  // RAM-only evidence: this document attempted the initial baseline write.
+  // RAM-only initial-begin evidence lasts until closure, including an IDB abort.
   // A restored/contradictory payload must never acquire this retry permission.
   let initialBeginPending = false;
   let persistFailureCode = 'SESSION_WRITE_UNCONFIRMED';
@@ -652,7 +652,7 @@
       }
       if(session.durable) return true;
       session.durable = persistSession();
-      initialBeginPending = !session.durable;
+      initialBeginPending = initialBeginPending || !session.durable;
       if(!session.durable){
         fail(persistFailureCode, 'Nie udało się zapisać stanu potrzebnego do bezpiecznego cofnięcia zmian.');
         notifyBeginFailure();

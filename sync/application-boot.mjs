@@ -45,7 +45,9 @@ export async function prepareApplicationBoot({window:w,name,ownerUid,release:dep
    const [{codeCandidate},{codeGlobalRows}]=await Promise.all([import('./code-global-catalogs.generated.mjs'),import('./global-code-rebuild-plan.mjs')]);
    rows={...rows,...codeGlobalRows(codeCandidate.model,w.FC.globalDataContract),fc_projects_v1:'[]',fc_investors_v1:'[]',fc_quote_snapshots_v1:'[]'};
   }
-  if(localOnly&&rows.fc_edit_session_v1==null){let ui;try{ui=JSON.parse(rows.fc_ui_v1||'{}');}catch(_){ui={};}rows.fc_ui_v1=JSON.stringify({...ui,entry:rows.fc_current_investor_v1?'rooms':'home',activeTab:rows.fc_current_investor_v1?'inwestor':null,roomType:null,lastRoomType:null,selectedCabinetId:null});}
+  // A restored view is not permission to begin editing before the authority exists.
+  // A durable draft keeps its existing recovery path in either runtime mode.
+  if(rows.fc_edit_session_v1==null){let ui;try{ui=JSON.parse(rows.fc_ui_v1||'{}');}catch(_){ui={};}rows.fc_ui_v1=JSON.stringify({...ui,entry:rows.fc_current_investor_v1?'rooms':'home',activeTab:rows.fc_current_investor_v1?'inwestor':null,roomType:null,lastRoomType:null,selectedCabinetId:null});}
   const aliases=new Map(localOnly?Object.values(w.FC.globalDataContract.sources).flatMap(([primary,...rest])=>rest.map(k=>[k,primary])):[]);
   const readRow=key=>rows[key]??(aliases.has(key)?rows[aliases.get(key)]??null:null);
   // Native source stays read-only, including the first boot. New factory keys
