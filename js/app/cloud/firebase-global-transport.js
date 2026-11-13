@@ -19,7 +19,7 @@
     const revisionRef=id=>f.doc(db,'users',bound.uid,'globalRevisions',id);
     const equal=(a,b)=>c.canonical(a)===c.canonical(b);
     const fresh=s=>{if(s.metadata.fromCache||s.metadata.hasPendingWrites)c.fail('GLOBAL_REMOTE_UNCONFIRMED');return s;};
-    const error=e=>({ok:false,code:/^GLOBAL_/.test(e?.code)?e.code:e?.code==='permission-denied'?'GLOBAL_PERMISSION_DENIED':e?.code==='unavailable'?'GLOBAL_NETWORK_UNCONFIRMED':'GLOBAL_REMOTE_UNCONFIRMED'});
+    const error=e=>({ok:false,code:/^GLOBAL_/.test(e?.code)||e?.code==='resource-exhausted'?e.code:e?.code==='permission-denied'?'GLOBAL_PERMISSION_DENIED':e?.code==='unavailable'?'GLOBAL_NETWORK_UNCONFIRMED':'GLOBAL_REMOTE_UNCONFIRMED'});
     function headOf(data){
       c.shape({ownerUid:c.id,version:v=>{if(v!==1)c.fail('GLOBAL_HEAD_INVALID');},generation:c.integer,revisionId:v=>{if(typeof v!=='string'||! /^[a-f0-9]{32}$/.test(v))c.fail('GLOBAL_HEAD_INVALID');},directoryHash:c.hashValue,recordCount:c.integer,updatedAt:v=>{if(typeof v?.toMillis!=='function'||!Number.isFinite(v.toMillis()))c.fail('GLOBAL_HEAD_INVALID');}},['ownerUid','version','generation','revisionId','directoryHash','recordCount','updatedAt'])(data,'head');
       if(data.ownerUid!==bound.uid||data.generation<1||data.recordCount>c.MAX_RECORDS)c.fail('GLOBAL_HEAD_INVALID');

@@ -4,6 +4,27 @@
   const FC=window.FC=window.FC||{};
   const TTL_MS=45000,REFRESH_MS=30000,TIMEOUT_MS=8000;
   const failures=new WeakMap();
+  const cooldowns=new Map();
+  const isQuota=error=>/^(?:firestore\/)?resource-exhausted$/.test(error?.code||error?.message||'');
+  function quotaGuard(project,uid){
+    const key='meble-firestore-cooldown:'+project+':'+uid;
+    function current(){
+      const now=Date.now();
+      let saved=0;try{saved=Number(window.localStorage.getItem(key));}catch(_){}
+      const valid=until=>Number.isFinite(until)&&until>now&&until<=now+35000;
+      const memory=cooldowns.get(key);
+      return Math.max(valid(memory)?memory:0,valid(saved)?saved:0);
+    }
+    return {
+      assert(){if(current()>Date.now())throw Object.assign(Error('resource-exhausted'),{code:'resource-exhausted'});},
+      record(error){
+        if(!isQuota(error)||current()>Date.now())return;
+        const until=Date.now()+30000+Math.floor(Math.random()*5000);
+        cooldowns.set(key,until);
+        try{window.localStorage.setItem(key,String(until));}catch(_){}
+      }
+    };
+  }
   const phases=['identity','context','sdk-import','firestore-init','server-read','snapshot-proof','transaction','transaction-proof','verify','watch','authorized-callback'];
   const types=['Error','TypeError','FirebaseError','DOMException','AbortError','NetworkError','TimeoutError'];
   const codes=['unavailable','deadline-exceeded','failed-precondition','invalid-argument','unauthenticated','permission-denied','resource-exhausted','cancelled','internal','unknown','unimplemented','already-exists','not-found','data-loss','aborted','AUTH_ACCESS_TIMEOUT','AUTH_ACCESS_UNCONFIRMED'];
@@ -48,6 +69,8 @@
       return {ok:true,uid:identity.uid,validUntil:Date.now()+TTL_MS};
     }
     async function read(identity,trace){
+      const quota=quotaGuard(auth.verificationContext().app.options.projectId,identity.uid);
+      quota.assert();
       const {f,db}=await connect(identity,trace);
       try{
         trace.phase='server-read';const ref=f.doc(db,'appAccess',identity.uid);
@@ -59,7 +82,7 @@
         trace.phase='transaction';
         return await f.runTransaction(db,async tx=>{const snapshot=await tx.get(ref);trace.phase='transaction-proof';return proof(snapshot,identity);},{maxAttempts:1});
       }
-      catch(e){same(identity);if(e.code==='permission-denied')return {ok:false,denied:true};throw e;}
+      catch(e){quota.record(e);same(identity);if(e.code==='permission-denied')return {ok:false,denied:true};throw e;}
     }
     async function verify(identity){
       const trace={phase:'verify'};let timer;try{return await Promise.race([read(identity,trace),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('AUTH_ACCESS_TIMEOUT')),TIMEOUT_MS);})]);}
@@ -83,5 +106,5 @@
     }
     return {verify,watch,async close(){closed=true;for(const stop of [...watches])stop();if(connection){try{const {f,db}=await connection;await f.terminate(db);}catch(_){}}}};
   }
-  FC.cloudAccessVerifier={create,diagnostic,sanitizeDiagnostic};
+  FC.cloudAccessVerifier={create,diagnostic,sanitizeDiagnostic,quotaGuard};
 })();

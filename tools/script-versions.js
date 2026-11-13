@@ -109,12 +109,12 @@ const versions = Object.freeze({
   "js/app/wycena/wycena-tab-shell.js":"20261106_work_plan_v1"
 });
 const authVersions=Object.freeze({
-  "js/app/cloud/auth-access-gate.js": "20261113_access_diagnostics_v1",
-  "js/app/cloud/cloud-access-verifier.js": "20261113_access_diagnostics_v1",
+  "js/app/cloud/auth-access-gate.js": "20261113_incremental_access_v1",
+  "js/app/cloud/cloud-access-verifier.js": "20261113_incremental_access_v1",
   "js/app/cloud/offline-shell.js": "20261103_local_first_start_v1",
   "js/app/cloud/local-access-profile.js": "20261103_android_globals_recovery_v1",
   "js/app/cloud/application-bootstrap.js": "20261112_pixel_catalog_cutover_v2",
-  "js/main-login.js": "20261113_access_diagnostics_v1"
+  "js/main-login.js": "20261113_incremental_access_v1"
 });
 function assertHtmlVersions(index, dev){
   const sources=Array.from(index.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi),m=>m[1]);

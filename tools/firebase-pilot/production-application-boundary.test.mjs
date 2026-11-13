@@ -10,6 +10,27 @@ import {verifyApplicationRelease,assertApplicationRelease,assertApplicationMigra
 import {authorizeApplicationSession,assertApplicationConnection} from '../../sync/firebase-activation.mjs';
 import {createApplicationSyncGrant} from '../../sync/application-sync-grant.mjs';
 const owner='synthetic-owner',origin='https://mebleszek.github.io/meble-app/';
+test('Firestore cooldown survives reload and expires without affecting another UID or project',()=>{
+ const {runInNewContext}=require('node:vm'),rows=new Map();
+ const source=fs.readFileSync(new URL('../../js/app/cloud/cloud-access-verifier.js',import.meta.url),'utf8');
+ let now=100000;
+ const localStorage={getItem:key=>rows.get(key)??null,setItem:(key,value)=>rows.set(key,value)};
+ function load(){
+  const window={localStorage};
+  runInNewContext(source,{window,Date:{now:()=>now}});
+  return window.FC.cloudAccessVerifier.quotaGuard;
+ }
+ load()('demo-a','owner').record({code:'resource-exhausted'});
+ let guard=load();
+ assert.throws(()=>guard('demo-a','owner').assert(),/resource-exhausted/);
+ guard('demo-b','owner').assert();
+ guard('demo-a','other').assert();
+ now+=35000;
+ guard('demo-a','owner').assert();
+ rows.set('meble-firestore-cooldown:demo-a:owner',String(now+86400000));
+ guard=load();
+ guard('demo-a','owner').assert();
+});
 test('first catalog sync publishes only the witnessed Pixel image over the preserved base',async()=>{
  const pixelHash='c73af3f12d2a81fa6007f067079f8f1f808fe1088d9929de24c421fdc90b1429';
  const head={ownerUid:owner,generation:1,revisionId:'584e3db3f8d04eb48445526b6d4f8043',
@@ -88,8 +109,10 @@ test('fresh grant remains valid during renewal; failed renewal revokes and succe
  const proof={exists:()=>true,metadata:{fromCache:false,hasPendingWrites:false},data:()=>({schemaVersion:1,activationId:'synthetic-release'})};
  const f={doc:()=>({}),runTransaction:async()=>{requests++;return requests===1?proof:new Promise((resolve,reject)=>{answer={resolve,reject};});}};
  const grant=await createApplicationSyncGrant({release,window:w,session:{identity:()=>({uid:owner,epoch:1})},db:{},firestore:f,onRenew:()=>renewed++});
- try{const pending=grant.refresh();grant.assert();assert.equal(renewed,1);answer.resolve(proof);await pending;grant.assert();assert.equal(renewed,2);
+ try{const pending=grant.refresh();grant.assert();assert.equal(renewed,1);answer.resolve(proof);await pending;grant.assert();assert.equal(renewed,1);
   const failed=grant.refresh();grant.assert();answer.reject(Error('synthetic network loss'));await assert.rejects(failed,/network loss/);assert.throws(()=>grant.assert(),/UNCONFIRMED/);
+  const recovered=grant.refresh();answer.resolve(proof);await recovered;
+  grant.assert();assert.equal(renewed,2,'only recovery wakes synchronization');
  }finally{grant.close();}
 });
 test('public activation packaging verifies the candidate Rules hash and signature, never activates or signs for the owner',async()=>{

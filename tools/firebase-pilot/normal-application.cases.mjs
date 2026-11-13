@@ -95,6 +95,13 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   }
   assert.deepEqual((await getDoc(parent)).data(),saved);
   assert.equal((await getDoc(doc(owner,'users',uid,'globalData','current'))).data().revisionId,active.revisionId);
+  const counters=()=>Promise.all(devices.map(d=>d.page.evaluate(()=>({...window.normalReadBudget}))));
+  await Promise.all(devices.map(d=>d.page.waitForFunction(()=>!window.normalPendingRpc?.length)));
+  const baseline=await counters();
+  await new Promise(resolve=>setTimeout(resolve,35000));
+  const idle=(await counters()).map((end,i)=>Object.fromEntries(Object.entries(end).map(([k,v])=>[k,v-(baseline[i][k]||0)])));
+  console.log('Three-profile 35s idle SDK counters: '+JSON.stringify(idle));
+  for(const count of idle){assert.equal(count.catalogRecords,0);assert.equal(count.writes,0);}
   return;
  }
  const phone=await device('phone');
@@ -122,7 +129,20 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
    const emulatorCatalogWitness=receiverWitness||JSON.parse(sessionStorage.getItem('synthetic-catalog-cutover')||'null');
    const config={name:'meble-lf-test-normal-'+name,async connections(input){
     try{const [app,auth,f]=await Promise.all([import('/__sdk/firebase-app.js'),import('/__sdk/firebase-auth.js'),import('/__sdk/firebase-firestore.js')]);
-    const errors=window.normalSdkErrors=[];const observed={...f};for(const key of ['runTransaction','getDocFromServer','getDocsFromServer'])observed[key]=(...args)=>{const began=performance.now(),pending=window.normalPendingRpc||(window.normalPendingRpc=[]),rpc={method:key};pending.push(rpc);let result;try{result=f[key](...args);}catch(error){pending.splice(pending.indexOf(rpc),1);throw error;}const completed=()=>{pending.splice(pending.indexOf(rpc),1);const log=window.normalRpcTimeline||(window.normalRpcTimeline=[]);log.push({method:key,ms:Math.round(performance.now()-began)});if(log.length>12)log.shift();};result.then(completed,completed);result.catch(error=>{errors.push({method:key,code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();});if(key==='runTransaction'&&window.holdOldReader===args[0]?.app?.name&&!window.normalReadArmed){window.normalReadArmed=true;return result.then(value=>{window.normalHeldRead=true;return new Promise(resolve=>window.releaseOldRead=()=>resolve(value));});}return result;};
+    const budget=window.normalReadBudget??={documents:0,catalogRecords:0,transactions:0,attempts:0,queries:0,writes:0};
+    const countRead=ref=>{budget.documents++;if(ref.path.includes('/globalRecords/'))budget.catalogRecords++;};
+    const measured={...f,
+     getDocFromServer(ref){countRead(ref);return f.getDocFromServer(ref);},
+     async getDocsFromServer(query){budget.queries++;const rows=await f.getDocsFromServer(query);budget.documents+=rows.size;return rows;},
+     runTransaction(db,run,options){budget.transactions++;return f.runTransaction(db,tx=>{
+      budget.attempts++;
+      return run({
+       get(ref){countRead(ref);return tx.get(ref);},
+       set(...args){budget.writes++;return tx.set(...args);}
+      });
+     },options);}
+    };
+    const errors=window.normalSdkErrors=[];const observed={...measured};for(const key of ['runTransaction','getDocFromServer','getDocsFromServer'])observed[key]=(...args)=>{const began=performance.now(),pending=window.normalPendingRpc||(window.normalPendingRpc=[]),rpc={method:key};pending.push(rpc);let result;try{result=measured[key](...args);}catch(error){pending.splice(pending.indexOf(rpc),1);throw error;}const completed=()=>{pending.splice(pending.indexOf(rpc),1);const log=window.normalRpcTimeline||(window.normalRpcTimeline=[]);log.push({method:key,ms:Math.round(performance.now()-began)});if(log.length>12)log.shift();};result.then(completed,completed);result.catch(error=>{errors.push({method:key,code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();});if(key==='runTransaction'&&window.holdOldReader===args[0]?.app?.name&&!window.normalReadArmed){window.normalReadArmed=true;return result.then(value=>{window.normalHeldRead=true;return new Promise(resolve=>window.releaseOldRead=()=>resolve(value));});}return result;};
     const config={projectId:'demo-meble-app',apiKey:'demo-only',authDomain:'demo-meble-app.firebaseapp.com',appId:'demo-only'};
     let session=null,lease=null;
     if(input.authSession){
@@ -275,9 +295,15 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  await computer.page.waitForFunction(()=>navigator.onLine===false);
  await computer.page.evaluate(pid=>window.FC.applicationWrite.project(()=>{const row=window.FC.projectStore.getById(pid);row.title='Offline durable revision';if(!window.FC.projectStore.upsert(row))throw Error('Offline write refused');}),pid);
  assert.equal(await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid).title,pid),'Same-window offline');
+ await computer.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list'));
+ await computer.page.waitForFunction(()=>window.uiState.entry==='investorsList'&&!window.FC.applicationStartup.inspect().transactionPending);
  if(deployment)await computer.page.evaluate(()=>localStorage.removeItem('meble_application_authority_v1')); // Simulated cutover receipt ACK loss, source/image retained.
  const shutdown=await computer.browser.newBrowserCDPSession();await shutdown.send('Browser.close');
  const exited=await computer.owner.exited;assert.equal(exited.code,0);assert.equal(exited.signal,null);await computer.owner.close();
+ await openConfirmedInvestorList(phone,ids[0]);
+ await phone.page.locator('[data-action="open-investor"][data-inv-id="'+ids[0]+'"]').click();
+ await assert.rejects(phone.page.evaluate(()=>window.FC.applicationWrite.project(()=>true)),/LF_EDITOR_BUSY_OR_HEAD_CHANGED/);
+ await phone.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list'));
  computer.owner=await startBrowser({profileDir:path.join(dir,computer.name)});
  computer.browser=await chromium.connectOverCDP(computer.owner.endpoint);const context=computer.browser.contexts()[0];computer.page=await context.newPage();
  for(const page of context.pages())if(page!==computer.page)await page.close();

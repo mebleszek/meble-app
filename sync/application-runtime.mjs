@@ -27,7 +27,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
  try{
   onStage('opening-idb');store=await openLocalFirstStore({...installation.binding,indexedDB:w.indexedDB,locks:w.navigator.locks});
   const c=fc.globalDataContract,p=fc.businessProjectContract;
-  let globals=writer?createGlobalChannel({writer,reader,ownerUid,contract:c,factory:fc.firebaseGlobalTransport}):null;
+  let globals=writer?createGlobalChannel({writer,reader,ownerUid,contract:c,factory:fc.firebaseGlobalTransport,store}):null;
   const channel=record=>createProjectChannel({writer,reader,ownerUid,deviceId:store.deviceId,projectId:record.id,investorId:record.investorId,
    pilotContract:fc.cloudPilotContract,pilotFactory:fc.firebasePilotTransport,globalContract:c,projectContract:p,globals});
   const channels=[globals];
@@ -61,7 +61,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   }
   if(localOnly){onStage('initial-global-revision');const captured=c.capture({getItem:k=>k==='fc_edit_session_v1'?null:rows[k]??null},Object.keys(c.schemas));c.validateBundle(captured.model);}
   onStage('installing-authority');authority=await (deployment?installAuthorizedApplicationAuthority:writer?installEmulatorApplicationAuthority:installOfflineEmulatorApplicationAuthority)({window:w,store,ownerUid,connection:writer,sourceRead:boot?.readNative,initialRows,release:deployment,localOnly,
-   beforeTransaction:()=>{if(recoveryReading)fail('LF_APPLICATION_BUSY');return boot?.verifyFence?boot.verifyFence():verifyExclusiveClient(w);},onCommitted:()=>sync?.notify(),authorize:ensureEditor,
+   beforeTransaction:()=>{if(recoveryReading)fail('LF_APPLICATION_BUSY');return boot?.verifyFence?boot.verifyFence():verifyExclusiveClient(w);},onCommitted:scope=>sync?.notify(scope),authorize:ensureEditor,
    checkpoint:(application,kind)=>(sync||local).checkpoint(application,kind),
    commit:async(kind,application)=>{
     let scope=application.rows.fc_current_project_id_v1;
@@ -149,23 +149,26 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    if(!sync||w.navigator.onLine===false)return {pending:true};
    if(!scope)return;
    const local=await store.snapshot(scope);
-   if(!local.replica?.editor?.active||local.replica.editor.deviceId!==store.deviceId)return;
+   if(!(local.replica?.editor?.active||local.replica?.editor?.handoverPending)||local.replica.editor.deviceId!==store.deviceId)return;
    const result=await sync.flush();if(!result.ok)fail(result.code);
    await sync.releaseEditor(scope);
+  }
+  function deferHandover(scope){
+   void handover(scope).catch(error=>state(safeError(error),error));
   }
   if(writer){const result=await sync.flush();if(!result.ok)state(result);
    if(!fc.session.active)for(const record of JSON.parse(authority.rows().fc_projects_v1||'[]'))await handover(record.id);
   }
-  const notify=()=>sync?.notify();w.addEventListener('online',notify);w.addEventListener('meble-sync-authorized',notify);
+  const notify=()=>{sync?.notify();sync?.discover?.();};w.addEventListener('online',notify);w.addEventListener('meble-sync-authorized',notify);
   const wakeReceive=()=>queueMicrotask(()=>{if(!incomingBlocked||closed)return;try{authority.assertIdle();incomingBlocked=false;sync?.notify();}catch(_){}});
   w.addEventListener('click',wakeReceive,{capture:true,passive:true});
   const bind=()=>{
-   boundary=installApplicationWriteBoundary({window:w,authority,ensureEditor,localOnly,onExit:handover});
+   boundary=installApplicationWriteBoundary({window:w,authority,ensureEditor,localOnly,onExit:deferHandover});
    if(localOnly)deletion=installLocalInvestorDeletion({window:w,store,authority,boundary});
-   fc.applicationSyncActions.install(createApplicationActionBinding({window:w,authority,onExit:handover,onClose:()=>{closed=true;sync?.close();deletion?.close();boundary.close();}}));
+   fc.applicationSyncActions.install(createApplicationActionBinding({window:w,authority,onExit:deferHandover,onClose:()=>{closed=true;sync?.close();deletion?.close();boundary.close();}}));
   };bind();
   if(localOnly)boot?.confirmLocalReset?.();
-  sync?.notify();
+  notify();
   return Object.freeze({store,authority,get sync(){return sync;},write:boundary.run,
    async withRescueRead(operation){
     if(closed||recoveryReading||authority.status().transactionPending||authority.status().incomingPending)fail('LF_APPLICATION_BUSY');
@@ -176,12 +179,12 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     if(localOnly){if(next?.localOwnerUid!==ownerUid||next.writer||next.reader)fail('LF_LOCAL_SYNC_NOT_AUTHORIZED');w.__FC_MAIN_ACCESS__.assert();const wasClosed=closed;authority.resume(ownerUid);closed=false;if(wasClosed)bind();return;}
     if(assertApplicationConnection(next.writer).uid!==ownerUid||assertApplicationConnection(next.reader).uid!==ownerUid)fail('LF_APPLICATION_OWNER_CHANGED');
     const wasClosed=closed;await sync?.close();writer=next.writer;reader=next.reader;authority.resume(ownerUid);closed=false;if(authority.status().incomingPending)await authority.refresh();
-    globals=createGlobalChannel({writer,reader,ownerUid,contract:c,factory:fc.firebaseGlobalTransport});
+    globals=createGlobalChannel({writer,reader,ownerUid,contract:c,factory:fc.firebaseGlobalTransport,store});
     const channels=[globals,...JSON.parse(authority.rows().fc_projects_v1||'[]').map(channel)];
     sync=createApplicationReplication({store,channels,globalContract:c,projectContract:p,eventTarget:w,online:()=>!closed&&w.navigator.onLine!==false,onState:state,
      discovery:createEmulatorProjectDiscovery({writer,reader,ownerUid,deviceId:store.deviceId,pilotContract:fc.cloudPilotContract,pilotFactory:fc.firebasePilotTransport,globalContract:c,projectContract:p,globals}),
      incoming:next=>authority.incoming(next),refresh:()=>authority.refresh(),assertIdle:idle});
-    if(wasClosed)bind();sync.notify();
+    if(wasClosed)bind();notify();
     // Do not report a rebound runtime ready while the durable queue is still
     // resolving its previous generation's uncertain operation. Never retry WRITE.
     const result=await sync.flush();if(!result.ok){state(result);fail(result.code);}

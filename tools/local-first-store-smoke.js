@@ -26,6 +26,12 @@ async function main(){
   snapshot=await store.snapshot('globals');assert.equal(snapshot.operations[0].phase,'inflight');assert.equal(snapshot.operations[0].expected.revisionId,'synthetic');
   await assert.rejects(store.transition('one','inflight','queued'),/LF_TRANSITION_INVALID/);
   await assert.rejects(store.apply({scope:'globals',value:{remote:true},head:{generation:1},expectedVersion:1}),/LF_LOCAL_CONFLICT/);
+  const pin={ownerUid:binding.ownerUid,generation:1,revisionId:'historical-catalog',directoryHash:'a'.repeat(64)};
+  await store.apply({scope:'historical-project',value:{globals:{head:pin,model:{exact:7.125}}},head:{generation:1},expectedVersion:0});
+  await browser.close();
+  browser=await openBrowserDevice(server,path.join(directory,'phone'));store=await browser.open({...binding,initialize:false});
+  assert.deepEqual(await browser.evaluate('window.lf.readCatalogReplica('+JSON.stringify(pin)+').then(v=>v.catalog)'),{head:pin,model:{exact:7.125}});
+  assert.equal(await browser.evaluate('window.lf.readCatalogReplica('+JSON.stringify({...pin,directoryHash:'b'.repeat(64)})+')'),null);
   console.log('PASS real Chromium restart: queued/inflight state persists, no blind replay or remote overwrite');
   // Fault injection at a real IDB write: force quota error AFTER transaction abort.
   await browser.evaluate('window.__oldPut=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(...args){if(this.name==="replicas"){this.transaction.abort();throw new DOMException("synthetic quota","QuotaExceededError");}return window.__oldPut.apply(this,args);};true');
