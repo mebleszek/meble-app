@@ -81,7 +81,7 @@ async function main(){
   }finally{await sync.close();}
   console.log('PASS unchanged heads skip payloads and quota backoff blocks repeated wakeups');
   const reads=[],watchers=new Map(),stops=[],closes=[];
-  const scoped=createDurableSynchronizer({store,eventTarget:new EventTarget(),channels:['globals','project'].map(scope=>({
+  const scoped=createDurableSynchronizer({ownsChannels:true,store,eventTarget:new EventTarget(),channels:['globals','project'].map(scope=>({
     scope,async readHead(){reads.push(scope);return base;},
     watch(notify){watchers.set(scope,notify);return ()=>stops.push(scope);},
     async close(){closes.push(scope);}

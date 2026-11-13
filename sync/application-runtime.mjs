@@ -47,7 +47,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   const idle=()=>authority.assertIdle({allowForm:true});
   const discovery=writer?createEmulatorProjectDiscovery({writer,reader,ownerUid,deviceId:store.deviceId,
    pilotContract:fc.cloudPilotContract,pilotFactory:fc.firebasePilotTransport,globalContract:c,projectContract:p,globals}):null;
-  sync=writer?createApplicationReplication({store,channels,globalContract:c,projectContract:p,eventTarget:w,quota:writer.quota,
+  sync=writer?createApplicationReplication({store,channels,globalContract:c,projectContract:p,eventTarget:w,quota:writer.quota,ownsChannels:true,
    online:()=>authorityReady&&!closed&&w.navigator.onLine!==false,onState:state,discovery,
    incoming:next=>authority.incoming(next),refresh:()=>authority.refresh(),assertIdle:idle}):null;
   const local=createApplicationCommitter({store,globalContract:c,projectContract:p,localOnly,summarizeLocal:fc.projectModel?.summarizeProjectData,channel:scope=>JSON.parse(rows.fc_projects_v1||'[]').some(p=>p.id===scope)?{kind:'project'}:null});
@@ -181,7 +181,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     const wasClosed=closed;await sync?.close();writer=next.writer;reader=next.reader;authority.resume(ownerUid);closed=false;if(authority.status().incomingPending)await authority.refresh();
     globals=createGlobalChannel({writer,reader,ownerUid,contract:c,factory:fc.firebaseGlobalTransport,store});
     const channels=[globals,...JSON.parse(authority.rows().fc_projects_v1||'[]').map(channel)];
-    sync=createApplicationReplication({store,channels,globalContract:c,projectContract:p,eventTarget:w,quota:writer.quota,online:()=>!closed&&w.navigator.onLine!==false,onState:state,
+    sync=createApplicationReplication({store,channels,globalContract:c,projectContract:p,eventTarget:w,quota:writer.quota,ownsChannels:true,online:()=>!closed&&w.navigator.onLine!==false,onState:state,
      discovery:createEmulatorProjectDiscovery({writer,reader,ownerUid,deviceId:store.deviceId,pilotContract:fc.cloudPilotContract,pilotFactory:fc.firebasePilotTransport,globalContract:c,projectContract:p,globals}),
      incoming:next=>authority.incoming(next),refresh:()=>authority.refresh(),assertIdle:idle});
     if(wasClosed)bind();notify();

@@ -39,10 +39,10 @@ export function projectApplicationRows(rows,channel,remote,globalContract,projec
  return next;
 }
 
-export function createApplicationReplication({store,channels,globalContract,projectContract,eventTarget,online,onState,quota,
+export function createApplicationReplication({store,channels,globalContract,projectContract,eventTarget,online,onState,quota,ownsChannels,
  incoming,refresh,assertIdle,discovery}={}){
  const globals=channels.find(c=>c.scope==='globals');if(!globals||typeof incoming!=='function'||typeof refresh!=='function'||typeof assertIdle!=='function')fail('LF_APPLICATION_DEPENDENCIES_REQUIRED');
- const sync=createDurableSynchronizer({store,channels,eventTarget,online,onState,quota,
+ const sync=createDurableSynchronizer({store,channels,eventTarget,online,onState,quota,ownsChannels,
   async projectRemote(channel,remote){const image=await store.readApplication();
    if(!image)fail('LF_APPLICATION_NOT_INITIALIZED');
    return incoming(projectApplicationRows(image.rows,channel,remote,globalContract,projectContract));},

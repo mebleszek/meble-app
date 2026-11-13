@@ -118,7 +118,7 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
    image=await store.readApplication();rows=structuredClone(image.rows);await hydrateCatalogs();inTransaction=false;
    for(const close of pendingClosures.splice(0))close();
    for(const notice of pendingNotices.splice(0))open?.(notice);
-   if(committed?.scope)queueMicrotask(()=>onCommitted(committed.scope));
+   if(committed?.scope||session.active&&!fc.session.active)queueMicrotask(()=>onCommitted(committed?.scope));
    return result;
   }catch(e){lastCode=/^(LF_|GLOBAL_|CLOUD_)[A-Z_]+$/.test(e?.code||e?.message||'')?(e.code||e.message):'LF_APPLICATION_UNCONFIRMED';rows=old;Object.assign(fc.session,session);w.projectData=ram;w.uiState=ui;if(editorState)Object.assign(fc.investorEditorState.state,editorState);if(investorUi)Object.assign(fc.investorUI.state,investorUi);if(priceState)Object.assign(fc.priceModalContext.runtimeState,priceState);pendingClosures.length=0;for(const [el,style]of views)el.style.cssText=style;pendingNotices.length=0;inTransaction=false;mutating=false;await hydrateCatalogs();throw e;}
  }

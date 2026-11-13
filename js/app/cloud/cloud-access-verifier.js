@@ -72,6 +72,8 @@
       return {ok:true,uid:identity.uid,validUntil:Date.now()+TTL_MS};
     }
     async function read(identity,trace){
+      trace.phase='identity';same(identity);
+      trace.phase='context';
       const quota=quotaGuard(auth.verificationContext().app.options.projectId,identity.uid);
       quota.assert();
       const {f,db}=await connect(identity,trace);

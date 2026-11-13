@@ -62,11 +62,17 @@ test('project discovery wakes after startup even if its only initial server noti
  let online=false,lists=0;
  const channel={scope:'globals',kind:'globals',watch(){return()=>{};},async read(){throw Object.assign(Error(),{code:'GLOBAL_NOT_FOUND'});}};
  const store={exclusive:async fn=>fn(),snapshot:async()=>({replica:null,operations:[]})};
- const sync=createApplicationReplication({store,channels:[channel],eventTarget:new EventTarget(),online:()=>online,
+ const events=new EventTarget();
+ const sync=createApplicationReplication({store,channels:[channel],eventTarget:events,online:()=>online,
   incoming(){throw Error('no incoming value');},refresh(){},assertIdle(){},
   discovery:{watch(notify){notify();return()=>{};},async list(){lists++;return[];}}});
- try{assert.equal(lists,0);online=true;sync.notify();await new Promise(r=>setImmediate(r));assert.equal(lists,1);}
- finally{sync.close();}
+ try{
+  assert.equal(lists,0);online=true;sync.notify('globals');
+  await new Promise(r=>setImmediate(r));assert.equal(lists,0);
+  events.dispatchEvent(new Event('online'));
+  await new Promise(r=>setImmediate(r));assert.equal(lists,1);
+ }
+ finally{await sync.close();}
 });
 
 test('navigation stays reserved until confirmed handover, not merely the local IDB checkpoint',async()=>{

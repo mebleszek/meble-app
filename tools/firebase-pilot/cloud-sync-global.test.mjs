@@ -200,14 +200,25 @@ test('CLOUD-SYNC-1 08: missing source, corrupt remote and interrupted staging ne
   await env.withSecurityRulesDisabled(ctx => firestore.updateDoc(firestore.doc(ctx.firestore(), 'users', a.uid, 'globalRecords', record.id), {json: record.json + ' '}));
   const local = replica(a); assert.equal((await sync.receive({replica: local, expectedLocalVersion: 0})).ok, false); assert.equal(local.snapshot().model, null);
   await env.clearFirestore(); await grant(a.uid);
-  let writes = 0;
-  const interrupted = {...firestore, runTransaction: (db, fn, options) => firestore.runTransaction(db, tx => fn(new Proxy(tx, {get(t, key) {
-    if (key === 'set') return (ref, data) => { if (++writes >= 2) throw Object.assign(Error('synthetic interruption'), {code: 'unavailable'}); return t.set(ref, data); };
-    const v = t[key]; return typeof v === 'function' ? v.bind(t) : v;
-  }})), options)};
+  let committed = 0;
+  const interrupted = {...firestore, async runTransaction(db, fn, options) {
+    if(committed)throw Object.assign(Error('synthetic interruption'),{code:'unavailable'});
+    let writes=0;
+    const result=await firestore.runTransaction(db,tx=>{
+      writes=0;
+      return fn(new Proxy(tx,{get(t,key){
+        if(key==='set')return (ref,data)=>{writes++;return t.set(ref,data);};
+        const v=t[key];return typeof v==='function'?v.bind(t):v;
+      }}));
+    },options);
+    committed+=writes;
+    return result;
+  }};
   const other = connect({...a, connection: {...a.connection, firestore: interrupted}}, await client());
   assert.equal((await publish(other, a, 'interrupted')).ok, false);
-  assert.ok((await rows(a.uid, 'globalRecords')).length > 0); assert.equal((await rows(a.uid, 'globalRevisions')).length, 0);
+  assert.equal(committed,3);assert.equal((await rows(a.uid, 'globalRecords')).length,3);
+  assert.equal((await a.r.FC.firebaseGlobalTransport.fromConnection(a.connection).readHead()).head,null);
+  assert.equal((await rows(a.uid, 'globalRevisions')).length, 0);
   assert.equal((await other.receive({replica: local, expectedLocalVersion: 0})).ok, false); assert.equal(local.snapshot().model, null);
 });
 test('CLOUD-SYNC-1 09: owner UID mismatch and server grant revocation deny access', async () => {

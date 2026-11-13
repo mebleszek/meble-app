@@ -48,7 +48,7 @@ export function createGlobalChannel({writer,reader,ownerUid,contract,factory,sto
   });
 }
 
-export function createDurableSynchronizer({store,channels,eventTarget,online=()=>true,onState=()=>{},projectRemote=async()=>null,onApplied=async()=>{},quota}) {
+export function createDurableSynchronizer({store,channels,eventTarget,online=()=>true,onState=()=>{},projectRemote=async()=>null,onApplied=async()=>{},quota,ownsChannels=false}) {
   channels=[...channels];
   const byScope=new Map(channels.map(c=>[c.scope,c]));
   if(byScope.size!==channels.length||!eventTarget?.addEventListener||!store?.exclusive)fail('LF_DEPENDENCY_REQUIRED');
@@ -124,6 +124,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
     scheduled=true;queueMicrotask(()=>{scheduled=false;void drain();});
   }
   async function flush(){
+    if(running&&online())for(const key of byScope.keys())pending.add(key);
     if(!running&&!pending.size)for(const key of byScope.keys())pending.add(key);
     return drain();
   }
@@ -142,7 +143,11 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
         break;
       }
       if(result.ok){retryAt=0;retryDelay=0;clearTimeout(retryTimer);}
-      else{for(const key of scopes)pending.add(key);break;}
+      else{
+        const reconnected=result.code==='LF_OFFLINE'&&pending.size>0&&online();
+        for(const key of scopes)pending.add(key);
+        if(!reconnected)break;
+      }
     }return result;})()
       .finally(()=>{running=null;});return running;}
   // Listeners are wake-up signals only; every receive still uses a fresh,
@@ -216,7 +221,9 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
       if(closing)return closing;
       closed=true;clearTimeout(retryTimer);eventTarget.removeEventListener('online',schedule);
       for(const stop of unsubscribe)stop();
-      closing=Promise.resolve(running).then(()=>Promise.all([...byScope.values()].map(channel=>channel.close?.())));
+      closing=Promise.resolve(running).then(()=>{
+        if(ownsChannels)return Promise.all([...byScope.values()].map(channel=>channel.close?.()));
+      });
       return closing;
     }
   });

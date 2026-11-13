@@ -2,6 +2,8 @@
 
 ## P0 — przyrostowa synchronizacja Firestore, 13.11.2026
 
+PR #136, Preflight [43493997569](https://github.com/mebleszek/meble-app/actions/runs/43493997569), HEAD `34aa23315a53fc4ec4fd019c39b5b869c81a0375`: FAIL shardów 4, 5 i Firebase 3. Naprawy i wyniki celowane opisano w [raporcie PR #136](tools/reports/pr136-preflight-recovery.md). **CI_PENDING / RELEASE_BLOCKED** dla poprawionej gałęzi.
+
 Gałąź `fix/incremental-sync`, zdalny BASE/main `6099fa0fdd116582e9d1f8979db1cd12a3c46df4`. Odnowienie dostępu bez pobierania danych, odczyt głowy przed treścią, ponowne użycie sprawdzonych katalogów z IndexedDB, wspólny termin odroczenia Auth i synchronizacji oraz zachowanie CAS, outboxa i blokady edytora.
 
 - WSL i emulatory Auth/Firestore: trzy profile Chromium przyjęły 14 domen i zachowały starą rewizję. Próba 120 odnowień na profil dała łącznie 360 transakcji i odczytów dokumentu grantu, zero odczytów katalogów lub projektów, zero zapytań discovery i zero zapisów w instrumentowanej warstwie synchronizacji. Weryfikator logowania używa w tym scenariuszu osobnej syntetycznej atrapy SDK, więc liczby nie obejmują jego pracy, rozliczenia Rules ani ponownego podłączania listenerów.
