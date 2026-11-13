@@ -21,8 +21,8 @@
       let granted=false,validUntil=0;
       const valid=()=>current()&&granted&&Date.now()<validUntil;
       const lease=Object.freeze({uid:identity.uid,isValid:valid,assert(){if(!valid())throw Error('AUTH_ACCESS_REVOKED');}});
-      function revoke(code,status='error'){
-        if(!current())return;granted=false;generation++;stop();onBlocked();emit({status,uid:identity.uid,code});
+      function revoke(code,status='error',errorDiagnostic){
+        if(!current())return;granted=false;generation++;stop();onBlocked();emit({status,uid:identity.uid,code,...(errorDiagnostic?{errorDiagnostic}: {})});
       }
       function renew(result){
         if(result?.ok!==true||result.uid!==identity.uid)return false;
@@ -35,6 +35,7 @@
       }
       emit({status:'authenticated',uid:identity.uid,code:'AUTH_ACCESS_PENDING'});
       if(typeof verifyAccess!=='function'){emit({status:'unapproved',uid:identity.uid,code:'AUTH_AUTHORIZATION_NOT_CONFIGURED'});return;}
+      let phase='verify';
       try{
         // A server-backed verifier is REQUIRED. Google login alone never opens UI.
         const result=await verifyAccess(identity);
@@ -42,17 +43,18 @@
         if(!renew(result)){emit({status:'unapproved',uid:identity.uid,code:'AUTH_ACCESS_DENIED',denied:result?.denied===true});return;}
         granted=true;
         emit({status:'authorized',uid:identity.uid});
+        phase='watch';
         if(typeof watchAccess==='function'){
           const unsubscribeWatch=watchAccess(identity,reply=>{
             if(!current())return;
-            if(!renew(reply))revoke(reply?.denied?'AUTH_ACCESS_REVOKED':'AUTH_ACCESS_UNCONFIRMED',reply?.denied?'revoked':'error');
+            if(!renew(reply))revoke(reply?.denied?'AUTH_ACCESS_REVOKED':'AUTH_ACCESS_UNCONFIRMED',reply?.denied?'revoked':'error',reply?.errorDiagnostic?FC.cloudAccessVerifier?.sanitizeDiagnostic?.(reply.errorDiagnostic):undefined);
           });
           if(typeof unsubscribeWatch!=='function')throw Error('AUTH_ACCESS_UNCONFIRMED');
           if(current())stopWatch=unsubscribeWatch;else unsubscribeWatch();
         }
         if(!valid())return;
-        await onAuthorized(lease);
-      }catch(_){revoke('AUTH_ACCESS_UNCONFIRMED');}
+        phase='authorized-callback';await onAuthorized(lease);
+      }catch(error){revoke('AUTH_ACCESS_UNCONFIRMED','error',FC.cloudAccessVerifier?.diagnostic?.(error,phase));}
     });
     return {state:()=>state,close(){closed=true;generation++;stop();unsubscribe();onBlocked();}};
   }
