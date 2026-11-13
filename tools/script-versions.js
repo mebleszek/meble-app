@@ -5,7 +5,7 @@ const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
   "js/app/wycena/wycena-labor-picker.js":"20261111_quote_final_corrections_v1",
   "js/app/project/project-local-room-contract.js":"20261110_native_local_cabinets_v1",
-  "js/app/project/business-project-contract.js":"20261110_native_local_cabinets_v1",
+  "js/app/project/business-project-contract.js":"20261113_sync_investor_delete_v1",
   "js/app/cabinet/front-material-source.js":"20261110_native_local_cabinets_v1",
   "js/app/cabinet/front-hardware-fronts.js":"20261111_flap_hf_top_v1",
   "js/app/cabinet/cabinet-fronts.js":"20261110_native_local_cabinets_v1",
@@ -63,7 +63,7 @@ const versions = Object.freeze({
   "js/app/investor/investor-ui-render.js": "20261101_compact_list",
   "js/app/investor/investors-store.js": "20261111_investor_transport_create_fix_v1",
   "js/app/investor/investors-local-repository.js": "20261104_investor_scope_v1",
-  "js/app/ui/actions-register.js": "20261101_one_app_v1",
+  "js/app/ui/actions-register.js": "20261113_sync_investor_delete_v1",
   "js/app/ui/session-navigation.js": "20261031_historical_owner_v1",
   "js/app/project/project-bridge.js": "20261031_historical_owner_v1",
   "js/app/project/project-pcv-policy.js": "20261031_historical_owner_v1",
@@ -111,7 +111,7 @@ const authVersions=Object.freeze({
   "js/app/cloud/offline-shell.js": "20261103_local_first_start_v1",
   "js/app/cloud/local-access-profile.js": "20261103_android_globals_recovery_v1",
   "js/app/cloud/application-bootstrap.js": "20261112_pixel_catalog_cutover_v2",
-  "js/main-login.js": "20261103_local_first_start_v1"
+  "js/main-login.js": "20261113_foreground_lease_v2"
 });
 function assertHtmlVersions(index, dev){
   const sources=Array.from(index.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi),m=>m[1]);

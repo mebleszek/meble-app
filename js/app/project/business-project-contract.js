@@ -46,5 +46,10 @@
   document.integrity={algorithm:'SHA-256',canonicalization:'sorted-json-v1',payloadSha256:await c.sha(c.encode?c.encode(payload):new TextEncoder().encode(c.canonical(payload))),documentSha256:await c.sha(new TextEncoder().encode(c.canonical(document)))};
   return {ok:true,document,utf8Bytes:new TextEncoder().encode(c.canonical(document)).length};
  }
- FC.businessProjectContract={validate,build,dependencies:payload=>FC.projectExportContract.dependencies(payload)};
+ FC.businessProjectContract={validate,build,dependencies:payload=>FC.projectExportContract.dependencies(payload),
+  planInvestorDeletion(rows,ids){
+   const source={...rows};
+   for(const key of ['fc_quote_snapshots_v1','fc_quote_offer_drafts_v1','fc_investor_removed_ids_v1','fc_current_project_id_v1','fc_current_investor_v1','fc_ui_v1','fc_project_v1'])source[key]??=null;
+   return FC.investorDeletion.planLocal(source,ids);
+  }};
 })();

@@ -57,11 +57,15 @@
       // Events shorten the fail-closed window; expiry still guards silent outages
       // and suspended/throttled timers. Cached snapshots never renew a lease.
       const offline=()=>deliver({ok:false}),blur=()=>{if(window.document?.hidden)offline();};
+      const foreground=()=>{if(window.navigator?.onLine!==false&&!window.document?.hidden)void refresh();};
+      const visibility=()=>{blur();foreground();};
       window.addEventListener?.('offline',offline);
       window.addEventListener?.('pagehide',offline);
-      window.document?.addEventListener('visibilitychange',blur);
+      window.addEventListener?.('online',foreground);
+      window.addEventListener?.('pageshow',foreground);
+      window.document?.addEventListener('visibilitychange',visibility);
       const interval=setInterval(refresh,REFRESH_MS);
-      const stop=()=>{if(stopped)return;stopped=true;clearInterval(interval);window.removeEventListener?.('offline',offline);window.removeEventListener?.('pagehide',offline);window.document?.removeEventListener('visibilitychange',blur);watches.delete(stop);};
+      const stop=()=>{if(stopped)return;stopped=true;clearInterval(interval);window.removeEventListener?.('offline',offline);window.removeEventListener?.('pagehide',offline);window.removeEventListener?.('online',foreground);window.removeEventListener?.('pageshow',foreground);window.document?.removeEventListener('visibilitychange',visibility);watches.delete(stop);};
       watches.add(stop);
       return stop;
     }

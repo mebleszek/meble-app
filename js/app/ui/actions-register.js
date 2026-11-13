@@ -511,8 +511,10 @@
           'Usunięte zostaną wskazane rekordy i ich jednoznacznie powiązane dane. Globalne cenniki, ustawienia i wspólne RAW pozostaną bez zmian.',
           'Zachowane magazyny kopii lokalnych: '+token.backups+'; rekordy archiwum IndexedDB: '+token.archiveRecords+'. Kopie mogą nadal zawierać usuwane dane. Prywatne dowody usunięcia w IndexedDB: '+token.deletionReceipts+'; ta operacja pozostawi kolejny dowód z kopią przed/po do odzyskiwania po awarii.'].join('\n');
         if(await FC.confirmBox.ask({title:'Usunąć zaznaczonych inwestorów?',message,confirmText:'Usuń',cancelText:'Anuluj',confirmTone:'danger',cancelTone:'neutral'})!==true)return true;
-        await service.commit(token);finish();
-        FC.infoBox?.open({title:'Usunięto inwestorów',message:'Potwierdzono usunięcie wskazanych aktywnych rekordów i ich powiązanych danych. Archiwalne kopie bezpieczeństwa pozostawiono bez zmian.',okOnly:true});
+        const result=await service.commit(token);finish();
+        FC.infoBox?.open(result?.pendingCloud
+          ?{title:'Usunięto lokalnie',message:'Usunięcie czeka na potwierdzenie synchronizacji. Historia pozostaje zachowana.',okOnly:true}
+          :{title:'Usunięto inwestorów',message:'Potwierdzono usunięcie wskazanych aktywnych rekordów i ich powiązanych danych. Archiwalne kopie bezpieczeństwa pozostawiono bez zmian.',okOnly:true});
         return true;
       }catch(error){
         const code=/^DELETE_[A-Z_]+$/.test(error.code||'')?error.code:'DELETE_UNCONFIRMED';

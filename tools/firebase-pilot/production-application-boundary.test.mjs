@@ -63,7 +63,7 @@ test('daily connection uses fresh Google/Rules leases, without administrative si
  valid=false;assert.throws(()=>assertApplicationConnection(writer),/SYNC_ACCESS_UNCONFIRMED/);valid=true;permit.revoke();assert.throws(()=>assertApplicationConnection(writer),/ACTIVATION_REQUIRED/);
 });
 test('routine sync grant requires a fresh server transaction and exact activation, uncertainty is a refusal',async()=>{
- const release=await verifyApplicationRelease(await fixture()),w=new EventTarget();w.navigator={onLine:true};w.document={hidden:false};let calls=0;
+ const release=await verifyApplicationRelease(await fixture()),w=new EventTarget();w.navigator={onLine:true};w.document=Object.assign(new EventTarget(),{hidden:false});let calls=0;
  const firestore={doc:()=>({}),runTransaction:async(_db,fn)=>{calls++;return fn({get:async()=>({exists:()=>true,metadata:{fromCache:false,hasPendingWrites:false},data:()=>({schemaVersion:1,activationId:'synthetic-release'})})});}};
  const grant=await createApplicationSyncGrant({release,window:w,session:{identity:()=>({uid:owner,epoch:1})},db:{},firestore});
  try{assert.equal(calls,1);grant.assert();w.navigator.onLine=false;assert.throws(()=>grant.assert(),/UNCONFIRMED/);}finally{grant.close();}
@@ -84,13 +84,20 @@ test('real application factories complete all fourteen absent domains without ch
 });
 
 test('fresh grant remains valid during renewal; failed renewal revokes and successful proof wakes pending synchronization',async()=>{
- const release=await verifyApplicationRelease(await fixture()),w=new EventTarget();w.navigator={onLine:true};w.document={hidden:false};let requests=0,renewed=0,answer;
+ const release=await verifyApplicationRelease(await fixture()),w=new EventTarget();w.navigator={onLine:true};w.document=Object.assign(new EventTarget(),{hidden:false});let requests=0,renewed=0,answer;
  const proof={exists:()=>true,metadata:{fromCache:false,hasPendingWrites:false},data:()=>({schemaVersion:1,activationId:'synthetic-release'})};
  const f={doc:()=>({}),runTransaction:async()=>{requests++;return requests===1?proof:new Promise((resolve,reject)=>{answer={resolve,reject};});}};
  const grant=await createApplicationSyncGrant({release,window:w,session:{identity:()=>({uid:owner,epoch:1})},db:{},firestore:f,onRenew:()=>renewed++});
  try{const pending=grant.refresh();grant.assert();assert.equal(renewed,1);answer.resolve(proof);await pending;grant.assert();assert.equal(renewed,2);
   const failed=grant.refresh();grant.assert();answer.reject(Error('synthetic network loss'));await assert.rejects(failed,/network loss/);assert.throws(()=>grant.assert(),/UNCONFIRMED/);
+  w.document.hidden=true;w.dispatchEvent(new Event('pagehide'));
+  w.document.dispatchEvent(new Event('visibilitychange'));assert.equal(requests,3);
+  w.document.hidden=false;w.document.dispatchEvent(new Event('visibilitychange'));w.dispatchEvent(new Event('pageshow'));
+  assert.equal(requests,4,'foreground events share the same proof request');
+  assert.throws(()=>grant.assert(),/UNCONFIRMED/);
+  answer.resolve(proof);await grant.refresh();grant.assert();assert.equal(renewed,3);
  }finally{grant.close();}
+ w.dispatchEvent(new Event('pageshow'));assert.equal(requests,4);
 });
 test('public activation packaging verifies the candidate Rules hash and signature, never activates or signs for the owner',async()=>{
  const crypto=await import('node:crypto'),vm=await import('node:vm'),{reviewApplicationRelease}=require('../application-release-package.js'),{applicationRules}=require('./application-rules.js');
