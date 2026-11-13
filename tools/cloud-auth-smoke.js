@@ -157,6 +157,36 @@ test('A previously server-marked snapshot cannot replace a new transactional Rul
  assert.equal((await verifier.verify(auth.identity())).ok,true);revoked=true;
  assert.equal((await verifier.verify(auth.identity())).ok,false);assert.equal(transactions,2);await verifier.close();await auth.close();
 });
+test('Access failure retains anonymous phase and SDK code without opening business UI',async()=>{
+ const {s,fake,auth}=await instance();fake.emit('synthetic-diagnostic');
+ auth.verificationContext=()=>({app:{options:{projectId:'mebleszek-meble-app'}},auth:{currentUser:{uid:'synthetic-diagnostic'}},target:'live-auth'});
+ const privateError=Object.assign(new Error('private account token URL'),{name:'FirebaseError',code:'unavailable'});
+ const verifier=s.FC.cloudAccessVerifier.create(auth,{sdk:{initializeFirestore:()=>({}),memoryLocalCache:()=>({}),doc:()=>({}),getDocFromServer:async()=>{throw privateError;},terminate:async()=>{}}});
+ let opened=0;const gate=s.FC.authAccessGate.create(auth,{verifyAccess:verifier.verify,onAuthorized:()=>opened++});
+ await tick();await tick();
+ try{assert.equal(gate.state().status,'error');assert.equal(opened,0);
+ assert.deepEqual(gate.state().errorDiagnostic,{phase:'server-read',type:'FirebaseError',code:'unavailable'});
+ assert.equal(JSON.stringify(gate.state().errorDiagnostic).includes('private'),false);
+ }finally{gate.close();await verifier.close();await auth.close();}
+});
+test('Access diagnostic distinguishes context, Firestore initialization and transaction failures',async()=>{
+ for(const phase of ['context','firestore-init','transaction']){
+  const {s,fake,auth}=await instance();fake.emit('synthetic-phase');
+  const error=Object.assign(new Error('private'),{name:'FirebaseError',code:'failed-precondition'});
+  auth.verificationContext=()=>{if(phase==='context')throw error;return {app:{options:{projectId:'mebleszek-meble-app'}},auth:{currentUser:{uid:'synthetic-phase'}},target:'live-auth'};};
+  const snapshot={metadata:{fromCache:false,hasPendingWrites:false},exists:()=>true,id:'synthetic-phase',data:()=>({schemaVersion:1})};
+  const verifier=s.FC.cloudAccessVerifier.create(auth,{sdk:{initializeFirestore:()=>{if(phase==='firestore-init')throw error;return {};},memoryLocalCache:()=>({}),doc:()=>({}),getDocFromServer:async()=>snapshot,runTransaction:async()=>{throw error;},terminate:async()=>{}}});
+  try{await assert.rejects(verifier.verify(auth.identity()),e=>{assert.equal(e,error);assert.equal(s.FC.cloudAccessVerifier.diagnostic(e).phase,phase);return true;});}
+  finally{await verifier.close();await auth.close();}
+ }
+});
+test('Access diagnostic rejects arbitrary fields, codes, phases and names',()=>{
+ const api=runtime().FC.cloudAccessVerifier;
+ const error={code:'private-token',name:'private-email',message:'private-url'};
+ assert.deepEqual(api.diagnostic(error,'private-phase'),{phase:'unknown',type:'UNKNOWN',code:'UNRECOGNIZED'});
+ assert.deepEqual(api.sanitizeDiagnostic({phase:'server-read',type:'FirebaseError',code:'unavailable',uid:'private'}),{phase:'server-read',type:'FirebaseError',code:'unavailable'});
+ assert.equal(api.diagnostic(Object.assign(new Error('AUTH_ACCESS_TIMEOUT'),{code:undefined})).code,'AUTH_ACCESS_TIMEOUT');
+});
 async function main(){for(const [name,fn]of tests){await fn();console.log('PASS '+name);}console.log('Auth opt-in and prepared gate: '+tests.length+'/'+tests.length+' PASS');}
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});
 module.exports={runtime};

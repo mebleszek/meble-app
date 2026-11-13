@@ -108,7 +108,9 @@
     const aliasDetail=conflict?'; domena konfliktu: '+conflict.domain+'; klucze: '+(conflict.keys.length===2?conflict.keys.join(' / '):'UNKNOWN'):'';
     const detail=(first?'Pierwszy błąd: '+first.stage+' / '+first.code+(code!==first.code?'; '+code:''):code)+aliasDetail;
     const globals=FC.globalDataDiagnostics?.format?.(diagnostic?.globalConsistency)||(diagnostic?.globalConsistency?'DANE GLOBALNE: BLOCKED / DIAG_READ_BLOCKED':'');
-    el('auth-error').hidden=state.status!=='error';el('auth-error').textContent=state.status==='error'?'Nie zmieniono danych. ('+detail+')'+(globals?'\n'+globals:''):'';
+    const access=state.errorDiagnostic&&FC.cloudAccessVerifier?.sanitizeDiagnostic?.(state.errorDiagnostic);
+    const accessText=access?'\nDiagnostyka dostępu v1: faza='+access.phase+'; typ='+access.type+'; kod='+access.code+'; sieć='+(navigator.onLine===false?'offline':navigator.onLine===true?'online':'unknown'):'';
+    el('auth-error').hidden=state.status!=='error';el('auth-error').textContent=state.status==='error'?'Nie zmieniono danych. ('+detail+')'+(globals?'\n'+globals:'')+accessText:'';
     if(el('auth-recovery'))el('auth-recovery').hidden=!recoveryBinding||state.status!=='error';
   }
   function failure(error){
@@ -121,7 +123,7 @@
     if(!started&&!recoveryBinding&&FC.applicationStartup?.canRecoverGlobals?.()){
       try{assert();const b=profile.binding(),id=localSession.identity();recoveryBinding={...b,epoch:id.epoch,receipt:nativeGet.call(localStorage,profile.key)};}catch(_){closeRecovery();}
     }
-    fatal=!started&&!String(error?.code||'').startsWith('LOCAL_');block();if(fatal)gate?.close();render({status:'error',uid:auth?.state().uid,code:error?.code||'AUTH_STARTUP_FAILED',message:error?.code==='LOCAL_ACCESS_DATA_CHANGED'
+    fatal=!started&&!String(error?.code||'').startsWith('LOCAL_');block();if(fatal)gate?.close();render({status:'error',uid:auth?.state().uid,code:error?.code||'AUTH_STARTUP_FAILED',errorDiagnostic:error?.errorDiagnostic,message:error?.code==='LOCAL_ACCESS_DATA_CHANGED'
       ?'Dane profilu zmieniły się podczas potwierdzania. Nie dopuszczono dostępu. Zamknij pozostałe karty i ponownie sprawdź profil oraz kopię bezpieczeństwa.'
       :error?.code==='LOCAL_ACCESS_UNCONFIRMED'?'Nie potwierdzono lokalnego dowodu dostępu. Mógł zostać zapisany, ale praca pozostaje zablokowana. Nie zmieniono danych biznesowych ani sesji edycji.'
       :error?.code==='LOCAL_ACCESS_OTHER_ACCOUNT'?'Dane tej przeglądarki są dostępne dla innego konta. Użyj właściwego konta lub osobnego profilu przeglądarki.'
@@ -216,7 +218,7 @@
           // An expired initial proof is refreshed after all SDK imports. A
           // failed proof, or expiry after that boundary, still stops startup.
           if(starting&&!startupCloudReady&&state.code==='AUTH_ACCESS_EXPIRED'){trustControls();return;}
-          failure(Object.assign(Error(),{code:state.code||'AUTH_ACCESS_UNCONFIRMED'}));return;
+          failure(Object.assign(Error(),{code:state.code||'AUTH_ACCESS_UNCONFIRMED',errorDiagnostic:state.errorDiagnostic}));return;
         }
         const previousMode=localSession.mode();
         if(!fatal&&!isValid()){
@@ -239,7 +241,7 @@
         next=FC.authAccessGate.create(auth,{verifyAccess:access.verify,watchAccess:access.watch,
           onBlocked(){cloudBlocked();if(!creating&&!settled)finish(Object.assign(Error(),{code:'AUTH_ACCESS_REVOKED'}));},
           onState(state){
-            if(['error','revoked','unapproved','unauthenticated'].includes(state.status))finish(Object.assign(Error(),{code:state.code||'AUTH_ACCESS_UNCONFIRMED'}));
+            if(['error','revoked','unapproved','unauthenticated'].includes(state.status))finish(Object.assign(Error(),{code:state.code||'AUTH_ACCESS_UNCONFIRMED',errorDiagnostic:state.errorDiagnostic}));
             cloudState(state);
           },
           onAuthorized(grant){if(settled)return;try{check();grant.assert();lease=grant;startupCloudReady=true;trustControls();finish(null,grant);}catch(error){finish(error);}}

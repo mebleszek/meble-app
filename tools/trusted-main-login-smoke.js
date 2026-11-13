@@ -54,6 +54,19 @@ function world(shared={},inherited=null,{realAuth=false,beforeMain=()=>{}}={}){
  };
 }
 async function main(){
+ const diagnosticWorld=world({},null,{realAuth:true,beforeMain(w){
+   w.FC.cloudAccessVerifier.create=()=>({verify:async()=>{throw Object.assign(new Error('private@example.test token'),{name:'FirebaseError',code:'unavailable'});},watch:()=>()=>{}});
+ }});
+ try{
+   await until(()=>diagnosticWorld.nodes['auth-google']?.disabled===false);
+   diagnosticWorld.input('click','auth-google');
+   await until(()=>diagnosticWorld.diagnostics().authState==='error');
+   assert.match(diagnosticWorld.diagnostics().error,/Diagnostyka dostępu v1: faza=verify; typ=FirebaseError; kod=unavailable/);
+   assert.doesNotMatch(diagnosticWorld.diagnostics().error,/private@|token/);
+   assert.equal(diagnosticWorld.ready(),false);
+ }finally{diagnosticWorld.close();}
+ console.log('PASS login error displays anonymous access diagnostic and keeps business locked');
+
  const d=world({},'owner');await until(()=>d.authCreates===1);assert.equal(d.ready(),false);await d.login();assert.equal(d.logins,1);
  d.w.projectData={unsaved:'EXACT-RAM'};const before=d.shared.rows.get('fc_projects_v1');d.advance(300000);
  assert.equal(d.ready(),false);assert.deepEqual(d.w.projectData,{unsaved:'EXACT-RAM'});assert.equal(d.shared.rows.get('fc_projects_v1'),before);

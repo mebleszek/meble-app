@@ -1,6 +1,10 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
-Stan pakietu P0 ostatnich poprawek WYCENY zaktualizowany **11.11.2026**; BASE/main `2968f7b952ed5a6b533aceede65cd0e2e2b6760a` potwierdzony zdalnie. Starsze pakiety mają własne datowane statusy. Starsze dowody wydań zachowują własne daty i SHA. To jedyne źródło aktualnego wykonania; ROADMAP = plan, AGENTS = zasady, istniejące raporty = szczegółowe dowody. Pełna poprzednia treść z datami/SHA/wynikami jest w [archiwum do 09.11](docs/archive/CURRENT_STATE_history_to_20261109.md); starsza w [archiwum do 30.10](docs/archive/CURRENT_STATE_history_to_20261030.md). Dawne FAIL, „otwarte PR” i CI_PENDING nie są automatycznie bieżącym statusem.
+Historyczny stan pakietu P0 ostatnich poprawek WYCENY z **11.11.2026**; BASE/main `2968f7b952ed5a6b533aceede65cd0e2e2b6760a` potwierdzony zdalnie. Starsze pakiety mają własne datowane statusy. Starsze dowody wydań zachowują własne daty i SHA. To jedyne źródło aktualnego wykonania; ROADMAP = plan, AGENTS = zasady, istniejące raporty = szczegółowe dowody. Pełna poprzednia treść z datami/SHA/wynikami jest w [archiwum do 09.11](docs/archive/CURRENT_STATE_history_to_20261109.md); starsza w [archiwum do 30.10](docs/archive/CURRENT_STATE_history_to_20261030.md). Dawne FAIL, „otwarte PR” i CI_PENDING nie są automatycznie bieżącym statusem.
+
+## Bieżący pakiet — 13.11.2026
+
+**Pixel: anonimowa diagnostyka odmowy dostępu** na `fix/login-access-diagnostics-20261113`, BASE/main `69c45250ff2aeefc33639f6c617818d88ebdcfcf`. Zrzut pokazuje `AUTH_ACCESS_UNCONFIRMED`; przyczyna telefonu nadal **CAUSE_UNCONFIRMED**. Naprawiono utratę anonimowej fazy/typu/kodu wyjątku w drodze do istniejącego komunikatu logowania. Blokada dostępu i dane zachowane. Test FAIL→PASS, regresje i ograniczenia w [raporcie](tools/reports/login-access-diagnostics-20261113.md). **CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING** po kontrolach celowanych; bez PR/wydania/Firebase LIVE. Następny krok: kontrola pakietu i osobna decyzja wydaniowa; potem diagnostyka na Pixelu. Poniższe datowane wpisy zachowują historyczne statusy i dowody, nie zastępują tego stanu.
 
 ## 1. ZROBIONE — potwierdzony stan
 
