@@ -108,16 +108,18 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
     else kind=fc.session.active?'draft':'checkpoint';
    }
    const application={expectedVersion:image.version,rows:structuredClone(rows)};
+   let committed;
    if(kind==='checkpoint'||kind==='draft'||kind==='rollback'){
     // No data/catalog change can masquerade as a session/UI checkpoint.
     if(kind==='draft'&&(!fc.session.active||!fc.session.durable||rows.fc_edit_session_v1===null))fail('LF_DRAFT_SESSION_REQUIRED');
     for(const k of keys)if(kind==='checkpoint'&&!['fc_edit_session_v1','fc_ui_v1','fc_current_project_id_v1','fc_current_investor_v1'].includes(k)&&rows[k]!==old[k])throw Object.assign(Error('LF_CHECKPOINT_DATA_CHANGED: '+k),{code:'LF_CHECKPOINT_DATA_CHANGED'});
     await checkpoint(application,kind);
-   }else await commit(kind,application);
+   }else committed=await commit(kind,application);
    image=await store.readApplication();rows=structuredClone(image.rows);await hydrateCatalogs();inTransaction=false;
    for(const close of pendingClosures.splice(0))close();
    for(const notice of pendingNotices.splice(0))open?.(notice);
-   queueMicrotask(onCommitted);return result;
+   if(committed?.scope||session.active&&!fc.session.active)queueMicrotask(()=>onCommitted(committed?.scope));
+   return result;
   }catch(e){lastCode=/^(LF_|GLOBAL_|CLOUD_)[A-Z_]+$/.test(e?.code||e?.message||'')?(e.code||e.message):'LF_APPLICATION_UNCONFIRMED';rows=old;Object.assign(fc.session,session);w.projectData=ram;w.uiState=ui;if(editorState)Object.assign(fc.investorEditorState.state,editorState);if(investorUi)Object.assign(fc.investorUI.state,investorUi);if(priceState)Object.assign(fc.priceModalContext.runtimeState,priceState);pendingClosures.length=0;for(const [el,style]of views)el.style.cssText=style;pendingNotices.length=0;inTransaction=false;mutating=false;await hydrateCatalogs();throw e;}
  }
  // Reopening an approved image never copies it back over the preserved source.

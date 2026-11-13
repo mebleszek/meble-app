@@ -95,6 +95,26 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   }
   assert.deepEqual((await getDoc(parent)).data(),saved);
   assert.equal((await getDoc(doc(owner,'users',uid,'globalData','current'))).data().revisionId,active.revisionId);
+  const counters=()=>Promise.all(devices.map(d=>d.page.evaluate(()=>({...window.normalReadBudget}))));
+  await Promise.all(devices.map(d=>d.page.evaluate(()=>clearInterval(window.normalGrantTimer))));
+  await Promise.all(devices.map(d=>d.page.waitForFunction(()=>!window.normalPendingRpc?.length)));
+  const baseline=await counters();
+  await Promise.all(devices.map(d=>d.page.evaluate(async()=>{
+   if(!window.normalGrantTick)throw Error('Missing real sync-grant interval');
+   for(let i=0;i<120;i++){
+    await window.normalGrantTick();
+    if(window.normalSdkErrors.length)throw Error(JSON.stringify(window.normalSdkErrors));
+   }
+  })));
+  const idle=(await counters()).map((end,i)=>Object.fromEntries(Object.entries(end).map(([k,v])=>[k,v-(baseline[i][k]||0)])));
+  console.log('Three-profile 120 idle ticks SDK counters: '+JSON.stringify(idle));
+  for(const count of idle){
+   assert.equal(count.auth,120);
+   assert.equal(count.catalogs,0);
+   assert.equal(count.projects,0);
+   assert.equal(count.queries,0);
+   assert.equal(count.writes,0);
+  }
   return;
  }
  const phone=await device('phone');
@@ -122,7 +142,26 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
    const emulatorCatalogWitness=receiverWitness||JSON.parse(sessionStorage.getItem('synthetic-catalog-cutover')||'null');
    const config={name:'meble-lf-test-normal-'+name,async connections(input){
     try{const [app,auth,f]=await Promise.all([import('/__sdk/firebase-app.js'),import('/__sdk/firebase-auth.js'),import('/__sdk/firebase-firestore.js')]);
-    const errors=window.normalSdkErrors=[];const observed={...f};for(const key of ['runTransaction','getDocFromServer','getDocsFromServer'])observed[key]=(...args)=>{const began=performance.now(),pending=window.normalPendingRpc||(window.normalPendingRpc=[]),rpc={method:key};pending.push(rpc);let result;try{result=f[key](...args);}catch(error){pending.splice(pending.indexOf(rpc),1);throw error;}const completed=()=>{pending.splice(pending.indexOf(rpc),1);const log=window.normalRpcTimeline||(window.normalRpcTimeline=[]);log.push({method:key,ms:Math.round(performance.now()-began)});if(log.length>12)log.shift();};result.then(completed,completed);result.catch(error=>{errors.push({method:key,code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();});if(key==='runTransaction'&&window.holdOldReader===args[0]?.app?.name&&!window.normalReadArmed){window.normalReadArmed=true;return result.then(value=>{window.normalHeldRead=true;return new Promise(resolve=>window.releaseOldRead=()=>resolve(value));});}return result;};
+    const budget=window.normalReadBudget??={documents:0,catalogRecords:0,transactions:0,attempts:0,queries:0,writes:0,auth:0,catalogs:0,projects:0};
+    const countRead=ref=>{
+     budget.documents++;
+     if(/^(syncAccess|appAccess)\//.test(ref.path))budget.auth++;
+     if(/\/global(?:Data|Records|Revisions)\//.test(ref.path))budget.catalogs++;
+     if(ref.path.includes('/globalRecords/'))budget.catalogRecords++;
+     if(/\/localFirst(?:Projects|Editors)\//.test(ref.path))budget.projects++;
+    };
+    const measured={...f,
+     getDocFromServer(ref){countRead(ref);return f.getDocFromServer(ref);},
+     async getDocsFromServer(query){budget.queries++;const rows=await f.getDocsFromServer(query);budget.documents+=rows.size;return rows;},
+     runTransaction(db,run,options){budget.transactions++;return f.runTransaction(db,tx=>{
+      budget.attempts++;
+      return run({
+       get(ref){countRead(ref);return tx.get(ref);},
+       set(...args){budget.writes++;return tx.set(...args);}
+      });
+     },options);}
+    };
+    const errors=window.normalSdkErrors=[];const observed={...measured};for(const key of ['runTransaction','getDocFromServer','getDocsFromServer'])observed[key]=(...args)=>{const began=performance.now(),pending=window.normalPendingRpc||(window.normalPendingRpc=[]),rpc={method:key};pending.push(rpc);let result;try{result=measured[key](...args);}catch(error){pending.splice(pending.indexOf(rpc),1);throw error;}const completed=()=>{pending.splice(pending.indexOf(rpc),1);const log=window.normalRpcTimeline||(window.normalRpcTimeline=[]);log.push({method:key,ms:Math.round(performance.now()-began)});if(log.length>12)log.shift();};result.then(completed,completed);result.catch(error=>{errors.push({method:key,code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();});if(key==='runTransaction'&&window.holdOldReader===args[0]?.app?.name&&!window.normalReadArmed){window.normalReadArmed=true;return result.then(value=>{window.normalHeldRead=true;return new Promise(resolve=>window.releaseOldRead=()=>resolve(value));});}return result;};
     const config={projectId:'demo-meble-app',apiKey:'demo-only',authDomain:'demo-meble-app.firebaseapp.com',appId:'demo-only'};
     let session=null,lease=null;
     if(input.authSession){
@@ -135,8 +174,16 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
      lease={uid,assert(){if(session.identity().uid!==uid)throw Error('LF_AUTH_CHANGED');},isValid:()=>true};
     }
     const {createApplicationConnections}=await import('/sync/application-connections.mjs');
-    const connections=await createApplicationConnections({window,authSession:session,lease,release:input.release,sdk:{app,auth,firestore:observed},
-      localAccess:{...input.localAccess,firebaseConfig:config,target:'emulator',emulator:{host:'127.0.0.1',port:19099,firestorePort:18080}}});
+    const setIntervalOriginal=window.setInterval;
+    if(catalogCutover)window.setInterval=(fn,ms,...args)=>{
+     const timer=setIntervalOriginal.call(window,fn,ms,...args);
+     if(ms===30000){window.normalGrantTick=fn;window.normalGrantTimer=timer;}
+     return timer;
+    };
+    let connections;
+    try{connections=await createApplicationConnections({window,authSession:session,lease,release:input.release,sdk:{app,auth,firestore:observed},
+      localAccess:{...input.localAccess,firebaseConfig:config,target:'emulator',emulator:{host:'127.0.0.1',port:19099,firestorePort:18080}}});}
+    finally{window.setInterval=setIntervalOriginal;}
     for(const conn of [connections.writer,connections.reader]){const assert=conn.assertAccess;conn.assertAccess=()=>{try{return assert();}catch(error){errors.push({method:'assertAccess',code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();throw error;}};}
     window.normalConnections=[connections.writer,connections.reader];window.normalConnectionEpoch=(window.normalConnectionEpoch||0)+1;
     return connections;
@@ -200,6 +247,10 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  await computer.page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
  await assert.rejects(computer.page.evaluate(()=>window.FC.applicationWrite.project(()=>true)),/LF_EDITOR_BUSY_OR_HEAD_CHANGED/);
  await phone.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list'));
+ await until(async()=>{
+  const editor=(await getDoc(doc(ownerClient,'users',uid,'localFirstEditors',pid))).data();
+  return editor?.active===false;
+ });
  await openConfirmedInvestorList(computer,ids[0]);
  await computer.page.locator('[data-action="open-investor"][data-inv-id="'+ids[0]+'"]').click();
  await computer.page.waitForFunction(id=>window.FC.investors.getCurrentId()===id&&!window.FC.applicationStartup.inspect().transactionPending,ids[0]);
@@ -273,11 +324,35 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  assert.equal((await getDoc(doc(ownerClient,'users',uid,'localFirstProjects',pid))).data().generation,beforeOfflineHead.generation+1,'Exactly one committed project WRITE across reconnect');
  await computer.page.context().setOffline(true);
  await computer.page.waitForFunction(()=>navigator.onLine===false);
- await computer.page.evaluate(pid=>window.FC.applicationWrite.project(()=>{const row=window.FC.projectStore.getById(pid);row.title='Offline durable revision';if(!window.FC.projectStore.upsert(row))throw Error('Offline write refused');}),pid);
+ await computer.page.evaluate(pid=>window.FC.applicationWrite.project(()=>{
+  const row=window.FC.projectStore.getById(pid);
+  row.title='Offline durable revision';
+  if(!window.FC.projectStore.upsert(row))throw Error('Offline write refused');
+  window.projectData=window.FC.project.load();
+ }),pid);
  assert.equal(await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid).title,pid),'Same-window offline');
+ assert.equal(await computer.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list')),true,'Offline Exit commits locally');
+ await computer.page.waitForFunction(()=>window.uiState.entry==='investorsList'&&!window.FC.applicationStartup.inspect().transactionPending);
+ if(deployment){
+  await phone.page.evaluate(()=>window.FC.applicationWrite.globals(()=>{
+   const rows=window.FC.catalogStore.getSheetMaterials();
+   rows.push({id:'cold-start-newer-catalog',name:'Cold start newer catalog',materialType:'synthetic',price:19,priceUnit:'sheet'});
+   if(!window.FC.catalogStore.savePriceList('materials',rows))throw Error('Catalog save refused');
+  }));
+  await until(async()=>{
+   const head=(await getDoc(doc(ownerClient,'users',uid,'globalData','current'))).data();
+   const project=(await getDoc(doc(ownerClient,'users',uid,'localFirstProjects',pid))).data();
+   return head.revisionId!==project.globalRevisionId;
+  });
+ }
  if(deployment)await computer.page.evaluate(()=>localStorage.removeItem('meble_application_authority_v1')); // Simulated cutover receipt ACK loss, source/image retained.
  const shutdown=await computer.browser.newBrowserCDPSession();await shutdown.send('Browser.close');
  const exited=await computer.owner.exited;assert.equal(exited.code,0);assert.equal(exited.signal,null);await computer.owner.close();
+ await openConfirmedInvestorList(phone,ids[0]);
+ await phone.page.locator('[data-action="open-investor"][data-inv-id="'+ids[0]+'"]').click();
+ await phone.page.waitForFunction(id=>window.FC.investors.getCurrentId()===id&&!window.FC.applicationStartup.inspect().transactionPending,ids[0]);
+ await assert.rejects(phone.page.evaluate(()=>window.FC.applicationWrite.project(()=>true)),/LF_EDITOR_BUSY_OR_HEAD_CHANGED/);
+ await phone.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list'));
  computer.owner=await startBrowser({profileDir:path.join(dir,computer.name)});
  computer.browser=await chromium.connectOverCDP(computer.owner.endpoint);const context=computer.browser.contexts()[0];computer.page=await context.newPage();
  for(const page of context.pages())if(page!==computer.page)await page.close();
@@ -292,6 +367,12 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
 
  try{await computer.page.waitForFunction(()=>document.body.dataset.businessState==='ready');}catch(error){throw Error('Cold startup '+JSON.stringify(await computer.page.evaluate(()=>({state:document.body.dataset,runtime:window.FC.applicationStartup?.inspect(),authCalls:window.authCalls}))))}
  assert.equal(await computer.page.evaluate(pid=>window.FC.projectStore.getById(pid).title,pid),'Offline durable revision');
+ if(deployment){
+  const pinned=(await getDoc(doc(ownerClient,'users',uid,'localFirstProjects',pid))).data();
+  const latest=(await getDoc(doc(ownerClient,'users',uid,'globalData','current'))).data();
+  assert.notEqual(pinned.globalRevisionId,latest.revisionId);
+  assert.equal(await computer.page.evaluate(pid=>window.FC.projectStore.getById(pid).projectData.meta.assignedInvestorId,pid),ids[0]);
+ }
  assert.equal(await computer.page.evaluate(()=>window.FC.applicationStartup.inspect().state),'offline');
  assert.equal(await computer.page.evaluate(()=>window.authCalls),0);
  assert.equal(await computer.page.evaluate(()=>window.normalGoogleLogins||0),0);

@@ -39,10 +39,10 @@ export function projectApplicationRows(rows,channel,remote,globalContract,projec
  return next;
 }
 
-export function createApplicationReplication({store,channels,globalContract,projectContract,eventTarget,online,onState,
+export function createApplicationReplication({store,channels,globalContract,projectContract,eventTarget,online,onState,quota,ownsChannels,
  incoming,refresh,assertIdle,discovery}={}){
  const globals=channels.find(c=>c.scope==='globals');if(!globals||typeof incoming!=='function'||typeof refresh!=='function'||typeof assertIdle!=='function')fail('LF_APPLICATION_DEPENDENCIES_REQUIRED');
- const sync=createDurableSynchronizer({store,channels,eventTarget,online,onState,
+ const sync=createDurableSynchronizer({store,channels,eventTarget,online,onState,quota,ownsChannels,
   async projectRemote(channel,remote){const image=await store.readApplication();
    if(!image)fail('LF_APPLICATION_NOT_INITIALIZED');
    return incoming(projectApplicationRows(image.rows,channel,remote,globalContract,projectContract));},
@@ -50,11 +50,12 @@ export function createApplicationReplication({store,channels,globalContract,proj
  let closed=false,listing=null,again=false;
  const discover=()=>{if(closed||!discovery||online&&!online())return;if(listing){again=true;return;}
   listing=(async()=>{do{again=false;const candidates=await discovery.list(scope=>!!sync.channel(scope));
-   for(const channel of candidates){if(closed)return;if(!sync.channel(channel.scope)){await channel.read();if(!closed)sync.register(channel);}}
+   for(const channel of candidates){if(closed)return;if(!sync.channel(channel.scope))sync.register(channel);}
   }while(again&&!closed);})().catch(e=>{if(!closed)onState?.(safeError(e));}).finally(()=>{listing=null;if(again&&!closed)discover();});};
  const stopDiscovery=discovery?.watch(discover)||(()=>{});eventTarget.addEventListener('online',discover);discover();
  return Object.freeze({...sync,
-  notify(){sync.notify();discover();},
+  notify(scope){sync.notify(scope);},
+  discover,
   close(){closed=true;stopDiscovery();eventTarget.removeEventListener('online',discover);return Promise.all([sync.close(),listing]);},
   async acquireEditor(scope){await assertIdle();return sync.acquireEditor(scope);},
   async releaseEditor(scope){await assertIdle();return sync.releaseEditor(scope);},
@@ -113,10 +114,17 @@ export function createApplicationCommitter({store,globalContract,projectContract
     value={document:built.document,globals:catalogs,requirements};editor=(await store.snapshot(scope)).replica?.editor;
    }else fail('LF_APPLICATION_SCOPE_REFUSED');
    const before=await store.snapshot(scope);
+   const previous=before.replica&&!before.replica.dirty?JSON.parse(before.replica.json):null;
+   const unchanged=previous&&(kind==='globals'?equal(previous,value):
+    equal(previous.document?.payload,value.document.payload)&&equal(previous.globals,value.globals));
+   if(unchanged){
+    await store.checkpointApplication(application);
+    return {localConfirmed:true,cloudConfirmed:!!before.replica.base,unchanged:true};
+   }
    const result=await store.commit({scope,operationId:crypto.randomUUID(),value,expectedVersion:before.replica?.version||0,editor,application,
     // Preserve the exact source image alongside each approved business revision.
     protectedRows:application.rows});
-   if(!result.localConfirmed)fail('LF_LOCAL_ACK_UNCONFIRMED');return result;
+   if(!result.localConfirmed)fail('LF_LOCAL_ACK_UNCONFIRMED');return {...result,scope};
   },
   async checkpoint(application,kind){
    if(kind==='rollback'){

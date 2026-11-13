@@ -61,6 +61,25 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
     for (const row of value.protected) if(await digest(row.json)!==row.hash)fail('LF_LOCAL_INTEGRITY');
     return value;
   }
+  async function readCatalogReplica(pin) {
+    return transaction('readonly',(s,done,abort)=>{
+      const cursor=s.replicas.openCursor();
+      cursor.onsuccess=()=>{
+        try{
+          const row=cursor.result;
+          if(!row){done(null);return;}
+          const replica=row.value;
+          if(!replica.dirty&&replica.base){
+            const value=JSON.parse(replica.json);
+            const catalog=replica.key==='globals'?{head:replica.base,model:value}:value?.globals;
+            if(catalog?.head?.ownerUid===ownerUid&&catalog.head.revisionId===pin.revisionId&&
+             catalog.head.directoryHash===pin.directoryHash){done({replica,catalog});return;}
+          }
+          row.continue();
+        }catch(error){abort(error);}
+      };
+    });
+  }
   async function readApplication(){const value=await transaction('readonly',(s,done)=>{const q=s.control.get('application');q.onsuccess=()=>done(q.result||null);});if(value && await digest(json(value.rows))!==value.hash)fail('LF_APPLICATION_INTEGRITY');return value;}
   async function readPreservedSource(){const value=await transaction('readonly',(s,done)=>{const q=s.control.get('source');q.onsuccess=()=>done(q.result||null);});if(value&&await digest(value.rows)!==value.hash)fail('LF_SOURCE_INTEGRITY');return value;}
   async function prepareApplication(application){if(!application)return null;application=copy(application);if(!Number.isSafeInteger(application.expectedVersion)||application.expectedVersion<1||!application.rows||Object.values(application.rows).some(v=>v!==null&&typeof v!=='string'))fail('LF_APPLICATION_INVALID');application.hash=await digest(json(application.rows));return application;}
@@ -183,7 +202,7 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       } catch(e) { abort(e); } }; q.onsuccess = ops.onsuccess = finish;
     });
   }
-  return Object.freeze({ownerUid, deviceId, instanceId, name, snapshot, readApplication,readPreservedSource, initializeApplication, checkpointApplication, checkpointDeletion, commit, transition, apply, setEditor,
+  return Object.freeze({ownerUid, deviceId, instanceId, name, snapshot, readCatalogReplica,readApplication,readPreservedSource, initializeApplication, checkpointApplication, checkpointDeletion, commit, transition, apply, setEditor,
     exclusive: callback => locks.request(name + ':' + instanceId, {mode: 'exclusive'}, () => {if(closed)fail('LF_STORE_CLOSED');return callback();}),
     close() { closed = true; }});
 }

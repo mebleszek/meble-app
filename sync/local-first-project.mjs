@@ -80,12 +80,16 @@ export function createProjectChannel({writer, reader, ownerUid, deviceId, projec
     return pilotFactory.fromConnection({...connection,firestore:adapted});
   }
   const inbound = transport(reader);
+  async function readHead(){
+    guard();
+    const raw=value(fresh(await reader.firestore.getDocFromServer(projectRef(reader.db))));
+    guard();
+    return raw?{...c.headOf(bare(raw),scope),...metadata(raw)}:null;
+  }
   async function editor() {
     guard(); const out = await f.runTransaction(reader.db,async tx => value(fresh(await tx.get(editorRef(reader.db)))),{maxAttempts:1});guard();return out;
   }
-  async function readGlobals(pin) {
-    let global = await globals.read();
-    if (global.head.revisionId !== pin.revisionId || global.head.directoryHash !== pin.directoryHash) {
+  async function loadPinnedGlobals(pin) {
       // A project pins its immutable catalog revision; newer prices must not
       // silently rebase a saved project or make its older dependencies disappear.
       const sdk=reader.firestore;
@@ -114,9 +118,11 @@ export function createProjectChannel({writer, reader, ownerUid, deviceId, projec
           total+=record.byteLength;if(total>globalContract.MAX_TOTAL_BYTES)fail('LF_GLOBAL_DEPENDENCY_INTEGRITY');records.push(record);}
       }
       const decoded=await globalContract.unpack(ownerUid,directory,records);globalContract.validateBundle(decoded.model);guard();
-      global={head:Object.fromEntries(['ownerUid','version','generation','revisionId','directoryHash','recordCount'].map(k=>[k,rev[k]])),value:decoded.model};
-    }
-    return global;
+      return {head:Object.fromEntries(['ownerUid','version','generation','revisionId','directoryHash','recordCount'].map(k=>[k,rev[k]])),value:decoded.model};
+  }
+  async function readGlobals(pin) {
+    guard();
+    return globals.readPinned?globals.readPinned(pin,()=>loadPinnedGlobals(pin)):loadPinnedGlobals(pin);
   }
   async function read() {
     guard(); const result = await inbound.readProject(scope); guard();
@@ -162,7 +168,7 @@ export function createProjectChannel({writer, reader, ownerUid, deviceId, projec
       const next = {...e,active:false,headRevision:head.currentRevisionId}; guard(); tx.set(editorRef(writer.db),next); return next;
     },{maxAttempts:1});
   }
-  return Object.freeze({kind:'project',scope:projectId,prepare,read,editor,acquire,release,guard,
+  return Object.freeze({kind:'project',scope:projectId,prepare,read,readHead,editor,acquire,release,guard,
     watch(notify){guard();return reader.firestore.onSnapshot(projectRef(reader.db),()=>notify(),()=>notify());},
     async close(){await inbound.close();}});
 }

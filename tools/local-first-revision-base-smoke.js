@@ -62,6 +62,44 @@ async function main(){
     assert.equal(recovered.operation.phase,'verified');assert.equal(recovered.dirty,false);
   }
   console.log('PASS LOCAL-FIRST revision base: 10 cases; incoming/chained bases, stale CAS, conflicting heads, predecessor uncertainty, read-only ACK recovery');
+  let heads=0,downloads=0,exhausted=false;
+  const base=head(2),store={exclusive:fn=>fn(),snapshot:async()=>({replica:{base},operations:[]})};
+  const channel={scope:'globals',async readHead(){
+    heads++;
+    if(exhausted)throw Object.assign(Error('quota'),{code:'resource-exhausted'});
+    return base;
+  },async read(){downloads++;return {head:base};}};
+  const sync=createDurableSynchronizer({store,channels:[channel],eventTarget:new EventTarget()});
+  try{
+    for(let i=0;i<120;i++)assert.deepEqual(await sync.flush(),{ok:true});
+    assert.equal(downloads,0);
+    exhausted=true;
+    assert.equal((await sync.flush()).code,'resource-exhausted');
+    const blockedAt=heads;
+    for(let i=0;i<120;i++){sync.notify();assert.equal((await sync.flush()).code,'resource-exhausted');}
+    assert.equal(heads,blockedAt);
+  }finally{await sync.close();}
+  console.log('PASS unchanged heads skip payloads and quota backoff blocks repeated wakeups');
+  const reads=[],watchers=new Map(),stops=[],closes=[];
+  const scoped=createDurableSynchronizer({ownsChannels:true,store,eventTarget:new EventTarget(),channels:['globals','project'].map(scope=>({
+    scope,async readHead(){reads.push(scope);return base;},
+    watch(notify){watchers.set(scope,notify);return ()=>stops.push(scope);},
+    async close(){closes.push(scope);}
+  }))});
+  try{
+    await scoped.flush();
+    reads.length=0;
+    watchers.get('project')();
+    watchers.get('project')();
+    await scoped.flush();
+    assert.deepEqual(reads,['project']);
+  }finally{await Promise.all([scoped.close(),scoped.close()]);}
+  assert.deepEqual(stops,['globals','project']);
+  assert.deepEqual(closes,['globals','project']);
+  watchers.get('project')();
+  assert.equal((await scoped.flush()).code,'LF_CLOSED');
+  assert.deepEqual(reads,['project']);
+  console.log('PASS duplicate scoped wakeups coalesce and closed channels cannot wake the runtime');
 }
 if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});
 module.exports={main};

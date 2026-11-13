@@ -39,4 +39,4 @@ export function assertEmulator(connection) {
     || !auth.currentUser.providerData?.some(p => p.providerId === 'google.com')) fail('LF_AUTH_INVALID');
   return who;
 }
-export const safeError = error => {const code=error?.code||error?.message;return {ok:false,code:/^(LF_|GLOBAL_|CLOUD_)[A-Z_]+$/.test(code||'')?code:'LF_REMOTE_UNCONFIRMED'};};
+export const safeError = error => {const code=error?.code||error?.message;return {ok:false,code:code==='resource-exhausted'||/^(LF_|GLOBAL_|CLOUD_)[A-Z_]+$/.test(code||'')?code:'LF_REMOTE_UNCONFIRMED',...(code==='resource-exhausted'&&error.cooldown?{cooldown:true}:{})};};

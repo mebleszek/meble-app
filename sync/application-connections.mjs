@@ -34,7 +34,23 @@ export async function createApplicationConnections({window:w,authSession,lease,r
  if(!trusted&&renewLease)currentLease=await renewLease();
  const ctx=session?.verificationContext(),identity=session?.identity();
  if(!ctx||!identity?.uid||currentLease?.uid!==identity.uid)fail('LF_APPLICATION_AUTH_REQUIRED');
- currentLease.assert();const f=sdk.firestore;
+ currentLease.assert();
+ const quota=fc.cloudAccessVerifier?.quotaGuard?.(ctx.app.options.projectId,identity.uid);
+ quota?.assert();
+ const f={...sdk.firestore};
+ for(const method of ['getDocFromServer','getDocsFromServer','runTransaction']){
+  const call=f[method];
+  if(typeof call!=='function')continue;
+  f[method]=async(...args)=>{
+   quota?.assert();
+   try{return await call(...args);}catch(error){quota?.record(error);throw error;}
+  };
+ }
+ const listen=f.onSnapshot;
+ if(typeof listen==='function')f.onSnapshot=(target,onNext,onError)=>{
+  quota?.assert();
+  return listen(target,onNext,error=>{quota?.record(error);onError?.(error);});
+ };
  const dbFor=app=>{const db=f.getFirestore(app);if(ctx.target==='emulator'&&db._settings.host!=='127.0.0.1:18080')f.connectFirestoreEmulator(db,'127.0.0.1',18080);return db;};
  const writerDb=dbFor(ctx.app),name='meble-sync-reader-'+crypto.randomUUID();
   secondary=await fc.cloudAuth.create({target:ctx.target,appName:name,firebaseConfig:{...ctx.app.options},emulator:ctx.emulator,sessionOnly:true,sdk});
@@ -44,10 +60,10 @@ export async function createApplicationConnections({window:w,authSession,lease,r
   if(readerCtx.auth.currentUser?.uid!==identity.uid)fail('LF_APPLICATION_OWNER_CHANGED');
   const readerDb=dbFor(readerApp);
   if(release)syncGrant=await createApplicationSyncGrant({release,window:w,session,db:readerDb,firestore:f,onRenew:()=>w.dispatchEvent(new w.Event('meble-sync-authorized'))});
-  const guard=()=>{syncGrant?.assert();w.__FC_MAIN_ACCESS__.assert();localAccess?.assert();currentLease.assert();
+  const guard=()=>{quota?.assert();syncGrant?.assert();w.__FC_MAIN_ACCESS__.assert();localAccess?.assert();currentLease.assert();
    if(session.identity().uid!==identity.uid||session.identity().epoch!==identity.epoch)fail('LF_AUTH_CHANGED');};
   const leaseView={uid:identity.uid,assert:()=>currentLease.assert(),isValid:()=>currentLease.isValid()};
-  const result={writer:{db:writerDb,auth:ctx.auth,session,lease:leaseView,firestore:f,assertAccess:guard},
+  const result={writer:{db:writerDb,auth:ctx.auth,session,lease:leaseView,firestore:f,assertAccess:guard,quota},
    reader:{db:readerDb,auth:readerAuth,session:secondary,lease:leaseView,firestore:f,assertAccess:guard},
    // On logout revoke the independent persisted SDK login too. Local IDB/outbox
    // is retained; an already-submitted RPC can still have an uncertain outcome.
