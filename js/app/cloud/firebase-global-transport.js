@@ -99,12 +99,20 @@
         a=lookup(handle);if(a.state==='unconfirmed')c.fail('GLOBAL_CONFIRMATION_REQUIRED');if(a.state==='conflict')c.fail('GLOBAL_WRITE_CONFLICT');
         source(a);if(!equal(await remoteHead(),a.base)&&a.state!=='published')c.fail('GLOBAL_WRITE_CONFLICT');
         phase='staging';await remoteHead();check();
-        for(const r of a.packed.records){
-          // Server preflight also prevents disabled-network transactions from queuing.
+        // Keep transactions below the Rules access-call budget even without
+        // reuse of the owner grant checks between record writes.
+        for(let offset=0;offset<a.packed.records.length;offset+=3){
+          const batch=a.packed.records.slice(offset,offset+3);
           check();source(a);
-          await f.runTransaction(db,async tx=>{check();const ref=recordRef(r.hash),snap=fresh(await tx.get(ref));check();source(a);
-            if(snap.exists()){if(!equal(snap.data(),r))c.fail('GLOBAL_RECORD_CONFLICT');}
-            else tx.set(ref,r);
+          await f.runTransaction(db,async tx=>{
+            check();
+            const refs=batch.map(r=>recordRef(r.hash));
+            const snaps=await Promise.all(refs.map(async ref=>fresh(await tx.get(ref))));
+            check();source(a);
+            for(let i=0;i<batch.length;i++){
+              if(snaps[i].exists()){if(!equal(snaps[i].data(),batch[i]))c.fail('GLOBAL_RECORD_CONFLICT');}
+              else tx.set(refs[i],batch[i]);
+            }
           },{maxAttempts:3});check();
         }
         const records=await fetchRecords(a.packed.directory);await c.unpack(bound.uid,a.packed.directory,records);check();source(a);

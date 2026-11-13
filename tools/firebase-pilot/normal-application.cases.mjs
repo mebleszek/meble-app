@@ -220,6 +220,10 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  await computer.page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
  await assert.rejects(computer.page.evaluate(()=>window.FC.applicationWrite.project(()=>true)),/LF_EDITOR_BUSY_OR_HEAD_CHANGED/);
  await phone.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list'));
+ await until(async()=>{
+  const editor=(await getDoc(doc(ownerClient,'users',uid,'localFirstEditors',pid))).data();
+  return editor?.active===false;
+ });
  await openConfirmedInvestorList(computer,ids[0]);
  await computer.page.locator('[data-action="open-investor"][data-inv-id="'+ids[0]+'"]').click();
  await computer.page.waitForFunction(id=>window.FC.investors.getCurrentId()===id&&!window.FC.applicationStartup.inspect().transactionPending,ids[0]);
@@ -293,15 +297,21 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  assert.equal((await getDoc(doc(ownerClient,'users',uid,'localFirstProjects',pid))).data().generation,beforeOfflineHead.generation+1,'Exactly one committed project WRITE across reconnect');
  await computer.page.context().setOffline(true);
  await computer.page.waitForFunction(()=>navigator.onLine===false);
- await computer.page.evaluate(pid=>window.FC.applicationWrite.project(()=>{const row=window.FC.projectStore.getById(pid);row.title='Offline durable revision';if(!window.FC.projectStore.upsert(row))throw Error('Offline write refused');}),pid);
+ await computer.page.evaluate(pid=>window.FC.applicationWrite.project(()=>{
+  const row=window.FC.projectStore.getById(pid);
+  row.title='Offline durable revision';
+  if(!window.FC.projectStore.upsert(row))throw Error('Offline write refused');
+  window.projectData=window.FC.project.load();
+ }),pid);
  assert.equal(await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid).title,pid),'Same-window offline');
- await computer.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list'));
+ assert.equal(await computer.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list')),true,'Offline Exit commits locally');
  await computer.page.waitForFunction(()=>window.uiState.entry==='investorsList'&&!window.FC.applicationStartup.inspect().transactionPending);
  if(deployment)await computer.page.evaluate(()=>localStorage.removeItem('meble_application_authority_v1')); // Simulated cutover receipt ACK loss, source/image retained.
  const shutdown=await computer.browser.newBrowserCDPSession();await shutdown.send('Browser.close');
  const exited=await computer.owner.exited;assert.equal(exited.code,0);assert.equal(exited.signal,null);await computer.owner.close();
  await openConfirmedInvestorList(phone,ids[0]);
  await phone.page.locator('[data-action="open-investor"][data-inv-id="'+ids[0]+'"]').click();
+ await phone.page.waitForFunction(id=>window.FC.investors.getCurrentId()===id&&!window.FC.applicationStartup.inspect().transactionPending,ids[0]);
  await assert.rejects(phone.page.evaluate(()=>window.FC.applicationWrite.project(()=>true)),/LF_EDITOR_BUSY_OR_HEAD_CHANGED/);
  await phone.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list'));
  computer.owner=await startBrowser({profileDir:path.join(dir,computer.name)});
