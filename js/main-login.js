@@ -242,7 +242,10 @@
             if(['error','revoked','unapproved','unauthenticated'].includes(state.status))finish(Object.assign(Error(),{code:state.code||'AUTH_ACCESS_UNCONFIRMED'}));
             cloudState(state);
           },
-          onAuthorized(grant){if(settled)return;try{check();grant.assert();lease=grant;startupCloudReady=true;trustControls();finish(null,grant);}catch(error){finish(error);}}
+          onAuthorized(grant){
+            if(settled){if(started&&grant.isValid()){lease=grant;trustControls();}return;}
+            try{check();grant.assert();lease=grant;startupCloudReady=true;trustControls();finish(null,grant);}catch(error){finish(error);}
+          }
         });
         creating=false;if(settled&&!lease?.isValid())next.close();else gate=next;
       }catch(error){creating=false;finish(error);}
