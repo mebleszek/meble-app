@@ -48,7 +48,7 @@ export function createGlobalChannel({writer,reader,ownerUid,contract,factory,sto
   });
 }
 
-export function createDurableSynchronizer({store,channels,eventTarget,online=()=>true,onState=()=>{},projectRemote=async()=>null,onApplied=async()=>{}}) {
+export function createDurableSynchronizer({store,channels,eventTarget,online=()=>true,onState=()=>{},projectRemote=async()=>null,onApplied=async()=>{},quota}) {
   channels=[...channels];
   const byScope=new Map(channels.map(c=>[c.scope,c]));
   if(byScope.size!==channels.length||!eventTarget?.addEventListener||!store?.exclusive)fail('LF_DEPENDENCY_REQUIRED');
@@ -134,8 +134,9 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
       result=await cycle(scopes).catch(safeError);state(result);
       if(result.code==='resource-exhausted'&&!closed){
         retryDelay=Math.min(300000,retryDelay?retryDelay*2:30000);
-        const delay=retryDelay+Math.floor(Math.random()*5000);
+        const delay=result.cooldown?Math.max(1,(quota?.deadline()||Date.now())-Date.now()):retryDelay+Math.floor(Math.random()*5000);
         retryAt=Date.now()+delay;
+        quota?.record(result,delay);
         for(const key of scopes)pending.add(key);
         clearTimeout(retryTimer);retryTimer=setTimeout(()=>void drain(),delay);
         break;

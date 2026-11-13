@@ -34,6 +34,32 @@ test('14 domains: A publishes, independent B restores exact values/order/referen
  const out=await publish(a,m),read=await b.globals.read();assert.equal(read.ok,true,JSON.stringify(read));assert.deepEqual(read.model,m);assert.deepEqual(read.head,out.head);
  assert.deepEqual(a.r.rows(),aRaw);assert.deepEqual(b.r.rows(),bRaw);assert.deepEqual(a.r.storage.calls,[]);assert.deepEqual(b.r.storage.calls,[]);
 });
+test('Interrupted three-record staging preserves the CAS head and reuses immutable records',async()=>{
+ const a=await client(),base=(await (async()=>{await grant(a.uid);return publish(a);})()).head;
+ const next=model();
+ next.materials[0].price+=1;
+ for(let i=0;i<6;i++)next.materials.push({...next.materials[0],id:'interrupted-'+i,name:'Interrupted '+i});
+ const original=await documents(a.uid,'globalRecords');
+ let staged=0;
+ const transport=a.r.FC.firebaseGlobalTransport.fromConnection({...a.connection,firestore:{...f,async runTransaction(db,fn,opts){
+  if(staged>=3)throw Object.assign(Error('synthetic interruption'),{code:'unavailable'});
+  return f.runTransaction(db,tx=>fn({get:tx.get.bind(tx),set(ref,data){if(ref.path.includes('/globalRecords/'))staged++;return tx.set(ref,data);}}),opts);
+ }}});
+ const prepared=await transport.prepare({model:next,expectedHead:base});
+ assert.ok(prepared.ok);
+ const interrupted=await transport.publish(prepared.handle);
+ assert.equal(interrupted.ok,false);assert.equal(interrupted.phase,'staging');
+ assert.deepEqual((await a.globals.readHead()).head,base);
+ assert.equal((await documents(a.uid,'globalRevisions')).length,1);
+ const partial=await documents(a.uid,'globalRecords');
+ assert.ok(partial.length>original.length);
+ await transport.close();
+ const committed=await publish(a,next,base);
+ assert.equal(committed.head.generation,base.generation+1);
+ assert.deepEqual((await a.globals.read()).model,next);
+ const packed=await a.r.FC.globalDataContract.pack(a.uid,next);
+ assert.equal((await documents(a.uid,'globalRecords')).length,new Set([...original.map(row=>row.id),...packed.records.map(row=>row.hash)]).size);
+});
 test('Price/catalog/stock edits across clients publish one record each; unchanged state is a no-op',async()=>{
  const a=await client(),b=await client();await grant(a.uid);let m=model(),head=(await publish(a,m)).head,n=(await documents(a.uid,'globalRecords')).length;
  for(const edit of [x=>x.materials[0].price=299,x=>x.hardware[0].name='Synthetic changed hinge',x=>x.stock[0].qty=2]){

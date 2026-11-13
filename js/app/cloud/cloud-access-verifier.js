@@ -11,15 +11,18 @@
     function current(){
       const now=Date.now();
       let saved=0;try{saved=Number(window.localStorage.getItem(key));}catch(_){}
-      const valid=until=>Number.isFinite(until)&&until>now&&until<=now+35000;
+      const valid=until=>Number.isFinite(until)&&until>now&&until<=now+305000;
       const memory=cooldowns.get(key);
       return Math.max(valid(memory)?memory:0,valid(saved)?saved:0);
     }
     return {
-      assert(){if(current()>Date.now())throw Object.assign(Error('resource-exhausted'),{code:'resource-exhausted'});},
-      record(error){
-        if(!isQuota(error)||current()>Date.now())return;
-        const until=Date.now()+30000+Math.floor(Math.random()*5000);
+      deadline:current,
+      assert(){if(current()>Date.now())throw Object.assign(Error('resource-exhausted'),{code:'resource-exhausted',cooldown:true});},
+      record(error,delay){
+        if(!isQuota(error)||error.cooldown)return;
+        const previous=current();
+        if(delay===undefined&&previous)return;
+        const until=Math.max(previous,Date.now()+Math.min(delay??(30000+Math.floor(Math.random()*5000)),305000));
         cooldowns.set(key,until);
         try{window.localStorage.setItem(key,String(until));}catch(_){}
       }

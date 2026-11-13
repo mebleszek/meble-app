@@ -1,5 +1,15 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## P0 — przyrostowa synchronizacja Firestore, 13.11.2026
+
+Gałąź `fix/incremental-sync`, zdalny BASE/main `6099fa0fdd116582e9d1f8979db1cd12a3c46df4`. Odnowienie dostępu bez pobierania danych, odczyt głowy przed treścią, ponowne użycie sprawdzonych katalogów z IndexedDB, wspólny termin odroczenia Auth i synchronizacji oraz zachowanie CAS, outboxa i blokady edytora.
+
+- WSL i emulatory Auth/Firestore: trzy profile Chromium przyjęły 14 domen i zachowały starą rewizję. Próba 120 odnowień na profil dała łącznie 360 transakcji i odczytów dokumentu grantu, zero odczytów katalogów lub projektów, zero zapytań discovery i zero zapisów w instrumentowanej warstwie synchronizacji. Weryfikator logowania używa w tym scenariuszu osobnej syntetycznej atrapy SDK, więc liczby nie obejmują jego pracy, rozliczenia Rules ani ponownego podłączania listenerów.
+- Dwa profile Chromium: PASS wyjścia po zapisie offline, zamknięcia przeglądarki, odmowy przejęcia edytora przez telefon i odzyskania połączenia. Sprawdzono start projektu przypiętego do starszego katalogu po publikacji nowszego. Oddzielny test Chromium potwierdził odczyt historycznej repliki IndexedDB po restarcie.
+- Emulator: przerwanie zapisu między porcjami rekordów zachowało poprzednią głowę i jedną rewizję. Następna jawna publikacja wykorzystała zapisane rekordy i zwiększyła generację o jeden. Test celowany potwierdził trwałość wspólnego odroczenia, izolację UID/projektu i wygaśnięcie bez samoczynnego przedłużania przez blokowane wywołania.
+
+**CI_PENDING / RELEASE_BLOCKED.** Pełny Preflight, produkcja i test telefonu pozostają odrębnymi etapami. Bez PR, CI, wydania, operacji Firebase LIVE, zmian UI i kontraktu szafek.
+
 Historyczny stan pakietu P0 ostatnich poprawek WYCENY z **11.11.2026**; BASE/main `2968f7b952ed5a6b533aceede65cd0e2e2b6760a` potwierdzony zdalnie. Starsze pakiety mają własne datowane statusy. Starsze dowody wydań zachowują własne daty i SHA. To jedyne źródło aktualnego wykonania; ROADMAP = plan, AGENTS = zasady, istniejące raporty = szczegółowe dowody. Pełna poprzednia treść z datami/SHA/wynikami jest w [archiwum do 09.11](docs/archive/CURRENT_STATE_history_to_20261109.md); starsza w [archiwum do 30.10](docs/archive/CURRENT_STATE_history_to_20261030.md). Dawne FAIL, „otwarte PR” i CI_PENDING nie są automatycznie bieżącym statusem.
 
 ## Bieżący pakiet — Wyjdź i zimny start projektu, 13.11.2026

@@ -63,7 +63,7 @@ export async function createApplicationConnections({window:w,authSession,lease,r
   const guard=()=>{quota?.assert();syncGrant?.assert();w.__FC_MAIN_ACCESS__.assert();localAccess?.assert();currentLease.assert();
    if(session.identity().uid!==identity.uid||session.identity().epoch!==identity.epoch)fail('LF_AUTH_CHANGED');};
   const leaseView={uid:identity.uid,assert:()=>currentLease.assert(),isValid:()=>currentLease.isValid()};
-  const result={writer:{db:writerDb,auth:ctx.auth,session,lease:leaseView,firestore:f,assertAccess:guard},
+  const result={writer:{db:writerDb,auth:ctx.auth,session,lease:leaseView,firestore:f,assertAccess:guard,quota},
    reader:{db:readerDb,auth:readerAuth,session:secondary,lease:leaseView,firestore:f,assertAccess:guard},
    // On logout revoke the independent persisted SDK login too. Local IDB/outbox
    // is retained; an already-submitted RPC can still have an uncertain outcome.

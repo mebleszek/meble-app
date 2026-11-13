@@ -96,12 +96,25 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   assert.deepEqual((await getDoc(parent)).data(),saved);
   assert.equal((await getDoc(doc(owner,'users',uid,'globalData','current'))).data().revisionId,active.revisionId);
   const counters=()=>Promise.all(devices.map(d=>d.page.evaluate(()=>({...window.normalReadBudget}))));
+  await Promise.all(devices.map(d=>d.page.evaluate(()=>clearInterval(window.normalGrantTimer))));
   await Promise.all(devices.map(d=>d.page.waitForFunction(()=>!window.normalPendingRpc?.length)));
   const baseline=await counters();
-  await new Promise(resolve=>setTimeout(resolve,35000));
+  await Promise.all(devices.map(d=>d.page.evaluate(async()=>{
+   if(!window.normalGrantTick)throw Error('Missing real sync-grant interval');
+   for(let i=0;i<120;i++){
+    await window.normalGrantTick();
+    if(window.normalSdkErrors.length)throw Error(JSON.stringify(window.normalSdkErrors));
+   }
+  })));
   const idle=(await counters()).map((end,i)=>Object.fromEntries(Object.entries(end).map(([k,v])=>[k,v-(baseline[i][k]||0)])));
-  console.log('Three-profile 35s idle SDK counters: '+JSON.stringify(idle));
-  for(const count of idle){assert.equal(count.catalogRecords,0);assert.equal(count.writes,0);}
+  console.log('Three-profile 120 idle ticks SDK counters: '+JSON.stringify(idle));
+  for(const count of idle){
+   assert.equal(count.auth,120);
+   assert.equal(count.catalogs,0);
+   assert.equal(count.projects,0);
+   assert.equal(count.queries,0);
+   assert.equal(count.writes,0);
+  }
   return;
  }
  const phone=await device('phone');
@@ -129,8 +142,14 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
    const emulatorCatalogWitness=receiverWitness||JSON.parse(sessionStorage.getItem('synthetic-catalog-cutover')||'null');
    const config={name:'meble-lf-test-normal-'+name,async connections(input){
     try{const [app,auth,f]=await Promise.all([import('/__sdk/firebase-app.js'),import('/__sdk/firebase-auth.js'),import('/__sdk/firebase-firestore.js')]);
-    const budget=window.normalReadBudget??={documents:0,catalogRecords:0,transactions:0,attempts:0,queries:0,writes:0};
-    const countRead=ref=>{budget.documents++;if(ref.path.includes('/globalRecords/'))budget.catalogRecords++;};
+    const budget=window.normalReadBudget??={documents:0,catalogRecords:0,transactions:0,attempts:0,queries:0,writes:0,auth:0,catalogs:0,projects:0};
+    const countRead=ref=>{
+     budget.documents++;
+     if(/^(syncAccess|appAccess)\//.test(ref.path))budget.auth++;
+     if(/\/global(?:Data|Records|Revisions)\//.test(ref.path))budget.catalogs++;
+     if(ref.path.includes('/globalRecords/'))budget.catalogRecords++;
+     if(/\/localFirst(?:Projects|Editors)\//.test(ref.path))budget.projects++;
+    };
     const measured={...f,
      getDocFromServer(ref){countRead(ref);return f.getDocFromServer(ref);},
      async getDocsFromServer(query){budget.queries++;const rows=await f.getDocsFromServer(query);budget.documents+=rows.size;return rows;},
@@ -155,8 +174,16 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
      lease={uid,assert(){if(session.identity().uid!==uid)throw Error('LF_AUTH_CHANGED');},isValid:()=>true};
     }
     const {createApplicationConnections}=await import('/sync/application-connections.mjs');
-    const connections=await createApplicationConnections({window,authSession:session,lease,release:input.release,sdk:{app,auth,firestore:observed},
-      localAccess:{...input.localAccess,firebaseConfig:config,target:'emulator',emulator:{host:'127.0.0.1',port:19099,firestorePort:18080}}});
+    const setIntervalOriginal=window.setInterval;
+    if(catalogCutover)window.setInterval=(fn,ms,...args)=>{
+     const timer=setIntervalOriginal.call(window,fn,ms,...args);
+     if(ms===30000){window.normalGrantTick=fn;window.normalGrantTimer=timer;}
+     return timer;
+    };
+    let connections;
+    try{connections=await createApplicationConnections({window,authSession:session,lease,release:input.release,sdk:{app,auth,firestore:observed},
+      localAccess:{...input.localAccess,firebaseConfig:config,target:'emulator',emulator:{host:'127.0.0.1',port:19099,firestorePort:18080}}});}
+    finally{window.setInterval=setIntervalOriginal;}
     for(const conn of [connections.writer,connections.reader]){const assert=conn.assertAccess;conn.assertAccess=()=>{try{return assert();}catch(error){errors.push({method:'assertAccess',code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();throw error;}};}
     window.normalConnections=[connections.writer,connections.reader];window.normalConnectionEpoch=(window.normalConnectionEpoch||0)+1;
     return connections;
@@ -306,6 +333,18 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  assert.equal(await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid).title,pid),'Same-window offline');
  assert.equal(await computer.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list')),true,'Offline Exit commits locally');
  await computer.page.waitForFunction(()=>window.uiState.entry==='investorsList'&&!window.FC.applicationStartup.inspect().transactionPending);
+ if(deployment){
+  await phone.page.evaluate(()=>window.FC.applicationWrite.globals(()=>{
+   const rows=window.FC.catalogStore.getSheetMaterials();
+   rows.push({id:'cold-start-newer-catalog',name:'Cold start newer catalog',materialType:'synthetic',price:19,priceUnit:'sheet'});
+   if(!window.FC.catalogStore.savePriceList('materials',rows))throw Error('Catalog save refused');
+  }));
+  await until(async()=>{
+   const head=(await getDoc(doc(ownerClient,'users',uid,'globalData','current'))).data();
+   const project=(await getDoc(doc(ownerClient,'users',uid,'localFirstProjects',pid))).data();
+   return head.revisionId!==project.globalRevisionId;
+  });
+ }
  if(deployment)await computer.page.evaluate(()=>localStorage.removeItem('meble_application_authority_v1')); // Simulated cutover receipt ACK loss, source/image retained.
  const shutdown=await computer.browser.newBrowserCDPSession();await shutdown.send('Browser.close');
  const exited=await computer.owner.exited;assert.equal(exited.code,0);assert.equal(exited.signal,null);await computer.owner.close();
@@ -328,6 +367,12 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
 
  try{await computer.page.waitForFunction(()=>document.body.dataset.businessState==='ready');}catch(error){throw Error('Cold startup '+JSON.stringify(await computer.page.evaluate(()=>({state:document.body.dataset,runtime:window.FC.applicationStartup?.inspect(),authCalls:window.authCalls}))))}
  assert.equal(await computer.page.evaluate(pid=>window.FC.projectStore.getById(pid).title,pid),'Offline durable revision');
+ if(deployment){
+  const pinned=(await getDoc(doc(ownerClient,'users',uid,'localFirstProjects',pid))).data();
+  const latest=(await getDoc(doc(ownerClient,'users',uid,'globalData','current'))).data();
+  assert.notEqual(pinned.globalRevisionId,latest.revisionId);
+  assert.equal(await computer.page.evaluate(pid=>window.FC.projectStore.getById(pid).projectData.meta.assignedInvestorId,pid),ids[0]);
+ }
  assert.equal(await computer.page.evaluate(()=>window.FC.applicationStartup.inspect().state),'offline');
  assert.equal(await computer.page.evaluate(()=>window.authCalls),0);
  assert.equal(await computer.page.evaluate(()=>window.normalGoogleLogins||0),0);

@@ -27,6 +27,19 @@ test('Firestore cooldown survives reload and expires without affecting another U
  guard('demo-a','other').assert();
  now+=35000;
  guard('demo-a','owner').assert();
+ const quota=guard('demo-a','owner');
+ quota.record({code:'resource-exhausted'},300000);
+ now+=35000;
+ guard=load();
+ const reopened=guard('demo-a','owner');
+ assert.throws(()=>reopened.assert(),/resource-exhausted/);
+ const deadline=reopened.deadline();
+ try{reopened.assert();}catch(error){reopened.record(error,300000);}
+ assert.equal(reopened.deadline(),deadline);
+ guard('demo-b','owner').assert();
+ guard('demo-a','other').assert();
+ now=deadline;
+ reopened.assert();
  rows.set('meble-firestore-cooldown:demo-a:owner',String(now+86400000));
  guard=load();
  guard('demo-a','owner').assert();
