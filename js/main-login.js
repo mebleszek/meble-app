@@ -109,7 +109,11 @@
     const detail=(first?'Pierwszy błąd: '+first.stage+' / '+first.code+(code!==first.code?'; '+code:''):code)+aliasDetail;
     const globals=FC.globalDataDiagnostics?.format?.(diagnostic?.globalConsistency)||(diagnostic?.globalConsistency?'DANE GLOBALNE: BLOCKED / DIAG_READ_BLOCKED':'');
     const access=state.errorDiagnostic&&FC.cloudAccessVerifier?.sanitizeDiagnostic?.(state.errorDiagnostic);
-    const accessText=access?'\nDiagnostyka dostępu v1: faza='+access.phase+'; typ='+access.type+'; kod='+access.code+'; sieć='+(navigator.onLine===false?'offline':navigator.onLine===true?'online':'unknown'):'';
+    const accessText=access?'\nDiagnostyka dostępu v1: faza='+access.phase+'; typ='+access.type+'; kod='+access.code+'; sieć='+(navigator.onLine===false?'offline':navigator.onLine===true?'online':'unknown')
+      +(access.observedAt?'; czas='+access.observedAt:'')
+      +(typeof access.cooldown==='boolean'?'; cooldown='+access.cooldown:'')
+      +(access.httpStatus!==undefined?'; HTTP='+access.httpStatus:'')
+      +(access.grpcStatus!==undefined?'; gRPC='+access.grpcStatus:''):'';
     el('auth-error').hidden=state.status!=='error';el('auth-error').textContent=state.status==='error'?'Nie zmieniono danych. ('+detail+')'+(globals?'\n'+globals:'')+accessText:'';
     if(el('auth-recovery'))el('auth-recovery').hidden=!recoveryBinding||state.status!=='error';
   }

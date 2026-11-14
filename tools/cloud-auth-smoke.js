@@ -165,7 +165,9 @@ test('Access failure retains anonymous phase and SDK code without opening busine
  let opened=0;const gate=s.FC.authAccessGate.create(auth,{verifyAccess:verifier.verify,onAuthorized:()=>opened++});
  await tick();await tick();
  try{assert.equal(gate.state().status,'error');assert.equal(opened,0);
- assert.deepEqual(gate.state().errorDiagnostic,{phase:'server-read',type:'FirebaseError',code:'unavailable'});
+ const {observedAt,...diagnostic}=gate.state().errorDiagnostic;
+ assert.match(observedAt,/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+ assert.deepEqual(diagnostic,{phase:'server-read',type:'FirebaseError',code:'unavailable',cooldown:false});
  assert.equal(JSON.stringify(gate.state().errorDiagnostic).includes('private'),false);
  }finally{gate.close();await verifier.close();await auth.close();}
 });
@@ -183,9 +185,17 @@ test('Access diagnostic distinguishes context, Firestore initialization and tran
 test('Access diagnostic rejects arbitrary fields, codes, phases and names',()=>{
  const api=runtime().FC.cloudAccessVerifier;
  const error={code:'private-token',name:'private-email',message:'private-url'};
- assert.deepEqual(api.diagnostic(error,'private-phase'),{phase:'unknown',type:'UNKNOWN',code:'UNRECOGNIZED'});
+ const {observedAt:unknownTime,cooldown:unknownCooldown,...unknown}=api.diagnostic(error,'private-phase'); assert.equal(unknownCooldown,false); assert.ok(unknownTime); assert.deepEqual(unknown,{phase:'unknown',type:'UNKNOWN',code:'UNRECOGNIZED'});
  assert.deepEqual(api.sanitizeDiagnostic({phase:'server-read',type:'FirebaseError',code:'unavailable',uid:'private'}),{phase:'server-read',type:'FirebaseError',code:'unavailable'});
  assert.equal(api.diagnostic(Object.assign(new Error('AUTH_ACCESS_TIMEOUT'),{code:undefined})).code,'AUTH_ACCESS_TIMEOUT');
+});
+test('Access diagnostic distinguishes explicit RPC status from a local cooldown',()=>{
+ const api=runtime().FC.cloudAccessVerifier;
+ const rpc=api.diagnostic(Object.assign(Error('private resource'),{name:'FirebaseError',code:'resource-exhausted',httpStatus:429,grpcStatus:8}),'transaction');
+ assert.equal(rpc.cooldown,false);assert.equal(rpc.httpStatus,429);assert.equal(rpc.grpcStatus,8);
+ assert.equal(JSON.stringify(rpc).includes('private'),false);
+ const local=api.diagnostic(Object.assign(Error('resource-exhausted'),{code:'resource-exhausted',cooldown:true,httpStatus:'429',grpcStatus:90}),'context');
+ assert.equal(local.cooldown,true);assert.equal('httpStatus' in local,false);assert.equal('grpcStatus' in local,false);
 });
 async function main(){for(const [name,fn]of tests){await fn();console.log('PASS '+name);}console.log('Auth opt-in and prepared gate: '+tests.length+'/'+tests.length+' PASS');}
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});
