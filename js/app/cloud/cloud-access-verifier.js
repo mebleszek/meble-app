@@ -32,12 +32,24 @@
   const types=['Error','TypeError','FirebaseError','DOMException','AbortError','NetworkError','TimeoutError'];
   const codes=['unavailable','deadline-exceeded','failed-precondition','invalid-argument','unauthenticated','permission-denied','resource-exhausted','cancelled','internal','unknown','unimplemented','already-exists','not-found','data-loss','aborted','AUTH_ACCESS_TIMEOUT','AUTH_ACCESS_UNCONFIRMED'];
   function sanitizeDiagnostic(value){
-    return Object.freeze({phase:phases.includes(value?.phase)?value.phase:'unknown',type:types.includes(value?.type)?value.type:'UNKNOWN',code:codes.includes(value?.code)?value.code:'UNRECOGNIZED'});
+    const observedAt=value?.observedAt;
+    const status=value?.httpStatus,grpc=value?.grpcStatus;
+    return Object.freeze({
+      phase:phases.includes(value?.phase)?value.phase:'unknown',
+      type:types.includes(value?.type)?value.type:'UNKNOWN',
+      code:codes.includes(value?.code)?value.code:'UNRECOGNIZED',
+      ...(typeof observedAt==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(observedAt)?{observedAt}:{}),
+      ...(typeof value?.cooldown==='boolean'?{cooldown:value.cooldown}:{}),
+      ...(Number.isInteger(status)&&status>=100&&status<=599?{httpStatus:status}:{}),
+      ...(Number.isInteger(grpc)&&grpc>=0&&grpc<=16?{grpcStatus:grpc}:{})
+    });
   }
   function diagnostic(error,phase='verify'){
     if(error&&typeof error==='object'&&failures.has(error))return failures.get(error);
     const code=typeof error?.code==='string'?error.code.replace(/^firestore\//,''):codes.includes(error?.message)?error.message:null;
-    return sanitizeDiagnostic({phase,type:error?.name,code});
+    return sanitizeDiagnostic({phase,type:error?.name,code,
+      observedAt:new Date(Date.now()).toISOString().slice(0,19)+'Z',
+      cooldown:error?.cooldown===true,httpStatus:error?.httpStatus,grpcStatus:error?.grpcStatus});
   }
   function create(auth,{sdk}={}){
     let connection=null,closed=false;
