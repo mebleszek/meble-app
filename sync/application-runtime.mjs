@@ -47,13 +47,15 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   const idle=()=>authority.assertIdle({allowForm:true});
   const discovery=writer?createEmulatorProjectDiscovery({writer,reader,ownerUid,deviceId:store.deviceId,
    pilotContract:fc.cloudPilotContract,pilotFactory:fc.firebasePilotTransport,globalContract:c,projectContract:p,globals}):null;
-  sync=writer?createApplicationReplication({store,channels,globalContract:c,projectContract:p,eventTarget:w,quota:writer.quota,ownsChannels:true,
+  sync=writer?createApplicationReplication({store,channels,globalContract:c,projectContract:p,summarizeLocal:fc.projectModel?.summarizeProjectData,eventTarget:w,quota:writer.quota,ownsChannels:true,
    online:()=>authorityReady&&!closed&&w.navigator.onLine!==false,onState:state,discovery,
    incoming:next=>authority.incoming(next),refresh:()=>authority.refresh(),assertIdle:idle}):null;
   const local=createApplicationCommitter({store,globalContract:c,projectContract:p,localOnly,summarizeLocal:fc.projectModel?.summarizeProjectData,channel:scope=>JSON.parse(rows.fc_projects_v1||'[]').some(p=>p.id===scope)?{kind:'project'}:null});
+  const handovers=new Map();
   async function ensureEditor(scope=w.localStorage.getItem('fc_current_project_id_v1')){
    if(!scope)fail('LF_PROJECT_CHANNEL_REQUIRED');
    if(localOnly){const localRows=authority?authority.rows():(await store.readApplication()).rows;if(!JSON.parse(localRows.fc_projects_v1||'[]').some(p=>p.id===scope))fail('LF_PROJECT_CHANNEL_REQUIRED');return;}
+   await handovers.get(scope);
    const snap=await store.snapshot(scope);
    if(snap.replica?.editor?.active&&snap.replica.editor.deviceId===store.deviceId)return;
    if(!sync||w.navigator.onLine===false)fail('LF_OFFLINE_EDITOR_REQUIRED');
@@ -153,11 +155,20 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    const result=await sync.flush();if(!result.ok)fail(result.code);
    await sync.releaseEditor(scope);
   }
+  function releaseProjectEditor(scope){
+   if(!scope)return Promise.resolve();
+   let pending=handovers.get(scope);
+   if(!pending){
+    pending=handover(scope).finally(()=>handovers.delete(scope));
+    handovers.set(scope,pending);
+   }
+   return pending;
+  }
   function deferHandover(scope){
-   void handover(scope).catch(error=>state(safeError(error),error));
+   void releaseProjectEditor(scope).catch(error=>state(safeError(error),error));
   }
   if(writer){const result=await sync.flush();if(!result.ok)state(result);
-   if(!fc.session.active)for(const record of JSON.parse(authority.rows().fc_projects_v1||'[]'))await handover(record.id);
+   if(!fc.session.active)for(const record of JSON.parse(authority.rows().fc_projects_v1||'[]'))await releaseProjectEditor(record.id);
   }
   const notify=()=>{sync?.notify();sync?.discover?.();};w.addEventListener('online',notify);w.addEventListener('meble-sync-authorized',notify);
   const wakeReceive=()=>queueMicrotask(()=>{if(!incomingBlocked||closed)return;try{authority.assertIdle();incomingBlocked=false;sync?.notify();}catch(_){}});
@@ -181,14 +192,14 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     const wasClosed=closed;await sync?.close();writer=next.writer;reader=next.reader;authority.resume(ownerUid);closed=false;if(authority.status().incomingPending)await authority.refresh();
     globals=createGlobalChannel({writer,reader,ownerUid,contract:c,factory:fc.firebaseGlobalTransport,store});
     const channels=[globals,...JSON.parse(authority.rows().fc_projects_v1||'[]').map(channel)];
-    sync=createApplicationReplication({store,channels,globalContract:c,projectContract:p,eventTarget:w,quota:writer.quota,ownsChannels:true,online:()=>!closed&&w.navigator.onLine!==false,onState:state,
+    sync=createApplicationReplication({store,channels,globalContract:c,projectContract:p,summarizeLocal:fc.projectModel?.summarizeProjectData,eventTarget:w,quota:writer.quota,ownsChannels:true,online:()=>!closed&&w.navigator.onLine!==false,onState:state,
      discovery:createEmulatorProjectDiscovery({writer,reader,ownerUid,deviceId:store.deviceId,pilotContract:fc.cloudPilotContract,pilotFactory:fc.firebasePilotTransport,globalContract:c,projectContract:p,globals}),
      incoming:next=>authority.incoming(next),refresh:()=>authority.refresh(),assertIdle:idle});
     if(wasClosed)bind();notify();
     // Do not report a rebound runtime ready while the durable queue is still
     // resolving its previous generation's uncertain operation. Never retry WRITE.
     const result=await sync.flush();if(!result.ok){state(result);fail(result.code);}
-    if(!fc.session.active&&w.uiState.entry==='investorsList')for(const p of JSON.parse(authority.rows().fc_projects_v1||'[]')){if(fc.session.active||w.uiState.entry!=='investorsList')return;await handover(p.id);}
+    if(!fc.session.active&&w.uiState.entry==='investorsList')for(const p of JSON.parse(authority.rows().fc_projects_v1||'[]')){if(fc.session.active||w.uiState.entry!=='investorsList')return;await releaseProjectEditor(p.id);}
    },
    close(){closed=true;sync?.close();deletion?.close();boundary.close();authority.close();w.removeEventListener('online',notify);w.removeEventListener('meble-sync-authorized',notify);w.removeEventListener('click',wakeReceive,true);},
    async dispose(){closed=true;await sync?.close();deletion?.close();boundary?.close();authority?.close();store.close();await installation.release();}});

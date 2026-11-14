@@ -42,11 +42,26 @@
   }
 
   function persistProjectAndUi(){
-    if(ns.project && typeof ns.project.save === 'function') projectData = ns.project.save(projectData);
+    const previousError = ns.storage?.getLastWriteError?.();
+    const saved = ns.project.saveConfirmed(projectData,{draft:!!ns.applicationWrite});
+    if(!saved.ok){
+      const failure = ns.storage?.getLastWriteError?.();
+      if(failure !== previousError && failure?.error) throw failure.error;
+      throw Object.assign(Error('Zapis projektu niepotwierdzony'), {code:saved.code || 'LF_APPLICATION_SAVE_UNCONFIRMED'});
+    }
+    projectData = saved.project;
     if(ns.storage && typeof ns.storage.setJSON === 'function' && typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS && STORAGE_KEYS.ui){
-      ns.storage.setJSON(STORAGE_KEYS.ui, uiState);
+      if(!ns.storage.setJSON(STORAGE_KEYS.ui, uiState)) throw ns.storage.getLastWriteError?.()?.error || Error('LF_APPLICATION_SAVE_UNCONFIRMED');
     }
     return projectData;
+  }
+
+  function beginCabinetDraft(){
+    if(ns.session?.begin() === true) return true;
+    if(ns.applicationWrite && ns.session?.lastError?.code){
+      throw Object.assign(Error('Sesja edycji niepotwierdzona'), {code:ns.session.lastError.code});
+    }
+    return false;
   }
 
   function refreshDerivedFactsSafe(room, cabinet){
@@ -127,21 +142,15 @@
         return false;
       }
 
-      try{
-        if(!(ns.session && typeof ns.session.begin === 'function' && ns.session.begin() === true)) return false;
-      }catch(_){ return false; }
+      if(!beginCabinetDraft()) return false;
       projectData[room] = projectData[room] || { cabinets:[], fronts:[], sets:[], settings:{} };
       projectData[room].cabinets = Array.isArray(projectData[room].cabinets) ? projectData[room].cabinets : [];
 
       const beforeCount = (projectData[room].cabinets || []).length;
       if(isAddMode()) finalizeAddedCabinet(room, draft);
-      else finalizeEditedCabinet(room, draft, cabinetModalState && cabinetModalState.editingId);
+      else if(!finalizeEditedCabinet(room, draft, cabinetModalState && cabinetModalState.editingId)) return false;
 
       persistProjectAndUi();
-      if(typeof renderCabinetsFn === 'function'){
-        if(ns.applicationWrite?.localOnly) ns.applicationWrite.afterCommit(renderCabinetsFn);
-        else renderCabinetsFn();
-      }
 
       const afterCount = (projectData[room].cabinets || []).length;
       if(isAddMode() && afterCount <= beforeCount){
@@ -149,12 +158,16 @@
         return false;
       }
 
-      if(typeof closeFn === 'function'){
-        if(ns.applicationWrite?.localOnly) ns.applicationWrite.afterCommit(closeFn);
-        else closeFn();
-      }
+      const complete = ()=>{
+        ns.views?.refreshSessionButtons?.();
+        if(typeof renderCabinetsFn === 'function') renderCabinetsFn();
+        if(typeof closeFn === 'function') closeFn();
+      };
+      if(ns.applicationWrite) ns.applicationWrite.afterCommit(complete);
+      else complete();
       return true;
     }catch(err){
+      if(ns.applicationWrite) throw err;
       try{ console.error('Błąd zapisu szafki:', err); }catch(_){ }
       if(typeof showInfo === 'function') showInfo('Błąd podczas zapisu', 'Sprawdź konsolę. Modal pozostaje otwarty.');
       return false;
@@ -171,7 +184,7 @@
       const setApi = getSetWizardApi();
       const inSetMode = !!(setApi && typeof setApi.isSetModeActive === 'function' && setApi.isSetModeActive());
       if(inSetMode){
-        if(setApi && typeof setApi.handleTopSaveClick === 'function') return setApi.handleTopSaveClick(e);
+        return setApi.saveSetDraft();
         return true;
       }
       return saveRegularCabinetDraft(ctx);
@@ -184,12 +197,27 @@
     const btn = document.getElementById('cabinetModalSave');
     if(!btn) return null;
     const save = function(e){ return handleTopSaveClick(e, ctx || {}); };
-    btn.onclick = ns.applicationWrite?.localOnly ? ns.applicationWrite.projectHandler(save) : save;
+    btn.onclick = async function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      if(btn.disabled) return false;
+      const cancel = document.getElementById('cabinetModalCancel');
+      const cancelDisabled = cancel?.disabled;
+      btn.disabled = true;
+      if(cancel) cancel.disabled = true;
+      try{
+        return await (ns.applicationWrite ? ns.applicationWrite.draftHandler(save)(e) : save(e));
+      }finally{
+        btn.disabled = false;
+        if(cancel) cancel.disabled = cancelDisabled;
+      }
+    };
     return btn;
   }
 
   ns.cabinetModalFinalize = {
     persistProjectAndUi,
+    beginCabinetDraft,
     refreshDerivedFactsSafe,
     finalizeAddedCabinet,
     finalizeEditedCabinet,

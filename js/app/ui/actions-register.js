@@ -142,7 +142,7 @@
     'price-item-delete': ({event}) => { try{ if(window.FC && FC.priceModal && typeof FC.priceModal.deleteActivePriceItem === 'function') return FC.priceModal.deleteActivePriceItem(); }catch(_){ } return true; },
     'close-cabinet': ({event}) => { closeCabinetModal(); return true; },
     'cancel-cabinet': ({event}) => { closeCabinetModal(); return true; },
-    'create-set': ({event}) => { createOrUpdateSetFromWizard(); return true; },
+    'create-set': () => createOrUpdateSetFromWizard(),
     'open-room-settings': ({event}) => {
       try{
         if(window.FC && window.FC.wywiadRoomSettings && typeof window.FC.wywiadRoomSettings.open === 'function') return !!window.FC.wywiadRoomSettings.open();

@@ -1,6 +1,10 @@
 // Optional activated composition only. No SDK or data access during import.
 (function(){
  'use strict';const FC=window.FC=window.FC||{};let binding=null;
+ const codeOf=error=>{
+  const code=error?.code || error?.message;
+  return /^(LF_|SESSION_|GLOBAL_|CLOUD_)[A-Z_]+$/.test(code||'') ? code : 'LF_APPLICATION_UNCONFIRMED';
+ };
  FC.applicationSyncActions={
   installed:()=>!!binding,
   install(controller){
@@ -10,14 +14,14 @@
   save(saveLocal){
    if(!binding)return saveLocal();
    return binding.save({operationId:crypto.randomUUID(),saveLocal}).catch(error=>{
-    FC.infoBox?.open({title:'Synchronizacja wstrzymana',message:'Zachowano lokalne dane. Nie potwierdzono kolejki synchronizacji. Nie ponawiaj niepewnego zapisu.',okOnly:true});
-    return {ok:false,code:/^LF_[A-Z_]+$/.test(error?.code||'')?error.code:'LF_APPLICATION_UNCONFIRMED'};
+    FC.infoBox?.open({title:'Synchronizacja wstrzymana',message:'Zachowano lokalne dane. Nie potwierdzono kolejki synchronizacji. Sesja pozostała dostępna. '+codeOf(error),okOnly:true});
+    return {ok:false,code:codeOf(error)};
    });
   },
   cancel(cancelLocal){
    if(!binding?.cancel)return cancelLocal();
-   return binding.cancel({cancelLocal}).catch(()=>{
-    FC.infoBox?.open({title:'Anulowanie niepotwierdzone',message:'Zachowano lokalne dane i sesję. Nie potwierdzono trwałego zakończenia anulowania.',okOnly:true});
+   return binding.cancel({cancelLocal}).catch(error=>{
+    FC.infoBox?.open({title:'Anulowanie niepotwierdzone',message:'Zachowano lokalne dane i sesję. Nie potwierdzono trwałego zakończenia anulowania. '+codeOf(error),okOnly:true});
     return false;
    });
   },

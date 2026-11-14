@@ -518,21 +518,6 @@
       (setArea && setArea.style.display === 'block'));
   }
 
-  function handleTopSaveClick(e){
-    try{
-      if(window.FC && FC.actions && typeof FC.actions.dispatch === 'function'){
-        FC.actions.dispatch('create-set', { event: e, element: document.getElementById('setWizardCreate') || null, target: e && e.target });
-      } else {
-        createOrUpdateSetFromWizard();
-      }
-    } catch(err){
-      try{ console.error(err); }catch(_){ }
-      showCabinetInfo('Błąd zapisu zestawu', String(err && (err.message || err) ? (err.message || err) : 'nieznany błąd'));
-    } finally {
-      try { if(e && e.target && e.target.blur) e.target.blur(); } catch(_){ }
-    }
-    return true;
-  }
 
   function createFrontsForSet(room, presetId, frontCount, frontMaterial, frontColor, dims, setId, setNumber, frontSource){
     frontCount = Number(frontCount || 1);
@@ -709,10 +694,14 @@
   }
 
   function createOrUpdateSetFromWizard(){
+    return ns.applicationWrite ? ns.applicationWrite.draftHandler(saveSetDraft)() : saveSetDraft();
+  }
+
+  function saveSetDraft(){
     try{
       const state = (window.FC && FC.uiState && typeof FC.uiState.get === 'function') ? FC.uiState.get() : (typeof uiState !== 'undefined' ? uiState : {});
       const room = state.roomType || (uiState && uiState.roomType);
-      if(!room){ showCabinetInfo('Brak pomieszczenia', 'Wybierz pomieszczenie.'); return; }
+      if(!room){ showCabinetInfo('Brak pomieszczenia', 'Wybierz pomieszczenie.'); return false; }
 
       const presetId =
         ((typeof cabinetModalState !== 'undefined' && cabinetModalState && cabinetModalState.setPreset) ? cabinetModalState.setPreset : null)
@@ -722,7 +711,7 @@
 
       if(!presetId){
         showCabinetInfo('Brak zestawu', 'Wybierz zestaw.');
-        return;
+        return false;
       }
 
       if(typeof cabinetModalState !== 'undefined' && cabinetModalState){
@@ -730,7 +719,7 @@
       }
 
       const params = getSetParamsFromUI(presetId);
-      if(!params){ showCabinetInfo('Brak parametrów', 'Brak parametrów zestawu.'); return; }
+      if(!params){ showCabinetInfo('Brak parametrów', 'Brak parametrów zestawu.'); return false; }
 
       const cntEl = document.getElementById('setFrontCount');
       const matEl = document.getElementById('setFrontMaterial');
@@ -740,7 +729,7 @@
       const openingEl = document.getElementById('setOpeningSystem');
       if(!cntEl || !matEl || !colEl || !bodyEl || !backEl || !openingEl){
         showCabinetInfo('Brak pól zestawu', 'Brak pól zestawu (korpus / plecy / otwieranie / fronty). Wybierz preset i spróbuj ponownie.');
-        return;
+        return false;
       }
 
       const setMaterials = getSetMaterialSpecFromUI(room);
@@ -753,9 +742,8 @@
       const frontColor = resolvedFront.color || customFrontColor || '';
       const serializedFrontSource = serializeSetFrontSource(resolvedFront, frontSourceSpec);
 
-      try{
-        if(!(ns.session && typeof ns.session.begin === 'function' && ns.session.begin() === true)) return false;
-      }catch(_){ return false; }
+      const finalize = ns.cabinetModalFinalize;
+      if(!finalize.beginCabinetDraft()) return false;
       projectData[room] = projectData[room] || { cabinets:[], settings:{} };
       projectData[room].cabinets = Array.isArray(projectData[room].cabinets) ? projectData[room].cabinets : [];
       projectData[room].sets = Array.isArray(projectData[room].sets) ? projectData[room].sets : [];
@@ -772,10 +760,11 @@
       }
 
       const base = makeDefaultCabinetDraftForRoom(room) || {};
+      const priorMembers = isEdit ? projectData[room].cabinets.filter(cab=>cab.setId===setId) : [];
 
       function finalizeCab(cab){
         const out = cab || {};
-        out.id = out.id || uidSafe();
+        out.id = priorMembers.find(cab=>cab.setRole===out.setRole)?.id || uidSafe();
         if(!out.details) out.details = cloneSafe(base.details || {});
         out.bodyColor = setMaterials.bodyColor || out.bodyColor || base.bodyColor;
         out.frontMaterial = frontMaterial || out.frontMaterial || base.frontMaterial || 'laminat';
@@ -839,12 +828,13 @@
         projectData[room].sets.push(setRecord);
       }
 
-      projectData = FC.project.save(projectData);
-      FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
-
-      closeCabinetModalSafe();
-      renderCabinetsSafe();
+      finalize.persistProjectAndUi();
+      const complete = ()=>{ ns.views?.refreshSessionButtons?.(); closeCabinetModalSafe(); renderCabinetsSafe(); };
+      if(ns.applicationWrite) ns.applicationWrite.afterCommit(complete);
+      else complete();
+      return true;
     }catch(e){
+      if(ns.applicationWrite) throw e;
       showCabinetInfo('Błąd przy dodawaniu zestawu', String(e && e.message ? e.message : e));
       throw e;
     }
@@ -857,10 +847,10 @@
     wireSetParamsLiveUpdate,
     renderSetWizardMode,
     isSetModeActive,
-    handleTopSaveClick,
     getSetParamsFromUI,
     fillSetParamsUIFromSet,
     getNextSetNumber,
     createOrUpdateSetFromWizard,
+    saveSetDraft,
   };
 })();

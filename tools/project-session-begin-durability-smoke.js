@@ -79,7 +79,7 @@ function runtime(rows, seed = true){
     'js/app/project/project-model.js', 'js/app/project/project-store.js', 'js/app/project/project-bridge.js',
     'js/app/investor/investor-project-repository.js', 'js/app/investor/investor-project-runtime.js',
     'js/app/investor/session.js', 'js/app/investor/investor-project-patches.js',
-    'js/app/investor/project-autosave.js', 'js/app/cabinet/cabinet-actions.js',
+    'js/app/investor/project-autosave.js', 'js/app/cabinet/cabinet-actions.js', 'js/app/cabinet/cabinet-modal-finalize.js',
     'js/app/material/material-part-options.js', 'js/app/material/material-edge-store.js',
   ]) vm.runInContext(fs.readFileSync(path.join(ROOT, file), 'utf8'), sandbox, { filename:file });
   const FC = sandbox.FC;
@@ -205,15 +205,20 @@ async function cabinetDeleteBlocked(){
 async function localCabinetDelete(){
   const r = runtime();
   const completions = [];
+  const room=r.sandbox.projectData.room;
+  room.layout={segments:[{rows:{base:[{kind:'cabinet',id:'cabinet'},{kind:'gap',id:'keep'}]}}]};
+  room.production={partOverrides:{cabinet:{'body.side.left':{edges:{w1:true}}}},cabinetGroupOverrides:{cabinet:{}}};
   r.FC.applicationWrite = {
     localOnly:true,
-    projectHandler:fn=>()=>fn(),
+    draftHandler:fn=>()=>fn(),
     afterCommit:fn=>completions.push(fn),
   };
   assert.equal(await r.FC.cabinetActions.deleteCabinetById('cabinet'), true);
   assert.equal(r.session.durable, true);
   assert.equal(r.FC.projectStore.getById('A').projectData.room.cabinets.length, 0);
   assert.equal(r.ui.frontRemovals, 1);
+  assert.deepEqual(clone(r.sandbox.projectData.room.layout.segments[0].rows.base),[{kind:'gap',id:'keep'}]);
+  assert.equal(r.sandbox.projectData.room.production?.partOverrides?.cabinet,undefined);
   assert.equal(r.ui.refreshes, 0);
   completions[0]();
   assert.equal(r.ui.refreshes, 1);

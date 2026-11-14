@@ -176,7 +176,7 @@
       if(before && projectStore && typeof projectStore.upsert === 'function'){
         const nextRecord = Object.assign({}, before, summary, {
           projectData:projectToWrite,
-          updatedAt:Date.now(),
+          updatedAt:options?.draft ? before.updatedAt : Date.now(),
         });
         // Optional optimistic guard for domain setters; legacy save callers keep their contract.
         saved = conditional ? projectStore.updateRecordConfirmed(nextRecord, options.expectedRecord) : projectStore.upsert(nextRecord);

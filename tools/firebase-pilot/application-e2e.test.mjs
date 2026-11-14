@@ -24,7 +24,7 @@ export async function runApplicationE2E(t){
   if(!file.startsWith(root+path.sep))throw Error();res.setHeader('content-type',file.endsWith('.html')?'text/html':file.endsWith('.css')?'text/css':/\.(js|mjs)$/.test(file)?'text/javascript':file.endsWith('.svg')?'image/svg+xml':file.endsWith('.jpg')?'image/jpeg':'application/octet-stream');res.end(fs.readFileSync(file));}catch(_){res.writeHead(404);res.end();}});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const origin='http://127.0.0.1:'+server.address().port;
  t.after(async()=>{for(const d of devices){d.sync?.close();await d.browser?.close();await d.owner?.close();}for(const c of clients)await c.transport.close();await env.cleanup();await new Promise(r=>server.close(r));fs.rmSync(dir,{recursive:true,force:true});});
- async function client(sdk=f,foreign=false){const r=runtime();for(const file of ['project/business-project-contract','cloud/cloud-pilot-contract','cloud/firebase-pilot-transport'])new Function('window',fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8'))(r.s);
+ async function client(sdk=f,foreign=false){const r=runtime();r.load('js/app/shared/schema.js');r.load('js/app/project/project-model.js');for(const file of ['project/business-project-contract','cloud/cloud-pilot-contract','cloud/firebase-pilot-transport'])new Function('window',fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8'))(r.s);
   const h=await r.FC.firebasePilotTransport.create({target:'emulator',projectId:'demo-meble-app',appName:'e2e-'+(++serial),emulator:{host:'127.0.0.1',authPort:19099,firestorePort:18080},sdk:{app,auth,firestore:f}});clients.push(h);
   const payload=Buffer.from(JSON.stringify({sub:foreign?'synthetic-foreign-e2e':'synthetic-application-e2e',email:foreign?'foreign@example.invalid':'application@example.invalid',email_verified:true})).toString('base64url');
   await auth.signInWithCredential(h.auth,auth.GoogleAuthProvider.credential('e30.'+payload+'.'));await h.transport.ready();
@@ -94,7 +94,8 @@ export async function runApplicationE2E(t){
    window.FC.applicationSyncActions.install(createApplicationActionBinding({window,authority:window.applicationAuthority,onClose:()=>{void window.__closeApplicationSync();}}));
   },{binding:d.binding,connection:{db:{_databaseId:{projectId:'demo-meble-app',database:'(default)'},_settings:{host:'127.0.0.1:18080',ssl:false}},auth:{emulatorConfig:{host:'127.0.0.1',port:19099,protocol:'http'}}}});d.authority=true;await d.sync.close();
   const discovery=createEmulatorProjectDiscovery({writer:d.writer.connection,reader:d.reader.connection,ownerUid:d.writer.uid,deviceId:d.binding.deviceId,pilotContract:d.writer.r.FC.cloudPilotContract,pilotFactory:d.writer.r.FC.firebasePilotTransport,globalContract:d.writer.r.FC.globalDataContract,projectContract:d.writer.r.FC.businessProjectContract,globals:d.g});
-  d.sync=createApplicationReplication({discovery,store:d.store,channels:d.channels,globalContract:d.writer.r.FC.globalDataContract,projectContract:d.writer.r.FC.businessProjectContract,
+  const summarizeLocal=d.writer.r.FC.projectModel.summarizeProjectData;
+  d.sync=createApplicationReplication({discovery,summarizeLocal,store:d.store,channels:d.channels,globalContract:d.writer.r.FC.globalDataContract,projectContract:d.writer.r.FC.businessProjectContract,
    eventTarget:d.events,online:()=>d.online,onState:state=>(d.states??=[]).push(state),incoming:rows=>applicationRPC(d,'incoming',rows),
    assertIdle:()=>applicationRPC(d,'assertIdle'),refresh:()=>applicationRPC(d,'refresh')});
  }
