@@ -277,16 +277,16 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  const approved=await computer.page.evaluate(()=>localStorage.getItem('fc_projects_v1'));
  const projectHead=doc(ownerClient,'users',uid,'localFirstProjects',pid);
  const beforeDraftHead=(await getDoc(projectHead)).data();
- const readDraft=()=>computer.page.evaluate(async({name,pid,room})=>{
+ const readDraft=(full=false)=>computer.page.evaluate(async({name,pid,room,full})=>{
   const request=indexedDB.open('meble-lf-test-normal-'+name);
   const db=await new Promise((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);request.onupgradeneeded=()=>request.transaction.abort();});
   try{return await new Promise((resolve,reject)=>{
    const tx=db.transaction(['control','outbox'],'readonly');
    const image=tx.objectStore('control').get('application'),outbox=tx.objectStore('outbox').getAll();
    tx.onabort=()=>reject(tx.error);
-   tx.oncomplete=()=>{const rows=image.result.rows;resolve({draft:JSON.parse(rows.fc_edit_session_v1),cabinets:JSON.parse(rows.fc_projects_v1).find(p=>p.id===pid).projectData[room].cabinets,outbox:outbox.result.filter(row=>row.scope===pid)});};
+   tx.oncomplete=()=>{const rows=image.result.rows;if(full){resolve({rows,outbox:outbox.result});return;}resolve({draft:JSON.parse(rows.fc_edit_session_v1),cabinets:JSON.parse(rows.fc_projects_v1).find(p=>p.id===pid).projectData[room].cabinets,outbox:outbox.result.filter(row=>row.scope===pid)});};
   });}finally{db.close();}
- },{name:computer.name,pid,room});
+ },{name:computer.name,pid,room,full});
  const beforeDraft=await readDraft();
  const waitForCabinetAck=async()=>{
   await computer.page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
@@ -381,6 +381,49 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  await computer.page.locator('.info-box .is-success').click();
  await computer.page.click('#sessionCancel');await computer.page.waitForFunction(()=>!window.FC.session.active&&window.uiState.entry==='investorsList'&&!window.FC.applicationStartup.inspect().transactionPending);
  assert.equal(await computer.page.evaluate(id=>window.FC.actions.dispatch('open-investor',{element:{getAttribute:()=>id}}),ids[0]),true);
+ if(deployment){
+  await touch(computer,'.investor-room-quick-btn[data-room="'+room+'"]');
+  await computer.page.waitForFunction(()=>window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending);
+  const approved=await readDraft(true);
+  await editCabinet('normal-cabinet',68);
+  const dirty=await readDraft(true);
+  const originalGeneration=(await getDoc(projectHead)).data();
+  const globalHead=doc(ownerClient,'users',uid,'globalData','current');
+  const oldHead=(await getDoc(globalHead)).data();
+  const id='receive-after-room-exit';
+  await phone.page.evaluate(id=>window.FC.applicationWrite.globals(()=>{
+   const key='fc_sheet_materials_v1';
+   const rows=window.FC.storage.getJSON(key);
+   rows.push({id,name:id,materialType:'synthetic',price:23,priceUnit:'sheet'});
+   if(!window.FC.storage.setJSON(key,rows))throw Error('Fixture catalog write refused');
+  }),id);
+  await until(async()=>(await getDoc(globalHead)).data().generation===oldHead.generation+1);
+  const published=(await getDoc(globalHead)).data();
+  const hasCatalog=()=>computer.page.evaluate(id=>window.FC.catalogStore.getSheetMaterials().some(row=>row.id===id&&row.price===23),id);
+  await computer.page.waitForFunction(()=>window.FC.applicationStartup.inspect().states.some(state=>state.code==='LF_ACTIVE_RAM_PROTECTED'));
+  assert.equal(await hasCatalog(),false);
+  assert.deepEqual(await readDraft(true),dirty);
+  assert.equal(await computer.page.locator('#sessionCancel').textContent(),'Anuluj');
+  await computer.page.click('#sessionCancel');
+  await computer.page.locator('.confirm-box .is-danger').click();
+  await computer.page.waitForFunction(()=>window.FC.session.active&&window.FC.session.durable&&document.getElementById('sessionCancel').textContent==='Wyjdź'&&!window.FC.applicationStartup.inspect().transactionPending);
+  const cancelled=await readDraft(true);
+  assert.equal(cancelled.rows.fc_projects_v1,approved.rows.fc_projects_v1);
+  assert.equal(cancelled.rows.fc_sheet_materials_v1,approved.rows.fc_sheet_materials_v1);
+  assert.deepEqual(cancelled.outbox,approved.outbox);
+  assert.equal(await hasCatalog(),false);
+  await computer.page.click('#sessionCancel');
+  await computer.page.waitForFunction(()=>!window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending);
+  await until(hasCatalog);
+  const received=await readDraft(true);
+  assert.ok(JSON.parse(received.rows.fc_sheet_materials_v1).some(row=>row.id===id&&row.price===23));
+  for(const key of ['fc_projects_v1','fc_investors_v1','fc_quote_snapshots_v1'])assert.equal(received.rows[key],approved.rows[key],key);
+  assert.deepEqual(received.outbox,approved.outbox);
+  assert.deepEqual((await getDoc(globalHead)).data(),published);
+  assert.deepEqual((await getDoc(projectHead)).data(),originalGeneration);
+  t.diagnostic('P0-A: active RAM refused catalog receive; Anuluj restored data; Wyjdź applied catalogs automatically without publication');
+  assert.equal(await computer.page.evaluate(id=>window.FC.actions.dispatch('open-investor',{element:{getAttribute:()=>id}}),ids[0]),true);
+ }
  const drawing=async d=>d.page.evaluate(({pid,room})=>window.FC.cabinetCutlist.getCabinetCutList(window.FC.projectStore.getById(pid).projectData[room].cabinets[0],room),{pid,room});
  assert.deepEqual(await drawing(phone),await drawing(computer));
  for(const d of [phone,computer]){
@@ -395,7 +438,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  await phone.page.evaluate(()=>window.FC.applicationWrite.globals(()=>{const rows=window.FC.storage.getJSON('fc_quote_rates_v1');rows[0].price=47.125;if(!window.FC.storage.setJSON('fc_quote_rates_v1',rows))throw Error('Price refused');}));
  await until(async()=>await computer.page.evaluate(()=>window.FC.storage.getJSON('fc_quote_rates_v1')[0].price===47.125&&window.FC.catalogStore.getQuoteRates()[0].price===47.125));
  for(const d of [phone,computer])assert.equal(await d.page.evaluate(()=>localStorage.getItem('fc_quote_rates_v1')===localStorage.getItem('fc_services_v1')),true);
- const expectedCatalogs=structuredClone(catalogs);expectedCatalogs.stock[0].qty=29;expectedCatalogs.labor[0].price=47.125;
+ const expectedCatalogs=structuredClone(catalogs);if(deployment)expectedCatalogs.materials.push({id:'receive-after-room-exit',name:'receive-after-room-exit',materialType:'synthetic',price:23,priceUnit:'sheet'});expectedCatalogs.stock[0].qty=29;expectedCatalogs.labor[0].price=47.125;
  for(const d of [phone,computer])assert.equal(await d.page.evaluate(()=>window.FC.catalogStore.getQuoteRates()[0].price),47.125,'Live catalog reader refreshed');
  for(const d of [phone,computer])assert.deepEqual(await d.page.evaluate(()=>window.FC.globalDataContract.capture(localStorage,Object.keys(window.FC.globalDataContract.schemas)).model),expectedCatalogs,'Every value in all fourteen domains, not just their presence');
  assert.deepEqual(await computer.page.evaluate(pid=>window.FC.projectStore.getById(pid),pid),await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid),pid),'Whole owned record, stable identifiers and unknown fields');
@@ -492,11 +535,15 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  await computer.page.locator('.confirm-box .is-danger').click();
  await computer.page.waitForFunction(()=>window.projectData[window.uiState.roomType].cabinets[0].width===65&&!window.FC.applicationStartup.inspect().transactionPending);
  assert.deepEqual((await readDraft()).outbox,restartDraft.outbox);
+ // Cancel reopens a clean room. Exit it before receiving newer remote catalogs.
+ await computer.page.click('#sessionCancel');
+ await computer.page.waitForFunction(()=>!window.FC.session.active&&window.uiState.entry==='investorsList'&&!window.FC.applicationStartup.inspect().transactionPending);
+ assert.deepEqual((await readDraft()).outbox,restartDraft.outbox);
  assert.equal(await computer.page.evaluate(()=>window.authCalls),0);
  assert.equal(await computer.page.evaluate(()=>window.normalGoogleLogins||0),0);
  await offlineCDP.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});await offlineCDP.send('Network.overrideNetworkState',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});await offlineCDP.detach();
  await context.setOffline(false);
- await computer.page.waitForFunction(()=>window.normalConnectionEpoch>0&&window.FC.applicationStartup.inspect().stage==='ready');
+ await computer.page.waitForFunction(()=>window.normalConnectionEpoch>0&&window.FC.applicationStartup.inspect().stage==='ready').catch(async error=>{throw Error(error.message+' '+JSON.stringify(await computer.page.evaluate(()=>({online:navigator.onLine,state:window.FC.applicationStartup.inspect(),connectionError:window.normalConnectionError,pendingRpc:window.normalPendingRpc,sdkErrors:window.normalSdkErrors}))));});
  await until(async()=>await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid)?.title,pid)==='Offline durable revision');
  assert.equal(await computer.page.evaluate(()=>window.normalGoogleLogins||0),0,'Reconnect restores the approved SDK session, without a Google popup');
  if(deployment){
