@@ -1,5 +1,13 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## P0-A — trwałe szkice szafek
+
+14.11.2026 • `fix/p0a-durable-cabinet-drafts` • BASE/main `909bf8ce1f5ccd41c0420f3303fad5386ca76b25` • HEAD implementacji `0a8969f00a12e7f1aafafef4a96dd40ada078807`. [Zatwierdzony plan LOCAL-FIRST](docs/plans/LOCAL_FIRST_ROADMAP.md).
+
+- **PASS localOnly na HEAD implementacji:** 17 wariantów, zestawy A/C/D, przerwanie transakcji, restart szkicu, Anuluj, usunięcie.
+- **PASS Chromium + Auth/Firestore Emulator DEMO, scenariusze osiągnięte:** odczyt IndexedDB po dodaniu, edycji offline i usunięciu, brak nowych wpisów outboxa podczas szkicu, kod `LF_IDB_ABORTED` i zachowany formularz, Anuluj, dokładnie jedna operacja po głównym Zapisz, ACK tej samej operacji i zwiększenie generacji Firestore o jeden. BASE i pierwotny HEAD wcześniej czekały na `runTransaction` podczas startu. Auth 19099 i Firestore 18080 odpowiadały, celowe wstrzymanie starego czytnika należy do późniejszego scenariusza. Przyczyna pierwotnego oczekiwania pozostaje niepotwierdzona.
+- **PASS pełnego scenariusza dwóch profili Chromium + Emulator DEMO (1/1):** dodatkowo zimny restart offline odzyskał dokładny szkic i outbox, Anuluj po restarcie przywrócił poprzednią szafkę, a drugi edytor dostał odmowę CAS. W teście wygenerowano brakujące fronty danych syntetycznych, wykonano zaufanie przed próbami offline i ustawiono offline na całym kontekście przeglądarki. Następny krok: niezależna weryfikacja pakietu. Wariant podpisanej konfiguracji DEMO zatrzymał się na zaufaniu przed poprawką kolejności; pełnego wyniku tego wariantu po poprawkach jeszcze brak.
+
 ## P0 — przyrostowa synchronizacja Firestore, 13.11.2026
 
 PR #136, Preflight [43493997569](https://github.com/mebleszek/meble-app/actions/runs/43493997569), HEAD `34aa23315a53fc4ec4fd019c39b5b869c81a0375`: FAIL shardów 4, 5 i Firebase 3. Naprawy i wyniki celowane opisano w [raporcie PR #136](tools/reports/pr136-preflight-recovery.md). **CI_PENDING / RELEASE_BLOCKED** dla poprawionej gałęzi.

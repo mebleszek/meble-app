@@ -29,7 +29,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  const catalogs=model();for(const ref of ['laminat TEST','laminat','TEST','HDF'])if(!catalogs.materials.some(r=>[r.id,r.name,r.materialType].includes(ref)))catalogs.materials.push({id:'normal-material-'+catalogs.materials.length,name:ref,materialType:'synthetic',price:12.375,priceUnit:'sheet'});
  const sources=runtime().FC.globalDataContract.sources;
  let releaseSlot=null;if(deployment){const keys=await crypto.subtle.generateKey('Ed25519',true,['sign','verify']),publicKeySpki=new Uint8Array(await crypto.subtle.exportKey('spki',keys.publicKey));const {canonical,digest}=await import('../../sync/local-first-values.mjs');const decision={domain:'MEBLE_APPLICATION_DEPLOYMENT_V1',protocol:2,projectId:'demo-meble-app',database:'(default)',profile:'business-project-v1',globalDomains:14,ownerUid:uid,activationId:'synthetic-deployment',origin:origin+'/',migrationApproved:true,sourcePreserved:true,rulesApproved:true,rulesSha256:await digest(rules)};releaseSlot={envelope:{decision,publicKeySpki:[...publicKeySpki],signature:[...new Uint8Array(await crypto.subtle.sign('Ed25519',keys.privateKey,new TextEncoder().encode(canonical(decision))))]},trustedKeySha256:Buffer.from(await crypto.subtle.digest('SHA-256',publicKeySpki)).toString('hex')};}
- async function login(d){await d.page.evaluate(()=>window.normalReleaseReady);await d.page.click('#auth-google');try{await d.page.waitForFunction(()=>['ready'].includes(document.body.dataset.businessState)||['profile-pending','error'].includes(document.body.dataset.authState));}catch(error){throw Error('Login phase '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,phase:window.FC.applicationStartup?.inspect(),connectionError:window.normalConnectionError,rpc:window.normalRpcTimeline,pendingRpc:window.normalPendingRpc}))));}
+ async function login(d){await d.page.evaluate(()=>window.normalReleaseReady);await d.page.click('#auth-google');try{await d.page.waitForFunction(()=>['ready'].includes(document.body.dataset.businessState)||['profile-pending','error'].includes(document.body.dataset.authState));}catch(error){throw Error('Login phase '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,phase:window.FC.applicationStartup?.inspect(),connectionError:window.normalConnectionError,rpc:window.normalRpcTimeline,pendingRpc:window.normalPendingRpc,sdkErrors:window.normalSdkErrors,held:window.normalHeldRead===true}))));}
   if(await d.page.evaluate(()=>document.body.dataset.authState==='error'))throw Error('Normal startup refused '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,error:document.getElementById('auth-error')?.textContent}))));
   if(await d.page.locator('#auth-profile-admission').isVisible()){await d.page.check('#auth-profile-backup');await d.page.check('#auth-profile-owner');await d.page.click('#auth-profile-confirm');}
   try{await d.page.waitForFunction(()=>document.body.dataset.businessState==='ready');}catch(error){throw Error(error.message+' '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,error:document.getElementById('auth-error')?.textContent,app:document.getElementById('app-error-msg')?.textContent}))));}}
@@ -129,7 +129,9 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   const made=fc.roomRegistry._debug.createRoomRecord(fc.investors.getById(iid),{baseType:'kuchnia',name:'Normal kitchen'});if(!made.ok)throw Error('Fixture room refused');
   const row=fc.projectStore.getById(pid);row.projectData.meta.futureOwnedField={exact:7.125};
   row.projectData[made.room.id].cabinets=[{id:'normal-cabinet',type:'stojąca',subType:'standardowa',width:60.125,height:82,depth:51,frontCount:2,bodyColor:'laminat TEST',frontMaterial:'laminat',frontColor:'TEST',backMaterial:'HDF',bodyPcvMode:'body',details:{shelves:3}}];
-  window.projectData=row.projectData;fc.layoutState.ensureLayout(made.room.id);row.projectData=window.projectData;
+  window.projectData=row.projectData;
+  fc.cabinetFronts.generateFrontsForCabinet(made.room.id,row.projectData[made.room.id].cabinets[0]);
+  fc.layoutState.ensureLayout(made.room.id);row.projectData=window.projectData;
   if(!fc.projectStore.upsert(row))throw Error('Fixture cabinet refused');window.projectData=fc.project.load();
   if(!fc.storage.setJSON('fc_quote_snapshots_v1',[{id:'normal-offer',project:{id:pid},investor:{id:iid},frozen:{total:21.375,pcv:0.8125}}]))throw Error('Fixture history refused');
   return made.room.id;
@@ -153,15 +155,15 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
     const measured={...f,
      getDocFromServer(ref){countRead(ref);return f.getDocFromServer(ref);},
      async getDocsFromServer(query){budget.queries++;const rows=await f.getDocsFromServer(query);budget.documents+=rows.size;return rows;},
-     runTransaction(db,run,options){budget.transactions++;return f.runTransaction(db,tx=>{
+     runTransaction(db,run,options,rpc){budget.transactions++;return f.runTransaction(db,tx=>{
       budget.attempts++;
       return run({
-       get(ref){countRead(ref);return tx.get(ref);},
+       get(ref){countRead(ref);const collection=ref.parent.id;if(rpc&&!rpc.collections.includes(collection))rpc.collections.push(collection);return tx.get(ref);},
        set(...args){budget.writes++;return tx.set(...args);}
       });
      },options);}
     };
-    const errors=window.normalSdkErrors=[];const observed={...measured};for(const key of ['runTransaction','getDocFromServer','getDocsFromServer'])observed[key]=(...args)=>{const began=performance.now(),pending=window.normalPendingRpc||(window.normalPendingRpc=[]),rpc={method:key};pending.push(rpc);let result;try{result=measured[key](...args);}catch(error){pending.splice(pending.indexOf(rpc),1);throw error;}const completed=()=>{pending.splice(pending.indexOf(rpc),1);const log=window.normalRpcTimeline||(window.normalRpcTimeline=[]);log.push({method:key,ms:Math.round(performance.now()-began)});if(log.length>12)log.shift();};result.then(completed,completed);result.catch(error=>{errors.push({method:key,code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();});if(key==='runTransaction'&&window.holdOldReader===args[0]?.app?.name&&!window.normalReadArmed){window.normalReadArmed=true;return result.then(value=>{window.normalHeldRead=true;return new Promise(resolve=>window.releaseOldRead=()=>resolve(value));});}return result;};
+    const errors=window.normalSdkErrors=[];const observed={...measured};for(const key of ['runTransaction','getDocFromServer','getDocsFromServer'])observed[key]=(...args)=>{const began=performance.now(),pending=window.normalPendingRpc||(window.normalPendingRpc=[]),rpc={method:key,app:args[0]?.app?.name,collections:[]};pending.push(rpc);let result;try{result=key==='runTransaction'?measured[key](args[0],args[1],args[2],rpc):measured[key](...args);}catch(error){pending.splice(pending.indexOf(rpc),1);throw error;}const completed=()=>{pending.splice(pending.indexOf(rpc),1);const log=window.normalRpcTimeline||(window.normalRpcTimeline=[]);log.push({...rpc,ms:Math.round(performance.now()-began)});if(log.length>12)log.shift();};result.then(completed,completed);result.catch(error=>{errors.push({method:key,code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();});if(key==='runTransaction'&&window.holdOldReader===args[0]?.app?.name&&!window.normalReadArmed){window.normalReadArmed=true;return result.then(value=>{window.normalHeldRead=true;return new Promise(resolve=>window.releaseOldRead=()=>resolve(value));});}return result;};
     const config={projectId:'demo-meble-app',apiKey:'demo-only',authDomain:'demo-meble-app.firebaseapp.com',appId:'demo-only'};
     let session=null,lease=null;
     if(input.authSession){
@@ -256,6 +258,11 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  await computer.page.waitForFunction(id=>window.FC.investors.getCurrentId()===id&&!window.FC.applicationStartup.inspect().transactionPending,ids[0]);
  await computer.page.evaluate(pid=>window.FC.applicationWrite.project(()=>{const row=window.FC.projectStore.getById(pid);row.title='Computer revision';if(!window.FC.projectStore.upsert(row))throw Error('Project write refused');}),pid);
  await until(async()=>await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid)?.title,pid)==='Computer revision');
+ // Explicit trusted-device admission persists only the independent SDK login;
+ // local trust remains the existing WebCrypto/IDB proof, never a flag.
+ await computer.page.check('#main-trust-phone');
+ await computer.page.waitForFunction(()=>document.getElementById('main-trust-status').textContent.startsWith('Zaufano'));
+ await computer.page.waitForFunction(()=>window.normalConnections?.[0]?.db.app.name==='meble-sync-trusted-writer-v1'&&window.FC.applicationStartup.inspect().stage==='ready');
  // Real room action and original Save/Cancel, not a test-only authority call.
  await touch(computer,'.investor-room-quick-btn[data-room="'+room+'"]');
  await computer.page.waitForFunction(()=>window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending);
@@ -281,28 +288,56 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   });}finally{db.close();}
  },{name:computer.name,pid,room});
  const beforeDraft=await readDraft();
+ const waitForCabinetAck=async()=>{
+  await computer.page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
+  const modal=computer.page.locator('#cabinetModal');
+  assert.equal(await modal.isVisible(),false,await computer.page.locator('.info-box').allTextContents());
+ };
  const browserContext=computer.page.context();
  const editCabinet=async(id,width)=>{
   await computer.page.evaluate(id=>window.FC.cabinetModal.openCabinetModalForEdit(id),id);
   await computer.page.locator('#cmWidth').fill(String(width));
   await computer.page.click('#cabinetModalSave');
-  await computer.page.locator('#cabinetModal').waitFor({state:'hidden'});
+  await waitForCabinetAck();
  };
  await computer.page.click('#floatingAdd');
  await computer.page.locator('#cabinetTypeChoices .choice-tile').first().click();
  await computer.page.locator('#cmWidth').fill('66');
  await computer.page.locator('#cmHeight').fill('82');
  await computer.page.locator('#cmDepth').fill('50');
+ await computer.page.evaluate(name=>{
+  const original=IDBDatabase.prototype.transaction;
+  IDBDatabase.prototype.transaction=function(stores,mode,...rest){
+   const tx=original.call(this,stores,mode,...rest);
+   if(this.name==='meble-lf-test-normal-'+name&&mode==='readwrite'&&Array.from(stores).includes('control')){
+    IDBDatabase.prototype.transaction=original;
+    queueMicrotask(()=>tx.abort());
+   }
+   return tx;
+  };
+ },computer.name);
  await computer.page.click('#cabinetModalSave');
- await computer.page.locator('#cabinetModal').waitFor({state:'hidden'});
+ await computer.page.locator('.info-box').filter({hasText:'LF_IDB_ABORTED'}).waitFor();
+ assert.equal(await computer.page.locator('#cabinetModal').isVisible(),true);
+ assert.equal(await computer.page.locator('#cmWidth').inputValue(),'66');
+ assert.deepEqual(await readDraft(),beforeDraft);
+ assert.deepEqual((await getDoc(projectHead)).data(),beforeDraftHead);
+ await computer.page.locator('.info-box .is-success').click();
+ await computer.page.click('#cabinetModalSave');
+ await waitForCabinetAck();
  const added=await readDraft();
  assert.equal(added.cabinets.length,beforeDraft.cabinets.length+1);
  assert.deepEqual(added.outbox,beforeDraft.outbox);
+ assert.deepEqual((await getDoc(projectHead)).data(),beforeDraftHead);
+ t.diagnostic('P0-A: add and forced IDB abort passed with exact local image/outbox and remote head checks');
  const addedId=added.cabinets.at(-1).id;
  await computer.page.evaluate(id=>{void window.FC.cabinetActions.deleteCabinetById(id);},addedId);
  await computer.page.locator('.confirm-box .is-danger').click();
  await computer.page.waitForFunction(length=>window.projectData[window.uiState.roomType].cabinets.length===length&&!window.FC.applicationStartup.inspect().transactionPending,beforeDraft.cabinets.length);
- assert.deepEqual((await readDraft()).outbox,beforeDraft.outbox);
+ const deleted=await readDraft();
+ assert.ok(!deleted.cabinets.some(c=>c.id===addedId));
+ assert.deepEqual(deleted.outbox,beforeDraft.outbox);
+ t.diagnostic('P0-A: delete passed in IDB without new outbox entry');
  await browserContext.setOffline(true);
  await computer.page.waitForFunction(()=>!navigator.onLine);
  await editCabinet('normal-cabinet',64);
@@ -310,6 +345,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  assert.equal(edited.cabinets[0].width,64);
  assert.equal(edited.draft.active,true);
  assert.deepEqual(edited.outbox,beforeDraft.outbox);
+ t.diagnostic('P0-A: offline edit passed in IDB without new outbox entry');
  const version=await computer.page.evaluate(()=>window.normalConnectionEpoch);
  await computer.page.context().setOffline(false);
  await computer.page.waitForFunction(version=>window.normalConnectionEpoch>version&&window.FC.applicationStartup.inspect().stage==='ready',version);
@@ -320,6 +356,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  await computer.page.waitForFunction(room=>window.FC.session.active&&window.projectData[room].settings.roomHeight===287.125&&!window.FC.applicationStartup.inspect().transactionPending,room);
  assert.equal(await computer.page.evaluate(()=>localStorage.getItem('fc_projects_v1')),approved);
  assert.deepEqual((await readDraft()).outbox,beforeDraft.outbox);
+ t.diagnostic('P0-A: Cancel restored the approved project and preserved outbox');
  await browserContext.setOffline(true);
  await computer.page.waitForFunction(()=>!navigator.onLine);
  await editCabinet('normal-cabinet',65);
@@ -329,12 +366,18 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  assert.equal(savedCabinet.draft,null);
  assert.equal(savedCabinet.cabinets[0].width,65);
  assert.equal(savedCabinet.outbox.length,beforeDraft.outbox.length+1);
+ const newKey=savedCabinet.outbox.find(row=>!beforeDraft.outbox.some(old=>old.key===row.key)).key;
+ t.diagnostic('P0-A: main Save committed locally with exactly one new outbox entry');
  assert.deepEqual((await getDoc(projectHead)).data(),beforeDraftHead);
  const saveEpoch=await computer.page.evaluate(()=>window.normalConnectionEpoch);
  await browserContext.setOffline(false);
  await computer.page.waitForFunction(version=>window.normalConnectionEpoch>version&&window.FC.applicationStartup.inspect().stage==='ready',saveEpoch);
  await until(async()=>(await getDoc(projectHead)).data().generation===beforeDraftHead.generation+1);
  await until(async()=>await phone.page.evaluate(({pid,room})=>window.FC.projectStore.getById(pid).projectData[room].cabinets[0].width,{pid,room})===65);
+ const ack=await readDraft();
+ assert.equal(ack.outbox.length,beforeDraft.outbox.length+1);
+ assert.equal(ack.outbox.find(row=>row.key===newKey)?.phase,'verified');
+ t.diagnostic('P0-A: same outbox operation verified after reconnect and one Firestore generation');
  await computer.page.locator('.info-box .is-success').click();
  await computer.page.click('#sessionCancel');await computer.page.waitForFunction(()=>!window.FC.session.active&&window.uiState.entry==='investorsList'&&!window.FC.applicationStartup.inspect().transactionPending);
  assert.equal(await computer.page.evaluate(id=>window.FC.actions.dispatch('open-investor',{element:{getAttribute:()=>id}}),ids[0]),true);
@@ -369,11 +412,6 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
 
 
  assert.equal(await computer.page.locator('.info-backdrop').count(),0,'No failed navigation or premature handover notice '+await computer.page.locator('.info-box__title').allTextContents());
- // Explicit trusted-device admission persists only the independent SDK login;
- // local trust remains the existing WebCrypto/IDB proof, never a flag.
- await computer.page.check('#main-trust-phone');
- await computer.page.waitForFunction(()=>document.getElementById('main-trust-status').textContent.startsWith('Zaufano'));
- await computer.page.waitForFunction(()=>window.normalConnections?.[0]?.db.app.name==='meble-sync-trusted-writer-v1'&&window.FC.applicationStartup.inspect().stage==='ready');
  await computer.page.evaluate(pid=>window.FC.applicationWrite.project(()=>{const row=window.FC.projectStore.getById(pid);row.title='Online approved';if(!window.FC.projectStore.upsert(row))throw Error('Editor reservation refused');}),pid);
  await until(async()=>await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid)?.title,pid)==='Online approved');
  const beforeOfflineHead=(await getDoc(doc(ownerClient,'users',uid,'localFirstProjects',pid))).data();
@@ -409,6 +447,14 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
    return head.revisionId!==project.globalRevisionId;
   });
  }
+ assert.equal(await computer.page.evaluate(id=>window.FC.actions.dispatch('open-investor',{element:{getAttribute:()=>id}}),ids[0]),true);
+ await touch(computer,'.investor-room-quick-btn[data-room="'+room+'"]');
+ await computer.page.waitForFunction(()=>window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending);
+ const beforeRestartDraft=await readDraft();
+ await editCabinet('normal-cabinet',67);
+ const restartDraft=await readDraft();
+ assert.equal(restartDraft.cabinets[0].width,67);
+ assert.deepEqual(restartDraft.outbox,beforeRestartDraft.outbox);
  if(deployment)await computer.page.evaluate(()=>localStorage.removeItem('meble_application_authority_v1')); // Simulated cutover receipt ACK loss, source/image retained.
  const shutdown=await computer.browser.newBrowserCDPSession();await shutdown.send('Browser.close');
  const exited=await computer.owner.exited;assert.equal(exited.code,0);assert.equal(exited.signal,null);await computer.owner.close();
@@ -421,7 +467,8 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  computer.browser=await chromium.connectOverCDP(computer.owner.endpoint);const context=computer.browser.contexts()[0];computer.page=await context.newPage();
  for(const page of context.pages())if(page!==computer.page)await page.close();
  await computer.page.addInitScript({content:injection});await configure(computer);
- const offlineCDP=await computer.page.context().newCDPSession(computer.page);
+ await context.setOffline(true);
+ const offlineCDP=await context.newCDPSession(computer.page);
  await offlineCDP.send('Page.enable');await offlineCDP.send('Page.bringToFront');await offlineCDP.send('Network.enable');await offlineCDP.send('Debugger.enable');
  let offlinePauses=0;
  offlineCDP.on('Debugger.paused',async()=>{offlinePauses++;await offlineCDP.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await offlineCDP.send('Network.overrideNetworkState',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await offlineCDP.send('Debugger.resume');});
@@ -438,9 +485,17 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   assert.equal(await computer.page.evaluate(pid=>window.FC.projectStore.getById(pid).projectData.meta.assignedInvestorId,pid),ids[0]);
  }
  assert.equal(await computer.page.evaluate(()=>window.FC.applicationStartup.inspect().state),'offline');
+ assert.deepEqual(await readDraft(),restartDraft,'Cold restart must reopen the exact draft and outbox');
+ assert.equal(await computer.page.evaluate(()=>window.FC.session.active&&window.FC.session.durable),true);
+ t.diagnostic('P0-A: cold restart restored exact draft and outbox');
+ await computer.page.click('#sessionCancel');
+ await computer.page.locator('.confirm-box .is-danger').click();
+ await computer.page.waitForFunction(()=>window.projectData[window.uiState.roomType].cabinets[0].width===65&&!window.FC.applicationStartup.inspect().transactionPending);
+ assert.deepEqual((await readDraft()).outbox,restartDraft.outbox);
  assert.equal(await computer.page.evaluate(()=>window.authCalls),0);
  assert.equal(await computer.page.evaluate(()=>window.normalGoogleLogins||0),0);
  await offlineCDP.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});await offlineCDP.send('Network.overrideNetworkState',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});await offlineCDP.detach();
+ await context.setOffline(false);
  await computer.page.waitForFunction(()=>window.normalConnectionEpoch>0&&window.FC.applicationStartup.inspect().stage==='ready');
  await until(async()=>await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid)?.title,pid)==='Offline durable revision');
  assert.equal(await computer.page.evaluate(()=>window.normalGoogleLogins||0),0,'Reconnect restores the approved SDK session, without a Google popup');
