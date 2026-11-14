@@ -510,14 +510,17 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  computer.browser=await chromium.connectOverCDP(computer.owner.endpoint);const context=computer.browser.contexts()[0];computer.page=await context.newPage();
  for(const page of context.pages())if(page!==computer.page)await page.close();
  await computer.page.addInitScript({content:injection});await configure(computer);
+ // One network controller owns both cold-start isolation and restoration.
+ // Switching a second CDP session online can wake reconnect while transport
+ // is still offline, permanently failing this document's first SDK import.
+ const sdkRequests=[];
+ computer.page.on('requestfailed',request=>{
+  if(new URL(request.url()).pathname.startsWith('/__sdk/'))sdkRequests.push(request.failure()?.errorText);
+ });
+ await computer.page.addInitScript(()=>{window.normalOfflineAtBoot=navigator.onLine;});
  await context.setOffline(true);
- const offlineCDP=await context.newCDPSession(computer.page);
- await offlineCDP.send('Page.enable');await offlineCDP.send('Page.bringToFront');await offlineCDP.send('Network.enable');await offlineCDP.send('Debugger.enable');
- let offlinePauses=0;
- offlineCDP.on('Debugger.paused',async()=>{offlinePauses++;await offlineCDP.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await offlineCDP.send('Network.overrideNetworkState',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await offlineCDP.send('Debugger.resume');});
- await offlineCDP.send('Page.addScriptToEvaluateOnNewDocument',{source:'debugger;window.normalOfflineAtBoot=navigator.onLine;'});
- await offlineCDP.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await offlineCDP.send('Network.overrideNetworkState',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await computer.page.goto(origin+'/index.html');
- await offlineCDP.send('Debugger.disable');assert.ok(offlinePauses>0);assert.equal(await computer.page.evaluate(()=>window.normalOfflineAtBoot),false);
+ await computer.page.goto(origin+'/index.html');
+ assert.equal(await computer.page.evaluate(()=>window.normalOfflineAtBoot),false);
 
  try{await computer.page.waitForFunction(()=>document.body.dataset.businessState==='ready');}catch(error){throw Error('Cold startup '+JSON.stringify(await computer.page.evaluate(()=>({state:document.body.dataset,runtime:window.FC.applicationStartup?.inspect(),authCalls:window.authCalls}))))}
  assert.equal(await computer.page.evaluate(pid=>window.FC.projectStore.getById(pid).title,pid),'Offline durable revision');
@@ -541,10 +544,11 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  assert.deepEqual((await readDraft()).outbox,restartDraft.outbox);
  assert.equal(await computer.page.evaluate(()=>window.authCalls),0);
  assert.equal(await computer.page.evaluate(()=>window.normalGoogleLogins||0),0);
- await offlineCDP.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});await offlineCDP.send('Network.overrideNetworkState',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});await offlineCDP.detach();
+ assert.deepEqual(sdkRequests,[],'Offline boot must not fail an SDK module request');
  await context.setOffline(false);
  await computer.page.waitForFunction(()=>window.normalConnectionEpoch>0&&window.FC.applicationStartup.inspect().stage==='ready').catch(async error=>{throw Error(error.message+' '+JSON.stringify(await computer.page.evaluate(()=>({online:navigator.onLine,state:window.FC.applicationStartup.inspect(),connectionError:window.normalConnectionError,pendingRpc:window.normalPendingRpc,sdkErrors:window.normalSdkErrors}))));});
  await until(async()=>await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid)?.title,pid)==='Offline durable revision');
+ assert.deepEqual(sdkRequests,[],'Reconnect SDK modules must load without network errors');
  assert.equal(await computer.page.evaluate(()=>window.normalGoogleLogins||0),0,'Reconnect restores the approved SDK session, without a Google popup');
  if(deployment){
   const foreign=env.authenticatedContext('synthetic-foreign',{email_verified:true,firebase:{sign_in_provider:'google.com'}}).firestore(),guest=env.unauthenticatedContext().firestore();
