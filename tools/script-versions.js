@@ -111,9 +111,9 @@ const versions = Object.freeze({
 const authVersions=Object.freeze({
   "js/app/cloud/auth-access-gate.js": "20261113_incremental_access_v3",
   "js/app/cloud/cloud-access-verifier.js": "20261114_access_rpc_diagnostics_v1",
-  "js/app/cloud/offline-shell.js": "20261103_local_first_start_v1",
+  "js/app/cloud/offline-shell.js": "20261114_first_offline_install_v1",
   "js/app/cloud/local-access-profile.js": "20261103_android_globals_recovery_v1",
-  "js/app/cloud/application-bootstrap.js": "20261112_pixel_catalog_cutover_v2",
+  "js/app/cloud/application-bootstrap.js": "20261114_first_offline_install_v1",
   "js/main-login.js": "20261114_access_rpc_diagnostics_v1"
 });
 function assertHtmlVersions(index, dev){

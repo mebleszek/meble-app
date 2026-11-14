@@ -38,5 +38,23 @@ async function main(){
  navigator.serviceWorker.getRegistration=async()=>undefined;await assert.rejects(win.FC.offlineShell.prepare(),/UNCONFIRMED/);navigator.serviceWorker.getRegistration=async()=>registration;
  worker.postMessage=(_message,ports)=>{ports[0].postMessage({complete:false});ports[0].close();};await assert.rejects(win.FC.offlineShell.prepare(),/INCOMPLETE/);assert.equal(registrations,0);
  console.log('PASS cold offline shell: existing registration without network, exact script/scope, absent registration and incomplete ACK still refuse');
+ navigator.onLine=true;
+ for(const failed of [false,true]){
+   const firstWorker=Object.assign(new EventTarget(),worker,{state:'installing'});
+   let verified=0;
+   firstWorker.postMessage=(_message,ports)=>{verified++;ports[0].postMessage({complete:true,version:'c'.repeat(64)});ports[0].close();};
+   const first=Object.assign(new EventTarget(),{scope:root,installing:firstWorker,active:null});
+   navigator.serviceWorker.register=async()=>first;
+   const attempt=win.FC.offlineShell.prepare();
+   await Promise.resolve();
+   assert.equal(verified,0);
+   first.installing=null;
+   firstWorker.state=failed?'redundant':'activated';
+   if(!failed)first.active=firstWorker;
+   firstWorker.dispatchEvent(new Event('statechange'));
+   if(failed){await assert.rejects(attempt,/OFFLINE_SHELL_INSTALL_FAILED/);assert.equal(verified,0);}
+   else{assert.equal((await attempt).complete,true);assert.equal(verified,1);}
+ }
+ console.log('PASS first installation: activated worker must verify; redundant worker refuses without waiting for ready');
 }
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});module.exports={main};
