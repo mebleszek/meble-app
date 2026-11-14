@@ -50,41 +50,43 @@
     if(!ok) return;
 
     const writer = FC.applicationWrite;
-    if(writer?.localOnly){
-      return writer.projectHandler(()=>{
-        if(!cab || !projectId || FC.projectStore.getCurrentProjectId() !== projectId || uiState.roomType !== room
-          || !projectData[room]?.cabinets?.includes(cab)) return false;
-        if(FC.session?.begin() !== true) return false;
-        removeCabinet(room, cabId);
-        const saved = FC.project.saveConfirmed(projectData);
-        if(!saved.ok || FC.storage.setJSON(STORAGE_KEYS.ui, uiState) !== true) return false;
-        projectData = saved.project;
-        writer.afterCommit(refreshCabinets);
-        return true;
-      })();
+    const remove = ()=>{
+      if(!cab || !projectId || FC.projectStore.getCurrentProjectId() !== projectId || uiState.roomType !== room
+        || !projectData[room]?.cabinets?.some(row=>row.id === cabId)) return false;
+      if(!FC.cabinetModalFinalize.beginCabinetDraft()) return false;
+      removeCabinet(room, cabId);
+      FC.cabinetModalFinalize.persistProjectAndUi();
+      if(writer) writer.afterCommit(refreshCabinets);
+      else refreshCabinets();
+      return true;
+    };
+    try{
+      return writer ? await writer.draftHandler(remove)() : remove();
+    }catch(error){
+      FC.infoBox?.open({title:'Nie udało się usunąć szafki',message:error.code || error.message,okOnly:true});
+      return false;
     }
-
-    try{
-      if(!(FC.session && typeof FC.session.begin === 'function' && FC.session.begin() === true)) return;
-    }catch(_){ return; }
-
-    removeCabinet(room, cabId);
-    try{
-      if(FC.project && typeof FC.project.save === 'function') FC.project.save(projectData);
-      else if(FC.storage && typeof FC.storage.setJSON === 'function'){
-        const persisted = FC.projectStore && typeof FC.projectStore.prepareProjectDataForPersistence === 'function'
-          ? FC.projectStore.prepareProjectDataForPersistence(projectData)
-          : projectData;
-        FC.storage.setJSON(STORAGE_KEYS.projectData, persisted);
-      }
-    }catch(_){ }
-    try{ FC.storage && typeof FC.storage.setJSON === 'function' && FC.storage.setJSON(STORAGE_KEYS.ui, uiState); }catch(_){ }
-    refreshCabinets();
   }
 
   function removeCabinet(room, cabId){
     if(typeof removeFrontsForCab === 'function') removeFrontsForCab(room, cabId);
-    projectData[room].cabinets = (projectData[room].cabinets || []).filter(c => c.id !== cabId);
+    const data = projectData[room];
+    const cabinet = data.cabinets.find(c=>c.id===cabId);
+    data.cabinets = data.cabinets.filter(c=>c.id!==cabId);
+    for(const space of ['partOverrides','cabinetGroupOverrides']){
+      if(data.production?.[space]) delete data.production[space][cabId];
+    }
+    for(const segment of data.layout?.segments || []){
+      for(const [row,items] of Object.entries(segment.rows || {})){
+        segment.rows[row] = items.filter(item=>item.kind!=='cabinet' || item.id!==cabId);
+      }
+    }
+    const setId = cabinet?.setId;
+    if(setId && !data.cabinets.some(c=>c.setId===setId)){
+      data.sets = (data.sets || []).filter(set=>set.id!==setId);
+      if(typeof removeFrontsForSet === 'function') removeFrontsForSet(room,setId);
+      if(data.production?.setGroupOverrides) delete data.production.setGroupOverrides[setId];
+    }
     if(uiState.selectedCabinetId === cabId) uiState.selectedCabinetId = null;
   }
 

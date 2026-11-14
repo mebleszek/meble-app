@@ -2,7 +2,7 @@
 // Real session/navigation/autosave/authority; synthetic owner, no Firebase I/O.
 const assert=require('node:assert/strict'),{setup}=require('./investor-navigation-exit-smoke');
 async function fixture({draftBoot=false,loading=false,corruptDraft=false}={}){
- let timer,abort=false;const r=setup({timers:{setTimeout:fn=>{timer=fn;return 1;},clearTimeout(){}}}),w=r.s,fc=r.FC;
+ let timer,abort=false,published=0;const r=setup({timers:{setTimeout:fn=>{timer=fn;return 1;},clearTimeout(){}}}),w=r.s,fc=r.FC;
  const list=JSON.parse(r.storage.getItem('fc_projects_v1'));for(const row of list)row.projectData.meta.productionPcvMode='project';r.storage.setItem('fc_projects_v1',JSON.stringify(list));w.projectData=fc.project.load();
  fc.globalDataContract=require('./helpers/code-global-catalogs').buildCodeCatalogs().context.FC.globalDataContract;
  w.location.hostname='localhost';w.__FC_MAIN_ACCESS__={assert(){},isValid:()=>true,isLoading:()=>loading};w.addEventListener=()=>{};
@@ -14,13 +14,13 @@ async function fixture({draftBoot=false,loading=false,corruptDraft=false}={}){
  const store={ownerUid:'synthetic',name:'meble-lf-test-project-exit',readApplication:async()=>structuredClone(image),snapshot:async scope=>scope==='P'?{replica:{dirty:false,json:JSON.stringify({document:{payload:{project}}})}}:{},
   async checkpointApplication(a){assert.equal(a.expectedVersion,image.version);if(abort){abort=false;throw Object.assign(Error('synthetic abort'),{name:'AbortError'});}image={version:image.version+1,rows:structuredClone(a.rows)};}};
  const {createApplicationCommitter}=await import('../sync/application-replication.mjs');
- const committer=createApplicationCommitter({store});
- const authority=await installOfflineEmulatorApplicationAuthority({window:w,store,ownerUid:'synthetic',authorize:async()=>{},checkpoint:(a,k)=>committer.checkpoint(a,k),commit:(_k,a)=>store.checkpointApplication(a)});
+ const committer=createApplicationCommitter({store,projectContract:{validate:()=>true},summarizeLocal:fc.projectModel.summarizeProjectData});
+ const authority=await installOfflineEmulatorApplicationAuthority({window:w,store,ownerUid:'synthetic',authorize:async()=>{},checkpoint:(a,k)=>committer.checkpoint(a,k),commit:(_k,a)=>{published++;return store.checkpointApplication(a);}});
  const {installApplicationWriteBoundary}=await import('../sync/application-write-boundary.mjs');
  installApplicationWriteBoundary({window:w,authority,ensureEditor:async()=>{},localOnly:false});
  r.load('js/app/cloud/application-sync-actions.js');fc.applicationSyncActions.install(createApplicationActionBinding({window:w,authority}));
  fc.investorProjectPatches.patchProjectSave();r.load('js/app/investor/project-autosave.js');
- return {r,w,fc,authority,source,read:()=>structuredClone(image),abort(){abort=true;},async autosave(){fc.projectAutosave.scheduleProjectAutosave();timer();for(let n=0;n<8;n++)await new Promise(resolve=>setImmediate(resolve));},exit:()=>fc.applicationLifecycle.dispatch('session-cancel',()=>r.handlers['session-cancel']({}))};
+ return {r,w,fc,authority,source,published:()=>published,read:()=>structuredClone(image),abort(){abort=true;},async autosave(){fc.projectAutosave.scheduleProjectAutosave();timer();for(let n=0;n<8;n++)await new Promise(resolve=>setImmediate(resolve));},exit:()=>fc.applicationLifecycle.dispatch('session-cancel',()=>r.handlers['session-cancel']({}))};
 }
 const cases=[];const test=(name,fn)=>cases.push([name,fn]);
 test('A proven online draft may resume only during initial loading',async()=>{
@@ -33,7 +33,18 @@ test('Synchronized autosave uses authority transaction and persists a valid acti
  f.w.projectData.room_k.cabinets[0].width=65;await f.autosave();
  assert.equal(JSON.parse(f.read().rows.fc_projects_v1).find(p=>p.id==='P').projectData.room_k.cabinets[0].width,65);
  assert.equal(f.fc.session.active,true);assert.equal(f.fc.session.durable,true);assert.equal(f.fc.session.lastError,null);
+ assert.equal(f.published(),0,'Autosave must not enter the commit/outbox boundary');
  assert.deepEqual(Object.fromEntries(f.r.storage.rows),f.source,'Physical originals stay exact');
+});
+test('Cancel after a durable draft restores the room without calling the publishing boundary',async()=>{
+ const f=await fixture();assert.equal(await f.authority.transaction('auto',()=>f.r.open()),true);
+ const baseline=JSON.parse(f.read().rows.fc_projects_v1);
+ f.w.projectData.room_k.cabinets[0].width=71;await f.autosave();
+ assert.equal(f.fc.session.isDirty(),true);
+ f.fc.confirmBox={ask:async()=>true};
+ assert.equal(await f.exit(),true);
+ assert.deepEqual(JSON.parse(f.read().rows.fc_projects_v1),baseline);
+ assert.equal(f.published(),0);
 });
 test('A timer after session close cannot invent an undurable session or save untracked RAM',async()=>{
  const f=await fixture();assert.equal(await f.authority.transaction('auto',()=>f.r.open()),true);await f.authority.transaction('checkpoint',()=>f.fc.session.commit());

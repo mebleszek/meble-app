@@ -15,7 +15,13 @@
         const live=window.FC;
         if(live?.applicationWrite){
           if(live.applicationStartup?.inspect().transactionPending||!live.session?.active||!live.investorProjectRuntime.hasProjectDivergence(projectData))return;
-          void live.applicationWrite.handler(()=>{const result=live.project.saveConfirmed(projectData);if(result?.ok!==true)return false;projectData=result.project;return true;},'auto')();return;
+          void live.applicationWrite.draftHandler(()=>{
+            const result=live.project.saveConfirmed(projectData,{draft:true});
+            if(result?.ok!==true)return result;
+            projectData=result.project;
+            live.applicationWrite.afterCommit(()=>live.views?.refreshSessionButtons?.());
+            return true;
+          })();return;
         }
         if(window.FC && FC.project && typeof FC.project.save === 'function'){
           projectData = FC.project.save(projectData);

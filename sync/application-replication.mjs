@@ -40,7 +40,7 @@ export function projectApplicationRows(rows,channel,remote,globalContract,projec
 }
 
 export function createApplicationReplication({store,channels,globalContract,projectContract,eventTarget,online,onState,quota,ownsChannels,
- incoming,refresh,assertIdle,discovery}={}){
+ incoming,refresh,assertIdle,discovery,summarizeLocal}={}){
  const globals=channels.find(c=>c.scope==='globals');if(!globals||typeof incoming!=='function'||typeof refresh!=='function'||typeof assertIdle!=='function')fail('LF_APPLICATION_DEPENDENCIES_REQUIRED');
  const sync=createDurableSynchronizer({store,channels,eventTarget,online,onState,quota,ownsChannels,
   async projectRemote(channel,remote){const image=await store.readApplication();
@@ -59,12 +59,18 @@ export function createApplicationReplication({store,channels,globalContract,proj
   close(){closed=true;stopDiscovery();eventTarget.removeEventListener('online',discover);return Promise.all([sync.close(),listing]);},
   async acquireEditor(scope){await assertIdle();return sync.acquireEditor(scope);},
   async releaseEditor(scope){await assertIdle();return sync.releaseEditor(scope);},
-  ...createApplicationCommitter({store,globalContract,projectContract,channel:scope=>sync.channel(scope)})
+  ...createApplicationCommitter({store,globalContract,projectContract,summarizeLocal,channel:scope=>sync.channel(scope)})
  });
 }
 
 // Same atomic business/image/outbox boundary for online and already-approved offline editors.
 export function createApplicationCommitter({store,globalContract,projectContract,channel,localOnly=false,summarizeLocal}){
+ function validateLocalProject(rows,projectId){
+  const projects=JSON.parse(rows.fc_projects_v1||'[]').filter(p=>p.id===projectId);if(projects.length!==1)fail('LF_PROJECT_CHANNEL_REQUIRED');
+  const investors=JSON.parse(rows.fc_investors_v1||'[]').filter(i=>i.id===projects[0].investorId);if(investors.length!==1)fail('LF_APPLICATION_OWNER_CHANGED');
+  const payload={project:projects[0],investor:investors[0],offers:JSON.parse(rows.fc_quote_snapshots_v1||'[]').filter(o=>o.project?.id===projectId)};projectContract.validate(payload,{local:true});
+  return payload;
+ }
  return Object.freeze({
   async commit(kind,application,projectId){
    const source={getItem:key=>application.rows[key]??null},old=await store.readApplication();
@@ -80,9 +86,7 @@ export function createApplicationCommitter({store,globalContract,projectContract
    if(localOnly){
     const model=globalContract.capture({getItem:k=>k==='fc_edit_session_v1'?null:source.getItem(k)},Object.keys(globalContract.schemas)).model;globalContract.validateBundle(model);
     if(kind==='project'){
-     const projects=JSON.parse(source.getItem('fc_projects_v1')||'[]').filter(p=>p.id===projectId);if(projects.length!==1)fail('LF_PROJECT_CHANNEL_REQUIRED');
-     const investors=JSON.parse(source.getItem('fc_investors_v1')||'[]').filter(i=>i.id===projects[0].investorId);if(investors.length!==1)fail('LF_APPLICATION_OWNER_CHANGED');
-     const payload={project:projects[0],investor:investors[0],offers:JSON.parse(source.getItem('fc_quote_snapshots_v1')||'[]').filter(o=>o.project?.id===projectId)};projectContract.validate(payload,{local:true});
+     const payload=validateLocalProject(application.rows,projectId);
      // Native selections (e.g. HDF) are resolved by the pricing runtime. Exact
      // transport reference binding is a later sync requirement, never a fake ACK.
      for(const [key,id]of [['fc_projects_v1',projectId],['fc_investors_v1',payload.investor.id]])if(!equal(JSON.parse(old.rows[key]||'[]').filter(r=>r.id!==id),JSON.parse(application.rows[key]||'[]').filter(r=>r.id!==id)))fail('LF_APPLICATION_SCOPE_REFUSED');
@@ -127,15 +131,26 @@ export function createApplicationCommitter({store,globalContract,projectContract
    if(!result.localConfirmed)fail('LF_LOCAL_ACK_UNCONFIRMED');return {...result,scope};
   },
   async checkpoint(application,kind){
+   if(kind==='cabinet-draft'){
+    const before=await store.readApplication(),rows=application.rows,scope=before.rows.fc_current_project_id_v1;
+    const draft=JSON.parse(rows.fc_edit_session_v1||'null');
+    const previous=JSON.parse(before.rows.fc_edit_session_v1||'null');
+    if(!scope||draft?.schemaVersion!==4||draft.active!==true||draft.projectId!==scope||draft.expectedOwnerKnown!==true)fail('LF_DRAFT_SESSION_REQUIRED');
+    if(previous&&(previous.projectId!==scope||previous.roomId!==draft.roomId||!equal(previous.snapshot,draft.snapshot)))fail('LF_APPLICATION_SCOPE_REFUSED');
+    const allowed=new Set(['fc_projects_v1','fc_edit_session_v1','fc_ui_v1','fc_project_backup_v1','fc_project_backup_meta_v1']);
+    for(const k of Object.keys(before.rows))if(!allowed.has(k)&&before.rows[k]!==rows[k])fail('LF_APPLICATION_SCOPE_REFUSED');
+    const others=image=>JSON.parse(image.fc_projects_v1||'[]').filter(p=>p.id!==scope);
+    if(!equal(others(before.rows),others(rows)))fail('LF_APPLICATION_SCOPE_REFUSED');
+    validateLocalProject(rows,scope);
+   }
    if(kind==='rollback'){
-    const before=await store.readApplication(),scope=application.rows.fc_current_project_id_v1,local=await store.snapshot(scope);
-    if(!localOnly&&(!local.replica||local.replica.dirty))fail('LF_ROLLBACK_BASE_UNCONFIRMED');
-    let approved;if(localOnly){const draft=JSON.parse(before.rows.fc_edit_session_v1||'null');if(draft?.schemaVersion!==4||draft.active!==true||draft.projectId!==scope||draft.expectedOwnerKnown!==true)fail('LF_ROLLBACK_BASE_UNCONFIRMED');const baseline=JSON.parse(draft.snapshot?.fc_projects_v1||'[]').find(p=>p.id===scope),current=JSON.parse(before.rows.fc_projects_v1||'[]').find(p=>p.id===scope);if(!baseline||!current||baseline.investorId!==current.investorId)fail('LF_ROLLBACK_BASE_UNCONFIRMED');approved=copy(baseline);
+    const before=await store.readApplication(),scope=application.rows.fc_current_project_id_v1;
+    const draft=JSON.parse(before.rows.fc_edit_session_v1||'null');if(draft?.schemaVersion!==4||draft.active!==true||draft.projectId!==scope||draft.expectedOwnerKnown!==true)fail('LF_ROLLBACK_BASE_UNCONFIRMED');const baseline=JSON.parse(draft.snapshot?.fc_projects_v1||'[]').find(p=>p.id===scope),current=JSON.parse(before.rows.fc_projects_v1||'[]').find(p=>p.id===scope);if(!baseline||!current||baseline.investorId!==current.investorId)fail('LF_ROLLBACK_BASE_UNCONFIRMED');let approved=copy(baseline);
      if(draft.roomId){if(typeof summarizeLocal!=='function')fail('LF_ROLLBACK_BASE_UNCONFIRMED');approved=copy(current);const room=draft.roomId,original=baseline.projectData;
       if(Object.hasOwn(original,room))approved.projectData[room]=copy(original[room]);else delete approved.projectData[room];
       const defs=original.meta?.roomDefs||{},nextDefs=approved.projectData.meta.roomDefs;if(Object.hasOwn(defs,room))nextDefs[room]=copy(defs[room]);else delete nextDefs[room];
       Object.assign(approved,summarizeLocal(approved.projectData));
-     }}else approved=JSON.parse(local.replica.json).document.payload.project;
+     }
     const rows=JSON.parse(application.rows.fc_projects_v1||'[]');
     if(!equal(rows.find(r=>r.id===scope),approved))fail('LF_ROLLBACK_BASE_UNCONFIRMED');
     if(!equal(rows.filter(r=>r.id!==scope),JSON.parse(before.rows.fc_projects_v1||'[]').filter(r=>r.id!==scope)))fail('LF_APPLICATION_SCOPE_REFUSED');

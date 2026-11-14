@@ -61,7 +61,7 @@
     try{
       const current = JSON.parse(localStorage.getItem(PROJECTS_KEY) || '[]');
       if(!Array.isArray(current)) return null;
-      if(FC.applicationWrite?.localOnly && options?.projectRecord){
+      if(FC.applicationWrite && options?.projectRecord){
         // A single-record upsert must not rewrite normalized views of other RAW.
         for(let i=0;i<persisted.length;i++){
           const row=persisted[i],before=current.find(item=>item && item.id===row.id);

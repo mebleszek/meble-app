@@ -14,10 +14,10 @@ function runtime(){
  r.data=()=>r.eval('projectData');
  r.assign=data=>{r.s.__testInput=data;r.eval('projectData=window.__testInput');delete r.s.__testInput;};
  r.save=()=>r.handlers['session-save']({});
- r.edit=width=>{
+ r.edit=(width,confirmed=true)=>{
   r.FC.cabinetModalDraft.beginEditState('one',r.data().room.cabinets[0]);
   r.eval('cabinetModalState.draft.width='+Number(width));
-  assert.equal(r.FC.cabinetModalFinalize.saveRegularCabinetDraft({draft:r.eval('cabinetModalState.draft')}),true);
+  assert.equal(r.FC.cabinetModalFinalize.saveRegularCabinetDraft({draft:r.eval('cabinetModalState.draft')}),confirmed);
  };
  r.add=()=>{
   r.FC.cabinetModalDraft.beginAddState('room');
@@ -52,13 +52,13 @@ test('Assignments in either direction cannot detach an active draft',()=>{
 });
 test('Failed write preserves shared draft, active session and all unrelated data',()=>{
  const r=runtime(),b=clone(r.row('B'));r.storage.fail.set('set:fc_projects_v1','throw');
- r.edit(67);r.save();assert.equal(r.data().room.cabinets[0].width,67);
+ r.edit(67,false);r.save();assert.equal(r.data().room.cabinets[0].width,67);
  assert.equal(r.s.projectData,r.data());assert.equal(r.row('A').projectData.room.cabinets[0].width,60);
  assert.equal(r.session.active,true);assert.equal(r.FC.sessionNavigation.canCalculate(),false);assert.deepEqual(r.row('B'),b);
 });
 test('Unconfirmed session revision cannot publish success or clear the draft',()=>{
  const r=runtime();assert.equal(r.session.begin('room'),true);r.storage.fail.set('set:fc_edit_session_v1','throw');
- r.edit(68);r.save();assert.equal(r.session.active,true);assert.equal(r.session.commit(),false);
+ r.edit(68,false);r.save();assert.equal(r.session.active,true);assert.equal(r.session.commit(),false);
  assert.equal(r.s.projectData,r.data());assert.equal(r.data().room.cabinets[0].width,68);
  assert.equal(r.FC.sessionNavigation.canCalculate(),false);
 });

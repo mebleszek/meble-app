@@ -13,7 +13,7 @@ export function installApplicationWriteBoundary({window:w,authority,ensureEditor
   finally{running=false;const ready=completions.splice(0);if(confirmed)for(const fn of ready)fn();}
  }
  const run=(operation,kind='auto')=>reserve(async()=>{if(kind==='project')await ensureEditor();return authority.transaction(kind,operation);});
- const refused=error=>{fc.infoBox?.open({title:'Operacja wstrzymana',message:'Zachowano dane. '+(error.code||'LF_APPLICATION_UNCONFIRMED'),okOnly:true});return false;};
+ const refused=error=>{fc.infoBox?.open({title:'Operacja wstrzymana',message:'Zachowano dane. '+(error?.code || (/^(LF_|SESSION_|GLOBAL_|CLOUD_)[A-Z_]+$/.test(error?.message) ? error.message : 'LF_APPLICATION_UNCONFIRMED')),okOnly:true});return false;};
  const lifecycle={run,
   dispatch(action,operation){
    if(pass.has(action))return reserve(operation).catch(refused);
@@ -34,7 +34,7 @@ export function installApplicationWriteBoundary({window:w,authority,ensureEditor
  for(const [api,names]of [[fc.dataBackupStore,['restoreBackup','importSnapshot']],[fc.dataBackupSnapshot,['applySnapshot']],[fc.dataBackupSnapshotApply,['applySnapshot']]])for(const name of names)if(api?.[name])api[name]=()=>fail('LF_ARCHIVE_RESTORE_PROTOCOL_REQUIRED');
  fc.applicationLifecycle=lifecycle;
  // Explicit application API for existing nondelegated form handlers.
- const handler=(fn,kind='globals')=>function(...args){return run(()=>fn.apply(this,args),kind).catch(()=>{fc.infoBox?.open({title:'Zapis niepotwierdzony',message:'Zachowano poprzednie dane i formularz. Nie potwierdzono trwałego zapisu.',okOnly:true});return false;});};
- fc.applicationWrite={localOnly,handler,afterCommit:fn=>{if(running)completions.push(fn);else fn();},projectHandler:fn=>handler(fn,'project'),globals:fn=>run(fn,'globals'),project:fn=>run(fn,'project'),auto:fn=>run(fn,'auto'),checkpoint:fn=>run(fn,'checkpoint')};
+ const handler=(fn,kind='globals')=>function(...args){return run(()=>fn.apply(this,args),kind).catch(refused);};
+ fc.applicationWrite={localOnly,handler,afterCommit:fn=>{if(running)completions.push(fn);else fn();},projectHandler:fn=>handler(fn,'project'),draftHandler:fn=>handler(fn,'cabinet-draft'),globals:fn=>run(fn,'globals'),project:fn=>run(fn,'project'),auto:fn=>run(fn,'auto'),checkpoint:fn=>run(fn,'checkpoint')};
  return {run,busy:()=>running,close(){if(fc.applicationLifecycle===lifecycle)delete fc.applicationLifecycle;delete fc.applicationWrite;}};
 }

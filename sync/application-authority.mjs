@@ -97,7 +97,7 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
   const priceState=fc.priceModalContext?.runtimeState?structuredClone(fc.priceModalContext.runtimeState):null;
   const old=structuredClone(rows),session=snapshotSession(),ram=structuredClone(w.projectData),ui=structuredClone(w.uiState),views=[...w.document.querySelectorAll('[id$=View],#sessionButtons,[id$=Modal]')].map(el=>[el,el.style.cssText]);inTransaction=true;
   try{
-   if(['project','draft','rollback'].includes(kind)){if(typeof authorize!=='function')fail('LF_EDITOR_REQUIRED');await authorize(rows.fc_current_project_id_v1);access();assertSource();}
+   if(['project','draft','cabinet-draft','rollback'].includes(kind)){if(typeof authorize!=='function')fail('LF_EDITOR_REQUIRED');await authorize(rows.fc_current_project_id_v1);access();assertSource();}
    mutating=true;const result=await operation();rows=reconcileGlobalAliases(old,rows,fc.globalDataContract);mutating=false;access();assertSource();if(result===false||result?.ok===false)fail('LF_APPLICATION_SAVE_UNCONFIRMED');
    if(kind==='auto'){
     const changed=[...keys].filter(k=>rows[k]!==old[k]);
@@ -109,9 +109,9 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
    }
    const application={expectedVersion:image.version,rows:structuredClone(rows)};
    let committed;
-   if(kind==='checkpoint'||kind==='draft'||kind==='rollback'){
+   if(kind==='checkpoint'||kind==='draft'||kind==='cabinet-draft'||kind==='rollback'){
     // No data/catalog change can masquerade as a session/UI checkpoint.
-    if(kind==='draft'&&(!fc.session.active||!fc.session.durable||rows.fc_edit_session_v1===null))fail('LF_DRAFT_SESSION_REQUIRED');
+    if(['draft','cabinet-draft'].includes(kind)&&(!fc.session.active||!fc.session.durable||rows.fc_edit_session_v1===null))fail('LF_DRAFT_SESSION_REQUIRED');
     for(const k of keys)if(kind==='checkpoint'&&!['fc_edit_session_v1','fc_ui_v1','fc_current_project_id_v1','fc_current_investor_v1'].includes(k)&&rows[k]!==old[k])throw Object.assign(Error('LF_CHECKPOINT_DATA_CHANGED: '+k),{code:'LF_CHECKPOINT_DATA_CHANGED'});
     await checkpoint(application,kind);
    }else committed=await commit(kind,application);
