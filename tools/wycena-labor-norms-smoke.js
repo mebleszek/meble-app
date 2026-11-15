@@ -3,6 +3,16 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..'),clone=v=>JSON.parse(JSON.stringify(v));
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-7,`${a} != ${b}`);
+// Compile module source once per process; execution still uses a fresh VM context per fixture.
+const compiledModules=new Map();
+function runModule(file,context){
+  let script=compiledModules.get(file);
+  if(!script){
+    script=new vm.Script(fs.readFileSync(path.join(root,file),'utf8'),{filename:file});
+    compiledModules.set(file,script);
+  }
+  return script.runInContext(context);
+}
 function fixture(){
   let panels=[{w:30,h:200,material:'laminat'},{w:30,h:200,material:'laminat'}];
   const cab={id:'synthetic-cab',type:'stojąca',subType:'standardowa',width:60,height:82,depth:50,frontCount:2,backMaterial:'HDF',details:{shelves:2}};
@@ -14,7 +24,7 @@ function fixture(){
     frontHardware:{getDoorFrontPanelsForHinges:()=>panels,universalHingesPerDoor:(w,h)=>h/100,getHingeCountForCabinet:()=>panels.reduce((sum,p)=>sum+p.h/100,0),
       getCabinetFrontCutListForMaterials:()=>panels.map(p=>({name:'Front',qty:1,a:p.w,b:p.h,material:'Front: laminat'}))}};
   const s={FC,projectData:project,console};s.window=s;s.globalThis=s;vm.createContext(s);
-  const load=file=>vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),s,{filename:file});
+  const load=file=>runModule(file,s);
   for(const file of ['cabinet/cabinet-hardware-requirements','cabinet/cabinet-cutlist','pricing/labor-catalog-definitions','pricing/labor-catalog','pricing/work-quantity-sources','pricing/work-quantity-facts','wycena/wycena-core-labor','wycena/wycena-core-lines','quote/quote-calculation-register'])load('js/app/'+file+'.js');
   let rates=FC.laborCatalog.ensureDefaultDefinitions([]);
   FC.catalogSelectors={getQuoteRates:()=>rates};
