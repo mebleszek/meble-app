@@ -78,6 +78,14 @@
     })).filter((row)=> row.rateId);
   }
 
+  function saveSettings(draft, patch, fallback){
+    return FC.quoteOfferStore?.saveSettings ? FC.quoteOfferStore.saveSettings(draft,patch) : fallback(patch);
+  }
+
+  function reportUnconfirmed(){
+    FC.infoBox?.open({title:'Zapis niepotwierdzony',message:'Zachowano wartości formularza. Spróbuj ponownie.',okOnly:true});
+  }
+
   function renderPreliminaryToggle(card, ctx, deps){
     const h = getFn(deps, 'h');
     const getOfferDraft = getFn(deps, 'getOfferDraft', ()=> ({}));
@@ -92,14 +100,18 @@
     const preliminaryChip = h('label', { class:`rozrys-scope-chip rozrys-scope-chip--room-match quote-preliminary-chip${commercial.preliminary ? ' is-checked' : ''}` });
     const preliminaryInput = h('input', { type:'checkbox' });
     preliminaryInput.checked = !!commercial.preliminary;
-    preliminaryInput.addEventListener('change', ()=>{
+    preliminaryInput.addEventListener('change', async()=>{
       const nextPreliminary = !!preliminaryInput.checked;
       const currentVersionName = String(commercial.versionName || '').trim();
       const selection = normalizeDraftSelection(draft);
       const prevDefault = defaultVersionName(!!commercial.preliminary, { selection });
       const nextDefault = defaultVersionName(nextPreliminary, { selection });
-      patchOfferDraft({ commercial:{ preliminary:nextPreliminary, versionName:(!currentVersionName || currentVersionName === prevDefault) ? nextDefault : currentVersionName } });
-      render(ctx);
+      preliminaryInput.disabled=true;
+      try{
+        if(!await saveSettings(draft,{ commercial:{ preliminary:nextPreliminary, versionName:(!currentVersionName || currentVersionName === prevDefault) ? nextDefault : currentVersionName } },patchOfferDraft))throw Error('SAVE_UNCONFIRMED');
+        render(ctx);
+      }catch(_){reportUnconfirmed();}
+      finally{preliminaryInput.disabled=false;}
     });
     preliminaryChip.appendChild(preliminaryInput);
     preliminaryChip.appendChild(h('span', { text:'Wstępna wycena (bez pomiaru)' }));
@@ -152,11 +164,14 @@
       const body = h('div', { class:'quote-offer-accordion__body rozrys-material-accordion__body' });
       const selection = normalizeDraftSelection(draft);
       const versionInput = h('input', { class:'investor-form-input', type:'text', value:String(commercial.versionName || defaultVersionName(!!commercial.preliminary, { selection }) || '') });
-      const syncVersionName = ()=> patchOfferDraft({ commercial:{ versionName:String(versionInput.value || '').trim() || defaultVersionName(!!commercial.preliminary, { selection:normalizeDraftSelection(getOfferDraft()) }) } });
+      const saveCommercial = async(patch)=>{
+        try{if(!await saveSettings(draft,{commercial:patch},patchOfferDraft))throw Error('SAVE_UNCONFIRMED');}
+        catch(_){reportUnconfirmed();}
+      };
+      const syncVersionName = ()=> saveCommercial({ versionName:String(versionInput.value || '').trim() || defaultVersionName(!!commercial.preliminary, { selection:normalizeDraftSelection(getOfferDraft()) }) });
       versionInput.addEventListener('focus', ()=>{ try{ versionInput.setSelectionRange(0, String(versionInput.value || '').length); }catch(_){ try{ versionInput.select(); }catch(__){} } });
       versionInput.addEventListener('pointerup', (ev)=>{ try{ ev.preventDefault(); }catch(_){ } try{ versionInput.setSelectionRange(0, String(versionInput.value || '').length); }catch(_){ try{ versionInput.select(); }catch(__){} } });
       versionInput.addEventListener('change', syncVersionName);
-      versionInput.addEventListener('blur', syncVersionName);
       const versionField = buildFieldFn('Nazwa wersji oferty', versionInput, true);
       if(versionField) body.appendChild(versionField);
 
@@ -171,7 +186,7 @@
           if(active.projectId!==draft.projectId||active.investorId!==draft.investorId||(active.commercial?.billBreaks!==false)!==storedBreakChoice)return false;
           return !!patchOfferDraft({commercial:{billBreaks:choice}});
         };
-        try{const writer=FC.applicationWrite,result=await(writer?.localOnly?writer.project(persist):persist());if(!result)throw Error('SAVE_UNCONFIRMED');storedBreakChoice=choice;breakChip.classList.toggle('is-checked',choice);render(ctx);}
+        try{const result=await (FC.quoteOfferStore?.commitSettings ? FC.quoteOfferStore.commitSettings(draft,persist) : persist());if(!result)throw Error('SAVE_UNCONFIRMED');storedBreakChoice=choice;breakChip.classList.toggle('is-checked',choice);render(ctx);}
         catch(_){FC.infoBox?.open({title:'Zapis niepotwierdzony',message:'Nie potwierdzono zmiany kosztu przerw. Zachowano wybór w formularzu; spróbuj ponownie.',okOnly:true});}
         finally{breakInput.disabled=false;}
       });
@@ -188,12 +203,7 @@
       noteInput.value = String(commercial.customerNote || '');
 
       function syncCommercial(){
-        const latestDraft = getOfferDraft();
-        const latestCommercial = latestDraft && latestDraft.commercial && typeof latestDraft.commercial === 'object' ? latestDraft.commercial : {};
         const nextCommercial = {
-          versionName:String(versionInput.value || '').trim(),
-          preliminary: !!latestCommercial.preliminary,
-          billBreaks:latestCommercial.billBreaks!==false,
           discountPercent: Math.max(0, num(discountPercentInput.value, 0)),
           discountAmount: Math.max(0, num(discountAmountInput.value, 0)),
           offerValidity: String(validityInput.value || '').trim(),
@@ -205,16 +215,14 @@
         if(nextCommercial.discountAmount > 0) nextCommercial.discountPercent = 0;
         if(String(discountPercentInput.value || '').trim() !== String(nextCommercial.discountPercent || '')) discountPercentInput.value = nextCommercial.discountPercent ? String(nextCommercial.discountPercent) : '';
         if(String(discountAmountInput.value || '').trim() !== String(nextCommercial.discountAmount || '')) discountAmountInput.value = nextCommercial.discountAmount ? String(nextCommercial.discountAmount) : '';
-        patchOfferDraft({ commercial: nextCommercial });
+        void saveCommercial(nextCommercial);
       }
 
       [discountPercentInput, discountAmountInput, validityInput, leadTimeInput].forEach((input)=>{
         input.addEventListener('change', syncCommercial);
-        input.addEventListener('blur', syncCommercial);
       });
       [deliveryInput, noteInput].forEach((input)=>{
         input.addEventListener('change', syncCommercial);
-        input.addEventListener('blur', syncCommercial);
       });
 
       [

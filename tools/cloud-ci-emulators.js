@@ -92,16 +92,19 @@ function emulatorLogTail(cwd,startedAt){
 }
 function main(){
   const args=process.argv.slice(2);
+  const playwrightSync=args.includes('--playwright-sync');
+  if(playwrightSync&&(args.length!==2||!args.includes('--context=current')))throw Error('CLOUD_CI_PLAYWRIGHT_SCOPE_INVALID');
   const batchArg=args.find(arg=>arg.startsWith('--batch='));
   if(batchArg&&args.filter(arg=>arg.startsWith('--batch=')).length!==1)throw Error('CLOUD_CI_BATCH_ARG_DUPLICATE');
   const selectedBatch=batchArg?Number(batchArg.slice('--batch='.length)):null;
   if(batchArg&&(!Number.isSafeInteger(selectedBatch)||selectedBatch<1||selectedBatch>3||!args.includes('--context=current')))throw Error('CLOUD_CI_BATCH_SELECTION_INVALID');
-  const plan=selectPlan(context.sdkPlan(root),args.filter(arg=>!arg.startsWith('--batch=')));
+  const plan=selectPlan(context.sdkPlan(root),args.filter(arg=>!arg.startsWith('--batch=')&&arg!=='--playwright-sync'));
   let failed=false;
   for(const group of plan){
     const {cwd,cli}=verifyGroup(group);
     let groupFailed=false;
-    for(const [index,files] of batchesForGroup(group).entries()){
+    const batches=playwrightSync?[['playwright-sync-ui.test.mjs']]:batchesForGroup(group);
+    for(const [index,files] of batches.entries()){
       if(selectedBatch!==null&&index+1!==selectedBatch)continue;
       const units=executionUnits(group,index+1,files);
       let batchFailed=false;
@@ -137,7 +140,7 @@ function main(){
     }
     failed ||= groupFailed;
     const status=groupFailed?'FAIL':'PASS';
-    const evaluated=selectedBatch!==null?batchesForGroup(group)[selectedBatch-1]:group.files;
+    const evaluated=selectedBatch!==null?batches[selectedBatch-1]:batches.flat();
     context.report(`SDK/Auth/Firestore/Rules **${status}** | ${group.context} | SHA \`${context.git(group.root,['rev-parse','HEAD'])}\` | ${evaluated.join(', ')}`);
     context.verifyHistorical(root);
   }

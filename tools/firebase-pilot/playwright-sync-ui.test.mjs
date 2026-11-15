@@ -63,7 +63,7 @@ async function evidence(t, label, device, run) {
       const writer = window.FC.applicationWrite;
       const protectedKeys = ['fc_investors_v1', 'fc_projects_v1', 'fc_quote_snapshots_v1'];
       const readRows = key => JSON.parse(localStorage.getItem(key) || '[]');
-      for (const kind of ['auto', 'project']) {
+      for (const kind of ['auto', 'project', 'offerDraft']) {
         const write = writer[kind];
         writer[kind] = async (...args) => {
           try {
@@ -115,42 +115,134 @@ async function evidence(t, label, device, run) {
   }
 }
 
+async function abortNextWrite(device) {
+  await device.page.evaluate(name => {
+    const original=IDBDatabase.prototype.transaction;
+    IDBDatabase.prototype.transaction=function(stores,mode,...rest){
+      const tx=original.call(this,stores,mode,...rest);
+      if(this.name==='meble-lf-test-normal-'+name && mode==='readwrite' && Array.from(stores).includes('control')){
+        IDBDatabase.prototype.transaction=original;
+        queueMicrotask(()=>tx.abort());
+      }
+      return tx;
+    };
+  },device.name);
+}
+
+function protectedRows(before, after, allowed) {
+  for (const key of Object.keys(before.state.rows)) {
+    if (!allowed.includes(key)) assert.equal(after.state.rows[key],before.state.rows[key],key);
+  }
+}
+
 test('E1 signed DEMO synchronized UI', async t => {
-  await runNormalApplication(t, { deployment: true, runUi: async ({ phone, computer, pid, ids, room, uid, ownerClient, restart }) => {
+  await runNormalApplication(t, { deployment: true, runUi: async ({ phone, computer, pid, ids, room, room2, uid, ownerClient, restart }) => {
     const head = scope => doc(ownerClient, 'users', uid, 'localFirstProjects', scope);
     async function confirmAck(writer, reader, projectId, predicate) {
       const remote = await getDoc(head(projectId));
       assert.ok(remote.exists(), 'Project must have a server head');
+      const revision=remote.data().currentRevisionId;
+      await writer.page.waitForFunction(({name,scope,revision})=>new Promise((resolve,reject)=>{
+        const request=indexedDB.open('meble-lf-test-normal-'+name);
+        request.onupgradeneeded=()=>request.transaction.abort();
+        request.onerror=()=>reject(request.error);
+        request.onsuccess=()=>{
+          const db=request.result;
+          const read=db.transaction('outbox').objectStore('outbox').getAll();
+          read.onerror=()=>{db.close();reject(read.error);};
+          read.onsuccess=()=>{
+            db.close();
+            resolve(read.result.some(op=>op.scope===scope&&op.phase==='verified'&&op.receipt?.currentRevisionId===revision));
+          };
+        };
+      }),{name:writer.name,scope:projectId,revision});
       const written = await image(writer);
       assert.ok(written.queue.some(op => op.scope === projectId && op.phase === 'verified'
         && op.receipt?.currentRevisionId === remote.data().currentRevisionId), 'Outbox requires a verified ACK for the server revision');
       assert.ok(predicate(await image(reader)), 'Second profile must contain the same business record in IndexedDB');
     }
 
-    await t.test('quote settings and Wyceń commit a history record, then restart and receive', async sub => {
+    async function openQuote(page) {
+      await openInvestor(page, ids[0]);
+      await page.locator('.investor-room-quick-btn[data-room="' + room + '"]').click();
+      await idle(page);
+      await page.locator('[data-action="tab"][data-tab="wycena"]').click();
+      await page.locator('[data-action="wycena-generate"]').waitFor();
+      await idle(page);
+    }
+
+    async function dismissFailure(page, text) {
+      const dialog=page.locator('.info-box').filter({hasText:text});
+      await dialog.locator('.is-success').click();
+      await idle(page);
+    }
+
+    await t.test('new investor save, ACK and reopen after restart', async sub => {
+      await evidence(sub, 'investor', computer, async restartWithTrace => {
+        const { page } = computer;
+        await list(page);
+        await page.locator('#investorsListView [data-action="create-investor"]').click();
+        const before = await image(computer);
+        const name = 'DEMO synchronized investor';
+        for (const [id, value] of Object.entries({
+          invName: name, invPhone: '123456789', invCity: 'Test City',
+          invEmail: 'sync-ui@example.invalid', invAddress: 'Synthetic address',
+          invTransportDistanceKm: '12', invTransportDurationMin: '30', invCarryingFloorNumber: '0',
+        })) await page.locator('#' + id).fill(value);
+        await page.locator('#invSourceLaunch button').click();
+        await page.locator('.rozrys-choice-modal .rozrys-choice-option:not([disabled])').nth(1).click();
+        const save=async()=>{
+          await page.locator('#investorActionBar [data-investor-action="save"]').click();
+          await page.locator('.confirm-box .is-success').click();
+          await idle(page);
+        };
+        await abortNextWrite(computer);
+        await save();
+        await dismissFailure(page,'Nie zapisano inwestora');
+        assert.equal(await page.evaluate(()=>window.testSyncUiRefusal),'LF_IDB_ABORTED');
+        assert.deepEqual(await image(computer),before);
+        assert.equal(await page.locator('input#invName:not([readonly]):not([disabled])').inputValue(),name);
+        assert.equal(await page.locator('#invAddress').inputValue(),'Synthetic address');
+        await save();
+        await page.locator('input#invName:not([readonly]):not([disabled])').waitFor({state:'hidden'});
+        await idle(page);
+        const after = await image(computer);
+        const investor = rows(after, 'fc_investors_v1').find(row => row.name === name);
+        for (const key of ['fc_investors_v1', 'fc_projects_v1', 'fc_quote_snapshots_v1']) {
+          for (const old of rows(before, key)) assert.deepEqual(rows(after, key).find(row => row.id === old.id), old);
+        }
+        if (!investor) {
+          assert.deepEqual(after.queue, before.queue);
+          const field = page.locator('#invName');
+          assert.equal(await field.evaluate(el => el.value ?? el.textContent), name, 'Refused save must retain the entered name');
+          assert.equal(await page.locator('input#invName:not([readonly]):not([disabled])').count(), 1, 'Refused save must preserve edit mode');
+        }
+        assert.ok(investor, 'UI save did not persist the new investor');
+        const project = rows(after, 'fc_projects_v1').find(row => row.investorId === investor.id);
+        assert.ok(project);
+        await phone.page.waitForFunction(id => !!window.FC.investors.getById(id), investor.id);
+        await confirmAck(computer, phone, project.id, received => rows(received, 'fc_investors_v1').some(row => row.id === investor.id));
+        await restartWithTrace(restart);
+        await openInvestor(computer.page, investor.id);
+        assert.equal(await computer.page.locator('#invName').textContent(), name);
+        assert.deepEqual(rows(await image(computer), 'fc_investors_v1').find(row => row.id === investor.id), investor);
+      });
+    });
+
+    let generated;
+    await t.test('Wyceń refuses an aborted write, then persists history, restart, second profile and ACK', async sub => {
       await evidence(sub, 'quote', phone, async restartWithTrace => {
         const { page } = phone;
-        await openInvestor(page, ids[0]);
-        await page.locator('.investor-room-quick-btn[data-room="' + room + '"]').click();
-        await idle(page);
-        await page.locator('[data-action="tab"][data-tab="wycena"]').click();
-        await idle(page);
+        await openQuote(page);
         const calculate = page.locator('[data-action="wycena-generate"]');
-        await calculate.waitFor();
         const before = await image(phone);
-        const settings = page.locator('.quote-offer-accordion__trigger');
-        if (!await page.locator('[data-bill-breaks]').isVisible()) await settings.click();
-        await page.getByText('Naliczaj klientowi koszt przerw', { exact: true }).click();
-        await idle(page);
-        const settingsSaved = rows(await image(phone), 'fc_quote_offer_drafts_v1').some(row => row.projectId === pid && row.commercial.billBreaks === false);
-        if (!settingsSaved) {
-          const code = await page.evaluate(() => window.FC.storage.getLastWriteError()?.error?.code);
-          assert.deepEqual((await image(phone)).queue, before.queue);
-          sub.diagnostic('RED: billBreaks did not reach IndexedDB (' + code + ')');
-          const refusal = page.locator('.info-box .is-success');
-          if (await refusal.isVisible()) await refusal.click();
-        }
+        await abortNextWrite(phone);
         await calculate.click();
+        await dismissFailure(page,'LF_IDB_ABORTED');
+        assert.deepEqual(await image(phone),before);
+        assert.equal(await page.locator('[data-quote-history-id]').count(),rows(before,'fc_quote_snapshots_v1').length);
+        await calculate.click();
+        await page.locator('[data-quote-history-id]').first().waitFor();
         await idle(page);
         const after = await image(phone);
         const oldOffers = rows(before, 'fc_quote_snapshots_v1');
@@ -175,49 +267,132 @@ test('E1 signed DEMO synchronized UI', async t => {
         await phone.page.locator('[data-action="tab"][data-tab="wycena"]').click();
         await phone.page.locator('[data-quote-history-id="' + added.id + '"]').waitFor();
         assert.deepEqual(rows(await image(phone), 'fc_quote_snapshots_v1').find(row => row.id === added.id), added);
-        sub.diagnostic('PASS: Wyceń, durable history after restart, second profile and verified ACK');
-        assert.ok(settingsSaved, 'The offer settings did not reach IndexedDB');
+        generated=added;
       });
     });
 
-    await t.test('new investor save, ACK and reopen after restart', async sub => {
-      await evidence(sub, 'investor', computer, async restartWithTrace => {
-        const { page } = computer;
+    await t.test('offer settings checkpoint, scope refusal, abort, restart and accepted history', async sub => {
+      await evidence(sub, 'settings', phone, async restartWithTrace => {
+        assert.ok(generated,'A real generated snapshot is required to seed accepted history');
+        const {page}=phone;
         await list(page);
-        await page.locator('#investorsListView [data-action="create-investor"]').click();
-        const before = await image(computer);
-        const name = 'DEMO synchronized investor';
-        for (const [id, value] of Object.entries({
-          invName: name, invPhone: '123456789', invCity: 'Test City',
-          invEmail: 'sync-ui@example.invalid', invAddress: 'Synthetic address',
-          invTransportDistanceKm: '12', invTransportDurationMin: '30', invCarryingFloorNumber: '0',
-        })) await page.locator('#' + id).fill(value);
-        await page.locator('#invSourceLaunch button').click();
-        await page.locator('.rozrys-choice-modal .rozrys-choice-option:not([disabled])').nth(1).click();
-        await page.locator('#investorActionBar [data-investor-action="save"]').click();
-        await page.locator('.confirm-box .is-success').click();
+        // Prepare accepted-history fixture with the domain command and real persistence.
+        // Acceptance itself is outside this UI regression.
+        await openInvestor(page,ids[0]);
+        assert.equal(await page.evaluate(id=>window.FC.applicationWrite.project(()=>{
+          const fc=window.FC;
+          return fc.projectStatusSync.commitAcceptedSnapshot(fc.quoteSnapshotStore.getById(id),'zaakceptowany',{refreshUi:false}).ok;
+        }),generated.id),true);
+        await page.waitForFunction(() => !window.FC.applicationStartup.inspect().transactionPending);
+        await openQuote(page);
+        await page.waitForFunction(() => !window.normalPendingRpc?.length);
+        await computer.page.waitForFunction(id=>Number(window.FC.quoteSnapshotStore.getById(id)?.meta.acceptedAt)>0,generated.id);
+        await confirmAck(phone,computer,pid,received=>rows(received,'fc_quote_snapshots_v1').some(row=>row.id===generated.id&&row.meta.acceptedAt>0));
+        const before = await image(phone);
+        const remoteBefore=(await getDoc(head(pid))).data();
+        const accepted = rows(before,'fc_quote_snapshots_v1').find(row=>row.id===generated.id);
+        assert.ok(accepted.meta.acceptedAt>0);
+        const selected=()=>page.waitForFunction(()=>window.FC.quoteOfferStore.settingsSettled());
+        const draft=record=>rows(record,'fc_quote_offer_drafts_v1').find(row=>row.projectId===pid);
+        const openCommercial=async()=>{
+          if(!await page.locator('[data-bill-breaks]').isVisible()){
+            await page.locator('.quote-offer-accordion__trigger').filter({hasText:'Ustawienia'}).click();
+          }
+        };
+        await openCommercial();
+        await abortNextWrite(phone);
+        await page.getByText('Naliczaj klientowi koszt przerw',{exact:true}).click();
+        await dismissFailure(page,'Nie potwierdzono zmiany kosztu przerw');
+        assert.equal(await page.locator('[data-bill-breaks]').isChecked(),false);
+        assert.equal(await page.evaluate(()=>window.testSyncUiRefusal),'LF_IDB_ABORTED');
+        assert.deepEqual(await image(phone),before);
+        await page.getByText('Naliczaj klientowi koszt przerw',{exact:true}).click();
+        await selected();
+        await page.getByText('Naliczaj klientowi koszt przerw',{exact:true}).click();
+        await selected();
+        await openCommercial();
+        assert.equal(draft(await image(phone)).commercial.billBreaks,false);
+        await page.locator('.quote-selection-launch--rooms').click();
+        const roomPicker=page.locator('.panel-box-backdrop');
+        const second=roomPicker.locator('label').filter({has:page.getByText('Normal second kitchen',{exact:true})});
+        const first=roomPicker.locator('label').filter({has:page.getByText('Normal kitchen',{exact:true})});
+        if(!await second.locator('input').isChecked())await second.locator('.rozrys-room-chip__label').click();
+        if(await first.locator('input').isChecked())await first.locator('.rozrys-room-chip__label').click();
+        await page.getByRole('button',{name:'Zatwierdź',exact:true}).click();
+        await selected();
+        await page.locator('.panel-box-backdrop').waitFor({state:'hidden'});
+        await page.getByText('Wstępna wycena (bez pomiaru)',{exact:true}).click();
+        await selected();
+        await openCommercial();
+        const field=label=>page.locator('.quote-offer-field').filter({has:page.getByText(label,{exact:true})}).locator('input,textarea');
+        for(const [label,value] of [
+          ['Nazwa wersji oferty','DEMO ustawienia'],['Rabat kwotowy','25'],['Rabat kwotowy','0'],['Rabat %','3'],['Ważność oferty','10 dni'],
+          ['Termin realizacji','12 tygodni'],['Warunki montażu / transportu','DEMO warunki'],['Notatka dla klienta','DEMO notatka'],
+        ]){
+          const control=field(label);
+          await control.fill(value);
+          await control.blur();
+          await selected();
+        }
+        await page.locator('[data-action="tab"][data-tab="czynnosci"]').click();
         await idle(page);
-        const after = await image(computer);
-        const investor = rows(after, 'fc_investors_v1').find(row => row.name === name);
-        for (const key of ['fc_investors_v1', 'fc_projects_v1', 'fc_quote_snapshots_v1']) {
-          for (const old of rows(before, key)) assert.deepEqual(rows(after, key).find(row => row.id === old.id), old);
+        if(!await page.getByRole('button',{name:'Dodaj czynność',exact:true}).isVisible()){
+          await page.getByText('Czynności dodane ręcznie',{exact:true}).click();
         }
-        if (!investor) {
-          assert.deepEqual(after.queue, before.queue);
-          const field = page.locator('#invName');
-          assert.equal(await field.evaluate(el => el.value ?? el.textContent), name, 'Refused save must retain the entered name');
-          assert.equal(await page.locator('input#invName:not([readonly]):not([disabled])').count(), 1, 'Refused save must preserve edit mode');
-        }
-        assert.ok(investor, 'UI save did not persist the new investor');
-        const project = rows(after, 'fc_projects_v1').find(row => row.investorId === investor.id);
-        assert.ok(project);
-        await phone.page.waitForFunction(id => !!window.FC.investors.getById(id), investor.id);
-        await confirmAck(computer, phone, project.id, received => rows(received, 'fc_investors_v1').some(row => row.id === investor.id));
+        await page.getByRole('button',{name:'Dodaj czynność',exact:true}).click();
+        await page.locator('.quote-labor-picker__step').filter({hasText:'+'}).first().click();
+        await page.getByRole('button',{name:'Zatwierdź',exact:true}).click();
+        await selected();
+        await page.locator('.quote-labor-picker__footer').waitFor({state:'hidden'});
+        await page.locator('[data-action="tab"][data-tab="wycena"]').click();
+        await idle(page);
+        await page.locator('[data-service-scope]').click();
+        await page.locator('.panel-box-backdrop').getByText('Dostawa',{exact:true}).click();
+        await page.getByRole('button',{name:'Zatwierdź',exact:true}).click();
+        await page.locator('[data-service="delivery"]').waitFor({state:'hidden'});
+        await page.getByText('HARMONOGRAM',{exact:true}).first().click();
+        await page.locator('[data-helper-hours]').fill('2.5');
+        await page.locator('[data-helper-save]').click();
+        await selected();
+        await page.locator('.quote-selection-launch--scope').click();
+        await page.locator('.panel-box-backdrop').getByText('Fronty',{exact:true}).click();
+        await page.getByRole('button',{name:'Zatwierdź',exact:true}).click();
+        await selected();
+        const after=await image(phone);
+        const saved=draft(after);
+        assert.equal(saved.investorId,ids[0]);
+        assert.equal(saved.helperHours,2.5);
+        assert.equal(saved.services.delivery,false);
+        assert.equal(saved.selection.materialScope.includeFronts,false);
+        assert.deepEqual(saved.selection.selectedRooms,[room2]);
+        assert.equal(saved.rateSelections.length,1);
+        assert.equal(saved.rateSelections[0].qty,1);
+        assert.deepEqual(saved.commercial,{
+          versionName:'DEMO ustawienia',preliminary:true,billBreaks:false,
+          discountPercent:3,discountAmount:0,offerValidity:'10 dni',leadTime:'12 tygodni',
+          deliveryTerms:'DEMO warunki',customerNote:'DEMO notatka',
+        });
+        protectedRows(before,after,['fc_quote_offer_drafts_v1','fc_ui_v1']);
+        assert.deepEqual(after.queue,before.queue);
+        assert.deepEqual((await getDoc(head(pid))).data(),remoteBefore);
+        assert.deepEqual(rows(after,'fc_quote_snapshots_v1').find(row=>row.id===accepted.id),accepted);
+        await assert.rejects(page.evaluate(()=>{
+          const fc=window.FC;
+          const key=fc.quoteOfferStore.DRAFT_KEY;
+          return fc.applicationWrite.offerDraft(()=>{
+            const values=fc.storage.getJSON(key,[]);
+            values[0].investorId='foreign-owner';
+            return fc.storage.setJSON(key,values);
+          });
+        }),/LF_APPLICATION_SCOPE_REFUSED/);
+        assert.deepEqual(await image(phone),after);
         await restartWithTrace(restart);
-        await openInvestor(computer.page, investor.id);
-        assert.equal(await computer.page.locator('#invName').textContent(), name);
-        assert.deepEqual(rows(await image(computer), 'fc_investors_v1').find(row => row.id === investor.id), investor);
+        assert.deepEqual(draft(await image(phone)),saved);
+        await openQuote(phone.page);
+        assert.deepEqual(rows(await image(phone),'fc_quote_snapshots_v1').find(row=>row.id===accepted.id),accepted);
+        await list(phone.page);
       });
     });
+
   } });
 });

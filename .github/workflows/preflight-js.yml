@@ -331,9 +331,60 @@ jobs:
           if-no-files-found: ignore
 
 
+  playwright-sync-ui:
+    needs: safety
+    if: ${{ !cancelled() && needs.safety.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact approved head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.safety.outputs.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify isolated source and 425 pins
+        env:
+          APPROVED_HEAD: ${{ needs.safety.outputs.head_sha }}
+          APPROVED_BASE: ${{ needs.safety.outputs.base_sha }}
+        run: node tools/cloud-ci-prepare.js "$APPROVED_HEAD"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install locked DEMO dependencies
+        run: npm --prefix "$PREFLIGHT_DIR/tools/firebase-pilot" ci --no-audit --no-fund
+      - name: Run signed DEMO Playwright against isolated Auth and Firestore emulators
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x /usr/bin/dbus-run-session
+          test -x /usr/bin/python3
+          export CHROMIUM_PATH="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          test -x "$CHROMIUM_PATH"
+          export TMPDIR="$RUNNER_TEMP/playwright-sync-ui"
+          mkdir -p "$TMPDIR" "$RUNNER_TEMP/ci-logs"
+          node tools/cloud-ci-emulators.js --context=current --playwright-sync 2>&1 | tee "$RUNNER_TEMP/ci-logs/playwright-sync-ui.txt"
+      - name: Upload synchronized UI diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-playwright-sync-ui
+          path: |
+            ${{ runner.temp }}/ci-logs/playwright-sync-ui.txt
+            ${{ runner.temp }}/playwright-sync-ui/meble-sync-ui-*/evidence.json
+            ${{ runner.temp }}/playwright-sync-ui/meble-sync-ui-*/failure.png
+            ${{ runner.temp }}/playwright-sync-ui/meble-sync-ui-*/failure.zip
+            ${{ runner.temp }}/playwright-sync-ui/meble-sync-ui-*/before-restart.zip
+          if-no-files-found: ignore
+
   firebase-current:
     if: ${{ always() }}
-    needs: [safety, firebase-current-shards]
+    needs: [safety, firebase-current-shards, playwright-sync-ui]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -349,7 +400,7 @@ jobs:
         with:
           script: |
             const groups=JSON.parse(process.env.GROUPS);
-            const names=["safety","firebase-current-shards"];
+            const names=["safety","firebase-current-shards","playwright-sync-ui"];
             const missing=names.filter(name=>groups[name]?.result!=='success');
             const status=missing.length?'FAIL':'PASS';
             const reason=missing.length?'Mandatory groups not successful: '+missing.join(', '):'All mandatory groups passed';

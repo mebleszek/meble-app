@@ -30,14 +30,60 @@
   }
   FC.projectExportContract.dependencies({investor,project});return true;
  }
+ const draftKey='fc_quote_offer_drafts_v1';
+ function draftRows(raw){
+  const rows=JSON.parse(raw||'[]');
+  if(!Array.isArray(rows))fail();
+  return rows;
+ }
+ function validateOfferDrafts(rows,projects,investors){
+  safe(rows);
+  const seen=new Set();
+  for(const row of rows){
+   const owners=projects.filter(p=>p.id===row?.projectId);
+   if(!id(row?.projectId)||!id(row.investorId)||seen.has(row.projectId)
+    ||owners.length!==1||owners[0].investorId!==row.investorId
+    ||investors.filter(i=>i.id===row.investorId).length!==1
+    ||!Array.isArray(row.selection?.selectedRooms)||!row.selection.materialScope
+    ||!Array.isArray(row.rateSelections)||!row.commercial||typeof row.commercial.versionName!=='string'
+    ||!Number.isFinite(row.helperHours)||row.helperHours<0)fail();
+   seen.add(row.projectId);
+  }
+ }
+ function validateOfferDraftChange(before,after,scope){
+  const old=draftRows(before[draftKey]),next=draftRows(after[draftKey]);
+  const refuse=()=>{throw Object.assign(Error('LF_APPLICATION_SCOPE_REFUSED'),{code:'LF_APPLICATION_SCOPE_REFUSED'});};
+  const others=rows=>rows.filter(row=>row?.projectId!==scope);
+  if(!scope||before.fc_current_project_id_v1!==scope||after.fc_current_project_id_v1!==scope
+   ||JSON.stringify(others(old))!==JSON.stringify(others(next)))refuse();
+  const owned=next.filter(row=>row?.projectId===scope);
+  const previous=old.filter(row=>row?.projectId===scope);
+  if(owned.length!==1||owned[0].investorId!==after.fc_current_investor_v1
+   ||previous.length>1||previous.some(row=>row.investorId!==owned[0].investorId))refuse();
+  const projects=JSON.parse(after.fc_projects_v1||'[]'),investors=JSON.parse(after.fc_investors_v1||'[]');
+  validateOfferDrafts(owned,projects,investors);
+  const defs=projects.find(p=>p.id===scope).projectData.meta.roomDefs||{};
+  const row=owned[0],normalized=FC.quoteOfferStore.normalizeDraft(row,row);
+  const canonical=FC.cloudPilotContract.canonical;
+  for(const key of Object.keys(normalized)){
+   if(!Object.hasOwn(row,key)||canonical(row[key])!==canonical(normalized[key]))fail();
+  }
+  const rooms=row.selection.selectedRooms;
+  if(rooms.some(room=>!id(room)||!Object.hasOwn(defs,room))||new Set(rooms).size!==rooms.length)refuse();
+ }
  async function build(storage,projectId){
   if(storage.getItem('fc_edit_session_v1')!==null)fail();
-  for(const key of ['fc_edge_v1','fc_material_part_options_v1','fc_rozrys_grain_state_v1','fc_rozrys_overrides_v1','fc_quote_offer_drafts_v1']){
+  for(const key of ['fc_edge_v1','fc_material_part_options_v1','fc_rozrys_grain_state_v1','fc_rozrys_overrides_v1']){
    const raw=storage.getItem(key);if(raw!==null&&raw!=='{}'&&raw!=='[]')throw Object.assign(Error('LF_PROJECT_OWNERSHIP_PENDING'),{code:'LF_PROJECT_OWNERSHIP_PENDING'});
   }
   const projects=JSON.parse(storage.getItem('fc_projects_v1')||'[]'),matches=projects.filter(p=>p.id===projectId);
   if(matches.length!==1)fail();const project=matches[0];
-  const investors=JSON.parse(storage.getItem('fc_investors_v1')||'[]').filter(i=>i.id===project.investorId);if(investors.length!==1)fail();
+  const allInvestors=JSON.parse(storage.getItem('fc_investors_v1')||'[]');
+  // Verified owner-scoped drafts remain device-local. Unresolved legacy rows
+  // still block projection rather than being silently omitted.
+  try{validateOfferDrafts(draftRows(storage.getItem(draftKey)),projects,allInvestors);}
+  catch(_){throw Object.assign(Error('LF_PROJECT_OWNERSHIP_PENDING'),{code:'LF_PROJECT_OWNERSHIP_PENDING'});}
+  const investors=allInvestors.filter(i=>i.id===project.investorId);if(investors.length!==1)fail();
   const history=JSON.parse(storage.getItem('fc_quote_snapshots_v1')||'[]');if(!Array.isArray(history))fail();
   if(history.some(o=>!o.project?.id||!o.investor?.id))throw Object.assign(Error('LF_HISTORY_OWNER_REQUIRED'),{code:'LF_HISTORY_OWNER_REQUIRED'});
   const payload={investor:investors[0],project,offers:history.filter(o=>o.project.id===project.id)};validate(payload);
@@ -46,5 +92,5 @@
   document.integrity={algorithm:'SHA-256',canonicalization:'sorted-json-v1',payloadSha256:await c.sha(c.encode?c.encode(payload):new TextEncoder().encode(c.canonical(payload))),documentSha256:await c.sha(new TextEncoder().encode(c.canonical(document)))};
   return {ok:true,document,utf8Bytes:new TextEncoder().encode(c.canonical(document)).length};
  }
- FC.businessProjectContract={validate,build,dependencies:payload=>FC.projectExportContract.dependencies(payload)};
+ FC.businessProjectContract={validate,build,validateOfferDraftChange,dependencies:payload=>FC.projectExportContract.dependencies(payload)};
 })();

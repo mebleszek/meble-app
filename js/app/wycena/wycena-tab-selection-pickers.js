@@ -42,7 +42,7 @@
     function saveRooms(rooms){
       const nextRooms = filterQuoteableRoomIds(rooms);
       const draft = getOfferDraft();
-      if(!nextRooms.length || (writer?.localOnly && (!initialDraft.projectId
+      if(!nextRooms.length || (writer && (!initialDraft.projectId
         || draft.projectId !== initialDraft.projectId || draft.investorId !== initialDraft.investorId))) return false;
       const nextVersionName = resolveVersionNameAfterRoomChange(selection, nextRooms, draft, deps);
       const patch = { selection:{ selectedRooms:nextRooms } };
@@ -55,7 +55,7 @@
       if(!(FC.rozrysPickers && typeof FC.rozrysPickers.openRoomsPicker === 'function')) return;
       FC.rozrysPickers.openRoomsPicker({
         getSelectedRooms: ()=> selection.selectedRooms,
-        setSelectedRooms: writer?.localOnly ? writer.projectHandler(saveRooms) : saveRooms,
+        setSelectedRooms: writer ? rooms=>FC.quoteOfferStore.commitSettings(initialDraft,()=>saveRooms(rooms)) : saveRooms,
         getRooms: getActiveRoomIds,
         normalizeRoomSelection: (rooms)=>{
           let normalized = [];
@@ -145,11 +145,16 @@
         if(!ok) return;
         FC.panelBox.close();
       });
-      saveBtn.addEventListener('click', ()=>{
-        if(!(draftScope.includeFronts || draftScope.includeCorpus)) return;
-        patchOfferDraft({ selection:{ materialScope:Object.assign({}, draftScope) } });
-        FC.panelBox.close();
-        render(ctx);
+      saveBtn.addEventListener('click', async()=>{
+        if(saveBtn.disabled||!(draftScope.includeFronts || draftScope.includeCorpus))return;
+        saveBtn.disabled=true;
+        const save=()=>patchOfferDraft({ selection:{ materialScope:Object.assign({}, draftScope) } });
+        try{
+          if(!await (FC.quoteOfferStore?.commitSettings ? FC.quoteOfferStore.commitSettings(draft,save) : save()))throw Error('SAVE_UNCONFIRMED');
+          FC.panelBox.close();
+          render(ctx);
+        }catch(_){FC.infoBox?.open({title:'Zapis niepotwierdzony',message:'Zachowano wybrany zakres.',okOnly:true});}
+        finally{saveBtn.disabled=false;}
       });
       updateFooterState();
       footer.appendChild(actionWrap);

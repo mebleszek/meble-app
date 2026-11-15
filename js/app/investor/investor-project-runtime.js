@@ -145,7 +145,8 @@
         return refuseActivation(policyResult && policyResult.code);
       }
       persistAsActiveProject(proj);
-      refreshProjectUi();
+      if(options?.deferRefresh&&FC.applicationWrite)FC.applicationWrite.afterCommit(refreshProjectUi);
+      else refreshProjectUi();
       return true;
     }catch(_){ return refuseActivation('PROJECT_ACTIVATION_FAILED'); }
   }

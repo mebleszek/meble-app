@@ -118,23 +118,38 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   return;
  }
  const phone=await device('phone');
- const ids=await phone.page.evaluate(()=>{
+ const ids=await phone.page.evaluate(seedE1=>{
   const a=window.FC.investors.create({name:'Normal A'}),b=window.FC.investors.create({name:'Normal B'});
-  if(!a||!b)throw Error('Native source creation refused');return [a.id,b.id];
- });
+  if(!a||!b)throw Error('Native source creation refused');
+  if(seedE1){
+   const investors=window.FC.storage.getJSON('fc_investors_v1',[]);
+   for(const investor of investors)investor.futureOwnedField={exact:13.125};
+   if(!window.FC.storage.setJSON('fc_investors_v1',investors))throw Error('Investor fixture refused');
+  }
+  return [a.id,b.id];
+ },!!runUi);
  const first=await phone.page.evaluate(()=>JSON.parse(localStorage.getItem('fc_projects_v1')));
  const pid=first.find(p=>p.investorId===ids[0]).id;
- const room=await phone.page.evaluate(async({pid,iid,seedLegacyOffer})=>{
+ const {room,room2}=await phone.page.evaluate(async({pid,iid,seedLegacyOffer})=>{
   const fc=window.FC;if(await fc.actions.dispatch('open-investor',{element:{getAttribute:()=>iid}})!==true)throw Error('Fixture activation refused');
   const made=fc.roomRegistry._debug.createRoomRecord(fc.investors.getById(iid),{baseType:'kuchnia',name:'Normal kitchen'});if(!made.ok)throw Error('Fixture room refused');
+  const second=seedLegacyOffer?null:fc.roomRegistry._debug.createRoomRecord(fc.investors.getById(iid),{baseType:'kuchnia',name:'Normal second kitchen'});
+  if(second&&!second.ok)throw Error('Second fixture room refused');
   const row=fc.projectStore.getById(pid);row.projectData.meta.futureOwnedField={exact:7.125};
   row.projectData[made.room.id].cabinets=[{id:'normal-cabinet',type:'stojąca',subType:'standardowa',width:60.125,height:82,depth:51,frontCount:2,bodyColor:'laminat TEST',frontMaterial:'laminat',frontColor:'TEST',backMaterial:'HDF',bodyPcvMode:'body',details:{shelves:3}}];
   window.projectData=row.projectData;
   fc.cabinetFronts.generateFrontsForCabinet(made.room.id,row.projectData[made.room.id].cabinets[0]);
-  fc.layoutState.ensureLayout(made.room.id);row.projectData=window.projectData;
+  fc.layoutState.ensureLayout(made.room.id);
+  if(second){
+   const id=second.room.id;
+   row.projectData[id].cabinets=[{...structuredClone(row.projectData[made.room.id].cabinets[0]),id:'normal-second-cabinet',width:65}];
+   fc.cabinetFronts.generateFrontsForCabinet(id,row.projectData[id].cabinets[0]);
+   fc.layoutState.ensureLayout(id);
+  }
+  row.projectData=window.projectData;
   if(!fc.projectStore.upsert(row))throw Error('Fixture cabinet refused');window.projectData=fc.project.load();
   if(seedLegacyOffer&&!fc.storage.setJSON('fc_quote_snapshots_v1',[{id:'normal-offer',project:{id:pid},investor:{id:iid},frozen:{total:21.375,pcv:0.8125}}]))throw Error('Fixture history refused');
-  return made.room.id;
+  return {room:made.room.id,room2:second?.room.id};
  },{pid,iid:ids[0],seedLegacyOffer:!runUi});
  const source=await phone.page.evaluate(()=>({projects:localStorage.getItem('fc_projects_v1'),investors:localStorage.getItem('fc_investors_v1')}));
  assert.equal(JSON.parse(source.projects).length,2);
@@ -243,7 +258,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
    await d.page.goto(origin+'/index.html');
    await login(d);
   }
-  return runUi({phone,computer,pid,room,ids,uid,ownerClient,restart});
+  return runUi({phone,computer,pid,room,room2,ids,uid,ownerClient,restart});
  }
  await until(async()=>await computer.page.evaluate(ids=>ids.every(id=>!!window.FC.investors.getById(id)),ids));
  assert.equal(await computer.page.evaluate(()=>window.FC.investors.readAll().length),2);

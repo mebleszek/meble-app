@@ -64,16 +64,28 @@
   }
 
   function writeAll(list, options){
-    const normalized = (list || []).map(normalizeInvestor);
+    let normalized = (list || []).map(normalizeInvestor);
     try{
-      if(FC.applicationWrite?.localOnly && options?.recordId){
+      if(options?.recordId){
         const current=JSON.parse(localStorage.getItem(KEY_INVESTORS)||'[]');
-        if(!Array.isArray(current))return false;
-        for(let i=0;i<normalized.length;i++){
-          const row=normalized[i],before=current.find(item=>item && item.id===row.id);
-          if(before && row.id!==options.recordId
-            && JSON.stringify(normalizeInvestor(before))===JSON.stringify(row))normalized[i]=before;
-        }
+        const row=normalized.find(item=>item.id===options.recordId);
+        if(!Array.isArray(current)||!row)return false;
+        const matches=current.filter(item=>item?.id===row.id);
+        if(matches.length>1)return false;
+        if(matches.length){
+          const before=matches[0];
+          const next={...before,...row};
+          for(const key of ['meta','transport','carrying'])next[key]={...before[key],...row[key]};
+          next.carrying.elevator={...before.carrying?.elevator,...row.carrying.elevator};
+          const priorRooms=Array.isArray(before.rooms)?before.rooms:[];
+          next.rooms=row.rooms.map(room=>{
+            const stored=priorRooms.find(item=>item?.id===room.id);
+            const normalizeRoom=model.normalizeRoom;
+            return stored&&normalizeRoom&&JSON.stringify(normalizeRoom(stored))===JSON.stringify(room)?stored:{...stored,...room};
+          });
+          current[current.indexOf(before)]=next;
+        }else current.unshift(row);
+        normalized=current;
       }
       if(FC.storage && typeof FC.storage.setJSON === 'function'){
         const ok = FC.storage.setJSON(KEY_INVESTORS, normalized);

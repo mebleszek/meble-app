@@ -1,5 +1,15 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## P0 — zapis inwestora i ustawień wyceny po E1, 15.11.2026
+
+Gałąź `test/qa-playwright-sync-ui-20261115`, wejściowy BASE `4cc9dfb39e3efc7164fda1ee1ab11d026c70b85b`, zdalny main `84a3a595c83091d97c9213e2e798c607da5a0a80`. Zastosowano zasadę autonomii z `9c79d52ead83dd6b1f4e1517346cd19c7fb81747`.
+
+- **RED potwierdzony na BASE.** Zapis inwestora podmieniał dwa nieedytowane rekordy po normalizacji. Aktywacja projektu odświeżała formularz przed zatwierdzeniem, a replika bez rewizji serwera mogła pominąć pierwszą publikację. Zapis obejmuje teraz jeden rekord, odświeżenie następuje po commit, a rozpoznanie braku zmian wymaga potwierdzonej rewizji.
+- **RED potwierdzony na BASE.** Ustawienia wyceny próbowały zapisać chroniony klucz poza transakcją. Szkic ma lokalną transakcję z weryfikacją projektu, inwestora, edytora oraz pozostałych rekordów. Nie dopisuje operacji do outboxa. Projekcja biznesowa nadal odmawia dla szkiców o niepotwierdzonym właścicielu.
+- **GREEN, podpisane DEMO w Chromium + Firebase Emulator 3/3.** Inwestor zachował edycję po abort, a ponowny zapis przeszedł restart, odbiór w drugim profilu i ACK. Osobno Wyceń przeszedł abort, zapis historii, restart, odbiór i ACK. Ustawienia przeszły odczyt wszystkich sprawdzanych pól po restarcie, z odmową obcego zakresu, niezmienioną zaakceptowaną ofertą, outboxem i rewizją Firestore. Akceptacja oferty była przygotowaniem danych testowych przez komendę domenową.
+- **PASS regresji celowanych.** Playwright localOnly 2/2. Usuwanie oferty LOCAL-FIRST 15/15. Ochrona przed podwójnym Wyceń, pojedyncza ścieżka generowania, wersje skryptów i manifest offline przeszły.
+- **CI_PENDING.** Osobne zadanie `playwright-sync-ui` należy do obowiązkowej agregacji `firebase-current`. Utrzymano 10 grup smoke i sześć izolowanych scenariuszy. Następny krok po weryfikacji lokalnej to osobna decyzja dla dokładnych HEAD/BASE przed CI wydaniowym.
+
 ## E1 — Playwright w trybie synchronizowanym, 15.11.2026
 
 Gałąź `test/qa-playwright-sync-ui-20261115`, BASE `06bbc8054e6eef3be18ab61df96b64ba6e02f621` (`chore/qa-playwright-parallel-gate-20261115`). [Plan E1](docs/plans/test-strategy-playwright-20261115.md). Dwa izolowane profile Chromium, podpisane DEMO, lokalne emulatory Auth/Firestore.

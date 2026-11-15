@@ -72,6 +72,14 @@
     return `Wybrane czynności: ${rows.length} • ilość razem: ${qtyTotal}${(!hideMoney && total > 0) ? ` • ${money(total)}` : ''}`;
   }
 
+  function commitLabor(draft, save){
+    return FC.quoteOfferStore?.commitSettings ? FC.quoteOfferStore.commitSettings(draft,save) : save();
+  }
+
+  function laborSaveFailure(){
+    FC.infoBox?.open({title:'Zapis niepotwierdzony',message:'Nie potwierdzono zapisu czynności.',okOnly:true});
+  }
+
   function openPicker(catalog, selectionMap, onSave){
     if(!(FC.wycenaLaborPicker && typeof FC.wycenaLaborPicker.open === 'function')) return false;
     FC.wycenaLaborPicker.open({ catalog, selectionMap, onSave });
@@ -98,12 +106,14 @@
       row.appendChild(info);
       row.appendChild(h('div', { class:'quote-rate-editor__selected-qty', text:`×${parse(selectionMap[id], 0)}` }));
       const remove = h('button', { class:'btn btn-danger', type:'button', text:'Usuń' });
-      remove.addEventListener('click', (event)=>{
+      remove.addEventListener('click', async(event)=>{
         try{ event.preventDefault(); event.stopPropagation(); }catch(_){ }
         const nextMap = Object.assign({}, selectionMap);
         delete nextMap[id];
-        saveRateSelectionRows(makeRateSelectionRows(catalog, nextMap, deps), deps);
-        render(ctx);
+        const draft=getFn(deps,'getOfferDraft',()=>({}))();
+        const save=()=>saveRateSelectionRows(makeRateSelectionRows(catalog,nextMap,deps),deps);
+        try{if(await commitLabor(draft,save)===false)throw Error('SAVE_UNCONFIRMED');render(ctx);}
+        catch(_){laborSaveFailure();}
       });
       row.appendChild(remove);
       wrap.appendChild(row);
@@ -190,9 +200,10 @@
           const now = Date.now();
           if(now - lastOpen < 250) return;
           lastOpen = now;
-          openPicker(catalog, selectionMap, (rows)=>{
-            saveRateSelectionRows(rows, deps);
+          openPicker(catalog, selectionMap, async(rows)=>{
+            if(await commitLabor(draft,()=>saveRateSelectionRows(rows,deps))===false)return false;
             render(ctx);
+            return true;
           });
         };
         addBtn.addEventListener('pointerup', handleOpen);
