@@ -8,6 +8,20 @@
 
 > Cel: zapewnić, że zielony CI oznacza również możliwość wykonania rzeczywistej pracy — od kliknięcia i zatwierdzenia po trwały odczyt po restarcie i poprawną synchronizację — przy krótszym czasie testów i bez osłabiania zabezpieczeń.
 
+## Aktualizacja wdrożenia 15.11.2026 — E0+lokalne E1 i obowiązkowe Playwright CI
+
+**Ta sekcja aktualizuje status wdrożenia.** Poniższe sekcje 1–7 pozostają historycznym zapisem pierwotnego planu i pomiarów siedmiu shardów, nie opisem nowej konfiguracji.
+
+- Codex dodał na gałęzi `test/qa-playwright-local-ui-20261115` dwa testy Playwright dla localOnly: rzeczywisty zapis inwestora i szafki, odczyt IndexedDB, restart Chromium i powtórny odczyt. Wynik lokalny przekazany przez Codexa: **2/2 PASS**. GitHub Actions dla tych testów jeszcze nie wykonał nowego przebiegu.
+- W niniejszej gałęzi zmieniono liczbę shardów smoke z 7 na **10**, bez usuwania któregokolwiek z **221 plików testowych**. Sześć testów ma osobne, równoległe zadania: trzy istniejące izolowane oraz trzy ze zmierzonym czasem ponad 120 sekund: `quote-exact-calculations-smoke.js` (220,6 s), `wycena-labor-pdf-smoke.js` (175,1 s), `wycena-labor-norms-smoke.js` (156,1 s). Dodatkowy guard odmawia mieszanej grupy dla każdej wpisanej w wagach pozycji >120 000 ms.
+- Pozostałe 215 smoke podzielono na cztery mieszane grupy. **Symulacja na historycznych czasach**: grupy mieszane 176/167/160/175 s, trzy ciężkie osobno 221/175/156 s. Szacowany najdłuższy shard **221 s zamiast 523 s**. Jest to obliczenie na danych historycznych, nie dowód czasu nowego przebiegu GitHub CI.
+- Do `.github/workflows/preflight-js.yml` dodano **osobne równoległe zadanie `playwright-local-ui`** z Node 22, Chromium, zamrożonymi zależnościami i izolowanym `TMPDIR`. Wynik wymagany jest przez agregację `preflight`, zatem FAIL zablokuje wydanie; błędy zapisują log, screenshot i trace jako artefakty. Nie korzysta z Firebase LIVE ani nie wymaga serwera Firebase w localOnly.
+- Obecny Firebase Current batch 3 jest wielominutową **sekwencją czterech odrębnych segmentów** (~93/40/45/40 s plus osobna jednostka administracyjna). W ostatnim pomiarze żaden z pojedynczych segmentów nie przekroczył 120 s. Jeżeli celem będzie dalsze skrócenie pełnego CI, należy rozważyć ich rozdzielenie na osobne zadania tylko po audycie izolacji emulatorów i kosztu runnerów; nie wolno w tym celu łączyć stanów testowych.
+- **Wciąż brak** testu Playwright UI na rzeczywistym trybie zsynchronizowanym z Firebase Emulator; to następny trudniejszy pakiet dla Codexa Medium/High. Obecny localOnly PASS nie dowodzi naprawy problemu `LF_APPLICATION_SCOPE_REFUSED` ani zapisu historii wycen w trybie online.
+
+**Status gałęzi:** `CODE_READY / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED`. Bez PR Ready, merge, Pages i bez dotykania produkcyjnych danych. Przed wydaniem wymagana odrębna zgoda na dokładne HEAD i BASE SHA.
+
+---
 ## 1. Ustalenia z kodu i rzeczywistych logów
 
 ### 1.1. Architektura bieżącego wydania
