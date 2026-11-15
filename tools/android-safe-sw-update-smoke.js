@@ -91,12 +91,18 @@ async function main(){
  const archive=path.join(dir,'old.tar');
  await execFile('git',['archive','-o',archive,'2930e0d769d9576d387764af439eab7df9fd5636'],{cwd:root,timeout:30000});
  await execFile('tar',['-xf',archive,'-C',old],{timeout:30000});
+ // The incremental worker reuses unchanged resources. Hold a file that is
+ // provably DIFFERENT across the old and current release, so the slow-install
+ // regression still exercises a real network download.
+ assert.notEqual(fs.readFileSync(path.join(old,'index.html'),'utf8'),
+   fs.readFileSync(path.join(root,'index.html'),'utf8'),
+   'Slow-install fixture must target a changed manifest resource');
  let deployment=old,one,stopped=false,heldAsset=false,releasedAsset=false,delayTimer;
  const server=http.createServer((req,res)=>{try{const pathname=new URL(req.url,'http://127.0.0.1').pathname,file=path.resolve(deployment,'.'+pathname);if(!file.startsWith(deployment+path.sep))throw Error();const data=fs.readFileSync(file);
   const respond=()=>{res.writeHead(200,{'content-type':file.endsWith('.js')?'text/javascript':file.endsWith('.html')?'text/html':file.endsWith('.css')?'text/css':'image/jpeg','cache-control':'no-store'});res.end(data);};
   // Real SW install fetch, not a page timer or mocked registration. Exceed the
   // former shared deadline while the same old dirty application stays open.
-  if(deployment===root&&!heldAsset&&pathname==='/assets/branding/MebLeszek_logo_oryginal.jpg'){
+  if(deployment===root&&!heldAsset&&pathname==='/index.html'){
    heldAsset=true;console.log('START real Chromium: hold one manifest download for 32s');
    delayTimer=setTimeout(()=>{releasedAsset=true;respond();},32000);
   }else respond();
