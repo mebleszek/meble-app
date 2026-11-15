@@ -94,6 +94,54 @@ test('Incoming replication cannot replace a pending room operation or its archiv
  assert.throws(()=>projectApplicationRows(local,{scope:'P'},incoming,null,{validate(){}}),/LF_PROJECT_OPERATION_PENDING/);
  assert.deepEqual(local,exact);
 });
+test('Flush reports a skipped project, preserves the shared investor, receives independent projects and retries after recovery',async()=>{
+ const {createApplicationReplication}=await import('../sync/application-replication.mjs');
+ const f=await fixture(),before=f.read().rows,projects=JSON.parse(before.fc_projects_v1),investors=JSON.parse(before.fc_investors_v1);
+ const intent={version:1,kind:'rooms',projectId:'P',investorId:'K',requestKey:'remove:room_k'};
+ projects.push({...projects.find(p=>p.id==='P'),id:'P-shared'});
+ const history={id:'archived',project:{id:'P'},investor:{id:'K'}};
+ const channels=projects.map(project=>({scope:project.id,kind:'project',async read(){
+  reads.push(project.id);
+  const record={...project,title:'Remote '+project.id};
+  const owner=investors.find(row=>row.id===project.investorId);
+  const investor=project.id==='P-shared'?{...owner,rooms:[]}:owner;
+  return {head:{generation:2},value:{document:{payload:{project:record,investor,offers:project.id==='P'?[history]:[]}}}};
+ }}));
+ let rows={...before,fc_quote_snapshots_v1:JSON.stringify([history]),
+  fc_projects_v1:JSON.stringify(projects.map(p=>p.id==='P'?{...p,meta:{...p.meta,pendingDomainOperation:intent}}:p))};
+ const replicas=new Map(channels.map(ch=>[ch.scope,{base:{generation:1},version:1}]));
+ const applied=[],reads=[],states=[],events=new EventTarget();let online=false;
+ const store={exclusive:fn=>fn(),readApplication:async()=>({rows}),
+  snapshot:async scope=>({replica:replicas.get(scope),operations:[]}),
+  async apply({scope,head,application,expectedVersion}){
+   assert.equal(expectedVersion,replicas.get(scope).version);
+   applied.push(scope);rows=application;replicas.set(scope,{base:head,version:expectedVersion+1});
+  }};
+ const sync=createApplicationReplication({store,channels:[{scope:'globals',read:async()=>{throw Object.assign(Error('GLOBAL_NOT_FOUND'),{code:'GLOBAL_NOT_FOUND'});}},...channels],
+  projectContract:{validate(){}},eventTarget:events,online:()=>online,onState:value=>states.push(value),incoming:next=>next,refresh(){},assertIdle(){}});
+ const project=id=>JSON.parse(rows.fc_projects_v1).find(p=>p.id===id);
+ const blocked={ok:false,code:'LF_PROJECT_OPERATION_PENDING',blockedScopes:['P','P-shared']};
+ try{
+  await sync.flush();online=true;
+  assert.deepEqual(await sync.flush(),blocked);
+  assert.deepEqual(states.at(-1),blocked);
+  assert.deepEqual(applied,['Q']);
+  assert.deepEqual(project('P').meta.pendingDomainOperation,intent);
+  assert.deepEqual(JSON.parse(rows.fc_investors_v1).find(row=>row.id==='K'),investors.find(row=>row.id==='K'));
+  assert.equal(rows.fc_quote_snapshots_v1,JSON.stringify([history]));
+  const readsBefore=reads.length;sync.notify('Q');await eventsSettled();
+  assert.deepEqual(reads.slice(readsBefore),['Q'],'Unrelated notifications do not spin on the blocked scope');
+  assert.deepEqual(states.at(-1),blocked,'Completing an unrelated scope cannot turn the overall result green');
+  // The domain has recovered its validated journal and notified this scope.
+  const recovered=project('P');delete recovered.meta.pendingDomainOperation;
+  rows={...rows,fc_projects_v1:JSON.stringify([recovered,project('Q'),project('P-shared')])};
+  assert.deepEqual(await sync.flush(),{ok:true});
+  assert.deepEqual(states.at(-1),{ok:true});
+  assert.deepEqual(applied,['Q','P','P-shared']);
+  assert.equal(project('P').title,'Remote P');
+  assert.equal(rows.fc_quote_snapshots_v1,JSON.stringify([history]));
+ }finally{await sync.close();}
+});
 test('Explicit Save distinguishes confirmed local commit, queued publication and verified revision',async()=>{
  for(const [receipt,text] of [
   [{localConfirmed:true,cloudConfirmed:false},'Zmiany zapisano na tym urządzeniu.'],

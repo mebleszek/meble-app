@@ -502,6 +502,51 @@ test('E1 signed DEMO synchronized UI', async t => {
         assert.ok(history(after));
         await receiveRoom(added.id,null);
         assert.deepEqual(history(await image(computer)),history(baseline));
+
+        // The standalone panel deletes immediately after its confirmation.
+        // Use a room actually referenced by the accepted historical offer.
+        const archived=history(after);
+        const standaloneRoom=archived.scope.selectedRooms.find(id=>project(after).projectData.meta.roomDefs[id]);
+        assert.ok(standaloneRoom,'The standalone target must be linked to the accepted offer');
+        await reopened.evaluate(()=>{void window.FC.roomRegistry.openRemoveRoomModal();});
+        const standalone=panel(reopened).filter({has:reopened.locator('.room-registry-remove-list')});
+        const selection=standalone.locator('[data-room-id="'+standaloneRoom+'"]');
+        await selection.click();
+        const removeStandalone=async()=>{
+          await standalone.getByRole('button',{name:'Usuń',exact:true}).click();
+          await reopened.locator('.confirm-box .is-danger').click();
+        };
+        const beforeStandalone=await image(phone),remoteBefore=(await getDoc(head(pid))).data();
+        await abortNextWrite(phone);
+        await removeStandalone();
+        await dismissFailure(reopened,'LF_IDB_ABORTED');
+        assert.ok(await standalone.isVisible(),'The failed standalone write leaves its panel open');
+        assert.ok(await selection.evaluate(button=>button.classList.contains('is-selected')));
+        assert.deepEqual(await image(phone),beforeStandalone);
+        assert.deepEqual((await getDoc(head(pid))).data(),remoteBefore);
+        await removeStandalone();
+        await standalone.waitFor({state:'hidden'});
+        const checkStandalone=record=>{
+          const saved=project(record);
+          assert.equal(saved.projectData[standaloneRoom],undefined);
+          assert.equal(saved.projectData.meta.roomDefs[standaloneRoom],undefined);
+          assert.equal(saved.meta.pendingDomainOperation,undefined);
+          assert.ok(!rows(record,'fc_investors_v1').find(row=>row.id===saved.investorId).rooms.some(room=>room.id===standaloneRoom));
+          assert.equal(record.state.rows.fc_quote_snapshots_v1,beforeStandalone.state.rows.fc_quote_snapshots_v1);
+        };
+        const committed=await image(phone);
+        checkStandalone(committed);
+        const operations=committed.queue.filter(op=>!beforeStandalone.queue.some(old=>old.key===op.key));
+        assert.equal(operations.length,1);
+        assert.equal(operations[0].scope,pid);
+        await receiveRoom(standaloneRoom,null);
+        assert.equal((await getDoc(head(pid))).data().generation,remoteBefore.generation+1);
+        assert.deepEqual(history(await image(computer)),archived);
+        await restartWithTrace(restart);
+        await openInvestor(phone.page,ids[0]);
+        const reopenedImage=await image(phone);
+        checkStandalone(reopenedImage);
+        assert.ok(reopenedImage.queue.some(op=>op.key===operations[0].key&&op.phase==='verified'));
       });
     });
   } });

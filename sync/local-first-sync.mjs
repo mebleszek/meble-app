@@ -53,7 +53,10 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
   const byScope=new Map(channels.map(c=>[c.scope,c]));
   if(byScope.size!==channels.length||!eventTarget?.addEventListener||!store?.exclusive)fail('LF_DEPENDENCY_REQUIRED');
   let closed=false,scheduled=false,running=null,retryAt=0,retryDelay=0,retryTimer;
-  const pending=new Set(byScope.keys());
+  const pending=new Set(byScope.keys()),blockedReceives=new Set();
+  const receiveResult=()=>blockedReceives.size
+    ? {ok:false,code:'LF_PROJECT_OPERATION_PENDING',blockedScopes:[...blockedReceives]}
+    : {ok:true};
   let closing;
   const assertOpen=()=>{if(closed)fail('LF_CLOSED');};
   const state=value=>{try{onState(copy(value));}catch(_){}};
@@ -104,14 +107,17 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
         snap=await store.snapshot(channel.scope);
         if(!snap.replica?.dirty && !snap.operations.some(op=>op.phase!=='verified')){
           try{
-            if(channel.readHead&&snap.replica?.base&&equal(snap.replica.base,await channel.readHead()))continue;
+            if(channel.readHead&&snap.replica?.base&&equal(snap.replica.base,await channel.readHead())){
+              blockedReceives.delete(scope);continue;
+            }
             if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
             const remote=await channel.read();if(!closed&&!equal(snap.replica?.base,remote.head)){const application=await projectRemote(channel,remote,snap);
             if(closed)return {ok:false,code:'LF_CLOSED'};
             await store.apply({scope:channel.scope,value:remote.value,head:remote.head,application,expectedVersion:snap.replica?.version||0,editor:snap.replica?.editor||null});
-            await onApplied(channel,remote);}}
-          catch(e){
-            if(e.code==='LF_PROJECT_OPERATION_PENDING'){state({...safeError(e),scope:channel.scope});continue;}
+            await onApplied(channel,remote);}
+            if(!closed)blockedReceives.delete(scope);
+          }catch(e){
+            if(e.code==='LF_PROJECT_OPERATION_PENDING'){blockedReceives.add(scope);continue;}
             if(!['GLOBAL_NOT_FOUND','CLOUD_PROJECT_NOT_FOUND'].includes(e.code))return safeError(e);
           }
         }
@@ -129,13 +135,15 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
   async function flush(){
     if(running&&online())for(const key of byScope.keys())pending.add(key);
     if(!running&&!pending.size)for(const key of byScope.keys())pending.add(key);
+    // Explicit observation retries refused receives, without a self-scheduling loop.
+    for(const scope of blockedReceives)pending.add(scope);
     return drain();
   }
   async function drain(){if(closed)return {ok:false,code:'LF_CLOSED'};if(running)return running;
     if(Date.now()<retryAt)return {ok:false,code:'resource-exhausted'};
     running=(async()=>{let result={ok:true};while(pending.size&&!closed){
       const scopes=[...byScope.keys()].filter(scope=>pending.has(scope));pending.clear();
-      result=await cycle(scopes).catch(safeError);state(result);
+      result=await cycle(scopes).catch(safeError);state(result.ok?receiveResult():result);
       if(result.code==='resource-exhausted'&&!closed){
         retryDelay=Math.min(300000,retryDelay?retryDelay*2:30000);
         const delay=result.cooldown?Math.max(1,(quota?.deadline()||Date.now())-Date.now()):retryDelay+Math.floor(Math.random()*5000);
@@ -151,7 +159,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
         for(const key of scopes)pending.add(key);
         if(!reconnected)break;
       }
-    }return result;})()
+    }return result.ok?receiveResult():result;})()
       .finally(()=>{running=null;});return running;}
   // Listeners are wake-up signals only; every receive still uses a fresh,
   // independently validated server read and local CAS, never the cache payload.

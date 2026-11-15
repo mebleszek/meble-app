@@ -123,7 +123,11 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
      await store.commit({scope:'globals',operationId:crypto.randomUUID(),value:captured.model,expectedVersion:0,application});await authority.refresh();
     }
    }
-  });authorityReady=true;const result=await sync.flush();if(!result.ok)fail(result.code);}else authorityReady=true;
+  });authorityReady=true;
+   const result=await sync.flush();
+   // A project journal must remain accessible for local recovery.
+   if(!result.ok&&result.code!=='LF_PROJECT_OPERATION_PENDING')fail(result.code);
+  }else authorityReady=true;
   if(!localOnly)onStage('initial-project-revisions');
   // Existing owned source projects become real channels without synthetic flags.
   if(writer)for(const record of JSON.parse(authority.rows().fc_projects_v1||'[]')){
@@ -152,7 +156,9 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    if(!scope)return;
    const local=await store.snapshot(scope);
    if(!(local.replica?.editor?.active||local.replica?.editor?.handoverPending)||local.replica.editor.deviceId!==store.deviceId)return;
-   const result=await sync.flush();if(!result.ok)fail(result.code);
+   const result=await sync.flush();
+   if(!result.ok&&result.code!=='LF_PROJECT_OPERATION_PENDING')fail(result.code);
+   if(result.blockedScopes?.includes(scope))return {pending:true,code:result.code};
    await sync.releaseEditor(scope);
   }
   function releaseProjectEditor(scope){
@@ -198,7 +204,8 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     if(wasClosed)bind();notify();
     // Do not report a rebound runtime ready while the durable queue is still
     // resolving its previous generation's uncertain operation. Never retry WRITE.
-    const result=await sync.flush();if(!result.ok){state(result);fail(result.code);}
+    const result=await sync.flush();
+    if(!result.ok&&result.code!=='LF_PROJECT_OPERATION_PENDING'){state(result);fail(result.code);}
     if(!fc.session.active&&w.uiState.entry==='investorsList')for(const p of JSON.parse(authority.rows().fc_projects_v1||'[]')){if(fc.session.active||w.uiState.entry!=='investorsList')return;await releaseProjectEditor(p.id);}
    },
    close(){closed=true;sync?.close();deletion?.close();boundary.close();authority.close();w.removeEventListener('online',notify);w.removeEventListener('meble-sync-authorized',notify);w.removeEventListener('click',wakeReceive,true);},
