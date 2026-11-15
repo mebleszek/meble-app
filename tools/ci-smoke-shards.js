@@ -1,8 +1,10 @@
 'use strict';
 // Deterministic complete partition of current smoke tests. Historical tests stay in their immutable job.
 const fs=require('node:fs'),path=require('node:path');
-const SHARDS=7;
-const isolated=['quote-performance-smoke.js','trusted-session-browser-smoke.js','empty-installation-browser-smoke.js'];
+const SHARDS=10;
+// Six isolated smoke jobs: three pre-existing isolated checks and all measured tests above 120 s.
+const isolated=['quote-performance-smoke.js','trusted-session-browser-smoke.js','empty-installation-browser-smoke.js',
+ 'quote-exact-calculations-smoke.js','wycena-labor-pdf-smoke.js','wycena-labor-norms-smoke.js'];
 // CI #43651112609, 14.11.2026: observed single-run durations rounded to seconds.
 // These are packing weights, not timeouts or PASS thresholds; calibrate with medians after CI.
 const weights=Object.freeze({
@@ -53,12 +55,15 @@ function inventory(dir,historical=[]){
 }
 function plan(names){
  if(!Array.isArray(names)||new Set(names).size!==names.length)throw Error('CI_SMOKE_PLAN_DUPLICATE');
+ for(const [name,ms] of Object.entries(weights)){
+  if(ms>120000&&!isolated.includes(name))throw Error('CI_SMOKE_SLOW_TEST_NOT_ISOLATED:'+name);
+ }
  const groups=Array.from({length:SHARDS},()=>[]);
  for(let i=0;i<isolated.length;i++)groups[i].push(isolated[i]);
  const remaining=names.filter(n=>!isolated.includes(n)).sort((a,b)=>(weights[b]||1000)-(weights[a]||1000)||a.localeCompare(b));
- const loads=[weights[isolated[0]],weights[isolated[1]],weights[isolated[2]],0,0,0,0];
+ const loads=groups.map(group=>group.reduce((total,name)=>total+(weights[name]||1000),0));
  for(const name of remaining){
-  let i=3;for(let j=4;j<SHARDS;j++)if(loads[j]<loads[i])i=j;
+  let i=isolated.length;for(let j=isolated.length+1;j<SHARDS;j++)if(loads[j]<loads[i])i=j;
   groups[i].push(name);loads[i]+=weights[name]||1000;
  }
  const all=groups.flat();
