@@ -55,7 +55,16 @@
       if(!(FC.rozrysPickers && typeof FC.rozrysPickers.openRoomsPicker === 'function')) return;
       FC.rozrysPickers.openRoomsPicker({
         getSelectedRooms: ()=> selection.selectedRooms,
-        setSelectedRooms: writer ? rooms=>FC.quoteOfferStore.commitSettings(initialDraft,()=>saveRooms(rooms)) : saveRooms,
+        setSelectedRooms: writer ? async rooms=>{
+          try{
+            const confirmed=await FC.quoteOfferStore.commitSettings(initialDraft,()=>saveRooms(rooms));
+            if(confirmed===false)throw Error('SAVE_UNCONFIRMED');
+            return true;
+          }catch(_){
+            FC.infoBox?.open({title:'Zapis niepotwierdzony',message:'Nie potwierdzono wyboru pomieszczeń. Zachowano wybór w formularzu; spróbuj ponownie.',okOnly:true});
+            return false;
+          }
+        } : saveRooms,
         getRooms: getActiveRoomIds,
         normalizeRoomSelection: (rooms)=>{
           let normalized = [];
