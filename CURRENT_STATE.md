@@ -1,5 +1,15 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## E1 — Playwright w trybie synchronizowanym, 15.11.2026
+
+Gałąź `test/qa-playwright-sync-ui-20261115`, BASE `06bbc8054e6eef3be18ab61df96b64ba6e02f621` (`chore/qa-playwright-parallel-gate-20261115`). [Plan E1](docs/plans/test-strategy-playwright-20261115.md). Dwa izolowane profile Chromium, podpisane DEMO, lokalne emulatory Auth/Firestore.
+
+- **RED — dodanie inwestora:** `LF_APPLICATION_SCOPE_REFUSED`. Zapis próbował zmienić dwa istniejące wpisy inwestorów. IndexedDB i outbox zachowały stan sprzed kliknięcia. Komunikat zgłosił błąd, pole zachowało treść, lecz formularz utracił tryb edycji. Restart i ACK nowego inwestora są zablokowane przez odmowę.
+- **RED — koszt przerw w ustawieniach oferty:** `LF_ASYNC_TRANSACTION_REQUIRED`. Kliknięcie nie utrwaliło zmiany w IndexedDB ani nie dodało operacji do outboxa.
+- **PASS — Wyceń na utrwalonych ustawieniach:** nowy snapshot w IndexedDB i historii UI po restarcie, odbiór w drugim profilu i ACK tej samej rewizji Firestore. Porównano pozostałe projekty i inwestorów. Pełna macierz ustawień, osobny wymuszony abort oferty i zachowanie wcześniej zaakceptowanej oferty wymagają osobnej weryfikacji.
+
+Uruchomienie celowane z katalogu `tools/firebase-pilot`: `npx firebase emulators:exec --config firebase.json --project demo-meble-app --only auth,firestore --non-interactive "node --test playwright-sync-ui.test.mjs"`. Niepowodzenie zapisuje trace i screenshot w lokalnym katalogu tymczasowym. Następny krok: zachować surowe wpisy pozostałych inwestorów przy zapisie zakresowym i zakończyć edycję dopiero po commit; dla ustawień oferty dodać walidowany zapis szkicu projektu w lokalnej transakcji, bez publikowania szkicu. Pakiet E1 nie zawiera zmian produkcyjnych.
+
 ## P0-A — trwałe szkice szafek
 
 14.11.2026 • `fix/p0a-durable-cabinet-drafts` • BASE/main `909bf8ce1f5ccd41c0420f3303fad5386ca76b25` • HEAD implementacji `0a8969f00a12e7f1aafafef4a96dd40ada078807`. [Zatwierdzony plan LOCAL-FIRST](docs/plans/LOCAL_FIRST_ROADMAP.md).

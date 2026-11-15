@@ -8,7 +8,7 @@ import {doc,setDoc,getDoc,getDocs,collection,query,limit,updateDoc,deleteDoc,ser
 import {model,runtime} from './cloud-sync-fixture.mjs';
 const require=createRequire(import.meta.url),{waitForGesturePoint,finishPendingTouchScroll,observeGesture}=require('../helpers/browser-test-readiness.js'),{startBrowser}=require('../helpers/chromium-runtime.js'),{injection}=require('../trusted-session-browser-smoke.js');
 const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url))),uid='synthetic-phone-owner';
-export async function runNormalApplication(t,{deployment=false,catalogCutover=false}={}){
+export async function runNormalApplication(t,{deployment=false,catalogCutover=false,runUi}={}){
  assert.equal(process.env.FIRESTORE_EMULATOR_HOST,'127.0.0.1:18080');assert.equal(process.env.FIREBASE_AUTH_EMULATOR_HOST,'127.0.0.1:19099');
  const original=fs.readFileSync(path.join(root,'tools/firebase-pilot/firestore.rules'),'utf8'),fragment=fs.readFileSync(path.join(root,'sync/local-first-project.rules'),'utf8');
  const rules=deployment?require('./application-rules.js').applicationRules():original.replace('    match /{document=**}',()=>fragment+'\n    match /{document=**}');
@@ -124,7 +124,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  });
  const first=await phone.page.evaluate(()=>JSON.parse(localStorage.getItem('fc_projects_v1')));
  const pid=first.find(p=>p.investorId===ids[0]).id;
- const room=await phone.page.evaluate(async({pid,iid})=>{
+ const room=await phone.page.evaluate(async({pid,iid,seedLegacyOffer})=>{
   const fc=window.FC;if(await fc.actions.dispatch('open-investor',{element:{getAttribute:()=>iid}})!==true)throw Error('Fixture activation refused');
   const made=fc.roomRegistry._debug.createRoomRecord(fc.investors.getById(iid),{baseType:'kuchnia',name:'Normal kitchen'});if(!made.ok)throw Error('Fixture room refused');
   const row=fc.projectStore.getById(pid);row.projectData.meta.futureOwnedField={exact:7.125};
@@ -133,9 +133,9 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   fc.cabinetFronts.generateFrontsForCabinet(made.room.id,row.projectData[made.room.id].cabinets[0]);
   fc.layoutState.ensureLayout(made.room.id);row.projectData=window.projectData;
   if(!fc.projectStore.upsert(row))throw Error('Fixture cabinet refused');window.projectData=fc.project.load();
-  if(!fc.storage.setJSON('fc_quote_snapshots_v1',[{id:'normal-offer',project:{id:pid},investor:{id:iid},frozen:{total:21.375,pcv:0.8125}}]))throw Error('Fixture history refused');
+  if(seedLegacyOffer&&!fc.storage.setJSON('fc_quote_snapshots_v1',[{id:'normal-offer',project:{id:pid},investor:{id:iid},frozen:{total:21.375,pcv:0.8125}}]))throw Error('Fixture history refused');
   return made.room.id;
- },{pid,iid:ids[0]});
+ },{pid,iid:ids[0],seedLegacyOffer:!runUi});
  const source=await phone.page.evaluate(()=>({projects:localStorage.getItem('fc_projects_v1'),investors:localStorage.getItem('fc_investors_v1')}));
  assert.equal(JSON.parse(source.projects).length,2);
  let computer;if(!deployment)computer=await device('computer');
@@ -226,6 +226,24 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   assert.ok(!observed.refused && observed.entry==='investorsList' &&
    observed.visible && observed.buttonPresent && observed.investorKnown && !observed.transactionPending,
    'Real two-device investor-list navigation/renderer invariant: '+JSON.stringify(observed));
+ }
+ if(runUi){
+  async function restart(d){
+   const shutdown=await d.browser.newBrowserCDPSession();
+   await shutdown.send('Browser.close');
+   assert.equal((await d.owner.exited).code,0);
+   await d.owner.close();
+   d.owner=await startBrowser({profileDir:path.join(dir,d.name)});
+   d.browser=await chromium.connectOverCDP(d.owner.endpoint);
+   const context=d.browser.contexts()[0];
+   d.page=context.pages()[0];
+   for(const page of context.pages())if(page!==d.page)await page.close();
+   await d.page.addInitScript({content:injection});
+   await configure(d);
+   await d.page.goto(origin+'/index.html');
+   await login(d);
+  }
+  return runUi({phone,computer,pid,room,ids,uid,ownerClient,restart});
  }
  await until(async()=>await computer.page.evaluate(ids=>ids.every(id=>!!window.FC.investors.getById(id)),ids));
  assert.equal(await computer.page.evaluate(()=>window.FC.investors.readAll().length),2);
