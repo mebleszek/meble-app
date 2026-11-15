@@ -59,7 +59,7 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
  proto.setItem=function(key,value){if(this===ls&&keys.has(String(key)))return mutate(String(key),String(value));return original.set.call(this,key,value);};
  const originalClear=proto.clear;proto.clear=function(){if(this===ls)fail('LF_APPLICATION_CLEAR_REFUSED');return originalClear.call(this);};
  proto.removeItem=function(key){if(this===ls&&keys.has(String(key)))return mutate(String(key),null);return original.remove.call(this,key);};
- if(open)fc.infoBox.open=options=>{if(inTransaction&&(options?.title==='Projekt zapisany'||/^Zapisano/.test(options?.title||''))){pendingNotices.push(options);return;}return open(options);};
+ if(open)fc.infoBox.open=options=>{if(inTransaction&&(options?.projectSaveReceipt===true||/^Zapisano/.test(options?.title||''))){pendingNotices.push(options);return;}return open(options);};
  const listener=event=>{if(event.key===null||keys.has(event.key)){external=true;}};w.addEventListener('storage',listener);
  function idle({allowForm=false}={}){access();if(!allowForm&&(fc.priceModal?.isItemDirty?.()||w.document.querySelector('.panel-box-backdrop')))fail('LF_ACTIVE_FORM_PROTECTED');if(inTransaction||fc.session.active||fc.session.snapshot||fc.session.durable||rows.fc_edit_session_v1!==null||fc.investorEditorState?.hasUiLock()||fc.investorProjectRuntime.hasProjectDivergence(w.projectData))fail('LF_ACTIVE_RAM_PROTECTED');}
  async function hydrateCatalogs(){if(!localOnly&&!(await store.snapshot?.('globals'))?.replica)return;const c=fc.globalDataContract,model=c.capture({getItem:k=>k==='fc_edit_session_v1'?null:rows[k]??null},Object.keys(c.schemas)).model;fc.catalogStore?.adoptVerified?.(model);}
@@ -98,7 +98,11 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
   const old=structuredClone(rows),session=snapshotSession(),ram=structuredClone(w.projectData),ui=structuredClone(w.uiState),views=[...w.document.querySelectorAll('[id$=View],#sessionButtons,[id$=Modal]')].map(el=>[el,el.style.cssText]);inTransaction=true;
   try{
    if(['project','draft','cabinet-draft','offer-draft','rollback'].includes(kind)){if(typeof authorize!=='function')fail('LF_EDITOR_REQUIRED');await authorize(rows.fc_current_project_id_v1);access();assertSource();}
-   mutating=true;const result=await operation();rows=reconcileGlobalAliases(old,rows,fc.globalDataContract);mutating=false;access();assertSource();if(result===false||result?.ok===false)fail('LF_APPLICATION_SAVE_UNCONFIRMED');
+   mutating=true;const result=await operation();rows=reconcileGlobalAliases(old,rows,fc.globalDataContract);mutating=false;access();assertSource();
+   if(result===false||result?.ok===false){
+    const code=result?.code;
+    fail(code==='LF_PROJECT_OPERATION_PENDING'||code==='LF_PROJECT_OPERATION_CONFLICT'?code:'LF_APPLICATION_SAVE_UNCONFIRMED');
+   }
    if(kind==='auto'){
     const changed=[...keys].filter(k=>rows[k]!==old[k]);
     const globals=new Set([...Object.values(fc.globalDataContract.sources).flat(),'fc_materials_v1']);
@@ -115,9 +119,16 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
     for(const k of keys)if(kind==='checkpoint'&&!['fc_edit_session_v1','fc_ui_v1','fc_current_project_id_v1','fc_current_investor_v1'].includes(k)&&rows[k]!==old[k])throw Object.assign(Error('LF_CHECKPOINT_DATA_CHANGED: '+k),{code:'LF_CHECKPOINT_DATA_CHANGED'});
     await checkpoint(application,kind);
    }else committed=await commit(kind,application);
+   if(pendingNotices.some(n=>n.projectSaveReceipt)&&committed?.localConfirmed!==true)fail('LF_LOCAL_ACK_UNCONFIRMED');
    image=await store.readApplication();rows=structuredClone(image.rows);await hydrateCatalogs();inTransaction=false;
    for(const close of pendingClosures.splice(0))close();
-   for(const notice of pendingNotices.splice(0))open?.(notice);
+   for(const notice of pendingNotices.splice(0)){
+    if(!notice.projectSaveReceipt){open?.(notice);continue;}
+    const message=committed.cloudConfirmed===true
+     ? notice.message+' Bieżąca rewizja jest już potwierdzona przez Firebase.'
+     : notice.message+(committed.operationId?' Synchronizacja oczekuje na potwierdzenie.':'');
+    open?.({...notice,message});
+   }
    if(committed?.scope||session.active&&!fc.session.active)queueMicrotask(()=>onCommitted(committed?.scope));
    return result;
   }catch(e){lastCode=/^(LF_|GLOBAL_|CLOUD_)[A-Z_]+$/.test(e?.code||e?.message||'')?(e.code||e.message):'LF_APPLICATION_UNCONFIRMED';rows=old;Object.assign(fc.session,session);w.projectData=ram;w.uiState=ui;if(editorState)Object.assign(fc.investorEditorState.state,editorState);if(investorUi)Object.assign(fc.investorUI.state,investorUi);if(priceState)Object.assign(fc.priceModalContext.runtimeState,priceState);pendingClosures.length=0;for(const [el,style]of views)el.style.cssText=style;pendingNotices.length=0;inTransaction=false;mutating=false;await hydrateCatalogs();throw e;}

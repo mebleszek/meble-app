@@ -167,7 +167,7 @@ function manualSaveSuccess(){
   assert.equal(r.storage.getItem(SESSION), null);
   assert.equal(r.ui.messages.length, 1);
   assert.equal(successes(r).length, 1);
-  assert.equal(r.ui.messages[0].message, 'Wszystkie zmiany zostały zapisane poprawnie.');
+  assert.equal(r.ui.messages[0].message, 'Zmiany zapisano na tym urządzeniu.');
   assert.equal(r.ui.messages[0].okOnly, true, 'Existing infoBox must display its OK button');
 }
 

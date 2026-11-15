@@ -110,7 +110,10 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
             if(closed)return {ok:false,code:'LF_CLOSED'};
             await store.apply({scope:channel.scope,value:remote.value,head:remote.head,application,expectedVersion:snap.replica?.version||0,editor:snap.replica?.editor||null});
             await onApplied(channel,remote);}}
-          catch(e){if(!['GLOBAL_NOT_FOUND','CLOUD_PROJECT_NOT_FOUND'].includes(e.code))return safeError(e);}
+          catch(e){
+            if(e.code==='LF_PROJECT_OPERATION_PENDING'){state({...safeError(e),scope:channel.scope});continue;}
+            if(!['GLOBAL_NOT_FOUND','CLOUD_PROJECT_NOT_FOUND'].includes(e.code))return safeError(e);
+          }
         }
       }
       return {ok:true};

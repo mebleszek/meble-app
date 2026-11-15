@@ -1,5 +1,19 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## Operacje pomieszczeń i potwierdzenie zapisu, 16.11.2026
+
+Gałąź `fix/room-operations-durable-save-20261115`, BASE/main `12ffaeaa9307197c742a0b8d5d95d3b96489a138`. [Kontrakt LOCAL-FIRST](docs/plans/LOCAL_FIRST_ROADMAP.md).
+
+- **RED na BASE.** Po potwierdzeniu w „Edytuj pomieszczenia” zapis intencji usunięcia omijał transakcję authority. Ochrona zapisu odrzucała `LF_ASYNC_TRANSACTION_REQUIRED`, a formularz wyświetlał ogólny komunikat o niedokończonej operacji. Obie ścieżki usuwania przechodzą przez istniejącą transakcję projektu. Formularz czeka na commit. Trwałe intencje korzystają z istniejącej walidacji recovery. Niepasująca intencja blokuje zmianę; nowsza replika nie zastępuje projektu z niedokończoną intencją.
+- **RED na BASE.** Główne „Zapisz” po commicie zawsze pokazywało ten sam komunikat. Teraz potwierdza utrwalenie na urządzeniu, informuje o oczekującym ACK, gdy utworzono wpis outboxa, i wskazuje potwierdzoną rewizję, gdy zweryfikowany stan Firebase już odpowiada zapisowi. Odmowa transakcji zachowuje sesję i nie wyświetla sukcesu.
+- **PASS Chromium + Auth/Firestore Emulator DEMO, dwa profile.** Kliknięcia dodania, edycji i usunięcia „Kuchni” po restarcie oraz ponownym logowaniu. Wymuszony abort zachował formularz i obraz IndexedDB; ponowienie oraz odbiór w drugim profilu miały sprawdzony ACK. Anulowanie usunięcia zachowało stan. Usunięcie nie zmieniło pozostałych pomieszczeń, innych projektów ani historii zaakceptowanej oferty.
+- **PASS celowany Node.** Operacje i potwierdzenia 10/10, recovery/nawigacja 35/35, potwierdzony zapis sesji 5/5, stan RAM 10/10, niepotwierdzony zapis 30/30, recovery historii ofert 22/22, diagnostyka 9/9. Kontrola kompletności planu CI, wersje i manifest offline PASS.
+- **PASS Chromium localOnly.** Dane 17 wariantów szafek i relacje zestawów A/C/D po zimnym restarcie offline. Abort zachował formularz, RAM i cztery zbiory IndexedDB.
+- **PASS `sync-core`, Chromium + Auth/Firestore Emulator.** Kliknięcie głównego „Zapisz” offline pokazało lokalne potwierdzenie i oczekiwanie na ACK. IndexedDB zawierał zapisaną zmianę i jedną nową operację `queued`; Firestore zachował poprzednią rewizję. Po reconnect ta sama operacja przeszła do `verified`, jeden raz zwiększając generację Firestore. Przeszły również blokada drugiego edytora, CAS i odzyskanie po utracie ACK.
+- **BLOCKED pełne segmenty startowe w lokalnym DEMO.** Wariant podpisany i zwykły zatrzymały się przed scenariuszem przy `runTransaction` w `initial-global-revision` lub `initial-project-revisions`, bez błędu SDK i bez celowego wstrzymania RPC. Lokalny czas grup `playwright-sync-ui` i `sync-core` nie zastępuje pomiaru na runnerze GitHub.
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED.** Pokrycie obowiązkowe w Preflight smoke, `playwright-sync-ui`, `sync-core` i segmentach `normal-startup` oraz `deployment-startup`. Pełny GitHub Actions i próba na urządzeniu właściciela pozostają do weryfikacji. Następny krok to niezależna kontrola pakietu.
+
 ## CI — naprawa po nieudanym PR #147, 15.11.2026
 
 [GitHub Actions #43764576105](https://github.com/mebleszek/meble-app/actions/runs/43764576105) dla zatwierdzonego HEAD `3950596f6fc5f0d7e262ab59d236b2651597cb59`: **CI_FAIL / RELEASE_BLOCKED**, bez auto-merge i Pages. FAIL Playwright sync (`CLOUD_CI_BATCH1_PLAN_CHANGED`), smoke 9/11/25 (nieaktualne hardcode poprzedniej struktury CI). Pozostałe niezależne kontrole były wykonywane; wszystkie 8 segmentów Firebase DEMO PASS (11,5–103,1 s). Najdłuższa zmierzona grupa smoke 14: **139,3 s**, fragment PDF nr 5: 116,1 s, więc cel 120 s nie został jeszcze spełniony.

@@ -14,7 +14,7 @@
   save(saveLocal){
    if(!binding)return saveLocal();
    return binding.save({operationId:crypto.randomUUID(),saveLocal}).catch(error=>{
-    FC.infoBox?.open({title:'Synchronizacja wstrzymana',message:'Zachowano lokalne dane. Nie potwierdzono kolejki synchronizacji. Sesja pozostała dostępna. '+codeOf(error),okOnly:true});
+    FC.infoBox?.open({title:'Zapis projektu niepotwierdzony',message:'Zachowano dane projektu i stan edycji. '+codeOf(error),okOnly:true});
     return {ok:false,code:codeOf(error)};
    });
   },

@@ -113,7 +113,7 @@ test('only a closed vocabulary leaves the diagnostic, including SDK error codes 
  api.recordFailure({code:privateText,message:privateText,stack:privateText,uid:privateText,projectId:privateText},privateText);
  assert.deepEqual(api.diagnostics().firstError,{stage:'unknown',code:'UNRECOGNIZED_ERROR'});
  assert.equal(JSON.stringify(api.diagnostics()).includes(privateText),false);
- for(const code of ['permission-denied','unavailable','LF_PROJECT_SCHEMA_BLOCKED','CLOUD_PERMISSION_DENIED','GLOBAL_SOURCE_UNCONFIRMED'])assert.equal(api.errorCode(code),code);
+ for(const code of ['permission-denied','unavailable','LF_PROJECT_SCHEMA_BLOCKED','LF_PROJECT_OPERATION_PENDING','LF_PROJECT_OPERATION_CONFLICT','CLOUD_PERMISSION_DENIED','GLOBAL_SOURCE_UNCONFIRMED'])assert.equal(api.errorCode(code),code);
  assert.equal(api.errorCode({get code(){throw Error(privateText);}}),'UNRECOGNIZED_ERROR');
  const fresh=bootstrap({}).api;fresh.recordFailure({code:'AUTH_RELOAD_REQUIRED'},'login-startup');assert.equal(fresh.diagnostics().firstError,null);
 });

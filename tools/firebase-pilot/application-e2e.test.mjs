@@ -131,9 +131,25 @@ export async function runApplicationE2E(t){
  // IDB data+outbox commit before the success notice, then independent receive.
  await computer.page.evaluate(room=>window.applicationAuthority.transaction('draft',()=>window.FC.views.openRoom(room)),room);
  await computer.page.evaluate(room=>{if(!window.FC.session.active)throw Error('Real session not active');window.projectData[room].settings.roomHeight=287.125;window.FC.views.refreshSessionButtons();},room);
+ const beforeSave=await computer.store.snapshot(pid);
+ const projectHead=f.doc(phone.reader.db,'users',phone.writer.uid,'localFirstProjects',pid);
+ const remoteBeforeSave=(await f.getDocFromServer(projectHead)).data();
+ computer.online=false;await f.disableNetwork(computer.writer.db);await f.disableNetwork(computer.reader.db);
  await computer.page.click('#sessionSave');
  await waitFor(async()=>!await computer.page.evaluate(()=>window.FC.session.active));
+ await computer.page.locator('.info-box').filter({hasText:'Zmiany zapisano na tym urządzeniu. Synchronizacja oczekuje na potwierdzenie.'}).waitFor();
+ const savedOffline=await computer.store.snapshot(pid);
+ assert.equal(savedOffline.operations.length,beforeSave.operations.length+1);
+ const queued=savedOffline.operations.find(op=>!beforeSave.operations.some(previous=>previous.key===op.key));
+ assert.equal(queued.phase,'queued');
+ assert.equal(JSON.parse(savedOffline.replica.json).document.payload.project.projectData[room].settings.roomHeight,287.125);
+ assert.deepEqual((await f.getDocFromServer(projectHead)).data(),remoteBeforeSave);
+ await f.enableNetwork(computer.writer.db);await f.enableNetwork(computer.reader.db);
+ computer.online=true;computer.events.dispatchEvent(new Event('online'));
  await waitFor(async()=>await phone.page.evaluate(({pid,room})=>window.FC.projectStore.getById(pid).projectData[room].settings.roomHeight,{pid,room})===287.125);
+ await waitFor(async()=>(await computer.store.snapshot(pid)).operations.find(op=>op.key===queued.key)?.phase==='verified');
+ assert.equal((await computer.store.snapshot(pid)).operations.length,savedOffline.operations.length);
+ assert.equal((await f.getDocFromServer(projectHead)).data().generation,remoteBeforeSave.generation+1);
  assert.equal(await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid).projectData.meta.futureOwnedField.exact,pid),7.125);
  assert.equal(await phone.page.evaluate(()=>window.FC.storage.getJSON('fc_quote_snapshots_v1',[])[0].frozen.total),21.375);
  assert.equal(await computer.page.locator('.info-box__title').textContent(),'Projekt zapisany');await computer.page.click('.info-box .is-success');

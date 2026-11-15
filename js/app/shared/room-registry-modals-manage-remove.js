@@ -40,6 +40,22 @@
     try{ alert(message || title); }catch(_){ }
   }
 
+  function hasOpeningProject(opening){
+    const current=FC.projectStore.getCurrentRecord();
+    return !!(opening&&current?.id===opening.id&&current.investorId===opening.investorId
+      &&(JSON.stringify(current.projectData)===JSON.stringify(opening.projectData)||FC.projectDomainOperations.hasPending(opening.id)));
+  }
+
+  function projectChanged(){
+    openInfo('Projekt zmienił się','Zamknij formularz i otwórz go ponownie.');
+    return false;
+  }
+
+  async function writeRooms(operation){
+    if(!FC.applicationWrite)return operation();
+    return FC.applicationWrite.projectHandler(operation)();
+  }
+
   async function openManageRoomsModal(){
     const inv = getCurrentInvestor();
     const openingProject = FC.projectStore && FC.projectStore.getCurrentRecord();
@@ -51,7 +67,7 @@
     }
     return new Promise((resolve)=>{
       let drafts = cloneRoomDrafts(rooms);
-      let initialDrafts = cloneRoomDrafts(drafts);
+      const initialDrafts = cloneRoomDrafts(drafts);
       const initialById = new Map(initialDrafts.map((room)=> [String(room && room.id || ''), {
         name: normalizeLabel(room && (room.label || room.name || '')),
         baseType: String(room && room.baseType || 'pokoj'),
@@ -93,8 +109,10 @@
         if(currentName !== initial.name || currentBaseType !== initial.baseType) changedRoomIds.add(roomId);
         else changedRoomIds.delete(roomId);
       };
-      const done = (result)=>{ try{ FC.panelBox.close(); }catch(_){ } resolve(result || null); };
+      let saving=false;
+      const done = (result)=>{ if(saving)return;try{ FC.panelBox.close(); }catch(_){ } resolve(result || null); };
       const askDiscard = async ()=>{
+        if(saving)return false;
         if(!isDirty()) return true;
         try{
           if(FC.confirmBox && typeof FC.confirmBox.ask === 'function'){
@@ -157,6 +175,7 @@
         }catch(_){ }
       });
       saveBtn.addEventListener('click', async ()=>{
+        if(saving)return;
         const seen = new Map();
         for(const room of drafts){
           const name = normalizeLabel(room.label || room.name || '');
@@ -173,24 +192,21 @@
           room.name = name;
           room.label = name;
         }
-        let ok = true;
+        let ok = false;
         try{
           if(FC.confirmBox && typeof FC.confirmBox.ask === 'function') ok = await FC.confirmBox.ask({ title:'ZAPISAĆ ZMIANY?', message:'Zapisać zmiany w liście pomieszczeń?', confirmText:'Zapisz', cancelText:'Wróć', confirmTone:'success', cancelTone:'neutral' });
         }catch(_){ }
-        if(!ok) return;
-        if(!openingProject || !FC.projectStore.getCurrentRecord() || FC.projectStore.getCurrentProjectId() !== openingProject.id
-          || JSON.stringify(FC.projectStore.getCurrentRecord().projectData) !== JSON.stringify(openingProject.projectData) && !FC.projectDomainOperations.hasPending(openingProject.id)) { openInfo('Projekt zmienił się', 'Zamknij formularz i otwórz go ponownie.'); return; }
-        const result = applyManageRoomsDraftDetailed(inv, drafts);
-        if(!(result && result.ok)) return;
-        initialDrafts = cloneRoomDrafts(drafts);
-        initialById.clear();
-        initialDrafts.forEach((room)=> initialById.set(String(room && room.id || ''), {
-          name: normalizeLabel(room && (room.label || room.name || '')),
-          baseType: String(room && room.baseType || 'pokoj'),
-        }));
-        changedRoomIds.clear();
-        removedRoomIds.clear();
-        done({ saved:true, rooms:cloneRoomDrafts(drafts), removedRoomIds:result.removedRoomIds || [] });
+        if(ok!==true||saving)return;
+        const submitted=cloneRoomDrafts(drafts);
+        saving=true;saveBtn.disabled=true;
+        try{
+          const result=await writeRooms(()=>{
+            if(!hasOpeningProject(openingProject))return projectChanged();
+            return applyManageRoomsDraftDetailed(inv,submitted);
+          });
+          saving=false;
+          if(result?.ok)done({saved:true,rooms:submitted,removedRoomIds:result.removedRoomIds||[]});
+        }finally{saving=false;saveBtn.disabled=false;}
       });
       renderRows();
       refreshFooter();
@@ -237,18 +253,24 @@
       actions.appendChild(deleteBtn);
       footer.appendChild(actions);
       body.appendChild(footer);
-      const done = (result)=>{ try{ FC.panelBox.close(); }catch(_){ } resolve(result || null); };
+      let saving=false;
+      const done = (result)=>{ if(saving)return;try{ FC.panelBox.close(); }catch(_){ } resolve(result || null); };
       cancelBtn.addEventListener('click', ()=> done(null));
       deleteBtn.addEventListener('click', async ()=>{
-        if(!selectedId) return;
-        const ok = await askDeleteRoomWithQuotes(inv, [selectedId], { deferred:false });
-        if(!ok) return;
-        if(!openingProject || !FC.projectStore.getCurrentRecord() || FC.projectStore.getCurrentProjectId() !== openingProject.id
-          || JSON.stringify(FC.projectStore.getCurrentRecord().projectData) !== JSON.stringify(openingProject.projectData) && !FC.projectDomainOperations.hasPending(openingProject.id)) { openInfo('Projekt zmienił się', 'Zamknij formularz i otwórz go ponownie.'); return; }
-        const result = removeRoomByIdDetailed(selectedId);
-        if(result && result.ok) done(result.roomId);
+        if(!selectedId||saving)return;
+        const roomId=selectedId;
+        if(await askDeleteRoomWithQuotes(inv,[roomId],{deferred:false})!==true||saving)return;
+        saving=true;deleteBtn.disabled=true;
+        try{
+          const result=await writeRooms(()=>{
+            if(!hasOpeningProject(openingProject))return projectChanged();
+            return removeRoomByIdDetailed(roomId);
+          });
+          saving=false;
+          if(result?.ok)done(result.roomId);
+        }finally{saving=false;deleteBtn.disabled=false;}
       });
-      FC.panelBox.open({ title:'Usuń pomieszczenie', contentNode: body, width:'640px', boxClass:'panel-box--rozrys' });
+      FC.panelBox.open({ title:'Usuń pomieszczenie', contentNode: body, width:'640px', boxClass:'panel-box--rozrys', beforeClose:()=>!saving });
     });
   }
 

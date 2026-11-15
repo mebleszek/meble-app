@@ -217,7 +217,7 @@
         });
       }
     }catch(_){ }
-    return true;
+    return false;
   }
 
   function removeQuotesForRooms(inv, roomIds){

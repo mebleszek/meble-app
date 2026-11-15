@@ -415,5 +415,94 @@ test('E1 signed DEMO synchronized UI', async t => {
       });
     });
 
+    await t.test('room operations preserve history and publish only confirmed changes after relogin', async sub => {
+      await evidence(sub,'rooms',phone,async restartWithTrace=>{
+        const {page}=phone;
+        const project=record=>rows(record,'fc_projects_v1').find(row=>row.id===pid);
+        const history=record=>rows(record,'fc_quote_snapshots_v1').find(row=>row.project.id===pid&&row.meta.acceptedAt>0);
+        if(!history(await image(phone))){
+          await openQuote(page);
+          await page.locator('[data-action="wycena-generate"]').click();
+          const generated=page.locator('[data-quote-history-id]').first();
+          await generated.waitFor();
+          const offerId=await generated.getAttribute('data-quote-history-id');
+          await openInvestor(page,ids[0]);
+          assert.equal(await page.evaluate(id=>window.FC.applicationWrite.project(()=>{
+            const fc=window.FC;
+            return fc.projectStatusSync.commitAcceptedSnapshot(fc.quoteSnapshotStore.getById(id),'zaakceptowany',{refreshUi:false}).ok;
+          }),offerId),true);
+          await computer.page.waitForFunction(id=>Number(window.FC.quoteSnapshotStore.getById(id)?.meta.acceptedAt)>0,offerId);
+          await confirmAck(phone,computer,pid,record=>!!history(record));
+        }else await openInvestor(page,ids[0]);
+
+        const baseline=await image(phone),oldProject=project(baseline);
+        const panel=p=>p.locator('.panel-box-backdrop').filter({has:p.locator('.room-registry-modal')});
+        const manage=async p=>{
+          await p.locator('[data-investor-action="manage-rooms"]').click();
+          return panel(p);
+        };
+        const roomRow=(p,name)=>panel(p).locator('.room-registry-manage-row').filter({has:p.locator('input[value="'+name+'"]')});
+        const saveRooms=async p=>{
+          await panel(p).getByRole('button',{name:'Zapisz',exact:true}).click();
+          await p.locator('.confirm-box .is-success').click();
+        };
+        async function receiveRoom(id,name){
+          await computer.page.waitForFunction(({pid,id,name})=>{
+            const def=window.FC.projectStore.getById(pid)?.projectData.meta.roomDefs[id];
+            return name===null?!def:def?.name===name;
+          },{pid,id,name});
+          await confirmAck(phone,computer,pid,record=>{
+            const def=project(record).projectData.meta.roomDefs[id];
+            return name===null?!def:def?.name===name;
+          });
+        }
+
+        await page.locator('[data-investor-action="add-room"]').click();
+        await panel(page).locator('input').fill('Kuchnia DEMO');
+        await panel(page).getByRole('button',{name:'Dodaj',exact:true}).click();
+        await panel(page).waitFor({state:'hidden'});
+        const added=Object.values(project(await image(phone)).projectData.meta.roomDefs).find(def=>def.name==='Kuchnia DEMO');
+        assert.ok(added);
+        await receiveRoom(added.id,'Kuchnia DEMO');
+
+        await manage(page);
+        const input=roomRow(page,'Kuchnia DEMO').locator('input');
+        await input.fill('Kuchnia');
+        const beforeAbort=await image(phone);
+        await abortNextWrite(phone);
+        await saveRooms(page);
+        await dismissFailure(page,'LF_IDB_ABORTED');
+        assert.equal(await input.inputValue(),'Kuchnia','Abort keeps the edited form available');
+        assert.deepEqual(await image(phone),beforeAbort);
+        await saveRooms(page);
+        await panel(page).waitFor({state:'hidden'});
+        await receiveRoom(added.id,'Kuchnia');
+
+        await restartWithTrace(restart);
+        const reopened=phone.page;
+        await openInvestor(reopened,ids[0]);
+        await manage(reopened);
+        const remove=roomRow(reopened,'Kuchnia').getByRole('button',{name:'Usuń',exact:true});
+        const beforeDelete=await image(phone);
+        await remove.click();
+        await reopened.locator('.confirm-box .is-neutral').click();
+        assert.ok(await remove.isVisible());
+        assert.deepEqual(await image(phone),beforeDelete);
+        await remove.click();
+        await reopened.locator('.confirm-box .is-danger').click();
+        await saveRooms(reopened);
+        await panel(reopened).waitFor({state:'hidden'});
+        const after=await image(phone);
+        assert.equal(project(after).projectData[added.id],undefined);
+        assert.equal(project(after).meta.pendingDomainOperation,undefined);
+        assert.deepEqual(project(after).projectData[room],oldProject.projectData[room]);
+        assert.deepEqual(project(after).projectData[room2],oldProject.projectData[room2]);
+        assert.deepEqual(rows(after,'fc_projects_v1').filter(row=>row.id!==pid),rows(baseline,'fc_projects_v1').filter(row=>row.id!==pid));
+        assert.equal(after.state.rows.fc_quote_snapshots_v1,baseline.state.rows.fc_quote_snapshots_v1);
+        assert.ok(history(after));
+        await receiveRoom(added.id,null);
+        assert.deepEqual(history(await image(computer)),history(baseline));
+      });
+    });
   } });
 });
