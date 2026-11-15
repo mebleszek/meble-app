@@ -50,12 +50,18 @@ function manualCase(def,quantity=1,rate=150){
   const result=unchangedTotals(r.FC,{labor});
   return {r,result,line:result.lines.find(row=>row.name==='Synthetic exact audit')};
 }
-let checks=0;
+const split=require('./ci-test-parts').select(9);
+const expectedCounts=[10,10,10,10,10,10,14,5,4]; // 83 original assertions, no omissions.
+const partitionFor=index=>index<60?Math.floor(index/10)+1:index<74?7:index<79?8:9;
+const selected=index=>!split.part||partitionFor(index)===split.part;
+let checks=0,caseIndex=0;
 for(const minutes of [1,4,5,6,7,9,10,13,15,45])for(const rate of [150,250])for(const multiplier of [0.5,1,1.3]){
+  if(!selected(caseIndex++))continue;
   const {line}=manualCase({pricingMode:'time',quantityMode:'linear',timeBlockHours:minutes===45?0.75:1/60,defaultMultiplier:multiplier},minutes===45?1:minutes,rate);
   assert.equal(evaluate(line.calculation),cents(minutes/60*multiplier*rate));checks++;
 }
-console.log('PASS 60 minute/rate/multiplier cases with independent visible-equation evaluation');
+if(!split.part||split.part<=6)console.log('PASS selected minute/rate/multiplier cases with independent visible-equation evaluation');
+let variantsIndex=60;
 for(const def of [
   {pricingMode:'timeStartStep',startHours:5/60,startQty:0,stepEveryQty:1,stepHours:1/60},
   {pricingMode:'timeStartStep',startHours:15/60,startQty:2,stepEveryQty:3,stepHours:15/60},
@@ -64,13 +70,15 @@ for(const def of [
   {pricingMode:'perUnit',price:7.125},
   {pricingMode:'advanced',quantityMode:'linear',timeBlockHours:1,volumeTimeMode:'perM3',volumeTimePerM3:1,fixedPrice:1.375,defaultMultiplier:1.3},
   {pricingMode:'advanced',quantityMode:'linear',timeBlockHours:1/60,volumePricePerM3:173.125},
-]){const {line}=manualCase(def,4,173.125);evaluate(line.calculation);checks++;}
-console.log('PASS start/step, tiers, fixed, per-unit, volume time/surcharge and private fractional rates');
+]){if(!selected(variantsIndex++))continue;const {line}=manualCase(def,4,173.125);evaluate(line.calculation);checks++;}
+if(!split.part||split.part===7)console.log('PASS start/step, tiers, fixed, per-unit, volume time/surcharge and private fractional rates');
+let zeroIndex=67;
 for(const pricingMode of ['fixed','perUnit','startPlusUnit','time','timeTiers','timeStartStep','advanced']){
+  if(!selected(zeroIndex++))continue;
   const {line}=manualCase({pricingMode,price:7.125,fixedPrice:7.125,startPrice:3,startHours:5/60,startQty:0,stepHours:1/60,stepEveryQty:1,timeBlockHours:0.75},0);
   assert.equal(line.quantity,0);assert.equal(line.total,0);assert.equal(evaluate(line.calculation),0);checks++;
 }
-{
+if(selected(74)){
   const r=fixture(),FC=r.FC,details=r.details();
   const register=unchangedTotals(FC,{labor:FC.wycenaCoreLabor.collectCabinetLabor(['kuchnia'])});
   const get=id=>register.lines.find(row=>row.name===r.rates().find(def=>def.id===id).name);
@@ -86,7 +94,7 @@ for(const pricingMode of ['fixed','perUnit','startPlusUnit','time','timeTiers','
   assert.ok(equation.endsWith('Czas bazowy: 1 × 60 min; gabarytoczas: 0,05088 m³ × 60 min/m³.'),'Label actual base and volume source operands without truncation');
   console.log('PASS physical operations: pack 25.00, trial 10.00, rehang 25.00, placement 29.17, body 157.63');checks++;
 }
-{
+if(selected(75)){
   const r=fixture(),FC=r.FC;
   const detail={key:'project_design_unusual',name:'Projekt techniczny — nietypowa szafka',quantity:1,quantityMode:'linear',timeBlockHours:0.25,baseHours:0.25,volumeHours:0.05,hours:0.3,hourlyRate:300,total:90};
   const register=unchangedTotals(FC,{project:[{name:detail.name,details:[detail]}]});
@@ -97,7 +105,9 @@ for(const pricingMode of ['fixed','perUnit','startPlusUnit','time','timeTiers','
   console.log('PASS unusual project: base 15 min + volume 3 min at 300/h = 90.00, labeled from source data');checks++;
 }
 // Keep the PDF references independent of the subsequently approved loading/unloading norm.
+let referenceIndex=76;
 for(const [type,height,depth,shelves,expected,withLoading]of [['moduł',82,50,1,369.17,390],['wisząca',106,32,2,517.63,538.47]]){
+  if(!selected(referenceIndex++))continue;
   const r=fixture();Object.assign(r.cab,{type,height,depth,width:60});r.cab.details.shelves=shelves;
   const catalog=copy(r.rates()),rows=r.FC.wycenaCoreLabor.collectCabinetLabor(['kuchnia']);
   const loading=rows.flatMap(row=>row.details).filter(part=>part.laborDefinitionId==='labor_delivery_loading');
@@ -119,7 +129,7 @@ for(const [type,height,depth,shelves,expected,withLoading]of [['moduł',82,50,1,
   assert.equal(register.lines.length,previous.lines.length+1);assert.deepEqual(copy(r.rates()),catalog,'Reference checks must not edit the catalog');
   console.log('PASS explicit synthetic '+type+': previous PDF '+expected.toFixed(2)+' unchanged, combined loading 5 min / 20.83, full total '+withLoading.toFixed(2)+'; exact source rounding and BASE presentation preserved');checks++;
 }
-{
+if(selected(78)){
   const r=fixture(),FC=r.FC;
   const project=FC.wycenaCoreLabor.collectProjectPreparationLines(['kuchnia']);
   assert.ok(project.length>0);const projectRegister=unchangedTotals(FC,{project});assert.ok(projectRegister.lines.some(row=>row.section==='project'&&row.total>0));
@@ -129,7 +139,7 @@ for(const [type,height,depth,shelves,expected,withLoading]of [['moduł',82,50,1,
   const carrying=unchangedTotals(FC,{carrying:[{name:'Synthetic carrying',details:[detail]}]});
   assert.equal(evaluate(carrying.lines[0].calculation),125);console.log('PASS actual project preparation and carrying start/step with two explicit passes');checks++;
 }
-{
+if(selected(79)){
   const r=fixture(),FC=r.FC;let selections=[];
   FC.quoteOfferStore={getCurrentDraft:()=>({rateSelections:selections})};
   FC.investorTransport={getCurrentTransportContext:()=>({billableKm:36,durationMin:7})};
@@ -146,13 +156,13 @@ for(const [type,height,depth,shelves,expected,withLoading]of [['moduł',82,50,1,
   }
   console.log('PASS actual transport and manual offer integration: all pre-existing quantities and prices unchanged');checks++;
 }
-{
+if(selected(80)){
   const r=fixture(),FC=r.FC;FC.quoteOfferStore={getCurrentDraft:()=>({rateSelections:[]})};FC.investorTransport={getCurrentTransportContext:()=>({billableKm:12})};
   r.rates().push({id:'private-km-1',quantitySource:'transport.distance_km',price:5,starterPrice:false},{id:'private-km-2',quantitySource:'transport.distance_km',price:7,starterPrice:false});
   r.load('js/app/wycena/wycena-core-offer.js');const lines=FC.wycenaCoreOffer.collectQuoteRateLines();assert.equal(lines.length,1);assert.equal(lines[0].sourceKind,'automatic-blocked');
   unchangedTotals(FC,{quoteRates:lines});console.log('PASS transport conflict retains STOP and zero charge');checks++;
 }
-{
+if(selected(81)){
   const r=fixture(),FC=r.FC;
   for(const commercial of [{},{discountPercent:7.125},{discountPercent:100},{discountPercent:200},{discountAmount:0.005}]){
     const lines={materials:[{qty:1.123456,unitPrice:173.125,total:1.123456*173.125}],accessories:[{qty:4,unitPrice:7.125,total:28.5}],agdServices:[{qty:1,unitPrice:45,total:45}],quoteRates:[{qty:1,unitPrice:0.004,total:0.004},{qty:1,unitPrice:0.004,total:0.004}]};
@@ -164,8 +174,8 @@ for(const [type,height,depth,shelves,expected,withLoading]of [['moduł',82,50,1,
   }
   console.log('PASS materials, hardware, services, sub-cent sums, discounts and frozen source preservation');checks++;
 }
-assert.ok(fixture().FC.quoteCalculationRegister.describeCalculation({quantity:2,unitPrice:10,total:99}).includes('Brak pełnego rozbicia'),'Do not fabricate an equation for incomplete source data');
-{
+if(selected(82))assert.ok(fixture().FC.quoteCalculationRegister.describeCalculation({quantity:2,unitPrice:10,total:99}).includes('Brak pełnego rozbicia'),'Do not fabricate an equation for incomplete source data');
+if(selected(82)){
   const r=fixture(),ids=new Map();
   r.load('js/app/cabinet/cabinet-drawer-requirements.js'); // Verified zero drawers, not an unavailable generator.
   class Element{
@@ -208,5 +218,11 @@ assert.ok(fixture().FC.quoteCalculationRegister.describeCalculation({quantity:2,
   assert.ok(displayed.some(node=>has(node,'rozrys-material-accordion__title-line2')&&node.textContent==='9 poz. • 0.00 PLN'),'A zero grand total must not fall back to subtotal');
   assert.equal(JSON.stringify(snapshot),before,'Rendering never rewrites frozen data');console.log('PASS actual DOM equations, zero grand total and immutable snapshot');checks++;
 }
-console.log(`Exact calculations: ${checks} cases PASS; full CI/Chromium/SDK pending`);
+assert.equal(caseIndex,60,'Exact minute matrix inventory changed');
+assert.equal(variantsIndex,67,'Exact pricing variant inventory changed');
+assert.equal(zeroIndex,74,'Exact zero matrix inventory changed');
+assert.equal(referenceIndex,78,'Exact reference inventory changed');
+const expected=split.part?expectedCounts[split.part-1]:83;
+assert.equal(checks,expected,'Exact CI partition coverage mismatch');
+console.log(`Exact calculations: ${checks}/${expected} cases PASS; full CI/Chromium/SDK pending`);
 module.exports={evaluate};

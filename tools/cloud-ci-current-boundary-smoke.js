@@ -90,7 +90,7 @@ async function main(){
   assert.throws(()=>batchesForGroup({context:'current',files:['cloud42-plan.test.mjs']}),/CLOUD_CI_BATCH_PLAN_CHANGED/);
   const units=batches.flatMap((files,i)=>executionUnits({context:'current'},i+1,files));
   assert.deepEqual(units.flat(),currentFiles,'Each current SDK test must execute once');
-  assert.deepEqual(units.map(files=>files.length),[5,1,1,1],'Two batch-3 files require separate emulator lifetimes');
+  assert.deepEqual(units.map(files=>files.length),[2,3,1,1,1],'Split batch 1 and batch 3 each require separate DEMO emulator lifetimes');
   assert.deepEqual(units.slice(-2),[['cloud44-admin.test.mjs'],['cloud-sync-global.test.mjs']]);
   assert.deepEqual(executionUnits({context:'historical'},1,['a','b']),[['a','b']]);
   assert.throws(()=>executionUnits({context:'current'},3,['cloud-sync-global.test.mjs','cloud44-admin.test.mjs']),/CLOUD_CI_BATCH3_PLAN_CHANGED/);
