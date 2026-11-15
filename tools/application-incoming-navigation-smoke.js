@@ -44,7 +44,7 @@ async function main(){
  rows.fc_current_project_id_v1=existing.project.id;
  rows.fc_current_investor_v1=existing.investor.id;
  const next=projectApplicationRows(rows,{scope:owner.project.id},remote,{},contract);
- assert.equal(next.fc_ui_v1,rows.fc_ui_v1,'An existing user's view is never replaced');
+ assert.equal(next.fc_ui_v1,rows.fc_ui_v1,"An existing user's view is never replaced");
  assert.equal(next.fc_current_project_id_v1,existing.project.id,'Existing selection remains unchanged');
  assert.equal(next.fc_current_investor_v1,existing.investor.id);
  assert.deepEqual(JSON.parse(next.fc_projects_v1),[existing.project,owner.project]);
