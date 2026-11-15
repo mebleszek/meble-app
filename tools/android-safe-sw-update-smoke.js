@@ -91,14 +91,40 @@ async function main(){
  const archive=path.join(dir,'old.tar');
  await execFile('git',['archive','-o',archive,'2930e0d769d9576d387764af439eab7df9fd5636'],{cwd:root,timeout:30000});
  await execFile('tar',['-xf',archive,'-C',old],{timeout:30000});
- let deployment=old,one,stopped=false,heldAsset=false,releasedAsset=false,delayTimer;
+ // The incremental worker reuses unchanged resources. Hold a file that is
+ // provably DIFFERENT across the old and current release, so the slow-install
+ // regression still exercises a real network download.
+ assert.notEqual(fs.readFileSync(path.join(old,'index.html'),'utf8'),
+   fs.readFileSync(path.join(root,'index.html'),'utf8'),
+   'Slow-install fixture must target a changed manifest resource');
+ const oldManifest=JSON.parse(fs.readFileSync(path.join(old,'offline-assets.js'),'utf8').match(/^self\.MEBLE_OFFLINE_ASSETS=(.*);$/m)[1]);
+ const previous=new Map(oldManifest.files.map(file=>[file.path,file.sha256]));
+ const candidate=require('./offline-assets').manifest();
+ const candidatePaths=new Set(candidate.files.map(file=>'/'+file.path));
+ const changed=candidate.files.filter(file=>previous.get(file.path)!==file.sha256).map(file=>'/'+file.path).sort();
+ assert.ok(changed.includes('/index.html'));
+ let deployment=old,one,stopped=false,heldAsset=false,releasedAsset=false,failDownload=true,failedDownloads=0;
+ const downloaded=[],timers=new Set();
+ let inFlight=0,peak=0;
+ function later(fn,ms){const timer=setTimeout(()=>{timers.delete(timer);fn();},ms);timers.add(timer);}
  const server=http.createServer((req,res)=>{try{const pathname=new URL(req.url,'http://127.0.0.1').pathname,file=path.resolve(deployment,'.'+pathname);if(!file.startsWith(deployment+path.sep))throw Error();const data=fs.readFileSync(file);
   const respond=()=>{res.writeHead(200,{'content-type':file.endsWith('.js')?'text/javascript':file.endsWith('.html')?'text/html':file.endsWith('.css')?'text/css':'image/jpeg','cache-control':'no-store'});res.end(data);};
   // Real SW install fetch, not a page timer or mocked registration. Exceed the
   // former shared deadline while the same old dirty application stays open.
-  if(deployment===root&&!heldAsset&&pathname==='/assets/branding/MebLeszek_logo_oryginal.jpg'){
-   heldAsset=true;console.log('START real Chromium: hold one manifest download for 32s');
-   delayTimer=setTimeout(()=>{releasedAsset=true;respond();},32000);
+  if(deployment===root&&req.headers['sec-fetch-dest']==='empty'&&candidatePaths.has(pathname)){
+   if(failDownload){
+    if(pathname==='/index.html'){
+     failedDownloads++;
+     later(()=>{res.writeHead(503,{'cache-control':'no-store'});res.end('synthetic unavailable asset');},300);
+    }else respond();
+    return;
+   }
+   downloaded.push(pathname);peak=Math.max(peak,++inFlight);
+   res.once('close',()=>inFlight--);
+   if(!heldAsset&&pathname==='/index.html'){
+    heldAsset=true;console.log('START real Chromium: hold one changed manifest download for 32s');
+    later(()=>{releasedAsset=true;respond();},32000);
+   }else later(respond,50);
   }else respond();
  }catch(_){res.writeHead(404);res.end();}});
  try{
@@ -136,9 +162,29 @@ async function main(){
  const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++serial,timer=setTimeout(()=>{pending.delete(id);reject(Error('Update test CDP timeout: '+method));},30000);pending.set(id,{resolve:r=>{clearTimeout(timer);resolve(r);},reject:e=>{clearTimeout(timer);reject(e);}});ws.send(JSON.stringify({id,method,params}));});
  const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.text);return r.result.value;};
  await send('Page.enable');await send('Network.enable');await send('Page.navigate',{url:base+'/sw-update.html'});
- const started=Date.now();let longInstallSeen=false;
+ const statusOf=()=>evaluate('(()=>{const s=document.getElementById("sw-update-status");return s?{...s.dataset}:null;})()');
+ let failure;
+ for(let i=0;i<400;i++){
+  const status=await statusOf();
+  if(status&&status.state!=='checking'){failure=status;break;}
+  await new Promise(r=>setTimeout(r,50));
+ }
+ assert.equal(failure?.state,'unconfirmed',JSON.stringify(failure));
+ assert.equal(failure.reason,'INSTALL_REDUNDANT');
+ assert.ok(failedDownloads>0,'Chromium must hit the actual failed asset request');
+ assert.equal(await raw(),before);
+ assert.equal(await one.evaluate('window.FC.investorEditorState.state.draft.name'),'EXACT UNSAVED RAM');
+ const cacheNames=await evaluate('caches.keys()');
+ assert.ok(cacheNames.includes('meble-static-'+cache));
+ assert.ok(!cacheNames.includes('meble-static-'+candidate.version),'Failed candidate must be removed');
+ console.log('PASS real Chromium: asset HTTP 503 refused the candidate, preserved the old cache, data and unsaved form');
+ failDownload=false;
+ // A deliberate retry starts the successful installation on the same origin and profile.
+ await evaluate('document.getElementById("sw-update-check").click()');
+ const started=Date.now();let longInstallSeen=false,progressSeen=false;
  while(Date.now()-started<90000){
-  const status=await evaluate('(()=>{const s=document.getElementById("sw-update-status");return s?{...s.dataset}:null;})()');
+  const status=await statusOf();
+  if(await evaluate('(()=>{const b=document.getElementById("sw-update-bar");return b?.value>0&&b.value<b.max;})()'))progressSeen=true;
   if(status&&status.state!=='checking'){assert.equal(status.state,'ready',JSON.stringify(status));break;}
   if(Date.now()-started>30000&&heldAsset&&!releasedAsset){
    assert.equal(status.state,'checking');assert.equal(status.stage,'installation');longInstallSeen=true;
@@ -146,6 +192,14 @@ async function main(){
   await new Promise(r=>setTimeout(r,50));
  }
  assert.equal(longInstallSeen,true,'Real installation >30s must remain checking, without false FAIL');assert.equal(releasedAsset,true);
+ assert.equal(progressSeen,true,'Page must display intermediate measured progress');
+ assert.deepEqual(downloaded.sort(),changed,'Only manifest paths with changed or missing SHA-256 may be fetched once');
+ assert.ok(peak>1&&peak<=4,'Expected 2–4 simultaneous downloads, saw '+peak);
+ const totals=await evaluate('document.getElementById("sw-update-counts").textContent');
+ assert.ok(totals.includes('Pobrane: '+changed.length+' · Z cache: '+(candidate.files.length-changed.length)),totals);
+ assert.ok(totals.endsWith('Zweryfikowane: '+candidate.files.length),totals);
+ console.log('PASS real Chromium: '+changed.length+' downloads, '+(candidate.files.length-changed.length)+' verified cache reuses, peak '+peak);
+
  assert.equal(await evaluate('document.getElementById("sw-update-status").dataset.state'),'ready');
  assert.equal(await evaluate('document.getElementById("sw-update-status").dataset.reason'),'NONE');
  console.log('PASS real Chromium: delayed installation >30s then complete active/waiting ACK');
@@ -212,6 +266,6 @@ async function main(){
 
  await one.reload();await one.until('document.body.dataset.businessState==="ready"');assertStarterAppend(before,await raw(),codeCandidate.model.labor,corrections,expectedMaterialUpgrade(before));
  console.log('PASS real old-SW → independent network page/active+waiting hashes/native retry/320,360,412px → dirty RAM/multiple clients protected → natural activation/new offline shell/Delete/exact original RAW+IDB and precisely verified new factory norms');
- }finally{clearTimeout(delayTimer);await one?.close();if(!stopped){server.closeAllConnections();await new Promise(r=>server.close(r));}fs.rmSync(dir,{recursive:true,force:true});}
+ }finally{for(const timer of timers)clearTimeout(timer);await one?.close();if(!stopped){server.closeAllConnections();await new Promise(r=>server.close(r));}fs.rmSync(dir,{recursive:true,force:true});}
 }
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});module.exports={main};

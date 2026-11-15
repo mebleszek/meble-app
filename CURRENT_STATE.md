@@ -1,5 +1,14 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## Przyrostowy aktualizator Service Workera, 15.11.2026
+
+Gałąź `fix/incremental-service-worker-update-20261115`, BASE/main `dd78c593e769b758805ea5ba8e4b8b2a3d6e24ee`. Przeniesiony zatwierdzony zakres [PR #140](https://github.com/mebleszek/meble-app/pull/140) z HEAD `a7732d18a50c6663d208a0a5fa36e9c5bbeab06b`. [Raport aktualizatora](tools/reports/android-safe-sw-update-20261031.md#15112026--przyrostowy-aktualizator-z-pr-140).
+
+Worker ponownie wykorzystuje zgodne zasoby po SHA-256 i pobiera brakujące lub zmienione maksymalnie czterema żądaniami. Aktualizator pokazuje postęp plików oraz obserwuje brak postępu. Usunięto wspólny limit całej próby. Przy nieudanej instalacji istniejący cache pozostaje, a nowy niekompletny kandydat jest usuwany. Naturalna aktywacja nadal wymaga zakończenia pracy i zamknięcia kart.
+
+- **PASS Chromium.** HTTP 503 odrzucił instalację i pozostawił stary cache oraz dane. Ręczna ponowna próba pobrała wyłącznie różnice. Po instalacji z opóźnieniem 32 s stara karta zachowała RAM, a po bezpiecznym zamknięciu kart i zimnym restarcie offline potwierdzono wersję, lokalne dane i IndexedDB.
+- **PASS testów celowanych.** `offline-shell-smoke.js`, `offline-update-smoke.js`, `sw-incremental-cache-smoke.js`, `sw-update-page-smoke.js` (23/23) oraz wersje i manifest. **CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Następny krok to niezależna kontrola konkretnego HEAD/BASE.
+
 ## P0 — zapis inwestora i ustawień wyceny po E1, 15.11.2026
 
 Gałąź `test/qa-playwright-sync-ui-20261115`, wejściowy BASE `4cc9dfb39e3efc7164fda1ee1ab11d026c70b85b`, zdalny main `84a3a595c83091d97c9213e2e798c607da5a0a80`. Zastosowano zasadę autonomii z `9c79d52ead83dd6b1f4e1517346cd19c7fb81747`.
