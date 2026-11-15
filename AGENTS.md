@@ -20,6 +20,19 @@ Obowiązuje także w nowych wątkach. AGENTS i procedury tworzą jeden kontrakt 
 - Po komendzie **„do dzieła”** wykonuj wyłącznie wcześniej uzgodniony zakres.
 - Jeżeli podczas pracy pojawi się potrzeba wyjścia poza uzgodniony zakres, zatrzymaj się i poproś o decyzję użytkownika.
 
+### Kontrola zgodności z ustaleniami — decyzja właściciela 15.11.2026
+
+Przed **każdą** analizą, rekomendacją, zadaniem dla Codexa, implementacją i próbą wydania Meble-App obowiązuje ChatGPT i Codexa następująca procedura, również w nowym wątku:
+
+1. **Najpierw źródła.** Sprawdź wcześniejsze decyzje właściciela, `AGENTS.md`, aktywny `CURRENT_STATE.md`, właściwy zatwierdzony plan i rzeczywisty stan GitHuba (main, gałąź, PR/CI/Pages stosownie do zadania). Nie wymagaj od właściciela ponownego odtwarzania udokumentowanych ustaleń.
+2. **Stała kolejność.** Ustal i przedstaw: **USTALONE → WDROŻONE → BRAKUJE → PROPONOWANE**. Oddziel zatwierdzony zamiar od implementacji, wyniku testów, rzeczywistego wydania i odbioru na urządzeniu. Nie traktuj `CI_PASS` jako dowodu spełnienia wszystkich wymagań.
+3. **Bez cichej zmiany planu.** Nie zmieniaj samodzielnie zaakceptowanych zasad, zakresu ani kolejności etapów. Gdy rekomendujesz odstępstwo, jawnie wskaż dotychczasową decyzję, powód, ryzyka i skutki; do świadomej akceptacji właściciela pozostaje wiążący poprzedni plan.
+4. **Odbiór względem wymagań.** Porównaj wykonanie z całym zatwierdzonym zakresem i kryteriami odbioru, nie tylko z zielonym CI; ujawnij brakujące testy, ograniczenia emulatora i wynik weryfikacji na rzeczywistym urządzeniu, jeśli jest wymagany.
+5. **Trwały zapis decyzji i stanu.** W granicach osobno zatwierdzonego zakresu pilnuj aktualizacji istniejących dokumentów: `CURRENT_STATE.md` dla rzeczywistego wykonania, właściwy plan dla ustaleń i statusu etapów. Nie twórz konkurencyjnego rejestru ani nie ogłaszaj zapisania, zapamiętania lub wdrożenia bez sprawdzalnego potwierdzenia.
+6. **Konflikt zamiast zgadywania.** Jeśli dokumenty, wcześniejsze decyzje i rzeczywisty kod są niespójne, wskaż konkretny konflikt i dowody; nie zastępuj ustaleń domysłem. Nowe decyzje należą do właściciela.
+
+Ta procedura uzupełnia istniejące zasady zgód, ról, UI, pracy z danymi i wydawania; **nie udziela nowych uprawnień** do zmian, PR, merge ani Firebase LIVE.
+
 ## 2. Minimalny, spójny zakres
 
 ChatGPT raz analizuje rzeczywisty łańcuch UI → wywołania → domena/modele/ID → odczyt/zapis/recovery/backupy → wyceny/oferty/sync/skutki uboczne. Codex korzysta z ustaleń i czyta kod potrzebny implementacji; pogłębia analizę tylko dla konkretnej sprzeczności/ryzyka. Rozróżniaj aktualny model od historycznych wyjątków; rekomenduj na podstawie faktów.
