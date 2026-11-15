@@ -27,9 +27,9 @@
     return api && typeof api.search === 'function' ? (api.search(query) || []) : [];
   }
 
-  function createInvestor(initial){
+  function createInvestor(initial, options){
     const api = store();
-    return api && typeof api.create === 'function' ? (api.create(initial || {}) || null) : null;
+    return api && typeof api.create === 'function' ? (api.create(initial || {}, options) || null) : null;
   }
 
   function saveInvestorPatch(id, patch){

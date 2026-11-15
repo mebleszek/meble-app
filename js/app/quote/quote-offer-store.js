@@ -178,18 +178,18 @@
     return findIndexByInvestor(list, investorId);
   }
 
-  function findLocalIndex(list, {projectId, investorId}){
+  function findLocalIndex(list, {projectId, investorId}, legacy){
     if(!projectId || !investorId) return -1;
     const byProject = findIndexByProject(list, projectId);
     if(byProject >= 0) return list[byProject].investorId === investorId ? byProject : -1;
-    return list.findIndex(row=>row && !row.projectId && row.investorId === investorId);
+    return legacy ? list.findIndex(row=>row && !row.projectId && row.investorId === investorId) : -1;
   }
 
   function getDraft(scope){
     const resolved = makeScope(scope && scope.projectId, scope && scope.investorId);
-    const localOnly = FC.applicationWrite?.localOnly;
-    const list = localOnly ? readLocalDraftRows() : readAll();
-    const idx = localOnly ? findLocalIndex(list, resolved) : findIndex(list, resolved);
+    const writer = FC.applicationWrite;
+    const list = writer ? readLocalDraftRows() : readAll();
+    const idx = writer ? findLocalIndex(list, resolved, writer.localOnly) : findIndex(list, resolved);
     if(idx >= 0) return normalizeDraft(list[idx], resolved);
     return normalizeDraft({}, resolved);
   }
@@ -203,19 +203,19 @@
   function saveDraft(draft, scope){
     const resolved = makeScope(scope && scope.projectId, scope && scope.investorId);
     const normalized = normalizeDraft(draft, resolved);
-    const localOnly = FC.applicationWrite?.localOnly;
-    const list = localOnly ? readLocalDraftRows() : readAll();
-    const idx = localOnly ? findLocalIndex(list, normalized) : findIndex(list, normalized);
+    const writer = FC.applicationWrite;
+    const list = writer ? readLocalDraftRows() : readAll();
+    const idx = writer ? findLocalIndex(list, normalized, writer.localOnly) : findIndex(list, normalized);
     const servicesChanged=JSON.stringify(list[idx]?.services)!==JSON.stringify(normalized.services);
     const breaksChanged=(list[idx]?.commercial?.billBreaks!==false)!==(normalized.commercial.billBreaks!==false);
-    if(localOnly){
+    if(writer){
       if(!resolved.projectId || !resolved.investorId || (idx < 0 && findIndexByProject(list, resolved.projectId) >= 0)) return null;
       const previous = list[idx];
       if(previous) list[idx] = Object.assign({}, previous, normalized);
       else list.unshift(normalized);
       if(storage.setJSON(DRAFT_KEY, list) !== true) return null;
       if(breaksChanged || servicesChanged || (previous && JSON.stringify(previous.selection) !== JSON.stringify(normalized.selection)) || num(previous?.helperHours,0) !== normalized.helperHours){
-        FC.applicationWrite.afterCommit(()=> FC.sessionNavigation?.invalidateCalculationContext?.());
+        writer.afterCommit(()=> FC.sessionNavigation?.invalidateCalculationContext?.());
       }
       return normalized;
     }
@@ -241,6 +241,26 @@
     return saveDraft(next, next);
   }
 
+  let pendingSettings=Promise.resolve(),lastSettings=null;
+  function commitSettings(scope, operation){
+    const writer=FC.applicationWrite;
+    if(!writer)return operation();
+    const save=()=>{
+      const current=makeScope();
+      if(FC.applicationWrite!==writer||!scope.projectId||!scope.investorId||current.projectId!==scope.projectId||current.investorId!==scope.investorId)return false;
+      return operation()||false;
+    };
+    const run=()=> (writer.localOnly ? writer.project(save) : writer.offerDraft(save));
+    const result=pendingSettings.then(run);
+    pendingSettings=result.then(Boolean,()=>false);
+    lastSettings={projectId:scope.projectId,investorId:scope.investorId,result:pendingSettings};
+    return result;
+  }
+
+  function saveSettings(scope, patch){
+    return commitSettings(scope,()=>patchDraft(patch,scope));
+  }
+
   function clearDraft(scope){
     const resolved = makeScope(scope && scope.projectId, scope && scope.investorId);
     const list = readAll();
@@ -264,6 +284,12 @@
     saveDraft,
     saveCurrentDraft(draft){ return saveDraft(draft); },
     patchDraft,
+    commitSettings,
+    saveSettings,
+    settingsSettled(){
+      const scope=makeScope();
+      return lastSettings?.projectId===scope.projectId&&lastSettings.investorId===scope.investorId?lastSettings.result:true;
+    },
     patchCurrentDraft(patch){ return patchDraft(patch); },
     clearDraft,
     clearCurrentDraft(){ return clearDraft(); },

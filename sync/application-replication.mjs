@@ -80,6 +80,10 @@ export function createApplicationCommitter({store,globalContract,projectContract
    for(const key of new Set([...Object.keys(old.rows),...Object.keys(application.rows)])){
     if(old.rows[key]===application.rows[key]||technical.has(key))continue;
     if(kind==='globals'&&globalKeys.has(key))continue;
+    if(kind==='project'&&key==='fc_quote_offer_drafts_v1'&&!localOnly){
+     projectContract.validateOfferDraftChange(old.rows,application.rows,projectId);
+     continue;
+    }
     if(kind==='project'&&(['fc_projects_v1','fc_investors_v1','fc_quote_snapshots_v1'].includes(key)||localOnly&&unresolvedProjectKeys.includes(key)))continue;
     fail('LF_APPLICATION_SCOPE_REFUSED');
    }
@@ -118,7 +122,7 @@ export function createApplicationCommitter({store,globalContract,projectContract
     value={document:built.document,globals:catalogs,requirements};editor=(await store.snapshot(scope)).replica?.editor;
    }else fail('LF_APPLICATION_SCOPE_REFUSED');
    const before=await store.snapshot(scope);
-   const previous=before.replica&&!before.replica.dirty?JSON.parse(before.replica.json):null;
+   const previous=before.replica?.base&&!before.replica.dirty?JSON.parse(before.replica.json):null;
    const unchanged=previous&&(kind==='globals'?equal(previous,value):
     equal(previous.document?.payload,value.document.payload)&&equal(previous.globals,value.globals));
    if(unchanged){
@@ -131,6 +135,13 @@ export function createApplicationCommitter({store,globalContract,projectContract
    if(!result.localConfirmed)fail('LF_LOCAL_ACK_UNCONFIRMED');return {...result,scope};
   },
   async checkpoint(application,kind){
+   if(kind==='offer-draft'){
+    const before=await store.readApplication(),rows=application.rows;
+    for(const key of new Set([...Object.keys(before.rows),...Object.keys(rows)])){
+     if(key!=='fc_quote_offer_drafts_v1'&&before.rows[key]!==rows[key])fail('LF_APPLICATION_SCOPE_REFUSED');
+    }
+    projectContract.validateOfferDraftChange(before.rows,rows,before.rows.fc_current_project_id_v1);
+   }
    if(kind==='cabinet-draft'){
     const before=await store.readApplication(),rows=application.rows,scope=before.rows.fc_current_project_id_v1;
     const draft=JSON.parse(rows.fc_edit_session_v1||'null');

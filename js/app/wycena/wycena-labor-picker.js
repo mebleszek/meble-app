@@ -125,10 +125,16 @@
     cancel.addEventListener('click', close);
     const save = make('button', 'btn-success', 'Zatwierdź');
     save.type = 'button';
-    save.addEventListener('click', ()=> {
-      const rows = currentRows();
-      if(state && state.onSave) state.onSave(rows);
-      close();
+    save.addEventListener('click', async()=> {
+      if(save.disabled)return;
+      const active=state;
+      save.disabled=cancel.disabled=true;
+      try{
+        if(await active?.onSave?.(currentRows())===false)throw Error('SAVE_UNCONFIRMED');
+        if(state===active)close();
+      }catch(_){
+        FC.infoBox?.open({title:'Zapis niepotwierdzony',message:'Zachowano wybór czynności.',okOnly:true});
+      }finally{save.disabled=cancel.disabled=false;}
     });
     footer.appendChild(cancel);
     footer.appendChild(save);

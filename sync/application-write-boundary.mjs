@@ -12,7 +12,7 @@ export function installApplicationWriteBoundary({window:w,authority,ensureEditor
   try{const value=await operation();confirmed=value!==false&&value?.ok!==false;return value;}
   finally{running=false;const ready=completions.splice(0);if(confirmed)for(const fn of ready)fn();}
  }
- const run=(operation,kind='auto')=>reserve(async()=>{if(kind==='project')await ensureEditor();return authority.transaction(kind,operation);});
+ const run=(operation,kind='auto')=>reserve(async()=>{if(kind==='project'||kind==='offer-draft')await ensureEditor();return authority.transaction(kind,operation);});
  const refused=error=>{fc.infoBox?.open({title:'Operacja wstrzymana',message:'Zachowano dane. '+(error?.code || (/^(LF_|SESSION_|GLOBAL_|CLOUD_)[A-Z_]+$/.test(error?.message) ? error.message : 'LF_APPLICATION_UNCONFIRMED')),okOnly:true});return false;};
  const lifecycle={run,
   dispatch(action,operation){
@@ -35,6 +35,6 @@ export function installApplicationWriteBoundary({window:w,authority,ensureEditor
  fc.applicationLifecycle=lifecycle;
  // Explicit application API for existing nondelegated form handlers.
  const handler=(fn,kind='globals')=>function(...args){return run(()=>fn.apply(this,args),kind).catch(refused);};
- fc.applicationWrite={localOnly,handler,afterCommit:fn=>{if(running)completions.push(fn);else fn();},projectHandler:fn=>handler(fn,'project'),draftHandler:fn=>handler(fn,'cabinet-draft'),globals:fn=>run(fn,'globals'),project:fn=>run(fn,'project'),auto:fn=>run(fn,'auto'),checkpoint:fn=>run(fn,'checkpoint')};
+ fc.applicationWrite={localOnly,handler,afterCommit:fn=>{if(running)completions.push(fn);else fn();},projectHandler:fn=>handler(fn,'project'),draftHandler:fn=>handler(fn,'cabinet-draft'),globals:fn=>run(fn,'globals'),project:fn=>run(fn,'project'),offerDraft:fn=>run(fn,'offer-draft'),auto:fn=>run(fn,'auto'),checkpoint:fn=>run(fn,'checkpoint')};
  return {run,busy:()=>running,close(){if(fc.applicationLifecycle===lifecycle)delete fc.applicationLifecycle;delete fc.applicationWrite;}};
 }

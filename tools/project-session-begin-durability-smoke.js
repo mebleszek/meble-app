@@ -232,6 +232,7 @@ async function localQuoteRooms(){
   r.FC.applicationWrite = {
     localOnly:true,
     projectHandler:fn=>async(...args)=>fn(...args),
+    project:async fn=>fn(),
     afterCommit:fn=>fn(),
   };
   for(const file of [
@@ -251,6 +252,7 @@ async function localQuoteRooms(){
   r.storage.failures.add('setItem:'+DRAFT_KEY);
   await save.click();
   assert.equal(r.ui.closes,0);
+  assert.equal(r.ui.messages.at(-1)?.title,'Zapis niepotwierdzony');
   assert.equal(checkbox.checked,false);
   assert.equal(r.storage.getItem(DRAFT_KEY),before);
   r.storage.failures.clear();

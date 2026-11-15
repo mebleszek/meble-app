@@ -32,7 +32,7 @@
 
     if(typeof FC.investors.create === 'function' && !FC.investors.__patchedCreateProject){
       const origCreate = FC.investors.create.bind(FC.investors);
-      FC.investors.create = function(initial){
+      FC.investors.create = function(initial, options){
         if(FC.session && FC.session.canSwitchInvestor && !FC.session.canSwitchInvestor('')) return null;
         const prev = repo().getCurrentInvestorId && repo().getCurrentInvestorId();
         const firstActivation = runtime().prepareFirstProjectActivation ? runtime().prepareFirstProjectActivation() : null;
@@ -44,7 +44,7 @@
           try{ proj.meta = proj.meta || {}; proj.meta.assignedInvestorId = inv.id; proj.meta.productionPcvMode = 'project'; }catch(_){ }
           if(runtime().writeProjectFor) runtime().writeProjectFor(inv.id, proj);
           try{ if(repo().ensureCentralProjectForInvestor) repo().ensureCentralProjectForInvestor(inv.id, { projectData:proj, title:'' }); }catch(_){ }
-          if(runtime().setActiveProjectFromInvestor) runtime().setActiveProjectFromInvestor(inv.id, {firstActivation, creationActivation, expectedProject:proj});
+          if(runtime().setActiveProjectFromInvestor) runtime().setActiveProjectFromInvestor(inv.id, {firstActivation, creationActivation, expectedProject:proj, deferRefresh:options?.deferRefresh});
         }
         return inv;
       };

@@ -444,7 +444,8 @@
     }finally{
       releaseGenerateLock();
       if(typeof d.setState === 'function') d.setState({ isBusy:false });
-      if(sameOwner() && (!ctx || !ctx.listEl || !window.uiState || window.uiState.activeTab==='wycena') && typeof d.render === 'function') d.render(ctx);
+      const refresh=()=>{if(sameOwner() && (!ctx || !ctx.listEl || !window.uiState || window.uiState.activeTab==='wycena') && typeof d.render === 'function')d.render(ctx);};
+      if(FC.applicationWrite)FC.applicationWrite.afterCommit(refresh);else refresh();
     }
   }
 
@@ -463,7 +464,17 @@
       try{ if(event && typeof event.stopPropagation === 'function') event.stopPropagation(); }catch(_){ }
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordGenerateButtonEvent === 'function') FC.wycenaDiagnostics.recordGenerateButtonEvent(source || 'generate-button'); }catch(_){ }
       const generate=()=>generateQuote(ctx,d,{source:source||'generate-button'});
-      if(FC.applicationWrite)void FC.applicationWrite.project(generate).catch(showQuoteValidationError);else void generate();
+      if(!FC.applicationWrite){void generate();return;}
+      const prior=d.getState?.();
+      void Promise.resolve(FC.quoteOfferStore?.settingsSettled?.()).then(saved=>{
+        if(saved===false)throw Error('LF_OFFER_DRAFT_UNCONFIRMED');
+        return FC.applicationWrite.project(generate);
+      }).catch(error=>{
+        if((error?.code||error?.message)==='LF_IDB_ABORTED')generateRuntime.lastAcceptedAt=generateRuntime.lastReleasedAt=0;
+        if(prior)d.setState?.({lastQuote:prior.lastQuote,previewSnapshotId:prior.previewSnapshotId,shouldScrollToPreview:false});
+        d.render?.(ctx);
+        showQuoteValidationError(error);
+      });
     };
     FC.wycenaGenerateAction = {
       run(event, source){

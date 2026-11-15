@@ -1,5 +1,26 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## P0 — zapis inwestora i ustawień wyceny po E1, 15.11.2026
+
+Gałąź `test/qa-playwright-sync-ui-20261115`, wejściowy BASE `4cc9dfb39e3efc7164fda1ee1ab11d026c70b85b`, zdalny main `84a3a595c83091d97c9213e2e798c607da5a0a80`. Zastosowano zasadę autonomii z `9c79d52ead83dd6b1f4e1517346cd19c7fb81747`.
+
+- **RED potwierdzony na BASE.** Zapis inwestora podmieniał dwa nieedytowane rekordy po normalizacji. Aktywacja projektu odświeżała formularz przed zatwierdzeniem, a replika bez rewizji serwera mogła pominąć pierwszą publikację. Zapis obejmuje teraz jeden rekord, odświeżenie następuje po commit, a rozpoznanie braku zmian wymaga potwierdzonej rewizji.
+- **RED potwierdzony na BASE.** Ustawienia wyceny próbowały zapisać chroniony klucz poza transakcją. Szkic ma lokalną transakcję z weryfikacją projektu, inwestora, edytora oraz pozostałych rekordów. Nie dopisuje operacji do outboxa. Projekcja biznesowa nadal odmawia dla szkiców o niepotwierdzonym właścicielu.
+- **GREEN, podpisane DEMO w Chromium + Firebase Emulator 3/3.** Inwestor zachował edycję po abort, a ponowny zapis przeszedł restart, odbiór w drugim profilu i ACK. Osobno Wyceń przeszedł abort, zapis historii, restart, odbiór i ACK. Ustawienia przeszły odczyt wszystkich sprawdzanych pól po restarcie, z odmową obcego zakresu, niezmienioną zaakceptowaną ofertą, outboxem i rewizją Firestore. Akceptacja oferty była przygotowaniem danych testowych przez komendę domenową.
+- **PASS regresji celowanych.** Playwright localOnly 2/2. Usuwanie oferty LOCAL-FIRST 15/15. Ochrona przed podwójnym Wyceń, pojedyncza ścieżka generowania, wersje skryptów i manifest offline przeszły.
+- **CI_FAIL — PR #141, 15.11.2026.** [Preflight #43715141468](https://github.com/mebleszek/meble-app/actions/runs/43715141468): `playwright-local-ui` PASS; `playwright-sync-ui` FAIL (niewidoczny hub po asynchronicznej nawigacji); smoke shard 9 — 52/55 PASS (nieaktualny model DAG CI, lokalny picker nie pokazał odmowy po abort, niepełna atrapa transakcji w teście sesji). Auto-merge i Pages pominięte, main niezmieniony.
+- **Pakiet korekt na osobnej gałęzi** `fix/qa-ci-failure-repair-20261115` od HEAD `da6d9286e869a83bc9a5637c5b1a189a2bb24eb4`. Naprawiono oczekiwanie na asynchroniczną nawigację wewnątrz transakcji, komunikat i pozostawienie wyboru po odmowie, asynchroniczny model testowy oraz klasyfikację obu obowiązkowych Playwright w CI. Dodano celowany test nawigacji; odświeżono wersje skryptów i SHA-256 manifestu offline. Statyczna kontrola rzeczywistego DAG i syntetyczne asercje nawigacji/odmowy PASS; **pełny CI nowego HEAD niewykonany**. PR #141 nietknięty. Nowa próba wydania wymaga osobnej zgody na aktualne HEAD/BASE.
+
+## E1 — Playwright w trybie synchronizowanym, 15.11.2026
+
+Gałąź `test/qa-playwright-sync-ui-20261115`, BASE `06bbc8054e6eef3be18ab61df96b64ba6e02f621` (`chore/qa-playwright-parallel-gate-20261115`). [Plan E1](docs/plans/test-strategy-playwright-20261115.md). Dwa izolowane profile Chromium, podpisane DEMO, lokalne emulatory Auth/Firestore.
+
+- **RED — dodanie inwestora:** `LF_APPLICATION_SCOPE_REFUSED`. Zapis próbował zmienić dwa istniejące wpisy inwestorów. IndexedDB i outbox zachowały stan sprzed kliknięcia. Komunikat zgłosił błąd, pole zachowało treść, lecz formularz utracił tryb edycji. Restart i ACK nowego inwestora są zablokowane przez odmowę.
+- **RED — koszt przerw w ustawieniach oferty:** `LF_ASYNC_TRANSACTION_REQUIRED`. Kliknięcie nie utrwaliło zmiany w IndexedDB ani nie dodało operacji do outboxa.
+- **PASS — Wyceń na utrwalonych ustawieniach:** nowy snapshot w IndexedDB i historii UI po restarcie, odbiór w drugim profilu i ACK tej samej rewizji Firestore. Porównano pozostałe projekty i inwestorów. Pełna macierz ustawień, osobny wymuszony abort oferty i zachowanie wcześniej zaakceptowanej oferty wymagają osobnej weryfikacji.
+
+Uruchomienie celowane z katalogu `tools/firebase-pilot`: `npx firebase emulators:exec --config firebase.json --project demo-meble-app --only auth,firestore --non-interactive "node --test playwright-sync-ui.test.mjs"`. Niepowodzenie zapisuje trace i screenshot w lokalnym katalogu tymczasowym. Następny krok: zachować surowe wpisy pozostałych inwestorów przy zapisie zakresowym i zakończyć edycję dopiero po commit; dla ustawień oferty dodać walidowany zapis szkicu projektu w lokalnej transakcji, bez publikowania szkicu. Pakiet E1 nie zawiera zmian produkcyjnych.
+
 ## P0-A — trwałe szkice szafek
 
 14.11.2026 • `fix/p0a-durable-cabinet-drafts` • BASE/main `909bf8ce1f5ccd41c0420f3303fad5386ca76b25` • HEAD implementacji `0a8969f00a12e7f1aafafef4a96dd40ada078807`. [Zatwierdzony plan LOCAL-FIRST](docs/plans/LOCAL_FIRST_ROADMAP.md).

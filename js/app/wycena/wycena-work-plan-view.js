@@ -41,7 +41,7 @@
         const persist=()=>{const active=FC.quoteOfferStore.getCurrentDraft();
           if(active.projectId!==draft.projectId||active.investorId!==draft.investorId||JSON.stringify(FC.laborWorkPlan.normalizeServices(active.services))!==JSON.stringify(current))return false;
           return !!FC.quoteOfferStore.patchCurrentDraft({services:next});};
-        try{const writer=FC.applicationWrite;const result=await(writer?.localOnly?writer.projectHandler(persist)():persist());if(!result)throw Error();Object.assign(current,next);FC.panelBox.close();deps.render?.(ctx);}
+        try{const result=await FC.quoteOfferStore.commitSettings(draft,persist);if(!result)throw Error();Object.assign(current,next);FC.panelBox.close();deps.render?.(ctx);}
         catch(_){notice.textContent='Nie potwierdzono zapisu. Zachowano wybrany zakres usług.';}
         finally{pending=false;for(const input of chips.querySelectorAll('input'))input.disabled=false;update();}
       });
@@ -110,7 +110,7 @@
       const hours=Number(input.value);if(!Number.isFinite(hours)||hours<0){notice.textContent='Podaj nieujemną liczbę godzin.';return;}
       const save=()=>{const current=FC.quoteOfferStore.getCurrentDraft();if(current.projectId!==draft.projectId||current.investorId!==draft.investorId)return false;return !!FC.quoteOfferStore.patchCurrentDraft({helperHours:hours});};
       button.disabled=true;
-      try{const writer=FC.applicationWrite,result=await (writer?.localOnly?writer.projectHandler(save)():save());if(!result)throw Error();storedHours=hours;button.hidden=true;notice.textContent='Zapisano do nowej wyceny. Istniejąca oferta pozostaje bez zmian.';}
+      try{const result=await FC.quoteOfferStore.commitSettings(draft,save);if(!result)throw Error();storedHours=hours;button.hidden=true;notice.textContent='Zapisano do nowej wyceny. Istniejąca oferta pozostaje bez zmian.';}
       catch(_){notice.textContent='Nie potwierdzono zapisu. Zachowano wpisane godziny.';}
       finally{button.disabled=false;}
     });

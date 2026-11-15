@@ -72,8 +72,10 @@
   }
 
   function openModeHub(mode){
-    try{ if(FC.views && typeof FC.views.openModeHub === 'function') FC.views.openModeHub(mode); }catch(_){ }
-    return true;
+    // Navigation can await a session decision. Keep it inside the approved
+    // application transaction instead of reporting success before it finishes.
+    if(!FC.views || typeof FC.views.openModeHub!=='function')return false;
+    return FC.views.openModeHub(mode);
   }
 
   function exitInvestorToList(){

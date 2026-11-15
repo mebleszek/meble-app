@@ -200,7 +200,7 @@
       const transient = isTransientInvestor(investor);
       if(patch && persistence()){
         if(transient && typeof persistence().createInvestor === 'function'){
-          savedInvestor = persistence().createInvestor(patch || {});
+          savedInvestor = persistence().createInvestor(patch || {},{deferRefresh:!!FC.applicationWrite});
         }else{
           savedInvestor = persistence().saveInvestorPatch(investor.id, patch);
         }
@@ -219,7 +219,7 @@
         clearNewInvestorFlag(investor.id);
         cfg.onRender && cfg.onRender();
       };
-      if(FC.applicationWrite?.localOnly)FC.applicationWrite.afterCommit(finish);else finish();
+      if(FC.applicationWrite)FC.applicationWrite.afterCommit(finish);else finish();
       return;
     }
 

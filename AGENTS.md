@@ -28,6 +28,8 @@ Preferuj odwracalne zmiany, bez pobocznego refaktoru, przepisywania za rozmiar, 
 
 Niezbędny powiązany błąd naprawiaj przyczynowo w zakresie zgody. Niezwiązany zgłoś, kontynuuj niezależne bezpieczne części. Ryzyko danych/bezpieczeństwa = STOP zagrożonej operacji. Nie rozszerzaj zgody na UI, migrację, produkcję czy ryzykowny refaktor.
 
+**Krytyczna weryfikacja poleceń ChatGPT przez Codexa:** prompty ChatGPT są rekomendacją sposobu realizacji zatwierdzonego celu, nie niepodważalną specyfikacją techniczną. Codex ma obowiązek sprawdzić założenia wobec aktualnego kodu, kontraktów, testów i dokumentacji. Gdy wykryje błąd ChatGPT, pominiętą zależność lub lepsze, bezpieczniejsze rozwiązanie, samodzielnie dostosowuje plan i sposób implementacji oraz naprawia niezbędne powiązane uchybienia **w granicach uzgodnionego celu i zgody**, bez ponownego pytania o każdą techniczną korektę. Nie wolno mu ślepo wykonywać błędnego promptu ani uzyskiwać PASS przez obchodzenie zabezpieczeń. W raporcie krótko wskazuje odstępstwa od rekomendacji i ich powody. Samodzielna korekta nie rozszerza zgody na zmianę reguł biznesowych, UI, migrację, Firebase LIVE, wydanie/PR/merge ani ryzykowny refaktor; przy konflikcie kontraktu, nowym celu lub zagrożeniu danych obowiązuje STOP i decyzja właściciela.
+
 ## 3. Testy są bramką bezpieczeństwa
 
 Pełny Preflight, regresje i Firebase Emulator Suite wykonuje GitHub Actions. Codex przygotowuje kod/testy i wykonuje tylko niezbędną diagnostykę, celowaną reprodukcję/kontrolę diffu; nie dubluje pełnych zestawów przed/po CI. ChatGPT kontroluje dowody.
