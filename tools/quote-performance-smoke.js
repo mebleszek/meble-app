@@ -105,4 +105,4 @@ test('Delegation consumes a delayed synthetic click but accepts a new modal gest
  fire('click',action,0);assert.equal(calls,4,'keyboard click remains a single ordinary document dispatch');
 });
 
-(async()=>{let fail=0;for(const[name,fn]of tests)try{await fn();console.log('PASS '+name);}catch(e){fail++;console.error('FAIL '+name+'\n'+e.stack);}console.log(`Quote performance: ${tests.length-fail}/${tests.length} PASS, ${fail} FAIL`);process.exitCode=fail?1:0;})();
+(async()=>{const split=require('./ci-test-parts').select(4);let fail=0,executed=0;for(const[index,[name,fn]]of tests.entries()){if(!split.includes(index))continue;executed++;try{await fn();console.log('PASS '+name);}catch(e){fail++;console.error('FAIL '+name+'\n'+e.stack);}}split.verify(executed,tests.length);console.log(`Quote performance: ${executed-fail}/${executed} PASS, ${fail} FAIL`);process.exitCode=fail?1:0;})().catch(e=>{console.error(e);process.exitCode=1;});

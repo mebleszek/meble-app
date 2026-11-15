@@ -135,7 +135,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -272,7 +272,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        batch: [1, 2, 3]
+        include:
+          - {batch: 1, segment: '1a'}
+          - {batch: 1, segment: '1b'}
+          - {batch: 2, segment: '2'}
+          - {batch: 3, segment: '3a'}
+          - {batch: 3, segment: '3b'}
+          - {batch: 3, segment: '3c'}
+          - {batch: 3, segment: '3d'}
+          - {batch: 3, segment: '3e'}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -316,17 +324,17 @@ jobs:
           APPROVED_BASE: ${{ needs.safety.outputs.base_sha }}
         run: node tools/cloud-ci-prepare.js --verify-sdk current
 
-      - name: Test firebase-current-${{ matrix.batch }}
+      - name: Test firebase-current-${{ matrix.segment }}
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/ci-logs"
-          node tools/ci-budget-watch.js --label=firebase-current-${{ matrix.batch }} --warn-ms=75000 --target-ms=90000 -- node tools/cloud-ci-emulators.js --context=current --batch=${{ matrix.batch }} 2>&1 | tee "$RUNNER_TEMP/ci-logs/firebase-current-${{ matrix.batch }}.txt"
-      - name: Upload firebase-current-${{ matrix.batch }} diagnostics
+          node tools/ci-budget-watch.js --label=firebase-current-${{ matrix.segment }} --warn-ms=75000 --target-ms=90000 -- node tools/cloud-ci-emulators.js --context=current --batch=${{ matrix.batch }} --segment=${{ matrix.segment }} 2>&1 | tee "$RUNNER_TEMP/ci-logs/firebase-current-${{ matrix.segment }}.txt"
+      - name: Upload firebase-current-${{ matrix.segment }} diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: diagnostics-firebase-current-${{ matrix.batch }}
+          name: diagnostics-firebase-current-${{ matrix.segment }}
           path: ${{ runner.temp }}/ci-logs/*.txt
           if-no-files-found: ignore
 

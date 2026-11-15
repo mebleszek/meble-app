@@ -1,5 +1,29 @@
 # Meble-App — plan przebudowy QA i CI: Playwright + krótszy Preflight
 
+## Korekta po CI_FAIL PR #147 — 15.11.2026
+
+**USTALONE:** Wymagane realne czasy poniżej 120 s dla każdego testu/grupy. Nie zmieniamy logiki biznesowej, nie pomijamy scenariuszy, nie timeoutujemy testów, nowe wydanie tylko za osobną zgodą na dokładny HEAD/BASE.
+
+**WDROŻONE W KODZIE GAŁĘZI NAPRAWCZEJ:** `perf/ci-under-120s-fix-20261115` wychodzi od nieudanego HEAD PR #147 `3950596f6fc5f0d7e262ab59d236b2651597cb59` (main `7f4a76f880c8e1d58c88ea5e0cb399cc5b4c8952`). Zidentyfikowano i poprawiono wywołanie nieodpowiedniej walidacji batch 1 w `playwright-sync-ui`, dawne założenia o 10 smoke / 3 Firebase w kontrolach struktury CI, oraz obowiązkowy przydział części wycen po podziale. Dodatkowo 13 przypadków PDF przydzielono pojedynczo i przeprowadzono ponowną symulację z **36 grupami smoke oraz 250 jednostkami** (224 pliki), maksymalnie 105 s nominalnego obciążenia — to model, nie pomiar CI.
+
+**WYNIK FAKTYCZNY NIEUDANEJ PRÓBY:** [PR #147](https://github.com/mebleszek/meble-app/pull/147), [Preflight #43764576105](https://github.com/mebleszek/meble-app/actions/runs/43764576105): `CI_FAIL / RELEASE_BLOCKED`, brak merge i Pages. FAIL: Playwright sync (CLOUD_CI_BATCH1_PLAN_CHANGED), grupy smoke 9 (stary kontrakt podziału Firebase), 11 (stary przydział global-code rebuild), 25 (stary kontrakt workflow); agregatory konsekwentnie zablokowały wydanie. W grupie smoke 14 zmierzono **139,3 s**, z czego jeden fragment PDF 116,1 s. Wszystkie osiem osobnych segmentów Firebase przeszło, czasy od 11,5 do 103,1 s. Wyniki z PR #147 nie są przenoszone jako PASS na nowy HEAD.
+
+**BRAKUJE:** Jednego nowego, osobno zatwierdzonego wydania i realnego pomiaru dla SHA gałęzi naprawczej. Jeżeli dowolny test/grupa przekroczy 120 s, ponowny podział w ustalonym zakresie; nie ogłaszać ukończenia tylko po symulacji.
+
+---
+
+## Nowa decyzja właściciela 15.11.2026 — wszystkie grupy poniżej 120 s
+
+**USTALONE:** Wszystkie zadania testowe mają dążyć do <120 s samego wykonania; optymalnie 75–90 s. Test trwający dłużej trzeba rozdzielić na niezależne, kompletne jednostki. Krótkie testy łączyć według realnego obciążenia, bez utraty asercji, retry, timeoutu ani Firebase LIVE.
+
+**WDROŻONE W KODZIE GAŁĘZI ROBOCZEJ (jeszcze nie na main):** `perf/ci-under-120s-partition-20261115` od main `7f4a76f880c8e1d58c88ea5e0cb399cc5b4c8952`. Zmiana testów i CI bez produkcji: 224 pliki smoke → 244 rozłączne jednostki w 28 równoległych grupach. Skrypty obliczeń (83 przypadki), PDF (13 grup), norm i wydajności dzielone na segmenty w CLI z kontrolą integralności. Firebase Current podzielono na 8 osobnych obowiązkowych segmentów, nadal w izolowanych emulatorach DEMO. Dotychczasowe trzy długie scenariusze synchronizacji i ich 18 testów bazowych pozostają w pełnym pokryciu.
+
+**BRAKUJE:** Pomiar GitHub Actions nowego dokładnego HEAD i przegląd różnic względem zatwierdzonej bazy. Ostatni rzeczywisty Preflight [#43756306571](https://github.com/mebleszek/meble-app/actions/runs/43756306571) miał pojedyncze smoke: quote-exact 404,5 s, PDF 330,0 s, norms 148,3 s, quote-performance 134,9 s; mieszane 195,4 / 157,4 / 144,5 / 113,3 s, a Firebase Current 3 270,6 s. Nowy plan na tych czasach **symuluje** 70,7–72,3 s/grupę smoke, ale NIE jest to dowód czasu rzeczywistego po podziale.
+
+**PROPONOWANE / warunek odbioru:** Po osobnej zgodzie na dokładny HEAD/BASE uruchomić jeden standardowy Preflight. Sprawdzić faktyczne czasy każdej części smoke, każdego segmentu Firebase i Playwright/historical. Jeżeli jakikolwiek scenariusz >120 s lub grupa >120 s, kontynuować ten sam zatwierdzony zakres optymalizacji na kolejnej gałęzi, nie usuwać przypadku; nowa próba CI wymaga odrębnej zgody wydaniowej. Każdy plik i każda część muszą przejść dokładnie raz, niezależnie od zmiany liczby runnerów. Nie twierdzić, że granica jest osiągnięta bez tego pomiaru.
+
+---
+
 **Data analizy:** 15.11.2026  
 **Repozytorium:** mebleszek/meble-app  
 **Punkt odniesienia main:** 84a3a595c83091d97c9213e2e798c607da5a0a80  

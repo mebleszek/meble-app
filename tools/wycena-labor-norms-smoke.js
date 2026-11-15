@@ -214,6 +214,6 @@ test('repair: missing and resolved leg/hanger products preserve requirements and
     assert.equal(rows.length,1);assert.equal(rows[0].resolvedHardwareSymbol,product.symbol);assert.equal(rows[0].resolvedHardwareItemId,product.id);near(rows[0].total,rows[0].qty*7);assert.equal(rows[0].warnings.length,0);
   }
 });
-function main(){for(const[name,fn]of tests){fn();console.log('PASS '+name);}console.log(`WYCENA-LABOR norms: ${tests.length}/${tests.length} PASS`);}
+function main(){const split=require('./ci-test-parts').select(4);let executed=0;for(const[index,[name,fn]]of tests.entries()){if(!split.includes(index))continue;fn();executed++;console.log('PASS '+name);}split.verify(executed,tests.length);console.log(`WYCENA-LABOR norms: ${executed}/${split.expected(tests.length)} PASS`);}
 if(require.main===module)main();
 module.exports={fixture,main,tests};

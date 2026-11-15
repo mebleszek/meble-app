@@ -40,7 +40,7 @@ function workflowChecks(source){
     assert.match(s['Verify isolated source and 425 pins'],/cloud-ci-prepare\.js "\$APPROVED_HEAD"/);
     assert.match(s['Verify isolated source and 425 pins'],/APPROVED_BASE: \$\{\{ needs\.safety\.outputs\.base_sha \}\}/);
     assert.ok(s['Use Node.js 22']);
-    const label=id==='preflight-shards'?'smoke-shard-${{ matrix.shard }}':id==='firebase-current-shards'?'firebase-current-${{ matrix.batch }}':id;
+    const label=id==='preflight-shards'?'smoke-shard-${{ matrix.shard }}':id==='firebase-current-shards'?'firebase-current-${{ matrix.segment }}':id;
     assert.equal(condition(s['Upload '+label+' diagnostics']),'${{ always() }}');
   }
   // New Playwright jobs are mandatory members of the same fail-closed DAG.
@@ -69,12 +69,16 @@ function workflowChecks(source){
   assert.match(stat['Audit module growth against approved BASE'],/tools\/ci-module-growth\.js/);
   assert.match(stat['Audit module growth against approved BASE'],/APPROVED_BASE: \$\{\{ needs\.safety\.outputs\.base_sha \}\}/);
   assert.match(j['preflight-shards'],/fail-fast: false/);
-  assert.match(j['preflight-shards'],/^        shard: \[1, 2, 3, 4, 5, 6, 7, 8, 9, 10\]$/m);
+  const expectedShards=Array.from({length:36},(_,i)=>i+1);
+  const listedShards=j['preflight-shards'].match(/^        shard: \[([^\]]+)\]$/m);
+  assert.ok(listedShards,'Missing explicit smoke matrix');
+  assert.deepEqual(listedShards[1].split(', ').map(Number),expectedShards,'All 36 smoke groups required');
   assert.ok(smoke['Test smoke-shard-${{ matrix.shard }}'].includes('--smoke-shard=${{ matrix.shard }}'));
   assert.match(smoke['Inspect isolated browser runtime'],/CHROMIUM_PATH/);
   assert.match(j['firebase-current-shards'],/fail-fast: false/);
-  assert.match(j['firebase-current-shards'],/^        batch: \[1, 2, 3\]$/m);
-  assert.ok(cur['Test firebase-current-${{ matrix.batch }}'].includes('--context=current --batch=${{ matrix.batch }}'));
+  const actualSegments=Array.from(j['firebase-current-shards'].matchAll(/^          - \{batch: ([123]), segment: '([^']+)'\}$/gm),m=>[Number(m[1]),m[2]]);
+  assert.deepEqual(actualSegments,[[1,'1a'],[1,'1b'],[2,'2'],[3,'3a'],[3,'3b'],[3,'3c'],[3,'3d'],[3,'3e']],'Complete eight isolated Firebase DEMO segments required');
+  assert.ok(cur['Test firebase-current-${{ matrix.segment }}'].includes('--context=current --batch=${{ matrix.batch }}'));
   assert.match(cur['Inspect isolated browser runtime'],/CHROMIUM_PATH/);
   assert.match(histSmoke['Test cloud-historical-smoke'],/tools\/cloud-ci-historical\.js/);
   for(const [id,s,contextName,deps] of [
@@ -89,7 +93,7 @@ function workflowChecks(source){
   const runs=[
     ['preflight-static',stat['Test preflight-static'],'preflight-static'],
     ['preflight-shards',smoke['Test smoke-shard-${{ matrix.shard }}'],'smoke-shard-${{ matrix.shard }}'],
-    ['firebase-current-shards',cur['Test firebase-current-${{ matrix.batch }}'],'firebase-current-${{ matrix.batch }}'],
+    ['firebase-current-shards',cur['Test firebase-current-${{ matrix.segment }}'],'firebase-current-${{ matrix.segment }}'],
     ['cloud-historical-smoke',histSmoke['Test cloud-historical-smoke'],'cloud-historical-smoke'],
     ['cloud-historical-sdk',histSdk['Test cloud-historical-sdk'],'cloud-historical-sdk']
   ];
@@ -100,7 +104,7 @@ function workflowChecks(source){
     assert.match(run,/2>&1 \| tee "\$RUNNER_TEMP\/ci-logs\//);
     assert.doesNotMatch(run,/timeout /);
   }
-  assert.match(cur['Test firebase-current-${{ matrix.batch }}'],/tools\/cloud-ci-emulators\.js --context=current/);
+  assert.match(cur['Test firebase-current-${{ matrix.segment }}'],/tools\/cloud-ci-emulators\.js --context=current --batch=\$\{\{ matrix\.batch \}\} --segment=\$\{\{ matrix\.segment \}\}/);
   assert.match(histSdk['Test cloud-historical-sdk'],/tools\/cloud-ci-emulators\.js --context=historical/);
   const aggregates={
     preflight:['safety','preflight-static','preflight-shards','playwright-local-ui'],
@@ -160,8 +164,8 @@ async function diagnosticChecks(source){
   const mutation=(from,to)=>s=>{assert.ok(s.includes(from),'Missing fixture mutation');return s.replace(from,to);};
   for(const change of [
     mutation('    needs: [safety, preflight-static, preflight-shards, playwright-local-ui]','    needs: safety'),
-    mutation('shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]','shard: [1, 2, 3, 4, 5, 6]'),
-    mutation('batch: [1, 2, 3]','batch: [1, 2]'),
+    mutation('shard: ['+Array.from({length:36},(_,i)=>i+1).join(', ')+']','shard: [1, 2, 3, 4, 5, 6]'),
+    mutation("- {batch: 3, segment: '3e'}","- {batch: 3, segment: '3z'}"),
     mutation('    needs: [safety, firebase-current-shards, playwright-sync-ui]','    needs: [safety, firebase-current-shards]'),
     mutation('node --test tools/firebase-pilot/playwright-local-ui.test.mjs','node --test tools/firebase-pilot/removed-ui.test.mjs'),
     mutation('cloud-ci-emulators.js --context=current --playwright-sync','cloud-ci-emulators.js --context=current --no-sync'),
