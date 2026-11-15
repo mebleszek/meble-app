@@ -1,5 +1,13 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## P0 — odbiór pierwszego projektu nie może zmieniać wybranego ekranu, 15.11.2026
+
+Po [FAIL PR #144](https://github.com/mebleszek/meble-app/actions/runs/43741070451) przeanalizowano anonimowy trace Playwright. Pierwsza widoczna nawigacja do „Projekty meblowe” została po ok. 100 ms zastąpiona ekranem inwestora bez kolejnego kliknięcia. Przyczyną w projekcji przychodzącego pierwszego projektu jest wymuszenie `fc_ui_v1={entry:'rooms', activeTab:'inwestor'}` przez `projectApplicationRows()`, niezależnie od świadomie wybranego widoku.
+
+Nowa gałąź `fix/first-receive-navigation-pr144-20261115` od niezmienionego HEAD PR #144 `9e1eddf35ae6ff2c4e3b587c0dbc35919fd23883`. Poprawka zachowuje techniczne przypisanie pierwszego potwierdzonego inwestora/projektu, ale nie zapisuje widoku podczas odbioru; dodano celowaną regresję projekcji i warunek zakończenia pierwszego odbioru przed scenariuszem Playwright zsynchronizowanego inwestora. Zachowano kontrolę właściciela, CAS, historię ofert, IndexedDB, outbox i zabezpieczenia aktualizatora. Zaktualizowano SHA-256 manifestu statycznych plików. 
+
+**CODE_READY (wymaga niezależnego wykonania testów) / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Nie zmieniono PR #144, nie uruchomiono ponownie GitHub Actions ani Firebase LIVE. Kolejna próba wydania wymaga odrębnej zgody na aktualne HEAD/BASE SHA.
+
 ## Przyrostowy aktualizator Service Workera, 15.11.2026
 
 Gałąź `fix/incremental-service-worker-update-20261115`, BASE/main `dd78c593e769b758805ea5ba8e4b8b2a3d6e24ee`. Przeniesiony zatwierdzony zakres [PR #140](https://github.com/mebleszek/meble-app/pull/140) z HEAD `a7732d18a50c6663d208a0a5fa36e9c5bbeab06b`. [Raport aktualizatora](tools/reports/android-safe-sw-update-20261031.md#15112026--przyrostowy-aktualizator-z-pr-140).

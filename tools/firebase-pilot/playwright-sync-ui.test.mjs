@@ -193,6 +193,11 @@ test('E1 signed DEMO synchronized UI', async t => {
       await idle(page);
     }
 
+    // The second profile may start before its first independently verified
+    // project is received. Do not navigate against an unfinished initial read.
+    await computer.page.waitForFunction(id => !!window.FC.investors.getById(id)
+      && !window.FC.applicationStartup.inspect().transactionPending, ids[0]);
+
     await t.test('new investor save, ACK and reopen after restart', async sub => {
       await evidence(sub, 'investor', computer, async restartWithTrace => {
         const { page } = computer;
