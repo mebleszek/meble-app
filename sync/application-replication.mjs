@@ -32,9 +32,12 @@ export function projectApplicationRows(rows,channel,remote,globalContract,projec
   const history=JSON.parse(next.fc_quote_snapshots_v1||'[]');
   if(!Array.isArray(history)||history.some(o=>!o.project?.id||!o.investor?.id))fail('LF_HISTORY_OWNER_REQUIRED');
   next.fc_quote_snapshots_v1=JSON.stringify([...history.filter(o=>o.project.id!==channel.scope),...p.offers]);
-  // A blank recipient may select its first independently verified owner.
-  if(!next.fc_current_project_id_v1){next.fc_current_project_id_v1=p.project.id;next.fc_current_investor_v1=p.investor.id;
-   next.fc_ui_v1=JSON.stringify({entry:'rooms',activeTab:'inwestor',roomType:null,currentInvestorId:p.investor.id});}
+  // First verified owner may become the technical context, but receiving
+  // remote data must not replace a user-selected view (including the mode hub).
+  if(!next.fc_current_project_id_v1){
+   next.fc_current_project_id_v1=p.project.id;
+   next.fc_current_investor_v1=p.investor.id;
+  }
  }
  return next;
 }

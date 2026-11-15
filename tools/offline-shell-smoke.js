@@ -8,7 +8,7 @@ async function main(){
  const cache=name=>{if(!stores.has(name))stores.set(name,new Map());const rows=stores.get(name);return {match:async url=>rows.get(String(url))?.clone(),put:async(url,response)=>rows.set(String(url),response.clone())};};
  const self={location:{href:root+'offline-worker.js'},MEBLE_OFFLINE_ASSETS:{version:'synthetic',files},addEventListener:(name,fn)=>handlers[name]=fn,
    skipWaiting(){throw Error('Forbidden open-page replacement');},clients:{claim(){throw Error('Forbidden takeover');}}};
- const context={self,URL,crypto:webcrypto,Uint8Array,importScripts(){},caches:{open:async name=>cache(name),delete:async name=>stores.delete(name)},
+ const context={self,URL,crypto:webcrypto,Uint8Array,importScripts(){},caches:{keys:async()=>[...stores.keys()],open:async name=>cache(name),delete:async name=>stores.delete(name)},
    fetch:async url=>{fetches++;const file=files.find(f=>new URL(f.path,root).href===String(url));assert.ok(file);return new Response(file.body,{status:200});}};
  vm.runInNewContext(source,context);
  let work;handlers.install({waitUntil:p=>{work=p;}});await work;assert.equal(fetches,2);

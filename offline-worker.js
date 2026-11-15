@@ -9,24 +9,81 @@ async function checked(response,file){
   if(bytes.byteLength!==file.bytes||await digest(bytes)!==file.sha256)throw Error('OFFLINE_RESOURCE_CHANGED');
   return response;
 }
-async function complete(){
+async function complete(onVerified){
   const cache=await caches.open(CACHE);
-  for(const file of MANIFEST.files)await checked(await cache.match(new URL(file.path,root).href),file);
+  let verified=0;
+  for(const file of MANIFEST.files){
+    await checked(await cache.match(new URL(file.path,root).href),file);
+    if(onVerified)onVerified(++verified);
+  }
   return true;
 }
+// Only public static-resource counters are published. No application storage.
+const observers=new Set();
+let installProgress={type:'STATIC_SHELL_INSTALL_PROGRESS',protocol:1,version:MANIFEST.version,phase:'preparing',
+  total:MANIFEST.files.length,processed:0,downloaded:0,reused:0,verified:0};
+function reportInstall(patch){
+  installProgress={...installProgress,...patch};
+  for(const port of observers)try{port.postMessage(installProgress);}catch(_){observers.delete(port);}
+}
+function finishObservers(){
+  for(const port of observers)try{port.close();}catch(_){}
+  observers.clear();
+}
 self.addEventListener('install',event=>event.waitUntil((async()=>{
-  try{await complete();return;}catch(_){} // Preserve an already complete active version.
-  const cache=await caches.open(CACHE);
+  reportInstall({phase:'preparing'});
+  let created=false;
   try{
-    for(const file of MANIFEST.files){const url=new URL(file.path,root);
-      const response=await checked(await fetch(url,{cache:'no-store',credentials:'omit',redirect:'error'}),file);
-      await cache.put(url.href,response);
+    const names=await caches.keys();
+    const cache=await caches.open(CACHE);
+    created=!names.includes(CACHE);
+    reportInstall({phase:'install',processed:0,downloaded:0,reused:0,verified:0});
+    // Reuse only versioned Meble-App static caches. Never trust metadata alone:
+    // check the actual bytes of every reused resource against the NEW manifest.
+    const older=names.filter(name=>name!==CACHE&&/^meble-static-[a-f0-9]{64}$/.test(name)).reverse();
+    const sources=[cache,...await Promise.all(older.map(name=>caches.open(name)))];
+    let cursor=0,firstError=null;
+    async function installNext(){
+      while(!firstError){
+        const index=cursor++;
+        if(index>=MANIFEST.files.length)return;
+        const file=MANIFEST.files[index],url=new URL(file.path,root);
+        try{
+          let response=null,reused=false,inDestination=false;
+          for(const source of sources){
+            const candidate=await source.match(url.href);
+            if(!candidate)continue;
+            try{response=await checked(candidate,file);reused=true;inDestination=source===cache;break;}catch(_){}
+          }
+          if(!response)response=await checked(await fetch(url,{cache:'no-store',credentials:'omit',redirect:'error'}),file);
+          if(!inDestination)await cache.put(url.href,response.clone());
+          reportInstall({phase:'install',processed:installProgress.processed+1,
+            reused:installProgress.reused+(reused?1:0),downloaded:installProgress.downloaded+(reused?0:1)});
+        }catch(error){firstError||=error;}
+      }
     }
-    await complete();
-  }catch(error){await caches.delete(CACHE);throw error;}
-  // No skipWaiting/clients.claim: never replace the runtime of an open draft.
+    // One failed download cannot leave a partially installed version visible.
+    // Wait for all in-flight writes before removing the candidate cache.
+    await Promise.all(Array.from({length:Math.min(4,MANIFEST.files.length)},()=>installNext()));
+    if(firstError)throw firstError;
+    reportInstall({phase:'verify',verified:0});
+    await complete(verified=>reportInstall({phase:'verify',verified}));
+    reportInstall({phase:'ready',verified:MANIFEST.files.length});
+  }catch(error){
+    // An existing same-version cache can still serve the active worker.
+    // Its entries are only replaced with exact manifest matches.
+    if(created)await caches.delete(CACHE);
+    reportInstall({phase:'error'});
+    throw error;
+  }finally{finishObservers();}
 })()));
 self.addEventListener('message',event=>{
+  if(event.data?.type==='OBSERVE_STATIC_SHELL_INSTALL'&&event.ports[0]){
+    const port=event.ports[0];
+    try{port.postMessage(installProgress);if(['ready','error'].includes(installProgress.phase))port.close();else observers.add(port);}
+    catch(_){try{port.close();}catch(_){}}
+    return;
+  }
   if(event.data?.type==='VERIFY_APPLICATION_AUTHORITY'&&event.ports[0]){
     event.waitUntil((async()=>{
       const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
@@ -48,7 +105,14 @@ self.addEventListener('message',event=>{
       event.ports[0].close();
     })());return;
   }
-  if(event.data?.type==='VERIFY_STATIC_SHELL'&&event.ports[0])event.waitUntil(complete().then(()=>event.ports[0].postMessage({complete:true,version:MANIFEST.version}),()=>event.ports[0].postMessage({complete:false})));
+  if(event.data?.type==='VERIFY_STATIC_SHELL'&&event.ports[0]){
+    const port=event.ports[0],report=event.data.progress===true?verified=>{
+      try{port.postMessage({type:'STATIC_SHELL_VERIFY_PROGRESS',version:MANIFEST.version,
+        verified,total:MANIFEST.files.length});}catch(_){}
+    }:undefined;
+    event.waitUntil(complete(report).then(()=>port.postMessage({complete:true,version:MANIFEST.version}),
+      ()=>port.postMessage({complete:false})));
+  }
 });
 self.addEventListener('fetch',event=>{
   const request=event.request,url=new URL(request.url);

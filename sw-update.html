@@ -4,18 +4,23 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Aktualizacja Meble-App</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#171923;font:16px/1.5 system-ui,sans-serif}main{max-width:42rem;margin:16px auto;padding:20px;background:white;border:1px solid #ddd;border-radius:16px}h1{font-size:1.4rem;margin-top:0}button{min-height:44px;padding:8px 16px;border:1px solid #1586ae;border-radius:10px;background:#21bcea;color:#101820;font:inherit;font-weight:600}button:disabled{opacity:.6}p,dd{overflow-wrap:anywhere}dt{font-weight:600}dd{margin:0 0 12px;font:13px/1.5 ui-monospace,monospace}#sw-update-status{font-weight:600}#sw-update-help{padding:12px;border-left:4px solid #159447;background:#effbf4}[hidden]{display:none!important}@media(max-width:440px){main{margin:10px;padding:16px}}
+*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#171923;font:16px/1.5 system-ui,sans-serif}main{max-width:42rem;margin:16px auto;padding:20px;background:white;border:1px solid #ddd;border-radius:16px}h1{font-size:1.4rem;margin-top:0}button{min-height:44px;padding:8px 16px;border:1px solid #1586ae;border-radius:10px;background:#21bcea;color:#101820;font:inherit;font-weight:600}button:disabled{opacity:.6}p,dd{overflow-wrap:anywhere}dt{font-weight:600}dd{margin:0 0 12px;font:13px/1.5 ui-monospace,monospace}#sw-update-status{font-weight:600}#sw-update-progress{margin:12px 0 18px}#sw-update-progress label{display:block;font-size:14px}#sw-update-bar{width:100%;height:18px;accent-color:#1586ae}#sw-update-help{padding:12px;border-left:4px solid #159447;background:#effbf4}[hidden]{display:none!important}@media(max-width:440px){main{margin:10px;padding:16px}}
 </style>
 </head>
 <body><main>
 <h1>Aktualizacja Meble-App</h1>
 <p>Otwórz tę stronę w tej samej przeglądarce i profilu, w których używasz Meble-App. Chrome, Brave i tryb incognito mają oddzielne instalacje. Ten raport dotyczy wyłącznie bieżącej przeglądarki i profilu.</p>
 <p id="sw-update-status" role="status" aria-live="polite" data-state="checking">Sprawdzanie aktualizacji…</p>
+<div id="sw-update-progress" hidden>
+<label id="sw-update-progress-label" for="sw-update-bar">Przygotowywanie licznika plików…</label>
+<progress id="sw-update-bar" max="1" value="0"></progress>
+<p id="sw-update-counts" hidden></p>
+</div>
 <button id="sw-update-check" type="button">Sprawdź ponownie</button>
 <dl><dt>Aktywny Service Worker — hash manifestu</dt><dd id="sw-update-active-version">Niepotwierdzony</dd>
 <dt>Oczekujący Service Worker — hash manifestu</dt><dd id="sw-update-waiting-version">Niepotwierdzony</dd></dl>
 <p>To hashe manifestów potwierdzonych przez Workery, nie SHA GitHuba ani wersja kodu otwartej karty. Brak oczekującego Workera nie dowodzi, że wdrożenie jest najnowsze.</p>
-<p>Instalacja może potrwać do 3 minut, a weryfikacja całego manifestu do 90 sekund. Jedna próba ma limit 5 minut 30 sekund. Po przekroczeniu limitu wynik pozostaje niepotwierdzony; nie oznacza to uszkodzenia instalacji.</p>
+<p>Pasek pokazuje potwierdzony postęp plików, nie odliczanie czasu. Dopóki pliki są przetwarzane, sprawdzanie trwa. Po dłuższym braku postępu wynik może pozostać niepotwierdzony, choć Service Worker nadal pracuje. Nie odświeżaj otwartej edycji na siłę.</p>
 <p id="sw-update-help" hidden>Zapisz pracę lub świadomie anuluj edycję. Jeśli zapis jest niepewny, zachowaj otwartą kartę. Po bezpiecznym zakończeniu pracy zamknij wszystkie karty Meble-App w tym samym profilu Chrome, także tę stronę, i otwórz aplikację ponownie.</p>
 <p>Sprawdzanie nie odczytuje ani nie zmienia projektów, ofert, cenników lub kolejki offline. Nie czyść danych przeglądarki. Jeśli inna karta blokuje wejście, najpierw bezpiecznie zakończ pracę — ta strona nie omija blokady zapisu.</p>
 </main>
@@ -25,31 +30,87 @@
  'use strict';
  const status=document.getElementById('sw-update-status'),button=document.getElementById('sw-update-check'),help=document.getElementById('sw-update-help');
  const activeVersion=document.getElementById('sw-update-active-version'),waitingVersion=document.getElementById('sw-update-waiting-version');
+ const meter=document.getElementById('sw-update-progress'),bar=document.getElementById('sw-update-bar'),meterLabel=document.getElementById('sw-update-progress-label'),counts=document.getElementById('sw-update-counts');
  const root=new URL('./',window.location.href),script=new URL('offline-worker.js',root);let busy=false;
  const labels={registration:'Odczyt rejestracji',compatibility:'Sprawdzenie zgodności',update:'registration.update()',installation:'Instalowanie',verification:'Weryfikacja active/waiting','verify-active':'Weryfikacja active','verify-waiting':'Weryfikacja waiting',complete:'Zakończono'};
  function show(state,text,stage,reason='NONE',timeout=false){
   status.dataset.state=state;status.dataset.stage=stage;status.dataset.reason=reason;status.dataset.timeout=String(timeout);
   status.textContent=text;help.hidden=state!=='ready';
  }
+ function showMeter(label,done,total){
+   if(!Number.isSafeInteger(done)||!Number.isSafeInteger(total)||total<1||done<0||done>total)return;
+   meter.hidden=false;bar.max=total;bar.value=done;
+   meterLabel.textContent=label+' — '+done+' / '+total+' plików ('+Math.floor(100*done/total)+'%)';
+ }
+ function watchInstall(worker,onProgress){
+   const channel=new MessageChannel(),phases=['preparing','install','verify','ready','error'];
+   let previous;
+   channel.port1.onmessage=event=>{
+     const data=event.data;
+     if(data?.type!=='STATIC_SHELL_INSTALL_PROGRESS'||data.protocol!==1
+       ||typeof data.version!=='string'||!/^[a-f0-9]{64}$/.test(data.version))return;
+     if(!phases.includes(data.phase)
+       ||!Number.isSafeInteger(data.total)||data.total<1)return;
+     for(const key of ['processed','downloaded','reused','verified'])
+       if(!Number.isSafeInteger(data[key])||data[key]<0||data[key]>data.total)return;
+     if(data.downloaded+data.reused!==data.processed
+       ||((data.phase==='verify'||data.phase==='ready')&&data.processed!==data.total)
+       ||(data.phase==='ready'&&data.verified!==data.total))return;
+     if(previous&&(data.version!==previous.version||data.total!==previous.total
+       ||phases.indexOf(data.phase)<phases.indexOf(previous.phase)
+       ||['processed','downloaded','reused','verified'].some(key=>data[key]<previous[key])))return;
+     const advanced=data.processed+data.verified>(previous?previous.processed+previous.verified:0);
+     previous=data;
+     if(data.phase==='install'||data.phase==='verify'||data.phase==='ready'){
+       counts.hidden=false;
+       counts.textContent='Obsłużone: '+data.processed+' / '+data.total+' · Pobrane: '+data.downloaded+' · Z cache: '+data.reused+' · Zweryfikowane: '+data.verified;
+     }
+     if(data.phase==='install')showMeter('Pobieranie: '+data.downloaded+' z sieci, '+data.reused+' z cache',data.processed,data.total);
+     if(data.phase==='verify'||data.phase==='ready')showMeter('Kontrola nowej wersji',data.verified,data.total);
+     if(advanced)onProgress();
+   };
+   try{worker.postMessage({type:'OBSERVE_STATIC_SHELL_INSTALL'},[channel.port2]);}catch(_){}
+   return ()=>{channel.port1.close();channel.port2.close();};
+ }
  async function check(){
   if(busy)return;busy=true;button.disabled=true;
   activeVersion.textContent=waitingVersion.textContent='Niepotwierdzony';
-  // 477 sequential downloads (~5.6 MB at this revision), then complete(),
-  // followed by two independent complete() ACKs cannot share a 30s budget.
-  // Stage budgets never renew; the whole attempt also has a hard deadline.
-  const deadline=Date.now()+330000;let stage='registration',firstFailure,clearWatch=()=>{},snapshot;
+  meter.hidden=true;bar.max=1;bar.value=0;counts.hidden=true;counts.textContent='';
+  // Individual stages remain bounded against a stalled browser; confirmed
+  // per-file progress renews the installation/verification observation window.
+  let stage='registration',firstFailure,clearWatch=()=>{},snapshot;
   class Failure{constructor(at,code,timeout,state){this.stage=at;this.code=code;this.timeout=timeout;this.state=state;}}
   function fail(at,code,timeout=false,state='unconfirmed'){
    const error=new Failure(at,code,timeout,state);firstFailure||=error;return error;
   }
   function progress(at){stage=at;show('checking','Sprawdzanie aktualizacji — '+labels[at]+'…',at);}
   async function bounded(task,ms,at,timeoutCode,errorCode){
-   const end=Math.min(deadline,Date.now()+ms),timeout=()=>fail(at,end===deadline?'CHECK_TIMEOUT':timeoutCode,true);let timer;
+   const end=Date.now()+ms,timeout=()=>fail(at,timeoutCode,true);let timer;
    try{
     if(Date.now()>=end)throw timeout();
     const result=await Promise.race([Promise.resolve().then(task),new Promise((_,reject)=>{timer=setTimeout(()=>reject(timeout()),end-Date.now());})]);
     if(Date.now()>=end)throw timeout();return result;
    }catch(error){throw error instanceof Failure?error:fail(at,errorCode);}
+   finally{clearTimeout(timer);}
+  }
+  // No fixed whole-installation timeout. Only confirmed file progress extends
+  // the bounded stall watchdog, including when the phone is very slow.
+  async function idleBounded(task,ms,at,timeoutCode,errorCode){
+   let timer,rejectTimeout,deadline=Date.now()+ms;
+   const timeout=()=>typeof timeoutCode==='function'?timeoutCode():fail(at,timeoutCode,true);
+   const timeoutPromise=new Promise((_,reject)=>{rejectTimeout=reject;});
+   const arm=()=>{clearTimeout(timer);timer=setTimeout(()=>rejectTimeout(timeout()),deadline-Date.now());};
+   const pulse=(windowMs=ms)=>{
+     if(Date.now()>=deadline){rejectTimeout(timeout());return;}
+     deadline=Date.now()+windowMs;arm();
+   };
+   arm();
+   try{
+    const result=await Promise.race([Promise.resolve().then(()=>task(pulse)),timeoutPromise]);
+    if(Date.now()>=deadline)throw timeout();
+    return result;
+   }
+   catch(error){throw error instanceof Failure?error:fail(at,errorCode);}
    finally{clearTimeout(timer);}
   }
   function compatible(reg){
@@ -67,27 +128,52 @@
     throw fail('verification','WORKER_CHANGED');
    }
   }
-  async function verify(worker,slot,node){
+  const verifiedCounts={active:0,waiting:0},verifiedTotals={active:0,waiting:0};
+  function showVerification(hasWaiting){
+    const a=verifiedCounts.active,b=verifiedCounts.waiting,at=verifiedTotals.active,bt=verifiedTotals.waiting;
+    if(hasWaiting&&at&&bt)showMeter('Weryfikacja obu wersji (aktywna '+a+' / '+at+', oczekująca '+b+' / '+bt+')',a+b,at+bt);
+    else if(hasWaiting&&bt)showMeter('Weryfikacja nowej wersji',b,bt);
+    else if(at)showMeter('Weryfikacja aktywnej wersji',a,at);
+  }
+  async function verify(worker,slot,node,hasWaiting){
    const at='verify-'+slot,prefix=slot==='active'?'ACTIVE':'WAITING';
    const channel=new MessageChannel();
+   let latest=0,reportedVersion;
    try{
-    const result=await bounded(()=>new Promise((resolve,reject)=>{
-     channel.port1.onmessage=event=>resolve(event.data);channel.port1.onmessageerror=()=>reject(fail(at,prefix+'_ACK_MESSAGE_ERROR'));
-     worker.postMessage({type:'VERIFY_STATIC_SHELL'},[channel.port2]);
+    const result=await idleBounded(pulse=>new Promise((resolve,reject)=>{
+     channel.port1.onmessage=event=>{
+       const value=event.data;
+       if(value?.type==='STATIC_SHELL_VERIFY_PROGRESS'){
+         if(typeof value.version!=='string'||!/^[a-f0-9]{64}$/.test(value.version)
+           ||!Number.isSafeInteger(value.total)||value.total<1
+           ||!Number.isSafeInteger(value.verified)||value.verified<=latest||value.verified>value.total
+           ||(reportedVersion&&(value.version!==reportedVersion||value.total!==verifiedTotals[slot])))return;
+         reportedVersion=value.version;
+         verifiedTotals[slot]=value.total;latest=value.verified;verifiedCounts[slot]=latest;
+         showVerification(hasWaiting);pulse();return;
+       }
+       resolve(value);
+     };
+     channel.port1.onmessageerror=()=>reject(fail(at,prefix+'_ACK_MESSAGE_ERROR'));
+     worker.postMessage({type:'VERIFY_STATIC_SHELL',progress:true},[channel.port2]);
     }),90000,at,prefix+'_ACK_TIMEOUT',prefix+'_ACK_SEND_FAILED');
     stable();
     if(result?.complete!==true)throw fail(at,prefix+'_ACK_INCOMPLETE');
     if(typeof result.version!=='string'||!/^[a-f0-9]{64}$/.test(result.version))throw fail(at,prefix+'_ACK_INVALID_HASH');
+    if(reportedVersion&&(reportedVersion!==result.version||latest!==verifiedTotals[slot]))throw fail(at,prefix+'_ACK_INCOMPLETE');
     node.textContent=result.version;
     return result.version;
    }finally{channel.port1.close();channel.port2.close();}
   }
   async function installed(worker){
-   let listener;
-   try{await bounded(()=>new Promise((resolve,reject)=>{
-    listener=()=>{if(['installed','activated'].includes(worker.state))resolve();else if(worker.state==='redundant')reject(fail('installation','INSTALL_REDUNDANT'));};
-    worker.addEventListener('statechange',listener);listener();
-   }),180000,'installation','INSTALL_TIMEOUT','INSTALL_OBSERVATION_FAILED');}finally{if(listener)worker.removeEventListener('statechange',listener);}
+   let listener,stop=()=>{};
+   try{
+    await idleBounded(pulse=>new Promise((resolve,reject)=>{
+     stop=watchInstall(worker,pulse);
+     listener=()=>{if(['installed','activated'].includes(worker.state))resolve();else if(worker.state==='redundant')reject(fail('installation','INSTALL_REDUNDANT'));};
+     worker.addEventListener('statechange',listener);listener();
+    }),180000,'installation','INSTALL_TIMEOUT','INSTALL_OBSERVATION_FAILED');
+   }finally{stop();if(listener)worker.removeEventListener('statechange',listener);}
   }
   try{
    progress('registration');
@@ -96,9 +182,27 @@
    if(navigator.onLine===false)throw fail(stage,'OFFLINE',false,'offline');
    const reg=await bounded(()=>navigator.serviceWorker.getRegistration(root.href),10000,stage,'REGISTRATION_TIMEOUT','REGISTRATION_READ_FAILED');
    progress('compatibility');compatible(reg);
-   progress('update');await bounded(()=>reg.update(),30000,stage,'UPDATE_TIMEOUT','UPDATE_FAILED');
+   // Observe updatefound before awaiting update(): some browsers do not
+   // resolve registration.update() until installation is already underway.
+   let earlyStop=()=>{},earlyPulse=()=>{},observedInstaller;
+   const observeEarly=()=>{
+    const target=reg.installing;
+    if(!target||target===observedInstaller||target.scriptURL!==script.href)return;
+    if(observedInstaller)return;
+    observedInstaller=target;
+    progress('installation');earlyPulse(180000);
+    earlyStop=watchInstall(target,()=>earlyPulse(180000));
+   };
+   reg.addEventListener('updatefound',observeEarly);
+   try{
+    progress('update');
+    await idleBounded(pulse=>{earlyPulse=pulse;observeEarly();return reg.update();},
+      30000,'update',()=>observedInstaller?fail('installation','INSTALL_TIMEOUT',true):fail('update','UPDATE_TIMEOUT',true),'UPDATE_FAILED');
+   }finally{reg.removeEventListener('updatefound',observeEarly);earlyStop();}
    progress('installation');
-   const installing=reg.installing;if(installing)await installed(installing);
+   const installing=reg.installing;
+   if(observedInstaller&&![installing,reg.active,reg.waiting].includes(observedInstaller))throw fail(stage,'WORKER_CHANGED');
+   if(installing)await installed(installing);
    compatible(reg);
    if(reg.installing||installing&&reg.waiting!==installing&&reg.active!==installing)throw fail(stage,'WORKER_CHANGED');
    const active=reg.active,waiting=reg.waiting,controller=navigator.serviceWorker.controller;let changed=false;
@@ -108,8 +212,8 @@
    snapshot={stable:()=>!changed&&reg.scope===root.href&&reg.active===active&&reg.waiting===waiting&&!reg.installing
     &&navigator.serviceWorker.controller===controller&&(!controller||controller.scriptURL===script.href)
     &&active.scriptURL===script.href&&active.state==='activated'&&(!waiting||waiting.scriptURL===script.href&&waiting.state==='installed')};
-   progress('verification');stable();
-   const [a,b]=await Promise.allSettled([verify(active,'active',activeVersion),waiting?verify(waiting,'waiting',waitingVersion):Promise.resolve(null)]);
+   progress('verification');meter.hidden=true;bar.value=0;bar.max=1;stable();
+   const [a,b]=await Promise.allSettled([verify(active,'active',activeVersion,!!waiting),waiting?verify(waiting,'waiting',waitingVersion,true):Promise.resolve(null)]);
    stable();compatible(reg);
    if(a.status!=='fulfilled'||b.status!=='fulfilled')throw firstFailure;
    // getRegistration can resolve a different registration after unregister.

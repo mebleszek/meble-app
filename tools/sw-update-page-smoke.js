@@ -13,8 +13,14 @@ function fixture(options={}){
  }}
  const worker=(hash,reply={complete:true,version:hash})=>({scriptURL:root+'offline-worker.js',state:'installed',listeners:new Set(),
   addEventListener(type,fn){assert.equal(type,'statechange');this.listeners.add(fn);},removeEventListener(type,fn){this.listeners.delete(fn);},
-  postMessage(message,channels){calls.verify++;assert.deepEqual(JSON.parse(JSON.stringify(message)),{type:'VERIFY_STATIC_SHELL'});
-   if(this.noAck){this.late=()=>channels[0].postMessage(reply);return;}
+  postMessage(message,channels){
+   if(message.type==='OBSERVE_STATIC_SHELL_INSTALL'){
+     this.emitProgress=data=>channels[0].postMessage(data);
+     if(this.installProgress)this.emitProgress(this.installProgress);
+     return;
+   }
+   calls.verify++;assert.deepEqual(JSON.parse(JSON.stringify(message)),{type:'VERIFY_STATIC_SHELL',progress:true});
+   if(this.noAck){this.late=()=>channels[0].postMessage(reply);this.emitVerification=data=>channels[0].postMessage(data);return;}
    if(this.postError)throw Error(secret);channels[0].postMessage(reply);
   }});
  const events=()=>({listeners:new Map(),addEventListener(type,fn){if(!this.listeners.has(type))this.listeners.set(type,new Set());this.listeners.get(type).add(fn);},removeEventListener(type,fn){this.listeners.get(type)?.delete(fn);},emit(type){for(const fn of this.listeners.get(type)||[])fn();}});
@@ -54,8 +60,16 @@ function fixture(options={}){
  r=fixture({noAck:true});await until(()=>r.calls.verify===2);assert.equal(r.state(),'checking');await r.nodes['sw-update-check'].click();assert.equal(r.calls.update,1,'A busy check must not create another update attempt');await r.advance(90001);await r.done();assert.equal(r.state(),'unconfirmed');
  assert.equal(r.nodes['sw-update-status'].dataset.reason,'WAITING_ACK_TIMEOUT');assert.equal(r.nodes['sw-update-active-version'].textContent,activeHash);
  r.waiting.late();await new Promise(resolve=>setImmediate(resolve));assert.equal(r.state(),'unconfirmed');assert.equal(r.calls.update,1);r.verifyNoWrites();groups++;
- r=fixture({noWaiting:true,onUpdate(reg,worker){reg.installing=worker(waitingHash);reg.installing.state='installing';}});
- await until(()=>r.reg.installing?.listeners.size>0);assert.equal(r.state(),'checking');const installer=r.reg.installing;r.reg.waiting=installer;r.reg.installing=null;installer.state='installed';for(const fn of installer.listeners)fn();
+ r=fixture({noWaiting:true,onUpdate(reg,worker){
+  reg.installing=worker(waitingHash);reg.installing.state='installing';
+  reg.installing.installProgress={type:'STATIC_SHELL_INSTALL_PROGRESS',protocol:1,version:waitingHash,
+    phase:'install',total:3,processed:2,downloaded:1,reused:1,verified:0};
+ }});
+ await until(()=>r.reg.installing?.listeners.size>0);
+ await until(()=>r.nodes['sw-update-progress']?.hidden===false);
+ assert.equal(r.nodes['sw-update-bar'].value,2,'Progress counts durable files, not elapsed time');
+ assert.match(r.nodes['sw-update-progress-label'].textContent,/1 z sieci, 1 z cache/);
+ assert.equal(r.state(),'checking');const installer=r.reg.installing;r.reg.waiting=installer;r.reg.installing=null;installer.state='installed';for(const fn of installer.listeners)fn();
  await r.done();assert.equal(r.state(),'ready');assert.equal(installer.listeners.size,0);r.verifyNoWrites();groups++;
  r=fixture({noWaiting:true,onUpdate(reg,worker){reg.installing=worker(waitingHash);reg.installing.state='redundant';}});await r.done();assert.equal(r.state(),'unconfirmed');assert.equal(r.reg.installing.listeners.size,0);r.verifyNoWrites();groups++;
  r=fixture({updateHang:true});await until(()=>r.calls.update===1);await r.advance(30001);await r.done();assert.equal(r.state(),'unconfirmed');r.verifyNoWrites();groups++;
@@ -85,6 +99,42 @@ function fixture(options={}){
  const slow=r.reg.installing;r.reg.waiting=slow;r.reg.installing=null;slow.state='installed';for(const fn of slow.listeners)fn();
  await until(()=>r.calls.verify===2);await r.advance(89000);assert.equal(r.state(),'checking','Full manifest ACK must have its own budget');r.active.late();slow.late();
  await r.done();assert.equal(r.state(),'ready');r.verifyNoWrites();groups++;
+ // Browser update() may stay pending throughout installation. Keep the check
+ // alive beyond the former hard deadline; duplicate events cannot renew it.
+ function installerProgress(processed){
+  return {type:'STATIC_SHELL_INSTALL_PROGRESS',protocol:1,version:waitingHash,
+   phase:'install',total:5,processed,downloaded:1,reused:processed-1,verified:0};
+ }
+ r=fixture({noWaiting:true,updateHang:true});await until(()=>r.calls.finishUpdate);
+ let candidate=r.worker(waitingHash);
+ candidate.state='installing';r.reg.installing=candidate;r.reg.emit('updatefound');
+ await until(()=>candidate.emitProgress);
+ for(let i=1;i<=4;i++){
+  await r.advance(100000);candidate.emitProgress(installerProgress(i));
+  await until(()=>r.nodes['sw-update-bar'].value===i);
+  assert.equal(r.state(),'checking');
+ }
+ r.reg.installing=null;r.reg.waiting=candidate;candidate.state='installed';r.calls.finishUpdate();
+ await r.done();assert.equal(r.state(),'ready');r.verifyNoWrites();groups++;
+ r=fixture({noWaiting:true,updateHang:true});await until(()=>r.calls.finishUpdate);
+ candidate=r.worker(waitingHash);candidate.state='installing';r.reg.installing=candidate;r.reg.emit('updatefound');
+ await until(()=>candidate.emitProgress);candidate.emitProgress(installerProgress(2));
+ await until(()=>r.nodes['sw-update-bar'].value===2);
+ await r.advance(100000);candidate.emitProgress(installerProgress(1));candidate.emitProgress(installerProgress(2));
+ await r.advance(80001);await r.done();assert.equal(r.nodes['sw-update-status'].dataset.reason,'INSTALL_TIMEOUT');
+ assert.equal(candidate.state,'installing','Page watchdog cannot interrupt browser installation');
+ r.calls.finishUpdate();r.verifyNoWrites();groups++;
+ r=fixture({noAck:true});await until(()=>r.waiting.emitVerification);
+ for(let verified=1;verified<=5;verified++){
+  await r.advance(80000);r.waiting.emitVerification({type:'STATIC_SHELL_VERIFY_PROGRESS',version:waitingHash,total:5,verified});
+  await until(()=>r.nodes['sw-update-bar'].value===verified);
+  assert.equal(r.state(),'checking');
+ }
+ r.waiting.late();await r.done();assert.equal(r.state(),'ready');r.verifyNoWrites();groups++;
+ r=fixture({noAck:true});await until(()=>r.waiting.emitVerification);
+ r.waiting.emitVerification({type:'STATIC_SHELL_VERIFY_PROGRESS',version:'c'.repeat(64),total:1,verified:1});
+ await until(()=>r.nodes['sw-update-bar'].value===1);r.waiting.late();await r.done();
+ assert.equal(r.nodes['sw-update-status'].dataset.reason,'WAITING_ACK_INCOMPLETE');r.verifyNoWrites();groups++;
  // Losing/changing either worker or controller invalidates every old ACK.
  for(const change of [
   f=>{f.reg.active=f.worker('c'.repeat(64));f.reg.active.state='activated';},f=>{f.reg.installing=f.worker('c'.repeat(64));},
@@ -105,6 +155,7 @@ function fixture(options={}){
  const inventory=require('./ci-smoke-shards'),historical=require('./cloud-ci-context').historicalSmoke;
  assert.equal(inventory.plan(inventory.inventory('tools',historical)).flat().filter(n=>n==='sw-update-page-smoke.js').length,1);
  assert.equal(inventory.plan(inventory.inventory('tools',historical)).flat().filter(n=>n==='android-safe-sw-update-smoke.js').length,1);
+ assert.equal(inventory.plan(inventory.inventory('tools',historical)).flat().filter(n=>n==='sw-incremental-cache-smoke.js').length,1);
  assert.equal(require('./offline-assets').manifest().files.some(f=>f.path==='sw-update.html'),false);
  assert.doesNotMatch(source,/skipWaiting|clients\.claim|location\.reload|\.register\(|indexedDB|localStorage|caches\./);groups++;
  console.log(`Network-only update page: ${groups}/${groups} groups PASS (ready, absent, foreign, offline, invalid ACK, timeout, installing, stale worker, retry, privacy and CI)`);
