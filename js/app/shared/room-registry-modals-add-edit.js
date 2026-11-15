@@ -126,7 +126,7 @@
         if(!openingProject || !FC.projectStore.getCurrentRecord() || FC.projectStore.getCurrentProjectId() !== openingProject.id
           || JSON.stringify(FC.projectStore.getCurrentRecord().projectData) !== JSON.stringify(openingProject.projectData) && !FC.projectDomainOperations.hasPending(openingProject.id)) { openInfo('Projekt zmienił się', 'Zamknij formularz i otwórz go ponownie.'); return; }
         const result = updateRoomRecord(inv, room.id, { baseType:selectedBase, name, label:name });
-        if(!(result && result.ok && result.room)) return false;
+        if(!(result && result.ok && result.room)) return result?.ok===false?result:false;
         dirty = false;
         done(result.room);
       }));
@@ -136,7 +136,8 @@
         if(!openingProject || !FC.projectStore.getCurrentRecord() || FC.projectStore.getCurrentProjectId() !== openingProject.id
           || JSON.stringify(FC.projectStore.getCurrentRecord().projectData) !== JSON.stringify(openingProject.projectData) && !FC.projectDomainOperations.hasPending(openingProject.id)) { openInfo('Projekt zmienił się', 'Zamknij formularz i otwórz go ponownie.'); return; }
         const result = removeRoomByIdDetailed(room.id);
-        if(result && result.ok) done({ deleted:true, roomId:result.roomId });
+        if(!result?.ok)return result||false;
+        done({ deleted:true, roomId:result.roomId });
       }));
       refreshFooter();
       FC.panelBox.open({ title:'Edytuj pomieszczenie', contentNode: body, width:'640px', boxClass:'panel-box--rozrys' });
@@ -198,7 +199,7 @@
         if(!openingProject || !FC.projectStore.getCurrentRecord() || FC.projectStore.getCurrentProjectId() !== openingProject.id
           || JSON.stringify(FC.projectStore.getCurrentRecord().projectData) !== JSON.stringify(openingProject.projectData) && !FC.projectDomainOperations.hasPending(openingProject.id)) { openInfo('Projekt zmienił się', 'Zamknij formularz i otwórz go ponownie.'); return; }
         const result = createRoomRecord(inv, { baseType:selectedBase, name, label:name });
-        if(!(result && result.ok && result.room)) return false;
+        if(!(result && result.ok && result.room)) return result?.ok===false?result:false;
         done(result.room);
       }));
       FC.panelBox.open({ title:'Dodaj pomieszczenie', contentNode: body, width:'640px', boxClass:'panel-box--rozrys' });

@@ -395,6 +395,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  await editCabinet('normal-cabinet',65);
  await computer.page.click('#sessionSave');
  await computer.page.waitForFunction(()=>!window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending);
+ await computer.page.locator('.info-box').filter({hasText:'Synchronizacja oczekuje na potwierdzenie.'}).waitFor();
  const savedCabinet=await readDraft();
  assert.equal(savedCabinet.draft,null);
  assert.equal(savedCabinet.cabinets[0].width,65);

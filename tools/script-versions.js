@@ -50,7 +50,7 @@ const versions = Object.freeze({
   "js/app/material/price-modal-hardware-dictionaries.js":"20261101_one_app_v1",
   "js/app/material/price-modal-hardware-manufacturers.js":"20261101_one_app_v1",
   "js/app/material/price-modal-hardware-suppliers.js":"20261101_one_app_v1",
-  "js/app/shared/room-registry-modals-add-edit.js":"20261101_one_app_v1",
+  "js/app/shared/room-registry-modals-add-edit.js":"20261115_room_durable_save_v1",
   "js/app/ui/data-settings-business-costs-view.js":"20261101_one_app_v1",
   "js/app/ui/data-settings-company-view.js":"20261107_transport_local_delete_v1",
   "js/app/ui/data-settings-defaults-view.js":"20261101_one_app_v1",
@@ -64,7 +64,7 @@ const versions = Object.freeze({
   "js/app/investor/investor-ui-render.js": "20261101_compact_list",
   "js/app/investor/investors-store.js": "20261111_investor_transport_create_fix_v1",
   "js/app/investor/investors-local-repository.js": "20261115_e1_durable_settings_v1",
-  "js/app/ui/actions-register.js":"20261115_ci_navigation_repair_v1",
+  "js/app/ui/actions-register.js":"20261115_room_durable_save_v1",
   "js/app/ui/session-navigation.js": "20261031_historical_owner_v1",
   "js/app/project/project-bridge.js": "20261114_cabinet_drafts_v1",
   "js/app/project/project-pcv-policy.js": "20261031_historical_owner_v1",
@@ -109,12 +109,12 @@ const versions = Object.freeze({
   "js/app/wycena/wycena-tab-shell.js":"20261115_e1_durable_settings_v1"
 });
 const authVersions=Object.freeze({
-  "js/app/cloud/application-sync-actions.js":"20261114_cabinet_drafts_v1",
+  "js/app/cloud/application-sync-actions.js":"20261115_room_durable_save_v1",
   "js/app/cloud/auth-access-gate.js": "20261113_incremental_access_v3",
   "js/app/cloud/cloud-access-verifier.js": "20261114_access_rpc_diagnostics_v1",
   "js/app/cloud/offline-shell.js": "20261114_first_offline_install_v1",
   "js/app/cloud/local-access-profile.js": "20261103_android_globals_recovery_v1",
-  "js/app/cloud/application-bootstrap.js": "20261114_first_offline_install_v1",
+  "js/app/cloud/application-bootstrap.js": "20261115_room_durable_save_v1",
   "js/main-login.js": "20261114_access_rpc_diagnostics_v1"
 });
 function assertHtmlVersions(index, dev){

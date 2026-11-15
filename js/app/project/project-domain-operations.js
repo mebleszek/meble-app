@@ -10,10 +10,16 @@
   let running = false;
 
   function problem(reason, partial){
+    const detail = {
+      'active-session':'Zakończ aktywną edycję.',
+      'pending-operation':'Najpierw dokończ wcześniejszą operację projektu.',
+      'conflict-or-invalid-data':'Dane zmieniły się lub zapis operacji jest nieprawidłowy.',
+    }[reason] || 'Sprawdź stan projektu i ponów próbę.';
     try{ if(FC.infoBox && FC.infoBox.open) FC.infoBox.open({ title:'Operacja projektu wymaga dokończenia',
-      message:partial ? 'Nie potwierdzono zakończenia operacji. Zapisano jej trwałą intencję; część danych mogła już zostać utrwalona. Ponów operację lub odśwież aplikację. Nowsze dane nie zostaną nadpisane.'
+      message:FC.applicationWrite ? 'Nie potwierdzono zapisu. '+detail+' ('+reason+')' : partial ? 'Nie potwierdzono zakończenia operacji. Zapisano jej trwałą intencję; część danych mogła już zostać utrwalona. Ponów operację lub odśwież aplikację. Nowsze dane nie zostaną nadpisane.'
         : 'Nie zapisano zmian. Zakończ edycję lub usuń przyczynę błędu i spróbuj ponownie. Formularz pozostaje otwarty.', okOnly:true }); }catch(_){ }
-    return { ok:false, partial:!!partial, reason };
+    const code=reason==='pending-operation'?'LF_PROJECT_OPERATION_PENDING':reason==='conflict-or-invalid-data'?'LF_PROJECT_OPERATION_CONFLICT':undefined;
+    return { ok:false, partial:!!partial, reason, ...(code?{code}:{}) };
   }
   function readRows(key){
     const raw = localStorage.getItem(key);

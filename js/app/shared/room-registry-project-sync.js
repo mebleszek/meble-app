@@ -96,8 +96,11 @@
     return { investor:FC.investors.getById(investor.id), record, project:foundation.clone(record.projectData) };
   }
   function rejected(reason){
-    try{ if(FC.infoBox && FC.infoBox.open) FC.infoBox.open({ title:'Nie zapisano pomieszczenia', message:'Zakończ bieżącą edycję lub ponów operację po odzyskaniu danych. Formularz pozostaje otwarty.', okOnly:true }); }catch(_){ }
-    return { ok:false, reason:reason || 'edit-or-context-conflict' };
+    const message=reason==='different-pending-operation'
+      ? 'Projekt ma wcześniejszą operację do dokończenia. Ponów zatwierdzoną wcześniej operację. Formularz pozostaje otwarty.'
+      : 'Zakończ bieżącą edycję lub ponów operację po odzyskaniu danych. Formularz pozostaje otwarty.';
+    try{ if(FC.infoBox && FC.infoBox.open) FC.infoBox.open({ title:'Nie zapisano pomieszczenia', message, okOnly:true }); }catch(_){ }
+    return {ok:false,reason:reason||'edit-or-context-conflict',...(reason==='different-pending-operation'?{code:'LF_PROJECT_OPERATION_PENDING'}:{})};
   }
   function resumed(inv, requestKey){
     const record = FC.projectStore && FC.projectStore.getCurrentRecord();

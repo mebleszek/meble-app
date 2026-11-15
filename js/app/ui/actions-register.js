@@ -361,7 +361,9 @@
         let committed = false;
         try{ committed = session.commit() === true; }catch(_){ }
         if(!committed){
-          const message = 'Projekt został zapisany, ale nie udało się zakończyć sesji edycji. Spróbuj ponownie.';
+          const message = FC.applicationSyncActions?.installed()
+            ? 'Nie potwierdzono trwałego zapisu. Sesja edycji pozostaje aktywna.'
+            : 'Projekt został zapisany, ale nie udało się zakończyć sesji edycji. Spróbuj ponownie.';
           try{
             if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Sesja nadal aktywna', message, sessionDiagnostic:true });
             else window.alert(message);
@@ -370,7 +372,7 @@
         }
         try{ if(FC.views && typeof FC.views.refreshSessionButtons === 'function') FC.views.refreshSessionButtons(); }catch(_){ }
         try{
-          if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Projekt zapisany', message:'Wszystkie zmiany zostały zapisane poprawnie.', okOnly:true });
+          if(FC.infoBox && typeof FC.infoBox.open === 'function') FC.infoBox.open({ title:'Projekt zapisany', message:'Zmiany zapisano na tym urządzeniu.', projectSaveReceipt:true, okOnly:true });
         }catch(_){ }
         return true;
       }
