@@ -1,5 +1,18 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+
+## P0-B — przyrostowa instalacja Service Workera i widoczny postęp (15.11.2026)
+
+Gałąź `feat/sw-incremental-progress-20261115`; BASE/main `84a3a595c83091d97c9213e2e798c607da5a0a80`.
+Zakres: `offline-worker.js`, sieciowa strona `sw-update.html`, dwie celowane regresje `tools/*-smoke.js`.
+- Instalacja: kopiuje ze starszych cache tylko zasoby o identycznej zawartości SHA-256 i rozmiarze zgodnym z nowym manifestem; pobiera maksymalnie cztery brakujące lub zmienione pliki równolegle. Na FAIL usuwa wyłącznie niepełny nowy cache po zakończeniu operacji, zachowując poprzednią wersję.
+- Postęp: licznik rzeczywiście zakończonych zapisów, podział na pobrane/zachowane, kontrola każdego pliku; weryfikacja active/waiting zachowuje niezależne hashe i liczniki, także przy różnych liczbach plików. Samo pobranie nie oznacza aktywacji.
+- Zamiast stałego limitu całej próby: watchdog braku potwierdzonego postępu, zachowane ograniczenia niezwiązanych odczytów i bez automatycznych retry. Brak `skipWaiting`, `clients.claim`, resetów IndexedDB/localStorage, Firebase LIVE i zmian mechanizmów edycji.
+- `offline-assets.js` pozostaje zgodny: nie zawiera workera, strony sieciowej, dokumentacji ani testów. Aktualizacja nowego kodu workera zostanie wykryta po zmianie pliku skryptu SW.
+- Weryfikacje przed PR: składnia JS obu skryptów PASS; syntetyczne uruchomienie logiki przyrostowej (ponowne użycie poprawnego pliku, pobranie zmienionego, uszkodzony cache, brak sieci i izolacja obcego cache) PASS; syntetyczny test strony z dwiema wersjami o różnych długościach manifestów PASS. Pełny Node/Chromium i GitHub Actions pozostają do wykonania przez zatwierdzony CI.
+**Status: CODE_PREPARED / CI_PENDING / RELEASE_BLOCKED. Bez PR, merge, wydania i Firebase LIVE.**
+
+
 ## P0-A — trwałe szkice szafek
 
 14.11.2026 • `fix/p0a-durable-cabinet-drafts` • BASE/main `909bf8ce1f5ccd41c0420f3303fad5386ca76b25` • HEAD implementacji `0a8969f00a12e7f1aafafef4a96dd40ada078807`. [Zatwierdzony plan LOCAL-FIRST](docs/plans/LOCAL_FIRST_ROADMAP.md).

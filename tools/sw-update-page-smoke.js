@@ -13,7 +13,12 @@ function fixture(options={}){
  }}
  const worker=(hash,reply={complete:true,version:hash})=>({scriptURL:root+'offline-worker.js',state:'installed',listeners:new Set(),
   addEventListener(type,fn){assert.equal(type,'statechange');this.listeners.add(fn);},removeEventListener(type,fn){this.listeners.delete(fn);},
-  postMessage(message,channels){calls.verify++;assert.deepEqual(JSON.parse(JSON.stringify(message)),{type:'VERIFY_STATIC_SHELL'});
+  postMessage(message,channels){
+   if(message.type==='OBSERVE_STATIC_SHELL_INSTALL'){
+     if(this.installProgress)channels[0].postMessage(this.installProgress);
+     return;
+   }
+   calls.verify++;assert.deepEqual(JSON.parse(JSON.stringify(message)),{type:'VERIFY_STATIC_SHELL',progress:true});
    if(this.noAck){this.late=()=>channels[0].postMessage(reply);return;}
    if(this.postError)throw Error(secret);channels[0].postMessage(reply);
   }});
@@ -54,8 +59,16 @@ function fixture(options={}){
  r=fixture({noAck:true});await until(()=>r.calls.verify===2);assert.equal(r.state(),'checking');await r.nodes['sw-update-check'].click();assert.equal(r.calls.update,1,'A busy check must not create another update attempt');await r.advance(90001);await r.done();assert.equal(r.state(),'unconfirmed');
  assert.equal(r.nodes['sw-update-status'].dataset.reason,'WAITING_ACK_TIMEOUT');assert.equal(r.nodes['sw-update-active-version'].textContent,activeHash);
  r.waiting.late();await new Promise(resolve=>setImmediate(resolve));assert.equal(r.state(),'unconfirmed');assert.equal(r.calls.update,1);r.verifyNoWrites();groups++;
- r=fixture({noWaiting:true,onUpdate(reg,worker){reg.installing=worker(waitingHash);reg.installing.state='installing';}});
- await until(()=>r.reg.installing?.listeners.size>0);assert.equal(r.state(),'checking');const installer=r.reg.installing;r.reg.waiting=installer;r.reg.installing=null;installer.state='installed';for(const fn of installer.listeners)fn();
+ r=fixture({noWaiting:true,onUpdate(reg,worker){
+  reg.installing=worker(waitingHash);reg.installing.state='installing';
+  reg.installing.installProgress={type:'STATIC_SHELL_INSTALL_PROGRESS',protocol:1,version:waitingHash,
+    phase:'install',total:3,processed:2,downloaded:1,reused:1,verified:0};
+ }});
+ await until(()=>r.reg.installing?.listeners.size>0);
+ await until(()=>r.nodes['sw-update-progress']?.hidden===false);
+ assert.equal(r.nodes['sw-update-bar'].value,2,'Progress counts durable files, not elapsed time');
+ assert.match(r.nodes['sw-update-progress-label'].textContent,/1 z sieci, 1 z cache/);
+ assert.equal(r.state(),'checking');const installer=r.reg.installing;r.reg.waiting=installer;r.reg.installing=null;installer.state='installed';for(const fn of installer.listeners)fn();
  await r.done();assert.equal(r.state(),'ready');assert.equal(installer.listeners.size,0);r.verifyNoWrites();groups++;
  r=fixture({noWaiting:true,onUpdate(reg,worker){reg.installing=worker(waitingHash);reg.installing.state='redundant';}});await r.done();assert.equal(r.state(),'unconfirmed');assert.equal(r.reg.installing.listeners.size,0);r.verifyNoWrites();groups++;
  r=fixture({updateHang:true});await until(()=>r.calls.update===1);await r.advance(30001);await r.done();assert.equal(r.state(),'unconfirmed');r.verifyNoWrites();groups++;
