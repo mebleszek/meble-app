@@ -29,15 +29,31 @@ const rows = (record, key) => JSON.parse(record.state.rows[key] || '[]');
 const idle = page => page.waitForFunction(() => !window.FC.applicationStartup.inspect().transactionPending);
 
 async function list(page) {
-  const home = page.locator('#openFurnitureProjectsBtn');
-  if (await home.isVisible()) {
-    await home.click();
-    await idle(page);
+  const listView = page.locator('#investorsListView');
+  if(await listView.isVisible()){await idle(page);return;}
+  if(await page.locator('#homeView').isVisible()){
+    await page.locator('#openFurnitureProjectsBtn').click();
+    // A click dispatches an async, transactional transition. Check the actual
+    // destination instead of clicking a hidden hub button for 30 seconds.
+    try{
+      await page.waitForFunction(()=>['modeHub','investorsList'].includes(window.uiState?.entry)
+        && !window.FC.applicationStartup.inspect().transactionPending,null,{timeout:10000});
+    }catch(_){
+      const observed=await page.evaluate(()=>({
+        entry:window.uiState?.entry,transactionPending:window.FC.applicationStartup.inspect().transactionPending,
+        code:window.FC.applicationStartup.inspect().lastCode,
+        hubVisible:getComputedStyle(document.getElementById('modeHubView')).display,
+        notice:document.querySelector('.info-box')?.innerText
+      }));
+      throw Error('MODE_HUB_NAVIGATION_UNCONFIRMED: '+JSON.stringify(observed));
+    }
+  }
+  if(await page.locator('#modeHubView').isVisible()){
     await page.locator('#modeHubRoot [data-action="open-investors-list"]').click();
-  } else if (await page.locator('#sessionCancel').isVisible()) {
+  }else if(!await listView.isVisible() && await page.locator('#sessionCancel').isVisible()){
     await page.locator('#sessionCancel').click();
   }
-  await page.locator('#investorsListView').waitFor();
+  await listView.waitFor({state:'visible'});
   await idle(page);
 }
 
