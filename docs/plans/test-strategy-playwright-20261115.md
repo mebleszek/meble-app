@@ -1,5 +1,17 @@
 # Meble-App — plan przebudowy QA i CI: Playwright + krótszy Preflight
 
+## Nowa decyzja właściciela 15.11.2026 — wszystkie grupy poniżej 120 s
+
+**USTALONE:** Wszystkie zadania testowe mają dążyć do <120 s samego wykonania; optymalnie 75–90 s. Test trwający dłużej trzeba rozdzielić na niezależne, kompletne jednostki. Krótkie testy łączyć według realnego obciążenia, bez utraty asercji, retry, timeoutu ani Firebase LIVE.
+
+**WDROŻONE W KODZIE GAŁĘZI ROBOCZEJ (jeszcze nie na main):** `perf/ci-under-120s-partition-20261115` od main `7f4a76f880c8e1d58c88ea5e0cb399cc5b4c8952`. Zmiana testów i CI bez produkcji: 224 pliki smoke → 244 rozłączne jednostki w 28 równoległych grupach. Skrypty obliczeń (83 przypadki), PDF (13 grup), norm i wydajności dzielone na segmenty w CLI z kontrolą integralności. Firebase Current podzielono na 8 osobnych obowiązkowych segmentów, nadal w izolowanych emulatorach DEMO. Dotychczasowe trzy długie scenariusze synchronizacji i ich 18 testów bazowych pozostają w pełnym pokryciu.
+
+**BRAKUJE:** Pomiar GitHub Actions nowego dokładnego HEAD i przegląd różnic względem zatwierdzonej bazy. Ostatni rzeczywisty Preflight [#43756306571](https://github.com/mebleszek/meble-app/actions/runs/43756306571) miał pojedyncze smoke: quote-exact 404,5 s, PDF 330,0 s, norms 148,3 s, quote-performance 134,9 s; mieszane 195,4 / 157,4 / 144,5 / 113,3 s, a Firebase Current 3 270,6 s. Nowy plan na tych czasach **symuluje** 70,7–72,3 s/grupę smoke, ale NIE jest to dowód czasu rzeczywistego po podziale.
+
+**PROPONOWANE / warunek odbioru:** Po osobnej zgodzie na dokładny HEAD/BASE uruchomić jeden standardowy Preflight. Sprawdzić faktyczne czasy każdej części smoke, każdego segmentu Firebase i Playwright/historical. Jeżeli jakikolwiek scenariusz >120 s lub grupa >120 s, kontynuować ten sam zatwierdzony zakres optymalizacji na kolejnej gałęzi, nie usuwać przypadku; nowa próba CI wymaga odrębnej zgody wydaniowej. Każdy plik i każda część muszą przejść dokładnie raz, niezależnie od zmiany liczby runnerów. Nie twierdzić, że granica jest osiągnięta bez tego pomiaru.
+
+---
+
 **Data analizy:** 15.11.2026  
 **Repozytorium:** mebleszek/meble-app  
 **Punkt odniesienia main:** 84a3a595c83091d97c9213e2e798c607da5a0a80  

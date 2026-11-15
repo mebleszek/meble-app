@@ -13,6 +13,9 @@ function drawers(r,system,runner='ball',qty=3){
   r.cab.frontCount=qty;
 }
 function main(){
+  const split=require('./ci-test-parts').select(7);
+  const cases=[];
+  cases.push(()=>{
   {
     const r=setup();r.setPanels(Array.from({length:4},()=>({w:30,h:200})));
     near(minutes(r,operation(r,'pdf_door_adjust')),9);
@@ -23,6 +26,8 @@ function main(){
     r.cab.details.neighbors=0;near(minutes(r,operation(r,'pdf_site_join')),5);
     console.log('PASS corpus-level door adjustment, independent rehang, zero doors and standalone joining');
   }
+  });
+  cases.push(()=>{
   {
     const r=setup();r.cab.type='wisząca';
     const site=row=>row.quantitySource.startsWith('labor.site.');
@@ -35,7 +40,9 @@ function main(){
     r.cab.backMaterial='nieznane plecy';assert.equal(r.fact('labor.site.wall_points').value,0);
     console.log('PASS hanging HDF 24 minutes and 18mm 25 minutes; no double mounting variant');
   }
+  });
   for(const [system,runner,expected]of [['systemowe','',106],['skrzynkowe','ball',200],['skrzynkowe','roller',200],['skrzynkowe','undermount',172]]){
+    cases.push(()=>{
     const r=setup();drawers(r,system,runner);
     const saved=JSON.stringify(r.cab),catalog=JSON.stringify(r.rates());
     near(minutes(r,row=>row.quantitySource.startsWith('labor.drawer.')),expected);
@@ -47,7 +54,9 @@ function main(){
     near(minutes(r,operation(r,'pdf_drawer_site_adjust')),15);
     assert.ok(!r.details().some(row=>row.sourceKind==='manual'));assert.equal(r.cab.laborItems[0].note,'Preserve historical choice');
     console.log('PASS three '+system+'/'+runner+' drawers: '+expected+' workshop minutes; no duplicate/manual loss');
+    });
   }
+  cases.push(()=>{
   {
     const r=setup();drawers(r,'systemowe');r.cab.details.innerDrawerType='systemowe';r.cab.details.innerDrawerCount=2;
     assert.equal(r.fact('labor.drawer.inner').value,2);
@@ -63,6 +72,8 @@ function main(){
     assert.ok(rows.every(row=>row.warnings.some(w=>w.includes('STOP:'))));
     console.log('PASS mixed inner/external preparation once per corpus; unidentified requirements stop without guessing');
   }
+  });
+  cases.push(()=>{
   {
     const r=setup();r.cab.frontCount=1;r.setPanels([{w:60,h:70}]);
     const agd=row=>row.quantitySource.startsWith('labor.agd.');
@@ -79,6 +90,8 @@ function main(){
     assert.ok(!r.details().some(row=>row.sourceKind==='manual'));assert.equal(r.cab.laborItems[0].note,'legacy AGD');
     console.log('PASS dishwasher 75/120, oven 30, microwave 35 minutes; disabled mounting and manual assignments cannot replace automats');
   }
+  });
+  cases.push(()=>{
   {
     const r=setup(),calc=(id,q)=>r.calc('pdf_'+id,q).pricedHours*60;
     near(calc('handle_agreement',1)+calc('handle_drill',20)+calc('handle_screw',40),170);
@@ -92,6 +105,8 @@ function main(){
     assert.equal(JSON.stringify(r.rates()),before);
     console.log('PASS 20 two-screw handles 170 minutes, zero, unchanged time picker blocks and private hourly rate');
   }
+  });
+  cases.push(()=>{
   {
     const r=setup();
     near(minutes(r,row=>row.quantitySource.startsWith('labor.site.')),34);
@@ -102,6 +117,8 @@ function main(){
     r.cab.backMaterial='18 mm';near(minutes(r,operation(r,'pdf_hanging_level_start')),0);
     console.log('PASS standing 4/6 legs: 34/36 minutes; zero legs/hangers never receive leveling');
   }
+  });
+  cases.push(()=>{
   {
     const r=setup();r.cab.subType='okap';
     near(minutes(r,operation(r,'labor_body_h090'))+minutes(r,row=>row.quantitySource==='labor.workshop.hood'),150);
@@ -117,6 +134,8 @@ function main(){
     assert.equal(r.rates().find(row=>row.id==='pdf_lift_force_adjust').rateType,'assembly');
     console.log('PASS hood total 150 workshop minutes; cargo17/60/90, HK-XS per piece and separate customer adjustment');
   }
+  });
+  cases.push(()=>{
   {
     const r=setup();r.cab.type='wisząca';r.cab.subType='uchylne';r.cab.frontCount=1;r.setPanels([{w:60,h:70}]);
     r.cab.details={flapVendor:'blum',flapKind:'HK-XS'};
@@ -137,6 +156,8 @@ function main(){
     assert.ok(r.details().some(row=>row.quantitySource==='labor.lift.force'&&row.sourceKind==='automatic-blocked'&&row.total===0));
     console.log('PASS HK-XS complete hinged-front cycle, actual lift count, HK top stages, manual assignments cannot replace automats and ambiguous front refusal');
   }
+  });
+  cases.push(()=>{
   {
     const r=setup(),pdf=new Set(r.FC.laborCatalogDefinitions.PDF_OPERATION_IDS);
     const original=JSON.parse(JSON.stringify(r.rates().filter(row=>!pdf.has(row.id))));
@@ -152,7 +173,13 @@ function main(){
     assert.equal(JSON.stringify(r.FC.laborCatalog.ensureDefaultDefinitions(updated)),JSON.stringify(updated));
     console.log('PASS existing catalog save normalizer appends PDF definitions idempotently and preserves original prices/norms/IDs and the four existing legacy timestamp rules');
   }
-  console.log('WYCENA PDF: 13/13 groups PASS');
+  });
+  assert.equal(cases.length,13,'PDF case inventory changed');
+  let executed=0;
+  cases.forEach((fn,index)=>{if(!split.includes(index))return;fn();executed++;});
+  split.verify(executed,cases.length);
+  console.log(`WYCENA PDF: ${executed}/${split.expected(cases.length)} groups PASS`);
+
 }
 if(require.main===module)main();
 module.exports={main};

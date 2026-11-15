@@ -94,24 +94,25 @@ function phaseSmoke(){
     .filter(name=>/-smoke\.js$/i.test(name))
     .filter(name=>!cli.includes('--current-only')||!cloudContext.historicalSmoke.includes(name))
     .sort();
-  const files=shardFlag
-    ? require('./ci-smoke-shards.js').assigned(TOOLS,cloudContext.historicalSmoke,shard)
-    : allFiles;
-  if(shardFlag && files.some(name=>!allFiles.includes(name)))throw Error('CI_SMOKE_SHARD_UNCLASSIFIED');
+  const shardPlan=require('./ci-smoke-shards.js');
+  const files=shardFlag?shardPlan.assigned(TOOLS,cloudContext.historicalSmoke,shard):allFiles;
+  if(shardFlag && files.some(unit=>!allFiles.includes(shardPlan.parseUnit(unit).file)))throw Error('CI_SMOKE_SHARD_UNCLASSIFIED');
   const failed = [];
   let appInternal = '';
   const counts = {current:{pass:0,total:0},historical:{pass:0,total:0}};
 
-  for(const name of files){
-    const historical = cloudContext.historicalSmoke.includes(name);
+  for(const unit of files){
+    const {file,part}=shardFlag?shardPlan.parseUnit(unit):{file:unit,part:0};
+    const name=unit;
+    const historical = cloudContext.historicalSmoke.includes(file);
     const cwd = historical ? history : ROOT;
     const kind = historical ? 'historical' : 'current';
     counts[kind].total++;
     const started=Date.now();console.log(`\n[SMOKE START] ${name} [${kind}]`);
-    const result = runNode(path.join(cwd,'tools',name), [], cwd);
+    const result = runNode(path.join(cwd,'tools',file), part?['--ci-part='+part]:[], cwd);
     console.log(`[SMOKE END] ${name} [${kind}] status=${result.status} elapsedMs=${Date.now()-started}`);
     const output = outputFor(result);
-    if(name === 'app-dev-smoke.js'){
+    if(file === 'app-dev-smoke.js'){
       const match = output.match(/APP smoke testy:\s*(\d+)\/(\d+)\s+OK/i);
       if(match) appInternal = `${match[1]}/${match[2]}`;
     }

@@ -1,5 +1,11 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## CI — podział testów na grupy poniżej 120 s, 15.11.2026
+
+Na gałęzi `perf/ci-under-120s-partition-20261115` od main `7f4a76f880c8e1d58c88ea5e0cb399cc5b4c8952` przygotowano wyłącznie reorganizację testów/CI. Pomiary Preflight #43756306571 wykazały przypadki 404,5 / 330,0 / 148,3 / 134,9 s oraz mieszane grupy do 195,4 s. Testy obliczeń, PDF, norm i wydajności podzielono bez usuwania scenariuszy; 224 pliki smoke w 244 rozłącznych jednostkach / 28 grupach, w symulacji 70,7–72,3 s. Firebase Current rozdzielono na 8 izolowanych segmentów DEMO; historyczne i Playwright nadal obowiązkowe. Dodano kontrolę kompletności i przydziału do CI.
+
+**CODE_READY (statyczne sprawdzenie składni zmian oraz symulacja rozłącznych grup, bez rzeczywistego testu nowego kodu) / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Po zatwierdzeniu konkretnego HEAD/BASE konieczny pomiar w jednym standardowym GitHub Actions; przy przekroczeniu 120 s pozostaje dalszy podział. Nie otwarto PR, nie uruchomiono wydania, nie scalono i nie dotknięto Firebase LIVE. [Plan QA](docs/plans/test-strategy-playwright-20261115.md).
+
 ## P0 — odbiór pierwszego projektu nie może zmieniać wybranego ekranu, 15.11.2026
 
 Po [FAIL PR #144](https://github.com/mebleszek/meble-app/actions/runs/43741070451) przeanalizowano anonimowy trace Playwright. Pierwsza widoczna nawigacja do „Projekty meblowe” została po ok. 100 ms zastąpiona ekranem inwestora bez kolejnego kliknięcia. Przyczyną w projekcji przychodzącego pierwszego projektu jest wymuszenie `fc_ui_v1={entry:'rooms', activeTab:'inwestor'}` przez `projectApplicationRows()`, niezależnie od świadomie wybranego widoku.

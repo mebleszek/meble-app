@@ -40,8 +40,13 @@ function batchesForGroup(group){
  if(batches.some(files=>!files.length)||batches.flat().join('|')!==group.files.join('|'))throw Error('CLOUD_CI_BATCH_INCOMPLETE');
  return batches;
 }
-// Three matrix groups remain [5,1,2]; each batch-3 file gets a fresh server.
+// A fresh DEMO emulator lifetime per independent CI segment; never share data between jobs.
+const CURRENT_SEGMENTS=Object.freeze(['1a','1b','2','3a','3b','3c','3d','3e']);
 function executionUnits(group,batch,files){
+  if(group.context==='current'&&batch===1){
+    if(files.join('|')!=='pilot.test.mjs|auth.test.mjs|access.test.mjs|global.test.mjs|live-readiness.test.mjs')throw Error('CLOUD_CI_BATCH1_PLAN_CHANGED');
+    return [files.slice(0,2),files.slice(2)];
+  }
   if(group.context==='current'&&batch===3){
     if(files.join('|')!=='cloud44-admin.test.mjs|cloud-sync-global.test.mjs')throw Error('CLOUD_CI_BATCH3_PLAN_CHANGED');
     return files.map(file=>[file]);
@@ -94,24 +99,35 @@ function main(){
   const args=process.argv.slice(2);
   const playwrightSync=args.includes('--playwright-sync');
   if(playwrightSync&&(args.length!==2||!args.includes('--context=current')))throw Error('CLOUD_CI_PLAYWRIGHT_SCOPE_INVALID');
+  const segmentArgs=args.filter(arg=>arg.startsWith('--segment='));
+  if(segmentArgs.length>1)throw Error('CLOUD_CI_SEGMENT_DUPLICATE');
+  const segment=segmentArgs.length?segmentArgs[0].slice('--segment='.length):'';
+  if(segmentArgs.length&&(!segment||!CURRENT_SEGMENTS.includes(segment)||playwrightSync))throw Error('CLOUD_CI_SEGMENT_INVALID');
   const batchArg=args.find(arg=>arg.startsWith('--batch='));
   if(batchArg&&args.filter(arg=>arg.startsWith('--batch=')).length!==1)throw Error('CLOUD_CI_BATCH_ARG_DUPLICATE');
   const selectedBatch=batchArg?Number(batchArg.slice('--batch='.length)):null;
   if(batchArg&&(!Number.isSafeInteger(selectedBatch)||selectedBatch<1||selectedBatch>3||!args.includes('--context=current')))throw Error('CLOUD_CI_BATCH_SELECTION_INVALID');
-  const plan=selectPlan(context.sdkPlan(root),args.filter(arg=>!arg.startsWith('--batch=')&&arg!=='--playwright-sync'));
+  if(segment&&(!selectedBatch||segment[0]!==String(selectedBatch)||!args.includes('--context=current')))throw Error('CLOUD_CI_SEGMENT_SCOPE_INVALID');
+  const plan=selectPlan(context.sdkPlan(root),args.filter(arg=>!arg.startsWith('--batch=')&&!arg.startsWith('--segment=')&&arg!=='--playwright-sync'));
   let failed=false;
   for(const group of plan){
     const {cwd,cli}=verifyGroup(group);
     let groupFailed=false;
+    const executedSegments=[];
     const batches=playwrightSync?[['playwright-sync-ui.test.mjs']]:batchesForGroup(group);
     for(const [index,files] of batches.entries()){
       if(selectedBatch!==null&&index+1!==selectedBatch)continue;
       const units=executionUnits(group,index+1,files);
-      let batchFailed=false;
+      let batchFailed=false,selectedExecutions=0;
       // Run every file exactly once, even if an earlier unit fails (not retry).
-      for(const unit of units){
-        const segments=executionSegments(group,index+1,unit,cwd);let unitFailed=false;
-        for(const segment of segments){
+      for(const [unitIndex,unit] of units.entries()){
+        const segments=executionSegments(group,index+1,unit,cwd);let unitFailed=false,unitExecuted=false;
+        for(const [segmentIndex,segmentUnit] of segments.entries()){
+          const executionKey=index===0?'1'+('ab'[unitIndex]):index===1?'2':unitIndex===0?'3a':'3'+('bcde'[segmentIndex]);
+          if(segmentArgs.length&&segmentArgs[0].slice('--segment='.length)!==executionKey)continue;
+          selectedExecutions++;unitExecuted=true;
+          const segment=segmentUnit;
+          executedSegments.push(executionKey+':'+unit.join(',')+':'+segment.id);
           const filter=segment.pattern?'--test-name-pattern='+JSON.stringify(segment.pattern)+' ':'';
           const command='node --test --test-reporter=tap --test-concurrency=1 '+filter+unit.join(' ');
           const settings=fs.mkdtempSync(path.join(os.tmpdir(),'meble-demo-cli-'));
@@ -132,19 +148,21 @@ function main(){
             console.error('CLOUD_CI_EMULATOR_DIAGNOSTIC_END');
           }
         }
+        if(!unitExecuted)continue; // Unselected unit never claims PASS.
         batchFailed ||= unitFailed;
         console.log('CLOUD_CI_UNIT '+group.context+' '+(index+1)+' '+(unitFailed?'FAIL':'PASS')+' | '+unit.join(', '));
       }
+      if(segment&&selectedExecutions!==1)throw Error('CLOUD_CI_SEGMENT_MISSING_OR_DUPLICATE:'+segment+':'+selectedExecutions);
       groupFailed ||= batchFailed;
-      console.log('CLOUD_CI_BATCH '+group.context+' '+(index+1)+' '+(batchFailed?'FAIL':'PASS')+' | '+files.join(', '));
+      console.log('CLOUD_CI_BATCH '+group.context+' '+(index+1)+' '+(batchFailed?'FAIL':'PASS')+' | '+(segment?executedSegments.join('; '):files.join(', ')));
     }
     failed ||= groupFailed;
     const status=groupFailed?'FAIL':'PASS';
-    const evaluated=selectedBatch!==null?batches[selectedBatch-1]:batches.flat();
+    const evaluated=segment?executedSegments:[...(selectedBatch!==null?batches[selectedBatch-1]:batches.flat())];
     context.report(`SDK/Auth/Firestore/Rules **${status}** | ${group.context} | SHA \`${context.git(group.root,['rev-parse','HEAD'])}\` | ${evaluated.join(', ')}`);
     context.verifyHistorical(root);
   }
   if(failed) throw Error('CLOUD_CI_SDK_FAILED');
 }
 if(require.main===module){try{main();}catch(error){console.error(error);process.exitCode=1;}}
-module.exports={main,completeTap,completeSelectedTap,selectPlan,verifyGroup,batchesForGroup,executionUnits,executionSegments,emulatorLogTail};
+module.exports={main,completeTap,completeSelectedTap,selectPlan,verifyGroup,batchesForGroup,executionUnits,executionSegments,CURRENT_SEGMENTS,emulatorLogTail};
