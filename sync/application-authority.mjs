@@ -89,7 +89,7 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
   return {keys,raw:JSON.stringify(value)};
  }
  function snapshotSession(){return Object.fromEntries(Object.entries(fc.session).filter(([,v])=>typeof v!=='function').map(([k,v])=>[k,structuredClone(v)]));}
- async function transaction(kind,operation){
+ async function transaction(kind,operation,{exitScope}={}){
   access();assertSource();lastCode=null;if(inTransaction)fail('LF_APPLICATION_BUSY');
   await beforeTransaction();access();assertSource();if(incomingWitness!==null)fail('LF_REMOTE_APPLY_PENDING');
   const editorState=fc.investorEditorState?.state?structuredClone(fc.investorEditorState.state):null;
@@ -117,7 +117,9 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
     // No data/catalog change can masquerade as a session/UI checkpoint.
     if(['draft','cabinet-draft'].includes(kind)&&(!fc.session.active||!fc.session.durable||rows.fc_edit_session_v1===null))fail('LF_DRAFT_SESSION_REQUIRED');
     for(const k of keys)if(kind==='checkpoint'&&!['fc_edit_session_v1','fc_ui_v1','fc_current_project_id_v1','fc_current_investor_v1'].includes(k)&&rows[k]!==old[k])throw Object.assign(Error('LF_CHECKPOINT_DATA_CHANGED: '+k),{code:'LF_CHECKPOINT_DATA_CHANGED'});
-    await checkpoint(application,kind);
+    const exit=exitScope&&exitScope===old.fc_current_project_id_v1&&!fc.session.active&&w.uiState?.entry==='investorsList'&&rows.fc_edit_session_v1===null;
+    if(exit&&JSON.parse(rows.fc_projects_v1||'[]').some(p=>p.id===exitScope&&p.meta?.pendingDomainOperation))fail('LF_PROJECT_OPERATION_PENDING');
+    await checkpoint(application,kind,exit?exitScope:undefined);
    }else committed=await commit(kind,application);
    if(pendingNotices.some(n=>n.projectSaveReceipt)&&committed?.localConfirmed!==true)fail('LF_LOCAL_ACK_UNCONFIRMED');
    image=await store.readApplication();rows=structuredClone(image.rows);await hydrateCatalogs();inTransaction=false;
@@ -175,7 +177,7 @@ export function createApplicationActionBinding({window:w,authority,onClose=()=>{
    await authority.transaction('checkpoint',()=>fc.session.active?fc.session.commit():true);
    if(divergent())fail('LF_ACTIVE_RAM_PROTECTED');
    const scope=w.localStorage.getItem('fc_current_project_id_v1');
-   const result=await authority.transaction('checkpoint',cancelLocal);
+   const result=await authority.transaction('checkpoint',cancelLocal,{exitScope:scope});
    if(result!==false&&w.uiState?.entry==='investorsList')await onExit(scope);
    return result;
   },

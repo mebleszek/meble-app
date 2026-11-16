@@ -8,7 +8,7 @@ import * as app from 'firebase/app';import * as auth from 'firebase/auth';import
 import {initializeTestEnvironment} from '@firebase/rules-unit-testing';
 import {runtime,model,seed} from './cloud-sync-fixture.mjs';
 import {createGlobalChannel,createDurableSynchronizer} from '../../sync/local-first-sync.mjs';
-import {createApplicationReplication,createEmulatorProjectDiscovery} from '../../sync/application-replication.mjs';
+import {createApplicationReplication,createApplicationHandover,createEmulatorProjectDiscovery} from '../../sync/application-replication.mjs';
 import {createProjectChannel} from '../../sync/local-first-project.mjs';
 import {proxyStore} from '../helpers/local-first-browser.mjs';
 const require=createRequire(import.meta.url),{startBrowser}=require('../helpers/chromium-runtime'),{injection}=require('../trusted-session-browser-smoke');
@@ -57,10 +57,11 @@ export async function runApplicationE2E(t){
   if(!fc.storage.setJSON('fc_quote_snapshots_v1',[{id:'owned-offer',project:{id:pid},investor:{id:iid},frozen:{total:21.375,pcv:0.8125}}]))throw Error('Owned history setup refused');
   return made.room.id;
  },{pid,iid});
- let computer,lossArmed=false,crashCompleted=false,publications=0;
- const crashSDK={...f,runTransaction:async(db,fn,options)=>{let published=false;
-  const result=await f.runTransaction(db,tx=>fn(new Proxy(tx,{get(target,key){if(key==='set')return(ref,data)=>{if(ref.path.endsWith('/localFirstProjects/'+pid))published=true;return target.set(ref,data);};const v=target[key];return typeof v==='function'?v.bind(target):v;}})),options);
+ let computer,lossArmed=false,lostReleaseAck=false,loseReleaseAck=false,crashCompleted=false,publications=0,releases=0;
+ const crashSDK={...f,runTransaction:async(db,fn,options)=>{let published=false,released=false;
+  const result=await f.runTransaction(db,tx=>fn(new Proxy(tx,{get(target,key){if(key==='set')return(ref,data)=>{if(ref.path.endsWith('/localFirstProjects/'+pid))published=true;if(ref.path.endsWith('/localFirstEditors/'+pid)&&data.active===false)released=true;return target.set(ref,data);};const v=target[key];return typeof v==='function'?v.bind(target):v;}})),options);
   if(published){publications++;if(lossArmed){lossArmed=false;computer.sync.close();await computer.owner.crash();crashCompleted=true;throw Object.assign(Error('Synthetic lost ACK'),{code:'unavailable'});}}
+  if(released){releases++;if(loseReleaseAck){loseReleaseAck=false;lostReleaseAck=true;throw Object.assign(Error('Synthetic lost release ACK'),{code:'unavailable'});}}
   return result;}};
  // Complete explicitly declared dependencies of the isolated cabinet fixture.
  const catalogs=model();for(const reference of ['laminat TEST','laminat','TEST','HDF'])if(!catalogs.materials.some(r=>[r.id,r.name,r.materialType].includes(reference)))catalogs.materials.push({id:'fixture-material-'+catalogs.materials.length,name:reference,materialType:'synthetic',price:12.375,priceUnit:'sheet'});
@@ -84,14 +85,18 @@ export async function runApplicationE2E(t){
   await d.page.exposeFunction('__requestApplicationSync',()=>d.sync.notify());
   await d.page.exposeFunction('__closeApplicationSync',()=>d.sync.close());
   await d.page.exposeFunction('__authorizeApplication',async scope=>{const r=(await d.store.snapshot(scope)).replica;if(!r?.editor?.active||r.editor.deviceId!==d.binding.deviceId)throw Error('LF_EDITOR_REQUIRED');});
-  await d.page.exposeFunction('__checkpointApplication',(a,kind)=>kind==='rollback'?d.sync.checkpoint(a,kind):d.store.checkpointApplication(a));
+  await d.page.exposeFunction('__checkpointApplication',(a,kind,exitScope)=>kind==='rollback'?d.sync.checkpoint(a,kind):d.store.checkpointApplication(a,{exitScope}));
+  d.handover=createApplicationHandover({store:d.store,online:()=>d.online,onError:e=>{d.handoverError=e;},getSync:()=>({
+    notify:d.sync.notify,flush:d.sync.flush,releaseRequestedEditor:(scope,request)=>d.sync.releaseEditor(scope,{request})
+  })});
+  await d.page.exposeFunction('__handoverApplication',scope=>d.handover.start(scope));
   await d.page.evaluate(async({connection,binding})=>{const {installEmulatorApplicationAuthority,createApplicationActionBinding}=await import('/sync/application-authority.mjs');
    // Browser receives only emulator identity metadata, never tokens/backend access.
    connection.db.app=connection.auth.app={options:{projectId:'demo-meble-app'}};
    connection.session={identity:()=>({uid:binding.ownerUid,epoch:1})};connection.auth.currentUser={uid:binding.ownerUid,providerData:[{providerId:'google.com'}]};
    const store={...binding,readApplication:()=>window.lf.readApplication(),initializeApplication:r=>window.lf.initializeApplication(r)};
    window.applicationAuthority=await installEmulatorApplicationAuthority({window,store,connection,commit:window.__commitApplication,checkpoint:window.__checkpointApplication,authorize:window.__authorizeApplication,onCommitted:()=>{void window.__requestApplicationSync();}});
-   window.FC.applicationSyncActions.install(createApplicationActionBinding({window,authority:window.applicationAuthority,onClose:()=>{void window.__closeApplicationSync();}}));
+   window.FC.applicationSyncActions.install(createApplicationActionBinding({window,authority:window.applicationAuthority,onExit:scope=>window.__handoverApplication(scope),onClose:()=>{void window.__closeApplicationSync();}}));
   },{binding:d.binding,connection:{db:{_databaseId:{projectId:'demo-meble-app',database:'(default)'},_settings:{host:'127.0.0.1:18080',ssl:false}},auth:{emulatorConfig:{host:'127.0.0.1',port:19099,protocol:'http'}}}});d.authority=true;await d.sync.close();
   const discovery=createEmulatorProjectDiscovery({writer:d.writer.connection,reader:d.reader.connection,ownerUid:d.writer.uid,deviceId:d.binding.deviceId,pilotContract:d.writer.r.FC.cloudPilotContract,pilotFactory:d.writer.r.FC.firebasePilotTransport,globalContract:d.writer.r.FC.globalDataContract,projectContract:d.writer.r.FC.businessProjectContract,globals:d.g});
   const summarizeLocal=d.writer.r.FC.projectModel.summarizeProjectData;
@@ -194,6 +199,13 @@ export async function runApplicationE2E(t){
  computer.online=true;computer.events.dispatchEvent(new Event('online'));
  await waitFor(async()=>(await computer.store.snapshot(pid)).operations.sort((a,b)=>a.localVersion-b.localVersion).at(-1).phase==='verified');
  assert.equal(publications,beforeCrash+1,'Recovery must not republish after lost ACK');
+ const lockRef=f.doc(phone.reader.db,'users',phone.writer.uid,'localFirstEditors',pid);
+ const ownedBeforeExit=(await f.getDocFromServer(lockRef)).data();
+ assert.equal(ownedBeforeExit.active,true,'SIGKILL and reconnect keep the editor');
+ assert.equal(await computer.store.pendingHandover(pid),null);
+ await computer.handover.resume([pid]);
+ assert.deepEqual((await f.getDocFromServer(lockRef)).data(),ownedBeforeExit);
+ assert.deepEqual((await computer.sync.recoverEditor(pid)).editor,ownedBeforeExit,'Recover only the same device and epoch');
  assert.equal(await computer.page.evaluate(pid=>window.FC.projectStore.getById(pid).title,pid),'Approved before lost ACK');
  await waitFor(async()=>await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid)?.title,pid)==='Approved before lost ACK');
  // Second owned investor/project travels through the same channels without
@@ -209,10 +221,35 @@ export async function runApplicationE2E(t){
  assert.equal(await computer.page.evaluate(()=>window.FC.storage.getJSON('fc_quote_snapshots_v1',[])[0].frozen.total),21.375);
  // Clean Exit changes the view only after durable session closure and never Auth.
  const beforeExit=await computer.page.evaluate(()=>localStorage.getItem('fc_projects_v1'));
+ const beforeExitSnapshot=await computer.store.snapshot(pid);
+ computer.online=false;
+ await f.disableNetwork(computer.writer.db);await f.disableNetwork(computer.reader.db);
  await computer.page.click('#sessionCancel');
  await waitFor(async()=>JSON.parse((await computer.store.readApplication()).rows.fc_ui_v1).entry==='investorsList');
  assert.equal(await computer.page.evaluate(()=>window.__FC_MAIN_ACCESS__.isValid()),true);
  assert.equal(await computer.page.evaluate(()=>localStorage.getItem('fc_projects_v1')),beforeExit);
+ assert.deepEqual(await computer.store.pendingHandover(pid),{key:'handover:'+pid,deviceId:'computer',epoch:ownedBeforeExit.epoch});
+ assert.deepEqual((await f.getDocFromServer(lockRef)).data(),ownedBeforeExit,'Offline Exit does not release the remote lock');
+ await assert.rejects(phone.p.acquire(beforeExitSnapshot.replica.base),{code:'LF_EDITOR_BUSY_OR_HEAD_CHANGED'});
+ await f.enableNetwork(computer.writer.db);await f.enableNetwork(computer.reader.db);
+ computer.online=true;loseReleaseAck=true;
+ await computer.handover.resume([pid]);
+ assert.equal(lostReleaseAck,true);
+ assert.equal(computer.handoverError?.code,'unavailable');
+ assert.equal((await computer.store.snapshot(pid)).replica.editor.handoverPending,true);
+ const uncertainRelease=await computer.store.pendingHandover(pid);
+ assert.ok(uncertainRelease,'Uncertain release keeps the durable request');
+ await assert.rejects(computer.store.withdrawHandover(pid,uncertainRelease),/LF_HANDOVER_UNCERTAIN/);
+ assert.deepEqual(await computer.store.pendingHandover(pid),uncertainRelease);
+ assert.equal((await f.getDocFromServer(lockRef)).data().active,false);
+ const releaseCount=releases;
+ await computer.handover.resume([pid]);
+ assert.equal(releases,releaseCount,'Confirmed release is recovered by reading only');
+ assert.equal(await computer.store.pendingHandover(pid),null);
+ const afterExitSnapshot=await computer.store.snapshot(pid);
+ assert.deepEqual(afterExitSnapshot.operations,beforeExitSnapshot.operations);
+ assert.deepEqual(afterExitSnapshot.protected,beforeExitSnapshot.protected);
+ assert.equal(afterExitSnapshot.replica.json,beforeExitSnapshot.replica.json);
  // A legacy writer is detected without deleting or copying over either source.
  await computer.page.evaluate(()=>window.dispatchEvent(new StorageEvent('storage',{key:'fc_projects_v1'})));
  await assert.rejects(computer.page.evaluate(()=>window.applicationAuthority.transaction('globals',()=>true)),/LF_APPLICATION_CLOSED_OR_OLD_WRITER/);

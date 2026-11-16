@@ -16,6 +16,19 @@ const immutable=r=>JSON.stringify({local:[...r.rows],session:[...r.session],tabl
   r.w.projectData={unsaved:'PRIVATE_PROJECT_RAM'};r.w.uiState={activeRoom:'synthetic-room'};r.w.document.querySelectorAll=()=>[{tagName:'INPUT',id:'synthetic',name:'synthetic',value:'PRIVATE_CONTROL_RAM',checked:false,closest:()=>null}];
   const ram=readCurrentBusinessRam(r.w);assert.equal(ram.data.project.unsaved,'PRIVATE_PROJECT_RAM');assert.equal(ram.data.controls[0].value,'PRIVATE_CONTROL_RAM');
  });
+ test('rescue preserves a pending handover only for the bound device and editor generation',async()=>{
+  const r=await rescueFixture(),deviceId=r.tables.control.find(row=>row.key==='binding').deviceId;
+  r.tables.replicas[0].editor={deviceId,active:true,epoch:7};
+  const request={key:'handover:'+r.tables.replicas[0].key,deviceId,epoch:7};
+  r.tables.control.push(request);
+  const data=await readRescueSnapshot(r.context);
+  assert.deepEqual(data.databases.authority.control.find(row=>row.key===request.key),request);
+  request.epoch=8;
+  await assert.rejects(readRescueSnapshot(r.context),code('RESCUE_BINDING_INVALID'));
+  request.epoch=7;request.deviceId='foreign-device';
+  await assert.rejects(readRescueSnapshot(r.context),code('RESCUE_BINDING_INVALID'));
+  assert.equal(r.trace.includes('tx:readwrite'),false);
+ });
  test('only reset inventory ignores unrelated databases, never opens them, and retains target proofs',async()=>{
   const r=await rescueFixture(),before=immutable(r);
   r.options.inventory=[{name:r.context.name,version:1},{name:'meble-investor-delete-v1',version:1},{name:'foreign-synthetic',version:7}];

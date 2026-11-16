@@ -3,7 +3,7 @@ import test from 'node:test';
 import {createRequire} from 'node:module';
 import {assertFails, initializeTestEnvironment} from '@firebase/rules-unit-testing';
 import * as f from 'firebase/firestore';
-import {createP0BProtocol, createP0BDeletionIntent, inspectP0BCompatibility, projectP0BContact, splitP0BLegacyContact} from './p0b-protocol.mjs';
+import {createP0BProtocol, createP0BDeletionIntent, inspectP0BCompatibility, projectP0BContact, splitP0BLegacyContact, P0B_HEARTBEAT_MS, watchP0BEditorContact} from './p0b-protocol.mjs';
 
 const {p0bApplicationRules} = createRequire(import.meta.url)('./p0b-application-rules.js');
 const uid = 'synthetic-p0b-owner';
@@ -49,6 +49,35 @@ test('P0-B lossless contact envelope with explicitly verified project rooms',()=
   assert.throws(()=>splitP0BLegacyContact({...raw,meta:{accessToken:'synthetic'}},rooms),{code:'LF_P0B_CONTACT_INVALID'});
 });
 
+test('P0-B heartbeat scheduler handles offline and wakes a suspended tab',async()=>{
+  const window=new EventTarget();
+  window.navigator={onLine:true};
+  window.document=new EventTarget();
+  window.document.visibilityState='visible';
+  let fire, count=0;
+  window.setTimeout=(callback,delay)=>{assert.equal(delay,P0B_HEARTBEAT_MS);fire=callback;return 1;};
+  window.clearTimeout=()=>{fire=undefined;};
+  const stop=watchP0BEditorContact({window,send:async()=>{count++;}});
+  await Promise.resolve();
+  assert.equal(count,1);
+  window.navigator.onLine=false;
+  await fire();
+  assert.equal(count,1);
+  window.navigator.onLine=true;
+  window.document.visibilityState='hidden';
+  window.dispatchEvent(new Event('online'));
+  assert.equal(count,1);
+  window.document.visibilityState='visible';
+  window.document.dispatchEvent(new Event('visibilitychange'));
+  await Promise.resolve();
+  assert.equal(count,2);
+  await fire();
+  assert.equal(count,3);
+  stop();
+  window.dispatchEvent(new Event('pageshow'));
+  assert.equal(count,3);
+});
+
 test('P0-B candidate Rules: owner CAS, registry, atomic investor deletion, stale clients and read budget',async t=>{
   const {env,client} = await p0bFixture(t);
   const {db,protocol:pc} = client('computer');
@@ -84,6 +113,25 @@ test('P0-B candidate Rules: owner CAS, registry, atomic investor deletion, stale
 
   const kitchen = await pc.acquire(acq('owned','kitchen','Komputer'));
   const wardrobe = await phone.acquire(acq('owned','wardrobe','Telefon'));
+  const heartbeat = f.doc(ref(db,'localFirstEditors','wardrobe'),'presence','current');
+  const stamp=await phone.heartbeat('wardrobe',wardrobe);
+  assert.equal(stamp.written,true);
+  assert.deepEqual(await phone.heartbeat('wardrobe',wardrobe),{...stamp,written:false});
+  assert.equal((await pc.presence('owned',()=>true)).projects.find(row=>row.projectId==='wardrobe').activity,'recent');
+  await assertFails(f.setDoc(heartbeat,{deviceId:'phone',epoch:wardrobe.epoch,lastContactAt:f.serverTimestamp()}));
+  await assertFails(f.setDoc(f.doc(ref(guestDb,'localFirstEditors','wardrobe'),'presence','current'),{deviceId:'phone',epoch:wardrobe.epoch,lastContactAt:f.serverTimestamp()}));
+  // Age the server-side fixture without changing the lock or waiting five minutes.
+  await env.withSecurityRulesDisabled(c=>f.updateDoc(f.doc(ref(c.firestore(),'localFirstEditors','wardrobe'),'presence','current'),
+    {lastContactAt:f.Timestamp.fromMillis(Date.now()-P0B_HEARTBEAT_MS-1000)}));
+  assert.equal((await pc.presence('owned',()=>true)).projects.find(row=>row.projectId==='wardrobe').activity,'unconfirmed');
+  assert.equal((await pc.presence('owned',()=>false)).state,'unconfirmed');
+  assert.deepEqual((await f.getDocFromServer(ref(db,'localFirstEditors','wardrobe'))).data(),wardrobe);
+  assert.equal((await phone.heartbeat('wardrobe',wardrobe)).written,true);
+  assert.equal((await f.getDocFromServer(ref(db,'localFirstProjects','wardrobe'))).exists(),false,'Heartbeat never publishes a project revision');
+  await pc.openInvestor('owned','recovered-visit','Komputer');
+  assert.deepEqual(await client('computer').protocol.recoverOwnVisit('owned'),{token:'recovered-visit',label:'Komputer'});
+  assert.equal(await phone.recoverOwnVisit('owned'),null);
+  await pc.closeInvestor('owned','recovered-visit');
   assert.deepEqual((await pc.investor('owned')).projects,{kitchen:true,wardrobe:true});
   await assert.rejects(phone.acquire(acq('owned','kitchen')),{code:'LF_P0B_EDITOR_CONFLICT'});
   await assertFails(f.setDoc(ref(db,'localFirstEditors','bypass'),{
@@ -112,6 +160,7 @@ test('P0-B candidate Rules: owner CAS, registry, atomic investor deletion, stale
   write.set(head,{...content,generation:1,currentRevisionId:rid,editorEpoch:kitchen.epoch,deviceId:kitchen.deviceId,
     globalRevisionId:gid,globalDirectoryHash:sha,updatedAt:f.serverTimestamp()});
   await write.commit(); // Existing checked head/revision transaction, with new registry checks.
+  assert.equal((await pc.heartbeat('kitchen',kitchen)).written,false,'A fresh published head is already a contact');
   const history=(await f.getDocFromServer(revision)).data();
   const discovered=await phone.listProjectHeads();
   assert.equal(discovered.find(record=>record.projectId==='kitchen').head.currentRevisionId,rid);
@@ -131,6 +180,10 @@ test('P0-B candidate Rules: owner CAS, registry, atomic investor deletion, stale
   await phone.release({...acq('owned','wardrobe'),expectedEditor:wardrobe});
   const intent=createP0BDeletionIntent([await pc.investor('owned')],'terminal');
   const racing = await phone.acquire(acq('owned','wardrobe'));
+  assert.equal(racing.epoch,wardrobe.epoch+1);
+  await assert.rejects(phone.heartbeat('wardrobe',wardrobe),{code:'LF_P0B_EDITOR_CONFLICT'});
+  await assertFails(f.setDoc(heartbeat,{deviceId:'phone',epoch:wardrobe.epoch,lastContactAt:f.serverTimestamp()}));
+  assert.equal((await phone.heartbeat('wardrobe',racing)).written,true);
   await assert.rejects(pc.publishDeletion(intent),{code:'LF_P0B_DELETE_CONFLICT'});
   await phone.release({...acq('owned','wardrobe'),expectedEditor:racing});
   const target = createP0BDeletionIntent([await pc.investor('owned')],'terminal');
@@ -330,6 +383,11 @@ test('P0-B two real Chromium profiles: local label, offline intent, lost ACK, re
     iid:'browser-investor',pid:'kitchen-browser',expectedHead:'',deviceLabel:FC.localDeviceLabel.read()
   }));
   const wardrobe=await phone.page.evaluate(()=>proto.acquire({iid:'browser-investor',pid:'wardrobe-browser',expectedHead:'',deviceLabel:'Telefon'}));
+  await pc.page.evaluate(editor=>{window.stopContact=proto.watchEditorContact('kitchen-browser',editor,window);},kitchen);
+  await phone.page.waitForFunction(async()=>(
+    await proto.presence('browser-investor',()=>navigator.onLine)
+  ).projects?.some(project=>project.projectId==='kitchen-browser'&&project.activity==='recent'),null,{polling:250});
+  assert.equal((await phone.page.evaluate(()=>proto.listProjectHeads())).find(project=>project.projectId==='kitchen-browser').head,null);
   assert.equal(kitchen.deviceLabel,'Komputer w pracowni');
   assert.equal(wardrobe.deviceLabel,'Telefon');
   assert.deepEqual(await phone.page.evaluate(()=>proto.lockStatus('browser-investor','kitchen-browser',()=>navigator.onLine)),
@@ -352,12 +410,13 @@ test('P0-B two real Chromium profiles: local label, offline intent, lost ACK, re
   await phone.context.setOffline(false);
   await phone.page.waitForFunction(()=>navigator.onLine);
   await assert.rejects(phone.page.evaluate(()=>proto.acquire({iid:'browser-investor',pid:'kitchen-browser',expectedHead:''})),/LF_P0B_EDITOR_CONFLICT/);
+  await pc.page.evaluate(()=>window.stopContact());
   await pc.page.evaluate(expectedEditor=>proto.release({iid:'browser-investor',pid:'kitchen-browser',expectedHead:'',expectedEditor}),kitchen);
   await phone.page.evaluate(expectedEditor=>proto.release({iid:'browser-investor',pid:'wardrobe-browser',expectedHead:'',expectedEditor}),wardrobe);
   await stop(pc);
   pc=await device('p0b-pc');
-  assert.equal((await pc.page.evaluate(()=>proto.investor('browser-investor'))).visits['p0b-pc'].token,'kartoteka-pc');
-  await pc.page.evaluate(async()=>proto.closeInvestor('browser-investor',(await proto.investor('browser-investor')).visits['p0b-pc'].token));
+  assert.deepEqual(await pc.page.evaluate(()=>proto.recoverOwnVisit('browser-investor')),{token:'kartoteka-pc',label:'Komputer w pracowni'});
+  await pc.page.evaluate(async()=>proto.closeInvestor('browser-investor',(await proto.recoverOwnVisit('browser-investor')).token));
   await pc.page.evaluate(data=>proto.createInvestor('browser-other',data),contact);
   const intent=await pc.page.evaluate(async()=>P0B.createP0BDeletionIntent(
     await Promise.all(['browser-investor','browser-other'].map(proto.investor)),'browser-delete'

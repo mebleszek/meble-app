@@ -1,5 +1,18 @@
     // P0-B emulator candidate. Shared contacts, revision and project registry are owner-scoped.
     // Registry values are booleans (active leases), introduced one key at a time by a paired editor write.
+    function invHeartbeat(uid, pid, d) {
+      let e = getAfter(invEditorRef(uid,pid)).data;
+      return d.keys().hasOnly(['deviceId','epoch','lastContactAt'])
+        && d.deviceId == e.deviceId && d.epoch == e.epoch && e.active == true
+        && invCanPublish(uid,e.investorId,pid) && d.lastContactAt == request.time;
+    }
+    match /users/{uid}/localFirstEditors/{pid}/presence/current {
+      allow get: if globalApproved(uid);
+      allow create: if globalApproved(uid) && invHeartbeat(uid,pid,request.resource.data);
+      allow update: if globalApproved(uid) && invHeartbeat(uid,pid,request.resource.data)
+        && (request.resource.data.epoch > resource.data.epoch
+          || resource.data.lastContactAt + duration.value(5,'m') <= request.time);
+    }
     function invRef(uid, iid) {
       return /databases/$(database)/documents/users/$(uid)/localFirstInvestors/$(iid);
     }

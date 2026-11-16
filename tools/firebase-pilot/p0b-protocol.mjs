@@ -54,6 +54,40 @@ export function validateP0BDeletionIntent(intent) {
   return {operationId:intent.operationId,investorId:intent.investorId,expectedGeneration:intent.expectedGeneration};
 }
 
+export const P0B_HEARTBEAT_MS=5*60*1000;
+
+function lastEditorContact(editor, presence, head) {
+  return Math.max(0,
+    presence?.deviceId===editor.deviceId&&presence.epoch===editor.epoch ? presence.lastContactAt.toMillis() : 0,
+    head?.deviceId===editor.deviceId&&head.editorEpoch===editor.epoch ? head.updatedAt.toMillis() : 0);
+}
+
+export function watchP0BEditorContact({send,window:w,onError=()=>{}}) {
+  let stopped=false, pending=false, timer;
+  async function contact(){
+    if(stopped||pending||w.navigator.onLine===false)return;
+    w.clearTimeout(timer);
+    pending=true;
+    try{await send();}catch(error){if(!stopped)onError(error);}
+    finally{
+      pending=false;
+      if(!stopped)timer=w.setTimeout(contact,P0B_HEARTBEAT_MS);
+    }
+  }
+  const wake=()=>{if(w.document.visibilityState!=='hidden')void contact();};
+  w.addEventListener('online',wake);
+  w.addEventListener('pageshow',wake);
+  w.document.addEventListener('visibilitychange',wake);
+  void contact();
+  return ()=>{
+    stopped=true;
+    w.clearTimeout(timer);
+    w.removeEventListener('online',wake);
+    w.removeEventListener('pageshow',wake);
+    w.document.removeEventListener('visibilitychange',wake);
+  };
+}
+
 export function createP0BProtocol(connection, deviceId) {
   id(deviceId);
   const identity = assertEmulator(connection), {uid} = identity, {db, firestore:f} = connection;
@@ -64,6 +98,7 @@ export function createP0BProtocol(connection, deviceId) {
   const ref = (collection, key) => f.doc(db, 'users', uid, collection, id(key));
   const investorRef = iid => ref('localFirstInvestors', iid);
   const editorRef = pid => ref('localFirstEditors', pid);
+  const presenceRef = pid => f.doc(editorRef(pid),'presence','current');
   const headRef = pid => ref('localFirstProjects', pid);
   const read = snapshot => {
     if (snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites) fail('LF_SERVER_UNCONFIRMED');
@@ -158,6 +193,31 @@ export function createP0BProtocol(connection, deviceId) {
 
   const api=Object.freeze({
     investor,
+    async recoverOwnVisit(iid){
+      const record=active(await readServer(investorRef(iid)));
+      const visit=record.visits[deviceId];
+      return visit ? {token:visit.token,label:visit.label} : null;
+    },
+    async heartbeat(pid, expectedEditor){
+      const target=presenceRef(pid);
+      const touch=await transaction(async tx=>{
+        const editor=read(await tx.get(editorRef(pid)));
+        if(!editor?.active||editor.deviceId!==deviceId||!equal(editor,expectedEditor))fail('LF_P0B_EDITOR_CONFLICT');
+        const prior=read(await tx.get(target)), head=read(await tx.get(headRef(pid)));
+        const last=lastEditorContact(editor,prior,head);
+        const elapsed=Date.now()-last;
+        if(last&&elapsed>=0&&elapsed<P0B_HEARTBEAT_MS)return {written:false,lastContactAt:last};
+        tx.set(target,{deviceId,epoch:editor.epoch,lastContactAt:f.serverTimestamp()});
+        return {written:true};
+      });
+      if(!touch.written)return touch;
+      const confirmed=await readServer(target);
+      if(confirmed?.epoch!==expectedEditor.epoch||confirmed.deviceId!==deviceId)fail('LF_P0B_ACK_UNCONFIRMED');
+      return {...touch,lastContactAt:confirmed.lastContactAt.toMillis()};
+    },
+    watchEditorContact(pid, expectedEditor, window, onError){
+      return watchP0BEditorContact({window,onError,send:()=>api.heartbeat(pid,expectedEditor)});
+    },
     openInvestor(iid, token, label='') { return changeVisit(iid,token,label,true); },
     closeInvestor(iid,token) { return changeVisit(iid,token,'',false); },
     async listInvestors(){
@@ -196,7 +256,10 @@ export function createP0BProtocol(connection, deviceId) {
         if(!held) continue;
         const editor=await readServer(editorRef(pid));
         if(!editor?.active || editor.investorId!==iid) return {state:'unconfirmed'};
-        projects.push({projectId:pid,deviceId:editor.deviceId,label:editor.deviceLabel});
+        const contact=lastEditorContact(editor,await readServer(presenceRef(pid)),await readServer(headRef(pid)));
+        const elapsed=Date.now()-contact;
+        projects.push({projectId:pid,deviceId:editor.deviceId,label:editor.deviceLabel,lastContactAt:contact||null,
+          activity: contact&&elapsed>=0&&elapsed<=P0B_HEARTBEAT_MS?'recent':'unconfirmed'});
       }
       if(!online() || (await investor(iid))?.generation!==inv.generation || !online()) return {state:'unconfirmed'};
       const visits=Object.entries(inv.visits).map(([deviceId,visit])=>({deviceId,label:visit.label}));

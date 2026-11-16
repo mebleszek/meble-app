@@ -39,15 +39,23 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   await page.evaluate(({catalogs,sources})=>{for(const [domain,value]of Object.entries(catalogs))for(const key of sources[domain])localStorage.setItem(key,JSON.stringify(domain==='stock'?{sheets:value}:value));},{catalogs,sources});
   await page.evaluate(()=>window.FC.offlineShell.prepare());return d;
  }
+ const touchSessions=new WeakMap();
  async function touch(d,selector){
-  const cdp=await d.page.context().newCDPSession(d.page),evaluate=code=>d.page.evaluate(code);
-  await cdp.send('Emulation.setDeviceMetricsOverride',{width:d.name==='phone'?393:1024,height:852,deviceScaleFactor:1,mobile:d.name==='phone'});
-  await cdp.send('Emulation.setTouchEmulationEnabled',{enabled:true});
+  const page=d.page,evaluate=code=>page.evaluate(code);
+  let cdp=touchSessions.get(page);
+  if(!cdp){
+   cdp=await page.context().newCDPSession(page);
+   await cdp.send('Emulation.setDeviceMetricsOverride',{width:d.name==='phone'?393:1024,height:852,deviceScaleFactor:1,mobile:d.name==='phone'});
+   await cdp.send('Emulation.setTouchEmulationEnabled',{enabled:true});
+   // Detaching a CDP session while offline emits a spurious online event
+   // even though Playwright still blocks HTTP. Keep it until the page closes.
+   touchSessions.set(page,cdp);
+  }
   await evaluate('('+finishPendingTouchScroll.toString()+')()');
   await evaluate('window.normalGesture=('+observeGesture.toString()+')('+JSON.stringify(selector)+')');
   try{const p=await waitForGesturePoint(evaluate,selector,{stable:true});await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...p,radiusX:3,radiusY:3,id:1}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
    const trace=await evaluate('window.normalGesture.snapshot()');for(const type of ['pointerdown','pointerup'])assert.equal(trace.events.filter(e=>e.type===type&&e.trusted&&e.onTarget).length,1);
-  }finally{await evaluate('window.normalGesture.close();delete window.normalGesture');await cdp.detach();}
+  }finally{await evaluate('window.normalGesture.close();delete window.normalGesture');}
  }
  if(catalogCutover){
   const pixel=await device('computer');
@@ -310,6 +318,12 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  const approved=await computer.page.evaluate(()=>localStorage.getItem('fc_projects_v1'));
  const projectHead=doc(ownerClient,'users',uid,'localFirstProjects',pid);
  const beforeDraftHead=(await getDoc(projectHead)).data();
+ const pendingExit=()=>computer.page.evaluate(async pid=>{
+  const {openLocalFirstStore}=await import('/sync/local-first-idb.mjs');
+  const binding=JSON.parse(readNormalSource('meble_application_authority_v1'));
+  const store=await openLocalFirstStore({...binding,initialize:false,indexedDB,locks:navigator.locks});
+  try{return await store.pendingHandover(pid);}finally{store.close();}
+ },pid);
  const readDraft=(full=false)=>computer.page.evaluate(async({name,pid,room,full})=>{
   const request=indexedDB.open('meble-lf-test-normal-'+name);
   const db=await new Promise((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);request.onupgradeneeded=()=>request.transaction.abort();});
@@ -512,6 +526,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  assert.equal(await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid).title,pid),'Same-window offline');
  assert.equal(await computer.page.evaluate(()=>window.FC.actions.dispatch('open-investors-list')),true,'Offline Exit commits locally');
  await computer.page.waitForFunction(()=>window.uiState.entry==='investorsList'&&!window.FC.applicationStartup.inspect().transactionPending);
+ assert.ok(await pendingExit(),'Offline Exit persists the intended release');
  if(deployment){
   await phone.page.evaluate(()=>window.FC.applicationWrite.globals(()=>{
    const rows=window.FC.catalogStore.getSheetMaterials();
@@ -527,6 +542,8 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  assert.equal(await computer.page.evaluate(id=>window.FC.actions.dispatch('open-investor',{element:{getAttribute:()=>id}}),ids[0]),true);
  await touch(computer,'.investor-room-quick-btn[data-room="'+room+'"]');
  await computer.page.waitForFunction(()=>window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending);
+ assert.equal(await computer.page.evaluate(()=>navigator.onLine),false,'A touch gesture preserves the offline network controller');
+ assert.equal(await pendingExit(),null,'Explicit reopening withdraws a release that never reached the server');
  const beforeRestartDraft=await readDraft();
  await editCabinet('normal-cabinet',67);
  const restartDraft=await readDraft();
@@ -572,16 +589,23 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  await computer.page.locator('.confirm-box .is-danger').click();
  await computer.page.waitForFunction(()=>window.projectData[window.uiState.roomType].cabinets[0].width===65&&!window.FC.applicationStartup.inspect().transactionPending);
  assert.deepEqual((await readDraft()).outbox,restartDraft.outbox);
+ assert.equal(await pendingExit(),null,'Cancel preserves the current editor and creates no Exit request');
+ const currentEditor=doc(ownerClient,'users',uid,'localFirstEditors',pid);
+ const beforeExitEditor=(await getDoc(currentEditor)).data();
+ assert.equal(beforeExitEditor?.active,true);
  // Cancel reopens a clean room. Exit it before receiving newer remote catalogs.
  await computer.page.click('#sessionCancel');
  await computer.page.waitForFunction(()=>!window.FC.session.active&&window.uiState.entry==='investorsList'&&!window.FC.applicationStartup.inspect().transactionPending);
  assert.deepEqual((await readDraft()).outbox,restartDraft.outbox);
+ assert.deepEqual(await pendingExit(),{key:'handover:'+pid,deviceId:beforeExitEditor.deviceId,epoch:beforeExitEditor.epoch});
+ assert.deepEqual((await getDoc(currentEditor)).data(),beforeExitEditor,'Offline Exit keeps the server editor');
  assert.equal(await computer.page.evaluate(()=>window.authCalls),0);
  assert.equal(await computer.page.evaluate(()=>window.normalGoogleLogins||0),0);
  assert.deepEqual(sdkRequests,[],'Offline boot must not fail an SDK module request');
  await context.setOffline(false);
  await computer.page.waitForFunction(()=>window.normalConnectionEpoch>0&&window.FC.applicationStartup.inspect().stage==='ready').catch(async error=>{throw Error(error.message+' '+JSON.stringify(await computer.page.evaluate(()=>({online:navigator.onLine,state:window.FC.applicationStartup.inspect(),connectionError:window.normalConnectionError,pendingRpc:window.normalPendingRpc,sdkErrors:window.normalSdkErrors}))));});
  await until(async()=>await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid)?.title,pid)==='Offline durable revision');
+ await until(async()=>(await getDoc(currentEditor)).data()?.active===false&&await pendingExit()===null);
  assert.deepEqual(sdkRequests,[],'Reconnect SDK modules must load without network errors');
  assert.equal(await computer.page.evaluate(()=>window.normalGoogleLogins||0),0,'Reconnect restores the approved SDK session, without a Google popup');
  if(deployment){

@@ -7,7 +7,7 @@ import {reconcileGlobalAliases} from '../../sync/application-authority.mjs';
 import {applicationInstallation} from '../../sync/application-installation.mjs';
 import {prepareEmulatorApplicationBoot} from '../../sync/application-boot.mjs';
 import {assertApplicationConnection,authorizeApplicationFirebase} from '../../sync/firebase-activation.mjs';
-import {createApplicationReplication} from '../../sync/application-replication.mjs';
+import {createApplicationReplication,createApplicationHandover} from '../../sync/application-replication.mjs';
 import {createProjectChannel} from '../../sync/local-first-project.mjs';
 const root=new URL('../..',import.meta.url),read=p=>fs.readFileSync(new URL(p,root),'utf8');
 test('normal startup remains inert on public origin, flags cannot activate connections/migration',async()=>{
@@ -83,6 +83,28 @@ test('navigation stays reserved until confirmed handover, not merely the local I
  await new Promise(r=>setImmediate(r));assert.equal(boundary.busy(),true);
  assert.equal(await w.FC.applicationLifecycle.dispatch('open-investor',()=>{calls++;return true;}),false);assert.equal(calls,0);
  finish();assert.equal(await nav,true);assert.equal(boundary.busy(),false);boundary.close();
+});
+
+test('explicit Exit releases a confirmed project without waiting on unrelated sync',async()=>{
+ const request={key:'handover:project',deviceId:'pc',epoch:1};
+ let saved=null,releases=0,scheduled=0;
+ const store={
+  pendingHandover:async()=>saved,
+  snapshot:async()=>({replica:{base:{generation:1},dirty:false,editor:{deviceId:'pc',epoch:1}},operations:[{phase:'verified'}]})
+ };
+ const handover=createApplicationHandover({store,online:()=>true,onError:assert.fail,getSync:()=>({
+  notify(){scheduled++;},
+  flush(){assert.fail('The project already has ACK');},
+  async releaseRequestedEditor(scope,expected){
+   assert.equal(scope,'project');assert.deepEqual(expected,request);releases++;
+  }
+ })});
+ await handover.resume(['project']);
+ assert.equal(releases,0,'A restart without an explicit Exit retains the editor');
+ saved=request;
+ await handover.start('project');
+ assert.equal(releases,1);
+ assert.equal(scheduled,0);
 });
 
 test('explicit global edits preserve declared aliases without repairing divergent historical RAW',()=>{

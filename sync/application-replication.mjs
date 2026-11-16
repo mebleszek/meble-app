@@ -64,8 +64,45 @@ export function createApplicationReplication({store,channels,globalContract,proj
   close(){closed=true;stopDiscovery();eventTarget.removeEventListener('online',discover);return Promise.all([sync.close(),listing]);},
   async acquireEditor(scope){await assertIdle();return sync.acquireEditor(scope);},
   async releaseEditor(scope){await assertIdle();return sync.releaseEditor(scope);},
+  releaseRequestedEditor(scope,request){return sync.releaseEditor(scope,{request});},
   ...createApplicationCommitter({store,globalContract,projectContract,summarizeLocal,channel:scope=>sync.channel(scope)})
  });
+}
+
+// Only a durable, generation-specific request can release the server editor.
+export function createApplicationHandover({store,getSync,online,onError}){
+ const releasing=new Map();
+ const acknowledged=({replica,operations})=>!!replica?.base&&!replica.dirty&&operations.every(op=>op.phase==='verified');
+ async function release(scope){
+  const sync=getSync();
+  if(!sync||!online())return;
+  const request=await store.pendingHandover(scope);
+  if(!request||!online())return;
+  const local=await store.snapshot(scope),editor=local.replica?.editor;
+  if(!editor||editor.deviceId!==request.deviceId||editor.epoch!==request.epoch)fail('LF_HANDOVER_CONFLICT');
+  if(!acknowledged(local)||!online())return;
+  await sync.releaseRequestedEditor(scope,request);
+ }
+ async function resume(scopes){
+  for(const scope of scopes){
+   let pending=releasing.get(scope);
+   if(!pending){
+    pending=release(scope).catch(onError).finally(()=>releasing.delete(scope));
+    releasing.set(scope,pending);
+   }
+   await pending;
+  }
+ }
+ async function start(scope){
+  const sync=getSync();
+  if(!scope||!sync||!online()||!await store.pendingHandover(scope))return;
+  if(!acknowledged(await store.snapshot(scope))&&online()){
+   sync.notify(scope);
+   await sync.flush();
+  }
+  await resume([scope]);
+ }
+ return {start,resume,pending:scope=>releasing.get(scope)};
 }
 
 // Same atomic business/image/outbox boundary for online and already-approved offline editors.
@@ -139,7 +176,7 @@ export function createApplicationCommitter({store,globalContract,projectContract
     protectedRows:application.rows});
    if(!result.localConfirmed)fail('LF_LOCAL_ACK_UNCONFIRMED');return {...result,scope};
   },
-  async checkpoint(application,kind){
+  async checkpoint(application,kind,exitScope){
    if(kind==='offer-draft'){
     const before=await store.readApplication(),rows=application.rows;
     for(const key of new Set([...Object.keys(before.rows),...Object.keys(rows)])){
@@ -173,7 +210,7 @@ export function createApplicationCommitter({store,globalContract,projectContract
     const technical=new Set(['fc_projects_v1','fc_edit_session_v1','fc_ui_v1','fc_current_project_id_v1','fc_current_investor_v1']);
     for(const k of Object.keys(before.rows))if(!technical.has(k)&&before.rows[k]!==application.rows[k])fail('LF_APPLICATION_SCOPE_REFUSED');
    }
-   return store.checkpointApplication(application);
+   return store.checkpointApplication(application,{exitScope});
   }
  });
 }

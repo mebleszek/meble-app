@@ -198,10 +198,12 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
       // Uncertain local/remote acquire is a refusal; no timeout takeover.
       return store.setEditor(projectId,snap.replica.version,snap.replica.editor,e);
     });},
-    async releaseEditor(projectId){return store.exclusive(async()=>{
+    async releaseEditor(projectId,{request}={}){return store.exclusive(async()=>{
       assertOpen();
       const channel=byScope.get(projectId),snap=await store.snapshot(projectId),r=snap.replica;
       if(!r||r.dirty||!(r.editor?.active||r.editor?.handoverPending)||snap.operations.some(op=>op.phase!=='verified'))fail('LF_HANDOVER_PENDING_LOCAL_WORK');
+      if(request&&(!equal(request,await store.pendingHandover(projectId))||r.editor.deviceId!==request.deviceId||r.editor.epoch!==request.epoch))fail('LF_HANDOVER_CONFLICT');
+      if(!r.base)fail('LF_HANDOVER_PENDING_LOCAL_WORK');
       const remote=await channel.read();if(!equal(remote.head,r.base)||!equal(remote.value,JSON.parse(r.json)))fail('LF_HANDOVER_CONTENT_MISMATCH');
       // Block local edits durably BEFORE the remote release can commit.
       const blocked=r.editor.handoverPending?r:await store.setEditor(projectId,r.version,r.editor,{...r.editor,active:false,handoverPending:true});
@@ -214,15 +216,22 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
         const confirmed=await channel.release(active,r.base);
         if(!equal(confirmed,released))fail('LF_HANDOVER_CONFLICT');
       }
-      return store.setEditor(projectId,blocked.version,blocked.editor,released);
+      return store.setEditor(projectId,blocked.version,blocked.editor,released,{completeHandover:true});
     });},
     async recoverEditor(projectId){return store.exclusive(async()=>{
       assertOpen();
       const channel=byScope.get(projectId),snap=await store.snapshot(projectId),r=snap.replica;
-      if(!r||r.dirty||snap.operations.some(op=>op.phase!=='verified'))fail('LF_EDITOR_RECOVERY_BLOCKED');
+      if(!r||!channel)fail('LF_EDITOR_RECOVERY_BLOCKED');
       const e=await channel.editor();
-      if(!e||e.deviceId!==store.deviceId)fail('LF_EDITOR_RECOVERY_BLOCKED');
-      if(r.editor?.handoverPending && e.active)fail('LF_HANDOVER_UNCERTAIN');
+      if(!e?.active||e.deviceId!==store.deviceId)fail('LF_EDITOR_RECOVERY_BLOCKED');
+      if(r.editor?.handoverPending)fail('LF_HANDOVER_UNCERTAIN');
+      if(r.editor?.active){
+        if(!equal(r.editor,e))fail('LF_EDITOR_RECOVERY_BLOCKED');
+        // The same editor still owns the dirty replica. The outbox verifies each
+        // expected head independently without resetting pending work.
+        return r;
+      }
+      if(r.dirty||snap.operations.some(op=>op.phase!=='verified'))fail('LF_EDITOR_RECOVERY_BLOCKED');
       if(r.base){const remote=await channel.read();if(!equal(remote.head,r.base)||!equal(remote.value,JSON.parse(r.json)))fail('LF_EDITOR_RECOVERY_BLOCKED');}
       else if(e.headRevision!=='')fail('LF_EDITOR_RECOVERY_BLOCKED');
       return store.setEditor(projectId,r.version,r.editor,e);

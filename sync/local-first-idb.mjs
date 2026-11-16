@@ -83,9 +83,38 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
   async function readApplication(){const value=await transaction('readonly',(s,done)=>{const q=s.control.get('application');q.onsuccess=()=>done(q.result||null);});if(value && await digest(json(value.rows))!==value.hash)fail('LF_APPLICATION_INTEGRITY');return value;}
   async function readPreservedSource(){const value=await transaction('readonly',(s,done)=>{const q=s.control.get('source');q.onsuccess=()=>done(q.result||null);});if(value&&await digest(value.rows)!==value.hash)fail('LF_SOURCE_INTEGRITY');return value;}
   async function prepareApplication(application){if(!application)return null;application=copy(application);if(!Number.isSafeInteger(application.expectedVersion)||application.expectedVersion<1||!application.rows||Object.values(application.rows).some(v=>v!==null&&typeof v!=='string'))fail('LF_APPLICATION_INVALID');application.hash=await digest(json(application.rows));return application;}
-  async function checkpointApplication(application){
+  const handoverKey=scope=>'handover:'+id(scope);
+  function rememberHandover(control, scope, editor) {
+    if(editor?.active===true && editor.deviceId===deviceId)
+      control.put({key:handoverKey(scope),deviceId,epoch:editor.epoch});
+  }
+  async function pendingHandover(scope){
+    const key=handoverKey(scope);
+    return transaction('readonly',(s,done)=>{
+      const q=s.control.get(key);
+      q.onsuccess=()=>done(q.result||null);
+    });
+  }
+  async function withdrawHandover(scope, expected){
+    const key=handoverKey(scope);
+    return transaction('readwrite',(s,done,abort)=>{
+      const request=s.control.get(key),replica=s.replicas.get(scope);let pending=2;
+      const finish=()=>{if(--pending)return;try{
+        const editor=replica.result?.editor;
+        if(!expected||!equal(request.result,expected)||!editor?.active||editor.handoverPending
+          ||editor.deviceId!==deviceId||editor.deviceId!==expected.deviceId||editor.epoch!==expected.epoch)fail('LF_HANDOVER_UNCERTAIN');
+        s.control.delete(key);done(true);
+      }catch(e){abort(e);}};
+      request.onsuccess=replica.onsuccess=finish;
+    });
+  }
+  async function checkpointApplication(application,{exitScope}={}){
     application=await prepareApplication(application);
-    return transaction('readwrite',(s,done,abort)=>applicationChange(s,application,()=>done(true),abort));
+    return transaction('readwrite',(s,done,abort)=>applicationChange(s,application,()=>{
+      if(!exitScope){done(true);return;}
+      const q=s.replicas.get(id(exitScope));
+      q.onsuccess=()=>{try{rememberHandover(s.control,exitScope,q.result?.editor);done(true);}catch(e){abort(e);}};
+    },abort));
   }
   async function checkpointDeletion({application,before,scopes,investorIds,assertAccess}){
     application=await prepareApplication(application);
@@ -118,7 +147,7 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       try{s.control.put(next);continueWrite();}catch(e){abort(e);}
     };
   }
-  async function commit({scope, operationId, value, expectedVersion, base = null, editor = null, blockers = [], protectedRows = {}, application = null}) {
+  async function commit({scope, operationId, value, expectedVersion, base = null, editor = null, blockers = [], protectedRows = {}, application = null, releaseAfterSync = false}) {
     application=await prepareApplication(application);
     id(scope); id(operationId); editor=copy(editor);base=copy(base);blockers=copy(blockers);
     const encoded = json(value), protection = json(protectedRows), hash = await digest(encoded), protectedHash=await digest(protection);
@@ -143,6 +172,7 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
             previousOperation: previous?.key || null, applicationHash:application?.hash||null, editor: copy(editor), phase: blockers.length ? 'blocked' : 'queued', blockers: copy(blockers), expected: null});
           // Retain every protected RAW version; later edits cannot erase its only copy.
           s.protected.add({key: operationId, scope, json: protection,hash:protectedHash});
+          if(releaseAfterSync)rememberHandover(s.control,scope,editor);
           done({ok: true, operationId, version: nextVersion, localConfirmed: true, cloudConfirmed: false});
           },abort);
         } catch(e) { abort(e); }
@@ -187,7 +217,7 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       } catch(e) { abort(e); } }; r.onsuccess = q.onsuccess = finish;
     });
   }
-  async function setEditor(scope, expectedVersion, expectedEditor, nextEditor) {
+  async function setEditor(scope, expectedVersion, expectedEditor, nextEditor, {completeHandover=false}={}) {
     id(scope);
     return transaction('readwrite', (s, done, abort) => {
       const q = s.replicas.get(scope), ops = s.outbox.getAll(); let pending = 2;
@@ -198,11 +228,13 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
         const row = old || {key: scope, version: 0, json: 'null', hash: null, base: null, dirty: false};
         row.editor = copy(nextEditor); row.version++;
         if (row.hash === null) { abort(Error('LF_PROJECT_MUST_BE_RECEIVED')); return; }
-        s.replicas.put(row); done(row);
+        s.replicas.put(row);
+        if(completeHandover)s.control.delete(handoverKey(scope));
+        done(row);
       } catch(e) { abort(e); } }; q.onsuccess = ops.onsuccess = finish;
     });
   }
-  return Object.freeze({ownerUid, deviceId, instanceId, name, snapshot, readCatalogReplica,readApplication,readPreservedSource, initializeApplication, checkpointApplication, checkpointDeletion, commit, transition, apply, setEditor,
+  return Object.freeze({ownerUid, deviceId, instanceId, name, snapshot, readCatalogReplica,readApplication,readPreservedSource, initializeApplication, checkpointApplication, pendingHandover, withdrawHandover, checkpointDeletion, commit, transition, apply, setEditor,
     exclusive: callback => locks.request(name + ':' + instanceId, {mode: 'exclusive'}, () => {if(closed)fail('LF_STORE_CLOSED');return callback();}),
     close() { closed = true; }});
 }

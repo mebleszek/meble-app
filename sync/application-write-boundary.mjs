@@ -23,9 +23,10 @@ export function installApplicationWriteBoundary({window:w,authority,ensureEditor
    if(!navigation.has(action))return operation();
    return reserve(async()=>{
     const scope=w.localStorage.getItem('fc_current_project_id_v1');
-    if(action==='open-room')await ensureEditor();
-    const result=await authority.transaction('auto',operation);
-    if(action==='back-investors'||action==='open-investors-list')await onExit(scope);
+    if(action==='open-room')await ensureEditor(undefined,{reopen:true});
+    const exit=action==='back-investors'||action==='open-investors-list';
+    const result=await authority.transaction('auto',operation,exit?{exitScope:scope}:undefined);
+    if(exit)await onExit(scope);
     return result;
    }).catch(refused);
   }};
