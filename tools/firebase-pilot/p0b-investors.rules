@@ -1,0 +1,78 @@
+    // P0-B emulator candidate. Shared contacts, revision and project registry are owner-scoped.
+    // Registry values are booleans (active leases), introduced one key at a time by a paired editor write.
+    function invRef(uid, iid) {
+      return /databases/$(database)/documents/users/$(uid)/localFirstInvestors/$(iid);
+    }
+    function invEditorRef(uid, pid) {
+      return /databases/$(database)/documents/users/$(uid)/localFirstEditors/$(pid);
+    }
+    function invHeadRef(uid, pid) {
+      return /databases/$(database)/documents/users/$(uid)/localFirstProjects/$(pid);
+    }
+    function invId(id) {
+      return id is string && id.matches('^[A-Za-z0-9_-]{1,128}$');
+    }
+    function invContact(d) {
+      return d is map && d.keys().size() == 5 && d.keys().hasOnly(['name','phone','email','address','notes'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 200
+        && d.phone is string && d.phone.size() <= 64 && d.email is string && d.email.size() <= 254
+        && d.address is string && d.address.size() <= 500 && d.notes is string && d.notes.size() <= 4000;
+    }
+    function invShape(d, uid, iid) {
+      return invId(iid) && d.keys().size() == 9
+        && d.keys().hasOnly(['ownerUid','investorId','schemaVersion','generation','contactRevision','contact','projects','lastProject','deletionId'])
+        && d.ownerUid == uid && d.investorId == iid && d.schemaVersion == 1
+        && d.generation is int && d.generation > 0 && d.contactRevision is int && d.contactRevision > 0
+        && d.projects is map && d.projects.size() <= 512
+        && (d.lastProject == '' || invId(d.lastProject))
+        && ((d.deletionId == '' && invContact(d.contact))
+          || (invId(d.deletionId) && d.contact == {} && d.lastProject == ''));
+    }
+    function invRegistered(uid, iid, pid) {
+      let inv = get(invRef(uid,iid)).data;
+      return inv.deletionId == '' && pid in inv.projects;
+    }
+    function invCanPublish(uid, iid, pid) {
+      let inv = getAfter(invRef(uid,iid)).data;
+      return inv.deletionId == '' && inv.projects.get(pid,false) == true;
+    }
+    function invEditorPair(uid, pid, e) {
+      let before = get(invRef(uid,e.investorId)).data;
+      let after = getAfter(invRef(uid,e.investorId)).data;
+      return before.deletionId == '' && after.deletionId == ''
+        && after.generation == before.generation + 1 && after.lastProject == pid
+        && after.projects[pid] == e.active && before.projects.get(pid,false) != e.active;
+    }
+    function invRegistryChange(uid, iid, before, after) {
+      let pid = after.lastProject;
+      let e = getAfter(invEditorRef(uid,pid)).data;
+      return invId(pid) && after.diff(before).affectedKeys().hasOnly(['generation','lastProject','projects'])
+        && after.projects.diff(before.projects).affectedKeys().hasOnly([pid])
+        && after.projects.diff(before.projects).affectedKeys().size() == 1
+        && after.projects[pid] is bool && e.investorId == iid && e.active == after.projects[pid]
+        && (!exists(invEditorRef(uid,pid)) || get(invEditorRef(uid,pid)).data.active != e.active);
+    }
+    function invContactChange(before, after) {
+      return after.diff(before).affectedKeys().hasOnly(['generation','contactRevision','contact'])
+        && after.contactRevision == before.contactRevision + 1;
+    }
+    function invDelete(before, after) {
+      return after.diff(before).affectedKeys().hasOnly(['generation','deletionId','contact','lastProject'])
+        && after.deletionId != '' && !before.projects.values().hasAny([true]);
+    }
+    match /users/{uid}/localFirstInvestors/{iid} {
+      allow get: if globalApproved(uid);
+      allow list: if globalApproved(uid) && request.query.limit != null && request.query.limit <= 100;
+      allow create: if globalApproved(uid) && invShape(request.resource.data,uid,iid)
+        && request.resource.data.generation == 1 && request.resource.data.contactRevision == 1
+        && request.resource.data.projects == {} && request.resource.data.lastProject == ''
+        && request.resource.data.deletionId == '';
+      allow update: if globalApproved(uid) && invShape(request.resource.data,uid,iid) && resource.data.deletionId == ''
+        && request.resource.data.generation == resource.data.generation + 1
+        && (request.resource.data.deletionId != ''
+          ? invDelete(resource.data,request.resource.data)
+          : (resource.data.projects == request.resource.data.projects
+            ? invContactChange(resource.data,request.resource.data)
+            : invRegistryChange(uid,iid,resource.data,request.resource.data)));
+      allow delete: if false;
+    }

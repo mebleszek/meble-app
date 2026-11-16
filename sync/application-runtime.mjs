@@ -1,6 +1,7 @@
 // Normal-startup composition of the released LOCAL-FIRST components; inert import.
 import {completeMissingApplicationGlobals,emptyInstallationRows} from './application-initial-state.mjs';
 import {openLocalFirstStore} from './local-first-idb.mjs';
+import {createLocalDeviceLabel} from './local-device-label.mjs';
 import {createGlobalChannel} from './local-first-sync.mjs';
 import {createProjectChannel} from './local-first-project.mjs';
 import {createApplicationReplication,createEmulatorProjectDiscovery,createApplicationCommitter,projectApplicationRows} from './application-replication.mjs';
@@ -180,6 +181,9 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   const wakeReceive=()=>queueMicrotask(()=>{if(!incomingBlocked||closed)return;try{authority.assertIdle();incomingBlocked=false;sync?.notify();}catch(_){}});
   w.addEventListener('click',wakeReceive,{capture:true,passive:true});
   const bind=()=>{
+   fc.localDeviceLabel=createLocalDeviceLabel({storage:w.localStorage,deviceId:store.deviceId,assertAccess(){
+    if(closed)fail('LF_CLOSED');w.__FC_MAIN_ACCESS__.assert();
+   }});
    boundary=installApplicationWriteBoundary({window:w,authority,ensureEditor,localOnly,onExit:deferHandover});
    if(localOnly)deletion=installLocalInvestorDeletion({window:w,store,authority,boundary});
    fc.applicationSyncActions.install(createApplicationActionBinding({window:w,authority,onExit:deferHandover,onClose:()=>{closed=true;sync?.close();deletion?.close();boundary.close();}}));

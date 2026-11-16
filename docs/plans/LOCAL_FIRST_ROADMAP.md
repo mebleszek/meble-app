@@ -23,7 +23,7 @@ Decyzje właściciela z 14.11.2026 oraz kontrakt P0-B z 16.11.2026. Status dotyc
 
 ## P0-B — usuwanie inwestorów i wyłączność projektu
 
-**Status: BLOCKED.** Kontrakt zatwierdzony przez właściciela 16.11.2026. Implementacja czeka na zatwierdzenie kontraktu danych, Rules i zgodności ze starszymi klientami. [Stan i dowody](../../CURRENT_STATE.md#p0-b--wyłączność-projektu-i-usuwanie-inwestorów-16112026).
+**Status: kandydat w emulatorze, aktywacja BLOCKED.** Kontrakt zatwierdzony przez właściciela 16.11.2026. Przygotowano izolowany protokół i Rules oraz lokalny zapis nazwy urządzenia. Wdrożenie wymaga zatwierdzenia zgodności danych i starszych klientów oraz atomowego usuwania zbiorczego. [Stan i dowody](../../CURRENT_STATE.md#p0-b--wyłączność-projektu-i-usuwanie-inwestorów-16112026).
 
 **Wyłączność i dane wspólne.** Dany projekt może być otwarty na jednym urządzeniu. Różne projekty tego samego inwestora mogą być otwarte równocześnie na różnych urządzeniach. Każdy projekt zachowuje własną blokadę i CAS. Zapis projektu chroni pozostałe projekty i wspólną kartotekę inwestora. Edycja kartoteki musi sprawdzać niezależną rewizję danych wspólnych i zachować zmiany w razie konfliktu.
 

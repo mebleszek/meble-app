@@ -134,6 +134,25 @@
     card.appendChild(dom.makeAccordion ? dom.makeAccordion('Dane firmy', [companyGrid], { open:true }) : companyGrid);
     card.appendChild(dom.makeAccordion ? dom.makeAccordion('Transport i trasy', [transportGrid], { open:false, infoMessage:'Adres klienta zostaje przy inwestorze. Tutaj ustawiasz adres startowy firmy, własny klucz ORS oraz zasady przeliczania kilometrów do kosztu transportu. Integracja jest darmowa tylko w limitach OpenRouteService i nie korzysta z Google Maps API.' }) : transportGrid);
 
+    const deviceLabel = FC.localDeviceLabel;
+    if(deviceLabel){
+      let label = deviceLabel.read();
+      const field = makeInputField('Nazwa urządzenia', label, value=>{ label = value; }, {
+        hint:'Zapisywana na tym urządzeniu. Może być widoczna przy blokadzie projektu.'
+      });
+      const input = field.querySelector('input');
+      input.maxLength = 64;
+      const saveLabel = h('button', {type:'button', class:'btn btn-success', text:'Zapisz nazwę urządzenia'});
+      saveLabel.addEventListener('click', ()=>{
+        try{ label = deviceLabel.write(label); }
+        catch(_){ dom.info?.('Nie zapisano nazwy urządzenia','Sprawdź nazwę i spróbuj ponownie.'); return; }
+        input.value = label;
+        dom.info?.('Zapisano nazwę urządzenia','Nazwa jest zapisana na tym urządzeniu.');
+      });
+      card.appendChild(field);
+      card.appendChild(h('div', {class:'data-settings-actions'}, [saveLabel]));
+    }
+
     const actions = h('div', { class:'data-settings-actions data-settings-defaults-actions' });
     const resetBtn = h('button', { type:'button', class:'btn btn-danger', text:'Przywróć firmę' });
     const cancelBtn = h('button', { type:'button', class:'btn btn-primary', text:'Anuluj zmiany' });
