@@ -23,6 +23,20 @@ Lokalne pole „Nazwa urządzenia” korzysta z istniejącego `deviceId`. Zapis 
 
 Test kandydata uruchamia się w `tools/firebase-pilot` komendą `npx firebase emulators:exec --config firebase.json --project demo-meble-app --only auth,firestore --non-interactive "node --test p0b-investor-rules.test.mjs"`. To osobna kontrola emulatorowa bramki, bez wykonania wydaniowego CI.
 
+### P0-B — obecność, usunięcie grupy i ustawienia urządzenia
+
+Punkt wejścia `c6283be7efd8ee4928f849d8cc5eeb317a19db30`. **STOP aktywacji / CI_PENDING / RELEASE_BLOCKED.**
+
+- W ustawieniach „Dane firmy i transport” wspólny „Zapisz” potwierdza zmieniony profil firmy, a następnie lokalną nazwę urządzenia. Zapis samej nazwy pomija synchroniczny profil firmy. Przy odmowie zapisu nazwy formularz zachowuje wpisaną wartość i zgłasza częściowy wynik, jeśli profil firmy został już utrwalony. „Anuluj zmiany” przywraca zapisane wartości. „Przywróć firmę” zachowuje bieżącą nazwę urządzenia.
+- W izolowanym kandydacie Rules wejścia do kartoteki i blokady projektów są odrębnymi wpisami trwałego rejestru. Otwarcie kartoteki wstrzymuje usuwanie. Blokada projektu nie wygasa automatycznie. Widok listy z podłączonym dostawcą emulatora pokazuje zweryfikowaną blokadę z urządzeniem, aktualizuje checkbox i odznacza po zmianie zajętości. Offline stan jest niepotwierdzony. Nazwy pokoi wymagają osobnego wiarygodnego źródła.
+- Usuwanie wielu inwestorów w kandydacie etapuje rezerwacje z kontrolą generacji i zajętości każdego celu. Wspólny, terminalny wpis decyzji przełącza logiczny stan wszystkich celów. Rezerwacje przed decyzją pozostawiają dane widoczne i blokują nową edycję. Rules odrzucają przedwczesny commit i zmianę decyzji terminalnej. Konflikt pozwala wycofać rezerwacje. Dziennik IndexedDB potwierdza ACK odczytem decyzji albo wznawia jeszcze niezatwierdzone przygotowanie. Prototyp ogranicza jeden wybór do 512 inwestorów i sprawdzono rzeczywisty wybór dwóch.
+- Pełna kartoteka kandydata używa ograniczonego, walidowanego obiektu JSON i zachowuje także zagnieżdżone pola historyczne. Oddzielenie starszego pola pomieszczeń wymaga pełnego dowodu identyczności z danymi projektów. Protokół wykrywa rozbieżności i nie uruchamia migracji. Odkrywanie projektów przegląda strony autorytatywnych kartotek i ich rejestry, po czym sprawdza opublikowane głowy. Stare snapshoty nie są źródłem wspólnej kartoteki.
+- Adapter emulatora stosuje potwierdzony tombstone atomowym checkpointem IndexedDB w obrazie bez zsynchronizowanych replik w wybranych zakresach. Zachowuje kopie, katalogi i dane innych inwestorów. Przy replice lub wpisie outboxa istniejąca bramka odmawia zapisu, aby zachować pracę offline.
+
+**Wyniki celowane.** PASS 3/3 w emulatorach Firestore/Auth i dwóch profilach Chromium. Testy obejmują kartotekę i checkboxy, wyścig wybranego inwestora z rezerwacją, wznowienie grupy po częściowym przygotowaniu, reconnect, utratę ACK, restart, odmowy odtworzenia i zachowanie obcych danych. Formularz potwierdził oba kierunki awarii zapisu i zachowanie wpisanej nazwy. Istniejący smoke lokalnego usuwania i ustawień, kontrola manifestu oraz statyczna kontrola planu CI przeszły.
+
+**Bramka produkcyjna.** Najpierw uzgodnić przejście istniejącego obrazu i protokołu na kompletne rejestry, oraz sposób uzgodnienia replik i outboxa przy już potwierdzonym tombstone. Kandydat nie jest podłączony w normalnym starcie do obecności, listy i zatwierdzenia usunięcia. Widok testowano z rzeczywistym dostawcą emulatora. Po integracji wymagany pełny przepływ od przycisku i dotychczasowego podsumowania do lokalnego ACK i weryfikacji odtwarzania. Starsza wersja offline może widzieć ostatni lokalny obraz do reconnect. TEST Rules sprawdza odmowy starej ścieżki po stronie emulatora. Brak migracji i Firebase LIVE.
+
 ## Operacje pomieszczeń i potwierdzenie zapisu, 16.11.2026
 
 Gałąź `fix/room-operations-durable-save-20261115`, BASE/main `12ffaeaa9307197c742a0b8d5d95d3b96489a138`. [Kontrakt LOCAL-FIRST](docs/plans/LOCAL_FIRST_ROADMAP.md).

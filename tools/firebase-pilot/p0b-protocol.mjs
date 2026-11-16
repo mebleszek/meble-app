@@ -1,5 +1,58 @@
 // Emulator candidate for new, explicitly seeded investor records.
-import {assertEmulator, equal, fail, id} from '../../sync/local-first-values.mjs';
+import {assertEmulator, equal, fail, id, json} from '../../sync/local-first-values.mjs';
+import {p0bDeletionGroup} from './p0b-deletion-group.mjs';
+
+function checkContact(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.hasOwn(value,'rooms'))
+    fail('LF_P0B_CONTACT_INVALID');
+  checkContactFields(value);
+}
+
+function checkContactFields(value) {
+  for(const [key,field] of Object.entries(value)){
+    if(['apiKey','accessToken','refreshToken','privateKey','password'].includes(key))
+      fail('LF_P0B_CONTACT_INVALID');
+    if(Number.isInteger(field) && !Number.isSafeInteger(field)) fail('LF_P0B_CONTACT_INVALID');
+    if(field && typeof field==='object') checkContactFields(field);
+  }
+}
+
+export function encodeP0BContact(value, iid) {
+  const serialized = json(value);
+  checkContact(value);
+  if (Object.hasOwn(value,'id') && value.id !== iid || serialized.length <= 2 || serialized.length > 100000)
+    fail('LF_P0B_CONTACT_INVALID');
+  return serialized;
+}
+
+export function splitP0BLegacyContact(raw, verifiedProjectRooms) {
+  const {rooms,...contact}=raw;
+  // Moving the mirror requires a proof of its entire contents, including unknown fields.
+  if(!Array.isArray(rooms) || !Array.isArray(verifiedProjectRooms) || !equal(rooms,verifiedProjectRooms))
+    fail('LF_P0B_ROOM_OWNERSHIP_UNCONFIRMED');
+  return {contact:JSON.parse(encodeP0BContact(contact,raw.id)),rooms:structuredClone(verifiedProjectRooms)};
+}
+
+function isIdle(record) {
+  return !Object.values(record.projects).some(Boolean) && !Object.keys(record.visits).length;
+}
+
+export function validateP0BDeletionIntent(intent) {
+  id(intent.operationId);
+  if(intent.targets){
+    const targets = Object.entries(intent.targets);
+    if(targets.length < 2 || targets.length > 512) fail('LF_P0B_DELETE_INTENT_INVALID');
+    for(const [iid,generation] of targets) {
+      id(iid);
+      if(!Number.isSafeInteger(generation) || generation < 1) fail('LF_P0B_DELETE_INTENT_INVALID');
+    }
+    json(intent.targets);
+    return {operationId:intent.operationId,targets:Object.fromEntries(targets.sort(([a],[b])=>a.localeCompare(b)))};
+  }
+  id(intent.investorId);
+  if(!Number.isSafeInteger(intent.expectedGeneration) || intent.expectedGeneration < 1) fail('LF_P0B_DELETE_INTENT_INVALID');
+  return {operationId:intent.operationId,investorId:intent.investorId,expectedGeneration:intent.expectedGeneration};
+}
 
 export function createP0BProtocol(connection, deviceId) {
   id(deviceId);
@@ -19,6 +72,7 @@ export function createP0BProtocol(connection, deviceId) {
   function active(record) {
     if (!record || record.schemaVersion !== 1) fail('LF_P0B_REGISTRY_REQUIRED');
     if (record.deletionId) fail('LF_P0B_INVESTOR_DELETED');
+    if (record.bulkId) fail('LF_P0B_DELETE_CONFLICT');
     return record;
   }
   const transaction = work => {
@@ -31,11 +85,41 @@ export function createP0BProtocol(connection, deviceId) {
     }, {maxAttempts:1});
   };
 
-  async function investor(iid) {
+  async function readServer(ref) {
     guard();
-    const result = read(await f.getDocFromServer(investorRef(iid)));
+    const record=read(await f.getDocFromServer(ref));
     guard();
-    return result;
+    return record;
+  }
+  const groups=p0bDeletionGroup({uid,ref,investorRef,transaction,read,readServer,isIdle});
+  async function projectInvestor(record) {
+    if(!record) return null;
+    const group=record.bulkId ? await groups.state(record.bulkId) : null;
+    if(record.bulkId && (!group || group.prepared[record.investorId] !== true)) fail('LF_P0B_ACK_UNCONFIRMED');
+    if(record.deletionId || group?.phase==='committed')
+      return {...record,deletionId:record.deletionId||group.operationId,contact:null};
+    const contact=JSON.parse(record.contact);
+    if(encodeP0BContact(contact,record.investorId)!==record.contact) fail('LF_P0B_CONTACT_INVALID');
+    return {...record,contact};
+  }
+  async function investor(iid) { return projectInvestor(await readServer(investorRef(iid))); }
+
+  function changeVisit(iid, token, label, open) {
+    id(token);
+    return transaction(async tx=>{
+      const r=investorRef(iid), current=active(read(await tx.get(r)));
+      const visits={...current.visits}, previous=visits[deviceId];
+      if(open){
+        if(previous?.token===token && previous.label===label) return;
+        if(previous) fail('LF_P0B_VISIT_CONFLICT');
+        if(typeof label!=='string'||label.length>64) fail('LF_P0B_DEVICE_LABEL_INVALID');
+        visits[deviceId]={token,label};
+      }else{
+        if(previous?.token!==token) fail('LF_P0B_VISIT_CONFLICT');
+        delete visits[deviceId];
+      }
+      tx.set(r,{...current,generation:current.generation+1,lastVisit:deviceId,visits});
+    });
   }
 
   async function changeLock({iid, pid, expectedHead, expectedEditor, deviceLabel = ''}, acquire) {
@@ -72,21 +156,82 @@ export function createP0BProtocol(connection, deviceId) {
     return {investorId:intent.investorId, operationId:intent.operationId, generation:record.generation};
   }
 
-  return Object.freeze({
+  const api=Object.freeze({
     investor,
+    openInvestor(iid, token, label='') { return changeVisit(iid,token,label,true); },
+    closeInvestor(iid,token) { return changeVisit(iid,token,'',false); },
+    async listInvestors(){
+      guard();
+      const collection=f.collection(db,'users',uid,'localFirstInvestors'), records=[];
+      let cursor;
+      do{
+        const query=f.query(collection,f.orderBy(f.documentId()),...(cursor?[f.startAfter(cursor)]:[]),f.limit(100));
+        const page=await f.getDocsFromServer(query);
+        guard();
+        for(const doc of page.docs) records.push(await projectInvestor(read(doc)));
+        cursor=page.size===100?page.docs.at(-1):null;
+      }while(cursor);
+      return records;
+    },
+    async listProjectHeads(){
+      const records=await api.listInvestors(), projects=[];
+      for(const record of records){
+        if(record.deletionId) continue;
+        for(const pid of Object.keys(record.projects)){
+          const head=await readServer(headRef(pid));
+          if(head&&(head.investorId!==record.investorId||head.projectId!==pid))
+            fail('LF_P0B_REGISTRY_REQUIRED');
+          projects.push({investorId:record.investorId,projectId:pid,head});
+        }
+      }
+      return projects;
+    },
+    async presence(iid, online){
+      if(!online()) return {state:'unconfirmed'};
+      const inv=await investor(iid);
+      if(!online() || !inv) return {state:'unconfirmed'};
+      if(inv.deletionId) return {state:'deleted'};
+      const projects=[];
+      for(const [pid,held] of Object.entries(inv.projects)){
+        if(!held) continue;
+        const editor=await readServer(editorRef(pid));
+        if(!editor?.active || editor.investorId!==iid) return {state:'unconfirmed'};
+        projects.push({projectId:pid,deviceId:editor.deviceId,label:editor.deviceLabel});
+      }
+      if(!online() || (await investor(iid))?.generation!==inv.generation || !online()) return {state:'unconfirmed'};
+      const visits=Object.entries(inv.visits).map(([deviceId,visit])=>({deviceId,label:visit.label}));
+      return {state:projects.length||visits.length||inv.bulkId?'held':'released',projects,visits};
+    },
+    watchPresence(iid, online, receive){
+      let closed=false, request=0;
+      const refresh=()=>{
+        if(closed)return;
+        const version=++request;
+        if(!online()){receive({state:'unconfirmed'});return;}
+        void api.presence(iid,online).then(value=>{
+          if(!closed&&version===request) receive(value);
+        },()=>{if(!closed&&version===request) receive({state:'unconfirmed'});});
+      };
+      guard();
+      const stop=f.onSnapshot(investorRef(iid),refresh,()=>{
+        if(!closed){request++;receive({state:'unconfirmed'});}
+      });
+      refresh();
+      return {refresh,close(){closed=true;stop();}};
+    },
     createInvestor(iid, contact) {
       return transaction(async tx => {
         const ref = investorRef(iid);
         if (read(await tx.get(ref))) fail('LF_P0B_INVESTOR_CONFLICT');
-        tx.set(ref, {ownerUid:uid, investorId:iid, schemaVersion:1, generation:1, contactRevision:1, contact,
-          projects:{}, lastProject:'', deletionId:''});
+        tx.set(ref, {ownerUid:uid, investorId:iid, schemaVersion:1, generation:1, contactRevision:1, contact:encodeP0BContact(contact,iid),
+          projects:{}, lastProject:'', visits:{}, lastVisit:'', bulkId:'', deletionId:''});
       });
     },
     updateContact(iid, expectedRevision, contact) {
       return transaction(async tx => {
         const ref = investorRef(iid), existing = active(read(await tx.get(ref)));
         if (existing.contactRevision !== expectedRevision) fail('LF_P0B_CONTACT_CONFLICT');
-        tx.set(ref, {...existing, contact, contactRevision:expectedRevision+1, generation:existing.generation+1});
+        tx.set(ref, {...existing, contact:encodeP0BContact(contact,iid), contactRevision:expectedRevision+1, generation:existing.generation+1});
       });
     },
     async lockStatus(iid, pid, online) {
@@ -105,30 +250,38 @@ export function createP0BProtocol(connection, deviceId) {
     acquire(args) { return changeLock(args,true); },
     release(args) { return changeLock(args,false); },
     publishDeletion(intent) {
-      id(intent.operationId);
+      intent=validateP0BDeletionIntent(intent);
+      if(intent.targets) return groups.publish(intent);
       return transaction(async tx => {
         const ref = investorRef(intent.investorId), record = read(await tx.get(ref));
         if (record?.deletionId === intent.operationId) { verifyDelete(record,intent); return; }
         const existing = active(record);
         if (existing.generation !== intent.expectedGeneration) fail('LF_P0B_DELETE_CONFLICT');
-        if (Object.values(existing.projects).some(Boolean)) fail('LF_P0B_EDITOR_CONFLICT');
-        const next = {...existing, generation:existing.generation+1, contact:{}, lastProject:'', deletionId:intent.operationId};
+        if (!isIdle(existing)) fail('LF_P0B_EDITOR_CONFLICT');
+        const next = {...existing, generation:existing.generation+1, contact:'', lastProject:'', deletionId:intent.operationId};
         tx.set(ref,next);
         // A caller still needs a fresh read to acknowledge the write.
       });
     },
-    async confirmDeletion(intent) { return verifyDelete(await investor(intent.investorId),intent); }
+    async confirmDeletion(intent) {
+      intent=validateP0BDeletionIntent(intent);
+      return intent.targets?groups.confirm(intent):verifyDelete(await investor(intent.investorId),intent);
+    }
   });
+  return api;
 }
 
 export function createP0BDeletionIntent(selection, operationId) {
-  // A batch must be defined and verified as one protocol before any constituent write.
-  if (selection.length !== 1) fail('LF_P0B_BULK_ATOMICITY_REQUIRED');
-  const [record] = selection;
-  id(operationId); id(record?.investorId);
-  if (record.schemaVersion !== 1 || record.deletionId || !Number.isSafeInteger(record.generation)) fail('LF_P0B_REGISTRY_REQUIRED');
-  if (Object.values(record.projects).some(Boolean)) fail('LF_P0B_EDITOR_CONFLICT');
-  return {operationId, investorId:record.investorId, expectedGeneration:record.generation};
+  for(const record of selection){
+    if (record.schemaVersion !== 1 || record.deletionId || record.bulkId) fail('LF_P0B_REGISTRY_REQUIRED');
+    if (!isIdle(record)) fail('LF_P0B_EDITOR_CONFLICT');
+  }
+  if(new Set(selection.map(record=>record.investorId)).size!==selection.length) fail('LF_P0B_DELETE_INTENT_INVALID');
+  if(selection.length===1){
+    const [record]=selection;
+    return validateP0BDeletionIntent({operationId,investorId:record.investorId,expectedGeneration:record.generation});
+  }
+  return validateP0BDeletionIntent({operationId,targets:Object.fromEntries(selection.map(record=>[record.investorId,record.generation]))});
 }
 
 export function inspectP0BCompatibility({records, projectHeads, snapshots}) {

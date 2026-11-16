@@ -3,7 +3,7 @@ import test from 'node:test';
 import {createRequire} from 'node:module';
 import {assertFails, initializeTestEnvironment} from '@firebase/rules-unit-testing';
 import * as f from 'firebase/firestore';
-import {createP0BProtocol, createP0BDeletionIntent, inspectP0BCompatibility, projectP0BContact} from './p0b-protocol.mjs';
+import {createP0BProtocol, createP0BDeletionIntent, inspectP0BCompatibility, projectP0BContact, splitP0BLegacyContact} from './p0b-protocol.mjs';
 
 const {p0bApplicationRules} = createRequire(import.meta.url)('./p0b-application-rules.js');
 const uid = 'synthetic-p0b-owner';
@@ -38,6 +38,16 @@ export async function p0bFixture(t) {
   }
   return {env, client};
 }
+
+test('P0-B lossless contact envelope with explicitly verified project rooms',()=>{
+  const rooms=[{id:'kitchen',futureRoomField:'retained'}];
+  const raw={id:'fixture',kind:'company',companyName:'Firma',nip:'0010',city:'Łódź',rooms,
+    transport:{distanceKm:'17.45'},carrying:{floor:'3',future:{precision:17.125}},legacyExtension:[null,true]};
+  const split=splitP0BLegacyContact(raw,rooms);
+  assert.deepEqual({...split.contact,rooms:split.rooms},raw);
+  assert.throws(()=>splitP0BLegacyContact(raw,[]),{code:'LF_P0B_ROOM_OWNERSHIP_UNCONFIRMED'});
+  assert.throws(()=>splitP0BLegacyContact({...raw,meta:{accessToken:'synthetic'}},rooms),{code:'LF_P0B_CONTACT_INVALID'});
+});
 
 test('P0-B candidate Rules: owner CAS, registry, atomic investor deletion, stale clients and read budget',async t=>{
   const {env,client} = await p0bFixture(t);
@@ -103,6 +113,9 @@ test('P0-B candidate Rules: owner CAS, registry, atomic investor deletion, stale
     globalRevisionId:gid,globalDirectoryHash:sha,updatedAt:f.serverTimestamp()});
   await write.commit(); // Existing checked head/revision transaction, with new registry checks.
   const history=(await f.getDocFromServer(revision)).data();
+  const discovered=await phone.listProjectHeads();
+  assert.equal(discovered.find(record=>record.projectId==='kitchen').head.currentRevisionId,rid);
+  assert.equal(discovered.find(record=>record.projectId==='wardrobe').head,null,'A registered project can still await its first revision');
   const latest = 'd'.repeat(32), largest = {...content,chunkCount:7,byteLength:6*131072+1};
   const maxRevision = f.doc(head,'revisions',latest), stage = f.writeBatch(db);
   stage.set(maxRevision,{...largest,revisionId:latest,generationCandidate:2,baseGeneration:1,baseRevisionId:rid,
@@ -137,7 +150,35 @@ test('P0-B candidate Rules: owner CAS, registry, atomic investor deletion, stale
     assert.deepEqual((await f.getDoc(ref(db,'globalRevisions',gid))).data(),{revisionId:gid,directoryHash:sha});
   });
   const zero=await pc.investor('zero');
-  assert.throws(()=>createP0BDeletionIntent([zero,beforeOther],'bulk'),{code:'LF_P0B_BULK_ATOMICITY_REQUIRED'});
+  await pc.createInvestor('batch-a',{...contact,city:'Łódź',carrying:{floor:3},legacyExtension:{precise:17.125}});
+  await pc.createInvestor('batch-z',{...contact,kind:'company',companyName:'Firma',transport:{distanceKm:'17.4'}});
+  const ids=['batch-a','batch-z'];
+  const selection=()=>Promise.all(ids.map(pc.investor));
+  const stale=createP0BDeletionIntent(await selection(),'bulk-stale');
+  await phone.openInvestor('batch-z','tab-phone','Telefon');
+  await assert.rejects(pc.publishDeletion(stale),{code:'LF_P0B_DELETE_CONFLICT'});
+  assert.ok((await selection()).every(record=>!record.deletionId&&!record.bulkId));
+  await assert.rejects(pc.closeInvestor('batch-z','tab-phone'),{code:'LF_P0B_VISIT_CONFLICT'});
+  await phone.closeInvestor('batch-z','tab-phone');
+  const group=createP0BDeletionIntent(await selection(),'bulk-good');
+  const op=ref(db,'p0bDeletionGroups',group.operationId), a=ref(db,'localFirstInvestors','batch-a');
+  await f.setDoc(op,{ownerUid:uid,operationId:group.operationId,targets:group.targets,prepared:{},last:'',phase:'preparing'});
+  await assertFails(f.updateDoc(op,{phase:'committed'}));
+  const stageOne=f.writeBatch(db);
+  stageOne.update(a,{bulkId:group.operationId,generation:group.targets['batch-a']+1});
+  stageOne.update(op,{last:'batch-a',prepared:{'batch-a':true}});
+  await stageOne.commit();
+  await assertFails(f.updateDoc(op,{phase:'committed'}));
+  assert.ok((await selection()).every(record=>!record.deletionId));
+  assert.equal((await pc.investor('batch-a')).contact.legacyExtension.precise,17.125);
+  await assert.rejects(phone.openInvestor('batch-a','new-visit'),{code:'LF_P0B_DELETE_CONFLICT'});
+  assert.ok((await pc.listInvestors()).some(record=>record.investorId==='batch-z'));
+  await pc.publishDeletion(group);
+  assert.deepEqual((await pc.confirmDeletion(group)).investorIds,ids);
+  assert.ok((await selection()).every(record=>record.deletionId===group.operationId&&record.contact===null));
+  await assertFails(f.updateDoc(op,{phase:'cancelled'}));
+  await assertFails(f.updateDoc(a,{bulkId:'',generation:group.targets['batch-a']+2}));
+  assert.deepEqual((await pc.investor('other')),beforeOther);
   assert.deepEqual(await pc.investor('zero'),zero);
   await pc.publishDeletion(createP0BDeletionIntent([zero],'zero-delete'));
   assert.equal((await phone.investor('zero')).deletionId,'zero-delete');
@@ -175,13 +216,13 @@ test('P0-B two real Chromium profiles: local label, offline intent, lost ACK, re
   });
   assert.equal(authResponse.ok,true);
   const assets=new Map([
-    ...['p0b-protocol','p0b-deletion-journal'].map(name=>['/tools/firebase-pilot/'+name+'.mjs','tools/firebase-pilot/'+name+'.mjs']),
-    ...['local-first-values','local-device-label'].map(name=>['/sync/'+name+'.mjs','sync/'+name+'.mjs']),
+    ...['p0b-protocol','p0b-deletion-group','p0b-deletion-journal','p0b-local-tombstone'].map(name=>['/tools/firebase-pilot/'+name+'.mjs','tools/firebase-pilot/'+name+'.mjs']),
+    ...['local-first-values','local-device-label','local-first-idb','application-release','application-writer-fence'].map(name=>['/sync/'+name+'.mjs','sync/'+name+'.mjs']),
     ...['app','auth','firestore'].map(name=>['/__sdk/firebase-'+name+'.js','tools/firebase-pilot/node_modules/firebase/firebase-'+name+'.js']),
-    ...['ui/data-settings-dom','ui/data-settings-company-view','settings/company-profile-store'].map(name=>['/js/app/'+name+'.js','js/app/'+name+'.js'])
+    ...['ui/data-settings-dom','ui/data-settings-company-view','settings/company-profile-store','investor/investor-ui','investor/investor-ui-render','investor/investor-deletion'].map(name=>['/js/app/'+name+'.js','js/app/'+name+'.js'])
   ]);
   const server=http.createServer((req,res)=>{
-    if(req.url==='/'){res.setHeader('content-type','text/html; charset=utf-8');res.end('<!doctype html><meta charset="utf-8"><main id="company"></main>');return;}
+    if(req.url==='/'){res.setHeader('content-type','text/html; charset=utf-8');res.end('<!doctype html><meta charset="utf-8"><main id="company"></main><section id="list"></section>');return;}
     const file=assets.get(req.url);if(!file){res.writeHead(404).end();return;}
     res.setHeader('content-type','text/javascript; charset=utf-8');
     res.end(fs.readFileSync(path.join(root,file),'utf8').replaceAll('https://www.gstatic.com/firebasejs/12.19.0/','/__sdk/'));
@@ -231,12 +272,60 @@ test('P0-B two real Chromium profiles: local label, offline intent, lost ACK, re
     return FC.companyProfile.read();
   });
   await pc.page.getByLabel('Nazwa urządzenia').fill('  Komputer w pracowni  ');
-  await pc.page.getByRole('button',{name:'Zapisz nazwę urządzenia'}).click();
+  const save=pc.page.getByRole('button',{name:'Zapisz',exact:true});
+  await pc.page.getByRole('button',{name:'Przywróć firmę'}).click();
+  assert.equal(await pc.page.getByLabel('Nazwa urządzenia').inputValue(),'  Komputer w pracowni  ');
+  await pc.page.getByRole('button',{name:'Anuluj zmiany'}).click();
+  assert.equal(await pc.page.getByLabel('Nazwa urządzenia').inputValue(),'');
+  await pc.page.getByLabel('Nazwa urządzenia').fill('  Komputer w pracowni  ');
+  await save.click();
+  assert.equal(await pc.page.getByRole('button',{name:'Zapisz nazwę urządzenia'}).count(),0);
   assert.equal(await pc.page.evaluate(()=>FC.localDeviceLabel.read()),'Komputer w pracowni');
   assert.deepEqual(await pc.page.evaluate(()=>FC.companyProfile.read()),companyBefore);
   assert.equal(await phone.page.evaluate(()=>FC.localDeviceLabel.read()),'');
+  await pc.page.evaluate(()=>{
+    window.notices=[];
+    FC.infoBox={open:notice=>notices.push(notice)};
+    FC.applicationWrite={handler:()=>async()=>false};
+    FC.dataSettingsCompanyView.render(document.getElementById('company'));
+  });
+  await pc.page.getByLabel('Nazwa robocza').fill('DEMO firma');
+  await pc.page.getByLabel('Nazwa urządzenia').fill('Nazwa po awarii');
+  await save.click();
+  assert.deepEqual(await pc.page.evaluate(()=>FC.companyProfile.read()),companyBefore);
+  assert.equal(await pc.page.evaluate(()=>FC.localDeviceLabel.read()),'Komputer w pracowni');
+  assert.equal(await pc.page.evaluate(()=>notices.some(n=>n.title==='Zapisano')),false);
+  await pc.page.evaluate(()=>{
+    window.goodDeviceLabel=FC.localDeviceLabel;
+    FC.localDeviceLabel={read:goodDeviceLabel.read,write(){throw Error('Synthetic label failure');}};
+    delete FC.applicationWrite;
+    FC.dataSettingsCompanyView.render(document.getElementById('company'));
+  });
+  await pc.page.getByLabel('Nazwa robocza').fill('DEMO firma');
+  await pc.page.getByLabel('Nazwa urządzenia').fill('Nazwa po awarii');
+  await save.click();
+  assert.equal(await pc.page.evaluate(()=>FC.companyProfile.read().company.displayName),'DEMO firma');
+  assert.equal(await pc.page.evaluate(()=>goodDeviceLabel.read()),'Komputer w pracowni');
+  assert.equal(await pc.page.getByLabel('Nazwa urządzenia').inputValue(),'Nazwa po awarii');
+  assert.deepEqual(await pc.page.evaluate(()=>notices.map(n=>n.title)),['Zapis niepełny']);
+  await pc.page.evaluate(()=>{FC.localDeviceLabel=goodDeviceLabel;});
 
   await pc.page.evaluate(data=>proto.createInvestor('browser-investor',data),contact);
+  for (const name of ['investor/investor-ui-render','investor/investor-ui'])
+    await phone.page.addScriptTag({url:'/js/app/'+name+'.js'});
+  await phone.page.evaluate(()=>{
+    FC.investorPersistence={searchInvestors:()=>[{id:'browser-investor',name:'Inwestor DEMO'}]};
+    FC.projectStore={getById:id=>id==='kitchen-browser'?{title:'Kuchnia'}:{title:'Garderoba'}};
+    FC.investorPresence=proto;
+    FC.investorUI.state.deleteMode=true;
+    FC.investorUI.renderListOnly(document.getElementById('list'));
+  });
+  const choice=phone.page.getByRole('checkbox',{name:'Zaznacz do usunięcia: Inwestor DEMO'});
+  await choice.check();
+  await pc.page.evaluate(()=>proto.openInvestor('browser-investor','kartoteka-pc',FC.localDeviceLabel.read()));
+  await phone.page.waitForFunction(()=>document.querySelector('#list input[type=checkbox]').disabled&&FC.investorUI.state.deleteIds.length===0);
+  assert.equal(await choice.isChecked(),false);
+  await phone.page.getByText('Kartoteka · Komputer w pracowni',{exact:true}).waitFor();
   const kitchen=await pc.page.evaluate(()=>proto.acquire({
     iid:'browser-investor',pid:'kitchen-browser',expectedHead:'',deviceLabel:FC.localDeviceLabel.read()
   }));
@@ -245,15 +334,34 @@ test('P0-B two real Chromium profiles: local label, offline intent, lost ACK, re
   assert.equal(wardrobe.deviceLabel,'Telefon');
   assert.deepEqual(await phone.page.evaluate(()=>proto.lockStatus('browser-investor','kitchen-browser',()=>navigator.onLine)),
     {state:'held',deviceId:'p0b-pc',deviceLabel:'Komputer w pracowni'});
+  await phone.page.getByText(/Kuchnia · Komputer w pracowni/).waitFor();
+  await phone.page.evaluate(()=>{
+    FC.investorUI.state.deleteMode=false;
+    FC.investorUI.renderListOnly(document.getElementById('list'));
+  });
+  await phone.page.getByText(/Kartoteka · Komputer w pracowni/).waitFor();
   await phone.context.setOffline(true);
   await phone.page.waitForFunction(()=>!navigator.onLine);
   assert.deepEqual(await phone.page.evaluate(()=>proto.lockStatus('browser-investor','kitchen-browser',()=>navigator.onLine)),{state:'unconfirmed'});
+  await phone.page.evaluate(()=>{
+    FC.investorUI.state.deleteMode=true;
+    FC.investorUI.renderListOnly(document.getElementById('list'));
+  });
+  assert.ok(await choice.isDisabled());
+  await phone.page.getByText('Stan zajętości niepotwierdzony',{exact:true}).waitFor();
   await phone.context.setOffline(false);
   await phone.page.waitForFunction(()=>navigator.onLine);
   await assert.rejects(phone.page.evaluate(()=>proto.acquire({iid:'browser-investor',pid:'kitchen-browser',expectedHead:''})),/LF_P0B_EDITOR_CONFLICT/);
   await pc.page.evaluate(expectedEditor=>proto.release({iid:'browser-investor',pid:'kitchen-browser',expectedHead:'',expectedEditor}),kitchen);
   await phone.page.evaluate(expectedEditor=>proto.release({iid:'browser-investor',pid:'wardrobe-browser',expectedHead:'',expectedEditor}),wardrobe);
-  const intent=await pc.page.evaluate(async()=>P0B.createP0BDeletionIntent([await proto.investor('browser-investor')],'browser-delete'));
+  await stop(pc);
+  pc=await device('p0b-pc');
+  assert.equal((await pc.page.evaluate(()=>proto.investor('browser-investor'))).visits['p0b-pc'].token,'kartoteka-pc');
+  await pc.page.evaluate(async()=>proto.closeInvestor('browser-investor',(await proto.investor('browser-investor')).visits['p0b-pc'].token));
+  await pc.page.evaluate(data=>proto.createInvestor('browser-other',data),contact);
+  const intent=await pc.page.evaluate(async()=>P0B.createP0BDeletionIntent(
+    await Promise.all(['browser-investor','browser-other'].map(proto.investor)),'browser-delete'
+  ));
 
   await pc.context.setOffline(true);
   await pc.page.waitForFunction(()=>navigator.onLine===false);
@@ -269,7 +377,8 @@ test('P0-B two real Chromium profiles: local label, offline intent, lost ACK, re
   assert.equal(lost.phase,'uncertain');
   const deleted=await phone.page.evaluate(()=>proto.investor('browser-investor'));
   assert.equal(deleted.deletionId,'browser-delete');
-  assert.equal(deleted.generation,intent.expectedGeneration+1);
+  assert.equal(deleted.generation,intent.targets['browser-investor']+1);
+  assert.equal((await phone.page.evaluate(()=>proto.investor('browser-other'))).deletionId,'browser-delete');
   await stop(pc);
   pc=await device('p0b-pc');
   assert.equal(await pc.page.evaluate(()=>FC.localDeviceLabel.read()),'Komputer w pracowni');
@@ -278,8 +387,47 @@ test('P0-B two real Chromium profiles: local label, offline intent, lost ACK, re
     publishDeletion(){throw Error('An uncertain operation must not publish again');},confirmDeletion:proto.confirmDeletion
   },()=>navigator.onLine));
   assert.equal(result.phase,'verified');
-  assert.equal(result.receipt.generation,deleted.generation);
+  assert.deepEqual(result.receipt.investorIds,['browser-investor','browser-other']);
   assert.deepEqual(await pc.page.evaluate(()=>proto.investor('browser-investor')),deleted);
+
+  await pc.page.addScriptTag({url:'/js/app/investor/investor-deletion.js'});
+  const local=await pc.page.evaluate(async({uid,intent})=>{
+    const {openLocalFirstStore}=await import('/sync/local-first-idb.mjs');
+    const {applyP0BTombstone}=await import('/tools/firebase-pilot/p0b-local-tombstone.mjs');
+    const store=await openLocalFirstStore({indexedDB,locks:navigator.locks,name:'meble-lf-test-p0b-local',
+      ownerUid:uid,deviceId:'p0b-pc',instanceId:'fixture',initialize:true});
+    const rows={fc_investors_v1:JSON.stringify([{id:'browser-investor',name:'Owned'},{id:'browser-other',name:'Also owned'},{id:'foreign',name:'Retain'}]),
+      fc_projects_v1:JSON.stringify([{id:'kitchen-browser',investorId:'browser-investor',projectData:{meta:{roomDefs:{kitchen:{}}}}},{id:'foreign-project',investorId:'foreign',projectData:{}}]),
+      fc_quote_snapshots_v1:JSON.stringify([{id:'active-offer',investorId:'browser-investor',projectId:'kitchen-browser'},{id:'retained-offer',investorId:'foreign',projectId:'foreign-project'}]),
+      fc_quote_offer_drafts_v1:JSON.stringify([{id:'active-draft',investorId:'browser-other'}]),fc_edit_session_v1:null,
+      fc_investor_removed_ids_v1:null,fc_current_project_id_v1:null,fc_current_investor_v1:null,fc_ui_v1:null,fc_project_v1:null,
+      fc_project_backup_v1:'exact archived bytes',fc_sheets_v1:'exact catalog bytes'};
+    await store.initializeApplication(rows);
+    const apply=s=>applyP0BTombstone({protocol:proto,intent,store:s,planLocal:FC.investorDeletion.planLocal,assertAccess(){}});
+    await apply(store);
+    const reopened=await store.readApplication(),protectedRows=(await store.snapshot('investor-deletions')).protected;
+    const guarded=await openLocalFirstStore({indexedDB,locks:navigator.locks,name:'meble-lf-test-p0b-guard',
+      ownerUid:uid,deviceId:'p0b-pc',instanceId:'fixture',initialize:true});
+    await guarded.initializeApplication(rows);
+    await guarded.apply({scope:'kitchen-browser',value:{fixture:true},head:null,expectedVersion:0,
+      editor:{deviceId:'p0b-pc',active:true}});
+    await guarded.commit({scope:'kitchen-browser',operationId:'guard-queued',value:{fixture:false},expectedVersion:1,
+      editor:{deviceId:'p0b-pc',active:true}});
+    let refusal;
+    try{await apply(guarded);}catch(error){refusal=error.code||error.message;}
+    return {rows:reopened.rows,receiptCount:protectedRows.length,refusal,guarded:(await guarded.readApplication()).rows,
+      queue:(await guarded.snapshot('kitchen-browser')).operations.map(op=>op.phase)};
+  },{uid,intent});
+  assert.deepEqual(JSON.parse(local.rows.fc_investors_v1).map(row=>row.id),['foreign']);
+  assert.deepEqual(JSON.parse(local.rows.fc_projects_v1).map(row=>row.id),['foreign-project']);
+  assert.deepEqual(JSON.parse(local.rows.fc_quote_snapshots_v1).map(row=>row.id),['retained-offer']);
+  assert.deepEqual(JSON.parse(local.rows.fc_quote_offer_drafts_v1),[]);
+  assert.equal(local.rows.fc_project_backup_v1,'exact archived bytes');
+  assert.equal(local.rows.fc_sheets_v1,'exact catalog bytes');
+  assert.equal(local.receiptCount,1);
+  assert.equal(local.refusal,'DELETE_SYNCED_PROJECT_PROTECTED');
+  assert.equal(JSON.parse(local.guarded.fc_investors_v1).length,3);
+  assert.deepEqual(local.queue,['queued']);
   await assert.rejects(phone.page.evaluate(async()=>P0B.projectP0BContact(
     await proto.investor('browser-investor'),{id:'kitchen-browser',investorId:'browser-investor'},[{id:'archival-offer'}]
   )),/LF_P0B_INVESTOR_DELETED/);

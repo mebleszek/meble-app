@@ -1,6 +1,7 @@
 // Durable deletion intent for the isolated candidate. The existing project outbox
 // requires an active project editor, which is incompatible with investor deletion.
 import {equal,fail,id} from '../../sync/local-first-values.mjs';
+import {validateP0BDeletionIntent} from './p0b-protocol.mjs';
 
 export async function openP0BDeletionJournal({indexedDB, locks, ownerUid, deviceId}) {
   const name = 'meble-lf-test-p0b-delete-v1-' + id(ownerUid) + ':' + id(deviceId);
@@ -49,10 +50,7 @@ export async function openP0BDeletionJournal({indexedDB, locks, ownerUid, device
       });
     },
     enqueue(intent) {
-      id(intent.investorId);
-      if (!Number.isSafeInteger(intent.expectedGeneration) || intent.expectedGeneration < 1)
-        fail('LF_P0B_DELETE_INTENT_INVALID');
-      const exact = {investorId:intent.investorId, operationId:intent.operationId, expectedGeneration:intent.expectedGeneration};
+      const exact = validateP0BDeletionIntent(intent);
       return change(intent.operationId, existing => {
         if (existing) {
           if (!equal(existing.intent,exact)) fail('LF_OPERATION_REUSED');
@@ -66,7 +64,14 @@ export async function openP0BDeletionJournal({indexedDB, locks, ownerUid, device
         let operation = await read(operationId);
         if (!operation) fail('LF_P0B_DELETE_INTENT_REQUIRED');
         if (operation.phase === 'verified' || operation.phase === 'conflict' || !online()) return operation;
-        if (operation.phase === 'queued') {
+        if(operation.phase!=='queued' && operation.intent.targets){
+          // A committed group is acknowledged before any preparation retry.
+          try{
+            const receipt=await protocol.confirmDeletion(operation.intent);
+            return change(operationId,current=>({operationId,intent:current.intent,phase:'verified',receipt}));
+          }catch(_){}
+        }
+        if (operation.phase === 'queued' || operation.intent.targets) {
           operation = await change(operationId,current => ({...current, phase:'inflight'}));
           try { await protocol.publishDeletion(operation.intent); }
           catch (error) {

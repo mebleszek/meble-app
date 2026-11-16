@@ -90,10 +90,53 @@
     return null;
   }
 
+  const presenceSubscriptions = new WeakMap();
+  function stopPresence(root){
+    presenceSubscriptions.get(root)?.();
+    presenceSubscriptions.delete(root);
+  }
+  function bindPresence(root){
+    const provider=FC.investorPresence;
+    if(!provider?.watchPresence) return;
+    const watches=[];
+    const online=()=>navigator.onLine!==false;
+    for(const row of root.querySelectorAll('#invItems .item')){
+      const id=row.dataset.invId;
+      const text=document.createElement('small');
+      text.className='muted xs';
+      row.querySelector('.investor-list-row-text').appendChild(text);
+      const box=row.querySelector('[data-investor-delete-id]');
+      function update(status){
+        const released=status.state==='released'&&online();
+        if(!released) state.deleteIds=state.deleteIds.filter(selected=>selected!==id);
+        if(box){box.disabled=!released;box.checked=released&&state.deleteIds.includes(id);}
+        const entries=status.state==='held'&&online()?[
+          ...(status.visits||[]).map(visit=>'Kartoteka · '+(visit.label||visit.deviceId)),
+          ...(status.projects||[]).map(project=>{
+            const name=FC.projectStore?.getById(project.projectId)?.title||'Projekt '+project.projectId;
+            return name+' · '+(project.label||project.deviceId);
+          })
+        ]:[];
+        text.textContent=entries.join(' • ')||(released?'':status.state==='deleted'?'Usunięto':status.state==='held'&&online()?'Operacja usuwania w toku':'Stan zajętości niepotwierdzony');
+      }
+      update({state:'unconfirmed'});
+      try{watches.push(provider.watchPresence(id,online,update));}catch(_){}
+    }
+    const refresh=()=>{for(const watch of watches) watch.refresh();};
+    window.addEventListener('online',refresh);
+    window.addEventListener('offline',refresh);
+    presenceSubscriptions.set(root,()=>{
+      window.removeEventListener('online',refresh);
+      window.removeEventListener('offline',refresh);
+      for(const watch of watches) watch.close();
+    });
+  }
   function renderList(root){
+    stopPresence(root);
     const list = persistence().searchInvestors(state.query);
     root.innerHTML = buildList(list);
     bindList(root);
+    bindPresence(root);
   }
 
   function renderListOnly(targetEl){
@@ -160,6 +203,7 @@
         return;
       }
       persistUIInvestorId((persistence().getInvestorById(inv.id) ? inv.id : null));
+      stopPresence(root);
       root.innerHTML = buildDetail(inv);
       bindDetail(inv);
       return;
@@ -177,7 +221,7 @@
       input.addEventListener('input', ()=>{ state.query = input.value || ''; renderListOnly(targetEl || getRoot()); });
     }
     root.querySelectorAll('[data-investor-delete-id]').forEach(box=>box.addEventListener('change',()=>{
-      if(!state.deleteMode)return;
+      if(!state.deleteMode || box.disabled)return;
       const ids=new Set(state.deleteIds),id=box.getAttribute('data-investor-delete-id');
       if(box.checked)ids.add(id);else ids.delete(id);state.deleteIds=[...ids];
     }));

@@ -73,9 +73,10 @@
     return wrap;
   }
 
-  function render(scroll){
+  function render(scroll,profileDraft,labelDraft){
     if(!(scroll && h && FC.companyProfile)) return;
-    let draft = FC.companyProfile.normalizeProfile(FC.companyProfile.read());
+    let persistedProfile = FC.companyProfile.normalizeProfile(FC.companyProfile.read());
+    let draft = FC.companyProfile.normalizeProfile(profileDraft || persistedProfile);
     scroll.innerHTML = '';
 
     const card = h('section', { class:'data-settings-card data-settings-company-card' });
@@ -135,37 +136,66 @@
     card.appendChild(dom.makeAccordion ? dom.makeAccordion('Transport i trasy', [transportGrid], { open:false, infoMessage:'Adres klienta zostaje przy inwestorze. Tutaj ustawiasz adres startowy firmy, własny klucz ORS oraz zasady przeliczania kilometrów do kosztu transportu. Integracja jest darmowa tylko w limitach OpenRouteService i nie korzysta z Google Maps API.' }) : transportGrid);
 
     const deviceLabel = FC.localDeviceLabel;
+    let persistedLabel = deviceLabel?.read();
+    let label = labelDraft ?? persistedLabel;
+    let deviceInput;
     if(deviceLabel){
-      let label = deviceLabel.read();
       const field = makeInputField('Nazwa urządzenia', label, value=>{ label = value; }, {
         hint:'Zapisywana na tym urządzeniu. Może być widoczna przy blokadzie projektu.'
       });
-      const input = field.querySelector('input');
-      input.maxLength = 64;
-      const saveLabel = h('button', {type:'button', class:'btn btn-success', text:'Zapisz nazwę urządzenia'});
-      saveLabel.addEventListener('click', ()=>{
-        try{ label = deviceLabel.write(label); }
-        catch(_){ dom.info?.('Nie zapisano nazwy urządzenia','Sprawdź nazwę i spróbuj ponownie.'); return; }
-        input.value = label;
-        dom.info?.('Zapisano nazwę urządzenia','Nazwa jest zapisana na tym urządzeniu.');
-      });
+      deviceInput = field.querySelector('input');
+      deviceInput.maxLength = 64;
       card.appendChild(field);
-      card.appendChild(h('div', {class:'data-settings-actions'}, [saveLabel]));
     }
 
     const actions = h('div', { class:'data-settings-actions data-settings-defaults-actions' });
     const resetBtn = h('button', { type:'button', class:'btn btn-danger', text:'Przywróć firmę' });
     const cancelBtn = h('button', { type:'button', class:'btn btn-primary', text:'Anuluj zmiany' });
     const saveBtn = h('button', { type:'button', class:'btn btn-success', text:'Zapisz' });
-    resetBtn.addEventListener('click', ()=>{ draft = FC.companyProfile.normalizeProfile(FC.companyProfile.DEFAULT_COMPANY_PROFILE); render(scroll); });
+    let saving = false;
+    resetBtn.addEventListener('click', ()=> render(scroll,FC.companyProfile.DEFAULT_COMPANY_PROFILE,label));
     cancelBtn.addEventListener('click', ()=> render(scroll));
-    saveBtn.addEventListener('click', (FC.applicationWrite?.handler||((fn)=>fn))(()=>{
-      const saved = FC.companyProfile.write(draft);
-      if(!saved){ if(dom.info) dom.info('Nie zapisano danych', 'Zmiany pozostały w formularzu. Spróbuj ponownie.'); return false; }
-      draft = saved;
-      refreshSummary();
-      if(dom.info) dom.info('Zapisano', 'Dane firmy i ustawienia transportu zostały zapisane.');
-    }));
+    const saveCompany = (FC.applicationWrite?.handler||((fn)=>fn))(next=>{
+      const saved = FC.companyProfile.write(next);
+      if(!saved){ dom.info?.('Nie zapisano danych','Zmiany pozostały w formularzu. Spróbuj ponownie.'); return false; }
+      return saved;
+    });
+    saveBtn.addEventListener('click', async ()=>{
+      if(saving) return;
+      saving = true;
+      for(const control of [saveBtn,resetBtn,cancelBtn]) control.disabled = true;
+      const submittedLabel = label;
+      const submittedProfile = FC.companyProfile.normalizeProfile(draft);
+      try{
+        const changed = JSON.stringify(submittedProfile) !== JSON.stringify(persistedProfile);
+        if(changed){
+          const saved = await saveCompany(submittedProfile);
+          if(!saved) return;
+          persistedProfile = saved;
+        }
+        if(deviceLabel && submittedLabel !== persistedLabel){
+          try{ persistedLabel = deviceLabel.write(submittedLabel); }
+          catch(_){
+            const message = changed ? 'Dane firmy zapisano. Nie udało się zapisać nazwy urządzenia.'
+              : 'Nazwa urządzenia pozostała w formularzu. Spróbuj ponownie.';
+            dom.info?.('Zapis niepełny',message);
+            return;
+          }
+          if(label === submittedLabel){
+            label = persistedLabel;
+            deviceInput.value = persistedLabel;
+          }
+        }
+        if(JSON.stringify(FC.companyProfile.normalizeProfile(draft)) === JSON.stringify(submittedProfile)) draft = persistedProfile;
+        refreshSummary();
+        dom.info?.('Zapisano','Ustawienia zapisano na tym urządzeniu.');
+      }catch(_){
+        dom.info?.('Nie potwierdzono zapisu','Zmiany pozostały w formularzu. Spróbuj ponownie.');
+      }finally{
+        saving = false;
+        for(const control of [saveBtn,resetBtn,cancelBtn]) control.disabled = false;
+      }
+    });
     actions.appendChild(resetBtn);
     actions.appendChild(cancelBtn);
     actions.appendChild(saveBtn);
