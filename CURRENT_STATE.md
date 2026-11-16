@@ -1,5 +1,14 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## P0-B — wyłączność projektu i usuwanie inwestorów, 16.11.2026
+
+Gałąź `feat/p0b-project-exclusivity-20261116`, BASE/main `d301c07fb42bf293a2a9b66c3cb3c1a0d7f976fa`. **BLOCKED / RELEASE_BLOCKED.** Zapisano [zatwierdzony kontrakt P0-B](docs/plans/LOCAL_FIRST_ROADMAP.md#p0-b--usuwanie-inwestorów-i-wyłączność-projektu). Zakres aktywny obejmuje wszystkie oferty usuwanego inwestora, w tym zaakceptowane. Kopie historyczne w backupach i technicznych rewizjach pozostają zachowane.
+
+- **PASS diagnostyki Rules na Firestore Emulator DEMO, dwa konteksty właściciela.** Równoczesne zajęcie blokad dla dwóch różnych projektów przeszło. Druga próba zajęcia tego samego projektu została odrzucona. To wynik na poziomie blokad, a pełne otwieranie i zapisywanie projektów w UI pozostaje do odbioru.
+- **RED na BASE z rzeczywistą walidacją i projekcją.** Projekcja rewizji „Kuchni” z nowszą kartoteką i późniejszy odbiór „Garderoby” ze starszą kartoteką zachowały oba projekty, ale przywróciły stary numer telefonu. Rewizja projektu zawiera całą kartotekę inwestora, a jej odbiór zastępuje lokalny rekord inwestora. Projektowy CAS chroni tylko własną głowę.
+- **PASS diagnostyki bramki usuwania.** Emulator odrzucił skasowanie głowy projektu, dopisanie stanu usunięcia do głowy oraz próbę zapisu oznaczenia usunięcia dla inwestora bez projektów. Głowa pozostała identyczna. Obecny adapter jest lokalny, a checkpoint chroni zsynchronizowane repliki i outbox. Lokalny wpis usunięcia blokuje ponowny odbiór tylko na urządzeniu, które już go ma. Kandydat PR #133, HEAD `7787bef66ae6635e239dd72236461b804bdf163d`, wymaga jednego inwestora i jednego projektu.
+- **Bramka przed zmianą.** Zatwierdzić model niezależnego CAS kartoteki, pełnego powiązania inwestor–projekty, trwałego oznaczenia usunięcia odpornego na wyścig z otwarciem lub utworzeniem projektu oraz Rules wymuszające ten kontrakt także wobec starego klienta. Ustalić zgodność dotychczasowych rewizji, kopii i instalacji oraz zakres ewentualnej migracji. Commit zawiera dokumentację. Implementacja i obowiązkowe scenariusze synchronizowanego usuwania pozostają otwarte.
+
 ## Operacje pomieszczeń i potwierdzenie zapisu, 16.11.2026
 
 Gałąź `fix/room-operations-durable-save-20261115`, BASE/main `12ffaeaa9307197c742a0b8d5d95d3b96489a138`. [Kontrakt LOCAL-FIRST](docs/plans/LOCAL_FIRST_ROADMAP.md).
