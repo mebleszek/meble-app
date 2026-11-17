@@ -146,7 +146,7 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       application.onsuccess=replica.onsuccess=exit.onsuccess=existing.onsuccess=finish;
     });
   }
-  async function checkpointProjectRecovery({scope,marker,application,before,head,value,editor}){
+  async function checkpointProjectRecovery({scope,marker,application,before,head,value,editor,queuedValue}){
     const key=recoveryKey(scope),archiveId='recovery-'+id(marker.operationId);
     if(!head||head.currentRevisionId!==marker.expected.revision||editor?.deviceId!==deviceId
       ||editor.ownerUid!==ownerUid||editor.projectId!==scope||editor.active!==true
@@ -154,8 +154,13 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
     application=await prepareApplication(application);
     if(!application||application.expectedVersion!==marker.applicationVersion||before.image.hash!==marker.applicationHash
       ||before.replica?.version!==marker.replicaVersion)fail('LF_PROJECT_RECOVERY_SOURCE_CHANGED');
-    const encoded=json(value),hash=await digest(encoded);
-    const receipt={archiveId,editor};
+    const copying=marker.variant==='room-copy';
+    if(copying!==!!queuedValue)fail('LF_PROJECT_RECOVERY_CONFLICT');
+    const operationId=copying?'room-copy-'+marker.operationId:null;
+    const encoded=json(queuedValue||value),hash=await digest(encoded);
+    const receipt={archiveId,editor,...(copying?{operationId,roomId:marker.roomCopy.id}:{})};
+    const protectedJson=copying?json(application.rows):null;
+    const protectedHash=copying?await digest(protectedJson):null;
     const archive=json({kind:'project-recovery',sourceScope:scope,image:before.image,replica:before.replica,operations:before.operations,receipt});
     const archiveHash=await digest(archive);
     return transaction('readwrite',(s,done,abort)=>{
@@ -167,7 +172,13 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
         applicationChange(s,application,()=>{
           s.protected.add({key:archiveId,scope,json:archive,hash:archiveHash});
           for(const op of operations)s.outbox.delete(op.key);
-          s.replicas.put({key:scope,version:replica.result.version+1,json:encoded,hash,base:head,editor,dirty:false});
+          const version=replica.result.version+1;
+          s.replicas.put({key:scope,version,json:encoded,hash,base:head,editor,dirty:copying});
+          if(copying){
+            s.outbox.add({key:operationId,scope,localVersion:version,json:encoded,hash,base:head,previousOperation:null,
+              applicationHash:application.hash,editor,phase:'queued',blockers:[],expected:null});
+            s.protected.add({key:operationId,scope,json:protectedJson,hash:protectedHash});
+          }
           s.control.delete(key);
           done(receipt);
         },abort);

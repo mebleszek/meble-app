@@ -29,6 +29,21 @@ const immutable=r=>JSON.stringify({local:[...r.rows],session:[...r.session],tabl
   await assert.rejects(readRescueSnapshot(r.context),code('RESCUE_BINDING_INVALID'));
   assert.equal(r.trace.includes('tx:readwrite'),false);
  });
+ test('rescue retains the room-copy intent and rejects a changed copy payload',async()=>{
+  const r=await rescueFixture(),{digest,json}=await import('../sync/local-first-values.mjs');
+  const binding=r.tables.control.find(row=>row.key==='binding'),image=r.tables.control.find(row=>row.key==='application');
+  const replica=r.tables.replicas[0],scope=replica.key;
+  const roomCopy={id:'new-room',definition:{id:'new-room'},room:{cabinets:[],fronts:[],sets:[]}};
+  const marker={key:'projectRecovery:'+scope,variant:'room-copy',operationId:'pending-room-copy',
+    applicationVersion:image.version,applicationHash:image.hash,replicaVersion:replica.version,
+    expected:{revision:'a'.repeat(32),editor:{projectId:scope,ownerUid:binding.ownerUid,active:false}},
+    pinRevision:null,deviceLabel:'Synthetic device',roomCopy,roomCopyHash:await digest(json(roomCopy))};
+  r.tables.control.push(marker);
+  assert.deepEqual((await readRescueSnapshot(r.context)).databases.authority.control.find(row=>row.key===marker.key),marker);
+  roomCopy.id='changed-room';roomCopy.definition.id='changed-room';
+  await assert.rejects(readRescueSnapshot(r.context),code('RESCUE_RECORD_INTEGRITY'));
+  assert.equal(r.trace.includes('tx:readwrite'),false);
+ });
  test('only reset inventory ignores unrelated databases, never opens them, and retains target proofs',async()=>{
   const r=await rescueFixture(),before=immutable(r);
   r.options.inventory=[{name:r.context.name,version:1},{name:'meble-investor-delete-v1',version:1},{name:'foreign-synthetic',version:7}];

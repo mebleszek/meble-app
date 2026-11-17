@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import {chromium} from 'playwright-core';
+import {prepareRoomCopy} from '../../sync/local-first-room-copy.mjs';
 import * as f from 'firebase/firestore';
 import {runtime,model} from './cloud-sync-fixture.mjs';
 import {createP0BProjectRecovery} from './p0b-project-recovery.mjs';
@@ -19,6 +21,7 @@ export async function runP0BRecovery(t,{env,client,uid,pin,wrongPin,contact}){
     new Function('window',fs.readFileSync(new URL('../../js/app/'+file+'.js',import.meta.url),'utf8'))(r.s);
   }
   const FC=r.FC;
+  const clone=value=>JSON.parse(JSON.stringify(value));
   const globals=createGlobalChannel({writer:old.connection,reader:reader.connection,ownerUid:uid,
     contract:FC.globalDataContract,factory:FC.firebaseGlobalTransport});
   t.after(()=>globals.close());
@@ -36,8 +39,36 @@ export async function runP0BRecovery(t,{env,client,uid,pin,wrongPin,contact}){
   const invested={...contact,id:investorId,rooms:[]};
   const extraProject={id:'foreign',investorId:'foreign-investor',title:'Chroniony projekt'};
   const history=[{id:'accepted-history',project:{id:projectId},investor:{id:investorId},frozen:{total:149.125}}];
+  const room=clone(FC.schema.DEFAULT_PROJECT.kuchnia);
+  room.cabinets=[
+    {id:'base-cabinet',type:'stojąca',subType:'standardowa',width:60,height:82,depth:51,frontCount:2,
+      bodyColor:'Synthetic white',frontMaterial:'laminat',frontColor:'Synthetic white',backMaterial:'',
+      bodyPcvMode:'body',details:{shelves:3}},
+    {id:'set-cabinet',type:'stojąca',subType:'standardowa',width:30,height:72,depth:51,frontCount:2,
+      bodyColor:'Synthetic white',frontMaterial:'laminat',frontColor:'Synthetic white',backMaterial:'',
+      setId:'set-source',setPreset:'A',setNumber:1,details:{shelves:1}},
+  ];
+  room.sets=[{id:'set-source',presetId:'A',number:1,frontCount:2,params:{w1:30,w2:30,hB:72,hTop:20},
+    frontMaterial:'laminat',frontColor:'Synthetic white'}];
+  room.fronts=[
+    {id:'front-one',cabId:'base-cabinet',width:30,height:72,material:'laminat',color:'Synthetic white'},
+    {id:'front-two',cabId:'base-cabinet',width:30,height:72,material:'laminat',color:'Synthetic white'},
+    {id:'front-set-left',setId:'set-source',setNumber:1,width:30,height:92,material:'laminat',color:'Synthetic white'},
+    {id:'front-set-right',setId:'set-source',setNumber:1,width:30,height:92,material:'laminat',color:'Synthetic white'},
+  ];
+  const edges={w1:true,w2:false,h1:true,h2:false};
+  room.production={partOverrides:{'base-cabinet':{'body.side.left':{edges}}},
+    setGroupOverrides:{'set-source':{'front.A.left':{edges}}}};
+  room.layout={activeSegmentId:'segment-source',segments:[{id:'segment-source',name:'Ściana',rows:{
+    base:[{kind:'cabinet',id:'base-cabinet'},{kind:'gap',id:'gap-source',width:5,label:'Przerwa'},{kind:'cabinet',id:'set-cabinet'}],
+    module:[],wall:[],
+  }}]};
+  const roomDefinition=id=>({id,baseType:'kuchnia',name:id,label:id});
   const project={id:projectId,investorId,title:'Potwierdzony projekt',
-    projectData:{schemaVersion:12,meta:{assignedInvestorId:investorId,roomOrder:[],roomDefs:{}}}};
+    projectData:{schemaVersion:12,meta:{assignedInvestorId:investorId,productionPcvMode:'project',
+      roomOrder:['kitchen','wardrobe'],roomDefs:{kitchen:roomDefinition('kitchen'),wardrobe:roomDefinition('wardrobe')}},
+      kitchen:room,wardrobe:{...clone(room),cabinets:[],fronts:[],sets:[],production:{},layout:{segments:[]}}}};
+  Object.assign(project,clone(FC.projectModel.summarizeProjectData(project.projectData)));
   const rows={
     fc_projects_v1:JSON.stringify([project,extraProject]),fc_investors_v1:JSON.stringify([invested,{id:extraProject.investorId}]),
     fc_quote_snapshots_v1:JSON.stringify(history),fc_current_project_id_v1:projectId,fc_current_investor_v1:investorId,
@@ -122,7 +153,7 @@ export async function runP0BRecovery(t,{env,client,uid,pin,wrongPin,contact}){
   assert.equal(status.deviceLabel,'Komputer w pracowni');
   assert.equal(status.requiresPin,true);
   assert.equal(status.ownershipLost,true);
-  assert.deepEqual(status.roomCopy,{available:false,unresolved:['fc_quote_offer_drafts_v1'],code:'LF_PROJECT_OWNERSHIP_PENDING'});
+  assert.deepEqual(status.roomCopy,{available:false,unresolved:['room-contract'],code:'LF_PROJECT_OWNERSHIP_PENDING'});
   await assert.rejects(standard.start({variant:'room-copy',expected:status.status,pin,confirmed:true}),{code:'LF_PROJECT_OWNERSHIP_PENDING'});
   assert.deepEqual(await old.protocol.projectStatus(investorId,projectId),status.status);
   await assert.rejects(standard.start({variant:'latest',expected:status.status,pin,confirmed:false}),{code:'LF_PROJECT_RECOVERY_CONFIRMATION_REQUIRED'});
@@ -197,5 +228,196 @@ export async function runP0BRecovery(t,{env,client,uid,pin,wrongPin,contact}){
   assert.equal((await store.snapshot(projectId)).operations.length,0);
   assert.equal(await store.pendingProjectRecovery(projectId),null);
   assert.deepEqual(await remoteChannel.read(),remote);
+
+  // Room-only recovery retains the confirmed original rooms and publishes one
+  // normal outbox operation, with persisted IDs across crashes.
+  const roomContract={
+    validateRoom:value=>FC.projectExportContract.validateOwnedRoom(value),
+    summarize:data=>clone(FC.projectModel.summarizeProjectData(data)),
+    async build(image,received){
+      const built=await FC.businessProjectContract.build({getItem:key=>{
+        if(key==='fc_investors_v1'){
+          const all=JSON.parse(image[key]);
+          return JSON.stringify(all.map(row=>row.id===investorId?received.value.document.payload.investor:row));
+        }
+        return image[key]??null;
+      }},projectId);
+      return {document:built.document,globals:received.value.globals,
+        requirements:FC.businessProjectContract.dependencies(built.document.payload)};
+    },
+  };
+  const copying=protocol=>createP0BProjectRecovery({store,protocol,channel:remoteChannel,investorId,assertAccess(){},roomContract});
+  const draftImage=await store.readApplication();
+  const editedProject=clone(project);
+  editedProject.projectData.kitchen.cabinets[0].width=64;
+  for(const front of editedProject.projectData.kitchen.fronts.filter(row=>row.cabId==='base-cabinet'))front.width=32;
+  editedProject.projectData.kitchen.settings.roomHeight=277.125;
+  const roomDraftRows={...draftImage.rows,
+    fc_projects_v1:JSON.stringify([editedProject,extraProject]),
+    fc_edit_session_v1:JSON.stringify({schemaVersion:4,projectId,roomId:'kitchen',active:true,expectedOwnerKnown:true}),
+    fc_quote_offer_drafts_v1:JSON.stringify([{projectId,investorId,selection:{selectedRooms:['kitchen','wardrobe']},note:'Recalculate later'}]),
+  };
+  await store.checkpointApplication({expectedVersion:draftImage.version,rows:roomDraftRows});
+  let draftSource=await store.readApplication();
+  const preCopy=await store.snapshot(projectId);
+  const request={rows:roomDraftRows,baseline:JSON.parse(preCopy.replica.json),scope:projectId,
+    roomId:'kitchen',name:'Kuchnia — odzyskana',validateRoom:roomContract.validateRoom};
+  const extraChange=clone(roomDraftRows),changedElsewhere=JSON.parse(extraChange.fc_projects_v1);
+  changedElsewhere[0].projectData.wardrobe.settings.roomHeight=999;
+  extraChange.fc_projects_v1=JSON.stringify(changedElsewhere);
+  assert.throws(()=>prepareRoomCopy({...request,rows:extraChange}),{code:'LF_ROOM_COPY_OTHER_CHANGES'});
+  assert.throws(()=>prepareRoomCopy({...request,newId:()=> 'base-cabinet'}),{code:'LF_ROOM_COPY_ID_COLLISION'});
+  const extension=clone(roomDraftRows),extensionRecords=JSON.parse(extension.fc_projects_v1);
+  extensionRecords[0].projectData.kitchen.futureReference='base-cabinet';
+  extension.fc_projects_v1=JSON.stringify(extensionRecords);
+  assert.throws(()=>prepareRoomCopy({...request,rows:extension}),{code:'LF_ROOM_COPY_REFERENCE_UNCONFIRMED'});
+
+  const current=await computer.protocol.projectStatus(investorId,projectId);
+  const newerEditor=await computer.protocol.advanceEditor({iid:investorId,pid:projectId,expected:current,
+    pinRevision:await computer.protocol.pin.verify(pin),deviceLabel:'Komputer'});
+  const computerChannel=channel(computer,'recover-computer');
+  t.after(()=>computerChannel.close());
+  const newerProject=clone(project);
+  newerProject.projectData.wardrobe.settings.roomHeight=301.125;
+  const serverRows={...rows,fc_projects_v1:JSON.stringify([newerProject,extraProject]),
+    fc_quote_snapshots_v1:JSON.stringify(history.concat(newerHistory))};
+  await (await computerChannel.prepare(await makeValue(serverRows),remote.head,newerEditor)).publish();
+  const latestRemote=await remoteChannel.read();
+  const copyStatus=await copying(old.protocol).inspect();
+  assert.equal(copyStatus.requiresPin,true);
+  assert.equal(copyStatus.roomCopy.available,true,'Project quote draft does not prevent a room copy');
+  const technicalKeys=['fc_edge_v1','fc_material_part_options_v1','fc_rozrys_grain_state_v1','fc_rozrys_overrides_v1'];
+  const technicalRows={...roomDraftRows,...Object.fromEntries(technicalKeys.map(key=>[key,'{"unresolved-signature":{"edges":{"w1":true}}}']))};
+  await store.checkpointApplication({expectedVersion:draftSource.version,rows:technicalRows});
+  const unresolvedImage=await store.readApplication();
+  assert.deepEqual((await copying(old.protocol).inspect()).roomCopy.unresolved,technicalKeys);
+  await assert.rejects(copying(old.protocol).start({variant:'room-copy',roomId:'kitchen',roomName:request.name,
+    expected:copyStatus.status,pin,confirmed:true}),{code:'LF_PROJECT_OWNERSHIP_PENDING'});
+  assert.deepEqual(await store.readApplication(),unresolvedImage);
+  assert.equal(await store.pendingProjectRecovery(projectId),null);
+  assert.deepEqual(await old.protocol.projectStatus(investorId,projectId),copyStatus.status);
+  await store.checkpointApplication({expectedVersion:unresolvedImage.version,rows:roomDraftRows});
+  draftSource=await store.readApplication();
+  await f.disableNetwork(old.db);
+  await assert.rejects(copying(old.protocol).start({variant:'room-copy',roomId:'kitchen',roomName:request.name,
+    expected:copyStatus.status,pin,confirmed:true}));
+  await f.enableNetwork(old.db);
+  assert.deepEqual(await store.readApplication(),draftSource);
+  assert.equal(await store.pendingProjectRecovery(projectId),null);
+
+  // Use the existing panel/confirmation controls in real Chromium.
+  async function recoveryUI(protocol){
+    const playwright=await chromium.connectOverCDP(browser.endpoint);
+    const page=playwright.contexts()[0].pages()[0];
+    for(const file of ['ui/data-settings-dom','ui/panel-box','ui/confirm-box'])
+      await page.evaluate(fs.readFileSync(new URL('../../js/app/'+file+'.js',import.meta.url),'utf8'));
+    await page.exposeFunction('__inspectRecovery',()=>copying(protocol).inspect());
+    await page.exposeFunction('__startRecovery',async options=>{
+      try{return {ok:true,receipt:await copying(protocol).start(options)};}
+      catch(error){return {ok:false,code:error.code||error.message};}
+    });
+    await page.evaluate(async()=>{
+      const {openProjectRecovery}=await import('/sync/local-first-recovery-view.mjs');
+      await openProjectRecovery({window,roomId:'kitchen',roomName:'Kuchnia — odzyskana',deviceLabel:'Telefon',
+        service:{inspect:()=>window.__inspectRecovery(),async start(options){
+          const response=await window.__startRecovery(options);
+          if(!response.ok)throw Object.assign(Error(response.code),{code:response.code});
+          return response.receipt;
+        }},onConfirmed:receipt=>{window.copyReceipt=receipt;}});
+    });
+    return page;
+  }
+  const page=await recoveryUI({...old.protocol,async advanceEditor(args){
+    await old.protocol.advanceEditor(args);
+    throw Error('copy-lost-ack');
+  }});
+  await page.getByLabel('PIN przejęcia').fill(pin);
+  await page.getByLabel('Nazwa kopii pomieszczenia').fill(request.name);
+  await page.getByRole('button',{name:'Zachowaj kopię pomieszczenia',exact:true}).click();
+  await page.getByRole('button',{name:'Odzyskaj projekt',exact:true}).click();
+  await page.getByRole('status').getByText(/copy-lost-ack/).waitFor();
+  const pendingCopy=await store.pendingProjectRecovery(projectId);
+  assert.equal(pendingCopy.variant,'room-copy');
+  assert.deepEqual(await store.readApplication(),draftSource,'Lost ACK retains the complete local draft');
+  const stableId=pendingCopy.roomCopy.id;
+  await reboot();
+  await browser.evaluate(`(() => {
+    const nativeAdd=IDBObjectStore.prototype.add;
+    IDBObjectStore.prototype.add=function(value,...args){
+      const request=nativeAdd.call(this,value,...args);
+      if(this.name==='outbox'&&value.key.startsWith('room-copy-'))this.transaction.abort();
+      return request;
+    };
+  })()`);
+  await assert.rejects(copying(old.protocol).resume());
+  assert.deepEqual(await store.readApplication(),draftSource);
+  assert.deepEqual(await store.snapshot(projectId),preCopy,'Abort must not partially replace the source or queue');
+  assert.deepEqual(await store.pendingProjectRecovery(projectId),pendingCopy);
+  await reboot();
+  const copied=await copying({...old.protocol,advanceEditor(){assert.fail('No replay after server ACK');}}).resume();
+  assert.equal(copied.roomId,stableId);
+  const copiedImage=await store.readApplication(),copySnap=await store.snapshot(projectId);
+  assert.equal(copySnap.replica.dirty,true);
+  assert.deepEqual(copySnap.operations.map(op=>[op.key,op.phase]),[[copied.operationId,'queued']]);
+  assert.equal(copySnap.replica.base.currentRevisionId,latestRemote.head.currentRevisionId);
+  const merged=JSON.parse(copiedImage.rows.fc_projects_v1)[0];
+  assert.deepEqual(merged.projectData.kitchen,newerProject.projectData.kitchen);
+  assert.deepEqual(merged.projectData.wardrobe,newerProject.projectData.wardrobe);
+  assert.deepEqual(JSON.parse(copiedImage.rows.fc_projects_v1)[1],extraProject);
+  const recoveredRoom=merged.projectData[stableId],map=pendingCopy.roomCopy.mapping;
+  assert.equal(recoveredRoom.cabinets[0].id,map['base-cabinet']);
+  assert.equal(recoveredRoom.cabinets[1].setId,map['set-source']);
+  assert.equal(recoveredRoom.fronts[0].cabId,map['base-cabinet']);
+  assert.equal(recoveredRoom.fronts[2].setId,map['set-source']);
+  assert.equal(recoveredRoom.layout.segments[0].rows.base[0].id,map['base-cabinet']);
+  assert.equal(recoveredRoom.layout.activeSegmentId,map['segment-source']);
+  assert.deepEqual(recoveredRoom.production.partOverrides[map['base-cabinet']],room.production.partOverrides['base-cabinet']);
+  assert.deepEqual(recoveredRoom.production.setGroupOverrides[map['set-source']],room.production.setGroupOverrides['set-source']);
+  assert.equal(recoveredRoom.cabinets[0].width,64);
+  assert.equal(recoveredRoom.settings.roomHeight,277.125);
+  const reverse=Object.fromEntries(Object.entries(map).map(([oldId,newId])=>[newId,oldId]));
+  const restore=value=>{
+    if(typeof value==='string')return reverse[value]||value;
+    if(Array.isArray(value))return value.map(restore);
+    if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,item])=>[reverse[key]||key,restore(item)]));
+    return value;
+  };
+  assert.deepEqual(restore(recoveredRoom),editedProject.projectData.kitchen,'Every saved room field survives identity remapping');
+  assert.equal(Object.values(map).length,new Set(Object.values(map)).size);
+  assert.equal(Object.values(map).some(value=>Object.hasOwn(map,value)),false);
+  assert.equal(copiedImage.rows.fc_quote_rates_v1,draftSource.rows.fc_quote_rates_v1);
+  assert.equal(copiedImage.rows.fc_investors_v1,draftSource.rows.fc_investors_v1);
+  assert.deepEqual(JSON.parse(copiedImage.rows.fc_quote_snapshots_v1),history.concat(newerHistory));
+  assert.deepEqual(JSON.parse(copiedImage.rows.fc_quote_offer_drafts_v1),[]);
+  const archivedCopy=JSON.parse(copySnap.protected.find(row=>row.key===copied.archiveId).json);
+  assert.equal(archivedCopy.image.rows.fc_quote_offer_drafts_v1,roomDraftRows.fc_quote_offer_drafts_v1);
+  await reboot();
+  assert.deepEqual(await copying(old.protocol).resume(),copied);
+  assert.equal((await store.snapshot(projectId)).operations.length,1);
+  let online=false;
+  const copySync=createDurableSynchronizer({store,channels:[remoteChannel],eventTarget:new EventTarget(),online:()=>online});
+  try{
+    assert.equal((await copySync.flush()).code,'LF_OFFLINE');
+    assert.equal((await remoteChannel.read()).head.generation,latestRemote.head.generation);
+    online=true;
+    assert.equal((await copySync.flush()).ok,true);
+    const afterAck=await store.snapshot(projectId);
+    assert.equal(afterAck.operations[0].phase,'verified');
+    const received=await computerChannel.read();
+    assert.equal(received.head.generation,latestRemote.head.generation+1);
+    assert.deepEqual(clone(received.value.document.payload.project),merged);
+    assert.equal((await copySync.flush()).ok,true);
+    assert.equal((await computerChannel.read()).head.generation,received.head.generation,'No duplicate room publication');
+  }finally{await copySync.close();}
+  const lastHead=await remoteChannel.read(),lastEditor=(await old.protocol.projectStatus(investorId,projectId)).editor;
+  await old.protocol.release({iid:investorId,pid:projectId,expectedHead:lastHead.head.currentRevisionId,expectedEditor:lastEditor});
+  const latestPage=await recoveryUI(old.protocol);
+  assert.equal(await latestPage.getByLabel('PIN przejęcia').count(),0,'Free project requires no PIN');
+  await latestPage.getByRole('button',{name:'Pobierz najnowszą wersję',exact:true}).click();
+  await latestPage.getByRole('button',{name:'Odzyskaj projekt',exact:true}).click();
+  await latestPage.waitForFunction(()=>!!window.copyReceipt);
+  assert.deepEqual(JSON.parse((await store.readApplication()).rows.fc_projects_v1)[0],merged);
+  assert.deepEqual((await store.snapshot(projectId)).operations,[]);
+  assert.deepEqual(await remoteChannel.read(),lastHead,'Latest option does not publish a project');
 }
 function refPin(db,uid){return f.doc(db,'users',uid,'p0bSettings','projectPin');}
