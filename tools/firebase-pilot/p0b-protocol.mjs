@@ -1,5 +1,6 @@
 // Emulator candidate for new, explicitly seeded investor records.
 import {assertEmulator, equal, fail, id, json} from '../../sync/local-first-values.mjs';
+import {createP0BPin} from './p0b-pin.mjs';
 import {p0bDeletionGroup} from './p0b-deletion-group.mjs';
 
 function checkContact(value) {
@@ -100,6 +101,7 @@ export function createP0BProtocol(connection, deviceId) {
   const editorRef = pid => ref('localFirstEditors', pid);
   const presenceRef = pid => f.doc(editorRef(pid),'presence','current');
   const headRef = pid => ref('localFirstProjects', pid);
+  const pinRef = ref('p0bSettings','projectPin');
   const read = snapshot => {
     if (snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites) fail('LF_SERVER_UNCONFIRMED');
     return snapshot.exists() ? snapshot.data() : null;
@@ -185,14 +187,42 @@ export function createP0BProtocol(connection, deviceId) {
     });
   }
 
+  async function lockWitness(tx,iid,pid){
+    const inv=active(read(await tx.get(investorRef(iid))));
+    const editor=read(await tx.get(editorRef(pid)));
+    const head=read(await tx.get(headRef(pid)));
+    if(!editor||editor.investorId!==iid||inv.projects[pid]!==editor.active
+      ||!head||head.investorId!==iid||head.projectId!==pid)fail('LF_P0B_REGISTRY_REQUIRED');
+    return {editor,revision:head.currentRevisionId};
+  }
   function verifyDelete(record, intent) {
     if (record?.deletionId !== intent.operationId || record?.generation !== intent.expectedGeneration + 1)
       fail('LF_P0B_ACK_UNCONFIRMED');
     return {investorId:intent.investorId, operationId:intent.operationId, generation:record.generation};
   }
 
+  const pin=createP0BPin({ref:pinRef,readServer,read,transaction});
   const api=Object.freeze({
-    investor,
+    investor,pin,
+    projectStatus(iid,pid){return transaction(tx=>lockWitness(tx,iid,pid));},
+    async advanceEditor({iid,pid,expected,deviceLabel='',pinRevision=null}){
+      if(typeof deviceLabel!=='string'||deviceLabel.length>64)fail('LF_P0B_DEVICE_LABEL_INVALID');
+      return transaction(async tx=>{
+        const current=await lockWitness(tx,iid,pid);
+        if(!equal(current,expected))fail('LF_P0B_EDITOR_CONFLICT');
+        const previous=current.editor;
+        if(previous.active){
+          if(previous.deviceId===deviceId)fail('LF_P0B_EDITOR_CONFLICT');
+          if(!pinRevision||read(await tx.get(pinRef))?.revision!==pinRevision)fail('LF_P0B_PIN_CONFLICT');
+        }else{
+          const r=investorRef(iid), inv=active(read(await tx.get(r)));
+          tx.set(r,{...inv,generation:inv.generation+1,lastProject:pid,projects:{...inv.projects,[pid]:true}});
+        }
+        const next={...previous,deviceId,deviceLabel,epoch:previous.epoch+1,active:true,headRevision:current.revision};
+        tx.set(editorRef(pid),next);
+        return next;
+      });
+    },
     async recoverOwnVisit(iid){
       const record=active(await readServer(investorRef(iid)));
       const visit=record.visits[deviceId];

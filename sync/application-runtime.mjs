@@ -57,6 +57,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   async function ensureEditor(scope=w.localStorage.getItem('fc_current_project_id_v1'),{reopen=false}={}){
    if(!scope)fail('LF_PROJECT_CHANNEL_REQUIRED');
    if(localOnly){const localRows=authority?authority.rows():(await store.readApplication()).rows;if(!JSON.parse(localRows.fc_projects_v1||'[]').some(p=>p.id===scope))fail('LF_PROJECT_CHANNEL_REQUIRED');return;}
+   if(await store.pendingProjectRecovery(scope))fail('LF_PROJECT_RECOVERY_PENDING');
    await handovers.pending(scope);
    const snap=await store.snapshot(scope), editor=snap.replica?.editor;
    const request=await store.pendingHandover(scope);

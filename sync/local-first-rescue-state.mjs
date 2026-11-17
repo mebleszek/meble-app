@@ -25,6 +25,19 @@ export async function validateAuthority(stores,receipt,nativeRows,activationId){
  const editors=new Map(stores.replicas.map(r=>[r.key,r.editor]));
  for(const row of stores.control){
   if(['binding','source','application'].includes(row.key))continue;
+  const recovery=/^projectRecovery:([A-Za-z0-9_-]{1,128})$/.exec(row.key)?.[1];
+  if(recovery){
+   if(row.variant!=='latest'||!editors.has(recovery)||!/^[-A-Za-z0-9_]{1,128}$/.test(row.operationId)
+    ||row.expected?.editor?.projectId!==recovery||row.expected.editor.ownerUid!==receipt.ownerUid
+    ||!Number.isSafeInteger(row.replicaVersion)||row.replicaVersion<1
+    ||!Number.isSafeInteger(row.applicationVersion)||row.applicationVersion<1
+    ||!/^([a-f0-9]{64})$/.test(row.applicationHash)
+    ||!/^([a-f0-9]{32})$/.test(row.expected.revision)
+    ||typeof row.deviceLabel!=='string'||row.deviceLabel.length>64
+    ||(row.expected.editor.active ? (!Number.isSafeInteger(row.pinRevision)||row.pinRevision<1) : row.pinRevision!==null))
+    refuse('RESCUE_BINDING_INVALID');
+   continue;
+  }
   const scope=/^handover:([A-Za-z0-9_-]{1,128})$/.exec(row.key)?.[1];
   const editor=editors.get(scope);
   if(!scope||!editor||!Number.isSafeInteger(row.epoch)||row.epoch<1||editor.epoch!==row.epoch

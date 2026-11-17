@@ -112,9 +112,68 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
     application=await prepareApplication(application);
     return transaction('readwrite',(s,done,abort)=>applicationChange(s,application,()=>{
       if(!exitScope){done(true);return;}
-      const q=s.replicas.get(id(exitScope));
-      q.onsuccess=()=>{try{rememberHandover(s.control,exitScope,q.result?.editor);done(true);}catch(e){abort(e);}};
+      const recovery=s.control.get(recoveryKey(exitScope));
+      recovery.onsuccess=()=>{
+        if(recovery.result){abort(Error('LF_PROJECT_RECOVERY_PENDING'));return;}
+        const q=s.replicas.get(id(exitScope));
+        q.onsuccess=()=>{try{rememberHandover(s.control,exitScope,q.result?.editor);done(true);}catch(e){abort(e);}};
+      };
     },abort));
+  }
+  const recoveryKey=scope=>'projectRecovery:'+id(scope);
+  async function pendingProjectRecovery(scope){
+    const key=recoveryKey(scope);
+    return transaction('readonly',(s,done)=>{
+      const request=s.control.get(key);
+      request.onsuccess=()=>done(request.result||null);
+    });
+  }
+  async function stageProjectRecovery(scope,intent){
+    const key=recoveryKey(scope);
+    intent=copy(intent);
+    id(intent.operationId);
+    return transaction('readwrite',(s,done,abort)=>{
+      const application=s.control.get('application'),replica=s.replicas.get(scope);
+      const exit=s.control.get(handoverKey(scope)),existing=s.control.get(key);
+      let waiting=4;
+      const finish=()=>{if(--waiting)return;try{
+        if(existing.result||exit.result||replica.result?.editor?.handoverPending)fail('LF_PROJECT_RECOVERY_PENDING');
+        if(!replica.result||!application.result||replica.result.version!==intent.replicaVersion
+          ||application.result.version!==intent.applicationVersion||application.result.hash!==intent.applicationHash)fail('LF_PROJECT_RECOVERY_SOURCE_CHANGED');
+        const marker={...intent,key};
+        s.control.add(marker);done(marker);
+      }catch(e){abort(e);}};
+      application.onsuccess=replica.onsuccess=exit.onsuccess=existing.onsuccess=finish;
+    });
+  }
+  async function checkpointProjectRecovery({scope,marker,application,before,head,value,editor}){
+    const key=recoveryKey(scope),archiveId='recovery-'+id(marker.operationId);
+    if(!head||head.currentRevisionId!==marker.expected.revision||editor?.deviceId!==deviceId
+      ||editor.ownerUid!==ownerUid||editor.projectId!==scope||editor.active!==true
+      ||editor.epoch!==marker.expected.editor.epoch+1||editor.headRevision!==head.currentRevisionId)fail('LF_PROJECT_RECOVERY_CONFLICT');
+    application=await prepareApplication(application);
+    if(!application||application.expectedVersion!==marker.applicationVersion||before.image.hash!==marker.applicationHash
+      ||before.replica?.version!==marker.replicaVersion)fail('LF_PROJECT_RECOVERY_SOURCE_CHANGED');
+    const encoded=json(value),hash=await digest(encoded);
+    const receipt={archiveId,editor};
+    const archive=json({kind:'project-recovery',sourceScope:scope,image:before.image,replica:before.replica,operations:before.operations,receipt});
+    const archiveHash=await digest(archive);
+    return transaction('readwrite',(s,done,abort)=>{
+      const pending=s.control.get(key),replica=s.replicas.get(scope),outbox=s.outbox.getAll();
+      let waiting=3;
+      const finish=()=>{if(--waiting)return;try{
+        const operations=outbox.result.filter(op=>op.scope===scope);
+        if(!equal(pending.result,marker)||!equal(replica.result,before.replica)||!equal(operations,before.operations))fail('LF_PROJECT_RECOVERY_SOURCE_CHANGED');
+        applicationChange(s,application,()=>{
+          s.protected.add({key:archiveId,scope,json:archive,hash:archiveHash});
+          for(const op of operations)s.outbox.delete(op.key);
+          s.replicas.put({key:scope,version:replica.result.version+1,json:encoded,hash,base:head,editor,dirty:false});
+          s.control.delete(key);
+          done(receipt);
+        },abort);
+      }catch(e){abort(e);}};
+      pending.onsuccess=replica.onsuccess=outbox.onsuccess=finish;
+    });
   }
   async function checkpointDeletion({application,before,scopes,investorIds,assertAccess}){
     application=await prepareApplication(application);
@@ -234,7 +293,7 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       } catch(e) { abort(e); } }; q.onsuccess = ops.onsuccess = finish;
     });
   }
-  return Object.freeze({ownerUid, deviceId, instanceId, name, snapshot, readCatalogReplica,readApplication,readPreservedSource, initializeApplication, checkpointApplication, pendingHandover, withdrawHandover, checkpointDeletion, commit, transition, apply, setEditor,
+  return Object.freeze({ownerUid, deviceId, instanceId, name, snapshot, readCatalogReplica,readApplication,readPreservedSource, initializeApplication, checkpointApplication, pendingHandover, withdrawHandover, pendingProjectRecovery, stageProjectRecovery, checkpointProjectRecovery, checkpointDeletion, commit, transition, apply, setEditor,
     exclusive: callback => locks.request(name + ':' + instanceId, {mode: 'exclusive'}, () => {if(closed)fail('LF_STORE_CLOSED');return callback();}),
     close() { closed = true; }});
 }

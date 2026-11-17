@@ -1,18 +1,24 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {randomInt} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {assertFails, initializeTestEnvironment} from '@firebase/rules-unit-testing';
 import * as f from 'firebase/firestore';
 import {createP0BProtocol, createP0BDeletionIntent, inspectP0BCompatibility, projectP0BContact, splitP0BLegacyContact, P0B_HEARTBEAT_MS, watchP0BEditorContact} from './p0b-protocol.mjs';
 
+import {runP0BRecovery} from './p0b-recovery-cases.mjs';
+
 const {p0bApplicationRules} = createRequire(import.meta.url)('./p0b-application-rules.js');
-const uid = 'synthetic-p0b-owner';
+const fixtureUid = 'synthetic-p0b-owner';
+const uid = fixtureUid;
 const claims = {email_verified:true, firebase:{sign_in_provider:'google.com'}};
+const fixturePin=String(randomInt(10000)).padStart(4,'0');
+const replacementPin=String((Number(fixturePin)+1)%10000).padStart(4,'0');
 const contact = {name:'DEMO', phone:'111', email:'', address:'', notes:''};
 const ref = (db, group, key) => f.doc(db, 'users', uid, group, key);
 const acq = (iid,pid,deviceLabel = '', expectedHead = '') => ({iid,pid,deviceLabel,expectedHead});
 
-export async function p0bFixture(t) {
+export async function p0bFixture(t,{ownerUid:uid=fixtureUid}={}) {
   assert.equal(process.env.FIRESTORE_EMULATOR_HOST,'127.0.0.1:18080');
   assert.equal(process.env.FIREBASE_AUTH_EMULATOR_HOST,'127.0.0.1:19099');
   f.setLogLevel('silent');
@@ -34,7 +40,7 @@ export async function p0bFixture(t) {
     const connection = {db, firestore:f, assertAccess(){}, session:{identity:()=>({uid,epoch:1})},
       auth:{app:db.app, emulatorConfig:{host:'127.0.0.1',port:19099,protocol:'http'},
         currentUser:{uid,providerData:[{providerId:'google.com'}]}}};
-    return {db, protocol:createP0BProtocol(connection,deviceId)};
+    return {db,connection,protocol:createP0BProtocol(connection,deviceId)};
   }
   return {env, client};
 }
@@ -76,6 +82,12 @@ test('P0-B heartbeat scheduler handles offline and wakes a suspended tab',async(
   stop();
   window.dispatchEvent(new Event('pageshow'));
   assert.equal(count,3);
+});
+
+test('P0-B takeover and project replacement survive Chromium SIGKILL and uncertain ACK',async t=>{
+  const uid='synthetic-p0b-recovery-owner';
+  const fixture=await p0bFixture(t,{ownerUid:uid});
+  await runP0BRecovery(t,{...fixture,uid,pin:fixturePin,wrongPin:replacementPin,contact});
 });
 
 test('P0-B candidate Rules: owner CAS, registry, atomic investor deletion, stale clients and read budget',async t=>{
@@ -269,10 +281,10 @@ test('P0-B two real Chromium profiles: local label, offline intent, lost ACK, re
   });
   assert.equal(authResponse.ok,true);
   const assets=new Map([
-    ...['p0b-protocol','p0b-deletion-group','p0b-deletion-journal','p0b-local-tombstone'].map(name=>['/tools/firebase-pilot/'+name+'.mjs','tools/firebase-pilot/'+name+'.mjs']),
+    ...['p0b-protocol','p0b-deletion-group','p0b-deletion-journal','p0b-local-tombstone','p0b-pin'].map(name=>['/tools/firebase-pilot/'+name+'.mjs','tools/firebase-pilot/'+name+'.mjs']),
     ...['local-first-values','local-device-label','local-first-idb','application-release','application-writer-fence'].map(name=>['/sync/'+name+'.mjs','sync/'+name+'.mjs']),
     ...['app','auth','firestore'].map(name=>['/__sdk/firebase-'+name+'.js','tools/firebase-pilot/node_modules/firebase/firebase-'+name+'.js']),
-    ...['ui/data-settings-dom','ui/data-settings-company-view','settings/company-profile-store','investor/investor-ui','investor/investor-ui-render','investor/investor-deletion'].map(name=>['/js/app/'+name+'.js','js/app/'+name+'.js'])
+    ...['ui/data-settings-dom','ui/data-settings-company-view','ui/data-settings-menu-view','ui/data-settings-modal','settings/company-profile-store','investor/investor-ui','investor/investor-ui-render','investor/investor-deletion'].map(name=>['/js/app/'+name+'.js','js/app/'+name+'.js'])
   ]);
   const server=http.createServer((req,res)=>{
     if(req.url==='/'){res.setHeader('content-type','text/html; charset=utf-8');res.end('<!doctype html><meta charset="utf-8"><main id="company"></main><section id="list"></section>');return;}
@@ -318,6 +330,33 @@ test('P0-B two real Chromium profiles: local label, offline intent, lost ACK, re
   }
   let pc=await device('p0b-pc');
   const phone=await device('p0b-phone');
+  for(const name of ['data-settings-dom','data-settings-menu-view','data-settings-modal'])
+    await pc.page.addScriptTag({url:'/js/app/ui/'+name+'.js'});
+  await pc.page.evaluate(()=>{
+    FC.projectTakeoverPin=proto.pin;
+    FC.dataBackupStore={};
+    FC.dataBackupSnapshot={};
+    FC.panelBox={open({contentNode}){document.body.append(contentNode);}};
+    FC.dataSettingsModal.open();
+  });
+  await pc.page.getByRole('button',{name:/Bezpieczeństwo/}).click();
+  const pinAtStart=await phone.page.evaluate(()=>proto.pin.status());
+  if(pinAtStart.configured)await pc.page.getByLabel('Obecny PIN').fill(fixturePin);
+  await pc.page.getByLabel('Nowy PIN',{exact:true}).fill(fixturePin);
+  await pc.page.getByLabel('Powtórz nowy PIN').fill(fixturePin);
+  await pc.page.getByRole('button',{name:'Zapisz PIN'}).click();
+  await pc.page.getByRole('status').getByText('Potwierdzono zapis PIN-u.').waitFor();
+  assert.equal(await phone.page.evaluate(pin=>proto.pin.verify(pin),fixturePin),pinAtStart.revision+1);
+  await pc.page.getByRole('button',{name:'Wróć'}).click();
+  await pc.page.getByRole('button',{name:/Bezpieczeństwo/}).click();
+  await pc.page.getByLabel('Obecny PIN').fill(fixturePin);
+  await pc.page.getByLabel('Nowy PIN',{exact:true}).fill(replacementPin);
+  await pc.page.getByLabel('Powtórz nowy PIN').fill(replacementPin);
+  await pc.page.getByRole('button',{name:'Zapisz PIN'}).click();
+  await pc.page.getByRole('status').getByText('Potwierdzono zapis PIN-u.').waitFor();
+  await assert.rejects(phone.page.evaluate(pin=>proto.pin.verify(pin),fixturePin),/LF_P0B_PIN_INCORRECT/);
+  assert.equal(await phone.page.evaluate(pin=>proto.pin.verify(pin),replacementPin),pinAtStart.revision+2);
+  await pc.page.evaluate(()=>document.querySelector('.data-settings-modal').remove());
   for (const name of ['settings/company-profile-store','ui/data-settings-dom','ui/data-settings-company-view'])
     await pc.page.addScriptTag({url:'/js/app/'+name+'.js'});
   const companyBefore=await pc.page.evaluate(()=>{

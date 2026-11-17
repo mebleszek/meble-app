@@ -19,12 +19,15 @@ function p0bApplicationRules() {
     "&& !exists(invHeadRef(uid,pid)) && invEditorPair(uid,pid,request.resource.data);");
   replace("allow update: if globalApproved(uid) && lfEditorShape(request.resource.data,uid,pid)",
     "allow update: if globalApproved(uid) && lfEditorShape(request.resource.data,uid,pid)\n"
-    + "        && request.resource.data.investorId == resource.data.investorId && invEditorPair(uid,pid,request.resource.data)");
+    + "        && request.resource.data.investorId == resource.data.investorId\n"
+    + "        && (invTakeover(uid,pid,resource.data,request.resource.data) || (invEditorPair(uid,pid,request.resource.data)");
   replace("&& request.resource.data.headRevision == lfHead(uid,pid).currentRevisionId)",
     "&& request.resource.data.deviceLabel == resource.data.deviceLabel\n"
     + "          && request.resource.data.headRevision == (exists(invHeadRef(uid,pid)) ? lfHead(uid,pid).currentRevisionId : ''))");
   replace("&& resource.data.headRevision == lfHead(uid,pid).currentRevisionId));",
-    "&& resource.data.headRevision == (exists(invHeadRef(uid,pid)) ? lfHead(uid,pid).currentRevisionId : '')));");
+    "&& resource.data.headRevision == (exists(invHeadRef(uid,pid)) ? lfHead(uid,pid).currentRevisionId : '')))));");
+  replace("let e = lfEditor(uid,pid);",
+    "let e = getAfter(invEditorRef(uid,pid)).data;");
   replace("&& d.updatedAt == request.time && e.active == true && d.deviceId == e.deviceId",
     "&& invCanPublish(uid,d.investorId,pid) && e.investorId == d.investorId\n"
     + "        && d.updatedAt == request.time && e.active == true && d.deviceId == e.deviceId");

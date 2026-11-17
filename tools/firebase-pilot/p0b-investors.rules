@@ -1,5 +1,26 @@
     // P0-B emulator candidate. Shared contacts, revision and project registry are owner-scoped.
     // Registry values are booleans (active leases), introduced one key at a time by a paired editor write.
+    // Synchronized client confirmation. The verifier does not authorize Rules.
+    function invPinShape(d) {
+      return d.keys().hasOnly(['format','revision','salt','verifier'])
+        && d.format is int && d.format == 1 && d.revision is int && d.revision > 0
+        && d.salt is string && d.salt.matches('^[a-f0-9]{32}$')
+        && d.verifier is string && d.verifier.matches('^[a-f0-9]{64}$');
+    }
+    match /users/{uid}/p0bSettings/projectPin {
+      allow get: if globalApproved(uid);
+      allow create: if globalApproved(uid) && invPinShape(request.resource.data)
+        && request.resource.data.revision == 1;
+      allow update: if globalApproved(uid) && invPinShape(request.resource.data)
+        && request.resource.data.revision == resource.data.revision + 1;
+    }
+    function invTakeover(uid,pid,before,after) {
+      let inv = get(invRef(uid,before.investorId)).data;
+      return before.active == true && after.active == true && after.deviceId != before.deviceId
+        && after.epoch == before.epoch + 1 && inv.deletionId == '' && inv.bulkId == ''
+        && inv.projects.get(pid,false) == true && invCanPublish(uid,before.investorId,pid)
+        && exists(invHeadRef(uid,pid)) && after.headRevision == lfHead(uid,pid).currentRevisionId;
+    }
     function invHeartbeat(uid, pid, d) {
       let e = getAfter(invEditorRef(uid,pid)).data;
       return d.keys().hasOnly(['deviceId','epoch','lastContactAt'])

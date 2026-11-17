@@ -73,6 +73,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
       for(const scope of scopes){
         const channel=byScope.get(scope);
         if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
+        if(channel.kind==='project'&&await store.pendingProjectRecovery?.(scope)){blockedReceives.add(scope);continue;}
         let snap=await store.snapshot(channel.scope);
         const ordered=snap.operations.sort((a,b)=>a.localVersion-b.localVersion);
         for(let op of ordered){
@@ -200,6 +201,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
     });},
     async releaseEditor(projectId,{request}={}){return store.exclusive(async()=>{
       assertOpen();
+      if(await store.pendingProjectRecovery?.(projectId))fail('LF_PROJECT_RECOVERY_PENDING');
       const channel=byScope.get(projectId),snap=await store.snapshot(projectId),r=snap.replica;
       if(!r||r.dirty||!(r.editor?.active||r.editor?.handoverPending)||snap.operations.some(op=>op.phase!=='verified'))fail('LF_HANDOVER_PENDING_LOCAL_WORK');
       if(request&&(!equal(request,await store.pendingHandover(projectId))||r.editor.deviceId!==request.deviceId||r.editor.epoch!==request.epoch))fail('LF_HANDOVER_CONFLICT');
