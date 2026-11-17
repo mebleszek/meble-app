@@ -515,6 +515,8 @@ Dopiero kiedy biznesowa część programu i testy są stabilne.
 - wspólne helpery ROZRYS/RYSUNEK tylko po kontraktach geometrii,
 - nie migrować na framework/TypeScript tylko „dla porządku”, bez mierzalnej korzyści.
 
+**Wymaganie odroczone — odzyskiwanie przyszłego RYSUNKU 2D.** Przebudowany moduł musi przechowywać dane rysunku z jednoznacznym przypisaniem do projektu i właściwego pomieszczenia oraz uwzględniać je w synchronizacji LOCAL-FIRST. Dotyczy to rzutów ścian, położenia i wymiarów mebli, blatów, blend oraz ich powiązań. „Pobierz najnowszą wersję” ma odtwarzać również aktualny rysunek z potwierdzonej rewizji; „Zachowaj kopię pomieszczenia” ma zachować jego rysunek z poprawnym mapowaniem identyfikatorów. Brak cichego gubienia danych lub nadpisywania rysunku z innego pomieszczenia. WYCENA pozostaje niezależna i może być przeliczona po odzyskaniu — nie trzeba jej kopiować razem z pomieszczeniem. To wymaganie przyszłego etapu RYSUNEK, **nie rozszerzenie obecnej implementacji P0-B**. Nie mylić przyszłego RYSUNKU 2D z obecnym technicznym ROZRYSEM formatek.
+
 **Tryb:** analiza Chat High / szeroki audyt Work, implementacja Codex.
 
 ---
