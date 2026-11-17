@@ -74,6 +74,18 @@ Punkt wejścia `7e81406ac0b5301db522d274b0131d542f4ef885`, BASE/main `d301c07fb4
 - **Pokrycie CI.** Smoke kopii ratunkowej jest częścią obecnego Preflight. Zestaw `p0b-investor-rules.test.mjs` z kandydatem Rules nadal uruchamia się osobno. Jego włączenie do zatwierdzonego planu GitHub Actions pozostaje luką przed aktywacją. Pełny normalny/podpisany startup z nowym rejestrem i odbiór fizycznych urządzeń pozostają niewykonane w tym pakiecie.
 - **STOP normalnej aktywacji.** Pełne podłączenie nowego rejestru, obecności, heartbeat, grupowego usuwania oraz wyboru odzyskiwania wymaga protokołu zgodności danych i odcięcia starszych writerów. Tombstone przy aktywnych replikach i outboxie zachowuje dotychczasową odmowę. Ten pakiet nie przeprowadza migracji.
 
+### P0-B — odzyskanie lokalnego zapisu bez ACK
+
+Punkt wejścia `5ee304c1fd05c40cb839b10e66c371a1b84849dd`, BASE/main `d301c07fb42bf293a2a9b66c3cb3c1a0d7f976fa`.
+
+- Przyczyną odmowy był warunek `replica.dirty` lub nieweryfikowanego outboxa. Pole `replica.json` po takim zapisie zawiera aktualną lokalną treść. Nadal istnieje jednak `replica.base`, zmieniane dopiero po zweryfikowanym odbiorze albo ACK. Jest ono przypięciem do ostatniej potwierdzonej rewizji.
+- Kanał projektu otrzymał odczyt tej konkretnej, niezmiennej rewizji. Korzysta z aktualnie autoryzowanego SDK i rzeczywistych odczytów Firestore. Sprawdza zakres właściciela i projektu, rozmiar oraz liczbę fragmentów, hashe fragmentów/pliku/dokumentu/payloadu, kontrakt danych i przypiętą rewizję katalogów. Nie zamienia wskazanej bazy na najnowszą głowę. Brak, uszkodzenie albo niepotwierdzony odczyt pozostawia źródło i kolejkę.
+- Odzyskiwanie porównuje cały lokalny projekt z tak potwierdzoną bazą. Zezwala na kopię wyłącznie przy zmianach ograniczonych do wybranego pokoju. Plan utrwala przypięcie i hash odczytanej bazy razem z mapą nowych ID. Przejęcie, archiwizacja starej kolejki, atomowy checkpoint, nowa pojedyncza operacja i ACK korzystają z dotychczasowego protokołu.
+- Zakres obejmuje zapis oczekujący `queued`, przerwaną próbę `inflight` i `uncertain`, także gdy stary zapis dotarł do serwera, ale lokalnie zabrakło ACK. Brudna replika nigdy nie jest przyjmowana jako potwierdzona baza. WYCENA, globalne decyzje techniczne i kontrola zmian poza pokojem zachowują swoje bramki.
+- **PASS celowanego DEMO 1/1.** Istniejący scenariusz rozszerzono o rzeczywisty zapis kuchni w `queued` oraz osobne odzyskania `inflight` i `uncertain`. Ten ostatni obejmuje faktycznie zatwierdzoną, lecz lokalnie niepotwierdzoną starą publikację. Chromium/WSL i Auth/Firestore Emulator sprawdziły stary pin mimo nowszej głowy, nieistniejącą rewizję, niewłaściwy hash i zakres, brak czytnika bazy, konflikt CAS, zmianę innego pokoju, SIGKILL, abort checkpointu, utratę ACK przejęcia i kopii oraz jedną nową publikację. Stara kolejka pozostała w archiwum, a nowa otrzymała `verified` po niezależnym odczycie. Pozostałe pokoje i rekordy zachowano.
+- Granica startu PASS 10/10. Kontrole diffu, manifestu, wersji i statycznej kompletności planu CI PASS. W tym pakiecie nie powtarzano pełnego kandydata ani CI.
+- **CODE_READY dla tej luki w kandydacie DEMO / CI_PENDING.** Ogólna aktywacja P0-B pozostaje BLOCKED, podobnie wydanie i LIVE. Zestaw kandydata nadal wymaga włączenia do obowiązkowego planu CI przed aktywacją.
+
 ## Operacje pomieszczeń i potwierdzenie zapisu, 16.11.2026
 
 Gałąź `fix/room-operations-durable-save-20261115`, BASE/main `12ffaeaa9307197c742a0b8d5d95d3b96489a138`. [Kontrakt LOCAL-FIRST](docs/plans/LOCAL_FIRST_ROADMAP.md).

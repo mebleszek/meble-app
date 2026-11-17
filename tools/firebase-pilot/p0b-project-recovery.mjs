@@ -55,6 +55,16 @@ export function createP0BProjectRecovery({store,protocol,channel,investorId,asse
     if(!roomContract)unresolved.push('room-contract');
     return {available:unresolved.length===0,unresolved,code:unresolved.length?'LF_PROJECT_OWNERSHIP_PENDING':null};
   }
+  async function confirmedRoomBase(before){
+    const replica=before.replica,head=replica.base;
+    if(!head)fail('LF_ROOM_COPY_BASE_UNCONFIRMED');
+    const pending=replica.dirty||before.operations.some(op=>op.phase!=='verified');
+    if(!pending)return {head,value:JSON.parse(replica.json)};
+    if(typeof channel.readPinned!=='function')fail('LF_ROOM_COPY_BASE_UNCONFIRMED');
+    const baseline=await channel.readPinned(head);
+    if(!equal(baseline.head,head))fail('LF_ROOM_COPY_BASE_UNCONFIRMED');
+    return baseline;
+  }
   async function readCurrent(revision){
     const remote=await channel.read();
     if(remote.head?.currentRevisionId!==revision)fail('LF_PROJECT_RECOVERY_CONFLICT');
@@ -118,9 +128,10 @@ export function createP0BProjectRecovery({store,protocol,channel,investorId,asse
         if(variant==='room-copy'){
           const eligibility=roomCopyStatus(before.image);
           if(!eligibility.available)fail(eligibility.code);
-          if(before.replica.dirty||before.operations.some(op=>op.phase!=='verified'))fail('LF_ROOM_COPY_BASE_UNCONFIRMED');
-          roomCopy=prepareRoomCopy({rows:before.image.rows,baseline:JSON.parse(before.replica.json),scope,roomId,name:roomName,
+          const baseline=await confirmedRoomBase(before);
+          roomCopy=prepareRoomCopy({rows:before.image.rows,baseline:baseline.value,scope,roomId,name:roomName,
             validateRoom:roomContract.validateRoom});
+          roomCopy.confirmedBase={head:baseline.head,hash:await digest(json(copy(baseline.value)))};
           const project=appendRoomCopy(remote.value.document.payload.project,roomCopy,roomContract);
           application.rows.fc_projects_v1=JSON.stringify(JSON.parse(application.rows.fc_projects_v1).map(row=>row.id===scope?project:row));
           await roomContract.build(application.rows,remote);

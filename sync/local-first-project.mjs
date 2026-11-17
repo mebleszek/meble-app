@@ -124,6 +124,39 @@ export function createProjectChannel({writer, reader, ownerUid, deviceId, projec
     guard();
     return globals.readPinned?globals.readPinned(pin,()=>loadPinnedGlobals(pin)):loadPinnedGlobals(pin);
   }
+  async function readPinned(pin) {
+    guard();
+    pin=copy(pin);
+    c.validHead(bare(pin),scope);
+    if(!pin)fail('LF_ROOM_COPY_BASE_UNCONFIRMED');
+    metadata(pin);
+    const sdk=reader.firestore;
+    const revision=sdk.doc(projectRef(reader.db),'revisions',pin.currentRevisionId);
+    // A server-only request also rejects an explicitly disabled SDK network.
+    if(!fresh(await sdk.getDocFromServer(revision)).exists())fail('LF_PROJECT_BASE_INCOMPLETE');
+    guard();
+    const stored=await sdk.runTransaction(reader.db,async tx=>{
+      guard();
+      const header=value(fresh(await tx.get(revision)));
+      if(!header||!Number.isSafeInteger(header.chunkCount)||header.chunkCount<1||header.chunkCount>c.MAX_CHUNKS
+        ||!Number.isSafeInteger(header.byteLength)||header.byteLength<1||header.byteLength>c.MAX_BYTES)fail('LF_PROJECT_BASE_INCOMPLETE');
+      const chunks=await Promise.all(Array.from({length:header.chunkCount},(_,index)=>
+        tx.get(sdk.doc(revision,'chunks',String(index)))));
+      if(chunks.some(snapshot=>!fresh(snapshot).exists()))fail('LF_PROJECT_BASE_INCOMPLETE');
+      guard();
+      return {header,chunks:chunks.map(snapshot=>snapshot.data())};
+    },{maxAttempts:1});
+    guard();
+    // The durable pin supplies the published generation and content hashes.
+    // Immutable revision metadata supplies bounded geometry and its timestamp.
+    const manifest={...bare(pin),formatVersion:1,chunkCount:stored.header.chunkCount,
+      byteLength:stored.header.byteLength,updatedAt:stored.header.createdAt};
+    const result=await c.unpack(manifest,stored.header,stored.chunks,scope);
+    const global=await readGlobals({revisionId:pin.globalRevisionId,directoryHash:pin.globalDirectoryHash});
+    const requirements=validateProjectDependencies(projectContract,globalContract,result.document,global.value);
+    guard();
+    return {head:pin,value:{document:result.document,globals:{head:global.head,model:global.value},requirements}};
+  }
   async function read() {
     guard(); const result = await inbound.readProject(scope); guard();
     const raw = value(fresh(await reader.firestore.getDocFromServer(projectRef(reader.db)))); guard();
@@ -168,7 +201,7 @@ export function createProjectChannel({writer, reader, ownerUid, deviceId, projec
       const next = {...e,active:false,headRevision:head.currentRevisionId}; guard(); tx.set(editorRef(writer.db),next); return next;
     },{maxAttempts:1});
   }
-  return Object.freeze({kind:'project',scope:projectId,prepare,read,readHead,editor,acquire,release,guard,
+  return Object.freeze({kind:'project',scope:projectId,prepare,read,readPinned,readHead,editor,acquire,release,guard,
     watch(notify){guard();return reader.firestore.onSnapshot(projectRef(reader.db),()=>notify(),()=>notify());},
     async close(){await inbound.close();}});
 }

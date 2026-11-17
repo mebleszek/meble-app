@@ -257,10 +257,14 @@ export async function runP0BRecovery(t,{env,client,uid,pin,wrongPin,contact}){
     fc_edit_session_v1:JSON.stringify({schemaVersion:4,projectId,roomId:'kitchen',active:true,expectedOwnerKnown:true}),
     fc_quote_offer_drafts_v1:JSON.stringify([{projectId,investorId,selection:{selectedRooms:['kitchen','wardrobe']},note:'Recalculate later'}]),
   };
-  await store.checkpointApplication({expectedVersion:draftImage.version,rows:roomDraftRows});
+  const beforeUnsent=await store.snapshot(projectId);
+  const unsentValue=await makeValue({...roomDraftRows,fc_edit_session_v1:null,fc_quote_offer_drafts_v1:'[]'});
+  await store.commit({scope:projectId,operationId:'queued-kitchen',expectedVersion:beforeUnsent.replica.version,
+    editor:beforeUnsent.replica.editor,value:unsentValue,protectedRows:roomDraftRows,
+    application:{expectedVersion:draftImage.version,rows:roomDraftRows}});
   let draftSource=await store.readApplication();
   const preCopy=await store.snapshot(projectId);
-  const request={rows:roomDraftRows,baseline:JSON.parse(preCopy.replica.json),scope:projectId,
+  const request={rows:roomDraftRows,baseline:remote.value,scope:projectId,
     roomId:'kitchen',name:'Kuchnia — odzyskana',validateRoom:roomContract.validateRoom};
   const extraChange=clone(roomDraftRows),changedElsewhere=JSON.parse(extraChange.fc_projects_v1);
   changedElsewhere[0].projectData.wardrobe.settings.roomHeight=999;
@@ -283,7 +287,19 @@ export async function runP0BRecovery(t,{env,client,uid,pin,wrongPin,contact}){
     fc_quote_snapshots_v1:JSON.stringify(history.concat(newerHistory))};
   await (await computerChannel.prepare(await makeValue(serverRows),remote.head,newerEditor)).publish();
   const latestRemote=await remoteChannel.read();
+  const pinned=await remoteChannel.readPinned(preCopy.replica.base);
+  assert.equal(pinned.head.currentRevisionId,remote.head.currentRevisionId);
+  assert.notEqual(pinned.head.currentRevisionId,latestRemote.head.currentRevisionId);
+  assert.deepEqual(clone(pinned.value),clone(remote.value),'Read exactly the last confirmed revision, including validated pinned catalogs');
+  await assert.rejects(remoteChannel.readPinned({...preCopy.replica.base,currentRevisionId:'0'.repeat(32)}),{code:'LF_PROJECT_BASE_INCOMPLETE'});
+  await assert.rejects(remoteChannel.readPinned({...preCopy.replica.base,fileSha256:'0'.repeat(64)}),{code:'CLOUD_INTEGRITY_INVALID'});
+  await assert.rejects(remoteChannel.readPinned({...preCopy.replica.base,projectId:'foreign'}),{code:'CLOUD_BASE_INVALID'});
   const copyStatus=await copying(old.protocol).inspect();
+  const withoutBaseReader=createP0BProjectRecovery({store,protocol:old.protocol,channel:{...remoteChannel,readPinned:undefined},
+    investorId,assertAccess(){},roomContract});
+  await assert.rejects(withoutBaseReader.start({variant:'room-copy',roomId:'kitchen',roomName:request.name,
+    expected:copyStatus.status,pin,confirmed:true}),{code:'LF_ROOM_COPY_BASE_UNCONFIRMED'});
+  assert.equal(await store.pendingProjectRecovery(projectId),null);
   assert.equal(copyStatus.requiresPin,true);
   assert.equal(copyStatus.roomCopy.available,true,'Project quote draft does not prevent a room copy');
   const technicalKeys=['fc_edge_v1','fc_material_part_options_v1','fc_rozrys_grain_state_v1','fc_rozrys_overrides_v1'];
@@ -335,9 +351,13 @@ export async function runP0BRecovery(t,{env,client,uid,pin,wrongPin,contact}){
   await page.getByLabel('Nazwa kopii pomieszczenia').fill(request.name);
   await page.getByRole('button',{name:'Zachowaj kopię pomieszczenia',exact:true}).click();
   await page.getByRole('button',{name:'Odzyskaj projekt',exact:true}).click();
-  await page.getByRole('status').getByText(/copy-lost-ack/).waitFor();
+  await page.waitForFunction(()=>document.querySelector('[role="status"]')?.textContent.includes('Odzyskiwanie wstrzymane.'));
+  assert.match(await page.getByRole('status').textContent(),/copy-lost-ack/);
   const pendingCopy=await store.pendingProjectRecovery(projectId);
   assert.equal(pendingCopy.variant,'room-copy');
+  assert.deepEqual(pendingCopy.roomCopy.confirmedBase.head,preCopy.replica.base);
+  assert.equal(preCopy.replica.dirty,true);
+  assert.deepEqual(preCopy.operations.map(op=>op.phase),['queued']);
   assert.deepEqual(await store.readApplication(),draftSource,'Lost ACK retains the complete local draft');
   const stableId=pendingCopy.roomCopy.id;
   await reboot();
@@ -391,6 +411,7 @@ export async function runP0BRecovery(t,{env,client,uid,pin,wrongPin,contact}){
   assert.deepEqual(JSON.parse(copiedImage.rows.fc_quote_offer_drafts_v1),[]);
   const archivedCopy=JSON.parse(copySnap.protected.find(row=>row.key===copied.archiveId).json);
   assert.equal(archivedCopy.image.rows.fc_quote_offer_drafts_v1,roomDraftRows.fc_quote_offer_drafts_v1);
+  assert.deepEqual(archivedCopy.operations,preCopy.operations);
   await reboot();
   assert.deepEqual(await copying(old.protocol).resume(),copied);
   assert.equal((await store.snapshot(projectId)).operations.length,1);
@@ -419,5 +440,102 @@ export async function runP0BRecovery(t,{env,client,uid,pin,wrongPin,contact}){
   assert.deepEqual(JSON.parse((await store.readApplication()).rows.fc_projects_v1)[0],merged);
   assert.deepEqual((await store.snapshot(projectId)).operations,[]);
   assert.deepEqual(await remoteChannel.read(),lastHead,'Latest option does not publish a project');
+
+  for(const phase of ['inflight','uncertain']){
+    const startImage=await store.readApplication(),startReplica=await store.snapshot(projectId);
+    const confirmed=await remoteChannel.read();
+    const localProject=clone(confirmed.value.document.payload.project);
+    localProject.projectData.kitchen.cabinets[0].width+=2;
+    for(const front of localProject.projectData.kitchen.fronts.filter(row=>row.cabId==='base-cabinet'))front.width+=1;
+    const pendingRows={...startImage.rows,fc_projects_v1:JSON.stringify(
+      JSON.parse(startImage.rows.fc_projects_v1).map(row=>row.id===projectId?localProject:row))};
+    const pendingValue=await roomContract.build(pendingRows,confirmed);
+    const operationId='unsent-kitchen-'+phase;
+    await store.commit({scope:projectId,operationId,expectedVersion:startReplica.replica.version,
+      editor:startReplica.replica.editor,value:pendingValue,protectedRows:pendingRows,
+      application:{expectedVersion:startImage.version,rows:pendingRows}});
+    const publication=await remoteChannel.prepare(pendingValue,confirmed.head,startReplica.replica.editor);
+    await store.transition(operationId,'queued','inflight',{expected:publication.expected});
+    if(phase==='uncertain'){
+      await publication.publish();
+      await store.transition(operationId,'inflight','uncertain',{code:'LF_ACK_UNRESOLVED'});
+    }
+    await reboot();
+    const unchangedSource=await store.readApplication(),oldQueue=await store.snapshot(projectId);
+    assert.equal(oldQueue.replica.dirty,true);
+    assert.equal(oldQueue.operations.at(-1).phase,phase);
+    assert.deepEqual(oldQueue.replica.base,confirmed.head,'Uncertain publication is not its own acknowledged base');
+
+    const phoneWitness=await computer.protocol.projectStatus(investorId,projectId);
+    const phoneEditor=await computer.protocol.advanceEditor({iid:investorId,pid:projectId,expected:phoneWitness,
+      pinRevision:await computer.protocol.pin.verify(pin),deviceLabel:'Telefon'});
+    const phoneBase=await computerChannel.read(),phoneProject=clone(phoneBase.value.document.payload.project);
+    phoneProject.projectData.kitchen.settings.roomHeight+=5;
+    phoneProject.projectData.wardrobe.settings.roomHeight+=3;
+    const phoneRows={...unchangedSource.rows,fc_projects_v1:JSON.stringify(
+      JSON.parse(unchangedSource.rows.fc_projects_v1).map(row=>row.id===projectId?phoneProject:row))};
+    await (await computerChannel.prepare(await roomContract.build(phoneRows,phoneBase),phoneBase.head,phoneEditor)).publish();
+    const newest=await remoteChannel.read(),currentStatus=await copying(old.protocol).inspect();
+
+    // Neither a stale observation nor an unrelated local room may be discarded.
+    await assert.rejects(copying(old.protocol).start({variant:'room-copy',roomId:'kitchen',roomName:'Odzyskana '+phase,
+      expected:phoneWitness,pin,confirmed:true}),{code:'LF_PROJECT_RECOVERY_CONFLICT'});
+    const foreignChange=JSON.parse(unchangedSource.rows.fc_projects_v1);
+    foreignChange[0].projectData.wardrobe.settings.roomHeight+=99;
+    await store.checkpointApplication({expectedVersion:unchangedSource.version,rows:{
+      ...unchangedSource.rows,fc_projects_v1:JSON.stringify(foreignChange)
+    }});
+    const foreignImage=await store.readApplication();
+    await assert.rejects(copying(old.protocol).start({variant:'room-copy',roomId:'kitchen',roomName:'Odzyskana '+phase,
+      expected:currentStatus.status,pin,confirmed:true}),{code:'LF_ROOM_COPY_OTHER_CHANGES'});
+    assert.deepEqual(await store.readApplication(),foreignImage);
+    assert.deepEqual(await store.snapshot(projectId),oldQueue);
+    assert.equal(await store.pendingProjectRecovery(projectId),null);
+    assert.deepEqual(await old.protocol.projectStatus(investorId,projectId),currentStatus.status);
+    await store.checkpointApplication({expectedVersion:foreignImage.version,rows:unchangedSource.rows});
+
+    const recoveredPending=await copying(old.protocol).start({variant:'room-copy',roomId:'kitchen',roomName:'Odzyskana '+phase,
+      expected:currentStatus.status,pin,confirmed:true,deviceLabel:'Komputer'});
+    await assert.rejects(publication.publish(),{code:phase==='uncertain'?'CLOUD_WRITE_CONFLICT':'LF_EDITOR_OR_DEPENDENCY_CONFLICT'},phase);
+    assert.deepEqual((await remoteChannel.read()).head,newest.head,'The stale publication cannot replace the newer head');
+    const pendingSnapshot=await store.snapshot(projectId);
+    assert.deepEqual(pendingSnapshot.operations.map(row=>[row.key,row.phase]),[[recoveredPending.operationId,'queued']]);
+    const archived=JSON.parse(pendingSnapshot.protected.find(row=>row.key===recoveredPending.archiveId).json);
+    assert.deepEqual(archived.operations,oldQueue.operations);
+    const mergedProject=JSON.parse((await store.readApplication()).rows.fc_projects_v1)[0];
+    for(const roomId of phoneProject.projectData.meta.roomOrder)
+      assert.deepEqual(mergedProject.projectData[roomId],phoneProject.projectData[roomId]);
+    assert.equal(mergedProject.projectData[recoveredPending.roomId].cabinets[0].width,localProject.projectData.kitchen.cabinets[0].width);
+    assert.equal(mergedProject.projectData[recoveredPending.roomId].settings.roomHeight,localProject.projectData.kitchen.settings.roomHeight);
+
+    let writes=0;
+    const lostAckChannel={...remoteChannel,async prepare(...args){
+      const prepared=await remoteChannel.prepare(...args);
+      return {...prepared,async publish(){
+        writes++;await prepared.publish();
+        throw Object.assign(Error('Synthetic copy ACK loss'),{code:'unavailable'});
+      }};
+    }};
+    const uncertainSync=createDurableSynchronizer({store,channels:[lostAckChannel],eventTarget:new EventTarget()});
+    try{
+      assert.equal((await uncertainSync.flush()).ok,false);
+      assert.equal((await store.snapshot(projectId)).operations[0].phase,'uncertain');
+      assert.equal(writes,1);
+    }finally{await uncertainSync.close();}
+    await reboot();
+    assert.deepEqual(await copying(old.protocol).resume(),recoveredPending);
+    const receiptSync=createDurableSynchronizer({store,channels:[remoteChannel],eventTarget:new EventTarget()});
+    try{
+      assert.equal((await receiptSync.flush()).ok,true);
+      const snapshot=await store.snapshot(projectId);
+      assert.equal(snapshot.operations.length,1);
+      assert.equal(snapshot.operations[0].phase,'verified');
+      assert.equal(snapshot.replica.dirty,false);
+      const received=await computerChannel.read();
+      assert.equal(received.head.generation,newest.head.generation+1);
+      assert.deepEqual(clone(received.value.document.payload.project),mergedProject);
+      assert.equal(writes,1,'Restart resolves the uncertain copy by reading, without republishing');
+    }finally{await receiptSync.close();}
+  }
 }
 function refPin(db,uid){return f.doc(db,'users',uid,'p0bSettings','projectPin');}
