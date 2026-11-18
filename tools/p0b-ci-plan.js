@@ -5,6 +5,7 @@ const groups=Object.freeze([
  {id:'room-model',file:'p0b-room-boundary.test.mjs',pattern:'^P0-B room boundary:',emulator:false},
  {id:'room-quote-proof',file:'p0b-room-quote.test.mjs',pattern:'^P0-B room quote proof:',emulator:false},
  {id:'room-quote-rules',file:'p0b-room-quotes-rules.test.mjs',pattern:'^P0-B room quote Rules:'},
+ {id:'room-quote-variants',file:'p0b-normal-application.test.mjs',pattern:'^P0-B room quote variants:'},
  {id:'room-quote-promotion',file:'p0b-normal-application.test.mjs',pattern:'^P0-B room quote promotion:'},
  {id:'room-quote-staging',file:'p0b-normal-application.test.mjs',pattern:'^P0-B room quote staging:'},
  {id:'room-quote-acceptance-conflict',file:'p0b-normal-application.test.mjs',pattern:'^P0-B room quote acceptance conflict:'},

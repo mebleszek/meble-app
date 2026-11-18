@@ -47,6 +47,8 @@ export function createApplicationQuoteLedger({fc,store,writer,reader,getSync,sou
    }
   }
   const value={kind:'p0b-room-quotes',investorId:iid,offers,pins};validateQuoteLedgerChange(previous,value);
+  if(before.rows.fc_quote_offer_drafts_v1!==application.rows.fc_quote_offer_drafts_v1)
+   fc.businessProjectContract.validateOfferDraftChange(before.rows,application.rows,before.rows.fc_current_project_id_v1);
   if(!getSync().channel(scope))getSync().register(await channel(iid));
   const oldProjects=JSON.parse(before.rows.fc_projects_v1||'[]'),newProjects=JSON.parse(application.rows.fc_projects_v1||'[]');
   const modified=newProjects.filter(row=>!equal(row,oldProjects.find(old=>old.id===row.id)));

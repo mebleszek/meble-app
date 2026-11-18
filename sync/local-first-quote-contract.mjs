@@ -61,3 +61,30 @@ export function validateQuoteLedgerChange(before,after){
  }
  return true;
 }
+
+// Naming another variant is part of the same atomic local history commit.
+// It is not a general settings write: all other fields/rows stay exact.
+export function validateQuoteVariantDraftChange(before,after,previous,value){
+ const key='fc_quote_offer_drafts_v1';
+ if(before[key]===after[key])return false;
+ const refuse=()=>fail('LF_APPLICATION_SCOPE_REFUSED'),pid=before.fc_current_project_id_v1,iid=value.investorId;
+ if(!pid||after.fc_current_project_id_v1!==pid||before.fc_current_investor_v1!==iid||after.fc_current_investor_v1!==iid)refuse();
+ const priorOffers=previous?.offers||[],added=value.offers.filter(row=>!priorOffers.some(old=>old.id===row.id));
+ if(added.length!==1||value.offers.length!==priorOffers.length+1
+  ||!equal(priorOffers,value.offers.filter(row=>priorOffers.some(old=>old.id===row.id))))refuse();
+ const offer=added[0];
+ if(offer.project.id!==pid||offer.investor.id!==iid)refuse();
+ let old,next,projects;
+ try{old=JSON.parse(before[key]||'[]');next=JSON.parse(after[key]||'[]');projects=JSON.parse(before.fc_projects_v1||'[]');}catch{refuse();}
+ if(!Array.isArray(old)||!Array.isArray(next)||!Array.isArray(projects))refuse();
+ const indices=old.flatMap((row,index)=>row?.projectId===pid?[index]:[]);
+ if(indices.length!==1||projects.filter(row=>row.id===pid&&row.investorId===iid).length!==1)refuse();
+ const index=indices[0],prior=old[index],draft=next[index],name=draft?.commercial?.versionName;
+ if(prior.investorId!==iid||draft?.investorId!==iid||typeof name!=='string'||!name.trim()||name!==name.trim()
+  ||name!==offer.commercial?.versionName||name!==offer.meta?.versionName
+  ||!Number.isSafeInteger(draft.updatedAt)||draft.updatedAt<0)refuse();
+ const expected=copy(old);
+ expected[index]={...expected[index],commercial:{...expected[index].commercial,versionName:name},updatedAt:draft.updatedAt};
+ if(!equal(expected,next))refuse();
+ return true;
+}

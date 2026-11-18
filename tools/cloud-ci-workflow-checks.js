@@ -175,7 +175,7 @@ async function diagnosticChecks(source){
     mutation("- {batch: 3, segment: '3e'}","- {batch: 3, segment: '3z'}"),
     mutation('    needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b]','    needs: [safety, firebase-current-shards, firebase-p0b]'),
     mutation('    needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b]','    needs: [safety, firebase-current-shards, playwright-sync-ui]'),
-    mutation('segment: [room-model, room-quote-proof, room-quote-rules, room-quote-promotion, room-quote-staging, room-quote-acceptance-conflict, room-quote-acceptance, room-quote, room-storage, normal-rules, rules, recovery, profiles, compatibility, normal-startup, signed-startup, signed-clean, normal-clean, storage]','segment: [rules, profiles, compatibility, normal-startup, signed-startup]'),
+    mutation('segment: [room-model, room-quote-proof, room-quote-rules, room-quote-variants, room-quote-promotion, room-quote-staging, room-quote-acceptance-conflict, room-quote-acceptance, room-quote, room-storage, normal-rules, rules, recovery, profiles, compatibility, normal-startup, signed-startup, signed-clean, normal-clean, storage]','segment: [rules, profiles, compatibility, normal-startup, signed-startup]'),
     mutation('node --test tools/firebase-pilot/playwright-local-ui.test.mjs','node --test tools/firebase-pilot/removed-ui.test.mjs'),
     mutation('cloud-ci-emulators.js --context=current --playwright-sync','cloud-ci-emulators.js --context=current --no-sync'),
     mutation('const names=["safety","cloud-historical-smoke","cloud-historical-sdk"];','const names=["safety","cloud-historical-smoke"];'),
