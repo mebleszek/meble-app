@@ -196,6 +196,8 @@ Minima: wyłącznie właściciel, zachowane cenniki/zamienniki, bez nadpisywania
 6. Codex: kontrole celowane; pełne CI: Actions. Raport oceniaj niezależnie i zlecaj następną konkretną dozwoloną czynność, nie kolejny plan/audyt. Brak dostępu ≠ FAIL ani wykonany Preflight.
 7. Nie ponawiaj zgody na ten sam zakres/odczyt. Rozróżniaj plan, odczyt, implementację, wydanie HEAD/BASE i LIVE WRITE. Brak dostępu = `BLOCKED` i jedno praktyczne odblokowanie, bez obchodzenia zabezpieczeń.
 
+**Jakość pierwszego podejścia i oszczędność limitu — decyzja właściciela 18.11.2026.** Przed przekazaniem istotnej implementacji ChatGPT weryfikuje zatwierdzony model danych, wcześniejsze decyzje, zależności modułów i możliwe skutki uboczne; przekazuje Codexowi zwięzły, precyzyjny zakres z kryteriami odbioru. Codex zachowuje samodzielność techniczną (§2): w ramach zatwierdzonego celu kwestionuje błędne założenia i dobiera bezpieczne rozwiązanie, ale nie ponawia szerokiej analizy bez nowego, konkretnego powodu. Limit oszczędzamy przez unikanie ponownych odczytów, dublowania analiz i niepotrzebnych iteracji, **nie** przez pomijanie wymaganej diagnostyki, regresji lub ochrony danych. Priorytetem jest poprawne rozwiązanie za możliwie pierwszym podejściem, a nie najniższa liczba tokenów za cenę kolejnych błędów. Ta decyzja nie zmienia zakresu P0-B, podziału wykonawców testów, GitHub CI ani zasad zgód na wydanie i Firebase LIVE.
+
 Najpierw sprawdź istniejące metody; Firebase Codexa nie jest automatycznie narzędziem ChatGPT ani wymogiem produktu. Bez próśb o sekrety/tokeny/klucze. Dalej: [COLLABORATION.md](docs/agents/COLLABORATION.md).
 
 ## 19. Decyzje właściciela i priorytet produktu — 03.11.2026
