@@ -177,6 +177,14 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
      if(/\/localFirst(?:Projects|Editors)\//.test(ref.path))budget.projects++;
     };
     const measured={...f,
+     async setDoc(ref,value,...args){
+      const result=await f.setDoc(ref,value,...args);
+      if(ref.path.includes('/p0bRoomQuotes/')&&ref.parent.id==='chunks'&&window.normalPauseQuoteChunk){
+       window.normalPauseQuoteChunk=false;window.normalQuoteChunkStaged={path:ref.path,index:value.index};
+       await new Promise(resolve=>window.normalContinueQuoteChunk=resolve);
+      }
+      return result;
+     },
      getDocFromServer(ref){countRead(ref);return f.getDocFromServer(ref);},
      async getDocsFromServer(query){budget.queries++;const rows=await f.getDocsFromServer(query);budget.documents+=rows.size;return rows;},
      runTransaction(db,run,options,rpc){budget.transactions++;let quoteHeadWrite=false,roomHeadWrite=null;return f.runTransaction(db,tx=>{

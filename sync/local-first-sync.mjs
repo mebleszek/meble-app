@@ -67,6 +67,18 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
     if(!equal(remote.value,JSON.parse(op.json)))fail('LF_REMOTE_CONTENT_MISMATCH');
     await store.transition(op.key,op.phase,'verified',{receipt:remote.head});
   }
+  async function publicationBase(op){
+    let base=op.base;
+    if(op.previousOperation){const previous=(await store.snapshot(op.scope)).operations.find(p=>p.key===op.previousOperation);
+      if(previous?.phase!=='verified')fail('LF_PREDECESSOR_PENDING');
+      const receipt=previous.receipt;
+      if(!receipt||!Number.isSafeInteger(receipt.generation)||receipt.generation<1
+        ||base&&(!Number.isSafeInteger(base.generation)||base.generation<1
+          ||base.generation===receipt.generation&&!equal(base,receipt)))fail('LF_PREDECESSOR_BASE_CONFLICT');
+      if(!base||receipt.generation>base.generation)base=receipt;
+    }
+    return base;
+  }
   async function cycle(scopes) {
     if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
     return store.exclusive(async()=>{
@@ -84,7 +96,22 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
           if(['blocked','conflict'].includes(op.phase))return {ok:false,code:op.code||op.blockers[0]||'LF_CONFLICT',blockedScopes:[scope]};
           if(['inflight','uncertain'].includes(op.phase)){
             if(op.phase==='inflight')op=await store.transition(op.key,'inflight','uncertain');
-            try{await resolve(channel,op);}catch(e){return safeError(e);}continue;
+            try{await resolve(channel,op);}catch(e){
+              // Only quote channels can resume the exact staged immutable revision.
+              // Never replay on arbitrary read/integrity/Auth errors or invent a new ID.
+              if(channel.kind!=='quote'||!channel.resume||!['LF_QUOTE_NOT_FOUND','LF_ACK_UNRESOLVED'].includes(e.code))return safeError(e);
+              try{
+                const prepared=await channel.resume(JSON.parse(op.json),await publicationBase(op),op.expected);
+                if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
+                await prepared.publish();
+                if(closed)return {ok:false,code:'LF_CLOSED_RESULT_UNCONFIRMED'};
+                await resolve(channel,op);
+              }catch(error){
+                if(['LF_QUOTE_CAS_CONFLICT','LF_QUOTE_STAGED_INTEGRITY','LF_QUOTE_HISTORY_IMMUTABLE','LF_P0B_INVESTOR_DELETED'].includes(error.code))
+                  await store.transition(op.key,'uncertain','conflict',{code:error.code});
+                return {...safeError(error),blockedScopes:[scope]};
+              }
+            }continue;
           }
           if(op.dependencies){
             if(channel.kind!=='quote'||!Array.isArray(op.dependencies)||!op.dependencies.length)fail('LF_QUOTE_STATUS_DEPENDENCY_INVALID');
@@ -94,17 +121,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
               if(participant.phase!=='verified')return {ok:false,code:participant.code||'LF_QUOTE_STATUS_PENDING',blockedScopes:[dependency.scope]};
             }
           }
-          let base=op.base;
-          if(op.previousOperation){const previous=(await store.snapshot(op.scope)).operations.find(p=>p.key===op.previousOperation);
-            if(previous?.phase!=='verified')return {ok:false,code:'LF_PREDECESSOR_PENDING'};
-            const receipt=previous.receipt;
-            if(!receipt||!Number.isSafeInteger(receipt.generation)||receipt.generation<1
-              ||base&&(!Number.isSafeInteger(base.generation)||base.generation<1
-                ||base.generation===receipt.generation&&!equal(base,receipt)))return {ok:false,code:'LF_PREDECESSOR_BASE_CONFLICT'};
-            // A queued successor may need its predecessor's newer receipt.
-            // Conversely, a verified incoming revision can already be newer
-            // than our last own publication: never roll that durable base back.
-            if(!base||receipt.generation>base.generation)base=receipt;}
+          const base=await publicationBase(op);
           let prepared;
           try{prepared=await channel.prepare(JSON.parse(op.json),base,op.editor);}
           catch(e){if(/CONFLICT|STALE|DEPENDENCY|EDITOR/.test(e.code||''))await store.transition(op.key,'queued','conflict',{code:e.code});return {...safeError(e),blockedScopes:[scope]};}

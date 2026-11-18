@@ -39,15 +39,20 @@ export async function createQuoteChannel({writer,reader,ownerUid,investorId,sour
   const value=JSON.parse(text);if(json(value)!==text||value.investorId!==investorId)fail('LF_QUOTE_REMOTE_INTEGRITY');
   await verifySources(value);guard();return {head:h,value};
  }
- return {scope,kind:'quote',guard,read,readHead:head,
-  watch:notify=>r.onSnapshot(ref(r,reader.db),notify,notify),
-  async prepare(value,base){
+ async function prepare(value,base,resumeExpected=null){
    guard();if(value.investorId!==investorId)fail('LF_QUOTE_OWNER_CHANGED');await verifySources(value);
    let prior=null;try{prior=await read();}catch(e){if(e.code!=='LF_QUOTE_NOT_FOUND')throw e;}
+   // An outstanding original RPC can commit between the uncertain probe and
+   // this read. Full content/source validation above is an exact ACK proof,
+   // not a foreign CAS conflict and not permission to publish a second head.
+   if(resumeExpected&&equal(prior?.head,resumeExpected)&&equal(prior.value,value))
+    return {expected:resumeExpected,async publish(){guard();}};
    if(!equal(prior?.head||null,base))fail('LF_QUOTE_CAS_CONFLICT');
    validateQuoteLedgerChange(prior?.value,value);
-   const text=json(value),hash=await digest(text),revisionId=crypto.randomUUID().replaceAll('-','');
+   const text=json(value),hash=await digest(text),revisionId=resumeExpected?.revisionId||crypto.randomUUID().replaceAll('-','');
+   if(!/^[a-f0-9]{32}$/.test(revisionId))fail('LF_QUOTE_STAGED_INTEGRITY');
    const expected={ownerUid,investorId,version:1,generation:(base?.generation||0)+1,revisionId,hash},chunks=[];
+   if(resumeExpected&&!equal(resumeExpected,expected))fail('LF_QUOTE_STAGED_INTEGRITY');
    for(let i=0;i<text.length;){let end=Math.min(text.length,i+100000);if(end<text.length&&text.charCodeAt(end-1)>=0xd800&&text.charCodeAt(end-1)<=0xdbff)end++;const part=text.slice(i,end);i=end;chunks.push({index:chunks.length,text:part,hash:await digest(part)});}
    if(!chunks.length||chunks.length>64)fail('LF_QUOTE_SIZE_LIMIT');
    const revision={...expected,previous:base?.revisionId||'',chunks:chunks.map(row=>row.hash),createdAt:f.serverTimestamp()};
@@ -57,18 +62,31 @@ export async function createQuoteChannel({writer,reader,ownerUid,investorId,sour
      const inv=fresh(await tx.get(f.doc(writer.db,'users',ownerUid,'p0bRoomInvestors',investorId)));
      if(!inv||inv.deletionId||inv.bulkId)fail('LF_P0B_INVESTOR_DELETED');
      const current=bare(fresh(await tx.get(ref(f,writer.db))));
+     const staged=fresh(await tx.get(ref(f,writer.db,'revisions',revisionId)));
      if(!equal(current,base))fail('LF_QUOTE_CAS_CONFLICT');
-     tx.set(ref(f,writer.db,'revisions',revisionId),revision);
+     if(staged){if(!equal(bare(staged),expected)||staged.previous!==revision.previous||!equal(staged.chunks,revision.chunks)||!staged.createdAt)fail('LF_QUOTE_STAGED_INTEGRITY');}
+     else tx.set(ref(f,writer.db,'revisions',revisionId),revision);
     },{maxAttempts:1});
-    for(const chunk of chunks){guard();await f.setDoc(ref(f,writer.db,'revisions',revisionId,'chunks',String(chunk.index)),chunk);}
+    for(const chunk of chunks){
+     guard();const target=ref(f,writer.db,'revisions',revisionId,'chunks',String(chunk.index));
+     if(!resumeExpected)await f.setDoc(target,chunk);
+     else await f.runTransaction(writer.db,async tx=>{
+      const saved=fresh(await tx.get(target));
+      if(saved){if(!equal(saved,chunk))fail('LF_QUOTE_STAGED_INTEGRITY');}
+      else tx.set(target,chunk);
+     },{maxAttempts:1});
+    }
     await f.runTransaction(writer.db,async tx=>{
      const inv=fresh(await tx.get(f.doc(writer.db,'users',ownerUid,'p0bRoomInvestors',investorId)));
      const current=bare(fresh(await tx.get(ref(f,writer.db))));
      if(!inv||inv.deletionId||inv.bulkId)fail('LF_P0B_INVESTOR_DELETED');
+     if(equal(current,expected))return;
      if(!equal(current,base))fail('LF_QUOTE_CAS_CONFLICT');
      guard();tx.set(ref(f,writer.db),{...expected,updatedAt:f.serverTimestamp()});
     },{maxAttempts:1});
    }};
-  }
- };
+ }
+ return {scope,kind:'quote',guard,read,readHead:head,
+  watch:notify=>r.onSnapshot(ref(r,reader.db),notify,notify),
+  prepare:(value,base)=>prepare(value,base),resume:(value,base,expected)=>prepare(value,base,expected)};
 }

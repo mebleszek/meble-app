@@ -33,12 +33,29 @@ function frozen(row){
  if(out.project)delete out.project.status;
  return out;
 }
+// Only the existing explicit preliminary -> final workflow may alter these
+// classification fields. Every price, source pin, timestamp and unknown field
+// is compared against the exact prior snapshot; final content cannot be edited.
+function promotion(before,after){
+ if(!before.meta?.selectedByClient||!(before.meta?.preliminary||before.commercial?.preliminary)
+  ||!(before.meta.acceptedAt>0)||before.meta.acceptedStage!=='pomiar')return false;
+ const rooms=before.scope.selectedRooms,labels=before.scope.roomLabels;
+ if(!Array.isArray(labels)||labels.length<rooms.length||rooms.some((_,i)=>!String(labels[i]||'').trim()))return false;
+ const suffix=' — '+labels.slice(0,rooms.length).map(v=>String(v).trim()).join(' + ');
+ const current=String(before.commercial?.versionName||before.meta.versionName||'').trim();
+ const name=!current||current==='Wstępna oferta'+suffix?'Oferta'+suffix:current;
+ const expected=copy(before);
+ expected.commercial={...expected.commercial,preliminary:false,versionName:name};
+ expected.meta={...expected.meta,preliminary:false,versionName:name,selectedByClient:true,acceptedStage:'zaakceptowany',rejectedAt:0,rejectedReason:''};
+ expected.project={...expected.project,status:'zaakceptowany'};
+ return equal(expected,after);
+}
 export function validateQuoteLedgerChange(before,after){
  validateQuoteLedger(after);if(!before)return true;validateQuoteLedger(before);
  if(before.investorId!==after.investorId)fail('LF_QUOTE_OWNER_CHANGED');
  for(const old of before.offers){
   const next=after.offers.find(row=>row.id===old.id);
-  if(next&&(!equal(frozen(old),frozen(next))||!equal(before.pins[old.id],after.pins[old.id])))fail('LF_QUOTE_HISTORY_IMMUTABLE');
+  if(next&&((!equal(frozen(old),frozen(next))&&!promotion(old,next))||!equal(before.pins[old.id],after.pins[old.id])))fail('LF_QUOTE_HISTORY_IMMUTABLE');
   // Explicit removal changes active history only. Earlier immutable revisions
   // remain in Firestore and protected local transaction images.
  }

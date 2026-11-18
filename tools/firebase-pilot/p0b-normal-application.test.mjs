@@ -7,6 +7,7 @@ import path from 'node:path';
 import * as f from 'firebase/firestore';
 import {assertFails} from '@firebase/rules-unit-testing';
 import {runNormalApplication} from './normal-application.cases.mjs';
+import {promotionCase,stagingCase} from './p0b-quote-lifecycle.cases.mjs';
 async function image(device){
  return device.page.evaluate(name=>new Promise((resolve,reject)=>{
   const q=indexedDB.open('meble-lf-test-normal-'+name);q.onupgradeneeded=()=>q.transaction.abort();q.onerror=()=>reject(q.error);
@@ -48,8 +49,8 @@ async function addCabinet(device,width){
  await page.locator('#cmWidth').fill(String(width));await page.locator('#cmHeight').fill('82');await page.locator('#cmDepth').fill('50');
  await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
 }
-async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false}={}){
- await runNormalApplication(t,{deployment,p0bRegistry:true,testOwner:quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
+async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false}={}){
+ await runNormalApplication(t,{deployment,p0bRegistry:true,testOwner:quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
   const artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'meble-p0b-normal-'));
   await phone.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
   try{
@@ -167,7 +168,9 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     for(const key of ['total','body','front'])assert.ok(Math.abs(pcv[key]-pcv.individual.reduce((sum,row)=>sum+row[key],0))<1e-8);
     assert.ok(pcv.metersValid&&pcv.total>0);assert.deepEqual([...new Set(pcv.sources.map(row=>row.projectId))].sort(),[pid,wardrobeId].sort());
     assert.ok(pcv.sources.every(row=>row.projectId===row.roomId));
-    if(!quoteAcceptance)await page.evaluate(()=>window.normalLoseQuoteAck=true);
+    if(quotePromotion||quoteStaging){await page.locator('.quote-preliminary-chip').click();await page.waitForFunction(()=>window.FC.quoteOfferStore.settingsSettled());}
+    if(quoteStaging)await page.evaluate(()=>window.normalPauseQuoteChunk=true);
+    if(!quoteAcceptance&&!quotePromotion&&!quoteStaging)await page.evaluate(()=>window.normalLoseQuoteAck=true);
     await page.locator('[data-action="wycena-generate"]').click();
     await page.waitForFunction(()=>document.querySelector('[data-quote-history-id]')||document.querySelector('.info-box'));
     const calculationNotice=await page.locator('.info-box').allTextContents();
@@ -185,6 +188,11 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     const ledger=JSON.parse(written.replicas.find(row=>row.key===queued[0].scope).json);
     assert.equal(ledger.pins[offer.id].find(pin=>pin.projectId===pid).head.currentRevisionId,confirmedHead.currentRevisionId);
     assert.equal(ledger.pins[offer.id].find(pin=>pin.projectId===wardrobeId).head.currentRevisionId,wardrobeHead.currentRevisionId);
+    if(quotePromotion||quoteStaging){
+     if(quotePromotion)await until(async()=>(await image(phone)).outbox.find(op=>op.key===queued[0].key)?.phase==='verified');
+     await (quotePromotion?promotionCase:stagingCase)({t,phone,computer,offer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,showList,openRoom,restartProbe,artifacts,globalBefore,env});
+     return;
+    }
     if(quoteAcceptance){
      await until(async()=>(await image(phone)).outbox.find(op=>op.key===queued[0].key)?.phase==='verified').catch(async error=>{
       const head=await f.runTransaction(db,async tx=>{const snapshot=await tx.get(f.doc(db,'users',ownerUid,'p0bRoomQuotes',iid));return snapshot.exists()?snapshot.data():null;},{maxAttempts:1});
@@ -480,6 +488,8 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
 }
 test('P0-B normal DEMO clean registry: real new investor, two profiles and durable independent contact',t=>cleanApplication(t));
 test('P0-B room quote: real combined selection, durable history, independent ACK and protected rooms',t=>cleanApplication(t,{quoteProbe:true}));
+test('P0-B room quote promotion: combined preliminary becomes final atomically through real UI',t=>cleanApplication(t,{quoteProbe:true,quotePromotion:true}));
+test('P0-B room quote staging: interrupted immutable publication resumes after SIGKILL',t=>cleanApplication(t,{quoteProbe:true,quoteStaging:true}));
 test('P0-B room quote acceptance: real combined acceptance preserves frozen sources and prices',t=>cleanApplication(t,{quoteProbe:true,quoteAcceptance:true}));
 test('P0-B room quote acceptance conflict: a changed epoch fences publication and preserves recovery',t=>cleanApplication(t,{quoteProbe:true,quoteAcceptance:true,quoteAcceptanceRace:true}));
 

@@ -5,6 +5,31 @@ import {initializeTestEnvironment,assertFails} from '@firebase/rules-unit-testin
 import {createP0BProtocol,createP0BDeletionIntent} from './p0b-protocol.mjs';
 import {p0bConnection} from '../../sync/application-p0b-domain.mjs';
 const {p0bApplicationRules}=createRequire(import.meta.url)('./p0b-application-rules.js');
+
+test('P0-B room quote Rules: late committed expected head reconciles without another revision',async t=>{
+ const {createQuoteChannel}=await import('../../sync/local-first-quote-channel.mjs');
+ const uid='quote-late-commit-owner',claims={email_verified:true,firebase:{sign_in_provider:'google.com'}};
+ const env=await initializeTestEnvironment({projectId:'demo-meble-app',firestore:{host:'127.0.0.1',port:18080,rules:p0bApplicationRules({normal:true})}});t.after(()=>env.cleanup());
+ await env.withSecurityRulesDisabled(async ctx=>{const db=ctx.firestore();
+  for(const [collection,id,value]of [['syncConfig','owner',{ownerUid:uid,activationId:'p0b-demo',schemaVersion:1}],['syncAccess',uid,{activationId:'p0b-demo',schemaVersion:1}],['appAccess',uid,{schemaVersion:1}],['authorizedUsers',uid,{appEnabled:true,enabled:false,globalDataEnabled:true,globalSchemaVersion:1}]])await f.setDoc(f.doc(db,collection,id),value);
+ });
+ function connection(){const db=env.authenticatedContext(uid,claims).firestore(),native=db._delegate||db;
+  return {db:native,firestore:f,assertAccess(){},session:{identity:()=>({uid,epoch:1})},auth:{app:native.app,emulatorConfig:{host:'127.0.0.1',port:19099,protocol:'http'},currentUser:{uid,providerData:[{providerId:'google.com'}]}}};
+ }
+ const writer=connection(),reader=connection();assert.notEqual(writer.db.app,reader.db.app);
+ const protocol=createP0BProtocol(p0bConnection(writer),'late-device');await protocol.createInvestor('late',{id:'late',name:'Synthetic late commit'});
+ const channel=await createQuoteChannel({writer,reader,ownerUid:uid,investorId:'late',sourceChannel(){throw Error('No sources exist in an empty investor quote ledger');}});
+ const value={kind:'p0b-room-quotes',investorId:'late',offers:[],pins:{}};
+ const original=await channel.prepare(value,null);await original.publish();
+ const committed=await channel.read();assert.deepEqual(committed.head,original.expected);
+ // The original RPC completed after the previous uncertain probe read the old
+ // head. A resumed operation must recognize this exact expected proof as ACK.
+ const resumed=await channel.resume(value,null,original.expected);await resumed.publish();
+ assert.deepEqual(await channel.read(),committed);
+ await env.withSecurityRulesDisabled(async ctx=>assert.equal((await f.getDocs(f.collection(ctx.firestore(),'users',uid,'p0bRoomQuotes','late','revisions'))).size,1));
+ await assert.rejects(channel.resume(value,null,{...original.expected,revisionId:'f'.repeat(32)}),{code:'LF_QUOTE_CAS_CONFLICT'});
+});
+
 test('P0-B room quote Rules: CAS, staging, immutable history, Auth and terminal investor denial',async t=>{
  const uid='room-quote-rules-owner',claims={email_verified:true,firebase:{sign_in_provider:'google.com'}};
  assert.equal(process.env.FIRESTORE_EMULATOR_HOST,'127.0.0.1:18080');

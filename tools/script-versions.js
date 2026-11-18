@@ -3,6 +3,8 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
+  "js/app/project/project-status-snapshot-flow.js":"20261118_quote_lifecycle_v1",
+  "js/app/quote/quote-snapshot-selection.js":"20261118_quote_lifecycle_v1",
   "js/app/investor/investor-rooms.js":"20261118_room_quote_v1",
   "js/app/investor/investor-ui-status-flow.js":"20261118_room_quote_v1",
   "js/app/project/project-model.js":"20261118_room_quote_v1",
@@ -13,7 +15,7 @@ const versions = Object.freeze({
   "js/app/wycena/wycena-tab-selection-scope.js":"20261118_room_quote_v1",
 "js/app/project/room-project-model.js":"20261118_room_boundary_v1",
 "js/app/project/room-quote-sources.js":"20261118_room_quote_v1",
-"js/app/project/room-quote-acceptance.js":"20261118_room_acceptance_v1",
+"js/app/project/room-quote-acceptance.js":"20261118_quote_lifecycle_v1",
 "js/app/project/room-project-store.js":"20261118_room_boundary_v1",
 "js/app/investor/room-project-picker.js":"20261118_room_boundary_v1",
   "js/app/investor/session.js":"20261113_project_exit_v1",
@@ -34,7 +36,7 @@ const versions = Object.freeze({
   "js/app/material/magazyn.js":"20261108_material_catalog_authority_v1",
   "js/app/catalog/catalog-selectors.js":"20261108_material_catalog_authority_v1",
   "js/app/catalog/catalog-domain.js":"20261108_material_catalog_authority_v1",
-  "js/app/wycena/wycena-tab-history.js":"20261108_local_first_quote_delete_v1",
+  "js/app/wycena/wycena-tab-history.js":"20261118_quote_lifecycle_v1",
   "js/app/wycena/wycena-tab-editor.js":"20261115_e1_durable_settings_v1",
   "js/app/ui/data-settings-menu-view.js":"20261117_p0b_pin_v1",
   "js/app/ui/data-settings-modal.js":"20261117_p0b_pin_v1",

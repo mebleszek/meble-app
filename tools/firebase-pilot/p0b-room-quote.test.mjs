@@ -43,6 +43,27 @@ test('P0-B room quote proof: stale detached sources and cross-project addresses 
  assert.throws(()=>fc.roomQuoteSources.context('kitchen','wardrobe'),{code:'PROJECT_PCV_SOURCE_CONTEXT_MISMATCH'});
  assert.throws(()=>fc.roomQuoteSources.capture(['kitchen','missing']),{code:'LF_QUOTE_ROOM_SCOPE_REQUIRED'});
 });
+
+test('P0-B room quote proof: promotion preserves frozen content and refuses unapproved mutations',()=>{
+ const {fixture,offers}=require('../project-navigation-blockers-smoke'),r=fixture(),history=offers(r);
+ const combined=history.find(row=>row.id==='AB');combined.meta.preliminary=true;combined.commercial.preliminary=true;
+ const source=JSON.stringify(history),planned=r.FC.quoteSnapshotStore.previewSelection('convertPreliminaryToFinal',['P','AB'],history);
+ assert.ok(planned.result);assert.equal(planned.result.meta.preliminary,false);
+ assert.equal(JSON.stringify(history),source,'Pure preview may not mutate history');
+ for(const key of ['scope','lines','totals','calculationRegister','clientOffer'])assert.deepEqual(clone(planned.result[key]),clone(combined[key]));
+ const before=ledger(),old=before.offers[0];old.scope.roomLabels=['Kitchen','Wardrobe'];
+ old.meta={...old.meta,preliminary:true,versionName:'Wstępna oferta — Kitchen + Wardrobe',acceptedStage:'pomiar'};
+ old.commercial={preliminary:true,versionName:old.meta.versionName};
+ const next=structuredClone(before),row=next.offers[0];
+ row.meta={...row.meta,preliminary:false,versionName:'Oferta — Kitchen + Wardrobe',acceptedStage:'zaakceptowany',rejectedAt:0,rejectedReason:''};
+ row.commercial={...row.commercial,preliminary:false,versionName:row.meta.versionName};row.project.status='zaakceptowany';
+ assert.equal(validateQuoteLedgerChange(before,next),true);
+ for(const mutate of [v=>v.offers[0].lines.materials[0].total++,v=>v.offers[0].scope.sourceProjects[0].recordHash='c'.repeat(64),v=>v.offers[0].unknown='lost',v=>v.offers[0].commercial.versionName='Injected',v=>v.offers[0].meta.acceptedAt++,v=>v.offers[0].meta.preliminary=true]){
+  const invalid=structuredClone(next);mutate(invalid);assert.throws(()=>validateQuoteLedgerChange(before,invalid));
+ }
+ assert.throws(()=>validateQuoteLedgerChange(next,before),'A final snapshot cannot revert to preliminary');
+});
+
 function ledger(){
  const hash='a'.repeat(64),head=projectId=>({projectId,investorId:'investor',currentRevisionId:'b'.repeat(32),documentSha256:hash,roomDeleted:false});
  const refs=['kitchen','wardrobe'].map(projectId=>({projectId,roomId:projectId,investorId:'investor',recordHash:hash,documentHash:hash,revision:head(projectId)}));

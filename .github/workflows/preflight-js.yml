@@ -396,7 +396,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        segment: [room-model, room-quote-proof, room-quote-rules, room-quote-acceptance-conflict, room-quote-acceptance, room-quote, room-storage, normal-rules, rules, recovery, profiles, compatibility, normal-startup, signed-startup, signed-clean, normal-clean, storage]
+        segment: [room-model, room-quote-proof, room-quote-rules, room-quote-promotion, room-quote-staging, room-quote-acceptance-conflict, room-quote-acceptance, room-quote, room-storage, normal-rules, rules, recovery, profiles, compatibility, normal-startup, signed-startup, signed-clean, normal-clean, storage]
     runs-on: ubuntu-latest
     permissions:
       contents: read

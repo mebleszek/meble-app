@@ -245,14 +245,17 @@
       actions.appendChild(deleteBtn);
       if(isPreliminary && isSelected && !isArchived){
         const convertBtn = deps.h('button', { class:'btn quote-history__convert-btn', type:'button', text:'Końcowa' });
-        convertBtn.addEventListener('click', ()=>{
+        convertBtn.addEventListener('click', async()=>{
           deps.rememberQuoteScroll(deps.getQuoteHistoryItemDomId(snapId));
-          const promoteResult = deps.promotePreliminarySnapshotToFinal(snap);
+          convertBtn.disabled=true;
+          try{
+          const promoteResult = await deps.promotePreliminarySnapshotToFinal(snap);
           const converted = promoteResult && promoteResult.ok === true && (promoteResult.convertedSnapshot || promoteResult.snapshot) || null;
           if(converted){
             deps.setState({ previewSnapshotId:snapId, lastQuote:converted });
             deps.render(ctx);
           }
+          }finally{convertBtn.disabled=false;}
         });
         actions.appendChild(convertBtn);
       }

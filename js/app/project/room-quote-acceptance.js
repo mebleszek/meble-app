@@ -35,7 +35,7 @@
    FC.quoteSnapshotStore.writeAll(input.history);
    const selected=FC.quoteSnapshotStore.getById(input.selected.id);
    if(!selected?.meta?.selectedByClient)fail('LF_QUOTE_SELECTION_UNCONFIRMED');
-   return {ok:true,snapshot:selected,selectedSnapshot:selected,roomIds:input.targetRoomIds,affectedRoomIds:current.ids,localConfirmed:true,cloudConfirmed:false};
+   return {ok:true,snapshot:selected,selectedSnapshot:selected,...(input.promote?{convertedSnapshot:selected}:{}),roomIds:input.targetRoomIds,affectedRoomIds:current.ids,localConfirmed:true,cloudConfirmed:false};
   });
   return result?.ok===true?result:{ok:false,code:result?.code||'LF_QUOTE_ACCEPTANCE_UNCONFIRMED'};
  }
