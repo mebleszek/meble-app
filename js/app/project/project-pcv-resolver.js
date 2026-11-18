@@ -19,19 +19,20 @@
   }
   function collectCurrent(rooms,options){
     try{
-      const opts=options||{},projectId=opts.projectId,api=FC.projectPcvOverrides;
+      const opts=options||{},contextId=opts.projectId,api=FC.projectPcvOverrides,multi=FC.roomQuoteSources?.enabled();
       if(!api || !FC.cabinetCutlist || !FC.materialTabData)fail('DEPENDENCIES_UNAVAILABLE');
       if(!Array.isArray(rooms)||!rooms.length)fail('ROOM_SCOPE_REQUIRED');
       const ids=Array.from(new Set(rooms));
-      for(const room of ids){const proof=api.inspectRoom(projectId,room);if(proof.ok!==true)fail(proof.code,{roomId:room});}
-      const project=window.projectData,record=FC.projectStore.getById(projectId),revision=JSON.stringify(record);
+      for(const room of ids){const proof=api.inspectRoom(multi?room:contextId,room);if(proof.ok!==true)fail(proof.code,{roomId:room});}
+      const project=multi?FC.roomQuoteSources.capture(ids).projectData:window.projectData,revision=multi?FC.roomQuoteSources.revision(ids):JSON.stringify(FC.projectStore.getById(contextId));
       const scope=FC.materialTabData.normalizeMaterialScope(opts.materialScope);
       const details=[],individuals=new Set(),memo=new Map(),split={body:0,front:0,total:0};
       for(const roomId of ids){
+        const projectId=multi?roomId:contextId;
         const cabinets=project[roomId].cabinets;
         if(!Array.isArray(cabinets) || new Set(cabinets.map(c=>c&&c.id)).size!==cabinets.length)fail('CABINET_OWNER_AMBIGUOUS',{roomId});
         for(const [index,cabinet] of cabinets.entries()){
-          const generated=FC.cabinetCutlist.getCabinetCutList(cabinet,roomId,{projectId});
+          const generated=FC.cabinetCutlist.getCabinetCutList(cabinet,multi?project[roomId]:roomId,{projectId,roomId});
           const parts=[],cabSplit={body:0,front:0,total:0,mode:FC.materialEdgeStore.getCabinetPcvMode(cabinet)};
           for(const original of generated){
             if(!FC.materialTabData.partMatchesScope(original,scope,FC.materialEdgeStore))continue;
@@ -81,9 +82,9 @@
           details.push({room:roomId,cabinet:clone(cabinet),index,parts,edgeMeters:cabSplit.total,edgeMetersByMode:cabSplit});
         }
       }
-      for(const room of ids){const proof=api.inspectRoom(projectId,room);if(proof.ok!==true)fail(proof.code,{roomId:room});}
-      if(window.projectData!==project || JSON.stringify(FC.projectStore.getById(projectId))!==revision)fail('READ_CONFLICT');
-      return {ok:true,pcvMode:'project',projectId,revision,rooms:ids,materialScope:scope,details,edgeMeters:split.total,edgeMetersByMode:split};
+      for(const room of ids){const proof=api.inspectRoom(multi?room:contextId,room);if(proof.ok!==true)fail(proof.code,{roomId:room});}
+      if(multi?FC.roomQuoteSources.revision(ids)!==revision:window.projectData!==project || JSON.stringify(FC.projectStore.getById(contextId))!==revision)fail('READ_CONFLICT');
+      return {ok:true,pcvMode:'project',projectId:contextId,project,revision,rooms:ids,materialScope:scope,details,edgeMeters:split.total,edgeMetersByMode:split};
     }catch(reason){return {ok:false,code:reason.code||'PROJECT_PCV_READ_FAILED',details:reason.details||{}};}
   }
   function requireCollection(rooms,options){
@@ -130,11 +131,12 @@
   }
   function validateCurrentParts(parts,options){
     const memo=new Map(),used=new Map();
-    const ram=window.projectData,revision=JSON.stringify(FC.projectStore.getById(options.projectId));
+    const multi=FC.roomQuoteSources?.enabled(),rooms=multi?Array.from(new Set((parts||[]).flatMap(p=>p.effectivePcv?.contributions||[]).map(c=>c.address.roomId))):null;
+    const ram=window.projectData,revision=multi?FC.roomQuoteSources.revision(rooms):JSON.stringify(FC.projectStore.getById(options.projectId));
     if(!Array.isArray(parts)||!parts.length)fail('PART_SCOPE_REQUIRED');
     for(const part of parts){
       const pcv=part.effectivePcv;
-      if(!pcv||pcv.projectId!==options.projectId||!Array.isArray(pcv.contributions)||!pcv.contributions.length)fail('PLAN_CONTEXT_MISMATCH');
+      if(!pcv||(multi?!rooms.includes(pcv.projectId):pcv.projectId!==options.projectId)||!Array.isArray(pcv.contributions)||!pcv.contributions.length)fail('PLAN_CONTEXT_MISMATCH');
       if(!validEdges(pcv.edges))fail('INVALID_EDGES');
       if((part.sourceIssues||[]).length)fail('SOURCE_UNRESOLVED');
       if(pcv.contributions.reduce((n,c)=>n+c.qty,0)!==part.qty || (part.sourceRefs||[]).length+(part.sourceGroups||[]).reduce((n,g)=>n+g.qty,0)!==part.qty)fail('QUANTITY_MISMATCH');
@@ -142,7 +144,7 @@
       const declared=(part.sourceRefs||[]).map(ref=>({address:ref,qty:1})).concat((part.sourceGroups||[]).map(g=>({address:address(g,true),qty:g.qty})));
       if(JSON.stringify(ownership(declared))!==JSON.stringify(ownership(pcv.contributions)))fail('SOURCE_CONTEXT_MISMATCH');
       for(const c of pcv.contributions){
-        if(!Number.isInteger(c.qty)||c.qty<=0||c.address.projectId!==options.projectId)fail('PLAN_CONTEXT_MISMATCH');
+        if(!Number.isInteger(c.qty)||c.qty<=0||c.address.projectId!==pcv.projectId)fail('PLAN_CONTEXT_MISMATCH');
         if(!validEdges(c.edges))fail('INVALID_EDGES');
         const key=JSON.stringify(c.address);
         if(!memo.has(key))memo.set(key,FC.projectPcvOverrides.getForCalculation(c.address));
@@ -160,7 +162,7 @@
         if(part.w!==(vertical?h:w)||part.h!==(vertical?w:h))fail('GEOMETRY_MISMATCH');
       }
     }
-    if(window.projectData!==ram || JSON.stringify(FC.projectStore.getById(options.projectId))!==revision)fail('READ_CONFLICT');
+    if(window.projectData!==ram || (multi?FC.roomQuoteSources.revision(rooms):JSON.stringify(FC.projectStore.getById(options.projectId)))!==revision)fail('READ_CONFLICT');
     return true;
   }
   function validateAggregate(aggregate,options){
@@ -225,7 +227,7 @@
     const token=String(Date.now())+':'+(++quoteProofSequence);
     quoteProofs.set(token,{projectId:options.projectId,investorId:String(record.investorId),revision:current.revision,
       rooms:roomSet(aggregate.selectedRooms),materialScope:JSON.stringify(current.materialScope),draft:initialDraft,
-      materials:materialSignature(value)});
+      materials:materialSignature(value),sourceProjects:JSON.stringify(value.sourceProjects||null)});
     while(quoteProofs.size>64)quoteProofs.delete(quoteProofs.keys().next().value);
     value.pcvMode='project';value.projectId=options.projectId;value.__projectPcvCandidate=token;
     validateQuoteCandidate(value);return value;
@@ -239,7 +241,7 @@
     if(id!==proof.projectId || (value.project && String(value.project.investorId)!==proof.investorId)
       || (value.investor && String(value.investor.id)!==proof.investorId)
       || roomSet(scope.rooms)!==proof.rooms || JSON.stringify(scope.materialScope)!==proof.materialScope
-      || materialSignature(value)!==proof.materials || draftSelection()!==proof.draft)fail('QUOTE_CONTEXT_CHANGED');
+      || JSON.stringify(value.sourceProjects||value.scope?.sourceProjects||null)!==proof.sourceProjects || materialSignature(value)!==proof.materials || draftSelection()!==proof.draft)fail('QUOTE_CONTEXT_CHANGED');
     if(selection){const selected=FC.wycenaCoreSelection.normalizeQuoteSelection(selection);
       if(roomSet(selected.selectedRooms)!==proof.rooms || JSON.stringify(FC.materialTabData.normalizeMaterialScope(selected.materialScope))!==proof.materialScope)fail('QUOTE_CONTEXT_CHANGED');}
     const current=requireCollection(scope.rooms,{pcvMode:'project',projectId:proof.projectId,materialScope:scope.materialScope});

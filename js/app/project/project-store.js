@@ -160,6 +160,7 @@
     const key = String(investorId || '');
     const current = getCurrentRecord();
     if(current && String(current.investorId || '') === key) return current;
+    if(FC.applicationRegistry?.id==='p0b-rooms-v1')return null; // Explicit picker owns room selection.
     const matches = readAll().filter(row=>String(row.investorId || '') === key);
     return matches.length === 1 ? matches[0] : null;
   }
@@ -205,6 +206,7 @@
     const key = String(investorId || '');
     if(!key) return null;
     const existing = getUnambiguousInvestorProject(key);
+    if(FC.applicationRegistry?.id==='p0b-rooms-v1')return existing;
     if(existing){
       if(setCurrentProjectId(existing.id) === false) return null;
       return existing;

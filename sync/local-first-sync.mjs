@@ -70,19 +70,29 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
   async function cycle(scopes) {
     if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
     return store.exclusive(async()=>{
-      for(const scope of scopes){
+      // Status participants publish before their dependent quote acceptance.
+      for(const scope of [...scopes].sort((a,b)=>Number(byScope.get(a).kind==='quote')-Number(byScope.get(b).kind==='quote'))){
         const channel=byScope.get(scope);
         if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
         if(channel.kind==='project'&&await store.pendingProjectRecovery?.(scope)){blockedReceives.add(scope);continue;}
+        if(await store.retired?.(scope))continue;
         let snap=await store.snapshot(channel.scope);
         const ordered=snap.operations.sort((a,b)=>a.localVersion-b.localVersion);
         for(let op of ordered){
           if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
           if(op.phase==='verified')continue;
-          if(['blocked','conflict'].includes(op.phase))return {ok:false,code:op.code||op.blockers[0]||'LF_CONFLICT'};
+          if(['blocked','conflict'].includes(op.phase))return {ok:false,code:op.code||op.blockers[0]||'LF_CONFLICT',blockedScopes:[scope]};
           if(['inflight','uncertain'].includes(op.phase)){
             if(op.phase==='inflight')op=await store.transition(op.key,'inflight','uncertain');
             try{await resolve(channel,op);}catch(e){return safeError(e);}continue;
+          }
+          if(op.dependencies){
+            if(channel.kind!=='quote'||!Array.isArray(op.dependencies)||!op.dependencies.length)fail('LF_QUOTE_STATUS_DEPENDENCY_INVALID');
+            for(const dependency of op.dependencies){
+              const participant=(await store.snapshot(dependency.scope)).operations.find(row=>row.key===dependency.key);
+              if(!participant||participant.hash!==dependency.hash)fail('LF_QUOTE_STATUS_DEPENDENCY_INVALID');
+              if(participant.phase!=='verified')return {ok:false,code:participant.code||'LF_QUOTE_STATUS_PENDING',blockedScopes:[dependency.scope]};
+            }
           }
           let base=op.base;
           if(op.previousOperation){const previous=(await store.snapshot(op.scope)).operations.find(p=>p.key===op.previousOperation);
@@ -97,7 +107,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
             if(!base||receipt.generation>base.generation)base=receipt;}
           let prepared;
           try{prepared=await channel.prepare(JSON.parse(op.json),base,op.editor);}
-          catch(e){if(/CONFLICT|STALE|DEPENDENCY|EDITOR/.test(e.code||''))await store.transition(op.key,'queued','conflict',{code:e.code});return safeError(e);}
+          catch(e){if(/CONFLICT|STALE|DEPENDENCY|EDITOR/.test(e.code||''))await store.transition(op.key,'queued','conflict',{code:e.code});return {...safeError(e),blockedScopes:[scope]};}
           if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
           op=await store.transition(op.key,'queued','inflight',{expected:prepared.expected});
           try{await prepared.publish();if(closed)return {ok:false,code:'LF_CLOSED_RESULT_UNCONFIRMED'};await resolve(channel,op);}
@@ -119,7 +129,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
             if(!closed)blockedReceives.delete(scope);
           }catch(e){
             if(e.code==='LF_PROJECT_OPERATION_PENDING'){blockedReceives.add(scope);continue;}
-            if(!['GLOBAL_NOT_FOUND','CLOUD_PROJECT_NOT_FOUND'].includes(e.code))return safeError(e);
+            if(!['GLOBAL_NOT_FOUND','CLOUD_PROJECT_NOT_FOUND',...(channel.kind==='contact'?['LF_P0B_CONTACT_NOT_FOUND']:[]),...(channel.kind==='quote'?['LF_QUOTE_NOT_FOUND']:[])].includes(e.code))return safeError(e);
           }
         }
       }
@@ -169,7 +179,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
   catch(e){closed=true;for(const stop of unsubscribe)stop();throw e;}
   eventTarget.addEventListener('online',schedule);schedule();
   return Object.freeze({notify:schedule,flush,channel:scope=>byScope.get(scope),
-    register(channel){assertOpen();if(!channel||byScope.has(channel.scope)||channel.kind!=='project')fail('LF_CHANNEL_CONFLICT');channel.guard();
+    register(channel){assertOpen();if(!channel||byScope.has(channel.scope)||!['project','contact','quote'].includes(channel.kind))fail('LF_CHANNEL_CONFLICT');channel.guard();
       const stop=typeof channel.watch==='function'?channel.watch(()=>schedule(channel.scope)):()=>{};
       byScope.set(channel.scope,channel);unsubscribe.push(stop);schedule(channel.scope);},
     async submitGlobals({source,operationId,expectedVersion}){

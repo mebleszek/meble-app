@@ -112,14 +112,19 @@ export function createP0BProtocol(connection, deviceId) {
     if (record.bulkId) fail('LF_P0B_DELETE_CONFLICT');
     return record;
   }
+  // Registry writes from this installation share one ordering lane. This is
+  // not a retry: each caller still receives its one transaction's real result.
+  let transactionWork=Promise.resolve();
   const transaction = work => {
     guard();
-    return f.runTransaction(db, async tx => {
+    const result=transactionWork.then(()=>{
       guard();
-      const result = await work(tx);
-      guard();
-      return result;
-    }, {maxAttempts:1});
+      return f.runTransaction(db,async tx=>{
+        guard();const value=await work(tx);guard();return value;
+      },{maxAttempts:1});
+    });
+    transactionWork=result.then(()=>undefined,()=>undefined);
+    return result;
   };
 
   async function readServer(ref) {
@@ -171,6 +176,7 @@ export function createP0BProtocol(connection, deviceId) {
       if ((head?.currentRevisionId || '') !== expectedHead) fail('LF_P0B_PROJECT_CONFLICT');
       let next;
       if (acquire) {
+        if(head?.roomDeleted===true)fail('LF_ROOM_PROJECT_REMOVED');
         if (prior?.active) fail('LF_P0B_EDITOR_CONFLICT');
         if (typeof deviceLabel !== 'string' || deviceLabel.length > 64) fail('LF_P0B_DEVICE_LABEL_INVALID');
         next = {ownerUid:uid, investorId:iid, projectId:pid, deviceId, deviceLabel, active:true,
@@ -191,6 +197,7 @@ export function createP0BProtocol(connection, deviceId) {
     const inv=active(read(await tx.get(investorRef(iid))));
     const editor=read(await tx.get(editorRef(pid)));
     const head=read(await tx.get(headRef(pid)));
+    if(head?.roomDeleted===true)fail('LF_ROOM_PROJECT_REMOVED');
     if(!editor||editor.investorId!==iid||inv.projects[pid]!==editor.active
       ||!head||head.investorId!==iid||head.projectId!==pid)fail('LF_P0B_REGISTRY_REQUIRED');
     return {editor,revision:head.currentRevisionId};
@@ -293,7 +300,7 @@ export function createP0BProtocol(connection, deviceId) {
       }
       if(!online() || (await investor(iid))?.generation!==inv.generation || !online()) return {state:'unconfirmed'};
       const visits=Object.entries(inv.visits).map(([deviceId,visit])=>({deviceId,label:visit.label}));
-      return {state:projects.length||visits.length||inv.bulkId?'held':'released',projects,visits};
+      return {state:projects.length||visits.length||inv.bulkId?'held':'released',projects,visits,registry:{...inv.projects}};
     },
     watchPresence(iid, online, receive){
       let closed=false, request=0;
@@ -377,6 +384,8 @@ export function createP0BDeletionIntent(selection, operationId) {
   return validateP0BDeletionIntent({operationId,targets:Object.fromEntries(selection.map(record=>[record.investorId,record.generation]))});
 }
 
+// Checks only the supplied subset. An empty result is not a proof that the
+// registry enumerates all legacy projects; the startup audit reports coverage.
 export function inspectP0BCompatibility({records, projectHeads, snapshots}) {
   const byId = new Map(records.map(record => [record.investorId, record]));
   const seen = new Map(), issues = [];

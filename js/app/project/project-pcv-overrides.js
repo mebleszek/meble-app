@@ -69,7 +69,8 @@
       return result;
     }finally{calculationRead=null;}
   }
-  function roomContext(projectId,roomId){
+  function roomContext(projectId,roomId,calculation=false){
+    if(calculation && FC.roomQuoteSources?.enabled())return FC.roomQuoteSources.context(projectId,roomId);
     if(!calculationRead)return readRoomContext(projectId,roomId);
     const key=JSON.stringify([projectId,roomId]);
     if(!calculationRead.rooms.has(key))calculationRead.rooms.set(key,readRoomContext(projectId,roomId));
@@ -93,12 +94,12 @@
     return {ok:true,project,record,room};
   }
   function inspectRoom(projectId,roomId){
-    try{ const state=roomContext(projectId,roomId); return state.ok ? {ok:true} : state; }catch(_){return failure('READ_FAILED');}
+    try{ const state=roomContext(projectId,roomId,true); return state.ok ? {ok:true} : state; }catch(_){return failure('READ_FAILED');}
   }
   function context(address, calculation){
     const info=addressInfo(address);
     if(!info) return failure('INVALID_ADDRESS');
-    const state=roomContext(address.projectId,address.roomId);
+    const state=roomContext(address.projectId,address.roomId,calculation);
     if(!state.ok) return state;
     const {project,record,room}=state;
     const cabinets=room.cabinets;
@@ -115,7 +116,7 @@
       const key=JSON.stringify([address.projectId,address.roomId,cabinet.id]);
       let parts=calculation && calculationRead && calculationRead.cutlists.get(key);
       if(!parts){
-        parts=FC.cabinetCutlist.getCabinetCutList(cabinet,address.roomId,{projectId:address.projectId});
+        parts=FC.cabinetCutlist.getCabinetCutList(cabinet,state.detached?room:address.roomId,{projectId:address.projectId,roomId:address.roomId});
         if(calculation && calculationRead)calculationRead.cutlists.set(key,parts);
       }
       for(const part of parts){

@@ -110,11 +110,11 @@
     return Number.isFinite(n) ? (Math.round(n * 10) / 10).toString() : String(v ?? '');
   }
 
-  function getFrontParts(room, cab){
+  function getFrontParts(room, cab, sourceContext){
     try{
       const hardware = getFrontHardware();
       if(hardware && typeof hardware.getCabinetFrontPartsForLocalDraft === 'function'){
-        return hardware.getCabinetFrontPartsForLocalDraft(room,cab) || [];
+        return hardware.getCabinetFrontPartsForLocalDraft(room,cab,sourceContext) || [];
       }
       if(hardware && typeof hardware.getCabinetFrontCutListForMaterials === 'function'){
         return hardware.getCabinetFrontCutListForMaterials(room, cab) || [];
@@ -320,7 +320,7 @@
       parts.push({ name:'Plecy', partRoleIds:['body.back'], qty:1, a:backW, b:backH, dims:`${fmt(backW)} × ${fmt(backH)}`, material: backMat });
     }
 
-    getFrontParts(room, cab).forEach((p)=> parts.push(p));
+    getFrontParts(room, cab, sourceContext).forEach((p)=> parts.push(p));
 
     addDrawerHardwareAndBoxParts(parts, room, cab, { wIn, depth:d });
 

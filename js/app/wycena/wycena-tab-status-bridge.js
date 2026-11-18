@@ -131,7 +131,7 @@
       if(opts.rememberScroll && typeof d.clearRememberedQuoteScroll === 'function') d.clearRememberedQuoteScroll();
       return false;
     }
-    const commitResult = commitAcceptedSnapshotWithSync(snap, targetStatus, undefined, d);
+    const commitResult = await commitAcceptedSnapshotWithSync(snap, targetStatus, undefined, d);
     if(!(commitResult && commitResult.ok === true)) return false;
     const selected = commitResult && (commitResult.selectedSnapshot || commitResult.snapshot) || null;
     if(!selected) return false;

@@ -7,14 +7,15 @@ import {initializeTestEnvironment,assertFails} from '@firebase/rules-unit-testin
 import {doc,setDoc,getDoc,getDocs,collection,query,limit,updateDoc,deleteDoc,serverTimestamp,writeBatch} from 'firebase/firestore';
 import {model,runtime} from './cloud-sync-fixture.mjs';
 const require=createRequire(import.meta.url),{waitForGesturePoint,finishPendingTouchScroll,observeGesture}=require('../helpers/browser-test-readiness.js'),{startBrowser}=require('../helpers/chromium-runtime.js'),{injection}=require('../trusted-session-browser-smoke.js');
-const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url))),uid='synthetic-phone-owner';
-export async function runNormalApplication(t,{deployment=false,catalogCutover=false,runUi}={}){
+const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url))),defaultUid='synthetic-phone-owner';
+export async function runNormalApplication(t,{deployment=false,catalogCutover=false,runUi,p0bDemo=false,p0bRegistry=false,startupProbe,testOwner=defaultUid}={}){
+ const uid=testOwner,authInjection='window.testAccount='+JSON.stringify(testOwner)+';\n'+injection;
  assert.equal(process.env.FIRESTORE_EMULATOR_HOST,'127.0.0.1:18080');assert.equal(process.env.FIREBASE_AUTH_EMULATOR_HOST,'127.0.0.1:19099');
  const original=fs.readFileSync(path.join(root,'tools/firebase-pilot/firestore.rules'),'utf8'),fragment=fs.readFileSync(path.join(root,'sync/local-first-project.rules'),'utf8');
- const rules=deployment?require('./application-rules.js').applicationRules():original.replace('    match /{document=**}',()=>fragment+'\n    match /{document=**}');
+ const rules=p0bRegistry?require('./p0b-application-rules.js').p0bApplicationRules({normal:true}):p0bDemo?require('./p0b-application-rules.js').p0bApplicationRules():deployment?require('./application-rules.js').applicationRules():original.replace('    match /{document=**}',()=>fragment+'\n    match /{document=**}');
  const env=await initializeTestEnvironment({projectId:'demo-meble-app',firestore:{host:'127.0.0.1',port:18080,rules}});
  const response=await fetch('http://127.0.0.1:19099/identitytoolkit.googleapis.com/v1/projects/demo-meble-app/accounts:batchCreate',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer owner'},body:JSON.stringify({allowOverwrite:true,users:[{localId:uid,email:uid+'@example.invalid',emailVerified:true,providerUserInfo:[{providerId:'google.com',rawId:uid,email:uid+'@example.invalid'}]}]})});assert.equal(response.ok,true);
- await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'authorizedUsers',uid),{appEnabled:true,enabled:false,globalDataEnabled:true,globalSchemaVersion:1});await setDoc(doc(c.firestore(),'appAccess',uid),{schemaVersion:1});if(deployment){await setDoc(doc(c.firestore(),'syncConfig','owner'),{ownerUid:uid,activationId:'synthetic-deployment',schemaVersion:1});await setDoc(doc(c.firestore(),'syncAccess',uid),{activationId:'synthetic-deployment',schemaVersion:1});}});
+ await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'authorizedUsers',uid),{appEnabled:true,enabled:false,globalDataEnabled:true,globalSchemaVersion:1});await setDoc(doc(c.firestore(),'appAccess',uid),{schemaVersion:1});if(deployment||p0bDemo||p0bRegistry){await setDoc(doc(c.firestore(),'syncConfig','owner'),{ownerUid:uid,activationId:'synthetic-deployment',schemaVersion:1});await setDoc(doc(c.firestore(),'syncAccess',uid),{activationId:'synthetic-deployment',schemaVersion:1});}});
  const server=http.createServer((req,res)=>{
   const url=new URL(req.url,'http://127.0.0.1');let file;
   if(/^\/__sdk\/firebase-(app|auth|firestore)\.js$/.test(url.pathname))file=path.join(root,'tools/firebase-pilot/node_modules/firebase',path.basename(url.pathname));
@@ -26,7 +27,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  });await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const origin='http://127.0.0.1:'+server.address().port,dir=fs.mkdtempSync(path.join(os.tmpdir(),'normal-local-first-')),devices=[];
  t.after(async()=>{for(const d of devices){await d.browser?.close();await d.owner?.close();}await env.cleanup();await new Promise(r=>server.close(r));fs.rmSync(dir,{recursive:true,force:true});});
- const catalogs=model();for(const ref of ['laminat TEST','laminat','TEST','HDF'])if(!catalogs.materials.some(r=>[r.id,r.name,r.materialType].includes(ref)))catalogs.materials.push({id:'normal-material-'+catalogs.materials.length,name:ref,materialType:'synthetic',price:12.375,priceUnit:'sheet'});
+ const catalogs=model();for(const ref of ['laminat TEST','laminat','TEST','HDF',...(p0bRegistry?['HDF 3mm biała']:[])])if(!catalogs.materials.some(r=>[r.id,r.name,r.materialType].includes(ref)))catalogs.materials.push({id:'normal-material-'+catalogs.materials.length,name:ref,materialType:'synthetic',price:12.375,priceUnit:'sheet'});
  const sources=runtime().FC.globalDataContract.sources;
  let releaseSlot=null;if(deployment){const keys=await crypto.subtle.generateKey('Ed25519',true,['sign','verify']),publicKeySpki=new Uint8Array(await crypto.subtle.exportKey('spki',keys.publicKey));const {canonical,digest}=await import('../../sync/local-first-values.mjs');const decision={domain:'MEBLE_APPLICATION_DEPLOYMENT_V1',protocol:2,projectId:'demo-meble-app',database:'(default)',profile:'business-project-v1',globalDomains:14,ownerUid:uid,activationId:'synthetic-deployment',origin:origin+'/',migrationApproved:true,sourcePreserved:true,rulesApproved:true,rulesSha256:await digest(rules)};releaseSlot={envelope:{decision,publicKeySpki:[...publicKeySpki],signature:[...new Uint8Array(await crypto.subtle.sign('Ed25519',keys.privateKey,new TextEncoder().encode(canonical(decision))))]},trustedKeySha256:Buffer.from(await crypto.subtle.digest('SHA-256',publicKeySpki)).toString('hex')};}
  async function login(d){await d.page.evaluate(()=>window.normalReleaseReady);await d.page.click('#auth-google');try{await d.page.waitForFunction(()=>['ready'].includes(document.body.dataset.businessState)||['profile-pending','error'].includes(document.body.dataset.authState));}catch(error){throw Error('Login phase '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,phase:window.FC.applicationStartup?.inspect(),connectionError:window.normalConnectionError,rpc:window.normalRpcTimeline,pendingRpc:window.normalPendingRpc,sdkErrors:window.normalSdkErrors,held:window.normalHeldRead===true}))));}
@@ -35,7 +36,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   try{await d.page.waitForFunction(()=>document.body.dataset.businessState==='ready');}catch(error){throw Error(error.message+' '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,error:document.getElementById('auth-error')?.textContent,app:document.getElementById('app-error-msg')?.textContent}))));}}
  async function device(name){
   const owner=await startBrowser({profileDir:path.join(dir,name)}),browser=await chromium.connectOverCDP(owner.endpoint),page=browser.contexts()[0].pages()[0];
-  const d={owner,browser,page,name};devices.push(d);await page.addInitScript({content:injection});if(deployment&&name==='computer'){await configure(d);await page.goto(origin+'/index.html');await login(d);return d;}await page.goto(origin+'/index.html');await login(d);
+  const d={owner,browser,page,name};devices.push(d);await page.addInitScript({content:authInjection});if(deployment&&name==='computer'){await configure(d);await page.goto(origin+'/index.html');await login(d);return d;}await page.goto(origin+'/index.html');await login(d);
   await page.evaluate(({catalogs,sources})=>{for(const [domain,value]of Object.entries(catalogs))for(const key of sources[domain])localStorage.setItem(key,JSON.stringify(domain==='stock'?{sheets:value}:value));},{catalogs,sources});
   await page.evaluate(()=>window.FC.offlineShell.prepare());return d;
  }
@@ -90,7 +91,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
    const handle=await startBrowser({profileDir:path.join(dir,name)});
    const browser=await chromium.connectOverCDP(handle.endpoint),page=browser.contexts()[0].pages()[0];
    const receiver={owner:handle,browser,page,name};devices.push(receiver);
-   await page.addInitScript({content:injection});
+   await page.addInitScript({content:authInjection});
    await configure(receiver,witness);
    await page.goto(origin+'/index.html');await login(receiver);
    const view=await page.evaluate(()=>{
@@ -163,9 +164,9 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  assert.equal(JSON.parse(source.projects).length,2);
  let computer;if(!deployment)computer=await device('computer');
  async function configure(d,receiverWitness){
-  await d.page.addInitScript(({uid,name,releaseSlot,catalogCutover,receiverWitness})=>{const raw=Storage.prototype.getItem;window.readNormalSource=key=>raw.call(localStorage,key);const prepare=()=>{
+  await d.page.addInitScript(({uid,name,releaseSlot,catalogCutover,receiverWitness,p0bRegistry})=>{const raw=Storage.prototype.getItem;window.readNormalSource=key=>raw.call(localStorage,key);const prepare=()=>{
    const emulatorCatalogWitness=receiverWitness||JSON.parse(sessionStorage.getItem('synthetic-catalog-cutover')||'null');
-   const config={name:'meble-lf-test-normal-'+name,async connections(input){
+   const config={p0bDemo:p0bRegistry,name:'meble-lf-test-normal-'+name,async connections(input){
     try{const [app,auth,f]=await Promise.all([import('/__sdk/firebase-app.js'),import('/__sdk/firebase-auth.js'),import('/__sdk/firebase-firestore.js')]);
     const budget=window.normalReadBudget??={documents:0,catalogRecords:0,transactions:0,attempts:0,queries:0,writes:0,auth:0,catalogs:0,projects:0};
     const countRead=ref=>{
@@ -178,13 +179,18 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
     const measured={...f,
      getDocFromServer(ref){countRead(ref);return f.getDocFromServer(ref);},
      async getDocsFromServer(query){budget.queries++;const rows=await f.getDocsFromServer(query);budget.documents+=rows.size;return rows;},
-     runTransaction(db,run,options,rpc){budget.transactions++;return f.runTransaction(db,tx=>{
+     runTransaction(db,run,options,rpc){budget.transactions++;let quoteHeadWrite=false,roomHeadWrite=null;return f.runTransaction(db,tx=>{
       budget.attempts++;
       return run({
        get(ref){countRead(ref);const collection=ref.parent.id;if(rpc&&!rpc.collections.includes(collection))rpc.collections.push(collection);return tx.get(ref);},
-       set(...args){budget.writes++;return tx.set(...args);}
+       set(...args){budget.writes++;if(args[0]?.parent?.id==='p0bRoomQuotes')quoteHeadWrite=true;if(args[0]?.parent?.id==='p0bRoomProjects')roomHeadWrite=args[0].id;return tx.set(...args);}
       });
-     },options);}
+     },options).then(async value=>{
+      if(roomHeadWrite&&window.normalHoldStatusHead===roomHeadWrite){window.normalHoldStatusHead=null;window.normalStatusHeadCommitted=true;await new Promise(resolve=>window.normalReleaseStatusHead=resolve);}
+      // Lose delivery only AFTER the real emulator head transaction commits.
+      if(quoteHeadWrite&&window.normalLoseQuoteAck){window.normalLoseQuoteAck=false;window.normalQuoteHeadCommitted=true;await new Promise(resolve=>window.normalReleaseQuoteAckLoss=resolve);throw Object.assign(Error('LF_TEST_QUOTE_ACK_LOST'),{code:'LF_TEST_QUOTE_ACK_LOST'});}
+      return value;
+     });}
     };
     const errors=window.normalSdkErrors=[];const observed={...measured};for(const key of ['runTransaction','getDocFromServer','getDocsFromServer'])observed[key]=(...args)=>{const began=performance.now(),pending=window.normalPendingRpc||(window.normalPendingRpc=[]),rpc={method:key,app:args[0]?.app?.name,collections:[]};pending.push(rpc);let result;try{result=key==='runTransaction'?measured[key](args[0],args[1],args[2],rpc):measured[key](...args);}catch(error){pending.splice(pending.indexOf(rpc),1);throw error;}const completed=()=>{pending.splice(pending.indexOf(rpc),1);const log=window.normalRpcTimeline||(window.normalRpcTimeline=[]);log.push({...rpc,ms:Math.round(performance.now()-began)});if(log.length>12)log.shift();};result.then(completed,completed);result.catch(error=>{errors.push({method:key,code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();});if(key==='runTransaction'&&window.holdOldReader===args[0]?.app?.name&&!window.normalReadArmed){window.normalReadArmed=true;return result.then(value=>{window.normalHeldRead=true;return new Promise(resolve=>window.releaseOldRead=()=>resolve(value));});}return result;};
     const config={projectId:'demo-meble-app',apiKey:'demo-only',authDomain:'demo-meble-app.firebaseapp.com',appId:'demo-only'};
@@ -216,9 +222,17 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
    }};
    if(catalogCutover)Object.assign(config,{localOnly:!emulatorCatalogWitness,firstCatalogSync:!!emulatorCatalogWitness,emulatorCatalogWitness});
    if(releaseSlot){config.envelope={...releaseSlot.envelope,publicKeySpki:new Uint8Array(releaseSlot.envelope.publicKeySpki),signature:new Uint8Array(releaseSlot.envelope.signature)};config.trustedKeySha256=releaseSlot.trustedKeySha256;window.normalReleaseReady=window.FC.applicationStartup.configureReleaseEmulator(config);}else window.FC.applicationStartup.configureEmulator(config);
-  };if(releaseSlot){const fc=window.FC=window.FC||{};Object.defineProperty(fc,'applicationStartup',{configurable:true,set(value){Object.defineProperty(fc,'applicationStartup',{configurable:true,writable:true,value});prepare();}});}else document.addEventListener('DOMContentLoaded',prepare,{once:true});},{uid,name:d.name,releaseSlot,catalogCutover,receiverWitness});
+  };if(releaseSlot){const fc=window.FC=window.FC||{};Object.defineProperty(fc,'applicationStartup',{configurable:true,set(value){Object.defineProperty(fc,'applicationStartup',{configurable:true,writable:true,value});prepare();}});}else document.addEventListener('DOMContentLoaded',prepare,{once:true});},{uid,name:d.name,releaseSlot,catalogCutover,receiverWitness,p0bRegistry});
  }
  async function enable(d){await configure(d);await d.page.reload();await login(d);}
+ async function restartProbe(d,{crash=false}={}){
+  if(crash)await d.owner.crash();else{const shutdown=await d.browser.newBrowserCDPSession();await shutdown.send('Browser.close');assert.equal((await d.owner.exited).code,0);await d.owner.close();}
+  await d.browser.close().catch(()=>{});
+  d.owner=await startBrowser({profileDir:path.join(dir,d.name)});d.browser=await chromium.connectOverCDP(d.owner.endpoint);
+  const context=d.browser.contexts()[0];d.page=context.pages()[0];for(const page of context.pages())if(page!==d.page)await page.close();
+  await d.page.addInitScript({content:authInjection});await configure(d);await d.page.goto(origin+'/index.html');await login(d);
+ }
+ if(startupProbe)return startupProbe({phone,computer,device,configure,login,restartProbe,env,source,ownerUid:uid,touch,until});
  await enable(phone);const ownerClient=env.authenticatedContext(uid,{email_verified:true,firebase:{sign_in_provider:'google.com'}}).firestore();
  const beforeReceiver=deployment?(await getDoc(doc(ownerClient,'users',uid,'globalData','current'))).data():null;
  if(deployment)computer=await device('computer');else await enable(computer);
@@ -261,7 +275,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
    const context=d.browser.contexts()[0];
    d.page=context.pages()[0];
    for(const page of context.pages())if(page!==d.page)await page.close();
-   await d.page.addInitScript({content:injection});
+   await d.page.addInitScript({content:authInjection});
    await configure(d);
    await d.page.goto(origin+'/index.html');
    await login(d);
@@ -560,7 +574,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  computer.owner=await startBrowser({profileDir:path.join(dir,computer.name)});
  computer.browser=await chromium.connectOverCDP(computer.owner.endpoint);const context=computer.browser.contexts()[0];computer.page=await context.newPage();
  for(const page of context.pages())if(page!==computer.page)await page.close();
- await computer.page.addInitScript({content:injection});await configure(computer);
+ await computer.page.addInitScript({content:authInjection});await configure(computer);
  // One network controller owns both cold-start isolation and restoration.
  // Switching a second CDP session online can wake reconnect while transport
  // is still offline, permanently failing this document's first SDK import.

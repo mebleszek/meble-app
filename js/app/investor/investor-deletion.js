@@ -256,5 +256,5 @@
   event.ports[0].postMessage({version:VERSION,operationId:event.data.operationId,ready,reason});
   event.ports[0].close();
  });
- FC.investorDeletion={version:VERSION,KEY,planLocal:build,assertRestoreSafe,clientStatus:()=>clientStatus&&structuredClone(clientStatus),prepare:ids=>FC.localInvestorDeletion?FC.localInvestorDeletion.prepare(ids):prepare(ids),commit:token=>FC.localInvestorDeletion?FC.localInvestorDeletion.commit(token):commit(token),resumePending:async()=>{running=true;try{return await resumePending();}finally{running=false;}},pending:()=>raw(KEY)!==null};
+ FC.investorDeletion={version:VERSION,KEY,planLocal:build,assertRestoreSafe,clientStatus:()=>clientStatus&&structuredClone(clientStatus),prepare:ids=>FC.localInvestorDeletion?FC.localInvestorDeletion.prepare(ids):prepare(ids),commit:token=>FC.localInvestorDeletion?FC.localInvestorDeletion.commit(token):commit(token),resumePending:async()=>{running=true;try{return await (FC.localInvestorDeletion?.resumePending?FC.localInvestorDeletion.resumePending():resumePending());}finally{running=false;}},pending:()=>FC.localInvestorDeletion?.pending?FC.localInvestorDeletion.pending():raw(KEY)!==null};
 })();

@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { applicationRules } = require('./application-rules');
 
-function p0bApplicationRules() {
+function p0bApplicationRules({normal=false}={}) {
   let rules = applicationRules();
   function replace(from, to) {
     if (rules.split(from).length !== 2) throw Error('LF_P0B_RULES_BASE_CHANGED: ' + from);
@@ -45,6 +45,22 @@ function p0bApplicationRules() {
     + "          allow create: if globalApproved(uid) && lfEditor(uid,pid).active == true\n"
     + "            && invCanPublish(uid,lfEditor(uid,pid).investorId,pid)");
   replace('    match /{document=**}', fs.readFileSync(path.join(__dirname, 'p0b-investors.rules'), 'utf8') + '\n    match /{document=**}');
+  if(normal){
+    replace('    match /{document=**}',fs.readFileSync(path.join(__dirname,'p0b-room-quotes.rules'),'utf8')+'\n    match /{document=**}');
+    // Normal room namespace: a removed scope is terminal; history stays readable.
+    replace("'globalRevisionId','globalDirectoryHash'])","'globalRevisionId','globalDirectoryHash','roomDeleted'])");
+    replace("&& d.generation is int && d.generation > 0 && revisionId(d.currentRevisionId)",
+      "&& d.roomDeleted is bool && d.generation is int && d.generation > 0 && revisionId(d.currentRevisionId)");
+    replace("&& d.updatedAt == request.time && e.active == true",
+      "&& d.updatedAt == request.time && !roomTerminal(uid,pid) && e.active == true");
+    replace("&& request.resource.data.investorId == resource.data.investorId",
+      "&& request.resource.data.investorId == resource.data.investorId && (!request.resource.data.active || !roomTerminal(uid,pid))");
+    replace("return inv.deletionId == '' && inv.bulkId == '' && inv.projects.get(pid,false) == true;",
+      "return inv.deletionId == '' && inv.bulkId == '' && inv.projects.get(pid,false) == true && !roomTerminal(uid,pid);");
+    rules=rules.replace('    function invCanPublish(uid, iid, pid) {',
+      "    function roomTerminal(uid,pid) { return exists(invHeadRef(uid,pid)) && get(invHeadRef(uid,pid)).data.roomDeleted == true; }\n    function invCanPublish(uid, iid, pid) {");
+  }
+  if(normal)for(const [from,to] of Object.entries({localFirstInvestors:'p0bRoomInvestors',localFirstProjects:'p0bRoomProjects',localFirstEditors:'p0bRoomEditors',p0bDeletionGroups:'p0bRoomGroups'}))rules=rules.replaceAll(from,to);
   return rules;
 }
 

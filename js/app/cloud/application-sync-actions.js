@@ -3,7 +3,7 @@
  'use strict';const FC=window.FC=window.FC||{};let binding=null;
  const codeOf=error=>{
   const code=error?.code || error?.message;
-  return /^(LF_|SESSION_|GLOBAL_|CLOUD_)[A-Z_]+$/.test(code||'') ? code : 'LF_APPLICATION_UNCONFIRMED';
+  return /^(LF_|SESSION_|GLOBAL_|CLOUD_)[A-Z0-9_]+$/.test(code||'') ? code : 'LF_APPLICATION_UNCONFIRMED';
  };
  FC.applicationSyncActions={
   installed:()=>!!binding,

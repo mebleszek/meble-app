@@ -122,6 +122,35 @@ test('whole-store restore refuses before legacy callbacks or journals can mutate
  assert.equal(writes,0);b.close();
 });
 
+
+test('flush refuses unconfirmed project discovery and retries it only on a new observation',async()=>{
+ let queries=0,reads=0,recovered=false;
+ const events=new EventTarget(),states=[];
+ const channel={scope:'globals',kind:'globals',watch:()=>()=>{},async read(){reads++;throw Object.assign(Error(),{code:'GLOBAL_NOT_FOUND'});}};
+ const store={exclusive:async fn=>fn(),snapshot:async()=>({replica:null,operations:[]})};
+ const sync=createApplicationReplication({store,channels:[channel],eventTarget:events,onState:state=>states.push(state),
+  incoming(){throw Error('No unknown project may be applied');},refresh(){},assertIdle(){},
+  discovery:{watch:()=>()=>{},async list(){queries++;if(!recovered)throw Object.assign(Error(),{code:'permission-denied'});return[];}}});
+ try{
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(queries,1);
+  const beforeFlush=reads;
+  const refused=await sync.flush();
+  assert.ok(reads>beforeFlush,'Known independent scopes must still be processed');
+  assert.equal(refused.ok,false);
+  assert.equal(refused.code,'LF_PROJECT_DISCOVERY_UNCONFIRMED');
+  const afterFailure=queries;
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(queries,afterFailure,'Failure must not cause a self-scheduling query retry');
+  recovered=true;
+  assert.equal((await sync.flush()).ok,true);
+  assert.equal(queries,afterFailure+1);
+  assert.equal((await sync.flush()).ok,true);
+  assert.equal(queries,afterFailure+1,'Confirmed inventory uses its existing watcher, without polling on every flush');
+  assert.ok(states.some(state=>state.code==='LF_PROJECT_DISCOVERY_UNCONFIRMED'));
+ }finally{await sync.close();}
+});
+
 test('connection handoff drains the old read before a replacement publishes; stale lease never consumes the queued write',async()=>{
  let release,entered,stopped=false,writes=0,remote={head:{generation:1},value:{exact:1}},operation=null;
  const readEntered=new Promise(r=>entered=r),held=new Promise(r=>release=r),events=new EventTarget();

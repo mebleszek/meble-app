@@ -3,8 +3,8 @@
 import {equal,fail,id} from '../../sync/local-first-values.mjs';
 import {validateP0BDeletionIntent} from './p0b-protocol.mjs';
 
-export async function openP0BDeletionJournal({indexedDB, locks, ownerUid, deviceId}) {
-  const name = 'meble-lf-test-p0b-delete-v1-' + id(ownerUid) + ':' + id(deviceId);
+export async function openP0BDeletionJournal({indexedDB, locks, ownerUid, deviceId,registry='candidate'}) {
+  const name = 'meble-lf-test-p0b-delete-'+(registry==='candidate'?'':id(registry)+'-')+'v1-' + id(ownerUid) + ':' + id(deviceId);
   const db = await new Promise((resolve,reject) => {
     const request = indexedDB.open(name,1);
     request.onupgradeneeded = () => request.result.createObjectStore('intents',{keyPath:'operationId'});
@@ -43,6 +43,7 @@ export async function openP0BDeletionJournal({indexedDB, locks, ownerUid, device
   }
   return Object.freeze({
     read,
+    all(){return access('readonly',(store,done)=>{const q=store.getAll();q.onsuccess=()=>done(q.result);});},
     pending() {
       return access('readonly',(store,done) => {
         const request = store.getAll();

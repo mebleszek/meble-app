@@ -417,7 +417,7 @@
           if(!activatedBySetter && FC.investorProjectRuntime && typeof FC.investorProjectRuntime.setActiveProjectFromInvestor === 'function'
             && FC.investorProjectRuntime.setActiveProjectFromInvestor(id) !== true) return refused(activationFailure() || 'PROJECT_ACTIVATION_UNCONFIRMED');
           const selected = FC.projectStore && FC.projectStore.getCurrentRecord ? FC.projectStore.getCurrentRecord() : null;
-          if(!selected || String(selected.investorId || '') !== String(id)) return refused('PROJECT_OWNER_UNCONFIRMED');
+          if((!selected&&!FC.roomProjectModel?.enabled())||(selected&&String(selected.investorId || '')!==String(id)))return refused('PROJECT_OWNER_UNCONFIRMED');
           phase='render';observe('NONE','pending');
           if(typeof uiState !== 'undefined' && uiState){
             uiState.currentInvestorId = id;
@@ -460,6 +460,7 @@
             :'Nie potwierdzono bezpiecznego otwarcia projektu. Zachowano dane i bieżącą pracę. ')+'('+code+')',okOnly:true,sessionDiagnostic:true}); }catch(_){ }
         return false;
       }
+      if(FC.roomProjectModel?.enabled()&&!FC.roomProjectStore.selected(id))FC.applicationWrite.afterCommit(()=>FC.roomProjectPicker.open());
       phase='complete';observe('NONE','approved');return true;
     },
     'back-investors': ({event}) => {
@@ -519,7 +520,7 @@
         FC.infoBox?.open({title:'Usunięto inwestorów',message:'Potwierdzono usunięcie wskazanych aktywnych rekordów i ich powiązanych danych. Archiwalne kopie bezpieczeństwa pozostawiono bez zmian.',okOnly:true});
         return true;
       }catch(error){
-        const code=/^DELETE_[A-Z_]+$/.test(error.code||'')?error.code:'DELETE_UNCONFIRMED';
+        const code=/^(DELETE_|LF_)[A-Z0-9_]+$/.test(error.code||'')?error.code:'DELETE_UNCONFIRMED';
         FC.infoBox?.open({title:'Usuwanie wstrzymane',message:code+' — nie potwierdzono pełnego zakończenia. '+(service?.pending()?'Trwała intencja pozostała. Zamknij inne karty Meble-App po zabezpieczeniu ich pracy; ten sam przycisk ponowi wyłącznie dokończenie zatwierdzonej operacji.':'Nie rozpoczęto kasowania. Sprawdź wskazane powiązania lub stan sesji.'),okOnly:true});return false;
       }finally{listRemovalPending=false;}
     },
@@ -581,6 +582,8 @@
     'open-room': ({event, element}) => {
       if(FC.investorEditorState && FC.investorEditorState.hasUiLock && FC.investorEditorState.hasUiLock()) return false;
       const room = element && element.getAttribute ? String(element.getAttribute('data-room') || '') : '';
+      if(room&&FC.roomProjectModel?.enabled())FC.roomProjectStore.select(room);
+      if(room&&FC.applicationWrite)FC.applicationWrite.afterCommit(()=>FC.roomProjectPicker?.close());
       return room && FC.views && FC.views.openRoom ? FC.views.openRoom(room) : false;
     },
 

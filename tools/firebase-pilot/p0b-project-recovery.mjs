@@ -6,6 +6,13 @@ import {copy,equal,fail,id,digest,json} from '../../sync/local-first-values.mjs'
 const unownedKeys=['fc_edge_v1','fc_material_part_options_v1','fc_rozrys_grain_state_v1','fc_rozrys_overrides_v1'];
 const nonEmpty=raw=>raw!=null&&!['[]','{}'].includes(raw.trim());
 
+function roomMirror(rows,iid){
+  const records=JSON.parse(rows.fc_projects_v1||'[]').filter(row=>row.investorId===iid);
+  if(records.some(row=>row.meta?.roomProject?.version!==1))fail('LF_ROOM_PROJECT_SCOPE_REQUIRED');
+  const definitions=records.filter(row=>row.meta.roomProject.removed!==true).map(row=>copy(row.projectData.meta.roomDefs[row.id]));
+  const investors=JSON.parse(rows.fc_investors_v1||'[]');if(investors.filter(row=>row.id===iid).length!==1)fail('LF_PROJECT_RECOVERY_SCOPE');
+  rows.fc_investors_v1=JSON.stringify(investors.map(row=>row.id===iid?{...row,rooms:definitions}:row));
+}
 function replacement(image,scope,iid,remote){
   const rows=image.rows;
   if(unownedKeys.some(key=>nonEmpty(rows[key])))fail('LF_PROJECT_OWNERSHIP_PENDING');
@@ -32,6 +39,7 @@ function replacement(image,scope,iid,remote){
     ||draft.schemaVersion!==4||draft.active!==true||draft.expectedOwnerKnown!==true))fail('LF_PROJECT_RECOVERY_SCOPE');
   return {expectedVersion:image.version,rows:{
     ...rows,
+    ...(project.meta?.roomProject?.version===1?{fc_current_project_id_v1:scope,fc_current_investor_v1:iid,fc_ui_v1:JSON.stringify({...JSON.parse(rows.fc_ui_v1||'{}'),entry:'rooms',activeTab:'inwestor',currentInvestorId:iid,roomType:null,lastRoomType:null,selectedCabinetId:null})}:{}),
     fc_projects_v1:JSON.stringify(projects.map(row=>row.id===scope?project:row)),
     ...(additions.length?{fc_quote_snapshots_v1:JSON.stringify(offers.concat(additions))}:{}),
     ...(draft?{fc_edit_session_v1:null}:{}),
@@ -74,6 +82,7 @@ export function createP0BProjectRecovery({store,protocol,channel,investorId,asse
     if(!['latest','room-copy'].includes(marker.variant))fail('LF_P0B_RECOVERY_VARIANT_REQUIRED');
     if(marker.variant==='room-copy'&&(!marker.roomCopy
       ||await digest(json(marker.roomCopy))!==marker.roomCopyHash))fail('LF_LOCAL_INTEGRITY');
+    if(marker.newRoomProject&&await digest(json(marker.newRoomProject))!==marker.newRoomProjectHash)fail('LF_LOCAL_INTEGRITY');
     const before=await source();
     if(before.image.version!==marker.applicationVersion||before.image.hash!==marker.applicationHash
       ||before.replica.version!==marker.replicaVersion)fail('LF_PROJECT_RECOVERY_SOURCE_CHANGED');
@@ -88,8 +97,12 @@ export function createP0BProjectRecovery({store,protocol,channel,investorId,asse
     }else if(!equal(witness,confirmed))fail('LF_PROJECT_RECOVERY_CONFLICT');
     const remote=await readCurrent(expected.revision);
     const application=replacement(before.image,scope,iid,remote);
-    let queuedValue;
-    if(marker.variant==='room-copy'){
+    let queuedValue,newProject;
+    if(marker.newRoomProject){
+      newProject=copy(marker.newRoomProject);await roomContract.validateRoomProject(newProject,marker.roomCopy,remote);
+      const projects=JSON.parse(application.rows.fc_projects_v1);if(projects.some(row=>row.id===newProject.id))fail('LF_ROOM_PROJECT_DUPLICATE');
+      application.rows.fc_projects_v1=JSON.stringify([...projects,newProject]);
+    }else if(marker.variant==='room-copy'){
       if(!roomContract||!marker.roomCopy)fail('LF_ROOM_COPY_VALIDATOR_REQUIRED');
       const payload=remote.value.document.payload;
       const project=appendRoomCopy(payload.project,marker.roomCopy,roomContract);
@@ -98,9 +111,10 @@ export function createP0BProjectRecovery({store,protocol,channel,investorId,asse
       // The normal channel validates geometry, dependency closure and the editor.
       await channel.prepare(queuedValue,remote.head,next);
     }
+    if(remote.value.document.payload.project.meta?.roomProject?.version===1)roomMirror(application.rows,iid);
     if(!equal(await observe(),confirmed))fail('LF_PROJECT_RECOVERY_CONFLICT');
     assertAccess();
-    return store.checkpointProjectRecovery({scope,marker,application,before,head:remote.head,value:remote.value,editor:next,queuedValue});
+    return store.checkpointProjectRecovery({scope,marker,application,before,head:remote.head,value:remote.value,editor:next,queuedValue,newProject});
   }
   return Object.freeze({
     async inspect(){
@@ -124,7 +138,7 @@ export function createP0BProjectRecovery({store,protocol,channel,investorId,asse
         const pinRevision=expected.editor.active?await protocol.pin.verify(pin):null;
         const before=await source(),remote=await readCurrent(expected.revision);
         const application=replacement(before.image,scope,iid,remote);
-        let roomCopy;
+        let roomCopy,newRoomProject;
         if(variant==='room-copy'){
           const eligibility=roomCopyStatus(before.image);
           if(!eligibility.available)fail(eligibility.code);
@@ -132,11 +146,17 @@ export function createP0BProjectRecovery({store,protocol,channel,investorId,asse
           roomCopy=prepareRoomCopy({rows:before.image.rows,baseline:baseline.value,scope,roomId,name:roomName,
             validateRoom:roomContract.validateRoom});
           roomCopy.confirmedBase={head:baseline.head,hash:await digest(json(copy(baseline.value)))};
-          const project=appendRoomCopy(remote.value.document.payload.project,roomCopy,roomContract);
-          application.rows.fc_projects_v1=JSON.stringify(JSON.parse(application.rows.fc_projects_v1).map(row=>row.id===scope?project:row));
-          await roomContract.build(application.rows,remote);
+          if(remote.value.document.payload.project.meta?.roomProject?.version===1){
+            if(!roomContract.createRoomProject||!roomContract.validateRoomProject)fail('LF_ROOM_COPY_VALIDATOR_REQUIRED');
+            newRoomProject=roomContract.createRoomProject(iid,roomCopy);
+            await roomContract.validateRoomProject(newRoomProject,roomCopy,remote);
+          }else{
+            const project=appendRoomCopy(remote.value.document.payload.project,roomCopy,roomContract);
+            application.rows.fc_projects_v1=JSON.stringify(JSON.parse(application.rows.fc_projects_v1).map(row=>row.id===scope?project:row));
+            await roomContract.build(application.rows,remote);
+          }
         }
-        const marker=await store.stageProjectRecovery(scope,{variant,...(roomCopy?{roomCopy,roomCopyHash:await digest(json(roomCopy))}:{}),operationId:crypto.randomUUID(),expected:copy(expected),deviceLabel,pinRevision,
+        const marker=await store.stageProjectRecovery(scope,{variant,...(roomCopy?{roomCopy,roomCopyHash:await digest(json(roomCopy))}:{}),...(newRoomProject?{newRoomProject,newRoomProjectHash:await digest(json(newRoomProject))}:{}),operationId:crypto.randomUUID(),expected:copy(expected),deviceLabel,pinRevision,
           applicationVersion:before.image.version,applicationHash:before.image.hash,replicaVersion:before.replica.version});
         return finish(marker);
       });

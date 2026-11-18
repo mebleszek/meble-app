@@ -931,7 +931,7 @@
   function listForProject(projectId){
     const key = String(projectId || '');
     if(!key) return [];
-    return readAll().filter((row)=> String(row && row.project && row.project.id || '') === key);
+    return readAll().filter((row)=> String(row && row.project && row.project.id || '') === key || FC.roomProjectModel?.enabled() && row.scope?.sourceProjects?.some(ref=>ref.projectId===key));
   }
 
   function listForInvestor(investorId){

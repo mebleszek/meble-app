@@ -34,7 +34,7 @@
 
   async function openEditRoomModal(roomId){
     const inv = getCurrentInvestor();
-    const openingProject = FC.projectStore && FC.projectStore.getCurrentRecord();
+    const openingProject = FC.roomProjectModel?.enabled()?FC.roomProjectStore.capture():FC.projectStore && FC.projectStore.getCurrentRecord();
     if(!inv || !(FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
     const room = getEditableRoom(inv, roomId);
     if(!(room && room.id)) return null;
@@ -104,7 +104,7 @@
         const ok = await askDiscard();
         if(ok) done(null);
       });
-      saveBtn.addEventListener('click', (FC.applicationWrite?.projectHandler||((fn)=>fn))(async ()=>{
+      saveBtn.addEventListener('click', (FC.roomProjectModel?.enabled()?(fn=>()=>FC.applicationWrite.roomRecords([roomId],fn)):(FC.applicationWrite?.projectHandler||((fn)=>fn)))(async ()=>{
         const name = normalizeLabel(nameInput.value);
         if(!name){
           openInfo('Brak nazwy pomieszczenia', 'Nadaj nazwę pomieszczeniu, zanim je zapiszesz.');
@@ -123,18 +123,18 @@
           }
         }catch(_){ }
         if(!confirmed) return;
-        if(!openingProject || !FC.projectStore.getCurrentRecord() || FC.projectStore.getCurrentProjectId() !== openingProject.id
-          || JSON.stringify(FC.projectStore.getCurrentRecord().projectData) !== JSON.stringify(openingProject.projectData) && !FC.projectDomainOperations.hasPending(openingProject.id)) { openInfo('Projekt zmienił się', 'Zamknij formularz i otwórz go ponownie.'); return; }
+        if(FC.roomProjectModel?.enabled()?!FC.roomProjectStore.matches(openingProject):(!openingProject || !FC.projectStore.getCurrentRecord() || FC.projectStore.getCurrentProjectId() !== openingProject.id
+          || JSON.stringify(FC.projectStore.getCurrentRecord().projectData) !== JSON.stringify(openingProject.projectData) && !FC.projectDomainOperations.hasPending(openingProject.id))) { openInfo('Projekt zmienił się', 'Zamknij formularz i otwórz go ponownie.'); return; }
         const result = updateRoomRecord(inv, room.id, { baseType:selectedBase, name, label:name });
         if(!(result && result.ok && result.room)) return result?.ok===false?result:false;
-        dirty = false;
+        if(FC.roomProjectModel?.enabled())FC.applicationWrite.afterCommit(()=>{dirty=false;});else dirty=false;
         done(result.room);
       }));
-      deleteBtn.addEventListener('click', (FC.applicationWrite?.projectHandler||((fn)=>fn))(async ()=>{
+      deleteBtn.addEventListener('click', (FC.roomProjectModel?.enabled()?(fn=>()=>FC.applicationWrite.roomRecords([roomId],fn)):(FC.applicationWrite?.projectHandler||((fn)=>fn)))(async ()=>{
         const ok = await askDelete();
         if(!ok) return;
-        if(!openingProject || !FC.projectStore.getCurrentRecord() || FC.projectStore.getCurrentProjectId() !== openingProject.id
-          || JSON.stringify(FC.projectStore.getCurrentRecord().projectData) !== JSON.stringify(openingProject.projectData) && !FC.projectDomainOperations.hasPending(openingProject.id)) { openInfo('Projekt zmienił się', 'Zamknij formularz i otwórz go ponownie.'); return; }
+        if(FC.roomProjectModel?.enabled()?!FC.roomProjectStore.matches(openingProject):(!openingProject || !FC.projectStore.getCurrentRecord() || FC.projectStore.getCurrentProjectId() !== openingProject.id
+          || JSON.stringify(FC.projectStore.getCurrentRecord().projectData) !== JSON.stringify(openingProject.projectData) && !FC.projectDomainOperations.hasPending(openingProject.id))) { openInfo('Projekt zmienił się', 'Zamknij formularz i otwórz go ponownie.'); return; }
         const result = removeRoomByIdDetailed(room.id);
         if(!result?.ok)return result||false;
         done({ deleted:true, roomId:result.roomId });
@@ -147,7 +147,7 @@
 
   async function openAddRoomModal(){
     const inv = getCurrentInvestor();
-    const openingProject = FC.projectStore && FC.projectStore.getCurrentRecord();
+    const openingProject = FC.roomProjectModel?.enabled()?FC.roomProjectStore.capture():FC.projectStore && FC.projectStore.getCurrentRecord();
     if(!inv || !(FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
     return new Promise((resolve)=>{
       let selectedBase = 'kuchnia';
@@ -184,7 +184,7 @@
       body.appendChild(footer);
       function done(result){ const finish=()=>{try{ FC.panelBox.close(); }catch(_){ } resolve(result || null);};if(FC.applicationWrite)FC.applicationWrite.afterCommit(finish);else finish(); }
       cancelBtn.addEventListener('click', ()=> done(null));
-      saveBtn.addEventListener('click', (FC.applicationWrite?.projectHandler||((fn)=>fn))(()=>{
+      saveBtn.addEventListener('click', (FC.roomProjectModel?.enabled()?FC.applicationWrite.roomCreateHandler:(FC.applicationWrite?.projectHandler||((fn)=>fn)))(()=>{
         const name = normalizeLabel(nameInput.value);
         if(!name){
           openInfo('Brak nazwy pomieszczenia', 'Nadaj nazwę pomieszczeniu, zanim je dodasz.');
@@ -196,8 +196,8 @@
           try{ nameInput.focus(); nameInput.select && nameInput.select(); }catch(_){ }
           return;
         }
-        if(!openingProject || !FC.projectStore.getCurrentRecord() || FC.projectStore.getCurrentProjectId() !== openingProject.id
-          || JSON.stringify(FC.projectStore.getCurrentRecord().projectData) !== JSON.stringify(openingProject.projectData) && !FC.projectDomainOperations.hasPending(openingProject.id)) { openInfo('Projekt zmienił się', 'Zamknij formularz i otwórz go ponownie.'); return; }
+        if(FC.roomProjectModel?.enabled()?!FC.roomProjectStore.matches(openingProject):(!openingProject || !FC.projectStore.getCurrentRecord() || FC.projectStore.getCurrentProjectId() !== openingProject.id
+          || JSON.stringify(FC.projectStore.getCurrentRecord().projectData) !== JSON.stringify(openingProject.projectData) && !FC.projectDomainOperations.hasPending(openingProject.id))) { openInfo('Projekt zmienił się', 'Zamknij formularz i otwórz go ponownie.'); return; }
         const result = createRoomRecord(inv, { baseType:selectedBase, name, label:name });
         if(!(result && result.ok && result.room)) return result?.ok===false?result:false;
         done(result.room);

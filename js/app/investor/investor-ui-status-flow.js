@@ -88,6 +88,20 @@
     const targetRoomIds = await resolveManualStatusTargetRooms(investorId, roomId, value, render);
     if(!targetRoomIds) return false;
     if(!FC.projectStore || FC.projectStore.getCurrentProjectId() !== projectId) return false;
+    if(FC.roomProjectModel?.enabled()){
+      const result=await FC.applicationWrite.roomRecords(targetRoomIds,()=>{
+        const history=JSON.stringify(FC.projectDomainOperations.readHistory());
+        for(const id of targetRoomIds){
+          const record=FC.projectStore.getById(id);FC.roomProjectModel.validate(record);
+          if(record.investorId!==investorId||record.meta.roomProject.removed)throw Object.assign(Error('LF_APPLICATION_SCOPE_REFUSED'),{code:'LF_APPLICATION_SCOPE_REFUSED'});
+          const applied=FC.projectStatusSync.applyProjectStatusChange({projectId:id,investorId,roomIds:[id],status:value,syncSelection:true,refreshUi:false,preserveCurrentWhenNoQuoteRows:true});
+          if(!applied?.ok)throw Object.assign(Error('LF_ROOM_PROJECT_STATUS_UNCONFIRMED'),{code:applied?.partial?'LF_PROJECT_OPERATION_PENDING':'LF_ROOM_PROJECT_STATUS_UNCONFIRMED'});
+        }
+        if(JSON.stringify(FC.projectDomainOperations.readHistory())!==history)throw Object.assign(Error('LF_QUOTE_ROOM_LEDGER_REQUIRED'),{code:'LF_QUOTE_ROOM_LEDGER_REQUIRED'});
+        return true;
+      });
+      if(result!==true)return false;refreshSessionButtons();render();return true;
+    }
     let outcome = null;
     if(targetRoomIds.length > 1 && persistenceApi && typeof persistenceApi.setInvestorProjectStatusScope === 'function'){
       outcome = persistenceApi.setInvestorProjectStatusScope(investorId, targetRoomIds, value, { skipGuard:true, syncSelection:true, returnDetails:true });

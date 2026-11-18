@@ -20,6 +20,7 @@
   }
 
   function getRoomData(roomId){
+    if(FC.roomProjectModel?.enabled()){const record=FC.roomProjectStore.list().find(row=>row.id===roomId);return record?.projectData[roomId]||null;}
     const project = getProject() || {};
     const key = String(roomId || '').trim();
     return key && project && typeof project === 'object' ? (project[key] || null) : null;

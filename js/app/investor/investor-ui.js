@@ -44,6 +44,7 @@
   function persistUIInvestorId(id){
     try{
       if(window.FC && FC.uiState && typeof FC.uiState.set === 'function'){
+        if((FC.uiState.get().currentInvestorId||null)===(id||null))return;
         uiState = FC.uiState.set({ currentInvestorId: id || null });
         return;
       }
@@ -234,6 +235,7 @@
     const persistenceApi = persistence();
     const actionsApi = actions();
     if(!(root && editorApi && persistenceApi)) return;
+    if(FC.roomProjectModel?.enabled())root.querySelector('[data-investor-action="projects"]')?.addEventListener('click',()=>FC.roomProjectPicker.open());
 
     persistUIInvestorId(persistenceApi.getInvestorById(inv.id) ? inv.id : null);
     try{ guard() && guard().apply(!!editorApi.state.isEditing); }catch(_){ }
@@ -411,6 +413,7 @@
 
   let roomCueTimer;
   function promptRoomSelection(){
+    if(FC.roomProjectModel?.enabled()){FC.applicationWrite.afterCommit(()=>FC.roomProjectPicker.open());return true;}
     if(editor() && editor().hasUiLock && editor().hasUiLock()) return false;
     const root = getRoot(), hint = document.getElementById('investor-room-hint');
     if(!root || !hint) return false;

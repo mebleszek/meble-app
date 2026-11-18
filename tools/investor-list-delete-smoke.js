@@ -36,6 +36,14 @@ function ready(options){
  r.s.document.baseURI='https://synthetic.invalid/index.html';return r;
 }
 async function main(){
+ const delegated=ready(),delegatedBefore=delegated.seed();let pending=true,resumes=0;
+ delegated.FC.localInvestorDeletion={pending:()=>pending,async resumePending(){resumes++;throw Error('LF_P0B_ACK_UNCONFIRMED');}};
+ assert.equal(delegated.FC.investorDeletion.pending(),true);
+ await assert.rejects(delegated.FC.investorDeletion.resumePending(),/LF_P0B_ACK_UNCONFIRMED/);
+ assert.equal(resumes,1);assert.equal(delegated.FC.investorDeletion.pending(),true);assert.deepEqual(delegated.seed(),delegatedBefore);
+ delegated.FC.localInvestorDeletion.resumePending=async()=>{resumes++;pending=false;return true;};
+ assert.equal(await delegated.FC.investorDeletion.resumePending(),true);assert.equal(resumes,2);assert.equal(delegated.FC.investorDeletion.pending(),false);assert.deepEqual(delegated.seed(),delegatedBefore);
+ console.log('PASS activated deletion adapter owns pending/recovery; refusal preserves source and never enters legacy recovery');
  const r=ready(),before=r.seed(),token=await r.FC.investorDeletion.prepare(['K','N']);
  assert.deepEqual([token.investors,token.projects,token.offers,token.drafts],[2,2,3,2]);assert.equal(token.rooms,4);assert.equal(token.backups,2);
  assert.equal((await r.FC.investorDeletion.commit(token)).ok,true);

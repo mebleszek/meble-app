@@ -39,6 +39,10 @@
         const creationActivation=runtime().prepareCreation && runtime().prepareCreation();
         if(!creationActivation && !firstActivation)return null;
         const inv = origCreate(initial);
+        if(FC.roomProjectModel?.enabled()){
+          if(inv?.id&&FC.investors.setCurrentId(inv.id)!==inv.id)throw Object.assign(Error('LF_ROOM_PROJECT_CONTEXT_PROTECTED'),{code:'LF_ROOM_PROJECT_CONTEXT_PROTECTED'});
+          return inv;
+        }
         if(inv && inv.id){
           const proj = runtime().freshProject ? runtime().normalizeProject(runtime().freshProject()) : { schemaVersion:1 };
           try{ proj.meta = proj.meta || {}; proj.meta.assignedInvestorId = inv.id; proj.meta.productionPcvMode = 'project'; }catch(_){ }

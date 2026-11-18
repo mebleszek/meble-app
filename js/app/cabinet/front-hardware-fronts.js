@@ -140,7 +140,7 @@ function resolveDrawerDoorCount(cab){
   return Math.max(1, Math.round(count || 2));
 }
 
-function aggregateSetFrontParts(room, cab){
+function aggregateSetFrontParts(room, cab, sourceContext){
   if(!cab || !cab.setId || !isLeadSetCabinet(room, cab)) return [];
   const fronts = getRoomSetFronts(room, cab.setId);
   if(!fronts.length) return [];
@@ -183,7 +183,7 @@ function aggregateSetFrontParts(room, cab){
     const roles=expected.get(key);return roles && roles.length===row.qty && roles.every(Boolean);
   });
   if(verified){
-    const sourceProjectId=ns.partProvenance ? ns.partProvenance.projectContext(window.projectData).projectId : '';
+    const sourceProjectId=sourceContext?.projectId || (ns.partProvenance ? ns.partProvenance.projectContext(window.projectData).projectId : '');
     acc.forEach((row,key)=>{
       const counts=new Map();expected.get(key).forEach(role=>counts.set(role,(counts.get(role)||0)+1));
       row.sourceGroupRoles=Array.from(counts,([groupRoleId,qty])=>({ownerType:'set',setId:String(cab.setId),sourceProjectId,groupRoleId,qty}));
@@ -205,13 +205,13 @@ function getSetDoorFrontPanels(room, cab){
     .filter((front)=> front.w > 0 && front.h > 0);
 }
 
-function getCabinetFrontPartsForLocalDraft(room, cab){
+function getCabinetFrontPartsForLocalDraft(room, cab, sourceContext){
   // Zwraca listę elementów "Front" do zakładki Materiały.
   // Ważne: bez komentarzy w polu wymiarów oraz z agregacją identycznych frontów (qty zamiast duplikatów).
   const out = [];
   if(!cab || !(cab.type === 'stojąca' || cab.type === 'wisząca' || cab.type === 'moduł')) return out;
 
-  const setParts = aggregateSetFrontParts(room, cab);
+  const setParts = aggregateSetFrontParts(room, cab, sourceContext);
   if(setParts.length) return setParts;
   if(cab && cab.setId && !isLeadSetCabinet(room, cab)) return out;
 
@@ -402,7 +402,7 @@ function getCabinetFrontPartsForLocalDraft(room, cab){
     const provenance=ns.partProvenance;
     const owner=provenance?provenance.context(cab,room,sourceContext):null;
     const local=Object.assign({},cab,{details:Object.assign({},cab&&cab.details)});
-    const parts=getCabinetFrontPartsForLocalDraft(room,local);
+    const parts=getCabinetFrontPartsForLocalDraft(room,local,sourceContext);
     return provenance?provenance.bind(parts,owner):parts;
   }
 

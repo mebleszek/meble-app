@@ -8,6 +8,7 @@ function manifest(){
     const name=dir+'/'+entry.name;if(entry.isDirectory())walk(name);else if(/\.(js|mjs|css|jpg|jpeg|png|svg|webp|woff2?)$/i.test(name))names.push(name);
   }}
   for(const dir of ['js','css','assets','sync'])walk(dir);
+  for(const file of ['p0b-protocol','p0b-pin','p0b-deletion-group','p0b-deletion-journal','p0b-project-recovery'])names.push('tools/firebase-pilot/'+file+'.mjs');
   const files=names.sort().map(name=>{const bytes=fs.readFileSync(path.join(root,name));return {path:name,bytes:bytes.length,sha256:crypto.createHash('sha256').update(bytes).digest('hex')};});
   return {version:crypto.createHash('sha256').update(JSON.stringify(files)).digest('hex'),files};
 }

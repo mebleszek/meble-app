@@ -18,6 +18,7 @@
   if(Object.keys(payload).sort().join(',')!=='investor,offers,project'||!id(investor?.id)||!id(project?.id)
    ||project.investorId!==investor.id||project.projectData?.meta?.assignedInvestorId!==investor.id
    ||project.projectData?.schemaVersion!==12||(investor.rooms!==undefined&&!Array.isArray(investor.rooms))||!Array.isArray(offers))fail();
+  if(project.meta?.roomProject?.version===1){if(!FC.roomProjectModel)fail();FC.roomProjectModel.validate(project);}
   const listed=(investor.rooms||[]).map(r=>r.id),defs=project.projectData.meta.roomDefs||{},order=project.projectData.meta.roomOrder||[];
   if(!defs||!Array.isArray(order)||new Set(listed).size!==listed.length||listed.some(x=>!id(x)))fail();
   const rooms=Object.keys(defs);if(rooms.some(x=>!id(x)||defs[x]?.id!==x)||new Set(order).size!==order.length||order.length!==rooms.length||order.some(x=>!rooms.includes(x))||listed.some(x=>!rooms.includes(x)))fail();
@@ -69,7 +70,9 @@
    if(!Object.hasOwn(row,key)||canonical(row[key])!==canonical(normalized[key]))fail();
   }
   const rooms=row.selection.selectedRooms;
-  if(rooms.some(room=>!id(room)||!Object.hasOwn(defs,room))||new Set(rooms).size!==rooms.length)refuse();
+  const owner=projects.find(p=>p.id===scope);
+  const allowed=owner.meta?.roomProject?.version===1?FC.roomProjectModel.list(owner.investorId,projects).filter(row=>row.meta.roomProject.removed!==true).map(row=>row.id):Object.keys(defs);
+  if(rooms.some(room=>!id(room)||!allowed.includes(room))||new Set(rooms).size!==rooms.length)refuse();
  }
  async function build(storage,projectId){
   if(storage.getItem('fc_edit_session_v1')!==null)fail();
@@ -86,7 +89,8 @@
   const investors=allInvestors.filter(i=>i.id===project.investorId);if(investors.length!==1)fail();
   const history=JSON.parse(storage.getItem('fc_quote_snapshots_v1')||'[]');if(!Array.isArray(history))fail();
   if(history.some(o=>!o.project?.id||!o.investor?.id))throw Object.assign(Error('LF_HISTORY_OWNER_REQUIRED'),{code:'LF_HISTORY_OWNER_REQUIRED'});
-  const payload={investor:investors[0],project,offers:history.filter(o=>o.project.id===project.id)};validate(payload);
+  const investor=project.meta?.roomProject?.version===1?{...investors[0],rooms:[project.projectData.meta.roomDefs[project.id]]}:investors[0];
+  const payload={investor,project,offers:project.meta?.roomProject?.version===1?[]:history.filter(o=>o.project.id===project.id)};validate(payload);
   const c=FC.cloudPilotContract,document={kind:'meble-app-project-export',version:1,profile:'business-project-v1',projectSchemaVersion:12,
    metadata:{exportedAt:new Date().toISOString(),purpose:'business-sync'},payload};
   document.integrity={algorithm:'SHA-256',canonicalization:'sorted-json-v1',payloadSha256:await c.sha(c.encode?c.encode(payload):new TextEncoder().encode(c.canonical(payload))),documentSha256:await c.sha(new TextEncoder().encode(c.canonical(document)))};

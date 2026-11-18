@@ -1,0 +1,56 @@
+    // DEMO only. One quote ledger per investor, independent of room leases.
+    // Heads use CAS; prior revisions/chunks cannot be updated or deleted.
+    function roomQuoteLive(uid,iid) {
+      let inv = get(invRef(uid,iid)).data;
+      return inv.deletionId == '' && inv.bulkId == '';
+    }
+    function roomQuoteRef(uid,iid,rid) {
+      return /databases/$(database)/documents/users/$(uid)/p0bRoomQuotes/$(iid)/revisions/$(rid);
+    }
+    function roomQuoteShape(d,uid,iid) {
+      return d.keys().hasOnly(['ownerUid','investorId','version','generation','revisionId','hash','updatedAt'])
+        && d.ownerUid == uid && d.investorId == iid && d.version == 1
+        && d.generation is int && d.generation > 0 && revisionId(d.revisionId)
+        && d.hash is string && d.hash.matches('^[a-f0-9]{64}$') && d.updatedAt == request.time;
+    }
+    function roomQuoteHead(d,uid,iid,previous) {
+      let revision = get(roomQuoteRef(uid,iid,d.revisionId)).data;
+      let first = get(/databases/$(database)/documents/users/$(uid)/p0bRoomQuotes/$(iid)/revisions/$(d.revisionId)/chunks/0).data;
+      let lastIndex = string(revision.chunks.size() - 1);
+      let last = get(/databases/$(database)/documents/users/$(uid)/p0bRoomQuotes/$(iid)/revisions/$(d.revisionId)/chunks/$(lastIndex)).data;
+      return first.hash == revision.chunks[0] && last.hash == revision.chunks[revision.chunks.size()-1]
+        && roomQuoteShape(d,uid,iid) && revision.ownerUid == uid && revision.investorId == iid
+        && revision.generation == d.generation && revision.revisionId == d.revisionId
+        && revision.hash == d.hash && revision.previous == previous;
+    }
+    match /users/{uid}/p0bRoomQuotes/{iid} {
+      allow get: if globalApproved(uid) && invId(iid);
+      allow create: if globalApproved(uid) && roomQuoteLive(uid,iid)
+        && request.resource.data.generation == 1 && roomQuoteHead(request.resource.data,uid,iid,'');
+      allow update: if globalApproved(uid) && roomQuoteLive(uid,iid)
+        && request.resource.data.generation == resource.data.generation + 1
+        && roomQuoteHead(request.resource.data,uid,iid,resource.data.revisionId);
+      match /revisions/{rid} {
+        allow get: if globalApproved(uid) && invId(iid);
+        allow create: if globalApproved(uid) && roomQuoteLive(uid,iid)
+          && request.resource.data.keys().hasOnly(['ownerUid','investorId','version','generation','revisionId','hash','previous','chunks','createdAt'])
+          && request.resource.data.ownerUid == uid && request.resource.data.investorId == iid
+          && request.resource.data.version == 1 && request.resource.data.generation is int && request.resource.data.generation > 0
+          && request.resource.data.revisionId == rid && revisionId(rid)
+          && request.resource.data.hash is string && request.resource.data.hash.matches('^[a-f0-9]{64}$')
+          && request.resource.data.previous is string && (request.resource.data.previous == '' || revisionId(request.resource.data.previous))
+          && request.resource.data.chunks is list && request.resource.data.chunks.size() > 0 && request.resource.data.chunks.size() <= 64
+          && request.resource.data.createdAt == request.time;
+        match /chunks/{chunk} {
+          allow get: if globalApproved(uid) && invId(iid);
+          allow create: if globalApproved(uid) && roomQuoteLive(uid,iid)
+            && request.resource.data.keys().hasOnly(['index','hash','text'])
+            && request.resource.data.index is int && request.resource.data.index >= 0
+            && chunk == string(request.resource.data.index)
+            && request.resource.data.text is string && request.resource.data.text.size() <= 100001
+            && request.resource.data.hash is string && request.resource.data.hash.matches('^[a-f0-9]{64}$')
+            && request.resource.data.index < get(roomQuoteRef(uid,iid,rid)).data.chunks.size()
+            && request.resource.data.hash == get(roomQuoteRef(uid,iid,rid)).data.chunks[request.resource.data.index];
+        }
+      }
+    }

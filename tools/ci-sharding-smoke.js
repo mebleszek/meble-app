@@ -41,4 +41,14 @@ for(const count of [4,9,13]){
  assert.ok(selected.every(n=>n===1),'Every independent case must belong to exactly one partition');
  assert.throws(()=>require('./ci-test-parts').select(count,['--ci-part='+(count+1)]),/CI_TEST_PART_INVALID/);
 }
+const p0b=require('./p0b-ci-plan').plan(path.join(__dirname,'firebase-pilot'));
+const p0bFlow=flow.slice(flow.indexOf('  firebase-p0b:'),flow.indexOf('  firebase-current:'));
+const p0bMatrix=/segment: \[([^\]]+)\]/.exec(p0bFlow)[1].split(',').map(s=>s.trim());
+assert.deepEqual(p0bMatrix,p0b.map(row=>row.id));
+assert.equal(p0b.flatMap(row=>row.names).length,26);
+assert.ok(p0bFlow.includes('--p0b=${{ matrix.segment }}'));
+assert.ok(flow.includes('needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b]'));
+assert.ok(flow.includes('const names=["safety","firebase-current-shards","playwright-sync-ui","firebase-p0b"];'));
+for(const row of p0b)assert.deepEqual(require('./p0b-ci-plan').select(path.join(__dirname,'firebase-pilot'),row.id),row);
+assert.throws(()=>require('./p0b-ci-plan').select(path.join(__dirname,'firebase-pilot'),'unknown'),/P0B_CI_SEGMENT_INVALID/);
 console.log('CI SHARD COVERAGE PASS '+names.length+' current smoke files, '+units.length+' complete execution units, '+shards.SHARDS+' disjoint groups, all partition cases mandatory');

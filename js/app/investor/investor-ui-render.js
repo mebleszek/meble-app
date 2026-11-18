@@ -187,7 +187,8 @@
           <h3 style="margin:0">Inwestor</h3>
         </div>
 
-        <div class="investor-rooms-head">
+        ${FC.roomProjectModel?.enabled() ? `<div class="investor-rooms-head"><button class="btn-primary" type="button" data-investor-action="projects" ${isEditing?'disabled':''}>Projekty</button></div>
+        <p class="muted" data-selected-room>Wybrane pomieszczenie: ${escapeHtml(FC.roomProjectStore.selected(inv.id)?.title||'Nie wybrano pomieszczenia')}</p>` : `        <div class="investor-rooms-head">
           <h4 style="margin:0">Pomieszczenia</h4>
           <div class="investor-room-head-actions">
             <button class="btn-primary investor-add-room-btn${isEditing ? ' is-disabled' : ''}" type="button" data-investor-action="add-room" ${isEditing ? 'disabled' : ''}>Dodaj</button>
@@ -196,7 +197,7 @@
         </div>
         <div class="muted xs" style="margin-bottom:10px">Wyświetlam tylko pomieszczenia dodane do tego inwestora.</div>
         <div class="investor-room-quick-list">${projectCards}</div>
-        <p id="investor-room-hint" role="status" aria-live="polite" hidden></p>
+        <p id="investor-room-hint" role="status" aria-live="polite" hidden></p>`}
 
         <div class="investor-choice-grid">
           ${fields.buildChoiceField('invKind', 'Typ', TYPE_OPTIONS, draft.kind || 'person', 'investor-choice-field--kind', { readonlyPreview:!isEditing })}

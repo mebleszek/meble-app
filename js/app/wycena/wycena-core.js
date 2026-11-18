@@ -94,9 +94,11 @@
       sizes:{ snapshot:0, calculationRegister:0, labor:0 }
     };
     const calculationOptions=options && options.pcvMode==='project' ? {pcvMode:'project',projectId:options.projectId} : {};
+    let roomRevision=null,roomSelection=null;
     const initialDraft=calculationOptions.pcvMode==='project' ? FC.projectPcvResolver.draftSelection() : null;
     const assertCurrent=()=>{
       if(nav && context)nav.assertCalculationCurrent(context);
+      if(roomRevision!==null)FC.roomQuoteSources.assertRevision(roomSelection,roomRevision);
       if(options && options.assertCurrent)options.assertCurrent();
       if(calculationOptions.pcvMode==='project' && FC.projectPcvResolver.draftSelection()!==initialDraft){
         throw createQuoteValidationError('calculation_scope_changed','Zakres wyceny zmienił się','Ponów obliczenie dla aktualnego zakresu.');
@@ -107,13 +109,14 @@
     const draft = deps.offer.getOfferDraft();
     const normalizedSelection = deps.selectionApi.validateQuoteSelection(deps.selectionApi.normalizeQuoteSelection((options && options.selection) || (draft && draft.selection)));
     const selectedRooms = deps.selectionApi.decodeSelectedRooms(normalizedSelection);
+    if(FC.roomQuoteSources?.enabled()){roomSelection=selectedRooms;roomRevision=FC.roomQuoteSources.revision(selectedRooms);}
     perf.counts.cabinetCount = cabinetCountForRooms(selectedRooms);
 
     let cabinetFactsSummary = null;
     let sectionStart = perfNow();
     try{
       const factsApi = FC.cabinetDerivedFacts || null;
-      if(factsApi && typeof factsApi.ensureForRooms === 'function') cabinetFactsSummary = factsApi.ensureForRooms(selectedRooms, { persist:false, recalculate:true });
+      if(!FC.roomQuoteSources?.enabled() && factsApi && typeof factsApi.ensureForRooms === 'function') cabinetFactsSummary = factsApi.ensureForRooms(selectedRooms, { persist:false, recalculate:true });
     }catch(_){ }
     perf.timingsMs.cabinetFacts = roundMs(perfNow() - sectionStart);
     if(cabinetFactsSummary){
@@ -220,6 +223,8 @@
     if(nav && !nav.calculationUnchanged(context)){
       throw createQuoteValidationError('calculation_context_changed', 'Dane projektu zmieniły się', 'Nie zapisano wyceny. Ponów kalkulację na aktualnych danych.');
     }
+    assertCurrent();
+    if(FC.roomQuoteSources?.enabled())result.sourceProjects=await FC.roomQuoteSources.references(selectedRooms);
     assertCurrent();
     if(calculationOptions.pcvMode==='project')FC.projectPcvResolver.registerQuoteCalculation(result,aggregate,
       Object.assign({},calculationOptions,{materialScope:normalizedSelection.materialScope}),initialDraft);

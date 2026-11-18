@@ -8,6 +8,7 @@
   }
 
   function getActiveRooms(){
+    if(FC.roomProjectModel?.enabled())return FC.roomProjectStore.list().map(record=>record.id);
     try{
       const roomScopeResolver = getResolver();
       if(roomScopeResolver && typeof roomScopeResolver.getActiveRoomIds === 'function') return roomScopeResolver.getActiveRoomIds();

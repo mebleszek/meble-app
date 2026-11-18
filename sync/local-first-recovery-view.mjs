@@ -1,7 +1,8 @@
 // Uses existing settings fields, panel and confirmation controls.
 // The caller supplies the authorized P0-B recovery service.
+import {safeError} from './local-first-values.mjs';
 export async function openProjectRecovery({window:w,service,roomId,roomName='',deviceLabel='',onConfirmed=()=>{}}){
-  const fc=w.FC,h=fc.dataSettingsDom.h;
+  const fc=w.FC,h=fc.dataSettingsDom.h,independent=fc.roomProjectModel?.enabled()===true;
   const status=await service.inspect();
   const body=h('div',{class:'panel-box-form'});
   const scroll=h('div',{class:'panel-box-form__scroll'});
@@ -32,7 +33,7 @@ export async function openProjectRecovery({window:w,service,roomId,roomName='',d
       try{
         const confirmed=await fc.confirmBox.ask({title:'Potwierdź odzyskanie projektu',
           message:variant==='room-copy'
-            ? 'Zachowasz kopię wskazanego pomieszczenia. Projekt zostanie zastąpiony najnowszą potwierdzoną wersją, a kopia zostanie dodana do niej. Pozostałe lokalne zmiany zostaną odłożone do archiwum technicznego.'
+            ? (independent?'Zachowasz pomieszczenie jako osobny projekt tego inwestora. Oryginał zostanie zastąpiony najnowszą potwierdzoną wersją. Poprzednie dane i niewysłane operacje zostaną zachowane w archiwum technicznym.':'Zachowasz kopię wskazanego pomieszczenia. Projekt zostanie zastąpiony najnowszą potwierdzoną wersją, a kopia zostanie dodana do niej. Pozostałe lokalne zmiany zostaną odłożone do archiwum technicznego.')
             : 'Robocza wersja projektu i oczekujące zapisy zostaną zastąpione najnowszą potwierdzoną wersją. Poprzednie dane zostaną zachowane wyłącznie w archiwum technicznym.',
           confirmText:'Odzyskaj projekt',cancelText:'Wróć',confirmTone:'danger',dismissOnOverlay:false});
         if(!confirmed)return;
@@ -44,7 +45,7 @@ export async function openProjectRecovery({window:w,service,roomId,roomName='',d
           ? 'Projekt zapisano na tym urządzeniu. Kopia pomieszczenia oczekuje na potwierdzenie synchronizacji.'
           : 'Najnowszą potwierdzoną wersję projektu zapisano na tym urządzeniu.',okOnly:true});
         onConfirmed(receipt);
-      }catch(error){result.textContent='Odzyskiwanie wstrzymane. '+(error?.code||'LF_PROJECT_RECOVERY_UNCONFIRMED');}
+      }catch(error){result.textContent='Odzyskiwanie wstrzymane. '+safeError(error).code;}
       finally{if(pin)pin.value='';buttons.forEach(b=>{b.disabled=false;});}
     });
     actions.append(action);

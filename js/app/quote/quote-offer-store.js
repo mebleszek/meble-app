@@ -73,7 +73,7 @@
     if(!cleaned.length) return [];
     try{
       if(FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function'){
-        const allowed = FC.roomRegistry.getActiveRoomIds() || [];
+        const allowed = FC.roomProjectModel?.enabled()?FC.roomProjectStore.list().map(row=>row.id):(FC.roomRegistry.getActiveRoomIds() || []);
         if(Array.isArray(allowed) && allowed.length){
           if(FC.rozrysScope && typeof FC.rozrysScope.normalizeRoomSelection === 'function'){
             const normalized = FC.rozrysScope.normalizeRoomSelection(cleaned, { getRooms:()=> allowed });
