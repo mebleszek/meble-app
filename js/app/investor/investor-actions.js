@@ -166,6 +166,7 @@
     const investor = currentInvestor && currentInvestor();
     if(!investor) return;
 
+    if(action === 'projects'&&FC.roomProjectModel?.enabled()){FC.roomProjectPicker.open();return;}
     if(action === 'pdf'){
       try{ if(FC.investorPdf && typeof FC.investorPdf.openInvestorCardPdf === 'function') FC.investorPdf.openInvestorCardPdf(investor); }catch(_){ }
       return;
@@ -210,6 +211,7 @@
         return;
       }
       if(savedInvestor && persistence() && typeof persistence().setCurrentInvestorId === 'function') persistence().setCurrentInvestorId(savedInvestor.id);
+      if(FC.roomProjectModel?.enabled()){window.uiState=FC.uiState.set({currentInvestorId:savedInvestor.id,entry:'rooms',activeTab:'inwestor',roomType:null,lastRoomType:null});}
       const finish=()=>{
         if(transient){
           ui()?.clearTransientInvestor?.(investor.id);
@@ -218,6 +220,7 @@
         if(editorApi)editorApi.commit(savedInvestor);
         clearNewInvestorFlag(investor.id);
         cfg.onRender && cfg.onRender();
+        if(transient&&FC.roomProjectModel?.enabled()&&!FC.roomProjectStore.selected(savedInvestor.id))FC.roomProjectPicker.open();
       };
       if(FC.applicationWrite)FC.applicationWrite.afterCommit(finish);else finish();
       return;
@@ -233,8 +236,9 @@
         const perform=()=>handleTopAction(action, deps && deps.getCurrentInvestor, deps);
         try{
           if(FC.applicationWrite&&['save','cancel','exit'].includes(action))await FC.applicationWrite.auto(perform);else await perform();
-        }catch(_){
-          infoBox()?.open({title:'Nie zapisano inwestora',message:'Zachowano formularz. Nie potwierdzono trwałego zapisu inwestora.',okOnly:true});
+        }catch(error){
+          const code=error?.code||error?.message;
+          infoBox()?.open({title:'Nie zapisano inwestora',message:'Zachowano formularz. Nie potwierdzono trwałego zapisu inwestora.'+(/^(LF_|SESSION_|CLOUD_)[A-Z0-9_]+$/.test(code||'')?' '+code:''),okOnly:true});
         }
         try{ guard() && guard().apply(!!(editor() && editor().state.isEditing)); }catch(_){ }
       });

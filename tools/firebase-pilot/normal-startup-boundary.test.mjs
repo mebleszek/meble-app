@@ -7,7 +7,7 @@ import {reconcileGlobalAliases} from '../../sync/application-authority.mjs';
 import {applicationInstallation} from '../../sync/application-installation.mjs';
 import {prepareEmulatorApplicationBoot} from '../../sync/application-boot.mjs';
 import {assertApplicationConnection,authorizeApplicationFirebase} from '../../sync/firebase-activation.mjs';
-import {createApplicationReplication} from '../../sync/application-replication.mjs';
+import {createApplicationReplication,createApplicationHandover} from '../../sync/application-replication.mjs';
 import {createProjectChannel} from '../../sync/local-first-project.mjs';
 const root=new URL('../..',import.meta.url),read=p=>fs.readFileSync(new URL(p,root),'utf8');
 test('normal startup remains inert on public origin, flags cannot activate connections/migration',async()=>{
@@ -85,6 +85,28 @@ test('navigation stays reserved until confirmed handover, not merely the local I
  finish();assert.equal(await nav,true);assert.equal(boundary.busy(),false);boundary.close();
 });
 
+test('explicit Exit releases a confirmed project without waiting on unrelated sync',async()=>{
+ const request={key:'handover:project',deviceId:'pc',epoch:1};
+ let saved=null,releases=0,scheduled=0;
+ const store={
+  pendingHandover:async()=>saved,
+  snapshot:async()=>({replica:{base:{generation:1},dirty:false,editor:{deviceId:'pc',epoch:1}},operations:[{phase:'verified'}]})
+ };
+ const handover=createApplicationHandover({store,online:()=>true,onError:assert.fail,getSync:()=>({
+  notify(){scheduled++;},
+  flush(){assert.fail('The project already has ACK');},
+  async releaseRequestedEditor(scope,expected){
+   assert.equal(scope,'project');assert.deepEqual(expected,request);releases++;
+  }
+ })});
+ await handover.resume(['project']);
+ assert.equal(releases,0,'A restart without an explicit Exit retains the editor');
+ saved=request;
+ await handover.start('project');
+ assert.equal(releases,1);
+ assert.equal(scheduled,0);
+});
+
 test('explicit global edits preserve declared aliases without repairing divergent historical RAW',()=>{
  const contract={sources:{labor:['primary','legacy']}},before={primary:'[{"id":"stable","price":7.125}]',legacy:'[{"id":"stable","price":7.125}]',protected:'RAW'};
  const after={...before,primary:'[{"id":"stable","price":21.375}]'},next=reconcileGlobalAliases(before,after,contract);
@@ -98,6 +120,35 @@ test('whole-store restore refuses before legacy callbacks or journals can mutate
  const b=installApplicationWriteBoundary({window:w,authority:{},ensureEditor:async()=>{}});
  for(const [api,names]of [[w.FC.dataBackupStore,['restoreBackup','importSnapshot']],[w.FC.dataBackupSnapshot,['applySnapshot']],[w.FC.dataBackupSnapshotApply,['applySnapshot']]])for(const n of names)assert.throws(()=>api[n]({}),/LF_ARCHIVE_RESTORE_PROTOCOL_REQUIRED/);
  assert.equal(writes,0);b.close();
+});
+
+
+test('flush refuses unconfirmed project discovery and retries it only on a new observation',async()=>{
+ let queries=0,reads=0,recovered=false;
+ const events=new EventTarget(),states=[];
+ const channel={scope:'globals',kind:'globals',watch:()=>()=>{},async read(){reads++;throw Object.assign(Error(),{code:'GLOBAL_NOT_FOUND'});}};
+ const store={exclusive:async fn=>fn(),snapshot:async()=>({replica:null,operations:[]})};
+ const sync=createApplicationReplication({store,channels:[channel],eventTarget:events,onState:state=>states.push(state),
+  incoming(){throw Error('No unknown project may be applied');},refresh(){},assertIdle(){},
+  discovery:{watch:()=>()=>{},async list(){queries++;if(!recovered)throw Object.assign(Error(),{code:'permission-denied'});return[];}}});
+ try{
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(queries,1);
+  const beforeFlush=reads;
+  const refused=await sync.flush();
+  assert.ok(reads>beforeFlush,'Known independent scopes must still be processed');
+  assert.equal(refused.ok,false);
+  assert.equal(refused.code,'LF_PROJECT_DISCOVERY_UNCONFIRMED');
+  const afterFailure=queries;
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(queries,afterFailure,'Failure must not cause a self-scheduling query retry');
+  recovered=true;
+  assert.equal((await sync.flush()).ok,true);
+  assert.equal(queries,afterFailure+1);
+  assert.equal((await sync.flush()).ok,true);
+  assert.equal(queries,afterFailure+1,'Confirmed inventory uses its existing watcher, without polling on every flush');
+  assert.ok(states.some(state=>state.code==='LF_PROJECT_DISCOVERY_UNCONFIRMED'));
+ }finally{await sync.close();}
 });
 
 test('connection handoff drains the old read before a replacement publishes; stale lease never consumes the queued write',async()=>{

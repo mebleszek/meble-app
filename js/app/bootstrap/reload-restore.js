@@ -5,7 +5,7 @@
   try{
     const root = window;
     root.FC = root.FC || {};
-    const KEY = 'fc_reload_restore_v1';
+    const KEY = root.FC.applicationRegistry?.id==='p0b-rooms-v1'?'fc_p0b_rooms_reload_restore_v1':'fc_reload_restore_v1';
     let pendingSnapshot = null;
 
     function sessionGetRaw(key){

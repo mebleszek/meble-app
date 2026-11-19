@@ -20,8 +20,31 @@ export async function validateAuthority(stores,receipt,nativeRows,activationId){
  const unique=(rows,key)=>{const values=rows.map(r=>r?.[key]);if(values.some(k=>typeof k!=='string'||!k)||new Set(values).size!==values.length)refuse('RESCUE_RECORD_INVALID');};
  for(const rows of Object.values(stores))unique(rows,'key');
  const byKey=new Map(stores.control.map(r=>[r.key,r]));
- if(stores.control.length!==3||!equal(byKey.get('binding'),{key:'binding',version:1,ownerUid:receipt.ownerUid,deviceId:receipt.deviceId,instanceId:receipt.instanceId}))refuse('RESCUE_BINDING_INVALID');
+ if(!equal(byKey.get('binding'),{key:'binding',version:1,ownerUid:receipt.ownerUid,deviceId:receipt.deviceId,instanceId:receipt.instanceId}))refuse('RESCUE_BINDING_INVALID');
  const source=byKey.get('source'),image=byKey.get('application');
+ const editors=new Map(stores.replicas.map(r=>[r.key,r.editor]));
+ for(const row of stores.control){
+  if(['binding','source','application'].includes(row.key))continue;
+  const recovery=/^projectRecovery:([A-Za-z0-9_-]{1,128})$/.exec(row.key)?.[1];
+  if(recovery){
+   if(!['latest','room-copy'].includes(row.variant)||row.variant==='room-copy'&&(!row.roomCopy||!/^([a-f0-9]{64})$/.test(row.roomCopyHash)||typeof row.roomCopy.id!=='string'||!row.roomCopy.room||row.roomCopy.definition?.id!==row.roomCopy.id)||!editors.has(recovery)||!/^[-A-Za-z0-9_]{1,128}$/.test(row.operationId)
+    ||row.expected?.editor?.projectId!==recovery||row.expected.editor.ownerUid!==receipt.ownerUid
+    ||!Number.isSafeInteger(row.replicaVersion)||row.replicaVersion<1
+    ||!Number.isSafeInteger(row.applicationVersion)||row.applicationVersion<1
+    ||!/^([a-f0-9]{64})$/.test(row.applicationHash)
+    ||!/^([a-f0-9]{32})$/.test(row.expected.revision)
+    ||typeof row.deviceLabel!=='string'||row.deviceLabel.length>64
+    ||(row.expected.editor.active ? (!Number.isSafeInteger(row.pinRevision)||row.pinRevision<1) : row.pinRevision!==null))
+    refuse('RESCUE_BINDING_INVALID');
+   if(row.variant==='room-copy'&&await digest(json(row.roomCopy))!==row.roomCopyHash)refuse('RESCUE_RECORD_INTEGRITY');
+   continue;
+  }
+  const scope=/^handover:([A-Za-z0-9_-]{1,128})$/.exec(row.key)?.[1];
+  const editor=editors.get(scope);
+  if(!scope||!editor||!Number.isSafeInteger(row.epoch)||row.epoch<1||editor.epoch!==row.epoch
+    ||editor.deviceId!==receipt.deviceId||!(editor.active||editor.handoverPending)
+    ||!equal(row,{key:row.key,epoch:row.epoch,deviceId:receipt.deviceId}))refuse('RESCUE_BINDING_INVALID');
+ }
  const rowsValid=rows=>rows&&typeof rows==='object'&&!Array.isArray(rows)&&Object.values(rows).every(v=>v===null||typeof v==='string');
  if(!source||source.version!==1||!rowsValid(source.rows)||source.hash!==receipt.sourceHash||activationId&&source.activationId!==activationId||await digest(source.rows)!==source.hash)refuse('RESCUE_SOURCE_INTEGRITY');
  for(const [key,raw]of Object.entries(source.rows))if((nativeRows[key]??null)!==raw)refuse('RESCUE_SOURCE_CHANGED');

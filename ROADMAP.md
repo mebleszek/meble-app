@@ -20,20 +20,22 @@ Poziomowanie obecnie dotyczy wyłącznie szafek na nóżkach lub zawieszkach. Ni
 
 > **Dalsze sekcje:** decyzje nadal obowiązujące są wiążące; opisy dawnych stanów i etykiety `CI_PENDING`/`priorytet 1` są migawkami historycznymi. Najnowsze statusy czytaj w `CURRENT_STATE.md`.
 
-## WSPÓLNY PIN MEBLE-APP — ODROCZONY DO DZIAŁAJĄCEJ CHMURY (decyzja 28.10.2026)
+## WSPÓLNY PIN MEBLE-APP — PRZEJĘCIE PROJEKTU I ODROCZONE ZASTOSOWANIA
 
-**Decyzja właściciela:** PIN bezpieczeństwa wprowadzamy dopiero po uruchomieniu bezpiecznej, wspólnej usługi chmurowej pozwalającej weryfikować go na różnych urządzeniach. Nie należy dodawać PIN-u ani blokować obecnego pakietu zaufanych urządzeń z powodu jego braku. Do tego czasu checkbox „Zaufaj temu urządzeniu” pozostaje świadomą, dobrowolną decyzją zalogowanego i zatwierdzonego właściciela; może on zaznaczyć go również na własnym laptopie lub tablecie. Niezaufana sesja komputera nadal ma limit 5 minut bezczynności i wymaga nowego logowania po zamknięciu przeglądarki.
+**Decyzja właściciela z 17.11.2026.** Zastępuje wcześniejszy wymóg zaufanej usługi dla przejmowania projektu. Standardowa aplikacja sprawdza PIN po stronie klienta. Zmodyfikowany klient może ominąć sprawdzenie lub odgadnąć PIN z odczytanej pochodnej. Firestore osobno egzekwuje dostęp właściciela, CAS, aktualną generację i jedną blokadę projektu.
+
+Zaufanie urządzenia pozostaje świadomą decyzją zalogowanego i zatwierdzonego właściciela. Niezaufana sesja komputera nadal ma limit 5 minut bezczynności i wymaga nowego logowania po zamknięciu przeglądarki.
 
 **Docelowy UX i kontrakt:**
-- Jeden wspólny PIN dla konta właściciela, obowiązujący na wszystkich jego urządzeniach; bez osobnych PIN-ów na telefon/laptop/tablet.
-- Własny PIN ustalany i potwierdzany przy pierwszej konfiguracji funkcji po jej udostępnieniu; bez domyślnego `123456` ani innego fabrycznego PIN-u.
-- Po zalogowaniu Google i świeżym sprawdzeniu uprawnień zaznaczenie „Zaufaj temu urządzeniu” wymaga poprawnego PIN-u przed zapisaniem lokalnego zaufania.
-- Zatwierdzenie trwałego usuwania inwestorów będzie wymagało tego samego PIN-u aplikacji, który potwierdza nadanie zaufania urządzeniu. Wymaganie odroczone do wspólnego mechanizmu PIN; obecnie bez implementacji PIN-u ani dodatkowego okna autoryzacji.
-- Trybik → Ustawienia → Bezpieczeństwo → Zmień PIN: stary PIN, nowy PIN i potwierdzenie nowego. Zaplanować też bezpieczne odzyskiwanie/reset po silnym ponownym uwierzytelnieniu właściciela.
-- Wspólna weryfikacja PIN-u musi opierać się na zatwierdzonym mechanizmie serwerowym, z ograniczaniem prób i ochroną przed zgadywaniem. Nie zapisywać PIN-u jawnie w aplikacji, lokalnych magazynach, dokumentach ani repozytorium. PIN stanowi dodatkowe potwierdzenie nadania zaufania, nie zastępuje Google Auth, uprawnień Firebase ani kontroli dostępu do danych.
-- Szczegółowy model bezpieczeństwa, UI, migrację i testy uzgodnić w osobnym pakiecie przed implementacją. Dostępność chmury nie jest automatyczną zgodą na Firebase LIVE, Rules, granty, migrację ani wydanie.
+- Jeden czterocyfrowy PIN właściciela wspólny dla telefonu, komputera i tabletu. Klient wymaga PIN-u przy przejęciu aktywnej blokady innego urządzenia. Zajęcie wolnego projektu, zwykłe „Wyjdź” i odzyskanie własnej ważnej blokady korzystają z dotychczasowej autoryzacji.
+- Właściciel ustala własny PIN w sekcji Bezpieczeństwo po udostępnieniu funkcji. Brak fabrycznego PIN-u.
+- **Odroczone zastosowanie.** Po zalogowaniu Google i świeżym sprawdzeniu uprawnień zaznaczenie „Zaufaj temu urządzeniu” wymaga poprawnego PIN-u przed zapisaniem lokalnego zaufania.
+- **Odroczone zastosowanie.** Zatwierdzenie trwałego usuwania inwestorów będzie wymagało tego samego PIN-u aplikacji, który potwierdza nadanie zaufania urządzeniu. Wymaganie odroczone do wspólnego mechanizmu PIN; obecnie bez implementacji PIN-u ani dodatkowego okna autoryzacji.
+- Trybik → Ustawienia → Bezpieczeństwo. Zmiana wymaga obecnego PIN-u, nowej wartości i jej powtórzenia.
+- Firestore synchronizuje pochodną PIN-u, losową sól i rewizję ustawienia. Cyfry pozostają w pamięci podczas weryfikacji. Ustawienie i zmiana przechodzą przez CAS i odczyt potwierdzający. PIN nie jest warunkiem Firestore Rules. Zatwierdzone przejęcie atomowo zmienia właściciela i zwiększa generację blokady.
+- Wspólny PIN i przejęcie korzystają z istniejącego Firebase. Aktywacja wymaga osobnego przejścia na rejestr projektów i potwierdzenia zgodności starszych writerów.
 
-**Status: PLANNED / DEFERRED / NOT_IMPLEMENTED / LIVE_BLOCKED.** Obecne wydanie zaufanego telefonu i sesji komputera zachowuje własne, odrębne bramki CI, wydania i testu fizycznego Androida.
+**Status przejęcia: kandydat DEMO / BLOCKED aktywacji / LIVE_BLOCKED.** Obecne wydanie zaufanego telefonu i sesji komputera zachowuje własne, odrębne bramki CI, wydania i testu fizycznego Androida.
 
 ## LOCAL-FIRST SYNC — bieżący pakiet 28.10.2026
 
@@ -512,6 +514,8 @@ Dopiero kiedy biznesowa część programu i testy są stabilne.
 - później rozbijanie monolitu,
 - wspólne helpery ROZRYS/RYSUNEK tylko po kontraktach geometrii,
 - nie migrować na framework/TypeScript tylko „dla porządku”, bez mierzalnej korzyści.
+
+**Wymaganie odroczone — odzyskiwanie przyszłego RYSUNKU 2D.** Przebudowany moduł musi przechowywać dane rysunku z jednoznacznym przypisaniem do projektu i właściwego pomieszczenia oraz uwzględniać je w synchronizacji LOCAL-FIRST. Dotyczy to rzutów ścian, położenia i wymiarów mebli, blatów, blend oraz ich powiązań. „Pobierz najnowszą wersję” ma odtwarzać również aktualny rysunek z potwierdzonej rewizji; „Zachowaj kopię pomieszczenia” ma zachować jego rysunek z poprawnym mapowaniem identyfikatorów. Brak cichego gubienia danych lub nadpisywania rysunku z innego pomieszczenia. WYCENA pozostaje niezależna i może być przeliczona po odzyskaniu — nie trzeba jej kopiować razem z pomieszczeniem. To wymaganie przyszłego etapu RYSUNEK, **nie rozszerzenie obecnej implementacji P0-B**. Nie mylić przyszłego RYSUNKU 2D z obecnym technicznym ROZRYSEM formatek.
 
 **Tryb:** analiza Chat High / szeroki audyt Work, implementacja Codex.
 

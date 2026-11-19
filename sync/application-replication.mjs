@@ -5,7 +5,7 @@ import {createDurableSynchronizer} from './local-first-sync.mjs';
 import {validateProjectDependencies,createProjectChannel,unresolvedProjectKeys} from './local-first-project.mjs';
 
 // Only verified owned records enter the image. Technical stores/RAW are retained.
-export function projectApplicationRows(rows,channel,remote,globalContract,projectContract){
+export function projectApplicationRows(rows,channel,remote,globalContract,projectContract,{preserveInvestor=false,noAutoSelect=false,preserveOffers=false}={}){
  const next=copy(rows);
  if(channel.scope==='globals'){
   globalContract.validateBundle(remote.value);
@@ -26,17 +26,17 @@ export function projectApplicationRows(rows,channel,remote,globalContract,projec
   // Another project of this investor can replace the mirror needed to recover the journal.
   if(JSON.parse(rows.fc_projects_v1||'[]').some(row=>row.meta?.pendingDomainOperation&&(row.id===channel.scope||row.investorId===p.investor.id)))fail('LF_PROJECT_OPERATION_PENDING');
   if(JSON.parse(rows.fc_investor_removed_ids_v1||'[]').includes(p.investor.id))fail('LF_LOCAL_DELETION_SYNC_REQUIRED');
-  for(const [key,row]of [['fc_projects_v1',p.project],['fc_investors_v1',p.investor]]){
+  for(const [key,row]of (preserveInvestor?[['fc_projects_v1',p.project]]:[['fc_projects_v1',p.project],['fc_investors_v1',p.investor]])){
    const all=JSON.parse(next[key]||'[]'),matches=all.filter(x=>x.id===row.id);
    if(matches.length>1||key==='fc_projects_v1'&&matches.length&&matches[0].investorId!==p.investor.id)fail('LF_PROJECT_OWNER_CHANGED');
    const index=all.findIndex(x=>x.id===row.id);if(index<0)all.push(row);else all[index]=row;next[key]=JSON.stringify(all);
   }
   const history=JSON.parse(next.fc_quote_snapshots_v1||'[]');
   if(!Array.isArray(history)||history.some(o=>!o.project?.id||!o.investor?.id))fail('LF_HISTORY_OWNER_REQUIRED');
-  next.fc_quote_snapshots_v1=JSON.stringify([...history.filter(o=>o.project.id!==channel.scope),...p.offers]);
+  if(!preserveOffers)next.fc_quote_snapshots_v1=JSON.stringify([...history.filter(o=>o.project.id!==channel.scope),...p.offers]);
   // First verified owner may become the technical context, but receiving
   // remote data must not replace a user-selected view (including the mode hub).
-  if(!next.fc_current_project_id_v1){
+  if(!noAutoSelect&&!next.fc_current_project_id_v1){
    next.fc_current_project_id_v1=p.project.id;
    next.fc_current_investor_v1=p.investor.id;
   }
@@ -45,27 +45,85 @@ export function projectApplicationRows(rows,channel,remote,globalContract,projec
 }
 
 export function createApplicationReplication({store,channels,globalContract,projectContract,eventTarget,online,onState,quota,ownsChannels,
- incoming,refresh,assertIdle,discovery,summarizeLocal}={}){
+ incoming,refresh,assertIdle,discovery,summarizeLocal,projectRows}={}){
  const globals=channels.find(c=>c.scope==='globals');if(!globals||typeof incoming!=='function'||typeof refresh!=='function'||typeof assertIdle!=='function')fail('LF_APPLICATION_DEPENDENCIES_REQUIRED');
- const sync=createDurableSynchronizer({store,channels,eventTarget,online,onState,quota,ownsChannels,
+ let closed=false,listing=null,again=false,discoveryFailure=null,discoveryConfirmed=false;
+ const sync=createDurableSynchronizer({store,channels,eventTarget,online,onState:value=>onState?.(value.ok&&discoveryFailure?copy(discoveryFailure):value),quota,ownsChannels,
   async projectRemote(channel,remote){const image=await store.readApplication();
    if(!image)fail('LF_APPLICATION_NOT_INITIALIZED');
-   return incoming(projectApplicationRows(image.rows,channel,remote,globalContract,projectContract));},
+   return incoming(await (projectRows?projectRows(image.rows,channel,remote):projectApplicationRows(image.rows,channel,remote,globalContract,projectContract)));},
   onApplied:refresh});
- let closed=false,listing=null,again=false;
- const discover=()=>{if(closed||!discovery||online&&!online())return;if(listing){again=true;return;}
+ const discover=()=>{if(closed||!discovery||online&&!online())return;if(listing){again=true;return listing;}
   listing=(async()=>{do{again=false;const candidates=await discovery.list(scope=>!!sync.channel(scope));
    for(const channel of candidates){if(closed)return;if(!sync.channel(channel.scope))sync.register(channel);}
-  }while(again&&!closed);})().catch(e=>{if(!closed)onState?.(safeError(e));}).finally(()=>{listing=null;if(again&&!closed)discover();});};
+  }while(again&&!closed);discoveryConfirmed=true;discoveryFailure=null;})().catch(e=>{again=false;if(!closed){discoveryFailure={ok:false,code:'LF_PROJECT_DISCOVERY_UNCONFIRMED',reason:safeError(e).code};try{onState?.(copy(discoveryFailure));}catch(_){}}}).finally(()=>{listing=null;if(again&&!closed)discover();});return listing;};
  const stopDiscovery=discovery?.watch(discover)||(()=>{});eventTarget.addEventListener('online',discover);discover();
  return Object.freeze({...sync,
   notify(scope){sync.notify(scope);},
+  // Discovery is a required receive boundary. A failed query cannot certify
+  // a complete flush merely because already-known channels were processed.
+  async flush(){
+   if(!closed&&(!online||online())){
+    if(listing)await listing;
+    else if(!discoveryConfirmed||discoveryFailure)await discover();
+   }
+   const result=await sync.flush();
+   if(result.ok&&!closed&&discoveryFailure&&(!online||online()))return copy(discoveryFailure);
+   return result;
+  },
   discover,
   close(){closed=true;stopDiscovery();eventTarget.removeEventListener('online',discover);return Promise.all([sync.close(),listing]);},
   async acquireEditor(scope){await assertIdle();return sync.acquireEditor(scope);},
   async releaseEditor(scope){await assertIdle();return sync.releaseEditor(scope);},
+  releaseRequestedEditor(scope,request){return sync.releaseEditor(scope,{request});},
   ...createApplicationCommitter({store,globalContract,projectContract,summarizeLocal,channel:scope=>sync.channel(scope)})
  });
+}
+
+// Only a durable, generation-specific request can release the server editor.
+export function createApplicationHandover({store,getSync,online,onError}){
+ const releasing=new Map(),starting=new Map();
+ const acknowledged=({replica,operations})=>!!replica?.base&&!replica.dirty&&operations.every(op=>op.phase==='verified');
+ async function release(scope){
+  const sync=getSync();
+  if(!sync||!online())return;
+  const request=await store.pendingHandover(scope);
+  if(!request||!online())return;
+  const local=await store.snapshot(scope),editor=local.replica?.editor;
+  if(!editor||editor.deviceId!==request.deviceId||editor.epoch!==request.epoch)fail('LF_HANDOVER_CONFLICT');
+  if(!acknowledged(local)||!online())return;
+  await sync.releaseRequestedEditor(scope,request);
+ }
+ async function resume(scopes){
+  for(const scope of scopes){
+   let pending=releasing.get(scope);
+   if(!pending){
+    pending=release(scope).catch(onError).finally(()=>releasing.delete(scope));
+    releasing.set(scope,pending);
+   }
+   await pending;
+  }
+ }
+ function start(scope){
+  if(!scope)return Promise.resolve();
+  let pending=starting.get(scope);
+  if(!pending){
+   // Reopening must observe the ACK wait as well as the final release. The
+   // request is already durable; this never creates an implicit handover.
+   pending=(async()=>{
+    const sync=getSync();
+    if(!sync||!online()||!await store.pendingHandover(scope))return;
+    if(!acknowledged(await store.snapshot(scope))&&online()){
+     sync.notify(scope);
+     await sync.flush();
+    }
+    await resume([scope]);
+   })().finally(()=>starting.delete(scope));
+   starting.set(scope,pending);
+  }
+  return pending;
+ }
+ return {start,resume,pending:scope=>starting.get(scope)||releasing.get(scope)};
 }
 
 // Same atomic business/image/outbox boundary for online and already-approved offline editors.
@@ -73,7 +131,8 @@ export function createApplicationCommitter({store,globalContract,projectContract
  function validateLocalProject(rows,projectId){
   const projects=JSON.parse(rows.fc_projects_v1||'[]').filter(p=>p.id===projectId);if(projects.length!==1)fail('LF_PROJECT_CHANNEL_REQUIRED');
   const investors=JSON.parse(rows.fc_investors_v1||'[]').filter(i=>i.id===projects[0].investorId);if(investors.length!==1)fail('LF_APPLICATION_OWNER_CHANGED');
-  const payload={project:projects[0],investor:investors[0],offers:JSON.parse(rows.fc_quote_snapshots_v1||'[]').filter(o=>o.project?.id===projectId)};projectContract.validate(payload,{local:true});
+  const investor=projects[0].meta?.roomProject?.version===1?{...investors[0],rooms:[projects[0].projectData.meta.roomDefs[projectId]]}:investors[0];
+  const payload={project:projects[0],investor,offers:JSON.parse(rows.fc_quote_snapshots_v1||'[]').filter(o=>o.project?.id===projectId)};projectContract.validate(payload,{local:true});
   return payload;
  }
  return Object.freeze({
@@ -139,7 +198,7 @@ export function createApplicationCommitter({store,globalContract,projectContract
     protectedRows:application.rows});
    if(!result.localConfirmed)fail('LF_LOCAL_ACK_UNCONFIRMED');return {...result,scope};
   },
-  async checkpoint(application,kind){
+  async checkpoint(application,kind,exitScope){
    if(kind==='offer-draft'){
     const before=await store.readApplication(),rows=application.rows;
     for(const key of new Set([...Object.keys(before.rows),...Object.keys(rows)])){
@@ -173,7 +232,7 @@ export function createApplicationCommitter({store,globalContract,projectContract
     const technical=new Set(['fc_projects_v1','fc_edit_session_v1','fc_ui_v1','fc_current_project_id_v1','fc_current_investor_v1']);
     for(const k of Object.keys(before.rows))if(!technical.has(k)&&before.rows[k]!==application.rows[k])fail('LF_APPLICATION_SCOPE_REFUSED');
    }
-   return store.checkpointApplication(application);
+   return store.checkpointApplication(application,{exitScope});
   }
  });
 }

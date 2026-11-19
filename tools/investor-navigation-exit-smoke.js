@@ -15,7 +15,7 @@ function setup(options){
  s.document.getElementById('investorView').appendChild(s.document.getElementById('investorRoot'));
  s.document.getElementById('investorsListView').appendChild(s.document.getElementById('investorsListRoot'));
  for(const tab of ['wywiad','material','rysunek','czynnosci','inwestor','wycena','rozrys','magazyn']){const b=s.document.createElement('button');b.className='tab-btn';b.setAttribute('data-tab',tab);s.document.getElementById('topTabs').appendChild(b);}
- r.load=file=>vm.runInContext(fs.readFileSync(file,'utf8'),s,{filename:file});
+ r.load=file=>vm.runInContext(fs.readFileSync(require('node:path').resolve(__dirname,'..',file),'utf8'),s,{filename:file});
  for(const file of ['js/app/investor/investor-rooms.js','js/app/ui/sections.js','js/app/ui/views.js','js/app/ui/tab-navigation.js'])r.load(file);
  r.node=id=>s.document.getElementById(id);return r;
 }

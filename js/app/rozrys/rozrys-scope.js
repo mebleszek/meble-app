@@ -148,9 +148,10 @@
       isFrontMaterialKey:null,
       projectId:undefined,
     }, deps || {});
-    const proj = typeof cfg.safeGetProject === 'function' ? cfg.safeGetProject() : null;
+    let proj = typeof cfg.safeGetProject === 'function' ? cfg.safeGetProject() : null;
     const projectCalculation=cfg.pcvMode === 'project' ? FC.projectPcvResolver.requireCollection(selectedRooms,{projectId:cfg.projectId}) : null;
-    if(projectCalculation && proj!==window.projectData)throw FC.projectPcvResolver.error('PROJECT_CONTEXT_MISMATCH');
+    if(projectCalculation && FC.roomQuoteSources?.enabled())proj=projectCalculation.project;
+    if(projectCalculation && !FC.roomQuoteSources?.enabled() && proj!==window.projectData)throw FC.projectPcvResolver.error('PROJECT_CONTEXT_MISMATCH');
     const rooms = projectCalculation ? projectCalculation.rooms : normalizeRoomSelection(Array.isArray(selectedRooms) ? selectedRooms : (typeof cfg.getRooms === 'function' ? cfg.getRooms() : []), cfg);
     if(!proj) return { byMaterial: {}, materials: [], groups: {}, selectedRooms: rooms };
 
@@ -190,7 +191,7 @@
           const catalogMaterial=FC.catalogSelectors?.findSheetMaterial(resolved.materialKey);
           const materialKey = catalogMaterial?catalogMaterial.name:resolved.materialKey;
           const name = resolved.name;
-          const key = `${resolved.sourceSig}||${resolved.direction}||${w}||${h}`+(projectCalculation?'||pcv:'+p.effectivePcv.key:'');
+          const key = `${resolved.sourceSig}||${resolved.direction}||${w}||${h}`+(projectCalculation?'||pcv:'+p.effectivePcv.projectId+':'+p.effectivePcv.key:'');
           const group = ensureGroup(materialKey);
           group.sourceMaterials.add(sourceMaterial);
           group.rooms.add(room);

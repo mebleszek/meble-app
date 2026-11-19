@@ -46,7 +46,7 @@
       const pid = String(projectId || '');
       if(!pid) return null;
       const list = readAll();
-      const projectRows = list.filter((row)=> String(row && row.project && row.project.id || '') === pid);
+      const projectRows = list.filter((row)=> String(row?.project?.id||'')===pid || options?.roomProjectScope===true && window.FC?.roomProjectModel?.enabled() && row.investor?.id===list.find(item=>item.project?.id===pid)?.investor?.id && getSnapshotRoomIds(row).some(id=>(options?.roomIds||[pid]).includes(id)));
       const scopedRows = filterRowsByRoomScope(projectRows, options && options.roomIds);
       const candidate = chooser(scopedRows, projectRows, options || {});
       const normalizedProjectStatus = normalizeStatus(projectStatus || (candidate ? (isPreliminarySnapshot(candidate) ? 'pomiar' : 'zaakceptowany') : ''));
@@ -59,7 +59,7 @@
         .filter(Boolean));
       const stamp = Date.now();
       list.forEach((row)=> {
-        if(String(row && row.project && row.project.id || '') !== pid) return;
+        if(!projectRows.includes(row)) return;
         const rowId = String(row && row.id || '');
         const isTarget = !!(candidate && rowId === String(candidate.id || ''));
         const isImpacted = !selectionScopeRoomIds.length || impactedRows.some((item)=> String(item && item.id || '') === rowId);
@@ -166,7 +166,7 @@
       return out;
     }
 
-    function convertPreliminaryToFinal(projectId, snapshotId){
+    function convertPreliminaryToFinal(projectId, snapshotId, options){
       const pid = String(projectId || '');
       const sid = String(snapshotId || '');
       if(!pid || !sid) return null;
@@ -175,19 +175,17 @@
       if(!target || !isPreliminarySnapshot(target)) return null;
       const acceptedAt = Number(target && target.meta && target.meta.acceptedAt) > 0 ? Number(target.meta.acceptedAt) : Date.now();
       const currentName = String(target && target.commercial && target.commercial.versionName || target && target.meta && target.meta.versionName || '').trim();
-      const targetPreliminaryName = getCanonicalDefaultVersionName(target);
-      const targetFinalName = buildScopedVersionName(false, target);
+      const targetPreliminaryName = getCanonicalDefaultVersionName(target, {preserveExplicitLabels:true});
+      const targetFinalName = buildScopedVersionName(false, target, {preserveExplicitLabels:true});
       const nextVersionName = (!currentName || currentName === targetPreliminaryName)
         ? targetFinalName
         : currentName;
       const selectionScopeRoomIds = getSnapshotRoomIds(target);
-      const impactedRows = listSelectionImpactedRows(
-        list.filter((row)=> String(row && row.project && row.project.id || '') === pid),
-        selectionScopeRoomIds
-      );
+      const projectRows = list.filter(row=>String(row?.project?.id||'')===pid || options?.roomProjectScope===true && window.FC?.roomProjectModel?.enabled() && row.investor?.id===target.investor?.id && getSnapshotRoomIds(row).some(id=>selectionScopeRoomIds.includes(id)));
+      const impactedRows = listSelectionImpactedRows(projectRows, selectionScopeRoomIds);
       const impactedIds = new Set(impactedRows.map((row)=> String(row && row.id || '')).filter(Boolean));
       list.forEach((row)=> {
-        if(String(row && row.project && row.project.id || '') !== pid) return;
+        if(!projectRows.includes(row)) return;
         const rowId = String(row && row.id || '');
         if(!impactedIds.has(rowId)) return;
         const isTarget = rowId === sid;

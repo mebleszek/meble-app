@@ -139,6 +139,7 @@
   }
   function updateInvestorRooms(){ return false; } // Mirrors are persisted by the confirmed room operation only.
   function createRoomRecord(inv, payload){
+    if(FC.roomProjectModel?.enabled())return FC.roomProjectStore.create(inv||getCurrentInvestor(),payload);
     const investor = inv || getCurrentInvestor();
     const patch = sanitizeRoomPatch('',payload,'kuchnia');
     const key = 'create:'+JSON.stringify(patch);
@@ -155,6 +156,7 @@
     return persistRooms(ctx,ctx.project,rooms,{room,rooms},key);
   }
   function updateRoomRecord(inv, roomId, payload){
+    if(FC.roomProjectModel?.enabled())return FC.roomProjectStore.update(inv||getCurrentInvestor(),roomId,payload);
     const investor = inv || getCurrentInvestor();
     const id = String(roomId || '');
     const key = 'update:'+id+':'+JSON.stringify(payload);
@@ -170,6 +172,7 @@
     return persistRooms(ctx,ctx.project,rooms,{room,rooms},key);
   }
   function removeRoomByIdDetailed(roomId){
+    if(FC.roomProjectModel?.enabled()){const inv=getCurrentInvestor(),result=FC.roomProjectStore.apply(inv,FC.roomProjectStore.definitions(inv.id).filter(room=>room.id!==roomId));return {...result,roomId};}
     const investor = getCurrentInvestor(),id = String(roomId || '');
     const key = 'remove:'+id;
     const retry = resumed(investor,key); if(retry) return retry;
@@ -187,12 +190,14 @@
     return result.ok ? result.roomId : null;
   }
   function getManageableRooms(inv){
+    if(FC.roomProjectModel?.enabled())return FC.roomProjectStore.definitions((inv||getCurrentInvestor()).id);
     const project = getProject();
     const ids = new Set(functionalRoomIds(project || {}));
     return mergeRoomCollections({activeRooms:definitions.getProjectRoomDefs(foundation.clone(project || {})).filter(room=>ids.has(room.id)),
       investorRooms:[],includeLegacyKitchen:hasLegacyKitchen(project),legacyRoom:createLegacyKitchenDef(),normalizeRoomDef});
   }
   function applyManageRoomsDraftDetailed(inv, drafts){
+    if(FC.roomProjectModel?.enabled())return FC.roomProjectStore.apply(inv,drafts);
     const key = 'manage:'+JSON.stringify(drafts);
     const retry = resumed(inv,key); if(retry) return retry;
     const ctx = context(inv); if(!ctx) return rejected();

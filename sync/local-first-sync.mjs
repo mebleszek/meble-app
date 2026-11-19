@@ -67,36 +67,64 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
     if(!equal(remote.value,JSON.parse(op.json)))fail('LF_REMOTE_CONTENT_MISMATCH');
     await store.transition(op.key,op.phase,'verified',{receipt:remote.head});
   }
+  async function publicationBase(op){
+    let base=op.base;
+    if(op.previousOperation){const previous=(await store.snapshot(op.scope)).operations.find(p=>p.key===op.previousOperation);
+      if(previous?.phase!=='verified')fail('LF_PREDECESSOR_PENDING');
+      const receipt=previous.receipt;
+      if(!receipt||!Number.isSafeInteger(receipt.generation)||receipt.generation<1
+        ||base&&(!Number.isSafeInteger(base.generation)||base.generation<1
+          ||base.generation===receipt.generation&&!equal(base,receipt)))fail('LF_PREDECESSOR_BASE_CONFLICT');
+      if(!base||receipt.generation>base.generation)base=receipt;
+    }
+    return base;
+  }
   async function cycle(scopes) {
     if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
     return store.exclusive(async()=>{
-      for(const scope of scopes){
+      // Status participants publish before their dependent quote acceptance.
+      for(const scope of [...scopes].sort((a,b)=>Number(byScope.get(a).kind==='quote')-Number(byScope.get(b).kind==='quote'))){
         const channel=byScope.get(scope);
         if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
+        if(channel.kind==='project'&&await store.pendingProjectRecovery?.(scope)){blockedReceives.add(scope);continue;}
+        if(await store.retired?.(scope))continue;
         let snap=await store.snapshot(channel.scope);
         const ordered=snap.operations.sort((a,b)=>a.localVersion-b.localVersion);
         for(let op of ordered){
           if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
           if(op.phase==='verified')continue;
-          if(['blocked','conflict'].includes(op.phase))return {ok:false,code:op.code||op.blockers[0]||'LF_CONFLICT'};
+          if(['blocked','conflict'].includes(op.phase))return {ok:false,code:op.code||op.blockers[0]||'LF_CONFLICT',blockedScopes:[scope]};
           if(['inflight','uncertain'].includes(op.phase)){
             if(op.phase==='inflight')op=await store.transition(op.key,'inflight','uncertain');
-            try{await resolve(channel,op);}catch(e){return safeError(e);}continue;
+            try{await resolve(channel,op);}catch(e){
+              // Only quote channels can resume the exact staged immutable revision.
+              // Never replay on arbitrary read/integrity/Auth errors or invent a new ID.
+              if(channel.kind!=='quote'||!channel.resume||!['LF_QUOTE_NOT_FOUND','LF_ACK_UNRESOLVED'].includes(e.code))return safeError(e);
+              try{
+                const prepared=await channel.resume(JSON.parse(op.json),await publicationBase(op),op.expected);
+                if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
+                await prepared.publish();
+                if(closed)return {ok:false,code:'LF_CLOSED_RESULT_UNCONFIRMED'};
+                await resolve(channel,op);
+              }catch(error){
+                if(['LF_QUOTE_CAS_CONFLICT','LF_QUOTE_STAGED_INTEGRITY','LF_QUOTE_HISTORY_IMMUTABLE','LF_P0B_INVESTOR_DELETED'].includes(error.code))
+                  await store.transition(op.key,'uncertain','conflict',{code:error.code});
+                return {...safeError(error),blockedScopes:[scope]};
+              }
+            }continue;
           }
-          let base=op.base;
-          if(op.previousOperation){const previous=(await store.snapshot(op.scope)).operations.find(p=>p.key===op.previousOperation);
-            if(previous?.phase!=='verified')return {ok:false,code:'LF_PREDECESSOR_PENDING'};
-            const receipt=previous.receipt;
-            if(!receipt||!Number.isSafeInteger(receipt.generation)||receipt.generation<1
-              ||base&&(!Number.isSafeInteger(base.generation)||base.generation<1
-                ||base.generation===receipt.generation&&!equal(base,receipt)))return {ok:false,code:'LF_PREDECESSOR_BASE_CONFLICT'};
-            // A queued successor may need its predecessor's newer receipt.
-            // Conversely, a verified incoming revision can already be newer
-            // than our last own publication: never roll that durable base back.
-            if(!base||receipt.generation>base.generation)base=receipt;}
+          if(op.dependencies){
+            if(channel.kind!=='quote'||!Array.isArray(op.dependencies)||!op.dependencies.length)fail('LF_QUOTE_STATUS_DEPENDENCY_INVALID');
+            for(const dependency of op.dependencies){
+              const participant=(await store.snapshot(dependency.scope)).operations.find(row=>row.key===dependency.key);
+              if(!participant||participant.hash!==dependency.hash)fail('LF_QUOTE_STATUS_DEPENDENCY_INVALID');
+              if(participant.phase!=='verified')return {ok:false,code:participant.code||'LF_QUOTE_STATUS_PENDING',blockedScopes:[dependency.scope]};
+            }
+          }
+          const base=await publicationBase(op);
           let prepared;
           try{prepared=await channel.prepare(JSON.parse(op.json),base,op.editor);}
-          catch(e){if(/CONFLICT|STALE|DEPENDENCY|EDITOR/.test(e.code||''))await store.transition(op.key,'queued','conflict',{code:e.code});return safeError(e);}
+          catch(e){if(/CONFLICT|STALE|DEPENDENCY|EDITOR/.test(e.code||''))await store.transition(op.key,'queued','conflict',{code:e.code});return {...safeError(e),blockedScopes:[scope]};}
           if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
           op=await store.transition(op.key,'queued','inflight',{expected:prepared.expected});
           try{await prepared.publish();if(closed)return {ok:false,code:'LF_CLOSED_RESULT_UNCONFIRMED'};await resolve(channel,op);}
@@ -118,7 +146,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
             if(!closed)blockedReceives.delete(scope);
           }catch(e){
             if(e.code==='LF_PROJECT_OPERATION_PENDING'){blockedReceives.add(scope);continue;}
-            if(!['GLOBAL_NOT_FOUND','CLOUD_PROJECT_NOT_FOUND'].includes(e.code))return safeError(e);
+            if(!['GLOBAL_NOT_FOUND','CLOUD_PROJECT_NOT_FOUND',...(channel.kind==='contact'?['LF_P0B_CONTACT_NOT_FOUND']:[]),...(channel.kind==='quote'?['LF_QUOTE_NOT_FOUND']:[])].includes(e.code))return safeError(e);
           }
         }
       }
@@ -168,7 +196,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
   catch(e){closed=true;for(const stop of unsubscribe)stop();throw e;}
   eventTarget.addEventListener('online',schedule);schedule();
   return Object.freeze({notify:schedule,flush,channel:scope=>byScope.get(scope),
-    register(channel){assertOpen();if(!channel||byScope.has(channel.scope)||channel.kind!=='project')fail('LF_CHANNEL_CONFLICT');channel.guard();
+    register(channel){assertOpen();if(!channel||byScope.has(channel.scope)||!['project','contact','quote'].includes(channel.kind))fail('LF_CHANNEL_CONFLICT');channel.guard();
       const stop=typeof channel.watch==='function'?channel.watch(()=>schedule(channel.scope)):()=>{};
       byScope.set(channel.scope,channel);unsubscribe.push(stop);schedule(channel.scope);},
     async submitGlobals({source,operationId,expectedVersion}){
@@ -198,10 +226,13 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
       // Uncertain local/remote acquire is a refusal; no timeout takeover.
       return store.setEditor(projectId,snap.replica.version,snap.replica.editor,e);
     });},
-    async releaseEditor(projectId){return store.exclusive(async()=>{
+    async releaseEditor(projectId,{request}={}){return store.exclusive(async()=>{
       assertOpen();
+      if(await store.pendingProjectRecovery?.(projectId))fail('LF_PROJECT_RECOVERY_PENDING');
       const channel=byScope.get(projectId),snap=await store.snapshot(projectId),r=snap.replica;
       if(!r||r.dirty||!(r.editor?.active||r.editor?.handoverPending)||snap.operations.some(op=>op.phase!=='verified'))fail('LF_HANDOVER_PENDING_LOCAL_WORK');
+      if(request&&(!equal(request,await store.pendingHandover(projectId))||r.editor.deviceId!==request.deviceId||r.editor.epoch!==request.epoch))fail('LF_HANDOVER_CONFLICT');
+      if(!r.base)fail('LF_HANDOVER_PENDING_LOCAL_WORK');
       const remote=await channel.read();if(!equal(remote.head,r.base)||!equal(remote.value,JSON.parse(r.json)))fail('LF_HANDOVER_CONTENT_MISMATCH');
       // Block local edits durably BEFORE the remote release can commit.
       const blocked=r.editor.handoverPending?r:await store.setEditor(projectId,r.version,r.editor,{...r.editor,active:false,handoverPending:true});
@@ -214,15 +245,22 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
         const confirmed=await channel.release(active,r.base);
         if(!equal(confirmed,released))fail('LF_HANDOVER_CONFLICT');
       }
-      return store.setEditor(projectId,blocked.version,blocked.editor,released);
+      return store.setEditor(projectId,blocked.version,blocked.editor,released,{completeHandover:true});
     });},
     async recoverEditor(projectId){return store.exclusive(async()=>{
       assertOpen();
       const channel=byScope.get(projectId),snap=await store.snapshot(projectId),r=snap.replica;
-      if(!r||r.dirty||snap.operations.some(op=>op.phase!=='verified'))fail('LF_EDITOR_RECOVERY_BLOCKED');
+      if(!r||!channel)fail('LF_EDITOR_RECOVERY_BLOCKED');
       const e=await channel.editor();
-      if(!e||e.deviceId!==store.deviceId)fail('LF_EDITOR_RECOVERY_BLOCKED');
-      if(r.editor?.handoverPending && e.active)fail('LF_HANDOVER_UNCERTAIN');
+      if(!e?.active||e.deviceId!==store.deviceId)fail('LF_EDITOR_RECOVERY_BLOCKED');
+      if(r.editor?.handoverPending)fail('LF_HANDOVER_UNCERTAIN');
+      if(r.editor?.active){
+        if(!equal(r.editor,e))fail('LF_EDITOR_RECOVERY_BLOCKED');
+        // The same editor still owns the dirty replica. The outbox verifies each
+        // expected head independently without resetting pending work.
+        return r;
+      }
+      if(r.dirty||snap.operations.some(op=>op.phase!=='verified'))fail('LF_EDITOR_RECOVERY_BLOCKED');
       if(r.base){const remote=await channel.read();if(!equal(remote.head,r.base)||!equal(remote.value,JSON.parse(r.json)))fail('LF_EDITOR_RECOVERY_BLOCKED');}
       else if(e.headRevision!=='')fail('LF_EDITOR_RECOVERY_BLOCKED');
       return store.setEditor(projectId,r.version,r.editor,e);

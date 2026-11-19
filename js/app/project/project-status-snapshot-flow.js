@@ -147,7 +147,8 @@
   function getAcceptanceImpact(snapshot){
     const projectId = snapshot && snapshot.project && snapshot.project.id;
     const roomIds = getTargetRoomIdsFromSnapshot(snapshot);
-    return {roomIds,releasedRoomIds:collectReleasedRoomIds(listSelectedRowsForProject(projectId),snapshot,roomIds)};
+    const selected=FC.roomProjectModel?.enabled()?FC.quoteSnapshotStore.listForInvestor(snapshot.investor.id).filter(row=>row.meta?.selectedByClient):listSelectedRowsForProject(projectId);
+    return {roomIds,releasedRoomIds:collectReleasedRoomIds(selected,snapshot,roomIds)};
   }
   function commitAcceptedSnapshot(snapshot, status, options){
     return applySnapshotWorkflow(snapshot,status,options,false);
@@ -177,16 +178,17 @@
       || (opts.investorId && String(opts.investorId) !== investorId)) return {ok:false,reason:'offer-context-mismatch'};
     const targetRoomIds = getTargetRoomIdsFromSnapshot(snap);
     if(!targetRoomIds.length || (opts.roomIds && !FC.quoteSnapshotScope.sameRoomScope(normalizeRoomIds(opts.roomIds),targetRoomIds))) return {ok:false,reason:'offer-scope-mismatch'};
-    const before = listSelectedRowsForProject(projectId);
+    const before = FC.roomProjectModel?.enabled()?FC.quoteSnapshotStore.listForInvestor(investorId).filter(row=>row.meta?.selectedByClient):listSelectedRowsForProject(projectId);
     const history = FC.projectDomainOperations.readHistory();
     const planned = FC.quoteSnapshotStore.previewSelection(promote ? 'convertPreliminaryToFinal' : 'markSelectedForProject',
-      promote ? [projectId,snapshotId] : [projectId,snapshotId,{status:nextStatus,roomIds:targetRoomIds}],history);
+      promote ? [projectId,snapshotId,{roomProjectScope:!!FC.roomProjectModel?.enabled()}] : [projectId,snapshotId,{status:nextStatus,roomIds:targetRoomIds,...(FC.roomProjectModel?.enabled()?{roomProjectScope:true}:{})}],history);
     if(!planned.result) return {ok:false,reason:'selection-not-confirmed'};
     const selected = planned.result;
     const releasedRoomIds = collectReleasedRoomIds(before,selected,targetRoomIds);
     const forceStatusRoomIds = collectPreliminaryDowngradeRoomIds(before,selected,targetRoomIds,nextStatus);
     const manualBaseStatusMap = collectManualBaseStatusMap(before,investorId,targetRoomIds);
     const restoreManualStatusMap = collectManualBaseStatusMap(before,investorId,releasedRoomIds);
+    if(FC.roomProjectModel?.enabled())return FC.roomQuoteAcceptance.commitPlanned({investorId,targetRoomIds,releasedRoomIds,history:planned.rows,selected,nextStatus,manualBaseStatusMap,restoreManualStatusMap,forceStatusRoomIds,promote});
     const statusResult = setStatusFromSnapshot(selected,nextStatus,Object.assign({},opts,{
       preview:true,historyRows:planned.rows,investorId,roomIds:targetRoomIds,syncSelection:false,
       preserveCurrentWhenNoQuoteRows:true,preserveForwardProgress:true,forceStatusRoomIds,manualBaseStatusMap,

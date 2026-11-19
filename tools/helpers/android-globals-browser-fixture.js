@@ -1,6 +1,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),{codeRebuildFixture}=require('./code-rebuild-fixture');
 const root=path.resolve(__dirname,'../..');
+const fixtureModules=require('./fixture-module-assets').moduleAssets(['sync/application-runtime.mjs']);
 async function androidGlobalsFixture({deployment,unavailable=()=>false}={}){
  const r=await codeRebuildFixture(),data=r.snapshot,name='meble-lf-test-rebuild-android',uid='synthetic-owner',attempt='12345678-1234-4123-8123-123456789abc';
  data.identity.receipt.name=name;data.local.rows.find(r=>r.key==='meble_application_authority_v1').raw=JSON.stringify(data.identity.receipt);
@@ -15,7 +16,7 @@ async function androidGlobalsFixture({deployment,unavailable=()=>false}={}){
    try{if(!target.startsWith(dir+path.sep))throw Error();const bytes=fs.readFileSync(target);res.writeHead(200,{'content-type':/\.(?:m?js)$/.test(target)?'text/javascript':target.endsWith('.html')?'text/html':target.endsWith('.css')?'text/css':'application/octet-stream','cache-control':'no-store'});res.end(bytes);}catch(_){res.writeHead(404);res.end();}return;
   }
   if(file==='/'){res.setHeader('content-type','text/html');res.end(html);return;}
-  if(!/^\/sync\/[a-z-]+(?:\.generated)?\.mjs$/.test(file)&&file!=='/tools/helpers/synthetic-global-rebuild.mjs'){res.writeHead(404);res.end();return;}
+  if(!fixtureModules.has(file)&&!/^\/sync\/[a-z-]+(?:\.generated)?\.mjs$/.test(file)&&file!=='/tools/helpers/synthetic-global-rebuild.mjs'){res.writeHead(404);res.end();return;}
   try{res.setHeader('content-type','text/javascript');res.end(fs.readFileSync(path.join(root,file)));}catch(_){res.writeHead(404);res.end();}
  });await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const base='http://127.0.0.1:'+server.address().port;

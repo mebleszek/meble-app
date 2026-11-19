@@ -130,7 +130,7 @@
     if(!key) return null;
     try{
       const api = FC.workQuantityFacts || {};
-      if(api && typeof api.getCabinetFact === 'function') return api.getCabinetFact(entry && entry.roomId, entry && entry.cabinet, key) || null;
+      if(api && typeof api.getCabinetFact === 'function') return api.getCabinetFact(FC.roomQuoteSources?.input(entry?.roomId)||entry?.roomId, entry && entry.cabinet, key) || null;
     }catch(_){ }
     return null;
   }
@@ -385,7 +385,7 @@
     try{
       const hw = FC.frontHardware || {};
       if(hw && typeof hw.getCabinetFrontCutListForMaterials === 'function'){
-        return (hw.getCabinetFrontCutListForMaterials(roomId, cab) || []).filter((part)=> text(part && part.name).toLowerCase() === 'front');
+        return (hw.getCabinetFrontCutListForMaterials(FC.roomQuoteSources?.input(roomId)||roomId, cab) || []).filter((part)=> text(part && part.name).toLowerCase() === 'front');
       }
     }catch(_){ }
     return [];

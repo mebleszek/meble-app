@@ -31,7 +31,7 @@ export async function installOfflineEmulatorApplicationAuthority(options){
  return installAuthority(options);
 }
 export function installAuthorizedApplicationAuthority(options){assertApplicationRelease(options.release,{ownerUid:options.ownerUid,name:options.store.name,window:options.window});return installAuthority(options);}
-async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCommitted=()=>{},authorize,beforeTransaction=async()=>{},sourceRead,initialRows,release:deployment,localOnly=false}){
+async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCommitted=()=>{},authorize,beforeTransaction=async()=>{},sourceRead,initialRows,release:deployment,localOnly=false,recoverBootDraft}){
  if(deployment)assertApplicationRelease(deployment,{ownerUid,name:store.name,window:w});
  if(ownerUid!==store.ownerUid||!deployment&&(!/^meble-lf-test-/.test(store.name)||!['127.0.0.1','localhost'].includes(w.location.hostname)))fail('LF_APPLICATION_MIGRATION_NOT_APPROVED');
  if(installations.has(w))fail('LF_APPLICATION_ALREADY_INSTALLED');
@@ -45,7 +45,7 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
  // the same exact-byte recovery proof in local and synchronized mode. Existing documents
  // and unproven drafts retain the original active-RAM refusal.
  if(fc.session.active&&!bootDraft||fc.investorEditorState?.hasUiLock()||!loadingLocal&&!bootDraft&&fc.investorProjectRuntime.hasProjectDivergence(w.projectData))fail('LF_ACTIVE_RAM_PROTECTED');
- const original={get:sourceRead||proto.getItem,set:proto.setItem,remove:proto.removeItem};
+ const original={get:sourceRead||proto.getItem,viewGet:proto.getItem,set:proto.setItem,remove:proto.removeItem};
  const source=Object.fromEntries([...keys].map(k=>[k,original.get.call(ls,k)]));
  if(!image)image=await store.initializeApplication(initialRows||source);
  let rows=structuredClone(image.rows),inTransaction=false,mutating=false,closed=false,external=false,incomingWitness=null,lastCode=null;
@@ -55,7 +55,7 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
  function assertSource(){for(const k of keys)if(original.get.call(ls,k)!==source[k]){external=true;fail('LF_OLD_WRITER_DETECTED');}}
  function mutate(key,value){access();assertSource();if(!inTransaction||!mutating)fail('LF_ASYNC_TRANSACTION_REQUIRED');const old=rows[key]??null;rows[key]=value;fc.session?.trackKeyMutation(key,value,old);}
  installations.add(w);
- proto.getItem=function(key){if(this===ls&&keys.has(String(key))){w.__FC_MAIN_ACCESS__.assert();return rows[String(key)]??null;}return original.get.call(this,key);};
+ proto.getItem=function(key){if(this===ls&&keys.has(String(key))){w.__FC_MAIN_ACCESS__.assert();return rows[String(key)]??null;}return original.viewGet.call(this,key);};
  proto.setItem=function(key,value){if(this===ls&&keys.has(String(key)))return mutate(String(key),String(value));return original.set.call(this,key,value);};
  const originalClear=proto.clear;proto.clear=function(){if(this===ls)fail('LF_APPLICATION_CLEAR_REFUSED');return originalClear.call(this);};
  proto.removeItem=function(key){if(this===ls&&keys.has(String(key)))return mutate(String(key),null);return original.remove.call(this,key);};
@@ -89,7 +89,7 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
   return {keys,raw:JSON.stringify(value)};
  }
  function snapshotSession(){return Object.fromEntries(Object.entries(fc.session).filter(([,v])=>typeof v!=='function').map(([k,v])=>[k,structuredClone(v)]));}
- async function transaction(kind,operation){
+ async function transaction(kind,operation,{exitScope,writeScopes}={}){
   access();assertSource();lastCode=null;if(inTransaction)fail('LF_APPLICATION_BUSY');
   await beforeTransaction();access();assertSource();if(incomingWitness!==null)fail('LF_REMOTE_APPLY_PENDING');
   const editorState=fc.investorEditorState?.state?structuredClone(fc.investorEditorState.state):null;
@@ -117,8 +117,10 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
     // No data/catalog change can masquerade as a session/UI checkpoint.
     if(['draft','cabinet-draft'].includes(kind)&&(!fc.session.active||!fc.session.durable||rows.fc_edit_session_v1===null))fail('LF_DRAFT_SESSION_REQUIRED');
     for(const k of keys)if(kind==='checkpoint'&&!['fc_edit_session_v1','fc_ui_v1','fc_current_project_id_v1','fc_current_investor_v1'].includes(k)&&rows[k]!==old[k])throw Object.assign(Error('LF_CHECKPOINT_DATA_CHANGED: '+k),{code:'LF_CHECKPOINT_DATA_CHANGED'});
-    await checkpoint(application,kind);
-   }else committed=await commit(kind,application);
+    const exit=exitScope&&exitScope===old.fc_current_project_id_v1&&!fc.session.active&&w.uiState?.entry==='investorsList'&&rows.fc_edit_session_v1===null;
+    if(exit&&JSON.parse(rows.fc_projects_v1||'[]').some(p=>p.id===exitScope&&p.meta?.pendingDomainOperation))fail('LF_PROJECT_OPERATION_PENDING');
+    await checkpoint(application,kind,exit?exitScope:undefined);
+   }else committed=await commit(kind,application,{writeScopes});
    if(pendingNotices.some(n=>n.projectSaveReceipt)&&committed?.localConfirmed!==true)fail('LF_LOCAL_ACK_UNCONFIRMED');
    image=await store.readApplication();rows=structuredClone(image.rows);await hydrateCatalogs();inTransaction=false;
    for(const close of pendingClosures.splice(0))close();
@@ -131,14 +133,20 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
    }
    if(committed?.scope||session.active&&!fc.session.active)queueMicrotask(()=>onCommitted(committed?.scope));
    return result;
-  }catch(e){lastCode=/^(LF_|GLOBAL_|CLOUD_)[A-Z_]+$/.test(e?.code||e?.message||'')?(e.code||e.message):'LF_APPLICATION_UNCONFIRMED';rows=old;Object.assign(fc.session,session);w.projectData=ram;w.uiState=ui;if(editorState)Object.assign(fc.investorEditorState.state,editorState);if(investorUi)Object.assign(fc.investorUI.state,investorUi);if(priceState)Object.assign(fc.priceModalContext.runtimeState,priceState);pendingClosures.length=0;for(const [el,style]of views)el.style.cssText=style;pendingNotices.length=0;inTransaction=false;mutating=false;await hydrateCatalogs();throw e;}
+  }catch(e){lastCode=/^(LF_|GLOBAL_|CLOUD_)[A-Z0-9_]+$/.test(e?.code||e?.message||'')?(e.code||e.message):'LF_APPLICATION_UNCONFIRMED';rows=old;Object.assign(fc.session,session);w.projectData=ram;w.uiState=ui;if(editorState)Object.assign(fc.investorEditorState.state,editorState);if(investorUi)Object.assign(fc.investorUI.state,investorUi);if(priceState)Object.assign(fc.priceModalContext.runtimeState,priceState);pendingClosures.length=0;for(const [el,style]of views)el.style.cssText=style;pendingNotices.length=0;inTransaction=false;mutating=false;await hydrateCatalogs();throw e;}
  }
  // Reopening an approved image never copies it back over the preserved source.
  // A durable draft requires the existing session recovery path, not a clean boot.
  w.projectData=fc.project.load();w.uiState=fc.uiState.get();
  if(rows.fc_edit_session_v1!==null){
   if(!bootDraft&&fc.session.resumeFromStorage?.()!==true){closed=true;fail('LF_APPLICATION_DRAFT_RECOVERY_REQUIRED');}
-  await transaction('draft',()=>{fc.views.applyFromState(w.uiState);fc.sections.update();return true;});
+  try{await transaction('draft',()=>{fc.views.applyFromState(w.uiState);fc.sections.update();return true;});}
+  catch(error){
+   if(!bootDraft||!recoverBootDraft||!await recoverBootDraft(error))throw error;
+   // Preserve the proven durable draft as a read-only view. This checkpoint
+   // cannot change business rows and grants no editor/publication permission.
+   await transaction('checkpoint',()=>{fc.views.applyFromState(w.uiState);fc.sections.update();return true;});
+  }
  }else{
   // A fresh document has no implicit editing permission. Display its verified
   // investor without starting a new room session merely from restored UI state.
@@ -175,7 +183,7 @@ export function createApplicationActionBinding({window:w,authority,onClose=()=>{
    await authority.transaction('checkpoint',()=>fc.session.active?fc.session.commit():true);
    if(divergent())fail('LF_ACTIVE_RAM_PROTECTED');
    const scope=w.localStorage.getItem('fc_current_project_id_v1');
-   const result=await authority.transaction('checkpoint',cancelLocal);
+   const result=await authority.transaction('checkpoint',cancelLocal,{exitScope:scope});
    if(result!==false&&w.uiState?.entry==='investorsList')await onExit(scope);
    return result;
   },

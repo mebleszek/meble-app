@@ -8,6 +8,7 @@
   }
 
   function getRoomStatus(inv, roomId){
+    if(FC.roomProjectModel?.enabled()){const room=FC.roomProjectStore.definitions(inv.id).find(row=>row.id===roomId);return String(room?.projectStatus||'nowy');}
     const rooms = inv && Array.isArray(inv.rooms) ? inv.rooms : [];
     const found = rooms.find((room)=> room && String(room.id || '') === String(roomId || ''));
     return String((found && (found.projectStatus || found.status)) || (FC.investors && FC.investors.DEFAULT_PROJECT_STATUS) || 'nowy');
@@ -30,6 +31,7 @@
   }
 
   function ownedRooms(inv){
+    if(FC.roomProjectModel?.enabled())return FC.roomProjectStore.definitions(inv.id);
     const persisted=inv && FC.investors && FC.investors.getById(inv.id);
     if(!persisted)return [];
     const current=FC.projectStore && FC.projectStore.getCurrentRecord();
@@ -55,6 +57,7 @@
           <div class="investor-project-card__top">
             <button class="btn investor-room-quick-btn${disabled ? ' is-disabled' : ''}" data-action="open-room" data-room="${escapeHtml(room.id)}" ${buttonDisabled}>${escapeHtml(room.label || room.name || room.id)}</button>
           </div>
+          ${FC.roomProjectModel?.enabled()?`<div class="muted xs" data-room-occupancy="${escapeHtml(room.id)}">Stan zajętości niepotwierdzony</div><div class="muted xs" data-room-synchro="${escapeHtml(room.id)}">Synchro</div>`:''}
           <div class="investor-project-status-shell${disabled ? ' is-disabled' : ''}">
             <select id="invProjectStatus_${escapeHtml(room.id)}" hidden>${statusOptionsHtml}</select>
             <div id="invProjectStatus_${escapeHtml(room.id)}Launch"></div>

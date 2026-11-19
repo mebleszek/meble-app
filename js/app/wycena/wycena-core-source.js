@@ -37,6 +37,7 @@
   }
 
   function project(){
+    if(FC.roomQuoteSources?.enabled())return FC.roomQuoteSources.all().projectData;
     try{ return FC.rozrys && typeof FC.rozrys.safeGetProject === 'function' ? FC.rozrys.safeGetProject() : (typeof projectData !== 'undefined' ? projectData : null); }catch(_){ return null; }
   }
 

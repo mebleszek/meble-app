@@ -375,7 +375,7 @@
 
   function getRoomPreferences(room){
     const project = getSharedProjectData();
-    const roomData = project && project[text(room)];
+    const roomData = room&&typeof room==='object'?room:project && project[text(room)];
     return normalizeRoomPreferences(roomData && roomData.preferences);
   }
 

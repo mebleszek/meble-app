@@ -3,8 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 import {createRequire} from 'node:module';
+import {fileURLToPath} from 'node:url';
 const require=createRequire(import.meta.url),{startBrowser}=require('./chromium-runtime.js');
-const root=path.resolve(new URL('../..',import.meta.url).pathname);
+const root=fileURLToPath(new URL('../..',import.meta.url));
+const fixtureModules=require('./fixture-module-assets').moduleAssets();
 export async function waitForOrderlyBrowserExit({send,exited,cleanup},{timeoutMs=20000}={}){
   let timer;
   try{
@@ -25,8 +27,8 @@ export async function startLocalFirstServer(){
   const server=http.createServer((req,res)=>{
     const url=new URL(req.url,'http://127.0.0.1');
     if(url.pathname==='/'){res.writeHead(200,{'content-type':'text/html'});res.end('<!doctype html><title>Isolated LOCAL-FIRST fixture</title><script type="module">import {openLocalFirstStore} from "/sync/local-first-idb.mjs";window.openLF=(binding)=>openLocalFirstStore({...binding,indexedDB,locks:navigator.locks}).then(s=>{window.lf=s;return true;});window.lfReady=true;</script>');return;}
-    if(!/^\/sync\/(?:local-first-[a-z-]+|application-release|application-writer-fence|application-authority)\.mjs$/.test(url.pathname)){res.writeHead(404);res.end();return;}
-    try{res.writeHead(200,{'content-type':'text/javascript'});res.end(fs.readFileSync(path.join(root,url.pathname)));}catch(_){res.writeHead(404);res.end();}
+    if(!fixtureModules.has(url.pathname)&&!/^\/sync\/(?:local-first-[a-z-]+|application-release|application-writer-fence|application-authority|application-p0b-domain|application-p0b-binding)\.mjs$/.test(url.pathname)){res.writeHead(404);res.end();return;}
+    try{const bytes=fs.readFileSync(path.join(root,url.pathname));res.writeHead(200,{'content-type':'text/javascript'});res.end(bytes);}catch(_){res.writeHead(404);res.end();}
   });
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
   return {base:'http://127.0.0.1:'+server.address().port,close:()=>new Promise(resolve=>server.close(resolve))};
@@ -58,7 +60,7 @@ export async function openBrowserDevice(server,profileDirectory){
 export function proxyStore(evaluate,binding){
   const call=(method,...args)=>evaluate('window.lf['+JSON.stringify(method)+'](...'+JSON.stringify(args)+')');
   const store={...binding};
-  for(const name of ['snapshot','commit','transition','apply','setEditor','readApplication','initializeApplication','checkpointApplication'])store[name]=(...args)=>call(name,...args);
+  for(const name of ['snapshot','commit','transition','apply','setEditor','readApplication','initializeApplication','checkpointApplication','pendingHandover','withdrawHandover','pendingProjectRecovery','stageProjectRecovery','checkpointProjectRecovery'])store[name]=(...args)=>call(name,...args);
   store.exclusive=async operation=>{
     const held=await evaluate('new Promise(resolve=>{navigator.locks.request('+JSON.stringify(binding.name+':'+binding.instanceId)+',{mode:"exclusive"},async lock=>{resolve(!!lock);if(lock)await new Promise(release=>window.__releaseLF=release);});})');
     if(!held)throw Error('LF_LOCAL_BUSY');try{return await operation();}finally{await evaluate('window.__releaseLF();true');}

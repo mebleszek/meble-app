@@ -53,7 +53,7 @@
     return (parts || []).map((p)=>{
       const sig = typeof cfg.partSignature === 'function' ? cfg.partSignature(p) : String(p && p.key || '');
       const allow = typeof cfg.isPartRotationAllowed === 'function' ? cfg.isPartRotationAllowed(p, grainOn, overrides) : true;
-      if(projectMode && (!p.effectivePcv || p.effectivePcv.projectId!==cfg.projectId || p.effectivePcv.contributions.reduce((n,c)=>n+c.qty,0)!==p.qty))throw FC.projectPcvResolver.error('PLAN_CONTEXT_MISMATCH');
+      if(projectMode && (!p.effectivePcv || (FC.roomQuoteSources?.enabled()?!FC.roomQuoteSources.matchesPart(p):p.effectivePcv.projectId!==cfg.projectId) || p.effectivePcv.contributions.reduce((n,c)=>n+c.qty,0)!==p.qty))throw FC.projectPcvResolver.error('PLAN_CONTEXT_MISMATCH');
       const originalEdges=projectMode ? p.effectivePcv.edges : edgeStore[sig] || {};
       // Grain's existing vertical transform swaps display axes, never technological labels.
       const e=projectMode && p.grainMode==='vertical' ? {w1:originalEdges.h1,w2:originalEdges.h2,h1:originalEdges.w1,h2:originalEdges.w2} : originalEdges;

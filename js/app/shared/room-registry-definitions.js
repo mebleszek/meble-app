@@ -226,6 +226,7 @@
   }
 
   function getRoomLabel(id){
+    if(FC.roomProjectModel?.enabled()){const room=FC.roomProjectStore.definitions().find(room=>room.id===id);if(room)return room.label||room.name;}
     const key = String(id || '');
     getCachedActiveRooms();
     if(cache.labelMap && cache.labelMap.has(key)) return cache.labelMap.get(key);

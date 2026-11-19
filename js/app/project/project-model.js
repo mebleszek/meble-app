@@ -112,6 +112,7 @@
     const hasRoomCount = Object.prototype.hasOwnProperty.call(src, 'roomCount') && Number.isFinite(Number(src.roomCount));
     const hasCabinetCount = Object.prototype.hasOwnProperty.call(src, 'cabinetCount') && Number.isFinite(Number(src.cabinetCount));
     const out = {
+      ...(srcMeta.roomProject?.version===1?clone(src):{}),
       id: String(src.id || ''),
       investorId: String(src.investorId || ''),
       title: String(src.title || ''),

@@ -1,4 +1,5 @@
 // Verified cutover receipt. Source keys are never deleted or rewritten.
+import {recoverP0BDemoBinding} from './application-p0b-binding.mjs';
 import {recoverApplicationBinding} from './application-migration-recovery.mjs';
 import {assertApplicationRelease} from './application-release.mjs';
 import {applicationWriterFence} from './application-writer-fence.mjs';
@@ -24,7 +25,7 @@ export async function verifyExclusiveClient(w){
  });
  if(result?.protocol!==1||result.nonce!==nonce||result.exclusive!==true)fail('LF_OLD_WRITER_EXCLUSIVITY_UNPROVEN');
 }
-export async function applicationInstallation({window:w,ownerUid,name,keys,sourceRead,heldRelease,release:deployment,migration}){
+export async function applicationInstallation({window:w,ownerUid,name,keys,sourceRead,heldRelease,release:deployment,migration,p0bDemo=false}){
  if(deployment)assertApplicationRelease(deployment,{ownerUid,name,window:w});
  else if(!['127.0.0.1','localhost'].includes(w.location.hostname)||!/^meble-lf-test-/.test(name))fail('LF_PRODUCTION_MIGRATION_NOT_APPROVED');
  const release=heldRelease||await exclusiveApplication(w);
@@ -41,7 +42,7 @@ export async function applicationInstallation({window:w,ownerUid,name,keys,sourc
    // A missing marker cannot recreate an existing authority. IDB open without
    // initialize remains the only route after a receipt has been established.
    const names=await w.indexedDB.databases();
-   const recovered=deployment?await recoverApplicationBinding({window:w,name,release:deployment,sourceHash}):null;
+   const recovered=deployment?await recoverApplicationBinding({window:w,name,release:deployment,sourceHash}):p0bDemo?await recoverP0BDemoBinding({window:w,name,ownerUid,source:rows}):null;
    if(names.some(db=>db.name===name)&&!recovered)fail('LF_INSTALLATION_RECEIPT_LOST');
    binding=recovered?.binding||{version:1,name,ownerUid,deviceId:crypto.randomUUID(),instanceId:crypto.randomUUID(),sourceHash,initialize:true};
   }

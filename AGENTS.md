@@ -109,7 +109,7 @@ Przy zmianie schematu danych lub sposobu zapisu:
 
 ## 9. Raport po zadaniu
 
-Raport: zmiany/pliki, obszary nietknięte, kontrole/wykonawca/SHA/linki, HEAD/BASE, braki, ryzyka, następny ruch; osobno implementacja/CI/wydanie/LIVE, bez obcego PASS (§10). [Szczegóły raportu](docs/agents/TESTING.md) i [szablon przekazania](docs/agents/RELEASE.md).
+Raport: zmiany/pliki, obszary nietknięte, kontrole/wykonawca/SHA/linki, aktualne HEAD/BASE i stan PR, braki, ryzyka, następny ruch; osobno implementacja/CI/wydanie/LIVE, bez obcego PASS (§10). [Szczegóły raportu](docs/agents/TESTING.md) i [szablon przekazania](docs/agents/RELEASE.md).
 
 ## 10. Definition of Done i statusy
 
@@ -138,9 +138,11 @@ Bez osobnego planu i komendy „do dzieła” nie należy:
 
 ## 12. PR, CI i scalanie — 15 i 21.10.2026
 
-„Do dzieła” nie zezwala na Ready/CI/auto-merge/publikację. Bez osobnej zgody wydaniowej pozostań na gałęzi; Draft tylko potrzebny i chciany, nie domyślnie. Po zgodzie na repo/gałąź/dokładne HEAD/BASE/zakres ChatGPT odczytowo weryfikuje SHA/diff/pokrycie/brak PR, tworzy jeden Ready (istniejący Draft przełącza) i wyłącznie obserwuje CI/auto-merge/Pages. Bez zmian plików/commitów/gałęzi/testów/workflow, ręcznego merge, retry i Firebase LIVE. Zastępstwo Codexa/właściciela wymaga uzgodnienia i tej samej osobnej zgody.
+„Do dzieła” nie zezwala na Ready/CI/auto-merge/publikację. Bez osobnej zgody wydaniowej pozostań na gałęzi; Draft tylko potrzebny i chciany, nie domyślnie. Po zgodzie na repo/gałąź/dokładne HEAD/BASE/zakres ChatGPT odczytowo weryfikuje SHA/diff/pokrycie i stan PR, tworzy jeden Ready tylko przy braku istniejącego (istniejący zachowuje; Draft przełącza wyłącznie w zatwierdzonej próbie) i wyłącznie obserwuje CI/auto-merge/Pages. Bez zmian plików/commitów/gałęzi/testów/workflow, ręcznego merge, retry i Firebase LIVE. Zastępstwo Codexa/właściciela wymaga uzgodnienia i tej samej osobnej zgody.
 
 Jedno pełne CI na próbę: `opened` niedraftowego PR albo `ready_for_review`. Draft/`synchronize`/push/merge nie ponawiają pełnego Preflightu; izolowane workflow mają jawne gałęzie. `workflow_dispatch` nie obchodzi zgody. Auto-merge tylko po pełnym PASS i przy zgodnych zatwierdzonych HEAD/BASE; FAIL/zmiana gałęzi/Draft go blokują. Pages dla dokładnego merge SHA. Zmiana HEAD/BASE, retry po FAIL i nowa próba wymagają nowej zgody; bez ukrytego retry.
+
+**Naprawy FAIL istniejącego PR — decyzja właściciela 19.11.2026.** Po osobnej zgodzie właściciela na naprawę Codex domyślnie pracuje bezpośrednio na gałęzi tego PR, od zweryfikowanych wejściowych HEAD/BASE: jeden spójny commit/push, bez osobnej gałęzi i późniejszego fast-forward. Przed zmianami i ponownie przed pushem sprawdza GitHub; obca zmiana HEAD lub BASE = STOP i zachowanie pracy, bez nadpisania/force-push. To odrębny tryb naprawczy, nie zmiana odczytowej roli ChatGPT podczas obsługi wydania. Raport zawiera aktualne zdalne HEAD/BASE, faktyczne testy, CLEAN/push i stan istniejącego PR. Naprawa/push nie uruchamiają CI i nie zezwalają na Draft/Ready, retry, merge ani wydanie; każda kolejna próba nadal wymaga osobnej zgody na dokładne nowe SHA i jednego pełnego CI według powyższych bramek.
 
 Przed propozycją/obsługą Ready/merge czytaj [RELEASE.md](docs/agents/RELEASE.md), aktualne AGENTS/CURRENT_STATE, decyzje i [rzeczywisty workflow](.github/workflows/preflight-js.yml). Dawny obowiązkowy Draft nie obowiązuje.
 

@@ -41,7 +41,7 @@
     try{
       const prefs = FC.roomPreferences;
       if(prefs && typeof prefs.resolveHardwareProducerPreference === 'function'){
-        return String(prefs.resolveHardwareProducerPreference(roomId, groupKey, fallback) || '').trim();
+        return String(prefs.resolveHardwareProducerPreference(FC.roomQuoteSources?.input(roomId)||roomId, groupKey, fallback) || '').trim();
       }
     }catch(_){ }
     return String(fallback || '').trim();
@@ -518,7 +518,7 @@
     const api = FC.cabinetHardwareRequirements;
     if(!(api && typeof api.getHingeRequirementsWithQty === 'function')) return null;
     try{
-      const rows = api.getHingeRequirementsWithQty(roomId, cabinet) || [];
+      const rows = api.getHingeRequirementsWithQty(FC.roomQuoteSources?.input(roomId)||roomId, cabinet) || [];
       return (Array.isArray(rows) ? rows : [])
         .filter((req)=> isHingeRequirement(req))
         .map(makeRequirementPart)
@@ -532,7 +532,7 @@
     if(Array.isArray(centralHinges)) parts.push.apply(parts, centralHinges);
 
     const cutlist = FC.cabinetCutlist && typeof FC.cabinetCutlist.getCabinetCutList === 'function'
-      ? (FC.cabinetCutlist.getCabinetCutList(cabinet, roomId) || [])
+      ? ((FC.roomQuoteSources?.enabled()?FC.roomQuoteSources.cutlist(cabinet,roomId):FC.cabinetCutlist.getCabinetCutList(cabinet,roomId)) || [])
       : [];
     (Array.isArray(cutlist) ? cutlist : []).forEach((part)=>{
       const req = part && part.hardwareRequirement && typeof part.hardwareRequirement === 'object' ? part.hardwareRequirement : null;
@@ -694,7 +694,7 @@
   }
   function applianceLineFromLaborDefinition(def, appliance, roomLabel, roomId, cabinet, number, rates){
     if(!FC.wycenaCoreLabor.evaluateConditions(def,{roomId,cabinet}).matched)return null;
-    const fact=def.quantitySource?FC.workQuantityFacts?.getCabinetFact?.(roomId,cabinet,def.quantitySource):null;
+    const fact=def.quantitySource?FC.workQuantityFacts?.getCabinetFact?.(FC.roomQuoteSources?.input(roomId)||roomId,cabinet,def.quantitySource):null;
     if(def.quantitySource&&(!fact||fact.available===false))return null;
     const calc = calculateLaborDefinition(def, def.quantitySource?Math.max(0,Number(fact.value)||0):1, rates);
     if(!calc || !(Number(calc.quantity)>0)) return null;

@@ -112,6 +112,13 @@
       infoKey:'workSources',
       onClick:()=> setView('workSources'),
     }));
+    if(root.FC.projectTakeoverPin)grid.appendChild(buildTile({
+      icon:'settings',
+      title:'Bezpieczeństwo',
+      sub:'Wspólny PIN do świadomego przejęcia projektu.',
+      section:'security',
+      onClick:()=> setView('security'),
+    }));
     grid.appendChild(buildTile({
       icon:'settings',
       title:'Dane firmy i transport',

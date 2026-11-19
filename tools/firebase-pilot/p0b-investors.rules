@@ -1,0 +1,191 @@
+    // P0-B emulator candidate. Shared contacts, revision and project registry are owner-scoped.
+    // Registry values are booleans (active leases), introduced one key at a time by a paired editor write.
+    // Synchronized client confirmation. The verifier does not authorize Rules.
+    function invPinShape(d) {
+      return d.keys().hasOnly(['format','revision','salt','verifier'])
+        && d.format is int && d.format == 1 && d.revision is int && d.revision > 0
+        && d.salt is string && d.salt.matches('^[a-f0-9]{32}$')
+        && d.verifier is string && d.verifier.matches('^[a-f0-9]{64}$');
+    }
+    match /users/{uid}/p0bSettings/projectPin {
+      allow get: if globalApproved(uid);
+      allow create: if globalApproved(uid) && invPinShape(request.resource.data)
+        && request.resource.data.revision == 1;
+      allow update: if globalApproved(uid) && invPinShape(request.resource.data)
+        && request.resource.data.revision == resource.data.revision + 1;
+    }
+    function invTakeover(uid,pid,before,after) {
+      let inv = get(invRef(uid,before.investorId)).data;
+      return before.active == true && after.active == true && after.deviceId != before.deviceId
+        && after.epoch == before.epoch + 1 && inv.deletionId == '' && inv.bulkId == ''
+        && inv.projects.get(pid,false) == true && invCanPublish(uid,before.investorId,pid)
+        && exists(invHeadRef(uid,pid)) && after.headRevision == lfHead(uid,pid).currentRevisionId;
+    }
+    function invHeartbeat(uid, pid, d) {
+      let e = getAfter(invEditorRef(uid,pid)).data;
+      return d.keys().hasOnly(['deviceId','epoch','lastContactAt'])
+        && d.deviceId == e.deviceId && d.epoch == e.epoch && e.active == true
+        && invCanPublish(uid,e.investorId,pid) && d.lastContactAt == request.time;
+    }
+    match /users/{uid}/localFirstEditors/{pid}/presence/current {
+      allow get: if globalApproved(uid);
+      allow create: if globalApproved(uid) && invHeartbeat(uid,pid,request.resource.data);
+      allow update: if globalApproved(uid) && invHeartbeat(uid,pid,request.resource.data)
+        && (request.resource.data.epoch > resource.data.epoch
+          || resource.data.lastContactAt + duration.value(5,'m') <= request.time);
+    }
+    function invRef(uid, iid) {
+      return /databases/$(database)/documents/users/$(uid)/localFirstInvestors/$(iid);
+    }
+    function invEditorRef(uid, pid) {
+      return /databases/$(database)/documents/users/$(uid)/localFirstEditors/$(pid);
+    }
+    function invHeadRef(uid, pid) {
+      return /databases/$(database)/documents/users/$(uid)/localFirstProjects/$(pid);
+    }
+    function invId(id) {
+      return id is string && id.matches('^[A-Za-z0-9_-]{1,128}$');
+    }
+    function invContact(d) {
+      // A bounded JSON envelope preserves extension fields. The client validates
+      // its contents; Rules use only the outer identity, revisions and locks.
+      return d is string && d.size() > 2 && d.size() <= 100000;
+    }
+    function invShape(d, uid, iid) {
+      return invId(iid) && d.keys().size() == 12
+        && d.keys().hasOnly(['ownerUid','investorId','schemaVersion','generation','contactRevision','contact','projects','lastProject','deletionId','visits','lastVisit','bulkId'])
+        && d.ownerUid == uid && d.investorId == iid && d.schemaVersion == 1
+        && d.generation is int && d.generation > 0 && d.contactRevision is int && d.contactRevision > 0
+        && d.projects is map && d.projects.size() <= 512
+        && d.visits is map && d.visits.size() <= 32 && (d.lastVisit == '' || invId(d.lastVisit))
+        && (d.bulkId == '' || invId(d.bulkId))
+        && (d.lastProject == '' || invId(d.lastProject))
+        && ((d.deletionId == '' && invContact(d.contact))
+          || (invId(d.deletionId) && d.contact == '' && d.bulkId == '' && d.lastProject == ''));
+    }
+    function invRegistered(uid, iid, pid) {
+      let inv = get(invRef(uid,iid)).data;
+      return inv.deletionId == '' && pid in inv.projects
+        && (inv.bulkId == '' || invBulk(uid,inv.bulkId).phase != 'committed');
+    }
+    function invCanPublish(uid, iid, pid) {
+      let inv = getAfter(invRef(uid,iid)).data;
+      return inv.deletionId == '' && inv.bulkId == '' && inv.projects.get(pid,false) == true;
+    }
+    function invEditorPair(uid, pid, e) {
+      let before = get(invRef(uid,e.investorId)).data;
+      let after = getAfter(invRef(uid,e.investorId)).data;
+      return before.deletionId == '' && after.deletionId == '' && before.bulkId == '' && after.bulkId == ''
+        && after.generation == before.generation + 1 && after.lastProject == pid
+        && after.projects[pid] == e.active && before.projects.get(pid,false) != e.active;
+    }
+    function invRegistryChange(uid, iid, before, after) {
+      let pid = after.lastProject;
+      let e = getAfter(invEditorRef(uid,pid)).data;
+      return invId(pid) && after.diff(before).affectedKeys().hasOnly(['generation','lastProject','projects'])
+        && after.projects.diff(before.projects).affectedKeys().hasOnly([pid])
+        && after.projects.diff(before.projects).affectedKeys().size() == 1
+        && after.projects[pid] is bool && e.investorId == iid && e.active == after.projects[pid]
+        && (!exists(invEditorRef(uid,pid)) || get(invEditorRef(uid,pid)).data.active != e.active);
+    }
+    function invContactChange(before, after) {
+      return after.diff(before).affectedKeys().hasOnly(['generation','contactRevision','contact'])
+        && after.contactRevision == before.contactRevision + 1;
+    }
+    function invDelete(before, after) {
+      return after.diff(before).affectedKeys().hasOnly(['generation','deletionId','contact','lastProject'])
+        && after.deletionId != '' && invIdle(before);
+    }
+    // Reservations fence edits; the immutable shared decision controls visibility.
+    function invBulkRef(uid, op) {
+      return /databases/$(database)/documents/users/$(uid)/p0bDeletionGroups/$(op);
+    }
+    function invBulk(uid, op) {
+      return get(invBulkRef(uid,op)).data;
+    }
+    function invBulkShape(d, uid, op) {
+      return invId(op) && d.keys().hasOnly(['ownerUid','operationId','targets','prepared','last','phase'])
+        && d.ownerUid == uid && d.operationId == op
+        && d.targets is map && d.targets.size() > 1 && d.targets.size() <= 512
+        && d.prepared is map && d.prepared.keys().hasOnly(d.targets.keys())
+        && (d.last == '' || invId(d.last)) && d.phase in ['preparing','committed','cancelled'];
+    }
+    function invStage(uid, op, before, after) {
+      let iid = after.last;
+      let old = get(invRef(uid,iid)).data;
+      let reservation = getAfter(invRef(uid,iid)).data;
+      return invId(iid) && after.phase == 'preparing'
+        && after.diff(before).affectedKeys().hasOnly(['prepared','last'])
+        && after.prepared.diff(before.prepared).affectedKeys().hasOnly([iid])
+        && after.prepared.size() == before.prepared.size() + 1
+        && after.prepared[iid] == true && before.targets[iid] == old.generation
+        && old.bulkId == '' && reservation.bulkId == op
+        && reservation.generation == old.generation + 1;
+    }
+    function invReserve(uid, iid, before, after) {
+      let previous = invBulk(uid,after.bulkId);
+      let next = getAfter(invBulkRef(uid,after.bulkId)).data;
+      return invIdle(before) && after.deletionId == ''
+        && after.diff(before).affectedKeys().hasOnly(['generation','bulkId'])
+        && previous.phase == 'preparing' && next.phase == 'preparing'
+        && previous.targets[iid] == before.generation && !(iid in previous.prepared)
+        && next.last == iid && next.prepared[iid] == true;
+    }
+    function invBulkReservation(uid,iid,before,after) {
+      return before.bulkId == '' ? invReserve(uid,iid,before,after)
+        : (after.bulkId == '' && after.diff(before).affectedKeys().hasOnly(['generation','bulkId'])
+          && invBulk(uid,before.bulkId).phase == 'cancelled');
+    }
+    match /users/{uid}/p0bDeletionGroups/{op} {
+      allow get: if globalApproved(uid);
+      allow list,delete: if false;
+      allow create: if globalApproved(uid) && invBulkShape(request.resource.data,uid,op)
+        && request.resource.data.phase == 'preparing' && request.resource.data.prepared == {}
+        && request.resource.data.last == '';
+      allow update: if globalApproved(uid) && invBulkShape(request.resource.data,uid,op)
+        && resource.data.phase == 'preparing'
+        && (request.resource.data.phase == 'preparing'
+          ? invStage(uid,op,resource.data,request.resource.data)
+          : (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['phase'])
+            && (request.resource.data.phase == 'cancelled'
+              || resource.data.prepared.size() == resource.data.targets.size())));
+    }
+    function invIdle(record) {
+      return !record.projects.values().hasAny([true]) && record.visits.size() == 0;
+    }
+    function invVisitChange(before, after) {
+      let device = after.lastVisit;
+      return invId(device) && after.diff(before).affectedKeys().hasOnly(['generation','lastVisit','visits'])
+        && after.visits.diff(before.visits).affectedKeys().hasOnly([device])
+        && after.visits.diff(before.visits).affectedKeys().size() == 1
+        && ((device in before.visits && !(device in after.visits))
+          || (!(device in before.visits) && invVisitShape(after.visits[device])));
+    }
+    function invVisitShape(visit) {
+      return visit is map && visit.keys().hasOnly(['token','label'])
+        && invId(visit.token) && visit.label is string && visit.label.size() <= 64;
+    }
+    function invUpdate(uid,iid,before,after) {
+      return before.bulkId != '' || after.bulkId != ''
+        ? invBulkReservation(uid,iid,before,after)
+        : (after.deletionId != ''
+          ? invDelete(before,after)
+          : (before.visits != after.visits
+            ? invVisitChange(before,after)
+            : (before.projects != after.projects
+              ? invRegistryChange(uid,iid,before,after)
+              : invContactChange(before,after))));
+    }
+    match /users/{uid}/localFirstInvestors/{iid} {
+      allow get: if globalApproved(uid);
+      allow list: if globalApproved(uid) && request.query.limit != null && request.query.limit <= 100;
+      allow create: if globalApproved(uid) && invShape(request.resource.data,uid,iid)
+        && request.resource.data.generation == 1 && request.resource.data.contactRevision == 1
+        && request.resource.data.projects == {} && request.resource.data.lastProject == ''
+        && request.resource.data.deletionId == '' && request.resource.data.visits == {}
+        && request.resource.data.lastVisit == '' && request.resource.data.bulkId == '';
+      allow update: if globalApproved(uid) && invShape(request.resource.data,uid,iid) && resource.data.deletionId == ''
+        && request.resource.data.generation == resource.data.generation + 1
+        && invUpdate(uid,iid,resource.data,request.resource.data);
+      allow delete: if false;
+    }

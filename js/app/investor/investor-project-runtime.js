@@ -106,6 +106,11 @@
       const target = store && store.getByInvestorId ? store.getByInvestorId(id) : null;
       activationEvidence=Object.freeze({candidateProjects:store.readAll().filter(row=>String(row.investorId)===String(id)).length,
         legacyOwnerAbsent:target?!(target.projectData.meta && Object.hasOwn(target.projectData.meta,'assignedInvestorId')):null});
+      if(!target&&FC.roomProjectModel?.enabled()){
+        if(!initialRead&&JSON.stringify(comparableProjectData(window.projectData,current))!==JSON.stringify(comparableProjectData(current?.projectData||freshProject(),current)))return refuseActivation('PROJECT_RAM_DIVERGENCE');
+        if(store.setCurrentProjectId(null)===false)return refuseActivation('PROJECT_POINTER_UNCONFIRMED');
+        window.projectData=freshProject();return true;
+      }
       if(!target) return refuseActivation('PROJECT_OWNER_UNCONFIRMED');
       if(target.projectData.meta && Object.hasOwn(target.projectData.meta,'assignedInvestorId')
         && target.projectData.meta.assignedInvestorId!==String(id))return refuseActivation('PROJECT_OWNER_CONFLICT');
@@ -225,6 +230,8 @@
 
   function hasProjectDivergence(nextData){
     const central = currentCentralProjectForSessionCompare();
+    if(FC.roomProjectModel?.enabled()&&!FC.projectStore.getCurrentProjectId()&&!FC.session.active
+      &&JSON.stringify(comparableProjectData(nextData))===JSON.stringify(comparableProjectData(freshProject())))return false;
     // project-bridge.load() uses DEFAULT_PROJECT when there is no owner. Passing
     // null through the legacy migrations produces different defaults (e.g. a
     // 1.8 cm bathroom worktop instead of 2 cm) and invents an unsaved edit.
@@ -256,10 +263,9 @@
       if(uiRaw !== null && (!ui || typeof ui !== 'object' || Array.isArray(ui))) return false;
       if(ui && ui.currentInvestorId && ui.currentInvestorId !== transientId) return false;
       if(typeof uiState !== 'undefined' && uiState && uiState.currentInvestorId && uiState.currentInvestorId !== transientId) return false;
-      const localList=allowLocalList && FC.applicationWrite?.localOnly===true
-        && ui?.entry==='investorsList' && !ui.currentInvestorId && !ui.roomType
-        && typeof uiState!=='undefined' && uiState?.entry==='investorsList'
-        && !uiState.currentInvestorId && !uiState.roomType;
+      const verifiedRegistryIdle=(FC.applicationWrite?.registry==='p0b-rooms-v1'||FC.applicationRegistry?.id==='p0b-rooms-v1'&&window.__FC_MAIN_ACCESS__?.isLoading?.()===true)&&['home','modeHub','investorsList'].includes(ui?.entry)&&typeof uiState!=='undefined'&&uiState?.entry===ui.entry;
+      const localList=allowLocalList && (verifiedRegistryIdle||FC.applicationWrite?.localOnly===true&&ui?.entry==='investorsList'&&typeof uiState!=='undefined'&&uiState?.entry==='investorsList')
+        && !ui.currentInvestorId && !ui.roomType && !uiState.currentInvestorId && !uiState.roomType;
       for(const key of ['fc_projects_v1','fc_investors_v1']){
         const raw=localStorage.getItem(key),rows=raw===null?[]:JSON.parse(raw);
         if(!Array.isArray(rows) || (!localList && rows.length!==0))return false;

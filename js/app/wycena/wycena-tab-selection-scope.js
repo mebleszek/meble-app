@@ -55,6 +55,7 @@
   }
 
   function getActiveRoomIds(){
+    if(FC.roomProjectModel?.enabled())return FC.roomProjectStore.list().map(record=>record.id);
     try{ return FC.roomRegistry && typeof FC.roomRegistry.getActiveRoomIds === 'function' ? FC.roomRegistry.getActiveRoomIds() : []; }
     catch(_){ return []; }
   }

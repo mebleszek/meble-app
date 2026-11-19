@@ -41,6 +41,7 @@
   }
 
   function hasOpeningProject(opening){
+    if(FC.roomProjectModel?.enabled())return FC.roomProjectStore.matches(opening);
     const current=FC.projectStore.getCurrentRecord();
     return !!(opening&&current?.id===opening.id&&current.investorId===opening.investorId
       &&(JSON.stringify(current.projectData)===JSON.stringify(opening.projectData)||FC.projectDomainOperations.hasPending(opening.id)));
@@ -51,14 +52,15 @@
     return false;
   }
 
-  async function writeRooms(operation){
+  async function writeRooms(operation,scopes){
+    if(FC.roomProjectModel?.enabled())return FC.applicationWrite.roomRecords(scopes,operation);
     if(!FC.applicationWrite)return operation();
     return FC.applicationWrite.projectHandler(operation)();
   }
 
   async function openManageRoomsModal(){
     const inv = getCurrentInvestor();
-    const openingProject = FC.projectStore && FC.projectStore.getCurrentRecord();
+    const openingProject = FC.roomProjectModel?.enabled()?FC.roomProjectStore.capture():FC.projectStore && FC.projectStore.getCurrentRecord();
     if(!(inv && FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
     const rooms = getManageableRooms(inv);
     if(!rooms.length){
@@ -203,7 +205,7 @@
           const result=await writeRooms(()=>{
             if(!hasOpeningProject(openingProject))return projectChanged();
             return applyManageRoomsDraftDetailed(inv,submitted);
-          });
+          },FC.roomProjectModel?.enabled()?FC.roomProjectStore.changedIds(submitted,inv.id):undefined);
           saving=false;
           if(result?.ok)done({saved:true,rooms:submitted,removedRoomIds:result.removedRoomIds||[]});
         }finally{saving=false;saveBtn.disabled=false;}
@@ -222,7 +224,7 @@
 
   async function openRemoveRoomModal(){
     const inv = getCurrentInvestor();
-    const openingProject = FC.projectStore && FC.projectStore.getCurrentRecord();
+    const openingProject = FC.roomProjectModel?.enabled()?FC.roomProjectStore.capture():FC.projectStore && FC.projectStore.getCurrentRecord();
     if(!inv || !(FC.panelBox && typeof FC.panelBox.open === 'function')) return null;
     const rooms = getManageableRooms(inv);
     if(!rooms.length){
@@ -265,7 +267,7 @@
           const result=await writeRooms(()=>{
             if(!hasOpeningProject(openingProject))return projectChanged();
             return removeRoomByIdDetailed(roomId);
-          });
+          },FC.roomProjectModel?.enabled()?[roomId]:undefined);
           saving=false;
           if(result?.ok)done(result.roomId);
         }finally{saving=false;deleteBtn.disabled=false;}

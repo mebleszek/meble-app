@@ -1,6 +1,6 @@
 import {copy, fail, equal, id, assertEmulator} from './local-first-values.mjs';
 import {assertApplicationConnection} from './firebase-activation.mjs';
-const EXTRA = ['editorEpoch', 'deviceId', 'globalRevisionId', 'globalDirectoryHash'];
+const EXTRA = ['editorEpoch', 'deviceId', 'globalRevisionId', 'globalDirectoryHash', 'roomDeleted'];
 const bare = value => value === null ? null : Object.fromEntries(Object.entries(value).filter(([key]) => !EXTRA.includes(key)));
 export const unresolvedProjectKeys = Object.freeze(['fc_edge_v1', 'fc_material_part_options_v1', 'fc_rozrys_grain_state_v1',
   'fc_rozrys_overrides_v1', 'fc_quote_snapshots_v1', 'fc_quote_offer_drafts_v1']);
@@ -31,7 +31,7 @@ export function validateProjectDependencies(projectContract, globalContract, doc
 // Namespace adapter around the existing CLOUD-2B chunk/manifest transport.
 // New metadata is checked before stripping it for the existing closed contract.
 export function createProjectChannel({writer, reader, ownerUid, deviceId, projectId, investorId,
-  pilotContract: c, pilotFactory, globalContract, projectContract, globals}) {
+  pilotContract: c, pilotFactory, globalContract, projectContract, globals,editorProtocol,deviceLabel=()=>'',projectCollection='localFirstProjects',roomProtocol=false}) {
   id(ownerUid); id(deviceId); id(projectId); id(investorId);
   const wi = assertApplicationConnection(writer), ri = assertApplicationConnection(reader);
   if (wi.uid !== ownerUid || ri.uid !== ownerUid || writer.db.app === reader.db.app) fail('LF_INDEPENDENT_OWNER_REQUIRED');
@@ -45,11 +45,18 @@ export function createProjectChannel({writer, reader, ownerUid, deviceId, projec
   const metadata = data => {
     if (!data || !Number.isSafeInteger(data.editorEpoch) || data.editorEpoch < 1 || !/^[a-f0-9]{64}$/.test(data.globalDirectoryHash)
       || !c.revisionId(data.globalRevisionId)) fail('LF_PROJECT_METADATA_INVALID');
-    id(data.deviceId); return Object.fromEntries(EXTRA.map(k=>[k,data[k]]));
+    if(roomProtocol&&typeof data.roomDeleted!=='boolean')fail('LF_ROOM_PROJECT_METADATA_INVALID');
+    id(data.deviceId); return Object.fromEntries(EXTRA.filter(k=>k!=='roomDeleted'||roomProtocol).map(k=>[k,data[k]]));
   };
+  function roomHead(document,head){
+    if(!roomProtocol)return;
+    const record=document?.payload?.project,own=record?.meta?.roomProject;
+    if(own?.version!==1||own.roomId!==projectId||record.id!==projectId
+      ||(own.removed===true)!==head.roomDeleted)fail('LF_ROOM_PROJECT_METADATA_INVALID');
+  }
   function transport(connection, publication = null) {
     const sdk = connection.firestore;
-    const isHead = ref => ref.path === `users/${ownerUid}/localFirstProjects/${projectId}`;
+    const isHead = ref => ref.path === `users/${ownerUid}/${projectCollection}/${projectId}`;
     const wrap = (snap,ref) => isHead(ref) && snap.exists() ? {
       metadata:snap.metadata,exists:()=>true,data:()=>{ metadata(snap.data()); return bare(snap.data()); }
     } : snap;
@@ -71,7 +78,7 @@ export function createProjectChannel({writer, reader, ownerUid, deviceId, projec
                 || !equal(e,publication.editor) || g?.revisionId !== publication.global.revisionId
                 || g?.directoryHash !== publication.global.directoryHash) fail('LF_EDITOR_OR_DEPENDENCY_CONFLICT');
               return tx.set(ref,isHead(ref) ? {...data,editorEpoch:e.epoch,deviceId,
-                globalRevisionId:g.revisionId,globalDirectoryHash:g.directoryHash} : data);
+                globalRevisionId:g.revisionId,globalDirectoryHash:g.directoryHash,...(roomProtocol?{roomDeleted:publication.roomDeleted}:{} )} : data);
             }
           });
         },options);
@@ -124,16 +131,49 @@ export function createProjectChannel({writer, reader, ownerUid, deviceId, projec
     guard();
     return globals.readPinned?globals.readPinned(pin,()=>loadPinnedGlobals(pin)):loadPinnedGlobals(pin);
   }
+  async function readPinned(pin) {
+    guard();
+    pin=copy(pin);
+    c.validHead(bare(pin),scope);
+    if(!pin)fail('LF_ROOM_COPY_BASE_UNCONFIRMED');
+    metadata(pin);
+    const sdk=reader.firestore;
+    const revision=sdk.doc(projectRef(reader.db),'revisions',pin.currentRevisionId);
+    // A server-only request also rejects an explicitly disabled SDK network.
+    if(!fresh(await sdk.getDocFromServer(revision)).exists())fail('LF_PROJECT_BASE_INCOMPLETE');
+    guard();
+    const stored=await sdk.runTransaction(reader.db,async tx=>{
+      guard();
+      const header=value(fresh(await tx.get(revision)));
+      if(!header||!Number.isSafeInteger(header.chunkCount)||header.chunkCount<1||header.chunkCount>c.MAX_CHUNKS
+        ||!Number.isSafeInteger(header.byteLength)||header.byteLength<1||header.byteLength>c.MAX_BYTES)fail('LF_PROJECT_BASE_INCOMPLETE');
+      const chunks=await Promise.all(Array.from({length:header.chunkCount},(_,index)=>
+        tx.get(sdk.doc(revision,'chunks',String(index)))));
+      if(chunks.some(snapshot=>!fresh(snapshot).exists()))fail('LF_PROJECT_BASE_INCOMPLETE');
+      guard();
+      return {header,chunks:chunks.map(snapshot=>snapshot.data())};
+    },{maxAttempts:1});
+    guard();
+    // The durable pin supplies the published generation and content hashes.
+    // Immutable revision metadata supplies bounded geometry and its timestamp.
+    const manifest={...bare(pin),formatVersion:1,chunkCount:stored.header.chunkCount,
+      byteLength:stored.header.byteLength,updatedAt:stored.header.createdAt};
+    const result=await c.unpack(manifest,stored.header,stored.chunks,scope);roomHead(result.document,pin);
+    const global=await readGlobals({revisionId:pin.globalRevisionId,directoryHash:pin.globalDirectoryHash});
+    const requirements=validateProjectDependencies(projectContract,globalContract,result.document,global.value);
+    guard();
+    return {head:pin,value:{document:result.document,globals:{head:global.head,model:global.value},requirements}};
+  }
   async function read() {
     guard(); const result = await inbound.readProject(scope); guard();
     const raw = value(fresh(await reader.firestore.getDocFromServer(projectRef(reader.db)))); guard();
     if (!raw || !equal(c.headOf(bare(raw),scope),result.head)) fail('LF_PROJECT_READ_CONFLICT');
-    metadata(raw);
+    metadata(raw);roomHead(result.document,raw);
     const global=await readGlobals({revisionId:raw.globalRevisionId,directoryHash:raw.globalDirectoryHash});
     const final=value(fresh(await reader.firestore.getDocFromServer(projectRef(reader.db))));guard();
     if(!final||!equal({...c.headOf(bare(final),scope),...metadata(final)},{...result.head,...metadata(raw)}))fail('LF_PROJECT_READ_CONFLICT');
     const requirements = validateProjectDependencies(projectContract,globalContract,result.document,global.value);
-    return {head:{...result.head,...Object.fromEntries(EXTRA.map(k=>[k,raw[k]]))},
+    return {head:{...result.head,...metadata(raw)},
       value:{document:result.document,globals:{head:global.head,model:global.value},requirements}};
   }
   async function prepare(bundle, base, expectedEditor) {
@@ -145,13 +185,16 @@ export function createProjectChannel({writer, reader, ownerUid, deviceId, projec
     if (!equal(global.head,bundle.globals.head) || !equal(global.value,bundle.globals.model)) fail('LF_GLOBAL_DEPENDENCIES_STALE');
     const bytes = new TextEncoder().encode(c.canonical(bundle.document)).length;
     const packed = await c.pack({ok:true,document:bundle.document,utf8Bytes:bytes},scope,bare(base),crypto.randomUUID().replaceAll('-',''));
-    const outbound = transport(writer,{editor:current,global:global.head});
+    if(roomProtocol&&base?.roomDeleted===true)fail('LF_ROOM_PROJECT_REMOVED');
+    const roomDeleted=roomProtocol&&bundle.document.payload.project.meta?.roomProject?.removed===true;
+    const outbound = transport(writer,{editor:current,global:global.head,roomDeleted});
     const expected = {...c.candidateHead(packed),editorEpoch:current.epoch,deviceId,
-      globalRevisionId:global.head.revisionId,globalDirectoryHash:global.head.directoryHash};
+      globalRevisionId:global.head.revisionId,globalDirectoryHash:global.head.directoryHash,...(roomProtocol?{roomDeleted}:{} )};
     return {expected,async publish() { await outbound.stage(packed); await outbound.publish(packed,async()=>guard()); }};
   }
   async function acquire(expectedHead) {
-    guard();
+    guard();if(roomProtocol&&expectedHead?.roomDeleted===true)fail('LF_ROOM_PROJECT_REMOVED');
+    if(editorProtocol)return editorProtocol.acquire({iid:investorId,pid:projectId,expectedHead:expectedHead?.currentRevisionId||'',deviceLabel:deviceLabel()});
     return f.runTransaction(writer.db, async tx => {
       const old = value(fresh(await tx.get(editorRef(writer.db)))), head = value(fresh(await tx.get(projectRef(writer.db))));
       if (old?.active || !equal(head ? {...c.headOf(bare(head),scope),...metadata(head)} : null,expectedHead)) fail('LF_EDITOR_BUSY_OR_HEAD_CHANGED');
@@ -161,6 +204,7 @@ export function createProjectChannel({writer, reader, ownerUid, deviceId, projec
   }
   async function release(expectedEditor, expectedHead) {
     guard();
+    if(editorProtocol)return editorProtocol.release({iid:investorId,pid:projectId,expectedHead:expectedHead?.currentRevisionId||'',expectedEditor});
     return f.runTransaction(writer.db,async tx => {
       const e = value(fresh(await tx.get(editorRef(writer.db)))), head = value(fresh(await tx.get(projectRef(writer.db))));
       if (!equal(e,expectedEditor) || !e?.active || e.deviceId !== deviceId || !head
@@ -168,7 +212,7 @@ export function createProjectChannel({writer, reader, ownerUid, deviceId, projec
       const next = {...e,active:false,headRevision:head.currentRevisionId}; guard(); tx.set(editorRef(writer.db),next); return next;
     },{maxAttempts:1});
   }
-  return Object.freeze({kind:'project',scope:projectId,prepare,read,readHead,editor,acquire,release,guard,
+  return Object.freeze({kind:'project',scope:projectId,prepare,read,readPinned,readHead,editor,acquire,release,guard,
     watch(notify){guard();return reader.firestore.onSnapshot(projectRef(reader.db),()=>notify(),()=>notify());},
     async close(){await inbound.close();}});
 }

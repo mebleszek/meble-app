@@ -36,7 +36,7 @@
     const fn = registry[action];
     if(typeof fn !== 'function') return false;
     try{
-      if(root.FC.applicationLifecycle?.dispatch)return root.FC.applicationLifecycle.dispatch(action,()=>fn(ctx||{}));
+      if(root.FC.applicationLifecycle?.dispatch)return root.FC.applicationLifecycle.dispatch(action,()=>fn(ctx||{}),ctx||{});
       return !!fn(ctx || {});
     }catch(e){
       // Let boot.js banner catch it.

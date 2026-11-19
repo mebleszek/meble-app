@@ -149,6 +149,13 @@ test('Unverified, orphaned or cross-context set fronts have issues with a set ow
  room.fronts=[];front=r.parts().find(p=>p.name==='Front');assert.equal(front.qty,2);assert.equal(front.sourceRefs.length,0);assert.equal(front.sourceGroups.length,0);
  assert.equal(front.sourceIssues[0].setId,'stable-set');assert.ok(!front.sourceIssues[0].cabinetId);balanced([front]);
 });
+test('Detached room reads retain their explicit set owner while RAM stays on another project',()=>{
+ const r=setFixture(),room=clone(r.s.projectData.room),before=clone(r.s.projectData);
+ const parts=r.FC.cabinetCutlist.getCabinetCutList(room.cabinets[0],room,{projectId:'B',roomId:'detached-room'});
+ const fronts=setGroups(parts);assert.ok(fronts.length);assert.ok(fronts.every(group=>group.projectId==='B'&&group.roomId==='detached-room'&&group.setId==='stable-set'));
+ assert.deepEqual(clone(r.s.projectData),before);balanced(parts);
+});
+
 test('Missing context and invalid coverage fail closed without fabricating group addresses',()=>{
  const r=fixture(),detached=clone(r.cab()),rows=r.FC.cabinetCutlist.getCabinetCutList(detached,'room');assert.equal(groups(rows).length,0);
  const invalid=r.FC.partProvenance.bind([{qty:1,sourceGroupRoles:[{ownerType:'cabinet',groupRoleId:'body.shelves',qty:2}]}],{projectId:'A',roomId:'room',cabinetId:'one'})[0];

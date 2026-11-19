@@ -346,6 +346,7 @@
         status: String(projectRecord.status || ''),
       } : null,
       scope: {
+        ...(src.sourceProjects?{sourceProjects:clone(src.sourceProjects)}:{}),
         selectedRooms: roomIds,
         roomLabels,
         materialScope: clone(materialScope),

@@ -25,7 +25,7 @@ function enabled(expression,{outcomes={},results={},cancelled=false}={}){
 }
 function workflowChecks(source){
   const j=jobs(source);
-  const ids=['safety','preflight-static','preflight-shards','playwright-local-ui','preflight','firebase-current-shards','playwright-sync-ui','firebase-current','cloud-historical-smoke','cloud-historical-sdk','cloud-historical','ci-summary','auto-merge','post-merge-verify','final-status'];
+  const ids=['safety','preflight-static','preflight-shards','playwright-local-ui','preflight','firebase-current-shards','playwright-sync-ui','firebase-p0b','firebase-current','cloud-historical-smoke','cloud-historical-sdk','cloud-historical','ci-summary','auto-merge','post-merge-verify','final-status'];
   assert.deepEqual(Object.keys(j).sort(),ids.slice().sort(),'Unclassified CI jobs');
   assert.doesNotMatch(source,/continue-on-error:/);
   const trigger=source.split('\njobs:')[0];
@@ -46,7 +46,8 @@ function workflowChecks(source){
   // New Playwright jobs are mandatory members of the same fail-closed DAG.
   for(const [id,runStep,uploadStep] of [
     ['playwright-local-ui','Test Playwright localOnly UI and IDB restart','Upload Playwright localOnly diagnostics'],
-    ['playwright-sync-ui','Run signed DEMO Playwright against isolated Auth and Firestore emulators','Upload synchronized UI diagnostics']
+    ['playwright-sync-ui','Run signed DEMO Playwright against isolated Auth and Firestore emulators','Upload synchronized UI diagnostics'],
+    ['firebase-p0b','Run mandatory P0-B candidate segment','Upload P0-B diagnostics']
   ]){
     const job=j[id],s=steps(job);
     assert.match(job,/^    needs: safety$/m,id);
@@ -64,6 +65,12 @@ function workflowChecks(source){
   assert.match(steps(j['playwright-local-ui'])['Test Playwright localOnly UI and IDB restart'],/node --test tools\/firebase-pilot\/playwright-local-ui\.test\.mjs/);
   assert.match(steps(j['playwright-sync-ui'])['Run signed DEMO Playwright against isolated Auth and Firestore emulators'],/cloud-ci-emulators\.js --context=current --playwright-sync/);
   assert.match(j['playwright-sync-ui'],/uses: actions\/setup-java@v4/);
+  assert.match(j['firebase-p0b'],/fail-fast: false/);
+  const p0bSegments=j['firebase-p0b'].match(/^        segment: \[([^\]]+)\]$/m);
+  assert.ok(p0bSegments);
+  assert.deepEqual(p0bSegments[1].split(', '),require('./p0b-ci-plan').groups.map(row=>row.id));
+  assert.match(steps(j['firebase-p0b'])['Run mandatory P0-B candidate segment'],/cloud-ci-emulators\.js --context=current --p0b=\$\{\{ matrix\.segment \}\}/);
+  assert.match(j['firebase-p0b'],/uses: actions\/setup-java@v4/);
   const stat=steps(j['preflight-static']),smoke=steps(j['preflight-shards']),cur=steps(j['firebase-current-shards']),histSmoke=steps(j['cloud-historical-smoke']),histSdk=steps(j['cloud-historical-sdk']);
   assert.match(stat['Test preflight-static'],/tools\/preflight\.js --current-only --static-only/);
   assert.match(stat['Audit module growth against approved BASE'],/tools\/ci-module-growth\.js/);
@@ -108,7 +115,7 @@ function workflowChecks(source){
   assert.match(histSdk['Test cloud-historical-sdk'],/tools\/cloud-ci-emulators\.js --context=historical/);
   const aggregates={
     preflight:['safety','preflight-static','preflight-shards','playwright-local-ui'],
-    'firebase-current':['safety','firebase-current-shards','playwright-sync-ui'],
+    'firebase-current':['safety','firebase-current-shards','playwright-sync-ui','firebase-p0b'],
     'cloud-historical':['safety','cloud-historical-smoke','cloud-historical-sdk']
   };
   for(const [id,members] of Object.entries(aggregates)){
@@ -166,7 +173,9 @@ async function diagnosticChecks(source){
     mutation('    needs: [safety, preflight-static, preflight-shards, playwright-local-ui]','    needs: safety'),
     mutation('shard: ['+Array.from({length:36},(_,i)=>i+1).join(', ')+']','shard: [1, 2, 3, 4, 5, 6]'),
     mutation("- {batch: 3, segment: '3e'}","- {batch: 3, segment: '3z'}"),
-    mutation('    needs: [safety, firebase-current-shards, playwright-sync-ui]','    needs: [safety, firebase-current-shards]'),
+    mutation('    needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b]','    needs: [safety, firebase-current-shards, firebase-p0b]'),
+    mutation('    needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b]','    needs: [safety, firebase-current-shards, playwright-sync-ui]'),
+    mutation('segment: [room-model, room-quote-proof, room-quote-rules, room-quote-variants, room-quote-promotion, room-quote-staging, room-quote-acceptance-conflict, room-quote-acceptance, room-quote, room-storage, normal-rules, rules, recovery, profiles, compatibility, normal-startup, signed-startup, signed-clean, normal-clean, storage]','segment: [rules, profiles, compatibility, normal-startup, signed-startup]'),
     mutation('node --test tools/firebase-pilot/playwright-local-ui.test.mjs','node --test tools/firebase-pilot/removed-ui.test.mjs'),
     mutation('cloud-ci-emulators.js --context=current --playwright-sync','cloud-ci-emulators.js --context=current --no-sync'),
     mutation('const names=["safety","cloud-historical-smoke","cloud-historical-sdk"];','const names=["safety","cloud-historical-smoke"];'),
@@ -180,7 +189,7 @@ async function diagnosticChecks(source){
     mutation('      - name: Audit module growth against approved BASE','      - name: Unapproved module step')
   ])assert.throws(()=>workflowChecks(change(source)));
   pass('actual DAG, required groups, full-PASS merge/Pages and negative mutations');
-  for(const id of ['preflight-static','preflight-shards','playwright-local-ui','firebase-current-shards','playwright-sync-ui','cloud-historical-smoke','cloud-historical-sdk']){
+  for(const id of ['preflight-static','preflight-shards','playwright-local-ui','firebase-current-shards','playwright-sync-ui','firebase-p0b','cloud-historical-smoke','cloud-historical-sdk']){
     for(const result of ['failure','skipped','cancelled','success'])
       assert.equal(enabled(condition(j[id]),{results:{safety:result}}),result==='success');
   }
@@ -194,7 +203,7 @@ async function diagnosticChecks(source){
   for(const bad of [{outcome:'failure',outputs:{reason:'CLOUD_CI_HISTORY_SHA_MISMATCH'}},{outcome:'skipped'},{outcome:'cancelled'},null])
     assert.notEqual((await run(bad===null?Object.fromEntries(Object.entries(ok).filter(([name])=>name!=='source')):{...ok,source:bad})).outputs.status,'PASS');
   pass('actual Safety report refuses missing/skipped/failing source and pin checks');
-  const aggregates={preflight:['safety','preflight-static','preflight-shards','playwright-local-ui'],'firebase-current':['safety','firebase-current-shards','playwright-sync-ui'],'cloud-historical':['safety','cloud-historical-smoke','cloud-historical-sdk']};
+  const aggregates={preflight:['safety','preflight-static','preflight-shards','playwright-local-ui'],'firebase-current':['safety','firebase-current-shards','playwright-sync-ui','firebase-p0b'],'cloud-historical':['safety','cloud-historical-smoke','cloud-historical-sdk']};
   for(const [id,members] of Object.entries(aggregates)){
     const body=script(steps(j[id]).report),good=Object.fromEntries(members.map(name=>[name,{result:'success'}]));
     const success=await execute(body,{env:{GROUPS:JSON.stringify(good)}});

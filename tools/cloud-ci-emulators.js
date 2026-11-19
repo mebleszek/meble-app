@@ -97,6 +97,10 @@ function emulatorLogTail(cwd,startedAt){
 }
 function main(){
   const args=process.argv.slice(2);
+  const p0bArgs=args.filter(arg=>arg.startsWith('--p0b='));
+  if(p0bArgs.length>1||p0bArgs.length&&(args.length!==2||!args.includes('--context=current')))throw Error('CLOUD_CI_P0B_SCOPE_INVALID');
+  const p0b=p0bArgs[0]?.slice('--p0b='.length);
+  if(p0bArgs.length&&!p0b)throw Error('CLOUD_CI_P0B_SEGMENT_REQUIRED');
   const playwrightSync=args.includes('--playwright-sync');
   if(playwrightSync&&(args.length!==2||!args.includes('--context=current')))throw Error('CLOUD_CI_PLAYWRIGHT_SCOPE_INVALID');
   const segmentArgs=args.filter(arg=>arg.startsWith('--segment='));
@@ -108,20 +112,21 @@ function main(){
   const selectedBatch=batchArg?Number(batchArg.slice('--batch='.length)):null;
   if(batchArg&&(!Number.isSafeInteger(selectedBatch)||selectedBatch<1||selectedBatch>3||!args.includes('--context=current')))throw Error('CLOUD_CI_BATCH_SELECTION_INVALID');
   if(segment&&(!selectedBatch||segment[0]!==String(selectedBatch)||!args.includes('--context=current')))throw Error('CLOUD_CI_SEGMENT_SCOPE_INVALID');
-  const plan=selectPlan(context.sdkPlan(root),args.filter(arg=>!arg.startsWith('--batch=')&&!arg.startsWith('--segment=')&&arg!=='--playwright-sync'));
+  const plan=selectPlan(context.sdkPlan(root),args.filter(arg=>!arg.startsWith('--batch=')&&!arg.startsWith('--segment=')&&arg!=='--playwright-sync'&&!arg.startsWith('--p0b=')));
   let failed=false;
   for(const group of plan){
     const {cwd,cli}=verifyGroup(group);
     let groupFailed=false;
     const executedSegments=[];
-    const batches=playwrightSync?[['playwright-sync-ui.test.mjs']]:batchesForGroup(group);
+    const p0bSegment=p0b?require('./p0b-ci-plan').select(cwd,p0b):null;
+    const batches=p0bSegment?[[p0bSegment.file]]:playwrightSync?[['playwright-sync-ui.test.mjs']]:batchesForGroup(group);
     for(const [index,files] of batches.entries()){
       if(selectedBatch!==null&&index+1!==selectedBatch)continue;
-      const units=playwrightSync?[files]:executionUnits(group,index+1,files);
+      const units=p0bSegment||playwrightSync?[files]:executionUnits(group,index+1,files);
       let batchFailed=false,selectedExecutions=0;
       // Run every file exactly once, even if an earlier unit fails (not retry).
       for(const [unitIndex,unit] of units.entries()){
-        const segments=executionSegments(group,index+1,unit,cwd);let unitFailed=false,unitExecuted=false;
+        const segments=p0bSegment?[p0bSegment]:executionSegments(group,index+1,unit,cwd);let unitFailed=false,unitExecuted=false;
         for(const [segmentIndex,segmentUnit] of segments.entries()){
           const executionKey=index===0?'1'+('ab'[unitIndex]):index===1?'2':unitIndex===0?'3a':'3'+('bcde'[segmentIndex]);
           if(segmentArgs.length&&segmentArgs[0].slice('--segment='.length)!==executionKey)continue;
@@ -133,7 +138,8 @@ function main(){
           const settings=fs.mkdtempSync(path.join(os.tmpdir(),'meble-demo-cli-'));
           const startedAt=Date.now();let result;
           try{
-            result=spawnSync(process.execPath,[cli,'emulators:exec','--config','firebase.json','--project','demo-meble-app','--only','auth,firestore','--non-interactive',command],
+            const argv=segment.emulator===false?['--test','--test-reporter=tap','--test-concurrency=1',...(segment.pattern?['--test-name-pattern='+segment.pattern]:[]),...unit]:[cli,'emulators:exec','--config','firebase.json','--project','demo-meble-app','--only','auth,firestore','--non-interactive',command];
+            result=spawnSync(process.execPath,argv,
               {cwd,env:{...context.cleanEnvironment(),XDG_CONFIG_HOME:settings},encoding:'utf8',maxBuffer:64*1024*1024});
           }finally{fs.rmSync(settings,{recursive:true,force:true});}
           process.stdout.write(result.stdout||'');process.stderr.write(result.stderr||'');
@@ -158,7 +164,7 @@ function main(){
     }
     failed ||= groupFailed;
     const status=groupFailed?'FAIL':'PASS';
-    const evaluated=segment?executedSegments:[...(selectedBatch!==null?batches[selectedBatch-1]:batches.flat())];
+    const evaluated=segment||p0bSegment?executedSegments:[...(selectedBatch!==null?batches[selectedBatch-1]:batches.flat())];
     context.report(`SDK/Auth/Firestore/Rules **${status}** | ${group.context} | SHA \`${context.git(group.root,['rev-parse','HEAD'])}\` | ${evaluated.join(', ')}`);
     context.verifyHistorical(root);
   }

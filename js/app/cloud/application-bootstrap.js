@@ -3,6 +3,11 @@
  'use strict';const fc=window.FC=window.FC||{};let configuration=null,runtime=null,starting=null,boot=null,lastContext=null,connectionsActive=null,refreshing=null,lastError=null,lastLocation=null,stage='idle';
  // Diagnostic vocabulary is closed: never retain raw messages, stacks, IDs or payloads.
  const diagnosticCodes=new Set(`
+  LF_QUOTE_ROOM_SCOPE_REQUIRED LF_ROOM_PROJECT_CONTEXT_PROTECTED LF_ROOM_PROJECT_DUPLICATE LF_ROOM_PROJECT_FOREIGN_DATA LF_ROOM_PROJECT_NAME_DUPLICATE LF_ROOM_PROJECT_NAME_REQUIRED LF_ROOM_PROJECT_SCOPE_REQUIRED LF_ROOM_PROJECT_STATUS_UNCONFIRMED LF_ROOM_PROJECT_WRITE_UNCONFIRMED
+  LF_FIRST_CATALOG_BASE_CHANGED LF_FIRST_CATALOG_ONLINE_REQUIRED LF_FIRST_CATALOG_SOURCE_CHANGED LF_LOCAL_DELETION_SYNC_REQUIRED LF_P0B_CONTACT_NOT_FOUND LF_PROJECT_BASE_INCOMPLETE LF_PROJECT_RECOVERY_CONFLICT LF_PROJECT_RECOVERY_PENDING LF_PROJECT_RECOVERY_SOURCE_CHANGED LF_PROJECT_RECOVERY_UNCONFIRMED LF_QUOTE_ROOM_LEDGER_REQUIRED LF_ROOM_BATCH_INVALID LF_ROOM_COPY_BASE_UNCONFIRMED LF_ROOM_COPY_SCOPE_UNCONFIRMED LF_ROOM_PROJECT_METADATA_INVALID LF_ROOM_PROJECT_REMOVED
+  LF_PROJECT_DISCOVERY_UNCONFIRMED LF_P0B_REGISTRY_REQUIRED LF_P0B_SCOPE_RETIRED LF_P0B_LEGACY_SCOPE_REFUSED LF_P0B_CONTACT_INVALID LF_P0B_CONTACT_CONFLICT LF_P0B_CONTACT_PROJECT_SCOPE_REFUSED
+  LF_P0B_DELETION_RECOVERY_REQUIRED LF_P0B_ACK_UNCONFIRMED LF_P0B_EDITOR_CONFLICT LF_P0B_NEW_PROJECT_REQUIRED LF_P0B_NEW_PROJECT_SOURCE_CHANGED LF_P0B_INVESTOR_DELETED LF_P0B_PROJECT_CONFLICT
+  LF_P0B_BINDING_UNCONFIRMED LF_P0B_PIN_INCORRECT LF_P0B_PIN_CONFLICT LF_P0B_DELETE_CONFLICT LF_P0B_LOCAL_INVENTORY_REQUIRED
   LF_LOCAL_RESET_INVALID LF_LOCAL_RESET_INTERRUPTED LF_LOCAL_RESET_UNCONFIRMED LF_LOCAL_MODE_REQUIRED LF_LOCAL_SYNC_NOT_AUTHORIZED
   LF_ACK_UNRESOLVED LF_ACTIVATION_EXPIRED LF_ACTIVATION_RECEIPT_CHANGED LF_ACTIVE_FORM_PROTECTED LF_ACTIVE_RAM_PROTECTED
   LF_APPLICATION_ACCESS_UNCONFIRMED LF_APPLICATION_ACTIVATION_REQUIRED LF_APPLICATION_ALREADY_INITIALIZED LF_APPLICATION_ALREADY_INSTALLED LF_APPLICATION_AUTH_CONFIGURATION_REQUIRED
@@ -117,7 +122,7 @@
   if(value.ok===false&&value.code!=='LF_OFFLINE')recordFailure(value);
  }
  function setStage(value){stage=value;if(value==='initial-project-revisions'&&transferStatus==='not-started')transferStatus='checking';}
- const note=error=>{recordFailure(error);lastLocation=String(error?.stack||'').match(/\/(?:sync|js\/app\/cloud)\/[a-z0-9/-]+\.(?:mjs|js):[0-9]+/)?.[0]||null;lastError=/^(?:(?:LF_|GLOBAL_|AUTH_|LOCAL_)[A-Z_]+|auth\/[a-z-]+)$/.test(error?.code||error?.message||'')?(error.code||error.message):'LF_STARTUP_UNCONFIRMED';};
+ const note=error=>{recordFailure(error);lastLocation=String(error?.stack||'').match(/\/(?:sync|js\/app\/cloud)\/[a-z0-9/-]+\.(?:mjs|js):[0-9]+/)?.[0]||null;lastError=/^(?:(?:LF_|GLOBAL_|AUTH_|LOCAL_)[A-Z0-9_]+|auth\/[a-z-]+)$/.test(error?.code||error?.message||'')?(error.code||error.message):'LF_STARTUP_UNCONFIRMED';};
  let release=null,configuring=null,recoveryQuiescent=false,resetPending=false;
  async function deployment(){if(release||configuration)return;const slot=window.FC_APPLICATION_RELEASE;if(!slot?.envelope&&!slot?.trustedKeySha256)return;const {verifyApplicationRelease}=await import('../../../sync/application-release.mjs');release=await verifyApplicationRelease({...slot,origin:new URL('./',document.baseURI).href});const firstCatalogSync=slot.firstCatalogSync===true;configuration={name:'meble-local-first-v1',localOnly:!firstCatalogSync,firstCatalogSync};}
  function connect(input){return configuration.connections?configuration.connections({...input,release}):import('../../../sync/application-connections.mjs').then(m=>m.createApplicationConnections({window,...input,release,sdk:configuration.sdk}));}
@@ -134,7 +139,7 @@
    if(configuration.localOnly===true)await import('../project/project-export-contract.js');
    await import('./global-data-contract.js');
    const {prepareApplicationBoot}=await import('../../../sync/application-boot.mjs');
-   try{boot=await prepareApplicationBoot({window,ownerUid,name:configuration.name,release,localOnly:configuration.localOnly===true,firstCatalogSync:configuration.firstCatalogSync===true});stage='source-ready';}catch(error){if((error.code||error.message)==='LF_LOCAL_RESET_INTERRUPTED'){resetPending=true;recoveryQuiescent=true;}note(error);throw error;}
+   try{boot=await prepareApplicationBoot({window,ownerUid,name:configuration.name,release,localOnly:configuration.localOnly===true,firstCatalogSync:configuration.firstCatalogSync===true,p0bDemo:configuration.p0bDemo===true});stage='source-ready';}catch(error){if((error.code||error.message)==='LF_LOCAL_RESET_INTERRUPTED'){resetPending=true;recoveryQuiescent=true;}note(error);throw error;}
   },
   async start(context){
    const {ownerUid,authSession,lease}=context;lastContext=context;
@@ -147,7 +152,7 @@
     connectionsActive=connections;
     if(runtime){if(boot?.localOnly)await runtime.resume({localOwnerUid:ownerUid});else if(navigator.onLine!==false)await runtime.resume(connections);return runtime;}
     const {startApplicationRuntime}=await import('../../../sync/application-runtime.mjs');
-    runtime=await startApplicationRuntime({window,ownerUid,name:configuration.name,boot,release,localOnly:boot?.localOnly===true,firstCatalogSync:configuration.firstCatalogSync===true,emulatorCatalogWitness:configuration.emulatorCatalogWitness,onStage:setStage,onDiagnostic:diagnosticState,onFailureQuiescent(){recoveryQuiescent=true;},...connections});
+    runtime=await startApplicationRuntime({window,ownerUid,name:configuration.name,boot,release,localOnly:boot?.localOnly===true,firstCatalogSync:configuration.firstCatalogSync===true,p0bDemo:configuration.p0bDemo===true,emulatorCatalogWitness:configuration.emulatorCatalogWitness,onStage:setStage,onDiagnostic:diagnosticState,onFailureQuiescent(){recoveryQuiescent=true;},...connections});
     return runtime;
    })().then(value=>{stage='ready';return value;}).catch(async error=>{
     note(error);

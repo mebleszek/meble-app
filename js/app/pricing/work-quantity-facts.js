@@ -37,6 +37,7 @@
   }
 
   function roomSettings(roomId){
+    if(roomId&&typeof roomId==='object')return roomId.settings||{};
     const key = text(roomId);
     try{ if(key && root.projectData && root.projectData[key] && root.projectData[key].settings) return root.projectData[key].settings || {}; }catch(_){ }
     try{ if(key && FC.projectData && FC.projectData[key] && FC.projectData[key].settings) return FC.projectData[key].settings || {}; }catch(_){ }
@@ -76,7 +77,7 @@
   function getCabinetCutListParts(roomId, cabinet){
     try{
       const factsApi = FC.cabinetDerivedFacts || null;
-      if(factsApi && typeof factsApi.getCutlist === 'function' && !(typeof factsApi.isComputing === 'function' && factsApi.isComputing())){
+      if(typeof roomId!=='object' && factsApi && typeof factsApi.getCutlist === 'function' && !(typeof factsApi.isComputing === 'function' && factsApi.isComputing())){
         const parts = factsApi.getCutlist(roomId, cabinet || {}, { recalculate:true, persist:false });
         if(Array.isArray(parts)) return parts;
       }
@@ -528,7 +529,7 @@
   function derivedWorkFacts(roomId, cabinet){
     try{
       const api = FC.cabinetDerivedFacts || null;
-      if(!api || typeof api.getWorkFacts !== 'function') return null;
+      if(typeof roomId==='object' || !api || typeof api.getWorkFacts !== 'function') return null;
       if(typeof api.isComputing === 'function' && api.isComputing()) return null;
       return api.getWorkFacts(roomId, cabinet || {}, { recalculate:true, persist:false });
     }catch(_){ return null; }

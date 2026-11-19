@@ -142,6 +142,25 @@ test('Flush reports a skipped project, preserves the shared investor, receives i
   assert.equal(rows.fc_quote_snapshots_v1,JSON.stringify([history]));
  }finally{await sync.close();}
 });
+test('Reopen observes the complete handover while its real ACK is pending',async()=>{
+ const {createApplicationHandover}=await import('../sync/application-replication.mjs');
+ const request={deviceId:'computer',epoch:7},editor={...request,active:true};
+ let completeAck,started,acknowledged=false,releases=0,errors=[];
+ const entered=new Promise(resolve=>started=resolve);
+ const ack=new Promise(resolve=>completeAck=resolve);
+ const store={deviceId:'computer',pendingHandover:async()=>request,
+  snapshot:async()=>({replica:{editor,base:{generation:1},dirty:!acknowledged},operations:acknowledged?[]:[{phase:'inflight'}]})};
+ const sync={notify(){},async flush(){started();await ack;acknowledged=true;return {ok:true};},
+  async releaseRequestedEditor(scope,actual){assert.equal(scope,'P');assert.deepEqual(actual,request);assert.equal(acknowledged,true);releases++;}};
+ const handover=createApplicationHandover({store,getSync:()=>sync,online:()=>true,onError:e=>errors.push(e)});
+ const exit=handover.start('P');await entered;
+ const pending=handover.pending('P');assert.ok(pending instanceof Promise,'The flush is part of the pending handover, not an invisible gap');
+ let settled=false;pending.then(()=>settled=true);await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(settled,false);assert.equal(releases,0);
+ completeAck();await exit;await pending;
+ assert.equal(releases,1);assert.deepEqual(errors,[]);assert.equal(handover.pending('P'),undefined);
+});
+
 test('Explicit Save distinguishes confirmed local commit, queued publication and verified revision',async()=>{
  for(const [receipt,text] of [
   [{localConfirmed:true,cloudConfirmed:false},'Zmiany zapisano na tym urządzeniu.'],
