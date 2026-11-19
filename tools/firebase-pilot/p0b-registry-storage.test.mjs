@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
 import {startLocalFirstServer,openBrowserDevice} from '../helpers/local-first-browser.mjs';
+import {checkpointNativeFixture,nativeFixtureState} from './p0b-fixture-baseline.mjs';
 test('P0-B registry boundary retains old replicas and all outbox phases through abort and restart',async t=>{
  const server=await startLocalFirstServer(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'p0b-boundary-'));
  let browser=await openBrowserDevice(server,path.join(dir,'computer'));
@@ -36,7 +37,26 @@ test('P0-B registry boundary retains old replicas and all outbox phases through 
  const archive=await browser.evaluate('window.lf.snapshot("p0b-archives")');
  assert.deepEqual(JSON.parse(archive.protected[0].json).image.rows,rows);
  await assert.rejects(store.commit({scope:'queued',operationId:'resurrect',value:{scope:'queued'},expectedVersion:2,editor:{active:true,deviceId:binding.deviceId,epoch:1}}),/LF_P0B_SCOPE_RETIRED/);
- await browser.crash();browser=await openBrowserDevice(server,path.join(dir,'computer'));store=await browser.open({...binding,initialize:false});
+ // Establish the fixture's old Web Storage source/name before crashing NEW IDB work.
+ const nativeRead='window.readNormalSource=key=>Storage.prototype.getItem.call(localStorage,key);true';
+ await browser.evaluate(nativeRead);
+ await browser.evaluate('Object.entries('+JSON.stringify(rows)+').forEach(([key,value])=>{if(value!==null)localStorage.setItem(key,value);});localStorage.setItem("meble-device-label-v1:boundary-device","Telefon DEMO");true');
+ const device={database:binding.name,page:{evaluate:(fn,arg)=>browser.evaluate('('+fn.toString()+')('+JSON.stringify(arg)+')')}};
+ const baseline=await checkpointNativeFixture(device,async()=>{
+  await browser.gracefulClose();browser=await openBrowserDevice(server,path.join(dir,'computer'));
+  store=await browser.open({...binding,initialize:false});await browser.evaluate(nativeRead);
+ });
+ const fresh=await store.apply({scope:'fresh-room',value:{cabinetWidth:66},head:null,expectedVersion:0,editor:{active:true,deviceId:binding.deviceId,epoch:1}});
+ await store.commit({scope:'fresh-room',operationId:'fresh-after-baseline',value:{cabinetWidth:67},expectedVersion:fresh.version,editor:fresh.editor});
+ const freshBefore=await store.snapshot('fresh-room');
+ await browser.crash();browser=await openBrowserDevice(server,path.join(dir,'computer'));store=await browser.open({...binding,initialize:false});await browser.evaluate(nativeRead);
+ const nativeAfter=await nativeFixtureState(device);
+ assert.deepEqual(nativeAfter.raw,baseline.raw);assert.equal(nativeAfter.nativeLabel,'Telefon DEMO');assert.deepEqual(nativeAfter.binding,baseline.binding);
+ const recover=source=>browser.evaluate('(async()=>{window.FC={applicationRegistry:{id:"p0b-rooms-v1"}};window.__FC_MAIN_ACCESS__={assert(){}};return (await import("/sync/application-p0b-binding.mjs")).recoverP0BDemoBinding({window,name:'+JSON.stringify(binding.name)+',ownerUid:'+JSON.stringify(binding.ownerUid)+',source:'+JSON.stringify(source)+'});})()');
+ assert.equal((await recover(nativeAfter.raw)).binding.deviceId,binding.deviceId);
+ await assert.rejects(recover({...nativeAfter.raw,fc_company_v1:null}),/LF_P0B_BINDING_UNCONFIRMED/);
+ assert.deepEqual(await store.snapshot('fresh-room'),freshBefore,'New queued IDB data survive SIGKILL without any orderly flush');
+ assert.deepEqual(await nativeFixtureState(device),nativeAfter,'Binding refusal cannot write or partially recover the image');
  await browser.evaluate('window.lf.enterP0BRegistry('+JSON.stringify(rows)+')');
  assert.deepEqual((await store.readApplication()).rows,active);
  for(const scope of Object.keys(before))assert.deepEqual(await store.snapshot(scope),before[scope]);

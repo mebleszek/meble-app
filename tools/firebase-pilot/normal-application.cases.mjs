@@ -31,7 +31,26 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  const sources=runtime().FC.globalDataContract.sources;
  let releaseSlot=null;if(deployment){const keys=await crypto.subtle.generateKey('Ed25519',true,['sign','verify']),publicKeySpki=new Uint8Array(await crypto.subtle.exportKey('spki',keys.publicKey));const {canonical,digest}=await import('../../sync/local-first-values.mjs');const decision={domain:'MEBLE_APPLICATION_DEPLOYMENT_V1',protocol:2,projectId:'demo-meble-app',database:'(default)',profile:'business-project-v1',globalDomains:14,ownerUid:uid,activationId:'synthetic-deployment',origin:origin+'/',migrationApproved:true,sourcePreserved:true,rulesApproved:true,rulesSha256:await digest(rules)};releaseSlot={envelope:{decision,publicKeySpki:[...publicKeySpki],signature:[...new Uint8Array(await crypto.subtle.sign('Ed25519',keys.privateKey,new TextEncoder().encode(canonical(decision))))]},trustedKeySha256:Buffer.from(await crypto.subtle.digest('SHA-256',publicKeySpki)).toString('hex')};}
  async function login(d){await d.page.evaluate(()=>window.normalReleaseReady);await d.page.click('#auth-google');try{await d.page.waitForFunction(()=>['ready'].includes(document.body.dataset.businessState)||['profile-pending','error'].includes(document.body.dataset.authState));}catch(error){throw Error('Login phase '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,phase:window.FC.applicationStartup?.inspect(),connectionError:window.normalConnectionError,rpc:window.normalRpcTimeline,pendingRpc:window.normalPendingRpc,sdkErrors:window.normalSdkErrors,held:window.normalHeldRead===true}))));}
-  if(await d.page.evaluate(()=>document.body.dataset.authState==='error'))throw Error('Normal startup refused '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,error:document.getElementById('auth-error')?.textContent}))));
+  if(await d.page.evaluate(()=>document.body.dataset.authState==='error')){
+   const evidence=await d.page.evaluate(async name=>{
+    const status={state:{...document.body.dataset},error:document.getElementById('auth-error')?.textContent};
+    if(window.FC.applicationStartup.inspect().code!=='LF_P0B_BINDING_UNCONFIRMED')return status;
+    const {applicationKeys}=await import('/sync/application-authority.mjs'),{digest,equal}=await import('/sync/local-first-values.mjs');
+    const source=Object.fromEntries(applicationKeys(window.FC).map(key=>[key,window.readNormalSource(key)]));
+    const q=indexedDB.open('meble-lf-test-normal-'+name,1);
+    const db=await new Promise((resolve,reject)=>{q.onupgradeneeded=()=>q.transaction.abort();q.onerror=()=>reject(q.error);q.onsuccess=()=>resolve(q.result);});
+    try{const tx=db.transaction(['control','protected'],'readonly'),control=tx.objectStore('control');
+     const requests={binding:control.get('binding'),image:control.get('application'),marker:control.get('p0b-registry'),archive:tx.objectStore('protected').get('p0b-previous-registry')};
+     const values=await new Promise((resolve,reject)=>{tx.onabort=()=>reject(tx.error);tx.oncomplete=()=>resolve(Object.fromEntries(Object.entries(requests).map(([key,q])=>[key,q.result])));});
+     const {binding,image,marker,archive}=values,preserved=archive&&JSON.parse(archive.json);
+     return {...status,bindingEvidence:{schema:[...db.objectStoreNames],binding,marker,imagePresent:!!image,
+      imageHash:!!image&&await digest(image.rows)===image.hash,archivePresent:!!archive,archiveHash:!!archive&&await digest(archive.json)===archive.hash,
+      archiveKind:preserved?.kind,archiveRegistry:preserved?.registry,archiveScope:archive?.scope,
+      changedSourceKeys:preserved?.sourceRows&&Object.keys(source).filter(key=>!equal(source[key],preserved.sourceRows[key]??null))}};
+    }finally{db.close();}
+   },d.name);
+   throw Error('Normal startup refused '+JSON.stringify(evidence));
+  }
   if(await d.page.locator('#auth-profile-admission').isVisible()){await d.page.check('#auth-profile-backup');await d.page.check('#auth-profile-owner');await d.page.click('#auth-profile-confirm');}
   try{await d.page.waitForFunction(()=>document.body.dataset.businessState==='ready');}catch(error){throw Error(error.message+' '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,error:document.getElementById('auth-error')?.textContent,app:document.getElementById('app-error-msg')?.textContent}))));}}
  async function device(name){

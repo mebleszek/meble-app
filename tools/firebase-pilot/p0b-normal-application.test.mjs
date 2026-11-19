@@ -9,6 +9,7 @@ import {assertFails} from '@firebase/rules-unit-testing';
 import {runNormalApplication} from './normal-application.cases.mjs';
 import {promotionCase,stagingCase} from './p0b-quote-lifecycle.cases.mjs';
 import {variantsCase} from './p0b-quote-variants.cases.mjs';
+import {checkpointNativeFixture,nativeFixtureState} from './p0b-fixture-baseline.mjs';
 async function image(device){
  return device.page.evaluate(name=>new Promise((resolve,reject)=>{
   const q=indexedDB.open('meble-lf-test-normal-'+name);q.onupgradeneeded=()=>q.transaction.abort();q.onerror=()=>reject(q.error);
@@ -67,6 +68,14 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    if(!computer)computer=await device('computer');else{await configure(computer);await computer.page.reload();await login(computer);}
    await phone.page.evaluate(()=>window.FC.localDeviceLabel.write('Telefon DEMO'));
    await computer.page.evaluate(()=>window.FC.localDeviceLabel.write('Komputer DEMO'));
+   // Persist only the test's old source/name setup. All crash-tested business
+   // writes, ACK losses and recovery checkpoints happen after this boundary.
+   await phone.page.context().tracing.stop({path:path.join(artifacts,'fixture-baseline.zip')});
+   const baseline=await checkpointNativeFixture(phone,restartProbe);
+   assert.equal(baseline.nativeLabel,'Telefon DEMO');
+   assert.equal(await phone.page.evaluate(()=>window.FC.localDeviceLabel.read()),'Telefon DEMO');
+   await phone.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
+   t.diagnostic('Native fixture RAW, archive, deviceId and label survive an orderly baseline restart');
    const db=env.authenticatedContext(ownerUid,{email_verified:true,firebase:{sign_in_provider:'google.com'}}).firestore();
    const globalBefore=(await f.getDoc(f.doc(db,'users',ownerUid,'globalData','current'))).data();
    const page=phone.page;let pin;
@@ -420,6 +429,11 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    const reopened=phone.page;await reopened.context().tracing.start({screenshots:true,snapshots:true,sources:true});
    await reopened.locator('.panel-box').filter({hasText:'Odzyskaj projekt'}).waitFor();
    const sourceBeforeAbort=await image(phone);
+   const recoveredIdentity=await nativeFixtureState(phone);
+   assert.deepEqual(recoveredIdentity.binding,baseline.binding,'SIGKILL must keep the established installation');
+   assert.deepEqual(recoveredIdentity.raw,baseline.raw);
+   assert.equal(recoveredIdentity.nativeLabel,'Telefon DEMO','Recovery must use the durable local device name');
+   assert.equal(await reopened.evaluate(()=>window.FC.localDeviceLabel.read()),'Telefon DEMO');
    await reopened.evaluate(()=>{
     const original=IDBObjectStore.prototype.put;
     IDBObjectStore.prototype.put=function(value,...args){
@@ -433,7 +447,13 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    await recover(phone,'room-copy',pin,'Kuchnia odzyskana','LF_IDB_ABORTED');
    const aborted=await image(phone);
    assert.deepEqual(rows(aborted),rows(sourceBeforeAbort));assert.deepEqual(aborted.outbox,sourceBeforeAbort.outbox);assert.deepEqual(aborted.replicas,sourceBeforeAbort.replicas);
-   assert.equal((await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomEditors',pid))).data().deviceLabel,'Telefon DEMO','Server takeover completed before the aborted local checkpoint');
+   const takeoverAfterAbort=(await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomEditors',pid))).data();
+   assert.equal(takeoverAfterAbort.deviceLabel,'Telefon DEMO','Server takeover completed before the aborted local checkpoint');
+   assert.equal(takeoverAfterAbort.deviceId,baseline.binding.deviceId);
+   assert.notEqual(takeoverAfterAbort.deviceId,taken.deviceId);
+   assert.equal(takeoverAfterAbort.epoch,taken.epoch+1);
+   assert.equal(takeoverAfterAbort.active,true);
+   assert.equal(takeoverAfterAbort.headRevision,confirmedHead.currentRevisionId);
    await reopened.context().tracing.stop({path:path.join(artifacts,'aborted-recovery.zip')});
    await restartProbe(phone,{crash:true});
    await phone.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
