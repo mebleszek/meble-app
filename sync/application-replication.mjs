@@ -82,7 +82,7 @@ export function createApplicationReplication({store,channels,globalContract,proj
 
 // Only a durable, generation-specific request can release the server editor.
 export function createApplicationHandover({store,getSync,online,onError}){
- const releasing=new Map();
+ const releasing=new Map(),starting=new Map();
  const acknowledged=({replica,operations})=>!!replica?.base&&!replica.dirty&&operations.every(op=>op.phase==='verified');
  async function release(scope){
   const sync=getSync();
@@ -104,16 +104,26 @@ export function createApplicationHandover({store,getSync,online,onError}){
    await pending;
   }
  }
- async function start(scope){
-  const sync=getSync();
-  if(!scope||!sync||!online()||!await store.pendingHandover(scope))return;
-  if(!acknowledged(await store.snapshot(scope))&&online()){
-   sync.notify(scope);
-   await sync.flush();
+ function start(scope){
+  if(!scope)return Promise.resolve();
+  let pending=starting.get(scope);
+  if(!pending){
+   // Reopening must observe the ACK wait as well as the final release. The
+   // request is already durable; this never creates an implicit handover.
+   pending=(async()=>{
+    const sync=getSync();
+    if(!sync||!online()||!await store.pendingHandover(scope))return;
+    if(!acknowledged(await store.snapshot(scope))&&online()){
+     sync.notify(scope);
+     await sync.flush();
+    }
+    await resume([scope]);
+   })().finally(()=>starting.delete(scope));
+   starting.set(scope,pending);
   }
-  await resume([scope]);
+  return pending;
  }
- return {start,resume,pending:scope=>releasing.get(scope)};
+ return {start,resume,pending:scope=>starting.get(scope)||releasing.get(scope)};
 }
 
 // Same atomic business/image/outbox boundary for online and already-approved offline editors.

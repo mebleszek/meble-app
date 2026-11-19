@@ -17,7 +17,7 @@ function wire(r,{old=false,other=false,idb=[],durable}={}){
  const s=r.s||r;s.__FC_MAIN_ACCESS__={isValid:()=>true};s.MessageChannel=MessageChannel;s.URL=URL;
  let handler;
  const workerHandlers={};const self={MEBLE_OFFLINE_ASSETS:{files:[],version:'synthetic'},location:{href:'https://synthetic.invalid/offline-worker.js'},addEventListener:(name,fn)=>{workerHandlers[name]=fn;},clients:{matchAll:async()=>old?[{postMessage:(data,ports)=>{ports[0].postMessage({version:'old'});ports[0].close();}}]:[{postMessage:(data,ports)=>handler({data,ports})}]}};
- vm.runInNewContext(fs.readFileSync('offline-worker.js','utf8'),{self,importScripts(){},URL,MessageChannel,setTimeout,clearTimeout,crypto:require('node:crypto').webcrypto});
+ vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../offline-worker.js'),'utf8'),{self,importScripts(){},URL,MessageChannel,setTimeout,clearTimeout,crypto:require('node:crypto').webcrypto});
  const controller={scriptURL:'https://synthetic.invalid/offline-worker.js',postMessage(data,ports){workerHandlers.message({data,ports,waitUntil:promise=>promise.catch(e=>{throw e;})});}};
  s.document.baseURI='https://synthetic.invalid/index.html';s.navigator={locks:{request:async(_name,fn)=>fn()},serviceWorker:{controller,addEventListener:(_name,fn)=>{handler=fn;}}};
  const db=journalIDB(durable);s.__journalIDB=db;const list=db.databases;db.databases=async()=>[...await list(),...(other?[{name:'meble-local-first-v1'}]:idb)];s.indexedDB=db;s.FC.offlineShell={prepare:async()=>({complete:true})};

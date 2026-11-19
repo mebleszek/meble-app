@@ -195,16 +195,16 @@ test('Startup does not replace corrupt primary or historical catalogs with start
     assert.equal(r.s.localStorage.getItem(key),raw);assert.ok(!r.ops.some(op=>op[0]==='set'&&op[1]===key));
   }
 });
-test('Company and costs UI keep the edited input on failure and report success only after retry',()=>{
+test('Company and costs UI keep the edited input on failure and report success only after retry',async()=>{
   for(const [apiName,view] of [['companyProfile','dataSettingsCompanyView'],['businessCosts','dataSettingsBusinessCostsView']]){
     const r=runtime(),api=r.FC[apiName];api.write(settings.find(x=>x[0]===apiName)[1]);
     const key=api.STORAGE_KEY,old=r.s.localStorage.getItem(key),form=r.s.document.createElement('div');r.FC[view].render(form);
     const input=Array.from(form.querySelectorAll('input')).find(x=>x.getAttribute('type')!=='checkbox');
     input.value='USER edited draft';input.dispatchEvent({type:'input'});
-    r.fail(key);form.querySelector('.data-settings-actions .btn-success').click();
+    r.fail(key);form.querySelector('.data-settings-actions .btn-success').click();await new Promise(resolve=>setImmediate(resolve));
     assert.equal(r.s.localStorage.getItem(key),old);assert.equal(input.value,'USER edited draft');
     assert.ok(r.messages.length);assert.ok(!r.messages.some(x=>x.title==='Zapisano'));
-    r.retry();r.messages.length=0;form.querySelector('.data-settings-actions .btn-success').click();
+    r.retry();r.messages.length=0;form.querySelector('.data-settings-actions .btn-success').click();await new Promise(resolve=>setImmediate(resolve));
     assert.equal(r.messages.at(-1).title,'Zapisano');assert.ok(r.s.localStorage.getItem(key).includes('USER edited draft'));
   }
 });

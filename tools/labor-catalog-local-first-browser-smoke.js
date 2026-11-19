@@ -3,6 +3,7 @@
 // Synthetic loopback owner and form inputs; no Auth SDK or Firebase transport.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http=require('node:http');
 const root=path.resolve(__dirname,'..');
+const fixtureModules=require('./helpers/fixture-module-assets').moduleAssets();
 const {buildCodeCatalogs}=require('./helpers/code-global-catalogs');
 async function main(){
  const {model,context}=buildCodeCatalogs(),ids=context.FC.laborCatalogDefinitions.PDF_OPERATION_IDS;
@@ -18,7 +19,7 @@ async function main(){
   const pathname=new URL(req.url,'http://localhost').pathname;
   if(pathname==='/'){res.writeHead(200,{'content-type':'text/html'});res.end('<!doctype html><script>window.lfReady=true;</script>');return;}
   const file=path.resolve(root,'.'+pathname);
-  if(!/^\/(sync\/[a-z.-]+\.mjs|js\/app\/[a-z/-]+\.js)$/.test(pathname)||!file.startsWith(root+path.sep)){res.writeHead(404);res.end();return;}
+  if((!/^\/(sync\/[a-z.-]+\.mjs|js\/app\/[a-z/-]+\.js)$/.test(pathname)&&!fixtureModules.has(pathname))||!file.startsWith(root+path.sep)){res.writeHead(404);res.end();return;}
   try{res.writeHead(200,{'content-type':'text/javascript'});res.end(fs.readFileSync(file));}catch(_){res.writeHead(404);res.end();}
  });
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'meble-labor-native-'));let browser,phase='setup';const external=[];

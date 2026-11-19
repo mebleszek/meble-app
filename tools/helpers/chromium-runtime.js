@@ -54,12 +54,13 @@ function launch({profileDir,args,env={},capture=false}){
     // The discovery file is not business storage. Never remove SingletonLock,
     // IndexedDB, recovery markers or any other profile file to force a start.
     fs.rmSync(path.join(profile,'DevToolsActivePort'),{force:true});
-    runtime=fs.mkdtempSync(path.join(os.tmpdir(),'meble-chromium-runtime-'));
+    // UNIX sockets have a small path limit. CI's TMPDIR can be arbitrarily long.
+    runtime=fs.mkdtempSync('/tmp/mcr-');
     for(const name of ['cache','config'])fs.mkdirSync(path.join(runtime,name));
     // No service directories/activation: headless tests must not start desktop
     // portals or wait on the runner's inherited desktop session.
     fs.writeFileSync(path.join(runtime,'bus.conf'),'<busconfig><type>session</type><listen>unix:tmpdir='+xml(runtime)+'</listen><auth>EXTERNAL</auth><policy context="default"><allow send_destination="*"/><allow receive_sender="*"/><allow own="*"/></policy></busconfig>');
-    const environment={...process.env,...env,XDG_CACHE_HOME:path.join(runtime,'cache'),XDG_CONFIG_HOME:path.join(runtime,'config')};
+    const environment={...process.env,...env,TMPDIR:runtime,XDG_CACHE_HOME:path.join(runtime,'cache'),XDG_CONFIG_HOME:path.join(runtime,'config')};
     for(const key of ['DBUS_SESSION_BUS_ADDRESS','DBUS_SYSTEM_BUS_ADDRESS','DBUS_STARTER_ADDRESS','DBUS_STARTER_BUS_TYPE'])delete environment[key];
     owned=ownedProcess('/usr/bin/python3',[path.join(__dirname,'chromium-process.py'),'--receipt='+path.join(runtime,'descendants-reaped'),bus,'--config-file='+path.join(runtime,'bus.conf'),'--',binary,
       '--headless','--no-sandbox','--disable-dev-shm-usage','--disable-background-networking','--disable-component-update','--no-first-run',

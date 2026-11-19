@@ -37,7 +37,7 @@ test('P0-B room storage: quote history abort, source proof, CAS, frozen content 
  const {digest}=await import('../../sync/local-first-values.mjs'),{quoteScope}=await import('../../sync/local-first-quote-contract.mjs');
  const scope=await quoteScope('investor'),hash='a'.repeat(64),record={id:'kitchen',investorId:'investor',cabinets:[{id:'cab',width:66}]};
  const head={generation:1,projectId:'kitchen',investorId:'investor',currentRevisionId:'b'.repeat(32),documentSha256:hash,roomDeleted:false};
- const source={fc_projects_v1:JSON.stringify([record]),fc_investors_v1:'[{"id":"investor","name":"Owner"}]',fc_quote_snapshots_v1:'[]',fc_company_v1:' {"exact":13.125} '};
+ const source={fc_projects_v1:JSON.stringify([record]),fc_investors_v1:'[{"id":"investor","name":"Owner","rooms":[]}]',fc_quote_snapshots_v1:'[]',fc_company_v1:' {"exact":13.125} '};
  await browser.evaluate('window.lf.enterP0BRegistry('+JSON.stringify({...source,fc_projects_v1:'[]',fc_investors_v1:'[]'})+')');await store.initializeApplication(source);
  await store.apply({scope:'kitchen',value:{document:{payload:{project:record},integrity:{documentSha256:hash}}},head,expectedVersion:0});
  const witness=(await store.snapshot('kitchen')).replica,recordHash=await digest(record);

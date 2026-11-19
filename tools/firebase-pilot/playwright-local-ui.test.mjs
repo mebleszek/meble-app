@@ -9,10 +9,12 @@ import { chromium } from 'playwright-core';
 import { canonical, digest, json } from '../../sync/local-first-values.mjs';
 import { startBrowser } from '../helpers/chromium-runtime.js';
 import { injection } from '../trusted-session-browser-smoke.js';
+import shellManifest from '../offline-assets.js';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const name = 'meble-lf-test-playwright-ui';
 const uid = 'synthetic-phone-owner';
+const publicShell = new Set(shellManifest.manifest().files.map(file => '/' + file.path));
 
 async function signedRelease(origin) {
   const keys = await crypto.subtle.generateKey('Ed25519', true, ['sign', 'verify']);
@@ -40,7 +42,7 @@ async function withApp(scenario) {
       res.writeHead(200, { 'Content-Type': 'text/html' }).end('<!doctype html><title>DEMO bootstrap</title>');
       return;
     }
-    if (!/^\/(?:index\.html|offline-[\w-]+\.js|(?:assets|css|js|sync)\/[\w./-]+)$/.test(pathname)) {
+    if (!publicShell.has(pathname) && !/^\/(?:index\.html|offline-[\w-]+\.js|(?:assets|css|js|sync)\/[\w./-]+)$/.test(pathname)) {
       res.writeHead(404).end();
       return;
     }
@@ -48,7 +50,8 @@ async function withApp(scenario) {
     try {
       if (!file.startsWith(root)) throw Error('Path outside fixture');
       const mime = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
-      res.writeHead(200, { 'Content-Type': mime[path.extname(file)] || 'application/octet-stream' }).end(await readFile(file));
+      const bytes = await readFile(file);
+      res.writeHead(200, { 'Content-Type': mime[path.extname(file)] || 'application/octet-stream' }).end(bytes);
     } catch {
       if (!res.headersSent) res.writeHead(404);
       res.end();
@@ -104,8 +107,20 @@ async function withApp(scenario) {
       recording = true;
       await page.goto(origin + '/fixture-host.html');
       await page.evaluate(async () => {
-        await navigator.serviceWorker.register('/offline-worker.js');
-        await navigator.serviceWorker.ready;
+        const registration = await navigator.serviceWorker.register('/offline-worker.js');
+        if (!registration.active) {
+          const worker = registration.installing || registration.waiting;
+          if (!worker) throw Error('FIXTURE_WORKER_MISSING');
+          await new Promise((resolve, reject) => {
+            const inspect = () => {
+              if (worker.state === 'redundant') { worker.removeEventListener('statechange', inspect); reject(Error('FIXTURE_WORKER_INSTALL_REFUSED')); }
+              else if (['installed','activating','activated'].includes(worker.state)) { worker.removeEventListener('statechange', inspect); resolve(); }
+            };
+            worker.addEventListener('statechange', inspect); inspect();
+          });
+        }
+        const ready = await navigator.serviceWorker.ready;
+        if (!ready.active) throw Error('FIXTURE_WORKER_NOT_ACTIVE');
       });
       await page.goto(origin + '/index.html');
       await page.evaluate(() => window.testReleaseReady);

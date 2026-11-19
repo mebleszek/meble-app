@@ -32,7 +32,7 @@ async function showList(page){
  await page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
 }
 async function projects(page){
- await page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
+ await page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending&&!window.FC.applicationStartup.inspect().incomingPending);
  if(!await page.locator('.room-project-picker').isVisible())await page.locator('[data-investor-action="projects"]').click();
  await page.locator('.room-project-picker').waitFor();
 }
@@ -372,7 +372,12 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     t.diagnostic('Real single-room status and deletion preserve the other room, combined quote history and global data');
     return;
    }
+   // A verified sender ACK precedes the reader's asynchronous application refresh.
+   // Observe the other room's exact revision and completed projection before navigating.
+   await until(async()=>(await image(phone)).replicas.find(row=>row.key===wardrobeId)?.base?.currentRevisionId===wardrobeHead.currentRevisionId);
+   await page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending&&!window.FC.applicationStartup.inspect().incomingPending);
    await page.locator('[data-action="tab"][data-tab="inwestor"]').click();
+   await page.waitForFunction(()=>window.uiState.activeTab==='inwestor'&&!window.FC.applicationStartup.inspect().transactionPending&&!window.FC.applicationStartup.inspect().incomingPending);
    await openRoom(phone,roomId);
    await page.waitForFunction(()=>window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending);
    await page.context().setOffline(true);await page.waitForFunction(()=>navigator.onLine===false);

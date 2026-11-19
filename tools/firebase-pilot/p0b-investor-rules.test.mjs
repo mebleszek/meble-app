@@ -286,6 +286,7 @@ test('P0-B two real Chromium profiles: local label, offline intent, lost ACK, re
     ...['app','auth','firestore'].map(name=>['/__sdk/firebase-'+name+'.js','tools/firebase-pilot/node_modules/firebase/firebase-'+name+'.js']),
     ...['ui/data-settings-dom','ui/data-settings-company-view','ui/data-settings-menu-view','ui/data-settings-modal','settings/company-profile-store','investor/investor-ui','investor/investor-ui-render','investor/investor-deletion'].map(name=>['/js/app/'+name+'.js','js/app/'+name+'.js'])
   ]);
+  for(const [url,file]of createRequire(import.meta.url)('../helpers/fixture-module-assets').moduleAssets())assets.set(url,file);
   const server=http.createServer((req,res)=>{
     if(req.url==='/'){res.setHeader('content-type','text/html; charset=utf-8');res.end('<!doctype html><meta charset="utf-8"><main id="company"></main><section id="list"></section>');return;}
     const file=assets.get(req.url);if(!file){res.writeHead(404).end();return;}

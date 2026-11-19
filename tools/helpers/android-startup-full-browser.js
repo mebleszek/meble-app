@@ -32,7 +32,7 @@ async function main({delayMs=46000,roomStartup=false}={}){
    for(const file of ['cloud/cloud-pilot-contract','project/business-project-contract'])require('node:vm').runInContext(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8'),project.s);
    const built=await project.FC.businessProjectContract.build({getItem:key=>key==='fc_edit_session_v1'?null:rows[key]??null},record.id);
    const value=JSON.parse(JSON.stringify({document:built.document,globals:{head,model},requirements:project.FC.businessProjectContract.dependencies(built.document.payload)})),encoded=json(value);
-   tables.replicas.push({key:record.id,version:1,json:encoded,hash:await digest(encoded),base:null,dirty:false,editor:roomStartup==='draft'?{deviceId:binding.deviceId,epoch:1,active:true}:null});
+   tables.replicas.push({key:record.id,version:1,json:encoded,hash:await digest(encoded),base:null,dirty:false,editor:roomStartup==='draft'?{ownerUid:server.uid,projectId:record.id,deviceId:binding.deviceId,epoch:1,active:true,headRevision:''}:null});
   }
   await browser.evaluate(`(async()=>{
    const tables=${JSON.stringify(tables)},rows=${JSON.stringify(rows)};
@@ -47,9 +47,10 @@ async function main({delayMs=46000,roomStartup=false}={}){
   await browser.evaluate(injection+'\nFC_AUTH_TEST_OPTIONS={};window.testAccount='+JSON.stringify(server.uid)+';true');
   await browser.evaluate(`(()=>{
    const sdk=(${connectionSdk.toString()})(window,${JSON.stringify(server.uid)}),f=sdk.firestore,originalGet=f.getDocFromServer;
+   const editors=${JSON.stringify(Object.fromEntries(tables.replicas.filter(r=>r.editor).map(r=>[r.key,r.editor])))};window.fullEditorReads=[];
    f.doc=(_db,...path)=>({path,id:path.at(-1)});f.collection=(_db,...path)=>({path});f.query=(...parts)=>parts;f.orderBy=(...x)=>x;f.limit=x=>x;f.documentId=()=>null;f.startAfter=x=>x;f.onSnapshot=()=>()=>{};
    f.getDocsFromServer=async()=>({metadata:{fromCache:false,hasPendingWrites:false},docs:[],size:0});
-   f.getDocFromServer=ref=>(ref.path?.includes('globalData')||ref.path?.includes('localFirstProjects'))?Promise.resolve({metadata:{fromCache:false,hasPendingWrites:false},exists:()=>false}):originalGet(ref);
+   f.getDocFromServer=ref=>{if(ref.path?.includes('localFirstEditors')){const editor=editors[ref.id];window.fullEditorReads.push(ref.id);return Promise.resolve({metadata:{fromCache:false,hasPendingWrites:false},exists:()=>!!editor,data:()=>editor});}return (ref.path?.includes('globalData')||ref.path?.includes('localFirstProjects'))?Promise.resolve({metadata:{fromCache:false,hasPendingWrites:false},exists:()=>false}):originalGet(ref);};
    f.runTransaction=(_db,operation)=>operation({get:ref=>f.getDocFromServer(ref),set(){throw Error('UNEXPECTED_SYNTHETIC_SERVER_WRITE');}});
    let transport=window.FC.firebasePilotTransport;const configure=value=>{value.loadSdk=()=>new Promise(resolve=>{window.fullSdkWaitingAt=performance.now();window.fullRelease=()=>resolve(sdk);});};configure(transport);
    Object.defineProperty(FC,'firebasePilotTransport',{configurable:true,get:()=>transport,set:value=>{transport=value;configure(value);}});
@@ -77,6 +78,7 @@ async function main({delayMs=46000,roomStartup=false}={}){
    assert.equal(await browser.evaluate('window.FC.session.durable'),roomStartup==='draft');
    if(roomStartup!=='draft')assert.equal(await browser.evaluate('uiState.activeTab'),'inwestor');
    if(roomStartup==='draft'){
+    assert.deepEqual(await browser.evaluate('[...new Set(fullEditorReads)].sort()'),tables.replicas.filter(r=>r.editor).map(r=>r.key).sort(),'Resumption requires a fresh server witness for the same device and generation');
     const tap=async selector=>{let point;try{point=await waitForGesturePoint(browser.evaluate,selector,{stable:true});}catch(error){throw Error(error.message+' '+JSON.stringify(await browser.evaluate('({ui:uiState,buttons:document.getElementById("sessionButtons").style.cssText,button:document.getElementById("sessionCancel").style.cssText,active:window.FC.session.active,durable:window.FC.session.durable,app:document.getElementById("appView").style.cssText,info:document.querySelector(".info-box")?.textContent})')));}await browser.send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...point});await browser.send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...point});};
     await browser.send('Network.enable');await browser.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
     assert.equal(await browser.evaluate('window.FC.applicationWrite.checkpoint(()=>window.FC.session.commit())'),true);

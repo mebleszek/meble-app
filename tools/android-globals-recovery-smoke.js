@@ -27,10 +27,12 @@ async function fatal(stall=false){let failed=false,opened=0,releaseReadonly;cons
  // Exercise the real runtime function with isolated boundary dependencies: a
  // pending/failed close must never mint recovery readiness or hide first error.
  const runtimeSource=fs.readFileSync('sync/application-runtime.mjs','utf8').replace(/^import [^;]+;\n/gm,'').replace(/^export /gm,'');
+ const {createApplicationHandover}=await import('../sync/application-replication.mjs');
+ const {createLocalDeviceLabel}=await import('../sync/local-device-label.mjs');
  for(const closeFails of [false,true]){
   let finish,settled=false,ready=false;const stops=[],original=Object.assign(Error('PRIVATE_ORIGINAL'),{code:'GLOBAL_ALIAS_CONFLICT'}),rows={fc_projects_v1:'[]'};
   const closing=new Promise((resolve,reject)=>{finish=()=>closeFails?reject(Error('PRIVATE_CLOSE')):resolve();});
-  const deps={assertApplicationConnection:()=>({uid:'synthetic-owner'}),applicationKeys:()=>[],applicationInstallation:async()=>({binding:{},confirm(){},release(){stops.push('release');}}),
+  const deps={createApplicationHandover,assertApplicationConnection:()=>({uid:'synthetic-owner'}),applicationKeys:()=>[],applicationInstallation:async()=>({binding:{},confirm(){},release(){stops.push('release');}}),
    openLocalFirstStore:async()=>({readApplication:async()=>({rows}),snapshot:async()=>({replica:null}),exclusive:fn=>fn(),close(){stops.push('store');}}),
    createGlobalChannel:()=>({read:async()=>{throw {code:'GLOBAL_NOT_FOUND'};}}),createEmulatorProjectDiscovery:()=>({}),createApplicationReplication:()=>({close:()=>closing}),createApplicationCommitter:()=>({}),
    installEmulatorApplicationAuthority:async()=>({rows:()=>rows,close(){stops.push('authority');}})};
@@ -41,8 +43,8 @@ async function fatal(stall=false){let failed=false,opened=0,releaseReadonly;cons
  console.log('PASS real runtime waits for synchronization cleanup; failed cleanup preserves original globals error and refuses recovery readiness');
  {
   let beforeTransaction,finish,checks=0;const rows={fc_projects_v1:'[]'},authority={status:()=>({transactionPending:false,incomingPending:false}),close(){}};
-  const deps={fail:code=>{throw Object.assign(Error(code),{code});},applicationKeys:()=>[],applicationInstallation:async()=>({binding:{},confirm(){},release(){}}),
-   openLocalFirstStore:async()=>({readApplication:async()=>({rows}),close(){}}),createApplicationCommitter:()=>({}),verifyExclusiveClient:async()=>{checks++;},
+  const deps={createLocalDeviceLabel,createApplicationHandover,installLocalInvestorDeletion:()=>({close(){}}),fail:code=>{throw Object.assign(Error(code),{code});},applicationKeys:()=>[],applicationInstallation:async()=>({binding:{},confirm(){},release(){}}),
+   openLocalFirstStore:async()=>({deviceId:'read-lock-device',readApplication:async()=>({rows}),close(){}}),createApplicationCommitter:()=>({}),verifyExclusiveClient:async()=>{checks++;},
    installOfflineEmulatorApplicationAuthority:async options=>{beforeTransaction=options.beforeTransaction;return authority;},
    installApplicationWriteBoundary:()=>({run(){},busy:()=>false,close(){}}),createApplicationActionBinding:()=>({})};
   const run=new Function('deps','with(deps){'+runtimeSource+';return startApplicationRuntime;}')(deps),runtime=await run({window:{FC:{globalDataContract:{},businessProjectContract:{},applicationSyncActions:{install(){}}},__FC_MAIN_ACCESS__:{assert(){}},navigator:{onLine:false},addEventListener(){},removeEventListener(){}},name:'meble-lf-test-read-lock',ownerUid:'synthetic-owner',boot:{restored:true,rows:()=>rows}});
@@ -56,4 +58,4 @@ async function fatal(stall=false){let failed=false,opened=0,releaseReadonly;cons
  console.log('PASS browser code artifact matches generator; synthetic executor is excluded from product imports/manifest and refuses real origin/database');
  const ci=require('./ci-smoke-shards'),all=ci.plan(ci.inventory('tools',require('./cloud-ci-context').historicalSmoke)).flat();for(const name of ['android-globals-recovery-smoke.js','android-globals-recovery-browser-smoke.js','synthetic-global-rebuild-browser-smoke.js','main-login-smoke.js','trusted-main-login-smoke.js','local-first-rescue-smoke.js','local-first-rescue-browser-smoke.js','code-global-catalogs-smoke.js','code-global-rebuild-plan-smoke.js'])assert.equal(all.filter(n=>n===name).length,1,name);
  console.log('ANDROID GLOBALS RECOVERY: 7/7 groups PASS, all new and existing boundary tests in mandatory CI');
-})().catch(error=>{console.error(error.code||error.message||'RECOVERY_TEST_FAILED');process.exitCode=1;});
+})().catch(error=>{console.error(error.stack||error.code||'RECOVERY_TEST_FAILED');process.exitCode=1;});

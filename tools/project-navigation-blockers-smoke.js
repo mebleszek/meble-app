@@ -3,6 +3,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const {createSandbox,loadSmokeFiles}=require('./app-dev-smoke');
 const {APP_DEV_SMOKE_FILES}=require('./app-dev-smoke-lib/file-list');
+const readFile=(file,...args)=>fs.readFileSync(require('node:path').resolve(__dirname,'..',file),...args);
 const clone=x=>JSON.parse(JSON.stringify(x)),P='fc_projects_v1',I='fc_investors_v1',H='fc_quote_snapshots_v1',E='fc_edit_session_v1';
 function fixture(seed,options){
  class Memory{
@@ -18,9 +19,9 @@ function fixture(seed,options){
  if(options&&options.configureSandbox)options.configureSandbox(s);
  loadSmokeFiles(s,APP_DEV_SMOKE_FILES);
  s.STORAGE_KEYS=s.FC.constants.STORAGE_KEYS;
- for(const file of ['js/app/shared/ui-state.js','js/app/ui/tab-navigation.js','js/app/shared/public-api.js'])vm.runInContext(fs.readFileSync(file,'utf8'),s,{filename:file});
+ for(const file of ['js/app/shared/ui-state.js','js/app/ui/tab-navigation.js','js/app/shared/public-api.js'])vm.runInContext(readFile(file,'utf8'),s,{filename:file});
  const FC=s.FC,messages=[],handlers={};FC.actions={register:actions=>Object.assign(handlers,actions)};
- vm.runInContext(fs.readFileSync('js/app/ui/actions-register.js','utf8'),s);
+ vm.runInContext(readFile('js/app/ui/actions-register.js','utf8'),s);
  FC.infoBox={open:cfg=>messages.push(cfg)};
  if(!seed){
   FC.investors.writeAll([{id:'K',name:'Kowalski',kind:'person',rooms:[{id:'room_k',baseType:'kuchnia',name:'Kuchnia',label:'Kuchnia',projectStatus:'nowy'},{id:'room_s',baseType:'pokoj',name:'Salon',label:'Salon',projectStatus:'nowy'},{id:'room_x',baseType:'pokoj',name:'Gabinet',label:'Gabinet',projectStatus:'umowa'}]},{id:'N',name:'Nowak',kind:'person',rooms:[]}]);

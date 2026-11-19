@@ -343,16 +343,22 @@ export async function runP0BRecovery(t,{env,client,uid,pin,wrongPin,contact}){
     });
     return page;
   }
+  let lostCopyAck=false;
   const page=await recoveryUI({...old.protocol,async advanceEditor(args){
     await old.protocol.advanceEditor(args);
-    throw Error('copy-lost-ack');
+    lostCopyAck=true;
+    throw Object.assign(Error('Synthetic lost copy ACK'),{code:'LF_TEST_COPY_ACK_LOST'});
   }});
   await page.getByLabel('PIN przejęcia').fill(pin);
   await page.getByLabel('Nazwa kopii pomieszczenia').fill(request.name);
   await page.getByRole('button',{name:'Zachowaj kopię pomieszczenia',exact:true}).click();
   await page.getByRole('button',{name:'Odzyskaj projekt',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('[role="status"]')?.textContent.includes('Odzyskiwanie wstrzymane.'));
-  assert.match(await page.getByRole('status').textContent(),/copy-lost-ack/);
+  assert.equal(lostCopyAck,true,'The server committed takeover before the injected ACK loss');
+  assert.match(await page.getByRole('status').textContent(),/LF_TEST_COPY_ACK_LOST/);
+  const serverCopy=await old.protocol.projectStatus(investorId,projectId);
+  assert.equal(serverCopy.editor.deviceId,store.deviceId);
+  assert.equal(serverCopy.editor.epoch,copyStatus.status.editor.epoch+1);
   const pendingCopy=await store.pendingProjectRecovery(projectId);
   assert.equal(pendingCopy.variant,'room-copy');
   assert.deepEqual(pendingCopy.roomCopy.confirmedBase.head,preCopy.replica.base);

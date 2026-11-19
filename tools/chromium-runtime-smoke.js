@@ -18,12 +18,14 @@ function isolatedRuntime(profile){
   const clock=class extends Date{static now(){return state.clock;}};
   const fakeFs={...fs,readdirSync:dir=>dir==='/proc'?(state.active?['400000']:[]):fs.readdirSync(dir),
     readFileSync:(file,...args)=>file==='/proc/400000/stat'?'400000 (fixture) S 1 400000 400000 0':fs.readFileSync(file,...args)};
-  const fakeProcess={platform:'linux',env:{...process.env,DBUS_SESSION_BUS_ADDRESS:'invalid-inherited-address',DBUS_SYSTEM_BUS_ADDRESS:'invalid-system-address'},
+  const fakeProcess={platform:'linux',env:{...process.env,TMPDIR:'/tmp/'+('long-ci-socket-root-'.repeat(10)),DBUS_SESSION_BUS_ADDRESS:'invalid-inherited-address',DBUS_SYSTEM_BUS_ADDRESS:'invalid-system-address'},
     kill(group,signal){assert.equal(group,400000);state.signals.push(signal);state.active=false;clearTimeout(state.timer);
       const c=state.child;c.signalCode=signal;if(!state.omitReceipt)fs.writeFileSync(state.receipt,'reaped\n');c.stdout.end();queueMicrotask(()=>c.emit('exit',null,signal));}};
   const spawn=(command,args,options)=>{
     assert.equal(command,'/usr/bin/python3');assert.equal(args[2],'/usr/bin/dbus-run-session');assert.equal(options.detached,true);state.receipt=args[1].slice('--receipt='.length);
     assert.equal(options.env.DBUS_SESSION_BUS_ADDRESS,undefined);assert.equal(options.env.DBUS_SYSTEM_BUS_ADDRESS,undefined);
+    assert.ok(options.env.TMPDIR.startsWith('/tmp/mcr-'));assert.ok(options.env.TMPDIR.length<40,'Chrome sockets must not inherit the long CI temp root');
+    assert.equal(path.dirname(state.receipt),options.env.TMPDIR);
     assert.equal(fs.existsSync(path.join(profile,'DevToolsActivePort')),false);
     const config=fs.readFileSync(args[3].slice('--config-file='.length),'utf8');assert.match(config,/<type>session<\/type>/);assert.doesNotMatch(config,/<(?:service|standard_session_service)dir/);
     state.launches++;state.active=true;

@@ -183,7 +183,7 @@ function aggregateSetFrontParts(room, cab, sourceContext){
     const roles=expected.get(key);return roles && roles.length===row.qty && roles.every(Boolean);
   });
   if(verified){
-    const sourceProjectId=sourceContext?.projectId || (ns.partProvenance ? ns.partProvenance.projectContext(window.projectData).projectId : '');
+    const sourceProjectId=(room && typeof room === 'object' ? sourceContext?.projectId : '') || (ns.partProvenance ? ns.partProvenance.projectContext(window.projectData).projectId : '');
     acc.forEach((row,key)=>{
       const counts=new Map();expected.get(key).forEach(role=>counts.set(role,(counts.get(role)||0)+1));
       row.sourceGroupRoles=Array.from(counts,([groupRoleId,qty])=>({ownerType:'set',setId:String(cab.setId),sourceProjectId,groupRoleId,qty}));

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const ROOT = path.resolve(__dirname, '..');
 const { APP_DEV_SMOKE_FILES } = require('./app-dev-smoke-lib/file-list');
 const { SmokeStorage, makeStorage } = require('./app-dev-smoke-lib/smoke-storage');
 const { makeMiniDocument } = require('./app-dev-smoke-lib/mini-document');
@@ -17,8 +18,8 @@ function createSandbox(){
     structuredClone: global.structuredClone || ((x)=> JSON.parse(JSON.stringify(x))),
     crypto: require('crypto').webcrypto,
     __DEV_ASSETS__: {
-      'index.html': fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8'),
-      'dev_tests.html': fs.readFileSync(path.join(process.cwd(), 'dev_tests.html'), 'utf8'),
+      'index.html': fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'),
+      'dev_tests.html': fs.readFileSync(path.join(ROOT, 'dev_tests.html'), 'utf8'),
     },
   };
   sandbox.window = sandbox;
@@ -30,7 +31,7 @@ function createSandbox(){
 function loadSmokeFiles(sandbox, files){
   vm.createContext(sandbox);
   files.forEach((file)=>{
-    const code = fs.readFileSync(path.join(process.cwd(), file), 'utf8');
+    const code = fs.readFileSync(path.join(ROOT, file), 'utf8');
     vm.runInContext(code, sandbox, { filename:file });
   });
   return sandbox;
@@ -73,7 +74,7 @@ function runProjectNodeSmoke(sandbox){
       return !!(out && out.kuchnia && out.kuchnia.preferences && out.kuchnia.preferences.zones && out.kuchnia.preferences.zones.lower.bodyColor === 'Czarny' && out.kuchnia.preferences.zones.middle.openingSystem === 'TIP-ON' && out.kuchnia.preferences.hardwareProducers && out.kuchnia.preferences.hardwareProducers.hinges === 'GTV' && out.kuchnia.preferences.hardwareProducers.accessories === 'Rejs' && out.kuchnia.preferences.hardwareDrawerSystems && out.kuchnia.preferences.drawerPreference && out.kuchnia.preferences.drawerPreference.kind === 'system' && out.kuchnia.preferences.drawerPreference.systemKey === 'blum_tandembox_antaro' && out.szafa && out.szafa.preferences && out.szafa.preferences.zones && out.szafa.preferences.hardwareProducers && out.szafa.preferences.hardwareDrawerSystems);
     } },
     { name:'Wywiad ma zwinięte akordeony inline bez przycisków modalnych', explain:'Pilnuje poprawki UX: Parametry, producenci okuć oraz materiały/kolory są edytowane bezpośrednio w akordeonach, domyślnie zwiniętych.', check:()=> {
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
       return html.includes('id="roomParametersAccordion"')
         && html.includes('id="roomHardwareProducerPreferencesAccordion"')
         && html.includes('id="roomPreferencesAccordion"')
@@ -108,7 +109,7 @@ function runProjectNodeSmoke(sandbox){
       }
     } },
     { name:'UI producentów okuć czyta wartości z launcherów przy zapisie', explain:'Chroni mobilny scenariusz, w którym formularz zostaje przebudowany albo closure draftu jest nieaktualne — Zapisz zmiany ma czytać realne wartości pól, w tym Pozostałe akcesoria.', check:()=> {
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-hardware-producers.js'), 'utf8');
+      const src = fs.readFileSync(path.join(ROOT, 'js/app/ui/wywiad-room-hardware-producers.js'), 'utf8');
       return src.includes('function readFormSelections')
         && src.includes('data-hardware-producer-key')
         && src.includes('data-hardware-producer-value')
@@ -119,7 +120,7 @@ function runProjectNodeSmoke(sandbox){
     { name:'App core namespace jest wydzielony z app.js', check:()=> !!(FC.appCoreNamespace && typeof FC.appCoreNamespace.createAppCore === 'function') },
     { name:'App legacy bridges są wydzielone z app.js', check:()=> !!(FC.appLegacyBridges && FC.appLegacyBridges.installed === true) },
     { name:'Boot startuje init dopiero po DOMContentLoaded', explain:'Chroni mobilny świeży deploy: boot.js ładuje się jako pierwszy defer i nie może uruchamiać init ani zgłaszać braku init, zanim app.js oraz reszta deferred scripts skończą rejestrację.', check:()=> {
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/boot.js'), 'utf8');
+      const src = fs.readFileSync(path.join(ROOT, 'js/boot.js'), 'utf8');
       return src.includes("boot-clean-1.6")
         && src.includes("if (document.readyState === 'complete')")
         && src.includes("document.addEventListener('DOMContentLoaded', boot")
@@ -142,9 +143,9 @@ function runDataNodeSmoke(sandbox){
       const saved = api.read();
       const draft = {};
       api.applyMaterialsToDraft(draft, saved);
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      const menu = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/data-settings-menu-view.js'), 'utf8');
-      const classifier = fs.readFileSync(path.join(process.cwd(), 'js/app/shared/data-storage-classifier.js'), 'utf8');
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+      const menu = fs.readFileSync(path.join(ROOT, 'js/app/ui/data-settings-menu-view.js'), 'utf8');
+      const classifier = fs.readFileSync(path.join(ROOT, 'js/app/shared/data-storage-classifier.js'), 'utf8');
       return saved.zones.lower.bodyColor === 'Egger W1100'
         && saved.hardware.drawerSystemManufacturer === 'Rejs'
         && saved.hardware.accessoriesManufacturer === 'Rejs'
@@ -155,9 +156,9 @@ function runDataNodeSmoke(sandbox){
         && classifier.includes('fc_program_defaults_v1');
     } },
     { name:'Domyślne materiały i okucia trzymają wzorzec ROZRYS bez natywnych selectów i strzałek w launcherach', explain:'Pilnuje poprawki UI: w trybiku wybory mają być launcherami aplikacji, bez systemowego pickera, bez liczników i bez strzałek w przyciskach wyboru; akordeon ma używać geometrii chevrona ROZRYS.', check:()=> {
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/data-settings-defaults-view.js'), 'utf8');
-      const css = fs.readFileSync(path.join(process.cwd(), 'css/data-settings.css'), 'utf8');
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const src = fs.readFileSync(path.join(ROOT, 'js/app/ui/data-settings-defaults-view.js'), 'utf8');
+      const css = fs.readFileSync(path.join(ROOT, 'css/data-settings.css'), 'utf8');
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
       return !src.includes("h('select'")
         && !src.includes('makeSelectField')
         && !src.includes("sub:'4'")
@@ -178,9 +179,9 @@ function runDataNodeSmoke(sandbox){
     } },
     { name:'Backup store jest dostępny', check:()=> !!(FC.dataBackupStore && typeof FC.dataBackupStore.listBackups === 'function') },
     { name:'BACKUP.md opisuje zakres backupu i jest podpięty do dokumentacji', explain:'Pilnuje decyzji: przed zmianami storage/backup trzeba czytać osobny dokument BACKUP.md, a nie zgadywać zakres snapshotu.', check:()=> {
-      const backupDoc = fs.readFileSync(path.join(process.cwd(), 'BACKUP.md'), 'utf8');
-      const devDoc = fs.readFileSync(path.join(process.cwd(), 'DEV.md'), 'utf8');
-      const cloudDoc = fs.readFileSync(path.join(process.cwd(), 'CLOUD_MIGRATION.md'), 'utf8');
+      const backupDoc = fs.readFileSync(path.join(ROOT, 'BACKUP.md'), 'utf8');
+      const devDoc = fs.readFileSync(path.join(ROOT, 'DEV.md'), 'utf8');
+      const cloudDoc = fs.readFileSync(path.join(ROOT, 'CLOUD_MIGRATION.md'), 'utf8');
       return backupDoc.includes('fc_data_backups_v1')
         && backupDoc.includes('data-storage-keys.js')
         && backupDoc.includes('fc_rozrys_plan_cache_v1')
@@ -230,8 +231,8 @@ function runMaterialNodeSmoke(sandbox){
       return normalized.id === 'hw_test' && normalized.hardwareCategory === 'Zawiasy' && normalized.hardwareUnit === 'kpl.' && normalized.priceSource === 'Bivert' && normalized.priceUpdatedAt === '2026-05-04';
     } },
     { name:'Formularz akcesoriów ma pola okuć i panel producentów', explain:'Chroni UI katalogu okuć przed powrotem do prostego formularza nazwa+cena.', check:()=> {
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-manufacturers.js'), 'utf8');
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+      const src = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-hardware-manufacturers.js'), 'utf8');
       return html.includes('id="hardwareFormFields"') && html.includes('id="hardwareCategory"') && html.includes('id="hardwareUnit"') && html.includes('id="manageHardwareManufacturersBtn"') && src.includes('Producenci okuć') && src.includes('saveHardwareManufacturers');
     } },
     { name:'Katalog okuć ma dostawców, ustawienia i model ceny do wyceny', explain:'Pilnuje rozdzielenia kosztu firmy od ceny dla klienta: VAT globalny, rabat dostawcy, zakup po rabacie, narzut i cena do wyceny.', check:()=> {
@@ -249,20 +250,20 @@ function runMaterialNodeSmoke(sandbox){
         && Math.abs(Number(row.marginGross) - 43.05) < 0.001;
     } },
     { name:'Katalog okuć ma aplikacyjne filtry, sortowanie, dostawców i ustawienia', explain:'Chroni toolbar okuć: Filtry, Sortuj, Dostawcy i Ustawienia mają pozostać osobnymi oknami aplikacji.', check:()=> {
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      const filters = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-filter-sort.js'), 'utf8');
-      const suppliers = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-suppliers.js'), 'utf8');
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+      const filters = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-hardware-filter-sort.js'), 'utf8');
+      const suppliers = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-hardware-suppliers.js'), 'utf8');
       return ['openHardwareFiltersBtn','openHardwareSortBtn','manageHardwareSuppliersBtn','openHardwareSettingsBtn'].every((id)=> html.includes(id)) && filters.includes('Filtry okuć') && filters.includes('Sortuj okucia') && suppliers.includes('Dostawcy okuć') && suppliers.includes('Ustawienia cen okuć') && suppliers.includes('Globalny VAT %') && !suppliers.includes("label', { text:'VAT %'");
     } },
     { name:'Formularz okuć ma wrapper ceny prostej bez błędu startu', explain:'Chroni otwarcie Dodaj okucie przed ReferenceError formPriceWrapper po rozbudowie pól cen okuć.', check:()=> {
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
+      const src = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-item-form.js'), 'utf8');
       return src.includes('function formPriceWrapper()') && src.includes("const priceWrap = formPriceWrapper();") && src.includes("priceWrap.style.display = cfg.formKind === 'accessory' ? 'none' : ''");
     } },
     { name:'Katalog okuć rozdziela kpl. od składanych zestawów', explain:'Pilnuje, że kpl. jest normalną jednostką kompletu, para jest normalizowana do kpl., a skład pokazuje się tylko dla zestawu albo pozycji mającej bundleItems.', check:()=> {
       const hw = FC.hardwareCatalog;
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      const form = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-form.js'), 'utf8');
-      const bundle = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-bundle.js'), 'utf8');
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+      const form = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-hardware-form.js'), 'utf8');
+      const bundle = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-hardware-bundle.js'), 'utf8');
       if(!(hw && typeof hw.normalizeAccessory === 'function' && typeof hw.normalizeBundleItems === 'function' && typeof hw.isBundleUnit === 'function')) return false;
       const row = hw.normalizeAccessory({ id:'set1', name:'Zestaw', manufacturer:'Blum', hardwareUnit:'zestaw', bundleCostMode:'components', bundleItems:[{ itemId:'a', qty:2 }, { itemId:'set1', qty:1 }, { itemId:'a', qty:4 }] }, ()=> 'unused');
       return hw.isBundleUnit('zestaw') && !hw.isBundleUnit('kpl.') && hw.normalizeUnit('para') === 'kpl.' && !hw.UNITS.includes('para') && row.bundleCostMode === 'components' && Array.isArray(row.bundleItems) && row.bundleItems.length === 1 && row.bundleItems[0].qty === 2 && html.includes('id="hardwareBundleFields"') && html.includes('id="hardwareBundleCostMode"') && bundle.includes('bundleItemsDraft.length > 0') && bundle.includes('openPicker') && bundle.includes('priceModalHardwareBundle') && form.includes('clearPairIfSourceEmpty');
@@ -284,21 +285,21 @@ function runMaterialNodeSmoke(sandbox){
     { name:'Katalog okuć ma import/eksport JSON i XLSX', explain:'Pilnuje, że etap import/export ma osobny boundary, przycisk w toolbarze oraz nie wymaga dopisywania ręcznego do localStorage poza catalogStore.', check:()=> {
       const api = FC.hardwareCatalogImportExport;
       const xlsx = FC.xlsxLite;
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      const ui = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-import-export.js'), 'utf8');
-      const resolver = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-import-resolver.js'), 'utf8');
-      const priceConfirm = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-price-confirm.js'), 'utf8');
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+      const ui = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-hardware-import-export.js'), 'utf8');
+      const resolver = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-hardware-import-resolver.js'), 'utf8');
+      const priceConfirm = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-hardware-price-confirm.js'), 'utf8');
       if(!(api && typeof api.buildImportPlan === 'function' && typeof api.applyImportPlan === 'function' && typeof api.exportJson === 'function' && typeof api.exportXlsx === 'function' && typeof api.findRequiredGaps === 'function')) return false;
       if(!(xlsx && typeof xlsx.makeWorkbookBlob === 'function' && typeof xlsx.readWorkbook === 'function')) return false;
       return Number(api.VERSION) >= 3 && html.includes('id="openHardwareImportExportBtn"') && html.includes('hardware-catalog-import-export.js') && html.includes('price-modal-hardware-import-resolver.js') && html.includes('price-modal-hardware-price-confirm.js') && html.includes('price-modal-hardware-import-export.js') && ui.includes('Import / Eksport okuć') && ui.includes('lokalną kopię .xlsx') && ui.includes('Dysku Google/Arkuszy') && ui.includes('Tryb importu') && ui.includes('Scal / aktualizuj') && ui.includes('Zastąp katalog') && ui.includes('renderModeChoices') && ui.includes('makeFileSnapshot') && ui.includes('readWithFileReader') && ui.includes('fileReadHint') && ui.includes('__fcFileSnapshot') && ui.includes('snapshot = await makeFileSnapshot(file)') && ui.includes("input.value = '';\n      await onFile(snapshot)") && ui.includes('confirmSupplierPriceChanges') && resolver.includes('Ignoruj wszystko') && resolver.includes('Uzupełnij brakujące pola obowiązkowe') && priceConfirm.includes('Dodać nową cenę') && priceConfirm.includes('Zaktualizować cenę');
     } },
     { name:'Testy import/export okuć używają Array.from dla NodeList', explain:'Chroni dev_tests.html w przeglądarce: NodeList z querySelectorAll nie ma .find na Android/Chrome, więc test potwierdzeń nie może wysypać się przed kliknięciem.', check:()=> {
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/testing/material/accessories-import-export-deep-tests.js'), 'utf8');
+      const src = fs.readFileSync(path.join(ROOT, 'js/testing/material/accessories-import-export-deep-tests.js'), 'utf8');
       return src.includes("Array.from(rootNode.querySelectorAll('button') || []).find") && !/return\s*\(rootNode\.querySelectorAll\('button'\) \|\| \[\]\)\.find/.test(src);
     } },
     { name:'Import/export okuć jest rozdzielony pod stabilnymi fasadami', explain:'Pilnuje splitu: ciężkie moduły parsera, planu, eksportu i cen dostawców nie znikają z load order.', check:()=> {
       const api = FC.hardwareCatalogImportExport, price = FC.hardwareSupplierPriceXlsx;
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
       const files = [
         'hardware-supplier-price-export.js',
         'hardware-supplier-price-import.js',
@@ -314,10 +315,10 @@ function runMaterialNodeSmoke(sandbox){
         && files.every((name)=> html.includes(name));
     } },
     { name:'Katalog okuć ma UX statusu ceny i szybkich filtrów', explain:'Chroni czytelne karty okuć: status ceny, filtr Do sprawdzenia cen oraz podgląd zestawów/składników.', check:()=> {
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      const uxSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-ux.js'), 'utf8');
-      const listSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-list.js'), 'utf8');
-      const css = fs.readFileSync(path.join(process.cwd(), 'css/price-item-popup.css'), 'utf8');
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+      const uxSrc = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-hardware-ux.js'), 'utf8');
+      const listSrc = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-list.js'), 'utf8');
+      const css = fs.readFileSync(path.join(ROOT, 'css/price-item-popup.css'), 'utf8');
       const ctx = FC.priceModalContext || {};
       if(!(typeof ctx.hardwarePriceStatus === 'function' && typeof ctx.hardwareItemNeedsPriceCheck === 'function' && typeof ctx.matchesHardwareQuickFilter === 'function' && typeof ctx.renderHardwareAccessoryRow === 'function')) return false;
       const noPrice = ctx.hardwarePriceStatus({ name:'Brak', manufacturer:'Blum', hardwareCategory:'Zawiasy', hardwareUnit:'szt.' });
@@ -538,7 +539,7 @@ function runMaterialNodeSmoke(sandbox){
     { name:'Resolver ceny istniejącego okucia wymaga dostawcy z listy', explain:'Chroni import cenników: cena z producentem i symbolem istniejącego okucia, ale bez dostawcy, trafia do resolvera; po wyborze dostawcy aktualizuje cenę tego dostawcy, a ignorowanie liczy się jako pominięte.', check:()=> {
       const api = FC.hardwareCatalogImportExport, xlsx = FC.hardwareSupplierPriceXlsx, store = FC.catalogStore;
       if(!(api && xlsx && typeof xlsx.supplierPriceMissingSupplierGaps === 'function' && store && typeof store.savePriceList === 'function')) return false;
-      const resolverSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-import-resolver.js'), 'utf8');
+      const resolverSrc = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-hardware-import-resolver.js'), 'utf8');
       const previousAccessories = store.getAccessories ? store.getAccessories() : [], previousSuppliers = store.getHardwareSuppliers ? store.getHardwareSuppliers() : [];
       try{
         const suppliers = [{ id:'mago', name:'MAGO', defaultVatRate:23, defaultDiscountPercent:0, active:true }, { id:'bivert', name:'Bivert', defaultVatRate:23, defaultDiscountPercent:0, active:true }];
@@ -570,7 +571,7 @@ function runMaterialNodeSmoke(sandbox){
     { name:'Import cen dostawców pokazuje potwierdzenia nowych i aktualizowanych cen', explain:'Chroni przed cichą zmianą katalogu: plan importu niesie listę zmian cen, z rozróżnieniem dodania i aktualizacji oraz starą/nową ceną.', check:()=> {
       const api = FC.hardwareCatalogImportExport, store = FC.catalogStore, confirmUi = FC.priceModalHardwarePriceConfirm;
       if(!(api && store && typeof store.savePriceList === 'function' && confirmUi && typeof confirmUi.confirmSupplierPriceChanges === 'function')) return false;
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-price-confirm.js'), 'utf8');
+      const src = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-hardware-price-confirm.js'), 'utf8');
       const previousAccessories = store.getAccessories ? store.getAccessories() : [], previousSuppliers = store.getHardwareSuppliers ? store.getHardwareSuppliers() : [];
       try{
         const item = { id:'confirm_price_hw', manufacturer:'Blum', symbol:'CONF-1', name:'Potwierdzane okucie', hardwareCategory:'Zawiasy', hardwareUnit:'szt.', status:'active', supplierPrices:[{ supplierId:'mago', catalogPriceNet:10, catalogPriceGross:12.3, priceDate:'2026-05-12', priceStatus:'current', useForQuote:true }] };
@@ -629,8 +630,8 @@ function runMaterialNodeSmoke(sandbox){
     } },
     { name:'Dynamiczne parametry techniczne okuć mają słownik i helpy', explain:'Chroni nową architekturę: kategorie mają własne parametry, nazwa techniczna powstaje z parametrów oznaczonych jako budujące nazwę, a opcje techniczne mają opisy pod ?.', check:()=> {
       const api = FC.hardwareTechnicalParams;
-      const dictionariesSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-dictionaries.js'), 'utf8');
-      const formSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-form.js'), 'utf8');
+      const dictionariesSrc = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-hardware-dictionaries.js'), 'utf8');
+      const formSrc = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-hardware-form.js'), 'utf8');
       if(!(api && Array.isArray(api.DEFAULT_DEFINITIONS) && typeof api.buildTypeLabel === 'function' && typeof api.compareParam === 'function')) return false;
       const hingeFields = api.fieldsForCategory(api.DEFAULT_DEFINITIONS, 'Zawiasy');
       const drawerFields = api.fieldsForCategory(api.DEFAULT_DEFINITIONS, 'Szuflady / prowadnice');
@@ -669,8 +670,8 @@ function runMaterialNodeSmoke(sandbox){
         && String(row.hardwareType || '').includes('standardowy 90–120°');
     } },
     { name:'Modal edycji okuć używa pasywnego odczytu stanu formularza', explain:'Chroni wydajność na telefonie: sprawdzanie brudnego formularza i zamykanie modala nie może remountować dawnego launchera Typ/Cecha ani przeliczać UI z efektami ubocznymi.', check:()=> {
-      const itemFormSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
-      const hardwareFormSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-form.js'), 'utf8');
+      const itemFormSrc = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-item-form.js'), 'utf8');
+      const hardwareFormSrc = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-hardware-form.js'), 'utf8');
       return itemFormSrc.includes('getCurrentAccessoryDraft({ passive:true })')
         && hardwareFormSrc.includes('const cfg = Object.assign({ passive:false }')
         && hardwareFormSrc.includes('syncHardwareTypeFromTechnicalParams({ updateAction:false, remountChoice:false })')
@@ -678,9 +679,9 @@ function runMaterialNodeSmoke(sandbox){
         && !hardwareFormSrc.includes('function syncHardwareTypeFromTechnicalParams(){');
     } },
     { name:'Modal edycji okuć ma podgląd zamienników pod Wyjdź bez zapisu zmian', explain:'Chroni nowy etap: lista zamienników jest tylko podglądem w edycji okucia, ma własny moduł UI i nie dodaje zapisu do storage.', check:()=> {
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      const itemFormSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
-      const ui = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-replacements.js'), 'utf8');
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+      const itemFormSrc = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-item-form.js'), 'utf8');
+      const ui = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-hardware-replacements.js'), 'utf8');
       return html.includes('id="hardwareReplacementToggleBtn"')
         && html.includes('id="hardwareReplacementPreview"')
         && html.includes('price-modal-hardware-replacements.js')
@@ -694,9 +695,9 @@ function runMaterialNodeSmoke(sandbox){
         && !/\b(alert|confirm|prompt)\s*\(/.test(ui);
     } },
     { name:'Słowniki okuć i Wzorce UI trzymają akordeon ROZRYS z ruchem', explain:'Chroni UX na telefonie: wspólny akordeon kategorii ma chevron jak ROZRYS, wzorzec UI pokazuje płynne otwarcie, a parametry nie tworzą małego wewnętrznego scrolla.', check:()=> {
-      const dictionariesSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-hardware-dictionaries.js'), 'utf8');
-      const css = fs.readFileSync(path.join(process.cwd(), 'css/price-item-popup.css'), 'utf8');
-      const uiPatterns = fs.readFileSync(path.join(process.cwd(), 'dev_ui_patterns.html'), 'utf8');
+      const dictionariesSrc = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-hardware-dictionaries.js'), 'utf8');
+      const css = fs.readFileSync(path.join(ROOT, 'css/price-item-popup.css'), 'utf8');
+      const uiPatterns = fs.readFileSync(path.join(ROOT, 'dev_ui_patterns.html'), 'utf8');
       return dictionariesSrc.includes('panel-box-form__scroll hardware-dictionary-scroll')
         && dictionariesSrc.includes('hardware-dictionary-param-list')
         && dictionariesSrc.includes('hardware-dictionary-categories-card')
@@ -851,8 +852,8 @@ function runMaterialNodeSmoke(sandbox){
       return Array.isArray(rows) && rows.some((row)=> String(row && row.id || '') === 'labor_body_h090') && rows.some((row)=> String(row && row.id || '') === 'labor_rate_workshop');
     } },
     { name:'Cennik robocizny ma aplikacyjne launchery wyboru zamiast natywnych selectów', explain:'Chroni formularz reguł robocizny przed systemowym pickerem Android/iOS.', check:()=> {
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-item-form.js'), 'utf8');
-      const conditions = fs.readFileSync(path.join(process.cwd(), 'js/app/material/price-modal-labor-conditions.js'), 'utf8');
+      const src = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-item-form.js'), 'utf8');
+      const conditions = fs.readFileSync(path.join(ROOT, 'js/app/material/price-modal-labor-conditions.js'), 'utf8');
       const required = ['laborRateType','laborTimeBlockHours','laborQuantitySource','laborQuantityMode','laborStartHours','laborStepHours','laborVolumeTimeMode'];
       return src.includes('mountLaborChoiceLaunchers') && src.includes('ensureLaborChoiceMount') && src.includes('selectEl.hidden = true') && src.includes('hideLaborUsageField') && !src.includes('laborAutoRole') && required.every((id)=> src.includes(id)) && conditions.includes('select.hidden = true') && conditions.includes('Wybierz wartość warunku') && !conditions.includes('Dodaj warunek');
     } },
@@ -892,8 +893,8 @@ function runWycenaNodeSmoke(sandbox){
     { name:'Wycena ma wewnętrzne rozbicie robocizny po szafkach', explain:'Pilnuje numerów szafek z WYWIADU i szczegółów kosztów robocizny tylko do podglądu wewnętrznego.', check:()=> !!(FC.wycenaCoreLabor && typeof FC.wycenaCoreLabor.collectCabinetLabor === 'function' && FC.wycenaTabPreview && typeof FC.wycenaTabPreview.renderLaborSection === 'function') },
     { name:'WYCENA ma aplikacyjny picker czynności zamiast długiej listy pól ilości', explain:'Chroni ręczne dodawanie robocizny przez osobne okno wyboru.', check:()=> !!(FC.wycenaLaborPicker && typeof FC.wycenaLaborPicker.open === 'function' && typeof FC.wycenaLaborPicker.normalizeCatalog === 'function') },
     { name:'Zakładka CZYNNOŚCI przejmuje ręczne czynności i podgląd szafek', explain:'Chroni przed powrotem dodawania robocizny do opcji WYCENY.', check:()=> !!(FC.tabsCzynnosci && typeof FC.tabsCzynnosci.render === 'function' && typeof FC.tabsCzynnosci.buildCabinetRows === 'function' && FC.wycenaTabManualLabor && typeof FC.wycenaTabManualLabor.renderManualLaborEditor === 'function') },
-    { name:'WYCENA nie renderuje już akordeonu ręcznych czynności', explain:'Czynności mają mieszkać w zakładce CZYNNOŚCI, nie w opcjach WYCENY.', check:()=> { const src = fs.readFileSync(path.join(process.cwd(), 'js/app/wycena/wycena-tab-shell.js'), 'utf8'); return !src.includes('renderManualLaborEditor(card, ctx)'); } },
-    { name:'Picker czynności używa standardowego panelBox', explain:'Chroni okno Dodaj czynności przed obcym pływającym układem i przyklejonym paskiem akcji.', check:()=> { const src = fs.readFileSync(path.join(process.cwd(), 'js/app/wycena/wycena-labor-picker.js'), 'utf8'); const css = fs.readFileSync(path.join(process.cwd(), 'css/quote-labor-picker.css'), 'utf8'); return src.includes('FC.panelBox.open') && src.includes('panel-box-form quote-labor-picker-form') && src.includes('panel-box-form__footer quote-labor-picker__footer') && css.includes('.quote-labor-picker-panel') && !css.includes('padding:12px 18px 16px'); } },
+    { name:'WYCENA nie renderuje już akordeonu ręcznych czynności', explain:'Czynności mają mieszkać w zakładce CZYNNOŚCI, nie w opcjach WYCENY.', check:()=> { const src = fs.readFileSync(path.join(ROOT, 'js/app/wycena/wycena-tab-shell.js'), 'utf8'); return !src.includes('renderManualLaborEditor(card, ctx)'); } },
+    { name:'Picker czynności używa standardowego panelBox', explain:'Chroni okno Dodaj czynności przed obcym pływającym układem i przyklejonym paskiem akcji.', check:()=> { const src = fs.readFileSync(path.join(ROOT, 'js/app/wycena/wycena-labor-picker.js'), 'utf8'); const css = fs.readFileSync(path.join(ROOT, 'css/quote-labor-picker.css'), 'utf8'); return src.includes('FC.panelBox.open') && src.includes('panel-box-form quote-labor-picker-form') && src.includes('panel-box-form__footer quote-labor-picker__footer') && css.includes('.quote-labor-picker-panel') && !css.includes('padding:12px 18px 16px'); } },
     { name:'Wycena wylicza robociznę szafki z katalogu', explain:'Chroni sekcję Robocizna — szafki przed pustym wynikiem mimo istniejących szafek.', check:()=> {
       const previousProject = sandbox.projectData;
       try{
@@ -940,7 +941,7 @@ function runCabinetNodeSmoke(sandbox){
         && typeof FC.roomPreferences.resolveZoneDefaults === 'function'
         && typeof FC.roomPreferences.resolveZoneFrontMaterial === 'function'
         && typeof FC.roomPreferences.applyZoneDefaultsToDraft === 'function');
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/room-preferences/room-preferences-model.js'), 'utf8');
+      const src = fs.readFileSync(path.join(ROOT, 'js/app/room-preferences/room-preferences-model.js'), 'utf8');
       return apiOk
         && src.includes('function resolveZoneDefaults(room, zoneOrType, fallback)')
         && src.includes('getProgramMaterialDefaults(zoneKey)')
@@ -948,9 +949,9 @@ function runCabinetNodeSmoke(sandbox){
         && src.includes('function resolveZoneFrontMaterial(room, zoneOrType, fallback)');
     } },
     { name:'Drafty i zestawy używają centralnego resolvera stref', explain:'Chroni kod przed dublowaniem logiki materiałów między nową szafką, zestawem i źródłami frontu.', check:()=> {
-      const draftSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-draft.js'), 'utf8');
-      const wizardSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
-      const frontSourceSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/front-material-source.js'), 'utf8');
+      const draftSrc = fs.readFileSync(path.join(ROOT, 'js/app/cabinet/cabinet-modal-draft.js'), 'utf8');
+      const wizardSrc = fs.readFileSync(path.join(ROOT, 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
+      const frontSourceSrc = fs.readFileSync(path.join(ROOT, 'js/app/cabinet/front-material-source.js'), 'utf8');
       return draftSrc.includes('function applyCurrentDefaultsToDraft(room, draft, typeValue)')
         && draftSrc.includes('applyZoneDefaultsToDraft(room, target, type)')
         && draftSrc.includes('applyCurrentDefaultsToDraft(room, cloned, type)')
@@ -993,11 +994,11 @@ function runCabinetNodeSmoke(sandbox){
       }
     } },
     { name:'Preferencje WYWIADU używają stref i launcherów aplikacji', explain:'Chroni UI przed powrotem do płaskich preferencji, natywnych selectów i sekcji Domyślne w WYWIADZIE.', check:()=> {
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-preferences.js'), 'utf8');
-      const hardwareSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-hardware-producers.js'), 'utf8');
-      const settingsSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-settings.js'), 'utf8');
-      const actionsSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-accordion-actions.js'), 'utf8');
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const src = fs.readFileSync(path.join(ROOT, 'js/app/ui/wywiad-room-preferences.js'), 'utf8');
+      const hardwareSrc = fs.readFileSync(path.join(ROOT, 'js/app/ui/wywiad-room-hardware-producers.js'), 'utf8');
+      const settingsSrc = fs.readFileSync(path.join(ROOT, 'js/app/ui/wywiad-room-settings.js'), 'utf8');
+      const actionsSrc = fs.readFileSync(path.join(ROOT, 'js/app/ui/wywiad-room-accordion-actions.js'), 'utf8');
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
       return actionsSrc.includes('createSaveFooter')
         && settingsSrc.includes("createSaveFooter('Parametry pomieszczenia'")
         && settingsSrc.includes('applySettingsValues(room, buildPreviewSettings(inputs))')
@@ -1015,9 +1016,9 @@ function runCabinetNodeSmoke(sandbox){
     } },
     { name:'Źródło materiału frontów jest dostępne dla lodówek i zestawów', explain:'Chroni Etap 1C: front specjalny może wskazywać dolną/środkową/górną strefę albo własny materiał bez zgadywania po wysokości.', check:()=> {
       const apiOk = !!(FC.frontMaterialSource && typeof FC.frontMaterialSource.resolveFridgeFront === 'function' && typeof FC.frontMaterialSource.resolveSetFront === 'function');
-      const fridgeSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-standing-specials.js'), 'utf8');
-      const setSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const fridgeSrc = fs.readFileSync(path.join(ROOT, 'js/app/cabinet/cabinet-modal-standing-specials.js'), 'utf8');
+      const setSrc = fs.readFileSync(path.join(ROOT, 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
       return apiOk
         && fridgeSrc.includes('makeFridgeSourceKey')
         && fridgeSrc.includes('appendFridgeFrontSourceField')
@@ -1026,8 +1027,8 @@ function runCabinetNodeSmoke(sandbox){
     } },
     { name:'Zestawy mają ujednolicone materiały, plecy i otwieranie', explain:'Chroni set-wizard przed powrotem do samych frontów: zestaw ma mieć korpus, plecy, otwieranie i fronty jak zwykłe szafki.', check:()=> {
       const apiOk = !!(FC.cabinetModalSetMaterials && typeof FC.cabinetModalSetMaterials.populateSelectors === 'function' && typeof FC.cabinetModalSetMaterials.getSpec === 'function');
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      const wizard = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+      const wizard = fs.readFileSync(path.join(ROOT, 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
       return apiOk
         && html.includes('id="setBodyColor"')
         && html.includes('id="setBackMaterial"')
@@ -1037,8 +1038,8 @@ function runCabinetNodeSmoke(sandbox){
         && wizard.includes('setMaterials.openingSystem');
     } },
     { name:'Lodówka nie pokazuje zdublowanych pól frontu', explain:'Chroni UI lodówki: nowe źródła materiału frontu zastępują stare ogólne pola Materiał Frontu / Kolor Frontu, ale korpus/plecy/otwieranie zostają.', check:()=> {
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      const modal = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal.js'), 'utf8');
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+      const modal = fs.readFileSync(path.join(ROOT, 'js/app/cabinet/cabinet-modal.js'), 'utf8');
       return html.includes('id="cmFrontMaterialWrap"')
         && html.includes('id="cmFrontColorWrap"')
         && modal.includes('function isFridgeCabinetDraft')
@@ -1046,17 +1047,17 @@ function runCabinetNodeSmoke(sandbox){
         && modal.includes("hideGeneralFrontFields ? 'none'");
     } },
     { name:'Zestaw startuje z materiałów dolnej strefy', explain:'Chroni decyzję UX: korpus, plecy i otwieranie zestawu mają startować jak szafki stojące/dolne, nie z ostatniego losowego typu szafki.', check:()=> {
-      const wizard = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
+      const wizard = fs.readFileSync(path.join(ROOT, 'js/app/cabinet/cabinet-modal-set-wizard.js'), 'utf8');
       return wizard.includes('function getLowerZoneMaterialDefaults')
         && wizard.includes("resolveZoneDefaults(room, 'lower', fallback)")
         && wizard.includes('function getSetBaseDraft(room)')
         && !/function getSetBaseDraft\(room\)\{\s*const base = makeDefaultCabinetDraftForRoom\(room\)/.test(wizard);
     } },
     { name:'Etap 2A ma plan i apply preferencji strefowych', explain:'Chroni hurtowe zastosowanie preferencji: najpierw plan zmian/liczniki, potem zatwierdzony apply bez systemowych okien.', check:()=> {
-      const planSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/room-preferences/room-preferences-bulk-plan.js'), 'utf8');
-      const applySrc = fs.readFileSync(path.join(process.cwd(), 'js/app/room-preferences/room-preferences-bulk-apply.js'), 'utf8');
-      const uiSrc = fs.readFileSync(path.join(process.cwd(), 'js/app/ui/wywiad-room-preferences-bulk-modal.js'), 'utf8');
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const planSrc = fs.readFileSync(path.join(ROOT, 'js/app/room-preferences/room-preferences-bulk-plan.js'), 'utf8');
+      const applySrc = fs.readFileSync(path.join(ROOT, 'js/app/room-preferences/room-preferences-bulk-apply.js'), 'utf8');
+      const uiSrc = fs.readFileSync(path.join(ROOT, 'js/app/ui/wywiad-room-preferences-bulk-modal.js'), 'utf8');
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
       return !!(FC.roomPreferencesBulkPlan && typeof FC.roomPreferencesBulkPlan.buildPlan === 'function'
         && FC.roomPreferencesBulkApply && typeof FC.roomPreferencesBulkApply.apply === 'function'
         && FC.wywiadRoomPreferencesBulk && typeof FC.wywiadRoomPreferencesBulk.open === 'function')
@@ -1070,7 +1071,7 @@ function runCabinetNodeSmoke(sandbox){
         && html.includes('wywiad-room-preferences-bulk-modal.js');
     } },
     { name:'Launchery szafki synchronizują draft także przy wyborze tej samej wartości', explain:'Chroni błąd z dev_tests.html: jeśli select ma już wartość z renderu, kliknięcie launchera nadal musi odpalić onchange i zsynchronizować draft.', check:()=> {
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-choice-launchers.js'), 'utf8');
+      const src = fs.readFileSync(path.join(ROOT, 'js/app/cabinet/cabinet-choice-launchers.js'), 'utf8');
       return src.includes('Nawet wybór tej samej wartości musi zsynchronizować draft')
         && src.includes('if(picked == null) return;')
         && !src.includes("String(picked) === String(selectEl.value || '')")
@@ -1101,18 +1102,18 @@ function runCabinetNodeSmoke(sandbox){
       if(!(api && typeof api.renderHeaderSummary === 'function')) return false;
       const offNode = api.renderHeaderSummary({ type:'stojąca', subType:'piekarnikowa', details:{ applianceMountingMode:'none' }, laborItems:[] });
       const onNode = api.renderHeaderSummary({ type:'stojąca', subType:'piekarnikowa', details:{ applianceMountingMode:'mount' }, laborItems:[] });
-      const css = fs.readFileSync(path.join(process.cwd(), 'css/wywiad.css'), 'utf8');
+      const css = fs.readFileSync(path.join(ROOT, 'css/wywiad.css'), 'utf8');
       return !!(offNode && offNode.querySelector('.cabinet-header__labor-line--mount-off') && onNode && onNode.querySelector('.cabinet-header__labor-line--mount-on'))
         && css.includes('.cabinet-header__labor-line--mount-off{color:#dc2626;}')
         && css.includes('.cabinet-header__labor-line--mount-on{color:#16a34a;}')
         && css.includes('.cabinet-header__labor-line--item{color:#f97316;}');
     } },
     { name:'Modal szafki ma robociznę po parametrach i materiałach', explain:'Chroni kolejność: najpierw typ, wymiary i materiały szafki, dopiero potem dodatkowe czynności.', check:()=> {
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
       return html.indexOf('id="cmOpeningSystem"') > -1 && html.indexOf('id="cmLaborAddons"') > html.indexOf('id="cmOpeningSystem"') && html.indexOf('id="cmLaborAddons"') > html.indexOf('id="cmBodyColor"');
     } },
     { name:'Montaż sprzętu w modalu szafki używa chipów z ptaszkiem', explain:'Chroni wybór Z montażem / Bez montażu przed powrotem do zwykłych przycisków.', check:()=> {
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-labor.js'), 'utf8');
+      const src = fs.readFileSync(path.join(ROOT, 'js/app/cabinet/cabinet-modal-labor.js'), 'utf8');
       return src.includes("make('label', `rozrys-scope-chip cabinet-labor-appliance__choice") && src.includes("cb.type = 'checkbox'") && src.includes('api.setMountingMode(draft, opt.value)') && !src.includes("make('button', `rozrys-scope-chip cabinet-labor-appliance__choice");
     } },
     { name:'Reguły techniczne zawiasów szafek są dostępne', explain:'Chroni etap szafka → wymagania okucia przed dobieraniem konkretnego produktu katalogowego.', check:()=> {
@@ -1143,8 +1144,8 @@ function runCabinetNodeSmoke(sandbox){
     { name:'Modal szafki pokazuje panel wymagań technicznych bez produktów katalogowych', explain:'Chroni etap WYWIAD → WYCENA: użytkownik widzi cechy techniczne szafki, a nie producenta/model dobrany dopiero w WYCENIE.', check:()=> {
       const api = FC.cabinetHardwareRequirementsPanel;
       if(!(api && typeof api.renderPanel === 'function')) return false;
-      const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-      const modal = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal.js'), 'utf8');
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+      const modal = fs.readFileSync(path.join(ROOT, 'js/app/cabinet/cabinet-modal.js'), 'utf8');
       const container = { innerHTML:'' };
       api.renderPanel(container, 'kuchnia', { type:'stojąca', subType:'standard', width:60, height:82, depth:51, frontCount:2, frontMaterial:'laminat', details:{} });
       return html.includes('id="cmHardwareRequirements"')
@@ -1158,7 +1159,7 @@ function runCabinetNodeSmoke(sandbox){
         && !/\bBLUM\b|\bBlum\b|\bGTV\b/.test(container.innerHTML);
     } },
     { name:'UI lodówki ma ptaszek zawiasów meblowych', explain:'Chroni decyzję: lodówkowa domyślnie nie dostaje zawiasów, ale front może wymagać zawiasów meblowych.', check:()=> {
-      const src = fs.readFileSync(path.join(process.cwd(), 'js/app/cabinet/cabinet-modal-standing-specials.js'), 'utf8');
+      const src = fs.readFileSync(path.join(ROOT, 'js/app/cabinet/cabinet-modal-standing-specials.js'), 'utf8');
       return src.includes('appendFridgeFurnitureHingeToggle')
         && src.includes('requiresFurnitureHinges')
         && src.includes('Wymaga zawiasów meblowych')

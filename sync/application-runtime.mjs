@@ -65,6 +65,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    if(p0b){if(await store.retired(scope))fail('LF_P0B_SCOPE_RETIRED');if(p0b.isLost(scope))fail('LF_EDITOR_RECOVERY_BLOCKED');await p0b.ensureNewProject(scope);}
    if(localOnly){const localRows=authority?authority.rows():(await store.readApplication()).rows;if(!JSON.parse(localRows.fc_projects_v1||'[]').some(p=>p.id===scope))fail('LF_PROJECT_CHANNEL_REQUIRED');return;}
    if(await store.pendingProjectRecovery(scope))fail('LF_PROJECT_RECOVERY_PENDING');
+   await handovers.start(scope);
    await handovers.pending(scope);
    const snap=await store.snapshot(scope), editor=snap.replica?.editor;
    const request=await store.pendingHandover(scope);
@@ -216,7 +217,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     if(closed||recoveryReading||authority.status().transactionPending||authority.status().incomingPending)fail('LF_APPLICATION_BUSY');
     recoveryReading=true;try{return await operation();}finally{recoveryReading=false;}
    },
-   status:()=>({state:closed?'locked':localOnly?'local-only':sync?'active':'offline',...(localOnly?{cloudConfirmed:false,writeCode:authority.status().lastCode}:{}),sourcePreserved:true,projectRecords:JSON.parse(authority.rows().fc_projects_v1||'[]').length,projectChannels:JSON.parse(authority.rows().fc_projects_v1||'[]').filter(p=>!!sync?.channel(p.id)).length,transactionPending:authority.status().transactionPending||boundary?.busy()===true,states:copy(states)}),
+   status:()=>({state:closed?'locked':localOnly?'local-only':sync?'active':'offline',...(localOnly?{cloudConfirmed:false,writeCode:authority.status().lastCode}:{}),sourcePreserved:true,projectRecords:JSON.parse(authority.rows().fc_projects_v1||'[]').length,projectChannels:JSON.parse(authority.rows().fc_projects_v1||'[]').filter(p=>!!sync?.channel(p.id)).length,transactionPending:authority.status().transactionPending||boundary?.busy()===true,incomingPending:authority.status().incomingPending,states:copy(states)}),
    async resume(next){
     if(localOnly){if(next?.localOwnerUid!==ownerUid||next.writer||next.reader)fail('LF_LOCAL_SYNC_NOT_AUTHORIZED');w.__FC_MAIN_ACCESS__.assert();const wasClosed=closed;authority.resume(ownerUid);closed=false;if(wasClosed)await bind();return;}
     if(assertApplicationConnection(next.writer).uid!==ownerUid||assertApplicationConnection(next.reader).uid!==ownerUid)fail('LF_APPLICATION_OWNER_CHANGED');

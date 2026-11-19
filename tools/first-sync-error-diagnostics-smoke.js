@@ -168,16 +168,18 @@ test('existing session collector and copy/format UI expose safe transfer metadat
 });
 test('real runtime emits raw refusal code only for observation; same writes, reads, return and cleanup with throwing observer',async()=>{
  const source=read('sync/application-runtime.mjs').replace(/^import .*;\n/gm,'').replace(/^export /gm,'');
+ const {createApplicationHandover}=await import('../sync/application-replication.mjs');
+ const {createLocalDeviceLabel}=await import('../sync/local-device-label.mjs');
  async function run(observer){
   const trace=[],rows={fc_projects_v1:JSON.stringify([{id:'private-project',investorId:'private-investor'}])};
-  const store={deviceId:'private-device',readApplication:async()=>({rows}),snapshot:async scope=>{trace.push('read:'+scope);return scope==='globals'?{replica:{base:{},dirty:false}}:{};},exclusive:fn=>fn(),close(){trace.push('store-close');}};
+  const store={deviceId:'private-device',pendingHandover:async()=>null,readApplication:async()=>({rows}),snapshot:async scope=>{trace.push('read:'+scope);return scope==='globals'?{replica:{base:{},dirty:false}}:{};},exclusive:fn=>fn(),close(){trace.push('store-close');}};
   const sync={channel:()=>({}),flush:async()=>{trace.push('flush');return {ok:true};},notify(){trace.push('notify');},close(){trace.push('sync-close');}};
   const authority={rows:()=>rows,assertIdle(){},status:()=>({}),close(){trace.push('authority-close');}};
   const globals={},deps={completeMissingApplicationGlobals(){assert.fail('Unexpected catalog write');},emptyInstallationRows:x=>x,
    openLocalFirstStore:async()=>store,createGlobalChannel:()=>globals,createProjectChannel:()=>({}),createApplicationReplication:()=>sync,
    createEmulatorProjectDiscovery:()=>({}),createApplicationCommitter:()=>({}),projectApplicationRows(){assert.fail('Unexpected apply');},
    installEmulatorApplicationAuthority:async()=>authority,installOfflineEmulatorApplicationAuthority:async()=>authority,installAuthorizedApplicationAuthority:async()=>authority,
-   createApplicationActionBinding:()=>({}),applicationKeys:()=>[],installApplicationWriteBoundary:()=>({busy:()=>false}),
+   createLocalDeviceLabel,createApplicationHandover,createApplicationActionBinding:()=>({}),applicationKeys:()=>[],installApplicationWriteBoundary:()=>({busy:()=>false}),
    applicationInstallation:async()=>({binding:{},rows,confirm(){trace.push('confirm');},release(){trace.push('release');}}),
    verifyExclusiveClient(){},assertApplicationConnection:()=>({uid:'private-owner'}),copy:structuredClone,equal:(a,b)=>JSON.stringify(a)===JSON.stringify(b),
    assertEmulator(){},fail:code=>{throw Object.assign(Error(code),{code});},safeError:()=>({ok:false,code:'LF_REMOTE_UNCONFIRMED'})};
