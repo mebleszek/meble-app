@@ -6,6 +6,44 @@ import {initializeTestEnvironment,assertFails} from '@firebase/rules-unit-testin
 import {createP0BProtocol,createP0BDeletionIntent} from './p0b-protocol.mjs';
 import {p0bConnection} from '../../sync/application-p0b-domain.mjs';
 const {p0bApplicationRules}=createRequire(import.meta.url)('./p0b-application-rules.js');
+test('P0-B normal registry Rules: contact ACK ignores an overlapping earlier absent snapshot',async t=>{
+ const uid='p0b-contact-ack-owner',claims={email_verified:true,firebase:{sign_in_provider:'google.com'}};
+ const env=await initializeTestEnvironment({projectId:'demo-meble-app',firestore:{host:'127.0.0.1',port:18080,rules:p0bApplicationRules({normal:true})}});
+ t.after(()=>env.cleanup());
+ await env.withSecurityRulesDisabled(async c=>{
+  const db=c.firestore(),batch=f.writeBatch(db);
+  for(const [collection,id,value]of [['syncConfig','owner',{ownerUid:uid,activationId:'p0b-demo',schemaVersion:1}],['syncAccess',uid,{activationId:'p0b-demo',schemaVersion:1}],['appAccess',uid,{schemaVersion:1}],['authorizedUsers',uid,{appEnabled:true,enabled:false,globalDataEnabled:true,globalSchemaVersion:1}]])batch.set(f.doc(db,collection,id),value);
+  await batch.commit();
+ });
+ const db=env.authenticatedContext(uid,claims).firestore()._delegate;
+ const target=f.doc(db,'users',uid,'p0bRoomInvestors','new-contact');
+ // Capture a REAL server response from before publication. Delayed delivery at
+ // the SDK boundary models a still-overlapping document listener, not a fake DB.
+ const earlier=await f.getDocFromServer(target);
+ assert.equal(earlier.exists(),false);assert.equal(earlier.metadata.fromCache,false);
+ let overlapping=true,access=true;
+ const connection={db,firestore:{...f,getDocFromServer:ref=>overlapping&&ref.path===target.path?Promise.resolve(earlier):f.getDocFromServer(ref)},
+  assertAccess(){if(!access)throw Object.assign(Error('LF_AUTH_CHANGED'),{code:'LF_AUTH_CHANGED'});},
+  session:{identity:()=>({uid,epoch:1})},auth:{app:db.app,emulatorConfig:{host:'127.0.0.1',port:19099,protocol:'http'},currentUser:{uid,providerData:[{providerId:'google.com'}]}}};
+ const protocol=createP0BProtocol(p0bConnection(connection),'ack-device');
+ const contact={id:'new-contact',name:'ACK proof',unknown:{exact:17.125}};
+ await protocol.createInvestor('new-contact',contact);
+ const raw=await f.runTransaction(db,async tx=>(await tx.get(target)).data(),{maxAttempts:1});
+ assert.equal(raw.contactRevision,1);assert.deepEqual(JSON.parse(raw.contact),contact,'Real emulator commit is a prerequisite');
+ const confirmed=await protocol.investor('new-contact');
+ assert.ok(confirmed,'ACK must see the committed contact despite the overlapping absent result');
+ assert.deepEqual(confirmed.contact,contact);assert.equal(confirmed.contactRevision,1);
+ assert.deepEqual(await f.runTransaction(db,async tx=>(await tx.get(target)).data(),{maxAttempts:1}),raw,'ACK observation must not publish another revision');
+ overlapping=false;
+ assert.equal(await protocol.investor('missing'),null);
+ await assert.rejects(protocol.updateContact('new-contact',0,{...contact,name:'stale'}),{code:'LF_P0B_CONTACT_CONFLICT'});
+ await assert.rejects(protocol.createInvestor('new-contact',contact),{code:'LF_P0B_INVESTOR_CONFLICT'});
+ await f.disableNetwork(db);
+ try{assert.deepEqual(await protocol.presence('new-contact',()=>false),{state:'unconfirmed'},'An offline presence cannot claim a confirmed registry');}finally{await f.enableNetwork(db);}
+ access=false;await assert.rejects(protocol.investor('new-contact'),{code:'LF_AUTH_CHANGED'});access=true;
+ assert.deepEqual(await f.runTransaction(db,async tx=>(await tx.get(target)).data(),{maxAttempts:1}),raw);
+});
+
 test('P0-B normal registry Rules: separate legacy data, independent CAS, 0/1/N deletion and stale writers',async t=>{
  const uid='normal-p0b-rules-owner',claims={email_verified:true,firebase:{sign_in_provider:'google.com'}};
  assert.equal(process.env.FIRESTORE_EMULATOR_HOST,'127.0.0.1:18080');

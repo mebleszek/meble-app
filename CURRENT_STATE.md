@@ -1,6 +1,15 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
-## P0-B — Preflight #1358: trwała baza testów awarii, 19.11.2026
+## P0-B — Preflight #1359: odczyt ACK i ten sam PR, 19.11.2026
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Naprawa bezpośrednio na gałęzi PR #151 `feat/p0b-project-exclusivity-20261116`; HEAD wejściowy `15c1d468813cccee31002be32b9cd178ff841c34`, BASE/main `d91c48938febe800553def7ed17967d0ffdcfb0b`. [Raport przyczyn i dowodów](tools/reports/preflight-1359-repair-20261119.md); [plan](docs/plans/LOCAL_FIRST_ROADMAP.md#p0-b--usuwanie-inwestorów-i-wyłączność-projektu).
+
+- **USTALONE.** Końcowy #1359: 77 jobów, 71 PASS, 4 FAIL, 2 SKIPPED. Jeden pierwotny FAIL room-quote-promotion, trzy zależne agregaty. Stack zatrzymał się przed konwersją, przy pierwszym ACK kartoteki. Rzeczywisty artefakt IDB: nadawca uncertain/CONTACT_NOT_FOUND, drugi profil odebrał ten sam generation/investorId/hash. Nie jest to błąd kalkulatora ani odmowa Rules. Wewnętrznej kolejki SDK z artefaktu nie odtwarza się domysłem.
+- **WDROŻONE.** Odczyt autorytatywnej kartoteki/ACK przechodzi przez istniejącą kolejkę transakcji i świeży tx.get po zapisie, nadal maxAttempts:1 i pełne guardy. Bez ponownej publikacji, retry, timeoutów i zmian whitelist. Regresja: rzeczywisty wcześniejszy snapshot serwera, późniejszy realny commit i kontrolowane opóźnienie dostarczenia starego wyniku. Wejściowy kod RED (null zamiast dowodu), poprawka zachowuje dokument i jego rewizję. Nie zmieniono UI/cen, CAS, historii, Rules ani Firebase LIVE.
+- **PROCEDURA.** AGENTS/RELEASE: po zgodzie właściciela naprawy FAIL istniejącego PR domyślnie bezpośrednio na jego gałęzi, jeden commit/push; świeża kontrola wejściowych HEAD/BASE przed pushem, obca zmiana = STOP. Raport zawsze obejmuje SHA, testy i stan PR. Brak dodatkowej gałęzi/fast-forward, automatycznego CI na push, retry, ręcznego merge lub zmiany Draft/Ready. Osobna zgoda na każde wydanie, jedno pełne CI, auto-merge po PASS/tożsamości SHA i kontrola Pages pozostają.
+- **TESTY / BRAKUJE.** Wspólny realny Chromium/DEMO normal-clean + promotion 2/2 PASS (~265 s): obcy edytor/PIN, CAS, offline, SIGKILL, recovery/ACK, abort bez częściowych zmian, oba statusy i zamrożona historia. Końcowa regresja świeżości ACK 1/1 PASS (~11 s), exit 0: brak fałszywego ACK, brak dodatkowego zapisu, CAS/duplikat/Auth/niepotwierdzona obecność offline. Obowiązkowe CI ma 33 przypadki P0-B w zachowanych 20 segmentach; wszystkie 36 grup smoke zachowane. Lokalny czas normal-clean ~140 s wymaga oceny budżetu w CI, nie zwiększono limitów. Pełnego CI nowego SHA nie uruchamiano. Dalej: niezależna kontrola i osobna zgoda właściciela na konkretny nowy HEAD/BASE; cały odbiór/wydanie nie są potwierdzone.
+
+## Historia — P0-B, Preflight #1358: trwała baza testów awarii, 19.11.2026
 
 **PASS celowanych kontroli / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Gałąź `fix/preflight-1358-p0b-20261119`, HEAD wejściowy `15034994b7ed26490eda233d56ed244f1abc97c1`, BASE/main `d91c48938febe800553def7ed17967d0ffdcfb0b`. SHA i PR #151 zweryfikowane; PR i jego gałąź nie są zmieniane. [Raport wszystkich FAIL i dowodów](tools/reports/preflight-1358-repair-20261119.md); [plan](docs/plans/LOCAL_FIRST_ROADMAP.md#p0-b--usuwanie-inwestorów-i-wyłączność-projektu).
 

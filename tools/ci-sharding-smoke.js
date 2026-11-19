@@ -45,7 +45,7 @@ const p0b=require('./p0b-ci-plan').plan(path.join(__dirname,'firebase-pilot'));
 const p0bFlow=flow.slice(flow.indexOf('  firebase-p0b:'),flow.indexOf('  firebase-current:'));
 const p0bMatrix=/segment: \[([^\]]+)\]/.exec(p0bFlow)[1].split(',').map(s=>s.trim());
 assert.deepEqual(p0bMatrix,p0b.map(row=>row.id));
-assert.equal(p0b.flatMap(row=>row.names).length,32);
+assert.equal(p0b.flatMap(row=>row.names).length,33);
 assert.ok(p0bFlow.includes('--p0b=${{ matrix.segment }}'));
 assert.ok(flow.includes('needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b]'));
 assert.ok(flow.includes('const names=["safety","firebase-current-shards","playwright-sync-ui","firebase-p0b"];'));

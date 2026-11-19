@@ -144,7 +144,11 @@ export function createP0BProtocol(connection, deviceId) {
     if(encodeP0BContact(contact,record.investorId)!==record.contact) fail('LF_P0B_CONTACT_INVALID');
     return {...record,contact};
   }
-  async function investor(iid) { return projectInvestor(await readServer(investorRef(iid))); }
+  async function investor(iid) {
+    // An ACK must be ordered after this protocol's writes, independently of
+    // any still-overlapping document-listener snapshot. Never retry a write.
+    return projectInvestor(await transaction(async tx=>read(await tx.get(investorRef(iid)))));
+  }
 
   function changeVisit(iid, token, label, open) {
     id(token);
