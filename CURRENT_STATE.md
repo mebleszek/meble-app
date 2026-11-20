@@ -1,6 +1,15 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
-## P0-B — przygotowanie połączenia Firebase, 20.11.2026
+## P0-B — naprawa CI istniejącego PR #152, 20.11.2026
+
+**CODE_READY naprawy / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Ta sama gałąź feat/p0b-live-connection-preparation-20261119; wejście c6cc2efe75e4e2005cde12dcf2d76d9c88641ade, BASE/main 2cfd2f84499b653d7239d4e975e8ca6850f9f09d. [Run FAIL](https://github.com/mebleszek/meble-app/actions/runs/44718390445): 70 PASS, 6 FAIL, 2 SKIPPED. [Przyczyny i dowody naprawy](tools/reports/p0b-live-preparation-20261120.md#naprawa-istniejącego-pr-152--preflight-run-44718390445).
+
+- **USTALONE → WDROŻONE.** Dwa pierwotne joby i cztery agregaty. Shard 32: testy usuwały importy runtime, pomijając nowy helper trybu i marker IDB. Uzupełniono wyłącznie ich zależności. UI: porównanie obejmowało jeszcze checkpoint otwierania formularza; baseline przeniesiono za ukończony setup, dodając ochronę biznesowych rekordów i kolejki już podczas setupu. Pełny deepEqual po abort pozostał. Runtime, UI, Rules i manifest nietknięte.
+- **WERYFIKACJA.** Oba smoke odtworzone RED, po korekcie Android 7/7 i diagnostyka 9/9 PASS. Niezmieniony lokalny UI kontrolnie 4/4 PASS (TAP 5/5): wyścig z CI nie występuje zawsze. Poprawiony UI 4/4 scenariusze PASS (TAP 5/5 z rodzicem, exit 0, ~184 s). Diagnostyka potwierdza checkpoint setupu 7→8, tylko fc_ui_v1, przed abortem. Routing CI i manifest PASS; brak pełnego lokalnego CI.
+- **BRAKUJE → DALEJ.** Po ukończeniu kontroli jeden commit/push do tego samego PR; żadnego nowego PR, przełączania Ready/Draft, Actions/retry, merge, Pages ani Firebase LIVE. Nowe SHA wymagają odrębnej zgody wydaniowej.
+
+
+## Historia — P0-B, przygotowanie połączenia Firebase, 20.11.2026
 
 **CODE_READY przygotowania / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Gałąź `feat/p0b-live-connection-preparation-20261119`; HEAD wejściowy = aktualny BASE/main `2cfd2f84499b653d7239d4e975e8ca6850f9f09d`. PR #151 już scalony/zamknięty; nowego nie tworzono. [Zakres, dowody i bramki](tools/reports/p0b-live-preparation-20261120.md).
 

@@ -170,12 +170,13 @@ test('real runtime emits raw refusal code only for observation; same writes, rea
  const source=read('sync/application-runtime.mjs').replace(/^import .*;\n/gm,'').replace(/^export /gm,'');
  const {createApplicationHandover}=await import('../sync/application-replication.mjs');
  const {createLocalDeviceLabel}=await import('../sync/local-device-label.mjs');
+ const {applicationP0BMode}=await import('../sync/application-release.mjs');
  async function run(observer){
   const trace=[],rows={fc_projects_v1:JSON.stringify([{id:'private-project',investorId:'private-investor'}])};
-  const store={deviceId:'private-device',pendingHandover:async()=>null,readApplication:async()=>({rows}),snapshot:async scope=>{trace.push('read:'+scope);return scope==='globals'?{replica:{base:{},dirty:false}}:{};},exclusive:fn=>fn(),close(){trace.push('store-close');}};
+  const store={p0bRegistry:async()=>null,deviceId:'private-device',pendingHandover:async()=>null,readApplication:async()=>({rows}),snapshot:async scope=>{trace.push('read:'+scope);return scope==='globals'?{replica:{base:{},dirty:false}}:{};},exclusive:fn=>fn(),close(){trace.push('store-close');}};
   const sync={channel:()=>({}),flush:async()=>{trace.push('flush');return {ok:true};},notify(){trace.push('notify');},close(){trace.push('sync-close');}};
   const authority={rows:()=>rows,assertIdle(){},status:()=>({}),close(){trace.push('authority-close');}};
-  const globals={},deps={completeMissingApplicationGlobals(){assert.fail('Unexpected catalog write');},emptyInstallationRows:x=>x,
+  const globals={},deps={applicationP0BMode,completeMissingApplicationGlobals(){assert.fail('Unexpected catalog write');},emptyInstallationRows:x=>x,
    openLocalFirstStore:async()=>store,createGlobalChannel:()=>globals,createProjectChannel:()=>({}),createApplicationReplication:()=>sync,
    createEmulatorProjectDiscovery:()=>({}),createApplicationCommitter:()=>({}),projectApplicationRows(){assert.fail('Unexpected apply');},
    installEmulatorApplicationAuthority:async()=>authority,installOfflineEmulatorApplicationAuthority:async()=>authority,installAuthorizedApplicationAuthority:async()=>authority,
