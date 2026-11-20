@@ -1,6 +1,34 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
-## P0-B — Preflight #1359: odczyt ACK i ten sam PR, 19.11.2026
+## P0-B — Preflight #1362: Chromium startup BLOCKED, 20.11.2026
+
+**BLOCKED diagnozy / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED; pakiet diagnostyczny do próby CI.** HEAD PR #152: 2611c2c413ced1d0fc9d44487b0a1cb9e6178a6a; BASE/main: 2cfd2f84499b653d7239d4e975e8ca6850f9f09d. [Run](https://github.com/mebleszek/meble-app/actions/runs/44769824124): 72 PASS/4 FAIL/2 SKIPPED. Jedna pierwotna awaria: start Chromium w local-cabinet-native-browser-smoke, przed aplikacją; pozostałe trzy FAIL to agregaty.
+
+- **USTALONE.** 60 s bez endpointu/stderr. Raportowany żywy PID należy do nadzorcy Python, a log nie pokazuje, czy uruchomiono Chrome. Przyczyna nieudowodniona; nie zmieniano timeoutu ani flag startu.
+- **PRZYGOTOWANA DIAGNOSTYKA.** Bezpieczny snapshot własnych potomków przed cleanup plus regresje. Nie jest naprawą nieznanej przyczyny. Natywne szafki lokalnie PASS dla 17 wariantów/restartu; startup 4/4, supervision z nowymi kontrolami PASS. UI/aplikacja, dane i Firebase bez zmian.
+- **BRAKUJE → DALEJ.** Potrzebny dowód z rzeczywistego zawieszenia na runnerze; zakończonego procesu nie da się odtworzyć z pustego stderr. Właściciel zatwierdził commit/push samej diagnostyki na gałąź PR #152; bez uruchamiania CI/PR/wydania. Przyczyna zawieszenia nadal BLOCKED. [Dowody i ograniczenia](tools/reports/p0b-live-preparation-20261120.md#preflight-1362--chromium-startup-diagnostyka-blocked).
+
+
+## Historia — P0-B, naprawa CI istniejącego PR #152, 20.11.2026
+
+**CODE_READY naprawy / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Ta sama gałąź feat/p0b-live-connection-preparation-20261119; wejście c6cc2efe75e4e2005cde12dcf2d76d9c88641ade, BASE/main 2cfd2f84499b653d7239d4e975e8ca6850f9f09d. [Run FAIL](https://github.com/mebleszek/meble-app/actions/runs/44718390445): 70 PASS, 6 FAIL, 2 SKIPPED. [Przyczyny i dowody naprawy](tools/reports/p0b-live-preparation-20261120.md#naprawa-istniejącego-pr-152--preflight-run-44718390445).
+
+- **USTALONE → WDROŻONE.** Dwa pierwotne joby i cztery agregaty. Shard 32: testy usuwały importy runtime, pomijając nowy helper trybu i marker IDB. Uzupełniono wyłącznie ich zależności. UI: porównanie obejmowało jeszcze checkpoint otwierania formularza; baseline przeniesiono za ukończony setup, dodając ochronę biznesowych rekordów i kolejki już podczas setupu. Pełny deepEqual po abort pozostał. Runtime, UI, Rules i manifest nietknięte.
+- **WERYFIKACJA.** Oba smoke odtworzone RED, po korekcie Android 7/7 i diagnostyka 9/9 PASS. Niezmieniony lokalny UI kontrolnie 4/4 PASS (TAP 5/5): wyścig z CI nie występuje zawsze. Poprawiony UI 4/4 scenariusze PASS (TAP 5/5 z rodzicem, exit 0, ~184 s). Diagnostyka potwierdza checkpoint setupu 7→8, tylko fc_ui_v1, przed abortem. Routing CI i manifest PASS; brak pełnego lokalnego CI.
+- **BRAKUJE → DALEJ.** Po ukończeniu kontroli jeden commit/push do tego samego PR; żadnego nowego PR, przełączania Ready/Draft, Actions/retry, merge, Pages ani Firebase LIVE. Nowe SHA wymagają odrębnej zgody wydaniowej.
+
+
+## Historia — P0-B, przygotowanie połączenia Firebase, 20.11.2026
+
+**CODE_READY przygotowania / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Gałąź `feat/p0b-live-connection-preparation-20261119`; HEAD wejściowy = aktualny BASE/main `2cfd2f84499b653d7239d4e975e8ca6850f9f09d`. PR #151 już scalony/zamknięty; nowego nie tworzono. [Zakres, dowody i bramki](tools/reports/p0b-live-preparation-20261120.md).
+
+- **USTALONE.** Właściciel zatwierdził przygotowanie i warunkowe uruchomienie synchronizacji po potwierdzeniu gotowości. Bez zmian UI; dane testowe i nieedytowane cenniki nie są zgodą na reset. Zastąpiono sprzeczne role AGENTS/RELEASE: Codex przygotowuje bezpośrednio z właścicielem, GPT tylko obsługuje osobno zatwierdzone wydanie.
+- **WDROŻONE.** Osobna podpisana decyzja protokołu 3 dla rejestru pokojów; normalny bootstrap/runtime korzysta z istniejących P0-B, CAS, blokad, PIN, heartbeat, recovery i historii. Stare/global-only uprawnienia nie udzielają LIVE P0-B; adapter zachowuje lease/epoch/revoke. Nowy marker IDB odmawia downgrade do starego writera. Prototyp Rules i pakowanie offline nie zmieniają obecnej publicznej aktywacji ani Firebase. Stare źródła, repliki/outbox i globals zachowane.
+- **KONTROLE.** Boundary 14/14 PASS (syntetyczna tożsamość LIVE, bez sieci); podpisane Chromium/Standard Emulator: pierwszy pełny scenariusz 1/1 PASS; łączna oferta i Rules 5/5 PASS, w tym rzeczywista odmowa starego protokołu. Końcowy pełny scenariusz po dodaniu guardu 1/1 PASS (~189 s), exit 0. Login 36/36, manifest/wersje/offline shell, diff i routing CI PASS; nowe signed-quote osobno, 34 przypadki/21 segmentów P0-B, zachowane 36 grup smoke. Szczegółowe ograniczenia Windows/history wrapper w raporcie.
+- **BRAKUJE → DALEJ.** Pełny Preflight i zatwierdzone wydanie dokładnego SHA; następnie porównanie rzeczywistych Rules/grantów, podpisany artefakt protokołu 3 i kontrolowana aktywacja. Firebase MCP zalogowane, projekt mebleszek-meble-app, billing wyłączony; nie jest to dowód działania P0-B na urządzeniach. Brak Firebase LIVE WRITE, PR, Actions, merge i publikacji. PHONE_PENDING. [Plan](docs/plans/LOCAL_FIRST_ROADMAP.md#p0-b--usuwanie-inwestorów-i-wyłączność-projektu).
+
+
+## Historia — P0-B, Preflight #1359: odczyt ACK i ten sam PR, 19.11.2026
 
 **CODE_READY / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Naprawa bezpośrednio na gałęzi PR #151 `feat/p0b-project-exclusivity-20261116`; HEAD wejściowy `15c1d468813cccee31002be32b9cd178ff841c34`, BASE/main `d91c48938febe800553def7ed17967d0ffdcfb0b`. [Raport przyczyn i dowodów](tools/reports/preflight-1359-repair-20261119.md); [plan](docs/plans/LOCAL_FIRST_ROADMAP.md#p0-b--usuwanie-inwestorów-i-wyłączność-projektu).
 

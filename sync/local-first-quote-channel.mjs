@@ -1,11 +1,12 @@
-// Emulator-only independent quote CAS. Staged revisions/chunks are immutable;
+// Independently authorized room-registry quote CAS. Staged revisions/chunks are immutable;
 // ACK is read through the separate reader SDK, never inferred from setDoc.
-import {equal,fail,id,digest,json,assertEmulator} from './local-first-values.mjs';
+import {equal,fail,id,digest,json} from './local-first-values.mjs';
+import {assertP0BConnection} from './firebase-activation.mjs';
 import {quoteScope,validateQuoteLedger,validateQuoteLedgerChange} from './local-first-quote-contract.mjs';
 export async function createQuoteChannel({writer,reader,ownerUid,investorId,sourceChannel,normalizeProject}){
- assertEmulator(writer);assertEmulator(reader);id(investorId);
+ assertP0BConnection(writer);assertP0BConnection(reader);id(investorId);
  const scope=await quoteScope(investorId),f=writer.firestore,r=reader.firestore;
- const guard=()=>{if(assertEmulator(writer).uid!==ownerUid||assertEmulator(reader).uid!==ownerUid)fail('LF_AUTH_CHANGED');writer.assertAccess();reader.assertAccess();};
+ const guard=()=>{if(assertP0BConnection(writer).uid!==ownerUid||assertP0BConnection(reader).uid!==ownerUid)fail('LF_AUTH_CHANGED');writer.assertAccess();reader.assertAccess();};
  const ref=(sdk,db,...path)=>sdk.doc(db,'users',ownerUid,'p0bRoomQuotes',investorId,...path);
  const fresh=snap=>{if(snap.metadata.fromCache||snap.metadata.hasPendingWrites)fail('LF_QUOTE_SERVER_UNCONFIRMED');return snap.exists()?snap.data():null;};
  const bare=head=>head?Object.fromEntries(['ownerUid','investorId','version','generation','revisionId','hash'].map(key=>[key,head[key]])):null;

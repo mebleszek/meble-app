@@ -4,9 +4,10 @@ import {canonical,digest,fail,id} from './local-first-values.mjs';
 const releases=new WeakMap(),migrations=new WeakMap();
 export async function verifyApplicationRelease({envelope,trustedKeySha256,origin}){
  const {decision,publicKeySpki,signature}=envelope||{};
- const fields=['activationId','database','domain','globalDomains','migrationApproved','origin','ownerUid','profile','projectId','protocol','rulesApproved','rulesSha256','sourcePreserved'];
- if(!decision||Object.keys(decision).sort().join(',')!==fields.join(',')||Object.keys(envelope).sort().join(',')!=='decision,publicKeySpki,signature'||decision.domain!=='MEBLE_APPLICATION_DEPLOYMENT_V1'||decision.protocol!==2
-  ||decision.database!=='(default)'||decision.profile!=='business-project-v1'||decision.globalDomains!==14
+ const p0b=decision?.protocol===3;
+ const fields=['activationId','database','domain','globalDomains','migrationApproved','origin','ownerUid','profile','projectId','protocol','rulesApproved','rulesSha256','sourcePreserved',...(p0b?['registry','legacyDataPolicy']:[])].sort();
+ if(!decision||Object.keys(decision).sort().join(',')!==fields.join(',')||Object.keys(envelope).sort().join(',')!=='decision,publicKeySpki,signature'||decision.domain!=='MEBLE_APPLICATION_DEPLOYMENT_V1'||![2,3].includes(decision.protocol)
+  ||decision.database!=='(default)'||(p0b?decision.profile!=='business-room-v1'||decision.registry!=='p0b-rooms-v1'||decision.legacyDataPolicy!=='preserve-outside-registry':decision.profile!=='business-project-v1')||decision.globalDomains!==14
   ||decision.migrationApproved!==true||decision.sourcePreserved!==true||decision.rulesApproved!==true
   ||!/^([a-f0-9]{64})$/.test(decision.rulesSha256||''))fail('LF_DEPLOYMENT_APPROVAL_REQUIRED');
  id(decision.ownerUid);id(decision.activationId);
@@ -26,6 +27,13 @@ export function assertApplicationRelease(release,{ownerUid,name,window:w}={}){
  if(name!==undefined&&(d.projectId==='demo-meble-app'?!/^meble-lf-test-/.test(name):name!=='meble-local-first-v1'))fail('LF_MIGRATION_BINDING_INVALID');
  if(w&&new URL('./',w.document.baseURI).href!==d.origin)fail('LF_DEPLOYMENT_TARGET_INVALID');
  return d;
+}
+// A room registry is a signed deployment choice, never an unchecked live flag.
+export function applicationP0BMode({release,window:w,name,ownerUid,p0bDemo=false,localOnly=false}){
+ const d=release?assertApplicationRelease(release,{ownerUid,name,window:w}):null;
+ if(d?.protocol===3){if(localOnly)fail('LF_LOCAL_MODE_REQUIRED');return true;}
+ if(p0bDemo&&(!['127.0.0.1','localhost'].includes(w.location.hostname)||localOnly||d&&d.projectId!=='demo-meble-app'))fail('LF_EMULATOR_REQUIRED');
+ return p0bDemo===true;
 }
 // Created only after a verified release, source snapshot and actual writer fence.
 export async function prepareApplicationMigration({release,window:w,name,source,readNative,verifyFence}){

@@ -12,6 +12,22 @@ export function assertApplicationConnection(connection){
  if(connection?.db?.app?.options?.projectId==='demo-meble-app'){connection.assertAccess?.();return assertEmulator(connection);}
  const permit=active.get(connection);if(!permit?.application)fail('LF_APPLICATION_ACTIVATION_REQUIRED');return permit.assert();
 }
+// P0-B requires a distinct, verified room deployment. Legacy project permits
+// and one-time global activation can never grant this capability.
+export function assertP0BConnection(connection){
+ if(connection?.db?.app?.options?.projectId==='demo-meble-app'){connection.assertAccess?.();return assertEmulator(connection);}
+ const permit=active.get(connection);if(!permit?.p0b)fail('LF_P0B_REGISTRY_REQUIRED');return permit.assert();
+}
+export function mapP0BConnection(connection){
+ assertP0BConnection(connection);
+ const f=connection.firestore,names={localFirstInvestors:'p0bRoomInvestors',localFirstProjects:'p0bRoomProjects',localFirstEditors:'p0bRoomEditors',p0bDeletionGroups:'p0bRoomGroups',p0bSettings:'p0bSettings'};
+ const path=parts=>parts[0]==='users'&&names[parts[2]]?parts.map((v,i)=>i===2?names[v]:v):parts;
+ const mapped={...connection,firestore:{...f,doc:(db,...parts)=>f.doc(db,...path(parts)),collection:(db,...parts)=>f.collection(db,...path(parts))}};
+ // The adapter retains the original live permit and its revocation/identity
+ // checks. Copying an object or its methods does not copy the capability.
+ if(active.has(connection))active.set(mapped,{application:true,p0b:true,assert:()=>assertP0BConnection(connection)});
+ return mapped;
+}
 // Daily operation: a verified deployment and fresh Google/Rules lease, no
 // administrative token, short-lived owner signature or Rules API request.
 export function authorizeApplicationSession({release,writer,reader}){
@@ -20,7 +36,7 @@ export function authorizeApplicationSession({release,writer,reader}){
  const a=who(writer),b=who(reader);
  if(a.uid!==d.ownerUid||b.uid!==d.ownerUid||writer.db.app===reader.db.app||writer.auth===reader.auth)fail('LF_INDEPENDENT_OWNER_REQUIRED');
  const check=()=>{if(!equal(who(writer),a)||!equal(who(reader),b))fail('LF_AUTH_CHANGED');};
- check();active.set(writer,{assert:()=>{check();return a;},application:true});active.set(reader,{assert:()=>{check();return b;},application:true});
+ check();active.set(writer,{assert:()=>{check();return a;},application:true,p0b:d.protocol===3});active.set(reader,{assert:()=>{check();return b;},application:true,p0b:d.protocol===3});
  return {revoke(){active.delete(writer);active.delete(reader);}};
 }
 export async function authorizeApplicationFirebase(input={}){

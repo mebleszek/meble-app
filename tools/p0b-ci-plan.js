@@ -19,6 +19,7 @@ const groups=Object.freeze([
  {id:'compatibility',file:'p0b-startup-compatibility.test.mjs',pattern:'^P0-B compatibility:'},
  {id:'normal-startup',file:'p0b-startup-compatibility.test.mjs',pattern:'^P0-B normal startup diagnostic:'},
  {id:'signed-startup',file:'p0b-startup-compatibility.test.mjs',pattern:'^P0-B signed startup diagnostic:'},
+ {id:'signed-quote',file:'p0b-normal-application.test.mjs',pattern:'^P0-B signed room deployment:'},
  {id:'signed-clean',file:'p0b-normal-application.test.mjs',pattern:'^P0-B signed DEMO clean registry:'},
  {id:'normal-clean',file:'p0b-normal-application.test.mjs',pattern:'^P0-B normal DEMO clean registry:'},
  {id:'storage',file:'p0b-registry-storage.test.mjs',pattern:'^P0-B (registry boundary|terminal tombstone)',emulator:false}

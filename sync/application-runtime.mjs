@@ -10,30 +10,32 @@ import {createApplicationReplication,createEmulatorProjectDiscovery,createApplic
 import {installEmulatorApplicationAuthority,createApplicationActionBinding,applicationKeys,installOfflineEmulatorApplicationAuthority,installAuthorizedApplicationAuthority} from './application-authority.mjs';
 import {installApplicationWriteBoundary} from './application-write-boundary.mjs';
 import {applicationInstallation,verifyExclusiveClient} from './application-installation.mjs';
-import {assertApplicationConnection} from './firebase-activation.mjs';
+import {assertApplicationConnection,assertP0BConnection} from './firebase-activation.mjs';
 import {planFirstCatalogSync} from './application-first-catalog-sync.mjs';
-import {assertApplicationRelease} from './application-release.mjs';
+import {assertApplicationRelease,applicationP0BMode} from './application-release.mjs';
 import {installLocalInvestorDeletion} from './application-investor-delete.mjs';
 import {copy,equal,assertEmulator,fail,safeError} from './local-first-values.mjs';
 export function startNormalEmulatorApplication(options){return startApplicationRuntime(options);}
 export async function startApplicationRuntime({window:w,writer,reader,name,ownerUid,boot,release:deployment,localOnly=false,firstCatalogSync=false,p0bDemo=false,emulatorCatalogWitness,onStage=()=>{},onDiagnostic=()=>{},onFailureQuiescent=()=>{}}){
- const fc=w.FC;
+ const fc=w.FC,p0bEnabled=applicationP0BMode({release:deployment,window:w,name,ownerUid,p0bDemo,localOnly});
  if(emulatorCatalogWitness&&(assertApplicationRelease(deployment).projectId!=='demo-meble-app'||writer?.db.app.options.projectId!=='demo-meble-app'))fail('LF_EMULATOR_REQUIRED');
  if(localOnly&&(writer||reader||!boot?.localOnly))fail('LF_LOCAL_MODE_REQUIRED');
  if(writer){const a=assertApplicationConnection(writer),b=assertApplicationConnection(reader);if(a.uid!==ownerUid||b.uid!==ownerUid||writer.db.app===reader.db.app)fail('LF_INDEPENDENT_OWNER_REQUIRED');}
  else if(!boot?.restored&&!(localOnly&&boot?.localOnly))fail('LF_ONLINE_INSTALLATION_REQUIRED');
+ if(p0bEnabled&&writer){assertP0BConnection(writer);assertP0BConnection(reader);}
  w.__FC_MAIN_ACCESS__.assert();
  const keys=applicationKeys(fc);
- onStage('checking-installation');const installation=await applicationInstallation({window:w,ownerUid,name,keys,sourceRead:boot?.readNative,heldRelease:boot?.release,release:deployment,migration:boot?.migration,p0bDemo});
+ onStage('checking-installation');const installation=await applicationInstallation({window:w,ownerUid,name,keys,sourceRead:boot?.readNative,heldRelease:boot?.release,release:deployment,migration:boot?.migration,p0bDemo:p0bEnabled});
  let store,sync,authority,boundary,deletion,p0b,closed=false,authorityReady=false,incomingBlocked=false,recoveryReading=false;const states=[];let wakeHandovers=()=>{},wakeReceives=()=>{};
  const state=(value,error)=>{try{onDiagnostic({ok:value.ok===true,code:error?.code||error?.message||value.code,projectTransferBlocked:value.scope==='project-transfer-blocked'});}catch(_){}if(['LF_ACTIVE_FORM_PROTECTED','LF_ACTIVE_RAM_PROTECTED'].includes(value.code)||value.reason==='LF_P0B_DELETION_RECOVERY_REQUIRED')incomingBlocked=true;states.push(copy(value));if(states.length>12)states.shift();if(value.ok)wakeHandovers();else if(p0b&&['LF_EDITOR_CONFLICT','LF_P0B_EDITOR_CONFLICT','LF_ACK_UNRESOLVED'].includes(value.code))void p0b.canRecover(value).then(ok=>{if(ok&&w.document.body.dataset.businessState==='ready')return p0b.offerRecovery();}).catch(()=>{});};
  try{
   onStage('opening-idb');store=await openLocalFirstStore({...installation.binding,indexedDB:w.indexedDB,locks:w.navigator.locks});
-  if(p0bDemo){if(boot?.p0bDemo!==true)fail('LF_P0B_REGISTRY_REQUIRED');await store.exclusive(async()=>{if(deployment&&!await store.readApplication())await store.initializeApplication(installation.rows);await store.enterP0BRegistry(boot.p0bSource);});}
+  if(!p0bEnabled&&await store.p0bRegistry())fail('LF_P0B_REGISTRY_REQUIRED');
+  if(p0bEnabled){if(boot?.p0bDemo!==true)fail('LF_P0B_REGISTRY_REQUIRED');await store.exclusive(async()=>{if(deployment&&!await store.readApplication())await store.initializeApplication(installation.rows);await store.enterP0BRegistry(boot.p0bSource);});}
   const c=fc.globalDataContract,p=fc.businessProjectContract;
-  const emptyP0BGlobals=p0bDemo&&Object.values(c.sources).flat().every(key=>boot.p0bSource?.[key]==null)&&boot.p0bSource?.fc_materials_v1==null;
+  const emptyP0BGlobals=p0bEnabled&&Object.values(c.sources).flat().every(key=>boot.p0bSource?.[key]==null)&&boot.p0bSource?.fc_materials_v1==null;
   let globals=writer?createGlobalChannel({writer,reader,ownerUid,contract:c,factory:fc.firebaseGlobalTransport,store}):null;
-  if(p0bDemo)p0b=await createP0BRuntime({window:w,writer,reader,store,getAuthority:()=>authority,getSync:()=>sync,getGlobals:()=>globals,backupKeys:boot.backupKeys,onError:error=>state(safeError(error),error)});
+  if(p0bEnabled)p0b=await createP0BRuntime({window:w,writer,reader,store,getAuthority:()=>authority,getSync:()=>sync,getGlobals:()=>globals,backupKeys:boot.backupKeys,onError:error=>state(safeError(error),error)});
   const channel=record=>p0b?p0b.project(record):createProjectChannel({writer,reader,ownerUid,deviceId:store.deviceId,projectId:record.id,investorId:record.investorId,
    pilotContract:fc.cloudPilotContract,pilotFactory:fc.firebasePilotTransport,globalContract:c,projectContract:p,globals});
   const channels=[globals];
@@ -205,7 +207,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    fc.localDeviceLabel=createLocalDeviceLabel({storage:w.localStorage,deviceId:store.deviceId,assertAccess(){
     if(closed)fail('LF_CLOSED');w.__FC_MAIN_ACCESS__.assert();
    }});
-   boundary=installApplicationWriteBoundary({window:w,authority,ensureEditor,localOnly,registry:p0bDemo?'p0b-rooms-v1':undefined,onExit:deferHandover,preflightAcceptance:p0b?.preflightAcceptance});
+   boundary=installApplicationWriteBoundary({window:w,authority,ensureEditor,localOnly,registry:p0bEnabled?'p0b-rooms-v1':undefined,onExit:deferHandover,preflightAcceptance:p0b?.preflightAcceptance});
    if(localOnly)deletion=installLocalInvestorDeletion({window:w,store,authority,boundary});
    fc.applicationSyncActions.install(createApplicationActionBinding({window:w,authority,onExit:deferHandover,onClose:()=>{closed=true;sync?.close();deletion?.close();p0b?.close();boundary.close();}}));
    await p0b?.bind();
@@ -221,9 +223,10 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    async resume(next){
     if(localOnly){if(next?.localOwnerUid!==ownerUid||next.writer||next.reader)fail('LF_LOCAL_SYNC_NOT_AUTHORIZED');w.__FC_MAIN_ACCESS__.assert();const wasClosed=closed;authority.resume(ownerUid);closed=false;if(wasClosed)await bind();return;}
     if(assertApplicationConnection(next.writer).uid!==ownerUid||assertApplicationConnection(next.reader).uid!==ownerUid)fail('LF_APPLICATION_OWNER_CHANGED');
+    if(p0bEnabled){assertP0BConnection(next.writer);assertP0BConnection(next.reader);}
     const wasClosed=closed;await sync?.close();p0b?.close();verifiedEditors.clear();writer=next.writer;reader=next.reader;authority.resume(ownerUid);closed=false;if(authority.status().incomingPending)await authority.refresh();
     globals=createGlobalChannel({writer,reader,ownerUid,contract:c,factory:fc.firebaseGlobalTransport,store});
-    if(p0bDemo)p0b=await createP0BRuntime({window:w,writer,reader,store,getAuthority:()=>authority,getSync:()=>sync,getGlobals:()=>globals,backupKeys:boot.backupKeys,onError:error=>state(safeError(error),error)});
+    if(p0bEnabled)p0b=await createP0BRuntime({window:w,writer,reader,store,getAuthority:()=>authority,getSync:()=>sync,getGlobals:()=>globals,backupKeys:boot.backupKeys,onError:error=>state(safeError(error),error)});
     const channels=[globals,...JSON.parse(authority.rows().fc_projects_v1||'[]').map(channel)];
     sync=createApplicationReplication({store,channels,globalContract:c,projectContract:p,summarizeLocal:fc.projectModel?.summarizeProjectData,eventTarget:w,quota:writer.quota,ownsChannels:true,online:()=>!closed&&w.navigator.onLine!==false,onState:state,
      projectRows:p0b?.projectRows,discovery:p0b?.discovery||createEmulatorProjectDiscovery({writer,reader,ownerUid,deviceId:store.deviceId,pilotContract:fc.cloudPilotContract,pilotFactory:fc.firebasePilotTransport,globalContract:c,projectContract:p,globals}),

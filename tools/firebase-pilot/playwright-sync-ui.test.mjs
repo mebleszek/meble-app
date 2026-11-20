@@ -202,8 +202,8 @@ test('E1 signed DEMO synchronized UI', async t => {
       await evidence(sub, 'investor', computer, async restartWithTrace => {
         const { page } = computer;
         await list(page);
+        const beforeForm = await image(computer);
         await page.locator('#investorsListView [data-action="create-investor"]').click();
-        const before = await image(computer);
         const name = 'DEMO synchronized investor';
         for (const [id, value] of Object.entries({
           invName: name, invPhone: '123456789', invCity: 'Test City',
@@ -212,6 +212,14 @@ test('E1 signed DEMO synchronized UI', async t => {
         })) await page.locator('#' + id).fill(value);
         await page.locator('#invSourceLaunch button').click();
         await page.locator('.rozrys-choice-modal .rozrys-choice-option:not([disabled])').nth(1).click();
+        // Setup intentionally opens the editor through a queued UI checkpoint.
+        // Capture the abort boundary only after that user transition is durable;
+        // still prove that setup changed no business row or outbox operation.
+        await idle(page);
+        const before = await image(computer);
+        protectedRows(beforeForm,before,['fc_ui_v1']);
+        assert.deepEqual(before.queue,beforeForm.queue);
+        sub.diagnostic(JSON.stringify({setupBeforeVersion:beforeForm.state.version,beforeAbortVersion:before.state.version,setupChangedKeys:Object.keys(before.state.rows).filter(key=>before.state.rows[key]!==beforeForm.state.rows[key])}));
         const save=async()=>{
           await page.locator('#investorActionBar [data-investor-action="save"]').click();
           await page.locator('.confirm-box .is-success').click();

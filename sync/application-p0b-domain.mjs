@@ -1,12 +1,7 @@
-import {copy,assertEmulator,fail,id} from './local-first-values.mjs';
+import {mapP0BConnection} from './firebase-activation.mjs';
+import {copy,fail,id} from './local-first-values.mjs';
 export const P0B_REGISTRY='p0b-rooms-v1';
-const names={localFirstInvestors:'p0bRoomInvestors',localFirstProjects:'p0bRoomProjects',localFirstEditors:'p0bRoomEditors',p0bDeletionGroups:'p0bRoomGroups',p0bSettings:'p0bSettings'};
-export function p0bConnection(connection){
- assertEmulator(connection);
- const f=connection.firestore;
- const path=parts=>parts[0]==='users'&&names[parts[2]]?parts.map((v,i)=>i===2?names[v]:v):parts;
- return {...connection,firestore:{...f,doc:(db,...parts)=>f.doc(db,...path(parts)),collection:(db,...parts)=>f.collection(db,...path(parts))}};
-}
+export const p0bConnection=mapP0BConnection;
 export function emptyP0BBusiness(rows){
  const next=copy(rows);
  for(const key of ['fc_investors_v1','fc_projects_v1','fc_quote_snapshots_v1','fc_quote_offer_drafts_v1','fc_investor_removed_ids_v1'])next[key]='[]';
