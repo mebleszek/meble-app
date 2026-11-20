@@ -1,5 +1,13 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## P0-B — naprawa Windows checkout po Preflight #1364, 21.11.2026
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Ten sam PR #153 Ready i gałąź `feat/p0b-owner-signing-windows-20261120`; wejściowy HEAD `dd5829761d3d6f509957c4414faa1870da030c3e`, BASE/main `c71d93c279b00ae7f153837c606d98bd10816591`. Odczytano log Windows job 136619659002 w run 44832171070: odmowa przed testami DPAPI, `application-rules.js:7` przy dopasowaniu wielowierszowego fragmentu. Pozostałe FAIL raportowane przez właściciela to agregaty, nie osobne przyczyny.
+
+- **USTALONE → WDROŻONE.** Rzeczywisty Git checkout-index z autocrlf=true odtwarza CRLF i dokładnie `LF_RULES_SOURCE_CHANGED`. autocrlf=false daje bajty identyczne ze źródłem i hash kandydata `e05bef8df96a139fe061949008fea1d3187dfb0dfacc8b68606eed8047f128f4`. Checkout Windows otrzymał konfigurację core.autocrlf=false przez env tylko tego kroku. Nie normalizujemy ani nie ignorujemy różnic w walidatorach. Nie zmieniono globalnego Git/Windows, Rules, kluczy, podpisu, runtime ani UI.
+- **KONTROLE.** RED→GREEN realnego checkoutu, exact bytes/hash i negatyw zmiany treści PASS; przenośny podpis/normalny weryfikator PASS; Windows DPAPI 13 kontroli PASS. Model DAG/negatywy CI 11/11 PASS; usunięcie poprawnej konfiguracji checkoutu jest teraz negatywem blokującym. Bez ponownego pełnego CI/emulatorów i użycia prawdziwego klucza.
+- **BRAKUJE → PROPONOWANE.** Jeden commit/push bezpośrednio na gałąź PR #153; nowa próba CI wymaga osobnej zgody na końcowe HEAD/BASE. PR pozostaje Ready, bez przełączania stanu, Actions, merge, Pages i Firebase LIVE. [Dowody](tools/reports/p0b-owner-signing-windows-20261120.md#naprawa-preflight-1364--checkout-windows).
+
 ## P0-B — podpis chroniony kontem Windows, 20.11.2026
 
 **CODE_READY podpisywania / CI_PENDING nowego pakietu / RELEASE_BLOCKED / LIVE_BLOCKED.** BASE/main `c71d93c279b00ae7f153837c606d98bd10816591` (scalony PR #152); nowa gałąź `feat/p0b-owner-signing-windows-20261120`. Końcowy HEAD w przekazaniu. Starsze wpisy poniżej są historią wcześniejszych prób; nie opisują aktualnego stanu PR #152.

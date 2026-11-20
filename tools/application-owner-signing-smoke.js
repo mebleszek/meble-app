@@ -9,6 +9,50 @@ const decision = {activationId: 'meble-app-20261102-01', database: '(default)', 
   protocol: 3, rulesApproved: true, rulesSha256: 'e05bef8df96a139fe061949008fea1d3187dfb0dfacc8b68606eed8047f128f4',
   sourcePreserved: true, registry: 'p0b-rooms-v1', legacyDataPolicy: 'preserve-outside-registry'};
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
+function checkoutProof() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'meble-signing-checkout-'));
+  const files = ['tools/firebase-pilot/application-rules.js', 'tools/firebase-pilot/p0b-application-rules.js',
+    'tools/firebase-pilot/firestore.rules', 'tools/firebase-pilot/p0b-investors.rules',
+    'tools/firebase-pilot/p0b-room-quotes.rules', 'tools/firebase-pilot/application-p0b-owner.rules',
+    'sync/local-first-project.rules'];
+  const git = (args, autocrlf) => {
+    const result = cp.spawnSync('git', ['-c', 'safe.directory=' + root.replace(/\\/g, '/'), ...args], {
+      cwd: root, encoding: 'utf8', windowsHide: true, env: {...process.env,
+        GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'core.autocrlf', GIT_CONFIG_VALUE_0: autocrlf}});
+    assert.equal(result.status, 0, result.stderr);
+  };
+  const generate = () => cp.spawnSync(process.execPath, ['-e',
+    'const fs=require("fs"),c=require("crypto"),r=require("./tools/firebase-pilot/p0b-application-rules").p0bApplicationRules({normal:true});' +
+    'if(r!==fs.readFileSync("tools/firebase-pilot/application-p0b-owner.rules","utf8"))throw Error("EXACT_RULES_MISMATCH");' +
+    'process.stdout.write(c.createHash("sha256").update(r).digest("hex"));'],
+  {cwd: root, encoding: 'utf8', windowsHide: true});
+  try {
+    for (const file of files) {
+      const target = path.join(root, file); fs.mkdirSync(path.dirname(target), {recursive: true});
+      const bytes = fs.readFileSync(path.join(__dirname, '..', file));
+      assert.equal(bytes.includes(Buffer.from('\r\n')), false, 'Expected reviewed LF source: ' + file);
+      fs.writeFileSync(target, bytes);
+    }
+    git(['init', '--quiet'], 'false'); git(['add', '--all'], 'false');
+    for (const file of files) fs.unlinkSync(path.join(root, file));
+    git(['checkout-index', '--force', '--all'], 'true');
+    assert.equal(fs.readFileSync(path.join(root, files[2])).includes(Buffer.from('\r\n')), true);
+    const red = generate(); assert.notEqual(red.status, 0); assert.match(red.stderr, /LF_RULES_SOURCE_CHANGED/);
+    for (const file of files) fs.unlinkSync(path.join(root, file));
+    git(['checkout-index', '--force', '--all'], 'false');
+    for (const file of files) assert.deepEqual(fs.readFileSync(path.join(root, file)), fs.readFileSync(path.join(__dirname, '..', file)));
+    const green = generate(); assert.equal(green.status, 0, green.stderr); assert.equal(green.stdout, decision.rulesSha256);
+    const base = path.join(root, files[2]);
+    fs.writeFileSync(base, fs.readFileSync(base, 'utf8').replace('return appApproved(uid)', 'return altered(uid)'));
+    assert.match(generate().stderr, /LF_RULES_SOURCE_CHANGED/); // Content guard still fails closed.
+    console.log('PASS checkout RED->GREEN: real Git CRLF refusal, exact LF bytes/hash, content tamper refused');
+  } finally {
+    const resolved = fs.realpathSync(root);
+    assert.equal(path.dirname(resolved).toLowerCase(), fs.realpathSync(os.tmpdir()).toLowerCase());
+    assert.match(path.basename(resolved), /^meble-signing-checkout-/);
+    fs.rmSync(resolved, {recursive: true});
+  }
+}
 async function portable() {
   assert.equal(signer.validateDecision(decision), signer.decisionSha256);
   const material = signer.createKeyMaterial(), other = signer.createKeyMaterial();
@@ -103,6 +147,6 @@ function windows() {
     fs.rmSync(resolved, {recursive: true});
   }
 }
-(async () => { await portable(); if (process.platform === 'win32') windows();
+(async () => { checkoutProof(); await portable(); if (process.platform === 'win32') windows();
   else console.log('DPAPI requires the separate Windows check; portable coverage completed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

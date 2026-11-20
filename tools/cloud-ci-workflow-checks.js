@@ -37,6 +37,7 @@ function workflowChecks(source){
   assert.match(owner,/^    runs-on: windows-latest$/m);
   assert.match(ownerSteps['Checkout exact approved head'],/ref: \$\{\{ needs.safety.outputs.head_sha \}\}/);
   assert.match(ownerSteps['Checkout exact approved head'],/persist-credentials: false/);
+  assert.match(ownerSteps['Checkout exact approved head'],/GIT_CONFIG_COUNT: '1'\n          GIT_CONFIG_KEY_0: core.autocrlf\n          GIT_CONFIG_VALUE_0: 'false'/);
   assert.match(ownerSteps['Test isolated DPAPI owner signing'],/shell: pwsh\n        run: node tools\/application-owner-signing-smoke.js/);
   const runners=['preflight-static','preflight-shards','firebase-current-shards','cloud-historical-smoke','cloud-historical-sdk'];
   for(const id of runners){
@@ -177,6 +178,7 @@ async function diagnosticChecks(source){
   const pass=name=>{count++;console.log('PASS CI diagnostics: '+name);};
   const mutation=(from,to)=>s=>{assert.ok(s.includes(from),'Missing fixture mutation');return s.replace(from,to);};
   for(const change of [
+    mutation("GIT_CONFIG_VALUE_0: 'false'", "GIT_CONFIG_VALUE_0: 'true'"),
     mutation('runs-on: windows-latest','runs-on: ubuntu-latest'),
     mutation('run: node tools/application-owner-signing-smoke.js','run: echo unverified'),
     mutation('    needs: [safety, preflight-static, preflight-shards, playwright-local-ui, owner-signing-windows]','    needs: safety'),

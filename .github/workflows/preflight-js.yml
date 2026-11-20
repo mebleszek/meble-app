@@ -244,6 +244,11 @@ jobs:
     steps:
       - name: Checkout exact approved head
         uses: actions/checkout@v4
+        # Preserve the exact signed Rules bytes; Windows defaults may expand LF.
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: 'false'
         with:
           ref: ${{ needs.safety.outputs.head_sha }}
           persist-credentials: false

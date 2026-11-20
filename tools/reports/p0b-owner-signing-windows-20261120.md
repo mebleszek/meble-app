@@ -1,5 +1,15 @@
 # P0-B — podpis chroniony kontem Windows
 
+## Naprawa Preflight #1364 — checkout Windows
+
+21.11.2026, PR #153 Ready, ten sam branch. HEAD wejściowy dd5829761d3d6f509957c4414faa1870da030c3e, BASE/main c71d93c279b00ae7f153837c606d98bd10816591. Odczytano log rzeczywistego Windows job 136619659002 w run 44832171070: `LF_RULES_SOURCE_CHANGED` na application-rules.js:7, przed testem DPAPI. Log nie zawiera pomiaru CRLF; przyczyny nie przypisano mu bez reprodukcji.
+
+Reprodukcja na rzeczywistym Windows: izolowane repo z siedmioma plikami kompozycji Rules; git checkout-index przy core.autocrlf=true tworzy CRLF w firestore.rules i odtwarza dokładnie tę odmowę. Checkout tych samych obiektów z core.autocrlf=false daje identyczne bajty wszystkich siedmiu źródeł, przechodzi kompozycję i porównanie pełnego źródła, hash e05bef8df96a139fe061949008fea1d3187dfb0dfacc8b68606eed8047f128f4. Kontrolowana zmiana wyrażenia po poprawnym checkout nadal odmawia LF_RULES_SOURCE_CHANGED. To dowód przyczyny na tej ścieżce, bez osłabiania guardów i bez domniemania uszkodzenia DPAPI.
+
+Poprawka obejmuje wyłącznie konfigurację kroku actions/checkout w owner-signing-windows: GIT_CONFIG_COUNT=1, GIT_CONFIG_KEY_0=core.autocrlf, GIT_CONFIG_VALUE_0=false. Git dziedziczy ją w procesach checkoutu; nie zmieniamy globalnych ustawień użytkownika/runnera, repozytoryjnych źródeł Rules, generatorów, hasha ani podpisu. Regresja używa dokładnie tego sposobu przekazania konfiguracji. Bramka strukturalna CI wymaga konfiguracji i odrzuca jej zmianę na true.
+
+PASS: realny checkout RED→GREEN + naruszenie treści, przenośne negatywy podpisu i normalny weryfikator, 13 kontroli Windows/DPAPI w osobnych procesach i testowych kluczach; 11 grup diagnostyki DAG/agregatów na Linux/WSL. Nie powtarzano pełnego CI ani emulatorów. Poprzedni rzeczywisty magazyn DPAPI, podpisany pakiet i stare klucze pozostają nietknięte. Zakres: workflow, dwie regresje/kontrole i dokumentacja. CODE_READY / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED. Commit/push na istniejącą gałąź, bez zmiany PR Ready, uruchomienia Actions, merge, Pages i Firebase LIVE.
+
 ## USTALONE
 
 Zgoda właściciela 20.11.2026: zamiast wpisywania hasła starego klucza utworzyć nowy klucz podpisujący chroniony kontem Windows. Właściciel zna i akceptuje, że procesy na tym samym zalogowanym koncie mogą podpisać decyzję bez jego PIN-u. Nie jest to uwierzytelnienie Google, Windows Hello, nowa autoryzacja serwerowa ani dowód osobistej obecności właściciela. Parametr OwnerApproved potwierdza procedurę i może być podany przez program; sam w sobie nie jest zabezpieczeniem kryptograficznym.
