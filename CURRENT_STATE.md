@@ -1,5 +1,16 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## P0-B — konfiguracja LIVE opublikowana, 21.11.2026
+
+**LIVE_CONFIG_ENABLED / CI_PASS / PAGES_PASS / PHONE_PENDING.** Właściciel zatwierdził wykonanie koniecznych kroków uruchomienia synchronizacji przez Codex i osobno potwierdził zakończenie edycji na wszystkich urządzeniach. Zgoda objęła skoordynowaną zmianę dokładnych Rules i jedną próbę wydania przygotowanego HEAD; bez retry, ręcznego merge, resetu lub migracji danych.
+
+- **WDROŻONE.** [PR #154](https://github.com/mebleszek/meble-app/pull/154), HEAD `7993456520659ab9a497f7831fd11b1bad562aae`, BASE `cae9490d01bb1fc66cb0b2f37a3b2bacf62f7998`. [Preflight #1366](https://github.com/mebleszek/meble-app/actions/runs/44836384881): **79/79 success**, auto-merge i exact Pages PASS. Merge/main `e3a2f985461a8feb205cf90a0860ee6c8e1c3be4`. Jedna próba, jeden PR Ready, bez ręcznego merge i ponawiania Actions.
+- **FIREBASE.** Odczyt źródła Rules/release i czterech dokumentów dopuszczenia potwierdził zgodność z poprzednią kopią; po ponownej kontroli źródła i podpisu wdrożono dokładne Rules SHA-256 `e05bef8df96a139fe061949008fea1d3187dfb0dfacc8b68606eed8047f128f4`, ruleset `9e7151f1-3030-4153-874d-f2fffcd75b68`. Pełny odczyt po wdrożeniu potwierdził bajty; granty/ownerUid/activationId niezmienione, zero zapisów dokumentów. Bez IAM/billingu. Nie wykonywano rollbacku.
+- **PUBLIKACJA.** Po PASS Pages odczytano rzeczywiste publiczne index.html, application-release.js i offline-assets.js: HTTP 200 i dokładna zgodność bajtów z kandydatem. Podpis publicznego slotu ponownie zweryfikowany; protokół 3/p0b-rooms-v1 zgodny z aktualnymi Rules. Dane globalne i stare testowe źródła zachowane; starych projektów nie importowano. Logi i kopie poza repo: `../p0b-live-switch-20261121`, końcowy odczyt `../p0b-live-verify-20261121`.
+- **BRAKUJE.** Odbiór na rzeczywistym telefonie/komputerze: ten sam Google UID, nowy testowy inwestor/pokój, zapis lokalny → ACK → odbiór na drugim urządzeniu, blokada tego samego pokoju i offline/reconnect. CI i wdrożenie nie dowodzą tego odbioru. Nie ogłaszać bezwarunkowej gotowości danych klientów; PHONE_PENDING. Nie czyścić IndexedDB/RAW/outboxa ani przywracać starego writera automatycznie. P1/P2 nadal odroczone.
+
+Starsze wpisy LIVE_BLOCKED poniżej są historią przygotowania i nie opisują obecnego stanu konfiguracji. Ta aktualizacja jest wyłącznie dokumentacyjna na osobnej gałęzi od merge; nie uruchamia kolejnego wydania.
+
 ## P0-B — kandydat podpisanej aktywacji, 21.11.2026
 
 **CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED — przygotowanie, bez publikacji.** PR #153 scalony, CI i Pages PASS dla merge `cae9490d01bb1fc66cb0b2f37a3b2bacf62f7998`, potwierdzono odczytem GitHuba. Ten SHA jest BASE nowej gałęzi `feat/p0b-signed-activation-candidate-20261121`; wcześniejszego PASS nie przypisujemy nowemu pakietowi. Starsze wpisy o otwartym PR #153 są historią.
