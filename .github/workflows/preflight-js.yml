@@ -235,9 +235,29 @@ jobs:
             ${{ runner.temp }}/playwright-local-ui/meble-playwright-ui-*/before-restart.zip
           if-no-files-found: ignore
 
+  owner-signing-windows:
+    needs: safety
+    if: ${{ !cancelled() && needs.safety.result == 'success' }}
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact approved head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.safety.outputs.head_sha }}
+          persist-credentials: false
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test isolated DPAPI owner signing
+        shell: pwsh
+        run: node tools/application-owner-signing-smoke.js
+
   preflight:
     if: ${{ always() }}
-    needs: [safety, preflight-static, preflight-shards, playwright-local-ui]
+    needs: [safety, preflight-static, preflight-shards, playwright-local-ui, owner-signing-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -253,7 +273,7 @@ jobs:
         with:
           script: |
             const groups=JSON.parse(process.env.GROUPS);
-            const names=["safety","preflight-static","preflight-shards","playwright-local-ui"];
+            const names=["safety","preflight-static","preflight-shards","playwright-local-ui","owner-signing-windows"];
             const missing=names.filter(name=>groups[name]?.result!=='success');
             const status=missing.length?'FAIL':'PASS';
             const reason=missing.length?'Mandatory groups not successful: '+missing.join(', '):'All mandatory groups passed';

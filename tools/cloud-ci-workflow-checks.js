@@ -25,12 +25,19 @@ function enabled(expression,{outcomes={},results={},cancelled=false}={}){
 }
 function workflowChecks(source){
   const j=jobs(source);
-  const ids=['safety','preflight-static','preflight-shards','playwright-local-ui','preflight','firebase-current-shards','playwright-sync-ui','firebase-p0b','firebase-current','cloud-historical-smoke','cloud-historical-sdk','cloud-historical','ci-summary','auto-merge','post-merge-verify','final-status'];
+  const ids=['safety','preflight-static','preflight-shards','playwright-local-ui','owner-signing-windows','preflight','firebase-current-shards','playwright-sync-ui','firebase-p0b','firebase-current','cloud-historical-smoke','cloud-historical-sdk','cloud-historical','ci-summary','auto-merge','post-merge-verify','final-status'];
   assert.deepEqual(Object.keys(j).sort(),ids.slice().sort(),'Unclassified CI jobs');
   assert.doesNotMatch(source,/continue-on-error:/);
   const trigger=source.split('\njobs:')[0];
   assert.match(trigger,/types: \[opened, ready_for_review\]/);
   assert.doesNotMatch(trigger,/^  push:|types:.*synchronize/m);
+  const owner=j['owner-signing-windows'],ownerSteps=steps(owner);
+  assert.match(owner,/^    needs: safety$/m);
+  assert.equal(condition(owner),"${{ !cancelled() && needs.safety.result == 'success' }}");
+  assert.match(owner,/^    runs-on: windows-latest$/m);
+  assert.match(ownerSteps['Checkout exact approved head'],/ref: \$\{\{ needs.safety.outputs.head_sha \}\}/);
+  assert.match(ownerSteps['Checkout exact approved head'],/persist-credentials: false/);
+  assert.match(ownerSteps['Test isolated DPAPI owner signing'],/shell: pwsh\n        run: node tools\/application-owner-signing-smoke.js/);
   const runners=['preflight-static','preflight-shards','firebase-current-shards','cloud-historical-smoke','cloud-historical-sdk'];
   for(const id of runners){
     const job=j[id],s=steps(job);
@@ -114,7 +121,7 @@ function workflowChecks(source){
   assert.match(cur['Test firebase-current-${{ matrix.segment }}'],/tools\/cloud-ci-emulators\.js --context=current --batch=\$\{\{ matrix\.batch \}\} --segment=\$\{\{ matrix\.segment \}\}/);
   assert.match(histSdk['Test cloud-historical-sdk'],/tools\/cloud-ci-emulators\.js --context=historical/);
   const aggregates={
-    preflight:['safety','preflight-static','preflight-shards','playwright-local-ui'],
+    preflight:['safety','preflight-static','preflight-shards','playwright-local-ui','owner-signing-windows'],
     'firebase-current':['safety','firebase-current-shards','playwright-sync-ui','firebase-p0b'],
     'cloud-historical':['safety','cloud-historical-smoke','cloud-historical-sdk']
   };
@@ -170,7 +177,9 @@ async function diagnosticChecks(source){
   const pass=name=>{count++;console.log('PASS CI diagnostics: '+name);};
   const mutation=(from,to)=>s=>{assert.ok(s.includes(from),'Missing fixture mutation');return s.replace(from,to);};
   for(const change of [
-    mutation('    needs: [safety, preflight-static, preflight-shards, playwright-local-ui]','    needs: safety'),
+    mutation('runs-on: windows-latest','runs-on: ubuntu-latest'),
+    mutation('run: node tools/application-owner-signing-smoke.js','run: echo unverified'),
+    mutation('    needs: [safety, preflight-static, preflight-shards, playwright-local-ui, owner-signing-windows]','    needs: safety'),
     mutation('shard: ['+Array.from({length:36},(_,i)=>i+1).join(', ')+']','shard: [1, 2, 3, 4, 5, 6]'),
     mutation("- {batch: 3, segment: '3e'}","- {batch: 3, segment: '3z'}"),
     mutation('    needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b]','    needs: [safety, firebase-current-shards, firebase-p0b]'),
@@ -189,7 +198,7 @@ async function diagnosticChecks(source){
     mutation('      - name: Audit module growth against approved BASE','      - name: Unapproved module step')
   ])assert.throws(()=>workflowChecks(change(source)));
   pass('actual DAG, required groups, full-PASS merge/Pages and negative mutations');
-  for(const id of ['preflight-static','preflight-shards','playwright-local-ui','firebase-current-shards','playwright-sync-ui','firebase-p0b','cloud-historical-smoke','cloud-historical-sdk']){
+  for(const id of ['preflight-static','preflight-shards','playwright-local-ui','owner-signing-windows','firebase-current-shards','playwright-sync-ui','firebase-p0b','cloud-historical-smoke','cloud-historical-sdk']){
     for(const result of ['failure','skipped','cancelled','success'])
       assert.equal(enabled(condition(j[id]),{results:{safety:result}}),result==='success');
   }
@@ -203,7 +212,7 @@ async function diagnosticChecks(source){
   for(const bad of [{outcome:'failure',outputs:{reason:'CLOUD_CI_HISTORY_SHA_MISMATCH'}},{outcome:'skipped'},{outcome:'cancelled'},null])
     assert.notEqual((await run(bad===null?Object.fromEntries(Object.entries(ok).filter(([name])=>name!=='source')):{...ok,source:bad})).outputs.status,'PASS');
   pass('actual Safety report refuses missing/skipped/failing source and pin checks');
-  const aggregates={preflight:['safety','preflight-static','preflight-shards','playwright-local-ui'],'firebase-current':['safety','firebase-current-shards','playwright-sync-ui','firebase-p0b'],'cloud-historical':['safety','cloud-historical-smoke','cloud-historical-sdk']};
+  const aggregates={preflight:['safety','preflight-static','preflight-shards','playwright-local-ui','owner-signing-windows'],'firebase-current':['safety','firebase-current-shards','playwright-sync-ui','firebase-p0b'],'cloud-historical':['safety','cloud-historical-smoke','cloud-historical-sdk']};
   for(const [id,members] of Object.entries(aggregates)){
     const body=script(steps(j[id]).report),good=Object.fromEntries(members.map(name=>[name,{result:'success'}]));
     const success=await execute(body,{env:{GROUPS:JSON.stringify(good)}});
