@@ -1,5 +1,5 @@
 'use strict';
-// Emulator-only assembly. The checked-in release rules and activation hash are unchanged.
+// Prototype source assembly; never a deployment. Legacy release Rules stay unchanged.
 const fs = require('node:fs');
 const path = require('node:path');
 const { applicationRules } = require('./application-rules');
@@ -61,7 +61,29 @@ function p0bApplicationRules({normal=false}={}) {
       "    function roomTerminal(uid,pid) { return exists(invHeadRef(uid,pid)) && get(invHeadRef(uid,pid)).data.roomDeleted == true; }\n    function invCanPublish(uid, iid, pid) {");
   }
   if(normal)for(const [from,to] of Object.entries({localFirstInvestors:'p0bRoomInvestors',localFirstProjects:'p0bRoomProjects',localFirstEditors:'p0bRoomEditors',p0bDeletionGroups:'p0bRoomGroups'}))rules=rules.replaceAll(from,to);
-  return rules;
+  // Documentation only: no change to the existing validated Rules expressions.
+  const model = normal ? [
+    '// PROTOTYPE ONLY: room registry deployment, no automatic migration or activation.',
+    '// Assumed model (all records private to the admitted Google owner):',
+    '// syncConfig/owner: ownerUid:string, activationId:string, schemaVersion:int=1;',
+    '// syncAccess/{uid}: activationId:string, schemaVersion:int=1; both admin-written only.',
+    '// authorizedUsers/appAccess: existing admission and global-data grants; never client-written.',
+    '// users/{uid}/p0bRoomInvestors/{iid}: ownerUid/investorId:string, schemaVersion:int,',
+    '// contact:string(JSON, bounded), contactRevision/generation:int(CAS), projects:map(pid=>bool),',
+    '// visits:map, deletionId/bulkId:string; terminal deletion, paired project/editor changes.',
+    '// p0bRoomEditors/{pid}: ownerUid/projectId/investorId/deviceId/deviceLabel/headRevision:string,',
+    '// epoch:int, active:bool; presence/current:deviceId:string,epoch:int,lastContactAt:timestamp.',
+    '// p0bRoomProjects/{pid}: roomDeleted:bool plus immutable chunk/revision hashes, owner,',
+    '// source IDs, generation:int, editorEpoch:int and request.time timestamps validated below.',
+    '// p0bRoomQuotes/{iid}: ownerUid/investorId/revisionId/hash:string,version/generation:int;',
+    '// immutable revisions/chunks preserve pinned sources and accepted snapshots.',
+    '// p0bRoomGroups/{operationId}: bounded target maps/reservations and a shared terminal decision.',
+    '// p0bSettings/projectPin:format/revision:int,salt/verifier:hex strings; client confirmation only.',
+    '// Existing globalData/globalRecords/globalRevisions schemas are unchanged. Exact required',
+    '// fields, types, lengths, immutability and create/update checks are in the validators below.',
+    ''
+  ].join('\n') : '';
+  return model + rules;
 }
 
 module.exports = { p0bApplicationRules };

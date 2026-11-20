@@ -4,7 +4,9 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 async function reviewApplicationRelease(input){
  if(!input||Object.keys(input).sort().join(',')!=='envelope,trustedKeySha256')throw Error('LF_PUBLIC_APPROVAL_FORMAT');
  const {applicationRules}=require('./firebase-pilot/application-rules.js');
- const rules=applicationRules(),hash=crypto.createHash('sha256').update(rules).digest('hex');
+ const p0b=input?.envelope?.decision?.protocol===3;
+ const rules=p0b?require('./firebase-pilot/p0b-application-rules.js').p0bApplicationRules({normal:true}):applicationRules(),hash=crypto.createHash('sha256').update(rules).digest('hex');
+ if(p0b&&fs.readFileSync(path.join(__dirname,'firebase-pilot/application-p0b-owner.rules'),'utf8')!==rules)throw Error('LF_RULES_PACKAGE_MISMATCH');
  if(input?.envelope?.decision?.projectId!=='mebleszek-meble-app'||input.envelope.decision.rulesSha256!==hash)throw Error('LF_RULES_PACKAGE_MISMATCH');
  const bytes=value=>{if(!Array.isArray(value)||value.some(b=>!Number.isInteger(b)||b<0||b>255))throw Error('LF_PUBLIC_APPROVAL_FORMAT');return new Uint8Array(value);};
  const envelope={...input.envelope,publicKeySpki:bytes(input.envelope.publicKeySpki),signature:bytes(input.envelope.signature)};

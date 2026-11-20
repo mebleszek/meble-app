@@ -1,0 +1,558 @@
+// PROTOTYPE ONLY: room registry deployment, no automatic migration or activation.
+// Assumed model (all records private to the admitted Google owner):
+// syncConfig/owner: ownerUid:string, activationId:string, schemaVersion:int=1;
+// syncAccess/{uid}: activationId:string, schemaVersion:int=1; both admin-written only.
+// authorizedUsers/appAccess: existing admission and global-data grants; never client-written.
+// users/{uid}/p0bRoomInvestors/{iid}: ownerUid/investorId:string, schemaVersion:int,
+// contact:string(JSON, bounded), contactRevision/generation:int(CAS), projects:map(pid=>bool),
+// visits:map, deletionId/bulkId:string; terminal deletion, paired project/editor changes.
+// p0bRoomEditors/{pid}: ownerUid/projectId/investorId/deviceId/deviceLabel/headRevision:string,
+// epoch:int, active:bool; presence/current:deviceId:string,epoch:int,lastContactAt:timestamp.
+// p0bRoomProjects/{pid}: roomDeleted:bool plus immutable chunk/revision hashes, owner,
+// source IDs, generation:int, editorEpoch:int and request.time timestamps validated below.
+// p0bRoomQuotes/{iid}: ownerUid/investorId/revisionId/hash:string,version/generation:int;
+// immutable revisions/chunks preserve pinned sources and accepted snapshots.
+// p0bRoomGroups/{operationId}: bounded target maps/reservations and a shared terminal decision.
+// p0bSettings/projectPin:format/revision:int,salt/verifier:hex strings; client confirmation only.
+// Existing globalData/globalRecords/globalRevisions schemas are unchanged. Exact required
+// fields, types, lengths, immutability and create/update checks are in the validators below.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function grant(uid) {
+      return get(/databases/$(database)/documents/authorizedUsers/$(uid)).data;
+    }
+    function approved(uid, projectId) {
+      return false && appApproved(uid)
+        && grant(uid).enabled == true && grant(uid).pilotProjectId == projectId;
+    }
+    function appApproved(uid) {
+      return request.auth != null && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && grant(uid).appEnabled == true;
+    }
+    function hash(value) { return value is string && value.matches('^[a-f0-9]{64}$'); }
+    function revisionId(value) { return value is string && value.matches('^[a-f0-9]{32}$'); }
+    function owned(data, uid, projectId) {
+      return data.ownerUid == uid && data.projectId == projectId
+        && data.investorId == grant(uid).pilotInvestorId && data.formatVersion == 1;
+    }
+    function bounded(data) {
+      return data.chunkCount is int && data.chunkCount >= 1 && data.chunkCount <= 7
+        && data.byteLength is int && data.byteLength > (data.chunkCount - 1) * 131072
+        && data.byteLength <= data.chunkCount * 131072 && data.byteLength <= 819200;
+    }
+    function hashAt(data, i) { return data.chunkCount <= i || hash(data.chunkSha256[i]); }
+    function validRevision(data, uid, projectId, revId) {
+      return data.keys().hasAll(['ownerUid','investorId','projectId','revisionId','formatVersion','generationCandidate','baseGeneration','baseRevisionId','baseFileSha256','baseDocumentSha256','basePayloadSha256','chunkCount','byteLength','chunkSha256','fileSha256','documentSha256','payloadSha256','createdAt'])
+        && data.keys().hasOnly(['ownerUid','investorId','projectId','revisionId','formatVersion','generationCandidate','baseGeneration','baseRevisionId','baseFileSha256','baseDocumentSha256','basePayloadSha256','chunkCount','byteLength','chunkSha256','fileSha256','documentSha256','payloadSha256','createdAt'])
+        && owned(data, uid, projectId) && revisionId(revId) && data.revisionId == revId
+        && data.baseGeneration is int && data.baseGeneration >= 0 && data.generationCandidate is int
+        && data.generationCandidate == data.baseGeneration + 1
+        && ((data.baseGeneration == 0 && data.baseRevisionId == '' && data.baseFileSha256 == '' && data.baseDocumentSha256 == '' && data.basePayloadSha256 == '')
+          || (data.baseGeneration > 0 && revisionId(data.baseRevisionId) && hash(data.baseFileSha256) && hash(data.baseDocumentSha256) && hash(data.basePayloadSha256)))
+        && bounded(data) && hash(data.fileSha256) && hash(data.documentSha256) && hash(data.payloadSha256)
+        && data.chunkSha256 is list && data.chunkSha256.size() == data.chunkCount
+        && hashAt(data,0) && hashAt(data,1) && hashAt(data,2) && hashAt(data,3) && hashAt(data,4) && hashAt(data,5) && hashAt(data,6)
+        && data.createdAt == request.time;
+    }
+    function chunkLength(rev, i) {
+      return i == rev.chunkCount - 1 ? rev.byteLength - i * 131072 : 131072;
+    }
+    function validChunk(data, rev, chunkId) {
+      return data.keys().hasAll(['index','byteLength','bytes','sha256'])
+        && data.keys().hasOnly(['index','byteLength','bytes','sha256'])
+        && data.index is int && data.index >= 0 && data.index < rev.chunkCount
+        && chunkId == string(data.index) && data.byteLength is int
+        && data.byteLength == chunkLength(rev,data.index)
+        && data.bytes is bytes && data.bytes.size() == data.byteLength
+        && data.sha256 == rev.chunkSha256[data.index];
+    }
+    function completeChunk(uid, projectId, revId, rev, i) {
+      let part = getAfter(/databases/$(database)/documents/users/$(uid)/pilotProjects/$(projectId)/revisions/$(revId)/chunks/$(string(i))).data;
+      return part.index == i && part.byteLength == chunkLength(rev,i) && part.sha256 == rev.chunkSha256[i];
+    }
+    function optionalChunk(uid, projectId, revId, rev, i) {
+      return rev.chunkCount <= i || completeChunk(uid,projectId,revId,rev,i);
+    }
+    function publishable(data, uid, projectId) {
+      let rev = getAfter(/databases/$(database)/documents/users/$(uid)/pilotProjects/$(projectId)/revisions/$(data.currentRevisionId)).data;
+      return data.keys().hasAll(['ownerUid','investorId','projectId','formatVersion','generation','currentRevisionId','fileSha256','documentSha256','payloadSha256','chunkCount','byteLength','updatedAt'])
+        && data.keys().hasOnly(['ownerUid','investorId','projectId','formatVersion','generation','currentRevisionId','fileSha256','documentSha256','payloadSha256','chunkCount','byteLength','updatedAt'])
+        && owned(data,uid,projectId) && data.generation is int && data.generation >= 1
+        && revisionId(data.currentRevisionId) && bounded(data)
+        && hash(data.fileSha256) && hash(data.documentSha256) && hash(data.payloadSha256) && data.updatedAt == request.time
+        && rev.ownerUid == uid && rev.projectId == projectId && rev.investorId == data.investorId
+        && rev.formatVersion == 1 && rev.generationCandidate == data.generation
+        && rev.fileSha256 == data.fileSha256 && rev.documentSha256 == data.documentSha256 && rev.payloadSha256 == data.payloadSha256
+        && rev.chunkCount == data.chunkCount && rev.byteLength == data.byteLength
+        && completeChunk(uid,projectId,data.currentRevisionId,rev,0)
+        && optionalChunk(uid,projectId,data.currentRevisionId,rev,1)
+        && optionalChunk(uid,projectId,data.currentRevisionId,rev,2)
+        && optionalChunk(uid,projectId,data.currentRevisionId,rev,3)
+        && optionalChunk(uid,projectId,data.currentRevisionId,rev,4)
+        && optionalChunk(uid,projectId,data.currentRevisionId,rev,5)
+        && optionalChunk(uid,projectId,data.currentRevisionId,rev,6);
+    }
+    function baseMatches(data, uid, projectId, old) {
+      let rev = getAfter(/databases/$(database)/documents/users/$(uid)/pilotProjects/$(projectId)/revisions/$(data.currentRevisionId)).data;
+      return data.generation == old.generation + 1 && data.ownerUid == old.ownerUid
+        && data.investorId == old.investorId && data.projectId == old.projectId
+        && rev.baseGeneration == old.generation && rev.baseRevisionId == old.currentRevisionId
+        && rev.baseFileSha256 == old.fileSha256 && rev.baseDocumentSha256 == old.documentSha256 && rev.basePayloadSha256 == old.payloadSha256;
+    }
+    match /authorizedUsers/{uid} { allow read, write: if false; }
+    // Admin-created probe contains no catalog, project, email or UID list.
+    match /appAccess/{uid} {
+      allow get: if appApproved(uid);
+      allow list, create, update, delete: if false;
+    }
+    match /users/{uid}/pilotProjects/{projectId} {
+      allow get: if approved(uid,projectId);
+      allow create: if approved(uid,projectId) && publishable(request.resource.data,uid,projectId)
+        && request.resource.data.generation == 1
+        && getAfter(/databases/$(database)/documents/users/$(uid)/pilotProjects/$(projectId)/revisions/$(request.resource.data.currentRevisionId)).data.baseGeneration == 0;
+      allow update: if approved(uid,projectId) && publishable(request.resource.data,uid,projectId)
+        && baseMatches(request.resource.data,uid,projectId,resource.data);
+      allow delete, list: if false;
+      match /revisions/{revId} {
+        allow get: if approved(uid,projectId);
+        allow create: if approved(uid,projectId) && validRevision(request.resource.data,uid,projectId,revId);
+        allow update, delete, list: if false;
+        match /chunks/{chunkId} {
+          allow get: if approved(uid,projectId);
+          allow create: if approved(uid,projectId)
+            && validChunk(request.resource.data,getAfter(/databases/$(database)/documents/users/$(uid)/pilotProjects/$(projectId)/revisions/$(revId)).data,chunkId);
+          allow update, delete, list: if false;
+        }
+      }
+    }
+    // CLOUD-3 candidate only. Never deployed by tooling or normal startup.
+    function globalApproved(uid) {
+      return syncOwner(uid) && appApproved(uid) && grant(uid).globalDataEnabled == true
+        && grant(uid).globalSchemaVersion == 1;
+    }
+    function globalDomain(d) {
+      return d in ['materials','hardware','manufacturers','suppliers','categories','types',
+        'technicalParams','hardwareSettings','labor','workshopServices','stock',
+        'programDefaults','company','businessCosts'];
+    }
+    function globalHead(data, uid) {
+      return data.keys().hasOnly(['ownerUid','version','generation','revisionId','directoryHash','recordCount','updatedAt'])
+        && data.ownerUid == uid && data.version == 1 && data.generation is int && data.generation > 0
+        && revisionId(data.revisionId) && hash(data.directoryHash)
+        && data.recordCount is int && data.recordCount >= 0 && data.recordCount <= 1024
+        && data.updatedAt == request.time;
+    }
+    function globalRevision(data, uid, revId) {
+      return data.keys().hasOnly(['ownerUid','version','generation','revisionId','directoryHash','recordCount','directory',
+        'baseGeneration','baseRevisionId','baseDirectoryHash','createdAt'])
+        && data.ownerUid == uid && data.version == 1 && data.revisionId == revId && revisionId(revId)
+        && data.generation is int && data.baseGeneration is int && data.baseGeneration >= 0
+        && data.generation == data.baseGeneration + 1 && hash(data.directoryHash)
+        && data.recordCount is int && data.recordCount >= 0 && data.recordCount <= 1024
+        && data.directory is string && data.directory.size() > 0 && data.directory.size() <= 131072
+        && ((data.baseGeneration == 0 && data.baseRevisionId == '' && data.baseDirectoryHash == '')
+          || (data.baseGeneration > 0 && revisionId(data.baseRevisionId) && hash(data.baseDirectoryHash)))
+        && data.createdAt == request.time;
+    }
+    function globalPublished(data, uid) {
+      let rev = getAfter(/databases/$(database)/documents/users/$(uid)/globalRevisions/$(data.revisionId)).data;
+      return rev.ownerUid == uid && rev.version == data.version && rev.generation == data.generation
+        && rev.revisionId == data.revisionId && rev.directoryHash == data.directoryHash
+        && rev.recordCount == data.recordCount;
+    }
+    function globalBaseMatches(data, uid, old) {
+      let rev = getAfter(/databases/$(database)/documents/users/$(uid)/globalRevisions/$(data.revisionId)).data;
+      return data.generation == old.generation + 1 && rev.baseGeneration == old.generation
+        && rev.baseRevisionId == old.revisionId && rev.baseDirectoryHash == old.directoryHash;
+    }
+    match /users/{uid}/globalData/{headId} {
+      allow get: if headId == 'current' && globalApproved(uid);
+      allow create: if headId == 'current' && globalApproved(uid) && globalHead(request.resource.data,uid)
+        && globalPublished(request.resource.data,uid) && request.resource.data.generation == 1;
+      allow update: if headId == 'current' && globalApproved(uid) && globalHead(request.resource.data,uid)
+        && globalPublished(request.resource.data,uid) && globalBaseMatches(request.resource.data,uid,resource.data);
+      allow delete, list: if false;
+    }
+    match /users/{uid}/globalRevisions/{revId} {
+      allow get: if globalApproved(uid);
+      allow create: if globalApproved(uid) && globalRevision(request.resource.data,uid,revId)
+        && getAfter(/databases/$(database)/documents/users/$(uid)/globalData/current).data.revisionId == revId;
+      allow update, delete, list: if false;
+    }
+    match /users/{uid}/globalRecords/{recordHash} {
+      allow get: if globalApproved(uid);
+      allow create: if globalApproved(uid)
+        && request.resource.data.keys().hasOnly(['ownerUid','version','domain','recordId','hash','json','byteLength'])
+        && request.resource.data.ownerUid == uid && request.resource.data.version == 1
+        && globalDomain(request.resource.data.domain) && request.resource.data.recordId is string
+        && request.resource.data.recordId.size() > 0 && request.resource.data.recordId.size() <= 256
+        && hash(recordHash) && request.resource.data.hash == recordHash
+        && request.resource.data.json is string && request.resource.data.json.size() <= 131072
+        && request.resource.data.byteLength is int && request.resource.data.byteLength > 0 && request.resource.data.byteLength <= 131072;
+      allow update, delete, list: if false;
+    }
+    // One owner, one approved application deployment. Admin-created only.
+    function syncOwner(uid) {
+      let config = get(/databases/$(database)/documents/syncConfig/owner).data;
+      let access = get(/databases/$(database)/documents/syncAccess/$(uid)).data;
+      return request.auth != null && request.auth.uid == uid
+        && request.auth.token.email_verified == true
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && config.keys().hasOnly(['ownerUid','activationId','schemaVersion'])
+        && config.ownerUid == uid && config.schemaVersion == 1
+        && config.activationId is string && config.activationId.matches('^[A-Za-z0-9_-]{1,128}$')
+        && access.keys().hasOnly(['activationId','schemaVersion'])
+        && access.schemaVersion == 1 && access.activationId == config.activationId;
+    }
+    match /syncConfig/{document} { allow read, write: if false; }
+    match /syncAccess/{uid} {
+      allow get: if globalApproved(uid);
+      allow list, create, update, delete: if false;
+    }
+    // Emulator candidate fragment, assembled with the unchanged CLOUD-3 Rules.
+    // Never deployed or loaded by the production application.
+    function lfEditor(uid, pid) {
+      return get(/databases/$(database)/documents/users/$(uid)/p0bRoomEditors/$(pid)).data;
+    }
+    function lfHead(uid, pid) {
+      return get(/databases/$(database)/documents/users/$(uid)/p0bRoomProjects/$(pid)).data;
+    }
+    function lfEditorShape(d,uid,pid) {
+      return d.keys().hasOnly(['ownerUid','projectId','deviceId','epoch','active','headRevision','investorId','deviceLabel'])
+        && d.ownerUid == uid && d.projectId == pid && d.deviceId is string
+        && d.deviceId.matches('^[A-Za-z0-9_-]{1,128}$') && d.epoch is int && d.epoch > 0 && d.active is bool
+        && (d.headRevision == '' || revisionId(d.headRevision)) && invId(d.investorId)
+        && d.deviceLabel is string && d.deviceLabel.size() <= 64;
+    }
+    match /users/{uid}/p0bRoomEditors/{pid} {
+      allow get: if globalApproved(uid);
+      allow create: if globalApproved(uid) && lfEditorShape(request.resource.data,uid,pid)
+        && request.resource.data.epoch == 1 && request.resource.data.active == true && request.resource.data.headRevision == ''
+        && !exists(invHeadRef(uid,pid)) && invEditorPair(uid,pid,request.resource.data);
+      allow update: if globalApproved(uid) && lfEditorShape(request.resource.data,uid,pid)
+        && request.resource.data.investorId == resource.data.investorId && (!request.resource.data.active || !roomTerminal(uid,pid))
+        && (invTakeover(uid,pid,resource.data,request.resource.data) || (invEditorPair(uid,pid,request.resource.data)
+        && ((resource.data.active == true && request.resource.data.active == false
+          && request.resource.data.deviceId == resource.data.deviceId && request.resource.data.epoch == resource.data.epoch
+          && request.resource.data.deviceLabel == resource.data.deviceLabel
+          && request.resource.data.headRevision == (exists(invHeadRef(uid,pid)) ? lfHead(uid,pid).currentRevisionId : ''))
+        || (resource.data.active == false && request.resource.data.active == true
+          && request.resource.data.epoch == resource.data.epoch + 1
+          && request.resource.data.headRevision == resource.data.headRevision
+          && resource.data.headRevision == (exists(invHeadRef(uid,pid)) ? lfHead(uid,pid).currentRevisionId : '')))));
+      allow list,delete: if false;
+    }
+    function lfPublished(d,uid,pid) {
+      let r = getAfter(/databases/$(database)/documents/users/$(uid)/p0bRoomProjects/$(pid)/revisions/$(d.currentRevisionId)).data;
+      let e = getAfter(invEditorRef(uid,pid)).data;
+      let g = get(/databases/$(database)/documents/users/$(uid)/globalRevisions/$(d.globalRevisionId)).data;
+      return d.keys().hasOnly(['ownerUid','investorId','projectId','generation','currentRevisionId','fileSha256',
+        'documentSha256','payloadSha256','formatVersion','chunkCount','byteLength','updatedAt',
+        'editorEpoch','deviceId','globalRevisionId','globalDirectoryHash','roomDeleted'])
+        && d.ownerUid == uid && d.projectId == pid && d.investorId is string && d.formatVersion == 1
+        && d.roomDeleted is bool && d.generation is int && d.generation > 0 && revisionId(d.currentRevisionId)
+        && hash(d.fileSha256) && hash(d.documentSha256) && hash(d.payloadSha256) && bounded(d)
+        && invCanPublish(uid,d.investorId,pid) && e.investorId == d.investorId
+        && d.updatedAt == request.time && !roomTerminal(uid,pid) && e.active == true && d.deviceId == e.deviceId && d.editorEpoch == e.epoch
+        && d.globalRevisionId == g.revisionId && d.globalDirectoryHash == g.directoryHash
+        && r.ownerUid == uid && r.projectId == pid && r.investorId == d.investorId
+        && r.generationCandidate == d.generation && r.fileSha256 == d.fileSha256
+        && r.documentSha256 == d.documentSha256 && r.payloadSha256 == d.payloadSha256
+        && r.chunkCount == d.chunkCount && r.byteLength == d.byteLength;
+    }
+    function lfRevision(d,uid,pid,rid) {
+      return d.keys().hasOnly(['ownerUid','investorId','projectId','revisionId','formatVersion','generationCandidate',
+        'baseGeneration','baseRevisionId','baseFileSha256','baseDocumentSha256','basePayloadSha256',
+        'chunkCount','byteLength','chunkSha256','fileSha256','documentSha256','payloadSha256','createdAt'])
+        && d.ownerUid == uid && d.projectId == pid && d.investorId is string && d.formatVersion == 1
+        && d.revisionId == rid && revisionId(rid) && d.baseGeneration is int && d.baseGeneration >= 0
+        && d.generationCandidate == d.baseGeneration + 1 && bounded(d)
+        && hash(d.fileSha256) && hash(d.documentSha256) && hash(d.payloadSha256)
+        && d.chunkSha256 is list && d.chunkSha256.size() == d.chunkCount
+        && hashAt(d,0) && hashAt(d,1) && hashAt(d,2) && hashAt(d,3) && hashAt(d,4) && hashAt(d,5) && hashAt(d,6)
+        && ((d.baseGeneration == 0 && d.baseRevisionId == '' && d.baseFileSha256 == '' && d.baseDocumentSha256 == '' && d.basePayloadSha256 == '')
+          || (d.baseGeneration > 0 && revisionId(d.baseRevisionId) && hash(d.baseFileSha256) && hash(d.baseDocumentSha256) && hash(d.basePayloadSha256)))
+        && invCanPublish(uid,d.investorId,pid) && lfEditor(uid,pid).investorId == d.investorId
+        && lfEditor(uid,pid).active == true && d.createdAt == request.time;
+    }
+    match /users/{uid}/p0bRoomProjects/{pid} {
+      allow get: if globalApproved(uid) && (resource == null || invRegistered(uid,resource.data.investorId,pid));
+      allow list: if false;
+      allow create: if globalApproved(uid) && lfPublished(request.resource.data,uid,pid)
+        && request.resource.data.generation == 1;
+      allow update: if globalApproved(uid) && lfPublished(request.resource.data,uid,pid)
+        && request.resource.data.generation == resource.data.generation + 1
+        && getAfter(/databases/$(database)/documents/users/$(uid)/p0bRoomProjects/$(pid)/revisions/$(request.resource.data.currentRevisionId)).data.baseRevisionId == resource.data.currentRevisionId
+        && getAfter(/databases/$(database)/documents/users/$(uid)/p0bRoomProjects/$(pid)/revisions/$(request.resource.data.currentRevisionId)).data.baseFileSha256 == resource.data.fileSha256
+        && getAfter(/databases/$(database)/documents/users/$(uid)/p0bRoomProjects/$(pid)/revisions/$(request.resource.data.currentRevisionId)).data.baseDocumentSha256 == resource.data.documentSha256
+        && getAfter(/databases/$(database)/documents/users/$(uid)/p0bRoomProjects/$(pid)/revisions/$(request.resource.data.currentRevisionId)).data.basePayloadSha256 == resource.data.payloadSha256;
+      allow delete: if false;
+      match /revisions/{rid} {
+        allow get: if globalApproved(uid) && invRegistered(uid,lfEditor(uid,pid).investorId,pid);
+        allow create: if globalApproved(uid) && lfRevision(request.resource.data,uid,pid,rid);
+        allow update,delete,list: if false;
+        match /chunks/{chunkId} {
+          allow get: if globalApproved(uid) && invRegistered(uid,lfEditor(uid,pid).investorId,pid);
+          allow create: if globalApproved(uid) && lfEditor(uid,pid).active == true
+            && invCanPublish(uid,lfEditor(uid,pid).investorId,pid)
+            && validChunk(request.resource.data,getAfter(/databases/$(database)/documents/users/$(uid)/p0bRoomProjects/$(pid)/revisions/$(rid)).data,chunkId);
+          allow update,delete,list: if false;
+        }
+      }
+    }
+
+    // P0-B emulator candidate. Shared contacts, revision and project registry are owner-scoped.
+    // Registry values are booleans (active leases), introduced one key at a time by a paired editor write.
+    // Synchronized client confirmation. The verifier does not authorize Rules.
+    function invPinShape(d) {
+      return d.keys().hasOnly(['format','revision','salt','verifier'])
+        && d.format is int && d.format == 1 && d.revision is int && d.revision > 0
+        && d.salt is string && d.salt.matches('^[a-f0-9]{32}$')
+        && d.verifier is string && d.verifier.matches('^[a-f0-9]{64}$');
+    }
+    match /users/{uid}/p0bSettings/projectPin {
+      allow get: if globalApproved(uid);
+      allow create: if globalApproved(uid) && invPinShape(request.resource.data)
+        && request.resource.data.revision == 1;
+      allow update: if globalApproved(uid) && invPinShape(request.resource.data)
+        && request.resource.data.revision == resource.data.revision + 1;
+    }
+    function invTakeover(uid,pid,before,after) {
+      let inv = get(invRef(uid,before.investorId)).data;
+      return before.active == true && after.active == true && after.deviceId != before.deviceId
+        && after.epoch == before.epoch + 1 && inv.deletionId == '' && inv.bulkId == ''
+        && inv.projects.get(pid,false) == true && invCanPublish(uid,before.investorId,pid)
+        && exists(invHeadRef(uid,pid)) && after.headRevision == lfHead(uid,pid).currentRevisionId;
+    }
+    function invHeartbeat(uid, pid, d) {
+      let e = getAfter(invEditorRef(uid,pid)).data;
+      return d.keys().hasOnly(['deviceId','epoch','lastContactAt'])
+        && d.deviceId == e.deviceId && d.epoch == e.epoch && e.active == true
+        && invCanPublish(uid,e.investorId,pid) && d.lastContactAt == request.time;
+    }
+    match /users/{uid}/p0bRoomEditors/{pid}/presence/current {
+      allow get: if globalApproved(uid);
+      allow create: if globalApproved(uid) && invHeartbeat(uid,pid,request.resource.data);
+      allow update: if globalApproved(uid) && invHeartbeat(uid,pid,request.resource.data)
+        && (request.resource.data.epoch > resource.data.epoch
+          || resource.data.lastContactAt + duration.value(5,'m') <= request.time);
+    }
+    function invRef(uid, iid) {
+      return /databases/$(database)/documents/users/$(uid)/p0bRoomInvestors/$(iid);
+    }
+    function invEditorRef(uid, pid) {
+      return /databases/$(database)/documents/users/$(uid)/p0bRoomEditors/$(pid);
+    }
+    function invHeadRef(uid, pid) {
+      return /databases/$(database)/documents/users/$(uid)/p0bRoomProjects/$(pid);
+    }
+    function invId(id) {
+      return id is string && id.matches('^[A-Za-z0-9_-]{1,128}$');
+    }
+    function invContact(d) {
+      // A bounded JSON envelope preserves extension fields. The client validates
+      // its contents; Rules use only the outer identity, revisions and locks.
+      return d is string && d.size() > 2 && d.size() <= 100000;
+    }
+    function invShape(d, uid, iid) {
+      return invId(iid) && d.keys().size() == 12
+        && d.keys().hasOnly(['ownerUid','investorId','schemaVersion','generation','contactRevision','contact','projects','lastProject','deletionId','visits','lastVisit','bulkId'])
+        && d.ownerUid == uid && d.investorId == iid && d.schemaVersion == 1
+        && d.generation is int && d.generation > 0 && d.contactRevision is int && d.contactRevision > 0
+        && d.projects is map && d.projects.size() <= 512
+        && d.visits is map && d.visits.size() <= 32 && (d.lastVisit == '' || invId(d.lastVisit))
+        && (d.bulkId == '' || invId(d.bulkId))
+        && (d.lastProject == '' || invId(d.lastProject))
+        && ((d.deletionId == '' && invContact(d.contact))
+          || (invId(d.deletionId) && d.contact == '' && d.bulkId == '' && d.lastProject == ''));
+    }
+    function invRegistered(uid, iid, pid) {
+      let inv = get(invRef(uid,iid)).data;
+      return inv.deletionId == '' && pid in inv.projects
+        && (inv.bulkId == '' || invBulk(uid,inv.bulkId).phase != 'committed');
+    }
+    function roomTerminal(uid,pid) { return exists(invHeadRef(uid,pid)) && get(invHeadRef(uid,pid)).data.roomDeleted == true; }
+    function invCanPublish(uid, iid, pid) {
+      let inv = getAfter(invRef(uid,iid)).data;
+      return inv.deletionId == '' && inv.bulkId == '' && inv.projects.get(pid,false) == true && !roomTerminal(uid,pid);
+    }
+    function invEditorPair(uid, pid, e) {
+      let before = get(invRef(uid,e.investorId)).data;
+      let after = getAfter(invRef(uid,e.investorId)).data;
+      return before.deletionId == '' && after.deletionId == '' && before.bulkId == '' && after.bulkId == ''
+        && after.generation == before.generation + 1 && after.lastProject == pid
+        && after.projects[pid] == e.active && before.projects.get(pid,false) != e.active;
+    }
+    function invRegistryChange(uid, iid, before, after) {
+      let pid = after.lastProject;
+      let e = getAfter(invEditorRef(uid,pid)).data;
+      return invId(pid) && after.diff(before).affectedKeys().hasOnly(['generation','lastProject','projects'])
+        && after.projects.diff(before.projects).affectedKeys().hasOnly([pid])
+        && after.projects.diff(before.projects).affectedKeys().size() == 1
+        && after.projects[pid] is bool && e.investorId == iid && e.active == after.projects[pid]
+        && (!exists(invEditorRef(uid,pid)) || get(invEditorRef(uid,pid)).data.active != e.active);
+    }
+    function invContactChange(before, after) {
+      return after.diff(before).affectedKeys().hasOnly(['generation','contactRevision','contact'])
+        && after.contactRevision == before.contactRevision + 1;
+    }
+    function invDelete(before, after) {
+      return after.diff(before).affectedKeys().hasOnly(['generation','deletionId','contact','lastProject'])
+        && after.deletionId != '' && invIdle(before);
+    }
+    // Reservations fence edits; the immutable shared decision controls visibility.
+    function invBulkRef(uid, op) {
+      return /databases/$(database)/documents/users/$(uid)/p0bRoomGroups/$(op);
+    }
+    function invBulk(uid, op) {
+      return get(invBulkRef(uid,op)).data;
+    }
+    function invBulkShape(d, uid, op) {
+      return invId(op) && d.keys().hasOnly(['ownerUid','operationId','targets','prepared','last','phase'])
+        && d.ownerUid == uid && d.operationId == op
+        && d.targets is map && d.targets.size() > 1 && d.targets.size() <= 512
+        && d.prepared is map && d.prepared.keys().hasOnly(d.targets.keys())
+        && (d.last == '' || invId(d.last)) && d.phase in ['preparing','committed','cancelled'];
+    }
+    function invStage(uid, op, before, after) {
+      let iid = after.last;
+      let old = get(invRef(uid,iid)).data;
+      let reservation = getAfter(invRef(uid,iid)).data;
+      return invId(iid) && after.phase == 'preparing'
+        && after.diff(before).affectedKeys().hasOnly(['prepared','last'])
+        && after.prepared.diff(before.prepared).affectedKeys().hasOnly([iid])
+        && after.prepared.size() == before.prepared.size() + 1
+        && after.prepared[iid] == true && before.targets[iid] == old.generation
+        && old.bulkId == '' && reservation.bulkId == op
+        && reservation.generation == old.generation + 1;
+    }
+    function invReserve(uid, iid, before, after) {
+      let previous = invBulk(uid,after.bulkId);
+      let next = getAfter(invBulkRef(uid,after.bulkId)).data;
+      return invIdle(before) && after.deletionId == ''
+        && after.diff(before).affectedKeys().hasOnly(['generation','bulkId'])
+        && previous.phase == 'preparing' && next.phase == 'preparing'
+        && previous.targets[iid] == before.generation && !(iid in previous.prepared)
+        && next.last == iid && next.prepared[iid] == true;
+    }
+    function invBulkReservation(uid,iid,before,after) {
+      return before.bulkId == '' ? invReserve(uid,iid,before,after)
+        : (after.bulkId == '' && after.diff(before).affectedKeys().hasOnly(['generation','bulkId'])
+          && invBulk(uid,before.bulkId).phase == 'cancelled');
+    }
+    match /users/{uid}/p0bRoomGroups/{op} {
+      allow get: if globalApproved(uid);
+      allow list,delete: if false;
+      allow create: if globalApproved(uid) && invBulkShape(request.resource.data,uid,op)
+        && request.resource.data.phase == 'preparing' && request.resource.data.prepared == {}
+        && request.resource.data.last == '';
+      allow update: if globalApproved(uid) && invBulkShape(request.resource.data,uid,op)
+        && resource.data.phase == 'preparing'
+        && (request.resource.data.phase == 'preparing'
+          ? invStage(uid,op,resource.data,request.resource.data)
+          : (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['phase'])
+            && (request.resource.data.phase == 'cancelled'
+              || resource.data.prepared.size() == resource.data.targets.size())));
+    }
+    function invIdle(record) {
+      return !record.projects.values().hasAny([true]) && record.visits.size() == 0;
+    }
+    function invVisitChange(before, after) {
+      let device = after.lastVisit;
+      return invId(device) && after.diff(before).affectedKeys().hasOnly(['generation','lastVisit','visits'])
+        && after.visits.diff(before.visits).affectedKeys().hasOnly([device])
+        && after.visits.diff(before.visits).affectedKeys().size() == 1
+        && ((device in before.visits && !(device in after.visits))
+          || (!(device in before.visits) && invVisitShape(after.visits[device])));
+    }
+    function invVisitShape(visit) {
+      return visit is map && visit.keys().hasOnly(['token','label'])
+        && invId(visit.token) && visit.label is string && visit.label.size() <= 64;
+    }
+    function invUpdate(uid,iid,before,after) {
+      return before.bulkId != '' || after.bulkId != ''
+        ? invBulkReservation(uid,iid,before,after)
+        : (after.deletionId != ''
+          ? invDelete(before,after)
+          : (before.visits != after.visits
+            ? invVisitChange(before,after)
+            : (before.projects != after.projects
+              ? invRegistryChange(uid,iid,before,after)
+              : invContactChange(before,after))));
+    }
+    match /users/{uid}/p0bRoomInvestors/{iid} {
+      allow get: if globalApproved(uid);
+      allow list: if globalApproved(uid) && request.query.limit != null && request.query.limit <= 100;
+      allow create: if globalApproved(uid) && invShape(request.resource.data,uid,iid)
+        && request.resource.data.generation == 1 && request.resource.data.contactRevision == 1
+        && request.resource.data.projects == {} && request.resource.data.lastProject == ''
+        && request.resource.data.deletionId == '' && request.resource.data.visits == {}
+        && request.resource.data.lastVisit == '' && request.resource.data.bulkId == '';
+      allow update: if globalApproved(uid) && invShape(request.resource.data,uid,iid) && resource.data.deletionId == ''
+        && request.resource.data.generation == resource.data.generation + 1
+        && invUpdate(uid,iid,resource.data,request.resource.data);
+      allow delete: if false;
+    }
+
+    // DEMO only. One quote ledger per investor, independent of room leases.
+    // Heads use CAS; prior revisions/chunks cannot be updated or deleted.
+    function roomQuoteLive(uid,iid) {
+      let inv = get(invRef(uid,iid)).data;
+      return inv.deletionId == '' && inv.bulkId == '';
+    }
+    function roomQuoteRef(uid,iid,rid) {
+      return /databases/$(database)/documents/users/$(uid)/p0bRoomQuotes/$(iid)/revisions/$(rid);
+    }
+    function roomQuoteShape(d,uid,iid) {
+      return d.keys().hasOnly(['ownerUid','investorId','version','generation','revisionId','hash','updatedAt'])
+        && d.ownerUid == uid && d.investorId == iid && d.version == 1
+        && d.generation is int && d.generation > 0 && revisionId(d.revisionId)
+        && d.hash is string && d.hash.matches('^[a-f0-9]{64}$') && d.updatedAt == request.time;
+    }
+    function roomQuoteHead(d,uid,iid,previous) {
+      let revision = get(roomQuoteRef(uid,iid,d.revisionId)).data;
+      let first = get(/databases/$(database)/documents/users/$(uid)/p0bRoomQuotes/$(iid)/revisions/$(d.revisionId)/chunks/0).data;
+      let lastIndex = string(revision.chunks.size() - 1);
+      let last = get(/databases/$(database)/documents/users/$(uid)/p0bRoomQuotes/$(iid)/revisions/$(d.revisionId)/chunks/$(lastIndex)).data;
+      return first.hash == revision.chunks[0] && last.hash == revision.chunks[revision.chunks.size()-1]
+        && roomQuoteShape(d,uid,iid) && revision.ownerUid == uid && revision.investorId == iid
+        && revision.generation == d.generation && revision.revisionId == d.revisionId
+        && revision.hash == d.hash && revision.previous == previous;
+    }
+    match /users/{uid}/p0bRoomQuotes/{iid} {
+      allow get: if globalApproved(uid) && invId(iid);
+      allow create: if globalApproved(uid) && roomQuoteLive(uid,iid)
+        && request.resource.data.generation == 1 && roomQuoteHead(request.resource.data,uid,iid,'');
+      allow update: if globalApproved(uid) && roomQuoteLive(uid,iid)
+        && request.resource.data.generation == resource.data.generation + 1
+        && roomQuoteHead(request.resource.data,uid,iid,resource.data.revisionId);
+      match /revisions/{rid} {
+        allow get: if globalApproved(uid) && invId(iid);
+        allow create: if globalApproved(uid) && roomQuoteLive(uid,iid)
+          && request.resource.data.keys().hasOnly(['ownerUid','investorId','version','generation','revisionId','hash','previous','chunks','createdAt'])
+          && request.resource.data.ownerUid == uid && request.resource.data.investorId == iid
+          && request.resource.data.version == 1 && request.resource.data.generation is int && request.resource.data.generation > 0
+          && request.resource.data.revisionId == rid && revisionId(rid)
+          && request.resource.data.hash is string && request.resource.data.hash.matches('^[a-f0-9]{64}$')
+          && request.resource.data.previous is string && (request.resource.data.previous == '' || revisionId(request.resource.data.previous))
+          && request.resource.data.chunks is list && request.resource.data.chunks.size() > 0 && request.resource.data.chunks.size() <= 64
+          && request.resource.data.createdAt == request.time;
+        match /chunks/{chunk} {
+          allow get: if globalApproved(uid) && invId(iid);
+          allow create: if globalApproved(uid) && roomQuoteLive(uid,iid)
+            && request.resource.data.keys().hasOnly(['index','hash','text'])
+            && request.resource.data.index is int && request.resource.data.index >= 0
+            && chunk == string(request.resource.data.index)
+            && request.resource.data.text is string && request.resource.data.text.size() <= 100001
+            && request.resource.data.hash is string && request.resource.data.hash.matches('^[a-f0-9]{64}$')
+            && request.resource.data.index < get(roomQuoteRef(uid,iid,rid)).data.chunks.size()
+            && request.resource.data.hash == get(roomQuoteRef(uid,iid,rid)).data.chunks[request.resource.data.index];
+        }
+      }
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}

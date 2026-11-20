@@ -9,7 +9,7 @@ Obowiązuje także w nowych wątkach. AGENTS i procedury tworzą jeden kontrakt 
 
 ## 1. Zasada nadrzędna: najpierw plan, potem zmiana
 
-- Nie modyfikuj żadnego pliku przed jednoznaczną komendą użytkownika: **„do dzieła”**.
+- **Decyzja właściciela 19.11.2026, nadrzędna wobec sprzecznych starszych zapisów:** priorytetem jest bezpieczna synchronizacja urządzeń. Codex samodzielnie diagnozuje i proponuje konkretny zakres prostymi słowami; właściciel zatwierdza przed zmianą. W zatwierdzonym zakresie nie ponawia zgody, ale każdą dodatkową poprawkę przedstawia przed wykonaniem. Nawet najmniejsza zmiana UI, w tym tekstów, komunikatów i zachowania ekranów, wymaga wyraźnej zgody na UI. Przygotowanie synchronizacji jest zatwierdzonym celem. Decyzja 20.11.2026: właściciel warunkowo zatwierdził jej uruchomienie LIVE po potwierdzeniu gotowości; do czasu kompletnych dowodów, zgodnego pakietu Rules i konfiguracji oraz spełnienia odrębnej procedury wydania pozostaje LIVE_BLOCKED. Zgoda nie obejmuje resetu danych, migracji destrukcyjnej ani zmian UI.
 - Przed tą komendą wolno wyłącznie analizować, diagnozować, proponować rozwiązania i opisywać ryzyko.
 - Przed każdą zmianą opisz:
   - co ma zostać zmienione,
@@ -35,17 +35,17 @@ Ta procedura uzupełnia istniejące zasady zgód, ról, UI, pracy z danymi i wyd
 
 ## 2. Minimalny, spójny zakres
 
-ChatGPT raz analizuje rzeczywisty łańcuch UI → wywołania → domena/modele/ID → odczyt/zapis/recovery/backupy → wyceny/oferty/sync/skutki uboczne. Codex korzysta z ustaleń i czyta kod potrzebny implementacji; pogłębia analizę tylko dla konkretnej sprzeczności/ryzyka. Rozróżniaj aktualny model od historycznych wyjątków; rekomenduj na podstawie faktów.
+Codex prowadzi bezpośrednio z właścicielem analizę, propozycje, diagnostykę, zatwierdzoną implementację i kontrole. Nie wymaga konsultacji ani audytu w GPT.
 
 Preferuj odwracalne zmiany, bez pobocznego refaktoru, przepisywania za rozmiar, zmiany stylu/nazw/formatowania/architektury niezwiązanych modułów lub utraty zgodności starych projektów/ofert/ustawień bez zgody. Wybieraj największy spójny, bezpieczny i testowalny pakiet według zależności/ryzyka/bramek, bez limitu liczby punktów i zbędnych mikroetapów.
 
-Niezbędny powiązany błąd naprawiaj przyczynowo w zakresie zgody. Niezwiązany zgłoś, kontynuuj niezależne bezpieczne części. Ryzyko danych/bezpieczeństwa = STOP zagrożonej operacji. Nie rozszerzaj zgody na UI, migrację, produkcję czy ryzykowny refaktor.
+Powiązany błąd poza zatwierdzonym zakresem najpierw przedstaw właścicielowi. Ryzyko danych lub bezpieczeństwa = STOP zagrożonej operacji.
 
-**Krytyczna weryfikacja poleceń ChatGPT przez Codexa:** prompty ChatGPT są rekomendacją sposobu realizacji zatwierdzonego celu, nie niepodważalną specyfikacją techniczną. Codex ma obowiązek sprawdzić założenia wobec aktualnego kodu, kontraktów, testów i dokumentacji. Gdy wykryje błąd ChatGPT, pominiętą zależność lub lepsze, bezpieczniejsze rozwiązanie, samodzielnie dostosowuje plan i sposób implementacji oraz naprawia niezbędne powiązane uchybienia **w granicach uzgodnionego celu i zgody**, bez ponownego pytania o każdą techniczną korektę. Nie wolno mu ślepo wykonywać błędnego promptu ani uzyskiwać PASS przez obchodzenie zabezpieczeń. W raporcie krótko wskazuje odstępstwa od rekomendacji i ich powody. Samodzielna korekta nie rozszerza zgody na zmianę reguł biznesowych, UI, migrację, Firebase LIVE, wydanie/PR/merge ani ryzykowny refaktor; przy konflikcie kontraktu, nowym celu lub zagrożeniu danych obowiązuje STOP i decyzja właściciela.
+**Weryfikacja propozycji:** Codex sprawdza założenia wobec kodu i dowodów, wyjaśnia błędy i proponuje bezpieczniejsze rozwiązanie. Nie wprowadza samodzielnie zmian poza zgodą, nie obchodzi guardów dla PASS.
 
 ## 3. Testy są bramką bezpieczeństwa
 
-Pełny Preflight, regresje i Firebase Emulator Suite wykonuje GitHub Actions. Codex przygotowuje kod/testy i wykonuje tylko niezbędną diagnostykę, celowaną reprodukcję/kontrolę diffu; nie dubluje pełnych zestawów przed/po CI. ChatGPT kontroluje dowody.
+Pełny Preflight, regresje i Firebase Emulator Suite wykonuje GitHub Actions. Codex przygotowuje kod/testy i wykonuje tylko niezbędną diagnostykę, celowaną reprodukcję/kontrolę diffu; nie dubluje pełnych zestawów przed/po CI. Codex kontroluje dowody i przedstawia je właścicielowi.
 
 Przy każdej zmianie aplikacji przejrzyj powiązane testy, dostosuj nieaktualne asercje wyłącznie do zatwierdzonego kontraktu/nazw/zależności/list serwerów/wersji i dodaj uzgodnione przypadki. Sprawdź rzeczywiste pokrycie CI dla bieżącego SHA, także regresji wysokiego ryzyka. Zachowaj zabezpieczenia, negatywy i brzegi; bez osłabiania asercji, pomijania scenariuszy, maskowania błędów lub zmiany biznesu dla PASS.
 
@@ -158,9 +158,9 @@ Zachowuj `Zapisz/Anuluj`, jeden autorytet projektu, LOCAL-FIRST, globalne katalo
 
 ## 14. Podział odpowiedzialności — CLOUD-4.5
 
-- **ChatGPT GPT-6 High:** prowadzenie, analiza/architektura, jedna rekomendacja i doradztwo biznesowe Meble-App/MebLeszek, kompletne zlecenie, niezależna kontrola raportu/diffu/SHA/CI. Standardowo bez zmian repo/GitHuba/programowania; wyjątek Ready (§12), inne zmiany tylko po odrębnej wyraźnej zgodzie (§16).
-- **Codex Sol High:** implementacja kodu/konfiguracji/dokumentacji/testów, potrzebna diagnostyka, gałąź/commit/push; trudna analiza tylko wyraźnie zlecona, PR jako uzgodnione zastępstwo. Bez dublowania CI.
-- **ChatGPT Work:** szczególnie złożone analizy przekrojowe przy rzeczywistej korzyści, bez zmiany zgód.
+- **GPT:** wyłącznie obsługa wydania po osobnej zgodzie właściciela na dokładne HEAD/BASE (§12). Bez wymaganej wcześniejszej konsultacji lub niezależnego audytu aplikacji.
+- **Codex:** bezpośrednia współpraca, analiza, propozycje, diagnostyka, zatwierdzona implementacja i testy celowane; kompletny pakiet GitHub do wydania. Zmiany po zgodzie na zakres, UI po wyraźnej zgodzie na UI.
+- Dodatkowe konsultacje tylko na życzenie właściciela; nie są bramką pracy.
 - **GitHub Actions:** wymagane testy, zatwierdzony auto-merge i exact Pages.
 - **Właściciel:** strategia/biznes, zakres, każde wydanie, osobne operacje produkcyjne, akceptacja telefonu; bez wyboru każdej technicznej nazwy.
 
@@ -198,13 +198,13 @@ Minima: wyłącznie właściciel, zachowane cenniki/zamienniki, bez nadpisywania
 6. Codex: kontrole celowane; pełne CI: Actions. Raport oceniaj niezależnie i zlecaj następną konkretną dozwoloną czynność, nie kolejny plan/audyt. Brak dostępu ≠ FAIL ani wykonany Preflight.
 7. Nie ponawiaj zgody na ten sam zakres/odczyt. Rozróżniaj plan, odczyt, implementację, wydanie HEAD/BASE i LIVE WRITE. Brak dostępu = `BLOCKED` i jedno praktyczne odblokowanie, bez obchodzenia zabezpieczeń.
 
-**Jakość pierwszego podejścia i oszczędność limitu — decyzja właściciela 18.11.2026.** Przed przekazaniem istotnej implementacji ChatGPT weryfikuje zatwierdzony model danych, wcześniejsze decyzje, zależności modułów i możliwe skutki uboczne; przekazuje Codexowi zwięzły, precyzyjny zakres z kryteriami odbioru. Codex zachowuje samodzielność techniczną (§2): w ramach zatwierdzonego celu kwestionuje błędne założenia i dobiera bezpieczne rozwiązanie, ale nie ponawia szerokiej analizy bez nowego, konkretnego powodu. Limit oszczędzamy przez unikanie ponownych odczytów, dublowania analiz i niepotrzebnych iteracji, **nie** przez pomijanie wymaganej diagnostyki, regresji lub ochrony danych. Priorytetem jest poprawne rozwiązanie za możliwie pierwszym podejściem, a nie najniższa liczba tokenów za cenę kolejnych błędów. Ta decyzja nie zmienia zakresu P0-B, podziału wykonawców testów, GitHub CI ani zasad zgód na wydanie i Firebase LIVE.
+**Jakość i oszczędność:** Codex weryfikuje model danych, wcześniejsze decyzje i zależności. Nie ponawia analiz ani zaliczonych testów bez nowej przyczyny. Poprawność i bezpieczeństwo mają pierwszeństwo; dodatkowe zmiany wymagają zgody (§1–2).
 
 Najpierw sprawdź istniejące metody; Firebase Codexa nie jest automatycznie narzędziem ChatGPT ani wymogiem produktu. Bez próśb o sekrety/tokeny/klucze. Dalej: [COLLABORATION.md](docs/agents/COLLABORATION.md).
 
 ## 19. Decyzje właściciela i priorytet produktu — 03.11.2026
 
-Nowe zadanie/zakres/zabezpieczenie: dowód, wpływ, rekomendacja ChatGPT i decyzja właściciela. Luka nie musi blokować; STOP nie zezwala na naprawę poza zakresem. Niezbędne powiązane przyczyny obsługuj w zgodzie (§2), bez ponawiania zgód. Priorytet: działająca aplikacja, sync telefon–komputer, WYCENA/RYSUNKI; bez zbędnych modułów/pakietów/zabezpieczeń i osłabiania testów (§3).
+Nowy zakres: dowód, wpływ, propozycja Codexa i zatwierdzenie właściciela. Priorytetem jest synchronizacja telefon–komputer–tablet; pozostałe ulepszenia odroczyć.
 
 ## 20. Końcowe przekazanie — 03.11.2026
 
@@ -212,4 +212,4 @@ Po implementacji/kontrolach celowanych/dzienniku i raporcie: commit/push gałęz
 
 Obowiązkowy [szablon](docs/agents/RELEASE.md): repo/gałąź, HEAD/BASE, statusy, zmiany, faktyczne testy, ograniczenia, CLEAN/push. `CODE_READY / CI_PENDING / RELEASE_BLOCKED` = gotowość do kontroli, bez wydania. Niedokończone zadanie/FAIL wymaganych kontroli = `BLOCKED`, bez pozornej gotowości/CLEAN/push. Zmiana SHA wymaga nowego przekazania i zgody wydaniowej.
 
-Codex domyślnie bez PR/Actions/merge/publikacji/Firebase LIVE; ChatGPT po niezależnej kontroli i osobnej zgodzie na SHA obsługuje jeden Ready i odczytowo obserwuje CI/auto-merge/Pages (§12).
+Codex przygotowuje kompletny, sprawdzony pakiet. GPT obsługuje wyłącznie wydanie po osobnej zgodzie na dokładne SHA. Bez wymaganej konsultacji lub audytu GPT i bez samodzielnego uruchamiania Actions/merge/Firebase LIVE.

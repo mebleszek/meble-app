@@ -151,3 +151,73 @@ test('explicit project Save may pin only confirmed newer catalogs; uncertain glo
  const bad={...rows,fc_materials_v1:'[{"id":"foreign"}]',primary:'[{"id":"owned"}]'};
  await assert.rejects(c.commit('globals',{expectedVersion:1,rows:bad}),/LF_LEGACY_MATERIAL_COPY_CONFLICT/);assert.equal(saved,null);
 });
+
+
+test('P0-B signed release binds the room registry and preserved legacy policy; old approvals stay unchanged',async()=>{
+ const fields={protocol:3,profile:'business-room-v1',registry:'p0b-rooms-v1',legacyDataPolicy:'preserve-outside-registry'};
+ const input=await fixture(fields),release=await verifyApplicationRelease(input);
+ assert.equal(assertApplicationRelease(release).registry,'p0b-rooms-v1');
+ for(const change of [{registry:'legacy'},{legacyDataPolicy:'delete'},{profile:'business-project-v1'},{protocol:2}])
+  await assert.rejects(verifyApplicationRelease(await fixture({...fields,...change})),/APPROVAL_REQUIRED/);
+ const old=await verifyApplicationRelease(await fixture());assert.equal(assertApplicationRelease(old).protocol,2);
+ const mutated={...input.envelope.decision,rulesSha256:'b'.repeat(64)};
+ await assert.rejects(verifyApplicationRelease({...input,envelope:{...input.envelope,decision:mutated}}),/SIGNATURE_INVALID/);
+});
+
+
+const roomApproval={protocol:3,profile:'business-room-v1',registry:'p0b-rooms-v1',legacyDataPolicy:'preserve-outside-registry'};
+function syntheticLiveConnection(){
+ const app={options:{projectId:'mebleszek-meble-app'}},identity={uid:owner,epoch:1};let valid=true;
+ return {db:{app,_databaseId:{projectId:'mebleszek-meble-app',database:'(default)'},_settings:{host:'firestore.googleapis.com',ssl:true}},
+  auth:{app,currentUser:{uid:owner,emailVerified:true,providerData:[{providerId:'google.com'}]}},session:{identity:()=>({...identity})},
+  assertAccess(){if(!valid)throw Error('LF_SYNC_ACCESS_UNCONFIRMED');},lease:{uid:owner,assert(){if(!valid)throw Error('LF_SYNC_ACCESS_UNCONFIRMED');},isValid:()=>valid},
+  firestore:{doc:(_db,...parts)=>parts.join('/'),collection:(_db,...parts)=>parts.join('/')},changeEpoch(){identity.epoch++;},expire(){valid=false;}};
+}
+test('P0-B deployment mode requires a verified room decision before local startup and never trusts a live DEMO flag',async()=>{
+ const {applicationP0BMode}=await import('../../sync/application-release.mjs'),{startApplicationRuntime}=await import('../../sync/application-runtime.mjs');
+ const w={location:{hostname:'mebleszek.github.io'},document:{baseURI:origin}},options={window:w,name:'meble-local-first-v1',ownerUid:owner};
+ const release=await verifyApplicationRelease(await fixture(roomApproval)),old=await verifyApplicationRelease(await fixture());
+ assert.equal(applicationP0BMode({...options,release}),true);assert.equal(applicationP0BMode({...options,release:old}),false);
+ assert.throws(()=>applicationP0BMode({...options,p0bDemo:true}),/EMULATOR_REQUIRED/);
+ assert.throws(()=>applicationP0BMode({...options,release:old,p0bDemo:true}),/EMULATOR_REQUIRED/);
+ assert.throws(()=>applicationP0BMode({...options,release:{protocol:3}}),/APPROVAL_REQUIRED/);
+ assert.throws(()=>applicationP0BMode({...options,release,localOnly:true}),/LOCAL_MODE_REQUIRED/);
+ assert.throws(()=>applicationP0BMode({...options,release,ownerUid:'foreign'}),/OWNER_CHANGED/);
+ const writer=syntheticLiveConnection(),reader=syntheticLiveConnection(),permit=authorizeApplicationSession({release:old,writer,reader});
+ try{await assert.rejects(startApplicationRuntime({...options,release,writer,reader}),/P0B_REGISTRY_REQUIRED/);}finally{permit.revoke();}
+});
+test('P0-B live adapters require the room capability and retain revocation, Google identity and lease checks without I/O',async()=>{
+ const {assertP0BConnection}=await import('../../sync/firebase-activation.mjs'),{p0bConnection}=await import('../../sync/application-p0b-domain.mjs');
+ const {createQuoteChannel}=await import('../../sync/local-first-quote-channel.mjs');
+ const writer=syntheticLiveConnection(),reader=syntheticLiveConnection();
+ assert.throws(()=>p0bConnection(writer),/P0B_REGISTRY_REQUIRED/);
+ const old=authorizeApplicationSession({release:await verifyApplicationRelease(await fixture()),writer,reader});
+ assert.throws(()=>p0bConnection(writer),/P0B_REGISTRY_REQUIRED/);
+ await assert.rejects(createQuoteChannel({writer,reader,ownerUid:owner,investorId:'investor'}),/P0B_REGISTRY_REQUIRED/);old.revoke();
+ const permit=authorizeApplicationSession({release:await verifyApplicationRelease(await fixture(roomApproval)),writer,reader});
+ const mapped=p0bConnection(writer);assert.equal(assertP0BConnection(mapped).uid,owner);
+ assert.equal(mapped.firestore.doc(mapped.db,'users',owner,'localFirstProjects','room'),'users/'+owner+'/p0bRoomProjects/room');
+ assert.equal(mapped.firestore.collection(mapped.db,'users',owner,'localFirstInvestors'),'users/'+owner+'/p0bRoomInvestors');
+ assert.equal(mapped.firestore.doc(mapped.db,'users',owner,'globalData','current'),'users/'+owner+'/globalData/current');
+ assert.throws(()=>assertP0BConnection({...mapped}),/P0B_REGISTRY_REQUIRED/);
+ const quote=await createQuoteChannel({writer,reader,ownerUid:owner,investorId:'investor'});quote.guard();
+ writer.auth.currentUser.emailVerified=false;assert.throws(()=>assertP0BConnection(mapped),/LIVE_IDENTITY_INVALID/);writer.auth.currentUser.emailVerified=true;
+ writer.db._settings.host='127.0.0.1:18080';assert.throws(()=>assertP0BConnection(mapped),/LIVE_IDENTITY_INVALID/);writer.db._settings.host='firestore.googleapis.com';
+ writer.expire();assert.throws(()=>assertP0BConnection(mapped),/SYNC_ACCESS_UNCONFIRMED/);
+ permit.revoke();assert.throws(()=>assertP0BConnection(mapped),/P0B_REGISTRY_REQUIRED/);assert.throws(()=>quote.guard(),/P0B_REGISTRY_REQUIRED/);
+ const a=syntheticLiveConnection(),b=syntheticLiveConnection(),p=authorizeApplicationSession({release:await verifyApplicationRelease(await fixture(roomApproval)),writer:a,reader:b});
+ a.changeEpoch();assert.throws(()=>assertP0BConnection(a),/AUTH_CHANGED/);p.revoke();
+});
+test('P0-B offline packaging binds the exact prototype Rules; no public activation artifact is replaced',async()=>{
+ const {createHash}=await import('node:crypto'),{reviewApplicationRelease}=require('../application-release-package.js');
+ const rules=require('./p0b-application-rules.js').p0bApplicationRules({normal:true});
+ assert.equal(fs.readFileSync(new URL('./application-p0b-owner.rules',import.meta.url),'utf8'),rules);
+ const rulesSha256=createHash('sha256').update(rules).digest('hex'),f=await fixture({...roomApproval,rulesSha256});
+ const input={trustedKeySha256:f.trustedKeySha256,envelope:{...f.envelope,publicKeySpki:[...f.envelope.publicKeySpki],signature:[...f.envelope.signature]}};
+ const reviewed=await reviewApplicationRelease(input);assert.equal(reviewed.rulesSha256,rulesSha256);
+ const w={};require('node:vm').runInNewContext(reviewed.source,{window:w,Uint8Array,Object});
+ assert.equal(assertApplicationRelease(await verifyApplicationRelease({...w.FC_APPLICATION_RELEASE,origin})).profile,'business-room-v1');
+ const bad=await fixture({...roomApproval,rulesSha256:'f'.repeat(64)});
+ await assert.rejects(reviewApplicationRelease({trustedKeySha256:bad.trustedKeySha256,envelope:{...bad.envelope,publicKeySpki:[...bad.envelope.publicKeySpki],signature:[...bad.envelope.signature]}}),/RULES_PACKAGE_MISMATCH/);
+ assert.doesNotMatch(fs.readFileSync(new URL('../../js/app/cloud/application-release.js',import.meta.url),'utf8'),/business-room-v1/);
+});

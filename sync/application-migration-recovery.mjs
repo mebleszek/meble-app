@@ -8,13 +8,14 @@ export async function recoverApplicationBinding({window:w,name,release,sourceHas
  const db=await new Promise((resolve,reject)=>{const q=w.indexedDB.open(name,1);q.onupgradeneeded=()=>q.transaction.abort();q.onblocked=q.onerror=()=>reject(Error('LF_MIGRATION_RECOVERY_UNCONFIRMED'));q.onsuccess=()=>resolve(q.result);});
  try{
   if(!equal([...db.objectStoreNames].sort(),['control','outbox','protected','replicas']))fail('LF_MIGRATION_RECOVERY_UNCONFIRMED');
-  const state=await new Promise((resolve,reject)=>{const tx=db.transaction(['control','outbox','protected','replicas'],'readonly'),s=tx.objectStore('control'),q=s.get('binding');let value;
-   tx.onabort=()=>reject(Error('LF_MIGRATION_RECOVERY_UNCONFIRMED'));tx.oncomplete=()=>resolve(value);
+  const state=await new Promise((resolve,reject)=>{const tx=db.transaction(['control','outbox','protected','replicas'],'readonly'),s=tx.objectStore('control'),q=s.get('binding'),marker=s.get('p0b-registry');let value;
+   tx.onabort=()=>reject(Error('LF_MIGRATION_RECOVERY_UNCONFIRMED'));tx.oncomplete=()=>resolve({...value,marker:marker.result});
    q.onsuccess=()=>{const binding=q.result;if(binding?.ownerUid!==d.ownerUid||binding.version!==1){tx.abort();return;}
     const source=s.get('source'),app=s.get('application'),counts=['outbox','protected','replicas'].map(k=>tx.objectStore(k).count());
     app.onsuccess=()=>{value={binding,source:source.result,image:app.result,counts};};
    };
   });
+  if(state.marker&&d.protocol!==3)fail('LF_P0B_REGISTRY_REQUIRED');
   const {binding,source,image}=state;id(binding.deviceId);id(binding.instanceId);
   if(!!source!==!!image)fail('LF_MIGRATION_RECOVERY_UNCONFIRMED');
   if(source){if(source.activationId!==d.activationId||source.hash!==sourceHash||await digest(source.rows)!==source.hash||await digest(image.rows)!==image.hash)fail('LF_MIGRATION_RECOVERY_UNCONFIRMED');}

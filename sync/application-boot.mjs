@@ -7,15 +7,15 @@ import {recoverApplicationBinding} from './application-migration-recovery.mjs';
 import {applicationKeys} from './application-authority.mjs';
 import {openLocalFirstStore} from './local-first-idb.mjs';
 import {INSTALL_KEY,exclusiveApplication,verifyExclusiveClient} from './application-installation.mjs';
-import {assertApplicationRelease,prepareApplicationMigration} from './application-release.mjs';
+import {assertApplicationRelease,applicationP0BMode,prepareApplicationMigration} from './application-release.mjs';
 import {applicationWriterFence} from './application-writer-fence.mjs';
 import {digest,equal,fail} from './local-first-values.mjs';
 export function prepareEmulatorApplicationBoot(options){return prepareApplicationBoot(options);}
 export async function prepareApplicationBoot({window:w,name,ownerUid,release:deployment,localOnly=false,firstCatalogSync=false,p0bDemo=false}){
  if(deployment)assertApplicationRelease(deployment,{ownerUid,name,window:w});
  else if(!['127.0.0.1','localhost'].includes(w.location.hostname)||!/^meble-lf-test-/.test(name))fail('LF_PRODUCTION_MIGRATION_NOT_APPROVED');
- if(p0bDemo&&(!['127.0.0.1','localhost'].includes(w.location.hostname)||localOnly))fail('LF_EMULATOR_REQUIRED');
- if(p0bDemo)w.FC.applicationRegistry=Object.freeze({id:P0B_REGISTRY});
+ const p0bEnabled=applicationP0BMode({release:deployment,window:w,name,ownerUid,p0bDemo,localOnly});
+ if(p0bEnabled)w.FC.applicationRegistry=Object.freeze({id:P0B_REGISTRY});
  const release=await exclusiveApplication(w);let store;
  try{
   const verifyFence=()=>deployment?applicationWriterFence(w):verifyExclusiveClient(w);
@@ -24,13 +24,13 @@ export async function prepareApplicationBoot({window:w,name,ownerUid,release:dep
   const original={get:proto.getItem,set:proto.setItem,remove:proto.removeItem,key:proto.key,length:Object.getOwnPropertyDescriptor(proto,'length')};
   const readNative=key=>original.get.call(ls,key),source=Object.fromEntries(keys.map(k=>[k,readNative(k)]));
   const hidden=new Set(),p0bSource={...source};
-  if(p0bDemo)for(let n=0;n<original.length.get.call(ls);n++){const key=original.key.call(ls,n);if(/^fc_project_inv_.+_v1$/.test(key||'')&&!managed.has(key)){hidden.add(key);p0bSource[key]=readNative(key);}}
+  if(p0bEnabled)for(let n=0;n<original.length.get.call(ls);n++){const key=original.key.call(ls,n);if(/^fc_project_inv_.+_v1$/.test(key||'')&&!managed.has(key)){hidden.add(key);p0bSource[key]=readNative(key);}}
   const migration=deployment?await prepareApplicationMigration({release:deployment,window:w,name,source,readNative,verifyFence}):null;
   let reset=localOnly||firstCatalogSync?localResetState(w,ownerUid,name):null;
   if(firstCatalogSync&&reset&&reset.state!=='used')fail('LF_LOCAL_RESET_INTERRUPTED');
   const fresh=Object.values(source).every(v=>v===null),receipt=readNative(INSTALL_KEY);let rows=structuredClone(source),restored=!!receipt;
   if(reset?.state==='pending'&&!receipt)fail('LF_LOCAL_RESET_INTERRUPTED');
-  if(!receipt&&deployment){const recovered=await recoverApplicationBinding({window:w,name,release:deployment,sourceHash:await digest(source)});if(recovered?.image){if(p0bDemo){store=await openLocalFirstStore({...recovered.binding,initialize:false,indexedDB:w.indexedDB,locks:w.navigator.locks});rows=structuredClone((await store.exclusive(()=>store.enterP0BRegistry(p0bSource))).rows);store.close();store=null;}else rows=structuredClone(recovered.image.rows);restored=true;}}
+  if(!receipt&&deployment){const recovered=await recoverApplicationBinding({window:w,name,release:deployment,sourceHash:await digest(source)});if(recovered?.image){if(p0bEnabled){store=await openLocalFirstStore({...recovered.binding,initialize:false,indexedDB:w.indexedDB,locks:w.navigator.locks});rows=structuredClone((await store.exclusive(()=>store.enterP0BRegistry(p0bSource))).rows);store.close();store=null;}else rows=structuredClone(recovered.image.rows);restored=true;}}
   if(!receipt&&p0bDemo&&!deployment){const recovered=await recoverP0BDemoBinding({window:w,name,ownerUid,source});if(recovered){rows=structuredClone(recovered.image.rows);restored=true;}}
   if(receipt){
    let binding;try{binding=JSON.parse(receipt);}catch(_){fail(reset?.state==='pending'?'LF_LOCAL_RESET_INTERRUPTED':'LF_INSTALLATION_RECEIPT_INVALID');}
@@ -38,8 +38,9 @@ export async function prepareApplicationBoot({window:w,name,ownerUid,release:dep
    if(deployment&&binding.activationId!==assertApplicationRelease(deployment).activationId)fail('LF_ACTIVATION_RECEIPT_CHANGED');
    if(binding.ownerUid!==ownerUid||binding.name!==name||binding.sourceHash!==await digest(source))fail('LF_OLD_WRITER_OR_OWNER_CONFLICT');
    store=await openLocalFirstStore({...binding,initialize:false,indexedDB:w.indexedDB,locks:w.navigator.locks});
+   if(!p0bEnabled&&await store.p0bRegistry())fail('LF_P0B_REGISTRY_REQUIRED');
    let image=await store.readApplication();
-   if(p0bDemo)image=await store.exclusive(()=>store.enterP0BRegistry(p0bSource));
+   if(p0bEnabled)image=await store.exclusive(()=>store.enterP0BRegistry(p0bSource));
    if(reset?.state==='pending'){
     // An application image can only exist after this reset's clear completed.
     // Reconcile a stale Web Storage journal from its independently verified
@@ -49,7 +50,7 @@ export async function prepareApplicationBoot({window:w,name,ownerUid,release:dep
    }
    if(!image&&!(reset?.state==='cleared'&&fresh&&binding.instanceId===reset.next.instanceId))fail('LF_APPLICATION_IMAGE_LOST');if(image)rows=structuredClone(image.rows);store.close();
   }
-  if(p0bDemo&&!receipt&&!restored)rows=emptyP0BBusiness(rows);
+  if(p0bEnabled&&!receipt&&!restored)rows=emptyP0BBusiness(rows);
   if(localOnly&&fresh&&(!restored||reset?.state==='cleared')){
    const [{codeCandidate},{codeGlobalRows}]=await Promise.all([import('./code-global-catalogs.generated.mjs'),import('./global-code-rebuild-plan.mjs')]);
    rows={...rows,...codeGlobalRows(codeCandidate.model,w.FC.globalDataContract),fc_projects_v1:'[]',fc_investors_v1:'[]',fc_quote_snapshots_v1:'[]'};
@@ -73,7 +74,7 @@ export async function prepareApplicationBoot({window:w,name,ownerUid,release:dep
    rows[key]=value;
   };
   proto.removeItem=function(key){if(this===ls&&managed.has(String(key)))fail('LF_LEGACY_BOOT_WRITE_REFUSED');return original.remove.call(this,key);};
-  if(p0bDemo){
+  if(p0bEnabled){
    const legacySlot=key=>key==='fc_project_v1'||/^fc_project_inv_.+_v1$/.test(key)||/^fc_(?:project|investors)_backup(?:_meta)?_v1$/.test(key);
    const visible=()=>{const names=[];for(let n=0;n<original.length.get.call(ls);n++){const key=original.key.call(ls,n);if(!legacySlot(key)&&!hidden.has(key)&&(!managed.has(key)||proto.getItem.call(ls,key)!==null))names.push(key);}for(const key of managed)if(!legacySlot(key)&&proto.getItem.call(ls,key)!==null&&!names.includes(key))names.push(key);return names;};
    proto.key=function(n){return this===ls?visible()[n]??null:original.key.call(this,n);};
@@ -81,11 +82,11 @@ export async function prepareApplicationBoot({window:w,name,ownerUid,release:dep
   }
   const backupKeys=()=>{const found=[];for(let n=0;n<original.length.get.call(ls);n++){const key=original.key.call(ls,n);if(key==='fc_data_backups_v1'||/^fc_(?:project|investors)_backup(?:_meta)?_v1$/.test(key)||/^fc_project_inv_.+_backup(?:_meta)?_v1$/.test(key))found.push(key);}return found;};
   async function replaceRecoveryImage(expected,image){
-   if(!w.__FC_MAIN_ACCESS__.isLoading?.()||!p0bDemo||image.version<=expected.version||await digest(image.rows)!==image.hash)fail('LF_PROJECT_RECOVERY_SOURCE_CHANGED');
+   if(!w.__FC_MAIN_ACCESS__.isLoading?.()||!p0bEnabled||image.version<=expected.version||await digest(image.rows)!==image.hash)fail('LF_PROJECT_RECOVERY_SOURCE_CHANGED');
    await verifyFence();w.__FC_MAIN_ACCESS__.assert();
    for(const key of keys){if(readNative(key)!==source[key])fail('LF_OLD_WRITER_DETECTED');if(key!=='fc_ui_v1'&&(rows[key]??null)!==(expected.rows[key]??null))fail('LF_PROJECT_RECOVERY_SOURCE_CHANGED');}
    rows=structuredClone(image.rows);
   }
-  return {backupKeys,replaceRecoveryImage,confirmLocalReset(){if(reset?.state==='cleared'){w.localStorage.setItem(RESET_KEY,JSON.stringify({...reset,state:'used'}));if(JSON.parse(w.localStorage.getItem(RESET_KEY))?.state!=='used')fail('LF_LOCAL_RESET_UNCONFIRMED');}},p0bDemo,p0bSource,readNative,release,migration,fresh,verifyFence,restored,localOnly,rows:()=>structuredClone(rows)};
+  return {backupKeys,replaceRecoveryImage,confirmLocalReset(){if(reset?.state==='cleared'){w.localStorage.setItem(RESET_KEY,JSON.stringify({...reset,state:'used'}));if(JSON.parse(w.localStorage.getItem(RESET_KEY))?.state!=='used')fail('LF_LOCAL_RESET_UNCONFIRMED');}},p0bDemo:p0bEnabled,p0bSource,readNative,release,migration,fresh,verifyFence,restored,localOnly,rows:()=>structuredClone(rows)};
  }catch(error){store?.close();await release();throw error;}
 }

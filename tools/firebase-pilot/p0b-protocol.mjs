@@ -1,5 +1,6 @@
-// Emulator candidate for new, explicitly seeded investor records.
-import {assertEmulator, equal, fail, id, json} from '../../sync/local-first-values.mjs';
+// New registry protocol; LIVE requires a verified room deployment permit.
+import {assertP0BConnection} from '../../sync/firebase-activation.mjs';
+import {equal, fail, id, json} from '../../sync/local-first-values.mjs';
 import {createP0BPin} from './p0b-pin.mjs';
 import {p0bDeletionGroup} from './p0b-deletion-group.mjs';
 
@@ -91,9 +92,9 @@ export function watchP0BEditorContact({send,window:w,onError=()=>{}}) {
 
 export function createP0BProtocol(connection, deviceId) {
   id(deviceId);
-  const identity = assertEmulator(connection), {uid} = identity, {db, firestore:f} = connection;
+  const identity = assertP0BConnection(connection), {uid} = identity, {db, firestore:f} = connection;
   const guard = () => {
-    if (!equal(assertEmulator(connection), identity)) fail('LF_AUTH_CHANGED');
+    if (!equal(assertP0BConnection(connection), identity)) fail('LF_AUTH_CHANGED');
     connection.assertAccess();
   };
   const ref = (collection, key) => f.doc(db, 'users', uid, collection, id(key));

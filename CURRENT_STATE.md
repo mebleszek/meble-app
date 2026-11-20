@@ -1,6 +1,16 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
-## P0-B — Preflight #1359: odczyt ACK i ten sam PR, 19.11.2026
+## P0-B — przygotowanie połączenia Firebase, 20.11.2026
+
+**CODE_READY przygotowania / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Gałąź `feat/p0b-live-connection-preparation-20261119`; HEAD wejściowy = aktualny BASE/main `2cfd2f84499b653d7239d4e975e8ca6850f9f09d`. PR #151 już scalony/zamknięty; nowego nie tworzono. [Zakres, dowody i bramki](tools/reports/p0b-live-preparation-20261120.md).
+
+- **USTALONE.** Właściciel zatwierdził przygotowanie i warunkowe uruchomienie synchronizacji po potwierdzeniu gotowości. Bez zmian UI; dane testowe i nieedytowane cenniki nie są zgodą na reset. Zastąpiono sprzeczne role AGENTS/RELEASE: Codex przygotowuje bezpośrednio z właścicielem, GPT tylko obsługuje osobno zatwierdzone wydanie.
+- **WDROŻONE.** Osobna podpisana decyzja protokołu 3 dla rejestru pokojów; normalny bootstrap/runtime korzysta z istniejących P0-B, CAS, blokad, PIN, heartbeat, recovery i historii. Stare/global-only uprawnienia nie udzielają LIVE P0-B; adapter zachowuje lease/epoch/revoke. Nowy marker IDB odmawia downgrade do starego writera. Prototyp Rules i pakowanie offline nie zmieniają obecnej publicznej aktywacji ani Firebase. Stare źródła, repliki/outbox i globals zachowane.
+- **KONTROLE.** Boundary 14/14 PASS (syntetyczna tożsamość LIVE, bez sieci); podpisane Chromium/Standard Emulator: pierwszy pełny scenariusz 1/1 PASS; łączna oferta i Rules 5/5 PASS, w tym rzeczywista odmowa starego protokołu. Końcowy pełny scenariusz po dodaniu guardu 1/1 PASS (~189 s), exit 0. Login 36/36, manifest/wersje/offline shell, diff i routing CI PASS; nowe signed-quote osobno, 34 przypadki/21 segmentów P0-B, zachowane 36 grup smoke. Szczegółowe ograniczenia Windows/history wrapper w raporcie.
+- **BRAKUJE → DALEJ.** Pełny Preflight i zatwierdzone wydanie dokładnego SHA; następnie porównanie rzeczywistych Rules/grantów, podpisany artefakt protokołu 3 i kontrolowana aktywacja. Firebase MCP zalogowane, projekt mebleszek-meble-app, billing wyłączony; nie jest to dowód działania P0-B na urządzeniach. Brak Firebase LIVE WRITE, PR, Actions, merge i publikacji. PHONE_PENDING. [Plan](docs/plans/LOCAL_FIRST_ROADMAP.md#p0-b--usuwanie-inwestorów-i-wyłączność-projektu).
+
+
+## Historia — P0-B, Preflight #1359: odczyt ACK i ten sam PR, 19.11.2026
 
 **CODE_READY / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Naprawa bezpośrednio na gałęzi PR #151 `feat/p0b-project-exclusivity-20261116`; HEAD wejściowy `15c1d468813cccee31002be32b9cd178ff841c34`, BASE/main `d91c48938febe800553def7ed17967d0ffdcfb0b`. [Raport przyczyn i dowodów](tools/reports/preflight-1359-repair-20261119.md); [plan](docs/plans/LOCAL_FIRST_ROADMAP.md#p0-b--usuwanie-inwestorów-i-wyłączność-projektu).
 

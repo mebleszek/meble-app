@@ -52,7 +52,7 @@ async function addCabinet(device,width){
  await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
 }
 async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false}={}){
- await runNormalApplication(t,{deployment,p0bRegistry:true,testOwner:quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
+ await runNormalApplication(t,{deployment,p0bRegistry:true,testOwner:deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
   const artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'meble-p0b-normal-'));
   await phone.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
   try{
@@ -60,6 +60,18 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    const initial=await image(phone);
    assert.deepEqual(JSON.parse(rows(initial).fc_investors_v1),[]);
    assert.deepEqual(JSON.parse(rows(initial).fc_projects_v1),[]);
+   if(deployment){
+    const refusal=await phone.page.evaluate(async({ownerUid,name})=>{
+     const {verifyApplicationRelease}=await import('/sync/application-release.mjs'),{canonical}=await import('/sync/local-first-values.mjs');
+     const keys=await crypto.subtle.generateKey('Ed25519',true,['sign','verify']),publicKeySpki=new Uint8Array(await crypto.subtle.exportKey('spki',keys.publicKey));
+     const decision={domain:'MEBLE_APPLICATION_DEPLOYMENT_V1',protocol:2,projectId:'demo-meble-app',database:'(default)',profile:'business-project-v1',globalDomains:14,ownerUid,activationId:'synthetic-deployment',origin:new URL('./',document.baseURI).href,migrationApproved:true,sourcePreserved:true,rulesApproved:true,rulesSha256:'a'.repeat(64)};
+     const signature=new Uint8Array(await crypto.subtle.sign('Ed25519',keys.privateKey,new TextEncoder().encode(canonical(decision))));
+     const trustedKeySha256=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',publicKeySpki)),b=>b.toString(16).padStart(2,'0')).join('');
+     const release=await verifyApplicationRelease({envelope:{decision,publicKeySpki,signature},trustedKeySha256,origin:decision.origin});
+     try{await (await import('/sync/application-migration-recovery.mjs')).recoverApplicationBinding({window,name:'meble-lf-test-normal-'+name,release,sourceHash:'a'.repeat(64)});return 'UNSAFE_DOWNGRADE';}catch(e){return e.code||e.message;}
+    },{ownerUid,name:phone.name});
+    assert.equal(refusal,'LF_P0B_REGISTRY_REQUIRED');assert.deepEqual(await image(phone),initial,'Rejected old deployment must not modify any IDB table');
+   }
    const archive=JSON.parse(initial.protected.find(row=>row.key==='p0b-previous-registry').json);
    assert.equal(archive.sourceRows.fc_investors_v1,source.investors);
    assert.equal(archive.sourceRows.fc_projects_v1,source.projects);
@@ -521,4 +533,7 @@ test('P0-B room quote staging: interrupted immutable publication resumes after S
 test('P0-B room quote acceptance: real combined acceptance preserves frozen sources and prices',t=>cleanApplication(t,{quoteProbe:true,quoteAcceptance:true}));
 test('P0-B room quote acceptance conflict: a changed epoch fences publication and preserves recovery',t=>cleanApplication(t,{quoteProbe:true,quoteAcceptance:true,quoteAcceptanceRace:true}));
 
-test('P0-B signed DEMO clean registry: real new investor, two profiles and durable independent contact',t=>cleanApplication(t,{deployment:true,full:false}));
+test('P0-B signed DEMO clean registry: real new investor, two profiles and durable independent contact',t=>cleanApplication(t,{deployment:true}));
+
+
+test('P0-B signed room deployment: combined quote and immutable history survive restart and lost ACK',t=>cleanApplication(t,{deployment:true,quoteProbe:true}));
