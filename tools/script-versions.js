@@ -126,6 +126,7 @@ const versions = Object.freeze({
   "js/app/wycena/wycena-tab-shell.js":"20261115_e1_durable_settings_v1"
 });
 const authVersions=Object.freeze({
+  "js/app/cloud/application-release.js":"20261121_p0b_signed_release_v1",
   "js/app/cloud/application-sync-actions.js":"20261118_room_quote_v1",
   "js/app/cloud/auth-access-gate.js": "20261113_incremental_access_v3",
   "js/app/cloud/cloud-access-verifier.js": "20261114_access_rpc_diagnostics_v1",

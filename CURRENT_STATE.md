@@ -1,5 +1,14 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## P0-B — kandydat podpisanej aktywacji, 21.11.2026
+
+**CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED — przygotowanie, bez publikacji.** PR #153 scalony, CI i Pages PASS dla merge `cae9490d01bb1fc66cb0b2f37a3b2bacf62f7998`, potwierdzono odczytem GitHuba. Ten SHA jest BASE nowej gałęzi `feat/p0b-signed-activation-candidate-20261121`; wcześniejszego PASS nie przypisujemy nowemu pakietowi. Starsze wpisy o otwartym PR #153 są historią.
+
+- **USTALONE → WDROŻONE.** Po „Wydane. Lecimy dalej” przygotowano slot publiczny protokołu 3 z już podpisanego pakietu DPAPI. Przed skopiowaniem ponownie sprawdzono podpis, przypięty nowy odcisk i identyczność źródła z przygotowanym kandydatem. Ten sam ownerUid/activationId, `business-room-v1`, `p0b-rooms-v1`, zachowanie starej przestrzeni. Nowy parametr wersji zasobu i spójny manifest offline. Brak zmian UI, kalkulatora, runtime, Rules, grantów i danych; brak ponownego generowania/użycia klucza prywatnego.
+- **KONTROLE.** Boundary 14/14 PASS z dokładnym hashem decyzji i P0-B Rules, przypięciem nowego klucza, odmową starego odcisku oraz dotychczasowymi negatywami. Main-login 36/36, wersje, manifest i offline-shell PASS. Testy te nie łączą się z Firebase LIVE. Szczegółowy dowód aktualizacji Chromium i ograniczenia w [raporcie](tools/reports/p0b-signed-activation-candidate-20261121.md).
+- **CHROMIUM PASS.** Historyczny worker → bieżący kandydat, HTTP 503/ochrona starego cache, 32 s wstrzymanego pliku, 189 pobrań/329 zweryfikowanych użyć cache/peak 3; aktywna edycja i wiele kart bez przejęcia, restart offline i dokładne RAW/IndexedDB. Izolowany WSL/Linux, bez Firebase i profilu właściciela; nie jest to odbiór LIVE. Wcześniejsze przeszkody ścieżek/bibliotek runtime rozwiązano wskazaniem istniejących zasobów, bez zmian testu.
+- **BRAKUJE → PROPONOWANE.** Nie tworzyć PR Ready ani nie wydawać tego slotu przy starych Rules. Osobna bramka: świeży odczyt rzeczywistych Rules/grantów i zgoda właściciela na dokładny pakiet LIVE oraz okno przełączenia; następnie odrębna próba CI/wydania dokładnych HEAD/BASE. Bez resetu, wymuszonego reloadu, migracji i automatycznego rollbacku po zapisach P0-B. Odbiór urządzeń PHONE_PENDING.
+
 ## P0-B — naprawa Windows checkout po Preflight #1364, 21.11.2026
 
 **CODE_READY / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Ten sam PR #153 Ready i gałąź `feat/p0b-owner-signing-windows-20261120`; wejściowy HEAD `dd5829761d3d6f509957c4414faa1870da030c3e`, BASE/main `c71d93c279b00ae7f153837c606d98bd10816591`. Odczytano log Windows job 136619659002 w run 44832171070: odmowa przed testami DPAPI, `application-rules.js:7` przy dopasowaniu wielowierszowego fragmentu. Pozostałe FAIL raportowane przez właściciela to agregaty, nie osobne przyczyny.

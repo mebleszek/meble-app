@@ -74,11 +74,14 @@ test('owner-authorized deployment verifies pinned key and Rules; unsigned or alt
  const {runInNewContext}=await import('node:vm'),{createHash}=await import('node:crypto'),sandbox={window:{},Uint8Array,Object};
  runInNewContext(slot,sandbox,{timeout:1000});
  const deployed=sandbox.window.FC_APPLICATION_RELEASE;
- const trustedKeySha256='e3a45a1ef604058306955a6598ac7fd6d8d2bfb2682de53726895e4295a20284';
+ const trustedKeySha256='c66babc664fff2dbb25edd84227c5337a32a59df25636f97cc3d71dcdeada53b';
  assert.equal(deployed.trustedKeySha256,trustedKeySha256);
  const approved=assertApplicationRelease(await verifyApplicationRelease({...deployed,trustedKeySha256,origin}));
  assert.equal(approved.ownerUid,'ByBPVVNXx3fUDUmTg5yTSNVveH23');assert.equal(approved.activationId,'meble-app-20261102-01');
- assert.equal(approved.rulesSha256,createHash('sha256').update(require('./application-rules.js').applicationRules()).digest('hex'));
+ assert.equal(approved.protocol,3);assert.equal(approved.profile,'business-room-v1');
+ assert.equal(approved.registry,'p0b-rooms-v1');assert.equal(approved.legacyDataPolicy,'preserve-outside-registry');
+ assert.equal(approved.rulesSha256,createHash('sha256').update(require('./p0b-application-rules.js').p0bApplicationRules({normal:true})).digest('hex'));
+ assert.equal(await (await import('../../sync/local-first-values.mjs')).digest(approved),'8c6d478efefa55d13d606ca4f71c141b681393bc73985af38ef9f3831a58f8a3');
  const altered=new Uint8Array(deployed.envelope.signature);altered[0]^=1;
  await assert.rejects(verifyApplicationRelease({...deployed,trustedKeySha256,origin,envelope:{...deployed.envelope,signature:altered}}),/SIGNATURE_INVALID/);
  await assert.rejects(verifyApplicationRelease({origin}),/APPROVAL_REQUIRED/);
@@ -208,7 +211,7 @@ test('P0-B live adapters require the room capability and retain revocation, Goog
  const a=syntheticLiveConnection(),b=syntheticLiveConnection(),p=authorizeApplicationSession({release:await verifyApplicationRelease(await fixture(roomApproval)),writer:a,reader:b});
  a.changeEpoch();assert.throws(()=>assertP0BConnection(a),/AUTH_CHANGED/);p.revoke();
 });
-test('P0-B offline packaging binds the exact prototype Rules; no public activation artifact is replaced',async()=>{
+test('P0-B offline packaging binds the exact Rules and signed public candidate without deployment',async()=>{
  const {createHash}=await import('node:crypto'),{reviewApplicationRelease}=require('../application-release-package.js');
  const rules=require('./p0b-application-rules.js').p0bApplicationRules({normal:true});
  assert.equal(fs.readFileSync(new URL('./application-p0b-owner.rules',import.meta.url),'utf8'),rules);
@@ -219,5 +222,10 @@ test('P0-B offline packaging binds the exact prototype Rules; no public activati
  assert.equal(assertApplicationRelease(await verifyApplicationRelease({...w.FC_APPLICATION_RELEASE,origin})).profile,'business-room-v1');
  const bad=await fixture({...roomApproval,rulesSha256:'f'.repeat(64)});
  await assert.rejects(reviewApplicationRelease({trustedKeySha256:bad.trustedKeySha256,envelope:{...bad.envelope,publicKeySpki:[...bad.envelope.publicKeySpki],signature:[...bad.envelope.signature]}}),/RULES_PACKAGE_MISMATCH/);
- assert.doesNotMatch(fs.readFileSync(new URL('../../js/app/cloud/application-release.js',import.meta.url),'utf8'),/business-room-v1/);
+ const slot=fs.readFileSync(new URL('../../js/app/cloud/application-release.js',import.meta.url),'utf8'),actual={};
+ require('node:vm').runInNewContext(slot,{window:actual,Uint8Array,Object});
+ const a=actual.FC_APPLICATION_RELEASE,inputActual={trustedKeySha256:a.trustedKeySha256,envelope:{decision:a.envelope.decision,publicKeySpki:[...a.envelope.publicKeySpki],signature:[...a.envelope.signature]}};
+ assert.equal((await reviewApplicationRelease(inputActual)).source,slot);
+ assert.equal(assertApplicationRelease(await verifyApplicationRelease({...a,origin})).rulesSha256,rulesSha256);
+ await assert.rejects(verifyApplicationRelease({...a,origin,trustedKeySha256:'e3a45a1ef604058306955a6598ac7fd6d8d2bfb2682de53726895e4295a20284'}),/OWNER_TRUST_REQUIRED/);
 });
