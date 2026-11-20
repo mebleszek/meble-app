@@ -1,6 +1,23 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
-## P0-B — Preflight #1362: Chromium startup BLOCKED, 20.11.2026
+## P0-B — naprawa Windows checkout po Preflight #1364, 21.11.2026
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Ten sam PR #153 Ready i gałąź `feat/p0b-owner-signing-windows-20261120`; wejściowy HEAD `dd5829761d3d6f509957c4414faa1870da030c3e`, BASE/main `c71d93c279b00ae7f153837c606d98bd10816591`. Odczytano log Windows job 136619659002 w run 44832171070: odmowa przed testami DPAPI, `application-rules.js:7` przy dopasowaniu wielowierszowego fragmentu. Pozostałe FAIL raportowane przez właściciela to agregaty, nie osobne przyczyny.
+
+- **USTALONE → WDROŻONE.** Rzeczywisty Git checkout-index z autocrlf=true odtwarza CRLF i dokładnie `LF_RULES_SOURCE_CHANGED`. autocrlf=false daje bajty identyczne ze źródłem i hash kandydata `e05bef8df96a139fe061949008fea1d3187dfb0dfacc8b68606eed8047f128f4`. Checkout Windows otrzymał konfigurację core.autocrlf=false przez env tylko tego kroku. Nie normalizujemy ani nie ignorujemy różnic w walidatorach. Nie zmieniono globalnego Git/Windows, Rules, kluczy, podpisu, runtime ani UI.
+- **KONTROLE.** RED→GREEN realnego checkoutu, exact bytes/hash i negatyw zmiany treści PASS; przenośny podpis/normalny weryfikator PASS; Windows DPAPI 13 kontroli PASS. Model DAG/negatywy CI 11/11 PASS; usunięcie poprawnej konfiguracji checkoutu jest teraz negatywem blokującym. Bez ponownego pełnego CI/emulatorów i użycia prawdziwego klucza.
+- **BRAKUJE → PROPONOWANE.** Jeden commit/push bezpośrednio na gałąź PR #153; nowa próba CI wymaga osobnej zgody na końcowe HEAD/BASE. PR pozostaje Ready, bez przełączania stanu, Actions, merge, Pages i Firebase LIVE. [Dowody](tools/reports/p0b-owner-signing-windows-20261120.md#naprawa-preflight-1364--checkout-windows).
+
+## P0-B — podpis chroniony kontem Windows, 20.11.2026
+
+**CODE_READY podpisywania / CI_PENDING nowego pakietu / RELEASE_BLOCKED / LIVE_BLOCKED.** BASE/main `c71d93c279b00ae7f153837c606d98bd10816591` (scalony PR #152); nowa gałąź `feat/p0b-owner-signing-windows-20261120`. Końcowy HEAD w przekazaniu. Starsze wpisy poniżej są historią wcześniejszych prób; nie opisują aktualnego stanu PR #152.
+
+- **USTALONE.** Właściciel zatwierdził nowy klucz Ed25519 chroniony DPAPI CurrentUser, bez osobnego hasła/PIN-u i bez zdalnego pulpitu. Każdy proces działający na tym samym koncie Windows może technicznie użyć klucza; zgoda właściciela pozostaje procedurą, nie nowym uwierzytelnieniem. Google Auth/Firebase, PIN przejęcia projektu i wszystkie guardy pozostają bez zmian. Stary klucz zachowany.
+- **WDROŻONE.** Narzędzie offline z ograniczeniem do dokładnej decyzji P0-B, przypięciem oczekiwanego klucza, odmową nadpisania plików i prywatnym magazynem poza repo. Nowy klucz utworzony, odczytany ponownie w osobnym procesie i użyty do rzeczywistego podpisu. Publiczny odcisk `c66babc664fff2dbb25edd84227c5337a32a59df25636f97cc3d71dcdeada53b`. Podpis i kandydat JS poza repo: `../p0b-activation-dpapi-20261120`. Istniejący weryfikator potwierdził dokładne Rules i podpis. Aktywny `application-release.js` protokołu 2 nietknięty; protokołu 3 nie publikujemy przed skoordynowaną bramką Rules.
+- **KONTROLE.** Rzeczywisty Windows/DPAPI: 13 kontroli osobnych procesów PASS, ACL tylko bieżącego użytkownika, restart procesu, odmowy zmienionej decyzji przed kluczem, uszkodzonego szyfrogramu, obcego klucza i nadpisania. Kontrole kryptograficzne nowego podpisu i normalnego weryfikatora PASS; istniejący boundary 14/14 PASS. Model DAG/negatywy CI 11/11 PASS (Linux/WSL wyłącznie dla bash modelu), routing 36 grup zachowany, nowy smoke dokładnie raz. Obowiązkowy job `owner-signing-windows` w agregacie preflight. Hashy starego klucza nie zmieniono. Bez pełnego CI, emulatorów, sieci Firebase i testów na danych właściciela.
+- **BRAKUJE → PROPONOWANE.** Nowe CI wymaga osobno zatwierdzonej próby. Podpis nie aktywuje synchronizacji. Następnie kontrolowana integracja podpisanego slotu, wersji/manifestu oraz osobno zatwierdzone, skoordynowane Rules LIVE i wydanie dokładnych SHA; sprawdzenie urządzeń PHONE_PENDING. Bez PR, Actions, merge, publikacji, migracji i resetu. [Zakres, komendy i ograniczenia](tools/reports/p0b-owner-signing-windows-20261120.md).
+
+## Historia — P0-B, Preflight #1362: Chromium startup BLOCKED, 20.11.2026
 
 **BLOCKED diagnozy / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED; pakiet diagnostyczny do próby CI.** HEAD PR #152: 2611c2c413ced1d0fc9d44487b0a1cb9e6178a6a; BASE/main: 2cfd2f84499b653d7239d4e975e8ca6850f9f09d. [Run](https://github.com/mebleszek/meble-app/actions/runs/44769824124): 72 PASS/4 FAIL/2 SKIPPED. Jedna pierwotna awaria: start Chromium w local-cabinet-native-browser-smoke, przed aplikacją; pozostałe trzy FAIL to agregaty.
 
