@@ -23,6 +23,9 @@ Decyzje właściciela z 14.11.2026 oraz kontrakt P0-B z 16.11.2026. Status dotyc
 
 ## P0-B — usuwanie inwestorów i wyłączność projektu
 
+**Preflight #1362, 20.11.2026 — BLOCKED diagnozy infrastruktury / CI_PENDING / LIVE_BLOCKED.** Przyczyną blokady wydania jest brak endpointu Chromium, przed testem aplikacji. Lokalny test szafek PASS nie rozstrzyga historycznego hanga runnera; przygotowana diagnostyka własnych procesów przygotowana do zatwierdzonego commita i pusha; przyczyna nadal BLOCKED. Bez wydłużania timeoutu, retry ani zmian P0-B/UI. Konieczny dowód z zawieszonego procesu; nie ogłaszać naprawy ani gotowości wydania. [Stan i dowody](../../CURRENT_STATE.md#p0-b--preflight-1362-chromium-startup-blocked-20112026).
+
+
 **Naprawa CI PR #152, 20.11.2026 — CODE_READY naprawy / CI_PENDING / LIVE_BLOCKED.** Wyłącznie zgodność istniejących fixture z nową zależnością runtime oraz uporządkowana granica pomiaru przed abortem zapisu. Wymagane: zachowanie pełnego obrazu IDB/outboxa przy abort, formularza, historii i odbioru; brak wyciszania walidacji i brak zmian produkcyjnych/UI. Smoke 7/7 i 9/9 oraz rzeczywisty Chromium/Emulator UI 4/4 PASS, pełne porównanie po abort zachowane. Nie ponawiamy pełnego CI ani nie tworzymy kolejnego PR. [Dowody i stan](../../CURRENT_STATE.md#p0-b--naprawa-ci-istniejącego-pr-152-20112026).
 
 

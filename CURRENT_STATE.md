@@ -1,6 +1,15 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
-## P0-B — naprawa CI istniejącego PR #152, 20.11.2026
+## P0-B — Preflight #1362: Chromium startup BLOCKED, 20.11.2026
+
+**BLOCKED diagnozy / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED; pakiet diagnostyczny do próby CI.** HEAD PR #152: 2611c2c413ced1d0fc9d44487b0a1cb9e6178a6a; BASE/main: 2cfd2f84499b653d7239d4e975e8ca6850f9f09d. [Run](https://github.com/mebleszek/meble-app/actions/runs/44769824124): 72 PASS/4 FAIL/2 SKIPPED. Jedna pierwotna awaria: start Chromium w local-cabinet-native-browser-smoke, przed aplikacją; pozostałe trzy FAIL to agregaty.
+
+- **USTALONE.** 60 s bez endpointu/stderr. Raportowany żywy PID należy do nadzorcy Python, a log nie pokazuje, czy uruchomiono Chrome. Przyczyna nieudowodniona; nie zmieniano timeoutu ani flag startu.
+- **PRZYGOTOWANA DIAGNOSTYKA.** Bezpieczny snapshot własnych potomków przed cleanup plus regresje. Nie jest naprawą nieznanej przyczyny. Natywne szafki lokalnie PASS dla 17 wariantów/restartu; startup 4/4, supervision z nowymi kontrolami PASS. UI/aplikacja, dane i Firebase bez zmian.
+- **BRAKUJE → DALEJ.** Potrzebny dowód z rzeczywistego zawieszenia na runnerze; zakończonego procesu nie da się odtworzyć z pustego stderr. Właściciel zatwierdził commit/push samej diagnostyki na gałąź PR #152; bez uruchamiania CI/PR/wydania. Przyczyna zawieszenia nadal BLOCKED. [Dowody i ograniczenia](tools/reports/p0b-live-preparation-20261120.md#preflight-1362--chromium-startup-diagnostyka-blocked).
+
+
+## Historia — P0-B, naprawa CI istniejącego PR #152, 20.11.2026
 
 **CODE_READY naprawy / CI_PENDING / RELEASE_BLOCKED / LIVE_BLOCKED.** Ta sama gałąź feat/p0b-live-connection-preparation-20261119; wejście c6cc2efe75e4e2005cde12dcf2d76d9c88641ade, BASE/main 2cfd2f84499b653d7239d4e975e8ca6850f9f09d. [Run FAIL](https://github.com/mebleszek/meble-app/actions/runs/44718390445): 70 PASS, 6 FAIL, 2 SKIPPED. [Przyczyny i dowody naprawy](tools/reports/p0b-live-preparation-20261120.md#naprawa-istniejącego-pr-152--preflight-run-44718390445).
 

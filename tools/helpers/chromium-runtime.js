@@ -13,6 +13,24 @@ function members(group){
   }
   return rows;
 }
+// Failure-only metadata, captured before cleanup. Never read argv, environment,
+// network payloads or unrelated process details into the diagnostic output.
+function processState(rootPid,io=fs){
+  const graph=new Map(),rows=new Map();
+  try{for(const pid of io.readdirSync('/proc').filter(n=>/^\d+$/.test(n))){
+    try{const stat=io.readFileSync('/proc/'+pid+'/stat','utf8'),end=stat.lastIndexOf(')'),fields=stat.slice(end+2).split(' ');
+      const row={pid:Number(pid),ppid:Number(fields[1]),group:Number(fields[2]),state:fields[0],name:stat.slice(stat.indexOf('(')+1,end).slice(0,64)};
+      rows.set(row.pid,row);if(!graph.has(row.ppid))graph.set(row.ppid,[]);graph.get(row.ppid).push(row.pid);
+    }catch(_){}
+  }}catch(_){return {rootPid,available:false,processes:[]};}
+  const processes=[],pending=[rootPid],seen=new Set();
+  while(pending.length&&processes.length<64){const pid=pending.shift();if(seen.has(pid))continue;seen.add(pid);
+    const row=rows.get(pid);if(!row)continue;
+    let wait='unavailable';try{wait=io.readFileSync('/proc/'+pid+'/wchan','utf8').trim().slice(0,80);}catch(_){}
+    processes.push({...row,wait});pending.push(...(graph.get(pid)||[]));
+  }
+  return {rootPid,available:true,rootPresent:rows.has(rootPid),truncated:pending.length>0,processes};
+}
 function ownedProcess(executable,args,{subreaper=false,...options}={}){
   if(process.platform!=='linux')throw Error('Chromium CI supervision requires Linux process groups');
   const child=spawn(executable,args,{...options,detached:true});
@@ -72,7 +90,7 @@ function launch({profileDir,args,env={},capture=false}){
     if(!fs.existsSync(path.join(runtime,'descendants-reaped'))||fs.readFileSync(path.join(runtime,'descendants-reaped'),'ascii')!=='reaped\n')throw Error('Chromium subreaper cleanup unconfirmed');
     fs.rmSync(runtime,{recursive:true,force:true});profiles.delete(profile);
   })();
-  return {...owned,close:()=>stop(false),crash:()=>stop(true),describe:()=>JSON.stringify({binary,pid:owned.child.pid,resources:resources(),stderr:tail})};
+  return {...owned,close:()=>stop(false),crash:()=>stop(true),describe:()=>JSON.stringify({binary,pid:owned.child.pid,resources:resources(),processTree:processState(owned.child.pid),stderr:tail})};
 }
 async function startBrowser({profileDir,timeoutMs=60000,env={}}){
   // One existing startup budget covers both announcement and HTTP identity.
@@ -104,4 +122,4 @@ async function dumpDom({profileDir,args,timeoutMs=30000,maxBuffer=8*1024*1024,en
   catch(error){throw Error(error.message+'; '+browser.describe(),{cause:error});}
   finally{clearTimeout(timer);await browser.close();}
 }
-module.exports={ownedProcess,members,resources,startBrowser,dumpDom};
+module.exports={ownedProcess,members,processState,resources,startBrowser,dumpDom};

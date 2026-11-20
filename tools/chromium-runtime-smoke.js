@@ -2,7 +2,7 @@
 // Targeted supervision regressions. No app, Firebase, network or real user data.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const {EventEmitter}=require('node:events'),{PassThrough}=require('node:stream');
-const {ownedProcess,members}=require('./helpers/chromium-runtime');
+const {ownedProcess,members,processState}=require('./helpers/chromium-runtime');
 async function ready(owner){
   return new Promise((resolve,reject)=>{let text='',tail='',done=false;const timer=setTimeout(()=>reject(Error('Process fixture did not start: '+tail)),5000);
     owner.child.stderr.on('data',chunk=>{tail=(tail+chunk).slice(-1000);});
@@ -50,6 +50,11 @@ function isolatedRuntime(profile){
   return {state,runtime:module.exports};
 }
 async function main(){
+  const accesses=[],stats={'10':'10 (supervisor) S 1 10','11':'11 (dbus) S 10 10','12':'12 (chrome) S 11 10','20':'20 (unrelated) S 1 20'};
+  const io={readdirSync:()=>Object.keys(stats),readFileSync:file=>{accesses.push(file);const m=file.match(/^\/proc\/(\d+)\/(stat|wchan)$/);assert.ok(m,'No argv/environment reads');return m[2]==='stat'?stats[m[1]]:'pipe_read';}};
+  const treeProof=processState(10,io);assert.deepEqual(treeProof.processes.map(r=>r.name),['supervisor','dbus','chrome']);assert.equal(treeProof.rootPresent,true);assert.equal(treeProof.processes[2].wait,'pipe_read');assert.ok(!accesses.includes('/proc/20/wchan'));assert.equal(processState(99,io).rootPresent,false);
+  assert.equal(processState(10,{readdirSync(){throw Error('Unavailable proc');}}).available,false);
+  console.log('PASS startup failure evidence: owned descendant states before cleanup, no unrelated details, argv or environment; missing processes/proc handled');
   const controls=[];const directory=fs.mkdtempSync(path.join(os.tmpdir(),'meble-browser-supervision-'));let primary;
   try{
     const fixture=script=>ownedProcess('/usr/bin/python3',[path.join(__dirname,'helpers/chromium-process.py'),'/bin/sh','-c',script],{subreaper:true,stdio:['ignore','pipe','pipe']});
@@ -57,7 +62,7 @@ async function main(){
     const quote=value=>"'"+value.replaceAll("'","'\\''")+"'";
     const descendant='trap "" TERM; printf "%s\\n" "$$"; while :; do sleep 1; done';
     const script='trap "exit 0" TERM; /bin/sh -c '+quote(descendant)+' & wait';
-    const tree=fixture(script);controls.push(tree);const pid=Number(await ready(tree));assert.ok(members(tree.child.pid).includes(pid));
+    const tree=fixture(script);controls.push(tree);const pid=Number(await ready(tree));assert.ok(members(tree.child.pid).includes(pid));const ownedEvidence=processState(tree.child.pid);assert.ok(ownedEvidence.processes.some(row=>row.pid===pid));assert.ok(!ownedEvidence.processes.some(row=>row.pid===untouched.child.pid));
     await tree.stop();assert.deepEqual(members(tree.child.pid),[]);assert.ok(members(untouched.child.pid).includes(untouched.child.pid));
     assert.strictEqual(tree.stop(),tree.stop());
     console.log('PASS supervision: real descendant ignores TERM; owned group terminated, unrelated group untouched');
@@ -83,7 +88,7 @@ async function main(){
     console.log('PASS supervision protocol: stale port removed, fresh CDP verified once, concurrent profile reuse refused');
     for(const mode of ['timeout','exit','http-error','wrong-process']){
       state.mode=mode;state.signals=[];const before=state.fetches;
-      await assert.rejects(runtime.startBrowser({profileDir:profile,timeoutMs:30}),/timeout|exited before readiness|CDP connection failure|identity mismatch/);
+      await assert.rejects(runtime.startBrowser({profileDir:profile,timeoutMs:30}),error=>{assert.match(error.message,/timeout|exited before readiness|CDP connection failure|identity mismatch/);assert.match(error.message,/"processTree":/);return true;});
       assert.equal(state.active,false);assert.ok(state.fetches-before<=1,'No HTTP or browser restart retry');
       state.mode='ready';const next=await runtime.startBrowser({profileDir:profile});await next.close();assert.equal(state.active,false);
     }
