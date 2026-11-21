@@ -1,5 +1,6 @@
 // Private snapshot validation only; never opens, repairs or writes a database.
 import {digest,json,equal} from './local-first-values.mjs';
+import {projectBatchDelay} from './local-first-project-batching.mjs';
 export class RescueFailure extends Error{constructor(code){super(code);this.code=code;}}
 export const refuse=code=>{throw new RescueFailure(code);};
 export function boundedJson(value){
@@ -25,6 +26,22 @@ export async function validateAuthority(stores,receipt,nativeRows,activationId){
  const editors=new Map(stores.replicas.map(r=>[r.key,r.editor]));
  for(const row of stores.control){
   if(['binding','source','application'].includes(row.key))continue;
+  const archived=/^p1-coalesced:([-A-Za-z0-9_]{1,128})$/.exec(row.key)?.[1];
+  if(archived){
+   try{
+    const op=row.operation,raw=stores.protected.find(p=>p.key===archived&&p.scope===op?.scope);
+    if(!equal(row,{key:row.key,version:1,operation:op,replacedBy:row.replacedBy})||op?.key!==archived
+      ||!/^[-A-Za-z0-9_]{1,128}$/.test(op.scope)||!/^[-A-Za-z0-9_]{1,128}$/.test(row.replacedBy)||row.replacedBy===archived
+      ||op.phase!=='queued'||op.expected!==null||op.receipt!==undefined||op.blockers?.length!==0||!op.batch
+      ||!Number.isSafeInteger(op.localVersion)||op.localVersion<1||op.editor?.deviceId!==receipt.deviceId||op.editor.active!==true
+      ||!Number.isSafeInteger(op.editor.epoch)||op.editor.epoch<1||!raw||raw.hash!==op.applicationHash
+      ||stores.outbox.some(p=>p.key===archived)||!stores.protected.some(p=>p.key===row.replacedBy&&p.scope===op.scope)
+      ||typeof op.json!=='string'||await digest(op.json)!==op.hash||json(JSON.parse(op.json))!==op.json
+      ||JSON.parse(op.json).document?.payload?.project?.id!==op.scope)refuse('RESCUE_RECORD_INTEGRITY');
+    projectBatchDelay(op);
+   }catch(_){refuse('RESCUE_RECORD_INTEGRITY');}
+   continue;
+  }
   const recovery=/^projectRecovery:([A-Za-z0-9_-]{1,128})$/.exec(row.key)?.[1];
   if(recovery){
    if(!['latest','room-copy'].includes(row.variant)||row.variant==='room-copy'&&(!row.roomCopy||!/^([a-f0-9]{64})$/.test(row.roomCopyHash)||typeof row.roomCopy.id!=='string'||!row.roomCopy.room||row.roomCopy.definition?.id!==row.roomCopy.id)||!editors.has(recovery)||!/^[-A-Za-z0-9_]{1,128}$/.test(row.operationId)

@@ -1,0 +1,21 @@
+name: Cache locked test downloads
+description: Cache public npm downloads and pinned emulator binaries, never application data.
+inputs:
+  scope:
+    description: Current or immutable historical dependency namespace
+    default: current
+  emulators:
+    description: Whether this job runs Firebase emulators
+    default: 'true'
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-meble-npm-v1-${{ inputs.scope }}-${{ hashFiles('tools/firebase-pilot/package-lock.json') }}
+    - uses: actions/cache@v4
+      if: ${{ inputs.emulators == 'true' }}
+      with:
+        path: ~/.cache/firebase/emulators
+        key: ${{ runner.os }}-meble-emulators-v1-${{ inputs.scope }}-${{ hashFiles('tools/firebase-pilot/package-lock.json') }}

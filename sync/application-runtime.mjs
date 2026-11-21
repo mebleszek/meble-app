@@ -105,7 +105,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     if(localOnly&&kind==='delete-investors'){if(!deletion)fail('DELETE_CONFIRMATION_REQUIRED');return deletion.commitApplication(application);}
     if(localOnly)return local.commit(kind,application,scope);
     if(p0b&&(kind==='project'||kind==='room-records')){
-     const result=await p0b.commit(application,writeScopes||[scope]);
+     const result=await p0b.commit(application,writeScopes||[scope],{batchable:kind==='project'&&!writeScopes});
      if(result){authority.afterCommit(()=>{for(const scope of result.scopes||[result.scope])sync?.notify(scope);void p0b.resume().catch(error=>state(safeError(error),error));});return result;}
     }
     if(kind==='project'){
@@ -163,7 +163,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     }
    }
   });authorityReady=true;
-   const result=await sync.flush();
+   const result=await sync.flush({forceProjects:false});
    // A project journal must remain accessible for local recovery.
    if(!result.ok&&result.code!=='LF_PROJECT_OPERATION_PENDING'&&!await p0b?.canRecover(result))fail(result.code);
   }else authorityReady=true;
@@ -194,7 +194,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    void (async()=>{if(p0b&&await store.retired(scope)){sync?.discover();return;}await handovers.start(scope);})().catch(error=>state(safeError(error),error));
   }
   wakeHandovers=()=>{if(!closed){void handovers.resume(projectScopes());if(p0b)void p0b.resume().catch(error=>state(safeError(error),error));}};
-  if(writer){const result=await sync.flush();if(!result.ok)state(result);
+  if(writer){const result=await sync.flush({forceProjects:false});if(!result.ok)state(result);
    await handovers.resume(projectScopes());
   }
   const notify=()=>{sync?.notify();sync?.discover?.();};
@@ -234,7 +234,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     if(wasClosed)await bind();else await p0b?.bind();notify();
     // Do not report a rebound runtime ready while the durable queue is still
     // resolving its previous generation's uncertain operation. Never retry WRITE.
-    const result=await sync.flush();
+    const result=await sync.flush({forceProjects:false});
     if(!result.ok&&result.code!=='LF_PROJECT_OPERATION_PENDING'&&!await p0b?.canRecover(result)){state(result);fail(result.code);}
     await handovers.resume(projectScopes());if(p0b)void p0b.offerRecovery();
    },

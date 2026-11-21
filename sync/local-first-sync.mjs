@@ -1,6 +1,7 @@
 import {copy, digest, fail, equal, safeError} from './local-first-values.mjs';
 import {protectProjectRows,validateProjectDependencies} from './local-first-project.mjs';
 import {assertGlobalConnection} from './firebase-activation.mjs';
+import {projectBatchDelay,PROJECT_SYNC_MAX_MS} from './local-first-project-batching.mjs';
 export function createGlobalChannel({writer,reader,ownerUid,contract,factory,store}) {
   const a=assertGlobalConnection(writer),b=assertGlobalConnection(reader);
   if(a.uid!==ownerUid||b.uid!==ownerUid||writer.db.app===reader.db.app)fail('LF_INDEPENDENT_OWNER_REQUIRED');
@@ -48,11 +49,22 @@ export function createGlobalChannel({writer,reader,ownerUid,contract,factory,sto
   });
 }
 
-export function createDurableSynchronizer({store,channels,eventTarget,online=()=>true,onState=()=>{},projectRemote=async()=>null,onApplied=async()=>{},quota,ownsChannels=false}) {
+export function createDurableSynchronizer({store,channels,eventTarget,online=()=>true,onState=()=>{},projectRemote=async()=>null,onApplied=async()=>{},quota,ownsChannels=false,clock={now:()=>Date.now(),setTimeout:(...args)=>setTimeout(...args),clearTimeout:id=>clearTimeout(id)}}) {
   channels=[...channels];
   const byScope=new Map(channels.map(c=>[c.scope,c]));
   if(byScope.size!==channels.length||!eventTarget?.addEventListener||!store?.exclusive)fail('LF_DEPENDENCY_REQUIRED');
-  let closed=false,scheduled=false,running=null,retryAt=0,retryDelay=0,retryTimer;
+  let closed=false,scheduled=false,running=null,retryAt=0,retryDelay=0,retryTimer,batchTimer,forceProjects=false;
+  const deferred=new Map();
+  function armBatchTimer(){
+    clock.clearTimeout(batchTimer);
+    if(closed||!deferred.size)return;
+    const deadline=Math.min(...deferred.values()),started=clock.now();
+    batchTimer=clock.setTimeout(()=>{
+      const now=clock.now();
+      for(const [scope,due]of deferred)if(due<=now||now<started){pending.add(scope);deferred.delete(scope);}
+      void drain();
+    },Math.max(1,Math.min(PROJECT_SYNC_MAX_MS,deadline-started)));
+  }
   const pending=new Set(byScope.keys()),blockedReceives=new Set();
   const receiveResult=()=>blockedReceives.size
     ? {ok:false,code:'LF_PROJECT_OPERATION_PENDING',blockedScopes:[...blockedReceives]}
@@ -79,7 +91,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
     }
     return base;
   }
-  async function cycle(scopes) {
+  async function cycle(scopes,force=false) {
     if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
     return store.exclusive(async()=>{
       // Status participants publish before their dependent quote acceptance.
@@ -90,6 +102,9 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
         if(await store.retired?.(scope))continue;
         let snap=await store.snapshot(channel.scope);
         const ordered=snap.operations.sort((a,b)=>a.localVersion-b.localVersion);
+        deferred.delete(scope);
+        const urgent=force||channel.kind!=='project'||await store.pendingHandover?.(scope)
+          ||ordered.some(op=>op.phase!=='verified'&&!op.batch);
         for(let op of ordered){
           if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
           if(op.phase==='verified')continue;
@@ -113,6 +128,19 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
               }
             }continue;
           }
+          const delay=urgent?0:projectBatchDelay(op,clock.now());
+          if(delay){
+            // Batching delays publication, never discovery of a lost editor.
+            // Read the same authoritative lease used by prepare(), without packing or WRITE.
+            if(op.editor&&channel.editor){
+              const editor=await channel.editor();
+              if(!editor?.active||!equal(editor,op.editor)){
+                await store.transition(op.key,'queued','conflict',{code:'LF_EDITOR_CONFLICT'});
+                return {ok:false,code:'LF_EDITOR_CONFLICT',blockedScopes:[scope]};
+              }
+            }
+            deferred.set(scope,clock.now()+delay);break;
+          }
           if(op.dependencies){
             if(channel.kind!=='quote'||!Array.isArray(op.dependencies)||!op.dependencies.length)fail('LF_QUOTE_STATUS_DEPENDENCY_INVALID');
             for(const dependency of op.dependencies){
@@ -126,7 +154,13 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
           try{prepared=await channel.prepare(JSON.parse(op.json),base,op.editor);}
           catch(e){if(/CONFLICT|STALE|DEPENDENCY|EDITOR/.test(e.code||''))await store.transition(op.key,'queued','conflict',{code:e.code});return {...safeError(e),blockedScopes:[scope]};}
           if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
-          op=await store.transition(op.key,'queued','inflight',{expected:prepared.expected});
+          try{op=await store.transition(op.key,'queued','inflight',{expected:prepared.expected});}
+          catch(error){
+            // prepare() has only read/packed the project; publish() has not run.
+            // Only an exact durable archive + RAW proves this benign replacement.
+            if(channel.kind!=='project'||error.code!=='LF_QUEUE_CONFLICT'||!op.batch||!await store.wasProjectCoalesced?.(op))throw error;
+            pending.add(scope);if(force)forceProjects=true;break;
+          }
           try{await prepared.publish();if(closed)return {ok:false,code:'LF_CLOSED_RESULT_UNCONFIRMED'};await resolve(channel,op);}
           catch(e){const now=(await store.snapshot(op.scope)).operations.find(p=>p.key===op.key);
             if(now.phase==='inflight')await store.transition(op.key,'inflight','uncertain',{code:safeError(e).code});
@@ -160,7 +194,8 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
     if(running||scheduled||Date.now()<retryAt)return;
     scheduled=true;queueMicrotask(()=>{scheduled=false;void drain();});
   }
-  async function flush(){
+  async function flush({forceProjects:force=true}={}){
+    if(force){forceProjects=true;for(const key of deferred.keys())pending.add(key);}
     if(running&&online())for(const key of byScope.keys())pending.add(key);
     if(!running&&!pending.size)for(const key of byScope.keys())pending.add(key);
     // Explicit observation retries refused receives, without a self-scheduling loop.
@@ -171,7 +206,8 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
     if(Date.now()<retryAt)return {ok:false,code:'resource-exhausted'};
     running=(async()=>{let result={ok:true};while(pending.size&&!closed){
       const scopes=[...byScope.keys()].filter(scope=>pending.has(scope));pending.clear();
-      result=await cycle(scopes).catch(safeError);state(result.ok?receiveResult():result);
+      const force=forceProjects;forceProjects=false;
+      result=await cycle(scopes,force).catch(safeError);state(result.ok?receiveResult():result);
       if(result.code==='resource-exhausted'&&!closed){
         retryDelay=Math.min(300000,retryDelay?retryDelay*2:30000);
         const delay=result.cooldown?Math.max(1,(quota?.deadline()||Date.now())-Date.now()):retryDelay+Math.floor(Math.random()*5000);
@@ -188,13 +224,15 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
         if(!reconnected)break;
       }
     }return result.ok?receiveResult():result;})()
-      .finally(()=>{running=null;});return running;}
+      .finally(()=>{running=null;armBatchTimer();});return running;}
   // Listeners are wake-up signals only; every receive still uses a fresh,
   // independently validated server read and local CAS, never the cache payload.
   const unsubscribe=[];
   try{for(const channel of channels)if(typeof channel.watch==='function')unsubscribe.push(channel.watch(()=>schedule(channel.scope)));}
   catch(e){closed=true;for(const stop of unsubscribe)stop();throw e;}
   eventTarget.addEventListener('online',schedule);schedule();
+  eventTarget.addEventListener('pageshow',schedule);
+  eventTarget.document?.addEventListener('visibilitychange',schedule);
   return Object.freeze({notify:schedule,flush,channel:scope=>byScope.get(scope),
     register(channel){assertOpen();if(!channel||byScope.has(channel.scope)||!['project','contact','quote'].includes(channel.kind))fail('LF_CHANNEL_CONFLICT');channel.guard();
       const stop=typeof channel.watch==='function'?channel.watch(()=>schedule(channel.scope)):()=>{};
@@ -268,7 +306,8 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
     // Listener removal is not completion of an in-flight SDK/IDB cycle.
     close(){
       if(closing)return closing;
-      closed=true;clearTimeout(retryTimer);eventTarget.removeEventListener('online',schedule);
+      closed=true;clearTimeout(retryTimer);clock.clearTimeout(batchTimer);eventTarget.removeEventListener('online',schedule);
+      eventTarget.removeEventListener('pageshow',schedule);eventTarget.document?.removeEventListener('visibilitychange',schedule);
       for(const stop of unsubscribe)stop();
       closing=Promise.resolve(running).then(()=>{
         if(ownsChannels)return Promise.all([...byScope.values()].map(channel=>channel.close?.()));

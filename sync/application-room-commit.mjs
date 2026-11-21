@@ -22,6 +22,7 @@ export async function prepareApplicationRooms({fc,store,getSync,application,reco
 }
 export async function commitApplicationRooms(args){
  const {store,application}=args,entries=await prepareApplicationRooms(args);
+ if(args.batchable===true&&entries.length===1)entries[0].batchable=true;
  if(!entries.length){await store.checkpointApplication(application);return {localConfirmed:true,cloudConfirmed:false,unchanged:true,scopes:[]};}
  return store.commitRoomBatch({entries,application});
 }

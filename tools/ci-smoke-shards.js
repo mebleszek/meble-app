@@ -1,65 +1,14 @@
 'use strict';
-// CI #43756306571: real elapsed milliseconds; partition weights require post-CI calibration.
+// CI #1367 measurements; new norm partitions are explicit estimates, not CI PASS.
 const fs=require('node:fs');
 const SHARDS=36;
 const PARTS=Object.freeze({
   "quote-exact-calculations-smoke.js": 9,
   "wycena-labor-pdf-smoke.js": 13,
-  "wycena-labor-norms-smoke.js": 4,
+  "wycena-labor-norms-smoke.js": 9,
   "quote-performance-smoke.js": 4
 });
-const weights=Object.freeze({
-  "android-globals-recovery-browser-smoke.js": 17710,
-  "android-investor-isolation-smoke.js": 4565,
-  "android-local-first-browser-smoke.js": 65862,
-  "android-safe-sw-update-smoke.js": 45121,
-  "android-startup-auth-browser-smoke.js": 66029,
-  "application-project-exit-smoke.js": 3031,
-  "code-global-catalogs-smoke.js": 13603,
-  "empty-installation-browser-smoke.js": 40814,
-  "empty-installation-smoke.js": 3499,
-  "global-data-write-safety-smoke.js": 5712,
-  "investor-list-delete-smoke.js": 4475,
-  "investor-navigation-exit-smoke.js": 5692,
-  "labor-appliance-separate-automats-smoke.js": 3690,
-  "labor-catalog-local-first-browser-smoke.js": 23454,
-  "labor-work-plan-smoke.js": 21553,
-  "local-cabinet-native-browser-smoke.js": 63637,
-  "offer-status-recovery-smoke.js": 5326,
-  "pixel-session-bookmarklet-smoke.js": 4867,
-  "project-clean-session-navigation-smoke.js": 5636,
-  "project-exit-cold-start-browser-smoke.js": 7025,
-  "project-navigation-blockers-smoke.js": 11051,
-  "project-pcv-ui-activation-smoke.js": 4407,
-  "project-selective-export-smoke.js": 15913,
-  "project-session-initial-retry-smoke.js": 5136,
-  "project-session-restored-proof-smoke.js": 4022,
-  "project-session-storage-pressure-smoke.js": 4354,
-  "quote-exact-calculations-smoke.js": 404535,
-  "quote-final-corrections-smoke.js": 56000,
-  "quote-final-material-browser-smoke.js": 18502,
-  "quote-labor-single-truth-smoke.js": 9610,
-  "quote-performance-smoke.js": 134921,
-  "storage-recovery-browser-smoke.js": 14625,
-  "synthetic-global-rebuild-browser-smoke.js": 8086,
-  "trusted-session-browser-smoke.js": 34300,
-  "wycena-duplicate-offer-guard-smoke.js": 5739,
-  "wycena-full-contracts-smoke.js": 13442,
-  "wycena-labor-norms-smoke.js": 148307,
-  "wycena-labor-pdf-smoke.js": 330007,
-  "wycena-quote-history-storage-maintenance-smoke.js": 6662
-});
-const partWeights=Object.freeze({
-  "quote-exact-calculations-smoke.js": [68000,68000,68000,68000,68000,68000,55000,38000,27000],
-  "wycena-labor-pdf-smoke.js": [105000, 105000, 105000, 105000, 105000, 105000, 105000, 105000, 105000, 105000, 105000, 105000, 105000],
-  "wycena-labor-norms-smoke.js": [43000,43000,43000,87000],
-  "quote-performance-smoke.js": [
-    41000,
-    41000,
-    41000,
-    41000
-  ]
-});
+const timings=require('./ci-smoke-timings-1367.json');
 function inventory(dir,historical=[]){
  const names=fs.readdirSync(dir).filter(n=>/-smoke\.js$/i.test(n)&&!historical.includes(n)).sort();
  if(new Set(names).size!==names.length)throw Error('CI_SMOKE_INVENTORY_DUPLICATE');
@@ -79,7 +28,7 @@ function parseUnit(unit){
 }
 function weight(unit){
  const {file,part}=parseUnit(unit);
- return part?partWeights[file][part-1]:weights[file]||1000;
+ return file==='wycena-labor-norms-smoke.js'?timings.normCaseEstimatesMs[part-1]:timings.observedMs[unit]||1000;
 }
 function plan(names){
  const expected=units(names);

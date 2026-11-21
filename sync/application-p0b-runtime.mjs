@@ -75,7 +75,7 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
   const all=JSON.parse(next.fc_investors_v1||'[]');next.fc_investors_v1=JSON.stringify(all.map(row=>row.id===iid?{...row,rooms:copy(definitions)}:row));
   return next;
  }
- async function commit(application,declaredScopes){
+ async function commit(application,declaredScopes,{batchable=false}={}){
   const before=await store.readApplication(),old=JSON.parse(before.rows.fc_investors_v1||'[]'),next=JSON.parse(application.rows.fc_investors_v1||'[]');
   if(before.rows.fc_quote_snapshots_v1!==application.rows.fc_quote_snapshots_v1)return quotes.commit(application,declaredScopes);
   const priorProjects=JSON.parse(before.rows.fc_projects_v1||'[]'),nextProjects=JSON.parse(application.rows.fc_projects_v1||'[]');
@@ -98,7 +98,7 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
   const modified=nextProjects.filter(row=>priorProjects.some(prior=>prior.id===row.id&&!equal(prior,row)));
   if(modified.length){
    if(changed.length||added.length||priorProjects.some(row=>!nextProjects.some(next=>next.id===row.id)))fail('LF_APPLICATION_SCOPE_REFUSED');
-   return commitApplicationRooms({fc,store,getSync,application,records:modified,declaredScopes});
+   return commitApplicationRooms({fc,store,getSync,application,records:modified,declaredScopes,batchable});
   }
   if(!changed.length&&!added.length)return null;
   if(changed.length>1||old.some(row=>!next.some(value=>value.id===row.id)))fail('LF_APPLICATION_SCOPE_REFUSED');
