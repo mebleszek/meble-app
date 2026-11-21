@@ -101,7 +101,7 @@ function workflowChecks(source){
     ['cloud-historical-sdk',histSdk,'historical','CLOUD_CI_HISTORY_ROOT']
   ]){
     assert.ok(s['Use Java 21 for DEMO emulators'],id);
-    assert.match(s['Install locked DEMO emulator dependencies'],new RegExp(deps+'\\/tools\\/firebase-pilot" ci --no-audit --no-fund'));
+    assert.match(s['Install locked DEMO emulator dependencies'],new RegExp(deps+'\\/tools\\/firebase-pilot" ci --prefer-offline --no-audit --no-fund'));
     assert.match(s['Verify SDK source, pins and DEMO boundaries'],new RegExp('cloud-ci-prepare\\.js --verify-sdk '+contextName));
     assert.match(s['Verify SDK source, pins and DEMO boundaries'],/APPROVED_BASE: \$\{\{ needs\.safety\.outputs\.base_sha \}\}/);
   }

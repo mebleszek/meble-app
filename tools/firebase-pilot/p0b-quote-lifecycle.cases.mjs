@@ -130,6 +130,7 @@ export async function stagingCase(c){
  async function stageNext(promote){
   page=phone.page;
   await page.locator('[data-action="tab"][data-tab="wycena"]').filter({visible:true}).first().click();
+  await page.waitForFunction(()=>window.uiState.activeTab==='wycena'&&!window.FC.applicationStartup.inspect().transactionPending&&!window.FC.applicationStartup.inspect().incomingPending);
   const before=await image(phone);
   await page.evaluate(()=>{window.normalQuoteChunkStaged=null;window.normalPauseQuoteChunk=true;});
   const history=page.locator('[data-quote-history-id="'+offer.id+'"]');

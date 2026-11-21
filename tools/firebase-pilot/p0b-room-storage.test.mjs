@@ -1,6 +1,52 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
 import {startLocalFirstServer,openBrowserDevice} from '../helpers/local-first-browser.mjs';
+test('P0-B room storage: P1 queued saves coalesce atomically with durable RAW, restart and uncertain-generation protection',async t=>{
+ const server=await startLocalFirstServer(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'p1-room-batch-')),profile=path.join(dir,'computer');
+ let browser=await openBrowserDevice(server,profile);
+ t.after(async()=>{await browser.close();await server.close();fs.rmSync(dir,{recursive:true,force:true});});
+ const binding={name:'meble-lf-test-p1-room-batch',ownerUid:'p1-owner',deviceId:'p1-device',instanceId:'p1-instance',initialize:true};
+ let store=await browser.open(binding);const editor={active:true,deviceId:binding.deviceId,epoch:1};
+ const room=(id,value)=>({id,investorId:'investor',meta:{roomProject:{version:1,roomId:id}},value});
+ const source={fc_projects_v1:JSON.stringify([room('kitchen',1),room('wardrobe',13)]),fc_investors_v1:'[{"id":"investor","rooms":[]}]',fc_company_v1:' {"price":17.125} '};
+ await browser.evaluate('window.lf.enterP0BRegistry('+JSON.stringify({...source,fc_projects_v1:'[]',fc_investors_v1:'[]'})+')');
+ await store.initializeApplication(source);
+ await store.apply({scope:'kitchen',value:{document:{payload:{project:room('kitchen',1),offers:[]}},globals:{pin:1}},head:{generation:1},expectedVersion:0,editor});
+ const write=async(id,value)=>{
+  const image=await store.readApplication(),snap=await store.snapshot('kitchen');
+  const record=room('kitchen',value),rows={...image.rows,fc_projects_v1:JSON.stringify([record,room('wardrobe',13)])};
+  const args={entries:[{scope:'kitchen',operationId:id,expectedVersion:snap.replica.version,editor,batchable:true,value:{document:{payload:{project:record,offers:[]}},globals:{pin:1}}}],application:{expectedVersion:image.version,rows}};
+  return {args,result:await browser.evaluate('window.lf.commitRoomBatch('+JSON.stringify(args)+')')};
+ };
+ const first=await write('p1-save-a',2),before=await store.snapshot('kitchen'),image=await store.readApplication();
+ assert.equal(first.result.localConfirmed,true);assert.equal(first.result.cloudConfirmed,false);
+ assert.equal(before.operations.length,1);assert.equal(before.operations[0].batch.version,1);
+ await browser.evaluate('(()=>{const original=IDBDatabase.prototype.transaction;IDBDatabase.prototype.transaction=function(stores,mode,...args){const tx=original.call(this,stores,mode,...args);if(mode==="readwrite"){IDBDatabase.prototype.transaction=original;queueMicrotask(()=>tx.abort());}return tx;};return true;})()');
+ await assert.rejects(write('p1-aborted',3),/LF_IDB_ABORTED/);
+ assert.deepEqual(await store.snapshot('kitchen'),before);assert.deepEqual(await store.readApplication(),image);
+ const second=await write('p1-save-b',4),after=await store.snapshot('kitchen');
+ assert.equal(after.operations.length,1);assert.equal(after.operations[0].key,'p1-save-b');assert.equal(after.operations[0].previousOperation,null);
+ assert.equal(after.operations[0].batch.firstAt,before.operations[0].batch.firstAt);
+ assert.deepEqual(after.protected.map(row=>row.key).sort(),['p1-save-a','p1-save-b']);
+ const archive=await browser.evaluate('new Promise((resolve,reject)=>{const q=indexedDB.open('+JSON.stringify(binding.name)+');q.onsuccess=()=>{const db=q.result,tx=db.transaction("control","readonly"),r=tx.objectStore("control").get("p1-coalesced:p1-save-a");r.onsuccess=()=>resolve(r.result);tx.oncomplete=()=>db.close();};q.onerror=()=>reject(q.error);})');
+ assert.deepEqual(archive.operation,before.operations[0]);assert.equal(archive.replacedBy,'p1-save-b');assert.equal(archive.operation.phase,'queued');
+ const proof=op=>browser.evaluate('window.lf.wasProjectCoalesced('+JSON.stringify(op)+')');
+ assert.equal(await proof(before.operations[0]),true);assert.equal(await proof({...before.operations[0],hash:'b'.repeat(64)}),false);assert.equal(await proof(after.operations[0]),false);
+
+ const duplicate=await browser.evaluate('window.lf.commitRoomBatch('+JSON.stringify(first.args)+')');assert.equal(duplicate.duplicate,true);assert.equal(duplicate.cloudConfirmed,false);
+ assert.deepEqual(await store.snapshot('kitchen'),after);
+ await browser.close();browser=await openBrowserDevice(server,profile);store=await browser.open({...binding,initialize:false});
+ assert.deepEqual(await store.snapshot('kitchen'),after);assert.equal((await store.readApplication()).rows.fc_company_v1,source.fc_company_v1);
+ assert.equal(JSON.parse((await store.readApplication()).rows.fc_projects_v1)[1].value,13);
+ await store.transition('p1-save-b','queued','inflight',{expected:{generation:2}});
+ const inflight=(await store.snapshot('kitchen')).operations[0];await write('p1-save-c',5);
+ assert.deepEqual((await store.snapshot('kitchen')).operations.find(op=>op.key==='p1-save-b'),inflight);
+ await store.transition('p1-save-b','inflight','uncertain');const uncertain=(await store.snapshot('kitchen')).operations.find(op=>op.key==='p1-save-b');
+ await write('p1-save-d',6);const pending=(await store.snapshot('kitchen')).operations;
+ assert.equal(pending.length,2);assert.deepEqual(pending.find(op=>op.key==='p1-save-b'),uncertain);
+ assert.equal(pending.find(op=>op.key==='p1-save-d').previousOperation,'p1-save-b');
+ assert.equal(second.result.localConfirmed,true);
+});
 test('P0-B room storage: batch abort, per-room CAS and foreign/global protection are atomic in IndexedDB',async t=>{
  const server=await startLocalFirstServer(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'p0b-room-atomic-'));
  const browser=await openBrowserDevice(server,path.join(dir,'computer'));

@@ -132,7 +132,7 @@ const authVersions=Object.freeze({
   "js/app/cloud/cloud-access-verifier.js": "20261114_access_rpc_diagnostics_v1",
   "js/app/cloud/offline-shell.js": "20261114_first_offline_install_v1",
   "js/app/cloud/local-access-profile.js": "20261103_android_globals_recovery_v1",
-  "js/app/cloud/application-bootstrap.js": "20261120_p0b_deployment_v1",
+  "js/app/cloud/application-bootstrap.js": "20261121_p1_batch_v1",
   "js/main-login.js": "20261114_access_rpc_diagnostics_v1"
 });
 function assertHtmlVersions(index, dev){

@@ -196,6 +196,11 @@
   inspectGlobalConsistency,
   diagnostics:()=>Object.freeze({status:'READ_ONLY',stage:diagnosticStage(stage),code:lastError?errorCode(lastError):null,firstError:firstError&&{...firstError},transferStatus,projectTransferBlocked:projectTransferBlocked&&{...projectTransferBlocked},aliasConflict:aliasConflict&&{...aliasConflict,keys:[...aliasConflict.keys]},...(globalConsistency?{globalConsistency:JSON.parse(JSON.stringify(globalConsistency))}:{})}),
   inspect:()=>({...runtime?.status(),state:runtime?.status().state||'not-activated',stage,code:lastError,location:lastLocation}),
+  async synchronize(){
+   window.__FC_MAIN_ACCESS__.assert();
+   if(!runtime?.sync)throw Error('LF_SYNC_NOT_READY');
+   return runtime.sync.flush();
+  },
   async refresh(context=lastContext){
    if(!configuration||!runtime||!context||boot?.localOnly)return;if(refreshing)return refreshing;
    refreshing=(async()=>{try{

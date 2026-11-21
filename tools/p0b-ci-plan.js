@@ -2,6 +2,10 @@
 // Every candidate test belongs to exactly one mandatory job. No retries or LIVE.
 const fs=require('node:fs'),path=require('node:path');
 const groups=Object.freeze([
+ {id:'project-batch-timer',file:'p0b-normal-application.test.mjs',pattern:'^P1 normal DEMO idle batching:'},
+ {id:'project-offline-quote',file:'p0b-normal-application.test.mjs',pattern:'^P1 normal DEMO offline quote:'},
+ {id:'project-batch-quote',file:'p0b-normal-application.test.mjs',pattern:'^P1 signed DEMO quote barrier:'},
+ {id:'project-batch-recovery',file:'p0b-normal-application.test.mjs',pattern:'^P1 normal DEMO delivery:'},
  {id:'room-model',file:'p0b-room-boundary.test.mjs',pattern:'^P0-B room boundary:',emulator:false},
  {id:'room-quote-proof',file:'p0b-room-quote.test.mjs',pattern:'^P0-B room quote proof:',emulator:false},
  {id:'room-quote-rules',file:'p0b-room-quotes-rules.test.mjs',pattern:'^P0-B room quote Rules:'},

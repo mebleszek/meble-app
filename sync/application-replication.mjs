@@ -62,12 +62,12 @@ export function createApplicationReplication({store,channels,globalContract,proj
   notify(scope){sync.notify(scope);},
   // Discovery is a required receive boundary. A failed query cannot certify
   // a complete flush merely because already-known channels were processed.
-  async flush(){
+  async flush(options){
    if(!closed&&(!online||online())){
     if(listing)await listing;
     else if(!discoveryConfirmed||discoveryFailure)await discover();
    }
-   const result=await sync.flush();
+   const result=await sync.flush(options);
    if(result.ok&&!closed&&discoveryFailure&&(!online||online()))return copy(discoveryFailure);
    return result;
   },

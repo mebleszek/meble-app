@@ -206,13 +206,15 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
      },
      getDocFromServer(ref){countRead(ref);return f.getDocFromServer(ref);},
      async getDocsFromServer(query){budget.queries++;const rows=await f.getDocsFromServer(query);budget.documents+=rows.size;return rows;},
-     runTransaction(db,run,options,rpc){budget.transactions++;let quoteHeadWrite=false,roomHeadWrite=null;return f.runTransaction(db,tx=>{
+     runTransaction(db,run,options,rpc){budget.transactions++;let quoteHeadWrite=false,roomHeadWrite=null,roomEditorRead=null;return f.runTransaction(db,tx=>{
       budget.attempts++;
       return run({
-       get(ref){countRead(ref);const collection=ref.parent.id;if(rpc&&!rpc.collections.includes(collection))rpc.collections.push(collection);return tx.get(ref);},
+       get(ref){countRead(ref);const collection=ref.parent.id;if(collection==='p0bRoomEditors')roomEditorRead=ref.id;if(rpc&&!rpc.collections.includes(collection))rpc.collections.push(collection);return tx.get(ref);},
        set(...args){budget.writes++;if(args[0]?.parent?.id==='p0bRoomQuotes')quoteHeadWrite=true;if(args[0]?.parent?.id==='p0bRoomProjects')roomHeadWrite=args[0].id;return tx.set(...args);}
       });
      },options).then(async value=>{
+      if(roomEditorRead&&window.normalPauseRoomPreparation===roomEditorRead&&db.app.name.startsWith('meble-sync-reader-')){window.normalPauseRoomPreparation=null;window.normalRoomPreparationHeld=true;await new Promise(resolve=>window.normalContinueRoomPreparation=resolve);}
+
       if(roomHeadWrite&&window.normalHoldStatusHead===roomHeadWrite){window.normalHoldStatusHead=null;window.normalStatusHeadCommitted=true;await new Promise(resolve=>window.normalReleaseStatusHead=resolve);}
       // Lose delivery only AFTER the real emulator head transaction commits.
       if(quoteHeadWrite&&window.normalLoseQuoteAck){window.normalLoseQuoteAck=false;window.normalQuoteHeadCommitted=true;await new Promise(resolve=>window.normalReleaseQuoteAckLoss=resolve);throw Object.assign(Error('LF_TEST_QUOTE_ACK_LOST'),{code:'LF_TEST_QUOTE_ACK_LOST'});}
