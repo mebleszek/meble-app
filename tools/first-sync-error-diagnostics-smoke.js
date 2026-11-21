@@ -35,6 +35,16 @@ function catalogConflict(domain){
  assert.deepEqual(reads,['fc_edit_session_v1',...keys]);assert.deepEqual([...r.rows],before);assert.deepEqual(r.calls,[]);
  return {contract,error,keys,checkUntouched(){assert.deepEqual(reads,['fc_edit_session_v1',...keys]);assert.deepEqual([...r.rows],before);assert.deepEqual(r.calls,[]);}};
 }
+test('a new authorized lease rebinds an already-active runtime before returning it',async()=>{
+ let resumes=0;const w={navigator:{onLine:true},localStorage:{getItem:()=>null},__FC_MAIN_ACCESS__:{assert(){}}};
+ const runtime={status:()=>({state:'active'}),async resume(){resumes++;}};
+ const f=normalStart(async()=>runtime,w);
+ // Replace only the injected connection factory; production bootstrap owns lifecycle.
+ const first={ownerUid:'synthetic',lease:{uid:'synthetic'}};
+ await f.api.beforeBusiness(first);await f.api.start(first);await f.api.start(first);assert.equal(resumes,0);
+ const next={...first,lease:{uid:'synthetic'}};await f.api.beforeBusiness(next);await f.api.start(next);
+ assert.equal(resumes,1,'Fresh authorization cannot keep old revoked connections');
+});
 test('real materials/labor alias refusal supplies only the first trusted domain/keys to main-login and survives fatal reload refusal',async()=>{
  for(const domain of ['materials','labor']){
   const {contract,error,keys,checkUntouched}=catalogConflict(domain);let api,calls=0;

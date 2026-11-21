@@ -1,6 +1,6 @@
 // Normal business startup hook. Public deployment remains LIVE_BLOCKED.
 (function(){
- 'use strict';const fc=window.FC=window.FC||{};let configuration=null,runtime=null,starting=null,boot=null,lastContext=null,connectionsActive=null,refreshing=null,lastError=null,lastLocation=null,stage='idle';
+ 'use strict';const fc=window.FC=window.FC||{};let configuration=null,runtime=null,starting=null,boot=null,lastContext=null,connectionsActive=null,boundLease=null,refreshing=null,lastError=null,lastLocation=null,stage='idle';
  // Diagnostic vocabulary is closed: never retain raw messages, stacks, IDs or payloads.
  const diagnosticCodes=new Set(`
   LF_QUOTE_ROOM_SCOPE_REQUIRED LF_ROOM_PROJECT_CONTEXT_PROTECTED LF_ROOM_PROJECT_DUPLICATE LF_ROOM_PROJECT_FOREIGN_DATA LF_ROOM_PROJECT_NAME_DUPLICATE LF_ROOM_PROJECT_NAME_REQUIRED LF_ROOM_PROJECT_SCOPE_REQUIRED LF_ROOM_PROJECT_STATUS_UNCONFIRMED LF_ROOM_PROJECT_WRITE_UNCONFIRMED
@@ -144,16 +144,16 @@
   async start(context){
    const {ownerUid,authSession,lease}=context;lastContext=context;
    if(!configuration){if(localStorage.getItem('meble_application_authority_v1'))throw Error('LF_APPLICATION_RUNTIME_REQUIRED');return {status:'LIVE_BLOCKED'};}
-   if(!release)demo();if(['active','local-only'].includes(runtime?.status().state))return runtime;if(starting)return starting;
+   if(!release)demo();if(['active','local-only'].includes(runtime?.status().state)){if(!boot?.localOnly&&context.lease!==boundLease)await fc.applicationStartup.refresh(context);return runtime;}if(starting)return starting;
    recoveryQuiescent=false;stage='opening-runtime';starting=(async()=>{
     for(const file of ['global-data-contract','cloud-pilot-contract','firebase-global-transport'])await import('./'+file+'.js');
     if(!boot?.localOnly&&navigator.onLine===false&&context.renewLease)throw Error('AUTH_ACCESS_UNCONFIRMED');
     stage=boot?.localOnly?'binding-runtime':'authorizing-cloud';const connections=boot?.localOnly||navigator.onLine===false?{}:await connect(context);stage='binding-runtime';
     connectionsActive=connections;
-    if(runtime){if(boot?.localOnly)await runtime.resume({localOwnerUid:ownerUid});else if(navigator.onLine!==false)await runtime.resume(connections);return runtime;}
+    if(runtime){if(boot?.localOnly)await runtime.resume({localOwnerUid:ownerUid});else if(navigator.onLine!==false)await runtime.resume(connections);boundLease=context.lease;return runtime;}
     const {startApplicationRuntime}=await import('../../../sync/application-runtime.mjs');
     runtime=await startApplicationRuntime({window,ownerUid,name:configuration.name,boot,release,localOnly:boot?.localOnly===true,firstCatalogSync:configuration.firstCatalogSync===true,p0bDemo:configuration.p0bDemo===true,emulatorCatalogWitness:configuration.emulatorCatalogWitness,onStage:setStage,onDiagnostic:diagnosticState,onFailureQuiescent(){recoveryQuiescent=true;},...connections});
-    return runtime;
+    boundLease=context.lease;return runtime;
    })().then(value=>{stage='ready';return value;}).catch(async error=>{
     note(error);
     // Observe before main-login revokes access. A diagnostic refusal cannot
@@ -205,7 +205,7 @@
    if(!configuration||!runtime||!context||boot?.localOnly)return;if(refreshing)return refreshing;
    refreshing=(async()=>{try{
     window.__FC_MAIN_ACCESS__.assert();
-    stage='reconnect-auth';const next=await connect(context);window.__FC_MAIN_ACCESS__.assert();stage='reconnect-runtime';const old=connectionsActive;try{await runtime.resume(next);}finally{connectionsActive=next;await old?.retire?.();}lastError=null;stage='ready';
+    stage='reconnect-auth';const next=await connect(context);window.__FC_MAIN_ACCESS__.assert();stage='reconnect-runtime';const old=connectionsActive;try{await runtime.resume(next);}finally{connectionsActive=next;await old?.retire?.();}boundLease=context.lease;lastError=null;stage='ready';
    }catch(error){note(error);throw error;}})().finally(()=>{refreshing=null;});return refreshing;
   },
   close(){runtime?.close();void connectionsActive?.logout?.();}

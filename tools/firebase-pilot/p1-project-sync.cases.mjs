@@ -59,6 +59,20 @@ export async function batchingCase(c,{idle=true,quoteOnly=false,offlineQuote=fal
  if(offlineQuote){await offlineDraft(c,3,true);return;}
  // Regression: ordinary Exit, immediate same-investor reopen and repeated Projects.
  await showList(phone.page);
+ await phone.page.evaluate(async iid=>{
+  const old=window.normalConnections[0],context=window.normalMainContext,lease=context.lease;
+  window.normalRevokeConnectionLease();
+  let refused=false;try{old.assertAccess();}catch(error){refused=error.message==='AUTH_ACCESS_REVOKED';}if(!refused)throw Error('OLD_LEASE_NOT_REVOKED');
+  let state;const watch=window.FC.investorPresence.watchPresence(iid,()=>true,value=>{state=value.state;});watch.close();
+  if(state!=='unconfirmed')throw Error('REVOKED_PRESENCE_CONFIRMED');
+  const next={...context,lease:{uid:lease.uid,isValid:()=>lease.isValid(),assert:()=>lease.assert()}};
+  const before=window.normalConnectionEpoch;
+  await window.FC.applicationStartup.beforeBusiness(next);await window.FC.applicationStartup.start(next);
+  if(window.normalConnectionEpoch!==before+1)throw Error('FRESH_LEASE_NOT_REBOUND');
+  window.normalConnections[0].assertAccess();
+  try{old.assertAccess();throw Error('OLD_LEASE_ACCEPTED');}catch(error){if(error.message==='OLD_LEASE_ACCEPTED')throw error;}
+ },iid);
+ t.diagnostic('Revoked old connection and presence refuse; fresh authorized start rebinds real SDK connections without losing local state');
  await phone.page.locator('[data-action="open-investor"][data-inv-id="'+iid+'"]').click();
  await phone.page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
  assert.equal(await phone.page.locator('.info-box').count(),0,'Reopening after Exit must not refuse: '+await phone.page.locator('body').innerText());

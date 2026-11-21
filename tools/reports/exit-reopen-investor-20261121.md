@@ -34,3 +34,19 @@ Status: poprawka potwierdzonego wyścigu lokalnie zweryfikowana; **CI_PENDING / 
 - `CURRENT_STATE.md`, `docs/plans/LOCAL_FIRST_ROADMAP.md`, ten raport.
 
 Dowody lokalne: `/tmp/meble-p1.KVrFtN/exit-reopen-initial.log`, `exit-reopen-green-mouse.log` i końcowy log dotyku; diagnostyka/screenshot/trace w katalogach `meble-p0b-normal-*` wskazanych w logach. Brak resetu danych i usuwania artefaktów.
+
+
+## Uzupełnienie — AUTH_ACCESS_REVOKED ze stosu właściciela
+
+Wejście tego uzupełnienia: `d69ccb10fb79ae521c87107dbe80b4eee4719798`, ten sam BASE/main i gałąź. Guard poprawnie odmawiał staremu uprawnieniu. Dwa problemy jego cyklu życia:
+
+1. Bootstrap przy aktywnym runtime zwracał go bez podmiany połączeń, mimo nowej zatwierdzonej lease. Odtworzono RED (zero resume zamiast jednego). Osobna boundLease śledzi faktycznie podpięte uprawnienie, niezależnie od beforeBusiness/lastContext. Ta sama lease nie powoduje zbędnego reconnect; nowa wymaga udanego resume. Samo Google login nadal nie daje dostępu bez weryfikacji.
+2. Istniejące elementy listy i modala trzymały obserwatory poprzedniego protokołu po podmianie SDK. Nowy stabilny dostawca obecności zamyka poprzednie obserwatory i odpina ich callbacki generacją, zachowując subskrypcję UI do ponownego związania z nowym autoryzowanym protokołem. Znana odmowa Auth podczas zakładania/odświeżania obserwatora daje wyłącznie unconfirmed; błędów programistycznych TypeError nie ukrywamy. Późny close starego runtime nie może odłączyć nowego protokołu.
+
+Zmieniono bootstrap (z nową wersją zasobu), runtime P0-B, nowy application-presence.mjs i testy. Bez zmian auth-access-gate, Rules, uprawnień, cen, wyglądu lub tekstów UI. Fixture potrafi teraz jawnie cofnąć starą testową lease; nie nadaje to żadnego nowego dostępu. Testy nadal używają SDK i rzeczywistych emulatorów.
+
+GREEN: diagnostyka/reauth bootstrap 10/10, main-login 36/36, lifecycle presence (zamknięcie, późne callbacki, stary close, revoked i nieukrywanie innych wyjątków), wersje/manifest/diff/pokrycie CI. Pełny realny UI/DEMO reauth/dotyk/delivery 1/1 PASS, exit 0, zero skipped. Nowy smoke automatycznie obowiązkowy: 229/260/36, macierz P0-B/P1 bez pominięć. Dodatkowe pliki: index.html, application-bootstrap.js, application-p0b-runtime.mjs, application-presence.mjs, normal-application.cases.mjs, p1-project-sync.cases.mjs, first-sync-error-diagnostics-smoke.js, application-presence-lifecycle-smoke.js, script-versions.js i manifest.
+
+Istniejący mapper odmów application-write-boundary rozpoznaje prefiksy LF/SESSION/GLOBAL/CLOUD, ale Error z gate ma message AUTH_ACCESS_REVOKED bez code. Dlatego stale połączenie mogło dać zgłoszony ogólny LF_APPLICATION_UNCONFIRMED. Nie zmieniano tekstów ani mappera: naprawiono przyczynę pozostawienia starego uprawnienia. Fizyczny odbiór telefonu pozostaje PHONE_PENDING; pakiet obu napraw CODE_READY / CI_PENDING / RELEASE_BLOCKED.
+
+Aktualizacja podczas przygotowania Auth: zdalny main przeszedł na `1658e60f178c37128b5dbaf56c13171d47bc13a5` przez scalenie poprzedniego `d69ccb10fb79ae521c87107dbe80b4eee4719798`. Porównanie całych drzew obu SHA jest puste: nowy BASE/main ma dokładnie przetestowaną bazę. Nie nadpisano ani nie scalono main ręcznie; nowy commit obejmuje wyłącznie uzupełnienie Auth.
