@@ -2,7 +2,7 @@
 
 ## Wyjdź → ponowne otwarcie inwestora, 21.11.2026
 
-**CODE_READY poprawki wyścigu / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Zgłoszenie właściciela: LF_APPLICATION_UNCONFIRMED przy otwieraniu inwestora i miganie Projektów. Nowa gałąź `fix/p1-exit-reopen-investor-20261121`, BASE/main `662fb163da73e1990f69c376eb4f5b61fa161cd6`. To wydany P1: PR #155 automatycznie scalony, Preflight #1368 PASS, exact Pages PASS; publikacja po 6:47 od uruchomienia CI. Nie zmieniano Firebase LIVE.
+**CODE_READY poprawek Wyjdź/Auth / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Zgłoszenie właściciela: LF_APPLICATION_UNCONFIRMED przy otwieraniu inwestora i miganie Projektów. Nowa gałąź `fix/p1-exit-reopen-investor-20261121`, BASE/main `662fb163da73e1990f69c376eb4f5b61fa161cd6`. To wydany P1: PR #155 automatycznie scalony, Preflight #1368 PASS, exact Pages PASS; publikacja po 6:47 od uruchomienia CI. Nie zmieniano Firebase LIVE.
 
 - **USTALONE → WDROŻONE.** Odtworzono powiązany wyścig: czysta sesja była zamykana pierwszym checkpointem, a przejście do listy drugim. Odbiór danych pomiędzy nimi powodował LF_REMOTE_APPLY_PENDING i pozostawiał widok pomieszczenia bez sesji. Oba kroki są teraz jednym atomowym checkpointem; abort przywraca także sesję. Bez zmiany wyglądu, komunikatów, CAS, outboxa i ACK.
 - **KONTROLE.** Regresja na wydanym kodzie RED (dwa checkpointy zamiast jednego), po poprawce 13/13 domenowych kontroli PASS. Rozszerzony rzeczywisty Chromium/Emulator delivery: przed poprawką odmowa Wyjdź po ponownym wejściu; po poprawce pełny scenariusz z myszą PASS. Dotyk 393 px: pełny scenariusz 1/1 PASS, exit 0. Oba testy są już obowiązkowe w CI; nie dodano pomijania ani ponawiania.
@@ -467,4 +467,3 @@ Nowy wątek czyta aktywny stan, następnie właściwy świeży GitHub; odróżni
 - [Wcześniejsza chronologia — do 30.10.2026](docs/archive/CURRENT_STATE_history_to_20261030.md).
 
 Archiwum i raport optymalizacji to dowody/historyczna migawka, nie równoległy aktualny status ani upoważnienie do operacji.
-
