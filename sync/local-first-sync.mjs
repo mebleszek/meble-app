@@ -129,7 +129,18 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
             }continue;
           }
           const delay=urgent?0:projectBatchDelay(op,clock.now());
-          if(delay){deferred.set(scope,clock.now()+delay);break;}
+          if(delay){
+            // Batching delays publication, never discovery of a lost editor.
+            // Read the same authoritative lease used by prepare(), without packing or WRITE.
+            if(op.editor&&channel.editor){
+              const editor=await channel.editor();
+              if(!editor?.active||!equal(editor,op.editor)){
+                await store.transition(op.key,'queued','conflict',{code:'LF_EDITOR_CONFLICT'});
+                return {ok:false,code:'LF_EDITOR_CONFLICT',blockedScopes:[scope]};
+              }
+            }
+            deferred.set(scope,clock.now()+delay);break;
+          }
           if(op.dependencies){
             if(channel.kind!=='quote'||!Array.isArray(op.dependencies)||!op.dependencies.length)fail('LF_QUOTE_STATUS_DEPENDENCY_INVALID');
             for(const dependency of op.dependencies){

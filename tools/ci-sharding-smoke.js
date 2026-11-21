@@ -7,6 +7,9 @@ const names=shards.inventory(__dirname,context.historicalSmoke);
 const units=shards.units(names),groups=shards.plan(names),all=groups.flat();
 assert.equal(shards.SHARDS,36);
 assert.equal(groups.length,shards.SHARDS);
+const norms=require('./wycena-labor-norms-smoke');
+assert.equal(norms.tests.length,shards.PARTS['wycena-labor-norms-smoke.js'],'Every existing norm case has its own mandatory partition');
+
 assert.equal(all.length,units.length);
 assert.deepEqual([...new Set(all)].sort(),units.slice().sort());
 for(const [file,count]of Object.entries(shards.PARTS)){

@@ -437,7 +437,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    assert.equal(await page.evaluate(()=>navigator.onLine),false,'Offline device must remain offline throughout the other device takeover');
    await page.locator('.cab-actions [data-act="edit"]').first().click();
    await page.locator('#cmWidth').fill('67');await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
-   await saveProject(page);
+   await saveProject(page,{flush:false});
    const offline=await image(phone),unsent=offline.outbox.find(row=>row.scope===pid&&row.phase==='queued');
    assert.ok(unsent);assert.deepEqual((await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomProjects',pid))).data(),confirmedHead);
    await page.context().tracing.stop({path:path.join(artifacts,'before-restart.zip')});

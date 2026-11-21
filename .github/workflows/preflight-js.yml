@@ -213,9 +213,14 @@ jobs:
           test -x "$browser_path"
           echo "CHROMIUM_PATH=$browser_path" >> "$GITHUB_ENV"
           "$browser_path" --version
+      - name: Restore locked public download caches
+        uses: ./.github/actions/test-download-cache
+        with:
+          scope: current
+          emulators: 'false'
       - name: Install locked Playwright dependencies
         shell: bash
-        run: npm --prefix "$PREFLIGHT_DIR/tools/firebase-pilot" ci --no-audit --no-fund
+        run: npm --prefix "$PREFLIGHT_DIR/tools/firebase-pilot" ci --prefer-offline --no-audit --no-fund
       - name: Test Playwright localOnly UI and IDB restart
         shell: bash
         run: |
@@ -340,9 +345,16 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - name: Restore locked public download caches
+        uses: ./.github/actions/test-download-cache
+        with:
+          scope: current
+          emulators: 'true'
       - name: Install locked DEMO emulator dependencies
         shell: bash
-        run: npm --prefix "$PREFLIGHT_DIR/tools/firebase-pilot" ci --no-audit --no-fund
+        run: npm --prefix "$PREFLIGHT_DIR/tools/firebase-pilot" ci --prefer-offline --no-audit --no-fund
+      - name: Verify cached emulator binary against locked CLI metadata
+        run: node tools/ci-emulator-cache.js "$PREFLIGHT_DIR/tools/firebase-pilot"
       - name: Verify SDK source, pins and DEMO boundaries
         env:
           APPROVED_HEAD: ${{ needs.safety.outputs.head_sha }}
@@ -389,8 +401,15 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - name: Restore locked public download caches
+        uses: ./.github/actions/test-download-cache
+        with:
+          scope: current
+          emulators: 'true'
       - name: Install locked DEMO dependencies
-        run: npm --prefix "$PREFLIGHT_DIR/tools/firebase-pilot" ci --no-audit --no-fund
+        run: npm --prefix "$PREFLIGHT_DIR/tools/firebase-pilot" ci --prefer-offline --no-audit --no-fund
+      - name: Verify cached emulator binary against locked CLI metadata
+        run: node tools/ci-emulator-cache.js "$PREFLIGHT_DIR/tools/firebase-pilot"
       - name: Run signed DEMO Playwright against isolated Auth and Firestore emulators
         shell: bash
         run: |
@@ -444,8 +463,15 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - name: Restore locked public download caches
+        uses: ./.github/actions/test-download-cache
+        with:
+          scope: current
+          emulators: 'true'
       - name: Install locked DEMO dependencies
-        run: npm --prefix "$PREFLIGHT_DIR/tools/firebase-pilot" ci --no-audit --no-fund
+        run: npm --prefix "$PREFLIGHT_DIR/tools/firebase-pilot" ci --prefer-offline --no-audit --no-fund
+      - name: Verify cached emulator binary against locked CLI metadata
+        run: node tools/ci-emulator-cache.js "$PREFLIGHT_DIR/tools/firebase-pilot"
       - name: Run mandatory P0-B candidate segment
         shell: bash
         run: |
@@ -563,9 +589,16 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - name: Restore locked public download caches
+        uses: ./.github/actions/test-download-cache
+        with:
+          scope: historical-306f90a4
+          emulators: 'true'
       - name: Install locked DEMO emulator dependencies
         shell: bash
-        run: npm --prefix "$CLOUD_CI_HISTORY_ROOT/tools/firebase-pilot" ci --no-audit --no-fund
+        run: npm --prefix "$CLOUD_CI_HISTORY_ROOT/tools/firebase-pilot" ci --prefer-offline --no-audit --no-fund
+      - name: Verify cached emulator binary against locked CLI metadata
+        run: node tools/ci-emulator-cache.js "$CLOUD_CI_HISTORY_ROOT/tools/firebase-pilot"
       - name: Verify SDK source, pins and DEMO boundaries
         env:
           APPROVED_HEAD: ${{ needs.safety.outputs.head_sha }}
