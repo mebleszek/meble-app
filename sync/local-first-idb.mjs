@@ -3,6 +3,7 @@ import {commitRoomBatch as writeRoomBatch} from './local-first-room-batch.mjs';
 import {emptyP0BBusiness,P0B_REGISTRY} from './application-p0b-domain.mjs';
 import {assertApplicationMigration} from './application-release.mjs';
 import {copy, fail, equal, id, json, digest} from './local-first-values.mjs';
+import {archivedProjectOperation} from './local-first-project-batching.mjs';
 const TABLES = ['control', 'replicas', 'outbox', 'protected'];
 // Explicit separate database. No localStorage, backup archive or startup.
 export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, deviceId, instanceId, initialize = false, migration} = {}) {
@@ -327,12 +328,13 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
     const encoded = json(value), protection = json(protectedRows), hash = await digest(encoded), protectedHash=await digest(protection);
     if (!Array.isArray(blockers) || blockers.some(v => !/^LF_[A-Z_]+$/.test(v))) fail('LF_BLOCKER_INVALID');
     return transaction('readwrite', (s, done, abort) => {
-      const a = s.replicas.get(scope), b = s.outbox.get(operationId), all = s.outbox.getAll(); let pending = 3;
+      const a = s.replicas.get(scope), b = s.outbox.get(operationId), all = s.outbox.getAll(), archived=s.control.get('p1-coalesced:'+operationId); let pending = 4;
       const finish = () => { if (--pending) return;
         try {
-          if (b.result) {
-            if (b.result.scope !== scope || b.result.hash !== hash || !equal(b.result.editor, editor)|| (b.result.applicationHash||null)!==(application?.hash||null)) fail('LF_OPERATION_REUSED');
-            done({ok: true, duplicate: true, version: b.result.localVersion, operationId}); return;
+          if (b.result||archived.result) {
+            const prior=b.result||archived.result.operation;
+            if (!prior||prior.scope !== scope || prior.hash !== hash || !equal(prior.editor, editor)|| (prior.applicationHash||null)!==(application?.hash||null)) fail('LF_OPERATION_REUSED');
+            done({ok: true, duplicate: true, version: prior.localVersion, operationId}); return;
           }
           const old = a.result, version = old?.version || 0;
           if (version !== expectedVersion) fail('LF_LOCAL_CONFLICT');
@@ -351,11 +353,22 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
           done({ok: true, operationId, version: nextVersion, localConfirmed: true, cloudConfirmed: false});
           },abort);
         } catch(e) { abort(e); }
-      }; a.onsuccess = b.onsuccess = all.onsuccess = finish;
+      }; a.onsuccess = b.onsuccess = all.onsuccess = archived.onsuccess = finish;
     },scope);
   }
   const commit=args=>commitInternal(args);
   const commitContact=args=>commitInternal(args,true);
+  async function wasProjectCoalesced(operation){
+    operation=copy(operation);id(operation.key);id(operation.scope);
+    const state=await transaction('readonly',(s,done)=>{
+      const a=s.control.get('p1-coalesced:'+operation.key),q=s.outbox.get(operation.key),p=s.protected.get(operation.key);let pending=3;
+      const finish=()=>{if(!--pending)done({archive:a.result||null,active:q.result||null,raw:p.result||null});};a.onsuccess=q.onsuccess=p.onsuccess=finish;
+    });
+    if(state.active||!state.archive||!state.raw||state.archive.replacedBy===operation.key)return false;
+    id(state.archive.replacedBy);
+    const previous=archivedProjectOperation([state.archive],operation.key);
+    return equal(previous,operation)&&state.raw.scope===operation.scope&&state.raw.hash===operation.applicationHash&&await digest(state.raw.json)===state.raw.hash;
+  }
   async function transition(operationId, expectedPhase, phase, patch = {}) {
     id(operationId);patch=copy(patch);
     const allowed = {queued: ['inflight','blocked','conflict'], inflight: ['verified','uncertain','conflict'], uncertain: ['verified','conflict']};
@@ -414,7 +427,7 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       } catch(e) { abort(e); } }; q.onsuccess = ops.onsuccess = finish;
     },scope);
   }
-  return Object.freeze({ownerUid, deviceId, instanceId, name, snapshot, commitQuoteLedger:args=>writeQuoteLedger({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}), commitRoomBatch:args=>writeRoomBatch({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}), checkpointP0BProjects, pendingNewProjects, finishNewProject, legacyInvestor, fenceP0BTombstones, checkpointP0BTombstones, p0bRegistry, enterP0BRegistry, retired, readCatalogReplica,readApplication,readPreservedSource, initializeApplication, checkpointApplication, pendingHandover, withdrawHandover, pendingProjectRecovery, stageProjectRecovery, checkpointProjectRecovery, checkpointDeletion, commit, commitContact, transition, apply, setEditor,
+  return Object.freeze({ownerUid, deviceId, instanceId, name, snapshot, wasProjectCoalesced, commitQuoteLedger:args=>writeQuoteLedger({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}), commitRoomBatch:args=>writeRoomBatch({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}), checkpointP0BProjects, pendingNewProjects, finishNewProject, legacyInvestor, fenceP0BTombstones, checkpointP0BTombstones, p0bRegistry, enterP0BRegistry, retired, readCatalogReplica,readApplication,readPreservedSource, initializeApplication, checkpointApplication, pendingHandover, withdrawHandover, pendingProjectRecovery, stageProjectRecovery, checkpointProjectRecovery, checkpointDeletion, commit, commitContact, transition, apply, setEditor,
     exclusive: callback => locks.request(name + ':' + instanceId, {mode: 'exclusive'}, () => {if(closed)fail('LF_STORE_CLOSED');return callback();}),
     close() { closed = true; }});
 }

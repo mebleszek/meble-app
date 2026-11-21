@@ -16,6 +16,19 @@ const immutable=r=>JSON.stringify({local:[...r.rows],session:[...r.session],tabl
   r.w.projectData={unsaved:'PRIVATE_PROJECT_RAM'};r.w.uiState={activeRoom:'synthetic-room'};r.w.document.querySelectorAll=()=>[{tagName:'INPUT',id:'synthetic',name:'synthetic',value:'PRIVATE_CONTROL_RAM',checked:false,closest:()=>null}];
   const ram=readCurrentBusinessRam(r.w);assert.equal(ram.data.project.unsaved,'PRIVATE_PROJECT_RAM');assert.equal(ram.data.controls[0].value,'PRIVATE_CONTROL_RAM');
  });
+ test('P1 archive is exported read-only with exact RAW, without a fabricated ACK',async()=>{
+  const r=await rescueFixture(),{digest,json}=await import('../sync/local-first-values.mjs');
+  const key='prior-room-save',scope='P',payload={document:{payload:{project:{id:scope,meta:{roomProject:{version:1,roomId:scope}}},offers:[]}}},encoded=json(payload);
+  const raw={...r.tables.protected[0],key,scope};r.tables.protected.push(raw,{...raw,key:'next-room-save'});
+  const operation={key,scope,phase:'queued',expected:null,blockers:[],json:encoded,hash:await digest(encoded),applicationHash:raw.hash,localVersion:2,editor:{active:true,deviceId:r.receipt.deviceId,epoch:1},batch:{version:1,firstAt:1000,lastAt:2000}};
+  const archive={key:'p1-coalesced:'+key,version:1,operation,replacedBy:'next-room-save'};r.tables.control.push(archive);
+  const before=immutable(r),data=await readRescueSnapshot(r.context);
+  assert.deepEqual(data.databases.authority.control.find(row=>row.key===archive.key),archive);assert.equal(immutable(r),before);
+  for(const change of [()=>operation.phase='verified',()=>operation.hash='b'.repeat(64),()=>operation.editor.deviceId='foreign',()=>operation.batch.lastAt=0,()=>raw.hash='b'.repeat(64)]){
+   const original=structuredClone({operation,raw});change();await assert.rejects(readRescueSnapshot(r.context),code('RESCUE_RECORD_INTEGRITY'));Object.assign(operation,original.operation);Object.assign(raw,original.raw);
+  }
+  assert.equal(r.trace.includes('tx:readwrite'),false);
+ });
  test('rescue preserves a pending handover only for the bound device and editor generation',async()=>{
   const r=await rescueFixture(),deviceId=r.tables.control.find(row=>row.key==='binding').deviceId;
   r.tables.replicas[0].editor={deviceId,active:true,epoch:7};

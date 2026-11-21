@@ -11,6 +11,12 @@ export function createApplicationQuoteLedger({fc,store,writer,reader,getSync,sou
  }
  async function sources(refs){
   if(!Array.isArray(refs)||!refs.length)fail('LF_QUOTE_SOURCE_INVALID');
+  // A frozen quote pins confirmed room revisions. Finish an approved pending
+  // project batch before reading pins; retain every integrity/CAS check below.
+  const pending=await Promise.all(refs.map(ref=>store.snapshot(ref.projectId)));
+  if(pending.some(source=>source.operations.some(op=>op.phase==='queued'&&op.batch))){
+   const result=await getSync().flush();if(!result.ok)fail(result.code);
+  }
   const out=[];
   for(const ref of refs){
    const source=await store.snapshot(ref.projectId),replica=source.replica;

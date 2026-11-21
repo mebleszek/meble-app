@@ -16,7 +16,7 @@ export async function commitQuoteLedger({transaction,prepareApplication,applicat
    if(c.result.some(row=>row.key==='retired:'+scope))fail('LF_P0B_SCOPE_RETIRED');
    const old=r.result.find(row=>row.key===scope),ops=q.result.filter(row=>row.scope===scope);
    if((old?.version||0)!==expectedVersion)fail('LF_LOCAL_CONFLICT');
-   if(q.result.some(row=>row.key===operationId))fail('LF_OPERATION_REUSED');
+   if(q.result.some(row=>row.key===operationId)||c.result.some(row=>row.key==='p1-coalesced:'+operationId))fail('LF_OPERATION_REUSED');
    validateQuoteLedgerChange(old?JSON.parse(old.json):null,value);
    const previous=old?JSON.parse(old.json):null;
    const newPins=value.offers.filter(row=>!previous?.offers.some(prior=>prior.id===row.id)).flatMap(row=>value.pins[row.id]);

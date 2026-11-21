@@ -9,6 +9,7 @@ import {assertFails} from '@firebase/rules-unit-testing';
 import {runNormalApplication} from './normal-application.cases.mjs';
 import {promotionCase,stagingCase} from './p0b-quote-lifecycle.cases.mjs';
 import {variantsCase} from './p0b-quote-variants.cases.mjs';
+import {batchingCase} from './p1-project-sync.cases.mjs';
 import {checkpointNativeFixture,nativeFixtureState} from './p0b-fixture-baseline.mjs';
 async function image(device){
  return device.page.evaluate(name=>new Promise((resolve,reject)=>{
@@ -19,10 +20,12 @@ async function image(device){
  }),device.name);
 }
 const rows=value=>value.control.find(row=>row.key==='application').rows;
-async function saveProject(page){
+async function saveProject(page,{flush=true}={}){
  await page.locator('#sessionSave').click();const notice=page.locator('.info-box');await notice.waitFor();
  assert.match(await notice.innerText(),/Projekt zapisany/);await notice.locator('.is-success').click();
  await page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
+ // Existing P0-B regressions explicitly synchronize; P1 cases observe batching.
+ if(flush)assert.equal((await page.evaluate(()=>window.FC.applicationStartup.synchronize())).ok,true);
 }
 async function showList(page){
  if(await page.locator('#investorsListView').isVisible()){await page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);return;}
@@ -51,8 +54,8 @@ async function addCabinet(device,width){
  await page.locator('#cmWidth').fill(String(width));await page.locator('#cmHeight').fill('82');await page.locator('#cmDepth').fill('50');
  await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
 }
-async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false}={}){
- await runNormalApplication(t,{deployment,p0bRegistry:true,testOwner:deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
+async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,p1=false}={}){
+ await runNormalApplication(t,{deployment,p0bRegistry:true,testOwner:p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
   const artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'meble-p0b-normal-'));
   await phone.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
   try{
@@ -91,7 +94,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    const db=env.authenticatedContext(ownerUid,{email_verified:true,firebase:{sign_in_provider:'google.com'}}).firestore();
    const globalBefore=(await f.getDoc(f.doc(db,'users',ownerUid,'globalData','current'))).data();
    const page=phone.page;let pin;
-   if(full&&!quoteProbe){
+   if(full&&!quoteProbe&&!p1){
     await page.context().tracing.stop();pin=String(randomInt(10000)).padStart(4,'0');
     try{
      await page.locator('#openDataSettingsBtn').click();await page.locator('[data-settings-section="security"]').click();
@@ -144,6 +147,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    assert.equal(draft.outbox.length,beforeCabinet.outbox.length);
    const sourceCabinet=JSON.parse(rows(draft).fc_projects_v1).find(row=>row.id===pid).projectData[roomId].cabinets[0];
    assert.equal(sourceCabinet.width,66);
+   if(p1){await batchingCase({t,phone,computer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,showList,openRoom,addCabinet,saveProject,restartProbe,globalBefore},{idle:p1==='idle',quoteOnly:p1==='quote',offlineQuote:p1==='offline-quote'});return;}
    await Promise.all([saveProject(page),saveProject(computer.page)]);
    await until(async()=>{const state=await image(phone);return state.outbox.filter(row=>row.scope===pid).every(row=>row.phase==='verified');});
    assert.equal((await image(phone)).outbox.filter(row=>row.scope===pid).length,beforeCabinet.outbox.filter(row=>row.scope===pid).length+1);
@@ -537,3 +541,10 @@ test('P0-B signed DEMO clean registry: real new investor, two profiles and durab
 
 
 test('P0-B signed room deployment: combined quote and immutable history survive restart and lost ACK',t=>cleanApplication(t,{deployment:true,quoteProbe:true}));
+
+test('P1 normal DEMO idle batching: real Save, two-minute timer and independent room ACK',t=>cleanApplication(t,{p1:'idle'}));
+test('P1 normal DEMO delivery: Exit, offline restart, crash ACK and durable pending queue',t=>cleanApplication(t,{p1:'delivery'}));
+
+test('P1 signed DEMO quote barrier: pending room Save requires confirmed immutable source pins',t=>cleanApplication(t,{p1:'quote',deployment:true}));
+
+test('P1 normal DEMO offline quote: restart of a pending room Save preserves immutable history and ACK',t=>cleanApplication(t,{p1:'offline-quote'}));
