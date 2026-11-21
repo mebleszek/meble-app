@@ -57,6 +57,29 @@ export async function batchingCase(c,{idle=true,quoteOnly=false,offlineQuote=fal
  assert.equal((await computer.page.evaluate(()=>window.FC.applicationStartup.synchronize())).ok,true);
  published=await head(pid);
  if(offlineQuote){await offlineDraft(c,3,true);return;}
+ // Regression: ordinary Exit, immediate same-investor reopen and repeated Projects.
+ await showList(phone.page);
+ await phone.page.locator('[data-action="open-investor"][data-inv-id="'+iid+'"]').click();
+ await phone.page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
+ assert.equal(await phone.page.locator('.info-box').count(),0,'Reopening after Exit must not refuse: '+await phone.page.locator('body').innerText());
+ const touch=await phone.page.context().newCDPSession(phone.page);
+ await phone.page.setViewportSize({width:393,height:851});
+ await touch.send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:1});
+ for(let attempt=0;attempt<2;attempt++){
+  const button=phone.page.locator('[data-investor-action="projects"]');
+  if(attempt===0)await button.click();else{
+   await button.scrollIntoViewIfNeeded();const box=await button.boundingBox();assert.ok(box);
+   await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:box.x+box.width/2,y:box.y+box.height/2}]});
+   await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  }
+  await phone.page.locator('.room-project-picker').waitFor({state:'visible'});
+  await phone.page.waitForFunction(()=>document.querySelectorAll('.room-project-picker').length===1);
+  await phone.page.locator('.room-project-picker .panel-box__close').click();
+ }
+ await touch.detach();
+ await openRoom(phone,pid);
+ await phone.page.waitForFunction(()=>window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending);
+ t.diagnostic('Ordinary Exit/reopen and repeated Projects remain usable without losing the room');
  // Exit starts publication immediately. Kill after real server commit, before
  // its ACK reaches IndexedDB; restart must recover the same receipt, not replay.
  await addCabinet(phone,88);await saved(phone);

@@ -180,10 +180,14 @@ export function createApplicationActionBinding({window:w,authority,onClose=()=>{
    const divergent=()=>fc.investorProjectRuntime.hasProjectDivergence(w.projectData);
    if(fc.session.active&&(fc.session.isDirty()||divergent()))return authority.transaction('rollback',cancelLocal);
    if(divergent())fail('LF_ACTIVE_RAM_PROTECTED');
-   await authority.transaction('checkpoint',()=>fc.session.active?fc.session.commit():true);
-   if(divergent())fail('LF_ACTIVE_RAM_PROTECTED');
    const scope=w.localStorage.getItem('fc_current_project_id_v1');
-   const result=await authority.transaction('checkpoint',cancelLocal,{exitScope:scope});
+   // Close the clean session and navigate in one durable checkpoint. An incoming
+   // refresh must not observe a closed session still displayed as an open room.
+   const result=await authority.transaction('checkpoint',async()=>{
+    if(fc.session.active)fc.session.commit();
+    if(divergent())fail('LF_ACTIVE_RAM_PROTECTED');
+    return cancelLocal();
+   },{exitScope:scope});
    if(result!==false&&w.uiState?.entry==='investorsList')await onExit(scope);
    return result;
   },

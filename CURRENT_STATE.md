@@ -1,6 +1,15 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
-## P1 — grupowanie zatwierdzonych zapisów, 21.11.2026
+## Wyjdź → ponowne otwarcie inwestora, 21.11.2026
+
+**CODE_READY poprawki wyścigu / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Zgłoszenie właściciela: LF_APPLICATION_UNCONFIRMED przy otwieraniu inwestora i miganie Projektów. Nowa gałąź `fix/p1-exit-reopen-investor-20261121`, BASE/main `662fb163da73e1990f69c376eb4f5b61fa161cd6`. To wydany P1: PR #155 automatycznie scalony, Preflight #1368 PASS, exact Pages PASS; publikacja po 6:47 od uruchomienia CI. Nie zmieniano Firebase LIVE.
+
+- **USTALONE → WDROŻONE.** Odtworzono powiązany wyścig: czysta sesja była zamykana pierwszym checkpointem, a przejście do listy drugim. Odbiór danych pomiędzy nimi powodował LF_REMOTE_APPLY_PENDING i pozostawiał widok pomieszczenia bez sesji. Oba kroki są teraz jednym atomowym checkpointem; abort przywraca także sesję. Bez zmiany wyglądu, komunikatów, CAS, outboxa i ACK.
+- **KONTROLE.** Regresja na wydanym kodzie RED (dwa checkpointy zamiast jednego), po poprawce 13/13 domenowych kontroli PASS. Rozszerzony rzeczywisty Chromium/Emulator delivery: przed poprawką odmowa Wyjdź po ponownym wejściu; po poprawce pełny scenariusz z myszą PASS. Dotyk 393 px: pełny scenariusz 1/1 PASS, exit 0. Oba testy są już obowiązkowe w CI; nie dodano pomijania ani ponawiania.
+- **BRAKUJE.** Dokładny LF_APPLICATION_UNCONFIRMED telefonu i miganie nie odtworzyły się w czystym DEMO; zwykłe otwieranie inwestora/Projektów działało też przed poprawką, zanim ujawniła się odmowa kolejnego Wyjdź. Nie utożsamiać znalezionego wyścigu z potwierdzeniem wszystkich objawów telefonu. Oczekujemy informacji, czy błąd utrzymuje się po zamknięciu i ponownym otwarciu karty bez czyszczenia danych. Pełny CI/nowe wydanie wymagają osobnej zgody dokładnych SHA. [Dowody](tools/reports/exit-reopen-investor-20261121.md).
+
+
+## Historia — P1, przygotowanie i naprawa #1367, 21.11.2026
 
 **CODE_READY naprawy / CI_PENDING / RELEASE_BLOCKED (P1), bez zmian Firebase LIVE.** Gałąź `feat/p1-debounced-project-sync-20261121`, wejściowy HEAD naprawy `60a8923b7bf95fab0ce349610eb0f41fb0b353ef`, BASE/main `e3a2f985461a8feb205cf90a0860ee6c8e1c3be4`. Właściciel zatwierdził jedną próbę wydania: PR #155 Ready, Preflight #1367 zakończony 75 PASS / 6 FAIL / 2 SKIPPED; bez merge/Pages. Następnie zatwierdził naprawę i optymalizację, bez kolejnego CI. [Przyczyny, dowody i pomiary](tools/reports/preflight-1367-repair-speed-20261121.md). Zachowano dokumentacyjne potwierdzenie działającego LIVE P0-B w obu kierunkach. [Plan P1](docs/plans/LOCAL_FIRST_ROADMAP.md#p1--inteligentna-synchronizacja).
 

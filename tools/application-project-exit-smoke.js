@@ -23,6 +23,20 @@ async function fixture({draftBoot=false,loading=false,corruptDraft=false,receipt
  return {r,w,fc,authority,source,published:()=>published,read:()=>structuredClone(image),abort(){abort=true;},async autosave(){fc.projectAutosave.scheduleProjectAutosave();timer();for(let n=0;n<8;n++)await new Promise(resolve=>setImmediate(resolve));},exit:()=>fc.applicationLifecycle.dispatch('session-cancel',()=>r.handlers['session-cancel']({}))};
 }
 const cases=[];const test=(name,fn)=>cases.push([name,fn]);
+test('Clean Exit closes the session and changes view in one abortable durable checkpoint',async()=>{
+ const {createApplicationActionBinding}=await import('../sync/application-authority.mjs');
+ for(const abort of [false,true]){
+  const f=await fixture();assert.equal(await f.authority.transaction('auto',()=>f.r.open()),true);
+  const before=f.read();let checkpoints=0;
+  const binding=createApplicationActionBinding({window:f.w,authority:{transaction(...args){checkpoints++;return f.authority.transaction(...args);}}});
+  if(abort)f.abort();
+  const exit=()=>binding.cancel({cancelLocal:()=>{f.w.uiState=f.fc.uiState.set({entry:'investorsList',roomType:null,activeTab:null});return true;}});
+  if(abort){await assert.rejects(exit());assert.deepEqual(f.read(),before);assert.equal(f.fc.session.active,true);}
+  else{assert.equal(await exit(),true);assert.equal(f.fc.session.active,false);assert.equal(f.read().rows.fc_edit_session_v1,null);assert.equal(JSON.parse(f.read().rows.fc_ui_v1).entry,'investorsList');}
+  assert.equal(checkpoints,1,'No intermediate closed-session/open-room commit may expose an incoming refresh');
+  assert.equal(f.published(),0);assert.deepEqual(Object.fromEntries(f.r.storage.rows),f.source);
+ }
+});
 test('A proven online draft may resume only during initial loading',async()=>{
  const f=await fixture({draftBoot:true,loading:true});assert.equal(f.fc.session.active,true);assert.equal(f.fc.session.durable,true);assert.ok(f.read().rows.fc_edit_session_v1);
  await assert.rejects(fixture({draftBoot:true,loading:false}),/LF_ACTIVE_RAM_PROTECTED/);
