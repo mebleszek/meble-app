@@ -924,6 +924,7 @@
       rejectedAt: Number(existing && existing.meta && existing.meta.rejectedAt) > 0 ? Number(existing.meta.rejectedAt) : 0,
       rejectedReason: String(existing && existing.meta && existing.meta.rejectedReason || '').trim().toLowerCase(),
     });
+    next.meta.source = 'quote-duplicate-refresh';
     next.meta.quoteFingerprint = getQuoteFingerprint(next);
     return save(next);
   }

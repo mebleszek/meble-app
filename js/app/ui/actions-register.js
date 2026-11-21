@@ -590,8 +590,8 @@
     'tab': ({event, element}) => {
       const tab = element.getAttribute('data-tab');
       if(window.FC && window.FC.investorEditorState && typeof window.FC.investorEditorState.hasUiLock === 'function' && window.FC.investorEditorState.hasUiLock() && tab !== 'inwestor') return true;
-      setActiveTab(tab);
-      return true;
+      const result=setActiveTab(tab);
+      return result===undefined?true:result;
     },
   };
   // Guard destructive/context-changing actions before their first RAM or UI mutation.

@@ -133,7 +133,10 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
    }
    if(committed?.scope||session.active&&!fc.session.active)queueMicrotask(()=>onCommitted(committed?.scope));
    return result;
-  }catch(e){lastCode=/^(LF_|GLOBAL_|CLOUD_)[A-Z0-9_]+$/.test(e?.code||e?.message||'')?(e.code||e.message):'LF_APPLICATION_UNCONFIRMED';rows=old;Object.assign(fc.session,session);w.projectData=ram;w.uiState=ui;if(editorState)Object.assign(fc.investorEditorState.state,editorState);if(investorUi)Object.assign(fc.investorUI.state,investorUi);if(priceState)Object.assign(fc.priceModalContext.runtimeState,priceState);pendingClosures.length=0;for(const [el,style]of views)el.style.cssText=style;pendingNotices.length=0;inTransaction=false;mutating=false;await hydrateCatalogs();throw e;}
+  }catch(e){const changedTab=w.uiState?.activeTab!==ui?.activeTab;lastCode=/^(LF_|GLOBAL_|CLOUD_)[A-Z0-9_]+$/.test(e?.code||e?.message||'')?(e.code||e.message):'LF_APPLICATION_UNCONFIRMED';rows=old;Object.assign(fc.session,session);w.projectData=ram;w.uiState=ui;if(editorState)Object.assign(fc.investorEditorState.state,editorState);if(investorUi)Object.assign(fc.investorUI.state,investorUi);if(priceState)Object.assign(fc.priceModalContext.runtimeState,priceState);pendingClosures.length=0;for(const [el,style]of views)el.style.cssText=style;pendingNotices.length=0;inTransaction=false;mutating=false;await hydrateCatalogs();
+   // CSS/state rollback alone cannot restore a tab whose shared content was rendered while the commit was pending.
+   if(changedTab)try{fc.views?.applyFromState(w.uiState);fc.sections?.update();if(w.uiState?.entry==='app')w.renderCabinets?.();}catch(_){}
+   throw e;}
  }
  // Reopening an approved image never copies it back over the preserved source.
  // A durable draft requires the existing session recovery path, not a clean boot.

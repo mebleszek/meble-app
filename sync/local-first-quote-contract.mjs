@@ -50,12 +50,32 @@ function promotion(before,after){
  expected.project={...expected.project,status:'zaakceptowany'};
  return equal(expected,after);
 }
+// The approved duplicate action refreshes only calculation timestamps in the
+// same logical slot. Every business value, source pin and unknown field stays exact;
+// previous local images and immutable cloud revisions are never rewritten.
+function duplicateRefresh(before,after){
+ if(!before.meta||typeof before.meta!=='object'||Array.isArray(before.meta)||after.meta?.source!=='quote-duplicate-refresh')return false;
+ const expected=frozen(before),next=frozen(after),time=next.generatedAt;
+ if(!Number.isSafeInteger(time)||!Number.isSafeInteger(before.generatedAt)||time<before.generatedAt)return false;
+ expected.generatedAt=time;expected.meta.source='quote-duplicate-refresh';
+ if(Object.hasOwn(expected.calculationRegister,'generatedAt')){
+  const stamp=next.calculationRegister?.generatedAt,prior=expected.calculationRegister.generatedAt;
+  if(!Number.isSafeInteger(stamp)||stamp<prior||stamp>time)return false;
+  expected.calculationRegister.generatedAt=stamp;
+ }
+ for(const key of ['builtAt','generatedAt'])if(Object.hasOwn(expected.clientOffer||{},key)){
+  const stamp=next.clientOffer?.[key],prior=expected.clientOffer[key];
+  if(!Number.isSafeInteger(stamp)||stamp<prior||stamp>time)return false;
+  expected.clientOffer[key]=stamp;
+ }
+ return equal(expected,next);
+}
 export function validateQuoteLedgerChange(before,after){
  validateQuoteLedger(after);if(!before)return true;validateQuoteLedger(before);
  if(before.investorId!==after.investorId)fail('LF_QUOTE_OWNER_CHANGED');
  for(const old of before.offers){
   const next=after.offers.find(row=>row.id===old.id);
-  if(next&&((!equal(frozen(old),frozen(next))&&!promotion(old,next))||!equal(before.pins[old.id],after.pins[old.id])))fail('LF_QUOTE_HISTORY_IMMUTABLE');
+  if(next&&((!equal(frozen(old),frozen(next))&&!promotion(old,next)&&!duplicateRefresh(old,next))||!equal(before.pins[old.id],after.pins[old.id])))fail('LF_QUOTE_HISTORY_IMMUTABLE');
   // Explicit removal changes active history only. Earlier immutable revisions
   // remain in Firestore and protected local transaction images.
  }

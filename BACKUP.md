@@ -504,6 +504,8 @@ Etap `site_wycena_duplicate_offer_guard_v1.zip` nie dodaje nowych kluczy storage
 
 Nowe pole/pojęcie fingerprintu oferty jest metadanym wewnątrz snapshotu v7. Służy do blokowania identycznych duplikatów przy generowaniu WYCENY i nie zastępuje korelacji ofert/statusów. Zamiana istniejącej identycznej oferty zachowuje slot/ID i metadane statusu, a aktualizuje linie/sumy świeżym przeliczeniem.
 
+Doprecyzowanie integracji LOCAL-FIRST, 21.11.2026: jawna zamiana identycznej treści oznaczona istniejącym meta.source odświeża wyłącznie czasy przeliczenia, zachowując wszystkie wartości, status, zakres, źródła i ID. Powstaje kolejna rewizja tego samego slotu; poprzednie chronione obrazy i niezmienne rewizje pozostają nietknięte. Bez nowego klucza storage i zmiany zakresu backupu. [Dowody i granice](tools/reports/quote-tab-save-repair-20261121.md).
+
 
 ## Pełne usuwanie inwestorów z listy — 31.10.2026
 

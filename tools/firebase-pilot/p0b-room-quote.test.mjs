@@ -81,3 +81,15 @@ test('P0-B room quote proof: frozen accepted content, complete source pins and i
  const wrong=structuredClone(before);wrong.pins.offer[0].head.projectId='wardrobe';assert.throws(()=>validateQuoteLedger(wrong),{code:'LF_QUOTE_SOURCE_INVALID'});
  assert.equal(validateQuoteLedgerChange(before,{kind:before.kind,investorId:before.investorId,offers:[],pins:{}}),true,'Explicit active-history removal keeps prior immutable ledger revisions');
 });
+
+test('P0-B room quote proof: explicit duplicate refresh keeps frozen accepted values and immutable source pins',()=>{
+ const before=ledger();before.offers[0].generatedAt=1000;before.offers[0].calculationRegister.generatedAt=999;
+ before.offers[0].meta.source='quote-generation';before.offers[0].clientOffer={builtAt:999,generatedAt:999,unknown:'preserved'};
+ const next=structuredClone(before);next.offers[0].generatedAt=2000;next.offers[0].calculationRegister.generatedAt=1999;next.offers[0].meta.source='quote-duplicate-refresh';next.offers[0].clientOffer.builtAt=1999;next.offers[0].clientOffer.generatedAt=1999;
+ assert.equal(validateQuoteLedgerChange(before,next),true);
+ assert.equal(before.offers[0].generatedAt,1000,'Previous snapshot remains exact');
+ for(const mutate of [v=>delete v.offers[0].meta.source,v=>v.offers[0].totals.grand++,v=>v.offers[0].lines.materials[0].total++,v=>v.offers[0].unknown='lost',v=>v.offers[0].scope.sourceProjects[0].recordHash='c'.repeat(64),v=>v.offers[0].calculationRegister.generatedAt=2001,v=>v.offers[0].clientOffer.builtAt=2001,v=>v.offers[0].clientOffer.unknown='lost',v=>v.offers[0].generatedAt=999]){
+  const invalid=structuredClone(next);mutate(invalid);assert.throws(()=>validateQuoteLedgerChange(before,invalid));
+ }
+ for(const metadata of [undefined,'invalid']){const malformed=structuredClone(before);if(metadata===undefined)delete malformed.offers[0].meta;else malformed.offers[0].meta=metadata;assert.throws(()=>validateQuoteLedgerChange(malformed,next),{code:'LF_QUOTE_HISTORY_IMMUTABLE'});}
+});

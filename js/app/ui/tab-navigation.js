@@ -29,30 +29,35 @@
     uiState.activeTab = tabName;
     FC.storage.setJSON(STORAGE_KEYS.ui, uiState);
 
-    try{
-      document.querySelectorAll('.tab-btn').forEach(t => t.style.background = 'var(--card)');
-      const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
-      if(activeBtn) activeBtn.style.background = '#e6f7ff';
-    }catch(_){ }
+    function renderTab(){
+      try{
+        document.querySelectorAll('.tab-btn').forEach(t => t.style.background = 'var(--card)');
+        const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+        if(activeBtn) activeBtn.style.background = '#e6f7ff';
+      }catch(_){ }
 
-    try{
-      if(window.FC && window.FC.views && typeof window.FC.views.applyFromState === 'function'){
-        window.FC.views.applyFromState(uiState);
+      try{
+        if(window.FC && window.FC.views && typeof window.FC.views.applyFromState === 'function'){
+          window.FC.views.applyFromState(uiState);
+        }
+      }catch(_){ }
+
+      try{
+        if(window.FC && window.FC.sections && typeof window.FC.sections.update === 'function'){
+          window.FC.sections.update();
+        }
+      }catch(_){ }
+
+      const isExtraTab = (tabName === 'pokoje' || tabName === 'inwestor' || tabName === 'rozrys' || tabName === 'magazyn');
+      if(!isExtraTab){
+        try{ renderCabinets(); }catch(_){ }
       }
-    }catch(_){ }
 
-    try{
-      if(window.FC && window.FC.sections && typeof window.FC.sections.update === 'function'){
-        window.FC.sections.update();
-      }
-    }catch(_){ }
-
-    const isExtraTab = (tabName === 'pokoje' || tabName === 'inwestor' || tabName === 'rozrys' || tabName === 'magazyn');
-    if(!isExtraTab){
-      try{ renderCabinets(); }catch(_){ }
+      try{ window.scrollTo({top:0, behavior:'smooth'}); } catch(_){ try{ window.scrollTo(0,0); }catch(__){} }
     }
-
-    try{ window.scrollTo({top:0, behavior:'smooth'}); } catch(_){ try{ window.scrollTo(0,0); }catch(__){} }
+    // A failed durable checkpoint must leave the existing edit DOM intact.
+    if(FC.applicationWrite?.afterCommit) FC.applicationWrite.afterCommit(renderTab);
+    else renderTab();
   }
 
   function setActiveTab(tabName){
