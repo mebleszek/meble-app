@@ -186,6 +186,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   await d.page.addInitScript(({uid,name,releaseSlot,catalogCutover,receiverWitness,p0bRegistry})=>{const raw=Storage.prototype.getItem;window.readNormalSource=key=>raw.call(localStorage,key);const prepare=()=>{
    const emulatorCatalogWitness=receiverWitness||JSON.parse(sessionStorage.getItem('synthetic-catalog-cutover')||'null');
    const config={p0bDemo:p0bRegistry&&!releaseSlot,name:'meble-lf-test-normal-'+name,async connections(input){
+    window.normalMainContext=input;
     try{const [app,auth,f]=await Promise.all([import('/__sdk/firebase-app.js'),import('/__sdk/firebase-auth.js'),import('/__sdk/firebase-firestore.js')]);
     const budget=window.normalReadBudget??={documents:0,catalogRecords:0,transactions:0,attempts:0,queries:0,writes:0,auth:0,catalogs:0,projects:0};
     const countRead=ref=>{
@@ -231,7 +232,8 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
      const token='e30.'+btoa(JSON.stringify({sub:uid,email:uid+'@example.invalid',email_verified:true})).replaceAll('=','')+'.';
      await auth.signInWithCredential(auth.getAuth(app.getApp(name)),auth.GoogleAuthProvider.credential(token));
      window.normalGoogleLogins=(window.normalGoogleLogins||0)+1;
-     lease={uid,assert(){if(session.identity().uid!==uid)throw Error('LF_AUTH_CHANGED');},isValid:()=>true};
+     let valid=true;window.normalRevokeConnectionLease=()=>{valid=false;};
+     lease={uid,assert(){if(!valid)throw Error('AUTH_ACCESS_REVOKED');if(session.identity().uid!==uid)throw Error('LF_AUTH_CHANGED');},isValid:()=>valid};
     }
     const {createApplicationConnections}=await import('/sync/application-connections.mjs');
     const setIntervalOriginal=window.setInterval;

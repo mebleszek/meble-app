@@ -1,3 +1,4 @@
+import {applicationPresence} from './application-presence.mjs';
 // DEMO-only composition. All remote mutations still use the existing P0-B protocol.
 import {createP0BProtocol,encodeP0BContact,createP0BDeletionIntent} from '../tools/firebase-pilot/p0b-protocol.mjs';
 import {createP0BProjectRecovery} from '../tools/firebase-pilot/p0b-project-recovery.mjs';
@@ -10,7 +11,7 @@ import {projectApplicationRows} from './application-replication.mjs';
 import {openProjectRecovery} from './local-first-recovery-view.mjs';
 import {copy,equal,fail,digest,id} from './local-first-values.mjs';
 export async function createP0BRuntime({window:w,writer,reader,store,getAuthority,getSync,getGlobals,backupKeys,onError}){
- const fc=w.FC,protocol=writer?createP0BProtocol(p0bConnection(writer),store.deviceId):null,remoteReader=reader?p0bConnection(reader):null,remoteWriter=writer?p0bConnection(writer):null;
+ const fc=w.FC,presence=applicationPresence(fc),protocol=writer?createP0BProtocol(p0bConnection(writer),store.deviceId):null,remoteReader=reader?p0bConnection(reader):null,remoteWriter=writer?p0bConnection(writer):null;
  const lostEditors=new Map();
  const preferredRooms=new Map();const remembered=await store.readApplication();if(remembered){const ui=JSON.parse(remembered.rows.fc_ui_v1||'{}');if(remembered.rows.fc_current_project_id_v1&&(ui.roomType||ui.lastRoomType))preferredRooms.set(remembered.rows.fc_current_project_id_v1,ui.roomType||ui.lastRoomType);}
  const contactScopes=new Map(),projectOwners=new Map(),heartbeats=new Map();let closed=false,working=null,deletionJournal=null,deletionAdapter=null,deletionPending=false,deletionGeneration=0,recoveryOffered=false;
@@ -295,8 +296,8 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
  async function bind(){
   if(quotes)fc.roomQuoteProof=quotes.proof;
   if(protocol)await installDeletion();
-  fc.investorPresence=protocol||{watchPresence(_iid,_online,receive){receive({state:'unconfirmed'});return {refresh(){receive({state:'unconfirmed'});},close(){}};}};if(protocol)fc.projectTakeoverPin=protocol.pin;fc.projectRecovery={open:openRecovery};
+  presence.bind(protocol);fc.investorPresence=presence;if(protocol)fc.projectTakeoverPin=protocol.pin;fc.projectRecovery={open:openRecovery};
  }
- function close(){closed=true;if(quotes&&fc.roomQuoteProof===quotes.proof)delete fc.roomQuoteProof;for(const value of heartbeats.values())value.stop();heartbeats.clear();if(fc.investorPresence===protocol)delete fc.investorPresence;if(protocol&&fc.projectTakeoverPin===protocol.pin)delete fc.projectTakeoverPin;delete fc.projectRecovery;if(fc.localInvestorDeletion===deletionAdapter)delete fc.localInvestorDeletion;deletionJournal?.close();}
+ function close(){closed=true;if(quotes&&fc.roomQuoteProof===quotes.proof)delete fc.roomQuoteProof;for(const value of heartbeats.values())value.stop();heartbeats.clear();presence.detach(protocol);if(protocol&&fc.projectTakeoverPin===protocol.pin)delete fc.projectTakeoverPin;delete fc.projectRecovery;if(fc.localInvestorDeletion===deletionAdapter)delete fc.localInvestorDeletion;deletionJournal?.close();}
  return {protocol,discovery,project,projectRows,commit,checkpoint,preflightAcceptance,ensureNewProject,watchEditor,recovery,isLost:scope=>lostEditors.has(scope),canRecover,offerRecovery,resume,bind,close};
 }
