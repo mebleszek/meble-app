@@ -2,6 +2,8 @@
 
 Decyzje właściciela z 14.11.2026 oraz kontrakt P0-B z 16.11.2026. Status dotyczy wykonania i odbioru etapu. Opis celu i kryteriów dokumentuje zatwierdzoną koncepcję.
 
+**Naprawa WYCENY/nawigacji, 21–22.11.2026 — CODE_READY pakietu / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Zachowujemy udokumentowane zachowanie jawnej zamiany identycznej oferty: ten sam ID/nazwa/status, aktualne przeliczenie; ceny, treść i źródła zaakceptowanych ofert pozostają zamrożone, wcześniejsze rewizje zachowane. Naprawa transakcji zakładek i renderowanie po commicie muszą zachować szkic oraz widoczną edycję po abort. Kryteria: rzeczywiste Zapisz i przejdź, abort/retry, offline/restart, ten sam slot oferty, dokładna wcześniejsza rewizja, niepewny ACK/restart i odbiór drugiego profilu. Negatywy nadal odmawiają zmiany wartości/pinów/nieznanych pól. Celowane UI: zapis/abort/offline/restart 1/1 PASS oraz duplikat/niepewny ACK/restart/drugi profil 1/1 PASS; 14/14 domenowych, 5/5 proof i zachowane regresje nawigacji 17/17 + 14/14 PASS. Pełne CI i telefon osobno. P2 nie rozpoczęto, konfiguracji LIVE nie zmieniamy. [Bieżące dowody](../../tools/reports/quote-tab-save-repair-20261121.md).
+
 ## Zasady obowiązujące we wszystkich etapach
 
 - Belka **Zapisz / Anuluj / Wyjdź** zachowuje aktualne zachowanie i wygląd.

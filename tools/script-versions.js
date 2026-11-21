@@ -3,6 +3,7 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
+  "js/app/ui/tab-navigation.js":"20261121_tab_commit_v1",
   "js/app/project/project-status-snapshot-flow.js":"20261118_quote_lifecycle_v1",
   "js/app/quote/quote-snapshot-selection.js":"20261118_quote_lifecycle_v1",
   "js/app/investor/investor-rooms.js":"20261118_room_quote_v1",
@@ -80,7 +81,7 @@ const versions = Object.freeze({
   "js/app/investor/investor-ui-render.js": "20261118_room_quote_v1",
   "js/app/investor/investors-store.js": "20261111_investor_transport_create_fix_v1",
   "js/app/investor/investors-local-repository.js": "20261115_e1_durable_settings_v1",
-  "js/app/ui/actions-register.js":"20261118_room_quote_v1",
+  "js/app/ui/actions-register.js":"20261121_tab_await_v1",
   "js/app/ui/session-navigation.js": "20261031_historical_owner_v1",
   "js/app/project/project-bridge.js": "20261114_cabinet_drafts_v1",
   "js/app/project/project-pcv-policy.js": "20261031_historical_owner_v1",
@@ -120,7 +121,7 @@ const versions = Object.freeze({
   "js/app/wycena/wycena-core-lines.js": "20261118_room_quote_v1",
   "js/app/wycena/wycena-core-labor.js":"20261118_room_quote_v1",
   "js/app/wycena/wycena-core.js":"20261118_room_quote_v1",
-  "js/app/quote/quote-snapshot-store.js":"20261118_room_quote_v1",
+  "js/app/quote/quote-snapshot-store.js":"20261121_duplicate_refresh_v1",
   "js/app/wycena/wycena-tab-selection-version.js":"20260628_drawer_systems_materials_v1",
   "js/app/wycena/wycena-diagnostics.js":"20261019_project_context",
   "js/app/wycena/wycena-tab-shell.js":"20261115_e1_durable_settings_v1"

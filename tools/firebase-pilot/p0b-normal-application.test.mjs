@@ -8,6 +8,7 @@ import * as f from 'firebase/firestore';
 import {assertFails} from '@firebase/rules-unit-testing';
 import {runNormalApplication} from './normal-application.cases.mjs';
 import {promotionCase,stagingCase} from './p0b-quote-lifecycle.cases.mjs';
+import {duplicateCase,tabSaveCase} from './quote-tab-regressions.cases.mjs';
 import {variantsCase} from './p0b-quote-variants.cases.mjs';
 import {batchingCase} from './p1-project-sync.cases.mjs';
 import {checkpointNativeFixture,nativeFixtureState} from './p0b-fixture-baseline.mjs';
@@ -54,8 +55,8 @@ async function addCabinet(device,width){
  await page.locator('#cmWidth').fill(String(width));await page.locator('#cmHeight').fill('82');await page.locator('#cmDepth').fill('50');
  await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
 }
-async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,p1=false}={}){
- await runNormalApplication(t,{deployment,p0bRegistry:true,testOwner:p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
+async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,p1=false}={}){
+ await runNormalApplication(t,{deployment,p0bRegistry:true,testOwner:quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
   const artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'meble-p0b-normal-'));
   await phone.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
   try{
@@ -147,6 +148,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    assert.equal(draft.outbox.length,beforeCabinet.outbox.length);
    const sourceCabinet=JSON.parse(rows(draft).fc_projects_v1).find(row=>row.id===pid).projectData[roomId].cabinets[0];
    assert.equal(sourceCabinet.width,66);
+   if(p1==='tab-save'){await tabSaveCase({t,phone,computer,iid,pid,wardrobeId,until,image,rows,openRoom,addCabinet,restartProbe});return;}
    if(p1){await batchingCase({t,phone,computer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,showList,openRoom,addCabinet,saveProject,restartProbe,globalBefore},{idle:p1==='idle',quoteOnly:p1==='quote',offlineQuote:p1==='offline-quote'});return;}
    await Promise.all([saveProject(page),saveProject(computer.page)]);
    await until(async()=>{const state=await image(phone);return state.outbox.filter(row=>row.scope===pid).every(row=>row.phase==='verified');});
@@ -196,7 +198,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     assert.ok(pcv.sources.every(row=>row.projectId===row.roomId));
     if(quotePromotion||quoteStaging){await page.locator('.quote-preliminary-chip').click();await page.waitForFunction(()=>window.FC.quoteOfferStore.settingsSettled());}
     if(quoteStaging)await page.evaluate(()=>window.normalPauseQuoteChunk=true);
-    if(!quoteAcceptance&&!quotePromotion&&!quoteStaging&&!quoteVariants)await page.evaluate(()=>window.normalLoseQuoteAck=true);
+    if(!quoteAcceptance&&!quotePromotion&&!quoteStaging&&!quoteVariants&&!quoteDuplicate)await page.evaluate(()=>window.normalLoseQuoteAck=true);
     await page.locator('[data-action="wycena-generate"]').click();
     await page.waitForFunction(()=>document.querySelector('[data-quote-history-id]')||document.querySelector('.info-box'));
     const calculationNotice=await page.locator('.info-box').allTextContents();
@@ -214,6 +216,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     const ledger=JSON.parse(written.replicas.find(row=>row.key===queued[0].scope).json);
     assert.equal(ledger.pins[offer.id].find(pin=>pin.projectId===pid).head.currentRevisionId,confirmedHead.currentRevisionId);
     assert.equal(ledger.pins[offer.id].find(pin=>pin.projectId===wardrobeId).head.currentRevisionId,wardrobeHead.currentRevisionId);
+    if(quoteDuplicate){await duplicateCase({t,phone,computer,offer,iid,pid,until,image,rows,artifacts,db,ownerUid,restartProbe,globalBefore});return;}
     if(quoteVariants){await variantsCase({t,phone,computer,offer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,restartProbe,artifacts,globalBefore,env});return;}
     if(quotePromotion||quoteStaging){
      if(quotePromotion)await until(async()=>(await image(phone)).outbox.find(op=>op.key===queued[0].key)?.phase==='verified');
@@ -548,3 +551,6 @@ test('P1 normal DEMO delivery: Exit, offline restart, crash ACK and durable pend
 test('P1 signed DEMO quote barrier: pending room Save requires confirmed immutable source pins',t=>cleanApplication(t,{p1:'quote',deployment:true}));
 
 test('P1 normal DEMO offline quote: restart of a pending room Save preserves immutable history and ACK',t=>cleanApplication(t,{p1:'offline-quote'}));
+
+test('P1 tab Save and proceed: real dirty room navigation stays durable',t=>cleanApplication(t,{p1:'tab-save'}));
+test('P0-B duplicate replacement: same logical offer preserves history and ACK',t=>cleanApplication(t,{quoteProbe:true,quoteDuplicate:true}));

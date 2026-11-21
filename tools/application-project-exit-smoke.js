@@ -37,6 +37,23 @@ test('Clean Exit closes the session and changes view in one abortable durable ch
   assert.equal(f.published(),0);assert.deepEqual(Object.fromEntries(f.r.storage.rows),f.source);
  }
 });
+test('Tab navigation keeps the durable authority transaction through the Save decision',async()=>{
+ for(const abort of [true,false]){
+ const f=await fixture();assert.equal(await f.authority.transaction('auto',()=>f.r.open()),true);
+ assert.equal(await f.fc.applicationLifecycle.dispatch('tab',()=>f.r.handlers.tab({element:{getAttribute:()=> 'material'}})),true,'Synchronous edit tabs keep their acknowledged result');
+ f.w.projectData.room_k.cabinets[0].width=67;await f.autosave();
+ const oldTab=f.w.uiState.activeTab,before=f.read();let renders=0;const renderedTabs=[];const apply=f.fc.views.applyFromState;f.fc.views.applyFromState=(...args)=>{renders++;renderedTabs.push(f.w.uiState.activeTab);return apply(...args);};
+ let choose;f.fc.choiceBox={ask:()=>new Promise(resolve=>{choose=resolve;})};
+ const navigate=()=>f.fc.applicationLifecycle.dispatch('tab',()=>f.r.handlers.tab({element:{getAttribute:()=> 'wycena'}}));
+ const transition=navigate();for(let n=0;n<12;n++)await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(typeof choose,'function');const pending=f.authority.status().transactionPending;if(abort)f.abort();choose('save');await transition;
+ assert.equal(pending,true,'The choice cannot outlive its application transaction');
+ if(abort){assert.equal(renderedTabs.includes('wycena'),false,'Aborted navigation cannot render the uncommitted destination');assert.equal(renderedTabs.at(-1),oldTab,'Rollback restores the prior visible tab');assert.deepEqual(f.read(),before);assert.equal(f.w.uiState.activeTab,oldTab);assert.equal(f.fc.session.active,true);const retry=navigate();for(let n=0;n<12;n++)await new Promise(resolve=>setImmediate(resolve));choose('save');await retry;}
+ assert.equal(f.w.uiState.activeTab,'wycena');assert.equal(f.fc.session.active,false);assert.ok(renders>0);
+ assert.equal(JSON.parse(f.read().rows.fc_projects_v1).find(row=>row.id==='P').projectData.room_k.cabinets[0].width,67);
+ }
+});
+
 test('A proven online draft may resume only during initial loading',async()=>{
  const f=await fixture({draftBoot:true,loading:true});assert.equal(f.fc.session.active,true);assert.equal(f.fc.session.durable,true);assert.ok(f.read().rows.fc_edit_session_v1);
  await assert.rejects(fixture({draftBoot:true,loading:false}),/LF_ACTIVE_RAM_PROTECTED/);

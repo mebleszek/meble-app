@@ -2,6 +2,8 @@
 // Every candidate test belongs to exactly one mandatory job. No retries or LIVE.
 const fs=require('node:fs'),path=require('node:path');
 const groups=Object.freeze([
+ {id:'tab-save',file:'p0b-normal-application.test.mjs',pattern:'^P1 tab Save and proceed:'},
+ {id:'duplicate-replacement',file:'p0b-normal-application.test.mjs',pattern:'^P0-B duplicate replacement:'},
  {id:'project-batch-timer',file:'p0b-normal-application.test.mjs',pattern:'^P1 normal DEMO idle batching:'},
  {id:'project-offline-quote',file:'p0b-normal-application.test.mjs',pattern:'^P1 normal DEMO offline quote:'},
  {id:'project-batch-quote',file:'p0b-normal-application.test.mjs',pattern:'^P1 signed DEMO quote barrier:'},

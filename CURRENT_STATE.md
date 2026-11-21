@@ -1,6 +1,16 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
-## Wyjdź → ponowne otwarcie inwestora, 21.11.2026
+## Zamiana identycznej oferty i zapis przy zmianie zakładek, 21.11.2026
+
+**CODE_READY tego pakietu / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Zakończenie 22.11.2026. Gałąź `fix/quote-replacement-tab-save-20261121`, wejściowy HEAD = BASE/main `f8a3244e4169a16e4f8a205d0740a26c5ce2282e`; ten main zawiera już poprzednie poprawki Wyjdź/Auth. Końcowy HEAD w przekazaniu. Bez nowego PR, Actions i zmian Firebase LIVE.
+
+- **USTALONE.** Przeszukanie MD potwierdziło wcześniejszą decyzję: „Zamień istniejącą” zachowuje ID, nazwę, status i metadane wyboru/akceptacji. Anuluj niczego nie zapisuje. Nie wprowadzamy nowego ID ani nowej zasady ofert. [Dokładne źródła i dowody](tools/reports/quote-tab-save-repair-20261121.md).
+- **WDROŻONE na gałęzi.** Handler zakładki oczekuje rzeczywistego Promise decyzji i zapisu; widok jest renderowany po commicie, aby abort zachował także widoczną edycję. Jawny refresh identycznej oferty dopuszcza wyłącznie cztery wykazane techniczne czasy i istniejące oznaczenie źródła. Cała biznesowa treść, piny, unknown fields i wcześniejsze chronione obrazy/rewizje pozostają dokładne. Bez zmiany wyglądu, tekstów, kalkulatora/cen, CAS i zakresów.
+- **KONTROLE.** Domenowy RED LF_ASYNC_TRANSACTION_REQUIRED → 14/14 PASS; proof 5/5 PASS, w tym zaakceptowana treść i negatywy; dotychczasowy duplicate-offer smoke PASS. Rzeczywisty Chromium/Emulator RED ujawnił cztery różniące się zegary i brak odtworzenia widocznej edycji po abort. Chromium/Emulator: Zapisz i przejdź z abortem, zachowaniem widocznej edycji, retry offline i SIGKILL/restart **1/1 PASS, exit 0, zero skipped**. Jawna zamiana, poprzednia rewizja/protected exact, niepewny ACK/SIGKILL i drugi profil **1/1 PASS**. Powiązane regresje nawigacji 17/17 i 14/14 PASS. Obowiązkowy plan CI: 27 segmentów / 42 przypadki oraz zachowane 36 grup / 229 plików / 260 jednostek smoke; kontrola pokrycia, wersje i manifest PASS.
+- **BRAKUJE → PROPONOWANE.** Jeden commit/push po celowanym PASS, następnie osobno zatwierdzona próba pełnego CI/wydania dokładnych HEAD/BASE i odbiór telefonu. Aktualny diagnostyczny brak starych originals nie dowodzi utraty obecnych katalogów LOCAL-FIRST. Nie czyszczono danych właściciela.
+
+
+## Historia — Wyjdź → ponowne otwarcie inwestora, 21.11.2026
 
 **CODE_READY poprawek Wyjdź/Auth / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Zgłoszenie właściciela: LF_APPLICATION_UNCONFIRMED przy otwieraniu inwestora i miganie Projektów. Nowa gałąź `fix/p1-exit-reopen-investor-20261121`, BASE/main `662fb163da73e1990f69c376eb4f5b61fa161cd6`. To wydany P1: PR #155 automatycznie scalony, Preflight #1368 PASS, exact Pages PASS; publikacja po 6:47 od uruchomienia CI. Nie zmieniano Firebase LIVE.
 
