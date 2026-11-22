@@ -6,6 +6,7 @@ import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 const require=createRequire(import.meta.url),{startBrowser}=require('./chromium-runtime.js');
 const root=fileURLToPath(new URL('../..',import.meta.url));
+const {documentNavigation}=require('./browser-test-readiness.js');
 const fixtureModules=require('./fixture-module-assets').moduleAssets();
 export async function waitForOrderlyBrowserExit({send,exited,cleanup},{timeoutMs=20000}={}){
   let timer;
@@ -42,14 +43,16 @@ export async function openBrowserDevice(server,profileDirectory){
   })();
   try{
   const targets=await(await fetch('http://127.0.0.1:'+new URL(endpoint).port+'/json/list')).json();
-  ws=new WebSocket(targets.find(t=>t.type==='page').webSocketDebuggerUrl);
+  const target=targets.find(t=>t.type==='page'&&t.url==='about:blank')||targets.find(t=>t.type==='page');if(!target)throw Error('LF_BROWSER_TARGET_MISSING');
+  ws=new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});
-  const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++counter,timer=setTimeout(()=>{pending.delete(id);reject(Error('LF_CDP_TIMEOUT'));},20000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params}));});
-  ws.onmessage=({data})=>{const m=JSON.parse(data);if(m.id){const p=pending.get(m.id);if(!p)return;pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(Error('LF_CDP_FAILED')):p.resolve(m.result);}else for(const observe of observers)observe(m);};
+  const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++counter,timer=setTimeout(()=>{pending.delete(id);reject(Object.assign(Error('LF_CDP_TIMEOUT '+method),{code:'LF_CDP_TIMEOUT',method}));},20000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params}));});
+  const navigation=documentNavigation(send);
+  ws.onmessage=({data})=>{const m=JSON.parse(data);if(m.id){const p=pending.get(m.id);if(!p)return;pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(Error('LF_CDP_FAILED')):p.resolve(m.result);}else{navigation.event(m);for(const observe of observers)observe(m);}};
   const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||'LF_BROWSER_EXCEPTION');return r.result.value;};
-  await send('Page.enable');await send('Page.navigate',{url:server.base});
+  await send('Page.enable');await send('Page.bringToFront');await navigation.navigate(server.base);
   for(let i=0;i<100;i++){if(await evaluate('window.lfReady===true'))break;if(i===99)throw Error('LF_FIXTURE_NOT_READY');await new Promise(resolve=>setTimeout(resolve,20));}
-  return {endpoint,evaluate,send,targetId:targets.find(t=>t.type==='page').id,onEvent(fn){observers.add(fn);return()=>observers.delete(fn);},
+  return {endpoint,evaluate,send,targetId:target.id,onEvent(fn){observers.add(fn);return()=>observers.delete(fn);},
     async open(binding){await evaluate('window.openLF('+JSON.stringify(binding)+')');return proxyStore(evaluate,binding);},
     gracefulClose(){return graceful||=waitForOrderlyBrowserExit({send,exited:browser.exited,cleanup:()=>stop(false)});},
     close:()=>stop(false),crash:()=>stop(true),kill:()=>stop(true)

@@ -181,12 +181,13 @@ test('real runtime emits raw refusal code only for observation; same writes, rea
  const {createApplicationHandover}=await import('../sync/application-replication.mjs');
  const {createLocalDeviceLabel}=await import('../sync/local-device-label.mjs');
  const {applicationP0BMode}=await import('../sync/application-release.mjs');
+ const {installManualSync}=await import('../sync/application-manual-sync.mjs');
  async function run(observer){
   const trace=[],rows={fc_projects_v1:JSON.stringify([{id:'private-project',investorId:'private-investor'}])};
   const store={p0bRegistry:async()=>null,deviceId:'private-device',pendingHandover:async()=>null,readApplication:async()=>({rows}),snapshot:async scope=>{trace.push('read:'+scope);return scope==='globals'?{replica:{base:{},dirty:false}}:{};},exclusive:fn=>fn(),close(){trace.push('store-close');}};
   const sync={channel:()=>({}),flush:async()=>{trace.push('flush');return {ok:true};},notify(){trace.push('notify');},close(){trace.push('sync-close');}};
   const authority={rows:()=>rows,assertIdle(){},status:()=>({}),close(){trace.push('authority-close');}};
-  const globals={},deps={applicationP0BMode,completeMissingApplicationGlobals(){assert.fail('Unexpected catalog write');},emptyInstallationRows:x=>x,
+  const globals={},deps={applicationP0BMode,installManualSync,completeMissingApplicationGlobals(){assert.fail('Unexpected catalog write');},emptyInstallationRows:x=>x,
    openLocalFirstStore:async()=>store,createGlobalChannel:()=>globals,createProjectChannel:()=>({}),createApplicationReplication:()=>sync,
    createEmulatorProjectDiscovery:()=>({}),createApplicationCommitter:()=>({}),projectApplicationRows(){assert.fail('Unexpected apply');},
    installEmulatorApplicationAuthority:async()=>authority,installOfflineEmulatorApplicationAuthority:async()=>authority,installAuthorizedApplicationAuthority:async()=>authority,
@@ -195,7 +196,7 @@ test('real runtime emits raw refusal code only for observation; same writes, rea
    verifyExclusiveClient(){},assertApplicationConnection:()=>({uid:'private-owner'}),copy:structuredClone,equal:(a,b)=>JSON.stringify(a)===JSON.stringify(b),
    assertEmulator(){},fail:code=>{throw Object.assign(Error(code),{code});},safeError:()=>({ok:false,code:'LF_REMOTE_UNCONFIRMED'})};
   const start=new Function(...Object.keys(deps),source+'\nreturn startApplicationRuntime;')(...Object.values(deps));
-  const w={FC:{session:{active:true},globalDataContract:{},businessProjectContract:{build:async()=>{trace.push('build');throw Object.assign(Error('PRIVATE_EXCEPTION'),{code:'permission-denied',uid:'private-owner'});}},applicationSyncActions:{install(){trace.push('bind');}}},
+  const w={document:{getElementById:()=>null},FC:{session:{active:true},globalDataContract:{},businessProjectContract:{build:async()=>{trace.push('build');throw Object.assign(Error('PRIVATE_EXCEPTION'),{code:'permission-denied',uid:'private-owner'});}},applicationSyncActions:{install(){trace.push('bind');}}},
    __FC_MAIN_ACCESS__:{assert(){}},navigator:{onLine:true},addEventListener(){},localStorage:{getItem:()=>null}};
   const result=await start({window:w,writer:{db:{app:{}}},reader:{db:{app:{}}},ownerUid:'private-owner',onDiagnostic:observer});
   return {trace,status:result.status()};

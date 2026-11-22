@@ -85,8 +85,16 @@ async function browser(profile,url,{offline=false,inject=false}={}){
       // A compatibility click may target the new layout. The subsequent
       // navigation assertions must prove that it cannot execute a second action.
     }finally{await evaluate('__navigationGesture.close();delete window.__navigationGesture;window.removeEventListener("pointerdown",__touchRecorder,true);window.removeEventListener("scroll",__touchMotionRecorder,true);window.visualViewport?.removeEventListener("scroll",__touchMotionRecorder,true);delete window.__touchRecorder;delete window.__touchMotionRecorder;delete window.__touchCoordinates;delete window.__touchMotion;delete window.__touchProbe');}
-  },async tap(id){await settleTargets();const p=await waitForGesturePoint(evaluate,'#'+id);
-    await send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...p});await send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...p});},
+  },async tap(id){
+    await settleTargets();await evaluate('('+finishPendingTouchScroll.toString()+')()');
+    await evaluate('window.__mouseGesture=('+observeGesture.toString()+')('+JSON.stringify('#'+id)+')');
+    try{
+      const p=await waitForGesturePoint(evaluate,'#'+id,{stable:true});
+      await send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...p});await send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...p});
+      const trace=await evaluate('__mouseGesture.snapshot()');
+      for(const type of ['pointerdown','pointerup'])assert.equal(trace.events.filter(event=>event.type===type&&event.trusted&&event.onTarget).length,1,'Native mouse target #'+id+' '+JSON.stringify(trace));
+    }finally{await evaluate('__mouseGesture.close();delete window.__mouseGesture');}
+  },
     close(){return closing||=closeBrowserForRestart({send,owner,ws,pending});}};
  }catch(e){ws.close();await owner.close();throw e;}
 }

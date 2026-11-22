@@ -1,6 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),{webcrypto,createHash}=require('node:crypto');
 async function main(){
+ require('./helpers/offline-git-manifest-checks').run();
  assert.equal(fs.readFileSync('offline-assets.js','utf8'),require('./offline-assets').source(),'Static manifest must match every real byte');
  const source=fs.readFileSync('offline-worker.js','utf8'),handlers={},root='https://synthetic.invalid/meble-app/';
  const files=[{path:'index.html',body:'SYNTHETIC-SHELL'},{path:'js/main.js',body:'SYNTHETIC-CODE'}].map(f=>({...f,bytes:Buffer.byteLength(f.body),sha256:createHash('sha256').update(f.body).digest('hex')}));

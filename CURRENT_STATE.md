@@ -1,5 +1,12 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## PR #163 — naprawa Preflight #1384, 22.11.2026
+
+**CODE_READY korekty / CI_PENDING / RELEASE_BLOCKED / DEVICE_PENDING.** Właściciel zatwierdził naprawę i jedną nową próbę wydania istniejącego PR #163. Wejściowy HEAD `eac56ee8218891b9d32a768fac813669534c143f`, BASE/main `9b5c0d21ee188f84014941326a5ee94b98f11881`, gałąź `feat/manual-sync-quote-lock-warning-20261122`. Próba #1384: 38 PASS, 43 FAIL, 1 SKIPPED; bez merge i Pages. Nie jest to stan wcześniejszego wydania ani wyłączenie istniejącego LIVE.
+
+- **USTALONE → WDROŻONE w kandydacie.** Manifest wygenerowano z czterech plików z mieszanymi końcami linii, podczas gdy Git przechował LF. Worker słusznie odmówił instalacji. Atrybuty Git stabilizują tekst publiczny; nowa kontrola czyta dokładne bloby HEAD/index, również binarne, i odmawia przed klonowaniem historii oraz instalacją SDK. Dotychczasowe testy źródłowe otrzymują rzeczywisty `installManualSync`. Natywne kliknięcie czeka na stabilny widoczny cel i sprawdza pojedynczy trusted pointerdown/up. Wspólny helper CDP potwierdza loader dokumentu przed oceną gotowości i opisuje metodę przy timeout; limity nie wzrosły.
+- **KONTROLE → BRAKUJE.** Kanoniczny Git/worker RED→GREEN, realne Chromium logowania, szafek, materiałów, Android startup i aktualizacji SW PASS; Playwright localOnly 2/2 oraz osobny signed DEMO manual quote 1/1 PASS. Kontrole statyczne, wersje, źródła i pokrycie CI PASS. Lokalna odmowa writer-fence przy współbieżnym obciążeniu i przerwany proces diagnostyczny pozostają jawnie w raporcie; nie poluzowano dwusekundowego potwierdzenia. Wszystkie 36 grup smoke, 37 segmentów P0-B/P1 i 59 przypadków pozostają obowiązkowe. Pozostają pełny CI, publikacja i fizyczny odbiór. Kod biznesowy, UI, kalkulator i Firebase LIVE bez zmian w tej korekcie. [Dowody i czasy](tools/reports/manual-sync-quote-warning-20261122.md#naprawa-pr-163-po-preflight-1384).
+
 ## Start po przejęciu projektu na innym urządzeniu — 22.11.2026
 
 **CODE_READY naprawy / CI_PENDING / RELEASE_BLOCKED / DEVICE_PENDING.** Zgoda właściciela na naprawę raportu z drugiego komputera, bez czyszczenia danych i bez omijania ochrony RAM. Kontynuacja gałęzi `feat/manual-sync-quote-lock-warning-20261122`, wejściowy HEAD `986c723d671b6f866e526ba85bb381ae754475ce`, BASE/main `9b5c0d21ee188f84014941326a5ee94b98f11881`. Przygotowany wcześniej przycisk i ostrzeżenie pozostają. [Dokładna przyczyna, RED/GREEN i granice](tools/reports/startup-protected-draft-20261122.md).
