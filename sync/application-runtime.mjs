@@ -216,7 +216,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   };await bind();
   if(localOnly)boot?.confirmLocalReset?.();
   notify();if(p0b)w.setTimeout(()=>{void p0b.offerRecovery();},0);
-  return Object.freeze({store,authority,get sync(){return sync;},write:boundary.run,wake:authorized,
+  return Object.freeze({store,authority,get sync(){return sync;},write:boundary.run,
    async withRescueRead(operation){
     if(closed||recoveryReading||authority.status().transactionPending||authority.status().incomingPending)fail('LF_APPLICATION_BUSY');
     recoveryReading=true;try{return await operation();}finally{recoveryReading=false;}

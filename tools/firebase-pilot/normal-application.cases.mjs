@@ -26,7 +26,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   }catch(_){res.writeHead(404);res.end();}
  });await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const origin='http://127.0.0.1:'+server.address().port,dir=fs.mkdtempSync(path.join(os.tmpdir(),'normal-local-first-')),devices=[];
- t.after(async()=>{for(const d of devices){await d.browser?.close();await d.owner?.close();}await env.cleanup();await new Promise(r=>server.close(r));fs.rmSync(dir,{recursive:true,force:true});});
+ t.after(async()=>{for(const d of devices){await d.browser?.close();await d.owner?.close();}await new Promise(r=>{server.close(r);server.closeAllConnections();});await env.cleanup();fs.rmSync(dir,{recursive:true,force:true});});
  const catalogs=model();for(const ref of ['laminat TEST','laminat','TEST','HDF',...(p0bRegistry?['HDF 3mm biała']:[])])if(!catalogs.materials.some(r=>[r.id,r.name,r.materialType].includes(ref)))catalogs.materials.push({id:'normal-material-'+catalogs.materials.length,name:ref,materialType:'synthetic',price:12.375,priceUnit:'sheet'});
  const sources=runtime().FC.globalDataContract.sources;
  let releaseSlot=null;if(deployment){const keys=await crypto.subtle.generateKey('Ed25519',true,['sign','verify']),publicKeySpki=new Uint8Array(await crypto.subtle.exportKey('spki',keys.publicKey));const {canonical,digest}=await import('../../sync/local-first-values.mjs');const decision={domain:'MEBLE_APPLICATION_DEPLOYMENT_V1',protocol:p0bRegistry?3:2,...(p0bRegistry?{registry:'p0b-rooms-v1',legacyDataPolicy:'preserve-outside-registry'}:{}),projectId:'demo-meble-app',database:'(default)',profile:p0bRegistry?'business-room-v1':'business-project-v1',globalDomains:14,ownerUid:uid,activationId:'synthetic-deployment',origin:origin+'/',migrationApproved:true,sourcePreserved:true,rulesApproved:true,rulesSha256:await digest(rules)};releaseSlot={envelope:{decision,publicKeySpki:[...publicKeySpki],signature:[...new Uint8Array(await crypto.subtle.sign('Ed25519',keys.privateKey,new TextEncoder().encode(canonical(decision))))]},trustedKeySha256:Buffer.from(await crypto.subtle.digest('SHA-256',publicKeySpki)).toString('hex')};}
@@ -53,9 +53,9 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   }
   if(await d.page.locator('#auth-profile-admission').isVisible()){await d.page.check('#auth-profile-backup');await d.page.check('#auth-profile-owner');await d.page.click('#auth-profile-confirm');}
   try{await d.page.waitForFunction(()=>document.body.dataset.businessState==='ready');}catch(error){throw Error(error.message+' '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,error:document.getElementById('auth-error')?.textContent,app:document.getElementById('app-error-msg')?.textContent}))));}}
- async function device(name){
+ async function device(name,{prepareStatic=false}={}){
   const owner=await startBrowser({profileDir:path.join(dir,name)}),browser=await chromium.connectOverCDP(owner.endpoint),page=browser.contexts()[0].pages()[0];
-  const d={owner,browser,page,name};devices.push(d);await page.addInitScript({content:authInjection});if(deployment&&name==='computer'){await configure(d);await page.goto(origin+'/index.html');await login(d);return d;}await page.goto(origin+'/index.html');await login(d);
+  const d={owner,browser,page,name};devices.push(d);await page.addInitScript({content:authInjection});if(deployment&&name==='computer'){await configure(d);await page.goto(origin+'/index.html');if(prepareStatic)await page.evaluate(async()=>{await window.FC.offlineShell.prepare();await indexedDB.databases();});await login(d);return d;}await page.goto(origin+'/index.html');await login(d);
   await page.evaluate(({catalogs,sources})=>{for(const [domain,value]of Object.entries(catalogs))for(const key of sources[domain])localStorage.setItem(key,JSON.stringify(domain==='stock'?{sheets:value}:value));},{catalogs,sources});
   await page.evaluate(()=>window.FC.offlineShell.prepare());return d;
  }

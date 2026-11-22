@@ -61,7 +61,9 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
   const artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'meble-p0b-normal-'));
   await phone.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
   try{
-   await configure(phone);await phone.page.reload();await login(phone);
+   await configure(phone);await phone.page.reload();
+   if(accessResume)await phone.page.evaluate(async()=>{await window.FC.offlineShell.prepare();await indexedDB.databases();});
+   await login(phone);
    const initial=await image(phone);
    assert.deepEqual(JSON.parse(rows(initial).fc_investors_v1),[]);
    assert.deepEqual(JSON.parse(rows(initial).fc_projects_v1),[]);
@@ -82,7 +84,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    assert.equal(archive.sourceRows.fc_projects_v1,source.projects);
    assert.equal(await phone.page.evaluate(()=>window.readNormalSource('fc_investors_v1')),source.investors);
    t.diagnostic('Clean normal startup preserved legacy RAW and archived the previous registry');
-   if(!computer)computer=await device('computer');else{await configure(computer);await computer.page.reload();await login(computer);}
+   if(!computer)computer=await device('computer',{prepareStatic:accessResume});else{await configure(computer);await computer.page.reload();if(accessResume)await computer.page.evaluate(async()=>{await window.FC.offlineShell.prepare();await indexedDB.databases();});await login(computer);}
    await phone.page.evaluate(()=>window.FC.localDeviceLabel.write('Telefon DEMO'));
    await computer.page.evaluate(()=>window.FC.localDeviceLabel.write('Komputer DEMO'));
    // Persist only the test's old source/name setup. All crash-tested business
