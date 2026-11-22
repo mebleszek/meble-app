@@ -21,11 +21,11 @@ function connectionSdk(w,trustedUid='synthetic-phone-owner'){
  return sdk;
 }
 function startup(w,connect){
- const calls={connections:0,runtime:0,resumes:0,context:null,authorized:false};w.location.hostname='localhost';
+ const calls={connections:0,runtime:0,resumes:0,wakes:0,context:null,authorized:false};w.location.hostname='localhost';
  const source=fs.readFileSync('js/app/cloud/application-bootstrap.js','utf8').replace(/\bimport\(/g,'loadModule(');
  new Function('window','document','localStorage','location','navigator','loadModule',source)(w,w.document,w.localStorage,w.location,w.navigator,async file=>{
   if(file==='../../../sync/application-boot.mjs')return {prepareApplicationBoot:async()=>({})};
-  if(file==='../../../sync/application-runtime.mjs')return {startApplicationRuntime:async()=>{calls.runtime++;return {status:()=>({state:'active'}),async resume(){calls.resumes++;}};}};
+  if(file==='../../../sync/application-runtime.mjs')return {startApplicationRuntime:async()=>{calls.runtime++;return {status:()=>({state:'active'}),wake(){calls.wakes++;},async resume(){calls.resumes++;}};}};
   if(['./global-data-contract.js','./cloud-pilot-contract.js','./firebase-global-transport.js'].includes(file))return {};
   throw Error('UNEXPECTED_STARTUP_MODULE');
  });
@@ -61,7 +61,9 @@ async function main(){
  console.log('PASS failed renewal/denial still stops loading, aborts once and preserves original error/RAM/business data');
  const expired=desktop(connect);try{await begin(expired);expired.advance(46000);assert.equal(expired.w.__FC_MAIN_ACCESS__.isValid(),true);assert.equal(expired.aborts,0);expired.release();await until(()=>expired.ready());
   assert.equal(expired.attempts,2);assert.equal(expired.calls.authorized,true);assert.equal(expired.calls.runtime,1);assert.equal(expired.w.popupCalls,1);assert.equal(expired.authCreates,1);assert.equal(expired.w.FC.applicationStartup.diagnostics().firstError,null);
-  await expired.w.FC.applicationStartup.refresh();assert.equal(expired.calls.resumes,1);assert.equal(expired.calls.connections,2);assert.equal(expired.attempts,2);assert.equal(expired.w.FC.applicationStartup.diagnostics().firstError,null);
+  const stable=expired.calls.connections;await Promise.all([expired.w.FC.applicationStartup.refresh(),expired.w.FC.applicationStartup.refresh()]);
+  assert.equal(expired.calls.resumes,0,'Same valid Auth lease renews access without tearing down readers or active RAM');assert.equal(expired.calls.connections,stable);assert.equal(expired.calls.wakes,1);
+  assert.equal(expired.attempts,2);assert.equal(expired.w.FC.applicationStartup.diagnostics().firstError,null);
  }finally{expired.close();}
  console.log('PASS expired initial grant is freshly verified on the same Auth after loading, one startup/popup and unchanged 45s bound');
  for(const mode of ['unavailable','denied','pending','account','epoch']){

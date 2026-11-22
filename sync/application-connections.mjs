@@ -59,12 +59,14 @@ export async function createApplicationConnections({window:w,authSession,lease,r
   const readerCtx=secondary.verificationContext();
   if(readerCtx.auth.currentUser?.uid!==identity.uid)fail('LF_APPLICATION_OWNER_CHANGED');
   const readerDb=dbFor(readerApp);
-  if(release)syncGrant=await createApplicationSyncGrant({release,window:w,session,db:readerDb,firestore:f,onRenew:()=>w.dispatchEvent(new w.Event('meble-sync-authorized'))});
+  if(release)syncGrant=await createApplicationSyncGrant({release,window:w,session,db:readerDb,firestore:f,
+   onRenew:()=>w.dispatchEvent(new w.Event('meble-sync-authorized')),onExpire:()=>w.dispatchEvent(new w.Event('meble-sync-unconfirmed'))});
   const guard=()=>{quota?.assert();syncGrant?.assert();w.__FC_MAIN_ACCESS__.assert();localAccess?.assert();currentLease.assert();
    if(session.identity().uid!==identity.uid||session.identity().epoch!==identity.epoch)fail('LF_AUTH_CHANGED');};
   const leaseView={uid:identity.uid,assert:()=>currentLease.assert(),isValid:()=>currentLease.isValid()};
   const result={writer:{db:writerDb,auth:ctx.auth,session,lease:leaseView,firestore:f,assertAccess:guard,quota},
    reader:{db:readerDb,auth:readerAuth,session:secondary,lease:leaseView,firestore:f,assertAccess:guard},
+   async refreshAccess(){if(syncGrant)await syncGrant.refresh();guard();},
    // On logout revoke the independent persisted SDK login too. Local IDB/outbox
    // is retained; an already-submitted RPC can still have an uncertain outcome.
    async logout(){permit?.revoke();syncGrant?.close();gate?.close();if(ownWriter)await session.signOut();await secondary.signOut();},

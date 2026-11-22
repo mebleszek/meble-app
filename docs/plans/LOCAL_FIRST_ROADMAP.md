@@ -8,6 +8,8 @@ Decyzje właściciela z 14.11.2026 oraz kontrakt P0-B z 16.11.2026. Status dotyc
 
 ## Zasady obowiązujące we wszystkich etapach
 
+**Powrót z tła i zajętość, decyzja właściciela 22.11.2026 — CODE_READY pakietu / CI_PENDING / PHONE_PENDING.** Odnowienie 45-sekundowego dowodu dostępu po powrocie bez podwójnych odczytów i bez osłabienia Auth/CAS; brak dowodu daje niepotwierdzoną obecność. Własny projekt zwalnia wyłącznie trwałe Wyjdź z ACK; bez zwalniania przez czas lub zgadywania obcych blokad. Pozostawioną własną wizytę kartoteki można zamknąć po potwierdzeniu trwale bezczynnego UI i tokena, bez cudzych wizyt. Nazwy domyślne system/przeglądarka nie zmieniają ID ani własnych etykiet. Signed Chromium/DEMO: tło/offline/automatyczne ACK/zwolnienie/restart 1/1 PASS; poprawiona gotowość drugiego Wyceń, historia i uncertain ACK 1/1 PASS. Fizyczny telefon i CI osobno. [Dowody i granice](../../tools/reports/sync-resume-release-20261122.md).
+
 - Belka **Zapisz / Anuluj / Wyjdź** zachowuje aktualne zachowanie i wygląd.
 - Zapis lokalny działa niezależnie od powodzenia wysyłki do Firebase. Obowiązują kontrola uprawnień, CAS i blokada pojedynczego edytora.
 - Sukces można pokazać po potwierdzeniu trwałego zapisu lokalnego.

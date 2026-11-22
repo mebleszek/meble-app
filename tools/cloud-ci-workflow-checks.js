@@ -14,26 +14,34 @@ function steps(job){
 const condition=block=>block.match(/^\s*if: (.+)$/m)?.[1];
 const script=block=>{const body=block.split('          script: |\n')[1];assert.ok(body,'Missing actual github-script body');return body.split('\n').map(line=>line.startsWith('            ')?line.slice(12):line).join('\n');};
 const required=block=>block.match(/^          REQUIRED_STEPS: (.+)$/m)[1].split(',');
-function enabled(expression,{outcomes={},results={},cancelled=false}={}){
+function enabled(expression,{outcomes={},results={},cancelled=false,mode='full'}={}){
   assert.ok(expression?.startsWith('${{ ')&&expression.endsWith(' }}'));
   return expression.slice(4,-3).split(' && ').every(term=>{
     if(term==='!cancelled()')return !cancelled;
     if(term==='always()')return true;
+    const scope=term.match(/^needs\.safety\.outputs\.release_mode == '(full|documents)'$/);if(scope)return mode===scope[1];
     const m=term.match(/^(steps|needs)\.([a-z0-9-]+)\.(outcome|result) == 'success'$/);assert.ok(m,'Unknown execution condition: '+term);
     return(m[1]==='steps'?outcomes:results)[m[2]]==='success';
   });
 }
 function workflowChecks(source){
   const j=jobs(source);
-  const ids=['safety','preflight-static','preflight-shards','playwright-local-ui','owner-signing-windows','preflight','firebase-current-shards','playwright-sync-ui','firebase-p0b','firebase-current','cloud-historical-smoke','cloud-historical-sdk','cloud-historical','ci-summary','auto-merge','post-merge-verify','final-status'];
+  const ids=['safety','documents','preflight-static','preflight-shards','playwright-local-ui','owner-signing-windows','preflight','firebase-current-shards','playwright-sync-ui','firebase-p0b','firebase-current','cloud-historical-smoke','cloud-historical-sdk','cloud-historical','ci-summary','auto-merge','post-merge-verify','final-status'];
   assert.deepEqual(Object.keys(j).sort(),ids.slice().sort(),'Unclassified CI jobs');
   assert.doesNotMatch(source,/continue-on-error:/);
   const trigger=source.split('\njobs:')[0];
   assert.match(trigger,/types: \[opened, ready_for_review\]/);
   assert.doesNotMatch(trigger,/^  push:|types:.*synchronize/m);
+  const documents=j.documents,docSteps=steps(documents);
+  assert.equal(condition(documents),"${{ !cancelled() && needs.safety.result == 'success' && needs.safety.outputs.release_mode == 'documents' }}");
+  assert.match(documents,/needs: safety/);assert.match(docSteps['Verify isolated source and 425 pins'],/cloud-ci-prepare/);
+  assert.match(docSteps['Checkout exact approved head'],/ref: \$\{\{ needs.safety.outputs.head_sha \}\}/);assert.match(docSteps['Checkout exact approved head'],/persist-credentials: false/);
+  for(const command of ['ci-docs-scope.js','--verify-documents','ci-docs-scope-smoke.js','cloud-ci-current-boundary-smoke.js','set -euo pipefail'])assert.ok(docSteps.verify.includes(command));
+  assert.match(j.safety,/release_mode: \$\{\{ steps.scope.outputs.release_mode \}\}/);
+  assert.match(steps(j.safety).scope,/ci-docs-scope.js "\$APPROVED_BASE" "\$APPROVED_HEAD"/);
   const owner=j['owner-signing-windows'],ownerSteps=steps(owner);
   assert.match(owner,/^    needs: safety$/m);
-  assert.equal(condition(owner),"${{ !cancelled() && needs.safety.result == 'success' }}");
+  assert.equal(condition(owner),"${{ !cancelled() && needs.safety.result == 'success' && needs.safety.outputs.release_mode == 'full' }}");
   assert.match(owner,/^    runs-on: windows-latest$/m);
   assert.match(ownerSteps['Checkout exact approved head'],/ref: \$\{\{ needs.safety.outputs.head_sha \}\}/);
   assert.match(ownerSteps['Checkout exact approved head'],/persist-credentials: false/);
@@ -43,7 +51,7 @@ function workflowChecks(source){
   for(const id of runners){
     const job=j[id],s=steps(job);
     assert.match(job,/^    needs: safety$/m);
-    assert.equal(condition(job),"${{ !cancelled() && needs.safety.result == 'success' }}");
+    assert.equal(condition(job),"${{ !cancelled() && needs.safety.result == 'success' && needs.safety.outputs.release_mode == 'full' }}");
     assert.match(s['Checkout exact approved head'],/ref: \$\{\{ needs\.safety\.outputs\.head_sha \}\}/);
     assert.match(s['Verify isolated source and 425 pins'],/cloud-ci-prepare\.js "\$APPROVED_HEAD"/);
     assert.match(s['Verify isolated source and 425 pins'],/APPROVED_BASE: \$\{\{ needs\.safety\.outputs\.base_sha \}\}/);
@@ -59,7 +67,7 @@ function workflowChecks(source){
   ]){
     const job=j[id],s=steps(job);
     assert.match(job,/^    needs: safety$/m,id);
-    assert.equal(condition(job),"${{ !cancelled() && needs.safety.result == 'success' }}",id);
+    assert.equal(condition(job),"${{ !cancelled() && needs.safety.result == 'success' && needs.safety.outputs.release_mode == 'full' }}",id);
     assert.match(s['Checkout exact approved head'],/ref: \$\{\{ needs\.safety\.outputs\.head_sha \}\}/,id);
     assert.match(s['Verify isolated source and 425 pins'],/cloud-ci-prepare\.js "\$APPROVED_HEAD"/,id);
     assert.match(s['Verify isolated source and 425 pins'],/APPROVED_BASE: \$\{\{ needs\.safety\.outputs\.base_sha \}\}/,id);
@@ -129,7 +137,7 @@ function workflowChecks(source){
   for(const [id,members] of Object.entries(aggregates)){
     const job=j[id],s=steps(job);
     assert.equal(condition(job),'${{ always() }}');
-    assert.ok(job.includes('needs: ['+members.join(', ')+']'));
+    assert.ok(job.includes('needs: ['+members.join(', ')+', documents]'));
     const body=script(s.report);
     assert.ok(body.includes('const names='+JSON.stringify(members)+';'));
     assert.match(body,/groups\[name\]\?\.result!=='success'/);
@@ -137,6 +145,8 @@ function workflowChecks(source){
     assert.match(body,/core\.setOutput\('status',status\)/);
     assert.match(body,/core\.setOutput\('reason',reason\)/);
     assert.match(body,/if\(missing\.length\)core\.setFailed\(reason\)/);
+    assert.ok(body.includes("if(groups.safety?.outputs?.release_mode==='documents')names.splice(0,names.length,'safety','documents');"));
+    assert.ok(body.includes("groups.documents?.outputs?.status!=='PASS')missing.push('documents-proof')"));
     assert.match(job,/status: \$\{\{ steps\.report\.outputs\.status \}\}/);
   }
   assert.equal(condition(j['ci-summary']),'${{ always() }}');
@@ -160,7 +170,7 @@ function workflowChecks(source){
   assert.match(j['final-status'],/if \(!ready\) core\.setFailed\('RELEASE_BLOCKED'\)/);
   const revision=steps(j.safety).revision;
   for(const token of ['APPROVED_HEAD_CHANGED','APPROVED_BASE_CHANGED','MAIN_CHANGED','PR_NOT_OPEN_READY','FOREIGN_HEAD_REPOSITORY'])assert.ok(revision.includes(token));
-  for(const id of ['revision','checkout','node','source'])assert.ok(required(steps(j.safety).report).includes(id));
+  for(const id of ['revision','checkout','node','source','scope'])assert.ok(required(steps(j.safety).report).includes(id));
   return j;
 }
 
@@ -176,17 +186,20 @@ async function execute(code,{env={},current,main,action='ready_for_review',apiFa
 async function diagnosticChecks(source){
   const j=workflowChecks(source);let count=0;
   const pass=name=>{count++;console.log('PASS CI diagnostics: '+name);};
-  const mutation=(from,to)=>s=>{assert.ok(s.includes(from),'Missing fixture mutation');return s.replace(from,to);};
+  const mutation=(from,to)=>Object.assign(s=>{assert.ok(s.includes(from),'Missing fixture mutation: '+from);return s.replace(from,to);},{from});
   for(const change of [
+    mutation("needs.safety.outputs.release_mode == 'full'","needs.safety.outputs.release_mode != 'documents'"),
+    mutation('node tools/ci-docs-scope.js "$APPROVED_BASE" "$APPROVED_HEAD" --verify-documents','echo unverified-documentation'),
+    mutation("groups.documents?.outputs?.status!=='PASS'","false"),
     mutation("GIT_CONFIG_VALUE_0: 'false'", "GIT_CONFIG_VALUE_0: 'true'"),
     mutation('runs-on: windows-latest','runs-on: ubuntu-latest'),
     mutation('run: node tools/application-owner-signing-smoke.js','run: echo unverified'),
-    mutation('    needs: [safety, preflight-static, preflight-shards, playwright-local-ui, owner-signing-windows]','    needs: safety'),
+    mutation('    needs: [safety, preflight-static, preflight-shards, playwright-local-ui, owner-signing-windows, documents]','    needs: safety'),
     mutation('shard: ['+Array.from({length:36},(_,i)=>i+1).join(', ')+']','shard: [1, 2, 3, 4, 5, 6]'),
     mutation("- {batch: 3, segment: '3e'}","- {batch: 3, segment: '3z'}"),
-    mutation('    needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b]','    needs: [safety, firebase-current-shards, firebase-p0b]'),
-    mutation('    needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b]','    needs: [safety, firebase-current-shards, playwright-sync-ui]'),
-    mutation('segment: [room-model, room-quote-proof, room-quote-rules, room-quote-variants, room-quote-promotion, room-quote-staging, room-quote-acceptance-conflict, room-quote-acceptance, room-quote, room-storage, normal-rules, rules, recovery, profiles, compatibility, normal-startup, signed-startup, signed-quote, signed-clean, normal-clean, storage]','segment: [rules, profiles, compatibility, normal-startup, signed-startup]'),
+    mutation('    needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b, documents]','    needs: [safety, firebase-current-shards, firebase-p0b]'),
+    mutation('    needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b, documents]','    needs: [safety, firebase-current-shards, playwright-sync-ui]'),
+    mutation(j['firebase-p0b'].match(/^        segment: .*$/m)[0].trim(),'segment: [rules, profiles, compatibility, normal-startup, signed-startup]'),
     mutation('node --test tools/firebase-pilot/playwright-local-ui.test.mjs','node --test tools/firebase-pilot/removed-ui.test.mjs'),
     mutation('cloud-ci-emulators.js --context=current --playwright-sync','cloud-ci-emulators.js --context=current --no-sync'),
     mutation('const names=["safety","cloud-historical-smoke","cloud-historical-sdk"];','const names=["safety","cloud-historical-smoke"];'),
@@ -198,12 +211,15 @@ async function diagnosticChecks(source){
     mutation('types: [opened, ready_for_review]','types: [opened, synchronize]'),
     mutation('--label=preflight-static --warn-ms=75000 --target-ms=90000','--label=preflight-static --warn-ms=75000 --target-ms=90001'),
     mutation('      - name: Audit module growth against approved BASE','      - name: Unapproved module step')
-  ])assert.throws(()=>workflowChecks(change(source)));
+  ]){const changed=change(source);assert.notEqual(changed,source);assert.throws(()=>workflowChecks(changed),undefined,'Mutation must be rejected: '+change.from);}
   pass('actual DAG, required groups, full-PASS merge/Pages and negative mutations');
   for(const id of ['preflight-static','preflight-shards','playwright-local-ui','owner-signing-windows','firebase-current-shards','playwright-sync-ui','firebase-p0b','cloud-historical-smoke','cloud-historical-sdk']){
     for(const result of ['failure','skipped','cancelled','success'])
       assert.equal(enabled(condition(j[id]),{results:{safety:result}}),result==='success');
+    assert.equal(enabled(condition(j[id]),{results:{safety:'success'},mode:'documents'}),false);
+    assert.equal(enabled(condition(j[id]),{results:{safety:'success'},mode:'unknown'}),false);
   }
+  for(const mode of ['full','documents','unknown'])assert.equal(enabled(condition(j.documents),{results:{safety:'success'},mode}),mode==='documents');
   for(const id of ['preflight','firebase-current','cloud-historical'])
     assert.equal(enabled(condition(j[id]),{results:{safety:'failure'}}),true);
   pass('independent runners and fail-closed always-running aggregates');
@@ -219,6 +235,13 @@ async function diagnosticChecks(source){
     const body=script(steps(j[id]).report),good=Object.fromEntries(members.map(name=>[name,{result:'success'}]));
     const success=await execute(body,{env:{GROUPS:JSON.stringify(good)}});
     assert.equal(success.outputs.status,'PASS');assert.equal(success.failures.length,0);
+    const docs={safety:{result:'success',outputs:{release_mode:'documents'}},documents:{result:'success',outputs:{status:'PASS'}}};
+    assert.equal((await execute(body,{env:{GROUPS:JSON.stringify(docs)}})).outputs.status,'PASS');
+    assert.equal((await execute(body,{env:{GROUPS:JSON.stringify({...docs,documents:{result:'success'}})}})).outputs.status,'FAIL','Missing documentation receipt refuses');
+    for(const result of ['failure','skipped','cancelled','unknown',null]){
+     const refused={...docs,documents:result?{result}:undefined};
+     assert.equal((await execute(body,{env:{GROUPS:JSON.stringify(refused)}})).outputs.status,'FAIL','Documentation proof cannot be omitted');
+    }
     for(const member of members)for(const bad of ['failure','skipped','cancelled','unknown',null]){
       const groups={...good};if(bad===null)delete groups[member];else groups[member]={result:bad};
       const receipt=await execute(body,{env:{GROUPS:JSON.stringify(groups)}});

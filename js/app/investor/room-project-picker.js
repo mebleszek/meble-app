@@ -21,7 +21,7 @@
    for(const node of body.querySelectorAll('[data-room-occupancy]')){
     const occupied=state.projects?.find(row=>row.projectId===node.dataset.roomOccupancy);
     node.textContent=state.state==='unconfirmed'||state.registry?.[node.dataset.roomOccupancy]===undefined?'Stan zajętości niepotwierdzony':occupied
-     ? 'Otwarte: '+(occupied.label||occupied.deviceId)+(occupied.activity==='recent'?'':' · kontakt niepotwierdzony'):state.registry?.[node.dataset.roomOccupancy]===false?'Zwolnione':'Stan zajętości niepotwierdzony';
+     ? 'Otwarte: '+(occupied.label||'Urządzenie bez nazwy')+(occupied.activity==='recent'?'':' · kontakt niepotwierdzony'):state.registry?.[node.dataset.roomOccupancy]===false?'Zwolnione':'Stan zajętości niepotwierdzony';
    }
   };
   const watch=FC.investorPresence?.watchPresence(inv.id,()=>navigator.onLine!==false,update);

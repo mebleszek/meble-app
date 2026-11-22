@@ -18,7 +18,7 @@ const versions = Object.freeze({
 "js/app/project/room-quote-sources.js":"20261118_room_quote_v1",
 "js/app/project/room-quote-acceptance.js":"20261118_quote_lifecycle_v1",
 "js/app/project/room-project-store.js":"20261118_room_boundary_v1",
-"js/app/investor/room-project-picker.js":"20261118_room_boundary_v1",
+"js/app/investor/room-project-picker.js":"20261122_device_names_v1",
   "js/app/investor/session.js":"20261113_project_exit_v1",
   "js/app/wycena/wycena-labor-picker.js":"20261115_e1_durable_settings_v1",
   "js/app/project/project-local-room-contract.js":"20261110_native_local_cabinets_v1",
@@ -75,7 +75,7 @@ const versions = Object.freeze({
  "js/app/cloud/offline-update.js":"20261031_safe_sw_v1",
   "js/app/shared/data-backup-snapshot-apply.js":"20261031_investor_delete_v2",
   "js/app/investor/investor-actions.js": "20261118_room_quote_v1",
-  "js/app/investor/investor-ui.js": "20261118_room_quote_v1",
+  "js/app/investor/investor-ui.js": "20261122_device_names_v1",
   "js/app/investor/investor-deletion.js": "20261118_room_quote_v1",
   "js/app/shared/data-storage-classifier.js": "20261031_investor_delete_v2",
   "js/app/investor/investor-ui-render.js": "20261118_room_quote_v1",
@@ -134,7 +134,7 @@ const authVersions=Object.freeze({
   "js/app/cloud/cloud-access-verifier.js": "20261114_access_rpc_diagnostics_v1",
   "js/app/cloud/offline-shell.js": "20261114_first_offline_install_v1",
   "js/app/cloud/local-access-profile.js": "20261103_android_globals_recovery_v1",
-  "js/app/cloud/application-bootstrap.js": "20261122_startup_asset_wait_v1",
+  "js/app/cloud/application-bootstrap.js": "20261122_sync_resume_v1",
   "js/main-login.js": "20261122_startup_asset_wait_v1"
 });
 function assertHtmlVersions(index, dev){

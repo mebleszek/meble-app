@@ -205,11 +205,15 @@
    if(!configuration||!runtime||!context||boot?.localOnly)return;if(refreshing)return refreshing;
    refreshing=(async()=>{try{
     window.__FC_MAIN_ACCESS__.assert();
-    stage='reconnect-auth';const next=await connect(context);window.__FC_MAIN_ACCESS__.assert();stage='reconnect-runtime';const old=connectionsActive;try{await runtime.resume(next);}finally{connectionsActive=next;await old?.retire?.();}boundLease=context.lease;lastError=null;stage='ready';
+    stage='reconnect-auth';
+    if(boundLease===context.lease&&runtime.status().state!=='locked'&&connectionsActive?.refreshAccess){
+     await connectionsActive.refreshAccess();window.__FC_MAIN_ACCESS__.assert();runtime.wake?.();lastError=null;stage='ready';return;
+    }
+    const next=await connect(context);window.__FC_MAIN_ACCESS__.assert();stage='reconnect-runtime';const old=connectionsActive;try{await runtime.resume(next);}finally{connectionsActive=next;await old?.retire?.();}boundLease=context.lease;lastError=null;stage='ready';
    }catch(error){note(error);throw error;}})().finally(()=>{refreshing=null;});return refreshing;
   },
   close(){runtime?.close();void connectionsActive?.logout?.();}
  };
  const reconnect=()=>{if(runtime&&runtime.status().state!=='locked'&&navigator.onLine!==false&&window.__FC_MAIN_ACCESS__?.isValid())void fc.applicationStartup.refresh().catch(()=>{});};
- window.addEventListener('online',reconnect);document.addEventListener('visibilitychange',()=>{if(!document.hidden)reconnect();});
+ window.addEventListener('online',reconnect);window.addEventListener('pageshow',reconnect);document.addEventListener('visibilitychange',()=>{if(!document.hidden)reconnect();});
 })();

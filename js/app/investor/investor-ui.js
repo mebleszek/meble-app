@@ -112,10 +112,10 @@
         if(!released) state.deleteIds=state.deleteIds.filter(selected=>selected!==id);
         if(box){box.disabled=!released;box.checked=released&&state.deleteIds.includes(id);}
         const entries=status.state==='held'&&online()?[
-          ...(status.visits||[]).map(visit=>'Kartoteka · '+(visit.label||visit.deviceId)),
+          ...(status.visits||[]).map(visit=>'Kartoteka · '+(visit.label||'Urządzenie bez nazwy')),
           ...(status.projects||[]).map(project=>{
             const name=FC.projectStore?.getById(project.projectId)?.title||'Projekt '+project.projectId;
-            return name+' · '+(project.label||project.deviceId);
+            return name+' · '+(project.label||'Urządzenie bez nazwy');
           })
         ]:[];
         text.textContent=entries.join(' • ')||(released?'':status.state==='deleted'?'Usunięto':status.state==='held'&&online()?'Operacja usuwania w toku':'Stan zajętości niepotwierdzony');

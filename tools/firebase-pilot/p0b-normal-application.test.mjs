@@ -9,6 +9,7 @@ import {assertFails} from '@firebase/rules-unit-testing';
 import {runNormalApplication} from './normal-application.cases.mjs';
 import {promotionCase,stagingCase} from './p0b-quote-lifecycle.cases.mjs';
 import {duplicateCase,tabSaveCase} from './quote-tab-regressions.cases.mjs';
+import {accessResumeCase} from './p0b-access-resume.cases.mjs';
 import {variantsCase} from './p0b-quote-variants.cases.mjs';
 import {batchingCase} from './p1-project-sync.cases.mjs';
 import {checkpointNativeFixture,nativeFixtureState} from './p0b-fixture-baseline.mjs';
@@ -55,8 +56,8 @@ async function addCabinet(device,width){
  await page.locator('#cmWidth').fill(String(width));await page.locator('#cmHeight').fill('82');await page.locator('#cmDepth').fill('50');
  await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
 }
-async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,p1=false}={}){
- await runNormalApplication(t,{deployment,p0bRegistry:true,testOwner:quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
+async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,accessResume=false,p1=false}={}){
+ await runNormalApplication(t,{deployment,p0bRegistry:true,testOwner:accessResume?'synthetic-background-owner':quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
   const artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'meble-p0b-normal-'));
   await phone.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
   try{
@@ -148,6 +149,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    assert.equal(draft.outbox.length,beforeCabinet.outbox.length);
    const sourceCabinet=JSON.parse(rows(draft).fc_projects_v1).find(row=>row.id===pid).projectData[roomId].cabinets[0];
    assert.equal(sourceCabinet.width,66);
+   if(accessResume){await accessResumeCase({t,phone,computer,iid,pid,wardrobeId,image,rows,until,db,ownerUid,saveProject,showList,restartProbe,globalBefore});return;}
    if(p1==='tab-save'){await tabSaveCase({t,phone,computer,iid,pid,wardrobeId,until,image,rows,openRoom,addCabinet,restartProbe});return;}
    if(p1){await batchingCase({t,phone,computer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,showList,openRoom,addCabinet,saveProject,restartProbe,globalBefore},{idle:p1==='idle',quoteOnly:p1==='quote',offlineQuote:p1==='offline-quote'});return;}
    await Promise.all([saveProject(page),saveProject(computer.page)]);
@@ -554,3 +556,5 @@ test('P1 normal DEMO offline quote: restart of a pending room Save preserves imm
 
 test('P1 tab Save and proceed: real dirty room navigation stays durable',t=>cleanApplication(t,{p1:'tab-save'}));
 test('P0-B duplicate replacement: same logical offer preserves history and ACK',t=>cleanApplication(t,{quoteProbe:true,quoteDuplicate:true}));
+
+test('P0-B signed background resume: durable drafts and automatic offline Exit ACK',t=>cleanApplication(t,{deployment:true,accessResume:true}));

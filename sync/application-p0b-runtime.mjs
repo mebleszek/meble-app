@@ -1,4 +1,5 @@
 import {applicationPresence} from './application-presence.mjs';
+import {closeIdleApplicationVisits} from './application-visit-recovery.mjs';
 // DEMO-only composition. All remote mutations still use the existing P0-B protocol.
 import {createP0BProtocol,encodeP0BContact,createP0BDeletionIntent} from '../tools/firebase-pilot/p0b-protocol.mjs';
 import {createP0BProjectRecovery} from '../tools/firebase-pilot/p0b-project-recovery.mjs';
@@ -17,7 +18,7 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
  const contactScopes=new Map(),projectOwners=new Map(),heartbeats=new Map();let closed=false,working=null,deletionJournal=null,deletionAdapter=null,deletionPending=false,deletionGeneration=0,recoveryOffered=false;
  const online=()=>!!protocol&&!closed&&w.navigator.onLine!==false;
  const assertAccess=()=>{w.__FC_MAIN_ACCESS__.assert();writer?.assertAccess();reader?.assertAccess();if(closed)fail('LF_CLOSED');};
- const label=()=>fc.localDeviceLabel?.read()||'';
+ const label=()=>fc.localDeviceLabel?.display?.()||fc.localDeviceLabel?.read()||'';
  const contactScope=async iid=>{const scope='p0b_contact_'+await digest(id(iid));contactScopes.set(scope,iid);return scope;};
  function project(record){
   if(record.projectData)fc.roomProjectModel.validate(record);
@@ -161,7 +162,7 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
   heartbeats.get(pid)?.stop();
   heartbeats.set(pid,{epoch:editor.epoch,stop:protocol.watchEditorContact(pid,editor,w,onError)});
  }
- let visitWork=Promise.resolve();
+ let visitWork=Promise.resolve(),visitCleanupPending=true;
  function syncVisit(next,previous){
   const result=visitWork.then(()=>changeVisit(next,previous));visitWork=result.then(()=>undefined,()=>undefined);return result;
  }
@@ -175,7 +176,7 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
   const before=await store.readApplication(),next=application.rows.fc_current_investor_v1,previous=before.rows.fc_current_investor_v1;
   if(next!==previous&&next&&online())await syncVisit(next,null);
   const result=await perform();
-  if(next!==previous)getAuthority().afterCommit(()=>{void syncVisit(null,previous).catch(onError);});
+  if(next!==previous)getAuthority().afterCommit(()=>{visitCleanupPending=true;void syncVisit(null,previous).catch(onError);});
   return result;
  }
  function recovery(pid){
@@ -282,6 +283,13 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
     }
    }
    await reconcileDeletes();for(const marker of await store.pendingNewProjects())await ensureNewProject(marker.project.id);
+   // A visit can outlive an offline Exit. Only a verified, durably idle local
+   // UI may close this installation's own visit token; never another device
+   // or a project lock, and never merely because its heartbeat is old.
+   if(visitCleanupPending&&online()){
+    const cleanup=visitWork.then(async()=>{if(await closeIdleApplicationVisits({authority:getAuthority(),protocol,deviceId:store.deviceId,assertAccess,sessionActive:()=>!!fc.session?.active}))visitCleanupPending=false;});
+    visitWork=cleanup.then(()=>undefined,()=>undefined);await cleanup;
+   }
    const current=!['home','modeHub','investorsList'].includes(w.uiState?.entry)?w.uiState?.currentInvestorId:null;
    if(current&&online()){
     await syncVisit(current,null);
@@ -299,5 +307,6 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
   presence.bind(protocol);fc.investorPresence=presence;if(protocol)fc.projectTakeoverPin=protocol.pin;fc.projectRecovery={open:openRecovery};
  }
  function close(){closed=true;if(quotes&&fc.roomQuoteProof===quotes.proof)delete fc.roomQuoteProof;for(const value of heartbeats.values())value.stop();heartbeats.clear();presence.detach(protocol);if(protocol&&fc.projectTakeoverPin===protocol.pin)delete fc.projectTakeoverPin;delete fc.projectRecovery;if(fc.localInvestorDeletion===deletionAdapter)delete fc.localInvestorDeletion;deletionJournal?.close();}
- return {protocol,discovery,project,projectRows,commit,checkpoint,preflightAcceptance,ensureNewProject,watchEditor,recovery,isLost:scope=>lostEditors.has(scope),canRecover,offerRecovery,resume,bind,close};
+ return {protocol,discovery,project,projectRows,commit,checkpoint,preflightAcceptance,ensureNewProject,watchEditor,recovery,isLost:scope=>lostEditors.has(scope),canRecover,offerRecovery,resume,bind,close,
+  suspendPresence(){presence.detach(protocol);},refreshPresence(){if(!closed&&!presence.bind(protocol))presence.refresh();}};
 }

@@ -1,6 +1,6 @@
 // Stable read-only UI subscriptions across replacement of authorized SDK sessions.
 const instances=new WeakMap();
-const revoked=error=>/^(AUTH_|LF_AUTH_|LF_CLOSED$)/.test(error?.code||error?.message||'');
+const revoked=error=>/^(AUTH_|LF_AUTH_|LF_CLOSED$|LF_SYNC_ACCESS_UNCONFIRMED$|LF_SYNC_ACCESS_DENIED$)/.test(error?.code||error?.message||'');
 export function applicationPresence(fc){
  if(instances.has(fc))return instances.get(fc);
  let protocol=null;const subscriptions=new Set();
@@ -13,8 +13,9 @@ export function applicationPresence(fc){
   });}catch(error){if(!revoked(error))throw error;row.receive({state:'unconfirmed'});}
  }
  const api=Object.freeze({
-  bind(next){if(protocol===next)return;protocol=next;for(const row of subscriptions)start(row);},
+  bind(next){if(protocol===next)return false;protocol=next;for(const row of subscriptions)start(row);return true;},
   detach(expected){if(protocol!==expected)return;protocol=null;for(const row of subscriptions)start(row);},
+  refresh(){for(const row of subscriptions)start(row);},
   watchPresence(iid,online,receive){
    const row={iid,online,receive,generation:0,watch:null};subscriptions.add(row);
    try{start(row);}catch(error){subscriptions.delete(row);stop(row);throw error;}
