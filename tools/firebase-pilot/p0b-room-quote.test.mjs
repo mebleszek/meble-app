@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
-import {quoteScope,validateQuoteLedger,validateQuoteLedgerChange} from '../../sync/local-first-quote-contract.mjs';
+import {quoteScope,validateQuoteLedger,validateQuoteLedgerChange,validateQuoteStatusHistoryChange} from '../../sync/local-first-quote-contract.mjs';
 const require=createRequire(import.meta.url),{fixture:pcvFixture,load,clone}=require('../effective-project-pcv-smoke.js');
 function fixture(){
  const r=pcvFixture();
@@ -92,4 +92,17 @@ test('P0-B room quote proof: explicit duplicate refresh keeps frozen accepted va
   const invalid=structuredClone(next);mutate(invalid);assert.throws(()=>validateQuoteLedgerChange(before,invalid));
  }
  for(const metadata of [undefined,'invalid']){const malformed=structuredClone(before);if(metadata===undefined)delete malformed.offers[0].meta;else malformed.offers[0].meta=metadata;assert.throws(()=>validateQuoteLedgerChange(malformed,next),{code:'LF_QUOTE_HISTORY_IMMUTABLE'});}
+});
+
+test('P0-B room quote proof: atomic removal status participants cannot change retained offers or unrelated rooms',()=>{
+ const before=ledger(),other=structuredClone(before.offers[0]);other.id='other';before.offers.push(other);before.pins.other=structuredClone(before.pins.offer);
+ const after=structuredClone(before);after.offers=after.offers.filter(row=>row.id!=='offer');delete after.pins.offer;
+ assert.equal(validateQuoteLedgerChange(before,after),true);assert.equal(validateQuoteStatusHistoryChange(before,after,['kitchen','wardrobe']),true);
+ for(const [value,scopes]of [[after,['foreign']], [{...after,offers:[]},['kitchen']], [before,['kitchen']]]){
+  if(value===before){const changed=structuredClone(after);changed.offers[0].totals.grand++;assert.throws(()=>validateQuoteStatusHistoryChange(before,changed,scopes));}
+  else assert.throws(()=>validateQuoteStatusHistoryChange(before,value,scopes));
+ }
+ assert.throws(()=>validateQuoteStatusHistoryChange(null,after,['kitchen']));
+ const added=structuredClone(after);added.offers.push({...other,id:'injected'});assert.throws(()=>validateQuoteStatusHistoryChange(before,added,['kitchen']));
+ assert.equal(before.offers[0].totals.grand,13.125);
 });

@@ -39,5 +39,33 @@
   });
   return result?.ok===true?result:{ok:false,code:result?.code||'LF_QUOTE_ACCEPTANCE_UNCONFIRMED'};
  }
- FC.roomQuoteAcceptance={plan,commitPlanned};
+ function removalPlan(snapshot){
+  const iid=FC.investors.getCurrentId(),before=FC.projectDomainOperations.readHistory(),stored=before.find(row=>row.id===snapshot.id);
+  if(!stored||!same(stored,snapshot)||stored.investor?.id!==iid)fail('LF_QUOTE_DELETE_CONTEXT_CHANGED');
+  const ids=stored.scope?.selectedRooms,refs=stored.scope?.sourceProjects;
+  if(!ids?.length||!Array.isArray(refs)||!same(ids.slice().sort(),refs.map(ref=>ref.projectId).sort())||refs.some(ref=>ref.roomId!==ref.projectId||ref.investorId!==iid))fail('LF_QUOTE_SOURCE_INVALID');
+  const history=before.filter(row=>row.id!==stored.id),plans=[];
+  for(const id of ids){
+   const record=FC.projectStore.getById(id);FC.roomProjectModel.validate(record);
+   if(record.investorId!==iid||record.meta.roomProject.removed||record.meta.pendingDomainOperation)fail('LF_PROJECT_OPERATION_PENDING');
+   const preview=FC.projectStatusSync.reconcileProjectStatuses({projectId:id,investorId:iid,roomIds:[id],restrictToRoomIds:true,historyRows:history,preview:true,refreshUi:false,fallbackStatus:'nowy'});
+   if(!preview?.ok)fail('LF_QUOTE_STATUS_PLAN_INVALID');
+   plans.push({record:clone(record),status:preview.roomStatusMap[id],manual:preview.projectRecord.projectData.meta.roomDefs[id].lastManualProjectStatus||'',
+    changed:!same(record,preview.projectRecord)||!same(FC.investors.getById(iid),preview.investor)});
+  }
+  return {iid,ids,before,plans};
+ }
+ async function commitRemoval(snapshot,validate){
+  validate();const initial=removalPlan(snapshot),changed=initial.plans.filter(row=>row.changed).map(row=>row.record.id);
+  return FC.applicationWrite.quoteRemoval(initial.ids,changed,()=>{
+   validate();const current=removalPlan(snapshot);if(!same(current,initial))fail('LF_QUOTE_DELETE_CONTEXT_CHANGED');
+   for(const row of current.plans.filter(row=>row.changed)){
+    const id=row.record.id,result=FC.projectStatusSync.persistStatusPlan(row.record,FC.investors.getById(current.iid),{[id]:row.status},{[id]:row.manual},[id],row.status,current.before,{});
+    if(!result?.ok)fail(result?.partial?'LF_PROJECT_OPERATION_PENDING':'LF_QUOTE_STATUS_PLAN_INVALID');
+   }
+   if(!FC.quoteSnapshotStore.remove(snapshot.id)||FC.quoteSnapshotStore.getById(snapshot.id))fail('LF_QUOTE_DELETE_COMMIT_UNCONFIRMED');
+   return true;
+  });
+ }
+ FC.roomQuoteAcceptance={plan,commitPlanned,commitRemoval};
 })();

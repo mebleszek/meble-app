@@ -8,7 +8,8 @@
   function captureDeletion(snapshot){
     const projectId=String(FC.projectStore?.getCurrentProjectId?.()||''),investorId=String(FC.investors?.getCurrentId?.()||'');
     const record=FC.projectStore?.getById?.(projectId),stored=FC.quoteSnapshotStore?.getById?.(snapshot.id||snapshot.snapshotId);
-    if(!record||!stored||JSON.stringify(stored)!==JSON.stringify(snapshot)||record.investorId!==investorId||stored.project?.id!==projectId
+    const belongs=FC.roomProjectModel?.enabled()?stored?.scope?.sourceProjects?.some(ref=>ref.projectId===projectId&&ref.investorId===investorId):stored?.project?.id===projectId;
+    if(!record||!stored||JSON.stringify(stored)!==JSON.stringify(snapshot)||record.investorId!==investorId||!belongs
       ||String(stored.investor?.id||stored.project?.investorId||'')!==investorId)deleteError('LF_QUOTE_DELETE_OWNER_CHANGED');
     return {writer:FC.applicationWrite?.project,localOnly:FC.applicationWrite?.localOnly,projectId,investorId,record:JSON.stringify(record),snapshot:JSON.stringify(stored),id:String(stored.id||stored.snapshotId)};
   }
@@ -21,6 +22,10 @@
   }
   async function removeConfirmed(snapshot,expected,reconcile){
     const id=String(snapshot.id||snapshot.snapshotId||'');
+    if(expected&&FC.roomProjectModel?.enabled()){
+      if(typeof FC.roomQuoteAcceptance?.commitRemoval!=='function')deleteError('LF_QUOTE_DELETE_STATUS_UNCONFIRMED');
+      return FC.roomQuoteAcceptance.commitRemoval(snapshot,()=>validateDeletion(snapshot,expected));
+    }
     const remove=()=>{
       if(expected)validateDeletion(snapshot,expected);
       if(!FC.quoteSnapshotStore?.remove?.(id))deleteError('QUOTE_DELETE_UNCONFIRMED');

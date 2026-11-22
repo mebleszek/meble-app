@@ -10,6 +10,8 @@ import {runNormalApplication} from './normal-application.cases.mjs';
 import {promotionCase,stagingCase} from './p0b-quote-lifecycle.cases.mjs';
 import {duplicateCase,tabSaveCase} from './quote-tab-regressions.cases.mjs';
 import {accessResumeCase} from './p0b-access-resume.cases.mjs';
+import {presenceReconnectCase} from './p0b-presence-reconnect.cases.mjs';
+import {quoteRemovalCase} from './p0b-quote-removal.cases.mjs';
 import {variantsCase} from './p0b-quote-variants.cases.mjs';
 import {batchingCase} from './p1-project-sync.cases.mjs';
 import {checkpointNativeFixture,nativeFixtureState} from './p0b-fixture-baseline.mjs';
@@ -56,13 +58,13 @@ async function addCabinet(device,width){
  await page.locator('#cmWidth').fill(String(width));await page.locator('#cmHeight').fill('82');await page.locator('#cmDepth').fill('50');
  await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
 }
-async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,accessResume=false,p1=false}={}){
- await runNormalApplication(t,{deployment,p0bRegistry:true,testOwner:accessResume?'synthetic-background-owner':quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
+async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,quoteRemoval=false,accessResume=false,presenceReconnect=false,p1=false}={}){
+ await runNormalApplication(t,{deployment,p0bRegistry:true,realMainAuth:presenceReconnect,testOwner:quoteRemoval?'synthetic-quote-removal-'+quoteRemoval+'-owner':presenceReconnect?'synthetic-presence-reconnect-owner':accessResume?'synthetic-background-owner':quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
   const artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'meble-p0b-normal-'));
   await phone.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
   try{
    await configure(phone);await phone.page.reload();
-   if(accessResume)await phone.page.evaluate(async()=>{await window.FC.offlineShell.prepare();await indexedDB.databases();});
+   if(accessResume||presenceReconnect)await phone.page.evaluate(async()=>{await window.FC.offlineShell.prepare();await indexedDB.databases();});
    await login(phone);
    const initial=await image(phone);
    assert.deepEqual(JSON.parse(rows(initial).fc_investors_v1),[]);
@@ -84,7 +86,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    assert.equal(archive.sourceRows.fc_projects_v1,source.projects);
    assert.equal(await phone.page.evaluate(()=>window.readNormalSource('fc_investors_v1')),source.investors);
    t.diagnostic('Clean normal startup preserved legacy RAW and archived the previous registry');
-   if(!computer)computer=await device('computer',{prepareStatic:accessResume});else{await configure(computer);await computer.page.reload();if(accessResume)await computer.page.evaluate(async()=>{await window.FC.offlineShell.prepare();await indexedDB.databases();});await login(computer);}
+   if(!computer)computer=await device('computer',{prepareStatic:accessResume||presenceReconnect});else{await configure(computer);await computer.page.reload();if(accessResume||presenceReconnect)await computer.page.evaluate(async()=>{await window.FC.offlineShell.prepare();await indexedDB.databases();});await login(computer);}
    await phone.page.evaluate(()=>window.FC.localDeviceLabel.write('Telefon DEMO'));
    await computer.page.evaluate(()=>window.FC.localDeviceLabel.write('Komputer DEMO'));
    // Persist only the test's old source/name setup. All crash-tested business
@@ -151,6 +153,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    assert.equal(draft.outbox.length,beforeCabinet.outbox.length);
    const sourceCabinet=JSON.parse(rows(draft).fc_projects_v1).find(row=>row.id===pid).projectData[roomId].cabinets[0];
    assert.equal(sourceCabinet.width,66);
+   if(presenceReconnect){await presenceReconnectCase({t,phone,computer,iid,pid,wardrobeId,image,rows,until,db,ownerUid,saveProject,showList,projects,openRoom,restartProbe,globalBefore});return;}
    if(accessResume){await accessResumeCase({t,phone,computer,iid,pid,wardrobeId,image,rows,until,db,ownerUid,saveProject,showList,restartProbe,globalBefore});return;}
    if(p1==='tab-save'){await tabSaveCase({t,phone,computer,iid,pid,wardrobeId,until,image,rows,openRoom,addCabinet,restartProbe});return;}
    if(p1){await batchingCase({t,phone,computer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,showList,openRoom,addCabinet,saveProject,restartProbe,globalBefore},{idle:p1==='idle',quoteOnly:p1==='quote',offlineQuote:p1==='offline-quote'});return;}
@@ -163,6 +166,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    const confirmedHead=(await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomProjects',pid))).data();
    t.diagnostic('Parallel real UI cabinet drafts and Save use independent room CAS/outboxes; contact and globals remain unchanged');
    if(quoteProbe){
+    const quoteRooms=quoteRemoval==='single'?[pid]:[pid,wardrobeId];
     await until(async()=>JSON.parse(rows(await image(phone)).fc_projects_v1).some(row=>row.id===wardrobeId));
     const beforeQuote=await image(phone);
     await page.locator('[data-action="tab"][data-tab="wycena"]').click();
@@ -185,6 +189,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
      'Combined quote must offer both independent rooms; actual choices: '+JSON.stringify(labels));
     const wardrobeChoice=()=>picker.locator('label').filter({has:page.getByText('P0B wardrobe',{exact:true})});
     const kitchenChoice=()=>picker.locator('label').filter({has:page.getByText('P0B kitchen',{exact:true})});
+    let selectionCommitted=false;
     if(await wardrobeChoice().locator('input').isChecked()&&await kitchenChoice().locator('input').isChecked()){
      // With no stored choice the existing picker previews all rooms. Make an
      // explicit durable single-room choice before extending it to both rooms.
@@ -196,15 +201,16 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
      await picker.waitFor({state:'hidden'});
      await page.waitForFunction(()=>window.FC.quoteOfferStore.settingsSettled());
      assert.deepEqual(JSON.parse(rows(await image(phone)).fc_quote_offer_drafts_v1).find(row=>row.projectId===pid).selection.selectedRooms,[pid]);
-     await page.locator('.quote-selection-launch--rooms').click();
+     if(quoteRooms.length===1)selectionCommitted=true;else await page.locator('.quote-selection-launch--rooms').click();
     }
-    for(const title of ['P0B kitchen','P0B wardrobe']){
+    if(!selectionCommitted){for(const title of ['P0B kitchen','P0B wardrobe']){
      const choice=picker.locator('label').filter({has:page.getByText(title,{exact:true})});
-     if(!await choice.locator('input').isChecked())await choice.locator('.rozrys-room-chip__label').click();
+     const wanted=title==='P0B kitchen'||quoteRooms.includes(wardrobeId);
+     if(await choice.locator('input').isChecked()!==wanted)await choice.locator('.rozrys-room-chip__label').click();
     }
-    await page.getByRole('button',{name:'Zatwierdź',exact:true}).click();await picker.waitFor({state:'hidden'});
+    await page.getByRole('button',{name:'Zatwierdź',exact:true}).click();await picker.waitFor({state:'hidden'});}
     await page.waitForFunction(()=>window.FC.quoteOfferStore.settingsSettled());
-    assert.deepEqual(JSON.parse(rows(await image(phone)).fc_quote_offer_drafts_v1).find(row=>row.projectId===pid).selection.selectedRooms.slice().sort(),[pid,wardrobeId].sort());
+    assert.deepEqual(JSON.parse(rows(await image(phone)).fc_quote_offer_drafts_v1).find(row=>row.projectId===pid).selection.selectedRooms.slice().sort(),quoteRooms.slice().sort());
     const pcv=await page.evaluate(ids=>{
      const fc=window.FC,options=fc.projectPcvGuard.calculationOptions(),combined=fc.projectPcvResolver.requireCollection(ids,options);
      const individual=ids.map(id=>fc.projectPcvResolver.requireCollection([id],options));
@@ -212,13 +218,13 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
      return {total:combined.edgeMeters,body:combined.edgeMetersByMode.body,front:combined.edgeMetersByMode.front,
       individual:individual.map(row=>({total:row.edgeMeters,body:row.edgeMetersByMode.body,front:row.edgeMetersByMode.front})),
       sources:contributions.map(c=>c.address),metersValid:contributions.every(c=>Math.abs(c.meters-fc.materialEdgeStore.edgingMetersForPart({a:c.aCm,b:c.bCm,qty:c.qty},c.edges))<1e-9)};
-    },[pid,wardrobeId]);
+    },quoteRooms);
     for(const key of ['total','body','front'])assert.ok(Math.abs(pcv[key]-pcv.individual.reduce((sum,row)=>sum+row[key],0))<1e-8);
-    assert.ok(pcv.metersValid&&pcv.total>0);assert.deepEqual([...new Set(pcv.sources.map(row=>row.projectId))].sort(),[pid,wardrobeId].sort());
+    assert.ok(pcv.metersValid&&pcv.total>0);assert.deepEqual([...new Set(pcv.sources.map(row=>row.projectId))].sort(),quoteRooms.slice().sort());
     assert.ok(pcv.sources.every(row=>row.projectId===row.roomId));
     if(quotePromotion||quoteStaging){await page.locator('.quote-preliminary-chip').click();await page.waitForFunction(()=>window.FC.quoteOfferStore.settingsSettled());}
     if(quoteStaging)await page.evaluate(()=>window.normalPauseQuoteChunk=true);
-    if(!quoteAcceptance&&!quotePromotion&&!quoteStaging&&!quoteVariants&&!quoteDuplicate)await page.evaluate(()=>window.normalLoseQuoteAck=true);
+    if(!quoteAcceptance&&!quotePromotion&&!quoteStaging&&!quoteVariants&&!quoteDuplicate&&!quoteRemoval)await page.evaluate(()=>window.normalLoseQuoteAck=true);
     await page.locator('[data-action="wycena-generate"]').click();
     await page.waitForFunction(()=>document.querySelector('[data-quote-history-id]')||document.querySelector('.info-box'));
     const calculationNotice=await page.locator('.info-box').allTextContents();
@@ -226,16 +232,17 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     const written=await image(phone),old=JSON.parse(rows(beforeQuote).fc_quote_snapshots_v1||'[]');
     const offer=JSON.parse(rows(written).fc_quote_snapshots_v1||'[]').find(row=>!old.some(prior=>prior.id===row.id));
     assert.ok(offer,'Real Calculate must commit history before showing success');
-    assert.deepEqual(offer.scope.selectedRooms.slice().sort(),[pid,wardrobeId].sort());
+    assert.deepEqual(offer.scope.selectedRooms.slice().sort(),quoteRooms.slice().sort());
     assert.deepEqual(JSON.parse(rows(written).fc_projects_v1),JSON.parse(rows(beforeQuote).fc_projects_v1),'Calculating must not edit either room');
     const queued=written.outbox.filter(op=>!beforeQuote.outbox.some(old=>old.key===op.key));assert.equal(queued.length,1);
     assert.ok(![pid,wardrobeId].includes(queued[0].scope),'Combined quote requires an independent ledger, not a room publication');
-    assert.deepEqual(offer.scope.sourceProjects.map(ref=>ref.projectId).sort(),[pid,wardrobeId].sort());
+    assert.deepEqual(offer.scope.sourceProjects.map(ref=>ref.projectId).sort(),quoteRooms.slice().sort());
     assert.equal(offer.scope.sourceProjects.find(ref=>ref.projectId===pid).revision.currentRevisionId,confirmedHead.currentRevisionId);
-    assert.equal(offer.scope.sourceProjects.find(ref=>ref.projectId===wardrobeId).revision.currentRevisionId,wardrobeHead.currentRevisionId);
+    if(quoteRooms.includes(wardrobeId))assert.equal(offer.scope.sourceProjects.find(ref=>ref.projectId===wardrobeId).revision.currentRevisionId,wardrobeHead.currentRevisionId);
     const ledger=JSON.parse(written.replicas.find(row=>row.key===queued[0].scope).json);
     assert.equal(ledger.pins[offer.id].find(pin=>pin.projectId===pid).head.currentRevisionId,confirmedHead.currentRevisionId);
-    assert.equal(ledger.pins[offer.id].find(pin=>pin.projectId===wardrobeId).head.currentRevisionId,wardrobeHead.currentRevisionId);
+    if(quoteRooms.includes(wardrobeId))assert.equal(ledger.pins[offer.id].find(pin=>pin.projectId===wardrobeId).head.currentRevisionId,wardrobeHead.currentRevisionId);
+    if(quoteRemoval){await quoteRemovalCase({t,phone,computer,offer,iid,pid,wardrobeId,image,rows,until,restartProbe,artifacts,showList});return;}
     if(quoteDuplicate){await duplicateCase({t,phone,computer,offer,iid,pid,until,image,rows,artifacts,db,ownerUid,restartProbe,globalBefore});return;}
     if(quoteVariants){await variantsCase({t,phone,computer,offer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,restartProbe,artifacts,globalBefore,env});return;}
     if(quotePromotion||quoteStaging){
@@ -387,8 +394,18 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     await showList(computer.page);await showList(phone.page);
     await until(async()=>(await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomEditors',wardrobeId))).data().active===false);
     const activePage=phone.page;
+    await until(async()=>{const registry=(await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomInvestors',iid))).data();return Object.values(registry.projects).every(held=>held===false)&&Object.keys(registry.visits).length===0;});
+    const beforeVisit=(await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomInvestors',iid))).data();
+    await activePage.evaluate(()=>{window.normalLoseVisitAck=true;window.normalVisitCommitted=false;});
     await activePage.locator('[data-action="open-investor"][data-inv-id="'+iid+'"]').click();
     await activePage.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
+    const lostVisit=await activePage.evaluate(()=>window.normalVisitCommitted);
+    assert.equal(lostVisit?.generation,beforeVisit.generation+1,'Visit ACK is lost only after the real server commit');
+    assert.equal(await activePage.locator('[data-investor-action="projects"]').isVisible(),true,'A confirmed own visit must reconcile a lost ACK before local navigation');
+    const afterVisit=(await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomInvestors',iid))).data();
+    assert.equal(afterVisit.generation,beforeVisit.generation+1,'Visit reconciliation must not publish twice');
+    assert.deepEqual(afterVisit.visits,lostVisit.visits);
+    assert.equal(Object.values(afterVisit.visits).length,1);assert.equal(Object.values(afterVisit.visits)[0].label,'Telefon DEMO');
     await projects(activePage);
     await activePage.locator('#invProjectStatus_'+wardrobeId+'Launch button').click();
     await activePage.locator('.rozrys-choice-modal .rozrys-choice-option').filter({hasText:/^Pomiar$/}).click();
@@ -574,5 +591,10 @@ test('P1 normal DEMO offline quote: restart of a pending room Save preserves imm
 
 test('P1 tab Save and proceed: real dirty room navigation stays durable',t=>cleanApplication(t,{p1:'tab-save'}));
 test('P0-B duplicate replacement: same logical offer preserves history and ACK',t=>cleanApplication(t,{quoteProbe:true,quoteDuplicate:true}));
+
+test('P0-B quote removal single: duplicate then delete and recalculate preserves room sources',t=>cleanApplication(t,{quoteProbe:true,quoteRemoval:'single'}));
+test('P0-B quote removal combined: duplicate then delete and recalculate preserves room sources',t=>cleanApplication(t,{quoteProbe:true,quoteRemoval:'combined'}));
+
+test('P0-B signed desktop presence: untrusted background renews real main lease and room entry',t=>cleanApplication(t,{deployment:true,presenceReconnect:true}));
 
 test('P0-B signed background resume: durable drafts and automatic offline Exit ACK',t=>cleanApplication(t,{deployment:true,accessResume:true}));

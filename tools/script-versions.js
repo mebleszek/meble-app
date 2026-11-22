@@ -16,7 +16,7 @@ const versions = Object.freeze({
   "js/app/wycena/wycena-tab-selection-scope.js":"20261118_room_quote_v1",
 "js/app/project/room-project-model.js":"20261118_room_boundary_v1",
 "js/app/project/room-quote-sources.js":"20261118_room_quote_v1",
-"js/app/project/room-quote-acceptance.js":"20261118_quote_lifecycle_v1",
+"js/app/project/room-quote-acceptance.js":"20261122_quote_removal_v1",
 "js/app/project/room-project-store.js":"20261118_room_boundary_v1",
 "js/app/investor/room-project-picker.js":"20261122_device_names_v1",
   "js/app/investor/session.js":"20261113_project_exit_v1",
@@ -37,7 +37,7 @@ const versions = Object.freeze({
   "js/app/material/magazyn.js":"20261108_material_catalog_authority_v1",
   "js/app/catalog/catalog-selectors.js":"20261108_material_catalog_authority_v1",
   "js/app/catalog/catalog-domain.js":"20261108_material_catalog_authority_v1",
-  "js/app/wycena/wycena-tab-history.js":"20261118_quote_lifecycle_v1",
+  "js/app/wycena/wycena-tab-history.js":"20261122_quote_removal_v1",
   "js/app/wycena/wycena-tab-editor.js":"20261115_e1_durable_settings_v1",
   "js/app/ui/data-settings-menu-view.js":"20261117_p0b_pin_v1",
   "js/app/ui/data-settings-modal.js":"20261117_p0b_pin_v1",
@@ -135,7 +135,7 @@ const authVersions=Object.freeze({
   "js/app/cloud/offline-shell.js": "20261114_first_offline_install_v1",
   "js/app/cloud/local-access-profile.js": "20261103_android_globals_recovery_v1",
   "js/app/cloud/application-bootstrap.js": "20261122_startup_asset_wait_v1",
-  "js/main-login.js": "20261122_startup_asset_wait_v1"
+  "js/main-login.js": "20261122_desktop_reconnect_v1"
 });
 function assertHtmlVersions(index, dev){
   const sources=Array.from(index.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi),m=>m[1]);

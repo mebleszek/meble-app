@@ -6,10 +6,11 @@ import {chromium} from 'playwright-core';
 import {initializeTestEnvironment,assertFails} from '@firebase/rules-unit-testing';
 import {doc,setDoc,getDoc,getDocs,collection,query,limit,updateDoc,deleteDoc,serverTimestamp,writeBatch} from 'firebase/firestore';
 import {model,runtime} from './cloud-sync-fixture.mjs';
+import {realMainAuthInjection} from './normal-main-auth.mjs';
 const require=createRequire(import.meta.url),{waitForGesturePoint,finishPendingTouchScroll,observeGesture}=require('../helpers/browser-test-readiness.js'),{startBrowser}=require('../helpers/chromium-runtime.js'),{injection}=require('../trusted-session-browser-smoke.js');
 const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url))),defaultUid='synthetic-phone-owner';
-export async function runNormalApplication(t,{deployment=false,catalogCutover=false,runUi,p0bDemo=false,p0bRegistry=false,startupProbe,testOwner=defaultUid}={}){
- const uid=testOwner,authInjection='window.testAccount='+JSON.stringify(testOwner)+';\n'+injection;
+export async function runNormalApplication(t,{deployment=false,catalogCutover=false,runUi,p0bDemo=false,p0bRegistry=false,startupProbe,testOwner=defaultUid,realMainAuth=false}={}){
+ const uid=testOwner,authInjection=realMainAuth?realMainAuthInjection(uid):'window.testAccount='+JSON.stringify(testOwner)+';\n'+injection;
  assert.equal(process.env.FIRESTORE_EMULATOR_HOST,'127.0.0.1:18080');assert.equal(process.env.FIREBASE_AUTH_EMULATOR_HOST,'127.0.0.1:19099');
  const original=fs.readFileSync(path.join(root,'tools/firebase-pilot/firestore.rules'),'utf8'),fragment=fs.readFileSync(path.join(root,'sync/local-first-project.rules'),'utf8');
  const rules=p0bRegistry?require('./p0b-application-rules.js').p0bApplicationRules({normal:true}):p0bDemo?require('./p0b-application-rules.js').p0bApplicationRules():deployment?require('./application-rules.js').applicationRules():original.replace('    match /{document=**}',()=>fragment+'\n    match /{document=**}');
@@ -183,7 +184,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  assert.equal(JSON.parse(source.projects).length,2);
  let computer;if(!deployment)computer=await device('computer');
  async function configure(d,receiverWitness){
-  await d.page.addInitScript(({uid,name,releaseSlot,catalogCutover,receiverWitness,p0bRegistry})=>{const raw=Storage.prototype.getItem;window.readNormalSource=key=>raw.call(localStorage,key);const prepare=()=>{
+  await d.page.addInitScript(({uid,name,releaseSlot,catalogCutover,receiverWitness,p0bRegistry,realMainAuth})=>{const raw=Storage.prototype.getItem;window.readNormalSource=key=>raw.call(localStorage,key);const prepare=()=>{
    const emulatorCatalogWitness=receiverWitness||JSON.parse(sessionStorage.getItem('synthetic-catalog-cutover')||'null');
    const config={p0bDemo:p0bRegistry&&!releaseSlot,name:'meble-lf-test-normal-'+name,async connections(input){
     window.normalMainContext=input;
@@ -207,25 +208,26 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
      },
      getDocFromServer(ref){countRead(ref);return f.getDocFromServer(ref);},
      async getDocsFromServer(query){budget.queries++;const rows=await f.getDocsFromServer(query);budget.documents+=rows.size;return rows;},
-     runTransaction(db,run,options,rpc){budget.transactions++;let quoteHeadWrite=false,roomHeadWrite=null,roomEditorRead=null;return f.runTransaction(db,tx=>{
+     runTransaction(db,run,options,rpc){budget.transactions++;let quoteHeadWrite=false,roomHeadWrite=null,roomEditorRead=null,visitWrite=null,transactionWrites=0;return f.runTransaction(db,tx=>{
       budget.attempts++;
       return run({
        get(ref){countRead(ref);const collection=ref.parent.id;if(collection==='p0bRoomEditors')roomEditorRead=ref.id;if(rpc&&!rpc.collections.includes(collection))rpc.collections.push(collection);return tx.get(ref);},
-       set(...args){budget.writes++;if(args[0]?.parent?.id==='p0bRoomQuotes')quoteHeadWrite=true;if(args[0]?.parent?.id==='p0bRoomProjects')roomHeadWrite=args[0].id;return tx.set(...args);}
+       set(...args){budget.writes++;transactionWrites++;if(args[0]?.parent?.id==='p0bRoomQuotes')quoteHeadWrite=true;if(args[0]?.parent?.id==='p0bRoomProjects')roomHeadWrite=args[0].id;if(args[0]?.parent?.id==='p0bRoomInvestors'&&Object.keys(args[1]?.visits||{}).length)visitWrite={generation:args[1].generation,visits:args[1].visits};return tx.set(...args);}
       });
      },options).then(async value=>{
       if(roomEditorRead&&window.normalPauseRoomPreparation===roomEditorRead&&db.app.name.startsWith('meble-sync-reader-')){window.normalPauseRoomPreparation=null;window.normalRoomPreparationHeld=true;await new Promise(resolve=>window.normalContinueRoomPreparation=resolve);}
 
       if(roomHeadWrite&&window.normalHoldStatusHead===roomHeadWrite){window.normalHoldStatusHead=null;window.normalStatusHeadCommitted=true;await new Promise(resolve=>window.normalReleaseStatusHead=resolve);}
       // Lose delivery only AFTER the real emulator head transaction commits.
+      if(transactionWrites===1&&visitWrite&&window.normalLoseVisitAck){window.normalLoseVisitAck=false;window.normalVisitCommitted=visitWrite;throw Object.assign(Error('LF_TEST_VISIT_ACK_LOST'),{code:'LF_TEST_VISIT_ACK_LOST'});}
       if(quoteHeadWrite&&window.normalLoseQuoteAck){window.normalLoseQuoteAck=false;window.normalQuoteHeadCommitted=true;await new Promise(resolve=>window.normalReleaseQuoteAckLoss=resolve);throw Object.assign(Error('LF_TEST_QUOTE_ACK_LOST'),{code:'LF_TEST_QUOTE_ACK_LOST'});}
       return value;
      });}
     };
     const errors=window.normalSdkErrors=[];const observed={...measured};for(const key of ['runTransaction','getDocFromServer','getDocsFromServer'])observed[key]=(...args)=>{const began=performance.now(),pending=window.normalPendingRpc||(window.normalPendingRpc=[]),rpc={method:key,app:args[0]?.app?.name,collections:[]};pending.push(rpc);let result;try{result=key==='runTransaction'?measured[key](args[0],args[1],args[2],rpc):measured[key](...args);}catch(error){pending.splice(pending.indexOf(rpc),1);throw error;}const completed=()=>{pending.splice(pending.indexOf(rpc),1);const log=window.normalRpcTimeline||(window.normalRpcTimeline=[]);log.push({...rpc,ms:Math.round(performance.now()-began)});if(log.length>12)log.shift();};result.then(completed,completed);result.catch(error=>{errors.push({method:key,code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();});if(key==='runTransaction'&&window.holdOldReader===args[0]?.app?.name&&!window.normalReadArmed){window.normalReadArmed=true;return result.then(value=>{window.normalHeldRead=true;return new Promise(resolve=>window.releaseOldRead=()=>resolve(value));});}return result;};
     const config={projectId:'demo-meble-app',apiKey:'demo-only',authDomain:'demo-meble-app.firebaseapp.com',appId:'demo-only'};
-    let session=null,lease=null;
-    if(input.authSession){
+    let session=realMainAuth?input.authSession:null,lease=realMainAuth?input.lease:null;
+    if(input.authSession&&!realMainAuth){
      const name='normal-auth-'+crypto.randomUUID();
      session=await window.FC.cloudAuth.create({target:'emulator',appName:name,firebaseConfig:config,
        emulator:{host:'127.0.0.1',port:19099,firestorePort:18080},sessionOnly:true,sdk:{app,auth,firestore:f}});
@@ -243,7 +245,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
      return timer;
     };
     let connections;
-    try{connections=await createApplicationConnections({window,authSession:session,lease,release:input.release,sdk:{app,auth,firestore:observed},
+    try{connections=await createApplicationConnections({window,authSession:session,lease,renewLease:realMainAuth?input.renewLease:undefined,release:input.release,sdk:{app,auth,firestore:observed},
       localAccess:{...input.localAccess,firebaseConfig:config,target:'emulator',emulator:{host:'127.0.0.1',port:19099,firestorePort:18080}}});}
     finally{window.setInterval=setIntervalOriginal;}
     for(const conn of [connections.writer,connections.reader]){const assert=conn.assertAccess;conn.assertAccess=()=>{try{return assert();}catch(error){errors.push({method:'assertAccess',code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();throw error;}};}
@@ -253,7 +255,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
    }};
    if(catalogCutover)Object.assign(config,{localOnly:!emulatorCatalogWitness,firstCatalogSync:!!emulatorCatalogWitness,emulatorCatalogWitness});
    if(releaseSlot){config.envelope={...releaseSlot.envelope,publicKeySpki:new Uint8Array(releaseSlot.envelope.publicKeySpki),signature:new Uint8Array(releaseSlot.envelope.signature)};config.trustedKeySha256=releaseSlot.trustedKeySha256;window.normalReleaseReady=window.FC.applicationStartup.configureReleaseEmulator(config);}else window.FC.applicationStartup.configureEmulator(config);
-  };if(releaseSlot){const fc=window.FC=window.FC||{};Object.defineProperty(fc,'applicationStartup',{configurable:true,set(value){Object.defineProperty(fc,'applicationStartup',{configurable:true,writable:true,value});prepare();}});}else document.addEventListener('DOMContentLoaded',prepare,{once:true});},{uid,name:d.name,releaseSlot,catalogCutover,receiverWitness,p0bRegistry});
+  };if(releaseSlot){const fc=window.FC=window.FC||{};Object.defineProperty(fc,'applicationStartup',{configurable:true,set(value){Object.defineProperty(fc,'applicationStartup',{configurable:true,writable:true,value});prepare();}});}else document.addEventListener('DOMContentLoaded',prepare,{once:true});},{uid,name:d.name,releaseSlot,catalogCutover,receiverWitness,p0bRegistry,realMainAuth});
  }
  async function enable(d){await configure(d);await d.page.reload();await login(d);}
  async function restartProbe(d,{crash=false}={}){

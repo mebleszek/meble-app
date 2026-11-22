@@ -159,9 +159,16 @@
       emulator:window.FC_AUTH_TEST_OPTIONS?.emulator,
       deny(){void trust.revoke();localSession.lock('AUTH_ACCESS_REVOKED');},
       assert(){localSession.assert(ownerUid);profile.assert(ownerUid);assert();}}};
-    if(renewLease){let pending;context.renewLease=()=>pending||=(async()=>{
-      const grant=await renewLease();context.lease=grant;delete context.renewLease;return grant;
-    })();}
+    if(renewLease||context.localAccess.mode==='desktop'){
+      const identity=auth.identity(),localEpoch=localSession.identity().epoch;let pending,initial=renewLease;
+      context.renewLease=()=>pending||=(async()=>{
+        context.localAccess.assert();const current=auth.identity(),local=localSession.identity();
+        if(current.uid!==identity.uid||current.epoch!==identity.epoch||local.epoch!==localEpoch)throw Error('AUTH_ACCOUNT_CHANGED');
+        const first=initial;initial=null;
+        const grant=first?await first():lease?.isValid()?lease:await renewStartupLease(identity,localEpoch);
+        grant.assert();context.lease=grant;return grant;
+      })().finally(()=>{pending=null;});
+    }
     return context;
   }
   async function loadBusiness(grant,intent,restoring=false){
@@ -256,8 +263,9 @@
         }else trustControls();
   }
   async function renewStartupLease(identity,localEpoch){
+    const resuming=started;
     const check=()=>{assert();const current=auth.identity(),local=localSession.identity();
-      if(fatal||!starting||started||localSession.mode()!=='desktop'||current.uid!==identity.uid||current.epoch!==identity.epoch||local.uid!==identity.uid||local.epoch!==localEpoch)throw Object.assign(Error(),{code:'AUTH_ACCOUNT_CHANGED'});};
+      if(fatal||started!==resuming||!resuming&&!starting||localSession.mode()!=='desktop'||current.uid!==identity.uid||current.epoch!==identity.epoch||local.uid!==identity.uid||local.epoch!==localEpoch)throw Object.assign(Error(),{code:'AUTH_ACCOUNT_CHANGED'});};
     check();gate?.close();
     return new Promise((resolve,reject)=>{
       let next,settled=false,creating=true;

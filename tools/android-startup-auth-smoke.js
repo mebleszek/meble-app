@@ -34,12 +34,12 @@ function startup(w,connect){
   const result=await connect(input);calls.authorized=result.writer.lease.isValid();return result;
  }});return calls;
 }
-function desktop(connect,mode='ok'){let release,renew,invalidate,completeProof,attempts=0,aborts=0,calls;const r=world({},null,{realAuth:true,beforeMain(w){
- const create=w.FC.cloudAccessVerifier.create;w.FC.cloudAccessVerifier.create=(...args)=>{const verifier=create(...args);return {...verifier,async verify(id){attempts++;if(attempts>1){if(mode==='unavailable')throw Error('AUTH_ACCESS_UNCONFIRMED');if(mode==='denied')return {ok:false,denied:true};if(mode==='pending'){const proof=await verifier.verify(id);return new Promise(resolve=>{completeProof=async()=>{resolve(proof);};});}}return verifier.verify(id);},watch(id,reply){invalidate=reply;renew=()=>verifier.verify(id).then(reply);return()=>{};}};};
+function desktop(connect,mode='ok'){let proofMode=mode,release,renew,invalidate,completeProof,attempts=0,aborts=0,calls;const r=world({},null,{realAuth:true,beforeMain(w){
+ const create=w.FC.cloudAccessVerifier.create;w.FC.cloudAccessVerifier.create=(...args)=>{const verifier=create(...args);return {...verifier,async verify(id){attempts++;if(attempts>1){if(proofMode==='unavailable')throw Error('AUTH_ACCESS_UNCONFIRMED');if(proofMode==='denied')return {ok:false,denied:true};if(proofMode==='pending'){const proof=await verifier.verify(id);return new Promise(resolve=>{completeProof=async()=>{resolve(proof);};});}}return verifier.verify(id);},watch(id,reply){invalidate=reply;renew=()=>verifier.verify(id).then(reply);return()=>{};}};};
  const createAuth=w.FC.cloudAuth.create;w.FC.cloudAuth.create=async options=>{const session=await createAuth(options);w.startupAuth=session;return session;};
  const sdk=connectionSdk(w);calls=startup(w,input=>connect({window:w,...input,sdk}));
  w.FC.mainBusinessLoader={create:()=>({start:()=>new Promise(resolve=>{release=resolve;}),abort(){aborts++;}})};
- }});return {...r,get authCreates(){return r.authCreates;},get calls(){return calls;},get release(){return release;},get aborts(){return aborts;},get attempts(){return attempts;},get completeProof(){return completeProof;},renew:()=>renew(),offline:()=>invalidate({ok:false}),deny:()=>invalidate({ok:false,denied:true})};}
+ }});return {...r,setProofMode(value){proofMode=value;},get authCreates(){return r.authCreates;},get calls(){return calls;},get release(){return release;},get aborts(){return aborts;},get attempts(){return attempts;},get completeProof(){return completeProof;},renew:()=>renew(),offline:()=>invalidate({ok:false}),deny:()=>invalidate({ok:false,denied:true})};}
 async function begin(r){await until(()=>r.nodes['auth-google']?.disabled===false);r.input('click','auth-google');await until(()=>r.release);r.w.projectData={unsaved:'SYNTHETIC_EXACT_RAM'};}
 async function main(){
  const {createApplicationConnections:connect}=await import('../sync/application-connections.mjs');
@@ -62,8 +62,40 @@ async function main(){
  const expired=desktop(connect);try{await begin(expired);expired.advance(46000);assert.equal(expired.w.__FC_MAIN_ACCESS__.isValid(),true);assert.equal(expired.aborts,0);expired.release();await until(()=>expired.ready());
   assert.equal(expired.attempts,2);assert.equal(expired.calls.authorized,true);assert.equal(expired.calls.runtime,1);assert.equal(expired.w.popupCalls,1);assert.equal(expired.authCreates,1);assert.equal(expired.w.FC.applicationStartup.diagnostics().firstError,null);
   await expired.w.FC.applicationStartup.refresh();assert.equal(expired.calls.resumes,1);assert.equal(expired.calls.connections,2);assert.equal(expired.attempts,2);assert.equal(expired.w.FC.applicationStartup.diagnostics().firstError,null);
+  const beforeResume=[...expired.shared.rows],ram=structuredClone(expired.w.projectData);
+  expired.offline();assert.equal(expired.w.__FC_MAIN_ACCESS__.isValid(),true,'Background proof loss must preserve the still-valid local desktop session');
+  await Promise.all([expired.w.FC.applicationStartup.refresh(),expired.w.FC.applicationStartup.refresh()]);
+  assert.equal(expired.attempts,3,'Foreground must obtain one fresh server proof after the old cloud gate stopped');
+  assert.equal(expired.calls.resumes,2);assert.equal(expired.calls.runtime,1);assert.equal(expired.w.popupCalls,1);assert.equal(expired.authCreates,1);
+  assert.deepEqual(expired.w.projectData,ram);for(const [key,raw]of beforeResume)if(key.startsWith('fc_'))assert.equal(expired.shared.rows.get(key),raw);
+  expired.offline();await expired.w.FC.applicationStartup.refresh();assert.equal(expired.attempts,4,'The reconnect proof callback must remain renewable for later background cycles');
  }finally{expired.close();}
  console.log('PASS expired initial grant is freshly verified on the same Auth after loading, one startup/popup and unchanged 45s bound');
+ for(const mode of ['unavailable','denied','offline','account','epoch','timeout']){
+  const r=desktop(connect);try{
+   await begin(r);r.release();await until(()=>r.ready());
+   const before=[...r.shared.rows],ram=structuredClone(r.w.projectData),resumes=r.calls.resumes;
+   r.offline();
+   r.setProofMode(['account','epoch','timeout'].includes(mode)?'pending':mode);
+   if(mode==='offline')r.w.navigator.onLine=false;
+   const pending=r.w.FC.applicationStartup.refresh();
+   if(['account','epoch','timeout'].includes(mode)){
+    await until(()=>r.completeProof);
+    if(mode==='timeout')r.advance(10001);
+    else {const a=r.w.startupAuth.verificationContext().auth,user=a.currentUser;
+     a.currentUser=mode==='account'?{uid:'foreign-owner',providerData:[{providerId:'google.com'}]}:null;for(const fn of a.listeners)fn(a.currentUser);
+     if(mode==='epoch'){a.currentUser=user;for(const fn of a.listeners)fn(user);}
+    }
+    await r.completeProof();
+   }
+   await assert.rejects(pending);assert.equal(r.calls.resumes,resumes,'No runtime rebind without a fresh same-identity proof');
+   assert.deepEqual(r.w.projectData,ram);for(const [key,raw]of before)if(key.startsWith('fc_'))assert.equal(r.shared.rows.get(key),raw);
+   assert.equal(r.w.popupCalls,1,'A reconnect must never start an implicit Google login');
+   if(mode==='denied')assert.equal(r.w.__FC_MAIN_ACCESS__.isValid(),false);
+   if(mode==='unavailable'){r.setProofMode('ok');await r.w.FC.applicationStartup.refresh();assert.equal(r.calls.resumes,resumes+1,'A later explicit lifecycle proof may recover uncertainty');}
+  }finally{r.close();}
+ }
+ console.log('PASS desktop reconnect: uncertainty/offline/denial/timeout and late changed identity refuse rebind, preserve RAM/data and never initiate a popup');
  for(const mode of ['unavailable','denied','pending','account','epoch']){
   const r=desktop(connect,['account','epoch'].includes(mode)?'pending':mode);try{await begin(r);r.advance(46000);r.release();await until(()=>r.attempts===2);
    if(mode==='pending'){await until(()=>r.completeProof);r.advance(10001);await until(()=>!r.w.__FC_MAIN_ACCESS__.isValid());await r.completeProof();}

@@ -8,6 +8,15 @@ const units=shards.units(names),groups=shards.plan(names),all=groups.flat();
 assert.equal(shards.SHARDS,36);
 assert.equal(shards.weight('startup-assets-browser-smoke.js'),65000,'Startup inactivity checks must not be packed as an unmeasured 1-second test');
 assert.equal(groups.length,shards.SHARDS);
+const batches=require('./ci-smoke-batches');
+assert.equal(batches.plan().length,24);
+assert.deepEqual(batches.plan().flat().sort((a,b)=>a-b),Array.from({length:36},(_,i)=>i+1));
+for(const [index,batch]of batches.plan().entries()){
+ assert.deepEqual(batches.select(index+1),batch);assert.ok(batch.length<=2);
+ if(index<12)assert.deepEqual(batch,[index+1],'Heavy shards retain isolated runners');
+ else assert.ok(batch.reduce((sum,id)=>sum+groups[id-1].reduce((n,unit)=>n+shards.weight(unit),0),0)<100000,'Paired smoke budget drift requires replanning');
+}
+for(const bad of [0,25,-1,1.5,NaN])assert.throws(()=>batches.select(bad),/CI_SMOKE_BATCH_INVALID/);
 const norms=require('./wycena-labor-norms-smoke');
 assert.equal(norms.tests.length,shards.PARTS['wycena-labor-norms-smoke.js'],'Every existing norm case has its own mandatory partition');
 
@@ -49,7 +58,7 @@ const p0b=require('./p0b-ci-plan').plan(path.join(__dirname,'firebase-pilot'));
 const p0bFlow=flow.slice(flow.indexOf('  firebase-p0b:'),flow.indexOf('  firebase-current:'));
 const p0bMatrix=/segment: \[([^\]]+)\]/.exec(p0bFlow)[1].split(',').map(s=>s.trim());
 assert.deepEqual(p0bMatrix,p0b.map(row=>row.id));
-assert.equal(p0b.flatMap(row=>row.names).length,43);
+assert.equal(p0b.flatMap(row=>row.names).length,47);
 assert.ok(p0bFlow.includes('--p0b=${{ matrix.segment }}'));
 assert.ok(flow.includes('needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b, documents]'));
 assert.ok(flow.includes('const names=["safety","firebase-current-shards","playwright-sync-ui","firebase-p0b"];'));

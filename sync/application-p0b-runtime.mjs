@@ -12,10 +12,11 @@ import {projectApplicationRows} from './application-replication.mjs';
 import {openProjectRecovery} from './local-first-recovery-view.mjs';
 import {copy,equal,fail,digest,id} from './local-first-values.mjs';
 export async function createP0BRuntime({window:w,writer,reader,store,getAuthority,getSync,getGlobals,backupKeys,onError}){
- const fc=w.FC,presence=applicationPresence(fc),protocol=writer?createP0BProtocol(p0bConnection(writer),store.deviceId):null,remoteReader=reader?p0bConnection(reader):null,remoteWriter=writer?p0bConnection(writer):null;
+ let closed=false;
+ const fc=w.FC,presence=applicationPresence(fc),protocol=writer?createP0BProtocol(p0bConnection(writer),store.deviceId,()=>{if(closed)fail('LF_CLOSED');}):null,remoteReader=reader?p0bConnection(reader):null,remoteWriter=writer?p0bConnection(writer):null;
  const lostEditors=new Map();
  const preferredRooms=new Map();const remembered=await store.readApplication();if(remembered){const ui=JSON.parse(remembered.rows.fc_ui_v1||'{}');if(remembered.rows.fc_current_project_id_v1&&(ui.roomType||ui.lastRoomType))preferredRooms.set(remembered.rows.fc_current_project_id_v1,ui.roomType||ui.lastRoomType);}
- const contactScopes=new Map(),projectOwners=new Map(),heartbeats=new Map();let closed=false,working=null,deletionJournal=null,deletionAdapter=null,deletionPending=false,deletionGeneration=0,recoveryOffered=false;
+ const contactScopes=new Map(),projectOwners=new Map(),heartbeats=new Map();let working=null,deletionJournal=null,deletionAdapter=null,deletionPending=false,deletionGeneration=0,recoveryOffered=false;
  const online=()=>!!protocol&&!closed&&w.navigator.onLine!==false;
  const assertAccess=()=>{w.__FC_MAIN_ACCESS__.assert();writer?.assertAccess();reader?.assertAccess();if(closed)fail('LF_CLOSED');};
  const label=()=>fc.localDeviceLabel?.display?.()||fc.localDeviceLabel?.read()||'';
@@ -168,8 +169,7 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
  }
  async function changeVisit(next,previous){
   if(!online())return;
-  if(next){const record=await protocol.investor(next);if(!record||record.deletionId)fail('LF_P0B_REGISTRY_REQUIRED');
-   if(!await protocol.recoverOwnVisit(next))await protocol.openInvestor(next,crypto.randomUUID(),label());}
+  if(next)await protocol.ensureInvestorVisit(next,label());
   if(previous&&previous!==next){const record=await protocol.investor(previous);if(record?.deletionId)return;const visit=await protocol.recoverOwnVisit(previous);if(visit)await protocol.closeInvestor(previous,visit.token);}
  }
  async function checkpoint(application,perform){
