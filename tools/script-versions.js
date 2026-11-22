@@ -55,7 +55,7 @@ const versions = Object.freeze({
   "js/app/pricing/labor-work-plan.js":"20261108_catalog_rule_authority_v1",
   "js/tabs/czynnosci.js":"20261107_delivery_services_v1",
   "js/app/cabinet/cabinet-actions.js":"20261114_cabinet_drafts_v1",
-  "js/app/quote/quote-offer-store.js":"20261118_room_quote_v1",
+  "js/app/quote/quote-offer-store.js":"20261122_quote_prepare_v1",
   "js/app/rozrys/rozrys-pickers.js":"20261106_local_first_room_actions_v1",
   "js/app/wycena/wycena-tab-selection-pickers.js":"20261115_ci_navigation_repair_v1",
   "js/app/project/project-store.js":"20261118_room_quote_v1",
@@ -124,7 +124,7 @@ const versions = Object.freeze({
   "js/app/quote/quote-snapshot-store.js":"20261121_duplicate_refresh_v1",
   "js/app/wycena/wycena-tab-selection-version.js":"20260628_drawer_systems_materials_v1",
   "js/app/wycena/wycena-diagnostics.js":"20261019_project_context",
-  "js/app/wycena/wycena-tab-shell.js":"20261115_e1_durable_settings_v1"
+  "js/app/wycena/wycena-tab-shell.js":"20261122_quote_settle_v1"
 });
 const authVersions=Object.freeze({
   "js/app/cloud/main-business-loader.js":"20261122_startup_asset_wait_v1",

@@ -261,6 +261,16 @@
     return commitSettings(scope,()=>patchDraft(patch,scope));
   }
 
+  async function prepareGeneration(){
+    const scope=makeScope(),writer=FC.applicationWrite;
+    const saved=lastSettings?.projectId===scope.projectId&&lastSettings.investorId===scope.investorId?await lastSettings.result:true;
+    if(!saved||FC.applicationWrite!==writer||JSON.stringify(makeScope())!==JSON.stringify(scope))return false;
+    if(writer?.registry!=='p0b-rooms-v1'||readLocalDraftRows().some(row=>row?.projectId===scope.projectId))return true;
+    // A received frozen offer has no device-local settings row. Establish its
+    // validated defaults separately; the history commit still permits naming only.
+    return commitSettings(scope,()=>saveDraft(getDraft(scope),scope));
+  }
+
   function clearDraft(scope){
     const resolved = makeScope(scope && scope.projectId, scope && scope.investorId);
     const list = readAll();
@@ -286,6 +296,7 @@
     patchDraft,
     commitSettings,
     saveSettings,
+    prepareGeneration,
     settingsSettled(){
       const scope=makeScope();
       return lastSettings?.projectId===scope.projectId&&lastSettings.investorId===scope.investorId?lastSettings.result:true;

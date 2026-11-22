@@ -21,6 +21,7 @@ function runtime(){
  return {s,FC,state,count,deps,run:()=>FC.wycenaTabShell.generateQuote({},deps,{source:'performance-regression'})};
 }
 const math=value=>JSON.stringify(value,(key,value)=>['generatedAt','generatedDate','diagnostics','performance','__projectPcvCandidate'].includes(key)?undefined:value);
+
 test('Name-only change reuses real calculation and rebuilds final metadata',async()=>{
  const r=runtime();await r.run();assert.equal(r.state.lastQuote?.error,undefined,JSON.stringify(r.state));assert.equal(r.count.collect,1);
  const saved=r.FC.quoteSnapshotStore.listForProject('A');assert.equal(saved.length,1);assert.equal(saved[0].commercial.versionName,'After');
@@ -105,4 +106,22 @@ test('Delegation consumes a delayed synthetic click but accepts a new modal gest
  fire('click',action,0);assert.equal(calls,4,'keyboard click remains a single ordinary document dispatch');
 });
 
+test('Generate waits for a pending local write, deduplicates gestures and never restores a deleted preview',async()=>{
+ for(const changeOwner of [false,true]){
+  const r=runtime();let release,notified,calls=0,prepared=0;
+  const idle=new Promise(resolve=>release=resolve),notice=new Promise(resolve=>notified=resolve);
+  r.state.lastQuote={id:'deleted'};r.state.previewSnapshotId='deleted';
+  r.FC.infoBox={open:notified};r.FC.quoteOfferStore.prepareGeneration=async()=>{prepared++;return true;};
+  r.FC.applicationWrite={whenIdle:()=>idle,async project(){calls++;throw Error('LF_IDB_ABORTED');}};
+  const h=()=>({appendChild(){},setAttribute(){},addEventListener(){}});
+  r.FC.wycenaTabShell.renderTopbar(h(),{},null,{...r.deps,h});
+  r.FC.wycenaGenerateAction.run();r.FC.wycenaGenerateAction.run();
+  await Promise.resolve();assert.equal(calls,0);
+  r.state.lastQuote=null;r.state.previewSnapshotId='';
+  if(changeOwner)r.FC.investors.setCurrentId('inv-B');
+  release();await notice;
+  assert.equal(calls,changeOwner?0:1);assert.equal(prepared,changeOwner?0:1);
+  assert.equal(r.state.lastQuote,null);assert.equal(r.state.previewSnapshotId,'');
+ }
+});
 (async()=>{const split=require('./ci-test-parts').select(4);let fail=0,executed=0;for(const[index,[name,fn]]of tests.entries()){if(!split.includes(index))continue;executed++;try{await fn();console.log('PASS '+name);}catch(e){fail++;console.error('FAIL '+name+'\n'+e.stack);}}split.verify(executed,tests.length);console.log(`Quote performance: ${executed-fail}/${executed} PASS, ${fail} FAIL`);process.exitCode=fail?1:0;})().catch(e=>{console.error(e);process.exitCode=1;});

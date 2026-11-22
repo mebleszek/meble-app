@@ -54,9 +54,9 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   }
   if(await d.page.locator('#auth-profile-admission').isVisible()){await d.page.check('#auth-profile-backup');await d.page.check('#auth-profile-owner');await d.page.click('#auth-profile-confirm');}
   try{await d.page.waitForFunction(()=>document.body.dataset.businessState==='ready');}catch(error){throw Error(error.message+' '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,error:document.getElementById('auth-error')?.textContent,app:document.getElementById('app-error-msg')?.textContent}))));}}
- async function device(name,{prepareStatic=false}={}){
+ async function device(name,{prepareStatic=false,configureFirst=false}={}){
   const owner=await startBrowser({profileDir:path.join(dir,name)}),browser=await chromium.connectOverCDP(owner.endpoint),page=browser.contexts()[0].pages()[0];
-  const d={owner,browser,page,name};devices.push(d);await page.addInitScript({content:authInjection});if(deployment&&name==='computer'){await configure(d);await page.goto(origin+'/index.html');if(prepareStatic)await page.evaluate(async()=>{await window.FC.offlineShell.prepare();await indexedDB.databases();});await login(d);return d;}await page.goto(origin+'/index.html');await login(d);
+  const d={owner,browser,page,name};devices.push(d);await page.addInitScript({content:authInjection});if(deployment&&(name==='computer'||configureFirst)){await configure(d);await page.goto(origin+'/index.html');if(prepareStatic)await page.evaluate(async()=>{await window.FC.offlineShell.prepare();await indexedDB.databases();});await login(d);return d;}await page.goto(origin+'/index.html');await login(d);
   await page.evaluate(({catalogs,sources})=>{for(const [domain,value]of Object.entries(catalogs))for(const key of sources[domain])localStorage.setItem(key,JSON.stringify(domain==='stock'?{sheets:value}:value));},{catalogs,sources});
   await page.evaluate(()=>window.FC.offlineShell.prepare());return d;
  }

@@ -34,9 +34,36 @@ test('application write boundary reserves one operation before asynchronous edit
  const authority={async transaction(kind,fn){calls++;const value=await fn();await commit;return value;}};
  const bound=installApplicationWriteBoundary({window:w,authority,ensureEditor:()=>editor});
  const first=w.FC.applicationWrite.project(()=>true).then(v=>{settled=true;return v;});
+ let idle=false;const waiting=w.FC.applicationWrite.whenIdle().then(()=>{idle=true;});
  await assert.rejects(w.FC.applicationWrite.globals(()=>true),/APPLICATION_BUSY/);assert.equal(calls,0);
- editorReady();await new Promise(resolve=>setImmediate(resolve));assert.equal(calls,1);assert.equal(settled,false);
- commitReady();assert.equal(await first,true);assert.equal(settled,true);bound.close();assert.equal(w.FC.applicationWrite,undefined);
+ editorReady();await new Promise(resolve=>setImmediate(resolve));assert.equal(calls,1);assert.equal(settled,false);assert.equal(idle,false);
+ commitReady();assert.equal(await first,true);await waiting;assert.equal(idle,true);assert.equal(settled,true);bound.close();assert.equal(w.FC.applicationWrite,undefined);
+});
+test('write completion releases waiters after an abort without running success callbacks',async()=>{
+ let release,called=0;const gate=new Promise(resolve=>release=resolve),w={FC:{}};
+ const bound=installApplicationWriteBoundary({window:w,authority:{async transaction(){await gate;throw Error('LF_IDB_ABORTED');}},ensureEditor:async()=>{}});
+ const save=w.FC.applicationWrite.project(()=>true);w.FC.applicationWrite.afterCommit(()=>called++);
+ const wait=w.FC.applicationWrite.whenIdle();release();await assert.rejects(save,/LF_IDB_ABORTED/);await wait;
+ assert.equal(called,0);assert.equal(bound.busy(),false);bound.close();
+});
+test('quote generation prepares missing local defaults through the scoped durable settings writer',async()=>{
+ for(const mode of ['missing','existing','abort','changed-owner']){
+  const rows=new Map(),scope={projectId:'room',investorId:'investor'};let calls=0;
+  const w={FC:{storage:{getRaw:key=>rows.get(key)??null,getJSON:(key,fallback)=>rows.has(key)?JSON.parse(rows.get(key)):fallback,setJSON(key,value){rows.set(key,JSON.stringify(value));return true;}},projectStore:{getCurrentProjectId:()=>scope.projectId},investors:{getCurrentId:()=>scope.investorId}}};
+  vm.runInNewContext(read('js/app/quote/quote-offer-store.js'),{window:w,Date,JSON});
+  const api=w.FC.quoteOfferStore;
+  const foreign={projectId:'other',investorId:'other-owner',unknown:{preserve:true}};
+  const existing=api.normalizeDraft({commercial:{customerNote:'Retain existing terms'}},scope);
+  rows.set(api.DRAFT_KEY,JSON.stringify(mode==='existing'?[foreign,existing]:[foreign]));const before=rows.get(api.DRAFT_KEY);
+  w.FC.applicationWrite={registry:'p0b-rooms-v1',offerDraft:async fn=>{calls++;if(mode==='abort')throw Error('LF_IDB_ABORTED');if(mode==='changed-owner')scope.projectId='other';return fn();}};
+  if(mode==='abort')await assert.rejects(api.prepareGeneration(),/LF_IDB_ABORTED/);
+  else assert.equal(!!await api.prepareGeneration(),mode!=='changed-owner');
+  if(mode==='missing'){
+   const saved=JSON.parse(rows.get(api.DRAFT_KEY));assert.equal(saved.length,2);assert.deepEqual(saved.find(row=>row.projectId==='other'),foreign);
+   assert.equal(saved.find(row=>row.projectId==='room').commercial.discountAmount,0);assert.equal(calls,1);
+   assert.equal(!!await api.prepareGeneration(),true);assert.equal(calls,1,'Existing settings are never rewritten by generation');
+  }else assert.equal(rows.get(api.DRAFT_KEY),before);
+ }
 });
 test('central registry preserves promise completion only for installed lifecycle; ordinary actions retain boolean contract',async()=>{
  const w={FC:{}};vm.runInNewContext(read('js/core/actions.js'),{window:w});let calls=0;

@@ -9,12 +9,21 @@ assert.equal(shards.SHARDS,36);
 assert.equal(shards.weight('startup-assets-browser-smoke.js'),65000,'Startup inactivity checks must not be packed as an unmeasured 1-second test');
 assert.equal(groups.length,shards.SHARDS);
 const batches=require('./ci-smoke-batches');
+const calibrated=batches.weights();assert.ok(calibrated.every(row=>Number.isSafeInteger(row.ms)&&row.ms>0),'Every group retains a measured or conservative fallback budget');
+const heavy=calibrated.slice().sort((a,b)=>b.ms-a.ms||a.id-b.id).slice(0,12).map(row=>row.id);
 assert.equal(batches.plan().length,24);
 assert.deepEqual(batches.plan().flat().sort((a,b)=>a-b),Array.from({length:36},(_,i)=>i+1));
 for(const [index,batch]of batches.plan().entries()){
  assert.deepEqual(batches.select(index+1),batch);assert.ok(batch.length<=2);
- if(index<12)assert.deepEqual(batch,[index+1],'Heavy shards retain isolated runners');
- else assert.ok(batch.reduce((sum,id)=>sum+groups[id-1].reduce((n,unit)=>n+shards.weight(unit),0),0)<100000,'Paired smoke budget drift requires replanning');
+ if(index<12)assert.deepEqual(batch,[heavy[index]],'Measured heavy shards retain isolated runners');
+ else assert.ok(batch.reduce((sum,id)=>sum+calibrated.find(row=>row.id===id).ms,0)<100000,'Paired smoke budget drift requires replanning');
+}
+const observed=require('./ci-smoke-run-times-1382.json');
+const stale=structuredClone(observed);stale.groups[0].unitSha256='0'.repeat(64);
+const fallback=batches.weights(stale)[0];assert.equal(fallback.matched,false);
+assert.equal(fallback.ms,groups[0].reduce((sum,unit)=>sum+shards.weight(unit),0),'Changed assignment cannot reuse an unrelated timing');
+for(const change of [rows=>rows.pop(),rows=>rows[1]=rows[0],rows=>rows[0].elapsedMs=0,rows=>rows[0].unitSha256='invalid']){
+ const source=structuredClone(observed);change(source.groups);assert.throws(()=>batches.weights(source),/CI_SMOKE_TIMING_PROFILE_INVALID/);
 }
 for(const bad of [0,25,-1,1.5,NaN])assert.throws(()=>batches.select(bad),/CI_SMOKE_BATCH_INVALID/);
 const norms=require('./wycena-labor-norms-smoke');
@@ -58,7 +67,7 @@ const p0b=require('./p0b-ci-plan').plan(path.join(__dirname,'firebase-pilot'));
 const p0bFlow=flow.slice(flow.indexOf('  firebase-p0b:'),flow.indexOf('  firebase-current:'));
 const p0bMatrix=/segment: \[([^\]]+)\]/.exec(p0bFlow)[1].split(',').map(s=>s.trim());
 assert.deepEqual(p0bMatrix,p0b.map(row=>row.id));
-assert.equal(p0b.flatMap(row=>row.names).length,47);
+assert.equal(p0b.flatMap(row=>row.names).length,50);
 assert.ok(p0bFlow.includes('--p0b=${{ matrix.segment }}'));
 assert.ok(flow.includes('needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b, documents]'));
 assert.ok(flow.includes('const names=["safety","firebase-current-shards","playwright-sync-ui","firebase-p0b"];'));

@@ -13,6 +13,7 @@ import {accessResumeCase} from './p0b-access-resume.cases.mjs';
 import {presenceReconnectCase} from './p0b-presence-reconnect.cases.mjs';
 import {quoteRemovalCase} from './p0b-quote-removal.cases.mjs';
 import {variantsCase} from './p0b-quote-variants.cases.mjs';
+import {phoneQuoteFlow,rapidQuoteRemoval} from './p0b-phone-quote-flow.cases.mjs';
 import {batchingCase} from './p1-project-sync.cases.mjs';
 import {checkpointNativeFixture,nativeFixtureState} from './p0b-fixture-baseline.mjs';
 async function image(device){
@@ -58,8 +59,8 @@ async function addCabinet(device,width){
  await page.locator('#cmWidth').fill(String(width));await page.locator('#cmHeight').fill('82');await page.locator('#cmDepth').fill('50');
  await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
 }
-async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,quoteRemoval=false,accessResume=false,presenceReconnect=false,p1=false}={}){
- await runNormalApplication(t,{deployment,p0bRegistry:true,realMainAuth:presenceReconnect,testOwner:quoteRemoval?'synthetic-quote-removal-'+quoteRemoval+'-owner':presenceReconnect?'synthetic-presence-reconnect-owner':accessResume?'synthetic-background-owner':quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
+async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,quoteRemoval=false,quoteFilm=false,accessResume=false,presenceReconnect=false,p1=false}={}){
+ await runNormalApplication(t,{deployment,p0bRegistry:true,realMainAuth:presenceReconnect,testOwner:quoteFilm?'synthetic-phone-flow-'+quoteFilm+'-owner':quoteRemoval?'synthetic-quote-removal-'+quoteRemoval+'-owner':presenceReconnect?'synthetic-presence-reconnect-owner':accessResume?'synthetic-background-owner':quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
   const artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'meble-p0b-normal-'));
   await phone.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
   try{
@@ -224,7 +225,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     assert.ok(pcv.sources.every(row=>row.projectId===row.roomId));
     if(quotePromotion||quoteStaging){await page.locator('.quote-preliminary-chip').click();await page.waitForFunction(()=>window.FC.quoteOfferStore.settingsSettled());}
     if(quoteStaging)await page.evaluate(()=>window.normalPauseQuoteChunk=true);
-    if(!quoteAcceptance&&!quotePromotion&&!quoteStaging&&!quoteVariants&&!quoteDuplicate&&!quoteRemoval)await page.evaluate(()=>window.normalLoseQuoteAck=true);
+    if(!quoteAcceptance&&!quotePromotion&&!quoteStaging&&!quoteVariants&&!quoteDuplicate&&!quoteRemoval&&!quoteFilm)await page.evaluate(()=>window.normalLoseQuoteAck=true);
     await page.locator('[data-action="wycena-generate"]').click();
     await page.waitForFunction(()=>document.querySelector('[data-quote-history-id]')||document.querySelector('.info-box'));
     const calculationNotice=await page.locator('.info-box').allTextContents();
@@ -242,6 +243,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     const ledger=JSON.parse(written.replicas.find(row=>row.key===queued[0].scope).json);
     assert.equal(ledger.pins[offer.id].find(pin=>pin.projectId===pid).head.currentRevisionId,confirmedHead.currentRevisionId);
     if(quoteRooms.includes(wardrobeId))assert.equal(ledger.pins[offer.id].find(pin=>pin.projectId===wardrobeId).head.currentRevisionId,wardrobeHead.currentRevisionId);
+    if(quoteFilm){await (quoteFilm==='rapid'?rapidQuoteRemoval:phoneQuoteFlow)({t,phone,computer,offer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,showList,projects,openRoom,saveProject,artifacts,restartProbe,device,configure,login});return;}
     if(quoteRemoval){await quoteRemovalCase({t,phone,computer,offer,iid,pid,wardrobeId,image,rows,until,restartProbe,artifacts,showList});return;}
     if(quoteDuplicate){await duplicateCase({t,phone,computer,offer,iid,pid,until,image,rows,artifacts,db,ownerUid,restartProbe,globalBefore});return;}
     if(quoteVariants){await variantsCase({t,phone,computer,offer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,restartProbe,artifacts,globalBefore,env});return;}
@@ -598,3 +600,7 @@ test('P0-B quote removal combined: duplicate then delete and recalculate preserv
 test('P0-B signed desktop presence: untrusted background renews real main lease and room entry',t=>cleanApplication(t,{deployment:true,presenceReconnect:true}));
 
 test('P0-B signed background resume: durable drafts and automatic offline Exit ACK',t=>cleanApplication(t,{deployment:true,accessResume:true}));
+
+test('P0-B phone quote flow: fresh receiver, immediate history and cabinet variant',t=>cleanApplication(t,{deployment:true,quoteProbe:true,quoteFilm:true}));
+
+test('P0-B phone quote flow: calculate overlaps durable deletion without resurrection',t=>cleanApplication(t,{quoteProbe:true,quoteFilm:'rapid'}));

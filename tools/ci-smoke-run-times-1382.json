@@ -1,0 +1,186 @@
+{
+  "head": "a6bc87fc8c0e576716258858e5675e2d47ca11fa",
+  "run": "https://github.com/mebleszek/meble-app/actions/runs/45037457589",
+  "groups": [
+    {
+      "id": 1,
+      "unitSha256": "03a22ae83397ffbca36d9596f91961be457ba2c77fb4f76075c087311708025e",
+      "elapsedMs": 119152
+    },
+    {
+      "id": 2,
+      "unitSha256": "d2ff26b25b5dce623352f15bd731559c46b9a045aa37a8a648644e27d8307064",
+      "elapsedMs": 57519
+    },
+    {
+      "id": 3,
+      "unitSha256": "046331bcf8dd89e0ad8b38c19e4a8cfced15c8a6dda4b9f962052e01472bb176",
+      "elapsedMs": 40137
+    },
+    {
+      "id": 4,
+      "unitSha256": "b1be601b0c3d75cdaa5adc79809b84405a746535b1e43e7cad902534369fc5a3",
+      "elapsedMs": 60462
+    },
+    {
+      "id": 5,
+      "unitSha256": "54cf923e7755f1b37eb4f7d7f59d063d59d77b018933fc1e578d102351c6cdfa",
+      "elapsedMs": 37737
+    },
+    {
+      "id": 6,
+      "unitSha256": "3ec710607e6084c0d2d93755309170906bda468553a22d174e10469c4cebdb02",
+      "elapsedMs": 63973
+    },
+    {
+      "id": 7,
+      "unitSha256": "dd28849fd96ce6a84acedf410111752241efed189a9b087ad8dbf006d06e4418",
+      "elapsedMs": 70155
+    },
+    {
+      "id": 8,
+      "unitSha256": "ae37819faea770c01e5d0ea30bd4df7caca8c1a1d4f53248fdc2aea6b6a25a1d",
+      "elapsedMs": 49547
+    },
+    {
+      "id": 9,
+      "unitSha256": "daa3253728ec493a53a2af544f86d6101e438d628e42d399a059cbd7fd4be199",
+      "elapsedMs": 45714
+    },
+    {
+      "id": 10,
+      "unitSha256": "074e0fb22a3e69fa8c5893633f0191220dccc7c1c63fe484bdab7e9b443dffaf",
+      "elapsedMs": 50867
+    },
+    {
+      "id": 11,
+      "unitSha256": "ac507a14f9f5a4c49efd0826f295f26e9a25c13d473e9aef09634869894ed0dd",
+      "elapsedMs": 49100
+    },
+    {
+      "id": 12,
+      "unitSha256": "8b3d3736d881da9cf7e2d1e4bcb405699a8e5fef7ef9ae1ad2328ae0a464ece9",
+      "elapsedMs": 62357
+    },
+    {
+      "id": 13,
+      "unitSha256": "bb29fa3f506f9b82325a705fb5fb6d4ef9b956a9c2b8f614285929f071c18a49",
+      "elapsedMs": 48877
+    },
+    {
+      "id": 14,
+      "unitSha256": "c267514087c367006a310e19b2ae120c55e56180621dcdf987931220357e3b5f",
+      "elapsedMs": 40695
+    },
+    {
+      "id": 15,
+      "unitSha256": "53e1f9d48d774a9d9b80ddc9d11f0b1a8a85fb2776be2892cae48a033e5509c9",
+      "elapsedMs": 68912
+    },
+    {
+      "id": 16,
+      "unitSha256": "39e0d91850741872c211ed82669f412b19d451e99b83511fcc9ef60da040659b",
+      "elapsedMs": 40037
+    },
+    {
+      "id": 17,
+      "unitSha256": "04b6f223b551bf6fbd66721e0cbd170b54aa5b4230971d1ce98b5a5e54a1a922",
+      "elapsedMs": 53536
+    },
+    {
+      "id": 18,
+      "unitSha256": "9a41cdf1ee26c96cc78ed4b1feb091584f03570521fd50eff0ca5e7a25bbdcd4",
+      "elapsedMs": 52143
+    },
+    {
+      "id": 19,
+      "unitSha256": "980ef3f49cc34ed45f88399b17be336220343076ec66aec3a1aeba2cd0d668ad",
+      "elapsedMs": 49218
+    },
+    {
+      "id": 20,
+      "unitSha256": "dc8d5a9d83aa4538f2b87792f019d3ecb0883d8a46f30f5d6b8cdab8fccf2154",
+      "elapsedMs": 43148
+    },
+    {
+      "id": 21,
+      "unitSha256": "a19f96157c85c60327952107eb316c438de1d178402c77f95b03d52d8cba5ed2",
+      "elapsedMs": 18797
+    },
+    {
+      "id": 22,
+      "unitSha256": "6e06bc8a35f02c9ef38ad1f45c12f77e598636bbbff372d2f8c3b6c6505481a1",
+      "elapsedMs": 50640
+    },
+    {
+      "id": 23,
+      "unitSha256": "0c8ce24836402f57c8d90dd65599251a18b40056f68ad60c00e9daa0a2b22847",
+      "elapsedMs": 41269
+    },
+    {
+      "id": 24,
+      "unitSha256": "0a6c30cca36f4bc0b3f3c1a36408b1859557cfb37610cefd9e666db0aa359533",
+      "elapsedMs": 42391
+    },
+    {
+      "id": 25,
+      "unitSha256": "0fa72d44bc94f86a7e4b806be8c5c7f0f81990f1b6b3919728e76c8497b466b1",
+      "elapsedMs": 33754
+    },
+    {
+      "id": 26,
+      "unitSha256": "2680275f603c7b4a37199b5820b655752c1dbf62e2cd2942e7c1353281b6a88e",
+      "elapsedMs": 29243
+    },
+    {
+      "id": 27,
+      "unitSha256": "4a3d8b976cc142db3b1c49ec05866889caa7e77c20d80e0c504cd02290afa143",
+      "elapsedMs": 49821
+    },
+    {
+      "id": 28,
+      "unitSha256": "fdea9b6fbd109528227e1aa667ee584811a35aa8f4f2c66a7acea11a2036df43",
+      "elapsedMs": 32185
+    },
+    {
+      "id": 29,
+      "unitSha256": "bd9793c9cdef7ec94889143acb3f956123b20fe9a219919717f20fda5fa5147b",
+      "elapsedMs": 58736
+    },
+    {
+      "id": 30,
+      "unitSha256": "fd843978e76c5ee84fd5d12d2952ba443a6022f8f71bdd7f0c88cf97f0501efc",
+      "elapsedMs": 47800
+    },
+    {
+      "id": 31,
+      "unitSha256": "285e79c0210664b59e4f7e4f899a509265b7b9dbb0d109e8ba14b84e132d0b3c",
+      "elapsedMs": 62631
+    },
+    {
+      "id": 32,
+      "unitSha256": "8f31bd84ceeed1b849b1d5b90faba774cd542270384341d09a0ce3c4afa82508",
+      "elapsedMs": 38437
+    },
+    {
+      "id": 33,
+      "unitSha256": "46548eaa84d7322157540fc6ca9be5f3391e862f7d2fa91b7ffba5d5a1f8f8fa",
+      "elapsedMs": 34745
+    },
+    {
+      "id": 34,
+      "unitSha256": "ec9aaceb23ee6427b6366efe090d41606c65ae4de8c372ba2b32bfbabdee3e3e",
+      "elapsedMs": 117859
+    },
+    {
+      "id": 35,
+      "unitSha256": "af0c0fb2863c4af887225516bf35eba54f3c2699c66d1bb2fd2d0fe10e43f440",
+      "elapsedMs": 8224
+    },
+    {
+      "id": 36,
+      "unitSha256": "0d02cd40c113e441df751439d17566278b71a474b672b3876b22d8502ec4e8fd",
+      "elapsedMs": 31853
+    }
+  ]
+}
