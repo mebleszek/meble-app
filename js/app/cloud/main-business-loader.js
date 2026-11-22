@@ -12,9 +12,23 @@
       return url.href;
     }
     function code(src){
-      const url=source(src);assertAccess();
-      if(!cache.has(url))cache.set(url,fetch(url,{signal:controller.signal,credentials:'same-origin'}).then(r=>{
-        if(!r.ok)throw Error('AUTH_SCRIPT_NETWORK');return r.text();
+      const url=source(src);assertAccess();if(aborted)throw Error('AUTH_SCRIPT_ABORTED');
+      if(!cache.has(url))cache.set(url,new Promise((resolve,reject)=>{
+        let settled=false,timer;
+        const finish=(error,text)=>{if(settled)return;settled=true;clearTimeout(timer);controller.signal.removeEventListener('abort',cancel);error?reject(error):resolve(text);};
+        const cancel=()=>finish(Error('AUTH_SCRIPT_ABORTED'));
+        const progress=()=>{clearTimeout(timer);timer=setTimeout(()=>{
+          finish(Object.assign(Error('AUTH_SCRIPT_TIMEOUT'),{code:'AUTH_SCRIPT_TIMEOUT'}));aborted=true;controller.abort();
+        },30000);};
+        controller.signal.addEventListener('abort',cancel,{once:true});progress();
+        (async()=>{
+          const response=await fetch(url,{signal:controller.signal,credentials:'same-origin'});
+          if(settled)return;if(!response.ok)throw Error('AUTH_SCRIPT_NETWORK');progress();
+          if(!response.body?.getReader){const text=await response.text();if(!settled)finish(null,text);return;}
+          const reader=response.body.getReader(),decoder=new TextDecoder();let text='';
+          try{while(!settled){const chunk=await reader.read();if(settled)return;if(chunk.done){text+=decoder.decode();finish(null,text);return;}if(chunk.value.byteLength){progress();text+=decoder.decode(chunk.value,{stream:true});}}}
+          finally{reader.releaseLock();}
+        })().catch(error=>finish(error));
       }).catch(error=>{cache.delete(url);throw error;}));
       return cache.get(url);
     }

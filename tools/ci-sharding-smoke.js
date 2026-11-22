@@ -6,6 +6,7 @@ const shards=require('./ci-smoke-shards.js'),context=require('./cloud-ci-context
 const names=shards.inventory(__dirname,context.historicalSmoke);
 const units=shards.units(names),groups=shards.plan(names),all=groups.flat();
 assert.equal(shards.SHARDS,36);
+assert.equal(shards.weight('startup-assets-browser-smoke.js'),65000,'Startup inactivity checks must not be packed as an unmeasured 1-second test');
 assert.equal(groups.length,shards.SHARDS);
 const norms=require('./wycena-labor-norms-smoke');
 assert.equal(norms.tests.length,shards.PARTS['wycena-labor-norms-smoke.js'],'Every existing norm case has its own mandatory partition');

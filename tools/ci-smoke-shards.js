@@ -9,6 +9,8 @@ const PARTS=Object.freeze({
   "quote-performance-smoke.js": 4
 });
 const timings=require('./ci-smoke-timings-1367.json');
+// Three native profiles wait through a real 30-second request stall in parallel.
+const startupEstimatesMs={'startup-assets-browser-smoke.js':65000};
 function inventory(dir,historical=[]){
  const names=fs.readdirSync(dir).filter(n=>/-smoke\.js$/i.test(n)&&!historical.includes(n)).sort();
  if(new Set(names).size!==names.length)throw Error('CI_SMOKE_INVENTORY_DUPLICATE');
@@ -28,7 +30,7 @@ function parseUnit(unit){
 }
 function weight(unit){
  const {file,part}=parseUnit(unit);
- return file==='wycena-labor-norms-smoke.js'?timings.normCaseEstimatesMs[part-1]:timings.observedMs[unit]||1000;
+ return file==='wycena-labor-norms-smoke.js'?timings.normCaseEstimatesMs[part-1]:startupEstimatesMs[unit]||timings.observedMs[unit]||1000;
 }
 function plan(names){
  const expected=units(names);

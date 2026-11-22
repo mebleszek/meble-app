@@ -64,8 +64,10 @@ async function main({delayMs=46000,roomStartup=false}={}){
   await browser.evaluate(`window.fullRamBefore=JSON.stringify(projectData);const input=document.createElement('input');input.id='full-unsaved';input.value='SYNTHETIC_FULL_FORM';document.getElementById('main-login').append(input);true`);
   const before=await browser.evaluate('fullSnapshot()');phase='EXPIRED_INITIAL_GRANT';
   const end=Date.now()+delayMs;while(Date.now()<end)await pause(Math.min(1000,end-Date.now()));
+  if(delayMs>=30000)assert.equal(await browser.evaluate('document.getElementById("auth-status").textContent'),'Uruchamianie Meble-App… Etap: authorizing-cloud.');
   if(delayMs>=45000){assert.equal(await browser.evaluate('fullCloudState.code'), 'AUTH_ACCESS_EXPIRED');assert.equal(await browser.evaluate('__FC_MAIN_ACCESS__.isValid()'),true);}
   phase='FRESH_PROOF_AND_REAL_RUNTIME';await browser.evaluate('fullRelease();true');await until('document.body.dataset.businessState==="ready"');
+  assert.equal(await browser.evaluate('document.getElementById("main-login").hidden'),true);
   assert.equal(await browser.evaluate('window.FC.applicationStartup.inspect().state'),'active');assert.equal(await browser.evaluate('window.FC.applicationStartup.diagnostics().stage'),'ready');
   assert.equal(await browser.evaluate('window.FC.applicationStartup.diagnostics().firstError'),null);assert.equal(await browser.evaluate('JSON.stringify(projectData)===fullRamBefore'),true);assert.equal(await browser.evaluate('document.getElementById("full-unsaved").value'),'SYNTHETIC_FULL_FORM');assert.equal(await browser.evaluate('popupCalls'),1);
   const after=await browser.evaluate('fullSnapshot()');assert.deepEqual(after.raw,before.raw);for(const name of ['replicas','protected','outbox'])assert.deepEqual(after.data[name],before.data[name]);
