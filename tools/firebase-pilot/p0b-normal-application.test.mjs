@@ -1,4 +1,5 @@
 import {startupDraftCase} from './p0b-startup-draft.cases.mjs';
+import {observeQuoteReads,assertQuoteReadBudget} from './p0b-quote-read-budget.mjs';
 import {confirmQuoteSources} from './quote-ui-actions.mjs';
 import {manualQuoteCase} from './p0b-manual-quote.cases.mjs';
 import assert from 'node:assert/strict';
@@ -62,7 +63,7 @@ async function addCabinet(device,width){
  await page.locator('#cmWidth').fill(String(width));await page.locator('#cmHeight').fill('82');await page.locator('#cmDepth').fill('50');
  await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
 }
-async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,quoteRemoval=false,quoteFilm=false,manualQuote=false,startupDraft=false,accessResume=false,presenceReconnect=false,p1=false}={}){
+async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteReadBudget=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,quoteRemoval=false,quoteFilm=false,manualQuote=false,startupDraft=false,accessResume=false,presenceReconnect=false,p1=false}={}){
  await runNormalApplication(t,{deployment,p0bRegistry:true,realMainAuth:presenceReconnect,testOwner:startupDraft?'synthetic-startup-draft-owner':manualQuote?'synthetic-manual-quote-'+manualQuote+'-owner':quoteFilm?'synthetic-phone-flow-'+quoteFilm+'-owner':quoteRemoval?'synthetic-quote-removal-'+quoteRemoval+'-owner':presenceReconnect?'synthetic-presence-reconnect-owner':accessResume?'synthetic-background-owner':quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
   const artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'meble-p0b-normal-'));
   await phone.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
@@ -157,6 +158,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    assert.equal(draft.outbox.length,beforeCabinet.outbox.length);
    const sourceCabinet=JSON.parse(rows(draft).fc_projects_v1).find(row=>row.id===pid).projectData[roomId].cabinets[0];
    assert.equal(sourceCabinet.width,66);
+   if(quoteReadBudget){await addCabinet(phone,60);await addCabinet(phone,60);}
    if(startupDraft){
     await phone.page.context().tracing.stop({path:artifacts+'/startup-peer-before-pin.zip'});await computer.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
     await startupDraftCase({t,phone:computer,computer:phone,iid,pid:wardrobeId,wardrobeId:pid,pin,image,rows,until,saveProject,showList,openRoom,addCabinet,login,restartProbe,db,ownerUid,globalBefore,artifacts});return;
@@ -234,6 +236,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     if(quoteStaging)await page.evaluate(()=>window.normalPauseQuoteChunk=true);
     if(!quoteAcceptance&&!quotePromotion&&!quoteStaging&&!quoteVariants&&!quoteDuplicate&&!quoteRemoval&&!quoteFilm&&!manualQuote)await page.evaluate(()=>window.normalLoseQuoteAck=true);
     if(manualQuote){await manualQuoteCase({t,phone,computer,iid,pid,wardrobeId,pin,until,image,rows,addCabinet,saveProject,artifacts,db,ownerUid,globalBefore,restartProbe,mode:manualQuote});return;}
+    if(quoteReadBudget)await observeQuoteReads(page);
     await page.locator('[data-action="wycena-generate"]').click();await confirmQuoteSources(page);
     await page.waitForFunction(()=>document.querySelector('[data-quote-history-id]')||document.querySelector('.info-box'));
     const calculationNotice=await page.locator('.info-box').allTextContents();
@@ -241,6 +244,10 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     const written=await image(phone),old=JSON.parse(rows(beforeQuote).fc_quote_snapshots_v1||'[]');
     const offer=JSON.parse(rows(written).fc_quote_snapshots_v1||'[]').find(row=>!old.some(prior=>prior.id===row.id));
     assert.ok(offer,'Real Calculate must commit history before showing success');
+    if(quoteReadBudget){
+     assert.equal(JSON.parse(rows(written).fc_projects_v1).find(row=>row.id===pid).projectData[pid].cabinets.length,3);
+     await assertQuoteReadBudget(page,t);
+    }
     assert.deepEqual(offer.scope.selectedRooms.slice().sort(),quoteRooms.slice().sort());
     assert.deepEqual(JSON.parse(rows(written).fc_projects_v1),JSON.parse(rows(beforeQuote).fc_projects_v1),'Calculating must not edit either room');
     const queued=written.outbox.filter(op=>!beforeQuote.outbox.some(old=>old.key===op.key));assert.equal(queued.length,1);
@@ -590,7 +597,7 @@ test('P0-B room quote acceptance conflict: a changed epoch fences publication an
 test('P0-B signed DEMO clean registry: real new investor, two profiles and durable independent contact',t=>cleanApplication(t,{deployment:true}));
 
 
-test('P0-B signed room deployment: combined quote and immutable history survive restart and lost ACK',t=>cleanApplication(t,{deployment:true,quoteProbe:true}));
+test('P0-B signed room deployment: combined quote and immutable history survive restart and lost ACK',t=>cleanApplication(t,{deployment:true,quoteProbe:true,quoteReadBudget:true}));
 
 test('P1 normal DEMO idle batching: real Save, two-minute timer and independent room ACK',t=>cleanApplication(t,{p1:'idle'}));
 test('P1 normal DEMO delivery: Exit, offline restart, crash ACK and durable pending queue',t=>cleanApplication(t,{p1:'delivery'}));

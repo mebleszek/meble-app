@@ -70,10 +70,13 @@
     }finally{calculationRead=null;}
   }
   function roomContext(projectId,roomId,calculation=false){
-    if(calculation && FC.roomQuoteSources?.enabled())return FC.roomQuoteSources.context(projectId,roomId);
-    if(!calculationRead)return readRoomContext(projectId,roomId);
-    const key=JSON.stringify([projectId,roomId]);
-    if(!calculationRead.rooms.has(key))calculationRead.rooms.set(key,readRoomContext(projectId,roomId));
+    const read=()=>calculation && FC.roomQuoteSources?.enabled()
+      ? FC.roomQuoteSources.context(projectId,roomId) : readRoomContext(projectId,roomId);
+    if(!calculationRead)return read();
+    // Detached room reads share the existing synchronous witness too. Editing
+    // remains a different capability; no snapshot survives an await or call.
+    const key=JSON.stringify([calculation,projectId,roomId]);
+    if(!calculationRead.rooms.has(key))calculationRead.rooms.set(key,read());
     return calculationRead.rooms.get(key);
   }
   function readRoomContext(projectId,roomId){

@@ -21,14 +21,16 @@ test('P0-B room quote proof: immediate recalculation confirms ordinary status op
   assert.equal(calls,1,'One existing synchronization barrier, without blind retries or forged ACK');
  }
 });
-function fixture(){
+function fixture(cabinetCount){
  const r=pcvFixture();
  // The shared legacy PCV fixture starts with schema 1. Reload the actual native
  // model/store/bridge with the room protocol's schema 12 before seeding data.
  r.FC.schema.CURRENT_SCHEMA_VERSION=12;r.FC.schema.DEFAULT_PROJECT.schemaVersion=12;
  for(const file of ['js/app/project/project-model.js','js/app/project/project-store.js','js/app/project/project-bridge.js'])load(r,file);
  for(const file of ['js/app/cabinet/cabinet-fronts.js','js/app/project/project-local-room-contract.js','js/app/project/project-export-contract.js','js/app/cloud/cloud-pilot-contract.js','js/app/project/room-project-model.js','js/app/project/project-pcv-policy.js','js/app/project/room-quote-sources.js'])load(r,file);
- const original=clone(r.s.projectData.room),make=(id,height)=>{
+ const original=clone(r.s.projectData.room);
+ if(cabinetCount){original.sets=[];original.cabinets=Array.from({length:cabinetCount},(_,i)=>({...clone(original.cabinets[0]),id:i?'copy-'+i:'one',setId:''}));}
+ const make=(id,height)=>{
   const room=clone(original);room.settings.legHeight=height;
   room.fronts=room.cabinets.flatMap(cab=>r.FC.cabinetFronts.previewFrontsForCabinet(room,cab).map((front,index)=>({...front,id:id+'-'+cab.id+'-'+index})));
   room.production={partOverrides:{one:{'body.side.left':{edges:{w1:true,w2:height===10,h1:height===20,h2:false}}}}};
@@ -60,6 +62,31 @@ test('P0-B room quote proof: stale detached sources and cross-project addresses 
  assert.throws(()=>fc.roomQuoteSources.assertRevision(['kitchen','wardrobe'],source),{code:'PROJECT_PCV_READ_CONFLICT'});
  assert.throws(()=>fc.roomQuoteSources.context('kitchen','wardrobe'),{code:'PROJECT_PCV_SOURCE_CONTEXT_MISMATCH'});
  assert.throws(()=>fc.roomQuoteSources.capture(['kitchen','missing']),{code:'LF_QUOTE_ROOM_SCOPE_REQUIRED'});
+});
+
+test('P0-B room quote proof: three cabinets share one verified context per room in a synchronous read',()=>{
+ const r=fixture(3),fc=r.FC,opts={pcvMode:'project',projectId:'kitchen'},before=Object.fromEntries(r.storage.rows);
+ const expected=fc.projectPcvResolver.requireCollection(['kitchen','wardrobe'],opts);
+ const original=fc.roomQuoteSources.context,reads=[];
+ fc.roomQuoteSources.context=(projectId,roomId)=>{reads.push([projectId,roomId]);return original(projectId,roomId);};
+ const actual=fc.projectPcvResolver.requireCollection(['kitchen','wardrobe'],opts);
+ assert.deepEqual(clone(actual),clone(expected),'PCV values, identities, geometry, revisions and provenance remain exact');
+ assert.equal(reads.length,2,'One verified capture per room, independently of the number of part lookups');
+ assert.deepEqual(reads,[['kitchen','kitchen'],['wardrobe','wardrobe']],'Repeated part lookups must not normalize and verify the whole project again');
+ assert.equal(actual.details.length,6);assert.deepEqual(Object.fromEntries(r.storage.rows),before);assert.deepEqual(r.storage.calls,[]);
+});
+
+test('P0-B room quote proof: context reuse cannot cross a read, change editor scope or hide reentrant mutation',()=>{
+ const r=fixture(3),fc=r.FC,api=fc.projectPcvOverrides,address={projectId:'wardrobe',roomId:'wardrobe',cabinetId:'one',partRoleId:'body.side.left'};
+ const first=api.withCalculationRead(()=>{const value=api.getForCalculation(address);assert.equal(value.ok,true);assert.equal(api.get(address).code,'PROJECT_CONTEXT_MISMATCH');const returned=api.getForCalculation(address);returned.edges.w1=!returned.edges.w1;assert.deepEqual(clone(api.getForCalculation(address).edges),clone(value.edges),'Returned values cannot mutate the reused source');return value;});
+ const record=fc.projectStore.getById('wardrobe');record.projectData.wardrobe.production.partOverrides.one['body.side.left'].edges.w1=false;
+ r.storage.rows.set('fc_projects_v1',JSON.stringify(fc.projectStore.readAll().map(row=>row.id==='wardrobe'?record:row)));
+ const fresh=api.withCalculationRead(()=>api.getForCalculation(address));assert.equal(fresh.ok,true);assert.notDeepEqual(clone(first.edges),clone(fresh.edges));
+ const raw=r.storage.rows.get('fc_projects_v1');
+ assert.throws(()=>api.withCalculationRead(()=>{assert.equal(api.getForCalculation(address).ok,true);r.storage.rows.set('fc_projects_v1',raw+' ');return api.getForCalculation(address);}),{code:'PROJECT_PCV_READ_CONFLICT'});
+ r.storage.rows.set('fc_projects_v1',raw);assert.equal(api.withCalculationRead(()=>api.getForCalculation(address)).ok,true,'Failed reads must release the snapshot');
+ assert.throws(()=>api.withCalculationRead(()=>Promise.resolve(true)),/Synchronous PCV read required/);
+ assert.equal(api.withCalculationRead(()=>api.getForCalculation(address)).ok,true);
 });
 
 test('P0-B room quote proof: promotion preserves frozen content and refuses unapproved mutations',()=>{
