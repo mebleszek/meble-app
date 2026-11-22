@@ -10,6 +10,22 @@
   let auth=null,access=null,gate=null,lease=null,blocked=true,started=false,starting=false,fatal=false,loader=null;
   let displayed={status:'checking'},initializing=false,admission=null;
   let interaction=null,startupStage='login-startup',startupCloudReady=false;
+  let startupObservation=null;
+  const visibleStartupStages=new Set(('login-startup checking-local-access preparing-source source-ready loading-business-styles loading-business-scripts starting-business starting-local-first opening-runtime authorizing-cloud binding-runtime checking-installation opening-idb installing-authority initial-global-revision initial-project-revisions reconnect-auth reconnect-runtime ready').split(' '));
+  function stopStartupObservation(){clearTimeout(startupObservation);startupObservation=null;}
+  function observeStartup(){
+    stopStartupObservation();
+    const update=()=>{
+      startupObservation=null;if(blocked||fatal||shell.hidden)return;
+      let stage=startupStage;
+      try{if(['preparing-source','starting-local-first'].includes(stage))stage=FC.applicationStartup?.diagnostics?.()?.stage||stage;}catch(_){stage='unknown';}
+      if(!visibleStartupStages.has(stage))stage='unknown';
+      const message='Uruchamianie Meble-App… Etap: '+stage+'.';
+      if(el('auth-status').textContent!==message)el('auth-status').textContent=message;
+      startupObservation=setTimeout(update,1000);
+    };
+    startupObservation=setTimeout(update,30000);
+  }
   const nativeGet=Storage.prototype.getItem,nativeSet=Storage.prototype.setItem,nativeRemove=Storage.prototype.removeItem;
   let recoveryBinding=null,recoveryGate=null,recoveryGrant=null,recoverySurface=null;
   function closeRecovery(){recoveryGate?.close();recoveryGate=null;recoveryGrant=null;recoveryBinding=null;recoverySurface?.dispatchEvent(new Event('meble-rescue-revoke'));recoverySurface?.remove();recoverySurface=null;}
@@ -83,6 +99,7 @@
   }
   Storage.prototype.clear=function(){throw Error('LOCAL_ACCESS_PROTECTED');};
   function showBusiness(visible){
+    if(visible)stopStartupObservation();
     document.body.classList.toggle('app-authorized',visible);
     document.documentElement.classList.toggle('auth-blocked',!visible);
     shell.hidden=visible;el('main-auth-bar').hidden=!visible;trustControls();
@@ -91,12 +108,14 @@
     for(const node of businessNodes)node.inert=!visible;
   }
   function block(){
+    stopStartupObservation();
     admission=null;el('auth-profile-admission').hidden=true;
     el('auth-profile-backup').checked=false;el('auth-profile-owner').checked=false;el('auth-profile-confirm').disabled=true;
     profile.revoke();blocked=true;lease=null;showBusiness(false);
     if(starting){fatal=true;loader?.abort();}
   }
   function render(state){
+    if(state.status!=='authorized')stopStartupObservation();
     displayed=state;document.body.dataset.authState=state.status;
     const signed=!!state.uid;trustControls();el('auth-google').disabled=state.status==='checking';el('auth-google').hidden=signed;
     el('auth-account').hidden=!signed;
@@ -155,7 +174,7 @@
       if(!interaction||interaction.uid!==identity.uid||interaction.epoch!==identity.epoch||grant.uid!==identity.uid)throw Error('AUTH_INTERACTION_REQUIRED');
       if(!localSession.isValid())localSession.desktop(grant.uid);
     }
-    blocked=false;
+    blocked=false;observeStartup();
     try{
       // Serialize first-use receipts across cooperating tabs. localStorage alone
       // is not compare-and-swap; never let two first logins claim an empty origin.
@@ -197,7 +216,10 @@
       const links=Array.from(el('business-styles').content.cloneNode(true).querySelectorAll('link'));
       startupStage='loading-business-styles';
       await Promise.all(links.map(link=>new Promise((resolve,reject)=>{
-        styles.push(link);link.onload=resolve;link.onerror=()=>reject(Error('AUTH_STYLE_NETWORK'));document.head.appendChild(link);
+        let settled=false;
+        const finish=error=>{if(settled)return;settled=true;clearTimeout(timer);link.onload=null;link.onerror=null;if(error){link.disabled=true;reject(error);}else resolve();};
+        const timer=setTimeout(()=>finish(Object.assign(Error('AUTH_STYLE_TIMEOUT'),{code:'AUTH_STYLE_TIMEOUT'})),30000);
+        styles.push(link);link.onload=()=>finish();link.onerror=()=>finish(Error('AUTH_STYLE_NETWORK'));document.head.appendChild(link);
       })));
       assert();
       for(const node of [...fragment.children]){businessNodes.add(node);node.inert=true;}

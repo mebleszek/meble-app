@@ -1,6 +1,15 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
-## Zamiana identycznej oferty i zapis przy zmianie zakładek, 21.11.2026
+## Zawieszenie startu po logowaniu — 22.11.2026
+
+**CODE_READY ochrony zasobów i diagnostyki / CI_PENDING / RELEASE_BLOCKED / PHONE_STARTUP_BLOCKED.** Gałąź fix/startup-asset-stall-20261122, BASE/main ddeb79fd40f5763584a84d0f181e616138a51572. Właściciel potwierdził oczekiwanie ponad minutę. Poprawki poprzedniego pakietu są wydane przez PR #158 / Preflight #1372 85/85 / exact Pages; nie oznacza to odbioru obecnego startu telefonu. Osobna optymalizacja CI pozostaje na pushed HEAD df993d7855a7816021fafa7794c3ea0b19abdd8c. [Dowody i granice](tools/reports/startup-asset-stall-20261122.md).
+
+- **USTALONE → WDROŻONE na gałęzi.** Na wydanym kodzie odtworzono nieskończone oczekiwanie arkusza i skryptu bez błędu. Arkusze mają ograniczenie gotowości, skrypty obserwację rzeczywistego postępu bajtowego; oba 30 s. Zachowane osiem fetch, kolejność i ponowne sprawdzenie dostępu. Istniejący ekran odmowy otrzymuje właściwy kod; spóźniony plik nie uruchamia runtime. Bez ogólnego timeoutu Firestore, retry, czyszczenia lub osłabiania guardów.
+- **KONTROLE.** RED BASE → zielone nowe testy zegara; Chromium 3/3 PASS po realnych 30 s, ścisła ochrona RAM/form/RAW/IDB/outbox. Pełny rzeczywisty manifest/boot/runtime z 46 s oczekiwania SDK 1/1 PASS, bez skrócenia dowodu uprawnień. Odpowiedzi SDK syntetyczne; nie przypisujemy im PASS Emulatora/LIVE. Main-login 36/36, Auth sześć grup i diagnostyka 6/6 PASS. Obowiązkowe 36 grup / 231 plików / 262 jednostki, bez usuwania wcześniejszych przypadków.
+- **BRAKUJE → PROPONOWANE.** Właściciel osobno zatwierdził kod etapu w dotychczasowym napisie po 30 s. Jest wdrożony i sprawdzony: wyłącznie anonimowa obserwacja, bez przerywania/potwierdzania backendu; zatrzymuje się po ready/odmowie. Pierwotna faza telefonu nadal nieznana. Commit/push po PASS; nowe CI/wydanie wymaga osobnej zgody dokładnych SHA. Dane telefonu i Firebase LIVE nietknięte.
+
+
+## Historia implementacji — Zamiana identycznej oferty i zapis przy zmianie zakładek, 21.11.2026
 
 **CODE_READY tego pakietu / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Zakończenie 22.11.2026. Gałąź `fix/quote-replacement-tab-save-20261121`, wejściowy HEAD = BASE/main `f8a3244e4169a16e4f8a205d0740a26c5ce2282e`; ten main zawiera już poprzednie poprawki Wyjdź/Auth. Końcowy HEAD w przekazaniu. Bez nowego PR, Actions i zmian Firebase LIVE.
 
