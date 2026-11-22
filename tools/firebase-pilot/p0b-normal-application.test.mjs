@@ -10,6 +10,7 @@ import {runNormalApplication} from './normal-application.cases.mjs';
 import {promotionCase,stagingCase} from './p0b-quote-lifecycle.cases.mjs';
 import {duplicateCase,tabSaveCase} from './quote-tab-regressions.cases.mjs';
 import {accessResumeCase} from './p0b-access-resume.cases.mjs';
+import {presenceReconnectCase} from './p0b-presence-reconnect.cases.mjs';
 import {variantsCase} from './p0b-quote-variants.cases.mjs';
 import {batchingCase} from './p1-project-sync.cases.mjs';
 import {checkpointNativeFixture,nativeFixtureState} from './p0b-fixture-baseline.mjs';
@@ -56,13 +57,13 @@ async function addCabinet(device,width){
  await page.locator('#cmWidth').fill(String(width));await page.locator('#cmHeight').fill('82');await page.locator('#cmDepth').fill('50');
  await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
 }
-async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,accessResume=false,p1=false}={}){
- await runNormalApplication(t,{deployment,p0bRegistry:true,testOwner:accessResume?'synthetic-background-owner':quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
+async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,accessResume=false,presenceReconnect=false,p1=false}={}){
+ await runNormalApplication(t,{deployment,p0bRegistry:true,realMainAuth:presenceReconnect,testOwner:presenceReconnect?'synthetic-presence-reconnect-owner':accessResume?'synthetic-background-owner':quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
   const artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'meble-p0b-normal-'));
   await phone.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
   try{
    await configure(phone);await phone.page.reload();
-   if(accessResume)await phone.page.evaluate(async()=>{await window.FC.offlineShell.prepare();await indexedDB.databases();});
+   if(accessResume||presenceReconnect)await phone.page.evaluate(async()=>{await window.FC.offlineShell.prepare();await indexedDB.databases();});
    await login(phone);
    const initial=await image(phone);
    assert.deepEqual(JSON.parse(rows(initial).fc_investors_v1),[]);
@@ -84,7 +85,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    assert.equal(archive.sourceRows.fc_projects_v1,source.projects);
    assert.equal(await phone.page.evaluate(()=>window.readNormalSource('fc_investors_v1')),source.investors);
    t.diagnostic('Clean normal startup preserved legacy RAW and archived the previous registry');
-   if(!computer)computer=await device('computer',{prepareStatic:accessResume});else{await configure(computer);await computer.page.reload();if(accessResume)await computer.page.evaluate(async()=>{await window.FC.offlineShell.prepare();await indexedDB.databases();});await login(computer);}
+   if(!computer)computer=await device('computer',{prepareStatic:accessResume||presenceReconnect});else{await configure(computer);await computer.page.reload();if(accessResume||presenceReconnect)await computer.page.evaluate(async()=>{await window.FC.offlineShell.prepare();await indexedDB.databases();});await login(computer);}
    await phone.page.evaluate(()=>window.FC.localDeviceLabel.write('Telefon DEMO'));
    await computer.page.evaluate(()=>window.FC.localDeviceLabel.write('Komputer DEMO'));
    // Persist only the test's old source/name setup. All crash-tested business
@@ -151,6 +152,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    assert.equal(draft.outbox.length,beforeCabinet.outbox.length);
    const sourceCabinet=JSON.parse(rows(draft).fc_projects_v1).find(row=>row.id===pid).projectData[roomId].cabinets[0];
    assert.equal(sourceCabinet.width,66);
+   if(presenceReconnect){await presenceReconnectCase({t,phone,computer,iid,pid,wardrobeId,image,rows,until,db,ownerUid,saveProject,showList,projects,openRoom,restartProbe,globalBefore});return;}
    if(accessResume){await accessResumeCase({t,phone,computer,iid,pid,wardrobeId,image,rows,until,db,ownerUid,saveProject,showList,restartProbe,globalBefore});return;}
    if(p1==='tab-save'){await tabSaveCase({t,phone,computer,iid,pid,wardrobeId,until,image,rows,openRoom,addCabinet,restartProbe});return;}
    if(p1){await batchingCase({t,phone,computer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,showList,openRoom,addCabinet,saveProject,restartProbe,globalBefore},{idle:p1==='idle',quoteOnly:p1==='quote',offlineQuote:p1==='offline-quote'});return;}
@@ -574,5 +576,7 @@ test('P1 normal DEMO offline quote: restart of a pending room Save preserves imm
 
 test('P1 tab Save and proceed: real dirty room navigation stays durable',t=>cleanApplication(t,{p1:'tab-save'}));
 test('P0-B duplicate replacement: same logical offer preserves history and ACK',t=>cleanApplication(t,{quoteProbe:true,quoteDuplicate:true}));
+
+test('P0-B signed desktop presence: untrusted background renews real main lease and room entry',t=>cleanApplication(t,{deployment:true,presenceReconnect:true}));
 
 test('P0-B signed background resume: durable drafts and automatic offline Exit ACK',t=>cleanApplication(t,{deployment:true,accessResume:true}));
