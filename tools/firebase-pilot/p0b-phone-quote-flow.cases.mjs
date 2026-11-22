@@ -1,3 +1,4 @@
+import {confirmQuoteSources} from './quote-ui-actions.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import * as f from 'firebase/firestore';
@@ -64,13 +65,13 @@ export async function phoneQuoteFlow(c){
  const generationBase=await image(computer);
  const keys=Object.keys(rows(await image(computer)));
  await page.evaluate(keys=>{
-  const api=window.FC.applicationWrite,original=api.project;
-  api.project=async fn=>{const before=Object.fromEntries(keys.map(key=>[key,localStorage.getItem(key)]));window.phoneQuoteAttempt={};
+  const api=window.FC.applicationWrite,method=api.quote?'quote':'project',original=api[method];
+  api[method]=async fn=>{const before=Object.fromEntries(keys.map(key=>[key,localStorage.getItem(key)]));window.phoneQuoteAttempt={};
    try{const value=await original(async()=>{const value=await fn();const after=Object.fromEntries(keys.map(key=>[key,localStorage.getItem(key)]));window.phoneQuoteAttempt={changedKeys:keys.filter(key=>before[key]!==after[key]),before,after};return value;});window.phoneQuoteAttempt.complete=true;return value;}
    catch(error){Object.assign(window.phoneQuoteAttempt,{code:error.code||error.message,stack:error.stack});throw error;}
   };
  },keys);
- await page.getByRole('button',{name:'Wyceń',exact:true}).click();
+ await page.getByRole('button',{name:'Wyceń',exact:true}).click();await confirmQuoteSources(page);
  const naming=page.locator('.quote-scope-entry-modal--name');
  try{await naming.waitFor();}catch(error){
   const probe=await page.evaluate(()=>({attempt:window.phoneQuoteAttempt,session:{active:window.FC.session.active},generation:window.FC.wycenaTabShell._generateRuntime,notice:document.querySelector('.info-box')?.innerText,draft:window.FC.quoteOfferStore.getCurrentDraft(),policy:window.FC.projectPcvPolicy.read()}));

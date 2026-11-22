@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {installApplicationWriteBoundary} from '../../sync/application-write-boundary.mjs';
-import {reconcileGlobalAliases} from '../../sync/application-authority.mjs';
+import {confirmedApplicationDraft,reconcileGlobalAliases} from '../../sync/application-authority.mjs';
 import {applicationInstallation} from '../../sync/application-installation.mjs';
 import {prepareEmulatorApplicationBoot} from '../../sync/application-boot.mjs';
 import {assertApplicationConnection,authorizeApplicationFirebase} from '../../sync/firebase-activation.mjs';
@@ -194,4 +194,23 @@ test('connection handoff drains the old read before a replacement publishes; sta
   prepare:async()=>({expected:{generation:2},async publish(){writes++;remote={head:{generation:2},value:{exact:7.125}};}})}],eventTarget:events,
   incoming(){throw Error('no fresh apply');},refresh(){},assertIdle(){}});
  try{assert.equal((await fresh.flush()).ok,true);assert.equal(operation.phase,'verified');assert.equal(writes,1);assert.deepEqual(remote.value,{exact:7.125});}finally{await fresh.close();}
+});
+
+test('verified durable draft can expose recovery while incoming RAM protection remains fail-closed',()=>{
+ const make=()=>{
+  const rows={fc_projects_v1:'[{"id":"room"}]',fc_edit_session_v1:'verified-session',fc_current_project_id_v1:'room',fc_current_investor_v1:'investor'};
+  const w={projectData:{exact:17.125},localStorage:{getItem:()=>rows.fc_edit_session_v1},document:{getElementById:()=>null},FC:{
+   investorProjectRuntime:{hasProjectDivergence:()=>false},investorEditorState:{hasUiLock:()=>false},
+   session:{active:true,durable:true,snapshot:{exact:1},projectId:'room',roomId:'room',context:{investorId:'investor'},inspectNavigationState:()=>({raws:{fc_projects_v1:rows.fc_projects_v1,fc_edit_session_v1:rows.fc_edit_session_v1}})}}};
+  return {window:w,rows,image:{rows:structuredClone(rows)}};
+ };
+ const valid=make(),before=structuredClone(valid.rows);assert.equal(confirmedApplicationDraft(valid),true);assert.deepEqual(valid.rows,before);
+ for(const mutate of [x=>x.busy=true,x=>x.incoming=true,x=>x.image.rows.fc_projects_v1='newer',x=>x.window.FC.session.active=false,x=>x.window.FC.session.durable=false,
+  x=>x.window.FC.session.snapshot=null,x=>x.window.FC.session.roomId='',x=>x.window.FC.session.projectId='other',x=>x.window.FC.session.context.investorId='other',
+  x=>x.window.FC.investorProjectRuntime.hasProjectDivergence=()=>true,x=>x.window.FC.investorEditorState.hasUiLock=()=>true,
+  x=>x.window.FC.priceModal={isItemDirty:()=>true},x=>x.window.document.getElementById=()=>({style:{display:'block'}}),
+  x=>x.window.FC.session.inspectNavigationState=()=>null,x=>x.window.FC.session.inspectNavigationState=()=>({raws:{}}),x=>x.window.FC.session.inspectNavigationState=()=>({raws:{fc_projects_v1:'unconfirmed'}}),
+  x=>x.window.localStorage.getItem=()=> 'other-session',x=>x.rows.fc_edit_session_v1=null]){
+   const input=make();mutate(input);assert.equal(confirmedApplicationDraft(input),false);
+  }
 });

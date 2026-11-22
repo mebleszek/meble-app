@@ -41,6 +41,7 @@ export function installApplicationWriteBoundary({window:w,authority,ensureEditor
  // Explicit application API for existing nondelegated form handlers.
  const handler=(fn,kind='globals')=>function(...args){return run(()=>fn.apply(this,args),kind).catch(refused);};
  fc.applicationWrite={localOnly,registry,handler,whenIdle:()=>idle,roomCreateHandler:fn=>handler(fn,'auto'),
+  quote:fn=>reserve(()=>{if(registry!=='p0b-rooms-v1'||localOnly)fail('LF_QUOTE_SOURCE_UNCONFIRMED');return authority.transaction('quote',fn,{writeScopes:[]});}),
   quoteAcceptance:(scopes,fn)=>reserve(async()=>{
    if(registry!=='p0b-rooms-v1'||typeof preflightAcceptance!=='function')fail('LF_QUOTE_ACCEPTANCE_UNCONFIRMED');
    const ids=[...new Set(scopes)];await preflightAcceptance(ids);
@@ -55,6 +56,6 @@ export function installApplicationWriteBoundary({window:w,authority,ensureEditor
    for(const scope of writes)await ensureEditor(scope);
    return authority.transaction('room-records',fn,{writeScopes:writes});
   }),
-  roomRecords:(scopes,fn)=>reserve(async()=>{for(const scope of [...new Set(scopes)])await ensureEditor(scope);return authority.transaction('room-records',fn,{writeScopes:[...new Set(scopes)]});}).catch(refused),afterCommit:fn=>{if(running)completions.push(fn);else fn();},projectHandler:fn=>handler(fn,'project'),draftHandler:fn=>handler(fn,'cabinet-draft'),globals:fn=>run(fn,'globals'),project:fn=>run(fn,'project'),offerDraft:fn=>run(fn,'offer-draft'),auto:fn=>run(fn,'auto'),checkpoint:fn=>run(fn,'checkpoint')};
- return {run,busy:()=>running,close(){if(directOpen&&fc.views.openRoom===guardedOpen)fc.views.openRoom=directOpen;if(fc.applicationLifecycle===lifecycle)delete fc.applicationLifecycle;delete fc.applicationWrite;}};
+  roomRecords:(scopes,fn)=>reserve(async()=>{for(const scope of [...new Set(scopes)])await ensureEditor(scope);return authority.transaction('room-records',fn,{writeScopes:[...new Set(scopes)]});}).catch(refused),afterCommit:fn=>{if(running)completions.push(fn);else fn();},projectHandler:fn=>handler(fn,'project'),draftHandler:fn=>handler(fn,'cabinet-draft'),globals:fn=>run(fn,'globals'),project:fn=>run(fn,'project'),offerDraft:fn=>run(fn,registry==='p0b-rooms-v1'&&!localOnly?'quote-draft':'offer-draft'),auto:fn=>run(fn,'auto'),checkpoint:fn=>run(fn,'checkpoint')};
+ return {run,whenIdle:()=>idle,busy:()=>running,close(){if(directOpen&&fc.views.openRoom===guardedOpen)fc.views.openRoom=directOpen;if(fc.applicationLifecycle===lifecycle)delete fc.applicationLifecycle;delete fc.applicationWrite;}};
 }

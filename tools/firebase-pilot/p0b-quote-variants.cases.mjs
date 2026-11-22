@@ -1,3 +1,4 @@
+import {confirmQuoteSources} from './quote-ui-actions.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,8 +15,8 @@ export async function variantsCase(c){
  await amount.fill('1');await amount.blur();await page.waitForFunction(()=>window.FC.quoteOfferStore.settingsSettled());
  const before=await image(phone),keys=Object.keys(rows(before));
  await page.evaluate(keys=>{
-  const writer=window.FC.applicationWrite,original=writer.project;
-  writer.project=async fn=>{
+  const writer=window.FC.applicationWrite,method=writer.quote?'quote':'project',original=writer[method];
+  writer[method]=async fn=>{
    const previous=Object.fromEntries(keys.map(key=>[key,localStorage.getItem(key)]));
    window.normalVariantAttempt={};
    try{return await original(async()=>{
@@ -27,7 +28,7 @@ export async function variantsCase(c){
   };
   window.normalLoseQuoteAck=true;
  },keys);
- await page.locator('[data-action="wycena-generate"]').click();
+ await page.locator('[data-action="wycena-generate"]').click();await confirmQuoteSources(page);
  const naming=page.locator('.quote-scope-entry-modal--name');await naming.waitFor();
  await naming.locator('input').fill('P0-B drugi wariant DEMO');
  await naming.getByRole('button',{name:'OK',exact:true}).click();

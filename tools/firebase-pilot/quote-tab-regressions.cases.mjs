@@ -1,3 +1,4 @@
+import {confirmQuoteSources} from './quote-ui-actions.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -64,7 +65,7 @@ export async function duplicateCase({t,phone,computer,offer,iid,until,image,rows
    finally{api.project=original;}
   };
  });
- await page.getByRole('button',{name:'Wyceń',exact:true}).click();
+ await page.getByRole('button',{name:'Wyceń',exact:true}).click();await confirmQuoteSources(page);
  await page.locator('.confirm-box').getByRole('button',{name:'Zamień istniejącą',exact:true}).click();
  await page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
  const evidence=await page.evaluate(()=>({error:window.normalDuplicateError,paths:window.normalDuplicateChange}));

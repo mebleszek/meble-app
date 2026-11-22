@@ -1,0 +1,12 @@
+# Public text must have the same bytes in Windows worktrees, Git and Pages.
+index.html text eol=lf
+offline-assets.js text eol=lf
+js/** text eol=lf
+css/** text eol=lf
+assets/**/*.svg text eol=lf
+sync/**/*.mjs text eol=lf
+tools/firebase-pilot/p0b-protocol.mjs text eol=lf
+tools/firebase-pilot/p0b-pin.mjs text eol=lf
+tools/firebase-pilot/p0b-deletion-group.mjs text eol=lf
+tools/firebase-pilot/p0b-deletion-journal.mjs text eol=lf
+tools/firebase-pilot/p0b-project-recovery.mjs text eol=lf

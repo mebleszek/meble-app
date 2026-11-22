@@ -208,15 +208,16 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
      },
      getDocFromServer(ref){countRead(ref);return f.getDocFromServer(ref);},
      async getDocsFromServer(query){budget.queries++;const rows=await f.getDocsFromServer(query);budget.documents+=rows.size;return rows;},
-     runTransaction(db,run,options,rpc){budget.transactions++;let quoteHeadWrite=false,roomHeadWrite=null,roomEditorRead=null,visitWrite=null,transactionWrites=0;return f.runTransaction(db,tx=>{
+     runTransaction(db,run,options,rpc){budget.transactions++;let quoteHeadWrite=false,roomHeadWrite=null,roomEditorRead=null,editorRelease=null,visitWrite=null,transactionWrites=0;return f.runTransaction(db,tx=>{
       budget.attempts++;
       return run({
        get(ref){countRead(ref);const collection=ref.parent.id;if(collection==='p0bRoomEditors')roomEditorRead=ref.id;if(rpc&&!rpc.collections.includes(collection))rpc.collections.push(collection);return tx.get(ref);},
-       set(...args){budget.writes++;transactionWrites++;if(args[0]?.parent?.id==='p0bRoomQuotes')quoteHeadWrite=true;if(args[0]?.parent?.id==='p0bRoomProjects')roomHeadWrite=args[0].id;if(args[0]?.parent?.id==='p0bRoomInvestors'&&Object.keys(args[1]?.visits||{}).length)visitWrite={generation:args[1].generation,visits:args[1].visits};return tx.set(...args);}
+       set(...args){budget.writes++;transactionWrites++;if(args[0]?.parent?.id==='p0bRoomEditors'&&args[1]?.active===false)editorRelease=args[1];if(args[0]?.parent?.id==='p0bRoomQuotes')quoteHeadWrite=true;if(args[0]?.parent?.id==='p0bRoomProjects')roomHeadWrite=args[0].id;if(args[0]?.parent?.id==='p0bRoomInvestors'&&Object.keys(args[1]?.visits||{}).length)visitWrite={generation:args[1].generation,visits:args[1].visits};return tx.set(...args);}
       });
      },options).then(async value=>{
       if(roomEditorRead&&window.normalPauseRoomPreparation===roomEditorRead&&db.app.name.startsWith('meble-sync-reader-')){window.normalPauseRoomPreparation=null;window.normalRoomPreparationHeld=true;await new Promise(resolve=>window.normalContinueRoomPreparation=resolve);}
 
+      if(editorRelease&&window.normalHoldQuoteRelease){window.normalHoldQuoteRelease=false;window.normalQuoteReleaseCommitted=editorRelease;await new Promise(resolve=>window.normalContinueQuoteRelease=resolve);}
       if(roomHeadWrite&&window.normalHoldStatusHead===roomHeadWrite){window.normalHoldStatusHead=null;window.normalStatusHeadCommitted=true;await new Promise(resolve=>window.normalReleaseStatusHead=resolve);}
       // Lose delivery only AFTER the real emulator head transaction commits.
       if(transactionWrites===1&&visitWrite&&window.normalLoseVisitAck){window.normalLoseVisitAck=false;window.normalVisitCommitted=visitWrite;throw Object.assign(Error('LF_TEST_VISIT_ACK_LOST'),{code:'LF_TEST_VISIT_ACK_LOST'});}

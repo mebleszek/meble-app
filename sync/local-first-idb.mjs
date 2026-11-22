@@ -4,6 +4,7 @@ import {emptyP0BBusiness,P0B_REGISTRY} from './application-p0b-domain.mjs';
 import {assertApplicationMigration} from './application-release.mjs';
 import {copy, fail, equal, id, json, digest} from './local-first-values.mjs';
 import {archivedProjectOperation} from './local-first-project-batching.mjs';
+import {quoteReleaseStore} from './local-first-quote-release.mjs';
 const TABLES = ['control', 'replicas', 'outbox', 'protected'];
 // Explicit separate database. No localStorage, backup archive or startup.
 export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, deviceId, instanceId, initialize = false, migration} = {}) {
@@ -427,7 +428,7 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       } catch(e) { abort(e); } }; q.onsuccess = ops.onsuccess = finish;
     },scope);
   }
-  return Object.freeze({ownerUid, deviceId, instanceId, name, snapshot, wasProjectCoalesced, commitQuoteLedger:args=>writeQuoteLedger({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}), commitRoomBatch:args=>writeRoomBatch({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}), checkpointP0BProjects, pendingNewProjects, finishNewProject, legacyInvestor, fenceP0BTombstones, checkpointP0BTombstones, p0bRegistry, enterP0BRegistry, retired, readCatalogReplica,readApplication,readPreservedSource, initializeApplication, checkpointApplication, pendingHandover, withdrawHandover, pendingProjectRecovery, stageProjectRecovery, checkpointProjectRecovery, checkpointDeletion, commit, commitContact, transition, apply, setEditor,
+  return Object.freeze({...quoteReleaseStore({transaction,ownerUid,deviceId}),ownerUid, deviceId, instanceId, name, snapshot, wasProjectCoalesced, commitQuoteLedger:args=>writeQuoteLedger({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}), commitRoomBatch:args=>writeRoomBatch({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}), checkpointP0BProjects, pendingNewProjects, finishNewProject, legacyInvestor, fenceP0BTombstones, checkpointP0BTombstones, p0bRegistry, enterP0BRegistry, retired, readCatalogReplica,readApplication,readPreservedSource, initializeApplication, checkpointApplication, pendingHandover, withdrawHandover, pendingProjectRecovery, stageProjectRecovery, checkpointProjectRecovery, checkpointDeletion, commit, commitContact, transition, apply, setEditor,
     exclusive: callback => locks.request(name + ':' + instanceId, {mode: 'exclusive'}, () => {if(closed)fail('LF_STORE_CLOSED');return callback();}),
     close() { closed = true; }});
 }

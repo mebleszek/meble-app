@@ -81,6 +81,20 @@ export function validateQuoteLedgerChange(before,after){
  }
  return true;
 }
+// Read-only room pricing can create or explicitly refresh one offer. It cannot
+// remove history, accept/reject an offer or alter any room's business status.
+export function validateQuoteGenerationChange(before,after){
+ const old=before?.offers||[],added=after.offers.filter(row=>!old.some(prior=>prior.id===row.id));
+ if(added.length>1||after.offers.length!==old.length+added.length||added.some(row=>row.meta?.selectedByClient||row.meta?.acceptedAt||row.meta?.acceptedStage||row.meta?.rejectedAt||row.meta?.rejectedReason)
+  ||!equal(after.offers.filter(row=>old.some(prior=>prior.id===row.id)).map(row=>row.id),old.map(row=>row.id)))fail('LF_QUOTE_HISTORY_IMMUTABLE');
+ let refreshed=0;
+ const acceptance=row=>({status:row.project?.status,meta:Object.fromEntries(['selectedByClient','acceptedAt','acceptedStage','rejectedAt','rejectedReason'].filter(key=>Object.hasOwn(row.meta||{},key)).map(key=>[key,row.meta[key]]))});
+ for(const prior of old){
+  const next=after.offers.find(row=>row.id===prior.id);if(!next)fail('LF_QUOTE_HISTORY_IMMUTABLE');
+  if(!equal(prior,next)){if(added.length||++refreshed>1||!duplicateRefresh(prior,next)||!equal(acceptance(prior),acceptance(next)))fail('LF_QUOTE_HISTORY_IMMUTABLE');}
+ }
+ return true;
+}
 
 // Status writes may accompany exactly one explicit active-history removal.
 // Retained offers/pins are exact; no add, replacement or unrelated room write.

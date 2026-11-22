@@ -15,6 +15,7 @@ function prepare(root,expectedHead,temp=process.env.RUNNER_TEMP,expectedBase=pro
   if(fs.existsSync(history))throw Error('CLOUD_CI_HISTORY_ALREADY_EXISTS');
   const relative=path.relative(fs.realpathSync(root),history);
   if(!relative.startsWith('..'+path.sep))throw Error('CLOUD_CI_ISOLATION_REQUIRED');
+  require('./offline-git-manifest').verify(root,expectedHead);
   const clone=spawnSync('git',['clone','--quiet','--no-hardlinks','--no-checkout','--local',root,history],{encoding:'utf8',env:context.cleanEnvironment()});
   if(clone.status!==0)throw Error('CLOUD_CI_HISTORY_CLONE_FAILED');
   context.git(history,['checkout','--quiet','--detach',context.HISTORICAL_SHA]);

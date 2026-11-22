@@ -1,5 +1,6 @@
 // Normal-startup composition of the released LOCAL-FIRST components; inert import.
 import {resumeRoomBootRecovery} from './application-room-boot-recovery.mjs';
+import {installManualSync} from './application-manual-sync.mjs';
 import {createP0BRuntime} from './application-p0b-runtime.mjs';
 import {completeMissingApplicationGlobals,emptyInstallationRows} from './application-initial-state.mjs';
 import {openLocalFirstStore} from './local-first-idb.mjs';
@@ -26,7 +27,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
  w.__FC_MAIN_ACCESS__.assert();
  const keys=applicationKeys(fc);
  onStage('checking-installation');const installation=await applicationInstallation({window:w,ownerUid,name,keys,sourceRead:boot?.readNative,heldRelease:boot?.release,release:deployment,migration:boot?.migration,p0bDemo:p0bEnabled});
- let store,sync,authority,boundary,deletion,p0b,closed=false,authorityReady=false,incomingBlocked=false,recoveryReading=false;const states=[];let wakeHandovers=()=>{},wakeReceives=()=>{};
+ let store,sync,authority,boundary,deletion,p0b,manualSync,closed=false,authorityReady=false,incomingBlocked=false,recoveryReading=false;const states=[];let wakeHandovers=()=>{},wakeReceives=()=>{};
  const state=(value,error)=>{try{onDiagnostic({ok:value.ok===true,code:error?.code||error?.message||value.code,projectTransferBlocked:value.scope==='project-transfer-blocked'});}catch(_){}if(['LF_ACTIVE_FORM_PROTECTED','LF_ACTIVE_RAM_PROTECTED'].includes(value.code)||value.reason==='LF_P0B_DELETION_RECOVERY_REQUIRED')incomingBlocked=true;states.push(copy(value));if(states.length>12)states.shift();if(value.ok)wakeHandovers();else if(p0b&&['LF_EDITOR_CONFLICT','LF_P0B_EDITOR_CONFLICT','LF_ACK_UNRESOLVED'].includes(value.code))void p0b.canRecover(value).then(ok=>{if(ok&&w.document.body.dataset.businessState==='ready')return p0b.offerRecovery();}).catch(()=>{});};
  try{
   onStage('opening-idb');store=await openLocalFirstStore({...installation.binding,indexedDB:w.indexedDB,locks:w.navigator.locks});
@@ -66,6 +67,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    if(p0b){const record=JSON.parse((await store.readApplication()).rows.fc_projects_v1||'[]').find(row=>row.id===scope);if(!record||record.investorId!==w.localStorage.getItem('fc_current_investor_v1'))fail('LF_APPLICATION_SCOPE_REFUSED');fc.roomProjectModel.validate(record);if(record.meta.roomProject.removed)fail('LF_ROOM_PROJECT_REMOVED');}
    if(p0b){if(await store.retired(scope))fail('LF_P0B_SCOPE_RETIRED');if(p0b.isLost(scope))fail('LF_EDITOR_RECOVERY_BLOCKED');await p0b.ensureNewProject(scope);}
    if(localOnly){const localRows=authority?authority.rows():(await store.readApplication()).rows;if(!JSON.parse(localRows.fc_projects_v1||'[]').some(p=>p.id===scope))fail('LF_PROJECT_CHANNEL_REQUIRED');return;}
+   if(await store.pendingQuoteRelease(scope))fail('LF_QUOTE_RELEASE_PENDING');
    if(await store.pendingProjectRecovery(scope))fail('LF_PROJECT_RECOVERY_PENDING');
    await handovers.start(scope);
    await handovers.pending(scope);
@@ -98,14 +100,14 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   if(localOnly){onStage('initial-global-revision');const captured=c.capture({getItem:k=>k==='fc_edit_session_v1'?null:rows[k]??null},Object.keys(c.schemas));c.validateBundle(captured.model);}
   if(p0b)await resumeRoomBootRecovery({window:w,store,p0b,boot});
   onStage('installing-authority');authority=await (deployment?installAuthorizedApplicationAuthority:writer?installEmulatorApplicationAuthority:installOfflineEmulatorApplicationAuthority)({window:w,store,ownerUid,connection:writer,sourceRead:boot?.readNative,initialRows,release:deployment,localOnly,recoverBootDraft:p0b?error=>p0b.canRecover(safeError(error)):undefined,
-   beforeTransaction:()=>{if(recoveryReading)fail('LF_APPLICATION_BUSY');return boot?.verifyFence?boot.verifyFence():verifyExclusiveClient(w);},onCommitted:scope=>{sync?.notify(scope);wakeReceives();},authorize:ensureEditor,
+   beforeTransaction:()=>{if(recoveryReading)fail('LF_APPLICATION_BUSY');return boot?.verifyFence?boot.verifyFence():verifyExclusiveClient(w);},onCommitted:scope=>{manualSync?.reset?.();sync?.notify(scope);wakeReceives();},authorize:ensureEditor,
    checkpoint:(application,kind,exitScope)=>p0b?p0b.checkpoint(application,()=>(sync||local).checkpoint(application,kind,exitScope)):(sync||local).checkpoint(application,kind,localOnly?undefined:exitScope),
    commit:async(kind,application,{writeScopes}={})=>{
     let scope=application.rows.fc_current_project_id_v1;
     if(localOnly&&kind==='delete-investors'){if(!deletion)fail('DELETE_CONFIRMATION_REQUIRED');return deletion.commitApplication(application);}
     if(localOnly)return local.commit(kind,application,scope);
-    if(p0b&&(kind==='project'||kind==='room-records')){
-     const result=await p0b.commit(application,writeScopes||[scope],{batchable:kind==='project'&&!writeScopes});
+    if(p0b&&(kind==='project'||kind==='room-records'||kind==='quote')){
+     const result=await p0b.commit(application,writeScopes||[scope],{batchable:kind==='project'&&!writeScopes,generationOnly:kind==='quote'});
      if(result){authority.afterCommit(()=>{for(const scope of result.scopes||[result.scope])sync?.notify(scope);void p0b.resume().catch(error=>state(safeError(error),error));});return result;}
     }
     if(kind==='project'){
@@ -165,7 +167,8 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   });authorityReady=true;
    const result=await sync.flush({forceProjects:false});
    // A project journal must remain accessible for local recovery.
-   if(!result.ok&&result.code!=='LF_PROJECT_OPERATION_PENDING'&&!await p0b?.canRecover(result))fail(result.code);
+   if(!result.ok&&result.code!=='LF_PROJECT_OPERATION_PENDING'
+    &&!(result.code==='LF_ACTIVE_RAM_PROTECTED'&&await authority.canResumeProtectedDraft({initial:true}))&&!await p0b?.canRecover(result))fail(result.code);
   }else authorityReady=true;
   if(!localOnly)onStage('initial-project-revisions');
   // Existing owned source projects become real channels without synthetic flags.
@@ -210,8 +213,9 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     if(closed)fail('LF_CLOSED');w.__FC_MAIN_ACCESS__.assert();
    }});
    boundary=installApplicationWriteBoundary({window:w,authority,ensureEditor,localOnly,registry:p0bEnabled?'p0b-rooms-v1':undefined,onExit:deferHandover,preflightAcceptance:p0b?.preflightAcceptance});
+   manualSync=installManualSync({window:w,getSync:()=>sync,boundary,assertAccess:()=>{if(closed)fail('LF_CLOSED');w.__FC_MAIN_ACCESS__.assert();}});
    if(localOnly)deletion=installLocalInvestorDeletion({window:w,store,authority,boundary});
-   fc.applicationSyncActions.install(createApplicationActionBinding({window:w,authority,onExit:deferHandover,onClose:()=>{closed=true;sync?.close();deletion?.close();p0b?.close();boundary.close();}}));
+   fc.applicationSyncActions.install(createApplicationActionBinding({window:w,authority,onExit:deferHandover,onClose:()=>{closed=true;sync?.close();deletion?.close();p0b?.close();manualSync?.close();boundary.close();}}));
    await p0b?.bind();
   };await bind();
   if(localOnly)boot?.confirmLocalReset?.();
@@ -237,14 +241,15 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     // Do not report a rebound runtime ready while the durable queue is still
     // resolving its previous generation's uncertain operation. Never retry WRITE.
     const result=await sync.flush({forceProjects:false});
-    if(!result.ok&&result.code!=='LF_PROJECT_OPERATION_PENDING'&&!await p0b?.canRecover(result)){state(result);fail(result.code);}
+    if(!result.ok&&result.code!=='LF_PROJECT_OPERATION_PENDING'
+     &&!(result.code==='LF_ACTIVE_RAM_PROTECTED'&&await authority.canResumeProtectedDraft())&&!await p0b?.canRecover(result)){state(result);fail(result.code);}
     await handovers.resume(projectScopes());if(p0b)void p0b.offerRecovery();
    },
-   close(){closed=true;sync?.close();deletion?.close();p0b?.close();boundary.close();authority.close();w.removeEventListener('online',reconnected);w.removeEventListener('meble-sync-authorized',authorized);w.removeEventListener('meble-sync-unconfirmed',unconfirmed);w.removeEventListener('click',wakeReceive,true);},
-   async dispose(){closed=true;await sync?.close();deletion?.close();p0b?.close();boundary?.close();authority?.close();store.close();await installation.release();}});
+   close(){closed=true;sync?.close();deletion?.close();p0b?.close();manualSync?.close();boundary.close();authority.close();w.removeEventListener('online',reconnected);w.removeEventListener('meble-sync-authorized',authorized);w.removeEventListener('meble-sync-unconfirmed',unconfirmed);w.removeEventListener('click',wakeReceive,true);},
+   async dispose(){closed=true;await sync?.close();deletion?.close();p0b?.close();manualSync?.close();boundary?.close();authority?.close();store.close();await installation.release();}});
  }catch(error){
   closed=true;let quiet=true;try{await sync?.close();}catch(_){quiet=false;}
-  for(const stop of [()=>p0b?.close(),()=>deletion?.close(),()=>boundary?.close(),()=>authority?.close(),()=>store?.close(),()=>installation.release()])try{await stop();}catch(_){quiet=false;}
+  for(const stop of [()=>p0b?.close(),()=>deletion?.close(),()=>manualSync?.close(),()=>boundary?.close(),()=>authority?.close(),()=>store?.close(),()=>installation.release()])try{await stop();}catch(_){quiet=false;}
   if(quiet)onFailureQuiescent();throw error;
  }
 }

@@ -464,7 +464,7 @@
       try{ if(event && typeof event.preventDefault === 'function') event.preventDefault(); }catch(_){ }
       try{ if(event && typeof event.stopPropagation === 'function') event.stopPropagation(); }catch(_){ }
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordGenerateButtonEvent === 'function') FC.wycenaDiagnostics.recordGenerateButtonEvent(source || 'generate-button'); }catch(_){ }
-      const generate=()=>generateQuote(ctx,d,{source:source||'generate-button'});
+      const generate=policy=>generateQuote(ctx,policy?.readOnly?{...d,syncGeneratedQuoteStatus(){}}:d,{source:source||'generate-button'});
       if(!FC.applicationWrite){void generate();return;}
       if(requestPending)return;requestPending=true;
       const writer=FC.applicationWrite,owner=()=>[FC.projectStore?.getCurrentProjectId(),FC.investors?.getCurrentId()].join('|'),scope=owner();
@@ -474,6 +474,7 @@
         if(saved===false)throw Error('LF_OFFER_DRAFT_UNCONFIRMED');
         await writer.whenIdle?.();
         if(!current())throw Error('LF_QUOTE_OWNER_CHANGED');
+        if(FC.roomQuoteAccess)return FC.roomQuoteAccess.run({selection:()=>d.normalizeDraftSelection(d.getOfferDraft()),generate,assertCurrent(){if(!current())throw Error('LF_QUOTE_OWNER_CHANGED');},beforeRun(){prior=d.getState?.();}});
         if(await FC.quoteOfferStore?.prepareGeneration?.()===false)throw Error('LF_OFFER_DRAFT_UNCONFIRMED');
         if(!current())throw Error('LF_QUOTE_OWNER_CHANGED');
         prior=d.getState?.();

@@ -28,7 +28,7 @@ export function createApplicationQuoteLedger({fc,store,writer,reader,getSync,sou
   return out;
  }
  const proof=Object.freeze({sources});
- async function commit(application,declaredScopes){
+ async function commit(application,declaredScopes,{generationOnly=false}={}){
   const before=await store.readApplication(),prior=JSON.parse(before.rows.fc_quote_snapshots_v1||'[]'),next=JSON.parse(application.rows.fc_quote_snapshots_v1||'[]');
   const changed=new Set([...prior,...next].filter(row=>!equal(prior.find(r=>r.id===row.id),next.find(r=>r.id===row.id))).map(row=>row.investor?.id));
   if(changed.size!==1)fail('LF_QUOTE_OWNER_CHANGED');
@@ -60,7 +60,7 @@ export function createApplicationQuoteLedger({fc,store,writer,reader,getSync,sou
   const modified=newProjects.filter(row=>!equal(row,oldProjects.find(old=>old.id===row.id)));
   if(oldProjects.length!==newProjects.length||modified.some(row=>!oldProjects.some(old=>old.id===row.id)))fail('LF_APPLICATION_SCOPE_REFUSED');
   const rooms=modified.length?await prepareApplicationRooms({fc,store,getSync,application,records:modified,declaredScopes}):[];
-  return store.commitQuoteLedger({scope,rooms,operationId:crypto.randomUUID(),value,expectedVersion:local.replica?.version||0,application,sourceWitness:[...sourceWitness.values()]});
+  return store.commitQuoteLedger({scope,rooms,generationOnly,operationId:crypto.randomUUID(),value,expectedVersion:local.replica?.version||0,application,sourceWitness:[...sourceWitness.values()]});
  }
  async function projectRows(rows,ch,remote){
   const iid=owners.get(ch.scope);validateQuoteLedger(remote.value);

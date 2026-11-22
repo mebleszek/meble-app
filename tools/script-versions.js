@@ -124,7 +124,7 @@ const versions = Object.freeze({
   "js/app/quote/quote-snapshot-store.js":"20261121_duplicate_refresh_v1",
   "js/app/wycena/wycena-tab-selection-version.js":"20260628_drawer_systems_materials_v1",
   "js/app/wycena/wycena-diagnostics.js":"20261019_project_context",
-  "js/app/wycena/wycena-tab-shell.js":"20261122_quote_settle_v1"
+  "js/app/wycena/wycena-tab-shell.js":"20261122_quote_readonly_v1"
 });
 const authVersions=Object.freeze({
   "js/app/cloud/main-business-loader.js":"20261122_startup_asset_wait_v1",

@@ -1,3 +1,4 @@
+import {confirmQuoteSources} from './quote-ui-actions.mjs';
 import assert from 'node:assert/strict';
 import * as f from 'firebase/firestore';
 
@@ -145,7 +146,7 @@ async function frozenQuote(c,count){
  assert.equal(await page.evaluate(()=>window.FC.sessionNavigation.canCalculate()),true);
  await until(async()=>JSON.parse(rows(await image(phone)).fc_projects_v1).find(row=>row.id===wardrobeId)?.projectData[wardrobeId].cabinets[0]?.width===77);
  assert.ok((await image(phone)).outbox.filter(op=>op.scope===pid).some(op=>op.phase==='queued'&&op.batch));
- await page.locator('[data-action="wycena-generate"]').click();
+ await page.locator('[data-action="wycena-generate"]').click();await confirmQuoteSources(page);
  // Measured four-cabinet calculation + source ACK took 34s on the local
  // Chromium host. Bound this new fixture's readiness at 60s; do not change
  // browser-launch/RPC timeouts or accept a preview before the local commit.
