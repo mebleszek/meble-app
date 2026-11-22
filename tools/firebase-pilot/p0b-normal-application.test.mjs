@@ -9,6 +9,7 @@ import {assertFails} from '@firebase/rules-unit-testing';
 import {runNormalApplication} from './normal-application.cases.mjs';
 import {promotionCase,stagingCase} from './p0b-quote-lifecycle.cases.mjs';
 import {duplicateCase,tabSaveCase} from './quote-tab-regressions.cases.mjs';
+import {accessResumeCase} from './p0b-access-resume.cases.mjs';
 import {variantsCase} from './p0b-quote-variants.cases.mjs';
 import {batchingCase} from './p1-project-sync.cases.mjs';
 import {checkpointNativeFixture,nativeFixtureState} from './p0b-fixture-baseline.mjs';
@@ -55,12 +56,14 @@ async function addCabinet(device,width){
  await page.locator('#cmWidth').fill(String(width));await page.locator('#cmHeight').fill('82');await page.locator('#cmDepth').fill('50');
  await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
 }
-async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,p1=false}={}){
- await runNormalApplication(t,{deployment,p0bRegistry:true,testOwner:quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
+async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,accessResume=false,p1=false}={}){
+ await runNormalApplication(t,{deployment,p0bRegistry:true,testOwner:accessResume?'synthetic-background-owner':quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
   const artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'meble-p0b-normal-'));
   await phone.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
   try{
-   await configure(phone);await phone.page.reload();await login(phone);
+   await configure(phone);await phone.page.reload();
+   if(accessResume)await phone.page.evaluate(async()=>{await window.FC.offlineShell.prepare();await indexedDB.databases();});
+   await login(phone);
    const initial=await image(phone);
    assert.deepEqual(JSON.parse(rows(initial).fc_investors_v1),[]);
    assert.deepEqual(JSON.parse(rows(initial).fc_projects_v1),[]);
@@ -81,7 +84,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    assert.equal(archive.sourceRows.fc_projects_v1,source.projects);
    assert.equal(await phone.page.evaluate(()=>window.readNormalSource('fc_investors_v1')),source.investors);
    t.diagnostic('Clean normal startup preserved legacy RAW and archived the previous registry');
-   if(!computer)computer=await device('computer');else{await configure(computer);await computer.page.reload();await login(computer);}
+   if(!computer)computer=await device('computer',{prepareStatic:accessResume});else{await configure(computer);await computer.page.reload();if(accessResume)await computer.page.evaluate(async()=>{await window.FC.offlineShell.prepare();await indexedDB.databases();});await login(computer);}
    await phone.page.evaluate(()=>window.FC.localDeviceLabel.write('Telefon DEMO'));
    await computer.page.evaluate(()=>window.FC.localDeviceLabel.write('Komputer DEMO'));
    // Persist only the test's old source/name setup. All crash-tested business
@@ -148,6 +151,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    assert.equal(draft.outbox.length,beforeCabinet.outbox.length);
    const sourceCabinet=JSON.parse(rows(draft).fc_projects_v1).find(row=>row.id===pid).projectData[roomId].cabinets[0];
    assert.equal(sourceCabinet.width,66);
+   if(accessResume){await accessResumeCase({t,phone,computer,iid,pid,wardrobeId,image,rows,until,db,ownerUid,saveProject,showList,restartProbe,globalBefore});return;}
    if(p1==='tab-save'){await tabSaveCase({t,phone,computer,iid,pid,wardrobeId,until,image,rows,openRoom,addCabinet,restartProbe});return;}
    if(p1){await batchingCase({t,phone,computer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,showList,openRoom,addCabinet,saveProject,restartProbe,globalBefore},{idle:p1==='idle',quoteOnly:p1==='quote',offlineQuote:p1==='offline-quote'});return;}
    await Promise.all([saveProject(page),saveProject(computer.page)]);
@@ -163,6 +167,18 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     const beforeQuote=await image(phone);
     await page.locator('[data-action="tab"][data-tab="wycena"]').click();
     await page.locator('[data-action="wycena-generate"]').waitFor();
+    // Rendering the tab is not the completion of its durable navigation or
+    // queued settings. Open the form only after the actual authority is idle.
+    assert.equal(await page.evaluate(()=>window.FC.quoteOfferStore.settingsSettled()),true);
+    await page.waitForFunction(()=>{const s=window.FC.applicationStartup.inspect();return !s.transactionPending&&!s.incomingPending;});
+    await page.evaluate(()=>{
+     const api=window.FC.quoteOfferStore,original=api.commitSettings;
+     api.commitSettings=async function(...args){
+      const before=window.FC.applicationStartup.inspect();
+      try{const value=await original.apply(this,args);if(value===false)window.normalSettingsRefusal={code:'RETURNED_FALSE',before,after:window.FC.applicationStartup.inspect()};return value;}
+      catch(error){window.normalSettingsRefusal={code:error.code||error.message,before,after:window.FC.applicationStartup.inspect()};throw error;}
+     };
+    });
     await page.locator('.quote-selection-launch--rooms').click();
     const picker=page.locator('.panel-box-backdrop'),labels=await picker.locator('label').allTextContents();
     assert.ok(labels.some(text=>text.includes('P0B kitchen'))&&labels.some(text=>text.includes('P0B wardrobe')),
@@ -173,7 +189,11 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
      // With no stored choice the existing picker previews all rooms. Make an
      // explicit durable single-room choice before extending it to both rooms.
      await wardrobeChoice().locator('.rozrys-room-chip__label').click();
-     await page.getByRole('button',{name:'Zatwierdź',exact:true}).click();await picker.waitFor({state:'hidden'});
+     await page.waitForFunction(()=>{const s=window.FC.applicationStartup.inspect();return !s.transactionPending&&!s.incomingPending;});
+     await page.getByRole('button',{name:'Zatwierdź',exact:true}).click();
+     await page.waitForFunction(()=>{const panel=document.querySelector('.panel-box-backdrop'),notice=document.querySelector('.info-box');return !panel||!panel.getClientRects().length||!!notice?.getClientRects().length;});
+     assert.equal(await page.locator('.info-box').count(),0,'Single-room choice failed: '+JSON.stringify(await page.evaluate(()=>window.normalSettingsRefusal)));
+     await picker.waitFor({state:'hidden'});
      await page.waitForFunction(()=>window.FC.quoteOfferStore.settingsSettled());
      assert.deepEqual(JSON.parse(rows(await image(phone)).fc_quote_offer_drafts_v1).find(row=>row.projectId===pid).selection.selectedRooms,[pid]);
      await page.locator('.quote-selection-launch--rooms').click();
@@ -554,3 +574,5 @@ test('P1 normal DEMO offline quote: restart of a pending room Save preserves imm
 
 test('P1 tab Save and proceed: real dirty room navigation stays durable',t=>cleanApplication(t,{p1:'tab-save'}));
 test('P0-B duplicate replacement: same logical offer preserves history and ACK',t=>cleanApplication(t,{quoteProbe:true,quoteDuplicate:true}));
+
+test('P0-B signed background resume: durable drafts and automatic offline Exit ACK',t=>cleanApplication(t,{deployment:true,accessResume:true}));

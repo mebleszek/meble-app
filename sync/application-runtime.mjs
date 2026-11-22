@@ -199,12 +199,14 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   }
   const notify=()=>{sync?.notify();sync?.discover?.();};
   const reconnected=()=>{verifiedEditors.clear();notify();for(const scope of projectScopes())deferHandover(scope);};
-  w.addEventListener('online',reconnected);w.addEventListener('meble-sync-authorized',notify);
+  const authorized=()=>{if(closed)return;p0b?.refreshPresence();verifiedEditors.clear();notify();wakeHandovers();};
+  const unconfirmed=()=>p0b?.suspendPresence();
+  w.addEventListener('online',reconnected);w.addEventListener('meble-sync-authorized',authorized);w.addEventListener('meble-sync-unconfirmed',unconfirmed);
   const wakeReceive=()=>queueMicrotask(()=>{if(!incomingBlocked||closed)return;try{authority.assertIdle();incomingBlocked=false;sync?.notify();sync?.discover();}catch(_){}});
   wakeReceives=wakeReceive;
   w.addEventListener('click',wakeReceive,{capture:true,passive:true});
   const bind=async()=>{
-   fc.localDeviceLabel=createLocalDeviceLabel({storage:w.localStorage,deviceId:store.deviceId,assertAccess(){
+   fc.localDeviceLabel=createLocalDeviceLabel({storage:w.localStorage,deviceId:store.deviceId,navigator:w.navigator,assertAccess(){
     if(closed)fail('LF_CLOSED');w.__FC_MAIN_ACCESS__.assert();
    }});
    boundary=installApplicationWriteBoundary({window:w,authority,ensureEditor,localOnly,registry:p0bEnabled?'p0b-rooms-v1':undefined,onExit:deferHandover,preflightAcceptance:p0b?.preflightAcceptance});
@@ -238,7 +240,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     if(!result.ok&&result.code!=='LF_PROJECT_OPERATION_PENDING'&&!await p0b?.canRecover(result)){state(result);fail(result.code);}
     await handovers.resume(projectScopes());if(p0b)void p0b.offerRecovery();
    },
-   close(){closed=true;sync?.close();deletion?.close();p0b?.close();boundary.close();authority.close();w.removeEventListener('online',reconnected);w.removeEventListener('meble-sync-authorized',notify);w.removeEventListener('click',wakeReceive,true);},
+   close(){closed=true;sync?.close();deletion?.close();p0b?.close();boundary.close();authority.close();w.removeEventListener('online',reconnected);w.removeEventListener('meble-sync-authorized',authorized);w.removeEventListener('meble-sync-unconfirmed',unconfirmed);w.removeEventListener('click',wakeReceive,true);},
    async dispose(){closed=true;await sync?.close();deletion?.close();p0b?.close();boundary?.close();authority?.close();store.close();await installation.release();}});
  }catch(error){
   closed=true;let quiet=true;try{await sync?.close();}catch(_){quiet=false;}

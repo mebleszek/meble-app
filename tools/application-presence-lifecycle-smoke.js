@@ -25,6 +25,12 @@ async function main(){
  assert.deepEqual(denied,[{state:'unconfirmed'}]);blocked.refresh();assert.equal(denied.at(-1).state,'unconfirmed');
  presence.detach(refused);presence.bind(protocol());assert.equal(denied.at(-1).state,'held','Existing UI reattaches only to a newly bound protocol');
  blocked.close();
+ const transient={watchPresence(){throw Error('LF_SYNC_ACCESS_UNCONFIRMED');}};
+ presence.bind(transient);const uncertain=[];
+ const recovering=presence.watchPresence('investor',()=>true,v=>uncertain.push(v));
+ assert.deepEqual(uncertain,[{state:'unconfirmed'}],'Expired proof is an unconfirmed state, never a global JS error or released lock');
+ let confirmed=false;presence.bind({watchPresence(id,online,receive){if(!confirmed)throw Error('LF_SYNC_ACCESS_UNCONFIRMED');receive({state:'held',label:'Telefon – Chrome'});return {close(){},refresh(){}};}});
+ confirmed=true;presence.refresh();assert.equal(uncertain.at(-1).state,'held','Proof renewal reattaches existing UI');recovering.close();
  presence.bind({watchPresence(){throw TypeError('actual programming error');}});
  assert.throws(()=>presence.watchPresence('investor',()=>true,()=>{}),/actual programming error/,'Unrelated failures must remain visible');
  console.log('PASS presence lifecycle: revoked lease refuses, no false release, exact cleanup, late callbacks fenced and fresh SDK rebind');

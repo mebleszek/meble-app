@@ -40,6 +40,15 @@ export async function tabSaveCase({t,computer,wardrobeId,image,rows,openRoom,add
 }
 export async function duplicateCase({t,phone,computer,offer,iid,until,image,rows,artifacts,db,ownerUid,restartProbe,globalBefore}){
  const page=phone.page;
+ // A distinct user action must be outside the existing anti-double-click
+ // windows. ACK may arrive before the previous calculation releases its lock.
+ const shell=fs.readFileSync(new URL('../../js/app/wycena/wycena-tab-shell.js',import.meta.url),'utf8');
+ const windows=['GENERATE_DEDUP_WINDOW_MS','GENERATE_RELEASE_DEDUP_WINDOW_MS'].map(name=>{
+  const match=new RegExp('const '+name+' = ([0-9]+);').exec(shell);assert.ok(match,'Missing real generate guard '+name);return Number(match[1]);});
+ await page.waitForFunction(([accepted,released])=>{
+  const r=window.FC.wycenaTabShell._generateRuntime,now=Date.now();
+  return !r.inFlight&&(!r.lastAcceptedAt||now-r.lastAcceptedAt>=accepted)&&(!r.lastReleasedAt||now-r.lastReleasedAt>=released)&&!window.FC.applicationStartup.inspect().transactionPending;
+ },windows);
  await until(async()=>(await image(phone)).outbox.filter(op=>op.scope.startsWith('p0b_quotes_')).every(op=>op.phase==='verified'));
  const before=await image(phone),scope=before.outbox.find(op=>op.scope.startsWith('p0b_quotes_')).scope;
  const ref=f.doc(db,'users',ownerUid,'p0bRoomQuotes',iid),headBefore=(await f.getDoc(ref)).data();

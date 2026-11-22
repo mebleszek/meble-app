@@ -22,6 +22,7 @@ jobs:
     outputs:
       head_sha: ${{ steps.revision.outputs.head_sha }}
       base_sha: ${{ steps.revision.outputs.base_sha }}
+      release_mode: ${{ steps.scope.outputs.release_mode }}
       status: ${{ steps.report.outputs.status }}
       reason: ${{ steps.report.outputs.reason }}
     steps:
@@ -62,13 +63,19 @@ jobs:
           APPROVED_HEAD: ${{ steps.revision.outputs.head_sha }}
           APPROVED_BASE: ${{ steps.revision.outputs.base_sha }}
         run: node tools/cloud-ci-prepare.js "$APPROVED_HEAD"
+      - name: Classify exact documentation scope
+        id: scope
+        env:
+          APPROVED_HEAD: ${{ steps.revision.outputs.head_sha }}
+          APPROVED_BASE: ${{ steps.revision.outputs.base_sha }}
+        run: node tools/ci-docs-scope.js "$APPROVED_BASE" "$APPROVED_HEAD"
       - name: Report group result
         id: report
         if: ${{ always() }}
         uses: actions/github-script@v7
         env:
           GROUP_STEPS: ${{ toJSON(steps) }}
-          REQUIRED_STEPS: revision,checkout,node,source
+          REQUIRED_STEPS: revision,checkout,node,source,scope
         with:
           script: |
             const steps = JSON.parse(process.env.GROUP_STEPS);
@@ -87,9 +94,46 @@ jobs:
             ]).write();
 
 
+  documents:
+    needs: safety
+    if: ${{ !cancelled() && needs.safety.result == 'success' && needs.safety.outputs.release_mode == 'documents' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      status: ${{ steps.verify.outputs.status }}
+    steps:
+      - name: Checkout exact approved head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.safety.outputs.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify isolated source and 425 pins
+        env:
+          APPROVED_HEAD: ${{ needs.safety.outputs.head_sha }}
+          APPROVED_BASE: ${{ needs.safety.outputs.base_sha }}
+        run: node tools/cloud-ci-prepare.js "$APPROVED_HEAD"
+      - name: Verify documentation and unchanged application
+        id: verify
+        env:
+          APPROVED_HEAD: ${{ needs.safety.outputs.head_sha }}
+          APPROVED_BASE: ${{ needs.safety.outputs.base_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/ci-docs-scope.js "$APPROVED_BASE" "$APPROVED_HEAD" --verify-documents
+          node tools/ci-docs-scope-smoke.js
+          node tools/cloud-ci-current-boundary-smoke.js
+          echo "status=PASS" >> "$GITHUB_OUTPUT"
+
   preflight-static:
     needs: safety
-    if: ${{ !cancelled() && needs.safety.result == 'success' }}
+    if: ${{ !cancelled() && needs.safety.result == 'success' && needs.safety.outputs.release_mode == 'full' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -131,7 +175,7 @@ jobs:
 
   preflight-shards:
     needs: safety
-    if: ${{ !cancelled() && needs.safety.result == 'success' }}
+    if: ${{ !cancelled() && needs.safety.result == 'success' && needs.safety.outputs.release_mode == 'full' }}
     strategy:
       fail-fast: false
       matrix:
@@ -183,7 +227,7 @@ jobs:
 
   playwright-local-ui:
     needs: safety
-    if: ${{ !cancelled() && needs.safety.result == 'success' }}
+    if: ${{ !cancelled() && needs.safety.result == 'success' && needs.safety.outputs.release_mode == 'full' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -242,7 +286,7 @@ jobs:
 
   owner-signing-windows:
     needs: safety
-    if: ${{ !cancelled() && needs.safety.result == 'success' }}
+    if: ${{ !cancelled() && needs.safety.result == 'success' && needs.safety.outputs.release_mode == 'full' }}
     runs-on: windows-latest
     permissions:
       contents: read
@@ -267,7 +311,7 @@ jobs:
 
   preflight:
     if: ${{ always() }}
-    needs: [safety, preflight-static, preflight-shards, playwright-local-ui, owner-signing-windows]
+    needs: [safety, preflight-static, preflight-shards, playwright-local-ui, owner-signing-windows, documents]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -284,7 +328,9 @@ jobs:
           script: |
             const groups=JSON.parse(process.env.GROUPS);
             const names=["safety","preflight-static","preflight-shards","playwright-local-ui","owner-signing-windows"];
+            if(groups.safety?.outputs?.release_mode==='documents')names.splice(0,names.length,'safety','documents');
             const missing=names.filter(name=>groups[name]?.result!=='success');
+            if(groups.safety?.outputs?.release_mode==='documents'&&groups.documents?.outputs?.status!=='PASS')missing.push('documents-proof');
             const status=missing.length?'FAIL':'PASS';
             const reason=missing.length?'Mandatory groups not successful: '+missing.join(', '):'All mandatory groups passed';
             core.setOutput('status',status);
@@ -298,7 +344,7 @@ jobs:
 
   firebase-current-shards:
     needs: safety
-    if: ${{ !cancelled() && needs.safety.result == 'success' }}
+    if: ${{ !cancelled() && needs.safety.result == 'success' && needs.safety.outputs.release_mode == 'full' }}
     strategy:
       fail-fast: false
       matrix:
@@ -378,7 +424,7 @@ jobs:
 
   playwright-sync-ui:
     needs: safety
-    if: ${{ !cancelled() && needs.safety.result == 'success' }}
+    if: ${{ !cancelled() && needs.safety.result == 'success' && needs.safety.outputs.release_mode == 'full' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -436,11 +482,11 @@ jobs:
 
   firebase-p0b:
     needs: safety
-    if: ${{ !cancelled() && needs.safety.result == 'success' }}
+    if: ${{ !cancelled() && needs.safety.result == 'success' && needs.safety.outputs.release_mode == 'full' }}
     strategy:
       fail-fast: false
       matrix:
-        segment: [tab-save, duplicate-replacement, project-batch-timer, project-offline-quote, project-batch-quote, project-batch-recovery, room-model, room-quote-proof, room-quote-rules, room-quote-variants, room-quote-promotion, room-quote-staging, room-quote-acceptance-conflict, room-quote-acceptance, room-quote, room-storage, normal-rules, rules, recovery, profiles, compatibility, normal-startup, signed-startup, signed-quote, signed-clean, normal-clean, storage]
+        segment: [background-resume, tab-save, duplicate-replacement, project-batch-timer, project-offline-quote, project-batch-quote, project-batch-recovery, room-model, room-quote-proof, room-quote-rules, room-quote-variants, room-quote-promotion, room-quote-staging, room-quote-acceptance-conflict, room-quote-acceptance, room-quote, room-storage, normal-rules, rules, recovery, profiles, compatibility, normal-startup, signed-startup, signed-quote, signed-clean, normal-clean, storage]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -495,7 +541,7 @@ jobs:
 
   firebase-current:
     if: ${{ always() }}
-    needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b]
+    needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b, documents]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -512,7 +558,9 @@ jobs:
           script: |
             const groups=JSON.parse(process.env.GROUPS);
             const names=["safety","firebase-current-shards","playwright-sync-ui","firebase-p0b"];
+            if(groups.safety?.outputs?.release_mode==='documents')names.splice(0,names.length,'safety','documents');
             const missing=names.filter(name=>groups[name]?.result!=='success');
+            if(groups.safety?.outputs?.release_mode==='documents'&&groups.documents?.outputs?.status!=='PASS')missing.push('documents-proof');
             const status=missing.length?'FAIL':'PASS';
             const reason=missing.length?'Mandatory groups not successful: '+missing.join(', '):'All mandatory groups passed';
             core.setOutput('status',status);
@@ -526,7 +574,7 @@ jobs:
 
   cloud-historical-smoke:
     needs: safety
-    if: ${{ !cancelled() && needs.safety.result == 'success' }}
+    if: ${{ !cancelled() && needs.safety.result == 'success' && needs.safety.outputs.release_mode == 'full' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -564,7 +612,7 @@ jobs:
 
   cloud-historical-sdk:
     needs: safety
-    if: ${{ !cancelled() && needs.safety.result == 'success' }}
+    if: ${{ !cancelled() && needs.safety.result == 'success' && needs.safety.outputs.release_mode == 'full' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -622,7 +670,7 @@ jobs:
 
   cloud-historical:
     if: ${{ always() }}
-    needs: [safety, cloud-historical-smoke, cloud-historical-sdk]
+    needs: [safety, cloud-historical-smoke, cloud-historical-sdk, documents]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -639,7 +687,9 @@ jobs:
           script: |
             const groups=JSON.parse(process.env.GROUPS);
             const names=["safety","cloud-historical-smoke","cloud-historical-sdk"];
+            if(groups.safety?.outputs?.release_mode==='documents')names.splice(0,names.length,'safety','documents');
             const missing=names.filter(name=>groups[name]?.result!=='success');
+            if(groups.safety?.outputs?.release_mode==='documents'&&groups.documents?.outputs?.status!=='PASS')missing.push('documents-proof');
             const status=missing.length?'FAIL':'PASS';
             const reason=missing.length?'Mandatory groups not successful: '+missing.join(', '):'All mandatory groups passed';
             core.setOutput('status',status);
@@ -674,7 +724,7 @@ jobs:
               const job = groups[key] || {};
               const status = job.result === 'success' && job.outputs?.status === 'PASS' ? 'PASS'
                 : ['skipped','cancelled'].includes(job.result) ? 'SKIPPED' : 'FAIL';
-              const reason = status === 'PASS' ? 'All required steps passed'
+              const reason = status === 'PASS' ? (groups.safety?.outputs?.release_mode==='documents' ? 'Documentation gate passed; application and SDK tests not executed (unchanged sources)' : 'All required steps passed')
                 : job.outputs?.reason || (job.result === 'skipped'
                   ? `Safety prerequisites not satisfied: ${groups.safety?.outputs?.reason || groups.safety?.result || 'unknown'}`
                   : `Job/report ${job.result || 'unconfirmed'}; see job steps`);
@@ -706,7 +756,7 @@ jobs:
             if (!ready) core.setFailed('RELEASE_BLOCKED: '+reason);
 
   auto-merge:
-    if: ${{ needs.safety.result == 'success' && needs.preflight.result == 'success' && needs.firebase-current.result == 'success' && needs.cloud-historical.result == 'success' && needs.ci-summary.result == 'success' && needs.ci-summary.outputs.status == 'RELEASE_READY' && github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
+    if: ${{ !cancelled() && needs.safety.result == 'success' && needs.preflight.result == 'success' && needs.firebase-current.result == 'success' && needs.cloud-historical.result == 'success' && needs.ci-summary.result == 'success' && needs.ci-summary.outputs.status == 'RELEASE_READY' && github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
     needs: [safety, preflight, firebase-current, cloud-historical, ci-summary]
     runs-on: ubuntu-latest
     permissions:
@@ -765,7 +815,7 @@ jobs:
             return result.data.sha;
 
   post-merge-verify:
-    if: ${{ github.event_name == 'pull_request' && needs.auto-merge.result == 'success' }}
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.auto-merge.result == 'success' }}
     needs: auto-merge
     runs-on: ubuntu-latest
     permissions:
@@ -837,6 +887,7 @@ jobs:
           HISTORICAL_STATUS: ${{ needs.cloud-historical.outputs.status }}
           SAFETY_RESULT: ${{ needs.safety.result }}
           SAFETY_STATUS: ${{ needs.safety.outputs.status }}
+          RELEASE_MODE: ${{ needs.safety.outputs.release_mode }}
           DIAGNOSTIC_STATUS: ${{ needs.ci-summary.outputs.status }}
           DIAGNOSTIC_REASON: ${{ needs.ci-summary.outputs.reason }}
           MERGE_RESULT: ${{ needs.auto-merge.result }}
@@ -864,6 +915,7 @@ jobs:
             const mergeSha = process.env.MERGE_SHA || '';
 
             const ready = preflight === 'success' && process.env.FIREBASE_RESULT === 'success' && process.env.HISTORICAL_RESULT === 'success' && process.env.SAFETY_RESULT === 'success' && process.env.DIAGNOSTIC_STATUS === 'RELEASE_READY' && ['PREFLIGHT_STATUS','FIREBASE_STATUS','HISTORICAL_STATUS','SAFETY_STATUS'].every(key=>process.env[key]==='PASS') && merge === 'success' && verify === 'success';
+            if(process.env.RELEASE_MODE==='documents')await core.summary.addRaw('Documentation-only release: application/SDK test groups were not executed; exact unchanged application and mandatory documentation gates verified.\n').write();
             const display = result => result === 'success' ? 'PASS' : ['skipped','cancelled'].includes(result) ? 'SKIPPED' : 'FAIL';
             const displayGroup = (result,status) => result === 'success' && status === 'PASS' ? 'PASS' : status === 'SKIPPED' || ['skipped','cancelled'].includes(result) ? 'SKIPPED' : 'FAIL';
             await core.summary.addHeading(ready ? 'RELEASE_READY' : 'RELEASE_BLOCKED').addTable([

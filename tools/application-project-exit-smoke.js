@@ -192,6 +192,17 @@ test('Reopen observes the complete handover while its real ACK is pending',async
  assert.equal(releases,1);assert.deepEqual(errors,[]);assert.equal(handover.pending('P'),undefined);
 });
 
+test('Expired sync access retains the exact durable handover and renewed proof resumes only that request',async()=>{
+ const {createApplicationHandover}=await import('../sync/application-replication.mjs');
+ const request={deviceId:'pc',epoch:5},editor={...request,active:true};let proof=false,pending=request,releases=0;const errors=[];
+ const store={pendingHandover:async()=>pending,snapshot:async()=>({replica:{base:{revisionId:'confirmed'},dirty:false,editor},operations:[{phase:'verified'}]})};
+ const sync={async releaseRequestedEditor(scope,expected){if(!proof)throw Error('LF_SYNC_ACCESS_UNCONFIRMED');assert.equal(scope,'room');assert.deepEqual(expected,request);releases++;pending=null;}};
+ const handover=createApplicationHandover({store,getSync:()=>sync,online:()=>true,onError:e=>errors.push(e.message)});
+ await handover.resume(['room']);assert.equal(pending,request);assert.equal(releases,0);assert.deepEqual(errors,['LF_SYNC_ACCESS_UNCONFIRMED']);
+ proof=true;await Promise.all([handover.resume(['room']),handover.resume(['room'])]);assert.equal(releases,1);assert.equal(pending,null);
+ await handover.resume(['room']);assert.equal(releases,1,'No automatic unlock without a durable Exit request');
+});
+
 test('Explicit Save distinguishes confirmed local commit, queued publication and verified revision',async()=>{
  for(const [receipt,text] of [
   [{localConfirmed:true,cloudConfirmed:false},'Zmiany zapisano na tym urządzeniu.'],
