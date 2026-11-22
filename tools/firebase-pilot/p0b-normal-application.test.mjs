@@ -394,8 +394,18 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     await showList(computer.page);await showList(phone.page);
     await until(async()=>(await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomEditors',wardrobeId))).data().active===false);
     const activePage=phone.page;
+    await until(async()=>{const registry=(await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomInvestors',iid))).data();return Object.values(registry.projects).every(held=>held===false)&&Object.keys(registry.visits).length===0;});
+    const beforeVisit=(await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomInvestors',iid))).data();
+    await activePage.evaluate(()=>{window.normalLoseVisitAck=true;window.normalVisitCommitted=false;});
     await activePage.locator('[data-action="open-investor"][data-inv-id="'+iid+'"]').click();
     await activePage.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
+    const lostVisit=await activePage.evaluate(()=>window.normalVisitCommitted);
+    assert.equal(lostVisit?.generation,beforeVisit.generation+1,'Visit ACK is lost only after the real server commit');
+    assert.equal(await activePage.locator('[data-investor-action="projects"]').isVisible(),true,'A confirmed own visit must reconcile a lost ACK before local navigation');
+    const afterVisit=(await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomInvestors',iid))).data();
+    assert.equal(afterVisit.generation,beforeVisit.generation+1,'Visit reconciliation must not publish twice');
+    assert.deepEqual(afterVisit.visits,lostVisit.visits);
+    assert.equal(Object.values(afterVisit.visits).length,1);assert.equal(Object.values(afterVisit.visits)[0].label,'Telefon DEMO');
     await projects(activePage);
     await activePage.locator('#invProjectStatus_'+wardrobeId+'Launch button').click();
     await activePage.locator('.rozrys-choice-modal .rozrys-choice-option').filter({hasText:/^Pomiar$/}).click();

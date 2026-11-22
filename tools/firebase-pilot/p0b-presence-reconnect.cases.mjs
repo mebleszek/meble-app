@@ -23,6 +23,7 @@ export async function presenceReconnectCase({t,phone,computer,iid,pid,wardrobeId
  const cdp=await desktop.context().newCDPSession(desktop);await cdp.send('Page.setWebLifecycleState',{state:'frozen'});await cdp.send('Page.setWebLifecycleState',{state:'active'});
  await desktop.evaluate(()=>{window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:false}));document.dispatchEvent(new Event('visibilitychange'));});
  await until(async()=>await released()==='Zwolnione');
+ await desktop.waitForFunction(()=>window.FC.applicationStartup.inspect().stage==='ready');
  assert.equal(await desktop.evaluate(()=>window.FC.applicationStartup.inspect().stage),'ready');
  assert.equal(await desktop.evaluate(()=>window.popupCalls),popups,'Renewal must reuse the existing Google identity without another popup');
  assert.deepEqual(rows(await image(computer)),rows(before));assert.deepEqual((await image(computer)).outbox,before.outbox);

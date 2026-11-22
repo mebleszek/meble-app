@@ -116,13 +116,18 @@ export function createP0BProtocol(connection, deviceId) {
   // Registry writes from this installation share one ordering lane. This is
   // not a retry: each caller still receives its one transaction's real result.
   let transactionWork=Promise.resolve();
-  const transaction = work => {
+  const transaction = (work,confirmLostResult) => {
     guard();
     const result=transactionWork.then(()=>{
       guard();
       return f.runTransaction(db,async tx=>{
         guard();const value=await work(tx);guard();return value;
-      },{maxAttempts:1});
+      },{maxAttempts:1}).catch(async error=>{
+        // Never replay a write. A visit can recover its lost result only from
+        // an authorized server read of the exact complete post-transaction image.
+        if(confirmLostResult)try{if(await confirmLostResult())return;}catch(_){}
+        throw error;
+      });
     });
     transactionWork=result.then(()=>undefined,()=>undefined);
     return result;
@@ -153,6 +158,7 @@ export function createP0BProtocol(connection, deviceId) {
 
   function changeVisit(iid, token, label, open) {
     id(token);
+    let expected;
     return transaction(async tx=>{
       const r=investorRef(iid), current=active(read(await tx.get(r)));
       const visits={...current.visits}, previous=visits[deviceId];
@@ -165,8 +171,9 @@ export function createP0BProtocol(connection, deviceId) {
         if(previous?.token!==token) fail('LF_P0B_VISIT_CONFLICT');
         delete visits[deviceId];
       }
-      tx.set(r,{...current,generation:current.generation+1,lastVisit:deviceId,visits});
-    });
+      expected={...current,generation:current.generation+1,lastVisit:deviceId,visits};
+      tx.set(r,expected);
+    },async()=>!!expected&&equal(await readServer(investorRef(iid)),expected));
   }
 
   async function changeLock({iid, pid, expectedHead, expectedEditor, deviceLabel = ''}, acquire) {

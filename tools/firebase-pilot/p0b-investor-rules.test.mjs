@@ -7,6 +7,7 @@ import * as f from 'firebase/firestore';
 import {createP0BProtocol, createP0BDeletionIntent, inspectP0BCompatibility, projectP0BContact, splitP0BLegacyContact, P0B_HEARTBEAT_MS, watchP0BEditorContact} from './p0b-protocol.mjs';
 
 import {runP0BRecovery} from './p0b-recovery-cases.mjs';
+import {visitAckCases} from './p0b-visit-ack.cases.mjs';
 
 const {p0bApplicationRules} = createRequire(import.meta.url)('./p0b-application-rules.js');
 const fixtureUid = 'synthetic-p0b-owner';
@@ -265,6 +266,7 @@ test('P0-B candidate Rules: owner CAS, registry, atomic investor deletion, stale
   assert.deepEqual(inspectP0BCompatibility({records:[],snapshots:[old,{...old,contact:{...contact,phone:'old'}}],
     projectHeads:[{projectId:'legacy-project',investorId:'legacy'}]}).map(issue=>issue.code),
     ['LF_P0B_LEGACY_CONTACT','LF_P0B_LEGACY_CONTACT','LF_P0B_AMBIGUOUS_CONTACT','LF_P0B_UNREGISTERED_PROJECT']);
+  await visitAckCases({client,contact});
 });
 
 test('P0-B two real Chromium profiles: local label, offline intent, lost ACK, reboot and archive refusal',async t=>{
