@@ -2,6 +2,7 @@
 // Every candidate test belongs to exactly one mandatory job. No retries or LIVE.
 const fs=require('node:fs'),path=require('node:path');
 const groups=Object.freeze([
+ {id:'startup-draft-recovery',file:'p0b-normal-application.test.mjs',pattern:'^P0-B startup draft:'},
  {id:'quote-access-contract',file:'p0b-quote-access.test.mjs',pattern:'^P0-B quote access:',emulator:false},
  {id:'manual-sync-quote',file:'p0b-normal-application.test.mjs',pattern:'^P0-B manual quote: header'},
  {id:'manual-quote-restart',file:'p0b-normal-application.test.mjs',pattern:'^P0-B manual quote: SIGKILL'},

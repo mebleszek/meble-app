@@ -20,6 +20,21 @@ export function reconcileGlobalAliases(before,after,contract){
  return next;
 }
 
+// Admission to the existing recovery UI, never permission to apply remote data.
+export function confirmedApplicationDraft({window:w,rows,image,busy=false,incoming=false}){
+ try{
+  const fc=w.FC,s=fc.session;
+  if(busy||incoming||!equal(rows,image?.rows)||!s?.active||s.durable!==true||!s.snapshot||!s.roomId
+   ||s.projectId!==rows.fc_current_project_id_v1||s.context?.investorId!==rows.fc_current_investor_v1
+   ||fc.investorEditorState?.hasUiLock()||fc.priceModal?.isItemDirty?.()
+   ||w.document.getElementById('cabinetModal')?.style.display==='block'
+   ||fc.investorProjectRuntime.hasProjectDivergence(w.projectData))return false;
+  const proof=s.inspectNavigationState?.();
+  return !!proof&&rows.fc_edit_session_v1!=null&&proof.raws?.fc_edit_session_v1===rows.fc_edit_session_v1
+   &&proof.raws.fc_projects_v1===rows.fc_projects_v1&&w.localStorage.getItem('fc_edit_session_v1')===rows.fc_edit_session_v1
+   &&Object.entries(proof.raws).every(([key,raw])=>(rows[key]??null)===raw);
+ }catch(_){return false;}
+}
 export async function installEmulatorApplicationAuthority(options){
  const who=assertEmulator(options.connection);
  return installAuthority({...options,ownerUid:who.uid});
@@ -163,7 +178,11 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
    fc.views.applyFromState(w.uiState);fc.sections.update();return true;
   });
  }
- return Object.freeze({transaction,afterCommit(fn){if(inTransaction)pendingClosures.push(fn);else fn();},assertIdle:idle,rows:()=>structuredClone(rows),
+ return Object.freeze({async canResumeProtectedDraft({initial=false}={}){
+   access();assertSource();if(initial&&(!bootDraft||w.__FC_MAIN_ACCESS__.isLoading?.()!==true))return false;
+   const durable=await store.readApplication();access();assertSource();
+   return equal(durable,image)&&confirmedApplicationDraft({window:w,rows,image:durable,busy:inTransaction,incoming:incomingWitness!==null});
+  },transaction,afterCommit(fn){if(inTransaction)pendingClosures.push(fn);else fn();},assertIdle:idle,rows:()=>structuredClone(rows),
   async incoming(next){idle();assertSource();if(Object.keys(next).some(k=>!keys.has(k)))fail('LF_APPLICATION_SCOPE_REFUSED');incomingWitness=JSON.stringify(w.projectData);return {expectedVersion:image.version,rows:next};},
   async refresh(){access();assertSource();if(inTransaction||fc.session.active||incomingWitness!==JSON.stringify(w.projectData))fail('LF_ACTIVE_RAM_PROTECTED');image=await store.readApplication();rows=structuredClone(image.rows);await hydrateCatalogs();w.projectData=fc.project.load();w.uiState=fc.uiState.get();fc.views.applyFromState(w.uiState);fc.sections.update();incomingWitness=null;},
   // Logout seals writes; the local data/outbox is never removed.

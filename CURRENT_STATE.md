@@ -1,5 +1,14 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## Start po przejęciu projektu na innym urządzeniu — 22.11.2026
+
+**CODE_READY naprawy / CI_PENDING / RELEASE_BLOCKED / DEVICE_PENDING.** Zgoda właściciela na naprawę raportu z drugiego komputera, bez czyszczenia danych i bez omijania ochrony RAM. Kontynuacja gałęzi `feat/manual-sync-quote-lock-warning-20261122`, wejściowy HEAD `986c723d671b6f866e526ba85bb381ae754475ce`, BASE/main `9b5c0d21ee188f84014941326a5ee94b98f11881`. Przygotowany wcześniej przycisk i ostrzeżenie pozostają. [Dokładna przyczyna, RED/GREEN i granice](tools/reports/startup-protected-draft-20261122.md).
+
+- **USTALONE → WDROŻONE w kandydacie.** Rzeczywisty PIN/takeover, nowsza publikacja i SIGKILL odtworzyły dokładnie `initial-global-revision / LF_ACTIVE_RAM_PROTECTED`. Ochrona prawidłowo odmówiła odbioru na aktywny szkic; błędem było przekształcenie tej odmowy w całkowitą blokadę startu, mimo potwierdzonego odtworzenia szkicu. Runtime może pokazać istniejące odzyskiwanie dopiero po ponownym sprawdzeniu aktualnego obrazu IDB, sesji, właściciela, RAM i źródła. Nadal nie ma zgody na incoming, zapis starej generacji ani automatyczne przejęcie. Wynik synchronizacji pozostaje niepotwierdzony, nie jest zamieniany na ok.
+- **KONTROLE → BRAKUJE.** RED na rzeczywistym Chromium/Emulatorze i pierwszy GREEN 1/1; końcowa regresja desktopu z pustymi oryginałami katalogów oraz istniejący normal-clean: 2/2 PASS (332,662 s, zero skipped). Granice startup/quote 19/19 i login 36/36 PASS, w tym negatywy potwierdzenia szkicu. Pełne CI, wydanie i ponowny odczyt właściciela na drugim komputerze pozostają. Nie ustalono aktualnej liczby jego szafek/ofert ani nie wykonano zrzutu jego historii.
+
+**Stan LIVE jest wcześniejszy i pozostaje odrębny:** [wynik aktywacji](https://github.com/mebleszek/meble-app/blob/docs/p0b-live-activation-result-20261121/CURRENT_STATE.md) potwierdza konfigurację LIVE oraz odbiór synchronizacji w obie strony przez właściciela. Historyczne LIVE_BLOCKED nie oznacza obecnego wyłączenia. W tej naprawie nie zmieniano Firebase/Rules ani danych właściciela.
+
 ## Ręczna synchronizacja i świadoma wycena — 22.11.2026
 
 **CODE_READY pakietu / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Zgoda właściciela obejmuje wyłącznie napis „Synchronizuj” w obecnym czarnym pasku, bez zwiększania wysokości, oraz ostrzeżenie Tak / Nie / Uwolnij blokowane przed wyceną cudzych zajętych pomieszczeń. Gałąź `feat/manual-sync-quote-lock-warning-20261122`, BASE/main `9b5c0d21ee188f84014941326a5ee94b98f11881`. Brak zgody na nową próbę wydania tego pakietu. [Zakres, dowody i ograniczenia](tools/reports/manual-sync-quote-warning-20261122.md).

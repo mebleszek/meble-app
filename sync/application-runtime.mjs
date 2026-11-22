@@ -167,7 +167,8 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   });authorityReady=true;
    const result=await sync.flush({forceProjects:false});
    // A project journal must remain accessible for local recovery.
-   if(!result.ok&&result.code!=='LF_PROJECT_OPERATION_PENDING'&&!await p0b?.canRecover(result))fail(result.code);
+   if(!result.ok&&result.code!=='LF_PROJECT_OPERATION_PENDING'
+    &&!(result.code==='LF_ACTIVE_RAM_PROTECTED'&&await authority.canResumeProtectedDraft({initial:true}))&&!await p0b?.canRecover(result))fail(result.code);
   }else authorityReady=true;
   if(!localOnly)onStage('initial-project-revisions');
   // Existing owned source projects become real channels without synthetic flags.
@@ -240,7 +241,8 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     // Do not report a rebound runtime ready while the durable queue is still
     // resolving its previous generation's uncertain operation. Never retry WRITE.
     const result=await sync.flush({forceProjects:false});
-    if(!result.ok&&result.code!=='LF_PROJECT_OPERATION_PENDING'&&!await p0b?.canRecover(result)){state(result);fail(result.code);}
+    if(!result.ok&&result.code!=='LF_PROJECT_OPERATION_PENDING'
+     &&!(result.code==='LF_ACTIVE_RAM_PROTECTED'&&await authority.canResumeProtectedDraft())&&!await p0b?.canRecover(result)){state(result);fail(result.code);}
     await handovers.resume(projectScopes());if(p0b)void p0b.offerRecovery();
    },
    close(){closed=true;sync?.close();deletion?.close();p0b?.close();manualSync?.close();boundary.close();authority.close();w.removeEventListener('online',reconnected);w.removeEventListener('meble-sync-authorized',authorized);w.removeEventListener('meble-sync-unconfirmed',unconfirmed);w.removeEventListener('click',wakeReceive,true);},
