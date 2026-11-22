@@ -67,7 +67,10 @@ const p0b=require('./p0b-ci-plan').plan(path.join(__dirname,'firebase-pilot'));
 const p0bFlow=flow.slice(flow.indexOf('  firebase-p0b:'),flow.indexOf('  firebase-current:'));
 const p0bMatrix=/segment: \[([^\]]+)\]/.exec(p0bFlow)[1].split(',').map(s=>s.trim());
 assert.deepEqual(p0bMatrix,p0b.map(row=>row.id));
-assert.equal(p0b.flatMap(row=>row.names).length,59);
+assert.equal(p0b.flatMap(row=>row.names).length,61);
+for(const name of ['three cabinets share one verified context per room in a synchronous read','context reuse cannot cross a read, change editor scope or hide reentrant mutation']){
+  assert.equal(p0b.filter(row=>row.id==='room-quote-proof'&&row.names.includes('P0-B room quote proof: '+name)).length,1,'Mandatory quote-read regression: '+name);
+}
 assert.ok(p0bFlow.includes('--p0b=${{ matrix.segment }}'));
 assert.ok(flow.includes('needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b, documents]'));
 assert.ok(flow.includes('const names=["safety","firebase-current-shards","playwright-sync-ui","firebase-p0b"];'));

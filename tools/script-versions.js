@@ -3,6 +3,7 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
+  "js/app/project/project-pcv-overrides.js":"20261122_quote_read_scope_v1",
   "js/app/ui/tab-navigation.js":"20261121_tab_commit_v1",
   "js/app/project/project-status-snapshot-flow.js":"20261118_quote_lifecycle_v1",
   "js/app/quote/quote-snapshot-selection.js":"20261118_quote_lifecycle_v1",
