@@ -82,6 +82,16 @@ export function validateQuoteLedgerChange(before,after){
  return true;
 }
 
+// Status writes may accompany exactly one explicit active-history removal.
+// Retained offers/pins are exact; no add, replacement or unrelated room write.
+export function validateQuoteStatusHistoryChange(before,after,scopes){
+ if(before&&equal(before.offers.map(row=>row.id),after.offers.map(row=>row.id)))return true;
+ const removed=before?.offers.filter(row=>!after.offers.some(next=>next.id===row.id))||[];
+ if(removed.length!==1||!equal(after.offers,before.offers.filter(row=>row.id!==removed[0].id))
+   ||scopes.some(scope=>!removed[0].scope.selectedRooms.includes(scope)))fail('LF_QUOTE_HISTORY_IMMUTABLE');
+ return true;
+}
+
 // Naming another variant is part of the same atomic local history commit.
 // It is not a general settings write: all other fields/rows stay exact.
 export function validateQuoteVariantDraftChange(before,after,previous,value){

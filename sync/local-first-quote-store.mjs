@@ -2,7 +2,7 @@
 // No room replica, RAW image, accepted content or foreign history can be replaced.
 import {copy,id,json,equal,fail,digest} from './local-first-values.mjs';
 import {prepareQuoteStatusRooms,validateQuoteStatusRooms,writeQuoteStatusRooms} from './local-first-quote-status.mjs';
-import {quoteScope,validateQuoteLedgerChange,validateQuoteVariantDraftChange} from './local-first-quote-contract.mjs';
+import {quoteScope,validateQuoteLedgerChange,validateQuoteVariantDraftChange,validateQuoteStatusHistoryChange} from './local-first-quote-contract.mjs';
 export async function commitQuoteLedger({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}){
  const {scope,operationId,value,expectedVersion,sourceWitness=[]}=args,application=await prepareApplication(args.application);
  if(!application||scope!==await quoteScope(value?.investorId))fail('LF_QUOTE_LEDGER_INVALID');
@@ -34,7 +34,7 @@ export async function commitQuoteLedger({transaction,prepareApplication,applicat
     if(!equal(prior.filter(row=>row.investor?.id!==iid),next.filter(row=>row.investor?.id!==iid))
       ||!equal(next.filter(row=>row.investor?.id===iid),value.offers))fail('LF_QUOTE_OWNER_CHANGED');
     const writes=validateQuoteStatusRooms(prepared,r.result,q.result,c.result,before,application,iid);
-    if(prepared.length&&(!old||!equal(value.offers.map(row=>row.id),JSON.parse(old.json).offers.map(row=>row.id))))fail('LF_QUOTE_HISTORY_IMMUTABLE');
+    if(prepared.length)validateQuoteStatusHistoryChange(previous,value,prepared.map(row=>row.scope));
     writeQuoteStatusRooms({s,writes,application,protection,protectedHash,rememberHandover});
     const version=(old?.version||0)+1,previousOperation=ops.sort((a,b)=>b.localVersion-a.localVersion)[0];
     s.replicas.put({key:scope,version,json:encoded,hash,base:old?.base||null,editor:null,dirty:true});

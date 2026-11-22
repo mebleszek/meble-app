@@ -2,6 +2,8 @@
 // Every candidate test belongs to exactly one mandatory job. No retries or LIVE.
 const fs=require('node:fs'),path=require('node:path');
 const groups=Object.freeze([
+ {id:'quote-remove-single',file:'p0b-normal-application.test.mjs',pattern:'^P0-B quote removal single:'},
+ {id:'quote-remove-combined',file:'p0b-normal-application.test.mjs',pattern:'^P0-B quote removal combined:'},
  {id:'desktop-presence',file:'p0b-normal-application.test.mjs',pattern:'^P0-B signed desktop presence:'},
  {id:'background-resume',file:'p0b-normal-application.test.mjs',pattern:'^P0-B signed background resume:'},
  {id:'tab-save',file:'p0b-normal-application.test.mjs',pattern:'^P1 tab Save and proceed:'},

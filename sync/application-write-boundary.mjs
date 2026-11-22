@@ -46,6 +46,14 @@ export function installApplicationWriteBoundary({window:w,authority,ensureEditor
    for(const scope of ids)await ensureEditor(scope);
    return authority.transaction('room-records',fn,{writeScopes:ids});
   }).catch(error=>{const result=safeError(error);fc.infoBox?.open({title:'Operacja wstrzymana',message:'Zachowano dane. '+result.code,okOnly:true});return result;}),
+  quoteRemoval:(scopes,changed,fn)=>reserve(async()=>{
+   if(registry!=='p0b-rooms-v1'||typeof preflightAcceptance!=='function')fail('LF_QUOTE_ACCEPTANCE_UNCONFIRMED');
+   const ids=[...new Set(scopes)],writes=[...new Set(changed)];
+   if(!ids.length||writes.some(scope=>!ids.includes(scope)))fail('LF_APPLICATION_SCOPE_REFUSED');
+   await preflightAcceptance(ids);
+   for(const scope of writes)await ensureEditor(scope);
+   return authority.transaction('room-records',fn,{writeScopes:writes});
+  }),
   roomRecords:(scopes,fn)=>reserve(async()=>{for(const scope of [...new Set(scopes)])await ensureEditor(scope);return authority.transaction('room-records',fn,{writeScopes:[...new Set(scopes)]});}).catch(refused),afterCommit:fn=>{if(running)completions.push(fn);else fn();},projectHandler:fn=>handler(fn,'project'),draftHandler:fn=>handler(fn,'cabinet-draft'),globals:fn=>run(fn,'globals'),project:fn=>run(fn,'project'),offerDraft:fn=>run(fn,'offer-draft'),auto:fn=>run(fn,'auto'),checkpoint:fn=>run(fn,'checkpoint')};
  return {run,busy:()=>running,close(){if(directOpen&&fc.views.openRoom===guardedOpen)fc.views.openRoom=directOpen;if(fc.applicationLifecycle===lifecycle)delete fc.applicationLifecycle;delete fc.applicationWrite;}};
 }
