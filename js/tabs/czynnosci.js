@@ -508,6 +508,10 @@
   }
 
   function render(ctx){
+    const read=FC.projectPcvOverrides?.withCalculationRead;
+    return read?read(()=>renderContents(ctx)):renderContents(ctx);
+  }
+  function renderContents(ctx){
     const list = ctx && ctx.listEl;
     const roomId = String(ctx && ctx.room || '').trim();
     if(!list) return;

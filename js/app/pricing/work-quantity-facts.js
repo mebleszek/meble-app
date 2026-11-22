@@ -540,12 +540,7 @@
       return api && typeof api.list === 'function' ? api.list() : [];
     }catch(_){ return []; }
   }
-  function getCabinetFacts(roomId, cabinet){
-    const derived = derivedWorkFacts(roomId, cabinet);
-    if(Array.isArray(derived)) return derived;
-    const sources = getSourceList();
-    const cache = buildCache(roomId, cabinet || {});
-    return sources.map((source)=> {
+  function calculateFact(source,roomId,cabinet,cache){
       const code = text(source && source.code);
       const calc = FACT_CALCULATORS[code];
       if(typeof calc === 'function'){
@@ -553,11 +548,20 @@
         catch(error){ return makeFact(code, null, { hasValue:false, warning:error && error.message ? error.message : String(error) }); }
       }
       return makeFact(code, null, { hasValue:false, emptyText:'niepodpięte', source:'planowane' });
-    });
+  }
+  function getCabinetFacts(roomId, cabinet){
+    const derived = derivedWorkFacts(roomId, cabinet);
+    if(Array.isArray(derived)) return derived;
+    const sources=getSourceList();
+    const cache = buildCache(roomId, cabinet || {});
+    return sources.map(source=>calculateFact(source,roomId,cabinet,cache));
   }
   function getCabinetFact(roomId, cabinet, code){
     const key = text(code);
-    return getCabinetFacts(roomId, cabinet).find((fact)=> fact && fact.code === key) || null;
+    const derived=derivedWorkFacts(roomId,cabinet);
+    if(Array.isArray(derived))return derived.find(fact=>fact&&fact.code===key)||null;
+    const source=getSourceList().find(row=>text(row&&row.code)===key);
+    return source?calculateFact(source,roomId,cabinet,buildCache(roomId,cabinet||{})):null;
   }
   function buildCabinetFactMap(roomId, cabinet){
     return getCabinetFacts(roomId, cabinet).reduce((acc, fact)=> {

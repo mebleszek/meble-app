@@ -14,9 +14,11 @@
   if(!policy.ok)fail('PROJECT_PCV_'+policy.code);
   return source;
  }
- function all(){const iid=FC.investors.getCurrentId(),ids=FC.roomProjectModel.list(iid).filter(row=>!row.meta.roomProject.removed).map(row=>row.id);return ids.length?capture(ids):{projectData:{},projects:[]};}
+ function captureAll(){const iid=FC.investors.getCurrentId(),ids=FC.roomProjectModel.list(iid).filter(row=>!row.meta.roomProject.removed).map(row=>row.id);return ids.length?capture(ids):{projectData:{},projects:[]};}
+ function read(rooms){return FC.projectPcvOverrides?.calculationSource?FC.projectPcvOverrides.calculationSource(rooms):rooms===null?captureAll():capture(rooms);}
+ function all(){return read(null);}
  function context(projectId,roomId){
-  const source=capture([roomId]),record=source.projects[0];
+  const source=read([roomId]),record=source.projects[0];
   if(record.id!==projectId)fail('PROJECT_PCV_SOURCE_CONTEXT_MISMATCH');
   return {ok:true,detached:true,project:record.projectData,record,room:record.projectData[roomId]};
  }
@@ -32,5 +34,5 @@
   assertRevision(rooms,before);return refs.map(ref=>{const pin=pins.find(pin=>pin.projectId===ref.projectId);if(!pin)fail('LF_QUOTE_SOURCE_UNCONFIRMED');return {...ref,revision:clone(pin.head),documentHash:pin.documentHash};});
  }
  function matchesPart(part){const pcv=part?.effectivePcv;if(!pcv?.contributions?.length)return false;return pcv.contributions.every(c=>c.address.projectId===pcv.projectId&&c.address.roomId===pcv.projectId&&context(c.address.projectId,c.address.roomId).ok);}
- FC.roomQuoteSources={enabled,capture,all,context,input,cutlist,revision,assertRevision,references,matchesPart};
+ FC.roomQuoteSources={enabled,capture,captureAll,all,context,input,cutlist,revision,assertRevision,references,matchesPart};
 })();

@@ -67,7 +67,7 @@ async function addCabinet(device,width){
  await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
 }
 async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteReadBudget=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,quoteRemoval=false,quoteFilm=false,manualQuote=false,startupDraft=false,accessResume=false,presenceReconnect=false,p1=false}={}){
- await runNormalApplication(t,{deployment,p0bRegistry:true,realMainAuth:presenceReconnect,testOwner:startupDraft?'synthetic-startup-draft-owner':manualQuote?'synthetic-manual-quote-'+manualQuote+'-owner':quoteFilm?'synthetic-phone-flow-'+quoteFilm+'-owner':quoteRemoval?'synthetic-quote-removal-'+quoteRemoval+'-owner':presenceReconnect?'synthetic-presence-reconnect-owner':accessResume?'synthetic-background-owner':quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
+ await runNormalApplication(t,{deployment,p0bRegistry:true,factoryLabor:p1==='tab-save',realMainAuth:presenceReconnect,testOwner:startupDraft?'synthetic-startup-draft-owner':manualQuote?'synthetic-manual-quote-'+manualQuote+'-owner':quoteFilm?'synthetic-phone-flow-'+quoteFilm+'-owner':quoteRemoval?'synthetic-quote-removal-'+quoteRemoval+'-owner':presenceReconnect?'synthetic-presence-reconnect-owner':accessResume?'synthetic-background-owner':quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
   const artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'meble-p0b-normal-'));
   await phone.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
   try{
@@ -175,7 +175,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    }
    if(presenceReconnect){await presenceReconnectCase({t,phone,computer,iid,pid,wardrobeId,image,rows,until,db,ownerUid,saveProject,showList,projects,openRoom,restartProbe,globalBefore});return;}
    if(accessResume){await accessResumeCase({t,phone,computer,iid,pid,wardrobeId,image,rows,until,db,ownerUid,saveProject,showList,restartProbe,globalBefore});return;}
-   if(p1==='tab-save'){await tabSaveCase({t,phone,computer,iid,pid,wardrobeId,until,image,rows,openRoom,addCabinet,restartProbe});return;}
+   if(p1==='tab-save'){await tabSaveCase({t,phone,computer,iid,pid,wardrobeId,until,image,rows,openRoom,addCabinet,restartProbe,artifacts});return;}
    if(p1){await batchingCase({t,phone,computer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,showList,openRoom,addCabinet,saveProject,restartProbe,globalBefore},{idle:p1==='idle',quoteOnly:p1==='quote',offlineQuote:p1==='offline-quote'});return;}
    await Promise.all([saveProject(page),saveProject(computer.page)]);
    await until(async()=>{const state=await image(phone);return state.outbox.filter(row=>row.scope===pid).every(row=>row.phase==='verified');});
@@ -616,7 +616,7 @@ test('P1 signed DEMO quote barrier: pending room Save requires confirmed immutab
 
 test('P1 normal DEMO offline quote: restart of a pending room Save preserves immutable history and ACK',t=>cleanApplication(t,{p1:'offline-quote'}));
 
-test('P1 tab Save and proceed: real dirty room navigation stays durable',t=>cleanApplication(t,{p1:'tab-save'}));
+test('P1 tab Save and proceed: real dirty room navigation stays durable',t=>cleanApplication(t,{p1:'tab-save',deployment:true}));
 test('P0-B duplicate replacement: same logical offer preserves history and ACK',t=>cleanApplication(t,{quoteProbe:true,quoteDuplicate:true}));
 
 test('P0-B quote removal single: duplicate then delete and recalculate preserves room sources',t=>cleanApplication(t,{quoteProbe:true,quoteRemoval:'single'}));
