@@ -1,5 +1,13 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## Nagranie 13872 — historia i kolejny wariant, 22.11.2026
+
+**CODE_READY pakietu / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Zgoda właściciela obejmuje naprawę, optymalizację i jedną próbę wydania pakietu. Gałąź `fix/quote-history-variant-flow-20261122`, BASE/main `66322e6aae7b775295f6dd8129f429d51a83e082`; poprzedni PR #161 jest wydany (Preflight #1382, exact Pages i publiczne bajty PASS). [Aktualne przyczyny, testy, ograniczenia i pomiar wydania](tools/reports/quote-history-variant-flow-20261122.md).
+
+- **USTALONE → WDROŻONE w kandydacie.** Rzeczywisty szybki Usuń→Wyceń odtworzył `LF_APPLICATION_BUSY`. Handler czeka na zakończenie lokalnej transakcji, od nowa sprawdza właściciela i nie przywraca skasowanego podglądu. Brakujące lokalne domyślne ustawienia są przygotowywane przez walidowany osobny offerDraft; historia nadal dopuszcza wyłącznie nazwę istniejącego szkicu. CAS, obce blokady, piny i zamrożone ceny nie są osłabiane.
+- **KONTROLE → BRAKUJE.** Granice startup/zapisu 13/13 PASS; kontrola oczekiwania/deduplikacji/zmiany właściciela handlera PASS. Workflow diagnostyczny PASS, zachowane 36 grup smoke i 33 segmenty P0-B/P1 / 50 przypadków. Końcowe Chromium/DEMO 2/2 PASS (308 s, zero skipped), IDB/outbox/ACK/peer/SIGKILL/restart, 7/7 proof źródeł/historii oraz SW PASS. Bariera źródeł obejmuje również zwykłe statusy po usunięciu; offline/konflikt/brak ACK nadal odmawiają. Wcześniejsze błędy fixture/asercji i przerwane ciężkie kalkulacje ujawniono w raporcie. Pełne CI/Pages/telefon osobno.
+- **OPTYMALIZACJA.** Dane #1382: całe wydanie 8:04, etap po summary około 55 s. Przypięte pomiary 36 grup zastępują błędne parowanie ID; najdłuższa para szacunkowo 186,771→85,537 s, nadal 24 runnery i komplet dowodów. Cel 4 minut niepotwierdzony. Jedna próba CI dopiero po końcowych kontrolach; bez Firebase LIVE/UI/cen i resetowania danych.
+
 ## PR #161 — współbieżne otwieranie i optymalizacja wydania, 22.11.2026
 
 **CODE_READY naprawy / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Zgoda właściciela na naprawę błędów #1381 i optymalizację organizacji wydania; bez nowej próby CI w tym zadaniu. Ta sama gałąź `fix/presence-reconfirmation-20261122`, wejściowy HEAD `f926298c18d2eed08919a105775f2e6bdd0bf90b`, BASE/main `9fdd5ca23429b44ae4d851d1fba4415d83298ee8`.

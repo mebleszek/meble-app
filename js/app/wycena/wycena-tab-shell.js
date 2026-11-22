@@ -26,6 +26,7 @@
   const GENERATE_DEDUP_WINDOW_MS = 1500;
   const GENERATE_RELEASE_DEDUP_WINDOW_MS = 1200;
   const generateRuntime = { inFlight:false, lastAcceptedAt:0, lastReleasedAt:0 };
+  let requestPending=false;
 
   function recordGenerateSkip(reason, extra){
     try{
@@ -465,16 +466,27 @@
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordGenerateButtonEvent === 'function') FC.wycenaDiagnostics.recordGenerateButtonEvent(source || 'generate-button'); }catch(_){ }
       const generate=()=>generateQuote(ctx,d,{source:source||'generate-button'});
       if(!FC.applicationWrite){void generate();return;}
-      const prior=d.getState?.();
-      void Promise.resolve(FC.quoteOfferStore?.settingsSettled?.()).then(saved=>{
+      if(requestPending)return;requestPending=true;
+      const writer=FC.applicationWrite,owner=()=>[FC.projectStore?.getCurrentProjectId(),FC.investors?.getCurrentId()].join('|'),scope=owner();
+      const current=()=>FC.applicationWrite===writer&&owner()===scope;
+      let prior;
+      void Promise.resolve(FC.quoteOfferStore?.settingsSettled?.()).then(async saved=>{
         if(saved===false)throw Error('LF_OFFER_DRAFT_UNCONFIRMED');
-        return FC.applicationWrite.project(generate);
+        await writer.whenIdle?.();
+        if(!current())throw Error('LF_QUOTE_OWNER_CHANGED');
+        if(await FC.quoteOfferStore?.prepareGeneration?.()===false)throw Error('LF_OFFER_DRAFT_UNCONFIRMED');
+        if(!current())throw Error('LF_QUOTE_OWNER_CHANGED');
+        prior=d.getState?.();
+        return writer.project(generate);
       }).catch(error=>{
         if((error?.code||error?.message)==='LF_IDB_ABORTED')generateRuntime.lastAcceptedAt=generateRuntime.lastReleasedAt=0;
-        if(prior)d.setState?.({lastQuote:prior.lastQuote,previewSnapshotId:prior.previewSnapshotId,shouldScrollToPreview:false});
-        d.render?.(ctx);
+        if(prior&&current()){
+          const id=prior.previewSnapshotId||prior.lastQuote?.id,retained=!id||FC.quoteSnapshotStore?.getById(id);
+          d.setState?.({lastQuote:retained?prior.lastQuote:null,previewSnapshotId:retained?prior.previewSnapshotId:'',shouldScrollToPreview:false});
+        }
+        if(current())d.render?.(ctx);
         showQuoteValidationError(error);
-      });
+      }).finally(()=>{requestPending=false;});
     };
     FC.wycenaGenerateAction = {
       run(event, source){

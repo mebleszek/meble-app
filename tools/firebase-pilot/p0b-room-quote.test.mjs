@@ -1,8 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createApplicationQuoteLedger} from '../../sync/application-quote-ledger.mjs';
+import {digest} from '../../sync/local-first-values.mjs';
 import {createRequire} from 'node:module';
 import {quoteScope,validateQuoteLedger,validateQuoteLedgerChange,validateQuoteStatusHistoryChange} from '../../sync/local-first-quote-contract.mjs';
 const require=createRequire(import.meta.url),{fixture:pcvFixture,load,clone}=require('../effective-project-pcv-smoke.js');
+test('P0-B room quote proof: immediate recalculation confirms ordinary status operations without weakening source validation',async()=>{
+ const record={id:'kitchen',investorId:'investor'},recordHash=await digest(record);
+ const encoded=JSON.stringify({document:{payload:{project:record},integrity:{documentSha256:'a'.repeat(64)}}});
+ const clean={replica:{json:encoded,hash:await digest(encoded),base:{currentRevisionId:'revision'},dirty:false},operations:[]};
+ for(const phase of ['queued','inflight','uncertain'])for(const outcome of ['confirmed','still-dirty','LF_OFFLINE','LF_EDITOR_CONFLICT']){
+  let calls=0,current={replica:{...clean.replica,dirty:true},operations:[{key:'status-operation',phase}]};
+  const before=clone(current),store={snapshot:async()=>clone(current),retired:async()=>false};
+  const sync={async flush(){calls++;if(outcome==='confirmed')current=clone(clean);return outcome.startsWith('LF_')?{ok:false,code:outcome}:{ok:true};}};
+  const fc={projectModel:{normalizeProjectRecord:clone},investors:{getCurrentId:()=> 'investor'}};
+  const proof=createApplicationQuoteLedger({fc,store,getSync:()=>sync}).proof;
+  const run=()=>proof.sources([{projectId:'kitchen',roomId:'kitchen',investorId:'investor',recordHash}]);
+  if(outcome==='confirmed')assert.deepEqual((await run())[0].head,clean.replica.base);
+  else{await assert.rejects(run(),{code:outcome==='still-dirty'?'LF_QUOTE_SOURCE_UNCONFIRMED':outcome});assert.deepEqual(current,before);}
+  assert.equal(calls,1,'One existing synchronization barrier, without blind retries or forged ACK');
+ }
+});
 function fixture(){
  const r=pcvFixture();
  // The shared legacy PCV fixture starts with schema 1. Reload the actual native
