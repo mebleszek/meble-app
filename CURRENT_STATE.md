@@ -1,5 +1,11 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## Zasady testów i wydania — decyzja właściciela 22.11.2026
+
+**WDROŻONE w dokumentacji / BEZ NOWEGO WYDANIA.** Gałąź `docs/owner-test-release-rules-20261122`, BASE/main `a6908233a4386737e8a66db0478308b871bee8fc`. Zaktualizowano istniejące AGENTS.md §3/12/16 i [RELEASE.md](docs/agents/RELEASE.md): obowiązkowy przegląd i dostosowanie starych testów zależnych od zmiany; „wydaj” wystarcza jako zgoda na jednoznaczny pakiet (wykonawca ustala dokładne SHA); pomiar całego wydania i propozycje optymalizacji po przekroczeniu 4 minut. Bez osłabiania zabezpieczeń i samodzielnego wdrażania optymalizacji. Kontrola diffu/zgodności dokumentów, bez testów aplikacji, PR, Actions i Firebase LIVE; commit/push dokumentacji po kontroli.
+
+Poprzedni pakiet startu jest już **RELEASED / CI_PASS / PAGES_PASS / PHONE_PENDING**: [PR #159](https://github.com/mebleszek/meble-app/pull/159), HEAD `b123aa81f3974096148c8384dd8380003a6a4e0b`, BASE `ddeb79fd40f5763584a84d0f181e616138a51572`, merge/main jak powyżej; [Preflight #1374](https://github.com/mebleszek/meble-app/actions/runs/45011050960) 85/85 PASS, [exact Pages](https://github.com/mebleszek/meble-app/actions/runs/45011537310) PASS, sześć plików publicznych HTTP 200 i zgodnych bajtowo. Poniższa sekcja zachowuje historię przygotowania, nie aktualny wynik wydania.
+
 ## Zawieszenie startu po logowaniu — 22.11.2026
 
 **CODE_READY ochrony zasobów i diagnostyki / CI_PENDING / RELEASE_BLOCKED / PHONE_STARTUP_BLOCKED.** Gałąź fix/startup-asset-stall-20261122, BASE/main ddeb79fd40f5763584a84d0f181e616138a51572. Właściciel potwierdził oczekiwanie ponad minutę. Poprawki poprzedniego pakietu są wydane przez PR #158 / Preflight #1372 85/85 / exact Pages; nie oznacza to odbioru obecnego startu telefonu. Osobna optymalizacja CI pozostaje na pushed HEAD df993d7855a7816021fafa7794c3ea0b19abdd8c. [Dowody i granice](tools/reports/startup-asset-stall-20261122.md).
