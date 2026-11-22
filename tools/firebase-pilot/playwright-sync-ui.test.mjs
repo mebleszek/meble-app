@@ -1,3 +1,4 @@
+import {confirmQuoteSources} from './quote-ui-actions.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -430,7 +431,7 @@ test('E1 signed DEMO synchronized UI', async t => {
         const history=record=>rows(record,'fc_quote_snapshots_v1').find(row=>row.project.id===pid&&row.meta.acceptedAt>0);
         if(!history(await image(phone))){
           await openQuote(page);
-          await page.locator('[data-action="wycena-generate"]').click();
+          await page.locator('[data-action="wycena-generate"]').click();await confirmQuoteSources(page);
           const generated=page.locator('[data-quote-history-id]').first();
           await generated.waitFor();
           const offerId=await generated.getAttribute('data-quote-history-id');

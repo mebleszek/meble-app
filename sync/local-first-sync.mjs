@@ -98,7 +98,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
       for(const scope of [...scopes].sort((a,b)=>Number(byScope.get(a).kind==='quote')-Number(byScope.get(b).kind==='quote'))){
         const channel=byScope.get(scope);
         if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
-        if(channel.kind==='project'&&await store.pendingProjectRecovery?.(scope)){blockedReceives.add(scope);continue;}
+        if(channel.kind==='project'&&(await store.pendingProjectRecovery?.(scope)||await store.pendingQuoteRelease?.(scope))){blockedReceives.add(scope);continue;}
         if(await store.retired?.(scope))continue;
         let snap=await store.snapshot(channel.scope);
         const ordered=snap.operations.sort((a,b)=>a.localVersion-b.localVersion);

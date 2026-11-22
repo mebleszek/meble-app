@@ -1,5 +1,14 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## Ręczna synchronizacja i świadoma wycena — 22.11.2026
+
+**CODE_READY pakietu / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Zgoda właściciela obejmuje wyłącznie napis „Synchronizuj” w obecnym czarnym pasku, bez zwiększania wysokości, oraz ostrzeżenie Tak / Nie / Uwolnij blokowane przed wyceną cudzych zajętych pomieszczeń. Gałąź `feat/manual-sync-quote-lock-warning-20261122`, BASE/main `9b5c0d21ee188f84014941326a5ee94b98f11881`. Brak zgody na nową próbę wydania tego pakietu. [Zakres, dowody i ograniczenia](tools/reports/manual-sync-quote-warning-20261122.md).
+
+- **USTALONE → WDROŻONE w kandydacie.** Jeden wiersz i kolory bez odliczania/nowego timera. Przycisk używa istniejącego flush/ACK, czeka na lokalny zapis i nie zatwierdza szkiców. Wycena może powstać z potwierdzonych przypiętych rewizji bez przejęcia edytorów i bez zmiany statusów pokoi. Akceptacja/statusy/usuwanie nadal używają odrębnych chronionych operacji. Zwolnienie po PIN-ie zachowuje stare dane, zwiększa epoch, ma trwałą intencję i odzyskiwanie; po zwolnieniu pozostaje Tak / Nie, bez automatycznej kalkulacji.
+- **KONTROLE → BRAKUJE.** Końcowe rzeczywiste UI/DEMO 4/4 PASS (664 s, zero skipped), IDB 2/2 PASS, domena 25/25 PASS, realny SW BASE→nowy PASS. Obowiązkowe CI: 36 segmentów P0-B/P1 / 58 przypadków; 36 grup smoke pozostaje. Brak pełnego CI i odbioru telefonu. Zabezpieczenia źródeł/CAS/historii nie są obchodzone. Nie wykonywano Firebase LIVE ani zmian Rules.
+
+**Poprzedni pakiet jest już wydany:** PR #162, Preflight #1383 (77 success, 1 nieobowiązujący documents skipped), automatyczny merge i exact Pages `9b5c0d21ee188f84014941326a5ee94b98f11881` PASS. Publiczne bajty sprawdzone. Cała obsługa 9:56, publikacja od Ready 8:40, od końca summary do Pages 55 s. Cel 4 minut nieosiągnięty; istotne są kolejka runnerów i rzeczywiste timery, nie tylko etap po testach. Poniższe wpisy o CI_PENDING tamtego pakietu opisują jego wcześniejszy stan.
+
 ## Nagranie 13872 — historia i kolejny wariant, 22.11.2026
 
 **CODE_READY pakietu / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Zgoda właściciela obejmuje naprawę, optymalizację i jedną próbę wydania pakietu. Gałąź `fix/quote-history-variant-flow-20261122`, BASE/main `66322e6aae7b775295f6dd8129f429d51a83e082`; poprzedni PR #161 jest wydany (Preflight #1382, exact Pages i publiczne bajty PASS). [Aktualne przyczyny, testy, ograniczenia i pomiar wydania](tools/reports/quote-history-variant-flow-20261122.md).

@@ -1,3 +1,5 @@
+import {confirmQuoteSources} from './quote-ui-actions.mjs';
+import {manualQuoteCase} from './p0b-manual-quote.cases.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {randomInt} from 'node:crypto';
@@ -59,8 +61,8 @@ async function addCabinet(device,width){
  await page.locator('#cmWidth').fill(String(width));await page.locator('#cmHeight').fill('82');await page.locator('#cmDepth').fill('50');
  await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
 }
-async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,quoteRemoval=false,quoteFilm=false,accessResume=false,presenceReconnect=false,p1=false}={}){
- await runNormalApplication(t,{deployment,p0bRegistry:true,realMainAuth:presenceReconnect,testOwner:quoteFilm?'synthetic-phone-flow-'+quoteFilm+'-owner':quoteRemoval?'synthetic-quote-removal-'+quoteRemoval+'-owner':presenceReconnect?'synthetic-presence-reconnect-owner':accessResume?'synthetic-background-owner':quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
+async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,quoteRemoval=false,quoteFilm=false,manualQuote=false,accessResume=false,presenceReconnect=false,p1=false}={}){
+ await runNormalApplication(t,{deployment,p0bRegistry:true,realMainAuth:presenceReconnect,testOwner:manualQuote?'synthetic-manual-quote-'+manualQuote+'-owner':quoteFilm?'synthetic-phone-flow-'+quoteFilm+'-owner':quoteRemoval?'synthetic-quote-removal-'+quoteRemoval+'-owner':presenceReconnect?'synthetic-presence-reconnect-owner':accessResume?'synthetic-background-owner':quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
   const artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'meble-p0b-normal-'));
   await phone.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
   try{
@@ -101,7 +103,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    const db=env.authenticatedContext(ownerUid,{email_verified:true,firebase:{sign_in_provider:'google.com'}}).firestore();
    const globalBefore=(await f.getDoc(f.doc(db,'users',ownerUid,'globalData','current'))).data();
    const page=phone.page;let pin;
-   if(full&&!quoteProbe&&!p1){
+   if(full&&(!quoteProbe||manualQuote)&&!p1){
     await page.context().tracing.stop();pin=String(randomInt(10000)).padStart(4,'0');
     try{
      await page.locator('#openDataSettingsBtn').click();await page.locator('[data-settings-section="security"]').click();
@@ -225,8 +227,9 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     assert.ok(pcv.sources.every(row=>row.projectId===row.roomId));
     if(quotePromotion||quoteStaging){await page.locator('.quote-preliminary-chip').click();await page.waitForFunction(()=>window.FC.quoteOfferStore.settingsSettled());}
     if(quoteStaging)await page.evaluate(()=>window.normalPauseQuoteChunk=true);
-    if(!quoteAcceptance&&!quotePromotion&&!quoteStaging&&!quoteVariants&&!quoteDuplicate&&!quoteRemoval&&!quoteFilm)await page.evaluate(()=>window.normalLoseQuoteAck=true);
-    await page.locator('[data-action="wycena-generate"]').click();
+    if(!quoteAcceptance&&!quotePromotion&&!quoteStaging&&!quoteVariants&&!quoteDuplicate&&!quoteRemoval&&!quoteFilm&&!manualQuote)await page.evaluate(()=>window.normalLoseQuoteAck=true);
+    if(manualQuote){await manualQuoteCase({t,phone,computer,iid,pid,wardrobeId,pin,until,image,rows,addCabinet,saveProject,artifacts,db,ownerUid,globalBefore,restartProbe,mode:manualQuote});return;}
+    await page.locator('[data-action="wycena-generate"]').click();await confirmQuoteSources(page);
     await page.waitForFunction(()=>document.querySelector('[data-quote-history-id]')||document.querySelector('.info-box'));
     const calculationNotice=await page.locator('.info-box').allTextContents();
     assert.ok(await page.locator('[data-quote-history-id]').count(),'Combined Calculate refused: '+JSON.stringify(calculationNotice));
@@ -562,7 +565,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
 
   }catch(error){
    const state=await image(phone).catch(()=>null);
-   if(computer){const peer=await computer.page.evaluate(()=>({phase:window.FC.applicationStartup.inspect(),body:document.body.innerText,session:window.FC.session&&Object.fromEntries(Object.entries(window.FC.session).filter(([,v])=>typeof v!=='function')),ui:window.uiState,recovery:typeof window.FC.projectRecovery,registry:window.FC.applicationRegistry}));fs.writeFileSync(path.join(artifacts,'peer.json'),JSON.stringify({peer,state:await image(computer).catch(()=>null)},null,2));await computer.page.screenshot({path:path.join(artifacts,'peer.png')});t.diagnostic('Peer: '+JSON.stringify(peer));}
+   if(computer){const peer=await computer.page.evaluate(()=>({phase:window.FC.applicationStartup.inspect(),rpc:window.normalRpcTimeline,pendingRpc:window.normalPendingRpc,sdkErrors:window.normalSdkErrors,body:document.body.innerText,session:window.FC.session&&Object.fromEntries(Object.entries(window.FC.session).filter(([,v])=>typeof v!=='function')),ui:window.uiState,recovery:typeof window.FC.projectRecovery,registry:window.FC.applicationRegistry}));fs.writeFileSync(path.join(artifacts,'peer.json'),JSON.stringify({peer,state:await image(computer).catch(()=>null)},null,2));await computer.page.screenshot({path:path.join(artifacts,'peer.png')});t.diagnostic('Peer: '+JSON.stringify(peer));}
    const diagnostic=await phone.page.evaluate(()=>({phase:window.FC.applicationStartup.inspect(),notice:document.querySelector('.info-box')?.innerText,storage:window.FC.storage?.getLastWriteError()?.error?.code,storageKey:window.FC.storage?.getLastWriteError()?.key,session:window.FC.session&&Object.fromEntries(Object.entries(window.FC.session).filter(([k,v])=>typeof v!=='function')),ui:window.uiState,ram:window.projectData}));
    fs.writeFileSync(path.join(artifacts,'failure.json'),JSON.stringify({diagnostic,state},null,2));
    await phone.page.screenshot({path:path.join(artifacts,'failure.png')});
@@ -604,3 +607,6 @@ test('P0-B signed background resume: durable drafts and automatic offline Exit A
 test('P0-B phone quote flow: fresh receiver, immediate history and cabinet variant',t=>cleanApplication(t,{deployment:true,quoteProbe:true,quoteFilm:true}));
 
 test('P0-B phone quote flow: calculate overlaps durable deletion without resurrection',t=>cleanApplication(t,{quoteProbe:true,quoteFilm:'rapid'}));
+
+test('P0-B manual quote: header Sync and explicit historical pricing with PIN release',t=>cleanApplication(t,{deployment:true,quoteProbe:true,manualQuote:'normal'}));
+test('P0-B manual quote: SIGKILL after server release resumes the durable intent without duplication',t=>cleanApplication(t,{deployment:true,quoteProbe:true,manualQuote:'crash'}));

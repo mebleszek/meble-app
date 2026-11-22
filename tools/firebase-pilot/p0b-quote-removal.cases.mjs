@@ -1,10 +1,11 @@
+import {confirmQuoteSources} from './quote-ui-actions.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 export async function quoteRemovalCase({t,phone,computer,offer,iid,pid,wardrobeId,image,rows,until,restartProbe,artifacts,showList}){
  let page=phone.page;
  const idle=()=>page.waitForFunction(()=>{const r=window.FC.wycenaTabShell._generateRuntime,n=Date.now();return !r.inFlight&&n-r.lastAcceptedAt>=1500&&n-r.lastReleasedAt>=1200&&!window.FC.applicationStartup.inspect().transactionPending;});
  await until(async()=>(await image(phone)).outbox.every(op=>op.phase==='verified'));
- await idle();await page.getByRole('button',{name:'Wyceń',exact:true}).click();
+ await idle();await page.getByRole('button',{name:'Wyceń',exact:true}).click();await confirmQuoteSources(page);
  await page.getByRole('button',{name:'Zamień istniejącą',exact:true}).click();
  await page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);await idle();
  if(offer.scope.selectedRooms.includes(wardrobeId)){
@@ -41,7 +42,7 @@ export async function quoteRemovalCase({t,phone,computer,offer,iid,pid,wardrobeI
  const deletion=await page.evaluate(id=>({error:window.removalError,present:!!window.FC.quoteSnapshotStore.getById(id),ramChanged:window.removalProjectBefore!==JSON.stringify(window.projectData)}),offer.id);
  if(deletion.present){
   if(await page.locator('.info-box').isVisible())await page.locator('.info-box .is-success').click();
-  await idle();await page.getByRole('button',{name:'Wyceń',exact:true}).click();
+  await idle();await page.getByRole('button',{name:'Wyceń',exact:true}).click();await confirmQuoteSources(page);
   await page.waitForFunction(()=>document.querySelector('.info-box')||document.querySelector('.confirm-box'));
   const notice=await page.locator('.info-box').allTextContents();
   if(await page.locator('.info-box').isVisible())await page.locator('.info-box .is-success').click();else await page.getByRole('button',{name:'Anuluj',exact:true}).click();
@@ -55,7 +56,7 @@ export async function quoteRemovalCase({t,phone,computer,offer,iid,pid,wardrobeI
  for(const old of before.protected)assert.deepEqual(removed.protected.find(row=>row.key===old.key),old);
  await until(async()=>(await image(phone)).outbox.every(op=>op.phase==='verified'));
  await until(async()=>JSON.parse(rows(await image(computer)).fc_quote_snapshots_v1||'[]').length===0);
- await idle();await page.getByRole('button',{name:'Wyceń',exact:true}).click();
+ await idle();await page.getByRole('button',{name:'Wyceń',exact:true}).click();await confirmQuoteSources(page);
  await page.waitForFunction(()=>document.querySelector('[data-quote-history-id]')||document.querySelector('.info-box'));
  assert.equal(await page.locator('.info-box').count(),0,'Recalculation after deletion must preserve verified sources');
  const recalculated=JSON.parse(rows(await image(phone)).fc_quote_snapshots_v1);assert.equal(recalculated.length,1);assert.notEqual(recalculated[0].id,offer.id);assert.deepEqual(recalculated[0].totals,offer.totals);

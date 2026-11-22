@@ -199,12 +199,12 @@ export function createApplicationCommitter({store,globalContract,projectContract
    if(!result.localConfirmed)fail('LF_LOCAL_ACK_UNCONFIRMED');return {...result,scope};
   },
   async checkpoint(application,kind,exitScope){
-   if(kind==='offer-draft'){
+   if(kind==='offer-draft'||kind==='quote-draft'){
     const before=await store.readApplication(),rows=application.rows;
     for(const key of new Set([...Object.keys(before.rows),...Object.keys(rows)])){
-     if(key!=='fc_quote_offer_drafts_v1'&&before.rows[key]!==rows[key])fail('LF_APPLICATION_SCOPE_REFUSED');
+     if(key!=='fc_quote_offer_drafts_v1'&&!(kind==='quote-draft'&&key==='fc_ui_v1')&&before.rows[key]!==rows[key])fail('LF_APPLICATION_SCOPE_REFUSED');
     }
-    projectContract.validateOfferDraftChange(before.rows,rows,before.rows.fc_current_project_id_v1);
+    if(kind==='offer-draft'||before.rows.fc_quote_offer_drafts_v1!==rows.fc_quote_offer_drafts_v1)projectContract.validateOfferDraftChange(before.rows,rows,before.rows.fc_current_project_id_v1);
    }
    if(kind==='cabinet-draft'){
     const before=await store.readApplication(),rows=application.rows,scope=before.rows.fc_current_project_id_v1;

@@ -1,4 +1,6 @@
 import {applicationPresence} from './application-presence.mjs';
+import {createQuoteAccess} from './application-quote-access.mjs';
+import {createQuoteRelease} from './application-quote-release.mjs';
 import {closeIdleApplicationVisits} from './application-visit-recovery.mjs';
 // DEMO-only composition. All remote mutations still use the existing P0-B protocol.
 import {createP0BProtocol,encodeP0BContact,createP0BDeletionIntent} from '../tools/firebase-pilot/p0b-protocol.mjs';
@@ -29,6 +31,8 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
    globals:getGlobals(),editorProtocol:protocol,deviceLabel:label,projectCollection:'p0bRoomProjects',roomProtocol:true});
  }
  const quotes=writer?createApplicationQuoteLedger({fc,store,writer,reader,getSync,sourceChannel:(pid,iid)=>getSync()?.channel(pid)||project({id:pid,investorId:iid})}):null;
+ const releases=protocol?createQuoteRelease({store,protocol,assertAccess,label}):null;
+ const quoteAccess=protocol?createQuoteAccess({window:w,store,protocol,getSync,assertAccess,releases}):null;
  async function contactChannel(iid){
   const scope=await contactScope(iid);
   const head=async record=>({generation:record.contactRevision,investorId:iid,hash:await digest(record.contact)});
@@ -78,9 +82,9 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
   const all=JSON.parse(next.fc_investors_v1||'[]');next.fc_investors_v1=JSON.stringify(all.map(row=>row.id===iid?{...row,rooms:copy(definitions)}:row));
   return next;
  }
- async function commit(application,declaredScopes,{batchable=false}={}){
+ async function commit(application,declaredScopes,{batchable=false,generationOnly=false}={}){
   const before=await store.readApplication(),old=JSON.parse(before.rows.fc_investors_v1||'[]'),next=JSON.parse(application.rows.fc_investors_v1||'[]');
-  if(before.rows.fc_quote_snapshots_v1!==application.rows.fc_quote_snapshots_v1)return quotes.commit(application,declaredScopes);
+  if(before.rows.fc_quote_snapshots_v1!==application.rows.fc_quote_snapshots_v1)return quotes.commit(application,declaredScopes,{generationOnly});
   const priorProjects=JSON.parse(before.rows.fc_projects_v1||'[]'),nextProjects=JSON.parse(application.rows.fc_projects_v1||'[]');
   const added=nextProjects.filter(row=>!priorProjects.some(prior=>prior.id===row.id));
   if(!fc.investorEditorState?.state?.isEditing){
@@ -268,6 +272,7 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
   return true;
  }
  async function offerRecovery(){
+  if(quoteAccess?.busy())return;
   const pid=getAuthority().rows().fc_current_project_id_v1;
   if(!lostEditors.has(pid)||recoveryOffered)return;
   recoveryOffered=true;
@@ -276,6 +281,7 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
  async function resume(){
   if(working)return working;
   working=(async()=>{
+   await releases?.resume();
    for(const [pid,heartbeat]of heartbeats){
     const snap=await store.snapshot(pid);
     if(!snap.replica?.editor?.active||snap.replica.editor.deviceId!==store.deviceId||snap.replica.editor.epoch!==heartbeat.epoch||await store.retired(pid)){
@@ -302,11 +308,14 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
   })().finally(()=>{working=null;});return working;
  }
  async function bind(){
-  if(quotes)fc.roomQuoteProof=quotes.proof;
+  if(quotes){fc.roomQuoteProof=quotes.proof;fc.roomQuoteAccess=quoteAccess;}
   if(protocol)await installDeletion();
   presence.bind(protocol);fc.investorPresence=presence;if(protocol)fc.projectTakeoverPin=protocol.pin;fc.projectRecovery={open:openRecovery};
+  // Resume only previously approved release intents on initial/rebound startup.
+  // A refusal keeps its durable marker and fences this room; no new PIN action.
+  await releases?.resume().catch(onError);
  }
- function close(){closed=true;if(quotes&&fc.roomQuoteProof===quotes.proof)delete fc.roomQuoteProof;for(const value of heartbeats.values())value.stop();heartbeats.clear();presence.detach(protocol);if(protocol&&fc.projectTakeoverPin===protocol.pin)delete fc.projectTakeoverPin;delete fc.projectRecovery;if(fc.localInvestorDeletion===deletionAdapter)delete fc.localInvestorDeletion;deletionJournal?.close();}
+ function close(){closed=true;quoteAccess?.close();if(fc.roomQuoteAccess===quoteAccess)delete fc.roomQuoteAccess;if(quotes&&fc.roomQuoteProof===quotes.proof)delete fc.roomQuoteProof;for(const value of heartbeats.values())value.stop();heartbeats.clear();presence.detach(protocol);if(protocol&&fc.projectTakeoverPin===protocol.pin)delete fc.projectTakeoverPin;delete fc.projectRecovery;if(fc.localInvestorDeletion===deletionAdapter)delete fc.localInvestorDeletion;deletionJournal?.close();}
  return {protocol,discovery,project,projectRows,commit,checkpoint,preflightAcceptance,ensureNewProject,watchEditor,recovery,isLost:scope=>lostEditors.has(scope),canRecover,offerRecovery,resume,bind,close,
   suspendPresence(){presence.detach(protocol);},refreshPresence(){if(!closed&&!presence.bind(protocol))presence.refresh();}};
 }

@@ -11,12 +11,13 @@ html.auth-blocked>:not(head):not(body){display:none!important}
 body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style){display:none!important}
 #main-login[hidden],#main-auth-bar[hidden]{display:none!important}
 #main-login{width:100%;display:grid;place-items:center}
-#main-auth-bar{display:flex;align-items:center;flex-wrap:nowrap;gap:16px;justify-content:flex-end;padding:4px 12px;background:#111;color:#e6c5a5;white-space:nowrap}
+#main-auth-bar{display:flex;align-items:center;flex-wrap:nowrap;gap:clamp(6px,2vw,16px);justify-content:flex-end;padding:4px 12px;background:#111;color:#e6c5a5;white-space:nowrap}
 #main-auth-bar button{font:inherit;min-height:36px;padding:4px 10px;line-height:1.2}
 #main-auth-bar label{font:inherit;min-height:36px;line-height:1.2;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 #main-trust-note{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 #main-trust-status:not(:empty){display:block;padding:6px 12px;font-size:13px}
-#main-signout{font:inherit;border:0;background:transparent;color:inherit;min-height:40px;cursor:pointer}
+#main-sync,#main-signout{font:inherit;border:0;background:transparent;color:inherit;min-height:40px;cursor:pointer}
+#main-sync[data-sync-state=busy]{color:#52c9ee}#main-sync[data-sync-state=success]{color:#6ddd91}#main-sync[data-sync-state=error]{color:#ff8181}
 </style>
 <script data-load-group="auth-shell" defer src="js/auth-test-config.js?v=20261017_main_login"></script>
 <script data-load-group="auth-shell" defer src="js/app/cloud/firebase-pilot-transport.js?v=20261017_atomic_profile"></script>
@@ -59,6 +60,7 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 </main><noscript>Włącz JavaScript, aby bezpiecznie zalogować się do Meble-App.</noscript></div>
 <div id="main-auth-bar" hidden>
 <label title="Każda osoba mająca dostęp do tego profilu przeglądarki będzie mogła otworzyć lokalne dane. Wylogowanie cofa zaufanie."><input id="main-trust-phone" type="checkbox" aria-describedby="main-trust-note" disabled> Zaufany</label>
+<button id="main-sync" type="button" disabled>Synchronizuj</button>
 <button id="main-signout" type="button">Wyloguj</button></div>
 <small id="main-trust-note">Zaufanie wymaga potwierdzenia online i pozwala pracować offline do wylogowania. Każda osoba korzystająca z tego profilu uzyska dostęp do lokalnych danych. Wylogowanie cofa zaufanie.</small>
 <span id="main-trust-status" role="status" aria-live="polite"></span>
@@ -1378,7 +1380,7 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-summary-details-modal.js?v=20261024_session_quota_exact_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-preview.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-diagnostics.js?v=20261019_project_context"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-shell.js?v=20261122_quote_settle_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-shell.js?v=20261122_quote_readonly_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/wycena.js?v=20260628_drawer_systems_materials_v1"></script>
 
 <!-- load-group: optimizer-and-stock | Optimizer / stock base -->

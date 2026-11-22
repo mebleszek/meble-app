@@ -1,6 +1,7 @@
 // Private snapshot validation only; never opens, repairs or writes a database.
 import {digest,json,equal} from './local-first-values.mjs';
 import {projectBatchDelay} from './local-first-project-batching.mjs';
+import {validateQuoteRelease,validateQuoteReleaseReceipt} from './local-first-quote-release.mjs';
 export class RescueFailure extends Error{constructor(code){super(code);this.code=code;}}
 export const refuse=code=>{throw new RescueFailure(code);};
 export function boundedJson(value){
@@ -26,6 +27,7 @@ export async function validateAuthority(stores,receipt,nativeRows,activationId){
  const editors=new Map(stores.replicas.map(r=>[r.key,r.editor]));
  for(const row of stores.control){
   if(['binding','source','application'].includes(row.key))continue;
+  if(row.key.startsWith('quote-release:')||row.key.startsWith('quote-release-done:')){try{(row.key.startsWith('quote-release:')?validateQuoteRelease:validateQuoteReleaseReceipt)(row,receipt.ownerUid,receipt.deviceId);}catch(_){refuse('RESCUE_BINDING_INVALID');}continue;}
   const archived=/^p1-coalesced:([-A-Za-z0-9_]{1,128})$/.exec(row.key)?.[1];
   if(archived){
    try{

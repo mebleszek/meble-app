@@ -92,6 +92,7 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
  async function transaction(kind,operation,{exitScope,writeScopes}={}){
   access();assertSource();lastCode=null;if(inTransaction)fail('LF_APPLICATION_BUSY');
   await beforeTransaction();access();assertSource();if(incomingWitness!==null)fail('LF_REMOTE_APPLY_PENDING');
+  if(kind==='quote'&&(fc.session.active||fc.session.snapshot||fc.session.durable||rows.fc_edit_session_v1!==null))fail('LF_QUOTE_EDIT_SESSION_ACTIVE');
   const editorState=fc.investorEditorState?.state?structuredClone(fc.investorEditorState.state):null;
   const investorUi=fc.investorUI?.state?structuredClone(fc.investorUI.state):null;
   const priceState=fc.priceModalContext?.runtimeState?structuredClone(fc.priceModalContext.runtimeState):null;
@@ -111,9 +112,10 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
     else if(business.length)kind='project';
     else kind=fc.session.active?'draft':'checkpoint';
    }
+   if(kind==='quote'&&rows.fc_quote_snapshots_v1===old.fc_quote_snapshots_v1)kind='quote-draft';
    const application={expectedVersion:image.version,rows:structuredClone(rows)};
    let committed;
-   if(kind==='checkpoint'||kind==='draft'||kind==='cabinet-draft'||kind==='offer-draft'||kind==='rollback'){
+   if(kind==='checkpoint'||kind==='draft'||kind==='cabinet-draft'||kind==='offer-draft'||kind==='quote-draft'||kind==='rollback'){
     // No data/catalog change can masquerade as a session/UI checkpoint.
     if(['draft','cabinet-draft'].includes(kind)&&(!fc.session.active||!fc.session.durable||rows.fc_edit_session_v1===null))fail('LF_DRAFT_SESSION_REQUIRED');
     for(const k of keys)if(kind==='checkpoint'&&!['fc_edit_session_v1','fc_ui_v1','fc_current_project_id_v1','fc_current_investor_v1'].includes(k)&&rows[k]!==old[k])throw Object.assign(Error('LF_CHECKPOINT_DATA_CHANGED: '+k),{code:'LF_CHECKPOINT_DATA_CHANGED'});
