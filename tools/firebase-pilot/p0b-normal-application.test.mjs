@@ -59,7 +59,10 @@ async function addRoom(device,name){
 }
 async function openRoom(device,id){await projects(device.page);await device.page.locator('.investor-room-quick-btn[data-room="'+id+'"]').click();}
 async function addCabinet(device,width){
- const page=device.page;await page.locator('#floatingAdd').click();await page.locator('#cabinetTypeChoices .choice-tile').first().click();
+ const page=device.page;
+ await page.waitForFunction(()=>window.FC.actions.isLocked('add-cabinet')===false);
+ await page.locator('#floatingAdd').click();await page.locator('#cabinetModal').waitFor({state:'visible'});
+ await page.locator('#cabinetTypeChoices .choice-tile').first().click();
  await page.locator('#cmWidth').fill(String(width));await page.locator('#cmHeight').fill('82');await page.locator('#cmDepth').fill('50');
  await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
 }
@@ -158,7 +161,14 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    assert.equal(draft.outbox.length,beforeCabinet.outbox.length);
    const sourceCabinet=JSON.parse(rows(draft).fc_projects_v1).find(row=>row.id===pid).projectData[roomId].cabinets[0];
    assert.equal(sourceCabinet.width,66);
-   if(quoteReadBudget){await addCabinet(phone,60);await addCabinet(phone,60);}
+   if(quoteReadBudget){
+    // Exercise the real default replay guard even on slower machines. The UI
+    // helper must observe expiry, never clear the lock or repeat the click.
+    for(let i=0;i<2;i++){
+     await page.evaluate(()=>{window.FC.actions.lock('add-cabinet');if(!window.FC.actions.isLocked('add-cabinet'))throw Error('ADD_GUARD_NOT_ARMED');});
+     await addCabinet(phone,60);
+    }
+   }
    if(startupDraft){
     await phone.page.context().tracing.stop({path:artifacts+'/startup-peer-before-pin.zip'});await computer.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
     await startupDraftCase({t,phone:computer,computer:phone,iid,pid:wardrobeId,wardrobeId:pid,pin,image,rows,until,saveProject,showList,openRoom,addCabinet,login,restartProbe,db,ownerUid,globalBefore,artifacts});return;
