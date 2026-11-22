@@ -72,7 +72,7 @@ for(const name of ['three cabinets share one verified context per room in a sync
   assert.equal(p0b.filter(row=>row.id==='room-quote-proof'&&row.names.includes('P0-B room quote proof: '+name)).length,1,'Mandatory quote-read regression: '+name);
 }
 assert.ok(p0bFlow.includes('--p0b=${{ matrix.segment }}'));
-assert.ok(flow.includes('needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b, documents]'));
+assert.ok(flow.includes('needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b, documents, test-maintenance]'));
 assert.ok(flow.includes('const names=["safety","firebase-current-shards","playwright-sync-ui","firebase-p0b"];'));
 for(const row of p0b)assert.deepEqual(require('./p0b-ci-plan').select(path.join(__dirname,'firebase-pilot'),row.id),row);
 assert.throws(()=>require('./p0b-ci-plan').select(path.join(__dirname,'firebase-pilot'),'unknown'),/P0B_CI_SEGMENT_INVALID/);

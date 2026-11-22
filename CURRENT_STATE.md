@@ -1,6 +1,16 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## Porządek w testach — 22.11.2026
+
+**CODE_READY / CI_PENDING / RELEASE_BLOCKED.** Właściciel zlecił dobór testów do zmiany i korektę zasad MD. Gałąź `chore/risk-based-test-policy-20261122`, BASE/main `286dc6678232611ae58358e23841681685e2410f`. Bez zgody na wydanie tego nowego pakietu, bez PR/Actions/merge i Firebase LIVE.
+
+- **USTALONE → WDROŻONE.** AGENTS/TESTING/RELEASE: najpierw istniejące pokrycie, nowa regresja tylko dla brakującego zachowania/ryzyka; testy lokalne celowane, bez powtarzania PASS. CI dobiera zamknięte `documents` i `tests`; runtime, wspólne fixture, browser/SDK, polityka/CI i nieznany zakres nadal wymagają `full`. Skrót dla dziesięciu sprawdzonych samodzielnych testów VM nie obejmuje aplikacji. Pełna regresja, wszystkie asercje i izolacja pozostają; brak, sprzeczny wynik, skipped lub nieznany tryb blokuje scalenie. [Plan, pomiar i ograniczenia](docs/plans/test-strategy-playwright-20261115.md#aktualizacja-22112026--proporcjonalne-testy-i-zakres-ci).
+- **BRAKUJE.** GitHub CI dla nowego workflow i rzeczywisty pomiar jego czasu; ten pakiet sam kwalifikuje się do `full`. Nie ogłaszamy oszczędności zmierzonej nowym wydaniem ani automatycznej selekcji zależnych testów dla zmian aplikacji.
+- **KONTROLE LOKALNE.** RED dawnych zakresów → GREEN zamkniętej klasyfikacji, trybów/mode/rename/dodania/usunięcia i shared fixture; 10/10 dopuszczonych rzeczywistych testów PASS. 13 grup diagnostyki DAG (w tym 125 kombinacji agregacji, brak/sprzeczny/skipped wynik i nieznany tryb), YAML, pełny przydział 234/265/36 oraz 61 przypadków, publiczny Git-manifest 526 plików i statyka 770/770 PASS. W izolowanym repozytorium runner wykonał faktyczny test 33/33 z walidacją linków wszystkich pięciu MD, zachował FAIL dziecka, wykonał następny test po błędzie i odmówił na DIRTY przed uruchomieniem. Naprawiono ujawniony w tej próbie cykl inicjalizacji CLI; regresja uruchamia rzeczywisty CLI. To dowody infrastruktury, nie nowe testy synchronizacji/telefonu. Logi lokalne w `work/test-policy-evidence-iXnKnB` obok repozytorium.
+
 ## Przyspieszenie WYCENY — 22.11.2026
+
+**WYDANE.** PR #164 automatycznie scalony jako `286dc6678232611ae58358e23841681685e2410f`; Preflight #1387 (`45072549098`) 81 PASS /0 FAIL /1 nieobowiązujący documents SKIPPED. Exact Pages (`45073152655`) i publiczne bajty 528/528 PASS. Ready→Pages 7:10; Ready→publiczna kontrola 8:24; 23:43 obejmuje także pierwszy FAIL i naprawę. Poniższy zapis kandydata jest historyczny; nie oznacza obecnej blokady wydanej poprawki. Bez operacji Firebase LIVE.
 
 **CODE_READY / CI_PENDING / RELEASE_BLOCKED / PHONE_PENDING.** Zlecenie właściciela: analiza i przyspieszenie wyceny trzech szafek z nagrania `screen-20261122-212639-1795379163431.mp4`. Gałąź `fix/quote-start-latency-20261122`, BASE/main `93d8fc51673a446555294455d279ac887e9d7be3`. Następnie właściciel zatwierdził wydanie oraz przyczynowe naprawy FAIL i kolejne próby aż do PASS, bez nowej zgody w tym samym bezpiecznym zakresie. Istniejący PR #164, pierwsza próba HEAD `e259409ce0bd3207c582aff7d6f7d71f2354eee0`.
 
