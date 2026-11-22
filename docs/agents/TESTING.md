@@ -2,26 +2,40 @@
 
 Szczegóły obowiązujących zasad z [AGENTS.md](../../AGENTS.md); dokument jest jego częścią, nie osobnym źródłem zgód. Numeracja § odsyła do AGENTS.md. Czytaj tylko przy pracy objętej poniższym zakresem. Przeniesione procedury zachowują daty decyzji.
 
-## 3. Testy są bramką bezpieczeństwa, nie celem samym w sobie
+## 3. Testy proporcjonalne do zmiany — decyzja właściciela 22.11.2026
 
-**GitHub Actions odpowiada za automatyczne testy objęte CI**, w tym `node tools/preflight.js`, regresje oraz właściwe zestawy Firebase Emulator Suite. Codex przygotowuje kod i testy, ale nie dubluje ich pełnym lokalnym uruchomieniem przed CI ani po jego zaliczeniu. ChatGPT kontroluje dowody zamiast powtarzać te same testy.
+Celem jest wiarygodny dowód poprawności, nie liczba testów. Ta decyzja zastępuje obowiązek pełnego zestawu dla każdej modyfikacji testu lub dokumentacji; nie usuwa zabezpieczeń aplikacji.
 
-**Aktualność testów w ramach każdej modyfikacji aplikacji:** ChatGPT przed zleceniem identyfikuje regresje i oczekiwania zależne od zmienianego zachowania; Codex ma obowiązek przejrzeć powiązane istniejące testy i dostosować je w tym samym zatwierdzonym pakiecie do aktualnego kontraktu, nazw modułów, zależności (również list serwerów testowych) i wersjonowania. Aktualizuje wyłącznie nieaktualne asercje wynikające z jawnie zaakceptowanego kontraktu, dodaje uzgodnione przypadki nowego zachowania i sprawdza rzeczywiste włączenie do CI. Zachowuje wszystkie nadal obowiązujące zabezpieczenia, asercje negatywne i przypadki brzegowe. Nie wolno osłabiać asercji, usuwać wymaganych scenariuszy, maskować rzeczywistych błędów aplikacji ani zmieniać kontraktu biznesowego tylko po to, żeby uzyskać PASS. Aktualizacja powiązanego testu mieści się w zgodzie na implementację; pełne CI wciąż należy do GitHub Actions.
+### Przygotowanie i testy lokalne
 
-Przed implementacją ustal wymagane testy, ich właściciela i rzeczywiste pokrycie aktualnych workflow. Samo istnienie skryptu testowego lub workflow dla innej gałęzi nie oznacza wykonania testu dla bieżącego SHA. Dla zmian wysokiego ryzyka wymagane są także właściwe regresje domenowe; sprawdź, czy są częścią Preflightu lub osobnego zadania CI, zamiast uruchamiać je ponownie lokalnie.
+1. Ustal zmieniane zachowanie, jego ryzyko i zależności. Sprawdź istniejące pokrycie tego obszaru; nie czytaj całej aplikacji i historii dla drobnej poprawki.
+2. Najpierw wykorzystaj istniejący test. Rozszerz go, gdy brakuje przypadku; nowy plik/zadanie CI tylko dla odrębnej izolacji lub dowodu. Komentarz, nazwa techniczna lub korekta bez zmiany zachowania nie wymaga automatycznie nowego testu.
+3. Każdy nowy przypadek uzasadnij wymaganiem, błędem albo niepokrytym ryzykiem. Preferuj szybki test funkcji/domeny; integrację dla granicy magazynów/protokołów; prawdziwe UI dla ważnego przepływu użytkownika. Nie powtarzaj w Chromium wszystkich wariantów kalkulatora sprawdzonych domenowo. Zachowaj reprezentatywne UI oraz negatywy integracji.
+4. Dla błędu pokaż właściwy RED→GREEN i potrzebne sąsiednie regresje. Nie ponawiaj PASS bez nowej zmiany, awarii lub luki. Lokalnie tylko celowane kontrole; pełna regresja należy do GitHub Actions.
+5. Dostosuj powiązane istniejące fixture, kontrole statyczne, serwery testowe, wersje, manifesty i przydział CI do zatwierdzonego kontraktu. Nie zmieniaj guardów ani biznesu dla PASS.
 
-Codex może wykonywać minimalną diagnostykę i celowaną reprodukcję niezbędną do napisania lub naprawienia kodu oraz kontrolę diffu. Nie ponawia automatycznie pełnych zestawów CI. Dodatkowy test wymaga konkretnej luki lub nowego błędu, a nie samej chęci ponownego potwierdzenia PASS.
+### Automatyczny zakres zatwierdzonego CI
 
-Jeżeli wymagany test nie może działać w CI, opisz lukę, przyczynę, właściwego wykonawcę i sposób weryfikacji (np. fizyczny Android przez właściciela albo prywatny artefakt sprawdzony lokalnie bez publikacji). Nie oznaczaj go jako PASS ani nie uznawaj niepełnego CI za pełne potwierdzenie jakości. Przy braku zgody na uruchomienie wymaganej ścieżki CI raportuj `CI_PENDING`; samo zakończenie implementacji to `CODE_READY` (AGENTS.md §10).
+Safety czyta diff dokładnych commitów HEAD/BASE, nie etykietę PR. Implementacja: [ci-docs-scope.js](../../tools/ci-docs-scope.js) i [ci-test-maintenance.js](../../tools/ci-test-maintenance.js). Każdy wariant zachowuje kontrolę źródeł/manifestu/425 pinów, zgodę Ready, agregację i exact Pages.
 
-Jeżeli test nie przechodzi:
+| Zmiana | Wymagane CI |
+|---|---|
+| Wyłącznie modyfikacje istniejących zwykłych plików AGENTS.md, CURRENT_STATE.md, docs/agents/TESTING.md, docs/agents/RELEASE.md, docs/plans/test-strategy-playwright-20261115.md | `documents`: treść/odnośniki, niezmieniona aplikacja, kontrola zakresu i odmów źródeł; bez Chromium/SDK. |
+| Wyłącznie modyfikacje sprawdzonych samodzielnych testów z zamkniętej listy ci-test-maintenance.js, ewentualnie wraz z powyższymi MD | `tests`: zmienione pliki testowe w całości, składnia/kolejność/zależności/storage, zakres, pełny przydział CI, DAG i odmowy źródeł. Bez emulatorów i niezwiązanych scenariuszy aplikacji. |
+| Kod aplikacji, bezpieczeństwo, zapis/model, kalkulator/ceny, synchronizacja, wspólny fixture/harness, browser/SDK test, workflow/klasyfikator/lista zakresów, nowy/usunięty/przeniesiony plik, zmiana trybu, inna MD lub nieznany wpływ | `full`: komplet istniejącej regresji, 36 grup smoke, segmenty SDK/P0-B/P1, UI i Windows. |
 
-- zatrzymaj się,
-- wskaż dokładnie pierwszy niezaliczony etap,
-- ustal, czy problem jest w kodzie produkcyjnym, teście, konfiguracji czy w nieaktualnym założeniu,
-- nie zmieniaj kodu produkcyjnego tylko po to, aby test stał się zielony,
-- nie pomijaj testów, nie usuwaj ani nie osłabiaj asercji dla uzyskania PASS,
-- iteracje naprawcze muszą mieścić się w zatwierdzonym zakresie; ponowienie wydaniowego CI podlega AGENTS.md §12.
+`tests` obejmuje początkowo 10 przejrzanych testów VM bez eksportowanych fixture i bez znalezionych konsumentów w kodzie wykonawczym. To ograniczenie wdrożenia, nie dowód zbędności reszty. Zmiana aplikacji nadal wymaga pełnej regresji: globalny graf zależności nie daje obecnie dowodu bezpiecznego automatycznego wyboru mniejszego zestawu. Rozszerzenie szybkiej ścieżki wymaga przeglądu konsumentów i regresji klasyfikatora; zmiana samej polityki wykonawczej idzie przez `full`.
+
+Brak/FAIL/cancelled/skipped wymaganego testu lub brak wyniku blokuje merge. Nieznany tryb blokuje agregację. Poza zakresem raportuj **NIE WYKONANO — nie dotyczy wykazanego diffu**, nigdy PASS odziedziczony z innego SHA. Raport podaje zakres. Workflow nie startuje na zwykły push; zgoda na wydanie pozostaje odrębna.
+
+### Utrzymanie zestawu
+
+- Nie dodawaj ciężkiego E2E, gdy wystarczy istniejący scenariusz lub niższa warstwa. UI/IndexedDB/ACK pozostają rzeczywistymi dowodami, gdy ich dotyczy zmiana.
+- Duplikaty scalaj dopiero po porównaniu asercji, wariantów i izolacji. Zachowaj mapę wymaganie → pozostały test → grupa CI oraz negatywy. Podobna nazwa i długi czas nie dowodzą zbędności.
+- Kruchy test naprawiaj przez rzeczywisty stan gotowości, deterministyczne dane i cleanup; bez ślepych retry, force-click, fikcyjnego sukcesu i podnoszenia timeoutów w ciemno.
+- Mierz oddzielnie testy, przygotowanie, kolejkę i publikację. Nie powtarzaj całego audytu przy każdej poprawce.
+
+Niemożliwa wymagana kontrola = luka, przyczyna i metoda sprawdzenia, np. fizyczny telefon; nigdy pozorny PASS. Bez zgody wydaniowej: `CODE_READY / CI_PENDING`. Przy FAIL ustal pierwszy punkt odmowy i przyczynę (produkcja/test/konfiguracja/założenie), napraw w zatwierdzonym zakresie. Retry wydania według §12.
 
 ## 9. Raport po wykonaniu zadania
 

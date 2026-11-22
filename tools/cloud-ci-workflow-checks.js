@@ -19,14 +19,14 @@ function enabled(expression,{outcomes={},results={},cancelled=false,mode='full'}
   return expression.slice(4,-3).split(' && ').every(term=>{
     if(term==='!cancelled()')return !cancelled;
     if(term==='always()')return true;
-    const scope=term.match(/^needs\.safety\.outputs\.release_mode == '(full|documents)'$/);if(scope)return mode===scope[1];
+    const scope=term.match(/^needs\.safety\.outputs\.release_mode == '(full|documents|tests)'$/);if(scope)return mode===scope[1];
     const m=term.match(/^(steps|needs)\.([a-z0-9-]+)\.(outcome|result) == 'success'$/);assert.ok(m,'Unknown execution condition: '+term);
     return(m[1]==='steps'?outcomes:results)[m[2]]==='success';
   });
 }
 function workflowChecks(source){
   const j=jobs(source);
-  const ids=['safety','documents','preflight-static','preflight-shards','playwright-local-ui','owner-signing-windows','preflight','firebase-current-shards','playwright-sync-ui','firebase-p0b','firebase-current','cloud-historical-smoke','cloud-historical-sdk','cloud-historical','ci-summary','auto-merge'];
+  const ids=['safety','documents','test-maintenance','preflight-static','preflight-shards','playwright-local-ui','owner-signing-windows','preflight','firebase-current-shards','playwright-sync-ui','firebase-p0b','firebase-current','cloud-historical-smoke','cloud-historical-sdk','cloud-historical','ci-summary','auto-merge'];
   assert.deepEqual(Object.keys(j).sort(),ids.slice().sort(),'Unclassified CI jobs');
   assert.doesNotMatch(source,/continue-on-error:/);
   const trigger=source.split('\njobs:')[0];
@@ -39,6 +39,14 @@ function workflowChecks(source){
   for(const command of ['ci-docs-scope.js','--verify-documents','ci-docs-scope-smoke.js','cloud-ci-current-boundary-smoke.js','set -euo pipefail'])assert.ok(docSteps.verify.includes(command));
   assert.match(j.safety,/release_mode: \$\{\{ steps.scope.outputs.release_mode \}\}/);
   assert.match(steps(j.safety).scope,/ci-docs-scope.js "\$APPROVED_BASE" "\$APPROVED_HEAD"/);
+  const maintenance=j['test-maintenance'],maintenanceSteps=steps(maintenance);
+  assert.equal(condition(maintenance),"${{ !cancelled() && needs.safety.result == 'success' && needs.safety.outputs.release_mode == 'tests' }}");
+  assert.match(maintenance,/needs: safety/);
+  assert.match(maintenanceSteps['Checkout exact approved head'],/ref: \$\{\{ needs.safety.outputs.head_sha \}\}/);
+  assert.match(maintenanceSteps['Verify isolated source and 425 pins'],/cloud-ci-prepare.js "\$APPROVED_HEAD"/);
+  for(const command of ['set -euo pipefail','ci-docs-scope-smoke.js','ci-sharding-smoke.js','cloud-ci-current-boundary-smoke.js','cloud-ci-workflow-checks','--current-only --static-only','ci-module-growth.js','ci-test-maintenance.js "$APPROVED_BASE" "$APPROVED_HEAD"','status=PASS'])assert.ok(maintenanceSteps.verify.includes(command),command);
+  assert.match(maintenance,/status: \$\{\{ steps.verify.outputs.status \}\}/);
+  assert.equal(condition(maintenanceSteps['Upload selected test diagnostics']),'${{ always() }}');
   const owner=j['owner-signing-windows'],ownerSteps=steps(owner);
   assert.match(owner,/^    needs: safety$/m);
   assert.equal(condition(owner),"${{ !cancelled() && needs.safety.result == 'success' && needs.safety.outputs.release_mode == 'full' }}");
@@ -139,7 +147,7 @@ function workflowChecks(source){
   for(const [id,members] of Object.entries(aggregates)){
     const job=j[id],s=steps(job);
     assert.equal(condition(job),'${{ always() }}');
-    assert.ok(job.includes('needs: ['+members.join(', ')+', documents]'));
+    assert.ok(job.includes('needs: ['+members.join(', ')+', documents, test-maintenance]'));
     const body=script(s.report);
     assert.ok(body.includes('const names='+JSON.stringify(members)+';'));
     assert.match(body,/groups\[name\]\?\.result!=='success'/);
@@ -149,6 +157,9 @@ function workflowChecks(source){
     assert.match(body,/if\(missing\.length\)core\.setFailed\(reason\)/);
     assert.ok(body.includes("if(groups.safety?.outputs?.release_mode==='documents')names.splice(0,names.length,'safety','documents');"));
     assert.ok(body.includes("groups.documents?.outputs?.status!=='PASS')missing.push('documents-proof')"));
+    assert.ok(body.includes("if(groups.safety?.outputs?.release_mode==='tests')names.splice(0,names.length,'safety','test-maintenance');"));
+    assert.ok(body.includes("if(!['full','documents','tests'].includes(groups.safety?.outputs?.release_mode))missing.push('unconfirmed-scope');"));
+    assert.ok(body.includes("groups['test-maintenance']?.outputs?.status!=='PASS')missing.push('tests-proof')"));
     assert.match(job,/status: \$\{\{ steps\.report\.outputs\.status \}\}/);
   }
   assert.equal(condition(j['ci-summary']),'${{ always() }}');
@@ -156,6 +167,7 @@ function workflowChecks(source){
   const sum=script(steps(j['ci-summary']).summary);
   assert.ok(sum.includes("const keys = ['safety','preflight','firebase-current','cloud-historical'];"));
   assert.match(sum,/job\.result === 'success' && job\.outputs\?\.status === 'PASS'/);
+  assert.ok(sum.includes("if(!['full','documents','tests'].includes(scope))rows.push(['Scope','FAIL','Unconfirmed release scope']);"));
   assert.match(sum,/main\.object\.sha === pr\.base\.sha/);
   assert.match(sum,/current\.head\.sha === pr\.head\.sha && current\.base\.sha === pr\.base\.sha/);
   assert.match(sum,/if \(!ready\) core\.setFailed\('RELEASE_BLOCKED:/);
@@ -203,16 +215,20 @@ async function diagnosticChecks(source){
     mutation("needs.safety.outputs.release_mode == 'full'","needs.safety.outputs.release_mode != 'documents'"),
     mutation('node tools/ci-docs-scope.js "$APPROVED_BASE" "$APPROVED_HEAD" --verify-documents','echo unverified-documentation'),
     mutation("groups.documents?.outputs?.status!=='PASS'","false"),
+    mutation("groups['test-maintenance']?.outputs?.status!=='PASS'","false"),
+    mutation("if(!['full','documents','tests'].includes(groups.safety?.outputs?.release_mode))missing.push('unconfirmed-scope');",''),
+    mutation('ci-test-maintenance.js "$APPROVED_BASE" "$APPROVED_HEAD"','ci-test-maintenance.js main main'),
+    mutation('node tools/ci-sharding-smoke.js','echo coverage-unconfirmed'),
     mutation("GIT_CONFIG_VALUE_0: 'false'", "GIT_CONFIG_VALUE_0: 'true'"),
     mutation('runs-on: windows-latest','runs-on: ubuntu-latest'),
     mutation('run: node tools/application-owner-signing-smoke.js','run: echo unverified'),
-    mutation('    needs: [safety, preflight-static, preflight-shards, playwright-local-ui, owner-signing-windows, documents]','    needs: safety'),
+    mutation('    needs: [safety, preflight-static, preflight-shards, playwright-local-ui, owner-signing-windows, documents, test-maintenance]','    needs: safety'),
     mutation('batch: ['+Array.from({length:24},(_,i)=>i+1).join(', ')+']','batch: [1, 2, 3, 4, 5, 6]'),
     mutation('for shard in $shards; do','for shard in 13; do'),
     mutation('              status=1','              status=0'),
     mutation("- {batch: 3, segment: '3e'}","- {batch: 3, segment: '3z'}"),
-    mutation('    needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b, documents]','    needs: [safety, firebase-current-shards, firebase-p0b]'),
-    mutation('    needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b, documents]','    needs: [safety, firebase-current-shards, playwright-sync-ui]'),
+    mutation('    needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b, documents, test-maintenance]','    needs: [safety, firebase-current-shards, firebase-p0b]'),
+    mutation('    needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b, documents, test-maintenance]','    needs: [safety, firebase-current-shards, playwright-sync-ui]'),
     mutation(j['firebase-p0b'].match(/^        segment: .*$/m)[0].trim(),'segment: [rules, profiles, compatibility, normal-startup, signed-startup]'),
     mutation('node --test tools/firebase-pilot/playwright-local-ui.test.mjs','node --test tools/firebase-pilot/removed-ui.test.mjs'),
     mutation('cloud-ci-emulators.js --context=current --playwright-sync','cloud-ci-emulators.js --context=current --no-sync'),
@@ -231,9 +247,11 @@ async function diagnosticChecks(source){
     for(const result of ['failure','skipped','cancelled','success'])
       assert.equal(enabled(condition(j[id]),{results:{safety:result}}),result==='success');
     assert.equal(enabled(condition(j[id]),{results:{safety:'success'},mode:'documents'}),false);
+    assert.equal(enabled(condition(j[id]),{results:{safety:'success'},mode:'tests'}),false);
     assert.equal(enabled(condition(j[id]),{results:{safety:'success'},mode:'unknown'}),false);
   }
   for(const mode of ['full','documents','unknown'])assert.equal(enabled(condition(j.documents),{results:{safety:'success'},mode}),mode==='documents');
+  for(const mode of ['full','documents','tests','unknown'])for(const result of ['success','failure','skipped','cancelled'])assert.equal(enabled(condition(j['test-maintenance']),{results:{safety:result},mode}),mode==='tests'&&result==='success');
   for(const id of ['preflight','firebase-current','cloud-historical'])
     assert.equal(enabled(condition(j[id]),{results:{safety:'failure'}}),true);
   pass('independent runners and fail-closed always-running aggregates');
@@ -266,6 +284,7 @@ async function diagnosticChecks(source){
   const aggregates={preflight:['safety','preflight-static','preflight-shards','playwright-local-ui','owner-signing-windows'],'firebase-current':['safety','firebase-current-shards','playwright-sync-ui','firebase-p0b'],'cloud-historical':['safety','cloud-historical-smoke','cloud-historical-sdk']};
   for(const [id,members] of Object.entries(aggregates)){
     const body=script(steps(j[id]).report),good=Object.fromEntries(members.map(name=>[name,{result:'success'}]));
+    good.safety.outputs={release_mode:'full'};
     const success=await execute(body,{env:{GROUPS:JSON.stringify(good)}});
     assert.equal(success.outputs.status,'PASS');assert.equal(success.failures.length,0);
     const docs={safety:{result:'success',outputs:{release_mode:'documents'}},documents:{result:'success',outputs:{status:'PASS'}}};
@@ -275,6 +294,10 @@ async function diagnosticChecks(source){
      const refused={...docs,documents:result?{result}:undefined};
      assert.equal((await execute(body,{env:{GROUPS:JSON.stringify(refused)}})).outputs.status,'FAIL','Documentation proof cannot be omitted');
     }
+    const tests={safety:{result:'success',outputs:{release_mode:'tests'}},'test-maintenance':{result:'success',outputs:{status:'PASS'}}};
+    assert.equal((await execute(body,{env:{GROUPS:JSON.stringify(tests)}})).outputs.status,'PASS');
+    for(const value of [undefined,{result:'success'},{result:'success',outputs:{status:'SKIPPED'}},...['failure','skipped','cancelled','unknown'].map(result=>({result,outputs:{status:'PASS'}}))])assert.equal((await execute(body,{env:{GROUPS:JSON.stringify({...tests,'test-maintenance':value})}})).outputs.status,'FAIL','Selected test proof cannot be missing, contradicted or skipped');
+    for(const mode of [undefined,'unknown','FULL',''])assert.equal((await execute(body,{env:{GROUPS:JSON.stringify({...good,safety:{result:'success',outputs:{release_mode:mode}}})}})).outputs.status,'FAIL','Unknown scope is never approved even if all groups claim success');
     for(const member of members)for(const bad of ['failure','skipped','cancelled','unknown',null]){
       const groups={...good};if(bad===null)delete groups[member];else groups[member]={result:bad};
       const receipt=await execute(body,{env:{GROUPS:JSON.stringify(groups)}});
@@ -290,7 +313,7 @@ async function diagnosticChecks(source){
   pass('actual report scripts retain FAIL/SKIPPED, missing step and exact safety/setup reasons');
   const summary=script(steps(j['ci-summary']).summary),groupKeys=['preflight','firebase-current','cloud-historical'];
   const group=result=>({result,outputs:{status:result==='success'?'PASS':result==='failure'?'FAIL':'SKIPPED',reason:result==='success'?'All required steps passed':'Synthetic '+result}});
-  const all=()=>Object.fromEntries(['safety',...groupKeys].map(id=>[id,group('success')]));
+  const all=()=>{const groups=Object.fromEntries(['safety',...groupKeys].map(id=>[id,group('success')]));groups.safety.outputs.release_mode='full';return groups;};
   for(const a of ['success','failure','skipped','cancelled','unknown'])for(const b of ['success','failure','skipped','cancelled','unknown'])for(const c of ['success','failure','skipped','cancelled','unknown']){
     const groups=all();[a,b,c].forEach((value,i)=>groups[groupKeys[i]]=group(value));
     const r=await execute(summary,{env:{GROUPS:JSON.stringify(groups)}});const ready=[a,b,c].every(v=>v==='success');
@@ -299,6 +322,8 @@ async function diagnosticChecks(source){
   for(const variant of [{result:'failure',outputs:{status:'PASS'}},{result:'success',outputs:{}},{result:'success',outputs:{status:'SKIPPED'}}]){
     const groups=all();groups['firebase-current']=variant;assert.equal((await execute(summary,{env:{GROUPS:JSON.stringify(groups)}})).outputs.status,'RELEASE_BLOCKED');
   }
+  for(const mode of ['documents','tests']){const groups=all();groups.safety.outputs.release_mode=mode;assert.equal((await execute(summary,{env:{GROUPS:JSON.stringify(groups)}})).outputs.status,'RELEASE_READY');}
+  for(const mode of [undefined,'unknown','']){const groups=all();groups.safety.outputs.release_mode=mode;assert.equal((await execute(summary,{env:{GROUPS:JSON.stringify(groups)}})).outputs.status,'RELEASE_BLOCKED');}
   pass('125 actual aggregation cases plus contradictory/missing receipts: no FAIL/SKIPPED/uncertainty can release');
   const good=(await execute(summary,{env:{GROUPS:JSON.stringify(all())}})).pr;
   const variants=[{...good,draft:true},{...good,state:'closed'},{...good,head:{...good.head,sha:'c'.repeat(40)}},{...good,base:{...good.base,sha:'c'.repeat(40)}},{...good,base:{...good.base,ref:'other'}}];
