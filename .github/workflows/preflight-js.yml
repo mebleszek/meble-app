@@ -179,7 +179,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
+        batch: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -210,17 +210,28 @@ jobs:
           echo "CHROMIUM_PATH=$browser_path" >> "$GITHUB_ENV"
           "$browser_path" --version
 
-      - name: Test smoke-shard-${{ matrix.shard }}
+      - name: Test smoke-batch-${{ matrix.batch }}
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/ci-logs"
-          node tools/ci-budget-watch.js --label=smoke-shard-${{ matrix.shard }} --warn-ms=75000 --target-ms=90000 -- node tools/preflight.js --current-only --smoke-shard=${{ matrix.shard }} 2>&1 | tee "$RUNNER_TEMP/ci-logs/smoke-shard-${{ matrix.shard }}.txt"
-      - name: Upload smoke-shard-${{ matrix.shard }} diagnostics
+          shards="$(node tools/ci-smoke-batches.js --batch=${{ matrix.batch }})"
+          status=0
+          for shard in $shards; do
+            export TMPDIR="$RUNNER_TEMP/s$shard"
+            mkdir -p "$TMPDIR"
+            if node tools/ci-budget-watch.js --label=smoke-shard-$shard --warn-ms=75000 --target-ms=90000 -- node tools/preflight.js --current-only --smoke-shard=$shard 2>&1 | tee "$RUNNER_TEMP/ci-logs/smoke-shard-$shard.txt"; then
+              :
+            else
+              status=1
+            fi
+          done
+          exit "$status"
+      - name: Upload smoke-batch-${{ matrix.batch }} diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: diagnostics-preflight-smoke-${{ matrix.shard }}
+          name: diagnostics-preflight-batch-${{ matrix.batch }}
           path: ${{ runner.temp }}/ci-logs/*.txt
           if-no-files-found: ignore
 
@@ -756,17 +767,20 @@ jobs:
             if (!ready) core.setFailed('RELEASE_BLOCKED: '+reason);
 
   auto-merge:
-    if: ${{ !cancelled() && needs.safety.result == 'success' && needs.preflight.result == 'success' && needs.firebase-current.result == 'success' && needs.cloud-historical.result == 'success' && needs.ci-summary.result == 'success' && needs.ci-summary.outputs.status == 'RELEASE_READY' && github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
+    if: ${{ always() }}
     needs: [safety, preflight, firebase-current, cloud-historical, ci-summary]
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      issues: write
       pull-requests: write
+      actions: read
     outputs:
       merge_sha: ${{ steps.merge.outputs.result }}
 
     steps:
       - name: Merge the exact tested PR head
+        if: ${{ !cancelled() && needs.safety.result == 'success' && needs.preflight.result == 'success' && needs.firebase-current.result == 'success' && needs.cloud-historical.result == 'success' && needs.ci-summary.result == 'success' && needs.ci-summary.outputs.status == 'RELEASE_READY' && github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
         id: merge
         uses: actions/github-script@v7
         with:
@@ -814,25 +828,18 @@ jobs:
             core.notice(`Merged as ${result.data.sha}`);
             return result.data.sha;
 
-  post-merge-verify:
-    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.auto-merge.result == 'success' }}
-    needs: auto-merge
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: read
-
-    # Lightweight deployment check only; full preflight already passed before merge.
-    steps:
       - name: Wait for Pages on exact merge commit
+        id: verify
+        if: ${{ !cancelled() && steps.merge.outcome == 'success' && steps.merge.outputs.result != '' }}
         uses: actions/github-script@v7
         env:
-          MERGE_SHA: ${{ needs.auto-merge.outputs.merge_sha }}
+          MERGE_SHA: ${{ steps.merge.outputs.result }}
         with:
           script: |
             const mergeSha = process.env.MERGE_SHA;
-            const maxAttempts = 60;
-            const delayMs = 10000;
+            if (!/^[a-f0-9]{40}$/.test(mergeSha || '')) { core.setFailed('EXACT_MERGE_SHA_REQUIRED'); return; }
+            const maxAttempts = 200;
+            const delayMs = 3000;
 
             for (let attempt = 1; attempt <= maxAttempts; attempt++) {
               const response = await github.rest.actions.listWorkflowRunsForRepo({
@@ -843,7 +850,7 @@ jobs:
               });
 
               const pagesRun = response.data.workflow_runs.find(
-                run => run.name === 'pages build and deployment'
+                run => run.name === 'pages build and deployment' && run.head_sha === mergeSha
               );
 
               if (pagesRun) {
@@ -867,16 +874,8 @@ jobs:
 
             core.setFailed(`Timed out waiting for Pages for merge commit ${mergeSha}`);
 
-  final-status:
-    if: ${{ always() && github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
-    needs: [safety, preflight, firebase-current, cloud-historical, ci-summary, auto-merge, post-merge-verify]
-    runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      pull-requests: write
-
-    steps:
       - name: Comment READY or BLOCKED on PR
+        if: ${{ always() && github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
         uses: actions/github-script@v7
         env:
           PREFLIGHT_RESULT: ${{ needs.preflight.result }}
@@ -890,9 +889,9 @@ jobs:
           RELEASE_MODE: ${{ needs.safety.outputs.release_mode }}
           DIAGNOSTIC_STATUS: ${{ needs.ci-summary.outputs.status }}
           DIAGNOSTIC_REASON: ${{ needs.ci-summary.outputs.reason }}
-          MERGE_RESULT: ${{ needs.auto-merge.result }}
-          VERIFY_RESULT: ${{ needs.post-merge-verify.result }}
-          MERGE_SHA: ${{ needs.auto-merge.outputs.merge_sha }}
+          MERGE_RESULT: ${{ steps.merge.outcome }}
+          VERIFY_RESULT: ${{ steps.verify.outcome }}
+          MERGE_SHA: ${{ steps.merge.outputs.result }}
         with:
           script: |
             const pr = context.payload.pull_request;
@@ -914,7 +913,7 @@ jobs:
             const verify = process.env.VERIFY_RESULT;
             const mergeSha = process.env.MERGE_SHA || '';
 
-            const ready = preflight === 'success' && process.env.FIREBASE_RESULT === 'success' && process.env.HISTORICAL_RESULT === 'success' && process.env.SAFETY_RESULT === 'success' && process.env.DIAGNOSTIC_STATUS === 'RELEASE_READY' && ['PREFLIGHT_STATUS','FIREBASE_STATUS','HISTORICAL_STATUS','SAFETY_STATUS'].every(key=>process.env[key]==='PASS') && merge === 'success' && verify === 'success';
+            const ready = /^[a-f0-9]{40}$/.test(mergeSha) && preflight === 'success' && process.env.FIREBASE_RESULT === 'success' && process.env.HISTORICAL_RESULT === 'success' && process.env.SAFETY_RESULT === 'success' && process.env.DIAGNOSTIC_STATUS === 'RELEASE_READY' && ['PREFLIGHT_STATUS','FIREBASE_STATUS','HISTORICAL_STATUS','SAFETY_STATUS'].every(key=>process.env[key]==='PASS') && merge === 'success' && verify === 'success';
             if(process.env.RELEASE_MODE==='documents')await core.summary.addRaw('Documentation-only release: application/SDK test groups were not executed; exact unchanged application and mandatory documentation gates verified.\n').write();
             const display = result => result === 'success' ? 'PASS' : ['skipped','cancelled'].includes(result) ? 'SKIPPED' : 'FAIL';
             const displayGroup = (result,status) => result === 'success' && status === 'PASS' ? 'PASS' : status === 'SKIPPED' || ['skipped','cancelled'].includes(result) ? 'SKIPPED' : 'FAIL';

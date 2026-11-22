@@ -26,7 +26,7 @@ function enabled(expression,{outcomes={},results={},cancelled=false,mode='full'}
 }
 function workflowChecks(source){
   const j=jobs(source);
-  const ids=['safety','documents','preflight-static','preflight-shards','playwright-local-ui','owner-signing-windows','preflight','firebase-current-shards','playwright-sync-ui','firebase-p0b','firebase-current','cloud-historical-smoke','cloud-historical-sdk','cloud-historical','ci-summary','auto-merge','post-merge-verify','final-status'];
+  const ids=['safety','documents','preflight-static','preflight-shards','playwright-local-ui','owner-signing-windows','preflight','firebase-current-shards','playwright-sync-ui','firebase-p0b','firebase-current','cloud-historical-smoke','cloud-historical-sdk','cloud-historical','ci-summary','auto-merge'];
   assert.deepEqual(Object.keys(j).sort(),ids.slice().sort(),'Unclassified CI jobs');
   assert.doesNotMatch(source,/continue-on-error:/);
   const trigger=source.split('\njobs:')[0];
@@ -56,7 +56,7 @@ function workflowChecks(source){
     assert.match(s['Verify isolated source and 425 pins'],/cloud-ci-prepare\.js "\$APPROVED_HEAD"/);
     assert.match(s['Verify isolated source and 425 pins'],/APPROVED_BASE: \$\{\{ needs\.safety\.outputs\.base_sha \}\}/);
     assert.ok(s['Use Node.js 22']);
-    const label=id==='preflight-shards'?'smoke-shard-${{ matrix.shard }}':id==='firebase-current-shards'?'firebase-current-${{ matrix.segment }}':id;
+    const label=id==='preflight-shards'?'smoke-batch-${{ matrix.batch }}':id==='firebase-current-shards'?'firebase-current-${{ matrix.segment }}':id;
     assert.equal(condition(s['Upload '+label+' diagnostics']),'${{ always() }}');
   }
   // New Playwright jobs are mandatory members of the same fail-closed DAG.
@@ -92,11 +92,13 @@ function workflowChecks(source){
   assert.match(stat['Audit module growth against approved BASE'],/tools\/ci-module-growth\.js/);
   assert.match(stat['Audit module growth against approved BASE'],/APPROVED_BASE: \$\{\{ needs\.safety\.outputs\.base_sha \}\}/);
   assert.match(j['preflight-shards'],/fail-fast: false/);
-  const expectedShards=Array.from({length:36},(_,i)=>i+1);
-  const listedShards=j['preflight-shards'].match(/^        shard: \[([^\]]+)\]$/m);
-  assert.ok(listedShards,'Missing explicit smoke matrix');
-  assert.deepEqual(listedShards[1].split(', ').map(Number),expectedShards,'All 36 smoke groups required');
-  assert.ok(smoke['Test smoke-shard-${{ matrix.shard }}'].includes('--smoke-shard=${{ matrix.shard }}'));
+  const batches=require('./ci-smoke-batches').plan();
+  assert.deepEqual(batches.flat().slice().sort((a,b)=>a-b),Array.from({length:36},(_,i)=>i+1),'All 36 logical groups remain mandatory');
+  const listed=j['preflight-shards'].match(/^        batch: \[([^\]]+)\]$/m);
+  assert.ok(listed,'Missing explicit smoke runner matrix');
+  assert.deepEqual(listed[1].split(', ').map(Number),batches.map((_,i)=>i+1));
+  const batch=smoke['Test smoke-batch-${{ matrix.batch }}'];
+  for(const token of ['shards="$(node tools/ci-smoke-batches.js --batch=${{ matrix.batch }})"','for shard in $shards; do','--label=smoke-shard-$shard','--smoke-shard=$shard','TMPDIR="$RUNNER_TEMP/s$shard"','status=1','exit "$status"'])assert.ok(batch.includes(token),token);
   assert.match(smoke['Inspect isolated browser runtime'],/CHROMIUM_PATH/);
   assert.match(j['firebase-current-shards'],/fail-fast: false/);
   const actualSegments=Array.from(j['firebase-current-shards'].matchAll(/^          - \{batch: ([123]), segment: '([^']+)'\}$/gm),m=>[Number(m[1]),m[2]]);
@@ -115,7 +117,7 @@ function workflowChecks(source){
   }
   const runs=[
     ['preflight-static',stat['Test preflight-static'],'preflight-static'],
-    ['preflight-shards',smoke['Test smoke-shard-${{ matrix.shard }}'],'smoke-shard-${{ matrix.shard }}'],
+    ['preflight-shards',smoke['Test smoke-batch-${{ matrix.batch }}'],'smoke-shard-$shard'],
     ['firebase-current-shards',cur['Test firebase-current-${{ matrix.segment }}'],'firebase-current-${{ matrix.segment }}'],
     ['cloud-historical-smoke',histSmoke['Test cloud-historical-smoke'],'cloud-historical-smoke'],
     ['cloud-historical-sdk',histSdk['Test cloud-historical-sdk'],'cloud-historical-sdk']
@@ -157,19 +159,25 @@ function workflowChecks(source){
   assert.match(sum,/main\.object\.sha === pr\.base\.sha/);
   assert.match(sum,/current\.head\.sha === pr\.head\.sha && current\.base\.sha === pr\.base\.sha/);
   assert.match(sum,/if \(!ready\) core\.setFailed\('RELEASE_BLOCKED:/);
-  const merge=j['auto-merge'];
+  assert.equal(condition(j['auto-merge']),'${{ always() }}','Release diagnostics run even when mandatory tests fail');
+  for(const permission of ['contents: write','issues: write','pull-requests: write','actions: read'])assert.ok(j['auto-merge'].includes(permission),'Combined release job retains '+permission);
+  const release=steps(j['auto-merge']),merge=release.merge;
   assert.ok(condition(merge).startsWith('${{ !cancelled() && '),'Publication must explicitly evaluate verified gates despite a non-applicable ancestor');
-  assert.match(merge,/needs: \[safety, preflight, firebase-current, cloud-historical, ci-summary\]/);
+  assert.match(j['auto-merge'],/needs: \[safety, preflight, firebase-current, cloud-historical, ci-summary\]/);
   for(const id of ['safety','preflight','firebase-current','cloud-historical','ci-summary'])assert.ok(condition(merge).includes("needs."+id+".result == 'success'"));
   assert.ok(condition(merge).includes("needs.ci-summary.outputs.status == 'RELEASE_READY'"));
   for(const check of ['current.data.head.sha !== pr.head.sha','current.data.base.sha !== pr.base.sha','current.data.draft','sha: pr.head.sha'])assert.ok(merge.includes(check));
-  assert.match(j['post-merge-verify'],/^    needs: auto-merge$/m);
-  assert.ok(condition(j['post-merge-verify']).startsWith('${{ !cancelled() && '));
-  assert.match(j['post-merge-verify'],/needs\.auto-merge\.result == 'success'/);
-  assert.match(j['post-merge-verify'],/head_sha: mergeSha/);
-  assert.match(j['final-status'],/DIAGNOSTIC_STATUS/);
-  assert.match(j['final-status'],/core\.summary\.addHeading\(ready \? 'RELEASE_READY' : 'RELEASE_BLOCKED'\)/);
-  assert.match(j['final-status'],/if \(!ready\) core\.setFailed\('RELEASE_BLOCKED'\)/);
+  assert.equal(condition(release.verify),"${{ !cancelled() && steps.merge.outcome == 'success' && steps.merge.outputs.result != '' }}");
+  assert.match(release.verify,/head_sha: mergeSha/);
+  assert.match(release.verify,/MERGE_SHA: \$\{\{ steps\.merge\.outputs\.result \}\}/);
+  assert.match(release.verify,/const maxAttempts = 200;/);assert.match(release.verify,/const delayMs = 3000;/);
+  const final=release['Comment READY or BLOCKED on PR'];
+  assert.ok(condition(final).startsWith('${{ always() && '));
+  assert.match(final,/DIAGNOSTIC_STATUS/);
+  assert.match(final,/MERGE_RESULT: \$\{\{ steps.merge.outcome \}\}/);
+  assert.match(final,/VERIFY_RESULT: \$\{\{ steps.verify.outcome \}\}/);
+  assert.match(final,/core\.summary\.addHeading\(ready \? 'RELEASE_READY' : 'RELEASE_BLOCKED'\)/);
+  assert.match(final,/if \(!ready\) core\.setFailed\('RELEASE_BLOCKED'\)/);
   const revision=steps(j.safety).revision;
   for(const token of ['APPROVED_HEAD_CHANGED','APPROVED_BASE_CHANGED','MAIN_CHANGED','PR_NOT_OPEN_READY','FOREIGN_HEAD_REPOSITORY'])assert.ok(revision.includes(token));
   for(const id of ['revision','checkout','node','source','scope'])assert.ok(required(steps(j.safety).report).includes(id));
@@ -177,21 +185,21 @@ function workflowChecks(source){
 }
 
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
-async function execute(code,{env={},current,main,action='ready_for_review',apiFailure=false}={}){
+async function execute(code,{env={},current,main,action='ready_for_review',apiFailure=false,mergeResponse,workflowRuns=[]}={}){
   const sha='a'.repeat(40),base='b'.repeat(40),pr={number:84,draft:false,state:'open',merged:false,head:{sha,repo:{full_name:'mebleszek/meble-app'}},base:{sha:base,ref:'main'}};
-  const outputs={},failures=[],tables=[];const summary={addHeading(){return this;},addRaw(){return this;},addTable(rows){tables.push(rows);return this;},async write(){}};
-  const core={summary,setOutput:(key,value)=>outputs[key]=value,setFailed:value=>failures.push(value),notice(){}};
-  const github={rest:{pulls:{get:async()=>{if(apiFailure)throw Error('Synthetic unavailable API');return{data:current||pr};}},git:{getRef:async()=>({data:{object:{sha:main||base}}})},issues:{async createComment(){}}}};
-  await new AsyncFunction('core','github','context','process',code)(core,github,{payload:{pull_request:pr,action},repo:{owner:'mebleszek',repo:'meble-app'}},{env});
-  return{outputs,failures,tables,pr};
+  const outputs={},failures=[],tables=[],calls={merge:[],pages:[],delays:[]};const summary={addHeading(){return this;},addRaw(){return this;},addTable(rows){tables.push(rows);return this;},async write(){}};
+  const core={summary,setOutput:(key,value)=>outputs[key]=value,setFailed:value=>failures.push(value),notice(){},info(){}};
+  const github={rest:{pulls:{get:async()=>{if(apiFailure)throw Error('Synthetic unavailable API');return{data:current||pr};},merge:async args=>{calls.merge.push(args);return{data:mergeResponse||{merged:true,sha:'c'.repeat(40)}};}},git:{getRef:async()=>({data:{object:{sha:main||base}}})},issues:{async createComment(){}},actions:{async listWorkflowRunsForRepo(args){if(apiFailure)throw Error('Synthetic unavailable API');calls.pages.push(args);return{data:{workflow_runs:workflowRuns}};}}}};
+  const value=await new AsyncFunction('core','github','context','process','setTimeout',code)(core,github,{payload:{pull_request:pr,action},repo:{owner:'mebleszek',repo:'meble-app'}},{env},(callback,ms)=>{calls.delays.push(ms);callback();});
+  return{outputs,failures,tables,pr,calls,value};
 }
 async function diagnosticChecks(source){
   const j=workflowChecks(source);let count=0;
   const pass=name=>{count++;console.log('PASS CI diagnostics: '+name);};
   const mutation=(from,to)=>Object.assign(s=>{assert.ok(s.includes(from),'Missing fixture mutation: '+from);return s.replace(from,to);},{from});
   for(const change of [
-    mutation('  auto-merge:\n    if: ${{ !cancelled() && ','  auto-merge:\n    if: ${{ '),
-    mutation('  post-merge-verify:\n    if: ${{ !cancelled() && ','  post-merge-verify:\n    if: ${{ '),
+    mutation('        if: ${{ !cancelled() && needs.safety.result','        if: ${{ needs.safety.result'),
+    mutation('        if: ${{ !cancelled() && steps.merge.outcome','        if: ${{ steps.merge.outcome'),
     mutation("needs.safety.outputs.release_mode == 'full'","needs.safety.outputs.release_mode != 'documents'"),
     mutation('node tools/ci-docs-scope.js "$APPROVED_BASE" "$APPROVED_HEAD" --verify-documents','echo unverified-documentation'),
     mutation("groups.documents?.outputs?.status!=='PASS'","false"),
@@ -199,7 +207,9 @@ async function diagnosticChecks(source){
     mutation('runs-on: windows-latest','runs-on: ubuntu-latest'),
     mutation('run: node tools/application-owner-signing-smoke.js','run: echo unverified'),
     mutation('    needs: [safety, preflight-static, preflight-shards, playwright-local-ui, owner-signing-windows, documents]','    needs: safety'),
-    mutation('shard: ['+Array.from({length:36},(_,i)=>i+1).join(', ')+']','shard: [1, 2, 3, 4, 5, 6]'),
+    mutation('batch: ['+Array.from({length:24},(_,i)=>i+1).join(', ')+']','batch: [1, 2, 3, 4, 5, 6]'),
+    mutation('for shard in $shards; do','for shard in 13; do'),
+    mutation('              status=1','              status=0'),
     mutation("- {batch: 3, segment: '3e'}","- {batch: 3, segment: '3z'}"),
     mutation('    needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b, documents]','    needs: [safety, firebase-current-shards, firebase-p0b]'),
     mutation('    needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b, documents]','    needs: [safety, firebase-current-shards, playwright-sync-ui]'),
@@ -232,16 +242,19 @@ async function diagnosticChecks(source){
   const publications=['safety','preflight','firebase-current','cloud-historical','ci-summary'];
   const publishedNeeds=Object.fromEntries(publications.map(name=>[name,{result:'success',outputs:{status:name==='ci-summary'?'RELEASE_READY':'PASS'}}]));
   const gh={event_name:'pull_request',event:{action:'ready_for_review',pull_request:{draft:false,head:{repo:{full_name:'mebleszek/meble-app'}}}},repository:'mebleszek/meble-app'};
-  const gate=(expression,needs,cancelled=false)=>{
+  const gate=(expression,needs,cancelled=false,steps={})=>{
    if(!/\b(?:always|cancelled|success|failure)\(/.test(expression))return false; // skipped documents ancestor
    const js=expression.slice(4,-3).replace(/needs\.([a-z0-9-]+)/g,(_,name)=>'needs['+JSON.stringify(name)+']');
-   return new Function('needs','github','cancelled','return ('+js+');')(needs,gh,()=>cancelled);
+   return new Function('needs','github','cancelled','steps','return ('+js+');')(needs,gh,()=>cancelled,steps);
   };
-  assert.equal(gate(condition(j['auto-merge']),publishedNeeds),true);
-  assert.equal(gate(condition(j['auto-merge']),publishedNeeds,true),false);
-  for(const name of publications)for(const result of ['failure','cancelled','skipped'])assert.equal(gate(condition(j['auto-merge']),{...publishedNeeds,[name]:{result}}),false);
-  assert.equal(gate(condition(j['post-merge-verify']),{'auto-merge':{result:'success'}}),true);
-  assert.equal(gate(condition(j['post-merge-verify']),{'auto-merge':{result:'skipped'}}),false);
+  const release=steps(j['auto-merge']);
+  assert.equal(gate(condition(release.merge),publishedNeeds),true);
+  assert.equal(gate(condition(release.merge),publishedNeeds,true),false);
+  for(const name of publications)for(const result of ['failure','cancelled','skipped'])assert.equal(gate(condition(release.merge),{...publishedNeeds,[name]:{result}}),false);
+  assert.equal(gate(condition(release.verify),{},false,{merge:{outcome:'success',outputs:{result:'a'.repeat(40)}}}),true);
+  for(const outcome of ['failure','cancelled','skipped'])assert.equal(gate(condition(release.verify),{},false,{merge:{outcome,outputs:{result:''}}}),false);
+  assert.equal(gate(condition(release.verify),{},false,{merge:{outcome:'success',outputs:{result:''}}}),false);
+  assert.equal(gate(condition(release.verify),{},true,{merge:{outcome:'success',outputs:{result:'a'.repeat(40)}}}),false);
   pass('actual publication conditions survive non-applicable ancestors but refuse every failed/cancelled/skipped mandatory gate');
   const safety=steps(j.safety),list=required(safety.report);
   const run=value=>execute(script(safety.report),{env:{GROUP_STEPS:JSON.stringify(value),REQUIRED_STEPS:list.join(',')}});
@@ -270,10 +283,10 @@ async function diagnosticChecks(source){
     }
   }
   pass('actual three aggregators refuse FAIL/SKIPPED/CANCELLED/missing inputs');
-  const finalCode=script(steps(j['final-status'])['Comment READY or BLOCKED on PR']);
-  const finalEnv={PREFLIGHT_RESULT:'success',FIREBASE_RESULT:'success',HISTORICAL_RESULT:'success',SAFETY_RESULT:'success',PREFLIGHT_STATUS:'PASS',FIREBASE_STATUS:'PASS',HISTORICAL_STATUS:'PASS',SAFETY_STATUS:'PASS',MERGE_RESULT:'success',VERIFY_RESULT:'success',DIAGNOSTIC_STATUS:'RELEASE_READY'};
+  const finalCode=script(release['Comment READY or BLOCKED on PR']);
+  const finalEnv={PREFLIGHT_RESULT:'success',FIREBASE_RESULT:'success',HISTORICAL_RESULT:'success',SAFETY_RESULT:'success',PREFLIGHT_STATUS:'PASS',FIREBASE_STATUS:'PASS',HISTORICAL_STATUS:'PASS',SAFETY_STATUS:'PASS',MERGE_RESULT:'success',VERIFY_RESULT:'success',DIAGNOSTIC_STATUS:'RELEASE_READY',MERGE_SHA:'c'.repeat(40)};
   assert.equal((await execute(finalCode,{env:finalEnv})).failures.length,0);
-  for(const change of [{FIREBASE_STATUS:'SKIPPED'},{PREFLIGHT_RESULT:'failure'},{DIAGNOSTIC_STATUS:'RELEASE_BLOCKED'},{MERGE_RESULT:'skipped'},{VERIFY_RESULT:'failure'}])assert.ok((await execute(finalCode,{env:{...finalEnv,...change}})).failures.length);
+  for(const change of [{FIREBASE_STATUS:'SKIPPED'},{PREFLIGHT_RESULT:'failure'},{DIAGNOSTIC_STATUS:'RELEASE_BLOCKED'},{MERGE_RESULT:'skipped'},{VERIFY_RESULT:'failure'},{MERGE_SHA:''}])assert.ok((await execute(finalCode,{env:{...finalEnv,...change}})).failures.length);
   pass('actual report scripts retain FAIL/SKIPPED, missing step and exact safety/setup reasons');
   const summary=script(steps(j['ci-summary']).summary),groupKeys=['preflight','firebase-current','cloud-historical'];
   const group=result=>({result,outputs:{status:result==='success'?'PASS':result==='failure'?'FAIL':'SKIPPED',reason:result==='success'?'All required steps passed':'Synthetic '+result}});
@@ -290,6 +303,17 @@ async function diagnosticChecks(source){
   const good=(await execute(summary,{env:{GROUPS:JSON.stringify(all())}})).pr;
   const variants=[{...good,draft:true},{...good,state:'closed'},{...good,head:{...good.head,sha:'c'.repeat(40)}},{...good,base:{...good.base,sha:'c'.repeat(40)}},{...good,base:{...good.base,ref:'other'}}];
   for(const current of variants){assert.equal((await execute(summary,{env:{GROUPS:JSON.stringify(all())},current})).outputs.status,'RELEASE_BLOCKED');assert.ok((await execute(script(steps(j.safety).revision),{current})).failures.length);}
+  const merged=await execute(script(release.merge));assert.equal(merged.value,'c'.repeat(40));assert.equal(merged.calls.merge.length,1);assert.equal(merged.calls.merge[0].sha,good.head.sha);
+  for(const current of variants){const result=await execute(script(release.merge),{current});assert.equal(result.calls.merge.length,0);assert.ok(result.failures.length);}
+  assert.ok((await execute(script(release.merge),{mergeResponse:{merged:false,message:'Conflict'}})).failures.length);
+  const pagesCode=script(release.verify),mergeSha='c'.repeat(40),pages={name:'pages build and deployment',head_sha:mergeSha,status:'completed',conclusion:'success',run_number:1};
+  const verified=await execute(pagesCode,{env:{MERGE_SHA:mergeSha},workflowRuns:[pages]});assert.equal(verified.failures.length,0);assert.equal(verified.calls.pages[0].head_sha,mergeSha);
+  for(const change of [{head_sha:'d'.repeat(40)},{name:'Unrelated workflow'},{status:'in_progress'},{conclusion:'failure'},{conclusion:'cancelled'},{conclusion:'skipped'}]){
+    const result=await execute(pagesCode,{env:{MERGE_SHA:mergeSha},workflowRuns:[{...pages,...change}]});assert.ok(result.failures.length);assert.ok(result.calls.pages.length<=200);assert.ok(result.calls.delays.every(ms=>ms===3000));
+  }
+  const absent=await execute(pagesCode,{env:{MERGE_SHA:''}});assert.ok(absent.failures.length);assert.equal(absent.calls.pages.length,0);
+  await assert.rejects(execute(pagesCode,{env:{MERGE_SHA:mergeSha},apiFailure:true}),/unavailable API/);
+  pass('actual inline merge/Pages scripts: exact SHA, revoked Ready/head/base, merge conflict, API failure, wrong/pending/failed Pages and bounded read-only polling');
   for(const extra of [{main:'c'.repeat(40)},{apiFailure:true},{action:'synchronize'}]){
     assert.equal((await execute(summary,{env:{GROUPS:JSON.stringify(all())},...extra})).outputs.status,'RELEASE_BLOCKED');
     assert.ok((await execute(script(steps(j.safety).revision),extra)).failures.length);
@@ -344,6 +368,19 @@ async function diagnosticChecks(source){
       assert.equal(result.status===0,exitCode===0&&!brokenLog);
       if(exitCode)assert.equal(result.status,exitCode);
       if(brokenLog)assert.match(result.stderr,/Is a directory|directory|cannot open/i);
+    }
+    const batchRun=steps(j['preflight-shards'])['Test smoke-batch-${{ matrix.batch }}'].split('        run: |\n')[1].split('\n').map(line=>line.startsWith('          ')?line.slice(10):line).join('\n');
+    const batchProducer=/node tools\/ci-budget-watch\.js --label=smoke-shard-\$shard --warn-ms=75000 --target-ms=90000 -- node tools\/preflight\.js --current-only --smoke-shard=\$shard/;
+    assert.match(batchRun,batchProducer);
+    for(const [exitCode,brokenLog] of [[0,false],[7,false],[0,true]]){
+      const dir=path.join(logs,'batch-'+exitCode+'-'+brokenLog);fs.mkdirSync(path.join(dir,'ci-logs'),{recursive:true});
+      if(brokenLog)fs.mkdirSync(path.join(dir,'ci-logs','smoke-shard-13.txt'));
+      const fake="bash -c 'printf \"%s\\n\" \"$1\" >> \"$RUNNER_TEMP/executed\"; if [ \"$1\" = 13 ]; then exit "+exitCode+"; fi' _ \"$shard\"";
+      const command=batchRun.replace('node tools/ci-smoke-batches.js --batch=${{ matrix.batch }}',"printf '13 36'").replace(batchProducer,fake);
+      const result=require('node:child_process').spawnSync('bash',['-c',command],{encoding:'utf8',env:{...process.env,RUNNER_TEMP:dir}});
+      assert.equal(result.status===0,exitCode===0&&!brokenLog);
+      assert.deepEqual(fs.readFileSync(path.join(dir,'executed'),'utf8').trim().split('\n'),['13','36'],'Second group still executes after first failure');
+      for(const group of [13,36])assert.ok(fs.statSync(path.join(dir,'s'+group)).isDirectory());
     }
   }finally{fs.rmSync(logs,{recursive:true,force:true});}
   pass('actual shell pipeline preserves producer FAIL and refuses PASS if diagnostic log writing fails');

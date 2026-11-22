@@ -8,6 +8,7 @@ import {createP0BProtocol, createP0BDeletionIntent, inspectP0BCompatibility, pro
 
 import {runP0BRecovery} from './p0b-recovery-cases.mjs';
 import {visitAckCases} from './p0b-visit-ack.cases.mjs';
+import {lockContentionCases} from './p0b-lock-contention.cases.mjs';
 
 const {p0bApplicationRules} = createRequire(import.meta.url)('./p0b-application-rules.js');
 const fixtureUid = 'synthetic-p0b-owner';
@@ -267,6 +268,7 @@ test('P0-B candidate Rules: owner CAS, registry, atomic investor deletion, stale
     projectHeads:[{projectId:'legacy-project',investorId:'legacy'}]}).map(issue=>issue.code),
     ['LF_P0B_LEGACY_CONTACT','LF_P0B_LEGACY_CONTACT','LF_P0B_AMBIGUOUS_CONTACT','LF_P0B_UNREGISTERED_PROJECT']);
   await visitAckCases({client,contact});
+  await lockContentionCases({client,contact});
 });
 
 test('P0-B two real Chromium profiles: local label, offline intent, lost ACK, reboot and archive refusal',async t=>{

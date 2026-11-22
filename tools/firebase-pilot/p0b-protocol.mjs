@@ -90,10 +90,11 @@ export function watchP0BEditorContact({send,window:w,onError=()=>{}}) {
   };
 }
 
-export function createP0BProtocol(connection, deviceId) {
+export function createP0BProtocol(connection, deviceId,assertCurrent=()=>{}) {
   id(deviceId);
   const identity = assertP0BConnection(connection), {uid} = identity, {db, firestore:f} = connection;
   const guard = () => {
+    assertCurrent();
     if (!equal(assertP0BConnection(connection), identity)) fail('LF_AUTH_CHANGED');
     connection.assertAccess();
   };
@@ -116,18 +117,25 @@ export function createP0BProtocol(connection, deviceId) {
   // Registry writes from this installation share one ordering lane. This is
   // not a retry: each caller still receives its one transaction's real result.
   let transactionWork=Promise.resolve();
-  const transaction = (work,confirmLostResult) => {
+  const transaction = (work,confirmLostResult,reconcileLock) => {
     guard();
-    const result=transactionWork.then(()=>{
-      guard();
-      return f.runTransaction(db,async tx=>{
-        guard();const value=await work(tx);guard();return value;
-      },{maxAttempts:1}).catch(async error=>{
+    const result=transactionWork.then(async()=>{
+      for(let plan=0;;plan++)try{
+        guard();
+        return await f.runTransaction(db,async tx=>{
+          guard();const value=await work(tx);guard();return value;
+        },{maxAttempts:1});
+      }catch(error){
         // Never replay a write. A visit can recover its lost result only from
         // an authorized server read of the exact complete post-transaction image.
         if(confirmLostResult)try{if(await confirmLostResult())return;}catch(_){}
+        if(reconcileLock)try{
+          const proof=await reconcileLock(error);
+          if(proof?.confirmed)return proof.value;
+          if(proof?.disjoint&&plan<2)continue;
+        }catch(_){}
         throw error;
-      });
+      }
     });
     transactionWork=result.then(()=>undefined,()=>undefined);
     return result;
@@ -156,13 +164,15 @@ export function createP0BProtocol(connection, deviceId) {
     return projectInvestor(await transaction(async tx=>read(await tx.get(investorRef(iid)))));
   }
 
-  function changeVisit(iid, token, label, open) {
+  function changeVisit(iid, token, label, open,recover=false) {
     id(token);
-    let expected;
+    let expected,before;
     return transaction(async tx=>{
+      expected=before=undefined;
       const r=investorRef(iid), current=active(read(await tx.get(r)));
       const visits={...current.visits}, previous=visits[deviceId];
       if(open){
+        if(recover&&previous)return;
         if(previous?.token===token && previous.label===label) return;
         if(previous) fail('LF_P0B_VISIT_CONFLICT');
         if(typeof label!=='string'||label.length>64) fail('LF_P0B_DEVICE_LABEL_INVALID');
@@ -171,13 +181,22 @@ export function createP0BProtocol(connection, deviceId) {
         if(previous?.token!==token) fail('LF_P0B_VISIT_CONFLICT');
         delete visits[deviceId];
       }
-      expected={...current,generation:current.generation+1,lastVisit:deviceId,visits};
+      before=current;expected={...current,generation:current.generation+1,lastVisit:deviceId,visits};
       tx.set(r,expected);
-    },async()=>!!expected&&equal(await readServer(investorRef(iid)),expected));
+    },async()=>!!expected&&equal(await readServer(investorRef(iid)),expected),async error=>{
+      if(!before||!['aborted','failed-precondition','permission-denied','unavailable'].includes(error?.code))return;
+      const after=active(await readServer(investorRef(iid))),own=after.visits[deviceId];
+      if(open&&recover&&own)return {confirmed:true};
+      const changed=[...new Set([...Object.keys(before.visits),...Object.keys(after.visits)])].filter(key=>!equal(before.visits[key]??null,after.visits[key]??null));
+      return {disjoint:after.generation>before.generation&&changed.length>0&&!changed.includes(deviceId)&&changed.includes(after.lastVisit)
+        &&equal({...before,generation:after.generation,lastVisit:after.lastVisit,visits:after.visits},after)};
+    });
   }
 
   async function changeLock({iid, pid, expectedHead, expectedEditor, deviceLabel = ''}, acquire) {
+    let witness;
     return transaction(async tx => {
+      witness=undefined;
       const inv = investorRef(iid), editor = editorRef(pid);
       const current = active(read(await tx.get(inv)));
       const prior = read(await tx.get(editor));
@@ -198,10 +217,29 @@ export function createP0BProtocol(connection, deviceId) {
         next = {...prior, active:false, headRevision:expectedHead};
       }
       guard();
+      witness={current,prior,head,next};
       tx.set(inv, {...current, generation:current.generation + 1, lastProject:pid,
         projects:{...current.projects, [pid]:next.active}});
       tx.set(editor, next);
       return next;
+    },null,async error=>{
+      if(!witness||!['aborted','failed-precondition','permission-denied','unavailable'].includes(error?.code))return;
+      guard();
+      const now=await f.runTransaction(db,async tx=>{
+        guard();
+        const current=active(read(await tx.get(investorRef(iid)))),prior=read(await tx.get(editorRef(pid))),head=read(await tx.get(headRef(pid)));
+        guard();return {current,prior,head};
+      },{maxAttempts:1});
+      guard();
+      if(equal(now.prior,witness.next)&&equal(now.head,witness.head)&&now.current.projects[pid]===witness.next.active)
+        return {confirmed:true,value:witness.next};
+      // Only a proven change to OTHER project leases permits a fresh CAS plan.
+      // Contact/visits/deletion, the target editor and its head must be unchanged.
+      const before=witness.current,after=now.current;
+      const changed=[...new Set([...Object.keys(before.projects),...Object.keys(after.projects)])].filter(key=>before.projects[key]!==after.projects[key]);
+      return {disjoint:equal(now.prior,witness.prior)&&equal(now.head,witness.head)
+        &&after.generation>before.generation&&changed.length>0&&!changed.includes(pid)&&changed.includes(after.lastProject)
+        &&equal({...before,generation:after.generation,lastProject:after.lastProject,projects:after.projects},after)};
     });
   }
 
@@ -268,6 +306,7 @@ export function createP0BProtocol(connection, deviceId) {
       return watchP0BEditorContact({window,onError,send:()=>api.heartbeat(pid,expectedEditor)});
     },
     openInvestor(iid, token, label='') { return changeVisit(iid,token,label,true); },
+    ensureInvestorVisit(iid,label=''){return changeVisit(iid,crypto.randomUUID(),label,true,true);},
     closeInvestor(iid,token) { return changeVisit(iid,token,'',false); },
     async listInvestors(){
       guard();
