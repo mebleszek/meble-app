@@ -3,6 +3,20 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const {fixture}=require('./project-selective-export-smoke.js');
 const root=path.resolve(__dirname,'..'),clone=v=>JSON.parse(JSON.stringify(v));
+// Only the approved, exact inert metadata and read-only observation are exempt.
+// A modified declaration, extra reference, import or writer call still refuses.
+const inertStartupDiagnostics=[
+ "startupStage='starting-local-first';",
+ "const visibleStartupStages=new Set(('login-startup checking-local-access preparing-source source-ready loading-business-styles loading-business-scripts starting-business starting-local-first opening-runtime authorizing-cloud binding-runtime checking-installation opening-idb installing-authority initial-global-revision initial-project-revisions reconnect-auth reconnect-runtime ready').split(' '));",
+ "try{if(['preparing-source','starting-local-first'].includes(stage))stage=FC.applicationStartup?.diagnostics?.()?.stage||stage;}catch(_){stage='unknown';}"
+];
+function assertStartupActivationBoundary(source){
+ for(const fragment of inertStartupDiagnostics){
+  assert.equal(source.split(fragment).length-1,1,'Exactly one approved diagnostic fragment; executable changes are not exempt');
+  source=source.replace(fragment,'');
+ }
+ assert.equal(source.includes('local-first'),false,'No additional LOCAL-FIRST reference or direct activation in main entry');
+}
 async function main(){
  const {json,digest,canonical}=await import('../sync/local-first-values.mjs');
  const {authorizeGlobalFirebase,assertGlobalConnection,authorizeApplicationFirebase,assertApplicationConnection}=await import('../sync/firebase-activation.mjs');
@@ -44,13 +58,22 @@ async function main(){
  console.log('PASS LOCAL-FIRST contracts: native RYSUNEK and complete labor calculation remain identical');
  let requests=0;await assert.rejects(authorizeGlobalFirebase({request:async()=>{requests++;throw Error('No network allowed');}}),/LF_SEPARATE_ACTIVATION_REQUIRED/);
  assert.throws(()=>assertGlobalConnection({db:{app:{options:{projectId:'mebleszek-meble-app'}}}}),/LF_PRODUCTION_ACTIVATION_REQUIRED/);assert.equal(requests,0);
- const startup=fs.readFileSync(path.join(root,'js/main-login.js'),'utf8'),diagnosticStage="startupStage='starting-local-first';";
- assert.equal(startup.split(diagnosticStage).length-1,1,'Exactly one inert diagnostic stage assignment');
- // Exempt only this literal assignment; imports, calls and other references
- // still fail the existing startup guard. The authorization checks above stay.
- assert.equal(startup.replace(diagnosticStage,'').includes('local-first'),false);
+ const startup=fs.readFileSync(path.join(root,'js/main-login.js'),'utf8');
+ assertStartupActivationBoundary(startup);
+ const mutations=[
+  source=>source+"\nimport('/sync/local-first-sync.mjs');",
+  source=>source+"\nstartLocalFirst('/sync/local-first-sync.mjs');",
+  source=>source+"\n// unapproved local-first reference",
+  ...inertStartupDiagnostics.map(fragment=>source=>source+"\n"+fragment),
+  source=>source.replace(inertStartupDiagnostics[0],''),
+  source=>source.replace("ready').split(' ')","ready unapproved-local-first').split(' ')"),
+  source=>source.replace('FC.applicationStartup?.diagnostics?.()?.stage','FC.applicationStartup?.synchronize?.()?.stage'),
+  source=>source.replace(inertStartupDiagnostics[1],inertStartupDiagnostics[1]+"import('/sync/local-first-sync.mjs');"),
+ ];
+ for(const mutate of mutations)assert.throws(()=>assertStartupActivationBoundary(mutate(startup)),'Inert diagnostic exceptions cannot admit imports, writes, duplicates or altered metadata');
+ console.log('PASS startup source boundary: exact approved metadata and 10 executable/duplicate/missing/mutated negative controls');
  for(const file of ['index.html','tools/index-load-groups.js'])assert.equal(fs.readFileSync(path.join(root,file),'utf8').includes('local-first'),false);
- console.log('PASS LOCAL-FIRST contracts: production activation refused before network; only the diagnostic stage is exempted');
+ console.log('PASS LOCAL-FIRST contracts: production activation refused before network; only exact approved diagnostic metadata/observation is exempted');
  // Synthetic ephemeral authority, fabricated identities and injected HTTP only.
  // No real owner key, token, Firebase connection or executable LIVE decision.
  const keys=await crypto.subtle.generateKey('Ed25519',true,['sign','verify']);

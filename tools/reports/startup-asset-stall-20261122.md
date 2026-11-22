@@ -38,3 +38,13 @@ Pierwsza próba nowego fixture Chromium nie ustawiła FC_AUTH_TEST_OPTIONS przez
 Zgoda UI została udzielona i wdrożona. Kontrole celowane PASS; konkretny etap pierwotnego zawieszenia na telefonie pozostaje nieznany. Pełne CI i osobno zatwierdzone wydanie nowego HEAD/BASE oraz odbiór telefonu pozostają niewykonane. Status: CODE_READY dla ochrony zasobów i zatwierdzonej diagnostyki / CI_PENDING / RELEASE_BLOCKED / PHONE_STARTUP_BLOCKED, bez deklaracji sukcesu telefonu.
 
 Artefakty poza repo: ../../outputs/startup-hang-20261122 oraz /tmp/meble-p1.KVrFtN/startup-assets-*.log, screenshoty błędnego setupu /tmp/meble-startup-assets-2euGMI. Repo edytowane na Windows, testy rzeczywistego Chromium w izolowanej kopii WSL/Linux. Nie korzystano z profili właściciela ani poświadczeń LIVE.
+
+## Naprawa Preflight #1373 — 22.11.2026
+
+[Run](https://github.com/mebleszek/meble-app/actions/runs/45002942675): 79 PASS / 4 FAIL / 2 SKIPPED. Jedyny pierwotny FAIL: preflight-shards (35), local-first-contract-smoke.js:51, porównanie true !== false. Preflight/ci-summary/final-status to zależne FAIL; auto-merge i post-merge-verify pominięte. Bez merge/Pages.
+
+Stara kontrola usuwała wyłącznie jedno przypisanie etapu, po czym odmawiała każdej pozostałej sekwencji local-first w main-login. Zatwierdzony obserwator dodał ją do stałego słownika i ściśle odczytowego wyboru etapu. Nie są to importy, uruchomienie synchronizacji ani uzyskanie capability. Powtórzono dokładny RED na wejściowym HEAD.
+
+Naprawa dotyczy wyłącznie testu: trzy pełne, dokładne fragmenty muszą wystąpić po jednym razie; po ich wyłączeniu stary zakaz dodatkowej referencji nadal obowiązuje. Dziesięć negatywów sprawdza import/wywołanie, dodatkową referencję, duplikaty, brak przypisania, zmianę słownika, podmianę diagnostics na synchronize i import obok dopuszczonej deklaracji. Żaden arbitralny blok ani dowolny string diagnostyczny nie jest automatycznie wyłączany. Wszystkie wcześniejsze kontrole danych, grantów, podpisu/obrazu/UID/Rules i cofnięcia dostępu pozostają i przeszły cały moduł GREEN.
+
+Kod produkcyjny i bajty manifestu są niezmienione. Poprzednie kontrole przeglądarkowe nie są ponawiane bez powodu; te same bajty aplikacji przeszły je również w #1373. Test pozostaje w obowiązkowym planie Preflight. Po zgodzie właściciela na naprawę i wydanie: jeden commit/push bezpośrednio na gałąź PR #159, weryfikacja wynikowych SHA i jedna nowa próba przez Ready. Bez rerun starego CI, ręcznego merge i Firebase LIVE. Do wyniku nowej próby: CI_PENDING / RELEASE_BLOCKED; fizyczny odbiór telefonu osobno.
