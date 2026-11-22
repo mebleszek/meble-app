@@ -1,14 +1,14 @@
 'use strict';
-// CI #1367 measurements; new norm partitions are explicit estimates, not CI PASS.
+// CI #1372 measurements; only the six newly split norm variants are estimates.
 const fs=require('node:fs');
 const SHARDS=36;
 const PARTS=Object.freeze({
   "quote-exact-calculations-smoke.js": 9,
   "wycena-labor-pdf-smoke.js": 13,
-  "wycena-labor-norms-smoke.js": 9,
+  "wycena-labor-norms-smoke.js": 14,
   "quote-performance-smoke.js": 4
 });
-const timings=require('./ci-smoke-timings-1367.json');
+const timings=require('./ci-smoke-timings-1372.json');
 function inventory(dir,historical=[]){
  const names=fs.readdirSync(dir).filter(n=>/-smoke\.js$/i.test(n)&&!historical.includes(n)).sort();
  if(new Set(names).size!==names.length)throw Error('CI_SMOKE_INVENTORY_DUPLICATE');
@@ -27,8 +27,8 @@ function parseUnit(unit){
  return {file,part};
 }
 function weight(unit){
- const {file,part}=parseUnit(unit);
- return file==='wycena-labor-norms-smoke.js'?timings.normCaseEstimatesMs[part-1]:timings.observedMs[unit]||1000;
+ parseUnit(unit);
+ return timings.estimatedMs[unit]??timings.observedMs[unit]??1000;
 }
 function plan(names){
  const expected=units(names);

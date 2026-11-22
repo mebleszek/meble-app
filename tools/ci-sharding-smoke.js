@@ -38,7 +38,7 @@ const currentFlow=flow.slice(flow.indexOf('  firebase-current-shards:'),flow.ind
 assert.ok(currentFlow.includes('--segment=${{ matrix.segment }}'));
 const scheduled=Array.from(currentFlow.matchAll(/- \{batch: [123], segment: '([^']+)'\}/g),row=>row[1]);
 assert.deepEqual(scheduled,cloudRunner.CURRENT_SEGMENTS);
-for(const count of [4,9,13]){
+for(const count of [4,9,13,14]){
  const groups=Array.from({length:count},(_,i)=>require('./ci-test-parts').select(count,['--ci-part='+(i+1)]));
  const selected=Array.from({length:83},(_,i)=>groups.filter(group=>group.includes(i)).length);
  assert.ok(selected.every(n=>n===1),'Every independent case must belong to exactly one partition');

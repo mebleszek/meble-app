@@ -173,8 +173,8 @@ test('repair: private operation collision cannot be resolved by manual assignmen
   rows=r.details();assert.ok(rows.some(d=>d.note.includes(oldPrivate.note)&&d.sourceKind==='automatic-blocked'&&d.total===0));
   assert.equal(JSON.stringify(oldPrivate),oldBytes,'Unknown historical private operation remains intact and requires explicit identity');
 });
-test('repair: legacy workshop shelf norms never suppress independent on-site placement',()=>{
-  for(const shelfType of ['adjustable','fixed'])for(const assignment of ['none','cabinet','offer']){
+for(const shelfType of ['adjustable','fixed'])for(const assignment of ['none','cabinet','offer'])
+test('repair: legacy workshop shelf norms never suppress independent on-site placement: '+shelfType+'/'+assignment,()=>{
     const r=fixture(),{FC,cab}=r;
     cab.details.shelfType=shelfType;
     const placement=r.rates().find(row=>row.id==='labor_shelves_place');
@@ -199,7 +199,6 @@ test('repair: legacy workshop shelf norms never suppress independent on-site pla
     assert.equal(privateRows.length,1);assert.ok(privateRows.every(row=>row.total===0&&row.sourceKind==='automatic-blocked'));
     if(assignment==='none')assert.ok(privateRows.every(row=>row.total===0&&row.sourceKind==='automatic-blocked'));
     assert.equal(JSON.stringify(r.rates()),catalogBytes);assert.equal(JSON.stringify(manual),assignmentBytes);assert.equal(JSON.stringify(cab),cabinetBytes);
-  }
 });
 test('repair: missing and resolved leg/hanger products preserve requirements and real symbols',()=>{
   const r=fixture(),{FC,cab}=r;
@@ -214,6 +213,6 @@ test('repair: missing and resolved leg/hanger products preserve requirements and
     assert.equal(rows.length,1);assert.equal(rows[0].resolvedHardwareSymbol,product.symbol);assert.equal(rows[0].resolvedHardwareItemId,product.id);near(rows[0].total,rows[0].qty*7);assert.equal(rows[0].warnings.length,0);
   }
 });
-function main(){const split=require('./ci-test-parts').select(9);let executed=0;for(const[index,[name,fn]]of tests.entries()){if(!split.includes(index))continue;fn();executed++;console.log('PASS '+name);}split.verify(executed,tests.length);console.log(`WYCENA-LABOR norms: ${executed}/${split.expected(tests.length)} PASS`);}
+function main(){const split=require('./ci-test-parts').select(14);let executed=0;for(const[index,[name,fn]]of tests.entries()){if(!split.includes(index))continue;fn();executed++;console.log('PASS '+name);}split.verify(executed,tests.length);console.log(`WYCENA-LABOR norms: ${executed}/${split.expected(tests.length)} PASS`);}
 if(require.main===module)main();
 module.exports={fixture,main,tests};
