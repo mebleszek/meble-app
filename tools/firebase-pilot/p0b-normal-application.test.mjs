@@ -167,6 +167,18 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     const beforeQuote=await image(phone);
     await page.locator('[data-action="tab"][data-tab="wycena"]').click();
     await page.locator('[data-action="wycena-generate"]').waitFor();
+    // Rendering the tab is not the completion of its durable navigation or
+    // queued settings. Open the form only after the actual authority is idle.
+    assert.equal(await page.evaluate(()=>window.FC.quoteOfferStore.settingsSettled()),true);
+    await page.waitForFunction(()=>{const s=window.FC.applicationStartup.inspect();return !s.transactionPending&&!s.incomingPending;});
+    await page.evaluate(()=>{
+     const api=window.FC.quoteOfferStore,original=api.commitSettings;
+     api.commitSettings=async function(...args){
+      const before=window.FC.applicationStartup.inspect();
+      try{const value=await original.apply(this,args);if(value===false)window.normalSettingsRefusal={code:'RETURNED_FALSE',before,after:window.FC.applicationStartup.inspect()};return value;}
+      catch(error){window.normalSettingsRefusal={code:error.code||error.message,before,after:window.FC.applicationStartup.inspect()};throw error;}
+     };
+    });
     await page.locator('.quote-selection-launch--rooms').click();
     const picker=page.locator('.panel-box-backdrop'),labels=await picker.locator('label').allTextContents();
     assert.ok(labels.some(text=>text.includes('P0B kitchen'))&&labels.some(text=>text.includes('P0B wardrobe')),
@@ -177,7 +189,11 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
      // With no stored choice the existing picker previews all rooms. Make an
      // explicit durable single-room choice before extending it to both rooms.
      await wardrobeChoice().locator('.rozrys-room-chip__label').click();
-     await page.getByRole('button',{name:'Zatwierdź',exact:true}).click();await picker.waitFor({state:'hidden'});
+     await page.waitForFunction(()=>{const s=window.FC.applicationStartup.inspect();return !s.transactionPending&&!s.incomingPending;});
+     await page.getByRole('button',{name:'Zatwierdź',exact:true}).click();
+     await page.waitForFunction(()=>{const panel=document.querySelector('.panel-box-backdrop'),notice=document.querySelector('.info-box');return !panel||!panel.getClientRects().length||!!notice?.getClientRects().length;});
+     assert.equal(await page.locator('.info-box').count(),0,'Single-room choice failed: '+JSON.stringify(await page.evaluate(()=>window.normalSettingsRefusal)));
+     await picker.waitFor({state:'hidden'});
      await page.waitForFunction(()=>window.FC.quoteOfferStore.settingsSettled());
      assert.deepEqual(JSON.parse(rows(await image(phone)).fc_quote_offer_drafts_v1).find(row=>row.projectId===pid).selection.selectedRooms,[pid]);
      await page.locator('.quote-selection-launch--rooms').click();
