@@ -158,11 +158,13 @@ function workflowChecks(source){
   assert.match(sum,/current\.head\.sha === pr\.head\.sha && current\.base\.sha === pr\.base\.sha/);
   assert.match(sum,/if \(!ready\) core\.setFailed\('RELEASE_BLOCKED:/);
   const merge=j['auto-merge'];
+  assert.ok(condition(merge).startsWith('${{ !cancelled() && '),'Publication must explicitly evaluate verified gates despite a non-applicable ancestor');
   assert.match(merge,/needs: \[safety, preflight, firebase-current, cloud-historical, ci-summary\]/);
   for(const id of ['safety','preflight','firebase-current','cloud-historical','ci-summary'])assert.ok(condition(merge).includes("needs."+id+".result == 'success'"));
   assert.ok(condition(merge).includes("needs.ci-summary.outputs.status == 'RELEASE_READY'"));
   for(const check of ['current.data.head.sha !== pr.head.sha','current.data.base.sha !== pr.base.sha','current.data.draft','sha: pr.head.sha'])assert.ok(merge.includes(check));
   assert.match(j['post-merge-verify'],/^    needs: auto-merge$/m);
+  assert.ok(condition(j['post-merge-verify']).startsWith('${{ !cancelled() && '));
   assert.match(j['post-merge-verify'],/needs\.auto-merge\.result == 'success'/);
   assert.match(j['post-merge-verify'],/head_sha: mergeSha/);
   assert.match(j['final-status'],/DIAGNOSTIC_STATUS/);
@@ -188,6 +190,8 @@ async function diagnosticChecks(source){
   const pass=name=>{count++;console.log('PASS CI diagnostics: '+name);};
   const mutation=(from,to)=>Object.assign(s=>{assert.ok(s.includes(from),'Missing fixture mutation: '+from);return s.replace(from,to);},{from});
   for(const change of [
+    mutation('  auto-merge:\n    if: ${{ !cancelled() && ','  auto-merge:\n    if: ${{ '),
+    mutation('  post-merge-verify:\n    if: ${{ !cancelled() && ','  post-merge-verify:\n    if: ${{ '),
     mutation("needs.safety.outputs.release_mode == 'full'","needs.safety.outputs.release_mode != 'documents'"),
     mutation('node tools/ci-docs-scope.js "$APPROVED_BASE" "$APPROVED_HEAD" --verify-documents','echo unverified-documentation'),
     mutation("groups.documents?.outputs?.status!=='PASS'","false"),
@@ -223,6 +227,22 @@ async function diagnosticChecks(source){
   for(const id of ['preflight','firebase-current','cloud-historical'])
     assert.equal(enabled(condition(j[id]),{results:{safety:'failure'}}),true);
   pass('independent runners and fail-closed always-running aggregates');
+  // Model the documented implicit success() at the runner boundary, using the
+  // real publication expressions. Non-applicable ancestors are not failures.
+  const publications=['safety','preflight','firebase-current','cloud-historical','ci-summary'];
+  const publishedNeeds=Object.fromEntries(publications.map(name=>[name,{result:'success',outputs:{status:name==='ci-summary'?'RELEASE_READY':'PASS'}}]));
+  const gh={event_name:'pull_request',event:{action:'ready_for_review',pull_request:{draft:false,head:{repo:{full_name:'mebleszek/meble-app'}}}},repository:'mebleszek/meble-app'};
+  const gate=(expression,needs,cancelled=false)=>{
+   if(!/\b(?:always|cancelled|success|failure)\(/.test(expression))return false; // skipped documents ancestor
+   const js=expression.slice(4,-3).replace(/needs\.([a-z0-9-]+)/g,(_,name)=>'needs['+JSON.stringify(name)+']');
+   return new Function('needs','github','cancelled','return ('+js+');')(needs,gh,()=>cancelled);
+  };
+  assert.equal(gate(condition(j['auto-merge']),publishedNeeds),true);
+  assert.equal(gate(condition(j['auto-merge']),publishedNeeds,true),false);
+  for(const name of publications)for(const result of ['failure','cancelled','skipped'])assert.equal(gate(condition(j['auto-merge']),{...publishedNeeds,[name]:{result}}),false);
+  assert.equal(gate(condition(j['post-merge-verify']),{'auto-merge':{result:'success'}}),true);
+  assert.equal(gate(condition(j['post-merge-verify']),{'auto-merge':{result:'skipped'}}),false);
+  pass('actual publication conditions survive non-applicable ancestors but refuse every failed/cancelled/skipped mandatory gate');
   const safety=steps(j.safety),list=required(safety.report);
   const run=value=>execute(script(safety.report),{env:{GROUP_STEPS:JSON.stringify(value),REQUIRED_STEPS:list.join(',')}});
   const ok=Object.fromEntries(list.map(id=>[id,{outcome:'success'}]));

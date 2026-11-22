@@ -756,7 +756,7 @@ jobs:
             if (!ready) core.setFailed('RELEASE_BLOCKED: '+reason);
 
   auto-merge:
-    if: ${{ needs.safety.result == 'success' && needs.preflight.result == 'success' && needs.firebase-current.result == 'success' && needs.cloud-historical.result == 'success' && needs.ci-summary.result == 'success' && needs.ci-summary.outputs.status == 'RELEASE_READY' && github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
+    if: ${{ !cancelled() && needs.safety.result == 'success' && needs.preflight.result == 'success' && needs.firebase-current.result == 'success' && needs.cloud-historical.result == 'success' && needs.ci-summary.result == 'success' && needs.ci-summary.outputs.status == 'RELEASE_READY' && github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
     needs: [safety, preflight, firebase-current, cloud-historical, ci-summary]
     runs-on: ubuntu-latest
     permissions:
@@ -815,7 +815,7 @@ jobs:
             return result.data.sha;
 
   post-merge-verify:
-    if: ${{ github.event_name == 'pull_request' && needs.auto-merge.result == 'success' }}
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.auto-merge.result == 'success' }}
     needs: auto-merge
     runs-on: ubuntu-latest
     permissions:
