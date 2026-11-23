@@ -74,6 +74,17 @@ test('P0-B room quote proof: three cabinets share one verified context per room 
  assert.equal(reads.length,2,'One verified capture per room, independently of the number of part lookups');
  assert.deepEqual(reads,[['kitchen','kitchen'],['wardrobe','wardrobe']],'Repeated part lookups must not normalize and verify the whole project again');
  assert.equal(actual.details.length,6);assert.deepEqual(Object.fromEntries(r.storage.rows),before);assert.deepEqual(r.storage.calls,[]);
+ const source=fc.roomProjectModel.quoteSource,expectedAll=clone(fc.roomQuoteSources.all()),expectedRoom=clone(fc.roomQuoteSources.context('kitchen','kitchen'));let captures=0;
+ fc.roomProjectModel.quoteSource=function(...args){captures++;return source.apply(this,args);};
+ fc.projectPcvOverrides.withCalculationRead(()=>{
+  const all=fc.roomQuoteSources.all();all.projectData.kitchen.cabinets[0].width=999;
+  assert.deepEqual(clone(fc.roomQuoteSources.all()),expectedAll,'Returned all-room views cannot mutate a shared source');
+  const room=fc.roomQuoteSources.context('kitchen','kitchen');room.room.cabinets[0].width=998;
+  assert.deepEqual(clone(fc.roomQuoteSources.context('kitchen','kitchen')),expectedRoom,'Each consumer keeps its detached view');
+ });
+ assert.equal(captures,2,'Repeated labor conditions must capture all-room and single-room sources once per synchronous read');
+ fc.roomQuoteSources.all();fc.roomQuoteSources.context('kitchen','kitchen');
+ assert.equal(captures,4,'No source survives the synchronous read');
 });
 
 test('P0-B room quote proof: context reuse cannot cross a read, change editor scope or hide reentrant mutation',()=>{
@@ -87,6 +98,10 @@ test('P0-B room quote proof: context reuse cannot cross a read, change editor sc
  r.storage.rows.set('fc_projects_v1',raw);assert.equal(api.withCalculationRead(()=>api.getForCalculation(address)).ok,true,'Failed reads must release the snapshot');
  assert.throws(()=>api.withCalculationRead(()=>Promise.resolve(true)),/Synchronous PCV read required/);
  assert.equal(api.withCalculationRead(()=>api.getForCalculation(address)).ok,true);
+ const room=r.s.uiState.roomType;
+ assert.throws(()=>api.withCalculationRead(()=>{fc.roomQuoteSources.all();r.s.uiState.roomType='another-room';return fc.roomQuoteSources.all();}),{code:'PROJECT_PCV_READ_CONFLICT'});
+ r.s.uiState.roomType=room;
+ assert.equal(api.withCalculationRead(()=>api.getForCalculation(address)).ok,true,'A context refusal must release all source snapshots');
 });
 
 test('P0-B room quote proof: promotion preserves frozen content and refuses unapproved mutations',()=>{

@@ -1,9 +1,11 @@
 import {confirmQuoteSources} from './quote-ui-actions.mjs';
+import {activitiesSessionCase} from './activities-session.cases.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as f from 'firebase/firestore';
-export async function tabSaveCase({t,computer,wardrobeId,image,rows,openRoom,addCabinet,restartProbe}){
+export async function tabSaveCase({t,phone,computer,wardrobeId,image,rows,openRoom,addCabinet,restartProbe,artifacts}){
+ await activitiesSessionCase({t,phone,addCabinet,image,rows,restartProbe,artifacts});
  const page=computer.page,before=await image(computer);
  await page.locator('[data-action="tab"][data-tab="wycena"]').filter({visible:true}).first().click();
  const choice=page.locator('.confirm-box');await choice.waitFor();

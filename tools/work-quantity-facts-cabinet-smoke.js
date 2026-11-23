@@ -85,6 +85,16 @@ const ovenMap = api.buildCabinetFactMap('kuchnia', Object.assign({}, cabinet, { 
 assert(ovenMap['appliance.count'].value === 1, 'appliance.count wykrywa AGD z reguł montażu sprzętu');
 assert(ovenMap['appliance.type'].value === 'Piekarnik do zabudowy', 'appliance.type pokazuje typ AGD');
 assert(ovenMap['worktop.length_m'].available === false, 'planowane źródła bez logiki pozostają niepodpięte');
+let carryingReads=0;
+FC.carryingLogistics={evaluateCabinet(){carryingReads++;return {weightKg:1};}};
+const detached=ctx.projectData.kuchnia;
+assert(api.getCabinetFact(detached,cabinet,'cabinet.width_mm').value===600,'Pojedynczy odczyt zachowuje szerokość');
+assert(carryingReads===0,'Odczyt szerokości nie może obliczać niepowiązanej logistyki dla wszystkich źródeł',{carryingReads});
+const complete=api.buildCabinetFactMap(detached,cabinet);
+assert(carryingReads>0,'Pełna mapa nadal oblicza źródła logistyki');
+for(const [code,fact]of Object.entries(complete))assert(JSON.stringify(api.getCabinetFact(detached,cabinet,code))===JSON.stringify(fact),'Odczyt pojedynczego faktu pozostaje identyczny z pełną mapą: '+code);
+assert(api.getCabinetFact(detached,cabinet,'unknown.source')===null,'Nieznane źródło pozostaje niedostępne');
+assert(JSON.stringify(cabinet)===before,'Odczyty pojedynczych faktów nie zmieniają szafki');
 
 const index = read('index.html');
 const dev = read('dev_tests.html');

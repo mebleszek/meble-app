@@ -9,6 +9,7 @@ import {prepareEmulatorApplicationBoot} from '../../sync/application-boot.mjs';
 import {assertApplicationConnection,authorizeApplicationFirebase} from '../../sync/firebase-activation.mjs';
 import {createApplicationReplication,createApplicationHandover} from '../../sync/application-replication.mjs';
 import {createProjectChannel} from '../../sync/local-first-project.mjs';
+import {startupReady} from './normal-startup-readiness.mjs';
 const root=new URL('../..',import.meta.url),read=p=>fs.readFileSync(new URL(p,root),'utf8');
 test('normal startup remains inert on public origin, flags cannot activate connections/migration',async()=>{
  let calls=0;const request=mock.method(globalThis,'fetch',()=>{calls++;throw Error('remote IO');});
@@ -72,6 +73,18 @@ test('central registry preserves promise completion only for installed lifecycle
  const p=w.FC.actions.dispatch('test');assert.equal(typeof p.then,'function');assert.equal(await p,true);assert.equal(calls,2);
 });
 test('mandatory CI includes the normal browser SDK suite, no removed old suites/pins or replacement of LOCAL-FIRST',()=>{
+ let clock=0;const w={FC:{applicationStartup:{inspect:()=>({stage:'initial-global-revision'})}}},document={body:{dataset:{}}};
+ const probe=vm.runInNewContext('('+startupReady.toString()+')',{window:w,document,performance:{now:()=>clock}});
+ assert.equal(probe({idleMs:30000}),false);
+ clock=29000;w.normalDataRpcProgress=1;assert.equal(probe({idleMs:30000}),false);
+ clock=58000;w.normalDataRpcProgress=2;assert.equal(probe({idleMs:30000}),false,'Completed data RPCs prove real progress beyond the old total deadline');
+ clock=88000;w.normalRpcTimeline=[{collections:['syncAccess'],ms:1}];
+ assert.throws(()=>probe({idleMs:30000}),/NORMAL_STARTUP_NO_PROGRESS/,'Periodic permission checks must not hide a stalled data operation');
+ document.body.dataset.businessState='ready';assert.equal(probe({idleMs:30000}),true);
+ delete document.body.dataset.businessState;document.body.dataset.authState='error';assert.equal(probe({idleMs:30000}),true,'Explicit refusal is surfaced, never treated as a successful app start');
+ assert.throws(()=>probe({idleMs:30000,stopOnAuthState:false}),/NORMAL_STARTUP_REFUSED/);
+ document.body.dataset.authState='profile-pending';w.normalStartupWait=null;
+ assert.equal(probe({idleMs:30000,stopOnAuthState:false}),false,'After admission, only actual business readiness completes login');
  const ctx=read('tools/cloud-ci-context.js'),suite=read('tools/firebase-pilot/cloud-sync-global.test.mjs');
  assert.ok(ctx.includes('cloud-sync-global.test.mjs'));assert.ok(suite.includes('await runNormalApplication(t)'));
  assert.ok(suite.includes('await runApplicationE2E(t)'));assert.ok(suite.includes('await runLocalFirstSuite(t)'));

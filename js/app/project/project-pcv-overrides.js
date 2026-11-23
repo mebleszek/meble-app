@@ -52,6 +52,7 @@
   let calculationRead=null;
   function readWitness(){
     return JSON.stringify([FC.projectStore.getCurrentProjectId(),FC.investors.getCurrentId(),
+      window.uiState?.roomType,FC.session && [FC.session.active,FC.session.durable,FC.session.projectId,FC.session.roomId,FC.session.context],
       localStorage.getItem(FC.projectStore.PROJECTS_KEY),window.projectData,
       Array.from({length:localStorage.length},(_,i)=>localStorage.key(i)).filter(key=>key && key!=='fc_quote_snapshots_v1' && key!=='fc_ui_v1' && key!=='fc_rozrys_plan_cache_v2' && !(FC.dataStorageKeys && FC.dataStorageKeys.isSnapshotExcludedKey(key))).sort().map(key=>[key,localStorage.getItem(key)]),
       typeof materials==='undefined'?null:materials,
@@ -61,13 +62,22 @@
   function withCalculationRead(callback){
     if(calculationRead)return callback();
     const ram=window.projectData,before=readWitness();
-    calculationRead={rooms:new Map(),cutlists:new Map()};
+    calculationRead={rooms:new Map(),cutlists:new Map(),quoteSources:new Map()};
     try{
       const result=callback();
       if(result && typeof result.then==='function')throw Error('Synchronous PCV read required');
       if(window.projectData!==ram || readWitness()!==before)throw Object.assign(Error('PCV read changed'),{code:'PROJECT_PCV_READ_CONFLICT'});
       return result;
     }finally{calculationRead=null;}
+  }
+  function calculationSource(rooms){
+    const read=()=>rooms===null?FC.roomQuoteSources.captureAll():FC.roomQuoteSources.capture(rooms);
+    if(!calculationRead)return read();
+    const key=JSON.stringify([FC.projectStore.getCurrentProjectId(),FC.investors.getCurrentId(),rooms]);
+    if(!calculationRead.quoteSources.has(key))calculationRead.quoteSources.set(key,clone(read()));
+    // Consumers may build derived RAM caches. They never receive the private
+    // verified snapshot itself, and cannot change the next consumer's inputs.
+    return clone(calculationRead.quoteSources.get(key));
   }
   function roomContext(projectId,roomId,calculation=false){
     const read=()=>calculation && FC.roomQuoteSources?.enabled()
@@ -223,5 +233,5 @@
       return {ok:true,changed:true,edges:clone(desired)};
     }catch(error){return failure(error && error.code === 'INVALID_DRAWER_FRONT_GEOMETRY' ? error.code : 'WRITE_FAILED');}
   }
-  FC.projectPcvOverrides={withCalculationRead,inspectRoom,get:address=>get(address,false),getForCalculation:address=>get(address,true),setEdges:(address,patch)=>change(address,patch,false),clearEdges:address=>change(address,null,true)};
+  FC.projectPcvOverrides={withCalculationRead,calculationSource,inspectRoom,get:address=>get(address,false),getForCalculation:address=>get(address,true),setEdges:(address,patch)=>change(address,patch,false),clearEdges:address=>change(address,null,true)};
 })();

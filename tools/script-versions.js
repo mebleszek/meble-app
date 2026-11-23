@@ -3,7 +3,7 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = '20261023_wycena_labor_v1';
 const versions = Object.freeze({
-  "js/app/project/project-pcv-overrides.js":"20261122_quote_read_scope_v1",
+  "js/app/project/project-pcv-overrides.js":"20261122_activities_read_scope_v1",
   "js/app/ui/tab-navigation.js":"20261121_tab_commit_v1",
   "js/app/project/project-status-snapshot-flow.js":"20261118_quote_lifecycle_v1",
   "js/app/quote/quote-snapshot-selection.js":"20261118_quote_lifecycle_v1",
@@ -16,7 +16,7 @@ const versions = Object.freeze({
   "js/app/wycena/wycena-room-availability.js":"20261118_room_quote_v1",
   "js/app/wycena/wycena-tab-selection-scope.js":"20261118_room_quote_v1",
 "js/app/project/room-project-model.js":"20261118_room_boundary_v1",
-"js/app/project/room-quote-sources.js":"20261118_room_quote_v1",
+"js/app/project/room-quote-sources.js":"20261122_activities_sources_v1",
 "js/app/project/room-quote-acceptance.js":"20261122_quote_removal_v1",
 "js/app/project/room-project-store.js":"20261118_room_boundary_v1",
 "js/app/investor/room-project-picker.js":"20261122_device_names_v1",
@@ -54,7 +54,7 @@ const versions = Object.freeze({
   "js/app/wycena/wycena-tab-manual-labor.js":"20261115_e1_durable_settings_v1",
   "js/app/wycena/wycena-work-plan-view.js":"20261115_e1_durable_settings_v1",
   "js/app/pricing/labor-work-plan.js":"20261108_catalog_rule_authority_v1",
-  "js/tabs/czynnosci.js":"20261107_delivery_services_v1",
+  "js/tabs/czynnosci.js":"20261122_activities_read_scope_v1",
   "js/app/cabinet/cabinet-actions.js":"20261114_cabinet_drafts_v1",
   "js/app/quote/quote-offer-store.js":"20261122_quote_prepare_v1",
   "js/app/rozrys/rozrys-pickers.js":"20261106_local_first_room_actions_v1",
@@ -107,7 +107,7 @@ const versions = Object.freeze({
   "js/app/cabinet/cabinet-cutlist.js": "20261118_room_quote_v1",
   "js/app/project/project-export-contract.js":"20261110_native_local_cabinets_v1",
   "js/app/cabinet/cabinet-hardware-requirements.js": "20261023_wycena_labor_v1",
-  "js/app/pricing/work-quantity-facts.js":"20261118_room_quote_v1",
+  "js/app/pricing/work-quantity-facts.js":"20261123_single_fact_read_v1",
   "js/app/cabinet/cabinet-derived-facts.js": "20261108_ci121_catalog_cache_v1",
   "js/app/cabinet/cabinet-modal-draft.js": "20261023_wycena_labor_v1",
   "js/app/cabinet/cabinet-modal-labor.js":"20261111_quote_final_corrections_v1",
