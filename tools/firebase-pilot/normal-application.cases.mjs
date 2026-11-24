@@ -28,7 +28,13 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   }catch(_){res.writeHead(404);res.end();}
  });await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const origin='http://127.0.0.1:'+server.address().port,dir=fs.mkdtempSync(path.join(os.tmpdir(),'normal-local-first-')),devices=[];
- t.after(async()=>{for(const d of devices){await d.browser?.close();await d.owner?.close();}await new Promise(r=>{server.close(r);server.closeAllConnections();});await env.cleanup();fs.rmSync(dir,{recursive:true,force:true});});
+ t.after(async()=>{
+  const closed=await Promise.allSettled(devices.map(async d=>{try{await d.browser?.close();}finally{await d.owner?.close();}}));
+  await new Promise(r=>{server.close(r);server.closeAllConnections();});await env.cleanup();
+  const failures=closed.filter(result=>result.status==='rejected');
+  if(failures.length)throw new AggregateError(failures.map(result=>result.reason),'Normal fixture browser cleanup unconfirmed; profiles retained');
+  fs.rmSync(dir,{recursive:true,force:true});
+ });
  const catalogs=model();for(const ref of ['laminat TEST','laminat','TEST','HDF',...(p0bRegistry?['HDF 3mm biała']:[])])if(!catalogs.materials.some(r=>[r.id,r.name,r.materialType].includes(ref)))catalogs.materials.push({id:'normal-material-'+catalogs.materials.length,name:ref,materialType:'synthetic',price:12.375,priceUnit:'sheet'});
  if(factoryLabor){
   const factory=runtime();factory.load('js/app/pricing/labor-catalog-definitions.js');factory.load('js/app/pricing/labor-catalog.js');

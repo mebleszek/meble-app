@@ -92,13 +92,25 @@ test('mandatory CI includes the normal browser SDK suite, no removed old suites/
  assert.equal(replicationWaiting(wait,11000,'[1,0]'),false,'A stalled transfer loses the allowance after5 s');
  assert.equal(replicationWaiting(wait,29999,'[2,0]'),true);
  assert.equal(replicationWaiting(wait,30000,'[3,0]'),false,'Even continuing RPC progress cannot remove the30 s hard allowance bound');
- const {confirmQuoteSources,applicationIdle}=await import('./quote-ui-actions.mjs');
+ const {confirmQuoteSources,applicationIdle,waitForApplicationIdle}=await import('./quote-ui-actions.mjs');
  let applicationState={transactionPending:false,incomingPending:true};
  const idle=vm.runInNewContext('('+applicationIdle.toString()+')',{window:{FC:{applicationStartup:{inspect:()=>applicationState}}}});
  assert.equal(idle(),false,'An incoming offer still owns the image even without a local transaction');
  applicationState={transactionPending:true,incomingPending:false};assert.equal(idle(),false);
  applicationState={transactionPending:false};assert.equal(idle(),false,'Missing incoming state is not confirmed idle');
  applicationState={transactionPending:false,incomingPending:false};assert.equal(idle(),true);
+ // A routed gesture can still own reserve() after its IDB transaction ended.
+ const navigationWindow={FC:{applicationStartup:{inspect:()=>applicationState}}};
+ const boundary=installApplicationWriteBoundary({window:navigationWindow,authority:{transaction:(_kind,fn)=>fn()},ensureEditor:async()=>{}});
+ let releaseNavigation,navigationReady=false;
+ const navigation= navigationWindow.FC.applicationWrite.checkpoint(()=>new Promise(resolve=>releaseNavigation=resolve));
+ const evaluate=fn=>vm.runInNewContext('('+fn.toString()+')',{window:navigationWindow})();
+ const waiting=waitForApplicationIdle({evaluate,async waitForFunction(fn){assert.equal(evaluate(fn),true);}}).then(()=>navigationReady=true);
+ try{
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(navigationReady,false,'An idle authority cannot finish a still-reserved UI gesture');
+ }finally{releaseNavigation();await navigation;await waiting;boundary.close();}
+ assert.equal(navigationReady,true,'The real completion receipt releases the next independent action');
  let sourceBusy=false,warning=null,notice=null,clicked=0;
  const button={disabled:true},generation={inFlight:false},visible={getClientRects:()=>[{}]},hidden={getClientRects:()=>[]};
  const quoteWindow={FC:{wycenaTabShell:{_generateRuntime:generation},roomQuoteAccess:{busy:()=>sourceBusy}}};

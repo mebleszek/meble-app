@@ -4,6 +4,10 @@ export function applicationIdle(){
  const state=window.FC.applicationStartup.inspect();
  return state.transactionPending===false&&state.incomingPending===false;
 }
+export async function waitForApplicationIdle(page){
+ await page.evaluate(()=>window.FC.applicationWrite.whenIdle());
+ await page.waitForFunction(applicationIdle);
+}
 export async function confirmQuoteSources(page){
  await page.waitForFunction(()=>{
   const visible=selector=>!!document.querySelector(selector)?.getClientRects().length;

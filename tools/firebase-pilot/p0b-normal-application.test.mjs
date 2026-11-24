@@ -1,6 +1,6 @@
 import {startupDraftCase} from './p0b-startup-draft.cases.mjs';
 import {observeQuoteReads,assertQuoteReadBudget} from './p0b-quote-read-budget.mjs';
-import {confirmQuoteSources,applicationIdle} from './quote-ui-actions.mjs';
+import {confirmQuoteSources,applicationIdle,waitForApplicationIdle} from './quote-ui-actions.mjs';
 import {manualQuoteCase} from './p0b-manual-quote.cases.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -37,9 +37,9 @@ async function saveProject(page,{flush=true}={}){
  if(flush)assert.equal((await page.evaluate(()=>window.FC.applicationStartup.synchronize())).ok,true);
 }
 async function showList(page){
- await page.waitForFunction(applicationIdle);
+ await waitForApplicationIdle(page);
  if(await page.locator('#investorsListView').isVisible()){await page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);return;}
- if(await page.locator('#sessionCancel').isVisible()){assert.equal(await page.locator('#sessionCancel').innerText(),'Wyjdź');await page.locator('#sessionCancel').click();await page.waitForFunction(()=>window.uiState.entry==='investorsList'&&!window.FC.applicationStartup.inspect().transactionPending);await page.waitForFunction(applicationIdle);return;}
+ if(await page.locator('#sessionCancel').isVisible()){assert.equal(await page.locator('#sessionCancel').innerText(),'Wyjdź');await page.locator('#sessionCancel').click();await page.waitForFunction(()=>window.uiState.entry==='investorsList'&&!window.FC.applicationStartup.inspect().transactionPending);await waitForApplicationIdle(page);return;}
  if(await page.locator('#homeView').isVisible()){await page.locator('#openFurnitureProjectsBtn').click();await page.waitForFunction(()=>['modeHub','investorsList'].includes(window.uiState?.entry)&&!window.FC.applicationStartup.inspect().transactionPending);}
  if(await page.locator('#modeHubView').isVisible())await page.locator('[data-action="open-investors-list"]').filter({visible:true}).first().click();
  await page.locator('#investorsListView').waitFor({state:'visible'});
@@ -602,12 +602,16 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
 
 
   }catch(error){
+   t.diagnostic('Primary normal failure: '+(error.stack||String(error)));
+   try{
    const state=await image(phone).catch(()=>null);
    if(computer){const peer=await computer.page.evaluate(()=>({phase:window.FC.applicationStartup.inspect(),rpc:window.normalRpcTimeline,pendingRpc:window.normalPendingRpc,sdkErrors:window.normalSdkErrors,body:document.body.innerText,session:window.FC.session&&Object.fromEntries(Object.entries(window.FC.session).filter(([,v])=>typeof v!=='function')),ui:window.uiState,recovery:typeof window.FC.projectRecovery,registry:window.FC.applicationRegistry}));fs.writeFileSync(path.join(artifacts,'peer.json'),JSON.stringify({peer,state:await image(computer).catch(()=>null)},null,2));await computer.page.screenshot({path:path.join(artifacts,'peer.png')});t.diagnostic('Peer: '+JSON.stringify(peer));}
    const diagnostic=await phone.page.evaluate(()=>({phase:window.FC.applicationStartup.inspect(),notice:document.querySelector('.info-box')?.innerText,storage:window.FC.storage?.getLastWriteError()?.error?.code,storageKey:window.FC.storage?.getLastWriteError()?.key,session:window.FC.session&&Object.fromEntries(Object.entries(window.FC.session).filter(([k,v])=>typeof v!=='function')),ui:window.uiState,ram:window.projectData}));
    fs.writeFileSync(path.join(artifacts,'failure.json'),JSON.stringify({diagnostic,state},null,2));
    await phone.page.screenshot({path:path.join(artifacts,'failure.png')});
-   await phone.page.context().tracing.stop({path:path.join(artifacts,'failure.zip')}).catch(()=>{});t.diagnostic(artifacts+' '+JSON.stringify(diagnostic));throw error;
+   await phone.page.context().tracing.stop({path:path.join(artifacts,'failure.zip')}).catch(()=>{});t.diagnostic(artifacts+' '+JSON.stringify(diagnostic));
+   }catch(diagnosticError){t.diagnostic('Additional failure diagnostics unavailable: '+diagnosticError.message);}
+   throw error;
   }
   await phone.page.context().tracing.stop();
  }});
