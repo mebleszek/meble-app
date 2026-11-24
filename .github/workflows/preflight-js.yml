@@ -935,6 +935,30 @@ jobs:
 
             core.setFailed(`Timed out waiting for Pages for merge commit ${mergeSha}`);
 
+      - name: Checkout exact published merge
+        id: publicsource
+        if: ${{ !cancelled() && steps.verify.outcome == 'success' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.merge.outputs.result }}
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Set up public verifier Node
+        id: publicnode
+        if: ${{ !cancelled() && steps.verify.outcome == 'success' && steps.publicsource.outcome == 'success' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify exact public asset bytes
+        id: public
+        if: ${{ !cancelled() && steps.verify.outcome == 'success' && steps.publicsource.outcome == 'success' && steps.publicnode.outcome == 'success' }}
+        env:
+          APPROVED_HEAD: ${{ needs.safety.outputs.head_sha }}
+          MERGE_SHA: ${{ steps.merge.outputs.result }}
+        run: node tools/ci-public-assets.js
+
       - name: Comment READY or BLOCKED on PR
         if: ${{ always() && github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
         uses: actions/github-script@v7
@@ -952,6 +976,8 @@ jobs:
           DIAGNOSTIC_REASON: ${{ needs.ci-summary.outputs.reason }}
           MERGE_RESULT: ${{ steps.merge.outcome }}
           VERIFY_RESULT: ${{ steps.verify.outcome }}
+          PUBLIC_RESULT: ${{ steps.public.outcome }}
+          PUBLIC_STATUS: ${{ steps.public.outputs.status }}
           MERGE_SHA: ${{ steps.merge.outputs.result }}
         with:
           script: |
@@ -974,7 +1000,7 @@ jobs:
             const verify = process.env.VERIFY_RESULT;
             const mergeSha = process.env.MERGE_SHA || '';
 
-            const ready = /^[a-f0-9]{40}$/.test(mergeSha) && preflight === 'success' && process.env.FIREBASE_RESULT === 'success' && process.env.HISTORICAL_RESULT === 'success' && process.env.SAFETY_RESULT === 'success' && process.env.DIAGNOSTIC_STATUS === 'RELEASE_READY' && ['PREFLIGHT_STATUS','FIREBASE_STATUS','HISTORICAL_STATUS','SAFETY_STATUS'].every(key=>process.env[key]==='PASS') && merge === 'success' && verify === 'success';
+            const ready = /^[a-f0-9]{40}$/.test(mergeSha) && preflight === 'success' && process.env.FIREBASE_RESULT === 'success' && process.env.HISTORICAL_RESULT === 'success' && process.env.SAFETY_RESULT === 'success' && process.env.DIAGNOSTIC_STATUS === 'RELEASE_READY' && ['PREFLIGHT_STATUS','FIREBASE_STATUS','HISTORICAL_STATUS','SAFETY_STATUS'].every(key=>process.env[key]==='PASS') && merge === 'success' && verify === 'success' && process.env.PUBLIC_RESULT === 'success' && process.env.PUBLIC_STATUS === 'PASS';
             if(process.env.RELEASE_MODE==='documents')await core.summary.addRaw('Documentation-only release: application/SDK test groups were not executed; exact unchanged application and mandatory documentation gates verified.\n').write();
             if(process.env.RELEASE_MODE==='tests')await core.summary.addRaw('Test-maintenance release: selected complete tests and static/source/coverage gates verified; application/SDK suites NOT EXECUTED (unchanged sources).\n').write();
             const display = result => result === 'success' ? 'PASS' : ['skipped','cancelled'].includes(result) ? 'SKIPPED' : 'FAIL';
@@ -985,15 +1011,16 @@ jobs:
               ['Source/425 pins',displayGroup(process.env.SAFETY_RESULT,process.env.SAFETY_STATUS)],
               [label('Preflight'),displayGroup(preflight,process.env.PREFLIGHT_STATUS)],[label('Current Firebase'),displayGroup(process.env.FIREBASE_RESULT,process.env.FIREBASE_STATUS)],
               [label('Historical CLOUD'),displayGroup(process.env.HISTORICAL_RESULT,process.env.HISTORICAL_STATUS)],
-              ['Auto-merge',display(merge)],['Pages for exact merge SHA',display(verify)]
+              ['Auto-merge',display(merge)],['Pages for exact merge SHA',display(verify)],['Exact public bytes',displayGroup(process.env.PUBLIC_RESULT,process.env.PUBLIC_STATUS)]
             ]).addRaw(`\n${process.env.DIAGNOSTIC_REASON || 'No confirmed diagnostic report'}\nFirebase LIVE_BLOCKED.\n`).write();
             const body = ready
               ? [
-                  '✅ **RELEASE_READY — wszystkie wymagane grupy, merge i Pages PASS.**',
+                  '✅ **RELEASE_READY — wszystkie wymagane grupy, merge, Pages i publiczne pliki PASS.**',
                   '',
                   'Preflight / aktualne Firebase / historyczne CLOUD: **PASS**',
                   'Auto-merge: **OK**',
                   'Pages: **OK**',
+                  'Publiczne pliki: **OK**',
                   mergeSha ? `Merge commit: \`${mergeSha}\`` : ''
                 ].filter(Boolean).join('\n')
               : [
@@ -1006,6 +1033,7 @@ jobs:
                   `Diagnostyka: **${process.env.DIAGNOSTIC_STATUS || 'RELEASE_BLOCKED'}** — ${process.env.DIAGNOSTIC_REASON || 'brak potwierdzonego raportu'}`,
                   `Auto-merge: **${merge}**`,
                   `Pages dla scalonego commita: **${verify}**`,
+                  `Publiczne pliki: **${displayGroup(process.env.PUBLIC_RESULT,process.env.PUBLIC_STATUS)}**`,
                   '',
                   'Trzeba sprawdzić nieudany etap w GitHub Actions.'
                 ].join('\n');
