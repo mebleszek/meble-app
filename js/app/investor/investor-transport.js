@@ -197,7 +197,10 @@
       if(!saved || JSON.stringify(normalizeTransport(saved.transport)) !== JSON.stringify(patch.transport)) throw Error('TRANSPORT_SAVE_UNCONFIRMED');
       return true;
     };
-    if(FC.applicationWrite) await FC.applicationWrite[kind](save);
+    if(FC.applicationWrite){
+      if(kind==='auto')await FC.applicationWrite.auto(save);
+      else await FC.applicationWrite.project(save);
+    }
     else save();
     return true;
   }
@@ -208,7 +211,8 @@
     if(!investor)throw Error('TRANSPORT_CONTEXT_CHANGED');
     // Same manual representation as the investor form: discard old ORS witnesses.
     const transport=normalizeTransport({distanceKm:String(distanceKm),durationMin:String(durationMin),source:'ręcznie',status:'manual',note:investor.transport?.note||''});
-    await saveTransport(investor,transport,assertCurrent,'auto');
+    const contactOnly=FC.applicationWrite?.registry==='p0b-rooms-v1'&&!FC.applicationWrite.localOnly;
+    await saveTransport(investor,transport,assertCurrent,contactOnly?'auto':'project');
     FC.sessionNavigation?.invalidateCalculationContext?.();
     return true;
   }

@@ -132,7 +132,22 @@ async function evidence(t, label, device, run) {
   }
 }
 
-async function abortNextWrite(device) {
+async function abortNextWrite(device, changedKey, previous) {
+  if(changedKey){
+    await device.page.evaluate(({name,changedKey,previous})=>{
+      window.testTargetAbortObserved=false;
+      const put=IDBObjectStore.prototype.put;
+      IDBObjectStore.prototype.put=function(row,...args){
+        const result=put.call(this,row,...args);
+        if(this.transaction.db.name==='meble-lf-test-normal-'+name&&this.name==='control'&&row.key==='application'&&row.rows?.[changedKey]!==previous){
+          IDBObjectStore.prototype.put=put;window.testTargetAbortObserved=true;
+          queueMicrotask(()=>this.transaction.abort());
+        }
+        return result;
+      };
+    },{name:device.name,changedKey,previous});
+    return;
+  }
   await device.page.evaluate(name => {
     const original=IDBDatabase.prototype.transaction;
     IDBDatabase.prototype.transaction=function(stores,mode,...rest){
@@ -186,6 +201,31 @@ test('E1 signed DEMO synchronized UI', async t => {
       await page.locator('[data-action="tab"][data-tab="wycena"]').click();
       await page.locator('[data-action="wycena-generate"]').waitFor();
       await idle(page);
+      // This legacy UI regression prices a complete route. The approved missing-
+      // route dialog has its own signed P0-B proof; finish setup BEFORE arming
+      // the exact atomic offer-write abort below.
+      await page.evaluate(()=>{
+        window.testRouteSetup={done:false};
+        void window.FC.quoteRouteRequest.prepare(()=>window.FC.quoteOfferStore.getCurrentDraft())
+          .then(value=>window.testRouteSetup={done:true,value},error=>window.testRouteSetup={done:true,error:error.code||error.message});
+      });
+      await page.waitForFunction(()=>window.testRouteSetup.done||document.querySelector('[data-quote-route="save"]'));
+      if(!await page.evaluate(()=>window.testRouteSetup.done)){
+        await page.locator('[data-quote-route="distanceKm"]').fill('12');
+        await page.locator('[data-quote-route="durationMin"]').fill('30');
+        await page.locator('[data-quote-route="save"]').click();
+      }
+      await page.waitForFunction(()=>window.testRouteSetup.done);
+      assert.deepEqual(await page.evaluate(()=>window.testRouteSetup),{done:true,value:true});
+      await idle(page);
+      await page.locator('#main-sync').click();
+      await page.waitForFunction(()=>['success','error'].includes(document.getElementById('main-sync').dataset.syncState));
+      assert.equal(await page.locator('#main-sync').getAttribute('data-sync-state'),'success','Setup requires the real synchronization barrier');
+      await page.waitForFunction(name=>new Promise((resolve,reject)=>{
+        const request=indexedDB.open('meble-lf-test-normal-'+name);request.onerror=()=>reject(request.error);
+        request.onsuccess=()=>{const db=request.result,tx=db.transaction('outbox'),read=tx.objectStore('outbox').getAll();
+          tx.oncomplete=()=>{db.close();resolve(read.result.every(op=>op.phase==='verified'));};tx.onabort=()=>{db.close();reject(tx.error);};};
+      }),phone.name);
     }
 
     async function dismissFailure(page, text) {
@@ -265,10 +305,16 @@ test('E1 signed DEMO synchronized UI', async t => {
         const { page } = phone;
         await openQuote(page);
         const calculate = page.locator('[data-action="wycena-generate"]');
-        const before = await image(phone);
-        await abortNextWrite(phone);
+        let before;
+        for(let attempt=0;attempt<200;attempt++){
+          before=await image(phone);if(before.queue.every(op=>op.phase==='verified'))break;
+          await new Promise(resolve=>setTimeout(resolve,25));
+        }
+        assert.ok(before.queue.every(op=>op.phase==='verified'),'Freeze the complete prior queue before checking exact abort rollback');
+        await abortNextWrite(phone,'fc_quote_snapshots_v1',before.state.rows.fc_quote_snapshots_v1);
         await calculate.click();
         await dismissFailure(page,'LF_IDB_ABORTED');
+        assert.equal(await page.evaluate(()=>window.testTargetAbortObserved),true,'Abort must target the offer application write, never a background ACK');
         assert.deepEqual(await image(phone),before);
         assert.equal(await page.locator('[data-quote-history-id]').count(),rows(before,'fc_quote_snapshots_v1').length);
         await calculate.click();

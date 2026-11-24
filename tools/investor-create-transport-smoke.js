@@ -75,7 +75,7 @@ console.log('PASS investor create/transport, missing route, cold restart, update
     let draft={projectId:'room',investorId:investor.id,selection:{selectedRooms:['room']},commercial:{versionName:'Keep'},services:{delivery:true,carrying:true,assembly:true}},choices=0,writes=0;
     const fc=win.FC;
     fc.quoteOfferStore={getCurrentDraft:()=>draft,async saveSettings(scope,patch){draft={...draft,...patch};return draft;}};
-    fc.applicationWrite={async auto(fn){writes++;return fn();}};
+    fc.applicationWrite={registry:'p0b-rooms-v1',async auto(fn){writes++;return fn();}};
     fc.tabNavigation={setActiveTab:name=>{win.uiState.activeTab=name;}};
     fc.quoteRouteRequest.open=async()=>{choices++;return {action:'cancel'};};
     return {win,fc,rows,investor,get draft(){return draft;},get choices(){return choices;},get writes(){return writes;},run:()=>fc.quoteRouteRequest.prepare(()=>draft)};
@@ -96,6 +96,9 @@ console.log('PASS investor create/transport, missing route, cold restart, update
     await assert.rejects(r.run(),/TRANSPORT_INPUT_INVALID/);assert.equal(r.writes,0);
   }
   const zero=fixture();zero.fc.quoteRouteRequest.open=async()=>({action:'save',distanceKm:'0',durationMin:'0'});assert.equal(await zero.run(),true,'Explicit zero is different from missing');
+  const legacy=fixture();legacy.fc.applicationWrite.registry='legacy';legacy.fc.applicationWrite.auto=()=>{throw Error('CONTACT_BOUNDARY_NOT_AVAILABLE');};
+  legacy.fc.applicationWrite.project=async fn=>fn();legacy.fc.quoteRouteRequest.open=async()=>({action:'save',distanceKm:'12',durationMin:'30'});
+  assert.equal(await legacy.run(),true,'A legacy/local protocol retains its existing authorized project boundary');
   const pickup=fixture(),pickupBefore=JSON.stringify([...pickup.rows]);pickup.fc.quoteRouteRequest.open=async()=>({action:'pickup'});
   assert.equal(await pickup.run(),true);assert.deepEqual(pickup.draft.services,{delivery:false,carrying:false,assembly:false});
   assert.equal(pickup.draft.commercial.versionName,'Keep');assert.deepEqual(pickup.draft.selection.selectedRooms,['room']);
