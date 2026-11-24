@@ -72,7 +72,7 @@ test('central registry preserves promise completion only for installed lifecycle
  w.FC.applicationLifecycle={dispatch:async(action,fn)=>{assert.equal(action,'test');await Promise.resolve();return fn();}};
  const p=w.FC.actions.dispatch('test');assert.equal(typeof p.then,'function');assert.equal(await p,true);assert.equal(calls,2);
 });
-test('mandatory CI includes the normal browser SDK suite, no removed old suites/pins or replacement of LOCAL-FIRST',()=>{
+test('mandatory CI includes the normal browser SDK suite, no removed old suites/pins or replacement of LOCAL-FIRST',async()=>{
  let clock=0;const w={FC:{applicationStartup:{inspect:()=>({stage:'initial-global-revision'})}}},document={body:{dataset:{}}};
  const probe=vm.runInNewContext('('+startupReady.toString()+')',{window:w,document,performance:{now:()=>clock}});
  assert.equal(probe({idleMs:30000}),false);
@@ -92,6 +92,27 @@ test('mandatory CI includes the normal browser SDK suite, no removed old suites/
  assert.equal(replicationWaiting(wait,11000,'[1,0]'),false,'A stalled transfer loses the allowance after5 s');
  assert.equal(replicationWaiting(wait,29999,'[2,0]'),true);
  assert.equal(replicationWaiting(wait,30000,'[3,0]'),false,'Even continuing RPC progress cannot remove the30 s hard allowance bound');
+ const {confirmQuoteSources}=await import('./quote-ui-actions.mjs');
+ let sourceBusy=false,warning=null,notice=null,clicked=0;
+ const button={disabled:true},generation={inFlight:false},visible={getClientRects:()=>[{}]},hidden={getClientRects:()=>[]};
+ const quoteWindow={FC:{wycenaTabShell:{_generateRuntime:generation},roomQuoteAccess:{busy:()=>sourceBusy}}};
+ const quoteDocument={querySelector:selector=>selector==='.quote-lock-warning'?warning:selector==='.info-box'?notice:button};
+ await confirmQuoteSources({
+  async waitForFunction(fn){
+   const ready=vm.runInNewContext('('+fn.toString()+')',{window:quoteWindow,document:quoteDocument});
+   assert.equal(!!ready(),false,'A disabled gesture is still pending before quote access begins');
+   sourceBusy=true;assert.equal(!!ready(),false,'Source inspection is not completed generation');
+   warning=hidden;notice=hidden;assert.equal(!!ready(),false,'Hidden old panels cannot complete the wait');
+   warning=visible;assert.equal(!!ready(),true,'A late source warning must receive the explicit answer');
+   warning=null;generation.inFlight=true;assert.equal(!!ready(),true,'Math starts only after source confirmation');
+   generation.inFlight=false;sourceBusy=false;assert.equal(!!ready(),false,'Pending settings still own the disabled gesture');
+   button.disabled=false;assert.equal(!!ready(),true,'A quick completed operation cannot leave the helper waiting');
+   button.disabled=true;sourceBusy=true;notice=visible;assert.equal(!!ready(),true,'A real refusal is surfaced to the caller');
+   notice=null;warning=visible;
+  },
+  locator:()=>({isVisible:async()=>warning===visible,getByRole(role,options){assert.equal(role,'button');assert.deepEqual(options,{name:'Tak',exact:true});return {click:async()=>{clicked++;}};}})
+ });
+ assert.equal(clicked,1,'The helper answers the real source warning exactly once');
  const ctx=read('tools/cloud-ci-context.js'),suite=read('tools/firebase-pilot/cloud-sync-global.test.mjs');
  assert.ok(ctx.includes('cloud-sync-global.test.mjs'));assert.ok(suite.includes('await runNormalApplication(t)'));
  assert.ok(suite.includes('await runApplicationE2E(t)'));assert.ok(suite.includes('await runLocalFirstSuite(t)'));

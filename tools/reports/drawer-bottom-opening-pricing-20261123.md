@@ -56,6 +56,14 @@ HEAD5f9439d9a77002b37f15dbcf4838b52335aaecfe:77 PASS/4 FAIL/2 SKIPPED. Wszystkie
 
 Czas Ready→koniec7:38,6840 runner-sekund,20 równocześnie, kolejka283 s, najdłuższy timer230 s.6840/20=342 s to dolna granica przed Pages; nie deklarować4 minut. Następna próba w tym samym PR zatwierdzona przez właściciela; auto-merge i exact Pages nadal wyłącznie po PASS dla nowego HEAD.
 
+### Preflight#1392 — późne ostrzeżenie źródeł,24.11.2026
+
+HEADfb7d94c0f5a0730871ce7f09107c61fe3ca9ce23 / BASEe17b9be4bc8419b32527e485cf6b16a930a680a9:76 PASS/5 FAIL/2 SKIPPED. Dwa pierwotne FAIL quote-remove-combined/overlap zatrzymały się przed pierwszym zapisem oferty, nie przy usuwaniu. Trzy dalsze FAIL są agregatami. Oba ślady kończą się po przedwczesnym isVisible(.quote-lock-warning), a potem czekają na historię; screenshot/DOM trace potwierdzają oczekujące ostrzeżenie źródeł. Helper uznawał !roomQuoteAccess.busy() za gotowość, mimo że wyłączony przycisk obejmuje już wcześniejsze asynchroniczne settings/whenIdle. Nie zwiększono30 s ani nie zmieniono aplikacji.
+
+Helper czeka na widoczne ostrzeżenie/odmowę, rzeczywiste rozpoczęcie obliczenia albo ponowne odblokowanie przycisku po zakończonym geście. Nadal odpowiada jawnie Tak; nie zwalnia blokad ani nie obchodzi PIN/registry/CAS. Istniejąca kontrola readiness: RED przedwczesnego powrotu→GREEN1/1 dla przygotowania, ukrytych paneli, późnego ostrzeżenia, szybkiego zakończenia i odmowy. Realny Chromium z produkcyjnymi quoteWarning/dataSettingsDom/panelBox: stary helper wraca przed późnym dialogiem; nowy jawnie potwierdza oraz kończy szybki wariant bez dialogu (2 pozytywne scenariusze PASS). To test helpera bez Firebase, nie nowy PASS pełnych scenariuszy ofert. Oba pełne przypadki pozostają obowiązkowe w kolejnym CI. Dowody i oba oryginalne artefakty: ci1392-* pozaGit.
+
+Ready→koniec7:47,6657 runner-sekund, szczyt20, kolejka281 s, timer220 s. Nowa poprawka dotyczy tylko wspólnego helpera, istniejącego testu i dokumentacji; kod aplikacji/ceny/Rules/manifest530 plików bez zmian. Powiązane pełne testy, auto-merge i exact Pages nadal wymagane dla nowego HEAD.
+
 ## Historia stanu przed domknięciem24.11.2026
 
 
