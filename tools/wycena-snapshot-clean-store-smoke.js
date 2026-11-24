@@ -130,13 +130,64 @@ function runCacheBustCheck(){
   });
 }
 
-try{
+async function runForeignHistoryPreservation(){
+  const strict = require('node:assert/strict');
+  const {createApplicationQuoteLedger} = await import('../sync/application-quote-ledger.mjs');
+  const {digest,equal} = await import('../sync/local-first-values.mjs');
+  const sandbox = loadSmokeFiles(createSandbox()),store = sandbox.FC.quoteSnapshotStore;
+  store.save(snapshot('old', 'Earlier offer', 2000));
+  const original = JSON.parse(sandbox.localStorage.getItem('fc_quote_snapshots_v1'))[0];
+  const record = {id:'new-room',investorId:'new-investor'},recordHash = await digest(record),documentHash = 'a'.repeat(64);
+  const head = {projectId:record.id,investorId:record.investorId,currentRevisionId:'confirmed-room',documentSha256:documentHash};
+  const encoded = JSON.stringify({document:{payload:{project:record},integrity:{documentSha256:documentHash}}});
+  for(const kind of ['missing-optional-field','unknown-fields']){
+    const old = structuredClone(original);
+    if(kind==='missing-optional-field') delete old.meta.storageWarning;
+    else{old.meta.privateExtension={exact:17.125};old.lines.materials[0].privateExtension={exact:27.125};}
+    old.meta.selectedByClient=true;old.meta.acceptedAt=1000;old.meta.acceptedStage='zaakceptowany';
+    const prior = [old],beforeRaw = JSON.stringify(prior);
+    sandbox.localStorage.setItem('fc_quote_snapshots_v1',beforeRaw);
+    store.readAll();strict.equal(sandbox.localStorage.getItem('fc_quote_snapshots_v1'),beforeRaw);
+    const candidate = snapshot('new', 'New offer', 4000);
+    candidate.investor.id=record.investorId;candidate.project={id:record.id,investorId:record.investorId};
+    candidate.scope={selectedRooms:[record.id],roomLabels:['New room'],sourceProjects:[{projectId:record.id,roomId:record.id,investorId:record.investorId,recordHash,documentHash,revision:head}]};
+    store.save(candidate);
+    const next = JSON.parse(sandbox.localStorage.getItem('fc_quote_snapshots_v1'));
+    strict.deepEqual(next.find(row=>row.id==='old'),old,'Creating another investor offer cannot normalize frozen historical fields: '+kind);
+    let committed;
+    const ledger = createApplicationQuoteLedger({fc:{projectModel:{normalizeProjectRecord:value=>value}},store:{
+      ownerUid:'test-owner',readApplication:async()=>({rows:{fc_quote_snapshots_v1:beforeRaw}}),
+      snapshot:async scope=>scope===record.id?{replica:{key:scope,json:encoded,hash:await digest(encoded),dirty:false,base:head},operations:[]}:{replica:null,operations:[]},
+      commitQuoteLedger:async args=>{committed=args;return {ok:true};}
+    },getSync:()=>({channel:()=>({})})});
+    const application={rows:{fc_quote_snapshots_v1:JSON.stringify(next),fc_current_investor_v1:record.investorId,fc_investors_v1:JSON.stringify([{id:record.investorId}])}};
+    strict.equal((await ledger.commit(application,[])).ok,true);
+    strict.equal(committed.value.investorId,record.investorId);strict.equal(committed.value.offers.length,1);
+    strict.deepEqual(committed.application.rows,application.rows);
+    const tampered=structuredClone(application),rows=JSON.parse(tampered.rows.fc_quote_snapshots_v1);
+    rows.find(row=>row.id==='old').totals.grand=0;tampered.rows.fc_quote_snapshots_v1=JSON.stringify(rows);
+    await strict.rejects(ledger.commit(tampered,[]),{code:'LF_QUOTE_OWNER_CHANGED'});
+    const second={...structuredClone(candidate),id:'second',generatedAt:5000};store.save(second);
+    const later=JSON.parse(sandbox.localStorage.getItem('fc_quote_snapshots_v1'));
+    strict.deepEqual(later.find(row=>row.id==='old'),old);
+    strict.ok(equal(later.find(row=>row.id==='new'),next.find(row=>row.id==='new')),'A second variant cannot rewrite the first');
+    const protectedRaw=sandbox.localStorage.getItem('fc_quote_snapshots_v1'),resolver=sandbox.FC.projectPcvResolver;
+    sandbox.FC.projectPcvResolver={...resolver,validateQuoteCandidate(){throw Object.assign(Error('PROJECT_PCV_READ_CONFLICT'),{code:'PROJECT_PCV_READ_CONFLICT'});}};
+    try{strict.throws(()=>store.save({...structuredClone(candidate),id:'bad-new',pcvMode:'project'}),{code:'PROJECT_PCV_READ_CONFLICT'});}
+    finally{sandbox.FC.projectPcvResolver=resolver;}
+    strict.equal(sandbox.localStorage.getItem('fc_quote_snapshots_v1'),protectedRaw,'New candidates still require proof before any write');
+  }
+}
+
+async function main(){try{
   runLegacyPurgeAndSlimSave();
   runStaleDraftVariantReset();
   runCacheBustCheck();
+  await runForeignHistoryPreservation();
   console.log('[wycena-snapshot-clean-store-smoke] OK');
 }catch(err){
   console.error('[wycena-snapshot-clean-store-smoke] FAIL:', err && err.message ? err.message : err);
   if(err && err.details) console.error(JSON.stringify(err.details, null, 2));
   process.exit(1);
-}
+}}
+if(require.main===module)main();
