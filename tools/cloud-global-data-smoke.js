@@ -96,6 +96,44 @@ test('Valid recomputed hashes cannot legitimize a missing business dependency or
   await assert.rejects(c.unpack('synthetic-owner',p.directory,p.records),e=>['GLOBAL_REFERENCE_MISSING','GLOBAL_UNKNOWN_FIELD'].includes(e.code));
  }
 });
+test('Large catalog staging keeps the first checkpoint, bounds Rules calls and resumes the same revision',async()=>{
+ const r=runtime(),c=r.FC.globalDataContract,m=model();
+ for(let i=0;i<24;i++)m.materials.push({...m.materials[0],id:'bounded-'+i});
+ const packed=await c.pack('synthetic-owner',m);
+ for(const interrupt of [false,true]){
+  const records=new Map();let active=0,peak=0,calls=0,maxWrites=0,fail=interrupt;
+  const snapshot=async ref=>({exists:()=>records.has(ref.path),data:()=>records.get(ref.path),metadata:{fromCache:false,hasPendingWrites:false}});
+  const f={doc:(_db,...parts)=>({path:parts.join('/')}),getDocFromServer:snapshot,serverTimestamp:()=>({toMillis:()=>1}),async runTransaction(_db,operation){
+   const writes=[],tx={get:snapshot,set:(ref,value)=>writes.push([ref.path,value])};
+   const result=await operation(tx);
+   if(writes.some(([key])=>key.includes('/globalRecords/'))){
+    const call=++calls;active++;peak=Math.max(peak,active);maxWrites=Math.max(maxWrites,writes.length);
+    try{await new Promise(resolve=>setTimeout(resolve,1));if(fail&&call===2)throw Object.assign(Error('synthetic staging failure'),{code:'unavailable'});}
+    finally{active--;}
+   }
+   for(const [key,value]of writes)records.set(key,value);return result;
+  }};
+  const transport=r.FC.firebaseGlobalTransport.fromConnection({firestore:f,db:{},session:{identity:()=>({uid:'synthetic-owner',epoch:1})},assertAccess(){}});
+  const prepared=await transport.prepare({model:m,expectedHead:null});assert.equal(prepared.ok,true,JSON.stringify(prepared));
+  let result=await transport.publish(prepared.handle);
+  assert.equal(peak,1,'Staging stays sequential; the Web SDK serializes transactions');
+  assert.equal(maxWrites,4,'At most four writes: five worst-case access calls each fit the20-call Rules budget');
+  assert.equal(active,0,'All started transactions must settle before success or failure returns');
+  if(interrupt){
+   assert.equal(result.ok,false);assert.equal(result.phase,'staging');assert.equal(calls,2,'The first three-record checkpoint remains unchanged; a failed transaction starts no later transaction');
+   assert.equal((await transport.readHead()).head,null);
+   assert.equal([...records.keys()].some(key=>key.includes('/globalRevisions/')),false,'No partial revision or head may be published');
+   for(const [key,value]of records)assert.deepEqual(value,packed.records.find(row=>key.endsWith('/'+row.hash)),'Only complete approved immutable records survive a failed wave');
+   fail=false;result=await transport.publish(prepared.handle);
+  }
+  assert.equal(result.ok,true,JSON.stringify(result));
+  assert.deepEqual(clone((await transport.read()).model),m);
+  assert.equal([...records.keys()].filter(key=>key.includes('/globalRecords/')).length,packed.records.length,'Resume reuses every staged hash without duplicates');
+  assert.equal([...records.keys()].filter(key=>key.includes('/globalRevisions/')).length,1,'Exactly one revision is published');
+  transport.close();
+ }
+});
+
 test('New boundaries remain absent from normal script manifests and do not initialize SDK',()=>{
  for(const name of ['index.html','js/main-login.js','tools/index-load-groups.js']){const content=fs.readFileSync(path.join(root,name),'utf8');assert.ok(!content.includes('firebase-global-transport.js'));assert.ok(!content.includes('global-data-contract.js'));assert.ok(!content.includes('cloud-data-session.js'));}
  const r=runtime();assert.deepEqual(r.calls,[]);assert.throws(()=>r.FC.firebaseGlobalTransport.fromConnection({}),/GLOBAL_DEPENDENCY_UNAVAILABLE/);

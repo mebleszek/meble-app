@@ -78,6 +78,10 @@
             }
             parts.push(...buckets.values());
           }
+          if(String(cabinet.openingSystem||'').toLowerCase()==='korytkowy'){
+            if(typeof FC.materialTabData.addChannelEdges!=='function')fail('DEPENDENCIES_UNAVAILABLE');
+            FC.materialTabData.addChannelEdges(cabSplit,cabinet,scope);
+          }
           split.body+=cabSplit.body;split.front+=cabSplit.front;split.total+=cabSplit.total;
           details.push({room:roomId,cabinet:clone(cabinet),index,parts,edgeMeters:cabSplit.total,edgeMetersByMode:cabSplit});
         }

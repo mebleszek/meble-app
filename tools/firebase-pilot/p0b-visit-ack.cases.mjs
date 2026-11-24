@@ -6,18 +6,24 @@ import {createP0BProtocol} from './p0b-protocol.mjs';
 export async function visitAckCases({client,contact}){
  const source=client('visit-ack-device'),peer=client('visit-ack-peer').protocol;
  const failure=Object.assign(Error('LF_TEST_VISIT_ACK_LOST'),{code:'LF_TEST_VISIT_ACK_LOST'});
- let mode='lost',calls=0,unreadable=false;
+ let mode='lost',calls=0,unreadable=false,stale;
  const connection={...source.connection,firestore:{...f,
   async runTransaction(...args){
-   calls++;
    if(mode==='denied')throw failure;
-   const value=await f.runTransaction(...args);
-   if(mode==='changed')await peer.updateContact('visit-ack',1,{...contact,name:'New contact'});
-   if(mode==='unreadable')unreadable=true;
-   if(mode!=='normal')throw failure;
+   if(unreadable)throw Object.assign(Error('unavailable'),{code:'unavailable'});
+   const [db,work,options]=args;let writes=0;
+   const value=await f.runTransaction(db,tx=>work(new Proxy(tx,{get(target,key){
+    if(key==='set')return (...values)=>{writes++;calls++;return target.set(...values);};
+    const value=target[key];return typeof value==='function'?value.bind(target):value;
+   }})),options);
+   if(writes){
+    if(mode==='changed')await peer.updateContact('visit-ack',1,{...contact,name:'New contact'});
+    if(mode==='unreadable')unreadable=true;
+    if(mode!=='normal')throw failure;
+   }
    return value;
   },
-  getDocFromServer(...args){if(unreadable)throw Object.assign(Error('unavailable'),{code:'unavailable'});return f.getDocFromServer(...args);}
+  getDocFromServer(...args){if(unreadable)throw Object.assign(Error('unavailable'),{code:'unavailable'});if(mode==='stale-read')return Promise.resolve(stale);return f.getDocFromServer(...args);}
  }};
  const protocol=createP0BProtocol(connection,'visit-ack-device');
  await peer.createInvestor('visit-ack',contact);
@@ -40,4 +46,14 @@ export async function visitAckCases({client,contact}){
  const unconfirmed=await peer.investor('visit-ack');assert.equal(unconfirmed.generation,beforeUnreadable.generation+1);
  assert.equal(unconfirmed.visits['visit-ack-device'].token,'unconfirmed');
  unreadable=false;mode='normal';await protocol.closeInvestor('visit-ack','unconfirmed');
+ console.log('P0-B visit ACK: lost open/close, denied write, changed contact and unreadable confirmation preserved their contracts');
+ // A still-overlapping one-shot listener must not negate a committed write.
+ // The transaction confirmation must retain the complete post-image proof.
+ const beforeStale=await peer.investor('visit-ack'),beforeWrites=calls;
+ stale=await f.getDocFromServer(f.doc(source.db,'users',source.connection.session.identity().uid,'localFirstInvestors','visit-ack'));
+ mode='stale-read';await protocol.openInvestor('visit-ack','ordered-confirmation','Computer');
+ const confirmed=await peer.investor('visit-ack');
+ assert.equal(confirmed.generation,beforeStale.generation+1);assert.equal(calls,beforeWrites+1,'Confirmation cannot replay the visit write');
+ assert.deepEqual(confirmed.visits,{'visit-ack-device':{token:'ordered-confirmation',label:'Computer'}});
+ mode='normal';await protocol.closeInvestor('visit-ack','ordered-confirmation');
 }

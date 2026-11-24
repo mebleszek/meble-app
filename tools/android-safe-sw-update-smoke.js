@@ -8,7 +8,7 @@ const {browser}=require('./trusted-session-browser-smoke');
 const legacyService=({id,category,name,price})=>({id,category,name,price});
 // Independent expected image, not the production normalizer/correction function.
 // Historical 2930e0d7 split projected away note/edgeWaste; normalization supplied empty note.
-function expectedMaterialUpgrade(before){
+function expectedMaterialUpgrade(before,candidate){
  const image=Object.fromEntries(JSON.parse(before)),expected={};
  const factories=[
   {id:'m5',materialType:'obrzeże',manufacturer:'Start',symbol:'PCV-STD',name:'Obrzeże PCV standard',price:3,priceUnit:'mb',hasGrain:false,starterPrice:true,priceUserEditedAt:'',note:''},
@@ -17,7 +17,7 @@ function expectedMaterialUpgrade(before){
  for(const key of ['fc_sheet_materials_v1','fc_materials_v1']){
   if(!Object.hasOwn(image,key))continue;
   const old=JSON.parse(image[key]);
-  expected[key]=JSON.stringify(old.map(row=>{
+  const upgraded=old.map(row=>{
    const exactFactory=value=>factories.find(known=>Object.keys(value).length===Object.keys(known).length&&Object.keys(known).every(field=>value[field]===known[field]));
    let factory=exactFactory(row);
    // The legacy app persists this separate seven-field material compatibility projection.
@@ -33,7 +33,35 @@ function expectedMaterialUpgrade(before){
     if(field==='priceUnit'&&billing)next.billingIncrement=billing;
    }
    return next;
-  }));
+  });
+  if(candidate)for(const row of candidate.materials.filter(row=>/^m_drawer_bottom_(?:10|16)_(?:white|grey)$/.test(row.id))){
+   if(!old.some(previous=>previous.id===row.id))upgraded.push(key==='fc_materials_v1'
+    ?Object.fromEntries(['id','materialType','manufacturer','symbol','name','price','hasGrain'].map(field=>[field,row[field]]))
+    :{...structuredClone(row),priceUserEditedAt:''});
+  }
+  expected[key]=JSON.stringify(upgraded);
+ }
+ return expected;
+}
+function expectedPricingUpgrade(before,candidate){
+ const expected=expectedMaterialUpgrade(before,candidate),image=Object.fromEntries(JSON.parse(before));
+ if(Object.hasOwn(image,'fc_accessories_v1')){
+  const old=JSON.parse(image.fc_accessories_v1),seen=new Set(old.map(row=>row.id));
+  const missing=candidate.hardware.filter(row=>!seen.has(row.id));
+  assert.equal(missing.length,392,'The historical16 hardware records receive exactly392 approved new entries');
+  expected.fc_accessories_v1=JSON.stringify(old.concat(missing));
+ }
+ const required=new Set(candidate.hardware.flatMap(row=>Object.keys(row.technicalParams||{}).map(key=>row.hardwareCategory+'\0'+key)));
+ const supplierIds=new Set(candidate.hardware.map(row=>row.supplierId));
+ for(const [key,rows]of [['fc_hardware_suppliers_v1',candidate.suppliers.filter(row=>supplierIds.has(row.id))],['fc_hardware_technical_params_v1',candidate.technicalParams.filter(row=>required.has(row.category+'\0'+row.key))]]){
+  if(!Object.hasOwn(image,key))continue;
+  const old=JSON.parse(image[key]),next=structuredClone(old),identity=row=>key.includes('technical')?row.category+'\0'+row.key:row.id;
+  for(const row of rows)if(!old.some(previous=>identity(previous)===identity(row)))next.push(structuredClone(row));
+  if(key.includes('technical'))for(const item of candidate.hardware)for(const [field,value]of Object.entries(item.technicalParams||{})){
+   const row=next.find(row=>row.category===item.hardwareCategory&&row.key===field);
+   if(row?.fieldType==='text'&&row.options?.length&&value.value&&!row.options.includes(value.value))row.options.push(value.value);
+  }
+  expected[key]=JSON.stringify(next);
  }
  return expected;
 }
@@ -42,7 +70,15 @@ function assertStarterAppend(before,after,templates,corrections={},materialExpec
  assert.deepEqual(Object.keys(b).sort(),Object.keys(a).sort(),'No RAW key may appear/disappear through upgrade');
  const aliases=['fc_quote_rates_v1','fc_services_v1'];
  for(const key of Object.keys(a)){
-  if(!aliases.includes(key)){assert.equal(b[key],Object.hasOwn(materialExpected,key)?materialExpected[key]:a[key],'Exact original or independently approved material RAW: '+key);continue;}
+  if(!aliases.includes(key)){
+   if(Object.hasOwn(materialExpected,key)){
+    const next=JSON.parse(b[key]),expected=JSON.parse(materialExpected[key]),oldCount=JSON.parse(a[key]).length;
+    assert.equal(JSON.stringify(next.slice(0,oldCount)),JSON.stringify(expected.slice(0,oldCount)),'Every existing field and its encoding remain exact: '+key);
+    assert.deepEqual(next.slice(oldCount),expected.slice(oldCount),'Every new field/value and row is approved; object key insertion order is immaterial: '+key);
+    assert.equal(b[key],JSON.stringify(next),'Compact deterministic RAW encoding: '+key);
+   }else assert.equal(b[key],a[key],'Exact original unrelated RAW: '+key);
+   continue;
+  }
   const old=JSON.parse(a[key]),next=JSON.parse(b[key]),ids=new Set(old.map(row=>row.id));
   assert.equal(ids.size,old.length,'Original IDs remain unambiguous');
   const expected=key==='fc_services_v1'?templates.map(legacyService):templates;
@@ -247,7 +283,8 @@ async function main(){
  one=await browser(profile,base+'/index.html',{offline:true});try{await one.until('document.body.dataset.businessState==="ready"');}catch(error){console.log('DIAG cold trust '+JSON.stringify(await one.evaluate('('+require('./helpers/trusted-cold-start').inspectTrustStorage.toString()+')()')));throw error;}
  await one.evaluate('window.FC.views.openInvestorsList();true');assert.equal(await one.evaluate('!!document.querySelector("[data-action=remove-investor-from-list]")'),true);
  const missing=codeCandidate.model.labor.filter(row=>!JSON.parse(Object.fromEntries(JSON.parse(before)).fc_quote_rates_v1).some(old=>old.id===row.id));
- assert.equal(missing.length,65,'This approved release adds exactly65 factory norms including the daily break and combined loading/unloading');
+ assert.equal(missing.length,72,'Legacy update adds 65 existing plus 7 approved opening/channel norms');
+ for(const id of ['labor_channel_install','labor_channel_workshop','labor_handle_layout','labor_handle_install','pdf_tipon_drill','pdf_tipon_insert','pdf_tipon_plate'])assert.ok(missing.some(row=>row.id===id),'Missing approved new norm '+id);
  // This fixture deliberately exercises the legacy validator (LOCAL-FIRST
  // deployment is isolated by trusted-session-browser). Its persisted service
  // compatibility alias has four fields; the canonical catalog and its cache
@@ -259,12 +296,12 @@ async function main(){
  assert.ok(Object.keys(corrections).every(id=>['labor_carrying_cabinet','labor_carrying_disassembly','transport_distance_km','labor_daily_break'].includes(id)));
  const permittedFields=new Set(['rateType','note','minimumLevels','liftLevels','disassemblyWeightKg','breakAfterHours','workdayHours','unitPriceSource']);
  for(const old of originalCatalog){const next=corrections[old.id];if(next)for(const key of Object.keys(old))if(!permittedFields.has(key))assert.deepEqual(next[key],old[key],'Factory upgrade must preserve '+old.id+'/'+key);}
- assertStarterAppend(before,await raw(),codeCandidate.model.labor,corrections,expectedMaterialUpgrade(before));
+ assertStarterAppend(before,await raw(),codeCandidate.model.labor,corrections,expectedPricingUpgrade(before,codeCandidate.model));
  assertFullStarters(await one.evaluate('window.FC.catalogStore.getQuoteRates()'),codeCandidate.model.labor,missing.map(row=>row.id));
  assert.notEqual(await one.evaluate('window.FC.offlineShell.prepare().then(r=>r.version)'),cache);
  assert.equal(await one.evaluate(`new Promise((resolve,reject)=>{const r=indexedDB.open('synthetic-safe-sw-data',1);r.onerror=reject;r.onsuccess=()=>{const db=r.result,tx=db.transaction('rows'),q=tx.objectStore('rows').get('saved');tx.oncomplete=()=>{db.close();resolve(q.result);};tx.onabort=reject;};})`),'EXACT-IDB-12.125');
 
- await one.reload();await one.until('document.body.dataset.businessState==="ready"');assertStarterAppend(before,await raw(),codeCandidate.model.labor,corrections,expectedMaterialUpgrade(before));
+ await one.reload();await one.until('document.body.dataset.businessState==="ready"');assertStarterAppend(before,await raw(),codeCandidate.model.labor,corrections,expectedPricingUpgrade(before,codeCandidate.model));
  console.log('PASS real old-SW → independent network page/active+waiting hashes/native retry/320,360,412px → dirty RAM/multiple clients protected → natural activation/new offline shell/Delete/exact original RAW+IDB and precisely verified new factory norms');
  }finally{for(const timer of timers)clearTimeout(timer);await one?.close();if(!stopped){server.closeAllConnections();await new Promise(r=>server.close(r));}fs.rmSync(dir,{recursive:true,force:true});}
 }

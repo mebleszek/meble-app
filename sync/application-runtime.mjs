@@ -153,7 +153,10 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     if(remote){
      if(!(deployment&&boot.fresh)&&!emptyP0BGlobals){
       const captured=c.capture({getItem:k=>authority.rows()[k]??null},Object.keys(c.schemas));c.validateBundle(captured.model);
-      if(!equal(remote.value,captured.model))fail('LF_INITIAL_GLOBAL_CONFLICT');
+      if(!equal(remote.value,captured.model)){
+       const [{codeCandidate},{matchesApprovedPricingAdditions}]=await Promise.all([import('./code-global-catalogs.generated.mjs'),import('./pricing-factory-additions.mjs')]);
+       if(!matchesApprovedPricingAdditions({current:captured.model,remote:remote.value,candidate:codeCandidate.model,contract:c}))fail('LF_INITIAL_GLOBAL_CONFLICT');
+      }
      }
      const image=await store.readApplication(),application=await authority.incoming(projectApplicationRows(image.rows,globals,remote,c,p));
      await store.apply({scope:'globals',value:remote.value,head:remote.head,expectedVersion:0,application});await authority.refresh();
@@ -218,6 +221,9 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    fc.applicationSyncActions.install(createApplicationActionBinding({window:w,authority,onExit:deferHandover,onClose:()=>{closed=true;sync?.close();deletion?.close();p0b?.close();manualSync?.close();boundary.close();}}));
    await p0b?.bind();
   };await bind();
+  onStage('factory-catalog-additions');
+  const catalogAdditions=await authority.ensureFactoryCatalogs();
+  if(catalogAdditions.applied&&writer){const result=await sync.flush({forceProjects:false});if(!result.ok)state(result);}
   if(localOnly)boot?.confirmLocalReset?.();
   notify();if(p0b)w.setTimeout(()=>{void p0b.offerRecovery();},0);
   return Object.freeze({store,authority,get sync(){return sync;},write:boundary.run,

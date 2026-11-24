@@ -396,6 +396,8 @@ Dopiero na stabilnym modelu przygotować pełniejszy model:
 
 # ETAP 4 — pełniejsze liczenie realnej pracy
 
+**Decyzja właściciela 23.11.2026:** zatwierdzony odrębny pakiet dna szuflad 10 mm (białe/szare, start 200 zł/arkusz, m² i osobny ROZRYS), katalogu Bivert i otwierania/robocizny. [Zakres, postęp i pytania](tools/reports/drawer-bottom-opening-pricing-20261123.md). GOLA odroczone: docelowo zakup całej sztangi na podstawie rysunku; teraz nie naliczać fikcyjnej długości ani materiału. Pozostałe reguły UKW/cargo/drążków/mocowań wymagają osobnego podsumowania i decyzji. Nie nadpisywać indywidualnych cenników ani zaakceptowanych ofert.
+
 W kolejności zapisanej w planie:
 
 1. montaż frontów,

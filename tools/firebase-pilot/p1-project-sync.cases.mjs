@@ -1,4 +1,4 @@
-import {confirmQuoteSources} from './quote-ui-actions.mjs';
+import {confirmQuoteSources,applicationIdle} from './quote-ui-actions.mjs';
 import assert from 'node:assert/strict';
 import * as f from 'firebase/firestore';
 
@@ -120,8 +120,22 @@ async function offlineDraft(c,count,quote){
  const {t,phone,computer,iid,pid,db,ownerUid,until,image,rows,showList,openRoom,addCabinet,saveProject,restartProbe}=c;
  let page=phone.page;await showList(page);
  await until(async()=>(await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomEditors',pid))).data().active===false);
+ // Delivery finishes both editors; offline-quote deliberately retains the
+ // peer's other room. Prove the intended registry, never release that peer.
+ const peerScope=quote?c.wardrobeId:null;
+ const peerDevice=quote?(await image(computer)).replicas.find(row=>row.key===peerScope)?.editor?.deviceId:null;
+ if(quote)assert.ok(peerDevice);
+ await until(async()=>{
+  const registry=(await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomInvestors',iid))).data();
+  const peer=quote?(await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomEditors',peerScope))).data():null;
+  return registry.projects[pid]===false&&(!quote||registry.projects[peerScope]===true)
+   &&Object.entries(registry.projects).every(([scope,active])=>active===(scope===peerScope))
+   &&Object.keys(registry.visits).every(device=>device===peerDevice)
+   &&(!quote||peer?.active===true&&peer.deviceId===peerDevice)
+   &&await page.evaluate(applicationIdle)&&await computer.page.evaluate(applicationIdle);
+ });
  await page.locator('[data-action="open-investor"][data-inv-id="'+iid+'"]').click();
- await page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
+ await page.waitForFunction(iid=>window.uiState.entry==='rooms'&&window.uiState.currentInvestorId===iid&&!window.FC.applicationStartup.inspect().transactionPending&&!window.FC.applicationStartup.inspect().incomingPending,iid);
  await openRoom(phone,pid);await page.waitForFunction(()=>window.FC.session.active&&window.uiState.entry==='app'&&!window.FC.applicationStartup.inspect().transactionPending);
  const confirmed=(await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomProjects',pid))).data();
  await page.context().setOffline(true);await page.waitForFunction(()=>!navigator.onLine);

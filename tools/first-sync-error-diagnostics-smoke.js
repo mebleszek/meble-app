@@ -186,7 +186,7 @@ test('real runtime emits raw refusal code only for observation; same writes, rea
   const trace=[],rows={fc_projects_v1:JSON.stringify([{id:'private-project',investorId:'private-investor'}])};
   const store={p0bRegistry:async()=>null,deviceId:'private-device',pendingHandover:async()=>null,readApplication:async()=>({rows}),snapshot:async scope=>{trace.push('read:'+scope);return scope==='globals'?{replica:{base:{},dirty:false}}:{};},exclusive:fn=>fn(),close(){trace.push('store-close');}};
   const sync={channel:()=>({}),flush:async()=>{trace.push('flush');return {ok:true};},notify(){trace.push('notify');},close(){trace.push('sync-close');}};
-  const authority={rows:()=>rows,assertIdle(){},status:()=>({}),close(){trace.push('authority-close');}};
+  const authority={rows:()=>rows,assertIdle(){},ensureFactoryCatalogs:async()=>({applied:false}),status:()=>({}),close(){trace.push('authority-close');}};
   const globals={},deps={applicationP0BMode,installManualSync,completeMissingApplicationGlobals(){assert.fail('Unexpected catalog write');},emptyInstallationRows:x=>x,
    openLocalFirstStore:async()=>store,createGlobalChannel:()=>globals,createProjectChannel:()=>({}),createApplicationReplication:()=>sync,
    createEmulatorProjectDiscovery:()=>({}),createApplicationCommitter:()=>({}),projectApplicationRows(){assert.fail('Unexpected apply');},

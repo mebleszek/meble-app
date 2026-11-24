@@ -51,8 +51,8 @@
   }
 
   function getMaterials(){
-    try{ if(Array.isArray(materials)) return materials; }catch(_){ }
-    try{ if(ns.catalogStore && typeof ns.catalogStore.getSheetMaterials === 'function') return ns.catalogStore.getSheetMaterials(); }catch(_){ }
+    try{ if(Array.isArray(materials)) return materials.filter(row=>!ns.cabinetDrawerRequirements?.isBottomCatalogRow?.(row)); }catch(_){ }
+    try{ if(ns.catalogStore && typeof ns.catalogStore.getSheetMaterials === 'function') return (ns.catalogStore.getSheetMaterials()||[]).filter(row=>!ns.cabinetDrawerRequirements?.isBottomCatalogRow?.(row)); }catch(_){ }
     return [];
   }
 

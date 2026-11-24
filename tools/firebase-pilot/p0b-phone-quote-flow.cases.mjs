@@ -6,6 +6,15 @@ import * as f from 'firebase/firestore';
 export async function rapidQuoteRemoval(c){
  const {t,phone,computer,offer,wardrobeId,until,image,rows,showList,restartProbe,artifacts}=c;let page=phone.page;
  const history=state=>JSON.parse(rows(state).fc_quote_snapshots_v1||'[]');
+ // This case overlaps deletion with Calculate, not initial ledger receive with
+ // Exit. Finish that setup before asking the peer to release its room editor.
+ await until(async()=>(await image(phone)).outbox.every(row=>row.phase==='verified'));
+ await until(async()=>{
+  const received=history(await image(computer)).some(row=>row.id===offer.id);
+  const state=await computer.page.evaluate(()=>window.FC.applicationStartup.inspect());
+  return received&&!state.transactionPending&&!state.incomingPending;
+ });
+ assert.deepEqual(history(await image(computer)).find(row=>row.id===offer.id),offer,'The peer has applied the exact initial offer before Exit');
  await showList(computer.page);await until(async()=>!(await image(computer)).replicas.find(row=>row.key===wardrobeId).editor?.active);
  await computer.page.locator('[data-action="close-investors-list"]').click();
  await until(async()=>(await image(phone)).outbox.every(row=>row.phase==='verified'));

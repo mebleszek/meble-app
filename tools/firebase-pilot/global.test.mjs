@@ -76,6 +76,82 @@ test('Concurrent devices CAS: exactly one wins and stale publication cannot repl
   const read=await b.globals.read();assert.equal(read.ok,true);assert.deepEqual(read.model,out[0].ok?m:n);assert.equal((await b.globals.prepare({model:n,expectedHead:head})).code,'GLOBAL_WRITE_CONFLICT');head=read.head;
  }
 });
+
+test('Identical additive catalog updates from two devices are one publication; different stale data still refuse',async()=>{
+ const a=await client(),b=await client();await grant(a.uid);
+ const original=model(),base=(await publish(a,original)).head,next=clone(original);
+ next.materials.push({id:'approved-added-white16',name:'Synthetic drawer16 white',materialType:'laminat',price:200,priceUnit:'sheet',thicknessMm:16,hasGrain:false});
+ const revisions=(await documents(a.uid,'globalRevisions')).length;
+ const pa=await a.globals.prepare({model:next,expectedHead:base,idempotentPublication:true}),pb=await b.globals.prepare({model:next,expectedHead:base,idempotentPublication:true});
+ assert.ok(pa.ok&&pb.ok);
+ const first=await a.globals.publish(pa.handle),second=await b.globals.publish(pb.handle);
+ assert.equal(first.ok,true,JSON.stringify(first));assert.equal(second.ok,true,JSON.stringify(second));
+ assert.deepEqual(second.head,first.head);assert.equal((await documents(a.uid,'globalRevisions')).length,revisions+1);
+ assert.deepEqual((await b.globals.read()).model,next);assert.equal((await b.globals.confirm(pb.handle)).ok,true,'A restart/uncertain ACK can confirm the same immutable publication');
+ const repeated=await b.globals.prepare({model:next,expectedHead:base,idempotentPublication:true});assert.equal(repeated.unchanged,true);
+ const different=clone(next);different.materials[0].price=999;
+ assert.equal((await b.globals.prepare({model:different,expectedHead:base,idempotentPublication:true})).code,'GLOBAL_WRITE_CONFLICT');
+ assert.deepEqual((await b.globals.read()).model,next,'No changed private price is overwritten by a stale request');
+ const together=clone(next);together.materials.push({id:'approved-added-grey16',name:'Synthetic drawer16 grey',materialType:'laminat',price:200,priceUnit:'sheet',thicknessMm:16,hasGrain:false});
+ const plans=await Promise.all([a.globals,b.globals].map(g=>g.prepare({model:together,expectedHead:first.head,idempotentPublication:true})));
+ assert.ok(plans.every(p=>p.ok));
+ const simultaneous=await Promise.all([a.globals.publish(plans[0].handle),b.globals.publish(plans[1].handle)]);
+ assert.ok(simultaneous.every(r=>r.ok),JSON.stringify(simultaneous));assert.deepEqual(simultaneous[0].head,simultaneous[1].head);
+ assert.equal((await documents(a.uid,'globalRevisions')).length,revisions+2);assert.deepEqual((await b.globals.read()).model,together);
+});
+test('Additive LOCAL-FIRST catalog recovers staging/SIGKILL/ACK and preserves a newer conflicting head',async()=>{
+ const {createGlobalChannel,createDurableSynchronizer}=await import('../../sync/local-first-sync.mjs');
+ const {startLocalFirstServer,openBrowserDevice}=await import('../helpers/local-first-browser.mjs');
+ const os=await import('node:os'),path=await import('node:path');
+ const server=await startLocalFirstServer(),directory=fs.mkdtempSync(path.join(os.tmpdir(),'meble-catalog-upgrade-'));
+ let browser,store,sync,channel,online=false,crashAt=null,headWrites=0,recordWrites=0;
+ const sdk={...f,async runTransaction(db,fn,options){let head=false,records=false;
+  const result=await f.runTransaction(db,tx=>fn(new Proxy(tx,{get(target,key){
+   if(key==='set')return(ref,data)=>{if(ref.path.endsWith('/globalData/current'))head=true;if(ref.path.includes('/globalRecords/'))records=true;return target.set(ref,data);};
+   const value=target[key];return typeof value==='function'?value.bind(target):value;
+  }})),options);
+  if(head)headWrites++;if(records)recordWrites++;
+  if(crashAt==='staging'&&records||crashAt==='ack'&&head){crashAt=null;await browser.crash();throw Object.assign(Error('synthetic catalog SIGKILL'),{code:'unavailable'});}
+  return result;
+ }};
+ try{
+  const a=await client('synthetic-global-owner',{firestore:sdk}),b=await client();await grant(a.uid);
+  let current=model(),head=(await publish(b,current)).head;
+  const binding={name:'meble-lf-test-catalog-upgrade',ownerUid:a.uid,deviceId:'computer',instanceId:'catalog-upgrade',initialize:true};
+  const connect=()=>{channel=createGlobalChannel({writer:{...a.connection,auth:a.auth},reader:{...b.connection,auth:b.auth},ownerUid:a.uid,contract:a.r.FC.globalDataContract,factory:a.r.FC.firebaseGlobalTransport,store});sync=createDurableSynchronizer({store,channels:[channel],eventTarget:new EventTarget(),online:()=>online,ownsChannels:true});};
+  const reopen=async()=>{online=false;await sync?.close();browser=await openBrowserDevice(server,path.join(directory,'computer'));store=await browser.open({...binding,initialize:false});connect();};
+  browser=await openBrowserDevice(server,path.join(directory,'computer'));store=await browser.open(binding);
+  await store.apply({scope:'globals',value:current,head,expectedVersion:0});connect();
+  for(const [index,phase]of ['staging','ack','conflict'].entries()){
+   const next=clone(current);next.materials.push({id:'approved-upgrade-'+index,name:'Approved synthetic '+index,materialType:'laminat',price:200,priceUnit:'sheet',thicknessMm:16,hasGrain:false});
+   const originalRows=await browser.evaluate('JSON.stringify(localStorage)');
+   online=false;const before=await store.snapshot('globals'),revisionCount=(await documents(a.uid,'globalRevisions')).length;
+   await store.commit({scope:'globals',operationId:'upgrade-'+index,value:next,expectedVersion:before.replica.version});
+   crashAt=phase==='ack'?'ack':'staging';online=true;
+   const failed=await sync.flush();assert.equal(failed.ok,false);assert.equal(crashAt,null,'The injected crash must actually run');
+   assert.ok(recordWrites>0,'Immutable records are staged before SIGKILL');
+   if(phase==='conflict'){
+    const newer=clone(current);newer.materials[0].price=987.25;head=(await publish(b,newer,head)).head;current=newer;
+   }
+   await reopen();assert.equal((await store.snapshot('globals')).operations.at(-1).phase,'inflight');
+   online=true;const writesBeforeRecovery=headWrites,result=await sync.flush();
+   const restored=await store.snapshot('globals');
+   assert.equal(await browser.evaluate('JSON.stringify(localStorage)'),originalRows,'Recovery never rewrites protected source RAW');
+   if(phase==='conflict'){
+    assert.equal(result.ok,false);assert.equal(result.code,'GLOBAL_WRITE_CONFLICT');
+    assert.equal(restored.operations.at(-1).phase,'conflict');assert.deepEqual(JSON.parse(restored.replica.json),next);
+    assert.deepEqual((await b.globals.read()).model,current);assert.equal(headWrites,writesBeforeRecovery);
+   }else{
+    assert.equal(result.ok,true,JSON.stringify(result));assert.equal(restored.operations.at(-1).phase,'verified');
+    assert.deepEqual(JSON.parse(restored.replica.json),next);assert.deepEqual((await b.globals.read()).model,next);
+    assert.equal((await documents(a.uid,'globalRevisions')).length,revisionCount+1,'One revision across restart');
+    assert.equal(headWrites,writesBeforeRecovery+(phase==='staging'?1:0),'Lost ACK requires no second publication');
+    current=next;head=restored.replica.base;
+   }
+  }
+ }finally{await sync?.close();await browser?.close();await server.close();fs.rmSync(directory,{recursive:true,force:true});}
+});
+
 test('App-only/pilot-only/no grant, foreign UID, anonymous and signed-out users cannot bypass Rules',async()=>{
  const c=await client();await grant(c.uid,{globalDataEnabled:false});assert.equal((await c.globals.readHead()).code,'GLOBAL_PERMISSION_DENIED');
  await grant(c.uid,{appEnabled:false});assert.equal((await c.globals.readHead()).code,'GLOBAL_PERMISSION_DENIED');

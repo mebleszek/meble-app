@@ -4,6 +4,20 @@
 
   function getValidationApi(){ return (window.FC && window.FC.cabinetModalValidation) || {}; }
   function getSetWizardApi(){ return (window.FC && window.FC.cabinetModalSetWizard) || {}; }
+  function validateBottomColor(room,draft,showInfo){
+    const back=ns.cabinetCutlist?.backGeometry?.(draft,room);
+    if(back?.code==='BACK_POSITION_REQUIRED'){
+      if(typeof showInfo==='function')showInfo('Wybierz montaż pleców','Plecy 18 mm wymagają wyboru: wewnętrzne albo zewnętrzne.');
+      return false;
+    }
+    const drawers=ns.cabinetDrawerRequirements;
+    if(drawers?.needsBottomColor(room,draft)&&!drawers.bottomMaterial(draft)){
+      if(typeof showInfo==='function')showInfo('Wybierz kolor płyt szuflad','Dno i tył szuflady systemowej 16 mm oraz dno skrzynkowej 10 mm muszą mieć wybrany kolor: biały albo szary.');
+      return false;
+    }
+    if(ns.cabinetInnerDrawers&&!ns.cabinetInnerDrawers.validate(room,draft,showInfo))return false;
+    return true;
+  }
 
   function syncDraftFromCabinetModalFormSafe(draft){
     const api = getValidationApi();
@@ -141,6 +155,10 @@
         applyAventosValidationUISafe(room, draft);
         return false;
       }
+      if(!validateBottomColor(room,draft,showInfo))return false;
+      for(const group of ns.cabinetDrawerSelection?.capacityGroups(room,draft)||[]){
+        if(group.forced)draft.details={...draft.details,[group.key]:group.options[0]};
+      }
 
       if(!beginCabinetDraft()) return false;
       projectData[room] = projectData[room] || { cabinets:[], fronts:[], sets:[], settings:{} };
@@ -206,6 +224,13 @@
       btn.disabled = true;
       if(cancel) cancel.disabled = true;
       try{
+        if(getSetWizardApi().isSetModeActive?.()){
+          const spec=ns.cabinetModalSetMaterials?.getSpec?.();
+          if(spec?.backMaterial==='18 mm pod kolor korpusu'&&!['internal','external'].includes(spec.backPosition)){ctx.showCabinetInfo?.('Wybierz montaż pleców','Plecy 18 mm wymagają wyboru: wewnętrzne albo zewnętrzne.');return false;}
+        }else if(ctx?.draft){
+          syncDraftFromCabinetModalFormSafe(ctx.draft);
+          if(!validateBottomColor(uiState.roomType,ctx.draft,ctx.showCabinetInfo))return false;
+        }
         return await (ns.applicationWrite ? ns.applicationWrite.draftHandler(save)(e) : save(e));
       }finally{
         btn.disabled = false;

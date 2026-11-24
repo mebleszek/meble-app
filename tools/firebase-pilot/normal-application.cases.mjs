@@ -7,7 +7,7 @@ import {initializeTestEnvironment,assertFails} from '@firebase/rules-unit-testin
 import {doc,setDoc,getDoc,getDocs,collection,query,limit,updateDoc,deleteDoc,serverTimestamp,writeBatch} from 'firebase/firestore';
 import {model,runtime} from './cloud-sync-fixture.mjs';
 import {realMainAuthInjection} from './normal-main-auth.mjs';
-import {startupReady} from './normal-startup-readiness.mjs';
+import {startupReady,replicationWaiting} from './normal-startup-readiness.mjs';
 const require=createRequire(import.meta.url),{waitForGesturePoint,finishPendingTouchScroll,observeGesture}=require('../helpers/browser-test-readiness.js'),{startBrowser}=require('../helpers/chromium-runtime.js'),{injection}=require('../trusted-session-browser-smoke.js');
 const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url))),defaultUid='synthetic-phone-owner';
 export async function runNormalApplication(t,{deployment=false,catalogCutover=false,runUi,p0bDemo=false,p0bRegistry=false,startupProbe,testOwner=defaultUid,realMainAuth=false,factoryLabor=false}={}){
@@ -28,7 +28,13 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   }catch(_){res.writeHead(404);res.end();}
  });await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const origin='http://127.0.0.1:'+server.address().port,dir=fs.mkdtempSync(path.join(os.tmpdir(),'normal-local-first-')),devices=[];
- t.after(async()=>{for(const d of devices){await d.browser?.close();await d.owner?.close();}await new Promise(r=>{server.close(r);server.closeAllConnections();});await env.cleanup();fs.rmSync(dir,{recursive:true,force:true});});
+ t.after(async()=>{
+  const closed=await Promise.allSettled(devices.map(async d=>{try{await d.browser?.close();}finally{await d.owner?.close();}}));
+  await new Promise(r=>{server.close(r);server.closeAllConnections();});await env.cleanup();
+  const failures=closed.filter(result=>result.status==='rejected');
+  if(failures.length)throw new AggregateError(failures.map(result=>result.reason),'Normal fixture browser cleanup unconfirmed; profiles retained');
+  fs.rmSync(dir,{recursive:true,force:true});
+ });
  const catalogs=model();for(const ref of ['laminat TEST','laminat','TEST','HDF',...(p0bRegistry?['HDF 3mm biała']:[])])if(!catalogs.materials.some(r=>[r.id,r.name,r.materialType].includes(ref)))catalogs.materials.push({id:'normal-material-'+catalogs.materials.length,name:ref,materialType:'synthetic',price:12.375,priceUnit:'sheet'});
  if(factoryLabor){
   const factory=runtime();factory.load('js/app/pricing/labor-catalog-definitions.js');factory.load('js/app/pricing/labor-catalog.js');
@@ -278,7 +284,16 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  const beforeReceiver=deployment?(await getDoc(doc(ownerClient,'users',uid,'globalData','current'))).data():null;
  if(deployment)computer=await device('computer');else await enable(computer);
  if(deployment)assert.equal((await getDoc(doc(ownerClient,'users',uid,'globalData','current'))).data().revisionId,beforeReceiver.revisionId,'Empty device must never publish defaults over the server');
- async function until(check){for(let i=0;i<200;i++){if(await check())return;await new Promise(r=>setTimeout(r,25));}throw Error('Normal replication timeout '+JSON.stringify(await Promise.all(devices.map(d=>d.page.evaluate(()=>({...window.FC.applicationStartup.inspect(),connectionError:window.normalConnectionError,sdkErrors:window.normalSdkErrors}))))));}
+ async function until(check){
+  const now=Date.now(),wait={startedAt:now,lastProgressAt:now,signature:''};let progressing=false;
+  for(let i=0;i<200||progressing;i++){
+   if(await check())return;
+   const signature=JSON.stringify(await Promise.all(devices.map(d=>d.page.evaluate(()=>window.normalDataRpcProgress||0))));
+   progressing=replicationWaiting(wait,Date.now(),signature);
+   await new Promise(r=>setTimeout(r,25));
+  }
+  throw Error('Normal replication timeout '+JSON.stringify(await Promise.all(devices.map(d=>d.page.evaluate(()=>({...window.FC.applicationStartup.inspect(),connectionError:window.normalConnectionError,sdkErrors:window.normalSdkErrors,rpc:window.normalRpcTimeline,pendingRpc:window.normalPendingRpc}))))));
+ }
  // The receiving device may display a remote project revision before its
  // application transaction becomes idle. Wait for that boundary, invoke the
  // real navigation exactly once and require its actual list to contain the ID.
@@ -541,7 +556,9 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  await phone.page.evaluate(()=>window.FC.applicationWrite.globals(()=>{const rows=window.FC.storage.getJSON('fc_quote_rates_v1');rows[0].price=47.125;if(!window.FC.storage.setJSON('fc_quote_rates_v1',rows))throw Error('Price refused');}));
  await until(async()=>await computer.page.evaluate(()=>window.FC.storage.getJSON('fc_quote_rates_v1')[0].price===47.125&&window.FC.catalogStore.getQuoteRates()[0].price===47.125));
  for(const d of [phone,computer])assert.equal(await d.page.evaluate(()=>localStorage.getItem('fc_quote_rates_v1')===localStorage.getItem('fc_services_v1')),true);
- const expectedCatalogs=structuredClone(catalogs);if(deployment)expectedCatalogs.materials.push({id:'receive-after-room-exit',name:'receive-after-room-exit',materialType:'synthetic',price:23,priceUnit:'sheet'});expectedCatalogs.stock[0].qty=29;expectedCatalogs.labor[0].price=47.125;
+ const [{codeCandidate},{planPricingFactoryAdditions}]=await Promise.all([import('../../sync/code-global-catalogs.generated.mjs'),import('../../sync/pricing-factory-additions.mjs')]);
+ const expectedCatalogs=planPricingFactoryAdditions({current:catalogs,candidate:codeCandidate.model,contract:runtime().FC.globalDataContract})?.model||structuredClone(catalogs);
+ if(deployment)expectedCatalogs.materials.push({id:'receive-after-room-exit',name:'receive-after-room-exit',materialType:'synthetic',price:23,priceUnit:'sheet'});expectedCatalogs.stock[0].qty=29;expectedCatalogs.labor[0].price=47.125;
  for(const d of [phone,computer])assert.equal(await d.page.evaluate(()=>window.FC.catalogStore.getQuoteRates()[0].price),47.125,'Live catalog reader refreshed');
  for(const d of [phone,computer])assert.deepEqual(await d.page.evaluate(()=>window.FC.globalDataContract.capture(localStorage,Object.keys(window.FC.globalDataContract.schemas)).model),expectedCatalogs,'Every value in all fourteen domains, not just their presence');
  assert.deepEqual(await computer.page.evaluate(pid=>window.FC.projectStore.getById(pid),pid),await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid),pid),'Whole owned record, stable identifiers and unknown fields');
@@ -596,7 +613,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  }
  assert.equal(await computer.page.evaluate(id=>window.FC.actions.dispatch('open-investor',{element:{getAttribute:()=>id}}),ids[0]),true);
  await touch(computer,'.investor-room-quick-btn[data-room="'+room+'"]');
- await computer.page.waitForFunction(()=>window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending);
+ try{await computer.page.waitForFunction(()=>window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending);}catch(error){throw Error(error.message+' Offline reopen '+JSON.stringify(await computer.page.evaluate(()=>({state:window.FC.applicationStartup.inspect(),session:window.FC.session.active,entry:window.uiState.entry,notices:[...document.querySelectorAll('.info-box')].map(node=>node.textContent),gesture:window.normalGesture,sdkErrors:window.normalSdkErrors,rpc:window.normalRpcTimeline,pendingRpc:window.normalPendingRpc}))));}
  assert.equal(await computer.page.evaluate(()=>navigator.onLine),false,'A touch gesture preserves the offline network controller');
  assert.equal(await pendingExit(),null,'Explicit reopening withdraws a release that never reached the server');
  const beforeRestartDraft=await readDraft();

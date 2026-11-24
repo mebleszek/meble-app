@@ -290,7 +290,20 @@
     return '';
   }
 
+  function openingFact(code,key,roomId,cabinet,cache){
+    const mode=text(cabinet?.openingSystem).toLowerCase();
+    const relevant=key==='handleQty'?['uchwyt klienta','krawędziowy hexa gtv'].includes(mode):mode==='tip-on';
+    const info=relevant?hardwareRequirements().getOpeningInfo?.(roomId,cabinet,cache.frontParts):{ok:true,[key]:0};
+    return makeFact(code,info?.ok?info[key]:null,{hasValue:!!info?.ok,source:'rzeczywiste fronty i wybrane otwieranie',warning:info?.ok?'':info?.code||'OPENING_REQUIREMENT_UNAVAILABLE'});
+  }
   const FACT_CALCULATORS = {
+    'opening.handle_count':(roomId,cabinet,cache)=>openingFact('opening.handle_count','handleQty',roomId,cabinet,cache),
+    'opening.tipon_count':(roomId,cabinet,cache)=>openingFact('opening.tipon_count','tiponQty',roomId,cabinet,cache),
+    'opening.channel_count':(roomId,cabinet)=>{
+      const channel=text(cabinet && cabinet.openingSystem).toLowerCase()==='korytkowy';
+      const info=hardwareRequirements().getChannelInfo?.(cabinet);
+      return makeFact('opening.channel_count',!channel?0:info?.ok?info.count:null,{hasValue:!channel||!!info?.ok,source:'wybrane korytko płytowe',warning:channel&&!info?.ok?'Nie potwierdzono kierunku lub wymiaru korytka.':''});
+    },
     'cabinet.count':(roomId, cabinet)=> makeFact('cabinet.count', cabinet && typeof cabinet === 'object' ? 1 : 0, { displayValue:cabinet ? '1' : '0', source:'typ szafki' }),
     'cabinet.width_mm':(roomId, cabinet)=> makeFact('cabinet.width_mm', mmFromCmLike(cabinet && cabinet.width), { displayValue:`${mmFromCmLike(cabinet && cabinet.width)} mm`, source:'pole szerokości' }),
     'cabinet.height_mm':(roomId, cabinet)=> makeFact('cabinet.height_mm', mmFromCmLike(cabinet && cabinet.height), { displayValue:`${mmFromCmLike(cabinet && cabinet.height)} mm`, source:'pole wysokości całkowitej' }),

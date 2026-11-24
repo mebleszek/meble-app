@@ -44,7 +44,8 @@
     { key:'blum_legrabox', label:'Blum LEGRABOX', manufacturer:'Blum', system:'systemowe', brand:'blum', model:'legrabox', drawerSystem:'systemowe', materialSpec:'producer_spec' },
     { key:'blum_merivobox', label:'Blum MERIVOBOX', manufacturer:'Blum', system:'systemowe', brand:'blum', model:'merivobox', drawerSystem:'systemowe', materialSpec:'producer_spec' },
     { key:'gtv_axis_pro', label:'GTV Axis Pro', manufacturer:'GTV', system:'systemowe', brand:'gtv', model:'axis_pro', drawerSystem:'systemowe', materialSpec:'producer_spec' },
-    { key:'rejs_systemowe', label:'Rejs — system szuflady', manufacturer:'Rejs', system:'systemowe', brand:'rejs', model:'rejs_systemowe', drawerSystem:'systemowe', materialSpec:'producer_spec' }
+    { key:'rejs_comfort_box_plus', label:'Rejs Comfort Box Plus', manufacturer:'Rejs', system:'systemowe', brand:'rejs', model:'comfort_box_plus', drawerSystem:'systemowe', materialSpec:'producer_spec' },
+    { key:'rejs_ultra_box', label:'Rejs Ultra Box', manufacturer:'Rejs', system:'systemowe', brand:'rejs', model:'ultra_box', drawerSystem:'systemowe', materialSpec:'producer_spec' }
   ];
 
   const DEFAULT_HARDWARE_DRAWER_SYSTEM_PREFERENCES = { drawers:'' };
@@ -111,6 +112,7 @@
   function normalizeDrawerSystemKey(value){
     const raw = text(value);
     if(!raw) return '';
+    if(raw==='rejs_systemowe')return raw; // Preserve stored legacy preference, never offer for new selection.
     const normalized = raw.toLowerCase().replace(/[\s\-]+/g, '_');
     const hit = DRAWER_SYSTEM_OPTIONS.find((opt)=> opt.key === raw || opt.key === normalized || text(opt.label).toLowerCase() === raw.toLowerCase());
     return hit ? hit.key : '';
@@ -118,6 +120,7 @@
 
   function getDrawerSystemOption(value){
     const key = normalizeDrawerSystemKey(value);
+    if(key==='rejs_systemowe')return { key:'rejs_systemowe', label:'Rejs — system szuflady', manufacturer:'Rejs', system:'systemowe', brand:'rejs', model:'rejs_systemowe', drawerSystem:'systemowe', materialSpec:'producer_spec' };
     return clone(DRAWER_SYSTEM_OPTIONS.find((opt)=> opt.key === key) || DRAWER_SYSTEM_OPTIONS[0]);
   }
 
@@ -177,6 +180,7 @@
     const def = RUNNER_TYPES.find(row=>row.value === type);
     if(!def) return [];
     return activeHardwareRows().filter(row=>{
+      if(ns.hardwareDrawerCatalog?.specFor(row.id)?.productKind==='system')return false;
       const param = row.technicalParams && row.technicalParams.rodzaj_prowadnicy;
       const value = isPlainObject(param) ? param.value : param;
       return (row.hardwareCategory || row.category) === 'Szuflady / prowadnice' && text(value).toLowerCase() === def.technical

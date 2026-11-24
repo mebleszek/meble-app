@@ -19,7 +19,7 @@ function balanced(parts){
 }
 function drawers(r){
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../js/app/cabinet/cabinet-drawer-requirements.js'),'utf8'),r.s);
- r.cab().subType='szuflady';r.cab().details={shelves:3,drawers:3,drawerLayout:'3_equal',drawerSystem:'skrzynkowe',innerDrawerType:'skrzynkowe',innerDrawerCount:2};
+ r.cab().width=45;r.cab().subType='szuflady';r.cab().details={shelves:3,drawers:3,drawerLayout:'3_equal',drawerSystem:'skrzynkowe',innerDrawerType:'skrzynkowe',innerDrawerCount:2};
  return r;
 }
 function setFixture(preset='C'){
@@ -56,22 +56,22 @@ test('Copying with a new cabinet ID never reuses group ownership',()=>{
 test('Native drawer front and box groups retain quantities through 3 -> 5',()=>{
  const r=drawers(fixture()),first=r.parts(),before=groups(first).filter(g=>g.groupRoleId!=='body.shelves');
  assert.equal(first.filter(p=>p.name==='Front').reduce((n,p)=>n+p.qty,0),3);
- assert.equal(before.find(g=>g.groupRoleId==='drawer.front_drawers.sides').qty,6);
+ assert.equal(before.filter(g=>g.groupRoleId==='drawer.front_drawers.sides').reduce((n,g)=>n+g.qty,0),6);
  r.cab().details.drawers=5;r.cab().details.drawerLayout='5_equal';const next=r.parts(),after=groups(next).filter(g=>g.groupRoleId!=='body.shelves');
- assert.equal(next.filter(p=>p.name==='Front').reduce((n,p)=>n+p.qty,0),5);assert.equal(after.find(g=>g.groupRoleId==='drawer.front_drawers.sides').qty,10);
+ assert.equal(next.filter(p=>p.name==='Front').reduce((n,p)=>n+p.qty,0),5);assert.equal(after.filter(g=>g.groupRoleId==='drawer.front_drawers.sides').reduce((n,g)=>n+g.qty,0),10);
  assert.deepEqual(keys(next),keys(first));
  balanced(first);balanced(next);
 });
 test('Front and inner drawers are distinct structural groups even with identical box geometry',()=>{
  const r=drawers(fixture()),rows=r.parts(),sides=rows.filter(p=>p.name.startsWith('Bok szuflady'));
- assert.equal(sides.length,2);assert.equal(new Set(groups(sides).map(g=>g.groupRoleId)).size,2);
+ assert.equal(sides.reduce((n,p)=>n+p.qty,0),10);assert.equal(new Set(groups(sides).map(g=>g.groupRoleId)).size,2);
  const parts=aggregateRows(r.aggregate(['room']));balanced(parts);
  const groupedSides=parts.find(p=>p.name.startsWith('Bok szuflady')&&p.sourceGroups.some(g=>g.groupRoleId==='drawer.front_drawers.sides'));
  assert.ok(groupedSides.sourceGroups.some(g=>g.groupRoleId==='drawer.front_drawers.sides'));
  assert.ok(groups(parts).some(g=>g.groupRoleId==='drawer.inner_drawers.sides'));
 });
 test('Mixed 1-small/2-large template fronts retain two semantic groups, never one geometry-based owner',()=>{
- const r=drawers(fixture());r.cab().details.drawerLayout='3_1_2_2';const fronts=r.parts().filter(p=>p.name==='Front'),frontGroups=groups(fronts);
+ const r=drawers(fixture());r.cab().details.drawerLayout='3_1_2_2';const fronts=r.parts().filter(p=>p.name==='Front'),frontGroups=groups(fronts).filter(g=>g.groupRoleId.startsWith('front.drawer'));
  assert.equal(fronts.reduce((n,p)=>n+p.qty,0),3);assert.equal(frontGroups.length,2);
  assert.equal(frontGroups.find(g=>g.groupRoleId==='front.drawer.small').qty,1);
  assert.equal(frontGroups.find(g=>g.groupRoleId==='front.drawer.large').qty,2);balanced(fronts);
@@ -80,7 +80,7 @@ test('Mixed 1-small/2-large template fronts retain two semantic groups, never on
  r.cab().details.drawers=5;const canonical=r.parts().filter(p=>p.name==='Front');assert.equal(canonical.reduce((n,p)=>n+p.qty,0),3);assert.equal(groups(canonical).length,2);assert.ok(canonical.every(p=>p.sourceIssues.length===0));
 });
 test('Existing fixed parts stay individual refs; singleton drawer roles are preserved',()=>{
- const r=drawers(fixture());r.cab().subType='piekarnikowa';r.cab().details={ovenOption:'szuflada_dol',drawerSystem:'skrzynkowe'};
+ const r=drawers(fixture());r.cab().width=45;r.cab().subType='piekarnikowa';r.cab().details={ovenOption:'szuflada_dol',drawerSystem:'skrzynkowe'};
  const rows=r.parts(),sides=rows.find(p=>p.name==='Bok'),box=rows.find(p=>p.name.startsWith('Bok szuflady'));
  assert.equal(sides.sourceRefs.length,2);assert.equal(sides.sourceGroups.length,0);
  assert.equal(box.sourceRefs.length,2);assert.equal(box.sourceGroups.length,0);balanced(rows);
@@ -90,10 +90,9 @@ test('Mixed individual front roles in one geometry row are not lost or double co
  // Leg height 10: drawer and door are both 60 x 20 and aggregate into one row.
  const front=r.parts().find(p=>p.name==='Front');assert.equal(front.qty,2);assert.equal(front.sourceRefs.length,2);assert.equal(front.sourceGroups.length,0);balanced([front]);
 });
-test('Ambiguous manual/duplicate requirements remain issues instead of counterfeit standard groups',()=>{
+test('Ambiguous manual/duplicate requirements refuse before counterfeit geometry or standard groups',()=>{
  const r=drawers(fixture());r.cab().drawerRequirements=[{source:'front_drawers',qty:2,technical:{drawerKind:'box'}},{source:'front_drawers',qty:1,technical:{drawerKind:'box'}}];
- const rows=r.parts().filter(p=>p.name.startsWith('Bok szuflady'));assert.equal(rows.reduce((n,p)=>n+p.qty,0),6);
- assert.equal(groups(rows).length,0);assert.ok(rows.every(p=>p.sourceIssues[0].reason==='ambiguous_drawer_requirement'));balanced(rows);
+ const before=JSON.stringify(r.s.projectData);assert.throws(()=>r.parts(),e=>e.code==='DRAWER_FRONT_HEIGHT_UNCONFIRMED');assert.equal(JSON.stringify(r.s.projectData),before);
 });
 test('Both aggregators preserve every group owner and its contribution',()=>{
  const r=fixture(),raw=r.parts().concat(r.parts(r.s.projectData.room.cabinets[1]),r.parts(r.s.projectData.other.cabinets[0],'other'));

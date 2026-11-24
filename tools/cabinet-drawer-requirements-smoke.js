@@ -35,6 +35,12 @@ const standardTrash = { type:'stojąca', subType:'standardowa', details:{ inside
 assert(count(standardTrash) === 0, 'zwykła szafka z drzwiami ignoruje śmieci drawerCount/innerDrawerCount', api.getDrawerRequirements('kuchnia', standardTrash));
 assert(fact(standardTrash).value === 0, 'drawer.count dla zwykłej szafki z ukrytymi polami wynosi 0', fact(standardTrash));
 
+const standardInner={...standardTrash,details:{insideMode:'szuflady_wew',innerDrawerType:'skrzynkowe',innerDrawerCount:'2'}};
+assert(count(standardInner)===2,'Jawnie wybrane szuflady wewnętrzne w szafce z drzwiami muszą istnieć w kanonicznych wymaganiach');
+const retained=api.cleanClone(standardInner);assert(retained.details.innerDrawerType==='skrzynkowe'&&retained.details.innerDrawerCount==='2','Zapis nie może usuwać jawnych szuflad wewnętrznych');
+assert(api.hasInnerDrawers('kuchnia',standardInner),'Canonical inner usage is shared with automatic hinges');
+assert(!api.hasInnerDrawers('kuchnia',standardTrash),'Hidden legacy counts cannot force a zero-protrusion hinge');
+
 const explicit = { type:'stojąca', subType:'standardowa', drawerRequirements:[{ source:'manual_requirement', qty:2, label:'Kreator dodał szuflady' }], details:{ drawerCount:'99' } };
 assert(count(explicit) === 2, 'jawne drawerRequirements liczą się niezależnie od typu szafki', api.getDrawerRequirements('kuchnia', explicit));
 assert(fact(explicit).value === 2, 'drawer.count czyta jawne wymagania przyszłego kreatora', fact(explicit));
@@ -44,6 +50,7 @@ assert(count(drawers) === 3, 'szafka szufladowa liczy frontowe szuflady z drawer
 
 const drawersInner = { type:'stojąca', subType:'szuflady', details:{ drawerLayout:'2_equal', drawerSystem:'skrzynkowe', innerDrawerType:'skrzynkowe', innerDrawerCount:'2' } };
 assert(count(drawersInner) === 4, 'szafka szufladowa liczy frontowe + jawnie włączone wewnętrzne', api.getDrawerRequirements('kuchnia', drawersInner));
+assert(api.getDrawerRequirements('kuchnia',drawersInner).find(row=>row.source==='inner_drawers').technical.usage==='wewnętrzna','Zastosowanie szuflady wewnętrznej nie może zmienić się w frontową podczas normalizacji');
 
 assert(count({ type:'stojąca', subType:'zlewowa', details:{ sinkFront:'szuflada', sinkExtra:'szuflada_wew', sinkExtraCount:'1' } }) === 2, 'zlewowa liczy dużą szufladę i szufladę wewnętrzną');
 assert(count({ type:'stojąca', subType:'piekarnikowa', details:{ ovenOption:'szuflada_dol' } }) === 1, 'piekarnikowa z opcją szuflady liczy jedną szufladę');
@@ -61,7 +68,9 @@ assert(!draftSource.includes("drawerCount: '3'") && !draftSource.includes("inner
 const index = read('index.html');
 assert(index.indexOf('js/app/cabinet/cabinet-drawer-requirements.js') > 0, 'index ładuje moduł wymagań szuflad');
 assert(index.indexOf('js/app/cabinet/cabinet-drawer-requirements.js') < index.indexOf('js/app/pricing/work-quantity-facts.js'), 'wymagania szuflad ładują się przed work-quantity-facts');
-assert(!read('js/app/cabinet/cabinet-modal.js').includes('cabinetDrawerRequirements'), 'cabinet-modal.js nie jest ruszony przez etap wymagań szuflad');
+assert(read('js/app/cabinet/cabinet-modal.js').includes('drawers?.needsBottomColor(uiState.roomType,draft)'), 'Modal pyta o kolor według centralnych wymagań, bez osobnego licznika szuflad');
+assert(api.needsBottomColor('kuchnia',standardTrash)===false,'Śmieci legacy nie uruchamiają wyboru dna');
+assert(api.needsBottomColor('kuchnia',drawersInner)===true,'Skrzynkowe frontowe i wewnętrzne korzystają ze wspólnego wyboru dna');
 assert(!read('js/app/ui/cabinets-render.js').includes('cabinetDrawerRequirements'), 'cabinets-render.js nie jest ruszony przez etap wymagań szuflad');
 console.log('OK cabinet-drawer-requirements smoke');
 console.log(' - drawer.count czyta jawne wymagania szuflad/prowadnic');

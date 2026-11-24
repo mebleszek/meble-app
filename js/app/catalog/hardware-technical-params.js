@@ -35,11 +35,11 @@
     { category:'Prowadniki', key:'forma_prowadnika', label:'Forma prowadnika', fieldType:'text', unit:'', options:['krzyżowy','prosty'], keyFeature:true, typePart:true, compareMode:'equal', order:30, active:true },
 
     { category:'Szuflady / prowadnice', key:'rodzaj_prowadnicy', label:'Rodzaj prowadnicy', fieldType:'text', unit:'', options:['kulkowa','dolnego montażu','rolkowa'], keyFeature:true, typePart:true, compareMode:'equal', order:5, active:true },
-    { category:'Szuflady / prowadnice', key:'profil_szuflady', label:'Profil / wysokość', fieldType:'text', unit:'', options:['M','N','H','niska','średnia','wysoka'], keyFeature:true, typePart:true, compareMode:'equal', order:10, active:true, legacyField:'drawerProfile' },
+    { category:'Szuflady / prowadnice', key:'profil_szuflady', label:'Profil / wysokość', fieldType:'text', unit:'', options:['M','N','K','A','B','C','D','E','F','H','69','84','86','118','135','167','199','niska','średnia','wysoka'], keyFeature:true, typePart:true, compareMode:'equal', order:10, active:true, legacyField:'drawerProfile' },
     { category:'Szuflady / prowadnice', key:'dlugosc_mm', label:'Długość', fieldType:'numberRange', unit:'mm', options:[], keyFeature:true, typePart:true, compareMode:'equal', order:20, active:true, legacyField:'drawerLengthMm' },
     { category:'Szuflady / prowadnice', key:'nosnosc_kg', label:'Nośność', fieldType:'numberRange', unit:'kg', options:[], keyFeature:true, typePart:true, compareMode:'minGte', order:30, active:true, legacyField:'drawerLoadKg' },
     { category:'Szuflady / prowadnice', key:'wzmocniona', label:'Wzmocniona', fieldType:'boolean', unit:'', options:[], keyFeature:true, typePart:true, compareMode:'equal', order:40, active:true, legacyField:'drawerReinforced' },
-    { category:'Szuflady / prowadnice', key:'kolor_okucia', label:'Kolor okucia', fieldType:'text', unit:'', options:['biały','szary','antracyt'], keyFeature:false, typePart:false, compareMode:'ignore', order:50, active:true, legacyField:'hardwareColor' },
+    { category:'Szuflady / prowadnice', key:'kolor_okucia', label:'Kolor okucia', fieldType:'text', unit:'', options:['biały','szary','antracyt','czarny carbon','czarny carbon / noble rust'], keyFeature:false, typePart:false, compareMode:'ignore', order:50, active:true, legacyField:'hardwareColor' },
     { category:'Szuflady / prowadnice', key:'zastosowanie', label:'Zastosowanie', fieldType:'text', unit:'', options:['frontowa','wewnętrzna','zlewowa','piekarnikowa'], keyFeature:true, typePart:false, compareMode:'equal', order:60, active:true, legacyField:'hardwareUsage' },
 
     { category:'Cargo / organizery', key:'szerokosc_modulu_mm', label:'Szerokość modułu', fieldType:'numberRange', unit:'mm', options:[], keyFeature:true, typePart:true, compareMode:'equal', order:10, active:true },
@@ -380,10 +380,12 @@
     }
     return { value:normalizeChoiceValue(field, src.value != null ? src.value : src) };
   }
-  function normalizeParamValues(values, definitions, category){
+  function normalizeParamValues(values,definitions,category){
+    return normalizeValuesForFields(values,fieldsForCategory(definitions,category),category);
+  }
+  function normalizeValuesForFields(values,fields,category){
     const src = values && typeof values === 'object' ? values : {};
     const out = {};
-    const fields = fieldsForCategory(definitions, category);
     fields.forEach((field)=>{
       const raw = src[field.key] != null ? src[field.key] : src[field.legacyField];
       const val = normalizeParamValue(field, raw);
@@ -424,9 +426,12 @@
     if(!raw) return '';
     return raw;
   }
-  function buildTypeLabel(definitions, category, values){
-    const parts = [];
-    fieldsForCategory(definitions, category).filter((field)=> field.typePart !== false).forEach((field)=>{
+  function buildTypeLabel(definitions,category,values){
+    return labelForFields(fieldsForCategory(definitions,category),values);
+  }
+  function labelForFields(fields,values){
+    const parts=[];
+    fields.filter((field)=> field.typePart !== false).forEach((field)=>{
       const value = values && values[field.key];
       const part = paramValueText(field, value, { forType:true, withUnit:true });
       if(part) parts.push(part);
@@ -444,6 +449,24 @@
     if(text(row.hardwareUsage)) out.zastosowanie = { value:text(row.hardwareUsage) };
     if(text(row.technicalNote)) out.uwagi_techniczne = { value:text(row.technicalNote) };
     return out;
+  }
+  function describeLegacyValues(src,definitions,category){
+    return describeLegacyFields(src,fieldsForCategory(definitions,category),category);
+  }
+  function describeLegacyFields(src,fields,category){
+    const row=src&&typeof src==='object'?src:{};
+    const technicalParams=normalizeValuesForFields(Object.assign({},legacyParamValues(row),row.technicalParams&&typeof row.technicalParams==='object'?row.technicalParams:{}),fields,category);
+    return {technicalParams,hardwareTypeAuto:labelForFields(fields,technicalParams)};
+  }
+  // One explicit, detached definition snapshot for a synchronous catalogue build.
+  // This stores no owner data and does not cache across builds or authority checks.
+  function createLegacyDescriber(definitions){
+    const snapshot=clone(definitions||DEFAULT_DEFINITIONS),byCategory=new Map();
+    return (src,category)=>{
+      const key=text(category);
+      if(!byCategory.has(key))byCategory.set(key,fieldsForCategory(snapshot,key));
+      return describeLegacyFields(src,byCategory.get(key),key);
+    };
   }
   function mergeLegacyValues(src, definitions, category){
     const row = src && typeof src === 'object' ? src : {};
@@ -553,7 +576,7 @@
     buildTypeLabel,
     buildTechnicalName:buildTypeLabel,
     legacyParamValues,
-    mergeLegacyValues,
+    mergeLegacyValues,describeLegacyValues,createLegacyDescriber,
     applyLegacyFieldsFromParams,
     compareParam,
     technicalSignature,

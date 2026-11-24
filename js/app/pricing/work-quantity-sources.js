@@ -17,6 +17,16 @@
     {code:'hinge.door_count',label:'Fronty drzwiowe na zawiasach',unit:'szt.',group:'Normy robocizny',status:'system',calculation:'Odczyt centralnych wymagań szafki i efektywnego wariantu konstrukcyjnego; bez dodatkowego licznika.'},
     {code:'hinge.door_cycle_count',label:'Fronty drzwiowe + ich zawiasy',unit:'szt.',group:'Normy robocizny',status:'system',calculation:'Odczyt centralnych wymagań szafki i efektywnego wariantu konstrukcyjnego; bez dodatkowego licznika.'},
     {
+      code:'opening.handle_count',label:'Uchwyty do zamontowania',unit:'szt.',group:'Otwieranie',status:'system',calculation:'Rzeczywiste fronty: uchwyt klienta albo krawędziowy HEXA. Bez podchwytu, TIP-ON i korytka.'
+    },
+    {
+      code:'opening.tipon_count',label:'TIP-ON długi do drzwi',unit:'szt.',group:'Otwieranie',status:'system',calculation:'Rzeczywiste fronty drzwiowe z TIP-ON; mechanizm do szuflady wymaga osobnego potwierdzenia.'
+    },
+    {
+      code:'opening.channel_count',label:'Korytka płytowe',unit:'szt.',group:'Otwieranie',status:'system',
+      calculation:'Jedno korytko wybrane w szafce; kierunek określa dwa odcinki PCV według szerokości lub wysokości.'
+    },
+    {
       code:'cabinet.count',
       label:'Liczba korpusów',
       unit:'szt.',

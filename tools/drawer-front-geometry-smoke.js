@@ -9,7 +9,7 @@ function setup(){
  for(const file of ['js/app/cabinet/cabinet-fronts.js','js/app/cabinet/cabinet-drawer-requirements.js','js/app/cabinet/cabinet-modal-finalize.js']){
   vm.runInContext(fs.readFileSync(path.join(__dirname,'..',file),'utf8'),r.s,{filename:file});
  }
- r.cab().subType='szuflady';r.cab().height=82;r.cab().details={drawerLayout:'3_1_2_2',drawerSystem:'skrzynkowe',innerDrawerType:'brak'};
+ r.cab().subType='szuflady';r.cab().height=82;r.cab().details={drawerLayout:'3_1_2_2',drawerSystem:'skrzynkowe',innerDrawerType:'brak',drawerBottomColor:'white'};
  r.s.uiState.roomType='room';r.s.cabinetModalState={mode:'edit',editingId:'one'};
  return r;
 }
@@ -123,7 +123,7 @@ test('Modal save blocks invalid body geometry before begin, project mutation, pe
  assert.equal(messages[0].title,'Nieprawidłowe fronty szuflad');assert.deepEqual(r.storage.calls,[]);
 });
 test('Room leg-height change invalidates the cache and preserves group ownership',()=>{
- const r=setup();r.s.projectData.room.cabinets=[r.cab()];r.FC.materialTabData.collectRoomMaterials('room');const old=r.cab().derivedFacts.inputHash;
+ const r=setup();r.cab().depth=61;r.s.projectData.room.cabinets=[r.cab()];r.FC.materialTabData.collectRoomMaterials('room');const old=r.cab().derivedFacts.inputHash;
  r.s.projectData.room.settings.legHeight=12;const rows=r.FC.materialTabData.collectRoomMaterials('room').cabinetRows[0].parts;
  assert.deepEqual(heights(rows),[119,283,283]);assert.notEqual(r.cab().derivedFacts.inputHash,old);assert.deepEqual(groupTotals(rows),{'front.drawer.small':1,'front.drawer.large':2});
  assert.deepEqual(r.storage.calls,[]);

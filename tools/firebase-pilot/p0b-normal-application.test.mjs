@@ -1,6 +1,6 @@
 import {startupDraftCase} from './p0b-startup-draft.cases.mjs';
 import {observeQuoteReads,assertQuoteReadBudget} from './p0b-quote-read-budget.mjs';
-import {confirmQuoteSources} from './quote-ui-actions.mjs';
+import {confirmQuoteSources,applicationIdle,waitForApplicationIdle} from './quote-ui-actions.mjs';
 import {manualQuoteCase} from './p0b-manual-quote.cases.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -37,8 +37,9 @@ async function saveProject(page,{flush=true}={}){
  if(flush)assert.equal((await page.evaluate(()=>window.FC.applicationStartup.synchronize())).ok,true);
 }
 async function showList(page){
+ await waitForApplicationIdle(page);
  if(await page.locator('#investorsListView').isVisible()){await page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);return;}
- if(await page.locator('#sessionCancel').isVisible()){assert.equal(await page.locator('#sessionCancel').innerText(),'Wyjdź');await page.locator('#sessionCancel').click();await page.waitForFunction(()=>window.uiState.entry==='investorsList'&&!window.FC.applicationStartup.inspect().transactionPending);return;}
+ if(await page.locator('#sessionCancel').isVisible()){assert.equal(await page.locator('#sessionCancel').innerText(),'Wyjdź');await page.locator('#sessionCancel').click();await page.waitForFunction(()=>window.uiState.entry==='investorsList'&&!window.FC.applicationStartup.inspect().transactionPending);await waitForApplicationIdle(page);return;}
  if(await page.locator('#homeView').isVisible()){await page.locator('#openFurnitureProjectsBtn').click();await page.waitForFunction(()=>['modeHub','investorsList'].includes(window.uiState?.entry)&&!window.FC.applicationStartup.inspect().transactionPending);}
  if(await page.locator('#modeHubView').isVisible())await page.locator('[data-action="open-investors-list"]').filter({visible:true}).first().click();
  await page.locator('#investorsListView').waitFor({state:'visible'});
@@ -58,12 +59,20 @@ async function addRoom(device,name){
  assert.deepEqual(record.projectData.meta.roomOrder,[record.id]);return record;
 }
 async function openRoom(device,id){await projects(device.page);await device.page.locator('.investor-room-quick-btn[data-room="'+id+'"]').click();}
-async function addCabinet(device,width){
+async function addCabinet(device,width,drawer){
  const page=device.page;
  await page.waitForFunction(()=>window.FC.actions.isLocked('add-cabinet')===false);
  await page.locator('#floatingAdd').click();await page.locator('#cabinetModal').waitFor({state:'visible'});
  await page.locator('#cabinetTypeChoices .choice-tile').first().click();
  await page.locator('#cmWidth').fill(String(width));await page.locator('#cmHeight').fill('82');await page.locator('#cmDepth').fill('50');
+ if(drawer){
+  const select=async(id,value)=>page.evaluate(({id,value})=>{const el=document.getElementById(id);if(!el||!Array.from(el.options).some(o=>o.value===value))throw Error('DRAWER_UI_OPTION_REQUIRED:'+id);el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));},{id,value});
+  await select('cmSubType','szuflady');
+  await select('cmExtraSelectDrawerSystem',drawer.system);
+  if(drawer.system==='systemowe'){await select('cmExtraSelectDrawerBrand','blum');await select('cmExtraSelectDrawerModel','tandembox_antaro');}
+  await select('cmExtraSelectDrawerBottomColor','white');
+  if(drawer.push)await select('cmOpeningSystem','TIP-ON');
+ }
  await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
 }
 async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteReadBudget=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,quoteRemoval=false,quoteFilm=false,manualQuote=false,startupDraft=false,accessResume=false,presenceReconnect=false,p1=false}={}){
@@ -166,7 +175,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     // helper must observe expiry, never clear the lock or repeat the click.
     for(let i=0;i<2;i++){
      await page.evaluate(()=>{window.FC.actions.lock('add-cabinet');if(!window.FC.actions.isLocked('add-cabinet'))throw Error('ADD_GUARD_NOT_ARMED');});
-     await addCabinet(phone,60);
+     await addCabinet(phone,60,{system:i===0?'skrzynkowe':'systemowe',push:i===0});
     }
    }
    if(startupDraft){
@@ -256,6 +265,9 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     assert.ok(offer,'Real Calculate must commit history before showing success');
     if(quoteReadBudget){
      assert.equal(JSON.parse(rows(written).fc_projects_v1).find(row=>row.id===pid).projectData[pid].cabinets.length,3);
+     assert.ok(offer.lines.accessories.some(row=>/TANDEM TIP-ON/.test(row.name)&&row.qty===3),'Signed combined quote includes three dedicated wooden-drawer push pairs');
+     assert.match(JSON.stringify(offer.lines.materials),/Dno szuflad 10 mm białe/);
+     assert.match(JSON.stringify(offer.lines.materials),/Płyta szuflad systemowych 16 mm biała/);
      await assertQuoteReadBudget(page,t);
     }
     assert.deepEqual(offer.scope.selectedRooms.slice().sort(),quoteRooms.slice().sort());
@@ -425,7 +437,11 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     const beforeVisit=(await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomInvestors',iid))).data();
     await activePage.evaluate(()=>{window.normalLoseVisitAck=true;window.normalVisitCommitted=false;});
     await activePage.locator('[data-action="open-investor"][data-inv-id="'+iid+'"]').click();
-    await activePage.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
+    await activePage.waitForFunction(()=>{
+     const state=window.FC.applicationStartup.inspect();
+     return !state.transactionPending&&!state.incomingPending&&
+      (window.uiState.entry==='rooms'||!!document.querySelector('.info-box')?.getClientRects().length);
+    });
     const lostVisit=await activePage.evaluate(()=>window.normalVisitCommitted);
     assert.equal(lostVisit?.generation,beforeVisit.generation+1,'Visit ACK is lost only after the real server commit');
     assert.equal(await activePage.locator('[data-investor-action="projects"]').isVisible(),true,'A confirmed own visit must reconcile a lost ACK before local navigation');
@@ -586,12 +602,16 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
 
 
   }catch(error){
+   t.diagnostic('Primary normal failure: '+(error.stack||String(error)));
+   try{
    const state=await image(phone).catch(()=>null);
    if(computer){const peer=await computer.page.evaluate(()=>({phase:window.FC.applicationStartup.inspect(),rpc:window.normalRpcTimeline,pendingRpc:window.normalPendingRpc,sdkErrors:window.normalSdkErrors,body:document.body.innerText,session:window.FC.session&&Object.fromEntries(Object.entries(window.FC.session).filter(([,v])=>typeof v!=='function')),ui:window.uiState,recovery:typeof window.FC.projectRecovery,registry:window.FC.applicationRegistry}));fs.writeFileSync(path.join(artifacts,'peer.json'),JSON.stringify({peer,state:await image(computer).catch(()=>null)},null,2));await computer.page.screenshot({path:path.join(artifacts,'peer.png')});t.diagnostic('Peer: '+JSON.stringify(peer));}
    const diagnostic=await phone.page.evaluate(()=>({phase:window.FC.applicationStartup.inspect(),notice:document.querySelector('.info-box')?.innerText,storage:window.FC.storage?.getLastWriteError()?.error?.code,storageKey:window.FC.storage?.getLastWriteError()?.key,session:window.FC.session&&Object.fromEntries(Object.entries(window.FC.session).filter(([k,v])=>typeof v!=='function')),ui:window.uiState,ram:window.projectData}));
    fs.writeFileSync(path.join(artifacts,'failure.json'),JSON.stringify({diagnostic,state},null,2));
    await phone.page.screenshot({path:path.join(artifacts,'failure.png')});
-   await phone.page.context().tracing.stop({path:path.join(artifacts,'failure.zip')}).catch(()=>{});t.diagnostic(artifacts+' '+JSON.stringify(diagnostic));throw error;
+   await phone.page.context().tracing.stop({path:path.join(artifacts,'failure.zip')}).catch(()=>{});t.diagnostic(artifacts+' '+JSON.stringify(diagnostic));
+   }catch(diagnosticError){t.diagnostic('Additional failure diagnostics unavailable: '+diagnosticError.message);}
+   throw error;
   }
   await phone.page.context().tracing.stop();
  }});

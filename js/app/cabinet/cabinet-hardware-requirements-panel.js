@@ -154,7 +154,7 @@
     if(defaultId && !map.has(defaultId) && api && typeof api.getHingeRequirementPreset === 'function'){
       try{ addChoiceOption(map, { typeId:defaultId }, api.getHingeRequirementPreset(defaultId, 'default_preview')); }catch(_){ }
     }
-    return Array.from(map.values());
+    return Array.from(map.values()).filter(option=>!req?.requiredTypeId||option.value===req.requiredTypeId);
   }
 
   function normalizeKey(value){

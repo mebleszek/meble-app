@@ -80,8 +80,8 @@
     return out;
   }
 
-  function roomKeysFromData(projectData){
-    const data = normalizeProjectData(projectData);
+  // Private helpers consume only this module's already-normalized snapshot.
+  function normalizedRoomKeys(data){
     const keys = [];
     Object.keys(data || {}).forEach((key)=>{
       if(key === 'schemaVersion' || key === 'meta') return;
@@ -91,9 +91,8 @@
     return keys;
   }
 
-  function summarizeProjectData(projectData){
-    const data = normalizeProjectData(projectData);
-    const roomKeys = roomKeysFromData(data);
+  function summarizeNormalized(data){
+    const roomKeys = normalizedRoomKeys(data);
     let cabinetCount = 0;
     roomKeys.forEach((key)=>{ cabinetCount += Array.isArray(data[key] && data[key].cabinets) ? data[key].cabinets.length : 0; });
     return {
@@ -103,12 +102,15 @@
     };
   }
 
+  function roomKeysFromData(projectData){return normalizedRoomKeys(normalizeProjectData(projectData));}
+  function summarizeProjectData(projectData){return summarizeNormalized(normalizeProjectData(projectData));}
+
   function normalizeProjectRecord(record){
     const src = record && typeof record === 'object' ? record : {};
     const srcMeta = src.meta && typeof src.meta === 'object' ? src.meta : {};
     const now = Date.now();
     const normalizedProjectData = normalizeProjectData(src.projectData);
-    const summary = summarizeProjectData(normalizedProjectData);
+    const summary = summarizeNormalized(normalizedProjectData);
     const hasRoomCount = Object.prototype.hasOwnProperty.call(src, 'roomCount') && Number.isFinite(Number(src.roomCount));
     const hasCabinetCount = Object.prototype.hasOwnProperty.call(src, 'cabinetCount') && Number.isFinite(Number(src.cabinetCount));
     const out = {

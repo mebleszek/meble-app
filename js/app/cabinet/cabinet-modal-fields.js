@@ -3,7 +3,7 @@
   const ns = (window.FC = window.FC || {});
 
   function getMaterials(){
-    try{ return Array.isArray(materials) ? materials : []; }catch(_){ return []; }
+    try{ return Array.isArray(materials) ? materials.filter(row=>!ns.cabinetDrawerRequirements?.isBottomCatalogRow?.(row)) : []; }catch(_){ return []; }
   }
 
   function populateSelect(el, options, selected){
@@ -101,9 +101,10 @@
       const o = document.createElement('option');
       o.value = opt.v;
       o.textContent = opt.t;
+      o.disabled = opt.disabled === true;
       sel.appendChild(o);
     });
-    sel.value = (draft && draft.details && draft.details[key]) ? draft.details[key] : ((options[0] && options[0].v) || '');
+    sel.value = cfg.selectedValue !== undefined ? cfg.selectedValue : (draft && draft.details && draft.details[key]) ? draft.details[key] : ((options[0] && options[0].v) || '');
     sel.addEventListener('change', function(e){
       draft.details = Object.assign({}, draft.details || {}, { [key]: e.target.value });
       if(typeof onChangeExtra === 'function') onChangeExtra(e.target.value, e);

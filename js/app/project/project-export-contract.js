@@ -58,7 +58,7 @@
     if(out.kind==='system'){
       const options=FC.roomPreferences&&FC.roomPreferences.DRAWER_SYSTEM_OPTIONS;
       if(!Array.isArray(options))fail('EXPORT_DEPENDENCY_UNAVAILABLE',p);
-      if(!options.some(option=>option.key===out.systemKey&&option.system==='systemowe'))bad(p+'.systemKey');
+      if(out.systemKey!=='rejs_systemowe'&&!options.some(option=>option.key===out.systemKey&&option.system==='systemowe'))bad(p+'.systemKey');
     }else if(!out.manufacturer.trim()||!out.runnerSeries.trim())bad(p);
     return out;
   };
@@ -70,6 +70,11 @@
   const setSource=shape(sourceFields,['source','label','material','color']);
   const serializedSource=shape({...sourceFields,part:oneOf(['single','lower','upper'])},['source','label']);
   const details=shape({additionalLegs:count,hangerCount:count,shelfType:oneOf(['adjustable','fixed']),hingeDrilling:oneOf(['workshop','predrilled']),...fields('insideMode heightIncludesLegs projectUnusual subTypeOption cornerOption cornerFlip dishWasherWidth ovenOption sinkOption sinkFront sinkExtra sinkDoorCount fridgeOption fridgeFreeOption fridgeRequiresFurnitureHinges needsFurnitureHinges requiresFurnitureHinges drawerLayout drawerSystem drawerBrand drawerModel drawerRunnerType drawerRunnerSeries innerDrawerType innerDrawerBrand innerDrawerModel sinkInnerDrawerType sinkInnerDrawerBrand sinkInnerDrawerModel podFrontMode podInsideMode flapVendor flapKind hoodFrontMode hasBack hasHandle applianceMounting applianceMountingMode drawerPreferenceApplied',text),
+    drawerBottomColor:oneOf(['','white','grey']),drawerLoadKg:positive,innerDrawerLoadKg:positive,
+    backPosition:oneOf(['','internal','external']),
+    innerDrawerDistribution:oneOf(['equal','declared']),innerDrawerSpace:oneOf(['cabinet','custom']),innerDrawerSpaceHeightCm:(v,p)=>v===''?'':numeric(v,p),
+    innerDrawerHeightType:oneOf(['front','inside']),innerDrawerHeightsCm:array(positive),
+    channelOrientation:oneOf(['horizontal','vertical']),
     ...fields('shelves sinkExtraCount fridgeFrontCount techDividerCount techShelfCount innerDrawerCount podInnerDrawerCount',count),
     ...fields('legHeightCm blindPart gl gp st sp ovenHeight fridgeWidth fridgeNicheHeight',numeric),
     fridgeFrontSources:shape({single:materialSource,lower:materialSource,upper:materialSource}),
@@ -81,7 +86,7 @@
     // Explicit technical exclusion: any contents remain local and are never projected.
     derivedFacts:()=>excluded,_derivedFacts:()=>excluded
   },['id','type','subType','width','height','depth','details']);
-  const set=shape({id:ident,presetId:oneOf(['A','C','D']),number:count,
+  const set=shape({id:ident,presetId:oneOf(['A','C','D']),number:count,backPosition:oneOf(['','internal','external']),
     ...fields('bodyColor backMaterial openingSystem frontMaterial frontColor',text),frontCount:oneOf([1,2]),frontSource:setSource,
     params:shape({presetId:oneOf(['A','C','D']),...fields('w1 w2 w hB hM hTop dBottom dModule blende',numeric)})},['id','presetId','frontCount','params']);
   const front=shape({id:ident,cabId:nullable(ident),setId:nullable(ident),setNumber:nullable(count),...fields('material color',text),width:positive,height:positive,note:text,frontMaterialSource:serializedSource},['id','width','height']);
@@ -276,18 +281,22 @@
   function dependencies(payload){
     const out=[],seen=new Set();
     const add=(domain,reference)=>{const key=domain+'|'+reference;if(reference&&!seen.has(key)){seen.add(key);out.push({domain,reference});}};
-    const materials=value=>{for(const k of ['bodyColor','frontMaterial','frontColor','backMaterial','material','color'])if(value&&value[k])add('material',value[k]);};
+    const drawers=value=>{
+      const selector={};for(const [field,key]of [['brand','drawerBrand'],['model','drawerModel'],['runnerType','drawerRunnerType'],['runnerSeries','drawerRunnerSeries']])if(value?.[key])selector[field]=value[key];
+      if(Object.keys(selector).length)add('drawer-hardware',JSON.stringify(selector));
+    };
+    const materials=value=>{for(const k of ['bodyColor','frontMaterial','frontColor','backMaterial','material','color'])if(value&&value[k])add('material',k==='backMaterial'&&/^(18\s*mm|płyta\s*18\s*mm)\s*pod\s*kolor(?:\s*korpusu)?$/i.test(value[k])?value.bodyColor:value[k]);};
     for(const [roomId,r] of Object.entries(payload.project.projectData)){
       if(roomId==='meta'||roomId==='schemaVersion')continue;
-      for(const c of r.cabinets){materials(c);for(const k of ['drawerBrand','drawerModel','drawerRunnerType','drawerRunnerSeries'])add('hardware',c.details[k]);for(const labor of c.laborItems||[])add('rate',labor.rateId);}
+      for(const c of r.cabinets){materials(c);drawers(c.details);for(const prefix of ['inner','sinkInner'])drawers({drawerBrand:c.details[prefix+'DrawerBrand'],drawerModel:c.details[prefix+'DrawerModel']});for(const labor of c.laborItems||[])add('rate',labor.rateId);}
       for(const f of r.fronts)materials(f);
       for(const set of r.sets)materials(set);
       const prefs=r.preferences;
       for(const zone of Object.values(prefs.zones||{}))materials(zone);
       for(const value of Object.values(prefs.hardwareProducers||{}))add('hardware',value);
       add('hardware',prefs.hardwareManufacturer);
-      for(const value of Object.values(prefs.hardwareDrawerSystems||{}))add('hardware',value);
-      const drawer=prefs.drawerPreference;if(drawer){add('hardware',drawer.systemKey);add('hardware',drawer.manufacturer);add('hardware',drawer.runnerSeries);}
+      for(const value of Object.values(prefs.hardwareDrawerSystems||{}))if(value)add('drawer-hardware',JSON.stringify({systemKey:value}));
+      const drawer=prefs.drawerPreference;if(drawer)drawers({drawerBrand:drawer.manufacturer,drawerModel:drawer.systemKey==='box_runners'?'':drawer.systemKey,drawerRunnerSeries:drawer.runnerSeries,drawerRunnerType:drawer.runnerType});
       add('inherited-defaults',roomId); // Empty overrides retain native inheritance.
     }
     return out.sort((a,b)=>(a.domain+'|'+a.reference)<(b.domain+'|'+b.reference)?-1:1);

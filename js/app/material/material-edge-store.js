@@ -208,6 +208,9 @@
   }
 
   function defaultEdgesForPart(part, cabinet){
+    if(part?.drawerConstructionRole==='side')return {w1:true,w2:true,h1:false,h2:false};
+    if(part?.drawerConstructionRole==='crosspiece')return {w1:true,w2:false,h1:false,h2:false};
+    if(part?.backPosition==='external'&&part?.materialThicknessMm===18)return {w1:true,w2:true,h1:true,h2:true};
     const name = String((part && part.name) || '').toLowerCase();
     const cabType = String((cabinet && cabinet.type) || '').toLowerCase();
     if(name.includes('front') || name.includes('drzwi') || name.includes('blenda') || name.includes('maskown') || name.includes('szufl') || name.includes('klapa')){

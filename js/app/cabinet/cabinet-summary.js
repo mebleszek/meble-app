@@ -141,7 +141,7 @@ function getCabinetExtraSummary(room, cab){
           sysLabel = br.toUpperCase() + ' ';
         } else {
           const mdl = String(d.drawerModel || 'tandembox');
-          const map = {tandembox:'TANDEMBOX Antaro', tandembox_antaro:'TANDEMBOX Antaro', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX', axis_pro:'Axis Pro', rejs_systemowe:'system Rejs'};
+          const map = {tandembox:'TANDEMBOX Antaro', tandembox_antaro:'TANDEMBOX Antaro', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX', axis_pro:'Axis Pro', rejs_systemowe:'Comfort Box', comfort_box_plus:'Comfort Box Plus', ultra_box:'Ultra Box'};
           sysLabel = 'BLUM ' + (map[mdl] || mdl.toUpperCase());
         }
       }
@@ -185,7 +185,7 @@ function getCabinetExtraSummary(room, cab){
           sysLabel = br.toUpperCase() + ' ';
         } else {
           const mdl = String(d.drawerModel || 'tandembox');
-          const map = {tandembox:'TANDEMBOX Antaro', tandembox_antaro:'TANDEMBOX Antaro', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX', axis_pro:'Axis Pro', rejs_systemowe:'system Rejs'};
+          const map = {tandembox:'TANDEMBOX Antaro', tandembox_antaro:'TANDEMBOX Antaro', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX', axis_pro:'Axis Pro', rejs_systemowe:'Comfort Box', comfort_box_plus:'Comfort Box Plus', ultra_box:'Ultra Box'};
           sysLabel = 'BLUM ' + (map[mdl] || mdl.toUpperCase());
         }
       }
@@ -219,7 +219,7 @@ function getCabinetExtraSummary(room, cab){
           if(br !== 'blum') sysLabel = br.toUpperCase() + ' ';
           else {
             const mdl = String(d.drawerModel || 'tandembox');
-            const map = {tandembox:'TANDEMBOX Antaro', tandembox_antaro:'TANDEMBOX Antaro', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX', axis_pro:'Axis Pro', rejs_systemowe:'system Rejs'};
+            const map = {tandembox:'TANDEMBOX Antaro', tandembox_antaro:'TANDEMBOX Antaro', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX', axis_pro:'Axis Pro', rejs_systemowe:'Comfort Box', comfort_box_plus:'Comfort Box Plus', ultra_box:'Ultra Box'};
             sysLabel = 'BLUM ' + (map[mdl] || mdl.toUpperCase());
           }
         }
@@ -243,7 +243,7 @@ function getCabinetExtraSummary(room, cab){
             parts.push(`Szuflady wew.: ${ec} • ${br.toUpperCase()} `);
           } else {
             const mdl = String(d.sinkInnerDrawerModel || 'tandembox');
-            const map = {tandembox:'TANDEMBOX Antaro', tandembox_antaro:'TANDEMBOX Antaro', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX', axis_pro:'Axis Pro', rejs_systemowe:'system Rejs'};
+            const map = {tandembox:'TANDEMBOX Antaro', tandembox_antaro:'TANDEMBOX Antaro', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX', axis_pro:'Axis Pro', rejs_systemowe:'Comfort Box', comfort_box_plus:'Comfort Box Plus', ultra_box:'Ultra Box'};
             parts.push(`Szuflady wew.: ${ec} • BLUM ${(map[mdl]||mdl.toUpperCase())}`);
           }
         } else {
@@ -284,7 +284,7 @@ if(cab.subType === 'zmywarkowa'){
           if(br !== 'blum') sysLabel = br.toUpperCase() + ' ';
           else {
             const mdl = String(d.drawerModel || 'tandembox');
-            const map = {tandembox:'TANDEMBOX Antaro', tandembox_antaro:'TANDEMBOX Antaro', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX', axis_pro:'Axis Pro', rejs_systemowe:'system Rejs'};
+            const map = {tandembox:'TANDEMBOX Antaro', tandembox_antaro:'TANDEMBOX Antaro', legrabox:'LEGRABOX', merivobox:'MERIVOBOX', metabox:'METABOX', axis_pro:'Axis Pro', rejs_systemowe:'Comfort Box', comfort_box_plus:'Comfort Box Plus', ultra_box:'Ultra Box'};
             sysLabel = 'BLUM ' + (map[mdl] || mdl.toUpperCase());
           }
         }

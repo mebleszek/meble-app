@@ -98,7 +98,7 @@ function runNoHardcodedOptionFallbackCheck(){
 function runPerDoorCheck(){
   const ctx = loadContext();
   const api = ctx.window.FC.cabinetHardwareRequirements;
-  const cab = { type:'stojąca', subType:'standard', width:80, height:82, frontCount:2, frontMaterial:'laminat', details:{} };
+  const cab = { type:'stojąca', subType:'standard', width:80, height:82, depth:50, frontCount:2, frontMaterial:'laminat', details:{} };
   const agg = api.getHingeRequirementWithQty('kuchnia', cab);
   assert(agg.qty === 4, 'dwie pary drzwiczek 82 cm powinny mieć łącznie 4 zawiasy w teście');
   assert(Array.isArray(agg.doorRequirements) && agg.doorRequirements.length === 2, 'wymagania zawiasów muszą być rozbite per drzwiczki');
@@ -129,7 +129,7 @@ function runOverridePersistenceAndMaterialCheck(){
   const api = ctx.window.FC.cabinetHardwareRequirements;
   const cutlistApi = ctx.window.FC.cabinetCutlist;
 
-  const one = { id:'cab_single', type:'stojąca', subType:'standard', width:60, height:82, frontCount:1, frontMaterial:'laminat', details:{} };
+  const one = { id:'cab_single', type:'stojąca', subType:'standard', width:60, height:82, depth:50, frontCount:1, frontMaterial:'laminat', details:{} };
   api.setHingeDoorOverride(one, 'single', { typeId:api.HINGE_TYPES.PARALLEL_INSET });
   const savedOne = clone(one);
   const oneReq = api.getHingeRequirementWithQty('kuchnia', savedOne);
@@ -146,7 +146,7 @@ function runOverridePersistenceAndMaterialCheck(){
   assert(!(savedOne.hardwareRequirementOverrides), 'Przywróć domyślne ma usunąć override, nie zostawiać pustych struktur');
   assert(restoredOne.doorRequirements[0].technicalParams.nalozenie.value === 'nakładany', 'po przywróceniu wraca domyślna reguła 110° nakładany');
 
-  const two = { id:'cab_pair', type:'stojąca', subType:'standard', width:80, height:82, frontCount:2, frontMaterial:'laminat', details:{} };
+  const two = { id:'cab_pair', type:'stojąca', subType:'standard', width:80, height:82, depth:50, frontCount:2, frontMaterial:'laminat', details:{} };
   api.setHingeDoorOverride(two, 'left', { typeId:api.HINGE_TYPES.PARALLEL_INSET });
   const savedTwo = clone(two);
   const twoReq = api.getHingeRequirementWithQty('kuchnia', savedTwo);
@@ -165,7 +165,7 @@ async function runPanelCheck(){
   const ctx = loadCatalogContext();
   const api = ctx.window.FC.cabinetHardwareRequirementsPanel;
   const reqApi = ctx.window.FC.cabinetHardwareRequirements;
-  const draft = { type:'stojąca', subType:'standard', width:80, height:82, frontCount:2, frontMaterial:'laminat', details:{} };
+  const draft = { type:'stojąca', subType:'standard', width:80, height:82, depth:50, frontCount:2, frontMaterial:'laminat', details:{} };
   const container = { innerHTML:'' };
   api.renderPanel(container, 'kuchnia', draft);
   assert(container.innerHTML.includes('cabinet-hardware-req-door-pair'), 'panel dwudrzwiowy musi renderować układ dwóch kolumn');
@@ -180,7 +180,7 @@ async function runPanelCheck(){
   assert(container.innerHTML.includes('Komplet zawiasowy'), 'panel ma używać pojęcia kompletu zawiasowego, nie samego zawiasu');
   assert(!/\bBLUM\b|\bBlum\b|\bGTV\b/.test(container.innerHTML), 'panel nadal nie może pokazywać producenta/modelu katalogowego');
 
-  const singleDraft = { type:'stojąca', subType:'standard', width:60, height:82, frontCount:1, frontMaterial:'laminat', details:{} };
+  const singleDraft = { type:'stojąca', subType:'standard', width:60, height:82, depth:50, frontCount:1, frontMaterial:'laminat', details:{} };
   const singleContainer = { innerHTML:'' };
   api.renderPanel(singleContainer, 'kuchnia', singleDraft);
   assert(!singleContainer.innerHTML.includes('Lewe drzwiczki') && !singleContainer.innerHTML.includes('Prawe drzwiczki'), 'szafka z jednym frontem nie może renderować układu lewe/prawe');
@@ -220,7 +220,7 @@ async function runChangeButtonMustOpenFallbackAndNotOverrideSameValue(){
   const ctx = loadContext();
   const api = ctx.window.FC.cabinetHardwareRequirementsPanel;
   const reqApi = ctx.window.FC.cabinetHardwareRequirements;
-  const draft = { type:'stojąca', subType:'standard', width:80, height:82, frontCount:2, frontMaterial:'laminat', details:{} };
+  const draft = { type:'stojąca', subType:'standard', width:80, height:82, depth:50, frontCount:2, frontMaterial:'laminat', details:{} };
 
   const opened = [];
   ctx.window.FC.rozrysChoice = {
@@ -265,8 +265,8 @@ async function runReusedPanelContainerUsesLatestDraftCheck(){
   const ctx = loadCatalogContext();
   const panelApi = ctx.window.FC.cabinetHardwareRequirementsPanel;
   const reqApi = ctx.window.FC.cabinetHardwareRequirements;
-  const firstDraft = { id:'first', type:'stojąca', subType:'standard', width:80, height:82, frontCount:2, frontMaterial:'laminat', details:{} };
-  const secondDraft = { id:'second', type:'stojąca', subType:'standard', width:60, height:82, frontCount:1, frontMaterial:'laminat', details:{} };
+  const firstDraft = { id:'first', type:'stojąca', subType:'standard', width:80, height:82, depth:50, frontCount:2, frontMaterial:'laminat', details:{} };
+  const secondDraft = { id:'second', type:'stojąca', subType:'standard', width:60, height:82, depth:50, frontCount:1, frontMaterial:'laminat', details:{} };
   const container = {
     innerHTML:'',
     addEventListener(type, handler){ if(type === 'click') this.__clickHandler = handler; }
@@ -319,7 +319,32 @@ function runStaticCheck(){
   assert(html.includes('20260628_drawer_systems_materials_v1'), 'index musi mieć aktualny cache-busting tej paczki');
 }
 
+function runInnerDrawerHingeCheck(){
+ const ctx=loadContext();vm.runInContext(fs.readFileSync(path.join(root,'js/app/cabinet/cabinet-drawer-requirements.js'),'utf8'),ctx);
+ const hw=ctx.FC.cabinetHardwareRequirements,panel=ctx.FC.cabinetHardwareRequirementsPanel;
+ const cab={id:'inner',type:'stojąca',subType:'standardowa',width:60,height:82,depth:50,frontCount:2,frontMaterial:'laminat',details:{insideMode:'szuflady_wew',innerDrawerType:'skrzynkowe',innerDrawerCount:'2'}};
+ hw.setHingeDoorOverride(cab,'left',{typeId:hw.HINGE_TYPES.INSET_110});const original=JSON.stringify(cab);
+ let rows=hw.getHingeRequirementsWithQty('kuchnia',cab);
+ assert(rows.length===2&&rows.every(r=>r.typeId===hw.HINGE_TYPES.ZERO_155&&r.qty===2),'Inner drawers must replace regular/manual hinges on both doors with zero protrusion');
+ assert(JSON.stringify(cab)===original,'Reading a required hinge must retain the earlier manual choice in RAW');
+ const box={innerHTML:''};panel.renderPanel(box,'kuchnia',cab);assert(box.innerHTML.includes('155°')&&box.innerHTML.includes('zerowy'),'The existing bottom panel must show the automatic zero-protrusion hinge');
+ assert(panel.buildHingeChoiceOptions(rows[0]).every(o=>o.value===hw.HINGE_TYPES.ZERO_155),'The existing chooser cannot replace a required zero-protrusion hinge with an ordinary hinge');
+ const saved=JSON.parse(JSON.stringify(cab));rows=hw.getHingeRequirementsWithQty('kuchnia',saved);assert(rows.every(r=>r.typeId===hw.HINGE_TYPES.ZERO_155),'Restart must preserve the construction-based hinge selection');
+ saved.details.insideMode='polki';rows=hw.getHingeRequirementsWithQty('kuchnia',saved);assert(rows[0].typeId===hw.HINGE_TYPES.INSET_110&&rows[1].typeId===hw.HINGE_TYPES.OVERLAY_110,'Removing inner drawers restores the retained manual/default choices');
+ cab.openingSystem='TIP-ON';rows=hw.getHingeRequirementsWithQty('kuchnia',cab);assert(rows.every(r=>r.typeId.startsWith(hw.HINGE_TYPES.ZERO_155+'_tipon_'))&&rows.reduce((n,r)=>n+r.qty,0)===4,'TIP-ON variants retain zero protrusion and the original door quantity');delete cab.openingSystem;
+ const lead={id:'lead',setId:'set',type:'stojąca',subType:'standardowa',frontCount:2,width:60,height:82,depth:50,details:{insideMode:'polki'}};
+ const member={...JSON.parse(JSON.stringify(cab)),id:'member',setId:'set'};
+ ctx.FC.frontHardware.getProjectRoomData=()=>({cabinets:[lead,member]});ctx.FC.frontHardware.isLeadSetCabinet=(_room,c)=>c.id==='lead';
+ assert(hw.getHingeRequirementsWithQty('kuchnia',lead).every(r=>r.typeId===hw.HINGE_TYPES.ZERO_155),'A set front protects internal drawers in another set member');
+ assert(hw.getHingeRequirementsWithQty('kuchnia',member)[0].kind==='none','Follower bodies do not count the same set hinges twice');
+ delete ctx.FC.frontHardware.getProjectRoomData;delete ctx.FC.frontHardware.isLeadSetCabinet;
+ cab.subType='szuflady';cab.details.drawerLayout='2_equal';assert(hw.getHingeRequirementsWithQty('kuchnia',cab)[0].kind==='none','Drawers behind drawer fronts must not fabricate door hinges');
+ cab.subType='zlewowa';cab.details={sinkFront:'drzwi',sinkExtra:'szuflada_wew',sinkExtraCount:'1',sinkInnerDrawerType:'blum'};assert(hw.getHingeRequirementsWithQty('kuchnia',cab).every(r=>r.typeId===hw.HINGE_TYPES.ZERO_155),'Inner sink drawer behind doors requires zero protrusion');
+ cab.type='wisząca';cab.subType='dolna_podblatowa';cab.details={podFrontMode:'drzwi',podInsideMode:'szuflady_wewn',podInnerDrawerCount:'2',innerDrawerType:'skrzynkowe'};assert(hw.getHingeRequirementsWithQty('kuchnia',cab).every(r=>r.typeId===hw.HINGE_TYPES.ZERO_155),'Under-counter internal drawers require zero protrusion');
+}
+
 (async function main(){
+  runInnerDrawerHingeCheck();
   runCatalogDrivenOptionsCheck();
   runNoHardcodedOptionFallbackCheck();
   runPerDoorCheck();

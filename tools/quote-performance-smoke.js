@@ -22,6 +22,22 @@ function runtime(){
 }
 const math=value=>JSON.stringify(value,(key,value)=>['generatedAt','generatedDate','diagnostics','performance','__projectPcvCandidate'].includes(key)?undefined:value);
 
+test('Project record summary normalizes the real payload once and keeps detached data/counts',()=>{
+ const r=runtime(),records=JSON.parse(r.s.localStorage.getItem('fc_projects_v1'));
+ const normalize=r.FC.schema.normalizeProject;let calls=0;r.FC.schema.normalizeProject=function(...args){calls++;return normalize.apply(this,args);};
+ for(const original of records){
+  const record=clone(original);delete record.roomKeys;delete record.roomCount;delete record.cabinetCount;
+  const before=JSON.stringify(record);calls=0;const result=r.FC.projectModel.normalizeProjectRecord(record);
+  assert.equal(calls,1,'One canonical normalization per record; summary must not normalize it twice again');
+  assert.equal(JSON.stringify(record),before,'Never mutate RAW input while summarizing');
+  const expected=r.FC.projectModel.summarizeProjectData(record.projectData);
+  assert.deepEqual(clone({roomKeys:result.roomKeys,roomCount:result.roomCount,cabinetCount:result.cabinetCount}),clone(expected));
+  const firstRoom=result.roomKeys[0];if(firstRoom&&result.projectData[firstRoom].cabinets[0])result.projectData[firstRoom].cabinets[0].width=999;
+  assert.equal(JSON.stringify(record),before,'Normalized output must remain detached');
+ }
+ r.FC.schema.normalizeProject=normalize;
+});
+
 test('Name-only change reuses real calculation and rebuilds final metadata',async()=>{
  const r=runtime();await r.run();assert.equal(r.state.lastQuote?.error,undefined,JSON.stringify(r.state));assert.equal(r.count.collect,1);
  const saved=r.FC.quoteSnapshotStore.listForProject('A');assert.equal(saved.length,1);assert.equal(saved[0].commercial.versionName,'After');
@@ -113,15 +129,24 @@ test('Generate waits for a pending local write, deduplicates gestures and never 
   r.state.lastQuote={id:'deleted'};r.state.previewSnapshotId='deleted';
   r.FC.infoBox={open:notified};r.FC.quoteOfferStore.prepareGeneration=async()=>{prepared++;return true;};
   r.FC.applicationWrite={whenIdle:()=>idle,async project(){calls++;throw Error('LF_IDB_ABORTED');}};
-  const h=()=>({appendChild(){},setAttribute(){},addEventListener(){}});
+  const buttons=[];const h=(tag,attrs={})=>{const el={textContent:attrs.text||'',disabled:false,appendChild(){},setAttribute(k,v){this[k]=v;},addEventListener(){}};if(tag==='button')buttons.push(el);return el;};
   r.FC.wycenaTabShell.renderTopbar(h(),{},null,{...r.deps,h});
+  const button=buttons.find(el=>el['data-action']==='wycena-generate');assert.equal(button.textContent,'Wyceń');
   r.FC.wycenaGenerateAction.run();r.FC.wycenaGenerateAction.run();
+  assert.equal(button.textContent,'Liczę…','Existing busy feedback must precede waiting for any local write or remote preflight');
+  assert.equal(button.disabled,true,'Repeated Calculate is disabled immediately, not after synchronization');
+  r.FC.wycenaTabShell.renderTopbar(h(),{},null,{...r.deps,h});
+  const refreshed=buttons.filter(el=>el['data-action']==='wycena-generate').at(-1);
+  assert.equal(refreshed.textContent,'Liczę…');assert.equal(refreshed.disabled,true,'Incoming source render must not revert the pending state');
   await Promise.resolve();assert.equal(calls,0);
   r.state.lastQuote=null;r.state.previewSnapshotId='';
   if(changeOwner)r.FC.investors.setCurrentId('inv-B');
   release();await notice;
   assert.equal(calls,changeOwner?0:1);assert.equal(prepared,changeOwner?0:1);
   assert.equal(r.state.lastQuote,null);assert.equal(r.state.previewSnapshotId,'');
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(button.textContent,'Wyceń');assert.equal(button.disabled,false,'A refused/changed-owner preparation restores its own button');
+  assert.equal(refreshed.textContent,'Wyceń');assert.equal(refreshed.disabled,false,'Completion restores the latest rendered button as well');
  }
 });
 (async()=>{const split=require('./ci-test-parts').select(4);let fail=0,executed=0;for(const[index,[name,fn]]of tests.entries()){if(!split.includes(index))continue;executed++;try{await fn();console.log('PASS '+name);}catch(e){fail++;console.error('FAIL '+name+'\n'+e.stack);}}split.verify(executed,tests.length);console.log(`Quote performance: ${executed-fail}/${executed} PASS, ${fail} FAIL`);process.exitCode=fail?1:0;})().catch(e=>{console.error(e);process.exitCode=1;});

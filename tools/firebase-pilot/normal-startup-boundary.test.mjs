@@ -9,7 +9,7 @@ import {prepareEmulatorApplicationBoot} from '../../sync/application-boot.mjs';
 import {assertApplicationConnection,authorizeApplicationFirebase} from '../../sync/firebase-activation.mjs';
 import {createApplicationReplication,createApplicationHandover} from '../../sync/application-replication.mjs';
 import {createProjectChannel} from '../../sync/local-first-project.mjs';
-import {startupReady} from './normal-startup-readiness.mjs';
+import {startupReady,replicationWaiting} from './normal-startup-readiness.mjs';
 const root=new URL('../..',import.meta.url),read=p=>fs.readFileSync(new URL(p,root),'utf8');
 test('normal startup remains inert on public origin, flags cannot activate connections/migration',async()=>{
  let calls=0;const request=mock.method(globalThis,'fetch',()=>{calls++;throw Error('remote IO');});
@@ -72,7 +72,7 @@ test('central registry preserves promise completion only for installed lifecycle
  w.FC.applicationLifecycle={dispatch:async(action,fn)=>{assert.equal(action,'test');await Promise.resolve();return fn();}};
  const p=w.FC.actions.dispatch('test');assert.equal(typeof p.then,'function');assert.equal(await p,true);assert.equal(calls,2);
 });
-test('mandatory CI includes the normal browser SDK suite, no removed old suites/pins or replacement of LOCAL-FIRST',()=>{
+test('mandatory CI includes the normal browser SDK suite, no removed old suites/pins or replacement of LOCAL-FIRST',async()=>{
  let clock=0;const w={FC:{applicationStartup:{inspect:()=>({stage:'initial-global-revision'})}}},document={body:{dataset:{}}};
  const probe=vm.runInNewContext('('+startupReady.toString()+')',{window:w,document,performance:{now:()=>clock}});
  assert.equal(probe({idleMs:30000}),false);
@@ -85,6 +85,52 @@ test('mandatory CI includes the normal browser SDK suite, no removed old suites/
  assert.throws(()=>probe({idleMs:30000,stopOnAuthState:false}),/NORMAL_STARTUP_REFUSED/);
  document.body.dataset.authState='profile-pending';w.normalStartupWait=null;
  assert.equal(probe({idleMs:30000,stopOnAuthState:false}),false,'After admission, only actual business readiness completes login');
+ const wait={startedAt:0,lastProgressAt:0,signature:'[0,0]'};
+ assert.equal(replicationWaiting(wait,4999,'[0,0]'),true);
+ assert.equal(replicationWaiting(wait,5000,'[0,0]'),false,'Auth-only activity or a pending request cannot extend replication');
+ assert.equal(replicationWaiting(wait,6000,'[1,0]'),true,'A completed data RPC earns bounded transfer time');
+ assert.equal(replicationWaiting(wait,11000,'[1,0]'),false,'A stalled transfer loses the allowance after5 s');
+ assert.equal(replicationWaiting(wait,29999,'[2,0]'),true);
+ assert.equal(replicationWaiting(wait,30000,'[3,0]'),false,'Even continuing RPC progress cannot remove the30 s hard allowance bound');
+ const {confirmQuoteSources,applicationIdle,waitForApplicationIdle}=await import('./quote-ui-actions.mjs');
+ let applicationState={transactionPending:false,incomingPending:true};
+ const idle=vm.runInNewContext('('+applicationIdle.toString()+')',{window:{FC:{applicationStartup:{inspect:()=>applicationState}}}});
+ assert.equal(idle(),false,'An incoming offer still owns the image even without a local transaction');
+ applicationState={transactionPending:true,incomingPending:false};assert.equal(idle(),false);
+ applicationState={transactionPending:false};assert.equal(idle(),false,'Missing incoming state is not confirmed idle');
+ applicationState={transactionPending:false,incomingPending:false};assert.equal(idle(),true);
+ // A routed gesture can still own reserve() after its IDB transaction ended.
+ const navigationWindow={FC:{applicationStartup:{inspect:()=>applicationState}}};
+ const boundary=installApplicationWriteBoundary({window:navigationWindow,authority:{transaction:(_kind,fn)=>fn()},ensureEditor:async()=>{}});
+ let releaseNavigation,navigationReady=false;
+ const navigation= navigationWindow.FC.applicationWrite.checkpoint(()=>new Promise(resolve=>releaseNavigation=resolve));
+ const evaluate=fn=>vm.runInNewContext('('+fn.toString()+')',{window:navigationWindow})();
+ const waiting=waitForApplicationIdle({evaluate,async waitForFunction(fn){assert.equal(evaluate(fn),true);}}).then(()=>navigationReady=true);
+ try{
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(navigationReady,false,'An idle authority cannot finish a still-reserved UI gesture');
+ }finally{releaseNavigation();await navigation;await waiting;boundary.close();}
+ assert.equal(navigationReady,true,'The real completion receipt releases the next independent action');
+ let sourceBusy=false,warning=null,notice=null,clicked=0;
+ const button={disabled:true},generation={inFlight:false},visible={getClientRects:()=>[{}]},hidden={getClientRects:()=>[]};
+ const quoteWindow={FC:{wycenaTabShell:{_generateRuntime:generation},roomQuoteAccess:{busy:()=>sourceBusy}}};
+ const quoteDocument={querySelector:selector=>selector==='.quote-lock-warning'?warning:selector==='.info-box'?notice:button};
+ await confirmQuoteSources({
+  async waitForFunction(fn){
+   const ready=vm.runInNewContext('('+fn.toString()+')',{window:quoteWindow,document:quoteDocument});
+   assert.equal(!!ready(),false,'A disabled gesture is still pending before quote access begins');
+   sourceBusy=true;assert.equal(!!ready(),false,'Source inspection is not completed generation');
+   warning=hidden;notice=hidden;assert.equal(!!ready(),false,'Hidden old panels cannot complete the wait');
+   warning=visible;assert.equal(!!ready(),true,'A late source warning must receive the explicit answer');
+   warning=null;generation.inFlight=true;assert.equal(!!ready(),true,'Math starts only after source confirmation');
+   generation.inFlight=false;sourceBusy=false;assert.equal(!!ready(),false,'Pending settings still own the disabled gesture');
+   button.disabled=false;assert.equal(!!ready(),true,'A quick completed operation cannot leave the helper waiting');
+   button.disabled=true;sourceBusy=true;notice=visible;assert.equal(!!ready(),true,'A real refusal is surfaced to the caller');
+   notice=null;warning=visible;
+  },
+  locator:()=>({isVisible:async()=>warning===visible,getByRole(role,options){assert.equal(role,'button');assert.deepEqual(options,{name:'Tak',exact:true});return {click:async()=>{clicked++;}};}})
+ });
+ assert.equal(clicked,1,'The helper answers the real source warning exactly once');
  const ctx=read('tools/cloud-ci-context.js'),suite=read('tools/firebase-pilot/cloud-sync-global.test.mjs');
  assert.ok(ctx.includes('cloud-sync-global.test.mjs'));assert.ok(suite.includes('await runNormalApplication(t)'));
  assert.ok(suite.includes('await runApplicationE2E(t)'));assert.ok(suite.includes('await runLocalFirstSuite(t)'));

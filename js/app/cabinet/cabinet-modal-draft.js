@@ -31,6 +31,9 @@
     delete cloned.setRole;
     delete cloned.setName;
     delete cloned.setNumber;
+    // A new cabinet defaults to the lowest OEM class. A saved cabinet keeps
+    // its own choice; the full-height rule is applied to the new draft itself.
+    if(cloned.details){delete cloned.details.drawerLoadKg;delete cloned.details.innerDrawerLoadKg;}
     try{
       if(ns.cabinetDrawerRequirements && typeof ns.cabinetDrawerRequirements.cleanDrawerTrash === 'function'){
         ns.cabinetDrawerRequirements.cleanDrawerTrash(cloned);
@@ -181,6 +184,9 @@
       if(Number(copy.details.additionalLegs) === 0) delete copy.details.additionalLegs;
       if(copy.details.shelfType === 'adjustable') delete copy.details.shelfType;
       if(copy.details.hingeDrilling === 'workshop') delete copy.details.hingeDrilling;
+      if(copy.details.backPosition==='')delete copy.details.backPosition;
+      if(copy.details.innerDrawerDistribution==='equal')delete copy.details.innerDrawerDistribution;
+      if(copy.details.innerDrawerSpace==='cabinet')delete copy.details.innerDrawerSpace;
     }
     const drawerApi = ns.cabinetDrawerRequirements;
     if(drawerApi && typeof drawerApi.cleanDrawerTrash === 'function') drawerApi.cleanDrawerTrash(copy);

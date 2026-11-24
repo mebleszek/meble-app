@@ -15,7 +15,8 @@ class MemoryStorage{
 const files=['js/app/shared/constants.js','js/app/shared/storage.js','js/app/shared/schema.js',
  'js/app/room-preferences/room-preferences-model.js','js/app/investor/investors-model.js','js/app/investor/investors-local-repository.js','js/app/investor/investors-store.js',
  'js/app/project/project-model.js','js/app/project/project-store.js','js/app/project/project-bridge.js','js/app/investor/session.js',
- 'js/app/cabinet/part-provenance.js','js/app/material/material-common.js','js/app/cabinet/front-hardware-fronts.js','js/app/cabinet/cabinet-cutlist.js','js/app/material/material-edge-store.js',
+ 'js/app/catalog/hardware-catalog-seed-data.js','js/app/catalog/hardware-drawer-catalog.js',
+ 'js/app/cabinet/part-provenance.js','js/app/material/material-common.js','js/app/cabinet/front-hardware-fronts.js','js/app/cabinet/cabinet-drawer-requirements.js','js/app/cabinet/cabinet-drawer-selection.js','js/app/cabinet/cabinet-cutlist.js', 'js/app/cabinet/cabinet-inner-drawers.js','js/app/material/material-edge-store.js',
  'js/app/project/project-pcv-overrides.js','js/app/project/project-domain-operations.js',
  'js/app/cabinet/cabinet-fronts.js','js/app/project/project-local-room-contract.js',
  'js/app/project/project-export-contract.js','js/app/project/project-selective-export.js'];
@@ -66,6 +67,36 @@ test('Native stores: one explicit investor/project, all rooms, dates and counts;
  assert.equal(JSON.stringify(out).includes('Fikcyjny projekt B'),false);assert.ok(out.warnings.includes('DATA_RESTORE_IS_NOT_QUOTE_RECALCULATION'));
  assert.ok(r.storage.reads.every(k=>[P,I,S,'fc_current_investor_v1','fc_current_project_id_v1'].includes(k)),r.storage.reads.join(','));
 });
+test('Drawer bottom choice survives the closed export and restart; unsupported colors stay refused',async()=>{
+ for(const color of ['white','grey']){
+  const r=fixture();r.mutate(p=>{
+   const cab=p.projectData.kuchnia.cabinets[0];cab.subType='szuflady';
+   cab.details={drawerLayout:'3_equal',drawerSystem:'skrzynkowe',drawerBottomColor:color,drawerLoadKg:30,backPosition:color==='white'?'internal':'external'};cab.backMaterial='18 mm pod kolor korpusu';
+  });
+  const before=r.rows(),first=await success(r),restarted=fixture(before),second=await success(restarted);
+  assert.equal(first.document.payload.project.projectData.kuchnia.cabinets[0].details.drawerBottomColor,color);
+  assert.equal(first.document.payload.project.projectData.kuchnia.cabinets[0].details.drawerLoadKg,30);
+  assert.equal(first.document.payload.project.projectData.kuchnia.cabinets[0].details.backPosition,color==='white'?'internal':'external');
+  assert.equal(first.document.payload.project.projectData.kuchnia.cabinets[0].backMaterial,'18 mm pod kolor korpusu');
+  assert.equal(first.dependencies.some(row=>row.reference==='18 mm pod kolor korpusu'),false,'A mounting/material choice is not a phantom catalog reference');
+  assert.equal(first.document.integrity.payloadSha256,second.document.integrity.payloadSha256);
+ }
+ const r=fixture();r.mutate(p=>p.projectData.kuchnia.cabinets[0].details.drawerBottomColor='red');
+ await refused(r,'EXPORT_INVALID_FIELD');
+ const invalidBack=fixture();invalidBack.mutate(p=>p.projectData.kuchnia.cabinets[0].details.backPosition='diagonal');await refused(invalidBack,'EXPORT_INVALID_FIELD');
+});
+test('Inner drawer dimensions and owner recipe survive closed export and restart without mutating sources',async()=>{
+ const r=fixture();r.mutate(p=>{const cab=p.projectData.kuchnia.cabinets[0];cab.height=90;cab.details={insideMode:'szuflady_wew',innerDrawerType:'skrzynkowe',innerDrawerCount:'2',drawerBottomColor:'grey',innerDrawerLoadKg:30,innerDrawerDistribution:'declared',innerDrawerSpace:'custom',innerDrawerSpaceHeightCm:50,innerDrawerHeightType:'inside',innerDrawerHeightsCm:[15,20]};});
+ const first=await success(r),restarted=fixture(r.rows()),second=await success(restarted);
+ const a=first.document.payload.project.projectData.kuchnia.cabinets[0],b=second.document.payload.project.projectData.kuchnia.cabinets[0];assert.deepEqual(clone(a),clone(b));
+ assert.equal(b.details.innerDrawerLoadKg,30);
+ assert.deepEqual(clone(b.details.innerDrawerHeightsCm),[15,20]);assert.equal(first.document.integrity.payloadSha256,second.document.integrity.payloadSha256);
+ const parts=restarted.FC.cabinetCutlist.getCabinetCutList(b,'kuchnia');
+ assert.deepEqual(clone(parts.filter(p=>p.name.startsWith('Front wewnętrzny')).map(p=>p.b)),[20,25]);
+ assert.deepEqual(clone(parts.filter(p=>p.name.startsWith('Tył szuflady')).map(p=>p.b)),[15,20]);
+ const invalid=fixture();invalid.mutate(p=>p.projectData.kuchnia.cabinets[0].details.innerDrawerHeightsCm=[15,-20]);await refused(invalid,'EXPORT_INVALID_GEOMETRY');
+});
+
 test('Real PCV setEdges + commit: independent left/right, cabinets and rooms survive export and restart',async()=>{
  const r=fixture();assert.equal(r.FC.projectPcvOverrides.setEdges(address(),edges).ok,true);
  assert.equal(r.FC.projectPcvOverrides.setEdges(address('two','body.side.right'),{w2:true}).ok,true);
@@ -284,7 +315,8 @@ async function nativeFixture(seed){
  }
  function addCab({frontCount=2,drawer=false,box=false,type='stojąca',shelves,layout='3_1_2_2'}={}){
   const draft=FC.cabinetModalDraft.makeDefaultCabinetDraftForType(roomId,type);draft.frontCount=frontCount;
-  if(drawer){FC.cabinetFronts.applySubTypeRules(roomId,draft,'szuflady');draft.details.drawerLayout=layout;draft.details.drawerSystem=box?'skrzynkowe':'systemowe';if(!box){draft.details.drawerBrand='blum';draft.details.drawerModel='tandembox_antaro';}}
+  if(drawer){FC.cabinetFronts.applySubTypeRules(roomId,draft,'szuflady');draft.details.drawerLayout=type==='moduł'&&layout==='3_1_2_2'?'3_equal':layout;draft.details.drawerSystem=box?'skrzynkowe':'systemowe';if(!box){draft.details.drawerBrand='blum';draft.details.drawerModel='tandembox_antaro';}}
+  if(drawer)draft.details.drawerBottomColor='white';
   if(shelves!==undefined)draft.details.shelves=shelves;
   s.cabinetModalState={mode:'add',editingId:null,draft};
   assert.equal(FC.cabinetModalFinalize.saveRegularCabinetDraft({draft}),true,JSON.stringify(messages));finish();
@@ -320,10 +352,26 @@ async function nativeRoundTrip(r){
 test('Native empty investor/project/room: confirmed global Save, restart and lossless export',async()=>{
  const r=await nativeFixture();r.finish();await nativeRoundTrip(r);
 });
+test('Native drawer save refuses missing color without mutation; explicit grey survives Save and restart',async()=>{
+ const r=await nativeFixture();r.finish();
+ const draft=r.FC.cabinetModalDraft.makeDefaultCabinetDraftForType(r.roomId,'stojąca');
+ r.FC.cabinetFronts.applySubTypeRules(r.roomId,draft,'szuflady');
+ Object.assign(draft.details,{drawerSystem:'skrzynkowe',drawerLayout:'3_equal',drawerBottomColor:''});
+ r.s.cabinetModalState={mode:'add',editingId:null,draft};
+ const before=r.rows(),ram=JSON.stringify(r.s.projectData),warnings=[];
+ assert.equal(r.FC.cabinetModalFinalize.saveRegularCabinetDraft({draft,showCabinetInfo:(...args)=>warnings.push(args)}),false);
+ assert.match(warnings[0][0],/Wybierz kolor płyt szuflad/);
+ assert.deepEqual(r.rows(),before);assert.equal(JSON.stringify(r.s.projectData),ram);
+ assert.equal(r.s.cabinetModalState.draft,draft);assert.equal(draft.details.drawerLayout,'3_equal');
+ draft.details.drawerBottomColor='grey';
+ assert.equal(r.FC.cabinetModalFinalize.saveRegularCabinetDraft({draft}),true);r.finish();
+ const out=await nativeRoundTrip(r);
+ assert.equal(out.document.payload.project.projectData[r.roomId].cabinets[0].details.drawerBottomColor,'grey');
+});
 for(const spec of [{frontCount:1},{frontCount:2},{frontCount:2,shelves:3},{drawer:true},{drawer:true,box:true},{type:'wisząca',frontCount:1},{type:'wisząca',frontCount:2},{type:'moduł',frontCount:1},{type:'moduł',frontCount:2},{type:'moduł',drawer:true},...['1_big','2_equal','3_equal','5_equal'].map(layout=>({drawer:true,layout}))])test('Native cabinet '+JSON.stringify(spec)+': fronts, PCV, Save/restart/export',async()=>{
  const r=await nativeFixture(),cab=r.addCab(spec),room=r.row().projectData[r.roomId];
  if(spec.drawer){const geometry=r.FC.cabinetCutlist.resolveDrawerFrontGeometry(cab,room);assert.deepEqual(room.fronts.map(f=>Math.round(f.height*10)),clone(geometry.panels.map(panel=>panel.heightMm)));if(!spec.layout&&!spec.type)assert.deepEqual(room.fronts.map(f=>f.height*10),[139,283,283]);}
- assert.equal(r.FC.projectPcvOverrides.setEdges({projectId:r.projectId,roomId:r.roomId,cabinetId:cab.id,partRoleId:'body.side.left'},edges).ok,true);r.finish();
+ const changed=r.FC.projectPcvOverrides.setEdges({projectId:r.projectId,roomId:r.roomId,cabinetId:cab.id,partRoleId:'body.side.left'},edges);assert.equal(changed.ok,true,JSON.stringify(changed));r.finish();
  await nativeRoundTrip(r);
 });
 for(const preset of ['A','C','D'])for(const count of [1,2])for(const source of ['custom','lower'])test(`Native wizard ${preset}, ${count} fronts, ${source}: set owner, sources and PCV round-trip`,async()=>{
@@ -435,6 +483,17 @@ test('Counter update honors failed writes, optimistic conflicts and unconfirmed 
  assert.equal(r.FC.session.commit(),false);assert.equal(r.FC.session.canSaveProject(),false);
 });
 
+test('drawer dependency selectors bind manufacturer and model to one real catalog row, retaining unknown-source refusal',async()=>{
+ const r=fixture(),{codeCandidate:{model}}=await import('../sync/code-global-catalogs.generated.mjs');
+ vm.runInContext(fs.readFileSync(path.join(ROOT,'js/app/cloud/global-data-contract.js'),'utf8'),r.s);
+ const {validateProjectDependencies:validate}=await import('../sync/local-first-project.mjs');
+ const document=details=>({payload:{project:{projectData:{room:{cabinets:[{details}],fronts:[],sets:[],preferences:{}}}}}});
+ const check=details=>validate(r.FC.projectExportContract,r.FC.globalDataContract,document(details),model);
+ assert.doesNotThrow(()=>check({drawerBrand:'blum',drawerModel:'tandembox_antaro'}));
+ assert.doesNotThrow(()=>check({drawerBrand:'gtv',drawerRunnerType:'undermount',drawerRunnerSeries:'MODERN SLIDE 3D'}));
+ for(const details of [{drawerBrand:'gtv',drawerModel:'tandembox_antaro'},{drawerBrand:'blum',drawerModel:'nonexistent'},{drawerModel:'___'},{drawerRunnerType:'unknown'},{innerDrawerBrand:'gtv',innerDrawerModel:'nonexistent'}])assert.throws(()=>check(details),/LF_PROJECT_DEPENDENCY_MISSING/);
+ const before=JSON.stringify(model);check({drawerBrand:'Blum',drawerModel:'blum_tandembox_antaro'});assert.equal(JSON.stringify(model),before);
+});
 async function main(){for(const [name,fn]of tests){await fn();console.log('PASS '+name);}console.log('CLOUD-1B selective project export: '+tests.length+'/'+tests.length+' PASS');}
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});
 module.exports={fixture};

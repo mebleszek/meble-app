@@ -354,13 +354,13 @@
     const category = norm(item && (item.hardwareCategory || item.category));
     return category === 'prowadniki' || category.indexOf('prowadnik') !== -1 || itemRole(item) === 'prowadnik';
   }
-  function findMountingPlateForHinge(hingeItem, req){
+  function findMountingPlateForHinge(hingeItem, req, catalogRows){
     const system = itemSystem(hingeItem);
     const type = hingeDriverTypeFrom(req, hingeItem);
     const form = hingeDriverFormFrom(req, hingeItem);
     const producer = norm(hingeItem && hingeItem.manufacturer);
     if(!producer || !system || !type) return { item:null, warning:'Nie można dobrać osobnego prowadnika: zawias nie ma producenta, systemu kompatybilności albo wymaganego typu prowadnika.' };
-    const rows = getAccessoryCatalogRows().map(normalizeCandidateItem).filter((item)=>{
+    const rows = (catalogRows || getAccessoryCatalogRows().map(normalizeCandidateItem)).filter((item)=>{
       if(!item || text(item.status) === 'inactive') return false;
       if(!isMountingPlateItem(item)) return false;
       if(!isTechnicallyUsableCandidate(item, { technicalParams:{ any:true } })) return false;
@@ -441,14 +441,36 @@
     });
     return { score, required, checks, matched:checks.filter((row)=> row.ok).length };
   }
-  function resolveHardwareRequirement(req, roomId, rawMaterial){
+  function resolveHardwareRequirement(req, roomId, rawMaterial, catalogRows){
     const r = req && typeof req === 'object' ? req : null;
     const group = r && text(r.hardwareGroup) ? text(r.hardwareGroup) : hardwareGroupFromMaterial(rawMaterial);
     const preferredProducer = resolvePreferredHardwareProducer(roomId, group, group === 'hinges' ? 'BLUM' : '');
+    if(r?.drawerFit){
+      const fit=r.drawerFit,book=FC.hardwareDrawerCatalog,all=catalogRows||getAccessoryCatalogRows().map(normalizeCandidateItem);
+      const candidates=book?.candidates(all).filter(row=>row.productKind===fit.productKind&&row.family===fit.family&&row.motion===fit.motion)||[];
+      let selected;
+      if(fit.productKind==='runner')selected=candidates.find(row=>row.lengthMm===fit.lengthMm&&row.loadKg===fit.loadKg);
+      else if(fit.selectedId){
+        if(!fit.panelColor)throw selectionApi.createQuoteValidationError('drawer_material_unconfirmed','Wybierz kolor płyt szuflad','Nie potwierdzono koloru dna i tyłu16 mm.');
+        selected=candidates.find(row=>row.id===fit.selectedId&&row.loadKg>=(fit.minLoadKg??0));
+      }
+      else{
+        const result=FC.cabinetDrawerSelection.forFront({...fit,minLoadKg:Number(r.technical?.loadKg)||30,
+          candidates:candidates.filter(row=>!row.maxDrawerWidthMm||fit.insideWidthMm<=row.maxDrawerWidthMm)});
+        if(result.ok)selected=result.selected;
+      }
+      if(!selected)throw selectionApi.createQuoteValidationError('drawer_hardware_unresolved','Sprawdź dobór szuflady','Nie potwierdzono kompletnego zestawu dla wymiarów i sposobu otwierania: '+text(r.label));
+      return resolveHardwareRequirement({...r,drawerFit:null,catalogItemId:selected.id,expectedManufacturer:selected.manufacturer,expectedSymbol:selected.sku,expectedUnit:'kpl.'},roomId,rawMaterial,all);
+    }
+    if(r && r.catalogItemId){
+      const rows=(catalogRows || getAccessoryCatalogRows().map(normalizeCandidateItem)).filter(item=>item && text(item.id)===text(r.catalogItemId));
+      if(rows.length!==1||['inactive','hidden','archived'].includes(text(rows[0].status))||rows[0].active===false||norm(rows[0].manufacturer)!==norm(r.expectedManufacturer)||text(rows[0].symbol)!==text(r.expectedSymbol)||text(rows[0].hardwareUnit)!==text(r.expectedUnit)||!Number.isFinite(Number(rows[0].price))||Number(rows[0].price)<0||(Number(rows[0].price)===0&&!text(rows[0].priceUserEditedAt)))throw selectionApi.createQuoteValidationError('opening_hardware_unresolved','Sprawdź cennik okuć','Nie potwierdzono konkretnego okucia: '+text(r.label));
+      return {item:rows[0],preferredProducer,requirement:r,directSourceId:true};
+    }
     if(!r || r.kind === 'none' || r.kind === 'future'){
       return { item:null, preferredProducer, requirement:r, warning:r && r.kind === 'future' ? text(r.reason) : '' };
     }
-    const allRows = getAccessoryCatalogRows().map(normalizeCandidateItem).filter((item)=>{
+    const allRows = (catalogRows || getAccessoryCatalogRows().map(normalizeCandidateItem)).filter((item)=>{
       if(!item || text(item.status) === 'inactive') return false;
       if(r.kind === 'leg' || r.kind === 'hanger'){
         const name = norm(item.name);
@@ -574,6 +596,8 @@
 
   function collectAccessories(selectedRooms){
     const rows = new Map();
+    // One synchronous calculation snapshot; never retained across edits/await.
+    const catalogRows = getAccessoryCatalogRows().map(normalizeCandidateItem);
     const cabs = source.selectedCabinets(selectedRooms);
     cabs.forEach(({ roomId, roomLabel:rl, cabinet })=>{
       const parts = collectAccessoryPartsForCabinet(roomId, cabinet);
@@ -584,7 +608,7 @@
         if(a > 0 && b > 0) return;
         if(!mat) return;
         const req = part && part.hardwareRequirement && typeof part.hardwareRequirement === 'object' ? part.hardwareRequirement : null;
-        const resolved = resolveHardwareRequirement(req, roomId, mat);
+        const resolved = resolveHardwareRequirement(req, roomId, mat, catalogRows);
         const supportRequirement = req && ['leg','hanger'].includes(req.kind);
         const priceItem = resolved.item || (supportRequirement ? null : (catalog.accessoryPriceLookup(mat) || catalog.accessoryPriceLookup(displayHardwareNameFromPreferences(mat, roomId)))) || null;
         const fallbackName = req && text(req.label)
@@ -634,7 +658,7 @@
         prev.total = prev.qty * prev.unitPrice;
         rows.set(key, prev);
         if(req && isHingeRequirement(req) && priceItem && hingeItemNeedsMountingPlate(priceItem, req)){
-          const driver = findMountingPlateForHinge(priceItem, req);
+          const driver = findMountingPlateForHinge(priceItem, req, catalogRows);
           if(driver && driver.item){
             addAccessoryMapRow(rows, {
               item:driver.item,

@@ -25,7 +25,7 @@ function fixture(){
       getCabinetFrontCutListForMaterials:()=>panels.map(p=>({name:'Front',qty:1,a:p.w,b:p.h,material:'Front: laminat'}))}};
   const s={FC,projectData:project,console};s.window=s;s.globalThis=s;vm.createContext(s);
   const load=file=>runModule(file,s);
-  for(const file of ['cabinet/cabinet-hardware-requirements','cabinet/cabinet-cutlist','pricing/labor-catalog-definitions','pricing/labor-catalog','pricing/work-quantity-sources','pricing/work-quantity-facts','wycena/wycena-core-labor','wycena/wycena-core-lines','quote/quote-calculation-register'])load('js/app/'+file+'.js');
+  for(const file of ['cabinet/cabinet-drawer-requirements','cabinet/cabinet-hardware-requirements','cabinet/cabinet-cutlist','pricing/labor-catalog-definitions','pricing/labor-catalog','pricing/work-quantity-sources','pricing/work-quantity-facts','wycena/wycena-core-labor','wycena/wycena-core-lines','quote/quote-calculation-register'])load('js/app/'+file+'.js');
   let rates=FC.laborCatalog.ensureDefaultDefinitions([]);
   FC.catalogSelectors={getQuoteRates:()=>rates};
   return {FC,cab,project,load,s,setPanels:p=>{panels=p;},rates:()=>rates,
@@ -48,7 +48,7 @@ test('HDF hanging standard totals 23 min, with one preparation per operation; 18
   for(const [code,q]of [['hanger.count',2],['hdf.cutout_count',4],['nut.workshop_count',2]])assert.equal(r.fact(code).value,q);
   const minutes=r.details().filter(d=>['hanger.count','hdf.cutout_count','nut.workshop_count'].includes(d.quantitySource)).reduce((s,d)=>s+d.hours*60,0);near(minutes,23);
   cab.width=90;assert.equal(r.fact('hanger.count').value,2);
-  cab.backMaterial='18 mm pod kolor korpusu';assert.equal(r.fact('hanger.count').value,0);cab.details.hangerCount=3;
+  cab.backMaterial='18 mm pod kolor korpusu';cab.details.backPosition='internal';assert.equal(r.fact('hanger.count').value,0);cab.details.hangerCount=3;
   assert.equal(r.fact('hanger.count').value,3);assert.equal(r.fact('hdf.cutout_count').value,0);assert.equal(r.fact('nut.workshop_count').value,0);
   assert.equal(FC.cabinetCutlist.getCabinetCutList(cab,'kuchnia').find(p=>p.hardwareRequirement?.kind==='hanger').qty,3);
   cab.details.hangerCount=0;assert.equal(r.fact('hanger.count').value,0);

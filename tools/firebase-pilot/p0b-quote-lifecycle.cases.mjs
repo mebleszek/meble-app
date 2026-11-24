@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import * as f from 'firebase/firestore';
+import {waitForApplicationIdle} from './quote-ui-actions.mjs';
 
 // These helpers drive the existing normal bootstrap, SDK and real controls.
 export async function promotionCase(c){
@@ -72,6 +73,7 @@ export async function promotionCase(c){
  await page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
  for(const key of ['fc_projects_v1','fc_quote_snapshots_v1','fc_investors_v1'])assert.equal(rows(await image(phone))[key],rows(beforeAbort)[key]);
  await page.locator('[data-action="tab"][data-tab="wycena"]').filter({visible:true}).first().click();
+ await waitForApplicationIdle(page);
  assert.equal((await invoke(true)).ok,true,'UI must wait for durable promotion');
  await until(async()=>(await image(phone)).outbox.every(row=>row.phase==='verified'));
  const after=await image(phone),final=JSON.parse(rows(after).fc_quote_snapshots_v1).find(row=>row.id===offer.id);

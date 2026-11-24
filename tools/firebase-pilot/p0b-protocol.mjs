@@ -183,7 +183,16 @@ export function createP0BProtocol(connection, deviceId,assertCurrent=()=>{}) {
       }
       before=current;expected={...current,generation:current.generation+1,lastVisit:deviceId,visits};
       tx.set(r,expected);
-    },async()=>!!expected&&equal(await readServer(investorRef(iid)),expected),async error=>{
+    },async()=>{
+      if(!expected)return false;
+      // A one-shot listener can still overlap the write whose result was lost.
+      // Order the full post-image witness through a read-only transaction;
+      // never replay the write or accept just this device's visit token.
+      guard();const confirmed=await f.runTransaction(db,async tx=>{
+        guard();const value=read(await tx.get(investorRef(iid)));guard();return value;
+      },{maxAttempts:1});
+      guard();return equal(confirmed,expected);
+    },async error=>{
       if(!before||!['aborted','failed-precondition','permission-denied','unavailable'].includes(error?.code))return;
       const after=active(await readServer(investorRef(iid))),own=after.visits[deviceId];
       if(open&&recover&&own)return {confirmed:true};

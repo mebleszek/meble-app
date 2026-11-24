@@ -243,14 +243,27 @@
     return [];
   }
 
-  function getBaseHingeRequirement(room, cab){
+  function getBaseHingeRequirement(room,cab){
+    const base=getUnadjustedHingeRequirement(room,cab);
+    if(base.kind!=='hinge'||base.auxiliaryForLift)return base;
+    const drawers=FC.cabinetDrawerRequirements;
+    const hasInner=member=>!!drawers?.hasInnerDrawers?.(room,member);
+    let members=[cab];
+    if(cab.setId){
+      const data=FC.frontHardware?.getProjectRoomData?.(room);
+      members=members.concat((data?.cabinets||[]).filter(member=>member.id!==cab.id&&String(member.setId||'')===String(cab.setId)));
+    }
+    return members.some(hasInner) ? zero155('inner_drawers_zero_protrusion',{requiredTypeId:HINGE_TYPES.ZERO_155}) : base;
+  }
+
+  function getUnadjustedHingeRequirement(room, cab){
     if(!cab || typeof cab !== 'object') return noHinge('empty', 'Brak szafki.');
     if(isSetFollower(room, cab)) return noHinge('set_follower', 'Korpus zestawu nieprowadzący — okucia liczy front zestawu.');
 
     const type = typeOf(cab);
     const sub = subTypeOf(cab);
 
-    if(cab.setId) return overlay110('set_fronts_110_overlay', { note:'Zestaw: v1 liczy zawiasy od frontu zestawu; przyszłe szuflady wewnętrzne mogą zmienić typ zawiasu.' });
+    if(cab.setId) return overlay110('set_fronts_110_overlay', { note:'Zestaw: zawiasy liczone od frontu zestawu.' });
 
     if(sub === 'szuflady') return noHinge('drawer_cabinet_no_hinges', 'Szafka szufladowa — bez zawiasów, później prowadnice/szuflady.');
     if(sub === 'zmywarkowa') return noHinge('dishwasher_no_furniture_hinges', 'Zmywarka — bez zawiasów meblowych, osobno montaż AGD.');
@@ -424,10 +437,11 @@
   }
 
   function applyOverrideToDoorRequirement(baseReq, override, extra){
-    const hasOverride = !!(override && text(override.typeId));
+    const hasOverride = !baseReq?.requiredTypeId && !!(override && text(override.typeId));
     const typeId = (hasOverride ? text(override && override.typeId) : text(baseReq && baseReq.typeId)) || HINGE_TYPES.OVERLAY_110;
     let req = getHingeRequirementPreset(typeId, text(baseReq && baseReq.ruleId) || 'manual_hinge_override', {
       overridden:hasOverride,
+      requiredTypeId:baseReq && baseReq.requiredTypeId,
       defaultTypeId:text(baseReq && baseReq.typeId),
       defaultLabel:text(baseReq && baseReq.label),
       sourceRuleId:text(baseReq && baseReq.ruleId),
@@ -541,6 +555,40 @@
     const hangers = hanging ? (override ? count(d.hangerCount) : hdf ? 2 : 0) : 0;
     return {legs, hangers, hanging, hdf};
   }
+  function getOpeningInfo(room,cab,frontParts){
+    const mode=text(cab && cab.openingSystem).toLowerCase();
+    const hexa=mode==='krawędziowy hexa gtv',handle=mode==='uchwyt klienta'||hexa,tipon=mode==='tip-on';
+    if(!handle&&!tipon)return {ok:true,handleQty:0,hexaQty:0,tiponQty:0};
+    if(!Array.isArray(frontParts)||frontParts.some(p=>!Number.isInteger(Number(p.qty))||Number(p.qty)<0))return {ok:false,code:'OPENING_FRONTS_UNCONFIRMED'};
+    if(hexa&&frontParts.some(p=>Number(p.qty)>0&&!(Number(p.a)*10>=150)))return {ok:false,code:'OPENING_HANDLE_TOO_WIDE'};
+    let qty=frontParts.reduce((sum,p)=>sum+Number(p.qty),0);
+    if(tipon){
+      const rows=FC.cabinetDrawerRequirements?.getDrawerRequirements?.(room,cab);
+      if(!Array.isArray(rows))return {ok:false,code:'OPENING_DRAWERS_UNCONFIRMED'};
+      // The drawer's dimensioned requirement selects its own push kit. Never
+      // add a door956A1004 or its door-specific drilling/plate labour to it.
+      const drawers=rows.filter(row=>row.technical?.usage!=='wewnętrzna').reduce((sum,row)=>sum+Number(row.qty),0);
+      if(!Number.isSafeInteger(drawers)||drawers<0||drawers>qty)return {ok:false,code:'OPENING_FRONTS_UNCONFIRMED'};
+      qty-=drawers;
+    }
+    return {ok:true,handleQty:handle?qty:0,hexaQty:hexa?qty:0,tiponQty:tipon?qty:0};
+  }
+  function getOpeningRequirements(room,cab,frontParts){
+    const info=getOpeningInfo(room,cab,frontParts);
+    if(!info.ok)throw Object.assign(Error(info.code),{code:info.code});
+    return [
+      {catalogItemId:'hw_seed_gtv_hexa_96_black',expectedManufacturer:'GTV',expectedSymbol:'UA-HEXA-96-20M',label:'Uchwyt GTV HEXA 150 mm czarny mat',qty:info.hexaQty},
+      {catalogItemId:'hw_seed_blum_tipon_long_956a1004',expectedManufacturer:'Blum',expectedSymbol:'956A1004 TIP-ON V1R736',label:'TIP-ON długi Blum 956A1004',qty:info.tiponQty}
+    ].filter(row=>row.qty>0).map(row=>Object.assign({kind:'opening',hardwareGroup:'accessories',category:'Inne',expectedUnit:'szt.'},row));
+  }
+  function getChannelInfo(cab){
+    if(text(cab && cab.openingSystem).toLowerCase()!=='korytkowy')return {ok:true,count:0,edgeMeters:0};
+    const orientation=text(details(cab).channelOrientation)||'horizontal';
+    if(!['horizontal','vertical'].includes(orientation))return {ok:false,code:'CHANNEL_ORIENTATION_INVALID'};
+    const lengthCm=number(cab[orientation==='vertical'?'height':'width']);
+    if(!(lengthCm>0))return {ok:false,code:'CHANNEL_DIMENSION_REQUIRED'};
+    return {ok:true,count:1,orientation,lengthCm,edgeMeters:2*lengthCm/100};
+  }
   function getSupportRequirements(room, cab){
     const q = supportQuantities(cab);
     return [
@@ -559,6 +607,9 @@
   FC.cabinetHardwareRequirements = {
     HINGE_TYPES,
     supportQuantities,
+    getChannelInfo,
+    getOpeningInfo,
+    getOpeningRequirements,
     getSupportRequirements,
     getHingeRequirementOptions,
     getHingeRequirementPreset,

@@ -447,7 +447,20 @@ function renderCabinetExtraDetailsInto(container, draft){
       ensureFrontCountRulesSafe,
       getFlapFrontCountSafe
     });
-    if(handled) return;
+    if(handled){
+      const drawers=ns.cabinetDrawerRequirements;
+      ns.cabinetInnerDrawers?.render({room:uiState.roomType,draft,container,addSelect,addNumber,rerender:renderCabinetModal,state:cabinetModalState});
+      if(ns.cabinetCutlist?.backGeometry?.(draft,uiState.roomType).kind==='board')addSelect('Montaż pleców 18 mm','backPosition',[{v:'',t:'Wybierz montaż'},{v:'internal',t:'Wewnętrzne'},{v:'external',t:'Zewnętrzne — PCV dookoła'}]);
+      if(drawers?.needsBottomColor(uiState.roomType,draft))addSelect(drawers.getDrawerRequirements(uiState.roomType,draft).some(r=>r.technical?.drawerKind==='system')?'Kolor dna i tyłu szuflad 16 mm':'Kolor dna szuflad 10 mm','drawerBottomColor',[{v:'',t:'Wybierz kolor'},...drawers.BOTTOM_COLORS]);
+      for(const group of ns.cabinetDrawerSelection?.capacityGroups(uiState.roomType,draft)||[]){
+        const options=group.options.map(n=>({v:String(n),t:n+' kg'})),saved=draft.details?.[group.key];
+        if(saved!==undefined&&!group.options.includes(Number(saved)))options.unshift({v:String(saved),t:String(saved)+' kg — niedostępne dla tego zestawu',disabled:true});
+        // Display the lowest class without changing a stored cabinet merely by opening it.
+        fieldsApi?.appendExtraSelectField?.(container,{draft,labelText:group.key==='innerDrawerLoadKg'?'Nośność szuflad wewnętrznych (kg)':'Nośność szuflad (kg)',key:group.key,options,selectedValue:group.forced?String(group.options[0]):undefined,onRender:renderCabinetModal});
+      }
+      if(draft.openingSystem==='korytkowy')addSelect('Kierunek korytka','channelOrientation',[{v:'horizontal',t:'Poziome'},{v:'vertical',t:'Pionowe'}]);
+      return;
+    }
   }
 }
 
@@ -780,9 +793,9 @@ function renderCabinetModal(){
     renderCabinetModal();
   };
   document.getElementById('cmFrontColor').onchange = e => { draft.frontColor = e.target.value; };
-  document.getElementById('cmBackMaterial').onchange = e => { draft.backMaterial = e.target.value; };
+  document.getElementById('cmBackMaterial').onchange = e => { draft.backMaterial = e.target.value; renderCabinetModal(); };
   document.getElementById('cmBodyColor').onchange = e => { draft.bodyColor = e.target.value; };
-  document.getElementById('cmOpeningSystem').onchange = e => { draft.openingSystem = e.target.value; refreshCabinetHardwareRequirementsPanel(); };
+  document.getElementById('cmOpeningSystem').onchange = e => { draft.openingSystem = e.target.value; renderCabinetModal(); };
   const _cmBodyPcvMode = document.getElementById('cmBodyPcvMode');
   if(_cmBodyPcvMode) _cmBodyPcvMode.onchange = e => { draft.bodyPcvMode = String(e.target.value || '') === 'front' ? 'front' : 'body'; };
 
@@ -876,8 +889,9 @@ function createOrUpdateSetFromWizard(){
 })();
 function showCabinetInfo(title, message){
   try{
-    if(FC.infoBox && typeof FC.infoBox.open === 'function'){
-      FC.infoBox.open({ title:String(title || 'Informacja'), message:String(message || '') });
+    const infoBox=window.FC && window.FC.infoBox;
+    if(infoBox && typeof infoBox.open === 'function'){
+      infoBox.open({ title:String(title || 'Informacja'), message:String(message || '') });
       return;
     }
   }catch(_){ }
