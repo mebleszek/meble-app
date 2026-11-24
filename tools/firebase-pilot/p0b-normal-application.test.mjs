@@ -1,6 +1,6 @@
 import {startupDraftCase} from './p0b-startup-draft.cases.mjs';
 import {observeQuoteReads,assertQuoteReadBudget} from './p0b-quote-read-budget.mjs';
-import {confirmQuoteSources} from './quote-ui-actions.mjs';
+import {confirmQuoteSources,applicationIdle} from './quote-ui-actions.mjs';
 import {manualQuoteCase} from './p0b-manual-quote.cases.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -37,8 +37,9 @@ async function saveProject(page,{flush=true}={}){
  if(flush)assert.equal((await page.evaluate(()=>window.FC.applicationStartup.synchronize())).ok,true);
 }
 async function showList(page){
+ await page.waitForFunction(applicationIdle);
  if(await page.locator('#investorsListView').isVisible()){await page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);return;}
- if(await page.locator('#sessionCancel').isVisible()){assert.equal(await page.locator('#sessionCancel').innerText(),'Wyjdź');await page.locator('#sessionCancel').click();await page.waitForFunction(()=>window.uiState.entry==='investorsList'&&!window.FC.applicationStartup.inspect().transactionPending);return;}
+ if(await page.locator('#sessionCancel').isVisible()){assert.equal(await page.locator('#sessionCancel').innerText(),'Wyjdź');await page.locator('#sessionCancel').click();await page.waitForFunction(()=>window.uiState.entry==='investorsList'&&!window.FC.applicationStartup.inspect().transactionPending);await page.waitForFunction(applicationIdle);return;}
  if(await page.locator('#homeView').isVisible()){await page.locator('#openFurnitureProjectsBtn').click();await page.waitForFunction(()=>['modeHub','investorsList'].includes(window.uiState?.entry)&&!window.FC.applicationStartup.inspect().transactionPending);}
  if(await page.locator('#modeHubView').isVisible())await page.locator('[data-action="open-investors-list"]').filter({visible:true}).first().click();
  await page.locator('#investorsListView').waitFor({state:'visible'});

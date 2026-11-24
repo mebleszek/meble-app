@@ -92,7 +92,13 @@ test('mandatory CI includes the normal browser SDK suite, no removed old suites/
  assert.equal(replicationWaiting(wait,11000,'[1,0]'),false,'A stalled transfer loses the allowance after5 s');
  assert.equal(replicationWaiting(wait,29999,'[2,0]'),true);
  assert.equal(replicationWaiting(wait,30000,'[3,0]'),false,'Even continuing RPC progress cannot remove the30 s hard allowance bound');
- const {confirmQuoteSources}=await import('./quote-ui-actions.mjs');
+ const {confirmQuoteSources,applicationIdle}=await import('./quote-ui-actions.mjs');
+ let applicationState={transactionPending:false,incomingPending:true};
+ const idle=vm.runInNewContext('('+applicationIdle.toString()+')',{window:{FC:{applicationStartup:{inspect:()=>applicationState}}}});
+ assert.equal(idle(),false,'An incoming offer still owns the image even without a local transaction');
+ applicationState={transactionPending:true,incomingPending:false};assert.equal(idle(),false);
+ applicationState={transactionPending:false};assert.equal(idle(),false,'Missing incoming state is not confirmed idle');
+ applicationState={transactionPending:false,incomingPending:false};assert.equal(idle(),true);
  let sourceBusy=false,warning=null,notice=null,clicked=0;
  const button={disabled:true},generation={inFlight:false},visible={getClientRects:()=>[{}]},hidden={getClientRects:()=>[]};
  const quoteWindow={FC:{wycenaTabShell:{_generateRuntime:generation},roomQuoteAccess:{busy:()=>sourceBusy}}};

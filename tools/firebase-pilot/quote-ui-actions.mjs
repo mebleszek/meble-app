@@ -1,5 +1,9 @@
 // Existing regression cases explicitly accept the newly approved historical-data
 // warning. Dedicated quote-lock cases exercise all three choices themselves.
+export function applicationIdle(){
+ const state=window.FC.applicationStartup.inspect();
+ return state.transactionPending===false&&state.incomingPending===false;
+}
 export async function confirmQuoteSources(page){
  await page.waitForFunction(()=>{
   const visible=selector=>!!document.querySelector(selector)?.getClientRects().length;

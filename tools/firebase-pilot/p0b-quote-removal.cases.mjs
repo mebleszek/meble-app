@@ -1,5 +1,6 @@
-import {confirmQuoteSources} from './quote-ui-actions.mjs';
+import {confirmQuoteSources,applicationIdle} from './quote-ui-actions.mjs';
 import assert from 'node:assert/strict';
+import {isDeepStrictEqual} from 'node:util';
 import fs from 'node:fs';
 export async function quoteRemovalCase({t,phone,computer,offer,iid,pid,wardrobeId,image,rows,until,restartProbe,artifacts,showList}){
  let page=phone.page;
@@ -18,6 +19,12 @@ export async function quoteRemovalCase({t,phone,computer,offer,iid,pid,wardrobeI
   assert.deepEqual(rows(await image(phone)),rows(held));assert.deepEqual((await image(phone)).outbox,held.outbox);
   assert.deepEqual(rows(await image(computer)),rows(peer));await page.locator('.info-box .is-success').click();
  }
+ // The deliberate deletion/abort race starts below. Settle the earlier
+ // replacement on the receiver before an unrelated navigation gesture.
+ await until(async()=>(await image(phone)).outbox.every(op=>op.phase==='verified'));
+ const expectedHistory=JSON.parse(rows(await image(phone)).fc_quote_snapshots_v1||'[]');
+ await until(async()=>isDeepStrictEqual(JSON.parse(rows(await image(computer)).fc_quote_snapshots_v1||'[]'),expectedHistory)&&await computer.page.evaluate(applicationIdle));
+ assert.deepEqual(JSON.parse(rows(await image(computer)).fc_quote_snapshots_v1||'[]'),expectedHistory,'The receiver applied the complete replacement history before Exit');
  await showList(computer.page);await until(async()=>!(await image(computer)).replicas.find(r=>r.key===wardrobeId).editor?.active);
  await until(async()=>(await image(phone)).outbox.every(op=>op.phase==='verified'));
  await page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending&&!window.FC.applicationStartup.inspect().incomingPending);

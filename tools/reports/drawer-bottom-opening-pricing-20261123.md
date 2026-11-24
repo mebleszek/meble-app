@@ -70,6 +70,12 @@ HEADd6aa40e6dcff98fc8623a5946c4fc9b6f90d9f9d / BASEe17b9be4bc8419b32527e485cf6b1
 
 Przygotowanie istniejącego testu czeka teraz na ACK początkowej oferty, jej dokładny odbiór i brak transactionPending/incomingPending przed Wyjdź; nowa asercja porównuje cały odebrany snapshot. Sam badany wyścig usunięcia z Wyceń, checkpoint/ACK/SIGKILL i odmowa odtworzenia pozostają bez zmian. Składnia/diff PASS; pełne GREEN tej poprawki dopiero z nowego obowiązkowego CI. Kod aplikacji i publiczny manifest bez zmian. Kopia oryginalnego artefaktu i logi w ci1393-* pozaGit. Ready→koniec7:27,6835 runner-sekund, szczyt20, kolejka282 s, najdłuższy timer227 s.
 
+### Preflight#1394 — wspólna granica odbioru przed Wyjdź
+
+HEAD7008a104fd4090c0799ea5bb7fc2cd947d28a115 / BASEe17b9be4bc8419b32527e485cf6b16a930a680a9:77 PASS/4 FAIL/2 SKIPPED. Rapid overlap i combined PASS. Jedyny pierwotny FAIL single wystąpił w tej samej granicy przygotowania: log peer zawiera Anulowanie niepotwierdzone / LF_REMOTE_APPLY_PENDING podczas Wyjdź (quoteRemovalCase:21), przed badaną operacją usunięcia. Trzy pozostałe FAIL są agregatami.
+
+Sprawdzono powiązane wywołania showList. Wspólny helper czeka teraz na jawne false obu flag transactionPending/incomingPending przed gestem i po zakończeniu Wyjdź; brak flag nie oznacza gotowości. Single/combined czekają też na ACK i dokładnie ten sam kompletny ledger po zastąpieniu oferty, przed niezwiązanym zamknięciem drugiego urządzenia. Asercje obcego edytora, abortu IDB, anulowania, jawnej ponownej próby, usunięcia/recalculacji/PCV/ACK/peer/SIGKILL pozostały. Boundary14/14 PASS, składnia/diff/przydział37/61 PASS; pełny GREEN aktualnych scenariuszy dopiero z nowego CI. Zero zmian produkcji/UI/cen/Rules/manifestu. Ready→koniec7:53,6629 runner-sekund, szczyt20, kolejka265 s, timer222 s.
+
 ## Historia stanu przed domknięciem24.11.2026
 
 
