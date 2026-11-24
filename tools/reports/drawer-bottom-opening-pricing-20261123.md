@@ -64,6 +64,12 @@ Helper czeka na widoczne ostrzeżenie/odmowę, rzeczywiste rozpoczęcie obliczen
 
 Ready→koniec7:47,6657 runner-sekund, szczyt20, kolejka281 s, timer220 s. Nowa poprawka dotyczy tylko wspólnego helpera, istniejącego testu i dokumentacji; kod aplikacji/ceny/Rules/manifest530 plików bez zmian. Powiązane pełne testy, auto-merge i exact Pages nadal wymagane dla nowego HEAD.
 
+### Preflight#1393 — przygotowanie overlap,24.11.2026
+
+HEADd6aa40e6dcff98fc8623a5946c4fc9b6f90d9f9d / BASEe17b9be4bc8419b32527e485cf6b16a930a680a9:77 PASS/4 FAIL/2 SKIPPED. Poprawka późnego ostrzeżenia z1392 przeszła, w tym combined. Jedyny pierwotny FAIL rapid overlap przeszedł utworzenie oferty, ale kliknął Wyjdź na drugim urządzeniu podczas stosowania tej oferty. Peer screenshot potwierdza LF_REMOTE_APPLY_PENDING; guard zachował sesję i dane. To nie błąd usuwania ani powód do zmiany guardu.
+
+Przygotowanie istniejącego testu czeka teraz na ACK początkowej oferty, jej dokładny odbiór i brak transactionPending/incomingPending przed Wyjdź; nowa asercja porównuje cały odebrany snapshot. Sam badany wyścig usunięcia z Wyceń, checkpoint/ACK/SIGKILL i odmowa odtworzenia pozostają bez zmian. Składnia/diff PASS; pełne GREEN tej poprawki dopiero z nowego obowiązkowego CI. Kod aplikacji i publiczny manifest bez zmian. Kopia oryginalnego artefaktu i logi w ci1393-* pozaGit. Ready→koniec7:27,6835 runner-sekund, szczyt20, kolejka282 s, najdłuższy timer227 s.
+
 ## Historia stanu przed domknięciem24.11.2026
 
 
