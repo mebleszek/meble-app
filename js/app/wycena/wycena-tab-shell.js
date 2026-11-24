@@ -478,7 +478,7 @@
       void new Promise(resolve=>setTimeout(resolve,0)).then(()=>FC.quoteOfferStore?.settingsSettled?.()).then(async saved=>{
         if(saved===false)throw Error('LF_OFFER_DRAFT_UNCONFIRMED');
         await writer.whenIdle?.();
-        if(!current())throw Error('LF_QUOTE_OWNER_CHANGED');
+        if(!current())throw Error('LF_QUOTE_OWNER_CHANGED');if(!await FC.quoteRouteRequest.prepare(()=>d.getOfferDraft()))return;
         if(FC.roomQuoteAccess)return FC.roomQuoteAccess.run({selection:()=>d.normalizeDraftSelection(d.getOfferDraft()),generate,assertCurrent(){if(!current())throw Error('LF_QUOTE_OWNER_CHANGED');},beforeRun(){prior=d.getState?.();}});
         if(await FC.quoteOfferStore?.prepareGeneration?.()===false)throw Error('LF_OFFER_DRAFT_UNCONFIRMED');
         if(!current())throw Error('LF_QUOTE_OWNER_CHANGED');

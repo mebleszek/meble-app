@@ -4,7 +4,7 @@
 // but new mixed-responsibility monoliths and unapproved growth are not.
 const fs=require('node:fs'),path=require('node:path'),{execFileSync}=require('node:child_process');
 const root=path.resolve(__dirname,'..');
-const git=(...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim();
+const git=(...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8'});
 const count=s=>s?s.split(/\r?\n/).length:0;
 const metrics=s=>({
  lines:count(s),

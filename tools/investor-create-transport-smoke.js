@@ -61,3 +61,82 @@ const edited=restarted.update(created.id,{transport:{distanceKm:'7',durationMin:
 assert.equal(edited.transport.durationMin,'15','existing investor update must retain its behavior');
 assert.equal(start(durable).getById(created.id).transport.durationMin,'15','update must remain durable across restart');
 console.log('PASS investor create/transport, missing route, cold restart, update');
+
+(async()=>{
+  function fixture(){
+    const rows=new Map(),investors=start(rows),investor=investors.create({name:'Route request',transport:{}});
+    investors.setCurrentId(investor.id);
+    const win={FC:{investors,projectStore:{getCurrentProjectId:()=> 'room'},session:{active:false},
+      sessionNavigation:{canCalculate:()=>true},companyProfile:{read:()=>({}),companyAddress:()=> 'Workshop',billableDistanceKm:n=>Number(n)*2}},
+      uiState:{activeTab:'wycena'},localStorage:{getItem:k=>rows.get(k)??null}};
+    win.window=win;
+    for(const file of ['js/app/investor/investor-persistence.js','js/app/investor/investor-transport.js','js/app/quote/quote-route-request.js'])
+      new Function('window','document',fs.readFileSync(file,'utf8'))(win,{});
+    let draft={projectId:'room',investorId:investor.id,selection:{selectedRooms:['room']},commercial:{versionName:'Keep'},services:{delivery:true,carrying:true,assembly:true}},choices=0,writes=0;
+    const fc=win.FC;
+    fc.quoteOfferStore={getCurrentDraft:()=>draft,async saveSettings(scope,patch){draft={...draft,...patch};return draft;}};
+    fc.applicationWrite={registry:'p0b-rooms-v1',async auto(fn){writes++;return fn();}};
+    fc.tabNavigation={setActiveTab:name=>{win.uiState.activeTab=name;}};
+    fc.quoteRouteRequest.open=async()=>{choices++;return {action:'cancel'};};
+    return {win,fc,rows,investor,get draft(){return draft;},get choices(){return choices;},get writes(){return writes;},run:()=>fc.quoteRouteRequest.prepare(()=>draft)};
+  }
+  const cancelled=fixture(),initial=JSON.stringify([...cancelled.rows]);
+  assert.equal(await cancelled.run(),false);assert.equal(cancelled.writes,0);assert.equal(JSON.stringify([...cancelled.rows]),initial);
+  const manual=fixture();manual.fc.quoteRouteRequest.open=async()=>({action:'save',distanceKm:'12,5',durationMin:'30'});
+  assert.equal(await manual.run(),true);
+  const saved=manual.fc.investors.getById(manual.investor.id).transport;
+  assert.equal(saved.distanceKm,'12.5');assert.equal(saved.durationMin,'30');assert.equal(saved.routeDurationSeconds,'');
+  assert.equal(manual.fc.investorTransport.getCurrentTransportContext().billableKm,25);
+  assert.equal(start(manual.rows).getById(manual.investor.id).transport.durationMin,'30','Same investor store, durable across restart');
+  assert.equal(await manual.run(),true);assert.equal(manual.writes,1,'Complete current route skips dialog/write');
+  manual.fc.openRouteServiceTransport={isResultStale:()=>true};manual.fc.quoteRouteRequest.open=async()=>({action:'cancel'});
+  assert.equal(await manual.run(),false,'An old address witness requires a new decision even with both numbers');
+  for(const value of ['', '-1','NaN','Infinity']){
+    const r=fixture();r.fc.quoteRouteRequest.open=async()=>({action:'save',distanceKm:value,durationMin:'30'});
+    await assert.rejects(r.run(),/TRANSPORT_INPUT_INVALID/);assert.equal(r.writes,0);
+  }
+  const zero=fixture();zero.fc.quoteRouteRequest.open=async()=>({action:'save',distanceKm:'0',durationMin:'0'});assert.equal(await zero.run(),true,'Explicit zero is different from missing');
+  const legacy=fixture();legacy.fc.applicationWrite.registry='legacy';legacy.fc.applicationWrite.auto=()=>{throw Error('CONTACT_BOUNDARY_NOT_AVAILABLE');};
+  legacy.fc.applicationWrite.project=async fn=>fn();legacy.fc.quoteRouteRequest.open=async()=>({action:'save',distanceKm:'12',durationMin:'30'});
+  assert.equal(await legacy.run(),true,'A legacy/local protocol retains its existing authorized project boundary');
+  const pickup=fixture(),pickupBefore=JSON.stringify([...pickup.rows]);pickup.fc.quoteRouteRequest.open=async()=>({action:'pickup'});
+  assert.equal(await pickup.run(),true);assert.deepEqual(pickup.draft.services,{delivery:false,carrying:false,assembly:false});
+  assert.equal(pickup.draft.commercial.versionName,'Keep');assert.deepEqual(pickup.draft.selection.selectedRooms,['room']);
+  assert.equal(JSON.stringify([...pickup.rows]),pickupBefore,'Pickup must retain the investor route');
+  assert.equal(await pickup.run(),true);
+  const navigate=fixture(),navigateDraft=JSON.stringify(navigate.draft);navigate.fc.quoteRouteRequest.open=async()=>({action:'investor'});
+  assert.equal(await navigate.run(),false);assert.equal(navigate.win.uiState.activeTab,'inwestor');assert.equal(JSON.stringify(navigate.draft),navigateDraft);assert.equal(navigate.writes,1,'Navigation has its ordinary durable boundary, without saving route');
+  for(const kind of ['owner','draft','contact','writer','tab','access']){
+    const r=fixture(),before=JSON.stringify([...r.rows]);
+    r.fc.quoteRouteRequest.open=async()=>{
+      if(kind==='owner')r.fc.projectStore.getCurrentProjectId=()=> 'other';
+      if(kind==='draft')r.draft.commercial.versionName='Changed';
+      if(kind==='contact')r.fc.investors.update(r.investor.id,{address:'Changed'});
+      if(kind==='writer')r.fc.applicationWrite={};
+      if(kind==='tab')r.win.uiState.activeTab='material';
+      if(kind==='access')r.win.__FC_MAIN_ACCESS__={assert(){throw Error('AUTH_ACCESS_REVOKED');}};
+      return {action:'save',distanceKm:'12',durationMin:'30'};
+    };
+    await assert.rejects(r.run(),/TRANSPORT_CONTEXT_CHANGED|AUTH_ACCESS_REVOKED/);assert.equal(r.writes,0);
+    if(kind!=='contact')assert.equal(JSON.stringify([...r.rows]),before);
+  }
+  for(const code of ['LF_OFFLINE','LF_IDB_ABORTED','LF_HANDOVER_CONFLICT']){
+    const r=fixture(),before=JSON.stringify([...r.rows]);
+    r.fc.quoteRouteRequest.open=async()=>({action:'save',distanceKm:'12',durationMin:'30'});
+    r.fc.applicationWrite.auto=async()=>{throw Error(code);};
+    await assert.rejects(r.run(),new RegExp(code));assert.equal(JSON.stringify([...r.rows]),before,'A refused checkpoint never changes the investor');
+  }
+  const topbar=fixture();let generated=0,asked=0;
+  topbar.fc.applicationWrite={whenIdle:async()=>{},project:async()=>{generated++;}};
+  topbar.fc.quoteRouteRequest.open=async()=>{asked++;return {action:'cancel'};};
+  const shell=process.argv.includes('--baseline-route')
+    ?require('node:child_process').execFileSync('git',['-c','safe.directory='+process.cwd(),'show','c684df4e1b74fa121b12693d334a1294096f48cf:js/app/wycena/wycena-tab-shell.js'],{encoding:'utf8'})
+    :fs.readFileSync('js/app/wycena/wycena-tab-shell.js','utf8');
+  new Function('window','document',shell)(topbar.win,{});
+  const h=()=>({appendChild(){},setAttribute(){},addEventListener(){}});
+  topbar.fc.wycenaTabShell.renderTopbar(h(),{},null,{h,getState:()=>({}),getOfferDraft:()=>topbar.draft});
+  topbar.fc.wycenaGenerateAction.run();await new Promise(resolve=>setTimeout(resolve,20));
+  assert.equal(asked,1,'Actual Calculate must ask before source publication or expensive generation');
+  assert.equal(generated,0,'Cancellation must stop the real topbar pipeline');
+  console.log('PASS quote route gate: manual/pickup/cancel/investor, restart, zero/invalid, stale, context fences and actual Calculate cancellation');
+})().catch(error=>{console.error(error);process.exitCode=1;});
