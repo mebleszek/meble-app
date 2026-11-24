@@ -9,7 +9,7 @@ import {prepareEmulatorApplicationBoot} from '../../sync/application-boot.mjs';
 import {assertApplicationConnection,authorizeApplicationFirebase} from '../../sync/firebase-activation.mjs';
 import {createApplicationReplication,createApplicationHandover} from '../../sync/application-replication.mjs';
 import {createProjectChannel} from '../../sync/local-first-project.mjs';
-import {startupReady} from './normal-startup-readiness.mjs';
+import {startupReady,replicationWaiting} from './normal-startup-readiness.mjs';
 const root=new URL('../..',import.meta.url),read=p=>fs.readFileSync(new URL(p,root),'utf8');
 test('normal startup remains inert on public origin, flags cannot activate connections/migration',async()=>{
  let calls=0;const request=mock.method(globalThis,'fetch',()=>{calls++;throw Error('remote IO');});
@@ -85,6 +85,13 @@ test('mandatory CI includes the normal browser SDK suite, no removed old suites/
  assert.throws(()=>probe({idleMs:30000,stopOnAuthState:false}),/NORMAL_STARTUP_REFUSED/);
  document.body.dataset.authState='profile-pending';w.normalStartupWait=null;
  assert.equal(probe({idleMs:30000,stopOnAuthState:false}),false,'After admission, only actual business readiness completes login');
+ const wait={startedAt:0,lastProgressAt:0,signature:'[0,0]'};
+ assert.equal(replicationWaiting(wait,4999,'[0,0]'),true);
+ assert.equal(replicationWaiting(wait,5000,'[0,0]'),false,'Auth-only activity or a pending request cannot extend replication');
+ assert.equal(replicationWaiting(wait,6000,'[1,0]'),true,'A completed data RPC earns bounded transfer time');
+ assert.equal(replicationWaiting(wait,11000,'[1,0]'),false,'A stalled transfer loses the allowance after5 s');
+ assert.equal(replicationWaiting(wait,29999,'[2,0]'),true);
+ assert.equal(replicationWaiting(wait,30000,'[3,0]'),false,'Even continuing RPC progress cannot remove the30 s hard allowance bound');
  const ctx=read('tools/cloud-ci-context.js'),suite=read('tools/firebase-pilot/cloud-sync-global.test.mjs');
  assert.ok(ctx.includes('cloud-sync-global.test.mjs'));assert.ok(suite.includes('await runNormalApplication(t)'));
  assert.ok(suite.includes('await runApplicationE2E(t)'));assert.ok(suite.includes('await runLocalFirstSuite(t)'));

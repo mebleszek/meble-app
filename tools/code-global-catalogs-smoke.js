@@ -83,7 +83,7 @@ const tests=[],test=(name,fn)=>tests.push([name,fn]);
   assert.equal(Object.values(scope.FC.companyProfile.read().company).some(Boolean),false);assert.equal(JSON.stringify(rows),before);
  });
  test('approved pricing additions preserve every existing row and private/zero price; repeated update is a no-op',async()=>{
-  const {planPricingFactoryAdditions:plan}=await import('../sync/pricing-factory-additions.mjs');
+  const {planPricingFactoryAdditions:plan,matchesApprovedPricingAdditions:matches}=await import('../sync/pricing-factory-additions.mjs');
   const old=clone(m),newLabor=new Set(['labor_channel_install','labor_channel_workshop','labor_handle_layout','labor_handle_install','pdf_tipon_drill','pdf_tipon_insert','pdf_tipon_plate']);
   old.materials=old.materials.filter(row=>!row.id.startsWith('m_drawer_bottom_'));
   old.hardware=old.hardware.filter(row=>!s.FC.hardwareDrawerCatalog.specFor(row.id)&&!['hw_seed_gtv_hexa_96_black','hw_seed_blum_tipon_long_956a1004'].includes(row.id));
@@ -100,6 +100,12 @@ const tests=[],test=(name,fn)=>tests.push([name,fn]);
   for(const id of ['m_drawer_bottom_10_white','m_drawer_bottom_10_grey','m_drawer_bottom_16_grey'])assert.ok(result.added.materials.includes(id));
   assert.equal(result.added.hardware.length,392);for(const id of ['hw_intar_drawer_427212','hw_bivert_drawer_12620','hw_bivert_drawer_13305','hw_bivert_drawer_13963','hw_bivert_drawer_136865','hw_wior_drawer_12212','hw_wior_drawer_12214','hw_bivert_drawer_14536','hw_belmeb_double_450_65_white','hw_belmeb_double_500_65_white','hw_belmeb_double_550_65_white'])assert.ok(result.added.hardware.includes(id));assert.equal(result.added.labor.length,7);assert.ok(result.added.suppliers.includes('bimeb'));assert.ok(result.added.suppliers.includes('rik'));assert.ok(result.added.suppliers.includes('belmeb'));assert.ok(result.added.suppliers.includes('wip_rumia'));assert.ok(result.model.technicalParams.find(row=>row.category==='Szuflady / prowadnice'&&row.key==='profil_szuflady').options.includes('A'));
   assert.equal(plan({current:result.model,candidate:m,contract:c}),null);
+  assert.equal(matches({current:old,remote:result.model,candidate:m,contract:c}),true,'A second installation recognizes only the exact approved additive upgrade');
+  const conflicting=clone(result.model);conflicting.materials[0].price=1;
+  assert.equal(matches({current:old,remote:conflicting,candidate:m,contract:c}),false,'A competing private price remains a startup conflict');
+  const unrelated=clone(result.model);unrelated.company.company.displayName='Different owner company';
+  assert.equal(matches({current:old,remote:unrelated,candidate:m,contract:c}),false,'Unrelated global changes cannot masquerade as approved additions');
+  assert.equal(JSON.stringify(old),before);assert.equal(JSON.stringify(m),candidateBefore);
   assert.deepEqual(result.model.company,old.company);assert.deepEqual(result.model.stock,old.stock);assert.deepEqual(result.model.hardwareSettings,old.hardwareSettings);
  });
  test('approved norms close missing hourly-rate dependencies without replacing private rate identities or prices',async()=>{

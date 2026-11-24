@@ -196,7 +196,7 @@
           fit.motion=selected.selected.motion;
           parts.push({name:label,qty:1,a:0,b:0,dims:selected.selected.sku,material,hardwareRequirement:{...req,qty:1,drawerFit:{...fit,selectedId:selected.selected.id,panelColor:choice?.v||null}}});
           if(selected.motionAddon){
-            const addon=selected.motionAddon,label=(addon.family==='blum_merivobox'?'MERIVOBOX':'TANDEMBOX')+' TIP-ON BLUMOTION '+addon.module;
+            const addon=selected.motionAddon,label=({blum_merivobox:'MERIVOBOX',blum_legrabox:'LEGRABOX',blum_tandembox_antaro:'TANDEMBOX'})[addon.family]+' TIP-ON BLUMOTION '+addon.module;
             parts.push({name:label,qty:1,a:0,b:0,dims:'komplet modułu L+P',material:'Okucia: otwieranie szuflady',hardwareRequirement:{kind:'drawer-motion',hardwareGroup:'drawers',category:'Inne',catalogItemId:addon.id,expectedManufacturer:addon.manufacturer,expectedSymbol:addon.sku,expectedUnit:'kpl.',label,qty:1}});
           }
           const panels=selected.panels;

@@ -521,9 +521,13 @@
     const hardwareSettings = normalizeHardwareSettings(seeds.hardwareSettings || readList('hardwareSettings', DEFAULT_HARDWARE_SETTINGS));
     const hardwareCategories = normalizeHardwareCategories(seeds.hardwareCategories || readList('hardwareCategories', DEFAULT_HARDWARE_CATEGORIES));
     const hardwareTypes = normalizeHardwareTypes(seeds.hardwareTypes || readList('hardwareTypes', DEFAULT_HARDWARE_TYPES));
-    const hardwareTechnicalParams = normalizeHardwareTechnicalParams(seeds.hardwareTechnicalParams || readList('hardwareTechnicalParams', DEFAULT_HARDWARE_TECHNICAL_PARAMS), hardwareCategories);
+    let hardwareTechnicalParams = normalizeHardwareTechnicalParams(seeds.hardwareTechnicalParams || readList('hardwareTechnicalParams', DEFAULT_HARDWARE_TECHNICAL_PARAMS), hardwareCategories);
     const supplierSeed = Array.isArray(seeds.hardwareSuppliers) ? seeds.hardwareSuppliers : readList('hardwareSuppliers', DEFAULT_HARDWARE_SUPPLIERS);
-    const hardwareSuppliers = normalizeHardwareSuppliers(supplierSeed);
+    let hardwareSuppliers = normalizeHardwareSuppliers(supplierSeed);
+    if(FC.hardwareDrawerCatalog?.seedDependencies){
+      const dependencies=FC.hardwareDrawerCatalog.seedDependencies({definitions:hardwareTechnicalParams,defaultDefinitions:DEFAULT_HARDWARE_TECHNICAL_PARAMS,suppliers:hardwareSuppliers,defaultSuppliers:DEFAULT_HARDWARE_SUPPLIERS});
+      hardwareTechnicalParams=dependencies.definitions;hardwareSuppliers=dependencies.suppliers;
+    }
     currentHardwareSettings = Object.assign({}, hardwareSettings, { hardwareSuppliers, hardwareCategories, hardwareTypes, hardwareTechnicalParams });
     const sheetMaterials = ensureStarterMaterialSeeds(normalizeList(seeds.sheetMaterials, normalizeMaterialRow, DEFAULT_SHEET_MATERIALS)).filter((row)=> String(row.materialType || '').trim().toLowerCase() !== 'akcesoria');
     const accessorySeedRows = hardwareSeeds && typeof hardwareSeeds.mergeAccessorySeeds === 'function'

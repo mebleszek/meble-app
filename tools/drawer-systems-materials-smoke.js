@@ -267,6 +267,12 @@ ctx.FC.catalogStore={getAccessories:()=>seeds};
 assert(!prefsApi.runnerSeries('undermount','Blum').includes('TANDEMBOX antaro'),'System kits cannot masquerade as wooden drawer runners');
 load(ctx,'js/app/cabinet/cabinet-modal-draft.js');
 const compareDraft=ctx.FC.cabinetModalDraft.comparableCabinetDraft;
+const previousCabinets=ctx.projectData.kuchnia.cabinets;
+ctx.projectData.kuchnia.cabinets=[{...capacityCab,details:{...capacityCab.details,drawerLoadKg:70,innerDrawerLoadKg:70}}];
+const previousSource=JSON.stringify(ctx.projectData.kuchnia.cabinets),newDraft=ctx.FC.cabinetModalDraft.makeDefaultCabinetDraftForRoom('kuchnia');
+assert(choose.requestedLoad(newDraft)===0&&choose.requestedLoad(newDraft,true)===0,'A newly added cabinet starts at the lowest class, not the previous cabinet’s70 kg choice');
+assert(JSON.stringify(ctx.projectData.kuchnia.cabinets)===previousSource,'Preparing the next cabinet cannot edit the saved70 kg cabinet');
+ctx.projectData.kuchnia.cabinets=previousCabinets;
 assert(JSON.stringify(compareDraft({...baseBack,details:{}}))===JSON.stringify(compareDraft({...baseBack,details:{backPosition:''}})),'Opening an unselected rear option cannot create a fictitious edit');
 
 
@@ -347,6 +353,16 @@ assert(actualPrices()[0].resolvedHardwareSymbol==='TH03.1230.01.003','Production
 pricedCab={...whiteCab,openingSystem:'TIP-ON'};
 assert(ctx.FC.cabinetHardwareRequirements.getOpeningInfo('kuchnia',pricedCab,[{qty:3,a:60}]).tiponQty===0,'Drawer TIP-ON never adds three door956A1004 mechanisms or their door-specific labour');
 
+const definitions=clone(ctx.FC.hardwareTechnicalParams.DEFAULT_DEFINITIONS).filter(row=>row.key!=='profil_szuflady');
+const privateDefinition=definitions.find(row=>row.key==='kolor_okucia');privateDefinition.options=['biały'];privateDefinition.label='Private label';
+const suppliers=[{id:'bivert',name:'Private Bivert',defaultDiscountPercent:17,active:true}];
+const inputBefore=JSON.stringify({definitions,suppliers}),deps=pricebook.seedDependencies({definitions,defaultDefinitions:ctx.FC.hardwareTechnicalParams.DEFAULT_DEFINITIONS,suppliers,defaultSuppliers:ctx.FC.hardwareCatalog.DEFAULT_SUPPLIERS});
+assert(JSON.stringify({definitions,suppliers})===inputBefore,'Dependency preparation cannot mutate private source rows');
+assert(deps.definitions.find(row=>row.key==='profil_szuflady').options.includes('F')&&deps.definitions.find(row=>row.key==='kolor_okucia').options.includes('czarny carbon'),'Missing definitions and used enum values are available before normalization');
+assert(deps.definitions.find(row=>row.key==='kolor_okucia').label==='Private label'&&deps.suppliers[0].name==='Private Bivert'&&deps.suppliers[0].defaultDiscountPercent===17,'Existing labels and supplier discounts are preserved');
+const incompatible=clone(deps.definitions);incompatible.find(row=>row.key==='profil_szuflady').fieldType='number';
+let definitionRefused;try{pricebook.seedDependencies({definitions:incompatible,defaultDefinitions:ctx.FC.hardwareTechnicalParams.DEFAULT_DEFINITIONS,suppliers,defaultSuppliers:ctx.FC.hardwareCatalog.DEFAULT_SUPPLIERS});}catch(e){definitionRefused=e;}
+assert(definitionRefused?.message==='DRAWER_CATALOG_DEFINITION_CONFLICT','A private incompatible field type refuses before insertion, never strips a SKU identity');
 console.log('OK drawer-systems-materials smoke');
 console.log(' - preferencje szuflad przechowują konkretny system/model');
 console.log(' - skrzynkowe generują prowadnice + formatki 18 mm i dno 10 mm');

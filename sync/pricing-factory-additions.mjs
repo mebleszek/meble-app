@@ -10,6 +10,14 @@ const hardware=id=>/^hw_(?:intago|gral)_runner_\d+$/.test(id)||/^hw_(?:intar|gra
  ||/^hw_(?:wip_drawer_320[mkhn]\d+(?:c15)?_(?:white|grey)|bimeb_pk_p_h45_\d+_gx)$/.test(id)
  ||['hw_seed_gtv_hexa_96_black','hw_seed_blum_tipon_long_956a1004','hw_belmeb_double_450_65_white','hw_belmeb_double_500_65_white','hw_belmeb_double_550_65_white'].includes(id);
 const material=id=>/^m_drawer_bottom_(?:10|16)_(?:white|grey)$/.test(id);
+// Read-only proof for two installations starting across the same approved
+// upgrade. The remote must equal the exact additive plan from this code;
+// changed private prices, unrelated rows or an arbitrary remote seed refuse.
+export function matchesApprovedPricingAdditions({current,remote,candidate,contract}){
+ contract.validateBundle(remote);
+ const plan=planPricingFactoryAdditions({current,candidate,contract});
+ return !!plan&&equal(plan.model,remote);
+}
 export function planPricingFactoryAdditions({current,candidate,contract:c}){
  c.validateBundle(current);c.validateBundle(candidate);
  const model=copy(current),added={};

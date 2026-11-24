@@ -108,10 +108,11 @@
         source(a);const current=await remoteHead();check();source(a);if(equal(current,a.head))return await confirm(handle);
         if(!equal(current,a.base)&&a.state!=='published')c.fail('GLOBAL_WRITE_CONFLICT');
         phase='staging';await remoteHead();check();
-        // Keep transactions below the Rules access-call budget even without
-        // reuse of the owner grant checks between record writes.
-        for(let offset=0;offset<a.packed.records.length;offset+=3){
-          const batch=a.packed.records.slice(offset,offset+3);
+        // Existing Rules use at most five access calls per record (including
+        // syncOwner); four writes fit20 even without cached grant reads.
+        // Preserve the first three-record checkpoint used by durable recovery.
+        for(let offset=0;offset<a.packed.records.length;){
+          const batch=a.packed.records.slice(offset,offset+(offset===0?3:4));
           check();source(a);
           await f.runTransaction(db,async tx=>{
             check();
@@ -123,6 +124,7 @@
               else tx.set(refs[i],batch[i]);
             }
           },{maxAttempts:3});check();
+          offset+=batch.length;
         }
         const records=await fetchRecords(a.packed.directory);await c.unpack(bound.uid,a.packed.directory,records);check();source(a);
         phase='publication';a.state='unconfirmed';

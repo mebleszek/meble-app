@@ -482,5 +482,26 @@
     if([result.bottomWidthMm,result.bottomLengthMm,result.backWidthMm].some(n=>n<=0))return {ok:false,code:'DRAWER_PANELS_DO_NOT_FIT'};
     return result;
   }
-  FC.hardwareDrawerCatalog={candidates,panelGeometry,physicalTarget,physicalLoads,motionSpec,doubleGalleryProof,nominalLengths:family=>(NOMINAL_LENGTHS[family]||[]).slice(),allSpecs:()=>[...specs.values()].map(s=>({...s})),specFor:id=>specs.has(id)?{...specs.get(id)}:null};
+  // Legacy startup must close the approved seed dependencies BEFORE its
+  // normalizer can filter unknown fields. Existing private rows always win.
+  function seedDependencies({definitions,defaultDefinitions,suppliers,defaultSuppliers}){
+    const defs=JSON.parse(JSON.stringify(definitions)),vendors=JSON.parse(JSON.stringify(suppliers));
+    const rows=FC.hardwareCatalogSeedData.ACCESSORY_SEEDS.filter(row=>specs.has(row.id));
+    for(const row of rows){
+      if(!vendors.some(v=>v.id===row.supplierId)){
+        const vendor=defaultSuppliers.find(v=>v.id===row.supplierId);if(!vendor)throw Error('DRAWER_CATALOG_SUPPLIER_UNCONFIRMED');
+        vendors.push(JSON.parse(JSON.stringify(vendor)));
+      }
+      for(const [key,value]of Object.entries(row.technicalParams||{})){
+        const matches=defs.filter(d=>d.category===row.hardwareCategory&&d.key===key);
+        const source=defaultDefinitions.find(d=>d.category===row.hardwareCategory&&d.key===key);
+        if(!source||matches.length>1)throw Error('DRAWER_CATALOG_DEFINITION_CONFLICT');
+        if(!matches.length){defs.push(JSON.parse(JSON.stringify(source)));continue;}
+        const current=matches[0];if(current.fieldType!==source.fieldType)throw Error('DRAWER_CATALOG_DEFINITION_CONFLICT');
+        if(current.fieldType==='text'&&current.options?.length&&value.value&&!current.options.includes(value.value))current.options.push(value.value);
+      }
+    }
+    return {definitions:defs,suppliers:vendors};
+  }
+  FC.hardwareDrawerCatalog={candidates,panelGeometry,physicalTarget,physicalLoads,motionSpec,doubleGalleryProof,seedDependencies,nominalLengths:family=>(NOMINAL_LENGTHS[family]||[]).slice(),allSpecs:()=>[...specs.values()].map(s=>({...s})),specFor:id=>specs.has(id)?{...specs.get(id)}:null};
 })();

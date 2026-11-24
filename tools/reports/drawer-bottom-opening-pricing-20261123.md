@@ -16,6 +16,40 @@ Aktualny rejestr wykonania: [CURRENT_STATE](../../CURRENT_STATE.md#dna-szuflad-d
 - Generator: snapshot definicji technicznych na jeden synchroniczny build eliminuje397 powtórnych przygotowań. Bez cache danych/uprawnień i bez zwiększania2000 ms. Porównywane wszystkie pola408 rekordów z normalnym runtime; oryginalna metoda przywracana w finally.
 - Trzy wyjątki modułów zatwierdzone osobno24.11 i zapisane dla BASEe17b9be4; gate i regresje niezmienione. Dawne pytanie o wyjątki/ciężar nie jest otwarte.
 
+## Preflight1390 — przyczyny pierwotne i rozstrzygnięcia
+
+Wynik51 PASS/30 FAIL/2 SKIPPED dla3885ec9045d15dbe6093beee976375fe2c1577bb.26 pierwotnych jobów oraz4 agregaty: preflight, firebase-current, ci-summary, auto-merge. Bez publikacji. Naprawy bezpośrednio w istniejącym PR167, bez resetu ani osłabienia asercji.
+
+| Pierwotne zadania / pliki | Przyczyna i zakres poprawki |
+|---|---|
+| firebase-current3c oraz14 P0-B: room-quote, room-quote-variants, room-quote-staging, room-quote-promotion, room-quote-acceptance, room-quote-acceptance-conflict, quote-remove-single/combined/overlap, project-batch-recovery/timer, project-offline-quote, duplicate-replacement, normal-clean | LF_INITIAL_GLOBAL_CONFLICT po identycznym, zatwierdzonym dodatku fabryk na pierwszym urządzeniu. Odczytowy matchesApprovedPricingAdditions wymaga dokładnej równości z planem bieżącego kodu; nie jest zgodą na dowolny obcy katalog. Jednostkowe pozytyw/obca cena/obca firma PASS; pełny startup i negatywy IDB/CAS/ACK nadal sprawdzane w istniejącej integracji. |
+| firebase-current3d | Cały model14 domen porównywano ze starym fixture bez dopisanych nowych pozycji. Oczekiwany model uwzględnia jawny zatwierdzony dodatek; nadal porównanie wszystkich wartości wszystkich14 domen i źródeł prywatnych. |
+| smoke11 i24: panel/app-dev; smoke17: derived-cache | Stare zahardkodowane wersje skryptów/API; odczyt istniejącego kanonicznego rejestru wersji, nadal ścisła zgodność. |
+| smoke2 i23: first-sync-error/android-globals-recovery | Stub authority nie implementował nowej metody ensureFactoryCatalogs. Fixture zwraca jawny brak dodatków; nadal te same testy odmów, cleanupu i obserwatora. |
+| smoke17 i23: labor-native/PDF | Stare liczby57/122 bez nowych4 zwykłych i3 PDF norm.61/129, prywatny katalog130; źródła/ID/normy/stawki/niezmienność RAW i historia zachowane, bez usuwania przypadków. |
+| smoke6: template-part-groups | Rzeczywiste wysokości skrzynek dają więcej wierszy geometrii; wkłady grup sumowane, każda ilość nadal rozliczona dokładnie raz. Fixture ładuje realny podgląd frontów i fizycznie pasującą szerokość. Niejednoznaczne wymagania odmawiają przed fikcyjną geometrią.22/22 i18/18 proweniencji PASS. |
+| smoke19: drawer-front-geometry | Stary fixture nie wybierał koloru dna; przypadek zmiany nóg wymaga prowadnicy mieszczącej fizyczną szerokość niskiej szuflady. Poprawne dane wejściowe, bez zmiany limitu GTV;18/18 PASS. |
+| smoke21/22: labor-norms2/4 | Plecy18 mm bez pozycji i brak rzeczywistego API wymagań szuflad w fixture. Wybór wewnętrzny i załadowanie zależności; wszystkie normy9/9 PASS. |
+| smoke16: android-safe-sw-update | Dawne oczekiwanie chroniło tylko dodatkowe normy/materiały, pomijało nowe okucia. Test ujawnił także rzeczywistą utratę profilu i koloru nowych SKU przez stary słownik. Brakujące zależności fabryki zamykane przed normalizacją, bez zmiany prywatnych etykiet/rabatów. Niezgodny typ pola nadal odmawia. Dokładny niezmieniony prefiks rekordów+wszystkie pola zatwierdzonych nowych wpisów; siedmiopolowy alias materiałów pozostaje projekcją. Pełny natywny stary SW→nowy PASS: HTTP503, opóźnienie ponad30 s,218 pobrań/312 zweryfikowanych użyć cache, RAM/wiele kart/RAW/IDB/zimny restart. Dowód ci1390-sw-final.log. |
+
+Lokalne niepowodzenia normalnej replikacji po usunięciu konfliktu: duży katalog nadal przesyłał dane podczas nominalnych5 s. Dodatek oczekiwania jest zależny wyłącznie od zakończonych RPC danych, kończy się5 s po ostatnim postępie i30 s od początku; odnowienia Auth/pending RPC go nie przedłużają. Pierwotne200 prób pozostają; asercje danych/ACK/CAS niezmienione. Istniejący test readiness sprawdza brak postępu, postęp i twardy koniec. Równoległe obciążenie lokalnego WSL ujawniło też60-sekundowy limit logowania przy trwającym factory-catalog-additions; limitu nie podniesiono. Końcowe ciężkie próby należy wykonać kolejno, bez nakładania obciążenia.
+
+### Wyniki końcowych prób celowanych naprawy1390
+
+- Podpisany deployment i pusty odbiorca1/1 PASS (ci1390-normal-quiet.log, drugi przypadek): wszystkie wartości14 domen, aktywny RAM, offline, CAS, własność, ACK, zimny restart i niezmienna historia. Pierwszy przypadek tego samego uruchomienia zatrzymał się na30 s oczekiwania na otwarcie offline, nie na konflikcie katalogów; nie oznaczać całego uruchomienia PASS.
+- Sam starszy normalny startup z diagnostyką tego oczekiwania1/1 PASS (ci1390-normal-offline-diagnostic.log,271258,825 ms), bez podnoszenia30/60 s i bez zmiany asercji. Pierwotnego lokalnego timeoutu nie uznano za udowodniony błąd danych ani za osobną naprawę produkcji. W razie powtórzenia rozszerzona diagnostyka pokaże sesję, UI, odmowy i RPC; pełne CI nadal wymagane.
+- Natywny labor-catalog PASS (ci1390-browser-green4.log), w tym dokładne prywatne normy/ceny/historia, abort IndexedDB, quota, odmowa dostępu, niepewna kolejka i restart. Pełny stary SW→nowy PASS (ci1390-sw-final.log), a nie dziedziczenie wyniku wcześniejszego manifestu.
+- Słowniki: RED utraty profilu/koloru w SW→zamknięcie zależności przed normalizacją→GREEN pełnego obrazu. Domena sprawdza brak mutacji źródła, zachowanie prywatnych etykiet i17% rabatu, dopisanie użytych wartości oraz odmowę niezgodnego typu. Fabryka9/9 PASS po tej zmianie. Przy nowej szafce RED dziedziczenia70 kg→GREEN najniższej klasy; poprzedni zapisany rekord bez zmian.
+- Kontrola składni80 zmienionych skryptów, rejestru wersji, aktualności fabryki i manifestu PASS; pokrycie CI nadal36 grup/265 jednostek oraz37 segmentów/61 przypadków. Room-quote nie zaliczył lokalnego admission60 s (ci1390-quote-green.log / ci1390-quote-four-green.log): transfer nowych fabryk wciąż postępował, brak SDK error, żadna asercja ofert nie została wykonana. Nie oznaczać PASS; cały przypadek pozostaje obowiązkowy w pełnym CI.
+
+### Etapowanie dużego katalogu i granice lokalnego wyniku
+
+Sama próba równoległych transakcji nie przyspieszyła rzeczywistego SDK i została całkowicie wycofana. Ostateczny zakres: pierwszy checkpoint3 rekordów bez zmian, następne transakcje po4. Dla obecnych Rules zapis ma najwyżej5 wywołań dostępu na rekord (syncOwner2, grant3):4×5=20, bez zmiany źródła Rules. Każdy stary rekord nadal sprawdzany świeżym odczytem, całość ponownie odczytywana i weryfikowana przed głową, CAS i ACK bez zmian. Zysk to mniej transakcji, nie deklaracja osiągniętego czasu startu na telefonie.
+
+Domena14/14 PASS (ci1390-four-record-green.log): ograniczenie wielkości, pierwszy checkpoint, błąd drugiej transakcji bez dalszej publikacji, dokładne pozostałe rekordy, ta sama rewizja i brak duplikatów po wznowieniu. Emulator8/8 PASS (ci1390-global-four-green.log,58524,394 ms): przerwane etapowanie, concurrent CAS, identyczny i różny dodatek, rzeczywisty IDB/SIGKILL/ACK/nowa konkurencyjna głowa, odwołanie grantu, offline, zmiana źródła i utrata ACK. Próby RED oraz odrzucone warianty zachowane pozaGit. Lokalny admission room-quote nadal nie jest PASS; pełny CI pozostaje bramką. Lokalny SW sprzed końcowej zmiany transportu nie zastępuje obowiązkowego dowodu końcowego manifestu w CI.
+
+Kontrole końcowe naprawy: statyczny Preflight773/773, kolejność356, zależności439 i storage415 referencji/55 plików PASS (ci1390-repair-static.log,139355 ms), bez lokalnych smoke ani pełnego CI. Manifest530 plików:2a9d077c5f9e426d2abb202aca5d692efe343b14e653bdb311b9f6e85926b2f2. Zweryfikowana kopia29 plików naprawy, binarny diff i SHA-256: work/drawer-bottom-opening-evidence-20261123/current-package-verified-capacity-20261124-e. Aktualny pełny CI i exact Pages pozostają wymagane.
+
 ## Historia stanu przed domknięciem24.11.2026
 
 

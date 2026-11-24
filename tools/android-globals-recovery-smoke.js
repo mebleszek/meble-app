@@ -44,7 +44,7 @@ async function fatal(stall=false){let failed=false,opened=0,releaseReadonly;cons
  }
  console.log('PASS real runtime waits for synchronization cleanup; failed cleanup preserves original globals error and refuses recovery readiness');
  {
-  let beforeTransaction,finish,checks=0;const rows={fc_projects_v1:'[]'},authority={status:()=>({transactionPending:false,incomingPending:false}),close(){}};
+  let beforeTransaction,finish,checks=0;const rows={fc_projects_v1:'[]'},authority={ensureFactoryCatalogs:async()=>({applied:false}),status:()=>({transactionPending:false,incomingPending:false}),close(){}};
   const deps={applicationP0BMode,installManualSync,createLocalDeviceLabel,createApplicationHandover,installLocalInvestorDeletion:()=>({close(){}}),fail:code=>{throw Object.assign(Error(code),{code});},applicationKeys:()=>[],applicationInstallation:async()=>({binding:{},confirm(){},release(){}}),
    openLocalFirstStore:async()=>({p0bRegistry:async()=>null,deviceId:'read-lock-device',readApplication:async()=>({rows}),close(){}}),createApplicationCommitter:()=>({}),verifyExclusiveClient:async()=>{checks++;},
    installOfflineEmulatorApplicationAuthority:async options=>{beforeTransaction=options.beforeTransaction;return authority;},
