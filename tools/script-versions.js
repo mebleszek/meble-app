@@ -67,7 +67,7 @@ const versions = Object.freeze({
   "js/app/investor/investors-model.js":"20261108_catalog_rule_authority_v1",
   "js/app/investor/investor-editor-state.js":"20261108_catalog_rule_authority_v1",
   "js/app/investor/investor-carrying.js":"20261108_catalog_rule_authority_v1",
-  "js/app/investor/investor-transport.js":"20261107_transport_local_delete_v1",
+  "js/app/investor/investor-transport.js":"20261124_quote_route_request_v1",
   "js/app/wycena/wycena-tab-selection-render.js":"20261107_delivery_services_v1",
   "js/app/wycena/wycena-tab-selection-bridge.js":"20261107_delivery_services_v1",
   "js/app/wycena/wycena-tab-manual-labor.js":"20261115_e1_durable_settings_v1",
@@ -144,7 +144,8 @@ const versions = Object.freeze({
   "js/app/quote/quote-snapshot-store.js":"20261124_quote_history_preservation_v1",
   "js/app/wycena/wycena-tab-selection-version.js":"20260628_drawer_systems_materials_v1",
   "js/app/wycena/wycena-diagnostics.js":"20261019_project_context",
-  "js/app/wycena/wycena-tab-shell.js":"20261123_drawer_construction_v1"
+  "js/app/quote/quote-route-request.js":"20261124_quote_route_request_v1",
+  "js/app/wycena/wycena-tab-shell.js":"20261124_quote_route_request_v1"
 });
 const authVersions=Object.freeze({
   "js/app/cloud/main-business-loader.js":"20261122_startup_asset_wait_v1",

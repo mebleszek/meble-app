@@ -366,6 +366,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/wycena/wycena-summary-details-modal.js",
       "js/app/wycena/wycena-tab-preview.js",
       "js/app/wycena/wycena-diagnostics.js",
+      "js/app/quote/quote-route-request.js",
       "js/app/wycena/wycena-tab-shell.js",
       "js/tabs/wycena.js"
     ]

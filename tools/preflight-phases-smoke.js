@@ -1,5 +1,23 @@
 #!/usr/bin/env node
 'use strict';
+
+// Audit identical raw source on both sides. Git output is a blob, not a label:
+// trimming its final newline falsely reports every same-size edit as growth.
+function growthCase(prior,current,blocked){
+  const growthSource=require('node:fs').readFileSync(require('node:path').join(__dirname,'ci-module-growth.js'),'utf8');
+  const assert=require('node:assert/strict'),messages=[],module={exports:{}},process={env:{APPROVED_BASE:'a'.repeat(40)},exitCode:0};
+  const root=require('node:path').resolve(__dirname,'..'),filename='js/app/synthetic-growth.js';
+  const fakeFs={existsSync:()=>true,readFileSync:file=>file.endsWith('ci-module-growth-exceptions.json')?'{"exceptions":{}}':current};
+  const fakeRequire=name=>name==='node:fs'?fakeFs:name==='node:child_process'?{execFileSync(_cmd,args){if(args[0]==='diff')return filename+'\n';if(prior===null)throw Error('Missing synthetic base');return prior;}}:require(name);
+  require('node:vm').runInNewContext(growthSource,{require:fakeRequire,module,__dirname:require('node:path').join(root,'tools'),process,console:{log:x=>messages.push(x),error:x=>messages.push(x)}});
+  module.exports.main();assert.equal(process.exitCode===1,blocked,JSON.stringify(messages));
+}
+const mixedGrowthSource=(lines)=>Array.from({length:lines},(_,i)=>i<10?'querySelector("x");':i===10?'localStorage.getItem("x");':'// source').join('\n')+'\n';
+growthCase(mixedGrowthSource(610),mixedGrowthSource(610).replace('source','edited'),false);
+growthCase(mixedGrowthSource(610),mixedGrowthSource(611),true);
+growthCase(null,mixedGrowthSource(610),true);
+growthCase(mixedGrowthSource(590),mixedGrowthSource(610),true);
+console.log('PASS raw source metrics: unchanged large module allowed; actual growth/new large module still blocked');
 // Exercise the real phase runner with synthetic audits, never the full Preflight.
 const assert = require('node:assert/strict');
 const fs = require('node:fs'), path = require('node:path'), vm = require('node:vm');

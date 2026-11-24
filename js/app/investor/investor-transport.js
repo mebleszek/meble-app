@@ -187,7 +187,7 @@
     try{ console.info(title + ': ' + message); }catch(_){ }
     return null;
   }
-  async function saveTransport(investor, transport, assertCurrent = ()=>{}){
+  async function saveTransport(investor, transport, assertCurrent = ()=>{}, kind='project'){
     const patch = { transport:normalizeTransport(transport) };
     const save = ()=>{
       assertCurrent();
@@ -197,8 +197,19 @@
       if(!saved || JSON.stringify(normalizeTransport(saved.transport)) !== JSON.stringify(patch.transport)) throw Error('TRANSPORT_SAVE_UNCONFIRMED');
       return true;
     };
-    if(FC.applicationWrite) await FC.applicationWrite.project(save);
+    if(FC.applicationWrite) await FC.applicationWrite[kind](save);
     else save();
+    return true;
+  }
+
+  async function saveManual(investorId, distanceKm, durationMin, assertCurrent){
+    if(!Number.isFinite(distanceKm)||distanceKm<0||!Number.isFinite(durationMin)||durationMin<0)throw Error('TRANSPORT_INPUT_INVALID');
+    const investor=FC.investorPersistence.getInvestorById(investorId);
+    if(!investor)throw Error('TRANSPORT_CONTEXT_CHANGED');
+    // Same manual representation as the investor form: discard old ORS witnesses.
+    const transport=normalizeTransport({distanceKm:String(distanceKm),durationMin:String(durationMin),source:'ręcznie',status:'manual',note:investor.transport?.note||''});
+    await saveTransport(investor,transport,assertCurrent,'auto');
+    FC.sessionNavigation?.invalidateCalculationContext?.();
     return true;
   }
 
@@ -403,6 +414,7 @@
   }
 
   FC.investorTransport = {
+    saveManual,
     normalizeTransport,
     normalizeGeocode,
     renderPanel,

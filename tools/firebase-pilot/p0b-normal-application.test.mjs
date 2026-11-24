@@ -1,5 +1,6 @@
 import {startupDraftCase} from './p0b-startup-draft.cases.mjs';
 import {observeQuoteReads,assertQuoteReadBudget} from './p0b-quote-read-budget.mjs';
+import {quoteRouteRequestCase} from './quote-route-request.cases.mjs';
 import {confirmQuoteSources,applicationIdle,waitForApplicationIdle} from './quote-ui-actions.mjs';
 import {manualQuoteCase} from './p0b-manual-quote.cases.mjs';
 import assert from 'node:assert/strict';
@@ -197,6 +198,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    if(quoteProbe){
     const quoteRooms=quoteRemoval==='single'?[pid]:[pid,wardrobeId];
     await until(async()=>JSON.parse(rows(await image(phone)).fc_projects_v1).some(row=>row.id===wardrobeId));
+    const confirmRoute=quoteReadBudget?await quoteRouteRequestCase({t,phone,computer,iid,pid,image,rows,until,db,ownerUid,artifacts,firestore:f}):null;
     const beforeQuote=await image(phone);
     await page.locator('[data-action="tab"][data-tab="wycena"]').click();
     await page.locator('[data-action="wycena-generate"]').waitFor();
@@ -256,7 +258,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     if(!quoteAcceptance&&!quotePromotion&&!quoteStaging&&!quoteVariants&&!quoteDuplicate&&!quoteRemoval&&!quoteFilm&&!manualQuote)await page.evaluate(()=>window.normalLoseQuoteAck=true);
     if(manualQuote){await manualQuoteCase({t,phone,computer,iid,pid,wardrobeId,pin,until,image,rows,addCabinet,saveProject,artifacts,db,ownerUid,globalBefore,restartProbe,mode:manualQuote});return;}
     if(quoteReadBudget)await observeQuoteReads(page);
-    await page.locator('[data-action="wycena-generate"]').click();await confirmQuoteSources(page);
+    await page.locator('[data-action="wycena-generate"]').click();if(confirmRoute)await confirmRoute();await confirmQuoteSources(page);
     await page.waitForFunction(()=>document.querySelector('[data-quote-history-id]')||document.querySelector('.info-box'));
     const calculationNotice=await page.locator('.info-box').allTextContents();
     assert.ok(await page.locator('[data-quote-history-id]').count(),'Combined Calculate refused: '+JSON.stringify(calculationNotice));
@@ -272,7 +274,9 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     }
     assert.deepEqual(offer.scope.selectedRooms.slice().sort(),quoteRooms.slice().sort());
     assert.deepEqual(JSON.parse(rows(written).fc_projects_v1),JSON.parse(rows(beforeQuote).fc_projects_v1),'Calculating must not edit either room');
-    const queued=written.outbox.filter(op=>!beforeQuote.outbox.some(old=>old.key===op.key));assert.equal(queued.length,1);
+    const newQuoteOps=written.outbox.filter(op=>!beforeQuote.outbox.some(old=>old.key===op.key));
+    const contactOps=newQuoteOps.filter(op=>op.scope.startsWith('p0b_contact_'));assert.equal(contactOps.length,confirmRoute?1:0,'Only the route prompt may add one contact operation');
+    const queued=newQuoteOps.filter(op=>!contactOps.includes(op));assert.equal(queued.length,1);
     assert.ok(![pid,wardrobeId].includes(queued[0].scope),'Combined quote requires an independent ledger, not a room publication');
     assert.deepEqual(offer.scope.sourceProjects.map(ref=>ref.projectId).sort(),quoteRooms.slice().sort());
     assert.equal(offer.scope.sourceProjects.find(ref=>ref.projectId===pid).revision.currentRevisionId,confirmedHead.currentRevisionId);
