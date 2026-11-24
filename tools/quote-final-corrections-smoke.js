@@ -57,7 +57,11 @@ test('native empty generators prove zero; missing/throwing generators are unavai
  f.frontHardware.getCabinetFrontCutListForMaterials=()=>[];assert.equal(r.fact('front.count').value,0);assert.equal(r.fact('front.count').available,true);
  f.frontHardware.getCabinetFrontCutListForMaterials=()=>{throw Error('unavailable');};assert.equal(r.fact('front.count').available,false);
  f.cabinetHardwareRequirements.getHingeRequirementsWithQty=()=>null;assert.equal(r.fact('hinge.count').available,false);assert.equal(r.fact('hinge.fitting_count').available,false);
+ assert.equal(r.fact('drawer.count').available,true);assert.equal(r.fact('drawer.count').value,0,'The actual drawer generator confirms this cabinet has no drawers');
+ delete f.cabinetDrawerRequirements; // The shared fixture now loads the actual generator.
  assert.equal(r.fact('drawer.count').available,false);
+ f.cabinetDrawerRequirements={getDrawerRequirementsWithQty(){throw Error('unavailable');}};
+ assert.equal(r.fact('drawer.count').available,false,'A throwing drawer generator cannot masquerade as verified zero');
 });
 test('real quote collection refuses incomplete automation before a new snapshot can be saved',async()=>{
  const r=fixture(),f=r.FC,selection={selectedRooms:['kuchnia']};

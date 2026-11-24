@@ -50,6 +50,12 @@ Domena14/14 PASS (ci1390-four-record-green.log): ograniczenie wielkości, pierws
 
 Kontrole końcowe naprawy: statyczny Preflight773/773, kolejność356, zależności439 i storage415 referencji/55 plików PASS (ci1390-repair-static.log,139355 ms), bez lokalnych smoke ani pełnego CI. Manifest530 plików:2a9d077c5f9e426d2abb202aca5d692efe343b14e653bdb311b9f6e85926b2f2. Zweryfikowana kopia29 plików naprawy, binarny diff i SHA-256: work/drawer-bottom-opening-evidence-20261123/current-package-verified-capacity-20261124-e. Aktualny pełny CI i exact Pages pozostają wymagane.
 
+### Domknięcie po pełnym Preflight1391
+
+HEAD5f9439d9a77002b37f15dbcf4838b52335aaecfe:77 PASS/4 FAIL/2 SKIPPED. Wszystkie26 pierwotnych awarii1390 i cały P0-B wraz z końcowym SW PASS w CI; lokalny limit admission nie jest błędem odtworzonym na runnerze. Jedyny nowy pierwotny FAIL quote-final-corrections-smoke8/9: wspólny fixture ma już rzeczywisty generator szuflad, a test zakładał jego brak. RED→GREEN9/9 po jawnym usunięciu generatora dla negatywu oraz dodaniu kontroli zweryfikowanego0 i generatora rzucającego wyjątek. Asercja bezpiecznej odmowy zachowana i rozszerzona; tylko test i dokumentacja, publiczny manifest bez zmiany.
+
+Czas Ready→koniec7:38,6840 runner-sekund,20 równocześnie, kolejka283 s, najdłuższy timer230 s.6840/20=342 s to dolna granica przed Pages; nie deklarować4 minut. Następna próba w tym samym PR zatwierdzona przez właściciela; auto-merge i exact Pages nadal wyłącznie po PASS dla nowego HEAD.
+
 ## Historia stanu przed domknięciem24.11.2026
 
 
