@@ -437,7 +437,11 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     const beforeVisit=(await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomInvestors',iid))).data();
     await activePage.evaluate(()=>{window.normalLoseVisitAck=true;window.normalVisitCommitted=false;});
     await activePage.locator('[data-action="open-investor"][data-inv-id="'+iid+'"]').click();
-    await activePage.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
+    await activePage.waitForFunction(()=>{
+     const state=window.FC.applicationStartup.inspect();
+     return !state.transactionPending&&!state.incomingPending&&
+      (window.uiState.entry==='rooms'||!!document.querySelector('.info-box')?.getClientRects().length);
+    });
     const lostVisit=await activePage.evaluate(()=>window.normalVisitCommitted);
     assert.equal(lostVisit?.generation,beforeVisit.generation+1,'Visit ACK is lost only after the real server commit');
     assert.equal(await activePage.locator('[data-investor-action="projects"]').isVisible(),true,'A confirmed own visit must reconcile a lost ACK before local navigation');
