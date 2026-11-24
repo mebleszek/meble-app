@@ -773,8 +773,14 @@
     }
   }
   function writeAll(list){
+    const stored = new Map(readStoredCurrentRows().map(row=>[snapshotId(row),row]));
+    const same = (a,b)=>JSON.stringify(stableCanonical(a))===JSON.stringify(stableCanonical(b));
     const rows = limitSnapshotHistory(Array.isArray(list) ? list.map((row)=>{
       validateNewCandidate(row);
+      const previous = stored.get(snapshotId(row));
+      // readAll returns a normalized view. An unchanged historical view must
+      // keep its exact stored fields, including older/unknown frozen metadata.
+      if(previous && (same(row,previous) || same(row,normalizeSnapshot(previous,{canonicalizeLabels:true,historical:true})))) return clone(previous);
       const normalized=normalizeSnapshot(row,{preserveExplicitLabels:true});
       validateNewCandidate(normalized);
       return normalized.pcvMode==='project' ? FC.projectPcvResolver.stripQuoteProof(normalized) : normalized;
