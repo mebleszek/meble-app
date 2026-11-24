@@ -247,7 +247,8 @@ async function main(){
  one=await browser(profile,base+'/index.html',{offline:true});try{await one.until('document.body.dataset.businessState==="ready"');}catch(error){console.log('DIAG cold trust '+JSON.stringify(await one.evaluate('('+require('./helpers/trusted-cold-start').inspectTrustStorage.toString()+')()')));throw error;}
  await one.evaluate('window.FC.views.openInvestorsList();true');assert.equal(await one.evaluate('!!document.querySelector("[data-action=remove-investor-from-list]")'),true);
  const missing=codeCandidate.model.labor.filter(row=>!JSON.parse(Object.fromEntries(JSON.parse(before)).fc_quote_rates_v1).some(old=>old.id===row.id));
- assert.equal(missing.length,65,'This approved release adds exactly65 factory norms including the daily break and combined loading/unloading');
+ assert.equal(missing.length,72,'Legacy update adds 65 existing plus 7 approved opening/channel norms');
+ for(const id of ['labor_channel_install','labor_channel_workshop','labor_handle_layout','labor_handle_install','pdf_tipon_drill','pdf_tipon_insert','pdf_tipon_plate'])assert.ok(missing.some(row=>row.id===id),'Missing approved new norm '+id);
  // This fixture deliberately exercises the legacy validator (LOCAL-FIRST
  // deployment is isolated by trusted-session-browser). Its persisted service
  // compatibility alias has four fields; the canonical catalog and its cache

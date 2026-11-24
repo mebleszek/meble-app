@@ -493,7 +493,12 @@
       }
       ['setBodyColor','setBackMaterial','setOpeningSystem'].forEach(function(id){
         const el = document.getElementById(id);
-        if(el) el.onchange = function(){ refreshSetLaunchers(); };
+        if(el){
+          // The rear mounting field is conditional on the selected material.
+          // Preserve its reveal/hide hook when refreshing the wizard launchers.
+          const updateBack = id === 'setBackMaterial' ? el.onchange : null;
+          el.onchange = function(){ if(updateBack) updateBack.call(this); refreshSetLaunchers(); };
+        }
       });
 
       const hint = document.getElementById('setFrontHint');
@@ -640,6 +645,7 @@
     populateSetMaterialSelectors(Object.assign({}, getSetBaseDraft(uiState.roomType), {
       bodyColor: set.bodyColor || '',
       backMaterial: set.backMaterial || '',
+      backPosition:set.backPosition||'',
       openingSystem: set.openingSystem || ''
     }));
     if(bodySel && set.bodyColor) bodySel.value = set.bodyColor;
@@ -733,6 +739,7 @@
       }
 
       const setMaterials = getSetMaterialSpecFromUI(room);
+      if(setMaterials.backMaterial==='18 mm pod kolor korpusu'&&!['internal','external'].includes(setMaterials.backPosition)){showCabinetInfo('Wybierz montaż pleców','Plecy 18 mm wymagają wyboru: wewnętrzne albo zewnętrzne.');return false;}
       const frontCount = Number(cntEl.value || 1);
       const customFrontMaterial = matEl.value || 'laminat';
       const customFrontColor = colEl.value || '';
@@ -776,6 +783,7 @@
         }
         out.openingSystem = setMaterials.openingSystem || out.openingSystem || base.openingSystem || 'uchwyt klienta';
         out.backMaterial = setMaterials.backMaterial || out.backMaterial || base.backMaterial || 'HDF 3mm biała';
+        if(setMaterials.backPosition)out.details.backPosition=setMaterials.backPosition;
         out.setId = setId;
         out.setPreset = presetId;
         out.setNumber = setNumber;
@@ -821,7 +829,7 @@
         }
       }catch(_){ }
 
-      const setRecord = { id:setId, presetId:presetId, number:setNumber, params:params, bodyColor:setMaterials.bodyColor, backMaterial:setMaterials.backMaterial, openingSystem:setMaterials.openingSystem, frontCount:frontCount, frontMaterial:frontMaterial, frontColor:frontColor, frontSource:serializedFrontSource };
+      const setRecord = { id:setId, presetId:presetId, number:setNumber, params:params, bodyColor:setMaterials.bodyColor, backMaterial:setMaterials.backMaterial,...(setMaterials.backPosition?{backPosition:setMaterials.backPosition}:{}), openingSystem:setMaterials.openingSystem, frontCount:frontCount, frontMaterial:frontMaterial, frontColor:frontColor, frontSource:serializedFrontSource };
       if(isEdit){
         projectData[room].sets = projectData[room].sets.map(function(set){ return set && set.id === setId ? setRecord : set; });
       } else {

@@ -26,7 +26,7 @@
   const GENERATE_DEDUP_WINDOW_MS = 1500;
   const GENERATE_RELEASE_DEDUP_WINDOW_MS = 1200;
   const generateRuntime = { inFlight:false, lastAcceptedAt:0, lastReleasedAt:0 };
-  let requestPending=false;
+  let requestPending=false,refreshRequestButton=()=>{};
 
   function recordGenerateSkip(reason, extra){
     try{
@@ -459,7 +459,8 @@
     const actions = h('div', { class:'quote-topbar__actions' });
     const runBtn = h('button', { class:'btn-success', type:'button', text: state.isBusy ? 'Liczę…' : 'Wyceń' });
     runBtn.setAttribute('data-action', 'wycena-generate');
-    if(state.isBusy) runBtn.disabled = true;
+    const refreshButton=()=>{const busy=requestPending||d.getState?.().isBusy===true;runBtn.disabled=busy;runBtn.textContent=busy?'Liczę…':'Wyceń';};
+    refreshRequestButton=refreshButton;refreshButton();
     const requestGenerate = (event, source)=> {
       try{ if(event && typeof event.preventDefault === 'function') event.preventDefault(); }catch(_){ }
       try{ if(event && typeof event.stopPropagation === 'function') event.stopPropagation(); }catch(_){ }
@@ -467,10 +468,14 @@
       const generate=policy=>generateQuote(ctx,policy?.readOnly?{...d,syncGeneratedQuoteStatus(){}}:d,{source:source||'generate-button'});
       if(!FC.applicationWrite){void generate();return;}
       if(requestPending)return;requestPending=true;
+      // The existing busy button covers source confirmation as well as math.
+      // Do not rerender the whole quotation just to acknowledge a gesture.
+      refreshButton();
       const writer=FC.applicationWrite,owner=()=>[FC.projectStore?.getCurrentProjectId(),FC.investors?.getCurrentId()].join('|'),scope=owner();
       const current=()=>FC.applicationWrite===writer&&owner()===scope;
       let prior;
-      void Promise.resolve(FC.quoteOfferStore?.settingsSettled?.()).then(async saved=>{
+      // Return the gesture task before reading/validating the full local image.
+      void new Promise(resolve=>setTimeout(resolve,0)).then(()=>FC.quoteOfferStore?.settingsSettled?.()).then(async saved=>{
         if(saved===false)throw Error('LF_OFFER_DRAFT_UNCONFIRMED');
         await writer.whenIdle?.();
         if(!current())throw Error('LF_QUOTE_OWNER_CHANGED');
@@ -487,7 +492,7 @@
         }
         if(current())d.render?.(ctx);
         showQuoteValidationError(error);
-      }).finally(()=>{requestPending=false;});
+      }).finally(()=>{requestPending=false;refreshButton();refreshRequestButton();});
     };
     FC.wycenaGenerateAction = {
       run(event, source){

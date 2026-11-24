@@ -74,7 +74,9 @@
     if(m === 'merivobox') return 'MERIVOBOX';
     if(m === 'metabox') return 'METABOX';
     if(m === 'axis_pro') return 'Axis Pro';
-    if(m === 'rejs_systemowe') return 'system szuflady';
+    if(m === 'comfort_box_plus')return 'Comfort Box Plus';
+    if(m === 'ultra_box')return 'Ultra Box';
+    if(m === 'rejs_systemowe') return 'Comfort Box';
     return text(model) || (normalizeBrand(brand) === 'gtv' ? 'Axis Pro' : '');
   }
   function systemKey(system, brand, model){
@@ -84,7 +86,7 @@
     if(sys === 'systemowe'){
       if(b === 'blum') return m ? ('blum_' + m) : 'blum_tandembox_antaro';
       if(b === 'gtv' && (!m || m === 'axis_pro')) return 'gtv_axis_pro';
-      if(b === 'rejs') return 'rejs_systemowe';
+      if(b === 'rejs') return ['comfort_box_plus','ultra_box'].includes(m)?'rejs_'+m:'rejs_systemowe';
       return [b, m].filter(Boolean).join('_') || 'systemowe';
     }
     return 'box_runners';
@@ -113,6 +115,13 @@
       }
     }
     if(!sys) sys = 'skrzynkowe';
+    if(sys==='skrzynkowe'){
+      const pref=resolvePreferenceOption(roomId);
+      if(!runnerType&&pref?.system==='skrzynkowe'&&pref.runnerType){
+        runnerType=pref.runnerType;runnerSeries=pref.runnerSeries;brand=pref.brand||pref.manufacturer;
+      }
+      if(!runnerType){runnerType='undermount';runnerSeries='TANDEM BLUMOTION';brand='blum';}
+    }
     if(sys === 'blum') { sys = 'systemowe'; brand = 'blum'; }
     if(sys === 'gtv') { sys = 'systemowe'; brand = 'gtv'; }
     if(sys === 'rejs') { sys = 'systemowe'; brand = 'rejs'; }
@@ -138,6 +147,7 @@
       drawerKind: sys === 'systemowe' ? 'system' : 'box',
       drawerSystemKey:key,
       manufacturer:bLabel,
+      usage:text(src.usage || src.sourceUsage || 'frontowa'),
       systemLabel,
       materialSpec: sys === 'systemowe' ? 'producer_spec' : 'box_18_bottom_10',
       boxSidesThicknessMm: sys === 'systemowe' ? null : 18,
@@ -199,7 +209,7 @@
         system:text(d.sinkInnerDrawerType || ''),
         brand:text(d.sinkInnerDrawerBrand || ''),
         model:text(d.sinkInnerDrawerModel || ''),
-        usage:'zlewowa'
+        usage:'wewnętrzna'
       }, p);
     }
     if(p === 'inner'){
@@ -217,6 +227,10 @@
     const type = typeOf(cabinet);
     const sub = subTypeOf(cabinet);
     const d = details(cabinet);
+
+    if(['stojąca','moduł','wisząca'].includes(type) && sub==='standardowa' && text(d.insideMode)==='szuflady_wew' && !isNoDrawerType(d.innerDrawerType)){
+      out.push(row('inner_drawers',d.innerDrawerCount,'Szuflady wewnętrzne',systemTechnical(roomId,d,'inner')));
+    }
 
     if((type === 'stojąca' || type === 'moduł') && sub === 'szuflady'){
       const layout = text(d.drawerLayout) || '3_1_2_2';
@@ -258,8 +272,35 @@
     if(explicit.length) return explicit;
     return derivedRows(roomId, cabinet);
   }
+  function hasInnerDrawers(roomId,cabinet){
+    return getDrawerRequirements(roomId,cabinet).some(row=>row.qty>0&&row.technical?.usage==='wewnętrzna');
+  }
   function countDrawerRequirements(rows){
     return (Array.isArray(rows) ? rows : []).reduce((sum, item)=> sum + cleanPositive(item && item.qty, 0), 0);
+  }
+  const BOTTOM_COLORS = [
+    {v:'white',t:'Białe',materialId:'m_drawer_bottom_10_white',materialName:'Dno szuflad 10 mm białe'},
+    {v:'grey',t:'Szare',materialId:'m_drawer_bottom_10_grey',materialName:'Dno szuflad 10 mm szare'}
+  ];
+  function needsBottomColor(roomId,cabinet){
+    let offset=0;
+    for(const row of getDrawerRequirements(roomId,cabinet)){
+      const index=offset;if(row.technical?.usage==='wewnętrzna')offset+=row.qty;
+      if(!(row.qty>0))continue;
+      if(row.technical?.drawerKind==='system')return true;
+      const selection=FC.cabinetDrawerSelection;
+      if(!selection)return true;
+      const result=selection.frontsForRequirement(roomId,cabinet,row,index);
+      // Unconfirmed dimensions still require a decision; never silently convert
+      // unknown drawers to HDF solely to bypass the colour guard.
+      if(!result.ok)return true;
+      if(result.fronts.some(front=>(front.section||selection.woodenSection({frontHeightMm:front.heightMm,inner:row.technical?.usage==='wewnętrzna'})).bottomThicknessMm!==3))return true;
+    }
+    return false;
+  }
+  function bottomMaterial(cabinet,thicknessMm=10){
+    const row=BOTTOM_COLORS.find(row=>row.v===details(cabinet).drawerBottomColor);
+    return row ? {...row,...(thicknessMm===16?{materialId:row.materialId.replace('_10_','_16_'),materialName:'Płyta szuflad systemowych 16 mm '+(row.v==='white'?'biała':'szara')}:{})} : null;
   }
   function labelDrawerRequirements(rows){
     const labels = [];
@@ -298,10 +339,14 @@
         delete d.drawerBrand;
         delete d.drawerModel;
       }
-      delete d.innerDrawerType;
-      delete d.innerDrawerCount;
-      delete d.innerDrawerBrand;
-      delete d.innerDrawerModel;
+      const keepInner = sub==='standardowa'&&text(d.insideMode)==='szuflady_wew'
+        || type==='wisząca'&&sub==='dolna_podblatowa'&&text(d.podFrontMode||'drzwi')!=='szuflady'&&text(d.podInsideMode)==='szuflady_wewn';
+      if(!keepInner){
+        delete d.innerDrawerType;
+        delete d.innerDrawerCount;
+        delete d.innerDrawerBrand;
+        delete d.innerDrawerModel;
+      }
     } else {
       if(!d.drawerLayout) d.drawerLayout = '3_1_2_2';
       if(text(d.drawerLayout) === '5_equal' || isNoDrawerType(d.innerDrawerType)){
@@ -350,9 +395,11 @@
   }
 
   FC.cabinetDrawerRequirements = {
+    BOTTOM_COLORS:clone(BOTTOM_COLORS),needsBottomColor,bottomMaterial,
+    isBottomCatalogRow:row=>BOTTOM_COLORS.some(choice=>choice.materialId===row?.id||choice.materialId.replace('_10_','_16_')===row?.id),
     getDrawerRequirements,
     getDrawerRequirementsWithQty:getDrawerRequirements,
-    countDrawerRequirements,
+    countDrawerRequirements,hasInnerDrawers,
     labelDrawerRequirements,
     cleanDrawerTrash,
     canonicalSystemTechnical,

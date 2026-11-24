@@ -199,6 +199,19 @@ test('Public explicit render loads real lazy adapters and generates project plac
  assert.ok(placed.every(p=>p.effectivePcv.projectId==='A'));assert.equal(placed.filter(p=>p.name==='Bok'&&p.effectivePcv.edges.w2).length,1);
  assert.ok(!r.storage.calls.some(call=>['fc_edge_v1','fc_projects_v1','fc_rozrys_plan_cache_v2'].includes(call[1])));assert.equal(forbiddenReads,0);
 });
+test('Fractional sheet equivalents retain exact PCV material quantities through history compaction and readback',async()=>{
+ const r=quoteSetup(setup());
+ for(const row of r.s.materials.filter(row=>row.materialType==='laminat'))Object.assign(row,{price:200,priceUnit:'sheet',billingIncrement:'m2',sheetWidthMm:2800,sheetHeightMm:2070});
+ const candidate=await r.candidate(),before=clone(candidate.lines.materials);
+ assert.ok(before.some(row=>row.qty!==Math.round(row.qty*10000)/10000),'Real m² billing divided by sheet format produces a non-four-decimal equivalent');
+ const normalized=r.FC.quoteSnapshotStore.normalizeSnapshot(candidate);
+ assert.deepEqual(clone(normalized.lines.materials.map(row=>[row.key,row.qty,row.unitPrice,row.total])),before.map(row=>[row.key,row.qty,row.unitPrice,row.total]));
+ assert.equal(r.FC.projectPcvResolver.validateQuoteCandidate(normalized),true);
+ const saved=r.FC.quoteSnapshotStore.save(normalized),read=r.FC.quoteSnapshotStore.getById(saved.id);
+ assert.deepEqual(clone(read.lines.materials.map(row=>[row.key,row.qty,row.unitPrice,row.total])),before.map(row=>[row.key,row.qty,row.unitPrice,row.total]));
+ const raw=r.storage.getItem('fc_quote_snapshots_v1'),tampered=clone(normalized);tampered.lines.materials[0].qty+=0.0000001;
+ assert.throws(()=>r.FC.quoteSnapshotStore.save(tampered),/QUOTE_CONTEXT_CHANGED/);assert.equal(r.storage.getItem('fc_quote_snapshots_v1'),raw);
+});
 if(require.main===module)(async()=>{let failed=0;for(const[name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(e){failed++;console.error('FAIL '+name+'\n'+e.stack);}}console.log(`${tests.length-failed}/${tests.length} PASS`);process.exitCode=failed?1:0;})();
 
 module.exports={setup,quoteSetup,worker,runner,verify,load,seed,drawers,select,address,options,aggParts};

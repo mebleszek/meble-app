@@ -23,6 +23,21 @@ export function validateProjectDependencies(projectContract, globalContract, doc
     if (domain === 'rate') found = [...globals.labor,...globals.workshopServices].some(r => r.id === reference);
     if (domain === 'hardware') found = globals.manufacturers.includes(reference) || globals.hardware.some(r =>
       ['id','name','manufacturer','hardwareType','hardwareSystem','series','drawerProfile'].some(k => r[k] === reference));
+    if (domain === 'drawer-hardware') {
+      const selector=JSON.parse(reference),norm=value=>String(value||'').normalize('NFKD').replace(/[^a-z0-9]/gi,'').toLowerCase();
+      const fields=Object.keys(selector),allowed=['brand','model','runnerType','runnerSeries','systemKey'];
+      if(!fields.length||fields.some(key=>!allowed.includes(key)||typeof selector[key]!=='string'||!norm(selector[key])))fail('LF_PROJECT_DEPENDENCY_MISSING');
+      const model=selector.model||selector.systemKey,runnerType={ball:'kulkowa',undermount:'dolnego montażu',roller:'rolkowa'}[selector.runnerType];
+      found=(!selector.runnerType||!!runnerType)&&globals.hardware.some(row=>{
+        const brand=norm(row.manufacturer),series=norm(row.series),system=norm(row.hardwareSystem);
+        const models=[...(series?[series,brand+series]:[]),...(system?[system,brand+system]:[])];
+        return (row.hardwareCategory||row.category)==='Szuflady / prowadnice'
+          &&(!selector.brand||norm(selector.brand)===brand)
+          &&(!model||model==='box_runners'?(!model||!!row.technicalParams?.rodzaj_prowadnicy):models.includes(norm(model)))
+          &&(!selector.runnerSeries||norm(selector.runnerSeries)===series)
+          &&(!runnerType||row.technicalParams?.rodzaj_prowadnicy?.value===runnerType);
+      });
+    }
     if (!found) fail('LF_PROJECT_DEPENDENCY_MISSING');
   }
   return requirements;

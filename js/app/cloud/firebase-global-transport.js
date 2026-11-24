@@ -74,13 +74,21 @@
         const seen=new Set();for(const entry of entries){c.shape({id:c.id,hash:c.hashValue},['id','hash'])(entry,'directory');if(seen.has(entry.id))c.fail('GLOBAL_DUPLICATE_ID');seen.add(entry.id);total++;}
       }if(total!==count||total>c.MAX_RECORDS)c.fail('GLOBAL_DIRECTORY_INVALID');
     }
-    async function prepare({model,expectedHead,assertSource=()=>{}}={}){
+    async function prepare({model,expectedHead,assertSource=()=>{},idempotentPublication=false}={}){
       try{
         check();if(expectedHead===undefined||typeof assertSource!=='function')c.fail('GLOBAL_BASE_REQUIRED');validateBase(expectedHead);c.validateBundle(model);source({assertSource});
         const packed=await c.pack(bound.uid,c.clone(model));check();source({assertSource});
-        const current=await remoteHead();if(!equal(current,expectedHead))c.fail('GLOBAL_WRITE_CONFLICT');
+        const current=await remoteHead();check();source({assertSource});
+        if(!equal(current,expectedHead)){
+          // Exact same confirmed content is a no-op, never a rebase/write of
+          // different data. Used by LOCAL-FIRST's additive factory upgrades.
+          if(idempotentPublication&&current?.directoryHash===packed.directoryHash)return {ok:true,unchanged:true,head:current};
+          c.fail('GLOBAL_WRITE_CONFLICT');
+        }
         if(current?.directoryHash===packed.directoryHash)return {ok:true,unchanged:true,head:current};
-        const handle=Object.freeze({revisionId:crypto.randomUUID().replace(/-/g,'')}),head={ownerUid:bound.uid,version:1,generation:(current?.generation||0)+1,revisionId:handle.revisionId,directoryHash:packed.directoryHash,recordCount:packed.records.length};
+        const revisionId=idempotentPublication?(await c.sha(c.encode({kind:'global-publication-v1',ownerUid:bound.uid,base:current,directoryHash:packed.directoryHash}))).slice(0,32):crypto.randomUUID().replace(/-/g,'');
+        check();source({assertSource});
+        const handle=Object.freeze({revisionId}),head={ownerUid:bound.uid,version:1,generation:(current?.generation||0)+1,revisionId:handle.revisionId,directoryHash:packed.directoryHash,recordCount:packed.records.length};
         attempts.set(handle,{packed,head,base:current,assertSource,state:'prepared'});return {ok:true,handle,records:head.recordCount};
       }catch(e){return error(e);}
     }
@@ -97,7 +105,8 @@
       let a,phase='validation';
       try{
         a=lookup(handle);if(a.state==='unconfirmed')c.fail('GLOBAL_CONFIRMATION_REQUIRED');if(a.state==='conflict')c.fail('GLOBAL_WRITE_CONFLICT');
-        source(a);if(!equal(await remoteHead(),a.base)&&a.state!=='published')c.fail('GLOBAL_WRITE_CONFLICT');
+        source(a);const current=await remoteHead();check();source(a);if(equal(current,a.head))return await confirm(handle);
+        if(!equal(current,a.base)&&a.state!=='published')c.fail('GLOBAL_WRITE_CONFLICT');
         phase='staging';await remoteHead();check();
         // Keep transactions below the Rules access-call budget even without
         // reuse of the owner grant checks between record writes.

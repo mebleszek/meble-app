@@ -53,6 +53,14 @@
 
     populateBackOptionsTo(backSel, base.backMaterial || 'HDF 3mm biała');
     if(backSel && base.backMaterial) backSel.value = base.backMaterial;
+    const position=document.getElementById('setBackPosition'),wrap=document.getElementById('setBackPositionWrap');
+    if(position)position.value=base.backPosition||'';
+    const refreshBackPosition=()=>{
+      const raw=text(backSel&&backSel.value),row=ns.catalogSelectors?.findSheetMaterial?.(raw);
+      if(wrap)wrap.style.display=raw==='18 mm pod kolor korpusu'||row?.materialType==='laminat'&&Number(row.thicknessMm||18)===18?'':'none';
+      ns.cabinetChoiceLaunchers?.refreshCabinetChoices?.(document.getElementById('cabinetModal'));
+    };
+    if(backSel)backSel.onchange=refreshBackPosition;refreshBackPosition();
 
     populateOpeningOptionsTo(openingSel, 'stojąca', base.openingSystem || 'uchwyt klienta');
     if(openingSel && base.openingSystem) openingSel.value = base.openingSystem;
@@ -66,6 +74,7 @@
     return {
       bodyColor: text((bodySel && bodySel.value) || base.bodyColor || ''),
       backMaterial: text((backSel && backSel.value) || base.backMaterial || 'HDF 3mm biała'),
+      ...(text(document.getElementById('setBackPosition')?.value)?{backPosition:text(document.getElementById('setBackPosition').value)}:{}),
       openingSystem: text((openingSel && openingSel.value) || base.openingSystem || 'uchwyt klienta')
     };
   }

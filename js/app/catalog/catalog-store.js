@@ -24,6 +24,10 @@
     { id:'m5', materialType:'obrzeże', manufacturer:'Start', symbol:'PCV-STD', edgeWastePercent:10, name:'Obrzeże PCV standard', price:10, priceUnit:'mb', hasGrain:false, starterPrice:true, note:'Cena startowa za mb; zapas według pola Zapas do wyceny (%) tej pozycji.' },
     { id:'m7', materialType:'obrzeże', manufacturer:'Start', symbol:'PCV-FRONT', edgeWastePercent:10, name:'PCV pod kolor frontów', price:20, priceUnit:'mb', hasGrain:false, starterPrice:true, note:'Cena startowa za mb PCV pod kolor frontów; zapas według pola Zapas do wyceny (%) tej pozycji.' },
     { id:'m6', materialType:'blat', manufacturer:'Start', symbol:'BLAT-4100', name:'Blat roboczy 4100 mm', price:420, priceUnit:'piece', hasGrain:true, starterPrice:true, note:'Cena startowa za całą sztukę blatu 4,1 m.' },
+    { id:'m_drawer_bottom_10_white', materialType:'laminat', manufacturer:'Start', symbol:'DNO-10-BIALY', name:'Dno szuflad 10 mm białe', sheetWidthMm:2800,sheetHeightMm:2070,thicknessMm:10,billingIncrement:'m2',purchasePrice:200,markupPercent:0,pricingMode:'markup',price:200,priceUnit:'sheet',hasGrain:false,starterPrice:true,note:'Cena zakupu startowa właściciela: 200 zł/arkusz. Rozliczenie w m² według wspólnych reguł cennika; format i narzut są edytowalne.' },
+    { id:'m_drawer_bottom_10_grey', materialType:'laminat', manufacturer:'Start', symbol:'DNO-10-SZARY', name:'Dno szuflad 10 mm szare', sheetWidthMm:2800,sheetHeightMm:2070,thicknessMm:10,billingIncrement:'m2',purchasePrice:200,markupPercent:0,pricingMode:'markup',price:200,priceUnit:'sheet',hasGrain:false,starterPrice:true,note:'Cena zakupu startowa właściciela: 200 zł/arkusz. Rozliczenie w m² według wspólnych reguł cennika; format i narzut są edytowalne.' },
+    { id:'m_drawer_bottom_16_white', materialType:'laminat', manufacturer:'Start', symbol:'DNO-16-BIALY', name:'Płyta szuflad systemowych 16 mm biała', sheetWidthMm:2800,sheetHeightMm:2070,thicknessMm:16,billingIncrement:'m2',purchasePrice:200,markupPercent:0,pricingMode:'markup',price:200,priceUnit:'sheet',hasGrain:false,starterPrice:true,note:'Cena zakupu startowa właściciela: 200 zł/arkusz. Rozliczenie w m² według wspólnych reguł cennika; format i narzut są edytowalne.' },
+    { id:'m_drawer_bottom_16_grey', materialType:'laminat', manufacturer:'Start', symbol:'DNO-16-SZARY', name:'Płyta szuflad systemowych 16 mm szara', sheetWidthMm:2800,sheetHeightMm:2070,thicknessMm:16,billingIncrement:'m2',purchasePrice:200,markupPercent:0,pricingMode:'markup',price:200,priceUnit:'sheet',hasGrain:false,starterPrice:true,note:'Cena zakupu startowa właściciela: 200 zł/arkusz. Rozliczenie w m² według wspólnych reguł cennika; format i narzut są edytowalne.' },
   ];
   const DEFAULT_ACCESSORIES = hardwareSeeds && typeof hardwareSeeds.mergeAccessorySeeds === 'function'
     ? hardwareSeeds.mergeAccessorySeeds([])
@@ -283,6 +287,9 @@
   function ensureStarterMaterialSeeds(rows){
     const list = (Array.isArray(rows) ? rows : []).map((row)=> normalizeMaterialRow(row));
     const keys = new Set(list.map(materialSeedKey));
+    for(const seed of DEFAULT_SHEET_MATERIALS.filter(row=>row.id.startsWith('m_drawer_bottom_'))){
+      if(!list.some(row=>row.id===seed.id||materialSeedKey(row)===materialSeedKey(seed)))list.push(normalizeMaterialRow(seed));
+    }
 
     // PCV zostało dodane po istniejących bazach użytkownika. Ma wejść jako normalna, widoczna pozycja startowa,
     // ale nie może nadpisać ręcznie wpisanych/edytowanych cenników ani tworzyć ABS.

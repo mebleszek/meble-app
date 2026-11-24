@@ -108,6 +108,15 @@
     return true;
   }
 
+  function addChannelEdges(split,cabinet,scope){
+    if(String(cabinet?.openingSystem||'').toLowerCase()!=='korytkowy')return split;
+    if(!partMatchesScope({name:'Korytko',material:cabinet.bodyColor},scope,FC.materialEdgeStore))return split;
+    const info=FC.cabinetHardwareRequirements?.getChannelInfo?.(cabinet);
+    if(!info?.ok)throw Object.assign(Error('Nie potwierdzono PCV korytka'),{code:info?.code||'CHANNEL_REQUIREMENT_UNAVAILABLE'});
+    const mode=FC.materialEdgeStore.getCabinetPcvMode(cabinet);
+    split[mode]=(Number(split[mode])||0)+info.edgeMeters;split.total=(Number(split.total)||0)+info.edgeMeters;
+    return split;
+  }
   function collectRoomMaterials(room, options){
     const opts = FC.projectPcvGuard.calculationOptions(options);
     if(opts.pcvMode === 'project'){
@@ -137,6 +146,7 @@
         ? edgeApi.calcEdgeMetersByPcvModeForParts(parts, cabinet)
         : { body:(edgeApi && typeof edgeApi.calcEdgeMetersForParts === 'function' ? edgeApi.calcEdgeMetersForParts(parts, cabinet) : 0), front:0, total:0, mode:'body' };
       if(!(Number(edgeMetersByMode.total) > 0)) edgeMetersByMode.total = (Number(edgeMetersByMode.body) || 0) + (Number(edgeMetersByMode.front) || 0);
+      addChannelEdges(edgeMetersByMode,cabinet,opts.materialScope);
       const edgeMeters = Number(edgeMetersByMode.total) || 0;
       projectEdgeMeters += edgeMeters;
       projectEdgeMetersByMode.body += Number(edgeMetersByMode.body) || 0;
@@ -187,6 +197,7 @@
           ? edgeApi.calcEdgeMetersByPcvModeForParts(parts, cabinet)
           : { body:(edgeApi && typeof edgeApi.calcEdgeMetersForParts === 'function' ? edgeApi.calcEdgeMetersForParts(parts, cabinet) : 0), front:0, total:0, mode:'body' };
         if(!(Number(cabSplit.total) > 0)) cabSplit.total = (Number(cabSplit.body) || 0) + (Number(cabSplit.front) || 0);
+        addChannelEdges(cabSplit,cabinet,scope);
         const cabEdgeMeters = Number(cabSplit.total) || 0;
         edgeMeters += cabEdgeMeters;
         edgeMetersByMode.body += Number(cabSplit.body) || 0;
@@ -216,5 +227,6 @@
     isFrontPart,
     partMatchesScope,
     normalizeMaterialScope,
+    addChannelEdges,
   };
 })();

@@ -275,6 +275,12 @@
   function buildMaterialLine(material, selectedParts, priceItem, planInfo){
     const priceUnit = normalizeUnit(priceItem && priceItem.priceUnit, material);
     const unitPrice = Number(priceItem && priceItem.price) || 0;
+    const drawerPlate=String(priceItem?.id||'').match(/^m_drawer_bottom_(10|16)_(?:white|grey)$/);
+    if(partCount(selectedParts)>0&&(!priceItem||!Number.isFinite(Number(priceItem.price))||Number(priceItem.price)<0
+      ||Number(priceItem.price)===0&&!priceItem.priceUserEditedAt
+      ||drawerPlate&&(Number(priceItem.thicknessMm)!==Number(drawerPlate[1])||!(Number(priceItem.sheetWidthMm)>0&&Number(priceItem.sheetHeightMm)>0)))){
+      throw selectionApi.createQuoteValidationError('material_catalog_unresolved','Sprawdź cennik materiałów','Nie potwierdzono ceny lub parametrów materiału: '+material);
+    }
     const sourceLabel = (aggregateSource)=> aggregateSource === 'generated' ? 'arkusze z rozkroju wygenerowane do wyceny' : aggregateSource === 'cache' ? 'arkusze z ostatniego rozkroju' : 'brak rozkroju';
     let qty = 0;
     let note = '';

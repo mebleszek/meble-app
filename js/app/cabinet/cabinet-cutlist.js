@@ -164,42 +164,73 @@
     const bodyMat = cab && cab.bodyColor || 'laminat';
     const wIn = Number(dims && dims.wIn) || 0;
     const d = Number(dims && dims.depth) || 0;
-    const sideThicknessCm = 1.8;
-    const runnerClearanceCm = 2.6;
-    const boxOuterWidth = Math.max(0, safeRoundCm(wIn - runnerClearanceCm, wIn));
-    const boxDepth = Math.max(25, Math.min(55, Math.floor(Math.max(0, d - 5) / 5) * 5 || Math.max(0, d - 5)));
-    const boxHeight = 12;
-    const backWidth = Math.max(0, safeRoundCm(boxOuterWidth - 2 * sideThicknessCm, boxOuterWidth));
-    const bottomMaterial = `Dno szuflad 10 mm: ${bodyMat}`;
+    const bottomChoice=FC.cabinetDrawerRequirements?.bottomMaterial(cab);
+    const bottomRow=bottomChoice&&FC.catalogSelectors?.findSheetMaterial?.(bottomChoice.materialId);
+    const bottomMaterial=bottomRow?.name||bottomChoice?.materialName||'Dno szuflad 10 mm — wybierz kolor';
 
+    let innerOffset=0;
     reqs.forEach((req)=>{
       const qty = Math.max(0, Math.round(Number(req && req.qty) || 0));
       if(qty <= 0) return;
       const tech = req && req.technical && typeof req.technical === 'object' ? req.technical : {};
       const label = tech.systemLabel || req.label || 'Szuflada / prowadnice';
       const material = tech.drawerKind === 'box' ? 'Okucia: prowadnice szuflad skrzynkowych' : 'Okucia: system szuflady';
-      parts.push({
-        name: label,
-        qty,
-        a:0, b:0,
-        dims: tech.drawerKind === 'box' ? 'same prowadnice' : 'wg specyfikacji producenta',
-        material,
-        hardwareRequirement:req || null
-      });
-      if(tech.drawerKind !== 'box') return;
-      const group = 'Szuflady skrzynkowe';
-      const sourceLabel = req.label ? ` — ${req.label}` : '';
+      const offset=innerOffset;if(tech.usage==='wewnętrzna')innerOffset+=qty;
       const knownSource=!req.explicit && ['front_drawers','inner_drawers','sink_front_drawer','sink_inner_drawers','oven_drawer','under_counter_front_drawers','under_counter_inner_drawers'].includes(req.source)
         && reqs.filter(item=>item.source===req.source).length===1;
       const singleton=knownSource && qty===1 && ['sink_front_drawer','oven_drawer'].includes(req.source);
-      const drawerSource=(roles)=>singleton ? {partRoleIds:roles.map(role=>'drawer.'+req.source+'.'+role)}
-        : knownSource ? {sourceGroupRoles:[{ownerType:'cabinet',groupRoleId:'drawer.'+req.source+'.'+(roles.length===2?'sides':roles[0]),qty:qty*roles.length}]}
+      const drawerSource=(roles,count)=>singleton ? {partRoleIds:roles.map(role=>'drawer.'+req.source+'.'+role)}
+        : knownSource ? {sourceGroupRoles:[{ownerType:'cabinet',groupRoleId:'drawer.'+req.source+'.'+(roles.length===2?'sides':roles[0]),qty:count*roles.length}]}
         : {sourceFamily:'drawer.'+String(req.source||'manual'),sourceReason:'ambiguous_drawer_requirement'};
-      parts.push({ name:'Bok szuflady skrzynkowej' + sourceLabel, group, ...drawerSource(['side.left','side.right']), qty:qty * 2, a:boxDepth, b:boxHeight, dims:`${fmt(boxDepth)} × ${fmt(boxHeight)}`, material:bodyMat, materialThicknessMm:18 });
-      parts.push({ name:'Tył szuflady skrzynkowej' + sourceLabel, group, ...drawerSource(['back']), qty, a:backWidth, b:boxHeight, dims:`${fmt(backWidth)} × ${fmt(boxHeight)}`, material:bodyMat, materialThicknessMm:18 });
-      parts.push({ name:'Dno szuflady skrzynkowej 10 mm' + sourceLabel, group, ...drawerSource(['bottom']), qty, a:boxOuterWidth, b:boxDepth, dims:`${fmt(boxOuterWidth)} × ${fmt(boxDepth)}`, material:bottomMaterial, materialThicknessMm:10, pcvEligible:false });
-      if(tech.hasConstructionFront){
-        parts.push({ name:'Przód konstrukcyjny szuflady skrzynkowej' + sourceLabel, group, ...drawerSource(['construction-front']), qty, a:backWidth, b:boxHeight, dims:`${fmt(backWidth)} × ${fmt(boxHeight)}`, material:bodyMat, materialThicknessMm:18 });
+
+      if(tech.drawerKind !== 'box'){
+        const result=FC.cabinetDrawerSelection.frontsForRequirement(room,cab,req,offset);
+        if(!result.ok||result.fronts.length!==qty)throw Object.assign(Error(result.code||'DRAWER_FRONT_HEIGHT_UNCONFIRMED'),{code:result.code||'DRAWER_FRONT_HEIGHT_UNCONFIRMED'});
+        const choice=FC.cabinetDrawerRequirements.bottomMaterial(cab,16),row=choice&&FC.catalogSelectors?.findSheetMaterial?.(choice.materialId),panelMaterial=row?.name||choice?.materialName||'Płyta szuflad systemowych16 mm — wybierz kolor';
+        for(const front of result.fronts){
+          const fit={productKind:'system',family:tech.drawerSystemKey,usage:tech.usage,availableDepthMm:Math.round(d*10),frontHeightMm:front.heightMm,insideWidthMm:Math.round(wIn*10),motion:tech.usage!=='wewnętrzna'&&String(cab.openingSystem).toLowerCase()==='tip-on'?'push':'soft'};
+          fit.minLoadKg=FC.cabinetDrawerSelection.requestedLoad(cab,tech.usage==='wewnętrzna');
+          fit.forceMaxLoad=tech.usage!=='wewnętrzna'&&FC.cabinetDrawerSelection.isFullHeightSingle(room,cab);
+          const selected=FC.cabinetDrawerSelection.systemForFront(fit);
+          if(!selected.ok)throw Object.assign(Error(selected.code),{code:selected.code});
+          fit.motion=selected.selected.motion;
+          parts.push({name:label,qty:1,a:0,b:0,dims:selected.selected.sku,material,hardwareRequirement:{...req,qty:1,drawerFit:{...fit,selectedId:selected.selected.id,panelColor:choice?.v||null}}});
+          if(selected.motionAddon){
+            const addon=selected.motionAddon,label=(addon.family==='blum_merivobox'?'MERIVOBOX':'TANDEMBOX')+' TIP-ON BLUMOTION '+addon.module;
+            parts.push({name:label,qty:1,a:0,b:0,dims:'komplet modułu L+P',material:'Okucia: otwieranie szuflady',hardwareRequirement:{kind:'drawer-motion',hardwareGroup:'drawers',category:'Inne',catalogItemId:addon.id,expectedManufacturer:addon.manufacturer,expectedSymbol:addon.sku,expectedUnit:'kpl.',label,qty:1}});
+          }
+          const panels=selected.panels;
+          parts.push({name:'Dno szuflady systemowej16 mm'+(panels.bottomProcessing?' — '+panels.bottomProcessing:''),group:'Szuflady systemowe',...drawerSource(['bottom'],1),qty:1,a:panels.bottomWidthMm/10,b:panels.bottomLengthMm/10,dims:fmt(panels.bottomWidthMm/10)+' × '+fmt(panels.bottomLengthMm/10),material:panelMaterial,materialThicknessMm:16,pcvEligible:false});
+          parts.push({name:'Tył szuflady systemowej16 mm',group:'Szuflady systemowe',...drawerSource(['back'],1),qty:1,a:panels.backWidthMm/10,b:panels.backHeightMm/10,dims:fmt(panels.backWidthMm/10)+' × '+fmt(panels.backHeightMm/10),material:panelMaterial,materialThicknessMm:16,drawerConstructionRole:'crosspiece'});
+        }
+        return;
+      }
+      const group = 'Szuflady skrzynkowe';
+      const sourceLabel = req.label ? ` — ${req.label}` : '';
+      const inner=tech.usage==='wewnętrzna';
+      const layout=inner?FC.cabinetInnerDrawers?.layout(room,cab):null;
+      if(inner&&!layout?.ok)throw Object.assign(Error(layout?.code||'INNER_DRAWER_LAYOUT_UNCONFIRMED'),{code:layout?.code||'INNER_DRAWER_LAYOUT_UNCONFIRMED'});
+      const fronts=FC.cabinetDrawerSelection.frontsForRequirement(room,cab,req,offset);
+      if(!fronts.ok||fronts.fronts.length!==qty)throw Object.assign(Error(fronts.code||'DRAWER_FRONT_HEIGHT_UNCONFIRMED'),{code:fronts.code||'DRAWER_FRONT_HEIGHT_UNCONFIRMED'});
+      for(const front of fronts.fronts){
+        const n=1,section=front.section||FC.cabinetDrawerSelection.woodenSection({frontHeightMm:front.heightMm,inner});
+        const geometry=FC.cabinetDrawerSelection.woodenGeometry({section,insideWidthMm:Math.round(wIn*10),availableDepthMm:Math.round(d*10),inner,manufacturer:tech.manufacturer||'Blum',series:tech.runnerSeries||'TANDEM BLUMOTION',motion:!inner&&String(cab.openingSystem).toLowerCase()==='tip-on'?'push':'soft',minLoadKg:FC.cabinetDrawerSelection.requestedLoad(cab,inner)});
+        if(!geometry.ok)throw Object.assign(Error(geometry.code),{code:geometry.code});
+        parts.push({name:geometry.series+' '+geometry.lengthMm+' mm',qty:1,a:0,b:0,dims:'komplet prowadnic L+P',material,
+          hardwareRequirement:{...req,qty:1,drawerFit:{productKind:'runner',...geometry}}});
+        const height=geometry.sideHeightMm/10,crossHeight=geometry.crosspieceHeightMm/10,boxDepth=geometry.sideLengthMm/10,backWidth=geometry.innerWidthMm/10;
+        const construction=geometry.runnerType==='undermount';
+        parts.push({name:'Bok szuflady skrzynkowej'+sourceLabel,group,...drawerSource(['side.left','side.right'],n),qty:2,a:boxDepth,b:height,dims:fmt(boxDepth)+' × '+fmt(height),material:bodyMat,materialThicknessMm:18,drawerConstructionRole:'side'});
+        parts.push({name:'Tył szuflady skrzynkowej'+sourceLabel,group,...drawerSource(['back'],n),qty:n,a:backWidth,b:crossHeight,dims:fmt(backWidth)+' × '+fmt(crossHeight),material:bodyMat,materialThicknessMm:18,drawerConstructionRole:'crosspiece'});
+        const bw=geometry.bottomWidthMm/10,bd=geometry.bottomLengthMm/10;
+        parts.push({name:'Dno szuflady skrzynkowej '+geometry.bottomThicknessMm+' mm'+sourceLabel,group,...drawerSource(['bottom'],n),qty:n,a:bw,b:bd,dims:fmt(bw)+' × '+fmt(bd),material:construction?bottomMaterial:'HDF',materialThicknessMm:geometry.bottomThicknessMm,pcvEligible:false});
+        if(inner){
+          const w=front.frontWidthMm/10,h=front.heightMm/10;
+          parts.push({name:'Front wewnętrzny szuflady skrzynkowej'+sourceLabel,group,...drawerSource(['inner-front'],n),qty:n,a:w,b:h,dims:fmt(w)+' × '+fmt(h),material:bodyMat,materialThicknessMm:18});
+        }
+        if(construction||tech.hasConstructionFront){
+          parts.push({name:'Przód konstrukcyjny szuflady skrzynkowej'+sourceLabel,group,...drawerSource(['construction-front'],n),qty:n,a:backWidth,b:crossHeight,dims:fmt(backWidth)+' × '+fmt(crossHeight),material:bodyMat,materialThicknessMm:18,drawerConstructionRole:'crosspiece'});
+        }
       }
     });
   }
@@ -215,6 +246,68 @@
       }
     }catch(_){ }
     return null;
+  }
+
+  // Owner's construction decision, 23.11.2026. Cabinet depth remains the
+  // side length; usable depth and exterior depth are distinct derived values.
+  function backGeometry(cab,room){
+    const raw=String(cab?.backMaterial||'HDF').trim(),under=cab?.type==='wisząca'&&cab?.subType==='dolna_podblatowa';
+    const type=under?'stojąca':cab?.type,sideDepthMm=Math.round(Number(cab?.depth)*10),t=boardThicknessCm();
+    const bodyH=bodyHeightCm(cab,room,type,under),width=Number(cab?.width),insideWidth=Math.round((width-2*t)*10)/10;
+    if(!(sideDepthMm>0&&width>0&&bodyH>0))return {ok:false,code:'BACK_DIMENSIONS_REQUIRED'};
+    const material=/^(18\s*mm|płyta\s*18\s*mm)\s*pod\s*kolor(?:\s*korpusu)?$/i.test(raw)?String(cab?.bodyColor||''):raw;
+    const base={material,sideDepthMm,usableDepthMm:sideDepthMm,overallDepthMm:sideDepthMm,backWidthCm:width,backHeightCm:bodyH};
+    if(['brak','— brak —'].includes(raw.toLowerCase())||under&&String(cab?.details?.hasBack)==='0')return {...base,ok:true,kind:'none',materialThicknessMm:0};
+    let row=null;try{row=FC.catalogSelectors?.findSheetMaterial?.(material)||null;}catch(_){}
+    const hdf=/^hdf/i.test(raw)||String(row?.materialType).toLowerCase()==='hdf';
+    if(hdf){
+      const upper=type==='wisząca',hdfThickness=Number(row?.thicknessMm)||3;
+      return {...base,ok:true,kind:'hdf',position:upper?'grooved':'external',materialThicknessMm:hdfThickness,
+        usableDepthMm:sideDepthMm-(upper?20:0),overallDepthMm:sideDepthMm+(upper?0:hdfThickness),
+        backWidthCm:Math.max(0,upper?insideWidth+2:width-.5),backHeightCm:Math.max(0,bodyH-.5)};
+    }
+    const board=String(row?.materialType).toLowerCase()==='laminat'||/laminat|płyta|plyta|18\s*mm/i.test(raw);
+    if(!board||Number(row?.thicknessMm)>0&&Number(row.thicknessMm)!==18)return {...base,ok:false,kind:'unknown',code:'BACK_MATERIAL_UNCONFIRMED'};
+    const position=cab?.details?.backPosition;
+    if(!['internal','external'].includes(position))return {...base,ok:false,kind:'board',code:'BACK_POSITION_REQUIRED'};
+    const internal=position==='internal';
+    return {...base,ok:true,kind:'board',position,materialThicknessMm:18,
+      usableDepthMm:sideDepthMm-(internal?18:0),overallDepthMm:sideDepthMm+(internal?0:18),
+      backWidthCm:internal?insideWidth:width,backHeightCm:internal?Math.round((bodyH-2*t)*10)/10:bodyH};
+  }
+
+  function resolveInnerDrawerLayout(cab,room,count,options={}){
+    const refusal=code=>({ok:false,code,fronts:[]});
+    if(!Number.isSafeInteger(count)||count<1)return refusal('INNER_DRAWER_COUNT_INVALID');
+    const under=cab?.type==='wisząca'&&cab?.subType==='dolna_podblatowa',type=under?'stojąca':cab?.type;
+    const interiorHeightMm=Math.round((bodyHeightCm(cab,room,type,under)-2*boardThicknessCm())*10);
+    const space=options.space||'cabinet',distribution=options.distribution||'equal';
+    if(!['cabinet','custom'].includes(space)||!['equal','declared'].includes(distribution))return refusal('INNER_DRAWER_LAYOUT_INVALID');
+    const availableHeightMm=space==='cabinet'?interiorHeightMm:Math.round(Number(options.spaceHeightCm)*10);
+    if(!(availableHeightMm>0))return refusal('INNER_DRAWER_SPACE_REQUIRED');
+    if(availableHeightMm>interiorHeightMm)return refusal('INNER_DRAWER_SPACE_EXCEEDED');
+    // Owner: 5 mm below the first front, 30 mm BETWEEN consecutive fronts.
+    const bottomGapMm=5,gapMm=30,forFronts=availableHeightMm-bottomGapMm-gapMm*(count-1);
+    if(forFronts<count)return refusal('INNER_DRAWERS_DO_NOT_FIT');
+    let heights;
+    if(distribution==='equal'){
+      const each=Math.floor(forFronts/count),remainder=forFronts%count;
+      heights=Array.from({length:count},(_,i)=>each+(i<remainder?1:0));
+    }else{
+      if(!['front','inside'].includes(options.heightType||'front'))return refusal('INNER_DRAWER_LAYOUT_INVALID');
+      if(!Array.isArray(options.heightsCm)||options.heightsCm.length!==count||options.heightsCm.some(h=>!(Number(h)>0&&Number.isFinite(Number(h)))))return refusal('INNER_DRAWER_HEIGHTS_REQUIRED');
+      heights=options.heightsCm.map(h=>options.heightType==='inside'
+        ? FC.cabinetDrawerSelection.woodenSection({insideHeightMm:Math.round(Number(h)*10)}).frontHeightMm
+        : Math.round(Number(h)*10));
+      if(heights.some(h=>h<1)||heights.reduce((n,h)=>n+h,0)>forFronts)return refusal('INNER_DRAWERS_DO_NOT_FIT');
+    }
+    if(heights.some(h=>h<=30))return refusal('INNER_DRAWER_HEIGHT_INVALID');
+    const frontWidthMm=Math.round((Number(cab.width)-2*boardThicknessCm())*10)-8;
+    if(!(frontWidthMm>0))return refusal('INNER_DRAWER_WIDTH_INVALID');
+    let bottomMm=bottomGapMm;
+    const fronts=heights.map((heightMm,index)=>{const section=FC.cabinetDrawerSelection.woodenSection({frontHeightMm:heightMm});const row={index,heightMm,frontWidthMm,insideHeightMm:section.insideHeightMm,boxSideHeightMm:section.sideHeightMm,boxOverallHeightMm:section.boxOverallHeightMm,section,bottomMm,topMm:bottomMm+heightMm};bottomMm=row.topMm+gapMm;return row;});
+    if(fronts.some(f=>!f.section.ok))return refusal('INNER_DRAWER_HEIGHT_INVALID');
+    return {ok:true,distribution,space,interiorHeightMm,availableHeightMm,bottomGapMm,gapMm,fronts,unusedHeightMm:availableHeightMm-fronts.at(-1).topMm};
   }
 
   function getCabinetCutList(cab, room, sourceContext){
@@ -238,6 +331,8 @@
 
     const hasBack = !(isUnderCounterWall && String((cab && cab.details || {}).hasBack) === '0');
     const bodyH = bodyHeightCm(cab, room, effType, isUnderCounterWall);
+    const back=backGeometry(cab,room);
+    if(!back.ok)throw Object.assign(new Error(back.code),{code:back.code});
 
     const parts = [];
 
@@ -282,7 +377,7 @@
     }
 
     if(effType === 'wisząca' || effType === 'moduł'){
-      const crownDepth = (effType === 'wisząca') ? Math.max(0, d - 2) : d;
+      const crownDepth = back.kind==='hdf'&&effType==='wisząca' ? Math.max(0,d-2) : d;
       parts.push({ name:'Wieniec górny', partRoleIds:['body.top'], qty:1, a:wIn, b:crownDepth, dims:`${fmt(wIn)} × ${fmt(crownDepth)}`, material: bodyMat });
       parts.push({ name:'Wieniec dolny', partRoleIds:['body.bottom'], qty:1, a:wIn, b:crownDepth, dims:`${fmt(wIn)} × ${fmt(crownDepth)}`, material: bodyMat });
     }
@@ -301,28 +396,23 @@
     const isStandingDrawerCabinet = (effType === 'stojąca' && String(cab && cab.subType || '') === 'szuflady');
     if(!isStandingDrawerCabinet && Number.isFinite(shelves) && shelves > 0){
       let shelfDepth = d;
-      if(effType === 'stojąca' || effType === 'moduł') shelfDepth = Math.max(0, d - 0.5);
-      if(effType === 'wisząca') shelfDepth = Math.max(0, (d - 2) - 0.5);
+      shelfDepth = Math.max(0,Math.round(back.usableDepthMm-5)/10);
       parts.push({ name:'Półka', sourceGroupRoles:[{ownerType:'cabinet',groupRoleId:'body.shelves',qty:shelves}], qty:shelves, a:wIn, b:shelfDepth, dims:`${fmt(wIn)} × ${fmt(shelfDepth)}`, material: bodyMat });
     }
 
     if(backMat && hasBack){
-      let backW = w;
-      let backH = bodyH;
-      if(effType === 'stojąca' || effType === 'moduł'){
-        backW = Math.max(0, w - 0.5);
-        backH = Math.max(0, bodyH - 0.5);
-      }
-      if(effType === 'wisząca'){
-        backW = Math.max(0, wIn + 2);
-        backH = Math.max(0, bodyH - 0.5);
-      }
-      parts.push({ name:'Plecy', partRoleIds:['body.back'], qty:1, a:backW, b:backH, dims:`${fmt(backW)} × ${fmt(backH)}`, material: backMat });
+      const backW=back.backWidthCm,backH=back.backHeightCm;
+      parts.push({name:back.kind==='board'?(back.position==='external'?'Plecy zewnętrzne 18 mm — PCV dookoła':'Plecy wewnętrzne 18 mm'):'Plecy',
+        partRoleIds:['body.back'],qty:1,a:backW,b:backH,dims:fmt(backW)+' × '+fmt(backH),material:back.kind==='board'?back.material:backMat,
+        ...(back.kind==='board'?{backPosition:back.position,materialThicknessMm:18}:{})});
     }
 
-    getFrontParts(room, cab, sourceContext).forEach((p)=> parts.push(p));
+    const frontParts=getFrontParts(room,cab,sourceContext);
+    frontParts.forEach(p=>parts.push(p));
+    const openingApi=getHardwareRequirements();
+    if(openingApi.getOpeningRequirements)openingApi.getOpeningRequirements(room,cab,frontParts).forEach(req=>parts.push({name:req.label,qty:req.qty,a:0,b:0,dims:'—',material:'Okucia: '+req.label,hardwareRequirement:req}));
 
-    addDrawerHardwareAndBoxParts(parts, room, cab, { wIn, depth:d });
+    addDrawerHardwareAndBoxParts(parts, room, cab, { wIn, depth:back.usableDepthMm/10 });
 
     let hingeQty = getHingeCount(room, cab);
     try{
@@ -400,6 +490,8 @@
 
   window.FC.cabinetCutlist = window.FC.cabinetCutlist || {};
   window.FC.cabinetCutlist.getCabinetCutList = getCabinetCutList;
+  window.FC.cabinetCutlist.backGeometry = backGeometry;
+  window.FC.cabinetCutlist.resolveInnerDrawerLayout = resolveInnerDrawerLayout;
   window.FC.cabinetCutlist.resolveDrawerFrontGeometry = resolveDrawerFrontGeometry;
   window.FC.cabinetCutlist.requireDrawerFrontGeometry = requireDrawerFrontGeometry;
 })();

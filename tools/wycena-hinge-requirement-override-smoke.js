@@ -293,4 +293,10 @@ assert(symbols.includes('71B3550+173L6100'), 'niezmieniona prawa strona ma zosta
 assert(Math.abs(defaultTotal - overrideTotal) > 0.01, 'zmiana wymagań zawiasu musi zmienić wynik finansowy WYCENY, jeśli dobrana pozycja ma inną cenę');
 assert(overrideLines.some((row)=> row.hardwareRequirement && row.hardwareRequirement.overridden === true), 'linia WYCENY musi przenieść informację o ręcznym nadpisaniu wymagania');
 
+// The same central requirement drives pricing even if the older cutlist says110°.
+vm.runInContext(fs.readFileSync(path.join(root,'js/app/cabinet/cabinet-drawer-requirements.js'),'utf8'),ctx);
+cab.subType='standardowa';cab.details={insideMode:'szuflady_wew',innerDrawerType:'skrzynkowe',innerDrawerCount:'2',drawerBottomColor:'white'};
+const innerLines=linesApi.collectAccessories(['kuchnia']).filter(row=>row.hardwareRequirement?.kind==='hinge');
+assert(innerLines.length===1&&innerLines[0].qty===4,'Inner drawers keep the real door-based hinge quantity');
+assert(innerLines[0].resolvedHardwareSymbol==='71B7550+173L6100'&&innerLines[0].total>0,'Pricing must use the catalogued zero-protrusion set, never the old110° cutlist or manual override');
 console.log('OK wycena-hinge-requirement-override smoke');

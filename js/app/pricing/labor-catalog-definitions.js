@@ -103,6 +103,10 @@
     return operation(id,name,source,0,Object.assign({pricingMode:'timeStartStep',quantityMode:'startStep',startHours:5/60,startQty:0,stepEveryQty:1,stepHours:1/60},options || {}));
   }
   DEFAULT_LABOR_DEFINITIONS.push(
+    operation('labor_channel_install','Montaż korytka','opening.channel_count',30,{rateType:'assembly',note:'30 min na każde korytko, zgodnie z decyzją właściciela 23.11.2026.'}),
+    operation('labor_channel_workshop','Przygotowanie korytka w warsztacie','opening.channel_count',5,{note:'Dodatkowe 5 min warsztatowych na każde korytko.'}),
+    operation('labor_handle_layout','Rozmierzanie i nawierty uchwytu','opening.handle_count',5,{rateType:'assembly',note:'5 min montażowych na rzeczywisty uchwyt klienta albo HEXA. Bez TIP-ON, podchwytu i korytka.'}),
+    operation('labor_handle_install','Przykręcenie uchwytu','opening.handle_count',1,{rateType:'assembly',note:'Decyzja 23.11.2026: 1 min montażowa na uchwyt, niezależnie od liczby śrub.'}),
     prepared('labor_legs_install','Montaż nóżek','leg.count',{note:'5 min przygotowania na korpus + 1 min/nóżkę. Zero nóżek = zero pracy. Poziomowanie poza zakresem.'}),
     prepared('labor_hangers_install','Montaż zawieszek','hanger.count',{note:'5 min przygotowania na korpus + 1 min/zawieszkę. Ilość wspólna z MATERIAŁEM.'}),
     prepared('labor_hdf_cutouts','Wycięcia HDF i podcięcia boków','hdf.cutout_count',{note:'Jedno przygotowanie 5 min + 1 min/otwór HDF + 1 min/podcięcie boku. Standard HDF: 2 + 2 = 9 min.'}),
@@ -184,6 +188,11 @@
   pdf('handle_agreement','Ustalenia uchwytów z klientem — raz na zlecenie','',30,'assembly',{note:'Ręcznie raz dla całego zlecenia z uchwytami, nie na pomieszczenie ani szafkę.'});
   pdf('handle_drill','Rozmierzanie i nawierty uchwytu','',5,'assembly',{note:'Ilość oznacza uchwyty, nie otwory. Bez zgadywania liczby z RYSUNKU.'});
   pdf('handle_screw','Przykręcenie śruby uchwytu','',1,'assembly',{note:'Ilość oznacza rzeczywistą liczbę śrub. 20 uchwytów dwuśrubowych: 30 + 20×5 + 40×1 = 170 min.'});
+  LABOR_REPLACEMENTS.pdf_handle_drill=['labor_handle_layout'];
+  LABOR_REPLACEMENTS.pdf_handle_screw=['labor_handle_install'];
+  pdf('tipon_drill','Nawiert pod TIP-ON','opening.tipon_count',5,'workshop');
+  pdf('tipon_insert','Rozpakowanie i wetknięcie TIP-ON','opening.tipon_count',1,'workshop');
+  pdf('tipon_plate','Przykręcenie blaszki TIP-ON do frontu','opening.tipon_count',1,'assembly');
   pdf('hood_corpus_adapt','Dostosowanie korpusu do okapu','labor.workshop.hood',60,'workshop',{note:'Dodatkowe 60 min ponad zwykły korpus. Przygotowanie 30 min jest oddzielne: standardowy korpus 60 + 60 + 30 = 150 min.'});
   pdf('hood_prepare','Przygotowanie zabudowy okapu','labor.workshop.hood',30,'workshop');
   // Cargo quantities without central technical requirements stay manual.

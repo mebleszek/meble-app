@@ -43,3 +43,15 @@ assert(formSrc.includes('is-tech-required-missing'), 'modal edycji powinien ozna
 assert(formSrc.includes('Wymagane do wyceny'), 'brak podpisu przy wymaganym polu');
 assert(formSrc.includes('Nie ustawiono'), 'boolean musi mieć stan Nie ustawiono');
 console.log('OK hardware-technical-completeness smoke');
+
+const defs=[{category:'Test',key:'finish',label:'Wykończenie',fieldType:'text',options:['A','B'],typePart:true,active:true}];
+const source={technicalParams:{finish:{value:'A'}}};const described=api.describeLegacyValues(source,defs,'Test');
+const expected=api.mergeLegacyValues(source,defs,'Test');assert(JSON.stringify(described.technicalParams)===JSON.stringify(expected),'Combined description preserves every normalized value');
+assert(described.hardwareTypeAuto===api.buildTypeLabel(defs,'Test',expected),'Combined description preserves the exact generated technical label');
+const snapshotDescribe=api.createLegacyDescriber(defs);
+assert(JSON.stringify(snapshotDescribe(source,'Test'))===JSON.stringify(described),'A build snapshot preserves the full original description');
+described.technicalParams.finish.value='mutated';assert(source.technicalParams.finish.value==='A','Description does not alias source values');
+source.technicalParams.finish.value='B';defs[0].options=['B'];assert(api.describeLegacyValues(source,defs,'Test').technicalParams.finish.value==='B','A later call observes changed source and definitions without stale cache');
+assert(snapshotDescribe(source,'Test').technicalParams.finish.value==='B','A build snapshot reads each new row rather than caching source values');
+assert(snapshotDescribe({technicalParams:{finish:{value:'A'}}},'Test').technicalParams.finish.value==='A','The explicit build snapshot stays detached from later definition edits');
+assert(api.createLegacyDescriber(defs)({technicalParams:{finish:{value:'A'}}},'Test').technicalParams.finish===undefined,'A new build observes changed definitions rather than reusing the previous snapshot');

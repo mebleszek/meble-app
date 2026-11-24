@@ -6,7 +6,7 @@ const root=path.resolve(__dirname,'../..'),clone=value=>JSON.parse(JSON.stringif
 const sha=value=>crypto.createHash('sha256').update(value).digest('hex');
 const files=[
  'js/app/project/project-export-contract.js','js/app/cloud/global-data-contract.js','js/app/cloud/global-data-diagnostics.js',
- 'js/app/catalog/hardware-technical-params.js','js/app/catalog/hardware-catalog.js','js/app/catalog/hardware-catalog-seed-data.js',
+ 'js/app/catalog/hardware-technical-params.js','js/app/catalog/hardware-catalog.js','js/app/catalog/hardware-catalog-seed-data.js','js/app/catalog/hardware-drawer-catalog.js',
  'js/app/pricing/labor-catalog-definitions.js','js/app/pricing/labor-catalog.js','js/app/pricing/work-quantity-sources.js',
  'js/app/settings/program-defaults-store.js','js/app/settings/company-profile-store.js','js/app/settings/business-costs-store.js',
  'js/app/catalog/hardware-replacement-engine.js'
@@ -33,7 +33,12 @@ function buildCodeCatalogs(){
   const categories=h.normalizeCategoryList(h.DEFAULT_CATEGORIES.concat(t.DEFAULT_DEFINITIONS.map(row=>row.category))),technicalParams=t.normalizeDefinitions(t.DEFAULT_DEFINITIONS,categories),suppliers=h.normalizeSupplierList(h.DEFAULT_SUPPLIERS);
   const settings=h.normalizeSettings(h.DEFAULT_SETTINGS),context={...settings,hardwareSuppliers:suppliers,hardwareCategories:categories,hardwareTechnicalParams:technicalParams};
   const seeds=f.hardwareCatalogSeedData.ACCESSORY_SEEDS;
-  const hardware=seeds.map(row=>h.normalizeAccessory(row,()=>{throw Error('CODE_FACTORY_ID_REQUIRED');},context));
+  const originalDescribe=t.describeLegacyValues,describe=t.createLegacyDescriber(technicalParams);
+  let hardware;
+  try{
+   t.describeLegacyValues=(row,definitions,category)=>definitions===technicalParams?describe(row,category):originalDescribe(row,definitions,category);
+   hardware=seeds.map(row=>h.normalizeAccessory(row,()=>{throw Error('CODE_FACTORY_ID_REQUIRED');},context));
+  }finally{t.describeLegacyValues=originalDescribe;}
   const transport=JSON.parse(JSON.stringify(f.companyProfile.DEFAULT_COMPANY_PROFILE.transport));delete transport.apiKey;
   const company={company:Object.fromEntries(Object.keys(f.companyProfile.DEFAULT_COMPANY_PROFILE.company).map(k=>[k,''])),transport,meta:{updatedAt:''}};
   const labor=f.laborCatalogDefinitions.DEFAULT_HOURLY_RATES.concat(f.laborCatalogDefinitions.DEFAULT_LABOR_DEFINITIONS).map(row=>l.normalizeDefinition(row));

@@ -16,6 +16,12 @@ export function createGlobalChannel({writer,reader,ownerUid,contract,factory,sto
     if(revisions.size>8)revisions.delete(revisions.keys().next().value);
     return pending;
   }
+  async function prepare(model,base){guard();contract.validateBundle(model);const packed=await contract.pack(ownerUid,model);
+    const p=await outbound.prepare({model,expectedHead:base,idempotentPublication:true});if(!p.ok)fail(p.code);guard();
+    return {expected:p.unchanged?p.head:{ownerUid,version:1,generation:(base?.generation||0)+1,
+      revisionId:p.handle.revisionId,directoryHash:packed.directoryHash,recordCount:packed.records.length},
+      async publish(){if(!p.unchanged){const r=await outbound.publish(p.handle);if(!r.ok)fail(r.code);}guard();}};
+  }
   return Object.freeze({kind:'globals',scope:'globals',contract,guard,
     async readPinned(pin,load){
       guard();
@@ -31,11 +37,13 @@ export function createGlobalChannel({writer,reader,ownerUid,contract,factory,sto
       guard();
       return copy(cached);
     },
-    async prepare(model,base){guard();contract.validateBundle(model);const packed=await contract.pack(ownerUid,model);
-      const p=await outbound.prepare({model,expectedHead:base});if(!p.ok)fail(p.code);guard();
-      return {expected:p.unchanged?p.head:{ownerUid,version:1,generation:(base?.generation||0)+1,
-        revisionId:p.handle.revisionId,directoryHash:packed.directoryHash,recordCount:packed.records.length},
-        async publish(){if(!p.unchanged){const r=await outbound.publish(p.handle);if(!r.ok)fail(r.code);}guard();}};
+    prepare,
+    async resume(model,base,expected){
+      const prepared=await prepare(model,base);guard();
+      // Reconstruct only the very same deterministic revision. Never rebase
+      // an uncertain operation or change its durable expected receipt.
+      if(!equal(prepared.expected,expected))fail('LF_ACK_UNRESOLVED');
+      return prepared;
     },
     async readHead(){guard();const r=await inbound.readHead();if(!r.ok)fail(r.code);guard();return r.head;},
     async read(){guard();const r=await inbound.read();if(!r.ok)fail(r.code);
@@ -112,9 +120,10 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
           if(['inflight','uncertain'].includes(op.phase)){
             if(op.phase==='inflight')op=await store.transition(op.key,'inflight','uncertain');
             try{await resolve(channel,op);}catch(e){
-              // Only quote channels can resume the exact staged immutable revision.
+              // Resume only channels proving the exact staged immutable revision.
               // Never replay on arbitrary read/integrity/Auth errors or invent a new ID.
-              if(channel.kind!=='quote'||!channel.resume||!['LF_QUOTE_NOT_FOUND','LF_ACK_UNRESOLVED'].includes(e.code))return safeError(e);
+              const absent=channel.kind==='quote'?'LF_QUOTE_NOT_FOUND':channel.kind==='globals'?'GLOBAL_NOT_FOUND':null;
+              if(!absent||!channel.resume||![absent,'LF_ACK_UNRESOLVED'].includes(e.code))return safeError(e);
               try{
                 const prepared=await channel.resume(JSON.parse(op.json),await publicationBase(op),op.expected);
                 if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
@@ -122,7 +131,8 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
                 if(closed)return {ok:false,code:'LF_CLOSED_RESULT_UNCONFIRMED'};
                 await resolve(channel,op);
               }catch(error){
-                if(['LF_QUOTE_CAS_CONFLICT','LF_QUOTE_STAGED_INTEGRITY','LF_QUOTE_HISTORY_IMMUTABLE','LF_P0B_INVESTOR_DELETED'].includes(error.code))
+                if(['LF_QUOTE_CAS_CONFLICT','LF_QUOTE_STAGED_INTEGRITY','LF_QUOTE_HISTORY_IMMUTABLE','LF_P0B_INVESTOR_DELETED',
+                  ...(channel.kind==='globals'?['GLOBAL_WRITE_CONFLICT','GLOBAL_RECORD_CONFLICT','GLOBAL_REVISION_CONFLICT']:[])].includes(error.code))
                   await store.transition(op.key,'uncertain','conflict',{code:error.code});
                 return {...safeError(error),blockedScopes:[scope]};
               }

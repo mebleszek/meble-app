@@ -1,1 +1,19 @@
-{"exceptions":{}}
+{
+  "exceptions": {
+    "js/app/cabinet/cabinet-hardware-requirements.js": {
+      "baseSha": "e17b9be4bc8419b32527e485cf6b16a930a680a9",
+      "reason": "Zgoda właściciela24.11.2026 na trzy wskazane wyjątki. Zatwierdzone reguły zawiasów zerowego uskoku i ilości otwierania pozostają w module wymagań okuć579→630 linii, bez dodania UI ani storage.",
+      "regressionTest": "tools/drawer-systems-materials-smoke.js"
+    },
+    "js/app/pricing/work-quantity-facts.js": {
+      "baseSha": "e17b9be4bc8419b32527e485cf6b16a930a680a9",
+      "reason": "Zgoda właściciela24.11.2026 na trzy wskazane wyjątki. Trzy zatwierdzone źródła ilości otwierania korzystają z istniejącego rejestru faktów, zachowując różnicę między poprawnym zerem i brakiem danych588→601 linii.",
+      "regressionTest": "tools/labor-work-plan-smoke.js"
+    },
+    "js/app/wycena/wycena-tab-shell.js": {
+      "baseSha": "e17b9be4bc8419b32527e485cf6b16a930a680a9",
+      "reason": "Zgoda właściciela24.11.2026 na trzy wskazane wyjątki. Obsługa przycisku Wyceń obejmuje preflight bez dodatkowego renderu, zachowując właściciela, ACK i abort597→602 linii; bez przebudowy ekranu.",
+      "regressionTest": "tools/quote-performance-smoke.js"
+    }
+  }
+}

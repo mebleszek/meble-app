@@ -14,7 +14,9 @@ const tests=[],test=(name,fn)=>tests.push([name,fn]);
  test('full validateBundle and runtime contracts, exact record IDs, dictionary closure, rates and quantity source references',async()=>{
   assert.doesNotThrow(()=>c.validateBundle(m));assert.equal(first.runtime.status,'VALIDATED');assert.equal(first.runtime.domains,14);assert.equal(first.runtime.hourlyRates,4);
   assert.deepEqual(first.validation.dependencies.map(d=>d.kind),['programDefaults']);
-  assert.equal(m.materials.length,7);assert.equal(m.hardware.length,16);assert.equal(m.labor.length,122);assert.equal(m.categories.length,15);assert.equal(m.technicalParams.length,46);
+  assert.equal(m.materials.length,11);assert.equal(m.hardware.length,408);assert.equal(m.labor.length,129);assert.equal(m.categories.length,15);assert.equal(m.technicalParams.length,46);
+  for(const id of ['labor_channel_install','labor_channel_workshop','labor_handle_layout','labor_handle_install','pdf_tipon_drill','pdf_tipon_insert','pdf_tipon_plate'])assert.ok(m.labor.some(row=>row.id===id),'Approved opening norm '+id);
+  for(const color of ['white','grey'])assert.ok(m.materials.some(row=>row.id==='m_drawer_bottom_10_'+color&&row.purchasePrice===200&&row.thicknessMm===10));
   for(const domain of ['materials','hardware','labor','workshopServices'])assert.deepEqual(m[domain].map(r=>r.id),raw[domain].map(r=>r.id));
   const packed=await c.pack('synthetic-owner',m),decoded=await c.unpack('synthetic-owner',packed.directory,packed.records);assert.deepEqual(clone(decoded.model),m);
   const invalid=clone(m);for(const row of invalid.labor.slice(0,2)){row.rateKey='duplicate';row.rateCode='duplicate';}assert.throws(()=>c.validateBundle(invalid),e=>e.code==='GLOBAL_REFERENCE_CONFLICT');
@@ -55,8 +57,18 @@ const tests=[],test=(name,fn)=>tests.push([name,fn]);
   for(const row of raw.technicalParams){const found=m.technicalParams.find(d=>d.category===row.category&&d.key===row.key);assert.ok(found);assert.equal(found.id,tech.normalizeDefinition(row).id);}
   const engine=s.FC.hardwareReplacementEngine;assert.ok(engine);assert.equal(first.runtime.existingProjectsChecked,false);
   const options={definitions:m.technicalParams,suppliers:m.suppliers,defaultVatRate:m.hardwareSettings.defaultVatRate};
-  for(const source of m.hardware)for(const candidate of m.hardware){
-   const compared=engine.compareItems(source,candidate,options),expected=engine.compareItems(h.normalizeAccessory(raw.hardware.find(r=>r.id===source.id),()=>{throw Error('No ID');},{...m.hardwareSettings,hardwareSuppliers:m.suppliers,hardwareTechnicalParams:m.technicalParams}),candidate,options);
+  const normalizedRaw=new Map(raw.hardware.map(row=>[row.id,h.normalizeAccessory(row,()=>{throw Error('No ID');},{...m.hardwareSettings,hardwareSuppliers:m.suppliers,hardwareTechnicalParams:m.technicalParams})]));
+  // Stronger generator proof: ALL fields of ALL current input records equal the
+  // runtime-normalized seed, not only three outputs of a pure comparison.
+  // The unchanged engine has its independent exhaustive compatibility suite.
+  for(const source of m.hardware)assert.deepEqual(clone(source),clone(normalizedRaw.get(source.id)));
+  // Preserve the previous cross-product, including both new opening SKUs.
+  // The157 sourced dimension variants are proven input-identical above; duplicating
+  // this pure-engine invocation for 23,409 pairs adds no generator evidence.
+  const originalAndOpenings=m.hardware.filter(row=>!s.FC.hardwareDrawerCatalog.specFor(row.id));
+  assert.equal(originalAndOpenings.length,18,'Preserve exactly the previous18×18 comparison; all379 sourced variants have full normalized equality above');
+  for(const source of originalAndOpenings)for(const candidate of originalAndOpenings){
+   const compared=engine.compareItems(source,candidate,options),expected=engine.compareItems(normalizedRaw.get(source.id),candidate,options);
    assert.equal(compared.compatible,expected.compatible);assert.equal(compared.score,expected.score);assert.deepEqual(clone(compared.failures),clone(expected.failures));
   }
  });
@@ -65,10 +77,44 @@ const tests=[],test=(name,fn)=>tests.push([name,fn]);
   const before=JSON.stringify(rows),scope={FC:{},console,TextEncoder,crypto:require('node:crypto').webcrypto};scope.window=scope;scope.localStorage={getItem:key=>rows[key]??null,
    setItem(key,value){if(rows[key]!=null&&rows[key]!==String(value))throw Error('LF_LEGACY_BOOT_WRITE_REFUSED');if(rows[key]!=null)rows[key]=String(value);},removeItem(){throw Error('LF_LEGACY_BOOT_WRITE_REFUSED');}};
   vm.createContext(scope);const load=file=>vm.runInContext(fs.readFileSync('js/app/'+file+'.js','utf8'),scope);
-  for(const file of ['shared/constants','shared/storage','project/project-export-contract','cloud/global-data-contract','catalog/hardware-technical-params','catalog/hardware-catalog','catalog/hardware-catalog-seed-data','catalog/hardware-catalog-seeds','catalog/catalog-domain','catalog/catalog-migration','catalog/catalog-storage-policy','pricing/labor-catalog-definitions','pricing/labor-catalog','catalog/catalog-store','settings/program-defaults-store','settings/business-costs-store','settings/company-profile-store'])load(file);
+  for(const file of ['shared/constants','shared/storage','project/project-export-contract','cloud/global-data-contract','catalog/hardware-technical-params','catalog/hardware-catalog','catalog/hardware-catalog-seed-data','catalog/hardware-drawer-catalog','catalog/hardware-catalog-seeds','catalog/catalog-domain','catalog/catalog-migration','catalog/catalog-storage-policy','pricing/labor-catalog-definitions','pricing/labor-catalog','catalog/catalog-store','settings/program-defaults-store','settings/business-costs-store','settings/company-profile-store'])load(file);
   const contract=scope.FC.globalDataContract;assert.doesNotThrow(()=>contract.validateBundle(contract.capture(scope.localStorage,Object.keys(contract.sources)).model));
   scope.FC.catalogStore.adoptVerified(m);assert.deepEqual(clone(scope.FC.catalogStore.getSheetMaterials()),m.materials);assert.deepEqual(clone(scope.FC.catalogStore.getQuoteRates()),m.labor);assert.deepEqual(clone(scope.FC.catalogStore.getAccessories()),m.hardware);
   assert.equal(Object.values(scope.FC.companyProfile.read().company).some(Boolean),false);assert.equal(JSON.stringify(rows),before);
+ });
+ test('approved pricing additions preserve every existing row and private/zero price; repeated update is a no-op',async()=>{
+  const {planPricingFactoryAdditions:plan}=await import('../sync/pricing-factory-additions.mjs');
+  const old=clone(m),newLabor=new Set(['labor_channel_install','labor_channel_workshop','labor_handle_layout','labor_handle_install','pdf_tipon_drill','pdf_tipon_insert','pdf_tipon_plate']);
+  old.materials=old.materials.filter(row=>!row.id.startsWith('m_drawer_bottom_'));
+  old.hardware=old.hardware.filter(row=>!s.FC.hardwareDrawerCatalog.specFor(row.id)&&!['hw_seed_gtv_hexa_96_black','hw_seed_blum_tipon_long_956a1004'].includes(row.id));
+  old.labor=old.labor.filter(row=>!newLabor.has(row.id));old.suppliers=old.suppliers.filter(row=>!['bimeb','rik','wip_rumia','mf_akcesoria','intar','belmeb'].includes(row.id));
+  old.technicalParams.find(row=>row.category==='Szuflady / prowadnice'&&row.key==='profil_szuflady').options=['M','N','H','niska','średnia','wysoka'];
+  old.technicalParams.find(row=>row.category==='Szuflady / prowadnice'&&row.key==='kolor_okucia').options=['biały','szary','antracyt'];
+  old.materials[0].price=987;old.materials[0].priceUserEditedAt='2026-11-23';
+  old.materials.push({...clone(m.materials.find(row=>row.id==='m_drawer_bottom_16_white')),price:0,purchasePrice:0,priceUserEditedAt:'2026-11-23'});
+  const before=JSON.stringify(old),candidateBefore=JSON.stringify(m),result=plan({current:old,candidate:m,contract:c});
+  assert.ok(result);assert.equal(JSON.stringify(old),before);assert.equal(JSON.stringify(m),candidateBefore);
+  for(const domain of Object.keys(old).filter(domain=>domain!=='technicalParams'))assert.deepEqual(clone(Array.isArray(old[domain])?result.model[domain].slice(0,old[domain].length):result.model[domain]),old[domain],domain+' existing data');
+  for(const [index,row]of old.technicalParams.entries()){const updated=result.model.technicalParams[index];assert.deepEqual({...updated,options:row.options},row);assert.deepEqual(updated.options?.slice(0,row.options?.length),row.options);}
+  assert.equal(result.model.materials.find(row=>row.id==='m_drawer_bottom_16_white').price,0);
+  for(const id of ['m_drawer_bottom_10_white','m_drawer_bottom_10_grey','m_drawer_bottom_16_grey'])assert.ok(result.added.materials.includes(id));
+  assert.equal(result.added.hardware.length,392);for(const id of ['hw_intar_drawer_427212','hw_bivert_drawer_12620','hw_bivert_drawer_13305','hw_bivert_drawer_13963','hw_bivert_drawer_136865','hw_wior_drawer_12212','hw_wior_drawer_12214','hw_bivert_drawer_14536','hw_belmeb_double_450_65_white','hw_belmeb_double_500_65_white','hw_belmeb_double_550_65_white'])assert.ok(result.added.hardware.includes(id));assert.equal(result.added.labor.length,7);assert.ok(result.added.suppliers.includes('bimeb'));assert.ok(result.added.suppliers.includes('rik'));assert.ok(result.added.suppliers.includes('belmeb'));assert.ok(result.added.suppliers.includes('wip_rumia'));assert.ok(result.model.technicalParams.find(row=>row.category==='Szuflady / prowadnice'&&row.key==='profil_szuflady').options.includes('A'));
+  assert.equal(plan({current:result.model,candidate:m,contract:c}),null);
+  assert.deepEqual(result.model.company,old.company);assert.deepEqual(result.model.stock,old.stock);assert.deepEqual(result.model.hardwareSettings,old.hardwareSettings);
+ });
+ test('approved norms close missing hourly-rate dependencies without replacing private rate identities or prices',async()=>{
+  const {planPricingFactoryAdditions:plan}=await import('../sync/pricing-factory-additions.mjs');
+  const fresh=clone(m),ids=new Set(['labor_channel_install','labor_channel_workshop','labor_handle_layout','labor_handle_install','pdf_tipon_drill','pdf_tipon_insert','pdf_tipon_plate']);
+  fresh.labor=fresh.labor.filter(row=>!ids.has(row.id)&&!['workshop','assembly'].includes(row.rateKey||row.rateCode||row.rateType));
+  assert.doesNotThrow(()=>c.validateBundle(fresh));
+  const before=JSON.stringify(fresh),result=plan({current:fresh,candidate:m,contract:c});
+  assert.equal(JSON.stringify(fresh),before);assert.doesNotThrow(()=>c.validateBundle(result.model));
+  assert.equal(result.model.labor.filter(row=>row.systemRate).length,4);
+  assert.equal(plan({current:result.model,candidate:m,contract:c}),null);
+  const privateRates=clone(fresh);privateRates.labor.push({...clone(m.labor.find(row=>row.rateKey==='assembly')),id:'private-assembly-rate',price:0,name:'Private assembly'});
+  const preserved=plan({current:privateRates,candidate:m,contract:c}).model;
+  assert.deepEqual(preserved.labor.find(row=>row.id==='private-assembly-rate'),privateRates.labor.at(-1));
+  assert.equal(preserved.labor.some(row=>row.id==='labor_rate_assembly'),false);
  });
  for(const [name,fn]of tests){await fn();console.log('PASS '+name);}console.log(`CODE GLOBAL CATALOGS: ${tests.length}/${tests.length} PASS`);
 })().catch(error=>{console.error(error.code||error.message||'CODE_FACTORY_TEST_FAILED');process.exitCode=1;});

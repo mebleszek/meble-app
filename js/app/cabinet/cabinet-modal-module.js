@@ -5,13 +5,13 @@
   const DRAWER_MODEL_OPTIONS = {
     blum:[{v:'tandembox_antaro', t:'TANDEMBOX Antaro'}, {v:'legrabox', t:'LEGRABOX'}, {v:'merivobox', t:'MERIVOBOX'}, {v:'metabox', t:'METABOX'}],
     gtv:[{v:'axis_pro', t:'Axis Pro'}],
-    rejs:[{v:'rejs_systemowe', t:'System szuflady Rejs'}]
+    rejs:[{v:'comfort_box_plus', t:'Comfort Box Plus'},{v:'ultra_box', t:'Ultra Box'}]
   };
-  function drawerModelOptions(brand){ return DRAWER_MODEL_OPTIONS[String(brand || 'blum')] || DRAWER_MODEL_OPTIONS.blum; }
+  function drawerModelOptions(brand,current){ const rows=DRAWER_MODEL_OPTIONS[String(brand || 'blum')] || DRAWER_MODEL_OPTIONS.blum; return brand==='rejs'&&current==='rejs_systemowe'?[{v:'rejs_systemowe',t:'Comfort Box — zapisany starszy model',disabled:true},...rows]:rows; }
   function ensureDrawerModel(details, brandKey, modelKey){
     const d = details || {};
     const brand = String(d[brandKey] || 'blum');
-    const opts = drawerModelOptions(brand);
+    const opts = drawerModelOptions(brand,d[modelKey]);
     if(!d[modelKey] || !opts.some((row)=> row.v === d[modelKey])) d[modelKey] = opts[0].v;
   }
   function appendDrawerSystemWarning(container){
@@ -89,7 +89,7 @@
       ensureDrawerModel(draft.details, 'drawerBrand', 'drawerModel');
       addSelect('Firma systemu', 'drawerBrand', DRAWER_BRAND_OPTIONS, ()=>{ renderCabinetModal(); });
       const br = String(draft.details.drawerBrand || 'blum');
-      addSelect('Model systemu', 'drawerModel', drawerModelOptions(br));
+      addSelect('Model systemu', 'drawerModel', drawerModelOptions(br,draft.details.drawerModel));
       if(br !== 'blum') appendDrawerSystemWarning(container);
     }
 

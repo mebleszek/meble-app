@@ -327,9 +327,14 @@
   ];
 
 
+  ACCESSORY_SEEDS.push(
+    seed({id:'hw_seed_gtv_hexa_96_black',manufacturer:'GTV',symbol:'UA-HEXA-96-20M',name:'Uchwyt HEXA 150 mm czarny mat',series:'HEXA',catalogPriceGross:5.71,purchasePriceGross:5.71,priceSource:'Bivert',priceUpdatedAt:'2026-11-23',note:'Domyślny HEXA: C=96 mm, L=150 mm, czarny mat. Źródło: https://bivert.pl/gtv-ua-hexa-96-20m-uchwyt-meblowy-hexa-c-96mm-l,3,2528,148506'}),
+    seed({id:'hw_seed_blum_tipon_long_956a1004',manufacturer:'Blum',symbol:'956A1004 TIP-ON V1R736',name:'TIP-ON długi Blum 956A1004 szary',series:'TIP-ON',catalogPriceGross:17.9,purchasePriceGross:17.9,priceSource:'Bivert',priceUpdatedAt:'2026-11-23',note:'Do drzwi, wpuszczany, z magnesem. Nie zastępuje TIP-ON BLUMOTION do szuflad. Źródło: https://bivert.pl/blum-tip-on-odpychacz-dlugi-szary-956a1004,3,2503,13043'})
+  );
   window.FC.hardwareCatalogSeedData = {
     VERSION:'hardware_catalog_seed_v1',
     PRICE_DATE,
     ACCESSORY_SEEDS,
+    createSeed:seed,
   };
 })();

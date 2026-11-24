@@ -58,12 +58,20 @@ async function addRoom(device,name){
  assert.deepEqual(record.projectData.meta.roomOrder,[record.id]);return record;
 }
 async function openRoom(device,id){await projects(device.page);await device.page.locator('.investor-room-quick-btn[data-room="'+id+'"]').click();}
-async function addCabinet(device,width){
+async function addCabinet(device,width,drawer){
  const page=device.page;
  await page.waitForFunction(()=>window.FC.actions.isLocked('add-cabinet')===false);
  await page.locator('#floatingAdd').click();await page.locator('#cabinetModal').waitFor({state:'visible'});
  await page.locator('#cabinetTypeChoices .choice-tile').first().click();
  await page.locator('#cmWidth').fill(String(width));await page.locator('#cmHeight').fill('82');await page.locator('#cmDepth').fill('50');
+ if(drawer){
+  const select=async(id,value)=>page.evaluate(({id,value})=>{const el=document.getElementById(id);if(!el||!Array.from(el.options).some(o=>o.value===value))throw Error('DRAWER_UI_OPTION_REQUIRED:'+id);el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));},{id,value});
+  await select('cmSubType','szuflady');
+  await select('cmExtraSelectDrawerSystem',drawer.system);
+  if(drawer.system==='systemowe'){await select('cmExtraSelectDrawerBrand','blum');await select('cmExtraSelectDrawerModel','tandembox_antaro');}
+  await select('cmExtraSelectDrawerBottomColor','white');
+  if(drawer.push)await select('cmOpeningSystem','TIP-ON');
+ }
  await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
 }
 async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteReadBudget=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,quoteRemoval=false,quoteFilm=false,manualQuote=false,startupDraft=false,accessResume=false,presenceReconnect=false,p1=false}={}){
@@ -166,7 +174,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     // helper must observe expiry, never clear the lock or repeat the click.
     for(let i=0;i<2;i++){
      await page.evaluate(()=>{window.FC.actions.lock('add-cabinet');if(!window.FC.actions.isLocked('add-cabinet'))throw Error('ADD_GUARD_NOT_ARMED');});
-     await addCabinet(phone,60);
+     await addCabinet(phone,60,{system:i===0?'skrzynkowe':'systemowe',push:i===0});
     }
    }
    if(startupDraft){
@@ -256,6 +264,9 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     assert.ok(offer,'Real Calculate must commit history before showing success');
     if(quoteReadBudget){
      assert.equal(JSON.parse(rows(written).fc_projects_v1).find(row=>row.id===pid).projectData[pid].cabinets.length,3);
+     assert.ok(offer.lines.accessories.some(row=>/TANDEM TIP-ON/.test(row.name)&&row.qty===3),'Signed combined quote includes three dedicated wooden-drawer push pairs');
+     assert.match(JSON.stringify(offer.lines.materials),/Dno szuflad 10 mm białe/);
+     assert.match(JSON.stringify(offer.lines.materials),/Płyta szuflad systemowych 16 mm biała/);
      await assertQuoteReadBudget(page,t);
     }
     assert.deepEqual(offer.scope.selectedRooms.slice().sort(),quoteRooms.slice().sort());

@@ -842,6 +842,12 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <option value="Brak">Brak pleców</option>
 </select>
 </div>
+<div id="setBackPositionWrap" style="display:none">
+<label>Montaż pleców 18 mm</label>
+<select class="cabinet-choice-source set-front-choice-source" data-choice-placeholder="Wybierz montaż pleców" data-choice-title="Montaż pleców 18 mm" data-launcher-label="Montaż pleców 18 mm" id="setBackPosition">
+<option value="">Wybierz montaż</option><option value="internal">Wewnętrzne</option><option value="external">Zewnętrzne — PCV dookoła</option>
+</select>
+</div>
 <div>
 <label>Otwieranie</label>
 <select class="cabinet-choice-source set-front-choice-source" data-choice-placeholder="Wybierz otwieranie zestawu" data-choice-title="Wybierz otwieranie zestawu" data-launcher-label="Otwieranie zestawu" id="setOpeningSystem"></select>
@@ -1092,8 +1098,8 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/data-backup-storage.js?v=20261025_storage_recovery_idb_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/data-backup-records.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/data-backup-store.js?v=20261025_storage_recovery_idb_v1"></script>
-<script data-load-group="startup-foundation" defer="" src="js/app/project/project-model.js?v=20261118_room_quote_v1"></script>
-<script data-load-group="startup-foundation" defer="" src="js/app/room-preferences/room-preferences-model.js?v=20261118_room_quote_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/project/project-model.js?v=20261123_drawer_construction_v1"></script>
+<script data-load-group="startup-foundation" defer="" src="js/app/room-preferences/room-preferences-model.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/room-preferences/room-preferences-bulk-plan.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/room-preferences/room-preferences-bulk-apply.js?v=20261013_c2_1b2c1"></script>
 <script data-load-group="startup-foundation" defer="" src="js/app/project/project-store.js?v=20261118_room_quote_v1"></script>
@@ -1120,10 +1126,11 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="startup-foundation" defer="" src="js/app/shared/room-registry.js?v=20260628_drawer_systems_materials_v1"></script>
 
 <!-- load-group: business-domains | Catalog / service / investor domains -->
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-technical-params.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-technical-params.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-replacement-engine.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-seed-data.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog.js?v=20261123_drawer_construction_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-seed-data.js?v=20261123_drawer_construction_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-drawer-catalog.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-catalog-seeds.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-supplier-price-export.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/hardware-supplier-price-import.js?v=20260628_drawer_systems_materials_v1"></script>
@@ -1135,13 +1142,13 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-domain.js?v=20261108_material_catalog_authority_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-migration.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-storage-policy.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog-definitions.js?v=20261108_catalog_rule_authority_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog.js?v=20261111_labor_auto_mode_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/pricing/work-quantity-sources.js?v=20261105_pdf_labor_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog-definitions.js?v=20261123_drawer_construction_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/pricing/labor-catalog.js?v=20261123_drawer_opening_pricing_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/pricing/work-quantity-sources.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/pricing/carrying-logistics.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/pricing/labor-appliance-rules.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/service-order-store.js?v=20261110_service_order_integrity_v1"></script>
-<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20261108_material_ci_fix_v1"></script>
+<script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-store.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/settings/hourly-rates-store.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/catalog/catalog-selectors.js?v=20261108_material_catalog_authority_v1"></script>
 <script data-load-group="business-domains" defer="" src="js/app/service/cutting/service-cutting-common.js?v=20260628_drawer_systems_materials_v1"></script>
@@ -1225,17 +1232,18 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 
 <!-- load-group: app-runtime | Room / session / app runtime foundation -->
 <script data-load-group="app-runtime" defer="" src="js/app/material/material-part-options.js?v=20261014_pcv_save_conflict"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/material/material-edge-store.js?v=20261014_c2_1b2c3a"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/material/material-tab-data.js?v=20261014_c2_1b2c3a"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/material/material-edge-store.js?v=20261123_drawer_construction_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/material/material-tab-data.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-grain.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-validation.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/cabinet/corner-sketch.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/cabinet/part-provenance.js?v=20261013_c2_1b2b"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-cutlist.js?v=20261118_room_quote_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-cutlist.js?v=20261123_drawer_construction_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-inner-drawers.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/project/project-pcv-overrides.js?v=20261122_activities_read_scope_v1"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/project/project-pcv-resolver.js?v=20261118_room_quote_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/project/project-pcv-resolver.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/project/project-pcv-policy.js?v=20261031_historical_owner_v1"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/project/project-export-contract.js?v=20261110_native_local_cabinets_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/project/project-export-contract.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/project/project-local-room-contract.js?v=20261110_native_local_cabinets_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/project/business-project-contract.js?v=20261118_room_quote_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/project/project-selective-export.js?v=20261015_cloud1b"></script>
@@ -1248,7 +1256,7 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="app-runtime" defer="" src="js/app/cloud/firebase-pilot-transport.js?v=20261017_atomic_profile"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/cloud/project-cloud-pilot.js?v=20261017_atomic_profile"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-actions.js?v=20261114_cabinet_drafts_v1"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-summary.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-summary.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/ui/layout-state.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/ui/list-scroll-memory.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/ui/tab-navigation.js?v=20261121_tab_commit_v1"></script>
@@ -1261,10 +1269,11 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="app-runtime" defer="" src="js/app/cabinet/front-hardware-aventos.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/cabinet/front-hardware.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-hardware-requirement-options.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-hardware-requirements.js?v=20261023_wycena_labor_v1"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-drawer-requirements.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/pricing/work-quantity-facts.js?v=20261123_single_fact_read_v1"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-derived-facts.js?v=20261108_ci121_catalog_cache_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-hardware-requirements.js?v=20261123_drawer_construction_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-drawer-requirements.js?v=20261123_drawer_construction_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-drawer-selection.js?v=20261123_drawer_construction_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/pricing/work-quantity-facts.js?v=20261123_drawer_construction_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/cabinet/cabinet-derived-facts.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/project/project-recalculate.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/shared/calc.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/investor/project-bootstrap.js?v=20260628_drawer_systems_materials_v1"></script>
@@ -1277,7 +1286,7 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="app-runtime" defer="" src="js/app/ui/accordion-behavior.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/ui/wywiad-room-settings.js?v=20261103_local_first_start_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/ui/wywiad-room-hardware-producers.js?v=20260908_drawer_system_save_fix_v1"></script>
-<script data-load-group="app-runtime" defer="" src="js/app/ui/wywiad-room-preferences.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="app-runtime" defer="" src="js/app/ui/wywiad-room-preferences.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/ui/wywiad-room-preferences-bulk-modal.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-project-source.js?v=20261019_project_context"></script>
 <script data-load-group="app-runtime" defer="" src="js/app/rozrys/rozrys-lazy-manifest.js?v=20261019_project_context"></script>
@@ -1290,25 +1299,25 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="app-runtime" defer="" src="js/app/shared/public-api.js?v=20261012_c2_0b"></script>
 
 <!-- load-group: cabinet-wywiad | Wywiad / cabinet modal stack -->
-<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/front-material-source.js?v=20261110_native_local_cabinets_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/front-material-source.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-fronts.js?v=20261110_native_local_cabinets_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-validation.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-draft.js?v=20261023_wycena_labor_v1"></script>
-<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-fields.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-finalize.js?v=20261114_cabinet_drafts_v1"></script>
-<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-set-materials.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-set-wizard.js?v=20261114_cabinet_drafts_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-draft.js?v=20261123_drawer_construction_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-fields.js?v=20261123_drawer_construction_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-finalize.js?v=20261123_drawer_construction_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-set-materials.js?v=20261123_drawer_construction_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-set-wizard.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-standing-corner-standard.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-standing-specials.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-standing-specials.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-standing-extras.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-standing-front-controls.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-standing.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-hanging.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-module.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-module.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-choice-launchers.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal-labor.js?v=20261111_quote_final_corrections_v1"></script>
-<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-hardware-requirements-panel.js?v=20260628_drawer_systems_materials_v1"></script>
-<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal.js?v=20260628_drawer_systems_materials_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-hardware-requirements-panel.js?v=20261123_drawer_construction_v1"></script>
+<script data-load-group="cabinet-wywiad" defer="" src="js/app/cabinet/cabinet-modal.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/investor/investor-project-repository.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/investor/investor-project-runtime.js?v=20261118_room_quote_v1"></script>
 <script data-load-group="cabinet-wywiad" defer="" src="js/app/investor/investor-project-patches.js?v=20261118_room_quote_v1"></script>
@@ -1325,7 +1334,7 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-scope.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-selection.js?v=20261118_quote_lifecycle_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-storage-maintenance.js?v=20261025_storage_recovery_idb_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-store.js?v=20261121_duplicate_refresh_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-snapshot-store.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-calculation-register.js?v=20261106_work_plan_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-scope-entry-utils.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/quote/quote-scope-entry-scope.js?v=20260628_drawer_systems_materials_v1"></script>
@@ -1348,9 +1357,9 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-utils.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-catalog.js?v=20261108_material_catalog_authority_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-source.js?v=20261118_room_quote_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-material-plan.js?v=20261108_material_catalog_authority_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-material-plan.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-offer.js?v=20261111_automation_ci_repair_v1"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-lines.js?v=20261118_room_quote_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-lines.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-core-labor.js?v=20261118_room_quote_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/pricing/labor-work-plan.js?v=20261108_catalog_rule_authority_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-work-plan-view.js?v=20261115_e1_durable_settings_v1"></script>
@@ -1380,7 +1389,7 @@ body:not(.app-authorized)>:not(#main-login):not(template):not(script):not(style)
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-summary-details-modal.js?v=20261024_session_quota_exact_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-preview.js?v=20260628_drawer_systems_materials_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-diagnostics.js?v=20261019_project_context"></script>
-<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-shell.js?v=20261122_quote_readonly_v1"></script>
+<script data-load-group="tabs-quote-wycena" defer="" src="js/app/wycena/wycena-tab-shell.js?v=20261123_drawer_construction_v1"></script>
 <script data-load-group="tabs-quote-wycena" defer="" src="js/tabs/wycena.js?v=20260628_drawer_systems_materials_v1"></script>
 
 <!-- load-group: optimizer-and-stock | Optimizer / stock base -->

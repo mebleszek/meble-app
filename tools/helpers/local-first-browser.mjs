@@ -46,7 +46,12 @@ export async function openBrowserDevice(server,profileDirectory){
   const target=targets.find(t=>t.type==='page'&&t.url==='about:blank')||targets.find(t=>t.type==='page');if(!target)throw Error('LF_BROWSER_TARGET_MISSING');
   ws=new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});
-  const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++counter,timer=setTimeout(()=>{pending.delete(id);reject(Object.assign(Error('LF_CDP_TIMEOUT '+method),{code:'LF_CDP_TIMEOUT',method}));},20000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params}));});
+  const send=(method,params={})=>new Promise((resolve,reject)=>{
+    // A killed process cannot answer a newly issued request. Preserve the
+    // deadline for live connections; fail closed immediately for an owned exit.
+    if(stopping||ws.readyState!==WebSocket.OPEN){reject(Error('LF_BROWSER_CLOSED'));return;}
+    const id=++counter,timer=setTimeout(()=>{pending.delete(id);reject(Object.assign(Error('LF_CDP_TIMEOUT '+method),{code:'LF_CDP_TIMEOUT',method}));},20000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params}));
+  });
   const navigation=documentNavigation(send);
   ws.onmessage=({data})=>{const m=JSON.parse(data);if(m.id){const p=pending.get(m.id);if(!p)return;pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(Error('LF_CDP_FAILED')):p.resolve(m.result);}else{navigation.event(m);for(const observe of observers)observe(m);}};
   const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||'LF_BROWSER_EXCEPTION');return r.result.value;};

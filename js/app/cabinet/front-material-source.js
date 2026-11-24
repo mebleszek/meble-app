@@ -23,7 +23,7 @@
   function clone(value){ try{ return JSON.parse(JSON.stringify(value)); }catch(_){ return value; } }
 
   function getMaterials(){
-    try{ return Array.isArray(materials) ? materials : []; }catch(_){ return []; }
+    try{ return Array.isArray(materials) ? materials.filter(row=>!ns.cabinetDrawerRequirements?.isBottomCatalogRow?.(row)) : []; }catch(_){ return []; }
   }
 
   function firstColorForMaterialType(typeValue){

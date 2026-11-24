@@ -103,6 +103,23 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
   c.validateBundle(c.capture({getItem:key=>key==='fc_edit_session_v1'?null:next[key]??null},Object.keys(c.schemas)).model);
   return {keys,raw:JSON.stringify(value)};
  }
+ async function ensureFactoryCatalogs(){
+  // A restored edit/form is never rewritten by the upgrade. Retry at a clean
+  // startup; the original draft, RAW, outbox and accepted offers remain intact.
+  try{idle();}catch(error){if(['LF_ACTIVE_FORM_PROTECTED','LF_ACTIVE_RAM_PROTECTED'].includes(error.code))return {applied:false,deferred:true};throw error;}
+  const [{codeCandidate},{planPricingFactoryAdditions}]=await Promise.all([import('./code-global-catalogs.generated.mjs'),import('./pricing-factory-additions.mjs')]);
+  const c=fc.globalDataContract;
+  const plan=()=>planPricingFactoryAdditions({current:c.capture({getItem:k=>k==='fc_edit_session_v1'?null:rows[k]??null},Object.keys(c.schemas)).model,candidate:codeCandidate.model,contract:c});
+  if(!plan())return {applied:false};
+  let added;
+  await transaction('globals',()=>{
+   if(fc.session.active||fc.session.snapshot||fc.session.durable||rows.fc_edit_session_v1!==null||fc.investorEditorState?.hasUiLock()||fc.investorProjectRuntime.hasProjectDivergence(w.projectData)||fc.priceModal?.isItemDirty?.()||w.document.querySelector('.panel-box-backdrop'))fail('LF_ACTIVE_RAM_PROTECTED');
+   const next=plan();if(!next)return true;added=next.added;
+   for(const domain of Object.keys(added))for(const key of c.sources[domain])ls.setItem(key,c.canonical(next.model[domain]));
+   return true;
+  });
+  return {applied:!!added,added};
+ }
  function snapshotSession(){return Object.fromEntries(Object.entries(fc.session).filter(([,v])=>typeof v!=='function').map(([k,v])=>[k,structuredClone(v)]));}
  async function transaction(kind,operation,{exitScope,writeScopes}={}){
   access();assertSource();lastCode=null;if(inTransaction)fail('LF_APPLICATION_BUSY');
@@ -182,7 +199,7 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
    access();assertSource();if(initial&&(!bootDraft||w.__FC_MAIN_ACCESS__.isLoading?.()!==true))return false;
    const durable=await store.readApplication();access();assertSource();
    return equal(durable,image)&&confirmedApplicationDraft({window:w,rows,image:durable,busy:inTransaction,incoming:incomingWitness!==null});
-  },transaction,afterCommit(fn){if(inTransaction)pendingClosures.push(fn);else fn();},assertIdle:idle,rows:()=>structuredClone(rows),
+  },transaction,ensureFactoryCatalogs,afterCommit(fn){if(inTransaction)pendingClosures.push(fn);else fn();},assertIdle:idle,rows:()=>structuredClone(rows),
   async incoming(next){idle();assertSource();if(Object.keys(next).some(k=>!keys.has(k)))fail('LF_APPLICATION_SCOPE_REFUSED');incomingWitness=JSON.stringify(w.projectData);return {expectedVersion:image.version,rows:next};},
   async refresh(){access();assertSource();if(inTransaction||fc.session.active||incomingWitness!==JSON.stringify(w.projectData))fail('LF_ACTIVE_RAM_PROTECTED');image=await store.readApplication();rows=structuredClone(image.rows);await hydrateCatalogs();w.projectData=fc.project.load();w.uiState=fc.uiState.get();fc.views.applyFromState(w.uiState);fc.sections.update();incomingWitness=null;},
   // Logout seals writes; the local data/outbox is never removed.

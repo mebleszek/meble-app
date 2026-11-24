@@ -235,7 +235,7 @@
       if(cfg.always) out[key] = 0;
       return;
     }
-    const rounded = roundFingerprintNumber(n);
+    const rounded = cfg.exact ? n : roundFingerprintNumber(n);
     if(cfg.always || rounded !== 0) out[key] = rounded;
   }
   function addBool(out, key, value){ if(value === true) out[key] = true; }
@@ -261,11 +261,15 @@
     addText(out, 'category', src.category);
     addText(out, 'subsection', src.subsection);
     addText(out, 'name', src.name || cfg.defaultName);
-    addNumber(out, 'qty', src.qty != null ? src.qty : src.quantity, { always: cfg.keepMoney !== false });
+    // m² billed as a fraction of a sheet is not a four-decimal quantity.
+    // Preserve the calculated material values; fingerprint rounding remains
+    // separate and cannot change an immutable line or its PCV proof.
+    const exactMaterial = cfg.type === 'material';
+    addNumber(out, 'qty', src.qty != null ? src.qty : src.quantity, { always: cfg.keepMoney !== false, exact:exactMaterial });
     addText(out, 'unit', src.unit || cfg.unit);
     if(cfg.keepMoney !== false){
-      addNumber(out, 'unitPrice', src.unitPrice != null ? src.unitPrice : src.price, { always:true });
-      addNumber(out, 'total', src.total, { always:true });
+      addNumber(out, 'unitPrice', src.unitPrice != null ? src.unitPrice : src.price, { always:true, exact:exactMaterial });
+      addNumber(out, 'total', src.total, { always:true, exact:exactMaterial });
       addText(out, 'priceUnit', src.priceUnit);
       addText(out, 'pricingMode', src.pricingMode);
       addBool(out, 'starterPrice', src.starterPrice === true);

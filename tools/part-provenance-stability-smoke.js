@@ -12,7 +12,7 @@ function fixture(){
  const b=FC.projectStore.getById('B');b.projectData={meta:{assignedInvestorId:'inv-B'},room:room([cabinet('one')])};FC.projectStore.upsert(b);s.projectData=FC.project.load();
  s.materials=[{name:'laminat White',materialType:'laminat'},{name:'White',materialType:'laminat'}];s.document={getElementById:()=>null};
  const load=file=>vm.runInContext(fs.readFileSync(path.join(ROOT,file),'utf8'),s,{filename:file});
- for(const file of ['js/app/cabinet/part-provenance.js','js/app/material/material-common.js','js/app/cabinet/front-hardware-fronts.js','js/app/cabinet/cabinet-cutlist.js',
+ for(const file of ['js/app/catalog/hardware-catalog-seed-data.js','js/app/catalog/hardware-drawer-catalog.js','js/app/cabinet/part-provenance.js','js/app/material/material-common.js','js/app/cabinet/front-hardware-fronts.js','js/app/cabinet/cabinet-drawer-selection.js','js/app/cabinet/cabinet-cutlist.js', 'js/app/cabinet/cabinet-inner-drawers.js',
  'js/app/material/material-part-options.js','js/app/material/material-edge-store.js','js/app/cabinet/cabinet-derived-facts.js','js/app/material/material-tab-data.js',
  'js/app/shared/room-scope-resolver.js','js/app/rozrys/rozrys-scope.js','js/app/rozrys/rozrys-part-helpers.js','js/app/rozrys/rozrys-runtime-utils.js','js/app/wycena/wycena-core-selection.js'])load(file);
  s.getCabinetCutList=FC.cabinetCutlist.getCabinetCutList;s.totalsFromParts=FC.materialCommon.totalsFromParts;
@@ -71,10 +71,10 @@ test('Standard shelf counts use one stable group rather than positional physical
  assert.deepEqual(clone({...row.sourceGroups[0],qty:1}),clone(next.sourceGroups[0]));
 });
 test('Drawer singleton components are distinct; standard drawer groups preserve full qty',()=>{
- const r=fixture();r.FC.cabinetDrawerRequirements={getDrawerRequirements:()=>[{source:'oven_drawer',qty:1,technical:{drawerKind:'box'}}]};
+ const r=fixture();r.FC.cabinetFronts={previewFrontsForCabinet:()=>[{width:60,height:20}]};r.FC.cabinetDrawerRequirements={bottomMaterial:()=>null,getDrawerRequirements:()=>[{source:'oven_drawer',qty:1,technical:{drawerKind:'box'}}]};
  let row=r.parts().find(p=>p.name.startsWith('Bok szuflady'));assert.equal(row.qty,2);assert.equal(new Set(row.sourceRefs.map(x=>x.partRoleId)).size,2);
- r.FC.cabinetDrawerRequirements.getDrawerRequirements=()=>[{source:'front_drawers',qty:3,technical:{drawerKind:'box'}}];
- row=r.parts().find(p=>p.name.startsWith('Bok szuflady'));assert.equal(row.qty,6);assert.deepEqual(clone(row.sourceRefs),[]);assert.equal(row.sourceGroups[0].qty,6);
+ r.cab().subType='szuflady';r.cab().details.drawerLayout='3_equal';r.FC.cabinetDrawerRequirements.getDrawerRequirements=()=>[{source:'front_drawers',qty:3,technical:{drawerKind:'box'}}];
+ const sides=r.parts().filter(p=>p.name.startsWith('Bok szuflady'));assert.equal(sides.reduce((n,p)=>n+p.qty,0),6);assert.ok(sides.every(p=>p.sourceRefs.length===0));assert.equal(sides.reduce((n,p)=>n+p.sourceGroups[0].qty,0),6);assert.ok(sides.every(p=>p.sourceGroups[0].groupRoleId==='drawer.front_drawers.sides'));
 });
 test('Corner roles survive dimension changes; shared set fronts have a set owner',()=>{
  const r=fixture(),cab=r.cab();cab.subType='narozna_l';cab.details={gl:60,gp:50,st:90,sp:60};const before=r.keys(r.parts());

@@ -218,6 +218,9 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    fc.applicationSyncActions.install(createApplicationActionBinding({window:w,authority,onExit:deferHandover,onClose:()=>{closed=true;sync?.close();deletion?.close();p0b?.close();manualSync?.close();boundary.close();}}));
    await p0b?.bind();
   };await bind();
+  onStage('factory-catalog-additions');
+  const catalogAdditions=await authority.ensureFactoryCatalogs();
+  if(catalogAdditions.applied&&writer){const result=await sync.flush({forceProjects:false});if(!result.ok)state(result);}
   if(localOnly)boot?.confirmLocalReset?.();
   notify();if(p0b)w.setTimeout(()=>{void p0b.offerRecovery();},0);
   return Object.freeze({store,authority,get sync(){return sync;},write:boundary.run,

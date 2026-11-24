@@ -7,6 +7,15 @@
 
   const DEFAULT_MANUFACTURERS = ['Blum','GTV','Peka','Rejs','Nomet','Häfele','Sevroll','Laguna','Hettich'];
   const DEFAULT_SUPPLIERS = [
+    { id:'belmeb', name:'Belmeb', defaultDiscountPercent:0, active:true },
+    { id:'gral', name:'PHU GRAL', defaultDiscountPercent:0, active:true },
+    { id:'wior', name:'Wiór', defaultDiscountPercent:0, active:true },
+    { id:'intago', name:'Intago', defaultDiscountPercent:0, active:true },
+    { id:'intar', name:'Intar', defaultDiscountPercent:0, active:true },
+    { id:'mf_akcesoria', name:'MF Akcesoria', defaultDiscountPercent:0, active:true },
+    { id:'wip_rumia', name:'WIP Rumia', defaultDiscountPercent:0, active:true },
+    { id:'bimeb', name:'BIMEB', defaultDiscountPercent:0, active:true },
+    { id:'rik', name:'RiK Akcesoria meblowe', defaultDiscountPercent:0, active:true },
     { id:'bivert', name:'Bivert', defaultDiscountPercent:0, active:true },
     { id:'mago', name:'MAGO', defaultDiscountPercent:0, active:true },
     { id:'invoice', name:'Faktura / zakup ręczny', defaultDiscountPercent:0, active:true },
@@ -131,10 +140,11 @@
     const hardwareUsage = firstText(row.hardwareUsage, row.zastosowanie, row.usage);
     const technicalNote = firstText(row.technicalNote, row.uwagiTechniczne, row.uwagi_techniczne);
     const legacyBase = { drawerProfile, drawerLengthMm, drawerLoadKg, drawerReinforced:reinforcedRaw ? bool(reinforcedRaw) : false, hardwareColor, hardwareUsage, technicalNote };
-    const technicalParams = tech && typeof tech.mergeLegacyValues === 'function'
+    const described=tech?.describeLegacyValues?.(Object.assign({},row,legacyBase),definitions,category);
+    const technicalParams = described ? described.technicalParams : tech && typeof tech.mergeLegacyValues === 'function'
       ? tech.mergeLegacyValues(Object.assign({}, row, legacyBase), definitions, category)
       : (row.technicalParams || {});
-    const autoType = tech && typeof tech.buildTypeLabel === 'function'
+    const autoType = described ? described.hardwareTypeAuto : tech && typeof tech.buildTypeLabel === 'function'
       ? tech.buildTypeLabel(definitions, category, technicalParams)
       : '';
     return {
