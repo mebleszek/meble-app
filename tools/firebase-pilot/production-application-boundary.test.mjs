@@ -96,8 +96,20 @@ test('daily connection uses fresh Google/Rules leases, without administrative si
  const release=await verifyApplicationRelease(await fixture());let valid=true;
  const connection=()=>{const app={options:{projectId:'mebleszek-meble-app'}};return {db:{app,_databaseId:{projectId:'mebleszek-meble-app',database:'(default)'},_settings:{host:'firestore.googleapis.com',ssl:true}},auth:{app,currentUser:{uid:owner,emailVerified:true,providerData:[{providerId:'google.com'}]}},session:{identity:()=>({uid:owner,epoch:1})},assertAccess(){if(!valid)throw Error('LF_SYNC_ACCESS_UNCONFIRMED');},lease:{uid:owner,assert(){if(!valid)throw Error('revoked');},isValid:()=>valid}};};
  const writer=connection(),reader=connection(),permit=authorizeApplicationSession({release,writer,reader});
+ const {authorizeGlobalStagingConnection,assertGlobalConnection,assertP0BConnection}=await import('../../sync/firebase-activation.mjs');
+ assert.equal(typeof authorizeGlobalStagingConnection,'function');
+ const staged=connection(),stageIdentity={uid:owner,epoch:1};staged.session.identity=()=>({...stageIdentity});
+ const stagePermit=authorizeGlobalStagingConnection(writer,staged);
+ assert.equal(assertGlobalConnection(staged).uid,owner);
+ assert.throws(()=>assertApplicationConnection(staged),/APPLICATION_ACTIVATION_REQUIRED/);
+ assert.throws(()=>assertP0BConnection(staged),/P0B_REGISTRY_REQUIRED/);
+ assert.throws(()=>assertGlobalConnection({...staged}),/PRODUCTION_ACTIVATION_REQUIRED/);
+ stageIdentity.epoch=2;assert.throws(()=>assertGlobalConnection(staged),/AUTH_CHANGED/);stageIdentity.epoch=1;
+ staged.auth.currentUser.emailVerified=false;assert.throws(()=>assertGlobalConnection(staged),/LIVE_IDENTITY_INVALID/);staged.auth.currentUser.emailVerified=true;
+ const foreign=connection();foreign.auth.currentUser.uid='foreign';assert.throws(()=>authorizeGlobalStagingConnection(writer,foreign),/LIVE_IDENTITY_INVALID/);
+ assert.throws(()=>authorizeGlobalStagingConnection(writer,writer),/INDEPENDENT_OWNER_REQUIRED/);
  const now=Date.now;try{Date.now=()=>now()+172800000;assert.equal(assertApplicationConnection(writer).uid,owner);}finally{Date.now=now;}
- valid=false;assert.throws(()=>assertApplicationConnection(writer),/SYNC_ACCESS_UNCONFIRMED/);valid=true;permit.revoke();assert.throws(()=>assertApplicationConnection(writer),/ACTIVATION_REQUIRED/);
+ valid=false;assert.throws(()=>assertApplicationConnection(writer),/SYNC_ACCESS_UNCONFIRMED/);assert.throws(()=>assertGlobalConnection(staged),/SYNC_ACCESS_UNCONFIRMED/);valid=true;permit.revoke();assert.throws(()=>assertApplicationConnection(writer),/ACTIVATION_REQUIRED/);assert.throws(()=>assertGlobalConnection(staged),/PRODUCTION_ACTIVATION_REQUIRED/);stagePermit.revoke();
 });
 test('routine sync grant requires a fresh server transaction and exact activation, uncertainty is a refusal',async()=>{
  const release=await verifyApplicationRelease(await fixture()),w=new EventTarget();w.navigator={onLine:true};w.document={hidden:false};let calls=0;

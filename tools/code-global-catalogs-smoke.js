@@ -14,8 +14,8 @@ const tests=[],test=(name,fn)=>tests.push([name,fn]);
  test('full validateBundle and runtime contracts, exact record IDs, dictionary closure, rates and quantity source references',async()=>{
   assert.doesNotThrow(()=>c.validateBundle(m));assert.equal(first.runtime.status,'VALIDATED');assert.equal(first.runtime.domains,14);assert.equal(first.runtime.hourlyRates,4);
   assert.deepEqual(first.validation.dependencies.map(d=>d.kind),['programDefaults']);
-  assert.equal(m.materials.length,11);assert.equal(m.hardware.length,408);assert.equal(m.labor.length,129);assert.equal(m.categories.length,15);assert.equal(m.technicalParams.length,46);
-  for(const id of ['labor_channel_install','labor_channel_workshop','labor_handle_layout','labor_handle_install','pdf_tipon_drill','pdf_tipon_insert','pdf_tipon_plate'])assert.ok(m.labor.some(row=>row.id===id),'Approved opening norm '+id);
+  assert.equal(m.materials.length,11);assert.equal(m.hardware.length,489);assert.equal(m.labor.length,145);assert.equal(m.categories.length,15);assert.equal(m.technicalParams.length,46);
+  for(const id of ['labor_channel_install','labor_channel_workshop','labor_handle_layout','labor_handle_install','pdf_tipon_drill','pdf_tipon_insert','pdf_tipon_plate','pdf_lift_other_prepare','pdf_lift_other_mount','pdf_lift_hki_prepare','pdf_lift_hki_mill_partial','pdf_lift_hki_mill_full','pdf_lift_arms','pdf_lift_stabilizer_cut','pdf_lift_stabilizer_mount','pdf_lift_other_pack','pdf_lift_other_rehang','pdf_lift_other_gap_adjust','pdf_cargo_auto_runner','pdf_cargo_auto_catch','pdf_cargo_auto_fit','pdf_cargo_auto_tall_prepare','pdf_cargo_auto_tall_mount'])assert.ok(m.labor.some(row=>row.id===id),'Approved opening norm '+id);
   for(const color of ['white','grey'])assert.ok(m.materials.some(row=>row.id==='m_drawer_bottom_10_'+color&&row.purchasePrice===200&&row.thicknessMm===10));
   for(const domain of ['materials','hardware','labor','workshopServices'])assert.deepEqual(m[domain].map(r=>r.id),raw[domain].map(r=>r.id));
   const packed=await c.pack('synthetic-owner',m),decoded=await c.unpack('synthetic-owner',packed.directory,packed.records);assert.deepEqual(clone(decoded.model),m);
@@ -58,6 +58,25 @@ const tests=[],test=(name,fn)=>tests.push([name,fn]);
   const engine=s.FC.hardwareReplacementEngine;assert.ok(engine);assert.equal(first.runtime.existingProjectsChecked,false);
   const options={definitions:m.technicalParams,suppliers:m.suppliers,defaultVatRate:m.hardwareSettings.defaultVatRate};
   const normalizedRaw=new Map(raw.hardware.map(row=>[row.id,h.normalizeAccessory(row,()=>{throw Error('No ID');},{...m.hardwareSettings,hardwareSuppliers:m.suppliers,hardwareTechnicalParams:m.technicalParams})]));
+  const describe=tech.createLegacyDescriber(m.technicalParams),normalizationContext={...m.hardwareSettings,hardwareSuppliers:m.suppliers,hardwareTechnicalParams:m.technicalParams};
+  for(const row of raw.hardware)assert.deepEqual(clone(h.normalizeAccessory(row,()=>{throw Error('No ID');},normalizationContext,describe)),clone(normalizedRaw.get(row.id)),'Prepared technical definitions must preserve every field for '+row.id);
+  const support=s.FC.hardwareSupportCatalog;
+  assert.equal(support.seeds.length,14);
+  for(const height of [6,8,10,12.5,15,18,20]){
+   const [req]=support.requirements({legs:4,hangers:0,heightCm:height});
+   assert.equal(req.catalogItemId,'hw_bivert_axilo_'+height*10);assert.equal(req.qty,4);assert.equal(req.expectedUnit,'szt.');
+   const item=m.hardware.find(row=>row.id===req.catalogItemId);assert.equal(item.symbol,req.expectedSymbol);assert.ok(item.price>0&&item.price<10);assert.match(item.note,/opakowanie\/100/);
+  }
+  assert.equal(support.requirements({legs:4,hangers:0,heightCm:11})[0].catalogItemId,'hw_bivert_axilo_100');
+  assert.equal(support.requirements({legs:4,hangers:0,heightCm:30})[0].catalogItemId,'hw_axilo_unconfirmed');
+  assert.equal(support.requirements({legs:4,hangers:0})[0].catalogItemId,'hw_axilo_unconfirmed');
+  const hanger=support.requirements({legs:0,hangers:2});
+  assert.deepEqual(clone(hanger.map(row=>[row.catalogItemId,row.qty]).sort()),[
+   ['hw_bivert_camar806_cover_left',1],['hw_bivert_camar806_cover_right',1],['hw_bivert_camar806_left',1],['hw_bivert_camar806_right',1]
+  ]);
+  assert.equal(Math.round(hanger.reduce((sum,row)=>sum+m.hardware.find(item=>item.id===row.catalogItemId).price*row.qty,0)*100)/100,8.28,'One left/right pair with two matching covers, existing20% markup');
+  assert.ok(support.requirements({legs:0,hangers:4}).every(row=>row.qty===2));
+  assert.equal(support.requirements({legs:0,hangers:3})[0].sourceIssue,'CABINET_HANGER_SIDES_UNCONFIRMED','An odd manual quantity cannot guess the side of a third hanger');
   // Stronger generator proof: ALL fields of ALL current input records equal the
   // runtime-normalized seed, not only three outputs of a pure comparison.
   // The unchanged engine has its independent exhaustive compatibility suite.
@@ -65,8 +84,8 @@ const tests=[],test=(name,fn)=>tests.push([name,fn]);
   // Preserve the previous cross-product, including both new opening SKUs.
   // The157 sourced dimension variants are proven input-identical above; duplicating
   // this pure-engine invocation for 23,409 pairs adds no generator evidence.
-  const originalAndOpenings=m.hardware.filter(row=>!s.FC.hardwareDrawerCatalog.specFor(row.id));
-  assert.equal(originalAndOpenings.length,18,'Preserve exactly the previous18×18 comparison; all379 sourced variants have full normalized equality above');
+  const originalAndOpenings=m.hardware.filter(row=>!s.FC.hardwareDrawerCatalog.specFor(row.id)&&!/^hw_bivert_(?:axilo_|camar806_|blum_|lift_)/.test(row.id)&&!row.id.startsWith('hw_schach_camar816_')&&!row.id.startsWith('hw_gral_lift_duo_')&&!row.id.startsWith('hw_stolmet_lift_duo_')&&!row.id.startsWith('hw_bivert_cargo_'));
+  assert.equal(originalAndOpenings.length,18,'Preserve every released18×18 compatibility case; all new products have complete ordinary/prepared normalization equality above and actual requirement/cost tests');
   for(const source of originalAndOpenings)for(const candidate of originalAndOpenings){
    const compared=engine.compareItems(source,candidate,options),expected=engine.compareItems(normalizedRaw.get(source.id),candidate,options);
    assert.equal(compared.compatible,expected.compatible);assert.equal(compared.score,expected.score);assert.deepEqual(clone(compared.failures),clone(expected.failures));
@@ -77,17 +96,18 @@ const tests=[],test=(name,fn)=>tests.push([name,fn]);
   const before=JSON.stringify(rows),scope={FC:{},console,TextEncoder,crypto:require('node:crypto').webcrypto};scope.window=scope;scope.localStorage={getItem:key=>rows[key]??null,
    setItem(key,value){if(rows[key]!=null&&rows[key]!==String(value))throw Error('LF_LEGACY_BOOT_WRITE_REFUSED');if(rows[key]!=null)rows[key]=String(value);},removeItem(){throw Error('LF_LEGACY_BOOT_WRITE_REFUSED');}};
   vm.createContext(scope);const load=file=>vm.runInContext(fs.readFileSync('js/app/'+file+'.js','utf8'),scope);
-  for(const file of ['shared/constants','shared/storage','project/project-export-contract','cloud/global-data-contract','catalog/hardware-technical-params','catalog/hardware-catalog','catalog/hardware-catalog-seed-data','catalog/hardware-drawer-catalog','catalog/hardware-catalog-seeds','catalog/catalog-domain','catalog/catalog-migration','catalog/catalog-storage-policy','pricing/labor-catalog-definitions','pricing/labor-catalog','catalog/catalog-store','settings/program-defaults-store','settings/business-costs-store','settings/company-profile-store'])load(file);
+  for(const file of ['shared/constants','shared/storage','project/project-export-contract','cloud/global-data-contract','catalog/hardware-technical-params','catalog/hardware-catalog','catalog/hardware-support-catalog','catalog/hardware-lift-catalog','catalog/hardware-cargo-catalog','catalog/hardware-catalog-seed-data','catalog/hardware-drawer-catalog','catalog/hardware-catalog-seeds','catalog/catalog-domain','catalog/catalog-migration','catalog/catalog-storage-policy','pricing/labor-catalog-definitions','pricing/labor-catalog','catalog/catalog-store','settings/program-defaults-store','settings/business-costs-store','settings/company-profile-store'])load(file);
   const contract=scope.FC.globalDataContract;assert.doesNotThrow(()=>contract.validateBundle(contract.capture(scope.localStorage,Object.keys(contract.sources)).model));
   scope.FC.catalogStore.adoptVerified(m);assert.deepEqual(clone(scope.FC.catalogStore.getSheetMaterials()),m.materials);assert.deepEqual(clone(scope.FC.catalogStore.getQuoteRates()),m.labor);assert.deepEqual(clone(scope.FC.catalogStore.getAccessories()),m.hardware);
   assert.equal(Object.values(scope.FC.companyProfile.read().company).some(Boolean),false);assert.equal(JSON.stringify(rows),before);
  });
  test('approved pricing additions preserve every existing row and private/zero price; repeated update is a no-op',async()=>{
   const {planPricingFactoryAdditions:plan,matchesApprovedPricingAdditions:matches}=await import('../sync/pricing-factory-additions.mjs');
-  const old=clone(m),newLabor=new Set(['labor_channel_install','labor_channel_workshop','labor_handle_layout','labor_handle_install','pdf_tipon_drill','pdf_tipon_insert','pdf_tipon_plate']);
+  const old=clone(m),newLabor=new Set(['labor_channel_install','labor_channel_workshop','labor_handle_layout','labor_handle_install','pdf_tipon_drill','pdf_tipon_insert','pdf_tipon_plate','pdf_lift_other_prepare','pdf_lift_other_mount','pdf_lift_hki_prepare','pdf_lift_hki_mill_partial','pdf_lift_hki_mill_full','pdf_lift_arms','pdf_lift_stabilizer_cut','pdf_lift_stabilizer_mount','pdf_lift_other_pack','pdf_lift_other_rehang','pdf_lift_other_gap_adjust','pdf_cargo_auto_runner','pdf_cargo_auto_catch','pdf_cargo_auto_fit','pdf_cargo_auto_tall_prepare','pdf_cargo_auto_tall_mount']);
   old.materials=old.materials.filter(row=>!row.id.startsWith('m_drawer_bottom_'));
-  old.hardware=old.hardware.filter(row=>!s.FC.hardwareDrawerCatalog.specFor(row.id)&&!['hw_seed_gtv_hexa_96_black','hw_seed_blum_tipon_long_956a1004'].includes(row.id));
-  old.labor=old.labor.filter(row=>!newLabor.has(row.id));old.suppliers=old.suppliers.filter(row=>!['bimeb','rik','wip_rumia','mf_akcesoria','intar','belmeb'].includes(row.id));
+  old.hardware=old.hardware.filter(row=>!s.FC.hardwareDrawerCatalog.specFor(row.id)&&!row.id.startsWith('hw_bivert_axilo_')&&!row.id.startsWith('hw_bivert_camar806_')&&!row.id.startsWith('hw_bivert_blum_')&&!row.id.startsWith('hw_bivert_lift_')&&!row.id.startsWith('hw_schach_camar816_')&&!row.id.startsWith('hw_gral_lift_duo_')&&!row.id.startsWith('hw_stolmet_lift_duo_')&&!row.id.startsWith('hw_bivert_cargo_')&&!['hw_seed_gtv_hexa_96_black','hw_seed_blum_tipon_long_956a1004'].includes(row.id));
+  old.labor=old.labor.filter(row=>!newLabor.has(row.id));old.suppliers=old.suppliers.filter(row=>!['bimeb','rik','wip_rumia','mf_akcesoria','intar','belmeb','schachermayer','stolmet'].includes(row.id));
+  old.technicalParams.find(row=>row.category==='Zawiasy'&&row.key==='klasa_kata').options=old.technicalParams.find(row=>row.category==='Zawiasy'&&row.key==='klasa_kata').options.filter(value=>value!=='AVENTOS HF środkowy134°');
   old.technicalParams.find(row=>row.category==='Szuflady / prowadnice'&&row.key==='profil_szuflady').options=['M','N','H','niska','średnia','wysoka'];
   old.technicalParams.find(row=>row.category==='Szuflady / prowadnice'&&row.key==='kolor_okucia').options=['biały','szary','antracyt'];
   old.materials[0].price=987;old.materials[0].priceUserEditedAt='2026-11-23';
@@ -98,7 +118,7 @@ const tests=[],test=(name,fn)=>tests.push([name,fn]);
   for(const [index,row]of old.technicalParams.entries()){const updated=result.model.technicalParams[index];assert.deepEqual({...updated,options:row.options},row);assert.deepEqual(updated.options?.slice(0,row.options?.length),row.options);}
   assert.equal(result.model.materials.find(row=>row.id==='m_drawer_bottom_16_white').price,0);
   for(const id of ['m_drawer_bottom_10_white','m_drawer_bottom_10_grey','m_drawer_bottom_16_grey'])assert.ok(result.added.materials.includes(id));
-  assert.equal(result.added.hardware.length,392);for(const id of ['hw_intar_drawer_427212','hw_bivert_drawer_12620','hw_bivert_drawer_13305','hw_bivert_drawer_13963','hw_bivert_drawer_136865','hw_wior_drawer_12212','hw_wior_drawer_12214','hw_bivert_drawer_14536','hw_belmeb_double_450_65_white','hw_belmeb_double_500_65_white','hw_belmeb_double_550_65_white'])assert.ok(result.added.hardware.includes(id));assert.equal(result.added.labor.length,7);assert.ok(result.added.suppliers.includes('bimeb'));assert.ok(result.added.suppliers.includes('rik'));assert.ok(result.added.suppliers.includes('belmeb'));assert.ok(result.added.suppliers.includes('wip_rumia'));assert.ok(result.model.technicalParams.find(row=>row.category==='Szuflady / prowadnice'&&row.key==='profil_szuflady').options.includes('A'));
+  assert.equal(result.added.hardware.length,473);for(const id of ['hw_intar_drawer_427212','hw_bivert_drawer_12620','hw_bivert_drawer_13305','hw_bivert_drawer_13963','hw_bivert_drawer_136865','hw_wior_drawer_12212','hw_wior_drawer_12214','hw_bivert_drawer_14536','hw_belmeb_double_450_65_white','hw_belmeb_double_500_65_white','hw_belmeb_double_550_65_white'])assert.ok(result.added.hardware.includes(id));assert.equal(result.added.labor.length,23);assert.ok(result.added.suppliers.includes('bimeb'));assert.ok(result.added.suppliers.includes('schachermayer'));assert.ok(result.model.technicalParams.find(row=>row.category==='Zawiasy'&&row.key==='klasa_kata').options.includes('AVENTOS HF środkowy134°'));assert.ok(result.added.suppliers.includes('rik'));assert.ok(result.added.suppliers.includes('belmeb'));assert.ok(result.added.suppliers.includes('wip_rumia'));assert.ok(result.model.technicalParams.find(row=>row.category==='Szuflady / prowadnice'&&row.key==='profil_szuflady').options.includes('A'));
   assert.equal(plan({current:result.model,candidate:m,contract:c}),null);
   assert.equal(matches({current:old,remote:result.model,candidate:m,contract:c}),true,'A second installation recognizes only the exact approved additive upgrade');
   const conflicting=clone(result.model);conflicting.materials[0].price=1;
@@ -110,7 +130,7 @@ const tests=[],test=(name,fn)=>tests.push([name,fn]);
  });
  test('approved norms close missing hourly-rate dependencies without replacing private rate identities or prices',async()=>{
   const {planPricingFactoryAdditions:plan}=await import('../sync/pricing-factory-additions.mjs');
-  const fresh=clone(m),ids=new Set(['labor_channel_install','labor_channel_workshop','labor_handle_layout','labor_handle_install','pdf_tipon_drill','pdf_tipon_insert','pdf_tipon_plate']);
+  const fresh=clone(m),ids=new Set(['labor_channel_install','labor_channel_workshop','labor_handle_layout','labor_handle_install','pdf_tipon_drill','pdf_tipon_insert','pdf_tipon_plate','pdf_lift_other_prepare','pdf_lift_other_mount','pdf_lift_hki_prepare','pdf_lift_hki_mill_partial','pdf_lift_hki_mill_full','pdf_lift_arms','pdf_lift_stabilizer_cut','pdf_lift_stabilizer_mount','pdf_lift_other_pack','pdf_lift_other_rehang','pdf_lift_other_gap_adjust','pdf_cargo_auto_runner','pdf_cargo_auto_catch','pdf_cargo_auto_fit','pdf_cargo_auto_tall_prepare','pdf_cargo_auto_tall_mount']);
   fresh.labor=fresh.labor.filter(row=>!ids.has(row.id)&&!['workshop','assembly'].includes(row.rateKey||row.rateCode||row.rateType));
   assert.doesNotThrow(()=>c.validateBundle(fresh));
   const before=JSON.stringify(fresh),result=plan({current:fresh,candidate:m,contract:c});
@@ -123,4 +143,4 @@ const tests=[],test=(name,fn)=>tests.push([name,fn]);
   assert.equal(preserved.labor.some(row=>row.id==='labor_rate_assembly'),false);
  });
  for(const [name,fn]of tests){await fn();console.log('PASS '+name);}console.log(`CODE GLOBAL CATALOGS: ${tests.length}/${tests.length} PASS`);
-})().catch(error=>{console.error(error.code||error.message||'CODE_FACTORY_TEST_FAILED');process.exitCode=1;});
+})().catch(error=>{console.error(error.stack||error.code||error.message||'CODE_FACTORY_TEST_FAILED');process.exitCode=1;});

@@ -68,7 +68,7 @@ async function main(){
     return true;
    })()`);
    phase=profile+':classic-modules';
-   for(const file of ['shared/utils','shared/constants','shared/storage','settings/company-profile-store','project/project-export-contract','project/business-project-contract','cloud/global-data-contract','catalog/hardware-technical-params','catalog/hardware-catalog','catalog/hardware-catalog-seed-data','catalog/hardware-catalog-seeds','catalog/catalog-domain','catalog/catalog-migration','catalog/catalog-storage-policy','pricing/labor-catalog-definitions','pricing/labor-catalog','catalog/catalog-store'])await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
+   for(const file of ['shared/utils','shared/constants','shared/storage','settings/company-profile-store','project/project-export-contract','project/business-project-contract','cloud/global-data-contract','catalog/hardware-technical-params','catalog/hardware-catalog','catalog/hardware-support-catalog','catalog/hardware-lift-catalog','catalog/hardware-cargo-catalog','catalog/hardware-catalog-seed-data','catalog/hardware-catalog-seeds','catalog/catalog-domain','catalog/catalog-migration','catalog/catalog-storage-policy','pricing/labor-catalog-definitions','pricing/labor-catalog','catalog/catalog-store'])await browser.evaluate(fs.readFileSync(path.join(root,'js/app/'+file+'.js'),'utf8')+'\ntrue');
    phase=profile+':install:'+fault;
    await browser.evaluate(`(async()=>{
     Storage.prototype.getItem=nativeGet;Storage.prototype.setItem=nativeSet;
@@ -123,7 +123,7 @@ async function main(){
   assert.equal(bootProof.tables.control.find(r=>r.key==='application').version,2);
   for(const name of ['replicas','protected','outbox'])assert.deepEqual(bootProof.tables[name],baseline.tables[name]);
   assert.equal(JSON.parse(baseline.native.fc_quote_rates_v1).length,61);
-  assert.equal(bootProof.catalog.length,129);
+  assert.equal(bootProof.catalog.length,145);
   for(const row of old.labor){const actual=bootProof.catalog.find(r=>r.id===row.id);
    if(!correctedIds.includes(row.id)){assert.deepEqual(actual,row,'startup preserves every unrelated original field');continue;}
    const allowed=new Set(['rateType','note','minimumLevels','liftLevels','disassemblyWeightKg','unitPriceSource']);
@@ -134,7 +134,7 @@ async function main(){
   assert.equal(bootProof.catalog.find(r=>r.id==='transport_distance_km').unitPriceSource,'fuel');
   assert.equal(bootProof.rows.fc_quote_snapshots_v1,raw.fc_quote_snapshots_v1);
 
-  console.log('PASS old 61-row profile automatically becomes 129 before use, with only approved exact factory corrections; private fields/offers/pending stores unchanged');
+  console.log('PASS old 61-row profile automatically becomes145 before use, with only approved exact factory corrections; private fields/offers/pending stores unchanged');
   await browser.evaluate(`(()=>{const cab={id:'quote-test',type:'wisząca',subType:'okap',width:60,height:82,depth:50,frontCount:0,backMaterial:'HDF',details:{}};
    FC.wycenaCoreUtils={clone:structuredClone,slug:v=>String(v).replace(/[^a-zA-Z0-9]/g,'_')};FC.wycenaCoreSource={project:()=>({kuchnia:{settings:{},cabinets:[cab]}}),selectedCabinets:()=>[{roomId:'kuchnia',roomLabel:'Synthetic Kitchen',cabinet:cab}],roomLabel:()=> 'Synthetic Kitchen'};
    FC.wycenaCoreOffer={};FC.wycenaCoreSelection={};FC.wycenaCoreCatalog={};FC.catalogSelectors={getQuoteRates:()=>FC.catalogStore.getQuoteRates()};FC.frontHardware={getCabinetFrontCutListForMaterials:()=>[],getDoorFrontPanelsForHinges:()=>[]};return true;})()`);
@@ -145,8 +145,8 @@ async function main(){
   console.log('PASS real form action-state keeps Save hidden when no item is edited');
 
 
-  await browser.gracefulClose();await open(false);let before=await proof();assert.equal(before.catalog.length,129);assert.equal(before.tables.outbox[0].phase,'uncertain');
-  await browser.evaluate('window.dirty=false;window.acceptSave=true;saveForm()');let same=await proof();assert.equal(same.catalog.length,129);assert.equal(same.rows.fc_quote_rates_v1,before.rows.fc_quote_rates_v1);
+  await browser.gracefulClose();await open(false);let before=await proof();assert.equal(before.catalog.length,145);assert.equal(before.tables.outbox[0].phase,'uncertain');
+  await browser.evaluate('window.dirty=false;window.acceptSave=true;saveForm()');let same=await proof();assert.equal(same.catalog.length,145);assert.equal(same.rows.fc_quote_rates_v1,before.rows.fc_quote_rates_v1);
   console.log('PASS unchanged Save only closes the form and does not change the automatically completed catalog');
   await browser.evaluate('openForm()');before=await proof();
   await browser.evaluate('window.dirty=true;window.acceptSave=false;window.formName="Synthetic edited corpus";saveForm()');same=await proof();assert.deepEqual(same,before);
@@ -159,7 +159,7 @@ async function main(){
   console.log('PASS observed native quota failure rolls back the image/cache and preserves the form for retry');
   await browser.evaluate('window.authorized=false;saveForm()');await browser.evaluate('window.authorized=true;true');same=await proof();assert.deepEqual(same.tables,before.tables);assert.deepEqual(same.catalog,before.catalog);
   console.log('PASS revoked access prevents the catalog write');
-  assert.equal(await browser.evaluate('saveForm()'),true,JSON.stringify(await browser.evaluate('({notices:window.notices,status:authority.status()})')));const after=await proof();assert.equal(after.catalog.length,129);assert.equal(after.form,false);assert.deepEqual(after.native,before.native);assert.deepEqual(after.ram,before.ram);
+  assert.equal(await browser.evaluate('saveForm()'),true,JSON.stringify(await browser.evaluate('({notices:window.notices,status:authority.status()})')));const after=await proof();assert.equal(after.catalog.length,145);assert.equal(after.form,false);assert.deepEqual(after.native,before.native);assert.deepEqual(after.ram,before.ram);
   for(const name of ['replicas','protected','outbox'])assert.deepEqual(after.tables[name],before.tables[name]);
   assert.deepEqual(after.tables.control.filter(row=>row.key!=='application'),before.tables.control.filter(row=>row.key!=='application'));
   assert.equal(after.tables.control.find(row=>row.key==='application').version,before.tables.control.find(row=>row.key==='application').version+1);
@@ -170,7 +170,7 @@ async function main(){
   assert.equal(await browser.evaluate('(()=>{const c=FC.globalDataContract;c.validateBundle(c.capture(localStorage,Object.keys(c.schemas)).model);return Object.keys(c.schemas).length;})()'),14);
   assert.equal(await browser.evaluate('FC.catalogStore.getQuoteRates().find(r=>r.id==="pdf_hood_corpus_adapt").timeBlockHours'),1);
   assert.equal(await browser.evaluate('(()=>{const rows=FC.catalogStore.getQuoteRates(),l=FC.laborCatalog;return ["labor_body_h090","pdf_hood_corpus_adapt","pdf_hood_prepare"].reduce((sum,id)=>sum+l.calculateDefinition(rows.find(r=>r.id===id),{quantity:1,hourlyRates:l.buildHourlyRates(rows)}).pricedHours*60,0);})()'),150);
-  console.log('PASS confirmed existing Save persists 129 norms atomically; 14 domains validate; original RAW/projects/offers/three other stores remain exact');
+  console.log('PASS confirmed existing Save persists145 norms atomically; 14 domains validate; original RAW/projects/offers/three other stores remain exact');
   await browser.crash();await open(false);const restored=await proof();assert.deepEqual(restored.catalog,after.catalog);assert.equal(restored.rows.fc_quote_rates_v1,after.rows.fc_quote_rates_v1);assert.deepEqual(restored.native,after.native);
   for(const name of ['replicas','protected','outbox'])assert.deepEqual(restored.tables[name],after.tables[name]);assert.deepEqual(external,[]);
   console.log('PASS restart reopens the verified catalog and leaves the uncertain queue unchanged; zero external network requests');
@@ -181,7 +181,7 @@ async function main(){
    const failed=await browser.evaluate('(async()=>({seen:window.startupFaultObserved,tables:await tables(),native:nativeRows(),baseline:startupBaseline,catalog:FC.catalogStore.getQuoteRates()}))()');
    assert.equal(failed.seen,true);if(fault==='cas'){const expected=structuredClone(failed.baseline.tables);expected.control.find(row=>row.key==='application').version++;assert.deepEqual(failed.tables,expected);}else assert.deepEqual(failed.tables,failed.baseline.tables);assert.equal(failed.catalog.length,61);
    assert.deepEqual(failed.native,failed.baseline.native);
-   phase=profile+':graceful';await browser.gracefulClose();await open(false);assert.equal((await proof()).catalog.length,129);await browser.close();
+   phase=profile+':graceful';await browser.gracefulClose();await open(false);assert.equal((await proof()).catalog.length,145);await browser.close();
    console.log('PASS startup '+fault+' leaves the old image/queue/cache intact; next independent start completes defaults');
   }
   profile='private-records';sourceRows=structuredClone(raw);
@@ -192,23 +192,23 @@ async function main(){
   privateRows.push({...model.labor.find(row=>row.id==='pdf_door_adjust'),active:false});
   privateRows.push({...privateRows.find(row=>row.id==='labor_body_h090'),id:'synthetic-custom-norm',name:'Synthetic custom norm',timeBlockHours:0.75});
   sourceRows.fc_quote_rates_v1=JSON.stringify(privateRows);
-  await open(true);let personal=await proof();assert.equal(personal.catalog.length,130);
+  await open(true);let personal=await proof();assert.equal(personal.catalog.length,146);
   for(const row of privateRows)assert.deepEqual(personal.catalog.find(r=>r.id===row.id),row);
   const stored=personal.rows.fc_quote_rates_v1;await browser.gracefulClose();await open(false);
-  personal=await proof();assert.equal(personal.rows.fc_quote_rates_v1,stored);assert.equal(new Set(personal.catalog.map(r=>r.id)).size,130);await browser.close();
+  personal=await proof();assert.equal(personal.rows.fc_quote_rates_v1,stored);assert.equal(new Set(personal.catalog.map(r=>r.id)).size,146);await browser.close();
   console.log('PASS private fractional rate, inactive defaults, private norm and 45-minute history remain exact and idempotent');
   }
-  // A deployed 128-row catalog gains only the new combined loading/unloading rule.
+  // A deployed 144-row catalog gains only the new combined loading/unloading rule.
   profile='existing-loading-catalog';sourceRows={...raw,fc_quote_rates_v1:JSON.stringify(model.labor.filter(row=>row.id!=='labor_delivery_loading')),fc_services_v1:null};
   await open(true);const loadingUpgrade=await proof(),loadingBaseline=await browser.evaluate('startupBaseline');
   const oldLoadingRows=JSON.parse(loadingBaseline.native.fc_quote_rates_v1),newLoadingRows=JSON.parse(loadingUpgrade.rows.fc_quote_rates_v1);
-  assert.equal(oldLoadingRows.length,128);assert.equal(newLoadingRows.length,129);
-  assert.deepEqual(newLoadingRows.slice(0,128),oldLoadingRows);
-  assert.deepEqual(newLoadingRows[128],model.labor.find(row=>row.id==='labor_delivery_loading'));
+  assert.equal(oldLoadingRows.length,144);assert.equal(newLoadingRows.length,145);
+  assert.deepEqual(newLoadingRows.slice(0,144),oldLoadingRows);
+  assert.deepEqual(newLoadingRows[144],model.labor.find(row=>row.id==='labor_delivery_loading'));
   for(const table of ['outbox','replicas','protected'])assert.deepEqual(loadingUpgrade.tables[table],loadingBaseline.tables[table]);
   assert.deepEqual(loadingUpgrade.native,loadingBaseline.native);assert.deepEqual(loadingUpgrade.ram,{unsaved:'KEEP_RAM',form:{width:62}});
   const upgradedRaw=loadingUpgrade.rows.fc_quote_rates_v1;await browser.gracefulClose();await open(false);assert.equal((await proof()).rows.fc_quote_rates_v1,upgradedRaw);await browser.close();
-  console.log('PASS existing 128-row catalog appends exactly one approved loading rule before use; prices, norms, native RAW/RAM and pending stores exact across cold restart');
+  console.log('PASS existing 144-row catalog appends exactly one approved loading rule before use; prices, norms, native RAW/RAM and pending stores exact across cold restart');
   // New scope metadata follows the actual form -> catalog -> native IDB transaction.
   profile='scope-metadata';sourceRows=structuredClone(raw);await open(true);
   assert.equal(await browser.evaluate(`(()=>{for(const [id,value]of [['laborBillingScope','room'],['laborDailyStages','assembly']]){const select=document.createElement('select');select.id=id;const option=document.createElement('option');option.value=value;select.append(option);select.value=value;document.body.append(select);}const draft=actualFormDraft();return draft.billingScope==='room'&&draft.dailyStages==='assembly';})()`),true);

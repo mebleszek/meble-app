@@ -52,9 +52,12 @@
   ];
 
   const HLTOP_TABLE = [
-    { model:'22L2200', khMin:300, khMax:340, wMin:0.8, wMax:5.6,  strength:'słaby' },
-    { model:'22L2500', khMin:340, khMax:390, wMin:1.1, wMax:7.5,  strength:'średni' },
-    { model:'22L2800', khMin:390, khMax:580, wMin:1.3, wMax:10.3, strength:'mocny' }
+    // Mechanism and arm are different components. Blum2024/2025,p.40:
+    // https://publications.blum.com/2024/catalogue/en/40/
+    { model:'22L2200', armModel:'22L3200', khMin:300, khMax:339, wMin:1.5, wMax:9, strength:'300–339 mm' },
+    { model:'22L2200', armModel:'22L3500', khMin:340, khMax:389, wMin:1.75, wMax:10, strength:'340–389 mm' },
+    { model:'22L2500', armModel:'22L3800', khMin:390, khMax:540, wMin:2, wMax:12.25, strength:'390–540 mm' },
+    { model:'22L2500', armModel:'22L3900', khMin:480, khMax:580, wMin:2.5, wMax:14, strength:'480–580 mm' }
   ];
 
   const MAX_FRONT_HEIGHT_BY_KIND_MM = {

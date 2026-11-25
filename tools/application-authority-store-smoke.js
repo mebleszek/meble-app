@@ -6,7 +6,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('nod
  const {planPricingFactoryAdditions}=await import('../sync/pricing-factory-additions.mjs');
  const factory=require('./helpers/code-global-catalogs').buildCodeCatalogs(),candidate=factory.model,contract=factory.context.FC.globalDataContract;
  const previous=structuredClone(candidate);previous.materials=previous.materials.filter(row=>!row.id.startsWith('m_drawer_bottom_'));
- previous.hardware=previous.hardware.filter(row=>!factory.context.FC.hardwareDrawerCatalog.specFor(row.id)&&!['hw_seed_gtv_hexa_96_black','hw_seed_blum_tipon_long_956a1004'].includes(row.id));
+ previous.hardware=previous.hardware.filter(row=>!factory.context.FC.hardwareDrawerCatalog.specFor(row.id)&&!row.id.startsWith('hw_bivert_axilo_')&&!row.id.startsWith('hw_bivert_camar806_')&&!row.id.startsWith('hw_bivert_blum_')&&!row.id.startsWith('hw_bivert_lift_')&&!row.id.startsWith('hw_schach_camar816_')&&!row.id.startsWith('hw_gral_lift_duo_')&&!row.id.startsWith('hw_stolmet_lift_duo_')&&!row.id.startsWith('hw_bivert_cargo_')&&!['hw_seed_gtv_hexa_96_black','hw_seed_blum_tipon_long_956a1004'].includes(row.id));
  previous.materials[0].price=333;previous.materials[0].priceUserEditedAt='2026-11-23';
  const additions=planPricingFactoryAdditions({current:previous,candidate,contract});assert.ok(additions);
  const server=await startLocalFirstServer(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'meble-authority-'));let browser;

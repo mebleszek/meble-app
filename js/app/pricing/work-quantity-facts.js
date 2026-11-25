@@ -485,7 +485,7 @@
         source = shelf.source + (adjustable ? '; 12 otworów/półkę' : '; 4 otwory/półkę');
       }else{
         const h = doorLaborFacts(roomId,cabinet,cache);
-        const values = {'hinge.drill_count':h.drill,'hinge.extra_drill_count':h.extra,'hinge.fitting_count':h.all*2,
+        const values = {'hinge.drill_count':h.drill,'hinge.extra_drill_count':h.extra,'hinge.fitting_count':FC.hardwareLiftCatalog?.hingeFittingCount(roomId,cabinet)??h.all*2,
           'hinge.door_hinge_count':h.doorHinges,'hinge.door_count':h.doorCount,'hinge.door_cycle_count':h.doorHinges+h.doorCount};
         value = h.available===false?null:values[code];
         if(!h.known && ['hinge.extra_drill_count','hinge.door_hinge_count','hinge.door_count','hinge.door_cycle_count'].includes(code)){
@@ -524,11 +524,9 @@
       for(const key of ['dishwasher','oven','microwave'])agd[key]=FACT_CALCULATORS['appliance.'+key+'.count'](roomId,cabinet,cache).value;
       agd.dishwasher_fronts=agd.dishwasher?frontCountFromParts(cache.frontParts || []) || frontCountFallback(cabinet):0;
       const workshop={hood:['okap','okap_podszafkowy','okap_teleskopowy'].includes(text(cabinet.subType))?1:0};
-      const kind=text(details(cabinet).flapKind),supported=text(cabinet.subType)==='uchylne'&&text(details(cabinet).flapVendor || 'blum')==='blum'&&['HK-XS','HK-S','HK_top'].includes(kind);
-      const info=supported?frontHardware().getBlumAventosInfo?.(cabinet,roomId):null,known=info&&info.kind===kind&&info.status==='ok'&&info.liftQty>0&&frontCountFromParts(cache.frontParts || [])===1;
-      const lift={hkxs:supported?(known?(kind==='HK-XS'?info.liftQty:0):null):0,hk_set:supported?(known?(kind==='HK-XS'?0:1):null):0,mechanisms:supported?(known?(kind==='HK-XS'?0:info.liftQty):null):0,fronts:supported?(known?(kind==='HK-XS'?0:1):null):0,force:supported?(known?1:null):0};
-      const drawer=code.startsWith('labor.drawer.'),value=drawer?(unknown?null:n[code.slice(13)]):code.startsWith('labor.agd.')?agd[code.slice(10)]:code.startsWith('labor.workshop.')?workshop[code.slice(15)]:code.startsWith('labor.lift.')?lift[code.slice(11)]:site[code.slice(11)];
-      return makeFact(code,value,{hasValue:value!=null,source:'centralne wymagania szafki i szuflad',warning:code.startsWith('labor.lift.')&&value==null?'STOP: brak potwierdzonego kompletu podnośników i jednego frontu.':drawer&&unknown?'STOP: brak jednoznacznego rodzaju szuflady, prowadnic lub frontu; zachowano dane bez zgadywania normy.':''});
+      const lift=cache.liftFacts||(cache.liftFacts=FC.hardwareLiftCatalog?.laborFacts(roomId,cabinet,frontCountFromParts(cache.frontParts || []))||{}),cargo=cache.cargoFacts||(cache.cargoFacts=FC.hardwareCargoCatalog?.laborFacts(roomId,cabinet)||{});
+      const drawer=code.startsWith('labor.drawer.'),value=drawer?(unknown?null:n[code.slice(13)]):code.startsWith('labor.agd.')?agd[code.slice(10)]:code.startsWith('labor.workshop.')?workshop[code.slice(15)]:code.startsWith('labor.lift.')?lift[code.slice(11)]:code.startsWith('labor.cargo.')?cargo[code.slice(12)]:site[code.slice(11)];
+      return makeFact(code,value,{hasValue:value!=null,source:'centralne wymagania szafki i szuflad',warning:/^labor\.(lift|cargo)\./.test(code)&&value==null?'STOP: brak potwierdzonego kompletu okuć lub frontów.':drawer&&unknown?'STOP: brak jednoznacznego rodzaju szuflady, prowadnic lub frontu; zachowano dane bez zgadywania normy.':''});
     };
   });
 
@@ -565,15 +563,15 @@
   function getCabinetFacts(roomId, cabinet){
     const derived = derivedWorkFacts(roomId, cabinet);
     if(Array.isArray(derived)) return derived;
-    const sources=getSourceList();
-    const cache = buildCache(roomId, cabinet || {});
-    return sources.map(source=>calculateFact(source,roomId,cabinet,cache));
+    const calculate=(room=roomId,cab=cabinet)=>{const sources=getSourceList(),cache=buildCache(room,cab||{});return sources.map(source=>calculateFact(source,room,cab,cache));};
+    return typeof roomId==='object'&&FC.workQuantityPrepared ? FC.workQuantityPrepared.read(roomId,cabinet,calculate) : calculate();
   }
   function getCabinetFact(roomId, cabinet, code){
     const key = text(code);
+    if(typeof roomId==='object'&&FC.workQuantityPrepared?.canPrepare(roomId,cabinet))return getCabinetFacts(roomId,cabinet).find(fact=>fact&&fact.code===key)||null;
     const derived=derivedWorkFacts(roomId,cabinet);
     if(Array.isArray(derived))return derived.find(fact=>fact&&fact.code===key)||null;
-    const source=getSourceList().find(row=>text(row&&row.code)===key);
+    const source=FC.workQuantitySources?.find ? FC.workQuantitySources.find(key) : getSourceList().find(row=>text(row&&row.code)===key);
     return source?calculateFact(source,roomId,cabinet,buildCache(roomId,cabinet||{})):null;
   }
   function buildCabinetFactMap(roomId, cabinet){

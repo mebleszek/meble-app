@@ -17,12 +17,32 @@
     try{ return FC.utils && typeof FC.utils.clone === 'function' ? FC.utils.clone(value) : JSON.parse(JSON.stringify(value)); }
     catch(_){ return JSON.parse(JSON.stringify(value || null)); }
   }
-  function getList(methodName, priceListKey){
+  let readSnapshot = null;
+  function readList(methodName, priceListKey){
     const store = catalogStore();
     if(!store) return [];
     if(typeof store[methodName] === 'function') return store[methodName]();
     if(typeof store.getPriceList === 'function') return store.getPriceList(priceListKey);
     return [];
+  }
+  function getList(methodName, priceListKey){
+    if(!readSnapshot) return readList(methodName, priceListKey);
+    if(!readSnapshot.has(methodName)) readSnapshot.set(methodName, {priceListKey, rows:clone(readList(methodName, priceListKey))});
+    return clone(readSnapshot.get(methodName).rows);
+  }
+  // Only a synchronous, read-only calculation may share normalized lists.
+  // Compare the full view again before returning; never cache across an await.
+  function withReadSnapshot(callback){
+    const parent = readSnapshot;
+    if(!parent) readSnapshot = new Map();
+    try{
+      const result = callback();
+      if(result && typeof result.then === 'function') throw Error('CATALOG_READ_ASYNC');
+      if(!parent) for(const [method, entry] of readSnapshot){
+        if(JSON.stringify(readList(method,entry.priceListKey)) !== JSON.stringify(entry.rows)) throw Error('CATALOG_READ_CONFLICT');
+      }
+      return result;
+    }finally{ readSnapshot = parent; }
   }
   function getSheetMaterials(){ return getList('getSheetMaterials', 'materials'); }
   function getAccessories(){ return getList('getAccessories', 'accessories'); }
@@ -80,6 +100,7 @@
   }
 
   FC.catalogSelectors = {
+    withReadSnapshot,
     normalizeKey,
     getSheetMaterials,
     getAccessories,

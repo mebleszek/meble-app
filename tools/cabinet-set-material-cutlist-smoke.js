@@ -21,7 +21,7 @@ function loadContext(){
     'js/app/cabinet/front-hardware-hinges.js',
     'js/app/cabinet/front-hardware.js',
     'js/app/cabinet/cabinet-hardware-requirement-options.js',
-    'js/app/cabinet/cabinet-hardware-requirements.js',
+    'js/app/catalog/hardware-support-catalog.js','js/app/catalog/hardware-lift-catalog.js','js/app/catalog/hardware-cargo-catalog.js','js/app/cabinet/cabinet-hardware-requirements.js',
     'js/app/cabinet/cabinet-cutlist.js'
   ].forEach((file)=> vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), ctx, { filename:file }));
   return ctx;

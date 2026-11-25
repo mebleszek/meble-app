@@ -64,7 +64,7 @@ test('Corrupt/missing/extra/foreign record, swapped reference and oversize refus
  const m=model();m.materials[0].note='ł'.repeat(65536);await assert.rejects(c.pack('synthetic-owner',m),code('GLOBAL_RECORD_TOO_LARGE'));
 });
 test('Native catalog/settings writers produce lossless supported records, without exporter normalization',async()=>{
- const r=runtime();for(const file of ['pricing/labor-catalog-definitions','pricing/labor-catalog','catalog/hardware-technical-params','catalog/hardware-catalog','catalog/hardware-catalog-seed-data','catalog/hardware-catalog-seeds','catalog/catalog-domain','catalog/catalog-migration','catalog/catalog-storage-policy','catalog/catalog-store','settings/program-defaults-store','settings/business-costs-store','settings/company-profile-store','material/magazyn'])r.load('js/app/'+file+'.js');
+ const r=runtime();for(const file of ['pricing/labor-catalog-definitions','pricing/labor-catalog','catalog/hardware-technical-params','catalog/hardware-catalog','catalog/hardware-support-catalog','catalog/hardware-lift-catalog','catalog/hardware-cargo-catalog','catalog/hardware-catalog-seed-data','catalog/hardware-catalog-seeds','catalog/catalog-domain','catalog/catalog-migration','catalog/catalog-storage-policy','catalog/catalog-store','settings/program-defaults-store','settings/business-costs-store','settings/company-profile-store','material/magazyn'])r.load('js/app/'+file+'.js');
  const FC=r.FC,c=FC.globalDataContract;
  FC.catalogStore.savePriceList('materials',model().materials);FC.programDefaults.write(model().programDefaults);FC.companyProfile.write(model().company);FC.businessCosts.write(model().businessCosts);FC.magazyn.upsertSheet(model().stock[0]);
  const domains=Object.keys(c.sources),before=[...r.rows],n=r.calls.length;
@@ -100,31 +100,33 @@ test('Large catalog staging keeps the first checkpoint, bounds Rules calls and r
  const r=runtime(),c=r.FC.globalDataContract,m=model();
  for(let i=0;i<24;i++)m.materials.push({...m.materials[0],id:'bounded-'+i});
  const packed=await c.pack('synthetic-owner',m);
- for(const interrupt of [false,true]){
-  const records=new Map();let active=0,peak=0,calls=0,maxWrites=0,fail=interrupt;
+ for(const lanes of [1,2])for(const interrupt of [false,true]){
+  const records=new Map();let active=0,peak=0,calls=0,maxWrites=0,fail=interrupt,failed=false,startsAfterFailure=0,forks=0;
   const snapshot=async ref=>({exists:()=>records.has(ref.path),data:()=>records.get(ref.path),metadata:{fromCache:false,hasPendingWrites:false}});
   const f={doc:(_db,...parts)=>({path:parts.join('/')}),getDocFromServer:snapshot,serverTimestamp:()=>({toMillis:()=>1}),async runTransaction(_db,operation){
    const writes=[],tx={get:snapshot,set:(ref,value)=>writes.push([ref.path,value])};
    const result=await operation(tx);
    if(writes.some(([key])=>key.includes('/globalRecords/'))){
-    const call=++calls;active++;peak=Math.max(peak,active);maxWrites=Math.max(maxWrites,writes.length);
-    try{await new Promise(resolve=>setTimeout(resolve,1));if(fail&&call===2)throw Object.assign(Error('synthetic staging failure'),{code:'unavailable'});}
+    const call=++calls;if(failed)startsAfterFailure++;active++;peak=Math.max(peak,active);maxWrites=Math.max(maxWrites,writes.length);
+    try{await new Promise(resolve=>setTimeout(resolve,1));if(fail&&call===2){failed=true;throw Object.assign(Error('synthetic staging failure'),{code:'unavailable'});}}
     finally{active--;}
    }
    for(const [key,value]of writes)records.set(key,value);return result;
   }};
-  const transport=r.FC.firebaseGlobalTransport.fromConnection({firestore:f,db:{},session:{identity:()=>({uid:'synthetic-owner',epoch:1})},assertAccess(){}});
+  const stage={firestore:f,db:{},session:{identity:()=>({uid:'synthetic-owner',epoch:1})},assertAccess(){}};
+  const transport=r.FC.firebaseGlobalTransport.fromConnection({firestore:f,db:{},session:{identity:()=>({uid:'synthetic-owner',epoch:1})},assertAccess(){},
+   ...(lanes===2?{createGlobalStagingConnection:async()=>{if(!forks++)assert.equal(calls,1,'The first three-record transaction must finish before opening another SDK queue');return stage;}}:{})});
   const prepared=await transport.prepare({model:m,expectedHead:null});assert.equal(prepared.ok,true,JSON.stringify(prepared));
   let result=await transport.publish(prepared.handle);
-  assert.equal(peak,1,'Staging stays sequential; the Web SDK serializes transactions');
+  assert.equal(peak,lanes,'One transaction per independent SDK queue, at most two queues');
   assert.equal(maxWrites,4,'At most four writes: five worst-case access calls each fit the20-call Rules budget');
   assert.equal(active,0,'All started transactions must settle before success or failure returns');
   if(interrupt){
-   assert.equal(result.ok,false);assert.equal(result.phase,'staging');assert.equal(calls,2,'The first three-record checkpoint remains unchanged; a failed transaction starts no later transaction');
+   assert.equal(result.ok,false);assert.equal(result.phase,'staging');assert.ok(calls>=2&&calls<=1+lanes,'Only the checkpoint and already-started wave may run');assert.equal(startsAfterFailure,0,'A failure must stop scheduling new transactions');
    assert.equal((await transport.readHead()).head,null);
    assert.equal([...records.keys()].some(key=>key.includes('/globalRevisions/')),false,'No partial revision or head may be published');
    for(const [key,value]of records)assert.deepEqual(value,packed.records.find(row=>key.endsWith('/'+row.hash)),'Only complete approved immutable records survive a failed wave');
-   fail=false;result=await transport.publish(prepared.handle);
+   fail=false;failed=false;result=await transport.publish(prepared.handle);
   }
   assert.equal(result.ok,true,JSON.stringify(result));
   assert.deepEqual(clone((await transport.read()).model),m);

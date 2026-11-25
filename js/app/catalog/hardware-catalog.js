@@ -17,6 +17,8 @@
     { id:'bimeb', name:'BIMEB', defaultDiscountPercent:0, active:true },
     { id:'rik', name:'RiK Akcesoria meblowe', defaultDiscountPercent:0, active:true },
     { id:'bivert', name:'Bivert', defaultDiscountPercent:0, active:true },
+    { id:'schachermayer', name:'Schachermayer Polska', defaultDiscountPercent:0, active:true },
+    { id:'stolmet', name:'Stolmet', defaultDiscountPercent:0, active:true },
     { id:'mago', name:'MAGO', defaultDiscountPercent:0, active:true },
     { id:'invoice', name:'Faktura / zakup ręczny', defaultDiscountPercent:0, active:true },
     { id:'local', name:'Hurtownia lokalna', defaultDiscountPercent:0, active:true },
@@ -126,7 +128,7 @@
     }
     return '';
   }
-  function normalizeTechnicalData(src){
+  function normalizeTechnicalData(src, describeTechnical){
     const row = src && typeof src === 'object' ? src : {};
     const tech = FC.hardwareTechnicalParams || null;
     const category = firstText(row.hardwareCategory, row.category, row.kategoria);
@@ -140,7 +142,7 @@
     const hardwareUsage = firstText(row.hardwareUsage, row.zastosowanie, row.usage);
     const technicalNote = firstText(row.technicalNote, row.uwagiTechniczne, row.uwagi_techniczne);
     const legacyBase = { drawerProfile, drawerLengthMm, drawerLoadKg, drawerReinforced:reinforcedRaw ? bool(reinforcedRaw) : false, hardwareColor, hardwareUsage, technicalNote };
-    const described=tech?.describeLegacyValues?.(Object.assign({},row,legacyBase),definitions,category);
+    const described=describeTechnical ? describeTechnical(Object.assign({},row,legacyBase),category) : tech?.describeLegacyValues?.(Object.assign({},row,legacyBase),definitions,category);
     const technicalParams = described ? described.technicalParams : tech && typeof tech.mergeLegacyValues === 'function'
       ? tech.mergeLegacyValues(Object.assign({}, row, legacyBase), definitions, category)
       : (row.technicalParams || {});
@@ -500,12 +502,12 @@
       defaultPricingMode:normalizePricingMode(src.defaultPricingMode),
     };
   }
-  function normalizeAccessory(row, uidFn, settings){
+  function normalizeAccessory(row, uidFn, settings, describeTechnical){
     const src = row && typeof row === 'object' ? row : {};
     const cfg = normalizeSettings(settings || {});
     const supplierList = normalizeSupplierList(Array.isArray(settings && settings.hardwareSuppliers) ? settings.hardwareSuppliers : (Array.isArray(settings && settings.suppliers) ? settings.suppliers : []));
     const uid = typeof uidFn === 'function' ? uidFn : ((prefix)=> `${prefix}_${Date.now()}`);
-    const techData = normalizeTechnicalData(Object.assign({}, src, { hardwareTechnicalParams:Array.isArray(src.hardwareTechnicalParams) ? src.hardwareTechnicalParams : (Array.isArray(settings && settings.hardwareTechnicalParams) ? settings.hardwareTechnicalParams : DEFAULT_TECHNICAL_PARAMS) }));
+    const techData = normalizeTechnicalData(Object.assign({}, src, { hardwareTechnicalParams:Array.isArray(src.hardwareTechnicalParams) ? src.hardwareTechnicalParams : (Array.isArray(settings && settings.hardwareTechnicalParams) ? settings.hardwareTechnicalParams : DEFAULT_TECHNICAL_PARAMS) }), Array.isArray(src.hardwareTechnicalParams) ? null : describeTechnical);
     const supplierPrices = normalizeSupplierPrices(src.supplierPrices, src, supplierList, cfg);
     const quoteSupplierPrice = getQuoteSupplierPrice(supplierPrices) || {};
     const supplierId = text(quoteSupplierPrice.supplierId || src.supplierId) || cfg.defaultSupplierId;

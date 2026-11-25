@@ -331,6 +331,27 @@
     seed({id:'hw_seed_gtv_hexa_96_black',manufacturer:'GTV',symbol:'UA-HEXA-96-20M',name:'Uchwyt HEXA 150 mm czarny mat',series:'HEXA',catalogPriceGross:5.71,purchasePriceGross:5.71,priceSource:'Bivert',priceUpdatedAt:'2026-11-23',note:'Domyślny HEXA: C=96 mm, L=150 mm, czarny mat. Źródło: https://bivert.pl/gtv-ua-hexa-96-20m-uchwyt-meblowy-hexa-c-96mm-l,3,2528,148506'}),
     seed({id:'hw_seed_blum_tipon_long_956a1004',manufacturer:'Blum',symbol:'956A1004 TIP-ON V1R736',name:'TIP-ON długi Blum 956A1004 szary',series:'TIP-ON',catalogPriceGross:17.9,purchasePriceGross:17.9,priceSource:'Bivert',priceUpdatedAt:'2026-11-23',note:'Do drzwi, wpuszczany, z magnesem. Nie zastępuje TIP-ON BLUMOTION do szuflad. Źródło: https://bivert.pl/blum-tip-on-odpychacz-dlugi-szary-956a1004,3,2503,13043'})
   );
+  const tipOnHinges=[
+    {sku:'71T3550+173L6100',key:'71t3550_173l6100',base:'hw_seed_blum_71b3550_173l6100',spring:true,set:true,price:6.35,url:'blum-zawias-uzupelniajacy-71t3550-clip-top-komplet,3,1213,122039'},
+    {sku:'70T3550',key:'70t3550',base:'hw_seed_blum_71b3550_173l6100',spring:false,price:5.62,url:'blum-zawias-nakladany-110-bez-sprezyny-70t3550-tl,3,1651,13065'},
+    {sku:'71T3750',key:'71t3750',base:'hw_seed_blum_71b3750_110_inset',spring:true,price:6.87,url:'blum-clip-top-zawias-standard-110-drzwi-wpuszcz,3,2420,12756'},
+    {sku:'70T3750',key:'70t3750',base:'hw_seed_blum_71b3750_110_inset',spring:false,price:6.63,url:'blum-clip-top-zawias-standard-110-drzwi-wpuszcz,3,2420,13072'},
+    {sku:'71T7550',key:'71t7550',base:'hw_seed_blum_71b7550_155_zero',spring:true,price:17.28,url:'blum-clip-top-zawias-z-zerowym-uskokiem-drzwi-nak,3,1312,113148'},
+    {sku:'70T7550',key:'70t7550',base:'hw_seed_blum_71b7550_155_zero',spring:false,price:17.62,url:'blum-clip-top-zawias-z-zerowym-uskokiem-155-drzw,3,1213,113225'}
+  ];
+  for(const row of tipOnHinges){
+    const base=ACCESSORY_SEEDS.find(item=>item.id===row.base);
+    ACCESSORY_SEEDS.push(seed({...base,id:'hw_bivert_blum_'+row.key,symbol:row.sku,series:'CLIP top',
+      name:'Zawias CLIP top '+(base.technicalParams.kat_rzeczywisty.from)+'° '+base.technicalParams.nalozenie.value+' '+(row.spring?'ze sprężyną':'bez sprężyny')+(row.set?' + prowadnik':''),
+      hardwareUnit:row.set?'kpl.':'szt.',catalogPriceGross:row.price,purchasePriceGross:row.price,priceUpdatedAt:'2026-11-25',
+      technicalParams:{...base.technicalParams,hamulec:{value:false},sprezyna:{value:row.spring},rola_kompletu:{value:row.set?'komplet zawiasowy':'zawias'},pokrycie_prowadnika:{value:row.set?'w komplecie':'osobno'}},
+      note:'Na wkręty, bez hamulca. '+(row.set?'Prowadnik w komplecie.':'Prowadnik liczony osobno z katalogu.')+' Źródło: https://bivert.pl/'+row.url}));
+  }
+  ACCESSORY_SEEDS.push(seed({id:'hw_bivert_blum_173l6100',manufacturer:'Blum',symbol:'173L6100',name:'Prowadnik CLIP krzyżakowy0 mm na wkręty',series:'CLIP top',
+    hardwareCategory:'Prowadniki',hardwareUnit:'szt.',catalogPriceGross:0.75,purchasePriceGross:0.75,priceUpdatedAt:'2026-11-25',
+    technicalParams:{rola_kompletu:{value:'prowadnik'},system_kompatybilnosci:{value:'CLIP top'},typ_prowadnika:{value:'standardowy'},forma_prowadnika:{value:'krzyżowy'}},
+    note:'Jedna sztuka prowadnika; nie dodawać do zawiasu sprzedawanego jako komplet z prowadnikiem. Źródło: https://bivert.pl/blum-clip-prowadnik-krzyzakowy-0-mm-stal-wkret,3,2432,12693'}));
+  ACCESSORY_SEEDS.push(...window.FC.hardwareSupportCatalog.seeds.concat(window.FC.hardwareLiftCatalog.seeds,window.FC.hardwareCargoCatalog.seeds).map(seed));
   window.FC.hardwareCatalogSeedData = {
     VERSION:'hardware_catalog_seed_v1',
     PRICE_DATE,

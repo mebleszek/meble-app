@@ -17,7 +17,11 @@ async function client(sub='synthetic-global-owner',options={}){
  const jwt=Buffer.from(JSON.stringify({sub,email:sub+'@example.invalid',email_verified:true})).toString('base64url');
  if(options.anonymous)await auth.signInAnonymously(handles.auth);else if(!options.signedOut)await auth.signInWithCredential(handles.auth,auth.GoogleAuthProvider.credential('e30.'+jwt+'.'));
  await handles.transport.ready();const uid=handles.auth.currentUser?.uid;let allowed=true;
- const connection={firestore:options.firestore||f,db:handles.db,session:handles.transport,assertAccess:()=>{if(!allowed)throw Error('lease revoked');}};
+ const connection={firestore:options.firestore||f,db:handles.db,auth:handles.auth,session:handles.transport,assertAccess:()=>{if(!allowed)throw Error('lease revoked');}};
+ if(options.pooled!==false&&!options.signedOut&&!options.anonymous){
+  let stagingTask;
+  connection.createGlobalStagingConnection=async()=>{connection.assertAccess();stagingTask??=client(sub,{pooled:false,firestore:options.firestore});const staging=await stagingTask;connection.assertAccess();staging.connection.assertAccess();return staging.connection;};
+ }
  const globals=options.signedOut||options.anonymous?null:r.FC.firebaseGlobalTransport.fromConnection(connection);
  return {r,...handles,uid,globals,connection,revoke(){allowed=false;}};
 }
@@ -30,8 +34,10 @@ before(async()=>{f.setLogLevel('silent');env=await initializeTestEnvironment({pr
 beforeEach(async()=>{await env.clearFirestore();});
 afterEach(async()=>{await Promise.all(clients.map(c=>c.close()));clients=[];});after(async()=>{await env?.cleanup();});
 test('14 domains: A publishes, independent B restores exact values/order/references; no local writes',async()=>{
- const a=await client(),b=await client();assert.equal(a.uid,b.uid);await grant(a.uid);const aRaw=a.r.rows(),bRaw=b.r.rows(),m=model();
- const out=await publish(a,m),read=await b.globals.read();assert.equal(read.ok,true,JSON.stringify(read));assert.deepEqual(read.model,m);assert.deepEqual(read.head,out.head);
+ const a=await client(),b=await client(),stage=await client();assert.equal(a.uid,b.uid);assert.equal(stage.uid,a.uid);await grant(a.uid);const aRaw=a.r.rows(),bRaw=b.r.rows(),stageRaw=stage.r.rows(),m=model();
+ const pooled=a.r.FC.firebaseGlobalTransport.fromConnection({...a.connection,createGlobalStagingConnection:async()=>stage.connection});
+ const out=await publish({...a,globals:pooled},m),read=await b.globals.read();assert.equal(read.ok,true,JSON.stringify(read));assert.deepEqual(read.model,m);assert.deepEqual(read.head,out.head);
+ await pooled.close();assert.deepEqual(stage.r.rows(),stageRaw);assert.deepEqual(stage.r.storage.calls,[]);
  assert.deepEqual(a.r.rows(),aRaw);assert.deepEqual(b.r.rows(),bRaw);assert.deepEqual(a.r.storage.calls,[]);assert.deepEqual(b.r.storage.calls,[]);
 });
 test('Interrupted three-record staging preserves the CAS head and reuses immutable records',async()=>{
@@ -41,10 +47,12 @@ test('Interrupted three-record staging preserves the CAS head and reuses immutab
  for(let i=0;i<6;i++)next.materials.push({...next.materials[0],id:'interrupted-'+i,name:'Interrupted '+i});
  const original=await documents(a.uid,'globalRecords');
  let staged=0;
- const transport=a.r.FC.firebaseGlobalTransport.fromConnection({...a.connection,firestore:{...f,async runTransaction(db,fn,opts){
+ const interruptedSdk={...f,async runTransaction(db,fn,opts){
   if(staged>=3)throw Object.assign(Error('synthetic interruption'),{code:'unavailable'});
   return f.runTransaction(db,tx=>fn({get:tx.get.bind(tx),set(ref,data){if(ref.path.includes('/globalRecords/'))staged++;return tx.set(ref,data);}}),opts);
- }}});
+ }};
+ const transport=a.r.FC.firebaseGlobalTransport.fromConnection({...a.connection,firestore:interruptedSdk,
+  createGlobalStagingConnection:async()=>({...await a.connection.createGlobalStagingConnection(),firestore:interruptedSdk})});
  const prepared=await transport.prepare({model:next,expectedHead:base});
  assert.ok(prepared.ok);
  const interrupted=await transport.publish(prepared.handle);
@@ -237,5 +245,33 @@ test('Deterministic Rules CAS denial is classified by fresh authorized head, nev
 test('Catalog larger than one bounded read batch roundtrips independently without losing order or records',async()=>{
  const a=await client(),b=await client();await grant(a.uid);const m=model();
  for(let i=0;i<65;i++)m.materials.push({id:'synthetic-material-'+i,name:'Synthetic material '+i,materialType:'laminat',price:i+1,priceUnit:'sheet'});
- await publish(a,m);const out=await b.globals.read();assert.equal(out.ok,true,JSON.stringify(out));assert.deepEqual(out.model,m);
+ const initial=await publish(a,m);let reading=0,peakReads=0,recordReads=0;
+ const readSdk={...f,async getDocFromServer(target){
+  if(!target.path.includes('/globalRecords/'))return f.getDocFromServer(target);
+  recordReads++;reading++;peakReads=Math.max(peakReads,reading);
+  try{return await f.getDocFromServer(target);}finally{reading--;}
+ }};
+ const reader=b.r.FC.firebaseGlobalTransport.fromConnection({...b.connection,firestore:readSdk});
+ const out=await reader.read();assert.equal(out.ok,true,JSON.stringify(out));assert.deepEqual(out.model,m);
+ assert.equal(recordReads,initial.head.recordCount);assert.ok(peakReads>1&&peakReads<=32,'Immutable reads overlap within the existing bounded batch');assert.equal(reading,0);
+ let smallRecordReads=0;
+ const measured={...f,runTransaction(db,fn,options){return f.runTransaction(db,async tx=>{
+  let records=0;
+  const value=await fn(new Proxy(tx,{get(target,key){if(key==='get')return ref=>{if(ref.path.includes('/globalRecords/'))records++;return target.get(ref);};const method=target[key];return typeof method==='function'?method.bind(target):method;}}));
+  if(records>0&&records<=4)smallRecordReads+=records;return value;
+ },options);}};
+ const changed=clone(m);changed.materials[0].price+=1;
+ const globals=a.r.FC.firebaseGlobalTransport.fromConnection({...a.connection,firestore:measured,createGlobalStagingConnection:async()=>({...await a.connection.createGlobalStagingConnection(),firestore:measured})});
+ const publication=await publish({...a,globals},changed,initial.head);
+ assert.equal(smallRecordReads,1,'Only the changed record needs staging; confirmed immutable base records still receive full final verification');
+ assert.deepEqual((await b.globals.read()).model,changed);
+ const next=clone(changed);next.materials[0].price+=1;
+ const pending=await globals.prepare({model:next,expectedHead:publication.head});assert.ok(pending.ok);
+ const packed=await a.r.FC.globalDataContract.pack(a.uid,changed),reused=packed.records.find(row=>row.domain==='materials'&&row.recordId==='synthetic-material-0');
+ await env.withSecurityRulesDisabled(ctx=>f.setDoc(ref(ctx.firestore(),a.uid,'globalRecords/'+reused.hash),{...reused,json:reused.json+' ',byteLength:reused.byteLength+1}));
+ const refused=await globals.publish(pending.handle);assert.equal(refused.ok,false);assert.equal(refused.code,'GLOBAL_INTEGRITY_INVALID');
+ assert.deepEqual((await b.globals.readHead()).head,publication.head,'Corrupt reused data prevents any head publication');
+ await env.withSecurityRulesDisabled(ctx=>f.setDoc(ref(ctx.firestore(),a.uid,'globalRecords/'+reused.hash),reused));
+ assert.equal((await globals.publish(pending.handle)).ok,true,'After repair the same prepared publication resumes without duplicating a revision');
+ assert.deepEqual((await b.globals.read()).model,next);
 });

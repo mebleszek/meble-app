@@ -22,14 +22,14 @@ function loadContext(){
     wycenaCoreOffer:{ collectQuoteRateLines(){ return []; } },
     wycenaCoreSelection:{ normalizeQuoteSelection(v){ return v || {}; }, decodeSelectedRooms(){ return ['kuchnia']; }, decodeMaterialScope(){ return { kind:'all' }; } }
   };
-  const ctx = { window:{ FC, localStorage:storage }, FC, localStorage:storage, console, document:{ getElementById(){ return null; } } };
+  const ctx = { window:{ FC, localStorage:storage, projectData:{kuchnia:{settings:{legHeight:10}}} }, FC, localStorage:storage, console, document:{ getElementById(){ return null; } } };
   ctx.globalThis = ctx.window;
   vm.createContext(ctx);
   [
     'js/app/shared/storage.js',
-    'js/app/catalog/hardware-technical-params.js',
+    'js/app/catalog/hardware-technical-read-snapshot.js','js/app/catalog/hardware-technical-params.js',
     'js/app/catalog/hardware-catalog.js',
-    'js/app/catalog/hardware-catalog-seed-data.js',
+    'js/app/catalog/hardware-support-catalog.js','js/app/catalog/hardware-lift-catalog.js','js/app/catalog/hardware-cargo-catalog.js','js/app/catalog/hardware-catalog-seed-data.js',
     'js/app/catalog/hardware-catalog-seeds.js',
     'js/app/catalog/catalog-store.js',
     'js/app/cabinet/cabinet-hardware-requirement-options.js',
@@ -63,7 +63,10 @@ accessories.push({
 store.savePriceList('accessories', accessories);
 const cab = { id:'cab-components', type:'stojąca', subType:'standard', width:60, height:82, depth:51, frontCount:2, frontMaterial:'laminat', details:{} };
 FC.wycenaCoreSource.selectedCabinets = function(){ return [{ roomId:'kuchnia', roomLabel:'S', cabinet:cab }]; };
+let definitionReads=0;const definitionsRead=store.getHardwareTechnicalParams;
+store.getHardwareTechnicalParams=function(...args){definitionReads++;return definitionsRead.apply(this,args);};
 const lines = FC.wycenaCoreLines.collectAccessories(['kuchnia']);
+assert(definitionReads===1,'One detached technical-definition snapshot per accessory collection, not one per candidate',{definitionReads});
 const symbols = lines.map((row)=> row.resolvedHardwareSymbol).sort();
 assert(symbols.includes('GTV-H107'), 'WYCENA ma dobrać osobny zawias GTV 107° jako składnik kompletu', lines);
 assert(symbols.includes('GTV-P-ST-K'), 'WYCENA ma dobrać osobny prowadnik GTV po producencie, systemie, typie i formie', lines);
@@ -71,5 +74,30 @@ const hinge = lines.find((row)=> row.resolvedHardwareSymbol === 'GTV-H107');
 const plate = lines.find((row)=> row.resolvedHardwareSymbol === 'GTV-P-ST-K');
 assert(hinge && hinge.qty === 4, 'osobny zawias ma mieć tę samą liczbę sztuk co komplety zawiasowe', hinge);
 assert(plate && plate.qty === 4, 'osobny prowadnik ma mieć tę samą liczbę sztuk co komplety zawiasowe', plate);
-assert(Math.abs(lines.reduce((sum, row)=> sum + Number(row.total || 0), 0) - 31.2) < 0.001, 'łączny koszt składanego kompletu powinien wynosić 4×6 + 4×1.8 po domyślnym narzucie testowym', lines);
+const foot=lines.find(row=>row.hardwareRequirement?.kind==='leg');
+assert(foot?.qty===4&&foot.resolvedHardwareItemId==='hw_bivert_axilo_100'&&Math.abs(foot.total-21.6)<0.001,'cztery kompletne nóżki AXILO100 są odrębnym kosztem, 4×5.40 po narzucie',foot);
+assert(Math.abs(lines.reduce((sum, row)=> sum + Number(row.total || 0), 0) - (31.2+21.6)) < 0.001, 'łączny koszt obejmuje 4×6 + 4×1.8 zawiasów/prowadników oraz 4×5.40 nóżek', lines);
+const tech=FC.hardwareTechnicalParams,createRead=tech.createReadSnapshot;
+try{
+  tech.createReadSnapshot=undefined;
+  assert(JSON.stringify(FC.wycenaCoreLines.collectAccessories(['kuchnia']))===JSON.stringify(lines),'Prepared comparison preserves every ordinary price, quantity, warning and selected component');
+}finally{tech.createReadSnapshot=createRead;}
+const defs=store.getHardwareTechnicalParams(),snapshot=tech.createReadSnapshot(defs);
+const representatives=[...new Map(store.getAccessories().map(row=>[row.hardwareCategory,row])).values(),{hardwareCategory:'Zawiasy',technicalParams:{hamulec:{value:false},kat_rzeczywisty:{from:0,to:''}}},{hardwareCategory:'Prowadniki',technicalParams:{system_kompatybilnosci:{value:'unknown'}}}];
+for(const row of representatives){
+  const category=row.hardwareCategory,params=row.technicalParams||{};
+  assert(JSON.stringify(snapshot.normalize(params,category))===JSON.stringify(tech.normalizeParamValues(params,defs,category)),'Prepared parameter normalization preserves '+category);
+  assert(JSON.stringify(snapshot.describe(row,category))===JSON.stringify(tech.describeLegacyValues(row,defs,category)),'Prepared legacy description preserves '+category);
+  assert(JSON.stringify(snapshot.status(row))===JSON.stringify(tech.evaluateItemTechnicalStatus(row,defs)),'Prepared required-field validation preserves '+category);
+}
+const originalLabel=snapshot.definitions()[0].label;defs[0].label='Changed after snapshot';
+assert(snapshot.definitions()[0].label===originalLabel,'Source edits cannot mutate an existing detached snapshot');
+assert(tech.createReadSnapshot(defs).definitions()[0].label==='Changed after snapshot','The next calculation sees edited definitions');
+const fields=snapshot.fields('Zawiasy'),label=fields[0].label;fields[0].label='Changed reader output';
+assert(snapshot.fields('Zawiasy')[0].label===label,'A caller cannot mutate cached fields');
+const selectedCabinets=FC.wycenaCoreSource.selectedCabinets;let refused=false;
+try{FC.wycenaCoreSource.selectedCabinets=()=>{throw Error('comparison-probe');};FC.wycenaCoreLines.collectAccessories(['kuchnia']);}catch(error){refused=error.message==='comparison-probe';}finally{FC.wycenaCoreSource.selectedCabinets=selectedCabinets;}
+assert(refused,'A failed read propagates its original exception');definitionReads=0;
+assert(JSON.stringify(FC.wycenaCoreLines.collectAccessories(['kuchnia']))===JSON.stringify(lines),'The next calculation remains complete after an exception');
+assert(definitionReads===1,'No comparison snapshot survives the failed collection',{definitionReads});
 console.log('OK hinge-driver-components smoke');

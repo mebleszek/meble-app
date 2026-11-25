@@ -6,7 +6,12 @@ export function createGlobalChannel({writer,reader,ownerUid,contract,factory,sto
   const a=assertGlobalConnection(writer),b=assertGlobalConnection(reader);
   if(a.uid!==ownerUid||b.uid!==ownerUid||writer.db.app===reader.db.app)fail('LF_INDEPENDENT_OWNER_REQUIRED');
   const guard=()=>{if(!equal(assertGlobalConnection(writer),a)||!equal(assertGlobalConnection(reader),b))fail('LF_AUTH_CHANGED');};
-  const outbound=factory.fromConnection({...writer,assertAccess(){guard();writer.assertAccess();}}),inbound=factory.fromConnection({...reader,assertAccess(){guard();reader.assertAccess();}});
+  const createGlobalStagingConnection=writer.createGlobalStagingConnection?async()=>{
+    guard();const connection=await writer.createGlobalStagingConnection();guard();
+    if(assertGlobalConnection(connection).uid!==ownerUid)fail('LF_AUTH_CHANGED');
+    return {...connection,assertAccess(){guard();assertGlobalConnection(connection);connection.assertAccess();}};
+  }:undefined;
+  const outbound=factory.fromConnection({...writer,createGlobalStagingConnection,assertAccess(){guard();writer.assertAccess();}}),inbound=factory.fromConnection({...reader,assertAccess(){guard();reader.assertAccess();}});
   const revisions=new Map();
   const key=pin=>pin.revisionId+':'+pin.directoryHash;
   function remember(pin,request){

@@ -10,8 +10,8 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const modules = [
   'js/app/shared/utils.js', 'js/app/shared/constants.js', 'js/app/shared/storage.js',
   'js/app/settings/program-defaults-store.js', 'js/app/settings/company-profile-store.js',
-  'js/app/settings/business-costs-store.js', 'js/app/catalog/hardware-technical-params.js',
-  'js/app/catalog/hardware-catalog.js', 'js/app/catalog/hardware-catalog-seed-data.js',
+  'js/app/settings/business-costs-store.js', 'js/app/catalog/hardware-technical-read-snapshot.js','js/app/catalog/hardware-technical-params.js',
+  'js/app/catalog/hardware-catalog.js', 'js/app/catalog/hardware-support-catalog.js','js/app/catalog/hardware-lift-catalog.js','js/app/catalog/hardware-cargo-catalog.js','js/app/catalog/hardware-catalog-seed-data.js',
   'js/app/catalog/hardware-catalog-seeds.js', 'js/app/catalog/catalog-domain.js',
   'js/app/catalog/catalog-migration.js', 'js/app/catalog/catalog-storage-policy.js',
   'js/app/pricing/labor-catalog-definitions.js', 'js/app/pricing/labor-catalog.js',

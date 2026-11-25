@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 export async function observeQuoteReads(page){
  await page.evaluate(()=>{
   const fc=window.FC,api=fc.projectPcvOverrides,read=api.withCalculationRead,context=fc.roomQuoteSources.context;
-  const events=window.normalQuoteReadBudget={reads:[],startedAt:performance.now(),prepared:false,normalization:{records:0,max:0}};let active=null;
+  const events=window.normalQuoteReadBudget={reads:[],startedAt:performance.now(),prepared:false,normalization:{records:0,max:0},quantitiesBefore:fc.workQuantityPrepared?.inspect()};let active=null;
   const run=fc.roomQuoteAccess.run;
   fc.roomQuoteAccess.run=function(...args){
    const button=document.querySelector('[data-action="wycena-generate"]');
@@ -30,11 +30,13 @@ export async function observeQuoteReads(page){
 }
 export async function assertQuoteReadBudget(page,t){
  await page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending&&!window.FC.roomQuoteAccess.busy());
- const result=await page.evaluate(()=>{const button=document.querySelector('[data-action="wycena-generate"]');return {...window.normalQuoteReadBudget,button:{text:button?.textContent,disabled:button?.disabled},elapsedMs:performance.now()-window.normalQuoteReadBudget.startedAt};});
+ const result=await page.evaluate(()=>{const button=document.querySelector('[data-action="wycena-generate"]');return {...window.normalQuoteReadBudget,quantitiesAfter:window.FC.workQuantityPrepared?.inspect(),button:{text:button?.textContent,disabled:button?.disabled},elapsedMs:performance.now()-window.normalQuoteReadBudget.startedAt};});
  assert.equal(result.button.text,'Wyceń');assert.equal(result.button.disabled,false,'Completion restores the real current button after rerenders');
  assert.equal(result.prepared,true,'Existing busy feedback precedes synchronization/source preparation');
  assert.ok(result.normalization.records>0,'The real flow normalizes project records');assert.equal(result.normalization.max,1,'A project record is normalized once, not three times for a summary');
  assert.ok(result.reads.some(row=>row.rooms===2),'The real quote must verify both independent rooms');
  for(const row of result.reads)assert.equal(row.count,row.rooms,'A synchronous calculation must verify each room exactly once, without repeated full normalization');
+ assert.ok(result.quantitiesAfter.hits>result.quantitiesBefore.hits,'The actual admitted catalog/room runtime must reuse prepared quantities, not only a minimal fixture');
+ assert.ok(result.quantitiesAfter.entries<=result.quantitiesAfter.limit,'Prepared quantities stay bounded in the real runtime');
  t.diagnostic('Three-cabinet kitchen + independent wardrobe: '+JSON.stringify(result));
 }

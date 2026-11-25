@@ -22,7 +22,7 @@
     { category:'Zawiasy', key:'system_kompatybilnosci', label:'System kompatybilności', fieldType:'text', unit:'', options:['CLIP top','MODUL','GTV clip-on','GTV euro','uniwersalny euro'], keyFeature:true, typePart:false, compareMode:'equal', order:8, active:true },
     { category:'Zawiasy', key:'nalozenie', label:'Nałożenie', fieldType:'text', unit:'', options:['nakładany','półnakładany / bliźniaczy','wpuszczany','równoległy wpuszczany','lodówkowy nakładany'], keyFeature:true, typePart:true, compareMode:'equal', order:10, active:true },
     { category:'Zawiasy', key:'kat_rzeczywisty', label:'Kąt rzeczywisty / nominalny', fieldType:'numberRange', unit:'°', options:[], keyFeature:false, typePart:true, compareMode:'ignore', order:20, active:true, legacyField:'kat_otwarcia' },
-    { category:'Zawiasy', key:'klasa_kata', label:'Klasa / zakres zamienności kąta', fieldType:'text', unit:'', options:['standardowy 90–120°','zerowy uskok 155°','narożny 170°','równoległy wpuszczany 95°','lodówkowy 95°'], keyFeature:true, typePart:true, compareMode:'equal', order:25, active:true },
+    { category:'Zawiasy', key:'klasa_kata', label:'Klasa / zakres zamienności kąta', fieldType:'text', unit:'', options:['standardowy 90–120°','zerowy uskok 155°','narożny 170°','równoległy wpuszczany 95°','lodówkowy 95°','AVENTOS HF środkowy134°'], keyFeature:true, typePart:true, compareMode:'equal', order:25, active:true },
     { category:'Zawiasy', key:'hamulec', label:'Hamulec / domyk', fieldType:'boolean', unit:'', options:[], keyFeature:true, typePart:true, compareMode:'equal', order:30, active:true },
     { category:'Zawiasy', key:'sprezyna', label:'Sprężyna', fieldType:'boolean', unit:'', options:[], keyFeature:true, typePart:false, compareMode:'equal', order:40, active:true },
     { category:'Zawiasy', key:'typ_prowadnika', label:'Wymagany typ prowadnika', fieldType:'text', unit:'', options:['standardowy','podwyższony 3','lodówkowy','specjalny'], keyFeature:true, typePart:false, compareMode:'equal', order:50, active:true, legacyField:'prowadnik' },
@@ -461,12 +461,11 @@
   // One explicit, detached definition snapshot for a synchronous catalogue build.
   // This stores no owner data and does not cache across builds or authority checks.
   function createLegacyDescriber(definitions){
-    const snapshot=clone(definitions||DEFAULT_DEFINITIONS),byCategory=new Map();
-    return (src,category)=>{
-      const key=text(category);
-      if(!byCategory.has(key))byCategory.set(key,fieldsForCategory(snapshot,key));
-      return describeLegacyFields(src,byCategory.get(key),key);
-    };
+    return createReadSnapshot(definitions).describe;
+  }
+  function createReadSnapshot(definitions){
+    return FC.hardwareTechnicalReadSnapshot.create({clone,text,fieldsForCategory,normalizeValuesForFields,
+      describeLegacyFields,statusWithFields,requiredFromFields},definitions||DEFAULT_DEFINITIONS);
   }
   function mergeLegacyValues(src, definitions, category){
     const row = src && typeof src === 'object' ? src : {};
@@ -520,8 +519,11 @@
     return text(val.value) !== '';
   }
   function requiredFieldsForTechnicalStatus(definitions, category){
+    return requiredFromFields(fieldsForCategory(definitions, category),category);
+  }
+  function requiredFromFields(fields, category){
     const catKey = safeKey(category);
-    return fieldsForCategory(definitions, category).filter((field)=>{
+    return fields.filter((field)=>{
       if(!field || field.active === false) return false;
       if(catKey === 'zawiasy' && field.key === 'kat_rzeczywisty') return true;
       if(catKey === 'zawiasy' && field.key === 'pokrycie_prowadnika') return true;
@@ -534,8 +536,10 @@
     const category = text(row.hardwareCategory || row.category || row.kategoria || '');
     const defs = definitions && Array.isArray(definitions) ? definitions : DEFAULT_DEFINITIONS;
     const fields = requiredFieldsForTechnicalStatus(defs, category);
+    return statusWithFields(row,category,fields);
+  }
+  function statusWithFields(row,category,fields){
     const explicit = row.technicalParams && typeof row.technicalParams === 'object' ? row.technicalParams : {};
-    const normalized = mergeLegacyValues(row, defs, category || 'Inne');
     const missing = [];
     let filled = 0;
     fields.forEach((field)=>{
@@ -576,7 +580,7 @@
     buildTypeLabel,
     buildTechnicalName:buildTypeLabel,
     legacyParamValues,
-    mergeLegacyValues,describeLegacyValues,createLegacyDescriber,
+    mergeLegacyValues,describeLegacyValues,createLegacyDescriber,createReadSnapshot,
     applyLegacyFieldsFromParams,
     compareParam,
     technicalSignature,

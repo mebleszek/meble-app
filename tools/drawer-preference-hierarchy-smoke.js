@@ -34,7 +34,7 @@ function runtime(seed){
       async openRozrysChoiceOverlay(cfg){choices.push(cfg);return picks.shift() ?? null;}}
   };
   vm.createContext(s);
-  for(const file of ['js/app/catalog/hardware-technical-params.js','js/app/settings/program-defaults-store.js','js/app/room-preferences/room-preferences-model.js',
+  for(const file of ['js/app/catalog/hardware-technical-read-snapshot.js','js/app/catalog/hardware-technical-params.js','js/app/settings/program-defaults-store.js','js/app/room-preferences/room-preferences-model.js',
     'js/app/cabinet/cabinet-drawer-requirements.js','js/app/cabinet/cabinet-modal-module.js','js/app/cabinet/cabinet-modal-standing-specials.js','js/app/ui/data-settings-dom.js','js/app/ui/data-settings-defaults-view.js',
     'js/app/ui/wywiad-room-accordion-actions.js','js/app/ui/wywiad-room-preferences.js','js/app/ui/wywiad-room-hardware-producers.js']){
     vm.runInContext(fs.readFileSync(path.join(ROOT,file),'utf8'),s,{filename:file});

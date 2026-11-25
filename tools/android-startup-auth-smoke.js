@@ -15,7 +15,7 @@ function connectionSdk(w,trustedUid='synthetic-phone-owner'){
   if(!options.appName?.startsWith('meble-sync-'))return create(options);
   const auth={currentUser:options.sessionOnly?null:{uid:trustedUid,providerData:[{providerId:'google.com'}]},emulatorConfig:{host:'127.0.0.1',port:19099,protocol:'http'}},app={options:options.firebaseConfig,auth};auth.app=app;apps.set(options.appName,app);
   const identity=()=>{if(!auth.currentUser)throw Error('AUTH_SESSION_UNCONFIRMED');return {uid:auth.currentUser.uid,epoch:1};};
-  return {identity,verificationContext:()=>({app,auth,target:options.target,emulator:options.emulator}),
+  return {identity,verificationContext:()=>{identity();return {app,auth,target:options.target,emulator:options.emulator};},
    subscribe(fn){const id=identity();fn({status:'authenticated',...id});return()=>{};},async signOut(){auth.currentUser=null;},async close(){}};
  };
  return sdk;
@@ -111,11 +111,19 @@ async function main(){
  }finally{renewed.close();}
  const duplicate=desktop(connect);try{await begin(duplicate);const a=duplicate.w.startupAuth.verificationContext().auth;for(const fn of a.listeners)fn(a.currentUser);await until(()=>duplicate.attempts===2);duplicate.release();await until(()=>duplicate.ready());assert.equal(duplicate.calls.runtime,1);assert.equal(duplicate.calls.connections,1);assert.equal(duplicate.authCreates,1);}finally{duplicate.close();}
  console.log('PASS a renewed same-owner lease survives delayed loading without extending policy, second popup or duplicate startup');
- const phone=world();await phone.login();await phone.trust();let release,calls;
+ const phone=world();await phone.login();await phone.trust();let release,calls,stagingConnections;
  const trusted=world(phone.shared,null,{realAuth:true,beforeMain(w){w.FC_AUTH_TEST_OPTIONS={firebaseConfig:{apiKey:'demo',projectId:'demo-meble-app',appId:'demo',authDomain:'demo.invalid'},target:'emulator',emulator:{host:'127.0.0.1',port:19099,firestorePort:18080},sdk:w.FC_AUTH_TEST_OPTIONS.sdk};
-  const sdk=connectionSdk(w,'owner');calls=startup(w,input=>connect({window:w,...input,sdk}));w.FC.mainBusinessLoader={create:()=>({start:()=>new Promise(resolve=>{release=resolve;}),abort(){throw Error('TRUSTED_LOADING_ABORTED');}})};
+  const sdk=connectionSdk(w,'owner');calls=startup(w,async input=>{stagingConnections=await connect({window:w,...input,sdk});return stagingConnections;});w.FC.mainBusinessLoader={create:()=>({start:()=>new Promise(resolve=>{release=resolve;}),abort(){throw Error('TRUSTED_LOADING_ABORTED');}})};
  }});
  try{await until(()=>release);trusted.advance(46000);release();await until(()=>trusted.ready());assert.deepEqual(calls.context,{context:false,identity:false,lease:false,mode:'trusted'});assert.equal(calls.runtime,1);assert.equal(trusted.logins,0);
+  const before=[...trusted.shared.rows],{assertGlobalConnection}=await import('../sync/firebase-activation.mjs');
+  const [a,b]=await Promise.all([stagingConnections.writer.createGlobalStagingConnection(),stagingConnections.writer.createGlobalStagingConnection()]);
+  assert.equal(a,b,'Concurrent publishers reuse one memory-only staging connection');
+  assert.notEqual(a.db,stagingConnections.writer.db);assert.notEqual(a.db,stagingConnections.reader.db);assert.notEqual(a.auth,stagingConnections.writer.auth);
+  assert.equal(assertGlobalConnection(a).uid,'owner');assert.equal(trusted.logins,0,'No new Google popup for the staging SDK');
+  assert.deepEqual([...trusted.shared.rows],before,'No RAW, catalog, profile or outbox writes while preparing a staging connection');
+  await stagingConnections.retire();assert.throws(()=>a.assertAccess(),/CLOSED|AUTH_CHANGED|UNCONFIRMED/);
+  await assert.rejects(async()=>stagingConnections.writer.createGlobalStagingConnection(),/CLOSED|AUTH_CHANGED|UNCONFIRMED/);
  }finally{trusted.close();}
  let foreignCalls;const foreign=world(phone.shared,null,{realAuth:true,beforeMain(w){const sdk=connectionSdk(w,'foreign-owner');foreignCalls=startup(w,input=>connect({window:w,...input,sdk}));}});
  try{await until(()=>foreign.w.FC.applicationStartup.diagnostics().firstError);assert.equal(foreign.w.FC.applicationStartup.diagnostics().firstError.code,'LF_SYNC_AUTH_OWNER_MISMATCH');assert.equal(foreign.ready(),false);assert.equal(foreignCalls.runtime,0);assert.equal(foreign.logins,0);}

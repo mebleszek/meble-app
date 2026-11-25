@@ -1,6 +1,6 @@
 // Reuse Google SDK sessions, never extract or store provider tokens ourselves.
 import {createApplicationSyncGrant} from './application-sync-grant.mjs';
-import {authorizeApplicationSession} from './firebase-activation.mjs';
+import {authorizeApplicationSession,authorizeGlobalStagingConnection,assertGlobalConnection} from './firebase-activation.mjs';
 import {fail} from './local-first-values.mjs';
 const trustedSessions=new WeakMap();
 export async function createApplicationConnections({window:w,authSession,lease,renewLease,sdk,localAccess,release}){
@@ -64,13 +64,46 @@ export async function createApplicationConnections({window:w,authSession,lease,r
   const guard=()=>{quota?.assert();syncGrant?.assert();w.__FC_MAIN_ACCESS__.assert();localAccess?.assert();currentLease.assert();
    if(session.identity().uid!==identity.uid||session.identity().epoch!==identity.epoch)fail('LF_AUTH_CHANGED');};
   const leaseView={uid:identity.uid,assert:()=>currentLease.assert(),isValid:()=>currentLease.isValid()};
+  let stageTask=null,stageConnection=null,stagePermit=null,stageClosed=false;
+  async function closeStage(){
+   stageClosed=true;stagePermit?.revoke();
+   await stageTask?.catch(()=>{});stagePermit?.revoke();
+   const current=stageConnection;stageConnection=null;
+   if(current)try{await f.terminate(current.db);}finally{await current.session.close();}
+  }
   const result={writer:{db:writerDb,auth:ctx.auth,session,lease:leaseView,firestore:f,assertAccess:guard,quota},
    reader:{db:readerDb,auth:readerAuth,session:secondary,lease:leaseView,firestore:f,assertAccess:guard},
    // On logout revoke the independent persisted SDK login too. Local IDB/outbox
    // is retained; an already-submitted RPC can still have an uncertain outcome.
-   async logout(){permit?.revoke();syncGrant?.close();gate?.close();if(ownWriter)await session.signOut();await secondary.signOut();},
-   async retire(){permit?.revoke();syncGrant?.close();await f.terminate(readerDb);await secondary.close();},
-   async close(){permit?.revoke();syncGrant?.close();gate?.close();await verifier?.close();await f.terminate(readerDb);await secondary.close();if(ownWriter){await f.terminate(writerDb);await session.close();}}};
+   async logout(){permit?.revoke();syncGrant?.close();gate?.close();try{await closeStage();}finally{if(ownWriter)await session.signOut();await secondary.signOut();}},
+   async retire(){permit?.revoke();syncGrant?.close();try{await closeStage();}finally{await f.terminate(readerDb);await secondary.close();}},
+   async close(){permit?.revoke();syncGrant?.close();gate?.close();try{await closeStage();}finally{await verifier?.close();await f.terminate(readerDb);await secondary.close();if(ownWriter){await f.terminate(writerDb);await session.close();}}}};
+  // One extra, memory-only SDK queue for immutable global fragments. The
+  // independent reader remains read-only; no provider token is extracted.
+  result.writer.createGlobalStagingConnection=()=>{
+   assertGlobalConnection(result.writer);if(stageClosed)fail('LF_APPLICATION_CLOSED');
+   if(stageTask)return stageTask;
+   stageTask=(async()=>{
+    let stageSession,stageDb;
+    try{
+     const stageName='meble-sync-global-stage-'+crypto.randomUUID();
+     stageSession=await fc.cloudAuth.create({target:ctx.target,appName:stageName,firebaseConfig:{...ctx.app.options},emulator:ctx.emulator,sessionOnly:true,sdk});
+     guard();if(stageClosed)fail('LF_APPLICATION_CLOSED');
+     const stageApp=sdk.app.getApp(stageName),stageAuth=sdk.auth.getAuth(stageApp);
+     await sdk.auth.updateCurrentUser(stageAuth,ctx.auth.currentUser);
+     guard();if(stageClosed)fail('LF_APPLICATION_CLOSED');
+     const stageContext=stageSession.verificationContext();
+     const initial=stageSession.identity();if(initial?.uid!==identity.uid)fail('LF_APPLICATION_OWNER_CHANGED');
+     stageDb=dbFor(stageContext.app);
+     const connection={db:stageDb,auth:stageContext.auth,session:stageSession,lease:leaseView,firestore:f,assertAccess(){
+      assertGlobalConnection(result.writer);guard();
+      const current=stageSession.identity();if(stageClosed||current.uid!==initial.uid||current.epoch!==initial.epoch)fail('LF_AUTH_CHANGED');
+     }};
+     stagePermit=authorizeGlobalStagingConnection(result.writer,connection);stageConnection=connection;return connection;
+    }catch(error){try{if(stageDb)await f.terminate(stageDb);}finally{await stageSession?.close();}throw error;}
+   })().catch(error=>{stageTask=null;throw error;});
+   return stageTask;
+  };
   if(release)permit=authorizeApplicationSession({release,...result});return result;
  }catch(error){syncGrant?.close();gate?.close();await secondary?.close();throw error;}
 }

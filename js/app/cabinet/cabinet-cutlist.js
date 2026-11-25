@@ -389,11 +389,12 @@
         parts.push({ name:'Wieniec dolny', partRoleIds:['body.bottom'], qty:1, a:w, b:d, dims:`${fmt(w)} × ${fmt(d)}`, material: bodyMat });
       }
 
-      parts.push({ name:`Trawers górny (${fmt(topTraverseDepth)} cm)`, partRoleIds:['body.top-traverse.a','body.top-traverse.b'], qty:2, a:wIn, b:topTraverseDepth, dims:`${fmt(wIn)} × ${fmt(topTraverseDepth)}`, material: bodyMat });
+      if(FC.hardwareCargoCatalog?.requiresFullTop(cab))parts.push({name:'Wieniec górny',partRoleIds:['body.top'],qty:1,a:wIn,b:d,dims:`${fmt(wIn)} × ${fmt(d)}`,material:bodyMat});
+      else parts.push({ name:`Trawers górny (${fmt(topTraverseDepth)} cm)`, partRoleIds:['body.top-traverse.a','body.top-traverse.b'], qty:2, a:wIn, b:topTraverseDepth, dims:`${fmt(wIn)} × ${fmt(topTraverseDepth)}`, material: bodyMat });
     }
 
     const shelves = parseInt((cab && cab.details && cab.details.shelves) ?? 0, 10);
-    const isStandingDrawerCabinet = (effType === 'stojąca' && String(cab && cab.subType || '') === 'szuflady');
+    const isStandingDrawerCabinet = cab?.subType==='cargo'||(effType === 'stojąca' && String(cab && cab.subType || '') === 'szuflady');
     if(!isStandingDrawerCabinet && Number.isFinite(shelves) && shelves > 0){
       let shelfDepth = d;
       shelfDepth = Math.max(0,Math.round(back.usableDepthMm-5)/10);
@@ -414,7 +415,7 @@
 
     addDrawerHardwareAndBoxParts(parts, room, cab, { wIn, depth:back.usableDepthMm/10 });
 
-    let hingeQty = getHingeCount(room, cab);
+    let hingeQty = cab?.subType==='cargo'?0:getHingeCount(room, cab);
     try{
       const det = cab && cab.details || {};
       const isHKXS = (String(cab && cab.subType || '') === 'uchylne'
@@ -444,23 +445,8 @@
 
     if(String(cab && cab.subType || '') === 'uchylne'){
       const info = getAventosInfo(cab, room);
+      parts.push(...FC.hardwareLiftCatalog.parts(room,cab,info));
       if(info && (!info.status || info.status === 'ok' || info.status === 'needs_more_lifts')){
-        const nameSuffix = (info.model ? ` ${info.model}` : '');
-        const strengthSuffix = (info.strength ? ` (${info.strength})` : '');
-        const rangeTxt = (info.rangeStr
-          ? (String(info.rangeStr).includes('kg') ? `zakres wagi ${info.rangeStr}` : `zakres LF ${info.rangeStr}`)
-          : 'zakres —');
-        const qtyLift = (info.liftQty && info.liftQty > 0) ? info.liftQty : 2;
-        parts.push({
-          name:`Podnośnik BLUM AVENTOS ${info.label}${nameSuffix}${strengthSuffix}`,
-          qty: qtyLift,
-          a:0, b:0,
-          dims:`LF=${info.powerFactor} • ${rangeTxt}${(info.status === 'needs_more_lifts' ? ` • UWAGA: przyjęto ${qtyLift} szt.` : '')}`,
-          material:'Okucia: podnośniki BLUM'
-        });
-
-        if(info.status === 'needs_more_lifts') parts[parts.length-1].tone = 'orange';
-
         if(info.hkxsHinges && info.hkxsHinges > 0){
           const reqApi = getHardwareRequirements();
           const req = reqApi && typeof reqApi.getHingeRequirementWithQty === 'function' ? reqApi.getHingeRequirementWithQty(room, cab) : null;
@@ -482,6 +468,7 @@
     }catch(_){ }
 
     const supportApi = getHardwareRequirements();
+    if(cab?.subType==='cargo')parts.push(...FC.hardwareCargoCatalog.parts(room,cab));
     if(supportApi && typeof supportApi.getSupportRequirements === 'function'){
       supportApi.getSupportRequirements(room, cab).forEach(req=>parts.push({name:req.label,qty:req.qty,a:0,b:0,dims:'—',material:'Okucia: '+req.label,hardwareRequirement:req}));
     }
@@ -491,6 +478,10 @@
   window.FC.cabinetCutlist = window.FC.cabinetCutlist || {};
   window.FC.cabinetCutlist.getCabinetCutList = getCabinetCutList;
   window.FC.cabinetCutlist.backGeometry = backGeometry;
+  window.FC.cabinetCutlist.interiorDimensions = function(cab,room){
+    const back=backGeometry(cab,room),t=boardThicknessCm();if(!back.ok)return back;
+    return {ok:true,widthMm:Math.round((Number(cab.width)-2*t)*10),heightMm:Math.round((bodyHeightCm(cab,room,cab.type,false)-2*t)*10),depthMm:back.usableDepthMm};
+  };
   window.FC.cabinetCutlist.resolveInnerDrawerLayout = resolveInnerDrawerLayout;
   window.FC.cabinetCutlist.resolveDrawerFrontGeometry = resolveDrawerFrontGeometry;
   window.FC.cabinetCutlist.requireDrawerFrontGeometry = requireDrawerFrontGeometry;

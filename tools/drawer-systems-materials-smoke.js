@@ -25,7 +25,7 @@ ctx.projectData = { kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{}, pref
 ctx.window.projectData = ctx.projectData;
 vm.createContext(ctx);
 [
-  'js/app/catalog/hardware-catalog-seed-data.js',
+  'js/app/catalog/hardware-support-catalog.js','js/app/catalog/hardware-lift-catalog.js','js/app/catalog/hardware-cargo-catalog.js','js/app/catalog/hardware-catalog-seed-data.js',
   'js/app/catalog/hardware-drawer-catalog.js',
   'js/app/material/material-common.js',
   'js/app/room-preferences/room-preferences-model.js',
@@ -301,6 +301,7 @@ assert(JSON.stringify(edges(innerParts.find(p=>p.drawerConstructionRole==='cross
 // Price the actual cutlist through the same production collector. Source rows
 // and dimensions must agree; a generic cheap runner never substitutes for it.
 load(ctx,'js/app/cabinet/front-hardware-fronts.js');
+load(ctx,'js/app/catalog/hardware-technical-read-snapshot.js');
 load(ctx,'js/app/catalog/hardware-technical-params.js');
 load(ctx,'js/app/catalog/hardware-catalog.js');
 let pricedCab={...whiteCab,id:'priced'},pricedRows=seeds;
