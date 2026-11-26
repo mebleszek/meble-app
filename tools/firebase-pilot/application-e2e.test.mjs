@@ -52,7 +52,11 @@ export async function runApplicationE2E(t){
  const room=await phone.page.evaluate(async({pid,iid})=>{const fc=window.FC;
   if(await fc.actions.dispatch('open-investor',{element:{getAttribute:()=>iid}})!==true)throw Error('Owner activation refused');
   const made=fc.roomRegistry._debug.createRoomRecord(fc.investors.getById(iid),{baseType:'kuchnia',name:'E2E Kitchen'});if(!made.ok)throw Error('Real room operation refused');
-  const row=fc.projectStore.getById(pid);row.projectData.meta.futureOwnedField={exact:7.125};row.projectData[made.room.id].cabinets=[{id:'owned-cabinet',type:'stojąca',subType:'standardowa',width:60.125,height:82,depth:51,frontCount:2,bodyColor:'laminat TEST',frontMaterial:'laminat',frontColor:'TEST',backMaterial:'HDF',bodyPcvMode:'body',details:{shelves:3}}];window.projectData=row.projectData;fc.layoutState.ensureLayout(made.room.id);row.projectData=window.projectData;
+  const row=fc.projectStore.getById(pid);row.projectData.meta.futureOwnedField={exact:7.125};
+  const data=row.projectData[made.room.id];
+  data.cabinets=[{id:'owned-cabinet',type:'stojąca',subType:'standardowa',width:60.125,height:82,depth:51,frontCount:2,bodyColor:'laminat TEST',frontMaterial:'laminat',frontColor:'TEST',backMaterial:'HDF',bodyPcvMode:'body',details:{shelves:3}}];
+  data.drawing2d={version:1,walls:[{id:1,length:3100,height:2600}],
+   placements:[{cabinetId:data.cabinets[0].id,wallId:1,along:125,inset:0,elevation:100,rotation:0}]};
   if(!fc.projectStore.upsert(row))throw Error('Owned room persistence refused');window.projectData=fc.project.load();
   if(!fc.storage.setJSON('fc_quote_snapshots_v1',[{id:'owned-offer',project:{id:pid},investor:{id:iid},frozen:{total:21.375,pcv:0.8125}}]))throw Error('Owned history setup refused');
   return made.room.id;
@@ -156,6 +160,8 @@ export async function runApplicationE2E(t){
  assert.equal((await computer.store.snapshot(pid)).operations.length,savedOffline.operations.length);
  assert.equal((await f.getDocFromServer(projectHead)).data().generation,remoteBeforeSave.generation+1);
  assert.equal(await phone.page.evaluate(pid=>window.FC.projectStore.getById(pid).projectData.meta.futureOwnedField.exact,pid),7.125);
+ assert.deepEqual(await phone.page.evaluate(({pid,room})=>window.FC.projectStore.getById(pid).projectData[room].drawing2d,{pid,room}),
+  {version:1,walls:[{id:1,length:3100,height:2600}],placements:[{cabinetId:'owned-cabinet',wallId:1,along:125,inset:0,elevation:100,rotation:0}]});
  assert.equal(await phone.page.evaluate(()=>window.FC.storage.getJSON('fc_quote_snapshots_v1',[])[0].frozen.total),21.375);
  assert.equal(await computer.page.locator('.info-box__title').textContent(),'Projekt zapisany');await computer.page.click('.info-box .is-success');
  // Real Cancel retains its confirmation and reopens the same protected room.

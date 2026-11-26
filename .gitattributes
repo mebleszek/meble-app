@@ -5,6 +5,8 @@ js/** text eol=lf
 css/** text eol=lf
 assets/**/*.svg text eol=lf
 sync/**/*.mjs text eol=lf
+# The catalog manifest hashes this generator's source bytes on Windows and Linux.
+tools/helpers/code-global-catalogs.js text eol=lf
 tools/firebase-pilot/p0b-protocol.mjs text eol=lf
 tools/firebase-pilot/p0b-pin.mjs text eol=lf
 tools/firebase-pilot/p0b-deletion-group.mjs text eol=lf
