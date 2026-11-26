@@ -49,7 +49,7 @@
     }
     const shell = node('section',{class:'drawing2d','aria-label':'Rysunek 2D'});
     host.replaceChildren(shell);
-    let room, drawing, walls, wall, visibleWall, items, warnings, stage, canvas, drag;
+    let room, drawing, walls, wall, visibleWall, items, obstacles, warnings, stage, canvas, drag;
     let busy = false, message = '';
 
     function draw(){
@@ -70,12 +70,15 @@
         if(!dimensions) return [];
         return [{p,cabinet,wall,dimensions,box:G.planBox(wall,p,dimensions),label:title(cabinet)}];
       });
-      warnings = G.warnings(items);
+      obstacles = G.obstacles(drawing,walls);
+      if(!wall || (state.obstacle?.id && !obstacles.some(item=>item.o.id===state.obstacle.id))) state.obstacle = null;
+      warnings = G.warnings(items,obstacles);
       shell.replaceChildren(toolbar(),views());
       const work = node('div',{class:'drawing2d-work'});
       stage = node('div',{class:'drawing2d-stage'});
       const join = wall && ['left','right'].includes(state.wallForm) ? [wall,state.wallForm==='left'?0:wall.length] : null;
-      canvas = FC.drawingCanvas.paint(stage,{walls,wall:visibleWall,items,selected:state.selected,warnings,mode:state.mode,zoom:state.zoom,join});
+      canvas = FC.drawingCanvas.paint(stage,{walls,wall:visibleWall,items,obstacles,selected:state.selected,
+        selectedObstacle:state.obstacle?.id,warnings,mode:state.mode,zoom:state.zoom,join});
       if(canvas) wirePointer();
       else{
         const empty = node('div',{class:'drawing2d-empty'});
@@ -97,6 +100,15 @@
       bar.append(menu('Widok','◉',[['outline','Bez kolorów'],['color','Kolory'],['texture','Tekstury']]
         .map(([value,label])=>button(label,'mode',value,state.mode===value))),
         menu('Ściany','▱',wallActions));
+      const addObstacles = Object.entries({window:'Dodaj okno',door:'Dodaj futrynę',radiator:'Dodaj kaloryfer'}).map(([kind,label])=>{
+        const el = button(label,'add-obstacle',kind);
+        el.disabled = !wall;
+        return el;
+      });
+      const obstacleMenu = menu('Przeszkody','▣',[...addObstacles,...obstacles.map(({o,label})=>
+        button(`Edytuj · ${label} · ${G.wallName(o.wallId)} · ${o.along} mm`,'edit-obstacle',o.id))]);
+      obstacleMenu.classList.add('drawing2d-obstacle-menu');
+      bar.append(obstacleMenu);
       if(items.some(item=>item.p.cabinetId===state.selected)){
         bar.append(menu('Szafka','▤',[button('Edytuj szafkę','edit'),button('Edytuj położenie','properties')]),
           menu('Obrót','↻',[button('90° w lewo','rotate',-1),button('90° w prawo','rotate',1)]));
@@ -128,19 +140,40 @@
       return form;
     }
 
+    function wallField(form,wallId){
+      const wallLabel = node('label',{},'Ściana'), select = node('select',{name:'wallId'});
+      for(const row of walls) select.append(node('option',{value:row.id},G.wallName(row.id)));
+      select.value = String(wallId);
+      wallLabel.append(select); form.append(wallLabel);
+    }
+
     function positionForm(item){
       const form = node('form',{'data-drawing-form':'position'});
       form.append(node('h3',{},item.label));
-      const wallLabel = node('label',{},'Ściana'), select = node('select',{name:'wallId'});
-      for(const row of walls) select.append(node('option',{value:row.id},G.wallName(row.id)));
-      select.value = String(item.p.wallId);
-      wallLabel.append(select); form.append(wallLabel);
+      wallField(form,item.p.wallId);
       field(form,'Od początku ściany','along',item.p.along);
       field(form,'Od ściany','inset',item.p.inset);
       field(form,'Od podłogi','elevation',item.p.elevation);
       form.append(node('button',{type:'submit',class:'drawing2d-primary'},'Zastosuj położenie'),
         button('Edytuj szafkę','edit'),button('Zdejmij z rysunku','unplace'));
       for(const warning of warnings.get(item.p.cabinetId)||[]) form.append(node('p',{class:'drawing2d-warning'},warning));
+      return form;
+    }
+
+    function obstacleForm(){
+      const {id,kind,draft} = state.obstacle;
+      const obstacle = draft || obstacles.find(item=>item.o.id===id)?.o || {};
+      const form = node('form',{'data-drawing-form':'obstacle'});
+      form.append(node('h3',{},G.obstacleNames[kind]));
+      wallField(form,obstacle.wallId ?? wall.id);
+      field(form,'Od początku ściany','along',obstacle.along,0);
+      field(form,'Szerokość','width',obstacle.width,1);
+      field(form,'Wysokość','height',obstacle.height,1);
+      if(kind!=='door') field(form,'Od podłogi do dolnej krawędzi','elevation',obstacle.elevation,0);
+      if(kind==='radiator') field(form,'Wystaje od ściany','depth',obstacle.depth,1);
+      form.append(node('button',{type:'submit',class:'drawing2d-primary'},id?'Zastosuj zmiany':'Dodaj przeszkodę'));
+      if(id) form.append(button('Usuń przeszkodę','remove-obstacle',id));
+      for(const warning of warnings.get(id)||[]) form.append(node('p',{class:'drawing2d-warning'},warning));
       return form;
     }
 
@@ -167,6 +200,7 @@
       aside.append(tabs);
       const content = node('div',{class:'drawing2d-panel-content'});
       if(state.panel==='cabinet-list') content.append(cabinetList());
+      else if(state.obstacle) content.append(obstacleForm());
       else if(state.wallForm) content.append(wallForm());
       else {
         const selected = items.find(item=>item.p.cabinetId===state.selected);
@@ -208,6 +242,7 @@
 
     function select(item,showPanel){
       state.selected = item.p.cabinetId;
+      state.obstacle = null;
       state.wallForm = null;
       state.wall = item.p.wallId;
       if(state.view) state.view = item.p.wallId;
@@ -229,10 +264,20 @@
     }
 
     const actions = {
-      view(value){state.view=Number(value);if(state.view)state.wall=state.view;state.selected=null;state.wallForm=null;},
+      view(value){state.view=Number(value);if(state.view)state.wall=state.view;state.selected=null;state.wallForm=null;state.obstacle=null;},
       mode(value){state.mode=value;},snap(value){state.snap=value;},
       zoom(value){state.zoom=Math.max(75,Math.min(225,state.zoom+Number(value)));},
-      'wall-form'(value){state.wallForm=value;state.panel='properties';state.mobilePanel=true;},
+      'wall-form'(value){state.wallForm=value;state.obstacle=null;state.panel='properties';state.mobilePanel=true;},
+      'add-obstacle'(kind){selectObstacle({kind});},
+      'edit-obstacle'(id){
+        const item = obstacles.find(item=>item.o.id===id);
+        if(item) selectObstacle(item.o);
+      },
+      'remove-obstacle'(id){
+        const remaining = drawing.obstacles.filter(o=>o.id!==id);
+        void commit({...drawing,obstacles:remaining},()=>{state.obstacle=null;});
+        return false;
+      },
       panel(value){state.panel=value;state.mobilePanel=true;},
       'panel-close'(){state.mobilePanel=false;},
       properties(){state.wallForm=null;state.panel='properties';state.mobilePanel=true;},
@@ -249,6 +294,17 @@
         return false;
       }
     };
+    function selectObstacle({id,kind,wallId}){
+      state.selected = null;
+      state.wallForm = null;
+      state.obstacle = {id,kind};
+      if(wallId){
+        state.wall = wallId;
+        if(state.view) state.view = wallId;
+      }
+      state.panel = 'properties';
+      state.mobilePanel = true;
+    }
     shell.addEventListener('click',event=>{
       const el = event.target.closest('[data-drawing-action]');
       if(!el || busy) return;
@@ -266,6 +322,17 @@
         const rows = side==='edit'?drawing.walls.map(row=>row.id===id?next:row)
           : side==='left'?[next,...drawing.walls]:[...drawing.walls,next];
         void commit({...drawing,walls:rows},()=>{state.wall=id;state.wallForm=null;if(state.view)state.view=id;});
+      }else if(form.dataset.drawingForm==='obstacle'){
+        const current = state.obstacle;
+        const {kind} = current;
+        const id = current.id || current.draft?.id || 'obs_'+FC.utils.uid();
+        const next = {id,kind,wallId:read('wallId'),along:read('along'),width:read('width'),height:read('height'),
+          elevation:kind==='door'?0:read('elevation')};
+        if(kind==='radiator') next.depth = read('depth');
+        current.draft = next;
+        const records = drawing.obstacles||[];
+        const obstacles = current.id ? records.map(o=>o.id===id?next:o) : [...records,next];
+        void commit({...drawing,obstacles},()=>selectObstacle(next));
       }else{
         const p = items.find(row=>row.p.cabinetId===state.selected)?.p;
         if(!p) return;
@@ -337,9 +404,16 @@
       const discardCapturedDrag = event=>{if(drag?.id===event.pointerId) cancelDrag();};
       surface.addEventListener('pointercancel',discardCapturedDrag);
       surface.addEventListener('lostpointercapture',discardCapturedDrag);
+      surface.addEventListener('click',event=>{
+        const id = event.target.closest('[data-obstacle]')?.dataset.obstacle;
+        if(!busy && id){actions['edit-obstacle'](id);draw();}
+      });
       surface.addEventListener('keydown',event=>{
+        if(busy || !['Enter',' '].includes(event.key)) return;
+        const obstacle = event.target.closest('[data-obstacle]')?.dataset.obstacle;
+        if(obstacle){event.preventDefault();actions['edit-obstacle'](obstacle);draw();return;}
         const id = event.target.closest('[data-cabinet]')?.dataset.cabinet;
-        if(!busy && id && ['Enter',' '].includes(event.key)){event.preventDefault();select(items.find(row=>row.p.cabinetId===id),true);draw();}
+        if(id){event.preventDefault();select(items.find(row=>row.p.cabinetId===id),true);draw();}
       });
     }
     draw();

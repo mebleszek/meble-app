@@ -90,6 +90,7 @@
   background: #fff;
   box-shadow: 0 5px 12px #20313824;
 }
+.drawing2d-obstacle-menu > div { max-height: min(320px,45vh); overflow-y: auto; }
 .drawing2d-zoom { min-width: 3em; text-align: center; font-variant-numeric: tabular-nums; }
 .drawing2d-work { display: grid; grid-template-columns: minmax(0,1fr) minmax(250px,28%); }
 .drawing2d-stage {
@@ -123,6 +124,16 @@
 .drawing2d-color .drawing2d-cabinet-lower, .drawing2d-texture .drawing2d-cabinet-lower { --drawing2d-fill: #d6bb95; }
 .drawing2d-front { stroke: #27383d; stroke-width: 2; pointer-events: none; }
 .drawing2d-join { fill: #087b70; stroke: #fff; stroke-width: 1.5; pointer-events: none; }
+.drawing2d-obstacle { cursor: pointer; --obstacle-stroke: #52666b; --obstacle-fill: #f9faf8; }
+.drawing2d-obstacle-window { --obstacle-stroke: #386c8e; --obstacle-fill: #dcebf2; }
+.drawing2d-obstacle-radiator { --obstacle-stroke: #855d2f; --obstacle-fill: #f3e7d7; }
+.drawing2d-obstacle-face { fill: var(--obstacle-fill); fill-opacity: .88; stroke: var(--obstacle-stroke); stroke-width: 1.5; }
+.drawing2d-outline .drawing2d-obstacle { --obstacle-stroke: #435357; --obstacle-fill: #f8faf9; }
+.drawing2d-obstacle-door .drawing2d-obstacle-face { stroke-dasharray: 5 3; }
+.drawing2d-obstacle-detail { stroke: var(--obstacle-stroke); stroke-width: 1; pointer-events: none; }
+.drawing2d-obstacle.is-selected .drawing2d-obstacle-face { stroke: #087b70; stroke-width: 2.5; }
+.drawing2d-obstacle.has-warning .drawing2d-obstacle-face { fill-opacity: .25; stroke: #a12f25; stroke-width: 2; pointer-events: stroke; }
+.drawing2d-obstacle.has-warning.is-selected .drawing2d-obstacle-face { stroke-dasharray: 5 3; stroke-width: 2.5; }
 .drawing2d-cabinet.has-warning .drawing2d-cabinet-face { stroke: #a12f25; stroke-dasharray: 5 3; stroke-width: 2; }
 .drawing2d-cabinet.is-selected .drawing2d-cabinet-face { stroke: #087b70; stroke-width: 2.5; }
 .drawing2d-cabinet.is-snapped .drawing2d-cabinet-face { stroke: #087b70; stroke-width: 3; stroke-dasharray: 4 2; }
@@ -150,6 +161,9 @@
 @media (max-width: 760px) {
   .drawing2d-work { display: block; }
   .drawing2d-stage { max-height: 56vh; }
+  .drawing2d-tools { position: relative; }
+  .drawing2d-obstacle-menu { position: static; }
+  .drawing2d-obstacle-menu > div { top: auto; left: 8px; right: 8px; min-width: 0; margin-top: 4px; }
   .drawing2d-panel { border-left: 0; }
   .drawing2d-panel-content { display: none; }
   .drawing2d-panel.is-open {

@@ -244,7 +244,12 @@ test('Confirmed clearEdges returns to absence; a separate physical project expor
 });
 test('Allowed nested preferences/layout and source metadata do not collapse business values',async()=>{
  const drawing={version:1,walls:[{id:1,length:3200,height:2600},{id:2,length:2400,height:2600}],
-  placements:[{cabinetId:'one',wallId:1,along:250,inset:0,elevation:100,rotation:0}]};
+  placements:[{cabinetId:'one',wallId:1,along:250,inset:0,elevation:100,rotation:0}],
+  obstacles:[
+   {id:'window-test',kind:'window',wallId:1,along:200,width:920,height:560,elevation:990},
+   {id:'door-test',kind:'door',wallId:2,along:1400,width:850,height:2020,elevation:0},
+   {id:'radiator-test',kind:'radiator',wallId:1,along:520,width:600,height:540,elevation:140,depth:180}
+  ]};
  const r=fixture();r.mutate(p=>{
   const room=p.projectData.kuchnia;room.preferences.finishStandard='TEST';room.preferences.zones.lower.bodyColor='CUSTOM TEST';room.preferences.hardwareProducers.hinges='TEST HW';
   room.cabinets[0].laborItems=[{rateId:'test-rate',qty:2}];
@@ -260,8 +265,20 @@ test('Allowed nested preferences/layout and source metadata do not collapse busi
  let nextId=0;
  const copied=prepareRoomCopy({rows:r.rows(),baseline:{document:{payload:{project:source}}},scope:'A',
   roomId:'kuchnia',name:'Kuchnia — kopia',validateRoom:value=>r.FC.projectExportContract.validateOwnedRoom(value),newId:()=>`copy-${++nextId}`});
- assert.deepEqual(copied.room.drawing2d,{...drawing,placements:[{...drawing.placements[0],cabinetId:copied.mapping.one}]});
+ assert.deepEqual(copied.room.drawing2d,{...drawing,placements:[{...drawing.placements[0],cabinetId:copied.mapping.one}],
+  obstacles:drawing.obstacles.map(obstacle=>({...obstacle,id:copied.mapping[obstacle.id]}))});
  assert.deepEqual(r.row().projectData.kuchnia.drawing2d,drawing);
+ const [window,door,radiator]=drawing.obstacles;
+ const invalid=[
+  [{...window,wallId:999}],
+  [{...door,elevation:10}],
+  [{...radiator,depth:0}],
+  [{...window,id:'one'}],
+  [{...window,depth:8}],
+  [window,{...door,id:window.id}]
+ ];
+ for(const obstacles of invalid)assert.throws(()=>r.FC.projectExportContract.validateDrawing(
+  {...drawing,obstacles},source.projectData.kuchnia.cabinets),e=>e.exportFailure===true);
  r.mutate(p=>p.projectData.kuchnia.layout.segments[0].rows.base[0].id='missing');await refused(r,'EXPORT_INVALID_REFERENCE');
 });
 test('Malformed investor RAW, denied context/session reads and missing guard modules refuse safely',async()=>{

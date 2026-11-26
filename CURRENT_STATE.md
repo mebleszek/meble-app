@@ -1,5 +1,11 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## Przeszkody w Rysunku 2D — 27.11.2026
+
+- **USTALONE:** właściciel zatwierdził dodawanie okna, futryny i kaloryfera w Rysunku 2D, edycję wymiarów oraz wskazywanie kolizji z szafkami. Gałąź `feat/drawing-obstacles`, baza `15d0b9c325ab3eb1f954326582f79da43ba8feda`.
+- **WDROŻONE:** narzędzie Przeszkody i edycja w istniejących Właściwościach na komputerze i telefonie. Wybrany element należy do ściany. Futryna zaczyna się przy podłodze, kaloryfer ma głębokość. Rzut i widok ściany korzystają z tych samych danych. Ostrzeżenia wskazują zasłonięcie okna, szafkę przy otworze drzwiowym i przecięcie bryły kaloryfera, również przez narożnik. Dane zapisują się w rekordzie pomieszczenia i otrzymują nowe identyfikatory podczas kopiowania.
+- **SPRAWDZONE:** kuchnia w L w Edge z syntetycznym projektem, rzeczywistym IndexedDB i zdarzeniami dotykowymi. Dodano trzy elementy, potwierdzono ostrzeżenie przy oknie i edycję futryny przy 393 px, następnie sprawdzono pełny układ po restarcie offline. Test geometrii potwierdził kolizje, styk i wolne przejście. Kontrola fizycznego telefonu oraz pełne CI pozostają częścią odbioru i wydania.
+
 ## Przeciąganie szafek dotykiem — 26.11.2026
 
 - **USTALONE:** nagranie właściciela wykazało brak końcowego przesunięcia szafki na Androidzie. Na opublikowanym kodzie reprodukcja z rzeczywistymi zdarzeniami dotykowymi w emulacji Chromium potwierdziła `pointercancel` i przewijanie zamiast domknięcia przeciągania, zarówno w rzucie, jak i w widoku ściany.

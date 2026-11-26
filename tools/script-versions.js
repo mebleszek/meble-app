@@ -3,10 +3,10 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = "20261126_shared_quantities_v1";
 const versions = Object.freeze({
-  "js/app/ui/drawing-geometry.js":"20261126_drawing_2d_v1",
+  "js/app/ui/drawing-geometry.js":"20261127_drawing_obstacles_v1",
   "js/app/ui/drawing-storage.js":"20261126_drawing_2d_v1",
-  "js/app/ui/drawing-canvas.js":"20261126_drawing_2d_v1",
-  "js/tabs/drawing-editor.js":"20261126_drawing_touch_drag_v1",
+  "js/app/ui/drawing-canvas.js":"20261127_drawing_obstacles_v1",
+  "js/tabs/drawing-editor.js":"20261127_drawing_obstacles_v1",
   "js/tabs/rysunek.js":"20261126_drawing_2d_v1",
   "js/app/catalog/hardware-technical-read-snapshot.js":"20261125_quote_preparation_v1",
   "js/app/cabinet/cabinet-modal-standing.js":"20261125_quote_preparation_v1",
@@ -139,7 +139,7 @@ const versions = Object.freeze({
   "js/app/material/price-modal-item-form.js":"20261111_automation_ci_repair_v1",
   "js/app/material/price-modal-list.js":"20261108_material_catalog_authority_v1",
   "js/app/cabinet/cabinet-cutlist.js": "20261126_shared_quantities_v1",
-  "js/app/project/project-export-contract.js":"20261126_drawing_2d_v1",
+  "js/app/project/project-export-contract.js":"20261127_drawing_obstacles_v1",
   "js/app/cabinet/cabinet-hardware-requirements.js": "20261125_quote_preparation_v1",
   "js/app/pricing/work-quantity-prepared.js":"20261126_shared_quantities_v1",
   "js/app/pricing/work-quantity-facts.js":"20261125_quote_preparation_v1",

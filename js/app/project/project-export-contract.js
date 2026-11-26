@@ -98,10 +98,22 @@
   const layout=shape({segments:array(shape({id:ident,name:text,anchor:text,offsets:shape(fields('base module wall',numeric)),rows:shape({base:array(rowItem),module:array(rowItem),wall:array(rowItem)})},['id','rows'])),activeSegmentId:()=>excluded});
   const millimeters=(v,p)=>{if(!Number.isSafeInteger(v))bad(p);return v;};
   const wallMeasure=(v,p)=>{millimeters(v,p);if(v<=0)bad(p);return v;};
+  const wallOffset=(v,p)=>{millimeters(v,p);if(v<0)bad(p);return v;};
+  const obstacleFields={id:ident,kind:oneOf(['window','door','radiator']),wallId:wallMeasure,
+    along:wallOffset,elevation:wallOffset,width:wallMeasure,height:wallMeasure};
+  const obstacle=(v,p)=>{
+    const radiator=v?.kind==='radiator';
+    const supported=radiator?{...obstacleFields,depth:wallMeasure}:obstacleFields;
+    const value=shape(supported,Object.keys(supported))(v,p);
+    if(value.kind==='door'&&value.elevation!==0)bad(p+'.elevation');
+    if(!Number.isSafeInteger(value.along+value.width)||!Number.isSafeInteger(value.elevation+value.height))bad(p);
+    return value;
+  };
   const drawing2d=shape({version:oneOf([1]),
     walls:array(shape(fields('id length height',wallMeasure),['id','length','height'])),
     placements:array(shape({cabinetId:ident,wallId:wallMeasure,...fields('along inset elevation',millimeters),rotation:oneOf([0,1,2,3])},
-      ['cabinetId','wallId','along','inset','elevation','rotation']))},['version','walls','placements']);
+      ['cabinetId','wallId','along','inset','elevation','rotation'])),
+    obstacles:array(obstacle)},['version','walls','placements']);
   const room=shape({cabinets:array(cabinet),fronts:array(front),sets:array(set),settings:shape(fields('roomHeight bottomHeight legHeight counterThickness gapHeight ceilingBlende',numeric)),preferences,production,layout,drawing2d},['cabinets','fronts','sets','settings','preferences']);
   const roomDef=shape({id:ident,...fields('baseType name label projectStatus lastManualProjectStatus',text),legacy:boolean},['id','baseType','name','label']);
   const meta=shape({assignedInvestorId:ident,productionPcvMode:oneOf(['project']),roomOrder:array(ident),roomDefs:dict(roomDef),projectStatus:text},['assignedInvestorId','productionPcvMode','roomOrder','roomDefs']);
@@ -324,6 +336,10 @@
     unique(value.placements.map(placement=>placement.cabinetId),p);
     for(const placement of value.placements){
       if(!cabinets.has(placement.cabinetId)||!walls.has(placement.wallId))fail('EXPORT_INVALID_REFERENCE',p);
+    }
+    unique((value.obstacles||[]).map(obstacle=>obstacle.id),p);
+    for(const obstacle of value.obstacles||[]){
+      if(cabinets.has(obstacle.id)||!walls.has(obstacle.wallId))fail('EXPORT_INVALID_REFERENCE',p);
     }
   }
   function validateDrawing(value,cabinets){
