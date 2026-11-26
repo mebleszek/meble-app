@@ -184,13 +184,26 @@ async function main(){
  const seed=Object.fromEntries(['fc_investors_v1','fc_projects_v1','fc_quote_snapshots_v1'].map(key=>[key,source[key]]));seed.fc_quote_offer_drafts_v1=JSON.stringify([{projectId:'P',investorId:'K',syntheticPrice:12.125}]);
  await one.evaluate(`(()=>{for(const [k,v]of Object.entries(${JSON.stringify(seed)}))localStorage.setItem(k,v);const fc=window.FC;fc.projectStore.setCurrentProjectId('P');projectData=fc.project.load();window.projectData=projectData;fc.views.openInvestorsList();})()`);
 
- const raw=()=>one.evaluate('JSON.stringify(Object.keys(localStorage).filter(k=>k.startsWith("fc_")&&!["fc_ui_v1","fc_current_investor_v1","fc_current_project_id_v1"].includes(k)).sort().map(k=>[k,localStorage.getItem(k)]))');let before;
+ const raw=()=>one.evaluate('JSON.stringify(Object.keys(localStorage).filter(k=>k.startsWith("fc_")&&!["fc_ui_v1","fc_current_investor_v1","fc_current_project_id_v1"].includes(k)).sort().map(k=>[k,localStorage.getItem(k)]))');
+ // Verify the seed survives a real profile shutdown on the old deployment.
+ // A screenshot or a read from the writing renderer cannot prove durability.
+ const seeded=await raw();
+ await one.close();one=null;
+ one=await browser(profile,base+'/index.html',{inject:true});
+ await one.until('document.body.dataset.authState==="unauthenticated" || document.body.dataset.businessState==="ready"');
+ if(await one.evaluate('document.body.dataset.businessState!=="ready"'))await one.tap('auth-google');
+ await one.until('document.body.dataset.businessState==="ready"');
+ assert.equal(await raw(),seeded,'Old profile must preserve the complete RAW fixture before serving the candidate');
+ await one.until('document.getElementById("main-trust-phone").checked&&__AUTH_INPUT_DIAGNOSTICS__().mode==="trusted"&&__FC_MAIN_ACCESS__.isValid()');
+ await one.settleTargets();
+ await one.evaluate('window.FC.views.openInvestorsList();true');
+ console.log('PASS real Chromium: complete original RAW persisted in the old profile through orderly restart');
  assert.equal(await one.evaluate('!!document.querySelector("[data-action=remove-investor-from-list]")'),false);
  const cache=await one.evaluate('window.FC.offlineShell.prepare().then(r=>r.version)');
  // An old client cannot acquire new UI by an import or forced takeover.
  await one.evaluate(`(async()=>{const fc=window.FC,inv=fc.investors.readAll()[0];if(await fc.actions.dispatch('open-investor',{element:{getAttribute:()=>inv.id}})!==true)throw Error('Open refused');fc.investorEditorState.enter(inv);fc.investorEditorState.setField('name','EXACT UNSAVED RAM');fc.investorUI.render();})()`);
  await one.evaluate(`new Promise((resolve,reject)=>{const r=indexedDB.open('synthetic-safe-sw-data',1);r.onupgradeneeded=()=>r.result.createObjectStore('rows');r.onerror=reject;r.onsuccess=()=>{const db=r.result,tx=db.transaction('rows','readwrite',{durability:'strict'});tx.objectStore('rows').put('EXACT-IDB-12.125','saved');tx.oncomplete=()=>{db.close();resolve(true);};tx.onabort=reject;};})`);
- before=await raw(); // Baseline after intentional fixture activation/edit setup, before deployment.
+ const before=await raw(); // Baseline after intentional fixture activation/edit setup, before deployment.
  deployment=root;
  const endpoint=await one.evaluate('location.origin');assert.equal(endpoint,base);
  // Public recovery URL is not in the old worker cache allowlist. Same browser
@@ -198,7 +211,9 @@ async function main(){
  const target=await one.send('Target.createTarget',{url:'about:blank'});
  // Inspect the new bootstrap target in the same owned process.
  const targets=await(await fetch('http://127.0.0.1:'+new URL(one.endpoint).port+'/json/list')).json();
- const ws=new WebSocket(targets.find(t=>t.id===target.targetId).webSocketDebuggerUrl);await new Promise(r=>ws.onopen=r);let serial=0;const pending=new Map(),resources=[];
+ const updateTarget=targets.find(t=>t.id===target.targetId);
+ assert.ok(updateTarget,'The independent update target must stay open');
+ const ws=new WebSocket(updateTarget.webSocketDebuggerUrl);await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});let serial=0;const pending=new Map(),resources=[];
  ws.onmessage=({data})=>{const m=JSON.parse(data),p=pending.get(m.id);if(p){pending.delete(m.id);m.error?p.reject(Error(m.error.message)):p.resolve(m.result);}else if(m.method==='Network.requestWillBeSent')resources.push({type:m.params.type,initiator:m.params.initiator.type});};
  const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++serial,timer=setTimeout(()=>{pending.delete(id);reject(Error('Update test CDP timeout: '+method));},30000);pending.set(id,{resolve:r=>{clearTimeout(timer);resolve(r);},reject:e=>{clearTimeout(timer);reject(e);}});ws.send(JSON.stringify({id,method,params}));});
  const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.text);return r.result.value;};
@@ -284,6 +299,7 @@ async function main(){
  const trustBeforeClose=await one.evaluate('('+require('./helpers/trusted-cold-start').inspectTrustStorage.toString()+')()');
  assert.equal(trustBeforeClose.fence,'active','Old synthetic trusted profile must still have its fence before orderly close');
  assert.equal(trustBeforeClose.fenceMatches,true,'Signed trust must match its fence before closing the old document');
+ assert.equal(await raw(),before,'Closing the old form must preserve the exact RAW baseline before activation');
  await one.close();one=null;await new Promise(r=>server.close(r));stopped=true;
  one=await browser(profile,base+'/index.html',{offline:true});try{await one.until('document.body.dataset.businessState==="ready"');}catch(error){console.log('DIAG cold trust '+JSON.stringify(await one.evaluate('('+require('./helpers/trusted-cold-start').inspectTrustStorage.toString()+')()')));throw error;}
  await one.evaluate('window.FC.views.openInvestorsList();true');assert.equal(await one.evaluate('!!document.querySelector("[data-action=remove-investor-from-list]")'),true);

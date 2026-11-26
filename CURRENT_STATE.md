@@ -26,6 +26,8 @@
 
 **Naprawa PR #172 po Preflight #1406:** kontrola statyczna i profile przeszły. Trzy zadania smoke nie ładowały adaptera danych w tej samej konfiguracji VM. Ścieżka DEMO próbowała zapisać inwestora przed potwierdzeniem operacji otwarcia formularza. Testy ładują adapter w kolejności aplikacji i oczekują na istniejące potwierdzenie gotowości. Weryfikacja lokalna: adaptery 28/28, aktywacja PCV 60/60, zapis PCV i WYCENA 12/12, pełny scenariusz `normal-clean` w Chromium i Firebase DEMO 1/1. Wymagane testy i asercje zachowano. Wydanie oczekuje na pełne CI i kontrolę Pages.
 
+**Naprawa PR #172 po Preflight #1407:** jedyną pierwotną odmową był test aktualizacji Service Workera. Po restarcie brakowało sześciu kluczy syntetycznego projektu, jego kopii i historii. Wprowadzono niezależny dowód trwałości pełnego obrazu RAW po uporządkowanym restarcie na starej wersji, przed podaniem kandydata. Zachowano porównania wszystkich wartości po aktualizacji i po kolejnym przeładowaniu. Cały scenariusz na Chrome 158.0.8127.36 przeszedł lokalnie. Kod aplikacji i zasady ochrony danych pozostały bez zmian. Pełne CI i Pages oczekują.
+
 ## Rysunek 2D — pierwszy pakiet, 26.11.2026
 
 - **USTALONE:** właściciel polecił zastąpić poprzedni edytor nowym RYSUNKIEM 2D zgodnym z zaakceptowanymi grafikami. Pierwszy pakiet obejmuje układ ścian i szafek oraz zapis w pomieszczeniu. Na komputerze panel po prawej, na telefonie u dołu. Gałąź `feat/rysunek-2d-layout`, baza `a1fbd18b16068d3bac563797f7873269c8a86ddc`.
