@@ -8,6 +8,7 @@ const FC = {};
 const ctx = { window:{ FC }, FC, console };
 ctx.globalThis = ctx.window;
 vm.createContext(ctx);
+vm.runInContext(fs.readFileSync(path.join(root, 'js/app/catalog/hardware-technical-read-snapshot.js'), 'utf8'), ctx, { filename:'hardware-technical-params.js' });
 vm.runInContext(fs.readFileSync(path.join(root, 'js/app/catalog/hardware-technical-params.js'), 'utf8'), ctx, { filename:'hardware-technical-params.js' });
 const api = ctx.window.FC.hardwareTechnicalParams;
 assert(api && typeof api.evaluateItemTechnicalStatus === 'function', 'brak evaluateItemTechnicalStatus');

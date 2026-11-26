@@ -242,7 +242,8 @@
   }
 
   function applyHlTop(result, khMm, fgKg){
-    const row = (data.HLTOP_TABLE || []).find(r => khMm >= r.khMin && khMm <= r.khMax) || null;
+    const heightRows = (data.HLTOP_TABLE || []).filter(r => khMm >= r.khMin && khMm <= r.khMax);
+    const row = heightRows.find(r=>fgKg>=r.wMin&&fgKg<=r.wMax) || heightRows[0] || null;
     if(!row){
       result.status = result.status === 'out_height' ? result.status : 'out_pf';
       result.messageTone = result.messageTone || 'red';
@@ -258,6 +259,7 @@
     result.model = row.model;
     result.strength = row.strength;
     result.rangeStr = `${row.wMin}–${row.wMax} kg`;
+    result.armModel = row.armModel;
     return result;
   }
 

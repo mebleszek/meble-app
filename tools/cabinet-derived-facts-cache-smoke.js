@@ -126,9 +126,17 @@ assert.ok(cab.derivedFacts.material.edgeMetersByMode.total === 6, 'PCV/metraż o
 assert.ok(cab.derivedFacts.highFronts, 'cache zawiera sekcję wysokich frontów');
 const callsAfterFirst = { cutlistCalls, frontCalls, hingeCalls, drawerCalls };
 
+let copiedCacheInputs = 0;
+const nativeClone = context.FC.utils.clone;
+context.FC.utils.clone = value => {
+  if(value && (Object.hasOwn(value, 'derivedFacts') || Object.hasOwn(value, '_derivedFacts'))) copiedCacheInputs++;
+  return nativeClone(value);
+};
 let second = api.ensureCabinetFacts('kuchnia', cab, { recalculate:true, persist:false });
 assert.equal(second.status, 'hit', 'aktualny hash czyta cache');
 assert.equal(cutlistCalls, callsAfterFirst.cutlistCalls, 'hit nie odpala ponownie ciężkiego cutlist');
+assert.equal(copiedCacheInputs, 0, 'hashing a cache hit must omit cached facts before cloning the source cabinet');
+context.FC.utils.clone = nativeClone;
 
 const facts = context.FC.workQuantityFacts.getCabinetFacts('kuchnia', cab);
 assert.ok(Array.isArray(facts) && facts.some((row)=>row.code === 'cabinet.weight_kg'), 'workQuantityFacts czyta fakty z cache');
@@ -192,6 +200,38 @@ assert.ok(read('js/app/wycena/wycena-diagnostics.js').includes('WYDAJNOŚĆ WYCE
 const summary = api.ensureForRooms(['kuchnia'], { persist:true, recalculate:true });
 assert.ok(summary.cacheHits >= 1, 'ensureForRooms czyta gotowy cache');
 assert.equal(saved, 0, 'persist nie zapisuje projektu, gdy nie było przeliczeń');
+
+// Independent rooms reuse the same detached quantities warmed by cabinet edits.
+const fc=context.FC,room=project.kuchnia,raw={boards:'[]',rates:JSON.stringify(logisticsCatalog)};
+cab.details.savedExtension={derivedFacts:1};
+fc.globalDataContract={sources:{materials:['boards'],labor:['rates']}};
+fc.storage.getRaw=key=>raw[key]??null;fc.roomProjectModel={enabled:()=>true};
+const ordinary=JSON.parse(JSON.stringify(fc.workQuantityFacts.getCabinetFacts(room,cab)));
+run(context,'js/app/pricing/work-quantity-prepared.js');
+api.ensureCabinetFacts('kuchnia',cab,{force:true,recalculate:true,persist:false});
+cutlistCalls=frontCalls=hingeCalls=drawerCalls=0;
+const prepared=fc.workQuantityFacts.getCabinetFacts(room,cab);
+assert.deepEqual(JSON.parse(JSON.stringify(prepared)),ordinary,'Prepared quantities equal every ordinary fact, including warnings and unavailable sources');
+for(const expected of ordinary)assert.deepEqual(JSON.parse(JSON.stringify(fc.workQuantityFacts.getCabinetFact(room,cab,expected.code))),expected);
+assert.equal(cutlistCalls+frontCalls+hingeCalls+drawerCalls,0,'Editing already prepared quantities; reading them must not rebuild geometry or hardware');
+prepared[0].value=99999;
+assert.deepEqual(JSON.parse(JSON.stringify(fc.workQuantityFacts.getCabinetFacts(room,cab))),ordinary,'A caller cannot change private prepared facts');
+let rebuiltCount=fc.workQuantityPrepared.inspect().rebuilds;
+for(const change of [()=>{cab.width+=1;},()=>{room.settings={legHeight:12};},()=>{room.production={partOverrides:{synthetic:{edges:{w1:true}}}};},()=>{raw.rates+=' ';},()=>{investor.carrying.floorNumber='7';},()=>{cab.details.savedExtension.derivedFacts=2;}]){
+ change();fc.workQuantityFacts.getCabinetFacts(room,cab);
+ assert.equal(fc.workQuantityPrepared.inspect().rebuilds,++rebuiltCount,'Geometry, room settings, PCV, catalog or carrying changes invalidate preparation');
+}
+const beforeMissing=fc.workQuantityPrepared.inspect().rebuilds;delete raw.boards;
+fc.workQuantityFacts.getCabinetFacts(room,cab);fc.workQuantityFacts.getCabinetFacts(room,cab);
+assert.equal(fc.workQuantityPrepared.inspect().rebuilds,beforeMissing+2,'Missing global source evidence cannot authorize reuse');
+raw.boards='[]';
+const inputBefore=JSON.stringify(room);
+assert.throws(()=>fc.workQuantityPrepared.read(room,{...cab,id:'async-invalid'},async()=>[]),/QUANTITY_PREPARATION_INVALID/);
+fc.workQuantityPrepared.read(room,{...cab,id:'detached-probe'},(copyRoom,copyCab)=>{copyRoom.settings.legHeight=999;copyCab.width=999;return [];});
+assert.equal(JSON.stringify(room),inputBefore,'Even a bad calculation callback cannot mutate the active room through preparation inputs');
+for(let index=0;index<70;index++)fc.workQuantityFacts.getCabinetFacts(room,{...cab,id:'bounded-'+index});
+assert.equal(fc.workQuantityPrepared.inspect().entries,64,'Prepared history stays bounded in RAM');
+assert.equal(saved,0,'Prepared quantities never persist a project or catalog');
 
 console.log('OK cabinet-derived-facts-cache smoke');
 console.log(' - zapis/edycja szafki tworzy i odświeża fakty pochodne');

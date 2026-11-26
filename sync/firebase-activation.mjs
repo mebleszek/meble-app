@@ -39,6 +39,17 @@ export function authorizeApplicationSession({release,writer,reader}){
  check();active.set(writer,{assert:()=>{check();return a;},application:true,p0b:d.protocol===3});active.set(reader,{assert:()=>{check();return b;},application:true,p0b:d.protocol===3});
  return {revoke(){active.delete(writer);active.delete(reader);}};
 }
+// A separate SDK queue may stage immutable global records. It inherits only
+// the parent's global capability; it never becomes a project/room writer.
+export function authorizeGlobalStagingConnection(parent,staging){
+ const original=assertGlobalConnection(parent);
+ if(!staging||staging.db===parent.db||staging.db?.app===parent.db?.app||staging.auth===parent.auth)fail('LF_INDEPENDENT_OWNER_REQUIRED');
+ const who=()=>{staging.assertAccess();return parent.db.app.options.projectId==='demo-meble-app'?assertEmulator(staging):liveIdentity(staging,original.uid);};
+ const initial=who();if(initial.uid!==original.uid)fail('LF_AUTH_CHANGED');
+ const check=()=>{if(!equal(assertGlobalConnection(parent),original))fail('LF_AUTH_CHANGED');const identity=who();if(!equal(identity,initial))fail('LF_AUTH_CHANGED');return identity;};
+ check();active.set(staging,{assert:check});
+ return {revoke(){active.delete(staging);}};
+}
 export async function authorizeApplicationFirebase(input={}){
  const d=input.decision;
  if(d?.scope!=='application-data-sync'||d.projectProfile!=='business-project-v1'||d.globalDomains!==14

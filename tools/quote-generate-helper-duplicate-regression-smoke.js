@@ -15,7 +15,7 @@ function loadCatalogSandbox(){
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
-  ['js/app/catalog/hardware-technical-params.js','js/app/catalog/hardware-catalog.js'].forEach((file)=>{
+  ['js/app/catalog/hardware-technical-read-snapshot.js','js/app/catalog/hardware-technical-params.js','js/app/catalog/hardware-catalog.js'].forEach((file)=>{
     vm.runInContext(read(file), sandbox, { filename:file });
   });
   return sandbox;

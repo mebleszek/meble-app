@@ -6,7 +6,7 @@ const root=path.resolve(__dirname,'../..'),clone=value=>JSON.parse(JSON.stringif
 const sha=value=>crypto.createHash('sha256').update(value).digest('hex');
 const files=[
  'js/app/project/project-export-contract.js','js/app/cloud/global-data-contract.js','js/app/cloud/global-data-diagnostics.js',
- 'js/app/catalog/hardware-technical-params.js','js/app/catalog/hardware-catalog.js','js/app/catalog/hardware-catalog-seed-data.js','js/app/catalog/hardware-drawer-catalog.js',
+ 'js/app/catalog/hardware-technical-read-snapshot.js','js/app/catalog/hardware-technical-params.js','js/app/catalog/hardware-catalog.js','js/app/catalog/hardware-support-catalog.js','js/app/catalog/hardware-lift-catalog.js','js/app/catalog/hardware-cargo-catalog.js','js/app/catalog/hardware-catalog-seed-data.js','js/app/catalog/hardware-drawer-catalog.js',
  'js/app/pricing/labor-catalog-definitions.js','js/app/pricing/labor-catalog.js','js/app/pricing/work-quantity-sources.js',
  'js/app/settings/program-defaults-store.js','js/app/settings/company-profile-store.js','js/app/settings/business-costs-store.js',
  'js/app/catalog/hardware-replacement-engine.js'

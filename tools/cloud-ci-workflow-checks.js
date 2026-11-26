@@ -183,11 +183,23 @@ function workflowChecks(source){
   assert.match(release.verify,/head_sha: mergeSha/);
   assert.match(release.verify,/MERGE_SHA: \$\{\{ steps\.merge\.outputs\.result \}\}/);
   assert.match(release.verify,/const maxAttempts = 200;/);assert.match(release.verify,/const delayMs = 3000;/);
+  assert.equal(condition(release.publicsource),"${{ !cancelled() && steps.verify.outcome == 'success' }}");
+  assert.match(release.publicsource,/ref: \$\{\{ steps.merge.outputs.result \}\}/);
+  assert.match(release.publicsource,/fetch-depth: 2/);assert.match(release.publicsource,/persist-credentials: false/);
+  assert.match(release.publicnode,/uses: actions\/setup-node@v4/);assert.match(release.publicnode,/node-version: '22'/);
+  assert.equal(condition(release.publicnode),"${{ !cancelled() && steps.verify.outcome == 'success' && steps.publicsource.outcome == 'success' }}");
+  assert.equal(condition(release.public),"${{ !cancelled() && steps.verify.outcome == 'success' && steps.publicsource.outcome == 'success' && steps.publicnode.outcome == 'success' }}");
+  assert.match(release.public,/APPROVED_HEAD: \$\{\{ needs.safety.outputs.head_sha \}\}/);
+  assert.match(release.public,/MERGE_SHA: \$\{\{ steps.merge.outputs.result \}\}/);
+  assert.match(release.public,/run: node tools\/ci-public-assets.js/);
   const final=release['Comment READY or BLOCKED on PR'];
   assert.ok(condition(final).startsWith('${{ always() && '));
   assert.match(final,/DIAGNOSTIC_STATUS/);
   assert.match(final,/MERGE_RESULT: \$\{\{ steps.merge.outcome \}\}/);
   assert.match(final,/VERIFY_RESULT: \$\{\{ steps.verify.outcome \}\}/);
+  assert.match(final,/PUBLIC_RESULT: \$\{\{ steps.public.outcome \}\}/);
+  assert.match(final,/PUBLIC_STATUS: \$\{\{ steps.public.outputs.status \}\}/);
+  assert.match(final,/process.env.PUBLIC_RESULT === 'success' && process.env.PUBLIC_STATUS === 'PASS'/);
   assert.match(final,/core\.summary\.addHeading\(ready \? 'RELEASE_READY' : 'RELEASE_BLOCKED'\)/);
   assert.match(final,/if \(!ready\) core\.setFailed\('RELEASE_BLOCKED'\)/);
   const revision=steps(j.safety).revision;
@@ -240,7 +252,9 @@ async function diagnosticChecks(source){
     mutation("needs.ci-summary.outputs.status == 'RELEASE_READY' && ",''),
     mutation('types: [opened, ready_for_review]','types: [opened, synchronize]'),
     mutation('--label=preflight-static --warn-ms=75000 --target-ms=90000','--label=preflight-static --warn-ms=75000 --target-ms=90001'),
-    mutation('      - name: Audit module growth against approved BASE','      - name: Unapproved module step')
+    mutation('      - name: Audit module growth against approved BASE','      - name: Unapproved module step'),
+    mutation('run: node tools/ci-public-assets.js','run: echo unverified-publication'),
+    mutation(" && process.env.PUBLIC_STATUS === 'PASS'",'')
   ]){const changed=change(source);assert.notEqual(changed,source);assert.throws(()=>workflowChecks(changed),undefined,'Mutation must be rejected: '+change.from);}
   pass('actual DAG, required groups, full-PASS merge/Pages and negative mutations');
   for(const id of ['preflight-static','preflight-shards','playwright-local-ui','owner-signing-windows','firebase-current-shards','playwright-sync-ui','firebase-p0b','cloud-historical-smoke','cloud-historical-sdk']){
@@ -273,6 +287,12 @@ async function diagnosticChecks(source){
   for(const outcome of ['failure','cancelled','skipped'])assert.equal(gate(condition(release.verify),{},false,{merge:{outcome,outputs:{result:''}}}),false);
   assert.equal(gate(condition(release.verify),{},false,{merge:{outcome:'success',outputs:{result:''}}}),false);
   assert.equal(gate(condition(release.verify),{},true,{merge:{outcome:'success',outputs:{result:'a'.repeat(40)}}}),false);
+  for(const verify of ['success','failure','skipped','cancelled'])for(const checkout of ['success','failure','skipped','cancelled'])for(const node of ['success','failure','skipped','cancelled']){
+    assert.equal(gate(condition(release.public),{},false,{verify:{outcome:verify},publicsource:{outcome:checkout},publicnode:{outcome:node}}),verify==='success'&&checkout==='success'&&node==='success');
+  }
+  const publicationEnv={PREFLIGHT_RESULT:'success',FIREBASE_RESULT:'success',HISTORICAL_RESULT:'success',SAFETY_RESULT:'success',DIAGNOSTIC_STATUS:'RELEASE_READY',PREFLIGHT_STATUS:'PASS',FIREBASE_STATUS:'PASS',HISTORICAL_STATUS:'PASS',SAFETY_STATUS:'PASS',MERGE_RESULT:'success',VERIFY_RESULT:'success',MERGE_SHA:'c'.repeat(40),PUBLIC_RESULT:'success',PUBLIC_STATUS:'PASS'};
+  assert.equal((await execute(script(release['Comment READY or BLOCKED on PR']),{env:publicationEnv})).failures.length,0);
+  for(const result of ['failure','cancelled','skipped',undefined])for(const field of ['PUBLIC_RESULT','PUBLIC_STATUS'])assert.ok((await execute(script(release['Comment READY or BLOCKED on PR']),{env:{...publicationEnv,[field]:result}})).failures.length,'Public proof is mandatory, including missing output');
   pass('actual publication conditions survive non-applicable ancestors but refuse every failed/cancelled/skipped mandatory gate');
   const safety=steps(j.safety),list=required(safety.report);
   const run=value=>execute(script(safety.report),{env:{GROUP_STEPS:JSON.stringify(value),REQUIRED_STEPS:list.join(',')}});
@@ -307,7 +327,7 @@ async function diagnosticChecks(source){
   }
   pass('actual three aggregators refuse FAIL/SKIPPED/CANCELLED/missing inputs');
   const finalCode=script(release['Comment READY or BLOCKED on PR']);
-  const finalEnv={PREFLIGHT_RESULT:'success',FIREBASE_RESULT:'success',HISTORICAL_RESULT:'success',SAFETY_RESULT:'success',PREFLIGHT_STATUS:'PASS',FIREBASE_STATUS:'PASS',HISTORICAL_STATUS:'PASS',SAFETY_STATUS:'PASS',MERGE_RESULT:'success',VERIFY_RESULT:'success',DIAGNOSTIC_STATUS:'RELEASE_READY',MERGE_SHA:'c'.repeat(40)};
+  const finalEnv={PREFLIGHT_RESULT:'success',FIREBASE_RESULT:'success',HISTORICAL_RESULT:'success',SAFETY_RESULT:'success',PREFLIGHT_STATUS:'PASS',FIREBASE_STATUS:'PASS',HISTORICAL_STATUS:'PASS',SAFETY_STATUS:'PASS',MERGE_RESULT:'success',VERIFY_RESULT:'success',PUBLIC_RESULT:'success',PUBLIC_STATUS:'PASS',DIAGNOSTIC_STATUS:'RELEASE_READY',MERGE_SHA:'c'.repeat(40)};
   assert.equal((await execute(finalCode,{env:finalEnv})).failures.length,0);
   for(const change of [{FIREBASE_STATUS:'SKIPPED'},{PREFLIGHT_RESULT:'failure'},{DIAGNOSTIC_STATUS:'RELEASE_BLOCKED'},{MERGE_RESULT:'skipped'},{VERIFY_RESULT:'failure'},{MERGE_SHA:''}])assert.ok((await execute(finalCode,{env:{...finalEnv,...change}})).failures.length);
   pass('actual report scripts retain FAIL/SKIPPED, missing step and exact safety/setup reasons');

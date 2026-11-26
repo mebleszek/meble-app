@@ -7,6 +7,7 @@
   const source = FC.wycenaCoreSource;
   const offer = FC.wycenaCoreOffer;
   const selectionApi = FC.wycenaCoreSelection;
+  let technicalRead = null;
 
   function retryWycenaCoreModule(apiKey, missingLabel){
     try{
@@ -108,18 +109,19 @@
     try{ return Array.isArray(typeof accessories !== 'undefined' ? accessories : []) ? accessories : []; }catch(_){ return []; }
   }
   function getHardwareTechnicalDefinitions(){
+    if(technicalRead) return technicalRead.definitions();
     const store = getCatalogStore();
     try{ if(store && typeof store.getHardwareTechnicalParams === 'function') return store.getHardwareTechnicalParams(); }catch(_){ }
     return FC.hardwareTechnicalParams && FC.hardwareTechnicalParams.DEFAULT_DEFINITIONS || [];
   }
-  function normalizeCandidateItem(row){
-    const src = row || {};
+  function normalizeCandidateItem(row, context){
+    const src = row || {};context=context&&typeof context==='object'?context:null;
     try{
       if(FC.hardwareCatalog && typeof FC.hardwareCatalog.normalizeAccessory === 'function'){
-        return FC.hardwareCatalog.normalizeAccessory(src, ()=> text(src.id) || 'quote_hw_candidate', {
+        return FC.hardwareCatalog.normalizeAccessory(src, ()=> text(src.id) || 'quote_hw_candidate', context || {
           hardwareTechnicalParams:getHardwareTechnicalDefinitions(),
           hardwareSuppliers:[]
-        });
+        },context?.describeTechnical);
       }
     }catch(_){ }
     return src;
@@ -225,6 +227,7 @@
   function normalizeTechnicalParamsForCompare(category, params){
     const src = params && typeof params === 'object' ? params : {};
     const tech = FC.hardwareTechnicalParams || null;
+    if(technicalRead) return technicalRead.normalize(src,category||'Zawiasy');
     try{
       if(tech && typeof tech.normalizeParamValues === 'function') return tech.normalizeParamValues(src, getHardwareTechnicalDefinitions(), category || 'Zawiasy');
     }catch(_){ }
@@ -309,6 +312,7 @@
   }
 
   function technicalStatusForCandidate(item){
+    if(technicalRead) return technicalRead.status(item);
     try{
       const api = FC.hardwareTechnicalParams || null;
       if(api && typeof api.evaluateItemTechnicalStatus === 'function') return api.evaluateItemTechnicalStatus(item || {}, getHardwareTechnicalDefinitions());
@@ -355,7 +359,7 @@
     return category === 'prowadniki' || category.indexOf('prowadnik') !== -1 || itemRole(item) === 'prowadnik';
   }
   function findMountingPlateForHinge(hingeItem, req, catalogRows){
-    const system = itemSystem(hingeItem);
+    const plate=FC.hardwareLiftCatalog?.plateRequirement(req);if(plate)return resolveHardwareRequirement(plate,'','',catalogRows);const system = itemSystem(hingeItem);
     const type = hingeDriverTypeFrom(req, hingeItem);
     const form = hingeDriverFormFrom(req, hingeItem);
     const producer = norm(hingeItem && hingeItem.manufacturer);
@@ -423,7 +427,7 @@
     const rawCandParams = candidate && candidate.technicalParams && typeof candidate.technicalParams === 'object' ? candidate.technicalParams : {};
     const reqParams = normalizeTechnicalParamsForCompare(category, rawReqParams);
     const candParams = normalizeTechnicalParamsForCompare(category, rawCandParams);
-    const fields = tech && typeof tech.fieldsForCategory === 'function' ? tech.fieldsForCategory(definitions, category) : [];
+    const fields = technicalRead ? technicalRead.fields(category) : tech && typeof tech.fieldsForCategory === 'function' ? tech.fieldsForCategory(definitions, category) : [];
     const checks = [];
     let score = 0;
     let required = 0;
@@ -464,7 +468,7 @@
     }
     if(r && r.catalogItemId){
       const rows=(catalogRows || getAccessoryCatalogRows().map(normalizeCandidateItem)).filter(item=>item && text(item.id)===text(r.catalogItemId));
-      if(rows.length!==1||['inactive','hidden','archived'].includes(text(rows[0].status))||rows[0].active===false||norm(rows[0].manufacturer)!==norm(r.expectedManufacturer)||text(rows[0].symbol)!==text(r.expectedSymbol)||text(rows[0].hardwareUnit)!==text(r.expectedUnit)||!Number.isFinite(Number(rows[0].price))||Number(rows[0].price)<0||(Number(rows[0].price)===0&&!text(rows[0].priceUserEditedAt)))throw selectionApi.createQuoteValidationError('opening_hardware_unresolved','Sprawdź cennik okuć','Nie potwierdzono konkretnego okucia: '+text(r.label));
+      if(r.sourceIssue||rows.length!==1||['inactive','hidden','archived'].includes(text(rows[0].status))||rows[0].active===false||norm(rows[0].manufacturer)!==norm(r.expectedManufacturer)||text(rows[0].symbol)!==text(r.expectedSymbol)||text(rows[0].hardwareUnit)!==text(r.expectedUnit)||!Number.isFinite(Number(rows[0].price))||Number(rows[0].price)<0||(Number(rows[0].price)===0&&!text(rows[0].priceUserEditedAt)))throw selectionApi.createQuoteValidationError('opening_hardware_unresolved','Sprawdź cennik okuć','Nie potwierdzono konkretnego okucia: '+text(r.label));
       return {item:rows[0],preferredProducer,requirement:r,directSourceId:true};
     }
     if(!r || r.kind === 'none' || r.kind === 'future'){
@@ -595,9 +599,15 @@
   }
 
   function collectAccessories(selectedRooms){
+    const parent=technicalRead,definitions=getHardwareTechnicalDefinitions();
+    technicalRead=FC.hardwareTechnicalParams?.createReadSnapshot?.(definitions)||null;
+    try{ return collectAccessoriesCurrent(selectedRooms); }
+    finally{ technicalRead=parent; }
+  }
+  function collectAccessoriesCurrent(selectedRooms){
     const rows = new Map();
-    // One synchronous calculation snapshot; never retained across edits/await.
-    const catalogRows = getAccessoryCatalogRows().map(normalizeCandidateItem);
+    const definitions=getHardwareTechnicalDefinitions(),context={hardwareTechnicalParams:definitions,hardwareSuppliers:[],describeTechnical:FC.hardwareTechnicalParams?.createLegacyDescriber?.(definitions)}; // One synchronous snapshot, never retained across edits/await.
+    const catalogRows = getAccessoryCatalogRows().map(row=>normalizeCandidateItem(row,context));
     const cabs = source.selectedCabinets(selectedRooms);
     cabs.forEach(({ roomId, roomLabel:rl, cabinet })=>{
       const parts = collectAccessoryPartsForCabinet(roomId, cabinet);

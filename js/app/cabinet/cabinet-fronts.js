@@ -29,13 +29,13 @@ function getSubTypeOptionsForType(typeVal){
       { v:'zlewowa', t:'Zlewowa' },
       { v:'zmywarkowa', t:'Zmywarkowa' },
       { v:'lodowkowa', t:'Lodówkowa' },
-      { v:'szuflady', t:'Szuflady' }
+      { v:'szuflady', t:'Szuflady' },{v:'cargo',t:'Cargo'}
     ];
   }
   if(typeVal === 'moduł'){
     return [
       { v:'standardowa', t:'Standardowa' },
-      { v:'szuflady', t:'Szufladowa' },
+      { v:'szuflady', t:'Szufladowa' },{v:'cargo',t:'Cargo'},
       { v:'uchylne', t:'Uchylna' }
     ];
   }
@@ -367,7 +367,7 @@ function cabinetAllowsFrontCount(cab){
   const st = cab.subType;
   if(st === 'narozna_l') return false; // narożna L: stała ilość frontów (2)
   if(st === 'uchylne') return false; // klapa: ilość frontów zależy od rodzaju
-  if(st === 'szuflady') return false;
+  if(st === 'szuflady'||st==='cargo') return false;
   if(st === 'zmywarkowa' || st === 'piekarnikowa') return false; // 1 front
   // reszta: pozwalamy 1/2
   return true;
@@ -381,7 +381,6 @@ function getFlapFrontCount(cab){
   if(vendor === 'blum' && kind === 'HF_top') return 2;
   return 1;
 }
-
 // Backward-compat helper: older code may call this name.
 function getFlapFrontCountFromDetails(details){
   return getFlapFrontCount({ details: details || {} });
@@ -389,7 +388,7 @@ function getFlapFrontCountFromDetails(details){
 
 
 function ensureFrontCountRules(cab){
-  // Narożna L zawsze ma 2 fronty (liczone osobno: FL/FP)
+  if(cab.subType==='cargo'){cab.frontCount=1;return;}
   if(cab.subType === 'narozna_l'){
     cab.frontCount = 2;
     return;
@@ -444,6 +443,7 @@ function ensureFrontCountRules(cab){
 // Cel: jeśli KH/LF poza zakresem – nie pozwól zapisać szafki (zamiast ostrzeżeń w "Materiały").
 // Używa istniejącego #cmFlapInfo (bez dodawania nowych elementów UI).
 function resolveBlumAventosInfo(draft, room){
+  if(draft.details?.flapVendor==='hafele')return ns.hardwareLiftCatalog?.duoInfo(room,draft)||null;
   try{
     const api = ns.frontHardware || {};
     if(api && typeof api.getBlumAventosInfo === 'function') return api.getBlumAventosInfo(draft, room);
@@ -453,11 +453,11 @@ function resolveBlumAventosInfo(draft, room){
   }catch(_){ }
   return null;
 }
-
 function validateAventosForDraft(room, draft){
   if(!room || !draft) return { ok:true };
+  if(draft.subType==='cargo')return ns.hardwareCargoCatalog.validate(room,draft);
   if(String(draft.subType || '') !== 'uchylne') return { ok:true };
-
+  if(draft.details?.flapKind==='HKI'&&(draft.details.flapVendor||'blum')==='blum'&&!['full','partial'].includes(draft.details.flapIntegration))return {ok:false,msg:'Wybierz sposób montażu HKi.'};
   const info = resolveBlumAventosInfo(draft, room);
   if(!info) return { ok:true };
 

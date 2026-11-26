@@ -89,7 +89,7 @@ function getDoorFrontPanelsForHinges(room, cab){
   const sub = String(cab.subType || '');
 
   // brak zawiasów dla klap (AVENTOS) i frontów urządzeń, z wyjątkami obsługiwanymi osobno
-  if(sub === 'uchylne') return out;
+  if(sub === 'uchylne'||sub==='cargo') return out;
   if(type !== 'stojąca' && type !== 'wisząca' && type !== 'moduł') return out;
   if(sub === 'szuflady' || sub === 'zmywarkowa') return out;
   const det = detailsOf(cab);
@@ -174,6 +174,7 @@ function getDoorFrontPanelsForHinges(room, cab){
 }
 
 function getHingeCountForCabinet(room, cab){
+  const lift=ns.hardwareLiftCatalog?.hfHinges(room,cab);if(lift)return lift.reduce((sum,row)=>sum+(row.kind==='hinge'?row.qty:0),0);
   const doors = getDoorFrontPanelsForHinges(room, cab);
   if(!doors.length) return 0;
   let total = 0;

@@ -88,6 +88,10 @@
     const addSelect = ctx.addSelect;
     const addNumber = ctx.addNumber;
 
+    if(st==='uchylne'&&(d.flapVendor||'blum')==='blum'&&(d.flapKind||'HKI')==='HKI')
+      addSelect('Montaż HKi','flapIntegration',[{v:'',t:'Wybierz montaż'},{v:'full',t:'Całkowicie ukryty w boku'},{v:'partial',t:'Częściowo ukryty — z zaślepką'}]);
+    if(st==='uchylne'&&d.flapVendor==='hafele'&&(d.flapKind||'DUO')==='DUO')
+      addSelect('Kąt otwarcia DUO','flapAngle',[{v:'',t:'Wybierz kąt'},{v:'75',t:'75°'},{v:'90',t:'90°'},{v:'110',t:'110°'}]);
     if(st === 'narozna_l') renderCornerLExtraDetails(ctx);
 
     if(st === 'dolna_podblatowa'){

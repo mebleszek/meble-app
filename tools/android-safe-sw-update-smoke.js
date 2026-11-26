@@ -45,10 +45,15 @@ function expectedMaterialUpgrade(before,candidate){
 }
 function expectedPricingUpgrade(before,candidate){
  const expected=expectedMaterialUpgrade(before,candidate),image=Object.fromEntries(JSON.parse(before));
+ if(Object.hasOwn(image,'fc_hardware_manufacturers_v1')){
+  const old=JSON.parse(image.fc_hardware_manufacturers_v1);
+  expected.fc_hardware_manufacturers_v1=JSON.stringify(old.includes('Camar')?old:old.concat('Camar'));
+ }
  if(Object.hasOwn(image,'fc_accessories_v1')){
   const old=JSON.parse(image.fc_accessories_v1),seen=new Set(old.map(row=>row.id));
   const missing=candidate.hardware.filter(row=>!seen.has(row.id));
-  assert.equal(missing.length,392,'The historical16 hardware records receive exactly392 approved new entries');
+  assert.equal(missing.length,473,'The historical16 hardware records receive392 earlier +81 approved hardware entries');
+  for(const [pattern,count]of [[/^hw_bivert_axilo_/,7],[/^hw_bivert_camar806_/,4],[/^hw_schach_camar816_/,3],[/^hw_bivert_blum_/,7],[/^hw_bivert_lift_/,56],[/^hw_(?:gral|stolmet)_lift_duo_/,2],[/^hw_bivert_cargo_/,2]])assert.equal(missing.filter(row=>pattern.test(row.id)).length,count,'Exact approved hardware family '+pattern);
   expected.fc_accessories_v1=JSON.stringify(old.concat(missing));
  }
  const required=new Set(candidate.hardware.flatMap(row=>Object.keys(row.technicalParams||{}).map(key=>row.hardwareCategory+'\0'+key)));
@@ -283,8 +288,9 @@ async function main(){
  one=await browser(profile,base+'/index.html',{offline:true});try{await one.until('document.body.dataset.businessState==="ready"');}catch(error){console.log('DIAG cold trust '+JSON.stringify(await one.evaluate('('+require('./helpers/trusted-cold-start').inspectTrustStorage.toString()+')()')));throw error;}
  await one.evaluate('window.FC.views.openInvestorsList();true');assert.equal(await one.evaluate('!!document.querySelector("[data-action=remove-investor-from-list]")'),true);
  const missing=codeCandidate.model.labor.filter(row=>!JSON.parse(Object.fromEntries(JSON.parse(before)).fc_quote_rates_v1).some(old=>old.id===row.id));
- assert.equal(missing.length,72,'Legacy update adds 65 existing plus 7 approved opening/channel norms');
+ assert.equal(missing.length,88,'Legacy update adds65 existing +7 opening/channel +11 lift +5 Cargo norms');
  for(const id of ['labor_channel_install','labor_channel_workshop','labor_handle_layout','labor_handle_install','pdf_tipon_drill','pdf_tipon_insert','pdf_tipon_plate'])assert.ok(missing.some(row=>row.id===id),'Missing approved new norm '+id);
+ for(const id of ['pdf_lift_other_prepare','pdf_lift_other_mount','pdf_lift_hki_prepare','pdf_lift_hki_mill_partial','pdf_lift_hki_mill_full','pdf_lift_arms','pdf_lift_stabilizer_cut','pdf_lift_stabilizer_mount','pdf_lift_other_pack','pdf_lift_other_rehang','pdf_lift_other_gap_adjust','pdf_cargo_auto_runner','pdf_cargo_auto_catch','pdf_cargo_auto_fit','pdf_cargo_auto_tall_prepare','pdf_cargo_auto_tall_mount'])assert.ok(missing.some(row=>row.id===id),'Missing approved lift/Cargo norm '+id);
  // This fixture deliberately exercises the legacy validator (LOCAL-FIRST
  // deployment is isolated by trusted-session-browser). Its persisted service
  // compatibility alias has four fields; the canonical catalog and its cache

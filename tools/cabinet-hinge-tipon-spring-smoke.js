@@ -33,9 +33,9 @@ function loadContext(){
   vm.createContext(ctx);
   [
     'js/app/shared/storage.js',
-    'js/app/catalog/hardware-technical-params.js',
+    'js/app/catalog/hardware-technical-read-snapshot.js','js/app/catalog/hardware-technical-params.js',
     'js/app/catalog/hardware-catalog.js',
-    'js/app/catalog/hardware-catalog-seed-data.js',
+    'js/app/catalog/hardware-support-catalog.js','js/app/catalog/hardware-lift-catalog.js','js/app/catalog/hardware-cargo-catalog.js','js/app/catalog/hardware-catalog-seed-data.js',
     'js/app/catalog/hardware-catalog-seeds.js',
     'js/app/catalog/catalog-store.js',
     'js/app/cabinet/cabinet-hardware-requirement-options.js',
@@ -103,6 +103,8 @@ async function runDynamicCascadeUsesKeyFeaturesCheck(){
       if(title.includes('klas') || title.includes('zakres')) return 'standardowy 90–120°';
       if(title.includes('hamulec')) return 'false';
       if(title.includes('sprężyn')) return 'false';
+      if(title.includes('forma prowadnika')) return 'krzyżowy';
+      if(title==='Doprecyzuj wymaganie kompletu zawiasowego') return cfg.options[0].value;
       return null;
     }
   };

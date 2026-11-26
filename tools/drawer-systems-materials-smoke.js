@@ -25,7 +25,7 @@ ctx.projectData = { kuchnia:{ cabinets:[], fronts:[], sets:[], settings:{}, pref
 ctx.window.projectData = ctx.projectData;
 vm.createContext(ctx);
 [
-  'js/app/catalog/hardware-catalog-seed-data.js',
+  'js/app/catalog/hardware-support-catalog.js','js/app/catalog/hardware-lift-catalog.js','js/app/catalog/hardware-cargo-catalog.js','js/app/catalog/hardware-catalog-seed-data.js',
   'js/app/catalog/hardware-drawer-catalog.js',
   'js/app/material/material-common.js',
   'js/app/room-preferences/room-preferences-model.js',
@@ -301,13 +301,16 @@ assert(JSON.stringify(edges(innerParts.find(p=>p.drawerConstructionRole==='cross
 // Price the actual cutlist through the same production collector. Source rows
 // and dimensions must agree; a generic cheap runner never substitutes for it.
 load(ctx,'js/app/cabinet/front-hardware-fronts.js');
+load(ctx,'js/app/catalog/hardware-technical-read-snapshot.js');
 load(ctx,'js/app/catalog/hardware-technical-params.js');
 load(ctx,'js/app/catalog/hardware-catalog.js');
 let pricedCab={...whiteCab,id:'priced'},pricedRows=seeds;
 ctx.FC.catalogStore={getAccessories:()=>pricedRows,getHardwareTechnicalParams:()=>ctx.FC.hardwareTechnicalParams.DEFAULT_DEFINITIONS};
 ctx.FC.wycenaCoreUtils={slug:s=>String(s).toLowerCase().replace(/[^a-z0-9]/g,'_')};
 ctx.FC.wycenaCoreCatalog={accessoryPriceLookup:()=>null,servicePriceLookup:()=>null};
-ctx.FC.wycenaCoreSource={selectedCabinets:()=>[{roomId:'kuchnia',roomLabel:'Kuchnia',cabinet:pricedCab}],roomLabel:r=>r};
+// The legacy geometry fixture uses body-only heights. Make its physical10 cm
+// feet explicit for pricing without subtracting them from those body heights.
+ctx.FC.wycenaCoreSource={selectedCabinets:()=>[{roomId:'kuchnia',roomLabel:'Kuchnia',cabinet:{...pricedCab,details:{...pricedCab.details,legHeightCm:10,heightIncludesLegs:'0'}}}],roomLabel:r=>r};
 ctx.FC.wycenaCoreOffer={collectQuoteRateLines:()=>[]};
 ctx.FC.wycenaCoreSelection={createQuoteValidationError:(code,title,message)=>Object.assign(Error(message),{code})};
 load(ctx,'js/app/wycena/wycena-core-lines.js');
@@ -363,6 +366,16 @@ assert(deps.definitions.find(row=>row.key==='kolor_okucia').label==='Private lab
 const incompatible=clone(deps.definitions);incompatible.find(row=>row.key==='profil_szuflady').fieldType='number';
 let definitionRefused;try{pricebook.seedDependencies({definitions:incompatible,defaultDefinitions:ctx.FC.hardwareTechnicalParams.DEFAULT_DEFINITIONS,suppliers,defaultSuppliers:ctx.FC.hardwareCatalog.DEFAULT_SUPPLIERS});}catch(e){definitionRefused=e;}
 assert(definitionRefused?.message==='DRAWER_CATALOG_DEFINITION_CONFLICT','A private incompatible field type refuses before insertion, never strips a SKU identity');
+const legacyDefinitions=clone(ctx.FC.hardwareTechnicalParams.DEFAULT_DEFINITIONS);
+const legacyClass=legacyDefinitions.find(row=>row.category==='Zawiasy'&&row.key==='klasa_kata');
+legacyClass.options=legacyClass.options.filter(value=>value!=='AVENTOS HF środkowy134°');legacyClass.label='Private hinge class';
+const legacyBefore=JSON.stringify({legacyDefinitions,suppliers});
+const complete=pricebook.seedDependencies({definitions:legacyDefinitions,defaultDefinitions:ctx.FC.hardwareTechnicalParams.DEFAULT_DEFINITIONS,suppliers,defaultSuppliers:ctx.FC.hardwareCatalog.DEFAULT_SUPPLIERS,seedRows:seeds});
+assert(JSON.stringify({legacyDefinitions,suppliers})===legacyBefore,'Preparing all approved hardware dependencies never mutates the old catalog');
+assert(complete.definitions.find(row=>row.category==='Zawiasy'&&row.key==='klasa_kata').label==='Private hinge class','Appending the used HF enum preserves the private field label');
+const hf=ctx.FC.hardwareCatalog.normalizeAccessory(seeds.find(row=>row.id==='hw_bivert_lift_156918'),()=>null,{hardwareTechnicalParams:complete.definitions,hardwareSuppliers:complete.suppliers});
+assert(hf.technicalParams.klasa_kata.value==='AVENTOS HF środkowy134°'&&hf.hardwareType.includes('AVENTOS HF środkowy134°'),'A legacy catalog retains the complete newly approved HF identity before normalizing new hardware');
+assert(complete.suppliers.some(row=>row.id==='schachermayer'),'The approved hidden-hanger supplier is present before normalizing its components');
 console.log('OK drawer-systems-materials smoke');
 console.log(' - preferencje szuflad przechowują konkretny system/model');
 console.log(' - skrzynkowe generują prowadnice + formatki 18 mm i dno 10 mm');

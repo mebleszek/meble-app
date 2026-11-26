@@ -114,7 +114,7 @@ test('shared delivery/carrying/assembly trip is never multiplied by rooms or num
  const amounts=r.FC.laborWorkPlan.hoursByStage([{details:[{hours:1,rateType:'workshop'},{hours:2,rateType:'assembly'},{hours:3,rateType:'helper'},{hours:0.5,rateType:'workshop',workStage:'assembly'}]}]);assert.deepEqual(clone(amounts),{workshop:1,assembly:2.5});
 });
 test('scope and day metadata survive closed 14-domain validation and cannot accept an unknown scope',()=>{
- const {model,context}=require('./helpers/code-global-catalogs').buildCodeCatalogs();assert.equal(model.labor.length,129);context.FC.globalDataContract.validateBundle(model);const bad=clone(model);bad.labor[0].billingScope='guess';assert.throws(()=>context.FC.globalDataContract.validateBundle(bad),e=>e.code==='GLOBAL_VALUE_INVALID');
+ const {model,context}=require('./helpers/code-global-catalogs').buildCodeCatalogs();assert.equal(model.labor.length,145);context.FC.globalDataContract.validateBundle(model);const bad=clone(model);bad.labor[0].billingScope='guess';assert.throws(()=>context.FC.globalDataContract.validateBundle(bad),e=>e.code==='GLOBAL_VALUE_INVALID');
 });
 test('snapshot normalizers preserve frozen schedule, provenance and third-person cost; old offers gain NO schedule',()=>{
  const r=setup(),c=r.collections();c.labor=[{hours:6,total:1500,rateType:'assembly'}];const plan=r.run(c,['A'],{helperHours:2.5});

@@ -6,7 +6,7 @@
   root.FC = root.FC || {};
   const FC = root.FC;
 
-  const VERSION = '20261123_drawer_construction_v1';
+  const VERSION = '20261125_quote_preparation_v1';
   const CACHE_FIELD = 'derivedFacts';
   const STATS_LIMIT = 20;
   let computingDepth = 0;
@@ -53,10 +53,10 @@
   }
   function cabinetWithoutCache(cabinet){
     const src = cabinet && typeof cabinet === 'object' ? cabinet : {};
-    const out = clone(src) || {};
-    try{ delete out[CACHE_FIELD]; }catch(_){ }
-    try{ delete out._derivedFacts; }catch(_){ }
-    return out;
+    const input = { ...src };
+    delete input[CACHE_FIELD];
+    delete input._derivedFacts;
+    return clone(input) || {};
   }
   function currentInvestorCarrying(){
     try{
@@ -213,7 +213,7 @@
   function workFacts(roomId, cabinet){
     try{
       const api = FC.workQuantityFacts || {};
-      if(api && typeof api.getCabinetFacts === 'function') return clone(api.getCabinetFacts(roomId, cabinet || {}) || []);
+      if(api && typeof api.getCabinetFacts === 'function') return clone(api.getCabinetFacts(FC.roomProjectModel?.enabled()&&project()?.[roomId]||roomId, cabinet || {}) || []);
     }catch(_){ }
     return [];
   }

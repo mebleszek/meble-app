@@ -2,7 +2,7 @@
 (function(){
   'use strict';
   const FC=window.FC=window.FC||{};
-  function fromConnection({firestore:f,db,session,assertAccess}={}){
+  function fromConnection({firestore:f,db,session,assertAccess,createGlobalStagingConnection}={}){
     const c=FC.globalDataContract;
     if(!c||!f||!db||typeof session?.identity!=='function'||typeof assertAccess!=='function')throw Error('GLOBAL_DEPENDENCY_UNAVAILABLE');
     let closed=false;const attempts=new WeakMap();
@@ -33,12 +33,17 @@
     function validateBase(head){if(head===null)return;headOf({...head,updatedAt:{toMillis:()=>1}});}
     async function fetchRecords(directory){
       const refs=Object.values(directory).flat().map(r=>recordRef(r.hash));
-      // Immutable records can be fetched in bounded transactions without
-      // mixing generations: the frozen directory and final head are verified.
+      // Immutable records need server reads, not mutable-data transactions:
+      // each hash, the frozen directory and the final head are verified.
       // Refuse total size while reading, before retaining an oversized bundle.
       const records=[];let total=0;
       for(let offset=0;offset<refs.length;offset+=32){
-        const snaps=await f.runTransaction(db,async tx=>{check();const values=await Promise.all(refs.slice(offset,offset+32).map(r=>tx.get(r)));values.forEach(fresh);check();return values;},{maxAttempts:3});check();
+        check();
+        const batch=await Promise.allSettled(refs.slice(offset,offset+32).map(async ref=>{
+          check();const snap=fresh(await f.getDocFromServer(ref));check();return snap;
+        }));
+        const refused=batch.find(result=>result.status==='rejected');if(refused)throw refused.reason;
+        const snaps=batch.map(result=>result.value);check();
         if(snaps.some(s=>!s.exists()))c.fail('GLOBAL_RECORD_MISSING');
         for(const snap of snaps){const r=snap.data();
           if(typeof r.json!=='string'||!Number.isSafeInteger(r.byteLength)||r.byteLength<1||r.byteLength>c.MAX_RECORD_BYTES)c.fail('GLOBAL_RECORD_INVALID');
@@ -49,9 +54,7 @@
       }
       return records;
     }
-    async function read(){
-      try{
-        const head=await remoteHead();if(!head)c.fail('GLOBAL_NOT_FOUND');
+    async function readRevision(head){
         const snap=await f.runTransaction(db,async tx=>{check();const s=fresh(await tx.get(revisionRef(head.revisionId)));check();return s;},{maxAttempts:3});check();
         if(!snap.exists())c.fail('GLOBAL_REVISION_MISSING');const rev=snap.data();
         c.shape({ownerUid:c.id,version:v=>{if(v!==1)c.fail('GLOBAL_REVISION_INVALID');},generation:c.integer,revisionId:c.id,directoryHash:c.hashValue,recordCount:c.integer,directory:v=>{if(typeof v!=='string'||new TextEncoder().encode(v).length>c.MAX_DIRECTORY_BYTES)c.fail('GLOBAL_SIZE_LIMIT');},baseGeneration:c.integer,baseRevisionId:v=>{if(typeof v!=='string')c.fail('GLOBAL_REVISION_INVALID');},baseDirectoryHash:v=>{if(typeof v!=='string')c.fail('GLOBAL_REVISION_INVALID');},createdAt:v=>{if(typeof v?.toMillis!=='function'||!Number.isFinite(v.toMillis()))c.fail('GLOBAL_REVISION_INVALID');}},['ownerUid','version','generation','revisionId','directoryHash','recordCount','directory','baseGeneration','baseRevisionId','baseDirectoryHash','createdAt'])(rev,'revision');
@@ -62,6 +65,12 @@
         if(c.canonical(directory)!==rev.directory)c.fail('GLOBAL_DIRECTORY_INVALID');
         // Validate/bound directory before using it to allocate or issue reads.
         validateDirectory(directory,head.recordCount);
+        return {rev,directory};
+    }
+    async function read(){
+      try{
+        const head=await remoteHead();if(!head)c.fail('GLOBAL_NOT_FOUND');
+        const {rev,directory}=await readRevision(head);
         const records=await fetchRecords(directory),result=await c.unpack(bound.uid,directory,records);c.validateBundle(result.model);check();
         if(!equal(await remoteHead(),head))c.fail('GLOBAL_READ_CONFLICT');
         return {ok:true,head,...result,parent:{generation:rev.baseGeneration,revisionId:rev.baseRevisionId,directoryHash:rev.baseDirectoryHash}};
@@ -89,7 +98,13 @@
         const revisionId=idempotentPublication?(await c.sha(c.encode({kind:'global-publication-v1',ownerUid:bound.uid,base:current,directoryHash:packed.directoryHash}))).slice(0,32):crypto.randomUUID().replace(/-/g,'');
         check();source({assertSource});
         const handle=Object.freeze({revisionId}),head={ownerUid:bound.uid,version:1,generation:(current?.generation||0)+1,revisionId:handle.revisionId,directoryHash:packed.directoryHash,recordCount:packed.records.length};
-        attempts.set(handle,{packed,head,base:current,assertSource,state:'prepared'});return {ok:true,handle,records:head.recordCount};
+        // A verified base manifest proves which content-addressed records were
+        // already published. Stage only new hashes; fetch/unpack EVERY record
+        // again before the head CAS, including reused base records.
+        const existing=current?new Set(Object.values((await readRevision(current)).directory).flat().map(row=>row.hash)):new Set();
+        check();source({assertSource});
+        const stagingRecords=packed.records.filter(record=>!existing.has(record.hash));
+        attempts.set(handle,{packed,stagingRecords,head,base:current,assertSource,state:'prepared'});return {ok:true,handle,records:head.recordCount};
       }catch(e){return error(e);}
     }
     function source(a){const result=a.assertSource();if(result?.then)c.fail('GLOBAL_SOURCE_UNCONFIRMED');}
@@ -111,21 +126,41 @@
         // Existing Rules use at most five access calls per record (including
         // syncOwner); four writes fit20 even without cached grant reads.
         // Preserve the first three-record checkpoint used by durable recovery.
-        for(let offset=0;offset<a.packed.records.length;){
-          const batch=a.packed.records.slice(offset,offset+(offset===0?3:4));
-          check();source(a);
-          await f.runTransaction(db,async tx=>{
-            check();
-            const refs=batch.map(r=>recordRef(r.hash));
+        const main={firestore:f,db,assertAccess:check};
+        async function stageBatch(batch,connection){
+          check();source(a);connection.assertAccess();
+          const sdk=connection.firestore;
+          await sdk.runTransaction(connection.db,async tx=>{
+            check();connection.assertAccess();
+            const refs=batch.map(r=>sdk.doc(connection.db,'users',bound.uid,'globalRecords',r.hash));
             const snaps=await Promise.all(refs.map(async ref=>fresh(await tx.get(ref))));
-            check();source(a);
+            check();source(a);connection.assertAccess();
             for(let i=0;i<batch.length;i++){
               if(snaps[i].exists()){if(!equal(snaps[i].data(),batch[i]))c.fail('GLOBAL_RECORD_CONFLICT');}
               else tx.set(refs[i],batch[i]);
             }
-          },{maxAttempts:3});check();
-          offset+=batch.length;
+          },{maxAttempts:3});check();connection.assertAccess();
         }
+        if(a.stagingRecords.length)await stageBatch(a.stagingRecords.slice(0,3),main);
+        let offset=3;
+        const lanes=[main];
+        if(offset<a.stagingRecords.length&&createGlobalStagingConnection){
+          check();source(a);const staging=await createGlobalStagingConnection();check();source(a);staging.assertAccess();
+          if(staging.session?.identity()?.uid!==bound.uid||staging.db===db)c.fail('GLOBAL_AUTH_CHANGED');
+          lanes.push(staging);
+        }
+        // Separate SDK queues overlap latency; never borrow the independent
+        // reader or increase the four-record / twenty-access-call Rules bound.
+        // Drain every started transaction before reporting a failed wave.
+        let failure=null;
+        await Promise.all(lanes.map(async connection=>{
+          while(!failure&&offset<a.stagingRecords.length){
+            const next=offset;offset+=4;
+            try{await stageBatch(a.stagingRecords.slice(next,next+4),connection);}
+            catch(error){if(!failure)failure={error};}
+          }
+        }));
+        if(failure)throw failure.error;
         const records=await fetchRecords(a.packed.directory);await c.unpack(bound.uid,a.packed.directory,records);check();source(a);
         phase='publication';a.state='unconfirmed';
         await remoteHead();check();
@@ -144,7 +179,7 @@
         // aborted. Classify only after a fresh, independently authorized read;
         // do not retry the write or reinterpret a revoked grant as a conflict.
         if(a&&phase==='publication'&&e?.code==='permission-denied'){
-          try{const head=await remoteHead();if(!equal(head,a.base)&&!equal(head,a.head))e={code:'GLOBAL_WRITE_CONFLICT'};}catch(_){ }
+          try{const head=await remoteHead();if(equal(head,a.head))return await confirm(handle);if(!equal(head,a.base))e={code:'GLOBAL_WRITE_CONFLICT'};}catch(_){ }
         }
         const uncertain=phase==='publication'||phase==='confirmation'||a?.state==='unconfirmed';if(a&&uncertain)a.state=e?.code==='GLOBAL_WRITE_CONFLICT'?'conflict':'unconfirmed';
         return {...error(e),phase,published:a?.state==='published'?true:uncertain?'unconfirmed':false};

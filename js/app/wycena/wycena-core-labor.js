@@ -378,7 +378,7 @@
     try{
       const factsApi = FC.cabinetDerivedFacts || null;
       if(factsApi && typeof factsApi.getCutlist === 'function'){
-        const parts = factsApi.getCutlist(roomId, cab, { recalculate:true, persist:false }) || [];
+        const parts = (FC.roomQuoteSources?.enabled() ? FC.roomQuoteSources.cutlist(cab,roomId) : factsApi.getCutlist(roomId, cab, { recalculate:true, persist:false })) || [];
         return (Array.isArray(parts) ? parts : []).filter((part)=> text(part && part.name).toLowerCase() === 'front' || /^\s*front\s*:/i.test(text(part && part.material)));
       }
     }catch(_){ }
@@ -432,7 +432,7 @@
   }
   function hingeRequirementsForCabinet(roomId, cab){
     try{
-      const factsApi = FC.cabinetDerivedFacts || null;
+      const factsApi = FC.roomQuoteSources?.enabled() ? null : FC.cabinetDerivedFacts;
       if(factsApi && typeof factsApi.ensureCabinetFacts === 'function'){
         const res = factsApi.ensureCabinetFacts(roomId, cab, { recalculate:true, persist:false });
         const rows = res && res.cache && res.cache.hardwareRequirements && Array.isArray(res.cache.hardwareRequirements.hinges) ? res.cache.hardwareRequirements.hinges : null;
@@ -442,7 +442,7 @@
     try{
       const api = FC.cabinetHardwareRequirements || {};
       if(api && typeof api.getHingeRequirementsWithQty === 'function'){
-        return (api.getHingeRequirementsWithQty(roomId, cab) || []).filter((req)=> req && req.kind === 'hinge' && text(req.hardwareGroup) === 'hinges');
+        return (api.getHingeRequirementsWithQty(FC.roomQuoteSources?.input(roomId)||roomId, cab) || []).filter((req)=> req && req.kind === 'hinge' && text(req.hardwareGroup) === 'hinges');
       }
     }catch(_){ }
     return [];
@@ -533,7 +533,7 @@
 
   function carryingEvaluation(entry){
     try{
-      const factsApi = FC.cabinetDerivedFacts || null;
+      const factsApi = FC.roomQuoteSources?.enabled() ? null : FC.cabinetDerivedFacts;
       if(factsApi && typeof factsApi.getLogistics === 'function'){
         const ev = factsApi.getLogistics(entry && entry.roomId, entry && entry.cabinet || {}, { recalculate:true, persist:false });
         if(ev) return ev;
@@ -541,7 +541,7 @@
     }catch(_){ }
     try{
       const api = FC.carryingLogistics || {};
-      if(api && typeof api.evaluateCabinet === 'function') return api.evaluateCabinet(entry && entry.roomId, entry && entry.cabinet || {});
+      if(api && typeof api.evaluateCabinet === 'function') return api.evaluateCabinet(FC.roomQuoteSources?.input(entry?.roomId)||entry?.roomId, entry && entry.cabinet || {});
     }catch(_){ }
     return null;
   }
@@ -958,7 +958,7 @@
   function collectCabinetLabor(selectedRooms){
     try{
       const factsApi = FC.cabinetDerivedFacts || null;
-      if(factsApi && typeof factsApi.ensureForRooms === 'function') factsApi.ensureForRooms(selectedRooms || [], { persist:false, recalculate:true });
+      if(!FC.roomQuoteSources?.enabled() && factsApi && typeof factsApi.ensureForRooms === 'function') factsApi.ensureForRooms(selectedRooms || [], { persist:false, recalculate:true });
     }catch(_){ }
     const defs = laborDefs();
     const rates = hourlyRates(defs);
@@ -968,7 +968,7 @@
   function collectProjectPreparationLines(selectedRooms){
     try{
       const factsApi = FC.cabinetDerivedFacts || null;
-      if(factsApi && typeof factsApi.ensureForRooms === 'function') factsApi.ensureForRooms(selectedRooms || [], { persist:false, recalculate:true });
+      if(!FC.roomQuoteSources?.enabled() && factsApi && typeof factsApi.ensureForRooms === 'function') factsApi.ensureForRooms(selectedRooms || [], { persist:false, recalculate:true });
     }catch(_){ }
     const defs = laborDefs();
     const rates = hourlyRates(defs);
@@ -978,7 +978,7 @@
   function collectCarryingLines(selectedRooms){
     try{
       const factsApi = FC.cabinetDerivedFacts || null;
-      if(factsApi && typeof factsApi.ensureForRooms === 'function') factsApi.ensureForRooms(selectedRooms || [], { persist:false, recalculate:true });
+      if(!FC.roomQuoteSources?.enabled() && factsApi && typeof factsApi.ensureForRooms === 'function') factsApi.ensureForRooms(selectedRooms || [], { persist:false, recalculate:true });
     }catch(_){ }
     const defs = laborDefs();
     const rates = hourlyRates(defs);

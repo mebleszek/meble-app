@@ -398,7 +398,10 @@
 
   function find(code){
     const key = text(code);
-    return list().find((row)=> row.code === key) || null;
+    if(!key) return null;
+    const source = SYSTEM_SOURCES.concat(root.FC.laborCatalogDefinitions?.PDF_QUANTITY_SOURCES || [])
+      .find(row=>text(row && row.code)===key && text(row && row.label));
+    return source ? normalizeSource(source) : null;
   }
 
   function groupByCategory(){

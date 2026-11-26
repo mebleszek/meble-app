@@ -203,14 +203,33 @@
   for(const [id,name]of [['corner','Magic Corner'],['kidney','Nerka'],['carousel','Karuzela']])pdf('cargo_'+id,'Kompletny montaż — '+name,'',60,'workshop',{note:'Komplet z przygotowaniem, rozmierzeniem i regulacją; nie doliczać ich drugi raz.'});
   pdf('cargo_tall_prepare','Przygotowanie wysokiego cargo','',30,'workshop');
   pdf('cargo_tall_mount','Montaż wysokiego cargo z frontem i regulacją','',60,'workshop');
+  // Owner-approved Cargo variant: visible automatic rules; preserve all old
+  // manual rows and assignments while preventing a second charge for the work.
+  for(const [old,source,minutes]of [['runner','mini_runners',5],['catch','mini_catches',1],['fit','mini_set',5],['tall_prepare','tall_set',30],['tall_mount','tall_set',60]]){
+    const legacy=DEFAULT_LABOR_DEFINITIONS.find(row=>row.id==='pdf_cargo_'+old);
+    LABOR_REPLACEMENTS[legacy.id]=[pdf('cargo_auto_'+old,legacy.name+' — automat Cargo','labor.cargo.'+source,minutes,'workshop')];
+  }
   pdf('lift_hkxs_mount','Montaż podnośnika HK-XS','labor.lift.hkxs',15,'workshop',{note:'Ilość = faktyczna liczba podnośników, nie kompletów. Cykl frontu i regulacja siły są oddzielne.'});
   pdf('lift_hk_prepare','Przygotowanie kompletu HK-S / HK top','labor.lift.hk_set',5,'workshop');
   pdf('lift_hk_mount','Montaż kompletu HK-S / HK top z frontem','labor.lift.hk_set',15,'workshop',{note:'Komplet jednej klapy. Końcowa regulacja i siła podnoszenia u klienta oddzielnie.'});
   pdfStart('lift_gap_adjust','Regulacja szczelin frontu na podnośnikach','labor.lift.mechanisms',1,1,'assembly');
-  pdf('lift_force_adjust','Regulacja siły podnoszenia frontu','labor.lift.force',5,'assembly',{note:'Raz na front podnoszony, także HK-XS, nie na podnośnik. Dla frontu łamanego jednostka pozostaje do doprecyzowania; bez automatycznego mnożenia przez dwa.'});
+  pdf('lift_force_adjust','Regulacja siły podnoszenia frontu','labor.lift.force',5,'assembly',{note:'Raz na podnoszony komplet frontu, także HK-XS i łamany HF, nie na pojedynczy podnośnik.'});
   pdf('lift_pack','Zdjęcie, pakowanie i odłożenie frontu HK-S / HK top','labor.lift.fronts',5,'workshop');
   pdfStart('lift_rehang','Rozpakowanie i założenie frontu HK-S / HK top u klienta','labor.lift.mechanisms',1,1,'assembly');
-  LABOR_REPLACEMENTS.labor_mount_lift=['pdf_lift_hkxs_mount','pdf_lift_hk_prepare','pdf_lift_hk_mount'];
+  // Owner25.11: additional families and parts. Separate IDs preserve private
+  // HK-S preparation/mounting definitions; no hidden overrides of their times.
+  pdf('lift_other_prepare','Przygotowanie kompletu HF / HS / HL / DUO','labor.lift.other_prepare',5,'workshop');
+  pdf('lift_other_mount','Montaż kompletu HF / HS / HL / HKi / DUO z frontem','labor.lift.other_set',15,'workshop');
+  pdf('lift_hki_prepare','Przygotowanie montażu HKi','labor.lift.hki_set',30,'workshop');
+  pdf('lift_hki_mill_partial','Frezowanie pod częściowo ukryty HKi','labor.lift.hki_partial',15,'workshop');
+  pdf('lift_hki_mill_full','Frezowanie pod całkowicie ukryty HKi','labor.lift.hki_full',30,'workshop');
+  pdfStart('lift_arms','Przygotowanie i zapięcie ramion podnośnika','labor.lift.arms',5,1,'workshop');
+  pdfStart('lift_stabilizer_cut','Przygotowanie i cięcie stabilizacji HL','labor.lift.stabilizer_cuts',5,1,'workshop');
+  pdf('lift_stabilizer_mount','Mocowanie stabilizacji HL','labor.lift.stabilizer_sets',5,'workshop');
+  pdf('lift_other_pack','Zdjęcie, pakowanie i odłożenie frontów HF / HS / HL / HKi / DUO','labor.lift.other_fronts',5,'workshop',{note:'HF: dwa fronty po5 minut. Pozostałe: jeden front.'});
+  pdfStart('lift_other_rehang','Rozpakowanie i założenie frontu HF / HS / HL / HKi / DUO u klienta','labor.lift.other_mechanisms',1,1,'assembly');
+  pdfStart('lift_other_gap_adjust','Regulacja szczelin frontu HF / HS / HL / HKi / DUO','labor.lift.other_mechanisms',1,1,'assembly');
+  LABOR_REPLACEMENTS.labor_mount_lift=['pdf_lift_hkxs_mount','pdf_lift_hk_prepare','pdf_lift_hk_mount','pdf_lift_other_mount'];
   DEFAULT_LABOR_DEFINITIONS.push({id:'labor_daily_break', breakAfterHours:4, workdayHours:8,category:'Organizacja pracy',name:'Przerwa',price:0,usage:'universal',rateType:'workshop',billingScope:'day',dailyStages:'both',quantitySource:'',pricingMode:'time',quantityMode:'linear',timeBlockHours:0.5,active:true,internalOnly:true,starterPrice:true,note:'Przerwa po przekroczeniu progu czasu pracy, według stawki wybranej w regule. Czas, próg i długość dnia są wspólne z ustawieniami „Stawki i przerwy”. Przejazdy wchodzą do progu, sama przerwa nie. Krótki ostatni dzień może być bez przerwy.'});
   DEFAULT_LABOR_DEFINITIONS.push({id:'labor_delivery_loading',category:'Transport i logistyka',name:'Załadunek i rozładunek korpusów',price:0,usage:'universal',rateType:'assembly',billingScope:'room',quantitySource:'cabinet.count',pricingMode:'time',quantityMode:'linear',timeBlockHours:5/60,active:true,internalOnly:true,starterPrice:true,note:'Łącznie 5 minut na korpus za załadunek i rozładunek. Jednorazowo dla dostarczanych szafek; stawka montażowa obejmuje całą ekipę dwóch osób. Bez wnoszenia i czasu przejazdu, które mają osobne pozycje.'});
   const PDF_QUANTITY_SOURCES = [...new Map(DEFAULT_LABOR_DEFINITIONS.filter(row=>String(row.quantitySource || '').startsWith('labor.')).map(row=>[row.quantitySource,{code:row.quantitySource,label:row.name+' — ilość techniczna',unit:'szt.',group:'Normy robocizny',status:'system',calculation:'Odczyt wymagań technicznych szafki; bez zapisywania drugiego licznika.'}])).values()];

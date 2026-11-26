@@ -61,7 +61,7 @@ function loadContext(opts){
       decodeMaterialScope(){ return { kind:'all' }; }
     }
   };
-  const projectData = { kuchnia:{ settings:{ legHeight:0 }, cabinets:[], fronts:[], sets:[] } };
+  const projectData = { kuchnia:{ settings:{ legHeight:10 }, cabinets:[], fronts:[], sets:[] } };
   const ctx = {
     window:{ FC, localStorage:storage, projectData },
     FC,
@@ -76,9 +76,9 @@ function loadContext(opts){
     'js/app/shared/storage.js',
     'js/app/catalog/catalog-domain.js',
     'js/app/catalog/catalog-migration.js',
-    'js/app/catalog/hardware-technical-params.js',
+    'js/app/catalog/hardware-technical-read-snapshot.js','js/app/catalog/hardware-technical-params.js',
     'js/app/catalog/hardware-catalog.js',
-    'js/app/catalog/hardware-catalog-seed-data.js',
+    'js/app/catalog/hardware-support-catalog.js','js/app/catalog/hardware-lift-catalog.js','js/app/catalog/hardware-cargo-catalog.js','js/app/catalog/hardware-catalog-seed-data.js',
     'js/app/catalog/hardware-catalog-seeds.js',
     'js/app/catalog/catalog-store.js',
     'js/app/cabinet/front-hardware-weights.js',
@@ -133,7 +133,7 @@ function setSelectedCabinets(ctx, cabinets){
     frontCount:3, frontMaterial:'laminat', frontColor:'biały', openingSystem:'uchwyt',
     details:{ drawerHeight:20 }
   };
-  ctx.window.projectData.kuchnia.settings.legHeight = 0;
+  ctx.window.projectData.kuchnia.settings.legHeight = 10;
   setSelectedCabinets(ctx, cab);
   const doorPanels = FC.frontHardware.getDoorFrontPanelsForHinges('kuchnia', cab);
   assert(doorPanels.length === 2, 'Szuflada+drzwi z legacy frontCount=3 ma mieć 2 panele zawiasowe, nie 3', doorPanels);

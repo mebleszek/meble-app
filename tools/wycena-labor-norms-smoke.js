@@ -25,7 +25,7 @@ function fixture(){
       getCabinetFrontCutListForMaterials:()=>panels.map(p=>({name:'Front',qty:1,a:p.w,b:p.h,material:'Front: laminat'}))}};
   const s={FC,projectData:project,console};s.window=s;s.globalThis=s;vm.createContext(s);
   const load=file=>runModule(file,s);
-  for(const file of ['cabinet/cabinet-drawer-requirements','cabinet/cabinet-hardware-requirements','cabinet/cabinet-cutlist','pricing/labor-catalog-definitions','pricing/labor-catalog','pricing/work-quantity-sources','pricing/work-quantity-facts','wycena/wycena-core-labor','wycena/wycena-core-lines','quote/quote-calculation-register'])load('js/app/'+file+'.js');
+  for(const file of ['cabinet/cabinet-drawer-requirements','catalog/hardware-support-catalog','catalog/hardware-lift-catalog','catalog/hardware-cargo-catalog','cabinet/cabinet-hardware-requirements','cabinet/cabinet-cutlist','pricing/labor-catalog-definitions','pricing/labor-catalog','pricing/work-quantity-sources','pricing/work-quantity-facts','wycena/wycena-core-labor','wycena/wycena-core-lines','quote/quote-calculation-register'])load('js/app/'+file+'.js');
   let rates=FC.laborCatalog.ensureDefaultDefinitions([]);
   FC.catalogSelectors={getQuoteRates:()=>rates};
   return {FC,cab,project,load,s,setPanels:p=>{panels=p;},rates:()=>rates,
@@ -36,6 +36,12 @@ function fixture(){
 const tests=[],test=(name,fn)=>tests.push([name,fn]);
 test('Leg boundaries/exceptions/additions share material, facts and labor quantity',()=>{
   const r=fixture(),{cab,FC}=r;
+  const all=FC.workQuantityFacts.getCabinetFacts('kuchnia',cab),list=FC.workQuantitySources.list;
+  let enumerations=0;FC.workQuantitySources.list=function(){enumerations++;return list.apply(this,arguments);};
+  for(const expected of all)assert.deepEqual(FC.workQuantityFacts.getCabinetFact('kuchnia',cab,expected.code),expected);
+  assert.equal(enumerations,0,'A single quantity lookup must not normalize every other source definition');
+  FC.workQuantitySources.list=list;
+  for(const expected of list())assert.deepEqual(FC.workQuantitySources.find(expected.code),expected);
   const cases=[[15,15,1],[15,50,2],[60,15,2],[90,15,3],[60,50,4],[90,50,6],
     [19.99,19.99,1],[20,19.99,2],[80,19.99,2],[80.01,19.99,3],[19.99,20,2],[20,20,4],[80,20,4],[80.01,20,6]];
   for(const [w,d,q]of cases){cab.width=w;cab.depth=d;assert.equal(r.fact('leg.count').value,q);const part=FC.cabinetCutlist.getCabinetCutList(cab,'kuchnia').find(p=>p.hardwareRequirement?.kind==='leg');assert.equal(part.qty,q);near(r.calc('labor_legs_install',q).pricedHours*60,5+q);}
@@ -201,17 +207,23 @@ test('repair: legacy workshop shelf norms never suppress independent on-site pla
     assert.equal(JSON.stringify(r.rates()),catalogBytes);assert.equal(JSON.stringify(manual),assignmentBytes);assert.equal(JSON.stringify(cab),cabinetBytes);
   }
 });
-test('repair: missing and resolved leg/hanger products preserve requirements and real symbols',()=>{
+test('Missing or generic support products refuse; exact AXILO/CAMAR components preserve symbols and quantities',()=>{
   const r=fixture(),{FC,cab}=r;
+  FC.wycenaCoreSelection.createQuoteValidationError=(code,title,message)=>Object.assign(Error(message),{code,title});
   for(const kind of ['leg','hanger']){
     cab.type=kind==='leg'?'stojąca':'wisząca';
     FC.catalogStore={getAccessories:()=>[]};
-    let rows=FC.wycenaCoreLines.collectAccessories(['kuchnia']).filter(d=>d.hardwareRequirement?.kind===kind);
-    assert.equal(rows.length,1);assert.ok(rows[0].qty>0);assert.equal(rows[0].resolvedHardwareSymbol,'');assert.equal(rows[0].resolvedHardwareItemId,'');assert.ok(rows[0].warnings.length>0);assert.equal(rows[0].total,0);
+    const refused=()=>assert.throws(()=>FC.wycenaCoreLines.collectAccessories(['kuchnia']),error=>error.code==='opening_hardware_unresolved');
+    refused();
     const product={id:'private-'+kind,name:kind==='leg'?'Nóżka regulowana':'Zawieszka szafki',symbol:'REAL-'+kind,hardwareCategory:'Akcesoria',hardwareUnit:'szt.',price:7,status:'active'};
     FC.catalogStore={getAccessories:()=>[product]};
-    rows=FC.wycenaCoreLines.collectAccessories(['kuchnia']).filter(d=>d.hardwareRequirement?.kind===kind);
-    assert.equal(rows.length,1);assert.equal(rows[0].resolvedHardwareSymbol,product.symbol);assert.equal(rows[0].resolvedHardwareItemId,product.id);near(rows[0].total,rows[0].qty*7);assert.equal(rows[0].warnings.length,0);
+    refused();
+    const requirements=FC.cabinetHardwareRequirements.getSupportRequirements('kuchnia',cab);
+    const products=requirements.map(req=>({id:req.catalogItemId,name:req.label,symbol:req.expectedSymbol,manufacturer:req.expectedManufacturer,hardwareCategory:req.category,hardwareUnit:req.expectedUnit,price:7,status:'active'}));
+    FC.catalogStore={getAccessories:()=>products};
+    const rows=FC.wycenaCoreLines.collectAccessories(['kuchnia']).filter(d=>['leg','hanger','hanger-cover'].includes(d.hardwareRequirement?.kind));
+    assert.equal(rows.length,requirements.length);
+    for(const req of requirements){const row=rows.find(row=>row.resolvedHardwareItemId===req.catalogItemId);assert.ok(row);assert.equal(row.resolvedHardwareSymbol,req.expectedSymbol);assert.equal(row.qty,req.qty);near(row.total,row.qty*7);assert.equal(row.warnings.length,0);}
   }
 });
 function main(){const split=require('./ci-test-parts').select(9);let executed=0;for(const[index,[name,fn]]of tests.entries()){if(!split.includes(index))continue;fn();executed++;console.log('PASS '+name);}split.verify(executed,tests.length);console.log(`WYCENA-LABOR norms: ${executed}/${split.expected(tests.length)} PASS`);}

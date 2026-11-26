@@ -28,7 +28,7 @@ function loadContext(){
   };
   ctx.globalThis = ctx.window;
   vm.createContext(ctx);
-  ['js/app/cabinet/cabinet-hardware-requirement-options.js', 'js/app/cabinet/cabinet-hardware-requirements.js', 'js/app/cabinet/cabinet-hardware-requirements-panel.js', 'js/app/cabinet/cabinet-cutlist.js']
+  ['js/app/catalog/hardware-support-catalog.js','js/app/catalog/hardware-lift-catalog.js','js/app/catalog/hardware-cargo-catalog.js', 'js/app/cabinet/cabinet-hardware-requirement-options.js', 'js/app/cabinet/cabinet-hardware-requirements.js', 'js/app/cabinet/cabinet-hardware-requirements-panel.js', 'js/app/cabinet/cabinet-cutlist.js']
     .forEach((file)=> vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), ctx, { filename:file }));
   return ctx;
 }
@@ -60,9 +60,9 @@ function loadCatalogContext(){
   ctx.globalThis = ctx.window;
   vm.createContext(ctx);
   [
-    'js/app/catalog/hardware-technical-params.js',
+    'js/app/catalog/hardware-technical-read-snapshot.js','js/app/catalog/hardware-technical-params.js',
     'js/app/catalog/hardware-catalog.js',
-    'js/app/catalog/hardware-catalog-seed-data.js',
+    'js/app/catalog/hardware-support-catalog.js','js/app/catalog/hardware-lift-catalog.js','js/app/catalog/hardware-cargo-catalog.js','js/app/catalog/hardware-catalog-seed-data.js',
     'js/app/catalog/hardware-catalog-seeds.js',
     'js/app/catalog/catalog-store.js',
     'js/app/cabinet/cabinet-hardware-requirement-options.js', 'js/app/cabinet/cabinet-hardware-requirements.js',

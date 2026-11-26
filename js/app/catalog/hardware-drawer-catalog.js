@@ -484,9 +484,9 @@
   }
   // Legacy startup must close the approved seed dependencies BEFORE its
   // normalizer can filter unknown fields. Existing private rows always win.
-  function seedDependencies({definitions,defaultDefinitions,suppliers,defaultSuppliers}){
+  function seedDependencies({definitions,defaultDefinitions,suppliers,defaultSuppliers,seedRows}){
     const defs=JSON.parse(JSON.stringify(definitions)),vendors=JSON.parse(JSON.stringify(suppliers));
-    const rows=FC.hardwareCatalogSeedData.ACCESSORY_SEEDS.filter(row=>specs.has(row.id));
+    const rows=Array.isArray(seedRows)?seedRows:FC.hardwareCatalogSeedData.ACCESSORY_SEEDS.filter(row=>specs.has(row.id));
     for(const row of rows){
       if(!vendors.some(v=>v.id===row.supplierId)){
         const vendor=defaultSuppliers.find(v=>v.id===row.supplierId);if(!vendor)throw Error('DRAWER_CATALOG_SUPPLIER_UNCONFIRMED');

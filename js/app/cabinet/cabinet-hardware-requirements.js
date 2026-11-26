@@ -459,9 +459,9 @@
   }
 
   function getHingeRequirementsWithQty(room, cab){
+    if(cab?.subType==='cargo')return [];const lift=FC.hardwareLiftCatalog.hfHinges(room,cab);if(lift)return lift;
     const baseReq = getBaseHingeRequirement(room, cab);
     if(!baseReq || baseReq.kind !== 'hinge') return baseReq ? [baseReq] : [];
-
     if(baseReq.auxiliaryForLift){
       const qty = Math.max(0, Math.round(countAuxiliaryFlapHinges(room, cab)));
       return [Object.assign({}, baseReq, { qty })];
@@ -575,7 +575,7 @@
   }
   function getOpeningRequirements(room,cab,frontParts){
     const info=getOpeningInfo(room,cab,frontParts);
-    if(!info.ok)throw Object.assign(Error(info.code),{code:info.code});
+    if(!info.ok)throw Object.assign(Error(info.code),{code:info.code});const lift=FC.hardwareLiftCatalog.openingRequirements(room,cab,info.tiponQty);if(lift)return lift;
     return [
       {catalogItemId:'hw_seed_gtv_hexa_96_black',expectedManufacturer:'GTV',expectedSymbol:'UA-HEXA-96-20M',label:'Uchwyt GTV HEXA 150 mm czarny mat',qty:info.hexaQty},
       {catalogItemId:'hw_seed_blum_tipon_long_956a1004',expectedManufacturer:'Blum',expectedSymbol:'956A1004 TIP-ON V1R736',label:'TIP-ON długi Blum 956A1004',qty:info.tiponQty}
@@ -590,11 +590,10 @@
     return {ok:true,count:1,orientation,lengthCm,edgeMeters:2*lengthCm/100};
   }
   function getSupportRequirements(room, cab){
-    const q = supportQuantities(cab);
-    return [
-      {kind:'leg',hardwareGroup:'accessories',category:'Nóżki / cokoły',typeId:'cabinet_leg',label:'Nóżka meblowa',qty:q.legs},
-      {kind:'hanger',hardwareGroup:'accessories',category:'Inne',typeId:'cabinet_hanger',label:'Zawieszka szafki',qty:q.hangers}
-    ].filter(row=>row.qty > 0);
+    const settings=(room && typeof room==='object' ? room : window.projectData?.[room])?.settings;
+    const direct=details(cab).legHeightCm;
+    const heightCm=direct!=null&&text(direct)!=='' ? number(direct) : settings?.legHeight;
+    const book=FC.hardwareSupportCatalog,concealedHki=book.forHki(cab);return book.requirements({...supportQuantities(cab),heightCm,concealedHki,concealedFits:concealedHki&&book.concealedFit(room,cab)});
   }
 
   function getCabinetHardwareRequirements(room, cab){

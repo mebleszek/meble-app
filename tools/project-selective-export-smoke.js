@@ -15,7 +15,7 @@ class MemoryStorage{
 const files=['js/app/shared/constants.js','js/app/shared/storage.js','js/app/shared/schema.js',
  'js/app/room-preferences/room-preferences-model.js','js/app/investor/investors-model.js','js/app/investor/investors-local-repository.js','js/app/investor/investors-store.js',
  'js/app/project/project-model.js','js/app/project/project-store.js','js/app/project/project-bridge.js','js/app/investor/session.js',
- 'js/app/catalog/hardware-catalog-seed-data.js','js/app/catalog/hardware-drawer-catalog.js',
+ 'js/app/catalog/hardware-support-catalog.js','js/app/catalog/hardware-lift-catalog.js','js/app/catalog/hardware-cargo-catalog.js','js/app/catalog/hardware-catalog-seed-data.js','js/app/catalog/hardware-drawer-catalog.js',
  'js/app/cabinet/part-provenance.js','js/app/material/material-common.js','js/app/cabinet/front-hardware-fronts.js','js/app/cabinet/cabinet-drawer-requirements.js','js/app/cabinet/cabinet-drawer-selection.js','js/app/cabinet/cabinet-cutlist.js', 'js/app/cabinet/cabinet-inner-drawers.js','js/app/material/material-edge-store.js',
  'js/app/project/project-pcv-overrides.js','js/app/project/project-domain-operations.js',
  'js/app/cabinet/cabinet-fronts.js','js/app/project/project-local-room-contract.js',

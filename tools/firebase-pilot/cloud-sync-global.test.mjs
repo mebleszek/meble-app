@@ -110,7 +110,7 @@ test('Pixel catalog cutover: two fresh devices receive all 14 domains and the pa
 test('CLOUD-SYNC-1 01: native RAW stores A -> immutable Firestore -> independent B, all 14 domains', async () => {
   const {a, b, sync} = await pair(), r = a.r;
   for (const name of ['pricing/labor-catalog-definitions', 'pricing/labor-catalog', 'catalog/hardware-technical-params',
-    'catalog/hardware-catalog', 'catalog/hardware-catalog-seed-data', 'catalog/hardware-catalog-seeds',
+    'catalog/hardware-catalog', 'catalog/hardware-support-catalog','catalog/hardware-lift-catalog','catalog/hardware-cargo-catalog','catalog/hardware-catalog-seed-data', 'catalog/hardware-catalog-seeds',
     'catalog/catalog-domain', 'catalog/catalog-migration', 'catalog/catalog-storage-policy', 'catalog/catalog-store',
     'settings/program-defaults-store', 'settings/business-costs-store', 'settings/company-profile-store', 'material/magazyn']) r.load('js/app/' + name + '.js');
   r.FC.catalogStore.savePriceList('materials', model().materials);

@@ -149,4 +149,70 @@ test('Generate waits for a pending local write, deduplicates gestures and never 
   assert.equal(refreshed.textContent,'Wyceń');assert.equal(refreshed.disabled,false,'Completion restores the latest rendered button as well');
  }
 });
+test('Synchronous catalog view normalizes each list once, rejects changes and cannot escape into async',()=>{
+ const r=runtime(),api=r.FC.catalogSelectors,original=r.FC.catalogStore;
+ let reads=0,price=10;
+ r.FC.catalogStore={getAccessories(){reads++;return [{id:'probe',purchasePriceGross:price,unknown:{keep:true}}];}};
+ assert.equal(typeof api.withReadSnapshot,'function');
+ const value=api.withReadSnapshot(()=>{
+  const first=api.getAccessories();first[0].purchasePriceGross=999;first[0].unknown.keep=false;
+  api.withReadSnapshot(()=>assert.equal(api.getAccessories()[0].purchasePriceGross,10));
+  for(let i=0;i<100;i++)assert.deepEqual(clone(api.getAccessories()),[{id:'probe',purchasePriceGross:10,unknown:{keep:true}}]);
+  return 42;
+ });
+ assert.equal(value,42);assert.equal(reads,2,'One normalization and one final source check, regardless of consumers');
+ assert.throws(()=>api.withReadSnapshot(()=>{api.getAccessories();price=20;}),/CATALOG_READ_CONFLICT/);
+ assert.equal(api.getAccessories()[0].purchasePriceGross,20,'Refusal releases the old view');
+ assert.throws(()=>api.withReadSnapshot(()=>Promise.resolve(true)),/CATALOG_READ_ASYNC/);
+ assert.throws(()=>api.withReadSnapshot(()=>{api.getAccessories();throw Error('probe-error');}),/probe-error/);
+ price=30;assert.equal(api.getAccessories()[0].purchasePriceGross,30,'No snapshot remains after an exception');
+ r.FC.catalogStore=original;
+});
+test('Independent room labor shares verified sources and preserves complete ordinary quantities and prices',async()=>{
+ const r=runtime(),fc=r.FC,s=r.s,vm=require('node:vm'),fs=require('node:fs');
+ s.TextEncoder=TextEncoder;s.TextDecoder=TextDecoder;s.crypto=require('node:crypto').webcrypto;
+ for(const file of ['project/project-local-room-contract','project/project-export-contract','cloud/cloud-pilot-contract','project/room-project-model','project/room-project-store','project/room-quote-sources'])vm.runInContext(fs.readFileSync('js/app/'+file+'.js','utf8'),s,{filename:file});
+ const prior=fc.projectStore.getById('A');
+ const records=prior.projectData.meta.roomOrder.map((id,index)=>{
+  const room=clone(prior.projectData[id]);
+  if(index===1){room.settings.legHeight=17;room.cabinets[0].height=95;room.cabinets[0].width=80;}
+  room.fronts=room.cabinets.flatMap(cab=>fc.cabinetFronts.previewFrontsForCabinet(room,cab).map((front,index)=>({...front,id:id+'-'+cab.id+'-'+index})));
+  return fc.roomProjectModel.create('inv-A',{id,baseType:'kuchnia',name:id},room);
+ });
+ s.localStorage.setItem('fc_projects_v1',JSON.stringify(records));fc.projectStore.setCurrentProjectId(records[0].id);s.projectData=fc.project.load();s.uiState.roomType=records[0].id;
+ fc.applicationRegistry={id:'p0b-rooms-v1'};
+ // This domain test exercises the real source/geometry/labor functions. The
+ // external pin authority is a fixture; actual SDK/ACK proof belongs to DEMO.
+ fc.roomQuoteProof={sources:async refs=>refs.map(ref=>({...ref,head:{version:1,generation:1,revisionId:'domain-fixture'},documentHash:'a'.repeat(64)}))};
+ const beforeRam=JSON.stringify(s.projectData),rooms=records.slice(0,2).map(row=>row.id);
+ const preparation=fc.workQuantityPrepared;let ordinary;
+ try{delete fc.workQuantityPrepared;ordinary=clone(fc.projectPcvOverrides.withCalculationRead(()=>fc.wycenaCoreLabor.collectCabinetLabor(rooms)));}
+ finally{fc.workQuantityPrepared=preparation;}
+ let active=false,readingSource=false,captures=0,verificationCaptures=0,readLines,catalogReads=0;const source=fc.roomProjectModel.quoteSource,labor=fc.wycenaCoreLabor.collectCabinetLabor;
+ const accessories=fc.catalogStore.getAccessories;
+ fc.catalogStore.getAccessories=function(...args){if(active)catalogReads++;return accessories.apply(this,args);};
+ fc.roomProjectModel.quoteSource=function(...args){if(active){if(readingSource)captures++;else verificationCaptures++;}return source.apply(this,args);};
+ const calculationSource=fc.projectPcvOverrides.calculationSource;
+ fc.projectPcvOverrides.calculationSource=function(...args){const parent=readingSource;readingSource=true;try{return calculationSource.apply(this,args);}finally{readingSource=parent;}};
+ const elements=fc.wycenaCoreLines.collectElementLines,verifiedRead=fc.projectPcvOverrides.withCalculationRead;
+ fc.wycenaCoreLines.collectElementLines=function(...args){active=true;return elements.apply(this,args);};
+ fc.projectPcvOverrides.withCalculationRead=function(...args){const parent=active;try{return verifiedRead.apply(this,args);}finally{active=parent;}};
+ fc.wycenaCoreLabor.collectCabinetLabor=function(...args){const value=labor.apply(this,args);readLines=clone(value);return value;};
+ const before=s.localStorage.getItem('fc_projects_v1');
+ const result=await fc.wycenaCore.collectQuoteData({pcvMode:'project',projectId:records[0].id,selection:{selectedRooms:rooms,materialScope:{kind:'all',includeFronts:true,includeCorpus:true}}});
+ assert.deepEqual(readLines,ordinary,'Every collected operation, quantity, rate and source must remain identical before the ordinary schedule deduplicates shared transport');
+ assert.equal(catalogReads,1,'The complete accessory list is read once during the entire synchronous phase');
+ assert.ok(result.laborLines.length>0&&result.totals.grand>0);
+ assert.equal(captures,rooms.length+1,'One all-room quantity source and one per selected room');
+ assert.equal(verificationCaptures,3,'PCV source capture and its two fresh revision checks must remain outside the quantity-source cache');
+ assert.equal(s.localStorage.getItem('fc_projects_v1'),before,'Derived calculations must not rewrite a room project');
+ assert.equal(JSON.stringify(s.projectData),beforeRam,'Quoting detached independent rooms must not warm or replace the active RAM project');
+ assert.equal(result.selectedRooms.length,2);
+ const collectAccessories=fc.wycenaCoreLines.collectAccessories,thickness=fc.materialCommon.FC_BOARD_THICKNESS_CM;
+ fc.wycenaCoreLines.collectAccessories=function(...args){const value=collectAccessories.apply(this,args);fc.materialCommon.FC_BOARD_THICKNESS_CM=2;return value;};
+ try{
+  await assert.rejects(fc.wycenaCore.collectQuoteData({pcvMode:'project',projectId:records[0].id,selection:{selectedRooms:rooms,materialScope:{kind:'all',includeFronts:true,includeCorpus:true}}}),error=>error.code==='PROJECT_PCV_READ_CONFLICT');
+ }finally{fc.wycenaCoreLines.collectAccessories=collectAccessories;fc.materialCommon.FC_BOARD_THICKNESS_CM=thickness;}
+ assert.equal(s.localStorage.getItem('fc_projects_v1'),before,'Rejected source mutation cannot publish or partially save a room');
+});
 (async()=>{const split=require('./ci-test-parts').select(4);let fail=0,executed=0;for(const[index,[name,fn]]of tests.entries()){if(!split.includes(index))continue;executed++;try{await fn();console.log('PASS '+name);}catch(e){fail++;console.error('FAIL '+name+'\n'+e.stack);}}split.verify(executed,tests.length);console.log(`Quote performance: ${executed-fail}/${executed} PASS, ${fail} FAIL`);process.exitCode=fail?1:0;})().catch(e=>{console.error(e);process.exitCode=1;});

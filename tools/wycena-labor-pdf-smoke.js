@@ -127,6 +127,17 @@ function main(){
     const calc=(id,q)=>r.calc('pdf_'+id,q).pricedHours*60;
     near(calc('cargo_runner',2)+calc('cargo_catch',2)+calc('cargo_fit',1),17);
     near(calc('cargo_tall_prepare',1)+calc('cargo_tall_mount',1),90);
+    r.cab.subType='cargo';r.cab.width=20;r.cab.height=82;r.cab.depth=51;r.cab.details={cargoModel:'peka_snello_white',shelves:0};
+    const cargo=row=>row.quantitySource.startsWith('labor.cargo.');
+    near(minutes(r,cargo),17);near(minutes(r,operation(r,'pdf_cargo_auto_runner')),10);
+    r.cab.laborItems=[{rateId:'pdf_cargo_runner',qty:2,note:'Preserve old assignment'}];
+    near(minutes(r,cargo),17);assert.ok(!r.details().some(row=>row.name===named(r,'pdf_cargo_runner')));
+    r.cab.width=50;r.cab.height=210;r.cab.details.cargoModel='nomet_prestige_maxi';
+    near(minutes(r,cargo),90);near(minutes(r,operation(r,'pdf_cargo_auto_runner')),0);
+    r.cab.details.backPosition='internal';r.cab.backMaterial='18 mm pod kolor korpusu';
+    assert.equal(r.fact('labor.cargo.tall_set').available,false);
+    assert.ok(r.details().some(row=>cargo(row)&&row.sourceKind==='automatic-blocked'&&row.total===0));
+    r.cab.backMaterial='HDF';r.cab.subType='standardowa';r.cab.details={};r.cab.laborItems=[];
     for(const id of ['cargo_corner','cargo_kidney','cargo_carousel'])near(calc(id,1),60);
     near(calc('lift_hkxs_mount',2),30);near(calc('lift_hk_prepare',1)+calc('lift_hk_mount',1),20);
     near(calc('lift_gap_adjust',2),3);near(calc('lift_force_adjust',1),5);
@@ -154,6 +165,38 @@ function main(){
     r.cab.laborItems=[];r.setPanels([{w:30,h:70},{w:30,h:70}]);
     assert.equal(r.fact('labor.lift.force').available,false);
     assert.ok(r.details().some(row=>row.quantitySource==='labor.lift.force'&&row.sourceKind==='automatic-blocked'&&row.total===0));
+    // Owner25.11: complete newer lift families use the same priced, editable
+    // operations as MATERIAL facts, with physical arms/fronts rather than packs.
+    r.cab.laborItems=[];r.cab.height=82;r.cab.depth=40;r.cab.details.flapKind='HF_top';
+    r.FC.frontHardwareAventosCalc={estimateFlapWeightKg:()=>8};
+    r.FC.frontHardware.getBlumAventosInfo=()=>({kind:r.cab.details.flapKind,liftQty:2,status:'ok',
+      model:({HF_top:'22F2500',HS_top:'22S2500',HL_top:'22L2500',HKI:'24K2500'})[r.cab.details.flapKind],armModel:'22L3800'});
+    const all=()=>r.details(),mins=(rows,id)=>{const name=r.rates().find(row=>row.id===id)?.name;
+      return rows.filter(row=>name&&row.name===name&&row.sourceKind==='automatic').reduce((sum,row)=>sum+row.hours*60,0);};
+    let out=all();near(mins(out,'pdf_lift_other_mount'),15);near(mins(out,'pdf_lift_arms'),7);
+    near(mins(out,'pdf_lift_other_pack'),10);near(mins(out,'pdf_lift_force_adjust'),5);
+    near(mins(out,'pdf_lift_hk_mount'),0);near(mins(out,'labor_door_pack'),0);
+    r.cab.details.flapKind='HS_top';r.setPanels([{w:60,h:82}]);out=all();
+    near(mins(out,'pdf_lift_arms'),7);near(mins(out,'pdf_lift_other_prepare'),5);near(mins(out,'pdf_lift_other_pack'),5);
+    r.cab.details.flapKind='HL_top';r.cab.height=45;out=all();
+    near(mins(out,'pdf_lift_stabilizer_cut'),6);near(mins(out,'pdf_lift_stabilizer_mount'),5);
+    r.cab.width=150;out=all();near(mins(out,'pdf_lift_stabilizer_cut'),7);near(mins(out,'pdf_lift_stabilizer_mount'),5);
+    r.cab.width=60;r.cab.details.flapKind='HKI';r.cab.details.flapIntegration='partial';out=all();
+    near(mins(out,'pdf_lift_hki_prepare'),30);near(mins(out,'pdf_lift_hki_mill_partial'),15);near(mins(out,'pdf_lift_hki_mill_full'),0);
+    near(mins(out,'pdf_lift_other_prepare'),0);near(mins(out,'pdf_lift_other_mount'),15);
+    r.cab.details.flapIntegration='full';out=all();near(mins(out,'pdf_lift_hki_mill_full'),30);near(mins(out,'pdf_lift_hki_mill_partial'),0);
+    const norm=r.rates().find(row=>row.id==='pdf_lift_arms');
+    norm.stepHours=5/60;norm.startHours=0;norm.userEdited=true;r.cab.details.flapKind='HS_top';out=all();
+    near(mins(out,'pdf_lift_arms'),10);assert.equal(norm.stepHours,5/60);
+    r.cab.details.flapKind='HF_top';r.setPanels([{w:60,h:45}]);
+    assert.equal(r.fact('labor.lift.other_set').available,false,'Two actual HF front panels are required');
+    assert.ok(all().some(row=>row.quantitySource==='labor.lift.other_set'&&row.sourceKind==='automatic-blocked'));
+    r.cab.height=35;r.cab.width=40;r.cab.details={flapVendor:'hafele',flapKind:'DUO',flapAngle:'90'};
+    r.cab.laborItems=[{rateId:'labor_mount_lift',qty:1,note:'Preserved historic assignment'}];out=all();
+    near(mins(out,'pdf_lift_other_mount'),15);near(mins(out,'pdf_lift_other_pack'),5);near(mins(out,'pdf_lift_other_gap_adjust'),3);
+    near(mins(out,'pdf_lift_force_adjust'),5);near(mins(out,'pdf_lift_arms'),0);near(mins(out,'labor_door_pack'),0);
+    assert.ok(!out.some(row=>row.name===named(r,'labor_mount_lift')),'Legacy manual lift does not replace or duplicate new automation');
+    assert.equal(r.cab.laborItems[0].note,'Preserved historic assignment');
     console.log('PASS HK-XS complete hinged-front cycle, actual lift count, HK top stages, manual assignments cannot replace automats and ambiguous front refusal');
   }
   });
@@ -164,7 +207,7 @@ function main(){
     r.s.Date=class extends Date{constructor(...args){super(...(args.length?args:['2026-11-05T00:00:00.000Z']));}};
     const before=JSON.stringify(original),updated=r.FC.laborCatalog.ensureDefaultDefinitions(original);
     assert.equal(JSON.stringify(original),before);
-    assert.equal(updated.length,129);
+    assert.equal(updated.length,145);
     for(const row of original){
       const expected=JSON.parse(JSON.stringify(row));
       if(['labor_hole_fi60','labor_pipe_cutout','labor_pipe_boxing','labor_vertical_partition_long'].includes(row.id))expected.priceUserEditedAt='2026-11-05T00:00:00.000Z';

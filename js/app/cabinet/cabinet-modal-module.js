@@ -139,6 +139,12 @@
 
   function renderExtraDetails(ctx){
     const st = ctx.subType;
+    if(st==='cargo')return ns.cabinetModalCargo.render(ctx);
+    const d=ctx.draft.details||{};
+    if(st==='uchylne'&&(d.flapVendor||'blum')==='blum'&&(d.flapKind||'HKI')==='HKI')
+      ctx.addSelect('Montaż HKi','flapIntegration',[{v:'',t:'Wybierz montaż'},{v:'full',t:'Całkowicie ukryty w boku'},{v:'partial',t:'Częściowo ukryty — z zaślepką'}]);
+    if(st==='uchylne'&&d.flapVendor==='hafele'&&(d.flapKind||'DUO')==='DUO')
+      ctx.addSelect('Kąt otwarcia DUO','flapAngle',[{v:'',t:'Wybierz kąt'},{v:'75',t:'75°'},{v:'90',t:'90°'},{v:'110',t:'110°'}]);
     if(st === 'szuflady') renderDrawerExtras(ctx);
     return true;
   }

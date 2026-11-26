@@ -11,6 +11,7 @@
 
   function renderExtraDetails(ctx){
     const st = ctx.subType;
+    if(st==='cargo')return ns.cabinetModalCargo.render(ctx);
     const extrasApi = getStandingExtrasApi();
 
     if(st === 'narozna_l' && typeof extrasApi.renderCornerLExtraDetails === 'function'){
