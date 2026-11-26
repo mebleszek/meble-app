@@ -1,4 +1,4 @@
-/* Drawing import, home screen and reusable confirm box. */
+/* Home screen and reusable confirm box. */
 
 
     /* Prevent background scroll when modal open (mobile fixes) */
@@ -9,48 +9,6 @@
     /* Mobile safety: when opening a modal under the same tap, prevent accidental instant <select> open */
     .modal-open-guard, .modal-open-guard *{ pointer-events:none !important; }
 
-
-
-/* ===== RYSUNEK (import) ===== */
-.drawing-wrap{ display:flex; flex-direction:column; gap:12px; }
-    .drawing-toolbar{
-      display:flex; flex-wrap:wrap; gap:8px; align-items:center;
-      padding:10px 12px; border:1px solid #eef6fb; border-radius:12px; background:#fbfdff;
-    }
-    .drawing-toolbar .group{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .drawing-toolbar .pill{
-      padding:6px 10px; border-radius:999px; border:1px solid #e5eef7;
-      background:#fff; font-size:12px; font-weight:800;
-    }
-    .drawing-stage{
-      border:1px solid #eef6fb; border-radius:14px; background:#fff;
-      padding:10px; overflow:auto;
-    }
-    .drawing-stage svg{ display:block; }
-    .svg-cab{ fill:#eaf4ff; stroke:#1e4b8f; stroke-width:1; cursor:pointer; }
-    .svg-gap{ fill:#ffffff; stroke:#94a3b8; stroke-width:1; stroke-dasharray:4 4; cursor:pointer; }
-    .svg-cab.selected{ fill:#d9f2ff; stroke:#0ea5e9; stroke-width:2; }
-    .svg-range{ fill:rgba(14,165,233,0.14); stroke:#0ea5e9; stroke-width:2; }
-    .svg-label{ font-size:14px; fill:#0f172a; pointer-events:none; font-weight:800; }
-    .svg-finish{ fill:rgba(2,132,199,0.15); stroke:#0284c7; stroke-width:2; pointer-events:none; }
-    .svg-finish-strong{ fill:rgba(16,185,129,0.16); stroke:#10b981; stroke-width:2; pointer-events:none; }
-    .ctxmenu{
-      position:absolute; z-index:50; min-width:260px;
-      background:#fff; border:1px solid #e5eef7; border-radius:14px;
-      box-shadow:0 10px 30px rgba(2,6,23,0.10);
-      padding:10px;
-    }
-    .ctxmenu h4{ margin:0 0 8px 0; font-size:13px; }
-    .ctxmenu .actions{ display:flex; flex-direction:column; gap:6px; }
-    .ctxmenu .actions button{ width:100%; text-align:left; }
-    .finish-list{ display:flex; flex-direction:column; gap:8px; }
-    .finish-item{
-      display:flex; justify-content:space-between; gap:10px; align-items:flex-start;
-      padding:10px 12px; border:1px solid #eef6fb; border-radius:12px; background:#fbfdff;
-    }
-    .finish-item .meta{ font-size:12px; }
-    .finish-item .meta b{ display:block; margin-bottom:2px; }
-    .finish-item .meta .muted{ margin:0; }
 
 
 /* Home */

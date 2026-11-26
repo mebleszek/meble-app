@@ -227,7 +227,6 @@ const INDEX_LOAD_GROUPS = [
       "js/app/cloud/project-cloud-pilot.js",
       "js/app/cabinet/cabinet-actions.js",
       "js/app/cabinet/cabinet-summary.js",
-      "js/app/ui/layout-state.js",
       "js/app/ui/list-scroll-memory.js",
       "js/app/ui/tab-navigation.js",
       "js/app/cabinet/front-hardware-weights.js",
@@ -306,6 +305,10 @@ const INDEX_LOAD_GROUPS = [
     "scripts": [
       "js/tabs/wywiad-labor-summary.js",
       "js/tabs/wywiad.js",
+      "js/app/ui/drawing-geometry.js",
+      "js/app/ui/drawing-storage.js",
+      "js/app/ui/drawing-canvas.js",
+      "js/tabs/drawing-editor.js",
       "js/tabs/rysunek.js",
       "js/tabs/material.js",
       "js/tabs/czynnosci.js",

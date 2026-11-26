@@ -1,5 +1,13 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## Rysunek 2D — pierwszy pakiet, 26.11.2026
+
+- **USTALONE:** właściciel polecił zastąpić poprzedni edytor nowym RYSUNKIEM 2D zgodnym z zaakceptowanymi grafikami. Pierwszy pakiet obejmuje układ ścian i szafek oraz zapis w pomieszczeniu. Na komputerze panel po prawej, na telefonie u dołu. Gałąź `feat/rysunek-2d-layout`, baza `a1fbd18b16068d3bac563797f7873269c8a86ddc`.
+- **WDROŻONE NA GAŁĘZI:** wspólny rzut i widoki ścian, połączenia 90° z lewej i prawej strony, ostre obrysy i wymiary w milimetrach, trzy tryby wyglądu, przeciąganie, obrót, przyciąganie do krawędzi i narożnika. Położenie edytuje się w panelu rysunku. Parametry szafki otwiera jej dotychczasowy formularz. Obrót zmienia obrys w rzucie, a kolizje są widoczne w rysunku i panelu.
+- **ZAPIS:** dedykowane dane 2D w rekordzie pokoju, zapis przez istniejącą sesję i granicę LOCAL-FIRST stosowaną przy edycji szafek. Kopia pokoju przepina położenia na skopiowane identyfikatory szafek. Wcześniejsze dane układu zachowano bez automatycznej migracji do nowego edytora.
+- **WERYFIKACJA:** Edge z syntetycznym projektem i rzeczywistym IndexedDB potwierdził kuchnię w L, obrót, przeciąganie, przyciąganie narożne, zachowanie poprzednich danych po wymuszonym abort i ponowne otwarcie offline. Panel sprawdzono przy szerokości 393 px. Celowane smoke APP 110/110, nawigacja i zapis 13/13, selektywny eksport i kopia pokoju 66/66. Statyczny Preflight 784/784 plików i 366 pozycji ładowania PASS.
+- **BRAKUJE / PROPONOWANE:** pełne CI i odbiór na fizycznym telefonie. Osobna zgoda na dokładny zakres wydania. Przeszkody, wykończenia, wyposażenie blatu i ilości do WYCENY są kolejnymi etapami w [ROADMAP](ROADMAP.md#etap-10--większe-porządki-architektury-i-rysunek).
+
 ## Okucia, Cargo i wydajność WYCENY —część1,26.11.2026
 
 **Decyzja właściciela26.11.2026:** „wydaj jedną część a następnie osobno zrób drugą część”. Część1: okucia, Cargo, normy czynności i bieżące przyspieszenie WYCENY oraz bezpiecznej obsługi dużych katalogów. Część2 osobno: dalsze wspólne przygotowanie materiałów/okuć, rezerwacje wybranych pomieszczeń z prośbą do edytora, ponowienie/odmowa/PIN oraz nowe rozstrzyganie konfliktów offline. Dotychczasowe blokady/PIN/heartbeat/CAS/ACK pozostają. Zgoda na część1 obejmuje wydanie i przyczynowe poprawki FAIL; nie obejmuje administracji Firebase LIVE ani cichego włączenia nowego protokołu.

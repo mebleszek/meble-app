@@ -200,7 +200,7 @@ function runRysunekNodeSmoke(sandbox){
   return makeSingleGroupReport('RYSUNEK node smoke testy', 'Rysunek ↔ Node smoke', [
     { name:'Zakładka RYSUNEK jest załadowana', check:()=> !!(FC.tabsRysunek && typeof FC.tabsRysunek.renderDrawingTab === 'function') },
     { name:'Testy RYSUNKU są zarejestrowane', check:()=> !!(FC.rysunekDevTests && typeof FC.rysunekDevTests.runAll === 'function') },
-    { name:'Layout state jest dostępny dla RYSUNKU', check:()=> !!(FC.layoutState && typeof FC.layoutState.getActiveSegment === 'function') },
+    { name:'Geometria i zapis RYSUNKU są dostępne', check:()=> !!(FC.drawingGeometry?.toPlan && FC.drawingStorage?.save) },
   ]);
 }
 

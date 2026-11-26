@@ -3,6 +3,11 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
 const DERIVED_VERSION = "20261125_quote_preparation_v1";
 const versions = Object.freeze({
+  "js/app/ui/drawing-geometry.js":"20261126_drawing_2d_v1",
+  "js/app/ui/drawing-storage.js":"20261126_drawing_2d_v1",
+  "js/app/ui/drawing-canvas.js":"20261126_drawing_2d_v1",
+  "js/tabs/drawing-editor.js":"20261126_drawing_2d_v1",
+  "js/tabs/rysunek.js":"20261126_drawing_2d_v1",
   "js/app/catalog/hardware-technical-read-snapshot.js":"20261125_quote_preparation_v1",
   "js/app/cabinet/cabinet-modal-standing.js":"20261125_quote_preparation_v1",
   "js/app/catalog/hardware-cargo-catalog.js":"20261125_quote_preparation_v1",
@@ -89,7 +94,7 @@ const versions = Object.freeze({
   "js/app/rozrys/rozrys-pickers.js":"20261106_local_first_room_actions_v1",
   "js/app/wycena/wycena-tab-selection-pickers.js":"20261115_ci_navigation_repair_v1",
   "js/app/project/project-store.js":"20261118_room_quote_v1",
-  "js/app/cabinet/cabinet-modal-finalize.js":"20261123_drawer_construction_v1",
+  "js/app/cabinet/cabinet-modal-finalize.js":"20261126_drawing_2d_v1",
   "js/app/ui/wywiad-room-settings.js":"20261103_local_first_start_v1",
   "js/app/investor/project-autosave.js":"20261114_cabinet_drafts_v1",
   "js/app/investor/investor-room-actions.js":"20261103_local_first_start_v1",
@@ -134,7 +139,7 @@ const versions = Object.freeze({
   "js/app/material/price-modal-item-form.js":"20261111_automation_ci_repair_v1",
   "js/app/material/price-modal-list.js":"20261108_material_catalog_authority_v1",
   "js/app/cabinet/cabinet-cutlist.js": "20261125_quote_preparation_v1",
-  "js/app/project/project-export-contract.js":"20261123_drawer_construction_v1",
+  "js/app/project/project-export-contract.js":"20261126_drawing_2d_v1",
   "js/app/cabinet/cabinet-hardware-requirements.js": "20261125_quote_preparation_v1",
   "js/app/pricing/work-quantity-prepared.js":"20261125_quote_preparation_v1",
   "js/app/pricing/work-quantity-facts.js":"20261125_quote_preparation_v1",

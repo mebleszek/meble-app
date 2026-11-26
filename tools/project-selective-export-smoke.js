@@ -243,14 +243,25 @@ test('Confirmed clearEdges returns to absence; a separate physical project expor
  const b=await unchanged(r,()=>r.FC.projectSelectiveExport.build({investorId:'inv-B',projectId:'B',purpose:'pilot'}));assert.equal(b.ok,true,JSON.stringify(b));assert.equal(b.document.payload.project.id,'B');assert.equal(b.document.payload.investor.id,'inv-B');
 });
 test('Allowed nested preferences/layout and source metadata do not collapse business values',async()=>{
+ const drawing={version:1,walls:[{id:1,length:3200,height:2600},{id:2,length:2400,height:2600}],
+  placements:[{cabinetId:'one',wallId:1,along:250,inset:0,elevation:100,rotation:0}]};
  const r=fixture();r.mutate(p=>{
   const room=p.projectData.kuchnia;room.preferences.finishStandard='TEST';room.preferences.zones.lower.bodyColor='CUSTOM TEST';room.preferences.hardwareProducers.hinges='TEST HW';
   room.cabinets[0].laborItems=[{rateId:'test-rate',qty:2}];
-  room.layout={segments:[{id:'seg',name:'TEST',anchor:'left',offsets:{base:0,module:0,wall:0},rows:{base:[{kind:'cabinet',id:'one'},{kind:'gap',id:'gap',width:10,label:'TEST GAP'},{kind:'cabinet',id:'two'}],module:[],wall:[]}}],activeSegmentId:'seg'};
+  room.layout={segments:[{id:'seg',name:'TEST',anchor:'left',offsets:{base:0,module:0,wall:0},rows:{base:[{kind:'cabinet',id:'one'},{kind:'gap',id:'gap-test',width:10,label:'TEST GAP'},{kind:'cabinet',id:'two'}],module:[],wall:[]}}],activeSegmentId:'seg'};
+  room.drawing2d=drawing;
  });
  const out=await success(r),room=out.document.payload.project.projectData.kuchnia;
+ assert.deepEqual(clone(room.drawing2d),drawing);
  assert.equal(room.preferences.finishStandard,'TEST');assert.equal(room.preferences.zones.lower.bodyColor,'CUSTOM TEST');assert.deepEqual(clone(room.cabinets[0].laborItems),[{rateId:'test-rate',qty:2}]);assert.equal(room.layout.segments[0].rows.base[1].width,10);assert.equal(room.layout.activeSegmentId,undefined);
  assert.ok(out.dependencies.some(d=>d.domain==='rate'&&d.reference==='test-rate'));assert.ok(out.dependencies.some(d=>d.domain==='hardware'&&d.reference==='TEST HW'));
+ const {prepareRoomCopy}=await import('../sync/local-first-room-copy.mjs');
+ const source=r.row();
+ let nextId=0;
+ const copied=prepareRoomCopy({rows:r.rows(),baseline:{document:{payload:{project:source}}},scope:'A',
+  roomId:'kuchnia',name:'Kuchnia — kopia',validateRoom:value=>r.FC.projectExportContract.validateOwnedRoom(value),newId:()=>`copy-${++nextId}`});
+ assert.deepEqual(copied.room.drawing2d,{...drawing,placements:[{...drawing.placements[0],cabinetId:copied.mapping.one}]});
+ assert.deepEqual(r.row().projectData.kuchnia.drawing2d,drawing);
  r.mutate(p=>p.projectData.kuchnia.layout.segments[0].rows.base[0].id='missing');await refused(r,'EXPORT_INVALID_REFERENCE');
 });
 test('Malformed investor RAW, denied context/session reads and missing guard modules refuse safely',async()=>{
