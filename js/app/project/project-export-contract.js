@@ -96,7 +96,13 @@
   const rowItem=(v,p)=>obj(v)&&v.kind==='cabinet'?shape({kind:oneOf(['cabinet']),id:ident},['kind','id'])(v,p)
     :shape({kind:oneOf(['gap']),id:ident,width:positive,label:text},['kind','id','width'])(v,p);
   const layout=shape({segments:array(shape({id:ident,name:text,anchor:text,offsets:shape(fields('base module wall',numeric)),rows:shape({base:array(rowItem),module:array(rowItem),wall:array(rowItem)})},['id','rows'])),activeSegmentId:()=>excluded});
-  const room=shape({cabinets:array(cabinet),fronts:array(front),sets:array(set),settings:shape(fields('roomHeight bottomHeight legHeight counterThickness gapHeight ceilingBlende',numeric)),preferences,production,layout},['cabinets','fronts','sets','settings','preferences']);
+  const millimeters=(v,p)=>{if(!Number.isSafeInteger(v))bad(p);return v;};
+  const wallMeasure=(v,p)=>{millimeters(v,p);if(v<=0)bad(p);return v;};
+  const drawing2d=shape({version:oneOf([1]),
+    walls:array(shape(fields('id length height',wallMeasure),['id','length','height'])),
+    placements:array(shape({cabinetId:ident,wallId:wallMeasure,...fields('along inset elevation',millimeters),rotation:oneOf([0,1,2,3])},
+      ['cabinetId','wallId','along','inset','elevation','rotation']))},['version','walls','placements']);
+  const room=shape({cabinets:array(cabinet),fronts:array(front),sets:array(set),settings:shape(fields('roomHeight bottomHeight legHeight counterThickness gapHeight ceilingBlende',numeric)),preferences,production,layout,drawing2d},['cabinets','fronts','sets','settings','preferences']);
   const roomDef=shape({id:ident,...fields('baseType name label projectStatus lastManualProjectStatus',text),legacy:boolean},['id','baseType','name','label']);
   const meta=shape({assignedInvestorId:ident,productionPcvMode:oneOf(['project']),roomOrder:array(ident),roomDefs:dict(roomDef),projectStatus:text},['assignedInvestorId','productionPcvMode','roomOrder','roomDefs']);
   const projectData=(v,p)=>{
@@ -232,6 +238,7 @@
       if(!owner)fail('EXPORT_PCV_OWNER_INVALID',p+'.production.'+space);
       for(const role of Object.keys(value.production[space][ownerId]))if(!(local?native.roleAllowed(space,role,owner):roleAllowed(space,role,owner,value)))fail('EXPORT_PCV_ROLE_INVALID',p+'.production.'+space+'[][]');
     }
+    if(value.drawing2d)checkDrawingReferences(value.drawing2d,cabinets,p+'.drawing2d');
     if(value.layout){
       unique(value.layout.segments.map(s=>s.id),p+'.layout.segments');const used=[];
       for(const seg of value.layout.segments)for(const row of Object.values(seg.rows))for(const item of row){
@@ -259,7 +266,7 @@
         // The native schema persists four empty base templates even when only
         // named functional rooms are registered. Preserve them without inventing
         // room definitions or silently losing their stored settings/preferences.
-        if(!def&&(!['kuchnia','szafa','pokoj','lazienka'].includes(k)||r.cabinets.length||r.fronts.length||r.sets.length||r.production||r.layout))fail('EXPORT_ROOM_SCOPE_MISMATCH','project.projectData.meta.roomDefs');
+        if(!def&&(!['kuchnia','szafa','pokoj','lazienka'].includes(k)||r.cabinets.length||r.fronts.length||r.sets.length||r.production||r.layout||r.drawing2d))fail('EXPORT_ROOM_SCOPE_MISMATCH','project.projectData.meta.roomDefs');
         if(def&&def.id!==k)fail('EXPORT_INVALID_REFERENCE','project.projectData.meta.roomDefs');
         validateRoom(r,'project.projectData.rooms[]');
       }
@@ -310,5 +317,18 @@
     for(const set of value.sets)ident(set.id,p+'.sets[].id');
     validateRoom(value,p,local);return true;
   }
-  FC.projectExportContract={validate,validateOwnedRoom,validateLocalOwnedRoom:(value,p)=>validateOwnedRoom(value,p,true),canonical,dependencies,isId:id,MAX_BYTES:819200};
+  function checkDrawingReferences(value,cabinets,p){
+    const walls=new Set(value.walls.map(wall=>wall.id));
+    if(!walls.has(1)||walls.size!==value.walls.length)fail('EXPORT_INVALID_REFERENCE',p);
+    if(!Number.isSafeInteger(value.walls.reduce((length,wall)=>length+wall.length,0)))bad(p);
+    unique(value.placements.map(placement=>placement.cabinetId),p);
+    for(const placement of value.placements){
+      if(!cabinets.has(placement.cabinetId)||!walls.has(placement.wallId))fail('EXPORT_INVALID_REFERENCE',p);
+    }
+  }
+  function validateDrawing(value,cabinets){
+    const path='project.projectData.room.drawing2d';
+    checkDrawingReferences(drawing2d(value,path),new Set(cabinets.map(cabinet=>cabinet.id)),path);
+  }
+  FC.projectExportContract={validate,validateOwnedRoom,validateLocalOwnedRoom:(value,p)=>validateOwnedRoom(value,p,true),validateDrawing,canonical,dependencies,isId:id,MAX_BYTES:819200};
 })();

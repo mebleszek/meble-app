@@ -325,9 +325,6 @@ function initUI(){
 }
 
 /* ===== Set wizard minimal (reuse existing from previous version) ===== */
-/* Layout/state helpers for RYSUNEK moved to js/app/ui/layout-state.js.
-   Global bridge is preserved there for tabs/rysunek.js and any legacy callers. */
-
 // Wydzielony renderer RYSUNEK — używany przez js/tabs/rysunek.js
 function renderDrawingTab(list, room){
   try{

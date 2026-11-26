@@ -117,6 +117,62 @@ async function main(){
   assert.equal(await browser.evaluate('unsavedLocalDocument'),documentToken);assert.equal(await browser.evaluate('JSON.stringify(projectData)===unsavedLocalRam&&window.FC.session.active'),true);
   phase='local save';await pause(220);await until('!window.FC.applicationStartup.inspect().transactionPending');await editFirstCabinet(61);await tap('#sessionSave');await until('!window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending');assert.equal(await browser.evaluate('window.FC.projectStore.getCurrentRecord().projectData[uiState.roomType].settings.roomHeight'),275);
   assert.equal(await browser.evaluate('window.FC.investorProjectRuntime.hasProjectDivergence(projectData)'),false,'Confirmed Save must leave RAM consistent with its durable project');
+  if(process.argv.includes('--drawing-only')){
+   phase='native drawing: plan, elevations, drag, IndexedDB refusal and offline reopen';
+   const value='projectData[uiState.roomType].drawing2d', action=(name,value)=>'[data-drawing-action="'+name+'"]'+(value===undefined?'':'[data-value="'+value+'"]');
+   const ready=()=>until('!document.querySelector(".drawing2d[aria-busy]")&&!window.FC.applicationStartup.inspect().transactionPending');
+   const wallForm='[data-drawing-form="wall"]',position='[data-drawing-form="position"]';
+   if(await browser.evaluate('!!document.querySelector(".info-box button")'))await tap('.info-box button');
+   await browser.send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+   await tap('.tab-btn[data-tab="rysunek"]');await until('!!document.querySelector(".drawing2d")');await ready();
+   assert.equal(await browser.evaluate('('+value+')===undefined'),true,'Reading the tab must not invent or save a drawing');
+   await tap('.drawing2d-empty button');await fill(wallForm+' [name=length]','3200');await tap(wallForm+' button[type=submit]');await ready();
+   await tap('.drawing2d-menu summary[aria-label="Ściany"]');await tap(action('wall-form','right'));
+   assert.equal(await browser.evaluate('!!document.querySelector(".drawing2d-join")'),true,'The connected endpoint must be marked before adding a wall');
+   await fill(wallForm+' [name=length]','2400');await tap(wallForm+' button[type=submit]');await ready();
+   assert.deepEqual(await browser.evaluate('window.FC.drawingGeometry.walls('+value+').map(({x,y,dx,dy})=>[x,y,dx,dy])'),[[0,0,1,0],[3200,0,0,1]]);
+   await tap(action('view',1));await tap(action('panel','cabinet-list'));await tap(action('cabinet',cabinetIds[0]));await ready();
+   await fill(position+' [name=along]','650');await tap(position+' button[type=submit]');await ready();
+   await tap(action('view',2));await tap(action('panel','cabinet-list'));await tap(action('cabinet',cabinetIds[1]));await ready();
+   await tap('.drawing2d-menu summary[aria-label="Obrót"]');await tap(action('rotate',1));await ready();
+   const second='('+value+').placements[1]';
+   assert.equal(await browser.evaluate(second+'.rotation'),1);
+   await tap(action('view',0));
+   const target='[data-cabinet="'+cabinetIds[1]+'"] rect', start=await waitForGesturePoint(browser.evaluate,target,{stable:true});
+   const step=await browser.evaluate('document.querySelector(".drawing2d-canvas").getScreenCTM().a');
+   await browser.send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...start});
+   await browser.send('Input.dispatchMouseEvent',{type:'mouseMoved',buttons:1,x:start.x,y:start.y+Math.round(step*700)});
+   await browser.send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',x:start.x,y:start.y+Math.round(step*700),clickCount:1});
+   await ready();assert.ok(Math.abs(await browser.evaluate(second+'.along')-700)<15,'Drag uses coordinates of the second wall');
+   await tap('.drawing2d-menu summary[aria-label="Widok"]');await tap(action('mode','color'));
+   assert.equal(await browser.evaluate('!!document.querySelector(".drawing2d-canvas.drawing2d-color")'),true);
+   await tap('.drawing2d-menu summary[aria-label="Widok"]');await tap(action('mode','outline'));
+   await tap('.drawing2d-menu summary[aria-label="Przyciąganie"]');await tap(action('snap','corner'));
+   const point=await waitForGesturePoint(browser.evaluate,target,{stable:true});
+   const shift=await browser.evaluate(second+'.along*document.querySelector(".drawing2d-canvas").getScreenCTM().a');
+   await browser.send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...point});
+   await browser.send('Input.dispatchMouseEvent',{type:'mouseMoved',buttons:1,x:point.x,y:point.y-Math.round(shift)+6});
+   await browser.send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',x:point.x,y:point.y-Math.round(shift)+6,clickCount:1});
+   await ready();assert.equal(await browser.evaluate(second+'.along'),0,'Corner snap removes the last few millimeters');
+   if(process.env.MEBLE_DRAWING_PREVIEW){
+    await browser.evaluate('document.querySelector(".drawing2d").scrollIntoView({block:"start"});true');
+    const screenshot=await browser.send('Page.captureScreenshot',{format:'png'});
+    fs.writeFileSync(process.env.MEBLE_DRAWING_PREVIEW,Buffer.from(screenshot.data,'base64'));
+   }
+   const proof=await browser.evaluate('localProof()'),savedDrawing=await browser.evaluate(value);
+   await abortNextProjectWrite();await fill(position+' [name=along]','999');await tap(position+' button[type=submit]');
+   await expectAbortedAction(proof);assert.deepEqual(await browser.evaluate(value),savedDrawing);
+   await browser.send('Emulation.setDeviceMetricsOverride',{width:393,height:852,deviceScaleFactor:1,mobile:true});
+   await tap(action('panel','properties'));
+   assert.equal(await browser.evaluate('getComputedStyle(document.querySelector(".drawing2d-panel")).position'), 'fixed');
+   await tap(action('panel-close'));await tap('#sessionSave');await until('!window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending');
+   await reopenOffline(61);
+   assert.deepEqual(await browser.evaluate('window.FC.projectStore.readAll()[0].projectData[window.FC.investors.readAll()[0].rooms[0].id].drawing2d'),savedDrawing);
+   await tap('[data-action="open-room"][data-room^="room_"]');await until('window.FC.session.active');
+   await tap('.tab-btn[data-tab="rysunek"]');await until('!!document.querySelector(".drawing2d-canvas")');
+   assert.equal(await browser.evaluate('document.querySelectorAll(".drawing2d-canvas [data-cabinet]").length'),2);
+   assert.deepEqual(external,[]);console.log('PASS Rysunek 2D L: walls, elevations, rotation, native drag, abort, mobile panel and offline restart.');return;
+  }
   if(process.argv.includes('--cabinet-variants-only')||process.argv.includes('--cabinet-base-probe')){
    phase='native cabinet variants';await require('./helpers/local-cabinet-native-cases')({getBrowser:()=>browser,tap,fill,until,reopen:()=>reopenOffline(61,false,null),baseProbe:process.argv.includes('--cabinet-base-probe')});
    await assertForeign();assert.deepEqual(external,[]);return;

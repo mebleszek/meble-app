@@ -46,20 +46,26 @@ test('Selected Kitchen stays owned across all four tabs and ordinary INWESTOR vi
  const r=setup();assert.equal(await r.open(),true);const snapshot=r.FC.session.snapshot;
  for(const tab of ['wywiad','material','rysunek','czynnosci','inwestor','wywiad']){await r.FC.tabNavigation.setActiveTab(tab);assert.equal(r.s.uiState.roomType,'room_k');assert.equal(r.FC.session.snapshot,snapshot);assert.equal(r.FC.session.roomId,'room_k');}
 });
-test('Drawing layout fixture must be complete before the clean session baseline',async()=>{
- const r=setup();r.load('js/app/ui/layout-state.js');
- const before=JSON.parse(JSON.stringify(r.s.projectData.room_k));
- r.FC.layoutState.ensureLayout('room_k');
- assert.deepEqual(Object.keys(r.s.projectData.room_k).filter(key=>!Object.hasOwn(before,key)).sort(),['finishes','layout']);
- assert.equal(r.FC.investorProjectRuntime.hasProjectDivergence(r.s.projectData),true,'Incomplete fixture is real RAM divergence');
- const row=r.FC.projectStore.getCurrentRecord();row.projectData=r.s.projectData;assert.ok(r.FC.projectStore.upsert(row));
- r.s.projectData=r.FC.project.load();assert.equal(r.FC.session.active,false);
+test('Drawing opens clean; confirmed room draft persists, and a refused or stale write cannot change the room',async()=>{
+ const r=setup();r.s.structuredClone=structuredClone;r.load('js/app/project/project-export-contract.js');
  assert.equal(await r.open(),true);const raw=r.storage.getItem('fc_projects_v1'),snapshot=r.FC.session.snapshot;
- r.FC.layoutState.ensureLayout('room_k');
- assert.equal(r.FC.session.isDirty(),false);assert.equal(r.FC.investorProjectRuntime.hasProjectDivergence(r.s.projectData),false);
+ await r.FC.tabNavigation.setActiveTab('rysunek');
+ assert.equal(r.FC.session.isDirty(),false);
  assert.equal(r.FC.session.snapshot,snapshot);assert.equal(r.storage.getItem('fc_projects_v1'),raw);
- r.s.projectData.room_k.layout.segments[0].offsets.base=12;
- assert.equal(r.FC.investorProjectRuntime.hasProjectDivergence(r.s.projectData),true,'Actual drawing edits must remain protected');
+ const storage=r.FC.drawingStorage,owner=storage.scope('room_k');
+ const drawing={version:1,walls:[{id:1,length:3200,height:2600},{id:2,length:2400,height:2600}],
+  placements:[{cabinetId:'k',wallId:2,along:65,inset:0,elevation:100,rotation:1}]};
+ r.storage.fail.set('fc_projects_v1','throw');
+ await assert.rejects(storage.save(owner,drawing),/LF_DRAWING_SAVE_FAILED/);
+ assert.equal(r.s.projectData.room_k.drawing2d,undefined);assert.equal(r.storage.getItem('fc_projects_v1'),raw);
+ r.storage.fail.delete('fc_projects_v1');
+ assert.equal(await storage.save(owner,drawing),true);
+ assert.deepEqual(JSON.parse(JSON.stringify(r.FC.project.load().room_k.drawing2d)),drawing);
+ assert.equal(JSON.stringify(r.record().projectData.room_s),JSON.stringify(JSON.parse(raw).find(row=>row.id==='P').projectData.room_s));
+ assert.equal(r.FC.session.isDirty(),true);
+ r.s.uiState.activeTab='wywiad';
+ await assert.rejects(storage.save(owner,{...drawing,placements:[]}),/LF_DRAWING_CONTEXT_CHANGED/);
+ assert.deepEqual(JSON.parse(JSON.stringify(r.FC.project.load().room_k.drawing2d)),drawing);
 });
 test('Clean Exit from every project tab durably commits before list; no rollback, project write or reload',async()=>{
  for(const tab of ['wywiad','material','rysunek','czynnosci','inwestor','wycena','rozrys','magazyn']){

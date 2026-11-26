@@ -1,0 +1,166 @@
+.drawing2d {
+  --drawing-ink: #203138;
+  --drawing-line: #ced7d9;
+  --drawing-accent: #0c665e;
+  --drawing-accent-light: #e3f2ef;
+  background: #fff;
+  border: 1px solid var(--drawing-line);
+  color: var(--drawing-ink);
+}
+#appView:has(#cabinetsList .drawing2d) #roomSettingsCard,
+.wywiad-cabinets-shell:has(> #cabinetsList .drawing2d) > .wywiad-cabinets-shell__head {
+  display: none !important;
+}
+.wywiad-cabinets-shell:has(> #cabinetsList .drawing2d) {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.wywiad-cabinets-shell:has(> #cabinetsList .drawing2d) > #cabinetsList { margin-top: 0 !important; }
+.drawing2d button, .drawing2d summary, .drawing2d input, .drawing2d select {
+  min-height: 36px;
+  color: inherit;
+  font: inherit;
+  font-size: .88rem;
+}
+.drawing2d button, .drawing2d summary {
+  display: inline-flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--drawing-line);
+  padding: 5px 11px;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1.25;
+}
+.drawing2d button:hover:not(:disabled), .drawing2d summary:hover,
+.drawing2d button[aria-pressed="true"], .drawing2d details[open] > summary {
+  background: var(--drawing-accent-light);
+  border-color: var(--drawing-accent);
+  color: #074c47;
+}
+.drawing2d button:disabled { opacity: .56; cursor: default; }
+.drawing2d button:focus-visible, .drawing2d summary:focus-visible, .drawing2d [tabindex]:focus-visible {
+  outline: 2px solid var(--drawing-accent);
+  outline-offset: 2px;
+}
+.drawing2d button.drawing2d-primary, .drawing2d-empty button {
+  background: var(--drawing-accent);
+  color: #fff;
+  border-color: var(--drawing-accent);
+}
+.drawing2d button.drawing2d-primary:hover:not(:disabled), .drawing2d-empty button:hover {
+  background: #084f49;
+  color: #fff;
+}
+.drawing2d-tools, .drawing2d-views, .drawing2d-panel-tabs {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  padding: 9px;
+  border-bottom: 1px solid var(--drawing-line);
+}
+.drawing2d-tools { flex-wrap: wrap; }
+.drawing2d-views { overflow-x: auto; }
+.drawing2d-views button { white-space: nowrap; }
+.drawing2d-menu { position: relative; }
+.drawing2d-menu summary { gap: 6px; list-style: none; }
+.drawing2d-menu summary::-webkit-details-marker { display: none; }
+.drawing2d-menu summary::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  margin-left: 3px;
+  border-right: 1px solid;
+  border-bottom: 1px solid;
+  transform: translateY(-2px) rotate(45deg);
+}
+.drawing2d-menu > div {
+  position: absolute;
+  z-index: 3;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: max-content;
+  display: grid;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid var(--drawing-line);
+  background: #fff;
+  box-shadow: 0 5px 12px #20313824;
+}
+.drawing2d-zoom { min-width: 3em; text-align: center; font-variant-numeric: tabular-nums; }
+.drawing2d-work { display: grid; grid-template-columns: minmax(0,1fr) minmax(250px,28%); }
+.drawing2d-stage {
+  position: relative;
+  min-height: 340px;
+  max-height: 65vh;
+  overflow: auto;
+  background-color: #f8faf9;
+  background-image: linear-gradient(#dde5e650 1px,transparent 1px),linear-gradient(90deg,#dde5e650 1px,transparent 1px);
+  background-size: 18px 18px;
+}
+.drawing2d-empty { min-height: 340px; display: grid; place-items: center; }
+.drawing2d-canvas { display: block; min-height: 340px; margin-inline: auto; user-select: none; }
+.drawing2d-canvas line, .drawing2d-canvas rect { vector-effect: non-scaling-stroke; }
+.drawing2d-wall { stroke: #27383d; stroke-width: 3; stroke-linecap: square; }
+.drawing2d-elevation-wall { fill: #fff; fill-opacity: .44; stroke: #3d5358; stroke-width: 1.4; }
+.drawing2d-dimension { stroke: #596e72; stroke-width: 1; }
+.drawing2d-label, .drawing2d-cabinet-label {
+  font: 500 var(--drawing2d-label-size,65px) system-ui,sans-serif;
+  fill: #182c32;
+  paint-order: stroke fill;
+  stroke: #fff;
+  stroke-width: 12px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.drawing2d-cabinet { cursor: grab; touch-action: none; }
+.drawing2d-cabinet:active { cursor: grabbing; }
+.drawing2d-cabinet-face { fill: var(--drawing2d-fill,#edf1ef); stroke: #243940; stroke-width: 1.15; }
+.drawing2d-color .drawing2d-cabinet-upper, .drawing2d-texture .drawing2d-cabinet-upper { --drawing2d-fill: #adc0b1; }
+.drawing2d-color .drawing2d-cabinet-lower, .drawing2d-texture .drawing2d-cabinet-lower { --drawing2d-fill: #d6bb95; }
+.drawing2d-front { stroke: #27383d; stroke-width: 2; pointer-events: none; }
+.drawing2d-join { fill: #087b70; stroke: #fff; stroke-width: 1.5; pointer-events: none; }
+.drawing2d-cabinet.has-warning .drawing2d-cabinet-face { stroke: #a12f25; stroke-dasharray: 5 3; stroke-width: 2; }
+.drawing2d-cabinet.is-selected .drawing2d-cabinet-face { stroke: #087b70; stroke-width: 2.5; }
+.drawing2d-cabinet.is-snapped .drawing2d-cabinet-face { stroke: #087b70; stroke-width: 3; stroke-dasharray: 4 2; }
+.drawing2d-panel { min-width: 0; border-left: 1px solid var(--drawing-line); background: #fff; }
+.drawing2d-panel-tabs button { flex: 1; justify-content: center; }
+.drawing2d-panel-tabs [data-drawing-action="panel-close"] { display: none; }
+.drawing2d-panel-content { overflow: auto; max-height: 54vh; padding: 12px; }
+.drawing2d-panel-content form, .drawing2d-cabinet-list { display: grid; gap: 9px; }
+.drawing2d-panel-content h3 { margin: 0 0 4px; font-size: 1rem; }
+.drawing2d-panel-content label { display: grid; gap: 3px; font-size: .82rem; }
+.drawing2d-panel-content input, .drawing2d-panel-content select {
+  width: 100%;
+  min-width: 0;
+  padding: 4px 7px;
+  border: 1px solid var(--drawing-line);
+  box-sizing: border-box;
+  border-radius: 3px;
+  background: #fff;
+}
+.drawing2d-cabinet-list button { width: 100%; justify-content: space-between; gap: 4px; text-align: left; }
+.drawing2d-cabinet-list small { white-space: nowrap; }
+.drawing2d-status, .drawing2d-warning { margin: 0; padding: 7px 9px; font-size: .82rem; }
+.drawing2d-status:empty { display: none; }
+.drawing2d-warning { border-left: 2px solid #a12f25; background: #fbf0ec; color: #7e261d; }
+@media (max-width: 760px) {
+  .drawing2d-work { display: block; }
+  .drawing2d-stage { max-height: 56vh; }
+  .drawing2d-panel { border-left: 0; }
+  .drawing2d-panel-content { display: none; }
+  .drawing2d-panel.is-open {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 50;
+    border-top: 1px solid var(--drawing-line);
+    box-shadow: 0 -4px 18px #2031382b;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .drawing2d-panel.is-open .drawing2d-panel-content { display: block; max-height: 44vh; }
+  .drawing2d-panel.is-open [data-drawing-action="panel-close"] { display: inline-flex; flex: 0; }
+  .drawing2d-panel button, .drawing2d-panel input, .drawing2d-panel select { min-height: 42px; }
+}

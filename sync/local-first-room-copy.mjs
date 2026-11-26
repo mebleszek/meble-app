@@ -45,6 +45,7 @@ function remapRoom(room,mapping){
     segment.id=mapped(segment.id);
     for(const row of Object.values(segment.rows))for(const item of row)item.id=mapped(item.id);
   }
+  for(const placement of next.drawing2d?.placements||[])placement.cabinetId=mapped(placement.cabinetId);
   if(next.layout?.activeSegmentId)next.layout.activeSegmentId=mapped(next.layout.activeSegmentId);
   // Unknown identity-bearing extensions require a contract before copying.
   function check(value){

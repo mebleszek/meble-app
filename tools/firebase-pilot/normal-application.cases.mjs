@@ -178,16 +178,17 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   const second=seedLegacyOffer?null:fc.roomRegistry._debug.createRoomRecord(fc.investors.getById(iid),{baseType:'kuchnia',name:'Normal second kitchen'});
   if(second&&!second.ok)throw Error('Second fixture room refused');
   const row=fc.projectStore.getById(pid);row.projectData.meta.futureOwnedField={exact:7.125};
-  row.projectData[made.room.id].cabinets=[{id:'normal-cabinet',type:'stojąca',subType:'standardowa',width:60.125,height:82,depth:51,frontCount:2,bodyColor:'laminat TEST',frontMaterial:'laminat',frontColor:'TEST',backMaterial:'HDF',bodyPcvMode:'body',details:{shelves:3}}];
+  const cabinet={id:'normal-cabinet',type:'stojąca',subType:'standardowa',width:60.125,height:82,depth:51,frontCount:2,bodyColor:'laminat TEST',frontMaterial:'laminat',frontColor:'TEST',backMaterial:'HDF',bodyPcvMode:'body',details:{shelves:3}};
   window.projectData=row.projectData;
-  fc.cabinetFronts.generateFrontsForCabinet(made.room.id,row.projectData[made.room.id].cabinets[0]);
-  fc.layoutState.ensureLayout(made.room.id);
-  if(second){
-   const id=second.room.id;
-   row.projectData[id].cabinets=[{...structuredClone(row.projectData[made.room.id].cabinets[0]),id:'normal-second-cabinet',width:65}];
-   fc.cabinetFronts.generateFrontsForCabinet(id,row.projectData[id].cabinets[0]);
-   fc.layoutState.ensureLayout(id);
+  function seedCabinet(roomId,value){
+   const data=row.projectData[roomId];
+   data.cabinets=[value];
+   data.drawing2d={version:1,walls:[{id:1,length:3200,height:2600}],
+    placements:[{cabinetId:value.id,wallId:1,along:250,inset:0,elevation:100,rotation:0}]};
+   fc.cabinetFronts.generateFrontsForCabinet(roomId,value);
   }
+  seedCabinet(made.room.id,cabinet);
+  if(second)seedCabinet(second.room.id,{...structuredClone(cabinet),id:'normal-second-cabinet',width:65});
   row.projectData=window.projectData;
   if(!fc.projectStore.upsert(row))throw Error('Fixture cabinet refused');window.projectData=fc.project.load();
   if(seedLegacyOffer&&!fc.storage.setJSON('fc_quote_snapshots_v1',[{id:'normal-offer',project:{id:pid},investor:{id:iid},frozen:{total:21.375,pcv:0.8125}}]))throw Error('Fixture history refused');

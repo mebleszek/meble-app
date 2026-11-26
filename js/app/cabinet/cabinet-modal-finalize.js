@@ -57,7 +57,16 @@
 
   function persistProjectAndUi(){
     const previousError = ns.storage?.getLastWriteError?.();
-    const saved = ns.project.saveConfirmed(projectData,{draft:!!ns.applicationWrite});
+    const roomId = uiState.roomType, room = projectData[roomId];
+    let next = projectData;
+    if(Array.isArray(room?.drawing2d?.placements)){
+      const ids = new Set(room.cabinets.map(cabinet=>cabinet.id));
+      const placements = room.drawing2d.placements.filter(placement=>ids.has(placement.cabinetId));
+      if(placements.length!==room.drawing2d.placements.length){
+        next = {...projectData,[roomId]:{...room,drawing2d:{...room.drawing2d,placements}}};
+      }
+    }
+    const saved = ns.project.saveConfirmed(next,{draft:!!ns.applicationWrite});
     if(!saved.ok){
       const failure = ns.storage?.getLastWriteError?.();
       if(failure !== previousError && failure?.error) throw failure.error;
