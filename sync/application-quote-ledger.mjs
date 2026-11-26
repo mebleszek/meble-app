@@ -3,10 +3,10 @@ import {prepareApplicationRooms} from './application-room-commit.mjs';
 import {createQuoteChannel} from './local-first-quote-channel.mjs';
 import {quoteScope,validateQuoteLedgerChange,validateQuoteLedger} from './local-first-quote-contract.mjs';
 // Integration of a separate investor-owned ledger, never a synthetic room.
-export function createApplicationQuoteLedger({fc,store,writer,reader,getSync,sourceChannel}){
+export function createApplicationQuoteLedger({fc,store,writer,reader,getSync,sourceChannel,reservationAuthority}){
  const owners=new Map(),normalizeProject=row=>fc.projectModel.normalizeProjectRecord(copy(row));
  async function channel(iid){
-  const ch=await createQuoteChannel({writer,reader,ownerUid:store.ownerUid,investorId:iid,sourceChannel,normalizeProject});
+  const ch=await createQuoteChannel({writer,reader,ownerUid:store.ownerUid,investorId:iid,sourceChannel,normalizeProject,reservationAuthority});
   owners.set(ch.scope,iid);return ch;
  }
  async function sources(refs){
@@ -60,7 +60,9 @@ export function createApplicationQuoteLedger({fc,store,writer,reader,getSync,sou
   const modified=newProjects.filter(row=>!equal(row,oldProjects.find(old=>old.id===row.id)));
   if(oldProjects.length!==newProjects.length||modified.some(row=>!oldProjects.some(old=>old.id===row.id)))fail('LF_APPLICATION_SCOPE_REFUSED');
   const rooms=modified.length?await prepareApplicationRooms({fc,store,getSync,application,records:modified,declaredScopes}):[];
-  return store.commitQuoteLedger({scope,rooms,generationOnly,operationId:crypto.randomUUID(),value,expectedVersion:local.replica?.version||0,application,sourceWitness:[...sourceWitness.values()]});
+  const reservations=reservationAuthority&&generationOnly&&sourceWitness.size
+   ? (await store.pendingQuoteReservations()).filter(row=>sourceWitness.has(row.intent.projectId)&&row.intent.investorId===iid) : null;
+  return store.commitQuoteLedger({scope,rooms,generationOnly,operationId:crypto.randomUUID(),value,expectedVersion:local.replica?.version||0,application,sourceWitness:[...sourceWitness.values()],reservations});
  }
  async function projectRows(rows,ch,remote){
   const iid=owners.get(ch.scope);validateQuoteLedger(remote.value);

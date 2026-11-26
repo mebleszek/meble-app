@@ -10,11 +10,11 @@ import {realMainAuthInjection} from './normal-main-auth.mjs';
 import {startupReady,replicationWaiting} from './normal-startup-readiness.mjs';
 const require=createRequire(import.meta.url),{waitForGesturePoint,finishPendingTouchScroll,observeGesture}=require('../helpers/browser-test-readiness.js'),{startBrowser}=require('../helpers/chromium-runtime.js'),{injection}=require('../trusted-session-browser-smoke.js');
 const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url))),defaultUid='synthetic-phone-owner';
-export async function runNormalApplication(t,{deployment=false,catalogCutover=false,runUi,p0bDemo=false,p0bRegistry=false,startupProbe,testOwner=defaultUid,realMainAuth=false,factoryLabor=false}={}){
+export async function runNormalApplication(t,{deployment=false,catalogCutover=false,runUi,p0bDemo=false,p0bRegistry=false,startupProbe,testOwner=defaultUid,realMainAuth=false,factoryLabor=false,currentFactoryCatalogs=false,quoteReservationCandidate=false}={}){
  const uid=testOwner,authInjection=realMainAuth?realMainAuthInjection(uid):'window.testAccount='+JSON.stringify(testOwner)+';\n'+injection;
  assert.equal(process.env.FIRESTORE_EMULATOR_HOST,'127.0.0.1:18080');assert.equal(process.env.FIREBASE_AUTH_EMULATOR_HOST,'127.0.0.1:19099');
  const original=fs.readFileSync(path.join(root,'tools/firebase-pilot/firestore.rules'),'utf8'),fragment=fs.readFileSync(path.join(root,'sync/local-first-project.rules'),'utf8');
- const rules=p0bRegistry?require('./p0b-application-rules.js').p0bApplicationRules({normal:true}):p0bDemo?require('./p0b-application-rules.js').p0bApplicationRules():deployment?require('./application-rules.js').applicationRules():original.replace('    match /{document=**}',()=>fragment+'\n    match /{document=**}');
+ const rules=p0bRegistry?require('./p0b-application-rules.js').p0bApplicationRules({normal:true,quoteReservations:quoteReservationCandidate}):p0bDemo?require('./p0b-application-rules.js').p0bApplicationRules():deployment?require('./application-rules.js').applicationRules():original.replace('    match /{document=**}',()=>fragment+'\n    match /{document=**}');
  const env=await initializeTestEnvironment({projectId:'demo-meble-app',firestore:{host:'127.0.0.1',port:18080,rules}});
  const response=await fetch('http://127.0.0.1:19099/identitytoolkit.googleapis.com/v1/projects/demo-meble-app/accounts:batchCreate',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer owner'},body:JSON.stringify({allowOverwrite:true,users:[{localId:uid,email:uid+'@example.invalid',emailVerified:true,providerUserInfo:[{providerId:'google.com',rawId:uid,email:uid+'@example.invalid'}]}]})});assert.equal(response.ok,true);
  await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'authorizedUsers',uid),{appEnabled:true,enabled:false,globalDataEnabled:true,globalSchemaVersion:1});await setDoc(doc(c.firestore(),'appAccess',uid),{schemaVersion:1});if(deployment||p0bDemo||p0bRegistry){await setDoc(doc(c.firestore(),'syncConfig','owner'),{ownerUid:uid,activationId:'synthetic-deployment',schemaVersion:1});await setDoc(doc(c.firestore(),'syncAccess',uid),{activationId:'synthetic-deployment',schemaVersion:1});}});
@@ -35,16 +35,29 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
   if(failures.length)throw new AggregateError(failures.map(result=>result.reason),'Normal fixture browser cleanup unconfirmed; profiles retained');
   fs.rmSync(dir,{recursive:true,force:true});
  });
- const catalogs=model();for(const ref of ['laminat TEST','laminat','TEST','HDF',...(p0bRegistry?['HDF 3mm biała']:[])])if(!catalogs.materials.some(r=>[r.id,r.name,r.materialType].includes(ref)))catalogs.materials.push({id:'normal-material-'+catalogs.materials.length,name:ref,materialType:'synthetic',price:12.375,priceUnit:'sheet'});
+ let catalogs=model();for(const ref of ['laminat TEST','laminat','TEST','HDF',...(p0bRegistry?['HDF 3mm biała']:[])])if(!catalogs.materials.some(r=>[r.id,r.name,r.materialType].includes(ref)))catalogs.materials.push({id:'normal-material-'+catalogs.materials.length,name:ref,materialType:'synthetic',price:12.375,priceUnit:'sheet'});
  if(factoryLabor){
   const factory=runtime();factory.load('js/app/pricing/labor-catalog-definitions.js');factory.load('js/app/pricing/labor-catalog.js');
   const labor=factory.FC.laborCatalog;
   catalogs.labor=JSON.parse(JSON.stringify(labor.DEFAULT_HOURLY_RATES.concat(labor.DEFAULT_LABOR_DEFINITIONS).map(row=>labor.normalizeDefinition(row))));
   t.diagnostic('Actual unmodified factory labor catalog: '+catalogs.labor.length+' definitions');
  }
+ if(currentFactoryCatalogs){
+  // This scenario starts with an already current installation. Use exactly
+  // the real add-only result for these fixtures, including private entries.
+  const [{codeCandidate},{planPricingFactoryAdditions}]=await Promise.all([import('../../sync/code-global-catalogs.generated.mjs'),import('../../sync/pricing-factory-additions.mjs')]);
+  const contract=runtime().FC.globalDataContract;
+  const argument={candidate:codeCandidate.model,contract};
+  catalogs=planPricingFactoryAdditions({...argument,current:catalogs})?.model||catalogs;
+  assert.equal(planPricingFactoryAdditions({...argument,current:catalogs}),null);
+ }
  const sources=runtime().FC.globalDataContract.sources;
  let releaseSlot=null;if(deployment){const keys=await crypto.subtle.generateKey('Ed25519',true,['sign','verify']),publicKeySpki=new Uint8Array(await crypto.subtle.exportKey('spki',keys.publicKey));const {canonical,digest}=await import('../../sync/local-first-values.mjs');const decision={domain:'MEBLE_APPLICATION_DEPLOYMENT_V1',protocol:p0bRegistry?3:2,...(p0bRegistry?{registry:'p0b-rooms-v1',legacyDataPolicy:'preserve-outside-registry'}:{}),projectId:'demo-meble-app',database:'(default)',profile:p0bRegistry?'business-room-v1':'business-project-v1',globalDomains:14,ownerUid:uid,activationId:'synthetic-deployment',origin:origin+'/',migrationApproved:true,sourcePreserved:true,rulesApproved:true,rulesSha256:await digest(rules)};releaseSlot={envelope:{decision,publicKeySpki:[...publicKeySpki],signature:[...new Uint8Array(await crypto.subtle.sign('Ed25519',keys.privateKey,new TextEncoder().encode(canonical(decision))))]},trustedKeySha256:Buffer.from(await crypto.subtle.digest('SHA-256',publicKeySpki)).toString('hex')};}
- async function login(d){await d.page.evaluate(()=>window.normalReleaseReady);await d.page.evaluate(()=>{window.normalStartupWait=null;});await d.page.click('#auth-google');try{await d.page.waitForFunction(startupReady,{idleMs:30000},{timeout:60000});}catch(error){throw Error('Login phase '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,phase:window.FC.applicationStartup?.inspect(),connectionError:window.normalConnectionError,rpc:window.normalRpcTimeline,pendingRpc:window.normalPendingRpc,sdkErrors:window.normalSdkErrors,held:window.normalHeldRead===true}))));}
+ // The offline and reservation fixtures start with hundreds of factory catalog records.
+ // Only these scenarios may spend more than the normal deadline reading them;
+ // successful server reads must keep the unchanged no-progress watchdog alive.
+ const startupTimeout=currentFactoryCatalogs?150000:60000;
+ async function login(d){await d.page.evaluate(()=>window.normalReleaseReady);await d.page.evaluate(()=>{window.normalStartupWait=null;});await d.page.click('#auth-google');try{await d.page.waitForFunction(startupReady,{idleMs:30000},{timeout:startupTimeout});}catch(error){throw Error('Login phase '+JSON.stringify(await d.page.evaluate(()=>({state:document.body.dataset,phase:window.FC.applicationStartup?.inspect(),connectionError:window.normalConnectionError,rpc:window.normalRpcTimeline,pendingRpc:window.normalPendingRpc,sdkErrors:window.normalSdkErrors,held:window.normalHeldRead===true}))));}
   if(await d.page.evaluate(()=>document.body.dataset.authState==='error')){
    const evidence=await d.page.evaluate(async name=>{
     const status={state:{...document.body.dataset},error:document.getElementById('auth-error')?.textContent};
@@ -198,7 +211,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  assert.equal(JSON.parse(source.projects).length,2);
  let computer;if(!deployment)computer=await device('computer');
  async function configure(d,receiverWitness){
-  await d.page.addInitScript(({uid,name,releaseSlot,catalogCutover,receiverWitness,p0bRegistry,realMainAuth})=>{const raw=Storage.prototype.getItem;window.readNormalSource=key=>raw.call(localStorage,key);const prepare=()=>{
+  await d.page.addInitScript(({uid,name,releaseSlot,catalogCutover,receiverWitness,p0bRegistry,realMainAuth,quoteReservationCandidate,currentFactoryCatalogs})=>{const raw=Storage.prototype.getItem;window.readNormalSource=key=>raw.call(localStorage,key);const prepare=()=>{
    const emulatorCatalogWitness=receiverWitness||JSON.parse(sessionStorage.getItem('synthetic-catalog-cutover')||'null');
    const config={p0bDemo:p0bRegistry&&!releaseSlot,name:'meble-lf-test-normal-'+name,async connections(input){
     window.normalMainContext=input;
@@ -239,7 +252,7 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
       return value;
      });}
     };
-    const errors=window.normalSdkErrors=[];const observed={...measured};for(const key of ['runTransaction','getDocFromServer','getDocsFromServer'])observed[key]=(...args)=>{const began=performance.now(),pending=window.normalPendingRpc||(window.normalPendingRpc=[]),rpc={method:key,app:args[0]?.app?.name,collections:[]};pending.push(rpc);let result;try{result=key==='runTransaction'?measured[key](args[0],args[1],args[2],rpc):measured[key](...args);}catch(error){pending.splice(pending.indexOf(rpc),1);throw error;}const completed=successful=>{if(successful&&rpc.collections.some(name=>!['syncAccess','appAccess','authorizedUsers'].includes(name)))window.normalDataRpcProgress=(window.normalDataRpcProgress||0)+1;pending.splice(pending.indexOf(rpc),1);const log=window.normalRpcTimeline||(window.normalRpcTimeline=[]);log.push({...rpc,ms:Math.round(performance.now()-began)});if(log.length>12)log.shift();};result.then(()=>completed(true),()=>completed(false));result.catch(error=>{errors.push({method:key,code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();});if(key==='runTransaction'&&window.holdOldReader===args[0]?.app?.name&&!window.normalReadArmed){window.normalReadArmed=true;return result.then(value=>{window.normalHeldRead=true;return new Promise(resolve=>window.releaseOldRead=()=>resolve(value));});}return result;};
+    const errors=window.normalSdkErrors=[];const observed={...measured};for(const key of ['runTransaction','getDocFromServer','getDocsFromServer'])observed[key]=(...args)=>{const began=performance.now(),pending=window.normalPendingRpc||(window.normalPendingRpc=[]),rpc={method:key,app:args[0]?.app?.name,collections:currentFactoryCatalogs&&key==='getDocFromServer'&&args[0]?.parent?.id?[args[0].parent.id]:[]};pending.push(rpc);let result;try{result=key==='runTransaction'?measured[key](args[0],args[1],args[2],rpc):measured[key](...args);}catch(error){pending.splice(pending.indexOf(rpc),1);throw error;}const completed=successful=>{if(successful&&rpc.collections.some(name=>!['syncAccess','appAccess','authorizedUsers'].includes(name)))window.normalDataRpcProgress=(window.normalDataRpcProgress||0)+1;pending.splice(pending.indexOf(rpc),1);const log=window.normalRpcTimeline||(window.normalRpcTimeline=[]);log.push({...rpc,ms:Math.round(performance.now()-began)});if(log.length>12)log.shift();};result.then(()=>completed(true),()=>completed(false));result.catch(error=>{errors.push({method:key,code:error.code,message:error.message,stack:error.stack});if(errors.length>6)errors.shift();});if(key==='runTransaction'&&window.holdOldReader===args[0]?.app?.name&&!window.normalReadArmed){window.normalReadArmed=true;return result.then(value=>{window.normalHeldRead=true;return new Promise(resolve=>window.releaseOldRead=()=>resolve(value));});}return result;};
     const config={projectId:'demo-meble-app',apiKey:'demo-only',authDomain:'demo-meble-app.firebaseapp.com',appId:'demo-only'};
     let session=realMainAuth?input.authSession:null,lease=realMainAuth?input.lease:null;
     if(input.authSession&&!realMainAuth){
@@ -269,8 +282,9 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
    }catch(error){window.normalConnectionError={name:error.name,code:error.code,message:error.message,stack:error.stack};throw error;}
    }};
    if(catalogCutover)Object.assign(config,{localOnly:!emulatorCatalogWitness,firstCatalogSync:!!emulatorCatalogWitness,emulatorCatalogWitness});
+   if(quoteReservationCandidate)config.quoteReservationCandidate=true;
    if(releaseSlot){config.envelope={...releaseSlot.envelope,publicKeySpki:new Uint8Array(releaseSlot.envelope.publicKeySpki),signature:new Uint8Array(releaseSlot.envelope.signature)};config.trustedKeySha256=releaseSlot.trustedKeySha256;window.normalReleaseReady=window.FC.applicationStartup.configureReleaseEmulator(config);}else window.FC.applicationStartup.configureEmulator(config);
-  };if(releaseSlot){const fc=window.FC=window.FC||{};Object.defineProperty(fc,'applicationStartup',{configurable:true,set(value){Object.defineProperty(fc,'applicationStartup',{configurable:true,writable:true,value});prepare();}});}else document.addEventListener('DOMContentLoaded',prepare,{once:true});},{uid,name:d.name,releaseSlot,catalogCutover,receiverWitness,p0bRegistry,realMainAuth});
+  };if(releaseSlot){const fc=window.FC=window.FC||{};Object.defineProperty(fc,'applicationStartup',{configurable:true,set(value){Object.defineProperty(fc,'applicationStartup',{configurable:true,writable:true,value});prepare();}});}else document.addEventListener('DOMContentLoaded',prepare,{once:true});},{uid,name:d.name,releaseSlot,catalogCutover,receiverWitness,p0bRegistry,realMainAuth,quoteReservationCandidate,currentFactoryCatalogs});
  }
  async function enable(d){await configure(d);await d.page.reload();await login(d);}
  async function restartProbe(d,{crash=false}={}){

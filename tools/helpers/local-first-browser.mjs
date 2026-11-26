@@ -7,7 +7,8 @@ import {fileURLToPath} from 'node:url';
 const require=createRequire(import.meta.url),{startBrowser}=require('./chromium-runtime.js');
 const root=fileURLToPath(new URL('../..',import.meta.url));
 const {documentNavigation}=require('./browser-test-readiness.js');
-const fixtureModules=require('./fixture-module-assets').moduleAssets();
+const {moduleAssets}=require('./fixture-module-assets');
+const fixtureModules=moduleAssets();
 export async function waitForOrderlyBrowserExit({send,exited,cleanup},{timeoutMs=20000}={}){
   let timer;
   try{
@@ -24,11 +25,12 @@ export async function waitForOrderlyBrowserExit({send,exited,cleanup},{timeoutMs
     await cleanup(); // Reap owned descendants/receipt only AFTER the exit proof, or on failure.
   }
 }
-export async function startLocalFirstServer(){
+export async function startLocalFirstServer({modules=[]}={}){
+  const extraModules=moduleAssets(modules);
   const server=http.createServer((req,res)=>{
     const url=new URL(req.url,'http://127.0.0.1');
     if(url.pathname==='/'){res.writeHead(200,{'content-type':'text/html'});res.end('<!doctype html><title>Isolated LOCAL-FIRST fixture</title><script type="module">import {openLocalFirstStore} from "/sync/local-first-idb.mjs";window.openLF=(binding)=>openLocalFirstStore({...binding,indexedDB,locks:navigator.locks}).then(s=>{window.lf=s;return true;});window.lfReady=true;</script>');return;}
-    if(!fixtureModules.has(url.pathname)&&!/^\/sync\/(?:local-first-[a-z-]+|application-release|application-writer-fence|application-authority|application-p0b-domain|application-p0b-binding)\.mjs$/.test(url.pathname)){res.writeHead(404);res.end();return;}
+    if(!fixtureModules.has(url.pathname)&&!extraModules.has(url.pathname)&&!/^\/sync\/(?:local-first-[a-z-]+|application-release|application-writer-fence|application-authority|application-p0b-domain|application-p0b-binding)\.mjs$/.test(url.pathname)){res.writeHead(404);res.end();return;}
     try{const bytes=fs.readFileSync(path.join(root,url.pathname));res.writeHead(200,{'content-type':'text/javascript'});res.end(bytes);}catch(_){res.writeHead(404);res.end();}
   });
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});

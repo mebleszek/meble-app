@@ -67,10 +67,18 @@ const p0b=require('./p0b-ci-plan').plan(path.join(__dirname,'firebase-pilot'));
 const p0bFlow=flow.slice(flow.indexOf('  firebase-p0b:'),flow.indexOf('  firebase-current:'));
 const p0bMatrix=/segment: \[([^\]]+)\]/.exec(p0bFlow)[1].split(',').map(s=>s.trim());
 assert.deepEqual(p0bMatrix,p0b.map(row=>row.id));
-assert.equal(p0b.flatMap(row=>row.names).length,61);
+assert.equal(p0b.flatMap(row=>row.names).length,70);
 for(const name of ['three cabinets share one verified context per room in a synchronous read','context reuse cannot cross a read, change editor scope or hide reentrant mutation']){
   assert.equal(p0b.filter(row=>row.id==='room-quote-proof'&&row.names.includes('P0-B room quote proof: '+name)).length,1,'Mandatory quote-read regression: '+name);
 }
+for(const [group,name] of [
+  ['room-model','P0-B room boundary: only independently changed heads with local work need a choice'],
+  ['room-storage','P0-B room storage: offline quotation survives conflict and restart without entering the outbox'],
+  ['room-storage','P0-B room storage: choosing local keeps one recovery after an aborted checkpoint and restart'],
+  ['room-storage','P0-B room storage: reservation intents keep the same token until a verified release survives restart'],
+  ['room-quote-rules','P0-B room quote Rules: reservation candidate fences old editors and grants only against the saved room head'],
+  ['manual-sync-quote','P0-B manual quote: reservation through room selection, peer decision and publication'],
+]) assert.equal(p0b.filter(row=>row.id===group&&row.names.includes(name)).length,1,'Mandatory room reservation and recovery regression: '+name);
 assert.ok(p0bFlow.includes('--p0b=${{ matrix.segment }}'));
 assert.ok(flow.includes('needs: [safety, firebase-current-shards, playwright-sync-ui, firebase-p0b, documents, test-maintenance]'));
 assert.ok(flow.includes('const names=["safety","firebase-current-shards","playwright-sync-ui","firebase-p0b"];'));

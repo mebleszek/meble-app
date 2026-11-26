@@ -144,11 +144,42 @@ async function offlineDraft(c,count,quote){
  const record=state=>JSON.parse(rows(state).fc_projects_v1).find(row=>row.id===pid);
  assert.equal(record(offline).projectData[pid].cabinets.length,count);
  assert.deepEqual((await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomProjects',pid))).data(),confirmed);
+ let offlineOffer;
+ if(quote){
+  await page.locator('[data-action="tab"][data-tab="wycena"]').click();
+  await page.waitForFunction(()=>window.uiState.activeTab==='wycena'&&!window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending);
+  await page.locator('[data-action="wycena-generate"]').click();
+  const warning=page.locator('.quote-lock-warning');
+  await warning.waitFor();
+  assert.match(await warning.innerText(),/Brak połączenia/);
+  await warning.getByRole('button',{name:'Tak',exact:true}).click();
+  const badge=page.getByText('Wycena lokalna, niepotwierdzona',{exact:true});
+  await badge.or(page.locator('.info-box')).first().waitFor({timeout:60000});
+  assert.equal(await badge.isVisible(),true,'Offline quote refused: '+JSON.stringify(await page.locator('.info-box').allTextContents()));
+  const local=await image(phone),saved=local.protected.filter(row=>row.key.startsWith('offline-quote:'));
+  assert.equal(saved.length,1);
+  offlineOffer=JSON.parse(saved[0].json).snapshot;
+  assert.ok(offlineOffer.totals.grand>0);
+  assert.equal(offlineOffer.scope.sourceProjects.find(ref=>ref.projectId===pid).revision,undefined);
+  assert.deepEqual(local.outbox,offline.outbox);
+  assert.equal(rows(local).fc_quote_snapshots_v1,rows(offline).fc_quote_snapshots_v1);
+  assert.equal(await page.getByRole('button',{name:'PDF',exact:true}).first().isEnabled(),false);
+  assert.equal(await page.getByRole('button',{name:'Zaakceptuj ofertę',exact:true}).count(),0);
+  t.diagnostic('Real offline calculation preserved the local price and source hashes without publishing a quote');
+ }
  await page.context().tracing.stop();await restartProbe(phone,{crash:true});page=phone.page;await page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
  const restarted=await image(phone);assert.equal(record(restarted).projectData[pid].cabinets.length,count);
  assert.equal(restarted.outbox.find(row=>row.key===op.key)?.phase,'queued','Restart must retain the not-yet-due queue');
+ if(quote){
+  assert.deepEqual(JSON.parse(restarted.protected.find(row=>row.key==='offline-quote:'+offlineOffer.id).json).snapshot,offlineOffer);
+  assert.equal(rows(restarted).fc_edit_session_v1,null,'Restart must not reopen the edit closed before the offline quote');
+ }
  t.diagnostic('Real offline Save and pending batch survived SIGKILL/restart without publishing or overwriting the confirmed head');
- if(quote){if(await page.evaluate(()=>window.uiState.entry!=='app'))await openRoom(phone,pid);await page.waitForFunction(()=>window.FC.session.active&&window.uiState.entry==='app'&&!window.FC.applicationStartup.inspect().transactionPending);await frozenQuote(c,count);}
+ if(quote){
+  if(await page.evaluate(()=>window.uiState.entry!=='app'))await openRoom(phone,pid);
+  await page.waitForFunction(()=>window.uiState.entry==='app'&&!window.FC.applicationStartup.inspect().transactionPending);
+  await frozenQuote(c,count);
+ }
 }
 
 async function frozenQuote(c,count){

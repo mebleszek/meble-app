@@ -28,6 +28,7 @@ export async function commitRoomBatch({transaction,prepareApplication,applicatio
    }
    const writes=prepared.map(row=>{
     if(c.result.some(marker=>marker.key==='retired:'+row.scope))fail('LF_P0B_SCOPE_RETIRED');
+    if(c.result.some(marker=>marker.key==='quote-grant:'+row.scope||marker.key==='quote-reservation:'+row.scope))fail('LF_QUOTE_ROOM_RESERVED');
     const old=r.result.find(replica=>replica.key===row.scope);
     if(!old||old.version!==row.expectedVersion)fail('LF_LOCAL_CONFLICT');
     if(!old.editor?.active||!equal(old.editor,row.editor)||old.editor.deviceId!==deviceId)fail('LF_EDITOR_REQUIRED');

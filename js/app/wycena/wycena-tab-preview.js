@@ -185,7 +185,7 @@
       });
       totalsCard.appendChild(row);
     });
-    if(d.canAcceptSnapshot(snapshot)){
+    if(!snapshot.meta?.offlineUnconfirmed && d.canAcceptSnapshot(snapshot)){
       const previewActions = h('div', { class:'quote-preview-actions' });
       const acceptBtn = h('button', { class:'btn-success', type:'button', text:'Zaakceptuj ofertę' });
       acceptBtn.addEventListener('click', ()=> {
@@ -227,7 +227,8 @@
       card.appendChild(h('div', { id:'quotePreviewStart' }));
       const isLatest = d.getSnapshotId(currentQuote) === d.getSnapshotId(d.getSnapshotHistory()[0]);
       const previewMeta = h('div', { class:'quote-preview-meta' });
-      if(isUnsavedStorageQuote(currentQuote)) previewMeta.appendChild(h('span', { class:'quote-preview-badge quote-preview-badge--storage-warning', text:'Podgląd bez zapisu historii' }));
+      if(currentQuote.meta?.offlineUnconfirmed) previewMeta.appendChild(h('span', { class:'quote-preview-badge quote-preview-badge--storage-warning', text:'Wycena lokalna, niepotwierdzona' }));
+      else if(isUnsavedStorageQuote(currentQuote)) previewMeta.appendChild(h('span', { class:'quote-preview-badge quote-preview-badge--storage-warning', text:'Podgląd bez zapisu historii' }));
       else previewMeta.appendChild(h('span', { class:`quote-preview-badge${isLatest ? ' is-latest' : ''}`, text:isLatest ? 'Aktualna wersja oferty' : 'Wersja oferty z historii' }));
       if(d.isPreliminarySnapshot(currentQuote)) previewMeta.appendChild(h('span', { class:'quote-preview-badge quote-preview-badge--preliminary', text:'Wstępna wycena' }));
       if(d.isSelectedSnapshot(currentQuote)) previewMeta.appendChild(h('span', { class:'quote-preview-badge quote-preview-badge--selected', text:'Zaakceptowana' }));
@@ -235,7 +236,9 @@
       previewMeta.appendChild(h('p', { class:'muted quote-scope', text:`Wersja oferty: ${d.formatDateTime(generatedAt)}` }));
       card.appendChild(previewMeta);
     }
-    if(isUnsavedStorageQuote(currentQuote)){
+    if(currentQuote.meta?.offlineUnconfirmed){
+      card.appendChild(h('div', {class:'quote-storage-warning',text:'Przed przekazaniem lub akceptacją oferty połącz się z internetem i przelicz aktualne dane.'}));
+    }else if(isUnsavedStorageQuote(currentQuote)){
       card.appendChild(h('div', { class:'quote-storage-warning', text:getUnsavedStorageWarning(currentQuote) }));
     }
     if(Array.isArray(roomLabels) && roomLabels.length){

@@ -233,6 +233,41 @@ for(let index=0;index<70;index++)fc.workQuantityFacts.getCabinetFacts(room,{...c
 assert.equal(fc.workQuantityPrepared.inspect().entries,64,'Prepared history stays bounded in RAM');
 assert.equal(saved,0,'Prepared quantities never persist a project or catalog');
 
+// One synchronous quote verifies the complete sources at entry AND exit,
+// rather than re-reading all source strings for every individual quantity.
+let rawReads=0;const rawRead=fc.storage.getRaw;
+fc.storage.getRaw=function(key){if(key==='boards'||key==='rates')rawReads++;return rawRead.call(this,key);};
+const synchronous=callback=>fc.workQuantityPrepared.withCalculationRead?fc.workQuantityPrepared.withCalculationRead(callback):callback();
+const currentFacts=JSON.parse(JSON.stringify(fc.workQuantityFacts.getCabinetFacts(room,cab)));
+rawReads=0;
+synchronous(()=>{for(const expected of currentFacts)assert.deepEqual(JSON.parse(JSON.stringify(fc.workQuantityFacts.getCabinetFact(room,cab,expected.code))),expected);});
+assert.equal(rawReads,4,'Two complete source checks suffice for every prepared quantity in one synchronous read');
+rawReads=0;synchronous(()=>synchronous(()=>fc.workQuantityFacts.getCabinetFacts(room,cab)));
+assert.equal(rawReads,4,'Nested reads share the same complete witness and outer final validation');
+for(const mutate of [()=>{raw.rates+=' ';},()=>{cab.details.savedExtension.derivedFacts++;},()=>{room.unknownSavedField={value:1};}]){
+ assert.throws(()=>synchronous(()=>{fc.workQuantityFacts.getCabinetFacts(room,cab);mutate();}),error=>error.code==='QUANTITY_PREPARATION_CONFLICT','Changed sources cannot return quantities computed from another input image');
+ assert.equal(fc.workQuantityPrepared.inspect().entries,0,'An aborted read cannot leave newly prepared facts reusable under its old witness');
+}
+assert.throws(()=>synchronous(()=>Promise.resolve([])),/QUANTITY_PREPARATION_ASYNC/);
+fc.workQuantityFacts.getCabinetFacts(room,cab);
+assert.ok(fc.workQuantityPrepared.inspect().entries>0,'A refused scope always restores ordinary preparation');
+assert.equal(saved,0,'The read scope never writes a project, catalog, offer or access grant');
+let partCalculations=0;
+const partOwner={projectId:'synthetic-independent-room',roomId:'synthetic-independent-room'};
+const prepareParts=(owner=partOwner)=>{
+ const calculate=(sourceRoom,sourceCabinet,address)=>{partCalculations++;return [{qty:2,a:sourceCabinet.width,b:sourceRoom.settings.legHeight,sourceRefs:[address]}];};
+ return fc.workQuantityPrepared.readParts?fc.workQuantityPrepared.readParts(room,cab,owner,calculate):calculate(room,cab,owner);
+};
+const firstParts=prepareParts();assert.deepEqual(prepareParts(),firstParts);
+assert.equal(partCalculations,1,'A prepared physical cutlist is reused under the complete room/catalog witness');
+firstParts[0].qty=999;assert.equal(prepareParts()[0].qty,2,'A material caller cannot alter prepared quantities');
+const otherOwner={projectId:'synthetic-other-room',roomId:'synthetic-other-room'};
+assert.equal(prepareParts(otherOwner)[0].sourceRefs[0].projectId,otherOwner.projectId);
+assert.equal(partCalculations,2,'Identical cabinet IDs/data in two independent projects never share source addresses');
+cab.width++;prepareParts();assert.equal(partCalculations,3,'Geometry changes rebuild the physical quantities');
+const beforeUnknown=partCalculations;prepareParts({...partOwner,futureContext:{value:1}});prepareParts({...partOwner,futureContext:{value:1}});
+assert.equal(partCalculations,beforeUnknown+2,'Unknown source-context fields cannot be ignored to authorize reuse');
+
 console.log('OK cabinet-derived-facts-cache smoke');
 console.log(' - zapis/edycja szafki tworzy i odświeża fakty pochodne');
 console.log(' - hash, wersja kalkulatora i dane wnoszenia unieważniają cache');

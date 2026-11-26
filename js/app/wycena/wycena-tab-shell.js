@@ -310,6 +310,7 @@
       if(policy.ok)calculationOptions=Object.assign({},calculationOptions,policy.options);
     }
     const source = meta && meta.source || '';
+    const offlineQuote = meta?.offlineQuote;
     if(!acquireGenerateLock(source || 'generateQuote')) return;
     const state = typeof d.getState === 'function' ? d.getState() : {};
     if(state.isBusy){
@@ -343,10 +344,11 @@
       let finalInputs=null;
       const assertCurrent=()=>{
         if(window.__FC_MAIN_ACCESS__)window.__FC_MAIN_ACCESS__.assert();
+        offlineQuote?.assertCurrent();
         if(finalInputs!==null && calculationInputs(d)!==finalInputs)throw Object.assign(new Error('Wejścia kalkulacji zmieniły się. Ponów wycenę.'),{code:'calculation_inputs_changed',quoteValidation:true});
         if(runContext)nav.assertCalculationCurrent(runContext,d.normalizeDraftSelection(d.getOfferDraft()));
       };
-      calculationOptions=Object.assign({},calculationOptions,{assertCurrent});
+      calculationOptions=Object.assign({},calculationOptions,{assertCurrent,offlineQuote});
       assertCurrent();
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('selection', selection); }catch(_){ }
       const calculation={};
@@ -357,6 +359,13 @@
         preflightQuote=await buildUnsavedQuoteSnapshot(selection,calculationOptions,calculation);
       }
       finalInputs=initialInputs;
+      if(offlineQuote){
+        assertCurrent();
+        FC.projectPcvResolver.validateQuoteCandidate(preflightQuote,selection);
+        const saved=await offlineQuote.save(preflightQuote);
+        if(sameOwner())d.setState?.({lastQuote:saved,previewSnapshotId:'',shouldScrollToPreview:true});
+        return;
+      }
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.markGenerateTrace === 'function') FC.wycenaDiagnostics.markGenerateTrace('preflightQuoteBuilt', { hasQuote:!!preflightQuote, id:preflightQuote && (preflightQuote.id || preflightQuote.snapshotId), totals:preflightQuote && preflightQuote.totals, versionName:getVersionName(preflightQuote) }); }catch(_){ }
       const duplicateBeforeNaming = await handleDuplicateSnapshot(preflightQuote, selection, ctx, d, assertCurrent);
       assertCurrent();
@@ -465,7 +474,7 @@
       try{ if(event && typeof event.preventDefault === 'function') event.preventDefault(); }catch(_){ }
       try{ if(event && typeof event.stopPropagation === 'function') event.stopPropagation(); }catch(_){ }
       try{ if(FC.wycenaDiagnostics && typeof FC.wycenaDiagnostics.recordGenerateButtonEvent === 'function') FC.wycenaDiagnostics.recordGenerateButtonEvent(source || 'generate-button'); }catch(_){ }
-      const generate=policy=>generateQuote(ctx,policy?.readOnly?{...d,syncGeneratedQuoteStatus(){}}:d,{source:source||'generate-button'});
+      const generate=policy=>generateQuote(ctx,policy?.readOnly?{...d,syncGeneratedQuoteStatus(){}}:d,{source:source||'generate-button',offlineQuote:policy?.offlineQuote});
       if(!FC.applicationWrite){void generate();return;}
       if(requestPending)return;requestPending=true;
       // The existing busy button covers source confirmation as well as math.
@@ -503,14 +512,14 @@
     actions.appendChild(runBtn);
 
     const clientPreviewBtn = h('button', { class:'btn-primary', type:'button', text:'Podgląd oferty' });
-    if(!currentQuote || currentQuote.error) clientPreviewBtn.disabled = true;
+    if(!currentQuote || currentQuote.error || currentQuote.meta?.offlineUnconfirmed) clientPreviewBtn.disabled = true;
     clientPreviewBtn.addEventListener('click', ()=>{
       try{ FC.quoteClientPreview && typeof FC.quoteClientPreview.open === 'function' && FC.quoteClientPreview.open(currentQuote); }catch(_){ }
     });
     actions.appendChild(clientPreviewBtn);
 
     const pdfBtn = h('button', { class:'btn-primary', type:'button', text:'PDF' });
-    if(!currentQuote || currentQuote.error) pdfBtn.disabled = true;
+    if(!currentQuote || currentQuote.error || currentQuote.meta?.offlineUnconfirmed) pdfBtn.disabled = true;
     pdfBtn.addEventListener('click', ()=>{
       try{ FC.quotePdf && typeof FC.quotePdf.openQuotePdf === 'function' && FC.quotePdf.openQuotePdf(currentQuote); }catch(_){ }
     });

@@ -4,7 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { applicationRules } = require('./application-rules');
 
-function p0bApplicationRules({normal=false}={}) {
+function p0bApplicationRules({normal=false,quoteReservations=false}={}) {
+  if(quoteReservations&&!normal)throw Error('LF_QUOTE_RESERVATION_REGISTRY_REQUIRED');
   let rules = applicationRules();
   function replace(from, to) {
     if (rules.split(from).length !== 2) throw Error('LF_P0B_RULES_BASE_CHANGED: ' + from);
@@ -59,6 +60,18 @@ function p0bApplicationRules({normal=false}={}) {
       "return inv.deletionId == '' && inv.bulkId == '' && inv.projects.get(pid,false) == true && !roomTerminal(uid,pid);");
     rules=rules.replace('    function invCanPublish(uid, iid, pid) {',
       "    function roomTerminal(uid,pid) { return exists(invHeadRef(uid,pid)) && get(invHeadRef(uid,pid)).data.roomDeleted == true; }\n    function invCanPublish(uid, iid, pid) {");
+  }
+  if(quoteReservations){
+    replace('    match /{document=**}',fs.readFileSync(path.join(__dirname,'p0b-quote-reservations.rules'),'utf8')+'\n    match /{document=**}');
+    replace('&& request.resource.data.investorId == resource.data.investorId && (!request.resource.data.active || !roomTerminal(uid,pid))',
+      '&& request.resource.data.investorId == resource.data.investorId && (!request.resource.data.active || !roomTerminal(uid,pid))\n'
+      + '        && quoteReservationAllowsEditor(uid,pid,resource.data,request.resource.data)');
+    replace('&& d.updatedAt == request.time && !roomTerminal(uid,pid) && e.active == true',
+      '&& d.updatedAt == request.time && !roomTerminal(uid,pid) && quoteReservationAllowsWrite(uid,pid) && e.active == true');
+    replace('&& lfEditor(uid,pid).active == true && d.createdAt == request.time;',
+      '&& lfEditor(uid,pid).active == true && quoteReservationAllowsWrite(uid,pid) && d.createdAt == request.time;');
+    replace('&& invCanPublish(uid,lfEditor(uid,pid).investorId,pid)',
+      '&& invCanPublish(uid,lfEditor(uid,pid).investorId,pid) && quoteReservationAllowsWrite(uid,pid)');
   }
   if(normal)for(const [from,to] of Object.entries({localFirstInvestors:'p0bRoomInvestors',localFirstProjects:'p0bRoomProjects',localFirstEditors:'p0bRoomEditors',p0bDeletionGroups:'p0bRoomGroups'}))rules=rules.replaceAll(from,to);
   // Documentation only: no change to the existing validated Rules expressions.

@@ -24,6 +24,7 @@ export function validateQuoteStatusRooms(prepared,replicas,outbox,control,before
   const old=replicas.find(replica=>replica.key===row.scope),a=prior.find(record=>record.id===row.scope),b=next.find(record=>record.id===row.scope);
   if(!old||old.version!==row.expectedVersion||old.dirty||outbox.some(op=>op.scope===row.scope&&op.phase!=='verified'))fail('LF_LOCAL_CONFLICT');
   if(!old.editor?.active||!equal(old.editor,row.editor))fail('LF_EDITOR_REQUIRED');
+  if(control.some(marker=>marker.key==='quote-grant:'+row.scope||marker.key==='quote-reservation:'+row.scope))fail('LF_QUOTE_ROOM_RESERVED');
   if(control.some(marker=>['retired:'+row.scope,'projectRecovery:'+row.scope].includes(marker.key)))fail('LF_PROJECT_RECOVERY_PENDING');
   if(outbox.some(op=>op.key===row.operationId)||!a||!b||a.investorId!==investorId||a.meta?.pendingDomainOperation||b.meta?.pendingDomainOperation
     ||!equal(content(a),content(b))||!equal(b,row.value.document.payload.project))fail('LF_APPLICATION_SCOPE_REFUSED');

@@ -37,6 +37,7 @@ export async function assertQuoteReadBudget(page,t){
  assert.ok(result.reads.some(row=>row.rooms===2),'The real quote must verify both independent rooms');
  for(const row of result.reads)assert.equal(row.count,row.rooms,'A synchronous calculation must verify each room exactly once, without repeated full normalization');
  assert.ok(result.quantitiesAfter.hits>result.quantitiesBefore.hits,'The actual admitted catalog/room runtime must reuse prepared quantities, not only a minimal fixture');
+ assert.ok(result.quantitiesAfter.partsHits>result.quantitiesBefore.partsHits,'The real material/quote flow must reuse prepared physical cutlists with their source owners');
  assert.ok(result.quantitiesAfter.entries<=result.quantitiesAfter.limit,'Prepared quantities stay bounded in the real runtime');
  t.diagnostic('Three-cabinet kitchen + independent wardrobe: '+JSON.stringify(result));
 }

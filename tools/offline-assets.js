@@ -2,7 +2,7 @@
 // Deterministic public-shell manifest. Never scans runtime/profile/user stores.
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const root=path.resolve(__dirname,'..');
-const transportFiles=new Set(['p0b-protocol','p0b-pin','p0b-deletion-group','p0b-deletion-journal','p0b-project-recovery'].map(file=>'tools/firebase-pilot/'+file+'.mjs'));
+const transportFiles=new Set(['p0b-protocol','p0b-pin','p0b-deletion-group','p0b-deletion-journal','p0b-project-recovery','p0b-quote-reservations'].map(file=>'tools/firebase-pilot/'+file+'.mjs'));
 function isPublicPath(name){return name==='index.html'||transportFiles.has(name)||/^(?:js|css|assets|sync)\/.+\.(?:js|mjs|css|jpg|jpeg|png|svg|webp|woff2?)$/i.test(name);}
 function manifest(){
   const names=['index.html'];

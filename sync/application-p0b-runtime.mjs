@@ -1,6 +1,7 @@
 import {applicationPresence} from './application-presence.mjs';
 import {createQuoteAccess} from './application-quote-access.mjs';
 import {createQuoteRelease} from './application-quote-release.mjs';
+import {installQuoteReservations} from './application-quote-reservations.mjs';
 import {closeIdleApplicationVisits} from './application-visit-recovery.mjs';
 // DEMO-only composition. All remote mutations still use the existing P0-B protocol.
 import {createP0BProtocol,encodeP0BContact,createP0BDeletionIntent} from '../tools/firebase-pilot/p0b-protocol.mjs';
@@ -13,9 +14,9 @@ import {createProjectChannel,validateProjectDependencies} from './local-first-pr
 import {projectApplicationRows} from './application-replication.mjs';
 import {openProjectRecovery} from './local-first-recovery-view.mjs';
 import {copy,equal,fail,digest,id} from './local-first-values.mjs';
-export async function createP0BRuntime({window:w,writer,reader,store,getAuthority,getSync,getGlobals,backupKeys,onError}){
+export async function createP0BRuntime({window:w,writer,reader,store,getAuthority,getSync,getGlobals,backupKeys,onError,quoteReservationCandidate=false}){
  let closed=false;
- const fc=w.FC,presence=applicationPresence(fc),protocol=writer?createP0BProtocol(p0bConnection(writer),store.deviceId,()=>{if(closed)fail('LF_CLOSED');}):null,remoteReader=reader?p0bConnection(reader):null,remoteWriter=writer?p0bConnection(writer):null;
+ const fc=w.FC,presence=applicationPresence(fc),protocol=writer?createP0BProtocol(p0bConnection(writer),store.deviceId,()=>{if(closed)fail('LF_CLOSED');},{quoteReservationCandidate}):null,remoteReader=reader?p0bConnection(reader):null,remoteWriter=writer?p0bConnection(writer):null;
  const lostEditors=new Map();
  const preferredRooms=new Map();const remembered=await store.readApplication();if(remembered){const ui=JSON.parse(remembered.rows.fc_ui_v1||'{}');if(remembered.rows.fc_current_project_id_v1&&(ui.roomType||ui.lastRoomType))preferredRooms.set(remembered.rows.fc_current_project_id_v1,ui.roomType||ui.lastRoomType);}
  const contactScopes=new Map(),projectOwners=new Map(),heartbeats=new Map();let working=null,deletionJournal=null,deletionAdapter=null,deletionPending=false,deletionGeneration=0,recoveryOffered=false;
@@ -30,9 +31,14 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
    pilotContract:fc.cloudPilotContract,pilotFactory:fc.firebasePilotTransport,globalContract:fc.globalDataContract,projectContract:fc.businessProjectContract,
    globals:getGlobals(),editorProtocol:protocol,deviceLabel:label,projectCollection:'p0bRoomProjects',roomProtocol:true});
  }
- const quotes=writer?createApplicationQuoteLedger({fc,store,writer,reader,getSync,sourceChannel:(pid,iid)=>getSync()?.channel(pid)||project({id:pid,investorId:iid})}):null;
+ const reservations=protocol?.reservations?installQuoteReservations({window:w,store,protocol,getAuthority,getSync,label,assertAccess,onError,
+  onGranted(pid){heartbeats.get(pid)?.stop();heartbeats.delete(pid);getSync()?.notify(pid);}}):null;
+ const quotes=writer?createApplicationQuoteLedger({fc,store,writer,reader,getSync,reservationAuthority:protocol.reservations,
+  sourceChannel:(pid,iid)=>getSync()?.channel(pid)||project({id:pid,investorId:iid})}):null;
  const releases=protocol?createQuoteRelease({store,protocol,assertAccess,label}):null;
- const quoteAccess=protocol?createQuoteAccess({window:w,store,protocol,getSync,assertAccess,releases}):null;
+ const quoteAccess=createQuoteAccess({window:w,store,protocol,getSync,assertAccess,releases,reservations,assertLocalAccess(){
+  if(closed)fail('LF_CLOSED');w.__FC_MAIN_ACCESS__.assert();
+ }});
  async function contactChannel(iid){
   const scope=await contactScope(iid);
   const head=async record=>({generation:record.contactRevision,investorId:iid,hash:await digest(record.contact)});
@@ -126,6 +132,7 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
  }
  async function preflightAcceptance(scopes){
   assertAccess();getAuthority().assertIdle({allowForm:true});
+  await reservations?.releaseForEditing(scopes);
   const image=await store.readApplication(),records=JSON.parse(image.rows.fc_projects_v1||'[]');
   for(const pid of scopes){
    const record=records.find(row=>row.id===pid),snap=await store.snapshot(pid);
@@ -165,7 +172,9 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
   if(!protocol||closed)return;
   if(heartbeats.get(pid)?.epoch===editor.epoch)return;
   heartbeats.get(pid)?.stop();
-  heartbeats.set(pid,{epoch:editor.epoch,stop:protocol.watchEditorContact(pid,editor,w,onError)});
+  const stop=protocol.watchEditorContact(pid,editor,w,onError);
+  heartbeats.set(pid,{epoch:editor.epoch,stop(){stop();reservations?.stopEditor(pid);}});
+  reservations?.trackEditor(pid,editor);
  }
  let visitWork=Promise.resolve(),visitCleanupPending=true;
  function syncVisit(next,previous){
@@ -187,6 +196,7 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
   const iid=projectOwners.get(pid);if(!iid)fail('LF_P0B_REGISTRY_REQUIRED');
   return createP0BProjectRecovery({store,protocol,channel:getSync().channel(pid),investorId:iid,assertAccess,
    roomContract:{validateRoom:value=>fc.projectExportContract.validateOwnedRoom(value),
+    validateProject:value=>fc.roomProjectModel.validate(value),normalizeProject:value=>fc.projectModel.normalizeProjectRecord(value),
     createRoomProject:(iid,plan)=>fc.roomProjectModel.create(iid,{...plan.definition,projectStatus:'nowy'},plan.room),
     async validateRoomProject(record,plan,remote){fc.roomProjectModel.validate(record);if(record.id!==plan.id||!equal(record.projectData[record.id],plan.room))fail('LF_ROOM_COPY_SCOPE_UNCONFIRMED');const card=remote.value.document.payload.investor;const document={payload:{project:record,investor:{...card,rooms:[record.projectData.meta.roomDefs[record.id]]},offers:[]}};fc.businessProjectContract.validate(document.payload);validateProjectDependencies(fc.businessProjectContract,fc.globalDataContract,document,remote.value.globals.model);},
     summarize:data=>fc.projectModel.summarizeProjectData(data),
@@ -195,7 +205,8 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
  async function openRecovery({projectId,roomId=w.uiState?.roomType}={}){
   if(w.document.getElementById('cabinetModal')?.style.display==='block'||fc.investorEditorState?.hasUiLock?.())fail('LF_ACTIVE_FORM_PROTECTED');
   const pid=projectId||w.localStorage.getItem('fc_current_project_id_v1');roomId=roomId||preferredRooms.get(pid)||pid;
-  await openProjectRecovery({window:w,service:recovery(pid),roomId,deviceLabel:label(),onConfirmed(){w.location.reload();}});
+  await openProjectRecovery({window:w,service:recovery(pid),roomId,deviceLabel:label(),
+   assertIdle:()=>getAuthority().assertIdle({allowForm:true}),onConfirmed(){w.location.reload();}});
  }
  async function receiveDeleted(records){
   return store.exclusive(async()=>{
@@ -308,14 +319,22 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
   })().finally(()=>{working=null;});return working;
  }
  async function bind(){
-  if(quotes){fc.roomQuoteProof=quotes.proof;fc.roomQuoteAccess=quoteAccess;}
+  if(quotes)fc.roomQuoteProof=quotes.proof;
+  fc.roomQuoteAccess=quoteAccess;
   if(protocol)await installDeletion();
   presence.bind(protocol);fc.investorPresence=presence;if(protocol)fc.projectTakeoverPin=protocol.pin;fc.projectRecovery={open:openRecovery};
   // Resume only previously approved release intents on initial/rebound startup.
   // A refusal keeps its durable marker and fences this room; no new PIN action.
   await releases?.resume().catch(onError);
+  reservations?.wake();
  }
- function close(){closed=true;quoteAccess?.close();if(fc.roomQuoteAccess===quoteAccess)delete fc.roomQuoteAccess;if(quotes&&fc.roomQuoteProof===quotes.proof)delete fc.roomQuoteProof;for(const value of heartbeats.values())value.stop();heartbeats.clear();presence.detach(protocol);if(protocol&&fc.projectTakeoverPin===protocol.pin)delete fc.projectTakeoverPin;delete fc.projectRecovery;if(fc.localInvestorDeletion===deletionAdapter)delete fc.localInvestorDeletion;deletionJournal?.close();}
+ function close(){closed=true;reservations?.close();quoteAccess?.close();if(fc.roomQuoteAccess===quoteAccess)delete fc.roomQuoteAccess;if(quotes&&fc.roomQuoteProof===quotes.proof)delete fc.roomQuoteProof;for(const value of heartbeats.values())value.stop();heartbeats.clear();presence.detach(protocol);if(protocol&&fc.projectTakeoverPin===protocol.pin)delete fc.projectTakeoverPin;delete fc.projectRecovery;if(fc.localInvestorDeletion===deletionAdapter)delete fc.localInvestorDeletion;deletionJournal?.close();}
  return {protocol,discovery,project,projectRows,commit,checkpoint,preflightAcceptance,ensureNewProject,watchEditor,recovery,isLost:scope=>lostEditors.has(scope),canRecover,offerRecovery,resume,bind,close,
+  reservationsViewChanged:reservations?.navigate,reservationsSynced:reservations?.syncCompleted,
+  async assertEditable(iid,pid,options){
+   if(reservations)return reservations.assertEditable(iid,pid,options);
+   if(await store.pendingQuoteGrant(pid)
+    ||(await store.pendingQuoteReservations()).some(row=>row.intent.projectId===pid))fail('LF_QUOTE_ROOM_RESERVED');
+  },
   suspendPresence(){presence.detach(protocol);},refreshPresence(){if(!closed&&!presence.bind(protocol))presence.refresh();}};
 }

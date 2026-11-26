@@ -1,6 +1,213 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
 import {startLocalFirstServer,openBrowserDevice} from '../helpers/local-first-browser.mjs';
+import {digest} from '../../sync/local-first-values.mjs';
+import {quoteReservationEditor,quoteReservationMarker,quoteReservationRequest,releasedQuoteReservation} from '../../sync/quote-reservation-contract.mjs';
+
+test('P0-B room storage: offline quotation survives conflict and restart without entering the outbox',async t=>{
+ const server=await startLocalFirstServer(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'p0b-offline-quote-'));
+ let browser=await openBrowserDevice(server,path.join(dir,'computer'));
+ t.after(async()=>{await browser.close();await server.close();fs.rmSync(dir,{recursive:true,force:true});});
+ const binding={name:'meble-lf-test-offline-quote',ownerUid:'owner',deviceId:'device',instanceId:'instance',initialize:true};
+ let store=await browser.open(binding);
+ const room=(id,width)=>({id,investorId:'investor',meta:{roomProject:{version:1,roomId:id}},
+  projectData:{meta:{roomDefs:{[id]:{id,name:id}}}},width});
+ const project=room('kitchen',85),wardrobe=room('wardrobe',120);
+ const rows={fc_projects_v1:JSON.stringify([project,wardrobe]),fc_investors_v1:'[{"id":"investor","phone":"preserved"}]',
+  fc_current_project_id_v1:'kitchen',fc_current_investor_v1:'investor',fc_edit_session_v1:null,
+  fc_quote_snapshots_v1:'[{"id":"accepted","meta":{"acceptedAt":17}}]'};
+ await browser.evaluate('window.lf.enterP0BRegistry('+JSON.stringify({fc_projects_v1:'[]',fc_investors_v1:'[]'})+')');
+ await store.initializeApplication(rows);
+ const owned={ownerUid:'owner',investorId:'investor',projectId:'kitchen',deviceId:'device',deviceLabel:'Computer',epoch:1,active:true,headRevision:'a'.repeat(32)};
+ const base={ownerUid:'owner',investorId:'investor',projectId:'kitchen',generation:1,currentRevisionId:owned.headRevision};
+ const value=project=>({document:{payload:{project,offers:[]}}});
+ await store.apply({scope:'kitchen',value:value(room('kitchen',70)),head:base,editor:owned,expectedVersion:0});
+ await store.commit({scope:'kitchen',value:value(project),operationId:'pending-room',expectedVersion:1,editor:owned,protectedRows:rows});
+ await store.apply({scope:'wardrobe',value:value(wardrobe),head:{...base,projectId:'wardrobe'},expectedVersion:0});
+ const image=await store.readApplication(),current=await store.snapshot('kitchen'),peer=await store.snapshot('wardrobe');
+ const snapshot={id:'local-quote',investor:{id:'investor'},project:{id:'kitchen',investorId:'investor'},
+  scope:{selectedRooms:['kitchen'],sourceProjects:[{projectId:'kitchen',roomId:'kitchen',investorId:'investor',recordHash:await digest(project)}]},
+  totals:{grand:3012.54},meta:{acceptedAt:0,selectedByClient:false}};
+ const save=value=>browser.evaluate('window.lf.saveOfflineQuote({...'+JSON.stringify({image,snapshot:value})+',assertCurrent(){}})');
+ const list=(iid='investor')=>browser.evaluate('window.lf.readOfflineQuotes('+JSON.stringify(iid)+')');
+ await assert.rejects(save({...snapshot,meta:{acceptedAt:1}}),/LF_OFFLINE_QUOTE_INVALID/);
+ await assert.rejects(save({...snapshot,scope:{...snapshot.scope,sourceProjects:[{...snapshot.scope.sourceProjects[0],revision:{generation:1}}]}}),/LF_OFFLINE_QUOTE_SOURCE_INVALID/);
+ await browser.evaluate('(()=>{const original=IDBDatabase.prototype.transaction;IDBDatabase.prototype.transaction=function(stores,mode,...args){const tx=original.call(this,stores,mode,...args);if(mode==="readwrite"){IDBDatabase.prototype.transaction=original;queueMicrotask(()=>tx.abort());}return tx;};return true;})()');
+ await assert.rejects(save(snapshot),/LF_IDB_ABORTED/);assert.deepEqual(await list(),[]);
+ assert.deepEqual(await save(snapshot),{id:snapshot.id,localConfirmed:true,cloudConfirmed:false});
+ await save(snapshot);
+ await assert.rejects(save({...snapshot,totals:{grand:3}}),/LF_OPERATION_REUSED/);
+ assert.deepEqual(await store.readApplication(),image);
+ // An independently received room replaces the old image. The local quotation
+ // retains exactly what was calculated and cannot be queued by this replacement.
+ const remote={head:{...base,generation:2,currentRevisionId:'b'.repeat(32)},value:value(room('kitchen',60))};
+ const expectedEditor={...owned,deviceId:'phone',deviceLabel:'Phone',epoch:2,headRevision:remote.head.currentRevisionId};
+ const chooseRemote=(overrides={})=>browser.evaluate('window.lf.receiveConflictRemote({...'+JSON.stringify({
+  scope:'kitchen',before:{image,...current},remote,expectedEditor,...overrides})+',assertAccess(){}})');
+ await assert.rejects(chooseRemote({expectedEditor:owned}),/LF_ROOM_CONFLICT_WITNESS_REQUIRED/);
+ await assert.rejects(chooseRemote({before:{image:{...image,version:image.version-1},...current}}),/LF_APPLICATION_INVALID|LF_APPLICATION_CONFLICT/);
+ await browser.evaluate('(()=>{const original=IDBObjectStore.prototype.add;IDBObjectStore.prototype.add=function(value,...args){const result=original.call(this,value,...args);if(this.name==="protected"&&value?.key?.startsWith("room-conflict-")){IDBObjectStore.prototype.add=original;queueMicrotask(()=>this.transaction.abort());}return result;};return true;})()');
+ await assert.rejects(chooseRemote(),/LF_IDB_ABORTED/);
+ assert.deepEqual(await store.readApplication(),image);assert.deepEqual(await store.snapshot('kitchen'),current);assert.deepEqual(await list(),[snapshot]);
+ const receipt=await chooseRemote();
+ assert.equal(receipt.cloudConfirmed,true);assert.equal(receipt.remoteRevision,remote.head.currentRevisionId);
+ await assert.rejects(chooseRemote(),/LF_ROOM_CONFLICT_CHANGED/);
+ await assert.rejects(save({...snapshot,id:'stale-quote'}),/LF_OFFLINE_QUOTE_CONTEXT_CHANGED/);
+ await browser.crash();browser=await openBrowserDevice(server,path.join(dir,'computer'));store=await browser.open({...binding,initialize:false});
+ assert.deepEqual(await list(),[snapshot]);assert.deepEqual(await list('other'),[]);
+ const rowsAfter=(await store.readApplication()).rows;
+ assert.deepEqual(JSON.parse(rowsAfter.fc_projects_v1),[remote.value.document.payload.project,wardrobe]);
+ assert.equal(JSON.parse(rowsAfter.fc_investors_v1)[0].phone,'preserved');
+ assert.equal(rowsAfter.fc_quote_snapshots_v1,rows.fc_quote_snapshots_v1);
+ assert.deepEqual(await store.snapshot('wardrobe'),peer);
+ const after=await store.snapshot('kitchen');
+ assert.deepEqual(after.operations,[]);assert.equal(after.replica.editor,null);assert.equal(after.replica.dirty,false);
+ const archive=JSON.parse(after.protected.find(row=>row.key===receipt.archiveId).json);
+ assert.deepEqual(archive.image,image);assert.deepEqual(archive.replica,current.replica);assert.deepEqual(archive.operations,current.operations);
+ assert.deepEqual((await store.snapshot('p0b_offline_quotes_'+await digest('investor'))).operations,[]);
+});
+
+test('P0-B room storage: choosing local keeps one recovery after an aborted checkpoint and restart',async t=>{
+ const server=await startLocalFirstServer({modules:['tools/firebase-pilot/p0b-project-recovery.mjs']});
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'p0b-conflict-local-'));
+ let browser=await openBrowserDevice(server,path.join(dir,'computer'));
+ t.after(async()=>{await browser.close();await server.close();fs.rmSync(dir,{recursive:true,force:true});});
+ const binding={name:'meble-lf-test-conflict-local',ownerUid:'owner',deviceId:'computer',instanceId:'instance',initialize:true};
+ let store=await browser.open(binding);
+ const scope='kitchen',investorId='investor';
+ const define=(width,status='nowy')=>({id:scope,investorId,status,meta:{roomProject:{version:1,roomId:scope}},
+  projectData:{meta:{roomDefs:{[scope]:{id:scope,projectStatus:status}}},[scope]:{width}}});
+ const contact={id:investorId,name:'Keep contact'},offers='[{"id":"accepted","meta":{"acceptedAt":17}}]';
+ const value=project=>({document:{payload:{project,investor:contact,offers:[]}}});
+ const rows={fc_projects_v1:JSON.stringify([define(72)]),fc_investors_v1:JSON.stringify([contact]),
+  fc_current_investor_v1:investorId,fc_current_project_id_v1:scope,fc_edit_session_v1:null,fc_quote_snapshots_v1:offers};
+ await browser.evaluate('window.lf.enterP0BRegistry('+JSON.stringify({fc_projects_v1:'[]',fc_investors_v1:'[]'})+')');
+ await store.initializeApplication(rows);
+ const editor={ownerUid:'owner',investorId,projectId:scope,deviceId:'computer',deviceLabel:'Computer',epoch:1,active:true,headRevision:'a'.repeat(32)};
+ const initial={head:{ownerUid:'owner',investorId,projectId:scope,generation:1,currentRevisionId:editor.headRevision},value:value(define(60))};
+ await store.apply({scope,...initial,editor,expectedVersion:0});
+ await store.commit({scope,value:value(define(72)),operationId:'old-generation',expectedVersion:1,editor,protectedRows:rows});
+ const base=await store.readApplication(),old=await store.snapshot(scope);
+ const remote={head:{...initial.head,generation:2,currentRevisionId:'b'.repeat(32)},value:value(define(90,'zaakceptowany'))};
+ remote.value.document.payload.project.projectData.meta.roomDefs[scope].lastManualProjectStatus='wycena';
+ const expected={revision:remote.head.currentRevisionId,editor:{...editor,epoch:2,deviceId:'phone',deviceLabel:'Phone',headRevision:remote.head.currentRevisionId}};
+ const configure=observed=>browser.evaluate(`(async ({scope,investorId,initial,remote,observed})=>{
+  const {createP0BProjectRecovery}=await import('/tools/firebase-pilot/p0b-project-recovery.mjs');
+  window.roomRecoveryWitness=observed; window.roomRecoveryWrites=0;
+  const channel={scope,read:async()=>remote,readPinned:async head=>{if(head.currentRevisionId!==initial.head.currentRevisionId)throw Error('Wrong base');return initial;},
+   async prepare(bundle,head,editor){if(head.currentRevisionId!==remote.head.currentRevisionId||editor.deviceId!=='computer')throw Error('Wrong CAS');return bundle;}};
+  const protocol={projectStatus:async()=>window.roomRecoveryWitness,pin:{async verify(pin){if(pin!=='1234')throw Error('LF_P0B_PIN_INCORRECT');return 1;}},
+   async advanceEditor({expected,deviceLabel,pinRevision}){if(pinRevision!==1)throw Error('PIN missing');window.roomRecoveryWrites++;
+    const editor={...expected.editor,active:true,epoch:expected.editor.epoch+1,deviceId:'computer',deviceLabel,headRevision:expected.revision};
+    window.roomRecoveryWitness={editor,revision:expected.revision};return editor;}};
+  window.roomRecovery=createP0BProjectRecovery({store:window.lf,protocol,channel,investorId,assertAccess(){},
+   roomContract:{validateProject(){},normalizeProject:project=>project,
+    async build(rows){return {document:{payload:{project:JSON.parse(rows.fc_projects_v1)[0],investor:remote.value.document.payload.investor,offers:[]}}};}}});
+  return true;
+ })(${JSON.stringify({scope,investorId,initial,remote,observed})})`);
+ await configure(expected);
+ assert.equal((await browser.evaluate('window.roomRecovery.inspect()')).syncConflict,'conflict');
+ const select=(pin,witness=expected)=>browser.evaluate('window.roomRecovery.start({...'+JSON.stringify({
+  variant:'local-wins',expected:witness,pin,confirmed:true,deviceLabel:'Computer'})+',assertIdle(){}})');
+ await assert.rejects(select('1234',{...expected,revision:initial.head.currentRevisionId}),/LF_PROJECT_RECOVERY_CONFLICT/);
+ await assert.rejects(select('2345'),/LF_P0B_PIN_INCORRECT/);
+ assert.equal(await browser.evaluate('window.roomRecoveryWrites'),0);
+ await browser.evaluate('(()=>{const original=IDBObjectStore.prototype.add;IDBObjectStore.prototype.add=function(value,...args){const result=original.call(this,value,...args);if(this.name==="protected"&&value?.key?.startsWith("recovery-")){IDBObjectStore.prototype.add=original;queueMicrotask(()=>this.transaction.abort());}return result;};return true;})()');
+ await assert.rejects(select('1234'),/LF_IDB_ABORTED/);
+ assert.deepEqual(await store.readApplication(),base);assert.deepEqual(await store.snapshot(scope),old);
+ assert.equal(await browser.evaluate('window.roomRecoveryWrites'),1);
+ const observed=await browser.evaluate('window.roomRecoveryWitness');
+ await browser.crash();browser=await openBrowserDevice(server,path.join(dir,'computer'));store=await browser.open({...binding,initialize:false});
+ await configure(observed);
+ const receipt=await browser.evaluate('window.roomRecovery.resume()');
+ assert.equal(await browser.evaluate('window.roomRecoveryWrites'),0);
+ assert.deepEqual(await browser.evaluate('window.roomRecovery.resume()'),receipt);
+ const saved=await store.readApplication(),after=await store.snapshot(scope);
+ const savedProject=define(72,'zaakceptowany');
+ savedProject.projectData.meta.roomDefs[scope].lastManualProjectStatus='wycena';
+ assert.deepEqual(JSON.parse(saved.rows.fc_projects_v1),[savedProject]);
+ assert.equal(saved.rows.fc_quote_snapshots_v1,offers);assert.equal(JSON.parse(saved.rows.fc_investors_v1)[0].name,contact.name);
+ assert.equal(after.operations.length,1);assert.equal(after.operations[0].key,receipt.operationId);
+ assert.equal(after.operations[0].phase,'queued');assert.deepEqual(after.operations[0].base,remote.head);
+ assert.equal((await store.pendingHandover(scope)).epoch,observed.editor.epoch);
+ const archived=JSON.parse(after.protected.find(row=>row.key===receipt.archiveId).json);
+ assert.deepEqual(archived.image,base);assert.deepEqual(archived.operations,old.operations);
+ assert.deepEqual(archived.replacedRemote,{head:remote.head,document:remote.value.document});
+});
+
+test('P0-B room storage: reservation intents keep the same token until a verified release survives restart',async t=>{
+ const server=await startLocalFirstServer(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'p0b-reservation-journal-'));
+ let browser=await openBrowserDevice(server,path.join(dir,'computer'));
+ t.after(async()=>{await browser.close();await server.close();fs.rmSync(dir,{recursive:true,force:true});});
+ const binding={name:'meble-lf-test-reservation-journal',ownerUid:'owner',deviceId:'receiver',instanceId:'instance',initialize:true};
+ let store=await browser.open(binding);
+ const projectId='kitchen',investorId='investor',revision='a'.repeat(32);
+ const room={id:projectId,investorId,meta:{roomProject:{version:1,roomId:projectId}}};
+ const wardrobe={id:'wardrobe',investorId,meta:{roomProject:{version:1,roomId:'wardrobe'}}};
+ const rows={fc_projects_v1:JSON.stringify([room,wardrobe]),fc_current_investor_v1:investorId,fc_edit_session_v1:null,
+  fc_investors_v1:'[{"id":"investor"}]',fc_quote_snapshots_v1:'[{"id":"frozen"}]'};
+ await browser.evaluate('window.lf.enterP0BRegistry('+JSON.stringify({fc_projects_v1:'[]',fc_investors_v1:'[]'})+')');
+ await store.initializeApplication(rows);
+ const source=await store.readApplication();
+ const intent={key:'quote-reservation:'+projectId,version:1,operationId:crypto.randomUUID(),token:crypto.randomUUID(),
+  ownerUid:binding.ownerUid,deviceId:binding.deviceId,deviceLabel:'Receiver',investorId,projectId,mode:'free',pinRevision:null,
+  expected:{revision,editor:{ownerUid:binding.ownerUid,investorId,projectId,deviceId:'phone',deviceLabel:'Phone',epoch:1,active:false,headRevision:revision}}};
+ const commit=(method,args)=>browser.evaluate('window.lf['+JSON.stringify(method)+']({...'+JSON.stringify(args)+',assertAccess(){}})');
+ const list=()=>browser.evaluate('window.lf.pendingQuoteReservations()');
+ const stage=()=>commit('stageQuoteReservation',{intent,image:source});
+ const abandoned={...intent,operationId:crypto.randomUUID(),token:crypto.randomUUID()};
+ const unsent=await commit('stageQuoteReservation',{intent:abandoned,image:source});
+ const transition=(name,row)=>browser.evaluate('window.lf['+JSON.stringify(name)+']('+JSON.stringify(row)+',()=>{})');
+ assert.equal(unsent.sent,false);
+ await transition('cancelUnsentQuoteReservation',unsent);
+ assert.deepEqual(await list(),[]);
+ const staged=await stage();assert.equal(staged.phase,'prepared');assert.deepEqual(await stage(),staged);
+ const sent=await transition('markQuoteReservationSent',staged);
+ assert.equal(sent.sent,true);
+ await assert.rejects(transition('cancelUnsentQuoteReservation',sent),/LF_QUOTE_RESERVATION_UNCONFIRMED/);
+ await assert.rejects(commit('stageQuoteReservation',{intent:{...intent,token:crypto.randomUUID()},image:source}),/LF_QUOTE_RESERVATION_PENDING/);
+ const status={editor:quoteReservationEditor(intent),revision},marker=quoteReservationMarker(intent);
+ await assert.rejects(commit('confirmQuoteReservation',{expected:sent,observed:{status,marker:{...marker,epoch:3}}}),/LF_QUOTE_RESERVATION_UNCONFIRMED/);
+ const held=await commit('confirmQuoteReservation',{expected:sent,observed:{status,marker}});
+ const releasing=await browser.evaluate('window.lf.beginQuoteReservationRelease('+JSON.stringify(held)+',()=>{})');
+ const donorEditor={...intent.expected.editor,active:true,deviceId:binding.deviceId,deviceLabel:'Receiver',
+  projectId:wardrobe.id,epoch:7};
+ const donorIntent={...intent,key:'quote-reservation:wardrobe',projectId:wardrobe.id,operationId:crypto.randomUUID(),token:crypto.randomUUID(),
+  mode:'request',deviceId:'phone',deviceLabel:'Phone',expected:{editor:donorEditor,revision}};
+ const request=quoteReservationRequest(donorIntent),published={currentRevisionId:revision};
+ await store.apply({scope:wardrobe.id,expectedVersion:0,head:published,value:{project:wardrobe},editor:donorEditor});
+ const donorSnapshot=await store.snapshot(wardrobe.id),grants=()=>browser.evaluate('window.lf.pendingQuoteGrants()');
+ const grant=await commit('stageQuoteGrant',{request,image:source,replica:donorSnapshot.replica});
+ const ordinaryRelease=()=>browser.evaluate('window.lf.setEditor("wardrobe",'+donorSnapshot.replica.version+','+JSON.stringify(donorEditor)+','+JSON.stringify({...donorEditor,active:false})+')');
+ await assert.rejects(ordinaryRelease(),/LF_QUOTE_ROOM_RESERVED/);
+
+ await browser.crash();browser=await openBrowserDevice(server,path.join(dir,'computer'));store=await browser.open({...binding,initialize:false});
+ assert.deepEqual(await grants(),[grant]);
+ await assert.rejects(ordinaryRelease(),/LF_QUOTE_ROOM_RESERVED/);
+ const grantProof={status:{editor:quoteReservationEditor(donorIntent,revision),revision},
+  marker:quoteReservationMarker(donorIntent,revision),request:{...request,state:'granted',revision}};
+ await assert.rejects(commit('finishQuoteGrant',{expected:grant,observed:{...grantProof,
+  marker:{...grantProof.marker,token:crypto.randomUUID()}}}),/LF_QUOTE_RESERVATION_UNCONFIRMED/);
+ assert.deepEqual((await store.snapshot(wardrobe.id)).replica,donorSnapshot.replica);
+ assert.equal((await commit('finishQuoteGrant',{expected:grant,observed:grantProof})).granted,true);
+ const donorAfter=await store.snapshot(wardrobe.id);
+ assert.deepEqual(await grants(),[]);assert.deepEqual(donorAfter.operations,[]);
+ assert.deepEqual(donorAfter.replica,{...donorSnapshot.replica,version:donorSnapshot.replica.version+1,editor:null});
+ assert.ok(donorAfter.protected.some(row=>row.key==='quote-grant-receipt:'+request.requestId));
+ assert.deepEqual(await list(),[releasing]);
+ const released=releasedQuoteReservation(status,marker);
+ await assert.rejects(commit('finishQuoteReservation',{expected:releasing,observed:{...released,marker:{...released.marker,token:crypto.randomUUID()}}}),/LF_QUOTE_RESERVATION_UNCONFIRMED/);
+ await browser.evaluate('(()=>{const put=IDBObjectStore.prototype.add;IDBObjectStore.prototype.add=function(value,...args){const result=put.call(this,value,...args);if(this.name==="protected"&&value?.key?.startsWith("quote-reservation-receipt:")){IDBObjectStore.prototype.add=put;queueMicrotask(()=>this.transaction.abort());}return result;};return true;})()');
+ await assert.rejects(commit('finishQuoteReservation',{expected:releasing,observed:released}),/LF_IDB_ABORTED/);
+ assert.deepEqual(await list(),[releasing]);
+ const outcome=await commit('finishQuoteReservation',{expected:releasing,observed:released});
+ assert.equal(outcome.localConfirmed,true);assert.deepEqual(await list(),[]);
+ const state=await store.snapshot(projectId);
+ assert.deepEqual(state.operations,[]);assert.equal(state.replica,null);
+ assert.deepEqual(JSON.parse(state.protected.find(row=>row.key===outcome.key).json),{version:1,expected:releasing,observed:released});
+ assert.deepEqual(await store.readApplication(),source);
+});
+
 test('P0-B room storage: P1 queued saves coalesce atomically with durable RAW, restart and uncertain-generation protection',async t=>{
  const server=await startLocalFirstServer(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'p1-room-batch-')),profile=path.join(dir,'computer');
  let browser=await openBrowserDevice(server,profile);

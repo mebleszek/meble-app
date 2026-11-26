@@ -3,7 +3,46 @@ import {validateQuoteGenerationChange} from '../../sync/local-first-quote-contra
 import {createQuoteRelease} from '../../sync/application-quote-release.mjs';
 import {validateQuoteRelease,validateQuoteReleaseReceipt,quoteReleaseEditor} from '../../sync/local-first-quote-release.mjs';
 import {installManualSync} from '../../sync/application-manual-sync.mjs';
+import {validateQuoteReservationIntent,quoteReservationRequest,validateQuoteReservationRequest,quoteReservationEditor,quoteReservationMarker,verifyQuoteReservation,releasedQuoteReservation} from '../../sync/quote-reservation-contract.mjs';
+import {setTimeout as delay} from 'node:timers/promises';
+import {installQuoteReservations} from '../../sync/application-quote-reservations.mjs';
 const copy=structuredClone;
+
+function reservationIntent(mode='request'){
+ return {key:'quote-reservation:kitchen',version:1,operationId:'11111111-1111-4111-8111-111111111111',token:'22222222-2222-4222-8222-222222222222',
+  ownerUid:'owner',deviceId:'requester',deviceLabel:'Telefon – Chrome',investorId:'investor',projectId:'kitchen',mode,pinRevision:mode==='pin'?7:null,
+  expected:{revision:'a'.repeat(32),editor:{ownerUid:'owner',investorId:'investor',projectId:'kitchen',deviceId:'editor',deviceLabel:'Komputer – Edge',epoch:3,active:mode!=='free',headRevision:'a'.repeat(32)}}};
+}
+test('P0-B quote access: reservation plans: free and PIN witnesses preserve exact source, owner and epoch',()=>{
+ for(const mode of ['free','pin']){
+  const intent=reservationIntent(mode),before=copy(intent);assert.equal(validateQuoteReservationIntent(intent,'owner','requester'),true);
+  const expected={editor:quoteReservationEditor(intent),revision:intent.expected.revision},marker=quoteReservationMarker(intent);
+  assert.deepEqual(verifyQuoteReservation(intent,expected,marker),{status:expected,marker});assert.equal(expected.editor.epoch,4);assert.ok(!Object.hasOwn(expected.editor,'purpose'),'The existing editor schema remains unchanged');
+  for(const change of [value=>value.editor.epoch++,value=>value.editor.deviceId='other',value=>value.editor.unknown='ignored',value=>value.revision='b'.repeat(32),value=>value.editor.active=false]){
+   const wrong=copy(expected);change(wrong);assert.throws(()=>verifyQuoteReservation(intent,wrong,marker),{code:'LF_QUOTE_RESERVATION_UNCONFIRMED'});
+  }
+  for(const change of [value=>value.epoch++,value=>value.token='33333333-3333-4333-8333-333333333333',value=>value.active=false,value=>value.deviceId='other',value=>value.revision='b'.repeat(32)]){
+   const wrong=copy(marker);change(wrong);assert.throws(()=>verifyQuoteReservation(intent,expected,wrong),{code:'LF_QUOTE_RESERVATION_UNCONFIRMED'});
+  }
+  const released=releasedQuoteReservation(expected,marker);assert.equal(released.status.editor.active,false);assert.equal(released.status.editor.epoch,4);assert.equal(released.marker.active,false);
+  assert.deepEqual(Object.keys(released.status.editor).sort(),Object.keys(intent.expected.editor).sort(),'Release preserves the compatible ordinary editor shape');
+  assert.deepEqual(intent,before);assert.throws(()=>validateQuoteReservationIntent(intent,'foreign','requester'),{code:'LF_QUOTE_RESERVATION_INVALID'});
+ }
+ for(const change of [value=>value.mode='free',value=>value.pinRevision=1,value=>value.expected.editor.deviceId='requester',value=>value.expected.editor.ownerUid='foreign',value=>value.expected.editor.epoch=Number.MAX_SAFE_INTEGER,value=>value.unknown='ignored']){
+  const invalid=reservationIntent();change(invalid);assert.throws(()=>validateQuoteReservationIntent(invalid,'owner','requester'),{code:'LF_QUOTE_RESERVATION_INVALID'});
+ }
+});
+test('P0-B quote access: reservation requests: only the exact granted request can confirm the saved latest source',()=>{
+ const intent=reservationIntent(),pending=quoteReservationRequest(intent),before=copy(intent);
+ assert.equal(validateQuoteReservationRequest(pending),true);
+ const granted={...pending,state:'granted',revision:'b'.repeat(32)},expected={editor:quoteReservationEditor(intent,granted.revision),revision:granted.revision},marker=quoteReservationMarker(intent,granted.revision);
+ assert.deepEqual(verifyQuoteReservation(intent,expected,marker,granted),{status:expected,marker});
+ for(const state of ['pending','declined','cancelled','released'])assert.throws(()=>verifyQuoteReservation(intent,expected,marker,{...pending,state,revision:state==='released'?granted.revision:''}),{code:'LF_QUOTE_RESERVATION_INVALID'});
+ for(const change of [value=>value.requestId='33333333-3333-4333-8333-333333333333',value=>value.editorEpoch++,value=>value.requesterDeviceId='other',value=>value.projectId='wardrobe',value=>value.token='33333333-3333-4333-8333-333333333333',value=>value.unknown='ignored']){
+  const wrong=copy(granted);change(wrong);assert.throws(()=>verifyQuoteReservation(intent,expected,marker,wrong),{code:'LF_QUOTE_RESERVATION_INVALID'});
+ }
+ assert.deepEqual(intent,before);assert.equal(pending.revision,'','A request alone never invents an ACK or a new source revision');
+});
 
 test('P0-B quote access: generation-only history cannot remove, accept or modify frozen offers',()=>{
  const old={id:'first',generatedAt:1000,project:{status:'wycena'},meta:{source:'quote-generation',selectedByClient:true,acceptedAt:900,acceptedStage:'zaakceptowany'},calculationRegister:{generatedAt:999},totals:{grand:17.125}};
@@ -91,4 +130,64 @@ test('P0-B quote access: historical generation has no editor acquisition and can
  await writer.checkpoint({rows:{...original,fc_quote_offer_drafts_v1:'[{"projectId":"room"}]'}},'quote-draft');assert.equal(validated,1);
  for(const key of ['fc_projects_v1','fc_current_project_id_v1','fc_current_investor_v1','fc_company_v1','fc_quote_snapshots_v1','fc_edit_session_v1'])await assert.rejects(writer.checkpoint({rows:{...original,[key]:'changed'}},'quote-draft'),{code:'LF_APPLICATION_SCOPE_REFUSED'});
  assert.equal(commits,2);
+});
+
+test('P0-B quote access: donor saves before grant and resumes an already committed grant after lost ACK',async()=>{
+ const intent=reservationIntent(),request=quoteReservationRequest(intent),revision='b'.repeat(32);
+ const editor={...intent.expected.editor,headRevision:revision};
+ const image={version:2,rows:{fc_edit_session_v1:null}},replica={editor,base:{currentRevisionId:revision}};
+ const prompt={},events=[];
+ const document=Object.assign(new EventTarget(),{querySelector:()=>null});
+ const win=Object.assign(new EventTarget(),{document,navigator:{onLine:true},uiState:{entry:'app',activeTab:'wywiad'}});
+ let result,stage=null,remote={status:{editor:intent.expected.editor,revision:intent.expected.revision},request};
+ let verified=false,grants=0;
+ function change(answer){result=answer;}
+ const store={ownerUid:intent.ownerUid,deviceId:editor.deviceId,retired:async()=>false,
+  pendingQuoteReservations:async()=>[],pendingQuoteGrants:async()=>stage?[stage]:[],
+  readApplication:async()=>image,snapshot:async()=>({replica}),
+  async stageQuoteGrant(input){
+   assert.equal(verified,true);assert.equal(win.FC.session.active,false);
+   assert.equal(input.image,image);assert.equal(input.replica,replica);assert.deepEqual(input.request,request);
+   input.assertAccess();events.push('intent');stage={request,editor,revision};
+  },
+  async finishQuoteGrant({expected,observed,assertAccess}){
+   assertAccess();assert.equal(expected,stage);verifyQuoteReservation(intent,observed.status,observed.marker,observed.request);
+   stage=null;events.push('receipt');return {granted:true};
+  },
+ };
+ const protocol={reservations:{watch(_iid,_pid,watch){prompt.watch=watch;return ()=>{};},inspect:async()=>copy(remote),
+  async decide(input,action,head){
+   assert.deepEqual(input,request);assert.equal(action,'grant');assert.equal(head,revision);
+   grants++;events.push('commit');remote={request:{...request,state:'granted',revision},
+    status:{editor:quoteReservationEditor(intent,revision),revision},marker:quoteReservationMarker(intent,revision)};
+   throw Error('LOST_ACK');
+  },
+ }};
+ win.FC={session:{active:true,projectId:intent.projectId},applicationStartup:{inspect:()=>({})},
+  investors:{getCurrentId:()=>intent.investorId},projectStore:{getCurrentProjectId:()=>intent.projectId},
+  applicationLifecycle:{run:(fn,kind)=>{assert.equal(kind,'project');return fn();}},
+  sessionNavigation:{needsClosure:()=>win.FC.session.active,confirmedFinish(action){
+   assert.equal(action,'save');events.push('save');win.FC.session.active=false;return true;
+  }},tabNavigation:{setActiveTab(tab){win.uiState.activeTab=tab;}},
+  choiceBox:{ask:()=>result},infoBox:{open(){}},
+ };
+ const sync={async flush(){
+  events.push('flush');
+  if(!verified)return {ok:false,code:'LF_REMOTE_UNCONFIRMED'};
+  remote.status={editor,revision};return {ok:true};
+ }};
+ const install=()=>installQuoteReservations({window:win,store,protocol,getSync:()=>sync,
+  getAuthority:()=>({assertIdle(){}}),label:()=>editor.deviceLabel,assertAccess(){},
+  onError(error){events.push(error.code||error.message);},onGranted(pid){assert.equal(pid,intent.projectId);events.push('granted');},
+ });
+ const wait=async check=>{for(let i=0;i<100;i++){if(check())return;await delay(2);}assert.fail('Controller did not settle');};
+ change('grant');const controller=install();controller.trackEditor(intent.projectId,intent.expected.editor);
+ await wait(()=>events.includes('LF_REMOTE_UNCONFIRMED'));
+ assert.deepEqual(events,['save','flush','LF_REMOTE_UNCONFIRMED']);assert.equal(stage,null);assert.equal(grants,0);
+ await delay(0);
+ verified=true;prompt.watch();await wait(()=>events.includes('LOST_ACK'));
+ assert.ok(stage);assert.equal(grants,1);controller.close();
+ const restarted=install();restarted.wake();await wait(()=>events.includes('granted'));restarted.close();
+ assert.equal(grants,1);assert.equal(stage,null);
+ assert.deepEqual(events.slice(3),['flush','intent','commit','LOST_ACK','receipt','granted']);
 });

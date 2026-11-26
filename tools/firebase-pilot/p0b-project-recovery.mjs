@@ -2,6 +2,7 @@
 // chunks, project ownership, hashes and pinned global dependencies.
 import {prepareRoomCopy,appendRoomCopy} from '../../sync/local-first-room-copy.mjs';
 import {copy,equal,fail,id,digest,json} from '../../sync/local-first-values.mjs';
+import {compareRoomRevisions} from '../../sync/local-first-room-conflict.mjs';
 
 const unownedKeys=['fc_edge_v1','fc_material_part_options_v1','fc_rozrys_grain_state_v1','fc_rozrys_overrides_v1'];
 const nonEmpty=raw=>raw!=null&&!['[]','{}'].includes(raw.trim());
@@ -78,8 +79,38 @@ export function createP0BProjectRecovery({store,protocol,channel,investorId,asse
     if(remote.head?.currentRevisionId!==revision)fail('LF_PROJECT_RECOVERY_CONFLICT');
     return remote;
   }
-  async function finish(marker){
-    if(!['latest','room-copy'].includes(marker.variant))fail('LF_P0B_RECOVERY_VARIANT_REQUIRED');
+  function conflictState(before,remote){
+    if(before.image.rows.fc_edit_session_v1!=null||!before.replica.base
+      ||remote.value.document.payload.project.meta?.roomProject?.version!==1) return null;
+    return compareRoomRevisions({projectId:scope,...before,remote:remote.head}).state;
+  }
+  async function chooseLocal(before,remote){
+    if(conflictState(before,remote)!=='conflict'||!roomContract?.validateProject)fail('LF_ROOM_CONFLICT_WITNESS_REQUIRED');
+    const application=replacement(before.image,scope,iid,remote);
+    const local=JSON.parse(before.image.rows.fc_projects_v1).find(project=>project.id===scope);
+    const baseline=(await confirmedRoomBase(before)).value.document.payload.project;
+    const replicaProject=JSON.parse(before.replica.json).document.payload.project;
+    const current=remote.value.document.payload.project;
+    roomContract.validateProject(local);
+    const statusKeys=['projectStatus','lastManualProjectStatus','status'];
+    const definition=record=>record.projectData.meta.roomDefs[scope];
+    if(!equal(roomContract.normalizeProject(local),roomContract.normalizeProject(replicaProject))
+      ||local.meta?.roomProject?.removed||current.meta?.roomProject?.removed||local.status!==baseline.status
+      ||statusKeys.some(key=>definition(local)[key]!==definition(baseline)[key]))
+      fail('LF_ROOM_CONFLICT_WITNESS_REQUIRED');
+    const project=copy(local);
+    project.status=current.status;
+    for(const key of statusKeys){
+      if(Object.hasOwn(definition(current),key))definition(project)[key]=definition(current)[key];
+      else delete definition(project)[key];
+    }
+    application.rows.fc_projects_v1=JSON.stringify(JSON.parse(application.rows.fc_projects_v1)
+      .map(row=>row.id===scope?project:row));
+    roomMirror(application.rows,iid);
+    return {application,queuedValue:await roomContract.build(application.rows,remote)};
+  }
+  async function finish(marker,assertIdle=()=>{}){
+    if(!['latest','room-copy','local-wins'].includes(marker.variant))fail('LF_P0B_RECOVERY_VARIANT_REQUIRED');
     if(marker.variant==='room-copy'&&(!marker.roomCopy
       ||await digest(json(marker.roomCopy))!==marker.roomCopyHash))fail('LF_LOCAL_INTEGRITY');
     if(marker.newRoomProject&&await digest(json(marker.newRoomProject))!==marker.newRoomProjectHash)fail('LF_LOCAL_INTEGRITY');
@@ -90,15 +121,23 @@ export function createP0BProjectRecovery({store,protocol,channel,investorId,asse
     const next={...expected.editor,deviceId:store.deviceId,deviceLabel,active:true,
       epoch:expected.editor.epoch+1,headRevision:expected.revision};
     const confirmed={editor:next,revision:expected.revision};
+    const choosingLocal=marker.variant==='local-wins';
+    const candidate=choosingLocal?await readCurrent(expected.revision):null;
+    const chosen=candidate?await chooseLocal(before,candidate):null;
     const witness=await observe();
+    assertIdle();
     if(equal(witness,expected)){
       const updated=await protocol.advanceEditor({iid,pid:scope,expected,deviceLabel,pinRevision});
       if(!equal(updated,next))fail('LF_P0B_ACK_UNCONFIRMED');
     }else if(!equal(witness,confirmed))fail('LF_PROJECT_RECOVERY_CONFLICT');
     const remote=await readCurrent(expected.revision);
-    const application=replacement(before.image,scope,iid,remote);
+    if(candidate&&!equal(candidate.head,remote.head))fail('LF_PROJECT_RECOVERY_CONFLICT');
+    const application=chosen?.application||replacement(before.image,scope,iid,remote);
     let queuedValue,newProject;
-    if(marker.newRoomProject){
+    if(choosingLocal){
+      queuedValue=chosen.queuedValue;
+      await channel.prepare(queuedValue,remote.head,next);
+    }else if(marker.newRoomProject){
       newProject=copy(marker.newRoomProject);await roomContract.validateRoomProject(newProject,marker.roomCopy,remote);
       const projects=JSON.parse(application.rows.fc_projects_v1);if(projects.some(row=>row.id===newProject.id))fail('LF_ROOM_PROJECT_DUPLICATE');
       application.rows.fc_projects_v1=JSON.stringify([...projects,newProject]);
@@ -114,29 +153,43 @@ export function createP0BProjectRecovery({store,protocol,channel,investorId,asse
     if(remote.value.document.payload.project.meta?.roomProject?.version===1)roomMirror(application.rows,iid);
     if(!equal(await observe(),confirmed))fail('LF_PROJECT_RECOVERY_CONFLICT');
     assertAccess();
-    return store.checkpointProjectRecovery({scope,marker,application,before,head:remote.head,value:remote.value,editor:next,queuedValue,newProject});
+    return store.checkpointProjectRecovery({scope,marker,application,before,head:remote.head,value:remote.value,editor:next,queuedValue,newProject,
+      assertAccess:()=>{assertAccess();assertIdle();}});
   }
   return Object.freeze({
     async inspect(){
       assertAccess();
       const status=await observe(), editor=status.editor;
       const before=await source(),local=before.replica.editor;
+      let syncConflict=null;
+      if(status.revision&&before.replica.base?.currentRevisionId!==status.revision
+        &&(before.replica.dirty||before.operations.some(op=>op.phase!=='verified'))){
+        syncConflict=conflictState(before,await readCurrent(status.revision));
+      }
       return {status,deviceLabel:editor.deviceLabel||editor.deviceId,
         ownershipLost:local?.active===true&&local.deviceId===store.deviceId
           &&(local.epoch!==editor.epoch||editor.deviceId!==store.deviceId||!editor.active),
-        requiresPin:editor.active&&editor.deviceId!==store.deviceId,roomCopy:roomCopyStatus(before.image)};
+        requiresPin:editor.active&&editor.deviceId!==store.deviceId,roomCopy:roomCopyStatus(before.image),syncConflict};
     },
-    start({variant,expected,pin,confirmed,deviceLabel='',roomId,roomName}){
+    start({variant,expected,pin,confirmed,deviceLabel='',roomId,roomName,assertIdle}){
       return store.exclusive(async()=>{
         assertAccess();
-        if(!['latest','room-copy'].includes(variant))fail('LF_P0B_RECOVERY_VARIANT_REQUIRED');
+        if(!['latest','room-copy','local-wins','remote-wins'].includes(variant))fail('LF_P0B_RECOVERY_VARIANT_REQUIRED');
         if(confirmed!==true)fail('LF_PROJECT_RECOVERY_CONFIRMATION_REQUIRED');
         if(typeof deviceLabel!=='string'||deviceLabel.length>64)fail('LF_P0B_DEVICE_LABEL_INVALID');
         if(await store.pendingProjectRecovery(scope))fail('LF_PROJECT_RECOVERY_PENDING');
         if(!equal(await observe(),expected))fail('LF_PROJECT_RECOVERY_CONFLICT');
         if(expected.editor.active&&expected.editor.deviceId===store.deviceId)fail('LF_PROJECT_EDITOR_ALREADY_OWNED');
-        const pinRevision=expected.editor.active?await protocol.pin.verify(pin):null;
+        const direction=variant==='local-wins'||variant==='remote-wins';
+        if(direction){if(typeof assertIdle!=='function')fail('LF_ACTIVE_RAM_PROTECTED');assertIdle();}
         const before=await source(),remote=await readCurrent(expected.revision);
+        if(direction&&conflictState(before,remote)!=='conflict')fail('LF_ROOM_CONFLICT_WITNESS_REQUIRED');
+        if(variant==='remote-wins'){
+          if(!equal(await observe(),expected))fail('LF_PROJECT_RECOVERY_CONFLICT');
+          return store.receiveConflictRemote({scope,before,remote,expectedEditor:expected.editor,assertAccess:()=>{assertAccess();assertIdle();}});
+        }
+        const pinRevision=expected.editor.active?await protocol.pin.verify(pin):null;
+        if(variant==='local-wins'){await chooseLocal(before,remote);assertIdle();}
         const application=replacement(before.image,scope,iid,remote);
         let roomCopy,newRoomProject;
         if(variant==='room-copy'){
@@ -158,7 +211,7 @@ export function createP0BProjectRecovery({store,protocol,channel,investorId,asse
         }
         const marker=await store.stageProjectRecovery(scope,{variant,...(roomCopy?{roomCopy,roomCopyHash:await digest(json(roomCopy))}:{}),...(newRoomProject?{newRoomProject,newRoomProjectHash:await digest(json(newRoomProject))}:{}),operationId:crypto.randomUUID(),expected:copy(expected),deviceLabel,pinRevision,
           applicationVersion:before.image.version,applicationHash:before.image.hash,replicaVersion:before.replica.version});
-        return finish(marker);
+        return finish(marker,variant==='local-wins'?assertIdle:undefined);
       });
     },
     resume(){

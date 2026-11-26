@@ -1,7 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
+import {compareRoomRevisions} from '../../sync/local-first-room-conflict.mjs';
 const require=createRequire(import.meta.url),{ready}=require('../investor-list-delete-smoke.js'),{loadSmokeFiles}=require('../app-dev-smoke.js');
+test('P0-B room boundary: only independently changed heads with local work need a choice',()=>{
+ const projectId='kitchen',head=(generation,marker)=>({projectId,generation,currentRevisionId:marker.repeat(32)});
+ const base=head(1,'a'),same=structuredClone(base),own=head(2,'b'),newer=head(2,'c'),later=head(3,'d');
+ const replica={key:projectId,base,dirty:true},queued={scope:projectId,phase:'queued'};
+ const check=(remote,operations=[queued],local=replica)=>compareRoomRevisions({projectId,replica:local,operations,remote}).state;
+ assert.equal(check(same),'unchanged');
+ assert.equal(check(newer),'conflict');
+ assert.equal(check(newer,[],{...replica,dirty:false}),'receive');
+ for(const phase of ['inflight','uncertain']){
+  const pending={...queued,phase,expected:own};
+  assert.equal(check(own,[pending]),'awaiting-ack');
+  assert.equal(check(same,[pending]),'awaiting-ack');
+  assert.equal(check(newer,[pending]),'conflict');
+  assert.equal(check(later,[pending]),'awaiting-ack');
+ }
+ assert.throws(()=>check(head(1,'f')),{code:'LF_STALE_REMOTE'});
+ assert.throws(()=>check({...newer,projectId:'wardrobe'}),{code:'LF_ROOM_CONFLICT_WITNESS_REQUIRED'});
+ assert.throws(()=>check(newer,[{...queued,scope:'wardrobe'}]),{code:'LF_ROOM_CONFLICT_WITNESS_REQUIRED'});
+});
 function fixture(){
  const r=ready();loadSmokeFiles(r.s,['js/app/project/project-export-contract.js','js/app/cloud/cloud-pilot-contract.js','js/app/project/room-project-model.js']);
  const create=(id,name)=>r.FC.roomProjectModel.create('K',{id,baseType:'kuchnia',name},r.FC.project.DEFAULT_PROJECT.kuchnia);

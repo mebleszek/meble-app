@@ -1,7 +1,7 @@
 'use strict';
 // Exact release dependencies; each script must appear once, with the same version in both entry points.
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path');
-const DERIVED_VERSION = "20261125_quote_preparation_v1";
+const DERIVED_VERSION = "20261126_shared_quantities_v1";
 const versions = Object.freeze({
   "js/app/ui/drawing-geometry.js":"20261126_drawing_2d_v1",
   "js/app/ui/drawing-storage.js":"20261126_drawing_2d_v1",
@@ -50,7 +50,7 @@ const versions = Object.freeze({
   "js/app/wycena/wycena-room-availability.js":"20261118_room_quote_v1",
   "js/app/wycena/wycena-tab-selection-scope.js":"20261118_room_quote_v1",
 "js/app/project/room-project-model.js":"20261118_room_boundary_v1",
-"js/app/project/room-quote-sources.js":"20261122_activities_sources_v1",
+"js/app/project/room-quote-sources.js":"20261126_offline_quote_v1",
 "js/app/project/room-quote-acceptance.js":"20261122_quote_removal_v1",
 "js/app/project/room-project-store.js":"20261118_room_boundary_v1",
 "js/app/investor/room-project-picker.js":"20261122_device_names_v1",
@@ -72,7 +72,7 @@ const versions = Object.freeze({
   "js/app/material/magazyn.js":"20261108_material_catalog_authority_v1",
   "js/app/catalog/catalog-selectors.js":"20261125_quote_preparation_v1",
   "js/app/catalog/catalog-domain.js":"20261108_material_catalog_authority_v1",
-  "js/app/wycena/wycena-tab-history.js":"20261122_quote_removal_v1",
+  "js/app/wycena/wycena-tab-history.js":"20261126_offline_quote_v1",
   "js/app/wycena/wycena-tab-editor.js":"20261115_e1_durable_settings_v1",
   "js/app/ui/data-settings-menu-view.js":"20261117_p0b_pin_v1",
   "js/app/ui/data-settings-modal.js":"20261117_p0b_pin_v1",
@@ -91,8 +91,8 @@ const versions = Object.freeze({
   "js/tabs/czynnosci.js":"20261122_activities_read_scope_v1",
   "js/app/cabinet/cabinet-actions.js":"20261114_cabinet_drafts_v1",
   "js/app/quote/quote-offer-store.js":"20261122_quote_prepare_v1",
-  "js/app/rozrys/rozrys-pickers.js":"20261106_local_first_room_actions_v1",
-  "js/app/wycena/wycena-tab-selection-pickers.js":"20261115_ci_navigation_repair_v1",
+  "js/app/rozrys/rozrys-pickers.js":"20261126_quote_reservation_v1",
+  "js/app/wycena/wycena-tab-selection-pickers.js":"20261126_quote_reservation_v1",
   "js/app/project/project-store.js":"20261118_room_quote_v1",
   "js/app/cabinet/cabinet-modal-finalize.js":"20261126_drawing_2d_v1",
   "js/app/ui/wywiad-room-settings.js":"20261103_local_first_start_v1",
@@ -138,12 +138,12 @@ const versions = Object.freeze({
   "js/app/material/price-modal-field-help.js":"20261108_material_catalog_authority_v1",
   "js/app/material/price-modal-item-form.js":"20261111_automation_ci_repair_v1",
   "js/app/material/price-modal-list.js":"20261108_material_catalog_authority_v1",
-  "js/app/cabinet/cabinet-cutlist.js": "20261125_quote_preparation_v1",
+  "js/app/cabinet/cabinet-cutlist.js": "20261126_shared_quantities_v1",
   "js/app/project/project-export-contract.js":"20261126_drawing_2d_v1",
   "js/app/cabinet/cabinet-hardware-requirements.js": "20261125_quote_preparation_v1",
-  "js/app/pricing/work-quantity-prepared.js":"20261125_quote_preparation_v1",
+  "js/app/pricing/work-quantity-prepared.js":"20261126_shared_quantities_v1",
   "js/app/pricing/work-quantity-facts.js":"20261125_quote_preparation_v1",
-  "js/app/cabinet/cabinet-derived-facts.js": "20261125_quote_preparation_v1",
+  "js/app/cabinet/cabinet-derived-facts.js": "20261126_shared_quantities_v1",
   "js/app/cabinet/cabinet-modal-draft.js": "20261123_drawer_construction_v1",
   "js/app/cabinet/cabinet-modal-labor.js":"20261111_quote_final_corrections_v1",
   "js/app/quote/quote-calculation-register.js": "20261106_work_plan_v1",
@@ -156,12 +156,12 @@ const versions = Object.freeze({
   "js/app/wycena/wycena-core-offer.js":"20261111_automation_ci_repair_v1",
   "js/app/wycena/wycena-core-lines.js":"20261125_quote_preparation_v1",
   "js/app/wycena/wycena-core-labor.js":"20261125_quote_preparation_v1",
-  "js/app/wycena/wycena-core.js":"20261125_quote_preparation_v1",
+  "js/app/wycena/wycena-core.js":"20261126_offline_quote_v1",
   "js/app/quote/quote-snapshot-store.js":"20261124_quote_history_preservation_v1",
   "js/app/wycena/wycena-tab-selection-version.js":"20260628_drawer_systems_materials_v1",
   "js/app/wycena/wycena-diagnostics.js":"20261019_project_context",
   "js/app/quote/quote-route-request.js":"20261124_quote_route_request_v1",
-  "js/app/wycena/wycena-tab-shell.js":"20261124_quote_route_request_v1"
+  "js/app/wycena/wycena-tab-shell.js":"20261126_offline_quote_v1"
 });
 const authVersions=Object.freeze({
   "js/app/cloud/main-business-loader.js":"20261122_startup_asset_wait_v1",
@@ -171,7 +171,7 @@ const authVersions=Object.freeze({
   "js/app/cloud/cloud-access-verifier.js": "20261114_access_rpc_diagnostics_v1",
   "js/app/cloud/offline-shell.js": "20261114_first_offline_install_v1",
   "js/app/cloud/local-access-profile.js": "20261103_android_globals_recovery_v1",
-  "js/app/cloud/application-bootstrap.js": "20261122_startup_asset_wait_v1",
+  "js/app/cloud/application-bootstrap.js": "20261126_quote_reservation_v1",
   "js/main-login.js": "20261122_desktop_reconnect_v1"
 });
 function assertHtmlVersions(index, dev){

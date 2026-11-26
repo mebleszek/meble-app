@@ -3,9 +3,10 @@
 import {equal,fail,id,digest,json} from './local-first-values.mjs';
 import {assertP0BConnection} from './firebase-activation.mjs';
 import {quoteScope,validateQuoteLedger,validateQuoteLedgerChange} from './local-first-quote-contract.mjs';
-export async function createQuoteChannel({writer,reader,ownerUid,investorId,sourceChannel,normalizeProject}){
+export async function createQuoteChannel({writer,reader,ownerUid,investorId,sourceChannel,normalizeProject,reservationAuthority}){
  assertP0BConnection(writer);assertP0BConnection(reader);id(investorId);
  const scope=await quoteScope(investorId),f=writer.firestore,r=reader.firestore;
+ if(reservationAuthority&&writer.db.app.options.projectId!=='demo-meble-app')fail('LF_EMULATOR_REQUIRED');
  const guard=()=>{if(assertP0BConnection(writer).uid!==ownerUid||assertP0BConnection(reader).uid!==ownerUid)fail('LF_AUTH_CHANGED');writer.assertAccess();reader.assertAccess();};
  const ref=(sdk,db,...path)=>sdk.doc(db,'users',ownerUid,'p0bRoomQuotes',investorId,...path);
  const fresh=snap=>{if(snap.metadata.fromCache||snap.metadata.hasPendingWrites)fail('LF_QUOTE_SERVER_UNCONFIRMED');return snap.exists()?snap.data():null;};
@@ -40,7 +41,7 @@ export async function createQuoteChannel({writer,reader,ownerUid,investorId,sour
   const value=JSON.parse(text);if(json(value)!==text||value.investorId!==investorId)fail('LF_QUOTE_REMOTE_INTEGRITY');
   await verifySources(value);guard();return {head:h,value};
  }
- async function prepare(value,base,resumeExpected=null){
+ async function prepare(value,base,resumeExpected=null,reservations=null){
    guard();if(value.investorId!==investorId)fail('LF_QUOTE_OWNER_CHANGED');await verifySources(value);
    let prior=null;try{prior=await read();}catch(e){if(e.code!=='LF_QUOTE_NOT_FOUND')throw e;}
    // An outstanding original RPC can commit between the uncertain probe and
@@ -50,6 +51,19 @@ export async function createQuoteChannel({writer,reader,ownerUid,investorId,sour
     return {expected:resumeExpected,async publish(){guard();}};
    if(!equal(prior?.head||null,base))fail('LF_QUOTE_CAS_CONFLICT');
    validateQuoteLedgerChange(prior?.value,value);
+   const introduced=value.offers.filter(offer=>!prior?.value.offers.some(old=>old.id===offer.id));
+   if(reservationAuthority&&introduced.length&&reservations===null)fail('LF_QUOTE_RESERVATION_UNCONFIRMED');
+   let reservationPins;
+   if(reservations!==null){
+    if(!reservationAuthority)fail('LF_QUOTE_RESERVATION_UNCONFIRMED');
+    const byRoom=new Map();
+    for(const offer of introduced)for(const pin of value.pins[offer.id]){
+     const priorPin=byRoom.get(pin.projectId);
+     if(priorPin&&!equal(priorPin,pin))fail('LF_QUOTE_RESERVATION_UNCONFIRMED');
+     byRoom.set(pin.projectId,pin);
+    }
+    reservationPins=[...byRoom.values()];
+   }
    const text=json(value),hash=await digest(text),revisionId=resumeExpected?.revisionId||crypto.randomUUID().replaceAll('-','');
    if(!/^[a-f0-9]{32}$/.test(revisionId))fail('LF_QUOTE_STAGED_INTEGRITY');
    const expected={ownerUid,investorId,version:1,generation:(base?.generation||0)+1,revisionId,hash},chunks=[];
@@ -83,11 +97,13 @@ export async function createQuoteChannel({writer,reader,ownerUid,investorId,sour
      if(!inv||inv.deletionId||inv.bulkId)fail('LF_P0B_INVESTOR_DELETED');
      if(equal(current,expected))return;
      if(!equal(current,base))fail('LF_QUOTE_CAS_CONFLICT');
+     if(reservationPins)await reservationAuthority.assertPublication(tx,{investorId,pins:reservationPins,proofs:reservations});
      guard();tx.set(ref(f,writer.db),{...expected,updatedAt:f.serverTimestamp()});
     },{maxAttempts:1});
    }};
  }
  return {scope,kind:'quote',guard,read,readHead:head,
   watch:notify=>r.onSnapshot(ref(r,reader.db),notify,notify),
-  prepare:(value,base)=>prepare(value,base),resume:(value,base,expected)=>prepare(value,base,expected)};
+  prepare:(value,base,_editor,reservations)=>prepare(value,base,null,reservations),
+  resume:(value,base,expected,reservations)=>prepare(value,base,expected,reservations)};
 }

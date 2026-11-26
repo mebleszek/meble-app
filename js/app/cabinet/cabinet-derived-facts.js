@@ -6,7 +6,7 @@
   root.FC = root.FC || {};
   const FC = root.FC;
 
-  const VERSION = '20261125_quote_preparation_v1';
+  const VERSION = '20261126_shared_quantities_v1';
   const CACHE_FIELD = 'derivedFacts';
   const STATS_LIMIT = 20;
   let computingDepth = 0;
@@ -178,7 +178,10 @@
   function getCabinetCutListRaw(roomId, cabinet){
     try{
       const api = FC.cabinetCutlist || FC.cabinetCutList || {};
-      if(api && typeof api.getCabinetCutList === 'function') return clone(api.getCabinetCutList(cabinet || {}, roomId) || []);
+      if(api && typeof api.getCabinetCutList === 'function'){
+        const typed=FC.roomProjectModel?.enabled()&&FC.projectStore?.getCurrentProjectId?.()===roomId?project()?.[roomId]:null;
+        return clone(api.getCabinetCutList(cabinet || {},typed||roomId,typed?{projectId:roomId,roomId}:undefined) || []);
+      }
     }catch(error){ if(error && error.code==='INVALID_DRAWER_FRONT_GEOMETRY') throw error; }
     return [];
   }

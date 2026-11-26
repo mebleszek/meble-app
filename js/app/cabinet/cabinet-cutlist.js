@@ -311,6 +311,10 @@
   }
 
   function getCabinetCutList(cab, room, sourceContext){
+    return room&&typeof room==='object'&&FC.workQuantityPrepared?.readParts
+      ? FC.workQuantityPrepared.readParts(room,cab,sourceContext,(r,c,owner)=>calculateCabinetCutList(c,r,owner)) : calculateCabinetCutList(cab,room,sourceContext);
+  }
+  function calculateCabinetCutList(cab, room, sourceContext){
     if(cab && (cab.type==='stojąca'||cab.type==='moduł') && cab.subType==='szuflady') requireDrawerFrontGeometry(cab,room);
     const provenance=FC.partProvenance;
     const owner=provenance ? provenance.context(cab,room,sourceContext) : null;

@@ -162,8 +162,9 @@
     };
     const collectCatalogRemaining = ()=> FC.catalogSelectors?.withReadSnapshot
       ? FC.catalogSelectors.withReadSnapshot(collectRemaining) : collectRemaining();
+    const collectSources=()=>FC.projectPcvOverrides.withCalculationRead(collectCatalogRemaining);
     const {elementLines,accessoryLines,agdLines,quoteRateLines,projectLines,laborLines,carryingLines,workPlan}=FC.roomQuoteSources?.enabled()
-      ? FC.projectPcvOverrides.withCalculationRead(collectCatalogRemaining) : collectCatalogRemaining();
+      ? (FC.workQuantityPrepared?.withCalculationRead?FC.workQuantityPrepared.withCalculationRead(collectSources):collectSources()) : collectCatalogRemaining();
     const incomplete=[laborLines,projectLines,carryingLines,agdLines,quoteRateLines].flat().flatMap(row=>Array.isArray(row.details)?row.details:[row]).filter(row=>row.sourceKind==='automatic-blocked');
     if(incomplete.length)throw createQuoteValidationError('labor_automation_incomplete','Niekompletna automatyka','Nie zapisano nowej wyceny. Uzupełnij dane lub rozstrzygnij konflikt: '+incomplete.map(row=>row.name).join(', '));
     const commercial = deps.offer.collectCommercialDraft(draft);
@@ -233,7 +234,7 @@
       throw createQuoteValidationError('calculation_context_changed', 'Dane projektu zmieniły się', 'Nie zapisano wyceny. Ponów kalkulację na aktualnych danych.');
     }
     assertCurrent();
-    if(FC.roomQuoteSources?.enabled())result.sourceProjects=await FC.roomQuoteSources.references(selectedRooms);
+    if(FC.roomQuoteSources?.enabled())result.sourceProjects=await FC.roomQuoteSources.references(selectedRooms,options.offlineQuote);
     assertCurrent();
     if(calculationOptions.pcvMode==='project')FC.projectPcvResolver.registerQuoteCalculation(result,aggregate,
       Object.assign({},calculationOptions,{materialScope:normalizedSelection.materialScope}),initialDraft);
