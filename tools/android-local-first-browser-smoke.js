@@ -165,13 +165,56 @@ async function main(){
    await browser.send('Emulation.setDeviceMetricsOverride',{width:393,height:852,deviceScaleFactor:1,mobile:true});
    await tap(action('panel','properties'));
    assert.equal(await browser.evaluate('getComputedStyle(document.querySelector(".drawing2d-panel")).position'), 'fixed');
-   await tap(action('panel-close'));await tap('#sessionSave');await until('!window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending');
+   await tap(action('panel-close'));
+   await browser.send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:2});
+   const touch=(type,touchPoints)=>browser.send('Input.dispatchTouchEvent',{type,touchPoints});
+   async function swipe(points,deltas){
+    await touch('touchStart',points);
+    for(let step=1;step<=8;step++){
+     await pause(22);
+     await touch('touchMove',points.map((p,i)=>({...p,x:Math.round(p.x+deltas[i].x*step/8),y:Math.round(p.y+deltas[i].y*step/8)})));
+    }
+    await touch('touchEnd',[]);
+   }
+   for(const [view,field] of [[0,'along'],[2,'elevation']]){
+    await tap(action('view',view));
+    const previous=await browser.evaluate(second);
+    const start=await waitForGesturePoint(browser.evaluate,target,{stable:true});
+    await swipe([{...start,id:1}],[{x:0,y:start.y>230?-64:64}]);
+    await ready();
+    const moved=await browser.evaluate(second);
+    assert.ok(Math.abs(moved[field]-previous[field])>100,`Finger drag in view ${view} must persist ${field}`);
+    assert.equal(moved.wallId,previous.wallId);
+   }
+   const movedDrawing=await browser.evaluate(value);
+   for(let i=0;i<2;i++)await tap(action('zoom',25));
+   const blank=async()=>browser.evaluate(`(()=>{
+    const canvas=document.querySelector('.drawing2d-canvas'),r=document.querySelector('.drawing2d-stage').getBoundingClientRect();
+    for(const fy of [.55,.65,.45])for(const fx of [.5,.65,.35]){
+     const x=Math.round(r.left+r.width*fx),y=Math.round(r.top+r.height*fy);
+     if(y<155||y>innerHeight-70)continue;
+     if([-35,0,35].every(dx=>{const el=document.elementFromPoint(x+dx,y);return el&&canvas.contains(el)&&!el.closest('[data-cabinet]');}))return {x,y};
+    }
+    throw Error('No visible blank canvas for native gestures');
+   })()`);
+   const scroll='scrollY+document.querySelector(".drawing2d-stage").scrollTop';
+   const beforeScroll=await browser.evaluate(scroll);
+   await swipe([{...await blank(),id:1}],[{x:0,y:-72}]);
+   await until(scroll+'>'+String(beforeScroll+15));
+   assert.deepEqual(await browser.evaluate(value),movedDrawing,'A gesture on empty canvas only scrolls');
+   const center=await blank();
+   await swipe([{x:center.x-25,y:center.y,id:1},{x:center.x+25,y:center.y,id:2}],[{x:-75,y:0},{x:75,y:0}]);
+   await until('visualViewport.scale>1.1');
+   assert.deepEqual(await browser.evaluate(value),movedDrawing,'Pinch zoom must not move a cabinet');
+   await browser.send('Emulation.setPageScaleFactor',{pageScaleFactor:1});
+   await browser.send('Emulation.setTouchEmulationEnabled',{enabled:false});
+   await tap('#sessionSave');await until('!window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending');
    await reopenOffline(61);
-   assert.deepEqual(await browser.evaluate('window.FC.projectStore.readAll()[0].projectData[window.FC.investors.readAll()[0].rooms[0].id].drawing2d'),savedDrawing);
+   assert.deepEqual(await browser.evaluate('window.FC.projectStore.readAll()[0].projectData[window.FC.investors.readAll()[0].rooms[0].id].drawing2d'),movedDrawing);
    await tap('[data-action="open-room"][data-room^="room_"]');await until('window.FC.session.active');
    await tap('.tab-btn[data-tab="rysunek"]');await until('!!document.querySelector(".drawing2d-canvas")');
    assert.equal(await browser.evaluate('document.querySelectorAll(".drawing2d-canvas [data-cabinet]").length'),2);
-   assert.deepEqual(external,[]);console.log('PASS Rysunek 2D L: walls, elevations, rotation, native drag, abort, mobile panel and offline restart.');return;
+   assert.deepEqual(external,[]);console.log('PASS Rysunek 2D L: mouse and touch drag in both views, native scroll and pinch zoom, abort, mobile panel and offline restart.');return;
   }
   if(process.argv.includes('--cabinet-variants-only')||process.argv.includes('--cabinet-base-probe')){
    phase='native cabinet variants';await require('./helpers/local-cabinet-native-cases')({getBrowser:()=>browser,tap,fill,until,reopen:()=>reopenOffline(61,false,null),baseProbe:process.argv.includes('--cabinet-base-probe')});

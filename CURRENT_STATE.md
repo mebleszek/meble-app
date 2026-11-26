@@ -1,5 +1,11 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## Przeciąganie szafek dotykiem — 26.11.2026
+
+- **USTALONE:** nagranie właściciela wykazało brak końcowego przesunięcia szafki na Androidzie. Na opublikowanym kodzie reprodukcja z rzeczywistymi zdarzeniami dotykowymi w emulacji Chromium potwierdziła `pointercancel` i przewijanie zamiast domknięcia przeciągania, zarówno w rzucie, jak i w widoku ściany.
+- **WDROŻONE:** podczas przeciągania rozpoczętego na szafce jeden palec prowadzi szafkę do końca gestu. Dotyk w pustym miejscu zachowuje przewijanie i powiększanie. Drugi palec lub utrata przechwycenia odrzuca podgląd przeciągania. Gałąź `fix/drawing-touch-drag`, baza `de6c58166bcef8b1ae3a7bb096baddf67870683f`.
+- **SPRAWDZONE:** Windows/Edge z izolowanym, syntetycznym projektem i rzeczywistym IndexedDB. Natywne zdarzenia dotykowe w mobilnym widoku potwierdziły zmianę pozycji w rzucie i wysokości w widoku ściany, przewijanie i powiększanie dwoma palcami na pustym płótnie oraz odtworzenie zapisanego układu po restarcie offline. Odbiór na fizycznym telefonie pozostaje otwarty.
+
 ## Wspólne zestawienia, rezerwacje i konflikty offline —część2,26.11.2026
 
 **USTALONE:** po osobno wydanej części1 właściciel zlecił wykonanie części2. Gałąź feat/quote-room-preparation-reservations-20261126 od main a1fbd18b16068d3bac563797f7873269c8a86ddc; wejście CLEAN. W trakcie testów na main opublikowano Rysunek 2D. Przy przenoszeniu na aktualną bazę a092d351769986513e297e87df15bce7273f7f95 zachowano kod rysunku i jego dane testowe, połączono wersje skryptów i odtworzono manifest. Zakres i wcześniejsze decyzje: [plan](tools/reports/quote-preparation-hardware-20261125.md). Najpierw pełne wspólne ilości po zmianach szafek; potem rezerwacje wybranych pomieszczeń z prośbą/odmową/ponowieniem/PIN i bezpieczna wycena offline z rozstrzyganiem rzeczywistych konfliktów. Dotychczasowe blokady, kontrola dostępu30 s, osobny dotychczasowy heartbeat i ochrona historii pozostają.

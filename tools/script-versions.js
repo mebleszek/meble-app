@@ -6,7 +6,7 @@ const versions = Object.freeze({
   "js/app/ui/drawing-geometry.js":"20261126_drawing_2d_v1",
   "js/app/ui/drawing-storage.js":"20261126_drawing_2d_v1",
   "js/app/ui/drawing-canvas.js":"20261126_drawing_2d_v1",
-  "js/tabs/drawing-editor.js":"20261126_drawing_2d_v1",
+  "js/tabs/drawing-editor.js":"20261126_drawing_touch_drag_v1",
   "js/tabs/rysunek.js":"20261126_drawing_2d_v1",
   "js/app/catalog/hardware-technical-read-snapshot.js":"20261125_quote_preparation_v1",
   "js/app/cabinet/cabinet-modal-standing.js":"20261125_quote_preparation_v1",

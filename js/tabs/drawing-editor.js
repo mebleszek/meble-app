@@ -275,18 +275,36 @@
     });
 
     function wirePointer(){
+      const surface = canvas;
       const point = (event,inverse)=>new DOMPoint(event.clientX,event.clientY).matrixTransform(inverse);
-      canvas.addEventListener('pointerdown',event=>{
+      function cancelDrag(){
+        const {group,id} = drag;
+        drag = null;
+        group.removeAttribute('transform');
+        group.classList.remove('is-snapped');
+        if(surface.hasPointerCapture(id)) surface.releasePointerCapture(id);
+      }
+      surface.addEventListener('touchstart',event=>{
+        if(drag?.pointerType==='touch' && event.touches.length>1) cancelDrag();
+      },{passive:true});
+      surface.addEventListener('touchmove',event=>{
+        if(drag?.pointerType!=='touch') return;
+        if(event.touches.length>1){cancelDrag();return;}
+        // Chromium may start scrolling an SVG despite pointer capture on a cabinet.
+        // Keep native gestures for the empty canvas and for multiple fingers.
+        if(event.cancelable) event.preventDefault();
+      },{passive:false});
+      surface.addEventListener('pointerdown',event=>{
         const group = event.target.closest('[data-cabinet]');
-        if(!group || event.button!==0 || busy || drag) return;
+        if(!group || event.button!==0 || !event.isPrimary || busy || drag) return;
         const item = items.find(row=>row.p.cabinetId===group.dataset.cabinet);
-        const inverse = canvas.getScreenCTM()?.inverse();
+        const inverse = surface.getScreenCTM()?.inverse();
         if(!inverse) return;
         const start = point(event,inverse);
-        drag = {group,inverse,start,item,id:event.pointerId,p:item.p,moved:false};
-        canvas.setPointerCapture(event.pointerId);
+        drag = {group,inverse,start,item,id:event.pointerId,pointerType:event.pointerType,p:item.p,moved:false};
+        surface.setPointerCapture(event.pointerId);
       });
-      canvas.addEventListener('pointermove',event=>{
+      surface.addEventListener('pointermove',event=>{
         if(drag?.id!==event.pointerId) return;
         const {item,start,inverse,group} = drag;
         const now = point(event,inverse), dx = now.x-start.x, dy = now.y-start.y;
@@ -307,7 +325,7 @@
         group.setAttribute('transform',visibleWall?`translate(${drag.p.along-p.along} ${p.elevation-drag.p.elevation})`
           :`translate(${target.x-previous.x} ${target.y-previous.y})`);
       });
-      canvas.addEventListener('pointerup',event=>{
+      surface.addEventListener('pointerup',event=>{
         if(drag?.id!==event.pointerId) return;
         const {item,p,moved,group} = drag; drag = null;
         const next = replacePlacement(p);
@@ -316,8 +334,10 @@
           void commit(next,()=>select({p},false));
         }else{select(item,true);draw();}
       });
-      canvas.addEventListener('pointercancel',event=>{if(drag?.id===event.pointerId){drag=null;draw();}});
-      canvas.addEventListener('keydown',event=>{
+      const discardCapturedDrag = event=>{if(drag?.id===event.pointerId) cancelDrag();};
+      surface.addEventListener('pointercancel',discardCapturedDrag);
+      surface.addEventListener('lostpointercapture',discardCapturedDrag);
+      surface.addEventListener('keydown',event=>{
         const id = event.target.closest('[data-cabinet]')?.dataset.cabinet;
         if(!busy && id && ['Enter',' '].includes(event.key)){event.preventDefault();select(items.find(row=>row.p.cabinetId===id),true);draw();}
       });
