@@ -50,6 +50,20 @@
     return null;
   }
 
+  function calculationInputs(d){
+    const draft=JSON.parse(JSON.stringify(d.getOfferDraft() || {}));
+    delete draft.updatedAt;
+    if(draft.commercial)delete draft.commercial.versionName;
+    const excluded=new Set([FC.quoteOfferStore && FC.quoteOfferStore.DRAFT_KEY,'fc_ui_v1','fc_reload_restore_v1',
+      (FC.constants && FC.constants.STORAGE_KEYS && FC.constants.STORAGE_KEYS.quoteSnapshots) || 'fc_quote_snapshots_v1']);
+    const raw=Array.from({length:localStorage.length},(_,i)=>localStorage.key(i)).filter(key=>key && key!=='fc_rozrys_plan_cache_v2' && !(FC.dataStorageKeys && FC.dataStorageKeys.isSnapshotExcludedKey(key))).filter(key=>!excluded.has(key)).sort().map(key=>[key,localStorage.getItem(key)]);
+    const controls=['rozUnit','rozW','rozH','rozK','rozTrim','rozMinScrapW','rozMinScrapH','rozHeur','rozDir','rozEdgeSub'].map(id=>{const el=document.getElementById(id);return [id,el?el.value:null];});
+    return JSON.stringify([draft,raw,controls,typeof materials==='undefined'?null:materials,
+      typeof accessories==='undefined'?null:accessories,typeof services==='undefined'?null:services,
+      FC.materialCommon && [FC.materialCommon.FC_BOARD_THICKNESS_CM,FC.materialCommon.FC_TOP_TRAVERSE_DEPTH_CM],
+      window.FC_BOARD_THICKNESS_CM,window.FC_TOP_TRAVERSE_DEPTH_CM]);
+  }
+
   FC.wycenaTabData = Object.assign({}, FC.wycenaTabData || {}, {
     getCurrentProjectId,
     getCurrentInvestorId,
@@ -57,5 +71,6 @@
     normalizeSnapshot,
     getOfferDraft,
     patchOfferDraft,
+    calculationInputs,
   });
 })();

@@ -161,7 +161,8 @@ const versions = Object.freeze({
   "js/app/wycena/wycena-tab-selection-version.js":"20260628_drawer_systems_materials_v1",
   "js/app/wycena/wycena-diagnostics.js":"20261019_project_context",
   "js/app/quote/quote-route-request.js":"20261124_quote_route_request_v1",
-  "js/app/wycena/wycena-tab-shell.js":"20261126_offline_quote_v1"
+  "js/app/wycena/wycena-tab-data.js":"20261126_quote_input_boundary_v1",
+  "js/app/wycena/wycena-tab-shell.js":"20261126_quote_input_boundary_v1"
 });
 const authVersions=Object.freeze({
   "js/app/cloud/main-business-loader.js":"20261122_startup_asset_wait_v1",

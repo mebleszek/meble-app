@@ -22,6 +22,8 @@
 
 **ODBIÓR PO AKTUALIZACJI BAZY:** na kodzie 7c77daa702bd90c63880d7fd4489da287f1ba462 oba scenariusze w Chromium z Firebase DEMO przeszły 2/2. Przeszły też 17/17 prób WYCENY, 66/66 eksportu projektu, 19/19 źródeł formatek i kontrola statyczna 784/784 plików oraz kolejności 366 skryptów. Końcowy commit dodaje do sprawdzonego kodu ten zapis dowodów. Pełny CI i próba wydania czekają na osobną zgodę.
 
+**Naprawa PR #172 po Preflight #1405:** CI zatrzymały dwie niezależne przyczyny. Odczyt danych wejściowych przeniesiono z renderującego modułu WYCENY do istniejącego adaptera danych. Shell ma 598 linii, bez bezpośredniego odczytu localStorage. Serwer testu profili wylicza pełny graf importów z jawnych punktów wejścia protokołu. Audyt wzrostu bez wyjątków, statyka, wersje, manifest, 17/17 kontroli kontekstu, blokada duplikatów i oba celowane testy Chromium/DEMO przeszły. Przed kolejną próbą obowiązuje pełne CI i weryfikacja Pages.
+
 ## Rysunek 2D — pierwszy pakiet, 26.11.2026
 
 - **USTALONE:** właściciel polecił zastąpić poprzedni edytor nowym RYSUNKIEM 2D zgodnym z zaakceptowanymi grafikami. Pierwszy pakiet obejmuje układ ścian i szafek oraz zapis w pomieszczeniu. Na komputerze panel po prawej, na telefonie u dołu. Gałąź `feat/rysunek-2d-layout`, baza `a1fbd18b16068d3bac563797f7873269c8a86ddc`.
