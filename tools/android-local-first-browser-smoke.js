@@ -208,13 +208,47 @@ async function main(){
    assert.deepEqual(await browser.evaluate(value),movedDrawing,'Pinch zoom must not move a cabinet');
    await browser.send('Emulation.setPageScaleFactor',{pageScaleFactor:1});
    await browser.send('Emulation.setTouchEmulationEnabled',{enabled:false});
+   phase='drawing obstacles: create, flag collision, edit on mobile and reopen';
+   await browser.send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+   const obstacleForm='[data-drawing-form="obstacle"]';
+   const openObstacles=()=>tap('.drawing2d-menu summary[aria-label="Przeszkody"]');
+   async function addObstacle(kind,fields){
+    await openObstacles();await tap(action('add-obstacle',kind));
+    for(const [name,value] of Object.entries(fields))await fill(obstacleForm+' [name='+name+']',String(value));
+    await tap(obstacleForm+' button[type=submit]');await ready();
+    const result=await browser.evaluate(value+'.obstacles.find(row=>row.kind==='+JSON.stringify(kind)+')');
+    assert.ok(result?.id,'Confirmed obstacle must have an identity');
+    return result.id;
+   }
+   await tap(action('view',0));
+   const windowId=await addObstacle('window',{wallId:1,along:800,width:700,height:650,elevation:450});
+   const doorId=await addObstacle('door',{wallId:2,along:1600,width:650,height:2000});
+   await addObstacle('radiator',{wallId:2,along:140,width:500,height:450,elevation:200,depth:180});
+   assert.equal(await browser.evaluate('document.querySelectorAll(".drawing2d-canvas [data-obstacle]").length'),3);
+   assert.equal(await browser.evaluate(`document.querySelector('[data-obstacle="${windowId}"]').classList.contains('has-warning')`),true,'Window overlap must be visible');
+   assert.equal(await browser.evaluate(value+'.obstacles.find(row=>row.kind==="door").elevation'),0);
+   for(let i=0;i<2;i++)await tap(action('zoom',-25));
+   await tap(action('view',2));
+   assert.equal(await browser.evaluate('document.querySelectorAll(".drawing2d-canvas [data-obstacle]").length'),2);
+   await browser.send('Emulation.setDeviceMetricsOverride',{width:393,height:852,deviceScaleFactor:1,mobile:true});
+   if(await browser.evaluate('!!document.querySelector(".drawing2d-panel.is-open")'))await tap(action('panel-close'));
+   await browser.send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:2});
+   const doorPoint=await waitForGesturePoint(browser.evaluate,'[data-obstacle="'+doorId+'"] rect',{stable:true});
+   await touch('touchStart',[{...doorPoint,id:1}]);await touch('touchEnd',[]);
+   await until('!!document.querySelector('+JSON.stringify('.drawing2d-panel.is-open '+obstacleForm)+')');
+   await fill(obstacleForm+' [name=width]','700');await tap(obstacleForm+' button[type=submit]');await ready();
+   assert.equal(await browser.evaluate(value+'.obstacles.find(row=>row.kind==="door").width'),700);
+   const withObstacles=await browser.evaluate(value);
+   await tap(action('panel-close'));
+   await browser.send('Emulation.setTouchEmulationEnabled',{enabled:false});
    await tap('#sessionSave');await until('!window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending');
    await reopenOffline(61);
-   assert.deepEqual(await browser.evaluate('window.FC.projectStore.readAll()[0].projectData[window.FC.investors.readAll()[0].rooms[0].id].drawing2d'),movedDrawing);
+   assert.deepEqual(await browser.evaluate('window.FC.projectStore.readAll()[0].projectData[window.FC.investors.readAll()[0].rooms[0].id].drawing2d'),withObstacles);
    await tap('[data-action="open-room"][data-room^="room_"]');await until('window.FC.session.active');
    await tap('.tab-btn[data-tab="rysunek"]');await until('!!document.querySelector(".drawing2d-canvas")');
    assert.equal(await browser.evaluate('document.querySelectorAll(".drawing2d-canvas [data-cabinet]").length'),2);
-   assert.deepEqual(external,[]);console.log('PASS Rysunek 2D L: mouse and touch drag in both views, native scroll and pinch zoom, abort, mobile panel and offline restart.');return;
+   assert.equal(await browser.evaluate('document.querySelectorAll(".drawing2d-canvas [data-obstacle]").length'),3);
+   assert.deepEqual(external,[]);console.log('PASS Rysunek 2D L: touch drag, native scroll and pinch zoom, three obstacles, conflict marker, mobile edit and offline restart.');return;
   }
   if(process.argv.includes('--cabinet-variants-only')||process.argv.includes('--cabinet-base-probe')){
    phase='native cabinet variants';await require('./helpers/local-cabinet-native-cases')({getBrowser:()=>browser,tap,fill,until,reopen:()=>reopenOffline(61,false,null),baseProbe:process.argv.includes('--cabinet-base-probe')});
