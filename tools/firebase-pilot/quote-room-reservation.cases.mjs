@@ -68,4 +68,51 @@ export async function roomReservationCase({t,phone,computer,iid,pid,wardrobeId,d
  assert.deepEqual(await head(pid),saved);
  assert.deepEqual(await read('globalData','current'),globalBefore);
  t.diagnostic('Real checkbox request, decline, retry, peer Save and ACK, two-room publication and release all proved in normal DEMO');
+
+ const pin='1379';
+ await editor.evaluate(value=>window.FC.projectTakeoverPin.save({newPin:value,confirmation:value,expectedRevision:0}),pin);
+ await quote.locator('[data-action="tab"][data-tab="wycena"]').click();
+ await until(async()=> (await marker(pid))?.active===true&&(await marker(wardrobeId))?.active===true);
+ const orphaned=await marker(pid),untouched=await marker(wardrobeId),oldLedger=await read('p0bRoomQuotes',iid);
+ await computer.owner.crash();
+ assert.deepEqual(await marker(pid),orphaned,'The disconnected profile left a confirmed reservation');
+
+ assert.notEqual(await editor.evaluate(async id=>{
+  const api=window.FC.quoteOfferStore,draft=api.getCurrentDraft();
+  return api.commitSettings(draft,()=>!!api.patchCurrentDraft({selection:{selectedRooms:[id]}}));
+ },pid),false);
+ await editor.locator('[data-action="tab"][data-tab="wycena"]').click();
+ await editor.waitForFunction(()=>window.uiState.activeTab==='wycena'&&!window.FC.session.active);
+ await editor.locator('[data-action="wycena-generate"]').click();
+ const recovery=editor.locator('.quote-lock-warning'),take=recovery.getByRole('button',{name:'Przejmij PIN-em',exact:true});
+ await recovery.getByText(/Zarezerwowane do wyceny/).waitFor();
+ await take.click();
+ await recovery.getByLabel('PIN',{exact:true}).fill('8642');
+ await take.click();
+ await recovery.getByRole('status').filter({hasText:'LF_P0B_PIN_INCORRECT'}).waitFor();
+ assert.deepEqual(await marker(pid),orphaned);
+ assert.deepEqual(await marker(wardrobeId),untouched);
+ assert.deepEqual(await read('p0bRoomQuotes',iid),oldLedger);
+
+ await recovery.getByLabel('PIN',{exact:true}).fill(pin);
+ await take.click();
+ await recovery.waitFor({state:'hidden'});
+ await until(async()=>{const acquired=await marker(pid);return acquired?.active&&acquired.token!==orphaned.token;},[phone]);
+ const acquired=await marker(pid);
+ assert.ok(acquired.epoch>orphaned.epoch);
+ assert.equal(acquired.revision,orphaned.revision);
+ const naming=editor.locator('.quote-scope-entry-modal--name');
+ await editor.waitForFunction(id=>document.querySelector('.quote-scope-entry-modal--name')
+  ||Array.from(document.querySelectorAll('[data-quote-history-id]')).some(row=>row.dataset.quoteHistoryId!==id),offers[0].id);
+ if(await naming.isVisible())await naming.getByRole('button',{name:'OK',exact:true}).click();
+ await until(async()=>{const head=await read('p0bRoomQuotes',iid);return head?.generation===oldLedger.generation+1;},[phone]);
+ const history=JSON.parse(rows(await image(phone)).fc_quote_snapshots_v1);
+ assert.deepEqual(history.find(row=>row.id===offers[0].id),offers[0]);
+ assert.deepEqual(history.find(row=>row.id!==offers[0].id).scope.selectedRooms,[pid]);
+ await editor.locator('[data-action="tab"][data-tab="inwestor"]').click();
+ await until(async()=> (await marker(pid))?.active===false,[phone]);
+ assert.deepEqual(await marker(wardrobeId),untouched,'Another selected room needs its own confirmed recovery');
+ assert.deepEqual(await head(pid),saved);
+ assert.deepEqual(await read('globalData','current'),globalBefore);
+ t.diagnostic('Real SIGKILL isolated the original profile. A wrong PIN changed nothing. Authorised release and a new reservation used the saved head, preserved both offers and left the other room untouched.');
 }

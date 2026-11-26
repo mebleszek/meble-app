@@ -63,7 +63,8 @@ export function createQuoteAccess({window:w,store,protocol,getSync,assertAccess,
     const refresh=options=>{access();assertCurrent();return reservations.ready(iid,selection.selectedRooms,options);};
     const rows=await refresh();
     if(!rows.length||rows.some(row=>row.state!=='reserved')){
-     prompt=quoteWarning({window:w,rows,reservation:true,refresh,release:(_rows,pin)=>refresh({pin})});
+     prompt=quoteWarning({window:w,rows,reservation:true,refresh,release:(targets,pin)=>refresh({pin,
+      recoveries:targets.filter(row=>row.state==='occupied').map(row=>[row.projectId,row.expectedReservation])})});
      if(!await prompt.promise)return false;prompt=null;
     }
     // The grant may refer to a newly saved revision. Apply that image before

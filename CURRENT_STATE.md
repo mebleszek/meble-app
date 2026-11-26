@@ -1,5 +1,12 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## Awaryjne zwolnienie rezerwacji do wyceny w DEMO — 27.11.2026
+
+- **USTALONE** — właściciel zatwierdził odzyskanie dostępu do pomieszczenia po utracie profilu, który je zarezerwował. Zakres obejmuje wyłącznie wariant DEMO. Istniejące „Przejmij PIN-em” w WYCENIE obsługuje tę sytuację.
+- **WDROŻONE NA GAŁĘZI** — zwolnienie wiąże się z oczekiwanym pokojem, urządzeniem, tokenem, epoką, rewizją i żądaniem. Sprawdzenie PIN-u korzysta z istniejącego mechanizmu aplikacji. W tej samej transakcji co zwolnienie serwerowy odczyt potwierdza rewizję PIN-u i pełny stan rezerwacji. Ten sam znacznik może potwierdzić utracony ACK bez ponownego zapisu. Powrót starego profilu archiwizuje zakończony dziennik dopiero po dowodzie jego zwolnienia lub zastąpienia. Obraz projektu, oferty i kolejka publikacji zachowują swój stan. [Zakres i dowody](tools/reports/quote-preparation-hardware-20261125.md#awaryjne-zwolnienie-rezerwacji-pin-em-w-demo).
+- **SPRAWDZONE** — dwa niezależne profile Chromium z Firebase DEMO i rzeczywisty SIGKILL 1/1, SDK/Rules 3/3, Chromium/IndexedDB 1/1, kontrakt wyceny 8/8. Błędny PIN zachował oba pokoje i ofertę. Poprawny PIN pozwolił zarezerwować dokładną potwierdzoną rewizję, zapisać kolejną ofertę i zachować poprzednią ofertę oraz blokadę drugiego pokoju. Testy w istniejącym obowiązkowym CI.
+- **BRAKUJE** — pełny CI i osobna decyzja wdrożeniowa. Reguły, podpis i działająca aplikacja LIVE pozostają w obecnym wariancie.
+
 ## Przeciąganie szafek dotykiem — 26.11.2026
 
 - **USTALONE:** nagranie właściciela wykazało brak końcowego przesunięcia szafki na Androidzie. Na opublikowanym kodzie reprodukcja z rzeczywistymi zdarzeniami dotykowymi w emulacji Chromium potwierdziła `pointercancel` i przewijanie zamiast domknięcia przeciągania, zarówno w rzucie, jak i w widoku ściany.

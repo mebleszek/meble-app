@@ -206,6 +206,36 @@ test('P0-B room storage: reservation intents keep the same token until a verifie
  assert.deepEqual(state.operations,[]);assert.equal(state.replica,null);
  assert.deepEqual(JSON.parse(state.protected.find(row=>row.key===outcome.key).json),{version:1,expected:releasing,observed:released});
  assert.deepEqual(await store.readApplication(),source);
+
+ const second={...intent,operationId:crypto.randomUUID(),token:crypto.randomUUID(),expected:released.status};
+ const secondStaged=await commit('stageQuoteReservation',{intent:second,image:source});
+ const secondProof={status:{editor:quoteReservationEditor(second),revision},marker:quoteReservationMarker(second)};
+ const secondHeld=await commit('confirmQuoteReservation',{expected:secondStaged,observed:secondProof});
+ const remoteRelease=releasedQuoteReservation(secondProof.status,secondProof.marker);
+ const next={...second,operationId:crypto.randomUUID(),token:crypto.randomUUID(),deviceId:'phone',deviceLabel:'Phone',expected:remoteRelease.status};
+ const later={status:{editor:quoteReservationEditor(next),revision},marker:quoteReservationMarker(next),request:null};
+ const acknowledge=observed=>commit('acknowledgeQuoteReservationLoss',{expected:secondHeld,observed});
+ assert.equal(await acknowledge(secondProof),false,'The held receipt is still required for publication');
+ assert.equal(await acknowledge({...later,marker:{...later.marker,epoch:secondProof.marker.epoch}}),false);
+ assert.deepEqual(await list(),[secondHeld]);
+ assert.equal(await acknowledge(later),true);
+ assert.deepEqual(await list(),[]);
+ const after=await store.snapshot(projectId);
+ assert.deepEqual(after.operations,state.operations);assert.deepEqual(after.replica,state.replica);
+ assert.deepEqual(JSON.parse(after.protected.find(row=>row.key==='quote-reservation-receipt:'+second.operationId+':'+projectId).json),
+  {version:1,expected:secondHeld,observed:later,outcome:'released-or-superseded'});
+
+ const third={...intent,operationId:crypto.randomUUID(),token:crypto.randomUUID(),
+  expected:releasedQuoteReservation(later.status,later.marker).status};
+ const thirdStaged=await commit('stageQuoteReservation',{intent:third,image:source});
+ const thirdSent=await transition('markQuoteReservationSent',thirdStaged);
+ const thirdReceipt={status:{editor:quoteReservationEditor(third),revision},marker:quoteReservationMarker(third)};
+ const remoteReleased={...releasedQuoteReservation(thirdReceipt.status,thirdReceipt.marker),request:null};
+ assert.equal(await commit('acknowledgeQuoteReservationLoss',{expected:thirdSent,observed:thirdReceipt}),false);
+ assert.equal(await commit('acknowledgeQuoteReservationLoss',{expected:thirdSent,observed:remoteReleased}),true,
+  'An exact inactive marker also resolves a lost ACK of the original reservation');
+ assert.deepEqual(await list(),[]);
+ assert.deepEqual(await store.readApplication(),source);
 });
 
 test('P0-B room storage: P1 queued saves coalesce atomically with durable RAW, restart and uncertain-generation protection',async t=>{

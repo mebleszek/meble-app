@@ -22,9 +22,15 @@ test('P0-B room quote Rules: reservation candidate fences old editors and grants
   for(const [collection,id,value]of [['syncConfig','owner',{ownerUid:uid,activationId:'p0b-demo',schemaVersion:1}],['syncAccess',uid,{activationId:'p0b-demo',schemaVersion:1}],['appAccess',uid,{schemaVersion:1}],['authorizedUsers',uid,{appEnabled:true,enabled:false,globalDataEnabled:true,globalSchemaVersion:1}]])
    await f.setDoc(f.doc(db,collection,id),value);
  });
+ let dropRecoveryAck=false,recoveryAckDropped=0;
  function setup(deviceId,candidate=true){
   const db=env.authenticatedContext(uid,claims).firestore(),native=db._delegate||db;
-  const connection={db:native,firestore:f,assertAccess(){},session:{identity:()=>({uid,epoch:1})},auth:{
+  const sdk=deviceId==='computer'?{...f,async runTransaction(...args){
+   const result=await f.runTransaction(...args);
+   if(dropRecoveryAck){dropRecoveryAck=false;recoveryAckDropped++;throw Error('Synthetic recovery ACK loss after commit');}
+   return result;
+  }}:f;
+  const connection={db:native,firestore:sdk,assertAccess(){},session:{identity:()=>({uid,epoch:1})},auth:{
     app:native.app,emulatorConfig:{host:'127.0.0.1',port:19099,protocol:'http'},currentUser:{uid,providerData:[{providerId:'google.com'}]}}};
   return {db,connection,protocol:createP0BProtocol(p0bConnection(connection),deviceId,()=>{},{quoteReservationCandidate:candidate})};
  }
@@ -82,7 +88,22 @@ test('P0-B room quote Rules: reservation candidate fences old editors and grants
   chunkSha256:['d'.repeat(64)],fileSha256:'d'.repeat(64),documentSha256:'e'.repeat(64),payloadSha256:'f'.repeat(64),createdAt:f.serverTimestamp()};
  const revisionRef=base(db,'p0bRoomProjects',pid,'revisions',draftRevision.revisionId);
  await assertFails(f.setDoc(revisionRef,draftRevision));
- const released=await phone.reservations.release(proof);
+ // Leave the phone's reservation on the server. The computer has no local
+ // journal, token storage or live session from that profile to help it.
+ await computer.pin.save({newPin:'1234',confirmation:'1234',expectedRevision:0});
+ await assert.rejects(computer.reservations.release(proof),{code:'LF_QUOTE_RESERVATION_UNCONFIRMED'});
+ await assert.rejects(async()=>computer.reservations.recover(observed,'2345'),{code:'LF_P0B_PIN_INCORRECT'});
+ assert.deepEqual(await computer.reservations.inspect(iid,pid),observed);
+ const investorRef=base(db,'p0bRoomInvestors',iid);
+ const generation=(await f.getDocFromServer(investorRef)).data().generation;
+ dropRecoveryAck=true;
+ const released=await computer.reservations.recover(observed,'1234');
+ assert.equal(recoveryAckDropped,1);
+ assert.equal(released.marker.active,false);
+ assert.equal(released.status.revision,savedRid);
+ assert.equal((await computer.reservations.inspect(iid,pid)).request.state,'released');
+ assert.deepEqual(await computer.reservations.recover(observed,'1234'),released,'The same inactive marker proves the previous release');
+ assert.equal((await f.getDocFromServer(investorRef)).data().generation,generation+1);
  await assert.rejects(verifyPublication(),{code:'LF_QUOTE_RESERVATION_INVALID'});
  await assert.rejects(later.publish(),{code:'LF_QUOTE_RESERVATION_INVALID'});
  assert.deepEqual(await quote.read(),{head:first.expected,value:ledger(['first'])});
@@ -92,11 +113,13 @@ test('P0-B room quote Rules: reservation candidate fences old editors and grants
  const free=plan('free',released.status);
  const exclusive=await phone.reservations.reserve(free);
  assert.deepEqual(await phone.reservations.reserve(free),exclusive);
+ const newer=await phone.reservations.inspect(iid,pid);
+ await assert.rejects(computer.reservations.recover(observed,'1234'),{code:'LF_QUOTE_RESERVATION_UNCONFIRMED'});
+ assert.deepEqual(await computer.reservations.inspect(iid,pid),newer,'A confirmed PIN never releases a newer reservation');
  await phone.reservations.release(exclusive);
  const editor=await computer.acquire({iid,pid,expectedHead:savedRid,deviceLabel:'Computer'});
  assert.notEqual(editor.epoch,oldEditor.epoch);
  await f.setDoc(revisionRef,draftRevision);
- await computer.pin.save({newPin:'1234',confirmation:'1234',expectedRevision:0});
  const pinPlan=plan('pin',await computer.projectStatus(iid,pid),1);
  await assert.rejects(phone.reservations.reserve(pinPlan,'2345'),{code:'LF_P0B_PIN_INCORRECT'});
  assert.equal((await phone.reservations.inspect(iid,pid)).marker.active,false);

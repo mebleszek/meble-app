@@ -1,5 +1,5 @@
 import {copy,digest,equal,fail,id,json} from './local-first-values.mjs';
-import {quoteReservationRequest,releasedQuoteReservation,validateQuoteReservationIntent,validateQuoteReservationMarker,validateQuoteReservationRequest,verifyQuoteReservation} from './quote-reservation-contract.mjs';
+import {quoteReservationEditor,quoteReservationMarker,quoteReservationRequest,releasedQuoteReservation,validateQuoteReservationIntent,validateQuoteReservationMarker,validateQuoteReservationRequest,verifyQuoteReservation} from './quote-reservation-contract.mjs';
 
 const prefix='quote-reservation:';
 const grantPrefix='quote-grant:';
@@ -124,6 +124,44 @@ export function quoteReservationJournal({transaction,ownerUid,deviceId}){
     const encoded=json({version:1,expected,observed}),archive={key,scope:expected.intent.projectId,json:encoded,hash:await digest(encoded)};
     return update(expected,{key,localConfirmed:true},assertAccess,archive);
   }
+  async function acknowledgeQuoteReservationLoss({expected,observed,assertAccess}){
+    validate(expected);
+    if(!observed.marker)return false;
+    const {intent}=expected,room=observed.status?.editor;
+    const next=observed.marker;
+    validateQuoteReservationMarker(next);
+    let receipt=expected.receipt;
+    if(!receipt){
+      if(expected.sent===false)return false;
+      const granted=intent.mode==='request'&&observed.request?.token===intent.token
+        &&observed.request.state==='released'?{...observed.request,state:'granted'}:null;
+      if(intent.mode==='request'?!granted:next.token!==intent.token||next.active)return false;
+      const revision=granted?granted.revision:next.revision;
+      const status={editor:quoteReservationEditor(intent,revision),revision};
+      const marker=quoteReservationMarker(intent,revision);
+      receipt={...verifyQuoteReservation(intent,status,marker,granted??undefined),request:granted};
+    }
+    const {status,marker,request}=receipt;
+    if(room?.ownerUid!==ownerUid||room.investorId!==marker.investorId||room.projectId!==marker.projectId
+      ||next.ownerUid!==room.ownerUid||next.investorId!==room.investorId||next.projectId!==room.projectId
+      ||!Number.isSafeInteger(room.epoch)||room.epoch<next.epoch)return false;
+    if(next.active&&(!room.active||room.epoch!==next.epoch||room.deviceId!==next.deviceId
+      ||room.deviceLabel!==next.deviceLabel||observed.status.revision!==next.revision))return false;
+    if(observed.request)validateQuoteReservationRequest(observed.request);
+    if(request&&!observed.request||observed.request?.token===marker.token
+      &&(!request||!equal(observed.request,{...request,state:'released'})))return false;
+    const released=releasedQuoteReservation(status,marker);
+    const exactRelease=equal(next,released.marker)
+      &&(room.epoch>marker.epoch||equal(observed.status,released.status));
+    const replaced=next.token!==marker.token&&next.epoch>marker.epoch;
+    if(!exactRelease&&!replaced)return false;
+    // Keep any unresolved publication and its original proof in the outbox.
+    // The publisher must still resolve an exact ACK or refuse the old epoch.
+    const key='quote-reservation-receipt:'+id(expected.intent.operationId)+':'+marker.projectId;
+    const encoded=json({version:1,expected,observed,outcome:'released-or-superseded'});
+    await update(expected,{key,localConfirmed:true},assertAccess,{key,scope:marker.projectId,json:encoded,hash:await digest(encoded)});
+    return true;
+  }
   async function abandonQuoteReservation({expected,observed,assertAccess}){
     validate(expected);
     const {intent}=expected,previous=intent.expected;
@@ -221,5 +259,5 @@ export function quoteReservationJournal({transaction,ownerUid,deviceId}){
     },scope);
   }
   return {stageQuoteReservation,pendingQuoteReservations,markQuoteReservationSent,cancelUnsentQuoteReservation,confirmQuoteReservation,beginQuoteReservationRelease,finishQuoteReservation,
-    abandonQuoteReservation,pendingQuoteGrant,pendingQuoteGrants,stageQuoteGrant,finishQuoteGrant};
+    abandonQuoteReservation,acknowledgeQuoteReservationLoss,pendingQuoteGrant,pendingQuoteGrants,stageQuoteGrant,finishQuoteGrant};
 }
