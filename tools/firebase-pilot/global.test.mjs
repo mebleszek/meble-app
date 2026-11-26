@@ -106,6 +106,22 @@ test('Identical additive catalog updates from two devices are one publication; d
  const simultaneous=await Promise.all([a.globals.publish(plans[0].handle),b.globals.publish(plans[1].handle)]);
  assert.ok(simultaneous.every(r=>r.ok),JSON.stringify(simultaneous));assert.deepEqual(simultaneous[0].head,simultaneous[1].head);
  assert.equal((await documents(a.uid,'globalRevisions')).length,revisions+2);assert.deepEqual((await b.globals.read()).model,together);
+ // Deterministically model a Rules denial delivered after another identical
+ // attempt has committed our exact head. Recognition must not repeat a write.
+ let headWrites=0;
+ const denied={...f,async runTransaction(db,operation,options){let wrote=false;
+  const result=await f.runTransaction(db,tx=>operation(new Proxy(tx,{get(target,key){
+   if(key==='set')return(ref,data)=>{if(ref.path.endsWith('/globalData/current')){wrote=true;headWrites++;}return target.set(ref,data);};
+   const value=target[key];return typeof value==='function'?value.bind(target):value;
+  }})),options);
+  if(wrote)throw Object.assign(Error('synthetic identical publication Rules denial'),{code:'permission-denied'});return result;
+ }};
+ const exact=a.r.FC.firebaseGlobalTransport.fromConnection({...a.connection,firestore:denied});
+ const last=clone(together);last.stock[0].qty+=1;
+ const staged=await exact.prepare({model:last,expectedHead:simultaneous[0].head,idempotentPublication:true});assert.ok(staged.ok);
+ const recognized=await exact.publish(staged.handle);assert.equal(recognized.ok,true,JSON.stringify(recognized));assert.equal(headWrites,1,'An independently confirmed exact head is ACK, never a retry of the write');
+ assert.equal((await documents(a.uid,'globalRevisions')).length,revisions+3);assert.deepEqual((await b.globals.read()).model,last);
+ await exact.close();
 });
 test('Additive LOCAL-FIRST catalog recovers staging/SIGKILL/ACK and preserves a newer conflicting head',async()=>{
  const {createGlobalChannel,createDurableSynchronizer}=await import('../../sync/local-first-sync.mjs');

@@ -61,7 +61,7 @@ function loadContext(opts){
       decodeMaterialScope(){ return { kind:'all' }; }
     }
   };
-  const projectData = { kuchnia:{ settings:{ legHeight:0 }, cabinets:[], fronts:[], sets:[] } };
+  const projectData = { kuchnia:{ settings:{ legHeight:10 }, cabinets:[], fronts:[], sets:[] } };
   const ctx = {
     window:{ FC, localStorage:storage, projectData },
     FC,
@@ -133,7 +133,7 @@ function setSelectedCabinets(ctx, cabinets){
     frontCount:3, frontMaterial:'laminat', frontColor:'biały', openingSystem:'uchwyt',
     details:{ drawerHeight:20 }
   };
-  ctx.window.projectData.kuchnia.settings.legHeight = 0;
+  ctx.window.projectData.kuchnia.settings.legHeight = 10;
   setSelectedCabinets(ctx, cab);
   const doorPanels = FC.frontHardware.getDoorFrontPanelsForHinges('kuchnia', cab);
   assert(doorPanels.length === 2, 'Szuflada+drzwi z legacy frontCount=3 ma mieć 2 panele zawiasowe, nie 3', doorPanels);

@@ -207,17 +207,23 @@ test('repair: legacy workshop shelf norms never suppress independent on-site pla
     assert.equal(JSON.stringify(r.rates()),catalogBytes);assert.equal(JSON.stringify(manual),assignmentBytes);assert.equal(JSON.stringify(cab),cabinetBytes);
   }
 });
-test('repair: missing and resolved leg/hanger products preserve requirements and real symbols',()=>{
+test('Missing or generic support products refuse; exact AXILO/CAMAR components preserve symbols and quantities',()=>{
   const r=fixture(),{FC,cab}=r;
+  FC.wycenaCoreSelection.createQuoteValidationError=(code,title,message)=>Object.assign(Error(message),{code,title});
   for(const kind of ['leg','hanger']){
     cab.type=kind==='leg'?'stojąca':'wisząca';
     FC.catalogStore={getAccessories:()=>[]};
-    let rows=FC.wycenaCoreLines.collectAccessories(['kuchnia']).filter(d=>d.hardwareRequirement?.kind===kind);
-    assert.equal(rows.length,1);assert.ok(rows[0].qty>0);assert.equal(rows[0].resolvedHardwareSymbol,'');assert.equal(rows[0].resolvedHardwareItemId,'');assert.ok(rows[0].warnings.length>0);assert.equal(rows[0].total,0);
+    const refused=()=>assert.throws(()=>FC.wycenaCoreLines.collectAccessories(['kuchnia']),error=>error.code==='opening_hardware_unresolved');
+    refused();
     const product={id:'private-'+kind,name:kind==='leg'?'Nóżka regulowana':'Zawieszka szafki',symbol:'REAL-'+kind,hardwareCategory:'Akcesoria',hardwareUnit:'szt.',price:7,status:'active'};
     FC.catalogStore={getAccessories:()=>[product]};
-    rows=FC.wycenaCoreLines.collectAccessories(['kuchnia']).filter(d=>d.hardwareRequirement?.kind===kind);
-    assert.equal(rows.length,1);assert.equal(rows[0].resolvedHardwareSymbol,product.symbol);assert.equal(rows[0].resolvedHardwareItemId,product.id);near(rows[0].total,rows[0].qty*7);assert.equal(rows[0].warnings.length,0);
+    refused();
+    const requirements=FC.cabinetHardwareRequirements.getSupportRequirements('kuchnia',cab);
+    const products=requirements.map(req=>({id:req.catalogItemId,name:req.label,symbol:req.expectedSymbol,manufacturer:req.expectedManufacturer,hardwareCategory:req.category,hardwareUnit:req.expectedUnit,price:7,status:'active'}));
+    FC.catalogStore={getAccessories:()=>products};
+    const rows=FC.wycenaCoreLines.collectAccessories(['kuchnia']).filter(d=>['leg','hanger','hanger-cover'].includes(d.hardwareRequirement?.kind));
+    assert.equal(rows.length,requirements.length);
+    for(const req of requirements){const row=rows.find(row=>row.resolvedHardwareItemId===req.catalogItemId);assert.ok(row);assert.equal(row.resolvedHardwareSymbol,req.expectedSymbol);assert.equal(row.qty,req.qty);near(row.total,row.qty*7);assert.equal(row.warnings.length,0);}
   }
 });
 function main(){const split=require('./ci-test-parts').select(9);let executed=0;for(const[index,[name,fn]]of tests.entries()){if(!split.includes(index))continue;fn();executed++;console.log('PASS '+name);}split.verify(executed,tests.length);console.log(`WYCENA-LABOR norms: ${executed}/${split.expected(tests.length)} PASS`);}

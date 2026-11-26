@@ -103,6 +103,7 @@
     if(cfg.nativeCalculation){
       const nativeBoard=FC.catalogSelectors.getSheetMaterials().find(row=>row.materialType==='laminat').name;
       Object.values(projectData).filter(room=>room && Array.isArray(room.cabinets)).forEach(room=>{
+        room.settings=Object.assign({legHeight:10},room.settings);
         room.cabinets=room.cabinets.map(cabinet=>Object.assign({type:'stojąca',subType:'standardowa',width:60,height:80,depth:50,bodyColor:nativeBoard,frontMaterial:'laminat',frontColor:nativeBoard,backMaterial:'HDF 3mm biała',frontCount:2,details:{shelves:2}},cabinet));
       });
     }

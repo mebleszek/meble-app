@@ -525,7 +525,7 @@
     const supplierSeed = Array.isArray(seeds.hardwareSuppliers) ? seeds.hardwareSuppliers : readList('hardwareSuppliers', DEFAULT_HARDWARE_SUPPLIERS);
     let hardwareSuppliers = normalizeHardwareSuppliers(supplierSeed);
     if(FC.hardwareDrawerCatalog?.seedDependencies){
-      const dependencies=FC.hardwareDrawerCatalog.seedDependencies({definitions:hardwareTechnicalParams,defaultDefinitions:DEFAULT_HARDWARE_TECHNICAL_PARAMS,suppliers:hardwareSuppliers,defaultSuppliers:DEFAULT_HARDWARE_SUPPLIERS});
+      const dependencies=FC.hardwareDrawerCatalog.seedDependencies({definitions:hardwareTechnicalParams,defaultDefinitions:DEFAULT_HARDWARE_TECHNICAL_PARAMS,suppliers:hardwareSuppliers,defaultSuppliers:DEFAULT_HARDWARE_SUPPLIERS,seedRows:hardwareSeeds?.ACCESSORY_SEEDS});
       hardwareTechnicalParams=dependencies.definitions;hardwareSuppliers=dependencies.suppliers;
     }
     currentHardwareSettings = Object.assign({}, hardwareSettings, { hardwareSuppliers, hardwareCategories, hardwareTypes, hardwareTechnicalParams });

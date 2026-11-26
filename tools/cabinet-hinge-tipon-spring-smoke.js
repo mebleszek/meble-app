@@ -103,6 +103,8 @@ async function runDynamicCascadeUsesKeyFeaturesCheck(){
       if(title.includes('klas') || title.includes('zakres')) return 'standardowy 90–120°';
       if(title.includes('hamulec')) return 'false';
       if(title.includes('sprężyn')) return 'false';
+      if(title.includes('forma prowadnika')) return 'krzyżowy';
+      if(title==='Doprecyzuj wymaganie kompletu zawiasowego') return cfg.options[0].value;
       return null;
     }
   };

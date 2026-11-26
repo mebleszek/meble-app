@@ -179,7 +179,7 @@
         // aborted. Classify only after a fresh, independently authorized read;
         // do not retry the write or reinterpret a revoked grant as a conflict.
         if(a&&phase==='publication'&&e?.code==='permission-denied'){
-          try{const head=await remoteHead();if(!equal(head,a.base)&&!equal(head,a.head))e={code:'GLOBAL_WRITE_CONFLICT'};}catch(_){ }
+          try{const head=await remoteHead();if(equal(head,a.head))return await confirm(handle);if(!equal(head,a.base))e={code:'GLOBAL_WRITE_CONFLICT'};}catch(_){ }
         }
         const uncertain=phase==='publication'||phase==='confirmation'||a?.state==='unconfirmed';if(a&&uncertain)a.state=e?.code==='GLOBAL_WRITE_CONFLICT'?'conflict':'unconfirmed';
         return {...error(e),phase,published:a?.state==='published'?true:uncertain?'unconfirmed':false};
