@@ -130,6 +130,8 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    }
    await showList(page);
    await page.locator('[data-action="create-investor"]').filter({visible:true}).first().click();
+   // The form can be rendered before the navigation checkpoint commits.
+   await waitForApplicationIdle(page);
    for(const [key,value]of Object.entries({invName:'P0B new owner',invPhone:'123456789',invCity:'DEMO',invEmail:'p0b@example.invalid',invAddress:'Synthetic',invTransportDistanceKm:'12',invTransportDurationMin:'30',invCarryingFloorNumber:'0'}))await page.locator('#'+key).fill(value);
    await page.locator('#invSourceLaunch button').click();
    await page.locator('.rozrys-choice-modal .rozrys-choice-option:not([disabled])').nth(1).click();

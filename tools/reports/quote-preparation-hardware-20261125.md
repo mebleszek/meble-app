@@ -163,3 +163,9 @@ Po przeniesieniu zmian na aktualny main a092d351769986513e297e87df15bce7273f7f95
 [Pierwszy Preflight](https://github.com/mebleszek/meble-app/actions/runs/45882885771) miał 75 PASS, 6 FAIL i 2 SKIPPED. Pierwotne dwa FAIL to audyt wzrostu WYCENY (602 → 611 linii w module łączącym DOM i localStorage) oraz brak zależności p0b-quote-reservations.mjs w serwerze testu profili. Cztery dalsze FAIL agregowały te wyniki. Próba od Ready zakończyła się po 8 min 56 s bez scalenia.
 
 Przeniesiono ten sam odczyt wejść kalkulacji do adaptera wyceny. Shell ma 598 linii i nie odczytuje bezpośrednio localStorage. Serwer testowy używa istniejącego resolvera grafu importów dla jawnie wybranych modułów. Audyt architektury nie potrzebuje wyjątku. Static Preflight 784/784 i 366 skryptów, kontekst 17/17, deduplikacja ofert, inwentarz CI i dwa testy Chromium/DEMO są PASS. Log `pr172-1405-fix.log` pokazuje PASS profili (utrata ACK, restart, ochrona danych) i PASS wyceny offline po SIGKILL/restart.
+
+### Preflight #1406 i naprawa na gałęzi PR #172
+
+[Drugi Preflight](https://github.com/mebleszek/meble-app/actions/runs/45887443917) miał 73 PASS, 8 FAIL i 2 SKIPPED. Kontrola statyczna i profile przeszły. Shardy 2, 13 i 15 używały wspólnej konfiguracji VM bez adaptera danych wyceny. `normal-clean` próbował zapisać inwestora przed zatwierdzeniem operacji otwarcia formularza i otrzymał `LF_APPLICATION_BUSY`. Cztery dalsze FAIL wynikały z bramek zależnych od tych zadań. Czas od Ready do zakończenia 7 min 34 s.
+
+Testy VM ładują istniejący adapter przed shellem. Test dwóch profili oczekuje na istniejący kontrakt gotowości przed uzupełnieniem formularza, bez ponawiania zapisu. Adaptery RED 26/28 → GREEN 28/28, aktywacja PCV 60/60, zapis PCV i wycena 12/12. Pełny `normal-clean` w Chromium i Firebase DEMO PASS 1/1 w 321,884 s (`pr172-1406-fix.log`). Inwentarz 234 plików smoke, 265 jednostek w 36 grupach zachowany. Oczekuje na pełne CI i kontrolę Pages.

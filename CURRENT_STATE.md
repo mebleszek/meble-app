@@ -24,6 +24,8 @@
 
 **Naprawa PR #172 po Preflight #1405:** CI zatrzymały dwie niezależne przyczyny. Odczyt danych wejściowych przeniesiono z renderującego modułu WYCENY do istniejącego adaptera danych. Shell ma 598 linii, bez bezpośredniego odczytu localStorage. Serwer testu profili wylicza pełny graf importów z jawnych punktów wejścia protokołu. Audyt wzrostu bez wyjątków, statyka, wersje, manifest, 17/17 kontroli kontekstu, blokada duplikatów i oba celowane testy Chromium/DEMO przeszły. Przed kolejną próbą obowiązuje pełne CI i weryfikacja Pages.
 
+**Naprawa PR #172 po Preflight #1406:** kontrola statyczna i profile przeszły. Trzy zadania smoke nie ładowały adaptera danych w tej samej konfiguracji VM. Ścieżka DEMO próbowała zapisać inwestora przed potwierdzeniem operacji otwarcia formularza. Testy ładują adapter w kolejności aplikacji i oczekują na istniejące potwierdzenie gotowości. Weryfikacja lokalna: adaptery 28/28, aktywacja PCV 60/60, zapis PCV i WYCENA 12/12, pełny scenariusz `normal-clean` w Chromium i Firebase DEMO 1/1. Wymagane testy i asercje zachowano. Wydanie oczekuje na pełne CI i kontrolę Pages.
+
 ## Rysunek 2D — pierwszy pakiet, 26.11.2026
 
 - **USTALONE:** właściciel polecił zastąpić poprzedni edytor nowym RYSUNKIEM 2D zgodnym z zaakceptowanymi grafikami. Pierwszy pakiet obejmuje układ ścian i szafek oraz zapis w pomieszczeniu. Na komputerze panel po prawej, na telefonie u dołu. Gałąź `feat/rysunek-2d-layout`, baza `a1fbd18b16068d3bac563797f7873269c8a86ddc`.
