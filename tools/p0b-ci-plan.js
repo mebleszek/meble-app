@@ -4,7 +4,7 @@ const fs=require('node:fs'),path=require('node:path');
 const groups=Object.freeze([
  {id:'startup-draft-recovery',file:'p0b-normal-application.test.mjs',pattern:'^P0-B startup draft:'},
  {id:'quote-access-contract',file:'p0b-quote-access.test.mjs',pattern:'^P0-B quote access:',emulator:false},
- {id:'manual-sync-quote',file:'p0b-normal-application.test.mjs',pattern:'^P0-B manual quote: header'},
+ {id:'manual-sync-quote',file:'p0b-normal-application.test.mjs',pattern:'^P0-B manual quote: (header|reservation through room selection)'},
  {id:'manual-quote-restart',file:'p0b-normal-application.test.mjs',pattern:'^P0-B manual quote: SIGKILL'},
  {id:'quote-receiver-variant',file:'p0b-normal-application.test.mjs',pattern:'^P0-B phone quote flow: fresh receiver'},
  {id:'quote-remove-overlap',file:'p0b-normal-application.test.mjs',pattern:'^P0-B phone quote flow: calculate overlaps'},

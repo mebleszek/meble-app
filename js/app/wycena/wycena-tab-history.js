@@ -75,6 +75,10 @@
     // A failed new calculation must remain visible even when a historical offer
     // is selected or the project status normally prefers the latest final offer.
     if(state.lastQuote && state.lastQuote.error) return state.lastQuote;
+    if(state.lastQuote?.meta?.offlineUnconfirmed && state.lastQuote.investor.id===FC.investors.getCurrentId()){
+      const projectId=FC.projectStore.getCurrentProjectId();
+      if(state.lastQuote.project.id===projectId || state.lastQuote.scope.selectedRooms.includes(projectId))return state.lastQuote;
+    }
     const history = deps.getSnapshotHistory();
     const selected = history.find((row)=> deps.isSelectedSnapshot(row)) || null;
     const firstActive = history.find((row)=> !deps.isArchivedPreliminary(row, history, getProjectStatusForHistory(history, deps))) || history[0] || null;
@@ -147,8 +151,32 @@
     diagRender('history:render-input', { historyCount:Array.isArray(history) ? history.length : 0, activeId:String(activeId || ''), projectStatus:String(projectStatus || ''), currentQuote:snapSummary(currentQuote, deps), rows:(Array.isArray(history) ? history : []).slice(0, 8).map((row)=> snapSummary(row, deps)) });
     const section = deps.h('section', { class:'card quote-section', style:'margin-top:12px;padding:14px;' });
     section.appendChild(deps.h('h4', { text:'Historia wycen', style:'margin:0 0 10px' }));
+    const offline = FC.roomQuoteAccess, investorId = FC.investors?.getCurrentId(), projectId = FC.projectStore?.getCurrentProjectId();
+    let emptyHistory;
+    if(typeof offline?.offlineHistory==='function' && investorId && projectId){
+      const local = deps.h('div', {class:'quote-history'});
+      section.appendChild(local);
+      void offline.offlineHistory(investorId,projectId).then(rows=>{
+        if(!section.isConnected || offline!==FC.roomQuoteAccess)return;
+        if(rows.length && emptyHistory)emptyHistory.textContent='Brak potwierdzonych ofert dla tego projektu.';
+        for(const quote of rows.slice(0,8)){
+          const item=deps.h('article',{class:'quote-history__item'});
+          item.appendChild(deps.h('span',{text:(quote.commercial?.versionName||'Wycena')+' · Lokalna, niepotwierdzona'}));
+          const preview=deps.h('button',{class:'btn',type:'button',text:'Podgląd'});
+          preview.addEventListener('click',()=>{
+            if(offline!==FC.roomQuoteAccess||FC.investors.getCurrentId()!==investorId||FC.projectStore.getCurrentProjectId()!==projectId)return;
+            deps.setState({lastQuote:quote,previewSnapshotId:'',shouldScrollToPreview:true});
+            deps.render(ctx);
+          });
+          item.appendChild(preview);local.appendChild(item);
+        }
+      }).catch(error=>{
+        if(section.isConnected&&offline===FC.roomQuoteAccess)local.appendChild(deps.h('div',{class:'muted',text:'Nie można odczytać lokalnych wycen. '+String(error.code||'LF_LOCAL_UNCONFIRMED')}));
+      });
+    }
     if(!history.length){
-      section.appendChild(deps.h('div', { class:'muted', text:'Brak zapisanych wersji oferty dla tego projektu.' }));
+      emptyHistory=deps.h('div', { class:'muted', text:'Brak zapisanych wersji oferty dla tego projektu.' });
+      section.appendChild(emptyHistory);
       card.appendChild(section);
       diagRender('history:render-empty', { activeId:String(activeId || ''), projectStatus:String(projectStatus || '') });
       return;

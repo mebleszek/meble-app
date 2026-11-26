@@ -17,8 +17,11 @@ import {assertApplicationRelease,applicationP0BMode} from './application-release
 import {installLocalInvestorDeletion} from './application-investor-delete.mjs';
 import {copy,equal,assertEmulator,fail,safeError} from './local-first-values.mjs';
 export function startNormalEmulatorApplication(options){return startApplicationRuntime(options);}
-export async function startApplicationRuntime({window:w,writer,reader,name,ownerUid,boot,release:deployment,localOnly=false,firstCatalogSync=false,p0bDemo=false,emulatorCatalogWitness,onStage=()=>{},onDiagnostic=()=>{},onFailureQuiescent=()=>{}}){
+export async function startApplicationRuntime({window:w,writer,reader,name,ownerUid,boot,release:deployment,localOnly=false,firstCatalogSync=false,p0bDemo=false,quoteReservationCandidate=false,emulatorCatalogWitness,onStage=()=>{},onDiagnostic=()=>{},onFailureQuiescent=()=>{}}){
  const fc=w.FC,p0bEnabled=applicationP0BMode({release:deployment,window:w,name,ownerUid,p0bDemo,localOnly});
+ if(quoteReservationCandidate&&(!p0bEnabled||!/^meble-lf-test-/.test(name)
+  ||!['127.0.0.1','localhost'].includes(w.location.hostname)||writer&&writer.db.app.options.projectId!=='demo-meble-app'))
+  fail('LF_EMULATOR_REQUIRED');
  if(emulatorCatalogWitness&&(assertApplicationRelease(deployment).projectId!=='demo-meble-app'||writer?.db.app.options.projectId!=='demo-meble-app'))fail('LF_EMULATOR_REQUIRED');
  if(localOnly&&(writer||reader||!boot?.localOnly))fail('LF_LOCAL_MODE_REQUIRED');
  if(writer){const a=assertApplicationConnection(writer),b=assertApplicationConnection(reader);if(a.uid!==ownerUid||b.uid!==ownerUid||writer.db.app===reader.db.app)fail('LF_INDEPENDENT_OWNER_REQUIRED');}
@@ -36,7 +39,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   const c=fc.globalDataContract,p=fc.businessProjectContract;
   const emptyP0BGlobals=p0bEnabled&&Object.values(c.sources).flat().every(key=>boot.p0bSource?.[key]==null)&&boot.p0bSource?.fc_materials_v1==null;
   let globals=writer?createGlobalChannel({writer,reader,ownerUid,contract:c,factory:fc.firebaseGlobalTransport,store}):null;
-  if(p0bEnabled)p0b=await createP0BRuntime({window:w,writer,reader,store,getAuthority:()=>authority,getSync:()=>sync,getGlobals:()=>globals,backupKeys:boot.backupKeys,onError:error=>state(safeError(error),error)});
+  if(p0bEnabled)p0b=await createP0BRuntime({window:w,writer,reader,store,getAuthority:()=>authority,getSync:()=>sync,getGlobals:()=>globals,quoteReservationCandidate,backupKeys:boot.backupKeys,onError:error=>state(safeError(error),error)});
   const channel=record=>p0b?p0b.project(record):createProjectChannel({writer,reader,ownerUid,deviceId:store.deviceId,projectId:record.id,investorId:record.investorId,
    pilotContract:fc.cloudPilotContract,pilotFactory:fc.firebasePilotTransport,globalContract:c,projectContract:p,globals});
   const channels=[globals];
@@ -64,8 +67,9 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   const handovers=createApplicationHandover({store,getSync:()=>sync,online:()=>!closed&&w.navigator.onLine!==false,onError:error=>state(safeError(error),error)});
   async function ensureEditor(scope=w.localStorage.getItem('fc_current_project_id_v1'),{reopen=false}={}){
    if(!scope)fail('LF_PROJECT_CHANNEL_REQUIRED');
-   if(p0b){const record=JSON.parse((await store.readApplication()).rows.fc_projects_v1||'[]').find(row=>row.id===scope);if(!record||record.investorId!==w.localStorage.getItem('fc_current_investor_v1'))fail('LF_APPLICATION_SCOPE_REFUSED');fc.roomProjectModel.validate(record);if(record.meta.roomProject.removed)fail('LF_ROOM_PROJECT_REMOVED');}
-   if(p0b){if(await store.retired(scope))fail('LF_P0B_SCOPE_RETIRED');if(p0b.isLost(scope))fail('LF_EDITOR_RECOVERY_BLOCKED');await p0b.ensureNewProject(scope);}
+   if(p0b){const record=JSON.parse((await store.readApplication()).rows.fc_projects_v1||'[]').find(row=>row.id===scope);if(!record||record.investorId!==w.localStorage.getItem('fc_current_investor_v1'))fail('LF_APPLICATION_SCOPE_REFUSED');fc.roomProjectModel.validate(record);if(record.meta.roomProject.removed)fail('LF_ROOM_PROJECT_REMOVED');
+    if(await store.retired(scope))fail('LF_P0B_SCOPE_RETIRED');if(p0b.isLost(scope))fail('LF_EDITOR_RECOVERY_BLOCKED');await p0b.ensureNewProject(scope);
+    if(quoteReservationCandidate)await p0b.assertEditable(record.investorId,scope,{reopen});}
    if(localOnly){const localRows=authority?authority.rows():(await store.readApplication()).rows;if(!JSON.parse(localRows.fc_projects_v1||'[]').some(p=>p.id===scope))fail('LF_PROJECT_CHANNEL_REQUIRED');return;}
    if(await store.pendingQuoteRelease(scope))fail('LF_QUOTE_RELEASE_PENDING');
    if(await store.pendingProjectRecovery(scope))fail('LF_PROJECT_RECOVERY_PENDING');
@@ -199,7 +203,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    if(!scope)return;
    void (async()=>{if(p0b&&await store.retired(scope)){sync?.discover();return;}await handovers.start(scope);})().catch(error=>state(safeError(error),error));
   }
-  wakeHandovers=()=>{if(!closed){void handovers.resume(projectScopes());if(p0b)void p0b.resume().catch(error=>state(safeError(error),error));}};
+  wakeHandovers=()=>{if(!closed){void handovers.resume(projectScopes());if(p0b){p0b.reservationsSynced?.();void p0b.resume().catch(error=>state(safeError(error),error));}}};
   if(writer){const result=await sync.flush({forceProjects:false});if(!result.ok)state(result);
    await handovers.resume(projectScopes());
   }
@@ -215,7 +219,8 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
    fc.localDeviceLabel=createLocalDeviceLabel({storage:w.localStorage,deviceId:store.deviceId,navigator:w.navigator,assertAccess(){
     if(closed)fail('LF_CLOSED');w.__FC_MAIN_ACCESS__.assert();
    }});
-   boundary=installApplicationWriteBoundary({window:w,authority,ensureEditor,localOnly,registry:p0bEnabled?'p0b-rooms-v1':undefined,onExit:deferHandover,preflightAcceptance:p0b?.preflightAcceptance});
+   boundary=installApplicationWriteBoundary({window:w,authority,ensureEditor,localOnly,registry:p0bEnabled?'p0b-rooms-v1':undefined,onExit:deferHandover,preflightAcceptance:p0b?.preflightAcceptance,
+    onNavigation:()=>p0b?.reservationsViewChanged?.()});
    manualSync=installManualSync({window:w,getSync:()=>sync,boundary,assertAccess:()=>{if(closed)fail('LF_CLOSED');w.__FC_MAIN_ACCESS__.assert();}});
    if(localOnly)deletion=installLocalInvestorDeletion({window:w,store,authority,boundary});
    fc.applicationSyncActions.install(createApplicationActionBinding({window:w,authority,onExit:deferHandover,onClose:()=>{closed=true;sync?.close();deletion?.close();p0b?.close();manualSync?.close();boundary.close();}}));
@@ -238,7 +243,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     if(p0bEnabled){assertP0BConnection(next.writer);assertP0BConnection(next.reader);}
     const wasClosed=closed;await sync?.close();p0b?.close();verifiedEditors.clear();writer=next.writer;reader=next.reader;authority.resume(ownerUid);closed=false;if(authority.status().incomingPending)await authority.refresh();
     globals=createGlobalChannel({writer,reader,ownerUid,contract:c,factory:fc.firebaseGlobalTransport,store});
-    if(p0bEnabled)p0b=await createP0BRuntime({window:w,writer,reader,store,getAuthority:()=>authority,getSync:()=>sync,getGlobals:()=>globals,backupKeys:boot.backupKeys,onError:error=>state(safeError(error),error)});
+    if(p0bEnabled)p0b=await createP0BRuntime({window:w,writer,reader,store,getAuthority:()=>authority,getSync:()=>sync,getGlobals:()=>globals,quoteReservationCandidate,backupKeys:boot.backupKeys,onError:error=>state(safeError(error),error)});
     const channels=[globals,...JSON.parse(authority.rows().fc_projects_v1||'[]').map(channel)];
     sync=createApplicationReplication({store,channels,globalContract:c,projectContract:p,summarizeLocal:fc.projectModel?.summarizeProjectData,eventTarget:w,quota:writer.quota,ownsChannels:true,online:()=>!closed&&w.navigator.onLine!==false,onState:state,
      projectRows:p0b?.projectRows,discovery:p0b?.discovery||createEmulatorProjectDiscovery({writer,reader,ownerUid,deviceId:store.deviceId,pilotContract:fc.cloudPilotContract,pilotFactory:fc.firebasePilotTransport,globalContract:c,projectContract:p,globals}),

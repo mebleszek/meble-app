@@ -1,3 +1,4 @@
+import {roomReservationCase} from './quote-room-reservation.cases.mjs';
 import {startupDraftCase} from './p0b-startup-draft.cases.mjs';
 import {observeQuoteReads,assertQuoteReadBudget} from './p0b-quote-read-budget.mjs';
 import {quoteRouteRequestCase} from './quote-route-request.cases.mjs';
@@ -77,7 +78,7 @@ async function addCabinet(device,width,drawer){
  await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
 }
 async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteReadBudget=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,quoteRemoval=false,quoteFilm=false,manualQuote=false,startupDraft=false,accessResume=false,presenceReconnect=false,p1=false}={}){
- await runNormalApplication(t,{deployment,p0bRegistry:true,factoryLabor:p1==='tab-save'||deployment&&quoteReadBudget,realMainAuth:presenceReconnect,testOwner:startupDraft?'synthetic-startup-draft-owner':manualQuote?'synthetic-manual-quote-'+manualQuote+'-owner':quoteFilm?'synthetic-phone-flow-'+quoteFilm+'-owner':quoteRemoval?'synthetic-quote-removal-'+quoteRemoval+'-owner':presenceReconnect?'synthetic-presence-reconnect-owner':accessResume?'synthetic-background-owner':quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
+ await runNormalApplication(t,{deployment,p0bRegistry:true,factoryLabor:p1==='tab-save'||deployment&&quoteReadBudget,currentFactoryCatalogs:['offline-quote','reservation'].includes(p1),quoteReservationCandidate:p1==='reservation',realMainAuth:presenceReconnect,testOwner:startupDraft?'synthetic-startup-draft-owner':manualQuote?'synthetic-manual-quote-'+manualQuote+'-owner':quoteFilm?'synthetic-phone-flow-'+quoteFilm+'-owner':quoteRemoval?'synthetic-quote-removal-'+quoteRemoval+'-owner':presenceReconnect?'synthetic-presence-reconnect-owner':accessResume?'synthetic-background-owner':quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
   const artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'meble-p0b-normal-'));
   await phone.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
   try{
@@ -129,6 +130,8 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    }
    await showList(page);
    await page.locator('[data-action="create-investor"]').filter({visible:true}).first().click();
+   // The form can be rendered before the navigation checkpoint commits.
+   await waitForApplicationIdle(page);
    for(const [key,value]of Object.entries({invName:'P0B new owner',invPhone:'123456789',invCity:'DEMO',invEmail:'p0b@example.invalid',invAddress:'Synthetic',invTransportDistanceKm:'12',invTransportDurationMin:'30',invCarryingFloorNumber:'0'}))await page.locator('#'+key).fill(value);
    await page.locator('#invSourceLaunch button').click();
    await page.locator('.rozrys-choice-modal .rozrys-choice-option:not([disabled])').nth(1).click();
@@ -185,6 +188,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    }
    if(presenceReconnect){await presenceReconnectCase({t,phone,computer,iid,pid,wardrobeId,image,rows,until,db,ownerUid,saveProject,showList,projects,openRoom,restartProbe,globalBefore});return;}
    if(accessResume){await accessResumeCase({t,phone,computer,iid,pid,wardrobeId,image,rows,until,db,ownerUid,saveProject,showList,restartProbe,globalBefore});return;}
+   if(p1==='reservation'){await roomReservationCase({t,phone,computer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,globalBefore,saveProject,addCabinet});return;}
    if(p1==='tab-save'){await tabSaveCase({t,phone,computer,iid,pid,wardrobeId,until,image,rows,openRoom,addCabinet,restartProbe,artifacts});return;}
    if(p1){await batchingCase({t,phone,computer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,showList,openRoom,addCabinet,saveProject,restartProbe,globalBefore},{idle:p1==='idle',quoteOnly:p1==='quote',offlineQuote:p1==='offline-quote'});return;}
    await Promise.all([saveProject(page),saveProject(computer.page)]);
@@ -658,3 +662,5 @@ test('P0-B manual quote: header Sync and explicit historical pricing with PIN re
 test('P0-B manual quote: SIGKILL after server release resumes the durable intent without duplication',t=>cleanApplication(t,{deployment:true,quoteProbe:true,manualQuote:'crash'}));
 
 test('P0-B startup draft: cold desktop restart with empty native catalogs preserves durable room after takeover',t=>cleanApplication(t,{deployment:true,startupDraft:true}));
+
+test('P0-B manual quote: reservation through room selection, peer decision and publication',t=>cleanApplication(t,{p1:'reservation'}));

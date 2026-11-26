@@ -1,0 +1,108 @@
+    // DEMO prototype. These singleton documents belong to one independent room.
+    // reservation: version, owner/investor/project/device identities, epoch,
+    // device label, exact published revision, token and active flag.
+    // request: immutable requester/active editor/base binding, with a decision
+    // and the exact resulting revision after a confirmed handover.
+    function quoteReservationRef(uid,pid) {
+      return /databases/$(database)/documents/users/$(uid)/localFirstEditors/$(pid)/quoteReservation/current;
+    }
+    function quoteRequestRef(uid,pid) {
+      return /databases/$(database)/documents/users/$(uid)/localFirstEditors/$(pid)/quoteRequest/current;
+    }
+    function quoteReservationToken(value) {
+      return value is string && value.matches('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');
+    }
+    function quoteReservationShape(d,uid,pid) {
+      return d.keys().size() == 10
+        && d.keys().hasOnly(['version','ownerUid','investorId','projectId','deviceId','deviceLabel','epoch','token','revision','active'])
+        && d.version == 1 && d.ownerUid == uid && d.projectId == pid
+        && invId(d.investorId) && invId(d.deviceId) && d.deviceLabel is string && d.deviceLabel.size() <= 64
+        && d.epoch is int && d.epoch > 0 && quoteReservationToken(d.token)
+        && revisionId(d.revision) && d.active is bool;
+    }
+    function quoteReservationActive(uid,pid) {
+      let ref = quoteReservationRef(uid,pid);
+      return exists(ref) && get(ref).data.active;
+    }
+    function quoteReservationAllowsWrite(uid,pid) {
+      let ref = quoteReservationRef(uid,pid);
+      return !quoteReservationActive(uid,pid)
+        && (!existsAfter(ref) || getAfter(ref).data.active == false);
+    }
+    function quoteReservationAllowsEditor(uid,pid,before,after) {
+      let ref = quoteReservationRef(uid,pid);
+      return !quoteReservationActive(uid,pid)
+        || (!after.active && after.deviceId == before.deviceId && after.epoch == before.epoch
+          && getAfter(ref).data.active == false);
+    }
+    function quoteReservationPaired(uid,pid,d) {
+      let before = get(invEditorRef(uid,pid)).data;
+      let after = getAfter(invEditorRef(uid,pid)).data;
+      return before.investorId == d.investorId && after.investorId == d.investorId
+        && after.deviceId == d.deviceId && after.deviceLabel == d.deviceLabel && after.epoch == d.epoch
+        && after.active == d.active && after.headRevision == d.revision
+        && lfHead(uid,pid).currentRevisionId == d.revision
+        && getAfter(invHeadRef(uid,pid)).data.currentRevisionId == d.revision
+        && (d.active ? after.epoch == before.epoch + 1 : (before.active && before.epoch == after.epoch));
+    }
+    function quoteRequestShape(d,uid,pid) {
+      return d.keys().size() == 12
+        && d.keys().hasOnly(['ownerUid','investorId','projectId','requestId','token','requesterDeviceId','requesterDeviceLabel',
+          'editorDeviceId','editorEpoch','baseRevision','state','revision'])
+        && d.ownerUid == uid && d.projectId == pid && invId(d.investorId)
+        && invId(d.requesterDeviceId) && invId(d.editorDeviceId) && d.requesterDeviceId != d.editorDeviceId
+        && d.requesterDeviceLabel is string && d.requesterDeviceLabel.size() <= 64
+        && quoteReservationToken(d.requestId) && quoteReservationToken(d.token)
+        && d.editorEpoch is int && d.editorEpoch > 0 && revisionId(d.baseRevision)
+        && ((d.state in ['pending','declined','cancelled'] && d.revision == '')
+          || (d.state in ['granted','released'] && revisionId(d.revision)));
+    }
+    function quoteRequestStart(uid,pid,d) {
+      let editor = get(invEditorRef(uid,pid)).data;
+      return d.state == 'pending' && !quoteReservationActive(uid,pid)
+        && editor.investorId == d.investorId && editor.deviceId == d.editorDeviceId
+        && editor.epoch == d.editorEpoch && editor.active && invCanPublish(uid,d.investorId,pid)
+        && lfHead(uid,pid).currentRevisionId == d.baseRevision;
+    }
+    function quoteRequestPaired(uid,pid,d,active) {
+      let reservation = getAfter(quoteReservationRef(uid,pid)).data;
+      return reservation.investorId == d.investorId && reservation.token == d.token
+        && reservation.deviceId == d.requesterDeviceId && reservation.deviceLabel == d.requesterDeviceLabel
+        && reservation.epoch == d.editorEpoch + 1 && reservation.revision == d.revision
+        && reservation.active == active && quoteReservationPaired(uid,pid,reservation);
+    }
+    function quoteReservationClosesRequest(uid,pid,d) {
+      let ref = quoteRequestRef(uid,pid);
+      return !exists(ref) || get(ref).data.token != d.token
+        || (get(ref).data.state == 'granted' && getAfter(ref).data.state == 'released'
+          && getAfter(ref).data.token == d.token);
+    }
+    match /users/{uid}/localFirstEditors/{pid}/quoteReservation/current {
+      allow get: if globalApproved(uid) && invId(pid);
+      allow create: if globalApproved(uid) && quoteReservationShape(request.resource.data,uid,pid)
+        && request.resource.data.active && quoteReservationPaired(uid,pid,request.resource.data);
+      allow update: if globalApproved(uid) && quoteReservationShape(request.resource.data,uid,pid)
+        && quoteReservationPaired(uid,pid,request.resource.data)
+        && ((resource.data.active && !request.resource.data.active
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active'])
+          && quoteReservationClosesRequest(uid,pid,request.resource.data))
+          || (!resource.data.active && request.resource.data.active && request.resource.data.epoch > resource.data.epoch));
+      allow list, delete: if false;
+    }
+    match /users/{uid}/localFirstEditors/{pid}/quoteRequest/current {
+      allow get: if globalApproved(uid) && invId(pid);
+      allow create: if globalApproved(uid) && quoteRequestShape(request.resource.data,uid,pid)
+        && quoteRequestStart(uid,pid,request.resource.data);
+      allow update: if globalApproved(uid) && quoteRequestShape(request.resource.data,uid,pid)
+        && ((resource.data.state in ['declined','cancelled','released']
+          && resource.data.requestId != request.resource.data.requestId
+          && resource.data.token != request.resource.data.token && quoteRequestStart(uid,pid,request.resource.data))
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state','revision'])
+            && ((resource.data.state == 'pending'
+              && (request.resource.data.state in ['declined','cancelled']
+                || (request.resource.data.state == 'granted' && quoteRequestPaired(uid,pid,request.resource.data,true))))
+              || (resource.data.state == 'granted' && request.resource.data.state == 'released'
+                && request.resource.data.revision == resource.data.revision
+                && quoteRequestPaired(uid,pid,request.resource.data,false)))));
+      allow list, delete: if false;
+    }

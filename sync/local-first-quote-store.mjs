@@ -5,6 +5,7 @@ import {prepareQuoteStatusRooms,validateQuoteStatusRooms,writeQuoteStatusRooms} 
 import {quoteScope,validateQuoteLedgerChange,validateQuoteGenerationChange,validateQuoteVariantDraftChange,validateQuoteStatusHistoryChange} from './local-first-quote-contract.mjs';
 export async function commitQuoteLedger({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}){
  const {scope,operationId,value,expectedVersion,sourceWitness=[]}=args,application=await prepareApplication(args.application);
+ const reservations=args.reservations==null?null:copy(args.reservations);
  if(!application||scope!==await quoteScope(value?.investorId))fail('LF_QUOTE_LEDGER_INVALID');
  id(operationId);validateQuoteLedgerChange(null,value);
  if(args.generationOnly&&args.rooms?.length)fail('LF_APPLICATION_SCOPE_REFUSED');
@@ -22,6 +23,16 @@ export async function commitQuoteLedger({transaction,prepareApplication,applicat
    const previous=old?JSON.parse(old.json):null;
    if(args.generationOnly===true)validateQuoteGenerationChange(previous,value);
    const newPins=value.offers.filter(row=>!previous?.offers.some(prior=>prior.id===row.id)).flatMap(row=>value.pins[row.id]);
+   if(reservations!==null){
+    const projects=[...new Set(newPins.map(pin=>pin.projectId))];
+    if(!args.generationOnly||!projects.length||!Array.isArray(reservations)||reservations.length!==projects.length
+     ||projects.some(projectId=>{
+      const reservation=reservations.find(row=>row?.intent?.projectId===projectId);
+      return reservation?.phase!=='held'||reservation.intent.investorId!==value.investorId
+       ||reservation.intent.deviceId!==deviceId||!c.result.some(row=>equal(row,reservation))
+       ||newPins.some(pin=>pin.projectId===projectId&&reservation.receipt.status.revision!==pin.head.currentRevisionId);
+     }))fail('LF_QUOTE_RESERVATION_UNCONFIRMED');
+   }
    for(const pin of newPins){const witness=sourceWitness.find(row=>row.key===pin.projectId);if(!witness||!equal(witness.base,pin.head)||JSON.parse(witness.json).document?.integrity?.documentSha256!==pin.documentHash)fail('LF_QUOTE_SOURCE_UNCONFIRMED');}
    for(const witness of sourceWitness){
     const source=r.result.find(row=>row.key===witness.key);
@@ -42,7 +53,8 @@ export async function commitQuoteLedger({transaction,prepareApplication,applicat
     const version=(old?.version||0)+1,previousOperation=ops.sort((a,b)=>b.localVersion-a.localVersion)[0];
     s.replicas.put({key:scope,version,json:encoded,hash,base:old?.base||null,editor:null,dirty:true});
     s.outbox.add({key:operationId,scope,localVersion:version,json:encoded,hash,base:old?.base||null,editor:null,
-     previousOperation:previousOperation?.key||null,applicationHash:application.hash,...(prepared.length?{dependencies:prepared.map(row=>({scope:row.scope,key:row.operationId,hash:row.hash}))}:{}),phase:'queued',blockers:[],expected:null});
+     previousOperation:previousOperation?.key||null,applicationHash:application.hash,...(prepared.length?{dependencies:prepared.map(row=>({scope:row.scope,key:row.operationId,hash:row.hash}))}:{}),
+     ...(reservations?{reservations}:{}),phase:'queued',blockers:[],expected:null});
     s.protected.add({key:operationId,scope,json:protection,hash:protectedHash});
     done({ok:true,localConfirmed:true,cloudConfirmed:false,scope,operationId,version,scopes:[...prepared.map(row=>row.scope),scope]});
    },abort);

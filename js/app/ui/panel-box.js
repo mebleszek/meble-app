@@ -27,6 +27,7 @@
     try{ cur.root.remove(); }catch(_){ }
     try{ document.documentElement.classList.remove('modal-lock'); document.body.classList.remove('modal-lock'); }catch(_){ }
     try{ document.removeEventListener('keydown', cur.onKey, true); }catch(_){ }
+    cur.onClose?.();
   }
 
   function open(opts){
@@ -108,7 +109,7 @@
     });
     box.addEventListener('pointerdown', (e)=> e.stopPropagation());
 
-    active = { root:overlay, onKey, requestClose };
+    active = { root:overlay, onKey, requestClose, onClose:typeof opts.onClose==='function'?opts.onClose:null };
     requestAnimationFrame(()=>{
       try{ overlay.scrollTop = 0; }catch(_){ }
       try{ body.scrollTop = 0; }catch(_){ }

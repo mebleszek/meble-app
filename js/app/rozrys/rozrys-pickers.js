@@ -88,6 +88,7 @@
         else draft.delete(room);
         syncCardState();
         updateFooterState();
+        cfg.onDraftChange?.(nextRooms());
         releaseChipFocus(cb);
         releaseChipFocus(cardNode);
       });
@@ -130,6 +131,7 @@
         if(typeof syncCardState === 'function') syncCardState();
       });
       updateFooterState();
+      cfg.onDraftChange?.(nextRooms());
     });
     exitBtn.addEventListener('click', ()=> FC.panelBox.close());
     cancelBtn.addEventListener('click', async ()=>{
@@ -180,6 +182,7 @@
       width:'820px',
       boxClass:'panel-box--rozrys',
       dismissOnOverlay:false,
+      onClose:cfg.onClose,
       beforeClose: ()=> saving ? false : isDirty() ? (typeof cfg.askConfirm === 'function' ? cfg.askConfirm({
         title:'ANULOWAĆ ZMIANY?',
         message:'Niezapisane zmiany w wyborze pomieszczeń zostaną utracone.',

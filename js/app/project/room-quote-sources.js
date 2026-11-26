@@ -26,9 +26,12 @@
  function cutlist(cabinet,roomId){return FC.cabinetCutlist.getCabinetCutList(cabinet,input(roomId),enabled()?{projectId:roomId,roomId}:undefined);}
  function revision(rooms){return canonical(capture(rooms).projects);}
  function assertRevision(rooms,expected){if(revision(rooms)!==expected)fail('PROJECT_PCV_READ_CONFLICT');}
- async function references(rooms){
+ async function references(rooms,offlineQuote){
   const source=capture(rooms),before=canonical(source.projects);
   const refs=await Promise.all(source.projects.map(async record=>({projectId:record.id,roomId:record.id,investorId:record.investorId,recordHash:await FC.cloudPilotContract.sha(new TextEncoder().encode(canonical(record)))})));
+  if(offlineQuote){
+   offlineQuote.assertCurrent();assertRevision(rooms,before);return refs;
+  }
   if(!FC.roomQuoteProof?.sources)fail('LF_QUOTE_SOURCE_UNCONFIRMED');
   const pins=await FC.roomQuoteProof.sources(refs);
   assertRevision(rooms,before);return refs.map(ref=>{const pin=pins.find(pin=>pin.projectId===ref.projectId);if(!pin)fail('LF_QUOTE_SOURCE_UNCONFIRMED');return {...ref,revision:clone(pin.head),documentHash:pin.documentHash};});

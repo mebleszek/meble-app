@@ -152,7 +152,7 @@
     connectionsActive=connections;
     if(runtime){if(boot?.localOnly)await runtime.resume({localOwnerUid:ownerUid});else if(navigator.onLine!==false)await runtime.resume(connections);boundLease=context.lease;return runtime;}
     const {startApplicationRuntime}=await import('../../../sync/application-runtime.mjs');
-    runtime=await startApplicationRuntime({window,ownerUid,name:configuration.name,boot,release,localOnly:boot?.localOnly===true,firstCatalogSync:configuration.firstCatalogSync===true,p0bDemo:configuration.p0bDemo===true,emulatorCatalogWitness:configuration.emulatorCatalogWitness,onStage:setStage,onDiagnostic:diagnosticState,onFailureQuiescent(){recoveryQuiescent=true;},...connections});
+    runtime=await startApplicationRuntime({window,ownerUid,name:configuration.name,boot,release,localOnly:boot?.localOnly===true,firstCatalogSync:configuration.firstCatalogSync===true,p0bDemo:configuration.p0bDemo===true,quoteReservationCandidate:configuration.quoteReservationCandidate===true,emulatorCatalogWitness:configuration.emulatorCatalogWitness,onStage:setStage,onDiagnostic:diagnosticState,onFailureQuiescent(){recoveryQuiescent=true;},...connections});
     boundLease=context.lease;return runtime;
    })().then(value=>{stage='ready';return value;}).catch(async error=>{
     note(error);

@@ -130,7 +130,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
               const absent=channel.kind==='quote'?'LF_QUOTE_NOT_FOUND':channel.kind==='globals'?'GLOBAL_NOT_FOUND':null;
               if(!absent||!channel.resume||![absent,'LF_ACK_UNRESOLVED'].includes(e.code))return safeError(e);
               try{
-                const prepared=await channel.resume(JSON.parse(op.json),await publicationBase(op),op.expected);
+                const prepared=await channel.resume(JSON.parse(op.json),await publicationBase(op),op.expected,op.reservations);
                 if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
                 await prepared.publish();
                 if(closed)return {ok:false,code:'LF_CLOSED_RESULT_UNCONFIRMED'};
@@ -166,7 +166,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
           }
           const base=await publicationBase(op);
           let prepared;
-          try{prepared=await channel.prepare(JSON.parse(op.json),base,op.editor);}
+          try{prepared=await channel.prepare(JSON.parse(op.json),base,op.editor,op.reservations);}
           catch(e){if(/CONFLICT|STALE|DEPENDENCY|EDITOR/.test(e.code||''))await store.transition(op.key,'queued','conflict',{code:e.code});return {...safeError(e),blockedScopes:[scope]};}
           if(closed||!online())return {ok:false,code:'LF_OFFLINE'};
           try{op=await store.transition(op.key,'queued','inflight',{expected:prepared.expected});}
@@ -281,6 +281,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
     });},
     async releaseEditor(projectId,{request}={}){return store.exclusive(async()=>{
       assertOpen();
+      if(await store.pendingQuoteGrant?.(projectId))fail('LF_QUOTE_ROOM_RESERVED');
       if(await store.pendingProjectRecovery?.(projectId))fail('LF_PROJECT_RECOVERY_PENDING');
       const channel=byScope.get(projectId),snap=await store.snapshot(projectId),r=snap.replica;
       if(!r||r.dirty||!(r.editor?.active||r.editor?.handoverPending)||snap.operations.some(op=>op.phase!=='verified'))fail('LF_HANDOVER_PENDING_LOCAL_WORK');

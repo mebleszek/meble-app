@@ -3,6 +3,7 @@ import {assertP0BConnection} from '../../sync/firebase-activation.mjs';
 import {equal, fail, id, json} from '../../sync/local-first-values.mjs';
 import {createP0BPin} from './p0b-pin.mjs';
 import {p0bDeletionGroup} from './p0b-deletion-group.mjs';
+import {createP0BQuoteReservations} from './p0b-quote-reservations.mjs';
 
 function checkContact(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.hasOwn(value,'rooms'))
@@ -90,7 +91,7 @@ export function watchP0BEditorContact({send,window:w,onError=()=>{}}) {
   };
 }
 
-export function createP0BProtocol(connection, deviceId,assertCurrent=()=>{}) {
+export function createP0BProtocol(connection, deviceId,assertCurrent=()=>{},{quoteReservationCandidate=false}={}) {
   id(deviceId);
   const identity = assertP0BConnection(connection), {uid} = identity, {db, firestore:f} = connection;
   const guard = () => {
@@ -268,8 +269,15 @@ export function createP0BProtocol(connection, deviceId,assertCurrent=()=>{}) {
   }
 
   const pin=createP0BPin({ref:pinRef,readServer,read,transaction});
+  if(quoteReservationCandidate&&db.app.options.projectId!=='demo-meble-app')fail('LF_EMULATOR_REQUIRED');
+  const reservations=quoteReservationCandidate?createP0BQuoteReservations({
+    uid,deviceId,lockWitness,transaction,read,pin,assertAccess:guard,
+    listen:(ref,receive,onError)=>f.onSnapshot(ref,{includeMetadataChanges:true},receive,onError),
+    refs:(pid,iid)=>({editor:editorRef(pid),investor:investorRef(iid),pin:pinRef,
+      marker:f.doc(editorRef(pid),'quoteReservation','current'),request:f.doc(editorRef(pid),'quoteRequest','current')}),
+  }):null;
   const api=Object.freeze({
-    investor,pin,
+    investor,pin,...(reservations?{reservations}:{}),
     projectStatus(iid,pid){return transaction(tx=>lockWitness(tx,iid,pid));},
     async advanceEditor({iid,pid,expected,deviceLabel='',pinRevision=null}){
       if(typeof deviceLabel!=='string'||deviceLabel.length>64)fail('LF_P0B_DEVICE_LABEL_INVALID');

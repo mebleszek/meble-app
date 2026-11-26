@@ -1,6 +1,6 @@
 // Integrates existing action callbacks; no synthetic clicks or implicit Save.
 import {fail,safeError} from './local-first-values.mjs';
-export function installApplicationWriteBoundary({window:w,authority,ensureEditor,localOnly=false,registry,onExit=async()=>{},preflightAcceptance}){
+export function installApplicationWriteBoundary({window:w,authority,ensureEditor,localOnly=false,registry,onExit=async()=>{},preflightAcceptance,onNavigation=()=>{}}){
  const fc=w.FC,pass=new Set(['session-save','session-cancel']);
  // Navigation writes its technical state, room-open also creates a durable draft.
  const globalActions=new Set(['price-item-save','price-item-delete','save-material','save-service']);
@@ -28,6 +28,7 @@ export function installApplicationWriteBoundary({window:w,authority,ensureEditor
     const exit=action==='back-investors'||action==='open-investors-list';
     const result=await authority.transaction('auto',operation,exit?{exitScope:scope}:undefined);
     if(exit)await onExit(scope);
+    if(result!==false&&result?.ok!==false)completions.push(onNavigation);
     return result;
    }).catch(refused);
   }};
@@ -42,6 +43,11 @@ export function installApplicationWriteBoundary({window:w,authority,ensureEditor
  const handler=(fn,kind='globals')=>function(...args){return run(()=>fn.apply(this,args),kind).catch(refused);};
  fc.applicationWrite={localOnly,registry,handler,whenIdle:()=>idle,roomCreateHandler:fn=>handler(fn,'auto'),
   quote:fn=>reserve(()=>{if(registry!=='p0b-rooms-v1'||localOnly)fail('LF_QUOTE_SOURCE_UNCONFIRMED');return authority.transaction('quote',fn,{writeScopes:[]});}),
+  offlineQuote:fn=>reserve(()=>{
+   if(registry!=='p0b-rooms-v1'||w.navigator.onLine!==false)fail('LF_OFFLINE_QUOTE_CONTEXT_CHANGED');
+   authority.assertIdle();
+   return fn();
+  }),
   quoteAcceptance:(scopes,fn)=>reserve(async()=>{
    if(registry!=='p0b-rooms-v1'||typeof preflightAcceptance!=='function')fail('LF_QUOTE_ACCEPTANCE_UNCONFIRMED');
    const ids=[...new Set(scopes)];await preflightAcceptance(ids);
