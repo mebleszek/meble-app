@@ -89,9 +89,7 @@ export function createApplicationHandover({store,getSync,online,onError}){
   if(!sync||!online())return;
   const request=await store.pendingHandover(scope);
   if(!request||!online())return;
-  const local=await store.snapshot(scope),editor=local.replica?.editor;
-  if(!editor||editor.deviceId!==request.deviceId||editor.epoch!==request.epoch)fail('LF_HANDOVER_CONFLICT');
-  if(!acknowledged(local)||!online())return;
+  if(!acknowledged(await store.snapshot(scope))||!online())return;
   await sync.releaseRequestedEditor(scope,request);
  }
  async function resume(scopes){

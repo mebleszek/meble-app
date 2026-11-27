@@ -70,7 +70,7 @@ export async function openBrowserDevice(server,profileDirectory){
 export function proxyStore(evaluate,binding){
   const call=(method,...args)=>evaluate('window.lf['+JSON.stringify(method)+'](...'+JSON.stringify(args)+')');
   const store={...binding};
-  for(const name of ['snapshot','commit','transition','apply','setEditor','readApplication','initializeApplication','checkpointApplication','pendingHandover','withdrawHandover','pendingProjectRecovery','stageProjectRecovery','checkpointProjectRecovery'])store[name]=(...args)=>call(name,...args);
+  for(const name of ['snapshot','commit','transition','apply','setEditor','readApplication','initializeApplication','checkpointApplication','pendingHandover','retireSupersededHandover','withdrawHandover','pendingProjectRecovery','stageProjectRecovery','checkpointProjectRecovery'])store[name]=(...args)=>call(name,...args);
   store.exclusive=async operation=>{
     const held=await evaluate('new Promise(resolve=>{navigator.locks.request('+JSON.stringify(binding.name+':'+binding.instanceId)+',{mode:"exclusive"},async lock=>{resolve(!!lock);if(lock)await new Promise(release=>window.__releaseLF=release);});})');
     if(!held)throw Error('LF_LOCAL_BUSY');try{return await operation();}finally{await evaluate('window.__releaseLF();true');}

@@ -1,5 +1,12 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## Aktualizator — odmowa w Edge po PR #178, 27.11.2026
+
+- **USTALONE** — Edge miał aktywną wersję PR #177 i zweryfikowaną oczekującą wersję PR #178. „Aktualizuj” odmawiał także w menu „Projekty meblowe” po ponownym logowaniu. Diagnostyka pokazała `LF_HANDOVER_CONFLICT` w `initial-project-revisions`, bez aktywnej sesji edycji. Raport nie zawierał zawartości kolejki IndexedDB ani stanu blokady danego pokoju.
+- **WDROŻONE** — zwykłe oddanie pokoju nadal wymaga potwierdzenia zapisu i zgodności blokady. Jeżeli serwer potwierdzi nowszą generację blokady tego samego pokoju, lokalny checkpoint wycofuje wyłącznie nieaktualne żądanie i starsze uprawnienie tego urządzenia. Aktualizator może uzgodnić oczekujące oddanie pokoju i ponownie sprawdza bramkę przed przełączeniem. Niepotwierdzony zapis, aktywna edycja, odzyskiwanie i inne karty nadal wstrzymują przełączenie.
+- **SPRAWDZONE** — RED → GREEN w Chromium i IndexedDB przez twardy restart, niedostępny serwer, obce potwierdzenie oraz prawidłową nowszą blokadę. W udanym przebiegu zero prób zwolnienia nowszej blokady i identyczny zapisany obraz. Regresje oddania pokoju i historii ofert, zmiany workera jednym kliknięciem, zachowania RAW/IndexedDB, startu i przydziału CI przeszły. Podpisany start w Chromium odmówił aktualizacji przy operacji `uncertain`. Dwa profile z emulatorem Firebase potwierdziły zwolnienie pokojów, dwa warianty i odzyskanie ACK po SIGKILL (1/1). [Dowody i granice](tools/reports/android-safe-sw-update-20261031.md#edge--odmowa-aktualizacji-po-pr-178).
+- **BRAKUJE** — pełne CI, publikacja i odbiór na drugim komputerze. Raport zgłasza też nakładanie się paska aktualizacji na diagnostykę. Ta poprawka jest ograniczona do bramki aktualizacji. `CODE_READY / CI_PENDING / RELEASE_BLOCKED`.
+
 ## Zapis wyceny i zwalnianie pomieszczeń — 27.11.2026
 
 - **USTALONE** — raport odbioru PR172 pochodzi z manifestu `0eaffbe3…45e5568` opublikowanego z `15d0b9c3`. Obie ścieżki nadal występują w bazie `1278b0c412f8766b4b811faf0675c292cb2ada88`. Istniejące dane zachowują format. Pakiet uwzględnia mobilny Rysunek 2D i wydany aktualizator z `main` `e854b69f1ba89c91069fade5773f8f4f8c9cbf75`.

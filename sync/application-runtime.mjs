@@ -244,12 +244,20 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     }
     if(updateChecking)fail('UPDATE_APP_BUSY');
     assertIdle();updateChecking=true;
-    try{return await store.exclusive(async()=>{
+    try{
+     const work=await store.updateWorkStatus();
      assertIdle();
-     if(await store.hasPendingUpdateWork())fail('UPDATE_SAVE_PENDING');
-     assertIdle();
-     return operation(assertIdle);
-    });}finally{updateChecking=false;}
+     // Only reconcile room handovers here; publication belongs to the sync runtime.
+     if(!work.savePending&&!work.recoveryPending&&work.handovers.length)
+      await handovers.resume(work.handovers);
+     return await store.exclusive(async()=>{
+      assertIdle();
+      const status=await store.updateWorkStatus();
+      if(status.savePending||status.recoveryPending||status.handovers.length)fail('UPDATE_SAVE_PENDING');
+      assertIdle();
+      return operation(assertIdle);
+     });
+    }finally{updateChecking=false;}
    },
    async withRescueRead(operation){
     if(closed||recoveryReading||updateChecking||authority.status().transactionPending||authority.status().incomingPending)fail('LF_APPLICATION_BUSY');
