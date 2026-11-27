@@ -346,6 +346,55 @@ test('P0-B room storage: switching away from a new room preserves its handover t
  assert.equal(await call('hasPendingUpdateWork'),true,'Reload must wait for the pending room publication');
 });
 
+test('P0-B room storage: obsolete handover never releases the newer editor or blocks updates indefinitely',async t=>{
+ const server=await startLocalFirstServer({modules:['sync/local-first-sync.mjs','sync/application-replication.mjs']});
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'p0b-stale-handover-'));
+ let browser=await openBrowserDevice(server,path.join(dir,'computer'));
+ t.after(async()=>{await browser.close();await server.close();fs.rmSync(dir,{recursive:true,force:true});});
+ const binding={name:'meble-lf-test-stale-handover',ownerUid:'owner',deviceId:'computer',instanceId:'instance',initialize:true};
+ let store=await browser.open(binding);
+ const scope='room',investorId='investor',value={document:{payload:{project:{id:scope,investorId}}}};
+ const head={ownerUid:binding.ownerUid,projectId:scope,investorId,generation:1,currentRevisionId:'confirmed'};
+ const editor={ownerUid:binding.ownerUid,projectId:scope,investorId,active:true,deviceId:binding.deviceId,epoch:3,headRevision:head.currentRevisionId};
+ const rows={fc_projects_v1:JSON.stringify([value.document.payload.project]),fc_investors_v1:'[]',fc_edit_session_v1:null};
+ await browser.evaluate('window.lf.enterP0BRegistry({fc_projects_v1:"[]",fc_investors_v1:"[]"})');await store.initializeApplication(rows);
+ await store.apply({scope,head,value,editor,expectedVersion:0});
+ await store.checkpointApplication({rows,expectedVersion:1},{exitScope:scope});
+ const initial=await store.readApplication();
+ await browser.crash();browser=await openBrowserDevice(server,path.join(dir,'computer'));store=await browser.open({...binding,initialize:false});
+ const call=(method,...args)=>browser.evaluate('window.lf.'+method+'(...'+JSON.stringify(args)+')');
+ const check=observed=>browser.evaluate(`(async (...[scope,head,value,observed])=>{
+  const {createDurableSynchronizer}=await import('/sync/local-first-sync.mjs');
+  const {createApplicationHandover}=await import('/sync/application-replication.mjs');
+  let writes=0,code=null;
+  const sync=createDurableSynchronizer({store:window.lf,eventTarget:new EventTarget(),online:()=>false,
+   channels:[{scope,kind:'project',read:async()=>({head,value}),editor:async()=>{
+    if(!observed)throw Object.assign(Error('unavailable'),{code:'unavailable'});return observed;
+   },release(){writes++;throw Error('The previous device cannot release this lease');}}]});
+  const handovers=createApplicationHandover({store:window.lf,online:()=>true,onError:e=>{code=e.code||e.message;},
+   getSync:()=>({releaseRequestedEditor:(scope,request)=>sync.releaseEditor(scope,{request})})});
+  try{await handovers.resume([scope]);return {code,writes,pending:await window.lf.hasPendingUpdateWork()};}
+  finally{await sync.close();}
+ })(...${JSON.stringify([scope,head,value,observed])})`);
+ const request=await store.pendingHandover(scope);
+ assert.equal(await call('hasPendingUpdateWork'),true);
+ assert.deepEqual(await check(null),{code:'unavailable',writes:0,pending:true});
+ assert.deepEqual(await store.pendingHandover(scope),request);
+ const later={...editor,deviceId:'phone',epoch:4};
+ assert.deepEqual(await check({...later,ownerUid:'different-owner'}),{code:'LF_HANDOVER_CONFLICT',writes:0,pending:true});
+ assert.deepEqual(await store.pendingHandover(scope),request);
+ assert.deepEqual(await check({...later,investorId:'different-investor'}),{code:'LF_HANDOVER_CONFLICT',writes:0,pending:true});
+ assert.deepEqual(await store.pendingHandover(scope),request);
+ assert.deepEqual(await check(later),{code:null,writes:0,pending:false});
+ const saved=await store.snapshot(scope);
+ assert.equal(saved.replica.editor,null,'An older cached editor cannot authorize offline editing');
+ assert.deepEqual(saved.replica.base,head);
+ assert.deepEqual(JSON.parse(saved.replica.json),value);
+ assert.deepEqual(saved.operations,[]);
+ assert.deepEqual(await store.readApplication(),initial);
+ assert.equal(await store.pendingHandover(scope),null);
+});
+
 test('P0-B room storage: quote history abort, source proof, CAS, frozen content and tombstone protect IndexedDB',async t=>{
  const server=await startLocalFirstServer(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'p0b-quote-atomic-'));
  let browser=await openBrowserDevice(server,path.join(dir,'computer'));

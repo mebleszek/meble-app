@@ -284,14 +284,23 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
       if(await store.pendingQuoteGrant?.(projectId))fail('LF_QUOTE_ROOM_RESERVED');
       if(await store.pendingProjectRecovery?.(projectId))fail('LF_PROJECT_RECOVERY_PENDING');
       const channel=byScope.get(projectId),snap=await store.snapshot(projectId),r=snap.replica;
-      if(!r||r.dirty||!(r.editor?.active||r.editor?.handoverPending)||snap.operations.some(op=>op.phase!=='verified'))fail('LF_HANDOVER_PENDING_LOCAL_WORK');
-      if(request&&(!equal(request,await store.pendingHandover(projectId))||r.editor.deviceId!==request.deviceId||r.editor.epoch!==request.epoch))fail('LF_HANDOVER_CONFLICT');
-      if(!r.base)fail('LF_HANDOVER_PENDING_LOCAL_WORK');
+      if(!channel)fail('LF_PROJECT_CHANNEL_REQUIRED');
+      if(!r?.base||r.dirty||snap.operations.some(op=>op.phase!=='verified'))fail('LF_HANDOVER_PENDING_LOCAL_WORK');
+      let current;
+      if(request){
+        if(request.deviceId!==store.deviceId||!equal(request,await store.pendingHandover(projectId)))fail('LF_HANDOVER_CONFLICT');
+        current=await channel.editor();
+        if(typeof current?.investorId==='string'&&current.epoch>request.epoch){
+          return store.retireSupersededHandover(projectId,{request,replica:r,witness:current});
+        }
+        if(r.editor?.deviceId!==request.deviceId||r.editor?.epoch!==request.epoch)fail('LF_HANDOVER_CONFLICT');
+      }
+      if(!(r.editor?.active||r.editor?.handoverPending))fail('LF_HANDOVER_PENDING_LOCAL_WORK');
       const remote=await channel.read();if(!equal(remote.head,r.base)||!equal(remote.value,JSON.parse(r.json)))fail('LF_HANDOVER_CONTENT_MISMATCH');
       // Block local edits durably BEFORE the remote release can commit.
       const blocked=r.editor.handoverPending?r:await store.setEditor(projectId,r.version,r.editor,{...r.editor,active:false,handoverPending:true});
       const {handoverPending,...proof}=blocked.editor;
-      const current=await channel.editor();
+      if(!request)current=await channel.editor();
       const released={...proof,headRevision:r.base.currentRevisionId};
       if(!equal(current,released)){
         const active={...proof,active:true};
@@ -299,7 +308,7 @@ export function createDurableSynchronizer({store,channels,eventTarget,online=()=
         const confirmed=await channel.release(active,r.base);
         if(!equal(confirmed,released))fail('LF_HANDOVER_CONFLICT');
       }
-      return store.setEditor(projectId,blocked.version,blocked.editor,released,{completeHandover:true});
+      return store.setEditor(projectId,blocked.version,blocked.editor,released,{completeHandover:true,handoverRequest:request});
     });},
     async recoverEditor(projectId){return store.exclusive(async()=>{
       assertOpen();

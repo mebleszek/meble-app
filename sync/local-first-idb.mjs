@@ -92,22 +92,32 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       };
     });
   }
-  async function hasPendingUpdateWork(){
+  async function updateWorkStatus(){
     return transaction('readonly',(s,done)=>{
-      const activeKey=/^(?:handover:|projectRecovery:|p0b-new:|quote-grant:|quote-release:|quote-reservation:|quote-request:)/;
+      const recoveryKey=/^(?:projectRecovery:|quote-grant:|quote-release:|quote-reservation:|quote-request:)/;
+      const result={savePending:false,recoveryPending:false,handovers:[]};
       const keys=s.control.getAllKeys();
-      let pending=3,busy=false;
-      const observe=found=>{busy||=found;if(!--pending)done(busy);};
+      let pending=3;
+      const finish=()=>{if(!--pending)done(result);};
       const find=(table,match)=>{const q=table.openCursor();q.onsuccess=()=>{
         const cursor=q.result;
-        if(!cursor)observe(false);
-        else if(match(cursor.value))observe(true);
+        if(!cursor)finish();
+        else if(match(cursor.value)){result.savePending=true;finish();}
         else cursor.continue();
       };};
-      keys.onsuccess=()=>observe(keys.result.some(key=>activeKey.test(key)));
+      keys.onsuccess=()=>{
+        result.handovers=keys.result.filter(key=>typeof key==='string'&&key.startsWith('handover:')).map(key=>key.slice('handover:'.length));
+        result.recoveryPending=keys.result.some(key=>recoveryKey.test(key));
+        result.savePending||=keys.result.some(key=>typeof key==='string'&&key.startsWith('p0b-new:'));
+        finish();
+      };
       find(s.outbox,row=>row.phase!=='verified');
       find(s.replicas,row=>row.dirty===true);
     });
+  }
+  async function hasPendingUpdateWork(){
+    const status=await updateWorkStatus();
+    return status.savePending||status.recoveryPending||status.handovers.length>0;
   }
   async function readApplication(){const value=await transaction('readonly',(s,done)=>{const q=s.control.get('application');q.onsuccess=()=>done(q.result||null);});if(value && await digest(json(value.rows))!==value.hash)fail('LF_APPLICATION_INTEGRITY');return value;}
   async function readPreservedSource(){const value=await transaction('readonly',(s,done)=>{const q=s.control.get('source');q.onsuccess=()=>done(q.result||null);});if(value&&await digest(value.rows)!==value.hash)fail('LF_SOURCE_INTEGRITY');return value;}
@@ -123,6 +133,32 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       const q=s.control.get(key);
       q.onsuccess=()=>done(q.result||null);
     });
+  }
+  async function retireSupersededHandover(scope,{request,replica,witness}){
+    const key=handoverKey(scope);
+    return transaction('readwrite',(s,done,abort)=>{
+      const saved=s.control.get(key),row=s.replicas.get(scope),outbox=s.outbox.getAll();
+      const guards=[s.control.get(recoveryKey(scope)),s.control.get('quote-grant:'+scope),s.control.get('quote-release:'+scope)];
+      const requests=[saved,row,outbox,...guards];let pending=requests.length;
+      const finish=()=>{if(--pending)return;try{
+        const current=row.result;
+        if(!request||request.key!==key||request.deviceId!==deviceId||!equal(saved.result,request)||
+          !Number.isSafeInteger(request.epoch)||request.epoch<1||!witness||
+          witness.ownerUid!==ownerUid||witness.projectId!==scope||
+          !Number.isSafeInteger(witness.epoch)||witness.epoch<=request.epoch||
+          typeof witness.active!=='boolean'||typeof witness.headRevision!=='string'||
+          typeof current?.base?.investorId!=='string'||witness.investorId!==current.base.investorId||
+          (current.editor?.investorId!==undefined&&witness.investorId!==current.editor.investorId))fail('LF_HANDOVER_CONFLICT');
+        id(witness.deviceId);
+        if(!current?.base||!equal(current,replica)||current.dirty||
+          outbox.result.some(op=>op.scope===scope&&op.phase!=='verified')||guards.some(check=>check.result))fail('LF_HANDOVER_PENDING_LOCAL_WORK');
+        if(current.editor?.deviceId===deviceId&&current.editor.epoch<witness.epoch)
+          s.replicas.put({...current,version:current.version+1,editor:null});
+        s.control.delete(key);
+        done(true);
+      }catch(e){abort(e);}};
+      for(const q of requests)q.onsuccess=finish;
+    },scope);
   }
   async function withdrawHandover(scope, expected){
     const key=handoverKey(scope);
@@ -469,12 +505,15 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       } catch(e) { abort(e); } }; r.onsuccess = q.onsuccess = finish;
     },scope);
   }
-  async function setEditor(scope, expectedVersion, expectedEditor, nextEditor, {completeHandover=false}={}) {
+  async function setEditor(scope, expectedVersion, expectedEditor, nextEditor, {completeHandover=false,handoverRequest}={}) {
     id(scope);
     return transaction('readwrite', (s, done, abort) => {
-      const q = s.replicas.get(scope), ops = s.outbox.getAll(), grant=s.control.get('quote-grant:'+scope); let pending = 3;
+      const q = s.replicas.get(scope), ops = s.outbox.getAll(), grant=s.control.get('quote-grant:'+scope);
+      const exit=handoverRequest?s.control.get(handoverKey(scope)):null;
+      let pending = exit?4:3;
       const finish = () => { if (--pending) return; try {
         if(grant.result)fail('LF_QUOTE_ROOM_RESERVED');
+        if(exit&&!equal(exit.result,handoverRequest))fail('LF_HANDOVER_CONFLICT');
         const old = q.result;
         if ((old?.version || 0) !== expectedVersion || old?.dirty || !equal(old?.editor || null, expectedEditor)
           || ops.result.some(op => op.scope === scope && op.phase !== 'verified')) fail('LF_LOCAL_CONFLICT');
@@ -485,11 +524,12 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
         if(completeHandover)s.control.delete(handoverKey(scope));
         done(row);
       } catch(e) { abort(e); } }; q.onsuccess = ops.onsuccess = grant.onsuccess = finish;
+      if(exit)exit.onsuccess=finish;
     },scope);
   }
   const receiveConflictRemote=args=>checkpointRoomConflictRemote({transaction,prepareApplication,applicationChange,ownerUid,deviceId,args});
   return Object.freeze({receiveConflictRemote,...quoteReleaseStore({transaction,ownerUid,deviceId}),...offlineQuoteStore({transaction,ownerUid,deviceId}),
-    ...quoteReservationJournal({transaction,ownerUid,deviceId}),ownerUid, deviceId, instanceId, name, snapshot, wasProjectCoalesced, commitQuoteLedger:args=>writeQuoteLedger({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}), commitRoomBatch:args=>writeRoomBatch({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}), checkpointP0BProjects, pendingNewProjects, finishNewProject, legacyInvestor, fenceP0BTombstones, checkpointP0BTombstones, p0bRegistry, enterP0BRegistry, retired, readCatalogReplica,readApplication,hasPendingUpdateWork,readPreservedSource, initializeApplication, checkpointApplication, pendingHandover, withdrawHandover, pendingProjectRecovery, stageProjectRecovery, checkpointProjectRecovery, checkpointDeletion, commit, commitContact, transition, apply, setEditor,
+    ...quoteReservationJournal({transaction,ownerUid,deviceId}),ownerUid, deviceId, instanceId, name, snapshot, wasProjectCoalesced, commitQuoteLedger:args=>writeQuoteLedger({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}), commitRoomBatch:args=>writeRoomBatch({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}), checkpointP0BProjects, pendingNewProjects, finishNewProject, legacyInvestor, fenceP0BTombstones, checkpointP0BTombstones, p0bRegistry, enterP0BRegistry, retired, readCatalogReplica,readApplication,updateWorkStatus,hasPendingUpdateWork,readPreservedSource, initializeApplication, checkpointApplication, pendingHandover, retireSupersededHandover, withdrawHandover, pendingProjectRecovery, stageProjectRecovery, checkpointProjectRecovery, checkpointDeletion, commit, commitContact, transition, apply, setEditor,
     exclusive: callback => locks.request(name + ':' + instanceId, {mode: 'exclusive'}, () => {if(closed)fail('LF_STORE_CLOSED');return callback();}),
     close() { closed = true; }});
 }
