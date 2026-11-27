@@ -108,7 +108,7 @@ const versions = Object.freeze({
   "js/app/ui/data-settings-company-view.js":"20261116_p0b_company_save_v2",
   "js/app/ui/data-settings-defaults-view.js":"20261101_one_app_v1",
   "js/core/actions.js":"20261118_room_quote_v1",
- "js/app/cloud/offline-update.js":"20261031_safe_sw_v1",
+ "js/app/cloud/offline-update.js":"20261127_one_click_update_v1",
   "js/app/shared/data-backup-snapshot-apply.js":"20261031_investor_delete_v2",
   "js/app/investor/investor-actions.js": "20261118_room_quote_v1",
   "js/app/investor/investor-ui.js": "20261122_device_names_v1",
@@ -173,7 +173,7 @@ const authVersions=Object.freeze({
   "js/app/cloud/cloud-access-verifier.js": "20261114_access_rpc_diagnostics_v1",
   "js/app/cloud/offline-shell.js": "20261114_first_offline_install_v1",
   "js/app/cloud/local-access-profile.js": "20261103_android_globals_recovery_v1",
-  "js/app/cloud/application-bootstrap.js": "20261126_quote_reservation_v1",
+  "js/app/cloud/application-bootstrap.js": "20261127_one_click_update_v1",
   "js/main-login.js": "20261122_desktop_reconnect_v1"
 });
 function assertHtmlVersions(index, dev){

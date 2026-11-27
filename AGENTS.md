@@ -176,7 +176,7 @@ Dokumentacja wymaga zgody na zakres. Bez zmian GitHuba/commitów/pushy do main p
 
 ## 16. Aktualizacja klienta, rozrost i CI — 31.10.2026
 
-Wydanie obejmuje spójne `?v=`, manifest/integralność i bezpieczną aktualizację starego SW z „Dostępna nowa wersja — odśwież”. Bez reloadu niezapisanej edycji/niepotwierdzonego offline, czyszczenia danych i ukrytych migracji. Sam cache-busting nie spełnia kontraktu. Wymagana regresja Chromium: ten sam profil, stary worker+dane → deploy → wykrycie → bezpieczna aktualizacja → nowa funkcja+dane.
+Wydanie obejmuje spójne `?v=`, manifest/integralność i bezpieczną aktualizację Service Workera. Decyzja właściciela 27.11.2026: powiadomienie „Nowa wersja gotowa”, „Aktualizuj” i „Później”. Uprawniona i bezczynna karta może przełączyć wersję i się przeładować po weryfikacji pełnego pakietu oraz wyłączności zapisu. Gdy inna karta blokuje przełączenie, wskaż zamknięcie pozostałych kart Meble-App w tym profilu. Obowiązkową aktualizację rozpatruj tylko przy wykazanej niezgodności synchronizacji. Bez reloadu niezapisanej edycji/niepotwierdzonego offline, czyszczenia danych i ukrytych migracji. Sam cache-busting nie spełnia kontraktu. Wymagana regresja Chromium: ten sam profil, stary worker+dane → deploy → wykrycie → bezpieczna aktualizacja → nowa funkcja+dane.
 
 Progi modułów: 250+ ostrożność, 400+ analiza, 600+ uzasadnienie/ryzyko. Kontrola blokuje przyrost nowego modułu ponad 600 lub starego mieszanego 600+; nie mieszaj UI/storage/domeny/recovery/orkiestracji. Wyjątek = uprzednia osobna decyzja i regresje; nie refaktoruj za rozmiar, raportuj też testy.
 

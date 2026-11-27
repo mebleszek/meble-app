@@ -76,6 +76,20 @@ async function main(){
   console.log('PASS confirmed reset ignores foreign database without opening it; exact version/schema/indexes/keys/records preserved');
   phase='restart after reset';await tap('[data-local-first-rescue] button:nth-of-type(2)');
   await until('document.body?.dataset.businessState==="ready"');assert.equal(await browser.evaluate('window.FC.applicationStartup.inspect().state'),'local-only');
+  phase='native update authorization';
+  assert.equal(await browser.evaluate('window.FC.applicationStartup.prepareClientUpdate(check=>{check();return true;})'),true);
+  const alterQueue=put=>browser.evaluate(`new Promise((resolve,reject)=>{
+   const q=indexedDB.open(${JSON.stringify(server.name)},1);
+   q.onerror=reject;q.onsuccess=()=>{const db=q.result,tx=db.transaction('outbox','readwrite'),s=tx.objectStore('outbox');
+    if(${put})s.put({key:'update-witness-pending',phase:'uncertain'});else s.delete('update-witness-pending');
+    tx.oncomplete=()=>{db.close();resolve(true);};tx.onabort=reject;};
+  })`);
+  const settledImage=await browser.evaluate('localProof()');
+  await alterQueue(true);
+  try{await assert.rejects(browser.evaluate('window.FC.applicationStartup.prepareClientUpdate(()=>{throw Error("UNSAFE_RELOAD")})'),/UPDATE_SAVE_PENDING/);}
+  finally{await alterQueue(false);}
+  assert.deepEqual(await browser.evaluate('localProof()'),settledImage);
+  console.log('PASS genuine signed startup: updater refuses an uncertain outbox without changing business storage');
   const model=await browser.evaluate('window.FC.globalDataContract.capture(localStorage,Object.keys(window.FC.globalDataContract.schemas)).model');
   const factory=server.candidate;assert.deepEqual(model,factory.model);
   phase='offline reload';networkAvailable=false;offline=true;await browser.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
@@ -101,6 +115,9 @@ async function main(){
   const cabinetIds=await browser.evaluate('projectData[uiState.roomType].cabinets.map(c=>c.id)');assert.equal(new Set(cabinetIds).size,3);
   async function editFirstCabinet(width){await tap('#cab-'+cabinetIds[0]+' [data-act="edit"]');await until('document.getElementById("cabinetModal").style.display==="flex"');await fill('#cmWidth',String(width));await tap('#cabinetModalSave');await until('document.getElementById("cabinetModal").style.display==="none"&&!window.FC.applicationStartup.inspect().transactionPending');}
 
+  const activeUpdateImage=await browser.evaluate('localProof()');
+  await assert.rejects(browser.evaluate('window.FC.applicationStartup.prepareClientUpdate(()=>{throw Error("UNSAFE_RELOAD")})'),/UPDATE_APP_BUSY|LF_ACTIVE_RAM_PROTECTED/);
+  assert.deepEqual(await browser.evaluate('localProof()'),activeUpdateImage,'Update refusal must preserve the active cabinet session');
   console.log('PASS three cabinets entered through actual modal controls in one durable local session, with distinct preserved IDs');
   phase='aborted cabinet commit';await until('!window.FC.actions.isLocked("add-cabinet")');await tap('#floatingAdd');await until('document.getElementById("cabinetModal").style.display==="flex"');await fill('#cmWidth','90');
   const beforeCabinetFailure=await browser.evaluate('localProof()');

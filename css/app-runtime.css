@@ -53,3 +53,21 @@
     .top-actions{display:flex;gap:8px;align-items:center}
     @media (max-width:900px){.rooms{grid-template-columns:repeat(2,1fr)}}
 
+/* The update notice stays reachable on long forms without resizing the header. */
+#offline-update-notice {
+  position: fixed;
+  z-index: 10010;
+  inset-inline: 0.75rem;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  max-width: 30rem;
+  margin-inline: auto;
+  padding: 0.75rem 1rem;
+  border: 1px solid #c7d1df;
+  border-radius: 0.75rem;
+  background: #fff;
+  color: #182131;
+  box-shadow: 0 4px 18px #13223726;
+}
+#offline-update-notice p { margin: 0 0 0.5rem; }
+#offline-update-notice .btn { min-height: 44px; }
+#offline-update-notice .btn + .btn { margin-inline-start: 0.5rem; }

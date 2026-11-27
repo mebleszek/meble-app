@@ -123,7 +123,7 @@
  }
  function setStage(value){stage=value;if(value==='initial-project-revisions'&&transferStatus==='not-started')transferStatus='checking';}
  const note=error=>{recordFailure(error);lastLocation=String(error?.stack||'').match(/\/(?:sync|js\/app\/cloud)\/[a-z0-9/-]+\.(?:mjs|js):[0-9]+/)?.[0]||null;lastError=/^(?:(?:LF_|GLOBAL_|AUTH_|LOCAL_)[A-Z0-9_]+|auth\/[a-z-]+)$/.test(error?.code||error?.message||'')?(error.code||error.message):'LF_STARTUP_UNCONFIRMED';};
- let release=null,configuring=null,recoveryQuiescent=false,resetPending=false;
+ let release=null,configuring=null,recoveryQuiescent=false,resetPending=false,clientUpdating=false;
  async function deployment(){if(release||configuration)return;const slot=window.FC_APPLICATION_RELEASE;if(!slot?.envelope&&!slot?.trustedKeySha256)return;const {verifyApplicationRelease,assertApplicationRelease}=await import('../../../sync/application-release.mjs');release=await verifyApplicationRelease({...slot,origin:new URL('./',document.baseURI).href});const p0b=assertApplicationRelease(release).protocol===3,firstCatalogSync=!p0b&&slot.firstCatalogSync===true;configuration={name:'meble-local-first-v1',localOnly:p0b?false:!firstCatalogSync,firstCatalogSync};}
  function connect(input){return configuration.connections?configuration.connections({...input,release}):import('../../../sync/application-connections.mjs').then(m=>m.createApplicationConnections({window,...input,release,sdk:configuration.sdk}));}
  function demo(){if(!['127.0.0.1','localhost'].includes(location.hostname))throw Error('LF_PRODUCTION_ACTIVATION_REQUIRED');}
@@ -196,13 +196,31 @@
   inspectGlobalConsistency,
   diagnostics:()=>Object.freeze({status:'READ_ONLY',stage:diagnosticStage(stage),code:lastError?errorCode(lastError):null,firstError:firstError&&{...firstError},transferStatus,projectTransferBlocked:projectTransferBlocked&&{...projectTransferBlocked},aliasConflict:aliasConflict&&{...aliasConflict,keys:[...aliasConflict.keys]},...(globalConsistency?{globalConsistency:JSON.parse(JSON.stringify(globalConsistency))}:{})}),
   inspect:()=>({...runtime?.status(),state:runtime?.status().state||'not-activated',stage,code:lastError,location:lastLocation}),
+  async prepareClientUpdate(operation){
+   if(!runtime||document.body.dataset.businessState!=='ready')throw Error('UPDATE_LOGIN_REQUIRED');
+   if(starting||refreshing||clientUpdating)throw Error('UPDATE_APP_BUSY');
+   const current=runtime;
+   clientUpdating=true;
+   try{
+    const {applicationWriterFence}=await import('../../../sync/application-writer-fence.mjs');
+    return await current.withUpdateReady(async assertIdle=>{
+     await applicationWriterFence(window);
+     const check=()=>{
+      if(current!==runtime||starting||refreshing||document.body.dataset.businessState!=='ready')throw Error('UPDATE_APP_BUSY');
+      assertIdle();
+     };
+     check();
+     return operation(check);
+    });
+   }finally{clientUpdating=false;}
+  },
   async synchronize(){
    window.__FC_MAIN_ACCESS__.assert();
    if(!runtime?.sync)throw Error('LF_SYNC_NOT_READY');
    return runtime.sync.flush();
   },
   async refresh(context=lastContext){
-   if(!configuration||!runtime||!context||boot?.localOnly)return;if(refreshing)return refreshing;
+   if(!configuration||!runtime||!context||boot?.localOnly||clientUpdating)return;if(refreshing)return refreshing;
    refreshing=(async()=>{try{
     window.__FC_MAIN_ACCESS__.assert();
     stage='reconnect-auth';const next=await connect(context);window.__FC_MAIN_ACCESS__.assert();stage='reconnect-runtime';const old=connectionsActive;try{await runtime.resume(next);}finally{connectionsActive=next;await old?.retire?.();}boundLease=context.lease;lastError=null;stage='ready';

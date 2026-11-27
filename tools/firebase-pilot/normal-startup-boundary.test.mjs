@@ -140,7 +140,12 @@ test('mandatory CI includes the normal browser SDK suite, no removed old suites/
  const runtime=read('sync/application-runtime.mjs');for(const part of ['createApplicationReplication','createGlobalChannel','createProjectChannel','businessProjectContract'])assert.ok(runtime.includes(part));
  assert.ok(read('sync/application-boot.mjs').includes('LF_LEGACY_BOOT_WRITE_REFUSED'));
  assert.ok(read('sync/application-installation.mjs').includes('LF_INSTALLATION_RECEIPT_LOST'));
- assert.equal(read('offline-worker.js').includes('skipWaiting('),false);assert.equal(read('offline-worker.js').includes('clients.claim('),false);
+ const worker=read('offline-worker.js');
+ // Existing clients can switch only after the user-approved updater handshake.
+ assert.equal((worker.match(/\bskipWaiting\s*\(/g)||[]).length,1);
+ assert.match(worker,/if\(!confirmed\)\{reply\('refused','APP_BUSY'\);return;\}[\s\S]*?if\(!await onlyOwner\(\)\)\{reply\('refused','OTHER_TAB'\);return;\}[\s\S]*?await self\.skipWaiting\(\)/);
+ assert.match(worker,/type==='ACTIVATE_STATIC_SHELL'.*event\.ports\[0\]/);
+ assert.doesNotMatch(worker,/\bclients\.claim\s*\(/);
 });
 
 

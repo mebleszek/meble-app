@@ -30,7 +30,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
  w.__FC_MAIN_ACCESS__.assert();
  const keys=applicationKeys(fc);
  onStage('checking-installation');const installation=await applicationInstallation({window:w,ownerUid,name,keys,sourceRead:boot?.readNative,heldRelease:boot?.release,release:deployment,migration:boot?.migration,p0bDemo:p0bEnabled});
- let store,sync,authority,boundary,deletion,p0b,manualSync,closed=false,authorityReady=false,incomingBlocked=false,recoveryReading=false;const states=[];let wakeHandovers=()=>{},wakeReceives=()=>{};
+ let store,sync,authority,boundary,deletion,p0b,manualSync,closed=false,authorityReady=false,incomingBlocked=false,recoveryReading=false,updateChecking=false;const states=[];let wakeHandovers=()=>{},wakeReceives=()=>{};
  const state=(value,error)=>{try{onDiagnostic({ok:value.ok===true,code:error?.code||error?.message||value.code,projectTransferBlocked:value.scope==='project-transfer-blocked'});}catch(_){}if(['LF_ACTIVE_FORM_PROTECTED','LF_ACTIVE_RAM_PROTECTED'].includes(value.code)||value.reason==='LF_P0B_DELETION_RECOVERY_REQUIRED')incomingBlocked=true;states.push(copy(value));if(states.length>12)states.shift();if(value.ok)wakeHandovers();else if(p0b&&['LF_EDITOR_CONFLICT','LF_P0B_EDITOR_CONFLICT','LF_ACK_UNRESOLVED'].includes(value.code))void p0b.canRecover(value).then(ok=>{if(ok&&w.document.body.dataset.businessState==='ready')return p0b.offerRecovery();}).catch(()=>{});};
  try{
   onStage('opening-idb');store=await openLocalFirstStore({...installation.binding,indexedDB:w.indexedDB,locks:w.navigator.locks});
@@ -104,7 +104,11 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   if(localOnly){onStage('initial-global-revision');const captured=c.capture({getItem:k=>k==='fc_edit_session_v1'?null:rows[k]??null},Object.keys(c.schemas));c.validateBundle(captured.model);}
   if(p0b)await resumeRoomBootRecovery({window:w,store,p0b,boot});
   onStage('installing-authority');authority=await (deployment?installAuthorizedApplicationAuthority:writer?installEmulatorApplicationAuthority:installOfflineEmulatorApplicationAuthority)({window:w,store,ownerUid,connection:writer,sourceRead:boot?.readNative,initialRows,release:deployment,localOnly,recoverBootDraft:p0b?error=>p0b.canRecover(safeError(error)):undefined,
-   beforeTransaction:()=>{if(recoveryReading)fail('LF_APPLICATION_BUSY');return boot?.verifyFence?boot.verifyFence():verifyExclusiveClient(w);},onCommitted:scope=>{manualSync?.reset?.();sync?.notify(scope);wakeReceives();},authorize:ensureEditor,
+   beforeTransaction:()=>{
+    if(recoveryReading||updateChecking)fail('LF_APPLICATION_BUSY');
+    const proof=boot?.verifyFence?boot.verifyFence():verifyExclusiveClient(w);
+    return Promise.resolve(proof).then(()=>{if(recoveryReading||updateChecking)fail('LF_APPLICATION_BUSY');});
+   },onCommitted:scope=>{manualSync?.reset?.();sync?.notify(scope);wakeReceives();},authorize:ensureEditor,
    checkpoint:(application,kind,exitScope)=>p0b?p0b.checkpoint(application,()=>(sync||local).checkpoint(application,kind,exitScope)):(sync||local).checkpoint(application,kind,localOnly?undefined:exitScope),
    commit:async(kind,application,{writeScopes}={})=>{
     let scope=application.rows.fc_current_project_id_v1;
@@ -232,8 +236,23 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   if(localOnly)boot?.confirmLocalReset?.();
   notify();if(p0b)w.setTimeout(()=>{void p0b.offerRecovery();},0);
   return Object.freeze({store,authority,get sync(){return sync;},write:boundary.run,
+   async withUpdateReady(operation){
+    function assertIdle(){
+     if(closed||recoveryReading||boundary?.busy()||authority.status().incomingPending||p0b?.updateBlocked()||fc.quoteOfferStore?.settingsSettled?.()===false)fail('UPDATE_APP_BUSY');
+     if(!['home','modeHub','investorsList'].includes(w.uiState?.entry))fail('UPDATE_APP_BUSY');
+     authority.assertIdle();
+    }
+    if(updateChecking)fail('UPDATE_APP_BUSY');
+    assertIdle();updateChecking=true;
+    try{return await store.exclusive(async()=>{
+     assertIdle();
+     if(await store.hasPendingUpdateWork())fail('UPDATE_SAVE_PENDING');
+     assertIdle();
+     return operation(assertIdle);
+    });}finally{updateChecking=false;}
+   },
    async withRescueRead(operation){
-    if(closed||recoveryReading||authority.status().transactionPending||authority.status().incomingPending)fail('LF_APPLICATION_BUSY');
+    if(closed||recoveryReading||updateChecking||authority.status().transactionPending||authority.status().incomingPending)fail('LF_APPLICATION_BUSY');
     recoveryReading=true;try{return await operation();}finally{recoveryReading=false;}
    },
    status:()=>({state:closed?'locked':localOnly?'local-only':sync?'active':'offline',...(localOnly?{cloudConfirmed:false,writeCode:authority.status().lastCode}:{}),sourcePreserved:true,projectRecords:JSON.parse(authority.rows().fc_projects_v1||'[]').length,projectChannels:JSON.parse(authority.rows().fc_projects_v1||'[]').filter(p=>!!sync?.channel(p.id)).length,transactionPending:authority.status().transactionPending||boundary?.busy()===true,incomingPending:authority.status().incomingPending,states:copy(states)}),

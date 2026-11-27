@@ -32,7 +32,8 @@ function harness(oldFiles,networkFiles=expected,{validOldName=true,completeCurre
  };
  const self={
   location:{href:root+'offline-worker.js'},MEBLE_OFFLINE_ASSETS:manifest,
-  addEventListener:(type,fn)=>{events[type]=fn;},MEBLE_WRITER_ALLOWED:async()=>true
+  addEventListener:(type,fn)=>{events[type]=fn;},MEBLE_WRITER_ALLOWED:async()=>true,
+  registration:{waiting:{state:'installed'}}
  };
  const fetch=async(url,options)=>{
   const path=new URL(url).pathname.slice(new URL(root).pathname.length);
@@ -42,7 +43,7 @@ function harness(oldFiles,networkFiles=expected,{validOldName=true,completeCurre
   return new ResponseFixture(networkFiles[path]);
  };
  const importScripts=(...paths)=>{assert.deepEqual([...paths],['./offline-assets.js','./js/app/cloud/offline-writer-fence.js']);};
- vm.runInNewContext(source,{self,URL,caches,fetch,crypto:crypto.webcrypto,importScripts,console},{filename:'offline-worker.js'});
+ vm.runInNewContext(source,{self,URL,caches,fetch,crypto:crypto.webcrypto,importScripts,console,setTimeout,clearTimeout},{filename:'offline-worker.js'});
  const messages=[];
  const port={postMessage:message=>messages.push(JSON.parse(JSON.stringify(message))),close(){this.closed=true;}};
  events.message({data:{type:'OBSERVE_STATIC_SHELL_INSTALL'},ports:[port]});
@@ -56,7 +57,21 @@ function harness(oldFiles,networkFiles=expected,{validOldName=true,completeCurre
    waitUntil:task=>{job=task;}});
   await job;return rows;
  };
- return {name,oldName,data,fetches,messages,port,install,verify};
+ async function activate({owned=true,otherClient=false,latePeer=false,badProof=false,invalidScope=false}={}){
+  const replies=[],windowClient={type:'window',id:'caller',url:invalidScope?root+'sw-update.html':root+'index.html'};
+  let activated=0,checks=0,job;
+  self.MEBLE_UPDATE_OWNS_WRITER=async id=>id===windowClient.id&&owned;
+  self.skipWaiting=async()=>{activated++;};
+  self.clients={matchAll:async()=>otherClient||(latePeer&&++checks>2)?[windowClient,{id:'peer'}]:[windowClient]};
+  const channel={postMessage(message){
+   replies.push({status:message.status,reason:message.reason});
+   if(message.status==='prepared')queueMicrotask(()=>this.onmessage({data:{nonce:badProof?'other':message.nonce,version:message.version,confirm:true}}));
+  },close(){}};
+  events.message({data:{type:'ACTIVATE_STATIC_SHELL',protocol:1,version:manifest.version,nonce:'activation-proof'},source:windowClient,ports:[channel],waitUntil:task=>{job=task;}});
+  await job;
+  return {activated,replies};
+ }
+ return {name,oldName,data,fetches,messages,port,install,verify,activate};
 }
 (async()=>{
  let h=harness({'unchanged.js':expected['unchanged.js'],'changed.js':'old version'});
@@ -91,5 +106,11 @@ function harness(oldFiles,networkFiles=expected,{validOldName=true,completeCurre
  await assert.rejects(h.install(),/SYNTHETIC_NETWORK_UNAVAILABLE/);
  assert.equal(h.data.get(h.name),current,'Failed same-manifest repair must preserve the existing cache');
  assert.equal(current.get(new URL('unchanged.js',root).href).bytes.toString(),expected['unchanged.js']);
- console.log('PASS incremental Service Worker: unchanged reuse, modified/missing download, corrupt fallback, atomic failure, foreign exclusion, existing cache, ACK counters');
+ assert.deepEqual(await h.activate(),{activated:0,replies:[{status:'refused',reason:'INSTALL_UNCONFIRMED'}]},'A damaged candidate must never activate');
+ h=harness({},expected,{completeCurrent:true});
+ for(const [input,reason] of [[{owned:false},'OTHER_TAB'],[{otherClient:true},'OTHER_TAB'],[{latePeer:true},'OTHER_TAB'],[{badProof:true},'APP_BUSY'],[{invalidScope:true},'CANDIDATE_CHANGED']]){
+  const refusal=await h.activate(input);assert.equal(refusal.activated,0);assert.deepEqual(refusal.replies.at(-1),{status:'refused',reason});
+ }
+ const accepted=await h.activate();assert.equal(accepted.activated,1);assert.equal(accepted.replies.at(-1).status,'accepted');
+ console.log('PASS incremental Service Worker: verified reuse, atomic failure, ACK counters and guarded activation against a late tab, bad proof and corrupt cache');
 })().catch(error=>{console.error(error.stack);process.exitCode=1;});
