@@ -145,7 +145,10 @@ async function runForeignHistoryPreservation(){
     if(kind==='missing-optional-field') delete old.meta.storageWarning;
     else{old.meta.privateExtension={exact:17.125};old.lines.materials[0].privateExtension={exact:27.125};}
     old.meta.selectedByClient=true;old.meta.acceptedAt=1000;old.meta.acceptedStage='zaakceptowany';
-    const prior = [old],beforeRaw = JSON.stringify(prior);
+    const other = structuredClone(old);
+    other.id='other-old';other.generatedAt=3000;other.investor.id='another-foreign-investor';
+    const prior = [old,other],beforeRaw = JSON.stringify(prior);
+    sandbox.FC.applicationWrite={registry:'p0b-rooms-v1'};
     sandbox.localStorage.setItem('fc_quote_snapshots_v1',beforeRaw);
     store.readAll();strict.equal(sandbox.localStorage.getItem('fc_quote_snapshots_v1'),beforeRaw);
     const candidate = snapshot('new', 'New offer', 4000);
@@ -153,6 +156,7 @@ async function runForeignHistoryPreservation(){
     candidate.scope={selectedRooms:[record.id],roomLabels:['New room'],sourceProjects:[{projectId:record.id,roomId:record.id,investorId:record.investorId,recordHash,documentHash,revision:head}]};
     store.save(candidate);
     const next = JSON.parse(sandbox.localStorage.getItem('fc_quote_snapshots_v1'));
+    strict.deepEqual(next.filter(row=>row.id!=='new').map(row=>row.id),prior.map(row=>row.id),'Appending must preserve the stored foreign history order');
     strict.deepEqual(next.find(row=>row.id==='old'),old,'Creating another investor offer cannot normalize frozen historical fields: '+kind);
     let committed;
     const ledger = createApplicationQuoteLedger({fc:{projectModel:{normalizeProjectRecord:value=>value}},store:{

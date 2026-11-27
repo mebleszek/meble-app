@@ -1,5 +1,12 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## Zapis wyceny i zwalnianie pomieszczeń — 27.11.2026
+
+- **USTALONE** — raport odbioru PR172 pochodzi z manifestu `0eaffbe3…45e5568` opublikowanego z `15d0b9c3`. Obie ścieżki nadal występują w bazie `1278b0c412f8766b4b811faf0675c292cb2ada88`. Istniejące dane zachowują format. Pakiet uwzględnia mobilny Rysunek 2D z `main` `1393029eba180cb114a471e7aecbbca2b253f5ff`.
+- **WDROŻONE** — zapis oferty P0-B utrwala wyłącznie zapis oferty w dotychczasowej historii, zachowując kolejność i treść innych rekordów. Zmiana albo utworzenie pomieszczenia zapisuje w tym samym checkpointcie zamiar zwolnienia poprzedniej własnej blokady. Wysyłka i zwolnienie używają obecnych potwierdzeń synchronizacji i sprawdzają generację blokady.
+- **SPRAWDZONE** — RED → GREEN dla zmiany kolejności historii i dla zamiaru zwolnienia przy przerwanym tworzeniu pokoju. Dwa profile Chromium 158 z Firebase DEMO 1/1, w tym obie zmiany pokoju, niezależne zapisy, drugi wariant wyceny i potwierdzenie publikacji po SIGKILL. Natywne Chromium/IndexedDB 2/2, kontrakty dostępu i źródeł 17/17, statyczny Preflight 784/784 i 366 skryptów, manifest i pokrycie CI PASS. Po integracji najnowszego `main` ponownie przeszły scenariusz dwóch profili i oddzielny test Rysunku 2D. [Przyczyny i dowody](tools/reports/quote-preparation-hardware-20261125.md#zapis-oferty-i-opuszczanie-pomieszczenia--27112026).
+- **BRAKUJE** — wynik pełnego CI i potwierdzenie na fizycznych urządzeniach. `CODE_READY / CI_PENDING / RELEASE_BLOCKED`.
+
 ## Ergonomia mobilna Rysunku 2D — 27.11.2026
 
 - **USTALONE:** właściciel zatwierdził zwarty nagłówek, regulowane właściwości pod rysunkiem, gesty płótna, stałe narzędzia, podgląd ściany, obsługę klawiatury, milimetry i czytelny stan zapisu. Zielony przycisk „+” zachowuje położenie i działanie. Gałąź `feat/drawing-mobile-ergonomics`, baza `1278b0c412f8766b4b811faf0675c292cb2ada88` po publikacji Rysunku i poprawki rezerwacji DEMO.
