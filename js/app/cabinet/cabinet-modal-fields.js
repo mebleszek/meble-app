@@ -114,6 +114,33 @@
     return div;
   }
 
+  function shiftDecimal(value,places){
+    // Shift the decimal text so a display round-trip also preserves fractions of a millimeter.
+    const [digits,exponent='0'] = String(value).toLowerCase().split('e');
+    return Number(digits+'e'+(Number(exponent)+places));
+  }
+
+  const centimeter = {name:'cm',display:value=>value,read:value=>Number(value)};
+  const millimeter = {
+    name:'mm',
+    display:value=>value==null || value===''?'':shiftDecimal(value,1),
+    read:value=>value===''?0:shiftDecimal(value,-1)
+  };
+
+  function dimensions(){
+    return window.uiState?.activeTab==='rysunek' ? millimeter : centimeter;
+  }
+
+  function setDimensionInput(input,value){
+    const unit = dimensions();
+    input.value = unit.display(value);
+    input.step = unit.name==='mm'?'1':'0.1';
+    for(const label of input.labels || []){
+      const title = label.dataset.dimensionLabel;
+      if(title) label.textContent = unit.name==='mm' ? title+' (mm)' : title;
+    }
+  }
+
   function appendExtraNumberField(container, cfg){
     if(!container || !cfg) return null;
     const draft = cfg.draft;
@@ -125,15 +152,20 @@
     const div = document.createElement('div');
     div.className = 'cabinet-extra-field cabinet-extra-field--number' + (compact ? ' cabinet-extra-field--compact' : '');
     const raw = (draft && draft.details && draft.details[key] != null) ? draft.details[key] : fallback;
+    const unit = dimensions();
+    const millimeters = unit.name==='mm' && labelText.endsWith(' (cm)');
+    const label = millimeters ? labelText.replace(/ \(cm\)$/,' (mm)') : labelText;
     const existingShelves = document.getElementById('cmShelves');
     const inputId = cfg.inputId || ((!existingShelves && key === 'shelves') ? 'cmShelves' : '');
     const idAttr = inputId ? ' id="' + inputId + '"' : '';
-    div.innerHTML = '<label class="cabinet-extra-field__label">' + labelText + '</label><input class="cabinet-extra-field__control" type="number"' + idAttr + ' value="' + raw + '" />';
+    div.innerHTML = '<label class="cabinet-extra-field__label">' + label + '</label><input class="cabinet-extra-field__control" type="number"' + idAttr + ' value="' + (millimeters?unit.display(raw):raw) + '" />';
     const inp = div.querySelector('input');
+    if(millimeters) inp.inputMode = 'decimal';
 
     const apply = function(){
-      draft.details = Object.assign({}, draft.details || {}, { [key]: inp.value });
-      if(typeof onApply === 'function') onApply(inp.value, inp);
+      const value = millimeters && inp.value!=='' ? String(unit.read(inp.value)) : inp.value;
+      draft.details = Object.assign({}, draft.details || {}, { [key]: value });
+      if(typeof onApply === 'function') onApply(value, inp);
     };
 
     inp.addEventListener('input', apply);
@@ -151,5 +183,7 @@
     shouldUseCompactNumberField,
     appendExtraSelectField,
     appendExtraNumberField,
+    dimensions,
+    setDimensionInput,
   };
 })();

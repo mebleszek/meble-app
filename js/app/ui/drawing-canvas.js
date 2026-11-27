@@ -123,12 +123,15 @@
     svg('title',{},group,[item.label,...(warnings.get(p.cabinetId)||[])].join(' '));
   }
 
-  function viewBox(walls,items,obstacles,wall){
-    const corners = [...items.map(item=>itemBox(item,wall)),...obstacles.map(item=>obstacleBox(item,wall))];
+  function frame({walls,items,obstacles,wall,preview}){
+    const corners = [
+      ...items.filter(item=>!wall || item.p.wallId===wall.id).map(item=>itemBox(item,wall)),
+      ...obstacles.filter(item=>!wall || item.o.wallId===wall.id).map(item=>obstacleBox(item,wall))
+    ];
     if(wall){
       corners.push({left:0,top:0,right:wall.length,bottom:wall.height+120});
     }else{
-      for(const row of walls){
+      for(const row of preview ? [...walls,preview.wall] : walls){
         const end = FC.drawingGeometry.toPlan(row,row.length,0);
         corners.push({left:Math.min(row.x,end.x),top:Math.min(row.y,end.y),right:Math.max(row.x,end.x),bottom:Math.max(row.y,end.y)});
       }
@@ -137,15 +140,34 @@
     const top = Math.min(...corners.map(box=>box.top))-250;
     const width = Math.max(850,Math.max(...corners.map(box=>box.right))-left+250);
     const height = Math.max(750,Math.max(...corners.map(box=>box.bottom))-top+250);
-    return `${left} ${top} ${width} ${height}`;
+    return [left,top,width,height];
+  }
+
+  function paintPreview(canvas,preview){
+    canvas.querySelector('.drawing2d-wall-preview')?.remove();
+    if(!preview) return;
+    const {wall,hasLength,side} = preview;
+    const G = FC.drawingGeometry;
+    const start = G.toPlan(wall,0,0), end = G.toPlan(wall,wall.length,0);
+    const group = svg('g',{class:'drawing2d-wall-preview','aria-hidden':'true'},canvas);
+    line(group,start.x,start.y,end.x,end.y,'drawing2d-preview-line');
+    const anchor = side==='left' ? end : start;
+    if(side!=='first') svg('rect',{x:anchor.x-32,y:anchor.y-32,width:64,height:64,class:'drawing2d-join'},group);
+    const tip = side==='left' ? start : end;
+    const sign = side==='left' ? -1 : 1, dx = wall.dx*sign, dy = wall.dy*sign;
+    svg('polygon',{points:`${tip.x},${tip.y} ${tip.x-95*dx-45*dy},${tip.y-95*dy+45*dx} ${tip.x-95*dx+45*dy},${tip.y-95*dy-45*dx}`,
+      class:'drawing2d-preview-arrow'},group);
+    const mid = G.toPlan(wall,wall.length/2,-115);
+    const caption = label(group,mid.x,mid.y,hasLength?`${G.wallName(wall.id)} · ${wall.length} mm`:'Wpisz długość');
+    if(!wall.dx) caption.setAttribute('transform',`rotate(-90 ${mid.x} ${mid.y})`);
   }
 
   function paint(stage,options){
-    const {walls,wall,items,obstacles,mode,zoom} = options;
-    if(!walls.length) return null;
+    const {walls,wall,items,obstacles,mode,zoom,preview} = options;
+    if(!walls.length && !preview) return null;
     const visible = wall ? items.filter(item=>item.p.wallId===wall.id) : items;
     const visibleObstacles = wall ? obstacles.filter(item=>item.o.wallId===wall.id) : obstacles;
-    const canvas = svg('svg',{class:`drawing2d-canvas drawing2d-${mode}`,viewBox:viewBox(walls,visible,visibleObstacles,wall),
+    const canvas = svg('svg',{class:`drawing2d-canvas drawing2d-${mode}`,viewBox:frame(options).join(' '),
       'aria-label':wall?'Widok · '+FC.drawingGeometry.wallName(wall.id):'Rzut pomieszczenia z góry'},stage);
     canvas.style.width = zoom+'%';
     canvas.style.height = Math.round(470*zoom/100)+'px';
@@ -157,14 +179,10 @@
     else walls.forEach(row=>planWall(canvas,row));
     for(const item of visible) cabinet(canvas,item,wall,options);
     for(const item of visibleObstacles) obstacle(canvas,item,wall,options);
-    if(options.join){
-      const [row,along] = options.join;
-      const point = wall ? {x:along,y:wall.height} : FC.drawingGeometry.toPlan(row,along,0);
-      svg('rect',{x:point.x-32,y:point.y-32,width:64,height:64,class:'drawing2d-join'},canvas);
-    }
+    paintPreview(canvas,preview);
     labels?.observe(canvas);
     return canvas;
   }
 
-  FC.drawingCanvas = {paint};
+  FC.drawingCanvas = {paint,frame,paintPreview};
 })(window);

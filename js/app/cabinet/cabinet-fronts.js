@@ -582,10 +582,17 @@ function syncDraftFromCabinetModalForm(d){
     return String(value || '') === 'front' ? 'front' : 'body';
   };
 
-  const w = num('cmWidth');  if(w !== null) d.width = w;
-  const h = num('cmHeight'); if(h !== null) d.height = h;
-  const dep = num('cmDepth'); if(dep !== null) d.depth = dep;
-  const leg = num('cmLegHeight');
+  const unit = window.FC?.cabinetModalFields?.dimensions?.();
+  const dimension = id=>{
+    const el = document.getElementById(id);
+    if(!el || !unit || unit.name==='cm') return num(id);
+    const value = unit.read(el.value);
+    return Number.isFinite(value) ? value : null;
+  };
+  const w = dimension('cmWidth');  if(w !== null) d.width = w;
+  const h = dimension('cmHeight'); if(h !== null) d.height = h;
+  const dep = dimension('cmDepth'); if(dep !== null) d.depth = dep;
+  const leg = dimension('cmLegHeight');
   const legWrap = document.getElementById('cmLegHeightWrap');
   const legsCheck = document.getElementById('cmHeightIncludesLegs');
   const legVisible = !!(legWrap && legWrap.style.display !== 'none');
@@ -636,7 +643,7 @@ function syncDraftFromCabinetModalForm(d){
   }
 
   // narożna L (GL/GP/ST/SP)
-  const gl = num('cmGL'), gp = num('cmGP'), st = num('cmST'), sp = num('cmSP');
+  const gl = dimension('cmGL'), gp = dimension('cmGP'), st = dimension('cmST'), sp = dimension('cmSP');
   if([gl,gp,st,sp].some(v => v !== null)){
     d.details = Object.assign({}, d.details || {}, {
       gl: gl !== null ? String(gl) : (d.details?.gl ?? ''),

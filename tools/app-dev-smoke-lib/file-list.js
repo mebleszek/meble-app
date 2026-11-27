@@ -89,6 +89,7 @@ const APP_DEV_SMOKE_FILES = [
   'js/app/ui/drawing-geometry.js',
   'js/app/ui/drawing-storage.js',
   'js/app/ui/drawing-canvas.js',
+  'js/app/ui/drawing-mobile.js',
   'js/tabs/drawing-editor.js',
   'js/tabs/rysunek.js',
   'js/app/ui/info-box.js',

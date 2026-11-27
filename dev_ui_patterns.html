@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="css/app-runtime.css?v=20260605_hinge_tipon_dynamic_features_v1">
   <link rel="stylesheet" href="css/cabinet-common.css?v=20260602_hardware_requirement_coverage_policy_md_v1">
   <link rel="stylesheet" href="css/drawing-home-confirm.css?v=20260605_hinge_tipon_dynamic_features_v1">
+  <link rel="stylesheet" href="css/drawing-editor.css?v=20261127_drawing_mobile_v1">
   <link rel="stylesheet" href="css/shared-overlays-choice.css?v=20260605_hinge_tipon_dynamic_features_v1">
   <link rel="stylesheet" href="css/rozrys-main.css?v=20260605_hinge_tipon_dynamic_features_v1">
   <link rel="stylesheet" href="css/investor-table-sync.css?v=20260605_hinge_tipon_dynamic_features_v1">
@@ -34,6 +35,9 @@
     .ui-pattern-modal{max-width:520px;margin:0 auto;}
     .ui-pattern-field{max-width:320px;}
     .pattern-preview .panel-box{margin:0;}
+    .pattern-preview .drawing2d{height:auto;}
+    @media(max-width:760px){.pattern-preview .drawing2d-work{height:360px;}}
+    @media(min-width:761px){.pattern-preview .drawing2d-panel-handle{display:none;}}
     .ui-pattern-footer-note{color:#64748b;font-size:12px;line-height:1.35;}
     .ui-pattern-accordion-motion .rozrys-material-accordion__trigger{align-items:center;padding:16px;}
     .ui-pattern-accordion-motion .rozrys-material-accordion__chevron{margin-left:auto;}
@@ -319,8 +323,48 @@
           <div class="ui-pattern-footer-note">Przyciski nie mają tworzyć ciężkiego pasa przez całą szerokość. Mają siedzieć po prawej stronie w lekkiej stopce.</div>
         </div>
       </article>
+      <article class="pattern-card">
+        <h2>Mobilne właściwości Rysunku 2D</h2>
+        <p>Dolny panel i płótno dzielą przestrzeń. Uchwyt zmienia wysokość panelu. Przewija się część z polami, a „Zastosuj” pozostaje w stopce.</p>
+        <div class="pattern-preview">
+          <section class="drawing2d" aria-label="Przykład panelu rysunku">
+            <div class="drawing2d-work">
+              <div class="drawing2d-stage" aria-label="Miejsce na rysunek"></div>
+              <aside class="drawing2d-panel is-open" aria-label="Panel rysunku">
+                <button class="drawing2d-panel-handle" type="button">Rozwiń panel</button>
+                <div class="drawing2d-panel-tabs">
+                  <button type="button">Szafki z projektu</button>
+                  <button type="button" aria-pressed="true">Właściwości</button>
+                </div>
+                <div class="drawing2d-panel-content">
+                  <form data-drawing-form="wall">
+                    <div class="drawing2d-form-fields">
+                      <h3>Dodaj ścianę B</h3>
+                      <label>Długość (mm)<input type="number" inputmode="numeric" value="2400"></label>
+                      <label>Wysokość (mm)<input type="number" inputmode="numeric" value="2600"></label>
+                    </div>
+                    <div class="drawing2d-form-footer"><button class="drawing2d-primary" type="button">Dodaj ścianę</button></div>
+                  </form>
+                </div>
+              </aside>
+            </div>
+          </section>
+        </div>
+      </article>
     </section>
   </main>
+  <script src="js/app/ui/drawing-mobile.js?v=20261127_drawing_mobile_v1"></script>
+  <script>
+    (() => {
+      const handle = document.querySelector('.pattern-preview .drawing2d-panel-handle');
+      const work = handle.closest('.drawing2d-work');
+      const state = {panelRatio:.36};
+      FC.drawingMobile.wirePanelHandle(handle,state);
+      work.addEventListener('click',event=>{
+        if(event.target===handle) FC.drawingMobile.setPanelRatio(work,state,state.panelRatio>.5?.36:.70);
+      });
+    })();
+  </script>
   <script>
     (function(){
       'use strict';

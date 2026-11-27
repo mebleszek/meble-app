@@ -26,6 +26,8 @@
   function editHeights(ctx,rollbackDistribution){
     const {draft,room,rerender,state}=ctx,count=rows(room,draft).reduce((n,r)=>n+r.qty,0),before=options(draft);
     if(!count||state.draft!==draft)return;
+    const unit=FC.cabinetModalFields?.dimensions?.();
+    const mm=unit?.name==='mm';
     const overlay=document.createElement('div');overlay.className='confirm-backdrop';overlay.dataset.innerDrawerHeights='';
     const box=document.createElement('div');box.className='confirm-box';box.style.maxHeight='calc(100dvh - 32px)';box.style.overflowY='auto';box.setAttribute('role','dialog');box.setAttribute('aria-modal','true');
     const head=document.createElement('div');head.className='confirm-title';head.textContent='Wysokości szuflad wewnętrznych';
@@ -35,9 +37,10 @@
     type.value=before.heightType;body.append(type);
     const inputs=[];
     for(let i=0;i<count;i++){
-      const label=document.createElement('label');label.className='cabinet-extra-field';label.textContent='Szuflada '+(i+1)+' — wysokość (cm)';
-      const input=document.createElement('input');input.type='number';input.min='.1';input.step='.1';input.className='cabinet-extra-field__control';input.dataset.drawerIndex=String(i);
-      input.value=before.heightsCm?.[i]??'';label.append(input);body.append(label);inputs.push(input);
+      const label=document.createElement('label');label.className='cabinet-extra-field';label.textContent='Szuflada '+(i+1)+' — wysokość ('+(unit?.name??'cm')+')';
+      const input=document.createElement('input');input.type='number';input.min=mm?'1':'.1';input.step=input.min;input.inputMode='decimal';input.className='cabinet-extra-field__control';input.dataset.drawerIndex=String(i);
+      const height=before.heightsCm?.[i]??'';
+      input.value=unit?.display(height)??height;label.append(input);body.append(label);inputs.push(input);
     }
     const error=document.createElement('div');error.setAttribute('role','alert');body.append(error);
     const actions=document.createElement('div');actions.className='confirm-actions';
@@ -53,7 +56,7 @@
     document.addEventListener('keydown',onKey,true);cancel.onclick=()=>close(false);
     save.onclick=()=>{
       if(state.draft!==draft){close(false);return;}
-      const next={...draft,details:{...draft.details,innerDrawerDistribution:'declared',innerDrawerHeightType:type.value,innerDrawerHeightsCm:inputs.map(el=>Number(el.value))}};
+      const next={...draft,details:{...draft.details,innerDrawerDistribution:'declared',innerDrawerHeightType:type.value,innerDrawerHeightsCm:inputs.map(el=>unit?.read(el.value)??Number(el.value))}};
       const result=layout(room,next);
       if(!result.ok){error.textContent=messages[result.code]||result.code;return;}
       draft.details=next.details;close(true);

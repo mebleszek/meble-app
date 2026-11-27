@@ -27,8 +27,11 @@
       const session = FC.session;
       if(!session || (session.active && (session.projectId !== expected.project || session.roomId && session.roomId !== room))) fail('LF_DRAWING_CONTEXT_CHANGED');
       const next = structuredClone(root.projectData);
-      FC.projectExportContract.validateDrawing(drawing,next[room].cabinets);
-      next[room].drawing2d = structuredClone(drawing);
+      if(drawing===undefined) delete next[room].drawing2d;
+      else{
+        FC.projectExportContract.validateDrawing(drawing,next[room].cabinets);
+        next[room].drawing2d = structuredClone(drawing);
+      }
       if(session.begin(room) !== true) fail(session.lastError?.code || 'LF_DRAWING_BEGIN_FAILED');
       const result = FC.project.saveConfirmed(next,{expectedRecord:record,draft:!!expected.writer});
       if(!result.ok) fail(result.code || 'LF_DRAWING_SAVE_FAILED');

@@ -9,6 +9,7 @@
   function $(id){ return document.getElementById(id); }
 
   function showOnly(ids){
+    if(!ids.includes('appView')) FC.drawingEditor?.unmount();
     const all = ['homeView','modeHubView','roomsView','appView','investorView','rozrysView','magazynView','investorsListView','serviceOrdersListView'];
     all.forEach((id)=>{
       const el = $(id);
@@ -31,6 +32,9 @@
     const runtime = FC.investorProjectRuntime;
     const dirty = storageDirty || !!(session && session.active && runtime && typeof runtime.hasProjectDivergence === 'function'
       && typeof projectData !== 'undefined' && runtime.hasProjectDivergence(projectData));
+    const drawingStatus = $('drawingSessionStatus');
+    const drawingLabel = dirty ? 'Niezapisane zmiany' : 'Zapisano';
+    if(drawingStatus && drawingStatus.textContent!==drawingLabel) drawingStatus.textContent = drawingLabel;
     if(dirty){
       cancelBtn.style.display = '';
       cancelBtn.textContent = 'Anuluj';

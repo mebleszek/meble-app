@@ -10,6 +10,11 @@
   function renderCornerLExtraDetails(ctx){
     const container = ctx.container;
     const draft = ctx.draft;
+    const unit = ns.cabinetModalFields?.dimensions?.();
+    const mm = unit?.name==='mm';
+    const unitLabel = unit?.name ?? 'cm';
+    const show = value=>unit?.display(value) ?? value;
+    const read = input=>(unit?.read(input.value) ?? Number(input.value)) || 0;
     const d0 = getSafeDetails(draft);
     const defaults = {
       gl: (d0.gl != null ? d0.gl : '110'),
@@ -27,22 +32,22 @@
         <div>
           <label>GL</label>
           <input id="cmGL" type="number" step="0.1" />
-          <div class="muted xs" style="margin-top:4px">Głębokość lewa (cm)</div>
+          <div class="muted xs" style="margin-top:4px">Głębokość lewa (${unitLabel})</div>
         </div>
         <div>
           <label>GP</label>
           <input id="cmGP" type="number" step="0.1" />
-          <div class="muted xs" style="margin-top:4px">Głębokość prawa (cm)</div>
+          <div class="muted xs" style="margin-top:4px">Głębokość prawa (${unitLabel})</div>
         </div>
         <div>
           <label>ST</label>
           <input id="cmST" type="number" step="0.1" />
-          <div class="muted xs" style="margin-top:4px">Szerokość tyłu (cm)</div>
+          <div class="muted xs" style="margin-top:4px">Szerokość tyłu (${unitLabel})</div>
         </div>
         <div>
           <label>SP</label>
           <input id="cmSP" type="number" step="0.1" />
-          <div class="muted xs" style="margin-top:4px">Szerokość przodu (cm)</div>
+          <div class="muted xs" style="margin-top:4px">Szerokość przodu (${unitLabel})</div>
         </div>
       </div>
 
@@ -52,7 +57,7 @@
       </div>
 
       <div class="muted xs" style="margin-top:8px">
-        Widok z góry. Fronty liczone: <b>FL = |GL−GP|</b> oraz <b>FP = |ST−SP−1,8|</b> (płyta 18&nbsp;mm).
+        Widok z góry. Fronty liczone: <b>FL = |GL−GP|</b> oraz <b>FP = |ST−SP−${mm?18:'1,8'}|</b> (płyta 18&nbsp;mm).
       </div>
 
       <div style="margin-top:10px">
@@ -69,16 +74,18 @@
     const warnEl = wrap.querySelector('#cornerWarn');
     const flipBtn = wrap.querySelector('#flipCornerBtn');
 
-    iGL.value = draft.details.gl;
-    iGP.value = draft.details.gp;
-    iST.value = draft.details.st;
-    iSP.value = draft.details.sp;
+    iGL.value = show(draft.details.gl);
+    iGP.value = show(draft.details.gp);
+    iST.value = show(draft.details.st);
+    iSP.value = show(draft.details.sp);
+
+    if(mm) for(const field of [iGL,iGP,iST,iSP]){field.inputMode='decimal';field.step='1';}
 
     const sync = () => {
-      const GL = Number(iGL.value) || 0;
-      const GP = Number(iGP.value) || 0;
-      const ST = Number(iST.value) || 0;
-      const SP = Number(iSP.value) || 0;
+      const GL = read(iGL);
+      const GP = read(iGP);
+      const ST = read(iST);
+      const SP = read(iSP);
       const FL = Math.abs(GL - GP);
       const FP = Math.abs(ST - SP - 1.8);
 
@@ -94,13 +101,13 @@
 
       const widthInput = document.getElementById('cmWidth');
       const depthInput = document.getElementById('cmDepth');
-      if(widthInput) widthInput.value = String(draft.width);
-      if(depthInput) depthInput.value = String(draft.depth);
+      if(widthInput) widthInput.value = show(draft.width);
+      if(depthInput) depthInput.value = show(draft.depth);
 
       if(warnEl){
         const notes = [];
-        if(FL < 15) notes.push(`FL ${FL.toFixed(1)} cm < 15 cm`);
-        if(FP < 15) notes.push(`FP ${FP.toFixed(1)} cm < 15 cm`);
+        if(FL < 15) notes.push(`FL ${mm?Math.round(FL*10):FL.toFixed(1)} ${unitLabel} < ${show(15)} ${unitLabel}`);
+        if(FP < 15) notes.push(`FP ${mm?Math.round(FP*10):FP.toFixed(1)} ${unitLabel} < ${show(15)} ${unitLabel}`);
         warnEl.textContent = notes.length ? ('Uwaga: ' + notes.join(' · ')) : '';
       }
 
@@ -110,7 +117,7 @@
           sketchApi.drawCornerSketch({
             canvas: wrap.querySelector('#cornerPreview'),
             legendEl: wrap.querySelector('#cornerPreviewLegend'),
-            GL, GP, ST, SP,
+            GL, GP, ST, SP, millimeters:mm,
             flip: !!(draft.details && draft.details.cornerFlip)
           });
         }
