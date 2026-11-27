@@ -27,6 +27,7 @@
    event.ports[0].postMessage({protocol:2,nonce:event.data.nonce,owned});event.ports[0].close();
   }));
  });
+ self.MEBLE_UPDATE_OWNS_WRITER=id=>serial(async()=>!!id&&(await liveOwner())?.id===id);
  self.MEBLE_WRITER_ALLOWED=event=>serial(async()=>{
   const owner=await liveOwner();if(!owner)return true;
   if(event.clientId===owner.id||event.replacesClientId===owner.id){

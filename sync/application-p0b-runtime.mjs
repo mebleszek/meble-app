@@ -330,6 +330,7 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
  }
  function close(){closed=true;reservations?.close();quoteAccess?.close();if(fc.roomQuoteAccess===quoteAccess)delete fc.roomQuoteAccess;if(quotes&&fc.roomQuoteProof===quotes.proof)delete fc.roomQuoteProof;for(const value of heartbeats.values())value.stop();heartbeats.clear();presence.detach(protocol);if(protocol&&fc.projectTakeoverPin===protocol.pin)delete fc.projectTakeoverPin;delete fc.projectRecovery;if(fc.localInvestorDeletion===deletionAdapter)delete fc.localInvestorDeletion;deletionJournal?.close();}
  return {protocol,discovery,project,projectRows,commit,checkpoint,preflightAcceptance,ensureNewProject,watchEditor,recovery,isLost:scope=>lostEditors.has(scope),canRecover,offerRecovery,resume,bind,close,
+  updateBlocked:()=>deletionPending,
   reservationsViewChanged:reservations?.navigate,reservationsSynced:reservations?.syncCompleted,
   async assertEditable(iid,pid,options){
    if(reservations)return reservations.assertEditable(iid,pid,options);

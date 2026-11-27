@@ -1,5 +1,12 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## Aktualizacja aplikacji jednym kliknięciem — 27.11.2026
+
+- **USTALONE** — właściciel zatwierdził powiadomienie o gotowej wersji, „Aktualizuj” i „Później” oraz automatyczne przeładowanie po bezpiecznym przełączeniu. Gałąź `feat/one-click-offline-update-20261127`, BASE `1393029eba180cb114a471e7aecbbca2b253f5ff`. Bieżąca poprawka synchronizacji pozostaje na osobnej gałęzi.
+- **WDROŻONE** — aktualizator wyświetla powiadomienie po pełnej weryfikacji plików. Przy zapisie oczekującym na potwierdzenie, trwającej edycji lub innej karcie zachowuje bieżącą wersję. Automatyczne przełączenie wymaga jednej uprawnionej karty aplikacji w tym profilu, wolnej sesji i własności blokady zapisu. Bezpieczne przełączenie przeładowuje tę kartę i potwierdza dokładną wersję w ponownie otwartym programie. [Plan i dowody](tools/reports/android-safe-sw-update-20261031.md#aktualizacja-jednym-kliknięciem--27112026).
+- **SPRAWDZONE** — w Chromium 158 odmowa przy edycji, oczekującym zapisie i drugiej karcie. Po usunięciu blokad dokładnie jedno przeładowanie i niezmienione dane localStorage oraz IndexedDB. Rzeczywisty podpisany runtime odmówił przy niepewnej kolejce i otwartej sesji. Historyczna aktualizacja, odczyt po restarcie offline, Rysunek 2D, weryfikacja plików i pokrycie CI PASS.
+- **BRAKUJE** — pełne CI, wydanie i odbiór w używanych przeglądarkach. Pierwszy upgrade ze starszego programu może wymagać dotychczasowej procedury. Wymuszanie aktualizacji przy przyszłym niezgodnym protokole wymaga osobnej decyzji i wykazanej niezgodności. `CODE_READY / CI_PENDING / RELEASE_BLOCKED`.
+
 ## Ergonomia mobilna Rysunku 2D — 27.11.2026
 
 - **USTALONE:** właściciel zatwierdził zwarty nagłówek, regulowane właściwości pod rysunkiem, gesty płótna, stałe narzędzia, podgląd ściany, obsługę klawiatury, milimetry i czytelny stan zapisu. Zielony przycisk „+” zachowuje położenie i działanie. Gałąź `feat/drawing-mobile-ergonomics`, baza `1278b0c412f8766b4b811faf0675c292cb2ada88` po publikacji Rysunku i poprawki rezerwacji DEMO.
