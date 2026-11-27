@@ -13,15 +13,22 @@
  const read=async()=>{if(!(await indexedDB.databases()).some(db=>db.name===DB))return null;return record((_s,value)=>value,false,'readonly');};
  async function liveOwner(){const old=await read();return old&&await self.clients.get(old.id)?old:null;}
  self.addEventListener('message',event=>{
-  if(event.data?.type!=='APPLICATION_WRITER_FENCE'||!event.ports[0])return;
+  const type=event.data?.type,proofOnly=type==='VERIFY_APPLICATION_WRITER_FENCE';
+  if((!proofOnly&&type!=='APPLICATION_WRITER_FENCE')||!event.ports[0])return;
   event.waitUntil(serial(async()=>{
    let owned=false;
-   try{const source=event.source,windows=await self.clients.matchAll({type:'window',includeUncontrolled:true}),old=await liveOwner();
+   try{
+    const source=event.source,windows=await self.clients.matchAll({type:'window',includeUncontrolled:true}),old=await liveOwner();
     if(event.data.protocol===2&&source?.id&&windows.length===1&&windows[0].id===source.id&&(!old||old.id===source.id)){
-     await record(s=>s.put({id:source.id,protocol:2},'owner'),true);
-     // Claim only this proven lone auth-shell client, after the durable fence;
-     // never skipWaiting, replace an existing worker or reload an open document.
-     if(event.data.claim===true)await self.clients.claim();owned=true;
+     const alreadyBound=old?.protocol===2&&old.id===source.id;
+     if(proofOnly)owned=alreadyBound===true;
+     else{
+      // The unchanged binding is durable already. Ordinary save proofs need
+      // no write transaction or disk commit for the same client.
+      if(!alreadyBound)await record(s=>s.put({id:source.id,protocol:2},'owner'),true);
+      if(event.data.claim===true)await self.clients.claim();
+      owned=true;
+     }
     }
    }catch(_){}
    event.ports[0].postMessage({protocol:2,nonce:event.data.nonce,owned});event.ports[0].close();

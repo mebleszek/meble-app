@@ -62,6 +62,12 @@ async function oneClickUpdate(){
   await send('Page.enable');await send('Page.navigate',{url:base+'/app/index.html'});
   await until('document.body?.dataset.build==="old-one-click"&&!!navigator.serviceWorker.controller');
   const older=await verify('active');
+  const unbound=await evaluate(`new Promise(resolve=>{
+   const c=new MessageChannel();c.port1.onmessage=e=>{c.port1.close();resolve(e.data);};
+   navigator.serviceWorker.controller.postMessage({type:'VERIFY_APPLICATION_WRITER_FENCE',protocol:2,nonce:'unbound'},[c.port2]);
+  })`);
+  assert.deepEqual(unbound,{protocol:2,nonce:'unbound',owned:false});
+  assert.equal(await evaluate('indexedDB.databases().then(rows=>rows.some(db=>db.name==="meble-application-writer-fence-v1"))'),false,'Read-only recovery cannot create a binding');
   await evaluate(`new Promise((resolve,reject)=>{const q=indexedDB.open('one-click-data',1);q.onupgradeneeded=()=>q.result.createObjectStore('rows');q.onerror=reject;q.onsuccess=()=>{const db=q.result,tx=db.transaction('rows','readwrite');tx.objectStore('rows').put({id:'cabinet',width:61,raw:' preserved '},'project');tx.oncomplete=()=>{db.close();resolve(true);};};})`);
   await evaluate('localStorage.setItem("one-click-source","EXACT SOURCE");window.testEditing=true;window.oldDocument=crypto.randomUUID();true');
   const documentId=await evaluate('oldDocument');
@@ -86,6 +92,24 @@ async function oneClickUpdate(){
   assert.equal((await verify('waiting')).version,newer);
   assert.equal((await verify('active')).version,older.version);
   await send('Target.closeTarget',{targetId:extra.targetId});await until(exclusive);
+  const recovered=await evaluate(`(async()=>{
+   const {applicationWriterFence}=await import('./${fenceClient}');
+   await applicationWriterFence(window);
+   const original=ServiceWorker.prototype.postMessage,requests=[];
+   ServiceWorker.prototype.postMessage=function(message,ports){
+    requests.push(message.type);
+    if(requests.length===1){
+     // The worker receives the original request, while the UI loses its reply.
+     const ignored=new MessageChannel();ignored.port1.close();ports[0].close();
+     return original.call(this,message,[ignored.port2]);
+    }
+    return original.call(this,message,ports);
+   };
+   try{await applicationWriterFence(window);return requests;}
+   finally{ServiceWorker.prototype.postMessage=original;}
+  })()`);
+  assert.deepEqual(recovered,['APPLICATION_WRITER_FENCE','VERIFY_APPLICATION_WRITER_FENCE']);
+  console.log('PASS real Chromium writer fence: read-only proof reconciles a lost ACK with the existing binding');
   await click(button);
   await until('document.body?.dataset.build==="new-one-click"');
   await until(status+'?.textContent==="Aplikacja zaktualizowana."');

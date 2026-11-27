@@ -104,7 +104,11 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   if(localOnly){onStage('initial-global-revision');const captured=c.capture({getItem:k=>k==='fc_edit_session_v1'?null:rows[k]??null},Object.keys(c.schemas));c.validateBundle(captured.model);}
   if(p0b)await resumeRoomBootRecovery({window:w,store,p0b,boot});
   onStage('installing-authority');authority=await (deployment?installAuthorizedApplicationAuthority:writer?installEmulatorApplicationAuthority:installOfflineEmulatorApplicationAuthority)({window:w,store,ownerUid,connection:writer,sourceRead:boot?.readNative,initialRows,release:deployment,localOnly,recoverBootDraft:p0b?error=>p0b.canRecover(safeError(error)):undefined,
-   beforeTransaction:async()=>{if(recoveryReading||updateChecking)fail('LF_APPLICATION_BUSY');await (boot?.verifyFence?boot.verifyFence():verifyExclusiveClient(w));if(updateChecking)fail('LF_APPLICATION_BUSY');},onCommitted:scope=>{manualSync?.reset?.();sync?.notify(scope);wakeReceives();},authorize:ensureEditor,
+   beforeTransaction:()=>{
+    if(recoveryReading||updateChecking)fail('LF_APPLICATION_BUSY');
+    const proof=boot?.verifyFence?boot.verifyFence():verifyExclusiveClient(w);
+    return Promise.resolve(proof).then(()=>{if(recoveryReading||updateChecking)fail('LF_APPLICATION_BUSY');});
+   },onCommitted:scope=>{manualSync?.reset?.();sync?.notify(scope);wakeReceives();},authorize:ensureEditor,
    checkpoint:(application,kind,exitScope)=>p0b?p0b.checkpoint(application,()=>(sync||local).checkpoint(application,kind,exitScope)):(sync||local).checkpoint(application,kind,localOnly?undefined:exitScope),
    commit:async(kind,application,{writeScopes}={})=>{
     let scope=application.rows.fc_current_project_id_v1;
