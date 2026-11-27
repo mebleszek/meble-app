@@ -20,6 +20,7 @@ function ids(room){
     ...room.cabinets.map(row=>row.id),...room.fronts.map(row=>row.id),...room.sets.map(row=>row.id),
     ...(room.layout?.segments||[]).flatMap(segment=>[segment.id,
       ...Object.values(segment.rows).flat().filter(row=>row.kind==='gap').map(row=>row.id)]),
+    ...(room.drawing2d?.obstacles||[]).map(obstacle=>obstacle.id),
   ];
 }
 function remapRoom(room,mapping){
@@ -46,6 +47,7 @@ function remapRoom(room,mapping){
     for(const row of Object.values(segment.rows))for(const item of row)item.id=mapped(item.id);
   }
   for(const placement of next.drawing2d?.placements||[])placement.cabinetId=mapped(placement.cabinetId);
+  for(const obstacle of next.drawing2d?.obstacles||[])obstacle.id=mapped(obstacle.id);
   if(next.layout?.activeSegmentId)next.layout.activeSegmentId=mapped(next.layout.activeSegmentId);
   // Unknown identity-bearing extensions require a contract before copying.
   function check(value){

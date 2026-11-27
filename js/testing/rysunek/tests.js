@@ -48,6 +48,30 @@
           H.assert(refused,'Nieprawidłowy rysunek został przyjęty');
         }
       }),
+      H.makeTest('Rysunek','Przeszkody w kuchni w L','Rzut i wysokość odróżniają kolizję od styku i wolnego miejsca.',()=>{
+        const G = FC.drawingGeometry, [a,b] = G.walls(drawing);
+        const entries = [
+          {id:'window-1',kind:'window',wallId:1,along:500,width:600,elevation:1000,height:600},
+          {id:'door-1',kind:'door',wallId:1,along:1500,width:800,elevation:0,height:2100},
+          {id:'radiator-1',kind:'radiator',wallId:2,along:200,width:600,elevation:100,height:500,depth:200}
+        ];
+        const obstacles = G.obstacles({...drawing,obstacles:entries},[a,b]);
+        const item = (cabinetId,wall,along,inset,elevation,span=500)=>{
+          const p={cabinetId,wallId:wall.id,along,inset,elevation};
+          const dimensions={span,depth:430,height:700};
+          return {p,wall,dimensions,label:cabinetId,box:G.planBox(wall,p,dimensions)};
+        };
+        const risks = G.warnings([
+          item('upper',a,600,0,1000),item('doorway',a,1700,0,100),item('corner',a,2900,210,100,300)
+        ],obstacles);
+        H.assert(risks.get('upper')?.some(s=>s.includes('okno')) && risks.has('window-1'),'Brak ostrzeżenia o oknie');
+        H.assert(risks.has('doorway') && risks.has('door-1'),'Brak ostrzeżenia o futrynie');
+        H.assert(risks.has('corner') && risks.has('radiator-1'),'Brak kolizji z kaloryferem przez narożnik');
+        for(const clear of [item('below',a,600,0,300),item('away',a,1700,1,100),
+          item('edge',b,200,200,100),item('above',b,210,0,600)]){
+          H.assert(!G.warnings([clear],obstacles).has(clear.p.cabinetId),'Fałszywa kolizja dla '+clear.label);
+        }
+      }),
     ]);
   }
   FC.rysunekDevTests = {runAll};

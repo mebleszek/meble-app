@@ -191,7 +191,15 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    if(p1==='reservation'){await roomReservationCase({t,phone,computer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,globalBefore,saveProject,addCabinet});return;}
    if(p1==='tab-save'){await tabSaveCase({t,phone,computer,iid,pid,wardrobeId,until,image,rows,openRoom,addCabinet,restartProbe,artifacts});return;}
    if(p1){await batchingCase({t,phone,computer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,showList,openRoom,addCabinet,saveProject,restartProbe,globalBefore},{idle:p1==='idle',quoteOnly:p1==='quote',offlineQuote:p1==='offline-quote'});return;}
-   await Promise.all([saveProject(page),saveProject(computer.page)]);
+   if(quoteRemoval==='combined'){
+    // Keep the independent UI Saves parallel. The two explicit full Sync
+    // commands are fixture setup here, and each also reads the other room.
+    await Promise.all([saveProject(page,{flush:false}),saveProject(computer.page,{flush:false})]);
+    for(const peer of [page,computer.page]){
+     const result=await peer.evaluate(()=>window.FC.applicationStartup.synchronize());
+     assert.equal(result.ok,true,`Combined quote fixture sync failed: ${JSON.stringify(result)}`);
+    }
+   }else await Promise.all([saveProject(page),saveProject(computer.page)]);
    await until(async()=>{const state=await image(phone);return state.outbox.filter(row=>row.scope===pid).every(row=>row.phase==='verified');});
    assert.equal((await image(phone)).outbox.filter(row=>row.scope===pid).length,beforeCabinet.outbox.filter(row=>row.scope===pid).length+1);
    await until(async()=>{const state=await image(computer);return state.outbox.filter(row=>row.scope===wardrobeId).every(row=>row.phase==='verified');});

@@ -48,6 +48,41 @@
     return {left:p.along,right:p.along+d.span,top:floor-d.height,bottom:floor};
   }
 
+  function obstacleBox(item,elevation){
+    const {o,wall} = item;
+    if(elevation){
+      const bottom = wall.height-o.elevation;
+      return {left:o.along,right:o.along+o.width,top:bottom-o.height,bottom};
+    }
+    if(o.kind==='radiator') return item.box;
+    // Opening marker in the plan. Its display width does not enter collision checks.
+    return FC.drawingGeometry.planBox(wall,{along:o.along,inset:-32},{span:o.width,depth:64});
+  }
+
+  function obstacle(canvas,item,elevation,{selectedObstacle,warnings}){
+    const {o,wall,label:name} = item, box = obstacleBox(item,elevation);
+    const {left,right,top,bottom} = box;
+    const alert = warnings.get(o.id)||[];
+    const group = svg('g',{class:`drawing2d-obstacle drawing2d-obstacle-${o.kind}${alert.length?' has-warning':''}${selectedObstacle===o.id?' is-selected':''}`,
+      'data-obstacle':o.id,role:'button',tabindex:0,'aria-pressed':selectedObstacle===o.id,
+      'aria-label':`${name} · ${FC.drawingGeometry.wallName(wall.id)}`},canvas);
+    svg('rect',{x:left,y:top,width:right-left,height:bottom-top,class:'drawing2d-obstacle-face'},group);
+    if(o.kind==='window'){
+      if(elevation || !wall.dx) line(group,(left+right)/2,top,(left+right)/2,bottom,'drawing2d-obstacle-detail');
+      else line(group,left,(top+bottom)/2,right,(top+bottom)/2,'drawing2d-obstacle-detail');
+    }
+    if(o.kind==='radiator' && elevation){
+      for(const fraction of [.2,.4,.6,.8]){
+        const x = left+(right-left)*fraction;
+        line(group,x,top,x,bottom,'drawing2d-obstacle-detail');
+      }
+    }
+    if(elevation && o.width>=300 && o.height>=160){
+      label(group,(left+right)/2,(top+bottom)/2+16,name,'drawing2d-label');
+    }
+    svg('title',{},group,[name,`${o.width} × ${o.height} mm`,...alert].join(' · '));
+  }
+
   function surface(cabinet){
     const name = String(cabinet.frontColor||cabinet.bodyColor||'');
     const wood = /dąb|dęb|orzech|sosn|jesion|buk|olcha|brzoz|oak|walnut/i.test(name);
@@ -88,8 +123,8 @@
     svg('title',{},group,[item.label,...(warnings.get(p.cabinetId)||[])].join(' '));
   }
 
-  function viewBox(walls,items,wall){
-    const corners = items.map(item=>itemBox(item,wall));
+  function viewBox(walls,items,obstacles,wall){
+    const corners = [...items.map(item=>itemBox(item,wall)),...obstacles.map(item=>obstacleBox(item,wall))];
     if(wall){
       corners.push({left:0,top:0,right:wall.length,bottom:wall.height+120});
     }else{
@@ -106,10 +141,11 @@
   }
 
   function paint(stage,options){
-    const {walls,wall,items,mode,zoom} = options;
+    const {walls,wall,items,obstacles,mode,zoom} = options;
     if(!walls.length) return null;
     const visible = wall ? items.filter(item=>item.p.wallId===wall.id) : items;
-    const canvas = svg('svg',{class:`drawing2d-canvas drawing2d-${mode}`,viewBox:viewBox(walls,visible,wall),
+    const visibleObstacles = wall ? obstacles.filter(item=>item.o.wallId===wall.id) : obstacles;
+    const canvas = svg('svg',{class:`drawing2d-canvas drawing2d-${mode}`,viewBox:viewBox(walls,visible,visibleObstacles,wall),
       'aria-label':wall?'Widok · '+FC.drawingGeometry.wallName(wall.id):'Rzut pomieszczenia z góry'},stage);
     canvas.style.width = zoom+'%';
     canvas.style.height = Math.round(470*zoom/100)+'px';
@@ -120,6 +156,7 @@
     if(wall) elevationWall(canvas,wall);
     else walls.forEach(row=>planWall(canvas,row));
     for(const item of visible) cabinet(canvas,item,wall,options);
+    for(const item of visibleObstacles) obstacle(canvas,item,wall,options);
     if(options.join){
       const [row,along] = options.join;
       const point = wall ? {x:along,y:wall.height} : FC.drawingGeometry.toPlan(row,along,0);
