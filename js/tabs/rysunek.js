@@ -11,6 +11,6 @@
   FC.tabsRouter.register('rysunek',{
     mount(){},
     render({listEl,room}){renderDrawingTab(listEl,room);},
-    unmount(){}
+    unmount(){FC.drawingEditor.unmount();}
   });
 })(window);

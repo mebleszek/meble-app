@@ -122,10 +122,22 @@ async function main(){
    const value='projectData[uiState.roomType].drawing2d', action=(name,value)=>'[data-drawing-action="'+name+'"]'+(value===undefined?'':'[data-value="'+value+'"]');
    const ready=()=>until('!document.querySelector(".drawing2d[aria-busy]")&&!window.FC.applicationStartup.inspect().transactionPending');
    const wallForm='[data-drawing-form="wall"]',position='[data-drawing-form="position"]';
+   const stage='.drawing2d-stage',panel='.drawing2d-panel',zoom='.drawing2d-zoom';
+   const rect=async selector=>browser.evaluate(`(()=>{const r=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,bottom:r.bottom};})()`);
+   async function reviewShot(name,clip){
+    const directory=process.env.MEBLE_DRAWING_REVIEW_DIR;
+    if(!directory)return;
+    fs.mkdirSync(directory,{recursive:true});
+    const shot=await browser.send('Page.captureScreenshot',{format:'png',...(clip?{clip}: {})});
+    fs.writeFileSync(path.join(directory,name+'.png'),Buffer.from(shot.data,'base64'));
+   }
    if(await browser.evaluate('!!document.querySelector(".info-box button")'))await tap('.info-box button');
    await browser.send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
    await tap('.tab-btn[data-tab="rysunek"]');await until('!!document.querySelector(".drawing2d")');await ready();
    assert.equal(await browser.evaluate('('+value+')===undefined'),true,'Reading the tab must not invent or save a drawing');
+   await tap('.drawing2d-empty button');await fill(wallForm+' [name=length]','3200');await tap(wallForm+' button[type=submit]');await ready();
+   await tap(action('undo'));await ready();
+   assert.equal(await browser.evaluate('('+value+')===undefined'),true,'Undoing the first wall restores a project without a drawing');
    await tap('.drawing2d-empty button');await fill(wallForm+' [name=length]','3200');await tap(wallForm+' button[type=submit]');await ready();
    await tap('.drawing2d-menu summary[aria-label="Ściany"]');await tap(action('wall-form','right'));
    assert.equal(await browser.evaluate('!!document.querySelector(".drawing2d-join")'),true,'The connected endpoint must be marked before adding a wall');
@@ -162,10 +174,25 @@ async function main(){
    const proof=await browser.evaluate('localProof()'),savedDrawing=await browser.evaluate(value);
    await abortNextProjectWrite();await fill(position+' [name=along]','999');await tap(position+' button[type=submit]');
    await expectAbortedAction(proof);assert.deepEqual(await browser.evaluate(value),savedDrawing);
-   await browser.send('Emulation.setDeviceMetricsOverride',{width:393,height:852,deviceScaleFactor:1,mobile:true});
+   phase='mobile drawing chrome, selection and touch';
+   await browser.send('Emulation.setDeviceMetricsOverride',{width:360,height:780,deviceScaleFactor:1,mobile:true});
+   await until('document.body.classList.contains("drawing2d-mobile")');
+   assert.equal(await browser.evaluate('document.getElementById("topTabs").getClientRects().length'),0,'Main navigation is collapsed');
+   assert.equal(await browser.evaluate('document.getElementById("main-auth-bar").getClientRects().length'),0,'Account controls are collapsed');
+   assert.match(await browser.evaluate('document.getElementById("drawingRoomName").textContent'),/Synthetic Kitchen/);
+   assert.ok((await rect('header')).height<=60);
+   await tap('#drawingNavigation summary');
+   assert.equal(await browser.evaluate('document.querySelectorAll("#drawingNavigation #topTabs button").length'),8);
+   assert.ok((await rect('#main-signout')).height>=36);
+   await tap('#drawingNavigation .tab-btn[data-tab="wywiad"]');
+   await until('uiState.activeTab==="wywiad"&&!document.body.classList.contains("drawing2d-mobile")');
+   assert.equal(await browser.evaluate('document.getElementById("main-auth-bar").parentElement===document.body'),true);
+   await tap('.tab-btn[data-tab="rysunek"]');
+   await until('document.body.classList.contains("drawing2d-mobile")');
    await tap(action('panel','properties'));
-   assert.equal(await browser.evaluate('getComputedStyle(document.querySelector(".drawing2d-panel")).position'), 'fixed');
+   assert.equal(await browser.evaluate('getComputedStyle(document.querySelector(".drawing2d-panel")).position'), 'static');
    await tap(action('panel-close'));
+   const fullHeight=(await rect(stage)).height, zoomPosition=await rect(zoom), floatingPosition=await rect('#floatingAdd');
    await browser.send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:2});
    const touch=(type,touchPoints)=>browser.send('Input.dispatchTouchEvent',{type,touchPoints});
    async function swipe(points,deltas){
@@ -178,15 +205,42 @@ async function main(){
    }
    for(const [view,field] of [[0,'along'],[2,'elevation']]){
     await tap(action('view',view));
+    await tap(action('fit'));
     const previous=await browser.evaluate(second);
     const start=await waitForGesturePoint(browser.evaluate,target,{stable:true});
-    await swipe([{...start,id:1}],[{x:0,y:start.y>230?-64:64}]);
+    if(view===0){
+     await swipe([{...start,id:1}],[{x:12,y:20}]);
+     assert.deepEqual(await browser.evaluate(second),previous,'Moving a finger on an unselected cabinet only pans');
+     await tap(action('fit'));
+    }
+    await tap(target);
+    assert.deepEqual(await rect(zoom),zoomPosition,'Selection must not move zoom controls');
+    assert.deepEqual(await rect('#floatingAdd'),floatingPosition,'Selection must not move the existing floating action');
+    const dragStart=await waitForGesturePoint(browser.evaluate,target,{stable:true});
+    await swipe([{...dragStart,id:1}],[{x:0,y:dragStart.y>260?-60:60}]);
     await ready();
     const moved=await browser.evaluate(second);
     assert.ok(Math.abs(moved[field]-previous[field])>100,`Finger drag in view ${view} must persist ${field}`);
     assert.equal(moved.wallId,previous.wallId);
+    await tap(action('undo'));await ready();
+    assert.deepEqual(await browser.evaluate(second),previous,'Undo returns to the previous confirmed drawing layout');
    }
    const movedDrawing=await browser.evaluate(value);
+   assert.ok((await rect(stage)).height<fullHeight,'Properties occupy part of the editor, not a canvas overlay');
+   const collapsedPanel=await rect(panel);
+   const handle=await waitForGesturePoint(browser.evaluate,'.drawing2d-panel-handle',{stable:true});
+   await swipe([{...handle,id:1}],[{x:0,y:-110}]);
+   assert.ok((await rect(panel)).height>collapsedPanel.height+60,'Dragging the handle expands the panel');
+   assert.ok(await waitForGesturePoint(browser.evaluate,target,{stable:true}),'Selected cabinet stays visible after expansion');
+   await reviewShot('03-wlasciwosci-rozwiniete');
+   const fields='.drawing2d-form-fields';
+   const beforeFieldsScroll=await browser.evaluate('document.querySelector(".drawing2d-form-fields").scrollTop');
+   const beforeFormGesture=await browser.evaluate('document.querySelector(".drawing2d-canvas").getAttribute("viewBox")');
+   const fieldsRect=await rect(fields);
+   await swipe([{x:18,y:Math.round(fieldsRect.bottom-14),id:1}],[{x:0,y:-80}]);
+   await until('document.querySelector(".drawing2d-form-fields").scrollTop>'+beforeFieldsScroll);
+   assert.equal(await browser.evaluate('document.querySelector(".drawing2d-canvas").getAttribute("viewBox")'),beforeFormGesture);
+   await tap(action('panel-size'));await tap(action('panel-close'));
    for(let i=0;i<2;i++)await tap(action('zoom',25));
    const blank=async()=>browser.evaluate(`(()=>{
     const canvas=document.querySelector('.drawing2d-canvas'),r=document.querySelector('.drawing2d-stage').getBoundingClientRect();
@@ -197,15 +251,24 @@ async function main(){
     }
     throw Error('No visible blank canvas for native gestures');
    })()`);
-   const scroll='scrollY+document.querySelector(".drawing2d-stage").scrollTop';
-   const beforeScroll=await browser.evaluate(scroll);
+   const box='document.querySelector(".drawing2d-canvas").getAttribute("viewBox")';
+   const beforePan=await browser.evaluate(box);
    await swipe([{...await blank(),id:1}],[{x:0,y:-72}]);
-   await until(scroll+'>'+String(beforeScroll+15));
-   assert.deepEqual(await browser.evaluate(value),movedDrawing,'A gesture on empty canvas only scrolls');
+   assert.notEqual(await browser.evaluate(box),beforePan);
+   assert.deepEqual(await browser.evaluate(value),movedDrawing,'A gesture on empty canvas only pans');
    const center=await blank();
    await swipe([{x:center.x-25,y:center.y,id:1},{x:center.x+25,y:center.y,id:2}],[{x:-75,y:0},{x:75,y:0}]);
-   await until('visualViewport.scale>1.1');
+   await until('parseInt(document.querySelector(".drawing2d-zoom").textContent)>150');
+   assert.equal(await browser.evaluate('visualViewport.scale'),1);
    assert.deepEqual(await browser.evaluate(value),movedDrawing,'Pinch zoom must not move a cabinet');
+   await tap(action('fit'));
+   assert.equal(await browser.evaluate('document.querySelector(".drawing2d-zoom").textContent'),'100%');
+   await tap(action('view',0));
+   await reviewShot('01-rzut-mobilny');
+   await tap('#drawingNavigation summary');await reviewShot('02-menu-i-konto');await tap('#drawingNavigation summary');
+   assert.equal(await browser.evaluate('document.querySelector("meta[name=viewport]").content.includes("user-scalable")'),false);
+   await swipe([{x:42,y:26,id:1},{x:105,y:26,id:2}],[{x:-27,y:0},{x:70,y:0}]);
+   await until('visualViewport.scale>1.1');
    await browser.send('Emulation.setPageScaleFactor',{pageScaleFactor:1});
    await browser.send('Emulation.setTouchEmulationEnabled',{enabled:false});
    phase='drawing obstacles: create, flag collision, edit on mobile and reopen';
@@ -238,18 +301,78 @@ async function main(){
    await until('!!document.querySelector('+JSON.stringify('.drawing2d-panel.is-open '+obstacleForm)+')');
    await fill(obstacleForm+' [name=width]','700');await tap(obstacleForm+' button[type=submit]');await ready();
    assert.equal(await browser.evaluate(value+'.obstacles.find(row=>row.kind==="door").width'),700);
+   phase='mobile wall preview and keyboard-resized forms';
+   const keyboardHeight=355;
+   async function touchButton(selector){
+    const point=await waitForGesturePoint(browser.evaluate,selector,{stable:true});
+    await touch('touchStart',[{...point,id:1}]);await touch('touchEnd',[]);
+   }
+   const visibleWithKeyboard=selector=>until(`(()=>{const el=document.querySelector(${JSON.stringify(selector)}),r=el.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return r.y>=0&&r.bottom<=${keyboardHeight}&&el.contains(hit);})()`);
+   async function keyboard(field,submit){
+    await browser.evaluate(`document.querySelector(${JSON.stringify(field)}).focus();Object.defineProperty(visualViewport,'height',{configurable:true,value:${keyboardHeight}});visualViewport.dispatchEvent(new Event('resize'));true`);
+    await until('document.body.classList.contains("drawing2d-keyboard")');
+    await visibleWithKeyboard(field);
+    if(submit) await visibleWithKeyboard(submit);
+   }
+   async function restoreKeyboard(){
+    await browser.evaluate('delete visualViewport.height;document.activeElement.blur();visualViewport.dispatchEvent(new Event("resize"));true');
+    await until('!document.body.classList.contains("drawing2d-keyboard")');
+   }
+   const wallsMenu='.drawing2d-menu summary[aria-label="Ściany"]';
+   for(const [side,length,id] of [['left',1900,3],['right',1600,4]]){
+    await tap(wallsMenu);await tap(action('wall-form',side));
+    assert.equal(await browser.evaluate('document.querySelector(".drawing2d-views [aria-pressed=true]").dataset.value'),'0');
+    assert.match(await browser.evaluate('document.querySelector(".drawing2d-form-note").textContent'),side==='left'?/początku ściany A/:/końca ściany B/);
+    await fill(wallForm+' [name=length]',String(length));
+    assert.match(await browser.evaluate('document.querySelector(".drawing2d-wall-preview").textContent'),new RegExp(length+' mm'));
+    assert.equal(await browser.evaluate('!!document.querySelector(".drawing2d-preview-arrow")'),true);
+    if(side==='left'){
+     await reviewShot('04-podglad-sciany');
+     await keyboard(wallForm+' [name=length]',wallForm+' button[type=submit]');
+     await reviewShot('05-sciana-z-klawiatura-emulacja',{x:0,y:0,width:393,height:keyboardHeight,scale:1});
+    }
+    await touchButton(wallForm+' button[type=submit]');await ready();await restoreKeyboard();
+    assert.equal(await browser.evaluate('document.querySelector(".drawing2d-views [aria-pressed=true]").dataset.value'),'0');
+    assert.equal(await browser.evaluate(value+`.walls.find(w=>w.id===${id})?.length`),length,'The wall action must commit the preview, including with the keyboard open');
+   }
+   await tap(action('view',1));
+   assert.equal(await browser.evaluate('!!document.querySelector(".drawing2d-elevation-wall")'),true);
+   await tap(action('view',0));
+   await tap(action('panel','cabinet-list'));await tap(action('cabinet',cabinetIds[0]));
+   await keyboard(position+' [name=along]',position+' button[type=submit]');
+   await fill(position+' [name=along]','920');
+   await reviewShot('06-polozenie-z-klawiatura-emulacja',{x:0,y:0,width:393,height:keyboardHeight,scale:1});
+   await touchButton(position+' button[type=submit]');await ready();await restoreKeyboard();
+   assert.equal(await browser.evaluate(value+'.placements[0].along'),920);
+   phase='cabinet dimensions in drawing configurator';
+   await tap('.drawing2d-menu summary[aria-label="Więcej"]');await tap('.drawing2d-more '+action('edit'));
+   await until('document.getElementById("cabinetModal").style.display==="flex"');
+   assert.deepEqual(await browser.evaluate('["cmWidth","cmHeight","cmDepth"].map(id=>document.getElementById(id).value)'),['610','820','500']);
+   assert.match(await browser.evaluate('document.querySelector("[for=cmWidth]").textContent'),/mm/);
+   await reviewShot('07-konfigurator-mm');
+   await keyboard('#cmWidth');await fill('#cmWidth','612');await visibleWithKeyboard('#cabinetModalSave');
+   await reviewShot('08-konfigurator-z-klawiatura-emulacja',{x:0,y:0,width:393,height:keyboardHeight,scale:1});
+   await touchButton('#cabinetModalSave');await restoreKeyboard();
+   await until('document.getElementById("cabinetModal").style.display==="none"&&!window.FC.applicationStartup.inspect().transactionPending');
+   assert.deepEqual(await browser.evaluate('projectData[uiState.roomType].cabinets.map(c=>[c.width,c.height,c.depth])'),[[61.2,82,50],[70,82,50],[80,82,50]]);
+   await tap('#floatingAdd');
+   await until('document.getElementById("cabinetModal").style.display==="flex"');
+   assert.equal(await browser.evaluate('!!document.querySelector("#cabinetTypeChoices .choice-tile")'),true);
+   await tap('#cabinetModalCancel');
+   assert.equal(await browser.evaluate('document.getElementById("drawingSessionStatus").textContent'),'Niezapisane zmiany');
    const withObstacles=await browser.evaluate(value);
-   await tap(action('panel-close'));
+   if(await browser.evaluate('!!document.querySelector(".drawing2d-panel.is-open")'))await tap(action('panel-close'));
    await browser.send('Emulation.setTouchEmulationEnabled',{enabled:false});
    await tap('#sessionSave');await until('!window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending');
-   await reopenOffline(61);
+   assert.equal(await browser.evaluate('document.getElementById("drawingSessionStatus").textContent'),'Zapisano');
+   await reopenOffline(61.2);
    assert.deepEqual(await browser.evaluate('window.FC.projectStore.readAll()[0].projectData[window.FC.investors.readAll()[0].rooms[0].id].drawing2d'),withObstacles);
    await tap('[data-action="open-room"][data-room^="room_"]');
    await until('window.FC.session.active&&window.FC.session.durable&&!window.FC.applicationStartup.inspect().transactionPending');
    await tap('.tab-btn[data-tab="rysunek"]');await until('!!document.querySelector(".drawing2d-canvas")');
    assert.equal(await browser.evaluate('document.querySelectorAll(".drawing2d-canvas [data-cabinet]").length'),2);
    assert.equal(await browser.evaluate('document.querySelectorAll(".drawing2d-canvas [data-obstacle]").length'),3);
-   assert.deepEqual(external,[]);console.log('PASS Rysunek 2D L: touch drag, native scroll and pinch zoom, three obstacles, conflict marker, mobile edit and offline restart.');return;
+   assert.deepEqual(external,[]);console.log('PASS Rysunek 2D: compact navigation, resizable properties, tap/drag/pan/pinch/fit/undo, walls preview, reduced keyboard viewport, mm round-trip, obstacles and offline restart.');return;
   }
   if(process.argv.includes('--cabinet-variants-only')||process.argv.includes('--cabinet-base-probe')){
    phase='native cabinet variants';await require('./helpers/local-cabinet-native-cases')({getBrowser:()=>browser,tap,fill,until,reopen:()=>reopenOffline(61,false,null),baseProbe:process.argv.includes('--cabinet-base-probe')});

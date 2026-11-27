@@ -34,6 +34,21 @@
     return {x:wall.x + along * wall.dx - inset * wall.dy, y:wall.y + along * wall.dy + inset * wall.dx};
   }
 
+  const nextWallId = rows=>Math.max(0,...rows.map(row=>row.id))+1;
+
+  function wallRows(rows,side,next){
+    if(side==='edit') return rows.map(row=>row.id===next.id?next:row);
+    return side==='left' ? [next,...rows] : [...rows,next];
+  }
+
+  function previewWall(rows,side,length){
+    if(!side || side==='edit') return null;
+    const hasLength = Number.isSafeInteger(length) && length>0;
+    const id = nextWallId(rows);
+    const candidate = wallRows(rows,side,{id,length:hasLength?length:1000});
+    return {side,hasLength,wall:walls({walls:candidate}).find(row=>row.id===id)};
+  }
+
   function fromPlan(wall, {x,y}){
     return {along:(x-wall.x)*wall.dx + (y-wall.y)*wall.dy, inset:-(x-wall.x)*wall.dy + (y-wall.y)*wall.dx};
   }
@@ -140,5 +155,5 @@
     return messages;
   }
 
-  FC.drawingGeometry = {walls,wallName,toPlan,fromPlan,size,planBox,frontLine,elevation,snap,warnings,obstacles,obstacleNames};
+  FC.drawingGeometry = {walls,wallName,nextWallId,wallRows,previewWall,toPlan,fromPlan,size,planBox,frontLine,elevation,snap,warnings,obstacles,obstacleNames};
 })(window);

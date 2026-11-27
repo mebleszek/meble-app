@@ -414,9 +414,10 @@
   function renderDishwasherExtraDetails(ctx){
     const draft = ctx.draft;
     const addSelect = ctx.addSelect;
+    const mm = window.FC.cabinetModalFields?.dimensions?.().name==='mm';
     addSelect('Szerokość zmywarki', 'dishWasherWidth', [
-      {v:'45', t:'45 cm'},
-      {v:'60', t:'60 cm'}
+      {v:'45', t:mm?'450 mm':'45 cm'},
+      {v:'60', t:mm?'600 mm':'60 cm'}
     ], ()=>{ ctx.renderCabinetModal(); });
     const leg = Number(ctx.projectData?.[ctx.uiState?.roomType]?.settings?.legHeight) || 0;
     const dw = (draft.details && draft.details.dishWasherWidth) ? draft.details.dishWasherWidth : (String(draft.width || '60'));
@@ -430,6 +431,8 @@
   function renderFridgeExtraDetails(ctx){
     const draft = ctx.draft;
     const addSelect = ctx.addSelect;
+    const mm = window.FC.cabinetModalFields?.dimensions?.().name==='mm';
+    const nicheLabel = mm?'Wysokość niszy (mm)':'Wysokość niszy (cm)';
     const grid = document.createElement('div');
     grid.className = 'grid-2';
     grid.style.gap = '12px';
@@ -449,14 +452,9 @@
         </select>
       </div>
       <div id="cmFridgeNicheWrap" class="cabinet-extra-field cabinet-extra-field--select cabinet-extra-field--compact">
-        <label class="cabinet-extra-field__label">Wysokość niszy (cm)</label>
-        <select id="cmFridgeNiche" class="cabinet-choice-source cabinet-extra-field__control cabinet-dynamic-choice-source" data-launcher-label="Wysokość niszy (cm)" data-choice-title="Wybierz wysokość niszy" data-choice-placeholder="Wysokość niszy (cm)">
-          <option value="82">82</option>
-          <option value="122">122</option>
-          <option value="158">158</option>
-          <option value="178">178</option>
-          <option value="194">194</option>
-          <option value="204">204</option>
+        <label class="cabinet-extra-field__label">${nicheLabel}</label>
+        <select id="cmFridgeNiche" class="cabinet-choice-source cabinet-extra-field__control cabinet-dynamic-choice-source" data-launcher-label="${nicheLabel}" data-choice-title="Wybierz wysokość niszy" data-choice-placeholder="${nicheLabel}">
+          ${[82,122,158,178,194,204].map(n=>`<option value="${n}">${mm?n*10:n}</option>`).join('')}
         </select>
       </div>
       <div id="cmFridgeFreeWrap" class="cabinet-extra-field cabinet-extra-field--select cabinet-extra-field--compact" style="display:none">

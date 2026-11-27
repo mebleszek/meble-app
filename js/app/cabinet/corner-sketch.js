@@ -16,6 +16,8 @@
   const SP = Number(opts?.SP) || 0;
   const t  = Number(opts?.t ?? 1.8) || 1.8; // cm
   const flip = !!opts?.flip;
+  const mm = opts?.millimeters === true;
+  const dimension = value=> mm ? Math.round(value*10)+' mm' : value+' cm';
 
   // computed fronts (Twoje zasady)
   const FL = Math.abs(GL - GP);
@@ -125,24 +127,24 @@
     ctx.fillText(label, (x1+x2)/2, (y1+y2)/2 - 14);
   }
 
-  // opisy wymiarów (cm)
+  // Jednostka opisu nie wpływa na geometrię szkicu.
   // SP rysujemy jako odcinek na "dole" (front dolny). Przy flip ląduje po prawej.
   const spClamped = Math.max(0, Math.min(ST, SP));
   const spA1 = flip ? (ST - spClamped) : 0;
   const spA2 = flip ? ST : spClamped;
-  arrow(X(0), Y(-1.4), X(ST), Y(-1.4), `ST = ${ST} cm`);
-  arrow(X(spA1), Y(yFrontLine+1.6), X(spA2), Y(yFrontLine+1.6), `SP = ${SP} cm`);
+  arrow(X(0), Y(-1.4), X(ST), Y(-1.4), `ST = ${dimension(ST)}`);
+  arrow(X(spA1), Y(yFrontLine+1.6), X(spA2), Y(yFrontLine+1.6), `SP = ${dimension(SP)}`);
 
   // Etykiety GL/GP przechodzą na strony zgodnie z FLIP.
   // (Wartości wejściowe GL/GP nie muszą się zamieniać – liczymy fronty z |...|.)
-  const leftLabel  = flip ? `GP = ${GP} cm` : `GL = ${GL} cm`;
-  const rightLabel = flip ? `GL = ${GL} cm` : `GP = ${GP} cm`;
+  const leftLabel  = flip ? `GP = ${dimension(GP)}` : `GL = ${dimension(GL)}`;
+  const rightLabel = flip ? `GL = ${dimension(GL)}` : `GP = ${dimension(GP)}`;
   arrow(X(-1.4), Y(0), X(-1.4), Y(yLeftSide), leftLabel);
   arrow(X(ST+1.4), Y(0), X(ST+1.4), Y(yRightSide), rightLabel);
 
   const legend = document.getElementById('cornerPreviewLegend');
   if(legend){
-    legend.textContent = `Fronty: FL=|GL−GP|=${Math.round(FL*10)/10} cm, FP=|ST−SP−1,8|=${Math.round(FP*10)/10} cm`;
+    legend.textContent = `Fronty: FL=|GL−GP|=${dimension(Math.round(FL*10)/10)}, FP=|ST−SP−${mm?'18':'1,8'}|=${dimension(Math.round(FP*10)/10)}`;
   }
   }
 

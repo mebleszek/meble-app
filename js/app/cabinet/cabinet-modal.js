@@ -4,6 +4,11 @@
 function getCabinetModalValidationApi(){ return (window.FC && window.FC.cabinetModalValidation) || {}; }
 function getCabinetModalDraftApi(){ return (window.FC && window.FC.cabinetModalDraft) || {}; }
 function getCabinetModalFieldsApi(){ return (window.FC && window.FC.cabinetModalFields) || {}; }
+function writeCabinetDimension(input,value){
+  const api = getCabinetModalFieldsApi();
+  if(api.setDimensionInput) api.setDimensionInput(input,value);
+  else input.value = value;
+}
 function getCabinetModalLaborApi(){ return (window.FC && window.FC.cabinetModalLabor) || {}; }
 function getCabinetModalSetWizardApi(){ return (window.FC && window.FC.cabinetModalSetWizard) || {}; }
 function getCabinetModalStandingApi(){ return (window.FC && window.FC.cabinetModalStanding) || {}; }
@@ -350,7 +355,7 @@ function renderCabinetTypeChoices(){
     if(show){
       const includes = draftHeightIncludesLegs();
       if(check) check.checked = includes;
-      input.value = effectiveDraftLegHeight();
+      writeCabinetDimension(input,effectiveDraftLegHeight());
       input.disabled = !includes;
       input.closest && input.closest('div') && input.closest('div').classList.toggle('is-muted', !includes);
     }
@@ -578,7 +583,7 @@ function renderCabinetModal(){
     if(show){
       const includes = draftHeightIncludesLegs();
       if(check) check.checked = includes;
-      input.value = effectiveDraftLegHeight();
+      writeCabinetDimension(input,effectiveDraftLegHeight());
       input.disabled = !includes;
       input.closest && input.closest('div') && input.closest('div').classList.toggle('is-muted', !includes);
     }
@@ -627,9 +632,9 @@ function renderCabinetModal(){
     const laborApi = getCabinetModalLaborApi();
     if(laborApi && typeof laborApi.renderLaborSection === 'function') laborApi.renderLaborSection(document.getElementById('cmLaborAddons'), draft, renderCabinetModal);
   }catch(_){ }
-  document.getElementById('cmWidth').value = draft.width;
-  document.getElementById('cmHeight').value = draft.height;
-  document.getElementById('cmDepth').value = draft.depth;
+  writeCabinetDimension(document.getElementById('cmWidth'),draft.width);
+  writeCabinetDimension(document.getElementById('cmHeight'),draft.height);
+  writeCabinetDimension(document.getElementById('cmDepth'),draft.depth);
   syncLegHeightUi();
   syncProjectUnusualUi();
 
@@ -701,11 +706,6 @@ function renderCabinetModal(){
     refreshCabinetHardwareRequirementsPanel();
   };
 
-  document.getElementById('cmWidth').onchange = e => {
-    draft.width = parseFloat(e.target.value || 0);
-    refreshCabinetHardwareRequirementsPanel();
-  };
-
   // Live re-check dla uchylnych: po zmianie wysokości od razu przelicz LF i sprawdź zakresy
   const _liveAventosCheck = () => {
     try{
@@ -738,7 +738,7 @@ function renderCabinetModal(){
     if(show){
       const includes = draftHeightIncludesLegs();
       if(check) check.checked = includes;
-      input.value = effectiveDraftLegHeight();
+      writeCabinetDimension(input,effectiveDraftLegHeight());
       input.disabled = !includes;
       input.closest && input.closest('div') && input.closest('div').classList.toggle('is-muted', !includes);
     }

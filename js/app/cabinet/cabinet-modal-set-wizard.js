@@ -320,6 +320,8 @@
     const room = uiState.roomType;
     const s = projectData[room].settings;
     const paramsWrap = document.getElementById('setParams');
+    const unit = window.FC.cabinetModalFields?.dimensions?.();
+    const mm = unit?.name==='mm';
     if(!paramsWrap) return;
     paramsWrap.innerHTML = '';
     if(!presetId){ paramsWrap.style.display='none'; return; }
@@ -330,13 +332,13 @@
     function addInput(id,label,value,extra){
       const d = document.createElement('div');
       d.className = 'set-param-field';
-      d.innerHTML = `<label class="set-param-field__label">${label}</label><input class="set-param-field__control" id="${id}" type="number" value="${value}" ${extra || ''}/>`;
+      d.innerHTML = `<label for="${id}" class="set-param-field__label">${mm?label.replace('(cm)','(mm)'):label}</label><input class="set-param-field__control" id="${id}" inputmode="decimal" type="number" value="${unit?.display(value) ?? value}" ${extra || ''}/>`;
       paramsWrap.appendChild(d);
     }
     function addReadonly(id,label,value){
       const d = document.createElement('div');
       d.className = 'set-param-field set-param-field--readonly';
-      d.innerHTML = `<label class="set-param-field__label">${label}</label><input class="set-param-field__control" id="${id}" type="number" value="${value}" disabled />`;
+      d.innerHTML = `<label for="${id}" class="set-param-field__label">${label}${mm?' · mm':''}</label><input class="set-param-field__control" id="${id}" type="number" value="${unit?.display(value) ?? value}" disabled />`;
       paramsWrap.appendChild(d);
     }
 
@@ -349,7 +351,7 @@
       addInput('setDBottom','Głębokość dolnych (cm)', 51);
       addInput('setBlende','Blenda (cm)', defaultBlende);
       addReadonly('setHTopResult','Wys. górnego (wynikowa)', calcTopForSetSafe(room, defaultBlende, Number(s.bottomHeight)||82));
-      addReadonly('setDTopResult','Głęb. górnego (dół-1)', Math.max(0, 51-1));
+      addReadonly('setDTopResult',mm?'Głęb. górnego (dół − 10 mm)':'Głęb. górnego (dół-1)', Math.max(0, 51-1));
     }
 
     if(presetId === 'C'){
@@ -358,7 +360,7 @@
       addInput('setDBottom','Głębokość dolnego (cm)', 51);
       addInput('setBlende','Blenda (cm)', defaultBlende);
       addReadonly('setHTopResult','Wys. górnego (wynikowa)', calcTopForSetSafe(room, defaultBlende, Number(s.bottomHeight)||82));
-      addReadonly('setDTopResult','Głęb. górnego (dół-1)', Math.max(0, 51-1));
+      addReadonly('setDTopResult',mm?'Głęb. górnego (dół − 10 mm)':'Głęb. górnego (dół-1)', Math.max(0, 51-1));
     }
 
     if(presetId === 'D'){
@@ -368,7 +370,7 @@
       addInput('setDBottom','Głębokość dolnego (cm)', 51);
       addInput('setBlende','Blenda (cm)', defaultBlende);
       addReadonly('setHTopResult','Wys. górnego (wynikowa)', calcTopForSetSafe(room, defaultBlende, (Number(s.bottomHeight)||82) + 100));
-      addReadonly('setDTopResult','Głęb. modułów (dół-1)', Math.max(0, 51-1));
+      addReadonly('setDTopResult',mm?'Głęb. modułów (dół − 10 mm)':'Głęb. modułów (dół-1)', Math.max(0, 51-1));
     }
 
     wireSetParamsLiveUpdate(presetId);
@@ -377,11 +379,12 @@
   function wireSetParamsLiveUpdate(presetId){
     const room = uiState.roomType;
     const s = projectData[room].settings;
+    const unit = window.FC.cabinetModalFields?.dimensions?.();
 
     function val(id, fallback){
       const el = document.getElementById(id);
-      if(!el) return fallback || 0;
-      return Number(el.value || fallback || 0);
+      if(!el?.value) return fallback || 0;
+      return unit?.read(el.value) ?? Number(el.value);
     }
 
     function update(){
@@ -394,8 +397,8 @@
         const dt = Math.max(0, Math.round((db - 1) * 10)/10);
         const htEl = document.getElementById('setHTopResult');
         const dtEl = document.getElementById('setDTopResult');
-        if(htEl) htEl.value = ht;
-        if(dtEl) dtEl.value = dt;
+        if(htEl) htEl.value = unit?.display(ht) ?? ht;
+        if(dtEl) dtEl.value = unit?.display(dt) ?? dt;
       }
 
       if(presetId === 'C'){
@@ -405,8 +408,8 @@
         const dt = Math.max(0, Math.round((db - 1) * 10)/10);
         const htEl = document.getElementById('setHTopResult');
         const dtEl = document.getElementById('setDTopResult');
-        if(htEl) htEl.value = ht;
-        if(dtEl) dtEl.value = dt;
+        if(htEl) htEl.value = unit?.display(ht) ?? ht;
+        if(dtEl) dtEl.value = unit?.display(dt) ?? dt;
       }
 
       if(presetId === 'D'){
@@ -417,8 +420,8 @@
         const dt = Math.max(0, Math.round((db - 1) * 10)/10);
         const htEl = document.getElementById('setHTopResult');
         const dtEl = document.getElementById('setDTopResult');
-        if(htEl) htEl.value = ht;
-        if(dtEl) dtEl.value = dt;
+        if(htEl) htEl.value = unit?.display(ht) ?? ht;
+        if(dtEl) dtEl.value = unit?.display(dt) ?? dt;
       }
     }
 
@@ -569,11 +572,12 @@
   function getSetParamsFromUI(presetId){
     const room = uiState.roomType;
     const s = projectData[room].settings;
+    const unit = window.FC.cabinetModalFields?.dimensions?.();
 
     function num(id, fallback){
       const el = document.getElementById(id);
-      if(!el) return fallback || 0;
-      return Number(el.value || fallback || 0);
+      if(!el?.value) return fallback || 0;
+      return unit?.read(el.value) ?? Number(el.value);
     }
 
     const blende = num('setBlende', Number(s.ceilingBlende)||0);
@@ -608,9 +612,10 @@
     renderSetParamsUI(set.presetId);
 
     const p = set.params || {};
+    const unit = window.FC.cabinetModalFields?.dimensions?.();
     function setVal(id,v){
       const el = document.getElementById(id);
-      if(el && v != null && !el.disabled) el.value = v;
+      if(el && v != null && !el.disabled) el.value = unit?.display(v) ?? v;
     }
 
     if(set.presetId === 'A'){

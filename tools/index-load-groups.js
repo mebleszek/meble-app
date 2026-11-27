@@ -308,6 +308,7 @@ const INDEX_LOAD_GROUPS = [
       "js/app/ui/drawing-geometry.js",
       "js/app/ui/drawing-storage.js",
       "js/app/ui/drawing-canvas.js",
+      "js/app/ui/drawing-mobile.js",
       "js/tabs/drawing-editor.js",
       "js/tabs/rysunek.js",
       "js/tabs/material.js",
