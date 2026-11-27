@@ -321,6 +321,7 @@ test('P0-B room storage: switching away from a new room preserves its handover t
  const room={id:'room-a',investorId:'investor'},nextRoom={id:'room-b',investorId:'investor'};
  const initial={fc_projects_v1:'[]',fc_investors_v1:'[]',fc_current_project_id_v1:null};
  await call('enterP0BRegistry',initial);await store.initializeApplication(initial);
+ assert.equal(await call('hasPendingUpdateWork'),false,'An idle registry can yield to the updater');
  const first={...initial,fc_projects_v1:JSON.stringify([room]),fc_current_project_id_v1:room.id};
  await call('checkpointP0BProjects',{expectedVersion:1,rows:first},[room]);
  const [marker]=await call('pendingNewProjects');
@@ -332,6 +333,7 @@ test('P0-B room storage: switching away from a new room preserves its handover t
  assert.equal(await call('pendingHandover',room.id),null,'No server epoch may be assumed before the first acquisition');
  await browser.crash();browser=await openBrowserDevice(server,path.join(dir,'computer'));store=await browser.open({...binding,initialize:false});
  assert.equal((await call('pendingNewProjects')).find(row=>row.project.id===room.id).releaseAfterSync,true);
+ assert.equal(await call('hasPendingUpdateWork'),true,'Reload must wait for the durable room handover after restart');
  assert.equal((await store.readApplication()).rows.fc_current_project_id_v1,nextRoom.id);
  const editor={active:true,deviceId:'computer',epoch:3},value={document:{payload:{project:room}}};
  await store.apply({scope:room.id,value,head:null,expectedVersion:0,editor});
@@ -341,6 +343,7 @@ test('P0-B room storage: switching away from a new room preserves its handover t
  assert.deepEqual(await call('pendingHandover',room.id),{key:'handover:'+room.id,deviceId:'computer',epoch:3});
  assert.equal(await call('pendingHandover',nextRoom.id),null);
  assert.equal((await store.snapshot(room.id)).operations[0].phase,'queued');
+ assert.equal(await call('hasPendingUpdateWork'),true,'Reload must wait for the pending room publication');
 });
 
 test('P0-B room storage: quote history abort, source proof, CAS, frozen content and tombstone protect IndexedDB',async t=>{

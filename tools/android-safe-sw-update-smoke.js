@@ -327,4 +327,8 @@ async function main(){
  console.log('PASS real old-SW → independent network page/active+waiting hashes/native retry/320,360,412px → dirty RAM/multiple clients protected → natural activation/new offline shell/Delete/exact original RAW+IDB and precisely verified new factory norms');
  }finally{for(const timer of timers)clearTimeout(timer);await one?.close();if(!stopped){server.closeAllConnections();await new Promise(r=>server.close(r));}fs.rmSync(dir,{recursive:true,force:true});}
 }
-if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});module.exports={main};
+async function run(){
+ if(!process.argv.includes('--one-click-only'))await main();
+ await require('./helpers/one-click-update-browser').oneClickUpdate();
+}
+if(require.main===module)run().catch(e=>{console.error(e);process.exitCode=1;});module.exports={main:run};

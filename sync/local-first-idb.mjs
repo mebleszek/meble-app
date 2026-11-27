@@ -92,6 +92,23 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       };
     });
   }
+  async function hasPendingUpdateWork(){
+    return transaction('readonly',(s,done)=>{
+      const activeKey=/^(?:handover:|projectRecovery:|p0b-new:|quote-grant:|quote-release:|quote-reservation:|quote-request:)/;
+      const keys=s.control.getAllKeys();
+      let pending=3,busy=false;
+      const observe=found=>{busy||=found;if(!--pending)done(busy);};
+      const find=(table,match)=>{const q=table.openCursor();q.onsuccess=()=>{
+        const cursor=q.result;
+        if(!cursor)observe(false);
+        else if(match(cursor.value))observe(true);
+        else cursor.continue();
+      };};
+      keys.onsuccess=()=>observe(keys.result.some(key=>activeKey.test(key)));
+      find(s.outbox,row=>row.phase!=='verified');
+      find(s.replicas,row=>row.dirty===true);
+    });
+  }
   async function readApplication(){const value=await transaction('readonly',(s,done)=>{const q=s.control.get('application');q.onsuccess=()=>done(q.result||null);});if(value && await digest(json(value.rows))!==value.hash)fail('LF_APPLICATION_INTEGRITY');return value;}
   async function readPreservedSource(){const value=await transaction('readonly',(s,done)=>{const q=s.control.get('source');q.onsuccess=()=>done(q.result||null);});if(value&&await digest(value.rows)!==value.hash)fail('LF_SOURCE_INTEGRITY');return value;}
   async function prepareApplication(application){if(!application)return null;application=copy(application);if(!Number.isSafeInteger(application.expectedVersion)||application.expectedVersion<1||!application.rows||Object.values(application.rows).some(v=>v!==null&&typeof v!=='string'))fail('LF_APPLICATION_INVALID');application.hash=await digest(json(application.rows));return application;}
@@ -472,7 +489,7 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
   }
   const receiveConflictRemote=args=>checkpointRoomConflictRemote({transaction,prepareApplication,applicationChange,ownerUid,deviceId,args});
   return Object.freeze({receiveConflictRemote,...quoteReleaseStore({transaction,ownerUid,deviceId}),...offlineQuoteStore({transaction,ownerUid,deviceId}),
-    ...quoteReservationJournal({transaction,ownerUid,deviceId}),ownerUid, deviceId, instanceId, name, snapshot, wasProjectCoalesced, commitQuoteLedger:args=>writeQuoteLedger({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}), commitRoomBatch:args=>writeRoomBatch({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}), checkpointP0BProjects, pendingNewProjects, finishNewProject, legacyInvestor, fenceP0BTombstones, checkpointP0BTombstones, p0bRegistry, enterP0BRegistry, retired, readCatalogReplica,readApplication,readPreservedSource, initializeApplication, checkpointApplication, pendingHandover, withdrawHandover, pendingProjectRecovery, stageProjectRecovery, checkpointProjectRecovery, checkpointDeletion, commit, commitContact, transition, apply, setEditor,
+    ...quoteReservationJournal({transaction,ownerUid,deviceId}),ownerUid, deviceId, instanceId, name, snapshot, wasProjectCoalesced, commitQuoteLedger:args=>writeQuoteLedger({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}), commitRoomBatch:args=>writeRoomBatch({transaction,prepareApplication,applicationChange,rememberHandover,deviceId,args}), checkpointP0BProjects, pendingNewProjects, finishNewProject, legacyInvestor, fenceP0BTombstones, checkpointP0BTombstones, p0bRegistry, enterP0BRegistry, retired, readCatalogReplica,readApplication,hasPendingUpdateWork,readPreservedSource, initializeApplication, checkpointApplication, pendingHandover, withdrawHandover, pendingProjectRecovery, stageProjectRecovery, checkpointProjectRecovery, checkpointDeletion, commit, commitContact, transition, apply, setEditor,
     exclusive: callback => locks.request(name + ':' + instanceId, {mode: 'exclusive'}, () => {if(closed)fail('LF_STORE_CLOSED');return callback();}),
     close() { closed = true; }});
 }

@@ -77,7 +77,45 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
     throw error;
   }finally{finishObservers();}
 })()));
+const activationProtocol=1;
+let activationRunning=false;
+async function activateUpdate(event){
+  const {protocol,version,nonce}=event.data,port=event.ports[0],source=event.source;
+  const reply=(status,reason)=>port.postMessage({protocol:activationProtocol,version:MANIFEST.version,nonce,status,reason});
+  const eligible=()=>source?.type==='window'&&[root.pathname,new URL('index.html',root).pathname].includes(new URL(source.url).pathname);
+  let ownsAttempt=false;
+  try{
+    if(protocol!==activationProtocol||version!==MANIFEST.version||typeof nonce!=='string'||!nonce||!eligible()||
+      self.registration.waiting?.state!=='installed'||activationRunning){reply('refused','CANDIDATE_CHANGED');return;}
+    activationRunning=ownsAttempt=true;
+    const onlyOwner=async()=>{
+      if(!await self.MEBLE_UPDATE_OWNS_WRITER(source.id))return false;
+      const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+      return windows.length===1&&windows[0].id===source.id;
+    };
+    if(!await onlyOwner()){reply('refused','OTHER_TAB');return;}
+    await complete();
+    if(!await onlyOwner()){reply('refused','OTHER_TAB');return;}
+    const confirmed=await new Promise(resolve=>{
+      const timer=setTimeout(()=>resolve(false),5000);
+      port.onmessage=e=>{
+        clearTimeout(timer);
+        resolve(e.data?.nonce===nonce&&e.data.version===version&&e.data.confirm===true);
+      };
+      reply('prepared');
+    });
+    if(!confirmed){reply('refused','APP_BUSY');return;}
+    if(!await onlyOwner()){reply('refused','OTHER_TAB');return;}
+    if(self.registration.waiting?.state!=='installed'){reply('refused','CANDIDATE_CHANGED');return;}
+    await self.skipWaiting();
+    reply('accepted');
+  }catch(_){reply('refused','INSTALL_UNCONFIRMED');}
+  finally{if(ownsAttempt)activationRunning=false;port.close();}
+}
 self.addEventListener('message',event=>{
+  if(event.data?.type==='ACTIVATE_STATIC_SHELL'&&event.ports[0]){
+    event.waitUntil(activateUpdate(event));return;
+  }
   if(event.data?.type==='OBSERVE_STATIC_SHELL_INSTALL'&&event.ports[0]){
     const port=event.ports[0];
     try{port.postMessage(installProgress);if(['ready','error'].includes(installProgress.phase))port.close();else observers.add(port);}
@@ -110,7 +148,7 @@ self.addEventListener('message',event=>{
       try{port.postMessage({type:'STATIC_SHELL_VERIFY_PROGRESS',version:MANIFEST.version,
         verified,total:MANIFEST.files.length});}catch(_){}
     }:undefined;
-    event.waitUntil(complete(report).then(()=>port.postMessage({complete:true,version:MANIFEST.version}),
+    event.waitUntil(complete(report).then(()=>port.postMessage({complete:true,version:MANIFEST.version,...(event.data.activation===true?{activationProtocol}:{})}),
       ()=>port.postMessage({complete:false})));
   }
 });
