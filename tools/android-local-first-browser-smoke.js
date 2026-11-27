@@ -244,7 +244,8 @@ async function main(){
    await tap('#sessionSave');await until('!window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending');
    await reopenOffline(61);
    assert.deepEqual(await browser.evaluate('window.FC.projectStore.readAll()[0].projectData[window.FC.investors.readAll()[0].rooms[0].id].drawing2d'),withObstacles);
-   await tap('[data-action="open-room"][data-room^="room_"]');await until('window.FC.session.active');
+   await tap('[data-action="open-room"][data-room^="room_"]');
+   await until('window.FC.session.active&&window.FC.session.durable&&!window.FC.applicationStartup.inspect().transactionPending');
    await tap('.tab-btn[data-tab="rysunek"]');await until('!!document.querySelector(".drawing2d-canvas")');
    assert.equal(await browser.evaluate('document.querySelectorAll(".drawing2d-canvas [data-cabinet]").length'),2);
    assert.equal(await browser.evaluate('document.querySelectorAll(".drawing2d-canvas [data-obstacle]").length'),3);

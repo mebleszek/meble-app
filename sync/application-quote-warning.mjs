@@ -13,7 +13,7 @@ export function quoteWarning({window:w,rows,refresh,release,offline=false,reserv
  let busy=false,finished=false,current=rows,resolve;
  const promise=new Promise(done=>resolve=done);
  const ready=()=>current.length>0&&current.every(row=>row.state==='reserved');
- const canTake=row=>reservation?['held','waiting','declined'].includes(row.state):row.state==='held';
+ const canTake=row=>reservation?['held','waiting','declined','occupied'].includes(row.state):row.state==='held';
  function render(){
   const labels={reserved:'Rezerwacja potwierdzona',waiting:'Oczekiwanie na odpowiedź · ',declined:'Odmowa · ',occupied:'Zarezerwowane do wyceny · '};
   list.replaceChildren(...current.map(row=>h('li',{text:row.name+' — '+(labels[row.state]

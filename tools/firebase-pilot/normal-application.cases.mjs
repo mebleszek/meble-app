@@ -299,15 +299,15 @@ export async function runNormalApplication(t,{deployment=false,catalogCutover=fa
  const beforeReceiver=deployment?(await getDoc(doc(ownerClient,'users',uid,'globalData','current'))).data():null;
  if(deployment)computer=await device('computer');else await enable(computer);
  if(deployment)assert.equal((await getDoc(doc(ownerClient,'users',uid,'globalData','current'))).data().revisionId,beforeReceiver.revisionId,'Empty device must never publish defaults over the server');
- async function until(check){
+ async function until(check,activeDevices=devices){
   const now=Date.now(),wait={startedAt:now,lastProgressAt:now,signature:''};let progressing=false;
   for(let i=0;i<200||progressing;i++){
    if(await check())return;
-   const signature=JSON.stringify(await Promise.all(devices.map(d=>d.page.evaluate(()=>window.normalDataRpcProgress||0))));
+   const signature=JSON.stringify(await Promise.all(activeDevices.map(d=>d.page.evaluate(()=>window.normalDataRpcProgress||0))));
    progressing=replicationWaiting(wait,Date.now(),signature);
    await new Promise(r=>setTimeout(r,25));
   }
-  throw Error('Normal replication timeout '+JSON.stringify(await Promise.all(devices.map(d=>d.page.evaluate(()=>({...window.FC.applicationStartup.inspect(),connectionError:window.normalConnectionError,sdkErrors:window.normalSdkErrors,rpc:window.normalRpcTimeline,pendingRpc:window.normalPendingRpc}))))));
+  throw Error('Normal replication timeout '+JSON.stringify(await Promise.all(activeDevices.map(d=>d.page.evaluate(()=>({...window.FC.applicationStartup.inspect(),connectionError:window.normalConnectionError,sdkErrors:window.normalSdkErrors,rpc:window.normalRpcTimeline,pendingRpc:window.normalPendingRpc}))))));
  }
  // The receiving device may display a remote project revision before its
  // application transaction becomes idle. Wait for that boundary, invoke the

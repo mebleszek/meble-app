@@ -26,6 +26,15 @@ export function createP0BQuoteReservations({uid,deviceId,lockWitness,transaction
       ||marker.epoch!==request.editorEpoch+1||marker.revision!==request.revision)refuse();
     return {status,marker};
   }
+  async function writeRelease(tx,ref,current,released){
+    const investor=read(await tx.get(ref.investor)),request=current.request;
+    if(request?.state==='granted'&&request.token===released.marker.token)
+      tx.set(ref.request,{...request,state:'released'});
+    tx.set(ref.investor,{...investor,generation:investor.generation+1,lastProject:released.marker.projectId,
+      projects:{...investor.projects,[released.marker.projectId]:false}});
+    tx.set(ref.editor,released.status.editor);
+    tx.set(ref.marker,released.marker);
+  }
   return Object.freeze({
     inspect,
     watch(investorId,projectId,changed,onError){
@@ -132,16 +141,46 @@ export function createP0BQuoteReservations({uid,deviceId,lockWitness,transaction
         const current=await witness(tx,iid,pid);
         if(equal(current.status,released.status)&&equal(current.marker,released.marker))return;
         if(!equal(current.status,status)||!equal(current.marker,marker))refuse();
-        const investor=read(await tx.get(ref.investor));
-        const request=current.request;
-        if(request?.state==='granted'&&request.token===marker.token)
-          tx.set(ref.request,{...request,state:'released'});
-        tx.set(ref.investor,{...investor,generation:investor.generation+1,lastProject:pid,projects:{...investor.projects,[pid]:false}});
-        tx.set(ref.editor,released.status.editor);
-        tx.set(ref.marker,released.marker);
+        await writeRelease(tx,ref,current,released);
       });
       const current=await inspect(iid,pid);
       if(!equal(current.status,released.status)||!equal(current.marker,released.marker))refuse();
+      return released;
+    },
+    async recover(expected,pinInput,assertCurrent=assertAccess){
+      if(expected?.marker?.ownerUid!==uid)refuse();
+      const {status,marker,request}=copy(expected);
+      const released=releasedQuoteReservation(status,marker),{investorId:iid,projectId:pid}=marker,ref=refs(pid,iid);
+      const expectedRequest=request?.token===marker.token?{...request,state:'released'}:request;
+      if(request?.token===marker.token&&request.state!=='granted')refuse();
+      const after={...released,request:expectedRequest};
+      assertCurrent();
+      const pinRevision=await pin.verify(pinInput);
+      let submitted=false;
+      try{
+        await transaction(async tx=>{
+          const current=await witness(tx,iid,pid);
+          if(read(await tx.get(ref.pin))?.revision!==pinRevision)fail('LF_P0B_PIN_CONFLICT');
+          assertCurrent();
+          if(equal(current,after))return;
+          if(!equal(current,{status,marker,request}))refuse();
+          await writeRelease(tx,ref,current,released);
+          assertCurrent();
+          submitted=true;
+        });
+      }catch(error){
+        if(!submitted)throw error;
+        // A lost ACK may be resolved only by this exact inactive marker.
+        // Never send the release transaction twice.
+        let current;
+        try{current=await inspect(iid,pid);}catch(_){throw error;}
+        if(!equal(current,after))throw error;
+        assertCurrent();
+        return released;
+      }
+      const current=await inspect(iid,pid);
+      assertCurrent();
+      if(!equal(current,after))refuse();
       return released;
     },
   });

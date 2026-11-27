@@ -64,6 +64,8 @@ export function installQuoteReservations({window:w,store,protocol,getSync,getAut
    await store.cancelUnsentQuoteReservation(row,check);return null;
   }
   let observed=await remote.inspect(iid,pid);
+  if(!equal(row.receipt?.marker,observed.marker)
+    &&await store.acknowledgeQuoteReservationLoss({expected:row,observed,assertAccess:access}))return null;
   if(row.phase==='prepared'){
    if(observed.marker?.token===intent.token&&observed.marker.active){
     row=await store.confirmQuoteReservation({expected:row,observed,assertAccess:access});
@@ -116,9 +118,16 @@ export function installQuoteReservations({window:w,store,protocol,getSync,getAut
   await store.finishQuoteReservation({expected:row,observed,assertAccess:access});
   return null;
  }
- async function create(targetScope,pid,pin,check){
+ async function create(targetScope,pid,pin,check,expectedReservation){
   const iid=targetScope.investorId;
-  let observed=await remote.inspect(iid,pid),editor=observed.status.editor;
+  let observed;
+  if(expectedReservation){
+   idle();check();
+   const marker=expectedReservation.marker;
+   if(marker.projectId!==pid||marker.investorId!==iid)fail('LF_QUOTE_RESERVATION_SOURCE_CHANGED');
+   observed=await remote.recover(expectedReservation,pin,()=>{idle();check();});
+  }else observed=await remote.inspect(iid,pid);
+  let editor=observed.status.editor;
   if(observed.marker?.active)return {state:'occupied',observed};
   if(editor.active&&editor.deviceId===store.deviceId){
    idle();check();
@@ -134,7 +143,8 @@ export function installQuoteReservations({window:w,store,protocol,getSync,getAut
   const row=await store.stageQuoteReservation({intent,image,assertAccess:()=>{idle();check();}});
   return settle(row,true,{pin,check});
  }
- async function reconcile(desired,{retry=false,pin}={}){
+ async function reconcile(desired,{retry=false,pin,recoveries=[]}={}){
+  const recoveryByRoom=new Map(recoveries);
   waitingForPublication=false;
   waitingForSave=false;
   const journal=await store.pendingQuoteReservations(),results=new Map();
@@ -153,9 +163,10 @@ export function installQuoteReservations({window:w,store,protocol,getSync,getAut
   }
   for(const pid of desired?.projectIds||[]){
    check();watch(desired.investorId,pid);
-   if(!results.has(pid))try{results.set(pid,await create(desired,pid,pin,check));}
+   if(results.has(pid)&&recoveryByRoom.has(pid))fail('LF_QUOTE_RESERVATION_SOURCE_CHANGED');
+   if(!results.has(pid))try{results.set(pid,await create(desired,pid,pin,check,recoveryByRoom.get(pid)));}
    catch(error){
-    if(error.code==='LF_P0B_PIN_INCORRECT')throw error;
+    if(error.code==='LF_P0B_PIN_INCORRECT'||recoveryByRoom.has(pid))throw error;
     if(['LF_HANDOVER_PENDING_LOCAL_WORK','LF_QUOTE_RESERVATION_SOURCE_CHANGED'].includes(error.code))waitingForSave=true;
     results.set(pid,{state:'unconfirmed',error});
    }
@@ -164,6 +175,7 @@ export function installQuoteReservations({window:w,store,protocol,getSync,getAut
   return [...results].map(([projectId,item])=>({
    projectId,state:item?.state||'unconfirmed',name:fc.roomRegistry?.getRoomLabel?.(projectId)||projectId,
    deviceLabel:item?.observed?.status.editor.deviceLabel||'Nieznane urządzenie',
+   ...(item?.state==='occupied'?{expectedReservation:copy(item.observed)}:{}),
   }));
  }
 
