@@ -158,13 +158,31 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
    const body=await page.locator('body').innerText();assert.ok(!body.includes('LF_ASYNC_TRANSACTION_REQUIRED'),body);
    await until(async()=>{const state=await image(computer);return JSON.parse(rows(state).fc_projects_v1).find(row=>row.id===pid)?.projectData.meta.roomDefs[roomId];});
    t.diagnostic('Real Add room is durable, project ACK verified and second profile received the room');
-   await showList(computer.page);
-   await computer.page.locator('[data-action="open-investor"][data-inv-id="'+iid+'"]').click();
-   await computer.page.waitForFunction(iid=>window.uiState?.currentInvestorId===iid&&window.uiState.entry==='rooms'&&!window.FC.applicationStartup.inspect().transactionPending,iid);
-   assert.equal(rows(await image(computer)).fc_current_project_id_v1,'','Receiving a first room must not select it automatically');
-   const wardrobe=await addRoom(computer,'P0B wardrobe'),wardrobeId=wardrobe.id;
-   await until(async()=>{const state=await image(computer);return state.outbox.some(row=>row.scope===wardrobeId&&row.phase==='verified');});
-   await Promise.all([openRoom(phone,roomId),openRoom(computer,wardrobeId)]);
+   async function openPeerInvestor(){
+    await showList(computer.page);
+    await computer.page.locator('[data-action="open-investor"][data-inv-id="'+iid+'"]').click();
+    await computer.page.waitForFunction(iid=>window.uiState?.currentInvestorId===iid&&window.uiState.entry==='rooms'&&!window.FC.applicationStartup.inspect().transactionPending,iid);
+    assert.equal(rows(await image(computer)).fc_current_project_id_v1,'','Receiving rooms must not select one automatically');
+   }
+   if(!quoteVariants)await openPeerInvestor();
+   const wardrobeAuthor=quoteVariants?phone:computer;
+   const wardrobe=await addRoom(wardrobeAuthor,'P0B wardrobe'),wardrobeId=wardrobe.id;
+   await until(async()=>{const state=await image(wardrobeAuthor);return state.outbox.some(row=>row.scope===wardrobeId&&row.phase==='verified');});
+   if(quoteVariants){
+    const editor=async id=>(await f.getDoc(f.doc(db,'users',ownerUid,'p0bRoomEditors',id))).data();
+    await until(async()=>!(await editor(pid)).active && (await editor(wardrobeId)).active);
+    t.diagnostic('Creating the second room released the first confirmed editor lease');
+    await openRoom(phone,pid);
+    await page.waitForFunction(()=>window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending);
+    await until(async()=>!(await editor(wardrobeId)).active && (await editor(pid)).active);
+    // Incoming project data waits while the investor screen is open.
+    await until(async()=>JSON.parse(rows(await image(computer)).fc_projects_v1).some(row=>row.id===wardrobeId));
+    await openPeerInvestor();
+    await openRoom(computer,wardrobeId);
+    await computer.page.waitForFunction(()=>window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending);
+    assert.notEqual((await editor(wardrobeId)).deviceId,(await editor(pid)).deviceId,'The other profile can edit the freed room without taking over');
+    t.diagnostic('Opening the first room released the second, which was then edited on the other profile');
+   }else await Promise.all([openRoom(phone,roomId),openRoom(computer,wardrobeId)]);
    await Promise.all([phone,computer].map(d=>d.page.waitForFunction(()=>window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending)));
    const beforeCabinet=await image(phone),beforeWardrobe=await image(computer);
    await Promise.all([addCabinet(phone,66),addCabinet(computer,77)]);

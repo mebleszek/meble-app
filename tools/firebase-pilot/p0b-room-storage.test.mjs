@@ -311,6 +311,41 @@ test('P0-B room storage: batch abort, per-room CAS and foreign/global protection
  assert.deepEqual(await store.readApplication(),stable);for(const scope of ['kitchen','wardrobe'])assert.equal((await store.snapshot(scope)).operations.length,1);
 });
 
+test('P0-B room storage: switching away from a new room preserves its handover through restart',async t=>{
+ const server=await startLocalFirstServer(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'p0b-room-switch-'));
+ let browser=await openBrowserDevice(server,path.join(dir,'computer'));
+ t.after(async()=>{await browser.close();await server.close();fs.rmSync(dir,{recursive:true,force:true});});
+ const binding={name:'meble-lf-test-room-switch',ownerUid:'owner',deviceId:'computer',instanceId:'instance',initialize:true};
+ let store=await browser.open(binding);
+ const call=(method,...args)=>browser.evaluate('window.lf.'+method+'(...'+JSON.stringify(args)+')');
+ const room={id:'room-a',investorId:'investor'},nextRoom={id:'room-b',investorId:'investor'};
+ const initial={fc_projects_v1:'[]',fc_investors_v1:'[]',fc_current_project_id_v1:null};
+ await call('enterP0BRegistry',initial);await store.initializeApplication(initial);
+ assert.equal(await call('hasPendingUpdateWork'),false,'An idle registry can yield to the updater');
+ const first={...initial,fc_projects_v1:JSON.stringify([room]),fc_current_project_id_v1:room.id};
+ await call('checkpointP0BProjects',{expectedVersion:1,rows:first},[room]);
+ const [marker]=await call('pendingNewProjects');
+ const second={...first,fc_projects_v1:JSON.stringify([room,nextRoom]),fc_current_project_id_v1:nextRoom.id};
+ const switchToNext={expectedVersion:2,rows:second};
+ await assert.rejects(call('checkpointP0BProjects',{...switchToNext,expectedVersion:1},[nextRoom],{exitScope:room.id}),/LF_APPLICATION_CONFLICT/);
+ assert.deepEqual(await call('pendingNewProjects'),[marker]);
+ await call('checkpointP0BProjects',switchToNext,[nextRoom],{exitScope:room.id});
+ assert.equal(await call('pendingHandover',room.id),null,'No server epoch may be assumed before the first acquisition');
+ await browser.crash();browser=await openBrowserDevice(server,path.join(dir,'computer'));store=await browser.open({...binding,initialize:false});
+ assert.equal((await call('pendingNewProjects')).find(row=>row.project.id===room.id).releaseAfterSync,true);
+ assert.equal(await call('hasPendingUpdateWork'),true,'Reload must wait for the durable room handover after restart');
+ assert.equal((await store.readApplication()).rows.fc_current_project_id_v1,nextRoom.id);
+ const editor={active:true,deviceId:'computer',epoch:3},value={document:{payload:{project:room}}};
+ await store.apply({scope:room.id,value,head:null,expectedVersion:0,editor});
+ await store.commit({scope:room.id,value,operationId:'initial-room-a',expectedVersion:1,editor,protectedRows:second});
+ // The initializer can already be holding the older marker when the user switches.
+ await call('finishNewProject',room.id,marker,'initial-room-a');
+ assert.deepEqual(await call('pendingHandover',room.id),{key:'handover:'+room.id,deviceId:'computer',epoch:3});
+ assert.equal(await call('pendingHandover',nextRoom.id),null);
+ assert.equal((await store.snapshot(room.id)).operations[0].phase,'queued');
+ assert.equal(await call('hasPendingUpdateWork'),true,'Reload must wait for the pending room publication');
+});
+
 test('P0-B room storage: quote history abort, source proof, CAS, frozen content and tombstone protect IndexedDB',async t=>{
  const server=await startLocalFirstServer(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'p0b-quote-atomic-'));
  let browser=await openBrowserDevice(server,path.join(dir,'computer'));
@@ -320,15 +355,19 @@ test('P0-B room storage: quote history abort, source proof, CAS, frozen content 
  const {digest}=await import('../../sync/local-first-values.mjs'),{quoteScope}=await import('../../sync/local-first-quote-contract.mjs');
  const scope=await quoteScope('investor'),hash='a'.repeat(64),record={id:'kitchen',investorId:'investor',cabinets:[{id:'cab',width:66}]};
  const head={generation:1,projectId:'kitchen',investorId:'investor',currentRevisionId:'b'.repeat(32),documentSha256:hash,roomDeleted:false};
- const source={fc_projects_v1:JSON.stringify([record]),fc_investors_v1:'[{"id":"investor","name":"Owner","rooms":[]}]',fc_quote_snapshots_v1:'[]',fc_company_v1:' {"exact":13.125} '};
+ const foreign=[{id:'older',investor:{id:'elsewhere'},generatedAt:1},{id:'newer',investor:{id:'other'},generatedAt:2}];
+ const source={fc_projects_v1:JSON.stringify([record]),fc_investors_v1:'[{"id":"investor","name":"Owner","rooms":[]}]',fc_quote_snapshots_v1:JSON.stringify(foreign),fc_company_v1:' {"exact":13.125} '};
  await browser.evaluate('window.lf.enterP0BRegistry('+JSON.stringify({...source,fc_projects_v1:'[]',fc_investors_v1:'[]'})+')');await store.initializeApplication(source);
  await store.apply({scope:'kitchen',value:{document:{payload:{project:record},integrity:{documentSha256:hash}}},head,expectedVersion:0});
  const witness=(await store.snapshot('kitchen')).replica,recordHash=await digest(record);
  const offer={id:'offer',investor:{id:'investor'},project:{id:'kitchen',investorId:'investor'},scope:{selectedRooms:['kitchen'],sourceProjects:[{projectId:'kitchen',roomId:'kitchen',investorId:'investor',recordHash,documentHash:hash,revision:head}]},lines:{materials:[{total:17.125}]},totals:{grand:17.125},calculationRegister:{version:1},meta:{selectedByClient:true,acceptedAt:1}};
  const value={kind:'p0b-room-quotes',investorId:'investor',offers:[offer],pins:{offer:[{projectId:'kitchen',recordHash,documentHash:hash,head}]}};
- const application={expectedVersion:1,rows:{...source,fc_quote_snapshots_v1:JSON.stringify([offer])}},args={scope,operationId:'quote-one',expectedVersion:0,application,value,sourceWitness:[witness]};
+ const application={expectedVersion:1,rows:{...source,fc_quote_snapshots_v1:JSON.stringify([offer,...foreign])}},args={scope,operationId:'quote-one',expectedVersion:0,application,value,sourceWitness:[witness]};
  const write=input=>browser.evaluate('window.lf.commitQuoteLedger('+JSON.stringify(input)+')');
  await assert.rejects(write({...args,sourceWitness:[]}),/LF_QUOTE_SOURCE_UNCONFIRMED/);
+ const reordered={...application,rows:{...application.rows,fc_quote_snapshots_v1:JSON.stringify([offer,...foreign.toReversed()])}};
+ await assert.rejects(write({...args,application:reordered}),/LF_QUOTE_OWNER_CHANGED/);
+ assert.deepEqual((await store.readApplication()).rows,source);
  await assert.rejects(write({...args,generationOnly:true}),/LF_QUOTE_HISTORY_IMMUTABLE/);
  await assert.rejects(write({...args,generationOnly:true,rooms:[{scope:'kitchen'}]}),/LF_APPLICATION_SCOPE_REFUSED/);
  await browser.evaluate('(()=>{const original=IDBDatabase.prototype.transaction;IDBDatabase.prototype.transaction=function(stores,mode,...args){const tx=original.call(this,stores,mode,...args);if(mode==="readwrite"){IDBDatabase.prototype.transaction=original;queueMicrotask(()=>tx.abort());}return tx;};return true;})()');
@@ -338,7 +377,7 @@ test('P0-B room storage: quote history abort, source proof, CAS, frozen content 
  await assert.rejects(write({...args,generationOnly:true,expectedVersion:saved.replica.version,operationId:'changed-readonly-owner',application:{expectedVersion:stable.version,rows:{...stable.rows,fc_current_investor_v1:'other'}}}),/LF_APPLICATION_SCOPE_REFUSED/);
  await assert.rejects(write({...args,operationId:'stale',application:{...application,expectedVersion:stable.version}}),/LF_LOCAL_CONFLICT/);
  const tampered=structuredClone(value);tampered.offers[0].totals.grand=1;
- await assert.rejects(write({...args,expectedVersion:1,operationId:'tampered',value:tampered,application:{expectedVersion:stable.version,rows:{...application.rows,fc_quote_snapshots_v1:JSON.stringify(tampered.offers)}}}),/LF_QUOTE_HISTORY_IMMUTABLE/);
+ await assert.rejects(write({...args,expectedVersion:1,operationId:'tampered',value:tampered,application:{expectedVersion:stable.version,rows:{...application.rows,fc_quote_snapshots_v1:JSON.stringify([...tampered.offers,...foreign])}}}),/LF_QUOTE_HISTORY_IMMUTABLE/);
  await assert.rejects(write({...args,expectedVersion:1,operationId:'foreign',application:{expectedVersion:stable.version,rows:{...application.rows,fc_company_v1:'{"changed":true}'}}}),/LF_APPLICATION_SCOPE_REFUSED/);
  assert.deepEqual(await store.readApplication(),stable);assert.deepEqual(await store.snapshot(scope),saved);
  await browser.crash();browser=await openBrowserDevice(server,path.join(dir,'computer'));store=await browser.open({...binding,initialize:false});

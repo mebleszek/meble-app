@@ -821,9 +821,21 @@
       normalized.commercial = Object.assign({}, normalized.commercial || {}, { versionName:coercedVersionName });
       normalized.meta = Object.assign({}, normalized.meta || {}, { versionName:coercedVersionName });
     }
-    const next = list.filter((row)=> String(row.id || '') !== String(normalized.id || ''));
-    next.unshift(normalized);
-    const writtenRows = writeAll(next);
+    let writtenRows;
+    if(FC.applicationWrite?.registry==='p0b-rooms-v1'){
+      const storedRows = JSON.parse(beforeRaw ?? '[]');
+      if(!Array.isArray(storedRows)) throw Object.assign(Error('LF_QUOTE_HISTORY_INVALID'),{code:'LF_QUOTE_HISTORY_INVALID'});
+      validateNewCandidate(normalized);
+      const stored = normalized.pcvMode==='project' ? FC.projectPcvResolver.stripQuoteProof(normalized) : normalized;
+      // The ledger requires other investors' stored rows in their original order.
+      const existing = storedRows.findIndex(row=>snapshotId(row)===normalizedId);
+      if(existing===-1) storedRows.unshift(stored);
+      else storedRows[existing]=stored;
+      writeSnapshotRowsStrict(storedRows,'save');
+      writtenRows=storedRows;
+    }else{
+      writtenRows=writeAll([normalized,...list.filter(row=>snapshotId(row)!==normalizedId)]);
+    }
     const afterRaw = rawSnapshotStorage();
     const afterParsed = safeParseRows(afterRaw);
     const afterRows = readAll();

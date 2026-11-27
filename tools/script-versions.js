@@ -158,7 +158,7 @@ const versions = Object.freeze({
   "js/app/wycena/wycena-core-lines.js":"20261125_quote_preparation_v1",
   "js/app/wycena/wycena-core-labor.js":"20261125_quote_preparation_v1",
   "js/app/wycena/wycena-core.js":"20261126_offline_quote_v1",
-  "js/app/quote/quote-snapshot-store.js":"20261124_quote_history_preservation_v1",
+  "js/app/quote/quote-snapshot-store.js":"20261127_quote_history_preservation_v2",
   "js/app/wycena/wycena-tab-selection-version.js":"20260628_drawer_systems_materials_v1",
   "js/app/wycena/wycena-diagnostics.js":"20261019_project_context",
   "js/app/quote/quote-route-request.js":"20261124_quote_route_request_v1",

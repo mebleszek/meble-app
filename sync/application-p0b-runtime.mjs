@@ -14,7 +14,19 @@ import {createProjectChannel,validateProjectDependencies} from './local-first-pr
 import {projectApplicationRows} from './application-replication.mjs';
 import {openProjectRecovery} from './local-first-recovery-view.mjs';
 import {copy,equal,fail,digest,id} from './local-first-values.mjs';
-export async function createP0BRuntime({window:w,writer,reader,store,getAuthority,getSync,getGlobals,backupKeys,onError,quoteReservationCandidate=false}){
+function roomBeingLeft(before,after,previousRooms,nextRooms){
+ const previous=before.fc_current_project_id_v1,next=after.fc_current_project_id_v1,investor=before.fc_current_investor_v1;
+ if(!previous||!next||previous===next||!investor||after.fc_current_investor_v1!==investor)return;
+ const isRoom=(row,id)=>row.id===id&&row.investorId===investor&&row.meta?.roomProject?.version===1&&row.meta.roomProject.removed!==true;
+ const departing=(previousRooms||JSON.parse(before.fc_projects_v1||'[]')).find(row=>isRoom(row,previous));
+ if(!departing||!(nextRooms||JSON.parse(after.fc_projects_v1||'[]')).some(row=>isRoom(row,next)))return;
+ const draft=JSON.parse(after.fc_edit_session_v1||'null');
+ if(draft&&(draft.schemaVersion!==4||draft.active!==true||draft.projectId!==next||draft.roomId!==next))fail('LF_DRAFT_SESSION_REQUIRED');
+ if(departing.meta.pendingDomainOperation)fail('LF_PROJECT_OPERATION_PENDING');
+ return previous;
+}
+
+export async function createP0BRuntime({window:w,writer,reader,store,getAuthority,getSync,getGlobals,backupKeys,onError,onRoomExit=()=>{},quoteReservationCandidate=false}){
  let closed=false;
  const fc=w.FC,presence=applicationPresence(fc),protocol=writer?createP0BProtocol(p0bConnection(writer),store.deviceId,()=>{if(closed)fail('LF_CLOSED');},{quoteReservationCandidate}):null,remoteReader=reader?p0bConnection(reader):null,remoteWriter=writer?p0bConnection(writer):null;
  const lostEditors=new Map();
@@ -119,16 +131,19 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
   for(const key of new Set([...Object.keys(before.rows),...Object.keys(application.rows)]))if(before.rows[key]!==application.rows[key]&&!allowed.has(key))fail('LF_APPLICATION_SCOPE_REFUSED');
   if(!equal(priorProjects,nextProjects.filter(row=>!added.some(value=>value.id===row.id))))fail('LF_APPLICATION_SCOPE_REFUSED');
   for(const row of added){const investor=next.find(value=>value.id===row.investorId);if(!investor)fail('LF_APPLICATION_SCOPE_REFUSED');fc.roomProjectModel.validate(row);fc.businessProjectContract.validate({project:row,investor:{...investor,rooms:[row.projectData.meta.roomDefs[row.id]]},offers:[]},{local:true});}
+  const exitScope=added.length?roomBeingLeft(before.rows,application.rows,priorProjects,nextProjects):undefined;
+  let result;
   if(changed.length){
    const investor=changed[0],iid=investor.id;if(await store.legacyInvestor(iid))fail('LF_P0B_LEGACY_SCOPE_REFUSED');const scope=await contactScope(iid),contact=p0bContact(investor);
    if(!equal(old.filter(row=>row.id!==iid),next.filter(row=>row.id!==iid)))fail('LF_APPLICATION_SCOPE_REFUSED');
    encodeP0BContact(contact,iid);
    const sync=getSync();if(sync&&!sync.channel(scope))sync.register(await contactChannel(iid));
    const snap=await store.snapshot(scope);
-   return store.commitContact({scope,operationId:crypto.randomUUID(),value:{kind:'p0b-contact',investorId:iid,contact},
-    expectedVersion:snap.replica?.version||0,application,protectedRows:application.rows,newProjects:added});
-  }
-  return store.checkpointP0BProjects(application,added);
+   result=await store.commitContact({scope,operationId:crypto.randomUUID(),value:{kind:'p0b-contact',investorId:iid,contact},
+    expectedVersion:snap.replica?.version||0,application,protectedRows:application.rows,newProjects:added,exitScope});
+  }else result=await store.checkpointP0BProjects(application,added,{exitScope});
+  if(exitScope)getAuthority().afterCommit(()=>onRoomExit(exitScope));
+  return result;
  }
  async function preflightAcceptance(scopes){
   assertAccess();getAuthority().assertIdle({allowForm:true});
@@ -188,7 +203,9 @@ export async function createP0BRuntime({window:w,writer,reader,store,getAuthorit
  async function checkpoint(application,perform){
   const before=await store.readApplication(),next=application.rows.fc_current_investor_v1,previous=before.rows.fc_current_investor_v1;
   if(next!==previous&&next&&online())await syncVisit(next,null);
-  const result=await perform();
+  const exitScope=roomBeingLeft(before.rows,application.rows);
+  const result=await perform(exitScope);
+  if(exitScope)getAuthority().afterCommit(()=>onRoomExit(exitScope));
   if(next!==previous)getAuthority().afterCommit(()=>{visitCleanupPending=true;void syncVisit(null,previous).catch(onError);});
   return result;
  }

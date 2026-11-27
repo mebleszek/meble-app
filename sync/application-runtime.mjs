@@ -39,7 +39,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   const c=fc.globalDataContract,p=fc.businessProjectContract;
   const emptyP0BGlobals=p0bEnabled&&Object.values(c.sources).flat().every(key=>boot.p0bSource?.[key]==null)&&boot.p0bSource?.fc_materials_v1==null;
   let globals=writer?createGlobalChannel({writer,reader,ownerUid,contract:c,factory:fc.firebaseGlobalTransport,store}):null;
-  if(p0bEnabled)p0b=await createP0BRuntime({window:w,writer,reader,store,getAuthority:()=>authority,getSync:()=>sync,getGlobals:()=>globals,quoteReservationCandidate,backupKeys:boot.backupKeys,onError:error=>state(safeError(error),error)});
+  if(p0bEnabled)p0b=await createP0BRuntime({window:w,writer,reader,store,getAuthority:()=>authority,getSync:()=>sync,getGlobals:()=>globals,quoteReservationCandidate,backupKeys:boot.backupKeys,onRoomExit:deferHandover,onError:error=>state(safeError(error),error)});
   const channel=record=>p0b?p0b.project(record):createProjectChannel({writer,reader,ownerUid,deviceId:store.deviceId,projectId:record.id,investorId:record.investorId,
    pilotContract:fc.cloudPilotContract,pilotFactory:fc.firebasePilotTransport,globalContract:c,projectContract:p,globals});
   const channels=[globals];
@@ -109,7 +109,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     const proof=boot?.verifyFence?boot.verifyFence():verifyExclusiveClient(w);
     return Promise.resolve(proof).then(()=>{if(recoveryReading||updateChecking)fail('LF_APPLICATION_BUSY');});
    },onCommitted:scope=>{manualSync?.reset?.();sync?.notify(scope);wakeReceives();},authorize:ensureEditor,
-   checkpoint:(application,kind,exitScope)=>p0b?p0b.checkpoint(application,()=>(sync||local).checkpoint(application,kind,exitScope)):(sync||local).checkpoint(application,kind,localOnly?undefined:exitScope),
+   checkpoint:(application,kind,exitScope)=>p0b?p0b.checkpoint(application,previousRoom=>(sync||local).checkpoint(application,kind,exitScope||previousRoom)):(sync||local).checkpoint(application,kind,localOnly?undefined:exitScope),
    commit:async(kind,application,{writeScopes}={})=>{
     let scope=application.rows.fc_current_project_id_v1;
     if(localOnly&&kind==='delete-investors'){if(!deletion)fail('DELETE_CONFIRMATION_REQUIRED');return deletion.commitApplication(application);}
@@ -262,7 +262,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
     if(p0bEnabled){assertP0BConnection(next.writer);assertP0BConnection(next.reader);}
     const wasClosed=closed;await sync?.close();p0b?.close();verifiedEditors.clear();writer=next.writer;reader=next.reader;authority.resume(ownerUid);closed=false;if(authority.status().incomingPending)await authority.refresh();
     globals=createGlobalChannel({writer,reader,ownerUid,contract:c,factory:fc.firebaseGlobalTransport,store});
-    if(p0bEnabled)p0b=await createP0BRuntime({window:w,writer,reader,store,getAuthority:()=>authority,getSync:()=>sync,getGlobals:()=>globals,quoteReservationCandidate,backupKeys:boot.backupKeys,onError:error=>state(safeError(error),error)});
+    if(p0bEnabled)p0b=await createP0BRuntime({window:w,writer,reader,store,getAuthority:()=>authority,getSync:()=>sync,getGlobals:()=>globals,quoteReservationCandidate,backupKeys:boot.backupKeys,onRoomExit:deferHandover,onError:error=>state(safeError(error),error)});
     const channels=[globals,...JSON.parse(authority.rows().fc_projects_v1||'[]').map(channel)];
     sync=createApplicationReplication({store,channels,globalContract:c,projectContract:p,summarizeLocal:fc.projectModel?.summarizeProjectData,eventTarget:w,quota:writer.quota,ownsChannels:true,online:()=>!closed&&w.navigator.onLine!==false,onState:state,
      projectRows:p0b?.projectRows,discovery:p0b?.discovery||createEmulatorProjectDiscovery({writer,reader,ownerUid,deviceId:store.deviceId,pilotContract:fc.cloudPilotContract,pilotFactory:fc.firebasePilotTransport,globalContract:c,projectContract:p,globals}),

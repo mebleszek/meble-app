@@ -137,16 +137,26 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       request.onsuccess=replica.onsuccess=finish;
     });
   }
+  function checkpointRoomExit(s,scope,done,abort){
+    if(!scope){done();return;}
+    const recovery=s.control.get(recoveryKey(scope)),replica=s.replicas.get(id(scope)),pending=s.control.get('p0b-new:'+scope);
+    let remaining=3;
+    const finish=()=>{
+      if(--remaining)return;
+      try{
+        if(recovery.result)fail('LF_PROJECT_RECOVERY_PENDING');
+        rememberHandover(s.control,scope,replica.result?.editor);
+        // Room creation may not have finished acquiring a server epoch yet.
+        if(pending.result&&!pending.result.releaseAfterSync)s.control.put({...pending.result,releaseAfterSync:true});
+        done();
+      }catch(e){abort(e);}
+    };
+    recovery.onsuccess=replica.onsuccess=pending.onsuccess=finish;
+  }
   async function checkpointApplication(application,{exitScope}={}){
     application=await prepareApplication(application);
     return transaction('readwrite',(s,done,abort)=>applicationChange(s,application,()=>{
-      if(!exitScope){done(true);return;}
-      const recovery=s.control.get(recoveryKey(exitScope));
-      recovery.onsuccess=()=>{
-        if(recovery.result){abort(Error('LF_PROJECT_RECOVERY_PENDING'));return;}
-        const q=s.replicas.get(id(exitScope));
-        q.onsuccess=()=>{try{rememberHandover(s.control,exitScope,q.result?.editor);done(true);}catch(e){abort(e);}};
-      };
+      checkpointRoomExit(s,exitScope,()=>done(true),abort);
     },abort));
   }
   const recoveryKey=scope=>'projectRecovery:'+id(scope);
@@ -257,19 +267,30 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
     const retired=s.control.get('retired:'+project.id);retired.onsuccess=()=>{if(retired.result){abort(Error('LF_P0B_SCOPE_RETIRED'));return;}s.control.add({key:'p0b-new:'+project.id,project:copy(project),...(extras[project.id]||{})});};
    }
   }
-  async function checkpointP0BProjects(application,projects){
+  async function checkpointP0BProjects(application,projects,{exitScope}={}){
    if(!(await p0bRegistry()))fail('LF_P0B_REGISTRY_REQUIRED');
    application=await prepareApplication(application);
    return transaction('readwrite',(s,done,abort)=>applicationChange(s,application,before=>{
-    stageNewProjects(s,before,application,projects,abort);done({localConfirmed:true,cloudConfirmed:false});
+    stageNewProjects(s,before,application,projects,abort);
+    checkpointRoomExit(s,exitScope,()=>done({localConfirmed:true,cloudConfirmed:false}),abort);
    },abort));
   }
   async function pendingNewProjects(){
    return transaction('readonly',(s,done)=>{const q=s.control.getAll();q.onsuccess=()=>done(q.result.filter(row=>row.key.startsWith('p0b-new:')&&!q.result.some(marker=>marker.key==='retired:'+row.project.id)));});
   }
   async function finishNewProject(scope,marker,operationId){
-   return transaction('readwrite',(s,done,abort)=>{const m=s.control.get('p0b-new:'+id(scope)),q=s.outbox.get(id(operationId));let pending=2;
-    const finish=()=>{if(--pending)return;try{if(!equal(m.result,marker)||q.result?.scope!==scope||q.result?.editor?.deviceId!==deviceId)fail('LF_P0B_NEW_PROJECT_REQUIRED');s.control.delete(marker.key);done(true);}catch(e){abort(e);}};m.onsuccess=q.onsuccess=finish;
+   return transaction('readwrite',(s,done,abort)=>{
+    const m=s.control.get('p0b-new:'+id(scope)),q=s.outbox.get(id(operationId)),r=s.replicas.get(scope);
+    let pending=3;
+    const finish=()=>{if(--pending)return;try{
+     const requestedExit=m.result?.releaseAfterSync===true;
+     const expected=requestedExit?{...marker,releaseAfterSync:true}:marker;
+     if(!equal(m.result,expected)||q.result?.scope!==scope||q.result?.editor?.deviceId!==deviceId)fail('LF_P0B_NEW_PROJECT_REQUIRED');
+     const editor=r.result?.editor;
+     if(requestedExit&&editor?.epoch===q.result.editor.epoch)rememberHandover(s.control,scope,editor);
+     s.control.delete(marker.key);done(true);
+    }catch(e){abort(e);}};
+    m.onsuccess=q.onsuccess=r.onsuccess=finish;
    },scope);
   }
   async function legacyInvestor(iid){return transaction('readonly',(s,done)=>{const q=s.control.get('legacy-investor:'+id(iid));q.onsuccess=()=>done(!!q.result);});}
@@ -357,7 +378,7 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
       try{s.control.put(next);continueWrite(old);}catch(e){abort(e);}
     };
   }
-  async function commitInternal({scope, operationId, value, expectedVersion, base = null, editor = null, blockers = [], protectedRows = {}, application = null, releaseAfterSync = false,newProjects=[]},contact=false) {
+  async function commitInternal({scope, operationId, value, expectedVersion, base = null, editor = null, blockers = [], protectedRows = {}, application = null, releaseAfterSync = false,newProjects=[],exitScope},contact=false) {
     if(contact&&!(await p0bRegistry()))fail('LF_P0B_REGISTRY_REQUIRED');
     if(contact&&(scope!=='p0b_contact_'+await digest(id(value?.investorId))||value.kind!=='p0b-contact'||!value.contact||value.contact.rooms!==undefined))fail('LF_P0B_CONTACT_INVALID');
     application=await prepareApplication(application);
@@ -388,7 +409,7 @@ export async function openLocalFirstStore({indexedDB, locks, name, ownerUid, dev
           // Retain every protected RAW version; later edits cannot erase its only copy.
           s.protected.add({key: operationId, scope, json: protection,hash:protectedHash});
           if(releaseAfterSync)rememberHandover(s.control,scope,editor);
-          done({ok: true, operationId, version: nextVersion, localConfirmed: true, cloudConfirmed: false});
+          checkpointRoomExit(s,exitScope,()=>done({ok:true,operationId,version:nextVersion,localConfirmed:true,cloudConfirmed:false}),abort);
           },abort);
         } catch(e) { abort(e); }
       }; a.onsuccess = b.onsuccess = all.onsuccess = archived.onsuccess = grant.onsuccess = finish;
