@@ -5,6 +5,17 @@ const assert=require('node:assert/strict');
 const {inspectTrustStorage}=require('./trusted-cold-start');
 async function exerciseInvestorNavigation(device){
  const {evaluate,until,send}=device;
+ async function touchNavigation(selector){
+  const collapsed=await evaluate(`(()=>{
+   const menu=document.getElementById('drawingNavigation');
+   return !!menu && !menu.open && menu.contains(document.querySelector(${JSON.stringify(selector)}));
+  })()`);
+  if(collapsed){
+   await device.touch('#drawingNavigation > summary');
+   await until('document.getElementById("drawingNavigation").open');
+  }
+  await device.touch(selector);
+ }
  const verifyClean=async stage=>{const state=await evaluate(`(()=>{const fc=window.FC,ram=projectData,row=fc.projectStore.getCurrentRecord(),snapshot=fc.session.snapshot&&JSON.parse(fc.session.snapshot.fc_projects_v1)[0],paths=(a,b,p='')=>{if(JSON.stringify(a)===JSON.stringify(b))return [];if(!a||!b||typeof a!=='object'||typeof b!=='object')return [p];return [...new Set([...Object.keys(a),...Object.keys(b)])].flatMap(k=>paths(a[k],b[k],p+'.'+k));};return {alias:ram===window.projectData,central:paths(ram,row.projectData),snapshot:snapshot?paths(ram,snapshot.projectData):[],divergent:fc.investorProjectRuntime.hasProjectDivergence(ram)};})()`);assert.deepEqual(state,{alias:true,central:[],snapshot:[],divergent:false},stage+' '+JSON.stringify(state));};
  const before=await evaluate('('+inspectTrustStorage.toString()+')()');
  for(const width of [393,320]){
@@ -49,7 +60,7 @@ async function exerciseInvestorNavigation(device){
 
  await verifyClean('room opened / session begun');
  for(const tab of ['wywiad','material','rysunek','czynnosci']){
-  await device.touch('.tab-btn[data-tab="'+tab+'"]');await until('uiState.activeTab==='+JSON.stringify(tab));
+  await touchNavigation('.tab-btn[data-tab="'+tab+'"]');await until('uiState.activeTab==='+JSON.stringify(tab));
   await verifyClean('render '+tab);
   assert.equal(await evaluate('uiState.roomType'),'room_mobile');assert.equal(await evaluate('window.FC.session.roomId'),'room_mobile');
  }
@@ -59,12 +70,12 @@ async function exerciseInvestorNavigation(device){
    await until('uiState.currentInvestorId===window.__navigationInvestor&&window.FC.investors.getCurrentId()===window.__navigationInvestor');
    await device.touch('.investor-room-quick-btn[data-room="room_mobile"]');await until('window.FC.session.active');
   }
-  await device.touch('.tab-btn[data-tab="'+tab+'"]');await until('uiState.activeTab==='+JSON.stringify(tab));
+  await touchNavigation('.tab-btn[data-tab="'+tab+'"]');await until('uiState.activeTab==='+JSON.stringify(tab));
   await verifyClean('before Exit '+tab);
   await until('document.getElementById("sessionCancel").textContent==="Wyjdź"');
   const raw=await evaluate('localStorage.getItem("fc_projects_v1")');
-  // One native touch only. No direct action dispatch or DOM click for Exit.
-  await device.touch('#sessionCancel');await until('document.getElementById("investorsListView").style.display==="block"');
+  // One native touch on Exit itself, after opening the drawing menu if it owns the control.
+  await touchNavigation('#sessionCancel');await until('document.getElementById("investorsListView").style.display==="block"');
   assert.equal(await evaluate('window.__navigationDocument'),token,'Exit must not reload');
   assert.equal(await evaluate('window.FC.session.active'),false);assert.equal(await evaluate('localStorage.getItem("fc_edit_session_v1")'),null);
   assert.equal(await evaluate('localStorage.getItem("fc_projects_v1")'),raw);assert.equal(await evaluate('__FC_MAIN_ACCESS__.isValid()'),true);

@@ -6,6 +6,7 @@
 - **WDROŻONE:** wybrane szafki można przesuwać po zaznaczeniu. Gest na pustym płótnie przesuwa widok, a dwa palce zmieniają skalę rysunku. Każda nowa ściana ma podgląd z kierunkiem i długością oraz zachowuje rzut z góry. Cofanie wykorzystuje potwierdzony zapis układu w sesji. Konfigurator otwierany z Rysunku wyświetla milimetry i odczytuje je do istniejących centymetrów. Trwały zapis nadal korzysta z przycisku „Zapisz”.
 - **SPRAWDZONE:** Edge na Windows, widoki 360 i 393 px oraz desktop 1280 px. Zdarzenia dotykowe potwierdziły gesty, niezależne przewijanie formularza, zmianę wielkości panelu i zatwierdzanie przy symulowanej wysokości klawiatury. Sprawdzono dwie strony dołączenia ściany, cofanie, zgodność wymiarów szafek, odmowę zapisu i odtworzenie układu po restarcie offline. APP 110/110, nawigacja i zapis 13/13 oraz stan modala 12/12.
 - **BRAKUJE:** pełny Preflight po odrębnej zgodzie na wydanie i odbiór klawiatury na fizycznym telefonie.
+- **PR #176, naprawa wydania:** [Preflight #1413](https://github.com/mebleszek/meble-app/actions/runs/45950015610) wykrył, że regresja nawigacji dotykiem próbowała kliknąć zakładkę lub „Wyjdź” w zwiniętym menu Rysunku. Test otwiera to menu rzeczywistym dotykiem jedynie wtedy, gdy zawiera docelową kontrolkę. Zachowano asercje stanu sesji, przejść, wyjścia bez przeładowania i danych lokalnych.
 
 ## Awaryjne zwolnienie rezerwacji do wyceny w DEMO — 27.11.2026
 
