@@ -179,7 +179,7 @@
       section.appendChild(emptyHistory);
       card.appendChild(section);
       diagRender('history:render-empty', { activeId:String(activeId || ''), projectStatus:String(projectStatus || '') });
-      return;
+      return section;
     }
     const wrap = deps.h('div', { class:'quote-history', id:'quoteHistorySection' });
     history.slice(0, 8).forEach((snapshot, index)=>{
@@ -298,6 +298,7 @@
     section.appendChild(wrap);
     card.appendChild(section);
     diagRender('history:render-end', { renderedCount:history.slice(0, 8).length, activeId:String(activeId || ''), rows:history.slice(0, 8).map((row)=> snapSummary(row, deps)) });
+    return section;
   }
 
   FC.wycenaTabHistory = Object.assign({}, FC.wycenaTabHistory || {}, {

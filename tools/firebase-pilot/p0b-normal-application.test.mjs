@@ -60,6 +60,18 @@ async function addRoom(device,name){
  assert.ok(record,'Named room must be committed before its modal closes');assert.equal(record.meta.roomProject.roomId,record.id);
  assert.deepEqual(record.projectData.meta.roomOrder,[record.id]);return record;
 }
+async function createInvestor(page,{name,phone,email,address='Synthetic'}){
+ await showList(page);
+ await page.locator('[data-action="create-investor"]').filter({visible:true}).first().click();
+ // Wait for the navigation checkpoint, even if the form has rendered.
+ await waitForApplicationIdle(page);
+ for(const [key,value]of Object.entries({invName:name,invPhone:phone,invCity:'DEMO',invEmail:email,invAddress:address,invTransportDistanceKm:'12',invTransportDurationMin:'30',invCarryingFloorNumber:'0'}))await page.locator('#'+key).fill(value);
+ await page.locator('#invSourceLaunch button').click();
+ await page.locator('.rozrys-choice-modal .rozrys-choice-option:not([disabled])').nth(1).click();
+ await page.locator('#investorActionBar [data-investor-action="save"]').click();
+ await page.locator('.confirm-box .is-success').click();
+ await page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
+}
 async function openRoom(device,id){await projects(device.page);await device.page.locator('.investor-room-quick-btn[data-room="'+id+'"]').click();}
 async function addCabinet(device,width,drawer){
  const page=device.page;
@@ -78,7 +90,7 @@ async function addCabinet(device,width,drawer){
  await page.locator('#cabinetModalSave').click();await page.locator('#cabinetModal').waitFor({state:'hidden'});
 }
 async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,quoteReadBudget=false,quoteAcceptance=false,quoteAcceptanceRace=false,quotePromotion=false,quoteStaging=false,quoteVariants=false,quoteDuplicate=false,quoteRemoval=false,quoteFilm=false,manualQuote=false,startupDraft=false,accessResume=false,presenceReconnect=false,p1=false}={}){
- await runNormalApplication(t,{deployment,p0bRegistry:true,factoryLabor:p1==='tab-save'||deployment&&quoteReadBudget,currentFactoryCatalogs:['offline-quote','reservation'].includes(p1),quoteReservationCandidate:p1==='reservation',realMainAuth:presenceReconnect,testOwner:startupDraft?'synthetic-startup-draft-owner':manualQuote?'synthetic-manual-quote-'+manualQuote+'-owner':quoteFilm?'synthetic-phone-flow-'+quoteFilm+'-owner':quoteRemoval?'synthetic-quote-removal-'+quoteRemoval+'-owner':presenceReconnect?'synthetic-presence-reconnect-owner':accessResume?'synthetic-background-owner':quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
+ await runNormalApplication(t,{deployment,p0bRegistry:true,factoryLabor:p1==='tab-save'||deployment&&quoteReadBudget,currentFactoryCatalogs:['offline-quote','reservation'].includes(p1),quoteReservationCandidate:p1==='reservation',realMainAuth:presenceReconnect||quoteVariants,testOwner:startupDraft?'synthetic-startup-draft-owner':manualQuote?'synthetic-manual-quote-'+manualQuote+'-owner':quoteFilm?'synthetic-phone-flow-'+quoteFilm+'-owner':quoteRemoval?'synthetic-quote-removal-'+quoteRemoval+'-owner':presenceReconnect?'synthetic-presence-reconnect-owner':accessResume?'synthetic-background-owner':quoteDuplicate?'synthetic-duplicate-owner':p1?'synthetic-p1-'+p1+'-owner':deployment&&quoteProbe?'synthetic-signed-room-quote-owner':quoteVariants?'synthetic-quote-variants-owner':quotePromotion?'synthetic-quote-promotion-owner':quoteStaging?'synthetic-quote-staging-owner':quoteAcceptanceRace?'synthetic-room-acceptance-race-owner':quoteProbe?'synthetic-room-quote-owner':deployment?'synthetic-room-signed-owner':'synthetic-room-normal-owner',startupProbe:async({phone,computer,device,configure,login,restartProbe,source,env,ownerUid,until})=>{
   const artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'meble-p0b-normal-'));
   await phone.page.context().tracing.start({screenshots:true,snapshots:true,sources:true});
   try{
@@ -128,16 +140,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
      await page.locator('.panel-box__close').click();
     }finally{for(const label of ['Nowy PIN','Powtórz nowy PIN'])if(await page.getByLabel(label,{exact:true}).count())await page.getByLabel(label,{exact:true}).fill('');await page.context().tracing.start({screenshots:true,snapshots:true,sources:true});}
    }
-   await showList(page);
-   await page.locator('[data-action="create-investor"]').filter({visible:true}).first().click();
-   // The form can be rendered before the navigation checkpoint commits.
-   await waitForApplicationIdle(page);
-   for(const [key,value]of Object.entries({invName:'P0B new owner',invPhone:'123456789',invCity:'DEMO',invEmail:'p0b@example.invalid',invAddress:'Synthetic',invTransportDistanceKm:'12',invTransportDurationMin:'30',invCarryingFloorNumber:'0'}))await page.locator('#'+key).fill(value);
-   await page.locator('#invSourceLaunch button').click();
-   await page.locator('.rozrys-choice-modal .rozrys-choice-option:not([disabled])').nth(1).click();
-   await page.locator('#investorActionBar [data-investor-action="save"]').click();
-   await page.locator('.confirm-box .is-success').click();
-   await page.waitForFunction(()=>!window.FC.applicationStartup.inspect().transactionPending);
+   await createInvestor(page,{name:'P0B new owner',phone:'123456789',email:'p0b@example.invalid'});
    const saved=await image(phone),investors=JSON.parse(rows(saved).fc_investors_v1);
    assert.equal(investors.length,1,await page.locator('body').innerText());
    const iid=investors[0].id;
@@ -317,7 +320,7 @@ async function cleanApplication(t,{deployment=false,full=true,quoteProbe=false,q
     if(quoteFilm){await (quoteFilm==='rapid'?rapidQuoteRemoval:phoneQuoteFlow)({t,phone,computer,offer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,showList,projects,openRoom,saveProject,artifacts,restartProbe,device,configure,login});return;}
     if(quoteRemoval){await quoteRemovalCase({t,phone,computer,offer,iid,pid,wardrobeId,image,rows,until,restartProbe,artifacts,showList});return;}
     if(quoteDuplicate){await duplicateCase({t,phone,computer,offer,iid,pid,until,image,rows,artifacts,db,ownerUid,restartProbe,globalBefore});return;}
-    if(quoteVariants){await variantsCase({t,phone,computer,offer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,restartProbe,artifacts,globalBefore,env});return;}
+    if(quoteVariants){await variantsCase({t,phone,computer,offer,iid,pid,db,ownerUid,until,image,rows,restartProbe,artifacts,globalBefore,env,login,createInvestor,addRoom,openRoom,addCabinet,saveProject,showList});return;}
     if(quotePromotion||quoteStaging){
      if(quotePromotion)await until(async()=>(await image(phone)).outbox.find(op=>op.key===queued[0].key)?.phase==='verified');
      await (quotePromotion?promotionCase:stagingCase)({t,phone,computer,offer,iid,pid,wardrobeId,db,ownerUid,until,image,rows,showList,openRoom,restartProbe,artifacts,globalBefore,env});
