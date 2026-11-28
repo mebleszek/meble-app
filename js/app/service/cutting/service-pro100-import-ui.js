@@ -42,6 +42,22 @@
     const names = Object.keys(workbook || {});
     return names.length ? (workbook[names[0]] || []) : [];
   }
+
+  async function readReportText(file){
+    const bytes = typeof file.arrayBuffer === 'function' ? await file.arrayBuffer() : await new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=> resolve(reader.result);
+      reader.onerror = ()=> reject(reader.error || new Error('Nie udało się odczytać pliku.'));
+      reader.readAsArrayBuffer(file);
+    });
+    try{
+      return new TextDecoder('utf-8', { fatal:true }).decode(bytes);
+    }catch(_){
+      // Older Polish PRO100 exports use Windows-1250, including the single-edge mark.
+      return new TextDecoder('windows-1250').decode(bytes);
+    }
+  }
+
   async function parseFile(file){
     const name = text(file && file.name).toLowerCase();
     if(!file) throw new Error('Nie wybrano pliku.');
@@ -51,16 +67,7 @@
       return parser().parseRows(firstWorkbookSheet(workbook));
     }
     if(name.endsWith('.csv') || name.endsWith('.txt') || name.endsWith('.tsv') || !name.includes('.')){
-      if(typeof file.text === 'function') return parser().parse(await file.text());
-      const value = await new Promise((resolve, reject)=>{
-        try{
-          const reader = new FileReader();
-          reader.onload = ()=> resolve(String(reader.result || ''));
-          reader.onerror = ()=> reject(reader.error || new Error('Nie udało się odczytać pliku.'));
-          reader.readAsText(file);
-        }catch(error){ reject(error); }
-      });
-      return parser().parse(value);
+      return parser().parse(await readReportText(file));
     }
     throw new Error('Obsługiwane są pliki XLSX, CSV, TSV albo TXT.');
   }

@@ -1,5 +1,12 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## Kodowanie raportów PRO100 — 28.11.2026
+
+- **USTALONE** — stary eksport tekstowy PRO100 zapisany w Windows-1250 tracił polskie znaki i oznaczenia pojedynczej krawędzi przy odczycie jako UTF-8. Gałąź `fix/pro100-text-encoding-20261128`, BASE `7d8421ffd28ffe17d25273d41093e14960159584`.
+- **WDROŻONE NA GAŁĘZI** — importer odczytuje pliki tekstowe jako UTF-8, a w razie błędu dekodowania używa Windows-1250. Zachowuje dotychczasową walidację formatek. Zmieniono wersję skryptu i odtworzono manifest offline.
+- **SPRAWDZONE** — testy usług 20/20, w tym regresja Windows-1250 i zgodność UTF-8 z BOM i bez BOM. Odczyt trzech prywatnych raportów potwierdził zachowanie liczby sztuk i prawidłowy metraż okleiny. Sprawdzono wersje skryptów, manifest i przydział testu usług w Preflighcie (grupa 34).
+- **BRAKUJE** — zatwierdzenia próby wydania dla dokładnego HEAD/BASE i pełnego CI. `CODE_READY / CI_PENDING / RELEASE_BLOCKED`.
+
 ## Aktualizator — odmowa w Edge po PR #178, 27.11.2026
 
 - **USTALONE** — Edge miał aktywną wersję PR #177 i zweryfikowaną oczekującą wersję PR #178. „Aktualizuj” odmawiał także w menu „Projekty meblowe” po ponownym logowaniu. Diagnostyka pokazała `LF_HANDOVER_CONFLICT` w `initial-project-revisions`, bez aktywnej sesji edycji. Raport nie zawierał zawartości kolejki IndexedDB ani stanu blokady danego pokoju.
