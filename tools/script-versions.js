@@ -65,6 +65,7 @@ const versions = Object.freeze({
   "js/app/service/service-order-store.js":"20261110_service_order_integrity_v1",
   "js/app/service/service-orders.js":"20261110_service_order_inflight_v1",
   "js/app/service/cutting/service-order-detail.js":"20261110_service_order_inflight_v1",
+  "js/app/service/cutting/service-pro100-import-ui.js":"20261128_pro100_text_encoding_v1",
   "js/app/rozrys/rozrys-stock.js":"20261108_material_catalog_authority_v1",
   "js/app/rozrys/rozrys-sheet-model.js":"20261108_material_catalog_authority_v1",
   "js/app/rozrys/rozrys-scope.js":"20261118_room_quote_v1",

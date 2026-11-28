@@ -182,6 +182,30 @@
         H.assert(Array.isArray(parsed.rows) && parsed.rows.length === 1, 'XLSX nie zwrócił jednej formatki po pominięciu nagłówka', parsed);
         H.assert(String(parsed.rows[0].name || '') === 'Front XLSX' && Number(parsed.rows[0].qty) === 2, 'XLSX zgubił nazwę albo ilość formatki', parsed.rows[0]);
       }),
+      H.makeTest('Usługi', 'Raport PRO100 Windows-1250 zachowuje nazwy i oklejanie', 'Sprawdza polskie znaki, znak jednej krawędzi i metraż w pliku zapisanym przez starszy PRO100.', async ()=>{
+        const polishName = new Uint8Array([0xbf, 0xf3, 0xb3, 0xe6]); // żółć w Windows-1250
+        const emDash = new Uint8Array([0x97]);
+        const blob = new Blob([polishName, '\t720\t', emDash, '\t396\t=\t18\t2\tbia', new Uint8Array([0xb3]), 'y\r\n']);
+        blob.name = 'formatki_pro100.txt';
+        const parsed = await FC.servicePro100Import.parseFile(blob);
+        H.assert(parsed.ok && parsed.rows.length === 1 && !parsed.warnings.length, 'Raport Windows-1250 nie zwrócił jednej poprawnej formatki', parsed);
+        const [row] = parsed.rows;
+        H.assert(row.name === 'żółć' && row.materialSymbol === 'biały', 'Odczyt Windows-1250 zmienił nazwę formatki lub dekoru', row);
+        H.assert(row.edgesAlong === 1 && row.edgesAcross === 2 && parsed.summary.edgeMeters === 3.02, 'Odczyt Windows-1250 zmienił oznaczenia lub metraż oklejania', parsed);
+      }),
+      H.makeTest('Usługi', 'Import PRO100 zachowuje UTF-8 z BOM i bez BOM', 'Pilnuje, by obsługa Windows-1250 zachowała poprawny odczyt polskich znaków i oklejania w raportach UTF-8.', async ()=>{
+        for(const [name, content] of [
+          ['formatki.csv', 'Półka;720;—;396;=;18;2;biały'],
+          ['formatki.tsv', '\uFEFFPółka\t720\t—\t396\t=\t18\t2\tbiały'],
+        ]){
+          const blob = new Blob([content]);
+          blob.name = name;
+          const parsed = await FC.servicePro100Import.parseFile(blob);
+          H.assert(parsed.ok && parsed.rows.length === 1 && !parsed.warnings.length, 'Raport UTF-8 nie zwrócił jednej poprawnej formatki', parsed);
+          const [row] = parsed.rows;
+          H.assert(row.name === 'Półka' && row.materialSymbol === 'biały' && row.edgesAlong === 1 && row.edgesAcross === 2, 'Odczyt UTF-8 zmienił nazwę, dekor lub oklejanie', row);
+        }
+      }),
       H.makeTest('Usługi', 'Parser PRO100 liczy podsumowanie oklejania i grup po kolorze/grubości', 'Pilnuje, czy import PRO100 od razu daje podgląd metrażu i nie miesza kolorów/grubości w jednym koszyku.', ()=>{
         const parsed = FC.servicePro100Parser.parse('A\t1000\t=\t500\t-\t18\t2\tU222_ST15\nB\t700\t\t300\t=\t18\t1\tU222_ST15');
         H.assert(parsed.summary && Number(parsed.summary.totalQty) === 3, 'Podsumowanie PRO100 nie policzyło ilości sztuk', parsed.summary);
