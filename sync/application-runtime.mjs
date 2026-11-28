@@ -219,6 +219,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   const wakeReceive=()=>queueMicrotask(()=>{if(!incomingBlocked||closed)return;try{authority.assertIdle();incomingBlocked=false;sync?.notify();sync?.discover();}catch(_){}});
   wakeReceives=wakeReceive;
   w.addEventListener('click',wakeReceive,{capture:true,passive:true});
+  w.addEventListener('meble-panel-closed',wakeReceive);
   const bind=async()=>{
    fc.localDeviceLabel=createLocalDeviceLabel({storage:w.localStorage,deviceId:store.deviceId,navigator:w.navigator,assertAccess(){
     if(closed)fail('LF_CLOSED');w.__FC_MAIN_ACCESS__.assert();
@@ -283,10 +284,10 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
      &&!(result.code==='LF_ACTIVE_RAM_PROTECTED'&&await authority.canResumeProtectedDraft())&&!await p0b?.canRecover(result)){state(result);fail(result.code);}
     await handovers.resume(projectScopes());if(p0b)void p0b.offerRecovery();
    },
-   close(){closed=true;sync?.close();deletion?.close();p0b?.close();manualSync?.close();boundary.close();authority.close();w.removeEventListener('online',reconnected);w.removeEventListener('meble-sync-authorized',authorized);w.removeEventListener('meble-sync-unconfirmed',unconfirmed);w.removeEventListener('click',wakeReceive,true);},
-   async dispose(){closed=true;await sync?.close();deletion?.close();p0b?.close();manualSync?.close();boundary?.close();authority?.close();store.close();await installation.release();}});
+   close(){closed=true;sync?.close();deletion?.close();p0b?.close();manualSync?.close();boundary.close();authority.close();w.removeEventListener('online',reconnected);w.removeEventListener('meble-sync-authorized',authorized);w.removeEventListener('meble-sync-unconfirmed',unconfirmed);w.removeEventListener('click',wakeReceive,true);w.removeEventListener('meble-panel-closed',wakeReceive);},
+   async dispose(){closed=true;w.removeEventListener('meble-panel-closed',wakeReceive);await sync?.close();deletion?.close();p0b?.close();manualSync?.close();boundary?.close();authority?.close();store.close();await installation.release();}});
  }catch(error){
-  closed=true;let quiet=true;try{await sync?.close();}catch(_){quiet=false;}
+   closed=true;w.removeEventListener('meble-panel-closed',wakeReceives);let quiet=true;try{await sync?.close();}catch(_){quiet=false;}
   for(const stop of [()=>p0b?.close(),()=>deletion?.close(),()=>manualSync?.close(),()=>boundary?.close(),()=>authority?.close(),()=>store?.close(),()=>installation.release()])try{await stop();}catch(_){quiet=false;}
   if(quiet)onFailureQuiescent();throw error;
  }

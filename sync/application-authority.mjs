@@ -201,7 +201,13 @@ async function installAuthority({window:w,store,ownerUid,commit,checkpoint,onCom
    return equal(durable,image)&&confirmedApplicationDraft({window:w,rows,image:durable,busy:inTransaction,incoming:incomingWitness!==null});
   },transaction,ensureFactoryCatalogs,afterCommit(fn){if(inTransaction)pendingClosures.push(fn);else fn();},assertIdle:idle,rows:()=>structuredClone(rows),
   async incoming(next){idle();assertSource();if(Object.keys(next).some(k=>!keys.has(k)))fail('LF_APPLICATION_SCOPE_REFUSED');incomingWitness=JSON.stringify(w.projectData);return {expectedVersion:image.version,rows:next};},
-  async refresh(){access();assertSource();if(inTransaction||fc.session.active||incomingWitness!==JSON.stringify(w.projectData))fail('LF_ACTIVE_RAM_PROTECTED');image=await store.readApplication();rows=structuredClone(image.rows);await hydrateCatalogs();w.projectData=fc.project.load();w.uiState=fc.uiState.get();fc.views.applyFromState(w.uiState);fc.sections.update();incomingWitness=null;},
+  async refresh(){
+   access();assertSource();
+   if(inTransaction||fc.session.active||incomingWitness!==JSON.stringify(w.projectData))fail('LF_ACTIVE_RAM_PROTECTED');
+   image=await store.readApplication();rows=structuredClone(image.rows);await hydrateCatalogs();
+   w.projectData=fc.project.load();w.uiState=fc.uiState.get();fc.views.applyFromState(w.uiState);fc.sections.update();incomingWitness=null;
+   fc.tabsRouter?.get?.('wycena')?.refreshHistory?.();
+  },
   // Logout seals writes; the local data/outbox is never removed.
   close(){closed=true;},
   resume(uid){if(uid!==ownerUid||external)fail('LF_APPLICATION_OWNER_CHANGED');w.__FC_MAIN_ACCESS__.assert();assertSource();closed=false;},

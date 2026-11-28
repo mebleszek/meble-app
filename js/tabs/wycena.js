@@ -20,6 +20,7 @@
   const statusController = FC.wycenaTabStatusController && typeof FC.wycenaTabStatusController.createController === 'function'
     ? FC.wycenaTabStatusController.createController(getStatusActionDeps)
     : null;
+  let renderedHistory = null;
 
   const money = helpers.money;
   const num = helpers.num;
@@ -322,7 +323,31 @@
   }
 
   function renderHistory(card, ctx, currentQuote){
-    return renderBridge.renderHistory(card, ctx, currentQuote, getRenderDeps());
+    const snapshots = getSnapshotHistory();
+    const section = drawHistory(card, ctx, currentQuote, snapshots);
+    renderedHistory = section ? { section, ctx, currentQuote, projectId:getCurrentProjectId(),
+      investorId:getCurrentInvestorId(), content:JSON.stringify(snapshots) } : null;
+  }
+
+  function drawHistory(card, ctx, currentQuote, snapshots){
+    return renderBridge.renderHistory(card, ctx, currentQuote, getRenderDeps({getSnapshotHistory:()=>snapshots}));
+  }
+
+  function refreshHistory(){
+    const shown = renderedHistory;
+    if(window.uiState?.activeTab !== 'wycena' || !shown?.section.isConnected
+      || shown.projectId !== getCurrentProjectId() || shown.investorId !== getCurrentInvestorId()) return;
+
+    const snapshots = getSnapshotHistory(), content = JSON.stringify(snapshots);
+    if(content === shown.content) return;
+    // Render only the list. The displayed quote and unfinished inputs still
+    // belong to the open tab, including during a same-tab sign-in.
+    const section = drawHistory(document.createDocumentFragment(), shown.ctx, shown.currentQuote, snapshots);
+    if(!section) return;
+    const top = window.scrollY;
+    shown.section.replaceWith(section);
+    renderedHistory = { ...shown, section, content };
+    if(window.scrollY !== top) window.scrollTo({ top, behavior:'instant' });
   }
 
   function render(ctx){
@@ -363,5 +388,5 @@
     getScopePickerMeta,
   });
 
-  (FC.tabsRouter || FC.tabs || {}).register?.('wycena', { mount(){}, render, unmount(){} });
+  (FC.tabsRouter || FC.tabs || {}).register?.('wycena', { mount(){}, render, refreshHistory, unmount(){ renderedHistory = null; } });
 })();

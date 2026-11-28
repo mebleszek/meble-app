@@ -27,7 +27,8 @@
     try{ cur.root.remove(); }catch(_){ }
     try{ document.documentElement.classList.remove('modal-lock'); document.body.classList.remove('modal-lock'); }catch(_){ }
     try{ document.removeEventListener('keydown', cur.onKey, true); }catch(_){ }
-    cur.onClose?.();
+    try{ cur.onClose?.(); }
+    finally{ root.dispatchEvent?.(new Event('meble-panel-closed')); }
   }
 
   function open(opts){
