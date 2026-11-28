@@ -1,5 +1,12 @@
 # CURRENT_STATE — kanoniczny dziennik stanu Meble-App
 
+## Blaty i panele w Rysunku 2D — 28.11.2026
+
+- **USTALONE:** właściciel zatwierdził wspólny etap dla blatów, paneli LED i paneli ściennych. Element może obejmować kilka szafek lub pustą ścianę. Zmiana szafki wpływająca na geometrię otwiera wybór „Tak, dostosuj” lub „Nie, zachowaj”. Gałąź `feat/drawing-surfaces`, baza `d67ebdf87daa1e1e818ad88da5a1c60b2eb7b8a5`.
+- **WDROŻONE:** obrys i wymiary w mm, rzut i elewacja, styk odcinków blatu w narożniku, poziome i pionowe panele LED oraz mocowanie ścienne. Dopasowanie zachowuje ręczne korekty wymiarów. Po „Nie” geometrię i powiązania można wykorzystać do późniejszego dopasowania. Szafka i zaakceptowane dopasowanie trafiają do jednej operacji zapisu. Cofanie ruchu przywraca obie geometrie. Kopia pomieszczenia nadaje nowe identyfikatory elementom i przepina ich powiązania.
+- **SPRAWDZONE:** syntetyczna kuchnia w Edge na Windows. Rzut i elewacja, wspólny blat i panel LED na kilku szafkach, elementy na pustych ścianach, zmiana pozycji i rozmiaru szafki, „Tak” i „Nie”, odmowa zapisu bez częściowych zmian, cofanie i restart offline. Eksport projektu 66/66, APP 110/110, regresja modala 12/12 oraz kontrakty LOCAL-FIRST i offline.
+- **BRAKUJE:** pełny Preflight i osobna decyzja o wydaniu. Wymiary wyposażenia blatu i rozliczanie materiałów pozostają w kolejnych etapach ROADMAP.
+
 ## Odświeżanie otwartej historii WYCENY — 28.11.2026
 
 - **USTALONE** — w odbiorze PR #179 oferta z Edge pojawiła się w Chrome dopiero po ponownym logowaniu i przejściu MATERIAŁ → WYCENA. Baza poprawki `3e5dbaf4c78c98cbc0ee6879d426c3374620af97` zawiera ten sam kod odbioru i widoku WYCENY co `7d8421ffd28ffe17d25273d41093e14960159584`.

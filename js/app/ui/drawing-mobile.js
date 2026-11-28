@@ -112,7 +112,7 @@
 
     function keepSelectionVisible(){
       if(!state.mobilePanel || !stage.clientWidth || !stage.clientHeight) return;
-      const selected = canvas.querySelector('.drawing2d-cabinet.is-selected, .drawing2d-obstacle.is-selected');
+      const selected = canvas.querySelector('.drawing2d-cabinet.is-selected, .drawing2d-obstacle.is-selected, .drawing2d-surface.is-selected');
       if(!selected) return;
       const box = selected.getBBox(), view = canvas.viewBox.baseVal;
       const left = view.x+view.width*.05, top = view.y+view.height*.05;
@@ -178,7 +178,7 @@
         handlers.cancel();
         startPinch();
       }else if(pointers.size===1){
-        const target = state.wallForm ? null : event.target.closest('[data-cabinet], [data-obstacle]');
+        const target = state.wallForm ? null : event.target.closest('[data-cabinet], [data-obstacle], [data-surface]');
         const movingCabinet = !!target?.dataset.cabinet && target.dataset.cabinet===state.selected;
         gesture = {point,target,movingCabinet,anchor:view.project(point)};
         if(movingCabinet) handlers.begin(event,target);

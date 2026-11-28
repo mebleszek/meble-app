@@ -47,7 +47,9 @@
       const overlay = el('div', { class:'confirm-backdrop' });
       const dialog = el('div', { class:'confirm-box', role:'dialog', 'aria-modal':'true' });
       const head = el('div', { class:'confirm-title', text:title });
-      const body = el('div', { class:'confirm-message', text:message });
+      const lines = Array.isArray(opts.messageLines) && opts.messageLines.length ? opts.messageLines : null;
+      const body = el('div', { class:lines?'confirm-message confirm-message--lines':'confirm-message', text:lines?null:message },
+        (lines||[]).map(line=>el('p',{text:String(line)})));
       const actions = el('div', { class:'confirm-actions' });
       const cancelBtn = el('button', { type:'button', class:`confirm-btn ${cancelTone === 'danger' ? 'is-danger' : 'is-neutral'}`, text:cancelText });
       const confirmBtn = el('button', { type:'button', class:`confirm-btn ${confirmTone === 'success' ? 'is-success' : confirmTone === 'danger' ? 'is-danger' : 'is-neutral'}`, text:confirmText });

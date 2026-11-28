@@ -377,19 +377,106 @@ async function main(){
    assert.equal(await browser.evaluate('!!document.querySelector("#cabinetTypeChoices .choice-tile")'),true);
    await tap('#cabinetModalCancel');
    assert.equal(await browser.evaluate('document.getElementById("drawingSessionStatus").textContent'),'Niezapisane zmiany');
-   const withObstacles=await browser.evaluate(value);
+   phase='drawing surfaces in an L kitchen';
+   await browser.send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+   await until('!document.body.classList.contains("drawing2d-mobile")');
+   async function selectCabinet(id){
+    await tap(action('panel','cabinet-list'));await tap(action('cabinet',id));await ready();
+   }
+   async function cabinetPosition(along){
+    for(const [name,number] of Object.entries({along,inset:0,elevation:100}))await fill(position+' [name='+name+']',String(number));
+    await tap(position+' button[type=submit]');await ready();
+   }
+   await tap(action('view',1));await selectCabinet(cabinetIds[0]);await cabinetPosition(1788);
+   await selectCabinet(cabinetIds[2]);await cabinetPosition(2400);
+   await tap(action('view',2));await selectCabinet(cabinetIds[1]);await cabinetPosition(0);
+   await tap('.drawing2d-menu summary[aria-label="Obrót"]');await tap(action('rotate',-1));await ready();
+   await tap(action('view',0));
+   const surfaceForm='[data-drawing-form="surface"]';
+   async function openSurface(kind){
+    if(await browser.evaluate('document.body.classList.contains("drawing2d-mobile")')){
+     await tap('.drawing2d-menu summary[aria-label="Więcej"]');
+    }
+    await tap(action('surface-list'));await tap(action('add-surface',kind));
+   }
+   for(const [kind,supports] of [['countertop',cabinetIds],['led',[cabinetIds[0],cabinetIds[2]]],['wall',[]],['led',[]]]){
+    await openSurface(kind);
+    for(const id of supports)await tap(surfaceForm+' [name="support"][value="'+id+'"]');
+    if(kind==='countertop')await fill(surfaceForm+' [name=depth0]','520');
+    if(kind==='wall'){
+     await fill(surfaceForm+' [name=wallId]','3');
+     await fill(surfaceForm+' [name=length0]','1250');
+    }
+    if(kind==='led' && !supports.length){
+     await fill(surfaceForm+' [name=source]','wall');
+     await fill(surfaceForm+' [name=plane]','vertical');
+     await fill(surfaceForm+' [name=wallId]','4');
+    }
+    assert.equal(await browser.evaluate('!!document.querySelector(".drawing2d-surface.is-preview")'),true);
+    await tap(surfaceForm+' button[type=submit]');await ready();
+   }
+   const withSurfaces=await browser.evaluate(value);
+   const [counter,led,wallPanel,wallLed]=withSurfaces.surfaces;
+   assert.deepEqual(counter.sections.map(({wallId,along,length,depth})=>[wallId,along,length,depth]),[[1,1788,1412,520],[2,520,180,500]]);
+   assert.deepEqual(led.sections[0].cabinetIds,[cabinetIds[0],cabinetIds[2]]);
+   assert.equal(wallPanel.sections[0].wallId,3);
+   assert.equal(wallPanel.sections[0].length,1250);
+   assert.equal(wallLed.plane,'vertical');assert.equal(wallLed.sections[0].wallId,4);
+   assert.equal(await browser.evaluate('document.querySelectorAll(".drawing2d-surface-seam").length'),1);
+   await reviewShot('09-blaty-i-panele-rzut');
+   await tap(action('view',3));
+   assert.equal(await browser.evaluate('document.querySelectorAll(".drawing2d-canvas [data-surface]").length'),1);
+   await tap(action('view',0));
+   await browser.send('Emulation.setDeviceMetricsOverride',{width:393,height:852,deviceScaleFactor:1,mobile:true});
+   await until('document.body.classList.contains("drawing2d-mobile")');
+   await tap(action('fit'));
+   const firstCab='[data-cabinet="'+cabinetIds[0]+'"] rect';
+   await tap(firstCab);
+   const drag=await waitForGesturePoint(browser.evaluate,firstCab,{stable:true});
+   await swipe([{...drag,id:1}],[{x:-45,y:0}]);
+   await until('document.querySelector(".confirm-title")?.textContent==="Dostosować blaty i panele?"');
+   assert.deepEqual(await browser.evaluate(value),withSurfaces,'No drawing change is committed before choosing');
+   await reviewShot('10-dopasowanie-blatu-i-panelu');
+   await tap('.confirm-box .is-neutral');await ready();
+   assert.deepEqual(await browser.evaluate(value+'.surfaces'),withSurfaces.surfaces,'No retains dimensions and links');
+   assert.notEqual(await browser.evaluate(value+'.placements[0].along'),withSurfaces.placements[0].along);
+   await tap(action('undo'));await ready();assert.deepEqual(await browser.evaluate(value),withSurfaces);
+   await selectCabinet(cabinetIds[0]);
+   const beforeFitWrite=await browser.evaluate('localProof()');
+   await abortNextProjectWrite();
+   await fill(position+' [name=along]','1600');await tap(position+' button[type=submit]');
+   await until('document.querySelector(".confirm-title")?.textContent==="Dostosować blaty i panele?"');
+   await tap('.confirm-box .is-success');await expectAbortedAction(beforeFitWrite);
+   assert.deepEqual(await browser.evaluate(value),withSurfaces,'A refused write retains both the cabinet and its surfaces');
+   await fill(position+' [name=along]','1600');await tap(position+' button[type=submit]');
+   await until('document.querySelector(".confirm-title")?.textContent==="Dostosować blaty i panele?"');
+   await tap('.confirm-box .is-success');await ready();
+   assert.equal(await browser.evaluate(value+'.surfaces[0].sections[0].length'),1600);
+   assert.equal(await browser.evaluate(value+'.surfaces[1].sections[0].length'),1600);
+   await tap(action('undo'));await ready();assert.deepEqual(await browser.evaluate(value),withSurfaces);
+   await tap(action('view',2));await selectCabinet(cabinetIds[1]);
+   await tap('.drawing2d-menu summary[aria-label="Więcej"]');await tap('.drawing2d-more '+action('edit'));
+   await until('document.getElementById("cabinetModal").style.display==="flex"');
+   await fill('#cmWidth','750');await tap('#cabinetModalSave');
+   await until('document.querySelector(".confirm-title")?.textContent==="Dostosować blaty i panele?"');
+   await tap('.confirm-box .is-success');
+   await until('document.getElementById("cabinetModal").style.display==="none"&&!window.FC.applicationStartup.inspect().transactionPending');
+   assert.equal(await browser.evaluate(value+'.surfaces[0].sections[1].length'),230);
+   assert.equal(await browser.evaluate('projectData[uiState.roomType].cabinets[1].width'),75);
+   const finalDrawing=await browser.evaluate(value);
    if(await browser.evaluate('!!document.querySelector(".drawing2d-panel.is-open")'))await tap(action('panel-close'));
    await browser.send('Emulation.setTouchEmulationEnabled',{enabled:false});
    await tap('#sessionSave');await until('!window.FC.session.active&&!window.FC.applicationStartup.inspect().transactionPending');
    assert.equal(await browser.evaluate('document.getElementById("drawingSessionStatus").textContent'),'Zapisano');
    await reopenOffline(61.2);
-   assert.deepEqual(await browser.evaluate('window.FC.projectStore.readAll()[0].projectData[window.FC.investors.readAll()[0].rooms[0].id].drawing2d'),withObstacles);
+   assert.deepEqual(await browser.evaluate('window.FC.projectStore.readAll()[0].projectData[window.FC.investors.readAll()[0].rooms[0].id].drawing2d'),finalDrawing);
    await tap('[data-action="open-room"][data-room^="room_"]');
    await until('window.FC.session.active&&window.FC.session.durable&&!window.FC.applicationStartup.inspect().transactionPending');
    await tap('.tab-btn[data-tab="rysunek"]');await until('!!document.querySelector(".drawing2d-canvas")');
-   assert.equal(await browser.evaluate('document.querySelectorAll(".drawing2d-canvas [data-cabinet]").length'),2);
+   assert.equal(await browser.evaluate('document.querySelectorAll(".drawing2d-canvas [data-cabinet]").length'),3);
    assert.equal(await browser.evaluate('document.querySelectorAll(".drawing2d-canvas [data-obstacle]").length'),3);
-   assert.deepEqual(external,[]);console.log('PASS Rysunek 2D: compact navigation, resizable properties, tap/drag/pan/pinch/fit/undo, walls preview, reduced keyboard viewport, mm round-trip, obstacles and offline restart.');return;
+   assert.equal(await browser.evaluate('document.querySelectorAll(".drawing2d-canvas [data-surface]").length'),5);
+   assert.deepEqual(external,[]);console.log('PASS Rysunek 2D: mobilne gesty i formularze, przeszkody, blat w L, panele, Tak/Nie, odmowa zapisu, Cofnij i restart offline.');return;
   }
   if(process.argv.includes('--cabinet-variants-only')||process.argv.includes('--cabinet-base-probe')){
    phase='native cabinet variants';await require('./helpers/local-cabinet-native-cases')({getBrowser:()=>browser,tap,fill,until,reopen:()=>reopenOffline(61,false,null),baseProbe:process.argv.includes('--cabinet-base-probe')});

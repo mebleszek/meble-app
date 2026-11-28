@@ -62,8 +62,9 @@
     if(Array.isArray(room?.drawing2d?.placements)){
       const ids = new Set(room.cabinets.map(cabinet=>cabinet.id));
       const placements = room.drawing2d.placements.filter(placement=>ids.has(placement.cabinetId));
-      if(placements.length!==room.drawing2d.placements.length){
-        next = {...projectData,[roomId]:{...room,drawing2d:{...room.drawing2d,placements}}};
+      const drawing = ns.drawingSurfaces?.prune(room.drawing2d,ids) || room.drawing2d;
+      if(drawing!==room.drawing2d || placements.length!==drawing.placements.length){
+        next = {...projectData,[roomId]:{...room,drawing2d:{...drawing,placements}}};
       }
     }
     const saved = ns.project.saveConfirmed(next,{draft:!!ns.applicationWrite});
@@ -176,6 +177,10 @@
       const beforeCount = (projectData[room].cabinets || []).length;
       if(isAddMode()) finalizeAddedCabinet(room, draft);
       else if(!finalizeEditedCabinet(room, draft, cabinetModalState && cabinetModalState.editingId)) return false;
+      if(ctx.surfaceDrawing){
+        ns.projectExportContract.validateDrawing(ctx.surfaceDrawing,projectData[room].cabinets);
+        projectData[room].drawing2d = ctx.surfaceDrawing;
+      }
 
       persistProjectAndUi();
 
@@ -223,7 +228,6 @@
   function bindTopSaveButton(ctx){
     const btn = document.getElementById('cabinetModalSave');
     if(!btn) return null;
-    const save = function(e){ return handleTopSaveClick(e, ctx || {}); };
     btn.onclick = async function(e){
       e.preventDefault();
       e.stopPropagation();
@@ -233,13 +237,25 @@
       btn.disabled = true;
       if(cancel) cancel.disabled = true;
       try{
+        let preview, surfaceDrawing;
         if(getSetWizardApi().isSetModeActive?.()){
           const spec=ns.cabinetModalSetMaterials?.getSpec?.();
           if(spec?.backMaterial==='18 mm pod kolor korpusu'&&!['internal','external'].includes(spec.backPosition)){ctx.showCabinetInfo?.('Wybierz montaż pleców','Plecy 18 mm wymagają wyboru: wewnętrzne albo zewnętrzne.');return false;}
         }else if(ctx?.draft){
           syncDraftFromCabinetModalFormSafe(ctx.draft);
           if(!validateBottomColor(uiState.roomType,ctx.draft,ctx.showCabinetInfo))return false;
+          preview = cabinetSurfaceChange(ctx.draft);
+          if(preview){
+            const adapt = await ns.drawingSurfaces.ask(preview.changes);
+            if(document.getElementById('cabinetModal')?.style.display==='flex'){
+              document.documentElement.classList.add('modal-lock');
+              document.body.classList.add('modal-lock');
+            }
+            if(!preview.current()) return false;
+            if(adapt) surfaceDrawing = ns.drawingSurfaces.apply(preview.drawing,preview.changes);
+          }
         }
+        const save = event=>(!preview || preview.current()) && handleTopSaveClick(event,{...ctx,surfaceDrawing});
         return await (ns.applicationWrite ? ns.applicationWrite.draftHandler(save)(e) : save(e));
       }finally{
         btn.disabled = false;
@@ -247,6 +263,18 @@
       }
     };
     return btn;
+  }
+
+  function cabinetSurfaceChange(draft){
+    const roomId = uiState.roomType, before = projectData[roomId], model = ns.drawingSurfaces;
+    if(isAddMode() || !model || !before?.drawing2d?.surfaces?.length) return null;
+    const id = cabinetModalState.editingId;
+    const cabinets = before.cabinets.map(row=>row.id===id ? {...draft,id} : row);
+    const changes = model.changes(before,{...before,cabinets},[id]);
+    if(!changes.length) return null;
+    const baseline = JSON.stringify(before), project = ns.projectStore?.getCurrentProjectId();
+    return {drawing:before.drawing2d,changes,current:()=>uiState.roomType===roomId && ns.projectStore?.getCurrentProjectId()===project
+      && cabinetModalState.editingId===id && cabinetModalState.draft===draft && JSON.stringify(projectData[roomId])===baseline};
   }
 
   ns.cabinetModalFinalize = {

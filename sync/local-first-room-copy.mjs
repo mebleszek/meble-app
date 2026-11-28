@@ -21,6 +21,7 @@ function ids(room){
     ...(room.layout?.segments||[]).flatMap(segment=>[segment.id,
       ...Object.values(segment.rows).flat().filter(row=>row.kind==='gap').map(row=>row.id)]),
     ...(room.drawing2d?.obstacles||[]).map(obstacle=>obstacle.id),
+    ...(room.drawing2d?.surfaces||[]).map(surface=>surface.id),
   ];
 }
 function remapRoom(room,mapping){
@@ -48,6 +49,10 @@ function remapRoom(room,mapping){
   }
   for(const placement of next.drawing2d?.placements||[])placement.cabinetId=mapped(placement.cabinetId);
   for(const obstacle of next.drawing2d?.obstacles||[])obstacle.id=mapped(obstacle.id);
+  for(const surface of next.drawing2d?.surfaces||[]){
+    surface.id=mapped(surface.id);
+    for(const section of surface.sections)section.cabinetIds=section.cabinetIds.map(mapped);
+  }
   if(next.layout?.activeSegmentId)next.layout.activeSegmentId=mapped(next.layout.activeSegmentId);
   // Unknown identity-bearing extensions require a contract before copying.
   function check(value){

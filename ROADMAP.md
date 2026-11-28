@@ -513,7 +513,7 @@ Osobno zabezpieczyć klucze usług zewnętrznych (np. ORS) — nie trzymać sekr
 **Decyzja właściciela 26.11.2026.** Zbudować RYSUNEK 2D od podstaw w miejscu dotychczasowej zakładki. Kierunek wyznaczają zaakceptowane grafiki: kanciaste techniczne obrysy i czytelne wymiary, rozwijane narzędzia u góry, przełączany panel po prawej na komputerze i u dołu na telefonie.
 
 1. Zatwierdzony pierwszy pakiet obejmuje wspólny rzut i widoki ścian, łączenie ścian, układanie istniejących szafek, obrót, przyciąganie i zapis układu w pomieszczeniu. Scenariusz odbioru to kuchnia w L.
-2. Dalszy zakres obejmuje przeszkody, w tym okna, futryny i kaloryfery, oraz wykończenia i wyposażenie blatu. Sposób powiązania zlewu i płyty z wycięciem pozostaje do uzgodnienia.
+2. Dalszy zakres obejmuje przeszkody, w tym okna, futryny i kaloryfery, oraz wykończenia i wyposażenie blatu. W etapie zatwierdzonym 28.11.2026 wspólne narzędzie obsługuje blaty, panele LED i panele ścienne. Element może mieć mocowanie do jednej lub kilku szafek albo do ściany. Zmiana szafki, która wpływa na powiązany element, wyświetla propozycję dopasowania z wyborem „Tak, dostosuj” albo „Nie, zachowaj”. Sposób powiązania zlewu i płyty z wycięciem pozostaje do uzgodnienia.
 3. Przekazywanie wymiarów i ilości do WYCENY, w tym dla LED i GOLA, wymaga potwierdzonych reguł geometrii i rozliczenia.
 
 **Odzyskiwanie RYSUNKU 2D.** Każdy wdrożony element rysunku należy do konkretnego projektu i pomieszczenia. „Pobierz najnowszą wersję” ma odtworzyć rysunek z potwierdzonej rewizji. „Zachowaj kopię pomieszczenia” ma zachować jego rysunek i przepiąć odwołania do skopiowanych szafek. WYCENĘ można przeliczyć po odzyskaniu pomieszczenia. ROZRYS formatek pozostaje osobnym modułem.

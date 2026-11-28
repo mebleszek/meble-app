@@ -126,6 +126,27 @@
 .drawing2d-color .drawing2d-cabinet-lower, .drawing2d-texture .drawing2d-cabinet-lower { --drawing2d-fill: #d6bb95; }
 .drawing2d-front { stroke: #27383d; stroke-width: 2; pointer-events: none; }
 .drawing2d-join { fill: #087b70; stroke: #fff; stroke-width: 1.5; pointer-events: none; }
+.drawing2d-surface { --surface-color: #865728; cursor: pointer; }
+.drawing2d-surface-led { --surface-color: #246777; }
+.drawing2d-surface-wall { --surface-color: #665286; }
+.drawing2d-outline .drawing2d-surface { --surface-color: #46595c; }
+.drawing2d-surface-face {
+  fill: var(--surface-color);
+  fill-opacity: .12;
+  stroke: var(--surface-color);
+  stroke-width: 2;
+  pointer-events: stroke;
+}
+.drawing2d-surface.is-selected .drawing2d-surface-face { stroke-width: 3; stroke-dasharray: 6 2; }
+.drawing2d-surface.is-preview { opacity: .65; pointer-events: none; }
+.drawing2d-surface.is-preview .drawing2d-surface-face { stroke-dasharray: 6 4; pointer-events: none; }
+.drawing2d-surface-seam { stroke: #513717; stroke-width: 2; stroke-dasharray: 3 2; pointer-events: none; }
+.drawing2d-surface-size, .drawing2d-surface-cabinets { margin: 0; min-width: 0; padding: 8px; border: 1px solid var(--drawing-line); }
+.drawing2d-surface-size { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 4px 8px; }
+.drawing2d-surface-cabinets label { display: flex; align-items: center; gap: 8px; margin: 0; }
+.drawing2d-surface-cabinets input[type="checkbox"] { width: 20px; height: 20px; min-height: 0; flex: 0 0 auto; }
+.confirm-message--lines { max-height: min(48dvh,24rem); overflow-y: auto; }
+.confirm-message--lines p { margin: 0 0 6px; }
 .drawing2d-wall-preview { pointer-events: none; }
 .drawing2d-preview-line { stroke: #087b70; stroke-width: 3; stroke-dasharray: 7 5; }
 .drawing2d-preview-arrow { fill: #087b70; }

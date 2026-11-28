@@ -1,7 +1,6 @@
 (function(root){
   'use strict';
   const FC = root.FC = root.FC || {};
-  const doc = root.document;
   const screens = new WeakMap();
   const blank = () => ({version:1,walls:[],placements:[],obstacles:[]});
   const title = cab => cab.name || [cab.type,cab.subType,Math.round(Number(cab.width)*10)+' mm'].filter(Boolean).join(' · ');
@@ -13,41 +12,10 @@
     releaseEditor = null;
   }
 
-  function node(tag,attrs={},text){
-    const element = doc.createElement(tag);
-    for(const [key,value] of Object.entries(attrs)) element.setAttribute(key,value);
-    if(text) element.textContent = text;
-    return element;
-  }
-
-  function button(text,action,value,pressed){
-    const attrs = {type:'button','data-drawing-action':action};
-    if(value!==undefined) attrs['data-value'] = String(value);
-    if(pressed!==undefined) attrs['aria-pressed'] = pressed;
-    return node('button',attrs,text);
-  }
-
-  function menu(name,icon,buttons){
-    const group = node('details',{class:'drawing2d-menu'});
-    group.append(node('summary',{'aria-label':name},icon+' '+name));
-    const body = node('div');
-    body.append(...buttons);
-    group.append(body);
-    return group;
-  }
-
-  function field(form,label,name,value,min){
-    const wrapper = node('label',{},label+' (mm)');
-    const attrs = {type:'number',inputmode:min===undefined?'decimal':'numeric',name,step:1,required:''};
-    if(min!==undefined) attrs.min = min;
-    const input = node('input',attrs);
-    input.value = value ?? '';
-    wrapper.append(input);
-    form.append(wrapper);
-  }
-
   function render(host,roomId){
     unmount();
+    const {node,button,field,submitBar,wallField,toolbar} = FC.drawingEditorControls;
+    const surfaceUI = FC.drawingSurfaceControls, surfaces = FC.drawingSurfaces;
     const storage = FC.drawingStorage, G = FC.drawingGeometry, owner = storage.scope(roomId);
     const renderer = FC.drawingCanvas, mobile = FC.drawingMobile, media = root.matchMedia('(max-width: 760px)');
     const fingerprint = JSON.stringify([owner.investor,owner.project,owner.room]);
@@ -65,8 +33,8 @@
       observer?.disconnect();
       restoreChrome();
     };
-    const roomName = doc.getElementById('drawingRoomName');
-    if(roomName) roomName.textContent = doc.getElementById('roomTitle')?.textContent || 'Pomieszczenie';
+    const roomName = root.document.getElementById('drawingRoomName');
+    if(roomName) roomName.textContent = root.document.getElementById('roomTitle')?.textContent || 'Pomieszczenie';
     FC.views?.refreshSessionButtons?.();
 
     function draw(){
@@ -92,11 +60,13 @@
       if(!wall || (state.obstacle?.id && !obstacles.some(item=>item.o.id===state.obstacle.id))) state.obstacle = null;
       warnings = G.warnings(items,obstacles);
       observer?.disconnect();
-      shell.replaceChildren(toolbar(),views());
+      shell.replaceChildren(toolbar({walls,wall,obstacles,items,media,state,G}),views());
       work = node('div',{class:'drawing2d-work'});
       stage = node('div',{class:'drawing2d-stage'});
       paintOptions = {walls,wall:visibleWall,items,obstacles,selected:state.selected,selectedObstacle:state.obstacle?.id,
-        warnings,mode:state.mode,zoom:state.zoom,preview:wallPreview()};
+        warnings,mode:state.mode,zoom:state.zoom,preview:wallPreview(),selectedSurface:state.surface?.id,
+        surfaces:[...(drawing.surfaces||[]),...(state.panel==='properties' && !state.surface?.id && state.surface?.sections.length
+          ? [{...state.surface,preview:true}] : [])]};
       canvas = renderer.paint(stage,paintOptions);
       const frame = canvas?.getAttribute('viewBox').split(' ').map(Number);
       camera = canvas && media.matches ? mobile.camera(stage,canvas,frame,state,label=>{
@@ -130,53 +100,6 @@
       }
     }
 
-    function toolbar(){
-      const bar = node('div',{class:'drawing2d-tools','aria-label':'Narzędzia rysunku'});
-      const wallActions = walls.length ? [
-        button('Zmień wymiary','wall-form','edit'),
-        ...(media.matches || wall===walls[0] ? [button('Dodaj z lewej','wall-form','left')] : []),
-        ...(media.matches || wall===walls.at(-1) ? [button('Dodaj z prawej','wall-form','right')] : [])
-      ] : [button('Dodaj pierwszą ścianę','wall-form','first')];
-      bar.append(menu('Widok','◉',[['outline','Bez kolorów'],['color','Kolory'],['texture','Tekstury']]
-        .map(([value,label])=>button(label,'mode',value,state.mode===value))),
-        menu('Ściany','▱',wallActions));
-      const addObstacles = Object.entries({window:'Dodaj okno',door:'Dodaj futrynę',radiator:'Dodaj kaloryfer'}).map(([kind,label])=>{
-        const el = button(label,'add-obstacle',kind);
-        el.disabled = !wall;
-        return el;
-      });
-      const obstacleMenu = menu('Przeszkody','▣',[...addObstacles,...obstacles.map(({o,label})=>
-        button(`Edytuj · ${label} · ${G.wallName(o.wallId)} · ${o.along} mm`,'edit-obstacle',o.id))]);
-      obstacleMenu.classList.add('drawing2d-obstacle-menu');
-      bar.append(obstacleMenu);
-      const hasSelection = items.some(item=>item.p.cabinetId===state.selected);
-      const snap = [['edge','Do krawędzi'],['corner','Do narożnika'],['off','Wyłącz']]
-        .map(([value,label])=>button(label,'snap',value,state.snap===value));
-      if(media.matches){
-        const selectedActions = [button('Edytuj szafkę','edit'),button('Edytuj położenie','properties'),
-          button('Obróć 90° w lewo','rotate',-1),button('Obróć 90° w prawo','rotate',1)];
-        for(const control of selectedActions) control.disabled = !hasSelection;
-        const more = menu('Więcej','⋯',[
-          node('strong',{},'Zaznaczona szafka'),...selectedActions,node('strong',{},'Przyciąganie'),...snap
-        ]);
-        more.classList.add('drawing2d-more');
-        bar.append(more);
-      }else if(hasSelection){
-        bar.append(menu('Szafka','▤',[button('Edytuj szafkę','edit'),button('Edytuj położenie','properties')]),
-          menu('Obrót','↻',[button('90° w lewo','rotate',-1),button('90° w prawo','rotate',1)]));
-      }
-      if(!media.matches) bar.append(menu('Przyciąganie','⊣',snap));
-      const zoomOut = button('−','zoom',-25), zoomIn = button('+','zoom',25);
-      zoomOut.setAttribute('aria-label','Pomniejsz'); zoomIn.setAttribute('aria-label','Powiększ');
-      const controls = node('div',{class:'drawing2d-view-tools','aria-label':'Skala i historia'});
-      const undo = button('Cofnij','undo');
-      undo.disabled = !state.history.length;
-      controls.append(zoomOut,node('span',{class:'drawing2d-zoom'},(media.matches?state.mobileZoom:state.zoom)+'%'),zoomIn,
-        button('Dopasuj','fit'),undo);
-      bar.append(controls);
-      return bar;
-    }
-
     function views(){
       const nav = node('nav',{class:'drawing2d-views','aria-label':'Widoki rysunku'});
       nav.append(button('Rzut z góry','view',0,!state.view));
@@ -202,24 +125,11 @@
       return form;
     }
 
-    function submitBar(label){
-      const footer = node('div',{class:'drawing2d-form-footer'});
-      footer.append(node('button',{type:'submit',class:'drawing2d-primary'},label));
-      return footer;
-    }
-
-    function wallField(form,wallId){
-      const wallLabel = node('label',{},'Ściana'), select = node('select',{name:'wallId'});
-      for(const row of walls) select.append(node('option',{value:row.id},G.wallName(row.id)));
-      select.value = String(wallId);
-      wallLabel.append(select); form.append(wallLabel);
-    }
-
     function positionForm(item){
       const form = node('form',{'data-drawing-form':'position'});
       const fields = node('div',{class:'drawing2d-form-fields'});
       fields.append(node('h3',{},item.label));
-      wallField(fields,item.p.wallId);
+      wallField(fields,item.p.wallId,walls);
       field(fields,'Od początku ściany','along',item.p.along);
       field(fields,'Od ściany','inset',item.p.inset);
       field(fields,'Od podłogi','elevation',item.p.elevation);
@@ -237,7 +147,7 @@
       const form = node('form',{'data-drawing-form':'obstacle'});
       const fields = node('div',{class:'drawing2d-form-fields'});
       fields.append(node('h3',{},G.obstacleNames[kind]));
-      wallField(fields,obstacle.wallId ?? wall.id);
+      wallField(fields,obstacle.wallId ?? wall.id,walls);
       field(fields,'Od początku ściany','along',obstacle.along,0);
       field(fields,'Szerokość','width',obstacle.width,1);
       field(fields,'Wysokość','height',obstacle.height,1);
@@ -280,6 +190,8 @@
       aside.append(tabs);
       const content = node('div',{class:'drawing2d-panel-content'});
       if(state.panel==='cabinet-list') content.append(cabinetList());
+      else if(state.panel==='surface-list') content.append(surfaceUI.list(drawing,!!wall));
+      else if(state.surface) content.append(surfaceUI.form(state.surface,{items,walls}));
       else if(state.obstacle) content.append(obstacleForm());
       else if(state.wallForm) content.append(wallForm());
       else {
@@ -299,6 +211,15 @@
       busy = true;
       shell.setAttribute('aria-busy','true');
       try{
+        const proposals = complete===finishUndo ? [] : surfaces.moved(room,next);
+        if(proposals.length){
+          const beforeRoom = JSON.stringify(room);
+          const adapt = await surfaces.ask(proposals);
+          if(!host.contains(shell) || !storage.current(owner) || JSON.stringify(root.projectData[roomId])!==beforeRoom){
+            throw Object.assign(Error('Zmienił się kontekst rysunku.'),{code:'LF_DRAWING_CONTEXT_CHANGED'});
+          }
+          if(adapt) next = surfaces.apply(next,proposals);
+        }
         const saved = await storage.save(owner,next);
         if(!saved) message = 'Zmiana układu nie została potwierdzona.';
         else{
@@ -325,6 +246,7 @@
       if(state.history.length) state.history.at(-1).after = JSON.stringify(root.projectData[roomId].drawing2d);
       state.wallForm = null;
       state.obstacle = null;
+      state.surface = null;
       if(!root.projectData[roomId].drawing2d?.placements.some(p=>p.cabinetId===state.selected)) state.selected = null;
       state.camera = null;
     }
@@ -350,6 +272,7 @@
 
     function select(item,showPanel){
       state.selected = item.p.cabinetId;
+      state.surface = null;
       state.obstacle = null;
       state.wallForm = null;
       state.wallDraft = null;
@@ -373,7 +296,7 @@
     }
 
     const actions = {
-      view(value){state.view=Number(value);if(state.view)state.wall=state.view;state.selected=null;state.wallForm=null;state.wallDraft=null;state.obstacle=null;state.camera=null;},
+      view(value){state.view=Number(value);if(state.view)state.wall=state.view;state.selected=null;state.wallForm=null;state.wallDraft=null;state.obstacle=null;state.surface=null;state.camera=null;},
       mode(value){state.mode=value;},snap(value){state.snap=value;},
       zoom(value){
         if(media.matches){camera?.zoom(state.mobileZoom+Number(value));return false;}
@@ -391,6 +314,7 @@
       },
       'wall-form'(value){
         state.wallForm=value;
+        state.surface=null;
         state.wallDraft=null;
         state.obstacle=null;
         state.panel='properties';
@@ -404,6 +328,23 @@
         }
       },
       'add-obstacle'(kind){selectObstacle({kind});},
+      'surface-list'(){state.panel='surface-list';state.mobilePanel=true;},
+      'add-surface'(kind){openSurface(surfaceUI.create(room,wall.id,kind,state.selected));},
+      'edit-surface'(id){
+        const surface = drawing.surfaces?.find(row=>row.id===id);
+        if(surface) openSurface(surfaceUI.edit(surface));
+      },
+      'fit-surface'(){
+        const next = surfaces.refit(state.surface,room);
+        if(next) state.surface.sections = next.sections;
+      },
+      'remove-surface'(id){
+        void commit({...drawing,surfaces:drawing.surfaces.filter(row=>row.id!==id)},()=>{
+          state.surface=null;
+          state.panel='surface-list';
+        });
+        return false;
+      },
       'edit-obstacle'(id){
         const item = obstacles.find(item=>item.o.id===id);
         if(item) selectObstacle(item.o);
@@ -416,7 +357,7 @@
       panel(value){state.panel=value;state.mobilePanel=true;},
       'panel-close'(){state.mobilePanel=false;},
       'panel-size'(){mobile.setPanelRatio(work,state,state.panelRatio>.5?.36:.70);return false;},
-      properties(){state.wallForm=null;state.panel='properties';state.mobilePanel=true;},
+      properties(){state.wallForm=null;state.surface=null;state.panel='properties';state.mobilePanel=true;},
       cabinet(value){place(value);return false;},
       edit(){if(state.selected && storage.current(owner))FC.cabinetModal.openCabinetModalForEdit(state.selected);return false;},
       rotate(value){
@@ -430,8 +371,17 @@
         return false;
       }
     };
+    function openSurface(draft){
+      state.surface=draft;
+      state.selected=null;
+      state.wallForm=null;
+      state.obstacle=null;
+      state.panel='properties';
+      state.mobilePanel=true;
+    }
     function selectObstacle({id,kind,wallId}){
       state.selected = null;
+      state.surface = null;
       state.wallForm = null;
       state.wallDraft = null;
       state.obstacle = {id,kind};
@@ -461,6 +411,12 @@
       state.wallDraft[event.target.name] = event.target.value;
       if(event.target.name==='length') updatePreview();
     });
+    shell.addEventListener('change',event=>{
+      const form = event.target.closest('[data-drawing-form="surface"]');
+      if(!form || !['support','source','wallId','plane'].includes(event.target.name) || busy) return;
+      surfaceUI.setSupports(state.surface,room,new FormData(form));
+      draw();
+    });
     shell.addEventListener('submit',event=>{
       event.preventDefault();
       if(busy) return;
@@ -486,6 +442,10 @@
         const records = drawing.obstacles||[];
         const obstacles = current.id ? records.map(o=>o.id===id?next:o) : [...records,next];
         void commit({...drawing,obstacles},()=>selectObstacle(next));
+      }else if(form.dataset.drawingForm==='surface'){
+        const next = surfaceUI.read(state.surface,room,data), rows = drawing.surfaces||[];
+        const updated = rows.some(row=>row.id===next.id) ? rows.map(row=>row.id===next.id?next:row) : [...rows,next];
+        void commit({...drawing,surfaces:updated},()=>openSurface(surfaceUI.edit(next)));
       }else{
         const p = items.find(row=>row.p.cabinetId===state.selected)?.p;
         if(!p) return;
@@ -544,6 +504,7 @@
       if(media.matches) mobile.wirePointers(surface,state,camera,{busy:()=>busy,begin:beginDrag,move:moveDrag,
         finish:finishDrag,cancel:()=>{if(drag) cancelDrag(false);},select(target){
           if(target.dataset.cabinet) select(items.find(item=>item.p.cabinetId===target.dataset.cabinet),true);
+          else if(target.dataset.surface) actions['edit-surface'](target.dataset.surface);
           else actions['edit-obstacle'](target.dataset.obstacle);
           draw();
         }});
@@ -567,12 +528,16 @@
         surface.addEventListener('pointercancel',discardCapturedDrag);
         surface.addEventListener('lostpointercapture',discardCapturedDrag);
         surface.addEventListener('click',event=>{
+          const profile = event.target.closest('[data-surface]')?.dataset.surface;
+          if(!busy && profile){actions['edit-surface'](profile);draw();return;}
           const id = event.target.closest('[data-obstacle]')?.dataset.obstacle;
           if(!busy && id){actions['edit-obstacle'](id);draw();}
         });
       }
       surface.addEventListener('keydown',event=>{
         if(busy || !['Enter',' '].includes(event.key)) return;
+        const profile = event.target.closest('[data-surface]')?.dataset.surface;
+        if(profile){event.preventDefault();actions['edit-surface'](profile);draw();return;}
         const obstacle = event.target.closest('[data-obstacle]')?.dataset.obstacle;
         if(obstacle){event.preventDefault();actions['edit-obstacle'](obstacle);draw();return;}
         const id = event.target.closest('[data-cabinet]')?.dataset.cabinet;

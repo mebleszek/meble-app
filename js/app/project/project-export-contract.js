@@ -109,11 +109,18 @@
     if(!Number.isSafeInteger(value.along+value.width)||!Number.isSafeInteger(value.elevation+value.height))bad(p);
     return value;
   };
+  const surfaceGeometry=fields('along inset elevation length depth height',millimeters);
+  const surfaceSection=shape({...fields('wallId length depth height',wallMeasure),
+    ...fields('along inset elevation',millimeters),cabinetIds:array(ident),
+    offsets:shape(surfaceGeometry,Object.keys(surfaceGeometry))},
+    ['wallId','cabinetIds',...Object.keys(surfaceGeometry)]);
+  const surface=shape({id:ident,kind:oneOf(['countertop','led','wall']),plane:oneOf(['horizontal','vertical']),
+    sections:array(surfaceSection)},['id','kind','sections']);
   const drawing2d=shape({version:oneOf([1]),
     walls:array(shape(fields('id length height',wallMeasure),['id','length','height'])),
     placements:array(shape({cabinetId:ident,wallId:wallMeasure,...fields('along inset elevation',millimeters),rotation:oneOf([0,1,2,3])},
       ['cabinetId','wallId','along','inset','elevation','rotation'])),
-    obstacles:array(obstacle)},['version','walls','placements']);
+    obstacles:array(obstacle),surfaces:array(surface)},['version','walls','placements']);
   const room=shape({cabinets:array(cabinet),fronts:array(front),sets:array(set),settings:shape(fields('roomHeight bottomHeight legHeight counterThickness gapHeight ceilingBlende',numeric)),preferences,production,layout,drawing2d},['cabinets','fronts','sets','settings','preferences']);
   const roomDef=shape({id:ident,...fields('baseType name label projectStatus lastManualProjectStatus',text),legacy:boolean},['id','baseType','name','label']);
   const meta=shape({assignedInvestorId:ident,productionPcvMode:oneOf(['project']),roomOrder:array(ident),roomDefs:dict(roomDef),projectStatus:text},['assignedInvestorId','productionPcvMode','roomOrder','roomDefs']);
@@ -340,6 +347,17 @@
     unique((value.obstacles||[]).map(obstacle=>obstacle.id),p);
     for(const obstacle of value.obstacles||[]){
       if(cabinets.has(obstacle.id)||!walls.has(obstacle.wallId))fail('EXPORT_INVALID_REFERENCE',p);
+    }
+    const surfaceIds = (value.surfaces||[]).map(surface=>surface.id);
+    unique([...surfaceIds,...(value.obstacles||[]).map(obstacle=>obstacle.id)],p);
+    for(const surface of value.surfaces||[]){
+      if(cabinets.has(surface.id)||!surface.sections.length || (surface.plane && surface.kind!=='led'))fail('EXPORT_INVALID_REFERENCE',p);
+      unique(surface.sections.flatMap(section=>section.cabinetIds),p);
+      for(const section of surface.sections){
+        if(!walls.has(section.wallId)||section.cabinetIds.some(id=>!cabinets.has(id))
+          ||!!section.offsets!==!!section.cabinetIds.length)fail('EXPORT_INVALID_REFERENCE',p);
+        if(![section.along+section.length,section.inset+section.depth,section.elevation+section.height].every(Number.isSafeInteger))bad(p);
+      }
     }
   }
   function validateDrawing(value,cabinets){

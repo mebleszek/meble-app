@@ -249,6 +249,10 @@ test('Allowed nested preferences/layout and source metadata do not collapse busi
    {id:'window-test',kind:'window',wallId:1,along:200,width:920,height:560,elevation:990},
    {id:'door-test',kind:'door',wallId:2,along:1400,width:850,height:2020,elevation:0},
    {id:'radiator-test',kind:'radiator',wallId:1,along:520,width:600,height:540,elevation:140,depth:180}
+  ],surfaces:[
+   {id:'counter-test',kind:'countertop',sections:[{wallId:1,cabinetIds:['one'],along:250,inset:0,elevation:920,
+    length:600,depth:545,height:38,offsets:{along:0,inset:0,elevation:0,length:0,depth:35,height:0}}]},
+   {id:'panel-test',kind:'wall',sections:[{wallId:2,cabinetIds:[],along:100,inset:0,elevation:900,length:1200,depth:18,height:500}]}
   ]};
  const r=fixture();r.mutate(p=>{
   const room=p.projectData.kuchnia;room.preferences.finishStandard='TEST';room.preferences.zones.lower.bodyColor='CUSTOM TEST';room.preferences.hardwareProducers.hinges='TEST HW';
@@ -266,7 +270,9 @@ test('Allowed nested preferences/layout and source metadata do not collapse busi
  const copied=prepareRoomCopy({rows:r.rows(),baseline:{document:{payload:{project:source}}},scope:'A',
   roomId:'kuchnia',name:'Kuchnia — kopia',validateRoom:value=>r.FC.projectExportContract.validateOwnedRoom(value),newId:()=>`copy-${++nextId}`});
  assert.deepEqual(copied.room.drawing2d,{...drawing,placements:[{...drawing.placements[0],cabinetId:copied.mapping.one}],
-  obstacles:drawing.obstacles.map(obstacle=>({...obstacle,id:copied.mapping[obstacle.id]}))});
+  obstacles:drawing.obstacles.map(obstacle=>({...obstacle,id:copied.mapping[obstacle.id]})),
+  surfaces:drawing.surfaces.map(surface=>({...surface,id:copied.mapping[surface.id],sections:surface.sections.map(section=>
+    ({...section,cabinetIds:section.cabinetIds.map(id=>copied.mapping[id])}))}))});
  assert.deepEqual(r.row().projectData.kuchnia.drawing2d,drawing);
  const [window,door,radiator]=drawing.obstacles;
  const invalid=[
@@ -279,6 +285,12 @@ test('Allowed nested preferences/layout and source metadata do not collapse busi
  ];
  for(const obstacles of invalid)assert.throws(()=>r.FC.projectExportContract.validateDrawing(
   {...drawing,obstacles},source.projectData.kuchnia.cabinets),e=>e.exportFailure===true);
+ const [surface]=drawing.surfaces,[section]=surface.sections;
+ for(const bad of [{...section,cabinetIds:['missing']},{...section,cabinetIds:['one','one']},
+  {...section,wallId:999},{...section,depth:0},{...section,cabinetIds:[]},{...section,offsets:undefined}]){
+  assert.throws(()=>r.FC.projectExportContract.validateDrawing(
+   {...drawing,surfaces:[{...surface,sections:[bad]}]},source.projectData.kuchnia.cabinets),e=>e.exportFailure===true);
+ }
  r.mutate(p=>p.projectData.kuchnia.layout.segments[0].rows.base[0].id='missing');await refused(r,'EXPORT_INVALID_REFERENCE');
 });
 test('Malformed investor RAW, denied context/session reads and missing guard modules refuse safely',async()=>{

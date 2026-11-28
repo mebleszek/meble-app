@@ -123,10 +123,53 @@
     svg('title',{},group,[item.label,...(warnings.get(p.cabinetId)||[])].join(' '));
   }
 
-  function frame({walls,items,obstacles,wall,preview}){
+  function surfaceBoxes({walls,wall,surfaces=[]}){
+    const G = FC.drawingGeometry, byWall = new Map(walls.map(row=>[row.id,row]));
+    return surfaces.flatMap(surface=>surface.sections.flatMap(section=>{
+      const support = byWall.get(section.wallId);
+      if(!support || (wall && wall.id!==section.wallId)) return [];
+      const box = wall ? {left:section.along,right:section.along+section.length,
+        top:wall.height-section.elevation-section.height,bottom:wall.height-section.elevation}
+        : G.planBox(support,section,{span:section.length,depth:section.depth});
+      return [{surface,section,box}];
+    }));
+  }
+
+  function paintSurfaces(canvas,options){
+    const M = FC.drawingSurfaces;
+    const rows = surfaceBoxes(options);
+    for(const {surface,section,box} of rows){
+      const {left,right,top,bottom} = box;
+      const name = M.names[surface.kind], width = right-left, height = bottom-top;
+      const nameAndWall = name+' · '+FC.drawingGeometry.wallName(section.wallId);
+      const attributes = {class:`drawing2d-surface drawing2d-surface-${surface.kind}${surface.id===options.selectedSurface?' is-selected':''}`};
+      if(surface.preview) attributes.class += ' is-preview';
+      else Object.assign(attributes,{'data-surface':surface.id,role:'button',tabindex:0,
+        'aria-label':nameAndWall,'aria-pressed':surface.id===options.selectedSurface});
+      const group = svg('g',attributes,canvas);
+      svg('rect',{x:left,y:top,width,height,class:'drawing2d-surface-face'},group);
+      if(options.wall && width>=350 && height>=150) label(group,(left+right)/2,(top+bottom)/2,name);
+      svg('title',{},group,`${nameAndWall} · ${section.length} × ${M.horizontal(surface)?section.depth:section.height} mm`);
+    }
+    if(options.wall) return;
+    for(const [index,a] of rows.entries()){
+      if(a.surface.kind!=='countertop') continue;
+      for(const b of rows.slice(index+1)){
+        if(a.surface!==b.surface || a.section.elevation!==b.section.elevation) continue;
+        const p=a.box,q=b.box;
+        const left=Math.max(p.left,q.left), right=Math.min(p.right,q.right);
+        const top=Math.max(p.top,q.top), bottom=Math.min(p.bottom,q.bottom);
+        if(left===right && bottom>top) line(canvas,left,top,right,bottom,'drawing2d-surface-seam');
+        if(top===bottom && right>left) line(canvas,left,top,right,bottom,'drawing2d-surface-seam');
+      }
+    }
+  }
+
+  function frame({walls,items,obstacles,wall,preview,surfaces}){
     const corners = [
       ...items.filter(item=>!wall || item.p.wallId===wall.id).map(item=>itemBox(item,wall)),
-      ...obstacles.filter(item=>!wall || item.o.wallId===wall.id).map(item=>obstacleBox(item,wall))
+      ...obstacles.filter(item=>!wall || item.o.wallId===wall.id).map(item=>obstacleBox(item,wall)),
+      ...surfaceBoxes({walls,wall,surfaces}).map(row=>row.box)
     ];
     if(wall){
       corners.push({left:0,top:0,right:wall.length,bottom:wall.height+120});
@@ -178,6 +221,7 @@
     if(wall) elevationWall(canvas,wall);
     else walls.forEach(row=>planWall(canvas,row));
     for(const item of visible) cabinet(canvas,item,wall,options);
+    paintSurfaces(canvas,options);
     for(const item of visibleObstacles) obstacle(canvas,item,wall,options);
     paintPreview(canvas,preview);
     labels?.observe(canvas);
