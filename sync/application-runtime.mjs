@@ -30,7 +30,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
  w.__FC_MAIN_ACCESS__.assert();
  const keys=applicationKeys(fc);
  onStage('checking-installation');const installation=await applicationInstallation({window:w,ownerUid,name,keys,sourceRead:boot?.readNative,heldRelease:boot?.release,release:deployment,migration:boot?.migration,p0bDemo:p0bEnabled});
- let store,sync,authority,boundary,deletion,p0b,manualSync,closed=false,authorityReady=false,incomingBlocked=false,recoveryReading=false,updateChecking=false;const states=[];let wakeHandovers=()=>{},wakeReceives=()=>{};
+ let store,sync,authority,boundary,deletion,p0b,manualSync,closed=false,authorityReady=false,incomingBlocked=false,recoveryReading=false,updateChecking=false;const states=[];let wakeHandovers=()=>{},wakeReceives=()=>{},stopPanelWake=()=>{};
  const state=(value,error)=>{try{onDiagnostic({ok:value.ok===true,code:error?.code||error?.message||value.code,projectTransferBlocked:value.scope==='project-transfer-blocked'});}catch(_){}if(['LF_ACTIVE_FORM_PROTECTED','LF_ACTIVE_RAM_PROTECTED'].includes(value.code)||value.reason==='LF_P0B_DELETION_RECOVERY_REQUIRED')incomingBlocked=true;states.push(copy(value));if(states.length>12)states.shift();if(value.ok)wakeHandovers();else if(p0b&&['LF_EDITOR_CONFLICT','LF_P0B_EDITOR_CONFLICT','LF_ACK_UNRESOLVED'].includes(value.code))void p0b.canRecover(value).then(ok=>{if(ok&&w.document.body.dataset.businessState==='ready')return p0b.offerRecovery();}).catch(()=>{});};
  try{
   onStage('opening-idb');store=await openLocalFirstStore({...installation.binding,indexedDB:w.indexedDB,locks:w.navigator.locks});
@@ -220,6 +220,7 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
   wakeReceives=wakeReceive;
   w.addEventListener('click',wakeReceive,{capture:true,passive:true});
   w.addEventListener('meble-panel-closed',wakeReceive);
+  stopPanelWake=()=>w.removeEventListener('meble-panel-closed',wakeReceive);
   const bind=async()=>{
    fc.localDeviceLabel=createLocalDeviceLabel({storage:w.localStorage,deviceId:store.deviceId,navigator:w.navigator,assertAccess(){
     if(closed)fail('LF_CLOSED');w.__FC_MAIN_ACCESS__.assert();
@@ -284,10 +285,10 @@ export async function startApplicationRuntime({window:w,writer,reader,name,owner
      &&!(result.code==='LF_ACTIVE_RAM_PROTECTED'&&await authority.canResumeProtectedDraft())&&!await p0b?.canRecover(result)){state(result);fail(result.code);}
     await handovers.resume(projectScopes());if(p0b)void p0b.offerRecovery();
    },
-   close(){closed=true;sync?.close();deletion?.close();p0b?.close();manualSync?.close();boundary.close();authority.close();w.removeEventListener('online',reconnected);w.removeEventListener('meble-sync-authorized',authorized);w.removeEventListener('meble-sync-unconfirmed',unconfirmed);w.removeEventListener('click',wakeReceive,true);w.removeEventListener('meble-panel-closed',wakeReceive);},
-   async dispose(){closed=true;w.removeEventListener('meble-panel-closed',wakeReceive);await sync?.close();deletion?.close();p0b?.close();manualSync?.close();boundary?.close();authority?.close();store.close();await installation.release();}});
+   close(){closed=true;sync?.close();deletion?.close();p0b?.close();manualSync?.close();boundary.close();authority.close();w.removeEventListener('online',reconnected);w.removeEventListener('meble-sync-authorized',authorized);w.removeEventListener('meble-sync-unconfirmed',unconfirmed);w.removeEventListener('click',wakeReceive,true);stopPanelWake();},
+   async dispose(){closed=true;stopPanelWake();await sync?.close();deletion?.close();p0b?.close();manualSync?.close();boundary?.close();authority?.close();store.close();await installation.release();}});
  }catch(error){
-   closed=true;w.removeEventListener('meble-panel-closed',wakeReceives);let quiet=true;try{await sync?.close();}catch(_){quiet=false;}
+   closed=true;stopPanelWake();let quiet=true;try{await sync?.close();}catch(_){quiet=false;}
   for(const stop of [()=>p0b?.close(),()=>deletion?.close(),()=>manualSync?.close(),()=>boundary?.close(),()=>authority?.close(),()=>store?.close(),()=>installation.release()])try{await stop();}catch(_){quiet=false;}
   if(quiet)onFailureQuiescent();throw error;
  }
